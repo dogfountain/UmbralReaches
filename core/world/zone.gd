@@ -63,6 +63,7 @@ func _restore_kindles() -> void:
 
 
 func _process(delta: float) -> void:
+	RenderingServer.global_shader_parameter_set("sky_time", Time.get_ticks_msec() * 0.001)
 	_gloom_vis = move_toward(_gloom_vis, _gloom_target, delta * 0.8)
 	_grade_mat.set_shader_parameter("gloom", _gloom_vis)
 

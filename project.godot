@@ -84,3 +84,7 @@ push_pos={
 "type": "vec3",
 "value": Vector3(0, -500, 0)
 }
+sky_time={
+"type": "float",
+"value": 0.0
+}

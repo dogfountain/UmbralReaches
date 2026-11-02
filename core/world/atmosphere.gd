@@ -406,7 +406,9 @@ static func _swirl_vortex(env: Environment) -> void:
 		return
 	if not String(mat.shader.resource_path).ends_with("vortex.gdshader"):
 		return
-	env.sky.process_mode = Sky.PROCESS_MODE_REALTIME
+	# Radiance cubemap is TIME-less (vortex.gdshader AT_CUBEMAP_PASS). REALTIME re-rendered
+	# six identical faces every frame; QUALITY bakes once and on property change.
+	env.sky.process_mode = Sky.PROCESS_MODE_QUALITY
 	env.sky.radiance_size = Sky.RADIANCE_SIZE_256
 
 

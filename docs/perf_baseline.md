@@ -44,3 +44,17 @@ Avg already clears 120 fps at the 960-tall buffer. The gap to a stable 120 is **
 - HUD sharpness / canvas stretch (1.6). Overlay still upscales with the 3D buffer.
 - Metal driver (2.12). This baseline is Vulkan/MoltenVK only.
 - Player motion. Velocity was zeroed for the sample; walking will add CPU.
+
+## Phase 2 remeasures
+
+All later rows use exclusive fullscreen, same 1529×960 buffer, vsync off, `--perf-baseline`.
+
+### 2.1 Sky `PROCESS_MODE_QUALITY` (TIME removed from `vortex.gdshader`)
+
+QUALITY + `TIME` in the shader GGX-filters the cubemap every frame and **regressed** GPU ~2.7 ms. Spin is now `sky_time` (global uniform); cubemap pass is still TIME-less so radiance bakes once.
+
+| Point | avg fps | 1% low | GPU ms | Δ GPU vs 0.2 |
+| --- | ---: | ---: | ---: | ---: |
+| sanctuary | 196.6 | 117.5 | 4.90 | −0.30 |
+| mid-stair | 229.2 | 67.9 | 3.88 | −0.37 |
+| summit | 205.7 | 108.5 | 4.58 | −0.44 |

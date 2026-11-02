@@ -18,7 +18,7 @@ shader_parameter/intensity = 1.58
 
 [sub_resource type="Sky" id="Sky_j15d1"]
 sky_material = SubResource("ShaderMaterial_uwi7a")
-process_mode = 3
+process_mode = 1
 radiance_size = 3
 
 [resource]

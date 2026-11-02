@@ -1,6 +1,10 @@
 shader_type sky;
 render_mode use_half_res_pass;
 
+// Global instead of TIME: TIME flags the whole shader as realtime and QUALITY
+// would GGX-filter the cubemap every frame. Cubemap pass does not read this.
+global uniform float sky_time;
+
 uniform vec3 col_deep  = vec3(0.024, 0.039, 0.153); // abyss  #060A27
 uniform vec3 col_rift  = vec3(0.357, 0.176, 0.839); // rift   #5B2DD6
 uniform vec3 col_lilac = vec3(0.663, 0.545, 1.000); // lilac  #A98BFF
@@ -33,10 +37,10 @@ vec3 vortex(vec3 d) {
     float facing = dot(d, c);
     vec2 p = vec2(dot(d, r), dot(d, u)) / max(facing, 0.08);
     float rad = length(p);
-    float ang = atan(p.y, p.x) + twist * log(rad + 0.04) - TIME * spin_speed * TAU;
+    float ang = atan(p.y, p.x) + twist * log(rad + 0.04) - sky_time * spin_speed * TAU;
     vec2 q = vec2(cos(ang), sin(ang)) * rad;
     float clouds = fbm(q * arm_scale + 3.0);
-    float fil = 1.0 - abs(2.0 * fbm(q * detail_scale - TIME * 0.02) - 1.0); // ridged filaments
+    float fil = 1.0 - abs(2.0 * fbm(q * detail_scale - sky_time * 0.02) - 1.0); // ridged filaments
     float arms = clouds * 0.75 + fil * fil * 0.4;
     float m = smoothstep(0.4, 0.95, arms)
             * smoothstep(1.6, 0.2, rad) * smoothstep(0.0, 0.15, facing);

@@ -274,7 +274,7 @@ func _environment() -> void:
 	sky_mat.set_shader_parameter("intensity", 1.45)   # 2.2 clipped to white once glow and fog stacked on it
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
-	sky.process_mode = Sky.PROCESS_MODE_REALTIME
+	sky.process_mode = Sky.PROCESS_MODE_QUALITY
 	sky.radiance_size = Sky.RADIANCE_SIZE_256
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
