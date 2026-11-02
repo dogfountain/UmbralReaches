@@ -1,3 +1,4 @@
+class_name StoneBodies
 extends RefCounted
 ## Runtime: every stone prop uses the updated stone albedo/normal and blocks the wanderer.
 ## No rebake. Walkable slabs (path, stair, ramps) already have bodies and stay walkable.

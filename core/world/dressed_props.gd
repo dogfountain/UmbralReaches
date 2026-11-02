@@ -1,3 +1,4 @@
+class_name DressedProps
 extends RefCounted
 ## Swaps the baked cylinders and boxes for the Blender lantern, brazier, and menhir.
 ## Runs on the already-seated scene so main.tscn does not have to be rebaked.
@@ -113,10 +114,10 @@ static func dress_zone(root: Node) -> void:
 		stones += _dress_standing(ruins, false)
 	if lamps > 0 or stones > 0:
 		print("DRESS lanterns=%d stones=%d" % [lamps, stones])
-	load("res://core/world/demo_dress.gd").dress(root)
-	load("res://core/world/stone_bodies.gd").harden(root)
-	load("res://core/world/night_dress.gd").dress(root)
-	load("res://core/world/summit_dress.gd").dress(root)
+	DemoDress.dress(root)
+	StoneBodies.harden(root)
+	NightDress.dress(root)
+	SummitDress.dress(root)
 
 
 static func _dress_lamp(lamp: Node) -> void:
@@ -235,9 +236,9 @@ static func _place_menhir(parent: Node, foot: Vector3, yaw: float, height: float
 		model.rotate_y(PI)
 	else:
 		model.rotation.y = yaw
-	var stone: Material = load("res://core/world/stone_bodies.gd").material_for(parent)
+	var stone: Material = StoneBodies.material_for(parent)
 	_paint(model, "Stone", stone if stone != null else mat)
-	load("res://core/world/stone_bodies.gd").solidify(model as Node3D)
+	StoneBodies.solidify(model as Node3D)
 	_moss(model as Node3D, height)
 
 

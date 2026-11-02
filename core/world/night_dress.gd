@@ -1,3 +1,4 @@
+class_name NightDress
 extends RefCounted
 ## Runtime dark-fantasy set dressing for Stair. Adds branch cards, hanging moss,
 ## twisted roots, fallen limbs, rune slabs, and cairns without rebaking main.tscn.

@@ -1,3 +1,4 @@
+class_name SurfaceDetail
 extends RefCounted
 ## Keeps the painted albedo/normal maps. Strips the extra AO, detail-UV, and
 ## clearcoat pass that doubled samples on trunks and stone.

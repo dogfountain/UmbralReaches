@@ -25,4 +25,4 @@ func _build() -> void:
 		var cap := col.shape as CapsuleShape3D
 		cap.height = CAPSULE_H * 0.86
 		col.position.y = cap.height * 0.5
-	load("res://core/enemy/enemy_body.gd").dress(_rig, &"husk")
+	EnemyBody.dress(_rig, &"husk")

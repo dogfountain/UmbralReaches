@@ -1,3 +1,4 @@
+class_name EnemyBody
 extends RefCounted
 ## Jointed, textured body for Enemy types. Not the wanderer robe. Uses existing
 ## stone / bark / ground maps so flesh and rags read as surfaces, not flat grey.

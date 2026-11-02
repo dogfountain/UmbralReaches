@@ -21,4 +21,4 @@ func _build() -> void:
 	attach_rig()
 	if _rig:
 		_rig.scale = Vector3(0.92, 1.12, 0.92)
-	load("res://core/enemy/enemy_body.gd").dress(_rig, &"leaper")
+	EnemyBody.dress(_rig, &"leaper")

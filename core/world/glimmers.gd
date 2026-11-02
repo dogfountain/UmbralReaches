@@ -1,3 +1,4 @@
+class_name Glimmers
 extends Node3D
 ## Scattered bioluminescence for both zones. Runtime so the stair scene is never rebaked.
 
@@ -24,10 +25,9 @@ func _ready() -> void:
 	_cap_shader = load("res://world/cap.gdshader")
 	var root := get_parent()
 	if root != null:
-		var seat = load("res://core/world/seat_props.gd")
-		var seated: int = seat.seat(root)
-		seat.sink_river_crystals(root)
-		seat.plant_solid(root)
+		var seated: int = SeatProps.seat(root)
+		SeatProps.sink_river_crystals(root)
+		SeatProps.plant_solid(root)
 		print("SEAT props ", seated)
 	_light_existing_caps()
 	_scatter_wisps()
@@ -36,7 +36,7 @@ func _ready() -> void:
 		_scatter_shards()
 	_scatter_swarms()
 	if root != null:
-		load("res://core/world/seat_props.gd").seat(self)
+		SeatProps.seat(self)
 	_fade_own_lights()
 	if root != null and root.has_method("refresh_lights"):
 		root.refresh_lights()
@@ -328,7 +328,7 @@ func _fade_own_lights() -> void:
 	for light in find_children("*", "OmniLight3D", true, false):
 		light.set_meta("glimmer", true)
 		light.set_meta("light_class", "glimmer")
-		load("res://core/world/light_policy.gd").apply_fade(light)
+		LightPolicy.apply_fade(light)
 
 
 func _radial() -> GradientTexture2D:

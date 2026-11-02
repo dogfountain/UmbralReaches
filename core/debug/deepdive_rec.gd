@@ -1,3 +1,4 @@
+class_name DeepdiveRec
 extends RefCounted
 ## Shared deepdive frame dumper. Attach from a Zone with start(), call tick() in _process.
 

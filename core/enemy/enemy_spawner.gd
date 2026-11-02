@@ -1,3 +1,4 @@
+class_name EnemySpawner
 extends Node3D
 ## Plants enemies on a zone. Packs are several pawns around one camp.
 
@@ -38,10 +39,10 @@ static var _cap: CapsuleShape3D
 
 
 func _ready() -> void:
-	_scripts["wretch"] = load("res://core/enemy/wretch.gd")
-	_scripts["husk"] = load("res://core/enemy/husk.gd")
-	_scripts["crawler"] = load("res://core/enemy/crawler.gd")
-	_scripts["leaper"] = load("res://core/enemy/leaper.gd")
+	_scripts["wretch"] = Wretch
+	_scripts["husk"] = Husk
+	_scripts["crawler"] = Crawler
+	_scripts["leaper"] = Leaper
 	if Events.enemy_killed.is_connected(_on_killed) == false:
 		Events.enemy_killed.connect(_on_killed)
 	_plant()
@@ -78,10 +79,21 @@ func _process(delta: float) -> void:
 	if _tick < 0.5:
 		return
 	_tick = 0.0
+	var player := _player()
 	for slot in _slots:
 		var pawn: Variant = slot.pawn
 		if not is_instance_valid(pawn) and not slot.pending:
 			_schedule(slot, RESPAWN)
+			continue
+		if player == null or not (pawn is Enemy):
+			continue
+		var enemy := pawn as Enemy
+		var d2 := player.global_position.distance_squared_to(enemy.global_position)
+		var reach := enemy.sleep_range
+		if d2 > reach * reach:
+			enemy.sleep()
+		else:
+			enemy.wake()
 
 
 func _on_killed(enemy: Node) -> void:

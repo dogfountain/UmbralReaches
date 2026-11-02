@@ -1,3 +1,4 @@
+class_name BootDiag
 extends RefCounted
 ## One-shot night audit. Writes user://umbral_diag.log, push_error on fails, HUD toast + F3 line.
 

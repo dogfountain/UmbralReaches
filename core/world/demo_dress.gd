@@ -1,8 +1,9 @@
+class_name DemoDress
 extends RefCounted
 ## Replaces the demo stair boxes, the sphere boulders, and adds path lanterns.
 ## The walk ramp and the boulder trimesh stay; only the visible meshes change.
 
-const Dress := preload("res://core/world/dressed_props.gd")
+const Dress := DressedProps
 const LANTERN := "res://art/models/lantern.glb"
 const STEP := "res://art/models/stair_step.glb"
 const COLUMN := "res://art/models/stair_column.glb"

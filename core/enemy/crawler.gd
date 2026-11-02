@@ -27,4 +27,4 @@ func _build() -> void:
 		cap.height = 0.72
 		cap.radius = 0.32
 		col.position.y = 0.38
-	load("res://core/enemy/enemy_body.gd").dress(_rig, &"crawler")
+	EnemyBody.dress(_rig, &"crawler")

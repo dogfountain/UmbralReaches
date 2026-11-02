@@ -1,3 +1,4 @@
+class_name SeatProps
 extends RefCounted
 ## Drops baked floor props onto the terrain mesh.
 ## They were planted with the height formula; the visible ground is a 2 m grid of that formula,
@@ -66,7 +67,7 @@ static func plant_solid(root: Node) -> void:
 	if disk:
 		disk.disabled = true
 	print("SEAT solid ", moved)
-	load("res://core/world/dressed_props.gd").dress_zone(root)
+	DressedProps.dress_zone(root)
 
 
 static func _skip_solid(mi: MeshInstance3D) -> bool:

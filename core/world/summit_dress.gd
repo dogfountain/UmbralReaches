@@ -1,3 +1,4 @@
+class_name SummitDress
 extends RefCounted
 ## Cathedral-scale mossy summit monument + orb mage. Runtime only.
 
