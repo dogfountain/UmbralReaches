@@ -42,7 +42,7 @@ Avg already clears 120 fps at the 960-tall buffer. The gap to a stable 120 is **
 ## What this does *not* capture
 
 - HUD sharpness / canvas stretch (1.6). Overlay still upscales with the 3D buffer.
-- Metal driver (2.12). This baseline is Vulkan/MoltenVK only.
+- Metal driver (2.12). This baseline is Vulkan/MoltenVK only. Godot 4.7's macOS default is native Metal; the packed app uses that. Re-run `--perf-baseline` with `--rendering-driver metal` vs `vulkan` and keep the faster.
 - Player motion. Velocity was zeroed for the sample; walking will add CPU.
 
 ## Phase 2 remeasures
