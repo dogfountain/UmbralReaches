@@ -54,6 +54,7 @@ func go(path: String, at: Vector3, facing: float, player: Node) -> void:
 	Events.interact_hint.emit("")
 
 	# Hold black through the whole swap — Vale dress can take seconds.
+	ResourceLoader.load_threaded_request(path)
 	var tw := create_tween()
 	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.tween_property(_fade, "color:a", 1.0, 0.45)
@@ -61,19 +62,20 @@ func go(path: String, at: Vector3, facing: float, player: Node) -> void:
 
 	var keep_mouse := Input.mouse_mode
 	LightGrid.clear()
-	var packed := load(path) as PackedScene
+	var packed := await _threaded_scene(path)
 	if packed == null:
 		_fail_open("missing packed scene %s" % path)
 		Input.mouse_mode = keep_mouse
 		return
 
+	var old_scene := get_tree().current_scene
 	var err := get_tree().change_scene_to_packed(packed)
 	if err != OK:
 		_fail_open("change_scene err=%s path=%s" % [err, path])
 		Input.mouse_mode = keep_mouse
 		return
 
-	var arrived := await _wait_for_scene(path, 30.0)
+	var arrived := await _wait_for_new_scene(old_scene, 30.0)
 	if not arrived:
 		_fail_open("timeout waiting for %s" % path)
 		Input.mouse_mode = keep_mouse
@@ -92,18 +94,24 @@ func go(path: String, at: Vector3, facing: float, player: Node) -> void:
 	print("Travel arrived ", path)
 
 
-func _wait_for_scene(path: String, seconds: float) -> bool:
+func _threaded_scene(path: String) -> PackedScene:
+	var deadline := Time.get_ticks_msec() + 30000
+	while Time.get_ticks_msec() < deadline:
+		var status := ResourceLoader.load_threaded_get_status(path)
+		if status == ResourceLoader.THREAD_LOAD_LOADED:
+			return ResourceLoader.load_threaded_get(path) as PackedScene
+		if status == ResourceLoader.THREAD_LOAD_FAILED or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+			return load(path) as PackedScene
+		await get_tree().process_frame
+	return load(path) as PackedScene
+
+
+func _wait_for_new_scene(old_scene: Node, seconds: float) -> bool:
 	var deadline := Time.get_ticks_msec() + int(seconds * 1000.0)
-	var needle := path.get_file()
 	while Time.get_ticks_msec() < deadline:
 		await get_tree().process_frame
 		var cur := get_tree().current_scene
-		if cur == null:
-			continue
-		var cur_path := String(cur.scene_file_path)
-		if cur_path == path or cur_path.ends_with(needle):
-			return true
-		if String(cur.name).to_lower() == needle.get_basename().to_lower():
+		if cur != null and cur != old_scene:
 			return true
 	return false
 
