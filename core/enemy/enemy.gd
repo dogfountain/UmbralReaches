@@ -40,6 +40,7 @@ const HIT_BIG := Color(1.0, 0.55, 0.3)
 @export_group("")
 var home := Vector3.ZERO
 var _leap_cd := 0.0
+var _hop_cd := 0.0
 
 var hp := 3.0
 var _state := IDLE
@@ -68,6 +69,19 @@ var _air_t := 0.0
 var _pounced := false
 var _squash := 0.0
 
+var _flesh: Array[MeshInstance3D] = []
+var _hit_fx := 0.0
+var _glint := 0.0
+var _dissolve := 0.0
+var _flank := 0.0            ## per-enemy approach angle so packs surround instead of queue
+var _sep := Vector3.ZERO     ## separation from packmates, refreshed at think rate
+var _lit_t := 0.0            ## seconds the player has been sheltering in light
+
+const LIGHT_MARGIN := 0.6    ## enemies stop this far outside any lit brazier / ward radius
+const SFX_DIE := "res://art/audio/enemy_die.wav"
+const SFX_MARK := "res://art/audio/mark_tick.wav"
+const SFX_SHRIEK := "res://art/audio/pounce_shriek.wav"
+
 static var _pip_mesh: SphereMesh
 
 static var _hp_bar_mesh: QuadMesh
@@ -81,6 +95,7 @@ func _ready() -> void:
 	floor_max_angle = deg_to_rad(46.0)
 	hp = float(max_hp)
 	_think_cd = randf() / think_hz
+	_flank = randf_range(-0.55, 0.55)
 	_visual = Node3D.new()
 	_visual.name = "Visual"
 	add_child(_visual)
@@ -107,8 +122,8 @@ func _ensure_capsule() -> void:
 
 
 ## Same CharacterRig the wanderer uses. dress_default off so types paint their own look.
-func attach_rig() -> CharacterRig:
-	var rig := CharacterRig.new()
+func attach_rig(custom: CharacterRig = null) -> CharacterRig:
+	var rig := custom if custom != null else CharacterRig.new()
 	rig.dress_default = false
 	rig.rim_light = false
 	rig.driven = true
@@ -146,7 +161,11 @@ func take_hit(dmg: float, from: Node = null) -> void:
 	if _state == DEAD:
 		return
 	hp = maxf(hp - dmg, 0.0)
-	_flash = 0.12
+	_flash = 0.08
+	_hit_fx = 1.0
+	var at := global_position + Vector3.UP * (hp_bar_y * 0.6)
+	Vfx.burst(at, Color(1.6, 0.8, 2.4), {"count": 14, "life": 0.35, "speed": Vector2(3.0, 6.5), "size": 0.035, "gravity": -9.0, "trail": 0.08})
+	Vfx.burst(at, Color(0.35, 0.05, 0.12), {"count": 10, "life": 0.5, "speed": Vector2(1.0, 3.0), "size": 0.09, "gravity": -7.0, "additive": false})
 	var big := dmg >= 3.0
 	HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.35), _dmg_text(dmg), HIT_BIG if big else HIT_COL, big)
 	_hitstop = 3
@@ -161,6 +180,11 @@ func take_hit(dmg: float, from: Node = null) -> void:
 			_knock = away.normalized() * 4.8
 	if hp <= 0.001:
 		_die()
+	elif dmg >= 2.0 and (_state == WINDUP or _state == LEAP_PREP):
+		# heavy hits (Lance, a marked Nova) break a windup: the reward for reading the tell
+		_set_state(RECOVER)
+		_state_t = -0.25
+		HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.6), "staggered", Color(1.0, 0.8, 0.5))
 
 
 static func _dmg_text(dmg: float) -> String:
@@ -197,6 +221,17 @@ func _pin_visuals() -> void:
 
 func _build() -> void:
 	pass
+
+
+## Body parts from EnemyBody.dress(); their flesh shader reads hit_flash / glint / dissolve.
+func set_flesh(parts: Array[MeshInstance3D]) -> void:
+	_flesh = parts
+
+
+func _flesh_param(param: StringName, v: float) -> void:
+	for mi in _flesh:
+		if is_instance_valid(mi):
+			mi.set_instance_shader_parameter(param, v)
 
 
 # --- health bar ---------------------------------------------------------------------------------
@@ -250,6 +285,8 @@ func add_mark(n := 1) -> void:
 	marks = mini(MARK_MAX, marks + n)
 	_mark_t = MARK_LIFE
 	_refresh_pips()
+	Sfx.play(SFX_MARK, global_position, -12.0, 0.9 + 0.12 * float(marks))
+	Vfx.ring(global_position + Vector3.UP * (hp_bar_y + 0.16), 0.22 + 0.06 * float(marks), Color(1.4, 0.6, 3.0), 0.3, 0.2, Vector3.BACK)
 
 
 func take_marks() -> int:
@@ -349,6 +386,7 @@ func _physics_process(delta: float) -> void:
 	elif _state == LEAP_PREP and _to.length_squared() > 0.01:
 		_face_dir = _to.normalized()
 	_leap_cd = maxf(0.0, _leap_cd - delta)
+	_hop_cd = maxf(0.0, _hop_cd - delta)
 	if marks > 0:
 		_mark_t -= delta
 		if _mark_t <= 0.0:
@@ -373,6 +411,19 @@ func _cache_player() -> void:
 	_dist = _to.length()
 
 
+func _update_separation() -> void:
+	_sep = Vector3.ZERO
+	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
+		if node == self:
+			continue
+		var o := node as Node3D
+		var d := global_position - o.global_position
+		d.y = 0.0
+		var l2 := d.length_squared()
+		if l2 < 1.96 and l2 > 0.0001:
+			_sep += d / l2 * 0.5
+
+
 ## Spitters kite instead of closing in; they override this to keep their own _wish.
 func _chases_directly() -> bool:
 	return true
@@ -384,11 +435,18 @@ func _aim_at_player() -> void:
 		_wish = Vector3.ZERO
 		return
 	_wish = _to / _dist
+	if _dist > 2.5:
+		_wish = _wish.rotated(Vector3.UP, _flank * clampf((_dist - 2.5) / 6.0, 0.0, 1.0))
 	if light_averse and LightGrid.is_lit(global_position):
 		_wish *= 0.45
 
 
 func _think() -> void:
+	_update_separation()
+	if _p != null and LightGrid.is_lit(_p.global_position):
+		_lit_t += 1.0 / think_hz
+	else:
+		_lit_t = 0.0
 	if _p == null:
 		_hold_post(_home_planar())
 		return
@@ -404,13 +462,13 @@ func _think() -> void:
 			else:
 				_hold_post(from_home)
 		CHASE:
-			if dist > chase_range * 1.2 or from_home > hunt_leash:
-				_set_state(IDLE)
+			if dist > chase_range * 1.2 or from_home > hunt_leash or _lit_t > 2.5:
+				_set_state(IDLE)       # out of range, leashed, or the player is sheltering in light
 				_hold_post(from_home)
 			elif dist <= strike_range:
 				_face_dir = to / maxf(dist, 0.001)
 				_set_state(WINDUP)
-			elif leaper and _leap_cd <= 0.0 and is_on_floor() and dist >= leap_min and dist <= leap_max and _strike_clear(player):
+			elif leaper and _leap_cd <= 0.0 and is_on_floor() and dist >= leap_min and dist <= leap_max and _lit_t <= 0.0 and _strike_clear(player):
 				_face_dir = to / maxf(dist, 0.001)
 				_set_state(LEAP_PREP)
 			else:
@@ -436,7 +494,7 @@ func _think() -> void:
 				if player.is_evading():
 					HitText.pop(player.global_position + Vector3.UP * 2.0, "evaded", Color(0.6, 0.75, 1.0))
 				else:
-					player.add_gloom_from_enemy(strike_gloom)
+					player.add_gloom_from_enemy(strike_gloom, global_position)
 			_set_state(RECOVER)
 		RECOVER:
 			_wish = Vector3.ZERO
@@ -458,11 +516,11 @@ func _move(delta: float) -> void:
 	elif _state == CHASE and is_on_floor() and _wish.length_squared() > 0.12:
 		var flat := Vector3(velocity.x, 0.0, velocity.z)
 		var dist := _dist
-		if crawler and _leap_cd <= 0.0 and dist > 1.6:
+		if crawler and _hop_cd <= 0.0 and dist > 1.6:
 			# Skittering hop that actually covers ground: ballistic, momentum kept in the air.
 			var hop := minf(dist - 0.9, hop_len)
-			launch_at(global_position + _wish * hop, 0.55)
-			_leap_cd = 0.75
+			launch_at(LightGrid.outside(global_position + _wish * hop, LIGHT_MARGIN), 0.55)
+			_hop_cd = 0.75
 			_move_ballistic(delta)
 			return
 		elif flat.length() < 0.28:
@@ -478,9 +536,12 @@ func _move(delta: float) -> void:
 			_stuck_t = 0.0
 	else:
 		_stuck_t = 0.0
+	if steer.length_squared() > 0.01:
+		steer += _sep * walk_speed
 	velocity.x = steer.x + _knock.x
 	velocity.z = steer.z + _knock.z
 	_knock = _knock.move_toward(Vector3.ZERO, delta * 14.0)
+	_light_barrier(delta)
 	move_and_slide()
 	_turn_toward(_wish if _wish.length_squared() > 0.0025 else _face_dir, delta)
 	if _rig:
@@ -495,6 +556,7 @@ func _move_ballistic(delta: float) -> void:
 	velocity.x += _knock.x * delta * 4.0
 	velocity.z += _knock.z * delta * 4.0
 	_knock = _knock.move_toward(Vector3.ZERO, delta * 14.0)
+	_light_barrier(delta)
 	move_and_slide()
 	if is_on_wall():
 		velocity.x *= 0.25
@@ -506,8 +568,7 @@ func _move_ballistic(delta: float) -> void:
 			if _p.is_evading():
 				HitText.pop(_p.global_position + Vector3.UP * 2.0, "evaded", Color(0.6, 0.75, 1.0))
 			else:
-				_p.add_gloom_from_enemy(strike_gloom)
-				_p.kick(0.8)
+				_p.add_gloom_from_enemy(strike_gloom, global_position)
 	var flat := Vector3(velocity.x, 0.0, velocity.z)
 	_turn_toward(flat if flat.length_squared() > 0.25 else _face_dir, delta)
 	if _rig and _dist < 24.0:
@@ -531,9 +592,32 @@ func _pounce(player: Player) -> void:
 	if flat.length() > leap_max + 1.5:
 		flat = flat.normalized() * (leap_max + 1.5)
 	target = Vector3(global_position.x + flat.x, player.global_position.y, global_position.z + flat.z)
-	launch_at(target, leap_apex)
+	launch_at(LightGrid.outside(target, LIGHT_MARGIN), leap_apex)
+	Sfx.play(SFX_SHRIEK, global_position, -4.0)
 	_leap_cd = leap_cooldown
 	_set_state(AIRBORNE)
+
+
+## Lit braziers and wards are hard sanctuaries: strip any velocity that points into a zone and
+## push out if already inside (knockback, a ward planted on top of them, a brazier just lit).
+func _light_barrier(delta: float) -> void:
+	var flat := Vector3(velocity.x, 0.0, velocity.z)
+	var ahead := LightGrid.repel(global_position + flat * delta, LIGHT_MARGIN)
+	if ahead == Vector3.ZERO:
+		return
+	var n := ahead.normalized()
+	var inward := flat.dot(-n)
+	if inward > 0.0:
+		flat += n * inward
+	var inside := LightGrid.repel(global_position, LIGHT_MARGIN)
+	if inside != Vector3.ZERO:
+		flat += inside.normalized() * minf(inside.length() * 10.0, 7.0)
+		if _ballistic:
+			_ballistic = false            # slammed into the light mid-air: drop out of the pounce
+			if _state == AIRBORNE:
+				_set_state(RECOVER)
+	velocity.x = flat.x
+	velocity.z = flat.z
 
 
 ## Smoothed like Player.visual so the rig's turn lean and cloth swing see a real turn rate.
@@ -553,6 +637,8 @@ func _set_state(next: int) -> void:
 func _on_state(next: int) -> void:
 	if (next == WINDUP or next == LEAP_PREP) and _rig:
 		_rig.cast()
+	if next == WINDUP or next == LEAP_PREP:
+		_glint = 1.0
 
 
 func _die() -> void:
@@ -561,10 +647,22 @@ func _die() -> void:
 	collision_layer = 0
 	if _hp_bar:
 		_hp_bar.visible = false
+	for pip in _pips:
+		pip.visible = false
 	Events.enemy_killed.emit(self)
+	var at := global_position + Vector3.UP * (hp_bar_y * 0.5)
+	Sfx.play(SFX_DIE, at, -6.0)
+	Vfx.burst(at, Color(0.03, 0.02, 0.05, 0.8), {"count": 26, "life": 1.4, "speed": Vector2(0.3, 1.4), "size": 0.32, "gravity": 0.9, "radius": 0.45, "additive": false, "turbulence": true})
+	Vfx.burst(at, Color(1.2, 0.45, 2.4), {"count": 30, "life": 1.1, "speed": Vector2(0.5, 2.2), "size": 0.05, "gravity": 1.4, "radius": 0.5, "turbulence": true})
+	Vfx.light(at, Color(0.7, 0.4, 1.0), 2.2, 4.0, 0.6)
 	var tw := create_tween()
-	tw.tween_property(self, "scale", Vector3.ONE * 0.01, 0.55).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	tw.tween_method(_set_dissolve, 0.0, 1.0, 0.9)
 	tw.tween_callback(queue_free)
+
+
+func _set_dissolve(v: float) -> void:
+	_dissolve = v
+	_flesh_param(&"dissolve", v)
 
 
 func _strike_clear(player: Player) -> bool:
@@ -584,6 +682,12 @@ func _flash_visual(delta: float) -> void:
 	if _visual == null:
 		return
 	_flash = maxf(0.0, _flash - delta)
+	if _hit_fx > 0.0:
+		_hit_fx = maxf(0.0, _hit_fx - delta * 7.0)
+		_flesh_param(&"hit_flash", _hit_fx)
+	if _glint > 0.0:
+		_glint = maxf(0.0, _glint - delta * 1.6)
+		_flesh_param(&"glint", _glint)
 	var s := 1.0 + _flash * 0.4
 	if _state == LEAP_PREP:
 		_squash = move_toward(_squash, 0.24, delta * 0.9)    # coil: the tell before a pounce

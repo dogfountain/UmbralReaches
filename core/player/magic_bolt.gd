@@ -9,6 +9,9 @@ const HIT_DMG := 1.0
 const FLARE_SHADER := preload("res://world/flare.gdshader")
 const MOTE := preload("res://art/materials/rift_mote_particle.tres")
 const IMPACT_SFX := preload("res://art/audio/bolt_impact.wav")
+const HEAT_SHADER := preload("res://world/vfx/heat_distort.gdshader")
+const LANCE_IMPACT := "res://art/audio/lance_impact.wav"
+const STREAK_POINTS := 9
 
 var direction := Vector3.FORWARD
 var speed := SPEED
@@ -30,6 +33,16 @@ var _hit_ids: Dictionary = {}
 var _pooled := false
 var _sfx: AudioStreamPlayer3D
 var _excepted: Array[PhysicsBody3D] = []
+var _streak: MeshInstance3D
+var _streak_mesh: ImmediateMesh
+var _hist := PackedVector3Array()
+var _heat: MeshInstance3D
+var _hit_normal := Vector3.UP
+
+static var _streak_mat: StandardMaterial3D
+static var _heat_mesh: SphereMesh
+static var _heat_mat: ShaderMaterial
+static var _glow_pierce: StandardMaterial3D
 
 static var _core_mesh: SphereMesh
 static var _core_mesh_h: SphereMesh
@@ -95,12 +108,21 @@ func arm(is_heavy: bool) -> void:
 			remove_collision_exception_with(b)
 	_excepted.clear()
 	if _aura:
-		_aura.scale = Vector3.ONE
+		_aura.scale = Vector3(1.0, 1.0, 1.8) if not heavy else Vector3(1.0, 1.0, 2.4)
+	if _core:
+		# stretched along flight (-Z of the bolt basis): a dart, and for the Lance a spearhead
+		_core.scale = Vector3(1.0, 1.0, 2.6) if not heavy else Vector3(1.5, 1.5, 1.3)
+	if _heat:
+		_heat.visible = heavy
+	_hist.clear()
+	_hit_normal = Vector3.UP
+	if _streak:
+		_streak.visible = true
 	if _hurt_shape:
 		_hurt_shape.radius = 1.35 if heavy else 1.05
 	if _core:
 		_core.visible = true
-		_core.mesh = _core_mesh_h if heavy else _core_mesh
+		_core.mesh = SpellFx.spear_mesh() if heavy else _core_mesh
 		_core.material_override = _glow_h if heavy else _glow
 	if _aura:
 		_aura.mesh = _aura_mesh_h if heavy else _aura_mesh
@@ -124,10 +146,17 @@ func arm_with(cfg: Dictionary) -> void:
 	marks = int(cfg.get("marks", 0))
 	pierce = bool(cfg.get("pierce", false))
 	if pierce and _aura:
-		_aura.scale = Vector3.ONE * 1.5
+		_aura.scale = Vector3(1.6, 1.6, 3.2)
+	if pierce and _core:
+		if _glow_pierce == null:
+			_glow_pierce = ProcMesh.glow_mat(Color(3.2, 2.4, 1.6))
+		_core.material_override = _glow_pierce   # white-hot
 
 
 func reset_idle() -> void:
+	if _streak_mesh:
+		_streak_mesh.clear_surfaces()
+	_hist.clear()
 	_spent = true
 	_age = 0.0
 	_hit_ids.clear()
@@ -153,7 +182,9 @@ func _physics_process(delta: float) -> void:
 		explode(global_position)
 		return
 	var hit := move_and_collide(direction * speed * delta)
+	_update_streak()
 	if hit:
+		_hit_normal = hit.get_normal()
 		var col := hit.get_collider()
 		var hurt := _apply_hit(col)
 		if pierce and hurt and col is PhysicsBody3D:
@@ -168,14 +199,16 @@ func explode(at: Vector3) -> void:
 		return
 	_spent = true
 	global_position = at
-	if _hurt_shape:
-		_hurt_shape.radius = blast
-	_hurt_near()
+	_blast(at, blast)
 	if _core:
 		_core.visible = false
+	if _heat:
+		_heat.visible = false
 	if _trail:
 		_trail.emitting = false
-	_burst(at)
+	if _streak:
+		_streak.visible = false
+	_impact_fx(at)
 	_play_impact()
 	var flash := _light
 	if flash:
@@ -191,6 +224,64 @@ func explode(at: Vector3) -> void:
 		pool.release(self)
 	else:
 		queue_free()
+
+
+## Blast damage as a direct shape query: resizing the Area3D and reading its overlaps in the same
+## frame (the old way) only sees bodies on the next physics step, so blasts mostly missed.
+func _blast(at: Vector3, radius: float) -> void:
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		return
+	var sph := SphereShape3D.new()
+	sph.radius = radius
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = sph
+	q.transform = Transform3D(Basis.IDENTITY, at)
+	q.collision_mask = Layers.HURTBOX
+	q.collide_with_areas = true
+	q.collide_with_bodies = true
+	for hit in space.intersect_shape(q, 16):
+		_apply_hit(hit.get("collider"))
+
+
+func _impact_fx(at: Vector3) -> void:
+	var n := _hit_normal
+	if heavy:
+		SpellFx.lance_impact(at, n, blast, pierce)   # round fire field at exactly the blast radius
+		Sfx.play(LANCE_IMPACT, at, 0.0)
+		var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+		if p and p.global_position.distance_to(at) < 9.0:
+			p.kick(0.6)
+	else:
+		_burst(at)
+		Vfx.ring(at, 0.9, Color(1.3, 0.6, 3.0), 0.25, 0.14, n)
+		Vfx.burst(at, Color(1.6, 0.8, 3.2), {"count": 18, "life": 0.35, "speed": Vector2(2.0, 5.5), "size": 0.035, "gravity": -6.0, "trail": 0.07, "dir": n, "spread": 70.0})
+
+
+func _update_streak() -> void:
+	if _streak == null:
+		return
+	_hist.insert(0, global_position)
+	if _hist.size() > STREAK_POINTS:
+		_hist.resize(STREAK_POINTS)
+	_streak_mesh.clear_surfaces()
+	if _hist.size() < 2:
+		return
+	var w0 := 0.16 if heavy else 0.09
+	var col := Color(2.6, 1.0, 0.35, 0.9) if heavy else Color(1.2, 0.55, 2.8, 0.85)
+	var cam := get_viewport().get_camera_3d()
+	var eye := cam.global_position if cam else global_position + Vector3.UP
+	_streak_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP, _streak_mat)
+	for i in _hist.size():
+		var t := float(i) / float(_hist.size() - 1)
+		var fwd := (_hist[maxi(i - 1, 0)] - _hist[mini(i + 1, _hist.size() - 1)]).normalized()
+		var side := fwd.cross(eye - _hist[i]).normalized() * w0 * (1.0 - t) * 0.5
+		var c := Color(col.r, col.g, col.b, col.a * (1.0 - t))
+		_streak_mesh.surface_set_color(c)
+		_streak_mesh.surface_add_vertex(_hist[i] + side)
+		_streak_mesh.surface_set_color(c)
+		_streak_mesh.surface_add_vertex(_hist[i] - side)
+	_streak_mesh.surface_end()
 
 
 func _hurt_near() -> bool:
@@ -245,6 +336,22 @@ func _build_visual() -> void:
 	add_child(_light)
 	_trail = make_particles(false)
 	add_child(_trail)
+	_streak_mesh = ImmediateMesh.new()
+	_streak = MeshInstance3D.new()
+	_streak.name = "Streak"
+	_streak.mesh = _streak_mesh
+	_streak.top_level = true                 # world-space ribbon behind the bolt
+	_streak.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_streak.extra_cull_margin = 16.0
+	add_child(_streak)
+	_heat = MeshInstance3D.new()
+	_heat.name = "Heat"
+	_heat.mesh = _heat_mesh
+	_heat.material_override = _heat_mat
+	_heat.scale = Vector3(1.0, 1.0, 2.2)
+	_heat.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_heat.visible = false
+	add_child(_heat)
 	var flare := MeshInstance3D.new()
 	flare.name = "Flare"
 	flare.mesh = _flare_mesh
@@ -299,6 +406,20 @@ static func _ensure_shared() -> void:
 	_shock_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_shock_mat.albedo_color = Color(0.72, 0.42, 1.35, 0.55)
 	_shock_mat.disable_receive_shadows = true
+	_streak_mat = StandardMaterial3D.new()
+	_streak_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_streak_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_streak_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_streak_mat.vertex_color_use_as_albedo = true
+	_streak_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_streak_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	_heat_mesh = SphereMesh.new()
+	_heat_mesh.radius = 0.3
+	_heat_mesh.height = 0.6
+	_heat_mesh.radial_segments = 12
+	_heat_mesh.rings = 6
+	_heat_mat = ShaderMaterial.new()
+	_heat_mat.shader = HEAT_SHADER
 	_flare_mesh = QuadMesh.new()
 	_flare_mesh.size = Vector2(0.55, 0.55)
 	var fmat := ShaderMaterial.new()

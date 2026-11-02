@@ -22,6 +22,7 @@ var _boot_t0 := 0
 func _ready() -> void:
 	_boot_t0 = Time.get_ticks_usec()
 	Events.gloom_changed.connect(func(v: float, m: float) -> void: _gloom_target = v / m)
+	Events.player_hurt.connect(_on_player_hurt)
 	get_window().size_changed.connect(_on_window_resized)
 	Settings.changed.connect(_apply_settings)
 
@@ -64,8 +65,25 @@ func _restore_kindles() -> void:
 	Travel.restore_kindles(self)
 
 
+var _hurt := 0.0
+
+
+func _on_player_hurt(amount: float, from_pos: Vector3) -> void:
+	_hurt = clampf(0.5 + amount / 40.0, 0.5, 1.0)
+	var dir := Vector2.ZERO
+	if from_pos != Vector3.INF and _cam:
+		var to := from_pos - _cam.global_position
+		var local := _cam.global_basis.inverse() * to
+		dir = Vector2(local.x, -local.z).normalized() * Vector2(1.0, -1.0)   # screen x right, y down
+	_grade_mat.set_shader_parameter("hurt_dir", dir)
+	_grade_mat.set_shader_parameter("hurt", _hurt)
+
+
 func _process(delta: float) -> void:
 	RenderingServer.global_shader_parameter_set("sky_time", Time.get_ticks_msec() * 0.001)
+	if _hurt > 0.0:
+		_hurt = maxf(0.0, _hurt - delta * 2.2)
+		_grade_mat.set_shader_parameter("hurt", _hurt)
 	var next := move_toward(_gloom_vis, _gloom_target, delta * 0.8)
 	if not is_equal_approx(next, _gloom_vis):
 		_gloom_vis = next

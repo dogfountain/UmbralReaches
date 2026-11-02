@@ -44,6 +44,7 @@ func _ready() -> void:
 	_scripts["crawler"] = Crawler
 	_scripts["leaper"] = Leaper
 	_scripts["spitter"] = Spitter
+	_scripts["ossuant"] = Ossuant
 	if Events.enemy_killed.is_connected(_on_killed) == false:
 		Events.enemy_killed.connect(_on_killed)
 	_plant()
@@ -55,7 +56,7 @@ func _plant() -> void:
 		return
 	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
 	for camp in _camps:
-		var center := _ground(space, camp.at)
+		var center := _ground(space, camp.at, float(camp.get("probe", 24.0)))
 		if Vector2(center.x - HAVEN.x, center.z - HAVEN.z).length() < HAVEN_R:
 			continue
 		if Vector2(center.x, center.z + 10.0).length() < 12.0:
@@ -64,8 +65,9 @@ func _plant() -> void:
 		var n := kinds.size()
 		for i in n:
 			var a := TAU * float(i) / float(maxi(n, 1)) + 0.15
-			var probe := center + Vector3(cos(a) * 2.5, 0.0, sin(a) * 2.5)
-			var at := _ground(space, probe)
+			var ring: float = float(camp.get("r", 2.5)) if n > 1 else float(camp.get("r", 0.0))
+			var probe := center + Vector3(cos(a) * ring, 0.0, sin(a) * ring)
+			var at := _ground(space, probe, float(camp.get("probe", 24.0)))
 			var key := String(kinds[i])
 			var kind: GDScript = _scripts.get(key, _scripts.get("wretch"))
 			if kind == null:
@@ -83,8 +85,10 @@ func _process(delta: float) -> void:
 	var player := _player()
 	for slot in _slots:
 		var pawn: Variant = slot.pawn
-		if not is_instance_valid(pawn) and not slot.pending:
-			_schedule(slot, RESPAWN)
+		if not is_instance_valid(pawn):
+			# freed (killed and dissolved): `pawn is Enemy` on a freed object is a script error
+			if not slot.pending:
+				_schedule(slot, RESPAWN)
 			continue
 		if player == null or not (pawn is Enemy):
 			continue
@@ -139,7 +143,8 @@ func _spawn(slot: Dictionary) -> void:
 	slot.pawn = pawn
 
 
-func _ground(space: PhysicsDirectSpaceState3D, from: Vector3) -> Vector3:
+## `up`: how far above `from` the probe starts (indoor camps pass ~1.5 so roofs aren't floors).
+func _ground(space: PhysicsDirectSpaceState3D, from: Vector3, up := 24.0) -> Vector3:
 	if space == null:
 		return Vector3(from.x, 0.6, from.z)
 	var offsets: Array[Vector3] = [
@@ -157,7 +162,7 @@ func _ground(space: PhysicsDirectSpaceState3D, from: Vector3) -> Vector3:
 	for off in offsets:
 		var probe := from + off
 		var q := PhysicsRayQueryParameters3D.create(
-			probe + Vector3(0.0, 24.0, 0.0),
+			probe + Vector3(0.0, up, 0.0),
 			probe + Vector3(0.0, -80.0, 0.0)
 		)
 		q.collision_mask = Layers.WORLD

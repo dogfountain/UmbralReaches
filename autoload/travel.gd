@@ -9,6 +9,8 @@ var hollow_count := 0
 var spawn := Vector3.ZERO
 var yaw := 0.0
 var lit_by_path: Dictionary = {}
+var area_lit: Dictionary = {}      ## "area_id/brazier" -> true; survives streaming and travel
+var relics: Dictionary = {}        ## reliquary id -> chosen variant (StringName)
 
 var _fade_layer: CanvasLayer
 var _fade: ColorRect

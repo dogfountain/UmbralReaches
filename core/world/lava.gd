@@ -1,7 +1,11 @@
 class_name Lava
 extends Area3D
-## The molten floor of the chasm. Touching it Hollows you outright -- the pit used to be a
-## twenty-metre drop onto solid ground you could then stand on, with nothing to stop you.
+## The molten floor of the chasm. Touching it burns (a big Gloom hit) and throws you back to
+## the last ground you stood on; it only Hollows you if that burn fills the Gloom bar.
+## The bone bridge's broken span and the Ember Rift islands need a miss to cost, not reload.
+
+const LAVA_GLOOM := 35.0
+
 
 func _ready() -> void:
 	collision_layer = 0
@@ -44,6 +48,10 @@ func _reveal() -> void:
 
 
 func _on_body_entered(body: Node3D) -> void:
-	if body.is_in_group(Groups.PLAYER) and body.has_method("hollow"):
+	if not body.is_in_group(Groups.PLAYER):
+		return
+	if body.has_method("lava_burn"):
+		body.lava_burn(LAVA_GLOOM)
+	elif body.has_method("hollow"):
 		Events.toast.emit("The molten dark takes you.")
 		body.hollow()

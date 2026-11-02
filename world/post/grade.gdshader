@@ -17,6 +17,8 @@ uniform float vignette = 0.42;
 uniform float grain = 0.038;
 uniform float chroma = 0.0018;
 uniform float gloom : hint_range(0.0, 1.0) = 0.0;   // driven by the player's Gloom meter
+uniform float hurt : hint_range(0.0, 1.0) = 0.0;    // flash when an enemy fills the dark (Zone)
+uniform vec2 hurt_dir = vec2(0.0);                    // screen-space direction of the attacker, 0 = all round
 
 vec3 rgb2hsv(vec3 c) {
     vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -81,6 +83,11 @@ void fragment() {
     float gv = smoothstep(0.2, 0.95, distance(SCREEN_UV, vec2(0.5)) * (0.6 + gloom * 0.8)) * gloom;
     col = mix(col, col * vec3(0.35, 0.22, 0.65), gv);
     col *= 1.0 - gv * 0.55;
+    // Hurt: a blood-violet bite from the frame edge, biased toward the attacker
+    vec2 hd = SCREEN_UV - vec2(0.5);
+    float side = length(hurt_dir) > 0.01 ? clamp(dot(normalize(hd + 1e-4), normalize(hurt_dir)) * 0.5 + 0.5, 0.0, 1.0) : 1.0;
+    float hv = smoothstep(0.25, 0.75, length(hd) * 1.25) * hurt * (0.35 + 0.65 * side * side);
+    col = mix(col, vec3(0.55, 0.04, 0.16), hv * 0.75);
     uint seed = uint(fract(TIME * 17.0) * 65536.0);
     col += (grain_hash(uvec2(FRAGCOORD.xy), seed) - 0.5) * grain;
     COLOR = vec4(col, 1.0);

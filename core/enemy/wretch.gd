@@ -17,4 +17,4 @@ func _init() -> void:
 func _build() -> void:
 	name = "Wretch"
 	attach_rig()
-	EnemyBody.dress(_rig, &"wretch")
+	set_flesh(EnemyBody.dress(_rig, &"wretch"))

@@ -35,7 +35,7 @@ func _build() -> void:
 	attach_rig()
 	if _rig:
 		_rig.scale = Vector3(0.86, 0.94, 0.86)
-	EnemyBody.dress(_rig, &"spitter")
+	set_flesh(EnemyBody.dress(_rig, &"spitter"))
 	var chest: Node3D = _rig.socket("chest") if _rig else null
 	if chest:
 		if _sac_mesh == null:
@@ -48,7 +48,7 @@ func _build() -> void:
 		_sac = MeshInstance3D.new()
 		_sac.name = "Sac"
 		_sac.mesh = _sac_mesh
-		_sac.position = Vector3(0.0, 0.2, -0.14)
+		_sac.position = Vector3(0.0, 0.26, -0.12)
 		_sac.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		chest.add_child(_sac)
 
@@ -127,6 +127,8 @@ func _spit() -> void:
 	aim += pv * t * 0.5                                 # half lead: a straight line still dodges it
 	aim.y += 0.5 * SpitOrb.SAG * t * t                  # cancel the droop
 	SpitOrb.launch(get_tree().current_scene, from, aim - from, spit_gloom)
+	Sfx.play("res://art/audio/spit.wav", from, -4.0)
+	Vfx.burst(from, Color(0.3, 1.6, 1.1), {"count": 14, "life": 0.3, "speed": Vector2(1.0, 3.0), "size": 0.05, "dir": (aim - from).normalized(), "spread": 30.0, "gravity": -6.0})
 
 
 func _physics_process(delta: float) -> void:

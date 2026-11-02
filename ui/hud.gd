@@ -113,7 +113,7 @@ func _ready() -> void:
 	_subtitle.modulate.a = 0.0
 	Events.zone_entered.connect(_on_zone)
 
-	_hint = _label(root, "WASD move  ·  Shift sprint  ·  Space jump  ·  E kindle  ·  skills on the bar below  ·  F1 grade  ·  Esc settings  ·  F3 stats  ·  F8 bench  ·  F11 fullscreen", 18, QUIET)
+	_hint = _label(root, "WASD move  ·  Shift sprint  ·  Space jump (again in the air)  ·  Ctrl slide  ·  E kindle  ·  skills on the bar below  ·  Esc settings  ·  F3 stats", 18, QUIET)
 	_hint.position = Vector2(48, 100)
 	_hint.size = Vector2(1400, 28)
 

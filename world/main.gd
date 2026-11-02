@@ -22,6 +22,11 @@ var _walk_rec := ""
 var _walk_frames := 36
 var _deepdive = null
 
+## Streamed areas (docs/ZONE_PLAN.md). Anchors are area centres; radii in metres (horizontal).
+const AREAS: Array[Dictionary] = [
+	{"id": "ossuary", "source": "res://world/areas/ossuary/ossuary.gd", "anchor": Vector3(19.0, 4.0, -36.0), "load_r": 110.0, "unload_r": 150.0},
+]
+
 
 func _ready() -> void:
 	super._ready()
@@ -35,6 +40,7 @@ func _ready() -> void:
 	Atmosphere.apply(self, _env, _cam, _moon, 82.0, Color("#12183A"), Color("#060A1C"), Color("#3A2480"))
 	_spawn_glimmers()
 	EnemySpawner.seed_stair(self)
+	AreaStreamer.attach(self, AREAS)
 	finish_zone_setup()
 	if _player.get_node_or_null("CameraRig/Pitch/SpringArm") is SpringArm3D:
 		(_player.get_node("CameraRig/Pitch/SpringArm") as SpringArm3D).spring_length = 3.7

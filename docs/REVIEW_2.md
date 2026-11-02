@@ -191,3 +191,46 @@ The system is data-driven now; growth should be loadout, not more buttons:
   scene change frees them — pools prune dead refs on use.
 - HUD Gloom bar lerps to red past 50 %; with Gloom now also a cost, show the *pending* cost as a
   ghost segment while charging Lance.
+
+---
+
+## Part C — Pass 3 (3 Nov): bodies, movement, VFX, sanctuaries
+
+Not engine-run (same Linux-VM limit). All scripts pass `gdparse`; run the import + play first.
+
+**Enemy models** — `creature_mesh.gd` builds organic meshes in code (parallel-transport swept
+tubes with lumpy radii, noisy ellipsoids, claws, ribs, vertebrae; winding enforced to Godot's
+clockwise front faces). `enemy_body.gd` caches one ArrayMesh per (kind, joint) and one
+`flesh.gdshader` material per kind: pale veined skin, glossy bone, matte rags, glowing eyes,
+violet rim, and per-instance `hit_flash` / `glint` (windup tell) / `dissolve` (death burn).
+Crawler and Leaper now use `quad_rig.gd` (four-legged, diagonal trot, coil, flight pose) —
+**the crawling things are the jumpers**; humanoids (Wretch, Husk, Spitter) no longer leap.
+
+**Sanctuaries** — `LightGrid.repel/outside`: enemies cannot enter any lit brazier or ward radius
+(+0.6 m). Inward velocity is stripped, insiders are pushed out, pounces/hops land on the edge, a
+mid-air leap into light is cancelled, and after 2.5 s of you sheltering they give up and go home.
+Spitters can still shoot in.
+
+**Movement** — double jump (re-aims toward input, ring + motes), variable jump height (release
+early), slide (Ctrl / pad B: needs ≥ 3.4 m/s, boosts to ≥ 1.15× sprint, gains speed downhill,
+steerable, shrinks the capsule, lowers the camera, dust + sparks + scrape loop, jump out of it to
+slide-hop), stronger air control. Shadowstep moved to pad Y.
+
+**Combat** — enemy separation + flank angles (packs surround), heavy hits stagger windups,
+player hurt flash in the grade biased toward the attacker, hurt sound + kick, blast damage now a
+direct shape query (the old Area resize missed most targets the same frame).
+
+**Skill visuals** — bolts are stretched darts with camera-facing streak ribbons and spark
+impacts; the Lance has an inward ember swirl + rising tone while charging, a ring snap at full
+charge, heat-shimmer shell in flight, and a ring + scorch decal + embers + smoke + light
+explosion; Nova throws ground and air rings, shards, a scorch, and lightning arcs to every enemy
+whose marks it detonates; the Ward raises a turning lantern over a rotating rune sigil with
+rising embers; Shadowstep leaves smoke, motes and a streak. Library: `core/vfx/vfx.gd`
+(bursts, emitters, rings, lights, decals, ribbons, arcs), shaders in `world/vfx/`.
+
+**Audio** — `tools/gen_sfx.py` (numpy, deterministic) wrote 13 new WAVs: blink, air jump, slide
+scrape, nova boom, lance charge/fire/impact, ward chime, spit, enemy death, pounce shriek, mark
+tick, hurt. Loops are set in code (`AudioStreamWAV.loop_mode`).
+
+**Next**: tune numbers on the Mac (slide feel, pounce lead, separation), then the review's B1
+items (summit decimation, ORM packing) and encounters up the stair.

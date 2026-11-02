@@ -85,8 +85,7 @@ func _on_body(b: Node) -> void:
 		var p := b as Player
 		if p.is_evading():
 			return                   # stepped through it
-		p.add_gloom_from_enemy(gloom)
-		p.kick(0.5)
+		p.add_gloom_from_enemy(gloom, global_position - velocity.normalized() * 3.0)
 	pop()
 
 
@@ -100,6 +99,8 @@ func pop() -> void:
 		return
 	_dead = true
 	set_deferred("monitoring", false)
+	Vfx.burst(global_position, TEAL, {"count": 22, "life": 0.45, "speed": Vector2(1.5, 4.0), "size": 0.045, "gravity": -7.0, "trail": 0.06})
+	Vfx.burst(global_position, Color(0.05, 0.25, 0.18, 0.7), {"count": 8, "life": 0.6, "speed": Vector2(0.3, 1.0), "size": 0.25, "gravity": -1.0, "additive": false})
 	remove_from_group(Groups.ENEMY_SHOT)
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(_body, "scale", Vector3.ONE * 2.4, 0.16).set_ease(Tween.EASE_OUT)

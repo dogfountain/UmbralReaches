@@ -1,31 +1,43 @@
 class_name Crawler
 extends Enemy
-## Low hop-crawler. Pack hunter. Uses the wretch mesh, squashed.
+## Small four-legged skitterer: the pack jumper. Ballistic 3.4 m hops while chasing, plus a short
+## quick-tell pounce (3.5-8.5 m). Fragile; dangerous in numbers.
 
 
 func _init() -> void:
 	max_hp = 2
 	hp = 2.0
-	walk_speed = 2.9
-	chase_range = 9.5
-	hunt_leash = 12.0
-	strike_range = 1.2
-	strike_gloom = 18.0
+	walk_speed = 3.4
+	chase_range = 11.0
+	hunt_leash = 13.0
+	strike_range = 1.15
+	strike_gloom = 14.0
 	light_averse = true
 	crawler = true
 	hop_len = 3.4
-	hp_bar_y = 0.92
+	leaper = true
+	leap_min = 3.5
+	leap_max = 8.5
+	leap_apex = 1.1
+	leap_prep = 0.32
+	leap_cooldown = 3.2
+	leap_lead = 0.4
+	hp_bar_y = 0.95
 
 
 func _build() -> void:
 	name = "Crawler"
-	attach_rig()
-	if _rig:
-		_rig.scale = Vector3(1.2, 0.42, 1.35)
+	var rig := QuadRig.new()
+	rig.body_height = 0.34
+	rig.body_len = 0.72
+	rig.hip_spread = 0.14
+	rig.upper_len = 0.24
+	rig.stride_len = 0.42
+	attach_rig(rig)
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape is CapsuleShape3D:
 		var cap := col.shape as CapsuleShape3D
-		cap.height = 0.72
+		cap.height = 0.7
 		cap.radius = 0.32
-		col.position.y = 0.38
-	EnemyBody.dress(_rig, &"crawler")
+		col.position.y = 0.36
+	set_flesh(EnemyBody.dress(_rig, &"crawler"))

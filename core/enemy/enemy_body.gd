@@ -1,241 +1,293 @@
 class_name EnemyBody
 extends RefCounted
-## Jointed, textured body for Enemy types. Not the wanderer robe. Uses existing
-## stone / bark / ground maps so flesh and rags read as surfaces, not flat grey.
+## Organic bodies for every enemy kind, built with CreatureMesh and cached per (kind, joint):
+## an enemy instance only adds MeshInstance3Ds that point at shared ArrayMeshes and ONE shared
+## flesh ShaderMaterial per kind (≈ one draw call per joint). Replaces the old ~60 primitive
+## cylinders per enemy and the stone/bark triplanar maps that made skin read as rock.
+##
+## Silhouette rules, so each type reads at 15 m in greyscale:
+##   Wretch  hunched, gaunt, long arms ending in hooked claws, open jaw
+##   Husk    bloated belly, cage of exposed ribs, small sunken head, a glowing hollow in the chest
+##   Spitter thin and pale, long forward neck, dorsal glands, throat sac (spitter.gd)
+##   Crawler low and spidery on four legs, mandibles, four eyes, stub tail       (QuadRig)
+##   Leaper  long body, heavy haunches, dorsal spines, long spiked tail, crest    (QuadRig)
 
-const STONE_A := "res://art/textures/stone_albedo.png"
-const STONE_N := "res://art/textures/stone_normal.png"
-const BARK_A := "res://art/textures/bark_albedo.png"
-const BARK_N := "res://art/textures/bark_normal.png"
-const GROUND_A := "res://art/textures/ground_albedo.png"
-const GROUND_N := "res://art/textures/ground_normal.png"
+const FLESH := preload("res://core/enemy/flesh.gdshader")
+const SHADOWED := ["chest", "pelvis", "head", "body", "front"]
 
-static var _cache: Dictionary = {}
-static var _joint_meshes := {}
-const Check := preload("res://core/debug/check.gd")
+static var _meshes := {}    # kind -> {joint: ArrayMesh}
+static var _mats := {}      # kind -> ShaderMaterial
 
 
-static func dress(rig: CharacterRig, kind: StringName) -> void:
+## Attach the cached body for `kind` to the rig's sockets. Returns the MeshInstance3Ds so Enemy
+## can drive the per-instance flash / glint / dissolve uniforms.
+static func dress(rig: CharacterRig, kind: StringName) -> Array[MeshInstance3D]:
+	var out: Array[MeshInstance3D] = []
 	if rig == null:
-		push_error("enemy_body.dress rig null")
-		return
-	var pack: Dictionary = _mats(kind)
-	var flesh: Material = pack.flesh
-	var rag: Material = pack.rag
-	var hide: Material = pack.hide
-	var void_m: Material = pack.void_m
-	var bone: Material = pack.bone
-
-	_put(rig, "pelvis", "Hips", ProcMesh.sphere(0.14, 0.17, 12, 6), Vector3(0.0, -0.06, 0.0), flesh, Vector3.ZERO, true)
-	var mesh_kind := kind
-	if kind == &"crawler":
-		mesh_kind = &"wretch"
-	elif kind == &"leaper":
-		mesh_kind = &"husk"
-	elif kind == &"spitter":
-		mesh_kind = &"wretch"
-	var used_torso := _attach_glb(rig, "chest", "res://art/models/%s_torso.glb" % mesh_kind, pack)
-	if not used_torso:
-		_put(rig, "chest", "Rib", ProcMesh.capsule(0.16, 0.44), Vector3(0.0, 0.02, 0.02), flesh, Vector3.ZERO, true)
-		_put(rig, "chest", "Belly", ProcMesh.sphere(0.13, 0.16, 10, 6), Vector3(0.0, -0.16, 0.04), flesh)
-		_put(rig, "chest", "Wrap", ProcMesh.cyl(0.18, 0.16, 0.24, 12, 1), Vector3(0.0, -0.02, 0.03), rag, Vector3.ZERO, true)
-		_put(rig, "chest", "Sash", ProcMesh.cyl(0.185, 0.13, 0.08, 10, 1), Vector3(0.0, -0.14, 0.02), rag)
-		_put(rig, "chest", "Neck", ProcMesh.cyl(0.05, 0.058, 0.12, 10, 1), Vector3(0.0, 0.28, 0.0), flesh)
-		_put(rig, "chest", "Spine", ProcMesh.cyl(0.03, 0.04, 0.28, 8, 1), Vector3(0.0, 0.02, 0.09), bone)
-
-	var used_head := _attach_glb(rig, "head", "res://art/models/%s_head.glb" % mesh_kind, pack)
-	if not used_head:
-		_put(rig, "head", "Skull", ProcMesh.sphere(0.11, 0.17, 14, 8), Vector3(0.0, 0.04, 0.01), flesh, Vector3.ZERO, true)
-		_put(rig, "head", "Jaw", ProcMesh.sphere(0.072, 0.085, 10, 5), Vector3(0.0, -0.05, 0.03), flesh)
-		_put(rig, "head", "Nose", ProcMesh.sphere(0.02, 0.032, 8, 4), Vector3(0.0, 0.02, -0.09), flesh)
-		_put(rig, "head", "Brow", ProcMesh.cyl(0.092, 0.082, 0.04, 10, 1), Vector3(0.0, 0.07, -0.06), flesh, Vector3(1.2, 0.0, 0.0))
-		_put(rig, "head", "EarL", ProcMesh.sphere(0.024, 0.042, 8, 4), Vector3(-0.09, 0.03, 0.01), flesh)
-		_put(rig, "head", "EarR", ProcMesh.sphere(0.024, 0.042, 8, 4), Vector3(0.09, 0.03, 0.01), flesh)
-		_put(rig, "head", "EyeL", ProcMesh.sphere(0.024, 0.032, 8, 4), Vector3(-0.035, 0.04, -0.08), void_m)
-		_put(rig, "head", "EyeR", ProcMesh.sphere(0.024, 0.032, 8, 4), Vector3(0.035, 0.04, -0.08), void_m)
-		_put(rig, "head", "Teeth", ProcMesh.cyl(0.038, 0.03, 0.02, 8, 1), Vector3(0.0, -0.04, -0.07), bone, Vector3(1.1, 0.0, 0.0))
-		_put(rig, "head", "FangL", ProcMesh.cyl(0.01, 0.004, 0.04, 6, 1), Vector3(-0.02, -0.07, -0.07), bone)
-		_put(rig, "head", "FangR", ProcMesh.cyl(0.01, 0.004, 0.04, 6, 1), Vector3(0.02, -0.07, -0.07), bone)
-		if kind == &"wretch":
-			_put(rig, "head", "Cowl", ProcMesh.cyl(0.085, 0.14, 0.18, 12, 1), Vector3(0.0, 0.08, -0.01), rag, Vector3.ZERO, true)
-			_put(rig, "head", "CowlDrape", ProcMesh.cyl(0.13, 0.08, 0.14, 10, 1), Vector3(0.0, -0.02, 0.04), rag)
-
-	for side in ["l", "r"]:
-		var sx := -1.0 if side == "l" else 1.0
-		_put(rig, "shoulder_" + side, "Deltoid", ProcMesh.sphere(0.08, 0.095, 10, 5), Vector3(sx * 0.02, 0.0, 0.0), flesh, Vector3.ZERO, true)
-		_put(rig, "shoulder_" + side, "Upper", ProcMesh.cyl(0.058, 0.046, 0.28, 10, 1), Vector3(0.0, -0.15, 0.0), flesh, Vector3.ZERO, true)
-		_put(rig, "elbow_" + side, "Fore", ProcMesh.cyl(0.044, 0.034, 0.26, 10, 1), Vector3(0.0, -0.14, 0.0), flesh)
-		_put(rig, "elbow_" + side, "Wrap", ProcMesh.cyl(0.05, 0.048, 0.07, 8, 1), Vector3(0.0, -0.04, 0.0), rag)
-		_put(rig, "hand_" + side, "Palm", ProcMesh.sphere(0.04, 0.056, 10, 5), Vector3.ZERO, hide)
-		for f in 3:
-			var fx := sx * (0.01 + float(f) * 0.016)
-			_put(rig, "hand_" + side, "Finger%d" % f, ProcMesh.cyl(0.011, 0.008, 0.055, 6, 1), Vector3(fx, -0.018, -0.038), hide, Vector3(0.95, 0.0, 0.0))
-			_put(rig, "hand_" + side, "Claw%d" % f, ProcMesh.cyl(0.007, 0.002, 0.028, 5, 1), Vector3(fx, -0.03, -0.07), bone, Vector3(1.1, 0.0, 0.0))
-		_put(rig, "hip_" + side, "Thigh", ProcMesh.cyl(0.078, 0.056, 0.38, 10, 1), Vector3(0.0, -0.20, 0.0), flesh, Vector3.ZERO, true)
-		_put(rig, "knee_" + side, "Shin", ProcMesh.cyl(0.052, 0.042, 0.38, 10, 1), Vector3(0.0, -0.20, 0.0), flesh, Vector3.ZERO, true)
-		_put(rig, "knee_" + side, "Wrap", ProcMesh.cyl(0.058, 0.054, 0.06, 8, 1), Vector3(0.0, -0.02, 0.0), rag)
-		_put(rig, "foot_" + side, "Last", ProcMesh.cyl(0.05, 0.056, 0.08, 10, 1), Vector3(0.0, 0.02, -0.03), hide, Vector3(1.15, 0.0, 0.0))
-		_put(rig, "foot_" + side, "Toe", ProcMesh.sphere(0.044, 0.05, 8, 4), Vector3(0.0, 0.02, -0.07), hide)
-		_put(rig, "foot_" + side, "Talon", ProcMesh.cyl(0.012, 0.004, 0.04, 6, 1), Vector3(0.0, 0.0, -0.11), bone, Vector3(1.2, 0.0, 0.0))
-
-	if kind == &"husk" and not used_torso:
-		_put(rig, "chest", "RibShow", ProcMesh.cyl(0.145, 0.13, 0.08, 12, 1), Vector3(0.0, 0.08, 0.04), bone)
-		_put(rig, "pelvis", "RagSkirt", ProcMesh.cyl(0.17, 0.21, 0.2, 12, 1), Vector3(0.0, -0.16, 0.0), rag, Vector3.ZERO, true)
-		_put(rig, "chest", "Hollow", ProcMesh.sphere(0.055, 0.065, 8, 4), Vector3(0.0, 0.06, 0.12), void_m)
-	_merge_joints(rig, kind)
-
-
-static func _attach_glb(rig: CharacterRig, socket_name: String, path: String, pack: Dictionary) -> bool:
-	var joint := rig.socket(socket_name)
-	if joint == null:
-		push_error("enemy_body: socket '%s' missing for %s" % [socket_name, path])
-		return false
-	var model := Check.attach_glb(joint, path, "Mesh")
-	if model == null:
-		return false
-	_paint_prefix(model, "Flesh", pack.get("flesh"))
-	_paint_prefix(model, "Rag", pack.get("rag"))
-	_paint_prefix(model, "Bone", pack.get("bone"))
-	_paint_prefix(model, "Void", pack.get("void_m"))
-	return true
-
-
-static func _paint_prefix(model: Node, prefix: String, mat: Variant) -> void:
-	if model == null:
-		push_error("enemy_body.paint null model %s" % prefix)
-		return
-	if mat == null or not (mat is Material):
-		push_error("enemy_body.paint null mat %s" % prefix)
-		return
-	var n := 0
-	for node in model.find_children("*", "MeshInstance3D", true, false):
-		if String(node.name).begins_with(prefix):
-			(node as MeshInstance3D).material_override = mat
-			n += 1
-	if n == 0 and prefix == "Flesh":
-		push_error("enemy_body.paint %s: no Flesh mesh" % model.name)
-
-
-static func _merge_joints(rig: CharacterRig, kind: StringName) -> void:
-	const SOCKETS := [
-		"pelvis", "chest", "head",
-		"shoulder_l", "shoulder_r", "elbow_l", "elbow_r", "hand_l", "hand_r",
-		"hip_l", "hip_r", "knee_l", "knee_r", "foot_l", "foot_r",
-	]
-	for socket_name in SOCKETS:
-		var joint := rig.socket(socket_name)
-		if joint == null:
+		push_error("EnemyBody.dress: rig null")
+		return out
+	if not _meshes.has(kind):
+		_meshes[kind] = _quad_parts(kind, rig as QuadRig) if rig is QuadRig else _humanoid_parts(kind)
+	var parts: Dictionary = _meshes[kind]
+	var mat := material(kind)
+	for joint in parts:
+		var socket := rig.socket(joint)
+		if socket == null:
+			push_error("EnemyBody.dress: socket '%s' missing for %s" % [joint, kind])
 			continue
-		var by_mat := {}
-		for c in joint.get_children():
-			if not (c is MeshInstance3D) or c.get_child_count() > 0:
-				continue
-			var mi := c as MeshInstance3D
-			if mi.mesh == null:
-				continue
-			var mid := 0
-			if mi.material_override:
-				mid = int(mi.material_override.get_rid().get_id())
-			if not by_mat.has(mid):
-				by_mat[mid] = {"mat": mi.material_override, "mis": []}
-			by_mat[mid].mis.append(mi)
-		for mid in by_mat:
-			var g: Dictionary = by_mat[mid]
-			if g.mis.size() < 2:
-				continue
-			var cache_key := "%s/%s/%d" % [kind, socket_name, mid]
-			var combined: ArrayMesh = _joint_meshes.get(cache_key)
-			if combined == null:
-				var st := SurfaceTool.new()
-				st.begin(Mesh.PRIMITIVE_TRIANGLES)
-				for mi in g.mis:
-					st.append_from(mi.mesh, 0, mi.transform)
-				combined = st.commit()
-				_joint_meshes[cache_key] = combined
-			var merged := MeshInstance3D.new()
-			merged.name = "Merged"
-			merged.mesh = combined
-			merged.material_override = g.mat
-			merged.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			joint.add_child(merged)
-			for mi in g.mis:
-				joint.remove_child(mi)
-				mi.free()
+		var mi := MeshInstance3D.new()
+		mi.name = "Flesh_" + String(joint)
+		mi.mesh = parts[joint]
+		mi.material_override = mat
+		var big := String(joint) in SHADOWED
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if big else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		socket.add_child(mi)
+		out.append(mi)
+	return out
 
 
-static func _put(rig: CharacterRig, socket_name: String, n_name: String, mesh: Mesh, at: Vector3, mat: Material, rot := Vector3.ZERO, shadow := false) -> void:
-	var joint := rig.socket(socket_name)
-	if joint == null:
-		push_error("enemy_body._put socket '%s' missing" % socket_name)
-		return
-	if mesh == null:
-		push_error("enemy_body._put null mesh %s/%s" % [socket_name, n_name])
-		return
-	ProcMesh.mesh(joint, n_name, mesh, mat, at, rot, shadow)
-
-
-static func _mats(kind: StringName) -> Dictionary:
-	if _cache.has(kind):
-		return _cache[kind]
-	var flesh_tint := Color(0.82, 0.64, 0.50)
-	var rag_tint := Color(0.36, 0.22, 0.14)
-	var hide_tint := Color(0.22, 0.16, 0.12)
-	var bone_tint := Color(0.84, 0.72, 0.56)
-	if kind == &"husk":
-		flesh_tint = Color(0.42, 0.34, 0.30)
-		rag_tint = Color(0.16, 0.12, 0.10)
-		hide_tint = Color(0.14, 0.11, 0.09)
-		bone_tint = Color(0.58, 0.50, 0.40)
-	elif kind == &"crawler":
-		flesh_tint = Color(0.58, 0.50, 0.42)
-		rag_tint = Color(0.22, 0.16, 0.12)
-		hide_tint = Color(0.18, 0.14, 0.10)
-		bone_tint = Color(0.70, 0.62, 0.48)
-	elif kind == &"spitter":
-		# Pale, bloodless, bile-stained: reads as "fragile" against the darker melee types.
-		flesh_tint = Color(0.70, 0.74, 0.64)
-		rag_tint = Color(0.14, 0.20, 0.18)
-		hide_tint = Color(0.20, 0.24, 0.20)
-		bone_tint = Color(0.80, 0.82, 0.70)
-	elif kind == &"leaper":
-		flesh_tint = Color(0.62, 0.28, 0.26)
-		rag_tint = Color(0.22, 0.08, 0.10)
-		hide_tint = Color(0.16, 0.08, 0.08)
-		bone_tint = Color(0.72, 0.48, 0.40)
-	var pack := {
-		"flesh": _tri(STONE_A, STONE_N, flesh_tint, 0.72, 0.55),
-		"rag": _tri(BARK_A, BARK_N, rag_tint, 0.9, 0.35),
-		"hide": _tri(GROUND_A, GROUND_N, hide_tint, 0.88, 0.4),
-		"bone": _tri(STONE_A, STONE_N, bone_tint, 0.42, 0.7),
-		"void_m": _void(),
-	}
-	_cache[kind] = pack
-	return pack
-
-
-static func _tri(albedo_path: String, normal_path: String, tint: Color, rough: float, scale: float) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = tint
-	var albedo := Check.res(albedo_path, Texture2D) as Texture2D
-	var normal := Check.res(normal_path, Texture2D) as Texture2D
-	m.albedo_texture = albedo
-	m.normal_enabled = true
-	m.normal_texture = normal
-	m.normal_scale = 1.15
-	m.roughness = rough
-	m.uv1_triplanar = true
-	m.uv1_world_triplanar = false
-	m.uv1_scale = Vector3(scale, scale, scale)
-	m.uv1_triplanar_sharpness = 2.0
-	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	m.rim_enabled = true
-	m.rim = 0.48
-	m.rim_tint = 0.35
+static func material(kind: StringName) -> ShaderMaterial:
+	if _mats.has(kind):
+		return _mats[kind]
+	var m := ShaderMaterial.new()
+	m.shader = FLESH
+	var p: Dictionary = {
+		&"wretch": {"skin": Color(0.6, 0.56, 0.6), "deep": Color(0.22, 0.13, 0.2), "eye": Color(1.0, 0.32, 0.1), "rim": 0.55},
+		&"husk": {"skin": Color(0.42, 0.37, 0.41), "deep": Color(0.14, 0.09, 0.11), "eye": Color(1.0, 0.45, 0.12), "rim": 0.45},
+		&"spitter": {"skin": Color(0.7, 0.74, 0.66), "deep": Color(0.24, 0.3, 0.25), "eye": Color(0.3, 1.4, 1.0), "rim": 0.5, "vein": Color(0.08, 0.2, 0.12)},
+		&"crawler": {"skin": Color(0.5, 0.45, 0.52), "deep": Color(0.15, 0.09, 0.14), "eye": Color(1.3, 0.18, 0.12), "rim": 0.6},
+		&"leaper": {"skin": Color(0.48, 0.3, 0.34), "deep": Color(0.17, 0.05, 0.08), "eye": Color(1.4, 0.62, 0.1), "rim": 0.7},
+		&"ossuant": {"skin": Color(0.82, 0.76, 0.64), "deep": Color(0.3, 0.24, 0.2), "eye": Color(1.1, 0.5, 2.6), "rim": 0.35},
+	}.get(kind, {"skin": Color(0.6, 0.56, 0.6), "deep": Color(0.2, 0.12, 0.18), "eye": Color(1.0, 0.3, 0.1), "rim": 0.5})
+	m.set_shader_parameter("skin", p.skin)
+	m.set_shader_parameter("skin_deep", p.deep)
+	m.set_shader_parameter("eye_col", p.eye)
+	m.set_shader_parameter("rim_amount", p.rim)
+	if p.has("vein"):
+		m.set_shader_parameter("vein", p.vein)
+	_mats[kind] = m
 	return m
 
 
-static func _void() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = Color(0.02, 0.015, 0.02)
-	return m
+# --- humanoid kinds -------------------------------------------------------------------------
+# Joint frames (CharacterRig): limbs hang along -Y from their joint, the body faces -Z.
+# pelvis → hip_l/r (±0.11, -0.19) → knee (-0.42) → foot (-0.42); chest is 0.34 above pelvis,
+# head 0.36 above chest, shoulders (±0.24, +0.12) → elbow (-0.32) → hand (-0.30).
+
+static func _humanoid_parts(kind: StringName) -> Dictionary:
+	var husk := kind == &"husk" or kind == &"ossuant"
+	var spit := kind == &"spitter"
+	var limb_r := 1.45 if husk else (0.8 if spit else 1.0)
+	var claw := 0.08 if husk else (0.07 if spit else 0.13)
+	var parts := {}
+	var sd := hash(kind) % 1000
+
+	# pelvis: hips + hanging rags
+	var cm := CreatureMesh.new(sd)
+	cm.blob(Vector3(0, -0.05, 0.0), Vector3(0.15, 0.1, 0.11) * (1.25 if husk else 1.0), Basis.IDENTITY, Color.WHITE, 0.0, 0.12)
+	# a belt of torn strips hanging round the hips (thin, ragged, splayed — not a skirt)
+	cm.tube(PackedVector3Array([Vector3(-0.15, -0.04, 0.0), Vector3(0.0, -0.06, -0.12), Vector3(0.15, -0.04, 0.0), Vector3(0.0, -0.02, 0.12), Vector3(-0.15, -0.04, 0.0)]),
+		PackedFloat32Array([0.02, 0.02, 0.02, 0.02, 0.02]), 5, Color(0.8, 0.7, 0.65), 0.0, 0.2, 0.0, Vector2.ONE, 1.0)
+	for k in 9:
+		var ang := TAU * float(k) / 9.0 + 0.3
+		var o := Vector3(cos(ang) * 0.14, -0.05, sin(ang) * 0.12)
+		var rag_len := 0.16 + 0.14 * float((k * 7) % 4) / 3.0
+		var splay := Vector3(cos(ang), 0.0, sin(ang)) * 0.05
+		cm.tube(PackedVector3Array([o, o + Vector3(0, -rag_len * 0.5, 0) + splay * 0.5, o + Vector3(0, -rag_len, 0) + splay]),
+			PackedFloat32Array([0.03, 0.026, 0.008]), 5, Color(0.9, 0.82, 0.8), 0.0, 0.3, 0.0, Vector2(1.0, 0.25), 1.0)
+	parts["pelvis"] = cm.commit()
+
+	# chest: torso, spine, ribs, neck
+	cm = CreatureMesh.new(sd + 1)
+	var spine := PackedVector3Array([Vector3(0, -0.32, 0.09), Vector3(0, -0.12, 0.12), Vector3(0, 0.08, 0.14), Vector3(0, 0.24, 0.08)])
+	if husk:
+		cm.blob(Vector3(0, -0.17, -0.05), Vector3(0.25, 0.22, 0.23), Basis.IDENTITY, Color(1.0, 0.92, 0.92), 0.0, 0.16)
+		cm.blob(Vector3(0, 0.07, 0.0), Vector3(0.22, 0.15, 0.15), Basis.IDENTITY, Color.WHITE, 0.0, 0.12)
+		for k in 4:
+			for side in [-1.0, 1.0]:
+				cm.rib(Vector3(0, 0.12 - 0.07 * float(k), 0.15), side, 0.17, 0.05, 0.017, 0.82)
+		cm.blob(Vector3(0, -0.02, -0.2), Vector3(0.06, 0.07, 0.03), Basis.IDENTITY, Color.WHITE, 0.0, 0.0, 1.0, 6, 8)
+	elif spit:
+		cm.blob(Vector3(0, 0.0, 0.01), Vector3(0.13, 0.18, 0.1), Basis.IDENTITY, Color.WHITE, 0.0, 0.1)
+		cm.tube(PackedVector3Array([Vector3(0, -0.32, 0.02), Vector3(0, -0.16, 0.0), Vector3(0, -0.04, 0.0)]), PackedFloat32Array([0.09, 0.08, 0.11]), 9)
+		for k in 3:
+			cm.blob(Vector3((float(k) - 1.0) * 0.06, 0.06 - 0.09 * float(k % 2), 0.13), Vector3(0.035, 0.04, 0.03), Basis.IDENTITY, Color.WHITE, 0.0, 0.05, 1.0, 5, 8)
+	else:
+		cm.blob(Vector3(0, 0.0, 0.0), Vector3(0.16, 0.2, 0.12), Basis(Vector3.RIGHT, -0.25), Color.WHITE, 0.0, 0.14)
+		cm.tube(PackedVector3Array([Vector3(0, -0.32, 0.03), Vector3(0, -0.18, 0.01), Vector3(0, -0.06, 0.01)]), PackedFloat32Array([0.11, 0.09, 0.13]), 9, Color.WHITE, 0.0, 0.1, 0.0, Vector2(1.0, 0.8))
+		for k in 3:
+			for side in [-1.0, 1.0]:
+				cm.rib(Vector3(0, -0.02 - 0.07 * float(k), 0.12), side, 0.14, 0.04, 0.012, 0.7)
+		for side in [-1.0, 1.0]:
+			cm.blob(Vector3(side * 0.19, 0.12, 0.05), Vector3(0.09, 0.07, 0.08), Basis.IDENTITY, Color.WHITE, 0.0, 0.12)
+	cm.vertebrae(spine, 0.032 * (1.3 if husk else 1.0), 7, Vector3.BACK)
+	if spit:
+		cm.tube(PackedVector3Array([Vector3(0, 0.16, 0.03), Vector3(0, 0.28, -0.04), Vector3(0, 0.36, -0.1), Vector3(0, 0.4, -0.14)]), PackedFloat32Array([0.07, 0.055, 0.05, 0.05]), 9)
+	elif not husk:
+		cm.tube(PackedVector3Array([Vector3(0, 0.16, 0.05), Vector3(0, 0.27, 0.0), Vector3(0, 0.36, -0.05)]), PackedFloat32Array([0.065, 0.05, 0.048]), 9)
+	parts["chest"] = cm.commit()
+
+	# head
+	cm = CreatureMesh.new(sd + 2)
+	var ho := Vector3(0, 0.02, -0.14) if spit else (Vector3(0, -0.06, -0.06) if husk else Vector3.ZERO)
+	var hs := 0.82 if husk else 1.0
+	cm.blob(ho + Vector3(0, 0.06, -0.02) * hs, Vector3(0.095, 0.1, 0.135) * hs, Basis(Vector3.RIGHT, 0.2), Color.WHITE, 0.0, 0.12)
+	cm.tube(PackedVector3Array([ho + Vector3(-0.07, 0.1, -0.1) * hs, ho + Vector3(0, 0.085, -0.145) * hs, ho + Vector3(0.07, 0.1, -0.1) * hs]),
+		PackedFloat32Array([0.018, 0.024, 0.018]), 6, Color(0.85, 0.8, 0.8))
+	# open jaw, slung low; teeth on both rows
+	var jaw := PackedVector3Array([ho + Vector3(-0.065, 0.0, -0.01) * hs, ho + Vector3(-0.045, -0.06, -0.09) * hs, ho + Vector3(0, -0.075, -0.135) * hs,
+		ho + Vector3(0.045, -0.06, -0.09) * hs, ho + Vector3(0.065, 0.0, -0.01) * hs])
+	cm.tube(jaw, PackedFloat32Array([0.024, 0.03, 0.032, 0.03, 0.024]), 7, Color(1.0, 0.85, 0.85))
+	for k in 5:
+		var tx := (float(k) - 2.0) * 0.022
+		cm.claw(ho + Vector3(tx, -0.058, -0.12 + absf(tx) * 0.6) * hs, Vector3(0, 1, -0.2).normalized(), 0.035, 0.007)
+		cm.claw(ho + Vector3(tx, 0.025, -0.125 + absf(tx) * 0.6) * hs, Vector3(0, -1, -0.15).normalized(), 0.03, 0.006)
+	for side in [-1.0, 1.0]:
+		cm.blob(ho + Vector3(side * 0.04, 0.065, -0.128) * hs, Vector3(0.02, 0.012, 0.012), Basis(Vector3.FORWARD, side * 0.3), Color.WHITE, 0.0, 0.0, 1.0, 5, 8)
+	if kind == &"wretch":
+		for k in 3:
+			cm.claw(Vector3((float(k) - 1.0) * 0.05, 0.14, 0.02), Vector3((float(k) - 1.0) * 0.4, 0.6, 1.0).normalized(), 0.09, 0.018, Vector3(0, -0.3, 0))
+	parts["head"] = cm.commit()
+
+	# arms
+	for tag: String in ["l", "r"]:
+		var sx := -1.0 if tag == "l" else 1.0
+		cm = CreatureMesh.new(sd + 10)
+		cm.blob(Vector3(sx * 0.01, 0.0, 0.0), Vector3(0.07, 0.065, 0.07) * limb_r, Basis.IDENTITY, Color.WHITE, 0.0, 0.12)
+		cm.limb(Vector3.ZERO, Vector3(0, -0.31, -0.01), 0.052 * limb_r, 0.038 * limb_r, Color.WHITE, Vector3(sx * 0.008, 0, -0.012))
+		parts["shoulder_" + tag] = cm.commit()
+		cm = CreatureMesh.new(sd + 11)
+		cm.limb(Vector3.ZERO, Vector3(0, -0.29, -0.01), 0.04 * limb_r, 0.027 * limb_r, Color.WHITE, Vector3(0, 0, 0.01))
+		cm.blob(Vector3(0, 0.0, 0.03), Vector3(0.028, 0.03, 0.022) * limb_r, Basis.IDENTITY, Color.WHITE, 1.0, 0.05, 0.0, 4, 6)
+		parts["elbow_" + tag] = cm.commit()
+		cm = CreatureMesh.new(sd + 12)
+		cm.blob(Vector3(0, -0.03, 0), Vector3(0.034, 0.045, 0.024) * limb_r, Basis.IDENTITY, Color.WHITE, 0.0, 0.1)
+		for f in 3:
+			var fx := (float(f) - 1.0) * 0.022
+			var tip := Vector3(fx * 1.4, -0.15 - claw * 0.3, -0.03)
+			cm.limb(Vector3(fx, -0.06, -0.005), tip, 0.012 * limb_r, 0.008 * limb_r, Color.WHITE, Vector3(0, 0, -0.012), 0.05)
+			cm.claw(tip, Vector3(0, -0.6, -1.0).normalized(), claw, 0.009, Vector3(0, -0.6, 0.4))
+		parts["hand_" + tag] = cm.commit()
+
+	# legs
+	for tag: String in ["l", "r"]:
+		cm = CreatureMesh.new(sd + 20)
+		cm.limb(Vector3(0, 0.02, 0), Vector3(0, -0.41, 0.0), 0.072 * limb_r, 0.05 * limb_r, Color.WHITE, Vector3(0, 0, -0.025))
+		parts["hip_" + tag] = cm.commit()
+		cm = CreatureMesh.new(sd + 21)
+		cm.limb(Vector3.ZERO, Vector3(0, -0.4, 0.02), 0.05 * limb_r, 0.034 * limb_r, Color.WHITE, Vector3(0, 0, 0.015))
+		cm.blob(Vector3(0, 0.0, -0.04), Vector3(0.035, 0.035, 0.025) * limb_r, Basis.IDENTITY, Color.WHITE, 1.0, 0.05, 0.0, 4, 6)
+		parts["knee_" + tag] = cm.commit()
+		cm = CreatureMesh.new(sd + 22)
+		cm.tube(PackedVector3Array([Vector3(0, 0.0, 0.03), Vector3(0, -0.03, -0.05), Vector3(0, -0.045, -0.12)]),
+			_k([0.045, 0.04, 0.032], limb_r), 8)
+		for t in 3:
+			var tx := (float(t) - 1.0) * 0.025
+			cm.claw(Vector3(tx, -0.05, -0.13), Vector3(tx * 3.0, -0.35, -1.0).normalized(), 0.055, 0.011, Vector3(0, -0.5, 0))
+		parts["foot_" + tag] = cm.commit()
+	return parts
+
+
+# --- quadruped kinds (QuadRig) ----------------------------------------------------------------
+
+static func _quad_parts(kind: StringName, rig: QuadRig) -> Dictionary:
+	var leaper := kind == &"leaper"
+	var parts := {}
+	var sd := hash(kind) % 1000
+	var L := rig.body_len
+	var h := rig.body_height
+
+	# body: ribcage + haunch + belly, spine ridge, dorsal spines (leaper)
+	var cm := CreatureMesh.new(sd)
+	var bulk := 1.25 if leaper else 0.9
+	cm.blob(Vector3(0, 0.03, -L * 0.22), Vector3(0.15, 0.14, 0.22) * bulk, Basis.IDENTITY, Color.WHITE, 0.0, 0.14)
+	cm.blob(Vector3(0, 0.02, L * 0.24), Vector3(0.16, 0.13, 0.2) * bulk * (1.15 if leaper else 1.0), Basis.IDENTITY, Color.WHITE, 0.0, 0.14)
+	cm.tube(PackedVector3Array([Vector3(0, -0.02, L * 0.35), Vector3(0, -0.04, 0.0), Vector3(0, -0.01, -L * 0.35)]),
+		_k([0.11, 0.1, 0.12], bulk), 10, Color(0.92, 0.88, 0.9), 0.0, 0.16)
+	var spine := PackedVector3Array([Vector3(0, 0.12 * bulk, L * 0.42), Vector3(0, 0.16 * bulk, 0.0), Vector3(0, 0.15 * bulk, -L * 0.4)])
+	cm.vertebrae(spine, 0.03 * bulk, 9, Vector3.UP)
+	if leaper:
+		for k in 6:
+			var z := lerpf(L * 0.32, -L * 0.3, float(k) / 5.0)
+			cm.claw(Vector3(0, 0.17 * bulk, z), Vector3(0, 1.0, 0.7).normalized(), 0.11 + 0.05 * sin(float(k) * 1.3), 0.02, Vector3(0, -0.2, 0.3))
+	else:
+		for side in [-1.0, 1.0]:
+			for k in 3:
+				var z := lerpf(L * 0.2, -L * 0.25, float(k) / 2.0)
+				cm.blob(Vector3(side * 0.12, 0.08, z), Vector3(0.03, 0.025, 0.03), Basis.IDENTITY, Color.WHITE, 0.0, 0.05, 1.0, 4, 6)
+	parts["body"] = cm.commit()
+
+	# front: neck
+	cm = CreatureMesh.new(sd + 1)
+	cm.tube(PackedVector3Array([Vector3(0, -0.02, 0.08), Vector3(0, 0.0, -0.04), Vector3(0, 0.02, -0.15)]),
+		_k([0.11, 0.09, 0.075], bulk), 9, Color.WHITE, 0.0, 0.14)
+	parts["front"] = cm.commit()
+
+	# head
+	cm = CreatureMesh.new(sd + 2)
+	var hs := 1.2 if leaper else 0.9
+	cm.blob(Vector3(0, 0.01, -0.07) * hs, Vector3(0.075, 0.065, 0.13) * hs, Basis(Vector3.RIGHT, 0.12), Color.WHITE, 0.0, 0.12)
+	var jaw := PackedVector3Array([Vector3(-0.05, -0.03, -0.01) * hs, Vector3(-0.035, -0.07, -0.1) * hs, Vector3(0, -0.08, -0.16) * hs,
+		Vector3(0.035, -0.07, -0.1) * hs, Vector3(0.05, -0.03, -0.01) * hs])
+	cm.tube(jaw, _k([0.02, 0.025, 0.026, 0.025, 0.02], hs), 7, Color(1.0, 0.85, 0.85))
+	for k in 5:
+		var tx := (float(k) - 2.0) * 0.018 * hs
+		cm.claw(Vector3(tx, -0.06 * hs, (-0.15 + absf(tx) * 0.9) * hs), Vector3(0, 1, -0.3).normalized(), 0.03 * hs, 0.006)
+	if leaper:
+		for side in [-1.0, 1.0]:
+			cm.blob(Vector3(side * 0.035, 0.035, -0.15) * hs, Vector3(0.02, 0.013, 0.014), Basis.IDENTITY, Color.WHITE, 0.0, 0.0, 1.0, 5, 8)
+			for k in 3:
+				cm.claw(Vector3(side * (0.03 + 0.015 * float(k)), 0.06, 0.0 + 0.03 * float(k)) * hs,
+					Vector3(side * 0.4, 0.5, 1.0).normalized(), 0.09 - 0.015 * float(k), 0.014, Vector3(0, -0.2, 0))
+	else:
+		for k in 4:
+			var ex := (0.022 + 0.022 * float(k % 2)) * (-1.0 if k < 2 else 1.0)
+			cm.blob(Vector3(ex, 0.03 + 0.012 * float(k % 2), -0.14 + 0.02 * float(k % 2)) * hs, Vector3(0.012, 0.01, 0.01), Basis.IDENTITY, Color.WHITE, 0.0, 0.0, 1.0, 4, 6)
+		for side in [-1.0, 1.0]:
+			cm.claw(Vector3(side * 0.04, -0.05, -0.15) * hs, Vector3(side * -0.25, -0.15, -1.0).normalized(), 0.08, 0.014, Vector3(side * -0.5, 0, 0))
+	parts["head"] = cm.commit()
+
+	# tail
+	cm = CreatureMesh.new(sd + 3)
+	var tl := 0.85 if leaper else 0.28
+	var tpts := PackedVector3Array()
+	var trad := PackedFloat32Array()
+	for k in 7:
+		var t := float(k) / 6.0
+		tpts.append(Vector3(0, -0.02 - 0.08 * t * t, tl * t))
+		trad.append(0.07 * bulk * (1.0 - t))
+	cm.tube(tpts, trad, 8, Color.WHITE, 0.0, 0.12)
+	if leaper:
+		for k in 4:
+			var t := 0.25 + 0.18 * float(k)
+			cm.claw(Vector3(0, 0.04 - 0.08 * t * t, tl * t), Vector3(0, 1.0, 0.5).normalized(), 0.07, 0.014)
+	parts["tail"] = cm.commit()
+
+	# legs: upper (hip → knee goes out and up), lower (knee → foot), toe claws
+	for tag: String in ["fl", "fr", "bl", "br"]:
+		var sx := -1.0 if tag.ends_with("l") else 1.0
+		var hind: bool = tag.begins_with("b")
+		var thick := (1.5 if hind and leaper else 1.0) * bulk
+		cm = CreatureMesh.new(sd + 10)
+		var knee := Vector3(sx * rig.upper_len, 0.1, 0.0)
+		cm.blob(Vector3.ZERO, Vector3(0.06, 0.055, 0.06) * thick, Basis.IDENTITY, Color.WHITE, 0.0, 0.12)
+		cm.limb(Vector3.ZERO, knee, 0.05 * thick, 0.034 * thick, Color.WHITE, Vector3(0, 0.03, 0))
+		parts["leg_%s_hip" % tag] = cm.commit()
+		cm = CreatureMesh.new(sd + 11)
+		var foot := Vector3(sx * 0.07, -(h + 0.08), 0.0)
+		cm.blob(Vector3.ZERO, Vector3(0.035, 0.035, 0.035) * thick, Basis.IDENTITY, Color.WHITE, 1.0, 0.05, 0.0, 4, 6)
+		cm.limb(Vector3.ZERO, foot, 0.033 * thick, 0.016, Color.WHITE, Vector3(sx * 0.03, 0, 0), 0.08)
+		parts["leg_%s_knee" % tag] = cm.commit()
+		cm = CreatureMesh.new(sd + 12)
+		for t in 3:
+			var ang := (float(t) - 1.0) * 0.5
+			cm.claw(Vector3.ZERO, Vector3(sin(ang) * 0.7 + sx * 0.2, -0.25, -cos(ang)).normalized(), 0.07, 0.012, Vector3(0, -0.6, 0))
+		parts["leg_%s_foot" % tag] = cm.commit()
+	return parts
+
+
+static func _k(values: Array, k: float) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	for v in values:
+		out.append(float(v) * k)
+	return out

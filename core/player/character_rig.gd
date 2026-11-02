@@ -27,6 +27,9 @@ var driven := false
 var melee := false
 ## 0..1 while a charged skill is held. Swells the orb and its light (Ember Lance).
 var charge := 0.0
+## 0..1 slide blend from Player: low, legs out front, torso leaning back, trailing arm.
+var slide := 0.0
+var _tuck := 0.0                 ## double-jump knees-up, decays
 
 var _pelvis: Node3D
 var _torso: Node3D
@@ -231,6 +234,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	var target_stride := clampf(speed / walk_speed, 0.0, 1.0) + clampf((speed - walk_speed) / (sprint_speed - walk_speed), 0.0, 1.0) * 0.35
 	if not on_floor:
 		target_stride *= 0.3
+	target_stride *= 1.0 - slide
 	_stride = lerpf(_stride, target_stride, 1.0 - exp(-8.0 * delta))
 	var step_len := STEP_LEN * (1.0 + clampf((speed - walk_speed) / (sprint_speed - walk_speed), 0.0, 1.0) * 0.55)
 	if on_floor:
@@ -268,6 +272,9 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	var idle := clampf(1.0 - st * 2.0, 0.0, 1.0)
 
 	_legacy_pose(s, c, st, breathe, idle)
+	_tuck = move_toward(_tuck, 0.0, delta * 2.2)
+	if slide > 0.01 or _tuck > 0.01:
+		_pose_overlay()
 
 	var body := global_basis.orthonormalized()
 	if _staff and _orb and _orb_light:
@@ -399,6 +406,32 @@ func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) ->
 		_sh[1].rotation.y = 0.0
 		_sh[1].rotation.z = 0.3 + _air * 0.35
 		_el[1].rotation.x = 0.85 - _gesture * 0.6
+
+
+## Double jump: a quick knees-up tuck that unfolds as it decays.
+func air_tuck() -> void:
+	_tuck = 1.0
+
+
+## Held crouch in the air (slide queued): keep the knees up at least this much.
+func hold_tuck(v: float) -> void:
+	_tuck = maxf(_tuck, v)
+
+
+## Slide and tuck poses layered over the stride (blend by `slide` / `_tuck`).
+func _pose_overlay() -> void:
+	var k := slide
+	_pelvis.position.y = lerpf(_pelvis.position.y, 0.5, k)
+	_torso.rotation.x = lerpf(_torso.rotation.x, 0.42, k) - _tuck * 0.3
+	_head.rotation.x = lerpf(_head.rotation.x, -0.3, k)
+	for i in 2:
+		var lead := i == 1
+		_hip[i].rotation.x = lerpf(_hip[i].rotation.x, 1.15 if lead else 0.75, k) + _tuck * 0.9
+		_knee[i].rotation.x = lerpf(_knee[i].rotation.x, -0.25 if lead else -1.45, k) - _tuck * 1.3
+		_foot[i].rotation.x = lerpf(_foot[i].rotation.x, -0.5, k)
+	_sh[0].rotation.x = lerpf(_sh[0].rotation.x, -0.9, k)
+	_sh[0].rotation.z = lerpf(_sh[0].rotation.z, -0.7, k)
+	_el[0].rotation.x = lerpf(_el[0].rotation.x, 0.4, k)
 
 
 ## Gives cloth surfaces a slight hem wave. Metal (the cross, the belt buckle) is left alone.

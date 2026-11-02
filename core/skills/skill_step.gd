@@ -1,16 +1,16 @@
 class_name SkillStep
 extends Skill
-## Shadowstep: a short blink in the move direction (camera forward with no input). The body
-## vanishes into motes, so strikes, spit and a shade's touch pass through, and any enemy you
-## step through takes an Umbral Mark.
+## Rift Step: a true teleport ~7.5 m in the move direction (camera forward with no input).
+## A tear opens where you were and where you arrive; strikes, spit and a shade's touch pass
+## through you for a moment, and any enemy on the line between takes an Umbral Mark.
 
 
 func _init() -> void:
 	id = &"step"
-	title = "Shadowstep"
-	blurb = "Blink ~3.5 m. Untouchable while stepping. Marks what you pass through."
+	title = "Rift Step"
+	blurb = "Teleport ~7.5 m. Briefly untouchable. Marks everything on the line."
 	action = &"skill_step"
-	cooldown = 1.6
+	cooldown = 2.1
 	color = Color("#7FA8FF")
 	glyph = &"step"
 
