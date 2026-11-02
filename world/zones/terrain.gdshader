@@ -44,29 +44,39 @@ void fragment() {
 	w /= (w.x + w.y + w.z);
 	float flatness = smoothstep(slope_lo, slope_hi, wnrm.y);
 
-	vec3 rock_x = texture(rock_albedo, wpos.zy * rock_scale).rgb;
-	vec3 rock_y = texture(rock_albedo, wpos.xz * rock_scale).rgb;
-	vec3 rock_z = texture(rock_albedo, wpos.xy * rock_scale).rgb;
-	vec3 rock = rock_x * w.x + rock_y * w.y + rock_z * w.z;
-	vec3 ground = texture(ground_albedo, wpos.xz * ground_scale).rgb;
-	ground = mix(ground, texture(ground_albedo, mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * wpos.xz * ground_scale * 0.37).rgb, 0.35);
-	if (detail > 0.5) {
-		vec3 rock_hi = texture(rock_albedo, wpos.xz * rock_scale * 3.6).rgb;
-		rock = mix(rock, rock * rock_hi * 1.45, 0.28);
-		vec3 grit = texture(ground_albedo, wpos.xz * ground_scale * 3.8).rgb;
-		ground = mix(ground, ground * grit * 1.4, 0.22);
+	vec3 rock = vec3(0.0);
+	vec3 rock_n = wnrm;
+	if (flatness < 0.999) {
+		vec3 rock_x = w.x > 0.01 ? texture(rock_albedo, wpos.zy * rock_scale).rgb : vec3(0.0);
+		vec3 rock_y = w.y > 0.01 ? texture(rock_albedo, wpos.xz * rock_scale).rgb : vec3(0.0);
+		vec3 rock_z = w.z > 0.01 ? texture(rock_albedo, wpos.xy * rock_scale).rgb : vec3(0.0);
+		rock = rock_x * w.x + rock_y * w.y + rock_z * w.z;
+		rock_n = triplanar_normal(rock_normal, rock_scale, w);
+		if (detail > 0.5) {
+			vec3 rock_hi = texture(rock_albedo, wpos.xz * rock_scale * 3.6).rgb;
+			rock = mix(rock, rock * rock_hi * 1.45, 0.28);
+			rock_n = normalize(mix(rock_n, triplanar_normal(rock_normal, rock_scale * 3.2, w), 0.4));
+		}
+	}
+
+	vec3 ground = vec3(0.0);
+	vec3 gn_ts = vec3(0.0, 0.0, 1.0);
+	vec3 ground_n = wnrm;
+	if (flatness > 0.001) {
+		ground = texture(ground_albedo, wpos.xz * ground_scale).rgb;
+		ground = mix(ground, texture(ground_albedo, mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * wpos.xz * ground_scale * 0.37).rgb, 0.35);
+		gn_ts = unpack_n(ground_normal, wpos.xz * ground_scale);
+		if (detail > 0.5) {
+			vec3 grit = texture(ground_albedo, wpos.xz * ground_scale * 3.8).rgb;
+			ground = mix(ground, ground * grit * 1.4, 0.22);
+			gn_ts = mix(gn_ts, unpack_n(ground_normal, wpos.xz * ground_scale * 3.4), 0.45);
+			gn_ts = normalize(gn_ts);
+		}
+		ground_n = vec3(gn_ts.xy + wnrm.xz, abs(gn_ts.z) * wnrm.y);
+		ground_n = normalize(ground_n.xzy);
 	}
 	ALBEDO = mix(rock, ground, flatness) * tint;
 
-	vec3 rock_n = triplanar_normal(rock_normal, rock_scale, w);
-	vec3 gn_ts = unpack_n(ground_normal, wpos.xz * ground_scale);
-	if (detail > 0.5) {
-		rock_n = normalize(mix(rock_n, triplanar_normal(rock_normal, rock_scale * 3.2, w), 0.4));
-		gn_ts = mix(gn_ts, unpack_n(ground_normal, wpos.xz * ground_scale * 3.4), 0.45);
-		gn_ts = normalize(gn_ts);
-	}
-	vec3 ground_n = vec3(gn_ts.xy + wnrm.xz, abs(gn_ts.z) * wnrm.y);
-	ground_n = normalize(ground_n.xzy);
 	vec3 n_ws = normalize(mix(rock_n, ground_n, flatness));
 	NORMAL = normalize((VIEW_MATRIX * vec4(n_ws, 0.0)).xyz);
 
