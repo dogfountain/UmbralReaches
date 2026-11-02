@@ -3,14 +3,21 @@ extends Zone
 ## User args (after "--"):  --demo  --quit-after-demo  --shots-dir=<path>  --test-shade
 ##   --walk-rec=<dir>  --walk-frames=N  in-game OTS walk dump (player cam, not debug rig)
 ##   --deepdive-rec=<dir>  --deepdive-hz=12  continuous JPEG dump during demo
+##   --perf-baseline  fullscreen vsync-off benches at sanctuary / mid-stair / summit
 
 var _shots_dir := ""
 var _args: PackedStringArray
 const BENCH_SECONDS := 10.0
 var _bench_t := -1.0
 var _bench_frames := PackedFloat32Array()
+var _bench_gpu := PackedFloat32Array()
+var _bench_cpu := PackedFloat32Array()
+var _bench_draws := 0
+var _bench_prims := 0
+var _bench_n := 0
 var _bench_quit := false
 var _bench_vsync := DisplayServer.VSYNC_ENABLED
+var _bench_last := ""
 var _walk_rec := ""
 var _walk_frames := 36
 var _deepdive = null
@@ -45,6 +52,8 @@ func _ready() -> void:
 	elif "--bench" in _args:
 		_bench_quit = true
 		_arm_benchmark()
+	elif "--perf-baseline" in _args:
+		_run_perf_baseline()
 	elif "--test-shade" in _args:
 		_test_shade()
 
@@ -77,8 +86,15 @@ func _process(delta: float) -> void:
 	if _deepdive:
 		_deepdive.tick(delta)
 	if _bench_t >= 0.0:
+		_player.velocity = Vector3.ZERO
 		_bench_t += delta
 		_bench_frames.append(delta)
+		var rid := get_viewport().get_viewport_rid()
+		_bench_gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(rid))
+		_bench_cpu.append(RenderingServer.viewport_get_measured_render_time_cpu(rid))
+		_bench_draws += int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+		_bench_prims += int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
+		_bench_n += 1
 		if _bench_t >= BENCH_SECONDS:
 			_finish_benchmark()
 
@@ -119,9 +135,25 @@ func _start_benchmark() -> void:
 		return
 	_bench_vsync = DisplayServer.window_get_vsync_mode()
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	_bench_t = 0.0
 	_bench_frames = PackedFloat32Array()
+	_bench_gpu = PackedFloat32Array()
+	_bench_cpu = PackedFloat32Array()
+	_bench_draws = 0
+	_bench_prims = 0
+	_bench_n = 0
 	Events.toast.emit("Benchmarking %d s - hold still" % int(BENCH_SECONDS))
+
+
+func _mean_positive(samples: PackedFloat32Array) -> float:
+	var s := 0.0
+	var n := 0
+	for v in samples:
+		if v > 0.0:
+			s += v
+			n += 1
+	return s / float(maxi(n, 1))
 
 
 func _finish_benchmark() -> void:
@@ -144,12 +176,18 @@ func _finish_benchmark() -> void:
 	var avg_fps := n / total
 	var low_fps := slowest / slow_total
 	var worst: float = times[n - 1]
+	var gpu := _mean_positive(_bench_gpu)
+	var cpu := _mean_positive(_bench_cpu)
+	var draws := _bench_draws / maxi(_bench_n, 1)
+	var prims := _bench_prims / maxi(_bench_n, 1)
 	var render := get_viewport().get_visible_rect().size
 	var win := get_window().size
-	var summary := "avg %.1f  ·  1%% low %.1f  ·  worst %.1f ms  ·  render %dx%d @ %d%% (window %dx%d)  ·  %d draws" % [
-		avg_fps, low_fps, worst * 1000.0, int(render.x), int(render.y),
-		roundi(get_viewport().scaling_3d_scale * 100.0), win.x, win.y,
-		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)]
+	var summary := "avg %.1f  ·  1%% low %.1f  ·  GPU %.2f ms  ·  render CPU %.2f ms  ·  worst %.1f ms  ·  %d draws  ·  %s prims  ·  render %dx%d @ %d%% (window %dx%d)" % [
+		avg_fps, low_fps, gpu, cpu, worst * 1000.0, draws,
+		String.num_int64(prims),
+		int(render.x), int(render.y),
+		roundi(get_viewport().scaling_3d_scale * 100.0), win.x, win.y]
+	_bench_last = summary
 	print("BENCH ", summary)
 	Events.benchmark_done.emit(summary)
 	Events.toast.emit("avg %.0f fps  ·  1%% low %.0f fps" % [avg_fps, low_fps])
@@ -161,6 +199,59 @@ func _arm_benchmark() -> void:
 	await get_tree().create_timer(6.0).timeout
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	_start_benchmark()
+
+
+func _stand_at(marker: Marker3D) -> void:
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var origin := marker.global_position
+	var q := PhysicsRayQueryParameters3D.create(
+		origin + Vector3(0.0, 12.0, 0.0), origin + Vector3(0.0, -80.0, 0.0))
+	q.collision_mask = 1
+	q.exclude = [_player.get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	var pos: Vector3 = origin + Vector3(0.0, 0.2, 0.0)
+	if not hit.is_empty():
+		pos = (hit.position as Vector3) + Vector3(0.0, 0.15, 0.0)
+	_player.velocity = Vector3.ZERO
+	_player.global_position = pos
+	_player.checkpoint = pos
+	var yaw := float(marker.get_meta("yaw", 0.0))
+	var pitch := float(marker.get_meta("pitch", 0.0))
+	_player.set("_yaw", yaw)
+	_player.set("_pitch", pitch)
+	var rig := _player.get_node_or_null("CameraRig") as Node3D
+	if rig:
+		rig.rotation.y = yaw
+	var pitch_node := _player.get_node_or_null("CameraRig/Pitch") as Node3D
+	if pitch_node:
+		pitch_node.rotation.x = pitch
+	print("PERF_BASELINE stand marker=", marker.name, " hit=", not hit.is_empty(), " pos=", pos)
+
+
+func _run_perf_baseline() -> void:
+	# In-memory only — do not Settings.apply(), which would write the owner's cfg.
+	Settings.fullscreen = true
+	Settings.vsync = false
+	_apply_settings()
+	print("PERF_BASELINE settings preset=%d shadows=%d fog=%s ssao=%s glow=%s grade=%s scale=%.2f cap=%d" % [
+		Settings.quality_preset, Settings.shadow_quality, Settings.fog_enabled,
+		Settings.ssao_enabled, Settings.glow_enabled, Settings.grade_enabled,
+		Settings.render_scale, Settings.render_height_cap()])
+	await get_tree().create_timer(2.0).timeout
+	var points: Array = [
+		["sanctuary", $Demo/WP01_Sanctuary],
+		["mid-stair", $Demo/WP05_Climb],
+		["summit", $Demo/WP11_Gaze],
+	]
+	for p in points:
+		await _stand_at(p[1] as Marker3D)
+		await get_tree().create_timer(0.6).timeout
+		_start_benchmark()
+		while _bench_t >= 0.0:
+			await get_tree().process_frame
+		print("PERF_BASELINE point=", p[0], " pos=", _player.global_position, " ", _bench_last)
+	get_tree().quit()
 
 
 # --- Demo: walks the Demo/WP* markers, kindles braziers, optionally captures shots

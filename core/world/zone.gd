@@ -16,9 +16,11 @@ const QUICK_SCALES := [0.0, 1.0, 0.85, 0.7, 0.5]
 var _quick_scale_step := 0
 var _omni_lights: Array[OmniLight3D] = []
 var _applied_size_index := -1
+var _boot_t0 := 0
 
 
 func _ready() -> void:
+	_boot_t0 = Time.get_ticks_usec()
 	Events.gloom_changed.connect(func(v: float, m: float) -> void: _gloom_target = v / m)
 	get_window().size_changed.connect(_on_window_resized)
 	Settings.changed.connect(_apply_settings)
@@ -29,6 +31,16 @@ func finish_zone_setup() -> void:
 	_apply_settings()
 	call_deferred("_restore_kindles")
 	_diag_later()
+	print("BOOT setup_ms=%.1f" % ((Time.get_ticks_usec() - _boot_t0) * 0.001))
+	_log_first_frame()
+
+
+func _log_first_frame() -> void:
+	await get_tree().process_frame
+	print("BOOT first_frame_ms=%.1f driver=%s method=%s" % [
+		(Time.get_ticks_usec() - _boot_t0) * 0.001,
+		RenderingServer.get_current_rendering_driver_name(),
+		RenderingServer.get_current_rendering_method()])
 
 
 func _diag_later() -> void:
