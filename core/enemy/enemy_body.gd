@@ -10,6 +10,7 @@ const GROUND_A := "res://art/textures/ground_albedo.png"
 const GROUND_N := "res://art/textures/ground_normal.png"
 
 static var _cache: Dictionary = {}
+static var _joint_meshes := {}
 const Check := preload("res://core/debug/check.gd")
 
 
@@ -78,6 +79,7 @@ static func dress(rig: CharacterRig, kind: StringName) -> void:
 		_put(rig, "chest", "RibShow", ProcMesh.cyl(0.145, 0.13, 0.08, 12, 1), Vector3(0.0, 0.08, 0.04), bone)
 		_put(rig, "pelvis", "RagSkirt", ProcMesh.cyl(0.17, 0.21, 0.2, 12, 1), Vector3(0.0, -0.16, 0.0), rag, Vector3.ZERO, true)
 		_put(rig, "chest", "Hollow", ProcMesh.sphere(0.055, 0.065, 8, 4), Vector3(0.0, 0.06, 0.12), void_m)
+	_merge_joints(rig, kind)
 
 
 static func _attach_glb(rig: CharacterRig, socket_name: String, path: String, pack: Dictionary) -> bool:
@@ -109,6 +111,53 @@ static func _paint_prefix(model: Node, prefix: String, mat: Variant) -> void:
 			n += 1
 	if n == 0 and prefix == "Flesh":
 		push_error("enemy_body.paint %s: no Flesh mesh" % model.name)
+
+
+static func _merge_joints(rig: CharacterRig, kind: StringName) -> void:
+	const SOCKETS := [
+		"pelvis", "chest", "head",
+		"shoulder_l", "shoulder_r", "elbow_l", "elbow_r", "hand_l", "hand_r",
+		"hip_l", "hip_r", "knee_l", "knee_r", "foot_l", "foot_r",
+	]
+	for socket_name in SOCKETS:
+		var joint := rig.socket(socket_name)
+		if joint == null:
+			continue
+		var by_mat := {}
+		for c in joint.get_children():
+			if not (c is MeshInstance3D) or c.get_child_count() > 0:
+				continue
+			var mi := c as MeshInstance3D
+			if mi.mesh == null:
+				continue
+			var mid := 0
+			if mi.material_override:
+				mid = int(mi.material_override.get_rid().get_id())
+			if not by_mat.has(mid):
+				by_mat[mid] = {"mat": mi.material_override, "mis": []}
+			by_mat[mid].mis.append(mi)
+		for mid in by_mat:
+			var g: Dictionary = by_mat[mid]
+			if g.mis.size() < 2:
+				continue
+			var cache_key := "%s/%s/%d" % [kind, socket_name, mid]
+			var combined: ArrayMesh = _joint_meshes.get(cache_key)
+			if combined == null:
+				var st := SurfaceTool.new()
+				st.begin(Mesh.PRIMITIVE_TRIANGLES)
+				for mi in g.mis:
+					st.append_from(mi.mesh, 0, mi.transform)
+				combined = st.commit()
+				_joint_meshes[cache_key] = combined
+			var merged := MeshInstance3D.new()
+			merged.name = "Merged"
+			merged.mesh = combined
+			merged.material_override = g.mat
+			merged.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			joint.add_child(merged)
+			for mi in g.mis:
+				joint.remove_child(mi)
+				mi.free()
 
 
 static func _put(rig: CharacterRig, socket_name: String, n_name: String, mesh: Mesh, at: Vector3, mat: Material, rot := Vector3.ZERO, shadow := false) -> void:
