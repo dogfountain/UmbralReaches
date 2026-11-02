@@ -286,8 +286,12 @@ func hollow() -> void:
 	_shade_warned = false
 	Events.hollowed.emit()
 	await get_tree().create_timer(0.9).timeout
+	if not is_inside_tree():
+		return
 	_respawn_now()
 	await get_tree().create_timer(0.4).timeout
+	if not is_inside_tree():
+		return
 	_hollowing = false
 
 
@@ -344,7 +348,6 @@ func _try_cast(heavy := false) -> void:
 		bolt.hit_dmg = 3.0
 		bolt.blast = 2.6
 		bolt.speed = 18.0
-	host.add_child(bolt)
 	var muzzle := _visual.muzzle()
 	var look := _look_target()
 	var cam_fwd := -_cam.global_transform.basis.z.normalized()
@@ -353,8 +356,12 @@ func _try_cast(heavy := false) -> void:
 		aim = cam_fwd
 	else:
 		aim = aim.normalized()
-	bolt.global_position = muzzle + aim * 0.28
+	var up := Vector3.UP
+	if absf(aim.dot(up)) > 0.95:
+		up = Vector3.RIGHT
+	bolt.transform = Transform3D(Basis.looking_at(aim, up), muzzle + aim * 0.28)
 	bolt.direction = aim
+	host.add_child(bolt)
 	bolt.add_collision_exception_with(self)
 
 
