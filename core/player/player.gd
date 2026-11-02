@@ -47,6 +47,7 @@ var _buffered_jump := 0.0
 var _fov_kick := 0.0
 var _land_dip := 0.0
 var _was_floor := true
+var _rig_height := 1.55
 
 const SPRINT_FOV_KICK := 6.0
 var _interact_target: Interactable
@@ -80,7 +81,12 @@ func _ready() -> void:
 	else:
 		_yaw = _rig.rotation.y
 	checkpoint = global_position
-	_rig.rotation = Vector3(0.0, _yaw, 0.0)
+	_rig_height = _rig.position.y
+	# Interpolated cameras: rig is top-level so look isn't stuck on the 60 Hz physics tick.
+	_rig.top_level = true
+	_rig.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	_rig.global_position = global_position + Vector3(0.0, _rig_height, 0.0)
+	_rig.global_rotation = Vector3(0.0, _yaw, 0.0)
 	if _visual:
 		_visual.rotation.y = _yaw
 	_arm.add_excluded_object(get_rid())
@@ -112,14 +118,22 @@ func _unhandled_input(event: InputEvent) -> void:
 			_try_cast(false)
 
 
+func _process(delta: float) -> void:
+	if not autopilot:
+		var look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
+		if look.length() > 0.15:
+			_yaw -= look.x * stick_sensitivity * delta
+			_pitch = clampf(_pitch - look.y * stick_sensitivity * delta, pitch_min, pitch_max)
+	var body_xf := get_global_transform_interpolated()
+	_rig.global_position = body_xf.origin + Vector3(0.0, _rig_height, 0.0)
+	_rig.global_rotation = Vector3(0.0, _yaw, 0.0)
+	_pitch_node.rotation.x = _pitch - _land_dip * 0.12
+
+
 func _physics_process(delta: float) -> void:
 	_t += delta
 	_cast_cd = maxf(0.0, _cast_cd - delta)
 	_shade_lock = maxf(0.0, _shade_lock - delta)
-	var look := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
-	if look.length() > 0.15 and not autopilot:
-		_yaw -= look.x * stick_sensitivity * delta
-		_pitch = clampf(_pitch - look.y * stick_sensitivity * delta, pitch_min, pitch_max)
 
 	var wish := Vector3.ZERO
 	var sprint := false
@@ -164,7 +178,6 @@ func _physics_process(delta: float) -> void:
 	var vy_before := velocity.y
 	move_and_slide()
 
-	_rig.rotation = Vector3(0.0, _yaw, 0.0)
 	_update_camera(delta, horiz, sprint, vy_before)
 	_animate(delta, horiz)
 	_update_gloom(delta)
@@ -200,7 +213,6 @@ func _update_camera(delta: float, horiz: Vector3, sprint: bool, vy_before: float
 		_land_dip = clampf(-vy_before / 9.0, 0.0, 1.0)
 	_was_floor = is_on_floor()
 	_land_dip = move_toward(_land_dip, 0.0, delta * 3.0)
-	_pitch_node.rotation = Vector3(_pitch - _land_dip * 0.12, 0.0, 0.0)
 
 
 # --- Animation ---------------------------------------------------------------
