@@ -27,10 +27,14 @@ func _ready() -> void:
 	super._ready()
 	Events.zone_entered.emit("STAIR OF ASCENSION", "where the sky turns inward")
 	# Summit glass removed with the Crimson Vale — next night TBD.
-	load("res://core/world/gothic.gd").raise(self)
-	load("res://core/world/atmosphere.gd").apply(self, _env, _cam, _moon, 82.0, Color("#12183A"), Color("#060A1C"), Color("#3A2480"))
+	var dress_path := "res://world/zones/ascension/dress.tscn"
+	if ResourceLoader.exists(dress_path):
+		add_child((load(dress_path) as PackedScene).instantiate())
+	else:
+		Gothic.raise(self)
+	Atmosphere.apply(self, _env, _cam, _moon, 82.0, Color("#12183A"), Color("#060A1C"), Color("#3A2480"))
 	_spawn_glimmers()
-	load("res://core/enemy/enemy_spawner.gd").seed_stair(self)
+	EnemySpawner.seed_stair(self)
 	finish_zone_setup()
 	if _player.get_node_or_null("CameraRig/Pitch/SpringArm") is SpringArm3D:
 		(_player.get_node("CameraRig/Pitch/SpringArm") as SpringArm3D).spring_length = 3.7
@@ -42,7 +46,7 @@ func _ready() -> void:
 			_walk_rec = a.trim_prefix("--walk-rec=")
 		elif a.begins_with("--walk-frames="):
 			_walk_frames = maxi(8, int(a.trim_prefix("--walk-frames=")))
-	_deepdive = load("res://core/debug/deepdive_rec.gd").from_args(_args)
+	_deepdive = DeepdiveRec.from_args(_args)
 	if _walk_rec != "":
 		_record_walk()
 	elif "--demo" in _args:
@@ -64,19 +68,15 @@ func _record_walk() -> void:
 	DisplayServer.window_set_size(Vector2i(1280, 720))
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_player.global_position = Vector3(0.0, 1.2, 6.0)
-	_player.set("_yaw", 0.0)
-	_player.set("_pitch", -0.22)
-	if _player.get_node_or_null("CameraRig"):
-		(_player.get_node("CameraRig") as Node3D).rotation.y = 0.0
-	# World-space forward (facing -Z). action_press is unreliable before InputMap settles.
-	_player.set_meta("force_wish", Vector3(0.0, 0.0, -1.0))
+	_player.set_view(0.0, -0.22)
+	_player.debug_drive(Vector3(0.0, 0.0, -1.0), false)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	await get_tree().create_timer(0.35).timeout  # let title card begin fading
 	for i in _walk_frames:
 		await get_tree().process_frame
 		get_viewport().get_texture().get_image().save_jpg(_walk_rec.path_join("ingame_%04d.jpg" % i), 0.78)
-	_player.remove_meta("force_wish")
+	_player.debug_drive(Vector3.ZERO, false)
 	print("WALK_REC frames=", _walk_frames, " dir=", _walk_rec, " pos=", _player.global_position)
 	get_tree().quit()
 
@@ -108,22 +108,21 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _spawn_glimmers() -> void:
-	var g := Node3D.new()
-	g.set_script(load("res://core/world/glimmers.gd"))
+	var g := Glimmers.new()
 	g.name = "Glimmers"
-	g.set("seed_n", 11)
-	g.set("half", 30.0)
-	g.set("z_min", -72.0)
-	g.set("z_max", 40.0)
-	g.set("skip_corridor", true)
-	g.set("skip_river", false)
-	g.set("skip_shards", true)
-	g.set("palettes", PackedColorArray([
+	g.seed_n = 11
+	g.half = 30.0
+	g.z_min = -72.0
+	g.z_max = 40.0
+	g.skip_corridor = true
+	g.skip_river = false
+	g.skip_shards = true
+	g.palettes = PackedColorArray([
 		Color(0.55, 0.85, 2.6),
 		Color(1.55, 0.55, 3.3),
 		Color(0.45, 1.05, 3.1),
 		Color(0.85, 0.6, 2.4),
-	]))
+	])
 	add_child(g)
 
 
@@ -218,8 +217,7 @@ func _stand_at(marker: Marker3D) -> void:
 	_player.checkpoint = pos
 	var yaw := float(marker.get_meta("yaw", 0.0))
 	var pitch := float(marker.get_meta("pitch", 0.0))
-	_player.set("_yaw", yaw)
-	_player.set("_pitch", pitch)
+	_player.set_view(yaw, pitch)
 	var rig := _player.get_node_or_null("CameraRig") as Node3D
 	if rig:
 		rig.rotation.y = yaw
