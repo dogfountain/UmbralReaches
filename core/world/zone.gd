@@ -27,6 +27,10 @@ func _ready() -> void:
 
 
 func finish_zone_setup() -> void:
+	if get_node_or_null("BoltPool") == null:
+		var pool := BoltPool.new()
+		pool.name = "BoltPool"
+		add_child(pool)
 	refresh_lights()
 	_apply_settings()
 	call_deferred("_restore_kindles")
@@ -44,6 +48,8 @@ func _log_first_frame() -> void:
 
 
 func _diag_later() -> void:
+	if not OS.is_debug_build() and "--diag" not in OS.get_cmdline_user_args():
+		return
 	var tree := get_tree()
 	if tree == null:
 		push_error("Zone._diag_later tree null")
@@ -51,11 +57,7 @@ func _diag_later() -> void:
 	await tree.create_timer(0.45).timeout
 	if not is_instance_valid(self):
 		return
-	var diag := load("res://core/debug/boot_diag.gd")
-	if diag == null:
-		push_error("Zone: boot_diag.gd failed to load")
-		return
-	diag.run(self)
+	BootDiag.run(self)
 
 
 func _restore_kindles() -> void:
@@ -64,8 +66,10 @@ func _restore_kindles() -> void:
 
 func _process(delta: float) -> void:
 	RenderingServer.global_shader_parameter_set("sky_time", Time.get_ticks_msec() * 0.001)
-	_gloom_vis = move_toward(_gloom_vis, _gloom_target, delta * 0.8)
-	_grade_mat.set_shader_parameter("gloom", _gloom_vis)
+	var next := move_toward(_gloom_vis, _gloom_target, delta * 0.8)
+	if not is_equal_approx(next, _gloom_vis):
+		_gloom_vis = next
+		_grade_mat.set_shader_parameter("gloom", _gloom_vis)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -91,7 +95,7 @@ func _apply_settings() -> void:
 	_applied_size_index = Settings.window_size_index
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if Settings.vsync else DisplayServer.VSYNC_DISABLED)
 	_apply_render_scale()
-	load("res://core/world/atmosphere.gd").apply_zone_settings(self, _env, _cam, _moon)
+	Atmosphere.apply_zone_settings(self, _env, _cam, _moon)
 	_grade.visible = Settings.grade_enabled
 	_cam.fov = Settings.fov
 	_player.mouse_sensitivity = Settings.mouse_sensitivity

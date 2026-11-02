@@ -43,6 +43,10 @@ var _hp_bar: MeshInstance3D
 var _hp_trail := 1.0
 var _hp_trail_hold := 0.0
 var _stuck_t := 0.0
+var _p: Player
+var _to := Vector3.ZERO
+var _dist := INF
+var _hitstop := 0
 
 static var _hp_bar_mesh: QuadMesh
 
@@ -65,24 +69,6 @@ func _ready() -> void:
 	if _hp_bar == null:
 		_make_hp_bar()
 	call_deferred("_remember_home")
-
-
-## `type.new() as Enemy` is null on a dynamically loaded script. Return the node as-is.
-static func spawn(type: GDScript, at: Vector3, host: Node = null) -> Node:
-	if type == null:
-		return null
-	if host == null:
-		var tree := Engine.get_main_loop() as SceneTree
-		if tree:
-			host = tree.current_scene
-	if host == null:
-		return null
-	var pawn: Node = type.new()
-	if pawn == null:
-		return null
-	host.add_child(pawn)
-	pawn.global_position = at + Vector3(0.0, 0.05, 0.0)
-	return pawn
 
 
 func _ensure_capsule() -> void:
@@ -139,7 +125,11 @@ func take_hit(dmg: float, from: Node = null) -> void:
 		return
 	hp = maxf(hp - dmg, 0.0)
 	_flash = 0.12
+	_hitstop = 3
 	_refresh_hp(true)
+	var p := _player()
+	if p:
+		p.cast_impulse()
 	if from is Node3D:
 		var away := global_position - (from as Node3D).global_position
 		away.y = 0.0
@@ -160,9 +150,8 @@ func wake() -> void:
 
 
 func sleep() -> void:
-	# Stay drawn on the post. Hiding here made whole camps vanish until you walked in.
 	visible = true
-	process_mode = Node.PROCESS_MODE_INHERIT
+	process_mode = Node.PROCESS_MODE_DISABLED
 
 
 func _remember_home() -> void:
@@ -171,14 +160,11 @@ func _remember_home() -> void:
 
 
 func _pin_visuals() -> void:
-	if _visual == null:
+	if _hp_bar == null:
 		return
-	for node in _visual.find_children("*", "GeometryInstance3D", true, false):
-		var gi := node as GeometryInstance3D
-		gi.visibility_range_end = 0.0
-		gi.visibility_range_end_margin = 0.0
-		gi.extra_cull_margin = maxf(gi.extra_cull_margin, 2.4)
-		gi.ignore_occlusion_culling = true
+	_hp_bar.visibility_range_end = 0.0
+	_hp_bar.extra_cull_margin = maxf(_hp_bar.extra_cull_margin, 2.4)
+	_hp_bar.ignore_occlusion_culling = true
 
 
 func _build() -> void:
@@ -244,6 +230,11 @@ func _tick_hp_trail(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if _state == DEAD:
 		return
+	if _hitstop > 0:
+		_hitstop -= 1
+		move_and_slide()
+		return
+	_cache_player()
 	if home != Vector3.ZERO and global_position.y < home.y - 8.0:
 		global_position = home + Vector3(0.0, 0.1, 0.0)
 		velocity = Vector3.ZERO
@@ -262,36 +253,35 @@ func _physics_process(delta: float) -> void:
 		_hp_bar.visible = _state != IDLE or hp < float(max_hp) - 0.01
 
 
-func _player_planar() -> Dictionary:
-	var player := _player()
-	if player == null:
-		return {"player": null, "to": Vector3.ZERO, "dist": INF}
-	var to := player.global_position - global_position
-	to.y = 0.0
-	return {"player": player, "to": to, "dist": to.length()}
+func _cache_player() -> void:
+	if not is_instance_valid(_p):
+		_p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+	if _p == null:
+		_to = Vector3.ZERO
+		_dist = INF
+		return
+	_to = _p.global_position - global_position
+	_to.y = 0.0
+	_dist = _to.length()
 
 
 ## Light makes them slink, it does not freeze them. Sanctuary / river zones used to pin Wretches.
 func _aim_at_player() -> void:
-	var info := _player_planar()
-	var dist: float = info.dist
-	var to: Vector3 = info.to
-	if info.player == null or dist < 0.05:
+	if _p == null or _dist < 0.05:
 		_wish = Vector3.ZERO
 		return
-	_wish = to / dist
+	_wish = _to / _dist
 	if light_averse and LightGrid.is_lit(global_position):
 		_wish *= 0.45
 
 
 func _think() -> void:
-	var info := _player_planar()
-	var player: Player = info.player
-	if player == null:
+	if _p == null:
 		_hold_post(_home_planar())
 		return
-	var to: Vector3 = info.to
-	var dist: float = info.dist
+	var player := _p
+	var to := _to
+	var dist := _dist
 	var from_home := _home_planar()
 	match _state:
 		IDLE:
@@ -337,8 +327,7 @@ func _move(delta: float) -> void:
 		_stuck_t = 0.0
 	elif _state == CHASE and is_on_floor() and _wish.length_squared() > 0.12:
 		var flat := Vector3(velocity.x, 0.0, velocity.z)
-		var info := _player_planar()
-		var dist: float = info.dist
+		var dist := _dist
 		if leaper and _leap_cd <= 0.0 and dist > 3.2 and dist < 10.0:
 			velocity.y = 6.8
 			steer = _wish * walk_speed * 1.55
@@ -368,8 +357,7 @@ func _move(delta: float) -> void:
 	move_and_slide()
 	_turn_toward(_wish if _wish.length_squared() > 0.0025 else _face_dir, delta)
 	if _rig:
-		var info := _player_planar()
-		if info.dist < 16.0:
+		if _dist < 16.0:
 			_rig.animate(velocity, is_on_floor(), delta)
 
 
@@ -443,4 +431,6 @@ func _home_planar() -> float:
 
 
 func _player() -> Player:
-	return get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+	if not is_instance_valid(_p):
+		_p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+	return _p

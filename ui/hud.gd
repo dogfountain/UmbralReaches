@@ -9,6 +9,7 @@ const VOID := Color("#05040D")
 const QUIET := Color(0.72, 0.74, 0.86, 0.85)
 
 const BAKE_INFO := "res://world/zones/ascension/bake_info.gd"
+const BOOT_DIAG := preload("res://core/debug/boot_diag.gd")
 
 var _font: Font
 var _build_line := ""
@@ -202,8 +203,7 @@ func _refresh_debug() -> void:
 	var scale_3d := vp.scaling_3d_scale
 	var buf := Vector2i(roundi(float(win.x) * scale_3d), roundi(float(win.y) * scale_3d))
 	var fps := maxi(Engine.get_frames_per_second(), 1)
-	var diag_script := load("res://core/debug/boot_diag.gd")
-	var diag: String = diag_script.summary if diag_script != null else "diag script missing"
+	var diag: String = BOOT_DIAG.summary if BOOT_DIAG != null else "diag script missing"
 	_debug.text = "%d fps  ·  frame %.1f ms\nGPU %.2f ms  ·  render CPU %.2f ms\nprocess %.2f ms  ·  physics %.2f ms\n%d draw calls  ·  %s primitives\n3D %dx%d @ %d%%  ·  window %dx%d\n%d light zones\n%s  ·  %s\n%s\n%s\n%s" % [
 		fps,
 		1000.0 / float(fps),

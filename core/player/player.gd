@@ -51,7 +51,14 @@ var _rig_height := 1.55
 
 const SPRINT_FOV_KICK := 6.0
 var _interact_target: Interactable
+var _interact_near: Array[Interactable] = []
 var _hint := ""
+var _debug_drive := false
+var _debug_wish := Vector3.ZERO
+var _debug_sprint := false
+var _gloom_emit := 0.0
+var _gloom_emit_t := 0.0
+var _shake := 0.0
 var _cast_cd := 0.0
 const CAST_CD := 0.42
 const HEAVY_CD := 1.15
@@ -96,6 +103,7 @@ func _ready() -> void:
 	_visual.set_process(false)
 	_visual.walk_speed = walk_speed
 	_visual.sprint_speed = sprint_speed
+	_setup_interact_sensor()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -127,7 +135,8 @@ func _process(delta: float) -> void:
 	var body_xf := get_global_transform_interpolated()
 	_rig.global_position = body_xf.origin + Vector3(0.0, _rig_height, 0.0)
 	_rig.global_rotation = Vector3(0.0, _yaw, 0.0)
-	_pitch_node.rotation.x = _pitch - _land_dip * 0.12
+	_pitch_node.rotation.x = _pitch - _land_dip * 0.12 + _shake
+	_shake = move_toward(_shake, 0.0, delta * 8.0)
 
 
 func _physics_process(delta: float) -> void:
@@ -138,10 +147,9 @@ func _physics_process(delta: float) -> void:
 	var wish := Vector3.ZERO
 	var sprint := false
 	if not _hollowing:
-		if has_meta("force_wish"):
-			# In-game walk recorder / tests: world-space wish unit vector.
-			wish = get_meta("force_wish") as Vector3
-			sprint = bool(get_meta("force_sprint")) if has_meta("force_sprint") else false
+		if _debug_drive:
+			wish = _debug_wish
+			sprint = _debug_sprint
 		elif autopilot:
 			var cmd := _autopilot(delta)
 			wish = cmd[0]
@@ -167,8 +175,6 @@ func _physics_process(delta: float) -> void:
 	if not autopilot and not _hollowing:
 		if Input.is_action_just_pressed("jump"):
 			_buffered_jump = jump_buffer
-		elif Input.is_action_pressed("jump") and is_on_floor() and velocity.y <= 0.0:
-			_buffered_jump = jump_buffer
 	if _buffered_jump > 0.0 and _coyote > 0.0:
 		velocity.y = jump_velocity
 		_buffered_jump = 0.0
@@ -189,6 +195,21 @@ func _physics_process(delta: float) -> void:
 
 func set_checkpoint(at: Vector3) -> void:
 	checkpoint = at
+
+
+func set_view(yaw: float, pitch: float) -> void:
+	_yaw = yaw
+	_pitch = pitch
+
+
+func debug_drive(wish: Vector3, sprint := false) -> void:
+	_debug_drive = wish.length_squared() > 0.0001
+	_debug_wish = wish
+	_debug_sprint = sprint
+
+
+func cast_impulse() -> void:
+	_shake = deg_to_rad(0.15)
 
 
 func start_autopilot(markers: Array[Marker3D]) -> void:
@@ -234,7 +255,13 @@ func _update_gloom(delta: float) -> void:
 	var prev := gloom
 	gloom = clampf(gloom + rate * delta, 0.0, gloom_max)
 	if not is_equal_approx(prev, gloom):
-		Events.gloom_changed.emit(gloom, gloom_max)
+		_gloom_emit_t += delta
+		if absf(gloom - _gloom_emit) >= 0.5 or _gloom_emit_t >= 0.1:
+			Events.gloom_changed.emit(gloom, gloom_max)
+			_gloom_emit = gloom
+			_gloom_emit_t = 0.0
+	else:
+		_gloom_emit_t = 0.0
 	if gloom >= gloom_max and not is_instance_valid(_shade) and _shade_lock <= 0.0:
 		_spawn_shade()
 	if lit and is_instance_valid(_shade):
@@ -307,18 +334,52 @@ func _respawn_now() -> void:
 
 # --- Interaction -------------------------------------------------------------
 
+func _setup_interact_sensor() -> void:
+	var sense := Area3D.new()
+	sense.name = "InteractSensor"
+	sense.collision_layer = 0
+	sense.collision_mask = Layers.INTERACT
+	sense.monitoring = true
+	sense.monitorable = false
+	var cs := CollisionShape3D.new()
+	var sph := SphereShape3D.new()
+	sph.radius = 3.2
+	cs.shape = sph
+	sense.add_child(cs)
+	add_child(sense)
+	sense.area_entered.connect(_on_interact_in)
+	sense.area_exited.connect(_on_interact_out)
+
+
+func _on_interact_in(area: Area3D) -> void:
+	var it := area.get_parent() as Interactable
+	if it and not _interact_near.has(it):
+		_interact_near.append(it)
+
+
+func _on_interact_out(area: Area3D) -> void:
+	var it := area.get_parent() as Interactable
+	if it:
+		_interact_near.erase(it)
+
+
 func _scan_interactables() -> void:
 	var best: Interactable = null
 	var best_d := INF
-	for node in get_tree().get_nodes_in_group(Groups.INTERACTABLE):
-		var it := node as Interactable
-		if it == null or not it.can_interact():
+	var i := 0
+	while i < _interact_near.size():
+		var it := _interact_near[i]
+		if not is_instance_valid(it):
+			_interact_near.remove_at(i)
+			continue
+		i += 1
+		if not it.can_interact():
 			continue
 		var reach := it.interact_reach()
 		if reach <= 0.0:
 			reach = interact_range
-		var d := global_position.distance_to(it.global_position)
-		if d < reach and d < best_d:
+		var d := global_position.distance_squared_to(it.global_position)
+		if d < reach * reach and d < best_d:
 			best_d = d
 			best = it
 	_interact_target = best
@@ -342,12 +403,13 @@ func _try_cast(heavy := false) -> void:
 		return
 	_cast_cd = HEAVY_CD if heavy else CAST_CD
 	_visual.cast()
-	var bolt := BOLT.instantiate() as MagicBolt
-	bolt.heavy = heavy
-	if heavy:
-		bolt.hit_dmg = 3.0
-		bolt.blast = 2.6
-		bolt.speed = 18.0
+	var pool := get_tree().get_first_node_in_group("bolt_pool") as BoltPool
+	var bolt: MagicBolt
+	if pool:
+		bolt = pool.take()
+	else:
+		bolt = BOLT.instantiate() as MagicBolt
+		host.add_child(bolt)
 	var muzzle := _visual.muzzle()
 	var look := _look_target()
 	var cam_fwd := -_cam.global_transform.basis.z.normalized()
@@ -361,7 +423,7 @@ func _try_cast(heavy := false) -> void:
 		up = Vector3.RIGHT
 	bolt.transform = Transform3D(Basis.looking_at(aim, up), muzzle + aim * 0.28)
 	bolt.direction = aim
-	host.add_child(bolt)
+	bolt.arm(heavy)
 	bolt.add_collision_exception_with(self)
 
 
