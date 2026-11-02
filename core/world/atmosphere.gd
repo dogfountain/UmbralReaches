@@ -1,3 +1,4 @@
+class_name Atmosphere
 extends RefCounted
 ## Shared lighting, fog, and culling. Traditional fog is far-depth only; volumetric
 ## carries the night colour. High aerial-perspective and ambient-inject turned the
@@ -11,7 +12,7 @@ static func apply(root: Node, env: Environment, cam: Camera3D, moon: Directional
 	_fog(env, fog_light, vol_albedo, vol_emit)
 	_moon(moon, far_m)
 	_fog_volumes(root)
-	load("res://core/world/light_policy.gd").apply_all(root, moon)
+	LightPolicy.apply_all(root, moon)
 	_cull_geometry(root, far_m)
 	_occluders(root)
 	_aim_sky_moon(env, moon)
@@ -19,8 +20,7 @@ static func apply(root: Node, env: Environment, cam: Camera3D, moon: Directional
 	_sky_flare(root, moon)
 	_thicken_canopy(root)
 	_thin_particles(root)
-	_darken_unlit()
-	load("res://core/world/surface_detail.gd").apply()
+	SurfaceDetail.apply()
 	apply_quality(env, cam)
 
 
@@ -51,7 +51,7 @@ static func apply_zone_settings(root: Node, env: Environment, cam: Camera3D, moo
 	apply_quality(env, cam)
 	env.ssao_enabled = Settings.ssao_enabled
 	env.glow_enabled = Settings.glow_enabled
-	load("res://core/world/light_policy.gd").apply_all(root, moon)
+	LightPolicy.apply_all(root, moon)
 
 
 static func set_fog(env: Environment, on: bool) -> void:
@@ -126,49 +126,6 @@ static func _fog_volumes(root: Node) -> void:
 			mat.density *= 0.65
 
 
-## Crushed dark base; electric blue midtones live in the maps + grade + rim.
-## Do not zero terrain detail — crunch needs the high-frequency overlay.
-static func _darken_unlit() -> void:
-	var stone := load("res://art/materials/stone.tres") as StandardMaterial3D
-	if stone:
-		stone.albedo_color = Color(0.48, 0.56, 0.82)
-		stone.rim = 0.68
-		stone.rim_tint = 0.18
-		stone.normal_scale = 2.35
-		stone.roughness = 0.42
-	var rock := load("res://art/materials/rock.tres") as StandardMaterial3D
-	if rock:
-		rock.albedo_color = Color(0.44, 0.50, 0.72)
-		rock.rim = 0.52
-		rock.rim_tint = 0.32
-		rock.normal_scale = 2.25
-		rock.roughness = 0.68
-	var bark := load("res://art/materials/bark.tres") as StandardMaterial3D
-	if bark:
-		bark.albedo_color = Color(0.40, 0.46, 0.64)
-		bark.rim = 0.50
-		bark.normal_scale = 2.55
-	var bark_g := load("res://art/materials/bark_giant.tres") as StandardMaterial3D
-	if bark_g:
-		bark_g.albedo_color = Color(0.78, 0.84, 0.90)
-		bark_g.emission_enabled = true
-		bark_g.emission = Color(0.18, 0.28, 0.55)
-		bark_g.emission_energy_multiplier = 0.55
-		bark_g.rim = 0.50
-		bark_g.normal_scale = 2.45
-	var terrain := load("res://art/materials/terrain.tres") as ShaderMaterial
-	if terrain:
-		terrain.set_shader_parameter("tint", Vector3(0.58, 0.68, 0.98))
-		terrain.set_shader_parameter("rim_color", Vector3(0.45, 0.72, 1.0))
-		terrain.set_shader_parameter("rim_strength", 0.20)
-		terrain.set_shader_parameter("detail", 1.0)
-	var crystal := load("res://art/materials/crystal.tres") as StandardMaterial3D
-	if crystal:
-		crystal.albedo_color = Color(0.05, 0.07, 0.16)
-		crystal.emission = Color(0.42, 0.55, 1.45)
-		crystal.emission_energy_multiplier = 4.4
-
-
 ## Tight halo only. The wide levels turned every flame into a fog bank.
 static func _glow_budget(env: Environment) -> void:
 	for i in 7:
@@ -200,26 +157,29 @@ static func _cull_geometry(root: Node, far_m: float) -> void:
 		# stair is one ArrayMesh at (0,0,0) that runs 75 m to the summit — a
 		# 57 m fade hid the treads underfoot, then one step toward origin
 		# brought the whole flight back. Same trap as ForestFloor / lava.
-		if _skips_range(n) or _named_under(gi, "Lava") or _named_under(gi, "ForestFloor"):
+		if gi.is_in_group(Groups.CULL_SKIP) or _named_under(gi, "Lava") or _named_under(gi, "ForestFloor"):
 			continue
-		if _is_span_mesh(gi, n):
+		if gi.is_in_group(Groups.CULL_SPAN) or _is_span_mesh(gi, n):
+			if not gi.is_in_group(Groups.CULL_SPAN):
+				gi.add_to_group(Groups.CULL_SPAN)
 			_pin_span(gi)
+			continue
+		if _skips_range(n):
+			gi.add_to_group(Groups.CULL_SKIP)
 			continue
 		var end := 0.0
 		var margin := 6.0
 		var cull := 0.0
-		if n.begins_with("spore"):
-			end = 24.0
-			margin = 8.0
-			cull = 8.0
-		elif n.contains("cap") or n.contains("night"):
+		if gi.is_in_group(Groups.CULL_FOLIAGE) or n.begins_with("spore") or n.begins_with("cap") or n.begins_with("night") or n.begins_with("pebble") or n.begins_with("fern") or n.begins_with("grass"):
+			gi.add_to_group(Groups.CULL_FOLIAGE)
 			end = 32.0
 			margin = 10.0
 			cull = 8.0
-		elif n.contains("pebble"):
-			end = 28.0
-			margin = 8.0
-			cull = 8.0
+			if n.begins_with("spore"):
+				end = 24.0
+			elif n.begins_with("pebble"):
+				end = 28.0
+				margin = 8.0
 		elif gi is GPUParticles3D:
 			end = 22.0
 			margin = 6.0
@@ -382,8 +342,10 @@ static func _occluders(root: Node) -> void:
 	for col in root.find_children("*", "CollisionShape3D", true, false):
 		# Only trunks. Architecture boxes ate the stair when you stood on it,
 		# and spawning an occluder per rock is more raster work than it saves.
-		if not String(col.name).begins_with("Trunk"):
+		if not col.is_in_group(Groups.OCCLUDER_TRUNK) and not String(col.name).begins_with("Trunk"):
 			continue
+		if not col.is_in_group(Groups.OCCLUDER_TRUNK):
+			col.add_to_group(Groups.OCCLUDER_TRUNK)
 		if _under_player(col) or _skip_occluder(col):
 			continue
 		var shape: Shape3D = (col as CollisionShape3D).shape
