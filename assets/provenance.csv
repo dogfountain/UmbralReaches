@@ -1,0 +1,11 @@
+path,author_or_tool,licence,ai_generated,notes
+art/textures/stone_albedo.png,tools/gen_textures.py (procedural),project-owned,no,Voronoi flagstones + fbm
+art/textures/stone_normal.png,tools/gen_textures.py (procedural),project-owned,no,
+art/textures/ground_albedo.png,tools/gen_textures.py (procedural),project-owned,no,Moss/dirt blend
+art/textures/ground_normal.png,tools/gen_textures.py (procedural),project-owned,no,
+art/textures/rock_albedo.png,tools/gen_textures.py (procedural),project-owned,no,Strata
+art/textures/rock_normal.png,tools/gen_textures.py (procedural),project-owned,no,
+art/textures/bark_albedo.png,tools/gen_textures.py (procedural),project-owned,no,
+art/textures/bark_normal.png,tools/gen_textures.py (procedural),project-owned,no,
+ui/fonts/Cinzel.ttf,The Cinzel Project Authors,SIL OFL 1.1 (ui/fonts/OFL.txt),no,Display font for HUD
+world/zones/ascension/*.res,tools/bake_main.gd (procedural),project-owned,no,Meshes and collision baked from code

@@ -1,0 +1,23 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://world/zones/terrain.gdshader" id="1_yxguj"]
+[ext_resource type="Texture2D" path="res://art/textures/ground_albedo.png" id="2_4qcsr"]
+[ext_resource type="Texture2D" path="res://art/textures/ground_normal.png" id="3_ulqq5"]
+[ext_resource type="Texture2D" path="res://art/textures/rock_albedo.png" id="4_juumw"]
+[ext_resource type="Texture2D" path="res://art/textures/rock_normal.png" id="5_t66tc"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_yxguj")
+shader_parameter/ground_albedo = ExtResource("2_4qcsr")
+shader_parameter/ground_normal = ExtResource("3_ulqq5")
+shader_parameter/rock_albedo = ExtResource("4_juumw")
+shader_parameter/rock_normal = ExtResource("5_t66tc")
+shader_parameter/ground_scale = 0.11
+shader_parameter/rock_scale = 0.05
+shader_parameter/slope_lo = 0.62
+shader_parameter/slope_hi = 0.82
+shader_parameter/rim_color = Vector3(0.45, 0.72, 1.0)
+shader_parameter/rim_strength = 0.22
+shader_parameter/tint = Vector3(0.62, 0.72, 1.05)
+shader_parameter/detail = 1.0

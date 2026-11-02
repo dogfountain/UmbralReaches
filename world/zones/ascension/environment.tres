@@ -1,0 +1,53 @@
+[gd_resource type="Environment" format=3]
+
+[ext_resource type="Shader" path="res://world/sky/vortex.gdshader" id="1_8ixf4"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_uwi7a"]
+shader = ExtResource("1_8ixf4")
+shader_parameter/col_deep = Vector3(0.012, 0.025, 0.14)
+shader_parameter/col_rift = Vector3(0.28, 0.22, 0.95)
+shader_parameter/col_lilac = Vector3(0.55, 0.62, 1)
+shader_parameter/col_hex = Vector3(0.62, 0.38, 1)
+shader_parameter/vortex_dir = Vector3(0, 0.35, -1)
+shader_parameter/moon_dir = Vector3(0.6, 0.45, -0.4)
+shader_parameter/twist = 3.8
+shader_parameter/arm_scale = 3.4
+shader_parameter/detail_scale = 11.0
+shader_parameter/spin_speed = 0.015
+shader_parameter/intensity = 1.58
+
+[sub_resource type="Sky" id="Sky_j15d1"]
+sky_material = SubResource("ShaderMaterial_uwi7a")
+process_mode = 3
+radiance_size = 3
+
+[resource]
+background_mode = 2
+sky = SubResource("Sky_j15d1")
+ambient_light_source = 3
+ambient_light_energy = 0.34
+reflected_light_source = 2
+tonemap_mode = 4
+tonemap_exposure = 0.84
+ssao_enabled = true
+ssao_radius = 1.55
+ssao_intensity = 2.05
+glow_enabled = true
+glow_intensity = 0.85
+glow_bloom = 0.05
+fog_enabled = true
+fog_light_color = Color(0.07058824, 0.09411765, 0.22745098, 1)
+fog_light_energy = 0.85
+fog_sun_scatter = 0.12
+fog_density = 0.013
+fog_aerial_perspective = 0.7
+fog_sky_affect = 0.55
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.032
+volumetric_fog_albedo = Color(0.023529412, 0.039215688, 0.10980392, 1)
+volumetric_fog_emission = Color(0.22745098, 0.14117648, 0.5019608, 1)
+volumetric_fog_emission_energy = 0.09
+volumetric_fog_anisotropy = 0.28
+volumetric_fog_length = 40.0
+volumetric_fog_sky_affect = 0.48
+volumetric_fog_ambient_inject = 0.6

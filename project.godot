@@ -1,0 +1,86 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Umbral Reaches"
+config/description="Dark-fantasy action RPG prototype: Stair of Ascension"
+config/version="0.1.0"
+run/main_scene="res://world/main.tscn"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="UmbralReaches"
+config/features=PackedStringArray("4.7", "Forward Plus")
+
+[autoload]
+
+Events="*res://autoload/events.gd"
+LightGrid="*res://autoload/light_grid.gd"
+InputSetup="*res://autoload/input_setup.gd"
+Settings="*res://autoload/settings.gd"
+Travel="*res://autoload/travel.gd"
+PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
+DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"
+BeehaveGlobalMetrics="*res://addons/beehave/metrics/beehave_global_metrics.gd"
+BeehaveGlobalDebugger="*res://addons/beehave/debug/global_debugger.gd"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/window_width_override=1600
+window/size/window_height_override=900
+window/stretch/mode="viewport"
+window/stretch/aspect="expand"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/phantom_camera/plugin.cfg", "res://addons/proton_scatter/plugin.cfg", "res://addons/beehave/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/dreadpon.spatial_gardener/plugin.cfg", "res://addons/boujie_water_shader/plugin.cfg")
+
+[global_group]
+
+player="The wanderer. Lookup with Groups.PLAYER."
+interactable="E / interact. Implements can_interact, interact_text, interact."
+light_source="Safe light registered with LightGrid."
+shade="Gloom hunter."
+saveable="Persisted across a future save file."
+
+[layer_names]
+
+3d_physics/layer_1="world"
+3d_physics/layer_2="player"
+3d_physics/layer_3="hurtbox"
+3d_physics/layer_4="interact"
+3d_physics/layer_5="props"
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
+common/physics_interpolation=true
+
+[rendering]
+
+textures/vram_compression/import_etc2_astc=true
+lights_and_shadows/directional_shadow/size=1024
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=1
+lights_and_shadows/positional_shadow/soft_shadow_filter_quality=1
+camera/depth_of_field/depth_of_field_bokeh_quality=0
+environment/ssao/quality=0
+textures/light_projectors/filter=1
+environment/volumetric_fog/volume_size=24
+environment/volumetric_fog/volume_depth=12
+lights_and_shadows/positional_shadow/atlas_size=1024
+lights_and_shadows/positional_shadow/atlas_quadrant_0_subdiv=1
+
+[shader_globals]
+
+push_pos={
+"type": "vec3",
+"value": Vector3(0, -500, 0)
+}

@@ -1,0 +1,7 @@
+.godot/
+build/
+*.tmp
+*.blend1
+docs/anim/
+/tmp*
+.DS_Store

@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://bb7nifl64xayy"
+path="res://.godot/imported/wastes_intro.dialogue-7d5602d54d5f3800a6b6a468afec726f.tres"
+
+[deps]
+
+source_file="res://dialogue/wastes_intro.dialogue"
+dest_files=["res://.godot/imported/wastes_intro.dialogue-7d5602d54d5f3800a6b6a468afec726f.tres"]
+
+[params]
+
+defaults=true

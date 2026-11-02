@@ -1,0 +1,24 @@
+---
+description: Godot 4 architecture for Umbral Reaches (official samples + this project)
+alwaysApply: true
+---
+
+# Architecture
+
+Godot is scenes, not Unity prefabs. Keep `core/<feature>/`, `world/`, `ui/`, `autoload/`. Do not split into `scripts/` vs `scenes/`.
+
+**Autoloads stay at five:** `Events` (signals only), `Settings`, `Travel`, `LightGrid`, `InputSetup` (InputMap bootstrap). No GameManager. No AudioManager. World sounds live on the node that makes them.
+
+**Compose, don't inherit.** `Player` (`CharacterBody3D`) owns move/camera/gloom. `CharacterRig` owns skeleton, sockets, stride, loadout. Player talks to the rig through `animate()`, `cast()`, `equip()` — never bone names.
+
+**Find things with groups**, not `get_parent()`. Use `Groups.PLAYER`, `INTERACTABLE`, `LIGHT_SOURCE`, `SHADE`. Spawn into `get_tree().current_scene`, not the parent.
+
+**Physics:** `Layers.WORLD` (1) / `PLAYER` (2). Collision capsule on Player only.
+
+**A night is a `Zone`.** `world/main.gd` and `world/vale.gd` extend it and call `finish_zone_setup()` last. HUD/settings are instanced per night today; do not parent them only under a room that `change_scene` deletes unless Travel restores them.
+
+**Pause:** `get_tree().paused`. Settings menu is `PROCESS_MODE_ALWAYS`. Travel fade must keep running. Do not use `Engine.time_scale = 0`.
+
+**Input:** named actions from `InputSetup`. Gameplay in `_unhandled_input` and `_physics_process`. Call `set_input_as_handled()` when a menu consumes a key.
+
+**New content is a scene or a Resource.** Equipment is `EquipmentPiece` data + `equip()`. Portal targets stay `@export` paths on `MirrorGate`. Bake static architecture in `tools/`; runtime dresses player, portals, glimmers, shades.

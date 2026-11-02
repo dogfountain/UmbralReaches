@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://c8lgwk81mwpns"
+
+[deps]
+
+files=["res://assets/provenance.author.translation", "res://assets/provenance.licence.translation", "res://assets/provenance.ai.translation", "res://assets/provenance.notes.translation"]
+
+source_file="res://assets/provenance.csv"
+dest_files=["res://assets/provenance.author.translation", "res://assets/provenance.licence.translation", "res://assets/provenance.ai.translation", "res://assets/provenance.notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

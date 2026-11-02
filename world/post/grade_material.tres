@@ -1,0 +1,22 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://world/post/grade.gdshader" id="1_6hmd1"]
+
+[resource]
+shader = ExtResource("1_6hmd1")
+shader_parameter/sharpen = 1.85
+shader_parameter/sharpen_clamp = 0.11
+shader_parameter/band_lo = 200.0
+shader_parameter/band_hi = 290.0
+shader_parameter/hue_pull = 0.28
+shader_parameter/warm_protect = 1.0
+shader_parameter/shadow_tint = Vector3(0.02, 0.04, 0.22)
+shader_parameter/mid_tint = Vector3(0.22, 0.36, 1)
+shader_parameter/high_tint = Vector3(0.72, 0.88, 1)
+shader_parameter/split_amount = 0.22
+shader_parameter/saturation = 1.42
+shader_parameter/black_crush = 0.055
+shader_parameter/vignette = 0.42
+shader_parameter/grain = 0.038
+shader_parameter/chroma = 0.0018
+shader_parameter/gloom = 0.0

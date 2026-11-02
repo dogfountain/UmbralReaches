@@ -1,0 +1,15 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://core/player/arcane_robe.gdshader" id="1_xlltu"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_xlltu")
+shader_parameter/base_color = Color(0.18, 0.07, 0.45, 1)
+shader_parameter/glow_color = Color(0.62, 0.3, 1, 1)
+shader_parameter/glow_hot = Color(0.95, 0.4, 1, 1)
+shader_parameter/glow_energy = 2.4
+shader_parameter/fleck_scale = 6.5
+shader_parameter/drift = 0.12
+shader_parameter/rim_color = Vector3(0.7, 0.5, 1)
+shader_parameter/rim_strength = 0.45
