@@ -23,6 +23,8 @@ var _debug: Label
 var _fade: ColorRect
 var _toast_tw: Tween
 var _prompt_tw: Tween
+var _debug_t := 0.0
+var _measure_rid: RID
 
 
 class Crosshair extends Control:
@@ -125,7 +127,7 @@ func _ready() -> void:
 	_debug.offset_left = -520
 	_debug.offset_right = -40
 	_debug.offset_top = 32
-	_debug.offset_bottom = 280
+	_debug.offset_bottom = 380
 	_debug.visible = false
 	_debug.add_theme_font_override("font", ThemeDB.fallback_font)
 	# Which build is this? Version from project settings, bake time from the generated stamp.
@@ -156,6 +158,8 @@ func _ready() -> void:
 	Events.hollowed.connect(_on_hollowed)
 	Events.respawned.connect(_on_respawned)
 	Events.benchmark_done.connect(func(summary: String) -> void: _bench_line = "BENCH  " + summary)
+	_measure_rid = get_viewport().get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(_measure_rid, true)
 
 
 func _label(parent: Control, text: String, size: int, color: Color, align := HORIZONTAL_ALIGNMENT_LEFT) -> Label:
@@ -178,22 +182,37 @@ func _process(delta: float) -> void:
 	_bar.queue_redraw()
 	if Input.is_action_just_pressed("toggle_debug"):
 		_debug.visible = not _debug.visible
-	if _debug.visible:
-		var vp := get_viewport()
-		var render := vp.get_visible_rect().size            # what is actually drawn
-		var win := get_window().size                        # what it is upscaled onto
-		var diag_script := load("res://core/debug/boot_diag.gd")
-		var diag: String = diag_script.summary if diag_script != null else "diag script missing"
-		_debug.text = "%d fps  ·  %.1f ms\n%d draw calls\n%s primitives\nrender %dx%d @ %d%%  ·  window %dx%d\n%d light zones\n%s  ·  %s\n%s\n%s\n%s" % [
-			Engine.get_frames_per_second(),
-			Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
-			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
-			String.num_int64(int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))),
-			int(render.x), int(render.y), roundi(vp.scaling_3d_scale * 100.0), win.x, win.y,
-			LightGrid.count(),
-			RenderingServer.get_current_rendering_driver_name(),
-			RenderingServer.get_current_rendering_method(),
-			_build_line, _bench_line, diag]
+		_debug_t = 1.0
+	if not _debug.visible:
+		return
+	_debug_t += delta
+	if _debug_t < 0.25:
+		return
+	_debug_t = 0.0
+	_refresh_debug()
+
+
+func _refresh_debug() -> void:
+	var vp := get_viewport()
+	var render := vp.get_visible_rect().size
+	var win := get_window().size
+	var fps := maxi(Engine.get_frames_per_second(), 1)
+	var diag_script := load("res://core/debug/boot_diag.gd")
+	var diag: String = diag_script.summary if diag_script != null else "diag script missing"
+	_debug.text = "%d fps  ·  frame %.1f ms\nGPU %.2f ms  ·  render CPU %.2f ms\nprocess %.2f ms  ·  physics %.2f ms\n%d draw calls  ·  %s primitives\nrender %dx%d @ %d%%  ·  window %dx%d\n%d light zones\n%s  ·  %s\n%s\n%s\n%s" % [
+		fps,
+		1000.0 / float(fps),
+		RenderingServer.viewport_get_measured_render_time_gpu(_measure_rid),
+		RenderingServer.viewport_get_measured_render_time_cpu(_measure_rid),
+		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
+		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+		String.num_int64(int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))),
+		int(render.x), int(render.y), roundi(vp.scaling_3d_scale * 100.0), win.x, win.y,
+		LightGrid.count(),
+		RenderingServer.get_current_rendering_driver_name(),
+		RenderingServer.get_current_rendering_method(),
+		_build_line, _bench_line, diag]
 
 
 func _on_gloom(value: float, max_value: float) -> void:
