@@ -20,7 +20,23 @@ varying vec3 wnrm;
 
 void vertex() {
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	wnrm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	wnrm = normalize(MODEL_NORMAL_MATRIX * NORMAL);
+}
+
+// RGTC / BC5 stores only RG. Reconstruct Z so cavity isn't reading a junk blue channel.
+vec3 unpack_n(sampler2D t, vec2 uv) {
+	vec2 xy = texture(t, uv).rg * 2.0 - 1.0;
+	return vec3(xy, sqrt(max(1.0 - dot(xy, xy), 0.0)));
+}
+
+vec3 triplanar_normal(sampler2D t, float s, vec3 w) {
+	vec3 nx = unpack_n(t, wpos.zy * s);
+	vec3 ny = unpack_n(t, wpos.xz * s);
+	vec3 nz = unpack_n(t, wpos.xy * s);
+	nx = vec3(nx.xy + wnrm.zy, abs(nx.z) * wnrm.x);
+	ny = vec3(ny.xy + wnrm.xz, abs(ny.z) * wnrm.y);
+	nz = vec3(nz.xy + wnrm.xy, abs(nz.z) * wnrm.z);
+	return normalize(nx.zyx * w.x + ny.xzy * w.y + nz.xyz * w.z);
 }
 
 void fragment() {
@@ -42,17 +58,19 @@ void fragment() {
 	}
 	ALBEDO = mix(rock, ground, flatness) * tint;
 
-	vec2 side_uv = (abs(wnrm.x) > abs(wnrm.z) ? wpos.zy : wpos.xy) * rock_scale;
-	vec3 rn = texture(rock_normal, side_uv).rgb;
-	vec3 gn = texture(ground_normal, wpos.xz * ground_scale).rgb;
+	vec3 rock_n = triplanar_normal(rock_normal, rock_scale, w);
+	vec3 gn_ts = unpack_n(ground_normal, wpos.xz * ground_scale);
 	if (detail > 0.5) {
-		rn = mix(rn, texture(rock_normal, side_uv * 3.2).rgb, 0.4);
-		gn = mix(gn, texture(ground_normal, wpos.xz * ground_scale * 3.4).rgb, 0.45);
+		rock_n = normalize(mix(rock_n, triplanar_normal(rock_normal, rock_scale * 3.2, w), 0.4));
+		gn_ts = mix(gn_ts, unpack_n(ground_normal, wpos.xz * ground_scale * 3.4), 0.45);
+		gn_ts = normalize(gn_ts);
 	}
-	NORMAL_MAP = mix(rn, gn, flatness);
-	NORMAL_MAP_DEPTH = 2.35;
+	vec3 ground_n = vec3(gn_ts.xy + wnrm.xz, abs(gn_ts.z) * wnrm.y);
+	ground_n = normalize(ground_n.xzy);
+	vec3 n_ws = normalize(mix(rock_n, ground_n, flatness));
+	NORMAL = normalize((VIEW_MATRIX * vec4(n_ws, 0.0)).xyz);
 
-	float cavity = 1.0 - smoothstep(0.22, 0.78, NORMAL_MAP.b);
+	float cavity = 1.0 - smoothstep(0.22, 0.78, gn_ts.z);
 	ALBEDO *= 1.0 - cavity * 0.32;
 	float wet = smoothstep(0.72, 0.96, flatness) * (1.0 - cavity);
 	ROUGHNESS = mix(0.88, 0.42, wet);
