@@ -6,6 +6,7 @@ var target: Player
 var speed := 5.2
 var _t := 0.0
 var _dying := false
+var _blocked_t := 0.0
 var _body: Node3D
 
 
@@ -108,13 +109,22 @@ func _physics_process(delta: float) -> void:
 	if _dying or not is_instance_valid(target):
 		return
 	var goal := target.global_position + Vector3.UP * 0.9
+	if _blocked_t >= 2.5:
+		var around := _ring_goal(target)
+		goal = around if around != Vector3.ZERO else goal + Vector3.UP * 3.0
 	var to := goal - global_position
 	var d := to.length()
 	if d < 1.1:
 		if not _blocked(target):
 			target.hollow()
 			dissipate()
+			return
+		_blocked_t += delta
 		return
+	if _blocked(target):
+		_blocked_t += delta
+	else:
+		_blocked_t = maxf(0.0, _blocked_t - delta * 2.0)
 	global_position += to / d * speed * delta
 	var flat := Vector3(to.x, 0.0, to.z)
 	if flat.length() > 0.01:
@@ -132,6 +142,26 @@ func _blocked(player: Player) -> bool:
 	var q := PhysicsRayQueryParameters3D.create(from, to)
 	q.collision_mask = Layers.WORLD
 	return not space.intersect_ray(q).is_empty()
+
+
+func _ring_goal(player: Player) -> Vector3:
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		return Vector3.ZERO
+	var best := Vector3.ZERO
+	var best_d := INF
+	var origin := player.global_position + Vector3.UP * 3.9
+	for i in 8:
+		var a := TAU * float(i) / 8.0
+		var p := origin + Vector3(cos(a), 0.0, sin(a)) * 2.2
+		var q := PhysicsRayQueryParameters3D.create(p, player.global_position + Vector3.UP * 0.9)
+		q.collision_mask = Layers.WORLD
+		if space.intersect_ray(q).is_empty():
+			var d := global_position.distance_squared_to(p)
+			if d < best_d:
+				best_d = d
+				best = p
+	return best
 
 
 func dissipate() -> void:
