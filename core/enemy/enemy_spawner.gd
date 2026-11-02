@@ -34,6 +34,7 @@ var _camps: Array = []
 var _slots: Array[Dictionary] = []
 var _tick := 0.0
 var _scripts: Dictionary = {}
+static var _cap: CapsuleShape3D
 
 
 func _ready() -> void:
@@ -47,6 +48,9 @@ func _ready() -> void:
 
 
 func _plant() -> void:
+	await get_tree().physics_frame
+	if not is_inside_tree():
+		return
 	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
 	for camp in _camps:
 		var center := _ground(space, camp.at)
@@ -133,9 +137,10 @@ func _ground(space: PhysicsDirectSpaceState3D, from: Vector3) -> Vector3:
 		Vector3(2.0, 0.0, -3.0), Vector3(-2.0, 0.0, -3.0),
 	]
 	var fallback := Vector3(from.x, 0.6, from.z)
-	var cap := CapsuleShape3D.new()
-	cap.radius = 0.35
-	cap.height = 1.7
+	if _cap == null:
+		_cap = CapsuleShape3D.new()
+		_cap.radius = 0.35
+		_cap.height = 1.7
 	for off in offsets:
 		var probe := from + off
 		var q := PhysicsRayQueryParameters3D.create(
@@ -152,7 +157,7 @@ func _ground(space: PhysicsDirectSpaceState3D, from: Vector3) -> Vector3:
 		var at: Vector3 = hit.position
 		fallback = at
 		var sq := PhysicsShapeQueryParameters3D.new()
-		sq.shape = cap
+		sq.shape = _cap
 		sq.transform = Transform3D(Basis.IDENTITY, at + Vector3(0.0, 0.86, 0.0))
 		sq.collision_mask = Layers.WORLD
 		if space.intersect_shape(sq, 1).is_empty():
