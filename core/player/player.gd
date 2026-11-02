@@ -59,10 +59,20 @@ var _debug_sprint := false
 var _gloom_emit := 0.0
 var _gloom_emit_t := 0.0
 var _shake := 0.0
-var _cast_cd := 0.0
-const CAST_CD := 0.42
-const HEAVY_CD := 1.15
 const BOLT := preload("res://core/player/magic_bolt.tscn")
+
+@export_group("Shadowstep")
+@export var step_speed := 17.0          ## m/s during the blink
+@export var step_time := 0.2            ## seconds of blink; distance = speed * time
+@export var step_evade := 0.32          ## untouchable window, a little longer than the blink
+const COMBAT_FACE_TIME := 1.4           ## after a cast the body faces the camera, not the motion
+
+var _book: SkillBook
+var _step_t := 0.0
+var _step_dir := Vector3.ZERO
+var _evade_t := 0.0
+var _step_marked: Dictionary = {}
+var _combat_t := 0.0
 
 @onready var _visual: CharacterRig = $Visual
 @onready var _rig: Node3D = $CameraRig
@@ -104,6 +114,9 @@ func _ready() -> void:
 	_visual.walk_speed = walk_speed
 	_visual.sprint_speed = sprint_speed
 	_setup_interact_sensor()
+	_book = SkillBook.new()
+	_book.name = "SkillBook"
+	add_child(_book)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -118,12 +131,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event.is_action_pressed("interact"):
 		_try_interact()
-	elif event.is_action_pressed("heavy_cast"):
-		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED or not (event is InputEventMouseButton):
-			_try_cast(true)
-	elif event.is_action_pressed("cast"):
-		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED or not (event is InputEventMouseButton):
-			_try_cast(false)
 
 
 func _process(delta: float) -> void:
@@ -136,13 +143,17 @@ func _process(delta: float) -> void:
 	_rig.global_position = body_xf.origin + Vector3(0.0, _rig_height, 0.0)
 	_rig.global_rotation = Vector3(0.0, _yaw, 0.0)
 	_pitch_node.rotation.x = _pitch - _land_dip * 0.12 + _shake
-	_shake = move_toward(_shake, 0.0, delta * 8.0)
+	_shake = move_toward(_shake, 0.0, delta * 0.12)   # ~0.15 s for a full kick
 
 
 func _physics_process(delta: float) -> void:
 	_t += delta
-	_cast_cd = maxf(0.0, _cast_cd - delta)
 	_shade_lock = maxf(0.0, _shade_lock - delta)
+	_evade_t = maxf(0.0, _evade_t - delta)
+	_combat_t = maxf(0.0, _combat_t - delta)
+	if _step_t > 0.0:
+		_tick_step(delta)
+		return
 
 	var wish := Vector3.ZERO
 	var sprint := false
@@ -159,7 +170,7 @@ func _physics_process(delta: float) -> void:
 			wish = Basis(Vector3.UP, _yaw) * Vector3(v.x, 0.0, v.y)
 			sprint = Input.is_action_pressed("sprint")
 
-	var target := wish * (sprint_speed if sprint else walk_speed)
+	var target := wish * (sprint_speed if sprint else walk_speed) * _book.move_scale()
 	# Separate rates: stopping bites harder than starting, and air control is weaker than ground.
 	var rate := air_accel
 	if is_on_floor():
@@ -239,7 +250,10 @@ func _update_camera(delta: float, horiz: Vector3, sprint: bool, vy_before: float
 # --- Animation ---------------------------------------------------------------
 
 func _animate(delta: float, horiz: Vector3) -> void:
-	if horiz.length() > 0.2:
+	if _combat_t > 0.0:
+		# Casting: face where the crosshair is, strafe and backpedal instead of spinning away.
+		_visual.rotation.y = lerp_angle(_visual.rotation.y, _yaw, 1.0 - exp(-14.0 * delta))
+	elif horiz.length() > 0.2:
 		_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(-horiz.x, -horiz.z), 1.0 - exp(-10.0 * delta))
 	_visual.animate(velocity, is_on_floor(), delta)
 
@@ -395,13 +409,14 @@ func _try_interact() -> void:
 		_interact_target.interact(self)
 
 
-func _try_cast(heavy := false) -> void:
-	if _hollowing or _cast_cd > 0.0 or _visual == null:
-		return
+## Spawn one staff bolt toward the crosshair. cfg keys (all optional): heavy, dmg, blast, speed,
+## marks (Umbral Marks per hit), pierce. Skills call this; it owns aim, pooling and the gesture.
+func fire_bolt(cfg: Dictionary) -> MagicBolt:
+	if _hollowing or _visual == null:
+		return null
 	var host := get_tree().current_scene
 	if host == null:
-		return
-	_cast_cd = HEAVY_CD if heavy else CAST_CD
+		return null
 	_visual.cast()
 	var pool := get_tree().get_first_node_in_group("bolt_pool") as BoltPool
 	var bolt: MagicBolt
@@ -411,20 +426,132 @@ func _try_cast(heavy := false) -> void:
 		bolt = BOLT.instantiate() as MagicBolt
 		host.add_child(bolt)
 	var muzzle := _visual.muzzle()
-	var look := _look_target()
-	var cam_fwd := -_cam.global_transform.basis.z.normalized()
-	var aim := look - muzzle
-	if aim.length_squared() < 0.04 or aim.normalized().dot(cam_fwd) < 0.12:
-		aim = cam_fwd
-	else:
-		aim = aim.normalized()
+	var aim := _aim_from(muzzle)
 	var up := Vector3.UP
 	if absf(aim.dot(up)) > 0.95:
 		up = Vector3.RIGHT
 	bolt.transform = Transform3D(Basis.looking_at(aim, up), muzzle + aim * 0.28)
 	bolt.direction = aim
-	bolt.arm(heavy)
+	bolt.arm_with(cfg)
 	bolt.add_collision_exception_with(self)
+	return bolt
+
+
+func _aim_from(muzzle: Vector3) -> Vector3:
+	var look := _look_target()
+	var cam_fwd := -_cam.global_transform.basis.z.normalized()
+	var aim := look - muzzle
+	if aim.length_squared() < 0.04 or aim.normalized().dot(cam_fwd) < 0.12:
+		return cam_fwd
+	return aim.normalized()
+
+
+# --- Skills surface -------------------------------------------------------------------------
+
+func skills() -> SkillBook:
+	return _book
+
+
+func skills_locked() -> bool:
+	return _hollowing or autopilot or _step_t > 0.0
+
+
+func note_combat() -> void:
+	_combat_t = COMBAT_FACE_TIME
+
+
+func set_charge_glow(c: float) -> void:
+	if _visual:
+		_visual.charge = c
+
+
+## Camera punch, 0..1. Rides the existing land-dip pitch channel.
+func kick(amount: float) -> void:
+	_shake = maxf(_shake, deg_to_rad(0.15 + 1.1 * clampf(amount, 0.0, 1.0)))
+
+
+func is_evading() -> bool:
+	return _evade_t > 0.0
+
+
+func can_shadowstep() -> bool:
+	return not _hollowing and _step_t <= 0.0
+
+
+func shadowstep() -> bool:
+	if not can_shadowstep():
+		return false
+	var v := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var dir := Basis(Vector3.UP, _yaw) * Vector3(v.x, 0.0, v.y)
+	if dir.length_squared() < 0.04:
+		dir = Basis(Vector3.UP, _yaw) * Vector3.FORWARD
+	_step_dir = dir.normalized()
+	_step_t = step_time
+	_evade_t = step_evade
+	_step_marked.clear()
+	_visual.visible = false
+	_fov_kick = maxf(_fov_kick, 9.0)
+	_step_burst()
+	return true
+
+
+func _tick_step(delta: float) -> void:
+	_step_t -= delta
+	velocity = _step_dir * step_speed
+	move_and_slide()
+	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
+		var e := node as Enemy
+		if e == null or _step_marked.has(e.get_instance_id()) or not e.is_alive():
+			continue
+		if e.global_position.distance_squared_to(global_position) < 1.69:
+			_step_marked[e.get_instance_id()] = true
+			e.add_mark(1)
+	if _step_t <= 0.0:
+		_step_t = 0.0
+		velocity = Vector3(_step_dir.x, 0.0, _step_dir.z) * walk_speed
+		_visual.visible = true
+		_visual.rotation.y = atan2(-_step_dir.x, -_step_dir.z)
+		_step_burst()
+	_update_gloom(delta)
+	RenderingServer.global_shader_parameter_set("push_pos", global_position)
+
+
+func _step_burst() -> void:
+	var pool := get_tree().get_first_node_in_group("bolt_pool") as BoltPool
+	if pool == null:
+		return
+	var bang := pool.take_burst()
+	bang.global_position = global_position + Vector3.UP * 1.0
+	bang.restart()
+	bang.emitting = true
+
+
+func nova_fx(radius: float) -> void:
+	_visual.cast()
+	_visual.play_cast_sound()
+	var pool := get_tree().get_first_node_in_group("bolt_pool") as BoltPool
+	if pool == null:
+		return
+	var at := global_position + Vector3.UP * 0.9
+	var bang := pool.take_burst()
+	bang.global_position = at
+	bang.restart()
+	bang.emitting = true
+	var shock := pool.take_shock()
+	shock.visible = true
+	shock.scale = Vector3.ONE
+	shock.global_position = at
+	var mat := shock.material_override as StandardMaterial3D
+	if mat:
+		mat.albedo_color.a = 0.6
+	var tw := shock.create_tween().set_parallel(true)
+	tw.tween_property(shock, "scale", Vector3(1.0, 0.35, 1.0) * (radius / 0.2), 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if mat:
+		tw.tween_property(mat, "albedo_color:a", 0.0, 0.3)
+	tw.chain().tween_callback(func() -> void:
+		shock.visible = false
+		shock.scale = Vector3.ONE
+	)
 
 
 ## Screen-center hit (the HUD crosshair). Parallel-to-camera from the staff orb

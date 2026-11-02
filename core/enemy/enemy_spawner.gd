@@ -8,18 +8,18 @@ const KEEP_CLEAR := 7.0
 const HAVEN := Vector3(-3.4, 0.0, -8.5)
 const HAVEN_R := 12.0
 
-const STAIR_SITES: Array[Vector3] = [
-	Vector3(-5.5, 5.0, 12.0),
-	Vector3(5.5, 5.0, 12.0),
-	Vector3(-5.0, 4.0, 6.0),
+## Each camp mixes a role: a melee body, a skirmisher (crawler hop / leaper pounce) and a
+## ranged spitter, so the stair foot asks for marking, dodging and target priority.
+const STAIR_CAMPS: Array[Dictionary] = [
+	{"at": Vector3(-5.5, 5.0, 12.0), "kinds": ["wretch", "crawler", "crawler"]},
+	{"at": Vector3(5.5, 5.0, 12.0), "kinds": ["leaper", "spitter"]},
+	{"at": Vector3(-5.0, 4.0, 6.0), "kinds": ["wretch", "spitter"]},
+	{"at": Vector3(6.5, 5.0, 6.5), "kinds": ["leaper"]},
 ]
 
 
 static func seed_stair(root: Node) -> void:
-	var camps: Array = []
-	for at in STAIR_SITES:
-		camps.append({"at": at, "kinds": ["wretch"]})
-	_seed(root, camps)
+	_seed(root, STAIR_CAMPS.duplicate(true))
 
 
 static func _seed(root: Node, camps: Array) -> void:
@@ -43,6 +43,7 @@ func _ready() -> void:
 	_scripts["husk"] = Husk
 	_scripts["crawler"] = Crawler
 	_scripts["leaper"] = Leaper
+	_scripts["spitter"] = Spitter
 	if Events.enemy_killed.is_connected(_on_killed) == false:
 		Events.enemy_killed.connect(_on_killed)
 	_plant()

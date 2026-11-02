@@ -2,7 +2,7 @@ class_name Enemy
 extends CharacterBody3D
 ## Melee crawler base. Flat steering, no navmesh. Strike adds Gloom; no player HP.
 
-enum { IDLE, CHASE, WINDUP, STRIKE, RECOVER, DEAD }
+enum { IDLE, CHASE, WINDUP, STRIKE, RECOVER, DEAD, LEAP_PREP, AIRBORNE }
 
 const HP_BAR_SHADER := "res://core/enemy/health_bar.gdshader"
 const HP_BAR_SIZE := Vector2(0.86, 0.1)   ## metres; same value as `size` in the shader
@@ -11,6 +11,10 @@ const HP_BAR_TRAIL_RATE := 1.4            ## ratio per second it drains at
 const TURN_RATE := 10.0                   ## same turn smoothing the Player uses on its rig
 const CAPSULE_R := 0.35
 const CAPSULE_H := 1.7
+const MARK_MAX := 3
+const MARK_LIFE := 5.0
+const HIT_COL := Color(0.86, 0.8, 1.0)
+const HIT_BIG := Color(1.0, 0.55, 0.3)
 
 @export var max_hp := 3
 @export var walk_speed := 3.4
@@ -25,6 +29,15 @@ const CAPSULE_H := 1.7
 @export var hp_bar_y := 2.02
 @export var crawler := false
 @export var leaper := false
+@export_group("Leap")
+@export var leap_min := 4.0             ## metres; closer than this it just walks in
+@export var leap_max := 13.0            ## metres of horizontal pounce
+@export var leap_apex := 1.9            ## metres above the higher end of the jump
+@export var leap_prep := 0.45           ## crouch telegraph, seconds — the player's dodge window
+@export var leap_cooldown := 2.6
+@export var leap_lead := 0.6            ## 0 = jump at where you are, 1 = where you will be
+@export var hop_len := 3.2              ## crawler hop length
+@export_group("")
 var home := Vector3.ZERO
 var _leap_cd := 0.0
 
@@ -47,6 +60,15 @@ var _p: Player
 var _to := Vector3.ZERO
 var _dist := INF
 var _hitstop := 0
+var marks := 0
+var _mark_t := 0.0
+var _pips: Array[MeshInstance3D] = []
+var _ballistic := false
+var _air_t := 0.0
+var _pounced := false
+var _squash := 0.0
+
+static var _pip_mesh: SphereMesh
 
 static var _hp_bar_mesh: QuadMesh
 
@@ -125,6 +147,8 @@ func take_hit(dmg: float, from: Node = null) -> void:
 		return
 	hp = maxf(hp - dmg, 0.0)
 	_flash = 0.12
+	var big := dmg >= 3.0
+	HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.35), _dmg_text(dmg), HIT_BIG if big else HIT_COL, big)
 	_hitstop = 3
 	_refresh_hp(true)
 	var p := _player()
@@ -137,6 +161,10 @@ func take_hit(dmg: float, from: Node = null) -> void:
 			_knock = away.normalized() * 4.8
 	if hp <= 0.001:
 		_die()
+
+
+static func _dmg_text(dmg: float) -> String:
+	return str(roundi(dmg)) if is_equal_approx(dmg, roundf(dmg)) else "%.1f" % dmg
 
 
 func station(at: Vector3) -> void:
@@ -194,6 +222,79 @@ func _make_hp_bar() -> void:
 	_hp_bar.set_instance_shader_parameter(&"segments", float(maxi(max_hp, 1)))
 	_hp_trail = _hp_ratio()
 	_refresh_hp(false)
+	_make_pips()
+
+
+## Umbral Marks: three violet beads over the bar. Shared mesh + material, toggled per stack.
+func _make_pips() -> void:
+	if _pip_mesh == null:
+		_pip_mesh = SphereMesh.new()
+		_pip_mesh.radius = 0.045
+		_pip_mesh.height = 0.09
+		_pip_mesh.radial_segments = 8
+		_pip_mesh.rings = 4
+		_pip_mesh.material = ProcMesh.glow_mat(Color(1.5, 0.6, 3.2))
+	for i in MARK_MAX:
+		var pip := MeshInstance3D.new()
+		pip.mesh = _pip_mesh
+		pip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		pip.position = Vector3((float(i) - 1.0) * 0.14, hp_bar_y + 0.16, 0.0)
+		pip.visible = false
+		add_child(pip)
+		_pips.append(pip)
+
+
+func add_mark(n := 1) -> void:
+	if _state == DEAD:
+		return
+	marks = mini(MARK_MAX, marks + n)
+	_mark_t = MARK_LIFE
+	_refresh_pips()
+
+
+func take_marks() -> int:
+	var m := marks
+	marks = 0
+	_refresh_pips()
+	return m
+
+
+func _refresh_pips() -> void:
+	for i in _pips.size():
+		_pips[i].visible = i < marks
+
+
+func is_alive() -> bool:
+	return _state != DEAD
+
+
+func shove(v: Vector3) -> void:
+	_knock = Vector3(v.x, 0.0, v.z)
+	if is_on_floor() and not _ballistic:
+		velocity.y = 2.4
+
+
+## Ballistic jump that lands on `target`. The apex sits `apex` m above the higher end, so up-stair
+## and down-stair pounces both arc. Returns the flight time.
+func launch_at(target: Vector3, apex: float) -> float:
+	var from := global_position
+	var dy := target.y - from.y
+	var h := maxf(apex, dy + apex * 0.5)
+	var vy := sqrt(2.0 * gravity * h)
+	var t := vy / gravity + sqrt(2.0 * maxf(h - dy, 0.05) / gravity)
+	var flat := Vector3(target.x - from.x, 0.0, target.z - from.z)
+	velocity = Vector3(flat.x / t, vy, flat.z / t)
+	_ballistic = true
+	_air_t = 0.0
+	_pounced = false
+	_stuck_t = 0.0
+	return t
+
+
+func flight_time(apex: float, dy: float) -> float:
+	var h := maxf(apex, dy + apex * 0.5)
+	var vy := sqrt(2.0 * gravity * h)
+	return vy / gravity + sqrt(2.0 * maxf(h - dy, 0.05) / gravity)
 
 
 func _hp_ratio() -> float:
@@ -243,9 +344,16 @@ func _physics_process(delta: float) -> void:
 	if _think_cd <= 0.0:
 		_think_cd = 1.0 / think_hz
 		_think()
-	if _state == CHASE:
+	if _state == CHASE and _chases_directly():
 		_aim_at_player()
+	elif _state == LEAP_PREP and _to.length_squared() > 0.01:
+		_face_dir = _to.normalized()
 	_leap_cd = maxf(0.0, _leap_cd - delta)
+	if marks > 0:
+		_mark_t -= delta
+		if _mark_t <= 0.0:
+			marks = 0
+			_refresh_pips()
 	_move(delta)
 	_flash_visual(delta)
 	_tick_hp_trail(delta)
@@ -263,6 +371,11 @@ func _cache_player() -> void:
 	_to = _p.global_position - global_position
 	_to.y = 0.0
 	_dist = _to.length()
+
+
+## Spitters kite instead of closing in; they override this to keep their own _wish.
+func _chases_directly() -> bool:
+	return true
 
 
 ## Light makes them slink, it does not freeze them. Sanctuary / river zones used to pin Wretches.
@@ -297,8 +410,19 @@ func _think() -> void:
 			elif dist <= strike_range:
 				_face_dir = to / maxf(dist, 0.001)
 				_set_state(WINDUP)
+			elif leaper and _leap_cd <= 0.0 and is_on_floor() and dist >= leap_min and dist <= leap_max and _strike_clear(player):
+				_face_dir = to / maxf(dist, 0.001)
+				_set_state(LEAP_PREP)
 			else:
 				_aim_at_player()
+		LEAP_PREP:
+			_wish = Vector3.ZERO
+			if dist > leap_max + 3.0:
+				_set_state(CHASE)
+			elif _state_t >= leap_prep:
+				_pounce(player)
+		AIRBORNE:
+			pass
 		WINDUP:
 			_wish = Vector3.ZERO
 			_face_dir = to / maxf(dist, 0.001)
@@ -309,7 +433,10 @@ func _think() -> void:
 		STRIKE:
 			_wish = Vector3.ZERO
 			if dist <= strike_range + 0.25 and _strike_clear(player):
-				player.add_gloom_from_enemy(strike_gloom)
+				if player.is_evading():
+					HitText.pop(player.global_position + Vector3.UP * 2.0, "evaded", Color(0.6, 0.75, 1.0))
+				else:
+					player.add_gloom_from_enemy(strike_gloom)
 			_set_state(RECOVER)
 		RECOVER:
 			_wish = Vector3.ZERO
@@ -321,6 +448,9 @@ func _move(delta: float) -> void:
 	_state_t += delta
 	if not is_on_floor():
 		velocity.y -= gravity * delta
+	if _ballistic:
+		_move_ballistic(delta)
+		return
 	var steer := _wish * walk_speed
 	if _state == WINDUP or _state == STRIKE or _state == RECOVER:
 		steer = Vector3.ZERO
@@ -328,16 +458,13 @@ func _move(delta: float) -> void:
 	elif _state == CHASE and is_on_floor() and _wish.length_squared() > 0.12:
 		var flat := Vector3(velocity.x, 0.0, velocity.z)
 		var dist := _dist
-		if leaper and _leap_cd <= 0.0 and dist > 3.2 and dist < 10.0:
-			velocity.y = 6.8
-			steer = _wish * walk_speed * 1.55
-			_leap_cd = 1.85
-			_stuck_t = 0.0
-		elif crawler and _leap_cd <= 0.0:
-			velocity.y = 3.6
-			steer = _wish * walk_speed * 1.25
-			_leap_cd = 0.62
-			_stuck_t = 0.0
+		if crawler and _leap_cd <= 0.0 and dist > 1.6:
+			# Skittering hop that actually covers ground: ballistic, momentum kept in the air.
+			var hop := minf(dist - 0.9, hop_len)
+			launch_at(global_position + _wish * hop, 0.55)
+			_leap_cd = 0.75
+			_move_ballistic(delta)
+			return
 		elif flat.length() < 0.28:
 			_stuck_t += delta
 			if _stuck_t > 0.22:
@@ -361,6 +488,54 @@ func _move(delta: float) -> void:
 			_rig.animate(velocity, is_on_floor(), delta)
 
 
+## Airborne: keep the launch momentum (the old code rewrote x/z to walk speed every frame,
+## which is why leaps went up instead of across). A pounce lands one strike in flight.
+func _move_ballistic(delta: float) -> void:
+	_air_t += delta
+	velocity.x += _knock.x * delta * 4.0
+	velocity.z += _knock.z * delta * 4.0
+	_knock = _knock.move_toward(Vector3.ZERO, delta * 14.0)
+	move_and_slide()
+	if is_on_wall():
+		velocity.x *= 0.25
+		velocity.z *= 0.25
+	if _state == AIRBORNE and not _pounced and _p != null:
+		var reach := _p.global_position - global_position
+		if reach.length_squared() < 1.7 * 1.7:
+			_pounced = true
+			if _p.is_evading():
+				HitText.pop(_p.global_position + Vector3.UP * 2.0, "evaded", Color(0.6, 0.75, 1.0))
+			else:
+				_p.add_gloom_from_enemy(strike_gloom)
+				_p.kick(0.8)
+	var flat := Vector3(velocity.x, 0.0, velocity.z)
+	_turn_toward(flat if flat.length_squared() > 0.25 else _face_dir, delta)
+	if _rig and _dist < 24.0:
+		_rig.animate(velocity, false, delta)
+	if _air_t > 0.12 and is_on_floor():
+		_ballistic = false
+		velocity.x *= 0.2
+		velocity.z *= 0.2
+		_squash = 0.28
+		if _state == AIRBORNE:
+			_set_state(RECOVER)
+			_state_t = -0.3        # longer stagger after a pounce: the punish window
+
+
+func _pounce(player: Player) -> void:
+	var dy := player.global_position.y - global_position.y
+	var t := flight_time(leap_apex, dy)
+	var pv := Vector3(player.velocity.x, 0.0, player.velocity.z)
+	var target := player.global_position + pv * t * leap_lead
+	var flat := Vector3(target.x - global_position.x, 0.0, target.z - global_position.z)
+	if flat.length() > leap_max + 1.5:
+		flat = flat.normalized() * (leap_max + 1.5)
+	target = Vector3(global_position.x + flat.x, player.global_position.y, global_position.z + flat.z)
+	launch_at(target, leap_apex)
+	_leap_cd = leap_cooldown
+	_set_state(AIRBORNE)
+
+
 ## Smoothed like Player.visual so the rig's turn lean and cloth swing see a real turn rate.
 func _turn_toward(dir: Vector3, delta: float) -> void:
 	if _face == null or dir.length_squared() < 0.0025:
@@ -376,7 +551,7 @@ func _set_state(next: int) -> void:
 
 ## Hook for subclasses. Default: the shared rig's cast gesture on windup.
 func _on_state(next: int) -> void:
-	if next == WINDUP and _rig:
+	if (next == WINDUP or next == LEAP_PREP) and _rig:
 		_rig.cast()
 
 
@@ -410,7 +585,11 @@ func _flash_visual(delta: float) -> void:
 		return
 	_flash = maxf(0.0, _flash - delta)
 	var s := 1.0 + _flash * 0.4
-	_visual.scale = Vector3(s, s, s)
+	if _state == LEAP_PREP:
+		_squash = move_toward(_squash, 0.24, delta * 0.9)    # coil: the tell before a pounce
+	else:
+		_squash = move_toward(_squash, 0.0, delta * 1.6)
+	_visual.scale = Vector3(s * (1.0 + _squash * 0.45), s * (1.0 - _squash), s * (1.0 + _squash * 0.45))
 
 
 func _hold_post(from_home: float) -> void:

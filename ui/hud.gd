@@ -113,12 +113,16 @@ func _ready() -> void:
 	_subtitle.modulate.a = 0.0
 	Events.zone_entered.connect(_on_zone)
 
-	_hint = _label(root, "WASD move  ·  Mouse look  ·  Shift sprint  ·  Space jump  ·  LMB / Q bolt  ·  RMB / R heavy  ·  E kindle  ·  F1 grade on/off  ·  Esc / F2 settings  ·  F3 stats  ·  F4 render scale  ·  F8 benchmark  ·  F9 demo walk  ·  F11 fullscreen", 18, QUIET)
-	_hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	_hint.offset_left = 48
-	_hint.offset_top = -64
-	_hint.offset_bottom = -36
-	_hint.offset_right = 1800
+	_hint = _label(root, "WASD move  ·  Shift sprint  ·  Space jump  ·  E kindle  ·  skills on the bar below  ·  F1 grade  ·  Esc settings  ·  F3 stats  ·  F8 bench  ·  F11 fullscreen", 18, QUIET)
+	_hint.position = Vector2(48, 100)
+	_hint.size = Vector2(1400, 28)
+
+	var bar := Hotbar.new()
+	bar.name = "Hotbar"
+	bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	bar.offset_top = -136
+	bar.offset_bottom = -30
+	root.add_child(bar)
 	var ht := create_tween()
 	ht.tween_interval(16.0)
 	ht.tween_property(_hint, "modulate:a", 0.0, 2.0)

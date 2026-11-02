@@ -1,7 +1,6 @@
 class_name LanternPiece
 extends EquipmentPiece
-## The belt lantern: chain, cage, glow bulb and its warm OmniLight3D. Another build()-override
-## example, alongside StaffPiece, for compound items with their own light/particle children.
+## Hand lantern: chain, cage, glow bulb and its warm OmniLight3D. Held in the left hand.
 
 @export var iron_color := Color("#1A1A22")
 @export var glow_color := Color(5.0, 2.6, 0.9)
@@ -17,6 +16,7 @@ func build(socket: Node3D) -> Node3D:
 		push_error("LanternPiece.build socket null")
 		return Node3D.new()
 	var root := ProcMesh.node(socket, node_name if node_name != "Piece" else "Lantern", offset)
+	root.rotation_degrees = rotation_deg
 	if Check.attach_glb(root, LANTERN_GLB, "LanternMesh") == null:
 		push_error("LanternPiece: %s failed, using ProcMesh" % LANTERN_GLB)
 		var iron := ProcMesh.std_mat(iron_color, 0.45, 0.8)

@@ -12,4 +12,6 @@ signal toast(text: String)
 signal zone_entered(title: String, subtitle: String)
 signal autopilot_reached(marker_name: String)
 signal autopilot_finished()
-signal benchmark_done(summary: String)      ## F8 sampler result, pinned in the F3 overlay
+signal benchmark_done(summary: String)
+signal skill_cast(id: StringName)
+signal skill_failed(id: StringName, reason: String)      ## F8 sampler result, pinned in the F3 overlay

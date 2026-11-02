@@ -1,7 +1,7 @@
 class_name DefaultLoadout
 extends RefCounted
 ## The wanderer's starting gear. The body is the robe pieces on the procedural skeleton.
-## The right hand holds the staff. The lantern hangs at the hip.
+## The right hand holds the staff. The lantern sits in the left hand.
 
 
 static func entries() -> Array[Dictionary]:
@@ -23,8 +23,9 @@ static func entries() -> Array[Dictionary]:
 	var staff := StaffPiece.new()
 	out.append(_e("hand_r", "weapon_main", staff))
 	var lantern := LanternPiece.new()
-	lantern.offset = Vector3(-0.55, -0.15, -0.05)
-	out.append(_e("pelvis", "lantern", lantern))
+	lantern.offset = Vector3(0.05, -0.12, -0.05)
+	lantern.rotation_deg = Vector3(18.0, 0.0, -12.0)
+	out.append(_e("hand_l", "lantern", lantern))
 	return out
 
 

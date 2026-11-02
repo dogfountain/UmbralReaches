@@ -127,6 +127,8 @@ func _physics_process(delta: float) -> void:
 	var to := goal - global_position
 	var d := to.length()
 	if d < 1.1:
+		if target.is_evading():
+			return
 		if not _blocked(target):
 			target.hollow()
 			dissipate()

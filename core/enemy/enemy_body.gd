@@ -32,6 +32,8 @@ static func dress(rig: CharacterRig, kind: StringName) -> void:
 		mesh_kind = &"wretch"
 	elif kind == &"leaper":
 		mesh_kind = &"husk"
+	elif kind == &"spitter":
+		mesh_kind = &"wretch"
 	var used_torso := _attach_glb(rig, "chest", "res://art/models/%s_torso.glb" % mesh_kind, pack)
 	if not used_torso:
 		_put(rig, "chest", "Rib", ProcMesh.capsule(0.16, 0.44), Vector3(0.0, 0.02, 0.02), flesh, Vector3.ZERO, true)
@@ -189,6 +191,12 @@ static func _mats(kind: StringName) -> Dictionary:
 		rag_tint = Color(0.22, 0.16, 0.12)
 		hide_tint = Color(0.18, 0.14, 0.10)
 		bone_tint = Color(0.70, 0.62, 0.48)
+	elif kind == &"spitter":
+		# Pale, bloodless, bile-stained: reads as "fragile" against the darker melee types.
+		flesh_tint = Color(0.70, 0.74, 0.64)
+		rag_tint = Color(0.14, 0.20, 0.18)
+		hide_tint = Color(0.20, 0.24, 0.20)
+		bone_tint = Color(0.80, 0.82, 0.70)
 	elif kind == &"leaper":
 		flesh_tint = Color(0.62, 0.28, 0.26)
 		rag_tint = Color(0.22, 0.08, 0.10)

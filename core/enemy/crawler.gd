@@ -13,6 +13,7 @@ func _init() -> void:
 	strike_gloom = 18.0
 	light_averse = true
 	crawler = true
+	hop_len = 3.4
 	hp_bar_y = 0.92
 
 

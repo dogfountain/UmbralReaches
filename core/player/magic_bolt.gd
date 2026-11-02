@@ -8,12 +8,15 @@ const BLAST := 1.2
 const HIT_DMG := 1.0
 const FLARE_SHADER := preload("res://world/flare.gdshader")
 const MOTE := preload("res://art/materials/rift_mote_particle.tres")
+const IMPACT_SFX := preload("res://art/audio/bolt_impact.wav")
 
 var direction := Vector3.FORWARD
 var speed := SPEED
 var blast := BLAST
 var hit_dmg := HIT_DMG
 var heavy := false
+var marks := 0            ## Umbral Marks applied per hit (Rift Bolt)
+var pierce := false       ## pass through bodies, burst only on the world (full Ember Lance)
 
 var _age := 0.0
 var _spent := false
@@ -25,6 +28,8 @@ var _hurt: Area3D
 var _hurt_shape: SphereShape3D
 var _hit_ids: Dictionary = {}
 var _pooled := false
+var _sfx: AudioStreamPlayer3D
+var _excepted: Array[PhysicsBody3D] = []
 
 static var _core_mesh: SphereMesh
 static var _core_mesh_h: SphereMesh
@@ -83,6 +88,14 @@ func arm(is_heavy: bool) -> void:
 	_spent = false
 	_hit_ids.clear()
 	_pooled = false
+	marks = 0
+	pierce = false
+	for b in _excepted:
+		if is_instance_valid(b):
+			remove_collision_exception_with(b)
+	_excepted.clear()
+	if _aura:
+		_aura.scale = Vector3.ONE
 	if _hurt_shape:
 		_hurt_shape.radius = 1.35 if heavy else 1.05
 	if _core:
@@ -100,6 +113,18 @@ func arm(is_heavy: bool) -> void:
 		_light.omni_range = 5.4 if heavy else 3.8
 	visible = true
 	process_mode = Node.PROCESS_MODE_INHERIT
+
+
+## Skill-facing arm: heavy look + explicit numbers. Missing keys keep arm()'s defaults.
+func arm_with(cfg: Dictionary) -> void:
+	arm(bool(cfg.get("heavy", false)))
+	hit_dmg = float(cfg.get("dmg", hit_dmg))
+	blast = float(cfg.get("blast", blast))
+	speed = float(cfg.get("speed", speed))
+	marks = int(cfg.get("marks", 0))
+	pierce = bool(cfg.get("pierce", false))
+	if pierce and _aura:
+		_aura.scale = Vector3.ONE * 1.5
 
 
 func reset_idle() -> void:
@@ -124,13 +149,18 @@ func _physics_process(delta: float) -> void:
 	if _age >= LIFE:
 		explode(global_position)
 		return
-	if _hurt_near():
+	if _hurt_near() and not pierce:
 		explode(global_position)
 		return
 	var hit := move_and_collide(direction * speed * delta)
 	if hit:
-		_apply_hit(hit.get_collider())
-		explode(hit.get_position())
+		var col := hit.get_collider()
+		var hurt := _apply_hit(col)
+		if pierce and hurt and col is PhysicsBody3D:
+			add_collision_exception_with(col)
+			_excepted.append(col as PhysicsBody3D)
+		else:
+			explode(hit.get_position())
 
 
 func explode(at: Vector3) -> void:
@@ -184,6 +214,8 @@ func _apply_hit(node: Object) -> bool:
 			if _hit_ids.has(id):
 				return true
 			_hit_ids[id] = true
+			if marks > 0 and n.has_method("add_mark"):
+				n.add_mark(marks)
 			n.take_hit(hit_dmg, self)
 			return true
 		n = n.get_parent()
@@ -341,12 +373,16 @@ func _burst(at: Vector3) -> void:
 	)
 
 
+## One player per bolt, made once. The old version added a new AudioStreamPlayer3D on every
+## explosion and never freed it, so pooled bolts piled up players.
 func _play_impact() -> void:
-	var sfx := AudioStreamPlayer3D.new()
-	sfx.stream = load("res://art/audio/bolt_impact.wav")
-	sfx.max_distance = 24.0
-	add_child(sfx)
-	sfx.play()
+	if _sfx == null:
+		_sfx = AudioStreamPlayer3D.new()
+		_sfx.stream = IMPACT_SFX
+		_sfx.max_distance = 24.0
+		add_child(_sfx)
+	_sfx.pitch_scale = randf_range(0.85, 1.12) * (0.8 if heavy else 1.0)
+	_sfx.play()
 
 
 static func _particle_mat(burst: bool) -> ParticleProcessMaterial:

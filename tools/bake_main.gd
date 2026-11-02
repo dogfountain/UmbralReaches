@@ -1332,12 +1332,12 @@ func _ground_cover(zone: Node3D) -> void:
 	var floor_node := _add(zone, Node3D.new(), "ForestFloor")
 	var totals := {"grass": 0, "fern": 0, "pebble": 0, "cap": 0, "nightcap": 0, "spore": 0}
 	var setup := {
-		"grass": [grass_mesh, grass_mat, 28.0],
-		"fern": [fern_mesh, fern_mat, 40.0],
-		"pebble": [pebble, M.rock, 28.0],
-		"cap": [cap_mesh, cap_mat, 45.0],
-		"nightcap": [night_mesh, night_mat, 45.0],
-		"spore": [spore_mesh, spore_mat, 24.0],
+		"grass": [grass_mesh, grass_mat, 72.0],
+		"fern": [fern_mesh, fern_mat, 88.0],
+		"pebble": [pebble, M.rock, 72.0],
+		"cap": [cap_mesh, cap_mat, 96.0],
+		"nightcap": [night_mesh, night_mat, 96.0],
+		"spore": [spore_mesh, spore_mat, 64.0],
 	}
 	for key in buckets:
 		var b: Dictionary = buckets[key]
@@ -1368,15 +1368,17 @@ func _ground_cover(zone: Node3D) -> void:
 					box = box.expand(local.origin)
 				if mm.use_colors:
 					mm.set_instance_color(i, items[i][1])
-			mm.custom_aabb = box.grow(3.5)
+			mm.custom_aabb = box.grow(8.0)
 			var mmi := MultiMeshInstance3D.new()
 			mmi.multimesh = mm
 			mmi.material_override = setup[kind][1]
 			mmi.position = centre
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			mmi.visibility_range_end = setup[kind][2]
-			mmi.visibility_range_end_margin = 8.0
+			mmi.visibility_range_end_margin = 24.0
 			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+			mmi.extra_cull_margin = 16.0
+			mmi.ignore_occlusion_culling = true
 			_add(floor_node, mmi, "%s_%d_%d" % [kind, key.x, key.y])
 			totals[kind] += items.size()
 	print("BAKE floor grass=%d fern=%d pebble=%d caps=%d nightcaps=%d spores=%d chunks=%d" % [totals.grass, totals.fern, totals.pebble, totals.cap, totals.nightcap, totals.spore, floor_node.get_child_count()])

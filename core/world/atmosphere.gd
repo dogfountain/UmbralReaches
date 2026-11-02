@@ -210,8 +210,8 @@ static func _cell_floor(root: Node) -> void:
 		return
 	const CELL := 16.0
 	var vis := {
-		"grass": 28.0, "fern": 40.0, "cap": 45.0, "nightcap": 45.0,
-		"pebble": 28.0, "spore": 24.0,
+		"grass": 72.0, "fern": 88.0, "cap": 96.0, "nightcap": 96.0,
+		"pebble": 72.0, "spore": 64.0,
 	}
 	var buckets := {}
 	var old: Array[Node] = []
@@ -268,17 +268,19 @@ static func _cell_floor(root: Node) -> void:
 				box = box.expand(local.origin)
 			if mm.use_colors:
 				mm.set_instance_color(i, b.cols[i])
-		mm.custom_aabb = box.grow(3.5)
+		mm.custom_aabb = box.grow(8.0)
 		var mmi := MultiMeshInstance3D.new()
 		mmi.name = cell_key
 		mmi.multimesh = mm
 		mmi.material_override = b.mat
 		mmi.position = centre
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mmi.visibility_range_end = float(vis.get(b.kind, 28.0))
-		mmi.visibility_range_end_margin = 8.0
+		# Vis-range is camera-to-cell-centre. Keep it well past one 16 m cell so the next
+		# patch is already drawn; FADE_SELF on alpha-scissor grass reads as a pop.
+		mmi.visibility_range_end = float(vis.get(b.kind, 72.0))
+		mmi.visibility_range_end_margin = 24.0
 		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
-		mmi.extra_cull_margin = 4.0
+		mmi.extra_cull_margin = 16.0
 		mmi.ignore_occlusion_culling = true
 		floor.add_child(mmi)
 

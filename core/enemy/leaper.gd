@@ -13,6 +13,12 @@ func _init() -> void:
 	strike_gloom = 28.0
 	light_averse = true
 	leaper = true
+	leap_min = 4.5
+	leap_max = 13.0
+	leap_apex = 2.1
+	leap_prep = 0.5
+	leap_cooldown = 2.8
+	leap_lead = 0.55
 	hp_bar_y = 2.12
 
 

@@ -25,6 +25,8 @@ var rim_light := true
 var driven := false
 ## Enemies set this. Player stays false so the staff pose is untouched.
 var melee := false
+## 0..1 while a charged skill is held. Swells the orb and its light (Ember Lance).
+var charge := 0.0
 
 var _pelvis: Node3D
 var _torso: Node3D
@@ -274,14 +276,13 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		_hand[1].rotation.z = 0.35
 		_orb.position.y = 0.17 + sin(_t * 2.2) * 0.015
 		_orb.rotation.y += delta * 1.5
-		_orb_light.light_energy = 1.3 + sin(_t * 3.1) * 0.15 + _gesture * 3.5
+		_orb_light.light_energy = 1.3 + sin(_t * 3.1) * 0.15 + _gesture * 3.5 + charge * (4.0 + sin(_t * 31.0) * 0.6)
+		_orb.scale = Vector3.ONE * (1.0 + charge * 0.7)
 		if _trail:
 			var run := clampf((speed - walk_speed * 0.85) / maxf(sprint_speed - walk_speed, 0.2), 0.0, 1.0)
 			_trail.amount_ratio = lerpf(1.0, 0.16, run)
 			_trail.lifetime = lerpf(1.15, 0.38, run)
-	if _lantern and _lantern_light:
-		_lantern.rotation.x = c * 0.25 * st + _lag.z * 1.5
-		_lantern.rotation.z = -_lag.x * 1.5 + sin(_t * 1.3) * 0.03
+	if _lantern_light:
 		_lantern_light.light_energy = 1.85 + sin(_t * 13.0) * 0.07 + sin(_t * 7.3) * 0.05
 
 	# Body lag is for lantern/hood lean only — NEVER feed walk velocity into cloth_lag
