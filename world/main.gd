@@ -10,6 +10,7 @@ const BENCH_SECONDS := 10.0
 var _bench_t := -1.0
 var _bench_frames := PackedFloat32Array()
 var _bench_quit := false
+var _bench_vsync := DisplayServer.VSYNC_ENABLED
 var _walk_rec := ""
 var _walk_frames := 36
 var _deepdive = null
@@ -116,12 +117,15 @@ func _spawn_glimmers() -> void:
 func _start_benchmark() -> void:
 	if _bench_t >= 0.0:
 		return
+	_bench_vsync = DisplayServer.window_get_vsync_mode()
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	_bench_t = 0.0
 	_bench_frames = PackedFloat32Array()
 	Events.toast.emit("Benchmarking %d s - hold still" % int(BENCH_SECONDS))
 
 
 func _finish_benchmark() -> void:
+	DisplayServer.window_set_vsync_mode(_bench_vsync)
 	_bench_t = -1.0
 	var n := _bench_frames.size()
 	if n == 0:
