@@ -1266,7 +1266,7 @@ func _ground_cover(zone: Node3D) -> void:
 	spore_mesh.radial_segments = 6
 	spore_mesh.rings = 3
 
-	var chunk := 24.0
+	var chunk := 16.0
 	var buckets := {}   # Vector2i -> {grass:[], fern:[], pebble:[], cap:[], nightcap:[], spore:[]}
 	var add := func(kind: String, xf: Transform3D, color: Color) -> void:
 		var key := Vector2i(floori(xf.origin.x / chunk), floori(xf.origin.z / chunk))
@@ -1332,12 +1332,12 @@ func _ground_cover(zone: Node3D) -> void:
 	var floor_node := _add(zone, Node3D.new(), "ForestFloor")
 	var totals := {"grass": 0, "fern": 0, "pebble": 0, "cap": 0, "nightcap": 0, "spore": 0}
 	var setup := {
-		"grass": [grass_mesh, grass_mat, 22.0, false],
-		"fern": [fern_mesh, fern_mat, 26.0, false],
-		"pebble": [pebble, M.rock, 20.0, false],
-		"cap": [cap_mesh, cap_mat, 30.0, false],
-		"nightcap": [night_mesh, night_mat, 30.0, false],
-		"spore": [spore_mesh, spore_mat, 14.0, false],
+		"grass": [grass_mesh, grass_mat, 28.0],
+		"fern": [fern_mesh, fern_mat, 40.0],
+		"pebble": [pebble, M.rock, 28.0],
+		"cap": [cap_mesh, cap_mat, 45.0],
+		"nightcap": [night_mesh, night_mat, 45.0],
+		"spore": [spore_mesh, spore_mat, 24.0],
 	}
 	for key in buckets:
 		var b: Dictionary = buckets[key]
@@ -1345,26 +1345,38 @@ func _ground_cover(zone: Node3D) -> void:
 			var items: Array = b[kind]
 			if items.is_empty():
 				continue
+			var y_sum := 0.0
+			for item in items:
+				y_sum += item[0].origin.y
+			var centre := Vector3(
+				(float(key.x) + 0.5) * chunk,
+				y_sum / float(items.size()),
+				(float(key.y) + 0.5) * chunk)
 			var mm := MultiMesh.new()
 			mm.transform_format = MultiMesh.TRANSFORM_3D
 			mm.use_colors = kind == "grass" or kind == "fern"
 			mm.mesh = setup[kind][0]
 			mm.instance_count = items.size()
-			var box := AABB(items[0][0].origin, Vector3.ZERO)
+			var box := AABB()
 			for i in items.size():
-				mm.set_instance_transform(i, items[i][0])
-				box = box.expand(items[i][0].origin)
+				var world: Transform3D = items[i][0]
+				var local := Transform3D(world.basis, world.origin - centre)
+				mm.set_instance_transform(i, local)
+				if i == 0:
+					box = AABB(local.origin, Vector3.ZERO)
+				else:
+					box = box.expand(local.origin)
 				if mm.use_colors:
 					mm.set_instance_color(i, items[i][1])
-			# A baked MultiMesh reloads with an empty AABB, which culls every instance: set it explicitly.
-			mm.custom_aabb = box.grow(2.5)
+			mm.custom_aabb = box.grow(3.5)
 			var mmi := MultiMeshInstance3D.new()
 			mmi.multimesh = mm
 			mmi.material_override = setup[kind][1]
+			mmi.position = centre
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			mmi.visibility_range_end = setup[kind][2]
-			mmi.visibility_range_end_margin = 10.0
-			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			mmi.visibility_range_end_margin = 8.0
+			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 			_add(floor_node, mmi, "%s_%d_%d" % [kind, key.x, key.y])
 			totals[kind] += items.size()
 	print("BAKE floor grass=%d fern=%d pebble=%d caps=%d nightcaps=%d spores=%d chunks=%d" % [totals.grass, totals.fern, totals.pebble, totals.cap, totals.nightcap, totals.spore, floor_node.get_child_count()])

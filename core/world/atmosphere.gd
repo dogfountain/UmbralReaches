@@ -200,7 +200,7 @@ static func _cull_geometry(root: Node, far_m: float) -> void:
 		# stair is one ArrayMesh at (0,0,0) that runs 75 m to the summit — a
 		# 57 m fade hid the treads underfoot, then one step toward origin
 		# brought the whole flight back. Same trap as ForestFloor / lava.
-		if _skips_range(n) or _named_under(gi, "Lava"):
+		if _skips_range(n) or _named_under(gi, "Lava") or _named_under(gi, "ForestFloor"):
 			continue
 		if _is_span_mesh(gi, n):
 			_pin_span(gi)
@@ -208,13 +208,7 @@ static func _cull_geometry(root: Node, far_m: float) -> void:
 		var end := 0.0
 		var margin := 6.0
 		var cull := 0.0
-		if n.begins_with("grass") or n.begins_with("fern"):
-			# Range is to the MultiMesh node origin (world 0), not each blade.
-			# A 16 m cap hid grass underfoot the moment you left spawn.
-			end = 0.0
-			margin = 0.0
-			cull = 14.0
-		elif n.begins_with("spore"):
+		if n.begins_with("spore"):
 			end = 24.0
 			margin = 8.0
 			cull = 8.0
@@ -243,34 +237,90 @@ static func _cull_geometry(root: Node, far_m: float) -> void:
 		)
 		if cull > 0.0:
 			gi.extra_cull_margin = maxf(gi.extra_cull_margin, cull)
-	_repair_floor_aabb(root)
+	_cell_floor(root)
 	_pin_named_spans(root)
 
 
-static func _repair_floor_aabb(root: Node) -> void:
-	var floor := root.find_child("ForestFloor", true, false)
+## Visibility range is distance to the *node origin*. Baked floor chunks sat at (0,0,0)
+## with world-space instance transforms, so they could not cull. Rebucket into 16 m cells
+## with the node at the cell centre and instances relative — no main.tscn rebake.
+static func _cell_floor(root: Node) -> void:
+	var floor := root.find_child("ForestFloor", true, false) as Node3D
 	if floor == null:
 		return
+	const CELL := 16.0
+	var vis := {
+		"grass": 28.0, "fern": 40.0, "cap": 45.0, "nightcap": 45.0,
+		"pebble": 28.0, "spore": 24.0,
+	}
+	var buckets := {}
+	var old: Array[Node] = []
 	for node in floor.find_children("*", "MultiMeshInstance3D", true, false):
 		var mmi := node as MultiMeshInstance3D
 		var mm: MultiMesh = mmi.multimesh
 		if mm == null or mm.instance_count < 1:
 			continue
-		var box := AABB()
-		var started := false
+		var kind := "grass"
+		var nm := String(mmi.name).to_lower()
+		for k in vis.keys():
+			if nm.begins_with(String(k)):
+				kind = String(k)
+				break
+		old.append(mmi)
 		for i in mm.instance_count:
-			var p: Vector3 = mm.get_instance_transform(i).origin
-			if not started:
-				box = AABB(p, Vector3.ZERO)
-				started = true
+			var world: Transform3D = mmi.global_transform * mm.get_instance_transform(i)
+			var key := Vector2i(floori(world.origin.x / CELL), floori(world.origin.z / CELL))
+			var cell_key := "%s_%d_%d" % [kind, key.x, key.y]
+			if not buckets.has(cell_key):
+				buckets[cell_key] = {
+					"kind": kind, "key": key, "mesh": mm.mesh, "mat": mmi.material_override,
+					"colors": mm.use_colors, "xfs": [], "cols": [],
+				}
+			var b: Dictionary = buckets[cell_key]
+			b.xfs.append(world)
+			if mm.use_colors:
+				b.cols.append(mm.get_instance_color(i))
+	for n in old:
+		floor.remove_child(n)
+		n.free()
+	for cell_key in buckets:
+		var b: Dictionary = buckets[cell_key]
+		var xfs: Array = b.xfs
+		var y_sum := 0.0
+		for xf in xfs:
+			y_sum += xf.origin.y
+		var centre := Vector3(
+			(float(b.key.x) + 0.5) * CELL,
+			y_sum / float(xfs.size()),
+			(float(b.key.y) + 0.5) * CELL)
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = b.colors
+		mm.mesh = b.mesh
+		mm.instance_count = xfs.size()
+		var box := AABB()
+		for i in xfs.size():
+			var local := Transform3D(xfs[i].basis, xfs[i].origin - centre)
+			mm.set_instance_transform(i, local)
+			if i == 0:
+				box = AABB(local.origin, Vector3.ZERO)
 			else:
-				box = box.expand(p)
-		if started:
-			mmi.custom_aabb = box.grow(3.5)
-			mmi.visibility_range_end = 0.0
-			mmi.visibility_range_end_margin = 0.0
-			mmi.extra_cull_margin = maxf(mmi.extra_cull_margin, 14.0)
-			mmi.ignore_occlusion_culling = true
+				box = box.expand(local.origin)
+			if mm.use_colors:
+				mm.set_instance_color(i, b.cols[i])
+		mm.custom_aabb = box.grow(3.5)
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = cell_key
+		mmi.multimesh = mm
+		mmi.material_override = b.mat
+		mmi.position = centre
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.visibility_range_end = float(vis.get(b.kind, 28.0))
+		mmi.visibility_range_end_margin = 8.0
+		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+		mmi.extra_cull_margin = 4.0
+		mmi.ignore_occlusion_culling = true
+		floor.add_child(mmi)
 
 
 static func _skips_range(n: String) -> bool:
