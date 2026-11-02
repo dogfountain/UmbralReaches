@@ -1,6 +1,6 @@
 shader_type canvas_item;
 
-uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
+uniform sampler2D screen_tex : hint_screen_texture, filter_nearest;
 uniform float sharpen = 1.85;
 uniform float sharpen_clamp = 0.11;   // caps halos
 uniform float band_lo = 200.0;        // degrees
@@ -31,15 +31,21 @@ vec3 hsv2rgb(vec3 c) {
 }
 float wrapd(float a) { return a - 360.0 * round(a / 360.0); }
 
+float grain_hash(uvec2 p, uint seed) {
+    uint n = (p.x * 374761393u + p.y * 668265263u) ^ seed;
+    n = (n ^ (n >> 13u)) * 1274126177u;
+    return float(n & 65535u) / 65535.0;
+}
+
 void fragment() {
     vec2 px = 1.0 / vec2(textureSize(screen_tex, 0));
     vec2 dir = SCREEN_UV - vec2(0.5);
 
-    // Mild chromatic aberration — cheap retro separation.
+    // Mild chromatic aberration — cheap retro separation. Centre sampled once.
+    vec3 c = texture(screen_tex, SCREEN_UV).rgb;
     float r = texture(screen_tex, SCREEN_UV + dir * chroma).r;
-    float g = texture(screen_tex, SCREEN_UV).g;
     float b = texture(screen_tex, SCREEN_UV - dir * chroma).b;
-    vec3 col = vec3(r, g, b);
+    vec3 col = vec3(r, c.g, b);
 
     // Unsharp mask for crunchy PS2 edge bite.
     vec3 blur = (
@@ -75,6 +81,7 @@ void fragment() {
     float gv = smoothstep(0.2, 0.95, distance(SCREEN_UV, vec2(0.5)) * (0.6 + gloom * 0.8)) * gloom;
     col = mix(col, col * vec3(0.35, 0.22, 0.65), gv);
     col *= 1.0 - gv * 0.55;
-    col += (fract(sin(dot(SCREEN_UV * 1400.0 + TIME * 0.7, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * grain;
+    uint seed = uint(fract(TIME * 17.0) * 65536.0);
+    col += (grain_hash(uvec2(FRAGCOORD.xy), seed) - 0.5) * grain;
     COLOR = vec4(col, 1.0);
 }

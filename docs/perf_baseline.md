@@ -58,3 +58,13 @@ QUALITY + `TIME` in the shader GGX-filters the cubemap every frame and **regress
 | sanctuary | 196.6 | 117.5 | 4.90 | −0.30 |
 | mid-stair | 229.2 | 67.9 | 3.88 | −0.37 |
 | summit | 205.7 | 108.5 | 4.58 | −0.44 |
+
+### 1.6 + 2.2 canvas_items HUD, grade `filter_nearest`
+
+3D stays 1529×960 @ 42%. Grade now runs on the 2D canvas (~1920×1205), not the 960 3D buffer, so GPU ms rose vs 2.1. Grain is an integer hash; screen texture no longer builds mips.
+
+| Point | avg fps | 1% low | GPU ms | 3D |
+| --- | ---: | ---: | ---: | --- |
+| sanctuary | 140.2 | 85.7 | 6.74 | 1529×960 @ 42% |
+| mid-stair | 157.4 | 102.3 | 5.94 | 1529×960 @ 42% |
+| summit | 140.8 | 85.8 | 6.65 | 1529×960 @ 42% |
