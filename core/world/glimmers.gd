@@ -48,7 +48,7 @@ func _process(delta: float) -> void:
 		var light: OmniLight3D = p.light
 		if not is_instance_valid(light):
 			continue
-		light.light_energy = p.base * (0.78 + 0.22 * sin(_t * p.hz + p.phase))
+		light.light_energy = p.base * LightPolicy.energy_mult(&"glimmer") * (0.78 + 0.22 * sin(_t * p.hz + p.phase))
 
 
 func _light_existing_caps() -> void:

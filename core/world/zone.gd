@@ -14,7 +14,7 @@ var _gloom_target := 0.0
 var _gloom_vis := 0.0
 const QUICK_SCALES := [0.0, 1.0, 0.85, 0.7, 0.5]
 var _quick_scale_step := 0
-var _omni_lights: Array[OmniLight3D] = []
+var _lights: Array[Light3D] = []
 var _applied_size_index := -1
 var _boot_t0 := 0
 
@@ -97,10 +97,16 @@ func _apply_settings() -> void:
 	_player.mouse_sensitivity = Settings.mouse_sensitivity
 
 
+func cached_lights() -> Array:
+	return _lights
+
+
 func refresh_lights() -> void:
-	_omni_lights.clear()
-	for light in get_tree().root.find_children("*", "OmniLight3D", true, false):
-		_omni_lights.append(light)
+	_lights.clear()
+	for node in find_children("*", "Light3D", true, false):
+		var light := node as Light3D
+		if light:
+			_lights.append(light)
 
 
 func _on_window_resized() -> void:

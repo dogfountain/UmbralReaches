@@ -24,7 +24,7 @@ func _ready() -> void:
 	# Each shadowed point light re-renders scene geometry into both faces of a dual-paraboloid map.
 	# Past ~22 m the shadow is not readable anyway, so drop it there and keep the light itself.
 	_light.set_meta("light_class", "beacon")
-	load("res://core/world/light_policy.gd").apply_fade(_light)
+	LightPolicy.apply_fade(_light)
 	_coal_mat = (_coals.material_override as StandardMaterial3D).duplicate()
 	_coals.material_override = _coal_mat
 	_set_lit(start_lit, false)
@@ -64,10 +64,15 @@ func _set_lit(on: bool, animate: bool) -> void:
 	if cards:
 		cards.visible = on
 	_light.set_meta("light_class", "beacon" if on else "fill")
-	load("res://core/world/light_policy.gd").apply_fade(_light)
-	load("res://core/world/light_policy.gd").apply_shadows(_light)
 	var target_energy := lit_energy if on else 0.25
-	_light.omni_range = lit_range if on else 2.5
+	_light.set_meta(&"base", {
+		"e": target_energy,
+		"r": lit_range if on else 2.5,
+		"a": 1.0,
+	})
+	LightPolicy.apply_fade(_light)
+	LightPolicy.apply_shadows(_light)
+	LightPolicy.apply_illumination(_light)
 	if on:
 		LightGrid.register(self, light_radius)
 	else:
@@ -84,4 +89,5 @@ func _set_lit(on: bool, animate: bool) -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	var flicker := 1.0 + (sin(_t * 11.0) * 0.06 + sin(_t * 17.3) * 0.04 if lit else sin(_t * 2.0) * 0.2)
-	_light.light_energy = _energy * flicker
+	var kind := StringName(str(_light.get_meta(&"light_class")))
+	_light.light_energy = _energy * LightPolicy.energy_mult(kind) * flicker

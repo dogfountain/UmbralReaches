@@ -13,6 +13,7 @@ const SAVE_DELAY := 0.75        # seconds of quiet before the file is actually w
 
 var _save_timer := 0.0
 var _save_pending := false
+var _emit_queued := false
 
 var fullscreen := false
 var window_size_index := 1          # index into WINDOW_SIZES
@@ -81,6 +82,14 @@ func apply() -> void:
 	_save_pending = true
 	_save_timer = SAVE_DELAY
 	set_process(true)
+	if _emit_queued:
+		return
+	_emit_queued = true
+	call_deferred("_emit_changed")
+
+
+func _emit_changed() -> void:
+	_emit_queued = false
 	changed.emit()
 
 

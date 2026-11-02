@@ -1,12 +1,31 @@
+class_name LightPolicy
 extends RefCounted
 ## One table for fade, fog injection, and who may cast shadows.
 ## Classes: beacon (lit brazier), hero (window spot), hero_fill (window omni),
 ## fill (crystals, lava, unlit bowl), glimmer, player_lantern, player_orb, moon.
 
+# [energy, range, atten] multiplied onto the authored `base` meta. Idempotent.
+const ILLUM := {
+	&"beacon": [1.0, 1.22, 1.05],
+	&"fill": [1.55, 1.35, 1.0],
+	&"lava": [1.18, 1.12, 1.0],
+	&"river": [1.08, 1.05, 1.15],
+	&"hero": [1.18, 1.0, 1.0],
+	&"hero_fill": [1.4, 1.25, 1.0],
+	&"glimmer": [1.15, 1.08, 1.4],
+	&"player_lantern": [1.0, 1.25, 1.05],
+}
+
 
 static func classify(light: Light3D) -> StringName:
-	if light.has_meta("light_class"):
-		return StringName(str(light.get_meta("light_class")))
+	if light.has_meta(&"light_class"):
+		return StringName(str(light.get_meta(&"light_class")))
+	var kind := _classify_raw(light)
+	light.set_meta(&"light_class", kind)
+	return kind
+
+
+static func _classify_raw(light: Light3D) -> StringName:
 	if light.has_meta("hero"):
 		return &"hero" if light is SpotLight3D else &"hero_fill"
 	if light.has_meta("glimmer"):
@@ -103,51 +122,47 @@ static func apply_shadows(light: Light3D) -> void:
 
 static func apply_all(root: Node, moon: DirectionalLight3D) -> void:
 	_moon(moon)
-	for node in root.find_children("*", "Light3D", true, false):
+	if root == null:
+		return
+	var lights: Array = []
+	if root.has_method("cached_lights"):
+		lights = root.cached_lights()
+	if lights.is_empty():
+		lights = root.find_children("*", "Light3D", true, false)
+	for node in lights:
 		var light := node as Light3D
+		if light == null or not is_instance_valid(light):
+			continue
 		apply_fade(light)
 		apply_shadows(light)
 		apply_illumination(light)
 
 
+static func energy_mult(kind: StringName) -> float:
+	return float(ILLUM.get(kind, [1.0, 1.0, 1.0])[0])
+
+
+static func _base(light: Light3D) -> Dictionary:
+	if not light.has_meta(&"base"):
+		var o := light as OmniLight3D
+		light.set_meta(&"base", {
+			"e": light.light_energy,
+			"r": o.omni_range if o else 0.0,
+			"a": o.omni_attenuation if o else 1.0,
+		})
+	return light.get_meta(&"base")
+
+
 ## Colored lamps light the ground, not just themselves. Bloom knobs stay locked.
+## Pure function of (authored base, class) — safe to call every slider tick.
 static func apply_illumination(light: Light3D) -> void:
-	if light.has_meta("_illum"):
-		return
-	light.set_meta("_illum", true)
-	var kind := classify(light)
-	match kind:
-		&"beacon":
-			_grow_omni(light, 1.22, 1.05)
-		&"fill":
-			light.light_energy *= 1.55
-			_grow_omni(light, 1.35, 1.0)
-		&"lava":
-			light.light_energy *= 1.18
-			_grow_omni(light, 1.12, 1.0)
-		&"river":
-			light.light_energy *= 1.08
-			_grow_omni(light, 1.05, 1.15)
-		&"hero":
-			light.light_energy *= 1.18
-		&"hero_fill":
-			light.light_energy *= 1.4
-			_grow_omni(light, 1.25, 1.0)
-		&"glimmer":
-			light.light_energy *= 1.15
-			_grow_omni(light, 1.08, 1.4)
-		&"player_lantern":
-			_grow_omni(light, 1.25, 1.05)
-		_:
-			pass
-
-
-static func _grow_omni(light: Light3D, range_mul: float, atten: float) -> void:
+	var b: Dictionary = _base(light)
+	var m: Array = ILLUM.get(classify(light), [1.0, 1.0, 1.0])
+	light.light_energy = float(b.e) * float(m[0])
 	var o := light as OmniLight3D
-	if o == null:
-		return
-	o.omni_range *= range_mul
-	o.omni_attenuation = atten
+	if o:
+		o.omni_range = float(b.r) * float(m[1])
+		o.omni_attenuation = float(m[2])
 
 
 static func _moon(moon: DirectionalLight3D) -> void:
