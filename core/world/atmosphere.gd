@@ -150,7 +150,10 @@ static func _darken_unlit() -> void:
 		bark.normal_scale = 2.55
 	var bark_g := load("res://art/materials/bark_giant.tres") as StandardMaterial3D
 	if bark_g:
-		bark_g.albedo_color = Color(1.25, 1.35, 1.75)
+		bark_g.albedo_color = Color(0.78, 0.84, 0.90)
+		bark_g.emission_enabled = true
+		bark_g.emission = Color(0.18, 0.28, 0.55)
+		bark_g.emission_energy_multiplier = 0.55
 		bark_g.rim = 0.50
 		bark_g.normal_scale = 2.45
 	var terrain := load("res://art/materials/terrain.tres") as ShaderMaterial

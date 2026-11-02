@@ -24,7 +24,6 @@ func _ready() -> void:
 	_keys("demo", [KEY_F9])
 	_keys("toggle_settings", [KEY_F2, KEY_ESCAPE])
 	_keys("benchmark", [KEY_F8])
-	_keys("release_mouse", [KEY_ESCAPE])
 	_button("toggle_settings", JOY_BUTTON_START)
 
 	_axis("move_forward", JOY_AXIS_LEFT_Y, -1.0)

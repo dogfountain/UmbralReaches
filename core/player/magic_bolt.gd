@@ -70,6 +70,8 @@ func explode(at: Vector3) -> void:
 		var tw := create_tween()
 		tw.tween_property(flash, "light_energy", 0.0, 0.28)
 	await get_tree().create_timer(0.55).timeout
+	if not is_inside_tree():
+		return
 	queue_free()
 
 

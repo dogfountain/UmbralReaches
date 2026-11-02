@@ -177,12 +177,16 @@ func _label(parent: Control, text: String, size: int, color: Color, align := HOR
 	return l
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_debug"):
+		_debug.visible = not _debug.visible
+		_debug_t = 1.0
+		get_viewport().set_input_as_handled()
+
+
 func _process(delta: float) -> void:
 	_bar.pulse += delta
 	_bar.queue_redraw()
-	if Input.is_action_just_pressed("toggle_debug"):
-		_debug.visible = not _debug.visible
-		_debug_t = 1.0
 	if not _debug.visible:
 		return
 	_debug_t += delta
