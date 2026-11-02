@@ -194,12 +194,13 @@ func _process(delta: float) -> void:
 
 func _refresh_debug() -> void:
 	var vp := get_viewport()
-	var render := vp.get_visible_rect().size
 	var win := get_window().size
+	var scale_3d := vp.scaling_3d_scale
+	var buf := Vector2i(roundi(float(win.x) * scale_3d), roundi(float(win.y) * scale_3d))
 	var fps := maxi(Engine.get_frames_per_second(), 1)
 	var diag_script := load("res://core/debug/boot_diag.gd")
 	var diag: String = diag_script.summary if diag_script != null else "diag script missing"
-	_debug.text = "%d fps  ·  frame %.1f ms\nGPU %.2f ms  ·  render CPU %.2f ms\nprocess %.2f ms  ·  physics %.2f ms\n%d draw calls  ·  %s primitives\nrender %dx%d @ %d%%  ·  window %dx%d\n%d light zones\n%s  ·  %s\n%s\n%s\n%s" % [
+	_debug.text = "%d fps  ·  frame %.1f ms\nGPU %.2f ms  ·  render CPU %.2f ms\nprocess %.2f ms  ·  physics %.2f ms\n%d draw calls  ·  %s primitives\n3D %dx%d @ %d%%  ·  window %dx%d\n%d light zones\n%s  ·  %s\n%s\n%s\n%s" % [
 		fps,
 		1000.0 / float(fps),
 		RenderingServer.viewport_get_measured_render_time_gpu(_measure_rid),
@@ -208,7 +209,7 @@ func _refresh_debug() -> void:
 		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
 		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 		String.num_int64(int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))),
-		int(render.x), int(render.y), roundi(vp.scaling_3d_scale * 100.0), win.x, win.y,
+		buf.x, buf.y, roundi(scale_3d * 100.0), win.x, win.y,
 		LightGrid.count(),
 		RenderingServer.get_current_rendering_driver_name(),
 		RenderingServer.get_current_rendering_method(),

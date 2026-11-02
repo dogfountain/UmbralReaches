@@ -180,13 +180,13 @@ func _finish_benchmark() -> void:
 	var cpu := _mean_positive(_bench_cpu)
 	var draws := _bench_draws / maxi(_bench_n, 1)
 	var prims := _bench_prims / maxi(_bench_n, 1)
-	var render := get_viewport().get_visible_rect().size
 	var win := get_window().size
-	var summary := "avg %.1f  ·  1%% low %.1f  ·  GPU %.2f ms  ·  render CPU %.2f ms  ·  worst %.1f ms  ·  %d draws  ·  %s prims  ·  render %dx%d @ %d%% (window %dx%d)" % [
+	var scale_3d := get_viewport().scaling_3d_scale
+	var summary := "avg %.1f  ·  1%% low %.1f  ·  GPU %.2f ms  ·  render CPU %.2f ms  ·  worst %.1f ms  ·  %d draws  ·  %s prims  ·  3D %dx%d @ %d%% (window %dx%d)" % [
 		avg_fps, low_fps, gpu, cpu, worst * 1000.0, draws,
 		String.num_int64(prims),
-		int(render.x), int(render.y),
-		roundi(get_viewport().scaling_3d_scale * 100.0), win.x, win.y]
+		roundi(float(win.x) * scale_3d), roundi(float(win.y) * scale_3d),
+		roundi(scale_3d * 100.0), win.x, win.y]
 	_bench_last = summary
 	print("BENCH ", summary)
 	Events.benchmark_done.emit(summary)

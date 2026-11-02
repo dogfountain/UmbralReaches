@@ -90,7 +90,6 @@ func _apply_settings() -> void:
 		w.size = Settings.WINDOW_SIZES[clampi(Settings.window_size_index, 0, Settings.WINDOW_SIZES.size() - 1)]
 	_applied_size_index = Settings.window_size_index
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if Settings.vsync else DisplayServer.VSYNC_DISABLED)
-	_apply_resolution_cap()
 	_apply_render_scale()
 	load("res://core/world/atmosphere.gd").apply_zone_settings(self, _env, _cam, _moon)
 	_grade.visible = Settings.grade_enabled
@@ -104,30 +103,15 @@ func refresh_lights() -> void:
 		_omni_lights.append(light)
 
 
-func _apply_resolution_cap() -> void:
-	var w := get_window()
-	var win := w.size
-	if win.x <= 0 or win.y <= 0:
-		return
-	var target := win
-	if win.y > Settings.render_height_cap():
-		var width := roundi(float(win.x) * float(Settings.render_height_cap()) / float(win.y))
-		target = Vector2i(maxi(1, width), Settings.render_height_cap())
-	if w.content_scale_size != target:
-		w.content_scale_size = target
-
-
 func _on_window_resized() -> void:
-	_apply_resolution_cap()
 	_apply_render_scale()
 
 
 func _apply_render_scale() -> void:
 	var vp := get_viewport()
-	var px := vp.get_visible_rect().size
+	var cap_scale := minf(1.0, float(Settings.render_height_cap()) / float(maxi(get_window().size.y, 1)))
 	var want := Settings.render_scale
 	if want <= 0.0:
-		var h := float(Settings.render_height_cap())
-		want = clampf(sqrt(h * h * 16.0 / 9.0 / maxf(1.0, px.x * px.y)), 0.5, 1.0)
+		want = 1.0
 	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
-	vp.scaling_3d_scale = want
+	vp.scaling_3d_scale = want * cap_scale
