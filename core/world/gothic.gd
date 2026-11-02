@@ -1,3 +1,4 @@
+class_name Gothic
 extends RefCounted
 ## Greybox window light rig. CSG boxes only — not art. Wired from the stair so hero
 ## spots, gobos and shafts exist. Geometry is a stand-in for lighting, not a kit.
@@ -9,6 +10,7 @@ const BREAK := 30
 const LANDING := 3.0
 const STEPS := 60
 
+const GOBO := preload("res://art/textures/window_gobo.png")
 static var _gobo: Texture2D
 
 
@@ -98,18 +100,4 @@ static func _probe(rig: Node3D, id: String, pos: Vector3, size: Vector3) -> void
 static func _ensure_gobo() -> void:
 	if _gobo != null:
 		return
-	var img := Image.create(128, 256, false, Image.FORMAT_RGBA8)
-	img.fill(Color.BLACK)
-	for y in 256:
-		for x in 128:
-			var u := (float(x) + 0.5) / 128.0
-			var v := (float(y) + 0.5) / 256.0
-			var cx := absf(u - 0.5)
-			var open := cx < 0.30 and v > 0.10 and v < 0.90
-			if v < 0.30:
-				var ey := (v - 0.30) / 0.18
-				open = open and (cx * cx / 0.09 + ey * ey) < 1.0
-			var bar := absf(u - 0.5) < 0.022 or (v > 0.48 and v < 0.515)
-			img.set_pixel(x, y, Color.WHITE if open and not bar else Color.BLACK)
-	img.generate_mipmaps()
-	_gobo = ImageTexture.create_from_image(img)
+	_gobo = GOBO
