@@ -216,12 +216,12 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	var target_stride := clampf(speed / walk_speed, 0.0, 1.0) + clampf((speed - walk_speed) / (sprint_speed - walk_speed), 0.0, 1.0) * 0.35
 	if not on_floor:
 		target_stride *= 0.3
-	_stride = lerpf(_stride, target_stride, clampf(delta * 8.0, 0.0, 1.0))
+	_stride = lerpf(_stride, target_stride, 1.0 - exp(-8.0 * delta))
 	var step_len := STEP_LEN * (1.0 + clampf((speed - walk_speed) / (sprint_speed - walk_speed), 0.0, 1.0) * 0.55)
 	if on_floor:
 		_phase += speed * delta / step_len * PI
 	elif _stride < 0.05:
-		_phase = lerp_angle(_phase, 0.0, delta * 4.0)
+		_phase = lerp_angle(_phase, 0.0, 1.0 - exp(-4.0 * delta))
 
 	# Air and landing
 	_air = move_toward(_air, 0.0 if on_floor else 1.0, delta * 6.0)
@@ -232,7 +232,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 
 	# Turning rate (rad/s) for lean and lateral cloth swing
 	var yaw := rotation.y
-	_turn = lerpf(_turn, wrapf(yaw - _prev_yaw, -PI, PI) / delta, clampf(delta * 6.0, 0.0, 1.0))
+	_turn = lerpf(_turn, wrapf(yaw - _prev_yaw, -PI, PI) / maxf(delta, 0.0001), 1.0 - exp(-6.0 * delta))
 	_prev_yaw = yaw
 
 	# Gesture (staff cast)

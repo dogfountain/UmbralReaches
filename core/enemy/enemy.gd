@@ -377,7 +377,7 @@ func _move(delta: float) -> void:
 func _turn_toward(dir: Vector3, delta: float) -> void:
 	if _face == null or dir.length_squared() < 0.0025:
 		return
-	_face.rotation.y = lerp_angle(_face.rotation.y, atan2(-dir.x, -dir.z), clampf(TURN_RATE * delta, 0.0, 1.0))
+	_face.rotation.y = lerp_angle(_face.rotation.y, atan2(-dir.x, -dir.z), 1.0 - exp(-TURN_RATE * delta))
 
 
 func _set_state(next: int) -> void:

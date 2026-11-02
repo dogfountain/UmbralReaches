@@ -156,7 +156,7 @@ func _physics_process(delta: float) -> void:
 	var rate := air_accel
 	if is_on_floor():
 		rate = accel if wish.length() > 0.01 else decel
-	var horiz := Vector3(velocity.x, 0.0, velocity.z).lerp(target, clampf(rate * delta, 0.0, 1.0))
+	var horiz := Vector3(velocity.x, 0.0, velocity.z).lerp(target, 1.0 - exp(-rate * delta))
 	velocity.x = horiz.x
 	velocity.z = horiz.z
 
@@ -206,7 +206,7 @@ func start_autopilot(markers: Array[Marker3D]) -> void:
 
 func _update_camera(delta: float, horiz: Vector3, sprint: bool, vy_before: float) -> void:
 	var running := sprint and horiz.length() > walk_speed * 0.6
-	_fov_kick = lerpf(_fov_kick, SPRINT_FOV_KICK if running else 0.0, clampf(delta * 6.0, 0.0, 1.0))
+	_fov_kick = lerpf(_fov_kick, SPRINT_FOV_KICK if running else 0.0, 1.0 - exp(-6.0 * delta))
 	_cam.fov = Settings.fov + _fov_kick
 
 	if is_on_floor() and not _was_floor:
@@ -219,7 +219,7 @@ func _update_camera(delta: float, horiz: Vector3, sprint: bool, vy_before: float
 
 func _animate(delta: float, horiz: Vector3) -> void:
 	if horiz.length() > 0.2:
-		_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(-horiz.x, -horiz.z), clampf(10.0 * delta, 0.0, 1.0))
+		_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(-horiz.x, -horiz.z), 1.0 - exp(-10.0 * delta))
 	_visual.animate(velocity, is_on_floor(), delta)
 
 
@@ -387,12 +387,12 @@ func _autopilot(delta: float) -> Array:
 			Events.autopilot_finished.emit()
 		return [Vector3.ZERO, false]
 	var m := _waypoints[_wp]
-	_pitch = lerpf(_pitch, float(m.get_meta("pitch", -0.12)), clampf(1.5 * delta, 0.0, 1.0))
+	_pitch = lerpf(_pitch, float(m.get_meta("pitch", -0.12)), 1.0 - exp(-1.5 * delta))
 	if _waiting:
 		if m.get_meta("kindle", false) and _interact_target != null:
 			_try_interact()   # keep trying while waiting: arrival can land a few cm outside interact range
 		if m.has_meta("yaw"):
-			_yaw = lerp_angle(_yaw, float(m.get_meta("yaw")), clampf(1.5 * delta, 0.0, 1.0))
+			_yaw = lerp_angle(_yaw, float(m.get_meta("yaw")), 1.0 - exp(-1.5 * delta))
 		_wait -= delta
 		if _wait <= 0.0:
 			_waiting = false
@@ -412,5 +412,5 @@ func _autopilot(delta: float) -> Array:
 			_wp += 1
 		return [Vector3.ZERO, false]
 	var dir := to.normalized()
-	_yaw = lerp_angle(_yaw, atan2(-dir.x, -dir.z), clampf(2.0 * delta, 0.0, 1.0))
+	_yaw = lerp_angle(_yaw, atan2(-dir.x, -dir.z), 1.0 - exp(-2.0 * delta))
 	return [dir, bool(m.get_meta("sprint", false))]
