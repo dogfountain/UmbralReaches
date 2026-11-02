@@ -18,7 +18,8 @@ func can_interact() -> bool:
 
 
 func interact_text() -> String:
-	return "[E]  Read the inscription" if not _read else "[E]  Read again"
+	var key := Interactable.prompt_key()
+	return "[%s]  Read the inscription" % key if not _read else "[%s]  Read again" % key
 
 
 func interact(_by: Node) -> void:

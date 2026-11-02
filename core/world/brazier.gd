@@ -15,10 +15,11 @@ var _energy := 0.0
 @onready var _flame: GPUParticles3D = $Flame
 @onready var _coals: MeshInstance3D = $Coals
 var _coal_mat: StandardMaterial3D
+var _crackle: AudioStreamPlayer3D
 
 
 func _ready() -> void:
-	load("res://core/world/dressed_props.gd").dress_brazier(self)
+	DressedProps.dress_brazier(self)
 	add_to_group(Groups.INTERACTABLE)
 	_t = randf() * 10.0
 	# Each shadowed point light re-renders scene geometry into both faces of a dual-paraboloid map.
@@ -28,6 +29,15 @@ func _ready() -> void:
 	_coal_mat = (_coals.material_override as StandardMaterial3D).duplicate()
 	_coals.material_override = _coal_mat
 	_set_lit(start_lit, false)
+	_crackle = AudioStreamPlayer3D.new()
+	_crackle.name = "Crackle"
+	var loop := (load("res://art/audio/brazier_loop.wav") as AudioStreamWAV).duplicate()
+	loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_crackle.stream = loop
+	_crackle.max_distance = 22.0
+	add_child(_crackle)
+	if lit:
+		_crackle.play()
 
 
 func can_interact() -> bool:
@@ -35,7 +45,7 @@ func can_interact() -> bool:
 
 
 func interact_text() -> String:
-	return "[E]  Kindle the brazier"
+	return "[%s]  Kindle the brazier" % Interactable.prompt_key()
 
 
 func interact(by: Node) -> void:
@@ -84,6 +94,11 @@ func _set_lit(on: bool, animate: bool) -> void:
 	else:
 		_energy = target_energy
 		_coal_mat.emission_energy_multiplier = 4.0 if on else 0.35
+	if _crackle:
+		if on:
+			_crackle.play()
+		else:
+			_crackle.stop()
 
 
 func _process(delta: float) -> void:

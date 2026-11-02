@@ -8,6 +8,7 @@ var _t := 0.0
 var _dying := false
 var _blocked_t := 0.0
 var _body: Node3D
+var _whisper: AudioStreamPlayer3D
 
 
 func _ready() -> void:
@@ -86,6 +87,15 @@ func _ready() -> void:
 
 	scale = Vector3.ONE * 0.01
 	create_tween().tween_property(self, "scale", Vector3.ONE, 0.8).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_whisper = AudioStreamPlayer3D.new()
+	_whisper.name = "Whisper"
+	var loop := (load("res://art/audio/shade_whisper.wav") as AudioStreamWAV).duplicate()
+	loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_whisper.stream = loop
+	_whisper.max_distance = 28.0
+	_whisper.volume_db = -18.0
+	add_child(_whisper)
+	_whisper.play()
 
 
 func take_hit(_dmg: float, _from: Node = null) -> void:
@@ -106,6 +116,8 @@ func _add_mesh(mesh: Mesh, mat: Material, at: Vector3) -> void:
 func _physics_process(delta: float) -> void:
 	_t += delta
 	_body.position.y = sin(_t * 2.2) * 0.12
+	if _whisper and is_instance_valid(target):
+		_whisper.volume_db = linear_to_db(clampf(target.gloom / maxf(target.gloom_max, 1.0), 0.06, 1.0))
 	if _dying or not is_instance_valid(target):
 		return
 	var goal := target.global_position + Vector3.UP * 0.9

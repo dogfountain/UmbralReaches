@@ -34,7 +34,7 @@ func can_interact() -> bool:
 
 
 func interact_text() -> String:
-	return "[E]  Talk to the keep"
+	return "[%s]  Talk to the keep" % Interactable.prompt_key()
 
 
 func interact_reach() -> float:

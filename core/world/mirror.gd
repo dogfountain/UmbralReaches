@@ -37,7 +37,7 @@ func interact_reach() -> float:
 
 
 func interact_text() -> String:
-	return prompt
+	return prompt.replace("[E]", "[%s]" % Interactable.prompt_key())
 
 
 func interact(by: Node) -> void:
