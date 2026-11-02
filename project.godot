@@ -25,10 +25,6 @@ LightGrid="*res://autoload/light_grid.gd"
 InputSetup="*res://autoload/input_setup.gd"
 Settings="*res://autoload/settings.gd"
 Travel="*res://autoload/travel.gd"
-PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
-DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"
-BeehaveGlobalMetrics="*res://addons/beehave/metrics/beehave_global_metrics.gd"
-BeehaveGlobalDebugger="*res://addons/beehave/debug/global_debugger.gd"
 
 [display]
 
@@ -41,7 +37,7 @@ window/stretch/aspect="expand"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/phantom_camera/plugin.cfg", "res://addons/proton_scatter/plugin.cfg", "res://addons/beehave/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/dreadpon.spatial_gardener/plugin.cfg", "res://addons/boujie_water_shader/plugin.cfg")
+enabled=PackedStringArray()
 
 [global_group]
 

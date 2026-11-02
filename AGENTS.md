@@ -11,7 +11,7 @@ Follow official Godot practice, not Unity/Unreal:
 - `Player` is the controller; `CharacterRig` is the skin. `Zone` is the shared night shell.
 - Static architecture is baked; the wanderer, portals, glimmers, and shades spawn at runtime.
 
-Cursor rules in `.cursor/rules/` are binding. Learned playbook lives in `.cursor/skills/` (`umbral-pack`, `umbral-donts`, `umbral-nights`, `umbral-culling`, `umbral-player`, `umbral-pipeline`, `umbral-blender`, `umbral-unreal`, `unreal-export`). Blender modeling copies (`blender-modeler`, `godot-export`, …) are MIT from [arjun988/blender-skills](https://github.com/arjun988/blender-skills); `umbral-donts` still wins. Unreal Mac port: `umbral-unreal` + `unreal-export`. Pipeline traps also live in `AGENT_HANDOVER.md` — prefer the skills when the two disagree. Critique and in-place polish: `docs/perfecting_umbral_reaches.md`.
+Cursor rules in `.cursor/rules/` are binding. Current truth: `ARCHITECTURE.md`. Learned playbook lives in `.cursor/skills/` (`umbral-pack`, `umbral-donts`, `umbral-nights`, `umbral-culling`, `umbral-player`, `umbral-pipeline`, `umbral-blender`, `umbral-unreal`, `unreal-export`). Blender modeling copies (`blender-modeler`, `godot-export`, …) are MIT from [arjun988/blender-skills](https://github.com/arjun988/blender-skills); `umbral-donts` still wins. Unreal Mac port: `umbral-unreal` + `unreal-export`. Archived notes: `docs/archive/`.
 
 ## Everyday commands
 
