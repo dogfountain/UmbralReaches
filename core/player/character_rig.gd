@@ -9,9 +9,12 @@ extends Node3D
 
 const STEP_LEN := 0.78          # metres per step at walk pace
 const Check := preload("res://core/debug/check.gd")
+const ROBE_WAVE := preload("res://core/player/robe_wave.gdshader")
+const VOID_FACE := preload("res://core/player/void_face.gdshader")
 const ROBE_ALBEDO := "res://art/textures/robe_albedo.png"
 const ROBE_MAGIC := "res://art/textures/robe_magic.png"
 const ROBE_NORMAL := "res://art/textures/robe_normal.png"
+static var _cloth_shared := {}
 
 var walk_speed := 4.5
 var sprint_speed := 7.5
@@ -47,9 +50,15 @@ var _phase := 0.0
 var _stride := 0.0
 var _t := 0.0
 var _lag := Vector3.ZERO
-var _cape := Vector2.ZERO         # cloth spring (pitch, roll); name is leftover from rejected cape
-var _cape_v := Vector2.ZERO
-var _cloth: Array[ShaderMaterial] = []
+var _hem_spring := Vector2.ZERO
+var _hem_spring_v := Vector2.ZERO
+var _cloth: Array[MeshInstance3D] = []
+var _cloth_lag_s := Vector3(999, 0, 0)
+var _cloth_phase_s := -99.0
+var _cloth_stride_s := -99.0
+var _foot_l_sent := Vector3(999, 0, 0)
+var _foot_r_sent := Vector3(999, 0, 0)
+var _foot_r_s_sent := -1.0
 var _coat_mi: MeshInstance3D = null   # coat mesh — foot targets must be in its VERTEX space
 var _lag_v := Vector3.ZERO
 var _prev_vel := Vector3.ZERO
@@ -64,12 +73,16 @@ var _vy := 0.0
 var _foot_l_s := Vector3.ZERO     # smoothed shin targets for the cloth shader
 var _foot_r_s := Vector3.ZERO
 var _feet_s_ready := false
+var _prev_phase := 0.0
+var _steps: AudioStreamPlayer3D
+var _cast_sfx: AudioStreamPlayer3D
 
 
 func _ready() -> void:
 	if _pelvis == null:
 		_build()
 	set_process(not driven)
+	_ensure_audio()
 
 
 # --- construction ---------------------------------------------------------------------------
@@ -222,6 +235,9 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		_phase += speed * delta / step_len * PI
 	elif _stride < 0.05:
 		_phase = lerp_angle(_phase, 0.0, 1.0 - exp(-4.0 * delta))
+	if on_floor and _stride > 0.25 and sin(_prev_phase) * sin(_phase) <= 0.0:
+		_footstep()
+	_prev_phase = _phase
 
 	# Air and landing
 	_air = move_toward(_air, 0.0 if on_floor else 1.0, delta * 6.0)
@@ -284,7 +300,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	# Cloth verts: stop/land overshoot only. Steady stride → zero.
 	var lag := Vector3.ZERO
 	if _stride < 0.2 or _land > 0.08 or _air > 0.15 or local_acc.length() > 10.0:
-		lag = Vector3(_cape.y * 0.15 + _lag.x * 0.25, _lag.y * 0.15, _cape.x * 0.15 + _lag.z * 0.2)
+		lag = Vector3(_hem_spring.y * 0.15 + _lag.x * 0.25, _lag.y * 0.15, _hem_spring.x * 0.15 + _lag.z * 0.2)
 	# Boot tips in coat mesh space for X/Y; Z uses body-forward so torso pitch can't fake a long toe.
 	var mesh_xf: Transform3D = _coat_mi.global_transform if _coat_mi else (_chest.global_transform if _chest else global_transform)
 	var inv := mesh_xf.affine_inverse()
@@ -313,13 +329,31 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		_foot_r_s.x = lerpf(_foot_r_s.x, foot_r.x, foot_a)
 		_foot_r_s.y = lerpf(_foot_r_s.y, foot_r.y, foot_a)
 		_foot_r_s.z = foot_r.z
-	for mat in _cloth:
-		mat.set_shader_parameter("cloth_lag", lag)
-		mat.set_shader_parameter("walk_phase", _phase)
-		mat.set_shader_parameter("stride", _stride)
-		mat.set_shader_parameter("foot_l", _foot_l_s)
-		mat.set_shader_parameter("foot_r", _foot_r_s)
-		mat.set_shader_parameter("foot_radius", 0.16 + 0.04 * st)
+	var frad := 0.16 + 0.04 * st
+	var cloth_changed := (
+		not lag.is_equal_approx(_cloth_lag_s)
+		or not is_equal_approx(_phase, _cloth_phase_s)
+		or not is_equal_approx(_stride, _cloth_stride_s)
+		or not _foot_l_s.is_equal_approx(_foot_l_sent)
+		or not _foot_r_s.is_equal_approx(_foot_r_sent)
+		or not is_equal_approx(frad, _foot_r_s_sent)
+	)
+	if cloth_changed:
+		_cloth_lag_s = lag
+		_cloth_phase_s = _phase
+		_cloth_stride_s = _stride
+		_foot_l_sent = _foot_l_s
+		_foot_r_sent = _foot_r_s
+		_foot_r_s_sent = frad
+		for mi in _cloth:
+			if not is_instance_valid(mi):
+				continue
+			mi.set_instance_shader_parameter("cloth_lag", lag)
+			mi.set_instance_shader_parameter("walk_phase", _phase)
+			mi.set_instance_shader_parameter("stride", _stride)
+			mi.set_instance_shader_parameter("foot_l", _foot_l_s)
+			mi.set_instance_shader_parameter("foot_r", _foot_r_s)
+			mi.set_instance_shader_parameter("foot_radius", frad)
 	_hood_peak.rotation.x = 0.4 + clampf(-_lag.z * 1.5, -0.3, 0.45) + _air * 0.15
 	_hood_peak.rotation.z = clampf(_lag.x * 1.5, -0.3, 0.3)
 
@@ -370,57 +404,55 @@ func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) ->
 func _dress_cloth(root: Node, anchor_y: float, cloth_len: float, leg_push: float, wave_scale: float, use_world_y: float) -> void:
 	if root == null:
 		return
-	var shader: Shader = load("res://core/player/robe_wave.gdshader")
+	var key := "%s/%.3f/%.3f/%.3f/%.3f" % [root.name, anchor_y, cloth_len, leg_push, wave_scale]
+	var mat: ShaderMaterial = _cloth_shared.get(key)
+	if mat == null:
+		mat = ShaderMaterial.new()
+		mat.shader = ROBE_WAVE
+		var dye := Vector3(0.055, 0.062, 0.12)
+		mat.set_shader_parameter("base_color", dye)
+		mat.set_shader_parameter("rim_color", Vector3(0.28, 0.42, 0.85))
+		mat.set_shader_parameter("roughness_amt", 0.82)
+		mat.set_shader_parameter("glow_energy", 1.45)
+		var albedo := Check.res(ROBE_ALBEDO, Texture2D) as Texture2D
+		var magic := Check.res(ROBE_MAGIC, Texture2D) as Texture2D
+		var nrm := Check.res(ROBE_NORMAL, Texture2D) as Texture2D
+		if albedo:
+			mat.set_shader_parameter("albedo_tex", albedo)
+		if magic:
+			mat.set_shader_parameter("magic_tex", magic)
+		if nrm:
+			mat.set_shader_parameter("normal_tex", nrm)
+		if albedo == null or magic == null:
+			push_error("CharacterRig._dress_cloth missing robe 1k maps")
+		mat.set_shader_parameter("anchor_y", anchor_y)
+		mat.set_shader_parameter("cloth_len", cloth_len)
+		mat.set_shader_parameter("leg_push", leg_push)
+		mat.set_shader_parameter("wave_scale", wave_scale)
+		mat.set_shader_parameter("use_world_y", use_world_y)
+		_cloth_shared[key] = mat
 	for node in root.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi.mesh == null:
 			continue
+		var used := false
 		for s in mi.mesh.get_surface_count():
 			var src := mi.mesh.surface_get_material(s)
-			var name := String(src.resource_name) if src else ""
-			# Keep Body/Leather/metal fittings. Do NOT skip high roughness — wool is ~1.0 and
-			# that was leaving the coat on StandardMaterial so the hem never moved.
-			if name.begins_with("Body") or name.begins_with("Leather"):
+			var n_name := String(src.resource_name) if src else ""
+			if n_name.begins_with("Body") or n_name.begins_with("Leather"):
 				continue
-			if src is StandardMaterial3D:
-				var sm := src as StandardMaterial3D
-				if sm.metallic > 0.4:
-					continue
-			var mat := ShaderMaterial.new()
-			mat.shader = shader
-			var dye := Vector3(0.055, 0.062, 0.12)
-			if src is StandardMaterial3D:
-				var c: Color = (src as StandardMaterial3D).albedo_color
-				# Keep mesh dye hue but crush toward indigo so cloth reads under blue moon.
-				dye = Vector3(c.r * 0.55 + 0.02, c.g * 0.55 + 0.03, maxf(c.b, 0.10) * 0.85 + 0.06)
-			var albedo := Check.res(ROBE_ALBEDO, Texture2D) as Texture2D
-			var magic := Check.res(ROBE_MAGIC, Texture2D) as Texture2D
-			var nrm := Check.res(ROBE_NORMAL, Texture2D) as Texture2D
-			mat.set_shader_parameter("base_color", dye)
-			mat.set_shader_parameter("rim_color", Vector3(0.28, 0.42, 0.85))
-			mat.set_shader_parameter("roughness_amt", 0.82)
-			mat.set_shader_parameter("glow_energy", 1.45)
-			if albedo:
-				mat.set_shader_parameter("albedo_tex", albedo)
-			if magic:
-				mat.set_shader_parameter("magic_tex", magic)
-			if nrm:
-				mat.set_shader_parameter("normal_tex", nrm)
-			if albedo == null or magic == null:
-				push_error("CharacterRig._dress_cloth missing robe 1k maps")
-			mat.set_shader_parameter("anchor_y", anchor_y)
-			mat.set_shader_parameter("cloth_len", cloth_len)
-			mat.set_shader_parameter("leg_push", leg_push)
-			mat.set_shader_parameter("wave_scale", wave_scale)
-			mat.set_shader_parameter("use_world_y", use_world_y)
+			if src is StandardMaterial3D and (src as StandardMaterial3D).metallic > 0.4:
+				continue
 			mi.set_surface_override_material(s, mat)
-			_cloth.append(mat)
+			used = true
+		if used and not _cloth.has(mi):
+			_cloth.append(mi)
 
 
 ## Black void in the cowl. Solid at the centre, dissolving to mist at the rim and the chin.
 func _build_face() -> void:
 	var mat := ShaderMaterial.new()
-	mat.shader = load("res://core/player/void_face.gdshader")
+	mat.shader = VOID_FACE
 	var sphere := SphereMesh.new()
 	sphere.radius = 0.11
 	sphere.height = 0.17
@@ -487,10 +519,10 @@ func _animate_cloth(local_vel: Vector3, local_acc: Vector3, delta: float) -> voi
 		clampf(local_acc.z * 0.008, -0.15, 0.15) - _air * 0.18 + _land * 0.18,
 		clampf(-local_vel.x * 0.02, -0.1, 0.1))
 	var dt := minf(delta, 0.05)
-	_cape_v += (target - _cape) * 36.0 * dt
-	_cape_v *= exp(-6.5 * dt)
-	_cape += _cape_v * dt
-	_cape = _cape.limit_length(0.14)
+	_hem_spring_v += (target - _hem_spring) * 36.0 * dt
+	_hem_spring_v *= exp(-6.5 * dt)
+	_hem_spring += _hem_spring_v * dt
+	_hem_spring = _hem_spring.limit_length(0.14)
 
 
 ## Raise the staff and release a burst of violet motes (kindling and spellcasting).
@@ -499,6 +531,38 @@ func cast() -> void:
 	if _burst:
 		_burst.restart()
 		_burst.emitting = true
+	play_cast_sound()
+
+
+func play_cast_sound() -> void:
+	if _cast_sfx:
+		_cast_sfx.play()
+
+
+func _ensure_audio() -> void:
+	if Engine.is_editor_hint() or _steps != null:
+		return
+	var rand := AudioStreamRandomizer.new()
+	rand.random_pitch = 0.14
+	rand.add_stream(0, load("res://art/audio/step_0.wav"))
+	rand.add_stream(1, load("res://art/audio/step_1.wav"))
+	rand.add_stream(2, load("res://art/audio/step_2.wav"))
+	_steps = AudioStreamPlayer3D.new()
+	_steps.name = "Steps"
+	_steps.stream = rand
+	_steps.max_distance = 18.0
+	_steps.bus = "Master"
+	add_child(_steps)
+	_cast_sfx = AudioStreamPlayer3D.new()
+	_cast_sfx.name = "CastSfx"
+	_cast_sfx.stream = load("res://art/audio/bolt_cast.wav")
+	_cast_sfx.max_distance = 22.0
+	add_child(_cast_sfx)
+
+
+func _footstep() -> void:
+	if _steps and not _steps.playing:
+		_steps.play()
 
 
 ## World-space spawn at the staff orb. Falls back to the chest if the weapon is missing.
