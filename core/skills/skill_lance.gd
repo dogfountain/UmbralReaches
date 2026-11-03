@@ -17,12 +17,16 @@ func _init() -> void:
 	glyph = &"lance"
 
 
+const BLAST_MIN := 3.0      ## blast radius at a tap ...
+const BLAST_MAX := 4.6      ## ... and at full charge (the aim circle reads these too)
+
+
 func cast(book: SkillBook, charge: float) -> bool:
 	var c := clampf(charge, 0.0, 1.0)
 	var cfg := {
 		"heavy": true,
 		"dmg": lerpf(2.0, 4.0, c),
-		"blast": lerpf(2.0, 3.2, c),
+		"blast": lerpf(BLAST_MIN, BLAST_MAX, c),
 		"speed": lerpf(18.0, 30.0, c),
 		"pierce": c >= 0.98,
 	}

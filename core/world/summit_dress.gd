@@ -14,6 +14,42 @@ const Check := preload("res://core/debug/check.gd")
 const PLATFORM_RADIUS := 12.0
 const SUMMIT := Vector3(0.0, 24.5, -83.5)
 const TOP_DECK_Y := 2.85
+## Holder-space box cut out of the rails where the Ossuary lift jetty meets the mid tier
+## (jetty: world x 6.4..11.7, z -89 +-1.25 -> holder x 6.4..11.7, z -5.5 +-1.25).
+const LIFT_LANE := AABB(Vector3(2.6, 0.8, -7.3), Vector3(10.0, 3.6, 3.6))   ## no rocks on the jetty route
+const LIFT_GATE := AABB(Vector3(4.6, 1.2, -7.1), Vector3(8.0, 3.2, 3.2))
+
+
+## Remove the triangles of `mi` whose centre falls inside `box` (holder space): a real gap in the
+## visible rail, and (since collision is built from the same mesh afterwards) in its collision.
+static func _cut_gate(mi: MeshInstance3D, holder: Node3D, box: AABB) -> void:
+	var to_h := holder.global_transform.affine_inverse() * mi.global_transform
+	var src := mi.mesh
+	var out := ArrayMesh.new()
+	var removed := 0
+	for si in src.get_surface_count():
+		var st := SurfaceTool.new()
+		st.create_from(src, si)
+		var arrays := st.commit_to_arrays()
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+		if idx.is_empty():
+			idx.resize(verts.size())
+			for i in verts.size():
+				idx[i] = i
+		var keep := PackedInt32Array()
+		for t in range(0, idx.size(), 3):
+			var c := to_h * ((verts[idx[t]] + verts[idx[t + 1]] + verts[idx[t + 2]]) / 3.0)
+			if box.has_point(c):
+				removed += 1
+				continue
+			keep.append_array(PackedInt32Array([idx[t], idx[t + 1], idx[t + 2]]))
+		arrays[Mesh.ARRAY_INDEX] = keep
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		out.surface_set_material(si, src.surface_get_material(si))
+	if removed > 0:
+		mi.mesh = out
+		print("SUMMIT_DRESS gate cut in %s: %d tris" % [mi.name, removed])
 
 
 static func dress(root: Node) -> void:
@@ -34,14 +70,14 @@ static func dress(root: Node) -> void:
 	platform.position = Vector3.ZERO
 	_paint_platform(platform)
 	_solidify_tiers(holder)
+	_solidify_from_meshes(holder, platform)
 
-	var mage := Check.attach_glb(holder, MAGE, "OrbMage")
-	if mage:
-		mage.position = Vector3(0.0, TOP_DECK_Y, 0.35)
-		mage.rotation.y = PI
-		mage.scale = Vector3.ONE * 1.35
-		_dress_orb_light(mage)
-		_paint_mage(mage)
+	# The monument: a carved stone mage on a rune pedestal, facing the stair (+Z).
+	var statue := MageStatue.new()
+	statue.name = "MageStatue"
+	holder.add_child(statue)
+	statue.position = Vector3(0.0, TOP_DECK_Y, 0.0)
+	statue.rotation.y = PI
 
 	# Outer cathedral pillars on the mid terrace only — top dais already has the ref rail.
 	if Check.res(PILLAR, PackedScene) != null:
@@ -58,8 +94,7 @@ static func dress(root: Node) -> void:
 			pillar.scale = Vector3.ONE * 0.85
 			_paint_pillar(pillar)
 
-	# Moss hang on lower rims only — keep the cobble circle clean like the ref.
-	_drape_moss_cards(holder)
+	# (The hanging moss cards stood up off the tiers like stray grass blades; removed.)
 
 	print("SUMMIT_DRESS cathedral platform r=%.1f at %s" % [PLATFORM_RADIUS, SUMMIT])
 
@@ -70,33 +105,77 @@ static func _solidify_tiers(parent: Node3D) -> void:
 	body.collision_layer = 1
 	body.collision_mask = 0
 	parent.add_child(body)
-	# Pull outer drums slightly -Z so they do not wall off the summit disc approach.
-	for spec in [
-		{"r": 10.2, "h": 1.15, "y": 0.575, "z": -1.6},
-		{"r": 9.2, "h": 0.9, "y": 1.6, "z": -0.4},
-		{"r": 6.4, "h": 0.8, "y": 2.45, "z": 0.0},
-	]:
-		var shape := CollisionShape3D.new()
-		var cyl := CylinderShape3D.new()
-		cyl.radius = spec.r
-		cyl.height = spec.h
-		shape.shape = cyl
-		shape.position = Vector3(0.0, spec.y, spec.z)
-		body.add_child(shape)
-	# Stepped approach toward +Z (onto the existing summit disc).
+	# Tier collision now comes from the monument mesh itself (_solidify_from_meshes): the old
+	# drum cylinders stopped ~2 m short of the visible rim, so you could drop through its edge.
+	# The approach stairs are a smooth ramp under the step nosings (0.29 m risers cannot be
+	# climbed by a capsule without jumping), the same trick the main stair uses.
 	var steps := 10
 	var stair_w := 5.5
 	var depth := 0.58
-	for s in steps:
-		var z0 := (float(s) / float(steps)) * TOP_DECK_Y
-		var h := TOP_DECK_Y / float(steps) + 0.04
-		var z_front := PLATFORM_RADIUS + 0.15 - float(s) * depth
-		var step := CollisionShape3D.new()
-		var box := BoxShape3D.new()
-		box.size = Vector3(stair_w, h, depth)
-		step.shape = box
-		step.position = Vector3(0.0, z0 + h * 0.5, z_front - depth * 0.5)
-		body.add_child(step)
+	var z_lo := PLATFORM_RADIUS + 0.15
+	var z_hi := z_lo - float(steps) * depth
+	var run := z_lo - z_hi
+	var ang := atan2(TOP_DECK_Y, run)
+	var ramp := CollisionShape3D.new()
+	ramp.name = "ApproachRamp"
+	var rb := BoxShape3D.new()
+	rb.size = Vector3(stair_w, 0.3, sqrt(run * run + TOP_DECK_Y * TOP_DECK_Y) + 0.3)
+	ramp.shape = rb
+	var up := Vector3(0.0, cos(ang), sin(ang))
+	ramp.transform = Transform3D(Basis(Vector3.RIGHT, ang), Vector3(0.0, TOP_DECK_Y * 0.5, (z_lo + z_hi) * 0.5) - up * 0.15)
+	body.add_child(ramp)
+
+
+## Collision from the visible meshes: trimesh for the stone monument and its rails, simplified
+## convex hulls for every moss rock (you used to walk straight through them).
+static func _solidify_from_meshes(holder: Node3D, platform: Node) -> void:
+	var body := StaticBody3D.new()
+	body.name = "MonumentBody"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	holder.add_child(body)
+	var inv := holder.global_transform.affine_inverse()
+	var rocks := 0
+	for node in platform.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		var n := String(mi.name)
+		var shape: Shape3D = null
+		if n == "StoneMonument":
+			# cut the approach corridor out: the ramp alone carries you up through the tiers there
+			var xf := inv * mi.global_transform
+			var faces := mi.mesh.get_faces()
+			var kept := PackedVector3Array()
+			for i in range(0, faces.size(), 3):
+				var a := xf * faces[i]
+				var b := xf * faces[i + 1]
+				var c := xf * faces[i + 2]
+				var m := (a + b + c) / 3.0
+				if absf(m.x) < 3.0 and m.z > 5.6:
+					continue
+				kept.append_array(PackedVector3Array([a, b, c]))
+			var cps := ConcavePolygonShape3D.new()
+			cps.set_faces(kept)
+			var ccs := CollisionShape3D.new()
+			ccs.shape = cps
+			body.add_child(ccs)
+			continue
+		elif n.begins_with("StoneRail") or n == "StoneDaisRail":
+			_cut_gate(mi, holder, LIFT_GATE)          # opening where the Ossuary lift jetty arrives
+			shape = mi.mesh.create_trimesh_shape()
+		elif n.begins_with("MossRock"):
+			var centre := inv * mi.global_transform * mi.get_aabb().get_center()
+			if LIFT_LANE.has_point(centre):
+				mi.visible = false                     # a rock sat in the lift jetty's mouth
+				continue
+			shape = mi.mesh.create_convex_shape(true, true)
+			rocks += 1
+		if shape == null:
+			continue
+		var cs := CollisionShape3D.new()
+		cs.shape = shape
+		cs.transform = inv * mi.global_transform
+		body.add_child(cs)
+	print("SUMMIT_DRESS collision from meshes: monument+rails trimesh, %d rock hulls" % rocks)
 
 
 static func _moss_material() -> StandardMaterial3D:
@@ -121,13 +200,24 @@ static func _moss_material() -> StandardMaterial3D:
 
 
 static func _stone_material() -> Material:
-	var stone := load("res://art/materials/stone.tres") as StandardMaterial3D
-	if stone:
-		var s := stone.duplicate() as StandardMaterial3D
-		s.albedo_color = Color(0.48, 0.55, 0.68)
-		s.uv1_scale = Vector3(0.12, 0.12, 0.12)
-		return s
-	return null
+	# Dressed limestone shared with the Ossuary (was the cyan-seamed cobble stone).
+	var s := StandardMaterial3D.new()
+	var t := "res://art/textures/oss_ashlar"
+	s.albedo_texture = load(t + "_albedo.png")
+	s.normal_enabled = true
+	s.normal_texture = load(t + "_normal.png")
+	s.roughness_texture = load(t + "_rough.png")
+	s.ao_enabled = true
+	s.ao_texture = load(t + "_ao.png")
+	s.albedo_color = Color(0.74, 0.76, 0.84)
+	s.uv1_triplanar = true
+	s.uv1_world_triplanar = true
+	s.uv1_triplanar_sharpness = 4.0
+	s.uv1_scale = Vector3.ONE * 0.3
+	s.rim_enabled = true
+	s.rim = 0.25
+	s.rim_tint = 0.4
+	return s
 
 
 static func _paint_platform(model: Node) -> void:
@@ -150,11 +240,13 @@ static func _paint_platform(model: Node) -> void:
 				cobble.normal_enabled = true
 				cobble.normal_scale = 1.85
 				cobble.normal_texture = cn
-			cobble.roughness = 0.52
-			cobble.metallic = 0.05
+			cobble.roughness = 0.7
+			cobble.metallic = 0.0
+			cobble.normal_scale = 1.2
+			cobble.albedo_color = Color(0.62, 0.66, 0.72)
 			cobble.rim_enabled = true
-			cobble.rim = 0.5
-			cobble.rim_tint = 0.22
+			cobble.rim = 0.2
+			cobble.rim_tint = 0.3
 			cobble.uv1_triplanar = true
 			cobble.uv1_world_triplanar = true
 			cobble.uv1_scale = Vector3(0.18, 0.18, 0.18)

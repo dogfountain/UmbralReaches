@@ -19,6 +19,7 @@ var blast := BLAST
 var hit_dmg := HIT_DMG
 var heavy := false
 var marks := 0            ## Umbral Marks applied per hit (Rift Bolt)
+var empowered := false    ## Rift Lash (every 3rd bolt in a chain): bigger blast + ring
 var pierce := false       ## pass through bodies, burst only on the world (full Ember Lance)
 
 var _age := 0.0
@@ -145,6 +146,15 @@ func arm_with(cfg: Dictionary) -> void:
 	speed = float(cfg.get("speed", speed))
 	marks = int(cfg.get("marks", 0))
 	pierce = bool(cfg.get("pierce", false))
+	empowered = bool(cfg.get("empower", false))
+	if empowered:                            # Rift Lash: a fatter, brighter bolt
+		if _core:
+			_core.scale = Vector3(1.7, 1.7, 3.4)
+		if _aura:
+			_aura.scale = Vector3(1.8, 1.8, 2.6)
+		if _light:
+			_light.light_energy = 2.0
+			_light.omni_range = 5.0
 	if pierce and _aura:
 		_aura.scale = Vector3(1.6, 1.6, 3.2)
 	if pierce and _core:
@@ -252,6 +262,12 @@ func _impact_fx(at: Vector3) -> void:
 		var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		if p and p.global_position.distance_to(at) < 9.0:
 			p.kick(0.6)
+	elif empowered:
+		_burst(at)
+		SpellFx.disc(at, blast, 0, SpellFx.VIOLET, SpellFx.VIOLET_HOT, 0.7, n)
+		SpellFx.shell(at, 0.3, blast, Color(1.2, 0.5, 2.8), 0.3)
+		Vfx.burst(at, Color(1.8, 0.9, 3.4), {"count": 36, "life": 0.45, "speed": Vector2(3.0, 8.0), "size": 0.045, "gravity": -6.0, "trail": 0.08, "dir": n, "spread": 80.0})
+		Vfx.light(at, Color(0.7, 0.4, 1.0), 3.0, blast * 2.4, 0.3)
 	else:
 		_burst(at)
 		Vfx.ring(at, 0.9, Color(1.3, 0.6, 3.0), 0.25, 0.14, n)
@@ -499,6 +515,7 @@ func _burst(at: Vector3) -> void:
 func _play_impact() -> void:
 	if _sfx == null:
 		_sfx = AudioStreamPlayer3D.new()
+		_sfx.bus = &"SFX"
 		_sfx.stream = IMPACT_SFX
 		_sfx.max_distance = 24.0
 		add_child(_sfx)

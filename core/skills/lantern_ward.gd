@@ -5,7 +5,7 @@ extends Node3D
 ## light-averse enemies slink, spawners hold off. The ground ring shows the safe radius.
 
 const LIFE := 7.0
-const RADIUS := 5.5
+const RADIUS := 7.0
 const WARM := Color("#FFB347")
 const FLARE_SHADER := preload("res://world/flare.gdshader")
 const RUNE_SHADER := preload("res://world/vfx/rune_circle.gdshader")

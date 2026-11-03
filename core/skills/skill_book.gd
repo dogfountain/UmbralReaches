@@ -175,8 +175,21 @@ func move_scale() -> float:
 	return CHARGE_MOVE if _charging >= 0 else 1.0
 
 
+## The hotbar asks for these every frame; resolving through InputMap + DisplayServer each time is
+## wasted work, so labels are cached and refreshed twice a second (rebinding still shows quickly).
+var _label_cache := {}
+var _label_t := 0
+
+
 func key_label(i: int) -> String:
-	return action_label(slots[i].action, using_pad)
+	var now := Time.get_ticks_msec()
+	if now - _label_t > 500:
+		_label_cache.clear()
+		_label_t = now
+	var key := "%d/%s" % [i, using_pad]
+	if not _label_cache.has(key):
+		_label_cache[key] = action_label(slots[i].action, using_pad)
+	return _label_cache[key]
 
 
 static func action_label(action: StringName, pad: bool) -> String:

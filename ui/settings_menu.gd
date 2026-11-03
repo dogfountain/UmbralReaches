@@ -7,6 +7,7 @@ const QUIET := Color(0.72, 0.74, 0.86, 0.85)
 const PANEL_BG := Color(0.03, 0.025, 0.07, 0.94)
 
 var _font: Font
+var _vol_sliders := {}
 var _root: Control
 var _panel: Panel
 var _was_captured := false
@@ -108,6 +109,25 @@ func _ready() -> void:
 	_ssr_btn = _check_row(col, "Screen Reflections")
 	col.add_child(_spacer(10))
 
+	col.add_child(_section("AUDIO"))
+	_vol_sliders.clear()
+	for spec: Array in [["Master Volume", "master_volume"], ["Effects", "sfx_volume"], ["Ambience", "ambience_volume"]]:
+		var vrow := HBoxContainer.new()
+		col.add_child(vrow)
+		vrow.add_child(_row_label(spec[0]))
+		var sl := HSlider.new()
+		sl.min_value = 0.0
+		sl.max_value = 1.0
+		sl.step = 0.05
+		sl.custom_minimum_size = Vector2(180, 0)
+		sl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		vrow.add_child(sl)
+		var field: String = spec[1]
+		sl.value_changed.connect(func(v: float) -> void:
+			Settings.set(field, v)
+			Settings.apply())
+		_vol_sliders[field] = sl
+	col.add_child(_spacer(6))
 	col.add_child(_section("CAMERA"))
 	var fov_row := HBoxContainer.new()
 	col.add_child(fov_row)
@@ -147,6 +167,18 @@ func _ready() -> void:
 	_style_small(reset_btn)
 	reset_btn.pressed.connect(_on_reset)
 	footer.add_child(reset_btn)
+	# two-step so a stray click cannot wipe a run
+	var erase_btn := Button.new()
+	erase_btn.text = "Erase Saved Progress"
+	_style_small(erase_btn)
+	erase_btn.pressed.connect(func() -> void:
+		if erase_btn.text.begins_with("Confirm"):
+			Travel.erase_save()
+			erase_btn.text = "Progress erased (next launch)"
+			erase_btn.disabled = true
+		else:
+			erase_btn.text = "Confirm: erase everything?")
+	footer.add_child(erase_btn)
 	var close_btn := Button.new()
 	close_btn.text = "Close  (Esc)"
 	_style_small(close_btn)
@@ -275,6 +307,8 @@ func _wire() -> void:
 
 
 func _refresh_from_settings() -> void:
+	for field: String in _vol_sliders:
+		(_vol_sliders[field] as HSlider).set_value_no_signal(float(Settings.get(field)))
 	_fullscreen_btn.button_pressed = Settings.fullscreen
 	_res_option.selected = Settings.window_size_index
 	_res_option.disabled = Settings.fullscreen

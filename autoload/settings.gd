@@ -29,11 +29,18 @@ var ssr_enabled := false
 var quality_preset := 1             # 0 Performance, 1 Balanced, 2 Cinematic
 var fov := 54.0
 var mouse_sensitivity := 0.0025
+var master_volume := 0.9            # linear 0..1, per bus (see apply_audio)
+var sfx_volume := 0.85
+var ambience_volume := 0.7
+const BUSES := ["SFX", "Ambience"]
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS   # the debounce keeps ticking while the menu pauses the world
 	load_settings()
+	_ensure_buses()
+	apply_audio()
+	changed.connect(apply_audio)
 	set_process(false)
 
 
@@ -55,6 +62,9 @@ func load_settings() -> void:
 	quality_preset = cfg.get_value("graphics", "quality_preset", quality_preset)
 	fov = cfg.get_value("camera", "fov", fov)
 	mouse_sensitivity = cfg.get_value("camera", "mouse_sensitivity", mouse_sensitivity)
+	master_volume = cfg.get_value("audio", "master", master_volume)
+	sfx_volume = cfg.get_value("audio", "sfx", sfx_volume)
+	ambience_volume = cfg.get_value("audio", "ambience", ambience_volume)
 
 
 func save_settings() -> void:
@@ -73,7 +83,31 @@ func save_settings() -> void:
 	cfg.set_value("graphics", "quality_preset", quality_preset)
 	cfg.set_value("camera", "fov", fov)
 	cfg.set_value("camera", "mouse_sensitivity", mouse_sensitivity)
+	cfg.set_value("audio", "master", master_volume)
+	cfg.set_value("audio", "sfx", sfx_volume)
+	cfg.set_value("audio", "ambience", ambience_volume)
 	cfg.save(PATH)
+
+
+## Buses are created at runtime (no bus layout file in the project): SFX and Ambience both send
+## to Master, so each has its own slider and Master still scales everything.
+func _ensure_buses() -> void:
+	for b: String in BUSES:
+		if AudioServer.get_bus_index(b) == -1:
+			AudioServer.add_bus()
+			var i := AudioServer.bus_count - 1
+			AudioServer.set_bus_name(i, b)
+			AudioServer.set_bus_send(i, "Master")
+
+
+func apply_audio() -> void:
+	var vols := {"Master": master_volume, "SFX": sfx_volume, "Ambience": ambience_volume}
+	for b: String in vols:
+		var i := AudioServer.get_bus_index(b)
+		if i >= 0:
+			var v: float = vols[b]
+			AudioServer.set_bus_volume_db(i, linear_to_db(maxf(v, 0.0001)))
+			AudioServer.set_bus_mute(i, v <= 0.001)
 
 
 ## Call after editing any field to push the change into the live scene. The disk write is

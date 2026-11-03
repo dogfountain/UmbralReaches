@@ -11,6 +11,13 @@ var yaw := 0.0
 var lit_by_path: Dictionary = {}
 var area_lit: Dictionary = {}      ## "area_id/brazier" -> true; survives streaming and travel
 var relics: Dictionary = {}        ## reliquary id -> chosen variant (StringName)
+var checkpoints: Dictionary = {}   ## scene path -> Vector3 (last kindled brazier's spawn point)
+var saved_hollows := 0
+
+## Progress save (user://savegame.cfg): kindles (hub + areas), relics, checkpoint, hollow count.
+## Written ~0.6 s after any change; read once at boot. Launch with `-- --fresh` to ignore it.
+const SAVE_PATH := "user://savegame.cfg"
+var _save_queued := false
 
 var _fade_layer: CanvasLayer
 var _fade: ColorRect
@@ -20,6 +27,9 @@ var _awaiting_path := ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if not "--fresh" in OS.get_cmdline_user_args():
+		load_game()
+	Events.brazier_kindled.connect(func(_b: Node3D) -> void: save_soon())
 	_fade_layer = CanvasLayer.new()
 	_fade_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	_fade_layer.layer = 80
@@ -162,3 +172,71 @@ func restore_kindles(root: Node) -> void:
 	for node in root.find_children("*", "Node", true, false):
 		if node is Brazier and node.name in names:
 			(node as Brazier).kindle_quiet()
+
+
+# --- progress save ---------------------------------------------------------------------------
+
+func save_soon() -> void:
+	if _save_queued:
+		return
+	_save_queued = true
+	get_tree().create_timer(0.6, true, false, true).timeout.connect(func() -> void:
+		_save_queued = false
+		save_game())
+
+
+func note_checkpoint(scene_path: String, at: Vector3) -> void:
+	if scene_path != "":
+		checkpoints[scene_path] = at
+		save_soon()
+
+
+func checkpoint_for(scene_path: String) -> Vector3:
+	return checkpoints.get(scene_path, Vector3.INF)
+
+
+func save_game() -> void:
+	if _busy:
+		return
+	_remember_kindles()
+	var cfg := ConfigFile.new()
+	cfg.set_value("progress", "version", 1)
+	cfg.set_value("progress", "lit_by_path", lit_by_path)
+	cfg.set_value("progress", "area_lit", area_lit)
+	var rel := {}
+	for k in relics:
+		rel[k] = String(relics[k])
+	cfg.set_value("progress", "relics", rel)
+	cfg.set_value("progress", "checkpoints", checkpoints)
+	var p := get_tree().get_first_node_in_group(Groups.PLAYER)
+	if p and "hollow_count" in p:
+		saved_hollows = int(p.hollow_count)
+	cfg.set_value("progress", "hollows", saved_hollows)
+	var err := cfg.save(SAVE_PATH)
+	if err != OK:
+		push_warning("Travel.save_game failed: %s" % err)
+
+
+func load_game() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SAVE_PATH) != OK:
+		return
+	lit_by_path = cfg.get_value("progress", "lit_by_path", {})
+	area_lit = cfg.get_value("progress", "area_lit", {})
+	relics.clear()
+	var rel: Dictionary = cfg.get_value("progress", "relics", {})
+	for k in rel:
+		relics[k] = StringName(String(rel[k]))
+	checkpoints = cfg.get_value("progress", "checkpoints", {})
+	saved_hollows = int(cfg.get_value("progress", "hollows", 0))
+	print("SAVE loaded: %d scenes with kindles, %d area fires, %d relics" % [lit_by_path.size(), area_lit.size(), relics.size()])
+
+
+## Wipe progress (settings menu). The running night keeps its state until the next launch.
+func erase_save() -> void:
+	lit_by_path.clear()
+	area_lit.clear()
+	relics.clear()
+	checkpoints.clear()
+	saved_hollows = 0
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))

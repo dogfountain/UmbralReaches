@@ -52,7 +52,10 @@ static func plant_solid(root: Node) -> void:
 		if pn != "Lanterns" and pn != "Braziers" and pn != "Haven":
 			continue
 		var py: float = _sample_ground(field, heart, has_heart, prop.global_position.x, prop.global_position.z)
-		if py < 1.0e8:
+		# Only props already standing on the terrain (same guard as the gates above): the Landing and
+		# Threshold braziers stand on the stair, 30-45 m above the chasm floor under them, and used to
+		# be dragged down onto it -- two checkpoints silently missing from the climb.
+		if py < 1.0e8 and absf(prop.global_position.y - py) < 2.0:
 			prop.global_position.y = py - 0.12
 			moved += 1
 	for node in root.find_children("*", "MeshInstance3D", true, false):

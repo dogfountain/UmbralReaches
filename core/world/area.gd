@@ -10,11 +10,22 @@ extends Node3D
 @export var subtitle := ""
 ## Benchmark stands for --perf-baseline: [{name, at: Vector3, yaw: float}]
 var perf_points: Array[Dictionary] = []
+var ambience := ""        ## Ambience bed key while the player is inside ambience_bounds (local)
+var ambience_bounds := AABB()
+var instant := false      ## set by the streamer on forced loads (respawn/continue): build in one go
+
+
+## Yield a frame between build sections, unless the player is about to stand on this area.
+func slice() -> void:
+	if not instant:
+		await get_tree().process_frame
 var _announced := false
 
 
 func _ready() -> void:
-	build()
+	if ambience != "":
+		add_to_group(&"ambience_area")
+	await build()            # a build may yield between sections (time-sliced; see Ossuary)
 	_restore_kindles()
 	Events.brazier_kindled.connect(_on_kindled)
 

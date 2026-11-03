@@ -451,6 +451,12 @@ func _stair(zone: Node3D) -> void:
 		faces.append_array([Vector3(-hw, p.y, p.x), Vector3(hw, p.y, p.x), Vector3(-hw, q.y, q.x)])
 		faces.append_array([Vector3(hw, p.y, p.x), Vector3(hw, q.y, q.x), Vector3(-hw, q.y, q.x)])
 		for sx in [-hw - 0.1, hw + 0.1]:
+			# east side of the landing: a 3 m opening where the Ossuary bone bridge joins (z -32.5..-35.5)
+			if sx > 0.0 and is_equal_approx(p.y, q.y) and p.x > -32.0 and q.x < -35.9:
+				for seg: Vector2 in [Vector2(p.x, -32.5), Vector2(-35.5, q.x)]:
+					faces.append_array([Vector3(sx, p.y, seg.x), Vector3(sx, p.y + 1.6, seg.x), Vector3(sx, q.y, seg.y)])
+					faces.append_array([Vector3(sx, p.y + 1.6, seg.x), Vector3(sx, q.y + 1.6, seg.y), Vector3(sx, q.y, seg.y)])
+				continue
 			faces.append_array([Vector3(sx, p.y, p.x), Vector3(sx, p.y + 1.6, p.x), Vector3(sx, q.y, q.x)])
 			faces.append_array([Vector3(sx, p.y + 1.6, p.x), Vector3(sx, q.y + 1.6, q.x), Vector3(sx, q.y, q.x)])
 	var ramp := ConcavePolygonShape3D.new()

@@ -341,3 +341,66 @@ All of these are built from effects that already exist: SpellFx disc, shell, tea
   - The Ossuant's extra bone plating. It currently reuses the husk body with a bone palette.
   - New textures. It reuses `tavern_*` and `stone_*`. `ossuary_plaster`, `bone` and `wax` in `gen_textures.py` are still to do.
 - **Next:** P2 Ember Rift, which needs the threaded build first.
+
+### Session 1b — 3 Nov 2026: Ossuary fix & quality pass
+
+**Fixes.**
+- **Bridge entrance.** The stair's baked collision (`stair_ramp_shape.res`) has 1.6 m invisible side walls, and they blocked the bridge.
+  - The resource was edited in place to cut a 3 m opening on the landing's east side (z −32.5..−35.5). `main.tscn` is untouched.
+  - `bake_main.gd` was patched to bake the same opening.
+- **Bell tower.** It stood inside the hall's north-west corner and snagged players turning for the north stair. It is now outside the hall on its own pier.
+- **Pit.** A colonnade column sat in the entry gap, and both spitter plinths sat on the entry and chapel walking lines. Columns are now skipped near every lane, and the plinths moved to 2.05 and 5.55 rad.
+- **Clipping.** `OssKit` records every solid box, and candles, skulls and loose bones that would stand inside masonry are rejected (about 25 per build). Bridge candles moved from the rib tops onto the deck; stair candles moved onto the parapet tops.
+- **Verified.** A sprint walk of the whole route (landing → bridge → hall → stair → gallery → stair → pit → chapel) finishes with no snags, the Rift Step clears the gap, and the lift still delivers the player to the summit.
+
+**Quality.**
+- **Textures:** five dedicated 1K sets from `tools/gen_ossuary_textures.py`: `oss_ashlar`, `oss_plaster`, `oss_floor`, `oss_bone` and `oss_slate`. They replace the reddish tavern sets.
+- **Props:**
+  - Candles have melted lips, drips and wicks, in 3 heights, with wax puddles.
+  - Each flame has a halo. The flame and halo shaders are `fog_disabled`; fog had been tinting them violet.
+  - The skull is anatomical and comes in two variants, with and without jaw.
+  - There are three bone types: femur, rib and vertebra.
+  - Iron candelabra stand in the hall (4), the gallery (4) and the chapel (2).
+- **Bridge:** fused vertebral plates, curved organic rib railings with skulls, and great snapped ribs rising from the lava. Walking uses an invisible flat slab plus rail walls.
+- **Architecture:**
+  - Every wall has a plinth and cornice; walls over 4.5 m also get a string course.
+  - Sedlec-style bone dados (femur-end rows and skull rows) sit under the niches in the hall, gallery and chapel.
+  - Transverse ribs span the gallery's ceiling, and grave slabs are set into the hall floor.
+  - A charnel mound of skulls stands at the pit centre, ringed with candles.
+- **Counts and cost:**
+  - About 580 candles, 470 skulls and 1,820 bones (up from 365, 185 and roughly 300).
+  - Props are chunked into 10 m MultiMesh cells with runtime LODs (`ImporterMesh.generate_lods`) and draw distances. That keeps 0.18–0.33 M primitives per view (it was 1.1 M before chunking) and 139–322 draws.
+  - Build time is about 0.8 s, still at boot; threading the build is still next.
+
+### Session 1c — 3 Nov 2026: stair top in-game review, skills, spawns, audit
+
+**Stair top** (reviewed from real in-game renders of `main.tscn`, not the lab):
+- **Shared material.** The hub `stone.tres` was blue-tinted, slightly metallic and glossy, with a 2.35× normal map and 0.68 rim over a cyan-seamed cobble texture. That is the glowing honeycomb on the stair, the stair top and the ruins. It now uses `oss_ashlar`, so the whole route is one dressed limestone.
+- **Player robe.** The robe glow was 1.45, which read as a cyan net over the whole robe. It is now 0.6.
+- **Lift lane.** The rail mesh is cut (visual and collision) where the jetty arrives, and moss rocks are cleared from the jetty lane. Three steps lead from the mid tier up to the statue deck, whose edge was measured at x 3.3.
+- **Verified.** Deck → lift → deck walks clean, and a floor-ray grid over the platform and stair top found 0 holes.
+
+**Skills.**
+- Nova radius 4.6 → 6.0 m; Implosion pull 7.5 → 9.5 m.
+- Lance blast 2.0–3.2 → 3.0–4.6 m. The aim ring reads `SkillLance.BLAST_MIN/MAX`.
+- Lantern Ward radius 5.5 → 7.0 m.
+- Rift Bolt: cooldown 0.28 s, speed 34, splash 1.8 m. Every 3rd shot in a chain (shots within 0.9 s) is a **Rift Lash**: 2 damage, 3.2 m blast, 2 Marks, a bigger bolt, and an impact disc plus shell.
+
+**Spawns.**
+- **Cause of the bunching.** All four hub camps sat inside the StairFoot brazier's light, so they piled up at its edge in front of the stair.
+- **New layout.** Five camps along the route, each at least 13 m from every brazier: west corridor, east corridor, beyond the shrine, a mid-stair husk and an upper-stair pair.
+- **Calm-down.** Enemies that give up because you are in light now go home and stay calm for 3.5 s instead of re-aggroing next tick.
+- **Stair camps.** These use `strict` ground probing. The sideways search had drifted them off the stair into the chasm.
+
+**Audit fixes.**
+- **Missing checkpoints (P0).** `seat_props.gd` snapped every brazier to the terrain heightfield, so the **Landing and Threshold braziers sat on the chasm floor** 30–45 m below the stair. Two checkpoints were missing from the climb. They now snap only when within 2 m of the terrain, the same guard the gates already used.
+- **Bridge entrance.** The Landing brazier stood in the mouth of the bone bridge and is moved to the landing's west side at runtime by `main.gd`.
+- **Hotbar cost.** It redrew every frame and resolved key labels through InputMap and DisplayServer for 5 slots each frame. Labels are now cached and refreshed every 0.5 s.
+- **Boot hitch.** The Ossuary build is time-sliced (4 yields), so boot no longer stalls one ~0.3–0.8 s frame.
+- **Bridge spitter.** It stood inside the Gate Hall brazier's light, so lighting the brazier shoved it into the lava. Removed.
+
+**Audit: clean or noted only.**
+- A full-project compile has 0 failures.
+- The headless autopilot demo produced no script errors; the only noise is the headless-only display-server message.
+- The game's own code has no missing resources apart from `tools/bake_caps.gd`, which still points at the removed Vale zone. It is a tool, not runtime.
+- **Open: there is no disk save.** Kindles, relics and checkpoints live in `Travel` for the session only. This is the biggest missing system; it is a feature, not a bug.

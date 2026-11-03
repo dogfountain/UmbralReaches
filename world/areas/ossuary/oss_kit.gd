@@ -11,15 +11,23 @@ const FLAME := preload("res://world/areas/ossuary/candle_flame.gdshader")
 
 var _st: Dictionary = {}        # mat key -> SurfaceTool
 var col_faces := PackedVector3Array()   # collision triangles (solid pieces only)
-var candles: Array[Transform3D] = []
-var skulls: Array[Transform3D] = []
-var bones: Array[Transform3D] = []
+var candles: Array = [[], [], []]       # Transform3D per candle, by height variant (tall, mid, stub)
+var puddles: Array[Transform3D] = []
+var skulls: Array = [[], []]            # with jaw / without jaw
+var bones: Array = [[], [], []]         # femur, rib, vertebra
+var solids: Array = []                  # [centre, basis, half extents] of every solid box (prop clipping test)
+var rejected := 0
 
 static var _mats: Dictionary = {}
-static var _skull: ArrayMesh
-static var _bone: ArrayMesh
-static var _candle: CylinderMesh
+static var _skulls: Array[ArrayMesh] = []
+static var _bones: Array[ArrayMesh] = []
+static var _candles: Array[ArrayMesh] = []
+static var _puddle: ArrayMesh
 static var _flame_mesh: QuadMesh
+static var _halo_mesh: QuadMesh
+const CANDLE_H := [0.42, 0.26, 0.13]
+const CHUNK := 10.0
+const HALO := preload("res://world/areas/ossuary/candle_halo.gdshader")
 
 
 # --- materials ------------------------------------------------------------------------------
@@ -29,31 +37,34 @@ static func mat(key: String) -> Material:
 		return _mats[key]
 	var m := StandardMaterial3D.new()
 	match key:
-		"stone":      _tri(m, "tavern_stone", 0.5, Color(0.8, 0.76, 0.74))
-		"plaster":    _tri(m, "tavern_plaster", 0.3, Color(0.86, 0.8, 0.72))
-		"floor":      _tri(m, "stone", 0.35, Color(0.62, 0.6, 0.6))
+		"stone":      _tri(m, "oss_ashlar", 0.32, Color(0.92, 0.9, 0.88))
+		"plaster":    _tri(m, "oss_plaster", 0.28, Color(0.95, 0.92, 0.88))
+		"floor":      _tri(m, "oss_floor", 0.22, Color(0.9, 0.88, 0.86))
 		"dark":       _tri(m, "rock", 0.5, Color(0.16, 0.14, 0.15))
 		"iron":       _tri(m, "tavern_iron", 0.6, Color(0.5, 0.48, 0.5))
 		"wood":       _tri(m, "tavern_wood", 0.5, Color(0.55, 0.45, 0.38))
-		"slate":      _tri(m, "tavern_slate", 0.4, Color(0.42, 0.42, 0.5))
-		"bone":
-			m.albedo_color = Color(0.86, 0.8, 0.68)
+		"slate":      _tri(m, "oss_slate", 0.45, Color(0.9, 0.9, 0.95))
+		"bone", "bone_cm":
+			_tri(m, "oss_bone", 1.6, Color(1.0, 0.97, 0.92))
 			m.vertex_color_use_as_albedo = true
-			m.roughness = 0.62
-			m.normal_enabled = true
-			m.normal_texture = load(T + "micro_normal.png")
-			m.normal_scale = 0.6
-			m.uv1_triplanar = true
-			m.uv1_world_triplanar = true
-			m.uv1_scale = Vector3.ONE * 2.0
 			m.rim_enabled = true
-			m.rim = 0.2
+			m.rim = 0.25
+			m.rim_tint = 0.4
 		"wax":
-			m.albedo_color = Color(0.86, 0.82, 0.7)
-			m.roughness = 0.5
+			m.albedo_color = Color(0.93, 0.88, 0.76)
+			m.vertex_color_use_as_albedo = true
+			m.roughness = 0.42
+			m.rim_enabled = true                 # thin wax glows at grazing angles, like backlight
+			m.rim = 0.5
+			m.rim_tint = 0.8
 			m.emission_enabled = true
-			m.emission = Color(1.0, 0.7, 0.4)
-			m.emission_energy_multiplier = 0.08
+			m.emission = Color(1.0, 0.62, 0.3)
+			m.emission_energy_multiplier = 0.06
+		"halo":
+			var hm := ShaderMaterial.new()
+			hm.shader = HALO
+			_mats[key] = hm
+			return hm
 		"glow":
 			# lit window glass: warm, emissive, just over the glow threshold at its brightest
 			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -116,6 +127,8 @@ func quad(key: String, a: Vector3, b: Vector3, c: Vector3, d: Vector3, out: Vect
 
 ## Oriented box. `b` columns are the box axes (unit); size is full extents along them.
 func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := true, shade := 1.0) -> void:
+	if solid and size.x > 0.05 and size.y > 0.05 and size.z > 0.05:
+		solids.append([c, b.orthonormalized(), size * 0.5])
 	var hx := b.x * size.x * 0.5
 	var hy := b.y * size.y * 0.5
 	var hz := b.z * size.z * 0.5
@@ -278,53 +291,201 @@ func parapet(key: String, a: Vector3, b: Vector3, h := 1.0, t := 0.35) -> void:
 
 # --- props (MultiMesh) ----------------------------------------------------------------------
 
+## True when `p` is inside any solid box (shrunk by `margin`): props there would clip.
+func blocked(p: Vector3, margin := 0.02) -> bool:
+	for sb in solids:
+		var b: Basis = sb[1]
+		var h: Vector3 = sb[2]
+		var d: Vector3 = p - (sb[0] as Vector3)
+		if absf(d.dot(b.x)) < h.x - margin and absf(d.dot(b.y)) < h.y - margin and absf(d.dot(b.z)) < h.z - margin:
+			return true
+	return false
+
+
+## A cluster of candles standing on the surface at `at` (its y is the surface). Mixed heights,
+## the tallest near the middle, a wax puddle under any group of 3+. Candles that would stand
+## inside masonry are dropped.
 func candle_cluster(at: Vector3, n: int, spread := 0.25, rng: RandomNumberGenerator = null) -> void:
+	var placed := 0
 	for i in n:
 		var a := rng.randf() * TAU if rng else float(i) * 2.4
-		var r := spread * sqrt(rng.randf() if rng else float(i) / float(n))
-		var h := rng.randf_range(0.12, 0.42) if rng else 0.25
-		var s := rng.randf_range(0.8, 1.25) if rng else 1.0
+		var t := sqrt(rng.randf() if rng else float(i) / float(maxi(n, 1)))
+		var r := spread * t
 		var p := at + Vector3(cos(a) * r, 0.0, sin(a) * r)
-		candles.append(Transform3D(Basis.IDENTITY.scaled(Vector3(s, h / 0.3, s)), p + Vector3.UP * h * 0.5))
+		if blocked(p + Vector3.UP * 0.06) or blocked(p + Vector3.UP * 0.3):
+			rejected += 1
+			continue
+		var v := 0 if t < 0.4 else (1 if t < 0.8 else 2)
+		if rng and rng.randf() < 0.25:
+			v = rng.randi_range(0, 2)
+		var sc := rng.randf_range(0.85, 1.2) if rng else 1.0
+		var yaw := rng.randf() * TAU if rng else 0.0
+		(candles[v] as Array).append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc * (rng.randf_range(0.8, 1.25) if rng else 1.0), sc)), p))
+		placed += 1
+	if placed >= 3:
+		puddles.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU if rng else 0.0).scaled(Vector3(spread * 0.8 + 0.06, 1.0, spread * 0.7 + 0.05)), at))
 
 
-func skull(at: Vector3, yaw: float, s := 1.0) -> void:
-	skulls.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * s), at))
+## An iron candelabrum (floor-standing): tripod foot, shaft, a crown of five candles.
+func candelabrum(at: Vector3, h: float, rng: RandomNumberGenerator) -> void:
+	if blocked(at + Vector3.UP * 0.5):
+		rejected += 1
+		return
+	for i in 3:
+		var a := TAU * float(i) / 3.0 + 0.4
+		box("iron", at + Vector3(cos(a) * 0.18, 0.05, sin(a) * 0.18), Vector3(0.4, 0.06, 0.06), Basis(Vector3.UP, -a), false)
+	box("iron", at + Vector3.UP * (h * 0.5), Vector3(0.06, h, 0.06), Basis.IDENTITY, false)
+	for k: float in [0.3, 0.62]:
+		box("iron", at + Vector3.UP * (h * k), Vector3(0.12, 0.1, 0.12), Basis.IDENTITY, false, 0.8)
+	box("iron", at + Vector3.UP * h, Vector3(0.7, 0.05, 0.05), Basis.IDENTITY, false)
+	box("iron", at + Vector3.UP * h, Vector3(0.05, 0.05, 0.7), Basis.IDENTITY, false)
+	for o: Vector3 in [Vector3.ZERO, Vector3(0.32, 0, 0), Vector3(-0.32, 0, 0), Vector3(0, 0, 0.32), Vector3(0, 0, -0.32)]:
+		var cup := at + o + Vector3.UP * (h + 0.04)
+		box("iron", cup, Vector3(0.1, 0.04, 0.1), Basis.IDENTITY, false)
+		(candles[0 if o == Vector3.ZERO else 1] as Array).append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU), cup + Vector3.UP * 0.02))
 
 
-func bone(at: Vector3, b: Basis) -> void:
-	bones.append(Transform3D(b, at))
+func skull(at: Vector3, yaw: float, s := 1.0, jaw := -1, tilt := 0.0) -> void:
+	if blocked(at + Vector3.UP * 0.08):
+		rejected += 1
+		return
+	var v := jaw if jaw >= 0 else (1 if hash(at) % 3 == 0 else 0)
+	(skulls[v] as Array).append(Transform3D(Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, tilt).scaled(Vector3.ONE * s), at))
 
 
-static func skull_mesh() -> ArrayMesh:
-	if _skull:
-		return _skull
-	var cm := CreatureMesh.new(77)
+## kind: 0 femur, 1 rib, 2 vertebra
+func bone(at: Vector3, b: Basis, kind := 0, check := true) -> void:
+	if check and blocked(at):
+		rejected += 1
+		return
+	(bones[kind] as Array).append(Transform3D(b, at))
+
+
+## Organic mesh (CreatureMesh output) merged into the area's single bone surface.
+func append_mesh(key: String, mesh: ArrayMesh, xf: Transform3D) -> void:
+	if not _st.has(key):
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_st[key] = st
+	(_st[key] as SurfaceTool).append_from(mesh, 0, xf)
+
+
+# --- prop meshes ----------------------------------------------------------------------------
+
+## Runtime LOD chain (the importer's simplifier): distant prop cells draw a fraction of the tris.
+static func with_lods(m: ArrayMesh) -> ArrayMesh:
+	var im := ImporterMesh.new()
+	im.add_surface(Mesh.PRIMITIVE_TRIANGLES, m.surface_get_arrays(0))
+	im.generate_lods(25.0, 60.0, [])
+	return im.get_mesh()
+
+
+static func skull_mesh(variant := 0) -> ArrayMesh:
+	if _skulls.is_empty():
+		for v in 2:
+			_skulls.append(with_lods(_build_skull(v == 0)))
+	return _skulls[variant]
+
+
+static func _build_skull(with_jaw: bool) -> ArrayMesh:
+	var cm := CreatureMesh.new(77 if with_jaw else 79)
 	var w := Color(1, 1, 1)
-	var hole := Color(0.08, 0.06, 0.05)
-	cm.blob(Vector3(0, 0.1, 0.02), Vector3(0.1, 0.095, 0.12), Basis.IDENTITY, w, 0.0, 0.05, 0.0, 6, 9)
-	cm.blob(Vector3(0, 0.035, -0.07), Vector3(0.07, 0.06, 0.06), Basis.IDENTITY, w, 0.0, 0.05, 0.0, 5, 8)
+	var hole := Color(0.06, 0.045, 0.04)
+	var tooth := Color(1.05, 1.0, 0.92)
+	cm.blob(Vector3(0, 0.1, 0.015), Vector3(0.098, 0.094, 0.118), Basis.IDENTITY, w, 0.0, 0.04, 0.0, 7, 11)
+	cm.blob(Vector3(0, 0.075, 0.075), Vector3(0.08, 0.072, 0.055), Basis.IDENTITY, w, 0.0, 0.04, 0.0, 5, 8)    # occiput
+	cm.blob(Vector3(0, 0.083, -0.088), Vector3(0.088, 0.022, 0.03), Basis.IDENTITY, w, 0.0, 0.03, 0.0, 4, 8)   # brow ridge
+	cm.blob(Vector3(0, 0.025, -0.084), Vector3(0.048, 0.034, 0.036), Basis.IDENTITY, w, 0.0, 0.03, 0.0, 5, 8)  # maxilla
 	for s: float in [-1.0, 1.0]:
-		cm.blob(Vector3(s * 0.033, 0.07, -0.11), Vector3(0.026, 0.024, 0.02), Basis.IDENTITY, hole, 0.0, 0.0, 0.0, 4, 6)
-	cm.blob(Vector3(0, 0.035, -0.125), Vector3(0.012, 0.016, 0.01), Basis.IDENTITY, hole, 0.0, 0.0, 0.0, 3, 5)
-	cm.blob(Vector3(0, -0.01, -0.06), Vector3(0.055, 0.025, 0.05), Basis.IDENTITY, w, 0.0, 0.03, 0.0, 4, 7)
-	_skull = cm.commit()
-	return _skull
+		cm.blob(Vector3(s * 0.062, 0.04, -0.07), Vector3(0.03, 0.02, 0.036), Basis.IDENTITY, w, 0.0, 0.03, 0.0, 4, 6)  # cheekbone
+		cm.blob(Vector3(s * 0.034, 0.058, -0.112), Vector3(0.026, 0.024, 0.018), Basis.IDENTITY, hole, 0.0, 0.0, 0.0, 4, 7)
+		cm.blob(Vector3(s * 0.088, 0.07, 0.0), Vector3(0.012, 0.03, 0.03), Basis.IDENTITY, hole, 0.0, 0.0, 0.0, 3, 5)   # temple hollow
+	cm.blob(Vector3(0, 0.035, -0.118), Vector3(0.012, 0.018, 0.01), Basis.IDENTITY, hole, 0.0, 0.0, 0.0, 3, 5)      # nasal
+	for k in 6:
+		var x := (float(k) - 2.5) * 0.011
+		cm.blob(Vector3(x, -0.002, -0.106 + absf(x) * 0.5), Vector3(0.0055, 0.01, 0.006), Basis.IDENTITY, tooth, 0.0, 0.0, 0.0, 2, 4)
+	if with_jaw:
+		cm.tube(PackedVector3Array([Vector3(-0.052, 0.012, -0.02), Vector3(-0.047, -0.03, -0.068), Vector3(0, -0.042, -0.098), Vector3(0.047, -0.03, -0.068), Vector3(0.052, 0.012, -0.02)]),
+			PackedFloat32Array([0.012, 0.015, 0.017, 0.015, 0.012]), 5, w, 0.0, 0.03)
+		for k in 4:
+			var x := (float(k) - 1.5) * 0.012
+			cm.blob(Vector3(x, -0.016, -0.1 + absf(x) * 0.4), Vector3(0.005, 0.009, 0.005), Basis.IDENTITY, tooth, 0.0, 0.0, 0.0, 2, 4)
+	return cm.commit()
 
 
-static func bone_mesh() -> ArrayMesh:
-	if _bone:
-		return _bone
-	var cm := CreatureMesh.new(78)
-	cm.tube(PackedVector3Array([Vector3(0, 0, -0.22), Vector3(0, 0.005, 0.0), Vector3(0, 0, 0.22)]), PackedFloat32Array([0.022, 0.016, 0.022]), 5)
-	for z: float in [-0.23, 0.23]:
-		for s: float in [-1.0, 1.0]:
-			cm.blob(Vector3(s * 0.018, 0, z), Vector3(0.024, 0.022, 0.024), Basis.IDENTITY, Color.WHITE, 0.0, 0.0, 0.0, 3, 5)
-	_bone = cm.commit()
-	return _bone
+static func bone_mesh(kind := 0) -> ArrayMesh:
+	if _bones.is_empty():
+		_bones.append(with_lods(_build_femur()))
+		_bones.append(_build_rib())
+		_bones.append(with_lods(_build_vertebra()))
+	return _bones[kind]
 
 
-static func multimesh(mesh: Mesh, xforms: Array[Transform3D], mat_override: Material, shadows := true) -> MultiMeshInstance3D:
+static func _build_femur() -> ArrayMesh:
+	var cm := CreatureMesh.new(81)
+	cm.tube(PackedVector3Array([Vector3(0, 0, -0.2), Vector3(0, 0.006, -0.06), Vector3(0, 0.004, 0.08), Vector3(0, 0, 0.2)]), PackedFloat32Array([0.02, 0.014, 0.014, 0.02]), 6, Color.WHITE, 0.0, 0.03)
+	for s: float in [-1.0, 1.0]:
+		cm.blob(Vector3(s * 0.017, -0.004, 0.215), Vector3(0.019, 0.021, 0.023), Basis.IDENTITY, Color.WHITE, 0.0, 0.04, 0.0, 4, 6)
+	cm.tube(PackedVector3Array([Vector3(0, 0, -0.2), Vector3(0.022, 0.012, -0.225)]), PackedFloat32Array([0.016, 0.013]), 5)
+	cm.blob(Vector3(0.03, 0.016, -0.232), Vector3(0.022, 0.022, 0.022), Basis.IDENTITY, Color.WHITE, 0.0, 0.02, 0.0, 4, 6)
+	cm.blob(Vector3(-0.012, -0.006, -0.205), Vector3(0.016, 0.02, 0.02), Basis.IDENTITY, Color.WHITE, 0.0, 0.03, 0.0, 3, 5)
+	return cm.commit()
+
+
+static func _build_rib() -> ArrayMesh:
+	var cm := CreatureMesh.new(82)
+	var pts := PackedVector3Array()
+	var rad := PackedFloat32Array()
+	for i in 7:
+		var a := float(i) / 6.0 * 2.2
+		pts.append(Vector3(sin(a) * 0.17, 0.0, -cos(a) * 0.17 + 0.08))
+		rad.append(lerpf(0.011, 0.006, float(i) / 6.0))
+	cm.tube(pts, rad, 4, Color(0.95, 0.92, 0.88), 0.0, 0.02, 0.0, Vector2(1.0, 0.45))
+	return cm.commit()
+
+
+static func _build_vertebra() -> ArrayMesh:
+	var cm := CreatureMesh.new(83)
+	cm.blob(Vector3.ZERO, Vector3(0.03, 0.022, 0.028), Basis.IDENTITY, Color.WHITE, 0.0, 0.05, 0.0, 4, 7)
+	cm.tube(PackedVector3Array([Vector3(0, 0.0, 0.025), Vector3(0, 0.03, 0.06)]), PackedFloat32Array([0.009, 0.004]), 4)
+	for s: float in [-1.0, 1.0]:
+		cm.tube(PackedVector3Array([Vector3(s * 0.02, 0, 0.012), Vector3(s * 0.055, 0.006, 0.02)]), PackedFloat32Array([0.008, 0.004]), 4)
+	return cm.commit()
+
+
+static func candle_mesh(v: int) -> ArrayMesh:
+	if _candles.is_empty():
+		for i in 3:
+			_candles.append(with_lods(_build_candle(CANDLE_H[i], 90 + i)))
+	return _candles[v]
+
+
+static func _build_candle(h: float, seed_n: int) -> ArrayMesh:
+	var cm := CreatureMesh.new(seed_n)
+	var wax := Color(1.0, 0.97, 0.9)
+	var old := Color(0.92, 0.84, 0.66)
+	cm.tube(PackedVector3Array([Vector3(0, 0, 0), Vector3(0.002, h * 0.5, 0), Vector3(0, h - 0.008, 0)]), PackedFloat32Array([0.036, 0.034, 0.032]), 8, wax, 0.0, 0.025)
+	cm.blob(Vector3(0, h - 0.006, 0), Vector3(0.036, 0.014, 0.036), Basis.IDENTITY, wax, 0.0, 0.18, 0.0, 3, 9)   # melted lip
+	cm.blob(Vector3(0, h + 0.002, 0), Vector3(0.022, 0.006, 0.022), Basis.IDENTITY, old, 0.0, 0.0, 0.0, 2, 8)   # pool
+	for k in 3:
+		var a := TAU * float(k) / 3.0 + float(seed_n)
+		var len := h * (0.25 + 0.2 * float(k))
+		var o := Vector3(cos(a) * 0.033, h - 0.004, sin(a) * 0.033)
+		cm.tube(PackedVector3Array([o, o + Vector3(cos(a) * 0.004, -len * 0.5, sin(a) * 0.004), o + Vector3(cos(a) * 0.006, -len, sin(a) * 0.006)]),
+			PackedFloat32Array([0.011, 0.009, 0.007]), 4, old, 0.0, 0.0)
+	cm.tube(PackedVector3Array([Vector3(0, h, 0), Vector3(0.004, h + 0.028, 0)]), PackedFloat32Array([0.003, 0.002]), 3, Color(0.04, 0.03, 0.03))
+	return cm.commit()
+
+
+static func puddle_mesh() -> ArrayMesh:
+	if _puddle == null:
+		var cm := CreatureMesh.new(97)
+		cm.blob(Vector3(0, 0.0, 0), Vector3(1.0, 0.01, 1.0), Basis.IDENTITY, Color(0.62, 0.56, 0.45), 0.0, 0.35, 0.0, 3, 14)
+		_puddle = cm.commit()
+	return _puddle
+
+
+static func multimesh(mesh: Mesh, xforms: Array, mat_override: Material, shadows := true) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = mesh
@@ -338,8 +499,20 @@ static func multimesh(mesh: Mesh, xforms: Array[Transform3D], mat_override: Mate
 	return mmi
 
 
+func candle_count() -> int:
+	return (candles[0] as Array).size() + (candles[1] as Array).size() + (candles[2] as Array).size()
+
+
+func skull_count() -> int:
+	return (skulls[0] as Array).size() + (skulls[1] as Array).size()
+
+
+func bone_count() -> int:
+	return (bones[0] as Array).size() + (bones[1] as Array).size() + (bones[2] as Array).size()
+
+
 ## Commit everything under `parent`: one MeshInstance3D per material, one StaticBody3D with the
-## collision soup, and the prop MultiMeshes. Returns the draw-call count it added.
+## collision soup, and the prop MultiMeshes (one per prop mesh). Returns draw calls added.
 func commit(parent: Node3D, body_name := "Body") -> int:
 	var draws := 0
 	for key in _st:
@@ -362,34 +535,42 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 		cs.shape = shape
 		body.add_child(cs)
 		parent.add_child(body)
-	if not skulls.is_empty():
-		var m := multimesh(skull_mesh(), skulls, mat("bone"), false)
-		m.name = "Skulls"
-		parent.add_child(m)
-		draws += 1
-	if not bones.is_empty():
-		var m := multimesh(bone_mesh(), bones, mat("bone"), false)
-		m.name = "Bones"
-		parent.add_child(m)
-		draws += 1
-	if not candles.is_empty():
-		if _candle == null:
-			_candle = CylinderMesh.new()
-			_candle.top_radius = 0.035
-			_candle.bottom_radius = 0.04
-			_candle.height = 0.3
-			_candle.radial_segments = 6
-			_candle.rings = 1
+	var counter := [0]                      # lambdas capture locals by value: count through an array
+	# Props are bucketed into CHUNK-metre cells, one MultiMesh per (prop mesh, cell), so frustum
+	# culling and mesh LODs work per cell instead of drawing the whole area's bones every frame.
+	var add := func(n: String, mesh: Mesh, xf: Array, m: Material, far: float) -> void:
+		if xf.is_empty():
+			return
+		var cells := {}
+		for t: Transform3D in xf:
+			var key := Vector2i(floori(t.origin.x / CHUNK), floori(t.origin.z / CHUNK))
+			if not cells.has(key):
+				cells[key] = []
+			(cells[key] as Array).append(t)
+		for key: Vector2i in cells:
+			var mm := multimesh(mesh, cells[key], m, false)
+			mm.name = "%s_%d_%d" % [n, key.x, key.y]
+			mm.visibility_range_end = far
+			mm.visibility_range_end_margin = far * 0.12
+			mm.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			parent.add_child(mm)
+			counter[0] += 1
+	for v in 2:
+		add.call("Skulls%d" % v, skull_mesh(v), skulls[v], mat("bone"), 48.0)
+	for kind in 3:
+		add.call("Bones%d" % kind, bone_mesh(kind), bones[kind], mat("bone"), 40.0 if kind == 0 else 28.0)
+	add.call("WaxPuddles", puddle_mesh(), puddles, mat("wax"), 30.0)
+	var tips: Array[Transform3D] = []
+	for v in 3:
+		add.call("Candles%d" % v, candle_mesh(v), candles[v], mat("wax"), 55.0)
+		for t: Transform3D in candles[v]:
+			tips.append(Transform3D(Basis.IDENTITY, t.origin + Vector3.UP * (CANDLE_H[v] * t.basis.y.length() + 0.075)))
+	if not tips.is_empty():
+		if _flame_mesh == null:
 			_flame_mesh = QuadMesh.new()
-			_flame_mesh.size = Vector2(0.09, 0.2)
-		var wax := multimesh(_candle, candles, mat("wax"), false)
-		wax.name = "Candles"
-		parent.add_child(wax)
-		var tips: Array[Transform3D] = []
-		for t in candles:
-			tips.append(Transform3D(Basis.IDENTITY, t.origin + Vector3.UP * (t.basis.y.length() * 0.15 + 0.09)))
-		var fl := multimesh(_flame_mesh, tips, mat("flame"), false)
-		fl.name = "Flames"
-		parent.add_child(fl)
-		draws += 2
-	return draws
+			_flame_mesh.size = Vector2(0.075, 0.17)
+			_halo_mesh = QuadMesh.new()
+			_halo_mesh.size = Vector2(0.55, 0.55)
+		add.call("Flames", _flame_mesh, tips, mat("flame"), 120.0)
+		add.call("Halos", _halo_mesh, tips, mat("halo"), 120.0)
+	return draws + int(counter[0])

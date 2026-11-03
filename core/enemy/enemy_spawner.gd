@@ -8,13 +8,16 @@ const KEEP_CLEAR := 7.0
 const HAVEN := Vector3(-3.4, 0.0, -8.5)
 const HAVEN_R := 12.0
 
-## Each camp mixes a role: a melee body, a skirmisher (crawler hop / leaper pounce) and a
-## ranged spitter, so the stair foot asks for marking, dodging and target priority.
+## Camps are spread along the route instead of stacked at the stair foot. Every camp sits at least
+## 13 m from every brazier (light radius 11 + margin): the old four camps were all inside the
+## StairFoot brazier's light, so once it was lit they spawned, got pushed out, and piled up in a
+## wall at the edge of the light right in front of the stair.
 const STAIR_CAMPS: Array[Dictionary] = [
-	{"at": Vector3(-5.5, 5.0, 12.0), "kinds": ["wretch", "crawler", "crawler"]},
-	{"at": Vector3(5.5, 5.0, 12.0), "kinds": ["leaper", "spitter"]},
-	{"at": Vector3(-5.0, 4.0, 6.0), "kinds": ["wretch", "spitter"]},
-	{"at": Vector3(6.5, 5.0, 6.5), "kinds": ["leaper"]},
+	{"at": Vector3(-6.0, 4.0, 18.0), "kinds": ["wretch", "crawler"]},                 # west corridor
+	{"at": Vector3(8.5, 4.0, 18.0), "kinds": ["spitter", "wretch"]},                  # east corridor
+	{"at": Vector3(-27.0, 8.0, 0.0), "kinds": ["leaper", "crawler"]},                 # beyond the shrine
+	{"at": Vector3(0.0, 10.0, -22.0), "kinds": ["husk"], "probe": 3.0, "strict": true},          # mid-stair blocker
+	{"at": Vector3(0.0, 21.0, -50.0), "kinds": ["wretch", "spitter"], "probe": 3.0, "r": 0.9, "strict": true},   # upper stair
 ]
 
 
@@ -56,7 +59,7 @@ func _plant() -> void:
 		return
 	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
 	for camp in _camps:
-		var center := _ground(space, camp.at, float(camp.get("probe", 24.0)))
+		var center := _ground(space, camp.at, float(camp.get("probe", 24.0)), bool(camp.get("strict", false)))
 		if Vector2(center.x - HAVEN.x, center.z - HAVEN.z).length() < HAVEN_R:
 			continue
 		if Vector2(center.x, center.z + 10.0).length() < 12.0:
@@ -67,7 +70,7 @@ func _plant() -> void:
 			var a := TAU * float(i) / float(maxi(n, 1)) + 0.15
 			var ring: float = float(camp.get("r", 2.5)) if n > 1 else float(camp.get("r", 0.0))
 			var probe := center + Vector3(cos(a) * ring, 0.0, sin(a) * ring)
-			var at := _ground(space, probe, float(camp.get("probe", 24.0)))
+			var at := _ground(space, probe, float(camp.get("probe", 24.0)), bool(camp.get("strict", false)))
 			var key := String(kinds[i])
 			var kind: GDScript = _scripts.get(key, _scripts.get("wretch"))
 			if kind == null:
@@ -144,7 +147,9 @@ func _spawn(slot: Dictionary) -> void:
 
 
 ## `up`: how far above `from` the probe starts (indoor camps pass ~1.5 so roofs aren't floors).
-func _ground(space: PhysicsDirectSpaceState3D, from: Vector3, up := 24.0) -> Vector3:
+## `strict`: only probe straight down (no sideways search) and only accept ground within 4 m of
+## `from` -- on the 5 m-wide stair the search used to drift off the edge into the chasm.
+func _ground(space: PhysicsDirectSpaceState3D, from: Vector3, up := 24.0, strict := false) -> Vector3:
 	if space == null:
 		return Vector3(from.x, 0.6, from.z)
 	var offsets: Array[Vector3] = [
@@ -159,6 +164,8 @@ func _ground(space: PhysicsDirectSpaceState3D, from: Vector3, up := 24.0) -> Vec
 		_cap = CapsuleShape3D.new()
 		_cap.radius = 0.35
 		_cap.height = 1.7
+	if strict:
+		offsets = [Vector3.ZERO]
 	for off in offsets:
 		var probe := from + off
 		var q := PhysicsRayQueryParameters3D.create(
@@ -173,6 +180,8 @@ func _ground(space: PhysicsDirectSpaceState3D, from: Vector3, up := 24.0) -> Vec
 		if n.y < 0.55:
 			continue
 		var at: Vector3 = hit.position
+		if strict and absf(at.y - from.y) > 4.0:
+			continue
 		fallback = at
 		var sq := PhysicsShapeQueryParameters3D.new()
 		sq.shape = _cap

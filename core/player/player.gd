@@ -142,7 +142,13 @@ func _ready() -> void:
 		Events.gloom_changed.emit(gloom, gloom_max)
 	else:
 		_yaw = _rig.rotation.y
+		hollow_count = Travel.saved_hollows
+		# continue from the last kindled brazier of this night (savegame)
+		var saved := Travel.checkpoint_for(owner.scene_file_path if owner else "")
+		if saved != Vector3.INF:
+			global_position = saved
 	checkpoint = global_position
+	Events.enemy_killed.connect(_on_enemy_killed)
 	_rig_height = _rig.position.y
 	# Interpolated cameras: rig is top-level so look isn't stuck on the 60 Hz physics tick.
 	_rig.top_level = true
@@ -314,6 +320,63 @@ func lava_burn(amount: float) -> void:
 
 func set_checkpoint(at: Vector3) -> void:
 	checkpoint = at
+	Travel.note_checkpoint(owner.scene_file_path if owner else "", at)
+
+
+const KILL_RELIEF := 6.0        ## Gloom drained from you by each kill: fighting pushes the dark back
+const CHAIN_WINDOW := 4.0       ## kills this close together chain; each link drains 2 more Gloom
+const HURT_GRACE := 0.35        ## seconds after a hit during which further hits are ignored
+const ASSIST_COS := 0.9945      ## aim assist cone: ~6 degrees either side of the crosshair
+const ASSIST_RANGE := 32.0
+var _hurt_grace_until := 0.0
+var _chain := 0
+var _chain_until := 0.0
+var _riposte_ready := false
+var _riposte_cd := 0.0
+
+
+## A strike or pounce passed through you during a Rift Step: slow time, stagger and mark the
+## attacker, and arm a free Rift Lash on your next bolt.
+func on_evaded(attacker: Node) -> void:
+	var now := Time.get_ticks_msec() * 0.001
+	var at := global_position + Vector3.UP * 2.0
+	if now < _riposte_cd:
+		HitText.pop(at, "evaded", Color(0.6, 0.75, 1.0))
+		return
+	_riposte_cd = now + 1.5
+	_riposte_ready = true
+	HitText.pop(at, "RIPOSTE", Color(1.3, 0.75, 2.6), true)
+	if attacker.has_method("add_mark"):
+		attacker.add_mark(2)
+	if attacker.has_method("riposted"):
+		attacker.riposted()
+	Sfx.play("res://art/audio/mark_tick.wav", at, 0.0, 0.7, 0.02)
+	SpellFx.shell(global_position + Vector3.UP, 0.3, 2.2, Color(1.2, 0.5, 2.8), 0.3)
+	kick(0.5)
+	Engine.time_scale = 0.35
+	get_tree().create_timer(0.22, true, false, true).timeout.connect(func() -> void: Engine.time_scale = 1.0)
+
+
+func consume_riposte() -> bool:
+	var r := _riposte_ready
+	_riposte_ready = false
+	return r
+
+
+func _on_enemy_killed(e: Node) -> void:
+	if _hollowing or not (e is Node3D) or not is_inside_tree():
+		return
+	var at := (e as Node3D).global_position + Vector3.UP * 1.0
+	if at.distance_to(global_position) > 28.0:
+		return
+	var now := Time.get_ticks_msec() * 0.001
+	_chain = _chain + 1 if now < _chain_until else 1
+	_chain_until = now + CHAIN_WINDOW
+	add_gloom(-minf(KILL_RELIEF + 2.0 * float(_chain - 1), 14.0))
+	if _chain >= 2:
+		HitText.pop(global_position + Vector3.UP * 2.3, "chain x%d" % _chain, Color(1.2, 0.6, 2.6), _chain >= 4)
+	Vfx.arc(at, global_position + Vector3.UP * 1.2, Color(1.2, 0.55, 2.8), 0.35, 0.18)
+	Vfx.burst(global_position + Vector3.UP * 1.1, Color(1.3, 0.6, 3.0), {"count": 12, "life": 0.4, "speed": Vector2(0.5, 1.5), "size": 0.04, "gravity": -1.0, "radius": 0.3})
 
 
 func set_view(yaw: float, pitch: float) -> void:
@@ -422,6 +485,9 @@ func note_shade_bolt() -> void:
 
 
 func add_gloom_from_enemy(amount: float, from_pos := Vector3.INF) -> void:
+	if Time.get_ticks_msec() * 0.001 < _hurt_grace_until:
+		return                                   # two strikes landing together count once
+	_hurt_grace_until = Time.get_ticks_msec() * 0.001 + HURT_GRACE
 	add_gloom(amount)
 	kick(clampf(amount / 30.0, 0.3, 1.0))
 	Sfx.play(SFX_HURT, global_position + Vector3.UP, -3.0)
@@ -440,6 +506,8 @@ func hollow() -> void:
 		return
 	_hollowing = true
 	hollow_count += 1
+	Travel.saved_hollows = hollow_count
+	Travel.save_soon()
 	_shade_warned = false
 	Events.hollowed.emit()
 	await get_tree().create_timer(0.9).timeout
@@ -542,7 +610,7 @@ func fire_bolt(cfg: Dictionary) -> MagicBolt:
 		bolt = BOLT.instantiate() as MagicBolt
 		host.add_child(bolt)
 	var muzzle := _visual.muzzle()
-	var aim := _aim_from(muzzle)
+	var aim := _assist(muzzle, _aim_from(muzzle))
 	var up := Vector3.UP
 	if absf(aim.dot(up)) > 0.95:
 		up = Vector3.RIGHT
@@ -557,6 +625,33 @@ func fire_bolt(cfg: Dictionary) -> MagicBolt:
 	if heavy:
 		Sfx.play(SFX_LANCE, muzzle, -2.0)
 	return bolt
+
+
+## Soft aim assist: if an enemy's chest is within ~6 degrees of the aim and in clear sight, aim
+## at it. Narrow on purpose -- it fixes near misses, it does not pick targets for you.
+func _assist(muzzle: Vector3, aim: Vector3) -> Vector3:
+	var best := aim
+	var best_dot := ASSIST_COS
+	var space := get_world_3d().direct_space_state
+	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
+		var e := node as Enemy
+		if e == null or not e.is_alive():
+			continue
+		var chest := e.global_position + Vector3.UP * (e.hp_bar_y * 0.55)
+		var to := chest - muzzle
+		var d := to.length()
+		if d < 1.5 or d > ASSIST_RANGE:
+			continue
+		var dir := to / d
+		var dt := dir.dot(aim)
+		if dt <= best_dot:
+			continue
+		var q := PhysicsRayQueryParameters3D.create(muzzle, chest, Layers.WORLD, [get_rid()])
+		if space and not space.intersect_ray(q).is_empty():
+			continue
+		best_dot = dt
+		best = dir
+	return best
 
 
 func _aim_from(muzzle: Vector3) -> Vector3:
@@ -624,7 +719,7 @@ func _update_aim_ring(c: float) -> void:
 		_aim_ring.visible = false
 		return
 	_aim_ring.visible = true
-	SpellFx.place_ring(_aim_ring, hit.position, hit.normal, lerpf(2.0, 3.2, c), c)
+	SpellFx.place_ring(_aim_ring, hit.position, hit.normal, lerpf(SkillLance.BLAST_MIN, SkillLance.BLAST_MAX, c), c)
 
 
 ## Camera punch, 0..1. Rides the existing land-dip pitch channel.
@@ -752,6 +847,7 @@ func _setup_movement_fx() -> void:
 	sparks.name = "Sparks"
 	_slide_fx.add_child(sparks)
 	_slide_sfx = AudioStreamPlayer3D.new()
+	_slide_sfx.bus = &"SFX"
 	var scrape := Sfx.stream("res://art/audio/slide_scrape.wav")
 	if scrape is AudioStreamWAV:
 		var w := (scrape as AudioStreamWAV).duplicate() as AudioStreamWAV
@@ -766,6 +862,7 @@ func _setup_movement_fx() -> void:
 	_charge_fx.top_level = true
 	add_child(_charge_fx)
 	_charge_sfx = AudioStreamPlayer3D.new()
+	_charge_sfx.bus = &"SFX"
 	var charge := Sfx.stream("res://art/audio/lance_charge.wav")
 	if charge is AudioStreamWAV:
 		var c := (charge as AudioStreamWAV).duplicate() as AudioStreamWAV

@@ -30,6 +30,7 @@ func _ready() -> void:
 	_coals.material_override = _coal_mat
 	_set_lit(start_lit, false)
 	_crackle = AudioStreamPlayer3D.new()
+	_crackle.bus = &"Ambience"
 	_crackle.name = "Crackle"
 	var loop := (load("res://art/audio/brazier_loop.wav") as AudioStreamWAV).duplicate()
 	loop.loop_mode = AudioStreamWAV.LOOP_FORWARD

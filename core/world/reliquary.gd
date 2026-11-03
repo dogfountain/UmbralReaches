@@ -80,6 +80,7 @@ func interact(_by: Node) -> void:
 	var cur: StringName = Travel.relics.get(relic_id, &"")
 	var next: StringName = opts[0] if cur == &"" else opts[(opts.find(cur) + 1) % opts.size()]
 	Travel.relics[relic_id] = next
+	Travel.save_soon()
 	Events.toast.emit(TEXT.get(next, String(next)))
 	SpellFx.rift_in(global_position - Vector3.UP * 1.15)
 	Sfx.play("res://art/audio/ward_chime.wav", global_position, -2.0)

@@ -2,7 +2,7 @@ shader_type spatial;
 // Candle flame: camera-facing (Y-locked) teardrop, additive, per-instance flicker.
 // Cheap enough for hundreds in one MultiMesh; emission tuned under the 1.15 glow threshold
 // for most of the body so only the hot core blooms.
-render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
 uniform vec3 core = vec3(2.4, 1.5, 0.7);
 uniform vec3 outer = vec3(1.0, 0.32, 0.06);

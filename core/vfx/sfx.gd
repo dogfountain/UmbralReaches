@@ -22,6 +22,7 @@ static func play(path: String, at: Vector3, volume_db := 0.0, pitch := 1.0, jitt
 	p.pitch_scale = pitch * randf_range(1.0 - jitter, 1.0 + jitter)
 	p.max_distance = 34.0
 	p.unit_size = 4.0
+	p.bus = &"SFX"
 	tree.current_scene.add_child(p)
 	p.global_position = at
 	p.finished.connect(p.queue_free)

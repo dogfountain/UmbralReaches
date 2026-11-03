@@ -76,6 +76,7 @@ var _dissolve := 0.0
 var _flank := 0.0            ## per-enemy approach angle so packs surround instead of queue
 var _sep := Vector3.ZERO     ## separation from packmates, refreshed at think rate
 var _lit_t := 0.0            ## seconds the player has been sheltering in light
+var _calm_t := 0.0           ## after giving up a chase: no re-aggro until this runs out
 
 const LIGHT_MARGIN := 0.6    ## enemies stop this far outside any lit brazier / ward radius
 const SFX_DIE := "res://art/audio/enemy_die.wav"
@@ -456,14 +457,18 @@ func _think() -> void:
 	var from_home := _home_planar()
 	match _state:
 		IDLE:
-			if dist <= chase_range:
+			_calm_t = maxf(0.0, _calm_t - 1.0 / think_hz)
+			if dist <= chase_range and _calm_t <= 0.0 and _lit_t <= 0.0:
 				_aim_at_player()
 				_set_state(CHASE)
 			else:
 				_hold_post(from_home)
 		CHASE:
 			if dist > chase_range * 1.2 or from_home > hunt_leash or _lit_t > 2.5:
-				_set_state(IDLE)       # out of range, leashed, or the player is sheltering in light
+				# out of range, leashed, or the player is sheltering in light: walk home and stay calm
+				# a while, instead of re-aggroing next tick and milling at the light's edge
+				_calm_t = 3.5 if _lit_t > 2.5 else 0.8
+				_set_state(IDLE)
 				_hold_post(from_home)
 			elif dist <= strike_range:
 				_face_dir = to / maxf(dist, 0.001)
@@ -492,7 +497,7 @@ func _think() -> void:
 			_wish = Vector3.ZERO
 			if dist <= strike_range + 0.25 and _strike_clear(player):
 				if player.is_evading():
-					HitText.pop(player.global_position + Vector3.UP * 2.0, "evaded", Color(0.6, 0.75, 1.0))
+					player.on_evaded(self)
 				else:
 					player.add_gloom_from_enemy(strike_gloom, global_position)
 			_set_state(RECOVER)
@@ -566,7 +571,7 @@ func _move_ballistic(delta: float) -> void:
 		if reach.length_squared() < 1.7 * 1.7:
 			_pounced = true
 			if _p.is_evading():
-				HitText.pop(_p.global_position + Vector3.UP * 2.0, "evaded", Color(0.6, 0.75, 1.0))
+				_p.on_evaded(self)
 			else:
 				_p.add_gloom_from_enemy(strike_gloom, global_position)
 	var flat := Vector3(velocity.x, 0.0, velocity.z)
@@ -639,6 +644,10 @@ func _on_state(next: int) -> void:
 		_rig.cast()
 	if next == WINDUP or next == LEAP_PREP:
 		_glint = 1.0
+		# telegraph: a red ring on the ground for exactly the windup (pounces: the crouch)
+		var r := strike_range + 0.35 if next == WINDUP else 1.2
+		var life := 0.42 if next == WINDUP else leap_prep
+		Vfx.ring(global_position + Vector3.UP * 0.06, r, Color(2.6, 0.32, 0.18), life, 0.07, Vector3.UP, 1.0)
 
 
 func _die() -> void:
@@ -717,3 +726,12 @@ func _player() -> Player:
 	if not is_instance_valid(_p):
 		_p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 	return _p
+
+
+## Riposte: the player Rift-Stepped through this enemy's strike. Long stagger, no follow-up.
+func riposted() -> void:
+	if _state == DEAD:
+		return
+	_set_state(RECOVER)
+	_state_t = -0.9
+	_knock = Vector3.ZERO

@@ -3,7 +3,7 @@ extends Skill
 ## Umbral Nova: point-blank ring. 1 damage plus 1 per Umbral Mark consumed, hard knockback,
 ## unmakes shades and pops enemy spit in range. The panic button and the payoff for marking.
 
-const RADIUS := 4.6
+const RADIUS := 6.0
 const SHOVE := 10.0
 
 
@@ -18,7 +18,7 @@ func _init() -> void:
 	glyph = &"nova"
 
 
-const PULL_R := 7.5
+const PULL_R := 9.5
 const PULL := 11.0
 const WAKE_TIME := 3.0
 

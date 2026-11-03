@@ -43,6 +43,65 @@ static func dress(rig: CharacterRig, kind: StringName) -> Array[MeshInstance3D]:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if big else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		socket.add_child(mi)
 		out.append(mi)
+	if kind == &"ossuant":
+		out.append_array(_ossuant_armour(rig, mat))
+	return out
+
+
+static var _armour := {}
+
+
+## Ossuant: bone armour over the husk frame so it reads as its own creature, not a recolour --
+## a crowned skull mask, shoulder pauldrons with spurs, an outer ribcage, a spinal ridge, and a
+## fauld of hanging long bones. Same flesh material, so hit-flash and dissolve still apply.
+static func _ossuant_armour(rig: CharacterRig, mat: Material) -> Array[MeshInstance3D]:
+	if _armour.is_empty():
+		var w := Color(1, 1, 1)
+		var dark := Color(0.35, 0.3, 0.28)
+		# head: skull mask with a crown of spurs
+		var cm := CreatureMesh.new(9101)
+		cm.blob(Vector3(0, 0.07, -0.02), Vector3(0.13, 0.13, 0.15), Basis.IDENTITY, w, 0.6, 0.05, 0.0, 7, 10)
+		cm.blob(Vector3(0, 0.0, -0.12), Vector3(0.08, 0.07, 0.06), Basis.IDENTITY, w, 0.6, 0.04, 0.0, 5, 8)
+		for sd: float in [-1.0, 1.0]:
+			cm.blob(Vector3(sd * 0.045, 0.05, -0.155), Vector3(0.032, 0.03, 0.02), Basis.IDENTITY, dark, 0.0, 0.0, 0.0, 4, 6)
+			cm.claw(Vector3(sd * 0.08, 0.16, 0.02), Vector3(sd * 0.5, 1.0, 0.35).normalized(), 0.2, 0.025, Vector3(0, 0, 0.05), w)
+		cm.claw(Vector3(0, 0.19, 0.0), Vector3(0, 1.0, 0.45).normalized(), 0.24, 0.028, Vector3(0, 0, 0.06), w)
+		for k in 5:
+			var x := (float(k) - 2.0) * 0.022
+			cm.blob(Vector3(x, -0.05, -0.15), Vector3(0.009, 0.016, 0.008), Basis.IDENTITY, w, 0.0, 0.0, 0.0, 2, 4)
+		_armour["head"] = cm.commit()
+		# chest: pauldrons with spurs, outer ribcage, spinal ridge
+		cm = CreatureMesh.new(9102)
+		for sd: float in [-1.0, 1.0]:
+			cm.blob(Vector3(sd * 0.27, 0.14, 0.0), Vector3(0.12, 0.08, 0.12), Basis(Vector3.FORWARD, sd * -0.4), w, 0.6, 0.06, 0.0, 5, 8)
+			for j in 2:
+				cm.claw(Vector3(sd * (0.3 + 0.05 * float(j)), 0.19, 0.03 - 0.07 * float(j)), Vector3(sd * 0.8, 0.7, 0.2).normalized(), 0.18 - 0.04 * float(j), 0.022, Vector3(0, 0.03, 0), w)
+			for k in 4:
+				cm.rib(Vector3(0, 0.1 - 0.075 * float(k), 0.14), sd, 0.24, 0.06, 0.02, 0.95)
+		for k in 6:
+			var y := 0.2 - 0.09 * float(k)
+			cm.claw(Vector3(0, y, 0.17), Vector3(0, 0.45, 1.0).normalized(), 0.12 + 0.03 * float(k % 2), 0.02, Vector3(0, 0.03, 0), w)
+		cm.blob(Vector3(0, -0.02, -0.24), Vector3(0.1, 0.13, 0.04), Basis.IDENTITY, w, 0.6, 0.05, 0.0, 5, 8)   # sternum plate
+		_armour["chest"] = cm.commit()
+		# pelvis: fauld of hanging long bones
+		cm = CreatureMesh.new(9103)
+		for k in 7:
+			var a := -1.2 + 2.4 * float(k) / 6.0
+			var o := Vector3(sin(a) * 0.17, -0.06, -cos(a) * 0.13)
+			cm.tube(PackedVector3Array([o, o + Vector3(0, -0.14, 0) + o * 0.15, o + Vector3(0, -0.28, 0) + o * 0.3]), PackedFloat32Array([0.022, 0.016, 0.02]), 5, w, 0.6, 0.03)
+		_armour["pelvis"] = cm.commit()
+	var out: Array[MeshInstance3D] = []
+	for joint: String in _armour:
+		var socket := rig.socket(joint)
+		if socket == null:
+			continue
+		var mi := MeshInstance3D.new()
+		mi.name = "Bone_" + joint
+		mi.mesh = _armour[joint]
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if joint == "chest" else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		socket.add_child(mi)
+		out.append(mi)
 	return out
 
 

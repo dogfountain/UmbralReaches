@@ -41,6 +41,14 @@ func _ready() -> void:
 	_spawn_glimmers()
 	EnemySpawner.seed_stair(self)
 	AreaStreamer.attach(self, AREAS)
+	var amb := Ambience.new()
+	amb.name = "Ambience"
+	add_child(amb)
+	# The Landing brazier stood at x 1.9, in the mouth of the Ossuary bone bridge; move it to the
+	# landing's west side (runtime, so main.tscn stays untouched; kindle memory is by name).
+	var landing := get_node_or_null("Zone/Braziers/Landing") as Node3D
+	if landing:
+		landing.position = Vector3(-1.6, landing.position.y, landing.position.z)
 	finish_zone_setup()
 	if _player.get_node_or_null("CameraRig/Pitch/SpringArm") is SpringArm3D:
 		(_player.get_node("CameraRig/Pitch/SpringArm") as SpringArm3D).spring_length = 3.7

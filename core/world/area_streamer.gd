@@ -51,13 +51,13 @@ func _sync(pos: Vector3, force: bool) -> void:
 		var want := d < float(e.load_r) and below
 		var a := live(id)
 		if a == null and (want or (force and d < float(e.load_r) * 1.2)):
-			_load(e)
+			_load(e, force)
 		elif a != null and d > float(e.unload_r):
 			_live.erase(id)
 			a.queue_free()
 
 
-func _load(e: Dictionary) -> void:
+func _load(e: Dictionary, force := false) -> void:
 	var src: String = e.source
 	var node: Node = null
 	var res := load(src)
@@ -70,6 +70,7 @@ func _load(e: Dictionary) -> void:
 		push_error("AreaStreamer: %s is not an Area" % src)
 		return
 	a.area_id = e.id
+	a.instant = force
 	a.name = "Area_" + String(e.id)
 	var t0 := Time.get_ticks_usec()
 	get_parent().add_child(a)

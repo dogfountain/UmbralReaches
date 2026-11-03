@@ -50,6 +50,7 @@ func _ready() -> void:
 	_build_presence()
 	_build_hurtbox()
 	_whisper = AudioStreamPlayer3D.new()
+	_whisper.bus = &"SFX"
 	_whisper.name = "Whisper"
 	var loop := (load("res://art/audio/shade_whisper.wav") as AudioStreamWAV).duplicate()
 	loop.loop_mode = AudioStreamWAV.LOOP_FORWARD

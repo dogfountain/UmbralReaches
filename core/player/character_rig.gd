@@ -242,13 +242,15 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	elif _stride < 0.05:
 		_phase = lerp_angle(_phase, 0.0, 1.0 - exp(-4.0 * delta))
 	if on_floor and _stride > 0.25 and sin(_prev_phase) * sin(_phase) <= 0.0:
-		_footstep()
+		_footstep(speed)
 	_prev_phase = _phase
 
 	# Air and landing
 	_air = move_toward(_air, 0.0 if on_floor else 1.0, delta * 6.0)
 	if on_floor and not _was_floor:
 		_land = clampf(-_prev_vel.y / 9.0, 0.25, 1.0)
+		if _land > 0.3:
+			_landing_sfx(_land)
 	_was_floor = on_floor
 	_land = move_toward(_land, 0.0, delta * 3.5)
 
@@ -576,27 +578,51 @@ func play_cast_sound() -> void:
 func _ensure_audio() -> void:
 	if Engine.is_editor_hint() or _steps != null:
 		return
+	# Eight layered stone footsteps (tools/refine_sfx.py), never the same one twice in a row,
+	# small pitch/volume drift. random_pitch is a ratio (1.0 = none): 1.05 = +-5 %.
 	var rand := AudioStreamRandomizer.new()
-	rand.random_pitch = 0.14
-	rand.add_stream(0, load("res://art/audio/step_0.wav"))
-	rand.add_stream(1, load("res://art/audio/step_1.wav"))
-	rand.add_stream(2, load("res://art/audio/step_2.wav"))
+	rand.playback_mode = AudioStreamRandomizer.PLAYBACK_RANDOM_NO_REPEATS
+	rand.random_pitch = 1.05
+	rand.random_volume_offset_db = 1.5
+	for i in STEP_COUNT:
+		rand.add_stream(i, load("res://art/audio/step_%d.wav" % i))
 	_steps = AudioStreamPlayer3D.new()
 	_steps.name = "Steps"
 	_steps.stream = rand
+	_steps.max_polyphony = 4             # a step never cuts off (or waits for) the previous one
+	_steps.unit_size = 3.0
 	_steps.max_distance = 18.0
-	_steps.bus = "Master"
+	_steps.bus = "SFX"
 	add_child(_steps)
 	_cast_sfx = AudioStreamPlayer3D.new()
+	_cast_sfx.bus = &"SFX"
 	_cast_sfx.name = "CastSfx"
 	_cast_sfx.stream = load("res://art/audio/bolt_cast.wav")
 	_cast_sfx.max_distance = 22.0
 	add_child(_cast_sfx)
 
 
-func _footstep() -> void:
-	if _steps and not _steps.playing:
-		_steps.play()
+const STEP_COUNT := 8
+
+
+## Every stride gets a step (the old guard skipped any step that landed while the previous
+## sample was still ringing, so sprinting dropped beats). Louder at a run than a walk.
+func _footstep(speed := 0.0) -> void:
+	if _steps == null:
+		return
+	var run := clampf((speed - 1.0) / maxf(sprint_speed - 1.0, 0.1), 0.0, 1.0)
+	_steps.volume_db = lerpf(-11.0, -4.0, run)
+	_steps.pitch_scale = lerpf(0.97, 1.04, run)
+	_steps.play()
+
+
+## Landing: two heavy steps pitched down, scaled by how hard you came down.
+func _landing_sfx(force: float) -> void:
+	if Engine.is_editor_hint():
+		return
+	var at := global_position
+	Sfx.play("res://art/audio/step_%d.wav" % randi_range(0, STEP_COUNT - 1), at, lerpf(-8.0, -1.0, force), 0.78, 0.03)
+	Sfx.play("res://art/audio/step_%d.wav" % randi_range(0, STEP_COUNT - 1), at, lerpf(-12.0, -4.0, force), 0.9, 0.03)
 
 
 ## World-space spawn at the staff orb. Falls back to the chest if the weapon is missing.
