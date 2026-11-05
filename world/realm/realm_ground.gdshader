@@ -124,15 +124,19 @@ void fragment() {
 		if (w[i] > 0.02) {
 			vec2 cs = LAYER_CS[i];
 			vec2 uv = vec2(cs.x * p.x - cs.y * p.y, cs.y * p.x + cs.x * p.y) * SCALE[i];
-			vec4 a = vec4(0.0);
-			vec4 n = NRM_MEAN[i];
-			if (near_on) {
+			vec4 a;
+			vec4 n;
+			if (!far_on) {
 				a = texture(alb, vec3(uv, float(i)));
-				n = mix(texture(nrm, vec3(uv, float(i))), n, fk);
-			}
-			if (far_on) {
+				n = texture(nrm, vec3(uv, float(i)));
+			} else {
 				vec2 fuv = vec2(0.62 * uv.x - 0.78 * uv.y, 0.78 * uv.x + 0.62 * uv.y) * far_scale;
-				a = mix(a, texture(alb, vec3(fuv, float(i))), fk);
+				a = texture(alb, vec3(fuv, float(i)));
+				n = NRM_MEAN[i];
+				if (near_on) {
+					a = mix(texture(alb, vec3(uv, float(i))), a, fk);
+					n = mix(texture(nrm, vec3(uv, float(i))), n, fk);
+				}
 			}
 			a_i[i] = a;
 			n_i[i] = n;
