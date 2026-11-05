@@ -839,6 +839,13 @@ func _tool(mb: Variant, side: int, kind: String, skin: Color) -> void:
 			var ah := g + ax * 0.52 * K
 			mb.blob(ah + fd * 0.05 * K, Vector3(0.012, 0.07, 0.04) * K, Basis(ax.cross(fd).normalized(), fd, ax).orthonormalized(), IRON.darkened(0.25), DwarfMesh.MAT_METAL, {"lumps": 0.0, "rings": 6, "segs": 10})
 			tips[side] = ah + fd * 0.1 * K
+		"sword":
+			# r36 the Kindled Watch: a plain arming sword, wrapped grip, a bar guard, a flat blade
+			mb.tube(PackedVector3Array([g - ax * 0.07 * K, g + ax * 0.08 * K]), _pf([0.014, 0.014], K), 7, (LEATHERS[1] as Color).darkened(0.3), DwarfMesh.MAT_LEATHER, {"lumps": 0.0})
+			var gd := g + ax * 0.09 * K
+			mb.tube(PackedVector3Array([gd - fd * 0.09 * K, gd + fd * 0.09 * K]), _pf([0.011, 0.011], K), 6, IRON.darkened(0.15), DwarfMesh.MAT_METAL, {"lumps": 0.0})
+			mb.tube(PackedVector3Array([gd + ax * 0.01 * K, gd + ax * 0.45 * K, gd + ax * 0.74 * K]), _pf([0.02, 0.017, 0.004], K), 6, IRON.lightened(0.15), DwarfMesh.MAT_METAL, {"lumps": 0.0, "squash": Vector2(1.0, 0.22)})
+			tips[side] = gd + ax * 0.74 * K
 		"scoop":
 			mb.tube(PackedVector3Array([g - ax * 0.05 * K, g + ax * 0.22 * K]), _pf([0.011, 0.01], K), 7, WOOD.darkened(0.1), DwarfMesh.MAT_WOOD, {"lumps": 0.0})
 			mb.blob(g + ax * 0.28 * K - fd * 0.02 * K, Vector3(0.05, 0.03, 0.05) * K, Basis.IDENTITY, IRON.darkened(0.3), DwarfMesh.MAT_METAL, {"phi": Vector2(0.45, 1.0), "lumps": 0.0, "rings": 6, "segs": 12})

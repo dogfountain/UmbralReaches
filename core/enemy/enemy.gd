@@ -848,6 +848,21 @@ func _cache_player() -> void:
 	_to = _p.global_position - global_position
 	_to.y = 0.0
 	_dist = _to.length()
+	# r36 the Kindled Watch: an assault on a watch-post goes for its watchmen while the wanderer
+	# keeps her distance; she is always the first choice once she comes close
+	if focus != null and _dist > FOCUS_DROP:
+		if is_instance_valid(focus) and not bool(focus.get_meta(&"down", false)):
+			_to = focus.global_position - global_position
+			_to.y = 0.0
+			_dist = _to.length()
+		else:
+			focus = null
+
+
+## r36: the watchman this one fights (core/world/watch/watch.gd), while the wanderer is further than
+## FOCUS_DROP. Its blows are counted by the watch, not by the strike (which only hurts the wanderer).
+var focus: Node3D = null
+const FOCUS_DROP := 7.0
 
 
 ## Packmates push apart within 1.4 m, and -- once they are near the player -- also spread round

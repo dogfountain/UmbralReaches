@@ -268,6 +268,11 @@ func _plant() -> void:
 		_spawn(slot)
 	if _realm:
 		_make_rares()
+		(load("res://core/world/watch/watch_posts.gd") as GDScript).call("build", get_parent() as Node3D)   # r36 the Kindled Watch
+		if get_parent().get_node_or_null("RoamEvents") == null:            # r36 roaming events
+			var roam: Node = (load("res://core/world/roam/roam_events.gd") as GDScript).new()
+			roam.name = "RoamEvents"
+			get_parent().add_child(roam)
 	planted_done = true
 	planted.emit()
 
