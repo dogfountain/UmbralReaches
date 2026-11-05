@@ -51,7 +51,9 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"field_ranks", "field_last", "abbot_roll", "abbot_cords", "abbot_names",
 	"mere_lamps", "mere_chapel", "mere_light", "mere_ferryman", "mere_oil",
 	# r36 Act II: the Founder's peal
-	"founders_peal", "bell_holds", "bell_quarry", "bell_moor", "bell_foundry", "bell_orchard", "bell_necropolis", "bell_mere"]
+	"founders_peal", "bell_holds", "bell_quarry", "bell_moor", "bell_foundry", "bell_orchard", "bell_necropolis", "bell_mere",
+	# r36 the keep's standing bounties
+	"keg_tab", "rare_head", "keeper_again"]
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
 const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
@@ -749,6 +751,39 @@ const QUESTS := {
 		"choose": [{"set": "ferryman", "slot": "focus", "rarity": 2}, {"set": "ferryman", "slot": "lantern", "rarity": 2}],
 		"outcome": {"rung": "Cadoc said he heard it and nearly went. Then he remembered there's no boat. Then he went anyway, as far as his knees.",
 			"carried": "\"Then nobody calls me across,\" Cadoc said. \"Good. I'm tired.\""}},
+	# --- r36 the grind: the keep's standing bounties, every night. The Keg's tab pays for the dark
+	# thinned, a named rare's head, and the bell keepers, who come back
+	"keg_tab": {"name": "The Keg's Tab", "giver": "keep", "where": "The keep of the Kindled Keg", "zone": "hearth",
+		"offer": true, "repeat": "daily", "avail": "flag:met_keep",
+		"text": "I keep a tab for the dark. Every hollowed you put down comes off it. Twenty, and I'll stand you ember and a bed. Every night. The tab never closes.",
+		"steps": [
+			{"kind": "slay", "of": 20, "label": "Hollowed anywhere", "text": "Put down hollowed anywhere in the Reaches ({n}/{of})"},
+			{"kind": "turnin", "who": "keep", "text": "Have the keep strike them off the tab"},
+		],
+		"reward": {"ash": 18, "items": {"ember_shard": 2}},
+		"outcome": {"": "The keep made twenty marks on the slate behind the bar and wiped them off with his sleeve."}},
+	"rare_head": {"name": "A Named Head", "giver": "keep", "where": "The keep of the Kindled Keg", "zone": "hearth",
+		"offer": true, "repeat": "daily", "avail": "bosses:1",
+		"text": "The ones with names walk the same rounds every night. Bring me word one of them's down. Any of them. I pay better for names.",
+		"steps": [
+			{"kind": "slay", "of": 1, "rares": ["old_rook", "brother_chisel", "hennet", "clapper", "old_pippin", "last_pilgrim", "ferryman"],
+				"label": "A named rare", "text": "Put down one of the named rares that walk the Reaches"},
+			{"kind": "turnin", "who": "keep", "text": "Tell the keep whose name to cross out"},
+		],
+		"reward": {"ash": 22, "items": {"relic_fragment": 2}},
+		"choose": [{"slot": "focus", "rarity": 2}, {"slot": "vestment", "rarity": 2}, {"slot": "lantern", "rarity": 2}, {"slot": "girdle", "rarity": 2}],
+		"outcome": {"": "The keep crossed the name out. It'll be back on the slate tomorrow, in his handwriting."}},
+	"keeper_again": {"name": "The Keepers Come Back", "giver": "keep", "where": "The keep of the Kindled Keg", "zone": "hearth",
+		"offer": true, "repeat": "daily", "avail": "q:founders_peal",
+		"text": "Brannoc says the things that kept his mother's bells come back to them. Of course they do. Put one down again. He'll pay in iron; I pay in ash.",
+		"steps": [
+			{"kind": "slay", "of": 1, "rares": ["kin_caller", "bell_hewer", "fog_shepherd", "slag_born", "ash_sower", "passing_ringer", "fare_caller"],
+				"label": "A bell keeper", "text": "Put down one of the bells' keepers, wherever it walks"},
+			{"kind": "turnin", "who": "keep", "text": "Tell the keep which bell is quiet tonight"},
+		],
+		"reward": {"ash": 26, "items": {"grave_iron": 2, "ember_shard": 2}},
+		"choose": [{"slot": "focus", "rarity": 3}, {"slot": "vestment", "rarity": 3}, {"slot": "lantern", "rarity": 3}, {"slot": "girdle", "rarity": 3}],
+		"outcome": {"": "Brannoc paid in iron, as promised, and said nothing, which for Brannoc is thanks."}},
 }
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.

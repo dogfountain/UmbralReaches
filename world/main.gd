@@ -142,10 +142,18 @@ func _process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	super._unhandled_input(event)
+	# r36 hardening (r35 critique, #7): the autopilot (F9) and the benchmark (F8) are for development;
+	# the shipped game (an export template) ignores them unless started with -- --dev
+	if not _dev_keys():
+		return
 	if event.is_action_pressed("demo") and not _player.autopilot:
 		_start_demo()
 	elif event.is_action_pressed("benchmark"):
 		_start_benchmark()
+
+
+static func _dev_keys() -> bool:
+	return OS.has_feature("editor") or "--dev" in OS.get_cmdline_user_args()
 
 
 func _spawn_glimmers() -> void:

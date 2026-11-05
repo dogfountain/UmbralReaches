@@ -115,6 +115,10 @@ func dismount() -> void:
 ## Player.riding: move the horse from the rider's wish (world xz) and sprint; seat the rider.
 func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	_space = get_world_3d().direct_space_state
+	if Player.boss_fight_active(get_tree()):
+		dismount()
+		Events.toast.emit("The horse will go no nearer. You get down.")
+		return
 	var want := 0.0
 	var w := Vector3(wish.x, 0.0, wish.z)
 	if w.length() > 0.1:
@@ -149,6 +153,10 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 
 
 func _process(dt: float) -> void:
+	# a rider that died, was hollowed or was moved off (a respawn, travel) is no longer riding
+	if rider != null and (not is_instance_valid(rider) or rider.get("riding") != self):
+		rider = null
+		speed = 0.0
 	if rider != null:
 		return
 	# standing: graze now and then, flick the head up
