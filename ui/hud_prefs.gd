@@ -67,3 +67,39 @@ static func set_track(group: String, on: bool) -> void:
 	ensure()
 	track[group] = on
 	save()
+
+
+# --- the staged opening (r37) ----------------------------------------------------------------------
+
+## A new game: the story has not had its arrival yet, and there is no progress in the save.
+static var test_force := false          ## zz/opening_test: stage the opening in a headless run too
+static func new_game_open() -> bool:
+	var flags: Variant = Travel.story.get("flags", {})
+	if flags is Dictionary and bool((flags as Dictionary).get("arrived", false)):
+		return false
+	return Travel.bosses_slain.is_empty() and Travel.seals_broken.is_empty() and Travel.lit_by_path.is_empty() and (test_force or DisplayServer.get_name() != "headless")
+
+
+## The Gloom bar is not drawn until Gloom first rises above 0 (once per save; an older save already knows it).
+static func gloom_known() -> bool:
+	return bool(Travel.story.get("gloom_seen", false)) or not new_game_open_cached()
+
+
+static var _new_game_cache := -1
+
+
+static func new_game_open_cached() -> bool:
+	if _new_game_cache < 0:
+		_new_game_cache = 1 if new_game_open() else 0
+	return _new_game_cache == 1
+
+
+## The HUD asks this once as it builds: a fresh look at whether this is a new game.
+static func reset_stage() -> void:
+	_new_game_cache = -1
+
+
+static func note_gloom(value: float) -> void:
+	if value > 0.0005 and not bool(Travel.story.get("gloom_seen", false)):
+		Travel.story["gloom_seen"] = true
+		Travel.save_soon()

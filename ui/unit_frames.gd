@@ -774,6 +774,9 @@ func _draw_player() -> void:
 	var g := float(_p("gloom", 0.0))
 	var gmax := maxf(float(_p("gloom_max", 100.0)), 0.001)
 	var gr := clampf(g / gmax, 0.0, 1.0)
+	# r37: the Gloom bar is not drawn until Gloom first rises above 0 (a new game opens without it)
+	HudPrefs.note_gloom(gr)
+	var gloom_known := HudPrefs.gloom_known()
 	var gcol := LILAC.lerp(EMBER, smoothstep(0.5, 1.0, gr))
 	if gr > 0.75:
 		gcol = gcol.lightened(0.25 * (0.5 + 0.5 * sin(_t * 9.0)))
@@ -782,11 +785,12 @@ func _draw_player() -> void:
 		_bar(hr, hp.x / hp.y, HEALTH, 1.0)
 		_text(hr.position + Vector2(0, 13), "%d / %d" % [roundi(hp.x), roundi(hp.y)], 12, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
 		y += 19.0
-		var gb := Rect2(Vector2(x, y), Vector2(w, 12))
-		_bar(gb, gr, gcol, 1.0, -1.0, [0.25, 0.5, 0.75])
-		_text(gb.position + Vector2(4, 10), "GLOOM", 10, Color(INK, 0.85))
-		y += 15.0
-	else:
+		if gloom_known:
+			var gb := Rect2(Vector2(x, y), Vector2(w, 12))
+			_bar(gb, gr, gcol, 1.0, -1.0, [0.25, 0.5, 0.75])
+			_text(gb.position + Vector2(4, 10), "GLOOM", 10, Color(INK, 0.85))
+			y += 15.0
+	elif gloom_known:
 		var gb := Rect2(Vector2(x, y), Vector2(w, 18))
 		_bar(gb, gr, gcol, 1.0, -1.0, [0.25, 0.5, 0.75])
 		_text(gb.position + Vector2(6, 14), "GLOOM", 12, Color(INK, 0.9))

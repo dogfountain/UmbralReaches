@@ -36,6 +36,9 @@ var _measure_rid: RID
 var _pad := false                 ## the last input came from a gamepad: the card and tips use pad names
 var _seen_capture := false        ## the mouse has been captured once (menus free it: a "menu open" cue)
 var _life := 0.0
+var _ui: Control                  ## everything but the fade
+var _compass: Control
+var _minimap: Control
 var _td: Node                     ## the text arbiter (ui/text_director.gd)
 var _tip_check := 0.0
 var _sprint_t := 0.0
@@ -91,15 +94,20 @@ func _ready() -> void:
 	add_to_group(&"hud")                         # ui/hints.gd finds the tip line here
 	process_mode = Node.PROCESS_MODE_ALWAYS     # the card and the crosshair step aside while the tree is paused
 	_font = load("res://ui/fonts/Cinzel.ttf")
+	var outer := Control.new()                  # r37: the fade sits here, over the whole HUD (root) so an opening can hide the HUD alone
+	outer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	outer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(outer)
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(root)
+	outer.add_child(root)
+	_ui = root
 
 	_td = TextDirector.new()
 	_td.name = "TextDirector"
 	add_child(_td)
-	_td.build(root, _font)
+	_td.build(outer, _font)
 	HudPrefs.ensure()
 	_card_req = HudPrefs.card_request
 	var gl := _label(root, "GLOOM", 22, QUIET)
@@ -146,8 +154,10 @@ func _ready() -> void:
 	bar.offset_bottom = -30
 	root.add_child(bar)
 	root.add_child(load("res://core/story/objective_line.gd").new())   # objective lines (core/story, story agent)
-	root.add_child(load("res://ui/compass.gd").new())                  # heading strip + beacon/brazier markers (ENS art pass)
-	root.add_child(load("res://ui/minimap.gd").new())                  # round minimap, bottom right; M: near / wide / off (r32)
+	_compass = load("res://ui/compass.gd").new()
+	root.add_child(_compass)                                           # heading strip + beacon/brazier markers (ENS art pass)
+	_minimap = load("res://ui/minimap.gd").new()
+	root.add_child(_minimap)                                           # round minimap, bottom right; M: near / wide / off (r32)
 	root.add_child(load("res://ui/xp_bar.gd").new())                   # r33: XP strip along the bottom, once XP exists
 	root.add_child(load("res://ui/unit_frames.gd").new())              # r33: player / target / boss frames, cast bar
 	root.add_child(load("res://ui/combat_text.gd").new())              # r33: the wanderer's side of a fight, as text
@@ -181,8 +191,12 @@ func _ready() -> void:
 	_fade.color = Color(0, 0, 0, 0)
 	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(_fade)
+	outer.add_child(_fade)
 
+	# a new game opens on black with no HUD: the story (core/story/story.gd _opening) lifts it in beats
+	HudPrefs.reset_stage()
+	if HudPrefs.new_game_open_cached():
+		hold_opening(true)
 	Events.gloom_changed.connect(_on_gloom)
 	Events.interact_hint.connect(_on_hint)
 	Settings.changed.connect(func() -> void: TextDirector.rescale(self))
@@ -224,8 +238,10 @@ func _on_device(pad: bool) -> void:
 
 func _process(delta: float) -> void:
 	var legacy := not HudPrefs.unit_frames     # r33: the frames carry the Gloom; the old bar is the fallback
-	_bar.visible = legacy
-	_gloom_label.visible = legacy
+	HudPrefs.note_gloom(_bar.value)
+	_bar.visible = legacy and HudPrefs.gloom_known()
+	_gloom_label.visible = legacy and HudPrefs.gloom_known()
+	_stage_tick(delta)
 	if HudPrefs.card_request != _card_req:
 		_card_req = HudPrefs.card_request
 		show_card()
@@ -317,6 +333,9 @@ func _on_zone(title: String, subtitle: String) -> void:
 	if Travel.returning:
 		Travel.returning = false
 		return
+	if _opening_hold:
+		_card_after = [title, subtitle]          # the card waits for the opening: it plays when the HUD arrives
+		return
 	# the night's title card waits for the loading screen to lift, and for the text director's banner lane
 	# (narration, a dialogue box or a fight hold it)
 	_title_pending += 1
@@ -407,18 +426,20 @@ func _tips_tick(delta: float) -> void:
 	if _tip_check > 0.0:
 		return
 	_tip_check = 0.25
-	if _menu_open() or not staged_in():
+	if _menu_open() or (not staged_in() and not _lifting):
 		return
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	if p == null or not p.is_inside_tree():
 		return
 	var v: Vector3 = p.get("velocity") if p.get("velocity") != null else Vector3.ZERO
 	var flat := Vector2(v.x, v.z).length()
-	var grounded := bool(p.call("is_grounded"))
+	var grounded: bool = bool(p.call("is_grounded")) if p.has_method("is_grounded") else true
 	_sprint_t = _sprint_t + 0.25 if flat > 6.5 and grounded else 0.0
 	_air_t = 0.0 if grounded else _air_t + 0.25
 	if p.has_method("is_hanging") and p.call("is_hanging"):
 		_jit("hang", "%s  climb up   ·   push away + %s  kick off   ·   %s  let go" % [_pk("jump", "A"), _pk("jump", "A"), _pk("slide", "B")])
+	elif not staged_in():
+		_jit("move", "%s  move   ·   mouse  look   ·   %s  sprint   ·   %s  jump" % [_pk_move(), _pk("sprint", "L3"), _pk("jump", "A")])
 	elif not Hints.seen(&"tip_move"):
 		_jit("move", "%s  move   ·   mouse  look   ·   %s  sprint   ·   %s  jump" % [_pk_move(), _pk("sprint", "L3"), _pk("jump", "A")])
 	elif _air_t > 0.4:
@@ -427,7 +448,7 @@ func _tips_tick(delta: float) -> void:
 		_jit("slide", "%s  while running: slide   ·   %s  in a slide: a long leap" % [_pk("slide", "B"), _pk("jump", "A")])
 	elif p.has_method("lock_target") and p.call("lock_target") == null and _foe_near(p, 16.0):
 		_jit("lock", "%s  lock on to it   ·   %s  roll through a blow" % [_pk("lock_on", "R3"), _pk("dodge", "B")])
-	elif float(p.get("gloom")) > 55.0:
+	elif p.get("gloom") != null and float(p.get("gloom")) > 55.0:
 		_jit("gloom", "The Gloom fills away from light. Full, it takes shape and hunts you. Firelight drains it.")
 
 
@@ -451,6 +472,44 @@ func staged_in() -> bool:
 
 
 var _opening_hold := false
+var _card_after: Array = []
+var _lifting := false                  ## the black has lifted but the HUD has not arrived: only the move prompt shows
+var _stage_t := 0.0
+
+
+## r37, the staged opening of a new game (core/story/story.gd calls these three in order):
+##   hold_opening(true)   black, no HUD (the HUD does this itself at boot when the game is new)
+##   fade_in_opening()    the black lifts over the world; the HUD stays away
+##   hold_opening(false)  the HUD arrives (what has not been earned yet stays hidden: see _stage_tick)
+func hold_opening(on: bool) -> void:
+	_opening_hold = on
+	_ui.visible = not on
+	if on:
+		_fade.color.a = 1.0
+	elif not _card_after.is_empty():
+		var c := _card_after
+		_card_after = []
+		_on_zone(String(c[0]), String(c[1]))
+
+
+func fade_in_opening(seconds := 3.0) -> void:
+	_lifting = true
+	create_tween().tween_property(_fade, "color:a", 0.0, seconds)
+
+
+## The pieces of the HUD that come later: the compass and the minimap with the Keep (met_keep).
+func _stage_tick(delta: float) -> void:
+	_stage_t -= delta
+	if _stage_t > 0.0:
+		return
+	_stage_t = 0.3
+	var flags: Variant = Travel.story.get("flags", {})
+	var met: bool = flags is Dictionary and bool((flags as Dictionary).get("met_keep", false))
+	met = met or not HudPrefs.new_game_open_cached()      # only a new game keeps them back
+	if _compass:
+		_compass.visible = met
+	if _minimap:
+		_minimap.visible = met
 
 
 ## Key or pad name for a tip, by the device in use.

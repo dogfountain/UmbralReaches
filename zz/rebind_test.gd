@@ -49,8 +49,8 @@ func _model() -> void:
 	pad.button_index = JOY_BUTTON_X
 	_ok(String(InputSetup.rebind("jump", "pad", pad)).contains("already"), "pad X (use) is refused for jump")
 	pad = InputEventJoypadButton.new()
-	pad.button_index = JOY_BUTTON_BACK
-	_ok(InputSetup.rebind("jump", "pad", pad) == "", "jump on the controller goes to View")
+	pad.button_index = JOY_BUTTON_TOUCHPAD
+	_ok(InputSetup.rebind("jump", "pad", pad) == "", "jump on the controller goes to the touchpad button")
 	var m := InputEventMouseButton.new()
 	m.button_index = MOUSE_BUTTON_LEFT
 	_ok(String(InputSetup.rebind("jump", "key", m)).contains("Skill 1"), "LMB is refused (it is Skill 1)")

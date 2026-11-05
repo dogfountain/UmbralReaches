@@ -35,6 +35,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_fade_tick(delta)
 	_poll -= delta
 	if _poll > 0.0:
 		return
@@ -42,6 +43,25 @@ func _process(delta: float) -> void:
 	var story := get_tree().get_first_node_in_group("story")
 	var lines: Array = story.call("objectives") if story and story.has_method("objectives") else []
 	show_lines(lines)
+
+
+## r37: the tracker shows for SHOW_S seconds when what it says changes, then hides; holding the
+## "show_objective" action (Y, View) brings it back. It also stands aside while a banner is up
+## (the text director's banner lane) and while the HUD is still holding a new game's opening.
+const SHOW_S := 6.0
+var _show_t := 0.0
+
+
+func _fade_tick(delta: float) -> void:
+	var hud := get_tree().get_first_node_in_group(&"hud")
+	var held: bool = hud != null and hud.has_method("staged_in") and not bool(hud.call("staged_in"))
+	if not held and not get_tree().paused:
+		_show_t = maxf(0.0, _show_t - delta)
+	var want := _show_t > 0.0 or Input.is_action_pressed("show_objective")
+	var td := TextDirector.of(self)
+	if td != null and td.banner_up():
+		want = false
+	modulate.a = move_toward(modulate.a, 1.0 if want else 0.0, delta * (4.0 if want else 1.6))
 
 
 func _label(text: String, size: int, col: Color, font: Font) -> Label:
@@ -68,6 +88,7 @@ func show_lines(lines: Array) -> void:
 		return
 	var old := _last
 	_last = key
+	_show_t = SHOW_S
 	for b in _blocks:
 		b.queue_free()
 	_blocks.clear()
