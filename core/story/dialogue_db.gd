@@ -21,7 +21,7 @@ const CONV := {
 	"keep": {
 		"name": "The Keep",
 		"portrait": KEEP_PORTRAIT,
-		"start": [["boss:ascended_warden,!flag:ending_told", "end_1"], ["flag:deeper,!flag:deeper_met", "ng_1"], ["!flag:met_keep", "meet_1"], ["qat:keg_thief:3", "thief_report"], ["", "hub"]],
+		"start": [["boss:ascended_warden,!flag:ending_told", "end_1"], ["qd:names_under,!flag:epilogue_told", "epi_1"], ["flag:deeper,!flag:deeper_met", "ng_1"], ["!flag:met_keep", "meet_1"], ["qat:keg_thief:3", "thief_report"], ["", "hub"]],
 		"nodes": {
 			# --- first meeting --------------------------------------------------------------
 			"meet_1": {"say": "Shut the door. No, leave it. The fire's done arguing with the dark tonight.", "next": "meet_2"},
@@ -152,6 +152,17 @@ const CONV := {
 				["qp:bell_necropolis:rung", "Agathe sent word. The Waiting Field heard its one stroke and lay down. All of them. Facing any way they liked."],
 				["", "Not all seven. Brannoc says his mother would have wanted the set. He says it like he'll go and fetch the rest himself."],
 			], "next": "end_5"},
+			# r36 Act III: the epilogue, after the names are cut under the door
+			"epi_1": {"say_if": [
+				["qp:the_latch:latched", "Latched. Brannoc told me. Nothing goes up now, and nothing comes down. The sky's a lid. I sleep under it fine."],
+				["qp:the_latch:broken", "Broken. Brannoc told me. No door, then. Just the sky, the way it was before anybody climbed. I keep looking up. I think I'll stop."],
+				["", "On the latch. Brannoc told me. The ones still up there can come home if they want to. Two came down the road last night. One of them asked for a room."],
+			], "next": "epi_2"},
+			"epi_2": {"say_if": [
+				["qd:full_peal", "And all seven of her bells. I heard the last of them from here. Brannoc's not been sober since. Neither have I."],
+				["", "Brannoc's still short of bells. He'll have them off you yet, if you stay."],
+			], "next": "epi_3"},
+			"epi_3": {"say": "The names are cut. Your stool's your stool. That's the whole of it. Stay as long as you like; the fire won't go out without you now.", "do": "flag:epilogue_told", "next": ""},
 			"end_5": {"say": "Sit. First round's for the kindled. Second's for the lost. The third's yours.", "do": "flag:ending_told", "next": ""},
 		},
 	},
@@ -258,6 +269,23 @@ const CONV := {
 				["", "The door shuts. Maybe a bell rings. I'd like to hear one ring again, the right way up."],
 			], "next": "hub"},
 			"after": {"say": "I heard it. One bell. From the bottom, the right way up. You did that.", "do": "flag:brannoc_after", "next": "hub"},
+		},
+	},
+	# r36 Act III: the latch-stone under the door (quest the_latch, step 1)
+	"door_latch": {
+		"name": "The Door",
+		"start": [["!qat:the_latch:1", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "The door hangs in the sky over the dais, shut, its edge a line of nothing against the stars. Under it the latch-stone has a slot the shape of the Ascension Seal. The Seal is warm in your hand.", "who": "", "choices": [
+				{"text": "Latch it. Nothing more goes up, and nothing comes down.", "to": "latched"},
+				{"text": "Leave it on the latch, for the ones still climbing.", "to": "open"},
+				{"text": "Break the latch on the stone.", "to": "broken"},
+				{"text": "Not yet.", "to": ""},
+			]},
+			"latched": {"say": "The Seal goes into the slot and turns. Somewhere a long way up, a bolt goes home. The cold that leaned on your back stops leaning.", "who": "", "do": "qp:the_latch:latched,qa:the_latch", "next": ""},
+			"open": {"say": "You lay the Seal in the slot and do not turn it. The door stays shut. It would open, now, from the other side, to a hand that wanted it to.", "who": "", "do": "qp:the_latch:open,qa:the_latch", "next": ""},
+			"broken": {"say": "You set the Seal on the stone and bring the staff down on it. It breaks clean, like a bell cast too cold. Overhead the line of the door fades out of the sky, and there are only stars.", "who": "", "do": "qp:the_latch:broken,qa:the_latch", "next": ""},
+			"gone": {"say": "The latch-stone. What's done is done.", "who": "", "next": ""},
 		},
 	},
 	# r36 Act II: The Kin Bell (quest bell_holds, step 1; the pickup opens this)

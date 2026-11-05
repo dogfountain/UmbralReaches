@@ -31,6 +31,7 @@ func _ready() -> void:
 	_data()
 	_counting()
 	_gates()
+	_act3()
 	Travel.story = story0
 	Travel.bosses_slain = bosses0
 	print("ACT2 %s (%d failed)" % ["PASS" if bad == 0 else "FAIL", bad])
@@ -107,3 +108,25 @@ func _gates() -> void:
 	# the Warden holds less for every tongue carried home (all seven: about a third)
 	ok(is_equal_approx(Warden.BELL_HOLD * 7.0, 0.35), "seven tongues cost the Warden 35% of his life")
 	ok(Warden.BELL_WORDS.size() == 8, "a word for every count of bells")
+
+
+## r36 Act III: the door, those still climbing, the names, the full peal; the valley after.
+func _act3() -> void:
+	const Reach := preload("res://core/world/night/reach_state.gd")
+	for id: String in ["the_latch", "still_climbing", "names_under", "full_peal"]:
+		ok(Chains.QUESTS.has(id) and Chains.ORDER.has(id), "Act III: %s is in the ledger" % id)
+	ok(String(Chains.QUESTS.the_latch.avail).contains("boss:ascended_warden"), "the latch waits for the Warden")
+	var at: Dictionary = DialogueDB.node("door_latch", "at")
+	ok((at.get("choices", []) as Array).size() == 4, "at the door: latch it, leave it on the latch, break it, or not yet")
+	ok(Chains.gather_keys("names_under", 0).size() == 4, "four names from four far fires")
+	Travel.story = {}
+	Travel.bosses_slain["ascended_warden"] = true
+	ok(Reach.act() == 4, "act 4 after the Warden")
+	for id: String in ["the_latch", "still_climbing", "names_under"]:
+		Book.start(id)
+	Book.choose("the_latch", "latched")
+	for id: String in ["the_latch", "still_climbing", "names_under"]:
+		Book.complete(id)
+	ok(Reach.act() == 5 and Reach.pressure() < 1.0, "a latched door: act 5, and the dark presses less (%.1f)" % Reach.pressure())
+	Book.choose("the_latch", "open")
+	ok(Reach.homecoming() and Reach.pressure() == 1.0, "a door on the latch: the ones above come home")

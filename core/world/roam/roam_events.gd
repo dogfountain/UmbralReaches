@@ -46,7 +46,10 @@ func _physics_process(delta: float) -> void:
 		_check = 2.0
 		_wait -= 2.0
 		if _wait <= 0.0 and not Player.boss_fight_active(get_tree()):
-			start(String(KINDS[_rng.randi_range(0, KINDS.size() - 1)]))
+			var k := String(KINDS[_rng.randi_range(0, KINDS.size() - 1)])
+			if ReachState.homecoming() and _rng.randf() < 0.5:
+				k = "pilgrim"                 # r36 Act III: the door on the latch; they come home
+			start(k)
 		return
 	_t += delta
 	match kind:

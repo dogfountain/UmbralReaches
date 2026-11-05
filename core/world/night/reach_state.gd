@@ -48,6 +48,8 @@ func _ready() -> void:
 
 
 static func act() -> int:
+	if Book.done("names_under"):
+		return 5
 	if Travel.bosses_slain.has("ascended_warden"):
 		return 4
 	if Book.done("founders_peal"):
@@ -59,7 +61,17 @@ static func act() -> int:
 
 ## How hard the dark presses: 1.0 in act 1, more after.
 static func pressure() -> float:
-	return [1.0, 1.0, 1.3, 1.5, 1.2][act()]
+	var a := act()
+	if a == 5:
+		# Act III's end: a latched door quiets the dark; one left on the latch keeps the roads busy
+		return {"latched": 0.6, "broken": 0.8}.get(Book.pick("the_latch"), 1.0)
+	return [1.0, 1.0, 1.3, 1.5, 1.2][a]
+
+
+## r36 Act III: the door left on the latch: the ones above come home (roam_events favours the
+## living pilgrim, who now walks down the road rather than up).
+static func homecoming() -> bool:
+	return Book.pick("the_latch") == "open"
 
 
 static func quiet(region: String) -> bool:
@@ -128,7 +140,10 @@ func refresh() -> void:
 		ann[akey] = true
 		Events.toast.emit(String({2: "The dark knows two of its keepers are gone. It comes looking.",
 			3: "Bells ring in the far countries. Up at the summit, something listens.",
-			4: "The sky has stopped turning. The dark is slower now, and sullen."}.get(a, "")))
+			4: "The sky has stopped turning. The dark is slower now, and sullen.",
+			5: {"latched": "The door is latched. The dark in the valley has nothing behind it now; it thins.",
+				"broken": "No door. The valley's dark is only night now, and night ends.",
+				}.get(Book.pick("the_latch"), "Lights on the road at night: people coming down from the Stair. Some of them alive.")}.get(a, "")))
 	# bells rung where they hung: the bell stands lit
 	for b: String in BELL_REGION:
 		if Book.pick(b) == "rung" and not _lit.has(b):

@@ -53,7 +53,9 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	# r36 Act II: the Founder's peal
 	"founders_peal", "bell_holds", "bell_quarry", "bell_moor", "bell_foundry", "bell_orchard", "bell_necropolis", "bell_mere",
 	# r36 the keep's standing bounties
-	"keg_tab", "rare_head", "keeper_again"]
+	"keg_tab", "rare_head", "keeper_again",
+	# r36 Act III: the door
+	"the_latch", "still_climbing", "names_under", "full_peal"]
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
 const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
@@ -784,6 +786,54 @@ const QUESTS := {
 		"reward": {"ash": 26, "items": {"grave_iron": 2, "ember_shard": 2}},
 		"choose": [{"slot": "focus", "rarity": 3}, {"slot": "vestment", "rarity": 3}, {"slot": "lantern", "rarity": 3}, {"slot": "girdle", "rarity": 3}],
 		"outcome": {"": "Brannoc paid in iron, as promised, and said nothing, which for Brannoc is thanks."}},
+	# --- r36 Act III: the door. The keep thinks it shut when the Warden fell. Brannoc knows a door hung
+	# to a bell is shut by a bell and held by a latch, and the latch fell out of Aurel's hand into yours.
+	"the_latch": {"name": "Shut Is Not Latched", "giver": "brannoc", "where": "Brannoc Bellwright, at the Keg", "zone": "summit",
+		"offer": true, "avail": "boss:ascended_warden,flag:ending_told",
+		"text": "Shut, he says. Shut isn't latched. Mother hung that door, and a door she hung is held by its latch, and the latch is in your satchel. Go back up. Put it in the door, or don't. I can't tell you which. I only know which she'd have done, and she was wrong about things.",
+		"steps": [
+			{"kind": "visit", "at": Vector2(0.0, -103.9), "r": 8.0, "label": "The door in the sky", "text": "Climb back to the Warden's dais, under the door"},
+			{"kind": "find", "text": "Decide what the latch is for"},
+			{"kind": "turnin", "who": "brannoc", "text": "Tell Brannoc what you did at the door"},
+		],
+		"alt": {"latched": {2: "Tell Brannoc the door is latched"}, "open": {2: "Tell Brannoc the door is left on the latch"}, "broken": {2: "Tell Brannoc the latch is broken"}},
+		"reward": {"ash": 40, "items": {"relic_fragment": 3}},
+		"choose": [{"legend": "door_splinter"}, {"legend": "sunk_shroud"}, {"legend": "unlit_lamp"}, {"legend": "stair_rope"}],
+		"outcome": {"latched": "Brannoc nodded once. \"Then nothing more goes up. And nothing up there comes down. She'd have done that. She liked things finished.\"",
+			"open": "\"On the latch,\" Brannoc said. \"So the ones still climbing can turn round. That's kinder than she was.\"",
+			"broken": "Brannoc looked at the two halves of the latch for a long time. \"Then it's only sky,\" he said. \"Just sky. I don't know if that's better. Nobody does.\""}},
+	"still_climbing": {"name": "Those Still Climbing", "giver": "agathe", "where": "Sister Agathe, at the gate of the Waiting Field", "zone": "necropolis",
+		"offer": true, "avail": "qd:the_latch",
+		"text": "Since the door, the ones who were halfway up have been coming down. Not all of them know they're dead. Some walk into the Field and stand in their old places. Some walk into it with their hands out. Put down the ones with their hands out.",
+		"steps": [
+			{"kind": "slay", "of": 8, "region": "necropolis", "label": "The ones who came down", "at": Vector2(-4.0, 124.0),
+				"text": "Put down the hollowed who came down into the Waiting Field ({n}/{of})"},
+			{"kind": "turnin", "who": "agathe", "text": "Tell Sister Agathe the Field is quiet"},
+		],
+		"reward": {"ash": 30, "items": {"ember_shard": 3}},
+		"choose": [{"set": "tally", "slot": "lantern", "rarity": 3}, {"set": "tally", "slot": "focus", "rarity": 3}],
+		"outcome": {"": "Agathe counted the ones who stood in their old places and didn't hold out their hands. Forty-one. She left them standing."}},
+	"names_under": {"name": "Names Under the Door", "giver": "keep", "where": "The keep of the Kindled Keg", "zone": "summit",
+		"offer": true, "avail": "qd:still_climbing",
+		"text": "The dais stone. 'The names of the faithful who went through,' and nothing cut under it. I've been thinking about that. Ask about. Get me a name from every fire in the far country, somebody who went up, and cut them in. Then come and sit down. For good, this time.",
+		"steps": [
+			{"kind": "gather", "of": 4, "text": "Ask a name of the faithful at the fires of the far country ({n}/{of})"},
+			{"kind": "find", "text": "Cut the names into the dais stone under the door"},
+			{"kind": "turnin", "who": "keep", "text": "Sit on your stool at the Kindled Keg"},
+		],
+		"reward": {"ash": 50},
+		"choose": [{"set": "bell", "slot": "focus", "rarity": 4}, {"set": "bell", "slot": "vestment", "rarity": 4}, {"set": "bell", "slot": "lantern", "rarity": 4}, {"set": "bell", "slot": "girdle", "rarity": 4}],
+		"outcome": {"": "The keep poured two. He drank his and then, after a while, yours. \"Somebody should,\" he said."}},
+	"full_peal": {"name": "The Full Peal", "giver": "brannoc", "where": "Brannoc Bellwright, at the Keg", "zone": "summit",
+		"offer": true, "avail": "qd:the_latch",
+		"text": "Four woke the door. Seven is what she cast. I'd like to hear it, once, the way she meant it: every bell answered for, top to bottom, or bottom to top, I don't care which. You've the legs. I've watched you.",
+		"steps": [
+			{"kind": "cond", "cond": "bells:7", "text": "Answer for all seven of the Founder's bells ({bells} of 7)"},
+			{"kind": "turnin", "who": "brannoc", "text": "Tell Brannoc the peal is whole"},
+		],
+		"reward": {"ash": 60, "items": {"ember_shard": 5, "relic_fragment": 5}},
+		"choose": [{"legend": "door_splinter"}, {"legend": "sunk_shroud"}, {"legend": "unlit_lamp"}, {"legend": "stair_rope"}],
+		"outcome": {"": "Brannoc rang the chimney tongue seven times, slowly, and the Keg went quiet for each one. Then he put his head down on the bar and laughed."}},
 }
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
@@ -872,6 +922,20 @@ const PICKUPS := {
 		"say": "A lamp on the east bank, upright, as if somebody set it down and walked into the water."},
 	"lamp_cadoc": {"quest": "mere_light", "step": 0, "near": Vector2(111.0, 97.0), "camp": "cadoc", "kind": "lantern_lit", "name": "a lit lamp", "verb": "Take",
 		"say": "One of Corvin's lamps, filled and lit, the cork float dry. The flame leans toward the chapel. Go."},
+	# r36 Act III: the latch at the door (its conversation decides), the names asked at the far fires,
+	# and the dais stone they are cut into
+	"door_latch": {"quest": "the_latch", "step": 1, "near": Vector2(0.0, -101.5), "kind": "slate", "name": "the latch-stone under the door", "verb": "Stand at", "conv": "door_latch",
+		"say": "The latch-stone."},
+	"name_ruan": {"quest": "names_under", "step": 0, "near": Vector2(-129.0, 6.0), "camp": "ruan", "kind": "slate", "name": "a name", "verb": "Ask for",
+		"say": "Ruan says one word, and spells it, so you'll get it right. BRANN. Her brother. He wanted to see the top. She never did."},
+	"name_ysolt": {"quest": "names_under", "step": 0, "near": Vector2(132.0, -14.0), "camp": "ysolt", "kind": "slate", "name": "a name", "verb": "Ask for",
+		"say": "Ysolt gives you three. You tell her one. She picks the hardest: MAUD OF THE TOR, WHO CARRIED HER CAIRN-STONE UP."},
+	"name_linnet": {"quest": "names_under", "step": 0, "near": Vector2(-106.0, 112.0), "camp": "linnet", "kind": "slate", "name": "a name", "verb": "Ask for",
+		"say": "Linnet doesn't look up from the graft. \"Brother Anselm. He pruned. Put that. HE PRUNED.\""},
+	"name_cadoc": {"quest": "names_under", "step": 0, "near": Vector2(111.0, 97.0), "camp": "cadoc", "kind": "slate", "name": "a name", "verb": "Ask for",
+		"say": "\"Corvin,\" Cadoc says. \"He rowed them all to the foot of the Stair and then went up himself. Nobody rowed him back.\""},
+	"dais_names": {"quest": "names_under", "step": 1, "near": Vector2(1.5, -101.0), "kind": "place", "name": "the dais stone", "verb": "Cut the names into",
+		"say": "You cut them under the Hierarch's line, small, as straight as you can: BRANN. MAUD OF THE TOR. BROTHER ANSELM, HE PRUNED. CORVIN. There is room under them for a great many more."},
 	# r36 Act II: the Founder's bells (each opens the bell's conversation: ring it here, or carry the tongue)
 	"bell_holds": {"quest": "bell_holds", "step": 1, "near": Vector2(-138.0, 20.0), "kind": "bell", "name": "the Kin Bell", "verb": "Stand at", "conv": "bell_holds",
 		"say": "A small bronze bell hung in the oak's fork on a rope of plaited bark. The Rooted carved their knot into the wood above it, to say they hadn't asked for it and would keep it anyway."},

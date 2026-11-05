@@ -96,3 +96,54 @@ report. Commits only when Luke says.
   covered. Cinder Ward is not checked behaviourally.
 - **Cost.** All cast-time work. The mist, ward rite and well wander tick only while their spell
   stands (seconds), over the enemy group, like the existing ward aura.
+
+## Implemented: steps 3 to 7, and Act III
+
+- **Gear (step 3).** Hallowed pieces (half the time) and better (always) roll a **trait**, a line
+  that changes how you play (`GearDB.TRAITS`). Most switch on behaviours the spells already have.
+  Three are new:
+  - **kill_spark**: a kill takes 1 s off every spell's recovery, one time in four.
+  - **ash_hunger**: kills give more ash.
+  - **peal_echo**: the Peal rings twice.
+
+  New affixes for the Shade, Tether, Peal and ash finding.
+- **The Kindled Watch and roaming events (step 4).** Four watch-posts (`core/world/watch`), three
+  watchmen each, with swords (villager rigs; chop and kneel). Hollowed assault a post while you are
+  near (`Enemy.focus`). A post that holds pays ash, and every third hold its quartermaster gives
+  gear. A post whose watchmen all go down falls for a while. Roaming events
+  (`core/world/roam`), one at a time, each with a map pin:
+  - a procession on the road
+  - an incursion on a lit brazier
+  - a rift tear
+  - a living pilgrim to bring home
+- **Horses (step 5).** Four breeds, each kept in its own place and bought with grave ash at its rail
+  (`core/world/mount`):
+  - a palfrey at Hearthward
+  - a moor garron at Ysolt's
+  - a fen pony on the mere
+  - a pit draught at the Founder's Pits
+
+  Each is built on the deer's GPU-animated rig. You ride by walk, trot or gallop with a seated pose;
+  jump or [E] gets you down, and [H] calls your horse.
+- **The night progresses (step 6)** (`core/world/night/reach_state.gd`):
+  - **Acts:** the act sets the pressure, which moves roaming-event timing and assault size.
+  - **Rung bells:** a rung bell quiets its country (camps return 3x slower) and stands lit.
+  - **Factions:** three factions (the Rooted, the Kindlers, the road folk) give a gift at Friend.
+    At Kin, their camps return more slowly and their watchmen stand longer.
+  - **Reactive givers:** the seven region givers react to what was done with their bell.
+- **The grind and hardening (step 7).** The keep's daily bounties: the Keg's tab, a named rare's
+  head, and the bell keepers who come back. F8/F9 now work only in the editor or with `--dev`.
+  Horses have rider safety.
+- **Act III: the door.** After the Warden, Brannoc says *shut is not latched*:
+  1. **Shut Is Not Latched:** at the dais you latch the door, leave it on the latch, or break the
+     latch.
+  2. **Those Still Climbing:** Agathe asks you to put down the ones who came down with their hands
+     out.
+  3. **Names Under the Door:** a name from each of four far fires, cut into the dais stone.
+  4. **The Full Peal:** all seven bells, for Brannoc.
+
+  An epilogue with the keep ends on one of three title cards, by the latch choice. Act 5's valley
+  follows the latch: latched presses less, broken is only night, and on the latch the ones above
+  come home (more pilgrims on the roads).
+- **Not done.** The Keg patrons still never stand up. The Deeper Night does not yet carry the latch
+  choice.

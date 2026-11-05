@@ -293,6 +293,16 @@ func _end() -> void:
 	if was == "keep" and flag("ending_told") and not flag("ending_card"):
 		set_flag("ending_card")
 		Events.zone_entered.emit("THE DOOR IS SHUT", "Hearthward keeps its fire")
+	# r36 Act III: the epilogue's card, by what was done with the latch
+	elif was == "keep" and flag("epilogue_told") and not flag("epilogue_card"):
+		set_flag("epilogue_card")
+		match QuestBook.pick("the_latch"):
+			"latched":
+				Events.zone_entered.emit("THE DOOR IS LATCHED", "Nothing climbs. Nothing comes down.")
+			"broken":
+				Events.zone_entered.emit("THE DOOR IS GONE", "Only the sky, and the fire under it")
+			_:
+				Events.zone_entered.emit("THE DOOR IS ON THE LATCH", "The ones above may come home")
 
 
 func _on_closed() -> void:
