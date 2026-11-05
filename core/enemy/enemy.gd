@@ -1125,10 +1125,29 @@ func _move(delta: float) -> void:
 	velocity.z = steer.z + _knock.z
 	_knock = _knock.move_toward(Vector3.ZERO, delta * 14.0)
 	_light_barrier(delta)
-	move_and_slide()
+	if _at_rest():
+		_rest_frames += 1
+	else:
+		_rest_frames = 0
+	# standing still on the floor: move_and_slide would test the same contact and change nothing
+	# (it was ~40% of an awake enemy's cost; most awake ones idle at their posts). Still run every
+	# REST_CHECK frames so ground that goes away is noticed.
+	if _rest_frames < 2 or _rest_frames % REST_CHECK == 0:
+		move_and_slide()
+		_rest_pos = global_position
 	_turn_toward(_face_dir if _waiting or _wish.length_squared() <= 0.0025 else _wish, delta)
 	if _rig:
 		_animate_rig(is_on_floor(), delta)
+
+
+const REST_CHECK := 8
+var _rest_frames := 0
+var _rest_pos := Vector3.INF          # where the last move_and_slide left it (a teleport breaks the rest)
+
+
+func _at_rest() -> bool:
+	return velocity == Vector3.ZERO and global_position == _rest_pos and is_on_floor() and get_platform_velocity() == Vector3.ZERO \
+		and get_real_velocity().length_squared() < 1e-8
 
 
 ## The rig's pose (r30): every tick within `full` metres; further out, to 46 m (sleep range), every

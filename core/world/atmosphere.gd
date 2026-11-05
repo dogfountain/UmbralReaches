@@ -4,6 +4,13 @@ extends RefCounted
 ## carries the night colour. High aerial-perspective and ambient-inject turned the
 ## mid-ground grey. Visibility ranges for open scenes, occlusion for trunks/ruins,
 ## light distance fade so off-screen lamps drop.
+##
+## Image pipeline, measured r35 (zz/lane_a_bench: paired A/B windows, medians, --stress=2):
+## - Volumetric froxels stay 24 x 12 (project.godot). 48 x 24 costs ~0-0.7 ms but changes the look:
+##   the coarse grid is what spreads brazier and lantern light into warm haze (the Crossing lost its
+##   warm pools) and fills the summit backdrop with glowing blue; finer reads cooler and darker.
+## - SSIL: +2.8 to +5.6 ms. SSAO quality Low (vs Very Low): +0.5 to +1.5 ms, no visible gain. Both off.
+## - Viewport debanding: free, but the grade's grain already dithers; no banding to fix (grade on or off).
 
 
 static func apply(root: Node, env: Environment, cam: Camera3D, moon: DirectionalLight3D, far_m: float, fog_light: Color, vol_albedo: Color, vol_emit: Color) -> void:
@@ -116,7 +123,10 @@ static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit
 	env.ssao_radius = 1.2
 	env.ssao_intensity = 1.25
 	env.ssao_light_affect = 0.32
-	env.tonemap_white = 6.5
+	# (r35) no tonemap_white here: the night is AgX (environment.tres), which ignores it (white 1.0
+	# against 6.5 moved nothing, exposure 2.0 moved YAVG 42 -> 70; zz/lane_a_bench env:). AgX has
+	# its own tonemap_agx_white / _contrast, left at Godot's defaults: contrast 1.5 darkened the
+	# frame 10-15 % and lowered saturation (duller), white 10 changed nothing that read.
 	env.glow_intensity = 0.62
 	env.glow_bloom = 0.06
 	env.glow_hdr_threshold = 1.15

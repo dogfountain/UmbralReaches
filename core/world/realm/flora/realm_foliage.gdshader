@@ -36,6 +36,10 @@ uniform float near_fade = 1.6;         // metres from the camera inside which ca
 // alpha-blended (no depth prepass, every overlapping card shaded): up to ~6 ms at 4x pixels at the
 // hub. 0 = no thinning (tree crowns).
 instance uniform float fade_end = 0.0;
+// Density LOD for ground cards (see vertex()): from thin_from metres (per plant) to fade_end the
+// cover thins to thin_keep of its plants, survivors widened to keep the coverage. 0 = off.
+uniform float thin_from = 0.0;
+uniform float thin_keep = 0.6;
 
 // ENS art pass (docs/enshrouded/art.md): painterly colour, not one flat green. Each plant or crown
 // leans yellow-green or blue-green by a hash of its origin plus a broad world patch, and leaves get
@@ -44,39 +48,75 @@ uniform float hue_var = 0.16;
 uniform float tip_light = 0.26;
 uniform float base_dark = 0.22;
 
+// Wind you can see at night: where the travelling wave crest bends a plant over, its blades and
+// leaves turn their paler sides to the sky, so each gust crosses the field as a soft band of light
+// (the Ghost-of-Tsushima read, without a texture or extra vertex work). Scaled by the live `sway`
+// (core/life/wildlife/weather.gd) so a calm night shows almost none. 0 = off.
+uniform float wind_sheen = 0.0;
+// Thin-leaf translucency: BACKLIGHT is the engine's cheap wrap transmission (light from behind a
+// card shows through it). Free ends (UV2.x -> 1) are thin and pass more, held bases and the crown's
+// occluded heart (baked into COLOR) pass less, and what comes through is a touch yellower and more
+// saturated than the lit face, as light through a leaf is.
+uniform vec3 transmit_tint = vec3(1.0, 1.08, 0.8);   // linear multiplier, not a colour pick
+
 varying vec3 wpos;
 varying float vhue;
+varying float vwind;
 
 void vertex() {
-	wpos = VERTEX;
-	vec2 o = MODEL_MATRIX[3].xz;
-	float ih = fract(sin(dot(o, vec2(41.37, 289.11))) * 15731.743);
-	float wpatch = sin(VERTEX.x * 0.071 + 1.3) * sin(VERTEX.z * 0.053 - 0.7);
-	vhue = clamp((ih - 0.5) * 1.4 + wpatch * 0.6, -1.0, 1.0);
-	float w = UV2.x;
-	vec2 wd = normalize(wind_dir);
-	float along = dot(VERTEX.xz, wd);
-	float wave = sin((along - TIME * wave_speed) * TAU / wave_length);
-	float phase = dot(VERTEX.xz, vec2(0.13, 0.11));
-	float gust = sin(TIME * wind_speed + phase) * 0.6 + sin(TIME * wind_speed * 2.1 + phase * 1.9) * 0.4;
-	vec3 off = vec3(wd.x, 0.0, wd.y) * mix(gust, wave, 0.5) * sway * w;
-	float ph = UV2.y * 6.2832;
-	off += vec3(sin(TIME * 3.1 + ph), sin(TIME * 2.3 + ph * 1.7) * 0.6, cos(TIME * 2.7 + ph)) * flutter * w;
-	if (ground) {
-		vec2 to = VERTEX.xz - push_pos.xz;
-		float d = length(to);
-		if (d < push_radius && d > 0.0001 && abs(VERTEX.y - push_pos.y) < 2.0) {
-			float f = pow(1.0 - d / push_radius, 2.0);
-			off += vec3(to.x, -0.35 * d, to.y) / d * f * push_strength * w;
-		}
-	}
-	VERTEX += off;
+	bool collapsed = false;
 	if (fade_end > 0.0) {
+		// Distance thinning first, so a collapsed plant skips all the wind work below (whole
+		// instances branch together: the GPU runs that test coherently).
 		vec3 org = MODEL_MATRIX[3].xyz;
 		float keep = fract(sin(dot(org.xz, vec2(12.9898, 78.233))) * 43758.5453);
-		if (keep < smoothstep(fade_end, fade_end + 6.0, distance(NODE_POSITION_WORLD, CAMERA_POSITION_WORLD))) {
-			VERTEX = org;                   // collapsed: zero-area triangles draw nothing
+		float drop = smoothstep(fade_end, fade_end + 6.0, distance(NODE_POSITION_WORLD, CAMERA_POSITION_WORLD));
+		float grow = 1.0;
+		if (ground && thin_from > 0.0) {
+			// density LOD: past thin_from (per plant) ground cover drops toward thin_keep of its
+			// plants by fade_end, lowest hash first (the same order as the fade band, so nothing
+			// pops back), and the survivors widen by 1/sqrt(kept) so the floor stays covered.
+			// Distant grass is where cards stack deepest per pixel (grazing view, depth prepass on
+			// every layer), so this trims the costliest overdraw for a carpet that reads the same.
+			float kept = mix(1.0, thin_keep, smoothstep(min(thin_from, fade_end * 0.5), fade_end, distance(org, CAMERA_POSITION_WORLD)));
+			drop = max(drop, 1.0 - kept);
+			grow = inversesqrt(kept);
 		}
+		if (keep < drop) {
+			collapsed = true;
+			VERTEX = org;                   // collapsed: zero-area triangles draw nothing
+			wpos = org;
+			vhue = 0.0;
+			vwind = 0.0;
+		} else {
+			VERTEX = org + (VERTEX - org) * vec3(grow, sqrt(grow), grow);
+		}
+	}
+	if (!collapsed) {
+		wpos = VERTEX;
+		vec2 o = MODEL_MATRIX[3].xz;
+		float ih = fract(sin(dot(o, vec2(41.37, 289.11))) * 15731.743);
+		float wpatch = sin(VERTEX.x * 0.071 + 1.3) * sin(VERTEX.z * 0.053 - 0.7);
+		vhue = clamp((ih - 0.5) * 1.4 + wpatch * 0.6, -1.0, 1.0);
+		float w = UV2.x;
+		vec2 wd = normalize(wind_dir);
+		float along = dot(VERTEX.xz, wd);
+		float wave = sin((along - TIME * wave_speed) * TAU / wave_length);
+		float phase = dot(VERTEX.xz, vec2(0.13, 0.11));
+		float gust = sin(TIME * wind_speed + phase) * 0.6 + sin(TIME * wind_speed * 2.1 + phase * 1.9) * 0.4;
+		vec3 off = vec3(wd.x, 0.0, wd.y) * mix(gust, wave, 0.5) * sway * w;
+		vwind = smoothstep(0.15, 0.95, wave * 0.75 + gust * 0.25) * w * clamp(sway * 8.0, 0.0, 1.6);
+		float ph = UV2.y * 6.2832;
+		off += vec3(sin(TIME * 3.1 + ph), sin(TIME * 2.3 + ph * 1.7) * 0.6, cos(TIME * 2.7 + ph)) * flutter * w;
+		if (ground) {
+			vec2 to = VERTEX.xz - push_pos.xz;
+			float d = length(to);
+			if (d < push_radius && d > 0.0001 && abs(VERTEX.y - push_pos.y) < 2.0) {
+				float f = pow(1.0 - d / push_radius, 2.0);
+				off += vec3(to.x, -0.35 * d, to.y) / d * f * push_strength * w;
+			}
+		}
+		VERTEX += off;
 	}
 }
 
@@ -110,9 +150,11 @@ void fragment() {
 	vec3 warm_g = c * vec3(1.14, 1.06, 0.74);
 	vec3 cool_g = c * vec3(0.84, 1.0, 1.12);
 	c = mix(c, vhue > 0.0 ? warm_g : cool_g, abs(vhue) * hue_var * 3.0);
-	c *= mix(1.0 - base_dark, 1.0 + tip_light, clamp(UV2.x, 0.0, 1.0));
+	float tip = clamp(UV2.x, 0.0, 1.0);
+	c *= mix(1.0 - base_dark, 1.0 + tip_light, tip);
+	c *= 1.0 + wind_sheen * vwind;
 	ALBEDO = c * mottle;
 	ROUGHNESS = roughness;
-	BACKLIGHT = vec3(backlight) * ALBEDO;
+	BACKLIGHT = backlight * mix(0.6, 1.3, tip) * transmit_tint * ALBEDO;
 	EMISSION = rim_color * rim_strength * pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 2.0) * ALBEDO * 3.0;
 }

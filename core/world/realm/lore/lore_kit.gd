@@ -216,9 +216,15 @@ static func clear_of(r: Rect2, margin := 1.0, ignore: Array = []) -> bool:
 		pts.append(Vector2(r.position.x, z))
 		pts.append(Vector2(r.end.x, z))
 		z += step
+	# path_dist(q) < margin for any q, against only the segments that can be that near r
+	var segs := RealmLayout.path_segs_near(r, margin)
 	for q in pts:
-		if RealmLayout.path_dist(q) < margin:
-			return false
+		for sg: Array in segs:
+			var a: Vector2 = sg[0]
+			var ab: Vector2 = (sg[1] as Vector2) - a
+			var t := clampf((q - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+			if q.distance_to(a + ab * t) - float(sg[2]) < margin:
+				return false
 	for s in WorldLanes.sites:
 		if String(s.name) in ignore:
 			continue

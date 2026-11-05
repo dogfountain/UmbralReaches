@@ -391,6 +391,21 @@ static func _on_runtime_lane(p: Vector2, reach: float) -> bool:
 static func cull_scatter(root: Node, margin := 0.35) -> int:
 	if sites.is_empty():
 		return 0
+	# every site's and runtime-lane segment's XZ bounds, once: per MultiMesh, a coarse grid then
+	# lists the few that can touch each cell, and each instance is tested exactly (site_floor, the
+	# lane distance) against those only (it was every site and every lane segment per instance)
+	var site_b: Array[Rect2] = []
+	for st in sites:
+		site_b.append(_site_bounds(st))
+	var segs: Array = []                     # [a, b, half_w] in extra_lanes order
+	var seg_b: Array[Rect2] = []
+	for l: Array in extra_lanes:
+		var pts: Array = l[1]
+		for k in pts.size() - 1:
+			var a: Vector2 = pts[k]
+			var b: Vector2 = pts[k + 1]
+			segs.append([a, b, float(l[2])])
+			seg_b.append(Rect2(a, Vector2.ZERO).expand(b).grow(float(l[2])))
 	var removed := 0
 	for node in root.find_children("*", "MultiMeshInstance3D", true, false):
 		var mmi := node as MultiMeshInstance3D
@@ -404,21 +419,61 @@ static func cull_scatter(root: Node, margin := 0.35) -> int:
 		var n := mm.instance_count
 		if buf.size() < n * stride:
 			continue
-		var out := PackedFloat32Array()
 		var xf := mmi.global_transform
 		var ext := 0.0
 		if mm.mesh:
 			var mb := mm.mesh.get_aabb()
 			ext = maxf(maxf(absf(mb.position.x), absf(mb.end.x)), maxf(absf(mb.position.z), absf(mb.end.z)))
-		var kept := 0
+		var pos := PackedVector2Array()
+		pos.resize(n)
+		var reach := PackedFloat64Array()
+		reach.resize(n)
+		var box := Rect2()
+		var max_reach := 0.0
 		for i in n:
 			var o := i * stride
 			var w := xf * Vector3(buf[o + 3], buf[o + 7], buf[o + 11])
 			var sc := Vector3(buf[o], buf[o + 4], buf[o + 8]).length()          # basis x column length
-			var reach := margin + ext * sc                                     # the plant's spread, not its stem
-			var p2 := Vector2(w.x, w.z)
-			if site_at(p2, reach).is_empty() and not _on_runtime_lane(p2, reach):
-				out.append_array(buf.slice(o, o + stride))
+			var r := margin + ext * sc                                         # the plant's spread, not its stem
+			pos[i] = Vector2(w.x, w.z)
+			reach[i] = r
+			max_reach = maxf(max_reach, r)
+			box = Rect2(pos[i], Vector2.ZERO) if i == 0 else box.expand(pos[i])
+		# candidates per cell: anything whose bounds, grown by the largest reach, overlap the cell
+		var cell := maxf(8.0, maxf(box.size.x, box.size.y) / 64.0)
+		var g0 := box.position
+		var gw := int(box.size.x / cell) + 1
+		var gh := int(box.size.y / cell) + 1
+		var grid := {}                       # cell index -> [site indices, seg indices]
+		var near_any := false
+		for kind in 2:
+			var bounds: Array[Rect2] = site_b if kind == 0 else seg_b
+			for j in bounds.size():
+				var bb := bounds[j].grow(max_reach + 0.01)
+				if not bb.intersects(box, true):
+					continue
+				near_any = true
+				var x0 := clampi(int(floorf((bb.position.x - g0.x) / cell)), 0, gw - 1)
+				var x1 := clampi(int(floorf((bb.end.x - g0.x) / cell)), 0, gw - 1)
+				var y0 := clampi(int(floorf((bb.position.y - g0.y) / cell)), 0, gh - 1)
+				var y1 := clampi(int(floorf((bb.end.y - g0.y) / cell)), 0, gh - 1)
+				for cy in range(y0, y1 + 1):
+					for cx in range(x0, x1 + 1):
+						var key := cy * gw + cx
+						if not grid.has(key):
+							grid[key] = [[], []]
+						(grid[key][kind] as Array).append(j)
+		if not near_any:
+			continue
+		var out := PackedFloat32Array()
+		var kept := 0
+		for i in n:
+			var p2 := pos[i]
+			var cx := clampi(int(floorf((p2.x - g0.x) / cell)), 0, gw - 1)
+			var cy := clampi(int(floorf((p2.y - g0.y) / cell)), 0, gh - 1)
+			var cand: Variant = grid.get(cy * gw + cx)
+			if cand == null or not _hits(cand as Array, segs, p2, reach[i]):
+				out.append_array(buf.slice(i * stride, i * stride + stride))
 				kept += 1
 		if kept == n:
 			continue
@@ -430,6 +485,34 @@ static func cull_scatter(root: Node, margin := 0.35) -> int:
 		if mm.has_meta("cpu_buffer"):
 			mm.set_meta("cpu_buffer", out)
 	return removed
+
+
+## XZ bounds of a site's footprint (site_floor's shapes, ungrown).
+static func _site_bounds(s: Dictionary) -> Rect2:
+	if s.has("circle"):
+		var c: Vector3 = s.circle
+		return Rect2(c.x - c.z, c.y - c.z, c.z * 2.0, c.z * 2.0)
+	if s.has("seg"):
+		var a: Vector3 = s.seg[0]
+		var b: Vector3 = s.seg[1]
+		return Rect2(Vector2(a.x, a.z), Vector2.ZERO).expand(Vector2(b.x, b.z)).grow(float(s.seg[2]))
+	return s.rect as Rect2
+
+
+## cull_scatter's exact test against one cell's candidates: the same as site_at(p, reach) non-empty
+## or _on_runtime_lane(p, reach).
+static func _hits(cand: Array, segs: Array, p: Vector2, reach: float) -> bool:
+	for j: int in cand[0]:
+		if not is_nan(site_floor(sites[j], p, reach)):
+			return true
+	for j: int in cand[1]:
+		var sg: Array = segs[j]
+		var a: Vector2 = sg[0]
+		var ab: Vector2 = (sg[1] as Vector2) - a
+		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+		if p.distance_to(a + ab * t) < float(sg[2]) + reach:
+			return true
+	return false
 
 
 static func clear_cache() -> void:

@@ -101,13 +101,11 @@ void sky() {
         float corona = pow(mu, 180.0);
         float streak = exp(-abs(hx) * 48.0) * exp(-abs(hy) * 5.5) * pow(mu, 10.0);
         float cross = exp(-abs(hx) * 6.0) * exp(-abs(hy) * 48.0) * pow(mu, 10.0);
-        float ghosts = 0.0;
-        for (int g = 0; g < 4; g++) {
-            float t = float(g) * 0.16 + 0.14;
-            vec3 gp = normalize(mix(md, -md, t));
-            float d = length(EYEDIR - gp);
-            ghosts += exp(-d * d * 720.0) * (0.32 - t * 0.4);
-        }
+        // The old four "ghosts" sat at normalize(mix(md, -md, t)) = md for t < 0.5 (three of them, weights
+        // 0.264 + 0.2 + 0.136) and -md (under the horizon, faded out) for the fourth: one Gaussian at the
+        // moon is the same image without a loop of normalize/exp per full-res sky pixel.
+        float dm = length(EYEDIR - md);
+        float ghosts = exp(-dm * dm * 720.0) * 0.6;
         col += vec3(0.72, 0.82, 1.02) * (disc * 2.1 + corona * 0.5);
         col += vec3(0.52, 0.68, 1.05) * (streak * 0.9 + cross * 0.4);
         col += vec3(0.42, 0.52, 0.92) * ghosts * 0.35;

@@ -39,14 +39,6 @@ instance uniform float dissolve = 0.0;
 
 varying vec3 opos;
 
-float hash3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
-float vnoise(vec3 p) {
-	vec3 i = floor(p), f = fract(p);
-	f = f * f * (3.0 - 2.0 * f);
-	return mix(mix(mix(hash3(i), hash3(i + vec3(1, 0, 0)), f.x), mix(hash3(i + vec3(0, 1, 0)), hash3(i + vec3(1, 1, 0)), f.x), f.y),
-	           mix(mix(hash3(i + vec3(0, 0, 1)), hash3(i + vec3(1, 0, 1)), f.x), mix(hash3(i + vec3(0, 1, 1)), hash3(i + vec3(1, 1, 1)), f.x), f.y), f.z);
-}
-
 void vertex() {
 	opos = VERTEX;
 }
@@ -57,10 +49,10 @@ void fragment() {
 	// veins: ridged noise stretched along the tube (UV.y = metres along)
 	vec2 duv = UV / detail_tile;
 	float hgt = texture(detail_height, duv).r;
-	float n = vnoise(vec3(UV.x * 40.0, UV.y * vein_scale * 1.6, 0.0) + opos * 5.0);
+	float n = cl_noise(vec3(UV.x * 40.0, UV.y * vein_scale * 1.6, 0.0) + opos * 5.0);
 	float ridge = 1.0 - abs(n * 2.0 - 1.0);
 	float veins = smoothstep(0.93, 0.995, ridge) * vein_amount * flesh * (1.0 - rag);
-	float mottle = vnoise(opos * 11.0);
+	float mottle = cl_noise(opos * 11.0);
 	vec3 base = mix(skin_deep, skin, smoothstep(0.15, 0.85, mottle * 0.6 + 0.4)) * COLOR.rgb;
 	base *= mix(1.0, 0.45 + 0.75 * hgt, crease * (1.0 - rag * 0.5));
 	base = mix(base, vein, veins);
@@ -68,18 +60,16 @@ void fragment() {
 	albedo = mix(albedo, mix(linen_col, rag_col, flesh) * COLOR.rgb * mix(0.75, 1.15, hgt), rag);
 
 	albedo = mix(albedo, albedo * (0.7 + 0.45 * hgt), (1.0 - flesh) * 0.6);   // pitted bone
-	ALBEDO = cl_albedo(albedo, mix(0.5, 1.0, hgt), opos);
+	vec2 wear = cl_wear_mask(NORMAL, VERTEX, mix(0.5, 1.0, hgt));   // r36: edges worn, creases matte
+	ALBEDO = cl_wear_albedo(cl_albedo(albedo, mix(0.5, 1.0, hgt), opos), wear);
 	NORMAL_MAP = texture(detail_normal, duv).rgb;
 	NORMAL_MAP_DEPTH = detail_depth * (1.0 - rag * 0.6);
-	ROUGHNESS = cl_rough(clamp(mix(mix(0.32, 0.48, flesh) + matte * 0.9, 0.95, rag) - veins * 0.15 + (hgt - 0.5) * 0.25, 0.05, 1.0), opos);
-	SPECULAR = mix(0.55, 0.42, flesh) * (1.0 - rag) * (1.0 - matte * 1.2);
+	ROUGHNESS = cl_wear_rough(cl_rough(clamp(mix(mix(0.32, 0.48, flesh) + matte * 0.9, 0.95, rag) - veins * 0.15 + (hgt - 0.5) * 0.25, 0.05, 1.0), opos), wear);
+	SPECULAR = cl_wear_spec(mix(0.55, 0.42, flesh) * (1.0 - rag) * (1.0 - matte * 1.2), wear);
 	float ndv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
-	// the rim only where the surface faces up a little (moonlit edges), not round a body in shadow
-	float up = clamp(dot(NORMAL, (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz) * 0.5 + 0.5, 0.0, 1.0);
-	float rim = pow(1.0 - ndv, 3.0) * rim_amount * (1.0 - rag * 0.6) * up;
 
 	// death: burn away from the noise field, with a hot violet edge
-	float d = vnoise(opos * 9.0) * 0.7 + vnoise(opos * 23.0) * 0.3;
+	float d = cl_noise(opos * 9.0) * 0.7 + cl_noise(opos * 23.0) * 0.3;
 	ALPHA = 1.0;
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	if (dissolve > 0.001) {

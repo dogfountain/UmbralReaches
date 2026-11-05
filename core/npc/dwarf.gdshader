@@ -11,6 +11,7 @@ render_mode diffuse_burley, specular_schlick_ggx;
 // r35: the shared character finish (detail maps already break the surface up: a small share)
 #define CL_CAVITY 0.25
 #define CL_BREAKUP 0.05
+#define CL_WEAR 0.6
 #include "res://core/vfx/char_look.gdshaderinc"
 
 uniform sampler2DArray detail_albedo : filter_linear_mipmap_anisotropic, repeat_enable;
@@ -81,12 +82,14 @@ void fragment() {
 	if (m != 8 && m != 5) {
 		base = mix(vec3(dot(base, vec3(0.2126, 0.7152, 0.0722))), base, chroma * (m == 0 ? skin_chroma : 1.0));
 	}
-	ALBEDO = cl_albedo(base * mix(vec3(1.0), d.rgb * 2.0, detail_mix), m == 8 ? 1.0 : COLOR.a, opos);
+	// r36: worn edges, matte creases (not the eyes: their curvature is all edge)
+	vec2 wear = m == 8 ? vec2(0.0) : cl_wear_mask(NORMAL, VERTEX, COLOR.a);
+	ALBEDO = cl_wear_albedo(cl_albedo(base * mix(vec3(1.0), d.rgb * 2.0, detail_mix), m == 8 ? 1.0 : COLOR.a, opos), wear);
 	NORMAL_MAP = texture(detail_normal, uvw).rgb;
 	NORMAL_MAP_DEPTH = mat_p.w;
-	ROUGHNESS = clamp(mat_p.z + (d.a - 0.5) * 0.5, 0.04, 1.0);
+	ROUGHNESS = cl_wear_rough(clamp(mat_p.z + (d.a - 0.5) * 0.5, 0.04, 1.0), wear);
 	METALLIC = m == 5 ? 0.82 : 0.0;
-	SPECULAR = mat_spec;
+	SPECULAR = cl_wear_spec(mat_spec, wear);
 	float ao = COLOR.a;
 	AO = mix(ambient_floor, 1.0, ao) * ambient_keep;
 	AO_LIGHT_AFFECT = 0.35 * (1.0 - ao);

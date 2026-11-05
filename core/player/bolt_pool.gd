@@ -33,6 +33,17 @@ func _ready() -> void:
 	call_deferred("_prewarm")
 
 
+## The night is torn down (quit, or the Deeper Night rebuilding in-process): the combat VFX
+## caches in statics go with it (statics outlive the renderer at quit; a rebuilt night starts clean).
+## r36: this does NOT cure the exit "1 shaders of type ParticlesShaderRD were never freed": that
+## one reproduces with every bolt node and material already freed and released before quit (a
+## lone MagicBolt.make_particles in an empty scene), so it is not a reference we keep.
+func _exit_tree() -> void:
+	MagicBolt.release_shared()
+	Vfx.release()
+	SpellFx.release()
+
+
 func take() -> MagicBolt:
 	var bolt: MagicBolt
 	if _free.is_empty():
