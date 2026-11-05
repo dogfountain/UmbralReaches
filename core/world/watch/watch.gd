@@ -180,7 +180,11 @@ func _assault() -> void:
 		var e: Enemy = ((Husk as GDScript) if i % 3 == 2 else (Wretch as GDScript)).new() as Enemy
 		e.set_meta(&"watch", id)
 		host.add_child(e)
-		e.global_position = at + Vector3.UP * 0.05
+		# station() sets home too: left at the host's origin, the hollowed leashed straight back to it
+		# and never reached the watchmen. The post is the fight, so range and leash cover its ring.
+		e.station(at)
+		e.chase_range = COME_FROM * 2.0
+		e.hunt_leash = COME_FROM * 3.0
 		e.focus = men[i % men.size()] if not men.is_empty() else null
 		_wave.append(e)
 	Events.toast.emit("%s: the dark comes at the watch." % title)
