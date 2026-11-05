@@ -6,6 +6,13 @@ render_mode diffuse_burley, specular_schlick_ggx;
 // Layers live in two texture arrays (tools/realm_land_textures.gd):
 //   alb: rgb albedo, a height      nrm: rg tilt (x, z), b roughness, a AO
 // Height-blended between layers; steep ground (> ~35 deg) turns to triplanar cliff rock (layer 8).
+// Splat slot i samples texture layer LAYER_OF[i] (the array is stacked meadow, heath, loam, mud, ash,
+// scree, flag, path, cliff; until r35 slot i read layer i, so forest showed heath straw, fen showed
+// leaf litter, ash showed mud and heath showed cracked basalt).
+// Distance LOD (far_lo..far_hi from the camera): near, each layer at its own scale with its normal
+// map; far, the same layer at far_scale and turned (no 3 m repeat lining up across a field), albedo
+// only, with the layer's mean roughness/AO (NRM_MEAN, measured from land_normal.png; refresh it if
+// tools/realm_land_textures.gd changes). Far pixels fetch half the textures; only the band pays both.
 
 uniform sampler2DArray alb : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray nrm : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -26,6 +33,9 @@ uniform float path_bright = 3.0;               // packed earth catches the moon 
 // the ambient), and broad patches drift between mossy green and cold slate, hues the grade keeps.
 uniform float cavity = 0.45;
 uniform float patch_hue = 0.22;
+uniform float far_lo = 16.0;                     // metres: layer detail starts handing over to the far tiling
+uniform float far_hi = 34.0;                     // all far beyond this
+uniform float far_scale = 0.31;                  // far tiles are ~3x larger
 
 vec2 rot_c(vec2 p) { return vec2(0.8 * p.x - 0.6 * p.y, 0.6 * p.x + 0.8 * p.y); }
 
@@ -44,7 +54,12 @@ void vertex() {
 	w_b = vec4(UV, UV2);
 }
 
-float hash21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// sin-free hash (Hoskins): the lumps and drifts ran 16 sin() a pixel
+float hash21(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
 float vnoise(vec2 p) {
 	vec2 i = floor(p), f = fract(p);
 	f = f * f * (3.0 - 2.0 * f);
@@ -76,12 +91,25 @@ vec2 rot(vec2 p, float a) {
 }
 
 void fragment() {
+	// weight slot -> texture layer (tools/realm_land_textures.gd stacks meadow, heath, loam, mud, ash,
+	// scree, flag, path, cliff; the splat's slots are meadow, loam, mud, ash, heath, crag, ruin)
+	const int LAYER_OF[7] = int[](0, 2, 3, 4, 1, 5, 6);
 	const float SCALE[9] = float[](0.31, 0.29, 0.38, 0.24, 0.25, 0.33, 0.30, 0.34, 0.11);
+	// each layer's mean nrm texel (flat tilt; b roughness, a AO): what the far field uses instead of a fetch
+	const vec4 NRM_MEAN[9] = vec4[](vec4(0.5, 0.5, 0.898, 0.774), vec4(0.5, 0.5, 0.898, 0.769), vec4(0.5, 0.5, 0.898, 0.843),
+		vec4(0.5, 0.5, 0.471, 0.818), vec4(0.5, 0.5, 0.778, 0.877), vec4(0.5, 0.5, 0.735, 0.861), vec4(0.5, 0.5, 0.795, 0.877),
+		vec4(0.5, 0.5, 0.863, 0.768), vec4(0.5, 0.5, 0.820, 0.863));
 	// cos/sin of each layer's turn (i * 1.3 rad), so no pixel computes 14 trig calls for constants
 	const vec2 LAYER_CS[7] = vec2[](vec2(1.000000000, 0.000000000), vec2(0.267498829, 0.963558185), vec2(-0.856888753, 0.515501372), vec2(-0.725932304, -0.687766159), vec2(0.468516671, -0.883454656), vec2(0.976587626, 0.215119988), vec2(0.053955421, 0.998543345));
 	float w[8] = float[](w_a.r, w_a.g, w_a.b, w_a.a, w_b.x, w_b.y, w_b.z, 0.0);
 	float path = clamp(w_b.w, 0.0, 1.0);
 	vec2 p = wpos.xz;
+	// distance LOD: near, the tiles at their own scale with their normal maps; far, the same layers
+	// at far_scale (turned) so the 3 m repeat never lines up across a field, albedo only (one fetch a
+	// layer instead of two; the normal detail is sub-pixel there and only crawled)
+	float fk = smoothstep(far_lo, far_hi, length(wpos - CAMERA_POSITION_WORLD));
+	bool near_on = fk < 0.999;
+	bool far_on = fk > 0.001;
 
 	// broad variation (breaks tiling): low-frequency heights of two layers
 	float macro = texture(alb, vec3(rot(p, 0.6) * 0.021, 3.0)).a;
@@ -95,11 +123,22 @@ void fragment() {
 	for (int i = 0; i < 7; i++) {
 		s_i[i] = -10.0;
 		if (w[i] > 0.02) {
+			int li = LAYER_OF[i];
 			vec2 cs = LAYER_CS[i];
-			vec3 uv = vec3(vec2(cs.x * p.x - cs.y * p.y, cs.y * p.x + cs.x * p.y) * SCALE[i], float(i));
-			a_i[i] = texture(alb, uv);
-			n_i[i] = texture(nrm, uv);
-			s_i[i] = a_i[i].a * 0.6 + w[i] * 1.4;
+			vec2 uv = vec2(cs.x * p.x - cs.y * p.y, cs.y * p.x + cs.x * p.y) * SCALE[li];
+			vec4 a = vec4(0.0);
+			vec4 n = NRM_MEAN[li];
+			if (near_on) {
+				a = texture(alb, vec3(uv, float(li)));
+				n = mix(texture(nrm, vec3(uv, float(li))), n, fk);
+			}
+			if (far_on) {
+				vec2 fuv = vec2(0.62 * uv.x - 0.78 * uv.y, 0.78 * uv.x + 0.62 * uv.y) * far_scale;
+				a = mix(a, texture(alb, vec3(fuv, float(li))), fk);
+			}
+			a_i[i] = a;
+			n_i[i] = n;
+			s_i[i] = a.a * 0.6 + w[i] * 1.4;
 			smax = max(smax, s_i[i]);
 		}
 	}
@@ -126,9 +165,16 @@ void fragment() {
 
 	// worn path: overlay with an irregular, height-aware edge
 	if (path > 0.01) {
-		vec3 uv = vec3(rot(p, 0.4) * SCALE[7], 7.0);
-		vec4 pa = texture(alb, uv);
-		vec4 pn = texture(nrm, uv);
+		vec2 uv = vec2(0.921061 * p.x - 0.389418 * p.y, 0.389418 * p.x + 0.921061 * p.y) * SCALE[7];   // turned 0.4 rad
+		vec4 pa = vec4(0.0);
+		vec4 pn = NRM_MEAN[7];
+		if (near_on) {
+			pa = texture(alb, vec3(uv, 7.0));
+			pn = mix(texture(nrm, vec3(uv, 7.0)), pn, fk);
+		}
+		if (far_on) {
+			pa = mix(pa, texture(alb, vec3(vec2(0.62 * uv.x - 0.78 * uv.y, 0.78 * uv.x + 0.62 * uv.y) * far_scale, 7.0)), fk);
+		}
 		float edge = smoothstep(0.4, 0.62, path + (pa.a - 0.5) * 0.45 + (macro - 0.5) * 0.3);
 		col = mix(col, pa.rgb * path_bright, edge);
 		tilt = mix(tilt, pn.rg * 2.0 - 1.0, edge);
@@ -161,19 +207,19 @@ void fragment() {
 		float ra = 0.0;
 		if (bw.x > 0.01) {
 			vec4 c = texture(alb, vec3(wpos.zy * cliff_scale, 8.0));
-			vec4 n = texture(nrm, vec3(wpos.zy * cliff_scale, 8.0));
+			vec4 n = near_on ? mix(texture(nrm, vec3(wpos.zy * cliff_scale, 8.0)), NRM_MEAN[8], fk) : NRM_MEAN[8];
 			vec2 t = n.rg * 2.0 - 1.0;
 			rc += c.rgb * bw.x; rn += vec3(0.0, t.y, t.x) * bw.x; rr += n.b * bw.x; ra += n.a * bw.x;
 		}
 		if (bw.y > 0.01) {
 			vec4 c = texture(alb, vec3(wpos.xz * cliff_scale, 8.0));
-			vec4 n = texture(nrm, vec3(wpos.xz * cliff_scale, 8.0));
+			vec4 n = near_on ? mix(texture(nrm, vec3(wpos.xz * cliff_scale, 8.0)), NRM_MEAN[8], fk) : NRM_MEAN[8];
 			vec2 t = n.rg * 2.0 - 1.0;
 			rc += c.rgb * bw.y; rn += vec3(t.x, 0.0, t.y) * bw.y; rr += n.b * bw.y; ra += n.a * bw.y;
 		}
 		if (bw.z > 0.01) {
 			vec4 c = texture(alb, vec3(wpos.xy * cliff_scale, 8.0));
-			vec4 n = texture(nrm, vec3(wpos.xy * cliff_scale, 8.0));
+			vec4 n = near_on ? mix(texture(nrm, vec3(wpos.xy * cliff_scale, 8.0)), NRM_MEAN[8], fk) : NRM_MEAN[8];
 			vec2 t = n.rg * 2.0 - 1.0;
 			rc += c.rgb * bw.z; rn += vec3(t.x, t.y, 0.0) * bw.z; rr += n.b * bw.z; ra += n.a * bw.z;
 		}
