@@ -1,7 +1,7 @@
 extends Node
 ## r33 combat (the WoW-feel pass), in the Realm:
 ##   HOME=<scratch>/home godot --headless --path . res://zz/combat_r33_test.tscn
-## The global cooldown and the spell queue, cast times (finish, moved, pushback, interrupt and its
+## The cast lock (no global cooldown, no queue), cast times (finish, moved, pushback, interrupt and its
 ## lockout), crits and the damage feed, the Rift Surge proc (a crit, a parry) and what it empowers,
 ## status apply / refresh / stack / expire (Resonance, Ember Scar and its ticks), the Resonance
 ## spend (Gloom back, Sundered), and Tab-style target cycling with the remembered target.
@@ -181,20 +181,17 @@ func _wait(sec: float) -> void:
 
 func _fresh() -> void:
 	book._cd.fill(0.0)
-	book._gcd = 0.0
 	book._lock = 0.0
-	book._queued = -1
 	cs.clear(p)
 	cs.crit_chance = 0.0
 	p.gloom = 0.0; p.wounds = 0.0
 
 
-func _tskill(id: StringName, gcd := 0.5, cast_time := 0.0, cd := 1.0) -> TSkill:
+func _tskill(id: StringName, _unused := 0.0, cast_time := 0.0, cd := 1.0) -> TSkill:
 	var s := TSkill.new()
 	s.id = id
 	s.title = String(id)
-	s.gcd = gcd
-	s.cast_time = cast_time
+		s.cast_time = cast_time
 	s.cooldown = cd
 	return s
 
@@ -202,36 +199,26 @@ func _tskill(id: StringName, gcd := 0.5, cast_time := 0.0, cd := 1.0) -> TSkill:
 # --- sections ----------------------------------------------------------------------------------
 
 func _s_gcd_queue() -> void:
-	print("-- GCD and the spell queue")
+	print("-- no global cooldown, no queue; a short cast lock a roll cancels")
 	_fresh()
-	var a := _tskill(&"t_a", 0.5, 0.0, 4.0)
-	var b := _tskill(&"t_b", 0.5, 0.0, 4.0)
-	var c := _tskill(&"t_c", 0.0, 0.0, 4.0)
+	var a := _tskill(&"t_a", 0.0, 0.0, 4.0)
+	var b := _tskill(&"t_b", 0.0, 0.0, 4.0)
 	book.set_slot(2, a)
 	book.set_slot(3, b)
-	book.set_slot(4, c)
 	_reset_events()
 	ok(book.press(2) and a.n == 1, "a press casts at once when free")
-	ok(absf(book.gcd_left() - SkillBook.GCD) < 0.02 and book.gcd_total() == SkillBook.GCD and book.on_gcd(2), "it starts the %.1f s global cooldown (%.2f)" % [SkillBook.GCD, book.gcd_left()])
-	ok(absf(book.cooldown_left(2) - 4.0) < 0.05 and book.cooldown_total(2) == 4.0, "and its own recovery (%.2f / %.2f)" % [book.cooldown_left(2), book.cooldown_total(2)])
-	await _ticks(8)                                       # past the 0.1 s input lock, GCD ~0.37 left
-	ok(not book.press(3) and book.queued_slot() == -1 and b.n == 0, "pressed with %.2f s of GCD left (outside the window): refused" % book.gcd_left())
-	ok(book.press(4) and c.n == 1, "an off-GCD spell goes off during the GCD")
-	await _ticks(6)
-	var left := book.gcd_left()
-	ok(left > 0.0 and left <= SkillBook.QUEUE_WINDOW, "now inside the queue window (%.2f s left)" % left)
-	ok(book.press(3) and book.queued_slot() == 3 and b.n == 0, "a press in the window is queued, not eaten")
-	ok(_count("spell_queued", &"t_b") == 1, "spell_queued fired for it")
-	await _ticks(int(ceil(left * 60.0)) + 3)
-	ok(b.n == 1 and book.queued_slot() == -1, "the queued spell fired the moment the GCD ended")
-	ok(book.gcd_left() > 0.3, "and started its own GCD (%.2f)" % book.gcd_left())
-	ok(_count("skill_cast", &"t_b") == 1, "skill_cast fired for the queued spell")
-	# a queue on a slot's own recovery
+	ok(book.gcd_left() == 0.0 and not book.on_gcd(2), "there is no shared global cooldown")
+	ok(absf(book.cooldown_left(2) - 4.0) < 0.05 and book.cooldown_total(2) == 4.0, "only its own recovery (%.2f / %.2f)" % [book.cooldown_left(2), book.cooldown_total(2)])
+	ok(not book.press(3) and b.n == 0, "a second spell inside the cast lock is refused, not queued")
+	ok(book.queued_slot() == -1 and _count("spell_queued", &"t_b") == 0, "nothing is queued")
+	book.cancel_lock()
+	ok(book.press(3) and b.n == 1, "a roll cancels the cast lock: the next spell goes off at once")
+	await _ticks(int(ceil(SkillBook.LOCK * 60.0)) + 3)
+	book._cd.fill(0.0)
+	ok(book.press(2) and a.n == 2, "after the lock lapses the spell is free again (casts %d)" % a.n)
 	_fresh()
 	book._cd[2] = 0.2
-	ok(book.press(2) and book.queued_slot() == 2, "a press 0.2 s before its recovery ends is queued")
-	await _ticks(20)
-	ok(a.n == 2, "and goes off when it is ready (casts %d)" % a.n)
+	ok(not book.press(2) and book.queued_slot() == -1, "a press 0.2 s before its recovery ends is refused (no queue)")
 
 
 func _s_cast_time() -> void:
@@ -243,7 +230,7 @@ func _s_cast_time() -> void:
 	ok(book.press(2) and s.n == 0 and book.casting_slot() == 2, "a 0.6 s spell starts casting")
 	var info := book.cast_info()
 	ok(info.get("id") == &"t_cast" and info.get("kind") == &"cast" and absf(float(info.get("total", 0.0)) - 0.6) < 0.01, "cast_info for the cast bar: %s" % str(info))
-	ok(_count("cast_started", &"t_cast") == 1 and book.gcd_left() > 0.4, "cast_started fired; the GCD runs from the start")
+	ok(_count("cast_started", &"t_cast") == 1 and true, "cast_started fired")
 	ok(book.move_scale() < 0.5, "a rooted cast slows the walk (%.2f)" % book.move_scale())
 	await _wait(0.75)
 	ok(s.n == 1 and book.casting_slot() == -1 and book.cast_info().is_empty(), "it goes off when the cast completes")

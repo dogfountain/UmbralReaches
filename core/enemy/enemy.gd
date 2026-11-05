@@ -1624,7 +1624,7 @@ func _die() -> void:
 ## The last of a pack falls: a short slow beat and a camera punch (not on top of a riposte's).
 func _final_blow_check() -> void:
 	var p := _player()
-	if p == null or global_position.distance_to(p.global_position) > 16.0 or not is_equal_approx(Engine.time_scale, 1.0):
+	if p == null or global_position.distance_to(p.global_position) > 16.0 or TimeSlow.active():
 		return
 	for node in get_tree().get_nodes_in_group(Groups.ENEMY) + get_tree().get_nodes_in_group(&"burrowed"):
 		if node != self and node is Enemy and (node as Enemy).is_alive() and (node as Enemy)._state != IDLE \
@@ -1633,8 +1633,7 @@ func _final_blow_check() -> void:
 	p.kick(0.7)
 	Vfx.ring(global_position + Vector3.UP * 0.2, 2.2, Color(1.3, 0.6, 2.6), 0.5, 0.08, Vector3.UP, 1.2)
 	HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.6), "the pack is broken", Color(1.1, 0.7, 2.2), true)
-	Engine.time_scale = 0.3
-	get_tree().create_timer(0.16, true, false, true).timeout.connect(func() -> void: Engine.time_scale = 1.0)
+	TimeSlow.request(get_tree(), 0.3, 0.16)
 
 
 ## Dead: keep the rig folding and the body settling to the ground while it dissolves.

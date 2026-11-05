@@ -13,7 +13,6 @@ func _init() -> void:
 	cooldown = 2.1
 	color = Color("#7FA8FF")
 	glyph = &"step"
-	gcd = 0.0                   # r33: a movement escape is off the global cooldown
 
 
 func can_cast(book: SkillBook) -> String:

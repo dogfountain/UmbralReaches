@@ -245,7 +245,6 @@ func _s_aim() -> void:
 	await _frames(4)
 	var hp0 := w.hp
 	book._cd.fill(0.0)
-	book._gcd = 0.0
 	ok(book.try_cast(book.slot_of(&"bolt"), 0.0, false), "a bolt fires point-blank")
 	await _secs(0.4)
 	ok(w.hp < hp0, "the point-blank bolt hits a foe 25 deg off the crosshair (%.2f)" % (hp0 - w.hp))
@@ -257,7 +256,6 @@ func _s_aim() -> void:
 	p.set("_lock", t)
 	var hp1 := t.hp
 	book._cd.fill(0.0)
-	book._gcd = 0.0
 	# _lock_view swings the camera on rendered frames: fire at once, before it settles
 	book.try_cast(book.slot_of(&"bolt"), 0.0, false)
 	await _secs(0.6)

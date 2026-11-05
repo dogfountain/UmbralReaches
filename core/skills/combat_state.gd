@@ -11,10 +11,9 @@ extends Node
 ## Per hotbar slot i (0..4), SkillBook:
 ##   book.cooldown_left(i) -> float          seconds left on the slot's own recovery (or an interrupt lockout)
 ##   book.cooldown_total(i) -> float         the recovery that started it (sweep = left / total)
-##   book.on_gcd(i) -> bool                  the slot shares the global cooldown (Rift Bolt and Rift Step do not)
-##   book.gcd_left() / book.gcd_total()      the global cooldown (GCD = 0.5 s); sweep every on-GCD slot with it
+##   book.on_gcd(i) / gcd_left() / gcd_total()   legacy: there is no shared cooldown now (false / 0 / 0)
 ##   book.slot_lit(i) -> bool                light the slot: its own primed() or a Rift Surge it would spend
-##   book.queued_slot() -> int               the slot waiting in the spell queue (-1 none)
+##   book.queued_slot() -> int               legacy: there is no spell queue now (always -1)
 ##   book.cast_info() -> Dictionary          {} when idle, else {id, name, t, total, kind (&"cast" | &"charge"),
 ##                                           moving_ok (bool), slot (int), color (Color)} for the cast bar
 ## Status (buffs/debuffs) on the player or any enemy, this node:
@@ -31,13 +30,13 @@ extends Node
 ##   status_changed(target, id, stacks, time_left)       applied / refreshed / stacked / expired (stacks 0)
 ##   proc_triggered(id, reason)                          &"surge" lit (reason &"crit" | &"parry" | &"dodge" | &"riposte")
 ##   cast_started(id, total) / cast_stopped(id, reason)  reason &"done" | &"moved" | &"interrupted" | &"cancel"
-##   spell_queued(id)                                     a press in the queue window will fire next
+##   spell_queued(id)                                     legacy, no longer emitted (no spell queue)
 ##   target_changed(target)                               null = cleared
 ##   skill_cast(id) (existing)                            a spell went off
 ##
 ## ============================== DESIGN (adapted from the WoW combat feel) ==============================
-## - GCD + spell queue (SkillBook): 0.5 s shared lock; a press inside the last QUEUE_WINDOW of a GCD,
-##   cooldown or cast is held and fires the moment it can. The bolt and the step are off the GCD.
+## - Cast lock (SkillBook): each spell has its own cooldown; a cast also holds a 0.15 s lock so two
+##   buttons on one frame do not double-cast, and a dodge roll cancels it. No shared cooldown, no queue.
 ## - Cast times: Umbral Well 0.6 s and Bound Shade 1.0 s are rooted casts (moving cancels after a short
 ##   grace); a hard blow (>= HARD_HIT Gloom after the guard) interrupts a cast or a Lance charge and
 ##   locks that slot for LOCKOUT (the player is SHAKEN); a lighter blow pushes the cast back.

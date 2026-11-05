@@ -37,8 +37,8 @@ var invert_y := false
 @export var pitch_max := 0.6
 @export_group("Gloom")
 @export var gloom_max := 100.0
-@export var gloom_rate_dark := 2.0      ## per second away from light (was 3.6; 1.8× slower)
-@export var gloom_rate_rift := 3.5      ## per second in the Ashen Rift proper (was 6.3; 1.8× slower)
+@export var gloom_rate_dark := 3.0      ## per second away from light: ~33 s of open dark fills the bar, so the Shade is a real chance
+@export var gloom_rate_rift := 5.0      ## per second in the Ashen Rift proper: ~20 s to a Shade
 @export var gloom_drain_lit := 12.0     ## per second inside a fire (a ward drains at its own rate)
 @export var rift_z := -40.0             ## world z beyond which the rift rate may apply (plus region "rift")
 @export var rift_enabled := true
@@ -124,7 +124,6 @@ var _glide_dir := Vector3.FORWARD
 var _glide_speed := 0.0
 var _dodge_roll := false
 var _face_yaw := 0.0
-var _hs_token := 0
 var _rolled_landing := false
 var glides := 0                         ## tests
 var falls_hurt := 0.0                   ## tests: Gloom from the last hard landing
@@ -689,8 +688,7 @@ func on_evaded(attacker: Node) -> void:
 	Sfx.play("res://art/audio/mark_tick.wav", at, 0.0, 0.7, 0.02)
 	SpellFx.shell(global_position + Vector3.UP, 0.3, 2.2, Color(1.2, 0.5, 2.8), 0.3)
 	kick(0.5)
-	Engine.time_scale = 0.35
-	get_tree().create_timer(0.22, true, false, true).timeout.connect(func() -> void: Engine.time_scale = 1.0)
+	TimeSlow.request(get_tree(), 0.35, 0.22)
 
 
 ## r33: a parry, a perfect dodge or a riposte lights Rift Surge (CombatState).
@@ -963,19 +961,13 @@ func _spawn_shade() -> void:
 		Events.toast.emit("The dark has taken shape. Find light.")
 
 
-func note_shade_bolt() -> void:
+func note_shade_unmade() -> void:
 	_shade_lock = 2.0
 
 
-## A bolt drove the Shade back (Shade.drive_off). The first time, say what bolts can and cannot do.
-func note_shade_driven(n: int, most: int) -> void:
-	HitText.pop(global_position + Vector3.UP * 2.4, "DRIVEN BACK  %d/%d" % [n, most], Color(1.2, 1.0, 0.8))
-	Hints.once(&"shade_drive", "Bolts only drive the Shade back. Light or Umbral Nova unmakes it.")
-
-
-## A bolt passed through a Shade that has been driven off too often.
-func note_shade_shrug() -> void:
-	Hints.once(&"shade_shrug", "The Shade no longer flinches. Reach a fire, or unmake it with Umbral Nova.")
+## A bolt or spell passed through the Shade. The first time, say what does work.
+func note_shade_passed() -> void:
+	Hints.once(&"shade_drive", "Bolts pass through the Shade. Run for a fire or a lantern: only light unmakes it.")
 
 
 ## r35: a blow from the world (a foe, a boss, their hazards). It wounds; it no longer fills the Gloom.
@@ -1451,16 +1443,9 @@ func melee_claims_primary() -> bool:
 
 
 ## Hitstop: the whole world held at `scale` for `sec` real seconds (a strike landing, a parry).
-## Never stacks over someone else's slow motion (a riposte, a boss's final blow).
+## Stacks with other slow-motion through TimeSlow: the slowest live request wins.
 func hitstop(sec: float, scale := 0.05) -> void:
-	if Engine.time_scale < 0.999 and Engine.time_scale > scale + 0.001:
-		return
-	_hs_token += 1
-	var tok := _hs_token
-	Engine.time_scale = scale
-	get_tree().create_timer(sec, true, false, true).timeout.connect(func() -> void:
-		if tok == _hs_token and is_equal_approx(Engine.time_scale, scale):
-			Engine.time_scale = 1.0)
+	TimeSlow.request(get_tree(), scale, sec)
 
 
 func _visual_pose(kind: StringName) -> void:
@@ -2588,6 +2573,8 @@ func _try_dodge(wish: Vector3) -> bool:
 		return false                            # r31: no Breath, no roll
 	if _arts != null:
 		_arts.cancel()                          # a roll cancels a strike or a guard
+	if _book != null:
+		_book.cancel_lock()                     # ... and the cast lock, so a spell can follow the roll at once
 	_dodge_roll = true
 	_end_slide()
 	_roll_t = 0.0

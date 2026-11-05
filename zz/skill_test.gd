@@ -209,7 +209,6 @@ func _cast(id: StringName, charge := 0.0) -> bool:
 	if i < 0:
 		return false
 	book._cd.fill(0.0)
-	book._gcd = 0.0
 	p.gloom = 0.0; p.wounds = 0.0
 	if p.combat() != null:                   # r33: exact numbers: no crits, no Resonance spend, no Surge
 		p.combat().set("crit_chance", 0.0)
@@ -812,7 +811,6 @@ func _s_variants() -> void:
 	Travel.relics["kin"] = &"hearth"
 	p.wounds = 30.0
 	book._cd.fill(0.0)
-	book._gcd = 0.0
 	book.try_cast(_slot(&"ward"), 0.0, false)
 	await _wait(1.2)
 	ok(p.wounds < 28.0, "Hearth: the ward mends you in its light (%.1f)" % p.wounds)
