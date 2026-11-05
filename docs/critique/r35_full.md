@@ -479,6 +479,22 @@ Step. The *ideas* in the three boss rooms (bramble maze, shrinking briars, the g
   strike; `--dump=<dir>` writes WAVs) and three new checks in `zz/raids_r34_test`. The music has not
   been listened to by a person yet.
 
+### Implemented: NPC voices without babble (r35)
+
+- Speech is **one human sound a line**, then the text types in silence. A breath, a "hm" (rising
+  on a question), a sigh on "...", a grunt on "!" and on short dry lines, a dry "heh" on a
+  laugh-line, and a greeting "hah" on a speaker's first line.
+  - Built by `npc_voice.gd` (`gesture_for`, `gestures_of`, `gesture`) on the same glottal source
+    and formants as before, so each family keeps its pitch, size, breath and rasp (a dwarf grunts
+    lower than a child).
+  - The dialogue box and the shop play one gesture as a line starts. Ambient talk (villagers, the
+    Keg's dwarves, the bartender) is an occasional low murmur, at most one per speaker every 3.5 s.
+  - Laughter and the Keg's sung tunes keep their syllables, since they are laughter and music, not
+    speech.
+  - Gestures are prewarmed with the voice banks behind the loading screen and cached on disk.
+- Checked by `zz/npc_gesture_test` (all 8 families × 7 gestures, the picker on the game's own lines,
+  determinism, family pitch; `--dump=<dir>` writes WAVs). Not yet heard by a person.
+
 ## Test run (this critique)
 
 `tools/run_tests.sh`, 4 jobs, isolated HOME.

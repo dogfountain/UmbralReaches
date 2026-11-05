@@ -355,7 +355,7 @@ func _argue() -> void:
 				_step = 4
 				if is_instance_valid(keep):
 					var kv: Variant = keep.get("voice")
-					Voice.say(_voice_of(keep), kv if kv is Dictionary else Voice.profile("keep", 5150), 4, 1.0, false, -4.0)
+					Voice.gesture(_voice_of(keep), kv if kv is Dictionary else Voice.profile("keep", 5150), "hah", -4.0)   # r35: no babble
 					_bark(KEEP_SHOUT[_rng.randi() % KEEP_SHOUT.size()], keep)
 				_cue(a, "look", 1.6)
 				_cue(b, "look", 1.6)

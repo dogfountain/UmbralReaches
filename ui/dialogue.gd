@@ -20,7 +20,8 @@ const CPS := 52.0                          ## typed characters per second
 const DwarfRigScript := preload("res://core/npc/dwarf_rig.gd")
 const Voice := preload("res://core/npc/npc_voice.gd")
 const UiSound := preload("res://ui/ui_sound.gd")   ## quiet menu sounds (F)
-const VOICE_DB := -6.0                     ## the speaker's babble under the typing (SFX bus)
+const VOICE_DB := -6.0                     ## the speaker's line-start gesture (SFX bus; r35: no babble)
+var _last_speaker := ""                    ## r35: a new speaker's first line greets ("hah")
 
 var _font: Font
 var _root: Control
@@ -259,6 +260,7 @@ func close() -> void:
 		return
 	_open = false
 	_voice_stop()
+	_last_speaker = ""
 	_panel.visible = false
 	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	if _paused_it:
@@ -295,7 +297,14 @@ func line(speaker: String, text: String, choices: Array[String] = []) -> void:
 	_cur_voice = _voices.get(speaker, {})
 	if _cur_voice.is_empty():
 		_cur_voice = Voice.profile("dwarf", hash(speaker))
-	_plan_syllables(_text.get_parsed_text())
+	# r35: one human sound as the line starts (npc_voice.gd gesture_for), then the text types in
+	# silence. It babbled a syllable per vowel group before, which read as comic under grim lines.
+	_syl.clear()
+	_syl_i = 0
+	if speaker != "":
+		var first := speaker != _last_speaker
+		Voice.gesture(_voice_p, _cur_voice, Voice.gesture_for(_text.get_parsed_text(), first), VOICE_DB)
+	_last_speaker = speaker
 	_shown = 0.0
 	_text.visible_characters = 0
 	for b in _buttons:
@@ -449,60 +458,6 @@ func _process(delta: float) -> void:
 func set_voice(prof: Dictionary, speaker := "") -> void:
 	var who := speaker if speaker != "" else _name.text
 	_voices[who] = prof if not prof.is_empty() else Voice.profile("dwarf", hash(who))
-
-
-## Syllables of the line: one per vowel group of each word. Sentences fall in pitch, a question lifts
-## its last two syllables, an exclamation is louder and a little higher, a few syllables take stress.
-func _plan_syllables(text: String) -> void:
-	_syl.clear()
-	_syl_i = 0
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(text)
-	var sentence: Array = []                 # syllable char indices of the sentence being read
-	var in_word := false
-	var prev_vowel := false
-	var groups := 0                          # vowel groups met in this word
-	var n := text.length()
-	for i in n + 1:
-		var c := text[i].to_lower() if i < n else "."
-		var letter := (c >= "a" and c <= "z") or c == "'"
-		var vowel := c in ["a", "e", "i", "o", "u", "y"]
-		if letter:
-			if not in_word:
-				sentence.append(i)               # the word's first syllable starts with it
-				groups = 0
-			if vowel and not prev_vowel:
-				groups += 1
-				# each vowel group after the first is one more syllable, except a final silent e
-				var nxt := text[i + 1].to_lower() if i + 1 < n else " "
-				var silent_e := c == "e" and not (nxt >= "a" and nxt <= "z")   # "fire", "fire's"
-				if groups > 1 and not silent_e and i - int(sentence[-1]) > 1:
-					sentence.append(i)
-			in_word = true
-			prev_vowel = vowel
-		else:
-			in_word = false
-			prev_vowel = false
-			if c in [".", "!", "?"] and not sentence.is_empty():
-				_sentence(sentence, c, rng)
-				sentence = []
-
-
-func _sentence(idx: Array, end: String, rng: RandomNumberGenerator) -> void:
-	var k := idx.size()
-	for j in k:
-		var f := float(j) / maxf(float(k - 1), 1.0)
-		var pitch := 1.04 - 0.08 * f
-		var db := VOICE_DB
-		if end == "?" and j >= k - 2:
-			pitch += 0.09 * float(j - (k - 3))
-		elif end == "!":
-			pitch += 0.04
-			db += 2.0
-		if rng.randf() < 0.22:
-			pitch += 0.05
-			db += 1.5
-		_syl.append([int(idx[j]), pitch, db])
 
 
 ## Called as the line types: voice each syllable the text has reached (spaced so a fast line does
