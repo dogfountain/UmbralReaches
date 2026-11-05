@@ -191,7 +191,7 @@ func _tskill(id: StringName, _unused := 0.0, cast_time := 0.0, cd := 1.0) -> TSk
 	var s := TSkill.new()
 	s.id = id
 	s.title = String(id)
-		s.cast_time = cast_time
+	s.cast_time = cast_time
 	s.cooldown = cd
 	return s
 
