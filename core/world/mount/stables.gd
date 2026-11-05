@@ -10,6 +10,8 @@ var horses := {}                 ## breed -> horse node
 
 
 static func build(host: Node3D) -> void:
+	if not Slice.full():                     # the 30-minute slice hides horses (--full restores them)
+		return
 	if host == null or host.get_node_or_null("Stables") != null:
 		return
 	var s: Node = (load("res://core/world/mount/stables.gd") as GDScript).new()

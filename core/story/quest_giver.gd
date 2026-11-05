@@ -35,9 +35,11 @@ static func available(id: String, tree: SceneTree = null, ws := {}) -> bool:
 	var qd: Dictionary = Chains.QUESTS.get(id, {})
 	if qd.is_empty() or Book.active(id):
 		return false
+	if Chains.hidden(id):                      # the slice: no dailies, no attunement chains
+		return false
 	if Book.started(id) and not Book.repeatable(id):
 		return false
-	var cond := String(qd.get("avail", ""))
+	var cond := Chains.avail_cond(id)
 	if cond == "":
 		return true
 	return VState.test(cond, ws if not ws.is_empty() else (VState.world(tree) if tree else _ws()), tree)

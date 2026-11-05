@@ -29,6 +29,10 @@ var p: Player
 var _travel := {}
 
 
+func _init() -> void:
+	Engine.set_meta(&"full_night", true)   # the 30-minute slice hides horses, watch, roaming events, dailies, attunements
+
+
 func ok(c: bool, what: String) -> void:
 	print(("  ok   " if c else "  FAIL ") + what)
 	if not c:

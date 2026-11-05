@@ -34,6 +34,10 @@ var player: Node3D
 var _travel := {}
 
 
+func _init() -> void:
+	Engine.set_meta(&"full_night", true)   # the 30-minute slice hides horses, watch, roaming events, dailies, attunements
+
+
 func ok(c: bool, what: String) -> void:
 	if c:
 		print("  ok   ", what)

@@ -16,6 +16,10 @@ const Warden := preload("res://core/enemy/ascended_warden.gd")
 var bad := 0
 
 
+func _init() -> void:
+	Engine.set_meta(&"full_night", true)   # the 30-minute slice hides horses, watch, roaming events, dailies, attunements
+
+
 func ok(c: bool, what: String) -> void:
 	print(("ACT2 ok   " if c else "ACT2 FAIL ") + what)
 	if not c:
