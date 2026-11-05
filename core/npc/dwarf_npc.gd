@@ -80,6 +80,7 @@ var _home_edge := -0.4
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # r36 smooth: moved in _process, drawn as set (interpolated, it judders between ticks)
 	add_to_group(Groups.INTERACTABLE)
 	rig = DwarfRig.make({"seated": seated, "seed": seed_n if seed_n != 0 else hash(name), "hat": hat})
 	voice = Voice.profile("dwarf", seed_n if seed_n != 0 else hash(name))

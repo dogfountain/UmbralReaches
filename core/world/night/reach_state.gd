@@ -147,7 +147,7 @@ func refresh() -> void:
 	# bells rung where they hung: the bell stands lit
 	for b: String in BELL_REGION:
 		if Book.pick(b) == "rung" and not _lit.has(b):
-			_light_bell(b)
+			_light_bell(b, not ann.has("quiet_" + b))     # r36: a fresh peal swings it; a loaded one hangs
 			var qkey := "quiet_" + b
 			if not ann.has(qkey):
 				ann[qkey] = true
@@ -169,7 +169,7 @@ func refresh() -> void:
 
 ## The bell left where it hung: its frame on the ground at the bell's place, a lantern under it, and
 ## a mirror light (no rest, no checkpoint; the hollowed keep off it).
-func _light_bell(b: String) -> void:
+func _light_bell(b: String, fresh := false) -> void:
 	var keys := Chains.gather_keys(b, 1)
 	if keys.is_empty():
 		return
@@ -183,7 +183,9 @@ func _light_bell(b: String) -> void:
 	n.name = "RungBell_" + b
 	get_parent().add_child(n)
 	n.global_position = at
-	QProps.make(n, "Bell", "bell", Transform3D(Basis(Vector3.UP, float(hash(b) % 628) * 0.01), at))
+	var bell := QProps.make(n, "Bell", "bell", Transform3D(Basis(Vector3.UP, float(hash(b) % 628) * 0.01), at))
+	if fresh:
+		QProps.ring_bell(bell)              # r36: still swinging from the peal that freed it
 	var l := OmniLight3D.new()
 	l.light_color = Color(1.0, 0.72, 0.4)
 	l.light_energy = 1.2

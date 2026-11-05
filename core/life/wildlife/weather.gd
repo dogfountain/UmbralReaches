@@ -217,6 +217,7 @@ func _step(delta: float) -> void:
 	# the wind veers slowly and gusts
 	wind_dir = wind_dir.rotated(Vector3.UP, sin(_t * 0.013) * dt * 0.01).normalized()
 	gust = float(state.wind) * (0.55 + 0.45 * maxf(0.0, sin(_t * 0.41) * sin(_t * 0.137 + 1.0)) * 1.6)
+	Sway.wind = gust                     # r36: lanterns, hooks and bells swing with it
 	_thunder(dt, delta)
 	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
 	if cam != null:

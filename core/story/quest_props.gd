@@ -95,13 +95,23 @@ static func make(parent: Node3D, n: String, kind: String, xf: Transform3D) -> No
 			for sx: float in [-0.62, 0.62]:
 				k.box("wood", Vector3(sx, 0.75, 0), Vector3(0.12, 1.5, 0.12), Basis.IDENTITY, false, 0.7)
 			k.box("wood", Vector3(0, 1.52, 0), Vector3(1.5, 0.12, 0.14), Basis.IDENTITY, false, 0.7)
-			# the bell, stepped from crown to lip
+			# the bell, stepped from crown to lip; r36: it hangs from the beam (a headstock pin at
+			# 1.46) and swings, barely in the wind, hard when it is rung (`ring_bell`)
+			var hs := 1.46
+			var sw := Sway.bell(h, h.global_transform * Vector3(0, hs, 0), h.global_basis.get_euler().y, 2.2)
+			var kb := OssKit.new()
+			kb.keep_lanes = false
+			kb.box("iron", Vector3(0, 1.43 - hs, 0), Vector3(0.1, 0.06, 0.1), Basis.IDENTITY, false, 0.45)
 			var rows := [[1.36, 0.16, 0.09], [1.24, 0.3, 0.12], [1.08, 0.42, 0.16], [0.92, 0.5, 0.16], [0.79, 0.62, 0.08]]
 			for i in rows.size():
 				var row: Array = rows[i]
 				for j in 2:
-					k.box("iron", Vector3(0, float(row[0]), 0), Vector3(float(row[1]), float(row[2]), float(row[1])), Basis(Vector3.UP, 0.785 * float(j)), false, 0.42 + 0.03 * float(i))
-			k.box("iron", Vector3(0, 0.66, 0), Vector3(0.06, 0.2, 0.06), Basis.IDENTITY, false, 0.4)
+					kb.box("iron", Vector3(0, float(row[0]) - hs, 0), Vector3(float(row[1]), float(row[2]), float(row[1])), Basis(Vector3.UP, 0.785 * float(j)), false, 0.42 + 0.03 * float(i))
+			kb.box("iron", Vector3(0, 0.66 - hs, 0), Vector3(0.06, 0.2, 0.06), Basis.IDENTITY, false, 0.4)
+			sw.take(kb, FAR)
+			for c in sw.get_children():
+				if c is GeometryInstance3D:
+					(c as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		# r34: the new regions' finds
 		"ward":
 			# a Rooted ward-stone: a rounded grey stone, a spiral pecked in its face (pale cuts)
@@ -159,6 +169,15 @@ static func make(parent: Node3D, n: String, kind: String, xf: Transform3D) -> No
 			gi.visibility_range_end_margin = 6.0
 			gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return h
+
+
+## r36: swing a bell prop (kind "bell") as if it had just been rung.
+static func ring_bell(holder: Node, k := 1.0) -> void:
+	if holder == null:
+		return
+	for c in holder.get_children():
+		if c is Sway:
+			(c as Sway).ring(k)
 
 
 ## A faint drift of motes over something a task wants found (one small emitter, warm).

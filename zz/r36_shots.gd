@@ -10,6 +10,8 @@ var main: Node
 var out := "res://shots"
 var _ran := false
 var ride_view := "side"
+var mount_at := -1.0                    ## --mount-at=0..1: freeze the climb onto the horse there, shoot it
+var _hold: Node3D = null
 var t := 0.0
 var cam: Camera3D
 
@@ -19,6 +21,8 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--ride-view="):
 			ride_view = a.trim_prefix("--ride-view=")
+		if a.begins_with("--mount-at="):
+			mount_at = float(a.trim_prefix("--mount-at="))
 		if a.begins_with("--out="):
 			out = a.trim_prefix("--out=")
 	main = load("res://world/main.tscn").instantiate()
@@ -28,6 +32,8 @@ func _ready() -> void:
 func _process(d: float) -> void:
 	Travel._busy = true
 	t += d
+	if _hold != null and is_instance_valid(_hold):
+		_hold.set("_mount_t", mount_at * float(_hold.get("MOUNT_T")))
 	if t > 300.0:
 		get_tree().quit(1)
 	if not _ran and is_instance_valid(main) and main.has_meta("realm_done") and main.get_node_or_null("Stables") != null:
@@ -66,6 +72,16 @@ func _run() -> void:
 	await _wait(0.3)
 	hs.call("interact", p)
 	hs.call("interact", p)
+	if mount_at >= 0.0:
+		# the climb, frozen at one beat, from the near (left) side and a little ahead
+		_hold = hs
+		await _wait(1.0)
+		for n in get_tree().root.find_children("*", "CanvasLayer", true, false):
+			(n as CanvasLayer).visible = false
+		var hm := hs.global_basis
+		await _shot("mount_%02d" % int(round(mount_at * 100.0)), hs.global_position - hm.x * 3.8 - hm.z * 1.6 + Vector3.UP * 1.6, hs.global_position + Vector3.UP * 1.2)
+		get_tree().quit(0)
+		return
 	var sp := hs.get_world_3d().direct_space_state
 	var hit := sp.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(-40.0, 60.0, 20.0), Vector3(-40.0, -40.0, 20.0), Layers.WORLD))
 	if not hit.is_empty():

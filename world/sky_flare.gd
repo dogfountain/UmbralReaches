@@ -5,6 +5,10 @@ var moon: DirectionalLight3D
 var dist := 24.0
 
 
+func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # r36 smooth: rides the camera every frame
+
+
 func _process(_delta: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null or moon == null:

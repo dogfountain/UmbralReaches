@@ -578,9 +578,14 @@ static func _quarry_crane(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 	var j1 := mast + Vector3(-9.0, 8.6, 0)
 	_cyl(k, "wood", xf * j0, xf * j1, 0.2, 0.13)
 	_cyl(k, "wood", xf * (mast + Vector3(0, 7.2, 0)), xf * (mast + Vector3(-6.0, 8.0, 0)), 0.05, 0.05)   # the stay
-	_cyl(k, "iron", xf * (j1 + Vector3(0.1, 0, 0)), xf * Vector3(j1.x + 0.1, 3.4, j1.z), 0.035, 0.035)    # the rope
-	var hang := xf * Vector3(j1.x + 0.1, 2.5, j1.z)
-	k.box("stone", hang, Vector3(1.4, 1.0, 1.0), b * Basis(Vector3.UP, 0.4), false, 0.84)
+	# r36: the rope and its block hang from the jib's sheave and swing, slow and heavy
+	var sheave := j1 + Vector3(0.1, 0, 0)
+	var sw := Sway.hang(host, xf * sheave, b.get_euler().y, 0.012, 4.6, 0.5)
+	var kh := OssKit.new()
+	kh.keep_lanes = false
+	_cyl(kh, "iron", Vector3.ZERO, Vector3(0, 3.4 - sheave.y, 0), 0.035, 0.035)    # the rope
+	kh.box("stone", Vector3(0, 2.5 - sheave.y, 0), Vector3(1.4, 1.0, 1.0), Basis(Vector3.UP, 0.4), false, 0.84)
+	sw.take(kh, 120.0)
 	# the windlass on the deck
 	_cyl(k, "wood", xf * (pc + Vector3(0.6, CRANE_DECK + 0.7, -1.6)), xf * (pc + Vector3(0.6, CRANE_DECK + 0.7, 1.0)), 0.32, 0.32)
 	for z: float in [-1.7, 1.1]:
@@ -648,13 +653,18 @@ static func _quarry_winch(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 		k.box("wood", xf * Vector3(x, 0.55, -1.2), Vector3(0.18, 1.1, 0.9), b, true, 0.75)
 	# the tread-wheel outside the east wall, its axle through to the drum
 	var wc := Vector3(hx + 0.9, 2.3, -0.2)
+	# r36: the wheel creaks round on its axle (something in the pit still hauls on the rope)
+	var wheel := Sway.turner(host, xf * wc, b.get_euler().y, Vector3.RIGHT, -0.16)
+	var kw := OssKit.new()
+	kw.keep_lanes = false
 	for i in 16:
 		var a := TAU * float(i) / 16.0
-		var p := wc + Vector3(0, sin(a) * 2.0, cos(a) * 2.0)
-		k.box("wood", xf * p, Vector3(1.3, 0.16, 0.82), b * Basis(Vector3.RIGHT, -a), false, rng.randf_range(0.7, 0.9))
+		var p := Vector3(0, sin(a) * 2.0, cos(a) * 2.0)
+		kw.box("wood", p, Vector3(1.3, 0.16, 0.82), Basis(Vector3.RIGHT, -a), false, rng.randf_range(0.7, 0.9))
 	for i in 4:
 		var a := PI * float(i) / 4.0
-		k.box("wood", xf * wc, Vector3(0.12, 4.0, 0.14), b * Basis(Vector3.RIGHT, a), false, 0.75)
+		kw.box("wood", Vector3.ZERO, Vector3(0.12, 4.0, 0.14), Basis(Vector3.RIGHT, a), false, 0.75)
+	wheel.take(kw, 120.0)
 	_cyl(k, "wood", xf * (wc + Vector3(-1.2, 0, 0)), xf * (wc + Vector3(0.8, 0, 0)), 0.16, 0.16)
 	for z: float in [-2.1, 1.7]:
 		k.box("wood", xf * (wc + Vector3(0.75, -1.2, z)), Vector3(0.2, 2.6, 0.2), b, true, 0.75)
@@ -948,8 +958,13 @@ static func _foundry_pits(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 		for sz: float in [-1.0, 1.0]:
 			_cyl(k, "wood", f + b * Vector3(0, 0, sz * 1.4), f + b * Vector3(0, 5.6, 0), 0.16, 0.13, true)
 	_cyl(k, "wood", _gl(space, xf, Vector3(-7.8, 5.5, -1.4)), _gl(space, xf, Vector3(7.8, 5.5, -1.4)), 0.18, 0.18)
-	_cyl(k, "iron", _gl(space, xf, Vector3(0.6, 5.4, -1.4)), _gl(space, xf, Vector3(0.6, 2.6, -1.4)), 0.04, 0.04)
-	k.box("iron", _gl(space, xf, Vector3(0.6, 2.45, -1.4)), Vector3(0.3, 0.3, 0.06), b, false, 0.8)
+	# r36: the chain and its hook sway over the pits
+	var hk := Sway.hang(host, _gl(space, xf, Vector3(0.6, 5.4, -1.4)), b.get_euler().y, 0.03, 3.4, 0.8)
+	var kk := OssKit.new()
+	kk.keep_lanes = false
+	_cyl(kk, "iron", Vector3.ZERO, Vector3(0, -2.8, 0), 0.04, 0.04)
+	kk.box("iron", Vector3(0, -2.95, 0), Vector3(0.3, 0.3, 0.06), Basis.IDENTITY, false, 0.8)
+	hk.take(kk, 90.0)
 	# the founders' bench: tongs, a crucible, a ledger slab
 	var bench := _gl(space, xf, Vector3(-1.6, 0, 4.4))
 	for sx: float in [-0.9, 0.9]:

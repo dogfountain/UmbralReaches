@@ -75,8 +75,9 @@ func _build_post() -> void:
 		var lean := Basis(dir.cross(Vector3.UP).normalized(), -0.35)
 		k.box("wood", at + Vector3.UP * 0.55, Vector3(0.14, 1.2, 0.14), lean, false, 0.7)
 	k.box("wood", -face * 1.5 + Vector3.UP * 1.6, Vector3(0.1, 3.2, 0.1), Basis.IDENTITY, false, 0.7)
-	k.box("plaster", -face * 1.5 + right * 0.32 + Vector3.UP * 2.75, Vector3(0.6, 0.85, 0.03), Basis(Vector3.UP, atan2(right.x, right.z)), false, 0.4)
 	k.commit(self, "Post")
+	# r36: the watch's banner is cloth, and the wind works along it from the pole
+	Sway.flag(self, global_position - face * 1.5 + Vector3.UP * 2.75, atan2(-right.z, right.x), "plaster", Vector2(0.7, 0.85))
 	for c in get_children():
 		if c is GeometryInstance3D:
 			(c as GeometryInstance3D).visibility_range_end = 110.0

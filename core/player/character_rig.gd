@@ -1540,6 +1540,11 @@ var ride := 0.0                     ## r36: astride a horse (core/world/mount): 
 ## the coat drapes over it while `ride` is on (robe_skin.gdshader `saddle`)
 var saddle := Vector3.ZERO
 var _saddle_sent := 0.0
+## r36: climbing on (horse.gd): 0..1 through the mount (-1 when not), and the rig's offset from its
+## seat meanwhile (rig space: +x right, +y up, +z back). The left foot finds the stirrup, the
+## right leg pushes off and swings over the rump, the body leans over the withers.
+var mount := -1.0
+var mount_off := Vector3.ZERO
 var hang := 0.0                     ## hanging from a ledge by the hands
 var hang_shimmy := 0.0              ## -1..1 moving sideways along the ledge
 var steep := 0.0                    ## sliding down a slope too steep to stand on
@@ -2048,8 +2053,10 @@ func _moves_pose(speed: float, on_floor: bool, dt: float) -> void:
 	if ride > 0.001 or _saddle_sent > 0.0:
 		# the coat drapes over the horse's barrel (robe_skin `saddle`): the merged body and any
 		# separate cloth pieces alike
-		_saddle_sent = ride
-		var sv := Vector4(saddle.x, saddle.y, saddle.z, ride)
+		# r36: no barrel under the coat until the rider is over it
+		var seated := ride * (smoothstep(0.78, 1.0, mount) if mount >= 0.0 else 1.0)
+		_saddle_sent = seated
+		var sv := Vector4(saddle.x, saddle.y, saddle.z, seated)
 		if _body_mi:
 			_body_mi.set_instance_shader_parameter("saddle", sv)
 		for mi in _cloth:
@@ -2139,10 +2146,34 @@ func _ride_legs(k: float) -> void:
 	if saddle.x <= 0.0:
 		return
 	var py := _pelvis.position.y
+	var m := mount
+	var climbing := m >= 0.0 and m < 1.0
+	var off := mount_off if climbing else Vector3.ZERO
+	if climbing:
+		# leaning over the withers to swing the leg across, then sitting up
+		var lean := sin(PI * clampf((m - 0.3) / 0.6, 0.0, 1.0))
+		_torso.rotation.x += 0.42 * lean
+		_torso.rotation.z += -0.12 * lean
+		_head.rotation.x += -0.25 * lean
+		_pelvis.position.y = lerpf(py, H_PELVIS, 1.0 - smoothstep(0.7, 1.0, m))
+		py = _pelvis.position.y
 	for i in 2:
 		var sd2 := -1.0 if i == 0 else 1.0
-		var ank := Vector3(sd2 * saddle.x * 1.14, py + saddle.y - saddle.z * 0.1, -0.06)
-		_leg_ik(i, ank, Basis(Vector3.RIGHT, -0.2), Basis(Vector3.UP, -sd2 * 1.0), k)
+		var stir := Vector3(sd2 * saddle.x * 1.14, py + saddle.y - saddle.z * 0.1, -0.06) - off
+		var w := k
+		var ank := stir
+		if climbing:
+			if i == 0:
+				w = smoothstep(0.08, 0.3, m)                  # the left foot up into its stirrup
+			else:
+				# the right leg: pushes off the ground, then sweeps up and back over the rump
+				# and down into the far stirrup (a curve through a point behind and above the seat)
+				var e := smoothstep(0.42, 0.86, m)
+				var p0 := Vector3(0.12, py - 0.9, 0.06)
+				var p1 := Vector3(lerpf(0.12, stir.x, 0.5), py + 0.32 - off.y * 0.5, 0.62)
+				ank = p0.lerp(p1, e).lerp(p1.lerp(stir, e), e)
+				w = smoothstep(0.3, 0.45, m)
+		_leg_ik(i, ank, Basis(Vector3.RIGHT, -0.2), Basis(Vector3.UP, -sd2 * 1.0), w)
 
 
 func _pose_ride(k: float) -> void:

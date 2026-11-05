@@ -54,6 +54,7 @@ var _guest: Node3D
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # r36 smooth: moved in _process, drawn as set (interpolated, it judders between ticks)
 	add_to_group(Groups.INTERACTABLE)
 	add_to_group("keep")
 	rig = DwarfRig.make({"seated": false, "seed": 5150, "apron": true, "hat": "bare", "rag": true})

@@ -11,6 +11,7 @@ var anchor := Vector3.ZERO              ## the column's true foot (world)
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # r36 smooth: moved in _process, drawn as set (interpolated, it judders between ticks)
 	add_to_group(&"landmark_beacon")      # the HUD compass (ui/compass.gd) lists these
 	top_level = true
 	global_position = anchor

@@ -37,6 +37,7 @@ var _gone := false
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # r36 smooth: moved in _process, drawn as set (interpolated, it judders between ticks)
 	name = "BoundShade"
 	add_to_group(&"bound_shade")
 	top_level = true

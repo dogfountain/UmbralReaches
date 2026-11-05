@@ -128,20 +128,28 @@ static func lamps(parent: Node, space: PhysicsDirectSpaceState3D, defs: Array, s
 		var arm := Vector3(to.x, 0, to.y) * 0.5
 		k.box("iron", base + Vector3.UP * 2.55 + arm * 0.5, Vector3(0.04, 0.04, 0.55), Basis.looking_at(Vector3(to.x, 0, to.y), Vector3.UP), false, 0.7)
 		var lc := base + Vector3.UP * LANTERN_H + arm
-		k.box("iron", lc + Vector3.UP * 0.15, Vector3(0.2, 0.05, 0.2), b, false, 0.6)
-		k.box("iron", lc + Vector3.UP * 0.2, Vector3(0.1, 0.06, 0.1), b, false, 0.6)
-		k.box("iron", lc + Vector3.DOWN * 0.13, Vector3(0.19, 0.04, 0.19), b, false, 0.6)
+		# r36: the lantern hangs from the arm's hook (0.25 above its centre) and swings in the wind
+		var hook := lc + Vector3.UP * 0.25
+		k.box("iron", hook + Vector3.DOWN * 0.005, Vector3(0.015, 0.06, 0.015), b, false, 0.6)
+		var sw := Sway.hang(h, hook, atan2(-to.x, -to.y), 0.035, 2.1 + 0.25 * float(i % 3), 1.0)
+		var kc := OssKit.new()
+		kc.keep_lanes = false
+		var lo := Vector3.DOWN * 0.25                        # the lantern's centre in the hook's space
+		kc.box("iron", lo + Vector3.UP * 0.15, Vector3(0.2, 0.05, 0.2), Basis.IDENTITY, false, 0.6)
+		kc.box("iron", lo + Vector3.UP * 0.2, Vector3(0.1, 0.06, 0.1), Basis.IDENTITY, false, 0.6)
+		kc.box("iron", lo + Vector3.DOWN * 0.13, Vector3(0.19, 0.04, 0.19), Basis.IDENTITY, false, 0.6)
 		for c in 4:
-			var o := b * Vector3(0.085 * (1.0 if c % 2 == 0 else -1.0), 0, 0.085 * (1.0 if c < 2 else -1.0))
-			k.box("iron", lc + o, Vector3(0.02, 0.27, 0.02), b, false, 0.6)
+			var o := Vector3(0.085 * (1.0 if c % 2 == 0 else -1.0), 0, 0.085 * (1.0 if c < 2 else -1.0))
+			kc.box("iron", lo + o, Vector3(0.02, 0.27, 0.02), Basis.IDENTITY, false, 0.6)
+		sw.take(kc, 90.0)
 		var g := MeshInstance3D.new()
 		g.name = "Glass_" + String(d.id)
 		g.mesh = glass_mesh
 		g.material_override = _glass_mat
 		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		g.visibility_range_end = 90.0
-		h.add_child(g)
-		g.global_position = lc
+		sw.add_child(g)
+		g.position = lo
 		g.set_instance_shader_parameter("seed", float(i) * 0.37)
 		var hl := MeshInstance3D.new()
 		hl.name = "Halo_" + String(d.id)
@@ -149,8 +157,8 @@ static func lamps(parent: Node, space: PhysicsDirectSpaceState3D, defs: Array, s
 		hl.material_override = _halo_mat
 		hl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		hl.visibility_range_end = 90.0
-		h.add_child(hl)
-		hl.global_position = lc
+		sw.add_child(hl)
+		hl.position = lo
 		hl.set_instance_shader_parameter("seed", float(i) * 0.37)
 		out[String(d.id)] = {"pos": lc, "glass": g, "halo": hl, "lit": 0.0, "want": 0.0, "fuel": 0.0}
 		i += 1

@@ -133,6 +133,7 @@ func setup(vid: String, d: Dictionary, director: Node) -> void:
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # r36 smooth: moved in _process, drawn as set (interpolated, it judders between ticks)
 	add_to_group(Groups.INTERACTABLE)
 	add_to_group("villager")
 	var opts: Dictionary = (data.rig as Dictionary).duplicate()

@@ -142,13 +142,16 @@ func _horses() -> void:
 	p.teleport(h.global_position + Vector3(1.5, 0.5, 0.0))
 	await _wait(0.4)
 	Travel.items["grave_ash"] = 0
-	h.call("interact", p)
+	# through the wanderer's own [E] (the sensor finds it), not a call on the horse
+	ok(p.get("_interact_target") == h, "[E] finds the horse beside you (%s)" % str(p.get("_interact_target")))
+	p.call("_try_interact")
 	ok(not bool(h.call("owned")), "no ash, no horse")
 	Travel.items["grave_ash"] = 200
-	h.call("interact", p)
+	p.call("_try_interact")
 	ok(bool(h.call("owned")), "bought with grave ash")
-	h.call("interact", p)
+	p.call("_try_interact")
 	ok(p.riding == h, "mounted")
+	await _wait(1.3)                       # the climb on (horse.gd MOUNT_T): it stands meanwhile
 	# ride in open ground (the meadow south of the Rift), whatever stands round the stable
 	var sp := h.get_world_3d().direct_space_state
 	var hit := sp.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(-40.0, 60.0, 20.0), Vector3(-40.0, -40.0, 20.0), Layers.WORLD))

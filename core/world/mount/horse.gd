@@ -1,4 +1,4 @@
-extends Node3D
+extends Interactable
 ## r36 a horse (core/world/mount): one creature-shader MultiMesh instance (life_kit's horse_* meshes:
 ## legs and head animated on the GPU from the gait phase), a state, and the ride. Stands at its
 ## hitching post (or where it was left) grazing; [E] buys it there, rides it once owned; [E] while
@@ -20,13 +20,15 @@ var _mmi: MultiMeshInstance3D
 var _d: Dictionary
 var _yaw := 0.0
 var _phase := 0.0
+var _phase_prev := 0.0                ## r36 smooth: the phase a tick ago (drawn blended to the frame)
 var _head := 0.0                 ## head pitch (grazing lowers it)
 var _graze_t := 0.0
 var _sfx_t := 0.0
 var _turn_v := 0.0
 var _mount_t := 9.0
 var _mount_from := Vector3.ZERO
-const MOUNT_T := 0.35
+const MOUNT_T := 1.15                ## r36: step up, foot in the stirrup, swing over, settle
+const STIRRUP_Y := 0.62              ## the left stirrup's tread above the ground (x the breed's scale)
 const SEAT_Y := 1.315             ## the saddle's seat top, x the breed's scale, above the horse's origin
 var _space: PhysicsDirectSpaceState3D
 
@@ -127,8 +129,11 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		dismount()
 		Events.toast.emit("The horse will go no nearer. You get down.")
 		return
+	_phase_prev = _phase
 	var want := 0.0
 	var w := Vector3(wish.x, 0.0, wish.z)
+	if _mount_t < MOUNT_T:
+		w = Vector3.ZERO                       # r36: it stands while the rider climbs on
 	if w.length() > 0.1:
 		want = float(_d.gallop) if sprint else (float(_d.trot) if w.length() > 0.7 else float(_d.walk))
 		var target_yaw := atan2(-w.x, -w.z)
@@ -163,12 +168,37 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	# the pelvis on the saddle's seat (the seat's top is 1.315 x scale above the horse's origin; the
 	# rig's pelvis stands 0.955 above its feet), a hand's width behind the pommel
 	var seat := global_position + Vector3.UP * (SEAT_Y * _scale() - CharacterRig.H_PELVIS + 0.02 + _bob()) + fwd * (0.04 * _scale())
-	if _mount_t < MOUNT_T:
-		_mount_t += dt
-		var e := smoothstep(0.0, 1.0, _mount_t / MOUNT_T)
-		seat = _mount_from.lerp(seat, e) + Vector3.UP * sin(e * PI) * 0.35      # a swing up and over
-	p.global_position = seat
 	var vis := p.get_node_or_null("Visual") as Node3D
+	if _mount_t < MOUNT_T:
+		# r36: getting on, from the near (left) side: a step to the stirrup, the left foot in it and a
+		# spring up, the right leg over the rump, down into the saddle. The rig poses the legs
+		# from `mount` and its offset from the seat (character_rig _ride_legs).
+		_mount_t += dt
+		var m := clampf(_mount_t / MOUNT_T, 0.0, 1.0)
+		var sc := _scale()
+		var left := -global_basis.x.normalized()
+		var side := global_position + left * 0.7 * sc + fwd * 0.03 * sc
+		side.y = global_position.y
+		var stand := global_position + left * 0.5 * sc + fwd * 0.03 * sc + Vector3.UP * (STIRRUP_Y * sc)
+		var over := seat + Vector3.UP * 0.16 + left * 0.06 * sc
+		var at: Vector3
+		if m < 0.22:
+			at = _mount_from.lerp(side, smoothstep(0.0, 1.0, m / 0.22))
+		elif m < 0.5:
+			at = side.lerp(stand, smoothstep(0.0, 1.0, (m - 0.22) / 0.28))
+		elif m < 0.84:
+			var e := smoothstep(0.0, 1.0, (m - 0.5) / 0.34)
+			at = stand.lerp(over, e) + Vector3.UP * sin(e * PI) * 0.08
+		else:
+			at = over.lerp(seat, smoothstep(0.0, 1.0, (m - 0.84) / 0.16))
+		if vis and "mount" in vis:
+			var d := at - seat
+			vis.set("mount", m if m < 1.0 else -1.0)
+			vis.set("mount_off", Vector3(d.dot(-left), d.y, -d.dot(fwd)))
+		seat = at
+	elif vis and "mount" in vis and float(vis.get("mount")) >= 0.0:
+		vis.set("mount", -1.0)
+	p.global_position = seat
 	if vis and "saddle" in vis:
 		# the barrel under the rider, in the coat's space (origin at the pelvis): its centre 0.98 x
 		# scale above the horse's origin, so (0.98 - 1.315) x scale below the seat
@@ -190,6 +220,8 @@ func _process(dt: float) -> void:
 		rider = null
 		speed = 0.0
 	if rider != null:
+		# ridden: drive() steps the gait on the tick; draw it at the frame's moment, as the body is
+		_write(lerpf(_phase_prev, _phase, Engine.get_physics_interpolation_fraction()))
 		return
 	# standing: graze now and then, flick the head up
 	_graze_t -= dt
@@ -202,19 +234,23 @@ func _process(dt: float) -> void:
 	_write()
 
 
-func _bob() -> float:
+func _bob(ph := NAN) -> float:
+	if is_nan(ph):
+		ph = _phase
 	var k := clampf(speed / 9.0, 0.0, 1.0)
-	return absf(sin(_phase)) * 0.06 * k * _scale() - 0.03 * k * _scale()
+	return absf(sin(ph)) * 0.06 * k * _scale() - 0.03 * k * _scale()
 
 
-func _write() -> void:
+func _write(ph := NAN) -> void:
 	if _mmi == null:
 		return
+	if is_nan(ph):
+		ph = _phase
 	var mm := _mmi.multimesh
 	# the gait moves the whole body: a bob twice a stride and a little pitch, more at a gallop
 	var k := clampf(speed / 9.0, 0.0, 1.0)
-	mm.set_instance_transform(0, Transform3D(Basis(Vector3.RIGHT, sin(_phase * 2.0 + 0.6) * 0.035 * k), Vector3(0, _bob(), 0)))
-	mm.set_instance_custom_data(0, Color(0.0, 0.0, _phase if speed > 0.05 else 0.0, _head))
+	mm.set_instance_transform(0, Transform3D(Basis(Vector3.RIGHT, sin(ph * 2.0 + 0.6) * 0.035 * k), Vector3(0, _bob(ph), 0)))
+	mm.set_instance_custom_data(0, Color(0.0, 0.0, ph if speed > 0.05 else 0.0, _head))
 
 
 func _scale() -> float:
