@@ -40,18 +40,6 @@ const ONSETS := ["", "", "p", "t", "k", "b", "d", "g", "m", "n", "l", "r", "w", 
 const CODAS := ["", "", "", "", "n", "m", "s", "k", "l", "r"]
 
 static var _banks := {}          # family -> Array[AudioStreamWAV]
-static var _gests := {}          # "family:kind" -> Array[AudioStreamWAV] (r35 gestures)
-
-## r35 (docs/critique/r35_full.md): the Sims-style babble is gone from speech. A line gets ONE
-## human sound as it starts, then types in silence: a breath, a "hm" (rising on a question), a
-## sigh, a grunt, a dry "heh", a greeting "hah". Same throat as before (the family's pitch, formant
-## size, breath, jitter, creak), whole gestures instead of syllables. Laughter and the Keg's songs
-## keep their syllables (they are laughter and music, not speech).
-const GESTURES := ["breath", "hm", "hm_q", "sigh", "grunt", "heh", "hah"]
-const GEST_VARIANTS := 2
-const CHAT_GAP := 3.5          ## ambient talk: a speaker murmurs at most this often (s)
-## each gesture is normalised to one peak: a breath sits well under a grunt
-const GEST_DB := {"breath": -7.0, "sigh": -3.5, "hm": -2.0, "hm_q": -2.0, "grunt": 0.0, "heh": -1.5, "hah": 0.0}
 
 
 ## Drop the engine resources held in static vars (called when the night is torn down): statics
@@ -176,15 +164,10 @@ static func chatter(host: Node3D, life: Object, prof: Dictionary, vol := -12.0, 
 	var cam := vp.get_camera_3d() if vp else null
 	if cam == null or cam.global_position.distance_squared_to(host.global_position) > max_r * max_r:
 		return
-	# r35: no babble. Now and then (at most every CHAT_GAP s a speaker) a murmur: a hum, a grunt, a
-	# dry "heh", a breath, a questioning hum -- the sound of people talking low, not of words.
-	var now := Time.get_ticks_msec() * 0.001
-	if now - float(host.get_meta(&"voice_gest_t", -99.0)) < CHAT_GAP:
-		return
-	host.set_meta(&"voice_gest_t", now + randf_range(0.0, 2.0))
-	var kinds := ["hm", "grunt", "heh", "breath", "hm_q", "hm"]
-	var stress := float(life.get("word_stress"))
-	gesture_at(host, prof, String(kinds[randi() % kinds.size()]) if stress < 0.8 else "grunt", vol - 2.0, max_r)
+	var p: Node = host.get_node_or_null("Voice")
+	if p == null:
+		p = speaker3d(host, max_r + 4.0)
+	say(p, prof, int(life.get("word_syll")), float(life.get("word_stress")), false, vol)
 
 
 ## Laugh from `host`'s own Voice player when the camera is near.
@@ -219,8 +202,6 @@ static func laugh(player: Node, prof: Dictionary, vol_add := 0.0) -> void:
 static func prewarm(families: Array = FAMILIES.keys()) -> void:
 	for f: String in families:
 		bank_of(f)
-		for kind: String in GESTURES:            # r35: built once (~30 ms each), then cached on disk
-			gestures_of(f, kind)
 
 
 static func bank_of(family: String) -> Array:
@@ -404,172 +385,3 @@ static func _synth(fam: Dictionary, rng: RandomNumberGenerator) -> PackedFloat32
 		lp += (out * env - lp) * 0.55                               # gentle lowpass
 		pcm[i] = lp
 	return pcm
-
-
-# --- r35: gestures ----------------------------------------------------------------------------------
-
-## The gesture for a line: a question hums upward, a trailing "..." sighs, an exclamation grunts, the
-## first line of a talk greets ("hah"), a short dry line gets a grunt or a "heh", the rest a breath.
-static func gesture_for(text: String, first := false) -> String:
-	var t := text.strip_edges()
-	if t == "":
-		return "breath"
-	var low := t.to_lower()
-	for laugh: String in ["ha!", "ha,", "ha.", "hah", "heh", "ha ha"]:
-		if low.begins_with(laugh):
-			return "heh"
-	if first:
-		return "hah"
-	if t.ends_with("?"):
-		return "hm_q"
-	if t.begins_with("...") or t.ends_with("...") or t.contains("... "):
-		return "sigh"
-	if t.ends_with("!"):
-		return "grunt"
-	if t.length() < 48:
-		return "grunt" if hash(t) % 3 == 0 else ("heh" if hash(t) % 3 == 1 else "breath")
-	return "breath" if hash(t) % 4 != 0 else "hm"
-
-
-## Play `kind` (GESTURES) in `prof`'s voice on a polyphonic speaker (speaker2d / speaker3d).
-static func gesture(player: Node, prof: Dictionary, kind: String, vol_add := 0.0) -> void:
-	var pb := _playback(player)
-	if pb == null:
-		return
-	var bank := gestures_of(String(prof.get("family", "man")), kind)
-	if bank.is_empty():
-		return
-	var s: AudioStreamWAV = bank[randi() % bank.size()]
-	var pitch := float(prof.get("pitch", 1.0)) * (1.0 + randf_range(-0.02, 0.02))
-	pb.play_stream(s, 0.0, float(prof.get("vol", 0.0)) + vol_add + float(GEST_DB.get(kind, 0.0)), pitch)
-
-
-## Ambient: a gesture from `host`'s own positional voice when the camera is near.
-static func gesture_at(host: Node3D, prof: Dictionary, kind: String, vol := -12.0, max_r := 16.0) -> void:
-	var vp := host.get_viewport()
-	var cam := vp.get_camera_3d() if vp else null
-	if cam == null or cam.global_position.distance_squared_to(host.global_position) > max_r * max_r:
-		return
-	var p: Node = host.get_node_or_null("Voice")
-	if p == null:
-		p = speaker3d(host, max_r + 4.0)
-	gesture(p, prof, kind, vol)
-
-
-static func gestures_of(family: String, kind: String) -> Array:
-	var k := family + ":" + kind
-	if _gests.has(k):
-		return _gests[k]
-	var out: Array = []
-	var key := "npc_gesture_%s_%s_v1" % [family, kind]
-	var cached: Variant = GenCache.load_var(key, SELF)
-	if cached is Array and (cached as Array).size() == GEST_VARIANTS:
-		for b: Variant in cached:
-			out.append(_wav(b as PackedByteArray))
-	else:
-		var fam: Dictionary = FAMILIES.get(family, FAMILIES["man"])
-		var rng := RandomNumberGenerator.new()
-		rng.seed = hash(k) + 7
-		var raw: Array = []
-		for v in GEST_VARIANTS:
-			var bytes := _to_bytes(_gesture_pcm(fam, kind, rng))
-			raw.append(bytes)
-			out.append(_wav(bytes))
-		GenCache.save_var(key, SELF, raw)
-	_gests[k] = out
-	return out
-
-
-## One gesture as segments: [start s, length s, f0 from, f0 to (x the family's f0), vowel from, vowel
-## to (indices into VOWELS, or -1 = a nasal "m"), voiced 0..1, breath 0..1, envelope shape].
-## shapes: "swell" (in and out), "fall" (struck then dying), "out" (an exhale: quick in, long out).
-static func _gesture_pcm(fam: Dictionary, kind: String, rng: RandomNumberGenerator) -> PackedFloat32Array:
-	var v := rng.randf_range(0.97, 1.03)
-	var segs: Array = []
-	match kind:
-		"breath":
-			segs = [[0.0, 0.5 * v, 1.0, 1.0, 5, 5, 0.0, 1.0, "out"]]
-		"hm":
-			segs = [[0.0, 0.34 * v, 1.0, 0.9, -1, -1, 1.0, 0.15, "swell"]]
-		"hm_q":
-			segs = [[0.0, 0.36 * v, 0.94, 1.2, -1, -1, 1.0, 0.15, "swell"]]
-		"sigh":
-			segs = [[0.0, 0.12, 1.0, 1.0, 0, 0, 0.0, 1.0, "swell"], [0.08, 0.75 * v, 1.06, 0.78, 0, 5, 0.55, 0.7, "out"]]
-		"grunt":
-			segs = [[0.0, 0.2 * v, 0.84, 0.76, 5, 5, 1.0, 0.25, "fall"]]
-		"heh":
-			segs = [[0.0, 0.03, 1.0, 1.0, 1, 1, 0.0, 1.0, "swell"], [0.025, 0.08, 1.12, 1.04, 1, 5, 0.9, 0.35, "fall"],
-				[0.17, 0.03, 1.0, 1.0, 1, 1, 0.0, 1.0, "swell"], [0.195, 0.07, 1.06, 0.98, 1, 5, 0.85, 0.35, "fall"]]
-		"hah":
-			segs = [[0.0, 0.05, 1.0, 1.0, 0, 0, 0.0, 1.0, "swell"], [0.04, 0.24 * v, 1.12, 0.93, 0, 5, 1.0, 0.2, "fall"]]
-	var total := 0.0
-	for sg: Array in segs:
-		total = maxf(total, float(sg[0]) + float(sg[1]))
-	var pcm := PackedFloat32Array()
-	pcm.resize(int((total + 0.05) * RATE))
-	var nasal := Vector3(250, 1100, 2300)
-	for sg: Array in segs:
-		var va: Vector3 = (nasal if int(sg[4]) < 0 else VOWELS[int(sg[4])]) * float(fam.fs)
-		var vb: Vector3 = (nasal if int(sg[5]) < 0 else VOWELS[int(sg[5])]) * float(fam.fs)
-		_gesture_seg(pcm, fam, rng, float(sg[0]), float(sg[1]), float(sg[2]), float(sg[3]), va, vb, float(sg[6]), float(sg[7]),
-			String(sg[8]), int(sg[4]) < 0)
-	return pcm
-
-
-static func _gesture_seg(pcm: PackedFloat32Array, fam: Dictionary, rng: RandomNumberGenerator, t0: float, dur: float,
-		fa: float, fb: float, va: Vector3, vb: Vector3, voiced: float, breath: float, shape: String, nasal: bool) -> void:
-	var s0 := int(t0 * RATE)
-	var n := int(dur * RATE)
-	var f0: float = float(fam.f0) * rng.randf_range(0.97, 1.03)
-	var ph := 0.0
-	var ph2 := 0.0
-	var g_prev := 0.0
-	var jit := 0.0
-	var y := [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-	var res: Array = [Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]
-	var lp := 0.0
-	var gains := [1.0, 0.55, 0.28]
-	for i in n:
-		var u := float(i) / float(maxi(1, n - 1))
-		if i % 32 == 0:
-			var form := va.lerp(vb, smoothstep(0.2, 0.9, u))
-			res[0] = _res(form.x, 80.0 * float(fam.fs))
-			res[1] = _res(form.y, 100.0 * float(fam.fs))
-			res[2] = _res(form.z, 150.0 * float(fam.fs))
-		jit = clampf(jit + rng.randf_range(-1.0, 1.0) * float(fam.jit) * 0.15, -float(fam.jit), float(fam.jit))
-		var f := f0 * lerpf(fa, fb, u) * (1.0 + jit)
-		ph += f / RATE
-		ph2 += f * 0.5 / RATE
-		ph -= floorf(ph)
-		ph2 -= floorf(ph2)
-		var g := 0.0
-		if ph < 0.4:
-			g = 0.5 * (1.0 - cos(PI * ph / 0.4))
-		elif ph < 0.56:
-			g = cos(PI * (ph - 0.4) / 0.32)
-		var src := (g - g_prev) * 9.0
-		g_prev = g
-		src *= 1.0 - float(fam.creak) * 0.5 * (1.0 + sin(TAU * ph2))
-		var noise := rng.randf_range(-1.0, 1.0)
-		var exc := src * voiced + noise * maxf(breath, float(fam.breath)) * (0.7 if voiced < 0.1 else 0.45)
-		var out := 0.0
-		for k in 3:
-			var c: Vector3 = res[k]
-			var w: float = c.z * exc + c.x * float(y[k * 2]) - c.y * float(y[k * 2 + 1])
-			y[k * 2 + 1] = y[k * 2]
-			y[k * 2] = w
-			out += w * float(gains[k])
-		if nasal:
-			out *= 0.55
-		var env := 1.0
-		match shape:
-			"swell":
-				env = sin(PI * u)
-			"fall":
-				env = minf(1.0, u / 0.08) * pow(1.0 - u, 1.4)
-			"out":
-				env = minf(1.0, u / 0.15) * pow(1.0 - u, 0.9)
-		lp += (out * env - lp) * 0.5
-		var j := s0 + i
-		if j < pcm.size():
-			pcm[j] += lp

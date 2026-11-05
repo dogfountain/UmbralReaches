@@ -424,8 +424,6 @@ func _say(s: String) -> void:
 	_line.text = s
 	_line.visible_characters = 0
 	_shown = 0.0
-	if s != "" and is_instance_valid(_voice_p) and not _voice.is_empty():
-		Voice.gesture(_voice_p, _voice, Voice.gesture_for(s), -7.0)
 
 
 func _process(delta: float) -> void:
@@ -435,7 +433,10 @@ func _process(delta: float) -> void:
 	if int(_shown) < n:
 		_shown = minf(_shown + delta * CPS, float(n))
 		_line.visible_characters = int(_shown)
-		# r35: the merchant's line starts with one gesture (in _say), then types in silence
+		_syl_t -= delta
+		if _syl_t <= 0.0 and _line.text[mini(int(_shown), n - 1)] != " ":
+			_syl_t = 0.075 / float(_voice.get("pace", 1.0))
+			Voice.syllable(_voice_p, _voice, randf_range(0.96, 1.06), -7.0)
 
 
 func _input(event: InputEvent) -> void:

@@ -479,7 +479,11 @@ Step. The *ideas* in the three boss rooms (bramble maze, shrinking briars, the g
   strike; `--dump=<dir>` writes WAVs) and three new checks in `zz/raids_r34_test`. The music has not
   been listened to by a person yet.
 
-### Implemented: NPC voices without babble (r35)
+### Tried and reverted: NPC voices without babble (r35)
+
+**Reverted at Luke's call after playing it:** the one-gesture-a-line voices were "too quick and
+uninvolved". The syllable babble is back (commit def0887 undone). What follows is what was tried.
+
 
 - Speech is **one human sound a line**, then the text types in silence. A breath, a "hm" (rising
   on a question), a sigh on "...", a grunt on "!" and on short dry lines, a dry "heh" on a
