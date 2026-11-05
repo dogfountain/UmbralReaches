@@ -1,6 +1,8 @@
 # Umbral Reaches
 
-Godot **4.7.2** Forward+ prototype. Playable night: Stair of Ascension (`world/main.tscn`). Crimson Vale removed — next night TBD.
+Godot **4.7.2** Forward+ prototype. Playable night: the Realm round Hearthward, booted from `world/main.tscn`.
+
+**Phase: consolidation. No new systems. Fix, cut, polish, playtest. Read `docs/PILLARS.md` first.** Decisions are logged in `docs/DECISIONS.md`.
 
 ## How this project is built
 

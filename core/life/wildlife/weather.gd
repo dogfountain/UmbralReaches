@@ -927,7 +927,9 @@ func _follow(cam: Camera3D, dt: float) -> void:
 			"fen": _debris_mat.albedo_color = Color(0.72, 0.7, 0.62)
 			_: _debris_mat.albedo_color = Color(0.45, 0.42, 0.25)
 		var amb := get_node_or_null("../../Ambience")
-		var crypt := amb != null and String(amb.get("reverb_zone")) == "ossuary"
+		# the Ambience's room, or simply where the camera is: the crypt and its pit hall lie below the
+		# open land, and the rain-surface check must not take a point down there for open sky
+		var crypt := RealmLayout.in_ossuary(cp) or (amb != null and String(amb.get("reverb_zone")) == "ossuary")
 		if crypt:
 			surface = "under"                  # deep in the Ossuary: no rain on any roof you could hear
 		elif outdoor < 0.5:

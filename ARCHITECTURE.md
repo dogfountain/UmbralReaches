@@ -1,4 +1,4 @@
-# Architecture — last verified 2026-11-04 (r30)
+# Architecture — last verified 2026-11-05 (r36)
 
 Godot **4.7.2** Forward+ / Jolt, typed GDScript. One playable night: the **Realm** (the redesigned
 Stair of Ascension zone), booted from `world/main.tscn` + `world/main.gd`. This file is a map of
@@ -34,14 +34,19 @@ fit). `-- --realm-modules=land,flora` builds only those modules.
 | `core/items/` | `ItemDB` (all carryables) and `EquipmentPiece` data (staff, lantern, gauntlets, boots). |
 | `core/enemy/` | `Enemy` base + kinds (husk, leaper, spitter, crawler, …) and bosses (Thornwarden, Bone Abbot, Ascended Warden), rigs (`hunch_rig`, `quad_rig`), `EnemyBody`, `EnemySpawner` (camps, seal guards), `AttackKit`. |
 | `core/world/` | `Zone` shell, interactables (Brazier, WardSeal, MirrorGate, Reliquary, ChainLift), `BossArena`, `Tavern`, `ThornHenge`, `Atmosphere`, `Ambience`, `AreaStreamer` + `Area`, `TerrainStamp`, `WorldLanes` (site registry), `SessionState` (night-state registry). |
+| `core/world/mount/` | r36 horses: `HorseDB` (breeds), `Horse` (the mount; the wanderer sits it), `Stables` (hitching posts, the [H] call). Built by `EnemySpawner` with the watch. |
+| `core/world/watch/` | r36 the Kindled Watch: `WatchPosts` (where four posts stand, one `build` call) and `Watch` (three watchmen on villager rigs, assaults by the dark, holds pay grave ash and gear). Asleep beyond 70 m. |
+| `core/world/roam/` | r36 `RoamEvents`: processions, incursions, rift tears and kneeling pilgrims near the wanderer, one at a time, each with a map pin. |
+| `core/world/night/` | r36 `ReachState`: the act (1 to 5), pressure, bells rung or carried, quiet countries, the three factions (`FACTIONS` is the single source for their zones, regions and bells). |
 | `core/world/realm/` | The procedural world: `Realm` (module runner), `realm_land/rift/bosses/lore/flora/assets`, `RealmLayout`, `RockKit`, `TreeGen`, `GenCache` (disk cache), `lore/` (landmarks, inscriptions, `CodexStore`), `realm_wayfinding` (r30 lanterns, edges, watchtower), `realm_pois` + `loot_chest` (r31 places: Drowned Belfry, Charcoal Hollow, Almonry, Watchers' Spire; chests, guardian sites, Tether anchors, updrafts, glide perches; docs/enshrouded/world.md). |
+| `core/life/wildlife/boss_themes.gd` | r35 composed (synthesised) themes for the three bosses and the ending bell, rendered on a worker thread and cached through `GenCache`. |
 | `core/life/` | Living-world systems, each started as a Realm module: `progression/` (Kindling: ash -> upgrades, `UpgradeDB`), `village/`, `wildlife/` (beasts, birds, weather, soundscape), `secrets/`, `encounters/` (tiers, elites, Gloom tide, its own HUD). |
 | `core/story/` | Story director (`story.gd`, group `story`, added by Tavern), quests (`quest_db`, `quest_book`, `quest_world`), `dialogue_db`, objective line. |
 | `core/npc/` | Dwarf NPCs at the Keg (`dwarf_*`, `bartender`, `keg_scenes`, `npc_voice`). |
 | `core/vfx/` | Static FX helpers: `Vfx`, `Sfx` (voice pool), `SpellFx`, `Synth`/`StaffSfx` (procedural audio), hit text. They parent to `current_scene`. |
 | `core/util/` | `Groups`, `Layers`, `ProcMesh`, `save_dir.gd` (the `--save-dir` seam). |
 | `core/debug/` | Boot diagnostics, perf watch, deep-dive recorder. |
-| `ui/` | HUD, settings menu, loading screen, Satchel, Kindling (`growth.gd`), Journal (`codex.gd`), quest log, dialogue, shop, hotbar, hints. |
+| `ui/` | HUD, settings menu, loading screen, `character_screen.gd` (r35/r36: one key, four tabs: gear, charms, relics, staff), Satchel, Kindling (`growth.gd`), Journal (`codex.gd`), quest log, dialogue, shop, hotbar, hints. |
 | `world/` | `main.tscn` / `main.gd` (the night), `areas/ossuary/` (streamed Ossuary), `zones/ascension/` (baked meshes), `lab/` (light lab). |
 | `zz/` | Tests (`*_test.tscn`), probes, shot generators. Not shipped. |
 | `tools/` | Bakers, texture/audio generators, `run_tests.sh`. Not shipped. |

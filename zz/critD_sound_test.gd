@@ -125,7 +125,10 @@ func _run() -> void:
 	check(dry > 0.3 and wet < dry * 0.3, "rain hushes the crickets (%.2f -> %.2f)" % [dry, wet])
 	var twin := amb.get_node_or_null("Bed_night_twin") as AudioStreamPlayer
 	check(twin != null and twin.playing and absf(twin.pitch_scale - 1.0) > 0.01, "the night bed's detuned twin plays")
-	amb.set("reverb_zone", "ossuary")
+	# stand deep in the crypt (the camera follows): the surface check reads where she is
+	player.global_position = Vector3(16.0, -3.0, -60.0)
+	wx.set("_biome_t", 0.0)
+	await _frames(30)
 	wx.set("_biome_t", 0.0)
 	await _frames(3)
 	check(String(wx.get("surface")) == "under", "no rain on a roof deep in the Ossuary (%s)" % wx.get("surface"))

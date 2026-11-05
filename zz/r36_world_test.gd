@@ -204,6 +204,20 @@ func _reach() -> void:
 		Book.start(id)
 		Book.complete(id)
 	ok(ReachState.tier("rooted") >= 1, "the Rooted call you friend (standing %d)" % ReachState.standing("rooted"))
+	# one source of truth: every bell, and every region with a bell, belongs to exactly one faction
+	for b: String in Chains.BELLS:
+		var owners := 0
+		for f: String in ReachState.FACTIONS:
+			if (ReachState.FACTIONS[f].bells as Array).has(b):
+				owners += 1
+		ok(owners == 1, "%s belongs to exactly one faction (%d)" % [b, owners])
+		var region := String(ReachState.BELL_REGION.get(b, ""))
+		var rowners := 0
+		for f: String in ReachState.FACTION_REGIONS:
+			if (ReachState.FACTION_REGIONS[f] as Array).has(region):
+				rowners += 1
+		ok(region != "" and rowners == 1 and ReachState.faction_of_region(region) == ReachState.faction_of_bell(b),
+			"%s: its region %s is held by the same faction (%d)" % [b, region, rowners])
 
 
 func _bounties() -> void:
