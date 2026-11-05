@@ -11,6 +11,13 @@ func _ready() -> void:
 	Travel.bosses_slain.clear()
 	Travel.items.clear()
 	Travel.relics.clear()
+	# r36 Act II: the summit opens to a peal; four of the Founder's bells answered for (rung, so
+	# the Warden keeps his whole life for the fight's numbers)
+	var qb := preload("res://core/story/quest_book.gd")
+	for bid: String in (preload("res://core/story/quest_chains.gd").BELLS as Array).slice(0, 4):
+		qb.start(bid)
+		qb.choose(bid, "rung")
+	
 	var main: Node = load("res://world/main.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(main)
 ## r30: a boss stands shelled through its intro and holds each phase until its signature move has

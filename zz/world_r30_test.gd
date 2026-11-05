@@ -23,6 +23,11 @@ func _ready() -> void:
 	Travel._busy = true
 	Travel.seals_broken.clear()
 	Travel.bosses_slain.clear()
+	# r36 Act II: the summit opens to a peal; four of the Founder's bells answered for
+	var qb := preload("res://core/story/quest_book.gd")
+	for bid: String in (preload("res://core/story/quest_chains.gd").BELLS as Array).slice(0, 4):
+		qb.start(bid)
+		qb.choose(bid, "rung")
 	main = load("res://world/main.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(main)
 

@@ -10,6 +10,8 @@ extends Node3D
 @export var size := Vector2(2.4, 3.0)          ## opening width, height (metres)
 @export var look := "light"
 @export var requires_bosses: Array[String] = []
+## r36 Act II: the Founder's bells answered for (QuestBook.bells()) before it opens (the summit ward).
+@export var requires_bells := 0
 @export var title := "The way is sealed"
 
 var _body: StaticBody3D
@@ -80,6 +82,8 @@ func _ready() -> void:
 	_cleared = Travel.seals_broken.has(seal_id)
 	Events.seal_broken.connect(_on_broken)
 	Events.boss_slain.connect(func(_id: String) -> void: _refresh(true))
+	if requires_bells > 0:
+		Events.quest_changed.connect(func(_id: String, _s: int, _d: bool) -> void: _refresh(true))
 	Events.seal_progress.connect(_on_progress)
 	_refresh(false)
 
@@ -104,7 +108,10 @@ func bosses_ok() -> bool:
 	for b in requires_bosses:
 		if not Travel.bosses_slain.has(b):
 			return false
-	return true
+	return requires_bells <= 0 or QuestBookScript.bells() >= requires_bells
+
+
+const QuestBookScript := preload("res://core/story/quest_book.gd")
 
 
 func is_open() -> bool:

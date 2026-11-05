@@ -166,6 +166,26 @@ static func complete(id: String, choice := -1) -> void:
 	_changed(id)
 
 
+## r36 Act II: how many of the Founder's bells have been answered for (rung where they lie, or their
+## tongue carried to Hearthward): the bell quest's choice is made at the bell, so a picked bell counts
+## before it is handed in.
+static func bells() -> int:
+	var n := 0
+	for id: String in Chains.BELLS:
+		if pick(id) != "":
+			n += 1
+	return n
+
+
+## r36: the bells whose tongues hang at the Keg (each costs the Ascended Warden some of his hold).
+static func bells_carried() -> int:
+	var n := 0
+	for id: String in Chains.BELLS:
+		if pick(id) == "carried":
+			n += 1
+	return n
+
+
 ## r34: the raids' attunements. True once the boss's pre-raid chain is handed in (Chains.ATTUNE);
 ## the raid fights read it (a loosened hold: the boss agents decide what that costs it).
 static func attuned(boss: String) -> bool:
@@ -452,6 +472,8 @@ static func term(key: String, val: String) -> Variant:
 			var en: Variant = Travel.systems.get("encounters", {})
 			var sl: Variant = (en as Dictionary).get("slain", {}) if en is Dictionary else {}
 			return sl is Dictionary and (sl as Dictionary).has(val)
+		"bells":
+			return bells() >= int(val)
 		"secrets":
 			var s2: Variant = Travel.systems.get("secrets", {})
 			var f: Variant = (s2 as Dictionary).get("found", {}) if s2 is Dictionary else {}
@@ -459,7 +481,7 @@ static func term(key: String, val: String) -> Variant:
 	return null
 
 
-const TERMS := ["q", "qat", "qd", "qp", "att", "ash", "secret", "secrets", "elite"]
+const TERMS := ["q", "qat", "qd", "qp", "att", "ash", "secret", "secrets", "elite", "bells"]
 
 
 # --- the objective line -----------------------------------------------------------------------------

@@ -197,6 +197,13 @@ func take(k: String) -> void:
 	var qid := String(d.quest)
 	if not Book.active(qid) or Book.step(qid) != int(d.step):
 		return
+	# r36: a pickup with a conversation (the Founder's bells) asks what to do; the conversation's
+	# choice records it and moves the task on (qp: / qa:), so nothing advances here
+	if d.has("conv"):
+		var story := get_tree().get_first_node_in_group("story")
+		if story and story.has_method("talk"):
+			story.call("talk", String(d.conv), null, _player())
+		return
 	_narrate(String(d.say))
 	var st: Dictionary = (Chains.QUESTS[qid].steps as Array)[int(d.step)]
 	match String(st.kind):

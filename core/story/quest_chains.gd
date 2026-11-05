@@ -49,7 +49,9 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"founder_slag", "founder_clapper", "founder_moulds", "founder_peal",
 	"orchard_buds", "orchard_press", "orchard_graft", "orchard_pippin", "orchard_ash",
 	"field_ranks", "field_last", "abbot_roll", "abbot_cords", "abbot_names",
-	"mere_lamps", "mere_chapel", "mere_light", "mere_ferryman", "mere_oil"]
+	"mere_lamps", "mere_chapel", "mere_light", "mere_ferryman", "mere_oil",
+	# r36 Act II: the Founder's peal
+	"founders_peal", "bell_holds", "bell_quarry", "bell_moor", "bell_foundry", "bell_orchard", "bell_necropolis", "bell_mere"]
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
 const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
@@ -257,8 +259,8 @@ const QUESTS := {
 		"outcome": {"": "Brannoc hung the drowned bell's tongue over the Keg's door. It doesn't ring. He checks."}},
 	# the summit: the keep's last word
 	"crossing_ward": {"name": "The Ward on the Crossing", "giver": "keep", "where": "The keep of the Kindled Keg", "zone": "summit",
-		"offer": true, "avail": "boss:thornwarden,boss:bone_abbot",
-		"text": "Heart and crown. The ward on the Crossing will know them. It has guards that don't sleep; put them down and it lets you through. Then the top. I'll keep your stool warm. Come back and sit on it.",
+		"offer": true, "avail": "boss:thornwarden,boss:bone_abbot,qd:founders_peal",
+		"text": "Heart and crown, and a peal behind you. The ward on the Crossing will know them. It has guards that don't sleep; put them down and it lets you through. Then the top. I'll keep your stool warm. Come back and sit on it.",
 		"steps": [
 			{"kind": "seal", "seal": "summit", "label": "Crossing guards", "at": Vector2(0.0, -70.9),
 				"text": "Put down the guards of the summit ward on the Crossing ({n}/{of})"},
@@ -635,7 +637,125 @@ const QUESTS := {
 		],
 		"reward": {"ash": 10, "items": {"ember_shard": 1}},
 		"outcome": {"": "Corvin's lamps burn on the mere another night."}},
+	# --- r36 Act II: the Founder's peal. The summit ward knows heart and crown, but the door was hung
+	# to a bell: it opens to a peal (BELLS_NEEDED of the seven). Each far country's last giver has its
+	# bell; a named keeper holds it; at the bell the wanderer rings it there (the country quiets) or
+	# lifts the tongue out for Hearthward (the Keg rings it when the Warden is faced: he holds less).
+	"founders_peal": {"name": "The Founder's Peal", "giver": "brannoc", "where": "Brannoc Bellwright, at the Keg", "zone": "summit",
+		"offer": true, "avail": "boss:thornwarden,boss:bone_abbot",
+		"text": "Mother cast seven for the road up. One for each country the pilgrims crossed. When the sky opened they went quiet, top first. The door at the summit hangs from a bell; it won't open to a heart and a crown alone. It opens to a peal. Find me four. Seven, if you've the legs.",
+		"steps": [
+			{"kind": "cond", "cond": "bells:4", "text": "Answer for the Founder's bells ({bells} of 7; four wake the door)"},
+			{"kind": "turnin", "who": "brannoc", "text": "Tell Brannoc the door will hear a peal"},
+		],
+		"reward": {"ash": 30, "items": {"ember_shard": 2}},
+		"choose": [{"set": "bell", "slot": "focus", "rarity": 3}, {"set": "bell", "slot": "vestment", "rarity": 3}, {"set": "bell", "slot": "girdle", "rarity": 3}],
+		"outcome": {"": "Brannoc counted the bells on his fingers twice, the second time slower. \"She'd have liked you,\" he said. \"She liked people who finished things.\""}},
+	"bell_holds": {"name": "The Kin Bell", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "holds",
+		"offer": true, "avail": "qd:keeper_leave,q:founders_peal",
+		"text": "There's a bell in the Holds the Rooted never asked for. The Founder hung it in our oak anyway, to call the kin home at dusk. Something rings it at night now. With its hands. Put it down. Then decide what the bell's for.",
+		"steps": [
+			{"kind": "slay", "of": 1, "rares": ["kin_caller"], "at": Vector2(-138.0, 20.0), "label": "The Kin-Caller",
+				"text": "Put down the Kin-Caller, who rings the Kin Bell"},
+			{"kind": "find", "text": "Answer for the Kin Bell under the oak"},
+			{"kind": "turnin", "who": "ruan", "text": "Tell Gammer Ruan what you did with the bell"},
+		],
+		"alt": {"rung": {2: "Tell Gammer Ruan the kin were called home"}, "carried": {2: "Tell Gammer Ruan the tongue went to Hearthward"}},
+		"reward": {"ash": 30},
+		"choose": [{"slot": "focus", "rarity": 2}, {"slot": "vestment", "rarity": 2}, {"slot": "lantern", "rarity": 2}],
+		"outcome": {"rung": "Ruan listened to the last of it with her eyes shut. \"That's dusk,\" she said. \"Nine winters late. They'll come or they won't.\"",
+			"carried": "Ruan looked at the empty bell a long time. \"Take the Holds' share up with you, then. Ring it at him.\""}},
+	"bell_quarry": {"name": "The Mason's Bell", "giver": "jory", "where": "Jory Quell, at his fire by the Saints' Quarry", "zone": "quarry",
+		"offer": true, "avail": "qd:quarry_chisel,q:founders_peal",
+		"text": "The cutters worked to a bell. Start, stop, eat, stop. It still hangs from the quarry crane, and the one who rings it rings start. Always start. They're still cutting. Make him stop.",
+		"steps": [
+			{"kind": "slay", "of": 1, "rares": ["bell_hewer"], "at": Vector2(-120.0, -118.0), "label": "The Bell-Hewer",
+				"text": "Put down the Bell-Hewer at the quarry crane"},
+			{"kind": "find", "text": "Answer for the Mason's Bell on the crane"},
+			{"kind": "turnin", "who": "jory", "text": "Tell Jory Quell what you did with the bell"},
+		],
+		"alt": {"rung": {2: "Tell Jory the cutters heard stop"}, "carried": {2: "Tell Jory the tongue went to Hearthward"}},
+		"reward": {"ash": 30},
+		"choose": [{"slot": "focus", "rarity": 2}, {"slot": "girdle", "rarity": 2}, {"slot": "lantern", "rarity": 2}],
+		"outcome": {"rung": "Jory set his own pick down when he heard it, from habit. Then he laughed, once, and left it there.",
+			"carried": "\"Stop, then, at the top,\" Jory said. \"Somebody up there owes the cutters four thousand steps of wages.\""}},
+	"bell_moor": {"name": "The Wayfarer's Bell", "giver": "ysolt", "where": "Ysolt, at her fire under the tor", "zone": "moor",
+		"offer": true, "avail": "qd:moor_hennet,q:founders_peal",
+		"text": "The fog bell on the moor. Rung in the murk so pilgrims would walk to it and not into the bog. Nobody's rung it in nine winters, and still they walk to it. Something waits for them there.",
+		"steps": [
+			{"kind": "slay", "of": 1, "rares": ["fog_shepherd"], "at": Vector2(146.0, -28.0), "label": "The Fog-Shepherd",
+				"text": "Put down the Fog-Shepherd at the fog bell"},
+			{"kind": "find", "text": "Answer for the Wayfarer's Bell on its post"},
+			{"kind": "turnin", "who": "ysolt", "text": "Tell Ysolt what you did with the bell"},
+		],
+		"alt": {"rung": {2: "Tell Ysolt the moor has a bell again"}, "carried": {2: "Tell Ysolt the tongue went to Hearthward"}},
+		"reward": {"ash": 30},
+		"choose": [{"slot": "vestment", "rarity": 2}, {"slot": "girdle", "rarity": 2}, {"slot": "lantern", "rarity": 2}],
+		"outcome": {"rung": "Ysolt added a stone to the nearest cairn without looking at it. \"Now they've something to walk to that isn't the bog.\"",
+			"carried": "\"Then the moor stays dark,\" Ysolt said. \"It's good at it. Make the bell worth it.\""}},
+	"bell_foundry": {"name": "The Tenor", "giver": "elspeth", "where": "Elspeth Fane, at her fire in the Founder's Pits", "zone": "foundry",
+		"offer": true, "avail": "qd:founder_peal,q:founders_peal",
+		"text": "Her own bell. The tenor. She cast it last and best and never hung it: it stood in the pits waiting for the Stair to be finished. It wasn't. Something crawled into it out of the slag to keep warm.",
+		"steps": [
+			{"kind": "slay", "of": 1, "rares": ["slag_born"], "at": Vector2(140.0, -90.0), "label": "The Slag-Born",
+				"text": "Put down the Slag-Born curled in the Founder's tenor"},
+			{"kind": "find", "text": "Answer for the Tenor in the casting pit"},
+			{"kind": "turnin", "who": "elspeth", "text": "Tell Elspeth Fane what you did with the Tenor"},
+		],
+		"alt": {"rung": {2: "Tell Elspeth the Tenor was rung where it was cast"}, "carried": {2: "Tell Elspeth the Tenor's tongue went to her son"}},
+		"reward": {"ash": 30},
+		"choose": [{"set": "bell", "slot": "focus", "rarity": 2}, {"set": "bell", "slot": "lantern", "rarity": 2}],
+		"outcome": {"rung": "Elspeth didn't turn from her fire. \"First time,\" she said. \"It's a better note than she said it'd be. She always undersold.\"",
+			"carried": "\"Her son should have it,\" Elspeth said. \"He's been ringing nothing in that chimney for nine years.\""}},
+	"bell_orchard": {"name": "The Harvest Bell", "giver": "linnet", "where": "Linnet, at her fire in the Cinder Orchard", "zone": "orchard",
+		"offer": true, "avail": "qd:orchard_pippin,q:founders_peal",
+		"text": "The brothers rang the harvest in. The bell hung in the press-house yard and it's still there, under ash, and something grubs round it as if it were a root. Dig it out.",
+		"steps": [
+			{"kind": "slay", "of": 1, "rares": ["ash_sower"], "at": Vector2(-98.0, 128.0), "label": "The Ash-Sower",
+				"text": "Put down the Ash-Sower in the press-house yard"},
+			{"kind": "find", "text": "Answer for the Harvest Bell under the ash"},
+			{"kind": "turnin", "who": "linnet", "text": "Tell Linnet what you did with the bell"},
+		],
+		"alt": {"rung": {2: "Tell Linnet the harvest was rung in"}, "carried": {2: "Tell Linnet the tongue went to Hearthward"}},
+		"reward": {"ash": 30},
+		"choose": [{"set": "kindler", "slot": "focus", "rarity": 2}, {"set": "kindler", "slot": "vestment", "rarity": 2}],
+		"outcome": {"rung": "Linnet said the grafted stock put out a leaf the hour the bell rang. She said it as if she'd caught it cheating.",
+			"carried": "\"Nothing to harvest anyway,\" Linnet said. \"Not this year. Take it.\""}},
+	"bell_necropolis": {"name": "The Passing Bell", "giver": "agathe", "where": "Sister Agathe, at the gate of the Waiting Field", "zone": "necropolis",
+		"offer": true, "avail": "qd:abbot_names,q:founders_peal",
+		"text": "One stroke for each soul gone up. The Abbot had it rung day and night till the rope wore through. They've made a new rope. Out of what, I'd rather you saw than I said.",
+		"steps": [
+			{"kind": "slay", "of": 1, "rares": ["passing_ringer"], "at": Vector2(-4.0, 128.0), "label": "The Passing-Ringer",
+				"text": "Put down the Passing-Ringer in the Waiting Field"},
+			{"kind": "find", "text": "Answer for the Passing Bell and its rope"},
+			{"kind": "turnin", "who": "agathe", "text": "Tell Sister Agathe what you did with the bell"},
+		],
+		"alt": {"rung": {2: "Tell Sister Agathe the Field heard its last stroke"}, "carried": {2: "Tell Sister Agathe the tongue went to Hearthward"}},
+		"reward": {"ash": 30},
+		"choose": [{"set": "tally", "slot": "vestment", "rarity": 2}, {"set": "tally", "slot": "girdle", "rarity": 2}],
+		"outcome": {"rung": "Agathe counted the strokes out loud and stopped at one. \"That's for all of them,\" she said. \"He'd have hated it.\"",
+			"carried": "\"Good,\" Agathe said. \"Let it pass him, for once.\""}},
+	"bell_mere": {"name": "The Ferry Bell", "giver": "cadoc", "where": "Cadoc the ferryman, on the mere's north bank", "zone": "mere",
+		"offer": true, "avail": "qd:mere_ferryman,q:founders_peal",
+		"text": "On the far bank there's a post and a bell: ring it and the ferry comes. Corvin's bell. Somebody's been ringing it from the water side. I don't go.",
+		"steps": [
+			{"kind": "slay", "of": 1, "rares": ["fare_caller"], "at": Vector2(132.0, 108.0), "label": "The Fare-Caller",
+				"text": "Put down the Fare-Caller by the ferry post"},
+			{"kind": "find", "text": "Answer for the Ferry Bell on its post"},
+			{"kind": "turnin", "who": "cadoc", "text": "Tell Cadoc what you did with the bell"},
+		],
+		"alt": {"rung": {2: "Tell Cadoc you rang for the ferry"}, "carried": {2: "Tell Cadoc the tongue went to Hearthward"}},
+		"reward": {"ash": 30},
+		"choose": [{"set": "ferryman", "slot": "focus", "rarity": 2}, {"set": "ferryman", "slot": "lantern", "rarity": 2}],
+		"outcome": {"rung": "Cadoc said he heard it and nearly went. Then he remembered there's no boat. Then he went anyway, as far as his knees.",
+			"carried": "\"Then nobody calls me across,\" Cadoc said. \"Good. I'm tired.\""}},
 }
+
+## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
+const BELLS := ["bell_holds", "bell_quarry", "bell_moor", "bell_foundry", "bell_orchard", "bell_necropolis", "bell_mere"]
+const BELLS_NEEDED := 4
+## r36: the bells' keepers (rares.gd RARES keys; a bell quest's slay step wants its own).
+const BELL_KEEPERS := ["kin_caller", "bell_hewer", "fog_shepherd", "slag_born", "ash_sower", "passing_ringer", "fare_caller"]
 
 const PICKUPS := {
 	"tongs": {"quest": "edda_tongs", "step": 0, "near": Vector2(-84.35, 44.15), "kind": "tongs", "name": "Edda's tongs", "verb": "Take",
@@ -717,6 +837,21 @@ const PICKUPS := {
 		"say": "A lamp on the east bank, upright, as if somebody set it down and walked into the water."},
 	"lamp_cadoc": {"quest": "mere_light", "step": 0, "near": Vector2(111.0, 97.0), "camp": "cadoc", "kind": "lantern_lit", "name": "a lit lamp", "verb": "Take",
 		"say": "One of Corvin's lamps, filled and lit, the cork float dry. The flame leans toward the chapel. Go."},
+	# r36 Act II: the Founder's bells (each opens the bell's conversation: ring it here, or carry the tongue)
+	"bell_holds": {"quest": "bell_holds", "step": 1, "near": Vector2(-138.0, 20.0), "kind": "bell", "name": "the Kin Bell", "verb": "Stand at", "conv": "bell_holds",
+		"say": "A small bronze bell hung in the oak's fork on a rope of plaited bark. The Rooted carved their knot into the wood above it, to say they hadn't asked for it and would keep it anyway."},
+	"bell_quarry": {"quest": "bell_quarry", "step": 1, "near": Vector2(-120.0, -118.0), "kind": "bell", "name": "the Mason's Bell", "verb": "Stand at", "conv": "bell_quarry",
+		"say": "A plain iron bell slung from the quarry crane's arm, its rope tied off at the stop stroke and cut through above the knot. Under it, every cutter's mark in the quarry, chiselled into one block."},
+	"bell_moor": {"quest": "bell_moor", "step": 1, "near": Vector2(146.0, -28.0), "kind": "bell", "name": "the Wayfarer's Bell", "verb": "Stand at", "conv": "bell_moor",
+		"say": "The fog bell on its post, green with weather. The ground round it is worn to stone by people who walked here in the murk and stood, and waited, for it to ring."},
+	"bell_foundry": {"quest": "bell_foundry", "step": 1, "near": Vector2(140.0, -90.0), "kind": "bell", "name": "the Tenor", "verb": "Stand at", "conv": "bell_foundry",
+		"say": "The Founder's tenor, standing mouth-down in the casting pit as she left it. Her mark on the shoulder: a hand, open. Your palm fits it."},
+	"bell_orchard": {"quest": "bell_orchard", "step": 1, "near": Vector2(-98.0, 128.0), "kind": "bell", "name": "the Harvest Bell", "verb": "Stand at", "conv": "bell_orchard",
+		"say": "The harvest bell, dug half out of the ash, an apple branch cast round its waist in bronze. One bronze apple has been worn bright by thumbs."},
+	"bell_necropolis": {"quest": "bell_necropolis", "step": 1, "near": Vector2(-4.0, 128.0), "kind": "bell", "name": "the Passing Bell", "verb": "Stand at", "conv": "bell_necropolis",
+		"say": "The Passing Bell on its frame, the new rope coiled at its foot. The rope is braided hair. Grey, brown, a child's yellow."},
+	"bell_mere": {"quest": "bell_mere", "step": 1, "near": Vector2(132.0, 108.0), "kind": "bell", "name": "the Ferry Bell", "verb": "Stand at", "conv": "bell_mere",
+		"say": "Corvin's ferry bell on its post at the water's edge, the bronze furred with weed below the line the mere rose to. CALL AND WAIT, cut in the post."},
 }
 
 ## Oswin's walk: from wherever he is to the waystone. He keeps 2-3 m behind you and waits when you
@@ -745,6 +880,8 @@ static func step_text(id: String, s: int, d: Dictionary) -> String:
 		t = String(alt[s])
 	var c := count_of(id, s, d)
 	t = t.replace("{n}", str(c[0])).replace("{of}", str(c[1]))
+	if t.contains("{bells}"):
+		t = t.replace("{bells}", str(int((load("res://core/story/quest_book.gd") as GDScript).call("bells"))))
 	if t.contains("{t}"):
 		t = t.replace("{t}", str(int(ceilf(float(d.get("left", float(steps[s].get("time", 0.0))))))))
 	return t
@@ -830,7 +967,7 @@ static func audit() -> Array[String]:
 				bad.append("%s: an offered task ends in a turn-in" % id)
 		for st2: Dictionary in qd.steps:
 			for rid: String in st2.get("rares", []):
-				if not RARE_IDS.has(rid):
+				if not RARE_IDS.has(rid) and not BELL_KEEPERS.has(rid):
 					bad.append("%s: unknown rare %s" % [id, rid])
 		if qd.has("raid") and not ATTUNE.has(String(qd.raid)):
 			bad.append("%s: unknown raid %s" % [id, qd.raid])
@@ -849,7 +986,7 @@ static func audit() -> Array[String]:
 	var rs: Script = load("res://core/enemy/rares.gd") as Script
 	if rs:
 		var known: Dictionary = rs.get_script_constant_map().get("RARES", {})
-		for rid2: String in RARE_IDS:
+		for rid2: String in RARE_IDS + BELL_KEEPERS:
 			if not known.has(rid2):
 				bad.append("rare %s is not in rares.gd" % rid2)
 	for id2: String in QUESTS:

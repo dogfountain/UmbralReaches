@@ -28,6 +28,8 @@ const FAN_WINDUP := 0.85
 const HP := 760
 const QuestBook := preload("res://core/story/quest_book.gd")
 var _attuned := false
+const BELL_HOLD := 0.05
+const BELL_WORDS := ["", "one bell", "two bells", "three bells", "four bells", "five bells", "six bells", "seven bells"]
 const SCALE := 5.0               ## r35: 3 -> 5 (~9 m): the final boss towers over the 56 m deck, "halfway into the sky"
 
 var phase := 1
@@ -134,7 +136,15 @@ func on_engaged(arena: Node) -> void:
 	# r34 merge: attunement (Elspeth's bell): the ascension runs 15 s longer before the sky breaks
 	_attuned = QuestBook.attuned("ascended_warden")
 	# r35: world cues, not text: one short line a mechanic, no instructions (the arena shows what to do)
-	BossKit.emote(self, "The founder's bell rings in you." if _attuned else "The Ascended Warden turns from the door.", BossKit.EMOTE_COL)
+	# r36 Act II: every bell-tongue carried to Hearthward rings at the Keg as he wakes: he holds the
+	# door with that much less (5% of his life a bell, up to 35% for all seven)
+	var carried := QuestBook.bells_carried()
+	if carried > 0:
+		hp = float(max_hp) * (1.0 - BELL_HOLD * float(carried))
+	if carried > 0:
+		BossKit.emote(self, "Far below, Hearthward rings %s. He holds the door with less." % BELL_WORDS[mini(carried, 7)], BossKit.EMOTE_COL)
+	else:
+		BossKit.emote(self, "The founder's bell rings in you." if _attuned else "The Ascended Warden turns from the door.", BossKit.EMOTE_COL)
 
 
 func _physics_process(delta: float) -> void:

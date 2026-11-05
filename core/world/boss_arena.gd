@@ -10,6 +10,8 @@ extends Node3D
 @export var radius := 7.0
 @export var ceiling := 6.0
 @export var requires_bosses: Array[String] = []
+## r36 Act II: the Founder's bells answered for before the fight wakes (the Ascended Warden).
+@export var requires_bells := 0
 @export var subtitle := ""
 @export var max_rise := 1.6             ## audit: how much the floor may step (tiered arenas allow more)
 ## The bar's name from a phase on (phase -> name): the Warden's bar names him at phase III.
@@ -174,6 +176,13 @@ func _physics_process(_d: float) -> void:
 				_warned = true
 				Events.toast.emit(nothing_answers(requires_bosses))
 			return
+	if requires_bells > 0:
+		var rung := int((load("res://core/story/quest_book.gd") as GDScript).call("bells"))
+		if rung < requires_bells:
+			if not _warned:
+				_warned = true
+				Events.toast.emit(no_peal(rung, requires_bells))
+			return
 	_begin()
 
 
@@ -222,6 +231,13 @@ func _past_gate(at: Vector3) -> bool:
 
 
 ## "Nothing answers. The crypt's crown still holds below.": names what is still missing.
+## r36: the summit door waits for a peal of the Founder's bells.
+static func no_peal(rung: int, need: int) -> String:
+	if rung == 0:
+		return "Nothing answers. The door was hung to a bell, and no bell rings below."
+	return "Nothing answers. The door hears %d of the Founder's bells. It wants %d." % [rung, need]
+
+
 static func nothing_answers(req: Array) -> String:
 	var missing: Array[String] = []
 	for b in req:

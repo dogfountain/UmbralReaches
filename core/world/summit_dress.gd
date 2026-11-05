@@ -2,6 +2,7 @@ class_name SummitDress
 extends RefCounted
 ## Cathedral-scale mossy summit monument + orb mage. Runtime only.
 
+const Chains := preload("res://core/story/quest_chains.gd")
 const PLATFORM := "res://art/models/mossy_platform.glb"
 const MAGE := "res://art/models/summit_mage.glb"
 const PILLAR := "res://art/models/summit_pillar.glb"
@@ -118,6 +119,7 @@ static func dress(root: Node) -> void:
 	# the summit ward across the head of the hub stair, and the Ascended Warden's arena on the dais
 	var bosses: Array[String] = ["thornwarden", "bone_abbot"]
 	var ward := WardSeal.make(holder, "summit", Vector3(0.0, 25.2, -70.9), Vector3.BACK, 5.8, 3.6, "light", "The summit ward", bosses)
+	ward.requires_bells = Chains.BELLS_NEEDED     # r36 Act II: the door opens to a peal
 	var dais := SUMMIT + Vector3(DAIS_C.x, TOP_DECK_Y, DAIS_C.y)
 	var arena := BossArena.make(holder, "ascended_warden", "The Ascended Warden", dais, DAIS_R - 0.5, AscendedWarden, dais + Vector3(0, 0.1, -6.0))
 	arena.ceiling = 14.0
@@ -126,6 +128,7 @@ static func dress(root: Node) -> void:
 	var raid: Node3D = SummitRaid.build(holder, dais, DAIS_R, holder.global_basis)
 	arena.room = raid
 	arena.requires_bosses = bosses
+	arena.requires_bells = Chains.BELLS_NEEDED
 	# r30: the ward at the Crossing's head stays the progression seal (33 m back, past the leash); the
 	# fight shuts a veil across the dais mouth instead, 1.5 m behind the wanderer
 	var m0: Vector3 = mouth[0]

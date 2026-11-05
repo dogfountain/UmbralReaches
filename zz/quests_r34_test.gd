@@ -126,7 +126,7 @@ func _data() -> void:
 			if String(Chains.QUESTS[id].get("zone", "")) == rid:
 				n += 1
 				ok(Chains.giver(id) == giver, "%s is %s's" % [id, giver])
-		ok(n >= 3 and n <= 5, "%s: a chain of %d tasks" % [rid, n])
+		ok(n >= 3 and n <= 6, "%s: a chain of %d tasks (r36: and its bell)" % [rid, n])
 	for boss: String in ["thornwarden", "bone_abbot", "ascended_warden"]:
 		var chain: Array = []
 		for id2: String in Chains.ORDER:
@@ -241,6 +241,9 @@ func _talk() -> void:
 ## Play every task of region `rid` through, in ORDER (the givers' `avail` gates come true as we go).
 func _chain(rid: String) -> void:
 	print("chain: ", rid)
+	# r36 Act II: the bells are offered once Brannoc has asked for the Founder's peal
+	if not Book.started("founders_peal"):
+		Book.start("founders_peal")
 	for id: String in Chains.ORDER:
 		var qd: Dictionary = Chains.QUESTS[id]
 		if String(qd.get("zone", "")) != rid:
@@ -301,6 +304,16 @@ func _step(id: String, s: int) -> void:
 				if p:
 					p.call("interact", player)
 					await _frames(1)
+					# r36: a bell opens its conversation; ring it here (choice 0), then let the line end
+					if (Chains.PICKUPS[k] as Dictionary).has("conv"):
+						var story := get_tree().get_first_node_in_group("story")
+						ok(story != null and story.get("ui") != null and bool(story.get("ui").call("is_open")), "%s: %s asks what to do with it" % [id, k])
+						if story != null:
+							story.call("_on_chosen", 0)
+							await _frames(1)
+							story.call("_on_advanced")
+							await _frames(1)
+						ok(Book.pick(id) == "rung", "%s: rung where it lies" % id)
 		"visit":
 			await _stand(stp.at as Vector2)
 		"carry":

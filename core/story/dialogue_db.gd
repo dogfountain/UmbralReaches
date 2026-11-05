@@ -45,7 +45,8 @@ const CONV := {
 			# --- the hub, every visit after ---------------------------------------------------
 			"hub": {"say_if": [
 				["flag:ending_told", "The kindled one. Your stool, your mug. The fire draws by itself now; I've nothing to do but pour."],
-				["boss:thornwarden,boss:bone_abbot", "Heart and crown, both. I can smell the henge on you, and the crypt. The ward will know them."],
+				["boss:thornwarden,boss:bone_abbot,bells:4", "Heart and crown, and a peal behind you. I heard one of them from here. The door will hear the rest."],
+				["boss:thornwarden,boss:bone_abbot", "Heart and crown, both. The ward will know them. Brannoc says the door won't, not without his mother's bells. He's been saying it into his cup all night. Ask him."],
 				["boss:thornwarden", "Thorn Heart. Still beating? Then the wood will forget you soon enough."],
 				["boss:bone_abbot", "The Abbot's crown. Did he count you? He counts everyone."],
 				["seal:henge", "The thorn seal's broken. The Thornwarden will have felt it. So did the oaks."],
@@ -143,6 +144,13 @@ const CONV := {
 				["qp:forty_first:truth", "That pilgrim of yours went home. First one I ever saw. There'll be others, now."],
 				["qp:keg_thief:told|qp:keg_thief:covered|qp:keg_thief:rats", "Nan's put a mug out by the green's fire again. I've stopped counting the barrels."],
 				["", "The village will want to tell you things. Let them."],
+			], "next": "end_4c"},
+			# r36 Act II: what the bells say about the night (all seven, then the ones left where they hung)
+			"end_4c": {"say_if": [
+				["bells:7", "Seven bells. Brannoc rang the chimney tongue till his arm gave out, then rang it with the other. Nobody asked him to stop."],
+				["qp:bell_moor:rung,qp:bell_mere:rung", "Cadoc's ferry bell and the moor's fog bell, both, ringing out there in the dark. Folk are coming down the road toward them. Coming down."],
+				["qp:bell_necropolis:rung", "Agathe sent word. The Waiting Field heard its one stroke and lay down. All of them. Facing any way they liked."],
+				["", "Not all seven. Brannoc says his mother would have wanted the set. He says it like he'll go and fetch the rest himself."],
 			], "next": "end_5"},
 			"end_5": {"say": "Sit. First round's for the kindled. Second's for the lost. The third's yours.", "do": "flag:ending_told", "next": ""},
 		},
@@ -250,6 +258,111 @@ const CONV := {
 				["", "The door shuts. Maybe a bell rings. I'd like to hear one ring again, the right way up."],
 			], "next": "hub"},
 			"after": {"say": "I heard it. One bell. From the bottom, the right way up. You did that.", "do": "flag:brannoc_after", "next": "hub"},
+		},
+	},
+	# r36 Act II: The Kin Bell (quest bell_holds, step 1; the pickup opens this)
+	"bell_holds": {
+		"name": "The Kin Bell",
+		"start": [["!qat:bell_holds:1", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "A small bronze bell in the oak's fork on a rope of plaited bark. The Rooted carved their knot above it: they never asked for it, and kept it anyway.", "who": "", "choices": [
+				{"text": "Ring it here, for the kin.", "to": "rung"},
+				{"text": "Lift the tongue out, for Hearthward.", "to": "carried"},
+				{"text": "Leave it for now.", "to": ""},
+			]},
+			"rung": {"say": "You ring it slow, the way dusk is rung. Far off in the Holds a door opens. Then another.", "who": "", "do": "qp:bell_holds:rung,qa:bell_holds", "next": ""},
+			"carried": {"say": "You lift the tongue out of its loop. It is heavier than it looks, and warm from your hand by the time it's in the satchel. The bell hangs dumb.", "who": "", "do": "qp:bell_holds:carried,qa:bell_holds", "next": ""},
+			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+		},
+	},
+	# r36 Act II: The Mason's Bell (quest bell_quarry, step 1; the pickup opens this)
+	"bell_quarry": {
+		"name": "The Mason's Bell",
+		"start": [["!qat:bell_quarry:1", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "An iron bell slung from the crane's arm, the rope tied off at the stop stroke and cut above the knot. The block under it carries every cutter's mark in the quarry.", "who": "", "choices": [
+				{"text": "Ring it here, for the cutters.", "to": "rung"},
+				{"text": "Lift the tongue out, for Hearthward.", "to": "carried"},
+				{"text": "Leave it for now.", "to": ""},
+			]},
+			"rung": {"say": "You ring stop. The quarry, which has never been quiet, goes quiet. Somewhere a pick is set down on stone.", "who": "", "do": "qp:bell_quarry:rung,qa:bell_quarry", "next": ""},
+			"carried": {"say": "You lift the tongue out of its loop. It is heavier than it looks, and warm from your hand by the time it's in the satchel. The bell hangs dumb.", "who": "", "do": "qp:bell_quarry:carried,qa:bell_quarry", "next": ""},
+			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+		},
+	},
+	# r36 Act II: The Wayfarer's Bell (quest bell_moor, step 1; the pickup opens this)
+	"bell_moor": {
+		"name": "The Wayfarer's Bell",
+		"start": [["!qat:bell_moor:1", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "The fog bell on its post, green with weather. The ground round it is worn to stone by people who walked here in the murk and stood waiting for it to ring.", "who": "", "choices": [
+				{"text": "Ring it here, for the moor.", "to": "rung"},
+				{"text": "Lift the tongue out, for Hearthward.", "to": "carried"},
+				{"text": "Leave it for now.", "to": ""},
+			]},
+			"rung": {"say": "You ring it into the dark, slow, a step's length apart. Out on the moor something stops walking toward the bog.", "who": "", "do": "qp:bell_moor:rung,qa:bell_moor", "next": ""},
+			"carried": {"say": "You lift the tongue out of its loop. It is heavier than it looks, and warm from your hand by the time it's in the satchel. The bell hangs dumb.", "who": "", "do": "qp:bell_moor:carried,qa:bell_moor", "next": ""},
+			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+		},
+	},
+	# r36 Act II: The Tenor (quest bell_foundry, step 1; the pickup opens this)
+	"bell_foundry": {
+		"name": "The Tenor",
+		"start": [["!qat:bell_foundry:1", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "The Founder's tenor, mouth-down in the casting pit as she left it. Her mark on the shoulder is an open hand. Your palm fits it.", "who": "", "choices": [
+				{"text": "Ring it here, for the pits.", "to": "rung"},
+				{"text": "Lift the tongue out, for Hearthward.", "to": "carried"},
+				{"text": "Leave it for now.", "to": ""},
+			]},
+			"rung": {"say": "You ring the Tenor where it was cast. The slag heaps hum back at it, every one, a note lower.", "who": "", "do": "qp:bell_foundry:rung,qa:bell_foundry", "next": ""},
+			"carried": {"say": "You lift the tongue out of its loop. It is heavier than it looks, and warm from your hand by the time it's in the satchel. The bell hangs dumb.", "who": "", "do": "qp:bell_foundry:carried,qa:bell_foundry", "next": ""},
+			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+		},
+	},
+	# r36 Act II: The Harvest Bell (quest bell_orchard, step 1; the pickup opens this)
+	"bell_orchard": {
+		"name": "The Harvest Bell",
+		"start": [["!qat:bell_orchard:1", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "The harvest bell, dug half out of the ash, a bronze apple branch cast round its waist. One apple is worn bright by thumbs.", "who": "", "choices": [
+				{"text": "Ring it here, for the orchard.", "to": "rung"},
+				{"text": "Lift the tongue out, for Hearthward.", "to": "carried"},
+				{"text": "Leave it for now.", "to": ""},
+			]},
+			"rung": {"say": "You ring the harvest in. Nothing to bring in. The burned rows listen anyway, the way trees do.", "who": "", "do": "qp:bell_orchard:rung,qa:bell_orchard", "next": ""},
+			"carried": {"say": "You lift the tongue out of its loop. It is heavier than it looks, and warm from your hand by the time it's in the satchel. The bell hangs dumb.", "who": "", "do": "qp:bell_orchard:carried,qa:bell_orchard", "next": ""},
+			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+		},
+	},
+	# r36 Act II: The Passing Bell (quest bell_necropolis, step 1; the pickup opens this)
+	"bell_necropolis": {
+		"name": "The Passing Bell",
+		"start": [["!qat:bell_necropolis:1", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "The Passing Bell on its frame, the new rope coiled at its foot. The rope is braided hair: grey, brown, a child's yellow.", "who": "", "choices": [
+				{"text": "Ring it here, for the field.", "to": "rung"},
+				{"text": "Lift the tongue out, for Hearthward.", "to": "carried"},
+				{"text": "Leave it for now.", "to": ""},
+			]},
+			"rung": {"say": "One stroke. For all of them. The ranks of the Waiting Field do not turn to face the mountain. For once.", "who": "", "do": "qp:bell_necropolis:rung,qa:bell_necropolis", "next": ""},
+			"carried": {"say": "You lift the tongue out of its loop. It is heavier than it looks, and warm from your hand by the time it's in the satchel. The bell hangs dumb.", "who": "", "do": "qp:bell_necropolis:carried,qa:bell_necropolis", "next": ""},
+			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+		},
+	},
+	# r36 Act II: The Ferry Bell (quest bell_mere, step 1; the pickup opens this)
+	"bell_mere": {
+		"name": "The Ferry Bell",
+		"start": [["!qat:bell_mere:1", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "Corvin's ferry bell on its post at the water's edge, weed on the bronze below the line the mere rose to. CALL AND WAIT, cut in the post.", "who": "", "choices": [
+				{"text": "Ring it here, for the mere.", "to": "rung"},
+				{"text": "Lift the tongue out, for Hearthward.", "to": "carried"},
+				{"text": "Leave it for now.", "to": ""},
+			]},
+			"rung": {"say": "You ring for the ferry. Out on the black water an oar dips, once, and does not come closer. It does not need to.", "who": "", "do": "qp:bell_mere:rung,qa:bell_mere", "next": ""},
+			"carried": {"say": "You lift the tongue out of its loop. It is heavier than it looks, and warm from your hand by the time it's in the satchel. The bell hangs dumb.", "who": "", "do": "qp:bell_mere:carried,qa:bell_mere", "next": ""},
+			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
 		},
 	},
 }
