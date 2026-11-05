@@ -60,6 +60,9 @@ void fragment() {
 	albedo = mix(albedo, mix(linen_col, rag_col, flesh) * COLOR.rgb * mix(0.75, 1.15, hgt), rag);
 
 	albedo = mix(albedo, albedo * (0.7 + 0.45 * hgt), (1.0 - flesh) * 0.6);   // pitted bone
+	// models pass: dead skin is not one tone (sallow, bruised), and it creases; rags hang in folds
+	albedo = mix(albedo, cl_skin_albedo(albedo, opos, 0.65), flesh * (1.0 - rag));
+	NORMAL = cl_bump(NORMAL, VERTEX, mix(cl_skin_height(opos, 0.8), cl_cloth_height(opos), rag), mix(0.0007, 0.01, rag));
 	vec2 wear = cl_wear_mask(NORMAL, VERTEX, mix(0.5, 1.0, hgt));   // r36: edges worn, creases matte
 	ALBEDO = cl_wear_albedo(cl_albedo(albedo, mix(0.5, 1.0, hgt), opos), wear);
 	NORMAL_MAP = texture(detail_normal, duv).rgb;

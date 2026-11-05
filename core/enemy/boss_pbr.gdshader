@@ -40,6 +40,9 @@ void fragment() {
 	ROUGHNESS = cl_wear_rough(cl_rough(orm.g, opos), wear);
 	SPECULAR = cl_wear_spec(0.5, wear);
 	METALLIC = orm.b;
+	// models pass: fine creases over the baked normals, and the baked colour broken up a little more
+	NORMAL = cl_bump(NORMAL, VERTEX, cl_skin_height(opos, 0.35), 0.0012);
+	ALBEDO = mix(ALBEDO, cl_skin_albedo(ALBEDO, opos, 0.4), 0.5 * (1.0 - orm.b));
 	NORMAL_MAP = texture(normal_tex, UV).rgb;
 	NORMAL_MAP_DEPTH = normal_depth;
 	float ndv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);

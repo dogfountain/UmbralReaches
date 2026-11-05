@@ -9,6 +9,8 @@ render_mode diffuse_burley, specular_schlick_ggx, cull_back;
 //   CUSTOM0 = rest-local position, hem weight     CUSTOM1 = leg push, wave scale, trim, hem grime
 //   COLOR   = layer tint x baked occlusion, a = rune-vein amount        UV = pre-scaled
 
+#define CL_RIM 0.0
+#include "res://core/vfx/char_look.gdshaderinc"
 uniform vec3 rim_color : source_color = vec3(0.46, 0.34, 0.27);
 uniform vec3 glow_color : source_color = vec3(0.8, 0.5, 0.22);
 uniform vec3 glow_hot : source_color = vec3(1.0, 0.62, 0.32);
@@ -29,6 +31,8 @@ uniform float far_energy = 0.07;      // 1.45 x 0.72, the old coat's glow x vein
 uniform float read_near = 1.3;
 uniform float read_far = 3.0;
 uniform float albedo_gain = 1.3;
+uniform float fold_relief = 0.014;     // models pass: the coat's hanging folds (metres)
+uniform float weave_cells = 32.0;      // weave repeats across the wool texture (for the shimmer fade)
 uniform float sheen = 0.6;           // r36: light-driven fibre sheen (RIM), see fragment()
 uniform float sheen_tint = 0.5;
 uniform sampler2D wool_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -224,8 +228,12 @@ void fragment() {
 	float ndv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 	float rim = pow(1.0 - ndv, 2.6);
 	ALBEDO = col;
+	// models pass: the coat hangs in folds (object-space, faded by footprint; char_look), and the
+	// weave's normal depth fades once a weave cell is under ~2 pixels: it aliased into scanlines
+	NORMAL = cl_bump(NORMAL, VERTEX, cl_cloth_height(lpos), fold_relief * (1.0 - trim));
+	float fp = max(length(dx), length(dy)) * float(textureSize(wool_tex, 0).x) / weave_cells;
 	NORMAL_MAP = n;
-	NORMAL_MAP_DEPTH = mix(1.7, 2.2, trim);
+	NORMAL_MAP_DEPTH = mix(mix(1.7, 0.35, smoothstep(0.5, 2.0, fp)), 2.2, trim);
 	ROUGHNESS = mix(clamp(0.9 * mix(0.75, 1.08, a4.a), 0.0, 1.0), 0.72, trim);
 	SPECULAR = mix(0.28, 0.4, trim);
 	METALLIC = 0.0;

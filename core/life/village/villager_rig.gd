@@ -404,7 +404,7 @@ func _head_v(mb: Variant, f: bool, skin: Color, age: String, hair: Color) -> voi
 	var fc: Variant = face()
 	var pale := bool(cfg.get("pale", false))
 	fc.skin = skin
-	fc.ruddy = skin.lerp(Color(0.84, 0.46, 0.32), 0.05 if pale else 0.2)
+	fc.ruddy = skin.lerp(Color(0.84, 0.46, 0.32), 0.04 if pale else 0.13)   # models pass: was 0.2 (doll-pink cheeks)
 	fc.lip_c = fc.ruddy.lerp(Color(0.62, 0.24, 0.22), (0.3 if f else 0.18) * (0.4 if pale else 1.0))
 	if not f and age in ["adult", "old"]:
 		fc.stubble = 0.5 if String(cfg.get("beard", "")) == "" else 1.0
@@ -414,7 +414,7 @@ func _head_v(mb: Variant, f: bool, skin: Color, age: String, hair: Color) -> voi
 	if pale:
 		eye_c = Color(0.55, 0.62, 0.7)
 	fc.eyes(mb, eye_c, 0.55 if age == "old" else 0.15)
-	fc.brows(mb, hair.darkened(0.12), 0.6 if (age == "old" and not f) else 0.0, _rng)
+	fc.brows(mb, hair.lerp(skin, 0.35).darkened(0.05), 0.6 if (age == "old" and not f) else 0.0, _rng)   # models pass: softer, not a painted bar
 	if not bool(cfg.get("hood", false)):
 		fc.ears(mb, fc.ruddy.darkened(0.04), 1.0)
 

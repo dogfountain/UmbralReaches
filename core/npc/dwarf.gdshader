@@ -19,6 +19,8 @@ uniform sampler2DArray detail_normal : hint_normal, filter_linear_mipmap_anisotr
 uniform float ambient_floor = 0.42;      // AO never drops ambient below this
 uniform float ambient_keep = 0.9;        // overall ambient share (the room's warm lights do the rest)
 uniform float detail_mix = 1.0;
+uniform float skin_relief = 0.0005;      // models pass: wrinkle / pore depth (metres)
+uniform float cloth_relief = 0.012;      // models pass: fold depth (metres)
 // the room's warm bounce (hearth, candles) on the dwarves: without it their cloth falls under the
 // grade's brightness floor for warm hues and is pulled into the azure band (they read blue-grey)
 uniform vec3 warm_bounce = vec3(1.0, 0.56, 0.3);
@@ -84,10 +86,23 @@ void fragment() {
 	}
 	// r36: worn edges, matte creases (not the eyes: their curvature is all edge)
 	vec2 wear = m == 8 ? vec2(0.0) : cl_wear_mask(NORMAL, VERTEX, COLOR.a);
+	// models pass: skin that is not one tone, wrinkles and pores; cloth that hangs in folds; leather
+	// that has creased (char_look: object-space, faded by footprint, no tangents)
+	if (m == 0) {
+		base = cl_skin_albedo(base, opos, 0.0);
+		NORMAL = cl_bump(NORMAL, VERTEX, cl_skin_height(opos, 1.0), skin_relief);
+	} else if (m == 1 || m == 2 || m == 9) {
+		NORMAL = cl_bump(NORMAL, VERTEX, cl_cloth_height(opos), cloth_relief);
+	} else if (m == 3) {
+		NORMAL = cl_bump(NORMAL, VERTEX, cl_skin_height(opos, 0.6), skin_relief * 1.6);
+	}
 	ALBEDO = cl_wear_albedo(cl_albedo(base * mix(vec3(1.0), d.rgb * 2.0, detail_mix), m == 8 ? 1.0 : COLOR.a, opos), wear);
 	NORMAL_MAP = texture(detail_normal, uvw).rgb;
 	NORMAL_MAP_DEPTH = mat_p.w;
 	ROUGHNESS = cl_wear_rough(clamp(mat_p.z + (d.a - 0.5) * 0.5, 0.04, 1.0), wear);
+	if (m == 0) {
+		ROUGHNESS = cl_skin_rough(ROUGHNESS, opos);
+	}
 	METALLIC = m == 5 ? 0.82 : 0.0;
 	SPECULAR = cl_wear_spec(mat_spec, wear);
 	float ao = COLOR.a;
