@@ -239,6 +239,10 @@ func give(id: String, amount := 1, save := true, soon := true) -> void:
 	if total == have:
 		return
 	items[id] = total
+	# r36: a bell keeper's relic arrives attuned to its first variant (the Thorn Heart's way)
+	var rk := String(ItemDB.def(id).get("relic", ""))
+	if rk != "" and not rk in ["bone", "thorn"] and not relics.has(rk) and Reliquary.VARIANTS.has(rk):
+		relics[rk] = (Reliquary.VARIANTS[rk] as Array)[0]
 	Events.item_gained.emit(id, total - have, total)
 	if save:
 		save_game()

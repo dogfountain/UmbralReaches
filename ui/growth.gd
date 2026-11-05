@@ -46,8 +46,13 @@ const COMBOS := [
 	["RIPOSTE LASH", "A strike passes through you mid-step: your next bolt is a Lash.", ["step"]],
 ]
 const ROMAN := ["", "I", "II", "III"]
-const RELIC_ROWS := ["thorn_heart", "bone_reliquary", "abbot_crown", "ascension_seal"]
+const RELIC_ROWS := ["thorn_heart", "bone_reliquary", "abbot_crown", "ascension_seal",
+	"kin_lamp", "slag_heart", "fog_crook", "ferry_coin", "ash_seed", "hair_rope", "mason_mark"]
 const RELIC_FROM := {"thorn_heart": "the Thornwarden, in the Ring of Thorns", "bone_reliquary": "the Bone Abbot's charnel mound",
+	"kin_lamp": "the Kin-Caller, under the Holds' oak", "slag_heart": "the Slag-Born, in the Founder's pits",
+	"fog_crook": "the Fog-Shepherd, on the moor", "ferry_coin": "the Fare-Caller, at the ferry post",
+	"ash_seed": "the Ash-Sower, in the Cinder Orchard", "hair_rope": "the Passing-Ringer, in the Waiting Field",
+	"mason_mark": "the Bell-Hewer, at the quarry crane",
 	"abbot_crown": "the Bone Abbot, below the Ossuary", "ascension_seal": "the Ascended Warden, at the summit"}
 
 var _title_font: Font
@@ -1517,6 +1522,8 @@ func _stats(id: String, r: int) -> String:
 			return "%.1f m for %.0f s, %.0f s recovery%s%s" % [5.5 if r >= 1 else 4.5, 4.0 if r >= 1 else 3.0, 11.0 * cd, "; eats spit" if r >= 2 else "", "; Event Horizon" if r >= 3 else ""]
 		"familiar":
 			return "%d shade%s for %.0f s, a dart every %.2f s (%.1f + a Mark), %.0f s recovery%s" % [2 if r >= 2 else 1, "s" if r >= 2 else "", 14.0 + (6.0 if bool(m.get("jar", false)) else 0.0), 0.75 if r >= 1 else 1.1, 0.5 * pw, 22.0 * cd, "; Last Breath" if r >= 3 else ""]
+		"peal":
+			return "%d m, a %d-degree cone, %.1f damage and a Mark, staggers; %.0f s recovery%s%s" % [11 if r >= 1 else 9, 110 if r >= 1 else 75, pw, 9.0 * cd, "; Resonance" if r >= 2 else "", "; Great Bell" if r >= 3 else ""]
 	return ""
 
 

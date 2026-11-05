@@ -305,6 +305,17 @@ func _glyph(g: StringName, c: Vector2, u: float, col: Color) -> void:
 			var fl := c + Vector2(0, 0.3) * u
 			draw_colored_polygon(PackedVector2Array([fl + Vector2(0, -0.42) * u, fl + Vector2(0.2, 0.05) * u, fl + Vector2(0, 0.2) * u, fl + Vector2(-0.2, 0.05) * u]), col.lightened(0.2))
 			draw_arc(c + Vector2(0, 0.95) * u, u * 1.0, PI * 1.15, PI * 1.85, 16, Color(col, 0.55), 2.0, false)
+		&"peal":
+			# r36 the Founder's Peal: a bell, its tongue, and the stroke going out
+			var bell := PackedVector2Array([c + Vector2(-0.18, -0.7) * u, c + Vector2(0.18, -0.7) * u, c + Vector2(0.32, -0.2) * u,
+				c + Vector2(0.38, 0.35) * u, c + Vector2(0.55, 0.5) * u, c + Vector2(-0.55, 0.5) * u, c + Vector2(-0.38, 0.35) * u,
+				c + Vector2(-0.32, -0.2) * u, c + Vector2(-0.18, -0.7) * u])
+			draw_polyline(bell, col, 2.5, false)
+			draw_circle(c + Vector2(0, 0.66) * u, u * 0.12, col)
+			for k in 2:
+				var rr := u * (0.95 + 0.3 * float(k))
+				draw_arc(c + Vector2(0, -0.05) * u, rr, -0.5, 0.5, 8, Color(col, 0.7 - 0.25 * float(k)), 2.0, false)
+				draw_arc(c + Vector2(0, -0.05) * u, rr, PI - 0.5, PI + 0.5, 8, Color(col, 0.7 - 0.25 * float(k)), 2.0, false)
 		&"step":
 			for k in 2:
 				var x := (float(k) * 0.55 - 0.15) * u

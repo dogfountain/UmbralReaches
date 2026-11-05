@@ -648,7 +648,7 @@ const QUESTS := {
 			{"kind": "cond", "cond": "bells:4", "text": "Answer for the Founder's bells ({bells} of 7; four wake the door)"},
 			{"kind": "turnin", "who": "brannoc", "text": "Tell Brannoc the door will hear a peal"},
 		],
-		"reward": {"ash": 30, "items": {"ember_shard": 2}},
+		"reward": {"ash": 30, "items": {"ember_shard": 2}, "spell": "peal"},
 		"choose": [{"set": "bell", "slot": "focus", "rarity": 3}, {"set": "bell", "slot": "vestment", "rarity": 3}, {"set": "bell", "slot": "girdle", "rarity": 3}],
 		"outcome": {"": "Brannoc counted the bells on his fingers twice, the second time slower. \"She'd have liked you,\" he said. \"She liked people who finished things.\""}},
 	"bell_holds": {"name": "The Kin Bell", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "holds",

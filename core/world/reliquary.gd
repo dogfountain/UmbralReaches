@@ -9,13 +9,43 @@ extends Interactable
 const VARIANTS := {
 	"bone": [&"implosion", &"wake"],
 	"thorn": [&"splinter", &"briar"],
+	# r36: the bell keepers' relics (rares.gd BELL keepers drop them; ItemDB "relic"), one spell each
+	"kin": [&"hearth", &"cinder"],          # Lantern Ward  (the Kin-Caller's lamp)
+	"slag": [&"scatter", &"brand"],         # Ember Lance   (the Slag-Born's heart)
+	"fog": [&"harrow", &"mist"],            # Rift Step     (the Fog-Shepherd's crook)
+	"coin": [&"anchor", &"haul"],           # Rift Tether   (the Fare-Caller's coin)
+	"seed": [&"bloom", &"wander"],          # Umbral Well   (the Ash-Sower's seed)
+	"rope": [&"swarm", &"vigil"],           # Bound Shade   (the Passing-Ringer's rope)
+	"mason": [&"toll", &"carillon"],        # Founder's Peal (the Bell-Hewer's mark)
 }
+## r36: which spell each relic changes (the Kindling's relic page and the tests read it).
+const SPELL_OF := {"bone": "nova", "thorn": "bolt", "kin": "ward", "slag": "lance", "fog": "step", "coin": "tether",
+	"seed": "well", "rope": "familiar", "mason": "peal"}
 const TEXT := {
 	&"implosion": "NOVA · IMPLOSION — drags everything within 7.5 m in, marks it, then detonates.",
 	&"wake": "NOVA · WAKE — leaves a violet field for 3 s that marks whatever stands in it.",
 	&"splinter": "RIFT BOLT · SPLINTER — each bolt bursts into thorns that find and mark up to three more within 4.5 m.",
 	&"briar": "RIFT BOLT · BRIAR — whatever a bolt hits is rooted in brambles: slowed hard for 2 s.",
+	&"hearth": "LANTERN WARD · HEARTH — burns 2 s shorter, but mends 2 Wounds a second while you stand in it.",
+	&"cinder": "LANTERN WARD · CINDER — its edge burns: a foe that crosses it takes 0.6 and a Mark, once a second.",
+	&"scatter": "EMBER LANCE · SCATTER — throws three lances in a fan, each at half strength and a smaller burst.",
+	&"brand": "EMBER LANCE · BRAND — every foe in the burst is Marked twice; the throw hits 15% softer.",
+	&"harrow": "RIFT STEP · HARROW — you arrive Marking every foe within 3.5 m, and the step recovers 30% faster.",
+	&"mist": "RIFT STEP · MIST — the place you leave fills with fog for 3 s: foes in it are slowed by half.",
+	&"anchor": "RIFT TETHER · ANCHOR — the chain pins the foe where it stands for 2.5 s instead of dragging it, and Marks it twice.",
+	&"haul": "RIFT TETHER · HAUL — the chain drags you to any foe, and you land with a shock that throws back what stands near.",
+	&"bloom": "UMBRAL WELL · BLOOM — the well pushes foes out of it instead of drawing them in, and slows them harder.",
+	&"wander": "UMBRAL WELL · WANDER — the well drifts after the nearest foe, 2.5 m a second, dragging what it passes.",
+	&"swarm": "BOUND SHADE · SWARM — binds three small shades at 60% strength, for 10 s.",
+	&"vigil": "BOUND SHADE · VIGIL — the shade keeps watch where you bound it, darting faster, for 6 s longer.",
+	&"toll": "FOUNDER'S PEAL · TOLL — one great stroke in a narrow cone: twice the damage, and it staggers twice.",
+	&"carillon": "FOUNDER'S PEAL · CARILLON — three quick rings all round you, each a light blow and a Mark.",
 }
+
+
+## r36: the variant attuned for relic `key` (&"" when that relic is not yours).
+static func variant(key: String) -> StringName:
+	return Travel.relics.get(key, &"")
 
 var _vis: Node3D
 var _t := 0.0

@@ -68,3 +68,31 @@ report. Commits only when Luke says.
   `boss_test` and `raids_r34_test` answer four bells before the summit. Renders: `zz/bells_shots`.
 - **Cost.** Data and one conversation per bell. The seven keepers are rares, so they sleep beyond
   95 m like the others. No per-frame work.
+
+## Implemented: step 2, spell variants and a new spell
+
+- **Every spell now has a play-changing pair.** Before, only Rift Bolt (Thorn Heart) and Umbral
+  Nova (Bone Reliquary) had variants. Each of the seven bell keepers now drops a relic that changes
+  one more spell. A relic arrives attuned to its first variant; switch at a kindled fire, as before
+  (`Reliquary.VARIANTS`, `TEXT`, `SPELL_OF`, `Reliquary.variant`; the hook is in `Travel.give`).
+
+  | Relic (keeper) | Spell | Variants |
+  |---|---|---|
+  | Kin-Caller's Lamp | Lantern Ward | **Hearth**: mends 2 Wounds/s in its light, burns 2 s shorter · **Cinder**: its edge burns foes that cross it |
+  | Slag Heart | Ember Lance | **Scatter**: a fan of three at half strength · **Brand**: the burst Marks twice, 15% softer |
+  | Fog-Shepherd's Crook | Rift Step | **Harrow**: Marks round the arrival, recovers 30% faster · **Mist**: the start fogs over and slows |
+  | Unpaid Fare | Rift Tether | **Anchor**: pins the foe 2.5 s, two Marks · **Haul**: drags you to it, landing with a shock |
+  | Ash Seed | Umbral Well | **Bloom**: pushes foes out and slows harder · **Wander**: drifts after the nearest foe |
+  | The Passing Rope | Bound Shade | **Swarm**: three weaker shades · **Vigil**: one keeps watch where it was bound, longer and faster |
+  | The Last Mark | Founder's Peal | **Toll**: one narrow stroke, double damage and stagger · **Carillon**: three rings all round |
+
+- **A new spell: the Founder's Peal** (`core/skills/skill_peal.gd`). Brannoc teaches it when *The
+  Founder's Peal* is handed in (the quest reward's `spell`, `Kindling.gift`). It is a cone of sound:
+  a blow, a Mark and a stagger, and it knocks spit out of the air. Three ranks: Wide Stroke,
+  Resonance, Great Bell. It has its own hotbar glyph. After the gift the Kindling also teaches it
+  (`learn.story`).
+- **Tests.** A `variants` section in `zz/skill_test`: every variant is cast against live foes and its
+  effect checked, the relic attunes on pickup, and the Peal's gift, cone, Toll and Carillon are
+  covered. Cinder Ward is not checked behaviourally.
+- **Cost.** All cast-time work. The mist, ward rite and well wander tick only while their spell
+  stands (seconds), over the enemy group, like the existing ward aura.

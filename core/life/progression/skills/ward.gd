@@ -9,6 +9,7 @@ extends SkillWard
 
 const DB := preload("res://core/life/progression/upgrade_db.gd")
 const WardAura := preload("res://core/life/progression/fx/ward_aura.gd")
+const WardRite := preload("res://core/life/progression/fx/ward_rite.gd")
 
 
 func cast(book: SkillBook, _charge: float) -> bool:
@@ -30,4 +31,14 @@ func cast(book: SkillBook, _charge: float) -> bool:
 		w.add_child(a)
 	else:
 		a.free()
+	# r36 Kin-Caller's Lamp: Hearth mends you in its light (and burns shorter); Cinder burns its edge
+	var v := Reliquary.variant("kin")
+	if v != &"":
+		var rite := WardRite.new()
+		rite.mode = v
+		rite.player = book.player
+		rite.power = float(DB.get_mod("power", 1.0))
+		w.add_child(rite)
+		if v == &"hearth":
+			w.set("_t", float(w.get("_t")) + WardRite.HEARTH_SHORT)
 	return true

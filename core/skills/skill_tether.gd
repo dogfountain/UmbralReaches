@@ -94,6 +94,21 @@ func _hook(p: Player, e: Node3D, k: int, r: int, power: float, from: Vector3) ->
 		if k == 0:
 			_drag_self(p, e)
 		return
+	# r36 Unpaid Fare: Anchor pins the foe where it stands; Haul drags you to it instead
+	match Reliquary.variant("coin"):
+		&"anchor":
+			Chain.throw(p, e, 0.15)
+			_anchor(e)
+			return
+		&"haul":
+			if k == 0:
+				_drag_self(p, e)
+				var pid := p.get_instance_id()
+				p.get_tree().create_timer(0.45, false).timeout.connect(func() -> void:
+					var p2 := instance_from_id(pid) as Player
+					if p2 != null and p2.is_inside_tree():
+						_haul_shock(p2, power))
+			return
 	var flat := Vector3(p.global_position.x - e.global_position.x, 0.0, p.global_position.z - e.global_position.z)
 	if flat.length() < LAND + 0.4:
 		Chain.throw(p, e, 0.15)
@@ -180,3 +195,44 @@ func _mark_line(p: Player, a: Vector3, b: Vector3, skip: Node3D) -> void:
 		if c.distance_to(Geometry3D.get_closest_point_to_segment(c, a, b)) < 1.2:
 			o.call("add_mark", 1)
 			Vfx.burst(c, Chain.TEAL_HOT, {"count": 10, "life": 0.3, "speed": Vector2(1.5, 3.5), "size": 0.04, "gravity": -3.0, "trail": 0.05})
+
+
+const ANCHOR_SECS := 2.5
+const HAUL_R := 2.5
+
+
+## r36 Anchor: pinned where it stands for ANCHOR_SECS (the Briar's walk_speed metas, so slows never
+## fight), and a second Mark.
+func _anchor(e: Node3D) -> void:
+	var en := e as Enemy
+	if en == null:
+		return
+	en.add_mark(1)
+	if not en.has_meta(&"briar_base"):
+		en.set_meta(&"briar_base", en.walk_speed)
+	en.walk_speed = 0.0
+	var until := Time.get_ticks_msec() + int(ANCHOR_SECS * 1000.0)
+	en.set_meta(&"briar_until", until)
+	Vfx.ring(en.global_position + Vector3.UP * 0.06, 1.0, Chain.TEAL_HOT, ANCHOR_SECS, 0.08, Vector3.UP, 1.0)
+	var eid := en.get_instance_id()
+	en.get_tree().create_timer(ANCHOR_SECS + 0.05, false).timeout.connect(func() -> void:
+		var e2 := instance_from_id(eid) as Enemy
+		if e2 != null and int(e2.get_meta(&"briar_until", 0)) <= Time.get_ticks_msec():
+			e2.walk_speed = float(e2.get_meta(&"briar_base", e2.walk_speed)))
+
+
+## r36 Haul: you land with a shock that throws back what stands within HAUL_R.
+func _haul_shock(p: Player, power: float) -> void:
+	var at := p.global_position
+	for node in p.get_tree().get_nodes_in_group(Groups.ENEMY):
+		var e := node as Enemy
+		if e == null or not e.is_alive():
+			continue
+		var d := e.global_position - at
+		d.y = 0.0
+		if d.length() > HAUL_R:
+			continue
+		e.take_hit(0.5 * power, p)
+		if not e.boss:
+			e.shove((d.normalized() if d.length() > 0.1 else -p.global_basis.z) * 8.0)
+	Vfx.ring(at + Vector3.UP * 0.08, HAUL_R, Chain.TEAL_HOT, 0.3, 0.1, Vector3.UP, 1.2)

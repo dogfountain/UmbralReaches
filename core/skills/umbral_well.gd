@@ -22,6 +22,8 @@ var life := 3.0
 var power := 1.0
 var hungry := false
 var horizon := false
+var mode: StringName = &""     ## r36 Ash Seed: &"bloom" pushes out (and slows harder), &"wander" drifts
+const WANDER := 2.5             ## m/s a wandering well drifts toward the nearest foe
 var mark_dmg := 0.0            ## Lisle's Tally and the Oath of the Tally add to each detonated Mark
 var by: Node3D
 var swallowed := 0
@@ -91,6 +93,8 @@ func _physics_process(delta: float) -> void:
 		return
 	_tick -= delta
 	_mark_tick -= delta
+	if mode == &"wander":
+		_wander(delta)
 	if _tick <= 0.0:
 		_tick = 0.1
 		_drag()
@@ -129,8 +133,12 @@ func _drag() -> void:
 		var boss := bool(e.get("boss"))
 		if dist > 0.6:
 			var pull := d / dist * PULL * (0.45 + 0.55 * dist / radius) * (0.35 if boss else 1.0)
+			if mode == &"bloom":
+				pull = -d / dist * PULL * 0.8 * (0.35 if boss else 1.0)
 			e.set("_knock", pull)
-		Afflict.slow(e, SLOW if not boss else 0.8, 0.25)
+		elif mode == &"bloom":
+			e.set("_knock", Vector3(1.0, 0.0, 0.0).rotated(Vector3.UP, randf() * TAU) * PULL * 0.8)
+		Afflict.slow(e, (0.3 if mode == &"bloom" else SLOW) if not boss else 0.8, 0.25)
 		if mark:
 			e.call("add_mark", 1)
 
@@ -238,3 +246,22 @@ func _nearest(at: Vector3, r: float, skip: Dictionary) -> Node3D:
 static func _chest(e: Node3D) -> Vector3:
 	var h: Variant = e.get("hp_bar_y")
 	return e.global_position + Vector3.UP * (float(h) * 0.55 if h != null else 1.0)
+
+
+## r36 Wander: drift toward the nearest living foe (within twice the radius), keeping to the ground.
+func _wander(delta: float) -> void:
+	var best: Node3D = null
+	var bd := radius * 2.0
+	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
+		var e := node as Node3D
+		if e == null or (e.has_method("is_alive") and not e.call("is_alive")):
+			continue
+		var dd := e.global_position.distance_to(global_position)
+		if dd < bd:
+			bd = dd
+			best = e
+	if best == null or bd < 0.8:
+		return
+	var step := best.global_position - global_position
+	step.y = 0.0
+	global_position += step.normalized() * minf(WANDER * delta, step.length())

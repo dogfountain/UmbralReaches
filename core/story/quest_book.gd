@@ -381,6 +381,13 @@ static func grant(r: Dictionary) -> String:
 		Travel.give(id, int(items[id]), false)
 		var nm := String(ItemDB.def(id).get("name", id))
 		parts.append(nm if int(items[id]) == 1 else "%s x%d" % [nm, int(items[id])])
+	# r36: a spell the story gives (the Founder's Peal): the Kindling learns it for free
+	var sp := String(r.get("spell", ""))
+	if sp != "":
+		var ml := Engine.get_main_loop() as SceneTree
+		var kn: Node = ml.get_first_node_in_group("progression") if ml else null
+		if kn and kn.has_method("gift") and bool(kn.call("gift", sp)):
+			parts.append("a spell")
 	return "(" + ", ".join(parts) + ")" if not parts.is_empty() else ""
 
 

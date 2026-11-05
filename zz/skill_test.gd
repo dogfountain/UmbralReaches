@@ -253,6 +253,8 @@ func _run() -> void:
 		await _s_well()
 	if _want("shade"):
 		await _s_shade()
+	if _want("variants"):
+		await _s_variants()
 	if _want("cores"):
 		await _s_cores()
 	if _want("ui"):
@@ -663,3 +665,156 @@ func _fire() -> Brazier:
 			if best == null or String(n.name) == "Sanctuary":
 				best = n
 	return best
+
+
+## r36: the bell keepers' relics, a variant pair for every spell, and the Founder's Peal.
+func _s_variants() -> void:
+	print("-- r36 spell variants and the Founder's Peal")
+	await _place()
+	# a keeper's relic arrives attuned to its first variant
+	Travel.relics.erase("slag")
+	Travel.give("slag_heart", 1, false)
+	ok(Reliquary.variant("slag") == &"scatter", "the Slag Heart arrives attuned to Scatter")
+	for key: String in Reliquary.VARIANTS:
+		ok((Reliquary.VARIANTS[key] as Array).size() == 2 and Reliquary.SPELL_OF.has(key), "relic %s: two variants and a spell" % key)
+		for v: StringName in Reliquary.VARIANTS[key]:
+			ok(Reliquary.TEXT.has(v), "variant %s has its words" % v)
+	# the Peal is the story's gift
+	ok(String(k.call("why_not_learn", "peal", true)).begins_with("Brannoc"), "the Kindling will not teach the Peal before Brannoc does")
+	ok(bool(k.call("gift", "peal")), "Brannoc's gift: the Peal is known")
+	_setp({"lance": 0, "tether": 0, "well": 0, "familiar": 0, "peal": 0}, {"loadout": ["lance", "tether", "well", "familiar"]})
+	# --- Ember Lance: Scatter, Brand
+	Travel.relics["slag"] = &"scatter"
+	var a := _foe(10.0, 0.0)
+	var l := _foe(10.0, -2.6)
+	var r := _foe(10.0, 2.6)
+	await _aim_at(a)
+	_cast(&"lance", 1.0)
+	await _wait(0.8)
+	ok(a.hp < 60.0 and l.hp < 60.0 and r.hp < 60.0, "Scatter: three lances in a fan (%.1f / %.1f / %.1f)" % [l.hp, a.hp, r.hp])
+	ok(60.0 - a.hp < 6.5 * 0.75, "Scatter: each at half strength (%.1f)" % (60.0 - a.hp))
+	_clear_foes()
+	await _place()
+	Travel.relics["slag"] = &"brand"
+	a = _foe(10.0, 0.0)
+	var b := _foe(10.5, 1.2)
+	await _aim_at(a)
+	_cast(&"lance", 0.6)                    # a full charge pierces and bursts beyond; this one bursts on a
+	await _wait(0.8)
+	ok(b.marks >= 2, "Brand: the burst Marks twice (%d)" % b.marks)
+	_clear_foes()
+	# --- Rift Tether: Anchor, Haul
+	await _place()
+	Travel.relics["coin"] = &"anchor"
+	a = _foe(11.0, 0.0, 60.0, true)
+	await _aim_at(a)
+	var from := a.global_position
+	_cast(&"tether")
+	await _wait(0.5)
+	ok(a.global_position.distance_to(from) < 1.5 and a.walk_speed == 0.0 and a.marks >= 2, "Anchor: pinned where it stood, Marked twice (moved %.1f m)" % a.global_position.distance_to(from))
+	_clear_foes()
+	await _place()
+	Travel.relics["coin"] = &"haul"
+	a = _foe(11.0, 0.0, 60.0, true)
+	await _aim_at(a)
+	_cast(&"tether")
+	await _wait(0.9)
+	var d := Vector2(a.global_position.x - p.global_position.x, a.global_position.z - p.global_position.z).length()
+	ok(d < 4.5, "Haul: the chain drags you to it (%.1f m)" % d)
+	_clear_foes()
+	Travel.relics.erase("coin")
+	# --- Umbral Well: Bloom, Wander
+	await _place()
+	Travel.relics["seed"] = &"bloom"
+	a = _foe(10.0, 0.0)
+	var side := _foe(10.0, 2.0, 60.0, true)
+	await _aim_at(a)
+	_cast(&"well")
+	await _wait(0.2)
+	var wl: Node3D = book.slots[_slot(&"well")].get("last")
+	ok(wl != null and wl.get("mode") == &"bloom", "Bloom: the well opens blooming")
+	var d0 := side.global_position.distance_to(wl.global_position) if wl else 0.0
+	await _wait(1.0)
+	ok(wl != null and side.global_position.distance_to(wl.global_position) > d0 + 0.3, "Bloom: it pushes foes out (%.1f -> %.1f m)" % [d0, side.global_position.distance_to(wl.global_position) if wl else 0.0])
+	_clear_foes()
+	await _place()
+	Travel.relics["seed"] = &"wander"
+	a = _foe(10.0, 0.0)
+	await _aim_at(a)
+	a.global_position += _fwd() * 5.0               # the foe stands off where the well opens
+	_cast(&"well")
+	await _wait(0.2)
+	wl = book.slots[_slot(&"well")].get("last")
+	var w0 := wl.global_position if wl else Vector3.ZERO
+	await _wait(1.0)
+	ok(wl != null and wl.global_position.distance_to(w0) > 1.0, "Wander: the well drifts after the foe (%.1f m)" % (wl.global_position.distance_to(w0) if wl else 0.0))
+	_clear_foes()
+	Travel.relics.erase("seed")
+	# --- Bound Shade: Swarm, Vigil
+	await _place()
+	Travel.relics["rope"] = &"swarm"
+	_cast(&"familiar")
+	await _wait(1.3)
+	var bound: Array = book.slots[_slot(&"familiar")].get("bound")
+	ok(bound.size() == 3, "Swarm: three shades (%d)" % bound.size())
+	Travel.relics["rope"] = &"vigil"
+	_cast(&"familiar")
+	await _wait(1.3)
+	bound = book.slots[_slot(&"familiar")].get("bound")
+	ok(bound.size() == 1 and (bound[0] as Node).get("owner_p") != p, "Vigil: one shade keeping watch where it was bound")
+	Travel.relics.erase("rope")
+	# --- the Founder's Peal: plain, Toll, Carillon
+	_setp({"peal": 0}, {"loadout": ["peal", "nova", "ward", "step"]})
+	await _place()
+	a = _foe(5.0, 0.0)
+	var behind := _foe(-3.0, 0.0)
+	await _aim_at(a)
+	ok(_cast(&"peal"), "the Founder's Peal casts")
+	await _wait(0.1)
+	ok(a.hp <= 59.01 and a.marks >= 1 and behind.hp >= 60.0, "the stroke goes out in front, not behind (%.1f / %.1f)" % [a.hp, behind.hp])
+	Travel.relics["mason"] = &"toll"
+	a.queue_free()
+	_foes.erase(a)
+	a = _foe(5.0, 0.0)                      # a fresh foe: one still reeling from the last stroke takes more
+	await _aim_at(a)
+	_cast(&"peal")
+	await _wait(0.1)
+	ok(absf((60.0 - a.hp) - 2.0) < 0.6, "Toll: one stroke, twice as hard (%.1f)" % (60.0 - a.hp))
+	Travel.relics["mason"] = &"carillon"
+	behind.hp = 60.0
+	_cast(&"peal")
+	await _wait(0.8)
+	ok(behind.hp < 60.0 and behind.marks >= 2, "Carillon: three rings all round (behind: %.1f, %d Marks)" % [behind.hp, behind.marks])
+	Travel.relics.erase("mason")
+	_clear_foes()
+	# --- Rift Step: Harrow, Mist; Lantern Ward: Hearth, Cinder
+	await _place()
+	Travel.relics["fog"] = &"mist"
+	_cast(&"step")
+	await _wait(0.4)
+	var mists := get_tree().current_scene.find_children("*", "Node3D", false, false).filter(func(n: Node) -> bool: return n.get_script() != null and String((n.get_script() as Script).resource_path).ends_with("step_mist.gd"))
+	ok(mists.size() >= 1, "Mist: the place you left fogs over")
+	Travel.relics["fog"] = &"harrow"
+	await _place()
+	a = _foe(8.0, 0.0)
+	await _aim_at(a)
+	_cast(&"step")
+	await _wait(0.5)
+	var near := 0
+	for e: Enemy in _foes:
+		if is_instance_valid(e) and e.global_position.distance_to(p.global_position) <= 3.5 and e.marks >= 1:
+			near += 1
+	ok(near >= 1 or a.global_position.distance_to(p.global_position) > 3.5, "Harrow: the arrival Marks what stands near")
+	ok(book.cooldown_left(_slot(&"step")) < book.slots[_slot(&"step")].cooldown * 0.8, "Harrow: the step recovers faster (%.2f)" % book.cooldown_left(_slot(&"step")))
+	Travel.relics.erase("fog")
+	_clear_foes()
+	await _place()
+	Travel.relics["kin"] = &"hearth"
+	p.wounds = 30.0
+	book._cd.fill(0.0)
+	book._gcd = 0.0
+	book.try_cast(_slot(&"ward"), 0.0, false)
+	await _wait(1.2)
+	ok(p.wounds < 28.0, "Hearth: the ward mends you in its light (%.1f)" % p.wounds)
+	Travel.relics.erase("kin")
+	_clear_foes()

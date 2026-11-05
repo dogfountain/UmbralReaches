@@ -85,6 +85,15 @@ const SPELLS: Array[Dictionary] = [
 		["Keen Eyes", "It darts every 0.75 s, and its darts seek."],
 		["Twin Shades", "Bind two."],
 		["Last Breath", "When its time runs out it dives at the nearest foe and bursts: 2 damage, and every Mark within 3 m detonates."]]},
+	# r36 Act II: Brannoc teaches it when the peal is answered (The Founder's Peal turn-in); the
+	# Kindling teaches it after that too, should the gift be lost to an old save
+	{"id": "peal", "name": "Founder's Peal", "glyph": "peal", "color": Color("#E8C27A"), "learn": {"cost": 16, "gate": 2, "story": "founders_peal"},
+		"text": "Strike the bell in you: a stroke goes out in a 75-degree cone, 9 m. Every foe in it takes 1 damage and a Mark, and is staggered; spit in it is knocked from the air.",
+		"lore": "\"Mother said every bell has one note it was cast for, and one it learns. The one it learns is the one you hear.\" Brannoc Bellwright.",
+		"ranks": [
+		["Wide Stroke", "The cone opens to 110 degrees and reaches 11 m."],
+		["Resonance", "A foe already Marked takes a second Mark, and 0.5 more damage for each Mark it carried."],
+		["Great Bell", "The stroke rings twice as hard on the great ones, and every foe it strikes is slowed by half for 2 s."]]},
 ]
 ## Hotbar: slot 0 is always Rift Bolt; the other four take any known spell (swapped at a fire).
 const SLOT_ACTIONS: Array[StringName] = [&"skill_bolt", &"skill_lance", &"skill_nova", &"skill_ward", &"skill_step"]

@@ -1183,6 +1183,8 @@ func fire_bolt(cfg: Dictionary) -> MagicBolt:
 		host.add_child(bolt)
 	var muzzle := _visual.muzzle()
 	var aim := _combat_aim(muzzle)
+	if cfg.has("dir"):
+		aim = (cfg.dir as Vector3).normalized()      # r36: a fanned throw (the Slag Heart's Scatter)
 	var up := Vector3.UP
 	if absf(aim.dot(up)) > 0.95:
 		up = Vector3.RIGHT

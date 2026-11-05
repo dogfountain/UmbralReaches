@@ -19,6 +19,7 @@ const FireSpot := preload("res://core/life/progression/fire_spot.gd")
 const CharmPickup := preload("res://core/life/progression/charm_pickup.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const SealedSkill := preload("res://core/skills/skill_sealed.gd")
+const QuestBookScript := preload("res://core/story/quest_book.gd")
 const SKILLS := {
 	&"bolt": preload("res://core/life/progression/skills/bolt.gd"),
 	&"lance": preload("res://core/life/progression/skills/lance.gd"),
@@ -31,6 +32,7 @@ const LEARNED := {
 	&"tether": preload("res://core/skills/skill_tether.gd"),
 	&"well": preload("res://core/skills/skill_well.gd"),
 	&"familiar": preload("res://core/skills/skill_familiar.gd"),
+	&"peal": preload("res://core/skills/skill_peal.gd"),        # r36 Act II: Brannoc's gift
 }
 const OrbCore := preload("res://core/skills/orb_core.gd")
 const CorePickup := preload("res://core/life/progression/core_pickup.gd")
@@ -362,6 +364,8 @@ func why_not_learn(id: String, at_fire: bool) -> String:
 	if DB.knows(state(), id):
 		return "Learned."
 	var l: Dictionary = sp.learn
+	if l.has("story") and not QuestBookScript.done(String(l.story)):
+		return "Brannoc Bellwright teaches it, when the Founder's peal is answered."
 	if bosses() < int(l.gate):
 		return _gate_text(int(l.gate), "teach")
 	if ash() < int(l.cost):
@@ -617,4 +621,18 @@ func teach(id: String) -> bool:
 	var slot := DB.loadout(st).find(id) + 1
 	var key := String(DB.SLOT_KEYS[slot]) if slot >= 1 and slot < DB.SLOT_KEYS.size() else "the Loadout"
 	Events.toast.emit(String(TEACH_LINES.get(id, "%s")) % key)
+	return true
+
+
+
+## r36: a spell given by the story (the Founder's Peal from Brannoc): known at once, no ash, no fire.
+func gift(id: String) -> bool:
+	var st := state()
+	if DB.spell(id).is_empty() or DB.knows(st, id):
+		return false
+	var k: Array = st.get("known", [])
+	k.append(id)
+	st["known"] = k
+	_commit()
+	Events.toast.emit("Learned: %s. Set it on your bar at a kindled fire." % String(DB.spell(id).name))
 	return true

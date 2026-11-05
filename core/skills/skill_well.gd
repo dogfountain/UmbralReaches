@@ -56,6 +56,7 @@ func cast(book: SkillBook, _charge: float) -> bool:
 	w.power = float(DB.get_mod("power", 1.0))
 	w.mark_dmg = float(DB.get_mod("mark_dmg", 0.0)) + (0.5 if bool(DB.get_mod("tally", false)) else 0.0)
 	w.by = p
+	w.mode = Reliquary.variant("seed")        # r36 Ash Seed: bloom pushes out, wander drifts after foes
 	w.position = at
 	host.add_child(w)
 	last = w

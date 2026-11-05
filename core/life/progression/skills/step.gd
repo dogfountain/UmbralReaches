@@ -10,6 +10,7 @@ extends SkillStep
 
 const DB := preload("res://core/life/progression/upgrade_db.gd")
 const RiftRend := preload("res://core/life/progression/fx/rift_rend.gd")
+const StepMist := preload("res://core/life/progression/fx/step_mist.gd")
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 const SHOCK_R := 2.5
 const SHOCK_DMG := 0.5
@@ -33,7 +34,43 @@ func cast(book: SkillBook, _charge: float) -> bool:
 		_briar_path(book.player, from, book.player.global_position)
 	if bool(DB.get_mod("door", false)):
 		book.player.mend(3.0)                     # r35: the Door mends Wounds
+	# r36 Fog-Shepherd's Crook: Harrow Marks round the arrival and recovers faster; Mist fogs the start
+	match Reliquary.variant("fog"):
+		&"harrow":
+			_harrow(book.player)
+			var i := book.slots.find(self)
+			(func() -> void: book.refund(i, cooldown * HARROW_CD)).call_deferred()
+		&"mist":
+			_mist(book.player, from)
 	return true
+
+
+const HARROW_R := 3.5
+const HARROW_CD := 0.3          ## share of the recovery handed back
+const MIST_R := 3.0
+const MIST_LIFE := 3.0
+
+
+## r36 Harrow: every foe within HARROW_R of the arrival takes a Mark.
+func _harrow(p: Player) -> void:
+	var at := p.global_position
+	for node in p.get_tree().get_nodes_in_group(Groups.ENEMY):
+		var e := node as Enemy
+		if e and e.is_alive() and e.global_position.distance_to(at) <= HARROW_R:
+			e.add_mark(1)
+	Vfx.ring(at + Vector3.UP * 0.05, HARROW_R, Color(1.2, 1.4, 3.0), 0.3, 0.06, Vector3.UP, 1.0)
+
+
+## r36 Mist: the place you left fogs over for MIST_LIFE s; foes inside are slowed by half (Afflict).
+func _mist(p: Player, at: Vector3) -> void:
+	var host := p.get_tree().current_scene
+	if host == null:
+		return
+	var fog := StepMist.new()
+	fog.radius = MIST_R
+	fog.life = MIST_LIFE
+	fog.position = at                 # before entering the tree: _ready rings it where it stands
+	host.add_child(fog)
 
 
 ## Edda's Ferrule (quest charm): the arrival rings like iron and Marks every foe within 2 m.
