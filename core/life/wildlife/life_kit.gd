@@ -786,7 +786,7 @@ static func _horse(cm, s: float, h: Dictionary) -> void:
 		cm.blob(v.call(sx3 * 0.255 * g, 1.13, -0.04), Vector3(0.012, 0.085, 0.09) * s, fb, leather, 0.0, 0.02, BODY, 6, 12)
 		# stirrup leather and an iron (horn-flagged so it shines a little)
 		var sa: Vector3 = v.call(sx3 * 0.26 * g, 1.2, -0.06)
-		var sb: Vector3 = v.call(sx3 * 0.29 * g, 0.74, -0.06)
+		var sb: Vector3 = v.call(sx3 * 0.3 * g, 0.92, -0.06)     # where the rider's foot rests (horse.gd / the ride IK)
 		cm.tube(_p([sa, sb]), _r([0.012 * s, 0.012 * s]), 5, dark_leather, 0.0, 0.0, BODY, Vector2(1.0, 0.35))
 		var ring := PackedVector3Array()
 		for i in 9:

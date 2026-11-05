@@ -484,13 +484,16 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		_hero_pose(speed, on_floor, idle, breathe, delta)
 		if gait:
 			_moves_pose(speed, on_floor, delta)        # traversal / roll / idle acts (FK)
-			_gait_legs(delta)                          # planted feet: two-bone IK onto the ground
-		elif foot_ik and on_floor and slide < 0.4 and not Engine.is_editor_hint():
+			if ride < 0.5:
+				_gait_legs(delta)                      # planted feet: two-bone IK onto the ground
+		elif foot_ik and on_floor and slide < 0.4 and ride < 0.5 and not Engine.is_editor_hint():
 			_foot_ik(delta)
 		else:
 			_ik_off[0] = lerpf(_ik_off[0], 0.0, 1.0 - exp(-10.0 * delta))
 			_ik_off[1] = lerpf(_ik_off[1], 0.0, 1.0 - exp(-10.0 * delta))
 
+	if ride > 0.001:
+		_ride_legs(ride)                               # r36: in the stirrups, after everything else
 	if _staff and _orb and _orb_light:
 		var tilt := -0.12 - s * 0.12 * st - _gesture * 0.75 + _staff_sw.x + _staff_off.x
 		_staff.global_basis = body * _staff_frame * Basis.from_euler(Vector3(tilt, _staff_off.y, 0.06 + _turn * 0.03 + _staff_sw.y + _staff_off.z))
@@ -2128,6 +2131,20 @@ func _pose_roll(u: float) -> void:
 ## laid along the ledge in the right fist. Shimmying swings the legs and walks the hands.
 ## r36 astride a horse: thighs forward and spread round the barrel, knees bent, heels down, the
 ## back upright, both hands low in front on the reins (the staff rides on the back: its own offset).
+## r36 the legs round the horse (two-bone IK), run LAST so the walk's foot planting cannot pull the
+## feet to the ground under the horse: each foot in its stirrup just outside the barrel, the knee pole
+## turned outward so the thigh wraps over the horse's side and the shin hangs outside it.
+## (`saddle`: the barrel in the coat's space, origin at the pelvis: x half-width, y centre, z half-height)
+func _ride_legs(k: float) -> void:
+	if saddle.x <= 0.0:
+		return
+	var py := _pelvis.position.y
+	for i in 2:
+		var sd2 := -1.0 if i == 0 else 1.0
+		var ank := Vector3(sd2 * saddle.x * 1.14, py + saddle.y - saddle.z * 0.1, -0.06)
+		_leg_ik(i, ank, Basis(Vector3.RIGHT, -0.2), Basis(Vector3.UP, -sd2 * 1.0), k)
+
+
 func _pose_ride(k: float) -> void:
 	var bob := sin(_t * 9.0) * 0.012
 	_pelvis.position.y = lerpf(_pelvis.position.y, H_PELVIS + bob, k)
@@ -2140,12 +2157,8 @@ func _pose_ride(k: float) -> void:
 	_el[1].rotation.x = lerpf(_el[1].rotation.x, 0.9, k)
 	for i in 2:
 		var sd := 1.0 if i == 0 else -1.0
-		# thighs splayed round the barrel (the horse is ~0.7 m wide under the saddle), shins down
-		# toward the stirrups
-		_hip[i].rotation.x = lerpf(_hip[i].rotation.x, 0.85, k)
-		_hip[i].rotation.z = lerpf(_hip[i].rotation.z, 0.8 * sd, k)
-		_knee[i].rotation.x = lerpf(_knee[i].rotation.x, -1.0, k)
 		_foot[i].rotation.x = lerpf(_foot[i].rotation.x, 0.2, k)
+
 
 
 func _pose_hang(k: float) -> void:
