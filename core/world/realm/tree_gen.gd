@@ -555,7 +555,12 @@ class Gen:
 				var d := Vector3(cos(az), rng.randf_range(-0.35, -0.1), sin(az)).normalized()
 				var bp := path(Vector3(0, y, 0), d, reach, 1.2, 0.18, 0.15)
 				var br := maxf(trunk_r * (1.0 - t) * 0.35, 0.025)
-				tube(bp, radii_for(bp, br, br * 0.3), 3 if br < 0.06 else 4)
+				if far and br < 0.07 and not bare:
+					rng.randf()                    # tube's phase draw: keep the stream in step with the near tree
+				else:
+					# from 38 m a whorl's thin limbs sit inside its needle sprays: the far pine
+					# keeps only the stout lower ones (about half its wood triangles)
+					tube(bp, radii_for(bp, br, br * 0.3), 3 if br < 0.06 else 4)
 				if bare:
 					continue
 				# needle sprays along the branch, flat-ish and layered
