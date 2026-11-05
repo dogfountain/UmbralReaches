@@ -199,7 +199,11 @@ static func _moon(moon: DirectionalLight3D) -> void:
 	var q := clampi(Settings.shadow_quality, 0, 2)
 	moon.shadow_enabled = q > 0
 	_moon_maps(q)
-	moon.directional_shadow_blend_splits = true
+	# r35: no split blending. Godot samples both splits (two PCSS lookups) for every pixel of the near
+	# split when blending is on; off, the near 7.5 m keep only their own (sharper) map. perf_tour
+	# --attrib --stress=2 --reps=4..6: +0.25..0.7 ms for blending at r_spawn_north, r_rim, r_glade,
+	# r_meadow; no seam was visible at the 7.5 m boundary under the soft (2.5 deg) moon (look_shots).
+	moon.directional_shadow_blend_splits = false
 	moon.directional_shadow_fade_start = 0.8
 	moon.shadow_bias = MOON_BIAS
 	moon.shadow_normal_bias = MOON_NORMAL_BIAS
