@@ -12,6 +12,8 @@ render_mode diffuse_burley, specular_schlick_ggx, depth_draw_opaque;
 
 #include "res://core/life/wildlife/creature_rig.gdshaderinc"
 
+uniform float warm = 0.0;
+
 void vertex() {
 	float eye;
 	float blink;
@@ -26,10 +28,12 @@ void fragment() {
 	float horn = 1.0 - COLOR.a;
 	base *= 1.0 - wet * 0.35 * (1.0 - horn);
 	ALBEDO = base;
+	// r36 horses: a little warm fill so a coat keeps its colour under the moon's blue key
+	EMISSION = base * vec3(1.0, 0.62, 0.36) * warm;
 	ROUGHNESS = mix(roughness, 0.38, max(horn * 0.8, wet * 0.6));
 	SPECULAR = 0.35 + horn * 0.2;
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
-	EMISSION = rim_col * fres * rim_amount * 0.12;
+	EMISSION += rim_col * fres * rim_amount * 0.12;
 	if (v_eye > 0.5) {
 		ALBEDO = vec3(0.02);
 		ROUGHNESS = 0.15;

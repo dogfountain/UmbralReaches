@@ -15,7 +15,7 @@ const ORBIT_SH := preload("res://core/life/wildlife/orbit.gdshader")
 const FIREFLY_SH := preload("res://core/life/wildlife/firefly.gdshader")
 const RIPPLE_SH := preload("res://core/life/wildlife/ripple.gdshader")
 const GHOST_SH := preload("res://core/life/wildlife/ghost.gdshader")
-const VERSION := 8
+const VERSION := 9
 
 ## part ids (UV2.x)
 const BODY := 0.0
@@ -63,10 +63,10 @@ const LOOK := {
 	"deer": {"detail": 0.18, "detail_scale": 3.0, "streak": 3.0, "roughness": 0.88, "eye_col": Color(0.55, 0.95, 0.6), "eye_energy": 1.4, "rim_amount": 0.12},
 	"stag": {"detail": 0.18, "detail_scale": 3.0, "streak": 3.0, "roughness": 0.88, "eye_col": Color(0.55, 0.95, 0.6), "eye_energy": 1.4, "rim_amount": 0.12},
 	"elk": {"detail": 0.2, "detail_scale": 3.0, "streak": 3.0, "roughness": 0.95, "eye_col": Color(0.55, 0.95, 0.6), "eye_energy": 0.6, "rim_amount": 0.6},
-	"horse_palfrey": {"detail": 0.14, "detail_scale": 2.5, "streak": 3.0, "roughness": 0.7, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.25},
-	"horse_garron": {"detail": 0.32, "detail_scale": 3.0, "streak": 3.5, "roughness": 0.92, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.3},
-	"horse_draught": {"detail": 0.16, "detail_scale": 2.0, "streak": 3.0, "roughness": 0.6, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.35},
-	"horse_fenpony": {"detail": 0.4, "detail_scale": 3.5, "streak": 4.0, "roughness": 0.95, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.2},
+	"horse_palfrey": {"warm": 0.16, "detail": 0.14, "detail_scale": 2.5, "streak": 3.0, "roughness": 0.7, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.25},
+	"horse_garron": {"warm": 0.16, "detail": 0.32, "detail_scale": 3.0, "streak": 3.5, "roughness": 0.92, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.3},
+	"horse_draught": {"warm": 0.16, "detail": 0.16, "detail_scale": 2.0, "streak": 3.0, "roughness": 0.6, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.35},
+	"horse_fenpony": {"warm": 0.16, "detail": 0.4, "detail_scale": 3.5, "streak": 4.0, "roughness": 0.95, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.2},
 	"fox": {"detail": 0.2, "detail_scale": 4.0, "streak": 3.0, "roughness": 0.88, "eye_col": Color(1.0, 0.85, 0.45), "eye_energy": 1.4, "rim_amount": 0.12},
 	"rat": {"detail": 0.5, "streak": 2.0, "roughness": 0.8, "eye_col": Color(1.0, 0.3, 0.2), "eye_energy": 1.0, "detail_scale": 20.0},
 	"branch": {"detail": 0.8, "streak": 4.0, "roughness": 0.95, "detail_scale": 3.0},
@@ -235,10 +235,10 @@ static func _build(kind: String) -> ArrayMesh:
 		"stag": _deer(cm, 1.0, 1)
 		"elk": _deer(cm, ELK_S, 2)
 		"fox": _fox(cm)
-		"horse_palfrey": _horse(cm, 1.42, Color(0.36, 0.17, 0.08), Color(0.08, 0.05, 0.04), 0.0, 1.0)
-		"horse_garron": _horse(cm, 1.3, Color(0.52, 0.5, 0.48), Color(0.86, 0.84, 0.8), 1.0, 1.18)
-		"horse_draught": _horse(cm, 1.6, Color(0.07, 0.06, 0.06), Color(0.1, 0.08, 0.07), 1.0, 1.3)
-		"horse_fenpony": _horse(cm, 1.15, Color(0.6, 0.48, 0.3), Color(0.24, 0.17, 0.1), 0.6, 1.25)
+		"horse_palfrey": _horse(cm, 1.42, HORSES["palfrey"])
+		"horse_garron": _horse(cm, 1.3, HORSES["garron"])
+		"horse_draught": _horse(cm, 1.6, HORSES["draught"])
+		"horse_fenpony": _horse(cm, 1.15, HORSES["fenpony"])
 		"rat": _rat(cm)
 		"mouse": _mouse(cm)
 		"plover": _plover(cm)
@@ -635,54 +635,299 @@ static func _plover(cm) -> void:
 
 
 
-## r36 a horse (core/world/mount): built on the deer's frame at scale `s`, a heavier barrel, a long
-## crested neck, a long head, a mane and a full tail; `feather` hangs hair over the hooves (garrons,
-## draughts), `girth` thickens the body. The rig is the deer's (RIG horse_*): legs swing, head pivots.
-static func _horse(cm, s: float, coat: Color, mane: Color, feather: float, girth: float) -> void:
-	var belly := coat.lightened(0.08)
-	var leg := coat.darkened(0.35)
-	var hoof := Color(0.05, 0.045, 0.04)
+
+## r36 horses (core/world/mount), rebuilt in the chunky, readable style of a fantasy MMO's mounts (an
+## original model): a deep chest and a rounded croup, a thick arched neck with a crest, a shaped head
+## (cheeks, a long face, a soft muzzle, nostrils, tall ears), muscled legs with knees, hocks and
+## fetlocks on big hooves; a mane and tail of heavy flowing locks; and full tack: saddle and blanket
+## with a trim, girth, stirrups, breastplate, bridle and reins. The deer's GPU rig drives it (parts:
+## BODY, HEAD for the neck and head, the four legs, TAIL).
+##   coat, mane, socks (white legs: "", "hind", "all"), blaze, feather (hair over the hooves),
+##   girth, blanket and trim colours, dorsal (a dun's stripe)
+const HORSES := {
+	"palfrey": {"coat": Color(0.5, 0.21, 0.07), "mane": Color(0.06, 0.04, 0.035), "socks": "hind", "blaze": true, "feather": 0.0,
+		"girth": 1.0, "blanket": Color(0.46, 0.07, 0.06), "trim": Color(0.82, 0.62, 0.26), "dorsal": false},
+	"garron": {"coat": Color(0.64, 0.62, 0.6), "mane": Color(0.86, 0.85, 0.82), "socks": "", "blaze": false, "feather": 0.7,
+		"girth": 1.14, "blanket": Color(0.16, 0.24, 0.38), "trim": Color(0.75, 0.75, 0.78), "dorsal": false},
+	"draught": {"coat": Color(0.085, 0.07, 0.065), "mane": Color(0.05, 0.04, 0.035), "socks": "all", "blaze": true, "feather": 1.0,
+		"girth": 1.28, "blanket": Color(0.62, 0.36, 0.08), "trim": Color(0.3, 0.16, 0.06), "dorsal": false},
+	"fenpony": {"coat": Color(0.72, 0.53, 0.28), "mane": Color(0.18, 0.11, 0.06), "socks": "", "blaze": false, "feather": 0.5,
+		"girth": 1.2, "blanket": Color(0.2, 0.32, 0.18), "trim": Color(0.58, 0.48, 0.3), "dorsal": true},
+}
+
+
+static func _horse(cm, s: float, h: Dictionary) -> void:
+	var coat: Color = h.coat
+	var mane: Color = h.mane
+	var g: float = h.girth
+	var white := Color(0.88, 0.86, 0.82)
+	var hoof := Color(0.11, 0.09, 0.08)
+	var leather := Color(0.32, 0.17, 0.07)
+	var dark_leather := Color(0.2, 0.1, 0.05)
+	var metal := Color(0.78, 0.66, 0.38)
+	var muzzle := coat.darkened(0.35) if coat.get_luminance() > 0.2 else coat.lightened(0.08)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(coat)
 	var v := func(x: float, y: float, z: float) -> Vector3: return Vector3(x, y, z) * s
-	var g := girth
-	# barrel, chest and quarters (rounder and deeper than a deer's)
-	cm.blob(v.call(0, 0.98, 0.0), Vector3(0.23 * g, 0.27 * g, 0.52) * s, Basis.IDENTITY, coat, 0.0, 0.05, BODY, 9, 14)
-	cm.blob(v.call(0, 1.0, -0.33), Vector3(0.22 * g, 0.29 * g, 0.24) * s, Basis.IDENTITY, coat, 0.0, 0.05, BODY, 7, 11)
-	cm.blob(v.call(0, 1.03, 0.33), Vector3(0.24 * g, 0.28 * g, 0.26) * s, Basis.IDENTITY, coat, 0.0, 0.05, BODY, 7, 11)
-	cm.blob(v.call(0, 0.82, 0.02), Vector3(0.16 * g, 0.1, 0.38) * s, Basis.IDENTITY, belly, 0.0, 0.04, BODY, 5, 10)
-	# a saddle cloth and a plain saddle, so a horse reads as kept, not wild
-	cm.blob(v.call(0, 1.22, -0.04), Vector3(0.25 * g, 0.03, 0.2) * s, Basis.IDENTITY, Color(0.24, 0.16, 0.12), 0.0, 0.02, BODY, 4, 10)
-	cm.blob(v.call(0, 1.26, -0.04), Vector3(0.14, 0.05, 0.16) * s, Basis.IDENTITY, Color(0.2, 0.12, 0.07), 0.0, 0.03, BODY, 5, 10)
-	# tail: a full fall from the dock
-	cm.tube(_p([v.call(0, 1.16, 0.56), v.call(0, 1.02, 0.66), v.call(0, 0.74, 0.7), v.call(0, 0.5, 0.68)]), _r([0.05 * s, 0.07 * s, 0.07 * s, 0.03 * s]), 7, mane, 0.0, 0.3, TAIL, Vector2(1.0, 0.6))
+	var R := 14
+	var S := 24
+	# --- body: ONE lofted surface along the spine (blobs overlapped into lumps): chest, brisket,
+	# shoulder, barrel, loin, a two-lobed croup, buttock; a flatter back, a rounder belly ---------
+	var body_keys := [
+		# z, half-width, half-height, centre y
+		[-0.64, 0.06, 0.1, 0.99], [-0.6, 0.14, 0.2, 0.97], [-0.48, 0.2, 0.27, 0.95], [-0.3, 0.235, 0.29, 0.99],
+		[-0.08, 0.25, 0.285, 0.98], [0.14, 0.245, 0.265, 0.99], [0.3, 0.23, 0.23, 1.03], [0.44, 0.245, 0.25, 1.02],
+		[0.56, 0.2, 0.22, 1.0], [0.64, 0.11, 0.14, 1.0], [0.68, 0.03, 0.05, 1.0]]
+	_loft(cm, v, body_keys, g, coat, BODY, true)
+	# --- neck: a lofted column from the shoulders, arched, deep at the base, a crest on top ------
+	# (it starts well inside the chest, so neck and body meet without a crease)
+	var neck_pts := [v.call(0, 0.98, -0.38), v.call(0, 1.12, -0.52), v.call(0, 1.3, -0.64), v.call(0, 1.48, -0.76), v.call(0, 1.64, -0.85), v.call(0, 1.74, -0.9)]
+	var neck_w := [0.22 * g, 0.18 * g, 0.14, 0.11, 0.095, 0.085]
+	var neck_h := [0.3, 0.26, 0.2, 0.16, 0.13, 0.115]
+	_neck(cm, neck_pts, neck_w, neck_h, s, coat, HEAD)
+	if bool(h.dorsal):
+		cm.tube(_p([v.call(0, 1.2, -0.3), v.call(0, 1.24, 0.0), v.call(0, 1.23, 0.3), v.call(0, 1.15, 0.52)]), _r([0.03 * s, 0.035 * s, 0.03 * s, 0.02 * s]), 8, mane.lightened(0.1), 0.0, 0.02, BODY, Vector2(1.0, 0.3))
+	# --- legs: muscle, knee / hock, cannon, fetlock, pastern, a big hoof (+ feathering) ----------
 	for side: float in [1.0, -1.0]:
-		var x := 0.12 * side * g
+		var x := 0.13 * side * g
 		var fp := LEG_FR if side > 0.0 else LEG_FL
 		var bp := LEG_BR if side > 0.0 else LEG_BL
-		cm.blob(v.call(x * 1.05, 0.84, -0.38), Vector3(0.085, 0.17, 0.11) * s, Basis.IDENTITY, coat, 0.0, 0.05, fp, 6, 8)
-		cm.tube(_p([v.call(x, 0.82, -0.38), v.call(x, 0.62, -0.365), v.call(x * 0.95, 0.42, -0.38)]), _r([0.07 * s, 0.05 * s, 0.038 * s]), 7, coat.darkened(0.1), 0.0, 0.05, fp)
-		_lower_leg(cm, v, x * 0.95, -0.38, 0.42, leg, hoof, fp, s)
-		cm.blob(v.call(x * 1.05, 0.88, 0.37), Vector3(0.09, 0.21, 0.16) * s, Basis.IDENTITY, coat, 0.0, 0.05, bp, 6, 9)
-		cm.tube(_p([v.call(x, 0.78, 0.37), v.call(x, 0.6, 0.43), v.call(x * 0.95, 0.44, 0.48)]), _r([0.075 * s, 0.05 * s, 0.038 * s]), 7, coat.darkened(0.1), 0.0, 0.05, bp)
-		_lower_leg(cm, v, x * 0.95, 0.475, 0.42, leg, hoof, bp, s, 0.42)
-		if feather > 0.0:
-			for z: float in [-0.39, 0.42]:
-				var part := fp if z < 0.0 else bp
-				cm.blob(v.call(x * 0.95, 0.07, z), Vector3(0.045, 0.06 * feather, 0.05) * s, Basis.IDENTITY, mane.lightened(0.1), 0.0, 0.3, part, 4, 7)
-		# eye, ear
-		cm.blob(v.call(0.07 * side, 1.62, -0.98), Vector3(0.024, 0.022, 0.02) * s, Basis.IDENTITY, hoof, 0.0, 0.0, HEAD, 4, 6, 1.0)
-		var ear_b := Basis(Vector3.FORWARD, -side * 0.25) * Basis(Vector3.RIGHT, -0.2)
-		cm.blob(v.call(0.06 * side, 1.78, -0.9), Vector3(0.025, 0.07, 0.016) * s, ear_b, coat, 0.0, 0.04, HEAD, 4, 7)
-	# neck: deep at the chest, arched, crested; the mane along its top
-	cm.tube(_p([v.call(0, 1.05, -0.45), v.call(0, 1.3, -0.62), v.call(0, 1.52, -0.78), v.call(0, 1.66, -0.86)]), _r([0.2 * s * g, 0.15 * s, 0.11 * s, 0.09 * s]), 10, coat, 0.0, 0.04, HEAD)
-	for k in 9:
-		var t := float(k) / 8.0
-		var root: Vector3 = v.call(0.02, lerpf(1.24, 1.72, t), lerpf(-0.5, -0.86, t))
-		cm.tube(_p([root, root + v.call(0.06, -0.16 + 0.05 * t, 0.03)]), _r([0.045 * s, 0.0]), 5, mane, 0.0, 0.3, HEAD, Vector2(1.0, 0.5))
-	# head: long, the face flat, the muzzle soft
-	cm.blob(v.call(0, 1.66, -0.93), Vector3(0.075, 0.09, 0.12) * s, _tilt(-0.9), coat, 0.0, 0.04, HEAD, 7, 10)
-	cm.tube(_p([v.call(0, 1.62, -0.98), v.call(0, 1.48, -1.08), v.call(0, 1.36, -1.14)]), _r([0.07 * s, 0.058 * s, 0.05 * s]), 8, coat, 0.0, 0.03, HEAD, Vector2(1.0, 0.85))
-	cm.blob(v.call(0, 1.33, -1.15), Vector3(0.052, 0.048, 0.055) * s, Basis.IDENTITY, coat.darkened(0.25), 0.0, 0.03, HEAD, 5, 8)
-	# a bridle: brow band and reins down to the saddle
-	cm.tube(_p([v.call(-0.08, 1.6, -0.95), v.call(0, 1.64, -0.99), v.call(0.08, 1.6, -0.95)]), _r([0.008 * s, 0.008 * s, 0.008 * s]), 4, Color(0.14, 0.08, 0.05), 1.0, 0.0, HEAD)
-	for side2: float in [1.0, -1.0]:
-		cm.tube(_p([v.call(0.05 * side2, 1.36, -1.1), v.call(0.12 * side2, 1.3, -0.6), v.call(0.1 * side2, 1.3, -0.25)]), _r([0.007 * s, 0.007 * s, 0.007 * s]), 4, Color(0.14, 0.08, 0.05), 1.0, 0.0, HEAD)
+		var sock_f := String(h.socks) == "all"
+		var sock_b := String(h.socks) in ["all", "hind"]
+		# fore: forearm muscle, forearm, knee, cannon
+		cm.blob(v.call(x, 0.82, -0.37), Vector3(0.1 * g, 0.2, 0.115) * s, Basis.IDENTITY, coat, 0.0, 0.03, fp, 12, 18)
+		cm.tube(_p([v.call(x, 0.86, -0.37), v.call(x, 0.66, -0.365), v.call(x, 0.5, -0.37)]), _r([0.095 * s * g, 0.072 * s * g, 0.052 * s * g]), 14, coat, 0.0, 0.03, fp)
+		_hleg(cm, v, x, -0.37, 0.5, coat.darkened(0.05), sock_f, white, hoof, float(h.feather), mane, fp, s, g)
+		# hind: gaskin, hock with its point, cannon
+		cm.blob(v.call(x, 0.86, 0.42), Vector3(0.12 * g, 0.25, 0.18) * s, Basis.IDENTITY, coat, 0.0, 0.03, bp, 12, 18)
+		cm.tube(_p([v.call(x, 0.78, 0.43), v.call(x, 0.62, 0.48), v.call(x, 0.5, 0.5)]), _r([0.1 * s * g, 0.074 * s * g, 0.054 * s * g]), 14, coat, 0.0, 0.03, bp)
+		cm.blob(v.call(x, 0.52, 0.54), Vector3(0.03, 0.035, 0.035) * s, Basis.IDENTITY, coat, 0.0, 0.02, bp, 6, 10)
+		_hleg(cm, v, x, 0.49, 0.5, coat.darkened(0.05), sock_b, white, hoof, float(h.feather), mane, bp, s, g)
+	# the head a size up (this style reads by its head), scaled about its centre
+	var H0 := Vector3(0, 1.62, -0.98)
+	var vh := func(x: float, y: float, z: float) -> Vector3: return (H0 + (Vector3(x, y, z) - H0) * 1.2) * s
+	# --- head: cranium, a long face, cheeks, a soft muzzle, nostrils, eyes, tall ears -------------
+	cm.blob(vh.call(0, 1.69, -0.94), Vector3(0.085, 0.1, 0.12) * s, Basis.IDENTITY, coat, 0.0, 0.02, HEAD, 12, 18)
+	cm.tube(_p([vh.call(0, 1.68, -0.97), vh.call(0, 1.52, -1.07), vh.call(0, 1.38, -1.15)]), _r([0.072 * s, 0.062 * s, 0.056 * s]), 14, coat, 0.0, 0.02, HEAD, Vector2(1.0, 0.85))
+	for sx2: float in [-1.0, 1.0]:
+		cm.blob(vh.call(sx2 * 0.05, 1.6, -0.94), Vector3(0.045, 0.075, 0.075) * s, Basis.IDENTITY, coat, 0.0, 0.02, HEAD, 8, 12)
+		cm.blob(vh.call(sx2 * 0.03, 1.36, -1.215), Vector3(0.014, 0.018, 0.01) * s, Basis.IDENTITY, Color(0.04, 0.03, 0.03), 0.0, 0.0, HEAD, 5, 8)
+		cm.blob(vh.call(sx2 * 0.067, 1.64, -1.0), Vector3(0.02, 0.019, 0.016) * s, Basis.IDENTITY, hoof, 0.0, 0.0, HEAD, 6, 8, 1.0)
+		var eb := Basis(Vector3.FORWARD, -sx2 * 0.18) * Basis(Vector3.RIGHT, -0.15)
+		cm.blob(vh.call(sx2 * 0.05, 1.83, -0.9), Vector3(0.024, 0.08, 0.032) * s, eb, coat, 0.0, 0.02, HEAD, 8, 10)
+		cm.blob(vh.call(sx2 * 0.05, 1.83, -0.912), Vector3(0.014, 0.062, 0.018) * s, eb, coat.darkened(0.4), 0.0, 0.0, HEAD, 6, 8)
+	cm.blob(vh.call(0, 1.35, -1.17), Vector3(0.064, 0.058, 0.07) * s, Basis.IDENTITY, muzzle, 0.0, 0.02, HEAD, 10, 14)
+	if bool(h.blaze):
+		cm.tube(_p([vh.call(0, 1.73, -1.04), vh.call(0, 1.56, -1.105), vh.call(0, 1.4, -1.205)]), _r([0.02 * s, 0.024 * s, 0.03 * s]), 10, white, 0.0, 0.0, HEAD, Vector2(1.0, 0.25))
+	# --- mane: heavy locks falling to one side from poll to withers; a forelock -----------------
+	for k in 34:
+		var t := float(k) / 33.0
+		var root: Vector3 = v.call(0.0, lerpf(1.84, 1.2, t), lerpf(-0.9, -0.42, t))
+		var ln := rng.randf_range(0.24, 0.36) * (1.0 - 0.25 * t)
+		var wave := rng.randf_range(-0.02, 0.02)
+		var pts := _p([root, root + v.call(0.06, -0.04, 0.02), root + v.call(0.1 + wave, -ln * 0.55, 0.04), root + v.call(0.12 + wave, -ln, 0.07)])
+		cm.tube(pts, _r([0.055 * s, 0.05 * s, 0.03 * s, 0.006 * s]), 8, mane.lightened(rng.randf_range(-0.05, 0.08)), 0.0, 0.06, HEAD, Vector2(1.0, 0.45))
+	for k2 in 6:
+		var a := (float(k2) - 2.5) * 0.02
+		var fr: Vector3 = vh.call(a, 1.8, -0.95)
+		cm.tube(_p([fr, fr + v.call(a * 2.0, 0.0, -0.05) * 1.2, fr + v.call(a * 3.0, -0.12, -0.08) * 1.2]), _r([0.02 * s, 0.016 * s, 0.003 * s]), 6, mane.lightened(rng.randf_range(-0.05, 0.08)), 0.0, 0.05, HEAD, Vector2(1.0, 0.5))
+	# --- tail: a full fall of locks from the dock ---------------------------------------------
+	for k3 in 22:
+		var spread := (float(k3) / 21.0 - 0.5) * 0.16
+		var ln2 := rng.randf_range(0.55, 0.75)
+		var r0: Vector3 = v.call(spread * 0.3, 1.13, 0.58)
+		var pts2 := _p([r0, v.call(spread * 0.6, 1.02, 0.7), v.call(spread, 1.08 - ln2 * 0.55, 0.76), v.call(spread * 1.2, 1.1 - ln2, 0.72)])
+		cm.tube(pts2, _r([0.075 * s, 0.07 * s, 0.05 * s, 0.01 * s]), 8, mane.lightened(rng.randf_range(-0.05, 0.08)), 0.0, 0.06, TAIL, Vector2(1.0, 0.6))
+	# --- tack ------------------------------------------------------------------------------------
+	# the blanket: a cloth laid over the back and hanging down both flanks, its trim showing at the
+	# edge (two sheets on the barrel's section, the trim a little bigger and under)
+	_blanket(cm, v, g, h.trim, 1.035, 0.3, 1.62, BODY)
+	_blanket(cm, v, g, h.blanket, 1.05, 0.27, 1.52, BODY)
+	cm.blob(v.call(0, 1.27, -0.04), Vector3(0.15, 0.045, 0.18) * s, Basis.IDENTITY, leather, 0.0, 0.02, BODY, 8, 16)
+	# an arched pommel in front, a curved cantle behind (arcs over the seat, not knobs)
+	for arc: Array in [[-0.2, 0.08, 0.06, 0.03], [0.14, 0.12, 0.075, 0.032]]:
+		var ap := PackedVector3Array()
+		var ar := PackedFloat32Array()
+		for i in 9:
+			var a6 := PI * float(i) / 8.0
+			ap.append(v.call(cos(a6) * float(arc[1]), 1.27 + sin(a6) * float(arc[2]), float(arc[0])))
+			ar.append(float(arc[3]) * s)
+		cm.tube(ap, ar, 8, leather.darkened(0.12), 0.0, 0.0, BODY, Vector2(1.0, 0.55))
+	for sx3: float in [-1.0, 1.0]:
+		# the blanket hangs down the flank with a trim along its edge; a leather flap over it
+		var fb := Basis(Vector3.FORWARD, sx3 * 0.35)
+		cm.blob(v.call(sx3 * 0.255 * g, 1.13, -0.04), Vector3(0.012, 0.085, 0.09) * s, fb, leather, 0.0, 0.02, BODY, 6, 12)
+		# stirrup leather and an iron (horn-flagged so it shines a little)
+		var sa: Vector3 = v.call(sx3 * 0.26 * g, 1.2, -0.06)
+		var sb: Vector3 = v.call(sx3 * 0.29 * g, 0.74, -0.06)
+		cm.tube(_p([sa, sb]), _r([0.012 * s, 0.012 * s]), 5, dark_leather, 0.0, 0.0, BODY, Vector2(1.0, 0.35))
+		var ring := PackedVector3Array()
+		for i in 9:
+			var a2 := PI * float(i) / 8.0
+			ring.append(sb + v.call(0, -sin(a2) * 0.05, cos(a2) * 0.045))
+		cm.tube(ring, _r([0.008 * s, 0.008 * s, 0.008 * s, 0.008 * s, 0.008 * s, 0.008 * s, 0.008 * s, 0.008 * s, 0.008 * s]), 5, metal, 1.0, 0.0, BODY)
+	# girth round the barrel, and a breastplate across the chest to the saddle
+	var gpts := PackedVector3Array()
+	var grr := PackedFloat32Array()
+	for i in 17:
+		var a3 := PI * float(i) / 16.0
+		gpts.append(v.call(cos(a3) * 0.255 * g, 1.0 - sin(a3) * 0.3 * g, -0.16))
+		grr.append(0.02 * s)
+	cm.tube(gpts, grr, 5, dark_leather, 0.0, 0.0, BODY, Vector2(1.0, 0.3))
+	var bpts := PackedVector3Array()
+	var brr := PackedFloat32Array()
+	for i in 13:
+		var a4 := PI * float(i) / 12.0
+		bpts.append(v.call(cos(a4) * 0.215 * g, 1.08 - sin(a4) * 0.12, -0.5 - sin(a4) * 0.08))
+		brr.append(0.017 * s)
+	cm.tube(bpts, brr, 5, leather, 0.0, 0.0, BODY, Vector2(1.0, 0.35))
+	cm.blob(v.call(0, 0.96, -0.6), Vector3(0.04, 0.04, 0.012) * s, Basis.IDENTITY, metal, 1.0, 0.0, BODY, 6, 10)
+	# bridle: browband, noseband, cheek pieces; reins back to the pommel
+	cm.tube(_p([vh.call(-0.085, 1.74, -0.93), vh.call(0, 1.77, -0.99), vh.call(0.085, 1.74, -0.93)]), _r([0.009 * s, 0.009 * s, 0.009 * s]), 5, dark_leather, 0.0, 0.0, HEAD)
+	var nb := PackedVector3Array()
+	for i in 13:
+		var a5 := TAU * float(i) / 12.0
+		nb.append(vh.call(sin(a5) * 0.07, 1.43, -1.13 - cos(a5) * 0.07))
+	cm.tube(nb, _r([0.009 * s, 0.009 * s, 0.009 * s, 0.009 * s, 0.009 * s, 0.009 * s, 0.009 * s, 0.009 * s, 0.009 * s, 0.009 * s, 0.009 * s, 0.009 * s, 0.009 * s]), 5, dark_leather, 0.0, 0.0, HEAD)
+	for sx4: float in [-1.0, 1.0]:
+		cm.tube(_p([vh.call(sx4 * 0.085, 1.74, -0.93), vh.call(sx4 * 0.075, 1.58, -1.02), vh.call(sx4 * 0.07, 1.43, -1.13)]), _r([0.009 * s, 0.009 * s, 0.009 * s]), 5, dark_leather, 0.0, 0.0, HEAD)
+		cm.blob(vh.call(sx4 * 0.075, 1.38, -1.16), Vector3(0.015, 0.015, 0.006) * s, Basis.IDENTITY, metal, 1.0, 0.0, HEAD, 5, 8)
+		cm.tube(_p([vh.call(sx4 * 0.075, 1.38, -1.16), v.call(sx4 * 0.14, 1.3, -0.8), v.call(sx4 * 0.11, 1.32, -0.24)]), _r([0.008 * s, 0.008 * s, 0.008 * s]), 5, dark_leather, 0.0, 0.0, BODY)
+
+
+## A horse's lower leg from the knee or hock at (x, top, z): joint, cannon, fetlock, pastern, a big
+## hoof (horn-flagged), white socks, feathering spilling over the hoof.
+static func _hleg(cm, v: Callable, x: float, z: float, top: float, coat: Color, sock: bool, white: Color, hoof: Color, feather: float, mane: Color, part: float, s: float, g: float) -> void:
+	var lc := white if sock else coat
+	cm.blob(v.call(x, top - 0.02, z), Vector3(0.05 * g, 0.055, 0.055) * s, Basis.IDENTITY, coat, 0.0, 0.02, part, 8, 12)
+	cm.tube(_p([v.call(x, top - 0.04, z), v.call(x, 0.3, z + 0.01), v.call(x, 0.17, z + 0.015)]), _r([0.04 * s * g, 0.036 * s * g, 0.036 * s * g]), 10, coat if not sock else coat.lerp(white, 0.4), 0.0, 0.02, part)
+	cm.blob(v.call(x, 0.15, z + 0.02), Vector3(0.05 * g, 0.05, 0.052) * s, Basis.IDENTITY, lc, 0.0, 0.02, part, 8, 12)
+	cm.tube(_p([v.call(x, 0.13, z + 0.01), v.call(x, 0.09, z - 0.015)]), _r([0.037 * s * g, 0.038 * s * g]), 10, lc, 0.0, 0.02, part)
+	# the hoof: wide, a slanted wall, a dark coronet band
+	cm.tube(_p([v.call(x, 0.075, z - 0.02), v.call(x, 0.0, z - 0.035)]), _r([0.05 * s * g, 0.066 * s * g]), 14, hoof, 1.0, 0.0, part)
+	cm.tube(_p([v.call(x, 0.085, z - 0.018), v.call(x, 0.068, z - 0.022)]), _r([0.047 * s * g, 0.054 * s * g]), 14, hoof.lightened(0.15), 1.0, 0.0, part)
+	if feather > 0.0:
+		var fc := white if sock else mane.lightened(0.1)
+		for k in 10:
+			var a := TAU * float(k) / 10.0
+			var r0: Vector3 = v.call(x + cos(a) * 0.035 * g, 0.16, z + sin(a) * 0.035 * g)
+			cm.tube(_p([r0, r0 + v.call(cos(a) * 0.03, -0.07, sin(a) * 0.03), r0 + v.call(cos(a) * 0.045, -0.13 * feather, sin(a) * 0.045)]),
+				_r([0.018 * s, 0.014 * s, 0.003 * s]), 6, fc, 0.0, 0.06, part, Vector2(1.0, 0.5))
+
+
+## A lofted trunk along -z..+z: `keys` [z, half-width, half-height, centre y] (deer units), smooth
+## cross-sections (flat-topped, round-bellied), one continuous surface with capped ends.
+static func _loft(cm, v: Callable, keys: Array, g: float, col: Color, part: float, croup := false) -> void:
+	var rows := 40
+	var segs := 36
+	var z0: float = keys[0][0]
+	var z1: float = keys[keys.size() - 1][0]
+	var grid: Array = []
+	for r in rows + 1:
+		var z := lerpf(z0, z1, float(r) / float(rows))
+		var k := 0
+		while k < keys.size() - 2 and float(keys[k + 1][0]) < z:
+			k += 1
+		var a: Array = keys[k]
+		var b: Array = keys[k + 1]
+		var t := smoothstep(0.0, 1.0, clampf((z - float(a[0])) / maxf(float(b[0]) - float(a[0]), 1e-4), 0.0, 1.0))
+		var hw := lerpf(float(a[1]), float(b[1]), t) * g
+		var hh := lerpf(float(a[2]), float(b[2]), t)
+		var cy := lerpf(float(a[3]), float(b[3]), t)
+		var ring: Array = []
+		for c in segs + 1:
+			var th := TAU * float(c) / float(segs)
+			var sx := sin(th)
+			var cyy := cos(th)                       # +1 top, -1 belly
+			var w := hw * (1.0 - 0.08 * maxf(cyy, 0.0))        # a flatter back
+			var y := cy + hh * cyy * (1.0 + 0.06 * minf(cyy, 0.0))
+			if croup and z > 0.36 and z < 0.62 and cyy > 0.6:
+				y -= 0.02 * exp(-pow(sx / 0.18, 2.0)) * smoothstep(0.36, 0.44, z) * (1.0 - smoothstep(0.56, 0.62, z))   # the croup's two lobes
+			ring.append(v.call(w * sx, y, z))
+		grid.append(ring)
+	var idx: Array = []
+	for r in rows + 1:
+		var irow: Array = []
+		for c in segs + 1:
+			var p: Vector3 = grid[r][c]
+			var pr: Vector3 = grid[mini(r + 1, rows)][c] - grid[maxi(r - 1, 0)][c]
+			var pc: Vector3 = grid[r][(c + 1) % segs] - grid[r][(c - 1 + segs) % segs]
+			var n := pc.cross(pr).normalized()
+			var centre := Vector3(0, p.y, p.z)
+			if n.dot(p - Vector3(0, (grid[r][0] as Vector3).y * 0.5 + (grid[r][segs / 2] as Vector3).y * 0.5, p.z)) < 0.0:
+				n = -n
+			irow.append(cm._vert(p, n, Vector2(float(c) / float(segs) * 2.0, float(r) / float(rows) * 1.6), col, 0.0, part, 0.0))
+		idx.append(irow)
+	for r in rows:
+		for c in segs:
+			cm._tri(idx[r][c], idx[r + 1][c], idx[r][c + 1])
+			cm._tri(idx[r][c + 1], idx[r + 1][c], idx[r + 1][c + 1])
+
+
+## The neck: a lofted column along `pts` with elliptical sections `w` x `h` (deer units), the long
+## axis vertical (deep at the base, narrowing to the throat), and a crest along its top.
+static func _neck(cm, pts: Array, w: Array, h: Array, s: float, col: Color, part: float) -> void:
+	var segs := 28
+	var rows := (pts.size() - 1) * 6
+	var idx: Array = []
+	var P: Array = []
+	for r in rows + 1:
+		var f := float(r) / float(rows) * float(pts.size() - 1)
+		var i := mini(int(f), pts.size() - 2)
+		var t := f - float(i)
+		var c: Vector3 = (pts[i] as Vector3).lerp(pts[i + 1], t)
+		var tan: Vector3 = ((pts[i + 1] as Vector3) - (pts[i] as Vector3)).normalized()
+		var side := Vector3.RIGHT
+		var up := side.cross(tan).normalized() * -1.0
+		if up.y < 0.0:
+			up = -up
+		var hw := lerpf(float(w[i]), float(w[i + 1]), t) * s
+		var hh := lerpf(float(h[i]), float(h[i + 1]), t) * s
+		var ring: Array = []
+		for k in segs + 1:
+			var th := TAU * float(k) / float(segs)
+			var crest := 1.0 + 0.12 * maxf(cos(th), 0.0) * sin(PI * clampf(f / float(pts.size() - 1), 0.0, 1.0))
+			ring.append(c + side * sin(th) * hw + up * cos(th) * hh * crest)
+		P.append(ring)
+	for r in rows + 1:
+		var irow: Array = []
+		for k in segs + 1:
+			var p: Vector3 = P[r][k]
+			var pr: Vector3 = P[mini(r + 1, rows)][k] - P[maxi(r - 1, 0)][k]
+			var pk: Vector3 = P[r][(k + 1) % segs] - P[r][(k - 1 + segs) % segs]
+			var n := pk.cross(pr).normalized()
+			var mid: Vector3 = ((P[r][0] as Vector3) + (P[r][segs / 2] as Vector3)) * 0.5
+			if n.dot(p - mid) < 0.0:
+				n = -n
+			irow.append(cm._vert(p, n, Vector2(float(k) / float(segs) * 1.5, float(r) / float(rows)), col, 0.0, part, 0.0))
+		idx.append(irow)
+	for r in rows:
+		for k in segs:
+			cm._tri(idx[r][k], idx[r + 1][k], idx[r][k + 1])
+			cm._tri(idx[r][k + 1], idx[r + 1][k], idx[r + 1][k + 1])
+
+
+
+## A cloth laid over the back: a sheet on the barrel's section (half-width 0.25 g, half-height 0.285,
+## centre y 0.98, deer units), from `th_max` radians down one flank over the top to the other, `zlen`
+## long (centred at z -0.04), lifted `lift` times off the body.
+static func _blanket(cm, v: Callable, g: float, col: Color, lift: float, zlen: float, th_max: float, part: float) -> void:
+	var cols := 14
+	var rows := 22
+	var idx: Array = []
+	for r in rows + 1:
+		var th := lerpf(-th_max, th_max, float(r) / float(rows))
+		var irow: Array = []
+		for c in cols + 1:
+			var z := -0.04 + lerpf(-zlen, zlen, float(c) / float(cols))
+			var hang := smoothstep(0.9, th_max, absf(th))          # the hem falls a little straighter
+			var x := sin(th) * 0.25 * g * lift
+			var y := 0.98 + cos(th) * 0.285 * lift - hang * 0.02
+			var p: Vector3 = v.call(x, y, z)
+			var n := Vector3(sin(th), cos(th), 0.0).normalized()
+			irow.append(cm._vert(p, n, Vector2(float(c) / float(cols), float(r) / float(rows)), col, 0.0, part, 0.0))
+		idx.append(irow)
+	for r in rows:
+		for c in cols:
+			cm._tri(idx[r][c], idx[r + 1][c], idx[r][c + 1])
+			cm._tri(idx[r][c + 1], idx[r + 1][c], idx[r + 1][c + 1])
