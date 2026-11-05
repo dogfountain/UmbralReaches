@@ -53,6 +53,7 @@ var _stick_slider: HSlider
 var _stick_label: Label
 var _hint_line: Label
 var _erase_btn: Button
+var on_title := false                ## opened from the title screen: no erase (no run to end), no way back to the title
 var _tscale_slider: HSlider
 var _tscale_label: Label
 
@@ -444,13 +445,32 @@ func _footer() -> HBoxContainer:
 	erase.pressed.connect(func() -> void:           # two-step so a stray click cannot wipe a run
 		if erase.text.begins_with("Confirm"):
 			Travel.erase_save()
-			erase.text = "Erased: the next launch starts anew"
+			erase.text = "Erased"
 			erase.disabled = true
+			# r35 B10: the session used to go on, silently never saving again. The run is over: back to the title.
+			Events.toast.emit("Progress erased. Returning to the title.")
+			get_tree().create_timer(0.8, true).timeout.connect(Travel.to_title)
 		else:
 			erase.text = "Confirm: erase everything?"
 			# the confirm lapses by itself: a stray press later cannot finish what this one began
 			get_tree().create_timer(4.0, true).timeout.connect(_erase_lapse))   # a method: no lambda capture to outlive the button
 	f.add_child(erase)
+	erase.visible = not on_title
+	var quit_btn := Button.new()
+	quit_btn.text = "Quit Game"
+	quit_btn.tooltip_text = "Saves and closes the game."
+	_style_small(quit_btn, 16)
+	quit_btn.pressed.connect(func() -> void:
+		if quit_btn.text.begins_with("Really"):
+			Settings.flush()
+			Travel.save_now()
+			get_tree().quit()
+		else:
+			quit_btn.text = "Really quit?"
+			get_tree().create_timer(3.0, true).timeout.connect(func() -> void:
+				if is_instance_valid(quit_btn):
+					quit_btn.text = "Quit Game"))
+	f.add_child(quit_btn)
 	var close_btn := Button.new()
 	close_btn.text = "Close  (Esc)"
 	_style_small(close_btn, 16)
