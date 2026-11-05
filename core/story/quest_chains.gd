@@ -968,6 +968,29 @@ const COUNTED := ["gather", "slay", "collect", "seal"]
 
 
 ## A step's objective text for the save's state `d` ({s, p, f, n, of}).
+## The 30-minute slice (core/util/slice.gd): the daily bounties and the raids' attunement chains
+## are hidden (never offered) unless Slice.full(). Nothing is deleted.
+static func hidden(id: String) -> bool:
+	if Slice.full():
+		return false
+	var qd: Dictionary = QUESTS.get(id, {})
+	return String(qd.get("repeat", "")) == "daily" or qd.has("raid")
+
+
+## A task's `avail` condition as the slice sees it: a hidden task cannot gate another (the bell
+## quests ask for the attunement chains' last tasks; in the slice they ask for the main story only).
+static func avail_cond(id: String) -> String:
+	var cond := String((QUESTS.get(id, {}) as Dictionary).get("avail", ""))
+	if Slice.full() or cond == "":
+		return cond
+	var keep: PackedStringArray = []
+	for part: String in cond.split(","):
+		if part.begins_with("qd:") and hidden(part.trim_prefix("qd:")):
+			continue
+		keep.append(part)
+	return ",".join(keep)
+
+
 static func step_text(id: String, s: int, d: Dictionary) -> String:
 	var qd: Dictionary = QUESTS.get(id, {})
 	var steps: Array = qd.get("steps", [])

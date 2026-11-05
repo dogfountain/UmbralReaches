@@ -13,6 +13,10 @@ var started := false
 var keep_gloom := false
 
 
+func _init() -> void:
+	Engine.set_meta(&"full_night", true)   # the 30-minute slice hides horses, watch, roaming events, dailies, attunements
+
+
 func _ready() -> void:
 	Travel._busy = true
 	Travel.bosses_slain.clear()

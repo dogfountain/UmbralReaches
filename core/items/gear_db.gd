@@ -152,6 +152,8 @@ static func roll_trait(rng: RandomNumberGenerator, slot: String, rarity: int) ->
 		return ""
 	var pool: Array = []
 	for t: String in TRAITS:
+		if t == "kill_spark" and not Slice.full():     # 1 s off recovery, one kill in four: invisible, cut from the slice
+			continue
 		if (TRAITS[t].slots as Array).has(slot):
 			pool.append(t)
 	return String(pool[rng.randi_range(0, pool.size() - 1)]) if not pool.is_empty() else ""

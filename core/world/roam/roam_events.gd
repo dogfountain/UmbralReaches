@@ -42,6 +42,9 @@ const PILGRIMS := [
 
 
 func _ready() -> void:
+	if not Slice.full():                     # the 30-minute slice hides roaming events (--full restores them)
+		set_physics_process(false)
+		return
 	add_to_group(&"roam_events")
 	_rng.randomize()
 	var Rig: GDScript = load("res://core/life/village/villager_rig.gd")

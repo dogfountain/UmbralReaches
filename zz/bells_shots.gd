@@ -14,6 +14,10 @@ var _ran := false
 var t := 0.0
 
 
+func _init() -> void:
+	Engine.set_meta(&"full_night", true)   # the 30-minute slice hides horses, watch, roaming events, dailies, attunements
+
+
 func _ready() -> void:
 	Travel._busy = true
 	for a in OS.get_cmdline_user_args():

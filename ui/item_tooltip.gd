@@ -43,6 +43,9 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 	var lines := PackedStringArray()
 	lines.append("[font_size=%d][b]%s[/b][/font_size]" % [int(opts.get("title_size", 24)), _c(LootDB.quality_color(q), _esc(String(p.get("name", "?"))))])
 	lines.append(_c(QUIET, "%s  ·  Item Level %d" % [LootDB.quality_name(q), GearDB.item_level(p)]))
+	# r36 slice: the trait is the line that changes how you play, so it comes first and reads biggest
+	if GearDB.trait_line(p) != "":
+		lines.append("[font_size=18][b]%s[/b][/font_size]" % _c(Color("#F2CE8A"), GearDB.trait_line(p)))
 	var worn := not cur.is_empty() and int(cur.get("uid", -1)) == int(p.get("uid", -2))
 	var slot := String(p.get("slot", ""))
 	lines.append(_c(INK, String(GearDB.SLOT_NAMES.get(slot, slot))) + ("    " + _c(GOLD, "Worn") if worn else ""))
@@ -53,13 +56,12 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 	var lg := String(p.get("legend", ""))
 	if GearDB.LEGENDS.has(lg):
 		lines.append(_c(LootDB.quality_color(4), String(GearDB.LEGENDS[lg].text)))
-	if GearDB.trait_line(p) != "":
-		lines.append(_c(Color("#E8C27A"), GearDB.trait_line(p)))
 	var s := String(p.get("set", ""))
 	if GearDB.SETS.has(s):
 		lines.append_array(set_block(s, st))
 	var lv := int(p.get("level", 0))
-	lines.append(_c(QUIET, "Raised %d of %d" % [lv, GearDB.max_level(p)]))
+	if Slice.full() or lv > 0:
+		lines.append(_c(QUIET, "Raised %d of %d" % [lv, GearDB.max_level(p)]))
 	var fl := GearDB.flavour(p)
 	if fl != "":
 		lines.append("[i]%s[/i]" % _c(GOLD, "\"%s\"" % _esc(fl)))
