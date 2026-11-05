@@ -21,8 +21,15 @@ uniform float push_strength = 0.85;
 uniform float backlight = 0.45;
 uniform float rim_strength = 0.15;
 uniform vec3 rim_color = vec3(0.45, 0.75, 1.0);
+// Alpha grows with the mip level so distant cards keep their body instead of thinning to a
+// shimmering lace at the 960-row internal height (as core/world/realm/flora/realm_foliage.gdshader).
+uniform float mip_boost = 0.3;
+// Gust crests catch the moon: where the travelling wave bends a card over it turns its paler face up,
+// so wind crosses the field as a soft moving band of light (reads at night). 0 = off.
+uniform float wind_sheen = 0.16;
 
 varying vec3 wpos;
+varying float vwind;
 
 void vertex() {
 	// world_vertex_coords: VERTEX is already in world space, so the sway is added directly and
@@ -43,6 +50,7 @@ void vertex() {
 	float gust = sin(TIME * wind_speed + phase) * 0.7 + sin(TIME * wind_speed * 2.3 + phase * 1.7) * 0.3;
 	float blend = mix(gust, wave, wave_amount);
 	vec3 offset = vec3(wind_dir.x, 0.0, wind_dir.y) * blend * wind_strength * sway;
+	vwind = smoothstep(0.15, 0.95, blend) * sway * clamp(wind_strength * 6.0, 0.0, 1.4);
 
 	// Push grass aside around push_pos (the player's feet), falling off to nothing at push_radius.
 	vec2 to_blade = wpos.xz - push_pos.xz;
@@ -57,13 +65,18 @@ void vertex() {
 
 void fragment() {
 	vec4 t = texture(albedo_tex, UV);
-	ALPHA = t.a;
+	vec2 sz = vec2(textureSize(albedo_tex, 0));
+	vec2 dx = dFdx(UV * sz);
+	vec2 dy = dFdy(UV * sz);
+	float lod = max(0.0, 0.5 * log2(max(dot(dx, dx), dot(dy, dy))));
+	ALPHA = clamp(t.a * (1.0 + lod * mip_boost), 0.0, 1.0);
 	ALPHA_SCISSOR_THRESHOLD = alpha_cut;   // scissor keeps the depth prepass, unlike discard
 	float vein = 0.88 + 0.12 * sin(UV.y * 28.0 + wpos.x * 3.0);
 	vec3 leaf = t.rgb * tint * COLOR.rgb * vein;
 	float mottling = 0.92 + 0.08 * sin(wpos.x * 11.0 + wpos.z * 9.0);
-	ALBEDO = leaf * mottling;
+	ALBEDO = leaf * mottling * (1.0 + wind_sheen * vwind);
 	ROUGHNESS = 0.86;
-	BACKLIGHT = vec3(backlight) * ALBEDO * (1.15 - UV.y * 0.35);
+	// thin tips pass more light than the held root, and it comes through a touch yellower
+	BACKLIGHT = vec3(backlight) * ALBEDO * (1.3 - UV.y * 0.7) * vec3(1.0, 1.08, 0.8);
 	EMISSION = rim_color * rim_strength * pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 2.0) * ALBEDO * 4.0;
 }
