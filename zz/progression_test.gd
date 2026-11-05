@@ -304,7 +304,7 @@ func _run() -> void:
 		var groups := []
 		for s in sat.get("_slots"):
 			groups.append(String(ItemDB.def(String(s.id)).kind))
-		ok(groups.has("charm"), "the satchel shows charms (%s)" % ",".join(groups))
+		ok(not groups.has("charm") and not groups.has("relic"), "r35: the Pack holds no charms or relics; they are on Wanderer (%s)" % ",".join(groups))
 		sat.call("close_menu")
 	else:
 		ok(false, "satchel present")

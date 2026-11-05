@@ -460,12 +460,12 @@ func _card_text() -> String:
 		return "Left stick  move   ·   L3  sprint   ·   A  jump, again in the air\n" \
 			+ "B  slide, or roll when slow   ·   R3  lock on   ·   X  use\n" \
 			+ "Skills: the triggers, bumpers and Y (the bar below)\n" \
-			+ "D-pad  satchel · journal · tasks · kindling   ·   Menu  settings"
+			+ "D-pad up  character   ·   D-pad  journal · tasks · kindling   ·   Menu  settings"
 	return "WASD  move   ·   %s  sprint   ·   %s  jump, again in the air\n" % [_key("sprint", "Shift"), _key("jump", "Space")] \
 		+ "%s  slide   ·   %s  roll   ·   %s  lock on   ·   %s  next target   ·   %s  use\n" % [_key("slide", "Ctrl"), _key("dodge", "V"), _key("lock_on", "MMB"), _key("target_next", "T"), _key("interact", "E")] \
 		+ "Skills: the mouse buttons and the keys on the bar below\n" \
-		+ "%s  satchel  ·  %s  journal  ·  %s  tasks  ·  %s  kindling  ·  Esc  settings" % [
-			_key("inventory", "Tab"), _key("codex", "J"), _key("quest_log", "L"), _key("kindling", "K")]
+		+ "%s  character  ·  %s  journal  ·  %s  tasks  ·  %s  kindling  ·  %s  gear  ·  Esc  settings" % [
+			_key("inventory", "Tab"), _key("codex", "J"), _key("quest_log", "L"), _key("kindling", "K"), _key("gear", "O")]
 
 
 ## The first key or mouse button bound to `action` (rebinding-proof), else `fallback`.

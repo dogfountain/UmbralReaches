@@ -37,11 +37,11 @@ const CONV := {
 			"three_1": {"say": "Three. Something in the Ring on the western hill that keeps the oaks; the Rooted call it the Thornwarden. The Abbot under the abbey, still counting his dead.", "next": "three_2"},
 			"three_2": {"say": "And whatever stands at the top of the Stair with the door open. The ward on the Crossing won't let you near it till the other two are down: a heart out of the Ring, a crown out of the crypt.", "next": "meet_hub"},
 			"start_1": {"say": "The braziers. Four of them: the Stair's foot, the shrine in the glade, the Barrow Field, the fen under the Ossuary. Light them and you've somewhere to stand when the dark leans on you.", "next": "start_2"},
-			"start_2": {"say": "Then pick a door. The thorn seal on the Thornwood edge, west. Or the gallery seal down in the crypt, through the fen door. Both, before you're done.", "do": "flag:met_keep", "choices": [
+			"start_2": {"say": "Then pick a door. The thorn seal on the Thornwood edge, west. Or the gallery seal down in the crypt, through the fen door. Both, before you're done.", "do": "flag:met_keep,teach:ward", "choices": [
 				{"text": "Another question.", "to": "meet_hub"},
 				{"text": "I'll go.", "to": "meet_end"},
 			]},
-			"meet_end": {"say": "Fire stays. Hollows do not. Come back with news; we pay in ale.", "do": "flag:met_keep", "next": ""},
+			"meet_end": {"say": "Fire stays. Hollows do not. Come back with news; we pay in ale.", "do": "flag:met_keep,teach:ward", "next": ""},
 			# --- the hub, every visit after ---------------------------------------------------
 			"hub": {"say_if": [
 				["flag:ending_told", "The kindled one. Your stool, your mug. The fire draws by itself now; I've nothing to do but pour."],

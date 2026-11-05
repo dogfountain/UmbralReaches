@@ -53,6 +53,10 @@ const RELIC_FROM := {"thorn_heart": "the Thornwarden, in the Ring of Thorns", "b
 var _title_font: Font
 var _body_font: Font
 var _root: Control
+var hosted := false                 ## r35: a page of the character screen (it owns keys and pause)
+var _tab_bar: Control
+var _title_lbl: Label
+var _sub_lbl: Label
 var _tab := 0
 var _tab_btns: Array[Button] = []
 var _page_box: VBoxContainer
@@ -327,9 +331,11 @@ func _build() -> void:
 	tbox.add_theme_constant_override("separation", 0)
 	tbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(tbox)
-	tbox.add_child(_label("KINDLING", 34, INK))
+	_title_lbl = _label("KINDLING", 34, INK)
+	tbox.add_child(_title_lbl)
 	var sub := _label("Ash to ember, ember to flame.", 17, QUIET, _body_font)
 	tbox.add_child(sub)
+	_sub_lbl = sub
 	var abox := VBoxContainer.new()
 	abox.alignment = BoxContainer.ALIGNMENT_END
 	abox.add_theme_constant_override("separation", 0)
@@ -355,6 +361,7 @@ func _build() -> void:
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 6)
 	col.add_child(bar)
+	_tab_bar = bar
 	for i in TABS.size():
 		var b := Button.new()
 		b.text = String(TABS[i][1]).to_upper()
@@ -518,6 +525,10 @@ func _k() -> Node:
 func open_menu(_from_fire := false, tab := "") -> void:
 	if _root.visible:
 		return
+	if not hosted and _cs() != null:
+		var wanderer := tab in ["charms", "relics", "staff"]
+		_cs().call("open_at", "wanderer" if wanderer else "kindling", tab if tab != "" else ("" if not _from_fire else "embers"), _from_fire)
+		return
 	var k := _k()
 	_fire = k.call("at_fire") if k else null
 	for i in TABS.size():
@@ -568,7 +579,14 @@ func _process(delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("kindling") and not event.is_echo():
+	if _cs() != null:
+		if not _root.visible:
+			return                              # the character screen opens it
+		if event.is_action_pressed("kindling") or event.is_action_pressed("toggle_settings") or event.is_action_pressed("inventory") \
+				or event.is_action_pressed("skill_nova") or event.is_action_pressed("interact") \
+				or (event is InputEventJoypadButton and ((event as InputEventJoypadButton).button_index == JOY_BUTTON_LEFT_SHOULDER or (event as InputEventJoypadButton).button_index == JOY_BUTTON_RIGHT_SHOULDER)):
+			return                              # its keys and its pages (Q / E, LB / RB) are the screen's
+	elif event.is_action_pressed("kindling") and not event.is_echo():
 		if _root.visible:
 			close_menu()
 		elif not get_tree().paused:
@@ -612,8 +630,27 @@ func _input(event: InputEvent) -> void:
 
 # --- pages --------------------------------------------------------------------------------------
 
+## r35: the character screen asks for a page by id.
+func show_tab_id(id: String) -> void:
+	for i in TABS.size():
+		if TABS[i][0] == id:
+			show_tab(i)
+			return
+
+
+## r35: hosted on the character screen, its own tab strip goes (the screen's pages replace it).
+func set_hosted(on: bool) -> void:
+	if _tab_bar:
+		_tab_bar.visible = not on
+
+
 func show_tab(i: int) -> void:
 	_tab = i
+	# r35: hosted, its Charms / Relics / Staff pages are the character screen's Wanderer tab
+	var wanderer := hosted and String(TABS[i][0]) in ["charms", "relics", "staff"]
+	if _title_lbl:
+		_title_lbl.text = "WANDERER" if wanderer else "KINDLING"
+		_sub_lbl.text = "What you carry into the dark." if wanderer else "Ash to ember, ember to flame."
 	_confirm = ""
 	for j in _tab_btns.size():
 		_tab_btns[j].button_pressed = j == i
@@ -740,6 +777,8 @@ func _page_spells() -> void:
 			head.line = "Not yet learned"
 			head.cost = int((sp.learn as Dictionary).cost)
 			head.look = _look_for(lw, false)
+		elif not known:
+			head.line = "Not yet taught"              # r35: the story teaches it (kindling.gd teach)
 		else:
 			head.line = "Rank %s" % (ROMAN[r] if r > 0 else "-")
 		row.add_child(head)
@@ -754,7 +793,7 @@ func _page_spells() -> void:
 			c.cost = int(DB.SPELL_COST[i])
 			if r > i:
 				c.look = "owned"
-			elif r == i and (known or not learnable):
+			elif r == i and known:
 				c.look = _look_for(String(k.call("why_not", id, true)) if k else "", false)
 			else:
 				c.look = "locked"
@@ -809,6 +848,15 @@ func _page_loadout() -> void:
 		var c := _card("slot", String(lo[i]), 188, 110)
 		c.small = true
 		c.sub = i + 1
+		if sp.is_empty():
+			# r35: a slot the story has not filled yet
+			c.glyph = ""
+			c.tint = Color(0.32, 0.3, 0.38)
+			c.title = "Empty"
+			c.line = "[%s]  not yet taught" % DB.SLOT_KEYS[i + 1]
+			c.look = "lost"
+			row.add_child(c)
+			continue
 		c.glyph = String(sp.glyph)
 		c.tint = sp.color
 		c.title = String(sp.name)
@@ -832,7 +880,7 @@ func _page_loadout() -> void:
 		c.tint = sp.color
 		c.title = String(sp.name)
 		var at := lo.find(id)
-		c.line = ("On [%s]" % DB.SLOT_KEYS[at + 1]) if at >= 0 else ("Rank %s" % ROMAN[DB.rank(st, id)] if DB.rank(st, id) > 0 else ("Known" if known else "Learn it under Spells"))
+		c.line = ("On [%s]" % DB.SLOT_KEYS[at + 1]) if at >= 0 else ("Rank %s" % ROMAN[DB.rank(st, id)] if DB.rank(st, id) > 0 else ("Known" if known else ("Not yet taught" if DB.TAUGHT_LATER.has(id) else "Learn it under Spells")))
 		c.look = "owned" if at >= 0 else ("open" if known else "lost")
 		grid.add_child(c)
 	_heading("Combos", "spells that feed each other")
@@ -1245,22 +1293,32 @@ func _show() -> void:
 		"slot":
 			var sp := DB.spell(c.id)
 			_slot_pick = c.sub
-			_d_name.text = "[%s]  %s" % [DB.SLOT_KEYS[c.sub], sp.name]
-			_d_kind.text = "HOTBAR SLOT %d" % (c.sub + 1)
-			_d_text.text = String(sp.get("text", _stock_text(c.id)))
-			_d_now.text = "Now: %s" % _stats(c.id, DB.rank(st, c.id))
-			_d_lore.text = "Choose a spell below to put it here, or press again to cycle what is known."
-			why = "" if at_fire() else "Only at a kindled fire."
-			verb = "NEXT SPELL"
+			if sp.is_empty():
+				# r35: a slot the story has not filled yet
+				_d_name.text = "[%s]  Empty" % DB.SLOT_KEYS[c.sub]
+				_d_kind.text = "HOTBAR SLOT %d" % (c.sub + 1)
+				_d_text.text = "Nothing is taught for this slot yet. The Keep, your first kill, your first seal and your first great one each teach a spell."
+				_d_now.text = ""
+				_d_lore.text = ""
+				why = "" if at_fire() else "Only at a kindled fire."
+				verb = "NEXT SPELL"
+			else:
+				_d_name.text = "[%s]  %s" % [DB.SLOT_KEYS[c.sub], sp.name]
+				_d_kind.text = "HOTBAR SLOT %d" % (c.sub + 1)
+				_d_text.text = String(sp.get("text", _stock_text(c.id)))
+				_d_now.text = "Now: %s" % _stats(c.id, DB.rank(st, c.id))
+				_d_lore.text = "Choose a spell below to put it here, or press again to cycle what is known."
+				why = "" if at_fire() else "Only at a kindled fire."
+				verb = "NEXT SPELL"
 		"pick":
 			var sp := DB.spell(c.id)
 			var lo := DB.loadout(st)
 			_d_name.text = String(sp.name)
-			_d_kind.text = "SPELL  ·  %s" % (("ON [%s]" % DB.SLOT_KEYS[lo.find(c.id) + 1]) if lo.has(c.id) else ("KNOWN" if DB.knows(st, c.id) else "NOT YET LEARNED"))
+			_d_kind.text = "SPELL  ·  %s" % (("ON [%s]" % DB.SLOT_KEYS[lo.find(c.id) + 1]) if lo.has(c.id) else ("KNOWN" if DB.knows(st, c.id) else ("NOT YET TAUGHT" if DB.TAUGHT_LATER.has(c.id) else "NOT YET LEARNED")))
 			_d_text.text = String(sp.get("text", _stock_text(c.id)))
 			_d_now.text = "Now: %s" % _stats(c.id, DB.rank(st, c.id))
 			if not DB.knows(st, c.id):
-				why = "Learn it first (Spells)."
+				why = "Not yet taught." if DB.TAUGHT_LATER.has(c.id) else "Learn it first (Spells)."
 			elif lo.find(c.id) == _slot_pick - 1:
 				why = "Already on [%s]." % DB.SLOT_KEYS[_slot_pick]
 			else:
@@ -1620,3 +1678,8 @@ func _burst(c: Card) -> void:
 	if _chime:
 		_chime.pitch_scale = randf_range(0.85, 1.05)
 		_chime.play()
+
+
+## r35: the one character screen (ui/character_screen.gd), when the night has one.
+func _cs() -> Node:
+	return get_tree().get_first_node_in_group(&"character_screen") if is_inside_tree() else null

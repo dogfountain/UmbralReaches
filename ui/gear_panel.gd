@@ -26,6 +26,7 @@ const WARN := Color(0.95, 0.55, 0.42)
 const PANEL_BG := Color(0.035, 0.02, 0.055, 0.97)
 
 var _root: Control
+var hosted := false                 ## r35: a page of the character screen (it owns keys and pause)
 var _title_font: Font
 var _body_font: Font
 var _was_captured := false
@@ -253,6 +254,9 @@ func is_open() -> bool:
 func open_menu() -> void:
 	if _root.visible:
 		return
+	if not hosted and _cs() != null:
+		_cs().call("open_at", "wanderer", "gear")
+		return
 	var k := get_tree().get_first_node_in_group("progression")
 	_fire = k.call("at_fire") if k and k.has_method("at_fire") else null
 	_root.visible = true
@@ -286,7 +290,11 @@ func _process(_delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("gear") and not event.is_echo():
+	if _cs() != null:
+		if not _root.visible or event.is_action_pressed("gear") or event.is_action_pressed("toggle_settings") \
+				or event.is_action_pressed("inventory") or event.is_action_pressed("kindling"):
+			return                              # the character screen owns these
+	elif event.is_action_pressed("gear") and not event.is_echo():
 		if _root.visible:
 			close_menu()
 		elif not get_tree().paused:
@@ -539,3 +547,8 @@ func _salvage() -> void:
 	_sel_uid = -1
 	UiSound.play(self, "confirm")
 	_rebuild()
+
+
+## r35: the one character screen (ui/character_screen.gd), when the night has one.
+func _cs() -> Node:
+	return get_tree().get_first_node_in_group(&"character_screen") if is_inside_tree() else null

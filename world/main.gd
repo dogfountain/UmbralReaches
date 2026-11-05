@@ -58,6 +58,10 @@ func _ready() -> void:
 	var satchel := Satchel.new()
 	satchel.name = "Satchel"
 	add_child(satchel)
+	# r35: the one character screen (Wanderer, Kindling, Pack, Journal) over the old panels
+	var cscreen: CanvasLayer = (load("res://ui/character_screen.gd") as GDScript).new()
+	cscreen.name = "CharacterScreen"
+	add_child(cscreen)
 	var amb := Ambience.new()
 	amb.name = "Ambience"
 	add_child(amb)

@@ -239,9 +239,35 @@ static func learnable(id: String) -> bool:
 	return spell(id).has("learn")
 
 
-## Spells the wanderer can cast: the stock five, and any learned.
+## r35: the stock spells after Rift Bolt are taught by the story (kindling.gd teach(): the Keep,
+## the first kill, the first seal, the first great one). Progression state "taught" holds them; a
+## save from before staging (no "taught" key) knows all four. zz/ harness scenes know all four too,
+## unless one opts in to staging with Engine meta "staged_spells".
+const TAUGHT_LATER := ["lance", "nova", "ward", "step"]
+
+
+static func taught(st: Dictionary) -> Array:
+	var t: Variant = st.get("taught", null)
+	if not (t is Array) or _harness_all():
+		return TAUGHT_LATER.duplicate()
+	var out: Array = []
+	for id: String in TAUGHT_LATER:
+		if (t as Array).has(id):
+			out.append(id)
+	return out
+
+
+static func _harness_all() -> bool:
+	if Engine.has_meta(&"staged_spells"):
+		return false
+	var tree := Engine.get_main_loop() as SceneTree
+	var cs := tree.current_scene if tree else null
+	return cs != null and cs.scene_file_path.begins_with("res://zz/")
+
+
+## Spells the wanderer can cast: Rift Bolt, the stock spells the story has taught, and any learned.
 static func known(st: Dictionary) -> Array:
-	var out: Array = STOCK.duplicate()
+	var out: Array = ["bolt"] + taught(st)
 	var k: Variant = st.get("known", [])
 	if k is Array:
 		for id: Variant in k:

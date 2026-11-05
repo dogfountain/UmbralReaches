@@ -157,7 +157,12 @@ func _physics_process(_d: float) -> void:
 			check("save file has the satchel", (cfg.get_value("progress", "items", {}) as Dictionary).get("ascension_seal", 0) == 1)
 			var sat := _ui_satchel() as Satchel
 			sat.open_menu()
-			check("satchel shows 5 slots", sat._slots.size() == 5 and get_tree().paused)
+			# r35: the Satchel is the character screen's Pack: trophies and materials (relics are on Wanderer)
+			var relic_shown := false
+			for s in sat._slots:
+				if String(ItemDB.def(String(s.id)).kind) == "relic":
+					relic_shown = true
+			check("the Pack shows trophies and materials, no relics (%d)" % sat._slots.size(), sat._slots.size() >= 2 and not relic_shown and get_tree().paused)
 			sat.close_menu()
 			check("satchel closes and unpauses", not sat.is_open() and not get_tree().paused)
 			get_tree().quit()

@@ -40,6 +40,9 @@ var _title_font: Font
 var _body_font: Font
 # book
 var _book: Control
+var hosted := false                 ## r35: a page of the character screen (it owns keys and pause)
+var _head_ctl: Array[Control] = []  ## its Close link and tab strip (hidden when hosted)
+const PAGE_IDS := ["journal", "stories", "writings", "places", "map", "lore"]   ## the screen's page ids by tab
 var _tab := 0
 var _tab_buttons: Array[Button] = []
 var _list: VBoxContainer
@@ -118,6 +121,9 @@ func is_open() -> bool:
 
 
 func open_book(tab := -1) -> void:
+	if not hosted and _cs() != null:
+		_cs().call("open_at", "journal", PAGE_IDS[clampi(tab, 0, PAGE_IDS.size() - 1)] if tab >= 0 else "")
+		return
 	close_reading()
 	var sat := get_tree().current_scene.get_node_or_null("Satchel") if get_tree().current_scene else null
 	if sat and sat.has_method("is_open") and sat.call("is_open"):
@@ -238,7 +244,15 @@ func _on_title_card(_t: String, _s: String) -> void:
 # --- input ----------------------------------------------------------------------------------
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed(ACTION):
+	if _cs() != null:
+		if not _book.visible:
+			return                              # the character screen opens it (the reader is the inscriptions')
+		if event.is_action_pressed(ACTION) or event.is_action_pressed("toggle_settings") or event.is_action_pressed("inventory") \
+				or event.is_action_pressed("release_mouse") \
+				or (event is InputEventKey and ((event as InputEventKey).physical_keycode == KEY_Q or (event as InputEventKey).physical_keycode == KEY_E)) \
+				or event is InputEventJoypadButton:
+			return                              # its keys, its pages and the pad's B are the screen's
+	elif event.is_action_pressed(ACTION):
 		if _book.visible:
 			close_book()
 		elif not get_tree().paused or _satchel_open():
@@ -451,9 +465,11 @@ func _build_book() -> void:
 	close.add_theme_font_override("font", _title_font)
 	close.pressed.connect(close_book)
 	head.add_child(close)
+	_head_ctl.append(close)
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 6)
 	col.add_child(tabs)
+	_head_ctl.append(tabs)
 	for i in TABS.size():
 		var b := Button.new()
 		b.text = String(TABS[i][1]).to_upper()
@@ -1039,3 +1055,20 @@ static func _key_name(action: String, fallback: String) -> String:
 			var k := ev as InputEventKey
 			return OS.get_keycode_string(k.physical_keycode if k.physical_keycode != KEY_NONE else k.keycode)
 	return fallback
+
+
+## r35: the character screen turns its pages.
+func show_tab(i: int) -> void:
+	_show_tab(clampi(i, 0, TABS.size() - 1))
+
+
+## r35: hosted on the character screen, its Close link and tab strip go (the screen's replace them).
+func set_hosted(on: bool) -> void:
+	for c in _head_ctl:
+		if is_instance_valid(c):
+			c.visible = not on
+
+
+## r35: the one character screen (ui/character_screen.gd), when the night has one.
+func _cs() -> Node:
+	return get_tree().get_first_node_in_group(&"character_screen") if is_inside_tree() else null

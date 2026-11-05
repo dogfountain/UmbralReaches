@@ -18,6 +18,7 @@ const HearthDB := preload("res://core/life/progression/hearth_db.gd")
 const FireSpot := preload("res://core/life/progression/fire_spot.gd")
 const CharmPickup := preload("res://core/life/progression/charm_pickup.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
+const SealedSkill := preload("res://core/skills/skill_sealed.gd")
 const SKILLS := {
 	&"bolt": preload("res://core/life/progression/skills/bolt.gd"),
 	&"lance": preload("res://core/life/progression/skills/lance.gd"),
@@ -58,6 +59,7 @@ func _ready() -> void:
 		InputMap.action_add_event("kindling", k)
 	Events.enemy_killed.connect(_on_killed)
 	Events.boss_slain.connect(_on_boss)
+	Events.seal_broken.connect(func(_id: String) -> void: teach("step"))      # r35: the first seal
 	Events.item_gained.connect(_on_item)
 	for c: Script in SKILLS.values():
 		var stock: Skill = (c.get_base_script() as GDScript).new()
@@ -92,6 +94,11 @@ func state() -> Dictionary:
 
 func _ensure_state() -> void:
 	var st := state()
+	if not st.has("taught"):
+		# r35: a new game starts with Rift Bolt; a save from before staging keeps all five
+		var fresh := st.is_empty() and Travel.bosses_slain.is_empty() and Travel.seals_broken.is_empty() \
+				and not ((Travel.story.get("flags", {}) as Dictionary).has("arrived") if Travel.story.get("flags", {}) is Dictionary else false)
+		st["taught"] = [] if fresh else DB.TAUGHT_LATER.duplicate()
 	for k: String in ["ranks", "oaths"]:
 		if not (st.get(k) is Dictionary):
 			st[k] = {}
@@ -165,6 +172,12 @@ func _apply_skills(book: SkillBook) -> void:
 	var m := DB.live
 	var ids: Array = ["bolt"] + DB.loadout(st)
 	for i in mini(book.slots.size(), ids.size()):
+		if String(ids[i]) == "":
+			# r35: nothing taught for this slot yet: it stays sealed (empty, casts nothing)
+			if book.slots[i] == null or book.slots[i].id != &"sealed":
+				var sealed: Skill = SealedSkill.new()
+				book.set_slot(i, sealed)
+			continue
 		var sid := StringName(String(ids[i]))
 		var want := _script_for(sid, owned)
 		if want == null:
@@ -216,6 +229,7 @@ func _script_for(id: StringName, owned: bool) -> Script:
 
 
 func _on_killed(e: Node) -> void:
+	teach("lance")                                    # r35: the first kill
 	var relief := float(DB.live.get("kill_relief", 0.0))
 	if relief <= 0.0 or _player == null or not is_instance_valid(_player) or not (e is Node3D):
 		return
@@ -224,6 +238,7 @@ func _on_killed(e: Node) -> void:
 
 
 func _on_boss(_id: String) -> void:
+	teach("nova")                                     # r35: the first great one
 	get_tree().create_timer(7.0, false).timeout.connect(func() -> void:
 		Events.toast.emit("The fires will take more of your ash now. Feed them at the Kindling."))
 
@@ -253,6 +268,8 @@ func _on_item(id: String, _amount: int, _total: int) -> void:
 ## Why `id` (ember, spell or rite) can't be bought now, or "" if it can.
 func why_not(id: String, at_fire: bool) -> String:
 	var st := state()
+	if DB.TAUGHT_LATER.has(id) and not DB.knows(st, id):
+		return "Not yet taught."
 	if DB.learnable(id) and not DB.knows(st, id):
 		return "Learn %s first." % String(DB.spell(id).name)
 	var nx := DB.next_of(st, id)
@@ -393,6 +410,8 @@ func cycle_slot(slot: int, at_fire: bool) -> String:
 	var st := state()
 	var k := DB.known(st)
 	k.erase("bolt")
+	if k.is_empty():
+		return "Not yet taught."                      # r35: only Rift Bolt known so far
 	var lo := DB.loadout(st)
 	var i := k.find(lo[clampi(slot - 1, 0, 3)])
 	return set_loadout(slot, String(k[(i + 1) % k.size()]), at_fire)
@@ -572,3 +591,30 @@ static func ground_spot(space: PhysicsDirectSpaceState3D, xz: Vector2) -> Vector
 				continue                     # keep out of buildings' sites and off the lanes
 			return hit.position
 	return Vector3.INF
+
+
+# --- r35: the story teaches the spells -----------------------------------------------------------
+## Start with Rift Bolt. The Keep teaches Lantern Ward (dialogue "teach:ward"), the first kill Ember
+## Lance, the first seal Rift Step, the first great one Umbral Nova. Each is said once, with its key.
+const TEACH_LINES := {
+	"ward": "The Keep's fire takes to your lantern. Lantern Ward: %s.",
+	"lance": "The first of them falls, and the staff drinks its ember. Ember Lance: %s.",
+	"step": "The seal breaks, and the Rift pulls at your feet. Rift Step: %s.",
+	"nova": "The great one's dark comes apart round you, and you keep some. Umbral Nova: %s.",
+}
+
+
+## Teach `id` (one of DB.TAUGHT_LATER) if it is not known yet. True if it was taught now.
+func teach(id: String) -> bool:
+	var st := state()
+	if not DB.TAUGHT_LATER.has(id) or DB.knows(st, id):
+		return false
+	var t: Array = st.get("taught", []) if st.get("taught", []) is Array else []
+	t.append(id)
+	st["taught"] = t
+	refresh()
+	Travel.save_soon()
+	var slot := DB.loadout(st).find(id) + 1
+	var key := String(DB.SLOT_KEYS[slot]) if slot >= 1 and slot < DB.SLOT_KEYS.size() else "the Loadout"
+	Events.toast.emit(String(TEACH_LINES.get(id, "%s")) % key)
+	return true

@@ -408,6 +408,12 @@ static func run(actions: String) -> Dictionary:
 					return out
 				Travel.items[ASH] = Travel.count(ASH) - cost
 				save()
+			"teach":
+				# r35: teach:ward -- the story teaches a spell (kindling.gd teach)
+				var ml := Engine.get_main_loop() as SceneTree
+				var kn: Node = ml.get_first_node_in_group("progression") if ml else null
+				if kn and kn.has_method("teach") and p.size() > 1:
+					kn.call("teach", p[1])
 			"shop":
 				out.shop = p[1] if p.size() > 1 else "grisel"
 			"scene":

@@ -28,6 +28,7 @@ var _b_name: Label
 var _b_sub: Label
 var _b_tw: Tween
 var _prog: VBoxContainer
+var hosted := false                 ## r35: a page of the character screen (it owns keys and pause)
 var _panel: PanelContainer
 var _list: VBoxContainer
 var _detail: VBoxContainer
@@ -252,6 +253,9 @@ func is_open() -> bool:
 
 
 func open() -> void:
+	if not hosted and _cs() != null:
+		_cs().call("open_at", "journal", "tasks")
+		return
 	_abandon_armed = ""
 	_fill()
 	UiSound.play(self, "tab")
@@ -477,6 +481,11 @@ func _step_sel(d: int) -> void:
 func _input(event: InputEvent) -> void:
 	if not _panel.visible:
 		return
+	if hosted and (event.is_action_pressed(ACTION) or event.is_action_pressed("toggle_settings") or event.is_action_pressed("inventory") \
+			or event.is_action_pressed("release_mouse") or event is InputEventJoypadMotion \
+			or (event is InputEventKey and (event as InputEventKey).physical_keycode in [KEY_Q, KEY_E, KEY_1, KEY_2, KEY_3, KEY_4, KEY_J, KEY_K, KEY_O]) \
+			or (event is InputEventJoypadButton and (event as InputEventJoypadButton).button_index in [JOY_BUTTON_B, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER])):
+		return                                   # the character screen's keys (it is a page of it)
 	if event.is_action_pressed(ACTION) or event.is_action_pressed("toggle_settings") or (event is InputEventJoypadButton and (event as InputEventJoypadButton).pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_B):
 		close()
 		get_viewport().set_input_as_handled()
@@ -494,6 +503,21 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _cs() != null:
+		return                                   # the character screen opens it (Journal, Tasks)
 	if event.is_action_pressed(ACTION) and not _panel.visible and not get_tree().paused:
 		open()
 		get_viewport().set_input_as_handled()
+
+
+## r35: the one character screen (ui/character_screen.gd), when the night has one.
+func _cs() -> Node:
+	return get_tree().get_first_node_in_group(&"character_screen") if is_inside_tree() else null
+
+
+## r35: hosted on the character screen, the ledger sits below its tab band (it was centred 860 tall,
+## its top under the band).
+func set_hosted(on: bool) -> void:
+	if _panel:
+		_panel.offset_top = -330.0 if on else -430.0
+		_panel.offset_bottom = 470.0 if on else 430.0

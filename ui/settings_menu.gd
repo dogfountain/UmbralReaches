@@ -340,8 +340,8 @@ const KEY_ROWS := [
 	["Staff strike (hold: heavy)", ["staff_strike"], "", "RT up close"], ["Guard / parry", ["guard"], "", "B held, locked on"],
 	["Kindle / talk / use", ["interact"], "", ""],
 	["Skills 1  ·  2", ["skill_bolt", "skill_lance"], "", ""], ["Skills 3  ·  4  ·  5", ["skill_nova", "skill_ward", "skill_step"], "", ""],
-	["Satchel", ["inventory"], "", ""], ["Gear", ["gear"], "O", "From the Satchel"], ["Kindling", ["kindling"], "K", ""],
-	["Journal", ["codex"], "J", ""], ["Tasks", ["quest_log"], "L", ""],
+	["Character (Wanderer, Kindling, Pack, Journal)", ["inventory"], "", ""], ["Its tabs  ·  pages", [], "1 - 4  ·  Q E", "LT RT  ·  LB RB"],
+	["Straight to Gear  ·  Kindling", ["gear", "kindling"], "O  ·  K", ""], ["Straight to Journal  ·  Tasks", ["codex", "quest_log"], "J  ·  L", ""],
 	["Settings", ["toggle_settings"], "", ""], ["Fullscreen", ["fullscreen"], "", "-"],
 	["Colour grade", ["toggle_grade"], "", "-"], ["Stats overlay", ["toggle_debug"], "", "-"],
 ]

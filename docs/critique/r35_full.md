@@ -392,6 +392,16 @@ Step. The *ideas* in the three boss rooms (bramble maze, shrinking briars, the g
   final bell, and reshape the world (break up the grid south half and the straight north wall, and
   give the summit a skyline).
 
+### Decisions, round two (Luke, 5 Nov 2026)
+
+- **Character screen:** four tabs under one key. Wanderer (gear, charms, relics), Kindling
+  (embers, spells, oaths, paths), Pack (materials, trophies) and Journal (writings, places, map,
+  tasks).
+- **Spells:** start with Rift Bolt. The other four are taught through the story (the Keep and key
+  moments such as the first fight, first seal and first boss).
+- **First-hit line:** keep "They wound. A fire closes what they open."
+- **Music:** synthesised boss themes and the final bell, composed in the existing procedural synth.
+
 ### Implemented so far (r35)
 
 - **Gloom split.** `Player.wounds` / `wounds_max` (120, about five plain strikes) /
@@ -423,6 +433,29 @@ Step. The *ideas* in the three boss rooms (bramble maze, shrinking briars, the g
   ring, glowing heart-knots, and the Mandorla's column.
 - **The Ascended Warden's scale** is 3× → 5× (about 9 m), his halo light is wider, and he rises
   15 m when ascending.
+
+### Implemented: character screen and story-taught spells (r35)
+
+- **One character screen** (`ui/character_screen.gd`). Tab / I / d-pad up opens it, with four tabs
+  and their pages: Wanderer (Gear, Charms, Relics, Staff), Kindling (Embers, Spells, Loadout, Oaths,
+  Paths, Hearth), Pack (trophies and materials) and Journal (Wenna's Journal, Stories, Writings,
+  Places, Map, Relic lore, Tasks).
+  - 1–4 or LT/RT change tabs, Q/E or LB/RB change pages, and Tab / Esc / B close it. O, K, J and L
+    jump straight to Gear, Kindling, Journal and Tasks.
+  - Each page is one of the old panels opened "hosted": its own tab strip and header links are
+    hidden, and the screen owns the pause, the mouse and the keys. A dim backdrop sits under every
+    page.
+  - The old panels route their own `open` calls to the screen, so a fire's Kindling opens Kindling
+    → Embers and the Satchel's attune opens Wanderer → Relics.
+  - Checked by `zz/char_screen_test` (26 checks). Renders: `zz/char_screen_shots`.
+- **Spells are taught by the story.** A new game starts with Rift Bolt, and slots 1–4 are sealed
+  (empty, cast nothing). The Keep's first talk teaches Lantern Ward, the first kill Ember Lance, the
+  first seal Rift Step, and the first great one Umbral Nova. Each is announced once with its key,
+  e.g. "The first of them falls, and the staff drinks its ember. Ember Lance: RMB / R."
+  - Saves from before staging, and the `zz/` harnesses, keep all five. A test can opt in with
+    Engine meta `staged_spells`.
+  - The Kindling refuses ranks for untaught spells and shows them as "Not yet taught".
+  - Checked by `zz/spell_staging_test` (13 checks).
 
 ## Test run (this critique)
 

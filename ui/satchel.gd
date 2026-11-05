@@ -19,6 +19,10 @@ const _LOOT := preload("res://core/items/loot_db.gd")       # r33 loot: item qua
 const _GOLD := Color(0.95, 0.8, 0.5)
 
 var _root: Control
+var hosted := false                 ## r35: a page of the character screen (it owns keys and pause)
+var only_groups: Array = []         ## r35: show only these GROUPS kinds (the Pack page: trophies, materials)
+var _links: Array[Control] = []
+var _title_lbl: Label     ## the header's Journal / Gear / Kindling / Close links
 var _grid_box: VBoxContainer
 var _name: Label
 var _kind: Label
@@ -143,6 +147,7 @@ func _build() -> void:
 	var head := HBoxContainer.new()
 	col.add_child(head)
 	var title := _label("SATCHEL", 30, INK)
+	_title_lbl = title
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
 	# lore hook: the Journal (ui/codex.gd, group "codex") opens from here too
@@ -156,6 +161,7 @@ func _build() -> void:
 			close_menu()
 			cx.call("open_book"))
 	head.add_child(journal)
+	_links.append(journal)
 	# r33 loot: the gear panel (action "gear"; its key read from the InputMap)
 	var gear_b := Button.new()
 	gear_b.text = "Gear  [%s]" % GearRuntime._gear_key()
@@ -167,6 +173,7 @@ func _build() -> void:
 			close_menu()
 			gp.call("open_menu"))
 	head.add_child(gear_b)
+	_links.append(gear_b)
 	# progression hook: the Kindling ([K]; ash is spent at a lit fire)
 	var kindling := Button.new()
 	kindling.text = "Kindling  [K]"
@@ -178,12 +185,14 @@ func _build() -> void:
 			close_menu()
 			g.call("open_menu"))
 	head.add_child(kindling)
+	_links.append(kindling)
 	var close := Button.new()
 	close.text = "Close  [Tab]"
 	close.flat = true
 	close.add_theme_color_override("font_color", QUIET)
 	close.pressed.connect(close_menu)
 	head.add_child(close)
+	_links.append(close)
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 28)
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -248,6 +257,8 @@ func _rebuild() -> void:
 	_slots.clear()
 	var any := false
 	for g: Array in GROUPS:
+		if not only_groups.is_empty() and not only_groups.has(g[0]):
+			continue
 		var ids: Array[String] = []
 		for id: String in ItemDB.ORDER:
 			if String(ItemDB.def(id).kind) == g[0] and Travel.count(id) > 0:
@@ -325,7 +336,12 @@ func _show() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("inventory"):
+	if _cs() != null and (hosted or not _root.visible):
+		if not _root.visible:
+			return                              # the character screen opens and closes it
+		if event.is_action_pressed("inventory") or event.is_action_pressed("toggle_settings") or event.is_action_pressed("release_mouse"):
+			return
+	elif event.is_action_pressed("inventory"):
 		if _root.visible:
 			close_menu()
 		elif not get_tree().paused:
@@ -371,8 +387,11 @@ func try_attune() -> void:
 
 
 func open_menu(attune := false) -> void:
-	_attune = attune
+	_attune = attune                    # kept even when routed: try_attune() and select_id() read these
 	_rebuild()
+	if not hosted and _cs() != null:
+		_cs().call("open_at", "wanderer" if attune else "pack", "relics" if attune else "")
+		return
 	var g := get_tree().get_first_node_in_group("growth") if attune else null
 	if g:   # progression: a kindled fire opens the Kindling; relics are attuned on its Relics page
 		g.call("open_menu", true, "relics")
@@ -438,3 +457,17 @@ func _on_gained(id: String, amount: int, total: int) -> void:
 	tw.tween_callback(line.queue_free)
 	if _root.visible:
 		_rebuild()
+
+
+## r35: hosted on the character screen, the header's links to the other screens go (its tabs do that).
+func set_hosted(on: bool) -> void:
+	if _title_lbl:
+		_title_lbl.text = "PACK" if on else "SATCHEL"
+	for l in _links:
+		if is_instance_valid(l):
+			l.visible = not on
+
+
+## r35: the one character screen (ui/character_screen.gd), when the night has one.
+func _cs() -> Node:
+	return get_tree().get_first_node_in_group(&"character_screen") if is_inside_tree() else null
