@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode diffuse_burley, specular_schlick_ggx, depth_draw_opaque;
+#include "res://core/vfx/char_look.gdshaderinc"
 // Modelled grunts (r30, tools/blender/grunt_*.py; a copy of boss_pbr.gdshader, which stays the
 // bosses'). One baked atlas per kind -- albedo, tangent-space
 // normal (OpenGL, as Blender bakes it), ORM (ambient occlusion, roughness, metallic) and emission --
@@ -43,11 +44,11 @@ void vertex() {
 }
 
 void fragment() {
-	ALBEDO = texture(albedo_tex, UV).rgb;
 	vec3 orm = texture(orm_tex, UV).rgb;
+	ALBEDO = cl_albedo(texture(albedo_tex, UV).rgb, orm.r, opos);   // r35: the shared character finish
 	AO = orm.r;
 	AO_LIGHT_AFFECT = 0.6;
-	ROUGHNESS = orm.g;
+	ROUGHNESS = cl_rough(orm.g, opos);
 	METALLIC = orm.b;
 	NORMAL_MAP = texture(normal_tex, UV).rgb;
 	NORMAL_MAP_DEPTH = normal_depth;
@@ -66,7 +67,7 @@ void fragment() {
 	float breathe = 1.0 + emit_pulse * sin(TIME * pulse_rate + pulse_phase + opos.y * 3.0);
 	float skin_t = mix(1.0, 0.35 + 0.9 * pow(1.0 - ndv, 1.5), membrane);
 	EMISSION = texture(emit_tex, UV).rgb * emit_energy * breathe * skin_t * (1.0 + glint * 2.5)
-		+ rim_col * rim
+		+ cl_rim(NORMAL, VIEW, VIEW_MATRIX)
 		+ vec3(1.4, 1.25, 1.2) * hit_flash * (0.35 + 0.65 * pow(1.0 - ndv, 1.5))
 		+ burn_col * edge * 3.0;
 }

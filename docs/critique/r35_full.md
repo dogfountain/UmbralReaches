@@ -380,7 +380,7 @@ Step. The *ideas* in the three boss rooms (bramble maze, shrinking briars, the g
 
 - **Gloom: split.** Gloom becomes only the dark's clock. Enemy blows go to a separate short Wounds
   bar that a fire heals. One rule per bar.
-- **Progression:** cut rested XP. Merge Satchel, Gear, Kindling and Journal into one character
+- **Progression:** (rested XP stays: Luke reversed the cut later the same day.) Merge Satchel, Gear, Kindling and Journal into one character
   screen. Stage the spells: start with Rift Bolt and unlock the other four over the first hour.
   Item level and gear sets **stay**.
 - **Bosses, for a solo player:** no heal-to-full leash (enemies that lose you walk home and keep
@@ -495,10 +495,42 @@ Step. The *ideas* in the three boss rooms (bramble maze, shrinking briars, the g
 - Checked by `zz/npc_gesture_test` (all 8 families × 7 gestures, the picker on the game's own lines,
   determinism, family pitch; `--dump=<dir>` writes WAVs). Not yet heard by a person.
 
+### Implemented: character pass and world reshape (r35)
+
+- **Characters:** one shared finish (`core/vfx/char_look.gdshaderinc`) in all four character
+  shaders (dwarves and villagers, procedural enemies, modelled enemies, bosses). It adds painted
+  cavity from the baked occlusion, albedo and roughness breakup, and one warm back-rim for everyone.
+  Bosses take more cavity and breakup, against the clay look.
+  - NPC skin: its warm self-glow dropped from 0.12 to 0.05 and its translucency is less orange.
+  - NPC hair detail is coarser and shallower, so it no longer crawls at 960p.
+  - Quest marks: one per person (the Keep wore two), smaller and higher, and hidden within 3.5 m
+    so they never sit over a face.
+  - `zz/combat_studio` knows the r34 kinds and skips unknown names instead of hanging.
+  - **Honest scale:** the shader pass is a modest improvement (more depth, less flat tone). A real
+    jump for the characters needs asset work: re-sculpted and re-baked bosses, rebuilt procedural
+    faces.
+- **World:**
+  - The Crowns' straight cliff now recesses north 0–12 m (never south of z −110, so nothing in the
+    valley moved), its crest varies from about 32 to 56 m, and three peaks stand beyond the edge,
+    the tallest behind the summit.
+  - The southern tracks and lanes meander between their unchanged vertices (`RealmLayout.PATHS` is
+    now derived from `BASE_PATHS`). The main road keeps its line: its waystones and cart are placed
+    beside it, and the meander pushed two of them off.
+  - Rectangular regions' biome edges and the mere, Waiting Field and orchard shapes are warped.
+    Region names, places and tiers keep their exact rectangles.
+  - The Waiting Field's grass was raised 1.15 → 1.42, because it sat on the floor of its density
+    band against heath.
+  - The topology is unchanged: the road network is still a cross of roads, which is now visible
+    but softer.
+  - The shipped `art/realm_cache` is unaffected (flora and land are not cached).
+
 ## Test run (this critique)
 
 `tools/run_tests.sh`, 4 jobs, isolated HOME.
 
+- **After the character pass and world reshape:** 45 of 47 in the full run. `lore_codex_test` lost two
+  roadside lore pieces to the road meander; the main road was then kept straight and it passes.
+  `world_react_test` is the flaky fox test (it timed out).
 - **After the bug fixes and the Wounds, leash, boss and enrage changes:** 41 of 43 pass.
   `world_react_test` is the fox pounce below (unchanged). `village_test` failed once under load
   ("every villager on the floor (77 off)") and passed twice alone (0 off), so it's flaky, not a

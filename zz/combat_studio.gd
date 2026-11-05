@@ -14,6 +14,8 @@ const KINDS := {
 	# r31 (docs/enshrouded/enemies.md)
 	"gaunt": "res://core/enemy/gaunt.gd", "quiller": "res://core/enemy/quiller.gd",
 	"tollman": "res://core/enemy/tollman.gd", "brood_mother": "res://core/enemy/brood_mother.gd",
+	# r34
+	"pilgrim": "res://core/enemy/pilgrim.gd", "cinder_caster": "res://core/enemy/cinder_caster.gd",
 }
 var tag := "shot"
 var pose := ""
@@ -30,7 +32,11 @@ func _ready() -> void:
 		if a.begins_with("--tag="): tag = a.trim_prefix("--tag=")
 		elif a.begins_with("--pose="): pose = a.trim_prefix("--pose=")
 		elif a.begins_with("--only="):
-			for k in a.trim_prefix("--only=").split(","): order.append(k)
+			for k in a.trim_prefix("--only=").split(","):
+				if KINDS.has(k):
+					order.append(k)
+				else:
+					print("STUDIO unknown kind '%s' skipped (known: %s)" % [k, ", ".join(KINDS.keys())])
 	if order.is_empty():
 		for k: String in KINDS: order.append(k)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://shots/combat"))

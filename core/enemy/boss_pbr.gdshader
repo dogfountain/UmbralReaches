@@ -1,5 +1,9 @@
 shader_type spatial;
 render_mode diffuse_burley, specular_schlick_ggx, depth_draw_opaque;
+// r35: the shared character finish; bosses take more cavity and breakup (their bakes read as clay)
+#define CL_CAVITY 0.5
+#define CL_BREAKUP 0.2
+#include "res://core/vfx/char_look.gdshaderinc"
 // Modelled bosses (r30, tools/blender/boss_*.py): one baked atlas per boss -- albedo, tangent-space
 // normal (OpenGL, as Blender bakes it), ORM (ambient occlusion, roughness, metallic) and emission --
 // with the same per-instance channels as flesh.gdshader so Enemy.gd drives them unchanged:
@@ -35,11 +39,11 @@ void vertex() {
 }
 
 void fragment() {
-	ALBEDO = texture(albedo_tex, UV).rgb;
 	vec3 orm = texture(orm_tex, UV).rgb;
+	ALBEDO = cl_albedo(texture(albedo_tex, UV).rgb, orm.r, opos);
 	AO = orm.r;
 	AO_LIGHT_AFFECT = 0.6;
-	ROUGHNESS = orm.g;
+	ROUGHNESS = cl_rough(orm.g, opos);
 	METALLIC = orm.b;
 	NORMAL_MAP = texture(normal_tex, UV).rgb;
 	NORMAL_MAP_DEPTH = normal_depth;
@@ -56,7 +60,7 @@ void fragment() {
 	float edge = (1.0 - smoothstep(0.0, 0.06, d - dissolve * 1.08)) * step(0.001, dissolve);
 
 	EMISSION = texture(emit_tex, UV).rgb * emit_energy * (1.0 + glint * 2.5)
-		+ rim_col * rim
+		+ cl_rim(NORMAL, VIEW, VIEW_MATRIX)
 		+ vec3(1.4, 1.25, 1.2) * hit_flash * (0.35 + 0.65 * pow(1.0 - ndv, 1.5))
 		+ burn_col * edge * 3.0;
 }

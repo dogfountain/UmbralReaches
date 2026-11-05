@@ -1,5 +1,8 @@
 shader_type spatial;
 render_mode diffuse_burley, specular_schlick_ggx, depth_draw_opaque;
+// r35: the shared character finish (its own creases already darken: a lighter cavity share)
+#define CL_CAVITY 0.15
+#include "res://core/vfx/char_look.gdshaderinc"
 // Enemy skin for CreatureMesh bodies. Pale corpse-flesh with dark veins that flow along limbs,
 // wet sheen in the folds, bone that reads as bone, glowing eyes/glands, a violet rim so bodies
 // separate from the blue night, and three per-instance channels driven by Enemy.gd:
@@ -65,10 +68,10 @@ void fragment() {
 	albedo = mix(albedo, mix(linen_col, rag_col, flesh) * COLOR.rgb * mix(0.75, 1.15, hgt), rag);
 
 	albedo = mix(albedo, albedo * (0.7 + 0.45 * hgt), (1.0 - flesh) * 0.6);   // pitted bone
-	ALBEDO = albedo;
+	ALBEDO = cl_albedo(albedo, mix(0.5, 1.0, hgt), opos);
 	NORMAL_MAP = texture(detail_normal, duv).rgb;
 	NORMAL_MAP_DEPTH = detail_depth * (1.0 - rag * 0.6);
-	ROUGHNESS = clamp(mix(mix(0.32, 0.48, flesh) + matte * 0.9, 0.95, rag) - veins * 0.15 + (hgt - 0.5) * 0.25, 0.05, 1.0);
+	ROUGHNESS = cl_rough(clamp(mix(mix(0.32, 0.48, flesh) + matte * 0.9, 0.95, rag) - veins * 0.15 + (hgt - 0.5) * 0.25, 0.05, 1.0), opos);
 	SPECULAR = mix(0.55, 0.42, flesh) * (1.0 - rag) * (1.0 - matte * 1.2);
 	float ndv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 	// the rim only where the surface faces up a little (moonlit edges), not round a body in shadow
@@ -85,7 +88,7 @@ void fragment() {
 	float edge = (1.0 - smoothstep(0.0, 0.06, d - dissolve * 1.08)) * step(0.001, dissolve);
 
 	EMISSION = eye_col * UV2.x * eye_energy * (1.0 + glint * 2.5)
-		+ rim_col * rim
+		+ cl_rim(NORMAL, VIEW, VIEW_MATRIX) * (1.0 - rag * 0.6)
 		+ vec3(1.4, 1.25, 1.6) * hit_flash * (0.35 + 0.65 * pow(1.0 - ndv, 1.5))
 		+ burn_col * edge * 3.0;
 }

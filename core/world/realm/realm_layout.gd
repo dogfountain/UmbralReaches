@@ -153,7 +153,7 @@ const SLOTS := {
 ## regions, and the south track joins the three southern places into a loop with the road. (No way
 ## crosses the Hollow Fen to the moor: every line tried there moved the fen's dressed places -- the
 ## belfry, the drowned graves, the barrow stones. The moor and the Pits are reached from the road.)
-const PATHS := [
+const BASE_PATHS := [
 	{"id": "west_way", "w": 1.8, "pts": [Vector2(-4, 30), Vector2(-20, 24), Vector2(-38, 10), Vector2(-46, -2), Vector2(-50, -10)]},
 	{"id": "east_way", "w": 1.8, "pts": [Vector2(26, 22), Vector2(42, 10), Vector2(58, -12), Vector2(72, -34), Vector2(78, -42)]},
 	{"id": "fen_descent", "w": 1.6, "pts": [Vector2(78, -42), Vector2(62, -56), Vector2(44, -62), Vector2(34, -66)]},
@@ -168,6 +168,47 @@ const PATHS := [
 	{"id": "mere_causeway", "w": 1.6, "pts": [Vector2(92, 65), Vector2(96, 84), Vector2(100, 104), Vector2(104, 120)]},
 	{"id": "south_track", "w": 1.4, "pts": [Vector2(-112, 122), Vector2(-80, 132), Vector2(-40, 134), Vector2(0, 128), Vector2(40, 134), Vector2(76, 128), Vector2(104, 120)]},
 ]
+
+## r35 (docs/critique/r35_full.md: "the south half is a grid of rectangles and straight roads"): the
+## southern tracks and lanes wander between their vertices. Every vertex (junctions, gates, the sites
+## laid along them) stays exactly where BASE_PATHS puts it; between two, the line swings up to MEANDER m
+## to either side and back to zero at both ends. Everything that walks PATHS gets the wandering line.
+## The main road keeps its line: its waystones and cart stand a fixed step beside it (lore/road.gd).
+const MEANDER_IDS := {"west_track": 2.4, "moor_track": 2.4, "necropolis_way": 2.2, "orchard_lane": 2.2,
+	"mere_causeway": 2.0, "south_track": 2.6}
+const MEANDER_STEP := 6.0
+static var PATHS: Array = _meander(BASE_PATHS)
+
+
+static func _meander(base: Array) -> Array:
+	var out: Array = []
+	for path: Dictionary in base:
+		var amp := float(MEANDER_IDS.get(String(path.id), 0.0))
+		if amp <= 0.0:
+			out.append(path)
+			continue
+		var src: Array = path.pts
+		var pts: Array = [src[0]]
+		var walked := 0.0
+		var seed_f := float(String(path.id).hash() % 1000) * 0.01
+		for i in src.size() - 1:
+			var a: Vector2 = src[i]
+			var b: Vector2 = src[i + 1]
+			var ab := b - a
+			var ln := ab.length()
+			var side := Vector2(-ab.y, ab.x) / maxf(ln, 0.001)
+			var n := maxi(1, int(ln / MEANDER_STEP))
+			for k in range(1, n):
+				var t := float(k) / float(n)
+				var s := walked + ln * t
+				var wave := sin(s * TAU / 34.0 + seed_f) * 0.7 + sin(s * TAU / 13.0 + seed_f * 2.3) * 0.3
+				pts.append(a + ab * t + side * amp * wave * sin(PI * t))
+			pts.append(b)
+			walked += ln
+		var np := path.duplicate()
+		np["pts"] = pts
+		out.append(np)
+	return out
 
 ## The crossing (RealmRift): a walkable ruined viaduct from the rift's south rim to the summit ward,
 ## built from the old stair kit (stair_step / stair_column / stair_platform .glb) and OssKit stone.
@@ -230,15 +271,15 @@ static func macro_height(x: float, z: float) -> float:
 	h = lerpf(h, 3.0, fo * 0.8)
 	h += 4.5 * _bump(p, Vector2(121, -84), 9.0) + 3.5 * _bump(p, Vector2(145, -99), 8.0) + 3.0 * _bump(p, Vector2(141, -75), 7.0)
 	# r34: Corvin's Mere (a broad shallow basin: pools fill it below the water line)
-	var me := _rect_w(p, Rect2(64, 90, 86, 62), 16.0)
+	var me := _rect_w(p + _warp(p), Rect2(64, 90, 86, 62), 16.0)
 	# meres between hummocks and causeway banks, not one lake (wildlife's frogs keep to a pool's shore)
 	var mf := sin(x * 0.11 + 0.5) * sin(z * 0.13 - 0.3) + 0.6 * sin(x * 0.067 - z * 0.083 + 1.1) + 0.4 * sin((x + z) * 0.19)
 	h -= me * (0.7 + 1.1 * mf)
 	# r34: the Waiting Field (graves on a slope rising south, facing the mountain)
-	var ne := _rect_w(p, Rect2(-44, 98, 86, 58), 16.0)
+	var ne := _rect_w(p + _warp(p), Rect2(-44, 98, 86, 58), 16.0)
 	h += ne * clampf((z - 100.0) / 55.0, 0.0, 1.0) * 5.0
 	# r34: the Cinder Orchard (a gentle shelf)
-	var oc := _rect_w(p, Rect2(-150, 90, 82, 62), 16.0)
+	var oc := _rect_w(p + _warp(p), Rect2(-150, 90, 82, 62), 16.0)
 	h = lerpf(h, 1.4 + 0.8 * sin(x * 0.05) * cos(z * 0.04), oc * 0.6)
 	# r34: the Saints' Quarry's hill: a spur of the Crowns that quarry_cut benches down into a pit
 	h += 11.0 * _bump(p, QUARRY_C, 46.0)
@@ -252,9 +293,16 @@ static func macro_height(x: float, z: float) -> float:
 	h += smoothstep(148.0, 175.0, z) * 7.0
 	var din := minf(x - BOUNDS.position.x, BOUNDS.end.x - x)
 	h += (1.0 - smoothstep(0.0, 20.0, din)) * 3.5
-	# the Crowns (north wall) and the summit crag
-	var north := clampf((-110.0 - z) / 40.0, 0.0, 1.0)
-	h += north * north * 45.0
+	# the Crowns (north wall) and the summit crag. r35: it was one ruled cliff (foot on z -110, crest
+	# 45 m everywhere). The foot now recesses north (never south of -110: nothing in the valley moves),
+	# the crest rises and falls (~32-56 m), and peaks stand beyond the edge -- the tallest behind the
+	# summit, so the Stair's top has a mountain to stand against instead of a flat wall.
+	var keep_mid := 1.0 - _bump(Vector2(x, 0.0), Vector2.ZERO, 34.0)          # the rift and summit stay as built
+	var recess := clampf(5.5 + 4.5 * sin(x * 0.043 + 0.4) + 2.5 * sin(x * 0.121 + 2.1), 0.0, 12.0) * keep_mid
+	var north := clampf((-110.0 - recess - z) / 40.0, 0.0, 1.0)
+	var crest := 0.82 + 0.3 * (0.5 + 0.5 * sin(x * 0.067 + 1.2)) + 0.12 * sin(x * 0.19)
+	h += north * north * 45.0 * crest
+	h += 40.0 * _bump(p, Vector2(0, -166), 46.0) + 22.0 * _bump(p, Vector2(-72, -160), 30.0) + 26.0 * _bump(p, Vector2(86, -163), 32.0)
 	h = maxf(h, 24.2 * _bump(p, Vector2(0, -95), 34.0) - 2.0)
 	# the rift: the kept chasm. Inside the rift rect the baked terrain is authoritative (RealmLand
 	# keeps the old heights there); this is only the macro shape for planning.
@@ -354,7 +402,7 @@ static func _area(r: Dictionary) -> float:
 static func region_weight(r: Dictionary, x: float, z: float) -> float:
 	var p := Vector2(x, z)
 	if r.has("rect"):
-		return _rect_w(p, r.rect, 18.0)
+		return _rect_w(p + _warp(p), r.rect, 18.0)      # r35: ragged land edges (names keep the plain rect)
 	return _bump(p, r.c, float(r.r) * 1.4)
 
 
@@ -396,6 +444,13 @@ static func path_dist(p: Vector2) -> float:
 			var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
 			best = minf(best, p.distance_to(a + ab * t) - float(path.w))
 	return best
+
+
+## r35: a smooth, deterministic offset (up to ~7 m) so rectangular regions' land and shapes meet
+## along wandering lines instead of ruled ones. Only for painting and landform, never for names.
+static func _warp(p: Vector2) -> Vector2:
+	return Vector2(sin(p.y * 0.09 + 1.3) + 0.6 * sin(p.y * 0.21 + p.x * 0.05),
+		sin(p.x * 0.08 + 0.4) + 0.6 * sin(p.x * 0.19 - p.y * 0.06)) * 4.4
 
 
 static func _bump(p: Vector2, c: Vector2, r: float) -> float:

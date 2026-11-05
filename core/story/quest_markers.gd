@@ -22,6 +22,7 @@ const DAILY := Color(0.7, 0.84, 1.0)
 const GREY := Color(0.62, 0.62, 0.66)
 const RIM := Color(0.78, 0.52, 0.24)
 const FAR := 70.0
+const NEAR_HIDE := 3.5               ## r35: closer than this (m, camera to person) the mark hides
 
 var _scan := 0.0
 var _poll := 0.0
@@ -62,13 +63,15 @@ func _find_givers() -> void:
 		var tid: Variant = n.get("talk_id")
 		if tid is String and String(tid) != "":
 			pool.append(n)
+	var ids := {}
 	for n2: Node in pool:
 		if not is_instance_valid(n2) or not (n2 is Node3D) or seen.has(n2.get_instance_id()):
 			continue
 		var nid := Giver.npc_id(n2)
-		if nid == "":
-			continue
+		if nid == "" or ids.has(nid):
+			continue                         # r35: one mark a person (the keep was his body AND his talk spot: two)
 		seen[n2.get_instance_id()] = true
+		ids[nid] = true
 		out.append([n2, nid])
 	_givers = out
 
@@ -94,6 +97,9 @@ func refresh() -> void:
 			m = _make_mark(n)
 			_marks[key] = m
 		_set_mark(m, n, String(st[0]), String(st[1]), bool(st[2]))
+		# r35: within talking range the mark has done its job: it fades so it never sits over a face
+		var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+		m.visible = cam == null or cam.global_position.distance_to(n.global_position) > NEAR_HIDE
 	for k: int in _marks.keys():
 		if not live.has(k):
 			var m2: Variant = _marks[k]
@@ -127,13 +133,13 @@ func _make_mark(n: Node3D) -> Node3D:
 	var top := 2.05
 	var rig: Variant = n.get("rig")
 	if rig is Object and is_instance_valid(rig) and (rig as Object).has_method("head_top"):
-		top = float((rig as Object).call("head_top")) + 0.5
+		top = float((rig as Object).call("head_top")) + 0.75    # r35: was +0.5 (its foot hung over the face)
 	m.position = Vector3(0.0, top, 0.0)
 	n.add_child(m)
 	var sp := Sprite3D.new()
 	sp.name = "Plaque"
 	sp.texture = _plaque
-	sp.pixel_size = 0.0062
+	sp.pixel_size = 0.0042                # r35: was 0.0062 (as tall as the person's torso)
 	sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	sp.shaded = false
 	sp.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
@@ -145,7 +151,7 @@ func _make_mark(n: Node3D) -> Node3D:
 	lb.name = "Glyph"
 	lb.font = _font
 	lb.font_size = 72
-	lb.pixel_size = 0.0058
+	lb.pixel_size = 0.0039
 	lb.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	lb.shaded = false
 	lb.outline_size = 14
