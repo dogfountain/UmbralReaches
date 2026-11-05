@@ -433,17 +433,68 @@ static func ground(space: PhysicsDirectSpaceState3D, x: float, z: float) -> floa
 
 
 ## Distance from p to the nearest path centreline (and which path), for keeping things off paths.
+## (Minus the path's half width: distance to the path's edge.) Called tens of thousands of times by
+## the build, so the segments of PATHS (immutable once made) are kept as packed arrays with a grid
+## of the segments near each cell; the result is exactly the full scan's.
 static func path_dist(p: Vector2) -> float:
+	if _seg_a.is_empty():
+		_build_segs()
+	var cx := int(floorf((p.x - BOUNDS.position.x) / _SEG_CELL))
+	var cz := int(floorf((p.y - BOUNDS.position.y) / _SEG_CELL))
+	if cx >= 0 and cz >= 0 and cx < _seg_gw and cz < _seg_gh:
+		var best := INF
+		for j in _seg_cells[cz * _seg_gw + cx] as PackedInt32Array:
+			best = minf(best, _seg_d(p, j))
+		# a segment not listed in this cell is further than _SEG_REACH from all of it
+		if best <= _SEG_REACH - _seg_wmax:
+			return best
 	var best := INF
+	for j in _seg_a.size():
+		best = minf(best, _seg_d(p, j))
+	return best
+
+
+static func _seg_d(p: Vector2, j: int) -> float:
+	var a := _seg_a[j]
+	var ab := _seg_ab[j]
+	var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+	return p.distance_to(a + ab * t) - _seg_w[j]
+
+
+const _SEG_CELL := 8.0
+const _SEG_REACH := 16.0
+static var _seg_a := PackedVector2Array()
+static var _seg_ab := PackedVector2Array()
+static var _seg_w := PackedFloat64Array()
+static var _seg_wmax := 0.0
+static var _seg_cells: Array = []        # PackedInt32Array per cell
+static var _seg_gw := 0
+static var _seg_gh := 0
+
+
+static func _build_segs() -> void:
+	var boxes: Array[Rect2] = []
 	for path: Dictionary in PATHS:
 		var pts: Array = path.pts
 		for i in pts.size() - 1:
 			var a: Vector2 = pts[i]
 			var b: Vector2 = pts[i + 1]
-			var ab := b - a
-			var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
-			best = minf(best, p.distance_to(a + ab * t) - float(path.w))
-	return best
+			_seg_a.append(a)
+			_seg_ab.append(b - a)
+			_seg_w.append(float(path.w))
+			_seg_wmax = maxf(_seg_wmax, float(path.w))
+			boxes.append(Rect2(a, Vector2.ZERO).expand(b))
+	_seg_gw = int(ceilf(BOUNDS.size.x / _SEG_CELL))
+	_seg_gh = int(ceilf(BOUNDS.size.y / _SEG_CELL))
+	_seg_cells.resize(_seg_gw * _seg_gh)
+	for cz in _seg_gh:
+		for cx in _seg_gw:
+			var cell := Rect2(BOUNDS.position + Vector2(cx, cz) * _SEG_CELL, Vector2(_SEG_CELL, _SEG_CELL)).grow(_SEG_REACH + 0.01)
+			var ids := PackedInt32Array()
+			for j in boxes.size():
+				if boxes[j].intersects(cell, true):
+					ids.append(j)
+			_seg_cells[cz * _seg_gw + cx] = ids
 
 
 ## The path segments that can come within `margin` of rect r (by their bounds): [a, b, w] each. A
