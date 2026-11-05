@@ -126,7 +126,12 @@ const CONV := {
 				["", "Fire stays. Hollows do not."],
 			], "next": ""},
 			# --- the Deeper Night (the cracked bell rung) ---------------------------------------
-			"ng_1": {"say": "You rang it. ...I heard it. Wrong way up, top first, the way they stopped.", "do": "flag:deeper_met,flag:met_keep", "next": "ng_2"},
+			"ng_1": {"say_if": [
+				["qp:the_latch:latched", "You latched it. I know you did. And still the bell rang, top first, wrong way up. Something up there has a key."],
+				["qp:the_latch:broken", "You broke the latch. Brannoc showed me the halves. And still the bell rang top first. Something's hung a new door."],
+				["qp:the_latch:open", "You left it on the latch, for the ones coming home. Something else came through it. I heard the bell, top first."],
+				["", "You rang it. ...I heard it. Wrong way up, top first, the way they stopped."],
+			], "do": "flag:deeper_met,flag:met_keep", "next": "ng_2"},
 			"ng_2": {"say": "The fire's leaning again. Sit; it's going to be a long one. Then go and do it all twice.", "next": "hub"},
 			# --- the end, after the Ascended Warden ------------------------------------------
 			"end_1": {"say": "You're back. Then it's true. The fire went straight up the chimney an hour ago, like it used to.", "next": "end_2"},

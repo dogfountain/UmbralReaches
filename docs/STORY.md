@@ -147,5 +147,5 @@ the room (`speaking`), who turns to face the wanderer (`attend`).
   Warden does not yet hold the door with a raised arm and a thread to the sky; no bell hangs
   over the dais; no Ossuant says "...Wenna?"; the Deeper Night bell has no sound of its own.
   Oswin/Ostrin/Osric keep their names (renaming touches tests and the cast).
-- Patrons never stand up or walk; the keep never leaves the duckboard.
+- Two patrons get up and walk to the bar and back (`tavern.gd` WANDERERS); the others stay seated, and the keep never leaves the duckboard.
 - The portrait is lit in its own little world (not the room's light).

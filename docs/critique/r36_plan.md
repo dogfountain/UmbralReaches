@@ -145,5 +145,7 @@ report. Commits only when Luke says.
   An epilogue with the keep ends on one of three title cards, by the latch choice. Act 5's valley
   follows the latch: latched presses less, broken is only night, and on the latch the ones above
   come home (more pilgrims on the roads).
-- **Not done.** The Keg patrons still never stand up. The Deeper Night does not yet carry the latch
-  choice.
+- **The Deeper Night** remembers the latch: the keep's first line on a new cycle answers what you did
+  at the door, and Act 5 belongs to the cycle in which the Warden fell.
+- **Not done.** Only two Keg patrons get up and walk to the bar (`tavern.gd` WANDERERS); the others
+  stay seated.

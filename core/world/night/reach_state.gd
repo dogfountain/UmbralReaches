@@ -48,8 +48,8 @@ func _ready() -> void:
 
 
 static func act() -> int:
-	if Book.done("names_under"):
-		return 5
+	if Book.done("names_under") and Travel.bosses_slain.has("ascended_warden"):
+		return 5                         # (a Deeper Night clears the Warden: the act starts over)
 	if Travel.bosses_slain.has("ascended_warden"):
 		return 4
 	if Book.done("founders_peal"):
