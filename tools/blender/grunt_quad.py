@@ -269,13 +269,26 @@ else:
         lg.ball(kn, (r * 1.05, r * 1.05, r * 1.05))
         lg.chain([kn, kn.lerp(ft, 0.5), ft + G(0, 0.03, 0)], [r * 0.9, r * 0.7, r * 0.45])
         build(lg, "Leg_" + tag, SKIN, 0.0045, 0.001, 4)
-        for t, rr in ((0.35, 0.95), (0.7, 0.8)):
-            add(K.blob("Chitin", hip.lerp(kn, t), (r * rr * 1.25, r * rr * 1.25, r * rr * 1.25), "leg_" + tag, SHELL, 14, 8))
+        # models pass: armoured segments, not beads on a tube: a femur and a tibia sheath each swell
+        # mid-shaft and stop short of the joints, so the soft, darker articulation shows between them
+        # (the old round chitin balls read as a toy)
+        def sheath(a, b, r0, rmid, r1, n=7):
+            pts, rad = [], []
+            for i in range(n):
+                t = 0.08 + 0.84 * i / (n - 1)
+                pts.append(a.lerp(b, t))
+                u = i / (n - 1)
+                base = r0 + (r1 - r0) * u
+                rad.append(base + (rmid - base) * math.sin(math.pi * u))
+            return K.loft("Chitin", pts, rad, "leg_" + tag, SHELL, 12)
+        add(sheath(hip, kn, r * 1.25, r * 1.45, r * 1.0))
+        mid = kn.lerp(ft, 0.62)
+        add(sheath(kn, mid, r * 1.0, r * 1.15, r * 0.78))
+        add(sheath(mid, ft + G(0, 0.03, 0), r * 0.74, r * 0.8, r * 0.5))
         for t in (0.25, 0.5, 0.75):
             p = kn.lerp(ft, t)
-            add(K.blob("Chitin", p, (r * (1.0 - 0.4 * t) * 1.2, r * (1.0 - 0.4 * t) * 1.2, r * 0.5), "leg_" + tag, SHELL, 14, 8))
             if KIND != "mite":
-                add(GK.claw("Claw", p + G(sx * r * 0.6, 0, 0), G(sx, 0.4, 0.2), 0.05 * big, 0.007, "leg_" + tag, CLAW, -0.2))
+                add(GK.claw("Claw", p + G(sx * r * 0.75, 0, 0), G(sx, 0.4, 0.2), 0.05 * big, 0.007, "leg_" + tag, CLAW, -0.2))
         # the hooked tip that takes the weight; the burrower's forelegs end in spades
         if KIND == "burrower" and tag.startswith("f"):
             for k in range(3):
