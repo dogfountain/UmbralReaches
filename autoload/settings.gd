@@ -45,6 +45,7 @@ var fps_limit := -1                 ## see FPS_CHOICES: -1 match display, 0 unli
 var monitor := -1                   ## screen index to show the game on; -1 = wherever macOS opens it
 var native_output := false          ## true: final image at the screen's full pixel count (4K/Retina)
 var invert_y := false
+var bindings: Dictionary = {}       ## the player's own key / button bindings: action -> {"key": {t, c}, "pad": {t, c}} (autoload/input_setup.gd)
 var text_scale := 1.0               ## 0.85-1.5: the HUD's running text (ui/text_director.gd px())
 var quality_preset := 1             # 0 Performance, 1 Balanced, 2 Cinematic
 var detail := 1                     ## world detail 0 low .. 2 high: mesh LOD distance, undergrowth density
@@ -62,6 +63,7 @@ const BUSES := ["SFX", "Ambience", "Music"]
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS   # the debounce keeps ticking while the menu pauses the world
 	load_settings()
+	InputSetup.apply_overrides(bindings)       # InputSetup is ready first (it defines the defaults); the player's own go over them
 	_ensure_buses()
 	apply_audio()
 	changed.connect(apply_audio)
@@ -119,6 +121,25 @@ func load_settings() -> void:
 	sfx_volume = clampf(_v(cfg, "audio", "sfx", sfx_volume), 0.0, 1.0)
 	ambience_volume = clampf(_v(cfg, "audio", "ambience", ambience_volume), 0.0, 1.0)
 	music_volume = clampf(_v(cfg, "audio", "music", music_volume), 0.0, 1.0)
+	bindings = _clean_bindings(cfg.get_value("input", "bindings", {}))
+
+
+## Saved bindings kept only if they have the right shape: action -> {"key"|"pad": {"t": String, "c": int}}.
+func _clean_bindings(v: Variant) -> Dictionary:
+	var out := {}
+	if not (v is Dictionary):
+		return out
+	for action in v:
+		if not (action is String) or not ((v[action]) is Dictionary):
+			continue
+		var mine := {}
+		for slot in ["key", "pad"]:
+			var d: Variant = (v[action] as Dictionary).get(slot)
+			if d is Dictionary and (d as Dictionary).get("t") is String and ((d as Dictionary).get("c") is int):
+				mine[slot] = {"t": String(d.t), "c": int(d.c)}
+		if not mine.is_empty():
+			out[String(action)] = mine
+	return out
 
 
 ## A value from the file if it has the default's type (int and float interchange, NaN refused),
@@ -168,6 +189,7 @@ func save_settings() -> void:
 	cfg.set_value("audio", "sfx", sfx_volume)
 	cfg.set_value("audio", "ambience", ambience_volume)
 	cfg.set_value("audio", "music", music_volume)
+	cfg.set_value("input", "bindings", bindings)
 	# write a temp file and rename it over the old one: quitting mid-write never leaves half a file
 	var tmp := PATH + ".tmp"
 	if cfg.save(tmp) != OK:
@@ -236,6 +258,8 @@ func _notification(what: int) -> void:
 
 
 func reset_defaults() -> void:
+	if not bindings.is_empty():
+		InputSetup.reset_bindings()
 	fullscreen = false
 	window_size_index = 1
 	vsync = true
