@@ -852,6 +852,17 @@ static func _glove(S: Dictionary, left: bool) -> void:
 	_tube(G, "strap", cuff, cr, 14, false, 0.3)
 	_torus(G, "iron", Vector3(0.0, 0.082, 0.0), Vector3.UP, 0.043, 0.0045, 16, 6)
 	_torus(G, "leather", Vector3(0.0, 0.158, 0.006), Vector3.UP, 0.054, 0.004, 16, 6)
+	# models pass: sewn, not moulded: a seam of cord stitches down the back of the hand between the
+	# fingers (where the leather panels meet), and a running stitch round the cuff's mouth
+	for k in 3:
+		var sx := 0.0205 - 0.0205 * float(k)
+		for i in 6:
+			var y := lerpf(0.072, 0.03, float(i) / 5.0)
+			_rbox(G, "cord", Vector3(0.0022, 0.0055, 0.0018), 0.0008, Vector3(sx, y, 0.0155 + 0.004 * sin(float(i))), Basis(Vector3.FORWARD, 0.5 if i % 2 == 0 else -0.5), 1)
+	for i in 22:
+		var a := TAU * float(i) / 22.0
+		var c := Vector3(sin(a) * 0.0545, 0.152, 0.006 + cos(a) * 0.0545)
+		_rbox(G, "cord", Vector3(0.0055, 0.0022, 0.0018), 0.0008, c, Basis(Vector3.UP, a) * Basis(Vector3.FORWARD, 0.4), 1)
 	var shift := -BAR if not left else Vector3(0.0, -0.085, 0.0)
 	var mirror := -1.0 if left else 1.0
 	for n: String in G:
