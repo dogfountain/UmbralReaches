@@ -42,6 +42,10 @@ func _run() -> void:
 	while not main.has_meta("realm_done"):
 		await get_tree().process_frame
 	p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--meshes="):
+			for nm in a.trim_prefix("--meshes=").split(","):
+				_mesh_census(nm)
 	if "--build-only" in OS.get_cmdline_user_args():
 		get_tree().quit()
 		return
@@ -57,6 +61,47 @@ func _run() -> void:
 		grand += _measure(String(pt[0]))
 	print("COST total over views %.1f us" % grand)
 	get_tree().quit()
+
+
+## --meshes=A,B: the visible geometry under each top-level node named A, B: instances, surfaces
+## (draws when all in view), by material, with their visibility range and shadow mode.
+func _mesh_census(nm: String) -> void:
+	var host := main.find_child(nm, true, false)
+	if host == null:
+		print("MESHES %s: not found" % nm)
+		return
+	var rows := {}
+	var names := {}
+	var n := 0
+	var surf := 0
+	for g in host.find_children("*", "GeometryInstance3D", true, false):
+		var gi := g as GeometryInstance3D
+		if not gi.is_visible_in_tree():
+			continue
+		var m: Mesh = null
+		if gi is MeshInstance3D:
+			m = (gi as MeshInstance3D).mesh
+		elif gi is MultiMeshInstance3D and (gi as MultiMeshInstance3D).multimesh:
+			m = (gi as MultiMeshInstance3D).multimesh.mesh
+		if m == null:
+			continue
+		n += 1
+		for si in m.get_surface_count():
+			surf += 1
+			var mat: Material = gi.material_override
+			if mat == null and gi is MeshInstance3D:
+				mat = (gi as MeshInstance3D).get_active_material(si)
+			elif mat == null:
+				mat = m.surface_get_material(si)
+			var key := "%s %s vis %.0f sh %d" % [gi.get_class(), mat.resource_path.get_file() if mat and mat.resource_path != "" else str(mat.get_instance_id() if mat else 0), gi.visibility_range_end, gi.cast_shadow]
+			rows[key] = int(rows.get(key, 0)) + 1
+			if not names.has(key):
+				names[key] = str(host.get_path_to(gi))
+	print("MESHES %s: %d instances, %d surfaces" % [nm, n, surf])
+	var keys := rows.keys()
+	keys.sort_custom(func(x: String, y: String) -> bool: return int(rows[x]) > int(rows[y]))
+	for k: String in keys:
+		print("MESHES   %4d  %s  e.g. %s" % [rows[k], k, names[k]])
 
 
 func _cal() -> float:
