@@ -54,11 +54,6 @@ func _ready() -> void:
 	add_to_group(SID)
 	_ensure_state()
 	refresh()
-	if not InputMap.has_action("kindling"):
-		InputMap.add_action("kindling")
-		var k := InputEventKey.new()
-		k.physical_keycode = KEY_K
-		InputMap.action_add_event("kindling", k)
 	Events.enemy_killed.connect(_on_killed)
 	Events.boss_slain.connect(_on_boss)
 	Events.seal_broken.connect(func(_id: String) -> void: teach("step"))      # r35: the first seal

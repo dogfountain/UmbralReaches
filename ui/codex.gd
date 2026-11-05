@@ -77,18 +77,6 @@ var _clock := 0.0
 var _arm_at := 6.5                     ## let the night's own title card finish first
 
 
-static func ensure_action() -> void:
-	if InputMap.has_action(ACTION):
-		return
-	InputMap.add_action(ACTION, 0.2)
-	var k := InputEventKey.new()
-	k.physical_keycode = KEY_J
-	InputMap.action_add_event(ACTION, k)
-	var b := InputEventJoypadButton.new()
-	b.button_index = JOY_BUTTON_DPAD_DOWN
-	InputMap.action_add_event(ACTION, b)
-
-
 ## The night is torn down: the lore landmarks' static meshes and materials go with it.
 func _exit_tree() -> void:
 	for path: String in ["res://core/world/realm/lore/lore_assets.gd", "res://core/world/realm/lore/lore_kit.gd", "res://core/world/realm/lore/inscription.gd"]:
@@ -101,7 +89,6 @@ func _ready() -> void:
 	layer = 61
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("codex")
-	ensure_action()
 	CodexStore.ensure()
 	_title_font = load("res://ui/fonts/Cinzel.ttf")
 	var sf: Font = preload("res://ui/type.gd").body()

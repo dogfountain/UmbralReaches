@@ -88,18 +88,8 @@ var _new_marks := {}                     ## marker instance id -> seconds since 
 var _seeded := false                     ## the first scan's markers were already there: no ping
 
 
-static func ensure_action() -> void:
-	if InputMap.has_action(ACTION):
-		return
-	InputMap.add_action(ACTION, 0.2)
-	var k := InputEventKey.new()
-	k.physical_keycode = KEY_M
-	InputMap.action_add_event(ACTION, k)
-
-
 func _ready() -> void:
 	name = "Minimap"
-	ensure_action()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	offset_left = -DIAM - MARGIN

@@ -53,8 +53,26 @@ func _ready() -> void:
 	sv.save(Travel.SAVE_PATH)
 	Travel.load_game()
 	_ok(Travel.checkpoint_for("res://world/main.tscn") == Vector3(400.0, 3.0, 400.0), "save: checkpoint loaded")
+	# 3. lint: every InputMap action is defined in InputSetup (six scripts used to add their own)
+	var strays := _stray_add_actions("res://")
+	_ok(strays.is_empty(), "input: no InputMap.add_action outside InputSetup %s" % [strays])
 	main = load("res://world/main.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(main)
+
+
+func _stray_add_actions(dir: String) -> PackedStringArray:
+	var out := PackedStringArray()
+	for sub: String in DirAccess.get_directories_at(dir):
+		if sub == "zz" or sub.begins_with(".") or sub == "art" or sub == "docs":
+			continue
+		out.append_array(_stray_add_actions(dir.path_join(sub)))
+	for f: String in DirAccess.get_files_at(dir):
+		var path := dir.path_join(f)
+		if not f.ends_with(".gd") or path == "res://autoload/input_setup.gd":
+			continue
+		if FileAccess.get_file_as_string(path).contains("InputMap." + "add_action"):
+			out.append(path)
+	return out
 
 
 func _process(d: float) -> void:

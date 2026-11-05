@@ -34,8 +34,7 @@ func _ready() -> void:
 	# "release_mouse" was checked by the player, settings, satchel and journal but never defined, so
 	# every input event logged an InputMap error; defined without a key (Esc already frees the mouse
 	# through the settings menu), it is a no-op instead of an error
-	if not InputMap.has_action("release_mouse"):
-		InputMap.add_action("release_mouse")
+	_ensure("release_mouse")
 	_mouse("lock_on", MOUSE_BUTTON_MIDDLE)          # agent C: target lock (pad: right stick click)
 	_button("lock_on", JOY_BUTTON_RIGHT_STICK)
 	_keys("dodge", [KEY_V])                         # agent C: dodge roll (pad: slide button when slow or locked)
@@ -72,6 +71,13 @@ func _ready() -> void:
 	_keys("kindling", [KEY_K])
 	_keys("mount", [KEY_H])                          # r36: call your horse (core/world/mount/stables.gd)
 	_button("kindling", JOY_BUTTON_DPAD_RIGHT)
+	# every other action lives here too (zz/robust_test fails on InputMap.add_action elsewhere)
+	_keys("quest_log", [KEY_L])
+	_button("quest_log", JOY_BUTTON_DPAD_LEFT)
+	_keys("minimap", [KEY_M])
+	_keys("codex", [KEY_J])
+	_button("codex", JOY_BUTTON_DPAD_DOWN)
+	_keys("target_next", [KEY_T])                    # r33 combat: cycle targets nearest-first (Tab itself is the satchel)
 
 
 func _ensure(action: String) -> void:

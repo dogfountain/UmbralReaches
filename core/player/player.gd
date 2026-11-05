@@ -280,12 +280,6 @@ func _ready() -> void:
 	_book = SkillBook.new()
 	_book.name = "SkillBook"
 	add_child(_book)
-	if not InputMap.has_action("target_next"):
-		# r33 combat: cycle targets nearest-first (Tab-style; Tab itself is the satchel). Pad: flick the stick while locked.
-		InputMap.add_action("target_next", 0.2)
-		var tk := InputEventKey.new()
-		tk.physical_keycode = KEY_T
-		InputMap.action_add_event("target_next", tk)
 	_stam = Stamina.new()
 	_stam.name = "Stamina"
 	add_child(_stam)

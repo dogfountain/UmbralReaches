@@ -42,23 +42,10 @@ var sel := ""                    ## the task shown on the right
 var _abandon_armed := ""
 
 
-static func ensure_action() -> void:
-	if InputMap.has_action(ACTION):
-		return
-	InputMap.add_action(ACTION, 0.2)
-	var k := InputEventKey.new()
-	k.physical_keycode = KEY_L
-	InputMap.action_add_event(ACTION, k)
-	var b := InputEventJoypadButton.new()
-	b.button_index = JOY_BUTTON_DPAD_LEFT
-	InputMap.action_add_event(ACTION, b)
-
-
 func _ready() -> void:
 	layer = 59
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("quest_log")
-	ensure_action()
 	_font = load("res://ui/fonts/Cinzel.ttf")
 	_build_banner()
 	_build_progress()
