@@ -71,9 +71,14 @@ func _run() -> void:
 	p.set("_debug_wish", -hs.global_basis.z)
 	p.set("_debug_sprint", true)
 	await _wait(1.6)
-	var hb2 := hs.global_basis
-	await _shot("riding", hs.global_position + hb2.x * 5.0 - hb2.z * 2.0 + Vector3.UP * 2.2, hs.global_position + Vector3.UP * 1.6)
 	p.set("_debug_drive", false)
+	p.set("_debug_wish", Vector3.ZERO)
+	await _wait(1.2)                      # let it come to a stand for a clear look
+	for n in get_tree().root.find_children("*", "CanvasLayer", true, false):
+		(n as CanvasLayer).visible = false          # the HUD off: a clean look at the rider
+	var hb2 := hs.global_basis
+	await _shot("riding", hs.global_position + hb2.x * 4.2 - hb2.z * 1.5 + Vector3.UP * 2.0, hs.global_position + Vector3.UP * 1.5)
+	await _shot("riding_34", hs.global_position + hb2.x * 3.0 - hb2.z * 3.5 + Vector3.UP * 1.8, hs.global_position + Vector3.UP * 1.4)
 	# a rung bell, lit
 	Book.start("bell_orchard")
 	Book.choose("bell_orchard", "rung")

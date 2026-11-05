@@ -63,10 +63,10 @@ const LOOK := {
 	"deer": {"detail": 0.18, "detail_scale": 3.0, "streak": 3.0, "roughness": 0.88, "eye_col": Color(0.55, 0.95, 0.6), "eye_energy": 1.4, "rim_amount": 0.12},
 	"stag": {"detail": 0.18, "detail_scale": 3.0, "streak": 3.0, "roughness": 0.88, "eye_col": Color(0.55, 0.95, 0.6), "eye_energy": 1.4, "rim_amount": 0.12},
 	"elk": {"detail": 0.2, "detail_scale": 3.0, "streak": 3.0, "roughness": 0.95, "eye_col": Color(0.55, 0.95, 0.6), "eye_energy": 0.6, "rim_amount": 0.6},
-	"horse_palfrey": {"warm": 0.16, "detail": 0.14, "detail_scale": 2.5, "streak": 3.0, "roughness": 0.7, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.25},
-	"horse_garron": {"warm": 0.16, "detail": 0.32, "detail_scale": 3.0, "streak": 3.5, "roughness": 0.92, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.3},
-	"horse_draught": {"warm": 0.16, "detail": 0.16, "detail_scale": 2.0, "streak": 3.0, "roughness": 0.6, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.35},
-	"horse_fenpony": {"warm": 0.16, "detail": 0.4, "detail_scale": 3.5, "streak": 4.0, "roughness": 0.95, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.2},
+	"horse_palfrey": {"warm": 0.11, "detail": 0.14, "detail_scale": 2.5, "streak": 3.0, "roughness": 0.7, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.25},
+	"horse_garron": {"warm": 0.11, "detail": 0.32, "detail_scale": 3.0, "streak": 3.5, "roughness": 0.92, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.3},
+	"horse_draught": {"warm": 0.11, "detail": 0.16, "detail_scale": 2.0, "streak": 3.0, "roughness": 0.6, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.35},
+	"horse_fenpony": {"warm": 0.11, "detail": 0.4, "detail_scale": 3.5, "streak": 4.0, "roughness": 0.95, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.2},
 	"fox": {"detail": 0.2, "detail_scale": 4.0, "streak": 3.0, "roughness": 0.88, "eye_col": Color(1.0, 0.85, 0.45), "eye_energy": 1.4, "rim_amount": 0.12},
 	"rat": {"detail": 0.5, "streak": 2.0, "roughness": 0.8, "eye_col": Color(1.0, 0.3, 0.2), "eye_energy": 1.0, "detail_scale": 20.0},
 	"branch": {"detail": 0.8, "streak": 4.0, "roughness": 0.95, "detail_scale": 3.0},
@@ -645,7 +645,7 @@ static func _plover(cm) -> void:
 ##   coat, mane, socks (white legs: "", "hind", "all"), blaze, feather (hair over the hooves),
 ##   girth, blanket and trim colours, dorsal (a dun's stripe)
 const HORSES := {
-	"palfrey": {"coat": Color(0.5, 0.21, 0.07), "mane": Color(0.06, 0.04, 0.035), "socks": "hind", "blaze": true, "feather": 0.0,
+	"palfrey": {"coat": Color(0.4, 0.17, 0.065), "mane": Color(0.06, 0.04, 0.035), "socks": "hind", "blaze": true, "feather": 0.0,
 		"girth": 1.0, "blanket": Color(0.46, 0.07, 0.06), "trim": Color(0.82, 0.62, 0.26), "dorsal": false},
 	"garron": {"coat": Color(0.64, 0.62, 0.6), "mane": Color(0.86, 0.85, 0.82), "socks": "", "blaze": false, "feather": 0.7,
 		"girth": 1.14, "blanket": Color(0.16, 0.24, 0.38), "trim": Color(0.75, 0.75, 0.78), "dorsal": false},
@@ -719,25 +719,52 @@ static func _horse(cm, s: float, h: Dictionary) -> void:
 	cm.blob(vh.call(0, 1.35, -1.17), Vector3(0.064, 0.058, 0.07) * s, Basis.IDENTITY, muzzle, 0.0, 0.02, HEAD, 10, 14)
 	if bool(h.blaze):
 		cm.tube(_p([vh.call(0, 1.73, -1.04), vh.call(0, 1.56, -1.105), vh.call(0, 1.4, -1.205)]), _r([0.02 * s, 0.024 * s, 0.03 * s]), 10, white, 0.0, 0.0, HEAD, Vector2(1.0, 0.25))
-	# --- mane: heavy locks falling to one side from poll to withers; a forelock -----------------
-	for k in 34:
-		var t := float(k) / 33.0
-		var root: Vector3 = v.call(0.0, lerpf(1.84, 1.2, t), lerpf(-0.9, -0.42, t))
-		var ln := rng.randf_range(0.24, 0.36) * (1.0 - 0.25 * t)
-		var wave := rng.randf_range(-0.02, 0.02)
-		var pts := _p([root, root + v.call(0.06, -0.04, 0.02), root + v.call(0.1 + wave, -ln * 0.55, 0.04), root + v.call(0.12 + wave, -ln, 0.07)])
-		cm.tube(pts, _r([0.055 * s, 0.05 * s, 0.03 * s, 0.006 * s]), 8, mane.lightened(rng.randf_range(-0.05, 0.08)), 0.0, 0.06, HEAD, Vector2(1.0, 0.45))
+	# --- mane: a heavy mass falling to one side, from poll to withers: a curtain of flat, wide,
+	# overlapping locks laid along the neck's side (two layers, the outer longer and wavier) -------
+	var ncrest := func(t: float) -> Vector3:
+		# the top of the lofted neck at t (0 poll .. 1 withers): its centre line raised by its own
+		# half-height (scaled), so every lock roots on the crest, not inside the neck
+		var f := (1.0 - t) * float(neck_pts.size() - 1)
+		var i := mini(int(f), neck_pts.size() - 2)
+		var u := f - float(i)
+		var c: Vector3 = (neck_pts[i] as Vector3).lerp(neck_pts[i + 1], u)
+		var hh := lerpf(float(neck_h[i]), float(neck_h[i + 1]), u) * s * 1.08
+		return c + Vector3.UP * hh
+	var nwidth := func(t: float) -> float:
+		var f := (1.0 - t) * float(neck_pts.size() - 1)
+		var i := mini(int(f), neck_pts.size() - 2)
+		return lerpf(float(neck_w[i]), float(neck_w[i + 1]), f - float(i)) * s
+	for layer in 2:
+		var n := 44 if layer == 0 else 36
+		for k in n:
+			var t := (float(k) + rng.randf_range(-0.3, 0.3)) / float(n - 1)
+			var tt := clampf(t, 0.0, 1.0)
+			var root: Vector3 = ncrest.call(tt)
+			var hw: float = nwidth.call(tt)
+			var ln := rng.randf_range(0.2, 0.3) * (1.0 - 0.3 * t) * (1.0 + 0.25 * float(layer))
+			var off := (0.012 + 0.012 * float(layer)) * s
+			var wave := rng.randf_range(-0.025, 0.025) * s
+			# over the crest and down the neck's side, outside its surface all the way
+			var pts := _p([root + Vector3(-0.01 * s, 0.0, 0.0), root + Vector3(hw * 0.6 + off, -0.02 * s, 0.01 * s),
+				root + Vector3(hw * 1.08 + off + wave, -ln * 0.5 * s, 0.025 * s), root + Vector3(hw * 1.14 + off + wave * 1.5, -ln * s, 0.05 * s)])
+			cm.tube(pts, _r([0.05 * s, 0.065 * s, 0.05 * s, 0.01 * s]), 8, mane.lightened(rng.randf_range(-0.06, 0.06) + 0.04 * float(layer)), 0.0, 0.05, HEAD, Vector2(1.0, 0.32))
 	for k2 in 6:
 		var a := (float(k2) - 2.5) * 0.02
 		var fr: Vector3 = vh.call(a, 1.8, -0.95)
 		cm.tube(_p([fr, fr + v.call(a * 2.0, 0.0, -0.05) * 1.2, fr + v.call(a * 3.0, -0.12, -0.08) * 1.2]), _r([0.02 * s, 0.016 * s, 0.003 * s]), 6, mane.lightened(rng.randf_range(-0.05, 0.08)), 0.0, 0.05, HEAD, Vector2(1.0, 0.5))
-	# --- tail: a full fall of locks from the dock ---------------------------------------------
-	for k3 in 22:
-		var spread := (float(k3) / 21.0 - 0.5) * 0.16
-		var ln2 := rng.randf_range(0.55, 0.75)
-		var r0: Vector3 = v.call(spread * 0.3, 1.13, 0.58)
-		var pts2 := _p([r0, v.call(spread * 0.6, 1.02, 0.7), v.call(spread, 1.08 - ln2 * 0.55, 0.76), v.call(spread * 1.2, 1.1 - ln2, 0.72)])
-		cm.tube(pts2, _r([0.075 * s, 0.07 * s, 0.05 * s, 0.01 * s]), 8, mane.lightened(rng.randf_range(-0.05, 0.08)), 0.0, 0.06, TAIL, Vector2(1.0, 0.6))
+	# --- tail: a dock carried out from the croup, then a full fall of locks fanned round it --------
+	var d0: Vector3 = v.call(0, 1.14, 0.6)
+	var d1: Vector3 = v.call(0, 1.06, 0.72)
+	cm.tube(_p([d0, d1]), _r([0.055 * s, 0.045 * s]), 10, coat, 0.0, 0.02, TAIL)
+	for k3 in 34:
+		var ang := rng.randf() * TAU
+		var rad := sqrt(rng.randf()) * 0.06
+		var ox := cos(ang) * rad
+		var oz := sin(ang) * rad * 0.7
+		var ln2 := rng.randf_range(0.55, 0.78)
+		var r0: Vector3 = d1 + v.call(ox * 0.4, 0.0, oz * 0.4)
+		var pts2 := _p([r0, r0 + v.call(ox * 0.8, -0.08, 0.06 + oz), r0 + v.call(ox * 1.3, -ln2 * 0.5, 0.08 + oz * 1.3), r0 + v.call(ox * 1.6, -ln2, 0.04 + oz * 1.5)])
+		cm.tube(pts2, _r([0.04 * s, 0.045 * s, 0.035 * s, 0.006 * s]), 7, mane.lightened(rng.randf_range(-0.06, 0.08)), 0.0, 0.06, TAIL, Vector2(1.0, 0.7))
 	# --- tack ------------------------------------------------------------------------------------
 	# the blanket: a cloth laid over the back and hanging down both flanks, its trim showing at the
 	# edge (two sheets on the barrel's section, the trim a little bigger and under)
