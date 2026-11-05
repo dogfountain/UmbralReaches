@@ -270,6 +270,10 @@ func _plant() -> void:
 		_make_rares()
 		(load("res://core/world/watch/watch_posts.gd") as GDScript).call("build", get_parent() as Node3D)   # r36 the Kindled Watch
 		(load("res://core/world/mount/stables.gd") as GDScript).call("build", get_parent() as Node3D)   # r36 horses
+		if get_parent().get_node_or_null("ReachState") == null:            # r36 the night progresses
+			var rs: Node = ReachState.new()
+			rs.name = "ReachState"
+			get_parent().add_child(rs)
 		if get_parent().get_node_or_null("RoamEvents") == null:            # r36 roaming events
 			var roam: Node = (load("res://core/world/roam/roam_events.gd") as GDScript).new()
 			roam.name = "RoamEvents"
@@ -414,7 +418,11 @@ func _spawn(slot: Dictionary) -> void:
 func _respawn_delay(slot: Dictionary) -> float:
 	if hold_for_rest and String(slot.get("seal", "")) == "":
 		return REST_HOLD
-	return RESPAWN
+	# r36 the night progresses: a quiet country (its bell rung) and a kin faction's country wait longer
+	return RESPAWN * ReachState.respawn_mult(slot.at) if _realm else RESPAWN
+
+
+const ReachState := preload("res://core/world/night/reach_state.gd")
 
 
 ## A rest at a fire: every dead roaming camp pawn comes back now (not seal guards, not within

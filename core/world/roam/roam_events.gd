@@ -9,6 +9,7 @@ extends Node
 ## Built by EnemySpawner with the watch (realm only). State: none (events are of the moment).
 
 const VillagerScript := preload("res://core/life/village/villager.gd")
+const ReachState := preload("res://core/world/night/reach_state.gd")
 
 const FIRST := 150.0             ## seconds before the first event of a night
 const EVERY := Vector2(200.0, 360.0)
@@ -246,7 +247,7 @@ func _end(won: bool) -> void:
 			(e as Node3D).set_meta(&"roam", "")
 	_foes.clear()
 	kind = ""
-	_wait = _rng.randf_range(EVERY.x, EVERY.y)
+	_wait = _rng.randf_range(EVERY.x, EVERY.y) / ReachState.pressure()      # the dark presses harder act by act
 	Travel.save_soon()
 
 

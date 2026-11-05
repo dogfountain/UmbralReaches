@@ -12,6 +12,7 @@ extends Node3D
 const VillagerScript := preload("res://core/life/village/villager.gd")
 const GearDB := preload("res://core/items/gear_db.gd")
 const GearRuntime := preload("res://core/items/gear_runtime.gd")
+const ReachState := preload("res://core/world/night/reach_state.gd")
 
 const WAKE := 70.0               ## the post wakes (watchmen, assaults) within this of the wanderer
 const ASSAULT_R := 55.0          ## assaults only come while she is this close
@@ -106,7 +107,7 @@ func _wake() -> void:
 		v.global_position = _ground(global_position + _posts[i])
 		v.call("hold", "idle", v.global_position + face * 5.0)
 		men.append(v)
-		hp.append(HP)
+		hp.append(HP * ReachState.watch_hp_mult(global_position))
 		_swing_t.append(0.0)
 
 
@@ -162,7 +163,7 @@ func _assault() -> void:
 	_next = randf_range(EVERY.x, EVERY.y)
 	_in_assault = true
 	var held := int((_state().held as Dictionary).get(id, 0))
-	var n := clampi(3 + held / 2, 3, 6)
+	var n := clampi(int(round(float(3 + held / 2) * ReachState.pressure())), 3, 7)
 	var host := get_parent()
 	for i in n:
 		var a := randf_range(-1.2, 1.2)

@@ -299,6 +299,8 @@ const CONV := {
 		"meet": {"say": "Wipe your feet. Not for me. For them. Every house here has somebody under the floor, face down, the way we do it.", "next": "meet2"},
 		"meet2": {"say": "Ruan. Hesk's grandmother's sister, if he still owns to it. The rest went to the Keg when the bells stopped. I stayed with the turf.", "do": "met:ruan", "next": "hub"},
 		"hub": {"say_if": [
+			["qp:bell_holds:rung", "I heard it at dusk. The Kin Bell. Two doors opened down the Holds that hadn't in nine years. Nobody came out. But they opened."],
+			["qp:bell_holds:carried", "You took the Kin Bell's tongue to the Keg. Fine. The kin can find their own way home. They always did."],
 			["boss:thornwarden", "The keeper's down. The oaks don't know who they belong to. Neither do I, some nights. Sit."],
 			["qd:keeper_leave", "The keeper has our coal. When you go in to it, it'll remember its manners. Mind yours."],
 			["qd:keeper_wards", "Three wards round my fire. First time in ninety years. The heather's grown back over the door-stones already."],
@@ -315,6 +317,8 @@ const CONV := {
 		"meet": {"say": "Mind the edge. The benches go down three hundred feet and every one of them's my fault. I squared the stone for the Stair. Four thousand steps.", "next": "meet2"},
 		"meet2": {"say": "Jory Quell. Last cutter. The rest went up to see the steps they'd cut. I stayed to finish a block. Never did finish it.", "do": "met:jory", "next": "hub"},
 		"hub": {"say_if": [
+			["qp:bell_quarry:rung", "Stop. You rang stop. The quarry's so quiet I can hear the stone settle. I keep reaching for my pick."],
+			["qp:bell_quarry:carried", "Hearthward has our bell's tongue. If it rings up there, let it ring stop."],
 			["qd:quarry_last", "Here the faithful step off. I've had it cut on my own stone now. Under it: and the rest of us go home."],
 			["qd:quarry_picks", "The benches are quiet. I can hear the stone settle. It does that, when it isn't being cut."],
 			["qd:quarry_marks", "Wat, Dunny, my brother. I say them over at night. It's a short list. It used to be longer than the Stair."],
@@ -331,6 +335,8 @@ const CONV := {
 		"meet": {"say": "Put that light down, if you've one. No. Keep it. I keep the cairns in the dark, like the edict says. I never said I believed it.", "next": "meet2"},
 		"meet2": {"say": "Ysolt. I walk the moor at night and count the stones. The wind takes one a night off every cairn. I put one back. We're even, the wind and I.", "do": "met:ysolt", "next": "hub"},
 		"hub": {"say_if": [
+			["qp:bell_moor:rung", "They walk to the bell now, not the bog. I counted four lights going down off the tor last night. Down."],
+			["qp:bell_moor:carried", "No bell on the moor. I'll stand on the tor with a lantern myself, then. Somebody has to."],
 			["qd:moor_shrine", "There's a coal in the shrine's lap. First light on the moor since the edict. I go up the tor to look at it."],
 			["qd:moor_cairns", "The cairns stand. Somebody walking home tonight won't fall in the bog. They won't thank you. They won't know."],
 			["", "Lanterns are for doubters. That was the first edict. Most of the faithful who crossed here are still out there, on their faces."],
@@ -346,6 +352,8 @@ const CONV := {
 		"meet": {"say": "Don't touch the slag, it's warmer than it looks. The ground here never cooled. Neither did I.", "next": "meet2"},
 		"meet2": {"say": "Elspeth Fane. I was the Founder's journeywoman. I poured Patience with her. Brannoc was a boy then, getting under our feet.", "do": "met:elspeth", "next": "hub"},
 		"hub": {"say_if": [
+			["qp:bell_foundry:rung", "The Tenor's still humming. The slag heaps hum back. I sleep better than I have since she died."],
+			["qp:bell_foundry:carried", "Her son has the Tenor's tongue. Good. It was always going to end in his hands."],
 			["boss:ascended_warden", "The great bell's come down from the summit, they say, cracked. I'd like to see the crack. I'd like to know if it was ours."],
 			["qd:founder_peal", "The tongue's with Brannoc. When you climb, listen. If the bell in its hand rings wrong, that's her. That's Mother's order."],
 			["qd:founder_moulds", "The mould's whole on my furnace floor. It hums. I've got a tongue to cast, and a son to send it to."],
@@ -362,6 +370,8 @@ const CONV := {
 		"meet": {"say": "Careful, that's a graft. It doesn't look like anything. Nothing does, for the first year.", "next": "meet2"},
 		"meet2": {"say": "Linnet. My grandmother was a Kindler. The Order burned this orchard so her lot would have nothing. I'm growing it back out of spite.", "do": "met:linnet", "next": "hub"},
 		"hub": {"say_if": [
+			["qp:bell_orchard:rung", "The grafted stock has three leaves. Three. Since the bell. Don't tell me it's the bell. I know it's the bell."],
+			["qp:bell_orchard:carried", "No harvest bell, then. The trees don't mind. They've been quiet nine years; they're good at it."],
 			["qd:orchard_graft", "The old tree's warm. A graft took on it this morning. Green as anything. Nobody's allowed to tell the Order."],
 			["qd:orchard_buds", "Three buds on a stock. One's dead. One's thinking about it. One's growing. That's good odds, in an orchard."],
 			["", "They burned it in a winter. It'll take me forty years. That's all right. The fire took Edda's hands; I've still got mine."],
@@ -377,6 +387,8 @@ const CONV := {
 		"meet": {"say": "Hush. They're waiting. They've been waiting since before you were born, and they've been very good about it.", "next": "meet2"},
 		"meet2": {"say": "Agathe. I was a sister of the Order. I kept this field. I still turn the stones to face the mountain, when they move. My back is not what it was.", "do": "met:agathe", "next": "hub"},
 		"hub": {"say_if": [
+			["qp:bell_necropolis:rung", "The ranks lay down after the one stroke. All of them. I walk the field now and nobody turns to look at the mountain."],
+			["qp:bell_necropolis:carried", "The Passing Bell's tongue is at the Keg. Let it pass him by. He's earned that much from it."],
 			["boss:bone_abbot", "The count's stopped under the abbey. The ranks feel it. Some of the stones have turned toward the village, on their own. I let them."],
 			["qd:abbot_names", "You read the names into his dark. He's counting them again and coming up short. Good. Let him doubt. We did."],
 			["qd:abbot_roll", "Three pages. Eighty-one names. I read them to the field every night, a page at a time."],
@@ -393,6 +405,8 @@ const CONV := {
 		"meet": {"say": "If you're wanting across, I don't. Not any more. I row the lamps out, and I row back. That's the trade now.", "next": "meet2"},
 		"meet2": {"say": "Cadoc. I ferried for Brother Corvin, when he took fire out to the sunk. He'd hold the lamp. I'd hold the oars. Then they took his hands.", "do": "met:cadoc", "next": "hub"},
 		"hub": {"say_if": [
+			["qp:bell_mere:rung", "Somebody rang my bell. I went down to the water out of habit. There was nobody there. There never is. Good."],
+			["qp:bell_mere:carried", "The ferry bell's dumb now. Nobody calls me across. I sleep through the night."],
 			["qd:mere_light", "There's a light in Corvin's chapel. I row past it and I don't look. I'm not ready to look."],
 			["qd:mere_lamps", "His lamps are out on the water again. They drift toward the chapel. They always did."],
 			["", "The Abbot sank them with three stones: eyes, mouth, heart. Corvin answered with three lights. Same places. Different answer."],
