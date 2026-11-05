@@ -41,6 +41,7 @@ var _last_state := {}            ## id -> [step, done] (only real changes raise 
 var _rows: Array = []            ## [[quest id, Button], ...] in list order
 var sel := ""                    ## the task shown on the right
 var _abandon_armed := ""
+var _recent := PackedStringArray()   ## the last three count lines posted, newest first
 var _bq: Array = []              ## banners waiting for the text director's banner lane
 
 
@@ -215,6 +216,9 @@ func _show_banner(top: String, name_text: String, sub: String) -> void:
 
 ## A count toast ("Bone ash: 3/5"), gold when the count is full; three at most, newest at the top.
 func progress(text: String, full := false) -> void:
+	_recent.insert(0, text)                     # newest first, three kept (progress_lines)
+	if _recent.size() > 3:
+		_recent.resize(3)
 	var td := TextDirector.of(self)
 	if td:
 		td.post_toast(text)                     # the corner toast lane; two at most, queued behind higher text
@@ -236,12 +240,9 @@ func progress(text: String, full := false) -> void:
 
 
 ## The progress lines showing now (tests).
+## The count lines posted most recently, newest first (whether drawn here or by the text director).
 func progress_lines() -> PackedStringArray:
-	var out := PackedStringArray()
-	for c in _prog.get_children():
-		if c is Label and not c.is_queued_for_deletion():
-			out.append((c as Label).text)
-	return out
+	return _recent
 
 
 static func outcome(id: String) -> String:
