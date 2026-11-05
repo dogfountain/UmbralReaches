@@ -1,6 +1,7 @@
 class_name Enemy
 extends CharacterBody3D
-## Melee crawler base. Flat steering, no navmesh. Strike adds Gloom; no player HP.
+## Melee crawler base. Flat steering, no navmesh. A landed blow goes to the wanderer's Wounds
+## (Player.take_wound; a guard or a roll can turn it); Gloom is the dark's clock only, never a foe's damage.
 
 enum { IDLE, CHASE, WINDUP, STRIKE, RECOVER, DEAD, LEAP_PREP, AIRBORNE, FEINT, SPECIAL, CALL }
 ## FEINT    a false start: the rig rears but no red fills -- it settles, then the real tell comes.
@@ -9,7 +10,7 @@ enum { IDLE, CHASE, WINDUP, STRIKE, RECOVER, DEAD, LEAP_PREP, AIRBORNE, FEINT, S
 ##          _special_think() and moves the body with _drive.
 ## CALL     the first of a pack to see you throws its head back and howls: the rest wake and come.
 ##
-## r33 (WoW-style readability; docs in this header are the contract the HUD reads):
+## Readability (the HUD reads this header as its contract):
 ##   display_name() -> String         "Chanter", "Hobb, Who Knocks Thrice", "Mother Sallow", a boss's title
 ##   rank() -> String                 "normal" | "elite" | "rare" | "boss"
 ##   level() -> int                   1.. from the night's danger tier and rank (-1 for a boss: show "??")
@@ -22,20 +23,20 @@ enum { IDLE, CHASE, WINDUP, STRIKE, RECOVER, DEAD, LEAP_PREP, AIRBORNE, FEINT, S
 ##                                    afflict.gd), shrouded and warded (buffs), plus anything another system
 ##                                    puts in meta "statuses" (an Array of the same dicts)
 ##   ui_info() -> Dictionary          all of the above in one call
-##   is_evading() -> bool             leashed: walking home (r35: it can be struck, which turns it back; no heal)
+##   is_evading() -> bool             leashed: walking home (it can be struck, which turns it back; no heal)
 ## Events.enemy_cast_started(enemy, name, time, interruptible) and Events.enemy_cast_ended(enemy, name,
 ## interrupted) fire as casts begin and end, so a cast bar needs no polling to appear.
 ## interrupt(by) -> bool: a skill that interrupts calls this (true = a cast was broken). Any blow breaks a
 ## lesser foe's interruptible cast; a boss's only a heavy blow (a Lance, a charged bolt, >= INTERRUPT_DMG)
 ## or a burst on its open weak point. A broken caster is locked out of casting for SILENCE seconds.
 ##
-## Threat and aggro (r33): the wanderer is the only foe they have. They wake inside chase_range (not while
+## Threat and aggro: the wanderer is the only foe they have. They wake inside chase_range (not while
 ## you shelter in fire-light), a blow from anywhere provokes them, and a pull is the whole PACK: everything
 ## camped within PACK_LINK of the same home comes together (the first to see you may also howl the
 ## ALARM_R neighbourhood awake). They leash like WoW mobs: drag one past its leash (hunt_leash, or
 ## HARD_LEASH x it for kinds with their own rules) or outrun its chase and it EVADES -- it walks home
-## and drops its Marks and tells; its packmates reset with it. r35: it keeps its damage (no heal at
-## home) and a blow on the way turns it back into the fight (it was WoW's immune run home). A Tollman's bell (Enemy.toll) and a tide's hunters are exempt while they hunt.
+## and drops its Marks and tells; its packmates reset with it. It keeps its damage (no heal at
+## home) and a blow on the way turns it back into the fight. A Tollman's bell (Enemy.toll) and a tide's hunters are exempt while they hunt.
 
 const Hints := preload("res://ui/hints.gd")
 const HP_BAR_SHADER := "res://core/enemy/health_bar.gdshader"
