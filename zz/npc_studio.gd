@@ -10,7 +10,7 @@ const VRig := preload("res://core/life/village/villager_rig.gd")
 
 const VILLAGERS := ["hild", "fennick", "nan", "ruan", "elspeth", "cadoc"]
 const DWARVES := {"dwarf_keep": {"seated": false, "seed": 5150, "apron": true, "hat": "bare", "rag": true},
-	"dwarf_patron": {"seated": false, "seed": 7023, "hat": "hood"}}
+	"dwarf_patron": {"seated": false, "seed": 7023, "hat": "hood"}, "dwarf_helm": {"seated": false, "seed": 6301, "hat": "helm"}}
 
 var tag := "studio"
 var only: PackedStringArray = []
@@ -80,7 +80,7 @@ func _run() -> void:
 			continue
 		var dr: Node3D = DwarfRig.make(DWARVES[id])
 		add_child(dr)
-		await _pair(id, dr, 1.25)
+		await _pair(id, dr, float(dr.call("head_top")))
 		dr.queue_free()
 	_sheet()
 	get_tree().quit(0)
