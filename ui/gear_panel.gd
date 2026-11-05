@@ -336,7 +336,10 @@ func _worn_uid(st: Dictionary, uid: int) -> bool:
 func _rebuild() -> void:
 	var st := _st()
 	var worn := GearStats.worn(st)
-	_fire_label.text = "At the fire: gear may be raised, reforged and salvaged." if at_fire() else "Away from a fire: wear and plan here; raise and reforge at a kindled brazier."
+	if not Slice.full():
+		_fire_label.text = ""
+	else:
+		_fire_label.text = "At the fire: gear may be raised, reforged and salvaged." if at_fire() else "Away from a fire: wear and plan here; raise and reforge at a kindled brazier."
 	_fire_label.add_theme_color_override("font_color", EMBER if at_fire() else QUIET)
 	_purse.text = "Ash %d    Shards %d    Fragments %d" % [Travel.count("grave_ash"), Travel.count("ember_shard"), Travel.count("relic_fragment")]
 	for slot: String in GearDB.SLOTS:
@@ -420,8 +423,9 @@ func _show() -> void:
 	var st := _st()
 	var p := GearStats.find(st, _sel_uid)
 	var has := not p.is_empty()
-	for b: Button in [_b_wear, _b_up, _b_forge, _b_salv]:
-		b.visible = has
+	_b_wear.visible = has
+	for b: Button in [_b_up, _b_forge, _b_salv]:      # the 30-minute slice hides upgrading (--full restores)
+		b.visible = has and Slice.full()
 	if not has:
 		_d_name.text = "Nothing carried" if _filter == "" else "No %s carried" % GearDB.SLOT_NAMES[_filter]
 		_d_name.add_theme_color_override("font_color", QUIET)
@@ -465,7 +469,7 @@ func _show() -> void:
 	var tip := Tip.piece(p, cur, st)
 	var parts := tip.split("\n", true, 1)
 	_d_rich.text = parts[1] if parts.size() > 1 else tip
-	if aff.size() > 1:
+	if aff.size() > 1 and Slice.full():
 		_d_kind.text = "Reforge [Y] rerolls line %d: %s" % [_reforge_idx + 1, GearDB.affix_line(p, aff[_reforge_idx])]
 	else:
 		_d_kind.text = GearDB.SLOT_WHERE[String(p.slot)]
@@ -510,6 +514,8 @@ func _wear_toggle() -> void:
 
 
 func _upgrade() -> void:
+	if not Slice.full():
+		return
 	var rt := _runtime()
 	if rt == null or _sel_uid < 0:
 		return
@@ -521,6 +527,8 @@ func _upgrade() -> void:
 
 
 func _reforge() -> void:
+	if not Slice.full():
+		return
 	var rt := _runtime()
 	var p := GearStats.find(_st(), _sel_uid)
 	if rt == null or p.is_empty():
@@ -536,6 +544,8 @@ func _reforge() -> void:
 
 
 func _salvage() -> void:
+	if not Slice.full():
+		return
 	var rt := _runtime()
 	if rt == null or _sel_uid < 0:
 		return
