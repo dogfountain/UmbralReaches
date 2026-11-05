@@ -1533,6 +1533,10 @@ const STEP_KEYS := [[0.0, 0.3], [1.5, 0.52], [3.0, 0.78], [4.5, 1.0], [7.5, 1.5]
 
 ## Traversal state the Player feeds in (all 0..1 blends unless noted).
 var ride := 0.0                     ## r36: astride a horse (core/world/mount): 0..1
+## r36: the horse's barrel under the saddle in the coat's space (x half-width, y centre, z half-height);
+## the coat drapes over it while `ride` is on (robe_skin.gdshader `saddle`)
+var saddle := Vector3.ZERO
+var _saddle_sent := 0.0
 var hang := 0.0                     ## hanging from a ledge by the hands
 var hang_shimmy := 0.0              ## -1..1 moving sideways along the ledge
 var steep := 0.0                    ## sliding down a slope too steep to stand on
@@ -2038,6 +2042,16 @@ func _moves_pose(speed: float, on_floor: bool, dt: float) -> void:
 		_sh[1].rotation.z += 0.35 * k
 	if ride > 0.001:
 		_pose_ride(ride)
+	if ride > 0.001 or _saddle_sent > 0.0:
+		# the coat drapes over the horse's barrel (robe_skin `saddle`): the merged body and any
+		# separate cloth pieces alike
+		_saddle_sent = ride
+		var sv := Vector4(saddle.x, saddle.y, saddle.z, ride)
+		if _body_mi:
+			_body_mi.set_instance_shader_parameter("saddle", sv)
+		for mi in _cloth:
+			if is_instance_valid(mi):
+				mi.set_instance_shader_parameter("saddle", sv)
 	if hang > 0.001:
 		_pose_hang(hang)
 		_staff_frame = _staff_frame.slerp(Basis(Vector3.BACK, -PI * 0.5) * Basis(Vector3.RIGHT, 0.12), hang)
@@ -2126,9 +2140,11 @@ func _pose_ride(k: float) -> void:
 	_el[1].rotation.x = lerpf(_el[1].rotation.x, 0.9, k)
 	for i in 2:
 		var sd := 1.0 if i == 0 else -1.0
-		_hip[i].rotation.x = lerpf(_hip[i].rotation.x, 1.15, k)
-		_hip[i].rotation.z = lerpf(_hip[i].rotation.z, 0.42 * sd, k)
-		_knee[i].rotation.x = lerpf(_knee[i].rotation.x, -1.25, k)
+		# thighs splayed round the barrel (the horse is ~0.7 m wide under the saddle), shins down
+		# toward the stirrups
+		_hip[i].rotation.x = lerpf(_hip[i].rotation.x, 0.85, k)
+		_hip[i].rotation.z = lerpf(_hip[i].rotation.z, 0.8 * sd, k)
+		_knee[i].rotation.x = lerpf(_knee[i].rotation.x, -1.0, k)
 		_foot[i].rotation.x = lerpf(_foot[i].rotation.x, 0.2, k)
 
 

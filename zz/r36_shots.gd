@@ -9,6 +9,7 @@ const Book := preload("res://core/story/quest_book.gd")
 var main: Node
 var out := "res://shots"
 var _ran := false
+var ride_view := "side"
 var t := 0.0
 var cam: Camera3D
 
@@ -16,6 +17,8 @@ var cam: Camera3D
 func _ready() -> void:
 	Travel._busy = true
 	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--ride-view="):
+			ride_view = a.trim_prefix("--ride-view=")
 		if a.begins_with("--out="):
 			out = a.trim_prefix("--out=")
 	main = load("res://world/main.tscn").instantiate()
@@ -77,8 +80,13 @@ func _run() -> void:
 	for n in get_tree().root.find_children("*", "CanvasLayer", true, false):
 		(n as CanvasLayer).visible = false          # the HUD off: a clean look at the rider
 	var hb2 := hs.global_basis
-	await _shot("riding", hs.global_position + hb2.x * 4.2 - hb2.z * 1.5 + Vector3.UP * 2.0, hs.global_position + Vector3.UP * 1.5)
-	await _shot("riding_34", hs.global_position + hb2.x * 3.0 - hb2.z * 3.5 + Vector3.UP * 1.8, hs.global_position + Vector3.UP * 1.4)
+	# one view a run (a second camera move in the same run rendered the first frame again)
+	var views := {"side": [hb2.x * 3.6 + Vector3.UP * 1.9, Vector3.UP * 1.5], "front": [-hb2.z * 4.5 + hb2.x * 1.5 + Vector3.UP * 3.0, Vector3.UP * 1.6],
+		"high": [hb2.x * 2.6 + hb2.z * 1.0 + Vector3.UP * 3.6, Vector3.UP * 1.5], "back": [hb2.z * 4.0 + hb2.x * 1.2 + Vector3.UP * 2.6, Vector3.UP * 1.6]}
+	var vv: Array = views.get(ride_view, views["side"])
+	await _shot("riding_" + ride_view, hs.global_position + (vv[0] as Vector3), hs.global_position + (vv[1] as Vector3))
+
+
 	# a rung bell, lit
 	Book.start("bell_orchard")
 	Book.choose("bell_orchard", "rung")
@@ -96,6 +104,9 @@ func _run() -> void:
 
 
 func _shot(nm: String, from: Vector3, at: Vector3) -> void:
+	for c in get_tree().root.find_children("*", "Camera3D", true, false):
+		if c != cam:
+			(c as Camera3D).current = false
 	cam.global_position = from
 	cam.look_at(at, Vector3.UP)
 	cam.make_current()

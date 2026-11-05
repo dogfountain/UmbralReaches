@@ -27,6 +27,7 @@ var _turn_v := 0.0
 var _mount_t := 9.0
 var _mount_from := Vector3.ZERO
 const MOUNT_T := 0.35
+const SEAT_Y := 1.315             ## the saddle's seat top, x the breed's scale, above the horse's origin
 var _space: PhysicsDirectSpaceState3D
 
 
@@ -159,15 +160,25 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	_write()
 	_hooves(dt)
 	# the rider sits the saddle, facing where the horse faces
-	var seat := global_position + Vector3.UP * (1.26 * _scale() - 0.62 + _bob()) + fwd * 0.04
+	# the pelvis on the saddle's seat (the seat's top is 1.315 x scale above the horse's origin; the
+	# rig's pelvis stands 0.955 above its feet), a hand's width behind the pommel
+	var seat := global_position + Vector3.UP * (SEAT_Y * _scale() - CharacterRig.H_PELVIS + 0.02 + _bob()) + fwd * (0.04 * _scale())
 	if _mount_t < MOUNT_T:
 		_mount_t += dt
 		var e := smoothstep(0.0, 1.0, _mount_t / MOUNT_T)
 		seat = _mount_from.lerp(seat, e) + Vector3.UP * sin(e * PI) * 0.35      # a swing up and over
 	p.global_position = seat
 	var vis := p.get_node_or_null("Visual") as Node3D
+	if vis and "saddle" in vis:
+		# the barrel under the rider, in the coat's space (origin at the pelvis): its centre 0.98 x
+		# scale above the horse's origin, so (0.98 - 1.315) x scale below the seat
+		var g: float = float(LifeKit.HORSES.get(breed, {}).get("girth", 1.0))
+		vis.set("saddle", Vector3(0.25 * g * _scale() * 1.05, (0.98 - SEAT_Y) * _scale() - 0.02, 0.285 * _scale() * 1.05))
 	if vis:
-		vis.rotation.y = lerp_angle(vis.rotation.y, _yaw, 1.0 - exp(-12.0 * dt))   # facing where the horse faces
+		# facing where the horse faces, in WORLD space: the player node itself turns with the camera,
+		# so a local yaw sat the rider sideways
+		var cur := vis.global_rotation.y
+		vis.global_rotation.y = lerp_angle(cur, _yaw, 1.0 - exp(-12.0 * dt))
 	p.velocity = fwd * speed
 
 

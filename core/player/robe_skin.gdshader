@@ -54,6 +54,9 @@ instance uniform vec3 knee_l : instance_index(11) = vec3(-0.11, -0.6, 0.0);
 instance uniform vec3 knee_r : instance_index(12) = vec3(0.11, -0.6, 0.0);
 instance uniform vec3 hip_l : instance_index(13) = vec3(-0.11, -0.2, 0.0);
 instance uniform vec3 hip_r : instance_index(14) = vec3(0.11, -0.2, 0.0);
+// r36 riding: the horse's barrel under the saddle, in this space: x half-width, y centre, z half-height,
+// w on (0..1). The coat drapes over it instead of passing through the horse.
+instance uniform vec4 saddle : instance_index(15) = vec4(0.0);
 
 // instance_index: the body carries three shaders on one instance; each slot must be unique
 // The wanderer's violet rim key (it used to be an OmniLight3D on the rig, see CharacterRig
@@ -151,6 +154,18 @@ void vertex() {
 	Q.xz += radial * (wave_amt + ripple * 0.01 + billow * 0.014) * w3 * wave_scale;
 	Q.y += (flutter * 0.006 + billow * 0.008) * w3 * wave_scale;
 
+	// r36 riding: anything of the coat inside the horse's barrel section is pushed out to its surface
+	// (a little proud), so the coat lies over the horse's flanks
+	if (saddle.w > 0.001) {
+		vec2 e = vec2(Q.x / saddle.x, (Q.y - saddle.y) / saddle.z);
+		float d = length(e);
+		if (d < 1.14) {
+			// out to the surface and a little proud, more toward the hem (cloth over a flank stands off it)
+			vec2 onto = e / max(d, 1e-3) * (1.08 + 0.08 * hem);
+			vec3 R = vec3(onto.x * saddle.x, saddle.y + onto.y * saddle.z, Q.z);
+			Q = mix(Q, R, saddle.w);
+		}
+	}
 	// soft cover for the boots, front hem only
 	if (leg_push > 0.01 && stride > 0.05) {
 		for (int fi = 0; fi < 2; fi++) {
