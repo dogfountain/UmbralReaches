@@ -528,7 +528,7 @@ func parry(attacker: Node) -> void:
 	player.kick(0.4)
 
 
-## Player.add_gloom_from_enemy while guarding: how much of `amount` gets through.
+## Player.take_wound while guarding: how much of `amount` gets through.
 func absorb(amount: float, from_pos: Vector3) -> float:
 	if _guard_t < 0.0 or amount <= 0.0:
 		return amount

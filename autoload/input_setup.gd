@@ -46,6 +46,11 @@ func _ready() -> void:
 	_keys("guard", [KEY_X])                         # hold = guard; its first instant parries
 	_mouse("guard", MOUSE_BUTTON_XBUTTON2)
 	_keys("inventory", [KEY_TAB, KEY_I])
+	# r35: the Gear menu. It was G (gear_panel.gd bound it itself), which is also the staff strike: one
+	# press opened Gear, the next closed it and swung. O sits with the other menu keys (I J K L M), away
+	# from the fight's V C X G, so a missed key cannot pause a fight. zz/robust_test fails on any key
+	# bound to two actions.
+	_keys("gear", [KEY_O])
 	_button("inventory", JOY_BUTTON_DPAD_UP)
 	_button("toggle_settings", JOY_BUTTON_START)
 

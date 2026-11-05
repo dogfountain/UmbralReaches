@@ -8,6 +8,7 @@ extends CanvasLayer
 ## takes it too, and the lore reads as gold italic flavour under what the item does.
 
 const UiSound := preload("res://ui/ui_sound.gd")
+const GearRuntime := preload("res://core/items/gear_runtime.gd")
 const SLOT := 92.0
 const GROUPS := [["relic", "Relics"], ["trophy", "Trophies"], ["core", "Staff Cores"], ["charm", "Charms"], ["material", "Materials"]]
 const _PROG := preload("res://core/life/progression/icons.gd")   # progression: charm icons, worn notes
@@ -155,9 +156,9 @@ func _build() -> void:
 			close_menu()
 			cx.call("open_book"))
 	head.add_child(journal)
-	# r33 loot: the gear panel ([G])
+	# r33 loot: the gear panel (action "gear"; its key read from the InputMap)
 	var gear_b := Button.new()
-	gear_b.text = "Gear  [G]"
+	gear_b.text = "Gear  [%s]" % GearRuntime._gear_key()
 	gear_b.flat = true
 	gear_b.add_theme_color_override("font_color", QUIET)
 	gear_b.pressed.connect(func() -> void:

@@ -5,7 +5,7 @@ extends Node
 ##   - the fight starts past the inner grille; both grilles shut; casts are exposed (cast_info)
 ##   - every phase and the intermission are reached: the Tolling (with its sound-shadow), the mound
 ##     and the Tallies, the Choir's hymn, the Reckoning's plates, the floor falling (and a fall into the
-##     deep thrown back up), the burn; the soft enrage
+##     deep thrown back up), the burn; no soft enrage (r35)
 ##   - the kill: saved, the grilles open, the lift released, the Bone Reliquary before the mound, the
 ##     floor restored, his dead gone with him
 ## Run: HOME=<scratch> godot --headless --path . res://zz/crypt_r34_test.tscn [-- --sim]
@@ -174,7 +174,7 @@ func _walk_down() -> void:
 			p.debug_drive(Vector3(d.x, 0.0, d.y).normalized())
 			await get_tree().physics_frame
 			t += 1.0 / 60.0
-			p.gloom = 0.0
+			p.gloom = 0.0; p.wounds = 0.0
 		if t >= 10.0:
 			print("CRYPT34 walk stuck before waypoint %d %s at %s" % [i, target, p.global_position.snapped(Vector3.ONE * 0.01)])
 			break
@@ -192,7 +192,7 @@ func _fight() -> void:
 	# the wanderer is kept out of the dark (the checks are the boss's, not a survival run)
 	get_tree().physics_frame.connect(func() -> void:
 		if is_instance_valid(p) and not get_meta(&"let_gloom", false):
-			p.gloom = 0.0)
+			p.gloom = 0.0; p.wounds = 0.0)
 	var a := _arena()
 	var c := Hall.C
 	var da := Hall.door_ang()
@@ -210,7 +210,7 @@ func _fight() -> void:
 	b.set("_busy", 0.0)
 	var told := ""
 	for i in 120:
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		if b.casting():
 			told = b.cast_name
 			if told == "The Tolling":
@@ -227,10 +227,10 @@ func _fight() -> void:
 	var away := -Vector3(cos(deg_to_rad(float(bells[best]))), 0.0, sin(deg_to_rad(float(bells[best]))))
 	_tp(c + away * BoneAbbot.SHADOW_AT + Vector3.UP * 0.2)
 	set_meta(&"let_gloom", true)
-	p.gloom = 0.0
-	var g0 := p.gloom
+	p.gloom = 0.0; p.wounds = 0.0
+	var g0 := p.wounds
 	await _secs(BoneAbbot.TOLL_TIME + 0.5)
-	check("the mound's sound-shadow is safe from the Tolling", p.gloom - g0 < 1.0, "%.1f" % (p.gloom - g0))
+	check("the mound's sound-shadow is safe from the Tolling", p.wounds - g0 < 1.0, "%.1f" % (p.wounds - g0))
 	set_meta(&"let_gloom", false)
 	_tp(Hall.at(da, 15.0, c.y + 0.2))
 	# the intermission
@@ -301,10 +301,10 @@ func _fight() -> void:
 	check("no floor over a fallen sector (the deep below)", f != Vector3.INF and f.y < Hall.FLOOR_Y - 3.0, str(f))
 	set_meta(&"let_gloom", true)
 	_tp(over + Vector3.UP * 0.4)
-	var g1 := p.gloom
+	var g1 := p.wounds
 	await _secs(2.0)
 	check("a fall into the deep throws you back onto standing stone", bool(hall.call("floor_under", p.global_position)) and p.global_position.y > Hall.FLOOR_Y - 0.6, str(p.global_position.snapped(Vector3.ONE * 0.1)))
-	check("...for Gloom", p.gloom - g1 >= 15.0, "%.1f" % (p.gloom - g1))
+	check("...for Wounds (r35: it was Gloom)", p.wounds - g1 >= 15.0, "%.1f" % (p.wounds - g1))
 	set_meta(&"let_gloom", false)
 	_tp(Hall.at(da, 15.0, c.y + 0.2))
 	# phase IV: the burn
@@ -315,10 +315,8 @@ func _fight() -> void:
 	h1 = b.hp
 	b.take_hit(1.0)
 	check("he no longer wards himself (+20 % taken)", absf((h1 - b.hp) - 1.2) < 0.05 or b._ward_t > 0.0, "%.2f" % (h1 - b.hp))
-	# the soft enrage
-	b.fight_t = BoneAbbot.ENRAGE_AT + 1.0
-	await _frames(5)
-	check("the Last Count: soft enrage", b.dmg_mult > 1.0, "%.2f" % b.dmg_mult)
+	# r35: no soft enrage (the Last Count is gone)
+	check("no soft enrage", not (BoneAbbot as Script).get_script_constant_map().has("ENRAGE_AT") and is_equal_approx(b.dmg_mult, 1.0), "%.2f" % b.dmg_mult)
 	# the kill
 	b.marks = 0
 	b.take_hit(999.0)
@@ -361,7 +359,7 @@ func _sim() -> void:
 		await get_tree().physics_frame
 		var dt := get_physics_process_delta_time() * Engine.time_scale
 		t += dt
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		var ph: String = ("I" if b.phase == 1 else ["", "", "II", "III", "IV"][b.phase]) if int(b.get("_inter")) != 1 else "INT"
 		if ph != last_phase:
 			marks[ph] = t

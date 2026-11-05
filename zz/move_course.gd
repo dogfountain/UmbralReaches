@@ -609,7 +609,7 @@ func _trav(delta: float) -> void:
 		"fallout":
 			if not state.has("off"):
 				if t < 0.05:
-					p.gloom = 0.0                       # earlier legs fill it in the dark
+					p.gloom = 0.0; p.wounds = 0.0                       # earlier legs fill it in the dark
 				_drive(fwd)
 				if p.global_position.z < -3.5:
 					state["off"] = true

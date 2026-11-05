@@ -1,8 +1,8 @@
 extends Control
 ## Screen-space floating combat text (r33, after WoW's scrolling combat text). In-world hit numbers on
 ## foes stay core/vfx/hit_text.gd's (3D, pooled); this adds the wanderer's own side of a fight, at
-## his shoulder: the Gloom a blow put on him (left, red; a heavy blow bigger) and the Gloom a kill or
-## a fire took off (right, lantern gold, like a heal).
+## his shoulder: the Wounds a blow opened (red; a heavy blow bigger) and the Wounds a kill, spent
+## Resonance or a fire closed (lantern gold, like a heal). r35: these were Gloom before the split.
 ##
 ## r33: a critical hit you deal (Events.combat_damage, crit) bursts as a big gold number at the foe,
 ## WoW-style, over the small in-world number its take_hit already shows; ordinary hits stay in-world.
@@ -68,18 +68,19 @@ func pop(at: Vector3, text: String, kind := "damage") -> void:
 func _on_hurt(amount: float, _from: Vector3) -> void:
 	if amount < 0.5 or _player == null:
 		return
-	pop(_player.global_position + Vector3.UP * 1.9, "+%d Gloom" % roundi(amount), "hurt_big" if amount >= 20.0 else "hurt")
-	_last_gloom = float(_player.get("gloom")) if "gloom" in _player else -1.0
+	pop(_player.global_position + Vector3.UP * 1.9, "−%d" % roundi(amount), "hurt_big" if amount >= 20.0 else "hurt")
+	# the blow lands on the Wounds just after this signal: count it as already there
+	_last_gloom = float(_player.get("wounds")) + amount if "wounds" in _player else -1.0
 
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(_player) or not _player.is_inside_tree():
 		_player = get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
-	if _player and "gloom" in _player:
-		var g := float(_player.get("gloom"))
-		if _last_gloom >= 0.0 and g <= _last_gloom - 2.0:
-			pop(_player.global_position + Vector3.UP * 1.7, "−%d Gloom" % roundi(_last_gloom - g), "heal")
-		_last_gloom = g
+	if _player and "wounds" in _player:
+		var w := float(_player.get("wounds"))
+		if _last_gloom >= 0.0 and w <= _last_gloom - 2.0:
+			pop(_player.global_position + Vector3.UP * 1.7, "+%d" % roundi(_last_gloom - w), "heal")
+		_last_gloom = w
 	for i in range(_pops.size() - 1, -1, -1):
 		_pops[i].t = float(_pops[i].t) + delta
 		if float(_pops[i].t) > LIFE:

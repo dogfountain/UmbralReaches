@@ -394,7 +394,7 @@ func _spend(s: Skill, spent: int, surged: bool) -> void:
 		combat.consume(player, &"surge")
 	if spent > 0:
 		combat.consume(player, &"resonance")
-		player.add_gloom(-CombatState.RES_GLOOM * float(spent))
+		player.mend(CombatState.RES_GLOOM * float(spent))     # r35: spent Resonance mends Wounds
 		_heat_hold = 0.0                                  # spending vents the staff's heat
 		if spent >= 3:
 			var st: Node = player.stamina() if player.has_method("stamina") else null

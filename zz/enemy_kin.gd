@@ -116,7 +116,7 @@ func _spawn(path: String, at: Vector3) -> Enemy:
 func _reset_player(at := Vector3.ZERO) -> void:
 	p.global_position = at
 	p.velocity = Vector3.ZERO
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	p._hurt_grace_until = 0.0
 	p._evade_t = 0.0
 	p.set_view(0.0, 0.0)
@@ -206,7 +206,7 @@ func _kin(kind: String, path: String) -> void:
 	var saw_tell := false
 	for i in 900:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		if not is_instance_valid(e):
 			break
 		if dangers.size() > n0:
@@ -286,7 +286,7 @@ func _chanter_works() -> void:
 	var near := false
 	for i in 400:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		for d in _dangers_since(n0):
 			if (d as Node3D).global_position.distance_to(p.global_position) < 0.6:
 				near = true
@@ -303,7 +303,7 @@ func _chanter_works() -> void:
 	var shrouded := false
 	for i in 300:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		if is_instance_valid(w) and w._shroud_t > 0.0:
 			shrouded = true
 			break
@@ -322,7 +322,7 @@ func _chanter_works() -> void:
 	var broke := false
 	for i in 300:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		if c._state == Enemy.SPECIAL and StringName(c.get("_act")) == &"shroud" and c._state_t > 0.3:
 			c.take_hit(1.0, p)
 			await _frames(80)
@@ -356,7 +356,7 @@ func _burrower_tunnel() -> void:
 	var surfaced_near := false
 	for i in 500:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		if not is_instance_valid(b):
 			break
 		if b.call("is_burrowed"):
@@ -388,7 +388,7 @@ func _swarm_tokens() -> void:
 	var wretch_attacked := false
 	for i in 420:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		var n := 0
 		for m in swarm:
 			if is_instance_valid(m) and (m._state == Enemy.WINDUP or m._state == Enemy.STRIKE or m._state == Enemy.LEAP_PREP or m._state == Enemy.AIRBORNE):
@@ -479,7 +479,7 @@ func _combo_and_feint() -> void:
 	var seen_short := false
 	for i in 300:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		p._hurt_grace_until = 0.0
 		if w._state != last:
 			if w._state == Enemy.STRIKE:
@@ -507,7 +507,7 @@ func _combo_and_feint() -> void:
 	var n0 := dangers.size()
 	for i in 300:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		if w._state == Enemy.FEINT:
 			feint = true
 			if not _dangers_since(n0).is_empty():
@@ -533,7 +533,7 @@ func _husk_moves() -> void:
 	var charged := false
 	for i in 300:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		if h._state == Enemy.SPECIAL and StringName(h.get("_move_id")) == &"charge":
 			charged = true
 		if hurts > hurt0:
@@ -554,7 +554,7 @@ func _husk_moves() -> void:
 	hurt0 = hurts
 	for i in 400:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		p._hurt_grace_until = 0.0
 		if h._state == Enemy.SPECIAL and StringName(h.get("_move_id")) == &"slam":
 			slammed = true
@@ -573,7 +573,7 @@ func _husk_moves() -> void:
 	var broke := false
 	for i in 400:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		if h._state == Enemy.SPECIAL and h._state_t > 0.2:
 			hurt0 = hurts
 			h._stagger_cd = 0.0
@@ -600,7 +600,7 @@ func _leaper_sweep() -> void:
 	var hurt0 := hurts
 	for i in 200:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		if l._state == Enemy.SPECIAL:
 			swept = true
 		if swept and hurts > hurt0:
@@ -632,7 +632,7 @@ func _spitter_lob() -> void:
 	var hurt0 := hurts
 	for i in 360:
 		await _frames(1)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		p._hurt_grace_until = 0.0
 		if bool(s.get("_lobbing")):
 			lobbed = true

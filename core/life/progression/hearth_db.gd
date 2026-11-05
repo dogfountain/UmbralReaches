@@ -63,7 +63,7 @@ const WORKS: Array[Dictionary] = [
 		"text": "Hild forges baskets for the valley's braziers: every kindled fire's sanctuary reaches 1 m further.",
 		"fx": {"reach_add": 1.0}, "say": "Iron round a fire keeps it fed from below. Same as people."},
 	{"id": "bellows", "name": "Bellows for the fires", "glyph": "coals", "price": 22, "tier": 2,
-		"text": "A pair of bellows hung at every brazier: fire takes the Gloom off you 25% faster.",
+		"text": "A pair of bellows hung at every brazier: fire takes the Gloom off you and mends you 25% faster.",
 		"fx": {"lit_mult": 1.25}, "say": "Grandmother's pattern. Squeeze it like you mean it."},
 	{"id": "ferrule_iron", "name": "Shod the staff", "glyph": "ferrule", "price": 26, "tier": 2, "frag": 1,
 		"text": "A band of tempered iron under the orb: +6% damage from every spell.",

@@ -44,17 +44,23 @@ var invert_y := false
 @export var rift_enabled := true
 @export var interact_range := 2.8
 
+## r35 (docs/critique/r35_full.md "Decisions"): one rule per bar.
+##   Gloom  = the dark's clock only: it gathers away from light (and as spells' cost), a fire drains
+##            it, and at gloom_max a Shade takes shape and hunts you. The Shade's touch hollows you.
+##   Wounds = what blows do: foes, bosses, their hazards, long falls, lava. A fire mends them, kills
+##            and spent Resonance mend a little. At wounds_max you are hollowed.
 var gloom := 0.0
+var wounds := 0.0
+@export var wounds_max := 120.0         ## ~5 plain strikes (25) from whole to hollowed
+@export var wounds_mend_lit := 14.0     ## per second inside a fire (scaled like the Gloom drain by lit_mult)
 var checkpoint := Vector3.ZERO
 var ward_drain_left := 0.0              ## Gloom the current Lantern Ward may still drain (LanternWard sets it)
 
 const SPRINT_DARK_MULT := 1.5           ## sprinting in the dark gathers Gloom this much faster (noise)
-const HOLLOW_HITS := 3                  ## blows taken at full Gloom before you are hollowed
 const SLIDE_EVADE := 0.22               ## a slide's first moments pass under strikes, like a roll
 var _gloom_zone_t := 0.0
 var _in_rift := false
 var _in_fight := false
-var _overcap_hits := 0
 var _ash_banked := -1                   ## grave ash held at the last fire; above it is "carried"
 var _ash_mound: Node3D
 var autopilot := false
@@ -101,8 +107,8 @@ const StaffArts := preload("res://core/player/staff_arts.gd")
 const Grapple := preload("res://core/player/grapple.gd")
 const BreathMeter := preload("res://ui/breath_meter.gd")
 const PERFECT_T := 0.2                  ## a dodge roll that a blow meets this early is a perfect dodge
-const FALL_HURT_V := 16.0               ## landings harder than this (m/s down, ~6 m) jar Gloom in ...
-const FALL_GLOOM := 2.6                 ## ... this much per m/s over (halved when rolled out), never to the cap
+const FALL_HURT_V := 16.0               ## landings harder than this (m/s down, ~6 m) wound you ...
+const FALL_GLOOM := 2.6                 ## ... this much per m/s over (halved when rolled out), never to wounds_max
 const GLIDE_SINK := 2.3                 ## m/s down under the spread robe
 const GLIDE_SPEED := 8.8
 const GLIDE_TURN := 2.6                 ## rad/s
@@ -229,9 +235,11 @@ func _ready() -> void:
 		global_position = Travel.spawn
 		_yaw = Travel.yaw
 		gloom = Travel.gloom
+		wounds = Travel.wounds
 		hollow_count = Travel.hollow_count
 		Travel.consume()
 		Events.gloom_changed.emit(gloom, gloom_max)
+		Events.wounds_changed.emit(wounds, wounds_max)
 	else:
 		_yaw = _rig.rotation.y
 		hollow_count = Travel.saved_hollows
@@ -252,7 +260,7 @@ func _ready() -> void:
 	if _visual:
 		_visual.rotation.y = _yaw
 	_arm.add_excluded_object(get_rid())
-	_arm.position.x = 0.95
+	_arm.position.x = SHOULDER
 	_cam.h_offset = 0.12
 	_visual.driven = true
 	_visual.set_process(_visual.has_merged_body())     # it blends the body's bones between ticks
@@ -600,7 +608,7 @@ func lava_burn(amount: float) -> void:
 		return
 	_burn_cd = 1.0
 	var from := global_position
-	add_gloom(amount)
+	add_wounds(amount)                        # r35: lava wounds (it filled the Gloom before the split)
 	Events.player_hurt.emit(amount, from)
 	_end_traverse()
 	Vfx.burst(from + Vector3.UP * 0.6, SpellFx.EMBER_HOT, {"count": 50, "life": 0.7, "speed": Vector2(3.0, 8.0), "size": 0.05, "gravity": -8.0, "trail": 0.08, "dir": Vector3.UP, "spread": 50.0})
@@ -620,8 +628,8 @@ func set_checkpoint(at: Vector3) -> void:
 
 const ASH_MOUND := preload("res://core/player/ash_mound.gd")
 const Hints := preload("res://ui/hints.gd")
-const KILL_RELIEF := 6.0        ## Gloom drained from you by each kill: fighting pushes the dark back
-const CHAIN_WINDOW := 4.0       ## kills this close together chain; each link drains 2 more Gloom
+const KILL_RELIEF := 6.0        ## Wounds each kill mends (r35; it drained Gloom before the split)
+const CHAIN_WINDOW := 4.0       ## kills this close together chain; each link mends 2 more
 const HURT_GRACE := 0.35        ## seconds after a hit during which further hits are ignored
 const ASSIST_COS := 0.9945      ## aim assist cone: ~6 degrees either side of the crosshair
 const ASSIST_RANGE := 32.0
@@ -689,7 +697,7 @@ func _on_enemy_killed(e: Node) -> void:
 	var now := Time.get_ticks_msec() * 0.001
 	_chain = _chain + 1 if now < _chain_until else 1
 	_chain_until = now + CHAIN_WINDOW
-	add_gloom(-minf(KILL_RELIEF + 2.0 * float(_chain - 1), 14.0))
+	mend(minf(KILL_RELIEF + 2.0 * float(_chain - 1), 14.0))   # r35: a kill mends Wounds
 	if _chain >= 2:
 		HitText.pop(global_position + Vector3.UP * 2.3, "chain x%d" % _chain, Color(1.2, 0.6, 2.6), _chain >= 4)
 	Vfx.arc(at, global_position + Vector3.UP * 1.2, Color(1.2, 0.55, 2.8), 0.35, 0.18)
@@ -856,13 +864,45 @@ func _update_gloom(delta: float) -> void:
 		_spawn_shade()
 	if lit and is_instance_valid(_shade):
 		_shade.unmake_by_light()
-	if _overcap_hits > 0 and gloom < gloom_max * 0.9:
-		_overcap_hits = 0
+	# r35: a fire mends Wounds (a Lantern Ward does not: it only holds the dark back)
+	if drain < 0.0 and wounds > 0.0:
+		var before := wounds
+		wounds = maxf(0.0, wounds - wounds_mend_lit * delta)
+		_wounds_emit_t += delta
+		if wounds <= 0.0 or before - _wounds_emit >= 0.5 or _wounds_emit_t >= 0.1:
+			_emit_wounds()
 
 
 func add_gloom(amount: float) -> void:
 	gloom = clampf(gloom + amount, 0.0, gloom_max)
 	Events.gloom_changed.emit(gloom, gloom_max)
+
+
+var _wounds_emit := 0.0
+var _wounds_emit_t := 0.0
+
+func _emit_wounds() -> void:
+	_wounds_emit = wounds
+	_wounds_emit_t = 0.0
+	Events.wounds_changed.emit(wounds, wounds_max)
+
+
+## Raw Wounds (positive hurts, negative mends) with no hit reaction. At wounds_max you are hollowed.
+## Blows from the world go through take_wound (grace window, guard, the reaction); this is for
+## mending and for scripted hurts that do their own show (lava, a long fall, a crypt push-back).
+func add_wounds(amount: float) -> void:
+	if _hollowing:
+		return
+	wounds = clampf(wounds + amount, 0.0, wounds_max)
+	_emit_wounds()
+	if wounds >= wounds_max - 0.01:
+		hollow()
+
+
+## Kills, spent Resonance, Nova motes and the like: a little of the hurt closes.
+func mend(amount: float) -> void:
+	if amount > 0.0 and wounds > 0.0:
+		add_wounds(-amount)
 
 
 ## True while any BossArena (or arena-like node in the "boss_arena" group) has a live fight.
@@ -920,7 +960,11 @@ func note_shade_shrug() -> void:
 	Hints.once(&"shade_shrug", "The Shade no longer flinches. Reach a fire, or unmake it with Umbral Nova.")
 
 
-func add_gloom_from_enemy(amount: float, from_pos := Vector3.INF) -> void:
+## r35: a blow from the world (a foe, a boss, their hazards). It wounds; it no longer fills the Gloom.
+## Two strikes inside HURT_GRACE count once; a held guard turns most of a blow from the front.
+func take_wound(amount: float, from_pos := Vector3.INF) -> void:
+	if _hollowing:
+		return
 	if Time.get_ticks_msec() * 0.001 < _hurt_grace_until:
 		return                                   # two strikes landing together count once
 	_hurt_grace_until = Time.get_ticks_msec() * 0.001 + HURT_GRACE
@@ -928,23 +972,14 @@ func add_gloom_from_enemy(amount: float, from_pos := Vector3.INF) -> void:
 		amount = _arts.absorb(amount, from_pos)   # r31: a held guard turns most of a blow from the front
 	if _book != null:
 		_book.on_hurt(amount)                    # r33: a hard blow interrupts a cast, a light one pushes it back
-	var full := gloom >= gloom_max - 0.01
-	add_gloom(amount)
-	if full and not _hollowing:
-		# r30: past the cap a blow is not free. HOLLOW_HITS of them and the dark takes you.
-		_overcap_hits += 1
-		HitText.pop(global_position + Vector3.UP * 2.4, "HOLLOWING %d/%d" % [_overcap_hits, HOLLOW_HITS], Color(1.4, 0.35, 0.3), true)
-		Hints.once(&"overcap", "At full Gloom every blow hollows you a little. Reach a fire.")
-		if _overcap_hits >= HOLLOW_HITS:
-			_overcap_hits = 0
-			hollow()
 	kick(clampf(amount / 30.0, 0.3, 1.0))
 	Sfx.play(SFX_HURT, global_position + Vector3.UP, -3.0)
 	Events.player_hurt.emit(amount, from_pos)
 	_visual.hurt_react(from_pos, amount)
 	if not has_meta("heard_strike"):
 		set_meta("heard_strike", true)
-		Events.toast.emit("They do not kill. They fill the dark.")
+		Events.toast.emit("They wound. A fire closes what they open.")
+	add_wounds(amount)                           # last: at wounds_max this hollows
 
 
 func _on_shade_leaving() -> void:
@@ -978,9 +1013,10 @@ func _respawn_now() -> void:
 		_stam.refill()
 	if _arts != null:
 		_arts.cancel()
-	_overcap_hits = 0
 	gloom = 0.0
+	wounds = 0.0
 	Events.gloom_changed.emit(gloom, gloom_max)
+	_emit_wounds()
 	if is_instance_valid(_shade):
 		_shade.queue_free()
 	Events.respawned.emit(checkpoint)
@@ -1446,11 +1482,11 @@ func _fall_hurt(impact: float) -> void:
 	if impact <= FALL_HURT_V or autopilot or _hollowing:
 		return
 	var g := minf((impact - FALL_HURT_V) * FALL_GLOOM, 30.0) * (0.5 if rolled else 1.0)
-	g = minf(g, maxf(0.0, gloom_max - 1.0 - gloom))
+	g = minf(g, maxf(0.0, wounds_max - 1.0 - wounds))     # a fall wounds; it never hollows on its own
 	if g <= 0.0:
 		return
 	falls_hurt = g
-	add_gloom(g)
+	add_wounds(g)
 	HitText.pop(global_position + Vector3.UP * 2.2, "jarred +%d" % int(round(g)), Color(0.9, 0.6, 0.55))
 	Hints.once(&"fall_hurt", "Long drops jar the dark in. Roll as you land (dodge), or open the robe to glide (jump again in the air).")
 	_visual.hurt_react(Vector3.INF, g)
@@ -2013,7 +2049,16 @@ var _first_frame := true
 var _fight_k := 0.0
 var _arm_q: PhysicsShapeQueryParameters3D
 var _thin_q: PhysicsShapeQueryParameters3D
+var _thin_ray: PhysicsRayQueryParameters3D   ## reused by _thin_occluder (r35: five rays, no allocation each)
 var _tall_q: PhysicsShapeQueryParameters3D
+const THIN_RAYS := 5                          ## rays across the boom's width for the thin-occluder test
+const THIN_HALF_W := 0.45                     ## m either side of the boom they span
+const SHOULDER := 0.95                        ## the camera boom's offset over the right shoulder (m)
+const SHOULDER_NEAR := 1.8                    ## a shoulder camera closer than this swings in behind the wanderer
+const SIGHT_HIDDEN := 4                       ## of the six sight rays (chest and head x three) blocked = hidden
+var _sight_ray: PhysicsRayQueryParameters3D
+var _sight_hold := 0.0
+var _shoulder_k := 1.0                        ## 1 = boom over the shoulder, 0 = swung in behind the wanderer
 const CRAWL_SPEED := 1.6
 const FALL_RESCUE_T := 6.0        ## falling this long (through the world, off the map): back to safe ground
 var _fall_t := 0.0
@@ -2889,8 +2934,11 @@ func _cam_feel_tick(delta: float) -> void:
 
 
 ## A thin thing between the camera and the wanderer (a post, a lantern pole, a sapling) is ignored
-## instead of yanking the camera in: the camera's own spot must be clear and one of two rays
-## either side of the boom must get through.
+## instead of yanking the camera in: the camera's own spot must be clear and it must cover less than
+## half of the wanderer's width (THIN_RAYS parallel rays across +-THIN_HALF_W, fewer than half
+## blocked). r35: it used to be "one of two edge rays gets through", so a stele or a raid standing
+## stone off to one side passed as a pole: the camera stayed behind it and the stone hid the wanderer
+## (shots/critB_first_review_seg_strafe.png) or filled half the screen in the henge raid.
 func _thin_occluder(from: Vector3, dir: Vector3, want: float) -> bool:
 	var space := get_world_3d().direct_space_state
 	var cam_at := from + dir * want
@@ -2905,12 +2953,19 @@ func _thin_occluder(from: Vector3, dir: Vector3, want: float) -> bool:
 	q.transform = Transform3D(Basis.IDENTITY, cam_at)
 	if not space.intersect_shape(q, 1).is_empty():
 		return false
-	var side := _arm.global_basis.x.normalized() * 0.45
-	for s: float in [-1.0, 1.0]:
-		var a := from + side * s
-		if space.intersect_ray(PhysicsRayQueryParameters3D.create(a, a + dir * want, Layers.WORLD, [get_rid()])).is_empty():
-			return true
-	return false
+	if _thin_ray == null:
+		_thin_ray = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ONE, Layers.WORLD, [get_rid()])
+	var side := _arm.global_basis.x.normalized()
+	var blocked := 0
+	for i in THIN_RAYS:
+		var a := from + side * lerpf(-THIN_HALF_W, THIN_HALF_W, float(i) / float(THIN_RAYS - 1))
+		_thin_ray.from = a
+		_thin_ray.to = a + dir * want
+		if not space.intersect_ray(_thin_ray).is_empty():
+			blocked += 1
+			if blocked * 2 >= THIN_RAYS:
+				return false
+	return true
 
 
 # --- movement feel: step-up and mantle -----------------------------------------------------------
@@ -3114,6 +3169,7 @@ func _update_arm(delta: float) -> void:
 	var space := get_world_3d().direct_space_state if is_inside_tree() else null
 	var reach := want
 	if space:
+		_shoulder_tick(space, want, delta)
 		if _arm_q == null:                       # one query object, not two allocations per rendered frame
 			var sph := SphereShape3D.new()
 			sph.radius = ARM_PROBE
@@ -3139,6 +3195,44 @@ func _update_arm(delta: float) -> void:
 		_cam_len = lerpf(_cam_len, reach, 1.0 - exp(-3.2 * delta))
 	_arm.spring_length = _cam_len
 	_cam.position = Vector3(0.0, 0.0, _cam_len)
+
+
+## r35: the boom sits SHOULDER m over the right shoulder, and the spring cast only watches the boom,
+## so a stele or a raid stone to its left could stand between the camera and the wanderer without
+## touching it: the view stayed behind the stone (shots/critB_first_review_seg_strafe.png). Each
+## rendered frame this looks at the wanderer from where the full-shoulder camera would stand. When
+## most of the body is hidden (SIGHT_HIDDEN of the six rays), or that camera would have to come in
+## closer than SHOULDER_NEAR (the offset then pushes the wanderer out of frame), the boom swings in
+## behind the wanderer, where the spring cast below handles whatever is still in the way; it swings
+## back out once the shoulder view is clear again. Judged from the full-shoulder spot, which does not
+## move with the swing, so the swing cannot feed back on itself.
+func _shoulder_tick(space: PhysicsDirectSpaceState3D, want: float, delta: float) -> void:
+	var dir := _arm.global_basis.z.normalized()
+	var piv := _pitch_node.global_transform * Vector3(SHOULDER, _arm.position.y, _arm.position.z)
+	if _sight_ray == null:
+		_sight_ray = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ONE, Layers.WORLD, [get_rid()])
+	var r := _sight_ray
+	r.from = piv
+	r.to = piv + dir * want
+	var hit := space.intersect_ray(r)
+	var reach := want if hit.is_empty() else maxf(0.0, piv.distance_to(hit.position) - ARM_PROBE)
+	var cam_at := piv + dir * reach
+	var body := global_position
+	var across := (body - cam_at).cross(Vector3.UP)
+	across = across.normalized() if across.length_squared() > 0.0001 else _arm.global_basis.x
+	var hidden := 0
+	for y: float in [1.1, 1.6]:
+		for s: float in [-0.3, 0.0, 0.3]:
+			r.from = cam_at
+			r.to = body + Vector3.UP * y + across * s
+			if not space.intersect_ray(r).is_empty():
+				hidden += 1
+	if hidden >= SIGHT_HIDDEN:
+		_sight_hold = 0.5                        # stays in a beat, so the edge of a stone does not flicker it
+	_sight_hold = maxf(0.0, _sight_hold - delta)
+	var k_want := 0.0 if _sight_hold > 0.0 else smoothstep(SHOULDER_NEAR * 0.5, SHOULDER_NEAR, reach)
+	_shoulder_k = lerpf(_shoulder_k, k_want, 1.0 - exp(-(9.0 if k_want < _shoulder_k else 2.5) * delta))
+	_arm.position.x = SHOULDER * _shoulder_k
 
 
 ## Jumping at a ledge (top 0.3-1.7 m above the feet) while pushing toward it vaults onto it.

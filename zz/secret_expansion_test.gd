@@ -51,7 +51,7 @@ func _want(id: String) -> bool:
 
 func _physics_process(_d: float) -> void:
 	if p and is_instance_valid(p):
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 	if _cull and Engine.get_physics_frames() % 20 == 0:
 		for n in get_tree().get_nodes_in_group(Groups.ENEMY):
 			if not n.has_meta("elite"):

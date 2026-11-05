@@ -85,7 +85,7 @@ func _on_body(b: Node) -> void:
 		var p := b as Player
 		if p.is_evading():
 			return                   # stepped through it
-		p.add_gloom_from_enemy(gloom, global_position - velocity.normalized() * 3.0)
+		p.take_wound(gloom, global_position - velocity.normalized() * 3.0)
 	pop()
 
 

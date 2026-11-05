@@ -3,7 +3,7 @@ extends Node
 ## resets with it), pulls that take the whole camp, cast bars on casters and bosses (Enemy.cast_info,
 ## Events.enemy_cast_started / _ended, interrupts and the lockout), the HUD's read of a foe (name, rank,
 ## level, debuffs), boss mechanics firing on their telegraphs (Mandorla Flare's donut, Sap Mending
-## healing unless interrupted, Raise the Faithful's adds, the soft enrage), and the named rares (spawn,
+## healing unless interrupted, Raise the Faithful's adds, no soft enrage (r35)), and the named rares (spawn,
 ## map marker, loot).
 ## Run: SCRATCH=<dir> tools/run_tests.sh enemies_r33
 const AT := Vector3(-24.0, 0.0, 60.0)     ## open ground outside every sanctuary light (as r31)
@@ -60,7 +60,7 @@ func _ground(v: Vector3) -> Vector3:
 func _put_player(at: Vector3) -> void:
 	p.teleport(_ground(at) + Vector3.UP * 0.3)
 	p.velocity = Vector3.ZERO
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 
 
 func _spawn(path: String, at: Vector3) -> Enemy:
@@ -111,7 +111,7 @@ func _run() -> void:
 	get_tree().quit(0 if fails == 0 else 1)
 
 
-## Dragged past its leash: it evades home (immune), heals there; its packmate resets with it.
+## Dragged past its leash: it walks home (r35: hittable, no heal); its packmate resets with it.
 func _leash() -> void:
 	_put_player(AT + Vector3(0, 0, 8))
 	var w := _spawn("res://core/enemy/wretch.gd", AT)
@@ -135,17 +135,22 @@ func _leash() -> void:
 			ev = true
 			break
 	check("dragged past its leash it evades", ev)
-	check("its packmate resets with it", mate.is_evading() or int(mate.get("_state")) == Enemy.IDLE)
+	check("its packmate resets with it", mate.is_evading() or int(mate.get("_state")) == Enemy.IDLE,
+			"state %d, %.1f m from you (chase %.1f), hunt %.1f, homes %.1f m apart" % [int(mate.get("_state")),
+			float(mate.get("_dist")), mate.chase_range, float(mate.get("_hunt_t")), mate.home.distance_to(home)])
 	var hp0 := w.hp
-	w.take_hit(1.0, null)
-	check("an evading foe takes no damage", is_equal_approx(w.hp, hp0) and w.is_alive())
 	check("the HUD reads it as evading", bool(w.ui_info().evading))
+	# r35: walking home is not a shield. A blow lands and turns the foe back into the fight.
+	if mate.is_evading():
+		var mh := mate.hp
+		mate.take_hit(1.0, null)
+		check("a blow on a foe walking home lands and turns it back", mate.hp < mh and not mate.is_evading(), "%.1f -> %.1f" % [mh, mate.hp])
 	for f in int(60 * (Enemy.EVADE_MAX + 1.5)):
 		await get_tree().physics_frame
 		if not w.is_evading():
 			break
 	var back := Vector2(w.global_position.x - home.x, w.global_position.z - home.z).length()
-	check("it gets home and is healed in full", not w.is_evading() and is_equal_approx(w.hp, float(w.max_hp)) and back < 1.6, "hp %.1f/%d, %.1f m from home" % [w.hp, w.max_hp, back])
+	check("it gets home and keeps its wounds (r35: no heal)", not w.is_evading() and is_equal_approx(w.hp, hp0) and back < 1.6, "hp %.1f/%d, %.1f m from home" % [w.hp, w.max_hp, back])
 	_clear()
 	await _frames(3)
 
@@ -265,9 +270,7 @@ func _thornwarden() -> void:
 	tw.take_hit(2.5, null)
 	await _secs(3.3)
 	check("thornwarden: interrupted, it does not", tw.hp <= hp1 - 2.0 and tw.cast_name != "Sap Mending", "%.1f -> %.1f" % [hp1, tw.hp])
-	tw.fight_t = Thornwarden.ENRAGE_AT + 1.0
-	await _frames(3)
-	check("thornwarden: the soft enrage comes on", tw.dmg_mult > 1.0 and float(tw.ui_info().get("enrage_left", -1.0)) == 0.0, "x%.2f" % tw.dmg_mult)
+	check("thornwarden: no soft enrage (r35)", is_equal_approx(tw.dmg_mult, 1.0) and not tw.ui_info().has("enrage_left"), "x%.2f" % tw.dmg_mult)
 	tw.queue_free()
 	await _frames(3)
 	_clear()
@@ -332,11 +335,11 @@ func _warden() -> void:
 	check("warden: Mandorla Flare telegraphs on the ground", _zone_count(wd) >= 1)
 	check("warden: ...and shows as a cast that cannot be broken", wd.cast_name == "Mandorla Flare" and not wd.cast_interruptible)
 	check("warden: under it is safe", not BossKit.inside(c + Vector3(1.0, 0.3, 0), c, {"radius": 11.0, "holes": [[c, 3.2]]}))
-	var g0 := p.gloom
+	var g0 := p.wounds
 	for f in int(60 * 2.3):
 		await get_tree().physics_frame
 		p.global_position = Vector3(c.x + 6.5, p.global_position.y, c.z)
-	check("warden: it lands on you at range", p.gloom > g0 + 5.0, "%.1f -> %.1f" % [g0, p.gloom])
+	check("warden: it lands on you at range", p.wounds > g0 + 5.0, "%.1f -> %.1f" % [g0, p.wounds])
 	wd.queue_free()
 	await _frames(3)
 	_clear()

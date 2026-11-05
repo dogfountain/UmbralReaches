@@ -10,7 +10,7 @@ const Hearth := preload("res://core/life/progression/hearth.gd")
 const Growth := preload("res://ui/growth.gd")
 const ComboReadout := preload("res://ui/combo_readout.gd")
 const GearRuntime := preload("res://core/items/gear_runtime.gd")   # gear: drops, wear/raise/salvage
-const GearPanel := preload("res://ui/gear_panel.gd")              # gear: the [G] menu
+const GearPanel := preload("res://ui/gear_panel.gd")              # gear: the [O] menu
 const LootWindow := preload("res://ui/loot_window.gd")            # r33 loot: bags, take one / all
 const Gathering := preload("res://core/items/gather.gd")          # r33: ash-blooms, grave-iron
 

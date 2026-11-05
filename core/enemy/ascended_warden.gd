@@ -1,7 +1,7 @@
 class_name AscendedWarden
 extends Husk
 ## Boss of the summit: a towering hollowed priest that floats in a bell robe, a white-gold mask and a
-## mandorla of light behind its head, at raid scale (r34: 3x, on a 56 m deck over the chasm --
+## mandorla of light behind its head, at raid scale (r35: 5x, about 9 m, on a 56 m deck over the chasm --
 ## core/world/summit_raid.gd). docs/r34/raids_overworld.md has the whole fight.
 ##
 ## Phase I    "The Hierarch's Judgement" (100-65 %)
@@ -22,13 +22,13 @@ extends Husk
 ##   Call the Acolytes  (interruptible) two Gilded Acolytes; arrival rings on every blink; the rest go on.
 ## Phase III  "Aurel, Hierarch" (30-0 %), the burn
 ##   he lets go of the door: every pylon blazes again, the halo breaks open: blinks every 2.6 s, double
-##   fans, the falling sky on you, eclipses and flares. Soft enrage at ENRAGE_AT s (The Door Closes).
+##   fans, the falling sky on you, eclipses and flares. (r35: no soft enrage.)
 
 const FAN_WINDUP := 0.85
 const HP := 760
 const QuestBook := preload("res://core/story/quest_book.gd")
 var _attuned := false
-const SCALE := 3.0
+const SCALE := 5.0               ## r35: 3 -> 5 (~9 m): the final boss towers over the 56 m deck, "halfway into the sky"
 
 var phase := 1
 var ascended := false           ## the intermission: risen over the deck, immune
@@ -54,9 +54,8 @@ const GALE_CAST := 1.6
 const GALE_TIME := 5.0
 const GALE_SPEED := 3.0
 const ASCEND_TIME := 60.0
-const ASCEND_H := 10.0
+const ASCEND_H := 15.0           ## r35: 10 -> 15 with the 5x scale, so the risen Warden still clears the deck
 const SKY_GLOOM := 55.0
-const ENRAGE_AT := 400.0
 const ACOLYTE := preload("res://core/enemy/chanter.gd")
 var _flare_t := 14.0
 var _acolytes_t := 10.0
@@ -99,8 +98,8 @@ func _build() -> void:
 		var l := OmniLight3D.new()
 		l.name = "Halo"
 		l.light_color = Color(1.0, 0.9, 0.7)
-		l.light_energy = 2.2
-		l.omni_range = 12.0
+		l.light_energy = 3.0                    # r35: a halo for a 9 m Warden (was 2.2 / 12 m at 3x)
+		l.omni_range = 20.0
 		l.shadow_enabled = false
 		head.add_child(l)
 		l.position = Vector3(0.0, 0.14, 0.22)
@@ -134,15 +133,14 @@ func on_engaged(arena: Node) -> void:
 					anchors.append(hit.position as Vector3)
 	# r34 merge: attunement (Elspeth's bell): the ascension runs 15 s longer before the sky breaks
 	_attuned = QuestBook.attuned("ascended_warden")
-	BossKit.emote(self, "The founder's bell rings in you: his ascension will be slow." if _attuned \
-		else "The Ascended Warden turns from the door. Mind the broken edges.", BossKit.EMOTE_COL)
+	# r35: world cues, not text: one short line a mechanic, no instructions (the arena shows what to do)
+	BossKit.emote(self, "The founder's bell rings in you." if _attuned else "The Ascended Warden turns from the door.", BossKit.EMOTE_COL)
 
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	if _state == DEAD:
 		return
-	delta *= BossKit.enrage_tick(self, delta, ENRAGE_AT)     # the Door Closes: quicker judgement
 	if ascended:
 		_tick_ascended(delta)
 		return
@@ -163,7 +161,7 @@ func _physics_process(delta: float) -> void:
 		_fans_left = 0
 		_gale_left = 0.0
 		BossKit.transition(self, "He lets go of the door with one hand. What it held pours out.", BossKit.HOLY, 1.4)
-		BossKit.emote(self, "Aurel lets go of the door. Every pylon blazes; the sky falls on you. Finish it!", Color(1.0, 0.9, 0.6))
+		BossKit.emote(self, "Aurel lets go of the door. The sky falls.", Color(1.0, 0.9, 0.6))
 		if _room != null and is_instance_valid(_room):
 			_room.call("light_all")
 			_room.call("set_mood", "hierarch")
@@ -199,7 +197,7 @@ func _physics_process(delta: float) -> void:
 			_acolytes_t = ACOLYTES_EVERY
 			_blink_t = maxf(_blink_t, 2.4)
 			BossKit.cast(self, "Call the Acolytes", 2.0, true, _call_acolytes)
-			BossKit.emote(self, "The Warden calls his acolytes out of the light. Break the call!", BossKit.EMOTE_COL)
+			BossKit.emote(self, "He calls his acolytes out of the light.", BossKit.EMOTE_COL)
 			if _rig and _rig.has_method("howl"):
 				_rig.call("howl", 2.0)
 			return
@@ -343,8 +341,7 @@ func _mandorla_flare() -> void:
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", FLARE_TIME)
 	BossKit.cast(self, "Mandorla Flare", FLARE_TIME)
-	BossKit.emote(self, "The mandorla flares. Get under the Warden!", BossKit.EMOTE_COL)
-	Hints.once(&"mandorla", "Mandorla Flare: only the ground under the Warden is spared. Get close.")
+	BossKit.emote(self, "The mandorla flares.", BossKit.EMOTE_COL)
 	# the safe ground reads like the eclipse's pillars: a column of its own light at its feet
 	SpellFx.column(c, FLARE_IN * 0.8, 6.0, FLARE_TIME + 0.3)
 	Vfx.ring(c + Vector3.UP * 0.1, FLARE_IN, Color(1.0, 0.9, 0.6), FLARE_TIME, 0.12, Vector3.UP, 1.6)
@@ -380,13 +377,13 @@ func _eclipse() -> void:
 	if _room != null and is_instance_valid(_room) and int(_room.call("lit_count")) > 0:
 		pools = _room.call("pylon_points", true)
 		pr = float(_room.get("RING_R"))
-		BossKit.emote(self, "The light goes out of the deck. Stand in a lit pylon's ring!", Color(1.0, 0.85, 0.4))
+		BossKit.emote(self, "The light goes out of the deck.", Color(1.0, 0.85, 0.4))
 	else:
 		var picks := anchors.duplicate()
 		picks.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_to(global_position) > b.distance_to(global_position))
 		for k in 2:
 			pools.append(picks[k])
-		BossKit.emote(self, "The light goes out of the deck. Stand in what is left of it.", Color(1.0, 0.85, 0.4))
+		BossKit.emote(self, "The light goes out of the deck.", Color(1.0, 0.85, 0.4))
 	for at in pools:
 		holes.append([at, pr])
 		SpellFx.column(at, pr * 0.8, 6.0, ECLIPSE_FILL + 0.3)
@@ -419,8 +416,14 @@ func _begin_gale() -> void:
 		if is_alive() and not ascended and phase == 2:
 			_gale_left = GALE_TIME
 			BossKit.cast(self, "Gale of the Door", GALE_TIME, false))
-	BossKit.emote(self, "The door behind him opens a crack. A gale! Lean into it, or shelter behind a lit pylon.", Color(0.85, 0.9, 1.0))
-	Hints.once(&"gale", "Gale of the Door: walk into the wind or stand behind a lit pylon. The broken edges are a long fall.")
+	BossKit.emote(self, "The door behind him opens a crack.", Color(0.85, 0.9, 1.0))
+	# the lee of every lit pylon lights up for the whole gale
+	if _room != null and "pylons" in _room:
+		var shields: Array = []
+		for py: Variant in _room.get("pylons"):
+			if py is Node3D and is_instance_valid(py) and bool((py as Node3D).get("lit")):
+				shields.append((py as Node3D).global_position)
+		BossKit.lee_marks(global_position, shields, GALE_CAST + GALE_TIME)
 	Vfx.ring(global_position + Vector3.UP * 0.2, 5.0, Color(1.4, 1.5, 1.8), GALE_CAST, 0.1, Vector3.UP, 1.2)
 
 
@@ -468,8 +471,7 @@ func _ascend() -> void:
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", 2.0)
 	BossKit.roar(self, "", BossKit.HOLY)
-	BossKit.emote(self, "The Warden ascends and the pylons go dark. The sky is falling: rekindle all four pylons!", Color(1.0, 0.9, 0.6))
-	Hints.once(&"pylons", "Pylons: stand in a dark pylon's ring to rekindle it. Falling stars never land in a lit ring.")
+	BossKit.emote(self, "The Warden ascends. The pylons go dark.", Color(1.0, 0.9, 0.6))
 	_room.call("snuff_all")
 	_room.call("set_mood", "ascension")
 	BossKit.add_wave(self, ACOLYTE, _arena_c + Vector3(0, 0, 9.0), 2, 3, "Gilded Acolyte", 6.0)
@@ -494,7 +496,7 @@ func _tick_ascended(delta: float) -> void:
 		return
 	var asc_end := ASCEND_TIME + (15.0 if _attuned else 0.0)
 	if _asc_t >= asc_end - 10.0 and _asc_t - delta < asc_end - 10.0:
-		BossKit.emote(self, "The sky is breaking. Get into a lit ring!", Color(1.0, 0.6, 0.4))
+		BossKit.emote(self, "The sky is breaking.", Color(1.0, 0.6, 0.4))
 	_star_t -= delta
 	_star_p_t -= delta
 	if _star_t <= 0.0:
@@ -523,11 +525,11 @@ func _descend(left: int) -> void:
 		BossKit.emote(self, "The sky breaks!", Color(1.0, 0.5, 0.35))
 		var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		if p and (_room == null or _room.call("in_light", p.global_position) == null):
-			p.add_gloom_from_enemy(SKY_GLOOM * dmg_mult, _arena_c)
+			p.take_wound(SKY_GLOOM * dmg_mult, _arena_c)
 		Vfx.light(_arena_c + Vector3.UP * 8.0, Color(1.0, 0.85, 0.6), 6.0, 40.0, 0.6)
 		Vfx.ring(_arena_c + Vector3.UP * 0.2, _arena_r, BossKit.HOLY, 0.8, 0.2, Vector3.UP, 1.8)
 	else:
-		BossKit.emote(self, "Four pylons burn. The Warden falls back to the deck, blinded!", Color(1.0, 0.9, 0.6))
+		BossKit.emote(self, "Four pylons burn. He falls, blinded.", Color(1.0, 0.9, 0.6))
 	var land := _arena_c + Vector3.UP * 0.1
 	SpellFx.rift_in(global_position)
 	global_position = land

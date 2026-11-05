@@ -32,7 +32,7 @@ func cast(book: SkillBook, _charge: float) -> bool:
 	if bool(DB.get_mod("step_briar", false)):
 		_briar_path(book.player, from, book.player.global_position)
 	if bool(DB.get_mod("door", false)):
-		book.player.add_gloom(-3.0)
+		book.player.mend(3.0)                     # r35: the Door mends Wounds
 	return true
 
 

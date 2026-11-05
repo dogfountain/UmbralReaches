@@ -106,7 +106,7 @@ func _spawn(path: String, at: Vector3) -> Enemy:
 func _reset_player() -> void:
 	p.global_position = Vector3.ZERO
 	p.velocity = Vector3.ZERO
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	p._hurt_grace_until = 0.0
 	p._evade_t = 0.0
 	p.set_view(0.0, 0.0)
@@ -214,7 +214,7 @@ func _pack() -> void:
 	var spread := 0.0
 	for i in 360:
 		await get_tree().physics_frame
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		var n := 0
 		for e in pack:
 			if is_instance_valid(e) and (e._state == Enemy.WINDUP or e._state == Enemy.STRIKE):

@@ -2,6 +2,7 @@ extends Node
 ## Global event bus. Gameplay emits; UI, VFX and audio only listen.
 
 signal gloom_changed(value: float, max_value: float)
+signal wounds_changed(value: float, max_value: float)   ## r35: the Wounds bar (Player.wounds); blows fill it, fire mends it
 signal interact_hint(text: String)          ## "" hides the prompt
 signal brazier_kindled(brazier: Node3D)
 signal shade_spawned()

@@ -82,6 +82,12 @@ func _process(d: float) -> void:
 				var why: String = main.call("_unstandable", sp)
 				_ok(why == "", "brazier %s spawn point %s standable %s" % [b.name, sp.snapped(Vector3.ONE * 0.1), why])
 		_ok(n >= 5, "found the braziers (%d)" % n)
+		# 3b. r35: no key or mouse button does two things. Scanned once the whole night is up, so the
+		# actions that UI nodes add for themselves are in the map too (G was the staff strike AND the
+		# Gear menu). The engine's own ui_* actions are menu navigation and may overlap.
+		var clash := _input_clashes()
+		_ok(clash.is_empty(), "every key and mouse button has one action%s" % ("" if clash.is_empty() else ": " + ", ".join(clash)))
+		_ok(InputMap.has_action("gear") and not _bound("staff_strike", KEY_O) and _bound("gear", KEY_O) and not _bound("gear", KEY_G), "Gear is O, the staff strike keeps G")
 		# 4. the settings menu
 		var sm: Node = null
 		for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
@@ -126,6 +132,41 @@ func _finish() -> void:
 	Settings.set("_save_pending", false)
 	print("ROBUST done bad=%d" % bad)
 	get_tree().quit()
+
+
+## "KEY_G: staff_strike + gear" for every keyboard key / mouse button bound to two or more actions.
+func _input_clashes() -> PackedStringArray:
+	var by: Dictionary = {}
+	for act: StringName in InputMap.get_actions():
+		if String(act).begins_with("ui_"):
+			continue
+		for ev in InputMap.action_get_events(act):
+			var id := ""
+			if ev is InputEventKey:
+				var k := ev as InputEventKey
+				id = "key " + OS.get_keycode_string(k.physical_keycode if k.physical_keycode != KEY_NONE else k.keycode)
+			elif ev is InputEventMouseButton:
+				id = "mouse %d" % (ev as InputEventMouseButton).button_index
+			if id == "":
+				continue
+			var acts: Array = by.get(id, [])
+			if not acts.has(String(act)):
+				acts.append(String(act))
+			by[id] = acts
+	var out := PackedStringArray()
+	for id: String in by:
+		if (by[id] as Array).size() > 1:
+			out.append("%s: %s" % [id, " + ".join(by[id])])
+	return out
+
+
+func _bound(action: String, key: Key) -> bool:
+	if not InputMap.has_action(action):
+		return false
+	for ev in InputMap.action_get_events(action):
+		if ev is InputEventKey and ((ev as InputEventKey).physical_keycode == key or (ev as InputEventKey).keycode == key):
+			return true
+	return false
 
 
 func _ok(cond: bool, what: String) -> void:

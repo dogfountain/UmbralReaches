@@ -52,7 +52,7 @@ const AFFIX := {
 	"gloom_add": {"key": "gloom_add", "op": "add", "roll": [4.0, 8.0], "fmt": "+%d Gloom held", "of": "of the Deep Breath"},
 	"dark_mult": {"key": "dark_mult", "op": "mul", "roll": [-0.05, -0.025], "fmt": "Gloom gathers %d%% slower", "pct": true, "of": "of the Shuttered Eye"},
 	"lit_mult": {"key": "lit_mult", "op": "mul", "roll": [0.06, 0.12], "fmt": "Fire takes Gloom off %d%% faster", "pct": true, "of": "of the Hearth"},
-	"kill_relief": {"key": "kill_relief", "op": "add", "roll": [0.5, 1.0], "fmt": "Every kill takes %.1f Gloom off you", "of": "of the Reaper"},
+	"kill_relief": {"key": "kill_relief", "op": "add", "roll": [0.5, 1.0], "fmt": "Every kill mends %.1f Wounds", "of": "of the Reaper"},
 	"step_range": {"key": "step_range", "op": "add", "roll": [0.3, 0.6], "fmt": "Rift Step reaches %.1f m further", "of": "of the Long Road"},
 	"step_cd": {"key": "step_cd", "op": "mul", "roll": [-0.07, -0.035], "fmt": "Rift Step recovers %d%% sooner", "pct": true, "of": "of Swift Feet"},
 	"lash_power": {"key": "lash_power", "op": "add", "roll": [0.06, 0.12], "fmt": "The Lash hits %d%% harder", "pct": true, "of": "of the Lash"},
@@ -97,7 +97,7 @@ const SETS := {
 		"pieces": {"focus": "Tally-Bead Collar", "vestment": "Lay Brother's Scapular", "lantern": "Charnel Lamp-Horn", "girdle": "Counted Cincture"},
 		"lore": "Brother Lisle's order counted the dead into the Ossuary. They wore their count on everything.",
 		"two": {"text": "+15 Gloom held.", "mods": [["gloom_add", "add", 15.0]]},
-		"four": {"text": "Umbral Nova deals 1.5 damage for every Mark it detonates (as the Oath of the Tally), and every kill takes 2 Gloom off you.",
+		"four": {"text": "Umbral Nova deals 1.5 damage for every Mark it detonates (as the Oath of the Tally), and every kill mends 2 Wounds.",
 			"mods": [["kill_relief", "add", 2.0]], "flags": ["tally"]}},
 	"bell": {"name": "Bellwright's Garb", "tint": Color("#D79A52"),
 		"pieces": {"focus": "Clapper-Ring", "vestment": "Bellwright's Apron", "lantern": "Belfry Lamp-Glass", "girdle": "Bell-Rope Girdle"},
@@ -111,7 +111,7 @@ const SET_ORDER := ["kindler", "ferryman", "tally", "bell"]
 ## Umbral uniques: one per slot. A legend switches on a behaviour (upgrade_db.gd mods flags).
 const LEGENDS := {
 	"door_splinter": {"slot": "focus", "name": "Splinter of the Door", "flags": ["door"],
-		"text": "Legend: Rift Step recovers twice as fast, and every step takes 3 Gloom off you.",
+		"text": "Legend: Rift Step recovers twice as fast, and every step mends 3 Wounds.",
 		"lore": "A sliver of the door in the sky, prised off the frame. It still wants to open."},
 	"sunk_shroud": {"slot": "vestment", "name": "Shroud of the Sunk", "flags": ["bramble"],
 		"text": "Legend: Lantern Ward roots what crosses its light in brambles: slowed hard, and Marked once.",

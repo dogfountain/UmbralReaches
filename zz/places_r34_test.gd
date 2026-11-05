@@ -84,7 +84,7 @@ func _physics_process(_d: float) -> void:
 			if not main.has_meta("realm_done") or main.get_node_or_null("RealmPois") == null:
 				return
 			p.set_physics_process(true)
-			p.set("gloom", 0.0)
+			p.set("gloom", 0.0); p.set("wounds", 0.0)
 			items_before = Travel.items.duplicate(true)
 			systems_before = Travel.systems.duplicate(true)
 			State.quiet = true
@@ -409,7 +409,7 @@ func _climb_tick(dt: float) -> void:
 	var target: Vector3 = route[ri]
 	var d := Vector3(target.x - p.global_position.x, 0.0, target.z - p.global_position.z)
 	p.debug_drive(d.normalized() if d.length() > 0.25 else Vector3.ZERO)
-	p.set("gloom", 0.0)
+	p.set("gloom", 0.0); p.set("wounds", 0.0)
 	if p.is_grounded() and p.global_position.y > target.y - 0.4 and d.length() < 0.9:
 		print("PLACES %s step %d reached in %.1f s at %s" % [id, ri, rt, p.global_position.snapped(Vector3.ONE * 0.01)])
 		ri += 1

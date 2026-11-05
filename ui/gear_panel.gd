@@ -1,5 +1,5 @@
 extends CanvasLayer
-## Gear (docs/enshrouded/equipment.md): [G] opens it anywhere (the world pauses). Left: the four
+## Gear (docs/enshrouded/equipment.md): [O] (action "gear") opens it anywhere (the world pauses). Left: the four
 ## slots worn now and how far each set is woken. Middle: every piece carried, by slot, coloured by
 ## rarity. Right: the chosen piece (its base stat, affixes, set or legend, lore) and what can be
 ## done with it: wear / take off anywhere; raise, reforge an affix and salvage at a kindled fire
@@ -59,11 +59,7 @@ func _ready() -> void:
 	layer = 61
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("gear_panel")
-	if not InputMap.has_action("gear"):
-		InputMap.add_action("gear")
-		var k := InputEventKey.new()
-		k.physical_keycode = KEY_G
-		InputMap.action_add_event("gear", k)
+	# its key ("gear", O) is bound in autoload/input_setup.gd with every other action
 	_title_font = UIType.title()
 	_body_font = UIType.body()
 	_build()

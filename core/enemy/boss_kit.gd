@@ -12,8 +12,7 @@ extends RefCounted
 ##   Events.enemy_cast_started / enemy_cast_ended fire as casts begin and end. Interruptible boss casts
 ##   break on a heavy blow (Enemy.INTERRUPT_DMG, a charged bolt) or a burst on the open weak point.
 ## Each boss has: telegraphed ground zones (red fills for exactly the delay), add waves (add_wave, capped,
-## the adds never leash), a soft enrage (enrage_tick: past `at` seconds its Gloom ramps ENRAGE_GAIN per
-## ENRAGE_STEP and its timers quicken; meta "enrage_at" lets the HUD count down), and a signature of each
+## the adds never leash), and (r35: no soft enrage any more) a signature of each
 ## sort -- one to interrupt, one to stand in or out of, one positional:
 ##   Thornwarden     Sap Mending (interrupt, or it heals) / Briar Snare + Thornlash lanes (out) /
 ##                   Bramble Lash (never stand behind it)
@@ -67,7 +66,7 @@ static func zone(host: Node, at: Vector3, delay: float, gloom: float, opts := {}
 			return                               # taken back by its maker
 		_land(h, at, opts, col)
 		var mk := instance_from_id(by_id) as Enemy if by_id != 0 else null
-		var g := gloom * (mk.dmg_mult if mk != null else 1.0)    # r33: a soft enrage's ramp
+		var g := gloom * (mk.dmg_mult if mk != null else 1.0)    # any ramp a boss sets (r35: no soft enrage)
 		var p := h.get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		if p and inside(p.global_position, at, opts):
 			if p.is_evading():
@@ -78,7 +77,7 @@ static func zone(host: Node, at: Vector3, delay: float, gloom: float, opts := {}
 				else:
 					HitText.pop(p.global_position + Vector3.UP * 2.0, "evaded", Color(0.6, 0.75, 1.0))
 			else:
-				p.add_gloom_from_enemy(g, at))
+				p.take_wound(g, at))
 
 
 ## Is `pos` in the zone (disc / cone / lane) at `at`?
@@ -395,12 +394,10 @@ static func roar(e: Enemy, line: String, col: Color) -> void:
 		p.kick(1.0)
 
 
-# --- r33: casts, add waves, the soft enrage ---------------------------------------------------------
+# --- r33: casts and add waves ---------------------------------------------------------
 
-const ENRAGE_STEP := 15.0       ## seconds per step of the soft enrage
-const ENRAGE_GAIN := 0.12       ## Gloom x per step (capped at ENRAGE_MAX)
-const ENRAGE_MAX := 2.2
-const ENRAGE_HASTE := 0.04      ## timers quicken this much per step (capped at 1.5x)
+## r35: the soft enrage (a fight-length timer that ramped every blow and quickened every timer) is
+## gone: a solo wanderer learns a boss by losing to it, and a timer punished exactly that.
 const RAGE := Color(2.6, 0.35, 0.15)
 
 
@@ -436,32 +433,6 @@ static func add_wave(e: Enemy, script: GDScript, at: Vector3, n: int, cap: int, 
 	return out
 
 
-## The soft enrage, ticked by the boss every physics frame. Returns the haste for its timers (1 until
-## `at` seconds into the fight). Past it the boss grows furious step by step: more Gloom per blow and
-## zone, quicker mechanics; a warning 20 s before, a roar when it starts.
-static func enrage_tick(e: Enemy, delta: float, at: float) -> float:
-	if not e.has_meta(&"enrage_at"):
-		e.set_meta(&"enrage_at", at)
-	if e._ward_t > 0.0 and e.fight_t <= 0.0:
-		return 1.0                                   # the intro does not count
-	var was := e.fight_t
-	e.fight_t += delta
-	if was < at - 20.0 and e.fight_t >= at - 20.0:
-		Events.toast.emit("%s grows restless. End this soon." % e.display_name())
-	var over := e.fight_t - at
-	if over < 0.0:
-		return 1.0
-	var steps := int(over / ENRAGE_STEP) + 1
-	var mult := minf(1.0 + ENRAGE_GAIN * float(steps), ENRAGE_MAX)
-	if mult > e.dmg_mult + 0.001:
-		var first := e.dmg_mult <= 1.001
-		e.dmg_mult = mult
-		if first:
-			roar(e, "%s is enraged. Every blow lands harder now." % e.display_name(), RAGE)
-		else:
-			HitText.pop(e.global_position + Vector3.UP * (e.hp_bar_y + 0.9), "fury", RAGE, true)
-			Vfx.ring(e.global_position + Vector3.UP * 0.15, 3.0, RAGE, 0.5, 0.06, Vector3.UP, 1.0)
-	return minf(1.0 + ENRAGE_HASTE * float(steps), 1.5)
 
 
 # --- r34 raids (docs/r34/raids_overworld.md): the boss emote line, the room, pushes ---------------
@@ -503,6 +474,24 @@ static func emote(e: Node, text: String, col := EMOTE_COL) -> void:
 		a.call("emote", text, col)
 	else:
 		Events.toast.emit(text)
+
+
+## r35: world cues, not text. Light the lee of each shield (a standing stone, a lit pylon) against
+## `from` for `life` s: a pale column of the same light the Mandorla's safe ground uses, plus a ring on
+## the floor, so "get behind X" is something you see in the arena rather than read on the screen.
+static func lee_marks(from: Vector3, shields: Array, life: float, col := Color(1.1, 1.3, 1.9), lee := 1.6) -> void:
+	for s: Variant in shields:
+		var at: Vector3 = s
+		var d := at - from
+		d.y = 0.0
+		if d.length() < 0.5:
+			continue
+		var spot := at + d.normalized() * lee
+		SpellFx.column(spot, 1.1, 5.0, life)
+		Vfx.ring(spot + Vector3.UP * 0.08, 1.4, col, life, 0.22, Vector3.UP, 4.0)
+		Vfx.ring(spot + Vector3.UP * 0.1, 0.6, col, life, 0.12, Vector3.UP, 3.0)
+		# a pool of cool light on the floor: at night a column alone read as nothing on a dark deck
+		Vfx.light(spot + Vector3.UP * 1.0, col, 6.0, 5.5, life)
 
 
 ## Move the player along `dir` (flat) at `speed` m/s this frame, colliding with the world.

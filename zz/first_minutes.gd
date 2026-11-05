@@ -23,6 +23,9 @@ var ls_seen := false
 var ls_done_t := -1.0
 var title_t := -1.0
 var hint_t := -1.0
+var _banner: Node = null
+var _banner_n := 0
+var _overlap_told := false
 var dlg_t := -1.0
 var dlg: Node = null
 var hud: Node = null
@@ -82,6 +85,20 @@ func _shot(name: String) -> void:
 	var path := "res://shots/critB_first_%s_%s.png" % [tag, name]
 	img.save_png(ProjectSettings.globalize_path(path))
 	print("FIRST shot %s at %.2f s" % [path, t_all])
+	# r35: where the camera is against the wanderer (the thin-occluder rule decides how close it pulls in)
+	var cam := get_viewport().get_camera_3d()
+	if cam and is_instance_valid(p):
+		var chest := p.global_position + Vector3.UP * 1.1
+		var hit := get_world_3d_hit(cam.global_position, chest)
+		print("FIRST cam %.2f m from the wanderer, chest in frame %s, sight line %s, shoulder %.2f" % [cam.global_position.distance_to(chest),
+				cam.is_position_in_frustum(chest), "clear" if hit == "" else "blocked by " + hit, float(p.get("_shoulder_k"))])
+
+
+## The first WORLD body between two points ("" when clear).
+func get_world_3d_hit(a: Vector3, b: Vector3) -> String:
+	var q := PhysicsRayQueryParameters3D.create(a, b, Layers.WORLD, [p.get_rid()])
+	var r := p.get_world_3d().direct_space_state.intersect_ray(q)
+	return "" if r.is_empty() else String((r.collider as Node).name)
 
 
 func _process(d: float) -> void:
@@ -171,6 +188,20 @@ func _watch_ui() -> void:
 		if hl and hl.modulate.a > 0.5 and ls_done_t >= 0.0:
 			hint_t = t_all
 			print("FIRST controls hint visible at %.2f s, width %.0f px of %.0f" % [t_all, hl.get_combined_minimum_size().x + hl.position.x, hl.get_viewport_rect().size.x])
+	# r35: every place banner, and any frame where one is up while the title card is (they used to
+	# land on top of each other the moment the loading screen lifted)
+	if _banner == null:
+		_banner = get_tree().root.find_child("DiscoveryBanner", true, false)
+	if _banner:
+		var shown: Array = _banner.get("shown")
+		while _banner_n < shown.size():
+			print("FIRST banner %s '%s' at %.2f s" % [shown[_banner_n].kind, shown[_banner_n].name, t_all])
+			_banner_n += 1
+		var plate := _banner.get("_plate") as Control
+		var tl := hud.get("_title") as Label if hud else null
+		if plate and tl and plate.visible and plate.modulate.a > 0.05 and tl.is_visible_in_tree() and tl.modulate.a > 0.05 and not _overlap_told:
+			_overlap_told = true
+			print("FIRST FAIL banner and title card on screen together at %.2f s" % t_all)
 	if dlg_t < 0.0 and _dialogue_open():
 		dlg_t = t_all
 		print("FIRST opening narration open at %.2f s (loading lifted %.2f)" % [t_all, ls_done_t])

@@ -1036,7 +1036,7 @@ func _on_caught(body: Node3D) -> void:
 		if p == null:
 			return
 		p.call_deferred("teleport", back)
-		p.add_gloom(18.0)
+		p.add_wounds(18.0)                       # r35: the push-back wounds (Gloom is the dark's alone)
 		Events.player_hurt.emit(18.0, body.global_position)
 		SpellFx.rift_in(back)
 		HitText.pop(back + Vector3.UP * 2.2, "the dead push you back up", GRAVE, true)

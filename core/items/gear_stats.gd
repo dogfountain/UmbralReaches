@@ -131,7 +131,7 @@ static func summary(st: Dictionary) -> PackedStringArray:
 	if float(tmp.lit_mult) > 1.0001:
 		out.append("fire clears Gloom %d%% faster" % roundi((float(tmp.lit_mult) - 1.0) * 100.0))
 	if float(tmp.kill_relief) > 0.0:
-		out.append("-%.1f Gloom a kill" % float(tmp.kill_relief))
+		out.append("%.1f Wounds mended a kill" % float(tmp.kill_relief))
 	if float(tmp.step_range) > 0.0:
 		out.append("Step +%.1f m" % float(tmp.step_range))
 	if float(tmp.step_cd) < 0.9999:
@@ -164,7 +164,7 @@ static func summary(st: Dictionary) -> PackedStringArray:
 ## label ("+5% faster spell recovery"), so plus always reads as more of the label.
 const STAT_NAMES := {"power": ["spell power", false, true], "cd": ["faster spell recovery", true, true],
 	"gloom_add": ["Gloom held", false, false], "dark_mult": ["slower Gloom gathering", true, true],
-	"lit_mult": ["fire's relief", false, true], "kill_relief": ["Gloom off a kill", false, false],
+	"lit_mult": ["fire's relief", false, true], "kill_relief": ["Wounds mended a kill", false, false],
 	"step_range": ["Rift Step reach (m)", false, false], "step_cd": ["faster Rift Step recovery", true, true],
 	"lash_power": ["Lash damage", false, true], "mark_dmg": ["damage a Mark", false, false],
 	"lance_charge": ["faster Lance charge", true, true], "lance_blast": ["Lance burst (m)", false, false],

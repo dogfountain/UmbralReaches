@@ -46,7 +46,7 @@ enhance), 4netplayers ring guide, pindrop legendary-rune guide.
 
 - **One crafting place, not three NPC crafters.** Raising, reforging and salvaging happen at any
   kindled fire, the same place the Kindling spends ash. Fires are already the game's checkpoint and
-  growth spot, so gear doesn't need a base to build. Wearing and planning work anywhere ([G]).
+  growth spot, so gear doesn't need a base to build. Wearing and planning work anywhere ([O]; it was G until r35, which clashed with the staff strike).
 - **No armour values.** The wanderer has no health bar; the pressure is Gloom. "Defence" gear holds
   more Gloom, gathers it slower in the dark, or sheds it at fires and on kills.
 - **Charms stay the ring slots.** Our 2-3 charms already work like Enshrouded's rings (unique, found,
@@ -79,7 +79,7 @@ enhance), 4netplayers ring guide, pindrop legendary-rune guide.
 
 ## Left to do
 
-- A pad button for [G] (d-pad is full: up satchel, down journal, left tasks, right Kindling), and a
+- A pad button for the Gear menu [O] (d-pad is full: up satchel, down journal, left tasks, right Kindling), and a
   row in the settings key list.
 - Secrets and quests could award specific set pieces (only enemy and boss drops do now).
 - A Keg merchant line that trades shards for a re-roll of a piece's rarity.

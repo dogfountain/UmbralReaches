@@ -45,7 +45,7 @@ func _frames(n: int) -> void:
 	for i in n:
 		await get_tree().physics_frame
 		if p:
-			p.gloom = 0.0
+			p.gloom = 0.0; p.wounds = 0.0
 
 
 func _secs(s: float) -> void:

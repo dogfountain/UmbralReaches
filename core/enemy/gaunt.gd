@@ -164,7 +164,7 @@ func _special_frame(_delta: float) -> void:
 			if _p.is_evading():
 				_p.on_evaded(self)
 			else:
-				_p.add_gloom_from_enemy(strike_gloom, global_position)
+				_p.take_wound(strike_gloom, global_position)
 				Vfx.burst(_p.global_position + Vector3.UP * 1.1, Color(0.9, 0.12, 0.1), {"count": 12, "life": 0.3, "speed": Vector2(2.0, 4.0), "size": 0.04, "gravity": -4.0, "trail": 0.06})
 				_swipe_fx()
 	if run.length() >= _dart_len or is_on_wall() or _state_t > DART_TELL + 1.6:

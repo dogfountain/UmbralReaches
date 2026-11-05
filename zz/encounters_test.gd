@@ -67,7 +67,7 @@ func _run() -> void:
 		_done()
 		return
 	await _frames(10)
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	await _tiers()
 	await _rest()
 	await _tide()

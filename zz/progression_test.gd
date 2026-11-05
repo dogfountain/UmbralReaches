@@ -191,10 +191,10 @@ func _run() -> void:
 	ok(String(k.call("swear", 1, "b", true)) == "", "swore the Oath of the Hollow (12 ash)")
 	ok(Travel.count("grave_ash") == 4, "4 ash left (%d)" % Travel.count("grave_ash"))
 	ok(String(k.call("swear", 1, "a", true)) == "Sworn.", "the other vow of the tier is closed")
-	p.gloom = 50.0
+	p.wounds = 50.0
 	_kill(p.global_position + Vector3(2, 0, 0), 1)
 	await get_tree().process_frame
-	ok(p.gloom <= 50.0 - 6.0 - 4.0 + 0.01, "a kill under the Hollow oath takes 10 Gloom, not 6 (%.1f)" % p.gloom)
+	ok(p.wounds <= 50.0 - 6.0 - 4.0 + 0.01, "a kill under the Hollow oath mends 10 Wounds, not 6 (%.1f)" % p.wounds)
 	ok(String(k.call("buy", "will", true)).contains("grave ash"), "too poor for Kindled Will (10)")
 
 	print("-- behaviour of the ranks (save edited directly)")

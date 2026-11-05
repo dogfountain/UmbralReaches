@@ -116,7 +116,7 @@ func _spawn(path: String, at: Vector3) -> Enemy:
 func _reset_player() -> void:
 	p.global_position = Vector3.ZERO
 	p.velocity = Vector3.ZERO
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	p._hurt_grace_until = 0.0
 	p._evade_t = 0.0
 	p.set_view(0.0, 0.0)
@@ -162,7 +162,7 @@ func _tells(kind: String, path: String) -> void:
 	var t0 := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - t0 < int(TELL_SECS * 1000.0):
 		await get_tree().physics_frame
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		p.global_position = Vector3(0.0, p.global_position.y, 0.0)
 		if not is_instance_valid(e):
 			break
@@ -208,7 +208,7 @@ func _ttk(kind: String, path: String, build: String, cap_s: float) -> void:
 		for h: Array in _hurts:
 			taken += float(h[1])
 		_hurts.clear()
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		if not is_instance_valid(e) or not e.is_alive():
 			dead = true
 			break

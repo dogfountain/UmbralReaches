@@ -141,12 +141,12 @@ func _physics_process(_d: float) -> void:
 			check("raid door's inner grille shut behind", _shut(abbot.gate))
 			check("raid door's outer grille shut", _shut(abbot.gates[0]))
 			check("portcullis untouched", _shut(_seal("oss_gallery")))
-			# run up the stair past the leash: the fight resets
+			# run up the stair past the leash: r35, the fight is HELD (it used to reset)
 			_tp(Vector3(21.0, Ossuary.GAL_Y + 0.6, -64.0))
 			step = 2
 			wait = 30
 		2:
-			check("abbot fight reset", _boss() == null)
+			check("abbot fight held, not reset", _held("bone_abbot"))
 			check("grilles open after the reset", not _shut(abbot.gate) and not _shut(abbot.gates[0]))
 			check("portcullis NOT forced open by the reset", _shut(_seal("oss_gallery")))
 			_tp(Ossuary.abbot_pull_at())
@@ -178,7 +178,7 @@ func _physics_process(_d: float) -> void:
 			step = 6
 			wait = 30
 		6:
-			check("warden fight reset", _boss() == null)
+			check("warden fight held, not reset", _held("ascended_warden"))
 			check("veil open after the reset", not _shut(warden.gate))
 			check("summit ward NOT forced open by the reset (guards alive)", _shut(_seal("summit")))
 			print("WORLD30 %s (%d failures)" % ["PASS" if fails == 0 else "FAIL", fails])
@@ -262,3 +262,12 @@ func _climb_tick(dt: float) -> void:
 	if climb_t > 6.0:
 		check("climbed watchtower step %d (stuck at %s, hanging %s)" % [climb_i, p.global_position.snapped(Vector3.ONE * 0.01), p.is_hanging()], false)
 		step = 49
+
+
+## r35: a walk-out holds the fight (BossArena._hold_fight): the arena reports it held, and nothing in
+## it is fighting (the boss frozen where it stood).
+func _held(id: String) -> bool:
+	for a in get_tree().get_nodes_in_group(&"boss_arena"):
+		if a is BossArena and (a as BossArena).boss_id == id:
+			return (a as BossArena).is_held() and not Player.boss_fight_active(get_tree())
+	return false

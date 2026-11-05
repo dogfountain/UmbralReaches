@@ -671,7 +671,7 @@ func _physics_process(delta: float) -> void:
 	if _briar_t <= 3.0 and _briar_t + delta > 3.0 and briars_r > BRIAR_MIN + 0.1:
 		var nr := maxf(BRIAR_MIN, briars_r - BRIAR_SHRINK)
 		Vfx.ring(C + Vector3.UP * 0.12, nr, BossKit.THORN, 3.0, 0.14, Vector3.UP, 1.4)
-		BossKit.emote(_boss, "The briars close in. Keep inside the ring.", Color(1.0, 0.5, 0.35))
+		BossKit.emote(_boss, "The briars close.", Color(1.0, 0.5, 0.35))
 	if _briar_t <= 0.0:
 		_briar_t = BRIAR_STEP
 		if briars_r > BRIAR_MIN + 0.1:
@@ -686,5 +686,5 @@ func _physics_process(delta: float) -> void:
 			var d := p.global_position - C
 			if Vector2(d.x, d.z).length() > briars_r and absf(d.y) < 6.0:
 				var mult := (_boss as Enemy).dmg_mult if _boss is Enemy else 1.0
-				p.add_gloom_from_enemy(BRIAR_GLOOM * mult, C + d.normalized() * (briars_r + 2.0))
+				p.take_wound(BRIAR_GLOOM * mult, C + d.normalized() * (briars_r + 2.0))
 				HitText.pop(p.global_position + Vector3.UP * 2.2, "briars", Color(1.0, 0.4, 0.25))

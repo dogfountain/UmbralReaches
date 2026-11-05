@@ -53,7 +53,7 @@ const SPELLS: Array[Dictionary] = [
 		["Cinder Scar", "A full charge leaves the ground burning for 3 s: it scorches and Marks whatever stands in it."]]},
 	{"id": "nova", "name": "Umbral Nova", "glyph": "nova", "color": Color("#C04DFF"), "ranks": [
 		["Wider Ring", "The ring reaches 7.2 m (was 6), and an echo follows it half a second later: 0.5 damage and another shove."],
-		["Short Wick", "Recovers in 5.5 s (was 7). Every Mark it detonates sends a mote home to you: 2 Gloom off each."],
+		["Short Wick", "Recovers in 5.5 s (was 7). Every Mark it detonates sends a mote home to you: it mends 2 Wounds."],
 		["Undertow", "Whatever the ring catches past 2.5 m is dragged in to you instead of thrown out."]]},
 	{"id": "ward", "name": "Lantern Ward", "glyph": "ward", "color": Color("#FFB347"), "ranks": [
 		["Long Wick", "Burns 3 s longer (10 s), and its flame pulses every 2 s, throwing foes back off its edge."],
@@ -121,10 +121,10 @@ const CORE_SPOTS := {
 const OATHS: Array[Dictionary] = [
 	{"tier": 1, "cost": 12, "gate": 0,
 		"a": {"id": "hearth", "name": "Oath of the Hearth", "glyph": "hearth",
-			"text": "Fire takes the Gloom off you 60% faster: braziers, wards, every warm light.",
+			"text": "Fire takes the Gloom off you and mends you 60% faster: braziers, wards, every warm light.",
 			"lore": "Stay by the fire. That is the whole of the Kindlers' teaching."},
 		"b": {"id": "hollow", "name": "Oath of the Hollow", "glyph": "hollow",
-			"text": "Every kill takes 4 more Gloom off you.",
+			"text": "Every kill mends 4 more Wounds.",
 			"lore": "Take back from them what the sky took from them."}},
 	{"tier": 2, "cost": 20, "gate": 1,
 		"a": {"id": "lash", "name": "Oath of the Lash", "glyph": "bolt",
@@ -138,7 +138,7 @@ const OATHS: Array[Dictionary] = [
 			"text": "Umbral Nova deals 1.5 damage for every Mark it detonates (was 1).",
 			"lore": "Count them, as the Abbot did. Then make the count mean something."},
 		"b": {"id": "door", "name": "Oath of the Open Door", "glyph": "door",
-			"text": "Rift Step recovers twice as fast, and every step takes 3 Gloom off you.",
+			"text": "Rift Step recovers twice as fast, and every step mends 3 Wounds.",
 			"lore": "Aurel held the door. Walk through it, and back, and through."}},
 ]
 

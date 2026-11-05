@@ -27,6 +27,17 @@ var _queue: Array[Dictionary] = []
 var _hold_until := 0.0
 var _clock := 0.0
 var _busy_until := 0.0
+const Hud := preload("res://ui/hud.gd")
+
+
+## r35: the HUD's zone title card is waiting for the loading screen or still on screen (hud.gd
+## title_busy). Asked, not heard: this banner is built after the arrival card is called, so the
+## zone_entered hold below never covered it. The Journal's own banner (ui/codex.gd) asks the same.
+static func title_up(n: Node) -> bool:
+	if not n.is_inside_tree():
+		return false
+	var h := n.get_tree().get_first_node_in_group(&"hud") as Hud
+	return h != null and h.title_busy()
 
 
 class Plate extends Control:
@@ -129,7 +140,8 @@ func _ready() -> void:
 	Events.zone_entered.connect(_on_title_card)
 
 
-## A zone title card (arrival, a boss's name) owns the screen: what is up bows out, the rest waits.
+## A zone title card (arrival, a boss's name) owns the screen: what is up bows out, the rest waits
+## (here, and for as long as the HUD says the card is up: title_up).
 func _on_title_card(_t: String, _s: String) -> void:
 	_hold_until = _clock + 4.6
 	if _plate.modulate.a > 0.01:
@@ -168,7 +180,7 @@ func _push(b: Dictionary) -> void:
 func _process(delta: float) -> void:
 	_clock += delta
 	_plate.visible = not get_tree().paused
-	if get_tree().paused or _queue.is_empty() or _clock < _hold_until:
+	if get_tree().paused or _queue.is_empty() or _clock < _hold_until or title_up(self):
 		return
 	# a fresh discovery waits for the one on screen; a plain name (revisit) cuts it short
 	var b: Dictionary = _queue[0]

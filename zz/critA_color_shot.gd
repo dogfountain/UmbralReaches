@@ -40,7 +40,7 @@ func _physics_process(_d: float) -> void:
 	if p == null:
 		p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		return
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	if t < 0.0:
 		if frames < 90 or not main.has_meta("summit_dressed"):
 			return

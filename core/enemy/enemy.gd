@@ -22,7 +22,7 @@ enum { IDLE, CHASE, WINDUP, STRIKE, RECOVER, DEAD, LEAP_PREP, AIRBORNE, FEINT, S
 ##                                    afflict.gd), shrouded and warded (buffs), plus anything another system
 ##                                    puts in meta "statuses" (an Array of the same dicts)
 ##   ui_info() -> Dictionary          all of the above in one call
-##   is_evading() -> bool             leashed: running home, immune, healed in full when it gets there
+##   is_evading() -> bool             leashed: walking home (r35: it can be struck, which turns it back; no heal)
 ## Events.enemy_cast_started(enemy, name, time, interruptible) and Events.enemy_cast_ended(enemy, name,
 ## interrupted) fire as casts begin and end, so a cast bar needs no polling to appear.
 ## interrupt(by) -> bool: a skill that interrupts calls this (true = a cast was broken). Any blow breaks a
@@ -33,9 +33,9 @@ enum { IDLE, CHASE, WINDUP, STRIKE, RECOVER, DEAD, LEAP_PREP, AIRBORNE, FEINT, S
 ## you shelter in fire-light), a blow from anywhere provokes them, and a pull is the whole PACK: everything
 ## camped within PACK_LINK of the same home comes together (the first to see you may also howl the
 ## ALARM_R neighbourhood awake). They leash like WoW mobs: drag one past its leash (hunt_leash, or
-## HARD_LEASH x it for kinds with their own rules) or outrun its chase and it EVADES -- it runs home
-## fast, takes no damage, drops its Marks and tells, and is healed to full when it arrives; its packmates
-## reset with it. A Tollman's bell (Enemy.toll) and a tide's hunters are exempt while they hunt.
+## HARD_LEASH x it for kinds with their own rules) or outrun its chase and it EVADES -- it walks home
+## and drops its Marks and tells; its packmates reset with it. r35: it keeps its damage (no heal at
+## home) and a blow on the way turns it back into the fight (it was WoW's immune run home). A Tollman's bell (Enemy.toll) and a tide's hunters are exempt while they hunt.
 
 const Hints := preload("res://ui/hints.gd")
 const HP_BAR_SHADER := "res://core/enemy/health_bar.gdshader"
@@ -215,13 +215,13 @@ const SILENCE := 4.0
 const INTERRUPT_COL := Color(0.75, 0.9, 1.6)
 const PACK_LINK := 9.0
 const HARD_LEASH := 2.2
-const EVADE_PACE := 1.8
+const EVADE_PACE := 1.0               ## r35: it walks home (it ran at 1.8, immune)
 const EVADE_MAX := 12.0
 const EVADE_COL := Color(0.85, 0.85, 0.95)
 const AFFLICT_PATH := "res://core/skills/afflict.gd"
 signal cast_started(cast: String, time: float, interruptible: bool)
 signal cast_ended(cast: String, interrupted: bool)
-signal evaded()                 ## got home from a leash and healed
+signal evaded()                 ## got home from a leash (r35: not healed)
 var cast_name := ""
 var cast_time := 0.0
 var cast_elapsed := 0.0
@@ -241,9 +241,8 @@ var roam := false
 var patrol_speed := 0.0
 var _patrol_i := 0
 var _patrol_wait := 0.0
-## Soft enrage and other ramps: Gloom its blows and zones fill is multiplied by this (BossKit reads it).
+## Ramps: the Wounds its blows and zones deal are multiplied by this (BossKit reads it; r35: no soft enrage).
 var dmg_mult := 1.0
-var fight_t := 0.0              ## a boss's seconds in the fight (BossKit.enrage_tick)
 static var _afflict: GDScript
 ## EnemyBody kind to dress with; empty = the type's own (bosses set theirs before _build).
 var body_kind: StringName = &""
@@ -353,12 +352,10 @@ func take_hit(dmg: float, from: Node = null) -> void:
 	if _state == DEAD:
 		return
 	if _evading:
-		# r33: leashed and running home -- WoW's "evade"; nothing lands until it is back
-		var now_e := Time.get_ticks_msec()
-		if now_e - int(get_meta(&"evade_pop", 0)) > 500:
-			set_meta(&"evade_pop", now_e)
-			HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.4), "evade", EVADE_COL)
-		return
+		# r35: walking home is not a shield (it was WoW's immune "evade"): the blow lands, and it
+		# turns back on you with what it has left
+		_end_evade()
+		_hunt_t = maxf(_hunt_t, 5.0)
 	var weak := _weak_hit(from)
 	if weak:
 		dmg *= WEAK_MULT
@@ -1168,7 +1165,7 @@ func _move_ballistic(delta: float) -> void:
 			if _p.is_evading():
 				_p.on_evaded(self)
 			else:
-				_p.add_gloom_from_enemy(strike_gloom * dmg_mult, global_position)
+				_p.take_wound(strike_gloom * dmg_mult, global_position)
 	var flat := Vector3(velocity.x, 0.0, velocity.z)
 	_turn_toward(flat if flat.length_squared() > 0.25 else _face_dir, delta)
 	if _rig:
@@ -1433,7 +1430,7 @@ func _resolve_strike() -> void:
 		if _p.is_evading():
 			_p.on_evaded(self)
 		else:
-			_p.add_gloom_from_enemy(strike_gloom * dmg_mult, global_position)
+			_p.take_wound(strike_gloom * dmg_mult, global_position)
 			Vfx.burst(_p.global_position + Vector3.UP * 1.1, Color(0.9, 0.12, 0.1), {"count": 12, "life": 0.3, "speed": Vector2(2.0, 4.0), "size": 0.04, "gravity": -4.0, "trail": 0.06})
 
 
@@ -1955,7 +1952,7 @@ func is_evading() -> bool:
 	return _evading
 
 
-## Dragged off its post (or outrun): run home, immune, and heal there. Its pack resets with it.
+## Dragged off its post (or outrun): walk home (r35: hittable, no heal there). Its pack resets with it.
 func _begin_evade() -> void:
 	if _evading or boss or home == Vector3.ZERO or _state == DEAD:
 		return
@@ -1984,8 +1981,14 @@ func _begin_evade() -> void:
 		if en == null or en == self or en.boss or en._evading or not en.is_alive() or en.home == Vector3.ZERO:
 			continue
 		# packmates out of the fight with it reset too (one still at your throat fights on)
-		if en._state != IDLE and en.home.distance_squared_to(home) < PACK_LINK * PACK_LINK and en._leashed() \
-				and en._hunt_t <= 0.0 and en._dist > en.chase_range:
+		if en._state == IDLE or en.home.distance_squared_to(home) >= PACK_LINK * PACK_LINK or not en._leashed() \
+				or en._hunt_t > 0.0:
+			continue
+		# r35: its own _dist is refreshed at think rate (10 Hz), so a leader evading between two of a
+		# mate's thinks saw the mate still "near" a wanderer who had long gone, and the mate hunted on
+		# alone (zz/enemies_r33 "its packmate resets with it"). Measure now.
+		en._cache_player()
+		if en._dist > en.chase_range:
 			en._set_state(IDLE)                  # its _set_state starts its own evade
 
 
@@ -2018,11 +2021,8 @@ func _end_evade() -> void:
 	_poise_dmg = 0.0
 	_broken_t = 0.0
 	_shroud_t = 0.0
-	var healed := hp < float(max_hp) - 0.01
-	hp = float(max_hp)
-	_refresh_hp(false)
-	if healed:
-		Vfx.ring(global_position + Vector3.UP * 0.1, 0.9, Color(0.6, 0.55, 0.8), 0.4, 0.05, Vector3.UP, 0.8)
+	# r35: no heal at home. A foe you hurt and left stays hurt (the critique's "solo bosses and foes":
+	# a solo wanderer who kites is playing the game, not exploiting it)
 	evaded.emit()
 
 
@@ -2159,10 +2159,7 @@ func _affliction() -> Dictionary:
 	return r if r is Dictionary else {}
 
 
-## + "enrage_left" (s) for a boss with a soft enrage (meta "enrage_at", BossKit.enrage_tick).
 func ui_info() -> Dictionary:
 	var d := {"name": display_name(), "rank": rank(), "level": level(), "hp": hp, "max_hp": float(max_hp),
 		"cast": cast_info(), "debuffs": debuffs(), "evading": _evading, "alive": is_alive()}
-	if has_meta(&"enrage_at"):
-		d["enrage_left"] = maxf(0.0, float(get_meta(&"enrage_at")) - fight_t)
 	return d

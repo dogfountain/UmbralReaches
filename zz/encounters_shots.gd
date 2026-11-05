@@ -78,7 +78,7 @@ func _run() -> void:
 		"elites":
 			for id: String in Elites.ELITES:
 				_clear()
-				p.gloom = 0.0
+				p.gloom = 0.0; p.wounds = 0.0
 				var e := (load(String(Elites.ELITES[id].script)) as GDScript).new() as Enemy
 				if umbral:
 					e.set_meta(&"enc_umbral", true)
@@ -166,7 +166,7 @@ func _run() -> void:
 				h.global_position = spot + Vector3.UP * 0.05
 			print("ENCSHOT tide hunters ", hunters.size())
 			for i in 6:
-				p.gloom = 0.0
+				p.gloom = 0.0; p.wounds = 0.0
 				for k in 50:
 					await get_tree().process_frame
 					p.global_position = g + Vector3.UP * 0.3      # hold still: the pack comes to us

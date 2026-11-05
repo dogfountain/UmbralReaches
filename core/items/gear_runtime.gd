@@ -332,12 +332,12 @@ static func store(piece: Dictionary) -> String:
 
 static func _gear_key() -> String:
 	if not InputMap.has_action("gear"):
-		return "G"
+		return "O"
 	for e: InputEvent in InputMap.action_get_events("gear"):
 		if e is InputEventKey:
 			var k := e as InputEventKey
 			return OS.get_keycode_string(k.physical_keycode if k.physical_keycode != KEY_NONE else k.keycode)
-	return "G"
+	return "O"
 
 
 ## After any change: recompute the live modifiers (gear rides in through gear_stats.gd), save.

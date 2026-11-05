@@ -404,6 +404,7 @@ func _draw_moon(c: Vector2, r: float) -> void:
 ## r33: the map_marker glyphs. Quest kinds pin to the rim with a pointer; a new one pings.
 func _draw_markers(c: Vector2, r: float, pulse: float) -> void:
 	var labelled := 0
+	var placed: Array[Rect2] = []                   # the name boxes already drawn this frame
 	for m: Dictionary in _marks:
 		var kind := String(m.kind)
 		if not kind.begins_with("m:"):
@@ -438,10 +439,20 @@ func _draw_markers(c: Vector2, r: float, pulse: float) -> void:
 		_glyph(kind, p, col, 1.0 if kind != "quest_target" else pulse)
 		var label := String(m.get("label", ""))
 		if label != "" and labelled < 2 and Vector2(q.x, q.y).length() < r * 0.4 and _font:
-			labelled += 1
 			var w := _font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
-			draw_string_outline(_font, p + Vector2(-w * 0.5, 20.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 4, Color(0, 0, 0, 0.8))
-			draw_string(_font, p + Vector2(-w * 0.5, 20.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, INK)
+			# r35: two pins a few metres apart wrote their names over each other ("OLD ZOOK" across
+			# "THE HEARTHWARD FIRE"); the first keeps its name, a label that would touch it is dropped
+			var box := Rect2(p + Vector2(-w * 0.5, 9.0), Vector2(w, 14.0)).grow(3.0)
+			var free := true
+			for b: Rect2 in placed:
+				if b.intersects(box):
+					free = false
+					break
+			if free:
+				placed.append(box)
+				labelled += 1
+				draw_string_outline(_font, p + Vector2(-w * 0.5, 20.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 4, Color(0, 0, 0, 0.8))
+				draw_string(_font, p + Vector2(-w * 0.5, 20.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, INK)
 
 
 func _glyph(kind: String, p: Vector2, col: Color, s: float) -> void:

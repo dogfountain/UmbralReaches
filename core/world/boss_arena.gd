@@ -16,7 +16,7 @@ extends Node3D
 var phase_titles: Dictionary = {}
 ## When the wardens' bosses are missing, what each one is called in the "Nothing answers" line.
 const HOLDS := {"thornwarden": "The Ring's heart", "bone_abbot": "The crypt's crown"}
-const LEAVE := 6.0          ## run this far past the edge and the fight resets (no kiting it out)
+const LEAVE := 6.0          ## run this far past the edge and the fight is held (r35: it used to reset)
 const GATE_CLEAR := 1.5     ## metres past the gate line before the fight starts and the gate closes
 
 var boss_script: GDScript
@@ -25,7 +25,7 @@ var gate: Node3D = null                 ## optional barrier that closes during t
 var gates: Array[Node3D] = []           ## further arena-mouth barriers shut with it (r30: the Ossuary chapel arch)
 var on_slain: Callable                  ## reward spawner, called once (also on load if slain)
 ## r34 raids: the room the fight changes (core/world/henge_raid.gd, summit_raid.gd). Optional methods:
-## room_begin(boss) on the pull, room_reset() on a wipe or a walk-out, room_won() on the kill.
+## room_begin(boss) on the pull, room_reset() on a wipe, room_won() on the kill (r35: a walk-out holds the room frozen).
 var room: Node = null
 var last_emote := ""                    ## the last raid-warning line shown (tests read it)
 var _emote_lbl: Label
@@ -86,7 +86,7 @@ var _cast_lbl: Label
 
 
 ## r33: the boss's cast under its bar (Enemy.cast_info): the name, a fill, gold when it can be broken,
-## pale grey with a shield edge when it cannot. "ENRAGED" in its place once the soft enrage is on.
+## pale grey with a shield edge when it cannot.
 class CastBar extends Control:
 	var progress := 0.0
 	var interruptible := false
@@ -156,8 +156,7 @@ func _physics_process(_d: float) -> void:
 		if pl:
 			var pd := pl.global_position - global_position
 			if Vector2(pd.x, pd.z).length() > radius + LEAVE or pd.y < -6.0:
-				Events.toast.emit("%s returns to its rest." % title)
-				_reset()
+				_hold_fight()                    # r35: a walk-out pauses the fight; it no longer resets it
 		return
 	if slain():
 		return
@@ -238,6 +237,9 @@ static func nothing_answers(req: Array) -> String:
 func _begin() -> void:
 	if boss_script == null:
 		return
+	if _held and is_instance_valid(_boss):
+		_resume_fight()
+		return
 	_active = true
 	_boss = boss_script.new() as Enemy
 	get_parent().add_child(_boss)
@@ -278,10 +280,12 @@ func _grant(fresh: bool) -> void:
 
 
 func _reset() -> void:
-	if not _active:
+	if not _active and not _held:
 		return
 	_active = false
+	_held = false
 	_warned = false
+	_freeze(false)
 	if is_instance_valid(_boss):
 		_boss.queue_free()
 	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
@@ -291,6 +295,64 @@ func _reset() -> void:
 	_open_gates()
 	if room != null and is_instance_valid(room) and room.has_method("room_reset"):
 		room.call("room_reset")
+
+
+# --- r35: a fight is never reset mid-way ---------------------------------------------------------
+# Walking (or falling) out of the arena used to free the boss and bring a fresh one, at full health,
+# on the next pull. Now the fight is held as it stands: the boss, its adds and the room are frozen,
+# the gates open, the bar goes away, and the dark gathers on you again out there. Coming back in
+# resumes it where it was. Only being hollowed resets a fight (Events.hollowed -> _reset).
+
+var _held := false                     ## walked out mid-fight: boss, adds and room frozen as they were
+var _held_modes: Dictionary = {}       ## node instance id -> its process_mode before the hold
+
+
+func is_held() -> bool:
+	return _held
+
+
+func _hold_fight() -> void:
+	if not _active:
+		return
+	_active = false
+	_held = true
+	_freeze(true)
+	_hide_bar()
+	_open_gates()
+	Events.toast.emit("%s waits where you left it." % title)
+
+
+func _resume_fight() -> void:
+	_held = false
+	_active = true
+	_freeze(false)
+	for g in _all_gates():
+		if g.has_method("close"):
+			g.call("close")
+	_show_bar()
+	Events.toast.emit("%s turns to you again." % title)
+
+
+## Freeze (or thaw) the boss, everything it summoned, and its room.
+func _freeze(on: bool) -> void:
+	var nodes: Array[Node] = []
+	if is_instance_valid(_boss):
+		nodes.append(_boss)
+	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
+		if (e as Node).has_meta(&"summoned_by") and (e as Node).get_meta(&"summoned_by") == boss_id:
+			nodes.append(e)
+	if room != null and is_instance_valid(room):
+		nodes.append(room)
+	for n in nodes:
+		var id := n.get_instance_id()
+		if on:
+			if not _held_modes.has(id):
+				_held_modes[id] = n.process_mode
+			n.process_mode = Node.PROCESS_MODE_DISABLED
+		elif _held_modes.has(id):
+			n.process_mode = int(_held_modes[id]) as Node.ProcessMode
+	if not on:
+		_held_modes.clear()
 
 
 func _all_gates() -> Array[Node3D]:
@@ -379,9 +441,6 @@ func _tick_cast() -> void:
 		_cast_bar.interruptible = bool(c.interruptible)
 		_cast_lbl.text = String(c.name) + ("" if bool(c.interruptible) else "  (cannot be broken)")
 		_cast_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.55) if bool(c.interruptible) else Color(0.82, 0.8, 0.88))
-	elif _boss.dmg_mult > 1.001:
-		_cast_lbl.text = "ENRAGED"
-		_cast_lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3))
 	else:
 		_cast_lbl.text = " "
 	_cast_bar.queue_redraw()

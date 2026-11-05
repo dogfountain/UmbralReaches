@@ -16,6 +16,7 @@ const WIDTH := 500.0                     ## kept clear of the objective lines at
 const HEIGHT := 46.0
 const BRAZIER_R := 110.0                 ## braziers farther than this are not shown
 const MAX_BRAZIERS := 4
+const LABEL_GAP := 4.0                   ## px kept clear between two distance numbers
 
 var _font: Font
 var _scan := 0.0
@@ -120,6 +121,7 @@ func _draw() -> void:
 	draw_colored_polygon(PackedVector2Array([Vector2(cx - 5.0, band_y - 13.0), Vector2(cx + 5.0, band_y - 13.0), Vector2(cx, band_y - 7.0)]), Color(LANTERN.r, LANTERN.g, LANTERN.b, 0.9 * _alpha))
 	# markers
 	var eye := cam.global_position
+	var labels: Array = []                          # [distance, x, text, alpha]: placed after, nearest first
 	for m: Dictionary in _marks:
 		var p: Vector3 = m.pos
 		var rel := p - eye
@@ -137,13 +139,33 @@ func _draw() -> void:
 			"beacon":
 				_diamond(Vector2(x, y), 7.0, col, true)
 				_diamond(Vector2(x, y), 9.5, Color(0.02, 0.02, 0.04, a * 0.6), false)
-				var dist := "%d m" % int(round(rel.length()))
-				var dw := _font.get_string_size(dist, HORIZONTAL_ALIGNMENT_CENTER, -1, 12).x
-				draw_string(_font, Vector2(x - dw * 0.5, band_y + 30.0), dist, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(INK.r, INK.g, INK.b, a * 0.8))
+				labels.append([rel.length(), x, "%d m" % int(round(rel.length())), a])
 			"cold":
 				_diamond(Vector2(x, y), 4.5, col, false)
 			_:
 				draw_circle(Vector2(x, y), 2.6, col)
+	_draw_distances(labels, band_y + 30.0)
+
+
+## r35: beacons a few degrees apart printed their distances over each other ("179283 M"). The nearest
+## beacon keeps its number; any other whose number would touch a placed one goes without.
+func _draw_distances(labels: Array, y: float) -> void:
+	labels.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
+	var taken: Array[Vector2] = []                  # placed spans: x = left, y = right
+	for l: Array in labels:
+		var x: float = l[1]
+		var text: String = l[2]
+		var dw := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, 12).x
+		var span := Vector2(x - dw * 0.5 - LABEL_GAP, x + dw * 0.5 + LABEL_GAP)
+		var free := true
+		for t: Vector2 in taken:
+			if span.x < t.y and t.x < span.y:
+				free = false
+				break
+		if not free:
+			continue
+		taken.append(span)
+		draw_string(_font, Vector2(x - dw * 0.5, y), text, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(INK.r, INK.g, INK.b, float(l[3]) * 0.8))
 
 
 ## Screen x for a world bearing; off-band bearings return -1 (or are pinned to the edge for markers).

@@ -44,7 +44,7 @@ func _process(_d: float) -> void:
 		# camps keep spawning hollowed things (one killed the wanderer mid-render): only ours stay
 		_clear_enemies()
 		if p != null and is_instance_valid(p):
-			p.set("gloom", 0.0)
+			p.set("gloom", 0.0); p.set("wounds", 0.0)
 		return
 	if main == null or not main.has_meta("realm_done") or main.get_node_or_null("Wildlife") == null:
 		return
@@ -210,7 +210,7 @@ func _m_fight() -> void:
 	Input.action_press(acts[1].action)
 	await _secs(1.3)
 	Input.action_release(acts[1].action)
-	p.set("gloom", 0.0)
+	p.set("gloom", 0.0); p.set("wounds", 0.0)
 
 
 func _m_tavern() -> void:

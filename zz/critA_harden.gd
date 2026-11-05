@@ -104,7 +104,7 @@ func _spawn(path: String, at: Vector3) -> Enemy:
 func _reset_player() -> void:
 	p.global_position = Vector3.ZERO
 	p.velocity = Vector3.ZERO
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	p._hurt_grace_until = 0.0
 	p._evade_t = 0.0
 	p.set_view(0.0, 0.0)
@@ -126,7 +126,7 @@ func _hold(secs: float) -> void:
 		await get_tree().physics_frame
 		p.global_position = Vector3(0.0, p.global_position.y, 0.0)
 		p.velocity = Vector3.ZERO
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 
 
 func _run() -> void:
@@ -214,7 +214,7 @@ func _boss_zones() -> void:
 	while Time.get_ticks_msec() - t0 < 1900:
 		await get_tree().physics_frame
 		p.global_position = Vector3(0.0, p.global_position.y, 0.0)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		p._evade_t = 0.5
 		p._evade_roll = false
 	p._evade_t = 0.0
@@ -231,7 +231,7 @@ func _haul() -> void:
 	var t0 := Time.get_ticks_msec()
 	while e._state != Enemy.WINDUP and Time.get_ticks_msec() - t0 < 4000:
 		await get_tree().physics_frame
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 	check("haul: wretch winds up (setup)", e._state == Enemy.WINDUP)
 	hurts.clear()
 	Drag.start(e, Vector3(0.0, 0.05, -1.4), 0.3, Callable())
@@ -256,7 +256,7 @@ func _exact_windup() -> void:
 	while n < 4 and Time.get_ticks_msec() - t0 < 12000:
 		await get_tree().physics_frame
 		p.global_position = Vector3(0.0, p.global_position.y, 0.0)
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		frames += 1
 		if e._state != was:
 			if e._state == Enemy.WINDUP:
@@ -306,7 +306,7 @@ func _warden_reel() -> void:
 	check("warden: phase 2 (setup)", int(w.get("phase")) == 2)
 	while w._ward_t > 0.0:
 		await get_tree().physics_frame
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 	await _frames(10)
 	w.set("_blink_t", 99.0)
 	w.take_hit(float(w.max_hp) * 0.3, p)
@@ -317,7 +317,7 @@ func _warden_reel() -> void:
 	var t0 := Time.get_ticks_msec()
 	while w._ward_t > 0.0 and Time.get_ticks_msec() - t0 < 3000:
 		await get_tree().physics_frame
-		p.gloom = 0.0
+		p.gloom = 0.0; p.wounds = 0.0
 		moved = maxf(moved, w.global_position.distance_to(at))
 	check("warden: no blink while it reels", moved < 1.0, "moved %.1f m" % moved)
 	await _clear()

@@ -5,6 +5,7 @@ extends Node
 var pending := false
 var returning := false
 var gloom := 0.0
+var wounds := 0.0                    ## r35: carried across a scene change with the Gloom
 var hollow_count := 0
 var spawn := Vector3.ZERO
 var yaw := 0.0
@@ -103,6 +104,7 @@ func go(path: String, at: Vector3, facing: float, player: Node) -> void:
 	_remember_kindles()
 	if player and is_instance_valid(player):
 		gloom = player.gloom
+		wounds = player.wounds
 		hollow_count = player.hollow_count
 	Events.interact_hint.emit("")
 

@@ -66,7 +66,7 @@ static func zone(e: Enemy, at: Vector3, delay: float, gloom: float, opts := {}) 
 				else:
 					HitText.pop(p.global_position + Vector3.UP * 2.0, "evaded", Color(0.6, 0.75, 1.0))
 			else:
-				p.add_gloom_from_enemy(gloom, at)
+				p.take_wound(gloom, at)
 				Vfx.burst(p.global_position + Vector3.UP * 1.1, Color(0.9, 0.12, 0.1), {"count": 12, "life": 0.3, "speed": Vector2(2.0, 4.0), "size": 0.04, "gravity": -4.0, "trail": 0.06}))
 	return mi
 
@@ -124,7 +124,7 @@ static func linger(at: Vector3, r: float, life: float, gloom: float, every: floa
 			if p == null or p.is_evading():
 				return
 			if BossKit.inside(p.global_position, at, {"radius": r, "h": 1.2}):
-				p.add_gloom_from_enemy(gloom, at))
+				p.take_wound(gloom, at))
 	return mi
 
 

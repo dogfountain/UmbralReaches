@@ -128,7 +128,7 @@ func apply() -> void:
 		return
 	var p := _player
 	if _base.is_empty():
-		for k: String in ["gloom_max", "gloom_rate_dark", "gloom_rate_rift", "gloom_drain_lit", "step_range", "step_evade",
+		for k: String in ["gloom_max", "gloom_rate_dark", "gloom_rate_rift", "gloom_drain_lit", "wounds_mend_lit", "step_range", "step_evade",
 				"walk_speed", "sprint_speed", "jump_velocity"]:
 			_base[k] = float(p.get(k))
 	var m := DB.live
@@ -136,6 +136,7 @@ func apply() -> void:
 	p.gloom_rate_dark = _base.gloom_rate_dark * float(m.get("dark_mult", 1.0))
 	p.gloom_rate_rift = _base.gloom_rate_rift * float(m.get("dark_mult", 1.0))
 	p.gloom_drain_lit = _base.gloom_drain_lit * float(m.get("lit_mult", 1.0))
+	p.wounds_mend_lit = _base.wounds_mend_lit * float(m.get("lit_mult", 1.0))   # r35: a fire's relief mends Wounds too
 	p.step_range = _base.step_range + (2.0 if int(m.get("step", 0)) >= 1 else 0.0) + float(m.get("step_range", 0.0))
 	p.step_evade = (0.6 if int(m.get("step", 0)) >= 2 else _base.step_evade) + float(m.get("step_evade_add", 0.0))
 	# the Road (paths_db.gd): pace and spring
@@ -219,7 +220,7 @@ func _on_killed(e: Node) -> void:
 	if relief <= 0.0 or _player == null or not is_instance_valid(_player) or not (e is Node3D):
 		return
 	if (e as Node3D).global_position.distance_to(_player.global_position) <= 28.0:
-		_player.add_gloom(-relief)
+		_player.mend(relief)                          # r35: a kill's relief mends Wounds (Gloom is the dark's alone)
 
 
 func _on_boss(_id: String) -> void:

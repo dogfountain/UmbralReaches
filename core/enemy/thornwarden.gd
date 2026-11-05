@@ -22,7 +22,6 @@ extends Leaper
 ## Phase III  "The Last Bloom" (35-0 %), the burn
 ##   the maze withers; the closing briars shrink the floor every 14 s; Bloom of Thorns: three rings of
 ##   thorn burst outward from it one after another (stand between them); everything comes faster.
-## Overgrowth  soft enrage at ENRAGE_AT s (BossKit.enrage_tick): more Gloom per blow, quicker timers.
 
 const SLAM_R := 3.2
 const SLAM_R2 := 5.0
@@ -51,7 +50,6 @@ const STORM_GLOOM := 48.0
 const KNOT_TIME := 55.0         ## seconds to burn the knots before the henge closes
 const ERUPT_EVERY := 5.5
 const BLOOM_EVERY := 15.0
-const ENRAGE_AT := 330.0
 const HP := 600
 const QuestBook := preload("res://core/story/quest_book.gd")
 var _attuned := false
@@ -96,8 +94,8 @@ func on_engaged(arena: Node) -> void:
 		_arena_c = (arena as Node3D).global_position
 	# r34 merge: attunement (Ruan's ward-stones): its Thornspeakers' song only takes a quarter off your blows
 	_attuned = QuestBook.attuned("thornwarden")
-	BossKit.emote(self, "The ward-stones hold: the Thornspeakers' song is weak against you." if _attuned \
-		else "The Thornwarden rises from the ring. Keep to the stones when it gathers the thorns.")
+	# r35: world cues, not text: one short line a mechanic, no instructions (the arena shows what to do)
+	BossKit.emote(self, "The ward-stones hold. Its song is weak." if _attuned else "The Thornwarden rises from the ring.")
 
 
 func _absorb(dmg: float, from: Node) -> float:
@@ -151,7 +149,6 @@ func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	if _state == DEAD:
 		return
-	delta *= BossKit.enrage_tick(self, delta, ENRAGE_AT)     # Overgrowth quickens every timer below
 	if rooted:
 		_tick_rooted(delta)
 		return
@@ -205,7 +202,7 @@ func _physics_process(delta: float) -> void:
 	elif phase == 2 and _wave_t <= 0.0:
 		_wave_t = WAVE_EVERY
 		BossKit.cast(self, "Call of the Stones", 1.6, false, _call_stones)
-		BossKit.emote(self, "The Thornwarden calls the stones. A Thornspeaker answers: silence it first.")
+		BossKit.emote(self, "A Thornspeaker answers the call.")
 		if _rig and _rig.has_method("howl"):
 			_rig.call("howl", 1.4)
 	elif phase <= 2 and _storm_t <= 0.0 and is_on_floor():
@@ -284,8 +281,14 @@ func _thornstorm() -> void:
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", STORM_TIME)
 	BossKit.cast(self, "Thornstorm", STORM_TIME, false, _storm_lands)
-	BossKit.emote(self, "The Thornwarden gathers every thorn in the henge. Get behind a standing stone!", Color(1.0, 0.55, 0.3))
-	Hints.once(&"thornstorm", "Thornstorm: only stone (or a grown wall) between you and the Thornwarden spares you.")
+	BossKit.emote(self, "Every thorn in the henge rises.", Color(1.0, 0.55, 0.3))
+	# the lee of every standing stone lights up for the storm's whole gathering
+	if _room != null and "stones" in _room:
+		var shields: Array = []
+		for st: Variant in _room.get("stones"):
+			if st is Node3D and is_instance_valid(st):
+				shields.append((st as Node3D).global_position)
+		BossKit.lee_marks(global_position, shields, STORM_TIME, Color(1.0, 1.7, 0.8))
 	var c: Vector3 = _arena_c if _arena_c != Vector3.INF else global_position
 	var r := 30.0 if _arena_c != Vector3.INF else 20.0
 	var cone := SpellFx.danger(c, STORM_TIME, {"radius": r, "color": Color(1.6, 0.35, 0.1)})
@@ -317,7 +320,7 @@ func _storm_lands() -> void:
 	elif p.is_evading():
 		p.on_evaded(self)
 	else:
-		p.add_gloom_from_enemy(STORM_GLOOM * dmg_mult, global_position)
+		p.take_wound(STORM_GLOOM * dmg_mult, global_position)
 
 
 ## The heart-knot found while it rears to drive the lanes (or drinks for the mending): the cast breaks.
@@ -358,7 +361,7 @@ func _sap_mending() -> void:
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", MEND_TIME)
 	BossKit.cast(self, "Sap Mending", MEND_TIME, true, _mended)
-	BossKit.emote(self, "The Thornwarden drinks from the henge. Break it before it mends!", Color(0.85, 1.0, 0.45))
+	BossKit.emote(self, "The Thornwarden drinks from the henge.", Color(0.85, 1.0, 0.45))
 	SpellFx.shell(global_position + Vector3.UP * hp_bar_y * 0.5, hp_bar_y * 0.35, hp_bar_y * 0.6, Color(0.9, 1.4, 0.3), MEND_TIME)
 	Vfx.ring(global_position + Vector3.UP * 0.1, 3.0, Color(1.2, 1.8, 0.4), MEND_TIME, 0.08, Vector3.UP, 1.0)
 	Sfx.play_stream(Synth.get_stream("chant"), global_position + Vector3.UP * 2.0, 0.0, 0.5)
@@ -439,8 +442,7 @@ func _begin_rooting() -> void:
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", 2.0)
 	BossKit.roar(self, "", BossKit.THORN)
-	BossKit.emote(self, "The Thornwarden roots into the henge's heart! Burn the three heart-knots before the brambles close.", Color(0.9, 1.0, 0.45))
-	Hints.once(&"heart_knots", "Heart-knots: burn all three (they glow in the outer ring) before the henge closes.")
+	BossKit.emote(self, "It roots into the henge's heart.", Color(0.9, 1.0, 0.45))
 	_room.call("set_mood", "rooted")
 	_room.call("spawn_knots", self)
 	_room.call("grow_stage", 1, self)
@@ -458,7 +460,7 @@ func _tick_rooted(delta: float) -> void:
 	if _stage == 1 and _root_t >= 12.0:
 		_stage = 2
 		_room.call("grow_stage", 2, self)
-		BossKit.emote(self, "The brambles grow. Go round them.", Color(1.0, 0.6, 0.35))
+		BossKit.emote(self, "The brambles grow.", Color(1.0, 0.6, 0.35))
 	elif _stage == 2 and _root_t >= 24.0:
 		_stage = 3
 		_room.call("grow_stage", 3, self)
@@ -497,13 +499,13 @@ func _end_rooting(left: int) -> void:
 		HitText.pop(global_position + Vector3.UP * (hp_bar_y + 1.0), "+%d the henge closes" % roundi(gain), Color(1.0, 1.6, 0.5), true)
 		var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		if p:
-			p.add_gloom_from_enemy(16.0 * float(left), global_position)
+			p.take_wound(16.0 * float(left), global_position)
 		for kn: Node in _room.get("knots") if _room != null else []:
 			if is_instance_valid(kn):
 				kn.queue_free()
-		BossKit.emote(self, "The henge closes. The Thornwarden drinks the knots you left.", Color(1.0, 0.45, 0.3))
+		BossKit.emote(self, "The henge closes on the knots you left.", Color(1.0, 0.45, 0.3))
 	else:
-		BossKit.emote(self, "The last knot bursts. The Thornwarden tears itself out of the heart, reeling!", Color(1.0, 0.75, 0.4))
+		BossKit.emote(self, "The last knot bursts. It tears free, reeling.", Color(1.0, 0.75, 0.4))
 	if _room != null and is_instance_valid(_room):
 		_room.call("wither_stage", 3)
 		_room.call("set_mood", "fight")
@@ -520,7 +522,7 @@ func _end_rooting(left: int) -> void:
 
 func _begin_bloom() -> void:
 	BossKit.transition(self, "", BossKit.RAGE, 1.6)
-	BossKit.emote(self, "The Thornwarden bleeds into bloom. The briars close on the henge: stay near it and finish this!", Color(1.0, 0.4, 0.3))
+	BossKit.emote(self, "It bleeds into bloom. The briars close.", Color(1.0, 0.4, 0.3))
 	leap_cooldown = 1.3
 	walk_speed = 5.8
 	if _room != null and is_instance_valid(_room):
@@ -544,7 +546,7 @@ func _bloom() -> void:
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", 1.2)
 	BossKit.cast(self, "Bloom of Thorns", 1.4)
-	BossKit.emote(self, "Bloom of Thorns! Stand between the rings.", Color(1.0, 0.5, 0.35))
+	BossKit.emote(self, "Bloom of Thorns.", Color(1.0, 0.5, 0.35))
 	var rings := [[1.4, 2.5, 5.0], [2.2, 8.5, 11.0], [3.0, 14.5, 17.0]]
 	for rg: Array in rings:
 		BossKit.zone(get_parent(), c, float(rg[0]), 24.0, {"by": self, "radius": float(rg[2]), "holes": [[c, float(rg[1])]], "color": BossKit.THORN, "h": 2.5})

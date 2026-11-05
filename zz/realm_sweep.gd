@@ -88,7 +88,7 @@ func _physics_process(_delta: float) -> void:
 		return
 	for n in get_tree().get_nodes_in_group(Groups.ENEMY):
 		(n as Node).queue_free()
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	tick += 1
 	if phase == 0:
 		if tick < SETTLE_TICKS:

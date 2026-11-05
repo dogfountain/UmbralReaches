@@ -77,7 +77,7 @@ func _process(_d: float) -> void:
 				(cl as CanvasLayer).visible = false
 		wait = 60
 		return
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	if wait > 0:
 		wait -= 1
 		cam.current = true

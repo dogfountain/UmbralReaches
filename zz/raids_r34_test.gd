@@ -2,7 +2,7 @@ extends Node
 ## r34 overworld raids (docs/r34/raids_overworld.md): both raid rooms built at size, their gates (shut
 ## while guarded, shut on the pull, open on a reset or the kill), every phase and intermission of the
 ## Thornwarden and the Ascended Warden reached and checked, the room mechanics (Thornstorm shelter,
-## the maze, heart-knots, the closing briars, pylons, the Gale, the Eclipse), the soft enrage, the kill
+## the maze, heart-knots, the closing briars, pylons, the Gale, the Eclipse), no soft enrage (r35), the kill
 ## flow, and the Ember Road shut during a fight. The fights are scripted deterministically: the test
 ## sets each phase's health (and its signature count) and calls the moves itself.
 ## Run: SCRATCH=<dir> tools/run_tests.sh raids_r34
@@ -50,7 +50,7 @@ func _frames(n: int) -> void:
 	for i in n:
 		await get_tree().physics_frame
 		if not keep_gloom and p:
-			p.gloom = 0.0
+			p.gloom = 0.0; p.wounds = 0.0
 
 
 func _secs(s: float) -> void:
@@ -66,7 +66,7 @@ func _tp(at: Vector3) -> void:
 	q.exclude = [p.get_rid()]
 	var hit := p.get_world_3d().direct_space_state.intersect_ray(q)
 	p.teleport(((hit.position as Vector3) if not hit.is_empty() else at) + Vector3.UP * 0.15)
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 
 
 func _seal(id: String) -> WardSeal:
@@ -188,19 +188,20 @@ func _henge() -> void:
 	await _frames(3)
 	b.call("_thornstorm")
 	check("henge: Thornstorm is a cast that cannot be broken", b.cast_name == "Thornstorm" and not b.cast_interruptible)
-	check("henge: ...and it is announced", arena.last_emote.contains("standing stone"), arena.last_emote)
-	var g0 := p.gloom
+	# r35: world cues, not text: one short line, no instruction (the lee of each stone lights up instead)
+	check("henge: ...and it is announced in one short line", arena.last_emote != "" and arena.last_emote.length() <= 48 and not arena.last_emote.contains("!"), arena.last_emote)
+	var g0 := p.wounds
 	b.call("_storm_lands")
-	check("henge: in the open, the storm hits", p.gloom > g0 + 20.0, "%.1f -> %.1f" % [g0, p.gloom])
+	check("henge: in the open, the storm hits", p.wounds > g0 + 20.0, "%.1f -> %.1f" % [g0, p.wounds])
 	var stone := (room.get("stones") as Array)[2] as Node3D
 	var out := stone.global_position - C
 	out.y = 0.0
 	_tp(stone.global_position + out.normalized() * 2.4)
 	await _frames(3)
 	check("henge: behind a great stone you are sheltered", bool(room.call("shelter", b.global_position + Vector3.UP, p.global_position)))
-	g0 = p.gloom
+	g0 = p.wounds
 	b.call("_storm_lands")
-	check("henge: ...and the storm spares you", p.gloom <= g0 + 0.01, "%.1f -> %.1f" % [g0, p.gloom])
+	check("henge: ...and the storm spares you", p.wounds <= g0 + 0.01, "%.1f -> %.1f" % [g0, p.wounds])
 	b._finish_cast(true, false)
 	# the intermission
 	_tp(C + gout * 14.0)
@@ -215,30 +216,36 @@ func _henge() -> void:
 	check("henge: the first maze stage erupts after its warning", int(room.call("grown_count")) >= stage[1], str(room.call("grown_count")))
 	await _secs(12.0)
 	check("henge: the maze grows on (stage two)", int(room.call("grown_count")) >= stage[1] + stage[2], str(room.call("grown_count")))
-	# a wipe in the middle: walk out, the room resets
+	# r35: walking out mid-fight HOLDS it (it used to reset it): the boss, its adds and the room are
+	# frozen as they stand, the gates open, and the dark gathers on you again out there
+	var grown_before := int(room.call("grown_count"))
+	var hp_before := b.hp
+	var held_b := b
 	_tp(_ground(C.x + gout.x * 44.0, C.z + gout.z * 44.0))
 	await _frames(20)
-	check("henge: leaving resets the fight", _boss() == null and not _shut(seal) and not Player.boss_fight_active(get_tree()))
+	check("henge: leaving holds the fight (not a reset)", is_instance_valid(held_b) and held_b.is_alive() and arena.is_held() and held_b.process_mode == Node.PROCESS_MODE_DISABLED and not _shut(seal) and not Player.boss_fight_active(get_tree()))
 	await _secs(1.5)
-	check("henge: ...and the room (maze down, knots gone)", int(room.call("grown_count")) == 0 and int(room.call("knots_left")) == 0)
-	# pull again, straight to the intermission, and burn the knots
+	check("henge: ...and the room stands frozen (maze and knots kept)", int(room.call("grown_count")) == grown_before and int(room.call("knots_left")) == 3, "%d / %d" % [int(room.call("grown_count")), int(room.call("knots_left"))])
+	# walk back in: the same fight resumes where it was
 	_tp(C + gout * 14.0)
 	await _frames(20)
 	b = _boss() as Thornwarden
-	check("henge: it rises again", b != null)
+	check("henge: coming back resumes it (same boss, same health, still rooted)", b == held_b and not arena.is_held() and absf(b.hp - hp_before) < 0.01 and b.rooted and Player.boss_fight_active(get_tree()))
 	if b == null:
 		return
-	await _secs(2.6)
-	_to_hp(b, 0.7)
-	await _frames(4)
 	for kn in room.get("knots"):
 		if is_instance_valid(kn):
 			kn.call("take_hit", 999.0, null)
 	await _frames(4)
 	check("henge: every knot burned, it tears free into phase II", not b.rooted and b.phase == 2 and int(room.call("knots_left")) == 0)
 	await _secs(2.0)
-	check("henge: the knots' bays wither, the first maze stays", int(room.call("grown_count")) == stage[1], str(room.call("grown_count")))
-	# phase II: the Thornspeaker
+	check("henge: the knots' bays wither", int(room.call("grown_count")) <= grown_before, "%d of %d" % [int(room.call("grown_count")), grown_before])
+	# phase II: the Thornspeaker. r35: the held fight kept its earlier adds (a walk-out no longer frees
+	# them), and add waves are capped at five alive: clear them so this wave is the one measured
+	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
+		if (e as Node).get_meta(&"summoned_by", "") == "thornwarden":
+			(e as Node).queue_free()
+	await _frames(2)
 	b._ward_t = 0.0
 	b._broken_t = 0.0
 	b.call("_call_stones")
@@ -267,16 +274,13 @@ func _henge() -> void:
 	check("henge: the briars close in", float(room.get("briars_r")) < float(room.get("BRIAR_START")) - 0.1, "%.1f" % float(room.get("briars_r")))
 	keep_gloom = true
 	_tp(C + gout * (float(room.get("briars_r")) + 1.8))
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	await _secs(1.2)
-	check("henge: outside the briars you suffer", p.gloom > 3.0, "%.1f" % p.gloom)
+	check("henge: outside the briars you suffer", p.wounds > 3.0, "%.1f" % p.wounds)
 	keep_gloom = false
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	_tp(C + gout * 6.0)
-	# the soft enrage
-	b.fight_t = Thornwarden.ENRAGE_AT + 1.0
-	await _frames(3)
-	check("henge: the soft enrage comes on", b.dmg_mult > 1.0)
+	check("henge: no soft enrage (r35)", not (Thornwarden as Script).get_script_constant_map().has("ENRAGE_AT") and is_equal_approx(b.dmg_mult, 1.0))
 	# the kill
 	b._ward_t = 0.0
 	b.set_meta(&"test_no_floor", true)
@@ -361,7 +365,7 @@ func _summit() -> void:
 	await _frames(2)
 	var d0 := Vector2(p.global_position.x - C.x, p.global_position.z - C.z).length()
 	b.call("_begin_gale")
-	check("summit: Gale of the Door is announced and cast", b.cast_name == "Gale of the Door" and arena.last_emote.contains("gale"))
+	check("summit: Gale of the Door is announced and cast", b.cast_name == "Gale of the Door" and arena.last_emote.contains("door"))
 	await _secs(AscendedWarden.GALE_CAST + 2.0)
 	var d1 := Vector2(p.global_position.x - C.x, p.global_position.z - C.z).length()
 	check("summit: the gale drives you toward the edge", d1 > d0 + 3.0, "%.1f -> %.1f m" % [d0, d1])
@@ -397,9 +401,7 @@ func _summit() -> void:
 	check("summit: at 30 % the Hierarch (phase III): every pylon blazes", b.phase == 3 and int(room.call("lit_count")) == 4 and String(room.get("mood")) == "hierarch")
 	await _frames(2)
 	check("summit: the bar names him", arena._bar_name != null and arena._bar_name.text.contains("AUREL"), arena._bar_name.text if arena._bar_name else "")
-	b.fight_t = AscendedWarden.ENRAGE_AT + 1.0
-	await _frames(3)
-	check("summit: the soft enrage comes on", b.dmg_mult > 1.0)
+	check("summit: no soft enrage (r35)", not (AscendedWarden as Script).get_script_constant_map().has("ENRAGE_AT") and is_equal_approx(b.dmg_mult, 1.0))
 	b._ward_t = 0.0
 	b.set_meta(&"test_no_floor", true)
 	b.take_hit(9999.0)

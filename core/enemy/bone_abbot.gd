@@ -27,7 +27,6 @@ extends Ossuant
 ##        (four plates), the Choir once more.
 ##   IV   the Last Count (12 % - 0): three more sectors fall, leaving the inner disc and the door's
 ##        tongue; he no longer wards himself (+20 % taken) but every rite comes faster. Burn him.
-##   The Last Count  soft enrage at ENRAGE_AT s (BossKit.enrage_tick): Gloom per blow and rite ramps.
 ## Kept from r29-r33 (tests call them): _tithe, _requiem, _raise_faithful, _cage, the reliquary at his
 ## breast (two bursts break the Requiem; one breaks Raise the Faithful), the phase floors.
 
@@ -45,7 +44,6 @@ const SWEEP_EVERY := 6.0
 const TITHE_EVERY := 9.0
 const RAISE_EVERY := 26.0
 const RAISE_TIME := 2.5
-const ENRAGE_AT := 330.0
 const GRAVE_FIRE := Color(2.6, 1.3, 0.3)     ## r30: candle-gold, the Ossuary's own light (violet went blue under the grade)
 const GRAVE := Color(0.62, 0.8, 0.68)        ## grave-light (the Tallies, the sound-shadow)
 const DUST := Color(0.9, 0.82, 0.62)
@@ -121,7 +119,7 @@ func on_engaged(arena: Node) -> void:
 	# r34 quests: WoW-style attunement. His count comes up short: one plate fewer in each Reckoning,
 	# one fewer of the faithful in each raising and wave, and the count in the mound runs 10 s shorter.
 	_attuned = QuestBook.attuned("bone_abbot")
-	var line := "\"...one thousand and ninety... and...\" The Abbot falters: you are attuned, and his count comes up short." if _attuned \
+	var line := "\"...one thousand and ninety... and...\" His count comes up short." if _attuned \
 		else "\"One thousand and ninety.\" Abbot Osric turns from his dead to count you."
 	get_tree().create_timer(0.25, false).timeout.connect(func() -> void:
 		if is_instance_valid(self) and is_alive():
@@ -208,7 +206,7 @@ func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	if _state == DEAD:
 		return
-	var haste := BossKit.enrage_tick(self, delta, ENRAGE_AT)     # r33: the Last Count quickens every rite
+	var haste := 1.0                                # r35: no soft enrage (the Last Count is gone)
 	_tick_choir(delta)
 	if _hymn:
 		haste *= 1.2
@@ -345,7 +343,7 @@ func _begin_intermission() -> void:
 	_waves = 0
 	set_meta(&"phase_label", "THE COUNT IS TAKEN")
 	BossKit.cast(self, "The Count Is Taken", it + 1.6)
-	BossKit.emote(self, "The Abbot sinks into the mound. Break the three Tallies in the chapels before the count is taken!")
+	BossKit.emote(self, "The Abbot sinks into the mound.")
 	var eid := get_instance_id()
 	get_tree().create_timer(1.4, false).timeout.connect(func() -> void:
 		var me := instance_from_id(eid) as BoneAbbot
@@ -387,7 +385,7 @@ func _sink() -> void:
 		t.wake()
 		SpellFx.rift_in(sp)
 		_tallies.append(t)
-	Events.toast.emit("The Tallies feed him from the chapels. Break all three before the count is taken.")
+	Events.toast.emit("The Tallies feed him from the chapels.")
 
 
 func _tallies_left() -> int:
@@ -534,7 +532,7 @@ func _summon_choir() -> void:
 				e._hp_bar.set_instance_shader_parameter(&"segments", Enemy.hp_segments(CHOIR_HP))
 			e._rally_t = 4.0
 	if not spots.is_empty():
-		BossKit.emote(self, "The Choir of the Count sings him whole: silence the Choir!")
+		BossKit.emote(self, "The Choir sings him whole.")
 
 
 func _tick_choir(delta: float) -> void:
@@ -577,7 +575,7 @@ func _tolling() -> void:
 	var hole := Vector3(c.x, c.y, c.z) + away * SHADOW_AT
 	_hall.call("toll", bi)
 	BossKit.cast(self, "The Tolling", TOLL_TIME)
-	BossKit.emote(self, "The Abbot raises his crozier to the %s bell. Get behind the mound!" % ["east", "south", "west", "north"][bi])
+	BossKit.emote(self, "He raises his crozier to the %s bell." % ["east", "south", "west", "north"][bi])
 	BossKit.zone(get_parent(), Vector3(c.x, c.y, c.z), TOLL_TIME, TOLL_GLOOM, {"by": self, "radius": 27.5, "color": BossKit.BONE,
 		"holes": [[hole, SHADOW_R], [Vector3(c.x, c.y, c.z), Hall.MOUND_R + 0.4]], "h": 3.0})
 	SpellFx.column(hole, SHADOW_R * 0.8, 6.0, TOLL_TIME + 0.3)
@@ -596,7 +594,6 @@ func _tolling() -> void:
 			Kit.play("bell_great", h.call("bell_at", bi), 8.0, 0.66))
 	if phase == 1:
 		_sig += 1
-	Hints.once(&"abbot_toll", "The Tolling fills the hall: get behind the great mound, into the pale pool of its shadow.")
 
 
 # --- Bone Rain -----------------------------------------------------------------------------------
@@ -676,8 +673,7 @@ func _reckoning(n: int) -> void:
 		Vfx.ring(at + Vector3.UP * 0.08, PLATE_R, BossKit.HOLY, RECKON_TIME, 0.12, Vector3.UP, 1.3)
 		Vfx.light(at + Vector3.UP * 1.2, Color(0.9, 0.6, 0.25), 1.6, 5.0, RECKON_TIME)
 		SpellFx.column(at, PLATE_R * 0.55, 3.0, RECKON_TIME)
-	BossKit.emote(self, "The Reckoning: he counts the living. Stand on every gold plate before he finishes!")
-	Hints.once(&"abbot_reckon", "The Reckoning: step onto each gold plate before the count ends. Each one missed raises the dead.")
+	BossKit.emote(self, "The Reckoning. He counts the living.")
 
 
 func _reckon_label() -> String:
@@ -727,7 +723,7 @@ func _end_plates(judge: bool) -> void:
 			_mark_adds(w, bid)
 	_plates.clear()
 	if short > 0 and _p and is_alive():
-		_p.add_gloom_from_enemy(SHORT_GLOOM * float(short) * dmg_mult, global_position)
+		_p.take_wound(SHORT_GLOOM * float(short) * dmg_mult, global_position)
 		HitText.pop(_p.global_position + Vector3.UP * 2.4, "the count is short by %d" % short, BossKit.BONE, true)
 	elif judge and is_alive():
 		HitText.pop(global_position + Vector3.UP * (hp_bar_y + 1.0), "all are counted", BossKit.HOLY, true)
@@ -743,7 +739,7 @@ func _tick_falls(delta: float) -> void:
 		f[1] = float(f[1]) - delta
 		if float(f[1]) <= 0.0:
 			if bool(_hall.call("collapse", int(f[0]), 4.0)) and int(_hall.call("fallen_count")) in [1, 5]:
-				BossKit.emote(self, "The floor shakes and gives way into the Uncounted Deep. Keep to the stone that stands!")
+				BossKit.emote(self, "The floor gives way into the Uncounted Deep.")
 		else:
 			keep.append(f)
 	_falls = keep

@@ -374,10 +374,12 @@ func _on_zone(title: String, subtitle: String) -> void:
 	# the night's title card waits for the loading screen to lift (it used to play under it)
 	var cover := _loading_cover()
 	if cover:
+		_title_pending += 1
 		await cover.tree_exited
 		if not is_inside_tree():
 			return
 		await get_tree().create_timer(0.35).timeout
+		_title_pending -= 1
 		if not is_inside_tree():
 			return
 	_title.text = title
@@ -385,12 +387,25 @@ func _on_zone(title: String, subtitle: String) -> void:
 	_title.modulate.a = 0.0
 	_subtitle.modulate.a = 0.0
 	var tt := create_tween()
+	_title_tw = tt
 	tt.tween_interval(0.4)
 	tt.tween_property(_title, "modulate:a", 1.0, 0.8)
 	tt.parallel().tween_property(_subtitle, "modulate:a", 1.0, 1.0)
 	tt.tween_interval(3.2)
 	tt.tween_property(_title, "modulate:a", 0.0, 1.0)
 	tt.parallel().tween_property(_subtitle, "modulate:a", 0.0, 1.0)
+
+
+var _title_pending := 0            ## title cards waiting for the loading screen to lift
+var _title_tw: Tween
+
+
+## r35: a zone title card is waiting for the loading screen or still on screen (its whole tween, fade
+## out included). The place banners (discovery_banner.gd, codex.gd) hold while this is true. They are
+## built after the arrival card is called, so they never heard it, and "HEARTHWARD" was carved over
+## "THE UMBRAL REACHES" the moment the loading screen lifted.
+func title_busy() -> bool:
+	return _title_pending > 0 or (_title_tw != null and _title_tw.is_valid() and _title_tw.is_running())
 
 
 # --- the first minutes: controls card and first-time tips (r29) --------------------------------------
@@ -489,7 +504,7 @@ func _tips_tick(delta: float) -> void:
 	elif p.has_method("lock_target") and p.call("lock_target") == null and _foe_near(p, 16.0):
 		_tip_once("lock", "%s  lock on to it   ·   %s  roll through a blow" % [_pk("lock_on", "R3"), _pk("dodge", "B")])
 	elif float(p.get("gloom")) > 55.0:
-		_tip_once("gloom", "The Gloom fills away from light. Stand in firelight to let it drain.")
+		_tip_once("gloom", "The Gloom fills away from light. Full, it takes shape and hunts you. Firelight drains it.")
 
 
 ## A combat lesson (ui/hints.gd): shown in the tip line, after any tip already showing.

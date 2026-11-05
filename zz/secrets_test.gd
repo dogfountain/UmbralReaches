@@ -49,7 +49,7 @@ func _want(id: String) -> bool:
 
 func _physics_process(_d: float) -> void:
 	if p:
-		p.gloom = 0.0                            # long walks in the dark: no hollowing mid-route
+		p.gloom = 0.0; p.wounds = 0.0                            # long walks in the dark: no hollowing mid-route
 	if _cull and Engine.get_physics_frames() % 20 == 0:
 		for n in get_tree().get_nodes_in_group(Groups.ENEMY):
 			(n as Node).queue_free()             # the walks are about the ground, not the fights

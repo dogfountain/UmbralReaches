@@ -127,7 +127,7 @@ func _physics_process(delta: float) -> void:
 	for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
 		if String(c.name) != "Grade":
 			(c as CanvasLayer).visible = false
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	Travel._busy = true
 	t += delta
 	if charging:

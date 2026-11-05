@@ -155,7 +155,7 @@ func _special_frame(_delta: float) -> void:
 			if _p.is_evading():
 				_p.on_evaded(self)
 				return
-			_p.add_gloom_from_enemy(strike_gloom * 1.2, global_position)
+			_p.take_wound(strike_gloom * 1.2, global_position)
 			_p.kick(0.8)
 			Vfx.burst(_p.global_position + Vector3.UP * 1.1, Color(0.9, 0.12, 0.1), {"count": 16, "life": 0.35, "speed": Vector2(2.0, 5.0), "size": 0.05, "gravity": -5.0, "trail": 0.06})
 	if (is_on_wall() and run.length() > 0.8) or (_state_t > charge_windup + 0.25 and Vector3(velocity.x, 0.0, velocity.z).length() < 2.0):

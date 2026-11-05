@@ -145,7 +145,7 @@ func _process(d: float) -> void:
 	if phase != "shots":
 		return
 	t += d
-	p.gloom = 0.0                                      # the wanderer is the star: no hollowing
+	p.gloom = 0.0; p.wounds = 0.0                                      # the wanderer is the star: no hollowing
 	_keep_alive()
 	_cull_strays()
 	_steer(d)

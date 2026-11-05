@@ -183,6 +183,10 @@ func _p(prop: String, def: Variant = null) -> Variant:
 
 ## (value, max) of the player's health when the game has one, else Vector2(-1, -1).
 func _health() -> Vector2:
+	# r35: the wanderer's top bar is what the Wounds leave of him (full = unhurt, empty = hollowed)
+	if "wounds" in _player and "wounds_max" in _player:
+		var wm := maxf(float(_player.get("wounds_max")), 0.001)
+		return Vector2(wm - float(_player.get("wounds")), wm)
 	for pair: Array in [["health", "max_health"], ["hp", "max_hp"]]:
 		if pair[0] in _player and pair[1] in _player:
 			return Vector2(float(_player.get(pair[0])), maxf(float(_player.get(pair[1])), 0.001))
@@ -223,23 +227,23 @@ func _stamina() -> Node:
 	return _player.call("stamina") if _player.has_method("stamina") else null
 
 
+## r35: a sudden mend (a kill, spent Resonance, a fire's first breath) rises off the portrait in gold;
+## a blow is shown by _on_hurt with its own amount.
 func _track_gloom() -> void:
-	var g := float(_p("gloom", 0.0))
+	var w := float(_p("wounds", 0.0))
 	if _last_gloom < 0.0:
-		_last_gloom = g
+		_last_gloom = w
 		return
-	var d := g - _last_gloom
-	# a sudden fall is relief (a kill, a fire's first breath): shown on the portrait in gold.
-	# A rise is shown by _on_hurt (the blow's own amount); the slow creep of the dark is not.
+	var d := w - _last_gloom
 	if d <= -2.0:
-		_portrait_pop("−%d" % roundi(-d), Color(1.0, 0.82, 0.45))
-	_last_gloom = g
+		_portrait_pop("+%d" % roundi(-d), Color(1.0, 0.82, 0.45))
+	_last_gloom = w
 
 
 func _on_hurt(amount: float, _from: Vector3) -> void:
 	if amount >= 0.5:
-		_portrait_pop("+%d" % roundi(amount), Color(1.0, 0.36, 0.26))
-		_last_gloom = float(_p("gloom", 0.0))
+		_portrait_pop("−%d" % roundi(amount), Color(1.0, 0.36, 0.26))
+		_last_gloom = float(_p("wounds", 0.0)) + amount   # the blow lands on wounds after this signal
 		_fight = 6.0
 
 
@@ -269,7 +273,7 @@ func _rescan() -> void:
 
 ## What the wanderer carries: anything the player reports (buffs()), plus what the game already
 ## knows about: firelight, a Lantern Ward's store, the Ward's quickening, a riposte held ready, a
-## kill chain, the Gloom tide, being winded, and the hollowing blows at full Gloom.
+## kill chain, the Gloom tide and being winded.
 func _collect_buffs() -> Array:
 	var out: Array = []
 	var cs := _combat()
@@ -310,9 +314,6 @@ func _collect_buffs() -> Array:
 	var lv := _player_level()
 	if lv.y > 0:
 		out.append({"name": "Rested", "glyph": "rested", "color": Color(0.7, 0.66, 1.0), "left": -1.0, "stacks": 0})
-	var over := int(_p("_overcap_hits", 0))
-	if over > 0:
-		out.append({"name": "Hollowing", "glyph": "hollow", "color": Color(1.0, 0.35, 0.3), "left": -1.0, "stacks": over, "debuff": true})
 	# buffs first, then debuffs (WoW keeps them in two rows; one row with a gap fits our corner)
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(bool(a.get("debuff", false))) < int(bool(b.get("debuff", false))))
 	return out
@@ -775,9 +776,6 @@ func _draw_player() -> void:
 		var br := Rect2(Vector2(x, y), Vector2(w, 8))
 		var winded := bool(st.get("winded")) if "winded" in st else false
 		_bar(br, float(st.call("ratio")), Color(0.55, 0.62, 0.95) if winded else BREATH, 1.0)
-	var over := int(_p("_overcap_hits", 0))
-	if over > 0:
-		_text(Vector2(x, plate.end.y + 18.0), "HOLLOWING  %d / 3" % over, 13, Color(1.0, 0.4, 0.32, 0.7 + 0.3 * sin(_t * 8.0)))
 	_draw_auras(_buffs, Vector2(PF_POS.x + 4.0, _buff_row_y()), 1.0, 9)
 	if _buff_note_t > 0.0 and _buff_note != "":
 		var na := clampf(_buff_note_t, 0.0, 1.0)

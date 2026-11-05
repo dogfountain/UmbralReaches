@@ -126,19 +126,21 @@ func _physics_process(_d: float) -> void:
 					(s as Node).queue_free()
 				Travel.give("grave_ash", 7, false)
 				p.set("_ash_banked", Travel.count("grave_ash") - 7)
+				# r35: blows wound; a full Gloom no longer counts them. Wounds short of the max do not
+				# hollow; the blow that reaches it does.
 				p.gloom = p.gloom_max
+				p.wounds = p.wounds_max - 25.0
 				p.set("_hurt_grace_until", 0.0)
-				p.add_gloom_from_enemy(10.0)
-				check("a blow at full Gloom counts", int(p.get("_overcap_hits")) == 1, "ash %d banked %d" % [Travel.count("grave_ash"), int(p.get("_ash_banked"))])
+				p.take_wound(10.0)
+				check("a blow short of the end wounds but does not hollow", not bool(p.get("_hollowing")) and absf(p.wounds - (p.wounds_max - 15.0)) < 0.5, "wounds %.1f" % p.wounds)
+				check("a blow does not fill the Gloom (it is the dark's alone)", p.gloom <= p.gloom_max)
 			if t - t0 == 40:
-				print("R30DESIGN info ash %d overcap %d hollowing %s" % [Travel.count("grave_ash"), int(p.get("_overcap_hits")), p.get("_hollowing")])
-				p.set("_hurt_grace_until", 0.0)
-				p.add_gloom_from_enemy(10.0)
+				print("R30DESIGN info ash %d wounds %.1f hollowing %s" % [Travel.count("grave_ash"), p.wounds, p.get("_hollowing")])
 			if t - t0 == 80:
 				var before := Travel.count("grave_ash")
 				p.set("_hurt_grace_until", 0.0)
-				p.add_gloom_from_enemy(10.0)
-				check("the third blow at full Gloom hollows", bool(p.get("_hollowing")))
+				p.take_wound(20.0)
+				check("the blow that reaches the end of your Wounds hollows", bool(p.get("_hollowing")))
 				check("the carried ash is dropped", Travel.count("grave_ash") == int(p.get("_ash_banked")) and before - Travel.count("grave_ash") == 7, "%d -> %d" % [before, Travel.count("grave_ash")])
 				var mounds := get_tree().get_nodes_in_group(&"ash_mound")
 				check("an ash mound marks the spot", mounds.size() == 1 and int((mounds[0] as Node).get("amount")) == 7)

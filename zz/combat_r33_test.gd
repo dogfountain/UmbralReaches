@@ -142,7 +142,7 @@ func _place() -> void:
 		_spot_c = _spot()
 	p.teleport(_spot_c + Vector3.UP * 0.3)
 	p.set_view(YAW, -0.08)
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	p.debug_drive(Vector3.ZERO)
 	for i in 6:
 		await get_tree().physics_frame
@@ -186,7 +186,7 @@ func _fresh() -> void:
 	book._queued = -1
 	cs.clear(p)
 	cs.crit_chance = 0.0
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 
 
 func _tskill(id: StringName, gcd := 0.5, cast_time := 0.0, cd := 1.0) -> TSkill:
@@ -266,15 +266,15 @@ func _s_cast_time() -> void:
 	await _ticks(20)
 	var before := float(book.cast_info().get("t", 0.0))
 	p.set("_hurt_grace_until", 0.0)
-	p.add_gloom_from_enemy(8.0, p.global_position + _fwd() * 2.0)
+	p.take_wound(8.0, p.global_position + _fwd() * 2.0)
 	var after := float(book.cast_info().get("t", 0.0))
 	ok(book.casting_slot() == 2 and after < before - 0.2, "a light blow pushes the cast back (%.2f -> %.2f)" % [before, after])
 	p.set("_hurt_grace_until", 0.0)
-	p.add_gloom_from_enemy(SkillBook.HARD_HIT + 5.0, p.global_position + _fwd() * 2.0)
+	p.take_wound(SkillBook.HARD_HIT + 5.0, p.global_position + _fwd() * 2.0)
 	ok(book.casting_slot() == -1 and s.n == 1, "a hard blow interrupts it")
 	ok(book.cooldown_left(2) >= SkillBook.LOCKOUT - 0.05 and book.cooldown_total(2) >= SkillBook.LOCKOUT - 0.05, "the slot is locked out (%.2f / %.2f)" % [book.cooldown_left(2), book.cooldown_total(2)])
 	ok(cs.has(p, &"shaken") and _count("cast_stopped", &"t_cast") == 1 and (_events["cast_stopped"][0] as Array)[1] == &"interrupted", "the wanderer is Shaken; cast_stopped(interrupted)")
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	# a Rift Surge makes a cast instant
 	_fresh()
 	cs.proc_surge(&"parry")
@@ -404,11 +404,12 @@ func _s_spend() -> void:
 	for i in 4:
 		cs.build(1)
 	p.gloom = 50.0
+	p.wounds = 50.0
 	var cost := book.slots[nova].gloom_cost
 	var hp0 := w.hp
 	ok(book.try_cast(nova, 0.0, false), "Nova goes off with 4 Resonance")
 	ok(cs.stacks(p, &"resonance") == 0, "and spends every stack")
-	ok(absf(p.gloom - (50.0 + cost - 4.0 * CombatState.RES_GLOOM)) < 0.5, "pushing back %.1f Gloom (%.1f)" % [4.0 * CombatState.RES_GLOOM, p.gloom])
+	ok(absf(p.gloom - (50.0 + cost)) < 0.5 and absf(p.wounds - (50.0 - 4.0 * CombatState.RES_GLOOM)) < 0.5, "the cost goes on the Gloom; spending mends %.1f Wounds (%.1f)" % [4.0 * CombatState.RES_GLOOM, p.wounds])
 	ok(cs.has(w, &"sundered") and w.hp < hp0 - 1.0 - 4.0 * CombatState.NOVA_BURST + 0.01, "the ring Sunders the foe and the resonant burst lands (%.2f -> %.2f)" % [hp0, w.hp])
 	cs.crit_chance = 0.0
 	var w2 := _foe(4.0, 1.5)
@@ -417,7 +418,7 @@ func _s_spend() -> void:
 	cs.apply(w2, &"sundered")
 	var r: Dictionary = cs.deal(w2, 1.0, &"umbral", p)
 	ok(absf(float(r.amount) - (1.0 + CombatState.SUNDER_VULN)) < 0.01, "a Sundered foe takes +%d%% (%.2f)" % [int(CombatState.SUNDER_VULN * 100.0), float(r.amount)])
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	_clear()
 
 

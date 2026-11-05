@@ -60,7 +60,7 @@ func _ground(v: Vector3) -> Vector3:
 func _put_player(at: Vector3) -> void:
 	p.teleport(_ground(at) + Vector3.UP * 0.3)
 	p.velocity = Vector3.ZERO
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 
 
 func _spawn(path: String, at: Vector3) -> Enemy:
@@ -195,16 +195,16 @@ func _quiller() -> void:
 	var q := _spawn("res://core/enemy/quiller.gd", AT + Vector3(-11, 0, 0))
 	q.set("_shot_cd", 0.3)
 	var drew := false
-	var g0 := p.gloom
+	var g0 := p.wounds
 	for f in 60 * 5:
 		await get_tree().physics_frame
 		p.velocity = Vector3.ZERO
 		if int(q.get("_state")) == Enemy.WINDUP:
 			drew = true
-		if drew and p.gloom > g0:
+		if drew and p.wounds > g0:
 			break
 	check("quiller draws a lane", drew)
-	check("standing in the lane, the shard lands", p.gloom > g0, "%.1f -> %.1f" % [g0, p.gloom])
+	check("standing in the lane, the shard lands", p.wounds > g0, "%.1f -> %.1f" % [g0, p.wounds])
 	_put_player(q.global_position + Vector3(2.5, 0, 0))
 	var d0 := q.global_position.distance_to(p.global_position)
 	await _frames(150)

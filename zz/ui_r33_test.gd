@@ -72,7 +72,8 @@ class FakePlayer extends Node3D:
 	var velocity := Vector3.ZERO
 	var ward_drain_left := 12.0
 	var _riposte_ready := true
-	var _overcap_hits := 1
+	var wounds := 30.0                 # r35: the Wounds bar (the frame shows what they leave)
+	var wounds_max := 120.0
 	var target: Node3D
 	var st := FakeStamina.new()
 	func _ready() -> void:
@@ -190,7 +191,7 @@ func _ready() -> void:
 	for b: Dictionary in buffs:
 		names.append(String(b.name))
 	print("  buffs: ", ", ".join(names))
-	ok(names.has("Kindled Blood") and names.has("Lantern Ward") and names.has("Riposte Ready") and names.has("Winded") and names.has("Hollowing"), "reported and derived buffs and debuffs all listed")
+	ok(names.has("Kindled Blood") and names.has("Lantern Ward") and names.has("Riposte Ready") and names.has("Winded") and not names.has("Hollowing"), "reported and derived buffs and debuffs all listed (r35: no Hollowing count)")
 	ok(not bool(buffs[0].get("debuff", false)) and bool(buffs[buffs.size() - 1].get("debuff", false)), "buffs before debuffs")
 	ok(xb.visible and (xb.get("_info") as Dictionary).get("next", 0.0) == 900.0, "XP found on the player: the strip shows")
 	ok((uf.get("_portrait_pops") as Array).size() >= 1 or int(draws.get("uf", 0)) > 0, "portrait numbers popped")

@@ -180,7 +180,7 @@ func _place() -> void:
 	at.y += 0.3
 	p.teleport(at)
 	p.set_view(0.94, -0.08)
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	for i in 4:
 		await get_tree().physics_frame
 
@@ -210,7 +210,7 @@ func _cast(id: StringName, charge := 0.0) -> bool:
 		return false
 	book._cd.fill(0.0)
 	book._gcd = 0.0
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	if p.combat() != null:                   # r33: exact numbers: no crits, no Resonance spend, no Surge
 		p.combat().set("crit_chance", 0.0)
 		p.combat().call("clear", p)
@@ -412,11 +412,11 @@ func _s_nova() -> void:
 	_setp({"nova": 2})
 	w.hp = 60.0
 	w.marks = 3
-	p.gloom = 30.0
+	p.wounds = 30.0
 	_cast(&"nova")
-	p.gloom = 30.0
+	p.wounds = 30.0
 	await _wait(0.6)
-	ok(p.gloom <= 30.0 - 6.0 + 1.6, "Nova II: three detonated Marks stream home, 6 Gloom off (%.1f)" % p.gloom)
+	ok(p.wounds <= 30.0 - 6.0 + 1.6, "Nova II: three detonated Marks stream home, 6 Wounds mended (%.1f)" % p.wounds)
 	ok(absf(book.slots[2].cooldown - 5.5) < 0.01, "Nova II: 5.5 s recovery")
 	_clear_foes()
 	await get_tree().process_frame

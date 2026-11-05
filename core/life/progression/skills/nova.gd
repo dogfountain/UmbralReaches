@@ -148,7 +148,7 @@ func _motes(p: Player, e: Enemy, marks: int) -> void:
 			Vfx.arc(from, to, Color(1.2, 1.4, 3.2), 0.3, 0.12)
 			Vfx.burst(to, Color(1.4, 1.5, 3.4), {"count": 8, "life": 0.3, "speed": Vector2(0.5, 1.5), "size": 0.035, "gravity": 0.5, "radius": 0.25})
 			StaffSfx.play("mote", to, -6.0, 1.0 + 0.08 * float(k))
-			p2.add_gloom(-MOTE_GLOOM))
+			p2.mend(MOTE_GLOOM))                       # r35: a mote mends Wounds
 
 
 ## The Count: after try_cast has set the cooldown, take 0.6 s per detonated Mark off it.

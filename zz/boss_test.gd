@@ -69,6 +69,7 @@ func _physics_process(_d: float) -> void:
 	if p == null:
 		p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		return
+	p.wounds = 0.0                  # r35: blows wound now; this test is the progression, not survival
 	if wait > 0:
 		wait -= 1
 		return
@@ -91,13 +92,13 @@ func _physics_process(_d: float) -> void:
 			check("thorn gate closed behind", _seal("henge") != null and _seal("henge")._body.collision_layer != 0)
 			if Realm.enabled(): _tp_ground(ThornHenge.C.x + 30.0, ThornHenge.C.z + 30.0)
 			else: _tp(ThornHenge.C + Vector3(30, 0, 30))
-			step = 20; wait = 20      # run away: the fight resets
+			step = 20; wait = 20      # run away: r35, the fight is held (it used to reset)
 		20:
-			check("arena resets when you leave", _boss() == null and _seal("henge")._body.collision_layer == 0)
+			check("leaving holds the fight (r35) and opens the gate", _held_arena("thornwarden") and _seal("henge")._body.collision_layer == 0)
 			_tp(ThornHenge.C + Vector3(2, 0.5, 2)); step = 21; wait = 20
 		21:
 			var b := _boss()
-			check("thornwarden rises again", b is Thornwarden)
+			check("coming back resumes it (the same Thornwarden)", b is Thornwarden and not _held_arena("thornwarden"))
 			if b: _slay(b)
 			step = 3; wait = 40
 		3:
@@ -168,3 +169,11 @@ func _ui_satchel() -> Node:
 	for n in get_tree().root.find_children("Satchel", "CanvasLayer", true, false):
 		return n
 	return null
+
+
+## r35: the arena for `id` holds a walked-out fight.
+func _held_arena(id: String) -> bool:
+	for a in get_tree().get_nodes_in_group(&"boss_arena"):
+		if a is BossArena and (a as BossArena).boss_id == id:
+			return (a as BossArena).is_held()
+	return false

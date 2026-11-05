@@ -119,7 +119,7 @@ func _place() -> void:
 	arts.call("cancel")
 	p.teleport(_spot() + Vector3.UP * 0.3)
 	p.set_view(YAW, -0.08)
-	p.gloom = 0.0
+	p.gloom = 0.0; p.wounds = 0.0
 	st.call("refill")
 	p.set("_riposte_ready", false)
 	p.set("_riposte_cd", 0.0)
@@ -286,15 +286,15 @@ func _s_guard() -> void:
 	await _secs(0.3)
 	ok(not p.is_evading(), "past the window the guard only blocks")
 	p.set("_hurt_grace_until", 0.0)
-	var g0 := p.gloom
-	p.add_gloom_from_enemy(20.0, w.global_position)
-	ok(absf(p.gloom - g0 - 5.0) < 0.2, "a block lets a quarter through (%.1f)" % (p.gloom - g0))
+	var g0 := p.wounds
+	p.take_wound(20.0, w.global_position)
+	ok(absf(p.wounds - g0 - 5.0) < 0.2, "a block lets a quarter through (%.1f)" % (p.wounds - g0))
 	ok(int(arts.get("blocks")) == 1, "counted as a block")
 	ok(float(st.get("breath")) < b0 - 20.0, "a block costs Breath (%.0f)" % float(st.get("breath")))
 	p.set("_hurt_grace_until", 0.0)
-	g0 = p.gloom
-	p.add_gloom_from_enemy(20.0, p.global_position - _fwd() * 3.0)
-	ok(absf(p.gloom - g0 - 20.0) < 0.2, "a blow from behind is not blocked")
+	g0 = p.wounds
+	p.take_wound(20.0, p.global_position - _fwd() * 3.0)
+	ok(absf(p.wounds - g0 - 20.0) < 0.2, "a blow from behind is not blocked")
 	Input.action_release("guard")
 	await _frames(2)
 	ok(not bool(arts.call("guarding")), "letting go lowers the guard")
@@ -314,10 +314,10 @@ func _s_guard() -> void:
 	ok(bool(arts.call("guarding")), "guard raised again")
 	st.set("breath", 8.0)
 	p.set("_hurt_grace_until", 0.0)
-	g0 = p.gloom
-	p.add_gloom_from_enemy(20.0, w.global_position)
+	g0 = p.wounds
+	p.take_wound(20.0, w.global_position)
 	ok(not bool(arts.call("guarding")), "a block with no Breath breaks the guard")
-	ok(absf(p.gloom - g0 - 20.0) < 0.2, "and the blow lands in full")
+	ok(absf(p.wounds - g0 - 20.0) < 0.2, "and the blow lands in full")
 	Input.action_release("guard")
 	p.skills().using_pad = false
 	arts.call("cancel")
@@ -402,8 +402,8 @@ func _s_fall() -> void:
 		t += 1
 	await _frames(2)
 	var g := float(p.get("falls_hurt"))
-	ok(g > 4.0 and g < 31.0, "a 14 m drop jars Gloom in (%.1f)" % g)
-	p.gloom = p.gloom_max - 10.0
+	ok(g > 4.0 and g < 31.0, "a 14 m drop wounds you (%.1f)" % g)
+	p.wounds = p.wounds_max - 10.0
 	p.teleport(_spot() + Vector3.UP * 14.0)
 	await _frames(2)
 	t = 0
@@ -411,8 +411,8 @@ func _s_fall() -> void:
 		await get_tree().physics_frame
 		t += 1
 	await _frames(2)
-	ok(p.gloom < p.gloom_max, "a fall never fills Gloom to the cap (%.1f)" % p.gloom)
-	p.gloom = 0.0
+	ok(p.wounds < p.wounds_max and not bool(p.get("_hollowing")), "a fall never wounds you to the end (%.1f)" % p.wounds)
+	p.gloom = 0.0; p.wounds = 0.0
 
 
 func _s_grapple() -> void:
