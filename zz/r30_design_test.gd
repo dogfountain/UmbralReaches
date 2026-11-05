@@ -97,16 +97,15 @@ func _physics_process(_d: float) -> void:
 				bolt.global_position = p.global_position
 				shade.take_hit(1.0, bolt)
 				bolt.queue_free()
-				check("a bolt does not unmake the shade", is_instance_valid(shade) and not shade._dying)
-				check("a bolt drives it (1 of 3)", shade.drives == 1)
+				check("a bolt passes through the shade", is_instance_valid(shade) and not shade._dying)
 				shade.take_hit(1.0, null)
-				check("a second bolt while it reels passes through", shade.drives == 1)
+				check("a second bolt passes through too", is_instance_valid(shade) and not shade._dying)
+				check("it closes between walk and sprint", shade.speed > p.walk_speed and shade.speed < p.sprint_speed, "%.1f m/s" % shade.speed)
 			if t - t0 == 70 + 50:
-				var d := Vector2(shade.global_position.x - p.global_position.x, shade.global_position.z - p.global_position.z).length()
-				check("driven back several metres", d > d0 + 4.0, "%.1f -> %.1f m" % [d0, d])
-				check("it comes back faster", shade.speed > 5.5, "%.1f m/s" % shade.speed)
-				shade.take_hit(1.0, p)               # the Umbral Nova passes the Player
-				check("Nova unmakes it", shade._dying)
+				shade.take_hit(1.0, p)               # even the wanderer's own spell: nothing
+				check("a spell from the wanderer does not unmake it", is_instance_valid(shade) and not shade._dying)
+				shade.unmake_by_light()
+				check("only light unmakes it", shade._dying)
 			if t - t0 == 70 + 120:
 				phase = 3
 				t0 = t
