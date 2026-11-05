@@ -23,6 +23,10 @@ var _phase := 0.0
 var _head := 0.0                 ## head pitch (grazing lowers it)
 var _graze_t := 0.0
 var _sfx_t := 0.0
+var _turn_v := 0.0
+var _mount_t := 9.0
+var _mount_from := Vector3.ZERO
+const MOUNT_T := 0.35
 var _space: PhysicsDirectSpaceState3D
 
 
@@ -31,6 +35,7 @@ func _ready() -> void:
 	add_to_group(Groups.INTERACTABLE)
 	add_to_group(&"horse")
 	_mmi = LifeKit.group(String(_d.mesh), 1)
+	_mmi.top_level = true            # placed every rendered frame from the interpolated transform (_process)
 	_mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	_mmi.visibility_range_end = 120.0
 	add_child(_mmi)
@@ -95,6 +100,8 @@ static func state() -> Dictionary:
 
 func mount(p: Player) -> void:
 	rider = p
+	_mount_t = 0.0
+	_mount_from = p.global_position
 	at_post = false
 	state()["ride"] = breed
 	p.riding = self
@@ -124,7 +131,11 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	if w.length() > 0.1:
 		want = float(_d.gallop) if sprint else (float(_d.trot) if w.length() > 0.7 else float(_d.walk))
 		var target_yaw := atan2(-w.x, -w.z)
-		_yaw = rotate_toward(_yaw, target_yaw, float(_d.turn) * dt * (0.6 if speed > 8.0 else 1.0))
+		var want_turn := clampf(angle_difference(_yaw, target_yaw) * 4.0, -1.0, 1.0) * float(_d.turn) * (0.6 if speed > 8.0 else 1.0)
+		_turn_v = lerpf(_turn_v, want_turn, 1.0 - exp(-8.0 * dt))       # eases into and out of a turn
+	else:
+		_turn_v = lerpf(_turn_v, 0.0, 1.0 - exp(-8.0 * dt))
+	_yaw += _turn_v * dt
 	var wading := RealmLand.in_water(global_position.x, global_position.z)
 	if wading and not bool(_d.get("wade", false)):
 		want = minf(want, float(_d.walk))
@@ -139,8 +150,8 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		if not wall.is_empty() or g.y - global_position.y > float(_d.climb) or g.y - global_position.y < -6.0:
 			speed = 0.0
 		else:
-			global_position = Vector3(next.x, lerpf(global_position.y, g.y, 0.5), next.z)
-			_phase = fposmod(_phase + speed * dt * 2.6 / _scale(), TAU)
+			global_position = Vector3(next.x, lerpf(global_position.y, g.y, 1.0 - exp(-14.0 * dt)), next.z)
+			_phase += speed * dt * 2.6 / _scale()            # unwrapped: a wrap would swing the legs back a frame
 	if bool(_d.get("trample", false)) and speed > 6.0:
 		_trample(fwd)
 	global_basis = Basis(Vector3.UP, _yaw)
@@ -148,11 +159,21 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	_write()
 	_hooves(dt)
 	# the rider sits the saddle, facing where the horse faces
-	p.global_position = global_position + Vector3.UP * (1.26 * _scale() - 0.62) + fwd * 0.04
+	var seat := global_position + Vector3.UP * (1.26 * _scale() - 0.62 + _bob()) + fwd * 0.04
+	if _mount_t < MOUNT_T:
+		_mount_t += dt
+		var e := smoothstep(0.0, 1.0, _mount_t / MOUNT_T)
+		seat = _mount_from.lerp(seat, e) + Vector3.UP * sin(e * PI) * 0.35      # a swing up and over
+	p.global_position = seat
+	var vis := p.get_node_or_null("Visual") as Node3D
+	if vis:
+		vis.rotation.y = lerp_angle(vis.rotation.y, _yaw, 1.0 - exp(-12.0 * dt))   # facing where the horse faces
 	p.velocity = fwd * speed
 
 
 func _process(dt: float) -> void:
+	if _mmi:
+		_mmi.global_transform = get_global_transform_interpolated()
 	# a rider that died, was hollowed or was moved off (a respawn, travel) is no longer riding
 	if rider != null and (not is_instance_valid(rider) or rider.get("riding") != self):
 		rider = null
@@ -170,11 +191,18 @@ func _process(dt: float) -> void:
 	_write()
 
 
+func _bob() -> float:
+	var k := clampf(speed / 9.0, 0.0, 1.0)
+	return absf(sin(_phase)) * 0.06 * k * _scale() - 0.03 * k * _scale()
+
+
 func _write() -> void:
 	if _mmi == null:
 		return
 	var mm := _mmi.multimesh
-	mm.set_instance_transform(0, Transform3D.IDENTITY)
+	# the gait moves the whole body: a bob twice a stride and a little pitch, more at a gallop
+	var k := clampf(speed / 9.0, 0.0, 1.0)
+	mm.set_instance_transform(0, Transform3D(Basis(Vector3.RIGHT, sin(_phase * 2.0 + 0.6) * 0.035 * k), Vector3(0, _bob(), 0)))
 	mm.set_instance_custom_data(0, Color(0.0, 0.0, _phase if speed > 0.05 else 0.0, _head))
 
 
