@@ -426,7 +426,7 @@ elif KIND == "spitter":
         bpy.data.objects.remove(o)
 
 elif KIND == "ossuant":
-    BONE = mat(GK.bone("Bone", (0.86, 0.8, 0.66), (0.3, 0.24, 0.16)))
+    BONE = mat(GK.bone("Bone", (0.7, 0.63, 0.5), (0.22, 0.17, 0.11)))   # models pass: grimed (paper-white read as stuck-on plastic)
     LEATHER = mat(GK.leather("Leather", (0.12, 0.08, 0.06)))
     KEEP.add("Bone")
     # skull mask over the face, a crest of spikes swept back like a helm's (it read as a punk crown)
@@ -469,10 +469,20 @@ elif KIND == "ossuant":
         add(GK.plate("Bone", Sh + G(sx * 0.05, -0.02, 0), (0.085, 0.09, 0.04), G(sx * 1.0, 0.5, 0), "r:shoulder_" + tag, BONE, 24, 1.2))
         for j in range(2):
             add(GK.claw("Bone", Sh + G(sx * (0.04 + 0.03 * j), 0.08, 0.03 - 0.06 * j), G(sx * 0.7, 0.8, 0.3), 0.12 - 0.03 * j, 0.016, "r:shoulder_" + tag, BONE, -0.2))
+        # models pass: a strap from each pauldron across the chest to the opposite flank holds it on
+        add(K.loft("Leather", [Sh + G(sx * 0.0, -0.03, -0.04), C + G(0, 0.05, -0.15), C + G(-sx * 0.15 * W, -0.14, -0.06)],
+                   [(0.016, 0.005)] * 3, "torso", LEATHER, 5))
         add(GK.bandage("Leather", S["elbow_" + tag] + G(0, -0.04, 0), S["hand_" + tag] + G(0, 0.05, 0), 0.031 * LR, 2.5, 0.014, "arm_" + tag, LEATHER, sx))
         # bone greaves on the shins
         Kn = S["knee_" + tag]
-        add(GK.plate("Bone", Kn + G(0, -0.17, -0.04), (0.04, 0.16, 0.025), G(0, 0, -1), "r:knee_" + tag, BONE, 20, 2.0))
+        # models pass: a curved guard that follows the shin (a flat oval read as a sticker)
+        add(K.loft("Bone", [Kn + G(0, -0.06 - 0.055 * i, -0.03 + 0.004 * i) for i in range(5)],
+                   [(0.042, 0.016), (0.046, 0.018), (0.044, 0.017), (0.04, 0.015), (0.033, 0.012)], "r:knee_" + tag, BONE, 10))
+        # models pass: bound on, not floating: two leather straps round the shin over the greave
+        for yy in (-0.09, -0.24):
+            c0 = Kn + G(0, yy, 0.0)
+            add(K.loft("Leather", [c0 + G(math.cos(a) * 0.04 * LR, 0.0, math.sin(a) * 0.04 * LR - 0.006) for a in [math.tau * i / 16 for i in range(17)]],
+                       [(0.012, 0.004)] * 17, "leg_" + tag, LEATHER, 5))
     # the spine ridge down the back
     for k in range(7):
         y = 1.48 - 0.07 * k
