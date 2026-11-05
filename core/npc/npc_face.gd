@@ -319,7 +319,7 @@ func eyes(mb: Variant, iris: Color, heavy := 0.0) -> void:
 	for s: float in [-1.0, 1.0]:
 		var e := eye_center(s)
 		mb.bind(b_head)
-		mb.blob(e, Vector3(er, er, er), Basis.IDENTITY, Color(0.84, 0.8, 0.73), DwarfMesh.MAT_EYE, {"lumps": 0.0, "rings": 10, "segs": 14, "occ": false})
+		mb.blob(e, Vector3(er, er, er), Basis.IDENTITY, Color(0.72, 0.66, 0.6), DwarfMesh.MAT_EYE, {"lumps": 0.0, "rings": 10, "segs": 14, "occ": false})
 		# iris (a shallow dome proud of the sclera), the pupil, and a catch light comes from MAT_EYE
 		var fw := Vector3(s * 0.06, 0.02, -1.0).normalized()
 		var ib := Basis(Quaternion(Vector3.FORWARD, fw))
@@ -331,7 +331,8 @@ func eyes(mb: Variant, iris: Color, heavy := 0.0) -> void:
 		mb.bind(b_lid)
 		# the upper lid's edge sits over the top of the iris (+0.42 er at the front); heavy lowers it.
 		# Blink: the lid bone turns about -X by ~1 rad (DwarfRig.blink)
-		var lb := Basis(Vector3.RIGHT, 0.44 - 0.3 * heavy)
+		# models pass: a little more lid at rest (0.12 rad lower): a fully open eye reads as a doll's
+		var lb := Basis(Vector3.RIGHT, 0.32 - 0.3 * heavy)
 		mb.blob(e, Vector3(er * 1.14, er * 1.14, er * 1.12), lb, lid_c, DwarfMesh.MAT_SKIN, {"phi": Vector2(0.0, 0.5), "lumps": 0.0, "rings": 7, "segs": 18, "occ": false})
 		# the fold over the lid (crease) shadows the lid top
 		mb.blob(e + Vector3(0, er * 0.12, 0.0), Vector3(er * 1.2, er * 1.15, er * 1.16), lb * Basis(Vector3.RIGHT, 0.35), lid_c.darkened(0.08), DwarfMesh.MAT_SKIN, {"phi": Vector2(0.18, 0.42), "lumps": 0.0, "rings": 3, "segs": 18, "occ": false})

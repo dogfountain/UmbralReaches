@@ -412,7 +412,7 @@ func _head_v(mb: Variant, f: bool, skin: Color, age: String, hair: Color) -> voi
 	fc.build(mb)
 	var eye_c: Color = EYES[_rng.randi_range(0, EYES.size() - 1)]
 	if pale:
-		eye_c = Color(0.55, 0.62, 0.7)
+		eye_c = Color(0.42, 0.46, 0.5)          # models pass: an old eye's paled iris, not a bright blue
 	fc.eyes(mb, eye_c, 0.55 if age == "old" else 0.15)
 	fc.brows(mb, hair.lerp(skin, 0.35).darkened(0.05), 0.6 if (age == "old" and not f) else 0.0, _rng)   # models pass: softer, not a painted bar
 	if not bool(cfg.get("hood", false)):

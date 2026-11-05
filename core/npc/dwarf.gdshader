@@ -20,6 +20,7 @@ uniform float ambient_floor = 0.42;      // AO never drops ambient below this
 uniform float ambient_keep = 0.9;        // overall ambient share (the room's warm lights do the rest)
 uniform float detail_mix = 1.0;
 uniform float skin_relief = 0.0005;      // models pass: wrinkle / pore depth (metres)
+uniform float hair_relief = 0.0012;      // models pass: strand ridges (metres)
 uniform float cloth_relief = 0.012;      // models pass: fold depth (metres)
 // the room's warm bounce (hearth, candles) on the dwarves: without it their cloth falls under the
 // grade's brightness floor for warm hues and is pulled into the azure band (they read blue-grey)
@@ -95,6 +96,14 @@ void fragment() {
 		NORMAL = cl_bump(NORMAL, VERTEX, cl_cloth_height(opos), cloth_relief);
 	} else if (m == 3) {
 		NORMAL = cl_bump(NORMAL, VERTEX, cl_skin_height(opos, 0.6), skin_relief * 1.6);
+	} else if (m == 4 || m == 9) {
+		// hair and fur: strands run along v (UV.y, metres along the lock); each strand its own shade,
+		// the roots darker, a fine ridge per strand for the light to catch (faded by footprint)
+		vec3 sp = vec3(UV.x * 520.0, UV.y * 9.0, 0.0);
+		float strand = cl_noise(sp);
+		float f = cl_fade(sp);
+		base *= mix(1.0, 0.72 + 0.5 * strand, f) * mix(0.82, 1.0, smoothstep(0.0, 0.06, UV.y));
+		NORMAL = cl_bump(NORMAL, VERTEX, (strand - 0.5) * f, hair_relief);
 	}
 	ALBEDO = cl_wear_albedo(cl_albedo(base * mix(vec3(1.0), d.rgb * 2.0, detail_mix), m == 8 ? 1.0 : COLOR.a, opos), wear);
 	NORMAL_MAP = texture(detail_normal, uvw).rgb;
