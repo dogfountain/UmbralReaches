@@ -2,10 +2,9 @@ class_name Shade
 extends Node3D
 ## The Hollow One. Born when Gloom reaches its cap: it tears into the world behind you, a
 ## six-metre shroud with a crowned bone mask in a void of a hood, and drifts after you high
-## above the ground. Light unmakes it (a lit brazier, a Lantern Ward, an Umbral Nova); its reach
-## Hollows. A bolt only drives it back (r30): thrown 8 m, stunned 1.5 s, slow to close for 2 s,
-## and it comes back 0.6 m/s faster each time (to 7.2, under the 7.5 sprint). After DRIVES_MAX
-## drives it no longer flinches: walk to a fire, or Nova it.
+## above the ground. It is fled, not fought: bolts and spells pass through it, and only light
+## unmakes it (a fire, a brazier, a Lantern Ward). It closes at a pace between the wanderer's walk
+## and sprint, so a walk loses ground and a run to a light wins; its reach Hollows.
 ##
 ## Presence, not hit points: a dark fog cloud swallows its lower body, a pool of shadow and a
 ## violet glow move across the ground beneath it, the camera trembles as it nears, the halo of
@@ -16,15 +15,10 @@ const SFX_ROAR := "res://art/audio/pounce_shriek.wav"
 const HOVER := 3.4              ## core height above the player's feet
 const REACH := 1.8              ## horizontal distance at which it takes you
 const PRESENCE_R := 14.0        ## camera tremor radius
-const DRIVE_BACK := 8.0         ## metres a bolt throws it back
-const DRIVE_STUN := 1.5         ## seconds it hangs, reeling, after a drive
-const DRIVE_SLOW := 2.0         ## seconds after the stun it closes at half speed
-const DRIVE_SPEED_UP := 0.6     ## each drive, it comes back this much faster ...
-const SPEED_CAP := 7.2          ## ... up to this (sprint is 7.5: running to a fire still works)
-const DRIVES_MAX := 3           ## drives before bolts pass through it
+const SPEED := 6.0              ## between the wanderer's walk (4.5) and sprint (7.5): run to a light
 
 var target: Player
-var speed := 5.2
+var speed := SPEED
 var _t := 0.0
 var _dying := false
 var _blocked_t := 0.0
@@ -40,9 +34,6 @@ var _skins: Array[GeometryInstance3D] = []
 var _reach := 0.0
 var _tremor_t := 0.0
 var _vel := Vector3.ZERO
-var _stun_t := 0.0              ## > 0: reeling from a drive, not closing
-var _slow_t := 0.0              ## > 0: closing at half speed after a stun
-var drives := 0                 ## how many times bolts have driven it off
 
 static var _shroud_mesh: ArrayMesh
 static var _rag_meshes: Array[ArrayMesh] = []
@@ -429,48 +420,17 @@ func _set_dissolve(v: float) -> void:
 
 # --- behaviour ------------------------------------------------------------------------------
 
-## A hit from the wanderer's own body (the Umbral Nova passes the Player as `from`) unmakes it;
-## any other hit (a bolt, a dart, a Well pulse) only drives it back. See drive_off().
-func take_hit(_dmg: float, from: Node = null) -> void:
-	if from is Player:
-		unmake_by_light()
-		return
-	drive_off(from)
+## Bolts, darts and spells pass through it with no effect: only light unmakes it.
+func take_hit(_dmg: float, _from: Node = null) -> void:
+	if not _dying and is_instance_valid(target):
+		target.note_shade_passed()
 
 
-## The Nova or a ward: unmade, and the next shade is held back 2 s.
+## Light (a fire, a brazier, a ward, Player.tick on a lit spot): unmade, and the next shade is held back 2 s.
 func unmake_by_light() -> void:
 	if is_instance_valid(target):
-		target.note_shade_bolt()
+		target.note_shade_unmade()
 	dissipate()
-
-
-## A bolt drives it back: thrown away from the wanderer, reeling, then slow to close, and faster
-## each time after. While it reels (and while it is slow) further bolts pass through: holding the
-## trigger cannot pin it. After DRIVES_MAX drives it shrugs bolts off for good.
-func drive_off(_from: Node = null) -> bool:
-	if _dying or _stun_t > 0.0 or _slow_t > 0.0 or drives >= DRIVES_MAX:
-		if not _dying and drives >= DRIVES_MAX and is_instance_valid(target):
-			target.note_shade_shrug()
-		return false
-	drives += 1
-	speed = minf(speed + DRIVE_SPEED_UP, SPEED_CAP)
-	_stun_t = DRIVE_STUN
-	_slow_t = DRIVE_SLOW
-	_blocked_t = 0.0
-	var away := Vector3(0.0, 0.0, 1.0)
-	if is_instance_valid(target):
-		var d := global_position - target.global_position
-		d.y = 0.0
-		if d.length_squared() > 0.01:
-			away = d.normalized()
-		target.note_shade_driven(drives, DRIVES_MAX)
-	_vel = away * DRIVE_BACK * 4.5       # bleeds off at exp(-4.5 t) while it reels: ~DRIVE_BACK metres in all
-	Vfx.burst(global_position + Vector3.UP * 0.6, Color(0.6, 0.25, 1.4), {"count": 24, "life": 0.6, "speed": Vector2(3.0, 7.0), "size": 0.05, "gravity": -2.0, "trail": 0.1})
-	Sfx.play(SFX_ROAR, global_position, -6.0, 0.8, 0.04)
-	var tw := create_tween()
-	tw.tween_method(_set_dissolve, 0.45, 0.0, DRIVE_STUN)
-	return true
 
 
 func _process(delta: float) -> void:
@@ -508,15 +468,6 @@ func _reach_goal() -> float:
 func _physics_process(delta: float) -> void:
 	if _dying or not is_instance_valid(target):
 		return
-	if _stun_t > 0.0:
-		_stun_t -= delta
-		_vel = _vel.lerp(Vector3.ZERO, 1.0 - exp(-4.5 * delta))   # the throw, bleeding off
-		global_position += _vel * delta
-		global_position.y = lerpf(global_position.y, target.global_position.y + HOVER, 1.0 - exp(-2.0 * delta))
-		if LightGrid.is_lit(global_position) or LightGrid.is_lit(global_position + Vector3.DOWN * HOVER):
-			dissipate()
-		return
-	_slow_t = maxf(0.0, _slow_t - delta)
 	var goal := target.global_position + Vector3.UP * HOVER
 	if _blocked_t >= 2.5:
 		var around := _ring_goal(target)
@@ -537,7 +488,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		_blocked_t = maxf(0.0, _blocked_t - delta * 2.0)
 	var d := to.length()
-	var v := to / maxf(d, 0.001) * minf(speed * (0.5 if _slow_t > 0.0 else 1.0), d / maxf(delta, 0.001))
+	var v := to / maxf(d, 0.001) * minf(speed, d / maxf(delta, 0.001))
 	_vel = _vel.lerp(v, 1.0 - exp(-4.0 * delta))
 	global_position += _vel * delta
 	if Vector2(to.x, to.z).length() > 0.05:

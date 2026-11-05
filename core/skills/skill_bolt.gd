@@ -12,7 +12,6 @@ func _init() -> void:
 	trigger = Trigger.HOLD_REPEAT
 	color = Color("#A98BFF")
 	glyph = &"bolt"
-	gcd = 0.0                   # r33: the bolt keeps its own cadence, off the global cooldown
 
 
 const CHAIN_WINDOW := 0.9     ## seconds between shots that still count as one chain

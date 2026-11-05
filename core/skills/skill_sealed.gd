@@ -10,7 +10,6 @@ func _init() -> void:
 	title = ""
 	blurb = "Not yet taught."
 	cooldown = 0.0
-	gcd = 0.0
 	glyph = &""
 	color = Color(0.32, 0.3, 0.38)
 

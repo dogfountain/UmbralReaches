@@ -413,9 +413,12 @@ const PATRONS := [
 ## to their spot on the bar's foot step (last point, xz; the step is bz - 2.05 .. bz - 1.66), clear
 ## of the benches (DwarfNpc walks it, the keep serves them there).
 const WANDERERS := {
+	0: [Vector2(12.9, 31.0), Vector2(14.1, 33.34 - 1.0)],     # Hesk, north side of the first bench
 	2: [Vector2(11.4, 31.3), Vector2(12.7, 33.34 - 1.0)],
 	3: [Vector2(16.75, 31.3), Vector2(17.45, 33.34 - 1.0)],
 }
+const MAX_UP := 2                     ## never more than this many regulars out of their seats at once
+const START_WAITS := [20.0, 45.0, 70.0]   ## first outings staggered: seconds from the Keg being built
 ## The keep's lane on the duckboard: his belly and apron (0.32 m in front of him) clears the counter's back
 ## edge (bz - 0.92) and his back (0.2 m) clears the shelves (bz - 0.35); zz/story_test checks both.
 const KEEP_IN := 0.575
@@ -478,6 +481,18 @@ func _patrons() -> void:
 		for p: Vector2 in w:
 			npcs[i].route.append(Vector3(p.x, y, p.y))
 		npcs[i].route[npcs[i].route.size() - 1].y = y + STEP_Y
+	_stagger = []
+	var n := 0
+	for i: int in WANDERERS:
+		npcs[i].set("_trip_wait", float(START_WAITS[n % START_WAITS.size()]))
+		_stagger.append(npcs[i])
+		n += 1
+	var gate := Timer.new()
+	gate.name = "OutingGate"
+	gate.wait_time = 0.5
+	gate.autostart = true
+	gate.timeout.connect(_gate_outings)
+	add_child(gate)
 	var story: Node = load("res://core/story/story.gd").new()
 	story.name = "Story"
 	add_child(story)
@@ -487,6 +502,22 @@ func _patrons() -> void:
 	scenes.set("patrons", npcs)
 	scenes.set("keep", keep)
 	add_child(scenes)
+
+
+var _stagger: Array[DwarfNpc] = []
+
+
+## Staggers the regulars' outings: while MAX_UP of them are away, anyone about to rise waits a little longer.
+func _gate_outings() -> void:
+	var up := 0
+	for d in _stagger:
+		if is_instance_valid(d) and d.away:
+			up += 1
+	if up < MAX_UP:
+		return
+	for d in _stagger:
+		if is_instance_valid(d) and not d.away and float(d.get("_trip_wait")) < 3.0:
+			d.set("_trip_wait", 3.0 + randf() * 3.0)
 
 
 func _barrel(k: OssKit, at: Vector3, s := 1.0, lying := false) -> void:

@@ -24,9 +24,6 @@ enum Trigger {
 @export var glyph: StringName = &"bolt"
 ## The wanderer's cast pose (CharacterRig.cast_pose); empty = the id. Learned spells borrow one.
 @export var pose: StringName = &""
-## r33 combat: seconds of the shared global cooldown this spell starts (0 = off the GCD: it neither
-## starts nor waits for it, like the Rift Bolt's own cadence and the Rift Step).
-@export var gcd := 0.5
 ## r33 combat: seconds of casting before it goes off (0 = instant). A cast can be queued, pushed
 ## back by a blow, interrupted by a hard one, and made instant by a Rift Surge.
 @export var cast_time := 0.0
