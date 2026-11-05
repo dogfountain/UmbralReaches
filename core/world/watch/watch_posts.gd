@@ -22,8 +22,6 @@ static func build(host: Node3D) -> void:
 		village = v.get("village")
 		if village != null:
 			break
-	if village == null:
-		push_warning("Watch: no village director; the posts stand empty")
 	var root := Node3D.new()
 	root.name = "Watches"
 	host.add_child(root)

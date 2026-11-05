@@ -32,8 +32,8 @@ func _ready() -> void:
 		var h: Node3D = Horse.new()
 		h.name = "Horse_" + b
 		h.set("breed", b)
-		h.position = g + Basis(Vector3.UP, yaw) * Vector3(0.0, 0.0, 1.6)
-		h.rotation.y = yaw
+		h.position = g + Basis(Vector3.UP, yaw) * Vector3(0.0, 0.0, 1.3)   # alongside the rail, tied to it
+		h.rotation.y = yaw + PI * 0.5
 		host.add_child(h)
 		horses[b] = h
 
