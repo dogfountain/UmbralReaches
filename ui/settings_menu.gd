@@ -53,6 +53,13 @@ var _stick_slider: HSlider
 var _stick_label: Label
 var _hint_line: Label
 var _erase_btn: Button
+var _bind_btns := {}                 ## "action|slot" -> Button
+var _bind_msg: Label
+var _listen := ""                   ## the "action|slot" waiting for a key
+var _listen_ms := 0
+var on_title := false                ## opened from the title screen: no erase (no run to end), no way back to the title
+var _tscale_slider: HSlider
+var _tscale_label: Label
 
 
 func _ready() -> void:
@@ -285,19 +292,9 @@ func _build_controls(p: VBoxContainer) -> void:
 	_build_hud(p)
 	p.add_child(_spacer(6))
 	p.add_child(_section("KEYS  ·  CONTROLLER"))
-	# read from the live InputMap, so the list is always the bindings the game really uses (the old
-	# hand-written list had no roll, lock-on, Kindling or tasks and showed the lance on RMB only)
-	for k: Array in KEY_ROWS:
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 12)
-		p.add_child(row)
-		var a := _label(k[0], QUIET, 16)
-		a.custom_minimum_size = Vector2(190, 0)
-		row.add_child(a)
-		var kb := _label(_keys_text(k[1], k[2]), Color(0.86, 0.84, 0.96), 16)
-		kb.custom_minimum_size = Vector2(220, 0)
-		row.add_child(kb)
-		row.add_child(_label(_pad_text(k[1], k[3]), DIM, 16))
+	_build_bindings(p)
+	p.add_child(_spacer(4))
+	p.add_child(_label("Fixed: Look  mouse / right stick   ·   Settings  Esc / F2 / Menu   ·   Character tabs  1 - 4, Q E", DIM, 15))
 
 
 ## r33: the HUD's own choices (ui/hud_prefs.gd, saved in hud.cfg): the unit frames, the floating combat
@@ -314,7 +311,20 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.combat_text = v
 		HudPrefs.save())
 	ct.set_pressed_no_signal(HudPrefs.combat_text)
-	var row := _row(p, "Controls Card", "The first-minutes card of keys, shown again for a little while")
+	var plates := _check(p, "Enemy Health Bars & Plates", "Off: only the foe you are locked on to shows its bar and frame. On: a health bar over every foe, and the target frame for any foe you strike.", func(v: bool) -> void:
+		HudPrefs.enemy_plates = v
+		HudPrefs.save())
+	plates.set_pressed_no_signal(HudPrefs.enemy_plates)
+	var trow := _row(p, "Text Scale", "The size of the objective, toasts, lessons and subtitles")
+	_tscale_slider = _slider(trow, 0.85, 1.5, 0.05)
+	_tscale_label = _value_label(trow)
+	_tscale_slider.value_changed.connect(func(v: float) -> void:
+		_tscale_label.text = "%d%%" % roundi(v * 100.0)
+		if _refreshing:
+			return
+		Settings.text_scale = v
+		Settings.apply())
+	var row := _row(p, "Control Prompts", "The one-line hints that appear the first time a control matters (a ledge, a foe in range...), shown again")
 	var again := Button.new()
 	again.text = "Show Again"
 	_style_small(again, 16)
@@ -345,6 +355,121 @@ const KEY_ROWS := [
 	["Settings", ["toggle_settings"], "", ""], ["Fullscreen", ["fullscreen"], "", "-"],
 	["Colour grade", ["toggle_grade"], "", "-"], ["Stats overlay", ["toggle_debug"], "", "-"],
 ]
+
+
+## r37: the bindings are editable. Click a button, press the new key / mouse button (or controller button for the
+## pad column); Esc cancels. A key or button that already does something else is refused, with the message below.
+## Saved in settings.cfg (Settings.bindings) and applied by InputSetup on boot.
+func _build_bindings(p: VBoxContainer) -> void:
+	_bind_msg = _label("Click a button, then press the new key.", DIM, 15)
+	_bind_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	p.add_child(_bind_msg)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 12)
+	p.add_child(head)
+	var h0 := _label("", DIM, 15)
+	h0.custom_minimum_size = Vector2(190, 0)
+	head.add_child(h0)
+	for t: String in ["Keyboard / mouse", "Controller"]:
+		var hl := _label(t, DIM, 15)
+		hl.custom_minimum_size = Vector2(158, 0)
+		head.add_child(hl)
+	for r: Array in InputSetup.REBINDABLE:
+		var action: String = r[1]
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		p.add_child(row)
+		var a := _label(String(r[0]), QUIET, 16)
+		a.custom_minimum_size = Vector2(190, 0)
+		row.add_child(a)
+		for slot: String in ["key", "pad"]:
+			var b := Button.new()
+			b.custom_minimum_size = Vector2(158, 30)
+			b.clip_text = true
+			_style_small(b, 15)
+			var sl := slot
+			b.pressed.connect(func() -> void: _begin_listen(action, sl))
+			row.add_child(b)
+			_bind_btns["%s|%s" % [action, slot]] = b
+	var reset := Button.new()
+	reset.text = "Reset Keys to Defaults"
+	_style_small(reset, 16)
+	reset.pressed.connect(func() -> void:
+		InputSetup.reset_bindings()
+		_listen = ""
+		_refresh_binds()
+		_bind_msg.text = "Keys and buttons are back to their defaults.")
+	p.add_child(reset)
+	_refresh_binds()
+
+
+func _refresh_binds() -> void:
+	for key: String in _bind_btns:
+		var parts := key.split("|")
+		var b: Button = _bind_btns[key]
+		if key == _listen:
+			b.text = "press a key..." if parts[1] == "key" else "press a button..."
+			continue
+		var ev: InputEvent = InputSetup.first_event(parts[0], parts[1])
+		if ev != null:
+			b.text = InputSetup.event_name(ev)
+		else:
+			b.text = _pad_text([parts[0]], "") if parts[1] == "pad" else "-"
+
+
+func _begin_listen(action: String, slot: String) -> void:
+	_listen = "%s|%s" % [action, slot]
+	_listen_ms = Time.get_ticks_msec()
+	_bind_msg.text = "Press the new %s for %s. Esc cancels." % ["key or mouse button" if slot == "key" else "controller button", InputSetup.label_of(action)]
+	_refresh_binds()
+
+
+## While a button waits for its binding every key, mouse button and pad button is its answer.
+func _listen_input(event: InputEvent) -> void:
+	var parts := _listen.split("|")
+	var action: String = parts[0]
+	var slot: String = parts[1]
+	var ev: InputEvent = null
+	if event is InputEventKey and event.pressed and not event.echo:
+		if (event as InputEventKey).physical_keycode == KEY_ESCAPE:
+			_listen = ""
+			_bind_msg.text = "Cancelled."
+			_refresh_binds()
+			get_viewport().set_input_as_handled()
+			return
+		if slot == "pad":
+			_bind_msg.text = "That is a keyboard key. Press a controller button, or Esc."
+			get_viewport().set_input_as_handled()
+			return
+		ev = event
+	elif event is InputEventMouseButton and event.pressed and slot == "key" and Time.get_ticks_msec() - _listen_ms > 250 \
+			and (event as InputEventMouseButton).button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_XBUTTON1, MOUSE_BUTTON_XBUTTON2]:
+		ev = event
+	elif event is InputEventJoypadButton and event.pressed and slot == "pad":
+		ev = event
+	if ev == null:
+		return
+	get_viewport().set_input_as_handled()
+	var copy: InputEvent
+	if ev is InputEventKey:
+		copy = InputEventKey.new()
+		var code := (ev as InputEventKey).physical_keycode
+		(copy as InputEventKey).physical_keycode = code if code != KEY_NONE else (ev as InputEventKey).keycode
+	elif ev is InputEventMouseButton:
+		copy = InputEventMouseButton.new()
+		(copy as InputEventMouseButton).button_index = (ev as InputEventMouseButton).button_index
+	else:
+		copy = InputEventJoypadButton.new()
+		(copy as InputEventJoypadButton).button_index = (ev as InputEventJoypadButton).button_index
+	var why: String = InputSetup.rebind(action, slot, copy)
+	if why == "":
+		_bind_msg.text = "%s is now %s." % [InputSetup.label_of(action), InputSetup.event_name(copy)]
+		_listen = ""
+		UiSound.play(self, "confirm")
+	else:
+		_bind_msg.text = why + " Press another, or Esc."
+		UiSound.play(self, "back")
+	_refresh_binds()
 
 
 func _keys_text(actions: Array, fallback: String) -> String:
@@ -429,13 +554,32 @@ func _footer() -> HBoxContainer:
 	erase.pressed.connect(func() -> void:           # two-step so a stray click cannot wipe a run
 		if erase.text.begins_with("Confirm"):
 			Travel.erase_save()
-			erase.text = "Erased: the next launch starts anew"
+			erase.text = "Erased"
 			erase.disabled = true
+			# r35 B10: the session used to go on, silently never saving again. The run is over: back to the title.
+			Events.toast.emit("Progress erased. Returning to the title.")
+			get_tree().create_timer(0.8, true).timeout.connect(Travel.to_title)
 		else:
 			erase.text = "Confirm: erase everything?"
 			# the confirm lapses by itself: a stray press later cannot finish what this one began
 			get_tree().create_timer(4.0, true).timeout.connect(_erase_lapse))   # a method: no lambda capture to outlive the button
 	f.add_child(erase)
+	erase.visible = not on_title
+	var quit_btn := Button.new()
+	quit_btn.text = "Quit Game"
+	quit_btn.tooltip_text = "Saves and closes the game."
+	_style_small(quit_btn, 16)
+	quit_btn.pressed.connect(func() -> void:
+		if quit_btn.text.begins_with("Really"):
+			Settings.flush()
+			Travel.save_now()
+			get_tree().quit()
+		else:
+			quit_btn.text = "Really quit?"
+			get_tree().create_timer(3.0, true).timeout.connect(func() -> void:
+				if is_instance_valid(quit_btn):
+					quit_btn.text = "Quit Game"))
+	f.add_child(quit_btn)
 	var close_btn := Button.new()
 	close_btn.text = "Close  (Esc)"
 	_style_small(close_btn, 16)
@@ -602,6 +746,10 @@ func _refresh() -> void:
 	_stick_slider.value = Settings.stick_sensitivity
 	_stick_label.text = "%.1f" % (Settings.stick_sensitivity / 2.6 * 5.0)
 	_invert_btn.button_pressed = Settings.invert_y
+	if not _bind_btns.is_empty():
+		_refresh_binds()
+	_tscale_slider.value = Settings.text_scale
+	_tscale_label.text = "%d%%" % roundi(Settings.text_scale * 100.0)
 	_refreshing = false
 
 
@@ -665,6 +813,9 @@ func _fit() -> void:
 # --- open / close ------------------------------------------------------------
 
 func _input(event: InputEvent) -> void:
+	if _listen != "" and _root.visible:
+		_listen_input(event)
+		return
 	if event.is_action_pressed("toggle_settings"):
 		if not _root.visible and get_tree().paused and event is InputEventKey and (event as InputEventKey).physical_keycode == KEY_ESCAPE:
 			return            # Esc over an open Kindling / Journal / shop closes that menu (each has
@@ -708,6 +859,7 @@ func close() -> void:
 	if not _root.visible:
 		return
 	_root.visible = false
+	_listen = ""
 	UiSound.play(self, "back")
 	Settings.flush()          # write out whatever the debounce is still holding
 	# opened over the Kindling, a dialogue, the shop or the Journal (each pauses the world): leave

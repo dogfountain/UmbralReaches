@@ -263,11 +263,6 @@ func _ready() -> void:
 	layer = 61
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("growth")
-	if not InputMap.has_action("kindling"):
-		InputMap.add_action("kindling")
-		var k := InputEventKey.new()
-		k.physical_keycode = KEY_K
-		InputMap.action_add_event("kindling", k)
 	_title_font = load("res://ui/fonts/Cinzel.ttf")
 	var sf: Font = preload("res://ui/type.gd").body()
 	_body_font = sf

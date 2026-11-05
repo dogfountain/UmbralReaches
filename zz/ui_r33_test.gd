@@ -207,10 +207,13 @@ func _ready() -> void:
 	ok(not HudPrefs.tracks("gather") and HudPrefs.tracks("quest_turnin") and HudPrefs.tracks("seal"), "tracking toggles by kind")
 	HudPrefs.track["gather"] = true
 	# the card: shown again on request
-	var hint := hud.get("_hint") as Label
+	var hint := hud
+	var lessons: Dictionary = Travel.story.get("lessons", {})
+	lessons["tip_move"] = true
+	Travel.story["lessons"] = lessons
 	HudPrefs.card_request += 1
 	await _frames(3)
-	ok(float(hud.get("_card_t")) < 1.0, "the settings menu's request brings the controls card back")
+	ok(not (Travel.story.get("lessons", {}) as Dictionary).has("tip_move"), "the settings menu's request replays the one-line control prompts")
 	# frames off: the plain Gloom bar returns
 	HudPrefs.unit_frames = false
 	await _frames(3)

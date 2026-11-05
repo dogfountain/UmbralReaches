@@ -16,6 +16,7 @@ const Chains := preload("res://core/story/quest_chains.gd")
 const Offer := preload("res://ui/quest_offer.gd")
 const UIType := preload("res://ui/type.gd")
 const UiSound := preload("res://ui/ui_sound.gd")   ## quiet menu sounds (F)
+const TextDirector := preload("res://ui/text_director.gd")
 const ACTION := "quest_log"
 const LANTERN := Color("#FFB347")
 const QUIET := Color(0.78, 0.8, 0.9)
@@ -40,25 +41,13 @@ var _last_state := {}            ## id -> [step, done] (only real changes raise 
 var _rows: Array = []            ## [[quest id, Button], ...] in list order
 var sel := ""                    ## the task shown on the right
 var _abandon_armed := ""
-
-
-static func ensure_action() -> void:
-	if InputMap.has_action(ACTION):
-		return
-	InputMap.add_action(ACTION, 0.2)
-	var k := InputEventKey.new()
-	k.physical_keycode = KEY_L
-	InputMap.action_add_event(ACTION, k)
-	var b := InputEventJoypadButton.new()
-	b.button_index = JOY_BUTTON_DPAD_LEFT
-	InputMap.action_add_event(ACTION, b)
+var _bq: Array = []              ## banners waiting for the text director's banner lane
 
 
 func _ready() -> void:
 	layer = 59
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("quest_log")
-	ensure_action()
 	_font = load("res://ui/fonts/Cinzel.ttf")
 	_build_banner()
 	_build_progress()
@@ -199,9 +188,19 @@ func _on_changed(id: String, s: int, done: bool) -> void:
 func _process(_d: float) -> void:
 	_banner.visible = not get_tree().paused
 	_prog.visible = not get_tree().paused
+	if not _bq.is_empty() and not get_tree().paused:
+		var td := TextDirector.of(self)
+		if td == null or td.begin(&"quest", 5.8, Rect2(td.lane_rect(&"banner").position + Vector2(50, 8), Vector2(1000, 150))):
+			_show_banner.callv(_bq.pop_front())
 
 
+## A NEW TASK / TASK DONE banner: queued, and drawn when the text director's banner lane is free.
 func banner(top: String, name_text: String, sub: String) -> void:
+	if _bq.size() < 4:
+		_bq.append([top, name_text, sub])
+
+
+func _show_banner(top: String, name_text: String, sub: String) -> void:
 	_b_top.text = top
 	_b_name.text = name_text
 	_b_sub.text = sub
@@ -216,6 +215,10 @@ func banner(top: String, name_text: String, sub: String) -> void:
 
 ## A count toast ("Bone ash: 3/5"), gold when the count is full; three at most, newest at the top.
 func progress(text: String, full := false) -> void:
+	var td := TextDirector.of(self)
+	if td:
+		td.post_toast(text)                     # the corner toast lane; two at most, queued behind higher text
+		return
 	var l := _lbl(24, LANTERN if full else Color(0.96, 0.9, 0.74), false)
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

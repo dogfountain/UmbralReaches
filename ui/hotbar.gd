@@ -24,6 +24,7 @@ var _book: SkillBook
 var _font: Font
 var _t := 0.0
 var _was_ready := PackedByteArray()
+var _vis: Array[int] = []      ## slots drawn: a slot still sealed (nothing taught for it yet) is not drawn at all
 var _sig := ""                ## slot ids last drawn: a new loadout shows the names again
 var _ready_pulse := PackedFloat32Array()
 
@@ -43,14 +44,20 @@ func _process(delta: float) -> void:
 		_was_ready.resize(_book.slots.size())
 		_ready_pulse.resize(_book.slots.size())
 		_was_ready.fill(1)
-		var w := _book.slots.size() * SLOT + (_book.slots.size() - 1) * GAP
-		offset_left = -w * 0.5
-		offset_right = w * 0.5
 		offset_top = -(SLOT + 46.0 + 30.0)
 		offset_bottom = -30.0             # the two-line names run a few px under the box (not clipped)
 	var sig := ""
-	for s in _book.slots:
-		sig += String(s.id) + "," if s != null else "-,"
+	var vis: Array[int] = []
+	for i in _book.slots.size():
+		var sl := _book.slots[i]
+		sig += String(sl.id) + "," if sl != null else "-,"
+		if sl != null and sl.id != &"sealed":
+			vis.append(i)
+	if vis != _vis:
+		_vis = vis                       # the bar grows as spells are taught, and stays centred
+		var w := _vis.size() * SLOT + maxf(0.0, _vis.size() - 1.0) * GAP
+		offset_left = -w * 0.5
+		offset_right = w * 0.5
 	if sig != _sig:
 		if _sig != "":
 			_t = 0.0                     # swapped at a fire: say what is where again
@@ -68,10 +75,11 @@ func _draw() -> void:
 	if not is_instance_valid(_book):
 		return
 	var name_a := clampf((NAME_FADE - _t) / 2.0, 0.0, 1.0)
-	for i in _book.slots.size():
+	for vi in _vis.size():
+		var i: int = _vis[vi]
 		var s := _book.slots[i]
 		var shake := sin(_t * 70.0) * 4.0 * _book.denied(i)
-		var o := Vector2(i * (SLOT + GAP) + shake, 0.0)
+		var o := Vector2(vi * (SLOT + GAP) + shake, 0.0)
 		var r := Rect2(o, Vector2(SLOT, SLOT))
 		var is_ready := _book.cooldown_left(i) <= 0.0
 		draw_rect(r, BG)

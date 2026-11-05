@@ -81,7 +81,7 @@ func _physics_process(_d: float) -> void:
 			check("chapel not discovered again", _count("region:chapel") == 1)
 			var shown: Array = banner.get("shown")
 			var big := 0
-			for b: Dictionary in banner.get("_queue") + shown:
+			for b: Dictionary in banner.get("_queue") + shown + (disc.get("_hold") as Array):
 				if String(b.kind) == "region" and String(b.name) == "Chapel of the First Kindling" and bool(b.fresh):
 					big += 1
 			check("one big carved banner for the chapel (got %d)" % big, big == 1)

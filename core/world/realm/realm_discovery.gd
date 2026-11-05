@@ -22,6 +22,7 @@ extends Node
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
 const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
 const BannerScript := preload("res://core/world/realm/discovery_banner.gd")
+const TextDirector := preload("res://ui/text_director.gd")
 
 const GROUP := "realm_discovery"
 const SID := "world_discovery"
@@ -47,6 +48,7 @@ var _clock := 0.0
 var _last_named := {}                    ## id -> _clock when its name was last shown
 var _spots: Array[Dictionary] = []       ## runtime subzones: {id, name, line, c (Vector2), r} or seg/rect
 var _spots_t := 0.0
+var _hold: Array[Dictionary] = []        ## banners waiting for the text director's lane: {method, name, line, fresh}
 
 
 func _ready() -> void:
@@ -60,6 +62,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta
+	_pump_holds()
 	_t -= delta
 	if _t > 0.0 or _clock < ARM_AT:
 		return
@@ -168,7 +171,7 @@ func _enter_region(id: String) -> void:
 	elif _clock - float(_last_named.get(id, -1000.0)) < REVISIT_GAP:
 		return
 	_last_named[id] = _clock
-	banner.call("show_region", String(info.name), String(info.line), fresh)
+	_announce("show_region", String(info.name), String(info.line), fresh)
 
 
 func _enter_subzone(id: String) -> void:
@@ -194,7 +197,38 @@ func _enter_subzone(id: String) -> void:
 	elif _clock - float(_last_named.get("sub_" + id, -1000.0)) < REVISIT_GAP:
 		return
 	_last_named["sub_" + id] = _clock
-	banner.call("show_subzone", String(s.name), String(s.line), fresh)
+	_announce("show_subzone", String(s.name), String(s.line), fresh)
+
+
+## The text director (ui/text_director.gd) decides when a banner may draw: not over narration, a dialogue
+## box or a lock-on fight, and one per 90 s. A discovery past that limit leaves a quiet line in the
+## corner instead (the Journal and Events.region_discovered have it regardless).
+func _announce(method: String, title: String, line: String, fresh: bool) -> void:
+	var td := TextDirector.of(self)
+	if td == null:
+		banner.call(method, title, line, fresh)
+		return
+	_hold.append({"method": method, "kind": method.trim_prefix("show_"), "name": title, "line": line, "fresh": fresh})
+	while _hold.size() > 3:
+		var gone: Dictionary = _hold.pop_front()
+		td.quiet(("Discovered: " if gone.fresh else "") + String(gone.name))
+	_pump_holds()
+
+
+func _pump_holds() -> void:
+	if _hold.is_empty():
+		return
+	var td := TextDirector.of(self)
+	if td == null:
+		return
+	while not _hold.is_empty() and td.can_begin(&"discovery"):
+		var h: Dictionary = _hold.pop_front()
+		if not td.discovery_ok():
+			td.quiet(("Discovered: " if h.fresh else "") + String(h.name))
+			continue
+		td.begin(&"discovery", 7.4 if h.fresh else 4.8)
+		banner.call(String(h.method), String(h.name), String(h.line), bool(h.fresh))
+		return
 
 
 func _cue(id: String, big: bool) -> void:

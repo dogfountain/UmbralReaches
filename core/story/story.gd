@@ -88,7 +88,7 @@ func _after_cover(fn: Callable) -> void:
 		t += 0.1
 	if not is_inside_tree():
 		return
-	await get_tree().create_timer(opening_delay).timeout
+	await get_tree().create_timer(opening_delay if _staged_hud() == null else 1.2).timeout
 	if is_inside_tree():
 		fn.call()
 
@@ -373,12 +373,50 @@ func _portrait_live(d: float) -> void:
 
 # --- beats ---------------------------------------------------------------------------------
 
+## The HUD, if it is holding a new game's opening (black, no HUD): see ui/hud.gd hold_opening.
+func _staged_hud() -> Node:
+	var hud := get_tree().get_first_node_in_group(&"hud") if is_inside_tree() else null
+	return hud if hud != null and hud.has_method("hold_opening") and bool(hud.get("_opening_hold")) else null
+
+
 func _opening() -> void:
 	if flag("arrived"):
 		return
 	set_flag("arrived")
+	if not is_instance_valid(ui):
+		return
+	var hud := _staged_hud()
+	if hud == null:
+		ui.narrate(DialogueDB.OPENING)          # a harness, an older save: the three lines at once, as before
+		return
+	_stage_opening(hud)
+
+
+## r37, a new game opens in beats. The first line alone on black; the black lifts over the world with no HUD;
+## when the wanderer first moves the HUD arrives and the second line is spoken; the Gloom bar waits for
+## Gloom, the compass and minimap for the Keep, the hotbar's slots for the spells taught.
+func _stage_opening(hud: Node) -> void:
+	ui.narrate([DialogueDB.OPENING[0]])
+	var t := 0.0
+	await get_tree().create_timer(0.3).timeout
+	while is_inside_tree() and is_instance_valid(ui) and ui.narrating() and t < 40.0:
+		await get_tree().create_timer(0.2).timeout
+		t += 0.2
+	if not is_inside_tree() or not is_instance_valid(hud):
+		return
+	hud.call("fade_in_opening", 3.0)
+	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	var start := p.global_position if p else Vector3.ZERO
+	await get_tree().create_timer(1.5).timeout
+	t = 0.0
+	while is_inside_tree() and is_instance_valid(p) and p.global_position.distance_to(start) < 2.5 and t < 150.0:
+		await get_tree().create_timer(0.2).timeout
+		t += 0.2
+	if not is_inside_tree() or not is_instance_valid(hud):
+		return
+	hud.call("hold_opening", false)
 	if is_instance_valid(ui):
-		ui.narrate(DialogueDB.OPENING)
+		ui.narrate(DialogueDB.OPENING.slice(1))
 
 
 func _on_boss(id: String) -> void:

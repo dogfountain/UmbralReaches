@@ -160,7 +160,7 @@ func _physics_process(_d: float) -> void:
 		12:
 			check("warden slain saved", Travel.bosses_slain.has("ascended_warden"))
 			var cfg := ConfigFile.new()
-			check("save file has seals and bosses", cfg.load("user://savegame.cfg") == OK and (cfg.get_value("progress", "bosses", {}) as Dictionary).size() == 3)
+			check("save file has seals and bosses", cfg.load(Travel.SAVE_PATH) == OK and (cfg.get_value("progress", "bosses", {}) as Dictionary).size() == 3)
 			check("save file has the satchel", (cfg.get_value("progress", "items", {}) as Dictionary).get("ascension_seal", 0) == 1)
 			var sat := _ui_satchel() as Satchel
 			sat.open_menu()

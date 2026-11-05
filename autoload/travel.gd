@@ -23,10 +23,14 @@ var saved_hollows := 0
 var systems: Dictionary = {}
 var story: Dictionary = {}         ## story state (core/story/story.gd): {"flags": {}, "picked": {}}; own [story] section
 
-## Progress save (user://savegame.cfg): kindles (hub + areas), relics, checkpoint, hollow count.
+## Progress save (user://slot_<n>/savegame.cfg, see use_slot): kindles (hub + areas), relics, checkpoint, hollow count.
 ## Written ~0.6 s after any change (kill ash: ~10 s, see save_lazy); read once at boot. Launch with
 ## `-- --fresh` to ignore it, `-- --save-dir=/scratch` to keep every save file there (tests).
 const SaveDir := preload("res://core/util/save_dir.gd")
+const SLOTS := 3                     ## save slots (r37): <dir>/slot_<n>/savegame.cfg
+const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
+var slot := 1                        ## the slot in play (use_slot); the last one used is remembered in slots.cfg
+var forced_title := false            ## set by to_title(): ui/title_boot.gd shows the title even under a harness flag
 var SAVE_PATH: String = SaveDir.path("savegame.cfg")
 ## Format version written to [progress] version. Readers take what they know from any version and
 ## carry the rest along: keys this build doesn't know (a newer build's, or a section another system
@@ -54,6 +58,10 @@ var _awaiting_path := ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_migrate_legacy()
+	slot = clampi(int(_slots_cfg().get_value("slots", "last", 1)), 1, SLOTS)
+	SaveDir.slot = slot
+	SAVE_PATH = SaveDir.path("savegame.cfg")
 	if not "--fresh" in OS.get_cmdline_user_args():
 		load_game()
 	Events.brazier_kindled.connect(func(_b: Node3D) -> void: save_soon())
@@ -385,8 +393,21 @@ func load_game() -> void:
 	print("SAVE loaded: %d scenes with kindles, %d area fires, %d relics" % [lit_by_path.size(), area_lit.size(), relics.size()])
 
 
-## Wipe progress (settings menu). The running night keeps its state until the next launch.
+## Wipe this slot's progress (settings menu). The running night keeps its state, so nothing more is
+## written this session (`erased`); the settings menu then returns to the title screen (to_title), where
+## the next use_slot starts clean and saving works again (r35 B10: the session used to go on, never saving).
 func erase_save() -> void:
+	_reset_progress()
+	erased = true
+	for suffix: String in ["", ".bak", ".tmp"]:
+		if FileAccess.file_exists(SAVE_PATH + suffix):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH + suffix))
+	# the Journal keeps its own file: a full erase clears it too
+	CodexStore.reset(true)
+
+
+## Forget everything held in memory (not the files).
+func _reset_progress() -> void:
 	lit_by_path.clear()
 	area_lit.clear()
 	relics.clear()
@@ -399,14 +420,98 @@ func erase_save() -> void:
 	systems.clear()
 	_loaded_cfg = null
 	_main_ok = null
-	erased = true
-	for suffix: String in ["", ".bak", ".tmp"]:
-		if FileAccess.file_exists(SAVE_PATH + suffix):
-			DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH + suffix))
-	# the Journal keeps its own file (user://codex.cfg): a full erase clears it too
-	var codex := load("res://core/world/realm/lore/codex_store.gd")
-	if codex:
-		codex.call("reset", true)
+	_save_queued = false
+	_lazy_queued = false
+
+
+# --- save slots (r37) ---------------------------------------------------------------------------------
+
+## Play slot `n` (1..SLOTS). `fresh`: a New Game: whatever the slot held is wiped first. Otherwise its save
+## is loaded. Saving works again afterwards (an erased session is over).
+func use_slot(n: int, fresh := false) -> void:
+	slot = clampi(n, 1, SLOTS)
+	SaveDir.slot = slot
+	SAVE_PATH = SaveDir.path("savegame.cfg")
+	_reset_progress()
+	erased = false
+	hollow_count = 0
+	pending = false
+	returning = false
+	# the Journal follows the slot
+	CodexStore.use_path(SaveDir.path("codex.cfg"), not fresh)
+	if fresh:
+		for suffix: String in ["", ".bak", ".tmp"]:
+			if FileAccess.file_exists(SAVE_PATH + suffix):
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH + suffix))
+		if FileAccess.file_exists(CodexStore.path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(CodexStore.path))
+	else:
+		load_game()
+	var c := _slots_cfg()
+	c.set_value("slots", "last", slot)
+	c.save(SaveDir.dir() + "slots.cfg")
+
+
+## The title screen's line about slot `n`: {exists, text, fires, bosses, hollows}.
+func slot_summary(n: int) -> Dictionary:
+	var out := {"exists": false, "text": "", "fires": 0, "bosses": 0, "hollows": 0}
+	var path := SaveDir.slot_path(n, "savegame.cfg")
+	for p: String in [path, path + ".bak"]:
+		if not FileAccess.file_exists(p):
+			continue
+		var cfg := ConfigFile.new()
+		if cfg.load(p) != OK or not cfg.has_section("progress"):
+			continue
+		var fires := 0
+		var lit: Variant = cfg.get_value("progress", "lit_by_path", {})
+		if lit is Dictionary:
+			for k in lit:
+				if lit[k] is Array or lit[k] is PackedStringArray:
+					fires += (lit[k] as Variant).size()
+		var al: Variant = cfg.get_value("progress", "area_lit", {})
+		if al is Dictionary:
+			fires += (al as Dictionary).size()
+		var bs: Variant = cfg.get_value("progress", "bosses", {})
+		var bosses: int = (bs as Dictionary).size() if bs is Dictionary else 0
+		var hv: Variant = cfg.get_value("progress", "hollows", 0)
+		var hollows := int(hv) if (hv is int or hv is float) else 0
+		var when := Time.get_datetime_string_from_unix_time(FileAccess.get_modified_time(p)).substr(0, 10)
+		out.exists = true
+		out.fires = fires
+		out.bosses = bosses
+		out.hollows = hollows
+		out.text = "%d fire%s kindled  ·  %d keeper%s slain  ·  %s" % [fires, "" if fires == 1 else "s", bosses, "" if bosses == 1 else "s", when]
+		return out
+	return out
+
+
+func _slots_cfg() -> ConfigFile:
+	var c := ConfigFile.new()
+	c.load(SaveDir.dir() + "slots.cfg")
+	return c
+
+
+## Before slots there was one <dir>/savegame.cfg. The first launch with slots copies it into slot 1,
+## keeping its .bak, and renames the old files to *.migrated: nothing is lost, and an erased slot 1 is
+## not refilled from it. (The Journal's codex.cfg stays where it was: it is slot 1's.)
+func _migrate_legacy() -> void:
+	var legacy := SaveDir.dir() + "savegame.cfg"
+	var s1 := SaveDir.slot_path(1, "savegame.cfg")
+	if FileAccess.file_exists(legacy) and not FileAccess.file_exists(s1):
+		for suffix: String in ["", ".bak"]:
+			if FileAccess.file_exists(legacy + suffix):
+				DirAccess.copy_absolute(ProjectSettings.globalize_path(legacy + suffix), ProjectSettings.globalize_path(s1 + suffix))
+				DirAccess.rename_absolute(ProjectSettings.globalize_path(legacy + suffix), ProjectSettings.globalize_path(legacy + suffix + ".migrated"))
+
+
+## The settings menu's "Erase Saved Progress", and anything else that ends a run: back to the title screen.
+func to_title() -> void:
+	forced_title = true
+	pending = false
+	returning = false
+	get_tree().paused = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	get_tree().change_scene_to_file("res://ui/title_boot.tscn")
 
 
 ## A [progress] dictionary from the save, or {} if it is missing or the wrong type.
@@ -474,6 +579,7 @@ func _read_save() -> ConfigFile:
 ## ConfigFile.save reports a failed write, and whether the main file is good is tracked in _main_ok
 ## (set when it was loaded or last written); only a main file this run never saw is checked, once.
 func _write_save(cfg: ConfigFile) -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SAVE_PATH.get_base_dir()))
 	var tmp := SAVE_PATH + ".tmp"
 	var err := cfg.save(tmp)
 	if err != OK or not FileAccess.file_exists(tmp):

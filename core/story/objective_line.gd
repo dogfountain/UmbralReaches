@@ -12,6 +12,7 @@ const LANTERN := Color("#FFB347")
 const QUIET := Color(0.8, 0.82, 0.92, 0.88)
 const TITLE := Color(1.0, 0.78, 0.46, 0.92)
 const UIType := preload("res://ui/type.gd")
+const TextDirector := preload("res://ui/text_director.gd")
 
 var _font: Font
 var _last := ""
@@ -34,6 +35,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_fade_tick(delta)
 	_poll -= delta
 	if _poll > 0.0:
 		return
@@ -43,13 +45,32 @@ func _process(delta: float) -> void:
 	show_lines(lines)
 
 
+## r37: the tracker shows for SHOW_S seconds when what it says changes, then hides; holding the
+## "show_objective" action (Y, View) brings it back. It also stands aside while a banner is up
+## (the text director's banner lane) and while the HUD is still holding a new game's opening.
+const SHOW_S := 6.0
+var _show_t := 0.0
+
+
+func _fade_tick(delta: float) -> void:
+	var hud := get_tree().get_first_node_in_group(&"hud")
+	var held: bool = hud != null and hud.has_method("staged_in") and not bool(hud.call("staged_in"))
+	if not held and not get_tree().paused:
+		_show_t = maxf(0.0, _show_t - delta)
+	var want := _show_t > 0.0 or Input.is_action_pressed("show_objective")
+	var td := TextDirector.of(self)
+	if td != null and td.banner_up():
+		want = false
+	modulate.a = move_toward(modulate.a, 1.0 if want else 0.0, delta * (4.0 if want else 1.6))
+
+
 func _label(text: String, size: int, col: Color, font: Font) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.add_theme_font_override("font", font)
-	l.add_theme_font_size_override("font_size", size)
+	TextDirector.scaled(l, size)
 	l.add_theme_color_override("font_color", col)
 	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 	l.add_theme_constant_override("shadow_offset_x", 2)
@@ -67,6 +88,7 @@ func show_lines(lines: Array) -> void:
 		return
 	var old := _last
 	_last = key
+	_show_t = SHOW_S
 	for b in _blocks:
 		b.queue_free()
 	_blocks.clear()
@@ -88,7 +110,7 @@ func show_lines(lines: Array) -> void:
 				# the count goes at the end, MMO-tracker style; the step's own "(n/of)" comes out
 				line = line.replace(" (%d/%d)" % [int(o.get("n", 0)), of], "")
 				line += "   %d/%d" % [int(o.get("n", 0)), of]
-			var s := _label(("›  " if not ready else "✓  ") + line, 18, LANTERN if ready else QUIET, UIType.body())
+			var s := _label(("›  " if not ready else "✓  ") + TextDirector.sentence(line), 18, LANTERN if ready else QUIET, UIType.body())
 			box.add_child(s)
 			_labels.append(s)
 			if fresh:
@@ -96,7 +118,8 @@ func show_lines(lines: Array) -> void:
 			elif of > 0 and old != "" and not old.contains("#%d/%d#" % [int(o.get("n", 0)), of]):
 				_pulse(s)
 		else:
-			var l := _label(("◆  " if o.main else "◇  ") + String(o.text), 21 if o.main else 19, QUIET, _font)
+			# r37: a sentence is body text in sentence case; Cinzel stays on the task names above
+			var l := _label(("◆  " if o.main else "◇  ") + TextDirector.sentence(String(o.text)), 21 if o.main else 19, QUIET, UIType.body())
 			add_child(l)
 			_blocks.append(l)
 			_labels.append(l)
