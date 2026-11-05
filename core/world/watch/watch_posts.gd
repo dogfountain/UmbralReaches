@@ -22,6 +22,13 @@ static func build(host: Node3D) -> void:
 		village = v.get("village")
 		if village != null:
 			break
+	# prewarm the Watch's two uniforms now, under the load, so no post builds a mesh in play
+	var Rig: GDScript = load("res://core/life/village/villager_rig.gd")
+	for look: Dictionary in Watch.LOOKS:
+		var o := look.duplicate()
+		o["name"] = "watch_prewarm"
+		var r: Node = Rig.call("create", o)
+		r.free()
 	var root := Node3D.new()
 	root.name = "Watches"
 	host.add_child(root)

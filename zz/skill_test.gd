@@ -692,7 +692,7 @@ func _s_variants() -> void:
 	_cast(&"lance", 1.0)
 	await _wait(0.8)
 	ok(a.hp < 60.0 and l.hp < 60.0 and r.hp < 60.0, "Scatter: three lances in a fan (%.1f / %.1f / %.1f)" % [l.hp, a.hp, r.hp])
-	ok(60.0 - a.hp < 6.5 * 0.75, "Scatter: each at half strength (%.1f)" % (60.0 - a.hp))
+	ok(60.0 - l.hp < 6.5 * 0.75, "Scatter: each at half strength (a side lance: %.1f)" % (60.0 - l.hp))
 	_clear_foes()
 	await _place()
 	Travel.relics["slag"] = &"brand"

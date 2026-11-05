@@ -127,17 +127,19 @@ func _sleep() -> void:
 	_swing_t.clear()
 
 
-## A watchman: a coat, a hood or a cap, a sword in the right hand. Seeded per post and man.
+## The Watch's two uniforms (a hooded coat and a capped one, the same grey-brown, a sword in the right
+## hand). Two looks, not one each, so only two meshes are ever built: WatchPosts prewarms both while
+## the Realm loads, and a post that wakes in play builds nothing (each was a 250 ms stall).
+const LOOKS := [
+	{"seed": 7711, "sex": "m", "age": "adult", "garment": "coat", "hood": true, "hat": "", "beard": "short", "r": "sword", "girth": 1.04,
+		"cloth": Color(0.25, 0.21, 0.2), "cloth2": Color(0.2, 0.17, 0.16), "leather": Color(0.3, 0.2, 0.12), "skin": Color(0.7, 0.52, 0.4)},
+	{"seed": 7723, "sex": "m", "age": "adult", "garment": "coat", "hood": false, "hat": "cap", "beard": "", "r": "sword", "girth": 1.0,
+		"cloth": Color(0.25, 0.21, 0.2), "cloth2": Color(0.2, 0.17, 0.16), "leather": Color(0.3, 0.2, 0.12), "skin": Color(0.62, 0.46, 0.36)},
+]
+
+
 func _man(i: int) -> Dictionary:
-	var seed := hash(id) + i * 97
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seed
-	var cloth := Color(0.22, 0.2, 0.24).lerp(Color(0.3, 0.22, 0.16), rng.randf())
-	return {"name": "Watchman", "camp": "watch", "fearless": true, "speed": 1.6, "routines": {},
-		"rig": {"seed": seed, "sex": "m" if rng.randf() < 0.75 else "f", "age": "adult", "garment": "coat",
-			"hood": rng.randf() < 0.5, "hat": "" if rng.randf() < 0.6 else "cap", "beard": "short" if rng.randf() < 0.5 else "",
-			"r": "sword", "girth": rng.randf_range(0.98, 1.1), "cloth": cloth, "cloth2": cloth.darkened(0.2),
-			"leather": Color(0.3, 0.2, 0.12), "skin": Color(0.72, 0.54, 0.42).darkened(rng.randf() * 0.25)}}
+	return {"name": "Watchman", "camp": "watch", "fearless": true, "speed": 1.6, "routines": {}, "rig": (LOOKS[i % 2] as Dictionary).duplicate()}
 
 
 func _physics_process(delta: float) -> void:
@@ -186,8 +188,7 @@ func _assault() -> void:
 func _fight(delta: float) -> void:
 	# who is still coming
 	for i in range(_wave.size() - 1, -1, -1):
-		var e := _wave[i] as Enemy
-		if not is_instance_valid(e) or not e.is_alive():
+		if not is_instance_valid(_wave[i]) or not (_wave[i] as Enemy).is_alive():
 			_wave.remove_at(i)
 	if _wave.is_empty() and _in_assault:
 		_in_assault = false
@@ -226,6 +227,8 @@ func _fight(delta: float) -> void:
 				Vfx.burst(foe.global_position + Vector3.UP, Color(0.9, 0.85, 0.8), {"count": 6, "life": 0.3, "speed": Vector2(1.0, 3.0), "size": 0.03, "gravity": -6.0})
 		# blows on him from foes at his side
 		for e2 in _wave:
+			if not is_instance_valid(e2):
+				continue
 			var en := e2 as Enemy
 			if en == null or en.global_position.distance_to(v.global_position) > en.strike_range + 0.5:
 				continue
@@ -245,6 +248,8 @@ func _nearest_foe(v: Node3D) -> Enemy:
 	var best: Enemy = null
 	var bd := INF
 	for e in _wave:
+		if not is_instance_valid(e):
+			continue
 		var en := e as Enemy
 		if en == null or not en.is_alive():
 			continue

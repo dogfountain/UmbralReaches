@@ -33,9 +33,21 @@ var _rng := RandomNumberGenerator.new()
 var history: Array[String] = []  ## kinds started (tests)
 
 
+## The lost pilgrim's two looks (an old woman, a man), prewarmed under the load: a fresh villager mesh
+## built in play is a 250 ms stall.
+const PILGRIMS := [
+	{"seed": 9041, "sex": "f", "age": "old", "garment": "robe", "hood": true, "r": "staff", "cloth": Color(0.4, 0.37, 0.32), "cloth2": Color(0.3, 0.28, 0.25)},
+	{"seed": 9057, "sex": "m", "age": "adult", "garment": "robe", "hood": true, "r": "staff", "cloth": Color(0.36, 0.33, 0.3), "cloth2": Color(0.28, 0.26, 0.24)},
+]
+
+
 func _ready() -> void:
 	add_to_group(&"roam_events")
 	_rng.randomize()
+	var Rig: GDScript = load("res://core/life/village/villager_rig.gd")
+	for look: Dictionary in PILGRIMS:
+		var r: Node = Rig.call("create", look.duplicate())
+		r.free()
 
 
 func _physics_process(delta: float) -> void:
@@ -157,11 +169,10 @@ func _incursion() -> void:
 
 func _tick_foes() -> void:
 	for i in range(_foes.size() - 1, -1, -1):
-		var e := _foes[i] as Enemy
-		if not is_instance_valid(e) or not e.is_alive():
+		if not is_instance_valid(_foes[i]) or not (_foes[i] as Enemy).is_alive():
 			_foes.remove_at(i)
 			_done_n += 1
-	if is_instance_valid(_pin) and not _foes.is_empty():
+	if is_instance_valid(_pin) and not _foes.is_empty() and is_instance_valid(_foes[0]):
 		_pin.global_position = (_foes[0] as Node3D).global_position
 	if _done_n >= _need:
 		_end(true)
@@ -185,8 +196,7 @@ func _tick_tear(delta: float) -> void:
 
 func _tick_count_dead() -> void:
 	for i in range(_foes.size() - 1, -1, -1):
-		var e := _foes[i] as Enemy
-		if not is_instance_valid(e) or not e.is_alive():
+		if not is_instance_valid(_foes[i]) or not (_foes[i] as Enemy).is_alive():
 			_foes.remove_at(i)
 			_done_n += 1
 
@@ -200,10 +210,8 @@ func _pilgrim() -> void:
 	if _village == null:
 		return
 	var w: Node3D = VillagerScript.new()
-	var seed := _rng.randi()
 	w.call("setup", "lost_pilgrim", {"name": "A lost pilgrim", "camp": "roam", "fearless": true, "speed": 0.9, "routines": {},
-		"rig": {"seed": seed, "sex": "f" if _rng.randf() < 0.5 else "m", "age": "old" if _rng.randf() < 0.4 else "adult",
-			"garment": "robe", "hood": true, "r": "staff", "cloth": Color(0.4, 0.37, 0.32), "cloth2": Color(0.3, 0.28, 0.25)}}, _village)
+		"rig": (PILGRIMS[_rng.randi_range(0, PILGRIMS.size() - 1)] as Dictionary).duplicate()}, _village)
 	get_parent().add_child(w)
 	w.remove_from_group(Groups.INTERACTABLE)
 	w.global_position = _at

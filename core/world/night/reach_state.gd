@@ -24,7 +24,7 @@ const FACTIONS := {
 		"gift": {"relic_fragment": 3, "ash_bloom": 4}, "friend": "The Rooted leave a bundle by the next fire you light: bark-wrapped, tied with a knot you know now.",
 		"kin": "The Rooted call you kin. Their dead lie quieter where you walk."},
 	"kindlers": {"name": "the Kindlers", "zones": ["hearth", "orchard", "road"], "bells": ["bell_orchard"],
-		"gift": {"ember_shard": 4, "grave_ash": 20}, "friend": "Someone has left coals and ash in your satchel. The Kindlers' way of saying it.",
+		"gift": {"ember_shard": 4, "relic_fragment": 2}, "friend": "Someone has left coals and a relic-chip in your satchel. The Kindlers' way of saying it.",
 		"kin": "The Kindlers count you one of theirs. Their fires burn a little higher when you pass."},
 	"road": {"name": "the road folk", "zones": ["moor", "mere", "foundry", "quarry"], "bells": ["bell_moor", "bell_mere", "bell_foundry", "bell_quarry"],
 		"gift": {"grave_iron": 3, "relic_fragment": 2}, "friend": "The road folk know your face. Ysolt sends iron; Cadoc sends nothing, and says so.",
