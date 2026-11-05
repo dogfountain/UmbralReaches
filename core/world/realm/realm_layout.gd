@@ -446,6 +446,22 @@ static func path_dist(p: Vector2) -> float:
 	return best
 
 
+## The path segments that can come within `margin` of rect r (by their bounds): [a, b, w] each. A
+## caller testing many points of r against path_dist(q) < margin needs only these (the others are
+## further than margin from every point of r).
+static func path_segs_near(r: Rect2, margin: float) -> Array:
+	var out: Array = []
+	for path: Dictionary in PATHS:
+		var pts: Array = path.pts
+		var w := float(path.w)
+		for i in pts.size() - 1:
+			var a: Vector2 = pts[i]
+			var b: Vector2 = pts[i + 1]
+			if Rect2(a, Vector2.ZERO).expand(b).grow(w + margin + 0.01).intersects(r, true):
+				out.append([a, b, w])
+	return out
+
+
 ## r35: a smooth, deterministic offset (up to ~7 m) so rectangular regions' land and shapes meet
 ## along wandering lines instead of ruled ones. Only for painting and landform, never for names.
 static func _warp(p: Vector2) -> Vector2:
