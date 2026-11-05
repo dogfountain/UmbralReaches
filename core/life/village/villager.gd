@@ -545,6 +545,7 @@ func _walk(dt: float) -> void:
 		_side_to = 0.0
 		_side = move_toward(_side, 0.0, dt * 3.0)
 		np = base + dir.cross(Vector3.UP).normalized() * _side
+	np = _separated(np, dt)
 	global_position = np
 	var want := atan2(-dir.x, -dir.z)
 	yaw = lerp_angle(yaw, want, minf(1.0, dt * 5.0))
@@ -616,6 +617,39 @@ func _follow(dt: float) -> void:
 		if person:
 			yaw = lerp_angle(yaw, _yaw_to(tgt), minf(1.0, dt * 3.0))
 	looked_at = tgt + Vector3.UP * 1.5 if person else Vector3.INF
+
+
+## Separation: a walker eases away from any other villager closer than SEP_R so two people never
+## stand inside one another. The push is recomputed at SEP_HZ (a scan of the group, nothing more) and
+## applied each frame; a step into something solid is dropped.
+const SEP_R := 0.7
+const SEP_HZ := 10.0
+const SEP_SPEED := 0.9
+var _sep := Vector3.ZERO
+var _sep_t := 0.0
+
+
+func _separated(np: Vector3, dt: float) -> Vector3:
+	_sep_t -= dt
+	if _sep_t <= 0.0:
+		_sep_t = 1.0 / SEP_HZ + _rng.randf() * 0.02       # staggered across villagers
+		_sep = Vector3.ZERO
+		for v: Node in get_tree().get_nodes_in_group("villager"):
+			if v == self or not (v is Node3D) or bool(v.get("hidden")):
+				continue
+			var d := np - (v as Node3D).global_position
+			d.y = 0.0
+			var l := d.length()
+			if l < SEP_R:
+				_sep += (d / l if l > 0.01 else Vector3.RIGHT.rotated(Vector3.UP, _rng.randf() * TAU)) * (SEP_R - l) / SEP_R
+	if _sep == Vector3.ZERO:
+		return np
+	var moved := np + _sep.limit_length(1.0) * SEP_SPEED * dt
+	var y: float = village.nav.floor_at(moved.x, moved.z)
+	if absf(y - np.y) > 0.3 or not village.nav.clear_ex(Vector3(moved.x, y, moved.z), [body.get_rid()] as Array[RID]):
+		return np
+	moved.y = np.y
+	return moved
 
 
 func _blocker(dir: Vector3) -> Vector3:
