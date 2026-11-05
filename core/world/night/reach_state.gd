@@ -23,7 +23,7 @@ const FACTIONS := {
 	"rooted": {"name": "the Rooted", "zones": ["holds", "thornwood"], "bells": ["bell_holds"],
 		"gift": {"relic_fragment": 3, "ash_bloom": 4}, "friend": "The Rooted leave a bundle by the next fire you light: bark-wrapped, tied with a knot you know now.",
 		"kin": "The Rooted call you kin. Their dead lie quieter where you walk."},
-	"kindlers": {"name": "the Kindlers", "zones": ["hearth", "orchard", "road"], "bells": ["bell_orchard"],
+	"kindlers": {"name": "the Kindlers", "zones": ["hearth", "orchard", "road", "necropolis"], "bells": ["bell_orchard", "bell_necropolis"],
 		"gift": {"ember_shard": 4, "relic_fragment": 2}, "friend": "Someone has left coals and a relic-chip in your satchel. The Kindlers' way of saying it.",
 		"kin": "The Kindlers count you one of theirs. Their fires burn a little higher when you pass."},
 	"road": {"name": "the road folk", "zones": ["moor", "mere", "foundry", "quarry"], "bells": ["bell_moor", "bell_mere", "bell_foundry", "bell_quarry"],
@@ -35,7 +35,34 @@ const KIN := 12
 ## the far countries (RealmLayout region ids) each bell answers for
 const BELL_REGION := {"bell_holds": "holds", "bell_quarry": "quarry", "bell_moor": "moor", "bell_foundry": "foundry",
 	"bell_orchard": "orchard", "bell_necropolis": "necropolis", "bell_mere": "mere"}
-const FACTION_REGIONS := {"rooted": ["holds", "thornwood"], "kindlers": ["hearth", "orchard"], "road": ["moor", "mere", "foundry", "quarry"]}
+## One source of truth: a faction's zones are both its quest zones and its RealmLayout region ids
+## (the two share names), so the regions are read from FACTIONS rather than listed twice.
+## The Waiting Field and its Passing Bell are the Kindlers': the dead there are the pilgrims who walked
+## the road to the Stair and sat down, and the Kindlers (Edda's Yard, the pilgrims' row, the Keg's tongues
+## "hung for Hearthward") are who keep them and say their names; Agathe is of the Order but stays for them.
+static var FACTION_REGIONS: Dictionary = _faction_regions()
+
+
+static func _faction_regions() -> Dictionary:
+	var out := {}
+	for f: String in FACTIONS:
+		out[f] = (FACTIONS[f].zones as Array).duplicate()
+	return out
+
+
+## The faction a bell quest or a region answers to ("" if none).
+static func faction_of_bell(bell: String) -> String:
+	for f: String in FACTIONS:
+		if (FACTIONS[f].bells as Array).has(bell):
+			return f
+	return ""
+
+
+static func faction_of_region(region: String) -> String:
+	for f: String in FACTION_REGIONS:
+		if (FACTION_REGIONS[f] as Array).has(region):
+			return f
+	return ""
 
 var _lit := {}                   ## bell quest id -> the standing bell node
 
@@ -194,7 +221,7 @@ func _light_bell(b: String) -> void:
 	l.distance_fade_length = 15.0
 	l.position = Vector3.UP * 0.9
 	n.add_child(l)
-	LightGrid.register(n, 5.0, LightGrid.MIRROR)
+	LightGrid.register(n, 2.5, LightGrid.MIRROR)    # a small standing light: enough to stand beside, not to shelter in
 	n.set_meta(&"map_kind", "travel")
 	n.set_meta(&"map_label", "A rung bell")
 	n.add_to_group("map_marker")
