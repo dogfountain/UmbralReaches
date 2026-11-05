@@ -14,6 +14,7 @@ signal chosen(index: int)
 signal closed
 
 const UIType := preload("res://ui/type.gd")
+const TextDirector := preload("res://ui/text_director.gd")
 const LANTERN := Color("#FFB347")
 const QUIET := Color(0.78, 0.8, 0.9)
 const CPS := 52.0                          ## typed characters per second
@@ -57,6 +58,7 @@ var _syl_last := -1.0
 func _ready() -> void:
 	layer = 60
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	add_to_group(&"dialogue")                 # the text director asks whether a box is up
 	_font = load("res://ui/fonts/Cinzel.ttf")
 	_root = Control.new()
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -169,14 +171,16 @@ func _build_box() -> void:
 func _build_subtitles() -> void:
 	_sub = Label.new()
 	_sub.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	_sub.offset_left = -820
-	_sub.offset_right = 820
-	_sub.offset_top = -290
+	_sub.offset_left = -480                   # the text director's lower-centre lane (text_director.gd lane_rect)
+	_sub.offset_right = 480
+	_sub.offset_top = -336
 	_sub.offset_bottom = -230
+	_sub.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_sub.add_theme_font_override("font", UIType.body())   # r30: Cinzel is for names and titles
-	_sub.add_theme_font_size_override("font_size", 30)
+	_sub.set_meta(&"ts_base", 28)
+	_sub.add_theme_font_size_override("font_size", TextDirector.px(28))
 	_sub.add_theme_color_override("font_color", Color(0.95, 0.9, 0.8))
 	_sub.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.95))
 	_sub.add_theme_constant_override("shadow_offset_x", 2)
@@ -551,6 +555,7 @@ func narrating() -> bool:
 func _subtitles(delta: float) -> void:
 	# a conversation box covers the subtitles' place: they wait (not lost) until it closes
 	_sub.visible = not _open
+	var td := TextDirector.of(self)
 	if _open:
 		return
 	if _sub_t > 0.0:
@@ -560,12 +565,17 @@ func _subtitles(delta: float) -> void:
 		if _sub_t <= 0.6 and _sub.modulate.a > 0.0 and (_sub_tw == null or not _sub_tw.is_running()):
 			_sub_tw = create_tween()
 			_sub_tw.tween_property(_sub, "modulate:a", 0.0, 0.55)
+		if _sub_t <= 0.0 and td:
+			td.end(&"narration")
 		return
 	if _sub_queue.is_empty():
 		return
+	var life := 4.2 + float(_sub_queue[0].length()) / CPS * 1.2
+	if td and not td.begin(&"narration", life + 1.0, td.lane_rect(&"sub")):
+		return                                 # the lane is not ours yet (a boss's emote): wait
 	_sub.text = _sub_queue.pop_front()
 	_sub.visible_characters = 0
-	_sub_t = 4.2 + float(_sub.text.length()) / CPS * 1.2
+	_sub_t = life
 	if _sub_tw:
 		_sub_tw.kill()
 	_sub_tw = create_tween()

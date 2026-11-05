@@ -26,6 +26,8 @@ var hint_t := -1.0
 var _banner: Node = null
 var _banner_n := 0
 var _overlap_told := false
+var _td_told := false
+var _td_gap_told := false
 var dlg_t := -1.0
 var dlg: Node = null
 var hud: Node = null
@@ -183,11 +185,19 @@ func _watch_ui() -> void:
 			title_t = t_all
 			print("FIRST title card visible at %.2f s (loading lifted %.2f)" % [t_all, ls_done_t])
 			_shot("title")
-	if hud and hint_t < 0.0:
-		var hl := hud.get("_hint") as Label
-		if hl and hl.modulate.a > 0.5 and ls_done_t >= 0.0:
-			hint_t = t_all
-			print("FIRST controls hint visible at %.2f s, width %.0f px of %.0f" % [t_all, hl.get_combined_minimum_size().x + hl.position.x, hl.get_viewport_rect().size.x])
+	# r37: the text director (ui/text_director.gd): two lanes in one rectangle on any frame, or two banners
+	# within 90 s, is a FAIL line
+	var td := get_tree().get_first_node_in_group(&"text_director")
+	if td:
+		var clash: String = td.call("overlap")
+		if clash != "" and not _td_told:
+			_td_told = true
+			print("FIRST FAIL text lanes overlap at %.2f s: %s" % [t_all, clash])
+		var log: Array = td.get("banner_log")
+		for i in range(1, log.size()):
+			if float(log[i]) - float(log[i - 1]) < 89.9 and not _td_gap_told:
+				_td_gap_told = true
+				print("FIRST FAIL two discovery banners %.1f s apart" % (float(log[i]) - float(log[i - 1])))
 	# r35: every place banner, and any frame where one is up while the title card is (they used to
 	# land on top of each other the moment the loading screen lifted)
 	if _banner == null:

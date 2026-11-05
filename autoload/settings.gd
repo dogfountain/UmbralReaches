@@ -45,6 +45,7 @@ var fps_limit := -1                 ## see FPS_CHOICES: -1 match display, 0 unli
 var monitor := -1                   ## screen index to show the game on; -1 = wherever macOS opens it
 var native_output := false          ## true: final image at the screen's full pixel count (4K/Retina)
 var invert_y := false
+var text_scale := 1.0               ## 0.85-1.5: the HUD's running text (ui/text_director.gd px())
 var quality_preset := 1             # 0 Performance, 1 Balanced, 2 Cinematic
 var detail := 1                     ## world detail 0 low .. 2 high: mesh LOD distance, undergrowth density
                                     ## and range, shadow casters, internal height (set by the presets)
@@ -110,6 +111,7 @@ func load_settings() -> void:
 	native_output = _v(cfg, "display", "native_output", native_output)
 	invert_y = _v(cfg, "camera", "invert_y", invert_y)
 	dof_enabled = false
+	text_scale = clampf(_v(cfg, "hud", "text_scale", text_scale), 0.85, 1.5)
 	fov = clampf(_v(cfg, "camera", "fov", fov), 50.0, 90.0)
 	mouse_sensitivity = clampf(_v(cfg, "camera", "mouse_sensitivity", mouse_sensitivity), 0.0005, 0.01)
 	stick_sensitivity = clampf(_v(cfg, "camera", "stick_sensitivity", stick_sensitivity), 1.0, 5.0)
@@ -158,6 +160,7 @@ func save_settings() -> void:
 	cfg.set_value("display", "monitor", monitor)
 	cfg.set_value("display", "native_output", native_output)
 	cfg.set_value("camera", "invert_y", invert_y)
+	cfg.set_value("hud", "text_scale", text_scale)
 	cfg.set_value("camera", "fov", fov)
 	cfg.set_value("camera", "mouse_sensitivity", mouse_sensitivity)
 	cfg.set_value("camera", "stick_sensitivity", stick_sensitivity)
@@ -245,6 +248,7 @@ func reset_defaults() -> void:
 	mouse_sensitivity = 0.0025
 	stick_sensitivity = 2.6
 	invert_y = false
+	text_scale = 1.0
 	master_volume = 0.9
 	sfx_volume = 0.85
 	ambience_volume = 0.7

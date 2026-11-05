@@ -25,6 +25,7 @@ const TRACK_NAMES := {
 static var track := {"quests": true, "rares": true, "travel": true, "gather": true, "town": true, "foes": true, "chests": true}
 static var combat_text := true
 static var unit_frames := true
+static var enemy_plates := false       ## world health bars over every foe, and the target frame on foes you only struck (off: the locked-on target only)
 static var card_request := 0           ## bumped by the settings menu: the HUD shows the controls card again
 static var _loaded := false
 
@@ -40,6 +41,7 @@ static func ensure() -> void:
 		track[k] = bool(cfg.get_value("track", k, true))
 	combat_text = bool(cfg.get_value("hud", "combat_text", true))
 	unit_frames = bool(cfg.get_value("hud", "unit_frames", true))
+	enemy_plates = bool(cfg.get_value("hud", "enemy_plates", false))
 
 
 static func save() -> void:
@@ -48,6 +50,7 @@ static func save() -> void:
 		cfg.set_value("track", k, bool(track[k]))
 	cfg.set_value("hud", "combat_text", combat_text)
 	cfg.set_value("hud", "unit_frames", unit_frames)
+	cfg.set_value("hud", "enemy_plates", enemy_plates)
 	cfg.save(SaveDir.path(FILE))
 
 

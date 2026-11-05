@@ -53,6 +53,8 @@ var _stick_slider: HSlider
 var _stick_label: Label
 var _hint_line: Label
 var _erase_btn: Button
+var _tscale_slider: HSlider
+var _tscale_label: Label
 
 
 func _ready() -> void:
@@ -314,7 +316,20 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.combat_text = v
 		HudPrefs.save())
 	ct.set_pressed_no_signal(HudPrefs.combat_text)
-	var row := _row(p, "Controls Card", "The first-minutes card of keys, shown again for a little while")
+	var plates := _check(p, "Enemy Health Bars & Plates", "Off: only the foe you are locked on to shows its bar and frame. On: a health bar over every foe, and the target frame for any foe you strike.", func(v: bool) -> void:
+		HudPrefs.enemy_plates = v
+		HudPrefs.save())
+	plates.set_pressed_no_signal(HudPrefs.enemy_plates)
+	var trow := _row(p, "Text Scale", "The size of the objective, toasts, lessons and subtitles")
+	_tscale_slider = _slider(trow, 0.85, 1.5, 0.05)
+	_tscale_label = _value_label(trow)
+	_tscale_slider.value_changed.connect(func(v: float) -> void:
+		_tscale_label.text = "%d%%" % roundi(v * 100.0)
+		if _refreshing:
+			return
+		Settings.text_scale = v
+		Settings.apply())
+	var row := _row(p, "Control Prompts", "The one-line hints that appear the first time a control matters (a ledge, a foe in range...), shown again")
 	var again := Button.new()
 	again.text = "Show Again"
 	_style_small(again, 16)
@@ -602,6 +617,8 @@ func _refresh() -> void:
 	_stick_slider.value = Settings.stick_sensitivity
 	_stick_label.text = "%.1f" % (Settings.stick_sensitivity / 2.6 * 5.0)
 	_invert_btn.button_pressed = Settings.invert_y
+	_tscale_slider.value = Settings.text_scale
+	_tscale_label.text = "%d%%" % roundi(Settings.text_scale * 100.0)
 	_refreshing = false
 
 

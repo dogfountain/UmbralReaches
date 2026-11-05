@@ -61,6 +61,7 @@ const RANK_NAME := {"normal": "", "elite": "Elite", "rare": "Rare", "rare_elite"
 ## Where things sit on the 1600 x 900 (and 1920 x 1080) canvas.
 const PF_POS := Vector2(22, 16)
 const PORTRAIT_R := 42.0
+const BOSS_LEAVE_M := 60.0         ## a boss this far away is no longer the fight
 const PF_W := 300.0                ## the plate right of the portrait
 const TF_W := 380.0
 const BF_W := 480.0
@@ -269,6 +270,21 @@ func _rescan() -> void:
 		if _t - float(_buff_names_seen[k]) > 4.0:
 			_buff_names_seen.erase(k)          # gone a while: its return is news again
 	_scan_hurt()
+	_sync_bars()
+
+
+## Enemy health bars in the world are off unless the HUD setting is on; the locked-on target and the boss
+## keep theirs (the bar is a render layer toggle: some enemies hide and show the bar themselves).
+func _sync_bars() -> void:
+	var on := HudPrefs.enemy_plates
+	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
+		var bar := e.get_node_or_null("HealthBar") as VisualInstance3D
+		if bar == null:
+			continue
+		var want := on or e == _target or e == _boss
+		var layers := 1 if want else 0
+		if bar.layers != layers:
+			bar.layers = layers
 
 
 ## What the wanderer carries: anything the player reports (buffs()), plus what the game already
@@ -406,9 +422,10 @@ func _pick_target(delta: float) -> void:
 	var want: Node3D = null
 	if _player.has_method("lock_target"):
 		want = _player.call("lock_target") as Node3D
-	if want == null and _player.has_method("current_target"):
+	var plates := HudPrefs.enemy_plates
+	if want == null and plates and _player.has_method("current_target"):
 		want = _player.call("current_target") as Node3D          # CombatState's remembered target
-	if want == null and _soft_t > 0.0 and is_instance_valid(_soft) and _soft.is_inside_tree():
+	if want == null and plates and _soft_t > 0.0 and is_instance_valid(_soft) and _soft.is_inside_tree():
 		if _soft.global_position.distance_to(_player.global_position) < SOFT_RANGE + 10.0:
 			want = _soft
 	if want == _boss and _boss != null:
@@ -425,7 +442,7 @@ func _pick_target(delta: float) -> void:
 		if _t_dead > 1.2:
 			_target = null
 			_soft = null
-	elif _target != null and want == null and _target != _soft:
+	elif _target != null and want == null and (_target != _soft or not plates):
 		_target = null
 	if _target != null:
 		var r := _ratio(_target)
@@ -635,6 +652,10 @@ func _end_boss() -> void:
 
 func _tick_boss(delta: float) -> void:
 	if _boss != null and (not is_instance_valid(_boss) or not _boss.is_inside_tree() or not _alive(_boss)):
+		_end_boss()
+	# the frame ends when the wanderer leaves the fight by any means (a fall, a kindle, travel): 60 m away
+	if _boss != null and is_instance_valid(_player) and _player.is_inside_tree() \
+			and _boss.global_position.distance_to(_player.global_position) > BOSS_LEAVE_M:
 		_end_boss()
 	if _boss != null:
 		var r := _ratio(_boss)

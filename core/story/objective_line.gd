@@ -12,6 +12,7 @@ const LANTERN := Color("#FFB347")
 const QUIET := Color(0.8, 0.82, 0.92, 0.88)
 const TITLE := Color(1.0, 0.78, 0.46, 0.92)
 const UIType := preload("res://ui/type.gd")
+const TextDirector := preload("res://ui/text_director.gd")
 
 var _font: Font
 var _last := ""
@@ -49,7 +50,7 @@ func _label(text: String, size: int, col: Color, font: Font) -> Label:
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.add_theme_font_override("font", font)
-	l.add_theme_font_size_override("font_size", size)
+	TextDirector.scaled(l, size)
 	l.add_theme_color_override("font_color", col)
 	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 	l.add_theme_constant_override("shadow_offset_x", 2)
@@ -88,7 +89,7 @@ func show_lines(lines: Array) -> void:
 				# the count goes at the end, MMO-tracker style; the step's own "(n/of)" comes out
 				line = line.replace(" (%d/%d)" % [int(o.get("n", 0)), of], "")
 				line += "   %d/%d" % [int(o.get("n", 0)), of]
-			var s := _label(("›  " if not ready else "✓  ") + line, 18, LANTERN if ready else QUIET, UIType.body())
+			var s := _label(("›  " if not ready else "✓  ") + TextDirector.sentence(line), 18, LANTERN if ready else QUIET, UIType.body())
 			box.add_child(s)
 			_labels.append(s)
 			if fresh:
@@ -96,7 +97,8 @@ func show_lines(lines: Array) -> void:
 			elif of > 0 and old != "" and not old.contains("#%d/%d#" % [int(o.get("n", 0)), of]):
 				_pulse(s)
 		else:
-			var l := _label(("◆  " if o.main else "◇  ") + String(o.text), 21 if o.main else 19, QUIET, _font)
+			# r37: a sentence is body text in sentence case; Cinzel stays on the task names above
+			var l := _label(("◆  " if o.main else "◇  ") + TextDirector.sentence(String(o.text)), 21 if o.main else 19, QUIET, UIType.body())
 			add_child(l)
 			_blocks.append(l)
 			_labels.append(l)

@@ -4,8 +4,10 @@ extends CanvasLayer
 ## r33 (after WoW's interface): the Gloom meter lives in the wanderer's unit frame now (ui/unit_frames.gd,
 ## with the target and boss frames and the cast bar), floating combat text (ui/combat_text.gd) and
 ## an XP strip (ui/xp_bar.gd, only once XP exists). The plain bar stays as the fallback when the
-## frames are switched off in settings. The controls card is a first-minutes hint, once per save,
-## and the settings menu can bring it back (show_card()).
+## frames are switched off in settings.
+## r37: the controls card is gone. A one-line prompt shows the first time each action matters (a ledge,
+## a foe in range...), once per save (Hints.once). Every transient line of text goes through the
+## TextDirector (ui/text_director.gd): lanes, priorities, one banner at a time.
 
 const LILAC := Color("#A98BFF")
 const LANTERN := Color("#FFB347")
@@ -21,38 +23,29 @@ var _build_line := ""
 var _bench_line := ""
 var _bar: GloomBar
 var _prompt: Label
-var _toast: Label
 var _title: Label
 var _subtitle: Label
-var _hint: Label
 var _debug: Label
 var _fade: ColorRect
-var _toast_tw: Tween
 var _prompt_tw: Tween
 var _debug_t := 0.0
 var _measure_rid: RID
 # r29 (critique B): the first minutes. The title card and the controls used to play out under the
 # loading screen (title gone, hint half faded by the time the night shows); the hint was one 200-
 # character keyboard-only line that ran under the objectives and stayed up over every menu.
-const CARD_TIME := 20.0
 var _pad := false                 ## the last input came from a gamepad: the card and tips use pad names
 var _seen_capture := false        ## the mouse has been captured once (menus free it: a "menu open" cue)
-var _card_t := -1.0               ## seconds the controls card has been up; -1 not started yet
-var _card_a := 0.0
 var _life := 0.0
-var _tip: Label
-var _tip_tw: Tween
-var _tips_done := {}
-var _lessons: Array[String] = []        ## combat lessons waiting for the tip line (lesson())
+var _td: Node                     ## the text arbiter (ui/text_director.gd)
 var _tip_check := 0.0
 var _sprint_t := 0.0
-var _toast_q: Array[String] = []
-var _toast_busy := false
 var _aim: Control
 var _gloom_label: Label
 var _card_req := 0
+var _air_t := 0.0
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 const Hints := preload("res://ui/hints.gd")
+const TextDirector := preload("res://ui/text_director.gd")
 
 
 class Crosshair extends Control:
@@ -103,6 +96,10 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 
+	_td = TextDirector.new()
+	_td.name = "TextDirector"
+	add_child(_td)
+	_td.build(root, _font)
 	HudPrefs.ensure()
 	_card_req = HudPrefs.card_request
 	var gl := _label(root, "GLOOM", 22, QUIET)
@@ -121,14 +118,6 @@ func _ready() -> void:
 	_prompt.offset_right = 500
 	_prompt.modulate.a = 0.0
 
-	_toast = _label(root, "", 26, Color(0.85, 0.85, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
-	_toast.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	_toast.offset_top = 196            # r33: under the target frame (it sits under the compass)
-	_toast.offset_bottom = 236
-	_toast.offset_left = -700
-	_toast.offset_right = 700
-	_toast.modulate.a = 0.0
-
 	_title = _label(root, "", 64, Color(0.92, 0.9, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
 	_title.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	_title.offset_top = 250
@@ -145,33 +134,10 @@ func _ready() -> void:
 	_subtitle.modulate.a = 0.0
 	Events.zone_entered.connect(_on_zone)
 
-	_hint = _label(root, "", 18, QUIET)
-	_hint.position = Vector2(26, 196)  # r33: under the wanderer's frame and its buff row
-	_hint.add_theme_constant_override("line_spacing", 4)
-	# r30: body serif, on a dark backing plate (it sat straight on the bright sky)
-	_hint.add_theme_font_override("font", preload("res://ui/type.gd").body())
-	var plate := StyleBoxFlat.new()
-	plate.bg_color = Color(0.02, 0.025, 0.04, 0.42)
-	plate.set_corner_radius_all(6)
-	plate.content_margin_left = 16
-	plate.content_margin_right = 16
-	plate.content_margin_top = 10
-	plate.content_margin_bottom = 10
-	_hint.add_theme_stylebox_override("normal", plate)
-	_hint.modulate.a = 0.0
 	if "using_pad" in Settings:
 		_pad = bool(Settings.get("using_pad"))
 	if Settings.has_signal("input_device_changed"):
 		Settings.connect("input_device_changed", _on_device)
-	_hint.text = _card_text()
-	_tip = _label(root, "", 24, Color(0.88, 0.86, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
-	_tip.add_theme_font_override("font", preload("res://ui/type.gd").body())
-	_tip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	_tip.offset_top = -334             # r33 merge: above the dialogue subtitle band (ui/dialogue.gd _sub, -290..-230)
-	_tip.offset_bottom = -298
-	_tip.offset_left = -700
-	_tip.offset_right = 700
-	_tip.modulate.a = 0.0
 
 	var bar := Hotbar.new()
 	bar.name = "Hotbar"
@@ -219,6 +185,7 @@ func _ready() -> void:
 
 	Events.gloom_changed.connect(_on_gloom)
 	Events.interact_hint.connect(_on_hint)
+	Settings.changed.connect(func() -> void: TextDirector.rescale(self))
 	Events.toast.connect(_on_toast)
 	Events.hollowed.connect(_on_hollowed)
 	Events.respawned.connect(_on_respawned)
@@ -233,7 +200,7 @@ func _label(parent: Control, text: String, size: int, color: Color, align := HOR
 	l.horizontal_alignment = align
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.add_theme_font_override("font", _font)
-	l.add_theme_font_size_override("font_size", size)
+	TextDirector.scaled(l, size)
 	l.add_theme_color_override("font_color", color)
 	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
 	l.add_theme_constant_override("shadow_offset_x", 2)
@@ -253,7 +220,6 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_device(pad: bool) -> void:
 	if pad != _pad:
 		_pad = pad
-		_hint.text = _card_text()
 
 
 func _process(delta: float) -> void:
@@ -270,7 +236,6 @@ func _process(delta: float) -> void:
 	_life += delta
 	if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_seen_capture = true
-	_card_tick(delta)
 	_tips_tick(delta)
 	if _aim:
 		_aim.visible = not _menu_open()          # no crosshair over a conversation or a menu
@@ -324,31 +289,12 @@ func _on_hint(text: String) -> void:
 		_prompt_tw.tween_property(_prompt, "modulate:a", 1.0, 0.25)
 
 
-## Toasts queue (r29: a second toast in the same moment replaced the first, which was never read).
-## A repeat of the one showing is dropped; a long queue shortens each one's hold.
+## Toasts go through the text director: it queues them (two at most on screen, bottom left corner),
+## holds them while narration, a dialogue box or a lock-on fight has the screen, and writes them in
+## sentence case.
 func _on_toast(text: String) -> void:
-	if text == "":
-		return
-	if _toast_busy:
-		if text != _toast.text and not _toast_q.has(text) and _toast_q.size() < 4:
-			_toast_q.append(text)
-		return
-	_show_toast(text)
-
-
-func _show_toast(text: String) -> void:
-	_toast_busy = true
-	_toast.text = text
-	if _toast_tw:
-		_toast_tw.kill()
-	_toast_tw = create_tween()
-	_toast_tw.tween_property(_toast, "modulate:a", 1.0, 0.3 if _toast.modulate.a < 0.5 else 0.15)
-	_toast_tw.tween_interval(2.6 if _toast_q.is_empty() else 1.8)
-	_toast_tw.tween_property(_toast, "modulate:a", 0.0, 0.8 if _toast_q.is_empty() else 0.35)
-	_toast_tw.tween_callback(func() -> void:
-		_toast_busy = false
-		if not _toast_q.is_empty():
-			_show_toast(_toast_q.pop_front()))
+	if text != "":
+		_td.post_toast(text)
 
 
 func _on_hollowed() -> void:
@@ -371,17 +317,23 @@ func _on_zone(title: String, subtitle: String) -> void:
 	if Travel.returning:
 		Travel.returning = false
 		return
-	# the night's title card waits for the loading screen to lift (it used to play under it)
+	# the night's title card waits for the loading screen to lift, and for the text director's banner lane
+	# (narration, a dialogue box or a fight hold it)
+	_title_pending += 1
 	var cover := _loading_cover()
 	if cover:
-		_title_pending += 1
 		await cover.tree_exited
 		if not is_inside_tree():
 			return
 		await get_tree().create_timer(0.35).timeout
-		_title_pending -= 1
-		if not is_inside_tree():
-			return
+	var tries := 0
+	while is_inside_tree() and not _td.can_begin(&"title") and tries < 60:
+		tries += 1
+		await get_tree().create_timer(0.25).timeout
+	_title_pending -= 1
+	if not is_inside_tree():
+		return
+	_td.begin(&"title", 6.8, Rect2(_td.lane_rect(&"banner").position, Vector2(1100.0, 280.0)), true)
 	_title.text = title
 	_subtitle.text = subtitle
 	_title.modulate.a = 0.0
@@ -420,52 +372,18 @@ func _menu_open() -> bool:
 	return get_tree().paused or (_seen_capture and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED)
 
 
-## The controls card: up once the night shows, gone after CARD_TIME of play (time in menus doesn't
-## count), hidden while a menu is open.
-func _card_tick(delta: float) -> void:
-	if _card_t < 0.0:
-		if _life > 0.5 and _loading_cover() == null:
-			# r33: a first-minutes hint, once per save (the settings menu can call it back)
-			_card_t = CARD_TIME + 1.0 if Hints.seen(&"controls_card") else 0.0
-		else:
-			return
-	if _card_t <= CARD_TIME and _card_t + delta > CARD_TIME:
-		_mark_card_seen()
-	var menu := _menu_open()
-	if not menu:
-		_card_t += delta
-	var want := 0.0 if menu or _card_t > CARD_TIME else 1.0
-	_card_a = move_toward(_card_a, want, delta * (4.0 if want < _card_a else 1.6))
-	_hint.modulate.a = _card_a
-	_hint.visible = _card_a > 0.001
-
-
-## r33: bring the controls card back for another CARD_TIME (the settings menu's button).
+## The old controls card is retired. This replays the one-line prompts (settings menu: "Show Again"):
+## each is forgotten, so it shows the next time its moment comes.
 func show_card() -> void:
-	_hint.text = _card_text()
-	_card_t = 0.0
-
-
-func _mark_card_seen() -> void:
 	var l: Variant = Travel.story.get("lessons", {})
-	var d: Dictionary = l if l is Dictionary else {}
-	d["controls_card"] = true
-	Travel.story["lessons"] = d
+	if l is Dictionary:
+		for id: String in PROMPTS:
+			(l as Dictionary).erase("tip_" + id)
+	_air_t = 0.0
 
 
-func _card_text() -> String:
-	# four short lines (the longest ~75 characters): clear of the objectives at the top right even
-	# on the 1600-wide canvas small windows get
-	if _pad:
-		return "Left stick  move   ·   L3  sprint   ·   A  jump, again in the air\n" \
-			+ "B  slide, or roll when slow   ·   R3  lock on   ·   X  use\n" \
-			+ "Skills: the triggers, bumpers and Y (the bar below)\n" \
-			+ "D-pad up  character   ·   D-pad  journal · tasks · kindling   ·   Menu  settings"
-	return "WASD  move   ·   %s  sprint   ·   %s  jump, again in the air\n" % [_key("sprint", "Shift"), _key("jump", "Space")] \
-		+ "%s  slide   ·   %s  roll   ·   %s  lock on   ·   %s  next target   ·   %s  use\n" % [_key("slide", "Ctrl"), _key("dodge", "V"), _key("lock_on", "MMB"), _key("target_next", "T"), _key("interact", "E")] \
-		+ "Skills: the mouse buttons and the keys on the bar below\n" \
-		+ "%s  character  ·  %s  journal  ·  %s  tasks  ·  %s  kindling  ·  %s  gear  ·  Esc  settings" % [
-			_key("inventory", "Tab"), _key("codex", "J"), _key("quest_log", "L"), _key("kindling", "K"), _key("gear", "O")]
+## The ids of the just-in-time prompts (each is a Hints lesson "tip_<id>", once per save).
+const PROMPTS := ["move", "jump2", "hang", "slide", "lock", "gloom", "roll"]
 
 
 ## The first key or mouse button bound to `action` (rebinding-proof), else `fallback`.
@@ -482,58 +400,57 @@ func _key(action: String, fallback: String) -> String:
 	return fallback
 
 
-## First-time tips, one at a time, each once per session, when the moment for it comes up (after the
-## card has gone, so they are not a second wall of text).
+## Just-in-time prompts: one line, the first time an action matters, once per save. They go to the
+## text director's lesson lane (queued behind narration, shown during a fight).
 func _tips_tick(delta: float) -> void:
 	_tip_check -= delta
 	if _tip_check > 0.0:
 		return
 	_tip_check = 0.25
-	if _card_t < CARD_TIME * 0.6 or _menu_open() or (_tip_tw and _tip_tw.is_running()):
+	if _menu_open() or not staged_in():
 		return
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	if p == null or not p.is_inside_tree():
 		return
 	var v: Vector3 = p.get("velocity") if p.get("velocity") != null else Vector3.ZERO
 	var flat := Vector2(v.x, v.z).length()
-	_sprint_t = _sprint_t + 0.25 if flat > 6.5 and p.call("is_grounded") else 0.0
+	var grounded := bool(p.call("is_grounded"))
+	_sprint_t = _sprint_t + 0.25 if flat > 6.5 and grounded else 0.0
+	_air_t = 0.0 if grounded else _air_t + 0.25
 	if p.has_method("is_hanging") and p.call("is_hanging"):
-		_tip_once("hang", "%s  climb up   ·   push away + %s  kick off   ·   %s  let go" % [_pk("jump", "A"), _pk("jump", "A"), _pk("slide", "B")])
+		_jit("hang", "%s  climb up   ·   push away + %s  kick off   ·   %s  let go" % [_pk("jump", "A"), _pk("jump", "A"), _pk("slide", "B")])
+	elif not Hints.seen(&"tip_move"):
+		_jit("move", "%s  move   ·   mouse  look   ·   %s  sprint   ·   %s  jump" % [_pk_move(), _pk("sprint", "L3"), _pk("jump", "A")])
+	elif _air_t > 0.4:
+		_jit("jump2", "%s again in the air: a second jump" % _pk("jump", "A"))   # the first ledge or leap
 	elif _sprint_t > 1.5:
-		_tip_once("slide", "%s  while running: slide   ·   %s  in a slide: a long leap" % [_pk("slide", "B"), _pk("jump", "A")])
+		_jit("slide", "%s  while running: slide   ·   %s  in a slide: a long leap" % [_pk("slide", "B"), _pk("jump", "A")])
 	elif p.has_method("lock_target") and p.call("lock_target") == null and _foe_near(p, 16.0):
-		_tip_once("lock", "%s  lock on to it   ·   %s  roll through a blow" % [_pk("lock_on", "R3"), _pk("dodge", "B")])
+		_jit("lock", "%s  lock on to it   ·   %s  roll through a blow" % [_pk("lock_on", "R3"), _pk("dodge", "B")])
 	elif float(p.get("gloom")) > 55.0:
-		_tip_once("gloom", "The Gloom fills away from light. Full, it takes shape and hunts you. Firelight drains it.")
+		_jit("gloom", "The Gloom fills away from light. Full, it takes shape and hunts you. Firelight drains it.")
 
 
-## A combat lesson (ui/hints.gd): shown in the tip line, after any tip already showing.
+## A just-in-time prompt, once per save.
+func _jit(id: String, text: String) -> void:
+	Hints.once(StringName("tip_" + id), text)
+
+
+func _pk_move() -> String:
+	return "Left stick" if _pad else "WASD"
+
+
+## A combat lesson (ui/hints.gd), or a prompt: the text director's lesson lane.
 func lesson(text: String) -> void:
-	if _tip_tw and _tip_tw.is_running():
-		if _lessons.size() < 4 and not _lessons.has(text):
-			_lessons.append(text)
-		return
-	_show_tip(text)
+	_td.post_lesson(text)
 
 
-func _tip_once(id: String, text: String) -> void:
-	if _tips_done.has(id):
-		return
-	_tips_done[id] = true
-	_show_tip(text)
+## The HUD is on screen (the opening is staged: see core/story/story.gd). True outside a new game's first beats.
+func staged_in() -> bool:
+	return not _opening_hold
 
 
-func _show_tip(text: String) -> void:
-	_tip.text = text
-	if _tip_tw:
-		_tip_tw.kill()
-	_tip_tw = create_tween()
-	_tip_tw.tween_property(_tip, "modulate:a", 1.0, 0.35)
-	_tip_tw.tween_interval(5.0)
-	_tip_tw.tween_property(_tip, "modulate:a", 0.0, 0.8)
-	_tip_tw.tween_callback(func() -> void:
-		if not _lessons.is_empty():
-			_show_tip.call_deferred(String(_lessons.pop_front())))
+var _opening_hold := false
 
 
 ## Key or pad name for a tip, by the device in use.
