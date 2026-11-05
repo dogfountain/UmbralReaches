@@ -9,7 +9,7 @@ shader_type spatial;
 // keeps the cool sky ambient from washing the warm cloth and skin out under the azure grade.
 render_mode diffuse_burley, specular_schlick_ggx;
 // r35: the shared character finish (detail maps already break the surface up: a small share)
-#define CL_CAVITY 0.25
+#define CL_CAVITY 0.42      // models pass: contact (hair on skin, cuffs, collars) darkens the colour too, not just ambient
 #define CL_BREAKUP 0.05
 #define CL_WEAR 0.6
 #include "res://core/vfx/char_look.gdshaderinc"
@@ -116,7 +116,7 @@ void fragment() {
 	SPECULAR = cl_wear_spec(mat_spec, wear);
 	float ao = COLOR.a;
 	AO = mix(ambient_floor, 1.0, ao) * ambient_keep;
-	AO_LIGHT_AFFECT = 0.35 * (1.0 - ao);
+	AO_LIGHT_AFFECT = 0.55 * (1.0 - ao);
 	float bn = (m == 0 && skin_bounce >= 0.0) ? skin_bounce : bounce;
 	EMISSION = ALBEDO * warm_bounce * bn * mix(0.35, 1.0, ao) + cl_rim(NORMAL, VIEW, VIEW_MATRIX);
 	if (m == 0) {

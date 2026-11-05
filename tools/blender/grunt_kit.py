@@ -136,7 +136,7 @@ def cavity(m, lo=0.46, hi=0.56, dark=0.35, edge=1.12):
     return m.ramp(geo.outputs['Pointiness'], [(lo, (dark, dark, dark)), (0.5, (1, 1, 1)), (hi, (edge, edge, edge))])
 
 
-def skin(name, base, deep, vein=(0.1, 0.04, 0.05), wrinkle=55.0, rough=0.66, wet=0.0, scale=1.0, pore=0.5, vein_amt=0.5):
+def skin(name, base, deep, vein=(0.1, 0.04, 0.05), wrinkle=55.0, rough=0.66, wet=0.0, scale=1.0, pore=0.5, vein_amt=0.5, fade=None):
     """Dead, dry hide: two-tone mottle, a cellular wrinkle field, pores, creeping veins, darkened
     creases. `wet` lowers the roughness (the spitter's slick skin)."""
     m = K.Mat(name)
@@ -149,6 +149,13 @@ def skin(name, base, deep, vein=(0.1, 0.04, 0.05), wrinkle=55.0, rough=0.66, wet
     vn = m.noise(9.0 * scale, 3.0, 0.4, dist=0.6)
     vmask = m.math('MULTIPLY', m.math('LESS_THAN', m.math('ABSOLUTE', m.math('SUBTRACT', vn, 0.5)), 0.012), vein_amt)
     col = m.mix(vmask, col, vein)
+    if fade is not None:
+        # models pass: (colour, z0, z1): below z0 (object/world height, Blender Z) the colour is the
+        # body's, above z1 this material's, graded between: a pale face grows out of a dark neck
+        sep = m.n('ShaderNodeSeparateXYZ')
+        m.links.new(m.coord.outputs['Object'], sep.inputs[0])
+        f = m.math('MULTIPLY', m.math('SUBTRACT', sep.outputs['Z'], fade[1]), 1.0 / max(fade[2] - fade[1], 1e-4), True)
+        col = m.mix(f, fade[0], col)
     col = mulc(m, col, cavity(m))
     pores = m.noise(260.0 * scale, 2.0, 0.5)
     h = m.math('ADD', m.math('MULTIPLY', wr, 2.4), m.math('MULTIPLY', pores, pore))

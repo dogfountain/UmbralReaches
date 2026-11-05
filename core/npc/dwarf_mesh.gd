@@ -22,9 +22,9 @@ const MAT_EYE := 8
 const MAT_FUR := 9
 const LAYERS := 10
 
-const CELL := 0.025                      ## AO grid cell (m)
+const CELL := 0.0125                     ## AO grid cell (m); models pass: was 0.025, too coarse to see hair lying 6 mm off a scalp
 const GRID_MIN := Vector3(-0.6, -0.05, -0.75)
-const GRID_N := Vector3i(48, 64, 54)     ## covers x -0.6..0.6, y -0.05..1.55, z -0.75..0.6
+const GRID_N := Vector3i(96, 128, 108)   ## covers x -0.6..0.6, y -0.05..1.55, z -0.75..0.6
 
 var _v := PackedVector3Array()
 var _n := PackedVector3Array()
@@ -484,7 +484,7 @@ func bake_ao() -> void:
 		var phi := acos(1.0 - (float(i) + 0.5) / 10.0)      # upper hemisphere, cosine-ish spread
 		var th := float(i) * 2.39996
 		dirs.append(Vector3(sin(phi) * cos(th), cos(phi), sin(phi) * sin(th)))
-	var steps: Array[float] = [0.035, 0.07, 0.13]
+	var steps: Array[float] = [0.014, 0.035, 0.07, 0.13]   # models pass: a near probe for contact (hair on scalp, cuff on wrist)
 	for vi in _v.size():
 		var n := _n[vi]
 		var t := n.cross(Vector3.UP if absf(n.y) < 0.9 else Vector3.RIGHT).normalized()
@@ -499,11 +499,11 @@ func bake_ao() -> void:
 				var i := _cell(p + w * steps[k])
 				tot += wgt
 				if i >= 0 and _occ[i] == 1:
-					hit += wgt * (1.0 if k < 2 else 0.6)
+					hit += wgt * (1.0 if k < 3 else 0.6)
 					break
 		var occl := clampf(hit / maxf(tot, 1e-4) * 1.6, 0.0, 1.0) * ao_strength
 		var c := _col[vi]
-		c.a = c.a * (1.0 - 0.72 * occl)
+		c.a = c.a * (1.0 - 0.82 * occl)
 		_col[vi] = c
 
 

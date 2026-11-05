@@ -46,6 +46,11 @@ var lip_c := Color(0.62, 0.3, 0.26)
 var ruddy := Color(0.84, 0.46, 0.32)
 var stubble := 0.0      ## beard shadow on the lip, chin and jaw (0..1)
 var stubble_c := Color(0.22, 0.17, 0.14)
+## models pass: the hair's colour and where its edge meets the brow (normalised y; 2 = none). The
+## skin under the edge takes the hair's colour in a soft band, so a cap grows out of the scalp
+## instead of sitting on it.
+var hair_c := Color(0, 0, 0, 0)
+var hairline := 2.0
 var b_head := 3
 var b_jaw := 4
 var b_lid := 15
@@ -166,6 +171,9 @@ func tint(x: float, y: float) -> Color:
 	col = col.lerp(lip_c, clampf(lw * 1.5, 0.0, 1.0) * 0.85)
 	col = col.darkened(0.12 * _g(ax, y, eye_x, eye_y, 0.17, 0.13) * (0.5 + age))
 	col = col.lerp(Color(0.12, 0.05, 0.04), 0.9 * _g(ax, y, 0.065 * nose_w * (1.0 + 0.3 * bulb), tip - 0.1, 0.035, 0.025))
+	if hair_c.a > 0.0 and hairline < 1.5:
+		var edge := hairline - 0.08 * smoothstep(0.3, 0.85, ax)          # it dips at the temples
+		col = col.lerp(col.lerp(hair_c, 0.5).darkened(0.12), 0.6 * smoothstep(edge - 0.13, edge + 0.02, y))
 	if stubble > 0.0:
 		var region := maxf(smoothstep(tip - 0.06, tip - 0.14, y), smoothstep(0.5, 0.7, ax) * smoothstep(-0.15, -0.35, y))
 		col = col.lerp(stubble_c, stubble * 0.4 * region * (1.0 - clampf(lw * 1.5, 0.0, 1.0)))

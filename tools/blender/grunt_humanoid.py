@@ -49,7 +49,10 @@ SEED = float(sum(ord(c) for c in KIND))
 
 SKIN = GK.skin("Skin", P["skin"][0], P["skin"][1], wrinkle=70.0 if KIND != "husk" else 40.0,
                wet=0.45 if KIND == "spitter" else 0.0, rough=0.7 if KIND in ("ossuant", "husk") else 0.62)
-FACE = GK.skin("Face", P["face"], tuple(c * 0.35 for c in P["face"]), wrinkle=90.0, rough=0.6) if P["face"] else SKIN
+# models pass: the face grades into the body's skin down the jaw and nape (it read as a mask stuck on)
+_HY = 1.705 - (0.04 if BELLY > 0.5 else 0.0)
+FACE = GK.skin("Face", P["face"], tuple(c * 0.35 for c in P["face"]), wrinkle=90.0, rough=0.6,
+               fade=(P["skin"][0], _HY - 0.1 * HS, _HY - 0.01 * HS)) if P["face"] else SKIN
 CLAW = GK.bone("Claw", (0.42, 0.36, 0.28), (0.1, 0.07, 0.05), 12.0)
 EYE = GK.glow("Eye", P["eye"], 8.0)
 MATS = [SKIN, CLAW, EYE] + ([FACE] if FACE is not SKIN else [])
@@ -165,6 +168,8 @@ if BELLY > 0.0:
 to.chain([g(0, 1.42, 0.03), g(0, 1.53, 0.0 - P["neck"] * 0.45), NECK + G(0, 0.02, 0)], [0.058 * W, 0.05, 0.046], 2.0)
 for sx in (-1, 1):
     to.along(g(sx * 0.03, 1.44, -0.05), g(sx * 0.03, 1.61, -0.035 - P["neck"]), 0.016, None, 2.0)   # neck cords
+    # models pass: the sternocleidomastoid, from behind the ear down to the notch of the collarbones
+    to.along(g(sx * 0.055, 1.62, -0.0 - P["neck"]), g(sx * 0.015, 1.455, -0.07), 0.011, None, 3.0)
 build(to, "Torso", SKIN, 0.0065, 0.0018, 1)
 if P["ribs"]:
     # ribs under the skin, following the ribcage and sloping down toward the front
@@ -225,6 +230,11 @@ for tag, sx in (("l", -1), ("r", 1)):
     ar.along(El + G(sx * 0.008, -0.03, -0.012), Hd + G(0, 0.09, -0.004), (0.036 * LR * fore, 0.03 * LR), None)   # flexors
     ar.chain([El + G(0, -0.02, 0), Hd + G(0, 0.02, 0)], [0.03 * LR, 0.021 * LR * heavy])
     ar.ball(Hd, (0.022 * LR * heavy, 0.024, 0.019 * LR * heavy))                                 # wrist
+    if KIND in ("wretch", "chanter", "spitter", "ossuant"):
+        # models pass: the starved forearm shows its tendons from the mid-forearm to the wrist
+        for k in range(3):
+            ox = (k - 1) * 0.008
+            ar.along(El + G(ox, -0.12, -0.022), Hd + G(ox * 0.7, 0.018, -0.016), 0.0045, None, 4.0)
     ar.ball(Hd + G(0, -0.05, -0.006), (0.033 * heavy, 0.04, 0.015 * heavy), 3.0)                # palm
     build(ar, "Arm_" + tag, SKIN, 0.0055, 0.0015, 3)
     flen = (0.075 if heavy > 1.0 else 0.1) * (1.25 if KIND in ("wretch", "chanter") else 1.0)
@@ -265,6 +275,10 @@ for tag, sx in (("l", -1), ("r", 1)):
     lg.chain([Kn + G(0, -0.03, -0.006), Ft + G(0, 0.03, 0)], [0.033 * LR, 0.022 * LR])
     lg.along(Kn + G(0, -0.06, -0.026 * LR), Ft + G(0, 0.07, -0.016), 0.012, None, 3.0)        # shin ridge
     lg.ball(Ft, (0.025 * LR, 0.028, 0.026 * LR))                                               # ankle
+    # models pass: the Achilles from the calf to the heel, and the hamstring tendons behind the knee
+    lg.along(Kn + G(0, -0.2, 0.03 * LR), Ft + G(0, 0.012, 0.03), 0.009, None, 4.0)
+    for k in (-1, 1):
+        lg.along(Kn + G(k * 0.022, 0.08, 0.03 * LR), Kn + G(k * 0.026, -0.03, 0.022 * LR), 0.007, None, 4.0)
     lg.ball(Ft + G(0, -0.012, 0.035), (0.028 * fw, 0.024, 0.03), 2.0)                          # heel
     lg.along(Ft + G(0, -0.008, 0.0), Ft + G(0, -0.022, -0.1), (0.031 * fw, 0.017), None)      # instep
     build(lg, "Leg_" + tag, SKIN, 0.0055, 0.0015, 4)
