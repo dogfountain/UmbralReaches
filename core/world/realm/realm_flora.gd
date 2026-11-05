@@ -1582,6 +1582,9 @@ static func _emit(host: Node3D, items: Dictionary) -> Vector2i:
 ## fading chunk alpha-blended (transparent pass, no depth prepass, every overlapping card shaded):
 ## standing where dense grass chunks sat in their fade band cost up to ~6 ms at 4x pixels at the hub.
 ## Solid pieces (stumps, logs, caps) are sparse and keep the engine fade.
+## Ground cards (realm_foliage_ground.tres) also thin per plant from thin_from (16 m) to fade_end
+## down to thin_keep (60 %) with the survivors widened to keep the cover: a density LOD in the
+## same hash order, so the fade band above continues it without anything popping back.
 const FADE_BAND := 6.0                 ## realm_foliage.gdshader thins over fade_end .. fade_end + 6
 
 

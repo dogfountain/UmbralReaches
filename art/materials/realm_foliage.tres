@@ -15,3 +15,4 @@ shader_parameter/sway = 0.10
 shader_parameter/flutter = 0.035
 shader_parameter/backlight = 0.5
 shader_parameter/rim_strength = 0.04
+shader_parameter/wind_sheen = 0.12
