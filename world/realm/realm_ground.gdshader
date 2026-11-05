@@ -6,9 +6,10 @@ render_mode diffuse_burley, specular_schlick_ggx;
 // Layers live in two texture arrays (tools/realm_land_textures.gd):
 //   alb: rgb albedo, a height      nrm: rg tilt (x, z), b roughness, a AO
 // Height-blended between layers; steep ground (> ~35 deg) turns to triplanar cliff rock (layer 8).
-// Splat slot i samples texture layer LAYER_OF[i] (the array is stacked meadow, heath, loam, mud, ash,
-// scree, flag, path, cliff; until r35 slot i read layer i, so forest showed heath straw, fen showed
-// leaf litter, ash showed mud and heath showed cracked basalt).
+// w[] is gathered in the texture array's layer order (meadow, heath, loam, mud, ash, scree, flag; then
+// path, cliff), so weight i samples layer i. Until r35 the splat's own slot order (meadow, loam, mud,
+// ash, heath, ...) read layer i: forest showed heath straw, fen leaf litter, ash country mud and the
+// heath cracked basalt.
 // Distance LOD (far_lo..far_hi from the camera): near, each layer at its own scale with its normal
 // map; far, the same layer at far_scale and turned (no 3 m repeat lining up across a field), albedo
 // only, with the layer's mean roughness/AO (NRM_MEAN, measured from land_normal.png; refresh it if
@@ -33,8 +34,8 @@ uniform float path_bright = 3.0;               // packed earth catches the moon 
 // the ambient), and broad patches drift between mossy green and cold slate, hues the grade keeps.
 uniform float cavity = 0.45;
 uniform float patch_hue = 0.22;
-uniform float far_lo = 16.0;                     // metres: layer detail starts handing over to the far tiling
-uniform float far_hi = 34.0;                     // all far beyond this
+uniform float far_lo = 20.0;                     // metres: layer detail starts handing over to the far tiling
+uniform float far_hi = 32.0;                     // all far beyond this
 uniform float far_scale = 0.31;                  // far tiles are ~3x larger
 
 vec2 rot_c(vec2 p) { return vec2(0.8 * p.x - 0.6 * p.y, 0.6 * p.x + 0.8 * p.y); }
@@ -91,9 +92,6 @@ vec2 rot(vec2 p, float a) {
 }
 
 void fragment() {
-	// weight slot -> texture layer (tools/realm_land_textures.gd stacks meadow, heath, loam, mud, ash,
-	// scree, flag, path, cliff; the splat's slots are meadow, loam, mud, ash, heath, crag, ruin)
-	const int LAYER_OF[7] = int[](0, 2, 3, 4, 1, 5, 6);
 	const float SCALE[9] = float[](0.31, 0.29, 0.38, 0.24, 0.25, 0.33, 0.30, 0.34, 0.11);
 	// each layer's mean nrm texel (flat tilt; b roughness, a AO): what the far field uses instead of a fetch
 	const vec4 NRM_MEAN[9] = vec4[](vec4(0.5, 0.5, 0.898, 0.774), vec4(0.5, 0.5, 0.898, 0.769), vec4(0.5, 0.5, 0.898, 0.843),
@@ -101,7 +99,8 @@ void fragment() {
 		vec4(0.5, 0.5, 0.863, 0.768), vec4(0.5, 0.5, 0.820, 0.863));
 	// cos/sin of each layer's turn (i * 1.3 rad), so no pixel computes 14 trig calls for constants
 	const vec2 LAYER_CS[7] = vec2[](vec2(1.000000000, 0.000000000), vec2(0.267498829, 0.963558185), vec2(-0.856888753, 0.515501372), vec2(-0.725932304, -0.687766159), vec2(0.468516671, -0.883454656), vec2(0.976587626, 0.215119988), vec2(0.053955421, 0.998543345));
-	float w[8] = float[](w_a.r, w_a.g, w_a.b, w_a.a, w_b.x, w_b.y, w_b.z, 0.0);
+	// layer order (tools/realm_land_textures.gd): meadow r, heath UV.x, loam g, mud b, ash a, crag UV.y, ruin UV2.x
+	float w[8] = float[](w_a.r, w_b.x, w_a.g, w_a.b, w_a.a, w_b.y, w_b.z, 0.0);
 	float path = clamp(w_b.w, 0.0, 1.0);
 	vec2 p = wpos.xz;
 	// distance LOD: near, the tiles at their own scale with their normal maps; far, the same layers
@@ -123,18 +122,17 @@ void fragment() {
 	for (int i = 0; i < 7; i++) {
 		s_i[i] = -10.0;
 		if (w[i] > 0.02) {
-			int li = LAYER_OF[i];
 			vec2 cs = LAYER_CS[i];
-			vec2 uv = vec2(cs.x * p.x - cs.y * p.y, cs.y * p.x + cs.x * p.y) * SCALE[li];
+			vec2 uv = vec2(cs.x * p.x - cs.y * p.y, cs.y * p.x + cs.x * p.y) * SCALE[i];
 			vec4 a = vec4(0.0);
-			vec4 n = NRM_MEAN[li];
+			vec4 n = NRM_MEAN[i];
 			if (near_on) {
-				a = texture(alb, vec3(uv, float(li)));
-				n = mix(texture(nrm, vec3(uv, float(li))), n, fk);
+				a = texture(alb, vec3(uv, float(i)));
+				n = mix(texture(nrm, vec3(uv, float(i))), n, fk);
 			}
 			if (far_on) {
 				vec2 fuv = vec2(0.62 * uv.x - 0.78 * uv.y, 0.78 * uv.x + 0.62 * uv.y) * far_scale;
-				a = mix(a, texture(alb, vec3(fuv, float(li))), fk);
+				a = mix(a, texture(alb, vec3(fuv, float(i))), fk);
 			}
 			a_i[i] = a;
 			n_i[i] = n;
@@ -191,8 +189,10 @@ void fragment() {
 	col = mix(col, drift > 0.12 ? moss_c : slate_c, smoothstep(0.08, 0.32, abs(drift)) * patch_hue * 2.5 * (1.0 - path * 0.6));
 
 	// ground normal (tilt applied in world xz) + broad lumps from the cliff layer at low frequency
-	vec2 lump = lumps_slope(p);
-	tilt += lump * broad_normal * (1.0 - path * 0.7);
+	// (metre lumps are a pixel or two past far_hi: faded out with the layer normals, not computed there)
+	if (near_on) {
+		tilt += lumps_slope(p) * broad_normal * (1.0 - path * 0.7) * (1.0 - fk);
+	}
 	vec3 gn = normalize(wnrm + vec3(tilt.x, 0.0, tilt.y) * normal_strength * 0.9);
 
 	// steep ground: triplanar cliff rock
@@ -225,7 +225,7 @@ void fragment() {
 		}
 		vec3 rock_n = normalize(wnrm + rn * normal_strength * 1.1);
 		// ash country rock is basalt-dark
-		rc *= mix(1.0, 0.55, w[3]);
+		rc *= mix(1.0, 0.55, w[4]);
 		col = mix(rc, col, flat_k);
 		n_ws = normalize(mix(rock_n, gn, flat_k));
 		rough = mix(rr, rough, flat_k);
@@ -233,7 +233,7 @@ void fragment() {
 	}
 
 	// fen: wet, darker mud near the water line
-	float wet = w[2] * (1.0 - smoothstep(water_y + 0.05, water_y + 0.55, wpos.y));
+	float wet = w[3] * (1.0 - smoothstep(water_y + 0.05, water_y + 0.55, wpos.y));
 	col *= 1.0 - wet * 0.45;
 	rough = mix(rough, 0.18, wet * 0.8);
 
