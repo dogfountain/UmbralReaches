@@ -171,7 +171,18 @@ func _place_pools(space: PhysicsDirectSpaceState3D) -> void:
 	var made := 0
 	for pi in pools.size():
 		var p: Dictionary = pools[pi]
-		if int(p.n) < 3 or made >= 9:
+		if int(p.n) < 3 or made >= 12:              # r34 flora: was 9 (the mere's pools came after the fen's)
+			continue
+		# r34 merge: a chorus 22 m from a camp is never heard (the pond falls silent with a hollowed
+		# thing within 22 m and camps respawn): keep the frog pools 26 m+ off every camp
+		var pc: Vector2 = p.center
+		var by_camp := false
+		for camp: Dictionary in EnemySpawner.REALM_CAMPS:
+			var cat: Vector3 = camp.at
+			if pc.distance_to(Vector2(cat.x, cat.z)) < 26.0:
+				by_camp = true
+				break
+		if by_camp:
 			continue
 		var edge: Array = (p.edge as Array).duplicate()
 		LifePlace.shuffle(edge, _rng)
@@ -340,11 +351,16 @@ func _place_herds(space: PhysicsDirectSpaceState3D) -> void:
 	var camps: Array[Vector2] = []
 	for c: Dictionary in EnemySpawner.REALM_CAMPS:
 		camps.append(Vector2((c.at as Vector3).x, (c.at as Vector3).z))
-	var thornwood := Rect2(-110, -70, 80, 115)
+	var thornwood := Rect2(-150, -66, 120, 111)        # r34 layout: RealmLayout REGIONS "thornwood" (was -110, -70, 80, 115)
 	var wood: Array[Vector3] = []
 	var rest: Array[Vector3] = []
 	for e in edges:
 		var far := true
+		# r34 layout: not on the rim of a raid floor (RealmLayout.RAIDS): the open ring round the henge's
+		# floor read as a clearing, and half of a herd's grazing spots fell on the floor itself
+		for rd: Dictionary in RealmLayout.RAIDS:
+			if Vector2(e.x, e.z).distance_to(rd.c) < float(rd.r) + 14.0:
+				far = false
 		for c in camps:
 			if c.distance_to(Vector2(e.x, e.z)) < 30.0:
 				far = false
@@ -368,7 +384,7 @@ func _place_herds(space: PhysicsDirectSpaceState3D) -> void:
 					break
 			if ok:
 				herds.append(e)
-			if herds.size() >= (2 if pass_i == 0 else 4):
+			if herds.size() >= (2 if pass_i == 0 else 6):     # r34 flora: twice the ground (was 4)
 				break
 	var hi := 0
 	for h in herds:
@@ -452,7 +468,7 @@ func _place_herds(space: PhysicsDirectSpaceState3D) -> void:
 				fi += 1
 				found = true
 				break
-		if found and fi >= 3:
+		if found and fi >= 5:                       # r34 flora: twice the ground (was 3)
 			break
 	_place_hares(space, keep_off)
 
@@ -465,7 +481,9 @@ func _place_hares(space: PhysicsDirectSpaceState3D, keep_off: Array) -> void:
 	# the open ground farthest from every camp and elite haunt (scanned r33): the road's south verge,
 	# the meadow between Hearthward and the fen, the fen's west rim. Not the Thornwood: that is the
 	# deer's, and a hare bolting past a herd sets it running too
-	var want: Array[Vector2] = [Vector2(6.0, 68.0), Vector2(36.0, 36.0), Vector2(36.0, -44.0)]
+	var want: Array[Vector2] = [Vector2(6.0, 68.0), Vector2(36.0, 36.0), Vector2(36.0, -44.0),
+		# r34 flora: the Lanternless Moor's heather, the Waiting Field's grass, the Rooted Holds' clearing
+		Vector2(146.0, 2.0), Vector2(30.0, 140.0), Vector2(-134.0, 6.0)]
 	var hi := 0
 	for c in want:
 		var spots: Array[Vector3] = []
@@ -493,7 +511,7 @@ func _place_hares(space: PhysicsDirectSpaceState3D, keep_off: Array) -> void:
 		g.setup("hare", spots, BUILD_SEED + 517 * hi)
 		_add_group(g)
 		hi += 1
-		if hi >= 4:
+		if hi >= 6:
 			break
 	print("LIFE hares: %d forms" % hi)
 
@@ -502,11 +520,23 @@ func _place_hares(space: PhysicsDirectSpaceState3D, keep_off: Array) -> void:
 func _place_elk(space: PhysicsDirectSpaceState3D) -> void:
 	var best := Vector3.INF
 	var best_s := -INF
-	var x := -104.0
-	while x <= 104.0:
+	# r34 flora: the whole doubled Realm south of the Crowns (was x -104..104, z -66..72); off the raid
+	# floors and the camps (the moor's tor is now the highest open rise)
+	var bb := RealmLayout.BOUNDS.grow(-8.0)
+	var camps: Array[Vector2] = []
+	for c: Dictionary in EnemySpawner.REALM_CAMPS:
+		camps.append(Vector2((c.at as Vector3).x, (c.at as Vector3).z))
+	var x := bb.position.x
+	while x <= bb.end.x:
 		var z := -66.0
-		while z <= 72.0:
+		while z <= bb.end.y:
 			var clear := not Rect2(-48, -130, 96, 125).has_point(Vector2(x, z)) and Vector2(x, z).distance_to(RealmLayout.HENGE_C) > 28.0
+			for rd: Dictionary in RealmLayout.RAIDS:
+				if Vector2(x, z).distance_to(rd.c) < float(rd.r) + 10.0:
+					clear = false
+			for c in camps:
+				if c.distance_to(Vector2(x, z)) < 30.0:
+					clear = false
 			if clear and LifePlace.Flora.cover_at(x, z) < 0.08 and LifePlace.Flora.cover_at(x + 9, z) < 0.3 and LifePlace.Flora.cover_at(x - 9, z) < 0.3 and LifePlace.open_ground(x, z) and RealmLayout.path_dist(Vector2(x, z)) > 6.0 and Vector2(x, z).distance_to(Vector2(6, 38)) > 45.0:
 				var h := RL.height_at(x, z)
 				var ring := 0.0
@@ -530,10 +560,11 @@ func _place_elk(space: PhysicsDirectSpaceState3D) -> void:
 
 ## Lapwing flocks: out on the heath along the Pilgrims' Road, and on the open ground east of Hearthward.
 func _place_flocks() -> void:
-	var wanted: Array[Vector2] = [Vector2(-40, 66), Vector2(58, 68), Vector2(40, 30), Vector2(-78, 66), Vector2(80, 60), Vector2(-20, 66)]
+	var wanted: Array[Vector2] = [Vector2(-40, 66), Vector2(58, 68), Vector2(40, 30), Vector2(-78, 66), Vector2(80, 60), Vector2(-20, 66),
+		Vector2(140, 10), Vector2(24, 120), Vector2(-96, 140)]    # r34 flora: the moor, the Waiting Field, the orchard's south rows
 	var placed: Array[Vector2] = []
 	for c in wanted:
-		if placed.size() >= 3:
+		if placed.size() >= 5:
 			break
 		for k in 40:
 			var q := c + Vector2(_rng2.randf_range(-16, 16), _rng2.randf_range(-10, 10))
@@ -568,7 +599,9 @@ func _place_fireflies() -> void:
 		if e.size() > 0:
 			var q: Vector2 = e[e.size() / 3]
 			spots.append(Vector3(q.x, 0.0, q.y))
-	for q: Vector2 in [Vector2(-80, 46), Vector2(-14, 50), Vector2(28, 50), Vector2(-62, 22), Vector2(-88, -40), Vector2(-50, -46), Vector2(-96, 10), Vector2(60, 10)]:
+	# r34 flora: + the Rooted Holds' clearing, the mere's east bank, the orchard rows, the quarry mouth
+	for q: Vector2 in [Vector2(-80, 46), Vector2(-14, 50), Vector2(28, 50), Vector2(-62, 22), Vector2(-88, -40), Vector2(-50, -46), Vector2(-96, 10), Vector2(60, 10),
+			Vector2(-130, 4), Vector2(126, 112), Vector2(-120, 116), Vector2(-112, -78)]:
 		spots.append(Vector3(q.x, 0.0, q.y))
 	var i := 0
 	for s in spots:
@@ -596,6 +629,9 @@ func _place_bats() -> void:
 		[Vector3(18, 9.5, 30), 6.0, 4, 55.0], [Vector3(-82, 9, 52), 7.0, 5, 60.0], [Vector3(80, 5, -40), 9.0, 4, 70.0],
 		# r30: the Ossuary's gate-hall roof and its chapel spire (nothing lived on the high ground)
 		[Vector3(24, 21, -31), 6.0, 5, 90.0], [Vector3(16, 14, -103), 5.0, 4, 70.0],
+		# r34 flora: the Founder's Pits' slag heaps, the quarry pit, the mausoleum at the field's top
+		[Vector3(132, RL.height_at(132, -90) + 9.0, -90), 9.0, 6, 90.0], [Vector3(-127, RL.height_at(-127, -104) + 7.0, -104), 10.0, 6, 90.0],
+		[Vector3(0, RL.height_at(0, 147) + 7.0, 147), 6.0, 4, 70.0],
 	]
 	var i := 0
 	for s: Array in swarms:

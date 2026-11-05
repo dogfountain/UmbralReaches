@@ -222,7 +222,9 @@ static func clear_of(r: Rect2, margin := 1.0, ignore: Array = []) -> bool:
 	for s in WorldLanes.sites:
 		if String(s.name) in ignore:
 			continue
-		if (s.rect as Rect2).grow(margin).intersects(r):
+		# r34: the raid floors by their circle (their 60 m boxes took the hill round them); every other
+		# site by its box, as before, so the lore elsewhere stands exactly where it stood
+		if WorldLanes.site_hits_rect(s, r, margin) if String(s.name).begins_with("raid_") else (s.rect as Rect2).grow(margin).intersects(r):
 			return false
 	return true
 

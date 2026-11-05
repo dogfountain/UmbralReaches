@@ -13,8 +13,10 @@ const BRAZIERS := ["StairFoot", "Shrine", "Landing", "Threshold"]
 const QuestBook := preload("res://core/story/quest_book.gd")
 
 ## In display order. main = the story's spine (shown first); side = the kindling.
+## r34 merge: "who" (an NPC id) + "mark" ("available" | "turnin") put the quest mark over that NPC's
+## head while the objective is open (quest_giver.gd states(); the keep at the start and the end).
 const OBJECTIVES := [
-	{"id": "arrive", "main": true, "when": "", "done": "flag:met_keep",
+	{"id": "arrive", "main": true, "when": "", "done": "flag:met_keep", "who": "keep", "mark": "available",
 		"text": "Find the keeper of the Kindled Keg in Hearthward"},
 	{"id": "thorn_seal", "main": true, "when": "flag:met_keep", "done": "seal:henge|boss:thornwarden",
 		"text": "Break the thorn seal below the western hill"},
@@ -28,7 +30,7 @@ const OBJECTIVES := [
 		"text": "Carry heart and crown to the summit ward across the Crossing"},
 	{"id": "warden", "main": true, "when": "boss:thornwarden,boss:bone_abbot", "done": "boss:ascended_warden",
 		"text": "Shut the door: face what holds it at the summit"},
-	{"id": "return", "main": true, "when": "boss:ascended_warden", "done": "flag:ending_told",
+	{"id": "return", "main": true, "when": "boss:ascended_warden", "done": "flag:ending_told", "who": "keep", "mark": "turnin",
 		"text": "Return to the Kindled Keg"},
 	{"id": "kindle", "main": false, "when": "flag:met_keep,!boss:ascended_warden", "done": "kindled:4",
 		"text": "Kindle the valley's four braziers", "count": "kindled", "of": 4},

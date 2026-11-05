@@ -15,11 +15,38 @@ const SONG := [
 	["tw_song_3", [Vector2(-88.0, -46.0), Vector2(-84.0, -50.0), Vector2(-92.0, -42.0), Vector2(-80.0, -48.0)]],
 	["tw_song_4", [Vector2(-56.0, -44.0), Vector2(-60.0, -48.0), Vector2(-66.0, -53.0), Vector2(-58.0, -52.0), Vector2(-76.0, -54.0), Vector2(-52.0, -40.0)]],
 ]
-const HENGE_KEEP := 26.0
+const HENGE_KEEP := 34.0   # r34 layout: the raid floor (RealmLayout.RAIDS henge r 31) and its rim
 
 
 static func ok_henge(q: Vector2, r := 0.0) -> bool:
 	return q.distance_to(RealmLayout.HENGE_C) > HENGE_KEEP + r
+
+
+## r34 layout: the henge moved and its hill grew a raid floor; a stone that stood on the old hill is
+## carried straight out from the Ring to the hill's foot, past the floor's skirt (the verse still faces away).
+static func off_henge(q: Vector2, r := 0.0) -> Vector2:
+	var d := q - RealmLayout.HENGE_C
+	var raid := RealmLayout.raid("henge")
+	var need := maxf(HENGE_KEEP + r + 1.0, float(raid.get("r", 0.0)) + float(raid.get("fall", 0.0)) + 3.0 + r)   # past the hill's skirt
+	if d.length() >= need:
+		return q
+	return RealmLayout.HENGE_C + (d.normalized() if d.length() > 0.1 else Vector2.RIGHT) * need
+
+
+## r34 layout: off_henge(q) and, when q had to move, the same spot swung round the hill and a little
+## further out (the foot of the hill is busier than the old hillside was: the Charcoal Hollow, the wall).
+static func off_henge_cands(q: Vector2, r := 0.0) -> Array:
+	var q0 := off_henge(q, r)
+	if q0 == q:
+		return [q]
+	var out := [q0]
+	var d := q0 - RealmLayout.HENGE_C
+	for k: float in [0.0, 6.0]:
+		for a: float in [0.0, 0.22, -0.22, 0.45, -0.45]:
+			if k == 0.0 and a == 0.0:
+				continue
+			out.append(RealmLayout.HENGE_C + d.rotated(a).normalized() * (d.length() + k))
+	return out
 
 
 static func build(parent: Node) -> void:
@@ -38,9 +65,16 @@ static func build(parent: Node) -> void:
 		L.scrap("tw_boundary", bfp, bfp + Vector3.UP * 0.25)
 	else:
 		print("REALM_LORE skip abbey bounds")
+	# --- the abbey woodsmen's camp: felled oaks, stumps, a cold fire, the foreman's notice ---------
+	# (r34: placed before the tablets and the songs, which the moved henge pushed out onto its ground)
+	_woodsmen(L)
 	# --- old-tongue tablets ----------------------------------------------------------------------
 	for t: Array in [[Vector2(-97.0, 8.0), "tw_climbs"], [Vector2(-47.0, -36.0), "tw_ring"], [Vector2(-96.0, -47.0), "tw_heart"]]:
-		var q: Vector2 = t[0]
+		var q: Vector2 = off_henge(t[0], 1.4)
+		for qc: Vector2 in off_henge_cands(t[0], 1.4):      # r34: the first clear one round the hill
+			if LK.clear_of(Rect2(qc - Vector2(1.4, 1.4), Vector2(2.8, 2.8)), 0.5):
+				q = qc
+				break
 		if not ok_henge(q):
 			continue
 		var at: Vector3 = L.gv(q.x, q.y)
@@ -64,11 +98,12 @@ static func build(parent: Node) -> void:
 		L.rubble(k, fsv + Vector3(1.9, 0, 1.0), 1.0, 7, "lore_tstone", false)
 		L.scrap("tw_saint", fsv + Vector3(0.6, 0.3, 1.6))
 	# --- outlying standing stones of the Rooted ------------------------------------------------
-	for q2: Vector2 in [Vector2(-99.0, -22.0), Vector2(-69.0, -50.0), Vector2(-43.0, -4.0)]:
+	for q2v: Vector2 in [Vector2(-99.0, -22.0), Vector2(-69.0, -50.0), Vector2(-43.0, -4.0)]:
+		var q2 := off_henge(q2v, 1.0)
 		if not ok_henge(q2):
 			continue
 		var at2: Vector3 = L.gv(q2.x, q2.y)
-		if not L.spot("tw_menhir_%d" % int(q2.x), at2, 1.0, 0.5):
+		if not L.spot("tw_menhir_%d" % int(q2v.x), at2, 1.0, 0.5):
 			continue
 		var h := rng.randf_range(2.6, 3.6)
 		var xf2 := Transform3D(Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.BACK, rng.randf_range(-0.12, 0.12)), at2 + Vector3.DOWN * 0.15)
@@ -100,9 +135,10 @@ static func build(parent: Node) -> void:
 	# --- the Song of the Ring -----------------------------------------------------------------------
 	for sv: Array in SONG:
 		var cands: Array = []
-		for q3: Vector2 in sv[1]:
-			if ok_henge(q3, 2.0):
-				cands.append(q3)
+		for q3v: Vector2 in sv[1]:
+			for q3: Vector2 in off_henge_cands(q3v, 2.5):
+				if ok_henge(q3, 2.0) and not q3 in cands:
+					cands.append(q3)
 		var sa: Vector3 = L.spot_any(String(sv[0]), cands, 1.4, 0.5)
 		if sa == Vector3.INF:
 			continue
@@ -115,8 +151,6 @@ static func build(parent: Node) -> void:
 		for j3 in 2:
 			L.stone(L.p, sa + Basis(Vector3.UP, rng.randf() * TAU) * Vector3(rng.randf_range(0.8, 1.2), 0, 0), Vector3(0.35, 0.25, 0.3) * rng.randf_range(0.7, 1.3), "lore_moss", false, 0.4)
 		L.scrap(String(sv[0]), fp3, fp3 + Vector3.UP * 0.6)
-	# --- the abbey woodsmen's camp: felled oaks, stumps, a cold fire, the foreman's notice ---------
-	_woodsmen(L)
 	# --- broken field walls deep in the wood ---------------------------------------------------
 	for wl: Array in [[Vector2(-104, -8), Vector2(-92, 2)], [Vector2(-90, -60), Vector2(-74, -64)], [Vector2(-54, -50), Vector2(-40, -58)], [Vector2(-84, 40), Vector2(-96, 44)]]:
 		var a: Vector2 = wl[0]
@@ -141,7 +175,7 @@ static func _woodsmen(L: RefCounted) -> void:
 	var p: OssKit = L.p
 	var rng: RandomNumberGenerator = L.rng
 	var c := Vector2.INF
-	for q: Vector2 in [Vector2(-76.0, 22.0), Vector2(-80.0, 13.0), Vector2(-68.0, 20.0), Vector2(-92.0, 12.0)]:
+	for q: Vector2 in [Vector2(-76.0, 22.0), Vector2(-80.0, 13.0), Vector2(-68.0, 20.0), Vector2(-92.0, 12.0), Vector2(-104.0, 16.0), Vector2(-112.0, 4.0)]:   # r34: two more, west of the moved henge
 		var r := Rect2(q - Vector2(4.5, 4.5), Vector2(9.0, 9.0))
 		if ok_henge(q, 5.0) and LK.clear_of(r, 0.6):
 			c = q

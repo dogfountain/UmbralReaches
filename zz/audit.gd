@@ -132,7 +132,13 @@ func _physics_process(_d: float) -> void:
 	# 3. sites vs solids that do not belong to the site
 	for st in WorldLanes.sites:
 		var r2: Rect2 = st.rect
-		var bs := BoxShape3D.new(); bs.size = Vector3(r2.size.x, 6.0, r2.size.y)
+		var bs: Shape3D
+		if st.has("circle"):              # r34: a round site (terrace, raid floor) by its circle, not its box
+			var cy := CylinderShape3D.new(); cy.radius = (st.circle as Vector3).z; cy.height = 6.0
+			bs = cy
+		else:
+			var bx := BoxShape3D.new(); bx.size = Vector3(r2.size.x, 6.0, r2.size.y)
+			bs = bx
 		var q := PhysicsShapeQueryParameters3D.new(); q.shape = bs; q.collision_mask = PROXY | Layers.WORLD | Layers.PROPS
 		q.transform = Transform3D(Basis.IDENTITY, Vector3(r2.get_center().x, float(st.floor_y) + 3.2, r2.get_center().y))
 		var seen := {}
@@ -141,6 +147,8 @@ func _physics_process(_d: float) -> void:
 			var src := String(c.get_meta("src", c.get_path()))
 			var own := String(c.get_meta("site_of", ""))
 			if own != "" or src.contains("TerrainBody") or seen.has(src): continue
+			if src.contains("FenWater"): continue          # r34: the fen's water surface is no solid (the drowned graves stand in it)
+			if (st.get("owners", []) as Array).any(func(o: String) -> bool: return src.contains(o)): continue   # r34: a zone's own builders
 			var anc := c
 			var mine := false
 			while anc:

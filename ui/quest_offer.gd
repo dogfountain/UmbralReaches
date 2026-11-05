@@ -198,12 +198,18 @@ func open_turnin(id: String, giver_name := "") -> bool:
 	return true
 
 
+const RAID_NAMES := {"thornwarden": "the Thornwarden", "bone_abbot": "the Bone Abbot", "ascended_warden": "the Ascended Warden"}
+
+
 func _fill(giver_name: String) -> void:
 	var qd: Dictionary = Chains.QUESTS[quest]
 	var daily := String(qd.get("repeat", "")) == "daily"
 	_title.text = String(qd.name) + ("   (daily)" if daily else "")
 	var who := giver_name if giver_name != "" else String(Chains.GIVER_NAMES.get(Chains.giver(quest), ""))
 	_giver.text = (("Asked by " if mode == "offer" else "Handed in to ") + who + "   ·   " + Chains.zone_name(String(qd.get("zone", "")))) if who != "" else Chains.zone_name(String(qd.get("zone", "")))
+	# r34: a raid's attunement chain says so (WoW's attunement quests: the raid it prepares)
+	if qd.has("raid"):
+		_giver.text += "   ·   Attunement: %s" % String(RAID_NAMES.get(String(qd.raid), String(qd.raid)))
 	if mode == "offer":
 		_text.text = String(qd.get("text", ""))
 	else:

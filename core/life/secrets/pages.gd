@@ -22,6 +22,10 @@ const SECRETS := {
 	"singing": {"name": "The Singing Stones", "region": "glade"},
 	"breath": {"name": "The Ash-Hermit's Perch", "region": "rift"},
 	"company": {"name": "The Ninth Company's Ring", "region": "thornwood"},
+	# r34 places (site_r34.gd): the new ground's hidden things
+	"cutters_nook": {"name": "The Cutters' Nook", "region": "quarry"},
+	"ninth_rank": {"name": "The Ninth Rank", "region": "necropolis"},
+	"corvin_sluice": {"name": "Corvin's Sluice", "region": "mere"},
 }
 
 ## The ten secrets of r23 (zz/secrets_test walks these; the r28 ones have zz/secret_expansion_test).
@@ -80,6 +84,15 @@ const TEXTS := {
 		"text": "The rift breathes. Count nine and it breathes out, hot enough to lift a man who jumps into it. I have been up and down this way for nine winters. Nobody has followed. Good."},
 	"sc_breath_top": {"title": "The hermit's last word", "kind": "slate",
 		"text": "From up here you can watch the Crossing and nobody can watch you. I watched the pilgrims go up. I watched them come down hollow. I stayed up here where the air is warm and I did not go."},
+	# --- r34 places (site_r34.gd) -------------------------------------------------------------
+	"sc_nook": {"title": "Pinned under a chisel", "kind": "page",
+		"text": "Cutters' rule: what we cut for the Stair, the Order owns. What we cut for ourselves we keep up here, where the Order's men will not climb. Take your share. Leave the chisels."},
+	"sc_rank_slate": {"title": "The warden's slate", "kind": "slate",
+		"text": "The ninth rank, for the lamps: first the one who walked furthest to lie here, then the one who waited longest for the sky, and last the one who never knew what she was waiting for."},
+	"sc_sluice": {"title": "Scratched on the lamp-post", "kind": "carved post",
+		"text": "Corvin's lamp. When they took my boat I built a road under the water to the last lamp, and let it down again behind me so the Order could not follow. C."},
+	"sc_lever": {"title": "A plate on the lever", "kind": "plaque",
+		"text": "SLUICE. Do not pull without leave of the lamp-brother. Under it, newer: he is not coming. Pull it."},
 }
 
 ## Items handed out. relic_fragment is new (no ItemDB entry yet; the progression agent owns
@@ -106,6 +119,9 @@ const REWARDS := {
 	"singing": {"relic_fragment": 1, "grave_ash": 25},
 	"breath": {"relic_fragment": 1, "grave_ash": 30},
 	"company": {"relic_fragment": 1, "grave_ash": 30},
+	"cutters_nook": {"relic_fragment": 1, "grave_ash": 25, "grave_iron": 2},
+	"ninth_rank": {"relic_fragment": 1, "grave_ash": 30},
+	"corvin_sluice": {"relic_fragment": 1, "grave_ash": 25},
 }
 
 

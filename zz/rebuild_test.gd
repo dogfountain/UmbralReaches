@@ -91,9 +91,17 @@ func _census(root: Node) -> Dictionary:
 	out["sites"] = WorldLanes.sites.size()
 	out["secrets"] = (load("res://core/life/secrets/state.gd") as GDScript).get("sites").size()
 	out["camps"] = EnemySpawner._seal_camps.size()
-	out["nodes"] = root.get_child_count()
-	var names := {}
+	# r34 layout: Vfx bursts (core/vfx/vfx.gd, pooled one-shot emitters parented to the scene, meta
+	# "burst_token") are transient: the Thornwood's breath vent (core/life/secrets/breath_vent.gd) puffs
+	# a new one every ~130 ms in its active phase, so the top-level count swung by 9 with the census'
+	# timing (first census 3 s after the build, the second 1 s). They are not part of the built world.
+	var kept: Array[Node] = []
 	for c in root.get_children():
+		if not (c is GPUParticles3D and c.has_meta(&"burst_token")):
+			kept.append(c)
+	out["nodes"] = kept.size()
+	var names := {}
+	for c in kept:
 		var nm := String(c.name).rstrip("0123456789").trim_suffix("@")
 		names[nm] = int(names.get(nm, 0)) + 1
 	_names.append(names)

@@ -383,7 +383,12 @@ func _elites() -> void:
 	var before := get_tree().get_nodes_in_group(Groups.ENEMY).size()
 	l.take_hit(float(l.max_hp) * 0.6, p)
 	await _frames(2)
-	check("elite: Lisle calls the count (2 crawlers)", get_tree().get_nodes_in_group(Groups.ENEMY).size() >= before + 2)
+	# r34 merge: count his own crawlers (the doubled world's camps and rares come and go meanwhile)
+	var called := 0
+	for m0 in get_tree().get_nodes_in_group(Groups.ENEMY):
+		if (m0 as Node).get_meta(&"summoned_by", "") == "elite_lisle":
+			called += 1
+	check("elite: Lisle calls the count (2 crawlers)", called >= 2, "called %d, hp %.1f/%d, enemies %d -> %d" % [called, l.hp, l.max_hp, before, get_tree().get_nodes_in_group(Groups.ENEMY).size()])
 	for m in get_tree().get_nodes_in_group(Groups.ENEMY):
 		if (m as Node).get_meta(&"summoned_by", "") == "elite_lisle":
 			(m as Node).queue_free()

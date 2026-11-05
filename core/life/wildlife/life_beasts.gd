@@ -194,6 +194,8 @@ func startle(at: Vector3, strength := 0.5) -> void:
 			continue
 		if st == POUNCE:
 			continue
+		if st == STALK and strength < 0.7:      # r34 merge: a fox on a hunt ignores a far, faint sound
+			continue
 		a.state = ALERT
 		a.speed = 0.0
 		a.look_t = rng.randf_range(3.0, 6.0) + strength * 4.0
@@ -551,13 +553,24 @@ func _stalk(a: Dictionary) -> void:
 	a.state = STALK
 	a.k = 0.0
 	a.from = a.pos
-	a.t = 6.0
+	# r34 merge: time for the whole creep (0.28 m/s from a standstill over up to 2.6 m took longer than
+	# the old flat 6 s, so most stalks ran out a metre short and the fox never leapt)
+	a.t = 4.0 + Vector2(q.x - (a.pos as Vector3).x, q.z - (a.pos as Vector3).z).length() / 0.28
 
 
 func _pounce(a: Dictionary) -> void:
-	var fwd := Vector3(-sin(float(a.yaw)), 0, -cos(float(a.yaw)))
-	var q: Vector3 = (a.pos as Vector3) + fwd * rng.randf_range(1.1, 1.7)
-	if not _ok(q.x, q.z):
+	# r34 merge: a few angles round the head's line before giving up (the busier r34 ground put a site
+	# margin dead ahead of most finished stalks, so foxes stalked and never leapt)
+	var q := Vector3.INF
+	for off: float in [0.0, 0.45, -0.45, 0.9, -0.9]:
+		var fwd := Vector3(-sin(float(a.yaw) + off), 0, -cos(float(a.yaw) + off))
+		var c: Vector3 = (a.pos as Vector3) + fwd * rng.randf_range(1.1, 1.7)
+		if _ok(c.x, c.z):
+			q = c
+			if off != 0.0:
+				a.yaw = float(a.yaw) + off
+			break
+	if q == Vector3.INF:
 		a.state = GRAZE
 		a.t = 1.0
 		return

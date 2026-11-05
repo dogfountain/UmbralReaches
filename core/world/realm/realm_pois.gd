@@ -53,6 +53,7 @@ const GROUP_GLIDE := "glide_perch"
 const GROUP_GUARDIAN := "guardian_site"           ## core/life/encounters/guardians.gd (the enemies pass)
 const GROUP_UPDRAFT := "updraft"                  ## the cloak-glide's lift (Player._updraft)
 const SID := "world_pois"
+const R34_PATH := "res://core/world/realm/realm_pois_r34.gd"   ## r34 places (docs/r34/places.md)
 
 ## [prefer xz, search radius, half extents, max ground rise, title, banner line, region]
 const POIS := {
@@ -85,6 +86,7 @@ static func reserve(root: Node) -> void:
 	var skip: PackedStringArray = []
 	for a in OS.get_cmdline_user_args():                  # A/B switch for perf and placement checks:
 		if a == "--no-r31-pois":                          # --no-r31-pois (all) or --no-r31-pois=belfry,spire
+			(load(R34_PATH) as GDScript).call("reserve", root, skip)     # r34: its own switch (--no-r34-pois)
 			return
 		if a.begins_with("--no-r31-pois="):
 			skip = a.trim_prefix("--no-r31-pois=").split(",")
@@ -143,6 +145,8 @@ static func reserve(root: Node) -> void:
 	if spots.has("belfry"):
 		_reserve_causeway(space)
 	print("REALM_POI reserved %s" % [spots.keys()])
+	# r34 places: the new ground's places (realm_pois_r34.gd, docs/r34/places.md)
+	(load(R34_PATH) as GDScript).call("reserve", root, skip)
 
 
 ## Each place faces where the player comes from.
@@ -226,6 +230,8 @@ static func build(root: Node) -> void:
 			"spire":
 				_spire(host, space, s)
 		built.append(id)
+	# r34 places: the new ground's places, under the same holder and groups
+	(load(R34_PATH) as GDScript).call("build", holder)
 	# r33: the places are named by the zone discovery (realm_discovery.gd: regions + subzones, the
 	# carved banner, Events.region_discovered); world events (world_events.gd) pick their sites here
 	if root.get_node_or_null("Discovery") == null:

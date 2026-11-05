@@ -64,6 +64,15 @@ var realm_points := [
 	["r_henge", Vector3(-62.0, 8.0, -12.0), 0.9],
 	["r_barrows", Vector3(70.0, NAN, -34.0), 2.4],                  # toward the Ossuary door
 	["r_chapel", Vector3(-58.0, NAN, 60.0), 1.2],
+	# r34 layout: the new ground (docs/r34/layout.md); yaw = atan2(-dx, -dz) toward the place
+	["r34_quarry", Vector3(-124.0, NAN, -80.0), 0.12],                # into the pit from its mouth
+	["r34_holds", Vector3(-124.0, NAN, 26.0), 0.62],
+	["r34_foundry", Vector3(126.0, NAN, -70.0), -0.27],
+	["r34_moor", Vector3(128.0, NAN, 10.0), -0.37],                    # north over the moor to the tor
+	["r34_orchard", Vector3(-100.0, NAN, 100.0), 2.45],
+	["r34_necropolis", Vector3(-2.0, NAN, 100.0), -3.09],          # up the Waiting Field
+	["r34_mere", Vector3(97.0, NAN, 92.0), -2.9],
+	["r34_henge_raid", Vector3(-62.0, NAN, -14.0), 1.18],      # the raid floor from its rim
 ]
 ## The path: legs of [goal xz (y ignored), label]; a leg starting with "@" teleports there instead.
 var route := [

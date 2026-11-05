@@ -38,10 +38,25 @@ func _init() -> void:
 ## Floor height at xz (first solid going down from 1.9 m over the terrain), or NAN.
 func floor_at(x: float, z: float) -> float:
 	var gy := RealmLayout.ground(_space, x, z)
-	var hit := _space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(x, gy + 1.9, z), Vector3(x, gy - 1.5, z), Layers.WORLD, _exclude))
-	if hit:
+	var ex := _exclude
+	for i in 3:
+		var hit := _space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(x, gy + 1.9, z), Vector3(x, gy - 1.5, z), Layers.WORLD, ex))
+		if not hit:
+			return gy
+		# r34: a foe standing on the spot is not floor (the outposts are out where foes walk)
+		var c := hit.collider as Node
+		if c and _mobile(c):
+			ex = ex.duplicate()
+			ex.append(hit.rid)
+			continue
 		return (hit.position as Vector3).y
 	return gy
+
+
+## A foe's body: never part of the floor or a wall for the network (the wanderer still is: people
+## step round you, not through you).
+static func _mobile(c: Node) -> bool:
+	return c.is_in_group(Groups.ENEMY) or (c.get_parent() != null and c.get_parent().is_in_group(Groups.ENEMY))
 
 
 ## The clear column at a floor point: true when nothing but terrain is in it.
@@ -52,7 +67,7 @@ func clear(p: Vector3) -> bool:
 		var c := h.collider as Node
 		if c == null:
 			continue
-		if String(c.name).begins_with("Terrain"):
+		if String(c.name).begins_with("Terrain") or _mobile(c):
 			continue
 		return false
 	return true

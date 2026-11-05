@@ -39,10 +39,12 @@ static func build(parent: Node) -> void:
 	var L: RefCounted = LK.begin(parent, "PilgrimsRoad", 6060)
 	var rng: RandomNumberGenerator = L.rng
 	# --- gates ------------------------------------------------------------------------------------
-	_gate(L, -100.0, "rd_gate_w", "road_gate_w")
-	_gate(L, 100.0, "rd_gate_e", "road_gate_e")
+	# r34 layout: the gates stand 10 m inside the world's west and east edges (the road runs on to them)
+	var gx := RealmLayout.BOUNDS.end.x - 10.0
+	_gate(L, -gx, "rd_gate_w", "road_gate_w")
+	_gate(L, gx, "rd_gate_e", "road_gate_e")
 	# Wenna's first page, on a pilgrim's abandoned pack by the West Gate
-	var pk := beside(-95.0, 1.0, 4.6)
+	var pk := beside(-gx + 5.0, 1.0, 4.6)
 	var pkv: Vector3 = L.gv(pk.x, pk.y)
 	if L.spot("rd_pack", pkv, 0.8):
 		var cm := CreatureMesh.new(61)
@@ -74,7 +76,7 @@ static func build(parent: Node) -> void:
 			LK.half_disc(L.k, "lore_tstone", Transform3D(b, at2 + Vector3.UP * 0.9), 0.21, 0.0, 0.34, 6, false)
 			L.cairn(L.p, at2 + b * Vector3(0.4, 0, -0.3), 0.3)
 	# --- the Hierarch's edicts, on steles inside each gate ------------------------------------------
-	for ed: Array in [["rd_edict_1", -93.5, -1.0], ["rd_edict_2", 93.5, 1.0]]:
+	for ed: Array in [["rd_edict_1", -gx + 6.5, -1.0], ["rd_edict_2", gx - 6.5, 1.0]]:
 		var cands: Array = []
 		for dx: float in [0.0, 2.5, -2.5, 5.0]:
 			for off: float in [4.4, 5.4]:

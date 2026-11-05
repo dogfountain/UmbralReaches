@@ -4,6 +4,8 @@ extends Node
 ##   elites    each named elite in turn, 4 m in front of the wanderer -> shots/encounters/elite_<id>.png
 ##   variants  a wretch, a husk and a leaper in each variant, side by side -> shots/encounters/var_<v>.png
 ##   tide      a Gloom tide forced where you stand; frames as the hunters close -> shots/encounters/tide_<i>.png
+##   r34       the r34 kinds and looks, side by side, then one by one: a Risen Pilgrim (up, and one in its
+##             grave), a Cinder Caster, a stone-bound Husk and Leaper, a drowned Husk -> shots/enemies_r34_<n>.png
 const Elites := preload("res://core/life/encounters/elites.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
@@ -46,7 +48,8 @@ func _ground(x: float, z: float) -> Vector3:
 
 func _shot(n: String) -> void:
 	await _frames(2)
-	get_viewport().get_texture().get_image().save_png(ProjectSettings.globalize_path("res://shots/encounters/%s.png" % n))
+	var path := ("res://shots/%s.png" if n.begins_with("enemies_r34") else "res://shots/encounters/%s.png") % n
+	get_viewport().get_texture().get_image().save_png(ProjectSettings.globalize_path(path))
 	print("ENCSHOT saved ", n)
 
 
@@ -118,6 +121,38 @@ func _run() -> void:
 					_close_cam(mid, -fwd, 2.2)
 				await _frames(6)
 				await _shot("var_%s" % v)
+		"r34":
+			_clear()
+			var row := [["pilgrim", ""], ["pilgrim", "grave"], ["cinder", ""], ["husk", "stonebound"], ["leaper", "stonebound"], ["husk", "drowned"]]
+			var made: Array[Enemy] = []
+			for i in row.size():
+				var e := Tiers.script_for(String(row[i][0])).new() as Enemy
+				var v := String(row[i][1])
+				if "dormant" in e:
+					e.set("dormant", v == "grave")
+				if v != "" and v != "grave":
+					Variants.pre(e, v)
+				main.add_child(e)
+				if v != "" and v != "grave":
+					Variants.dress(e, v)
+				var off := (float(i) - 2.5) * 1.9
+				var spot := _ground(g.x + fwd.x * 6.0 + right.x * off, g.z + fwd.z * 6.0 + right.z * off)
+				e.global_position = spot + Vector3.UP * 0.05
+				e.look_at(Vector3(g.x, e.global_position.y, g.z), Vector3.UP)
+				e.rotate_y(0.45)
+				made.append(e)
+			await _frames(40)
+			for e in made:
+				e.sleep()
+			await _frames(6)
+			await _shot("enemies_r34_lineup")
+			for i in made.size():
+				_close_cam(made[i], -fwd, 0.4)
+				await _frames(8)
+				await _shot("enemies_r34_%d_%s%s" % [i, String(row[i][0]), ("_" + String(row[i][1])) if String(row[i][1]) != "" else ""])
+			if _cam:
+				_cam.queue_free()
+				_cam = null
 		"tide":
 			p.set_view(yaw, -0.02)
 			d.set("tide_clock", float(d.call("tide_period")) + 1.0)

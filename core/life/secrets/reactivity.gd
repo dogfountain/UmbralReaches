@@ -15,7 +15,7 @@ extends RefCounted
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 
-const THORNWOOD := Rect2(-110.0, -70.0, 80.0, 115.0)
+const THORNWOOD := Rect2(-150.0, -66.0, 120.0, 111.0)   # r34 layout: RealmLayout REGIONS "thornwood" (was -110, -70, 80, 115)
 const SHAFTS := [Vector2(-95, -30), Vector2(-80, -50), Vector2(-62, -40), Vector2(-90, 4), Vector2(-104, -12), Vector2(-84, -26), Vector2(-66, 28)]
 const GRAVES := [Rect2(50, 17, 10, 10), Rect2(87, 3, 10, 10), Rect2(65, -9, 10, 10), Rect2(56.5, -33.5, 7, 7)]
 const CALM := {"thornwarden": 0.2, "bone_abbot": 0.2, "ascended_warden": 0.6}

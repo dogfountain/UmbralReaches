@@ -229,6 +229,8 @@ const CONV := {
 			"meet_2": {"say": "The summit's was bigger than this room. Whatever's up there holding the door never rang it.", "next": "hub"},
 			"hub": {"say_if": [
 				["flag:deeper,!boss:ascended_warden", "Somebody rang the cracked one. Top first. That's the way they stopped; that's no way to ring anything. You want something?"],
+				["qd:founder_peal,!boss:ascended_warden", "Elspeth's tongue is in my chimney, warming. Cast in Mother's mould. When you go up, the bell in his hand rings her way now. Wrong for him. You want something?"],
+				["qat:founder_peal:2", "That's Elspeth's wrapping. I'd know her knots in the dark. Give it here, then. You want something?"],
 				["secret:solved:bells", "Somebody rang Mother's peal on the rim, the great bell first, bottom to top. You? Nobody's rung it since she died. You want something?"],
 				["att:brannoc:2", "Sit down, sit down. You stood the room a round; that buys you my good ear. Which one's that. This one."],
 				["", "You want something, or just the company of a man who can't hear well?"],

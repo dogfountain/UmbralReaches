@@ -102,7 +102,8 @@ func _physics_process(_d: float) -> void:
 			for bn in main.find_children("Beacon_*", "", true, false):
 				var bm := (bn as Node3D).get_child(0) as MeshInstance3D
 				print("WORLD30 beacon %s at %s vis %s in_tree_vis %s range_end %.1f cam_far %.1f" % [bn.name, (bn as Node3D).global_position, (bn as Node3D).visible, bm.is_visible_in_tree(), bm.visibility_range_end, get_viewport().get_camera_3d().far])
-			check("two landmark beacons (henge, summit)", main.find_children("Beacon_*", "", true, false).size() == 2)
+			# r34: the places agents add their own beacons; the two boss landmarks must still stand
+			check("two landmark beacons (henge, summit)", main.find_child("Beacon_thornwarden", true, false) != null and main.find_child("Beacon_ascended_warden", true, false) != null)
 			_tower()
 			var lift := main.find_child("ChainLift", true, false)
 			check("Ossuary lift held until the Abbot falls", lift != null and bool(lift.get("hold")))
@@ -131,14 +132,14 @@ func _physics_process(_d: float) -> void:
 		49:
 			p.debug_drive(Vector3.ZERO)
 			Input.action_release("jump")
-			# the Abbot: step 1.5 m+ past the stair-foot grille
-			_tp(Vector3(18.0, Ossuary.PIT_Y + 0.6, -84.0))
+			# the Abbot (r34: in the pit hall under the bank): step past the raid door's inner grille
+			_tp(Ossuary.abbot_pull_at())
 			step = 1
 			wait = 20
 		1:
 			check("bone abbot rose", _boss() is BoneAbbot)
-			check("stair-foot grille shut behind", _shut(abbot.gate))
-			check("chapel grille shut", _shut(abbot.gates[0]))
+			check("raid door's inner grille shut behind", _shut(abbot.gate))
+			check("raid door's outer grille shut", _shut(abbot.gates[0]))
 			check("portcullis untouched", _shut(_seal("oss_gallery")))
 			# run up the stair past the leash: the fight resets
 			_tp(Vector3(21.0, Ossuary.GAL_Y + 0.6, -64.0))
@@ -148,7 +149,7 @@ func _physics_process(_d: float) -> void:
 			check("abbot fight reset", _boss() == null)
 			check("grilles open after the reset", not _shut(abbot.gate) and not _shut(abbot.gates[0]))
 			check("portcullis NOT forced open by the reset", _shut(_seal("oss_gallery")))
-			_tp(Vector3(18.0, Ossuary.PIT_Y + 0.6, -84.0))
+			_tp(Ossuary.abbot_pull_at())
 			step = 3
 			wait = 20
 		3:

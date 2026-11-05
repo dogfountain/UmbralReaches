@@ -10,6 +10,9 @@ extends RefCounted
 const REGION_BASE := {
 	"hearth": 0, "road": 0, "glade": 0, "chapel": 1, "thornwood": 1, "henge": 1, "fen": 1,
 	"barrows": 2, "ossuary": 2, "rift": 2, "crags": 2, "summit": 3,
+	# r34: the new ground, at the tiers RealmLayout.REGIONS suggests (the far quarry and the
+	# Founder's Pits under the Crowns are the hard ones; the Rooted Holds stay gentle)
+	"quarry": 2, "foundry": 2, "holds": 1, "moor": 1, "orchard": 1, "necropolis": 1, "mere": 1,
 }
 
 ## Per tier: health x, Gloom per blow x, pace x, chance a pawn wears a variant, chance a camp gets
@@ -30,6 +33,18 @@ const REGION_POOL := {
 	"glade": ["crawler", "wretch"], "thornwood": ["crawler", "leaper", "wretch", "spitter", "chanter", "gaunt"], "henge": ["leaper", "crawler", "gaunt"],
 	"fen": ["ossuant", "spitter", "wretch", "burrower", "quiller"], "barrows": ["ossuant", "husk", "spitter", "bulwark", "quiller"], "rift": ["husk", "spitter", "leaper", "bulwark", "chanter", "tollman"],
 	"summit": ["husk", "spitter", "leaper", "bulwark", "chanter", "quiller"], "crags": ["leaper", "husk", "burrower", "gaunt"], "ossuary": ["ossuant", "husk", "bulwark", "quiller"],
+	# r34: each new region's own roster (docs/r34/layout.md; the camps in EnemySpawner.REALM_CAMPS)
+	"quarry": ["husk", "leaper", "leaper", "wretch", "bulwark"], "foundry": ["cinder", "bulwark", "wretch", "cinder", "gaunt"],
+	"moor": ["gaunt", "gaunt", "wretch", "crawler", "husk"], "orchard": ["burrower", "mite", "crawler", "burrower", "wretch"],
+	"necropolis": ["pilgrim", "pilgrim", "ossuant", "chanter", "quiller"], "mere": ["husk", "spitter", "wretch", "spitter", "ossuant"],
+	"holds": ["crawler", "wretch"],
+}
+
+## r34: a region's own look for some kinds (Variants.REGIONAL): what the quarry and the mere make of
+## the hollowed that walk there. Camps, tides and ambushes in the region wear it.
+const REGION_VARIANT := {
+	"quarry": {"husk": "stonebound", "bulwark": "stonebound", "leaper": "stonebound"},
+	"mere": {"husk": "drowned", "wretch": "drowned", "ossuant": "drowned"},
 }
 
 const KIND_PATHS := {
@@ -39,6 +54,8 @@ const KIND_PATHS := {
 	"burrower": "res://core/enemy/burrower.gd", "mite": "res://core/enemy/mite.gd",
 	# r31 (docs/enshrouded/enemies.md)
 	"gaunt": "res://core/enemy/gaunt.gd", "quiller": "res://core/enemy/quiller.gd", "tollman": "res://core/enemy/tollman.gd",
+	# r34
+	"pilgrim": "res://core/enemy/pilgrim.gd", "cinder": "res://core/enemy/cinder_caster.gd",
 }
 
 
@@ -60,7 +77,23 @@ static func ng_level() -> int:
 
 
 static func tier_at(at: Vector3) -> int:
-	return clampi(int(REGION_BASE.get(region_id(at), 1)) + night_depth(), 0, TIERS.size() - 1)
+	return clampi(region_base(region_id(at)) + night_depth(), 0, TIERS.size() - 1)
+
+
+## Base danger of a region id: REGION_BASE, else the tier RealmLayout.REGIONS suggests, else 1.
+static func region_base(id: String) -> int:
+	if REGION_BASE.has(id):
+		return int(REGION_BASE[id])
+	for r: Dictionary in RealmLayout.REGIONS:
+		if String(r.id) == id:
+			return int(r.get("tier", 1))
+	return 1
+
+
+## r34: the regional variant a pawn of `kind` wears at `at` ("" = none).
+static func region_variant(at: Vector3, kind: String) -> String:
+	var m: Dictionary = REGION_VARIANT.get(region_id(at), {})
+	return String(m.get(kind, ""))
 
 
 static func info(tier: int) -> Dictionary:

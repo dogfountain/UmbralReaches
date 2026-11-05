@@ -24,6 +24,13 @@ var boss_at := Vector3.ZERO
 var gate: Node3D = null                 ## optional barrier that closes during the fight (its line is tested)
 var gates: Array[Node3D] = []           ## further arena-mouth barriers shut with it (r30: the Ossuary chapel arch)
 var on_slain: Callable                  ## reward spawner, called once (also on load if slain)
+## r34 raids: the room the fight changes (core/world/henge_raid.gd, summit_raid.gd). Optional methods:
+## room_begin(boss) on the pull, room_reset() on a wipe or a walk-out, room_won() on the kill.
+var room: Node = null
+var last_emote := ""                    ## the last raid-warning line shown (tests read it)
+var _emote_lbl: Label
+var _emote_layer: CanvasLayer           ## its own layer: the r33 unit frames hide the bar layer, not this
+var _emote_t := 0.0
 
 var _boss: Enemy
 var _active := false
@@ -123,20 +130,22 @@ func slain() -> bool:
 
 func _physics_process(_d: float) -> void:
 	if _active:
+		_tick_emote(_d)
 		if is_instance_valid(_boss):
 			_tick_cast()
 			if _bar:
 				_bar.value = _boss.hp
 				var ph: Variant = _boss.get("phase")
+				var lbl := String(_boss.get_meta(&"phase_label", ""))
+				if lbl != String(get_meta(&"_shown_label", "")) and _bar_name:
+					set_meta(&"_shown_label", lbl)        # r34: an intermission names itself on the bar
+					_bar.phase_flash()
+					_bar_name.text = "%s  ·  %s" % [_named().to_upper(), lbl if lbl != "" else ["", "I", "II", "III", "IV"][clampi(_phase_seen, 0, 4)]]
 				if ph is int and int(ph) != _phase_seen:
 					_phase_seen = int(ph)
 					_bar.phase_flash()
-					if _bar_name:
-						var named := title
-						for k: int in phase_titles:
-							if _phase_seen >= k:
-								named = String(phase_titles[k])
-						_bar_name.text = "%s  ·  %s" % [named.to_upper(), ["", "I", "II", "III", "IV"][clampi(_phase_seen, 0, 4)]]
+					if _bar_name and lbl == "":
+						_bar_name.text = "%s  ·  %s" % [_named().to_upper(), ["", "I", "II", "III", "IV"][clampi(_phase_seen, 0, 4)]]
 			# the boss keeps to its sanctum: drawn back inside the ring if it strays out
 			var bd := _boss.global_position - global_position
 			var flat := Vector2(bd.x, bd.z)
@@ -167,6 +176,33 @@ func _physics_process(_d: float) -> void:
 				Events.toast.emit(nothing_answers(requires_bosses))
 			return
 	_begin()
+
+
+func _named() -> String:
+	var named := title
+	for k: int in phase_titles:
+		if _phase_seen >= k:
+			named = String(phase_titles[k])
+	return named
+
+
+## r34 raids: the boss's emote line (BossKit.emote): large, warm, under the cast bar, for 5 s.
+func emote(text: String, col := Color(1.0, 0.82, 0.45)) -> void:
+	last_emote = text
+	if _emote_lbl == null or not is_instance_valid(_emote_lbl):
+		Events.toast.emit(text)
+		return
+	_emote_lbl.text = text
+	_emote_lbl.add_theme_color_override("font_color", col)
+	_emote_lbl.modulate.a = 1.0
+	_emote_t = 5.0
+
+
+func _tick_emote(d: float) -> void:
+	if _emote_t <= 0.0 or _emote_lbl == null or not is_instance_valid(_emote_lbl):
+		return
+	_emote_t -= d
+	_emote_lbl.modulate.a = clampf(_emote_t / 1.2, 0.0, 1.0)
 
 
 ## True once the wanderer is through the gate, on the arena's side of its line. A stair or ramp that
@@ -208,12 +244,14 @@ func _begin() -> void:
 	_boss.global_position = boss_at
 	_boss.set_meta(&"boss_id", boss_id)
 	_boss.set_meta(&"display_name", title)      # r33: Enemy.display_name() for the HUD
-	if _boss.has_method("on_engaged"):
-		_boss.call("on_engaged", self)
 	for g in _all_gates():
 		if g.has_method("close"):
 			g.call("close")
 	_show_bar()
+	if room != null and is_instance_valid(room) and room.has_method("room_begin"):
+		room.call("room_begin", _boss)
+	if _boss.has_method("on_engaged"):
+		_boss.call("on_engaged", self)
 	Events.boss_engaged.emit(_boss, title)
 	Events.zone_entered.emit(title.to_upper(), subtitle)
 	Sfx.play("res://art/audio/ward_chime.wav", boss_at, 4.0)
@@ -226,6 +264,8 @@ func _on_killed(e: Node) -> void:
 	_active = false
 	_hide_bar()
 	_open_gates()
+	if room != null and is_instance_valid(room) and room.has_method("room_won"):
+		room.call("room_won")
 	Events.boss_slain.emit(boss_id)
 	if boss_id != "ascended_warden":         # the Warden's fall is the story's beat (story.gd), not a toast
 		Events.toast.emit("%s falls." % title)
@@ -249,6 +289,8 @@ func _reset() -> void:
 			(e as Node).queue_free()             # its summons go with it
 	_hide_bar()
 	_open_gates()
+	if room != null and is_instance_valid(room) and room.has_method("room_reset"):
+		room.call("room_reset")
 
 
 func _all_gates() -> Array[Node3D]:
@@ -304,6 +346,27 @@ func _show_bar() -> void:
 	_cast_bar.custom_minimum_size = Vector2(360, 8)
 	_cast_bar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	box.add_child(_cast_bar)
+	# r34: the raid-warning line (BossKit.emote), WoW's boss emote: big, warm, fading; on its own layer
+	# under the boss frame (the r33 unit frames hide _bar_layer and draw their own boss plate)
+	_emote_layer = CanvasLayer.new()
+	_emote_layer.layer = 41
+	add_child(_emote_layer)
+	_emote_lbl = Label.new()
+	_emote_lbl.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_emote_lbl.position = Vector2(-450, 168)
+	_emote_lbl.size = Vector2(900, 60)
+	_emote_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_emote_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_emote_lbl.custom_minimum_size = Vector2(900, 0)
+	_emote_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_emote_lbl.add_theme_font_size_override("font_size", 21)
+	_emote_lbl.add_theme_color_override("font_outline_color", Color(0.05, 0.02, 0.02, 0.9))
+	_emote_lbl.add_theme_constant_override("outline_size", 6)
+	_emote_lbl.text = " "
+	_emote_lbl.modulate.a = 0.0
+	_emote_layer.add_child(_emote_lbl)
+	if has_meta(&"_shown_label"):
+		remove_meta(&"_shown_label")
 
 
 func _tick_cast() -> void:
@@ -328,6 +391,11 @@ func _hide_bar() -> void:
 	if is_instance_valid(_bar_layer):
 		_bar_layer.queue_free()
 	_bar_layer = null
+	if is_instance_valid(_emote_layer):
+		_emote_layer.queue_free()
+	_emote_layer = null
+	_emote_lbl = null
+	_emote_t = 0.0
 
 
 ## Audit hook: the arena floor must be walkable and flat enough, the boss spawn clear.

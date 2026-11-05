@@ -22,7 +22,7 @@ extends RefCounted
 ##   VillageShop._sold / _night (core/life/village/village_shop.gd)  restocks on its own per village night
 ##   CodexStore.* (core/world/realm/lore/codex_store.gd)   the Journal; persistence owns it
 ##   EnemySpawner._seal_camps / _seal_kills                seal bookkeeping, rewritten per seeding
-##   ThornHenge.C / FOOT / realm / stair_pts               set by use_realm() / build() every build
+##   ThornHenge.C / FOOT / STAIR_R / realm / stair_pts     set by use_realm() / build() every build
 ## Test-only hooks (tests set and clear them themselves; never touched by a night teardown):
 ##   VillageState.sandbox / kindled_override, SecretsState.quiet
 

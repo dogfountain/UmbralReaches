@@ -15,7 +15,10 @@ extends Node3D
 ##     brazier_kindled and every trade; what comes true is built at once, announced with a toast
 ##     and remembered in Travel.system_state("village")
 ## Lights: forge flare, the lamplighter's lantern, the cart lamp, the hermit's fire, the grave
-## lantern, the Wrights' window: six omnis, no shadows, distance-faded (LightPolicy class "realm").
+## lantern, the Wrights' window: six omnis, no shadows, distance-faded (LightPolicy class "realm");
+## r34: one more per outpost fire (seven, one per new region, never two in view).
+## r34: the doubled world's givers (Gammer Ruan, Jory Quell, Ysolt, Elspeth Fane, Linnet, Sister
+## Agathe, Cadoc) camp at outpost fires in their regions (village_cast.gd OUTPOSTS, _outposts()).
 
 const SELF := "res://core/life/village/village.gd"
 const Cast := preload("res://core/life/village/village_cast.gd")
@@ -54,6 +57,7 @@ var _pending := {}
 var _well := {}
 var _ready_done := false
 var quests: Node                      ## the tasks' world side (core/story/quest_world.gd)
+var outpost_at := {}                  ## r34: giver id -> their outpost fire (Vector3)
 var mode := ""                        ## "" / "rain" / "danger": what the routines answer to now
 var nights := 0                       ## village nights passed this session (the ash-wife restocks)
 var _tide := false
@@ -138,6 +142,8 @@ func _build() -> void:
 		edges.append_array([["s_dig", "s_gate_out"], ["s_gate_out", "s_gate_in"], ["s_gate_in", "s_yard"], ["s_yard", "s_edda"]])
 	else:
 		report.append("no clear spot for the sexton's grave")
+	# r34: the outposts of the doubled world, one giver camped in each new region
+	_outposts(space, node_xz, edges)
 	await get_tree().process_frame
 	# --- the walking network ------------------------------------------------------------------
 	nav.call("build", space, node_xz, edges)
@@ -194,16 +200,80 @@ func _edge_count() -> int:
 	return n / 2
 
 
+## r34: each OUTPOSTS giver's camp (village_props.gd outpost): a fire, a seat, the style's dressing,
+## and a small loop of walks round it. The fire's walks are checked clear before the spot is taken.
+## The walks round an outpost's fire: [the fire's spot, w1, w2, w3] (offsets from the fire). A
+## compact loop is tried where the full one does not fit (the Holds are packed with the Rooted's
+## houses, the quarry's floor with its places).
+const OUT_WALKS := [Vector2(0.2, 1.05), Vector2(3.4, -2.4), Vector2(4.8, 1.4), Vector2(2.2, 3.6)]
+const OUT_WALKS_SMALL := [Vector2(0.2, 1.05), Vector2(2.4, -1.5), Vector2(3.2, 1.0), Vector2(1.4, 2.5)]
+const OUT_SEAT := Vector2(1.5, 0.3)
+const OUT_BLOCK := Vector2(-1.9, 2.2)          ## the quarry's dressing spot (the block is 0.85 m on)
+
+func _outposts(space: PhysicsDirectSpaceState3D, node_xz: Dictionary, edges: Array) -> void:
+	if "--no-r34-outposts" in OS.get_cmdline_user_args():
+		return                                     # perf A/B: the doubled world without its givers
+	for id: String in Cast.OUTPOSTS:
+		var o: Dictionary = Cast.OUTPOSTS[id]
+		var nears: Array = o.near if o.near is Array else [o.near]
+		var c := Vector2.INF
+		var walks: Array = OUT_WALKS
+		for wset: Array in [OUT_WALKS, OUT_WALKS_SMALL]:
+			var lines: Array = [[wset[0], OUT_SEAT], [wset[0], wset[1]], [wset[1], wset[2]],
+				[wset[2], wset[3]], [wset[3], wset[0]], [OUT_SEAT, wset[1]]]
+			if String(o.style) == "quarry":
+				lines.append_array([[wset[0], OUT_BLOCK], [OUT_BLOCK, wset[3]]])
+			for nv: Variant in nears:
+				c = _find_clear(nv as Vector2, 2.9, 3.0, 14.0, lines, String(o.region))
+				if c != Vector2.INF:
+					break
+			if c != Vector2.INF:
+				walks = wset
+				break
+		if c == Vector2.INF:
+			report.append("no clear spot for %s's outpost" % id)
+			continue
+		var camp: Dictionary = Props.outpost(self, space, c, String(o.style))
+		lights.append(camp.light)
+		var f: Vector3 = camp.fire
+		var seat: Vector3 = camp.seat
+		anchors["@fire_" + id] = f + Vector3.UP * 0.2
+		var look: Vector2 = o.get("look", Vector2(f.x + 8.0, f.z + 6.0))
+		var dir := (look - Vector2(f.x, f.z)).normalized()
+		anchors["@out_" + id] = f + Vector3(dir.x, 0.0, dir.y) * 12.0 + Vector3.UP * 1.2
+		node_xz[id + "_fire"] = Vector2(f.x, f.z) + (walks[0] as Vector2)
+		node_xz[id + "_seat"] = Vector2(seat.x, seat.z)
+		for i in 3:
+			node_xz["%s_w%d" % [id, i + 1]] = Vector2(f.x, f.z) + (walks[i + 1] as Vector2)
+		edges.append_array([[id + "_fire", id + "_seat"], [id + "_fire", id + "_w1"], [id + "_w1", id + "_w2"],
+			[id + "_w2", id + "_w3"], [id + "_w3", id + "_fire"], [id + "_seat", id + "_w1"]])
+		if camp.has("block"):
+			var b: Vector3 = camp.block
+			anchors["@block_" + id] = b
+			node_xz[id + "_block"] = Vector2(b.x, b.z - 0.85)
+			edges.append_array([[id + "_fire", id + "_block"], [id + "_block", id + "_w3"]])
+		outpost_at[id] = f
+		# r34 flora: no grass through the camp wherever it settled (RealmFlora grows before the village;
+		# secrets.gd flushes this queue after its own sites)
+		(load("res://core/life/secrets/kit.gd") as GDScript).call("clear_flora", null, [Vector3(f.x, f.z, 4.2), Vector3(f.x + 2.4, f.z + 0.6, 4.2)])
+
+
 ## A spot near `near` whose `r`-metre disc is clear floor, `path_off` off every Realm path and out
 ## of every registered site.
-func _find_clear(near: Vector2, r: float, path_off: float, camp_r := 15.0, lines: Array = []) -> Vector2:
+func _find_clear(near: Vector2, r: float, path_off: float, camp_r := 15.0, lines: Array = [], region := "") -> Vector2:
 	var fallback := Vector2.INF            # the first spot whose ring is clear, if none has clear walks too
-	for ring: float in [0.0, 1.5, 3.0, 4.5, 6.0, 8.0, 10.0, 12.0, 15.0, 18.0]:
-		var n := 1 if ring == 0.0 else 10
+	var flat := 0.9 if region == "" else 2.2      # r34 outposts: each piece sits on its own ground (the walks are checked step by step)
+	var rings: Array = [0.0, 1.5, 3.0, 4.5, 6.0, 8.0, 10.0, 12.0, 15.0, 18.0]
+	if region != "":
+		rings.append_array([21.0, 24.0, 28.0])      # r34 outposts: a region's ground can be broken
+	for ring: float in rings:
+		var n := 1 if ring == 0.0 else (10 if ring < 19.0 else 16)
 		for i in n:
 			var a := TAU * float(i) / float(n) + ring
 			var p := near + Vector2(cos(a), sin(a)) * ring
 			if RealmLayout.path_dist(p) < path_off or not WorldLanes.site_at(p, r).is_empty() or _near_camp(p, camp_r):
+				continue
+			if region != "" and (not RealmLayout.BOUNDS.grow(-6.0).has_point(p) or String(RealmLayout.region_at(p.x, p.y).get("id", "")) != region or _near_slot(p)):
 				continue
 			var ok := true
 			var lo := INF
@@ -216,12 +286,19 @@ func _find_clear(near: Vector2, r: float, path_off: float, camp_r := 15.0, lines
 				if not bool(nav.call("clear", Vector3(q.x, y, q.y))) or y < -0.8:
 					ok = false
 					break
-			if ok and hi - lo < 0.9:
+			if ok and hi - lo < flat:
 				if fallback == Vector2.INF:
 					fallback = p
 				for ln: Array in lines:
 					var a0: Vector2 = p + (ln[0] as Vector2)
 					var a1: Vector2 = p + (ln[1] as Vector2)
+					if region != "":
+						# r34 outposts: the walk must pass the network's own test (steps, water, props)
+						var e0 := Vector3(a0.x, float(nav.call("floor_at", a0.x, a0.y)), a0.y)
+						var e1 := Vector3(a1.x, float(nav.call("floor_at", a1.x, a1.y)), a1.y)
+						if String(nav.call("_edge_ok", e0, e1)) != "":
+							ok = false
+							break
 					var nseg := maxi(2, ceili(a0.distance_to(a1) / 0.35))
 					for k in nseg + 1:
 						var q2 := a0.lerp(a1, float(k) / float(nseg))
@@ -230,9 +307,19 @@ func _find_clear(near: Vector2, r: float, path_off: float, camp_r := 15.0, lines
 							break
 					if not ok:
 						break
-			if ok and hi - lo < 0.9:
+			if ok and hi - lo < flat:
 				return p
-	return fallback
+	return fallback if region == "" else Vector2.INF       # r34 outposts: walks that hold, or none
+
+
+## r34: too near a region's fire (RealmLayout.SLOTS "fire": the places agent's brazier; its built
+## places are WorldLanes sites, the camps really planted are _near_camp's).
+func _near_slot(p: Vector2) -> bool:
+	for rid: String in RealmLayout.SLOTS:
+		for sl: Dictionary in RealmLayout.SLOTS[rid]:
+			if String(sl.kind) == "fire" and (sl.at as Vector2).distance_to(p) < 7.0:
+				return true
+	return false
 
 
 ## Near one of the encounter camps (EnemySpawner.REALM_CAMPS): a hermit there would be in the

@@ -16,6 +16,7 @@ extends RefCounted
 ## Meshes come from tree_gen.gd. Results for tests: `placed` (kind -> count) and `trees`.
 
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
+const Land := preload("res://core/world/realm/realm_land.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 
 const CHUNK := 24.0                    ## undergrowth chunks
@@ -26,6 +27,8 @@ const UCELL := 2.0                     ## undergrowth grid
 const MARGIN := 18.0                   ## trees also grow this far outside BOUNDS (the horizon)
 const WATER_Y := -0.9                  ## fen pools (RealmLand)
 const SPAWN_CLEAR := 10.0
+const OUTPOST_CAST := "res://core/life/village/village_cast.gd"
+const OUTPOST_CLEAR := 7.5             ## bare round each outpost candidate (a camp reaches ~5 m from its fire)
 
 ## tree species: chance per candidate (3.5 m jittered grid) by biome, min spacing (m)
 const TREE_P := {
@@ -35,8 +38,10 @@ const TREE_P := {
 	"willow": {"fen": 0.2},
 	"snag": {"fen": 0.09, "oldforest": 0.035, "ash": 0.02, "ruin": 0.035, "crag": 0.015, "heath": 0.006},
 	"sapling": {"oldforest": 0.3, "glade": 0.08, "meadow": 0.012, "fen": 0.04, "ruin": 0.06, "heath": 0.015, "crag": 0.04},
+	"windtree": {}, "yew": {},                     # r34: only where a LOOK adds them
 }
-const TREE_SPACING := {"oak": 6.2, "birch": 3.2, "pine": 3.6, "willow": 5.5, "snag": 3.0, "sapling": 1.6}
+const TREE_SPACING := {"oak": 6.2, "birch": 3.2, "pine": 3.6, "willow": 5.5, "snag": 3.0, "sapling": 1.6,
+	"windtree": 4.5, "yew": 5.0, "fruit": 4.0, "cypress": 2.6}
 
 ## undergrowth: instances per m2 by biome
 ## r31 (docs/enshrouded/world.md): layered like an Enshrouded wood -- a grass floor even under the
@@ -59,7 +64,48 @@ const UNDER := {
 	"log": {"oldforest": 0.006, "fen": 0.003, "glade": 0.002},
 	"stump": {"oldforest": 0.005, "fen": 0.004, "meadow": 0.001, "heath": 0.001, "ash": 0.001},
 	"roots": {"oldforest": 0.008},
+	# r34 flora: the new regions' own ground cover (no biome rate: LOOKS add them)
+	"gorse": {}, "deadbush": {}, "ashdrift": {}, "cinders": {}, "lily": {}, "scaffold": {},
 }
+
+## r34 flora: each new region's own look over its biome (docs/r34/layout.md). Weighted by how far
+## inside the region a spot is (_look_weight: full inside, gone 8 m out). Undergrowth rate =
+## biome rate x mul + add; trees per 3.5 m candidate the same; `tint` colours the grassy kinds;
+## `props` are RockKit pieces per m2 (_place_stones); `rows` plants orchard rows / a cypress avenue.
+## Ideas: Enshrouded gives every region one strong ground read (ash shelves, heather uplands, reed
+## water) by swapping the cover and its colour rather than adding more of it.
+const LOOKS := {
+	"quarry": {"tree_mul": {"oak": 0.0, "birch": 0.3, "pine": 0.35, "sapling": 0.35},
+		"under_mul": {"grass": 0.45, "tallgrass": 0.5, "heather": 0.5, "flowers": 0.4, "fern": 0.3},
+		"under_add": {"scaffold": 0.006, "moss": 0.02},
+		"tint": Color(0.92, 0.9, 0.82), "props": {"rubble": 0.07, "block": 0.012}, "stone_mul": 1.6, "style": "granite"},
+	"holds": {"tree_mul": {"oak": 0.12, "birch": 0.5, "pine": 0.2, "sapling": 0.15, "snag": 0.3},
+		"under_mul": {"heather": 2.4, "grass": 2.3, "fern": 0.5, "litter": 0.4},
+		"under_add": {"heather": 1.6, "flowers": 0.14, "gorse": 0.03, "mushroom": 0.01, "tallgrass": 0.08},
+		"tint": Color(0.95, 0.92, 0.84)},
+	"foundry": {"tree_mul": {"pine": 0.15, "sapling": 0.0, "birch": 0.0, "oak": 0.0}, "tree_add": {"snag": 0.04},
+		"under_mul": {"grass": 0.6, "heather": 0.3},
+		"under_add": {"grass": 0.45, "deadbush": 0.03, "cinders": 0.012, "ashdrift": 0.06, "tallgrass": 0.03},
+		"tint": Color(0.5, 0.46, 0.42), "props": {"slag": 0.05}, "style": "ash"},
+	"moor": {"tree_mul": {"oak": 0.0, "birch": 0.25, "pine": 0.25, "sapling": 0.3}, "tree_add": {"windtree": 0.1},
+		"under_mul": {"grass": 0.78, "tallgrass": 0.9, "flowers": 0.45, "heather": 1.8, "shrub": 0.3},
+		"under_add": {"gorse": 0.03, "moss": 0.02},
+		"tint": Color(0.92, 0.88, 0.7), "props": {"cairn": 0.003}, "stone_mul": 1.6, "style": "granite"},
+	"orchard": {"tree_mul": {"oak": 0.0, "birch": 0.1, "pine": 0.0, "sapling": 0.0, "snag": 0.6}, "rows": "fruit",
+		"under_mul": {"heather": 0.3},
+		"under_add": {"grass": 0.62, "tallgrass": 0.08, "ashdrift": 0.14, "cinders": 0.006, "stump": 0.004, "log": 0.0015, "litter": 0.03},
+		"tint": Color(0.62, 0.6, 0.56)},
+	"necropolis": {"tree_mul": {"oak": 0.15, "birch": 0.4, "pine": 0.2, "sapling": 0.2, "snag": 0.6}, "tree_add": {"yew": 0.05}, "rows": "cypress",
+		"under_mul": {"grass": 1.15, "tallgrass": 2.6, "flowers": 0.5, "heather": 0.4, "moss": 1.8, "shrub": 0.4, "bramble": 1.4},
+		"under_add": {"glowcap": 0.003},
+		"tint": Color(0.8, 0.86, 0.8), "props": {"headstone": 0.006}, "stone_mul": 1.3, "style": "granite"},
+	"mere": {"tree_mul": {"oak": 0.2, "birch": 0.6, "pine": 0.0, "sapling": 0.5}, "dead_willow": 0.85,
+		"under_mul": {"grass": 0.2, "tallgrass": 0.45, "flowers": 0.5, "reeds": 1.8, "cattail": 1.8, "moss": 1.3},
+		"under_add": {"lily": 0.35},
+		"tint": Color(0.86, 0.94, 0.88)},
+}
+const TINTED := ["grass", "tallgrass", "heather", "flowers", "fern", "shrub", "moss"]
+const LOOK_EDGE := 8.0                 ## a look fades out this far outside its region
 ## The r30 table, kept for A/B perf runs: `-- --no-r31-flora` builds the wood as it was (this table,
 ## no edge crowding, no stones).
 const UNDER_R30 := {
@@ -94,12 +140,17 @@ const STYLE := {
 	"stone": [44.0, false, 1.2, 1.0],                                  # r31 stones in the turf (_place_stones)
 	"oak": [0.0, true, 3.5, 0.0], "birch": [0.0, true, 3.0, 0.0], "pine": [0.0, true, 3.0, 0.0],
 	"willow": [0.0, true, 3.0, 0.0], "snag": [0.0, true, 3.0, 0.0], "sapling": [60.0, false, 3.0, 1.5],
+	# r34 flora
+	"fruit": [0.0, true, 3.0, 0.0], "cypress": [0.0, true, 3.0, 0.0], "yew": [0.0, true, 3.5, 0.0], "windtree": [0.0, true, 3.0, 0.0],
+	"gorse": [52.0, false, 3.0, 1.2], "deadbush": [50.0, false, 3.0, 1.2], "ashdrift": [34.0, false, 2.0, 0.8],
+	"cinders": [30.0, false, 2.5, 0.8], "lily": [48.0, false, 1.0, 0.5], "scaffold": [52.0, false, 3.0, 2.0],
 }
 
 static var placed := {}                ## species -> instance count (last build)
 static var trees: Array = []           ## [Vector3 base, kind id, trunk r, height]
 static var instances: Array = []       ## [kind id, Vector3 pos] of everything (tests)
 static var build_ms := 0
+static var gen_ms := 0                 ## of build_ms: making plant / rock meshes (cold GenCache only)
 static var rejects := {}               ## why tree candidates were dropped (tuning)
 
 # --- the field -----------------------------------------------------------------------------------
@@ -123,9 +174,11 @@ static var _noise: Array[FastNoiseLite] = []
 
 static func build(root: Node) -> void:
 	var t0 := Time.get_ticks_msec()
+	var g0 := int(Realm.prof.get("gen: trees", 0)) + int(Realm.prof.get("gen: rockkit", 0))
 	placed.clear()
 	rejects.clear()
 	r30 = "--no-r31-flora" in OS.get_cmdline_user_args()
+	no_looks = "--no-r34-flora" in OS.get_cmdline_user_args()
 	trees.clear()
 	instances.clear()
 	var old := root.get_node_or_null("RealmFlora")
@@ -143,8 +196,10 @@ static func build(root: Node) -> void:
 	var t1 := Time.get_ticks_msec()
 	_keepout(root)
 	_find_tall_sites(space)
+	_index_sites()
 	_space = space
 	_biomes()
+	_looks()
 	var t2 := Time.get_ticks_msec()
 	var items := {}                     # kind id -> Array of [Transform3D, Color]
 	var rng := RandomNumberGenerator.new()
@@ -162,8 +217,9 @@ static func build(root: Node) -> void:
 	var stats := _emit(host, items)
 	stats.x += _emit_stones(host, stone_items)
 	build_ms = Time.get_ticks_msec() - t0
-	print("FLORA ground %d ms, field %d ms, trees %d ms, under %d ms, nodes %d ms; %d multimeshes, %d colliders" % [
-		t1 - t0, t2 - t1, t3 - t2, t4 - t3, Time.get_ticks_msec() - t4, stats.x, stats.y])
+	gen_ms = (int(Realm.prof.get("gen: trees", 0)) + int(Realm.prof.get("gen: rockkit", 0)) - g0) / 1000
+	print("FLORA ground %d ms, field %d ms, trees %d ms, under %d ms, nodes %d ms; %d multimeshes, %d colliders; mesh gen %d ms" % [
+		t1 - t0, t2 - t1, t3 - t2, t4 - t3, Time.get_ticks_msec() - t4, stats.x, stats.y, gen_ms])
 	var keys := placed.keys()
 	keys.sort()
 	var line := ""
@@ -266,8 +322,14 @@ static func _keepout(root: Node) -> void:
 	# keep-outs
 	# sites by their bounding rect, as WorldLanes.intrudes and zz/audit judge them (a round terrace
 	# or a diagonal flight claims its whole box)
+	# (r34: the raid floors by their circle -- their 60 m boxes emptied the hill round them; the
+	# older round sites keep their box, so the wood elsewhere grows exactly as it did)
 	for st: Dictionary in WorldLanes.sites:
-		_rect_field(_sd, st.rect, BAND)
+		if st.has("circle") and String(st.name).begins_with("raid_"):
+			var cc: Vector3 = st.circle
+			_disc_field(_sd, Vector2(cc.x, cc.y), cc.z, BAND)
+		else:
+			_rect_field(_sd, st.rect, BAND)
 	for p: Dictionary in WorldLanes.portals:
 		var at: Vector3 = p.at
 		var out: Vector3 = p.out
@@ -283,6 +345,16 @@ static func _keepout(root: Node) -> void:
 	_disc_field(_sd, Vector2(RealmLayout.SUMMIT.x, RealmLayout.SUMMIT.z), 14.0, BAND)
 	_disc_field(_sd, Vector2(RealmLayout.SUMMIT_DAIS.x, RealmLayout.SUMMIT_DAIS.z), 16.0, BAND)
 	_disc_field(_sd, Vector2(RealmLayout.OSSUARY_GATE.x, RealmLayout.OSSUARY_GATE.z), 5.0, BAND)
+	# r34 flora: the outpost camps (village.gd _outposts, built after the flora) look for clear ground
+	# round their candidate spots (village_cast.gd OUTPOSTS): keep those rounds bare, so the camp
+	# settles on its first spot with no grass through its fire pit and seat
+	if ResourceLoader.exists(OUTPOST_CAST):
+		var cast := load(OUTPOST_CAST) as GDScript
+		var outposts: Dictionary = cast.get_script_constant_map().get("OUTPOSTS", {}) if cast else {}
+		for id: String in outposts:
+			var nears: Variant = (outposts[id] as Dictionary).get("near", [])
+			for nv: Variant in (nears if nears is Array else [nears]):
+				_disc_field(_sd, nv as Vector2, OUTPOST_CLEAR, BAND)
 	# lava and anything that is not the terrain itself
 	for k in n:
 		if _gy[k] < RealmLayout.LAVA_Y + 2.5 or _ok[k] == 0:
@@ -362,6 +434,104 @@ static func _biomes() -> void:
 			_bw[j * _bnx + i] = w
 
 
+## r34 flora: per 4 m biome cell, the region looks there ([LOOKS entry, weight]), the undergrowth
+## rate of every UNDER kind (biome blend x looks; one array read per plant kind instead of two
+## dictionary walks), the grass tint and the fen share (shore reeds).
+static var _lk: Array = []                      # per cell: Array of [look Dictionary, weight]
+static var _rc: Array = []                      # per cell: PackedFloat32Array, undergrowth rate /m2 per kind
+static var _tc := PackedColorArray()            # per cell: tint of the grassy kinds
+static var _fw := PackedFloat32Array()          # per cell: fen weight
+static var _ck: Array = []                      # per cell: PackedInt32Array of the kinds that can grow
+
+
+static func _look_weight(r: Dictionary, x: float, z: float) -> float:
+	if r.has("rect"):
+		return 1.0 - smoothstep(0.0, LOOK_EDGE, RealmLayout._out_dist(Vector2(x, z), r.rect))
+	var d := Vector2(x, z).distance_to(r.c)
+	return 1.0 - smoothstep(float(r.r), float(r.r) + LOOK_EDGE, d)
+
+
+static var no_looks := false             ## --no-r34-flora (A/B, "before" shots): the regions bare of their looks
+
+
+static func looks_at(x: float, z: float) -> Array:
+	var out: Array = []
+	if no_looks:
+		return out
+	for r: Dictionary in RealmLayout.REGIONS:
+		if not LOOKS.has(r.id):
+			continue
+		var lw := _look_weight(r, x, z)
+		if lw > 0.001:
+			out.append([LOOKS[r.id], lw, String(r.id)])
+	return out
+
+
+static func _looks() -> void:
+	var kinds := UNDER.keys()
+	var nk := kinds.size()
+	var nc := _bnx * _bnz
+	var bvec := {}                                  # biome -> rate per kind
+	for s in nk:
+		var tb: Dictionary = _under_table(kinds[s])
+		for bio: String in tb:
+			var v := PackedFloat32Array()
+			if bvec.has(bio):
+				v = bvec[bio]
+			else:
+				v.resize(nk)
+			v[s] = float(tb[bio])
+			bvec[bio] = v                           # packed arrays copy on write: store it back
+	var row := PackedFloat32Array()
+	row.resize(nk)
+	var i_reeds := kinds.find("reeds")
+	var i_cattail := kinds.find("cattail")
+	_lk.resize(nc)
+	_ck.resize(nc)
+	_rc.resize(nc)
+	_tc.resize(nc)
+	_fw.resize(nc)
+	for j in _bnz:
+		for i in _bnx:
+			var c := j * _bnx + i
+			var x := _x0 + i * 4.0
+			var z := _z0 + j * 4.0
+			var w: Dictionary = _bw[c]
+			var lk := looks_at(x, z)
+			_lk[c] = lk
+			_fw[c] = float(w.get("fen", 0.0))
+			var tint := Color(1, 1, 1)
+			for e: Array in lk:
+				var lw: float = e[1]
+				tint = tint.lerp(tint * ((e[0] as Dictionary).get("tint", Color(1, 1, 1)) as Color), lw)
+			_tc[c] = tint
+			row.fill(0.0)
+			for bio: String in w:
+				if bvec.has(bio):
+					var bw := float(w[bio])
+					var v: PackedFloat32Array = bvec[bio]
+					for s in nk:
+						row[s] += v[s] * bw
+			for e: Array in lk:
+				var L: Dictionary = e[0]
+				var lw: float = e[1]
+				var mul: Dictionary = L.get("under_mul", {})
+				var add: Dictionary = L.get("under_add", {})
+				for s in nk:
+					var sp: String = kinds[s]
+					row[s] = row[s] * lerpf(1.0, float(mul.get(sp, 1.0)), lw) + float(add.get(sp, 0.0)) * lw
+			var ks := PackedInt32Array()
+			for s in nk:
+				if row[s] > 0.0 or (_fw[c] > 0.2 and (s == i_reeds or s == i_cattail)):
+					ks.append(s)
+			_rc[c] = row.duplicate()
+			_ck[c] = ks
+
+
+static func _bidx(x: float, z: float) -> int:
+	return clampi(roundi((z - _z0) / 4.0), 0, _bnz - 1) * _bnx + clampi(roundi((x - _x0) / 4.0), 0, _bnx - 1)
+
+
 static func biome_w(x: float, z: float) -> Dictionary:
 	var i := clampi(roundi((x - _x0) / 4.0), 0, _bnx - 1)
 	var j := clampi(roundi((z - _z0) / 4.0), 0, _bnz - 1)
@@ -377,7 +547,7 @@ static func _rate(table: Dictionary, w: Dictionary) -> float:
 
 # --- trees ---------------------------------------------------------------------------------------
 
-static func _place_trees(space: PhysicsDirectSpaceState3D, rng: RandomNumberGenerator, items: Dictionary) -> void:
+static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumberGenerator, items: Dictionary) -> void:
 	var grid := {}                      # Vector2i(4 m) -> Array of [Vector2, spacing]
 	var cands: Array = []
 	var step := 3.5
@@ -386,18 +556,33 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng: RandomNumberGene
 	while z < area.end.y:
 		var x := area.position.x
 		while x < area.end.x:
-			cands.append(Vector2(x + rng.randf_range(0.0, step), z + rng.randf_range(0.0, step)))
+			cands.append(Vector2(x + rng_main.randf_range(0.0, step), z + rng_main.randf_range(0.0, step)))
 			x += step
 		z += step
 	# big trees first so the small ones fill round them
-	var order := ["oak", "willow", "pine", "birch", "snag", "sapling"]
+	var order := ["oak", "willow", "pine", "birch", "snag", "sapling", "windtree", "yew"]
 	var cover := {}                     # Vector2i(UCELL) -> cover
+	# r34 flora: candidates inside a region LOOK draw from their own stream (rng2), so the r33 ground
+	# keeps the trees it had; the orchard rows and the cypress avenue go in first
+	var rng2 := RandomNumberGenerator.new()
+	rng2.seed = 20261134
+	_place_rows(space, rng2, items, grid, cover)
+	var clk: Array = []
+	for c: Vector2 in cands:
+		clk.append(_lk[_bidx(c.x, c.y)])
 	for sp: String in order:
 		var spacing: float = TREE_SPACING[sp]
 		var ids := TreeGen.ids(sp)
-		for c: Vector2 in cands:
+		for ci in cands.size():
+			var c: Vector2 = cands[ci]
+			var lk: Array = clk[ci]
+			var rng := rng_main if lk.is_empty() else rng2
 			var w := biome_w(c.x, c.y)
 			var p := _rate(TREE_P[sp], w)
+			for e: Array in lk:
+				var L: Dictionary = e[0]
+				var lw: float = e[1]
+				p = p * lerpf(1.0, float((L.get("tree_mul", {}) as Dictionary).get(sp, 1.0)), lw) + float((L.get("tree_add", {}) as Dictionary).get(sp, 0.0)) * lw
 			if p <= 0.0:
 				continue
 			p *= _tree_mod(sp, c, w)
@@ -414,8 +599,11 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng: RandomNumberGene
 			elif y < WATER_Y + 0.35:
 				continue
 			var id: String = _variant(ids, at.x, at.y, TREE_CHUNK, 2, rng)
-			if sp == "willow" and rng.randf() < 0.55:
-				id = "willow_2"                       # the fen's willows are mostly dead
+			var dead := 0.55
+			for e: Array in lk:
+				dead = lerpf(dead, float((e[0] as Dictionary).get("dead_willow", dead)), float(e[1]))
+			if sp == "willow" and rng.randf() < dead:
+				id = "willow_2"                       # the fen's willows are mostly dead (the mere's nearly all)
 			if sp == "snag" and _rate({"ash": 1.0}, w) > 0.3:
 				id = "snag_2"                         # scorched at the rift
 			elif sp == "snag" and id == "snag_2" and rng.randf() < 0.7:
@@ -440,7 +628,10 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng: RandomNumberGene
 			if gy < WATER_Y + 0.05 or RealmLayout.path_dist(at) < float(st[2]) + float(d.r):
 				continue
 			var s := rng.randf_range(0.85, 1.15)
-			var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.92, 1.08), s))
+			var yaw := rng.randf() * TAU
+			if sp == "windtree":
+				yaw = WIND_YAW + (yaw / TAU - 0.5) * 0.7      # thrown downwind (the foliage shader's wind_dir)
+			var basis := Basis(Vector3.UP, yaw).scaled(Vector3(s, s * rng.randf_range(0.92, 1.08), s))
 			var pos := Vector3(at.x, gy, at.y)
 			if _clash(space, id, Transform3D(basis, pos), true):
 				# its whole crown keeps clear of sites, lanes and doors: try a smaller tree there
@@ -485,6 +676,136 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng: RandomNumberGene
 					if dd < 1.0:
 						cover[q] = minf(float(cover.get(q, 0.0)) + (1.0 - dd) * (0.9 if sp != "snag" else 0.2), 1.0)
 	_cover_from(cover)
+
+
+const WIND_YAW := -0.6435             ## Basis(UP, yaw) turns a windtree's lean (+x) to the shader's wind (0.8, 0.6)
+
+
+static func _region(id: String) -> Dictionary:
+	for r: Dictionary in RealmLayout.REGIONS:
+		if r.id == id:
+			return r
+	return {}
+
+
+## r34 flora: planted trees. The Cinder Orchard's burned fruit trees stand in rows (gaps where trees
+## were lost), and cypresses line the necropolis way up the Waiting Field and its two long sides --
+## the planted order reads at once as a made place, the way WoW's and Enshrouded's farmsteads and
+## graveyards do. Same checks as the wild trees (_plant_tree); the spacing grid then keeps the wild
+## ones off them.
+static func _place_rows(space: PhysicsDirectSpaceState3D, rng: RandomNumberGenerator, items: Dictionary, grid: Dictionary, cover: Dictionary) -> void:
+	if no_looks:
+		return
+	var orch := _region("orchard")
+	if not orch.is_empty():
+		var rect: Rect2 = (orch.rect as Rect2).grow(-2.0)
+		var c := rect.get_center()
+		var ax := Vector2(cos(0.18), sin(0.18))
+		var ay := Vector2(-ax.y, ax.x)
+		var v := -40.0
+		while v <= 40.0:
+			var u := -60.0 + rng.randf_range(0.0, 2.0)
+			while u <= 60.0:
+				var at := c + ax * u + ay * v + Vector2(rng.randf_range(-0.5, 0.5), rng.randf_range(-0.5, 0.5))
+				var keep := rng.randf() < 0.78
+				var id := "fruit_2" if rng.randf() < 0.15 else "fruit_%d" % rng.randi_range(0, 1)
+				if keep and rect.has_point(at):
+					_plant_tree(space, rng, items, grid, cover, "fruit", id, at, rng.randf() * TAU)
+				u += 5.5
+			v += 7.0
+	var nec := _region("necropolis")
+	if not nec.is_empty():
+		var rect: Rect2 = nec.rect
+		var spots: Array = []
+		for pth: Dictionary in RealmLayout.PATHS:
+			if pth.id != "necropolis_way":
+				continue
+			var pts: Array = pth.pts
+			var off := float(pth.w) + 3.4
+			for i in pts.size() - 1:
+				var a: Vector2 = pts[i]
+				var b: Vector2 = pts[i + 1]
+				var d := (b - a).normalized()
+				var n := Vector2(-d.y, d.x)
+				var t := 0.0
+				while t < a.distance_to(b):
+					var q := a + d * t
+					if rect.grow(-1.0).has_point(q):
+						spots.append(q + n * off)
+						spots.append(q - n * off)
+					t += 8.0
+		var z := rect.position.y + 5.0
+		while z < rect.end.y - 3.0:
+			for x: float in [rect.position.x + 3.0, rect.end.x - 3.0]:
+				if rng.randf() < 0.75:
+					spots.append(Vector2(x, z))
+			z += 9.0
+		# lone cypresses standing over the ranks of graves, a few to a rank
+		z = rect.position.y + 8.0
+		while z < rect.end.y - 4.0:
+			var x := rect.position.x + 7.0
+			while x < rect.end.x - 6.0:
+				if rng.randf() < 0.6:
+					spots.append(Vector2(x, z))
+				x += 9.0
+			z += 12.0
+		for q: Vector2 in spots:
+			var id := "cypress_%d" % (0 if rng.randf() < 0.7 else 1)
+			# graves and tombs fill the field: a cypress that cannot stand on its mark takes the
+			# nearest free ground a step or two off it
+			for k in 4:
+				var o := Vector2.ZERO if k == 0 else Vector2(cos(k * 2.1), sin(k * 2.1)) * (1.2 + k * 0.6)
+				if _plant_tree(space, rng, items, grid, cover, "cypress", id, q + o, rng.randf() * TAU):
+					break
+
+
+static func _plant_tree(space: PhysicsDirectSpaceState3D, rng: RandomNumberGenerator, items: Dictionary, grid: Dictionary, cover: Dictionary, sp: String, id: String, at: Vector2, yaw: float) -> bool:
+	var k := _idx(at.x, at.y)
+	if _gn[k] < 0.72 or _gy[k] < WATER_Y + 0.35 or _ok[k] == 0:
+		rejects[sp + " ground"] = int(rejects.get(sp + " ground", 0)) + 1
+		return false
+	var d: Dictionary = TreeGen.kind(id)
+	var st: Array = STYLE[sp]
+	if _pd[k] < float(st[2]) + float(d.r) or _sd[k] < float(d.r) + 2.0:
+		rejects[sp + " site"] = int(rejects.get(sp + " site", 0)) + 1
+		return false
+	var spacing: float = TREE_SPACING[sp]
+	if not _spaced(grid, at, spacing):
+		rejects[sp + " spacing"] = int(rejects.get(sp + " spacing", 0)) + 1
+		return false
+	var y := _gy[k]
+	var r: float = maxf(float(d.r), 0.1)
+	var gy := _ray_y(space, at.x, at.y, y)
+	for a in 4:
+		var o := Vector2(cos(a * PI * 0.5 + 0.4), sin(a * PI * 0.5 + 0.4)) * r * 1.2
+		gy = minf(gy, _ray_y(space, at.x + o.x, at.y + o.y, y))
+	if gy < WATER_Y + 0.05 or RealmLayout.path_dist(at) < float(st[2]) + float(d.r):
+		return false
+	var s := rng.randf_range(0.88, 1.12)
+	var basis := Basis(Vector3.UP, yaw).scaled(Vector3(s, s * rng.randf_range(0.94, 1.06), s))
+	var pos := Vector3(at.x, gy, at.y)
+	if _clash(space, id, Transform3D(basis, pos), true):
+		rejects[sp + " clash"] = int(rejects.get(sp + " clash", 0)) + 1
+		return false
+	for tc: Array in tree_clear:
+		if at.distance_to(tc[0]) < float(tc[1]) + float(d.spread) * 0.6:
+			return false
+	var key := Vector2i(floori(at.x / 4.0), floori(at.y / 4.0))
+	if not grid.has(key):
+		grid[key] = []
+	(grid[key] as Array).append([at, spacing])
+	_add(items, id, Transform3D(basis, pos), _tint(rng, 0.1))
+	if bool(d.tall):
+		trees.append([pos, id, float(d.r) * s, float(d.h) * s])
+	var cr := float(d.spread) * s
+	var n := int(cr / UCELL) + 1
+	for jj in range(-n, n + 1):
+		for ii in range(-n, n + 1):
+			var q := Vector2i(floori(at.x / UCELL) + ii, floori(at.y / UCELL) + jj)
+			var dd := Vector2(q.x * UCELL, q.y * UCELL).distance_to(at) / maxf(cr, 0.5)
+			if dd < 1.0:
+				cover[q] = minf(float(cover.get(q, 0.0)) + (1.0 - dd) * 0.5, 1.0)
+	return true
 
 
 static var _aabbs := {}
@@ -541,9 +862,9 @@ static func _find_tall_sites(space: PhysicsDirectSpaceState3D) -> void:
 ## Keep-out test for one plant. Trees: the trunk and root footprint (bottom 2.5 m, as zz/audit
 ## proxies tall MultiMesh instances) against every site box, portal approach and runtime lane, and
 ## the whole crown against tall sites only. Undergrowth: its whole box against sites and portals.
-static func _clash(space: PhysicsDirectSpaceState3D, id: String, xf: Transform3D, tree: bool) -> bool:
-	var la := mesh_aabb(id)
-	var full := xf * la
+static func _clash(space: PhysicsDirectSpaceState3D, id: String, xf: Transform3D, tree: bool, given := AABB(), pad := 0.4) -> bool:
+	var la := mesh_aabb(id) if given.size == Vector3.ZERO else AABB()
+	var full := xf * la if given.size == Vector3.ZERO else given
 	var boxes: Array[AABB] = [full]
 	if tree:
 		var d: Dictionary = TreeGen.kind(id)
@@ -555,24 +876,89 @@ static func _clash(space: PhysicsDirectSpaceState3D, id: String, xf: Transform3D
 		var c := xf * Vector3(la.get_center().x, la.position.y, la.get_center().z)
 		var hw := 0.75 * sc + 0.4
 		boxes.append(AABB(Vector3(c.x - hw, c.y, c.z - hw), Vector3(hw * 2.0, 2.6, hw * 2.0)))
+		# r34 flora: and the audit proxies each crown mesh (near and far cards) by the same column from
+		# the crown's underside: a low crown on a slope reached down into a site's 6.4 m volume
+		for kid: String in ([id, id + "@far"] if id.substr(0, id.rfind("_")) in TreeGen.FAR else [id]):
+			var kd: Dictionary = TreeGen.kind(kid)
+			if kd.cards != null:
+				var cb: AABB = (kd.cards as Mesh).get_aabb()
+				var cc := xf * Vector3(cb.get_center().x, cb.position.y, cb.get_center().z)
+				boxes.append(AABB(Vector3(cc.x - hw, cc.y, cc.z - hw), Vector3(hw * 2.0, 2.6 * sc, hw * 2.0)))
 		var fr := Rect2(full.position.x, full.position.z, full.size.x, full.size.z)
 		for st: Dictionary in _tall_sites:
-			if (st.rect as Rect2).grow(0.5).intersects(fr) and full.end.y > float(st.floor_y) - 1.0:
+			if _site_hits(st, fr, 0.5) and full.end.y > float(st.floor_y) - 1.0:
 				return true
 	for wb in boxes:
 		var r := Rect2(wb.position.x, wb.position.z, wb.size.x, wb.size.z)
-		for st: Dictionary in WorldLanes.sites:
-			if (st.rect as Rect2).grow(0.4).intersects(r) and wb.end.y > float(st.floor_y) - 1.0 and wb.position.y < float(st.floor_y) + 6.4:
-				return true
-		for p: Dictionary in WorldLanes.portals:
-			var pb: Array = WorldLanes.portal_box(p)
-			var ext: Vector3 = pb[1]
-			var box := (pb[0] as Transform3D) * AABB(-ext - Vector3(0.3, 0.3, 0.3), ext * 2.0 + Vector3(0.6, 0.6, 0.6))
+		var sites := WorldLanes.sites
+		var c0 := Vector2i(floori((r.position.x - 0.5) / SITE_CELL), floori((r.position.y - 0.5) / SITE_CELL))
+		var c1 := Vector2i(floori((r.end.x + 0.5) / SITE_CELL), floori((r.end.y + 0.5) / SITE_CELL))
+		for cj in range(c0.y, c1.y + 1):
+			for ci in range(c0.x, c1.x + 1):
+				for si: int in _site_grid.get(Vector2i(ci, cj), []):
+					var st: Dictionary = sites[si]
+					if _site_hits(st, r, pad) and wb.end.y > float(st.floor_y) - 1.0 and (wb.position.y < float(st.floor_y) + 6.4 or pad > 0.5):
+						return true
+		for box: AABB in _portal_boxes:
 			if box.intersects(wb):
 				return true
 		if space != null and WorldLanes.intrudes(space, wb, 0.3) != "":
 			return true
 	return false
+
+
+## r34 flora: sites bucketed on an 8 m grid (by their box grown 1 m) and the portals' boxes made
+## once, so a plant's clash test looks at its neighbours only (it walked all ~250 sites per plant
+## near any keep-out: about half the undergrowth's time over the doubled Realm).
+const SITE_CELL := 8.0
+static var _site_grid := {}
+static var _portal_boxes: Array[AABB] = []
+
+
+## Runtime lanes' boxes (WorldLanes.extra_lanes grown by their width and intrudes' pads): only a
+## plant inside one needs WorldLanes.intrudes (its physics floor test); the site half of intrudes is
+## the grid test above with intrudes' 0.6 m pad.
+static var _lane_rects: Array[Rect2] = []
+
+
+static func _near_lane(b: AABB) -> bool:
+	var r := Rect2(b.position.x, b.position.z, b.size.x, b.size.z)
+	for lr in _lane_rects:
+		if lr.intersects(r):
+			return true
+	return false
+
+
+static func _index_sites() -> void:
+	_site_grid.clear()
+	_portal_boxes.clear()
+	_lane_rects.clear()
+	for l: Array in WorldLanes.extra_lanes:
+		var pts: Array = l[1]
+		var lr := Rect2(pts[0], Vector2.ZERO)
+		for v: Vector2 in pts:
+			lr = lr.expand(v)
+		_lane_rects.append(lr.grow(float(l[2]) + 1.2))
+	var sites := WorldLanes.sites
+	for si in sites.size():
+		var r: Rect2 = (sites[si].rect as Rect2).grow(1.0)
+		for cj in range(floori(r.position.y / SITE_CELL), floori(r.end.y / SITE_CELL) + 1):
+			for ci in range(floori(r.position.x / SITE_CELL), floori(r.end.x / SITE_CELL) + 1):
+				var key := Vector2i(ci, cj)
+				if not _site_grid.has(key):
+					_site_grid[key] = []
+				(_site_grid[key] as Array).append(si)
+	for p: Dictionary in WorldLanes.portals:
+		var pb: Array = WorldLanes.portal_box(p)
+		var ext: Vector3 = pb[1]
+		_portal_boxes.append((pb[0] as Transform3D) * AABB(-ext - Vector3(0.3, 0.3, 0.3), ext * 2.0 + Vector3(0.6, 0.6, 0.6)))
+
+
+## r34: a raid floor by its circle, any other site by its box (as before r34).
+static func _site_hits(st: Dictionary, r: Rect2, pad: float) -> bool:
+	if String(st.name).begins_with("raid_"):
+		return WorldLanes.site_hits_rect(st, r, pad)
+	return (st.rect as Rect2).grow(pad).intersects(r)
 
 
 static func _tree_mod(sp: String, c: Vector2, w: Dictionary) -> float:
@@ -626,7 +1012,15 @@ static func cover_at(x: float, z: float) -> float:
 
 # --- undergrowth ---------------------------------------------------------------------------------
 
-static func _place_under(rng: RandomNumberGenerator, items: Dictionary) -> void:
+## r34 flora: the undergrowth row by row (2 m), each row from its own seed, then the physics checks
+## near the ways (WorldLanes.intrudes) for the rows' plants in order. (WorkerThreadPool rows were
+## tried: GDScript's shared refcounts and per-call debug counters made 12 threads slower than one.)
+## Rates come from the per-cell table (_looks); this reshuffled every plant once against r33.
+static var _under_kinds: Array = []
+static var _under_ids := {}
+
+
+static func _place_under(_rng: RandomNumberGenerator, items: Dictionary) -> void:
 	var kinds := UNDER.keys()
 	var ids := {}
 	for sp: String in kinds:
@@ -635,63 +1029,108 @@ static func _place_under(rng: RandomNumberGenerator, items: Dictionary) -> void:
 		for id: String in ids[sp]:
 			w = maxf(w, float(TreeGen.kind(id).spread))
 		spreads[sp] = minf(w, 3.0)
+		_list_hash[sp] = hash(ids[sp][0]) if not (ids[sp] as Array).is_empty() else 0
+	_under_kinds = kinds
+	_under_ids = ids
 	var b := RealmLayout.BOUNDS
-	var z := b.position.y
-	while z < b.end.y:
+	var nrow := int(ceil(b.size.y / UCELL))
+	var out: Array = []
+	for j in nrow:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 20261103 + j * 7919
+		var z := b.position.y + j * UCELL
 		var x := b.position.x
 		while x < b.end.x:
-			_under_cell(rng, items, kinds, ids, x, z)
+			_under_cell(rng, items, out, kinds, ids, x, z)
 			x += UCELL
-		z += UCELL
+	for e: Array in out:
+		if bool(e[3]) and WorldLanes.intrudes(_space, (e[1] as Transform3D) * mesh_aabb(e[0]), 0.3) != "":
+			continue
+		_add(items, e[0], e[1], e[2], e[4])
 
+
+static var _list_hash := {}
 
 static var spreads := {}               ## species -> widest variant footprint radius (m)
 
 
-static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, kinds: Array, ids: Dictionary, x: float, z: float) -> void:
+## One 2 m cell of undergrowth into `items`; plants on a runtime lane's ground into `out` as
+## [id, Transform3D, Color, true, species] for the physics check.
+static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Array, kinds: Array, ids: Dictionary, x: float, z: float) -> void:
 	var k := _idx(x + UCELL * 0.5, z + UCELL * 0.5)
 	if _sd[k] < 0.3 or _pd[k] < 0.0:
 		return
-	var w := biome_w(x, z)
+	var bc := _bidx(x, z)
+	var nk := kinds.size()
 	var cov := cover_at(x, z)
 	var y := _gy[k]
 	var shore := y < WATER_Y + 0.3 and y > WATER_Y - 0.35
-	var wet := y < WATER_Y + 0.15
-	for sp: String in kinds:
-		var rate := _rate(_under_table(sp), w)
+	var fen := _fw[bc]
+	var tint := _tc[bc]
+	var rates: PackedFloat32Array = _rc[bc]
+	for s: int in _ck[bc]:
+		var sp: String = kinds[s]
+		var rate := rates[s]
+		if rate <= 0.0 and not ((sp == "reeds" or sp == "cattail") and shore):
+			continue
 		if sp == "reeds" or sp == "cattail":
-			if shore and float(w.get("fen", 0.0)) > 0.2:
-				rate += (0.3 if sp == "reeds" else 0.1) * clampf(_noise[2].get_noise_2d(x * 1.7, z * 1.7) * 3.0 + 0.2, 0.0, 1.5)
+			if shore and fen > 0.2:
+				var boost := (0.3 if sp == "reeds" else 0.1) * clampf(_noise[2].get_noise_2d(x * 1.7, z * 1.7) * 3.0 + 0.2, 0.0, 1.5)
+				for e: Array in _lk[bc]:
+					boost *= lerpf(1.0, float(((e[0] as Dictionary).get("under_mul", {}) as Dictionary).get(sp, 1.0)), float(e[1]))
+				rate += boost
 		if rate <= 0.0:
 			continue
+		if sp == "lily" and y > WATER_Y - 0.12:
+			continue                                   # pads only on open water
 		rate *= _under_mod(sp, x, z, cov)
 		var expect := rate * UCELL * UCELL
 		var n := int(expect)
 		if rng.randf() < expect - n:
 			n += 1
+		if n == 0:
+			continue
+		var st: Array = STYLE[sp]
+		var keep_p := float(st[2])
+		var keep_s := float(st[3]) + float(spreads[sp])
+		var tinted: bool = sp in TINTED
+		var list: Array = ids[sp]
+		var lh: int = _list_hash[sp]
 		for c in n:
 			var px := x + rng.randf() * UCELL
 			var pz := z + rng.randf() * UCELL
 			var kk := _idx(px, pz)
-			var st: Array = STYLE[sp]
-			if _pd[kk] < float(st[2]) or _sd[kk] < float(st[3]) + spreads[sp] or _ok[kk] == 0:
+			if _pd[kk] < keep_p or _sd[kk] < keep_s or _ok[kk] == 0:
 				continue
-			if _pd[kk] < float(st[2]) + 1.5 and RealmLayout.path_dist(Vector2(px, pz)) < float(st[2]):
+			if _pd[kk] < keep_p + 1.5 and RealmLayout.path_dist(Vector2(px, pz)) < keep_p:
 				continue                                   # the grid is 1 m: exact near the edge
 			var gy := ground_y(px, pz)
-			if gy < WATER_Y + 0.12 and not (sp == "reeds" or sp == "cattail"):
+			if sp == "lily":
+				if gy > WATER_Y - 0.15 or not Land.in_water(px, pz):
+					continue
+				gy = WATER_Y
+			elif gy < WATER_Y + 0.12 and not (sp == "reeds" or sp == "cattail"):
 				continue
 			if (sp == "reeds" or sp == "cattail") and gy < WATER_Y - 0.4:
 				continue
-			if _gn[kk] < 0.6 and sp != "moss":
+			if _gn[kk] < 0.6 and sp != "moss" and sp != "lily":
 				continue
-			var nrm := Vector3(_gnx[kk], _gn[kk], _gnz[kk]).normalized()
-			var list: Array = ids[sp]
-			var id: String = _variant(list, px, pz, CHUNK, 1, rng)
+			var nrm := Vector3(_gnx[kk], _gn[kk], _gnz[kk]).normalized() if sp != "lily" else Vector3.UP
+			var id: String = _variant(list, px, pz, CHUNK, 1, rng, lh)
 			var xf := _plant_xf(rng, sp, Vector3(px, gy, pz), nrm)
-			if (_sd[kk] < 8.0 or _pd[kk] < 4.0) and _clash(_space if _pd[kk] < 4.0 else null, id, xf, false):
+			var near_way := _pd[kk] < 4.0
+			if (_sd[kk] < 8.0 or near_way) and _clash(null, id, xf, false, AABB(), 0.6 if near_way else 0.4):
 				continue
-			_add(items, id, xf, _tint(rng, 0.14 if sp != "flowers" else 0.05))
+			var lane := false
+			if near_way:
+				lane = _near_lane(xf * mesh_aabb(id))
+			var col := _tint(rng, 0.14 if sp != "flowers" else 0.05)
+			if tinted:
+				col = Color(col.r * tint.r, col.g * tint.g, col.b * tint.b, 1.0)
+			if lane:
+				out.append([id, xf, col, lane, sp])        # WorldLanes.intrudes after the pass
+			else:
+				_add(items, id, xf, col, sp)
 
 
 static func _under_mod(sp: String, x: float, z: float, cov: float) -> float:
@@ -712,6 +1151,12 @@ static func _under_mod(sp: String, x: float, z: float, cov: float) -> float:
 			m *= 1.0 + 1.6 * _edge(cov)
 		"glowcap":
 			m *= 0.3 + cov
+		"gorse", "deadbush", "scaffold":
+			m *= clampf(0.4 + _noise[5].get_noise_2d(x, z) * 1.8, 0.0, 2.2)
+		"ashdrift", "cinders":
+			m *= clampf(0.7 + _noise[4].get_noise_2d(x * 0.8, z * 0.8) * 1.6, 0.0, 2.0)
+		"lily":
+			m *= clampf(0.5 + _noise[2].get_noise_2d(x * 1.3, z * 1.3) * 2.0, 0.0, 2.0)
 		"flowers":
 			pass
 	if sp == "flowers":
@@ -736,8 +1181,10 @@ static func _plant_xf(rng: RandomNumberGenerator, sp: String, p: Vector3, nrm: V
 	var s := rng.randf_range(0.8, 1.25)
 	var up := Vector3.UP
 	match sp:
-		"litter", "moss", "roots":
+		"litter", "moss", "roots", "ashdrift", "scaffold":
 			up = nrm
+		"lily":
+			up = Vector3.UP
 		"log":
 			up = nrm.lerp(Vector3.UP, 0.3).normalized()
 		_:
@@ -758,10 +1205,10 @@ static func _plant_xf(rng: RandomNumberGenerator, sp: String, p: Vector3, nrm: V
 
 ## Each chunk draws only `per` variants of a species (every variant is a draw call per chunk);
 ## neighbouring chunks pick different ones, so the variety is still there across the wood.
-static func _variant(list: Array, x: float, z: float, csize: float, per: int, rng: RandomNumberGenerator) -> String:
+static func _variant(list: Array, x: float, z: float, csize: float, per: int, rng: RandomNumberGenerator, lh := 0) -> String:
 	if list.size() <= per:
 		return list[rng.randi() % list.size()]
-	var h := absi(hash(Vector2i(floori(x / csize), floori(z / csize))) + hash(list[0]))
+	var h := absi(hash(Vector2i(floori(x / csize), floori(z / csize))) + (lh if lh != 0 else hash(list[0])))
 	return list[(h + rng.randi() % per) % list.size()]
 
 
@@ -770,11 +1217,12 @@ static func _tint(rng: RandomNumberGenerator, amt: float) -> Color:
 	return Color(v * rng.randf_range(0.96, 1.04), v, v * rng.randf_range(0.96, 1.04), 1.0)
 
 
-static func _add(items: Dictionary, id: String, xf: Transform3D, col: Color) -> void:
+static func _add(items: Dictionary, id: String, xf: Transform3D, col: Color, sp := "") -> void:
 	if not items.has(id):
 		items[id] = []
 	(items[id] as Array).append([xf, col])
-	var sp := id.substr(0, id.rfind("_"))
+	if sp == "":
+		sp = id.substr(0, id.rfind("_"))
 	placed[sp] = int(placed.get(sp, 0)) + 1
 	instances.append([id, xf.origin])
 
@@ -790,8 +1238,19 @@ const STONE_RANGE := 44.0
 const STONE_CELL := 4.0
 
 
+## r34 flora: the regions' own stone (LOOKS props), per m2 at full look weight. [mesh, size, style
+## override ("" = the look's), sink fraction, visibility range, collides]
+const PROPS := {
+	"rubble": ["boulder", Vector3(0.42, 0.26, 0.36), "", 0.3, 40.0, false],
+	"block": ["slab", Vector3(1.15, 0.6, 0.72), "granite", 0.12, 64.0, true],
+	"slag": ["boulder", Vector3(0.95, 0.5, 0.8), "ash", 0.35, 56.0, false],
+	"headstone": ["slab", Vector3(0.55, 0.78, 0.16), "granite", 0.1, 48.0, false],
+	"cairn": ["cairn", Vector3(0.95, 1.25, 0.9), "granite", 0.05, 72.0, true],
+}
+
+
 static func _place_stones(rng: RandomNumberGenerator) -> Dictionary:
-	var out := {}                      # mesh key "style|variant|size" -> Array of [Transform3D, Color]
+	var out := {}                      # mesh key "kind|style|variant" -> Array of [Transform3D, Color]
 	if r30:
 		return out
 	var b := RealmLayout.BOUNDS
@@ -800,7 +1259,14 @@ static func _place_stones(rng: RandomNumberGenerator) -> Dictionary:
 		var x := b.position.x
 		while x < b.end.x:
 			var w := biome_w(x, z)
-			var expect := _rate(STONES, w) * STONE_CELL * STONE_CELL
+			var lk: Array = _lk[_bidx(x, z)]
+			var smul := 1.0
+			var lstyle := ""
+			for e: Array in lk:
+				smul = lerpf(smul, float((e[0] as Dictionary).get("stone_mul", 1.0)), float(e[1]))
+				if float(e[1]) > 0.5:
+					lstyle = String((e[0] as Dictionary).get("style", ""))
+			var expect := _rate(STONES, w) * STONE_CELL * STONE_CELL * smul
 			expect *= clampf(0.5 + _noise[3].get_noise_2d(x * 0.7, z * 0.7) * 1.6, 0.0, 2.0)     # stony patches
 			var n := int(expect)
 			if rng.randf() < expect - n:
@@ -820,10 +1286,10 @@ static func _place_stones(rng: RandomNumberGenerator) -> Dictionary:
 					if float(w[bio]) > bw:
 						bw = float(w[bio])
 						best = bio
-				var style := String(STONE_STYLE.get(best, "granite"))
+				var style := String(STONE_STYLE.get(best, "granite")) if lstyle == "" else lstyle
 				var si := 0 if rng.randf() < 0.78 else 1
 				# one rock variant per chunk and style (each variant is a draw call per chunk)
-				var key := "%s|%d|%d" % [style, absi(hash(Vector2i(floori(px / CHUNK), floori(pz / CHUNK)))) % 4, si]
+				var key := "stone%d|%s|%d" % [si, style, absi(hash(Vector2i(floori(px / CHUNK), floori(pz / CHUNK)))) % 4]
 				var sz: Vector3 = STONE_SIZES[si]
 				var sc := rng.randf_range(0.7, 1.3)
 				var nrm := Vector3(_gnx[k], _gn[k], _gnz[k]).normalized()
@@ -835,16 +1301,82 @@ static func _place_stones(rng: RandomNumberGenerator) -> Dictionary:
 				(out[key] as Array).append([Transform3D(bas.scaled(Vector3(sc, sc * rng.randf_range(0.8, 1.1), sc)), pos), _tint(rng, 0.12)])
 				placed["stone"] = int(placed.get("stone", 0)) + 1
 				instances.append(["stone_%d" % si, pos])
+			for e: Array in lk:
+				var props: Dictionary = (e[0] as Dictionary).get("props", {})
+				for kind: String in props:
+					_place_prop(rng, out, kind, float(props[kind]) * float(e[1]), String((e[0] as Dictionary).get("style", "granite")), x, z)
 			x += STONE_CELL
 		z += STONE_CELL
 	return out
 
 
+static func _place_prop(rng: RandomNumberGenerator, out: Dictionary, kind: String, rate: float, lstyle: String, x: float, z: float) -> void:
+	var pr: Array = PROPS[kind]
+	var expect := rate * STONE_CELL * STONE_CELL * clampf(0.5 + _noise[5].get_noise_2d(x * 0.8, z * 0.8) * 1.6, 0.0, 2.0)
+	var n := int(expect)
+	if rng.randf() < expect - n:
+		n += 1
+	var sz: Vector3 = pr[1]
+	var big := maxf(sz.x, sz.z) * 0.7
+	for c in n:
+		var px := x + rng.randf() * STONE_CELL
+		var pz := z + rng.randf() * STONE_CELL
+		var k := _idx(px, pz)
+		if _ok[k] == 0 or _pd[k] < 1.5 + big or _sd[k] < 1.2 + big or _gn[k] < 0.75:
+			continue
+		var gy := ground_y(px, pz)
+		if gy < WATER_Y + 0.6:
+			continue
+		if _pd[k] < 4.0 + big and RealmLayout.path_dist(Vector2(px, pz)) < 1.5 + big:
+			continue
+		var style := String(pr[2]) if String(pr[2]) != "" else lstyle
+		var key := "%s|%s|%d" % [kind, style, absi(hash(Vector2i(floori(px / CHUNK), floori(pz / CHUNK)))) % 3]
+		var sc := rng.randf_range(0.8, 1.2)
+		var yaw := rng.randf() * TAU
+		var bas := Basis(Vector3.UP, yaw)
+		match kind:
+			"headstone":
+				# every grave faces the mountain (north, -z); old ones lean
+				bas = Basis(Vector3.UP, PI + rng.randf_range(-0.2, 0.2)) * Basis(Vector3.RIGHT, rng.randf_range(-0.22, 0.12))
+			"block":
+				bas = Basis(Vector3.UP, yaw) * Basis(Vector3.FORWARD, rng.randf_range(-0.12, 0.12))
+			_:
+				var nrm := Vector3(_gnx[k], _gn[k], _gnz[k]).normalized()
+				bas = Basis(Quaternion(Vector3.UP, nrm.lerp(Vector3.UP, 0.5).normalized())) * bas
+		var pos := Vector3(px, gy - sz.y * sc * float(pr[3]), pz)
+		var xf := Transform3D(bas.scaled(Vector3(sc, sc, sc)), pos)
+		var box := xf * AABB(Vector3(-sz.x * 0.5, 0.0, -sz.z * 0.5), sz)
+		if _sd[k] < 8.0 and _clash(null, "", Transform3D(), false, box):
+			continue
+		if not out.has(key):
+			out[key] = []
+		(out[key] as Array).append([xf, _tint(rng, 0.1)])
+		placed[kind] = int(placed.get(kind, 0)) + 1
+		instances.append([kind + "_0", pos])
+
+
+static func _prop_mesh(key: String) -> Mesh:
+	var parts := key.split("|")
+	var kind := parts[0]
+	var v := int(parts[2])
+	if kind.begins_with("stone"):
+		return RockKit.boulder(v, STONE_SIZES[int(kind.substr(5))], parts[1])
+	var pr: Array = PROPS[kind]
+	match String(pr[0]):
+		"slab":
+			return RockKit.slab(v, pr[1], parts[1], 0.3 if kind == "headstone" else 0.0, kind == "headstone")
+		"cairn":
+			return RockKit.cairn(v, pr[1], parts[1])
+	return RockKit.boulder(v + 5, pr[1], parts[1])
+
+
 static func _emit_stones(host: Node3D, out: Dictionary) -> int:
 	var n_mm := 0
 	for key: String in out:
-		var parts := key.split("|")
-		var mesh := RockKit.boulder(int(parts[1]), STONE_SIZES[int(parts[2])], parts[0])
+		var mesh := _prop_mesh(key)
+		var kind := key.split("|")[0]
+		var pr: Array = PROPS.get(kind, ["", STONE_SIZES[0], "", 0.0, STONE_RANGE, false])
+		var rng_end: float = pr[4]
 		var per := {}
 		for e: Array in out[key]:
 			var xf: Transform3D = e[0]
@@ -873,16 +1405,33 @@ static func _emit_stones(host: Node3D, out: Dictionary) -> int:
 			mmi.name = "Flora_stone_s"
 			mmi.multimesh = mm
 			mmi.set_meta("site_owned", true)
-			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if kind != "cairn" else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 			mmi.extra_cull_margin = 1.0
 			mmi.lod_bias = 0.5
-			mmi.visibility_range_end = STONE_RANGE
+			mmi.visibility_range_end = rng_end
 			mmi.visibility_range_end_margin = 6.0
 			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 			mmi.add_to_group(Groups.CULL_SKIP)
-			mmi.set_meta(&"flora", ["stone", "s", false, STONE_RANGE, list.size(), 0])
+			mmi.set_meta(&"flora", ["stone", "s", false, rng_end, list.size(), 0])
 			ch.add_child(mmi)
 			n_mm += 1
+			if bool(pr[5]):
+				# cairns and cut blocks are knee-high or more: the walker goes round them
+				var body := StaticBody3D.new()
+				body.name = "FloraBody"
+				body.collision_layer = Layers.WORLD
+				body.collision_mask = 0
+				ch.add_child(body)
+				var sz: Vector3 = pr[1]
+				for e: Array in list:
+					var xf: Transform3D = e[0]
+					var cs := CollisionShape3D.new()
+					var bx := BoxShape3D.new()
+					var sc := xf.basis.get_scale().x
+					bx.size = Vector3(sz.x * (0.75 if kind == "cairn" else 0.95), sz.y, sz.z * (0.75 if kind == "cairn" else 0.95)) * sc
+					cs.shape = bx
+					cs.transform = Transform3D(xf.basis.orthonormalized(), xf.origin - ch.position + xf.basis.y.normalized() * sz.y * sc * 0.5)
+					body.add_child(cs)
 	return n_mm
 
 

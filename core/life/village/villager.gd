@@ -680,6 +680,12 @@ func _act_events(dt: float) -> void:
 				VAudio.play("knock", global_position + _fwd() * 0.8 + Vector3.UP * 1.3, -4.0, 0.92)
 
 
+## The fire this villager tends: their own outpost's (r34: "@fire_<id>"), else the hermit's.
+func _fire_anchor() -> Vector3:
+	var own: Vector3 = village.call("anchor", "@fire_" + id)
+	return own if own != Vector3.INF else village.call("anchor", "@fire")
+
+
 func _fwd() -> Vector3:
 	return Vector3(-sin(yaw), 0, -cos(yaw))
 
@@ -765,7 +771,7 @@ func _pose(dt: float) -> void:
 				r.arm_to("r", Vector3((0.1 + 0.08 * cos(a)) * k, g2 + 0.07, (-0.36 + 0.07 * sin(a)) * k), Vector3(0.8, -0.2, 0.3), null)
 				head_pitch += 0.55
 			else:
-				var fire: Vector3 = _m(village.call("anchor", "@fire"))
+				var fire: Vector3 = _m(_fire_anchor())
 				var poke := 0.06 * sin(_t * 3.1)
 				r.hold(0, Vector3(0.16, g2 + 0.45, -0.22) * Vector3(k, 1, k), (fire - Vector3(0.16, g2 + 0.45, -0.22)).normalized() * -1.0 + Vector3(0, 0, -poke), Vector3(0, 0, -1))
 				arms_free = [false, true]

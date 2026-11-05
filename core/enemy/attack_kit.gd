@@ -20,6 +20,7 @@ const UMBRAL := Color(1.5, 0.5, 2.8)
 const GLOAM := Color(0.75, 1.9, 0.45)          ## the Chanter's corpse-light (violet is the player's)
 
 static var _glob_mesh: SphereMesh
+static var _glob_tints := {}                    ## r34: colour (html) -> SphereMesh, for globs that are not acid
 
 
 static func zone(e: Enemy, at: Vector3, delay: float, gloom: float, opts := {}) -> MeshInstance3D:
@@ -141,6 +142,13 @@ static func lob(from: Vector3, to: Vector3, time: float, col: Color) -> void:
 		_glob_mesh.material = ProcMesh.glow_mat(ACID)
 	var mi := MeshInstance3D.new()
 	mi.mesh = _glob_mesh
+	if not col.is_equal_approx(ACID):
+		var k := col.to_html()
+		if not _glob_tints.has(k):
+			var gm := _glob_mesh.duplicate() as SphereMesh
+			gm.material = ProcMesh.glow_mat(col)
+			_glob_tints[k] = gm
+		mi.mesh = _glob_tints[k]
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	host.add_child(mi)
 	mi.global_position = from

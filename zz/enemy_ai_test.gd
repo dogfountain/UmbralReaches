@@ -12,6 +12,7 @@ var b: Enemy
 var c: Enemy
 var wall: StaticBody3D
 var start_d := 0.0
+var best_d := INF                           ## r34: closest c came to the player in the 7 s (not only the last frame)
 var fails := 0
 
 
@@ -57,6 +58,13 @@ func _physics_process(_d: float) -> void:
 			var enc := main.find_child("Encounters", true, false)
 			if enc:
 				enc.process_mode = Node.PROCESS_MODE_DISABLED
+			# r34 enemies: the flake in "rounds a wall" was the world's own foes -- a named rare (it
+			# wakes within 95 m) and respawning camps walked in, took the attack turns and knocked the
+			# player about, so the wretch waited in the ring instead of closing. The test owns its foes.
+			for n: String in ["EnemySpawner", "Rares"]:
+				var sv := main.find_child(n, true, false)
+				if sv:
+					sv.process_mode = Node.PROCESS_MODE_DISABLED
 			for n in get_tree().get_nodes_in_group(Groups.ENEMY):
 				(n as Node).queue_free()
 			p.teleport(Vector3(AT.x + 20.0, _gy(AT.x + 20.0, AT.z) + 0.3, AT.z))
@@ -93,8 +101,14 @@ func _physics_process(_d: float) -> void:
 				p.teleport(Vector3(mid.x + 6.0, _gy(mid.x + 6.0, mid.z) + 0.3, mid.z))
 				c = _spawn("res://core/enemy/wretch.gd", mid + Vector3(-4.0, 0.0, 0.0))
 				c.set("chase_range", 20.0)
+				for n in get_tree().get_nodes_in_group(Groups.ENEMY):
+					if n != c:
+						(n as Node).queue_free()
+			if t - t0 > 5 and is_instance_valid(c):
+				best_d = minf(best_d, c.global_position.distance_to(p.global_position))
 			if t - t0 == 5 + 60 * 7:
 				var dd := c.global_position.distance_to(p.global_position)
-				check("rounds a wall to reach the player", dd < 4.0, "%.1f m from the player after 7 s" % dd)
+				var past := c.global_position.x > wall.global_position.x + 0.4
+				check("rounds a wall to reach the player", best_d < 4.0 and past, "%.1f m now, closest %.1f m, past the wall %s" % [dd, best_d, past])
 				print("ENEMYAI %s" % ("PASS" if fails == 0 else "FAIL"))
 				get_tree().quit(0 if fails == 0 else 1)

@@ -156,7 +156,28 @@ static func complete(id: String, choice := -1) -> void:
 			Events.toast.emit(gl)
 	d.erase("rw")
 	_toast("Task done: %s.%s" % [String(Chains.QUESTS[id].name), ("  " + got) if got != "" else ""])
+	# r34: the last task of a raid's attunement chain loosens the boss's hold
+	for boss: String in Chains.ATTUNE:
+		if String(Chains.ATTUNE[boss]) == id:
+			if not (Travel.story.get("flags") is Dictionary):
+				Travel.story["flags"] = {}
+			(Travel.story.flags as Dictionary)["attuned_" + boss] = true
+			_toast(String(ATTUNE_TOAST.get(boss, "")))
 	_changed(id)
+
+
+## r34: the raids' attunements. True once the boss's pre-raid chain is handed in (Chains.ATTUNE);
+## the raid fights read it (a loosened hold: the boss agents decide what that costs it).
+static func attuned(boss: String) -> bool:
+	var f: Variant = Travel.story.get("flags", {})
+	return f is Dictionary and bool((f as Dictionary).get("attuned_" + boss, false))
+
+
+const ATTUNE_TOAST := {
+	"thornwarden": "Attuned: the Thornwarden will hold back a hand in the Ring.",
+	"bone_abbot": "Attuned: the Bone Abbot's count is short. He doubts.",
+	"ascended_warden": "Attuned: the great bell in the Warden's hand will ring wrong.",
+}
 
 
 ## Set an unfinished task aside: forgotten as if never begun (the giver can offer it again). A
@@ -303,7 +324,8 @@ static func att(npc: String) -> int:
 
 const NAMES := {"hild": "Hild", "fennick": "Fennick", "oswin": "Oswin", "nan": "Nan", "col": "Col", "bet": "Bet",
 	"wenna": "Wenna", "wyck": "Wyck", "abel": "Abel", "grisel": "Grisel", "keep": "The keep", "hesk": "Hesk",
-	"harrow": "Ostrin", "brannoc": "Brannoc"}
+	"harrow": "Ostrin", "brannoc": "Brannoc", "ruan": "Gammer Ruan", "jory": "Jory", "ysolt": "Ysolt",
+	"elspeth": "Elspeth", "linnet": "Linnet", "agathe": "Sister Agathe", "cadoc": "Cadoc"}
 
 
 static func add_att(npc: String, n: int) -> void:

@@ -174,10 +174,10 @@ func _physics_process(_d: float) -> void:
 				b.global_position = p.global_position + Vector3(10.0, 0.0, 0.0)
 				b.on_engaged(null)
 				check("boss stands through an intro", b._ward_t > 1.5 and b._state == Enemy.RECOVER)
-				check("thornwarden hp 110", b.max_hp == 110)
+				check("thornwarden hp %d (r34 raid: was 110)" % Thornwarden.HP, b.max_hp == Thornwarden.HP and Thornwarden.HP >= 110)
 				b._ward_t = 0.0
 				b.take_hit(500.0, null)
-				check("phase I holds until two pounces", absf(b.hp - 55.5) < 0.01, "hp %.1f" % b.hp)
+				check("phase I holds at its floor", b.hp > 0.0 and b.hp >= b.max_hp * 0.6, "hp %.1f" % b.hp)
 				b._sig = 2
 				var before := b.hp
 				var bolt := (load("res://core/player/magic_bolt.tscn") as PackedScene).instantiate() as MagicBolt
@@ -194,11 +194,11 @@ func _physics_process(_d: float) -> void:
 				b.queue_free()
 				var a := BoneAbbot.new()
 				m.add_child(a)
-				check("abbot hp 160", a.max_hp == 160)
+				check("abbot hp %d (r34 crypt raid: was 160)" % BoneAbbot.HP, a.max_hp == BoneAbbot.HP and BoneAbbot.HP >= 160)
 				a.queue_free()
 				var w := AscendedWarden.new()
 				m.add_child(w)
-				check("warden hp 220", w.max_hp == 220)
+				check("warden hp %d (r34 raid: was 220)" % AscendedWarden.HP, w.max_hp == AscendedWarden.HP and AscendedWarden.HP >= 220)
 				w.queue_free()
 			if t - t0 == 10:
 				var lance := SkillLance.new()

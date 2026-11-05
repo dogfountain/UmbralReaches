@@ -41,12 +41,12 @@ func _ready() -> void:
 	sk.scale = Vector3.ONE * 1.3
 	_vis.add_child(sk)
 	_light = OmniLight3D.new()
-	_light.light_color = Color(0.75, 0.45, 1.0)
+	_light.light_color = Color(1.0, 0.68, 0.36) if relic_id == "bone" else Color(0.75, 0.45, 1.0)   # r34 crypt: the pit hall's candle-gold, not violet
 	_light.omni_range = 3.5 * size
 	_light.light_energy = 1.4 + 0.3 * size
 	_light.position = Vector3(0, 0.8 * size, 0)
 	add_child(_light)
-	var motes := Vfx.emitter(Color(1.3, 0.6, 3.0), {"count": 24, "life": 1.6, "speed": Vector2(0.05, 0.25), "size": 0.03, "gravity": -0.4, "radius": 0.35, "swirl": 1.5, "turbulence": true})
+	var motes := Vfx.emitter(Color(2.2, 1.3, 0.45) if relic_id == "bone" else Color(1.3, 0.6, 3.0), {"count": 24, "life": 1.6, "speed": Vector2(0.05, 0.25), "size": 0.03, "gravity": -0.4, "radius": 0.35, "swirl": 1.5, "turbulence": true})
 	motes.position = Vector3(0, 0.45 * size, 0)
 	motes.scale = Vector3.ONE * size
 	add_child(motes)

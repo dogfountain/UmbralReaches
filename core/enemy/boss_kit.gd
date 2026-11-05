@@ -329,7 +329,9 @@ static func intro(e: Enemy, col: Color, dur := INTRO) -> void:
 static func absorb(e: Enemy, dmg: float, from: Node, floor_hp: float) -> float:
 	if from is MagicBolt and not (from as MagicBolt).heavy:
 		dmg *= BOLT_CHIP
-	if floor_hp > 0.0 and e.hp - dmg < floor_hp:
+	# r34 raids: a floor holds only what is above it (a boss already below it -- set by a test, or a
+	# phase that moved on -- is not made immortal by it)
+	if floor_hp > 0.0 and e.hp > floor_hp and e.hp - dmg < floor_hp:
 		var left := maxf(0.0, e.hp - floor_hp)
 		var now := Time.get_ticks_msec()
 		if now - int(e.get_meta(&"floor_pop", 0)) > 450:
@@ -460,3 +462,54 @@ static func enrage_tick(e: Enemy, delta: float, at: float) -> float:
 			HitText.pop(e.global_position + Vector3.UP * (e.hp_bar_y + 0.9), "fury", RAGE, true)
 			Vfx.ring(e.global_position + Vector3.UP * 0.15, 3.0, RAGE, 0.5, 0.06, Vector3.UP, 1.0)
 	return minf(1.0 + ENRAGE_HASTE * float(steps), 1.5)
+
+
+# --- r34 raids (docs/r34/raids_overworld.md): the boss emote line, the room, pushes ---------------
+## API added in r34 (stable; the Bone Abbot's crypt may use it too):
+##   BossKit.emote(e, text, col)    the raid-warning line under the boss bar (BossArena.emote), WoW's
+##                                  "boss emote": what the boss is about to do, said before it does it
+##   BossKit.arena(e) / room(e)     the BossArena the boss fights in / that arena's `room` node (or null)
+##   BossKit.push(p, dir, speed, d) shove the player along `dir` (a gale, a shockwave) by moving and
+##                                  colliding: walls and parapets still stop them
+
+const EMOTE_COL := Color(1.0, 0.82, 0.45)
+
+
+static func arena(e: Node) -> Node:
+	if e == null or not e.is_inside_tree():
+		return null
+	for a in e.get_tree().get_nodes_in_group(&"boss_arena"):
+		if a.get("_boss") == e:
+			return a
+	return null
+
+
+static func room(e: Node) -> Node:
+	var a := arena(e)
+	if a == null:
+		return null
+	var r: Variant = a.get("room")
+	return r as Node if r is Node and is_instance_valid(r) else null
+
+
+## The boss says what comes: a raid-warning line under its bar (and a toast when there is no bar).
+static func emote(e: Node, text: String, col := EMOTE_COL) -> void:
+	if e == null:
+		return
+	if e is Node:
+		(e as Node).set_meta(&"last_emote", text)
+	var a := arena(e)
+	if a != null and a.has_method("emote"):
+		a.call("emote", text, col)
+	else:
+		Events.toast.emit(text)
+
+
+## Move the player along `dir` (flat) at `speed` m/s this frame, colliding with the world.
+static func push(p: Player, dir: Vector3, speed: float, delta: float) -> void:
+	if p == null or not p.is_inside_tree():
+		return
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if d.length() < 0.001:
+		return
+	p.move_and_collide(d.normalized() * speed * delta)

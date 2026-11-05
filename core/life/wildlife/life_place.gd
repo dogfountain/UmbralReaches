@@ -164,6 +164,31 @@ static func crow_roosts(root: Node, space: PhysicsDirectSpaceState3D, rng: Rando
 					continue
 				shuffle(ps, rng)
 				out.append({"name": "%s_%d_%d" % [site_name, cell.x, cell.y], "center": _mean(ps), "perches": ps.slice(0, 7)})
+	# r34 flora: crows in the Waiting Field's cypresses and on the Cinder Orchard's burned trees (the
+	# busiest 24 m stand of each), sat on the tree tops
+	for pair: Array in [["necropolis", "cypress_", 0.97], ["orchard", "fruit_", 0.8]]:
+		var groups := {}
+		for tr: Array in Flora.trees:
+			var id := String(tr[1])
+			var b: Vector3 = tr[0]
+			if not id.begins_with(String(pair[1])) or String(RealmLayout.region_at(b.x, b.z).get("id", "")) != String(pair[0]):
+				continue
+			var d: Dictionary = Flora.TreeGen.kind(id)
+			var sc := float(tr[3]) / maxf(float(d.h), 0.01)
+			var top := b + Vector3(0, Flora.mesh_aabb(id).end.y * sc * float(pair[2]), 0)
+			var cell := Vector2i(floori(b.x / 24.0), floori(b.z / 24.0))
+			if not groups.has(cell):
+				groups[cell] = []
+			(groups[cell] as Array).append([top, rng.randf_range(-PI, PI)])
+		var best := Vector2i.ZERO
+		var bn := 0
+		for cell: Vector2i in groups:
+			if (groups[cell] as Array).size() > bn:
+				bn = (groups[cell] as Array).size()
+				best = cell
+		if bn >= 3:
+			var ps: Array = groups[best]
+			out.append({"name": "%s_trees" % pair[0], "center": _mean(ps), "perches": ps.slice(0, 6)})
 	return out
 
 
@@ -250,10 +275,11 @@ static func open_ground(x: float, z: float) -> bool:
 ## (RealmFlora's canopy cover), anywhere a deer could stand.
 static func forest_edges(rng: RandomNumberGenerator) -> Array[Vector3]:
 	var out: Array[Vector3] = []
-	var x := -104.0
-	while x < 104.0:
-		var z := -66.0
-		while z < 76.0:
+	var bb := RealmLayout.BOUNDS.grow(-6.0)          # r34 layout: the whole (doubled) Realm (was x -104..104, z -66..76)
+	var x := bb.position.x
+	while x < bb.end.x:
+		var z := maxf(bb.position.y, -66.0)           # (south of the Crowns)
+		while z < bb.end.y:
 			var px := x + rng.randf_range(-2.5, 2.5)
 			var pz := z + rng.randf_range(-2.5, 2.5)
 			if Flora.cover_at(px, pz) < 0.12 and open_ground(px, pz) and RealmLayout.path_dist(Vector2(px, pz)) > 3.0:

@@ -17,7 +17,7 @@ var p: Player
 var frames := 0
 var started := false
 var step := 8.0
-var rect := Rect2(-110.0, -150.0, 220.0, 230.0)
+var rect := RealmLayout.BOUNDS
 var pts: Array[Vector2] = []
 var pi := -1
 var phase := 0                 ## 0 settle, 1..4 legs

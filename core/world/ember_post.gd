@@ -8,6 +8,11 @@ extends Interactable
 
 const FireRoad := preload("res://core/world/fire_road.gd")
 const OFFSET := Vector3(-2.3, 0.0, 0.4)  ## brazier-local: to its side, off the respawn spot (+z)
+## r34 layout: fires whose side is somebody's road. Hearthward's fire (the spawn Sanctuary) has the
+## villagers' walking nodes on all four sides (village_cast.gd brazier_w/e/n/s, 2.3 m out): the post at
+## OFFSET stood on brazier_w and cut the green_w edge (zz/village_test). Its post goes to the north-west
+## diagonal, 2.4 m clear of the respawn spot and every walking node and edge.
+const SEAT_OFFSETS := {"Sanctuary": Vector3(-2.3, 0.0, 2.6)}
 const IRON := Color(0.09, 0.085, 0.09)
 const STONE := Color(0.32, 0.3, 0.28)
 
@@ -21,7 +26,7 @@ var _seats := 0
 
 func _ready() -> void:
 	add_to_group(Groups.INTERACTABLE)
-	position = OFFSET
+	position = SEAT_OFFSETS.get(String(brazier.name), OFFSET) if brazier != null else OFFSET
 	_build()
 	_apply(brazier != null and brazier.lit)
 

@@ -11,6 +11,11 @@ uniform vec3 sky_color = vec3(0.10, 0.15, 0.32);   // moonlit sky seen in the wa
 uniform float sky_strength = 0.12;
 uniform float ripple = 0.22;
 uniform float fade_depth = 0.35;
+// r34 flora: seen from high above (overviews, the map camera) the pools read as holes: fresnel is ~0
+// looking straight down and the peat colour is near black. Water always mirrors some sky, and more
+// of it with distance; inside the player's 82 m far plane the near look is unchanged but for the floor.
+uniform float sky_floor = 0.25;      // share of the sky term kept looking straight down
+uniform float far_sky = 0.55;        // extra sky sheen on far water (fades in 70..260 m)
 
 varying vec3 wpos;
 
@@ -50,6 +55,8 @@ void fragment() {
 	ROUGHNESS = 0.08;
 	METALLIC = 0.0;
 	SPECULAR = 0.3;
-	EMISSION = sky_color * sky_strength * fres;
+	float far_k = smoothstep(70.0, 260.0, -VERTEX.z);
+	EMISSION = sky_color * sky_strength * mix(sky_floor, 1.0, fres) + sky_color * far_sky * 0.18 * far_k;
+	ALBEDO = mix(ALBEDO, vec3(0.05, 0.07, 0.1), far_k * 0.6);
 	ALPHA = mix(0.0, mix(0.82, 0.97, fres), smoothstep(0.0, 0.06, thick));
 }

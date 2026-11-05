@@ -14,7 +14,21 @@ const BRAZIERS := {
 	"StairFoot": [Vector2(-5.0, -2.0), Vector2(0.0, -2.0)],        # the Crossing's foot, by rift_rim
 	"Shrine": [Vector2(-31.0, 4.0), Vector2(-36.0, 8.6)],          # the Glimmer Glade, beside west_way
 	"Landing": [Vector2(84.0, -36.0), Vector2(78.0, -40.0)],       # the Barrow Field, where fen_descent starts
-	"Threshold": [Vector2(47.0, -55.0), Vector2(45.0, -60.5)],     # on the fen below the Ossuary's fen door, off fen_descent
+	"Threshold": [Vector2(50.6, -57.5), Vector2(45.0, -60.5)],     # on the fen below the Ossuary's fen door, off fen_descent (r34: was (47, -55), half a metre off the Lay Brothers' Stair's foot: the climb glanced off it)
+}
+## r34 places (docs/r34/places.md): one fire for each new region (RealmLayout.SLOTS "fire"), so the
+## Ember Road and the checkpoints keep the same spacing over the doubled ground. Copies of a valley
+## fire, made unlit under Zone/Braziers (kindle memory is by name; restored here, as the scene's own
+## restore ran before these existed). Their names on the Road and the map come from the region.
+## Camps keep 13 m off them (the enemies pass). [xz, the point the fire faces]
+const R34_FIRES := {
+	"QuarryFire": [Vector2(-120.0, -83.0), Vector2(-126.0, -84.0)],     # the quarry's mouth, beside west_track's end
+	"HoldsFire": [Vector2(-138.0, 15.5), Vector2(-133.0, 15.0)],        # the Rooted Holds, west of west_track (the holds stand east of it)
+	"FoundryFire": [Vector2(123.0, -76.0), Vector2(128.0, -74.0)],      # moor_track's end, under the first slag heap
+	"MoorFire": [Vector2(126.0, -8.0), Vector2(132.0, -9.0)],           # beside moor_track, under the tor
+	"OrchardFire": [Vector2(-99.0, 104.0), Vector2(-106.0, 104.0)],     # beside orchard_lane
+	"FieldFire": [Vector2(8.0, 108.0), Vector2(1.0, 110.0)],            # the Waiting Field's gate, off necropolis_way
+	"MereFire": [Vector2(103.0, 98.0), Vector2(98.0, 96.0)],            # the mere's north bank, by mere_causeway
 }
 
 
@@ -22,6 +36,7 @@ static func build(root: Node) -> void:
 	var t0 := Time.get_ticks_msec()
 	ThornHenge.use_realm()
 	ThornHenge.build(root)
+	_reserve_raids()
 	_braziers(root)
 	_ossuary_cut(root)
 	# r30: the watchtower's ground (RealmWayfinding builds it after the flora; reserved now so the
@@ -35,6 +50,52 @@ static func build(root: Node) -> void:
 		ThornHenge.C, BRAZIERS.keys(), Ossuary.fen_out, Time.get_ticks_msec() - t0])
 
 
+## r34 layout: the raid floors (RealmLayout.RAIDS) as sites, registered before the stamp, lore and flora
+## so nothing is planted on them: the henge's a level terrace (cut and fill to its y), the summit's a
+## cut-only round zone (its deck is built over the chasm). The boss agents build inside them.
+static func _reserve_raids() -> void:
+	for r: Dictionary in RealmLayout.RAIDS:
+		var n := "raid_" + String(r.id)
+		if String(r.mode) == "level":
+			WorldLanes.register_terrace(n, r.c, float(r.r), float(r.y))
+		else:
+			# the summit's own monument (SummitDress) and the Ossuary's lift tower already stand in it
+			WorldLanes.register_zone(n, r.c, float(r.r), float(r.y), float(r.y) - 0.8, ["SummitAltar", "Area_ossuary"])
+
+
+## r34 places: every placed fire's name (the valley's four, then the new regions' seven).
+static func fire_names() -> Array[String]:
+	var out: Array[String] = []
+	for n: String in BRAZIERS:
+		out.append(n)
+	for n: String in R34_FIRES:
+		out.append(n)
+	return out
+
+
+static func _fire(n: String) -> Array:
+	return BRAZIERS[n] if BRAZIERS.has(n) else R34_FIRES[n]
+
+
+## r34 places: the new regions' fires, copied from a valley fire and left cold (kindles restored).
+static func _r34_fires(root: Node) -> void:
+	var holder := root.get_node_or_null("Zone/Braziers")
+	var src := root.get_node_or_null("Zone/Braziers/StairFoot") as Brazier
+	if holder == null or src == null:
+		return
+	for n: String in R34_FIRES:
+		if holder.get_node_or_null(n) != null:
+			continue
+		var b := src.duplicate() as Brazier
+		b.name = n
+		b.start_lit = false
+		holder.add_child(b)
+		if b.lit:
+			b._set_lit(false, false)
+		if Travel.was_lit(n):
+			b.kindle_quiet()
+
+
 ## Ground under xz: the median of five rays (the terrain, or the macro shape before it exists).
 static func _ground(space: PhysicsDirectSpaceState3D, p: Vector2, r := 0.6) -> float:
 	var hs: Array[float] = []
@@ -46,13 +107,14 @@ static func _ground(space: PhysicsDirectSpaceState3D, p: Vector2, r := 0.6) -> f
 
 static func _braziers(root: Node) -> void:
 	var space := (root as Node3D).get_world_3d().direct_space_state
-	for n: String in BRAZIERS:
+	_r34_fires(root)
+	for n: String in fire_names():
 		var b := root.get_node_or_null("Zone/Braziers/" + n) as Node3D
 		if b == null:
 			push_warning("RealmBosses: no brazier " + n)
 			continue
-		var at: Vector2 = BRAZIERS[n][0]
-		var face: Vector2 = BRAZIERS[n][1]
+		var at: Vector2 = _fire(n)[0]
+		var face: Vector2 = _fire(n)[1]
 		var g := _ground(space, at)
 		b.global_position = Vector3(at.x, g - 0.12, at.y)            # set into the ground like SeatProps.plant_solid
 		var d := face - at
@@ -73,10 +135,10 @@ static func _reseat_braziers_later(root: Node) -> void:
 		return
 	await tree.physics_frame
 	var space := (root as Node3D).get_world_3d().direct_space_state
-	for n: String in BRAZIERS:
+	for n: String in fire_names():
 		var b := root.get_node_or_null("Zone/Braziers/" + n) as Node3D
 		if b:
-			var at: Vector2 = BRAZIERS[n][0]
+			var at: Vector2 = _fire(n)[0]
 			b.global_position.y = _ground(space, at) - 0.12
 
 

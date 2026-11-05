@@ -1,59 +1,82 @@
 class_name AscendedWarden
 extends Husk
-## Boss of the summit: a towering hollowed priest at 2.2x that floats in a bell robe (no legs), a
-## white-gold mask and a mandorla of light behind its head (r30: it was violet, a hedgehog of rods). It blinks round the dais and judges from range.
-## Phase 1  every 5 s it blinks to another point of the dais (rift-out, rift-in), raises its hands
-##          (the fan's cone fills on the ground) and throws a fan of seven orbs.
-## Phase 2  (below 60 %) blinks every 3.5 s and each arrival throws a shock ring; between blinks it
-##          calls judgement: two lanes of light across the dais, through you.
-## Phase 3  (below 30 %) the halo breaks open: blinks every 2.6 s, two fans, and a wide ring of
-##          light round itself after each arrival.
-## r31 (docs/enshrouded/enemies.md):
-##   halo     while its hands are up for a fan, the broken halo behind its head burns open (a gold
-##            knot): a bolt that bursts on it scatters the volley (the cone fades, no orbs) and it
-##            reels, broken. The fan still counts as shown.
-##   eclipse  (phase III, every 12 s) the light goes out of the dais: the whole floor fills dark-
-##            gold for 2.6 s, save two pillars of light at its blink points. Stand in its light.
-## r33 (WoW encounter design; every move is a cast the HUD shows, see BossKit):
-##   Radiant Fan (interruptible: the halo, or a heavy blow) / Judgement / Eclipse (stand IN the light)
-##   Mandorla Flare  (phase II+, every 14 s) the light behind it flares: the whole dais from FLARE_IN to
-##            FLARE_R round it fills for 2 s -- only its own feet are safe. Get under it.
-##   Call the Acolytes  (phase II+, every 30 s) a 2 s cast (a heavy blow interrupts); unbroken, two
-##            Gilded Acolytes (Chanters) step out of the light to sigil you and shroud each other.
-##   The Door Closes  soft enrage at ENRAGE_AT s: more Gloom per orb and lane, quicker judgement.
+## Boss of the summit: a towering hollowed priest that floats in a bell robe, a white-gold mask and a
+## mandorla of light behind its head, at raid scale (r34: 3x, on a 56 m deck over the chasm --
+## core/world/summit_raid.gd). docs/r34/raids_overworld.md has the whole fight.
+##
+## Phase I    "The Hierarch's Judgement" (100-65 %)
+##   Rift Step       it blinks to another point of the deck (rift-out, rift-in).
+##   Radiant Fan     (interruptible: the halo behind its head, or a heavy blow) a cone fills, seven orbs.
+##   Judgement       two lanes of light crossing at you.
+##   Mandorla Flare  the deck burns from FLARE_IN to FLARE_R round it: only under it is safe.
+## Intermission "The Ascension" (at 65 %)
+##   It rises over the deck (immune) and the four pylons go out. The sky falls: stars strike at random
+##   and on you, never inside a lit pylon's ring. Stand in each dark pylon's ring to rekindle it; two
+##   Gilded Acolytes come out of the light. All four lit: it falls back to the deck, reeling. Not in time
+##   (ASCEND_TIME): "The Sky Breaks" -- a blow that only a lit ring shelters you from.
+## Phase II   "The Door Opened" (65-30 %)
+##   Gale of the Door  (1.6 s cast, then 5 s) a wind from it that drives you toward the broken edges;
+##                   lean into it, or shelter behind a lit pylon. The fall is the price.
+##   Eclipse         the deck fills dark-gold; only the lit pylons' rings are spared, and the ring you
+##                   stood in is spent (rekindle it: RELIGHT s in its ring).
+##   Call the Acolytes  (interruptible) two Gilded Acolytes; arrival rings on every blink; the rest go on.
+## Phase III  "Aurel, Hierarch" (30-0 %), the burn
+##   he lets go of the door: every pylon blazes again, the halo breaks open: blinks every 2.6 s, double
+##   fans, the falling sky on you, eclipses and flares. Soft enrage at ENRAGE_AT s (The Door Closes).
 
 const FAN_WINDUP := 0.85
+const HP := 760
+const QuestBook := preload("res://core/story/quest_book.gd")
+var _attuned := false
+const SCALE := 3.0
 
 var phase := 1
-var _sig := 0                   ## r30: signature moves this phase (I: fans, II: judgements, III: double fans)
+var ascended := false           ## the intermission: risen over the deck, immune
+var _sig := 0                   ## signature moves this phase (I: fans, II: judgements, III: double fans)
 var anchors: Array[Vector3] = []
 var _blink_t := 5.0
 var _fan_t := 99.0
 var _fans_left := 0
-var _judge_t := 3.0
-var _eclipse_t := 6.0
+var _judge_t := 4.0
+var _eclipse_t := 16.0
 var _arena_c := Vector3.INF
 var _arena_r := 10.0
-const ECLIPSE_EVERY := 12.0
-const ECLIPSE_FILL := 2.6
+const ECLIPSE_EVERY := 24.0
+const ECLIPSE_FILL := 2.8
 const POOL_R := 2.3
-const FLARE_EVERY := 14.0
+const FLARE_EVERY := 19.0
 const FLARE_TIME := 2.0
-const FLARE_IN := 3.2
-const FLARE_R := 11.0
-const ACOLYTES_EVERY := 30.0
-const ENRAGE_AT := 210.0
+const FLARE_IN := 3.6
+const FLARE_R := 16.0
+const ACOLYTES_EVERY := 34.0
+const GALE_EVERY := 28.0
+const GALE_CAST := 1.6
+const GALE_TIME := 5.0
+const GALE_SPEED := 3.0
+const ASCEND_TIME := 60.0
+const ASCEND_H := 10.0
+const SKY_GLOOM := 55.0
+const ENRAGE_AT := 400.0
 const ACOLYTE := preload("res://core/enemy/chanter.gd")
-var _flare_t := 6.0
+var _flare_t := 14.0
 var _acolytes_t := 10.0
+var _gale_t := 12.0
+var _gale_left := 0.0
+var _gale_fx := 0.0
+var _star_t := 2.0
+var _star_p_t := 3.0
+var _asc_t := 0.0
+var _asc_from := Vector3.ZERO
+var _room: Node = null
+var _grav := 16.0
 
 
 func _init() -> void:
 	super._init()
 	body_kind = &"ascended_warden"
-	max_hp = 220                # r30: at 120 phase III was ~5 s, two blinks (r29: 60)
-	hp = 220.0
-	walk_speed = 2.2
+	max_hp = HP                 # r34 raids: 760 (r30: 220) for a 5-7 minute fight with an intermission
+	hp = float(HP)
+	walk_speed = 2.4
 	strike_gloom = 42.0
 	weak_socket = "head"                        # the halo, behind the mask
 	weak_offset = Vector3(0.0, 0.14, 0.22)
@@ -62,58 +85,75 @@ func _init() -> void:
 
 
 func phase_marks() -> Array[float]:
-	return [0.6, 0.3]
+	return [0.65, 0.3]
 
 
 func _build() -> void:
 	super._build()
 	name = "AscendedWarden"
-	BossKit.embiggen(self, 2.2)
+	BossKit.embiggen(self, SCALE)
 	posture({"hunch": 0.05, "crouch": 0.0, "arm_reach": 0.1, "head_jut": 0.1, "limp": 0.0, "sway": 0.4, "twitch": 0.0, "splay": 0.15})
-	# its halo lights the dais (it was lit only by the player's lantern)
+	# its halo lights the deck round it
 	var head := _rig.socket("head") if _rig else null
 	if head:
 		var l := OmniLight3D.new()
 		l.name = "Halo"
 		l.light_color = Color(1.0, 0.9, 0.7)
-		l.light_energy = 1.8
-		l.omni_range = 8.0
+		l.light_energy = 2.2
+		l.omni_range = 12.0
 		l.shadow_enabled = false
 		head.add_child(l)
 		l.position = Vector3(0.0, 0.14, 0.22)
 
 
 func _absorb(dmg: float, from: Node) -> float:
+	if ascended:
+		var now := Time.get_ticks_msec()
+		if now - int(get_meta(&"asc_pop", 0)) > 600:
+			set_meta(&"asc_pop", now)
+			HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.6), "ascended: rekindle the pylons", Color(1.0, 0.9, 0.6))
+		return 0.0
 	return BossKit.absorb(self, dmg, from, BossKit.phase_floor(self, phase, phase_marks(), _sig))
 
 
 func on_engaged(arena: Node) -> void:
-	BossKit.intro(self, BossKit.HOLY)
+	BossKit.intro(self, BossKit.HOLY, 2.4)
+	_room = arena.get("room") as Node if arena != null else null
 	if anchors.is_empty() and arena is Node3D:
 		var c := (arena as Node3D).global_position
-		# six blink points over the whole dais, each dropped onto whatever floor is below it
-		var reach: float = (arena as BossArena).radius * 0.7 if arena is BossArena else 8.0
 		_arena_c = c
 		_arena_r = (arena as BossArena).radius if arena is BossArena else 11.0
 		var space := (arena as Node3D).get_world_3d().direct_space_state
-		for i in 6:
-			var a := TAU * float(i) / 6.0 + PI / 6.0
-			var p := c + Vector3(cos(a) * reach, 3.0, sin(a) * reach)
-			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(p, p + Vector3.DOWN * 8.0, Layers.WORLD))
-			if hit:
-				anchors.append(hit.position as Vector3)
+		# eight blink points: four near (between the pylons' lines) and four far (by the rim)
+		for ring: Array in [[0.33, PI * 0.25], [0.68, 0.0]]:
+			for i in 4:
+				var a := TAU * float(i) / 4.0 + float(ring[1])
+				var p := c + Vector3(cos(a), 0.0, sin(a)) * _arena_r * float(ring[0]) + Vector3.UP * 3.0
+				var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(p, p + Vector3.DOWN * 8.0, Layers.WORLD))
+				if hit:
+					anchors.append(hit.position as Vector3)
+	# r34 merge: attunement (Elspeth's bell): the ascension runs 15 s longer before the sky breaks
+	_attuned = QuestBook.attuned("ascended_warden")
+	BossKit.emote(self, "The founder's bell rings in you: his ascension will be slow." if _attuned \
+		else "The Ascended Warden turns from the door. Mind the broken edges.", BossKit.EMOTE_COL)
 
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	if _state == DEAD:
 		return
-	delta *= BossKit.enrage_tick(self, delta, ENRAGE_AT)     # r33: the Door Closes: quicker judgement
-	if phase == 1 and hp <= float(max_hp) * 0.6:
+	delta *= BossKit.enrage_tick(self, delta, ENRAGE_AT)     # the Door Closes: quicker judgement
+	if ascended:
+		_tick_ascended(delta)
+		return
+	if phase == 1 and hp <= float(max_hp) * 0.65:
 		phase = 2
 		_sig = 0
 		_fan_t = 99.0                           # a volley still winding up is taken back with its cone
 		_fans_left = 0
+		if _room != null and _room.has_method("snuff_all") and _arena_c != Vector3.INF:
+			_ascend()
+			return
 		BossKit.transition(self, "His light turns to judgement. One hand never leaves the door.", BossKit.HOLY)
 		_blink_t = 1.5
 	elif phase == 2 and hp <= float(max_hp) * 0.3:
@@ -121,8 +161,15 @@ func _physics_process(delta: float) -> void:
 		_sig = 0
 		_fan_t = 99.0
 		_fans_left = 0
-		BossKit.transition(self, "He lets go of the door with one hand. What it held pours out.", BossKit.HOLY, 1.2)
+		_gale_left = 0.0
+		BossKit.transition(self, "He lets go of the door with one hand. What it held pours out.", BossKit.HOLY, 1.4)
+		BossKit.emote(self, "Aurel lets go of the door. Every pylon blazes; the sky falls on you. Finish it!", Color(1.0, 0.9, 0.6))
+		if _room != null and is_instance_valid(_room):
+			_room.call("light_all")
+			_room.call("set_mood", "hierarch")
 		_blink_t = 1.25
+		_star_p_t = 4.0
+		_star_t = 2.0
 	if _ward_t > 0.0:
 		return                                  # reeling between phases: nothing new starts
 	_blink_t -= delta
@@ -131,26 +178,47 @@ func _physics_process(delta: float) -> void:
 	_eclipse_t -= delta
 	_flare_t -= delta
 	_acolytes_t -= delta
+	_gale_t -= delta
 	weak_open = _fan_t > 0.0 and _fan_t <= FAN_WINDUP + 0.05
-	if phase >= 2 and _fan_t > 50.0 and not casting() and _p != null:
-		if _acolytes_t <= 0.0:
+	if _gale_left > 0.0:
+		_tick_gale(delta)
+		return                                  # it holds the wind: no blink, no new move
+	if phase >= 3 and _room != null:
+		_star_t -= delta
+		_star_p_t -= delta
+		if _star_t <= 0.0:
+			_star_t = 2.2
+			_room.call("star", _random_deck_point(), self)
+		if _star_p_t <= 0.0 and _p != null:
+			_star_p_t = 4.0
+			_room.call("star", _p.global_position, self)
+	if casting():
+		return
+	if phase >= 2 and _fan_t > 50.0 and _p != null:
+		if phase == 2 and _acolytes_t <= 0.0:
 			_acolytes_t = ACOLYTES_EVERY
 			_blink_t = maxf(_blink_t, 2.4)
 			BossKit.cast(self, "Call the Acolytes", 2.0, true, _call_acolytes)
+			BossKit.emote(self, "The Warden calls his acolytes out of the light. Break the call!", BossKit.EMOTE_COL)
 			if _rig and _rig.has_method("howl"):
 				_rig.call("howl", 2.0)
 			return
-		if _flare_t <= 0.0 and _eclipse_t > FLARE_TIME + 1.0:
-			_flare_t = FLARE_EVERY
-			_mandorla_flare()
+		if phase == 2 and _gale_t <= 0.0 and _room != null:
+			_gale_t = GALE_EVERY
+			_begin_gale()
 			return
-	if phase >= 3 and _eclipse_t <= 0.0 and anchors.size() >= 2 and _arena_c != Vector3.INF and _fan_t > 50.0:
-		_eclipse_t = ECLIPSE_EVERY
-		_blink_t = maxf(_blink_t, ECLIPSE_FILL + 0.4)
-		_eclipse()
+		if _eclipse_t <= 0.0 and _arena_c != Vector3.INF and anchors.size() >= 2:
+			_eclipse_t = ECLIPSE_EVERY - (4.0 if phase >= 3 else 0.0)
+			_blink_t = maxf(_blink_t, ECLIPSE_FILL + 0.4)
+			_flare_t = maxf(_flare_t, ECLIPSE_FILL + 3.0)
+			_eclipse()
+			return
+	if _flare_t <= 0.0 and _eclipse_t > FLARE_TIME + 1.0 and _fan_t > 50.0 and _p != null:
+		_flare_t = FLARE_EVERY - (3.0 if phase >= 3 else 0.0)
+		_mandorla_flare()
 		return
 	if _blink_t <= 0.0 and not anchors.is_empty() and _state != WINDUP and _state != STRIKE:
-		_blink_t = [5.0, 3.5, 2.6][phase - 1]
+		_blink_t = [5.0, 3.8, 2.6][phase - 1]
 		_blink()
 	if _fan_t <= 0.0:
 		_fan_t = 99.0
@@ -161,11 +229,17 @@ func _physics_process(delta: float) -> void:
 		if _fans_left > 0:
 			_fan_t = 0.55
 			BossKit.cast(self, "Radiant Fan", 0.55, true)
-	if phase >= 2 and _judge_t <= 0.0 and _p != null and _fan_t > 50.0:
-		_judge_t = 4.5 if phase == 2 else 3.6
+	if _judge_t <= 0.0 and _p != null and _fan_t > 50.0:
+		_judge_t = [7.0, 5.0, 3.8][phase - 1]
 		_judgement()
 		if phase == 2:
 			_sig += 1
+
+
+func _random_deck_point() -> Vector3:
+	var a := randf() * TAU
+	var r := sqrt(randf()) * (_arena_r - 1.0)
+	return _arena_c + Vector3(cos(a) * r, 0.0, sin(a) * r)
 
 
 func _blink() -> void:
@@ -173,11 +247,11 @@ func _blink() -> void:
 	SpellFx.rift_in(global_position)
 	global_position = to + Vector3.UP * 0.1
 	velocity = Vector3.ZERO
-	reset_physics_interpolation()           # a blink, not a one-frame smear across the dais
+	reset_physics_interpolation()           # a blink, not a one-frame smear across the deck
 	_set_state(IDLE if _p == null else CHASE)
 	SpellFx.rift_in(to)
 	if phase >= 2:
-		BossKit.zone(get_parent(), to, 0.65, 26.0, {"by": self, "radius": 4.0 if phase == 2 else 5.6, "color": BossKit.HOLY})
+		BossKit.zone(get_parent(), to, 0.75, 26.0, {"by": self, "radius": 4.6 if phase == 2 else 6.2, "color": BossKit.HOLY})
 	_aim_fan(phase >= 3)
 
 
@@ -192,7 +266,7 @@ func _aim_fan(double: bool) -> void:
 		_rig.call("telegraph", FAN_WINDUP)
 	_glint = 1.0
 	BossKit.cast(self, "Radiant Fan", FAN_WINDUP, true)
-	var cone := SpellFx.danger(global_position, FAN_WINDUP, {"radius": 14.0, "half_angle": deg_to_rad(33.0), "yaw": atan2(-to.x, -to.z), "color": BossKit.HOLY})
+	var cone := SpellFx.danger(global_position, FAN_WINDUP, {"radius": 20.0, "half_angle": deg_to_rad(33.0), "yaw": atan2(-to.x, -to.z), "color": BossKit.HOLY})
 	if cone:
 		track_move(cone)
 	_fan_t = FAN_WINDUP
@@ -213,18 +287,18 @@ func _fan() -> void:
 	for k in 7:
 		var ang := deg_to_rad(-30.0 + 10.0 * float(k) + off)
 		SpitOrb.launch(get_tree().current_scene, from, aim.rotated(Vector3.UP, ang), 17.0)
-	Vfx.burst(from, Color(1.4, 0.6, 2.6), {"count": 30, "life": 0.4, "speed": Vector2(2.0, 5.0), "size": 0.05, "dir": aim.normalized(), "spread": 40.0, "gravity": 0.0})
+	Vfx.burst(from, Color(2.2, 1.8, 1.0), {"count": 30, "life": 0.4, "speed": Vector2(2.0, 5.0), "size": 0.05, "dir": aim.normalized(), "spread": 40.0, "gravity": 0.0})
 
 
-## Two lanes of light crossing at the player, 1.1 s to step out of both.
+## Two lanes of light crossing at the player, 1.2 s to step out of both.
 func _judgement() -> void:
 	var at := _p.global_position
 	var base := randf() * PI
-	BossKit.cast(self, "Judgement", 1.1)
+	BossKit.cast(self, "Judgement", 1.2)
 	for k in 2:
 		var yaw := base + PI * 0.5 * float(k)
 		var dir := Basis(Vector3.UP, yaw) * Vector3.FORWARD
-		BossKit.zone(get_parent(), at - dir * 7.0, 1.1, 24.0, {"by": self, "rect": Vector2(1.0, 7.0), "yaw": yaw, "color": BossKit.HOLY})
+		BossKit.zone(get_parent(), at - dir * 10.0, 1.2, 24.0, {"by": self, "rect": Vector2(1.1, 10.0), "yaw": yaw, "color": BossKit.HOLY})
 
 
 ## The halo found while its hands are up: the volley scatters.
@@ -235,7 +309,7 @@ func _on_weak_hit(_dmg: float) -> void:
 		_scatter()
 
 
-## r33: the fan broken by the halo or a heavy blow; the acolytes' call by a heavy blow.
+## The fan broken by the halo or a heavy blow; the acolytes' call by a heavy blow.
 func _on_cast_interrupted(n: String) -> void:
 	if n == "Radiant Fan":
 		_scatter()
@@ -247,12 +321,17 @@ func _on_cast_interrupted(n: String) -> void:
 
 
 func _call_acolytes() -> void:
-	var adds := BossKit.add_wave(self, ACOLYTE, global_position, 2, 3, "Gilded Acolyte", 4.5)
+	var at := global_position
+	if _arena_c != Vector3.INF:
+		var away := global_position - _arena_c
+		away.y = 0.0
+		at = _arena_c - (away.normalized() if away.length() > 0.5 else Vector3.FORWARD) * 9.0
+	var adds := BossKit.add_wave(self, ACOLYTE, at, 2, 3, "Gilded Acolyte", 4.5)
 	for a in adds:
 		SpellFx.column(a.global_position, 0.8, 4.0, 0.6)
 
 
-## Mandorla Flare: the dais burns from FLARE_IN to FLARE_R round it; only under it is safe.
+## Mandorla Flare: the deck burns from FLARE_IN to FLARE_R round it; only under it is safe.
 func _mandorla_flare() -> void:
 	var c := global_position
 	_set_state(RECOVER)
@@ -264,6 +343,7 @@ func _mandorla_flare() -> void:
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", FLARE_TIME)
 	BossKit.cast(self, "Mandorla Flare", FLARE_TIME)
+	BossKit.emote(self, "The mandorla flares. Get under the Warden!", BossKit.EMOTE_COL)
 	Hints.once(&"mandorla", "Mandorla Flare: only the ground under the Warden is spared. Get close.")
 	# the safe ground reads like the eclipse's pillars: a column of its own light at its feet
 	SpellFx.column(c, FLARE_IN * 0.8, 6.0, FLARE_TIME + 0.3)
@@ -286,21 +366,182 @@ func _scatter() -> void:
 	Vfx.burst(global_position + Vector3.UP * hp_bar_y * 0.95, BossKit.HOLY, {"count": 50, "life": 0.7, "speed": Vector2(2.0, 7.0), "size": 0.06, "gravity": -3.0})
 
 
-## Eclipse: the dais fills, but for two pillars of its light at blink points away from it.
+## Eclipse: the deck fills, but for the lit pylons' rings (the room) or two pillars of its light at
+## blink points away from it (no room). A ring that sheltered you is spent.
 func _eclipse() -> void:
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", ECLIPSE_FILL)
 	_glint = 1.0
 	Sfx.play_stream(Synth.get_stream("chant"), global_position + Vector3.UP * 3.0, 3.0, 0.45)
-	Events.toast.emit("The light goes out of the dais. Stand in what is left of it.")
-	BossKit.cast(self, "Eclipse", ECLIPSE_FILL)
-	var picks := anchors.duplicate()
-	picks.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_to(global_position) > b.distance_to(global_position))
+	BossKit.cast(self, "Eclipse", ECLIPSE_FILL, false, _eclipse_lands)
 	var holes: Array = []
-	for k in 2:
-		var at: Vector3 = picks[k]
-		holes.append([at, POOL_R])
-		SpellFx.column(at, POOL_R * 0.8, 6.0, ECLIPSE_FILL + 0.3)
-		Vfx.ring(at + Vector3.UP * 0.1, POOL_R, BossKit.HOLY, ECLIPSE_FILL, 0.12, Vector3.UP, 1.6)
-		Vfx.light(at + Vector3.UP * 2.0, Color(1.0, 0.85, 0.55), 3.0, POOL_R * 3.0, ECLIPSE_FILL + 0.3)
-	BossKit.zone(get_parent(), _arena_c, ECLIPSE_FILL, 34.0, {"by": self, "radius": _arena_r * 0.92, "color": Color(1.6, 1.0, 0.25), "holes": holes, "h": 3.0})
+	var pools: Array[Vector3] = []
+	var pr := POOL_R
+	if _room != null and is_instance_valid(_room) and int(_room.call("lit_count")) > 0:
+		pools = _room.call("pylon_points", true)
+		pr = float(_room.get("RING_R"))
+		BossKit.emote(self, "The light goes out of the deck. Stand in a lit pylon's ring!", Color(1.0, 0.85, 0.4))
+	else:
+		var picks := anchors.duplicate()
+		picks.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_to(global_position) > b.distance_to(global_position))
+		for k in 2:
+			pools.append(picks[k])
+		BossKit.emote(self, "The light goes out of the deck. Stand in what is left of it.", Color(1.0, 0.85, 0.4))
+	for at in pools:
+		holes.append([at, pr])
+		SpellFx.column(at, pr * 0.8, 6.0, ECLIPSE_FILL + 0.3)
+		Vfx.ring(at + Vector3.UP * 0.1, pr, BossKit.HOLY, ECLIPSE_FILL, 0.12, Vector3.UP, 1.6)
+	BossKit.zone(get_parent(), _arena_c, ECLIPSE_FILL, 34.0, {"by": self, "radius": _arena_r + 1.0, "color": Color(1.6, 1.0, 0.25), "holes": holes, "h": 3.0})
+
+
+func _eclipse_lands() -> void:
+	if _room == null or not is_instance_valid(_room) or _p == null:
+		return
+	var used: Node = _room.call("in_light", _p.global_position)
+	if used != null:
+		_room.call("snuff", used)
+		HitText.pop(_p.global_position + Vector3.UP * 2.4, "the ring is spent", Color(0.8, 0.8, 1.0))
+
+
+# --- Gale of the Door ------------------------------------------------------------------------------
+
+func _begin_gale() -> void:
+	_set_state(RECOVER)
+	_state_t = -(GALE_CAST + GALE_TIME)
+	velocity = Vector3.ZERO
+	_blink_t = maxf(_blink_t, GALE_CAST + GALE_TIME + 0.8)
+	_judge_t = maxf(_judge_t, GALE_CAST + GALE_TIME + 1.5)
+	_flare_t = maxf(_flare_t, GALE_CAST + GALE_TIME + 3.0)
+	_eclipse_t = maxf(_eclipse_t, GALE_CAST + GALE_TIME + 4.0)
+	if _rig and _rig.has_method("howl"):
+		_rig.call("howl", GALE_CAST)
+	BossKit.cast(self, "Gale of the Door", GALE_CAST, false, func() -> void:
+		if is_alive() and not ascended and phase == 2:
+			_gale_left = GALE_TIME
+			BossKit.cast(self, "Gale of the Door", GALE_TIME, false))
+	BossKit.emote(self, "The door behind him opens a crack. A gale! Lean into it, or shelter behind a lit pylon.", Color(0.85, 0.9, 1.0))
+	Hints.once(&"gale", "Gale of the Door: walk into the wind or stand behind a lit pylon. The broken edges are a long fall.")
+	Vfx.ring(global_position + Vector3.UP * 0.2, 5.0, Color(1.4, 1.5, 1.8), GALE_CAST, 0.1, Vector3.UP, 1.2)
+
+
+func _tick_gale(delta: float) -> void:
+	_gale_left -= delta
+	_state_t = minf(_state_t, -0.2)
+	velocity.x = 0.0
+	velocity.z = 0.0
+	var p := _p
+	if p == null:
+		return
+	var away := p.global_position - global_position
+	away.y = 0.0
+	var sheltered := _room != null and bool(_room.call("gale_shelter", global_position, p.global_position))
+	if not sheltered and not p.is_evading():
+		BossKit.push(p, away, GALE_SPEED * minf(dmg_mult, 1.3), delta)
+	_gale_fx -= delta
+	if _gale_fx <= 0.0:
+		_gale_fx = 0.18
+		var n := away.normalized()
+		Vfx.burst(p.global_position + Vector3.UP * 1.2 - n * 3.0, Color(1.3, 1.35, 1.6, 0.7), {"count": 10, "life": 0.5, "speed": Vector2(8.0, 12.0), "size": 0.04, "dir": n, "spread": 8.0, "gravity": 0.0, "trail": 0.12, "radius": 2.0})
+		if sheltered:
+			HitText.pop(p.global_position + Vector3.UP * 2.2, "sheltered", Color(0.85, 0.9, 1.0))
+	if _gale_left <= 0.0:
+		_gale_left = 0.0
+		_finish_cast(false, false)
+
+
+# --- the intermission: the Ascension ---------------------------------------------------------------
+
+func _ascend() -> void:
+	ascended = true
+	_asc_t = 0.0
+	_asc_from = global_position
+	_finish_cast(true, false)
+	cancel_moves()
+	_combo_left = 0
+	weak_open = false
+	_grav = gravity
+	gravity = 0.0
+	velocity = Vector3.ZERO
+	set_meta(&"phase_label", "THE ASCENSION")
+	_star_t = 2.5
+	_star_p_t = 3.5
+	if _rig and _rig.has_method("howl"):
+		_rig.call("howl", 2.0)
+	BossKit.roar(self, "", BossKit.HOLY)
+	BossKit.emote(self, "The Warden ascends and the pylons go dark. The sky is falling: rekindle all four pylons!", Color(1.0, 0.9, 0.6))
+	Hints.once(&"pylons", "Pylons: stand in a dark pylon's ring to rekindle it. Falling stars never land in a lit ring.")
+	_room.call("snuff_all")
+	_room.call("set_mood", "ascension")
+	BossKit.add_wave(self, ACOLYTE, _arena_c + Vector3(0, 0, 9.0), 2, 3, "Gilded Acolyte", 6.0)
+
+
+func _tick_ascended(delta: float) -> void:
+	_asc_t += delta
+	_set_state(RECOVER)
+	_state_t = -1.0
+	velocity = Vector3.ZERO
+	var top := _arena_c + Vector3(0.0, ASCEND_H, -9.0)        # up toward the door in the cirque, off the beacon
+	global_position = _asc_from.lerp(top, smoothstep(0.0, 2.5, _asc_t))
+	if _room == null or not is_instance_valid(_room):
+		_descend(0)
+		return
+	var left := 4 - int(_room.call("lit_count"))
+	if left <= 0:
+		_descend(0)
+		return
+	if _asc_t >= ASCEND_TIME + (15.0 if _attuned else 0.0):
+		_descend(left)
+		return
+	var asc_end := ASCEND_TIME + (15.0 if _attuned else 0.0)
+	if _asc_t >= asc_end - 10.0 and _asc_t - delta < asc_end - 10.0:
+		BossKit.emote(self, "The sky is breaking. Get into a lit ring!", Color(1.0, 0.6, 0.4))
+	_star_t -= delta
+	_star_p_t -= delta
+	if _star_t <= 0.0:
+		_star_t = 0.9
+		_room.call("star", _random_deck_point(), self)
+	if _star_p_t <= 0.0 and _p != null:
+		_star_p_t = 3.0
+		_room.call("star", _p.global_position, self)
+
+
+## A pylon was rekindled (the room tells us).
+func on_pylon_lit(_p2: Node) -> void:
+	if not ascended or _room == null:
+		return
+	var n := int(_room.call("lit_count"))
+	if n < 4:
+		BossKit.emote(self, "%d of 4 pylons burn." % n, Color(1.0, 0.85, 0.5))
+
+
+## Back to the deck: all pylons lit (`left` 0), or the sky broke on those still dark.
+func _descend(left: int) -> void:
+	ascended = false
+	set_meta(&"phase_label", "")
+	gravity = _grav
+	if left > 0:
+		BossKit.emote(self, "The sky breaks!", Color(1.0, 0.5, 0.35))
+		var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+		if p and (_room == null or _room.call("in_light", p.global_position) == null):
+			p.add_gloom_from_enemy(SKY_GLOOM * dmg_mult, _arena_c)
+		Vfx.light(_arena_c + Vector3.UP * 8.0, Color(1.0, 0.85, 0.6), 6.0, 40.0, 0.6)
+		Vfx.ring(_arena_c + Vector3.UP * 0.2, _arena_r, BossKit.HOLY, 0.8, 0.2, Vector3.UP, 1.8)
+	else:
+		BossKit.emote(self, "Four pylons burn. The Warden falls back to the deck, blinded!", Color(1.0, 0.9, 0.6))
+	var land := _arena_c + Vector3.UP * 0.1
+	SpellFx.rift_in(global_position)
+	global_position = land
+	velocity = Vector3.ZERO
+	reset_physics_interpolation()
+	SpellFx.rift_in(land)
+	if _room != null and is_instance_valid(_room):
+		_room.call("set_mood", "fight")
+	BossKit.transition(self, "His light turns to judgement. One hand never leaves the door.", BossKit.HOLY, 1.6)
+	if left == 0:
+		_broken_t = BOSS_BROKEN * 2.0
+	_blink_t = 3.0
+	_judge_t = 4.0
+	_gale_t = 10.0
+	_eclipse_t = 18.0
+	_acolytes_t = 24.0
+	_flare_t = 14.0

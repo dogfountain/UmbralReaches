@@ -114,6 +114,39 @@ static func slab(seed: int, size: Vector3, style: String, taper := 0.25, flat_fr
 	return _finish(_slab_geo(rng, sz, style, taper, flat_front), style, key)
 
 
+## r34 flora: a cairn: a broad footing stone and three or four smaller ones stacked on it, each
+## seated a little into the one below. size: x/z footing width, y total height. Base at y = 0.
+static func cairn(seed: int, size: Vector3, style: String) -> ArrayMesh:
+	style = _style(style)
+	var b := _bucket(size)
+	var key := "cairn|%d|%s|%s" % [posmod(seed, VARIANTS), style, str(b)]
+	if _meshes.has(key):
+		return _meshes[key]
+	var disk := _from_disk(key)
+	if disk:
+		return disk
+	var sz := _unbucket(b)
+	var rng := _rng(key)
+	_seed_noise(rng.randi())
+	var g := Geo.new()
+	var y := 0.0
+	var n := 4 + rng.randi_range(0, 1)
+	var hs := []
+	var tot := 0.0
+	for k in n:
+		var hk := lerpf(1.0, 0.55, float(k) / float(n - 1)) * rng.randf_range(0.85, 1.15)
+		hs.append(hk)
+		tot += hk
+	for k in n:
+		var hk: float = float(hs[k]) / tot * sz.y * 1.18
+		var wk := lerpf(1.0, 0.42, float(k) / float(n - 1))
+		var piece := _boulder_geo(rng, Vector3(sz.x * wk, hk, sz.z * wk * rng.randf_range(0.8, 1.0)), style, 600)
+		var off := Vector3(rng.randf_range(-0.06, 0.06) * sz.x, y, rng.randf_range(-0.06, 0.06) * sz.z)
+		g.add(piece, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), off))
+		y += hk * 0.82
+	return _finish(g, style, key)
+
+
 static func material(style: String) -> Material:
 	style = _style(style)
 	if _mats.has(style):
@@ -797,7 +830,7 @@ static func _from_disk(key: String) -> ArrayMesh:
 	var m := GenCache.load_mesh(key, SELF)
 	if m == null:
 		return null
-	var style := key.split("|")[2] if key.begins_with("boulder") or key.begins_with("cliff") or key.begins_with("slab") else "basalt"
+	var style := key.split("|")[2] if key.begins_with("boulder") or key.begins_with("cliff") or key.begins_with("slab") or key.begins_with("cairn") else "basalt"
 	for i in m.get_surface_count():
 		if m.surface_get_material(i) == null:
 			m.surface_set_material(i, material(style))

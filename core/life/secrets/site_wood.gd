@@ -14,7 +14,7 @@ const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 
-const OAK := Vector2(-100.0, -42.0)
+const OAK := Vector2(-124.0, -62.0)   # r34 layout: was (-100, -42), inside the henge's raid floor (RealmLayout.RAIDS); now past the hill's skirt
 const CIST := Vector2(-97.0, 45.5)
 const KNEEL := [["XII", Vector2(-98.0, 54.0)], ["IX", Vector2(-102.5, 47.5)], ["VII", Vector2(-94.0, 37.0)], ["V", Vector2(-90.0, 30.5)], ["III", Vector2(-85.0, 29.5)]]
 const ANSEL := ["XII", "VII", "III"]
@@ -184,7 +184,8 @@ static func _oak(root: Node, parent: Node3D, sp: PhysicsDirectSpaceState3D) -> v
 	State.elite({"id": "thorn_wild", "kind": "leaper", "title": "The Thorn-Wild", "at": o + Vector3(7.0, 0.3, 2.0),
 		"when": func() -> bool: return Travel.bosses_slain.has("thornwarden")})
 	State.register({"id": "oak", "name": "The Hollow Oak", "at": o + Vector3(3.0, 0, 0), "r": 7.0, "node": node, "sync": sync,
-		"route": {"from": Vector3(-86.0, 0.0, -2.0), "pts": _v3([Vector2(-90, -12), Vector2(-94, -24), Vector2(-95, -36), Vector2(OAK.x + 5.0, OAK.y), Vector2(OAK.x + 2.6, OAK.y)])},
+		# r34 layout: the oak moved west of the henge's hill (its raid floor): walked in from west_track
+		"route": {"from": Vector3(-118.0, 0.0, -76.0), "pts": _v3([Vector2(-116, -67), Vector2(OAK.x + 5.0, OAK.y), Vector2(OAK.x + 2.6, OAK.y)])},
 		"goal": Vector3(OAK.x + 2.6, g, OAK.y), "inside": Vector3(OAK.x - 0.3, g, OAK.y), "door": thorn_body})
 
 

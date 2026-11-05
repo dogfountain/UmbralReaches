@@ -331,6 +331,133 @@ static func hermit(parent: Node, space: PhysicsDirectSpaceState3D, c: Vector2) -
 	return {"fire": f, "seat": seat, "grave": g, "light": l}
 
 
+# --- r34: the outposts (a giver's fire in each new region) ------------------------------------------
+
+## A small camp at `c`: the hermit's fire pit and log seat (same cached meshes), a lantern on a
+## stake, and the region's dressing (`style`): turf stacked at the Holds, a squared block to dress
+## at the quarry (returns "block"), a windbreak of moor stones, a cracked mould at the Founder's
+## Pits, a grafting trestle in the orchard, candles on a stone at the Waiting Field, an upturned
+## punt at the mere. One merged body, one omni (the fire), faded at 70 m like the hermit's.
+static func outpost(parent: Node, space: PhysicsDirectSpaceState3D, c: Vector2, style: String) -> Dictionary:
+	LK.ensure_mats()
+	var h := holder(parent, "Outpost_" + style)
+	var k := OssKit.new()
+	k.keep_lanes = false
+	var f := Vector3(c.x, ground(space, c.x, c.y), c.y)
+	var stone := _mesh("pit_stone", func() -> ArrayMesh:
+		var cm := CreatureMesh.new(31)
+		cm.blob(Vector3.ZERO, Vector3(0.13, 0.09, 0.11), Basis.IDENTITY, Color(0.8, 0.78, 0.74), 0.0, 0.2, 0.0, 6, 9)
+		return cm.commit())
+	for i in 8:
+		var a := TAU * float(i) / 8.0
+		var sp := f + Vector3(cos(a) * 0.46, 0.0, sin(a) * 0.46)
+		sp.y = ground(space, sp.x, sp.z) + 0.03
+		LK.organic(k, "lore_rock", stone, Transform3D(Basis(Vector3.UP, a * 1.7), sp))
+	var log_m := _mesh("camp_log", func() -> ArrayMesh:
+		var cm := CreatureMesh.new(32)
+		cm.tube(PackedVector3Array([Vector3(-0.35, 0, 0), Vector3(0.35, 0, 0)]), PackedFloat32Array([0.06, 0.055]), 8, Color(0.7, 0.6, 0.5), 0.0, 0.15)
+		return cm.commit())
+	for j in 3:
+		LK.organic(k, "lore_beam", log_m, Transform3D(Basis(Vector3.UP, float(j) * 1.05) * Basis(Vector3.BACK, 0.25), f + Vector3.UP * 0.1))
+	k.box("lore_ember", f + Vector3.UP * 0.04, Vector3(0.38, 0.04, 0.38), Basis(Vector3.UP, 0.3), false, 0.7)
+	k.box("lore_char", f + Vector3.UP * 0.02, Vector3(0.7, 0.03, 0.7), Basis(Vector3.UP, 0.8), false, 0.5)
+	var seat := f + Vector3(1.5, 0, 0.3)
+	seat.y = ground(space, seat.x, seat.z)
+	var seat_m := _mesh("seat_log", func() -> ArrayMesh:
+		var cm := CreatureMesh.new(33)
+		cm.tube(PackedVector3Array([Vector3(0, 0, -0.7), Vector3(0, 0.02, 0), Vector3(0, 0, 0.7)]), PackedFloat32Array([0.19, 0.2, 0.18]), 10, Color(0.68, 0.6, 0.52), 0.0, 0.15)
+		return cm.commit())
+	LK.organic(k, "lore_beam", seat_m, Transform3D(Basis(Vector3.UP, 0.15), seat + Vector3.UP * 0.17))
+	# a lantern on a stake behind the fire (unlit glass at the Lanternless Moor)
+	var st := f + Vector3(-1.1, 0, -1.2)
+	st.y = ground(space, st.x, st.z)
+	k.box("lore_beam", st + Vector3.UP * 0.75, Vector3(0.07, 1.5, 0.07), Basis(Vector3.BACK, 0.05), false, 0.6)
+	k.box("iron", st + Vector3(0.0, 1.47, 0.0), Vector3(0.15, 0.04, 0.15), Basis.IDENTITY, false, 0.6)
+	k.box("glow" if style != "moor" else "dark", st + Vector3(0.0, 1.35, 0.0), Vector3(0.11, 0.17, 0.11), Basis.IDENTITY, false, 0.8)
+	k.box("iron", st + Vector3(0.0, 1.24, 0.0), Vector3(0.15, 0.03, 0.15), Basis.IDENTITY, false, 0.6)
+	var out := {"fire": f, "seat": seat}
+	var g := func(x: float, z: float) -> Vector3: return Vector3(f.x + x, ground(space, f.x + x, f.z + z), f.z + z)
+	match style:
+		"holds":
+			# cut turves stacked to dry, grass side down (the Rooted's way)
+			var tb: Vector3 = g.call(-2.3, -0.4)
+			for i in 6:
+				var tbb := Basis(Vector3.UP, 0.25 + 0.08 * float(i % 2))
+				k.box("lore_earth", tb + tbb * Vector3(float(i % 3) * 0.42 - 0.42, 0.1 + 0.18 * floorf(float(i) / 3.0), 0.0), Vector3(0.4, 0.16, 0.28), tbb, false, 0.7)
+			k.box("lore_moss", tb + Vector3(0.0, 0.46, 0.0), Vector3(1.2, 0.04, 0.3), Basis(Vector3.UP, 0.29), false, 0.55)
+		"quarry":
+			# a squared block on two skids, to be dressed (Jory works it: the "block" anchor)
+			var bk: Vector3 = g.call(-1.9, 3.05)
+			k.box("lore_ashlar", bk + Vector3.UP * 0.36, Vector3(0.95, 0.56, 0.62), Basis(Vector3.UP, 0.1), false, 0.95)
+			for s2: float in [-0.3, 0.3]:
+				k.box("lore_beam", bk + Vector3(s2, 0.04, 0.0), Vector3(0.1, 0.08, 0.9), Basis(Vector3.UP, 0.1), false, 0.6)
+			k.box("lore_rubble", bk + Vector3(0.7, 0.05, 0.4), Vector3(0.5, 0.1, 0.4), Basis(Vector3.UP, 0.7), false, 0.8)
+			out["block"] = bk + Vector3.UP * 0.62
+		"moor":
+			# a windbreak of moor stones on the windward side
+			for i in 7:
+				var a := -0.9 + 0.3 * float(i)
+				var wp: Vector3 = g.call(cos(a + PI) * 1.4, sin(a + PI) * 1.4)
+				k.box("lore_rock", wp + Vector3.UP * 0.22, Vector3(0.42, 0.44 - 0.04 * float(i % 3), 0.24), Basis(Vector3.UP, -(a + PI)), false, 0.7)
+		"foundry":
+			# a cracked bell mould on its side, and a pig of cold bronze
+			var mp: Vector3 = g.call(-2.2, 0.6)
+			for i in 6:
+				var a := float(i) * 0.5
+				var mb := Basis(Vector3.UP, a) * Basis(Vector3.RIGHT, 0.25)
+				k.box("lore_plaster", mp + Vector3(0, 0.32, 0) + mb * Vector3(0, 0, -0.36), Vector3(0.24, 0.6, 0.07), mb, false, 0.6)
+			k.box("lore_bronze", mp + Vector3(0.6, 0.06, 0.6), Vector3(0.5, 0.12, 0.16), Basis(Vector3.UP, 0.4), false, 0.8)
+		"orchard":
+			# a grafting trestle: a plank on two crossed legs, a knife, a bundle of scions
+			var tp: Vector3 = g.call(-2.2, 0.5)
+			var tb2 := Basis(Vector3.UP, 0.5)
+			k.box("lore_beam", tp + tb2 * Vector3(0, 0.72, 0), Vector3(1.3, 0.05, 0.36), tb2, false, 0.7)
+			for s3: float in [-0.5, 0.5]:
+				k.box("lore_beam", tp + tb2 * Vector3(s3, 0.36, 0), Vector3(0.06, 0.72, 0.3), tb2, false, 0.55)
+			for i in 5:
+				k.box("lore_char", tp + tb2 * Vector3(-0.3 + 0.03 * float(i), 0.77, -0.05 + 0.025 * float(i)), Vector3(0.02, 0.02, 0.5), tb2 * Basis(Vector3.UP, 0.05 * float(i)), false, 0.8)
+			k.box("lore_moss", tp + tb2 * Vector3(0.35, 0.77, 0.0), Vector3(0.12, 0.05, 0.1), tb2, false, 1.0)
+		"necropolis":
+			# candles on a fallen headstone, all set facing the mountain
+			var hp: Vector3 = g.call(-2.0, 0.3)
+			k.box("lore_tstone", hp + Vector3.UP * 0.1, Vector3(0.62, 0.2, 0.9), Basis(Vector3.UP, 0.2), false, 0.8)
+			for i in 4:
+				k.box("lore_plaster", hp + Vector3(-0.18 + 0.12 * float(i), 0.26, -0.2 + 0.1 * float(i % 2)), Vector3(0.04, 0.12, 0.04), Basis.IDENTITY, false, 1.0)
+				k.box("glow", hp + Vector3(-0.18 + 0.12 * float(i), 0.34, -0.2 + 0.1 * float(i % 2)), Vector3(0.02, 0.03, 0.02), Basis.IDENTITY, false, 1.0)
+		"mere":
+			# an upturned punt drawn up out of the wet, and a mooring post
+			var bp: Vector3 = g.call(-2.6, 0.2)
+			var bb := Basis(Vector3.UP, 0.4)
+			k.box("lore_beam", bp + bb * Vector3(0, 0.36, 0), Vector3(0.9, 0.05, 2.6), bb, false, 0.55)
+			for s4: float in [-1.0, 1.0]:
+				k.box("lore_beam", bp + bb * Vector3(s4 * 0.44, 0.18, 0), Vector3(0.05, 0.34, 2.5), bb, false, 0.5)
+			k.box("lore_beam", bp + bb * Vector3(0, 0.18, 1.28), Vector3(0.84, 0.34, 0.05), bb, false, 0.5)
+			var post: Vector3 = g.call(-0.6, 2.4)
+			k.box("lore_beam", post + Vector3.UP * 0.55, Vector3(0.12, 1.1, 0.12), Basis(Vector3.BACK, 0.12), false, 0.55)
+	_commit(k, h, "OutpostBody")
+	var flame := Vfx.emitter(Color(1.0, 0.55, 0.2), {"count": 16, "life": 0.7, "speed": Vector2(0.3, 0.9), "size": 0.15, "gravity": 1.4, "radius": 0.13, "spread": 12.0, "dir": Vector3.UP, "scale_var": 0.5})
+	if flame:
+		flame.name = "Flames"
+		h.add_child(flame)
+		flame.global_position = f + Vector3.UP * 0.12
+		flame.visibility_range_end = 70.0
+		flame.emitting = true
+	var smoke := Vfx.emitter(Color(0.3, 0.3, 0.33, 0.3), {"count": 6, "life": 3.5, "speed": Vector2(0.2, 0.45), "size": 0.42, "gravity": -0.1, "radius": 0.1, "additive": false, "spread": 14.0})
+	if smoke:
+		smoke.name = "Smoke"
+		h.add_child(smoke)
+		smoke.global_position = f + Vector3.UP * 0.7
+		smoke.visibility_range_end = 70.0
+		smoke.emitting = true
+	var l := light(h, "OutpostFire", f + Vector3.UP * 0.55, Color(1.0, 0.52, 0.2), 1.05, 6.5)
+	# a camp fire is light the gloom will not cross: ordinary foes slink off it (not a rest, not a
+	# checkpoint: LightGrid's "mirror" kind), so the giver is not stood in the middle of a fight
+	LightGrid.register(l, 5.5, LightGrid.MIRROR)
+	l.tree_exiting.connect(func() -> void: LightGrid.unregister(l))
+	out["light"] = l
+	return out
+
+
 # --- Abel's grave -------------------------------------------------------------------------------
 
 static func sexton(parent: Node, space: PhysicsDirectSpaceState3D, pit: Vector2, yaw: float) -> Dictionary:

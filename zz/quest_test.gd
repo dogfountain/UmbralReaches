@@ -256,7 +256,12 @@ func _spots() -> void:
 	print("spots")
 	for k: String in Chains.PICKUPS:
 		var p: Vector3 = QWorld.spots.get(k, Vector3.INF)
-		ok(p != Vector3.INF and Vector2(p.x, p.z).distance_to(Chains.PICKUPS[k].near) < 6.5, "%s: floor spot near its place %s" % [k, p])
+		var near: Vector2 = Chains.PICKUPS[k].near
+		if Chains.PICKUPS[k].has("camp"):
+			# r34: taken from a giver's outpost fire, wherever the camp was found
+			var f: Vector3 = village.call("anchor", "@fire_" + String(Chains.PICKUPS[k].camp))
+			near = Vector2(f.x, f.z) if f != Vector3.INF else near
+		ok(p != Vector3.INF and Vector2(p.x, p.z).distance_to(near) < 6.5, "%s: floor spot near its place %s" % [k, p])
 	ok(QWorld.spots.get("stair", Vector3.INF) != Vector3.INF and (village.get("nav") as RefCounted).call("has", "q_stair"), "the stair's foot is on the network")
 	for line: String in QWorld.report:
 		print("    report ", line)

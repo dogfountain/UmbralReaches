@@ -312,6 +312,8 @@ func _process(delta: float) -> void:
 ## Region under xz with hysteresis: a new region must be clearly entered (weight >= 0.6) and the
 ## current one clearly left (< 0.3) before the name changes.
 func _region_for(at: Vector3) -> String:
+	if RealmLayout.OSSUARY_HALL.has_point(at):
+		at = Vector3(17.0, at.y, -66.0)      # r34 crypt: the pit hall under the fen and the Crowns is the Ossuary's
 	var best := ""
 	var best_w := 0.0
 	var cur_w := 0.0

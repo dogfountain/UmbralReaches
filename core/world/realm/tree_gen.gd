@@ -27,6 +27,7 @@ const BARK := {
 }
 const CAP_MAT := "res://art/materials/realm_foliage_cap.tres"
 const GLOW_MAT := "res://art/materials/realm_foliage_glow.tres"
+const EMBER_MAT := "res://art/materials/realm_foliage_ember.tres"     ## r34 flora: cinders in the ash
 
 ## atlas cells (tools/gen_realm_foliage.gd)
 const C_OAK := 0
@@ -52,6 +53,9 @@ const VARIANTS := {
 	"shrub": 2, "bramble": 2, "fern": 2, "grass": 2, "tallgrass": 1, "flowers": 2, "heather": 1,
 	"reeds": 1, "cattail": 1, "litter": 1, "moss": 1, "mushroom": 2, "glowcap": 1,
 	"log": 2, "stump": 2, "roots": 1,
+	# r34 flora: the new regions' own plants (realm_flora.gd LOOKS)
+	"fruit": 3, "cypress": 2, "yew": 2, "windtree": 2,
+	"gorse": 2, "deadbush": 1, "ashdrift": 1, "cinders": 1, "lily": 1, "scaffold": 2,
 }
 
 static var _cache := {}
@@ -161,6 +165,7 @@ class Gen:
 	var h := 0.0
 	var trunk_r := 0.0
 	var far := false
+	var glow_mat := GLOW_MAT
 	var _seed := 0.0
 
 	func _init(s: int) -> void:
@@ -458,7 +463,7 @@ class Gen:
 	# --- assembly ----------------------------------------------------------------------------
 	func done(tall: bool, spread: float, bark: String, cards_ground := false) -> Dictionary:
 		wood.mat = load(BARK.get(bark, BARK.oak)) if bark != "cap" else load(CAP_MAT)
-		glow.mat = load(GLOW_MAT)
+		glow.mat = load(glow_mat)
 		leaf.mat = load(GROUND_MAT if cards_ground else LEAF_MAT)
 		var solid: ArrayMesh = null
 		if not wood.i.is_empty() or not glow.i.is_empty():
@@ -908,3 +913,207 @@ class Gen:
 				rr.append(lerpf(0.16, 0.06, t))
 			tube(pts, rr, 7, {"lumps": 0.2})
 		return done(false, 1.5, "oak")
+
+
+	# --- r34 flora: the new regions ------------------------------------------------------------
+
+	## The Cinder Orchard's burned fruit trees: short, forked low into a goblet of crooked limbs, the
+	## bark charred black and the tips broken; v2 still holds a few russet leaves.
+	func make_fruit(v: int) -> Dictionary:
+		tile = 0.9
+		moss = 0.0
+		char_amt = 0.8 if v != 2 else 0.55
+		bark_col = Color(0.8, 0.74, 0.68)
+		h = rng.randf_range(3.6, 5.0)
+		trunk_r = rng.randf_range(0.16, 0.24)
+		var lean := Vector3(rng.randf_range(-0.25, 0.25), 1, rng.randf_range(-0.25, 0.25))
+		var pts := path(Vector3(0, -0.5, 0), lean, rng.randf_range(1.1, 1.6), 0.4, 0.0, 0.35)
+		var P := {
+			"n": [0, 4, 3, 2], "angle": [0, 0.8, 0.7, 0.6], "len": [0, 1.9, 0.5, 0.45],
+			"start": [0, 0.8, 0.3, 0.3], "up": [0, 0.14, 0.05, 0.0], "r": [0, 0.72, 0.55, 0.5],
+			"seg": [0, 0.45, 0.4, 0.35], "wig": [0, 0.55, 0.65, 0.65],
+			"max_depth": 3, "leaf_from": 2, "leaf_per": 0.7, "broken": true,
+			"flute": 0.3, "flute_n": 5, "flute_h": 0.6,
+		}
+		grow(pts, radii_for(pts, trunk_r * 1.25, trunk_r * 0.85), 0, P)
+		roots(4, trunk_r, 1.0)
+		var cr: float
+		if v == 2:
+			cr = crown_cards(C_OAK, Vector2(0.6, 0.9), 1, Color(0.78, 0.4, 0.22))
+		else:
+			cr = crown_cards(C_TWIGS, Vector2(0.9, 1.3), 1, Color(0.2, 0.18, 0.18))
+		return done(true, maxf(cr, 2.0), "dead")
+
+	## The Waiting Field's cypresses: a tall dark spindle of needle sprays packed round a straight stem.
+	func make_cypress(v: int) -> Dictionary:
+		tile = 0.9
+		moss = 0.1
+		h = rng.randf_range(9.0, 12.5) * (1.0 if v == 0 else 0.78)
+		trunk_r = rng.randf_range(0.18, 0.26)
+		var pts := path(Vector3(0, -0.6, 0), Vector3(rng.randf_range(-0.03, 0.03), 1, rng.randf_range(-0.03, 0.03)), h, 1.2, 0.0, 0.03)
+		tube(pts, radii_for(pts, trunk_r, 0.03), 8, {"flute": 0.25, "flute_n": 5, "flute_h": 0.7})
+		roots(4, trunk_r, 0.9)
+		var w := h * rng.randf_range(0.1, 0.13)
+		var c := Vector3(0, h * 0.45, 0)
+		var nfn := func(p: Vector3) -> Vector3:
+			return (Vector3(p.x, (p.y - c.y) * 0.2, p.z).normalized() + Vector3.UP * 0.3).normalized()
+		var cfn := func(p: Vector3) -> Color:
+			var q := clampf(Vector2(p.x, p.z).length() / maxf(w, 0.4), 0.0, 1.0)
+			var occ := 0.35 + 0.65 * pow(q, 0.7)
+			return Color(0.5 * occ, 0.66 * occ, 0.56 * occ)
+		var n := int(h * (4.0 if far else 7.0))
+		for k in n:
+			var t := lerpf(0.06, 0.98, float(k) / float(n - 1))
+			var wr := w * (smoothstep(0.0, 0.2, t) * (1.0 - pow(t, 1.5)) + 0.1)
+			var az := rng.randf() * TAU
+			var outw := Vector3(cos(az), 0, sin(az))
+			var p := outw * wr * 0.35 + Vector3(0, t * h - 0.6, 0)
+			var s := rng.randf_range(1.2, 1.7) * clampf(wr / w + 0.35, 0.45, 1.0) * (1.3 if far else 1.0)
+			var up := (outw * 0.45 + Vector3.UP).normalized()
+			var rt := outw.cross(Vector3.UP).normalized() * s * 0.38
+			card(leaf, p - up * s * 0.3, rt, up * s, C_PINE, nfn, cfn, 0.15, 0.6, rng.randf() < 0.5)
+		return done(true, w + 0.5, "pine")
+
+	## A churchyard yew: a squat fluted bole, many limbs, a broad, near-black crown of needles.
+	func make_yew(v: int) -> Dictionary:
+		tile = 1.0
+		moss = 0.5
+		bark_col = Color(0.78, 0.6, 0.55)
+		h = rng.randf_range(4.5, 6.5)
+		trunk_r = rng.randf_range(0.32, 0.46)
+		var pts := path(Vector3(0, -0.6, 0), Vector3(rng.randf_range(-0.1, 0.1), 1, rng.randf_range(-0.1, 0.1)), h * 0.35, 0.5, 0.0, 0.2)
+		var P := {
+			"n": [0, 6 + v, 4], "angle": [0, 1.0, 0.8], "len": [0, 2.3, 0.6],
+			"start": [0, 0.35, 0.3], "up": [0, 0.12, 0.04], "r": [0, 0.6, 0.5],
+			"seg": [0, 0.6, 0.5], "wig": [0, 0.35, 0.45],
+			"max_depth": 2, "leaf_from": 1, "leaf_per": 1.5, "flute": 0.45, "flute_n": 6, "flute_h": 0.9,
+		}
+		grow(pts, radii_for(pts, trunk_r * 1.2, trunk_r * 0.7), 0, P)
+		roots(5, trunk_r, 1.6)
+		var cr := crown_cards(C_PINE, Vector2(1.4, 2.0), 2, Color(0.42, 0.55, 0.46), 0.5, 0.3)
+		return done(true, maxf(cr, 2.0), "oak")
+
+	## The moor's wind-bent thorns: a low stem thrown downwind (+x, the foliage shader's wind), the
+	## crown streaming after it, flattened.
+	func make_windtree(v: int) -> Dictionary:
+		tile = 0.9
+		moss = 0.45
+		bark_col = Color(0.8, 0.78, 0.74)
+		h = rng.randf_range(3.6, 5.2)
+		trunk_r = rng.randf_range(0.15, 0.22)
+		var pts := PackedVector3Array()
+		for j in 8:
+			var t := float(j) / 7.0
+			pts.append(Vector3(pow(t, 1.5) * h * 0.8, -0.5 + t * h * 0.78 - t * t * h * 0.12, sin(t * 3.0 + v) * 0.2))
+		var P := {
+			"n": [0, 6, 3], "angle": [0, 0.55, 0.5], "len": [0, 0.5, 0.5],
+			"start": [0, 0.45, 0.3], "up": [0, -0.06, -0.04], "r": [0, 0.55, 0.55],
+			"seg": [0, 0.5, 0.4], "wig": [0, 0.3, 0.4],
+			"max_depth": 2, "leaf_from": 1, "leaf_per": 1.4, "flute": 0.25, "flute_n": 4, "flute_h": 0.6,
+		}
+		grow(pts, radii_for(pts, trunk_r * 1.25, trunk_r * 0.35), 0, P)
+		roots(4, trunk_r, 1.0)
+		var cr := crown_cards(C_SHRUB if v == 0 else C_OAK, Vector2(0.9, 1.3), 2, Color(0.62, 0.7, 0.55), 0.9, 0.05)
+		return done(true, maxf(cr, 1.5), "oak")
+
+	## Gorse: a dark, spiny dome starred with gold (heather cells tinted to the yellow).
+	func make_gorse(v: int) -> Dictionary:
+		tile = 0.6
+		h = rng.randf_range(0.8, 1.2)
+		dome(C_BRAMBLE, 12 + v * 3, Vector3(h * 1.1, h, h * 1.1), Vector2(0.8, 1.1), Color(0.55, 0.68, 0.5))
+		dome(C_HEATHER, 6, Vector3(h * 1.05, h * 1.05, h * 1.05), Vector2(0.5, 0.7), Color(1.5, 1.3, 0.25))
+		return done(false, h * 1.1, "oak")
+
+	## Soot-killed scrub at the Founder's Pits: bare twig domes.
+	func make_deadbush(_v: int) -> Dictionary:
+		tile = 0.6
+		h = rng.randf_range(0.9, 1.4)
+		for k in 4:
+			var d := Vector3(rng.randf_range(-0.6, 0.6), 1, rng.randf_range(-0.6, 0.6))
+			var pts := path(Vector3(0, -0.2, 0), d, h * 0.7, 0.35, 0.0, 0.35)
+			tube(pts, radii_for(pts, 0.035, 0.01), 4, {"col": Color(0.3, 0.27, 0.26)})
+		dome(C_TWIGS, 10, Vector3(h * 0.9, h, h * 0.9), Vector2(0.9, 1.3), Color(0.3, 0.27, 0.26))
+		return done(false, h, "dead")
+
+	## Grey ash drifted over the ground (litter cards, bleached).
+	func make_ashdrift(_v: int) -> Dictionary:
+		flats(C_LITTER, 3, Vector2(1.3, 1.9), Color(0.5, 0.48, 0.47))
+		return done(false, 1.0, "oak", true)
+
+	## Cinders still alive in the ash: a few small coals on the ember glow.
+	func make_cinders(_v: int) -> Dictionary:
+		glow_mat = EMBER_MAT
+		for k in rng.randi_range(4, 7):
+			var c := Vector3(rng.randf_range(-0.4, 0.4), 0.0, rng.randf_range(-0.4, 0.4))
+			var r := rng.randf_range(0.04, 0.09)
+			var pts := PackedVector3Array([c + Vector3(0, -0.03, 0), c + Vector3(rng.randf_range(-0.05, 0.05), r * 0.8, 0)])
+			tube(pts, PackedFloat32Array([r, r * 0.6]), 5, {"surf": glow, "col": Color(1.0, 0.55, 0.3), "cap": true, "lumps": 0.3})
+		h = 0.1
+		return done(false, 0.5, "cap")
+
+	## Water-plants for the mere: a raft of notched pads lying on the surface (y = 0 is the water).
+	func make_lily(_v: int) -> Dictionary:
+		var segs := 9
+		for k in rng.randi_range(4, 7):
+			var c := Vector3(rng.randf_range(-0.7, 0.7), 0.005 + k * 0.004, rng.randf_range(-0.7, 0.7))
+			var r := rng.randf_range(0.14, 0.3)
+			var notch := rng.randf() * TAU
+			var col := Color(0.2, 0.32, 0.16).lerp(Color(0.32, 0.36, 0.14), rng.randf())
+			var ci := wood.add(c, Vector3.UP, Vector2(0.5, 0.5), col * 1.1)
+			for j in segs + 1:
+				var a := notch + 0.35 + (TAU - 0.7) * float(j) / float(segs)
+				wood.add(c + Vector3(cos(a), 0, sin(a)) * r, Vector3.UP, Vector2(0.5, 0.5), col * 0.8)
+			for j in segs:
+				wood.tri(ci, ci + 1 + j, ci + 1 + j + 1)
+			if rng.randf() < 0.3:
+				mushroom(c + Vector3(0, -0.06, 0), 0.12, Color(0.85, 0.82, 0.75), false)
+		h = 0.05
+		return done(false, 0.9, "cap")
+
+	## Quarry scaffolding fallen in the rubble: split planks and poles, a broken trestle.
+	func make_scaffold(v: int) -> Dictionary:
+		tile = 1.2
+		moss = 0.15
+		bark_col = Color(0.75, 0.68, 0.6)
+		for k in 3 + v:
+			var a := rng.randf() * TAU
+			var d := Vector3(cos(a), 0, sin(a))
+			var l := rng.randf_range(2.0, 3.6)
+			var c := Vector3(rng.randf_range(-0.6, 0.6), 0.06 + k * 0.08, rng.randf_range(-0.6, 0.6))
+			if k % 2 == 0:
+				_plank(c, d, l, Vector2(0.28, 0.06))
+			else:
+				var pts := PackedVector3Array([c - d * l * 0.5 + Vector3(0, 0.05, 0), c + d * l * 0.5 + Vector3(0, 0.05, 0)])
+				tube(pts, PackedFloat32Array([0.07, 0.06]), 6, {"cap": true, "cap0": true})
+		if v == 1:
+			# a trestle leg still standing, propped on its fellows
+			var foot := Vector3(0.3, -0.1, 0.2)
+			var pts := PackedVector3Array([foot, foot + Vector3(0.5, 1.4, 0.1)])
+			tube(pts, PackedFloat32Array([0.08, 0.07]), 6, {"cap": true})
+		h = 0.5
+		return done(false, 1.8, "dead")
+
+	func _plank(c: Vector3, d: Vector3, l: float, sz: Vector2) -> void:
+		var sd := d.cross(Vector3.UP).normalized()
+		var hx := d * l * 0.5
+		var hz := sd * sz.x * 0.5
+		var hy := Vector3.UP * sz.y * 0.5
+		var col := bark_col * 0.85
+		for f: Array in [[Vector3.UP, hy, hx, hz], [Vector3.DOWN, -hy, -hx, hz], [sd, hz, hx, -hy], [-sd, -hz, hx, hy], [d, hx, hz, hy], [-d, -hx, -hz, hy]]:
+			var n: Vector3 = f[0]
+			var o: Vector3 = f[1]
+			var u: Vector3 = f[2]
+			var w: Vector3 = f[3]
+			var i0 := wood.v.size()
+			var lu := u.length() / tile
+			wood.add(c + o - u - w, n, Vector2(0, 0), col, Vector2.ZERO, u.normalized())
+			wood.add(c + o + u - w, n, Vector2(lu, 0), col, Vector2.ZERO, u.normalized())
+			wood.add(c + o + u + w, n, Vector2(lu, 0.2), col, Vector2.ZERO, u.normalized())
+			wood.add(c + o - u + w, n, Vector2(0, 0.2), col, Vector2.ZERO, u.normalized())
+			var face := (wood.v[i0 + 1] - wood.v[i0]).cross(wood.v[i0 + 2] - wood.v[i0])
+			if face.dot(n) > 0.0:
+				wood.tri(i0, i0 + 2, i0 + 1)
+				wood.tri(i0, i0 + 3, i0 + 2)
+			else:
+				wood.tri(i0, i0 + 1, i0 + 2)
+				wood.tri(i0, i0 + 2, i0 + 3)

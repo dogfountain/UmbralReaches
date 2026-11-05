@@ -48,11 +48,22 @@ const SCAPES := {
 	"summit": {"night": 0.45, "high_wind": 1.0, "chasm": 0.2},
 	"ossuary": {"ossuary": 1.0},
 	"tavern": {"hearth": 1.0, "night": 0.6, "crickets": 0.5},
+	# r34 flora: each new region its own mix of the beds (Enshrouded and WoW both let a region be
+	# heard before it is seen: wind in the cut stone, the mere's water, the field's crickets)
+	"quarry": {"night": 0.6, "high_wind": 0.65, "chasm": 0.12},
+	"holds": {"night": 0.8, "leaves": 0.7, "crickets": 0.5, "meadow": 0.3},
+	"foundry": {"night": 0.5, "chasm": 0.45, "high_wind": 0.4},
+	"moor": {"night": 0.8, "high_wind": 0.5, "meadow": 0.65, "crickets": 0.15},
+	"orchard": {"night": 0.9, "meadow": 0.4, "leaves": 0.25, "crickets": 0.2},
+	"necropolis": {"night": 0.9, "meadow": 0.45, "crickets": 0.65},
+	"mere": {"night": 0.7, "fen": 1.0, "crickets": 0.3, "meadow": 0.2},
 }
 
 ## RealmLayout region id -> soundscape
 const REGION_SCAPE := {"hearth": "village", "chapel": "village", "road": "heath", "thornwood": "wood", "henge": "wood",
-	"glade": "wood", "fen": "fen", "barrows": "fen", "rift": "crossing", "ossuary": "crossing", "summit": "summit", "crags": "summit"}
+	"glade": "wood", "fen": "fen", "barrows": "fen", "rift": "crossing", "ossuary": "crossing", "summit": "summit", "crags": "summit",
+	# r34 flora: the new ground, each its own scape (SCAPES / SPOTS)
+	"quarry": "quarry", "holds": "holds", "foundry": "foundry", "moor": "moor", "orchard": "orchard", "necropolis": "necropolis", "mere": "mere"}
 
 ## soundscape -> [interval min, max (s), distance min, max (m), palette [[sound, weight, height]]]
 ## sound "life:x" plays LifeSynth's x; height: metres above the ground, or "lava" (down on the lava)
@@ -65,6 +76,14 @@ const SPOTS := {
 	"summit": [9.0, 20.0, 20.0, 50.0, [["howl", 0.25, 25.0], ["pebbles", 0.45, 0.0], ["life:crow", 0.15, 8.0]]],
 	"ossuary": [4.0, 10.0, 4.0, 14.0, [["drip", 0.5, 2.5], ["bones", 0.25, 0.2], ["whisper", 0.1, 1.5], ["pebbles", 0.1, 0.5]]],
 	"tavern": [30.0, 60.0, 20.0, 30.0, []],
+	# r34 flora
+	"quarry": [8.0, 18.0, 14.0, 40.0, [["pebbles", 0.55, 0.0], ["creak", 0.15, 2.0], ["life:crow", 0.2, 8.0], ["howl", 0.08, 20.0]]],
+	"holds": [7.0, 15.0, 12.0, 36.0, [["life:owl", 0.3, 6.0], ["twig", 0.25, 0.2], ["creak", 0.2, 3.0], ["vixen", 0.12, 0.3]]],
+	"foundry": [8.0, 18.0, 14.0, 40.0, [["pebbles", 0.4, 0.0], ["creak", 0.25, 2.0], ["life:crow", 0.2, 8.0], ["howl", 0.1, 20.0]]],
+	"moor": [8.0, 18.0, 20.0, 50.0, [["peewit", 0.35, 3.0], ["nightjar", 0.25, 1.0], ["howl", 0.12, 20.0], ["life:crow", 0.1, 6.0], ["vixen", 0.1, 0.3]]],
+	"orchard": [8.0, 17.0, 14.0, 42.0, [["creak", 0.3, 3.0], ["twig", 0.25, 0.2], ["life:crow", 0.25, 5.0], ["life:owl2", 0.15, 5.0]]],
+	"necropolis": [9.0, 20.0, 18.0, 46.0, [["bell_far", 0.3, 6.0], ["life:crow", 0.3, 4.0], ["life:owl2", 0.2, 5.0], ["creak", 0.1, 1.5], ["whisper", 0.06, 1.2]]],
+	"mere": [6.0, 13.0, 12.0, 40.0, [["life:plop", 0.35, 0.0], ["bittern", 0.3, 0.3], ["life:heron", 0.2, 1.0], ["peewit", 0.06, 3.0]]],
 }
 
 ## reverb zones: AudioEffectReverb settings

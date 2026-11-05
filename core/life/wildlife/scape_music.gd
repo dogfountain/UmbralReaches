@@ -51,7 +51,9 @@ var near_names: Array = []        ## what made it danger (tests, debug)
 ## r33 world: each region plays in its own key (the explore and rest phrases shift by this many
 ## semitones; danger stays put), and finding a place answers with a short cue (WoW's zone-in sting).
 const REGION_KEY := {"hearth": 0, "road": 0, "chapel": 2, "glade": 5, "thornwood": -2, "henge": -2, "fen": -4, "barrows": -4,
-	"rift": -5, "ossuary": -5, "summit": 3, "crags": 3}
+	"rift": -5, "ossuary": -5, "summit": 3, "crags": 3,
+	# r34 flora: the new regions
+	"quarry": 3, "holds": -2, "foundry": -5, "moor": 0, "orchard": -3, "necropolis": 2, "mere": -4}
 var key := 0
 var cues := 0                     ## tests
 

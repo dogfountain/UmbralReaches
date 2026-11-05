@@ -249,13 +249,15 @@ func _thornwarden() -> void:
 	tw.set("_lash_cd", 99.0)
 	tw.set("_mend_t", 99.0)
 	tw.set("_silence_t", 0.0)
-	tw.hp = 40.0
+	tw.set("_storm_t", 99.0)                             # r34 raids: Thornstorm
+	var hp0 := float(tw.max_hp) * 0.5                    # r34 raids: phase II runs 70-35 % (600 HP)
+	tw.hp = hp0
 	_put_player(AT + Vector3(14, 0, 0))
 	tw.call("_sap_mending")
 	await _frames(1)
 	check("thornwarden: Sap Mending is an interruptible cast", tw.cast_name == "Sap Mending" and tw.cast_interruptible and tw.weak_open)
 	await _secs(3.3)
-	check("thornwarden: unbroken, it mends", tw.hp > 40.0 + 5.0, "%.1f" % tw.hp)
+	check("thornwarden: unbroken, it mends", tw.hp > hp0 + 5.0, "%.1f" % tw.hp)
 	var hp1 := tw.hp
 	tw.set("_stagger_cd", 0.0)
 	tw.call("_sap_mending")

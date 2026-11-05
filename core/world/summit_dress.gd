@@ -119,9 +119,12 @@ static func dress(root: Node) -> void:
 	var bosses: Array[String] = ["thornwarden", "bone_abbot"]
 	var ward := WardSeal.make(holder, "summit", Vector3(0.0, 25.2, -70.9), Vector3.BACK, 5.8, 3.6, "light", "The summit ward", bosses)
 	var dais := SUMMIT + Vector3(DAIS_C.x, TOP_DECK_Y, DAIS_C.y)
-	var arena := BossArena.make(holder, "ascended_warden", "The Ascended Warden", dais, DAIS_R, AscendedWarden, dais + Vector3(0, 0.1, -2.0))
-	arena.ceiling = 8.0
-	arena.max_rise = 0.5                       # the extended dais is one flat paved floor
+	var arena := BossArena.make(holder, "ascended_warden", "The Ascended Warden", dais, DAIS_R - 0.5, AscendedWarden, dais + Vector3(0, 0.1, -6.0))
+	arena.ceiling = 14.0
+	arena.max_rise = 0.5                       # the raid deck is one flat paved floor
+	# r34 raids: the room the fight changes (pylons, broken edges, the falling sky, its light)
+	var raid: Node3D = SummitRaid.build(holder, dais, DAIS_R, holder.global_basis)
+	arena.room = raid
 	arena.requires_bosses = bosses
 	# r30: the ward at the Crossing's head stays the progression seal (33 m back, past the leash); the
 	# fight shuts a veil across the dais mouth instead, 1.5 m behind the wanderer
@@ -143,11 +146,9 @@ static func dress(root: Node) -> void:
 	lore_more.call("place", holder, "bs_dais", SUMMIT + Vector3(DAIS_C.x, TOP_DECK_Y + 0.25, DAIS_C.y + DAIS_R + 0.9))
 	# the "where do I go" for the whole map: a pale column from above the dais into the vortex eye
 	Wayfinding.beacon(holder, dais, "ascended_warden", Color(1.0, 0.86, 0.62), 170.0, 1.1)
-	var rim := _rim_fires(holder)
-	arena.on_slain = func(fresh: bool) -> void:
-		for f in rim:
-			if is_instance_valid(f):
-				(f as Node3D).visible = false
+	arena.on_slain = func(_fresh: bool) -> void:
+		if is_instance_valid(raid):
+			raid.call("set_mood", "won")
 		# (no toast here: story.gd stages the Warden's fall as one beat; the seal's text is in the satchel)
 	# r30: a fire at the stair head, outside the arena (a fall there sent you back down the whole climb)
 	_summit_fire.call_deferred(holder)
@@ -233,22 +234,33 @@ static func _approach_stairs(holder: Node3D, platform: Node) -> void:
 	kit.commit(host, "StairsBody")
 
 
-## The Warden's fighting floor. The platform's own top deck is only r 6.3 round the statue, so a
-## paved disc at deck level is built behind it, out over the chasm: its front edge meets the deck
-## at the rear opening (where StoneApproach comes up), a coped parapet runs round the rest, and
-## piers carry it down to the chasm floor. The back rail and moss rocks it covers are removed
+## The Warden's fighting floor. r34 raids: the great deck of the raid floor (RealmLayout.RAIDS "summit":
+## centre (0, -118), r 28, at the top deck's height), built behind the platform out over the chasm and
+## against the Crowns' cirque. Its front edge meets the platform's top deck at the rear opening (the
+## mouth, where the veil shuts on the pull); a coped parapet runs round the rest, broken open on the
+## east and west where the deck hangs over the chasm (SummitRaid.EDGE_ANGLES: the Gale blows you
+## there); piers carry it down to the ground. The back rail and moss rocks it covers are removed
 ## (before _solidify_from_meshes, so their collision goes too); the lift jetty route keeps clear.
-const DAIS_C := Vector2(0.0, -20.4)          ## holder xz; front edge at z -6.4, just behind the deck
-const DAIS_R := 14.0
+const DAIS_C := Vector2(0.0, -34.5)          ## holder xz (world (0, -118)); front edge at z -6.5, just behind the deck
+const DAIS_R := 28.0
 const DAIS_THICK := 1.0
 const DAIS_GAP := 3.2                        ## half width of the opening onto the top deck
 const SCREEN_H := 2.5                        ## rim wall height where it borders the platform (GRAB_MAX 2.25)
+const SummitRaid := preload("res://core/world/summit_raid.gd")
 static var mouth: Array[Vector3] = [Vector3(-3.8, TOP_DECK_Y, -7.2), Vector3(3.8, TOP_DECK_Y, -7.2)]   ## holder: the opening's two ends
 const JUNCTION := AABB(Vector3(-3.3, 1.8, -7.6), Vector3(6.6, 3.0, 2.0))   ## deck -> dais, cleared
 
 
 static func _in_dais(p: Vector3, grow := 0.0) -> bool:
 	return Vector2(p.x, p.z).distance_to(DAIS_C) <= DAIS_R + grow
+
+
+## Is the rim segment at holder angle `a` (0 = east, PI/2 = south) one of the broken edges?
+static func _edge_gap(a: float) -> bool:
+	for deg: float in SummitRaid.EDGE_ANGLES:
+		if absf(rad_to_deg(angle_difference(a, deg_to_rad(deg)))) < SummitRaid.EDGE_HALF:
+			return true
+	return false
 
 
 static func _extended_dais(holder: Node3D, platform: Node) -> void:
@@ -266,19 +278,23 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 	k.keep_lanes = false
 	var top := TOP_DECK_Y
 	var bot := top - DAIS_THICK
-	var segs := 48
-	var rings: Array[float] = [0.0, 2.6, 2.95, 9.4, 9.75, 13.25, DAIS_R]
-	var ring_keys: Array[String] = ["floor", "slate", "floor", "slate", "floor", "stone"]   # two inlaid bands, the kerb
+	var segs := 72
+	# a raid floor that reads from the air: a rose of inlaid slate bands and eight spokes
+	var rings: Array[float] = [0.0, 3.2, 3.6, 10.6, 11.0, 16.6, 17.0, 23.4, 23.8, 26.9, DAIS_R]
+	var ring_keys: Array[String] = ["floor", "slate", "floor", "slate", "floor", "slate", "floor", "slate", "floor", "stone"]
+	var c := Vector3(DAIS_C.x, 0, DAIS_C.y)
 	for s in segs:
 		var a0 := TAU * float(s) / float(segs)
 		var a1 := TAU * float(s + 1) / float(segs)
 		var d0 := Vector3(cos(a0), 0, sin(a0))
 		var d1 := Vector3(cos(a1), 0, sin(a1))
-		var c := Vector3(DAIS_C.x, 0, DAIS_C.y)
+		var spoke := s % 9 == 0
 		for ri in rings.size() - 1:
 			var r0: float = rings[ri]
 			var r1: float = rings[ri + 1]
 			var key := ring_keys[ri]
+			if spoke and key == "floor" and ri > 0:
+				key = "slate"
 			k.quad(key, c + d0 * r0 + Vector3.UP * top, c + d0 * r1 + Vector3.UP * top, c + d1 * r1 + Vector3.UP * top, c + d1 * r0 + Vector3.UP * top, Vector3.UP, true, 0.92 if s % 2 == 0 else 1.0)
 		# rim face and soffit
 		var o0 := c + d0 * DAIS_R
@@ -287,54 +303,64 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 		k.quad("stone", c + Vector3.UP * bot, o0 + Vector3.UP * bot, o1 + Vector3.UP * bot, c + Vector3.UP * bot, Vector3.DOWN, false, 0.7)
 	# the step from the deck: a slab over the rear opening, flush with both floors
 	k.block("floor", Vector3(-DAIS_GAP, top - 0.3, -7.4), Vector3(DAIS_GAP, top, -6.2), true, 0.95)
-	# parapet: coped wall round the edge, open onto the deck and wherever the lift jetty passes
+	# parapet: coped wall round the edge, open onto the deck, at the lift jetty and at the broken edges
 	var space := holder.get_world_3d().direct_space_state
 	var wall_r := DAIS_R - 0.3
 	var at := func(a: float) -> Vector3: return Vector3(DAIS_C.x + cos(a) * wall_r, top, DAIS_C.y + sin(a) * wall_r)
 	var opening: Array[bool] = []
+	var broken: Array[bool] = []
 	var mouth_ends: Array[Vector3] = []
 	for s in segs:
-		var mid: Vector3 = at.call(TAU * (float(s) + 0.5) / float(segs))
+		var am := TAU * (float(s) + 0.5) / float(segs)
+		var mid: Vector3 = at.call(am)
 		opening.append((absf(mid.x) < DAIS_GAP + 0.6 and mid.z > DAIS_C.y) or LIFT_LANE.grow(0.4).has_point(Vector3(mid.x, LIFT_LANE.get_center().y, mid.z)))
+		broken.append(_edge_gap(am))
 	var piers := 0
+	var oss := RealmLayout.OSSUARY
 	for s in segs:
 		var a0 := TAU * float(s) / float(segs)
 		var a1 := TAU * float(s + 1) / float(segs)
 		var p0: Vector3 = at.call(a0)
 		var p1: Vector3 = at.call(a1)
 		var mid := (p0 + p1) * 0.5
-		var open := opening[s]
-		if open != opening[s - 1]:
+		var open := opening[s] or broken[s]
+		if open != (opening[s - 1] or broken[s - 1]):
 			k.pinnacle("stone", p0, 0.62, 1.5 + (SCREEN_H - 0.9 if Vector2(p0.x, p0.z).length() < PLATFORM_RADIUS + 0.5 else 0.0), 0.55)       # where the wall stops or starts again
-			if mid.z > DAIS_C.y:
-				mouth_ends.append(p0)
-		if open and mid.z > DAIS_C.y:
+		if opening[s] and mid.z > DAIS_C.y:
 			mouth_ends.append(p0)
 			mouth_ends.append(p1)
 		if not open:
 			var out := Vector3(mid.x - DAIS_C.x, 0, mid.z - DAIS_C.y).normalized()
 			var bas := Basis(out.cross(Vector3.UP).normalized(), Vector3.UP, out)
 			var len := p0.distance_to(p1) + 0.1
-			# r30: where the rim borders the platform's mid terrace (not the chasm) it is a screen wall
+			# where the rim borders the platform's mid terrace (not the chasm) it is a screen wall
 			# above the hands' reach, so the mouth veil is the only way out of the fight
 			var wh := SCREEN_H if Vector2(mid.x, mid.z).length() < PLATFORM_RADIUS + 0.5 else 0.9
 			k.box("stone", mid + Vector3.UP * (wh * 0.5), Vector3(len, wh, 0.45), bas, true, 0.88)
 			k.box("stone", mid + Vector3.UP * (wh + 0.07), Vector3(len + 0.04, 0.14, 0.62), bas, true, 0.97)
-		# a pier down to the chasm floor under every third segment, clear of the platform and the
-		# Ossuary (anything the ray meets that is not the terrain): no pier lands on a roof
-		if s % 3 == 1:
-			var foot := Vector3(DAIS_C.x + cos((a0 + a1) * 0.5) * (DAIS_R - 1.1), bot, DAIS_C.y + sin((a0 + a1) * 0.5) * (DAIS_R - 1.1))
+		# piers down to the ground: under every fourth rim segment and on an inner ring, clear of the
+		# platform and the Ossuary (anything the ray meets that is not the terrain): none on a roof
+		for ring: float in [DAIS_R - 1.4, 15.0]:
+			if (ring > 20.0 and s % 4 != 1) or (ring < 20.0 and s % 9 != 4):
+				continue
+			var am2 := (a0 + a1) * 0.5
+			var foot := Vector3(DAIS_C.x + cos(am2) * ring, bot, DAIS_C.y + sin(am2) * ring)
 			if Vector2(foot.x, foot.z).length() < PLATFORM_RADIUS + 1.0:
 				continue
 			var w := holder.global_transform * foot
+			if Rect2(oss.position.x - 3.0, oss.position.z - 3.0, oss.size.x + 6.0, oss.size.z + 6.0).has_point(Vector2(w.x, w.z)):
+				continue
 			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(w + Vector3.DOWN * 0.2, w + Vector3.DOWN * 120.0, Layers.WORLD))
 			if hit.is_empty() or not String((hit.collider as Node).name).contains("Terrain"):
 				continue
 			var gy: float = (inv * (hit.position as Vector3)).y - 1.0
+			if bot - gy < 2.5:
+				continue                                  # the cut ground of the cirque: the deck sits on it
 			var out2 := Vector3(foot.x - DAIS_C.x, 0, foot.z - DAIS_C.y).normalized()
 			var bas2 := Basis(out2.cross(Vector3.UP).normalized(), Vector3.UP, out2)
-			k.box("stone", Vector3(foot.x, (bot + gy) * 0.5, foot.z), Vector3(1.6, bot - gy, 2.2), bas2, true, 0.8)
-			k.box("stone", foot + out2 * 0.35 + Vector3.UP * -0.35, Vector3(2.0, 0.7, 2.9), bas2, true, 0.9)    # corbel under the rim
+			var thick := 2.0 if ring > 20.0 else 2.6
+			k.box("stone", Vector3(foot.x, (bot + gy) * 0.5, foot.z), Vector3(thick, bot - gy, thick + 0.6), bas2, true, 0.8)
+			k.box("stone", foot + Vector3.UP * -0.35, Vector3(thick + 0.5, 0.7, thick + 1.2), bas2, true, 0.9)    # corbel under the deck
 			piers += 1
 	var host := Node3D.new()
 	host.name = "ExtendedDais"
@@ -342,9 +368,9 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 	holder.add_child(host)
 	k.commit(host, "DaisBody")
 	var wc := holder.global_transform * Vector3(DAIS_C.x, 0, DAIS_C.y)
-	# sites are rects: the square round the disc would take in the lift jetty, the rails and a rift
-	# rock (all 4+ m outside the disc), so register the square inside it (to the arena's audit ring)
-	var half := DAIS_R * 0.85
+	# sites are rects: register the square inside the disc (the square round it would take in the
+	# lift jetty, the rails, the Ossuary's tower)
+	var half := DAIS_R * 0.7
 	WorldLanes.register_site("summit_dais", Rect2(wc.x - half, wc.z - half, half * 2.0, half * 2.0), holder.global_position.y + top, NAN, true)
 	# the mouth: the chord across the opening onto the deck (and the lift lane beside it)
 	if mouth_ends.size() >= 2:
@@ -355,7 +381,7 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 			if e.x > hi.x: hi = e
 		mouth = [lo, hi]
 	var moved := _clear_airspace(holder.get_parent(), holder)
-	print("SUMMIT_DRESS extended dais r=%.1f, %d piers, %d rift rocks moved off it" % [DAIS_R, piers, moved])
+	print("SUMMIT_DRESS raid deck r=%.1f, %d piers, %d rift rocks moved off it, mouth %s" % [DAIS_R, piers, moved, mouth])
 
 
 ## Rift debris hung over the new floor at head height (one rock 2.7 m above the paving, in the
@@ -700,55 +726,3 @@ static func _summit_fire(holder: Node3D) -> void:
 	if b.lit:
 		b._set_lit(false, false)
 	print("SUMMIT_DRESS checkpoint fire at %s" % at.snapped(Vector3.ONE * 0.1))
-
-
-## Four fire bowls on the dais rim (r30: "lit only by the player's lantern"). Warm, unshadowed,
-## small range: they frame the fight and read from the Crossing below. Out when the Warden falls.
-static func _rim_fires(holder: Node3D) -> Array:
-	var out: Array = []
-	var k := OssKit.new()
-	k.keep_lanes = false
-	var spots: Array[Vector3] = []
-	for a: float in [deg_to_rad(-30.0), deg_to_rad(-150.0), deg_to_rad(20.0), deg_to_rad(160.0)]:
-		spots.append(Vector3(DAIS_C.x + cos(a) * (DAIS_R - 1.2), TOP_DECK_Y, DAIS_C.y + sin(a) * (DAIS_R - 1.2)))
-	for p in spots:
-		k.box("stone", p + Vector3.UP * 0.45, Vector3(0.7, 0.9, 0.7), Basis.IDENTITY, true, 0.9)
-		k.box("stone", p + Vector3.UP * 0.98, Vector3(1.05, 0.16, 1.05), Basis.IDENTITY, true, 0.8)
-		k.box("iron", p + Vector3.UP * 1.12, Vector3(0.9, 0.14, 0.9), Basis.IDENTITY, false)
-	var host := Node3D.new()
-	host.name = "DaisRimFires"
-	host.set_meta("site", "summit_dais")              # the dais's own furniture (zz/realm_audit)
-	holder.add_child(host)
-	k.commit(host, "RimBody")
-	var fm := StandardMaterial3D.new()
-	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	fm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	fm.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
-	fm.cull_mode = BaseMaterial3D.CULL_DISABLED
-	fm.albedo_texture = Wayfinding.Glow._tongue()       # the same soft flame tongue as an unlit fire's glint
-	fm.albedo_color = Color(1.3, 0.62, 0.22, 1.0)
-	fm.disable_fog = true                               # the summit's azure fog turned them violet
-	var qm := QuadMesh.new()
-	qm.size = Vector2(0.75, 1.25)
-	qm.center_offset = Vector3(0, 0.6, 0)
-	for p in spots:
-		var f := Node3D.new()
-		host.add_child(f)
-		f.position = p + Vector3.UP * 1.17
-		var flame := MeshInstance3D.new()
-		flame.mesh = qm
-		flame.material_override = fm
-		flame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		f.add_child(flame)
-		var l := OmniLight3D.new()
-		l.light_color = Color(1.0, 0.56, 0.26)
-		l.light_energy = 2.4
-		l.omni_range = 9.0
-		l.shadow_enabled = false
-		l.position = Vector3.UP * 0.9
-		l.set_meta(&"light_class", "fill")
-		f.add_child(l)
-		LightPolicy.apply_fade(l)
-		out.append(f)
-	return out

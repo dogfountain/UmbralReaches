@@ -298,7 +298,11 @@ func _inside_building(p: Vector3) -> String:
 func _restore() -> void:
 	print("restore")
 	var toasts: Array[String] = []
-	var cb := func(s: String) -> void: toasts.append(s)
+	var mine := Cast.RESTORE.map(func(r: Dictionary) -> String: return String(r.toast))
+	# only the village's own announcements (other systems toast on a boss down too: remembrances)
+	var cb := func(s: String) -> void:
+		if s in mine:
+			toasts.append(s)
 	Events.toast.connect(cb)
 	VState.kindled_override = 4
 	Travel.seals_broken = {"henge": true, "oss_gallery": true, "summit": true}
@@ -310,7 +314,7 @@ func _restore() -> void:
 		var id := String(r.id)
 		ok(VState.restored(id), "restored: %s" % id)
 		ok((village.get("overlays") as Dictionary).has(id), "built: %s" % id)
-	ok(toasts.size() == Cast.RESTORE.size(), "each restoration announced once (%d toasts)" % toasts.size())
+	ok(toasts.size() == Cast.RESTORE.size(), "each restoration announced once (%d toasts%s)" % [toasts.size(), "" if toasts.size() == Cast.RESTORE.size() else ": " + str(toasts)])
 	var vs: Dictionary = village.get("villagers")
 	for vid: String in ["col", "bet", "wenna", "pell"]:
 		ok(vs.has(vid), "%s has come back" % vid)

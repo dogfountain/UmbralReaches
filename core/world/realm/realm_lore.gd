@@ -17,6 +17,7 @@ const PARTS := [
 	"res://core/world/realm/lore/barrows.gd",
 	"res://core/world/realm/lore/wilds.gd",
 	"res://core/world/realm/lore/rim.gd",
+	"res://core/world/realm/lore/r34_places.gd",     # r34 places: the new ground's writings (docs/r34/places.md)
 ]
 
 

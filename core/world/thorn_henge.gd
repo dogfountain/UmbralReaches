@@ -12,6 +12,10 @@ const RING := 10.5                          ## menhir ring
 const HEDGE := 12.2
 const HEDGE_GAP := 0.32                     ## half-angle of the hedge's mouth (realm), where the seal stands
 static var FOOT := Vector2(-20.0, 22.0)     ## stair foot (xz); its y comes from the ground
+## r34 layout: where the stair arrives, from C. The legacy henge: the terrace's edge (R). The Realm's
+## henge stands in a raid floor (RealmLayout.RAIDS "henge", r 31, level with the terrace), so the stair
+## climbs the hill to that floor's rim and the henge is crossed on the level from there.
+static var STAIR_R := R
 ## Under the Realm (docs/REALM_PLAN.md) the henge stands on its own hill at RealmLayout.HENGE_C and
 ## the stair starts where west_way ends; `use_realm()` (RealmBosses) switches these before build.
 static var realm := false
@@ -23,6 +27,8 @@ static func use_realm() -> void:
 	realm = true
 	C = Vector3(RealmLayout.HENGE_C.x, 8.0, RealmLayout.HENGE_C.y)
 	FOOT = RealmLayout.HENGE_STAIR_FOOT
+	var raid := RealmLayout.raid("henge")
+	STAIR_R = float(raid.get("r", R)) if not raid.is_empty() else R
 
 var _rng := RandomNumberGenerator.new()
 
@@ -64,7 +70,7 @@ func _build(root: Node) -> void:
 	var foot := Vector3(FOOT.x, fg - 0.12, FOOT.y)
 	if realm:
 		to_foot = _realm_head_dir(space, foot)                         # the head swings round the hill
-	var gate2 := Vector2(C.x, C.z) + to_foot * R                    # stair head on the terrace edge
+	var gate2 := Vector2(C.x, C.z) + to_foot * (STAIR_R if realm else R)   # stair head on the terrace (raid floor) edge
 	var head := Vector3(gate2.x, C.y, gate2.y)
 	var dir3 := Vector3(foot.x - head.x, 0, foot.z - head.z).normalized() if realm else Vector3(to_foot.x, 0, to_foot.y)   # downhill along the flight
 	var run := Vector2(head.x - foot.x, head.z - foot.z).length()
@@ -96,7 +102,15 @@ func _build(root: Node) -> void:
 			var py := land_c.y if absf(Vector2(pp.x - land_c.x, pp.z - land_c.z).length()) < mid_land * 0.5 else pp.y
 			WorldLanes.register_terrace("henge_stair_pin%d" % i, Vector2(pp.x, pp.z), 2.4, maxf(py - 0.5, foot.y))   # never below the foot: its first riser stays a step
 	if realm:
-		WorldLanes.register_lane("henge_way", [Vector2(-52.0, -2.0), Vector2(foot.x, foot.z)], 1.2)
+		# r34: from west_way's last bend to the foot (west_way ends at the foot; the lane keeps its flank clear)
+		var ww: Array = []
+		for pth: Dictionary in RealmLayout.PATHS:
+			if pth.id == "west_way":
+				ww = pth.pts
+		var bend: Vector2 = ww[ww.size() - 2] if ww.size() >= 2 else Vector2(-52.0, -2.0)
+		# the lane meets the flight on its own axis, 2.5 m out (the foot's pinnacles stand either side)
+		var axis := Vector2(foot.x + dir3.x * 2.5, foot.z + dir3.z * 2.5)
+		WorldLanes.register_lane("henge_way", [bend, axis], 1.2)
 	else:
 		WorldLanes.register_lane("henge_way", [Vector2(-6.0, 18.0), Vector2(foot.x + 1.5, foot.z + 0.5), Vector2(foot.x, foot.z)], 1.2)
 	WorldLanes.register_portal("henge_gate", head - dir3 * 0.2, dir3, 2.3, 3.6)
@@ -190,6 +204,8 @@ func _build(root: Node) -> void:
 		var a0 := gate_a + TAU * (float(i) + 0.5) / float(segs)
 		if absf(wrapf(a0 - gate_a, -PI, PI)) < HEDGE_GAP * (1.0 if realm else 0.62):   # realm: the stair arrives slantwise
 			continue
+		if realm and absf(fposmod(a0 - gate_a + PI * 0.25, PI * 0.5) - PI * 0.25) < HEDGE_GAP:
+			continue                                                   # r34 raid: four mouths (inner and outer ring)
 		var p := Vector3(C.x + cos(a0) * HEDGE, C.y, C.z + sin(a0) * HEDGE)
 		for j in 5:
 			var pts := PackedVector3Array()
@@ -236,7 +252,13 @@ func _build(root: Node) -> void:
 	rune.material_override = rm
 	add_child(rune)
 	rune.global_position = C + Vector3.UP * 0.03
+	var raid: Node3D = null
+	if realm:
+		# r34 raids: the raid room round the old henge (core/world/henge_raid.gd): its wall, raid door,
+		# great stones, maze, knots, lights; it carries the light (an ember heart replaces the violet one)
+		raid = (load("res://core/world/henge_raid.gd") as GDScript).call("build", self, C, gate_a)
 	var l := OmniLight3D.new()
+	l.visible = not realm
 	l.light_color = Color(0.75, 0.35, 0.5)
 	l.light_energy = 1.2
 	l.omni_range = 18.0
@@ -249,9 +271,22 @@ func _build(root: Node) -> void:
 	# hedge gap was a way out of the fight, and the trilithon seal stood inside the arena's radius
 	var gap := HEDGE_GAP * (1.0 if realm else 0.62)
 	var mouth := C + gout * HEDGE * cos(gap) + Vector3.UP * 0.0
+	var seal_w := 2.0 * HEDGE * sin(gap) + 0.6
+	if realm:
+		# r34 raids: the seal is the raid door, in the outer wall's mouth at the stair head
+		var rr: float = raid.get("WALL_R")
+		var mg: float = raid.get("MOUTH")
+		mouth = C + gout * rr * cos(mg)
+		seal_w = 2.0 * rr * sin(mg) + 0.6
 	mouth.y = C.y
-	var seal := WardSeal.make(self, "henge", mouth, gout, 2.0 * HEDGE * sin(gap) + 0.6, 4.6, "thorn", "The thorn seal")
-	var arena := BossArena.make(self, "thornwarden", "The Thornwarden", C, R - 0.6, Thornwarden, C + gside * 4.5 + Vector3.UP * 0.1)
+	var seal := WardSeal.make(self, "henge", mouth, gout, seal_w, 5.2 if realm else 4.6, "thorn", "The thorn seal")
+	var arena: BossArena
+	if realm:
+		arena = BossArena.make(self, "thornwarden", "The Thornwarden", C, float(raid.get("ARENA_R")), Thornwarden, C + gout * 6.8 + Vector3.UP * 0.1)
+		arena.room = raid
+		arena.ceiling = 9.0
+	else:
+		arena = BossArena.make(self, "thornwarden", "The Thornwarden", C, R - 0.6, Thornwarden, C + gside * 4.5 + Vector3.UP * 0.1)
 	arena.gate = seal
 	arena.subtitle = "what the Rooted asked to stand"
 	arena.on_slain = func(fresh: bool) -> void:
@@ -261,6 +296,8 @@ func _build(root: Node) -> void:
 	var keeper_side := gout.cross(Vector3.UP).normalized()
 	var cut: Node3D = (load("res://core/world/realm/lore/lore_more.gd") as GDScript).call("place", self, "bs_henge_keeper", Vector3.ZERO)
 	cut.global_position = mouth + keeper_side * (HEDGE * sin(gap) + 1.0) + gout * 0.8 + Vector3.UP * 0.4
+	if realm:
+		cut.global_position = mouth + keeper_side * (seal_w * 0.5 + 0.4) - gout * 1.4 + Vector3.UP * 0.4   # inside the raid door
 	# a fire at the stair head, outside the gate: the checkpoint before the fight
 	# the pilgrims' rest: a fire on its own platform off the mid landing (the checkpoint before the
 	# henge, and outside the arena so a fall never resets you inside the fight)
@@ -280,15 +317,16 @@ func _realm_head_dir(space: PhysicsDirectSpaceState3D, foot: Vector3) -> Vector2
 	var radial := (f2 - c2) / d
 	var steps := Metrics.steps_for(C.y - foot.y)
 	var need := float(steps) * 0.56 + 2.6
-	if d - R >= need:
+	var sr := STAIR_R
+	if d - sr >= need:
 		return radial
-	var phi := acos(clampf((d * d + R * R - need * need) / (2.0 * d * R), -1.0, 1.0))
-	phi = minf(phi, acos(R / d) - 0.06)                               # never cut across the terrace
+	var phi := acos(clampf((d * d + sr * sr - need * need) / (2.0 * d * sr), -1.0, 1.0))
+	phi = minf(phi, acos(sr / d) - 0.06)                              # never cut across the terrace
 	var best := radial
 	var best_err := INF
 	for s: float in [-1.0, 1.0]:
 		var dir := radial.rotated(phi * s)
-		var hd := c2 + dir * R
+		var hd := c2 + dir * sr
 		var err := 0.0
 		for i in 9:
 			var t := float(i + 1) / 10.0

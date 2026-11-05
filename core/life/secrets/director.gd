@@ -26,6 +26,7 @@ func _exit_tree() -> void:
 	Kit.release()
 	(load("res://core/life/secrets/beam.gd") as GDScript).call("release")
 	(load("res://core/life/secrets/site_glade.gd") as GDScript).call("release")
+	(load("res://core/life/secrets/site_r34.gd") as GDScript).call("release")     # r34 places
 	Reactivity.release()
 	State.release()
 

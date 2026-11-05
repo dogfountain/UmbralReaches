@@ -36,8 +36,8 @@ static func seed_stair(root: Node) -> void:
 const REALM_CAMPS: Array[Dictionary] = [
 	# guardians of the thorn seal: the Thornwood edge along west_way, below the henge hill
 	{"at": Vector3(-50.0, 60.0, 8.0), "kinds": ["wretch", "crawler"], "probe": 0.0, "seal": "henge"},        # past the glade
-	{"at": Vector3(-47.0, 60.0, -12.0), "kinds": ["spitter", "wretch"], "probe": 0.0, "seal": "henge"},      # the hill's east flank
-	{"at": Vector3(-54.0, 60.0, -18.0), "kinds": ["leaper", "crawler"], "probe": 0.0, "seal": "henge"},      # the hill's foot beside the way's end (r32: was at -74,12, 22 m off any path, behind the hill; 13 m+ from HengeFire)
+	{"at": Vector3(-44.0, 60.0, -15.0), "kinds": ["spitter", "wretch"], "probe": 0.0, "seal": "henge"},      # the stair's foot, east of the flight (r34 enemies: was -47,-12, inside the moved henge's stair site: skipped, the seal had two camps)
+	{"at": Vector3(-54.0, 60.0, -18.8), "kinds": ["leaper", "crawler"], "probe": 0.0, "seal": "henge"},      # the stair's head on the raid floor's rim (r32: was at -74,12, 22 m off any path, behind the hill; r34 enemies: -18 -> -18.8, 13 m+ from HengeFire on its landing)
 	# guardians of the summit ward (it also needs the Thornwarden and the Bone Abbot): they hold the
 	# Crossing itself, its west tower (Crossing.T2, parapeted) and its head in front of the ward
 	# (r32: the first pack stood 12-16 m east of the Crossing's foot, off the way, beside a roaming pack)
@@ -46,7 +46,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	# roaming packs (they come back)
 	# r28 war bands: a guard (Bulwark) before a caster (Chanter), flankers on the sides
 	# r31: a Tollman rides with it (kill it before it rings, or the Thornwood comes) and a Gaunt darts
-	{"at": Vector3(-92.0, 60.0, -30.0), "kinds": ["bulwark", "chanter", "gaunt", "wretch", "tollman"], "probe": 0.0, "r": 3.0},   # Thornwood deep
+	{"at": Vector3(-126.0, 60.0, -32.0), "kinds": ["bulwark", "chanter", "gaunt", "wretch", "tollman"], "probe": 0.0, "r": 3.0},   # Thornwood deep (r34 layout: was -92,-30, inside the henge's raid floor; now off west_track, west of the hill)
 	{"at": Vector3(-84.0, 60.0, 22.0), "kinds": ["leaper", "husk"], "probe": 0.0},                 # Thornwood west (r30: was 18 m from Wyck the hermit)
 	{"at": Vector3(-82.0, 60.0, -56.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},   # Thornwood under the Crowns: a swarm nest
 	{"at": Vector3(-39.0, 60.0, 18.0), "kinds": ["wretch", "spitter"], "probe": 0.0},              # Thornwood's village edge (r30: was 14 m from the sexton's dig, 15 m from the burned barn)
@@ -62,8 +62,53 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(-52.5, 60.0, 67.5), "kinds": ["husk", "gaunt"], "probe": 0.0},                 # Pilgrims' Road west (r30: was 2 m from the south edge)
 	{"at": Vector3(-31.0, 60.0, 68.0), "kinds": ["burrower", "wretch"], "probe": 0.0},             # Pilgrims' Road (r30: 10 m+ inside the bounds)
 	{"at": Vector3(77.0, 60.0, 56.5), "kinds": ["chanter", "husk", "crawler"], "probe": 0.0},      # Pilgrims' Road east (r30: was at z 81, outside the world; north of the road, off the cart)
-	{"at": Vector3(-38.0, 60.0, 6.0), "kinds": ["quiller", "leaper"], "probe": 0.0},               # rift rim west (r31 merge: off the secret bridge's landing at -23.5,-5.3, where a pounce threw you into the rift)
+	{"at": Vector3(-35.0, 60.0, -10.0), "kinds": ["quiller", "leaper"], "probe": 0.0},             # rift rim west (r31 merge: off the secret bridge's landing at -23.5,-5.3, where a pounce threw you into the rift; r34 enemies: was -38,6, 7 m from the Shrine fire: in its light)
 	{"at": Vector3(22.0, 60.0, -6.0), "kinds": ["wretch", "crawler"], "probe": 0.0},               # rift rim east
+	# --- r34 enemies: the new ground at the old density (docs/r34/layout.md: ~4 camps per 10,000 m²,
+	# ~1 foe per 1,000 m²), each region its own roster and a reason. Every camp: 10 m+ inside BOUNDS,
+	# 13 m+ from every fire (the braziers and the new regions' fire slots), 4 m+ off the ways, off the
+	# sites and the raid floors (checked by zz/enemies_r34_test on the built Realm). Husks, Bulwarks and
+	# Leapers in the quarry and Husks, Wretches and Ossuants in the mere wear the region's own look
+	# (Tiers.REGION_VARIANT: stone-bound, drowned); "kind@variant" names one outright.
+	# The Saints' Quarry (tier 2): the Order's cutters, still at it. Leapers on the benches, stone-bound
+	# husks hauling, a chanter keeping their pace.
+	{"at": Vector3(-111.0, 60.0, -99.0), "kinds": ["husk", "leaper", "leaper"], "probe": 0.0},     # the east benches
+	{"at": Vector3(-139.0, 60.0, -89.0), "kinds": ["leaper", "husk", "wretch"], "probe": 0.0},     # the west benches
+	{"at": Vector3(-119.0, 60.0, -116.0), "kinds": ["husk", "husk", "chanter"], "probe": 0.0},     # the south benches, by the unfinished steps
+	# The Founder's Pits (tier 2): the bell-founders' hollowed. Bulwarks hold the furnace mouth with
+	# Cinder Casters behind them (go round the shields or kill the caster first).
+	{"at": Vector3(137.0, 60.0, -98.0), "kinds": ["bulwark", "cinder", "bulwark", "cinder"], "probe": 0.0, "r": 2.8},   # before the bell furnace
+	{"at": Vector3(115.0, 60.0, -102.0), "kinds": ["cinder", "wretch", "gaunt"], "probe": 0.0},    # the west bench
+	# The Lanternless Moor (tier 1): no camps to sit in -- packs that walk the heather (long sight
+	# lines: you see them coming, they see you). Gaunts, who hunt in the open.
+	{"at": Vector3(141.0, 60.0, -51.0), "kinds": ["gaunt", "gaunt", "wretch"], "probe": 0.0,
+		"patrol": [Vector2(141, -51), Vector2(144, -38), Vector2(136, -40)]},                       # the north moor
+	{"at": Vector3(142.0, 60.0, 32.0), "kinds": ["gaunt", "crawler", "crawler"], "probe": 0.0,
+		"patrol": [Vector2(142, 32), Vector2(142, 19), Vector2(139, 26)]},                         # the south moor
+	{"at": Vector3(144.0, 60.0, 2.0), "kinds": ["husk", "wretch"], "probe": 0.0,
+		"patrol": [Vector2(144, 2), Vector2(140, -4)]},                                            # under the tor
+	# The Cinder Orchard (tier 1): what roots in the ash -- burrowers under the burned rows, mite nests.
+	{"at": Vector3(-136.0, 60.0, 104.0), "kinds": ["burrower", "burrower", "crawler"], "probe": 0.0},   # the west rows
+	{"at": Vector3(-80.0, 60.0, 142.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},   # the south rows: a nest in the ash
+	{"at": Vector3(-120.0, 60.0, 112.0), "kinds": ["burrower", "mite", "mite", "mite"], "probe": 0.0, "r": 1.8},     # the press-house rows
+	# The Waiting Field (tier 1): the pilgrims, buried facing the mountain, waiting. Risen Pilgrims lie
+	# under their graves until you walk among them; ossuants and chanters keep the vigil.
+	{"at": Vector3(-30.0, 60.0, 146.0), "kinds": ["pilgrim", "pilgrim", "chanter"], "probe": 0.0},  # the west tombs
+	{"at": Vector3(28.0, 60.0, 114.0), "kinds": ["ossuant", "pilgrim", "ossuant"], "probe": 0.0},   # the east tombs
+	{"at": Vector3(-12.0, 60.0, 140.0), "kinds": ["pilgrim", "pilgrim", "pilgrim", "pilgrim"], "probe": 0.0, "r": 3.0},   # a row of graves below the mausoleum
+	{"at": Vector3(-36.0, 60.0, 124.0), "kinds": ["chanter", "ossuant", "quiller"], "probe": 0.0},  # the field's west edge
+	# Corvin's Mere (tier 1): the drowned and what nests over the water. Spitters on the banks, drowned
+	# husks out of the meres; the causeway itself is an ambush (director.FIXED_AMBUSHES).
+	{"at": Vector3(137.0, 60.0, 102.0), "kinds": ["spitter", "husk", "wretch"], "probe": 0.0},     # the east bank
+	{"at": Vector3(118.0, 60.0, 144.0), "kinds": ["husk", "spitter", "husk"], "probe": 0.0},       # the south bank
+	{"at": Vector3(118.0, 60.0, 108.0), "kinds": ["spitter", "spitter", "ossuant"], "probe": 0.0}, # the hummocks east of the causeway
+	# The Rooted Holds: no camp. The clearing is safe-ish (the director spawns nothing in it); only Old
+	# Rook (rares.gd) walks round its edge at night.
+	# The road's new ends and the west wood along west_track
+	{"at": Vector3(-128.0, 60.0, 74.0), "kinds": ["husk", "gaunt", "wretch"], "probe": 0.0},       # the West Gate's approach
+	{"at": Vector3(132.0, 60.0, 58.0), "kinds": ["chanter", "husk", "crawler"], "probe": 0.0},     # the East Gate's approach
+	{"at": Vector3(-144.0, 60.0, -50.0), "kinds": ["leaper", "wretch", "crawler"], "probe": 0.0},  # west_track under the quarry
+	{"at": Vector3(-135.0, 60.0, 40.0), "kinds": ["wretch", "crawler"], "probe": 0.0},             # west_track north of the Holds
 ]
 
 
@@ -125,7 +170,12 @@ const KIN := {
 	"bulwark": "res://core/enemy/bulwark.gd", "chanter": "res://core/enemy/chanter.gd",
 	"burrower": "res://core/enemy/burrower.gd", "mite": "res://core/enemy/mite.gd",
 	"gaunt": "res://core/enemy/gaunt.gd", "quiller": "res://core/enemy/quiller.gd", "tollman": "res://core/enemy/tollman.gd",
+	# r34
+	"pilgrim": "res://core/enemy/pilgrim.gd", "cinder": "res://core/enemy/cinder_caster.gd",
 }
+const Tiers := preload("res://core/life/encounters/tiers.gd")
+const Variants := preload("res://core/life/encounters/variants.gd")
+const PATROL_PACE := 1.5           ## m/s a roaming camp walks its round at (every member alike: in step)
 var _camps: Array = []
 var _realm := false
 var _slots: Array[Dictionary] = []
@@ -182,20 +232,38 @@ func _plant() -> void:
 		var sid := String(camp.get("seal", ""))
 		if sid != "" and Travel.seals_broken.has(sid):
 			continue                                  # a broken seal's guardians stay dead
+		var route: Array[Vector3] = []
+		for c2: Vector2 in camp.get("patrol", []):
+			var g2 := _ground(space, Vector3(c2.x, float(camp.at.y), c2.y), float(camp.get("probe", 24.0)))
+			if not is_nan(_last_hit_y):
+				route.append(g2)
 		for i in n:
 			var a := TAU * float(i) / float(maxi(n, 1)) + 0.15
 			var ring: float = float(camp.get("r", 2.5)) if n > 1 else float(camp.get("r", 0.0))
-			var probe := center + Vector3(cos(a) * ring, 0.0, sin(a) * ring)
+			var off := Vector3(cos(a) * ring, 0.0, sin(a) * ring)
+			var probe := center + off
 			if _realm and not camp.get("strict", false):
 				probe.y = float(camp.at.y)               # realm ground camps probe from high above
 			var at := _ground(space, probe, float(camp.get("probe", 24.0)), bool(camp.get("strict", false)))
 			if _realm and is_nan(_last_hit_y):
 				at = center                               # no floor there (a cliff edge): stand at the camp
 			var key := String(kinds[i])
+			var look := ""
+			if key.contains("@"):
+				look = key.get_slice("@", 1)
+				key = key.get_slice("@", 0)
+			elif _realm:
+				look = Tiers.region_variant(at, key)      # r34: the quarry's stone-bound, the mere's drowned
 			var kind: GDScript = _scripts.get(key, _scripts.get("wretch"))
 			if kind == null:
 				continue
-			_slots.append({"at": at, "pawn": null, "pending": false, "kind": kind, "seal": sid, "key": "%s#%d" % [str(camp.at), i]})
+			var slot := {"at": at, "pawn": null, "pending": false, "kind": kind, "seal": sid, "key": "%s#%d" % [str(camp.at), i], "variant": look}
+			if route.size() > 1:
+				var pts: Array[Vector3] = []
+				for g3 in route:
+					pts.append(g3 + off)
+				slot["patrol"] = pts
+			_slots.append(slot)
 	for slot in _slots:
 		_spawn(slot)
 	if _realm:
@@ -316,13 +384,22 @@ func _spawn(slot: Dictionary) -> void:
 	if host == null:
 		return
 	var pawn: Node = kind.new()
+	var look := String(slot.get("variant", ""))
 	if dress_hook.is_valid():
-		dress_hook.call(pawn, slot)
+		dress_hook.call(pawn, slot)                    # the director applies the slot's look itself
+	elif look != "":
+		Variants.pre(pawn, look)
+		pawn.ready.connect(Variants.dress.bind(pawn, look), CONNECT_ONE_SHOT)
 	host.add_child(pawn)
 	if pawn.has_method("station"):
 		pawn.station(slot.at)
 	else:
 		pawn.global_position = slot.at + Vector3(0.0, 0.05, 0.0)
+	if slot.has("patrol") and pawn is Enemy:
+		var en := pawn as Enemy
+		en.patrol.assign(slot.patrol)
+		en.roam = true
+		en.patrol_speed = PATROL_PACE
 	slot.pawn = pawn
 
 

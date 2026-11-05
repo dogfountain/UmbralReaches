@@ -207,7 +207,7 @@ static func _fen(parent: Node) -> void:
 		if not LK.clear_of(r, 0.8):
 			r = Rect2(c - Vector2(3.5, 3.5), Vector2(7.0, 7.0))
 			if not LK.clear_of(r, 0.5):
-				print("REALM_LORE skip fen cluster ", c)
+				print("REALM_LORE skip fen cluster ", c, " (", LK.blocker(r, 0.5), ")")
 				continue
 		var gr: Vector2 = L.g_range(r)
 		L.site("fen_graves_%d_%d" % [int(c.x), int(c.y)], r, gr.x)

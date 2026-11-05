@@ -11,11 +11,14 @@ extends Node
 
 const GatherNode := preload("res://core/items/gather_node.gd")
 const SEED := 3301
-const BLOOMS := 16
-const IRON := 12
+## r34 places: the Realm doubled (docs/r34/layout.md), so the counts doubled to keep the density (r33:
+## 16 blooms, 12 stones over 50,600 m2); the Cinder Orchard's ash grows blooms, the Founder's Pits'
+## slag and the Saints' Quarry's benches hold grave-iron (the "ash" biome joined both lists).
+const BLOOMS := 32
+const IRON := 24
 const SPACING := 9.0
-const BLOOM_BIOMES := ["meadow", "heath", "glade", "oldforest", "ruin"]
-const IRON_BIOMES := ["fen", "heath", "crag", "ruin"]
+const BLOOM_BIOMES := ["meadow", "heath", "glade", "oldforest", "ruin", "ash"]
+const IRON_BIOMES := ["fen", "heath", "crag", "ruin", "ash"]
 const HOME := Vector2(0.0, 33.0)
 const HOME_KEEP := 34.0
 const RIFT := Rect2(-34.0, -122.0, 68.0, 114.0)
@@ -44,7 +47,7 @@ func _lay() -> void:
 	for spec: Array in [["ash_bloom", BLOOMS, BLOOM_BIOMES], ["grave_iron", IRON, IRON_BIOMES]]:
 		var placed := 0
 		var tries := 0
-		while placed < int(spec[1]) and tries < 900:
+		while placed < int(spec[1]) and tries < 1800:
 			tries += 1
 			var b := RealmLayout.BOUNDS.grow(-10.0)
 			var xz := Vector2(rng.randf_range(b.position.x, b.end.x), rng.randf_range(b.position.y, b.end.y))
@@ -70,6 +73,8 @@ func _site_ok(space: PhysicsDirectSpaceState3D, xz: Vector2, biomes: Array, take
 		return NAN
 	if RealmLayout.path_dist(xz) < 3.5:
 		return NAN
+	if not WorldLanes.site_at(xz, 1.0).is_empty():
+		return NAN                                   # r34 layout: never on a site (the raid floors above all)
 	for t in taken:
 		if t.distance_to(xz) < SPACING:
 			return NAN

@@ -9,7 +9,7 @@ extends Node
 ##   cond / visit     checked at 4 Hz: a world condition (a boss down) / the wanderer within `r`
 ##   carry            a coal from the step before: `time` seconds to bring it within `r` of `to`;
 ##                    run out, or come back hollowed, and it goes out (the task falls back a step)
-## No per-frame scans: one pass over ORDER (18 tasks) four times a second.
+## No per-frame scans: one pass over ORDER (48 tasks, r34) four times a second; only active ones do work.
 ## Load by path: const QuestRunner := preload("res://core/story/quest_runner.gd")
 
 const Book := preload("res://core/story/quest_book.gd")
@@ -55,8 +55,14 @@ static func in_region(id: String, x: float, z: float) -> bool:
 	return false
 
 
-## Does a kill of `kind` at `xz` count for step `stp`?
-static func counts(stp: Dictionary, kind: String, xz: Vector2) -> bool:
+## Does a kill of `kind` at `xz` count for step `stp`? (r34: `rare` = the named rare's id, "" for a
+## common foe; a step with `rare: true` only counts rares)
+static func counts(stp: Dictionary, kind: String, xz: Vector2, rare := "") -> bool:
+	if bool(stp.get("rare", false)) and rare == "":
+		return false
+	var rares: Array = stp.get("rares", [])
+	if not rares.is_empty():
+		return rare in rares               # a bounty on named rares: wherever it falls
 	var kinds: Array = stp.get("kinds", [])
 	if not kinds.is_empty() and not kind in kinds:
 		return false
@@ -68,17 +74,17 @@ func _on_killed(e: Node) -> void:
 		return
 	var kind := kind_of(e)
 	var p := (e as Node3D).global_position
-	note_kill(kind, Vector2(p.x, p.z))
+	note_kill(kind, Vector2(p.x, p.z), String(e.get_meta(&"rare_id", "")))
 
 
 ## A foe of `kind` fell at `xz`: every slay / collect step that wants it counts (tests call this).
-func note_kill(kind: String, xz: Vector2) -> void:
+func note_kill(kind: String, xz: Vector2, rare := "") -> void:
 	for id: String in Chains.ORDER:
 		if not Book.active(id):
 			continue
 		var stp := Chains.step(id, Book.step(id))
 		var k := String(stp.get("kind", ""))
-		if not k in ["slay", "collect"] or not counts(stp, kind, xz):
+		if not k in ["slay", "collect"] or not counts(stp, kind, xz, rare):
 			continue
 		if k == "collect":
 			var ch := chance_override if chance_override >= 0.0 else float(stp.get("chance", 1.0))
@@ -101,7 +107,7 @@ func _on_seal_progress(sid: String, cleared: int, total: int) -> void:
 func _on_hollowed() -> void:
 	for id: String in Chains.ORDER:
 		if Book.active(id) and String(Chains.step(id, Book.step(id)).get("kind", "")) == "carry":
-			_gutter(id, "The coal went out with you.")
+			_gutter(id, "The %s went out with you." % String(Chains.step(id, Book.step(id)).get("label", "coal")).to_lower())
 
 
 func _gutter(id: String, why: String) -> void:
@@ -120,7 +126,7 @@ func _process(delta: float) -> void:
 			d["left"] = left
 			if left <= 0.0:
 				_carrying = ""
-				_gutter(id, "The coal has gone out. Fetch another from the green's fire.")
+				_gutter(id, String(stp.get("lost", "The coal has gone out. Fetch another from the green's fire.")))
 		else:
 			_carrying = ""
 	_tick -= delta

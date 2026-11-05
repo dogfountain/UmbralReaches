@@ -180,11 +180,12 @@ func _run() -> void:
 				a.state = 0
 		var p0: int = fox.pounces
 		var stalked := false
-		for i in 120:
+		for i in 240:                   # r34 merge: 60 s (the green round the fox is busier; it may stalk twice)
 			await _secs(0.25)
 			for a: Dictionary in fox.animals:
 				if int(a.state) == 5:
 					stalked = true
+
 			if fox.pounces > p0:
 				break
 		check(stalked, "the fox creeps up on something in the grass")
@@ -364,6 +365,16 @@ func _run() -> void:
 		var a := float(k) / 24.0 * TAU
 		var q := start + Vector3(cos(a), 0, sin(a)) * 45.0
 		if RealmLayout.BOUNDS.grow(-8).has_point(Vector2(q.x, q.z)) and not RL.in_water(q.x, q.z):
+			# r34 merge: the follow loop below skips steps that land in water, so the line to the goal
+			# must be dry (the doubled bounds let the first pick run east across the fen's pools)
+			var dry := true
+			for j in range(1, 30):
+				var s2 := start.lerp(q, float(j) / 30.0)
+				if RL.in_water(s2.x, s2.z):
+					dry = false
+					break
+			if not dry:
+				continue
 			goal = Vector3(q.x, RL.height_at(q.x, q.z), q.z)
 			break
 	var targets: Array = ph.wisp_targets(start)

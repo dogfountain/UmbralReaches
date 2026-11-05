@@ -25,6 +25,8 @@ static func build(root: Node, host: Node3D) -> void:
 		var gv := Kit.gy(sp, v.x, v.y)
 		return absf(gv - lo) < 0.9 and gv > RealmLayout.LAVA_Y + 8.0 and Kit.low(sp, v, 1.3) > gv - 0.7
 	var t2 := LK.search_spot(sp, RIM_NEAR, 26.0, Vector2(4.6, 3.0), 1.2, 1.4, ["secrets_breath"], 2.5, ok)
+	if t2 == Vector2.INF:            # r34 merge: the doubled land steepened this rim; look further along it
+		t2 = LK.search_spot(sp, RIM_NEAR, 44.0, Vector2(4.6, 3.0), 1.2, 1.4, ["secrets_breath"], 2.5, ok)
 	if t2 == Vector2.INF:
 		print("SECRETS hermit's perch: no clear spot")
 		return

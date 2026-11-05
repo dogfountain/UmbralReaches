@@ -18,6 +18,13 @@ var bones: Array = [[], [], []]         # femur, rib, vertebra
 var solids: Array = []                  # [centre, basis, half extents] of every solid box (prop clipping test)
 var rejected := 0
 var keep_lanes := true                  ## reject floor clutter on WorldLanes.FIXED_LANES
+## r34 crypt: test the Ossuary's own walkways (FIXED_LANES are its gate hall, gallery, pit stair and
+## chapel) whatever WorldLanes.legacy says. The Realm turns legacy off as it starts building, so the
+## crypt's clutter used to depend on whether the Ossuary was built before that (first night: lanes kept
+## clear) or after (a Deeper Night: candles on the walkways): rebuild_test's Area_ossuary drift.
+var always_lanes := false
+## r34 crypt: prop cell size (a big room like the pit hall draws far fewer, larger cells)
+var chunk := CHUNK
 
 static var _mats: Dictionary = {}
 static var _skulls: Array[ArrayMesh] = []
@@ -403,7 +410,7 @@ func parapet(key: String, a: Vector3, b: Vector3, h := 1.0, t := 0.35) -> void:
 
 ## True when `p` is inside any solid box (shrunk by `margin`): props there would clip.
 func blocked(p: Vector3, margin := 0.02) -> bool:
-	if keep_lanes and WorldLanes.intrudes_fixed(AABB(p - Vector3(0.08, 0.1, 0.08), Vector3(0.16, 0.3, 0.16))) != "":
+	if keep_lanes and _on_fixed_lane(AABB(p - Vector3(0.08, 0.1, 0.08), Vector3(0.16, 0.3, 0.16))):
 		return true                         # floor clutter never lands on a walkway
 	for sb in solids:
 		var b: Basis = sb[1]
@@ -411,6 +418,28 @@ func blocked(p: Vector3, margin := 0.02) -> bool:
 		var d: Vector3 = p - (sb[0] as Vector3)
 		if absf(d.dot(b.x)) < h.x - margin and absf(d.dot(b.y)) < h.y - margin and absf(d.dot(b.z)) < h.z - margin:
 			return true
+	return false
+
+
+func _on_fixed_lane(b: AABB) -> bool:
+	if not always_lanes:
+		return WorldLanes.intrudes_fixed(b) != ""
+	for lane: Array in WorldLanes.FIXED_LANES:
+		var pts: Array = lane[1]
+		var w: float = float(lane[2])
+		var lo := Vector2(b.position.x, b.position.z)
+		var hi := Vector2(b.end.x, b.end.z)
+		for k in pts.size() - 1:
+			var a: Vector3 = pts[k]
+			var c: Vector3 = pts[k + 1]
+			var n := maxi(1, ceili(Vector2(a.x, a.z).distance_to(Vector2(c.x, c.z)) / WorldLanes.STEP))
+			for i in n + 1:
+				var s3 := a.lerp(c, float(i) / float(n))
+				var s := Vector2(s3.x, s3.z)
+				if s.clamp(lo, hi).distance_to(s) > w:
+					continue
+				if b.position.y < s3.y + WorldLanes.HEADROOM and b.end.y > s3.y - 0.3:
+					return true
 	return false
 
 
@@ -660,7 +689,7 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 			return
 		var cells := {}
 		for t: Transform3D in xf:
-			var key := Vector2i(floori(t.origin.x / CHUNK), floori(t.origin.z / CHUNK))
+			var key := Vector2i(floori(t.origin.x / chunk), floori(t.origin.z / chunk))
 			if not cells.has(key):
 				cells[key] = []
 			(cells[key] as Array).append(t)

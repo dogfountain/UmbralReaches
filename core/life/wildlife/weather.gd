@@ -44,8 +44,11 @@ const OFF_FOG_RAIN := 0.0012
 const OFF_VOL_MIST := 0.004
 const OFF_VOL_RAIN := 0.002
 const OFF_AMBIENT_FLASH := 0.32
-const MIST_REGIONS := [Rect2(42, -78, 66, 110), Rect2(-108, -68, 76, 110), Rect2(-100, 48, 200, 26)]
-const MIST_BANKS := [4, 3, 3]
+const MIST_REGIONS := [Rect2(42, -78, 66, 110), Rect2(-108, -68, 76, 110), Rect2(-100, 48, 200, 26),
+	# r34 flora: the new low ground: Corvin's Mere, the Waiting Field, the Cinder Orchard (ash haze),
+	# the Lanternless Moor's hollows, the west wood round the Rooted Holds
+	Rect2(64, 90, 86, 62), Rect2(-44, 98, 86, 58), Rect2(-150, 90, 82, 62), Rect2(124, -66, 31, 106), Rect2(-150, -40, 40, 80)]
+const MIST_BANKS := [4, 3, 3, 3, 2, 2, 2, 2]
 const SOUND_MS := 343.0          ## the speed of sound, m/s
 const SKY_R := 60.0              ## sky-layer effects are built at this radius round the camera
 const SPLASH_GRID := 20
@@ -724,7 +727,8 @@ func strike_near(dist := -1.0, yaw := INF) -> void:
 		yaw = atan2(f.x, f.z) + _rng.randf_range(-1.0, 1.0) * (1.1 if _rng.randf() < 0.7 else PI)
 	var dir := Vector3(sin(yaw), 0.0, cos(yaw))
 	var at := cp + dir * dist
-	at.y = RL.height_at(clampf(at.x, -199.0, 199.0), clampf(at.z, -239.0, 169.0)) if RealmLayout.OUTER.has_point(Vector2(at.x, at.z)) else cp.y - 4.0
+	var ob := RealmLayout.OUTER.grow(-1.0)        # r34 layout: was the r33 OUTER's numbers
+	at.y = RL.height_at(clampf(at.x, ob.position.x, ob.end.x), clampf(at.z, ob.position.y, ob.end.y)) if RealmLayout.OUTER.has_point(Vector2(at.x, at.z)) else cp.y - 4.0
 	var top := Vector3(at.x, at.y + _rng.randf_range(420.0, 650.0), at.z)
 	_build_bolt_mesh(cp, at, top, dist)
 	_cloud_flash(cp, top, 2.4)

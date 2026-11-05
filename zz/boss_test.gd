@@ -118,7 +118,7 @@ func _physics_process(_d: float) -> void:
 		5:
 			check("portcullis seal broken", Travel.seals_broken.has("oss_gallery"))
 			check("portcullis open", _seal("oss_gallery") != null and _seal("oss_gallery").is_open())
-			_tp(Vector3(18.0, 4.8, -84.0)); step = 6; wait = 20
+			_tp(Ossuary.abbot_pull_at()); step = 6; wait = 20     # r34 crypt: the pit hall, past its inner grille
 		6:
 			var b := _boss()
 			check("bone abbot rose", b is BoneAbbot)

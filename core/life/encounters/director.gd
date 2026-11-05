@@ -33,6 +33,12 @@ const CAP := 12                    ## most enemies near the player that tides/am
 const CAP_R := 38.0
 const HAVEN_C := Vector2(4.0, 36.0)
 const HAVEN_R := 34.0              ## Hearthward and the spawn clearing: nothing of ours spawns in it
+## r34: the Rooted Holds' clearing is safe-ish too (no tide, no ambush, nothing of ours rises in it)
+const HOLDS_C := Vector2(-134.0, 12.0)
+const HOLDS_R := 21.0
+## r34: an ambush laid on purpose (as well as the planned ones along every way): Corvin's Mere's
+## causeway, half-way over the water, where the drowned climb up out of the mere.
+const FIXED_AMBUSHES := [{"at": Vector2(102.6, 113.0), "dir": Vector2(0.23, 0.97), "path": "mere_causeway"}]
 const TIDE_EVERY := 330.0          ## seconds away from fires before a tide (fewer as tiers climb)
 const TIDE_MIN := 200.0
 const TIDE_WARN := 25.0
@@ -166,7 +172,9 @@ func _dress_hook(pawn: Node, slot: Dictionary) -> void:
 	slot["enc_n"] = n + 1
 	var tier := Tiers.tier_at(at)
 	Tiers.scale_stats(pawn, tier)
-	var v := Tiers.pick_variant(at, String(slot.key), n)
+	var v := String(slot.get("variant", ""))      # r34: a camp's (or its region's) own look wins
+	if v == "":
+		v = Tiers.pick_variant(at, String(slot.key), n)
 	if v != "":
 		Variants.pre(pawn, v)
 		pawn.ready.connect(Variants.dress.bind(pawn, v), CONNECT_ONE_SHOT)
@@ -183,7 +191,8 @@ func _after_planted() -> void:
 		if is_instance_valid(pawn) and not (pawn as Node).has_meta(&"enc_tier"):
 			var tier := Tiers.tier_at(slot.at)
 			Tiers.scale_live(pawn, tier)
-			var v := Tiers.pick_variant(slot.at, String(slot.key), 0)
+			# r34: a pawn the spawner already dressed in its camp's regional look keeps it
+			var v := "" if (pawn as Node).has_meta(&"enc_variant") else Tiers.pick_variant(slot.at, String(slot.key), 0)
 			if v != "":
 				Variants.pre(pawn, v)
 				Variants.dress(pawn, v)
@@ -251,7 +260,8 @@ func _busy_fight() -> bool:
 
 
 func _in_haven(p: Vector3) -> bool:
-	return Vector2(p.x, p.z).distance_to(HAVEN_C) < HAVEN_R or Rect2(RealmLayout.TAVERN).grow(6.0).has_point(Vector2(p.x, p.z))
+	return Vector2(p.x, p.z).distance_to(HAVEN_C) < HAVEN_R or Rect2(RealmLayout.TAVERN).grow(6.0).has_point(Vector2(p.x, p.z)) \
+		or Vector2(p.x, p.z).distance_to(HOLDS_C) < HOLDS_R
 
 
 # --- rest ---------------------------------------------------------------------------------------
@@ -308,7 +318,7 @@ func _tide_tick(dt: float, pos: Vector3, lit: bool) -> void:
 		if tide_age >= TIDE_MAX:
 			end_tide(false)
 		return
-	if lit or _busy_fight() or _in_haven(pos) or RealmLayout.OSSUARY.has_point(pos):
+	if lit or _busy_fight() or _in_haven(pos) or RealmLayout.in_ossuary(pos):
 		return
 	tide_clock += dt
 	var left := tide_period() - tide_clock
@@ -395,6 +405,11 @@ func _plan_ambushes() -> void:
 		RealmLayout.HENGE_STAIR_FOOT]
 	for n: String in BRAZIER_NAMES:
 		keep_off.append(n_at(n))
+	for rid: String in RealmLayout.SLOTS:                 # r34: the new regions' fires
+		for sl: Dictionary in RealmLayout.SLOTS[rid]:
+			if String(sl.kind) == "fire":
+				keep_off.append(sl.at)
+	keep_off.append(HOLDS_C)
 	for path: Dictionary in RealmLayout.PATHS:
 		if String(path.id) in ["rift_rim", "chapel_lane"]:
 			continue
@@ -422,6 +437,14 @@ func _plan_ambushes() -> void:
 				if g == Vector3.INF:
 					continue
 				ambushes.append({"at": g, "dir": (b - a).normalized(), "cd": 0.0, "path": String(path.id)})
+	for f: Dictionary in FIXED_AMBUSHES:
+		var c: Vector2 = f.at
+		var g := _ground_at(Vector3(c.x, 0, c.y), 90.0)
+		if g == Vector3.INF:
+			push_warning("Encounters: no ground for the fixed ambush on %s" % f.path)
+			continue
+		ambushes = ambushes.filter(func(s: Dictionary) -> bool: return Vector2(s.at.x, s.at.z).distance_to(c) > 30.0)
+		ambushes.append({"at": g, "dir": f.dir, "cd": 0.0, "path": String(f.path)})
 
 
 func n_at(n: String) -> Vector2:
@@ -467,7 +490,8 @@ func trigger_ambush(s: Dictionary) -> int:
 		if spot == Vector3.INF or not spot_ok(spot):
 			continue
 		var kind := String(pool[made % pool.size()])
-		var e := _make(kind, spot, tier, Tiers.pick_variant(spot, "amb%d" % made, int(state.get("ambushes", 0))))
+		var rv := Tiers.region_variant(spot, kind)     # r34: the mere's drowned climb out drowned
+		var e := _make(kind, spot, tier, rv if rv != "" else Tiers.pick_variant(spot, "amb%d" % made, int(state.get("ambushes", 0))))
 		if e == null:
 			continue
 		e.set_meta(&"enc_ambush", true)
@@ -495,6 +519,14 @@ func _ambush_line(path: String) -> String:
 			return "The Thornwood's edge was not empty."
 		"east_way", "fen_descent":
 			return "The drowned climb out of the verge."
+		"mere_causeway":
+			return "The drowned climb up onto the causeway."
+		"necropolis_way":
+			return "The pilgrims in the verge were not asleep."
+		"west_track":
+			return "The wood closes in behind you."
+		"moor_track":
+			return "Something has been pacing you across the moor."
 	return "The hollowed rise from the verge."
 
 
@@ -797,7 +829,7 @@ func spot_ok(p: Vector3, ignore_light := false) -> bool:
 		return false
 	if not WorldLanes.site_at(Vector2(p.x, p.z), 0.8).is_empty():
 		return false
-	if p.y < RealmLayout.LAVA_Y + 3.0 or RealmLayout.OSSUARY.has_point(p):
+	if p.y < RealmLayout.LAVA_Y + 3.0 or RealmLayout.in_ossuary(p):
 		return false
 	if RealmLand.in_water(p.x, p.z) and p.y < -0.4:
 		return false
@@ -869,6 +901,8 @@ func _make(kind: String, at: Vector3, tier: int, variant: String) -> Enemy:
 	var e := Tiers.script_for(kind).new() as Enemy
 	if e == null:
 		return null
+	if "dormant" in e:
+		e.set("dormant", false)                  # r34: a Pilgrim the night sends is already up
 	Tiers.scale_stats(e, tier)
 	if variant != "":
 		Variants.pre(e, variant)

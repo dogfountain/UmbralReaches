@@ -12,6 +12,12 @@ extends RefCounted
 ##                       violet tears; fast, and they track you
 ##   deeper    the Deeper Night (NG+): bone spurs, cold blue cracks, the open door branded on the
 ##                       chest; bigger and harder
+## r34 REGIONAL variants (never drawn by a tier; a camp or a region asks for them, Tiers.region_variant):
+##   stonebound  the Saints' Quarry: the Order's penance stones lashed to back and shoulders, a crust of
+##                       cut stone on the brow; slow, very hard to stagger
+##   drowned     Corvin's Mere: sunk under three stones (eyes, mouth, heart) as the fen rite says, and
+##                       walked out wearing them, weed hanging off them; a little tougher
+## Regional variants keep the kind's own modelled body (only its rim is tinted) and add their parts.
 ## Quadrupeds (crawler, leaper) get the same ideas laid along the back and flanks.
 
 const GenCache := preload("res://core/world/realm/gen_cache.gd")
@@ -25,7 +31,16 @@ const VARIANTS := {
 	"ironclad": {"label": "Ironclad", "glow": Color(1.6, 0.85, 0.35), "hp": 2, "poise": 1.6, "scale": 1.08, "pace": 0.94},
 	"tideborn": {"label": "Tide-born", "glow": Color(2.6, 0.3, 1.5), "hp": 0, "poise": 0.0, "scale": 1.0, "pace": 1.12},
 	"deeper": {"label": "Deeper", "glow": Color(0.5, 1.25, 2.9), "hp": 2, "poise": 1.0, "scale": 1.14, "pace": 1.05},
+	# r34 regional
+	"stonebound": {"label": "Stone-bound", "glow": Color(1.6, 1.0, 0.4), "hp": 2, "poise": 2.2, "scale": 1.06, "pace": 0.9, "keep_body": true, "rim": Color(0.66, 0.63, 0.58), "rim_amount": 0.32},
+	"drowned": {"label": "Drowned", "glow": Color(0.35, 1.5, 1.1), "hp": 1, "poise": 0.6, "scale": 1.0, "pace": 0.96, "keep_body": true, "rim": Color(0.3, 0.78, 0.62), "rim_amount": 0.36},
 }
+const REGIONAL := ["stonebound", "drowned"]
+const STONE := Color(0.53, 0.51, 0.48)
+const STONE_DK := Color(0.36, 0.35, 0.33)
+const ROPE := Color(0.42, 0.31, 0.2)
+const WEED := Color(0.15, 0.24, 0.13)
+const SILT := Color(0.3, 0.29, 0.23)
 
 const IRON := Color(0.3, 0.29, 0.32)
 const RUST := Color(0.46, 0.27, 0.17)
@@ -33,6 +48,7 @@ const BONE := Color(0.95, 0.92, 0.84)
 const SCAR := Color(0.55, 0.12, 0.1)
 
 static var _parts := {}     # "variant/kind" -> {socket: ArrayMesh}
+static var _rims := {}      # r34: "variant/<material id>" -> the body's own material, rim tinted
 static var _mats := {}      # "variant/kind" -> ShaderMaterial
 
 
@@ -78,10 +94,14 @@ static func dress(e: Node, variant: String) -> void:
 	var mat := material(variant, kind)
 	var flesh: Array[MeshInstance3D] = []
 	var have: Variant = e.get("_flesh")
+	var keep := bool(VARIANTS[variant].get("keep_body", false))
 	if have is Array:
 		for mi in have:
 			if is_instance_valid(mi):
-				(mi as MeshInstance3D).material_override = mat
+				if keep:
+					_tint_rim(mi as MeshInstance3D, variant)
+				else:
+					(mi as MeshInstance3D).material_override = mat
 				flesh.append(mi)
 	for sock: String in parts:
 		var at := rig.call("socket", sock) as Node3D
@@ -102,6 +122,21 @@ static func dress(e: Node, variant: String) -> void:
 		e.set("hp_bar_y", float(e.get("hp_bar_y")) * s)
 	if quad and variant == "ironclad":
 		e.set("leap_cooldown", float(e.get("leap_cooldown")) + 0.6)
+
+
+## r34: a regional variant keeps the body's own (modelled) material; only its rim takes the variant's
+## colour (one shared copy per source material).
+static func _tint_rim(mi: MeshInstance3D, variant: String) -> void:
+	var src := mi.material_override as ShaderMaterial
+	if src == null:
+		return
+	var key := "%s/%d" % [variant, src.get_instance_id()]
+	if not _rims.has(key):
+		var m := src.duplicate() as ShaderMaterial
+		m.set_shader_parameter("rim_col", VARIANTS[variant].rim)
+		m.set_shader_parameter("rim_amount", float(VARIANTS[variant].rim_amount))
+		_rims[key] = m
+	mi.material_override = _rims[key]
 
 
 ## One material per (variant, kind): the kind's flesh with the variant's glow colour.
@@ -310,6 +345,62 @@ static func _humanoid(variant: String, kind: String) -> Dictionary:
 				var base := Vector3(sin(ang) * 0.09, 0.08, cos(ang) * 0.05 + 0.02)
 				h.claw(base, Vector3(sin(ang) * 0.4, 1.0, 0.35).normalized(), 0.09 + 0.04 * (1.0 - absf(ang)), 0.016, Vector3(0, 0, 0.04), BONE)
 			parts["head"] = h.commit()
+		"stonebound":
+			var c := cm(sd)
+			var f := chest_front(kind)
+			var w := chest_half_w(kind)
+			# the penance stone lashed to its back, two ropes over the shoulders and across the chest
+			c.plate(Vector3(0.0, 0.03, f * 0.9 + 0.1), Vector3(w * 0.95, 0.2, 0.09), Vector3(0, 0.15, 1.0), STONE, 1.0, 0.18)
+			c.plate(Vector3(0.03, -0.12, f * 0.85 + 0.08), Vector3(w * 0.7, 0.08, 0.07), Vector3(0, -0.2, 1.0), STONE_DK, 1.0, 0.2)
+			for sx: float in [-1.0, 1.0]:
+				c.tube(PackedVector3Array([Vector3(sx * w * 0.6, 0.2, f * 0.6), Vector3(sx * w * 0.55, 0.16, -f * 0.7), on_chest(kind, -sx * 0.6, 0.7, 0.02)]),
+					PackedFloat32Array([0.014, 0.014, 0.014]), 4, ROPE, 0.0, 0.05, 0.0, Vector2(0.4, 1.0), 0.6)
+			# a crust of cut stone grown over the breast, chisel-squared
+			for k in 4:
+				var u := -0.55 + 0.37 * float(k)
+				c.plate(on_chest(kind, u, -0.35 + 0.25 * float(k % 2), 0.02), Vector3(0.05, 0.045, 0.02), Vector3(u * 0.3, 0.1, -1.0), STONE if k % 2 == 0 else STONE_DK, 1.0, 0.25)
+			parts["chest"] = c.commit()
+			for side: String in ["l", "r"]:
+				var sx := -1.0 if side == "l" else 1.0
+				var a := cm(sd + (1 if side == "l" else 2))
+				a.plate(Vector3(sx * 0.02, 0.05, 0.01), Vector3(0.1, 0.045, 0.1), Vector3(sx * 0.4, 1.0, 0.0), STONE, 1.0, 0.22)
+				a.blob(Vector3(sx * 0.07, 0.0, 0.04), Vector3(0.045, 0.04, 0.05), Basis.IDENTITY, STONE_DK, 1.0, 0.25, 0.0, 4, 6)
+				parts["shoulder_" + side] = a.commit()
+			var h := cm(sd + 3)
+			h.plate(Vector3(0.0, 0.1, -0.02), Vector3(0.09, 0.03, 0.1), Vector3(0, 1.0, -0.25), STONE, 1.0, 0.25)
+			h.plate(Vector3(0.0, 0.065, -0.1), Vector3(0.07, 0.022, 0.03), Vector3(0, 0.4, -1.0), STONE_DK, 1.0, 0.2)
+			parts["head"] = h.commit()
+		"drowned":
+			var c := cm(sd)
+			var w := chest_half_w(kind)
+			# the three stones of the fen rite, hung on a rope: eyes, mouth, heart
+			var rope := PackedVector3Array([on_chest(kind, -0.85, 0.85, 0.02), on_chest(kind, -0.3, 0.2, 0.025), on_chest(kind, 0.0, 0.05, 0.03), on_chest(kind, 0.3, 0.2, 0.025), on_chest(kind, 0.85, 0.85, 0.02)])
+			c.tube(rope, PackedFloat32Array([0.009, 0.009, 0.009, 0.009, 0.009]), 4, ROPE, 0.0, 0.05, 0.0)
+			for k in 3:
+				var u := -0.35 + 0.35 * float(k)
+				c.blob(on_chest(kind, u, 0.3 + (0.25 if k == 1 else 0.0), 0.045), Vector3(0.032, 0.04, 0.026), Basis.IDENTITY, STONE_DK, 1.0, 0.3, 0.0, 4, 7)
+			# weed off it, hanging
+			for k in 6:
+				var u := -0.8 + 0.32 * float(k)
+				var top := on_chest(kind, u, -0.9, 0.01)
+				c.tube(PackedVector3Array([top, top + Vector3(0.01, -0.12, -0.02), top + Vector3(-0.01, -0.26, -0.01)]),
+					PackedFloat32Array([0.008, 0.006, 0.0]), 3, WEED, 0.0, 0.1, 0.0, Vector2(0.4, 1.0), 0.7)
+			c.blob(Vector3(0.0, -0.04, w * 0.5), Vector3(w * 0.8, 0.1, 0.05), Basis.IDENTITY, SILT, 0.6, 0.2, 0.0, 4, 8, 0.6)
+			parts["chest"] = c.commit()
+			for side: String in ["l", "r"]:
+				var sx := -1.0 if side == "l" else 1.0
+				var a := cm(sd + (1 if side == "l" else 2))
+				for k in 3:
+					var root := Vector3(sx * (0.02 + 0.03 * float(k)), 0.04, -0.03 + 0.03 * float(k))
+					a.tube(PackedVector3Array([root, root + Vector3(sx * 0.03, -0.12, 0.0), root + Vector3(sx * 0.02, -0.28, 0.02)]),
+						PackedFloat32Array([0.01, 0.007, 0.0]), 3, WEED, 0.0, 0.1, 0.0, Vector2(0.4, 1.0), 0.7)
+				parts["shoulder_" + side] = a.commit()
+			var h := cm(sd + 3)
+			for k in 5:
+				var x := -0.07 + 0.035 * float(k)
+				h.tube(PackedVector3Array([Vector3(x, 0.1, -0.04), Vector3(x * 1.2, 0.04, -0.12), Vector3(x * 1.1, -0.05, -0.125)]),
+					PackedFloat32Array([0.008, 0.006, 0.0]), 3, WEED, 0.0, 0.1, 0.0, Vector2(0.4, 1.0), 0.7)
+			parts["head"] = h.commit()
 	return parts
 
 
@@ -389,5 +480,26 @@ static func _quad(variant: String, kind: String, rig: QuadRig) -> Dictionary:
 					z.append(Vector3(s * (side_x + 0.01), 0.06 - 0.03 * float(i % 2), -L * 0.3 + L * 0.12 * float(i)))
 					rr.append(0.005)
 				c.tube(z, rr, 4, Color(0.2, 0.3, 0.45), 0.0, 0.0, 0.7)
+			parts["body"] = c.commit()
+		"stonebound":
+			var c := cm(sd)
+			for k in 4:
+				var z := lerpf(L * 0.3, -L * 0.3, float(k) / 3.0)
+				c.plate(Vector3(0.0, top + 0.04, z), Vector3(0.12 * bulk, 0.04, 0.08), Vector3(0.1 * float(k % 2), 1.0, -0.2), STONE if k % 2 == 0 else STONE_DK, 1.0, 0.25)
+			c.tube(PackedVector3Array([Vector3(-side_x, 0.0, 0.0), Vector3(0.0, top + 0.07, 0.0), Vector3(side_x, 0.0, 0.0)]),
+				PackedFloat32Array([0.012, 0.012, 0.012]), 4, ROPE, 0.0, 0.05, 0.0)
+			parts["body"] = c.commit()
+			var h := cm(sd + 1)
+			h.plate(Vector3(0, 0.075, -0.04), Vector3(0.065, 0.025, 0.08), Vector3(0, 1.0, -0.3), STONE, 1.0, 0.25)
+			parts["head"] = h.commit()
+		"drowned":
+			var c := cm(sd)
+			for s: float in [-1.0, 1.0]:
+				for k in 4:
+					var root := Vector3(s * side_x, 0.05, -L * 0.3 + L * 0.2 * float(k))
+					c.tube(PackedVector3Array([root, root + Vector3(s * 0.02, -0.1, 0.01), root + Vector3(s * 0.01, -0.2, 0.03)]),
+						PackedFloat32Array([0.009, 0.006, 0.0]), 3, WEED, 0.0, 0.1, 0.0, Vector2(0.4, 1.0), 0.7)
+			for k in 3:
+				c.blob(Vector3(0.0, top + 0.02, lerpf(L * 0.2, -L * 0.2, float(k) / 2.0)), Vector3(0.03, 0.025, 0.03), Basis.IDENTITY, STONE_DK, 1.0, 0.3, 0.0, 4, 6)
 			parts["body"] = c.commit()
 	return parts

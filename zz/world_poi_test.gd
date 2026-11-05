@@ -77,7 +77,7 @@ func _physics_process(_d: float) -> void:
 			if disc and float(disc.get("_clock")) < 7.0:
 				return                                  # the discovery arms after the night's title card
 			step = 3
-			var hosts := get_tree().get_nodes_in_group(Pois.GROUP_POI)
+			var hosts := _hosts()
 			for h in hosts:
 				var c: Vector3 = h.get_meta("centre")
 				_tp(c + Vector3(0, 30.0, 0))           # in the air over it: the watch is distance-only
@@ -124,14 +124,14 @@ func _physics_process(_d: float) -> void:
 
 func _static_checks() -> void:
 	var space := p.get_world_3d().direct_space_state
-	var hosts := get_tree().get_nodes_in_group(Pois.GROUP_POI)
+	var hosts := _hosts()
 	var ids: Array[String] = []
 	for h in hosts:
 		ids.append(String(h.get_meta("poi")))
 	ids.sort()
 	check("four places built %s" % [ids], ids.size() == 4)
 	# the mini-boss floors: level and open, inside the world, clear of camps
-	var sites := Pois.miniboss_sites(get_tree())
+	var sites := Pois.miniboss_sites(get_tree()).filter(func(d: Dictionary) -> bool: return String(d.poi) in Pois.POIS)
 	check("four mini-boss floors (%d)" % sites.size(), sites.size() >= 4)
 	check("each floor is a guardian site", get_tree().get_nodes_in_group(Pois.GROUP_GUARDIAN).size() >= sites.size())
 	for s: Dictionary in sites:
@@ -209,10 +209,15 @@ func _static_checks() -> void:
 		check("%s climb: every rise reachable, every stand point solid" % h.get_meta("poi"), ok)
 
 
+## r34: the r31 four only (the new ground's places have zz/places_r34_test).
+func _hosts() -> Array:
+	return get_tree().get_nodes_in_group(Pois.GROUP_POI).filter(func(h: Node) -> bool: return not h.has_meta("r34"))
+
+
 func _chests() -> void:
 	items_before = Travel.items.duplicate(true)
 	systems_before = Travel.systems.duplicate(true)
-	var chests := get_tree().get_nodes_in_group("loot_chest")
+	var chests := get_tree().get_nodes_in_group("loot_chest").filter(func(c: Node) -> bool: return Pois.LOOT.has(String(c.get("chest_id"))))
 	check("four chests (%d)" % chests.size(), chests.size() == 4)
 	for c in chests:
 		var id := String(c.get("chest_id"))

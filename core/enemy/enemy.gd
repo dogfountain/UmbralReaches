@@ -234,6 +234,11 @@ var _evading := false
 var _evade_t := 0.0
 ## A rare (or any foe) may walk a beat round its home instead of standing at it: points on the ground.
 var patrol: Array[Vector3] = []
+## r34: a roaming pack or a rare on a long route: its home walks with it (the leash and the evade are
+## from where you pulled it, not from the route's start), and `patrol_speed` (m/s, 0 = the old slow
+## beat) keeps a pack's members in step.
+var roam := false
+var patrol_speed := 0.0
 var _patrol_i := 0
 var _patrol_wait := 0.0
 ## Soft enrage and other ramps: Gloom its blows and zones fill is multiplied by this (BossKit reads it).
@@ -2060,8 +2065,11 @@ func _walk_patrol() -> void:
 			_patrol_wait = 0.0
 			_patrol_i = (_patrol_i + 1) % patrol.size()
 		return
-	_wish = go.normalized() * 0.45
+	var pace := 0.45 if patrol_speed <= 0.0 else clampf(patrol_speed / maxf(walk_speed, 0.1), 0.1, 1.0)
+	_wish = go.normalized() * pace
 	_face_dir = go.normalized()
+	if roam:
+		home = Vector3(global_position.x, global_position.y, global_position.z)
 
 
 # --- what the HUD reads ---------------------------------------------------------------------------

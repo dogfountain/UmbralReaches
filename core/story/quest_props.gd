@@ -89,6 +89,52 @@ static func make(parent: Node3D, n: String, kind: String, xf: Transform3D) -> No
 			k.box("iron", cb * Vector3(0, 0.0, -0.06) + Vector3(0, 0.05, 0), Vector3(0.05, 0.62, 0.05), cb, false, 0.45)
 			k.box("iron", cb * Vector3(0, -0.36, -0.06) + Vector3(0, 0.08, 0), Vector3(0.15, 0.17, 0.15), cb, false, 0.4)
 			k.box("iron", cb * Vector3(0, 0.33, -0.06) + Vector3(0, 0.05, 0), Vector3(0.1, 0.05, 0.03), cb, false, 0.5)
+		# r34: the new regions' finds
+		"ward":
+			# a Rooted ward-stone: a rounded grey stone, a spiral pecked in its face (pale cuts)
+			var wb := Basis(Vector3.RIGHT, -0.2)
+			k.box("stone", wb * Vector3(0, 0.11, 0), Vector3(0.36, 0.22, 0.28), wb, false, 0.72)
+			k.box("stone", wb * Vector3(0, 0.2, 0), Vector3(0.28, 0.06, 0.22), wb, false, 0.66)
+			for i in 6:
+				var a := float(i) * 1.15
+				var rr := 0.03 + 0.016 * float(i)
+				k.box("plaster", wb * Vector3(cos(a) * rr, 0.13 + sin(a) * rr, -0.142), Vector3(0.04, 0.014, 0.004), wb * Basis(Vector3.BACK, a), false, 0.9)
+		"mark":
+			# a squared block left on the bench, a cutter's mark on its end
+			k.box("stone", Vector3(0, 0.22, 0), Vector3(0.9, 0.44, 0.52), Basis(Vector3.UP, 0.1), false, 0.9)
+			k.box("stone", Vector3(0.06, 0.45, 0.02), Vector3(0.7, 0.02, 0.4), Basis(Vector3.UP, 0.1), false, 0.8)
+			var mb := Basis(Vector3.UP, 0.1)
+			k.box("dark", mb * Vector3(-0.451, 0.26, 0.0), Vector3(0.006, 0.16, 0.02), mb, false, 1.0)
+			k.box("dark", mb * Vector3(-0.451, 0.32, 0.05), Vector3(0.006, 0.02, 0.1), mb, false, 1.0)
+			k.box("dark", mb * Vector3(-0.451, 0.22, -0.06), Vector3(0.006, 0.02, 0.08), mb, false, 1.0)
+		"cairn":
+			# a cairn knocked down: a spread of flat moor stones, one still standing on another
+			for i in 7:
+				var a := float(i) * 0.9
+				var rr := 0.15 + 0.12 * float(i % 3)
+				k.box("stone", Vector3(cos(a) * rr, 0.05, sin(a) * rr), Vector3(0.22, 0.1, 0.16), Basis(Vector3.UP, a * 1.7) * Basis(Vector3.RIGHT, 0.15 * float(i % 2)), false, 0.65 + 0.05 * float(i % 3))
+			k.box("stone", Vector3(0.02, 0.15, 0.0), Vector3(0.2, 0.1, 0.15), Basis(Vector3.UP, 0.4), false, 0.75)
+		"mould":
+			# a cheek of a bell mould: a curved shell of fired loam in an iron cage
+			for i in 5:
+				var a := -0.6 + 0.3 * float(i)
+				var cb2 := Basis(Vector3.UP, a)
+				k.box("plaster", cb2 * Vector3(0, 0.18, -0.32), Vector3(0.16, 0.36, 0.06), cb2 * Basis(Vector3.RIGHT, 0.12), false, 0.55)
+			k.box("iron", Vector3(0, 0.37, -0.28), Vector3(0.62, 0.025, 0.08), Basis.IDENTITY, false, 0.5)
+			k.box("iron", Vector3(0, 0.03, -0.3), Vector3(0.66, 0.025, 0.08), Basis.IDENTITY, false, 0.5)
+		"bud":
+			# a burned limb on the ash, one green eye at the cut
+			k.box("dark", Vector3(0, 0.04, 0), Vector3(0.07, 0.07, 0.62), Basis(Vector3.UP, 0.5), false, 0.8)
+			k.box("wood", Vector3(-0.14, 0.05, -0.23), Vector3(0.05, 0.05, 0.18), Basis(Vector3.UP, 1.2), false, 0.6)
+			(load("res://core/world/realm/lore/lore_kit.gd") as GDScript).call("ensure_mats")
+			k.box("lore_moss", Vector3(0.12, 0.1, 0.22), Vector3(0.05, 0.06, 0.05), Basis(Vector3.UP, 0.5), false, 1.0)
+		"page":
+			# a page of the roll under a stone, its corner lifting
+			k.box("plaster", Vector3(0, 0.01, 0), Vector3(0.24, 0.006, 0.32), Basis(Vector3.UP, 0.3), false, 0.9)
+			k.box("plaster", Vector3(0.09, 0.02, -0.13), Vector3(0.08, 0.004, 0.07), Basis(Vector3.UP, 0.3) * Basis(Vector3.RIGHT, 0.4), false, 0.95)
+			for i in 4:
+				k.box("dark", Vector3(-0.01, 0.0145, 0.08 - 0.05 * float(i)), Vector3(0.16, 0.002, 0.01), Basis(Vector3.UP, 0.3), false, 1.0)
+			k.box("stone", Vector3(-0.06, 0.05, 0.1), Vector3(0.12, 0.08, 0.1), Basis(Vector3.UP, 0.9), false, 0.7)
 		"place":
 			pass
 	if kind != "place":

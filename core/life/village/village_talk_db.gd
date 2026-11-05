@@ -294,4 +294,114 @@ const CONV := {
 		"poor": {"say": "That's not enough ash. Come back with more. They're not hard to find.", "next": "hub"},
 		"none": {"say": "Nothing left the village needs from you tonight. Keep your ash. Spend it at the fires.", "next": ""},
 	}},
+	# --- r34: the doubled world's givers (village_cast.gd OUTPOSTS) -------------------------------
+	"ruan": {"name": "Gammer Ruan", "start": [["!met:ruan", "meet"], ["", "hub"]], "nodes": {
+		"meet": {"say": "Wipe your feet. Not for me. For them. Every house here has somebody under the floor, face down, the way we do it.", "next": "meet2"},
+		"meet2": {"say": "Ruan. Hesk's grandmother's sister, if he still owns to it. The rest went to the Keg when the bells stopped. I stayed with the turf.", "do": "met:ruan", "next": "hub"},
+		"hub": {"say_if": [
+			["boss:thornwarden", "The keeper's down. The oaks don't know who they belong to. Neither do I, some nights. Sit."],
+			["qd:keeper_leave", "The keeper has our coal. When you go in to it, it'll remember its manners. Mind yours."],
+			["qd:keeper_wards", "Three wards round my fire. First time in ninety years. The heather's grown back over the door-stones already."],
+			["", "The Ring is a morning's walk east, if you walk like us. The abbey folk took two days. They kept looking up."],
+		], "choices": [
+			{"text": "Who are the Rooted?", "to": "rooted", "once": true},
+			{"text": "Why face the dead down?", "to": "down", "once": true},
+			{"text": "Goodbye.", "to": ""},
+		]},
+		"rooted": {"say": "Us. Were. Before the road there was the wood and us in it. We never looked up. Looking up is how you fall over.", "next": "hub"},
+		"down": {"say": "So they don't go up. What climbs comes down hollow. Every child here knew it. Your Order made them forget it in one winter.", "next": "hub"},
+	}},
+	"jory": {"name": "Jory Quell", "start": [["!met:jory", "meet"], ["", "hub"]], "nodes": {
+		"meet": {"say": "Mind the edge. The benches go down three hundred feet and every one of them's my fault. I squared the stone for the Stair. Four thousand steps.", "next": "meet2"},
+		"meet2": {"say": "Jory Quell. Last cutter. The rest went up to see the steps they'd cut. I stayed to finish a block. Never did finish it.", "do": "met:jory", "next": "hub"},
+		"hub": {"say_if": [
+			["qd:quarry_last", "Here the faithful step off. I've had it cut on my own stone now. Under it: and the rest of us go home."],
+			["qd:quarry_picks", "The benches are quiet. I can hear the stone settle. It does that, when it isn't being cut."],
+			["qd:quarry_marks", "Wat, Dunny, my brother. I say them over at night. It's a short list. It used to be longer than the Stair."],
+			["", "They paid us by the stone. A coin a block. Four thousand steps and I couldn't tell you what was at the top of them."],
+		], "choices": [
+			{"text": "What happened to the cutters?", "to": "cutters", "once": true},
+			{"text": "Why stay?", "to": "stay", "once": true},
+			{"text": "Goodbye.", "to": ""},
+		]},
+		"cutters": {"say": "Went up on the Night with the pilgrims. Wanted to stand on their own work. Some came down. Cutting again, in the dark. Same benches. They don't know me.", "next": "hub"},
+		"stay": {"say": "Somebody has to know which block's which. The Order counted the steps. Nobody counted the men.", "next": "hub"},
+	}},
+	"ysolt": {"name": "Ysolt", "start": [["!met:ysolt", "meet"], ["", "hub"]], "nodes": {
+		"meet": {"say": "Put that light down, if you've one. No. Keep it. I keep the cairns in the dark, like the edict says. I never said I believed it.", "next": "meet2"},
+		"meet2": {"say": "Ysolt. I walk the moor at night and count the stones. The wind takes one a night off every cairn. I put one back. We're even, the wind and I.", "do": "met:ysolt", "next": "hub"},
+		"hub": {"say_if": [
+			["qd:moor_shrine", "There's a coal in the shrine's lap. First light on the moor since the edict. I go up the tor to look at it."],
+			["qd:moor_cairns", "The cairns stand. Somebody walking home tonight won't fall in the bog. They won't thank you. They won't know."],
+			["", "Lanterns are for doubters. That was the first edict. Most of the faithful who crossed here are still out there, on their faces."],
+		], "choices": [
+			{"text": "Why no lantern?", "to": "lantern", "once": true},
+			{"text": "What walks the moor?", "to": "walks", "once": true},
+			{"text": "Goodbye.", "to": ""},
+		]},
+		"lantern": {"say": "My mother carried one across, hidden in her skirt. She was the only one of her company who reached the Stair. She never went up it. She came back here and built the first cairn.", "next": "hub"},
+		"walks": {"say": "The ones who stumbled between the cairns. Looking for the next one. If they bump you, it's only because they're blind. Then they bite.", "next": "hub"},
+	}},
+	"elspeth": {"name": "Elspeth Fane", "start": [["!met:elspeth", "meet"], ["", "hub"]], "nodes": {
+		"meet": {"say": "Don't touch the slag, it's warmer than it looks. The ground here never cooled. Neither did I.", "next": "meet2"},
+		"meet2": {"say": "Elspeth Fane. I was the Founder's journeywoman. I poured Patience with her. Brannoc was a boy then, getting under our feet.", "do": "met:elspeth", "next": "hub"},
+		"hub": {"say_if": [
+			["boss:ascended_warden", "The great bell's come down from the summit, they say, cracked. I'd like to see the crack. I'd like to know if it was ours."],
+			["qd:founder_peal", "The tongue's with Brannoc. When you climb, listen. If the bell in its hand rings wrong, that's her. That's Mother's order."],
+			["qd:founder_moulds", "The mould's whole on my furnace floor. It hums. I've got a tongue to cast, and a son to send it to."],
+			["", "She cast Hope, Patience and Homecoming in that furnace. Bottom to top, she rang them. The Order rang them top first, on the Night."],
+		], "choices": [
+			{"text": "Tell me about the Founder.", "to": "founder", "once": true},
+			{"text": "What did the bells do?", "to": "bells", "once": true},
+			{"text": "Goodbye.", "to": ""},
+		]},
+		"founder": {"say": "A small woman with burned arms who swore at metal till it listened. She'd say a bell is a hole you teach to sing. She'd have hated the summit's bell. It was made to be heard by the sky.", "next": "hub"},
+		"bells": {"say": "Called people home. That's all a bell is for. The Order used them to call people up. Same note. Different door.", "next": "hub"},
+	}},
+	"linnet": {"name": "Linnet", "start": [["!met:linnet", "meet"], ["", "hub"]], "nodes": {
+		"meet": {"say": "Careful, that's a graft. It doesn't look like anything. Nothing does, for the first year.", "next": "meet2"},
+		"meet2": {"say": "Linnet. My grandmother was a Kindler. The Order burned this orchard so her lot would have nothing. I'm growing it back out of spite.", "do": "met:linnet", "next": "hub"},
+		"hub": {"say_if": [
+			["qd:orchard_graft", "The old tree's warm. A graft took on it this morning. Green as anything. Nobody's allowed to tell the Order."],
+			["qd:orchard_buds", "Three buds on a stock. One's dead. One's thinking about it. One's growing. That's good odds, in an orchard."],
+			["", "They burned it in a winter. It'll take me forty years. That's all right. The fire took Edda's hands; I've still got mine."],
+		], "choices": [
+			{"text": "Why burn an orchard?", "to": "why", "once": true},
+			{"text": "What will you grow?", "to": "grow", "once": true},
+			{"text": "Goodbye.", "to": ""},
+		]},
+		"why": {"say": "The abbey's orchard fed the road. When the fire was named a heresy, the Kindlers kept the road fed out of their own stores. So the Order burned the trees. Nothing for the Kindlers. Nothing for anybody.", "next": "hub"},
+		"grow": {"say": "Apples. Small and sour. Cider for the Keg, if the keep will pay in ash. He will. He pretends he won't.", "next": "hub"},
+	}},
+	"agathe": {"name": "Sister Agathe", "start": [["!met:agathe", "meet"], ["", "hub"]], "nodes": {
+		"meet": {"say": "Hush. They're waiting. They've been waiting since before you were born, and they've been very good about it.", "next": "meet2"},
+		"meet2": {"say": "Agathe. I was a sister of the Order. I kept this field. I still turn the stones to face the mountain, when they move. My back is not what it was.", "do": "met:agathe", "next": "hub"},
+		"hub": {"say_if": [
+			["boss:bone_abbot", "The count's stopped under the abbey. The ranks feel it. Some of the stones have turned toward the village, on their own. I let them."],
+			["qd:abbot_names", "You read the names into his dark. He's counting them again and coming up short. Good. Let him doubt. We did."],
+			["qd:abbot_roll", "Three pages. Eighty-one names. I read them to the field every night, a page at a time."],
+			["", "Every grave faces the Stair, so they'd be first through when the sky called. It called the wrong way. They're still here, still first."],
+		], "choices": [
+			{"text": "Why stay with the Order's dead?", "to": "stay", "once": true},
+			{"text": "What does the Abbot want with them?", "to": "abbot", "once": true},
+			{"text": "Goodbye.", "to": ""},
+		]},
+		"stay": {"say": "They're not the Order's. They were pilgrims. They walked here from everywhere with their shoes in their hands. Somebody should know their names. The Abbot only wants the number.", "next": "hub"},
+		"abbot": {"say": "To count them. To have them ready, stacked, numbered, for when the sky calls. Abbot Osric never could stand a field where the dead lie down in their own order.", "next": "hub"},
+	}},
+	"cadoc": {"name": "Cadoc", "start": [["!met:cadoc", "meet"], ["", "hub"]], "nodes": {
+		"meet": {"say": "If you're wanting across, I don't. Not any more. I row the lamps out, and I row back. That's the trade now.", "next": "meet2"},
+		"meet2": {"say": "Cadoc. I ferried for Brother Corvin, when he took fire out to the sunk. He'd hold the lamp. I'd hold the oars. Then they took his hands.", "do": "met:cadoc", "next": "hub"},
+		"hub": {"say_if": [
+			["qd:mere_light", "There's a light in Corvin's chapel. I row past it and I don't look. I'm not ready to look."],
+			["qd:mere_lamps", "His lamps are out on the water again. They drift toward the chapel. They always did."],
+			["", "The Abbot sank them with three stones: eyes, mouth, heart. Corvin answered with three lights. Same places. Different answer."],
+		], "choices": [
+			{"text": "What happened to Corvin?", "to": "corvin", "once": true},
+			{"text": "What's under the water?", "to": "water", "once": true},
+			{"text": "Goodbye.", "to": ""},
+		]},
+		"corvin": {"say": "The penitents said lighting the sunk was heresy. Kindler's work. They took his face off the chapel wall, then his hands off his arms. He still rowed out. I held the lamp for him after. In my teeth, the last time.", "next": "hub"},
+		"water": {"say": "The ones who didn't stay down. They walk the bottom and come up in the nave, in rows, like it's a feast day. Don't wade at night. Wade anyway, if you're going to.", "next": "hub"},
+	}},
 }

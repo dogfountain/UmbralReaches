@@ -19,7 +19,7 @@ const SELF := "res://core/world/realm/lore/scenes.gd"
 const CAMP := Vector2(-46.0, -38.0)
 const GRAVE := Vector2(-56.0, -54.0)
 const RING := Vector2(-90.0, -58.0)
-const HENGE_KEEP := 28.0
+const HENGE_KEEP := 34.0   # r34 layout: the raid floor (RealmLayout.RAIDS henge r 31) and its rim
 
 ## Where the ring's ninth stone and its offering stand (site_company reads it), or {} if unplaced.
 static var ring := {}

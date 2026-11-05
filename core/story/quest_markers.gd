@@ -15,6 +15,7 @@ extends Node3D
 const Book := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const Giver := preload("res://core/story/quest_giver.gd")
+const StoryDB := preload("res://core/story/quest_db.gd")
 
 const GOLD := Color(1.0, 0.74, 0.32)
 const DAILY := Color(0.7, 0.84, 1.0)
@@ -75,13 +76,14 @@ func _find_givers() -> void:
 ## Bring every mark and target in line with the tasks (tests call it directly).
 func refresh() -> void:
 	var live := {}
+	var all := Giver.states(get_tree())
 	for g: Array in _givers:
 		if not is_instance_valid(g[0]):
 			continue                          # a villager gone home for good, a patron freed
 		var n: Node3D = g[0]
 		if not n.is_inside_tree():
 			continue
-		var st := Giver.state(String(g[1]), get_tree())
+		var st: Array = all.get(String(g[1]), ["", "", false])
 		var key := n.get_instance_id()
 		if String(st[0]) == "":
 			continue
@@ -185,7 +187,10 @@ func _set_mark(m: Node3D, n: Node3D, state: String, qid: String, daily: bool) ->
 			m.remove_from_group("map_marker")
 		return
 	m.set_meta("map_kind", kind)
-	m.set_meta("map_label", String((Chains.QUESTS.get(qid, {}) as Dictionary).get("name", "")))
+	var label := String((Chains.QUESTS.get(qid, {}) as Dictionary).get("name", ""))
+	if qid.begins_with("main:"):                  # r34 merge: a main-story objective (quest_db.gd)
+		label = String(StoryDB.objective(qid.substr(5)).get("text", ""))
+	m.set_meta("map_label", label)
 	m.set_meta("map_color", col)
 	if not m.is_in_group("map_marker"):
 		m.add_to_group("map_marker")

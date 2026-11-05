@@ -76,6 +76,30 @@ static func register_terrace(n: String, centre: Vector2, r: float, y: float) -> 
 	sites.append({"name": n, "rect": Rect2(centre - Vector2(r, r), Vector2(r, r) * 2.0), "floor_y": y, "cut_y": y, "circle": Vector3(centre.x, centre.y, r), "level": true})
 
 
+## r34 layout: does a site's real footprint (a round terrace's or zone's circle, else its rect) reach
+## into rect `r` grown by `pad`? The r34 raid floors are 60 m circles: their bounding boxes claimed
+## 800 m2 of hillside each beyond the floor, which emptied the henge hill's corners of trees and stones.
+static func site_hits_rect(st: Dictionary, r: Rect2, pad := 0.0) -> bool:
+	var sr: Rect2 = st.rect
+	if not sr.grow(pad).intersects(r):
+		return false
+	if not st.has("circle"):
+		return true
+	var c: Vector3 = st.circle
+	var q := Vector2(clampf(c.x, r.position.x, r.end.x), clampf(c.y, r.position.y, r.end.y))
+	return q.distance_to(Vector2(c.x, c.y)) < c.z + pad
+
+
+## r34 layout: a round reserved floor that only cuts (a raid room built over lower ground, the summit's):
+## the ground inside is cut down to `cut_y`, never filled; everything else keeps out of the circle.
+## `owners`: names of the builders whose things already stand in it (the audit lets them be).
+static func register_zone(n: String, centre: Vector2, r: float, floor_y: float, cut_y: float, owners: Array = []) -> void:
+	for s in sites:
+		if s.name == n:
+			return
+	sites.append({"name": n, "rect": Rect2(centre - Vector2(r, r), Vector2(r, r) * 2.0), "floor_y": floor_y, "cut_y": cut_y, "circle": Vector3(centre.x, centre.y, r), "owners": owners})
+
+
 ## A built stair corridor a -> b (floors at their y), `half_w` wide: ground above the flight is
 ## cut away under it; props and grass keep off it.
 static func register_flight(n: String, a: Vector3, b: Vector3, half_w: float) -> void:
@@ -432,8 +456,7 @@ static func intrudes(space: PhysicsDirectSpaceState3D, b: AABB, pad := 0.0) -> S
 	var lo := Vector2(b.position.x, b.position.z)
 	var hi := Vector2(b.end.x, b.end.z)
 	for st in sites:
-		var r: Rect2 = (st.rect as Rect2).grow(pad + 0.3)
-		if r.intersects(Rect2(lo, hi - lo)) and b.end.y > float(st.floor_y) - 1.0:
+		if site_hits_rect(st, Rect2(lo, hi - lo), pad + 0.3) and b.end.y > float(st.floor_y) - 1.0:
 			return String(st.name)
 	for lane: Array in (LANES + extra_lanes if legacy else extra_lanes):
 		var pts: Array = lane[1]

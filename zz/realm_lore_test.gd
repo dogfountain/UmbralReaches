@@ -145,7 +145,8 @@ func _process(d: float) -> void:
 		var cl := Vector2(clampf(0.0, r.position.x, r.end.x), clampf(33.0, r.position.y, r.end.y))
 		if cl.distance_to(Vector2(0, 33)) < 10.0:
 			fail("site %s inside the brazier's 10 m" % st.name)
-		if Vector2(clampf(-72.0, r.position.x, r.end.x), clampf(-18.0, r.position.y, r.end.y)).distance_to(Vector2(-72, -18)) < 18.0:
+		var hc := RealmLayout.HENGE_C            # r34 layout: the henge moved (RealmLayout.RAIDS)
+		if Vector2(clampf(hc.x, r.position.x, r.end.x), clampf(hc.y, r.position.y, r.end.y)).distance_to(hc) < 18.0:
 			fail("site %s on the henge" % st.name)
 		if r.intersects(Rect2(-24, -118, 48, 106)):
 			fail("site %s in the rift" % st.name)
@@ -154,7 +155,8 @@ func _process(d: float) -> void:
 		for other in WorldLanes.sites:
 			if String(other.name) in mine:
 				continue
-			if (other.rect as Rect2).intersects(r):
+			var hit := WorldLanes.site_hits_rect(other, r) if String(other.name).begins_with("raid_") else (other.rect as Rect2).intersects(r)   # r34: raid floors by their circle
+			if hit:
 				fail("site %s overlaps %s" % [st.name, other.name])
 	for lm: Dictionary in LK.landmarks:
 		print("LORE landmark %s at %s sites %s" % [lm.name, (lm.at as Vector3).snapped(Vector3.ONE * 0.1), lm.sites])

@@ -42,6 +42,12 @@ static func prepare(v: Node3D) -> void:
 	var nav: RefCounted = v.get("nav")
 	for k: String in Chains.PICKUPS:
 		var near: Vector2 = Chains.PICKUPS[k].near
+		# r34: a coal or lamp taken from a giver's outpost fire is found beside that fire
+		var camp := String(Chains.PICKUPS[k].get("camp", ""))
+		if camp != "" and v.has_method("anchor"):
+			var f: Vector3 = v.call("anchor", "@fire_" + camp)
+			if f != Vector3.INF:
+				near = Vector2(f.x + 0.9, f.z - 0.9)
 		spots[k] = _spot(nav, near)
 	spots["stair"] = _spot(nav, Chains.ESCORT.to)
 	spots["hollow"] = spots.get("lantern", Vector3.INF)

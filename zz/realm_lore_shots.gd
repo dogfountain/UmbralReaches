@@ -31,7 +31,7 @@ const VIEWS := {
 		["rd_west", Vector3(-92, 3, 70), Vector3(-104, 2, 63)],
 		["rd_mid", Vector3(-30, 3, 66), Vector3(-45, 1, 58)],
 		["rd_east", Vector3(60, 3, 70), Vector3(80, 1, 63)],
-		["rd_gate_e", Vector3(92, 3, 72), Vector3(104, 2, 66)],
+		["rd_gate_e", Vector3(137, 3, 74), Vector3(149, 2, 68)],   # r34 layout: the gate moved to x 145
 	],
 	"glade": [
 		["gl_shrine", Vector3(-38, 3, 22), Vector3(-45, 1, 15)],

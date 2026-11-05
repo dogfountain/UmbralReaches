@@ -12,18 +12,24 @@ extends Node3D
 
 const EliteKit := preload("res://core/life/encounters/elite_kit.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
+const Variants := preload("res://core/life/encounters/variants.gd")
 const TICK := 0.5
 const NEAR := 95.0              ## the rare walks its beat while you are within this (and it is not dead)
 const FAR := 130.0              ## further than this it goes back into the dark, healed
 const RESPAWN := 480.0
 const SILVER := Color(0.78, 0.86, 1.0)
 const BEAT_R := 6.0
+const ROUTE_PACE := 1.35        ## m/s along a long route (WoW's patrolling rares: you meet it on its round)
 
 ## id -> {title, kind (EnemySpawner key), spots (candidate haunts, first clear one wins), hp, scale,
 ## ash, loot [[item id, count], ...], line (the toast when it falls)}
+## r34: optional "variant" (a Variants look: stonebound, drowned) and "route" (xz points it walks in a
+## loop from its haunt, its home walking with it, instead of the short beat round the haunt).
 const RARES := {
 	"gutterwick": {"title": "Gutterwick the Lamp-Eater", "kind": "wretch", "hp": 22, "scale": 1.3,
-		"spots": [Vector2(-66, 34), Vector2(-62, 28), Vector2(-74, 32), Vector2(-96, 6), Vector2(-70, -40), Vector2(-100, -10)], "ash": 30, "loot": [["relic_fragment", 1]],
+		"spots": [Vector2(-66, 34), Vector2(-62, 28), Vector2(-74, 32), Vector2(-96, 6), Vector2(-70, -40), Vector2(-100, -10),
+			Vector2(-67, 30), Vector2(-92, 13), Vector2(-109, 5)],    # r34: the old six are on the chapel yard and the henge's raid floor
+		"ash": 30, "loot": [["relic_fragment", 1]],
 		"line": "Gutterwick falls. The lamp-oil in its belly burns blue, then out."},
 	"mother_sallow": {"title": "Mother Sallow", "kind": "spitter", "hp": 18, "scale": 1.3,
 		"spots": [Vector2(84, -22), Vector2(90, 6), Vector2(100, 12)], "ash": 32, "loot": [["relic_fragment", 2]],
@@ -34,6 +40,32 @@ const RARES := {
 	"cairnback": {"title": "Cairnback", "kind": "husk", "hp": 34, "scale": 1.35,
 		"spots": [Vector2(84, -50), Vector2(70, -30), Vector2(90, -44)], "ash": 40, "loot": [["relic_fragment", 3]],
 		"line": "Cairnback settles, a barrow at last."},
+	# r34: one (at least) for each new region
+	"brother_chisel": {"title": "Brother Chisel, the Four-Thousandth", "kind": "husk", "variant": "stonebound", "hp": 40, "scale": 1.4,
+		"spots": [Vector2(-136, -112), Vector2(-130, -120), Vector2(-124, -110)], "ash": 42, "loot": [["relic_fragment", 2]],
+		"line": "Brother Chisel sets down his last stone. The step is finished."},
+	"clapper": {"title": "Clapper, the Bell-Tongue", "kind": "cinder", "hp": 22, "scale": 1.35,
+		"spots": [Vector2(124, -96), Vector2(148, -96), Vector2(118, -90)], "ash": 40, "loot": [["relic_fragment", 2]],
+		"line": "Clapper cracks like a bell poured too cold."},
+	"hennet": {"title": "Gorse-Wife Hennet", "kind": "gaunt", "hp": 24, "scale": 1.3,
+		"spots": [Vector2(140, -4), Vector2(144, 2)], "ash": 36, "loot": [["relic_fragment", 1]],
+		"route": [Vector2(144, 2), Vector2(142, 19), Vector2(139, 26), Vector2(142, 12), Vector2(140, -4), Vector2(136, -40), Vector2(144, -38), Vector2(141, -51), Vector2(136, -40)],
+		"line": "Hennet falls in the heather. The wind does not stop for her."},
+	"old_pippin": {"title": "Old Pippin, the Ash-Grub", "kind": "burrower", "hp": 32, "scale": 1.4,
+		"spots": [Vector2(-96, 140), Vector2(-86, 98), Vector2(-120, 124)], "ash": 36, "loot": [["relic_fragment", 1]],
+		"line": "Old Pippin curls up in the ash, and is still."},
+	"last_pilgrim": {"title": "The Last Pilgrim", "kind": "pilgrim", "hp": 28, "scale": 1.3,
+		"spots": [Vector2(-12, 140), Vector2(-36, 124), Vector2(19, 125)], "ash": 38, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(-12, 140), Vector2(-36, 124), Vector2(-20, 108), Vector2(19, 125), Vector2(14, 140)],
+		"line": "The Last Pilgrim kneels, facing the mountain, and does not get up."},
+	"ferryman": {"title": "The Ferryman Without a Boat", "kind": "husk", "variant": "drowned", "hp": 36, "scale": 1.35,
+		"spots": [Vector2(140, 128), Vector2(137, 102)], "ash": 40, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(140, 128), Vector2(130, 140), Vector2(118, 132), Vector2(137, 116), Vector2(137, 102)],
+		"line": "The Ferryman goes under. Nobody pays the fare tonight."},
+	"old_rook": {"title": "Old Rook, the Kin-Taker", "kind": "gaunt", "hp": 20, "scale": 1.3,
+		"spots": [Vector2(-140, 11), Vector2(-131, -1)], "ash": 32, "loot": [["relic_fragment", 1]],
+		"route": [Vector2(-140, 11), Vector2(-142, 24), Vector2(-131, 30), Vector2(-120, 26), Vector2(-131, -1)],
+		"line": "Old Rook will not come to the Holds' door again. The Rooted can sleep."},
 }
 
 var haunts: Dictionary = {}      ## id -> Vector3 on the ground
@@ -54,14 +86,22 @@ func setup(scripts: Dictionary) -> void:
 	_scripts = scripts
 	var space := get_world_3d().direct_space_state
 	for id: String in RARES:
+		var fallback := Vector3.INF
 		for c: Vector2 in RARES[id].spots:
 			var g := _ground(space, Vector3(c.x, 90.0, c.y))
 			if g == Vector3.INF or LightGrid.is_lit(g):
 				continue
 			if not WorldLanes.site_at(c, 1.0).is_empty():
 				continue
+			# r34: a haunt it can walk a beat round (open, level enough); else the first clear one
+			if not RARES[id].has("route") and _beat(g).size() < 3:
+				if fallback == Vector3.INF:
+					fallback = g
+				continue
 			haunts[id] = g
 			break
+		if not haunts.has(id) and fallback != Vector3.INF:
+			haunts[id] = fallback
 		if not haunts.has(id):
 			push_warning("Rares: no clear haunt for %s" % id)
 			continue
@@ -110,6 +150,8 @@ func spawn_rare(id: String) -> Enemy:
 		return null
 	var at: Vector3 = haunts[id]
 	var e := script.new() as Enemy
+	if "dormant" in e:
+		e.set("dormant", false)                   # r34: a named Pilgrim walks its round awake
 	e.max_hp = int(d.hp)
 	e.hp = float(e.max_hp)
 	e.chase_range = maxf(e.chase_range, 14.0)
@@ -123,10 +165,20 @@ func spawn_rare(id: String) -> Enemy:
 	e.set_meta(&"display_name", String(d.title))
 	e.set_meta(&"rare_name", String(d.title))      # the loot bag's title (gear_runtime.drop_rare)
 	EliteKit.scale(e, Tiers.tier_at(at), false)
+	var look := String(d.get("variant", ""))
+	if look != "":
+		Variants.pre(e, look)
 	get_parent().add_child(e)
+	if look != "":
+		Variants.dress(e, look)
 	e.global_position = at + Vector3.UP * 0.05
 	e.home = at
-	e.patrol = _beat(at)
+	if d.has("route"):
+		e.patrol = route(id)
+		e.roam = true
+		e.patrol_speed = ROUTE_PACE
+	else:
+		e.patrol = _beat(at)
 	if e._rig:
 		e._rig.scale *= float(d.scale)
 	_shimmer(e)
@@ -161,6 +213,24 @@ func _on_killed(e: Node) -> void:
 		var at := (e as Node3D).global_position + Vector3.UP
 		Vfx.burst(at, SILVER, {"count": 40, "life": 1.0, "speed": Vector2(1.0, 4.0), "size": 0.06, "gravity": -1.5, "trail": 0.06})
 	Travel.save_soon()
+
+
+## r34: a long route's points on the ground, from the haunt (points with no ground, or lit, are skipped).
+var _routes: Dictionary = {}
+
+
+func route(id: String) -> Array[Vector3]:
+	if _routes.has(id):
+		return (_routes[id] as Array[Vector3]).duplicate()
+	var out: Array[Vector3] = [haunts[id]]
+	var space := get_world_3d().direct_space_state
+	for c: Vector2 in RARES[id].get("route", []):
+		var g := _ground(space, Vector3(c.x, 90.0, c.y))
+		if g == Vector3.INF or LightGrid.is_lit(g) or g.distance_to(out[out.size() - 1]) < 1.0:
+			continue
+		out.append(g)
+	_routes[id] = out
+	return out.duplicate()
 
 
 ## Three points round the haunt on the ground (the beat it walks).

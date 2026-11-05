@@ -13,6 +13,7 @@ extends RefCounted
 
 const Book := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
+const StoryDB := preload("res://core/story/quest_db.gd")
 const VState := preload("res://core/life/village/village_state.gd")
 
 
@@ -30,7 +31,7 @@ static func npc_id(n: Node) -> String:
 
 ## Would `id` be offered now (giver's mark): not under way, not done (unless a daily from an
 ## earlier day), and its `avail` condition holds.
-static func available(id: String, tree: SceneTree = null) -> bool:
+static func available(id: String, tree: SceneTree = null, ws := {}) -> bool:
 	var qd: Dictionary = Chains.QUESTS.get(id, {})
 	if qd.is_empty() or Book.active(id):
 		return false
@@ -39,7 +40,7 @@ static func available(id: String, tree: SceneTree = null) -> bool:
 	var cond := String(qd.get("avail", ""))
 	if cond == "":
 		return true
-	return VState.test(cond, VState.world(tree) if tree else _ws(), tree)
+	return VState.test(cond, ws if not ws.is_empty() else (VState.world(tree) if tree else _ws()), tree)
 
 
 static func _ws() -> Dictionary:
@@ -84,6 +85,54 @@ static func state(npc: String, tree: SceneTree = null) -> Array:
 		if Book.active(id3) and (Chains.giver(id3) == npc or turnin_of(id3) == npc):
 			return ["progress", id3, false]
 	return ["", "", false]
+
+
+## r34: every giver's mark in one pass over the tasks ({npc: [state, quest id, daily?]}; npcs
+## with no mark are absent). Same answer as state() per npc, at 48 tasks x 18 givers a refresh
+## state() one by one cost ~0.9 ms; this is one walk of ORDER.
+static func states(tree: SceneTree = null) -> Dictionary:
+	var turn := {}
+	var avail := {}
+	var daily := {}
+	var prog := {}
+	var ws: Dictionary = VState.world(tree) if tree else _ws()
+	for id: String in Chains.ORDER:
+		var g := Chains.giver(id)
+		if Book.active(id):
+			var tk := talker(id)
+			if tk != "" and not turn.has(tk):
+				turn[tk] = id
+			if not prog.has(g):
+				prog[g] = id
+			var ti := turnin_of(id)
+			if not prog.has(ti):
+				prog[ti] = id
+		elif not avail.has(g) and available(id, tree, ws):
+			if String(Chains.QUESTS[id].get("repeat", "")) == "daily":
+				if not daily.has(g):
+					daily[g] = id
+			else:
+				avail[g] = id
+	var out := {}
+	for npc: String in prog:
+		out[npc] = ["progress", prog[npc], false]
+	for npc2: String in daily:
+		out[npc2] = ["available", daily[npc2], true]
+	for npc3: String in avail:
+		out[npc3] = ["available", avail[npc3], false]
+	for npc4: String in turn:
+		out[npc4] = ["turnin", turn[npc4], false]
+	# r34 merge: the main story's own talk objectives (quest_db.gd "who"/"mark") mark their NPC too;
+	# the keep had no mark at the start ("Find the keeper of the Kindled Keg") because the marks only
+	# read the side chains. A side task's hand-in still wins over a main "available".
+	for o: Dictionary in StoryDB.OBJECTIVES:
+		var who := String(o.get("who", ""))
+		if who == "" or not StoryDB.test(String(o.when), ws) or StoryDB.test(String(o.done), ws):
+			continue
+		var mk := String(o.get("mark", "available"))
+		if not out.has(who) or (mk == "turnin" and String(out[who][0]) != "turnin") or String(out[who][0]) == "progress":
+			out[who] = [mk, "main:" + String(o.id), false]
+	return out
 
 
 ## Lines an NPC's hub gains: [{text, quest_ui: "offer:id" | "turnin:id"}] (accept-screen tasks).

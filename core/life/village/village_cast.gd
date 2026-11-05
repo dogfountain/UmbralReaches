@@ -245,6 +245,121 @@ const CAST := {
 		"home": "cart", "speed": 0.8,
 		"schedule": {"dusk": "sell", "work": "sell", "midnight": "sell", "late": "sell"},
 		"routines": {"sell": [{"act": "sell", "at": "cart", "face": "@cart", "t": [20.0, 30.0]}, {"act": "sift", "at": "cart", "face": "@cart", "t": [10.0, 14.0]}]}},
+
+	# --- r34: the doubled world's givers, each camped at an outpost fire in their region (OUTPOSTS;
+	# village.gd builds the camp and its walks: <id>_fire, _seat, _w1.._w3, anchors @fire_<id>,
+	# @out_<id>). Always present; they do not flee (camped out).
+	"ruan": {"name": "Ruan", "title": "Gammer Ruan of the Holds", "when": "", "camp": "outpost",
+		"rig": {"seed": 5212, "sex": "f", "age": "old", "garment": "dress", "shawl": true, "hood": true, "hair": "braids",
+			"r": "spade", "girth": 1.16, "cloth": Color(0.27, 0.3, 0.22), "cloth2": Color(0.34, 0.27, 0.2),
+			"hair_c": Color(0.72, 0.66, 0.56), "skin": Color(0.74, 0.54, 0.4), "leather": Color(0.34, 0.22, 0.12)},
+		"home": "ruan_fire", "speed": 0.7,
+		"schedule": {"dusk": "camp", "work": "camp", "midnight": "walk", "late": "camp"},
+		"routines": {
+			"camp": [
+				{"act": "tend", "at": "ruan_fire", "face": "@fire_ruan", "t": [8.0, 12.0]},
+				{"act": "sit", "at": "ruan_seat", "face": "@fire_ruan", "t": [20.0, 30.0], "seat": 0.36},
+				{"act": "mourn", "at": "ruan_w2", "face": "@out_ruan", "t": [8.0, 12.0]},
+			],
+			"walk": [{"go": "ruan_w1"}, {"act": "idle", "at": "ruan_w2", "face": "@out_ruan", "t": [6.0, 9.0]}, {"go": "ruan_w3"}, {"go": "ruan_fire"}],
+		}},
+	"jory": {"name": "Jory", "title": "Jory Quell, the last cutter", "when": "", "camp": "outpost",
+		"rig": {"seed": 5313, "sex": "m", "age": "old", "garment": "shirt", "apron": "leather", "hat": "cap", "hair": "fringe", "beard": "short",
+			"r": "hammer", "girth": 1.02, "cloth": Color(0.36, 0.34, 0.3), "cloth2": Color(0.3, 0.26, 0.22),
+			"hair_c": Color(0.7, 0.66, 0.6), "skin": Color(0.76, 0.56, 0.42), "leather": Color(0.4, 0.26, 0.14)},
+		"home": "jory_fire", "speed": 0.8,
+		"schedule": {"dusk": "cut", "work": "cut", "midnight": "camp", "late": "cut"},
+		"routines": {
+			"cut": [
+				{"act": "chop", "at": "jory_block", "face": "@block_jory", "t": [14.0, 20.0]},
+				{"act": "warm", "at": "jory_fire", "face": "@fire_jory", "t": [8.0, 12.0]},
+			],
+			"camp": [
+				{"act": "sit", "at": "jory_seat", "face": "@fire_jory", "t": [20.0, 30.0], "seat": 0.36},
+				{"act": "idle", "at": "jory_w2", "face": "@out_jory", "t": [6.0, 9.0]},
+				{"go": "jory_w3"},
+			],
+		}},
+	"ysolt": {"name": "Ysolt", "title": "Ysolt the cairn-keeper", "when": "", "camp": "outpost",
+		"rig": {"seed": 5414, "sex": "f", "age": "old", "garment": "robe", "hood": true, "hair": "long", "r": "staff",
+			"cloth": Color(0.32, 0.28, 0.3), "cloth2": Color(0.28, 0.25, 0.22), "hair_c": Color(0.76, 0.7, 0.6),
+			"skin": Color(0.78, 0.58, 0.44), "leather": Color(0.36, 0.22, 0.12)},
+		"home": "ysolt_fire", "speed": 0.75,
+		"schedule": {"dusk": "camp", "work": "walk", "midnight": "camp", "late": "walk"},
+		"routines": {
+			"camp": [
+				{"act": "tend", "at": "ysolt_fire", "face": "@fire_ysolt", "t": [8.0, 12.0]},
+				{"act": "sit", "at": "ysolt_seat", "face": "@fire_ysolt", "t": [18.0, 26.0], "seat": 0.36},
+			],
+			"walk": [{"go": "ysolt_w1"}, {"act": "idle", "at": "ysolt_w2", "face": "@out_ysolt", "t": [8.0, 12.0]}, {"go": "ysolt_w3"}, {"go": "ysolt_fire"}],
+		}},
+	"elspeth": {"name": "Elspeth", "title": "Elspeth Fane, the Founder's journeywoman", "when": "", "camp": "outpost",
+		"rig": {"seed": 5515, "sex": "f", "age": "adult", "garment": "shirt", "apron": "leather", "hat": "kerchief", "hair": "bun",
+			"r": "scoop", "girth": 1.05, "cloth": Color(0.4, 0.26, 0.2), "cloth2": Color(0.3, 0.25, 0.2),
+			"hair_c": Color(0.2, 0.12, 0.08), "skin": Color(0.72, 0.5, 0.36), "leather": Color(0.38, 0.24, 0.12)},
+		"home": "elspeth_fire", "speed": 1.0,
+		"schedule": {"dusk": "camp", "work": "camp", "midnight": "walk", "late": "camp"},
+		"routines": {
+			"camp": [
+				{"act": "tend", "at": "elspeth_fire", "face": "@fire_elspeth", "t": [8.0, 12.0]},
+				{"act": "warm", "at": "elspeth_fire", "face": "@fire_elspeth", "t": [8.0, 12.0]},
+				{"act": "sit", "at": "elspeth_seat", "face": "@fire_elspeth", "t": [16.0, 24.0], "seat": 0.36},
+			],
+			"walk": [{"go": "elspeth_w1"}, {"act": "idle", "at": "elspeth_w2", "face": "@out_elspeth", "t": [6.0, 9.0]}, {"go": "elspeth_w3"}, {"go": "elspeth_fire"}],
+		}},
+	"linnet": {"name": "Linnet", "title": "Linnet the grafter", "when": "", "camp": "outpost",
+		"rig": {"seed": 5616, "sex": "f", "age": "teen", "garment": "dress", "apron": "linen", "hair": "braids", "r": "crook",
+			"cloth": Color(0.44, 0.3, 0.2), "cloth2": Color(0.3, 0.27, 0.22), "hair_c": Color(0.52, 0.26, 0.1),
+			"skin": Color(0.84, 0.63, 0.47), "leather": Color(0.4, 0.25, 0.13)},
+		"home": "linnet_fire", "speed": 1.05,
+		"schedule": {"dusk": "camp", "work": "graft", "midnight": "camp", "late": "graft"},
+		"routines": {
+			"camp": [
+				{"act": "tend", "at": "linnet_fire", "face": "@fire_linnet", "t": [8.0, 12.0]},
+				{"act": "sit", "at": "linnet_seat", "face": "@fire_linnet", "t": [16.0, 24.0], "seat": 0.36},
+			],
+			"graft": [{"go": "linnet_w1"}, {"act": "garden", "at": "linnet_w2", "face": "@out_linnet", "t": [14.0, 20.0]}, {"go": "linnet_w3"}, {"go": "linnet_fire"}],
+		}},
+	"agathe": {"name": "Agathe", "title": "Sister Agathe of the Waiting Field", "when": "", "camp": "outpost",
+		"rig": {"seed": 5717, "sex": "f", "age": "old", "garment": "robe", "hood": true, "hair": "bun", "r": "candle",
+			"cloth": Color(0.22, 0.2, 0.22), "cloth2": Color(0.36, 0.33, 0.3), "hair_c": Color(0.78, 0.74, 0.66),
+			"skin": Color(0.8, 0.6, 0.47), "leather": Color(0.32, 0.2, 0.11)},
+		"home": "agathe_fire", "speed": 0.7,
+		"schedule": {"dusk": "vigil", "work": "camp", "midnight": "vigil", "late": "camp"},
+		"routines": {
+			"camp": [
+				{"act": "warm", "at": "agathe_fire", "face": "@fire_agathe", "t": [8.0, 12.0]},
+				{"act": "sit", "at": "agathe_seat", "face": "@fire_agathe", "t": [18.0, 26.0], "seat": 0.36},
+			],
+			"vigil": [{"go": "agathe_w1"}, {"act": "kneel", "at": "agathe_w2", "face": "@out_agathe", "t": [16.0, 24.0]}, {"go": "agathe_w3"}, {"go": "agathe_fire"}],
+		}},
+	"cadoc": {"name": "Cadoc", "title": "Cadoc the ferryman", "when": "", "camp": "outpost",
+		"rig": {"seed": 5818, "sex": "m", "age": "old", "garment": "coat", "hat": "brim", "hair": "wild", "beard": "long",
+			"r": "pole", "l": "lantern", "girth": 0.96, "cloth": Color(0.2, 0.24, 0.26), "cloth2": Color(0.3, 0.27, 0.24),
+			"hair_c": Color(0.66, 0.62, 0.55), "skin": Color(0.74, 0.54, 0.4), "leather": Color(0.34, 0.22, 0.12)},
+		"home": "cadoc_fire", "speed": 0.8,
+		"schedule": {"dusk": "camp", "work": "watch", "midnight": "camp", "late": "watch"},
+		"routines": {
+			"camp": [
+				{"act": "warm", "at": "cadoc_fire", "face": "@fire_cadoc", "t": [8.0, 12.0]},
+				{"act": "sit", "at": "cadoc_seat", "face": "@fire_cadoc", "t": [18.0, 26.0], "seat": 0.36},
+			],
+			"watch": [{"go": "cadoc_w1"}, {"act": "idle", "at": "cadoc_w2", "face": "@out_cadoc", "t": [10.0, 14.0]}, {"go": "cadoc_w3"}, {"go": "cadoc_fire"}],
+		}},
+}
+
+## r34: the outposts of the doubled world (docs/r34/layout.md SLOTS): where each new giver camps.
+## `near` (candidates, in order) is searched outward for a clear spot (village.gd _find_clear: off the ways, out of the sites,
+## 14 m off the encounter camps); `look` is the way they stand and watch from (xz, @out_<id>);
+## `style` picks the camp's dressing (village_props.gd outpost()).
+const OUTPOSTS := {
+	"ruan": {"near": [Vector2(-128.0, 0.0), Vector2(-120.0, 10.0), Vector2(-126.0, 25.0), Vector2(-144.0, 2.0)], "region": "holds", "style": "holds", "look": Vector2(-86.0, -24.0)},
+	"jory": {"near": [Vector2(-135.0, -74.0), Vector2(-138.0, -109.0), Vector2(-120.0, -70.0)], "region": "quarry", "style": "quarry", "look": Vector2(-128.0, -104.0)},
+	"ysolt": {"near": [Vector2(132.0, -14.0), Vector2(132.0, 10.0)], "region": "moor", "style": "moor", "look": Vector2(141.0, -24.0)},
+	"elspeth": {"near": [Vector2(118.0, -72.0), Vector2(126.0, -70.0)], "region": "foundry", "style": "foundry", "look": Vector2(135.0, -105.0)},
+	"linnet": {"near": [Vector2(-106.0, 112.0), Vector2(-96.0, 112.0)], "region": "orchard", "style": "orchard", "look": Vector2(-86.0, 122.0)},
+	"agathe": {"near": [Vector2(-10.0, 108.0), Vector2(15.0, 105.0)], "region": "necropolis", "style": "necropolis", "look": Vector2(0.0, -104.0)},
+	"cadoc": {"near": [Vector2(111.0, 97.0), Vector2(95.0, 100.0), Vector2(130.0, 95.0)], "region": "mere", "style": "mere", "look": Vector2(84.0, 112.0)},
 }
 
 ## What returns. `when` is checked on load and after every event; once true it stays (saved).

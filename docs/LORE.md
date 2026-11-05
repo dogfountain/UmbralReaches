@@ -195,6 +195,20 @@ Ida and Ruth. Hearthward (village system): Hild (Edda's granddaughter, the forge
 (lamps), Oswin (pilgrim, the forty-first stone), Nan and Col Wright, Bet Reed, Wenna (after the
 Ossuary), Pell (after the ending), Wyck (buries birds face down), Abel (sexton, Edda's stone),
 Grisel (the ash-wife). The Keg: the keep, Hesk, Ostrin Harrow, Brannoc Bellwright (the Founder's son).
+The doubled world's givers (r34, camped at outpost fires, `village_cast.gd` OUTPOSTS): **Gammer Ruan**
+(the Rooted Holds; Hesk's grandmother's sister, who stayed with the turf when the rest went to the Keg),
+**Jory Quell** (the Saints' Quarry; the last cutter, his brother's mark a Q with a tail), **Ysolt** (the
+Lanternless Moor; the cairn-keeper, her mother carried a hidden lantern across), **Elspeth Fane** (the
+Founder's Pits; the Founder's journeywoman, poured Patience), **Linnet** (the Cinder Orchard; a Kindler's
+granddaughter, grafting the burned trees), **Sister Agathe** (the Waiting Field; a sister of the Order who
+keeps the pilgrims' roll by name), **Cadoc** (Corvin's Mere; rowed for Corvin, with **Aldous**, who went
+over and walks the banks as the Ferryman Without a Boat). Rares their bounties name: Old Rook, Brother
+Chisel, Gorse-Wife Hennet, Clapper, Old Pippin, the Last Pilgrim, the Ferryman Without a Boat.
+The raids' attunements (`quest_chains.gd` ATTUNE): the keeper's three ward-stones and a ward-coal laid at
+the Ring's stair (the Thornwarden "holds back a hand"); the pilgrims' roll read at the Ossuary's fen door
+(the Abbot's count comes up short: "a doubting Abbot is half an Abbot"); the Founder's peal rung in
+Mother's order and a tongue cast in her mould for Brannoc (the great bell in the Warden's hand rings
+wrong). None is needed to finish the story.
 Known collisions to respect: Osric / Oswin / Ostrin, and Hesk / Hild / Hobb / Harrow; never call
 the Thornwarden "the Warden".
 The Order of the Open Sky; the Rooted; the Ring (Thorn Henge); the Night of the Open Door; Year of

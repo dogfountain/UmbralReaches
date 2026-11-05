@@ -27,15 +27,17 @@ extends RefCounted
 ##   keep_weight(x, z)      1 inside the kept core, fading to 0 over KEEP_FALL
 
 const STEP := 2.0
-const GX0 := -120.0
+## r34 layout: the grid covers BOUNDS + 9..10 m (BOUNDS x -155..155, z -150..175); the ring covers
+## OUTER on a 4 m lattice that the grid's outer rows land on (GX0 - RX0 and GZ0 - RZ0 are multiples of 4).
+const GX0 := -164.0
 const GZ0 := -160.0
-const GNX := 121                      ## x -120 .. 120
-const GNZ := 127                      ## z -160 .. 92
+const GNX := 165                      ## x -164 .. 164
+const GNZ := 173                      ## z -160 .. 184
 const RSTEP := 4.0
-const RX0 := -200.0
+const RX0 := -244.0
 const RZ0 := -240.0
-const RNX := 101                      ## x -200 .. 200
-const RNZ := 104                      ## z -240 .. 172
+const RNX := 123                      ## x -244 .. 244
+const RNZ := 127                      ## z -240 .. 264
 const KEEP_FALL := 15.0
 const WATER_Y := -0.9
 const POOL_DEPTH := 0.55
@@ -116,7 +118,9 @@ static func build(root: Node) -> void:
 	cs.shape = shape
 	body.add_child(cs)
 	zone.add_child(body)
+	var t2 := Time.get_ticks_msec()
 	var rings := _ring(zone)
+	var t3 := Time.get_ticks_msec()
 	var pools := _pools(zone)
 	_bounds(zone)
 	if old_mi != null:
@@ -129,8 +133,8 @@ static func build(root: Node) -> void:
 		var mi := n as MeshInstance3D
 		if mi != null and mi.mesh != null and (String(mi.name).begins_with("Terrain") or mi.name == "FenWater") and mi.visible:
 			tris += (mi.mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
-	print("REALM_LAND heights %d ms, meshes %d ms; grid %dx%d, ring %d meshes, pool cells %d, %d triangles in %d draws" % [
-		t1 - t0, Time.get_ticks_msec() - t1, GNX, GNZ, rings, pools, tris, 2 + rings])
+	print("REALM_LAND heights %d ms, meshes %d ms (terrain+collision %d, ring %d); grid %dx%d, ring %d meshes, pool cells %d, %d triangles in %d draws" % [
+		t1 - t0, Time.get_ticks_msec() - t1, t2 - t1, t3 - t2, GNX, GNZ, rings, pools, tris, 2 + rings])
 
 
 static func _init_noise() -> void:
@@ -285,15 +289,17 @@ static func _base(x: float, z: float, bw: PackedFloat32Array) -> float:
 	var roll := _n_roll.get_noise_2d(x, z)
 	var ridge := _n_ridge.get_noise_2d(x, z)            # ridged: sharp crests, broad valleys
 	var fine := _n_fine.get_noise_2d(x, z)
-	var hill := smoothstep(1.5, 9.0, m)
-	var mountain := clampf(smoothstep(12.0, 40.0, m) + smoothstep(0.0, 50.0, out), 0.0, 1.0)
+	# r34: the raid floors and the quarry's benches are flat by design: no hill noise on them
+	var calm := 1.0 - _designed_w(x, z)
+	var hill := smoothstep(1.5, 9.0, m) * calm
+	var mountain := clampf(smoothstep(12.0, 40.0, m) + smoothstep(0.0, 50.0, out), 0.0, 1.0) * calm
 	var amp_roll := 0.35 * bw[0] + 0.3 * bw[4] + 0.9 * bw[1] + 0.35 * bw[2] + 0.5 * bw[3] + 1.0 * bw[5] + 0.3 * bw[6]
 	var gully := _n_gully.get_noise_2d(x, z)            # ridged: sharp spurs between gullies
 	var h := m
-	h += roll * amp_roll
+	h += roll * amp_roll * calm
 	h += (ridge + 0.25) * (hill * 3.6 + mountain * 9.0)
 	h += (gully + 0.3) * (hill * 1.3 + mountain * 2.5 + 0.35 * bw[1] + 0.15 * bw[4])
-	h += fine * (0.09 + 0.12 * bw[2] + 0.1 * bw[1])
+	h += fine * (0.09 + 0.12 * bw[2] + 0.1 * bw[1]) * calm
 	# strata: hills break into soft ledges (bench + riser) so rock shows on the risers
 	var strat := clampf(hill + mountain, 0.0, 1.0) * (1.0 - bw[2])
 	if strat > 0.0:
@@ -303,6 +309,7 @@ static func _base(x: float, z: float, bw: PackedFloat32Array) -> float:
 		var fr := t - lv
 		var ledge := (lv + smoothstep(0.45, 0.95, fr)) * stp - _n_step.get_noise_2d(z * 1.7, x * 1.7) * 0.35 * stp
 		h = lerpf(h, ledge, strat * 0.55)
+	h = RealmLayout.post_detail(x, z, h)
 	# hollows: floored (dry) outside the fen, shallow pools inside it
 	var fen := smoothstep(0.3, 0.7, bw[2])
 	var dry := h
@@ -312,6 +319,17 @@ static func _base(x: float, z: float, bw: PackedFloat32Array) -> float:
 	if h < WATER_Y:
 		wet = WATER_Y - POOL_DEPTH * (1.0 - exp(-(WATER_Y - h) / 0.5))
 	return lerpf(dry, wet, fen)
+
+
+## r34: 1 on the raid floors and the quarry (where the designed shape must stay flat/stepped), 0 away.
+static func _designed_w(x: float, z: float) -> float:
+	var w := 0.0
+	var p := Vector2(x, z)
+	for r: Dictionary in RealmLayout.RAIDS:
+		w = maxf(w, 1.0 - smoothstep(float(r.r) + 1.0, float(r.r) + 6.0, p.distance_to(r.c)))
+	var q := Vector2((x - RealmLayout.QUARRY_C.x) * 0.8, z - RealmLayout.QUARRY_C.y)
+	w = maxf(w, 0.85 * (1.0 - smoothstep(34.0, 46.0, q.length())))
+	return w
 
 
 static func _make_profiles() -> void:
@@ -361,7 +379,16 @@ static func _make_profiles() -> void:
 			for k in prof.size():
 				var t := 1.0 - smoothstep(0.0, 10.0, acc - ss[k])
 				prof[k] = lerpf(prof[k], float(pin[0]), t)
-		_profiles.append({"id": path.id, "w": w, "pts": res, "s": ss, "prof": prof, "over": (not pin.is_empty()) and bool(pin[1])})
+		# r34: runs of 16 samples with their bounds (grown by the 14 m reach), so a lookup skips far runs
+		# whole: twice the land and twice the roads made the per-sample scan the heights' main cost
+		var runs: Array = []
+		for k0 in range(0, res.size() - 1, 16):
+			var k1 := mini(k0 + 16, res.size() - 1)
+			var bb := Rect2(res[k0], Vector2.ZERO)
+			for k in range(k0, k1 + 1):
+				bb = bb.expand(res[k])
+			runs.append([bb.grow(14.0), k0, k1])
+		_profiles.append({"id": path.id, "w": w, "pts": res, "s": ss, "prof": prof, "over": (not pin.is_empty()) and bool(pin[1]), "runs": runs})
 
 
 static func _smooth(a: PackedFloat32Array, r: int) -> PackedFloat32Array:
@@ -384,18 +411,20 @@ static func _path_near(pr: Dictionary, x: float, z: float) -> Vector2:
 	var p := Vector2(x, z)
 	var best := INF
 	var hy := 0.0
-	# coarse: skip far samples quickly
-	for k in pts.size() - 1:
-		var a := pts[k]
-		if absf(a.x - x) > 14.0 or absf(a.y - z) > 14.0:
+	for run: Array in pr.runs:
+		if not (run[0] as Rect2).has_point(p):
 			continue
-		var b := pts[k + 1]
-		var ab := b - a
-		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
-		var d := p.distance_to(a + ab * t)
-		if d < best:
-			best = d
-			hy = lerpf(prof[k], prof[k + 1], t)
+		for k in range(int(run[1]), int(run[2])):
+			var a := pts[k]
+			if absf(a.x - x) > 14.0 or absf(a.y - z) > 14.0:
+				continue
+			var b := pts[k + 1]
+			var ab := b - a
+			var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+			var d := p.distance_to(a + ab * t)
+			if d < best:
+				best = d
+				hy = lerpf(prof[k], prof[k + 1], t)
 	return Vector2(best, hy)
 
 
@@ -469,6 +498,7 @@ static func _heights() -> void:
 				var o := old_height_at(x, z)
 				if not is_nan(o):
 					h = lerpf(h, o, k)
+				h = RealmLayout.raid_shape(x, z, h)          # r34: the summit's raid volume is cut out of the kept core too
 			if _keep_d(x, z) > 0.0:
 				for pr: Dictionary in _profiles:
 					if not pr.over:
@@ -568,23 +598,52 @@ static func _terrain_mesh() -> MeshInstance3D:
 	cols.resize(n)
 	uv.resize(n)
 	uv2.resize(n)
+	# r34: rows in parallel (the splat's biome blend is the cost and pure math); stitched after
+	var rows: Array = []
+	rows.resize(GNZ)
+	var task := WorkerThreadPool.add_group_task(func(j: int) -> void: rows[j] = _mesh_row(j), GNZ)
+	WorkerThreadPool.wait_for_group_task_completion(task)
 	for j in GNZ:
+		var r: Array = rows[j]
+		var rn: PackedVector3Array = r[0]
+		var rc: PackedColorArray = r[1]
+		var ru: PackedVector2Array = r[2]
+		var ru2: PackedVector2Array = r[3]
 		for i in GNX:
 			var k := j * GNX + i
-			var x := GX0 + i * STEP
-			var z := GZ0 + j * STEP
-			verts[k] = Vector3(x, _h[k], z)
-			nrms[k] = _grid_normal(_h, GNX, GNZ, STEP, i, j)
-			var sp := _splat(x, z, _h[k], nrms[k].y, false)
-			cols[k] = sp[0]
-			uv[k] = sp[1]
-			uv2[k] = sp[2]
+			verts[k] = Vector3(GX0 + i * STEP, _h[k], GZ0 + j * STEP)
+			nrms[k] = rn[i]
+			cols[k] = rc[i]
+			uv[k] = ru[i]
+			uv2[k] = ru2[i]
 	var idx := _grid_indices(GNX, GNZ, func(_i: int, _j: int) -> bool: return true)
 	var mi := MeshInstance3D.new()
 	mi.mesh = _array_mesh(verts, nrms, cols, uv, uv2, idx)
 	mi.material_override = load(MAT)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	return mi
+
+
+## One grid row's normals and splat (thread-safe: reads only).
+static func _mesh_row(j: int) -> Array:
+	var rn := PackedVector3Array()
+	var rc := PackedColorArray()
+	var ru := PackedVector2Array()
+	var ru2 := PackedVector2Array()
+	rn.resize(GNX)
+	rc.resize(GNX)
+	ru.resize(GNX)
+	ru2.resize(GNX)
+	var z := GZ0 + j * STEP
+	for i in GNX:
+		var k := j * GNX + i
+		var nv := _grid_normal(_h, GNX, GNZ, STEP, i, j)
+		var sp := _splat(GX0 + i * STEP, z, _h[k], nv.y, false)
+		rn[i] = nv
+		rc[i] = sp[0]
+		ru[i] = sp[1]
+		ru2[i] = sp[2]
+	return [rn, rc, ru, ru2]
 
 
 ## Two clockwise-from-above triangles per accepted cell (Godot's front face), same diagonal everywhere.
@@ -636,14 +695,26 @@ static func _ring(zone: Node3D) -> int:
 	var i1 := roundi((GX0 + (GNX - 1) * STEP - RX0) / RSTEP)
 	var j0 := roundi((GZ0 - RZ0) / RSTEP)
 	var j1 := roundi((GZ0 + (GNZ - 1) * STEP - RZ0) / RSTEP)
-	for j in RNZ:
+	# r34: rows in parallel (pure math), stitched after
+	var bb := RealmLayout.BOUNDS.grow(-4.0)
+	var rows: Array = []
+	rows.resize(RNZ)
+	var task := WorkerThreadPool.add_group_task(func(j: int) -> void:
+		var row := PackedFloat32Array()
+		row.resize(RNX)
 		for i in RNX:
 			var x := RX0 + i * RSTEP
 			var z := RZ0 + j * RSTEP
 			if i >= i0 and i <= i1 and j >= j0 and j <= j1:
-				hs[j * RNX + i] = height_at(x, z)
+				row[i] = height_at(x, z)
 			else:
-				hs[j * RNX + i] = _base(x, z, _bw(clampf(x, -106, 106), clampf(z, -146, 76)))
+				row[i] = _base(x, z, _bw(clampf(x, bb.position.x, bb.end.x), clampf(z, bb.position.y, bb.end.y)))
+		rows[j] = row, RNZ)
+	WorkerThreadPool.wait_for_group_task_completion(task)
+	for j in RNZ:
+		var row: PackedFloat32Array = rows[j]
+		for i in RNX:
+			hs[j * RNX + i] = row[i]
 	var parts := {"N": [], "S": [], "W": [], "E": []}
 	var made := 0
 	for key: String in parts:
