@@ -113,10 +113,10 @@ vec3 cl_bump(vec3 n, vec3 v, float h, float amt) {
 float cl_skin_height(vec3 p, float s) {
 	// fine lines that run across the body (a crease is a narrow valley: 1 - |n|) and pores; no
 	// coarse octave: at a face's scale anything bigger than a few millimetres reads as lumps
-	vec3 b = vec3(p.x * 90.0, p.y * 210.0, p.z * 90.0) * s;
+	vec3 b = vec3(p.x * 22.0, p.y * 260.0, p.z * 22.0) * s;   // stretched: lines across, not a crackle net
 	vec3 c = p * 320.0 * s;
 	float crease = 1.0 - abs(cl_noise(b) - 0.5) * 2.0;
-	float h = -pow(crease, 6.0) * cl_fade(b);
+	float h = -pow(crease, 8.0) * 0.0 * cl_fade(b);   // creases off: at 960 rows they read as scanlines (the face sculpt carries the lines)
 	h -= cl_noise(c) * 0.4 * cl_fade(c);
 	return h;
 }

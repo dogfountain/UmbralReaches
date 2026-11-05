@@ -123,7 +123,7 @@ func _data() -> void:
 		ok(giver != "" and Cast.CAST.has(giver) and TalkDB.CONV.has(giver), "%s has a giver camped in it (%s), who talks" % [rid, giver])
 		var n := 0
 		for id: String in Chains.ORDER:
-			if String(Chains.QUESTS[id].get("zone", "")) == rid:
+			if String(Chains.QUESTS[id].get("zone", "")) == rid and not id in ACT3:
 				n += 1
 				ok(Chains.giver(id) == giver, "%s is %s's" % [id, giver])
 		ok(n >= 3 and n <= 6, "%s: a chain of %d tasks (r36: and its bell)" % [rid, n])
@@ -239,6 +239,9 @@ func _talk() -> void:
 
 
 ## Play every task of region `rid` through, in ORDER (the givers' `avail` gates come true as we go).
+const ACT3 := ["still_climbing"]      # r36 Act III: offered after the Warden, not part of a region's chain
+
+
 func _chain(rid: String) -> void:
 	print("chain: ", rid)
 	# r36 Act II: the bells are offered once Brannoc has asked for the Founder's peal
@@ -246,7 +249,7 @@ func _chain(rid: String) -> void:
 		Book.start("founders_peal")
 	for id: String in Chains.ORDER:
 		var qd: Dictionary = Chains.QUESTS[id]
-		if String(qd.get("zone", "")) != rid:
+		if String(qd.get("zone", "")) != rid or id in ACT3:
 			continue
 		if not Book.active(id):
 			ok(Giver.available(id, get_tree()), "%s is offered" % id)

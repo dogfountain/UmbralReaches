@@ -214,6 +214,7 @@ func _pilgrim() -> void:
 		"rig": (PILGRIMS[_rng.randi_range(0, PILGRIMS.size() - 1)] as Dictionary).duplicate()}, _village)
 	get_parent().add_child(w)
 	w.remove_from_group(Groups.INTERACTABLE)
+	w.remove_from_group("villager")          # not Hearthward's: they walk off its floor map
 	w.global_position = _at
 	w.call("hold", "kneel", _at + Vector3(0.0, 0.0, -104.0 - _at.z).normalized() * 3.0)
 	_who = w

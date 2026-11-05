@@ -110,6 +110,7 @@ func _wake() -> void:
 		v.call("setup", vid, _man(i), _village)
 		add_child(v)
 		v.remove_from_group(Groups.INTERACTABLE)
+		v.remove_from_group("villager")          # not Hearthward's: they walk off its floor map
 		v.global_position = _ground(global_position + _posts[i])
 		v.call("hold", "idle", v.global_position + face * 5.0)
 		men.append(v)

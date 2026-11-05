@@ -38,6 +38,9 @@ var mouth_y := -0.555   ## lip line (normalised y)
 var eye_x := 0.4
 var eye_y := 0.11
 var eye_r := 0.0125     ## eyeball radius (m); 0 = from R
+## models pass: the whole face's relief, scaled. The sculpted features were laid out right but
+## shallow (a nose 2 cm proud, sockets 8 mm deep): on the skull's egg that read as a painted doll.
+var relief := 1.6
 var skin := Color(0.8, 0.58, 0.42)
 var lip_c := Color(0.62, 0.3, 0.26)
 var ruddy := Color(0.84, 0.46, 0.32)
@@ -78,20 +81,23 @@ func height(x: float, y: float) -> float:
 	var h := 0.0
 	# eye sockets: a soft hollow, and a pocket under the lids deep enough that the eyeball (which
 	# sits just proud of the skull line) is never buried in skin
-	h -= 0.08 * _g(ax, y, eye_x, eye_y - 0.01, 0.22, 0.16)
+	h -= 0.13 * _g(ax, y, eye_x, eye_y - 0.01, 0.24, 0.17)          # models pass: deeper (was 0.08)
 	var er := _er()
 	var pd := Vector2((ax - eye_x) / (er * 1.3 / R.x), (y - eye_y) / (er * 1.05 / R.y)).length()
 	h -= (er * 1.35 / R.z) * (1.0 - smoothstep(0.5, 1.0, pd))
 	# temples
-	h -= 0.035 * _g(ax, y, 0.86, 0.32, 0.15, 0.22)
+	h -= 0.06 * _g(ax, y, 0.86, 0.32, 0.16, 0.24)
 	# brow ridge: an arched band over the eyes, heavy on men, and the bone between them
 	var by := eye_y + 0.21 + 0.035 * cos(ax * 3.2)
-	h += (0.03 + 0.04 * male) * brow * kid * exp(-pow((y - by) / 0.075, 2.0)) * (1.0 - smoothstep(0.55, 0.88, ax))
+	h += (0.045 + 0.06 * male) * brow * kid * exp(-pow((y - by) / 0.075, 2.0)) * (1.0 - smoothstep(0.55, 0.88, ax))
 	h += 0.02 * male * brow * _g(ax, y, 0.0, eye_y + 0.17, 0.12, 0.08)
 	# forehead: rounder on women and children
 	h += (0.02 + 0.03 * (1.0 - kid)) * (1.0 - male * 0.7) * _g(ax, y, 0.0, 0.62, 0.55, 0.25)
 	# cheekbones, full cheeks, hollows with age
-	h += 0.06 * cheek * _g(ax, y, 0.56, -0.1, 0.2, 0.13)
+	h += 0.1 * cheek * _g(ax, y, 0.6, -0.08, 0.2, 0.12)
+	# models pass: the hollow under the cheekbone, and the angle of the jaw (a skull, not an egg)
+	h -= 0.04 * (1.0 - fat) * kid * _g(ax, y, 0.62, -0.36, 0.16, 0.13)
+	h += (0.03 + 0.04 * male) * kid * _g(ax, y, 0.8, -0.66, 0.12, 0.12)
 	h += 0.075 * fat * _g(ax, y, 0.45, -0.3, 0.27, 0.2)
 	h += 0.03 * (1.0 - kid) * _g(ax, y, 0.42, -0.3, 0.25, 0.2)
 	h -= 0.045 * age * _g(ax, y, 0.56, -0.42, 0.14, 0.12)
@@ -106,7 +112,7 @@ func height(x: float, y: float) -> float:
 		win = 1.0
 	else:
 		win = 1.0 - smoothstep(tip, tip - 0.1, y)
-	var hb := (0.035 + 0.165 * pow(t, 1.25)) * nose * kid + 0.025 * hook * _g(0.0, y, 0.0, top - 0.17, 1.0, 0.07)
+	var hb := (0.04 + 0.24 * pow(t, 1.25)) * nose * kid + 0.025 * hook * _g(0.0, y, 0.0, top - 0.17, 1.0, 0.07)
 	var sx := (0.065 + 0.05 * t) * nose_w * (1.0 + 0.25 * bulb)
 	h += hb * exp(-pow(x / sx, 2.0)) * win
 	h += (0.03 + 0.09 * bulb) * nose * _g(x, y, 0.0, tip - 0.015, (0.085 + 0.07 * bulb) * nose_w, 0.07 + 0.04 * bulb)
@@ -127,7 +133,7 @@ func height(x: float, y: float) -> float:
 	h -= 0.028 * _g(ax, y, 0.31, my - 0.005, 0.045, 0.045)
 	h -= 0.035 * _g(x, y, 0.0, my - 0.15, 0.2, 0.04)
 	# chin (squarer and stronger on men)
-	h += (0.05 + 0.035 * male) * chin * _g(x, y, 0.0, -0.84, 0.22 + 0.08 * male, 0.1)
+	h += (0.07 + 0.05 * male) * chin * _g(x, y, 0.0, -0.84, 0.22 + 0.08 * male, 0.1)
 	h += 0.025 * male * chin * _g(ax, y, 0.62, -0.72, 0.15, 0.12)
 	# nasolabial folds: a crease from the nose wing past the mouth corner, a soft cheek outside it
 	var pa := Vector2(wx + 0.08, tip - 0.05)
@@ -144,7 +150,7 @@ func height(x: float, y: float) -> float:
 		var ang := atan2(y - eye_y, ax - eye_x)
 		h -= 0.007 * age * pow(maxf(0.0, sin(ang * 9.0)), 2.0) * _g(ax, y, eye_x + 0.24, eye_y, 0.08, 0.09)
 		h -= 0.008 * age * pow(maxf(0.0, sin(y * 52.0)), 2.0) * smoothstep(0.42, 0.5, y) * (1.0 - smoothstep(0.72, 0.82, y)) * (1.0 - smoothstep(0.35, 0.7, ax))
-	return h
+	return h * relief
 
 
 ## Skin colour at normalised (x, y): cheeks, the nose tip, lips, socket shadow, nostrils, stubble.
@@ -152,7 +158,7 @@ func tint(x: float, y: float) -> Color:
 	var ax := absf(x)
 	var col := skin
 	var tip := _tip_y()
-	col = col.lerp(ruddy, clampf(0.4 * _g(ax, y, 0.5, -0.22, 0.22, 0.18) + 0.25 * fat * _g(ax, y, 0.45, -0.3, 0.25, 0.2), 0.0, 0.7))
+	col = col.lerp(ruddy, clampf(0.26 * _g(ax, y, 0.5, -0.22, 0.22, 0.18) + 0.25 * fat * _g(ax, y, 0.45, -0.3, 0.25, 0.2), 0.0, 0.7))
 	col = col.lerp(ruddy, 0.35 * _g(x, y, 0.0, tip, 0.12, 0.12) * (1.0 + bulb))
 	col = col.lerp(ruddy.darkened(0.1), 0.3 * _g(ax, y, 0.95, 0.0, 0.2, 0.3))
 	var my := mouth_y

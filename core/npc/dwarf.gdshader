@@ -51,7 +51,7 @@ varying flat float mat_spec;
 // ndepth     .55   .7    .6    1     1     .6    .8    .9    0     1.2
 // spec       .45   .25   .3    .45   .28   .5    .35   .4    .9    .25
 void layer_params(int m, out vec4 p, out float spec) {
-	if (m == 0) { p = vec4(9.0, 9.0, 0.62, 0.55); spec = 0.45; }
+	if (m == 0) { p = vec4(9.0, 9.0, 0.62, 0.2); spec = 0.45; }   // models pass: normal depth 0.55 -> 0.2 (the tile read as cracked plaster on the new, deeper faces)
 	else if (m == 1) { p = vec4(24.0, 24.0, 0.93, 0.7); spec = 0.25; }
 	else if (m == 2) { p = vec4(30.0, 30.0, 0.86, 0.6); spec = 0.3; }
 	else if (m == 3) { p = vec4(9.0, 9.0, 0.58, 1.0); spec = 0.45; }
@@ -105,7 +105,7 @@ void fragment() {
 		base *= mix(1.0, 0.72 + 0.5 * strand, f) * mix(0.82, 1.0, smoothstep(0.0, 0.06, UV.y));
 		NORMAL = cl_bump(NORMAL, VERTEX, (strand - 0.5) * f, hair_relief);
 	}
-	ALBEDO = cl_wear_albedo(cl_albedo(base * mix(vec3(1.0), d.rgb * 2.0, detail_mix), m == 8 ? 1.0 : COLOR.a, opos), wear);
+	ALBEDO = cl_wear_albedo(cl_albedo(base * mix(vec3(1.0), d.rgb * 2.0, detail_mix * (m == 0 ? 0.4 : 1.0)), m == 8 ? 1.0 : COLOR.a, opos), wear);
 	NORMAL_MAP = texture(detail_normal, uvw).rgb;
 	NORMAL_MAP_DEPTH = mat_p.w;
 	ROUGHNESS = cl_wear_rough(clamp(mat_p.z + (d.a - 0.5) * 0.5, 0.04, 1.0), wear);

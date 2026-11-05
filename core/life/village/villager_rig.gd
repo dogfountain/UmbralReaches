@@ -168,7 +168,10 @@ func face() -> Variant:
 	var age := String(cfg.get("age", "adult"))
 	var f: Variant = Face.new()
 	f.c = hc
-	f.R = Vector3(0.086 * (0.94 if fem else 1.0), 0.108, 0.098) * hs
+	# models pass: an adult head is narrower and longer than the old egg (15 x 23 x 20 cm, chin to
+	# crown); the eye keeps its real size (a wide head shrank nothing, a narrow one would)
+	f.R = Vector3(0.077 * (0.95 if fem else 1.0), 0.116, 0.1) * hs
+	f.eye_r = 0.0118 * hs
 	f.female = fem
 	f.child = age == "child"
 	match age:
@@ -185,7 +188,7 @@ func face() -> Variant:
 	f.cheek = r.randf_range(0.8, 1.25)
 	f.fat = 0.4 if age == "child" else r.randf_range(0.0, 0.3) * clampf(float(cfg.get("girth", 1.0)) - 0.85, 0.0, 1.0) * 4.0
 	f.chin = r.randf_range(0.8, 1.2)
-	f.jaw = r.randf_range(0.63, 0.69) if fem else r.randf_range(0.7, 0.78)
+	f.jaw = r.randf_range(0.72, 0.78) if fem else r.randf_range(0.78, 0.86)   # models pass: the deeper sculpt made the old taper a V
 	f.lip = r.randf_range(0.85, 1.15)
 	if age == "child":
 		f.eye_r = f.R.x * 0.16
@@ -422,6 +425,7 @@ func _head_v(mb: Variant, f: bool, skin: Color, age: String, hair: Color) -> voi
 func _hair_v(mb: Variant, hair: Color, style: String, f: bool) -> void:
 	var c := hc
 	var S := hs
+	var fr: Vector3 = face().R          # models pass: the hair fits the skull it sits on
 	mb.bind(B_HEAD)
 	var hood := bool(cfg.get("hood", false))
 	if style == "bald" or (hood and style in ["short", "fringe"]):
@@ -429,14 +433,17 @@ func _hair_v(mb: Variant, hair: Color, style: String, f: bool) -> void:
 	match style:
 		"short", "fringe":
 			if style == "short":
-				mb.blob(c + Vector3(0, 0.012, 0.006) * S, Vector3(0.092, 0.11, 0.104) * S, Basis(Vector3.RIGHT, 0.36), hair.darkened(0.08), DwarfMesh.MAT_HAIR, {"phi": Vector2(0.0, 0.45), "lumps": 0.12, "rings": 8, "segs": 20})
+				mb.blob(c + Vector3(0, 0.012, 0.006) * S, fr + Vector3(0.007, 0.002, 0.006) * S, Basis(Vector3.RIGHT, 0.36), hair.darkened(0.08), DwarfMesh.MAT_HAIR, {"phi": Vector2(0.0, 0.45), "lumps": 0.12, "rings": 8, "segs": 20})
+				_locks(mb, c, fr, hair, 70, Vector2(0.035, 0.06), 0.0105)
 			for i in (36 if style == "short" else 30):
 				var a := lerpf(-2.2, 2.2, (float(i) + _rng.randf_range(-0.4, 0.4)) / 35.0) + PI
-				var root := c + Vector3(sin(a) * 0.088, 0.02 + (0.03 if style == "short" else 0.0) - 0.01 * cos(a), -cos(a) * 0.098) * S
+				var root := c + Vector3(sin(a) * (fr.x + 0.004 * S), (0.02 + (0.03 if style == "short" else 0.0) - 0.01 * cos(a)) * S, -cos(a) * fr.z)
 				mb.strand(root, Vector3(sin(a) * 0.3, -1, -cos(a) * 0.4), _rng.randf_range(0.04, 0.07) * S, 0.009 * S, hair.lightened(_rng.randf_range(-0.08, 0.08)), Vector3.ZERO, 0.3, 3, 4)
 		"bun", "braids", "long", "wild":
 			# a combed scalp (parting), then the style
-			mb.blob(c + Vector3(0, 0.014, 0.004) * S, Vector3(0.094, 0.112, 0.106) * S, Basis(Vector3.RIGHT, 0.36), hair.darkened(0.06), DwarfMesh.MAT_HAIR, {"phi": Vector2(0.0, 0.38 if String(cfg.get("hat", "")) != "" else 0.47), "lumps": 0.06, "rings": 9, "segs": 20})
+			mb.blob(c + Vector3(0, 0.014, 0.004) * S, fr + Vector3(0.008, 0.003, 0.007) * S, Basis(Vector3.RIGHT, 0.36), hair.darkened(0.06), DwarfMesh.MAT_HAIR, {"phi": Vector2(0.0, 0.38 if String(cfg.get("hat", "")) != "" else 0.47), "lumps": 0.06, "rings": 9, "segs": 20})
+			if String(cfg.get("hat", "")) == "":
+				_locks(mb, c, fr, hair, 46, Vector2(0.06, 0.1), 0.0095)
 			for i in 26:
 				var a2 := lerpf(-1.35, 1.35, float(i) / 25.0)
 				var root2 := c + Vector3(sin(a2) * 0.03, 0.105, -0.04) * S
@@ -459,11 +466,32 @@ func _hair_v(mb: Variant, hair: Color, style: String, f: bool) -> void:
 					mb.bind_blend(B_HEAD, B_CHEST, c + Vector3(0, -0.05, 0) * S, c + Vector3(0, -0.25, 0) * S)
 					for i in n:
 						var a3 := lerpf(-2.0, 2.0, (float(i) + _rng.randf_range(-0.45, 0.45)) / float(n - 1)) + PI
-						var root3 := c + Vector3(sin(a3) * 0.095, 0.03 + 0.02 * cos(a3), -cos(a3) * 0.103) * S
+						var root3 := c + Vector3(sin(a3) * (fr.x + 0.01 * S), (0.03 + 0.02 * cos(a3)) * S, -cos(a3) * (fr.z + 0.005 * S))
 						var ln := _rng.randf_range(0.2, 0.3) if style == "long" else _rng.randf_range(0.14, 0.3)
 						var curl := Vector3.ZERO if style == "long" else Vector3(_rng.randf_range(-0.6, 0.6), 0, _rng.randf_range(-0.3, 0.5))
 						mb.strand(root3, Vector3(sin(a3) * 0.25, -1, -cos(a3) * 0.35), ln * S, 0.011 * S, hair.lightened(_rng.randf_range(-0.08, 0.08)), curl, 0.35, 6, 4)
 					mb.bind(B_HEAD)
+
+
+## models pass: `n` locks laid over the crown, each rooted on the scalp and combed back and down
+## along it (a little outward, a little of its own way), so hair has volume and a broken edge
+## instead of a smooth cap. Roots avoid the face (the front quarter below the hairline).
+func _locks(mb: Variant, c: Vector3, fr: Vector3, hair: Color, n: int, len: Vector2, r: float) -> void:
+	var S := hs
+	for i in n:
+		var u := _rng.randf()
+		var v := _rng.randf()
+		var theta := acos(lerpf(0.98, 0.15, v))           # from the crown down the sides
+		var phi := TAU * u
+		var d := Vector3(sin(theta) * sin(phi), cos(theta), -sin(theta) * cos(phi))
+		if d.z < -0.25 and d.y < 0.55:
+			continue                                     # the brow and temples stay clear
+		# rooted just under the cap's surface and combed along it (tangent, never outward): a lock lies
+		# on the head and droops at its end, it does not stand up
+		var root := c + Vector3(d.x * (fr.x + 0.004 * S), d.y * (fr.y * 0.95) + 0.01 * S, d.z * (fr.z + 0.004 * S))
+		var back := Vector3(_rng.randf_range(-0.2, 0.2), -0.45, 1.0).slide(d).normalized()
+		mb.strand(root, back, _rng.randf_range(len.x, len.y) * S, r * S, hair.lightened(_rng.randf_range(-0.1, 0.08)),
+			-d * 0.6, 0.85, 4, 4)
 
 
 func _beard_v(mb: Variant, hair: Color, kind: String) -> void:
