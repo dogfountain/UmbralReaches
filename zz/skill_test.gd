@@ -762,6 +762,10 @@ func _s_variants() -> void:
 	bound = book.slots[_slot(&"familiar")].get("bound")
 	ok(bound.size() == 1 and (bound[0] as Node).get("owner_p") != p, "Vigil: one shade keeping watch where it was bound")
 	Travel.relics.erase("rope")
+	# the bound shades above would otherwise dart at the Peal's foe and add their own damage
+	for s in get_tree().get_nodes_in_group(&"bound_shade"):
+		s.queue_free()
+	await get_tree().process_frame
 	# --- the Founder's Peal: plain, Toll, Carillon
 	_setp({"peal": 0}, {"loadout": ["peal", "nova", "ward", "step"]})
 	await _place()

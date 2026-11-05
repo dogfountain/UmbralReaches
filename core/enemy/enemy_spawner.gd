@@ -268,7 +268,8 @@ func _plant() -> void:
 		_spawn(slot)
 	if _realm:
 		_make_rares()
-		(load("res://core/world/watch/watch_posts.gd") as GDScript).call("build", get_parent() as Node3D)   # r36 the Kindled Watch
+		if Slice.full():                    # the Kindled Watch is outside the 30-minute slice (docs/DECISIONS.md)
+			(load("res://core/world/watch/watch_posts.gd") as GDScript).call("build", get_parent() as Node3D)
 		(load("res://core/world/mount/stables.gd") as GDScript).call("build", get_parent() as Node3D)   # r36 horses
 		if get_parent().get_node_or_null("ReachState") == null:            # r36 the night progresses
 			var rs: Node = ReachState.new()

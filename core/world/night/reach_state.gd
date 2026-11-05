@@ -125,7 +125,10 @@ static func standing(f: String) -> int:
 	return n
 
 
+## Factions are outside the 30-minute slice: no standing tiers, gifts or kin effects unless --full.
 static func tier(f: String) -> int:
+	if not Slice.full():
+		return 0
 	var s := standing(f)
 	return 2 if s >= KIN else (1 if s >= FRIEND else 0)
 
