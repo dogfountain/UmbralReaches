@@ -346,7 +346,7 @@ func eyes(mb: Variant, iris: Color, heavy := 0.0) -> void:
 		# the upper lid's edge sits over the top of the iris (+0.42 er at the front); heavy lowers it.
 		# Blink: the lid bone turns about -X by ~1 rad (DwarfRig.blink)
 		# models pass: a little more lid at rest (0.12 rad lower): a fully open eye reads as a doll's
-		var lb := Basis(Vector3.RIGHT, 0.32 - 0.3 * heavy)
+		var lb := Basis(Vector3.RIGHT, 0.4 - 0.3 * heavy)      # models pass: 0.32 made every face sleepy
 		mb.blob(e, Vector3(er * 1.14, er * 1.14, er * 1.12), lb, lid_c, DwarfMesh.MAT_SKIN, {"phi": Vector2(0.0, 0.5), "lumps": 0.0, "rings": 7, "segs": 18, "occ": false})
 		# the fold over the lid (crease) shadows the lid top
 		mb.blob(e + Vector3(0, er * 0.12, 0.0), Vector3(er * 1.2, er * 1.15, er * 1.16), lb * Basis(Vector3.RIGHT, 0.35), lid_c.darkened(0.08), DwarfMesh.MAT_SKIN, {"phi": Vector2(0.18, 0.42), "lumps": 0.0, "rings": 3, "segs": 18, "occ": false})
@@ -415,8 +415,8 @@ func brows(mb: Variant, col: Color, bushy := 0.0, rng: RandomNumberGenerator = n
 			var x := lerpf(0.1, 0.66, t)
 			var y := eye_y + 0.2 + 0.05 * sin(t * PI) - 0.04 * t
 			pts.append(point(s * x, y) + normal(s * x, y) * R.z * 0.012)
-			rr.append(R.y * (0.03 - 0.014 * t) * (1.0 + 0.6 * bushy))
-		mb.tube(pts, rr, 6, col, DwarfMesh.MAT_HAIR, {"lumps": 0.12, "squash": Vector2(1.0, 0.45), "ref": Vector3.BACK})
+			rr.append(R.y * (0.019 - 0.01 * t) * (1.0 + 0.9 * bushy))       # models pass: thinner (were sausages)
+		mb.tube(pts, rr, 6, col, DwarfMesh.MAT_HAIR, {"lumps": 0.12, "squash": Vector2(1.0, 0.3), "ref": Vector3.BACK})
 		if bushy > 0.0 and rng != null:
 			for k in int(6 + 8 * bushy):
 				var t2 := float(k) / float(5 + 8 * bushy)

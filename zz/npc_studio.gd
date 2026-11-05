@@ -13,6 +13,7 @@ const DWARVES := {"dwarf_keep": {"seated": false, "seed": 5150, "apron": true, "
 	"dwarf_patron": {"seated": false, "seed": 7023, "hat": "hood"}, "dwarf_helm": {"seated": false, "seed": 6301, "hat": "helm"}}
 
 var tag := "studio"
+var all_cast := false      ## -- --all: every person in the village cast
 var only: PackedStringArray = []
 var cam: Camera3D
 var _shots: Array[String] = []
@@ -22,6 +23,8 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--tag="):
 			tag = a.trim_prefix("--tag=")
+		elif a == "--all":
+			all_cast = true
 		elif a.begins_with("--only="):
 			only = a.trim_prefix("--only=").split(",")
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://shots/npc"))
@@ -63,11 +66,12 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	for id: String in VILLAGERS:
+	var ids: Array = VILLAGERS if not all_cast else Cast.CAST.keys()
+	for id: String in ids:
 		if not only.is_empty() and not only.has(id):
 			continue
 		var d: Dictionary = Cast.CAST.get(id, {})
-		if d.is_empty():
+		if d.is_empty() or not d.has("rig"):
 			continue
 		var r: Node3D = VRig.create((d.rig as Dictionary).duplicate())
 		add_child(r)

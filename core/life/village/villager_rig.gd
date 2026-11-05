@@ -170,8 +170,13 @@ func face() -> Variant:
 	f.c = hc
 	# models pass: an adult head is narrower and longer than the old egg (15 x 23 x 20 cm, chin to
 	# crown); the eye keeps its real size (a wide head shrank nothing, a narrow one would)
-	f.R = Vector3(0.077 * (0.95 if fem else 1.0), 0.116, 0.1) * hs
+	f.R = Vector3(0.077 * (0.95 if fem else 1.0) * r.randf_range(0.93, 1.08), 0.116 * r.randf_range(0.94, 1.06), 0.1 * r.randf_range(0.95, 1.05)) * hs
 	f.eye_r = 0.0118 * hs
+	# models pass: no two faces alike (every villager wore one face): eye set, mouth, the depth of it
+	f.eye_x = r.randf_range(0.36, 0.44)
+	f.eye_y = r.randf_range(0.08, 0.14)
+	f.mouth_y = r.randf_range(-0.6, -0.52)
+	f.relief = r.randf_range(1.3, 1.65)
 	f.female = fem
 	f.child = age == "child"
 	match age:
@@ -181,15 +186,15 @@ func face() -> Variant:
 			f.age = r.randf_range(0.12, 0.35)
 		_:
 			f.age = 0.0
-	f.brow = r.randf_range(0.8, 1.2)
-	f.nose = r.randf_range(0.85, 1.2) * (0.7 if age == "child" else (0.9 if age == "teen" else 1.0))
-	f.nose_w = r.randf_range(0.85, 1.15)
+	f.brow = r.randf_range(0.6, 1.35)
+	f.nose = r.randf_range(0.6, 1.0) * (0.7 if age == "child" else (0.9 if age == "teen" else 1.0))   # models pass: 0.85-1.2 was a caricature at the deeper relief
+	f.nose_w = r.randf_range(0.8, 1.3)
 	f.hook = r.randf_range(0.0, 0.25) if fem else r.randf_range(0.0, 0.8)
-	f.cheek = r.randf_range(0.8, 1.25)
+	f.cheek = r.randf_range(0.6, 1.35)
 	f.fat = 0.4 if age == "child" else r.randf_range(0.0, 0.3) * clampf(float(cfg.get("girth", 1.0)) - 0.85, 0.0, 1.0) * 4.0
-	f.chin = r.randf_range(0.8, 1.2)
+	f.chin = r.randf_range(0.6, 1.35)
 	f.jaw = r.randf_range(0.72, 0.78) if fem else r.randf_range(0.78, 0.86)   # models pass: the deeper sculpt made the old taper a V
-	f.lip = r.randf_range(0.85, 1.15)
+	f.lip = r.randf_range(0.7, 1.3)
 	if age == "child":
 		f.eye_r = f.R.x * 0.16
 		f.eye_y = 0.06
@@ -251,6 +256,8 @@ func _body_v(mb: Variant) -> void:
 	var f := String(cfg.get("sex", "m")) == "f"
 	var age := String(cfg.get("age", "adult"))
 	var skin := _c("skin", SKINS[_rng.randi_range(0, SKINS.size() - 1)])
+	# models pass: weathered, not salmon: everyone outdoors in this valley has worked in the wind
+	skin = skin.lerp(Color(0.62, 0.48, 0.37), _rng.randf_range(0.1, 0.4))
 	if bool(cfg.get("pale", false)):
 		skin = skin.lerp(Color(0.78, 0.8, 0.86), 0.55)
 	var cloth := _c("cloth", TUNICS[_rng.randi_range(0, TUNICS.size() - 1)])
@@ -414,7 +421,7 @@ func _head_v(mb: Variant, f: bool, skin: Color, age: String, hair: Color) -> voi
 		fc.stubble_c = hair.darkened(0.35).lerp(skin, 0.3) if String(cfg.get("beard", "")) == "" else hair.darkened(0.2)
 	# models pass: a hairline the hair grows out of (not under a hood or a bald head)
 	var hstyle := String(cfg.get("hair", "short"))
-	if hstyle != "bald" and not bool(cfg.get("hood", false)):
+	if hstyle != "bald" and not bool(cfg.get("hood", false)) and String(cfg.get("hat", "")) == "":
 		fc.hair_c = Color(hair.r, hair.g, hair.b, 1.0)
 		fc.hairline = 0.3
 	fc.build(mb)
@@ -440,18 +447,21 @@ func _hair_v(mb: Variant, hair: Color, style: String, f: bool) -> void:
 			if style == "short":
 				mb.blob(c + Vector3(0, 0.012, 0.006) * S, fr + Vector3(0.007, 0.002, 0.006) * S, Basis(Vector3.RIGHT, 0.36), hair.darkened(0.08), DwarfMesh.MAT_HAIR, {"phi": Vector2(0.0, 0.45), "lumps": 0.12, "rings": 8, "segs": 20})
 				_locks(mb, c, fr, hair, 70, Vector2(0.035, 0.06), 0.0105)
-				_fringe(mb, c + Vector3(0, 0.012, 0.006) * S, fr + Vector3(0.007, 0.002, 0.006) * S, Basis(Vector3.RIGHT, 0.36), 0.45, hair, 30)
+				if String(cfg.get("hat", "")) == "" and not hood:
+					_fringe(mb, c + Vector3(0, 0.012, 0.006) * S, fr + Vector3(0.007, 0.002, 0.006) * S, Basis(Vector3.RIGHT, 0.36), 0.45, hair, 30)
 			for i in (36 if style == "short" else 30):
 				var a := lerpf(-2.2, 2.2, (float(i) + _rng.randf_range(-0.4, 0.4)) / 35.0) + PI
 				var root := c + Vector3(sin(a) * (fr.x + 0.004 * S), (0.02 + (0.03 if style == "short" else 0.0) - 0.01 * cos(a)) * S, -cos(a) * fr.z)
 				mb.strand(root, Vector3(sin(a) * 0.3, -1, -cos(a) * 0.4), _rng.randf_range(0.04, 0.07) * S, 0.009 * S, hair.lightened(_rng.randf_range(-0.08, 0.08)), Vector3.ZERO, 0.3, 3, 4)
 		"bun", "braids", "long", "wild":
-			# a combed scalp (parting), then the style
-			mb.blob(c + Vector3(0, 0.014, 0.004) * S, fr + Vector3(0.008, 0.003, 0.007) * S, Basis(Vector3.RIGHT, 0.36), hair.darkened(0.06), DwarfMesh.MAT_HAIR, {"phi": Vector2(0.0, 0.38 if String(cfg.get("hat", "")) != "" else 0.47), "lumps": 0.06, "rings": 9, "segs": 20})
-			if String(cfg.get("hat", "")) == "":
+			# a combed scalp (parting), then the style; under a hood only what hangs below it shows (the cap
+			# and the parting poked through the hood's crown and under its rim)
+			if not hood:
+				mb.blob(c + Vector3(0, 0.014, 0.004) * S, fr + Vector3(0.008, 0.003, 0.007) * S, Basis(Vector3.RIGHT, 0.36), hair.darkened(0.06), DwarfMesh.MAT_HAIR, {"phi": Vector2(0.0, 0.38 if String(cfg.get("hat", "")) != "" else 0.47), "lumps": 0.06, "rings": 9, "segs": 20})
+			if String(cfg.get("hat", "")) == "" and not hood:
 				_locks(mb, c, fr, hair, 46, Vector2(0.06, 0.1), 0.0095)
 				_fringe(mb, c + Vector3(0, 0.014, 0.004) * S, fr + Vector3(0.008, 0.003, 0.007) * S, Basis(Vector3.RIGHT, 0.36), 0.47, hair, 30)
-			for i in 26:
+			for i in (0 if hood else 26):
 				var a2 := lerpf(-1.35, 1.35, float(i) / 25.0)
 				var root2 := c + Vector3(sin(a2) * 0.03, 0.105, -0.04) * S
 				var dir2 := Vector3(sin(a2) * 1.0, -0.15, 0.7 + absf(a2) * 0.2)

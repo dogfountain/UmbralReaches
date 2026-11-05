@@ -21,7 +21,7 @@ uniform float ambient_keep = 0.9;        // overall ambient share (the room's wa
 uniform float detail_mix = 1.0;
 uniform float skin_relief = 0.0005;      // models pass: wrinkle / pore depth (metres)
 uniform float hair_relief = 0.0012;      // models pass: strand ridges (metres)
-uniform float cloth_relief = 0.012;      // models pass: fold depth (metres)
+uniform float cloth_relief = 0.03;      // models pass: fold depth (metres)
 // the room's warm bounce (hearth, candles) on the dwarves: without it their cloth falls under the
 // grade's brightness floor for warm hues and is pulled into the azure band (they read blue-grey)
 uniform vec3 warm_bounce = vec3(1.0, 0.56, 0.3);
@@ -55,7 +55,7 @@ void layer_params(int m, out vec4 p, out float spec) {
 	else if (m == 1) { p = vec4(24.0, 24.0, 0.93, 0.7); spec = 0.25; }
 	else if (m == 2) { p = vec4(30.0, 30.0, 0.86, 0.6); spec = 0.3; }
 	else if (m == 3) { p = vec4(9.0, 9.0, 0.58, 1.0); spec = 0.45; }
-	else if (m == 4) { p = vec4(10.0, 3.0, 0.64, 0.45); spec = 0.3; }   // r35 hair: coarser, shallower detail (it crawled at 960p)
+	else if (m == 4) { p = vec4(10.0, 3.0, 0.82, 0.45); spec = 0.16; }   // models pass: duller (grey hair shone blue-white under the moon)   // r35 hair: coarser, shallower detail (it crawled at 960p)
 	else if (m == 5) { p = vec4(10.0, 10.0, 0.36, 0.6); spec = 0.5; }
 	else if (m == 6) { p = vec4(5.0, 2.0, 0.72, 0.8); spec = 0.35; }
 	else if (m == 7) { p = vec4(16.0, 16.0, 0.8, 0.9); spec = 0.4; }
