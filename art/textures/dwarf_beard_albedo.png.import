@@ -3,20 +3,22 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b6xjahmixvfps"
-path="res://.godot/imported/dwarf_beard_albedo.png-bc121d55b8aba32b9b31fb2e4ceb4d9c.ctex"
+path.bptc="res://.godot/imported/dwarf_beard_albedo.png-bc121d55b8aba32b9b31fb2e4ceb4d9c.bptc.ctex"
+path.astc="res://.godot/imported/dwarf_beard_albedo.png-bc121d55b8aba32b9b31fb2e4ceb4d9c.astc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://art/textures/dwarf_beard_albedo.png"
-dest_files=["res://.godot/imported/dwarf_beard_albedo.png-bc121d55b8aba32b9b31fb2e4ceb4d9c.ctex"]
+dest_files=["res://.godot/imported/dwarf_beard_albedo.png-bc121d55b8aba32b9b31fb2e4ceb4d9c.bptc.ctex", "res://.godot/imported/dwarf_beard_albedo.png-bc121d55b8aba32b9b31fb2e4ceb4d9c.astc.ctex"]
 
 [params]
 
-compress/mode=0
-compress/high_quality=false
+compress/mode=2
+compress/high_quality=true
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
@@ -37,4 +39,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

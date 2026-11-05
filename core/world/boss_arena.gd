@@ -1,0 +1,360 @@
+class_name BossArena
+extends Node3D
+## The sanctum of a holy place. Walk in (within `radius`, under `ceiling`) and, if its boss is not
+## yet slain and its requirements are met, the gate behind you closes, the boss rises, and a bar
+## shows at the top of the screen. Kill it and the gate opens, the reward appears, and the victory
+## persists (Travel.bosses_slain). Fall (hollowed) and the arena resets: boss gone, gate open.
+
+@export var boss_id := ""
+@export var title := "Boss"
+@export var radius := 7.0
+@export var ceiling := 6.0
+@export var requires_bosses: Array[String] = []
+@export var subtitle := ""
+@export var max_rise := 1.6             ## audit: how much the floor may step (tiered arenas allow more)
+## The bar's name from a phase on (phase -> name): the Warden's bar names him at phase III.
+var phase_titles: Dictionary = {}
+## When the wardens' bosses are missing, what each one is called in the "Nothing answers" line.
+const HOLDS := {"thornwarden": "The Ring's heart", "bone_abbot": "The crypt's crown"}
+const LEAVE := 6.0          ## run this far past the edge and the fight resets (no kiting it out)
+const GATE_CLEAR := 1.5     ## metres past the gate line before the fight starts and the gate closes
+
+var boss_script: GDScript
+var boss_at := Vector3.ZERO
+var gate: Node3D = null                 ## optional barrier that closes during the fight (its line is tested)
+var gates: Array[Node3D] = []           ## further arena-mouth barriers shut with it (r30: the Ossuary chapel arch)
+var on_slain: Callable                  ## reward spawner, called once (also on load if slain)
+
+var _boss: Enemy
+var _active := false
+var _bar_layer: CanvasLayer
+var _bar: BossBar
+var _bar_name: Label
+var _phase_seen := 1
+
+
+## The boss bar: crimson fill, a pale trail that lags behind it so each chunk you take stays
+## readable, notches where the boss changes phase, and a flash when it does.
+class BossBar extends Control:
+	var max_value := 1.0
+	var value := 1.0
+	var marks: Array[float] = []        ## hp ratios where a phase begins
+	var _trail := 1.0
+	var _hold := 0.0
+	var _flash := 0.0
+	var _last := 1.0
+
+	func phase_flash() -> void:
+		_flash = 1.0
+
+	func _process(delta: float) -> void:
+		var r := clampf(value / maxf(max_value, 0.001), 0.0, 1.0)
+		if r < _last - 0.0001:
+			_hold = 0.35
+		_last = r
+		if _hold > 0.0:
+			_hold -= delta
+		else:
+			_trail = move_toward(_trail, r, delta * 0.6)
+		_trail = maxf(_trail, r)
+		_flash = maxf(0.0, _flash - delta * 1.5)
+		queue_redraw()
+
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		var r := clampf(value / maxf(max_value, 0.001), 0.0, 1.0)
+		draw_rect(Rect2(0, 0, w, h), Color(0.05, 0.02, 0.07, 0.85))
+		draw_rect(Rect2(0, 0, w * _trail, h), Color(1.0, 0.85, 0.75, 0.55))
+		draw_rect(Rect2(0, 0, w * r, h), Color(0.7, 0.14, 0.22).lerp(Color(1.6, 0.9, 1.8), _flash))
+		draw_rect(Rect2(0, 0, w * r, h * 0.3), Color(1.0, 0.45, 0.5, 0.35))
+		for m in marks:
+			var x := w * m
+			draw_line(Vector2(x, -4), Vector2(x, h + 4), Color(0.95, 0.85, 1.0, 0.9), 2.0)
+			draw_colored_polygon(PackedVector2Array([Vector2(x - 5, -6), Vector2(x + 5, -6), Vector2(x, 1)]), Color(0.95, 0.85, 1.0, 0.9))
+		draw_rect(Rect2(0, 0, w, h), Color(0.5, 0.35, 0.7).lerp(Color(1.6, 1.0, 2.0), _flash), false, 1.0 + _flash * 2.0)
+var _warned := false
+var _cast_bar: CastBar
+var _cast_lbl: Label
+
+
+## r33: the boss's cast under its bar (Enemy.cast_info): the name, a fill, gold when it can be broken,
+## pale grey with a shield edge when it cannot. "ENRAGED" in its place once the soft enrage is on.
+class CastBar extends Control:
+	var progress := 0.0
+	var interruptible := false
+	var shown := false
+
+	func _draw() -> void:
+		if not shown:
+			return
+		var w := size.x
+		var h := size.y
+		draw_rect(Rect2(0, 0, w, h), Color(0.04, 0.03, 0.05, 0.8))
+		var col := Color(1.0, 0.72, 0.3) if interruptible else Color(0.62, 0.6, 0.66)
+		draw_rect(Rect2(0, 0, w * clampf(progress, 0.0, 1.0), h), col)
+		draw_rect(Rect2(0, 0, w, h), Color(0.95, 0.85, 0.6) if interruptible else Color(0.8, 0.8, 0.9), false, 1.0 if interruptible else 2.0)
+
+
+static func make(host: Node3D, id: String, label: String, at: Vector3, r: float, script: GDScript, spawn_at: Vector3) -> BossArena:
+	var a := BossArena.new()
+	a.boss_id = id
+	a.title = label
+	a.radius = r
+	a.boss_script = script
+	a.boss_at = spawn_at
+	a.name = "Arena_" + id
+	host.add_child(a)
+	a.global_position = at
+	return a
+
+
+func _ready() -> void:
+	add_to_group(&"boss_arena")
+	Events.hollowed.connect(_reset)
+	Events.enemy_killed.connect(_on_killed)
+	if Travel.bosses_slain.has(boss_id):
+		call_deferred("_grant", false)
+
+
+func slain() -> bool:
+	return Travel.bosses_slain.has(boss_id)
+
+
+func _physics_process(_d: float) -> void:
+	if _active:
+		if is_instance_valid(_boss):
+			_tick_cast()
+			if _bar:
+				_bar.value = _boss.hp
+				var ph: Variant = _boss.get("phase")
+				if ph is int and int(ph) != _phase_seen:
+					_phase_seen = int(ph)
+					_bar.phase_flash()
+					if _bar_name:
+						var named := title
+						for k: int in phase_titles:
+							if _phase_seen >= k:
+								named = String(phase_titles[k])
+						_bar_name.text = "%s  ·  %s" % [named.to_upper(), ["", "I", "II", "III", "IV"][clampi(_phase_seen, 0, 4)]]
+			# the boss keeps to its sanctum: drawn back inside the ring if it strays out
+			var bd := _boss.global_position - global_position
+			var flat := Vector2(bd.x, bd.z)
+			if flat.length() > radius + 0.5:
+				var back := flat.normalized() * (radius - 0.5)
+				_boss.global_position = Vector3(global_position.x + back.x, _boss.global_position.y, global_position.z + back.y)
+		var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+		if pl:
+			var pd := pl.global_position - global_position
+			if Vector2(pd.x, pd.z).length() > radius + LEAVE or pd.y < -6.0:
+				Events.toast.emit("%s returns to its rest." % title)
+				_reset()
+		return
+	if slain():
+		return
+	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	if p == null:
+		return
+	var d := p.global_position - global_position
+	if Vector2(d.x, d.z).length() > radius or d.y < -1.0 or d.y > ceiling:
+		return
+	if not _past_gate(p.global_position):
+		return                                  # still on the stair outside: the gate must not shut in your face
+	for b in requires_bosses:
+		if not Travel.bosses_slain.has(b):
+			if not _warned:
+				_warned = true
+				Events.toast.emit(nothing_answers(requires_bosses))
+			return
+	_begin()
+
+
+## True once the wanderer is through the gate, on the arena's side of its line. A stair or ramp that
+## curls round the outside can run inside `radius` (the henge's slantwise pilgrim stair did, 1-2 m
+## below the terrace lip): starting the fight there closed the seal ahead of them and locked them out.
+## Only a gate on the arena's rim is a line to cross; one far off (an outer door) is not tested.
+func _past_gate(at: Vector3) -> bool:
+	if gate == null or not is_instance_valid(gate):
+		return true
+	var g := gate.global_position
+	var inward := global_position - g
+	inward.y = 0.0
+	if inward.length() < 0.5 or inward.length() > radius + 2.0:
+		return true
+	var rel := at - g
+	rel.y = 0.0
+	return rel.dot(inward.normalized()) > GATE_CLEAR
+
+
+## "Nothing answers. The crypt's crown still holds below.": names what is still missing.
+static func nothing_answers(req: Array) -> String:
+	var missing: Array[String] = []
+	for b in req:
+		if not Travel.bosses_slain.has(String(b)):
+			missing.append(String(HOLDS.get(String(b), "A seal")))
+	if missing.is_empty():
+		return "Nothing answers."
+	if missing.size() == 1:
+		return "Nothing answers. %s still holds below." % missing[0]
+	return "Nothing answers. %s and %s still hold below." % [", ".join(missing.slice(0, missing.size() - 1)), missing[missing.size() - 1].to_lower()]
+
+
+func _begin() -> void:
+	if boss_script == null:
+		return
+	_active = true
+	_boss = boss_script.new() as Enemy
+	get_parent().add_child(_boss)
+	_boss.global_position = boss_at
+	_boss.set_meta(&"boss_id", boss_id)
+	_boss.set_meta(&"display_name", title)      # r33: Enemy.display_name() for the HUD
+	if _boss.has_method("on_engaged"):
+		_boss.call("on_engaged", self)
+	for g in _all_gates():
+		if g.has_method("close"):
+			g.call("close")
+	_show_bar()
+	Events.boss_engaged.emit(_boss, title)
+	Events.zone_entered.emit(title.to_upper(), subtitle)
+	Sfx.play("res://art/audio/ward_chime.wav", boss_at, 4.0)
+	SpellFx.rift_in(boss_at)
+
+
+func _on_killed(e: Node) -> void:
+	if not _active or e != _boss:
+		return
+	_active = false
+	_hide_bar()
+	_open_gates()
+	Events.boss_slain.emit(boss_id)
+	if boss_id != "ascended_warden":         # the Warden's fall is the story's beat (story.gd), not a toast
+		Events.toast.emit("%s falls." % title)
+	_grant(true)
+
+
+func _grant(fresh: bool) -> void:
+	if on_slain.is_valid():
+		on_slain.call(fresh)
+
+
+func _reset() -> void:
+	if not _active:
+		return
+	_active = false
+	_warned = false
+	if is_instance_valid(_boss):
+		_boss.queue_free()
+	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
+		if (e as Node).has_meta(&"summoned_by") and (e as Node).get_meta(&"summoned_by") == boss_id:
+			(e as Node).queue_free()             # its summons go with it
+	_hide_bar()
+	_open_gates()
+
+
+func _all_gates() -> Array[Node3D]:
+	var out: Array[Node3D] = []
+	if gate and is_instance_valid(gate):
+		out.append(gate)
+	for g in gates:
+		if is_instance_valid(g) and not out.has(g):
+			out.append(g)
+	return out
+
+
+## Arena gates lift; a progression seal used as a gate goes back to its own state (WardSeal.reopen),
+## it is never forced open by a reset.
+func _open_gates() -> void:
+	for g in _all_gates():
+		if g.has_method("reopen"):
+			g.call("reopen")
+		elif g.has_method("release"):
+			g.call("release")
+
+
+func _show_bar() -> void:
+	_bar_layer = CanvasLayer.new()
+	_bar_layer.layer = 40
+	add_child(_bar_layer)
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	box.position = Vector2(-320, 36)
+	box.custom_minimum_size = Vector2(640, 0)
+	_bar_layer.add_child(box)
+	_bar_name = Label.new()
+	_bar_name.text = title.to_upper()
+	_bar_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_bar_name.add_theme_color_override("font_color", Color(0.92, 0.84, 1.0))
+	_bar_name.add_theme_font_size_override("font_size", 22)
+	box.add_child(_bar_name)
+	_bar = BossBar.new()
+	_bar.custom_minimum_size = Vector2(640, 14)
+	_bar.max_value = float(_boss.max_hp)
+	_bar.value = _boss.hp
+	if _boss.has_method("phase_marks"):
+		for m: float in _boss.call("phase_marks"):
+			_bar.marks.append(m)
+	_phase_seen = 1
+	box.add_child(_bar)
+	_cast_lbl = Label.new()
+	_cast_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_cast_lbl.add_theme_font_size_override("font_size", 16)
+	_cast_lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.7))
+	box.add_child(_cast_lbl)
+	_cast_bar = CastBar.new()
+	_cast_bar.custom_minimum_size = Vector2(360, 8)
+	_cast_bar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.add_child(_cast_bar)
+
+
+func _tick_cast() -> void:
+	if _cast_bar == null or not is_instance_valid(_cast_bar):
+		return
+	var c := _boss.cast_info()
+	_cast_bar.shown = not c.is_empty()
+	if _cast_bar.shown:
+		_cast_bar.progress = float(c.progress)
+		_cast_bar.interruptible = bool(c.interruptible)
+		_cast_lbl.text = String(c.name) + ("" if bool(c.interruptible) else "  (cannot be broken)")
+		_cast_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.55) if bool(c.interruptible) else Color(0.82, 0.8, 0.88))
+	elif _boss.dmg_mult > 1.001:
+		_cast_lbl.text = "ENRAGED"
+		_cast_lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3))
+	else:
+		_cast_lbl.text = " "
+	_cast_bar.queue_redraw()
+
+
+func _hide_bar() -> void:
+	if is_instance_valid(_bar_layer):
+		_bar_layer.queue_free()
+	_bar_layer = null
+
+
+## Audit hook: the arena floor must be walkable and flat enough, the boss spawn clear.
+func audit() -> Array[String]:
+	var out: Array[String] = []
+	var space := get_world_3d().direct_space_state
+	var lo := INF
+	var hi := -INF
+	for i in 12:
+		var a := TAU * float(i) / 12.0
+		for rr: float in [0.0, radius * 0.5, radius * 0.85]:
+			var p := global_position + Vector3(cos(a) * rr, 0, sin(a) * rr)
+			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(p + Vector3.UP * 2.0, p + Vector3.DOWN * 4.0, Layers.WORLD))
+			if hit.is_empty():
+				out.append("%s: no floor at %s" % [boss_id, p.snapped(Vector3.ONE * 0.1)])
+				continue
+			lo = minf(lo, (hit.position as Vector3).y)
+			hi = maxf(hi, (hit.position as Vector3).y)
+	if hi - lo > max_rise:
+		out.append("%s: floor varies %.2f m" % [boss_id, hi - lo])
+	var cap := CapsuleShape3D.new()
+	cap.radius = 0.9
+	cap.height = 3.0
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = cap
+	q.transform = Transform3D(Basis.IDENTITY, boss_at + Vector3.UP * 1.7)
+	q.collision_mask = Layers.WORLD | Layers.PROPS
+	if not space.intersect_shape(q, 1).is_empty():
+		out.append("%s: boss spawn %s is inside geometry" % [boss_id, boss_at.snapped(Vector3.ONE * 0.1)])
+	return out

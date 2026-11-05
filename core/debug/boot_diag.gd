@@ -109,7 +109,11 @@ static func _player(root: Node, lines: PackedStringArray) -> void:
 	if visual == null:
 		_fail(lines, "NO_VISUAL")
 		return
-	for key in ["BootMesh", "GauntletMesh", "StaffMesh", "LanternMesh"]:
+	# the generated wanderer (core/player/wanderer_gen.gd) has no boot/gauntlet GLB pieces
+	var keys := ["BootMesh", "GauntletMesh", "StaffMesh", "LanternMesh"] if DefaultLoadout.use_legacy else ["StaffMesh", "LanternMesh"]
+	if visual.has_method("has_merged_body") and visual.has_merged_body():
+		keys = ["Body", "ShadowProxy"]          # the gear is baked into one skinned mesh (wanderer_body.gd)
+	for key in keys:
 		var found := visual.find_children(key, "", true, false)
 		if found.is_empty():
 			_fail(lines, "PLAYER missing %s (glb did not attach)" % key)

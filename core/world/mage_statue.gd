@@ -23,9 +23,19 @@ var _t := 0.0
 
 func _ready() -> void:
 	if _figure == null:
-		_figure = _build_figure()
-		_pedestal = _build_pedestal()
-		_runes = _build_runes()
+		# deterministic meshes: built once, then loaded (GenCache) -- the figure was ~0.3 s a load
+		var GenCache := load("res://core/world/realm/gen_cache.gd")
+		var me := "res://core/world/mage_statue.gd"
+		_figure = GenCache.load_mesh("statue|figure", me)
+		_pedestal = GenCache.load_mesh("statue|pedestal", me)
+		_runes = GenCache.load_mesh("statue|runes", me)
+		if _figure == null or _pedestal == null or _runes == null:
+			_figure = _build_figure()
+			_pedestal = _build_pedestal()
+			_runes = _build_runes()
+			GenCache.save_mesh("statue|figure", me, _figure)
+			GenCache.save_mesh("statue|pedestal", me, _pedestal)
+			GenCache.save_mesh("statue|runes", me, _runes)
 	var ped := MeshInstance3D.new()
 	ped.name = "Pedestal"
 	ped.mesh = _pedestal

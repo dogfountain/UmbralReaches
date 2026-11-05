@@ -1,0 +1,412 @@
+extends CanvasLayer
+## The loading screen. Covers the night from the first frame until it is built AND warmed, so the
+## first minutes of play meet no stutter:
+##   1 build   the Realm's modules (Realm.progress / Realm.stage), the Ossuary (loads at boot now)
+##   2 settle  the post-build pass (Atmosphere.post_build sets "post_done" on the zone)
+##   3 warm    a camera tour of the Realm under the cover: every world material is drawn once, so the
+##             Mac compiles its shaders here, not when you first walk into the wood. At the first
+##             stop one of each enemy, the spell effects and the particle kinds are shown too.
+##   4 steady  the player's camera again; waits for a run of even frames, then fades out.
+## The player is frozen until the cover lifts. Shown only when the night is the running scene (not
+## under the zz/ test harnesses); `--loading` forces it, `--no-loading` skips it.
+## No class_name: Zone loads it by path.
+
+const VIEWS := [
+	# [position (y NAN = stand on the ground there), pitch]
+	[Vector3(0.0, NAN, 30.0), -0.12],          # spawn and the village green
+	[Vector3(-8.6, NAN, 34.0), -0.3],          # the market cart
+	[Vector3(11.4, 1.1, 27.0), -0.1],          # inside the Keg
+	[Vector3(8.0, NAN, 48.0), -0.1],           # meadow
+	[Vector3(-28.0, NAN, 30.0), -0.08],        # thornwood edge
+	[Vector3(-39.4, NAN, 8.7), -0.08],         # the west way into the wood
+	[Vector3(-75.0, NAN, 20.0), -0.08],        # deep in the wood
+	[Vector3(-62.0, 9.8, -12.0), -0.1],        # the henge
+	[Vector3(-58.0, NAN, 60.0), -0.1],         # the chapel
+	[Vector3(33.8, NAN, 16.2), -0.08],         # the east way
+	[Vector3(52.0, NAN, 12.0), -0.1],          # the fen
+	[Vector3(70.0, NAN, -34.0), -0.1],         # the barrows, toward the Ossuary door
+	[Vector3(34.0, 5.9, -66.0), -0.1],         # the Ossuary gate
+	[Vector3(16.0, 5.9, -86.0), 0.05],         # the Ossuary pit
+	[Vector3(0.0, 2.6, -10.0), -0.05],         # the Crossing
+	[Vector3(-8.3, 19.8, -43.5), -0.2],        # the viaduct by the Spindle
+	[Vector3(0.0, 29.7, -92.0), -0.1],         # the summit
+	# r28: the Lower Count under the Ossuary, the Singing Stones, the Ash-Hermit's perch (agent D)
+	[Vector3(18.0, 1.2, -86.0), 0.0],          # inside the Count Drum
+	[Vector3(10.0, 1.2, -84.0), 0.0],          # the drum's west landing
+	[Vector3(-28.0, NAN, 33.0), -0.1],         # the Singing Stones
+	[Vector3(-48.0, NAN, -31.0), -0.05],       # toward the hermit's perch
+]
+## r28 additions to the combat set (by path: no class_name). Missing files are skipped.
+const MORE_KIN := ["res://core/enemy/bulwark.gd", "res://core/enemy/chanter.gd", "res://core/enemy/burrower.gd", "res://core/enemy/mite.gd"]
+const CORES := ["core_prism", "core_lodestar", "core_cinder", "core_rime"]
+const DIRS := 6                 # headings per stop
+const FRAMES_PER_DIR := 2
+const FX_HOLD := 14             # frames the warm-up enemies stay in view
+const BUILD_SHARE := 0.68       # bar share of the build; the warm tour gets most of the rest
+const BG := Color(0.018, 0.016, 0.045)
+const LILAC := Color("#A98BFF")
+const QUIET := Color(0.72, 0.74, 0.86, 0.9)
+const DIM := Color(0.55, 0.56, 0.68, 0.7)
+
+var zone: Node3D
+var _player: Node3D
+var _phase := "build"
+var _t := 0.0
+var _phase_t := 0.0
+var _shown := 0.0
+var _target := 0.0
+var _cam: Camera3D
+var _view := 0
+var _dir := 0
+var _frame := 0
+var _warm_nodes: Array[Node] = []
+var _warm_bolts: Array[Node] = []
+var _warm_life: Node
+var _fx_frames := -1
+var _combat_shown := false
+var _sounds_done := false
+var _steady := 0
+var _fade := 1.0
+var _root: Control
+var _fill: ColorRect
+var _stage: Label
+var _hint: Label
+var _space: PhysicsDirectSpaceState3D
+
+
+static func open(z: Node3D) -> CanvasLayer:
+	var args := OS.get_cmdline_user_args()
+	if DisplayServer.get_name() == "headless" or "--no-loading" in args:
+		return null
+	var cur := z.get_tree().current_scene
+	if not "--loading" in args and cur != null and cur != z:
+		return null                                   # under a zz/ harness: tests drive the player
+	var ls: CanvasLayer = (load("res://ui/loading_screen.gd") as GDScript).new()
+	ls.set("zone", z)
+	z.add_child(ls)
+	return ls
+
+
+func _ready() -> void:
+	name = "LoadingScreen"
+	layer = 120
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_build_ui()
+	print("LOADING open")
+
+
+func _build_ui() -> void:
+	var font: Font = load("res://ui/fonts/Cinzel.ttf")
+	_root = Control.new()
+	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_root)
+	var bg := ColorRect.new()
+	bg.color = BG
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root.add_child(bg)
+	var col := VBoxContainer.new()
+	col.set_anchors_preset(Control.PRESET_CENTER)
+	col.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	col.grow_vertical = Control.GROW_DIRECTION_BOTH
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 18)
+	_root.add_child(col)
+	var title := _label(font, "UMBRAL REACHES", 54, LILAC)
+	col.add_child(title)
+	_stage = _label(font, "", 18, QUIET)
+	col.add_child(_stage)
+	var bar := ColorRect.new()
+	bar.color = Color(1, 1, 1, 0.08)
+	bar.custom_minimum_size = Vector2(440, 3)
+	bar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(bar)
+	_fill = ColorRect.new()
+	_fill.color = LILAC
+	_fill.size = Vector2(0, 3)
+	bar.add_child(_fill)
+	_hint = _label(font, "", 13, DIM)
+	_hint.custom_minimum_size = Vector2(560, 0)
+	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(_hint)
+
+
+func _label(font: Font, text: String, size: int, c: Color) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_override("font", font)
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", c)
+	return l
+
+
+func _input(event: InputEvent) -> void:
+	if _phase != "done" and (event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton):
+		get_viewport().set_input_as_handled()
+
+
+func _process(delta: float) -> void:
+	_t += delta
+	_phase_t += delta
+	_hold_player()
+	match _phase:
+		"build":
+			_stage.text = Realm.stage if Realm.enabled() and Realm.stage != "" else "Gathering the night"
+			_hint.text = ""
+			_target = (Realm.progress if Realm.enabled() else 1.0) * BUILD_SHARE
+			if not Realm.enabled() or zone.has_meta("realm_done"):
+				_next("settle")
+		"settle":
+			if _phase_t == 0.0 or not _sounds_done:
+				_sounds_done = true
+				# the staff's sounds and the combat sounds are synthesised (or read from cache) here
+				(load("res://core/vfx/staff_sfx.gd") as GDScript).call("prewarm")
+				(load("res://core/vfx/synth.gd") as GDScript).call("prewarm")
+			_stage.text = "Settling the night"
+			_target = BUILD_SHARE + 0.04
+			if zone.has_meta("post_done") or _phase_t > 8.0:
+				_next("warm")
+		"warm":
+			_stage.text = "Warming the world"
+			_hint.text = "Every stone, flame and shade is shown to the renderer once, so it never stops to prepare one mid-play."
+			_warm_step()
+		"steady":
+			_stage.text = "Almost there"
+			_target = 1.0
+			# a run of even frames (or 3 s): the last compiles have landed
+			_steady = _steady + 1 if delta < 0.03 else 0
+			if _steady >= 20 or _phase_t > 3.0:
+				_next("fade")
+		"fade":
+			_fade = maxf(0.0, _fade - delta / 0.4)
+			_root.modulate.a = _fade
+			if _fade <= 0.0:
+				_finish()
+				return
+	_shown = move_toward(_shown, _target, delta * 1.2)
+	_fill.size.x = 440.0 * _shown
+
+
+func _next(p: String) -> void:
+	print("LOADING %s -> %s at %.2f s" % [_phase, p, _t])
+	_phase = p
+	_phase_t = 0.0
+	if p == "warm":
+		_start_tour()
+	elif p == "steady":
+		_end_tour()
+
+
+## Freeze the wanderer under the cover (input is swallowed too); restored in _finish.
+func _hold_player() -> void:
+	if _player == null:
+		_player = get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+		if _player:
+			_player.process_mode = Node.PROCESS_MODE_DISABLED
+
+
+# --- the warm-up tour ------------------------------------------------------------------------------
+
+func _start_tour() -> void:
+	_space = zone.get_world_3d().direct_space_state
+	_cam = Camera3D.new()
+	_cam.name = "WarmCam"
+	_cam.fov = Settings.fov
+	_cam.far = 400.0
+	var pc := get_viewport().get_camera_3d()
+	if pc:
+		_cam.attributes = pc.attributes
+		_cam.environment = pc.environment
+		_cam.far = pc.far
+	zone.add_child(_cam)
+	_cam.current = true
+	_view = 0
+	_dir = 0
+	_frame = 0
+	_place()
+
+
+func _place() -> void:
+	var v: Array = VIEWS[_view]
+	var at: Vector3 = v[0]
+	if is_nan(at.y):
+		at.y = _ground(at) + 1.8
+	_cam.global_position = at
+	_cam.rotation = Vector3(float(v[1]), TAU * float(_dir) / float(DIRS), 0.0)
+
+
+func _ground(at: Vector3) -> float:
+	var q := PhysicsRayQueryParameters3D.create(Vector3(at.x, 80.0, at.z), Vector3(at.x, -40.0, at.z), Layers.WORLD)
+	var hit := _space.intersect_ray(q)
+	return float((hit.position as Vector3).y) if not hit.is_empty() else 0.0
+
+
+func _warm_step() -> void:
+	if _fx_frames >= 0:                  # the combat set is on show: hold this heading
+		_fx_frames += 1
+		if _fx_frames > FX_HOLD:
+			_clear_combat()
+		return
+	if not _combat_shown and _view == 0 and _frame == 1:
+		_combat_shown = true
+		_show_combat()
+		return
+	_frame += 1
+	if _frame < FRAMES_PER_DIR:
+		return
+	_frame = 0
+	_dir += 1
+	if _dir >= DIRS:
+		_dir = 0
+		_view += 1
+	_target = BUILD_SHARE + 0.04 + (1.0 - BUILD_SHARE - 0.07) * float(_view) / float(VIEWS.size())
+	if _view >= VIEWS.size():
+		_next("steady")
+		return
+	_place()
+
+
+## One of each enemy, the spell effects and the particle kinds, a few metres in front of the warm
+## camera: their meshes are generated (GenCache) and their shaders compiled behind the cover.
+func _show_combat() -> void:
+	_fx_frames = 0
+	var fwd := -_cam.global_basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized()
+	var right := fwd.cross(Vector3.UP)
+	var c := _cam.global_position + fwd * 6.0
+	c.y = _ground(c)
+	var kinds: Array = [Wretch, Husk, Crawler, Leaper, Spitter, Ossuant, Shade]
+	for path: String in MORE_KIN:
+		if ResourceLoader.exists(path):
+			kinds.append(load(path))
+	for k in kinds.size():
+		var script: GDScript = kinds[k]
+		if script == null:
+			continue
+		var e: Node3D = script.new()
+		e.process_mode = Node.PROCESS_MODE_DISABLED
+		zone.add_child(e)
+		e.remove_from_group(Groups.ENEMY)               # nothing counts or targets these
+		e.global_position = c + right * (float(k) - 5.0) * 1.1 + fwd * 1.5
+		_warm_nodes.append(e)
+	var col := Color(0.55, 0.65, 1.0)
+	var hot := Color(1.0, 0.75, 0.4)
+	var at := c + Vector3.UP * 0.6
+	SpellFx.nova(c, 2.5)
+	SpellFx.lance_impact(at, Vector3.UP, 1.5, false)
+	SpellFx.lance_impact(at, Vector3.UP, 1.5, true)
+	SpellFx.implosion(c, 2.0)
+	SpellFx.rift_out(at)
+	SpellFx.rift_in(at)
+	SpellFx.rift_seam(at - right, at + right)
+	for style in 3:
+		SpellFx.disc(c + right * (float(style) - 1.0), 1.0, style, col, hot, 0.6)
+	SpellFx.shell(at, 0.3, 1.5, col, 0.6)
+	SpellFx.column(c, 0.8, 3.0, 0.6)
+	SpellFx.tear(at, 2.0, 0.6)
+	var d := SpellFx.danger(c, 0.6, {})
+	if d:
+		_warm_nodes.append(d)
+	Vfx.burst(at, hot, {})
+	Vfx.burst(at, col, {"additive": false})
+	Vfx.burst(at, hot, {"trail": 0.2})
+	Vfx.burst(at, col, {"trail": 0.2, "additive": false})
+	Vfx.burst(at, col, {"grow": 2.0, "additive": false})
+	Vfx.ring(at, 1.0, col)
+	Vfx.light(at, hot, 2.0, 4.0)
+	Vfx.scorch(c, 1.0, hot)
+	Vfx.ribbon(PackedVector3Array([at - right, at, at + right + Vector3.UP]), 0.2, 0.05, col)
+	Vfx.ribbon(PackedVector3Array([at - right, at, at + right]), 0.2, 0.05, hot, 0.25, false)
+	Vfx.arc(at - right, at + right, col)
+	_show_r28(c, at, right, fwd, col)
+	print("LOADING combat set on show: %d nodes" % _warm_nodes.size())
+
+
+## The r28 expansion's spells, afflictions, enemy attacks, staff cores and sky effects.
+func _show_r28(c: Vector3, at: Vector3, right: Vector3, fwd: Vector3, col: Color) -> void:
+	var foes: Array = _warm_nodes.filter(func(n: Node) -> bool: return n is Enemy)
+	var aff := "res://core/skills/afflict.gd"
+	if ResourceLoader.exists(aff) and foes.size() >= 2:
+		var A: GDScript = load(aff)
+		for i in 3:
+			A.call("chill", foes[0], 1.0)              # the third chill builds the ice crust
+		A.call("burn", foes[1], 1.0, 0.0)
+	if ResourceLoader.exists("res://core/skills/umbral_well.gd"):
+		var w: Node3D = (load("res://core/skills/umbral_well.gd") as GDScript).new()
+		w.set("life", 0.6)
+		w.set("by", _player)
+		zone.add_child(w)
+		w.global_position = c - right * 2.0
+		if w.has_method("ignite"):
+			w.call("ignite")
+		_warm_nodes.append(w)
+	if ResourceLoader.exists("res://core/skills/bound_shade.gd"):
+		var sh: Node3D = (load("res://core/skills/bound_shade.gd") as GDScript).new()
+		sh.set("owner_p", _cam)
+		sh.set("life", 0.6)
+		zone.add_child(sh)
+		sh.global_position = at + right
+		_warm_nodes.append(sh)
+	if ResourceLoader.exists("res://core/skills/tether_chain.gd") and not foes.is_empty() and _player:
+		(load("res://core/skills/tether_chain.gd") as GDScript).call("throw", _player, foes[foes.size() - 1], 0.3)
+	if ResourceLoader.exists("res://core/life/progression/fx/ember_cinders.gd"):
+		(load("res://core/life/progression/fx/ember_cinders.gd") as GDScript).call("throw", at, 1.0, fwd)
+	if ResourceLoader.exists("res://core/enemy/attack_kit.gd"):
+		var K: GDScript = load("res://core/enemy/attack_kit.gd")
+		K.call("lob", at, c + right * 2.0, 0.5, Color(0.5, 1.2, 0.4))
+		var pool_mi: Variant = K.call("linger", c + right * 2.0, 1.0, 0.6, 0.0, 1.0, Color(0.5, 1.2, 0.4))
+		if pool_mi is Node:
+			_warm_nodes.append(pool_mi)
+	# a bolt dressed in each staff core, held still in view
+	var pool := get_tree().get_first_node_in_group("bolt_pool")
+	if pool and pool.has_method("take"):
+		for i in CORES.size():
+			var b: Node3D = pool.call("take")
+			if b == null:
+				continue
+			b.call("arm_with", {"core": CORES[i]})
+			b.process_mode = Node.PROCESS_MODE_DISABLED
+			b.global_position = at + right * (float(i) - 1.5) * 0.8 + Vector3.UP * 0.6
+			_warm_bolts.append(b)
+	var life := zone.find_child("Wildlife", true, false)
+	if life and life.has_method("warm_show"):
+		life.call("warm_show", true, c)
+		_warm_life = life
+
+
+func _clear_combat() -> void:
+	for n in _warm_nodes:
+		if is_instance_valid(n):
+			n.queue_free()
+	_warm_nodes.clear()
+	var pool := get_tree().get_first_node_in_group("bolt_pool")
+	for b in _warm_bolts:
+		if is_instance_valid(b) and pool and pool.has_method("release"):
+			pool.call("release", b)
+	_warm_bolts.clear()
+	if is_instance_valid(_warm_life):
+		_warm_life.call("warm_show", false)
+	_warm_life = null
+	_fx_frames = -1
+
+
+func _end_tour() -> void:
+	_clear_combat()
+	if is_instance_valid(_cam):
+		_cam.queue_free()
+	if _player:
+		var pc := _player.get_node_or_null("CameraRig/Pitch/SpringArm/Camera") as Camera3D
+		if pc:
+			pc.current = true
+
+
+func _finish() -> void:
+	_phase = "done"
+	if is_instance_valid(_player):
+		_player.process_mode = Node.PROCESS_MODE_INHERIT
+		if _player.has_method("reset_physics_interpolation"):
+			_player.reset_physics_interpolation()
+	print("LOADING done at %.2f s" % _t)
+	queue_free()

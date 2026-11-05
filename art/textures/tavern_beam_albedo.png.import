@@ -3,20 +3,22 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://sdy7tbhqstw3"
-path="res://.godot/imported/tavern_beam_albedo.png-2f3dc5779da1b5e9d6854e77ed06b1cb.ctex"
+path.bptc="res://.godot/imported/tavern_beam_albedo.png-2f3dc5779da1b5e9d6854e77ed06b1cb.bptc.ctex"
+path.astc="res://.godot/imported/tavern_beam_albedo.png-2f3dc5779da1b5e9d6854e77ed06b1cb.astc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://art/textures/tavern_beam_albedo.png"
-dest_files=["res://.godot/imported/tavern_beam_albedo.png-2f3dc5779da1b5e9d6854e77ed06b1cb.ctex"]
+dest_files=["res://.godot/imported/tavern_beam_albedo.png-2f3dc5779da1b5e9d6854e77ed06b1cb.bptc.ctex", "res://.godot/imported/tavern_beam_albedo.png-2f3dc5779da1b5e9d6854e77ed06b1cb.astc.ctex"]
 
 [params]
 
-compress/mode=0
-compress/high_quality=false
+compress/mode=2
+compress/high_quality=true
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
@@ -37,4 +39,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

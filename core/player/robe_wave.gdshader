@@ -5,9 +5,9 @@ render_mode diffuse_burley, specular_schlick_ggx, cull_back;
 // Never displace the back panel aft (that trailed the whole coat).
 
 uniform vec3 base_color : source_color = vec3(0.055, 0.062, 0.12);
-uniform vec3 rim_color : source_color = vec3(0.28, 0.42, 0.85);
-uniform vec3 glow_color : source_color = vec3(0.32, 0.18, 0.95);
-uniform vec3 glow_hot : source_color = vec3(0.55, 0.42, 1.0);
+uniform vec3 rim_color : source_color = vec3(0.46, 0.34, 0.27);
+uniform vec3 glow_color : source_color = vec3(0.8, 0.5, 0.22);
+uniform vec3 glow_hot : source_color = vec3(1.0, 0.6, 0.3);
 uniform float glow_energy = 1.45;
 uniform float fleck_scale = 8.4;
 uniform float drift = 0.22;
@@ -27,6 +27,17 @@ instance uniform float foot_radius = 0.16;
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D magic_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
+// Generated gear (wanderer_piece.gd): a tint per layer (coat, lining, under-tunic), how much of the
+// magic veins show, embroidered runes that glow (trim: albedo alpha = rune mask), roughness from
+// the albedo alpha (wool), and dust/wet darkening toward the hem. Defaults = the old look.
+uniform vec3 tint : source_color = vec3(1.0);
+uniform float magic_amt = 1.0;
+uniform float glyph_glow = 0.0;
+uniform vec3 glyph_color : source_color = vec3(1.0, 0.6, 0.24);
+uniform float alpha_rough = 0.0;
+uniform float hem_grime = 0.0;
+uniform float magic_scale = 1.0;     // the veins' own tiling relative to the cloth (bigger, calmer < 1)
+uniform float rim_amt = 0.62;
 
 varying vec3 lpos;
 
@@ -119,10 +130,15 @@ void vertex() {
 void fragment() {
 	vec2 uv = UV * uv_scale;
 	vec2 crawl = vec2(TIME * drift * 0.05, -TIME * drift * 0.12);
-	vec3 wool = texture(albedo_tex, uv).rgb;
+	vec4 a4 = texture(albedo_tex, uv);
+	vec3 wool = a4.rgb * tint;
+	float hem_w = clamp((anchor_y - lpos.y) / max(cloth_len, 0.001), 0.0, 1.0);
+	float grime = hem_grime * smoothstep(0.72, 1.0, hem_w) * (0.7 + 0.3 * noise(lpos * 23.0));
+	wool = mix(wool, wool * vec3(0.72, 0.68, 0.64) + vec3(0.014, 0.012, 0.01), grime);
 	vec3 ntex = texture(normal_tex, uv).rgb;
-	vec3 magic_a = texture(magic_tex, uv + crawl).rgb;
-	vec3 magic_b = texture(magic_tex, uv * 1.37 + vec2(0.17, 0.41) - crawl * 0.6).rgb;
+	vec2 muv = uv * magic_scale;
+	vec3 magic_a = texture(magic_tex, muv + crawl).rgb;
+	vec3 magic_b = texture(magic_tex, muv * 1.37 + vec2(0.17, 0.41) - crawl * 0.6).rgb;
 	vec3 magic = magic_a * 1.05 + magic_b * 0.55;
 	float mag = max(magic.r, magic.b);
 	float fine = noise(lpos * fleck_scale + vec3(0.0, -TIME * drift * 1.8, 0.0));
@@ -134,9 +150,11 @@ void fragment() {
 	ALBEDO = wool * (0.85 + 0.15 * base_color / vec3(0.055, 0.062, 0.12));
 	NORMAL_MAP = ntex;
 	NORMAL_MAP_DEPTH = 1.55;
-	ROUGHNESS = roughness_amt * 0.92;
+	ROUGHNESS = alpha_rough > 0.5 ? clamp(roughness_amt * mix(0.75, 1.08, a4.a), 0.0, 1.0) : roughness_amt * 0.92;
 	SPECULAR = 0.28;
 	METALLIC = 0.0;
-	EMISSION = g * (magic * 1.35 + sparks * 1.6) * glow_energy * pulse
-		+ rim_color * rim * 0.62;
+	float glyph = alpha_rough > 0.5 ? 0.0 : a4.a;
+	EMISSION = g * (mag * 1.35 + sparks * 1.6) * glow_energy * pulse * magic_amt
+		+ glyph_color * glyph * glyph_glow * (0.75 + 0.25 * sin(TIME * 1.3 + lpos.x * 9.0))
+		+ rim_color * rim * rim_amt;
 }

@@ -1,6 +1,10 @@
 shader_type spatial;
 render_mode blend_add, unshaded, cull_disabled, depth_draw_never, shadows_disabled;
 // Crossed fire card. Always draws from both sides so a glance does not eat the flame.
+// Unshaded + additive: the colour is ALBEDO * ALPHA. (Until r29 only EMISSION was written, so
+// ALBEDO stayed its default white and every lit brazier showed a soft white sheet.) Hot, pale core
+// low and central, orange body, the deep-red tips fading out before they go dim enough for the
+// grade to pull them blue; the tongue narrows as it rises.
 
 uniform vec3 fire_hot : source_color = vec3(1.0, 0.82, 0.35);
 uniform vec3 fire_mid : source_color = vec3(1.0, 0.32, 0.06);
@@ -18,13 +22,16 @@ float noise(vec2 p) {
 void fragment() {
 	vec2 uv = UV;
 	float rise = 1.0 - uv.y;
-	float waist = 1.0 - abs(uv.x * 2.0 - 1.0);
 	float n = noise(vec2(uv.x * 4.2, uv.y * 3.4 - TIME * 2.4));
 	n += noise(vec2(uv.x * 8.0 + 2.1, uv.y * 6.0 - TIME * 3.6)) * 0.45;
-	float body = smoothstep(0.08, 0.42, waist * (0.55 + n * 0.55));
-	body *= smoothstep(0.0, 0.18, rise) * smoothstep(1.05, 0.42, rise + n * 0.2);
-	vec3 col = mix(fire_cool, fire_mid, smoothstep(0.15, 0.55, rise));
-	col = mix(col, fire_hot, smoothstep(0.55, 0.95, rise + n * 0.25) * waist);
-	EMISSION = col * body * intensity;
-	ALPHA = clamp(body * 1.4, 0.0, 1.0);
+	// the tongue narrows with height and sways a little with the noise
+	float x = abs((uv.x - 0.5 + (n - 0.7) * 0.08 * rise) * 2.0);
+	float waist = 1.0 - x / mix(1.0, 0.42, rise);
+	float body = smoothstep(0.0, 0.5, waist * (0.6 + n * 0.5));
+	body *= smoothstep(0.0, 0.16, rise) * (1.0 - smoothstep(0.4, 0.88, rise + n * 0.22));
+	float core = clamp(waist, 0.0, 1.0) * (1.0 - smoothstep(0.15, 0.7, rise + n * 0.15));
+	vec3 col = mix(fire_mid, fire_cool, smoothstep(0.5, 1.05, rise + n * 0.15));
+	col = mix(col, fire_hot, smoothstep(0.3, 0.85, core));
+	ALBEDO = col * intensity;
+	ALPHA = clamp(body * 1.3, 0.0, 1.0);
 }

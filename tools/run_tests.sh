@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+# Headless test gate for Umbral Reaches.
+#
+#   tools/run_tests.sh                 # every zz/*_test.tscn
+#   tools/run_tests.sh quest skill     # only zz/quest_test.tscn, zz/skill_test.tscn
+#   JOBS=2 TEST_TIMEOUT=300 tools/run_tests.sh
+#
+# Each test runs in its own scratch HOME, so user:// (savegame.cfg, settings.cfg, codex.cfg)
+# is never the owner's real profile. A test FAILS when any of these is true:
+#   - the process exits nonzero, or is killed by the timeout;
+#   - the log has "SCRIPT ERROR", "Parse Error" or "Failed to load script" (a parse error in
+#     one script cascades silently otherwise; the tests' own PASS lines do not catch it);
+#   - the log has a word-boundary, upper-case "FAIL" (every zz test prints FAIL on a failed check,
+#     but several still quit(0)); "0 FAIL" / "FAIL 0" counts are ignored.
+#   - (whole run) the static lint finds a Node/Callable-typed `static var` that
+#     core/world/session_state.gd does not list (it would dangle after the night is freed).
+# Exit status is the number of failing tests (0 = all green). Logs are kept in $OUT_DIR.
+#
+# Run it before every pack (see .cursor/skills/umbral-pack).
+set -u
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+GODOT="${GODOT:-$(command -v godot || echo /opt/homebrew/bin/godot)}"
+TEST_TIMEOUT="${TEST_TIMEOUT:-240}"
+JOBS="${JOBS:-4}"
+SCRATCH="${SCRATCH:-${TMPDIR:-/tmp}}"
+mkdir -p "$SCRATCH"
+RUN_DIR="$(mktemp -d "${SCRATCH%/}/umbral_tests.XXXXXX")" || { echo "cannot make a run dir under $SCRATCH" >&2; exit 99; }
+OUT_DIR="$RUN_DIR/logs"
+mkdir -p "$OUT_DIR"
+
+BAD_RE='SCRIPT ERROR|Parse Error|Failed to load script'
+FAIL_RE='(^|[^A-Za-z_])FAIL([^A-Za-z_]|$)'
+ZERO_RE='(^|[^0-9])0 FAIL([^A-Za-z_]|$)|FAIL 0([^0-9]|$)'   # "DIAG 0 FAIL ok" is a count, not a failure
+
+fail_lines() { grep -nE "$FAIL_RE" "$1" | grep -vE "$ZERO_RE"; }
+
+tests=()
+if [ "$#" -gt 0 ]; then
+	for n in "$@"; do
+		n="${n%.tscn}"; n="${n#zz/}"; n="${n%_test}"
+		tests+=("zz/${n}_test.tscn")
+	done
+else
+	for f in "$ROOT"/zz/*_test.tscn; do tests+=("zz/$(basename "$f")"); done
+fi
+
+# Run one test with an isolated HOME and a watchdog; write <name>.log and <name>.status.
+run_one() {
+	local scene="$1" name home log pid rc=0 waited=0
+	name="$(basename "$scene" .tscn)"
+	home="$RUN_DIR/home_$name"
+	log="$OUT_DIR/$name.log"
+	mkdir -p "$home"
+	if [ ! -f "$ROOT/$scene" ]; then
+		echo "missing scene $scene" > "$log"; echo "MISSING" > "$OUT_DIR/$name.status"; return
+	fi
+	# HOME isolates user:// (savegame/settings/codex.cfg and the caches). The --save-dir seam
+	# (core/util/save_dir.gd) is NOT passed: some tests read user://savegame.cfg directly.
+	HOME="$home" "$GODOT" --headless --path "$ROOT" "res://$scene" > "$log" 2>&1 &
+	pid=$!
+	while kill -0 "$pid" 2>/dev/null; do
+		if [ "$waited" -ge "$TEST_TIMEOUT" ]; then
+			kill -TERM "$pid" 2>/dev/null; sleep 2; kill -KILL "$pid" 2>/dev/null
+			echo "RUNNER TIMEOUT after ${TEST_TIMEOUT}s" >> "$log"
+			echo "TIMEOUT" > "$OUT_DIR/$name.status"
+			wait "$pid" 2>/dev/null
+			return
+		fi
+		sleep 1; waited=$((waited + 1))
+	done
+	wait "$pid"; rc=$?
+	if grep -qE "$BAD_RE" "$log"; then
+		echo "SCRIPT_ERROR" > "$OUT_DIR/$name.status"
+	elif fail_lines "$log" > /dev/null; then
+		echo "FAIL" > "$OUT_DIR/$name.status"
+	elif [ "$rc" -eq 137 ] && tail -n 3 "$log" | grep -qE '(^|[^A-Za-z_])PASS([^A-Za-z_]|$)'; then
+		# secrets tests print their PASS line, then OS.kill() themselves (exit 137) on purpose
+		echo "PASS ${waited}s (self-kill after PASS)" > "$OUT_DIR/$name.status"
+	elif [ "$rc" -ne 0 ]; then
+		echo "EXIT_$rc" > "$OUT_DIR/$name.status"
+	else
+		echo "PASS ${waited}s" > "$OUT_DIR/$name.status"
+	fi
+}
+
+# Static lint (docs/critique/r30/architect.md #2): a static var typed Node / Callable outlives the
+# night that set it. Every one must be listed in core/world/session_state.gd NODE_REFS (which
+# reset_night() clears). Also reports the static var total so growth is visible.
+lint_fail=0
+REG="$ROOT/core/world/session_state.gd"
+while IFS= read -r hit; do
+	[ -z "$hit" ] && continue
+	file="${hit%%:*}"; rest="${hit#*:}"; rest="${rest#*:}"
+	var="$(echo "$rest" | sed -E 's/^static var ([A-Za-z_0-9]+).*/\1/')"
+	if ! grep -qF "\"$file: $var\"" "$REG"; then
+		echo "LINT static Node/Callable not in session_state.gd NODE_REFS: $file: $var"
+		lint_fail=1
+	fi
+done <<EOF2
+$(cd "$ROOT" && grep -rnE '^static var [A-Za-z_0-9]+ *: *(Node|Node2D|Node3D|Control|CanvasLayer|Object|Callable)( |=|$)' core ui world autoload --include='*.gd' 2>/dev/null)
+EOF2
+static_total="$(cd "$ROOT" && grep -rhE '^static var ' core ui world autoload --include='*.gd' 2>/dev/null | wc -l | tr -d ' ')"
+echo "lint: $static_total static vars in shipping code"
+
+echo "Umbral tests: ${#tests[@]} scene(s), jobs=$JOBS, timeout=${TEST_TIMEOUT}s, logs in $OUT_DIR"
+running=0
+for t in "${tests[@]}"; do
+	run_one "$t" &
+	running=$((running + 1))
+	if [ "$running" -ge "$JOBS" ]; then
+		if wait -n 2>/dev/null; then running=$((running - 1)); else wait; running=0; fi
+	fi
+done
+wait
+
+failed=0
+for t in "${tests[@]}"; do
+	name="$(basename "$t" .tscn)"
+	st="$(cat "$OUT_DIR/$name.status" 2>/dev/null || echo NO_STATUS)"
+	printf '%-28s %s\n' "$name" "$st"
+	case "$st" in
+		PASS*) ;;
+		*)
+			failed=$((failed + 1))
+			{ grep -nE "$BAD_RE|RUNNER TIMEOUT" "$OUT_DIR/$name.log"; fail_lines "$OUT_DIR/$name.log"; } | head -8 | sed 's/^/    /'
+			;;
+	esac
+done
+if [ "$lint_fail" -ne 0 ]; then echo "static lint                  FAIL"; failed=$((failed + 1)); fi
+echo "----"
+if [ "$failed" -eq 0 ]; then echo "ALL ${#tests[@]} PASS"; else echo "$failed of ${#tests[@]} FAILED (logs: $OUT_DIR)"; fi
+exit "$failed"

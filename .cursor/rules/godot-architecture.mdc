@@ -11,11 +11,13 @@ Godot is scenes, not Unity prefabs. Keep `core/<feature>/`, `world/`, `ui/`, `au
 
 **Compose, don't inherit.** `Player` (`CharacterBody3D`) owns move/camera/gloom. `CharacterRig` owns skeleton, sockets, stride, loadout. Player talks to the rig through `animate()`, `cast()`, `equip()` — never bone names.
 
+**Static state:** night state kept in a `static var` is listed and reset in `core/world/session_state.gd`; no new `static var` typed Node/Callable (the `tools/run_tests.sh` lint fails). Prefer typed refs (`preload` const / `class_name`) to `.call("name")` across files.
+
 **Find things with groups**, not `get_parent()`. Use `Groups.PLAYER`, `INTERACTABLE`, `LIGHT_SOURCE`, `SHADE`. Spawn into `get_tree().current_scene`, not the parent.
 
 **Physics:** `Layers.WORLD` (1) / `PLAYER` (2). Collision capsule on Player only.
 
-**A night is a `Zone`.** `world/main.gd` and `world/vale.gd` extend it and call `finish_zone_setup()` last. HUD/settings are instanced per night today; do not parent them only under a room that `change_scene` deletes unless Travel restores them.
+**A night is a `Zone`.** `world/main.gd` extends it and calls `finish_zone_setup()` last; the Realm (`core/world/realm/realm.gd`) builds the world and starts the `core/life` systems as modules. HUD/settings are instanced per night today; do not parent them only under a room that `change_scene` deletes unless Travel restores them.
 
 **Pause:** `get_tree().paused`. Settings menu is `PROCESS_MODE_ALWAYS`. Travel fade must keep running. Do not use `Engine.time_scale = 0`.
 

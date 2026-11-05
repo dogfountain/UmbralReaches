@@ -11,6 +11,10 @@ const SHELL := preload("res://world/vfx/shell.gdshader")
 const COLUMN := preload("res://world/vfx/flame_column.gdshader")
 const TARGET := preload("res://world/vfx/target_ring.gdshader")
 const TEAR := preload("res://world/vfx/rift_tear.gdshader")
+const DANGER := preload("res://core/vfx/danger_zone.gdshader")
+## r29: an ember red-orange. The night grade pulls every hue under ~16 deg into its blue band, so
+## the old (2.6, 0.32, 0.18) read as indigo on the ground (zz/critA_color_shot); warm = danger.
+const DANGER_RED := Color(2.6, 0.55, 0.1)
 
 const VIOLET := Color(1.3, 0.55, 3.0)
 const VIOLET_HOT := Color(2.4, 1.8, 3.4)
@@ -227,3 +231,58 @@ static func rift_seam(from: Vector3, to: Vector3) -> void:
 	for i in 12:
 		pts.append(a.lerp(b, float(i) / 11.0))
 	Vfx.ribbon(pts, 0.1, 0.9, Color(0.8, 0.4, 2.2, 0.8), 0.35)
+
+
+# --- attack telegraphs ------------------------------------------------------------------------
+
+## The ground area an attack is about to hit, filling over `life` seconds (core/vfx/danger_zone).
+## opts: "radius" (disc/sector, m), "half_angle" (rad, < PI makes a cone toward local -Z),
+##       "rect" Vector2(half width, half length) (a lane; its back edge sits at `at`),
+##       "yaw" (rad, which way local -Z points), "color", "parent" (Node3D to follow; `at` is
+##       then local to it), "hold" (seconds the full zone lingers after landing, default 0.12).
+## Returns the MeshInstance3D (freed by itself), or null.
+static func danger(at: Vector3, life: float, opts := {}) -> MeshInstance3D:
+	_meshes()
+	var col: Color = opts.get("color", DANGER_RED)
+	var rect: Vector2 = opts.get("rect", Vector2.ZERO)
+	var shape := 1 if rect != Vector2.ZERO else 0
+	var half: float = opts.get("half_angle", PI)
+	var key := "danger%d|%s|%.3f" % [shape, col, half]
+	var mat := _mat(key, DANGER, {"color": Vector3(col.r, col.g, col.b), "shape": shape, "half_angle": half})
+	var parent: Node3D = opts.get("parent", null)
+	var mi := MeshInstance3D.new()
+	mi.mesh = _plane
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.extra_cull_margin = 2.0
+	if parent != null and is_instance_valid(parent) and parent.is_inside_tree():
+		parent.add_child(mi)
+	else:
+		var h := Vfx.host()
+		if h == null:
+			return null
+		h.add_child(mi)
+		parent = null
+	var yaw: float = opts.get("yaw", 0.0)
+	var b := Basis(Vector3.UP, yaw)
+	var half_m := Vector2.ONE
+	var origin := at + Vector3.UP * 0.08
+	if shape == 1:
+		half_m = rect
+		origin += b * Vector3(0.0, 0.0, -rect.y)       # the lane starts at `at` and runs forward
+	else:
+		var r: float = opts.get("radius", 1.0)
+		half_m = Vector2(r, r)
+	var xf := Transform3D(b * Basis.from_scale(Vector3(half_m.x, 1.0, half_m.y)), origin)
+	if parent:
+		mi.transform = xf
+	else:
+		mi.global_transform = xf
+	mi.set_instance_shader_parameter(&"size_m", half_m)
+	mi.set_instance_shader_parameter(&"fade", 1.0)
+	var hold: float = opts.get("hold", 0.12)
+	var tw := mi.create_tween()
+	tw.tween_method(func(v: float) -> void: mi.set_instance_shader_parameter(&"progress", v), 0.0, 1.0, maxf(life, 0.05))
+	tw.tween_method(func(v: float) -> void: mi.set_instance_shader_parameter(&"fade", v), 1.0, 0.0, 0.18).set_delay(hold)
+	tw.tween_callback(mi.queue_free)
+	return mi

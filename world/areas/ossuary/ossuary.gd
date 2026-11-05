@@ -8,21 +8,40 @@ extends Area
 ##     └ north stair ─ NICHE GALLERY (y 8.4, two aisles, skull niches)
 ##         └ north stair ─ CHARNEL PIT (y 4.2, round, cantilevered) ─ chain lift ↑ summit
 ##             └ CHAPEL (y 4.2): Bone Reliquary
+##                 └ (after the Abbot) the sexton's slab ─ THE LOWER COUNT (oss_deep.gd): cells under
+##                   the chapel, the Count Drum under the pit, the Weighing Floor, the hoard, and a
+##                   counterweight cage back up to the gallery's west arcade
 
 const HALL_Y := 12.6
 const GAL_Y := 8.4
 const PIT_Y := 4.2
 const PIT_C := Vector3(16.0, PIT_Y, -86.0)
-const PIT_R := 8.0
+const PIT_R := 11.0               ## widened from 8 m: the crypt is the Bone Abbot's arena
 const LAVA_Y := -16.5
 const SUMMIT := Vector3(0.0, 24.5, -83.5)
 const LIFT_AT := Vector3(13.0, PIT_Y, -89.0)
+const PIT_WALL := 1.3           ## parapet height round the pit (r30: was 0.8, vaultable into the lava)
 const PLINTH_A := 2.05          ## spitter plinths, off the entry (1.0 rad), lift (π) and chapel (-π/2) lanes
 const PLINTH_B := 5.55
+const OssDeep := preload("res://world/areas/ossuary/oss_deep.gd")
+
+## Realm only (docs/REALM_PLAN.md): the fen door. Without the hub stair the crypt is reached on foot
+## from the Hollow Fen: fen_descent ends at the door (RealmLayout.OSSUARY_GATE) in a gatehouse front
+## set into the cliff; inside, a stair climbs north-south in a walled cut to a landing and a door in
+## the niche gallery's east wall (on the near side of the bone portcullis, so the gallery seal and
+## its camps still stand between you and the pit). RealmBosses registers the cuts before the stamp.
+const FEN_GATE := Vector3(34.0, 4.0, -66.0)     ## = RealmLayout.OSSUARY_GATE (threshold, floor)
+const FEN_FACADE_X := 34.4                      ## gatehouse front wall (centre line, 0.8 thick)
+const FEN_X := 30.3                             ## the inner stair's centre line
+const FEN_W := 3.8                             ## wall to wall (x 28.4 .. 32.2)
+const FEN_FOOT_Z := -64.6
+const FEN_HEAD_Z := -56.2
+const FEN_DOOR_Z := -55.1                       ## the door in the gallery's east wall (x 27)
+static var fen_out := 36.5                      ## east end of the threshold (RealmBosses: to meet the ground)
 
 var _rng := RandomNumberGenerator.new()
 var _draws := 0
-const BOUNDS := AABB(Vector3(2.0, -6.0, -106.0), Vector3(30.0, 32.0, 84.0))
+const BOUNDS := AABB(Vector3(2.0, -6.0, -110.0), Vector3(30.0, 32.0, 88.0))
 
 
 func _init() -> void:
@@ -64,12 +83,21 @@ func build() -> void:
 	_draws = k.commit(self)
 	_lights()
 	_lift()
-	_reliquary()
 	_spawns()
+	_crypt()
+	# the Lower Count (r28): its own node, built over the next frames
+	if not "--no-r28-secrets" in OS.get_cmdline_user_args():     # A/B switch for perf measurements
+		var deep: Node3D = OssDeep.new()
+		deep.name = "LowerCount"
+		add_child(deep)
+		await deep.call("build", self)
+	if Realm.enabled() and Realm.module_on("bosses"):
+		_fen_gate()                             # not awaited: waits for the Realm's ground
 	perf_points = [
 		{"name": "ossuary_bridge", "at": Vector3(1.5, HALL_Y + 0.1, -34.0), "yaw": -PI * 0.5},
 		{"name": "ossuary_gallery", "at": Vector3(22.0, GAL_Y + 0.1, -52.5), "yaw": 0.0},
 		{"name": "ossuary_pit", "at": Vector3(20.5, PIT_Y + 0.1, -79.5), "yaw": 0.5},
+		{"name": "ossuary_count", "at": Vector3(18.0, -1.9, -91.0), "yaw": 0.0},       # the Lower Count: drum, arms, hoard
 	]
 	print("OSSUARY build %.1f ms draws=%d col_tris=%d candles=%d skulls=%d" % [
 		(Time.get_ticks_usec() - t0) * 0.001, _draws, k.col_faces.size() / 3, k.candle_count(), k.skull_count()])
@@ -219,6 +247,15 @@ func _stair_down(k: OssKit, lo: Vector3, hi: Vector3) -> void:
 		for s: float in [-1.0, 1.0]:
 			if (i + int(s > 0.0)) % 2 == 0:
 				k.candle_cluster(lo.lerp(hi, 0.1 + 0.2 * float(i)) + side * (s * 1.85) + up * 1.1, 3, 0.08, _rng)
+	# stair hall: newel pinnacles at the head and foot, an iron lantern bracket at the head
+	for end: Vector3 in [lo, hi]:
+		for s: float in [-1.0, 1.0]:
+			k.pinnacle("stone", end + side * (s * 1.85) + Vector3.DOWN * 0.05, 0.55, 1.45, 0.6)
+	for s: float in [-1.0, 1.0]:
+		var b := hi + side * (s * 1.85) + Vector3.UP * 1.45
+		k.box("iron", b + side * (s * 0.3) + Vector3.UP * 0.35, Vector3(0.05, 0.05, 0.6), Basis(side, Vector3.UP, dir), false)
+		k.box("iron", b + Vector3.UP * 0.1, Vector3(0.05, 0.6, 0.05), Basis.IDENTITY, false)
+		k.box("glow", b + side * (s * 0.3) + Vector3.UP * 0.1 + dir * 0.25, Vector3(0.18, 0.26, 0.18), Basis.IDENTITY, false, 0.6)
 
 
 # --- bridge -------------------------------------------------------------------------------
@@ -272,7 +309,12 @@ static func _great_rib_mesh(top: float) -> ArrayMesh:
 func _bridge(k: OssKit) -> void:
 	var z := -34.0
 	var y := HALL_Y
-	for seg: Vector2 in [Vector2(2.5, 8.0), Vector2(13.0, 18.0)]:
+	# under the Realm the hub stair's landing is gone (the way in is the fen gate): the west half
+	# would hang over the rift from nothing, so only the gate hall's broken balcony stays
+	var segs: Array[Vector2] = [Vector2(13.0, 18.0)]
+	if not Realm.enabled():
+		segs.push_front(Vector2(2.5, 8.0))
+	for seg: Vector2 in segs:
 		var x0 := seg.x
 		var x1 := seg.y
 		var mid := (x0 + x1) * 0.5
@@ -306,7 +348,7 @@ func _bridge(k: OssKit) -> void:
 	# the great ribs, snapped well below the deck (scenery, not stepping stones)
 	for s: float in [-1.0, 1.0]:
 		k.append_mesh("bone_cm", _great_rib_mesh(y - 6.0 - LAVA_Y), Transform3D(Basis(Vector3.UP, PI if s < 0.0 else 0.0), Vector3(10.5 - s * 1.6, LAVA_Y, z + s * 1.2)))
-	for x: float in [5.0, 15.5]:
+	for x: float in ([15.5] if Realm.enabled() else [5.0, 15.5]):
 		_pier(k, x, z, y - 0.75, 1.8)
 
 
@@ -409,14 +451,27 @@ func _gallery(k: OssKit) -> void:
 	# west: open arcade over the chasm, waist-high sill so the view stays open
 	var arcade: Array = []
 	for i in 5:
-		arcade.append({"at": 1.8 + 3.1 * float(i), "w": 2.3, "spring": 2.6, "sill": 0.95, "k": 0.8})
+		if i == 3:       # the Sexton's cage arrives here (oss_deep.gd): a door, grilled until opened
+			arcade.append({"at": 1.8 + 3.1 * float(i), "w": 2.3, "spring": 2.6, "k": 0.8})
+		else:
+			arcade.append({"at": 1.8 + 3.1 * float(i), "w": 2.3, "spring": 2.6, "sill": 0.95, "k": 0.8})
 	_wall(k, "stone", Vector3(x0, y, z1), Vector3(x0, y, z0), h, t, arcade)
 	# east: two rows of skull niches against the cliff
 	var low: Array = []
+	var fen := Realm.enabled() and Realm.module_on("bosses")
 	for i in 8:
-		low.append({"at": 1.1 + 1.95 * float(i), "w": 1.1, "spring": 1.5, "sill": 0.7, "niche": true, "k": 0.7})
+		var at := 1.1 + 1.95 * float(i)
+		if fen and absf(z0 + at - FEN_DOOR_Z) < 0.55 + 0.8 + 0.1:
+			continue                                 # the fen door takes this bay (realm)
+		low.append({"at": at, "w": 1.1, "spring": 1.5, "sill": 0.7, "niche": true, "k": 0.7})
+	if fen:
+		low.append({"at": FEN_DOOR_Z - z0, "w": 1.6, "spring": 2.2})
 	_wall(k, "plaster", Vector3(x1, y, z0), Vector3(x1, y, z1), 3.4, t, low, Vector3.RIGHT)
-	_bone_dado(k, Vector3(x1 - t * 0.5, y, z0 + 0.4), Vector3(x1 - t * 0.5, y, z1 - 0.4), Vector3.LEFT, [0.47, 0.6])
+	if fen:
+		_bone_dado(k, Vector3(x1 - t * 0.5, y, z0 + 0.4), Vector3(x1 - t * 0.5, y, FEN_DOOR_Z - 1.0), Vector3.LEFT, [0.47, 0.6])
+		_bone_dado(k, Vector3(x1 - t * 0.5, y, FEN_DOOR_Z + 1.0), Vector3(x1 - t * 0.5, y, z1 - 0.4), Vector3.LEFT, [0.47, 0.6])
+	else:
+		_bone_dado(k, Vector3(x1 - t * 0.5, y, z0 + 0.4), Vector3(x1 - t * 0.5, y, z1 - 0.4), Vector3.LEFT, [0.47, 0.6])
 	var high: Array = []
 	for i in 8:
 		high.append({"at": 1.1 + 1.95 * float(i), "w": 1.0, "spring": 1.2, "sill": 0.35, "niche": true, "k": 0.7})
@@ -443,11 +498,21 @@ func _gallery(k: OssKit) -> void:
 	# bone heaps in the aisles + candles
 	for i in 6:
 		var at := Vector3(_rng.randf_range(23.4, 26.0), y, _rng.randf_range(-66.0, -52.0))
-		_bone_heap(k, at, _rng.randf_range(0.5, 0.9))
+		var hr := _rng.randf_range(0.5, 0.9)
+		if fen and absf(at.z - FEN_DOOR_Z) < 1.0 + hr:
+			continue                                 # keep the fen door's way in clear
+		_bone_heap(k, at, hr)
 	for zz: float in [-53.6, -57.1, -60.6, -64.1]:
 		k.candelabrum(Vector3(25.4, y, zz), 1.5, _rng)
 	for i in 26:
 		k.candle_cluster(Vector3(_rng.randf_range(18.4, 26.2), y, _rng.randf_range(-66.3, -51.7)), _rng.randi_range(3, 9), 0.28, _rng)
+	# Wenna's niche (r30 story): the second low niche from the portcullis end, one stub of candle on
+	# its sill and her last word scratched beside it. Its own rng: the gallery's dressing is unchanged.
+	var wz := z0 + 1.1 + 1.95
+	var wr := RandomNumberGenerator.new()
+	wr.seed = 9119
+	k.candle_cluster(Vector3(x1 - 0.55, y + 0.7, wz), 1, 0.02, wr)
+	(load("res://core/world/realm/lore/lore_more.gd") as GDScript).call("place", self, "bs_wenna_niche", Vector3(x1 - 0.9, y + 0.9, wz))
 
 
 ## Bone dado along a wall face a->b: rows at the given heights above the floor. A positive
@@ -487,7 +552,7 @@ func _bone_heap(k: OssKit, at: Vector3, r: float) -> void:
 
 func _pit(k: OssKit) -> void:
 	var c := PIT_C
-	var n := 28
+	var n := 40
 	var thick := 1.2
 	# floor disc (top + rim + underside) as a fan; collision included
 	for i in n:
@@ -500,47 +565,55 @@ func _pit(k: OssKit) -> void:
 		k.quad("stone", c + dn, p1 + dn, p0 + dn, c + dn, Vector3.DOWN)
 		var out := (Vector3(cos(a0), 0, sin(a0)) + Vector3(cos(a1), 0, sin(a1))).normalized()
 		k.quad("stone", p0, p1, p1 + dn, p0 + dn, out)
-	# drum and corbels underneath, down into the lava
-	for i in 8:
-		var a := TAU * float(i) / 8.0
-		var p := c + Vector3(cos(a), 0, sin(a)) * 3.2
-		k.box("stone", Vector3(p.x, (LAVA_Y + c.y - thick) * 0.5, p.z), Vector3(2.0, c.y - thick - LAVA_Y, 2.0), Basis(Vector3.UP, a))
-		var q := c + Vector3(cos(a), 0, sin(a)) * 6.0
-		k.box("stone", q + Vector3.UP * (-thick - 1.2), Vector3(4.0, 2.4, 1.0), Basis(Vector3.UP, -a).orthonormalized() * Basis(Vector3.FORWARD, 0.0), false, 0.8)
-	# parapet ring with gaps: entry (towards the stair foot), chapel (north), lift (west)
-	var gaps := [_ang_to(Vector3(21.0, 0, -78.0)), -PI * 0.5, PI]
+	# drum and corbels underneath, down into the lava: only where the Lower Count (oss_deep.gd)
+	# leaves room. Its turning drum, spindle and arms take the middle; three piers carry the rest.
+	for i in 12:
+		var a := TAU * float(i) / 12.0
+		var p := c + Vector3(cos(a), 0, sin(a)) * 4.8
+		if OssDeep.clear(Vector2(p.x, p.z), 1.5):
+			k.box("stone", Vector3(p.x, (LAVA_Y + c.y - thick) * 0.5, p.z), Vector3(2.0, c.y - thick - LAVA_Y, 2.0), Basis(Vector3.UP, a))
+		var q := c + Vector3(cos(a), 0, sin(a)) * 8.8
+		if OssDeep.clear(Vector2(q.x, q.z), 1.0):
+			k.box("stone", q + Vector3.UP * (-thick - 1.2), Vector3(4.0, 2.4, 1.0), Basis(Vector3.UP, -a).orthonormalized() * Basis(Vector3.FORWARD, 0.0), false, 0.8)
+	for sp: Vector2 in [Vector2(9.5, -79.5), Vector2(24.0, -91.0), Vector2(13.2, -95.5)]:
+		_pier(k, sp.x, sp.y, c.y - thick, 2.0)
+	# parapet ring with gaps: entry (towards the stair foot) and chapel (north). r30: the west "lift"
+	# gap opened onto a 7 m drop over lava with no lift in it (the lift stands at 225 deg, r 4.2): closed.
+	# 1.3 m high (above the vault reach, VAULT_MAX 1.25): the lava edge is a wall you see, not one you
+	# vault into while dodging.
+	var gaps := [_ang_to(Vector3(21.0, 0, -78.0)), -PI * 0.5]
 	for i in n:
 		var a0 := TAU * float(i) / float(n)
 		var a1 := TAU * float(i + 1) / float(n)
 		var am := (a0 + a1) * 0.5
 		var skip := false
 		for g in gaps:
-			if absf(angle_difference(am, float(g))) < 0.28:
+			if absf(angle_difference(am, float(g))) < 0.2:
 				skip = true
 		if skip:
 			continue
 		var p0 := c + Vector3(cos(a0), 0, sin(a0)) * (PIT_R - 0.25)
 		var p1 := c + Vector3(cos(a1), 0, sin(a1)) * (PIT_R - 0.25)
-		k.parapet("stone", p0, p1, 0.8, 0.4)
+		k.parapet("stone", p0, p1, PIT_WALL, 0.4)
 	# broken colonnade, bone mounds, spitter plinths
-	for i in 8:
-		var a := TAU * float(i) / 8.0 + 0.2
+	for i in 12:
+		var a := TAU * float(i) / 12.0 + 0.2
 		var in_gap := false                      # keep the entry, chapel and lift lanes clear
 		for g: float in gaps:
-			if absf(angle_difference(a, g)) < 0.45:
+			if absf(angle_difference(a, g)) < 0.32:
 				in_gap = true
 		if in_gap:
 			continue
-		var p := c + Vector3(cos(a), 0, sin(a)) * 6.6
+		var p := c + Vector3(cos(a), 0, sin(a)) * 9.4
 		var hgt := 6.5 if i % 3 == 0 else _rng.randf_range(1.6, 4.4)
 		k.box("stone", p + Vector3.UP * (hgt * 0.5), Vector3(0.9, hgt, 0.9), Basis(Vector3.UP, a))
 		k.box("stone", p + Vector3.UP * 0.25, Vector3(1.4, 0.5, 1.4), Basis(Vector3.UP, a), true, 0.85)
 		if hgt < 6.0:
 			k.candle_cluster(p + Vector3.UP * hgt, _rng.randi_range(3, 6), 0.25, _rng)
 	for a: float in [0.45, 2.65, 3.15, 5.05]:
-		_bone_heap(k, c + Vector3(cos(a), 0, sin(a)) * 4.0, 1.2)
+		_bone_heap(k, c + Vector3(cos(a), 0, sin(a)) * 6.2, 1.5)
 	for a: float in [PLINTH_A, PLINTH_B]:
-		var p := c + Vector3(cos(a), 0, sin(a)) * 5.2
+		var p := c + Vector3(cos(a), 0, sin(a)) * 7.8
 		k.block("stone", p + Vector3(-1.0, 0, -1.0), p + Vector3(1.0, 1.6, 1.0))
 		k.candle_cluster(p + Vector3(0, 1.6, 0), 6, 0.6, _rng)
 	# charnel mound: tiers of skulls facing outward, a long-bone crown, candles all round
@@ -556,8 +629,7 @@ func _pit(k: OssKit) -> void:
 	for i in 14:
 		var a := TAU * float(i) / 14.0 + 0.1
 		k.candle_cluster(c + Vector3(cos(a), 0, sin(a)) * 1.75, _rng.randi_range(3, 6), 0.2, _rng)
-	# landing from the stair
-	k.block("floor", Vector3(19.0, PIT_Y - 0.6, -80.0), Vector3(23.0, PIT_Y, -77.6))
+	# (the stair now lands on the widened pit floor itself: no separate landing slab)
 	_pier(k, 21.0, -79.0, PIT_Y - 0.6, 2.0)
 
 
@@ -570,13 +642,18 @@ func _ang_to(p: Vector3) -> float:
 func _chapel(k: OssKit) -> void:
 	var x0 := 12.0
 	var x1 := 20.0
-	var z0 := -104.0
-	var z1 := -96.0
+	var z0 := -107.0
+	var z1 := -99.0
 	var y := PIT_Y
 	var h := 6.0
 	var t := 0.7
-	k.block("floor", Vector3(15.0, y - 0.6, -96.0), Vector3(17.0, y, -93.8))     # walk from the pit
-	k.block("floor", Vector3(x0, y - 0.6, z0), Vector3(x1, y, z1))
+	k.block("floor", Vector3(15.0, y - 0.6, -99.0), Vector3(17.0, y, -96.6))     # walk from the pit
+	# the floor, open over the sexton's stair (oss_deep.gd: a slab covers it until the Abbot falls)
+	var hole: Rect2 = OssDeep.HOLE
+	k.block("floor", Vector3(x0, y - 0.6, z0), Vector3(hole.position.x, y, z1))
+	k.block("floor", Vector3(hole.end.x, y - 0.6, z0), Vector3(x1, y, z1))
+	k.block("floor", Vector3(hole.position.x, y - 0.6, z0), Vector3(hole.end.x, y, hole.position.y))
+	k.block("floor", Vector3(hole.position.x, y - 0.6, hole.end.y), Vector3(hole.end.x, y, z1))
 	for p: Vector2 in [Vector2(x0, z0), Vector2(x1, z0), Vector2(x0, z1), Vector2(x1, z1)]:
 		_pier(k, p.x, p.y, y - 0.6, 2.0)
 	_wall(k, "plaster", Vector3(x0, y, z1), Vector3(x1, y, z1), h, t, [{"at": 4.0, "w": 2.4, "spring": 2.8}])
@@ -588,20 +665,23 @@ func _chapel(k: OssKit) -> void:
 	_wall(k, "plaster", Vector3(x1, y, z1), Vector3(x1, y, z0), h, t, side_n, Vector3.RIGHT)
 	_bone_dado(k, Vector3(x0 + t * 0.5, y, z0 + 0.5), Vector3(x0 + t * 0.5, y, z1 - 0.5), Vector3.RIGHT, [0.47, 0.6, -0.7])
 	_bone_dado(k, Vector3(x1 - t * 0.5, y, z0 + 0.5), Vector3(x1 - t * 0.5, y, z1 - 0.5), Vector3.LEFT, [0.47, 0.6, -0.7])
-	for c: Vector2 in [Vector2(13.6, -102.6), Vector2(18.4, -102.6)]:
+	for c: Vector2 in [Vector2(13.6, -105.6), Vector2(18.4, -105.6)]:
 		k.candelabrum(Vector3(c.x, y, c.y), 1.8, _rng)
 	k.block("dark", Vector3(x0, y + h, z0), Vector3(x1, y + h + 0.3, z1), true, 0.7)
 	_gable_roof(k, Vector3(x0, 0, z0), Vector3(x1, 0, z1), y + h + 0.3, y + h + 3.0, true)
 	for p: Vector2 in [Vector2(x0, z0), Vector2(x1, z0), Vector2(x0, z1), Vector2(x1, z1)]:
 		k.pinnacle("stone", Vector3(p.x, y + h, p.y), 0.7, 1.2, 2.2)
-	k.pinnacle("slate", Vector3(16.0, y + h + 3.0, -100.0), 1.0, 0.3, 4.0)
+	k.pinnacle("slate", Vector3(16.0, y + h + 3.0, -103.0), 1.0, 0.3, 4.0)
 	# altar
-	k.block("stone", Vector3(14.6, y, -103.2), Vector3(17.4, y + 1.0, -101.8))
-	k.block("stone", Vector3(14.4, y + 1.0, -103.4), Vector3(17.6, y + 1.15, -101.6), true, 0.9)
-	k.candle_cluster(Vector3(14.9, y + 1.15, -102.5), 6, 0.2, _rng)
-	k.candle_cluster(Vector3(17.1, y + 1.15, -102.5), 6, 0.2, _rng)
+	k.block("stone", Vector3(14.6, y, -106.2), Vector3(17.4, y + 1.0, -104.8))
+	k.block("stone", Vector3(14.4, y + 1.0, -106.4), Vector3(17.6, y + 1.15, -104.6), true, 0.9)
+	k.candle_cluster(Vector3(14.9, y + 1.15, -105.5), 6, 0.2, _rng)
+	k.candle_cluster(Vector3(17.1, y + 1.15, -105.5), 6, 0.2, _rng)
 	for i in 6:
-		k.candle_cluster(Vector3(_rng.randf_range(12.8, 19.2), y, _rng.randf_range(-103.3, -96.7)), 5, 0.3, _rng)
+		var cp := Vector3(_rng.randf_range(12.8, 19.2), y, _rng.randf_range(-106.3, -99.7))
+		if cp.x > hole.position.x - 0.5 and cp.z > hole.position.y - 0.4:
+			cp.x = hole.position.x - 0.7                # not over the stairwell
+		k.candle_cluster(cp, 5, 0.3, _rng)
 
 
 # --- lights, lift, reliquary, enemies -------------------------------------------------------
@@ -611,8 +691,8 @@ func _lights() -> void:
 	_omni("HallFill", Vector3(24.0, HALL_Y + 4.8, -31.0), Color(1.0, 0.62, 0.3), 1.1, 11.0, false)
 	_omni("GalleryA", Vector3(22.25, GAL_Y + 3.6, -54.5), Color(1.0, 0.58, 0.28), 1.3, 9.0, false)
 	_omni("GalleryB", Vector3(22.25, GAL_Y + 3.6, -63.0), Color(1.0, 0.58, 0.28), 1.3, 9.0, false)
-	_omni("PitCandles", PIT_C + Vector3(0, 3.2, 0), Color(1.0, 0.6, 0.3), 2.2, 13.0, true)
-	_omni("Chapel", Vector3(16.0, PIT_Y + 3.0, -101.0), Color(0.75, 0.45, 1.0), 1.6, 8.0, false)
+	_omni("PitCandles", PIT_C + Vector3(0, 3.6, 0), Color(1.0, 0.6, 0.3), 2.6, 18.0, false)   # unshadowed: fights here re-rendered its cube map every frame
+	_omni("Chapel", Vector3(16.0, PIT_Y + 3.0, -104.0), Color(0.75, 0.45, 1.0), 1.6, 8.0, false)
 	_omni("BridgeUnder", Vector3(10.5, HALL_Y - 4.0, -34.0), Color(1.0, 0.45, 0.15), 1.4, 10.0, false)
 
 
@@ -638,22 +718,177 @@ func _lift() -> void:
 	lift.name = "ChainLift"
 	lift.bottom = LIFT_AT                       # clear of the summit's visible rim (x ≈ 10.6 here)
 	lift.top_y = 26.56                          # summit mid-tier height (measured)
+	# it rests at the pit floor until the Abbot falls: its deck stands in his arena (a way out of the
+	# fight) and its top stop is past the summit ward (a way round it)
+	lift.hold = not Travel.bosses_slain.has("bone_abbot")
+	Events.boss_slain.connect(func(id: String) -> void:
+		if id == "bone_abbot" and is_instance_valid(lift):
+			lift.hold = false)
 	add_child(lift)
 
 
-func _reliquary() -> void:
-	var r := Reliquary.new()
-	r.name = "BoneReliquary"
-	r.relic_id = "bone"
-	add_child(r)
-	r.global_position = Vector3(16.0, PIT_Y + 1.15, -102.5)
-
-
 func _spawns() -> void:
+	# the gallery's two camps guard the crypt: kill them and the bone portcullis rises.
+	# The pit itself is the Abbot's: no standing camps there any more.
 	EnemySpawner._seed(self, [
-		{"at": Vector3(20.0, GAL_Y + 1.0, -56.0), "kinds": ["wretch", "wretch"], "probe": 1.5, "r": 1.6},
-		{"at": Vector3(24.6, GAL_Y + 1.0, -62.5), "kinds": ["ossuant", "spitter"], "probe": 1.5, "r": 1.4},
-		{"at": PIT_C + Vector3(0.0, 1.0, -1.5), "kinds": ["ossuant", "ossuant", "husk"], "probe": 1.5, "r": 2.2},
-		{"at": PIT_C + Vector3(cos(PLINTH_A) * 5.2, 2.6, sin(PLINTH_A) * 5.2), "kinds": ["spitter"], "probe": 1.5},
-		{"at": PIT_C + Vector3(cos(PLINTH_B) * 5.2, 2.6, sin(PLINTH_B) * 5.2), "kinds": ["spitter"], "probe": 1.5},
+		{"at": Vector3(20.0, GAL_Y + 1.0, -56.0), "kinds": ["wretch", "wretch"], "probe": 1.5, "r": 1.6, "seal": "oss_gallery"},
+		{"at": Vector3(24.6, GAL_Y + 1.0, -62.5), "kinds": ["ossuant", "spitter"], "probe": 1.5, "r": 1.4, "seal": "oss_gallery"},
 	])
+
+
+## The crypt: the portcullis at the head of the pit stair, the Abbot's arena on the pit floor and
+## the Bone Reliquary rising from the charnel mound when he falls.
+func _crypt() -> void:
+	WardSeal.make(self, "oss_gallery", Vector3(21.0, GAL_Y, -66.7), Vector3.FORWARD, 3.6, 3.0, "bone", "The bone portcullis")
+	var arena := BossArena.make(self, "bone_abbot", "The Bone Abbot", PIT_C, 10.4, BoneAbbot, PIT_C + Vector3(-1.0, 0.1, -5.4))   # r30: the far side of the mound, ~13 m from the stair foot (was 6 m: on you as you landed)
+	# r30: the portcullis upstairs stays the gallery's progression seal; the fight shuts its own gates
+	# at the arena's mouths: a bone grille across the stair foot (the line the fight starts behind) and
+	# one in the chapel arch (the chapel's altar lay past the leash: a walk there reset the fight)
+	arena.gate = WardSeal.make_arena_gate(self, "abbot_stair", Vector3(21.0, PIT_Y, -77.7), Vector3.FORWARD, 4.3, 3.2, "bone")
+	arena.gates = [WardSeal.make_arena_gate(self, "abbot_chapel", Vector3(16.0, PIT_Y, -99.0), Vector3.FORWARD, 2.5, 2.7, "bone")]
+	arena.subtitle = "Abbot Osric, still counting"
+	arena.on_slain = func(fresh: bool) -> void:
+		if Travel.relics.has("bone"):
+			return                                    # already taken: gone from the world for good
+		var r := Reliquary.new()
+		r.name = "BoneReliquary"
+		r.relic_id = "bone"
+		r.size = 2.4                                  # a shrine you see from the stair, not a trinket
+		add_child(r)
+		r.global_position = PIT_C + Vector3(0, 1.15, 0)
+		if fresh:
+			SpellFx.rift_in(r.global_position)
+			Events.toast.emit("The Bone Reliquary rises from the mound.")
+
+# --- the fen door (realm) --------------------------------------------------------------------
+
+## Hard cuts in the ground for the fen door's stair (RealmBosses registers them before the stamp):
+## [site name, rect (xz), floor y]; each is cut 0.1 below its floor.
+static func fen_cuts() -> Array:
+	return [
+		["oss_fen_hall", Rect2(28.4, -67.7, fen_out - 28.4, 3.4), FEN_GATE.y],
+		["oss_fen_flight", Rect2(28.4, -64.6, 3.8, 8.2), FEN_GATE.y],
+		["oss_fen_landing", Rect2(28.3, -56.4, 3.9, 2.8), GAL_Y],     # (the cut grows 0.6 to the gallery wall; the rect stays clear of its eaves)
+	]
+
+
+func _zone_root() -> Node:
+	var n := get_parent()
+	while n and not n.has_meta("realm_built"):
+		n = n.get_parent()
+	return n if n else get_parent()
+
+
+func _fen_gate() -> void:
+	var root := _zone_root()
+	var t0 := Time.get_ticks_msec()
+	while is_inside_tree() and root and not root.has_meta("realm_bosses_done") and Time.get_ticks_msec() - t0 < 120000:
+		await get_tree().process_frame
+	if not is_inside_tree() or get_node_or_null("FenGate") != null:
+		return
+	await get_tree().physics_frame
+	var space := get_world_3d().direct_space_state
+	var host := Node3D.new()
+	host.name = "FenGate"
+	host.set_meta("site", "oss_fen_gate")
+	add_child(host)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 6604
+	var k := OssKit.new()
+	k.keep_lanes = false
+	var g0 := FEN_GATE.y
+	var gz := FEN_GATE.z
+	var fx := FEN_FACADE_X
+	# floors: the hall inside the door, the threshold outside it, the stair, the landing
+	k.block("floor", Vector3(28.4, g0 - 0.6, -67.7), Vector3(fx - 0.4, g0, -64.3))
+	k.block("floor", Vector3(fx - 0.4, g0 - 0.6, -67.7), Vector3(fen_out, g0, -64.3))
+	var n := Metrics.steps_for(GAL_Y - g0)
+	k.stairs("floor", Vector3(FEN_X, g0, FEN_FOOT_Z), Vector3(FEN_X, GAL_Y, FEN_HEAD_Z), FEN_W, n, g0 - 0.6)
+	k.block("floor", Vector3(27.3, g0 - 0.6, -56.4), Vector3(32.2, GAL_Y, -53.6))
+	# steps down to the fen if the ground outside the threshold lies lower
+	var g_out := _fen_ground(space, fen_out + 0.8, gz)
+	if g0 - g_out > 0.4 and g0 - g_out < 4.0:
+		var m := Metrics.steps_for(g0 - g_out)
+		k.stairs("floor", Vector3(fen_out + float(m) * 0.62, g_out, gz), Vector3(fen_out, g0, gz), 3.2, m, g_out - 0.6)
+	# retaining walls round the cut, each up to the ground outside it (or 2.6 m over the floor)
+	var tops: Array[float] = []
+	_fen_wall(k, space, Vector2(28.4, -67.7), Vector2(fx, -67.7), g0, g0, Vector2(0, -1), 2.6, tops)
+	_fen_wall(k, space, Vector2(28.4, -67.7), Vector2(28.4, FEN_FOOT_Z), g0, g0, Vector2(-1, 0), 2.6, tops)
+	var west_tops: Array[float] = []
+	_fen_wall(k, space, Vector2(28.4, FEN_FOOT_Z), Vector2(28.4, -56.4), g0, GAL_Y, Vector2(-1, 0), 2.6, west_tops)
+	_fen_wall(k, space, Vector2(32.2, -64.3), Vector2(fx, -64.3), g0, g0, Vector2(0, 1), 2.6, tops)
+	var east_tops: Array[float] = []
+	_fen_wall(k, space, Vector2(32.2, -64.3), Vector2(32.2, -56.4), g0, GAL_Y, Vector2(1, 0), 2.6, east_tops)
+	_fen_wall(k, space, Vector2(32.2, -56.4), Vector2(32.2, -53.6), GAL_Y, GAL_Y, Vector2(1, 0), 2.6, tops)
+	_fen_wall(k, space, Vector2(27.35, -53.6), Vector2(32.2, -53.6), GAL_Y, GAL_Y, Vector2(0, 1), 2.6, tops)
+	_fen_wall(k, space, Vector2(27.35, -56.4), Vector2(28.4, -56.4), GAL_Y, GAL_Y, Vector2(0, -1), 2.6, tops)
+	_fen_wall(k, space, Vector2(fx + 0.4, -67.7), Vector2(fen_out, -67.7), g0, g0, Vector2(0, -1), 1.0, tops)
+	_fen_wall(k, space, Vector2(fx + 0.4, -64.3), Vector2(fen_out, -64.3), g0, g0, Vector2(0, 1), 1.0, tops)
+	# struts across the cut where both walls stand well over the stair
+	for i in mini(west_tops.size(), east_tops.size()):
+		if i % 2 == 1:
+			continue
+		var z := lerpf(FEN_FOOT_Z, -56.4, (float(i) + 0.5) / float(west_tops.size()))
+		var f := lerpf(g0, GAL_Y, clampf((z - FEN_FOOT_Z) / (FEN_HEAD_Z - FEN_FOOT_Z), 0.0, 1.0))
+		var top := minf(west_tops[i], east_tops[i]) - 0.35
+		if top > f + 3.4:
+			k.box("stone", Vector3(FEN_X, top, z), Vector3(4.6, 0.55, 0.6), Basis.IDENTITY, true, 0.88)
+	# the gatehouse front: a tall wall with a pointed door, pinnacles, a row of skulls over the arch
+	var face_top := g0 + 5.2
+	for z: float in [-67.9, -66.0, -64.1]:
+		face_top = maxf(face_top, _fen_ground(space, fx - 1.5, z) + 0.6)
+	var fh := face_top - g0
+	_wall(k, "stone", Vector3(fx, g0, -68.3), Vector3(fx, g0, -63.7), fh, 0.8, [{"at": gz + 68.3, "w": 2.4, "spring": 2.6}])
+	k.block("stone", Vector3(fx - 0.4, g0 - 2.0, -68.3), Vector3(fx + 0.4, g0, -63.7), true, 0.85)   # its footing
+	for z: float in [-68.3, -63.7]:
+		k.box("stone", Vector3(fx + 0.55, g0 + fh * 0.45, z), Vector3(1.1, fh * 0.9, 0.9), Basis.IDENTITY)      # buttresses
+		k.pinnacle("stone", Vector3(fx + 0.55, g0 + fh * 0.9, z), 0.7, 0.8, 1.8)
+	for i in 7:
+		k.skull(Vector3(fx + 0.43, g0 + 4.05, gz - 0.9 + 0.3 * float(i)), PI * 0.5 + rng.randf_range(-0.15, 0.15), 1.05, 1)
+	for s: float in [-1.0, 1.0]:
+		var b := Vector3(fx + 0.45, g0 + 2.3, gz + s * 1.75)
+		k.box("iron", b + Vector3(0.25, 0.0, 0.0), Vector3(0.5, 0.05, 0.05), Basis.IDENTITY, false)
+		k.box("glow", b + Vector3(0.5, -0.12, 0.0), Vector3(0.2, 0.28, 0.2), Basis.IDENTITY, false, 0.6)
+		k.candle_cluster(Vector3(fx + 1.0, g0, gz + s * 1.0), 5, 0.2, rng)
+	# candles up the stair, at the hall's corners and on the landing; a few bones in the corners
+	for i in 6:
+		var t := (float(i) + 0.5) / 6.0
+		var z := lerpf(FEN_FOOT_Z, FEN_HEAD_Z, t)
+		var sx := -1.0 if i % 2 == 0 else 1.0
+		var tread := floori((z - FEN_FOOT_Z) / ((FEN_HEAD_Z - FEN_FOOT_Z) / float(n)))
+		k.candle_cluster(Vector3(FEN_X + sx * (FEN_W * 0.5 - 0.25), g0 + (GAL_Y - g0) * float(tread + 1) / float(n), z), 3, 0.08, rng)
+	for c: Vector2 in [Vector2(28.9, -67.2), Vector2(31.7, -67.2), Vector2(31.7, -54.1), Vector2(28.0, -54.1)]:
+		var cy := g0 if c.y < -60.0 else GAL_Y
+		k.candle_cluster(Vector3(c.x, cy, c.y), 7, 0.3, rng)
+		k.bone(Vector3(c.x + 0.3, cy + 0.03, c.y + 0.2), Basis(Vector3.UP, rng.randf() * TAU), 0, false)
+	k.commit(host, "FenGateBody")
+	_omni("FenGateOut", Vector3(fx + 2.2, g0 + 2.6, gz), Color(1.0, 0.6, 0.3), 1.2, 9.0, false)
+	_omni("FenGateIn", Vector3(FEN_X, lerpf(g0, GAL_Y, 0.5) + 3.0, -60.4), Color(1.0, 0.58, 0.28), 1.0, 9.0, false)
+	print("OSSUARY fen gate built: threshold to x %.1f, %d steps, ground outside %.2f" % [fen_out, n, g_out])
+
+
+func _fen_ground(space: PhysicsDirectSpaceState3D, x: float, z: float) -> float:
+	return RealmLayout.ground(space, x, z)
+
+
+## A retaining wall whose inner face runs a -> b (xz), floors fa -> fb along it, `out` the side the
+## ground is on. Each ~1.6 m bay stands from below the lower of floor and ground to the ground
+## outside it (or `min_h` over the floor), with a coping. Bay tops are appended to `tops`.
+func _fen_wall(k: OssKit, space: PhysicsDirectSpaceState3D, a: Vector2, b: Vector2, fa: float, fb: float, out: Vector2, min_h: float, tops: Array[float]) -> void:
+	var length := a.distance_to(b)
+	var bays := maxi(1, ceili(length / 1.6))
+	var along := (b - a) / length
+	var o3 := Vector3(out.x, 0, out.y)
+	var a3 := Vector3(along.x, 0, along.y)
+	var bas := Basis(a3, Vector3.UP, a3.cross(Vector3.UP))
+	for i in bays:
+		var t := (float(i) + 0.5) / float(bays)
+		var m := a.lerp(b, t)
+		var f := lerpf(fa, fb, t)
+		var g := maxf(_fen_ground(space, m.x + out.x * 1.0, m.y + out.y * 1.0), _fen_ground(space, m.x + out.x * 2.2, m.y + out.y * 2.2))
+		var top := maxf(g + 0.3, f + min_h)
+		var bot := minf(f, g) - 0.7
+		var c := Vector3(m.x, (top + bot) * 0.5, m.y) + o3 * 0.35
+		k.box("stone", c, Vector3(length / float(bays) + 0.04, top - bot, 0.7), bas, true, 0.84 + 0.06 * float(i % 2))
+		k.box("stone", Vector3(m.x, top + 0.08, m.y) + o3 * 0.35, Vector3(length / float(bays) + 0.1, 0.16, 0.86), bas, false, 0.95)
+		tops.append(top)

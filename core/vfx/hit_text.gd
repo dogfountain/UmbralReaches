@@ -54,10 +54,15 @@ func _show(at: Vector3, txt: String, col: Color, big: bool) -> void:
 	_busy = true
 	text = txt
 	modulate = col
-	scale = Vector3.ONE * (1.45 if big else 1.0)
+	var s := 1.45 if big else 1.0
+	# ENS art pass: the number punches in (x1.7 -> x1 in 0.12 s) so a hit lands on the beat, and a
+	# big hit gets a warm outline glow instead of the plain dark rim
+	scale = Vector3.ONE * s * 1.7
+	outline_modulate = Color(0.35, 0.12, 0.02, 0.95) if big else Color(0.02, 0.01, 0.05, 0.9)
 	global_position = at + Vector3(randf_range(-0.25, 0.25), 0.0, randf_range(-0.25, 0.25))
 	visible = true
 	var tw := create_tween().set_parallel(true)
+	tw.tween_property(self, "scale", Vector3.ONE * s, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_property(self, "global_position:y", at.y + 0.8, LIFE).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_property(self, "modulate:a", 0.0, LIFE * 0.45).set_delay(LIFE * 0.55)
 	tw.chain().tween_callback(_done)

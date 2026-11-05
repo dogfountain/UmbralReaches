@@ -4,7 +4,10 @@ extends Skill
 ## unmakes shades and pops enemy spit in range. The panic button and the payoff for marking.
 
 const RADIUS := 6.0
+const Afflict := preload("res://core/skills/afflict.gd")
+const Combo := preload("res://core/skills/combo.gd")
 const SHOVE := 10.0
+const V_REACH := 3.0          ## metres above or below the wanderer the ring still reaches (stairs yes, floors no)
 
 
 func _init() -> void:
@@ -44,6 +47,8 @@ func _implode(p: Player) -> void:
 		if e == null or not e.is_alive():
 			continue
 		var d := feet - e.global_position
+		if absf(d.y) > V_REACH:
+			continue                          # a floor above or below: the ring does not pass stone
 		d.y = 0.0
 		var dist := d.length()
 		if dist > PULL_R or dist < 0.3:
@@ -52,9 +57,11 @@ func _implode(p: Player) -> void:
 		e.shove(d / dist * PULL * clampf(dist / PULL_R + 0.35, 0.0, 1.0))
 	SpellFx.implosion(feet, PULL_R)
 	p.kick(0.4)
+	var pid := p.get_instance_id()
 	p.get_tree().create_timer(0.35, false).timeout.connect(func() -> void:
-		if is_instance_valid(p):
-			_detonate(p))
+		var p2 := instance_from_id(pid) as Player
+		if p2 != null and p2.is_inside_tree():
+			_detonate(p2))
 
 
 ## Bone Reliquary · Wake: a violet field for WAKE_TIME that Marks whatever stands in it, 1/s.
@@ -70,11 +77,14 @@ func _detonate(p: Player) -> void:
 	var tree := p.get_tree()
 	var r2 := RADIUS * RADIUS
 	var detonated: Array = []
+	var marks_total := 0
 	for node in tree.get_nodes_in_group(Groups.ENEMY):
 		var e := node as Enemy
 		if e == null or not e.is_alive():
 			continue
 		var d := e.global_position - p.global_position
+		if absf(d.y) > V_REACH:
+			continue
 		d.y = 0.0
 		if d.length_squared() > r2:
 			continue
@@ -83,7 +93,8 @@ func _detonate(p: Player) -> void:
 		var marks := e.take_marks()
 		if marks > 0:
 			detonated.append(e)
-		e.take_hit(1.0 + float(marks), p)
+		marks_total += marks
+		e.take_hit((1.0 + float(marks)) * Afflict.shatter(e), p)
 		e.shove(away * SHOVE * (1.0 - dist / RADIUS * 0.5))
 	for node in tree.get_nodes_in_group(Groups.SHADE):
 		var s := node as Node3D
@@ -95,3 +106,5 @@ func _detonate(p: Player) -> void:
 			shot.pop()
 	p.nova_fx(RADIUS, detonated)
 	p.kick(1.0)
+	if marks_total >= 3:
+		Combo.note("DETONATION", p.global_position + Vector3.UP * 2.6, Color(0.85, 0.55, 1.0), "%d Marks" % marks_total)

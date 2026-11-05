@@ -55,6 +55,12 @@ static func _scatter_props(holder: Node3D, hits: PackedVector3Array, rng: Random
 			model.rotation.y = rng.randf() * TAU
 			model.rotation.x = rng.randf_range(-0.08, 0.08)
 			model.rotation.z = rng.randf_range(-0.06, 0.06)
+			# the old point test kept roots whose limbs sprawled across the stair: test the mesh bounds
+			var lane := WorldLanes.intrudes(holder.get_world_3d().direct_space_state, WorldLanes.bounds(model))
+			if lane != "":
+				model.get_parent().remove_child(model)
+				model.free()
+				continue
 			for gi in model.find_children("*", "GeometryInstance3D", true, false):
 				var g := gi as GeometryInstance3D
 				g.visibility_range_end = 42.0
@@ -71,8 +77,10 @@ static func _scatter_cards(holder: Node3D, root: Node, rng: RandomNumberGenerato
 	var branch_mesh := _card_mesh(Vector2(1.35, 1.55), false)
 	var moss_mesh := _card_mesh(Vector2(0.55, 1.45), true)
 	var trunk_pts := _trunk_anchors(root, rng, 18)
-	_mmi(holder, "DeadBranches", branch_mesh, branch_mat, _branch_xforms(trunk_pts, rng), 48.0)
-	_mmi(holder, "HangingMoss", moss_mesh, moss_mat, _moss_xforms(trunk_pts, rng), 40.0)
+	print("NIGHT_DRESS cards on %d real trunks" % trunk_pts.size())
+	var space := (root as Node3D).get_world_3d().direct_space_state
+	_mmi(holder, "DeadBranches", branch_mesh, branch_mat, _clear_of_lanes(space, branch_mesh, _branch_xforms(trunk_pts, rng)), 48.0)
+	_mmi(holder, "HangingMoss", moss_mesh, moss_mat, _clear_of_lanes(space, moss_mesh, _moss_xforms(trunk_pts, rng)), 40.0)
 	# Extra branch cards on the forest floor edge for crunchy undergrowth silhouette.
 	var floor_hits := _sample_ground(root, rng, 16)
 	var under: Array[Transform3D] = []
@@ -83,8 +91,18 @@ static func _scatter_cards(holder: Node3D, root: Node, rng: RandomNumberGenerato
 		xf.origin = p + Vector3(0.0, 0.55, 0.0)
 		xf.basis = Basis.from_euler(Vector3(rng.randf_range(-0.4, 0.2), rng.randf() * TAU, rng.randf_range(-0.2, 0.2)))
 		xf.basis = xf.basis.scaled(Vector3.ONE * rng.randf_range(0.7, 1.15))
+		if WorldLanes.intrudes((root as Node3D).get_world_3d().direct_space_state, xf * branch_mesh.get_aabb()) != "":
+			continue
 		under.append(xf)
 	_mmi(holder, "FloorTwigs", branch_mesh, branch_mat, under, 36.0)
+
+
+static func _clear_of_lanes(space: PhysicsDirectSpaceState3D, mesh: Mesh, xforms: Array) -> Array:
+	var out: Array = []
+	for xf: Transform3D in xforms:
+		if WorldLanes.intrudes(space, xf * mesh.get_aabb()) == "":
+			out.append(xf)
+	return out
 
 
 static func _card_mesh(size: Vector2, hang: bool) -> ArrayMesh:
@@ -136,55 +154,79 @@ static func _mmi(parent: Node, n_name: String, mesh: Mesh, mat: Material, xforms
 	parent.add_child(mmi)
 
 
-static func _branch_xforms(anchors: PackedVector3Array, rng: RandomNumberGenerator) -> Array:
+static func _branch_xforms(anchors: Array, rng: RandomNumberGenerator) -> Array:
 	var out: Array = []
-	for p in anchors:
+	for t: Array in anchors:
+		var foot: Vector3 = t[0]
+		var r: float = t[1]
+		var h: float = t[2]
 		for _k in rng.randi_range(1, 2):
+			var yaw := rng.randf() * TAU
 			var xf := Transform3D.IDENTITY
-			xf.origin = p + Vector3(rng.randf_range(-0.6, 0.6), rng.randf_range(1.2, 4.5), rng.randf_range(-0.6, 0.6))
-			xf.basis = Basis.from_euler(Vector3(rng.randf_range(-0.6, 0.3), rng.randf() * TAU, rng.randf_range(-0.35, 0.35)))
+			# rooted in the bark, reaching out: the card's centre half its width off the trunk
+			xf.origin = foot + Vector3(cos(yaw) * (r + 0.45), rng.randf_range(1.2, minf(4.5, h * 0.7)), sin(yaw) * (r + 0.45))
+			xf.basis = Basis.from_euler(Vector3(rng.randf_range(-0.6, 0.3), -yaw, rng.randf_range(-0.35, 0.35)))
 			xf.basis = xf.basis.scaled(Vector3.ONE * rng.randf_range(0.85, 1.4))
 			out.append(xf)
 	return out
 
 
-static func _moss_xforms(anchors: PackedVector3Array, rng: RandomNumberGenerator) -> Array:
+static func _moss_xforms(anchors: Array, rng: RandomNumberGenerator) -> Array:
 	var out: Array = []
-	for p in anchors:
+	for t: Array in anchors:
+		var foot: Vector3 = t[0]
+		var r: float = t[1]
+		var h: float = t[2]
 		for _k in rng.randi_range(2, 4):
 			var xf := Transform3D.IDENTITY
 			var yaw := rng.randf() * TAU
-			xf.origin = p + Vector3(cos(yaw) * rng.randf_range(0.3, 0.9), rng.randf_range(1.6, 5.2), sin(yaw) * rng.randf_range(0.3, 0.9))
-			xf.basis = Basis.from_euler(Vector3(0.15, yaw, 0.0))
+			# draped on the bark, its top above the ground by at least its own length
+			xf.origin = foot + Vector3(cos(yaw) * (r + 0.05), rng.randf_range(1.6, minf(5.2, h * 0.8)), sin(yaw) * (r + 0.05))
+			xf.basis = Basis.from_euler(Vector3(0.15, -yaw + PI * 0.5, 0.0))
 			xf.basis = xf.basis.scaled(Vector3(rng.randf_range(0.7, 1.2), rng.randf_range(0.9, 1.5), 1.0))
 			out.append(xf)
 	return out
 
 
-static func _trunk_anchors(root: Node, rng: RandomNumberGenerator, want: int) -> PackedVector3Array:
-	var out := PackedVector3Array()
-	for name in ["GiantTrunks", "DeadTrees", "Forest"]:
-		var node := root.find_child(name, true, false)
-		if node == null:
+## Real trunks to hang branch and moss cards on: [foot, radius, height] per tree, from the trunk
+## island of each piece (SeatProps.pieces) of GiantTrunks and DeadTrees, nearest the walked
+## middle of the hub first. (This used to pick random points inside the meshes' whole bounding
+## box at its lowest y, so every card hung in open air with no tree under it.)
+static func _trunk_anchors(root: Node, rng: RandomNumberGenerator, want: int) -> Array:
+	var trees: Array = []
+	for path in ["Zone/Forest/GiantTrunks", "Zone/DeadTrees"]:
+		var mi := root.get_node_or_null(path) as MeshInstance3D
+		if mi == null or mi.mesh == null:
 			continue
-		if node is MeshInstance3D:
-			var mi := node as MeshInstance3D
-			var aabb := mi.global_transform * mi.get_aabb()
-			for _i in want:
-				var x := rng.randf_range(aabb.position.x, aabb.position.x + aabb.size.x)
-				var z := rng.randf_range(aabb.position.z, aabb.position.z + aabb.size.z)
-				# Prefer outer band — trunks live at the sides.
-				if absf(x) < 4.0 and rng.randf() < 0.55:
+		for si in mi.mesh.get_surface_count():
+			var arrays := mi.mesh.surface_get_arrays(si)
+			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+			if idx.is_empty():
+				idx.resize(verts.size())
+				for i in verts.size():
+					idx[i] = i
+			var pc: Array = SeatProps.pieces(verts, idx, mi.global_transform)
+			var ibox: Dictionary = pc[2]
+			var ipiece: Dictionary = pc[3]
+			for c: int in ibox:
+				if int(ipiece[c]) != c:
+					continue                    # roots only: the trunk, not its branches
+				var bb: AABB = ibox[c]
+				if bb.size.y < 3.0:
+					continue                    # a stump or log, nothing to hang from
+				var foot: Vector3 = (pc[1][c] as Array)[1]
+				if absf(foot.x) > 40.0 or foot.z < -20.0 or foot.z > 64.0:
 					continue
-				out.append(Vector3(x, aabb.position.y, z))
-				if out.size() >= want:
-					return out
-		for child in node.find_children("*", "MeshInstance3D", true, false):
-			var mi2 := child as MeshInstance3D
-			var c := mi2.global_transform * mi2.get_aabb().get_center()
-			out.append(Vector3(c.x, mi2.global_position.y, c.z))
-			if out.size() >= want:
-				return out
+				var r := clampf(minf(bb.size.x, bb.size.z) * 0.5, 0.15, 1.6)
+				trees.append([foot, r, bb.size.y])
+	trees.sort_custom(func(a: Array, b: Array) -> bool: return Vector2((a[0] as Vector3).x, (a[0] as Vector3).z - 22.0).length() < Vector2((b[0] as Vector3).x, (b[0] as Vector3).z - 22.0).length())
+	var out: Array = []
+	var step := maxi(1, trees.size() / maxi(want, 1))
+	var i := rng.randi_range(0, step - 1)
+	while i < trees.size() and out.size() < want:
+		out.append(trees[i])
+		i += step
 	return out
 
 

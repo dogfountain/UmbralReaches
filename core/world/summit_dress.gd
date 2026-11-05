@@ -8,6 +8,8 @@ const PILLAR := "res://art/models/summit_pillar.glb"
 const MOSS_DIFF := "res://art/textures/import/rock_moss_diff.jpg"
 const MOSS_NOR := "res://art/textures/import/rock_moss_nor.jpg"
 const Check := preload("res://core/debug/check.gd")
+const GenCache := preload("res://core/world/realm/gen_cache.gd")
+const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
 
 ## Existing summit disc ~r=5.4 at z=-73.5. Seat cathedral behind it so the
 ## climb stays clear; approach stairs face +Z onto that disc.
@@ -64,13 +66,26 @@ static func dress(root: Node) -> void:
 	root.add_child(holder)
 	holder.global_position = SUMMIT
 
+	var tp := Time.get_ticks_usec()
 	var platform := Check.attach_glb(holder, PLATFORM, "MossyPlatform")
 	if platform == null:
 		return
 	platform.position = Vector3.ZERO
+	Realm.prof_add("summit: load platform", tp)
+	tp = Time.get_ticks_usec()
 	_paint_platform(platform)
-	_solidify_tiers(holder)
+	_approach_stairs(holder, platform)
+	Realm.prof_add("summit: paint + approach", tp)
+	tp = Time.get_ticks_usec()
+	_clear_landing(root)
+	Realm.prof_add("summit: clear landing", tp)
+	tp = Time.get_ticks_usec()
+	_extended_dais(holder, platform)
+	Realm.prof_add("summit: dais", tp)
+	tp = Time.get_ticks_usec()
 	_solidify_from_meshes(holder, platform)
+	Realm.prof_add("summit: collision", tp)
+	tp = Time.get_ticks_usec()
 
 	# The monument: a carved stone mage on a rune pedestal, facing the stair (+Z).
 	var statue := MageStatue.new()
@@ -79,6 +94,8 @@ static func dress(root: Node) -> void:
 	statue.position = Vector3(0.0, TOP_DECK_Y, 0.0)
 	statue.rotation.y = PI
 
+	Realm.prof_add("summit: statue", tp)
+	tp = Time.get_ticks_usec()
 	# Outer cathedral pillars on the mid terrace only — top dais already has the ref rail.
 	if Check.res(PILLAR, PackedScene) != null:
 		var spots := [
@@ -94,36 +111,313 @@ static func dress(root: Node) -> void:
 			pillar.scale = Vector3.ONE * 0.85
 			_paint_pillar(pillar)
 
+	Realm.prof_add("summit: pillars", tp)
+	tp = Time.get_ticks_usec()
 	# (The hanging moss cards stood up off the tiers like stray grass blades; removed.)
 
-	print("SUMMIT_DRESS cathedral platform r=%.1f at %s" % [PLATFORM_RADIUS, SUMMIT])
+	# the summit ward across the head of the hub stair, and the Ascended Warden's arena on the dais
+	var bosses: Array[String] = ["thornwarden", "bone_abbot"]
+	var ward := WardSeal.make(holder, "summit", Vector3(0.0, 25.2, -70.9), Vector3.BACK, 5.8, 3.6, "light", "The summit ward", bosses)
+	var dais := SUMMIT + Vector3(DAIS_C.x, TOP_DECK_Y, DAIS_C.y)
+	var arena := BossArena.make(holder, "ascended_warden", "The Ascended Warden", dais, DAIS_R, AscendedWarden, dais + Vector3(0, 0.1, -2.0))
+	arena.ceiling = 8.0
+	arena.max_rise = 0.5                       # the extended dais is one flat paved floor
+	arena.requires_bosses = bosses
+	# r30: the ward at the Crossing's head stays the progression seal (33 m back, past the leash); the
+	# fight shuts a veil across the dais mouth instead, 1.5 m behind the wanderer
+	var m0: Vector3 = mouth[0]
+	var m1: Vector3 = mouth[1]
+	var chord := m1 - m0
+	var inward := Vector3(-chord.z, 0.0, chord.x).normalized()
+	if inward.dot(Vector3(DAIS_C.x, 0.0, DAIS_C.y) - (m0 + m1) * 0.5) < 0.0:
+		inward = -inward
+	var veil_at := holder.to_global((m0 + m1) * 0.5 + inward * 0.25)
+	veil_at.y = SUMMIT.y + TOP_DECK_Y
+	arena.gate = WardSeal.make_arena_gate(holder, "warden_mouth", veil_at, inward, Vector2(chord.x, chord.z).length() + 0.5, 3.6, "light")
+	arena.subtitle = "the one who holds the door"
+	arena.phase_titles = {3: "Aurel, Hierarch"}      # r30 story: he lets go with one hand, and the bar names him
+	# r30 story: the ward's carved reason, a pilgrim's tally on the last step, and the dais stone
+	var lore_more := load("res://core/world/realm/lore/lore_more.gd") as GDScript
+	lore_more.call("place", holder, "bs_ward", Vector3(1.9, 25.6, -70.3))
+	lore_more.call("place", holder, "bs_last_step", Vector3(-1.7, 25.6, -69.4))
+	lore_more.call("place", holder, "bs_dais", SUMMIT + Vector3(DAIS_C.x, TOP_DECK_Y + 0.25, DAIS_C.y + DAIS_R + 0.9))
+	# the "where do I go" for the whole map: a pale column from above the dais into the vortex eye
+	Wayfinding.beacon(holder, dais, "ascended_warden", Color(1.0, 0.86, 0.62), 170.0, 1.1)
+	var rim := _rim_fires(holder)
+	arena.on_slain = func(fresh: bool) -> void:
+		for f in rim:
+			if is_instance_valid(f):
+				(f as Node3D).visible = false
+		# (no toast here: story.gd stages the Warden's fall as one beat; the seal's text is in the satchel)
+	# r30: a fire at the stair head, outside the arena (a fall there sent you back down the whole climb)
+	_summit_fire.call_deferred(holder)
+	Realm.prof_add("summit: ward + arena", tp)
+	print("SUMMIT_DRESS cathedral platform r=%.1f at %s, fighting dais r=%.1f at %s" % [PLATFORM_RADIUS, SUMMIT, DAIS_R, dais])
 
 
-static func _solidify_tiers(parent: Node3D) -> void:
-	var body := StaticBody3D.new()
-	body.name = "PlatformBody"
-	body.collision_layer = 1
-	body.collision_mask = 0
-	parent.add_child(body)
-	# Tier collision now comes from the monument mesh itself (_solidify_from_meshes): the old
-	# drum cylinders stopped ~2 m short of the visible rim, so you could drop through its edge.
-	# The approach stairs are a smooth ramp under the step nosings (0.29 m risers cannot be
-	# climbed by a capsule without jumping), the same trick the main stair uses.
-	var steps := 10
-	var stair_w := 5.5
-	var depth := 0.58
-	var z_lo := PLATFORM_RADIUS + 0.15
-	var z_hi := z_lo - float(steps) * depth
-	var run := z_lo - z_hi
-	var ang := atan2(TOP_DECK_Y, run)
-	var ramp := CollisionShape3D.new()
-	ramp.name = "ApproachRamp"
-	var rb := BoxShape3D.new()
-	rb.size = Vector3(stair_w, 0.3, sqrt(run * run + TOP_DECK_Y * TOP_DECK_Y) + 0.3)
-	ramp.shape = rb
-	var up := Vector3(0.0, cos(ang), sin(ang))
-	ramp.transform = Transform3D(Basis(Vector3.RIGHT, ang), Vector3(0.0, TOP_DECK_Y * 0.5, (z_lo + z_hi) * 0.5) - up * 0.15)
-	body.add_child(ramp)
+## A 1.3 m broken column stub baked into the hub stair mesh stood dead centre on the top landing,
+## right in front of the summit flight, with no collision (you walked through it). Drop exactly the
+## triangles that lie wholly inside its box; nothing else in the stair mesh is touched.
+const LANDING_STUB := AABB(Vector3(0.2, 25.3, -69.36), Vector3(0.95, 1.3, 0.92))
+
+
+static func _clear_landing(root: Node) -> void:
+	var st := root.find_child("Stair", true, false) as MeshInstance3D
+	if st == null or st.mesh == null:
+		return
+	var xf := st.global_transform
+	var src := st.mesh
+	var out := ArrayMesh.new()
+	var removed := 0
+	for si in src.get_surface_count():
+		var arrays := src.surface_get_arrays(si)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+		if idx.is_empty():
+			idx.resize(verts.size())
+			for i in verts.size():
+				idx[i] = i
+		var keep := PackedInt32Array()
+		for t in range(0, idx.size(), 3):
+			if LANDING_STUB.has_point(xf * verts[idx[t]]) and LANDING_STUB.has_point(xf * verts[idx[t + 1]]) and LANDING_STUB.has_point(xf * verts[idx[t + 2]]):
+				removed += 1
+				continue
+			keep.append_array(PackedInt32Array([idx[t], idx[t + 1], idx[t + 2]]))
+		arrays[Mesh.ARRAY_INDEX] = keep
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		out.surface_set_material(si, src.surface_get_material(si))
+	if removed > 0:
+		st.mesh = out
+		print("SUMMIT_DRESS landing stub removed: %d tris" % removed)
+
+
+## The approach used to be an invisible ramp through solid tier faces: you walked up through
+## 0.5-0.9 m of stone. Cut the corridor out of the monument and moss and build a real flight
+## there: eight steps of dressed stone with stepped cheek walls (they close the cut edges and stop
+## you walking off the side) and newel pinnacles at the foot. Collision is the kit's ramp under
+## the treads, so it matches what you see to within half a riser.
+const STAIR_FOOT := Vector3(0.0, 0.7, 12.35)     ## holder space: the hub stair's top landing
+const STAIR_HEAD := Vector3(0.0, TOP_DECK_Y, 6.4)
+const STAIR_HALF_W := 2.75
+const CORRIDOR := AABB(Vector3(-2.95, 0.74, 6.4), Vector3(5.9, 3.6, 7.2))
+
+
+static func _approach_stairs(holder: Node3D, platform: Node) -> void:
+	var inv := holder.global_transform.affine_inverse()
+	for node in platform.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		var n := String(mi.name)
+		if n == "StoneMonument" or n == "MossCarpet":
+			_cut_gate(mi, holder, CORRIDOR)
+		elif n.begins_with("MossRock"):
+			var bb := inv * mi.global_transform * mi.get_aabb()
+			if bb.intersects(CORRIDOR.grow(0.2)):
+				mi.visible = false
+	var kit := OssKit.new()
+	var steps := Metrics.steps_for(STAIR_HEAD.y - STAIR_FOOT.y)
+	kit.stairs("stone", STAIR_FOOT, STAIR_HEAD, STAIR_HALF_W * 2.0, steps)
+	var tread := (STAIR_FOOT.z - STAIR_HEAD.z) / float(steps)
+	var rise := (STAIR_HEAD.y - STAIR_FOOT.y) / float(steps)
+	for side: float in [-1.0, 1.0]:
+		var x0 := side * STAIR_HALF_W
+		var x1 := side * (STAIR_HALF_W + 0.48)
+		for i in steps:
+			var z0 := STAIR_FOOT.z - tread * float(i)
+			var top := STAIR_FOOT.y + rise * float(i + 1) + 0.5
+			kit.block("stone", Vector3(minf(x0, x1), STAIR_FOOT.y - 0.4, z0 - tread - 0.01), Vector3(maxf(x0, x1), top, z0 + 0.01))
+			kit.box("stone", Vector3((x0 + x1) * 0.5, top + 0.06, z0 - tread * 0.5), Vector3(0.62, 0.12, tread + 0.04), Basis.IDENTITY, true, 0.86)
+		kit.pinnacle("stone", Vector3(side * (STAIR_HALF_W + 0.24), STAIR_FOOT.y, STAIR_FOOT.z + 0.1), 0.62, STAIR_FOOT.y * 0.0 + 1.7, 0.55)
+	var host := Node3D.new()
+	host.name = "ApproachStairs"
+	holder.add_child(host)
+	kit.commit(host, "StairsBody")
+
+
+## The Warden's fighting floor. The platform's own top deck is only r 6.3 round the statue, so a
+## paved disc at deck level is built behind it, out over the chasm: its front edge meets the deck
+## at the rear opening (where StoneApproach comes up), a coped parapet runs round the rest, and
+## piers carry it down to the chasm floor. The back rail and moss rocks it covers are removed
+## (before _solidify_from_meshes, so their collision goes too); the lift jetty route keeps clear.
+const DAIS_C := Vector2(0.0, -20.4)          ## holder xz; front edge at z -6.4, just behind the deck
+const DAIS_R := 14.0
+const DAIS_THICK := 1.0
+const DAIS_GAP := 3.2                        ## half width of the opening onto the top deck
+const SCREEN_H := 2.5                        ## rim wall height where it borders the platform (GRAB_MAX 2.25)
+static var mouth: Array[Vector3] = [Vector3(-3.8, TOP_DECK_Y, -7.2), Vector3(3.8, TOP_DECK_Y, -7.2)]   ## holder: the opening's two ends
+const JUNCTION := AABB(Vector3(-3.3, 1.8, -7.6), Vector3(6.6, 3.0, 2.0))   ## deck -> dais, cleared
+
+
+static func _in_dais(p: Vector3, grow := 0.0) -> bool:
+	return Vector2(p.x, p.z).distance_to(DAIS_C) <= DAIS_R + grow
+
+
+static func _extended_dais(holder: Node3D, platform: Node) -> void:
+	var inv := holder.global_transform.affine_inverse()
+	for node in platform.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		var n := String(mi.name)
+		if n.begins_with("StoneRail"):
+			_cut_dais(mi, holder)
+		elif n.begins_with("MossRock"):
+			var bb := inv * mi.global_transform * mi.get_aabb()
+			if _in_dais(bb.get_center(), 0.6) or bb.intersects(JUNCTION):
+				mi.visible = false
+	var k := OssKit.new()
+	k.keep_lanes = false
+	var top := TOP_DECK_Y
+	var bot := top - DAIS_THICK
+	var segs := 48
+	var rings: Array[float] = [0.0, 2.6, 2.95, 9.4, 9.75, 13.25, DAIS_R]
+	var ring_keys: Array[String] = ["floor", "slate", "floor", "slate", "floor", "stone"]   # two inlaid bands, the kerb
+	for s in segs:
+		var a0 := TAU * float(s) / float(segs)
+		var a1 := TAU * float(s + 1) / float(segs)
+		var d0 := Vector3(cos(a0), 0, sin(a0))
+		var d1 := Vector3(cos(a1), 0, sin(a1))
+		var c := Vector3(DAIS_C.x, 0, DAIS_C.y)
+		for ri in rings.size() - 1:
+			var r0: float = rings[ri]
+			var r1: float = rings[ri + 1]
+			var key := ring_keys[ri]
+			k.quad(key, c + d0 * r0 + Vector3.UP * top, c + d0 * r1 + Vector3.UP * top, c + d1 * r1 + Vector3.UP * top, c + d1 * r0 + Vector3.UP * top, Vector3.UP, true, 0.92 if s % 2 == 0 else 1.0)
+		# rim face and soffit
+		var o0 := c + d0 * DAIS_R
+		var o1 := c + d1 * DAIS_R
+		k.quad("stone", o0 + Vector3.UP * bot, o1 + Vector3.UP * bot, o1 + Vector3.UP * top, o0 + Vector3.UP * top, (d0 + d1) * 0.5, true, 0.86)
+		k.quad("stone", c + Vector3.UP * bot, o0 + Vector3.UP * bot, o1 + Vector3.UP * bot, c + Vector3.UP * bot, Vector3.DOWN, false, 0.7)
+	# the step from the deck: a slab over the rear opening, flush with both floors
+	k.block("floor", Vector3(-DAIS_GAP, top - 0.3, -7.4), Vector3(DAIS_GAP, top, -6.2), true, 0.95)
+	# parapet: coped wall round the edge, open onto the deck and wherever the lift jetty passes
+	var space := holder.get_world_3d().direct_space_state
+	var wall_r := DAIS_R - 0.3
+	var at := func(a: float) -> Vector3: return Vector3(DAIS_C.x + cos(a) * wall_r, top, DAIS_C.y + sin(a) * wall_r)
+	var opening: Array[bool] = []
+	var mouth_ends: Array[Vector3] = []
+	for s in segs:
+		var mid: Vector3 = at.call(TAU * (float(s) + 0.5) / float(segs))
+		opening.append((absf(mid.x) < DAIS_GAP + 0.6 and mid.z > DAIS_C.y) or LIFT_LANE.grow(0.4).has_point(Vector3(mid.x, LIFT_LANE.get_center().y, mid.z)))
+	var piers := 0
+	for s in segs:
+		var a0 := TAU * float(s) / float(segs)
+		var a1 := TAU * float(s + 1) / float(segs)
+		var p0: Vector3 = at.call(a0)
+		var p1: Vector3 = at.call(a1)
+		var mid := (p0 + p1) * 0.5
+		var open := opening[s]
+		if open != opening[s - 1]:
+			k.pinnacle("stone", p0, 0.62, 1.5 + (SCREEN_H - 0.9 if Vector2(p0.x, p0.z).length() < PLATFORM_RADIUS + 0.5 else 0.0), 0.55)       # where the wall stops or starts again
+			if mid.z > DAIS_C.y:
+				mouth_ends.append(p0)
+		if open and mid.z > DAIS_C.y:
+			mouth_ends.append(p0)
+			mouth_ends.append(p1)
+		if not open:
+			var out := Vector3(mid.x - DAIS_C.x, 0, mid.z - DAIS_C.y).normalized()
+			var bas := Basis(out.cross(Vector3.UP).normalized(), Vector3.UP, out)
+			var len := p0.distance_to(p1) + 0.1
+			# r30: where the rim borders the platform's mid terrace (not the chasm) it is a screen wall
+			# above the hands' reach, so the mouth veil is the only way out of the fight
+			var wh := SCREEN_H if Vector2(mid.x, mid.z).length() < PLATFORM_RADIUS + 0.5 else 0.9
+			k.box("stone", mid + Vector3.UP * (wh * 0.5), Vector3(len, wh, 0.45), bas, true, 0.88)
+			k.box("stone", mid + Vector3.UP * (wh + 0.07), Vector3(len + 0.04, 0.14, 0.62), bas, true, 0.97)
+		# a pier down to the chasm floor under every third segment, clear of the platform and the
+		# Ossuary (anything the ray meets that is not the terrain): no pier lands on a roof
+		if s % 3 == 1:
+			var foot := Vector3(DAIS_C.x + cos((a0 + a1) * 0.5) * (DAIS_R - 1.1), bot, DAIS_C.y + sin((a0 + a1) * 0.5) * (DAIS_R - 1.1))
+			if Vector2(foot.x, foot.z).length() < PLATFORM_RADIUS + 1.0:
+				continue
+			var w := holder.global_transform * foot
+			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(w + Vector3.DOWN * 0.2, w + Vector3.DOWN * 120.0, Layers.WORLD))
+			if hit.is_empty() or not String((hit.collider as Node).name).contains("Terrain"):
+				continue
+			var gy: float = (inv * (hit.position as Vector3)).y - 1.0
+			var out2 := Vector3(foot.x - DAIS_C.x, 0, foot.z - DAIS_C.y).normalized()
+			var bas2 := Basis(out2.cross(Vector3.UP).normalized(), Vector3.UP, out2)
+			k.box("stone", Vector3(foot.x, (bot + gy) * 0.5, foot.z), Vector3(1.6, bot - gy, 2.2), bas2, true, 0.8)
+			k.box("stone", foot + out2 * 0.35 + Vector3.UP * -0.35, Vector3(2.0, 0.7, 2.9), bas2, true, 0.9)    # corbel under the rim
+			piers += 1
+	var host := Node3D.new()
+	host.name = "ExtendedDais"
+	host.set_meta("site", "summit_dais")
+	holder.add_child(host)
+	k.commit(host, "DaisBody")
+	var wc := holder.global_transform * Vector3(DAIS_C.x, 0, DAIS_C.y)
+	# sites are rects: the square round the disc would take in the lift jetty, the rails and a rift
+	# rock (all 4+ m outside the disc), so register the square inside it (to the arena's audit ring)
+	var half := DAIS_R * 0.85
+	WorldLanes.register_site("summit_dais", Rect2(wc.x - half, wc.z - half, half * 2.0, half * 2.0), holder.global_position.y + top, NAN, true)
+	# the mouth: the chord across the opening onto the deck (and the lift lane beside it)
+	if mouth_ends.size() >= 2:
+		var lo := mouth_ends[0]
+		var hi := mouth_ends[0]
+		for e in mouth_ends:
+			if e.x < lo.x: lo = e
+			if e.x > hi.x: hi = e
+		mouth = [lo, hi]
+	var moved := _clear_airspace(holder.get_parent(), holder)
+	print("SUMMIT_DRESS extended dais r=%.1f, %d piers, %d rift rocks moved off it" % [DAIS_R, piers, moved])
+
+
+## Rift debris hung over the new floor at head height (one rock 2.7 m above the paving, in the
+## Warden's way). Push any that cross the dais airspace (slab to arena ceiling) out past the
+## parapet; their bob is about `_base`, so that moves with them.
+static func _clear_airspace(root: Node, holder: Node3D) -> int:
+	var debris := root.get_node_or_null("Zone/RiftDebris")
+	if debris == null:
+		return 0
+	var inv := holder.global_transform.affine_inverse()
+	var moved := 0
+	for node in debris.get_children():
+		var rock := node as MeshInstance3D
+		if rock == null or rock.mesh == null:
+			continue
+		var bb := inv * rock.global_transform * rock.get_aabb()
+		var amp := float(rock.get("amplitude")) if rock.get("amplitude") != null else 0.0
+		if bb.end.y + amp < TOP_DECK_Y - DAIS_THICK or bb.position.y - amp > TOP_DECK_Y + 9.0:
+			continue
+		var c := bb.get_center()
+		var flat := Vector2(c.x, c.z) - DAIS_C
+		var spread := maxf(bb.size.x, bb.size.z) * 0.5
+		if flat.length() - spread > DAIS_R + 1.5:
+			continue
+		var dir := flat.normalized() if flat.length() > 0.01 else Vector2(-1, 0)
+		var to := DAIS_C + dir * (DAIS_R + 1.5 + spread)
+		rock.global_position += holder.global_transform.basis * Vector3(to.x - c.x, 0.0, to.y - c.z)
+		if rock.get("_base") != null:
+			rock.set("_base", rock.position)
+		moved += 1
+	return moved
+
+
+## Drop the back rail's triangles that the dais covers (and those across the deck -> dais step).
+static func _cut_dais(mi: MeshInstance3D, holder: Node3D) -> void:
+	var to_h := holder.global_transform.affine_inverse() * mi.global_transform
+	var src := mi.mesh
+	var out := ArrayMesh.new()
+	var removed := 0
+	for si in src.get_surface_count():
+		var st := SurfaceTool.new()
+		st.create_from(src, si)
+		var arrays := st.commit_to_arrays()
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+		if idx.is_empty():
+			idx.resize(verts.size())
+			for i in verts.size():
+				idx[i] = i
+		var keep := PackedInt32Array()
+		for t in range(0, idx.size(), 3):
+			var c := to_h * ((verts[idx[t]] + verts[idx[t + 1]] + verts[idx[t + 2]]) / 3.0)
+			if _in_dais(c, 0.3) or JUNCTION.has_point(c):
+				removed += 1
+				continue
+			keep.append_array(PackedInt32Array([idx[t], idx[t + 1], idx[t + 2]]))
+		arrays[Mesh.ARRAY_INDEX] = keep
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		out.surface_set_material(si, src.surface_get_material(si))
+	if removed > 0:
+		mi.mesh = out
+		print("SUMMIT_DRESS dais cut in %s: %d tris" % [mi.name, removed])
 
 
 ## Collision from the visible meshes: trimesh for the stone monument and its rails, simplified
@@ -140,34 +434,20 @@ static func _solidify_from_meshes(holder: Node3D, platform: Node) -> void:
 		var mi := node as MeshInstance3D
 		var n := String(mi.name)
 		var shape: Shape3D = null
-		if n == "StoneMonument":
-			# cut the approach corridor out: the ramp alone carries you up through the tiers there
-			var xf := inv * mi.global_transform
-			var faces := mi.mesh.get_faces()
-			var kept := PackedVector3Array()
-			for i in range(0, faces.size(), 3):
-				var a := xf * faces[i]
-				var b := xf * faces[i + 1]
-				var c := xf * faces[i + 2]
-				var m := (a + b + c) / 3.0
-				if absf(m.x) < 3.0 and m.z > 5.6:
-					continue
-				kept.append_array(PackedVector3Array([a, b, c]))
-			var cps := ConcavePolygonShape3D.new()
-			cps.set_faces(kept)
-			var ccs := CollisionShape3D.new()
-			ccs.shape = cps
-			body.add_child(ccs)
-			continue
+		if n == "StoneMonument" or n == "MossCarpet":
+			# the approach corridor was already cut out of these meshes by _approach_stairs, so the
+			# collision is exactly what you see; the moss carpet is the real walking surface (it sits
+			# 0.16 m proud of the stone, and you used to sink into it)
+			shape = mi.mesh.create_trimesh_shape()
 		elif n.begins_with("StoneRail") or n == "StoneDaisRail":
 			_cut_gate(mi, holder, LIFT_GATE)          # opening where the Ossuary lift jetty arrives
 			shape = mi.mesh.create_trimesh_shape()
 		elif n.begins_with("MossRock"):
 			var centre := inv * mi.global_transform * mi.get_aabb().get_center()
-			if LIFT_LANE.has_point(centre):
+			if LIFT_LANE.has_point(centre) or not mi.visible:
 				mi.visible = false                     # a rock sat in the lift jetty's mouth
 				continue
-			shape = mi.mesh.create_convex_shape(true, true)
+			shape = GenCache.convex_shape(mi.mesh, PLATFORM)   # 120 simplified hulls were 1.3 s a load
 			rocks += 1
 		if shape == null:
 			continue
@@ -256,6 +536,11 @@ static func _paint_platform(model: Node) -> void:
 		mi.visibility_range_end = 0.0
 		mi.ignore_occlusion_culling = true
 		mi.extra_cull_margin = 8.0
+		if n.contains("mossrock"):
+			mi.lod_bias = 0.3          # 120 one-metre rocks at 8-10k tris each: simpler LODs sooner
+			# their shadow pass was ~730k of the summit's 1.4 M prims; they sit on the stone tiers,
+			# where the platform's own shadow already darkens them
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 static func _paint_pillar(model: Node) -> void:
@@ -270,6 +555,8 @@ static func _paint_pillar(model: Node) -> void:
 			mi.material_override = stone
 		mi.visibility_range_end = 0.0
 		mi.ignore_occlusion_culling = true
+		if n.contains("mossrock"):
+			mi.lod_bias = 0.3
 
 
 static func _drape_moss_cards(holder: Node3D) -> void:
@@ -387,3 +674,81 @@ static func _dress_orb_light(mage: Node) -> void:
 	light.shadow_enabled = false
 	light.light_volumetric_fog_energy = 0.7
 	orb_mi.add_child(light)
+
+
+## The checkpoint before the Warden: a copy of a village brazier, unlit, beside the summit stair head
+## and well outside the dais (the arena resets at DAIS_R + 6 m; this stands about 25 m from its centre).
+static func _summit_fire(holder: Node3D) -> void:
+	if not is_instance_valid(holder) or holder.get_node_or_null("SummitFire") != null:
+		return
+	var src: Brazier = null
+	for node in holder.get_tree().get_nodes_in_group(Groups.INTERACTABLE):
+		if node is Brazier:
+			src = node as Brazier
+			break
+	if src == null:
+		return
+	var at := holder.to_global(STAIR_HEAD + Vector3(3.2, 0.0, -1.6))
+	var hit := holder.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 3.0, at + Vector3.DOWN * 6.0, Layers.WORLD))
+	if not hit.is_empty():
+		at = hit.position
+	var b := src.duplicate() as Brazier
+	b.name = "SummitFire"
+	b.start_lit = false
+	holder.add_child(b)
+	b.global_position = at
+	if b.lit:
+		b._set_lit(false, false)
+	print("SUMMIT_DRESS checkpoint fire at %s" % at.snapped(Vector3.ONE * 0.1))
+
+
+## Four fire bowls on the dais rim (r30: "lit only by the player's lantern"). Warm, unshadowed,
+## small range: they frame the fight and read from the Crossing below. Out when the Warden falls.
+static func _rim_fires(holder: Node3D) -> Array:
+	var out: Array = []
+	var k := OssKit.new()
+	k.keep_lanes = false
+	var spots: Array[Vector3] = []
+	for a: float in [deg_to_rad(-30.0), deg_to_rad(-150.0), deg_to_rad(20.0), deg_to_rad(160.0)]:
+		spots.append(Vector3(DAIS_C.x + cos(a) * (DAIS_R - 1.2), TOP_DECK_Y, DAIS_C.y + sin(a) * (DAIS_R - 1.2)))
+	for p in spots:
+		k.box("stone", p + Vector3.UP * 0.45, Vector3(0.7, 0.9, 0.7), Basis.IDENTITY, true, 0.9)
+		k.box("stone", p + Vector3.UP * 0.98, Vector3(1.05, 0.16, 1.05), Basis.IDENTITY, true, 0.8)
+		k.box("iron", p + Vector3.UP * 1.12, Vector3(0.9, 0.14, 0.9), Basis.IDENTITY, false)
+	var host := Node3D.new()
+	host.name = "DaisRimFires"
+	host.set_meta("site", "summit_dais")              # the dais's own furniture (zz/realm_audit)
+	holder.add_child(host)
+	k.commit(host, "RimBody")
+	var fm := StandardMaterial3D.new()
+	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	fm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	fm.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
+	fm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	fm.albedo_texture = Wayfinding.Glow._tongue()       # the same soft flame tongue as an unlit fire's glint
+	fm.albedo_color = Color(1.3, 0.62, 0.22, 1.0)
+	fm.disable_fog = true                               # the summit's azure fog turned them violet
+	var qm := QuadMesh.new()
+	qm.size = Vector2(0.75, 1.25)
+	qm.center_offset = Vector3(0, 0.6, 0)
+	for p in spots:
+		var f := Node3D.new()
+		host.add_child(f)
+		f.position = p + Vector3.UP * 1.17
+		var flame := MeshInstance3D.new()
+		flame.mesh = qm
+		flame.material_override = fm
+		flame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		f.add_child(flame)
+		var l := OmniLight3D.new()
+		l.light_color = Color(1.0, 0.56, 0.26)
+		l.light_energy = 2.4
+		l.omni_range = 9.0
+		l.shadow_enabled = false
+		l.position = Vector3.UP * 0.9
+		l.set_meta(&"light_class", "fill")
+		f.add_child(l)
+		LightPolicy.apply_fade(l)
+		out.append(f)
+	return out

@@ -2,7 +2,10 @@ class_name Shade
 extends Node3D
 ## The Hollow One. Born when Gloom reaches its cap: it tears into the world behind you, a
 ## six-metre shroud with a crowned bone mask in a void of a hood, and drifts after you high
-## above the ground. Light unmakes it (a lit brazier, or any hit); its reach Hollows.
+## above the ground. Light unmakes it (a lit brazier, a Lantern Ward, an Umbral Nova); its reach
+## Hollows. A bolt only drives it back (r30): thrown 8 m, stunned 1.5 s, slow to close for 2 s,
+## and it comes back 0.6 m/s faster each time (to 7.2, under the 7.5 sprint). After DRIVES_MAX
+## drives it no longer flinches: walk to a fire, or Nova it.
 ##
 ## Presence, not hit points: a dark fog cloud swallows its lower body, a pool of shadow and a
 ## violet glow move across the ground beneath it, the camera trembles as it nears, the halo of
@@ -13,6 +16,12 @@ const SFX_ROAR := "res://art/audio/pounce_shriek.wav"
 const HOVER := 3.4              ## core height above the player's feet
 const REACH := 1.8              ## horizontal distance at which it takes you
 const PRESENCE_R := 14.0        ## camera tremor radius
+const DRIVE_BACK := 8.0         ## metres a bolt throws it back
+const DRIVE_STUN := 1.5         ## seconds it hangs, reeling, after a drive
+const DRIVE_SLOW := 2.0         ## seconds after the stun it closes at half speed
+const DRIVE_SPEED_UP := 0.6     ## each drive, it comes back this much faster ...
+const SPEED_CAP := 7.2          ## ... up to this (sprint is 7.5: running to a fire still works)
+const DRIVES_MAX := 3           ## drives before bolts pass through it
 
 var target: Player
 var speed := 5.2
@@ -31,6 +40,9 @@ var _skins: Array[GeometryInstance3D] = []
 var _reach := 0.0
 var _tremor_t := 0.0
 var _vel := Vector3.ZERO
+var _stun_t := 0.0              ## > 0: reeling from a drive, not closing
+var _slow_t := 0.0              ## > 0: closing at half speed after a stun
+var drives := 0                 ## how many times bolts have driven it off
 
 static var _shroud_mesh: ArrayMesh
 static var _rag_meshes: Array[ArrayMesh] = []
@@ -38,6 +50,9 @@ static var _mask_mesh: ArrayMesh
 static var _arm_mesh: ArrayMesh
 static var _shard_mesh: ArrayMesh
 static var _mats: Dictionary = {}
+static var _whisper_loop: AudioStreamWAV     ## r30: per-spawn resources built once, not per spawn
+static var _pool_tex: GradientTexture2D      ## (the WAV copy and the gradient were ~0.3 ms a spawn)
+static var _fog_mat: FogMaterial
 
 
 func _ready() -> void:
@@ -52,9 +67,7 @@ func _ready() -> void:
 	_whisper = AudioStreamPlayer3D.new()
 	_whisper.bus = &"SFX"
 	_whisper.name = "Whisper"
-	var loop := (load("res://art/audio/shade_whisper.wav") as AudioStreamWAV).duplicate()
-	loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	_whisper.stream = loop
+	_whisper.stream = _whisper_loop
 	_whisper.max_distance = 40.0
 	_whisper.volume_db = -14.0
 	_whisper.pitch_scale = 0.6          # bigger thing, lower voice
@@ -118,6 +131,8 @@ static func _mat(key: String) -> Material:
 
 
 static func _build_meshes() -> void:
+	if _whisper_loop == null:
+		_build_shared()
 	if _shroud_mesh != null:
 		return
 	_shroud_mesh = _lathe_shroud()
@@ -126,6 +141,29 @@ static func _build_meshes() -> void:
 	_mask_mesh = _make_mask()
 	_arm_mesh = _make_arm()
 	_shard_mesh = _make_shard()
+
+
+## The resources every Shade uses unchanged, built with the meshes (once; the loading screen's
+## warm-up Shade builds them under the cover): the looped whisper, the shadow pool's gradient, the
+## fog cloud's material.
+static func _build_shared() -> void:
+	_whisper_loop = (load("res://art/audio/shade_whisper.wav") as AudioStreamWAV).duplicate()
+	_whisper_loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	var g := GradientTexture2D.new()
+	g.fill = GradientTexture2D.FILL_RADIAL
+	g.fill_from = Vector2(0.5, 0.5)
+	g.fill_to = Vector2(0.5, 0.0)
+	g.width = 64
+	g.height = 64
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+	grad.colors = PackedColorArray([Color(0, 0, 0, 0.92), Color(0, 0, 0.02, 0.6), Color(0, 0, 0, 0)])
+	g.gradient = grad
+	_pool_tex = g
+	_fog_mat = FogMaterial.new()
+	_fog_mat.density = 0.55
+	_fog_mat.albedo = Color(0.0, 0.0, 0.01)
+	_fog_mat.edge_fade = 0.9
 
 
 ## Hooded shroud as a lathe: profile (radius, y) from crown to hem, the hood's front cut away
@@ -330,35 +368,22 @@ func _build_presence() -> void:
 	# dark cloud swallowing the lower body (volumetric fog is on in every night's environment)
 	var fog := FogVolume.new()
 	fog.shape = RenderingServer.FOG_VOLUME_SHAPE_ELLIPSOID
-	fog.size = Vector3(5.5, 5.0, 5.5)
+	fog.size = Vector3(4.2, 3.6, 4.2)
 	fog.position = Vector3(0, -2.2, 0)
-	var fm := FogMaterial.new()
-	fm.density = 0.55
-	fm.albedo = Color(0.0, 0.0, 0.01)
-	fm.edge_fade = 0.9
-	fog.material = fm
+	fog.material = _fog_mat
 	add_child(fog)
 	# a pool of shadow cast straight down onto whatever is beneath
 	_pool = Decal.new()
 	_pool.size = Vector3(7.0, 14.0, 7.0)
-	var g := GradientTexture2D.new()
-	g.fill = GradientTexture2D.FILL_RADIAL
-	g.fill_from = Vector2(0.5, 0.5)
-	g.fill_to = Vector2(0.5, 0.0)
-	g.width = 64
-	g.height = 64
-	var grad := Gradient.new()
-	grad.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
-	grad.colors = PackedColorArray([Color(0, 0, 0, 0.92), Color(0, 0, 0.02, 0.6), Color(0, 0, 0, 0)])
-	g.gradient = grad
-	_pool.texture_albedo = g
+	_pool.texture_albedo = _pool_tex
 	_pool.albedo_mix = 1.0
 	_pool.upper_fade = 0.15
 	_pool.lower_fade = 0.3
 	_pool.top_level = true
 	add_child(_pool)
 	# smoke shed from the hem
-	var smoke := Vfx.emitter(Color(0.015, 0.008, 0.04, 0.6), {"count": 36, "life": 2.2, "speed": Vector2(0.1, 0.5), "size": 1.0, "gravity": 0.5, "radius": 1.3, "additive": false, "turbulence": true})
+	# fewer, smaller smoke cards: 36 one-metre cards filled the screen when it closed on the camera
+	var smoke := Vfx.emitter(Color(0.015, 0.008, 0.04, 0.65), {"count": 18, "life": 2.0, "speed": Vector2(0.1, 0.5), "size": 0.7, "gravity": 0.5, "radius": 1.2, "additive": false, "turbulence": true})
 	smoke.position = Vector3(0, -1.4, 0)
 	_body.add_child(smoke)
 	smoke.emitting = true
@@ -404,10 +429,48 @@ func _set_dissolve(v: float) -> void:
 
 # --- behaviour ------------------------------------------------------------------------------
 
-func take_hit(_dmg: float, _from: Node = null) -> void:
+## A hit from the wanderer's own body (the Umbral Nova passes the Player as `from`) unmakes it;
+## any other hit (a bolt, a dart, a Well pulse) only drives it back. See drive_off().
+func take_hit(_dmg: float, from: Node = null) -> void:
+	if from is Player:
+		unmake_by_light()
+		return
+	drive_off(from)
+
+
+## The Nova or a ward: unmade, and the next shade is held back 2 s.
+func unmake_by_light() -> void:
 	if is_instance_valid(target):
 		target.note_shade_bolt()
 	dissipate()
+
+
+## A bolt drives it back: thrown away from the wanderer, reeling, then slow to close, and faster
+## each time after. While it reels (and while it is slow) further bolts pass through: holding the
+## trigger cannot pin it. After DRIVES_MAX drives it shrugs bolts off for good.
+func drive_off(_from: Node = null) -> bool:
+	if _dying or _stun_t > 0.0 or _slow_t > 0.0 or drives >= DRIVES_MAX:
+		if not _dying and drives >= DRIVES_MAX and is_instance_valid(target):
+			target.note_shade_shrug()
+		return false
+	drives += 1
+	speed = minf(speed + DRIVE_SPEED_UP, SPEED_CAP)
+	_stun_t = DRIVE_STUN
+	_slow_t = DRIVE_SLOW
+	_blocked_t = 0.0
+	var away := Vector3(0.0, 0.0, 1.0)
+	if is_instance_valid(target):
+		var d := global_position - target.global_position
+		d.y = 0.0
+		if d.length_squared() > 0.01:
+			away = d.normalized()
+		target.note_shade_driven(drives, DRIVES_MAX)
+	_vel = away * DRIVE_BACK * 4.5       # bleeds off at exp(-4.5 t) while it reels: ~DRIVE_BACK metres in all
+	Vfx.burst(global_position + Vector3.UP * 0.6, Color(0.6, 0.25, 1.4), {"count": 24, "life": 0.6, "speed": Vector2(3.0, 7.0), "size": 0.05, "gravity": -2.0, "trail": 0.1})
+	Sfx.play(SFX_ROAR, global_position, -6.0, 0.8, 0.04)
+	var tw := create_tween()
+	tw.tween_method(_set_dissolve, 0.45, 0.0, DRIVE_STUN)
+	return true
 
 
 func _process(delta: float) -> void:
@@ -445,6 +508,15 @@ func _reach_goal() -> float:
 func _physics_process(delta: float) -> void:
 	if _dying or not is_instance_valid(target):
 		return
+	if _stun_t > 0.0:
+		_stun_t -= delta
+		_vel = _vel.lerp(Vector3.ZERO, 1.0 - exp(-4.5 * delta))   # the throw, bleeding off
+		global_position += _vel * delta
+		global_position.y = lerpf(global_position.y, target.global_position.y + HOVER, 1.0 - exp(-2.0 * delta))
+		if LightGrid.is_lit(global_position) or LightGrid.is_lit(global_position + Vector3.DOWN * HOVER):
+			dissipate()
+		return
+	_slow_t = maxf(0.0, _slow_t - delta)
 	var goal := target.global_position + Vector3.UP * HOVER
 	if _blocked_t >= 2.5:
 		var around := _ring_goal(target)
@@ -465,7 +537,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		_blocked_t = maxf(0.0, _blocked_t - delta * 2.0)
 	var d := to.length()
-	var v := to / maxf(d, 0.001) * minf(speed, d / maxf(delta, 0.001))
+	var v := to / maxf(d, 0.001) * minf(speed * (0.5 if _slow_t > 0.0 else 1.0), d / maxf(delta, 0.001))
 	_vel = _vel.lerp(v, 1.0 - exp(-4.0 * delta))
 	global_position += _vel * delta
 	if Vector2(to.x, to.z).length() > 0.05:

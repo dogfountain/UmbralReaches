@@ -31,6 +31,22 @@ func _ready() -> void:
 	_keys("demo", [KEY_F9])
 	_keys("toggle_settings", [KEY_F2, KEY_ESCAPE])
 	_keys("benchmark", [KEY_F8])
+	# "release_mouse" was checked by the player, settings, satchel and journal but never defined, so
+	# every input event logged an InputMap error; defined without a key (Esc already frees the mouse
+	# through the settings menu), it is a no-op instead of an error
+	if not InputMap.has_action("release_mouse"):
+		InputMap.add_action("release_mouse")
+	_mouse("lock_on", MOUSE_BUTTON_MIDDLE)          # agent C: target lock (pad: right stick click)
+	_button("lock_on", JOY_BUTTON_RIGHT_STICK)
+	_keys("dodge", [KEY_V])                         # agent C: dodge roll (pad: slide button when slow or locked)
+	# r31 staff arts: the primary trigger strikes by itself up close; these are the explicit keys.
+	# Pad: RT strikes up close, guard is the slide button held while locked on with the stick idle.
+	_keys("staff_strike", [KEY_G])                  # tap = a light strike, hold = a heavy
+	_mouse("staff_strike", MOUSE_BUTTON_XBUTTON1)
+	_keys("guard", [KEY_X])                         # hold = guard; its first instant parries
+	_mouse("guard", MOUSE_BUTTON_XBUTTON2)
+	_keys("inventory", [KEY_TAB, KEY_I])
+	_button("inventory", JOY_BUTTON_DPAD_UP)
 	_button("toggle_settings", JOY_BUTTON_START)
 
 	_axis("move_forward", JOY_AXIS_LEFT_Y, -1.0)
@@ -43,8 +59,13 @@ func _ready() -> void:
 	_axis("look_down", JOY_AXIS_RIGHT_Y, 1.0)
 	_button("jump", JOY_BUTTON_A)
 	_button("interact", JOY_BUTTON_X)
-	_button("sprint", JOY_BUTTON_LEFT_STICK)
-	_button("toggle_debug", JOY_BUTTON_BACK)
+	_button("sprint", JOY_BUTTON_LEFT_STICK)         # on a pad L3 latches the sprint (Player._sprint_latch)
+	# r29: the View/Back button opened the developer stats overlay for pad players; it is F3 only now.
+	# The Kindling menu had no pad button at all (only K, or a fire): d-pad right, beside the other
+	# menus on the d-pad (up satchel, down journal, left tasks). K is added here too, since the
+	# growth UI only adds its own binding when the action does not exist yet.
+	_keys("kindling", [KEY_K])
+	_button("kindling", JOY_BUTTON_DPAD_RIGHT)
 
 
 func _ensure(action: String) -> void:

@@ -2,10 +2,26 @@ class_name SkillBook
 extends Node
 ## The player's hotbar: five Skill slots, their cooldowns, input, charge, and the read-only
 ## surface the Hotbar UI draws from. Lives as a child of Player; Player never handles cast input.
+## Each slot listens to its own action (SLOT_ACTIONS): the Kindling's loadout puts any known spell
+## in slots 1..4 (set_slot), so a skill's `action` is the slot's, not the spell's.
 
-const GCD := 0.1                 ## tiny global lock so two buttons on one frame don't double-cast
+const GCD := 0.5                 ## r33: the shared global cooldown an on-GCD spell starts (Skill.gcd)
+const LOCK := 0.1                ## tiny input lock so two buttons on one frame don't double-cast
+const QUEUE_WINDOW := 0.3        ## r33: a press this close to the end of a GCD / recovery / cast is queued
+const QUEUE_GRACE := 0.15        ## ... and stays queued this long past the moment it could have fired
+const MOVE_GRACE := 0.2          ## r33: a rooted cast forgives this much movement at its start
+const CAST_MOVE := 0.7           ## walk speed while casting a cast_moving spell
+const CAST_ROOT := 0.3           ## ... and during a rooted cast's grace
+const HARD_HIT := 20.0           ## r33: a blow of this much Gloom (after the guard) interrupts a cast
+const PUSHBACK := 0.3            ## a lighter blow sets the cast back this much
+const LOCKOUT := 1.5             ## an interrupted spell's slot is locked this long
+const SPENDERS: Array[StringName] = [&"lance", &"nova"]
+const CombatState := preload("res://core/skills/combat_state.gd")
+const Hints := preload("res://ui/hints.gd")
 const OVERCHARGE := 0.9          ## seconds past full charge before a held Lance fires itself
 const CHARGE_MOVE := 0.55        ## walk speed multiplier while charging
+const SLOT_ACTIONS: Array[StringName] = [&"skill_bolt", &"skill_lance", &"skill_nova", &"skill_ward", &"skill_step"]
+const BOOST := 1.3               ## Lantern Ward II: other spells recover this much faster in its light
 
 const PAD_NAMES := {
 	JOY_BUTTON_A: "A", JOY_BUTTON_B: "B", JOY_BUTTON_X: "X", JOY_BUTTON_Y: "Y",
@@ -26,18 +42,38 @@ var _gcd := 0.0
 var _charging := -1
 var _charge_t := 0.0
 var _swallow := false            ## the click that captured the mouse must not also cast
+var boost_until := 0.0           ## Lantern Ward II: until this time (s) the other slots recover faster
+var last_overcharge := 0.0       ## a CHARGE release: seconds it was held past full (the Lance's Perfect)
+var combat: Node                 ## r33: CombatState (statuses, crits, Resonance, Rift Surge, target)
+var cast_power := 1.0            ## r33: set while a spell's cast() runs: spender + Surge damage multiplier
+var cast_spent := 0              ## r33: Resonance the running cast() spends (Lance: Ember Scar x2 at 3+)
+var cast_surged := false         ## r33: the running cast() spends a Rift Surge
+var _cd_total := PackedFloat32Array()
+var _gcd_total := GCD
+var _lock := 0.0
+var _queued := -1
+var _queue_until := 0.0
+var _casting := -1
+var _cast_t := 0.0
+var _cast_total := 0.0
 
 
 func _ready() -> void:
 	player = get_parent() as Player
 	if slots.is_empty():
 		slots = [SkillBolt.new(), SkillLance.new(), SkillNova.new(), SkillWard.new(), SkillStep.new()]
+	for i in mini(slots.size(), SLOT_ACTIONS.size()):
+		slots[i].action = SLOT_ACTIONS[i]
 	var n := slots.size()
 	_cd.resize(n)
 	_flash.resize(n)
 	_deny.resize(n)
 	_deny_why.resize(n)
 	_deny_why.fill("")
+	_cd_total.resize(n)
+	combat = CombatState.new()
+	combat.name = "Combat"
+	add_child(combat)
 
 
 func _input(event: InputEvent) -> void:
@@ -51,27 +87,73 @@ func _input(event: InputEvent) -> void:
 
 func _physics_process(delta: float) -> void:
 	_gcd = maxf(0.0, _gcd - delta)
+	_lock = maxf(0.0, _lock - delta)
+	var boosted := boost_until > Time.get_ticks_msec() * 0.001
 	for i in slots.size():
-		_cd[i] = maxf(0.0, _cd[i] - delta)
+		_cd[i] = maxf(0.0, _cd[i] - delta * (BOOST if boosted and slots[i].id != &"ward" else 1.0))
 		_flash[i] = maxf(0.0, _flash[i] - delta * 3.0)
 		_deny[i] = maxf(0.0, _deny[i] - delta * 2.5)
 	if _swallow and not (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)):
 		_swallow = false
-	if player == null or not _input_ok() or player.skills_locked():
+	if player == null or player.skills_locked():
+		_cancel_charge()
+		_stop_cast(&"cancel")
+		_queued = -1
+		return
+	_tick_cast(delta)
+	_tick_queue()
+	if not _input_ok():
 		_cancel_charge()
 		return
+	_heat_tick(delta)
 	for i in slots.size():
 		var s := slots[i]
+		if s.id == &"bolt" and player.has_method("melee_claims_primary") and player.melee_claims_primary():
+			continue                     # r31: a foe in your face takes the staff, not a bolt (StaffArts)
 		match s.trigger:
 			Skill.Trigger.PRESS:
 				if Input.is_action_just_pressed(s.action):
-					try_cast(i, 0.0, false)
+					press(i)
 			Skill.Trigger.HOLD_REPEAT:
-				if Input.is_action_pressed(s.action) and _charging < 0:
+				if Input.is_action_pressed(s.action) and _charging < 0 and _casting < 0:
 					try_cast(i, 0.0, true)
 			Skill.Trigger.CHARGE:
 				_tick_charge(i, s, delta)
 	player.set_charge_glow(charge_ratio())
+
+
+## r30 staff heat: a held repeat (the Rift Bolt) fires 1.5x slower (0.28 -> 0.42 s) after HEAT_AFTER
+## seconds of trigger held, until it has been let go for HEAT_COOL seconds. Rhythm (taps, the Lash,
+## a Lance or a Nova between) beats holding the trigger down.
+const HEAT_AFTER := 2.0
+const HEAT_COOL := 1.0
+const HEAT_SLOW := 1.5
+var _heat_hold := 0.0
+var _heat_cool := 0.0
+
+
+func is_hot() -> bool:
+	return _heat_hold >= HEAT_AFTER
+
+
+## 0..1: how close the held trigger is to heat (1 = hot), for the HUD or the orb.
+func heat() -> float:
+	return clampf(_heat_hold / HEAT_AFTER, 0.0, 1.0)
+
+
+func _heat_tick(delta: float) -> void:
+	var held := false
+	for s in slots:
+		if s.trigger == Skill.Trigger.HOLD_REPEAT and InputMap.has_action(s.action) and Input.is_action_pressed(s.action):
+			held = true
+			break
+	if held and _charging < 0:
+		_heat_hold += delta
+		_heat_cool = 0.0
+	else:
+		_heat_cool += delta
+		if _heat_cool >= HEAT_COOL:
+			_heat_hold = 0.0
 
 
 func _tick_charge(i: int, s: Skill, delta: float) -> void:
@@ -80,23 +162,25 @@ func _tick_charge(i: int, s: Skill, delta: float) -> void:
 		var full := maxf(s.max_charge, 0.01)
 		if not Input.is_action_pressed(s.action) or _charge_t >= full + OVERCHARGE:
 			var c := clampf(_charge_t / full, 0.0, 1.0)
+			last_overcharge = _charge_t - full
 			_charging = -1
 			_charge_t = 0.0
-			try_cast(i, c, false)
+			Events.cast_stopped.emit(s.id, &"done")
+			try_cast(i, c, false, true)      # the charge was the commitment: the release ignores the GCD
 		return
 	if _charging < 0 and Input.is_action_just_pressed(s.action):
-		if _cd[i] > 0.0:
-			_refuse(i, "")
-			return
-		var why := s.can_cast(self)
-		if why != "":
-			_refuse(i, why)
-			return
-		_charging = i
-		_charge_t = 0.0
+		press(i)
+
+
+func _start_charge(i: int) -> void:
+	_charging = i
+	_charge_t = 0.0
+	Events.cast_started.emit(slots[i].id, maxf(slots[i].max_charge, 0.01))
 
 
 func _cancel_charge() -> void:
+	if _charging >= 0 and _charging < slots.size():
+		Events.cast_stopped.emit(slots[_charging].id, &"cancel")
 	_charging = -1
 	_charge_t = 0.0
 	if player:
@@ -110,11 +194,13 @@ func _input_ok() -> bool:
 
 
 ## Cooldown, gloom cost, flash and the global lock. Returns true if the skill went off.
-func try_cast(i: int, charge: float, quiet: bool) -> bool:
+## The spell goes off now (no cast time: press() is the input path that queues and casts).
+## `skip_gcd`: a finished cast or a Lance release (the GCD was the cast's to start, or is ignored).
+func try_cast(i: int, charge: float, quiet: bool, skip_gcd := false) -> bool:
 	if i < 0 or i >= slots.size():
 		return false
 	var s := slots[i]
-	if _cd[i] > 0.0 or _gcd > 0.0:
+	if _cd[i] > 0.0 or (_gcd > 0.0 and s.gcd > 0.0 and not skip_gcd):
 		if not quiet:
 			_refuse(i, "")
 		return false
@@ -123,16 +209,240 @@ func try_cast(i: int, charge: float, quiet: bool) -> bool:
 		if not quiet:
 			_refuse(i, why)
 		return false
-	if not s.cast(self, charge):
+	# r33: a spender spends every Resonance stack; a Rift Surge empowers the spell that uses it
+	var spender := SPENDERS.has(s.id)
+	var me: Node = player
+	var spent: int = combat.stacks(me, &"resonance") if spender and combat else 0
+	var surged: bool = combat != null and surge_fits(s) and combat.has(me, &"surge")
+	cast_spent = spent
+	cast_surged = surged
+	cast_power = 1.0 + CombatState.RES_PER * float(spent)
+	if surged and s.id == &"lance":
+		cast_power *= CombatState.SURGE_LANCE
+	var ok := s.cast(self, 1.0 if surged and s.trigger == Skill.Trigger.CHARGE else charge)
+	cast_power = 1.0
+	cast_spent = 0
+	cast_surged = false
+	if not ok:
 		return false
-	_cd[i] = s.cooldown
-	_gcd = GCD
+	_cd[i] = s.cooldown * (HEAT_SLOW if s.trigger == Skill.Trigger.HOLD_REPEAT and is_hot() else 1.0)
+	_cd_total[i] = _cd[i]
+	if s.gcd > 0.0 and not skip_gcd:
+		_gcd = s.gcd
+		_gcd_total = s.gcd
 	_flash[i] = 1.0
 	if s.gloom_cost > 0.0:
 		player.add_gloom(s.gloom_cost)
+	if combat:
+		_spend(s, spent, surged)
 	player.note_combat()
 	Events.skill_cast.emit(s.id)
+	if s.pose != &"" and s.pose != s.id:
+		var rig: Variant = player.get("_visual")
+		if rig is Object and (rig as Object).has_method("cast_pose"):
+			(rig as Object).call("cast_pose", s.pose)
 	return true
+
+
+# --- r33: GCD, the spell queue, cast times, interrupts, the spend ---------------------------------
+
+## The input path for a press of slot `i`: casts now if it can, queues it if it will be free inside
+## QUEUE_WINDOW, otherwise refuses. Tests call this to simulate a key press.
+func press(i: int) -> bool:
+	if i < 0 or i >= slots.size() or slots[i] == null:
+		return false
+	var wait := wait_for(i)
+	if wait <= 0.0 and _lock <= 0.0:
+		return _begin(i)
+	if wait <= QUEUE_WINDOW:
+		if _queued != i:
+			Events.spell_queued.emit(slots[i].id)
+		_queued = i
+		_queue_until = _now() + maxf(wait, _lock) + QUEUE_GRACE
+		return true
+	_refuse(i, "")
+	return false
+
+
+## Seconds until slot `i` could start: its recovery, the GCD (if it is on it), a cast in progress.
+func wait_for(i: int) -> float:
+	var s := slots[i]
+	var w := _cd[i]
+	if s.gcd > 0.0 and s.trigger != Skill.Trigger.CHARGE:
+		w = maxf(w, _gcd)
+	if _casting >= 0:
+		w = maxf(w, _cast_total - _cast_t)
+	if _charging >= 0 and _charging != i and s.trigger == Skill.Trigger.CHARGE:
+		w = maxf(w, 99.0)
+	return w
+
+
+## Start slot `i` (it is free): a charge, a cast with a cast time, or straight off.
+func _begin(i: int) -> bool:
+	var s := slots[i]
+	var why := s.can_cast(self)
+	if why != "":
+		_refuse(i, why)
+		return false
+	_lock = LOCK
+	var surged: bool = combat != null and surge_fits(s) and combat.has(player, &"surge")
+	if s.trigger == Skill.Trigger.CHARGE:
+		if surged:
+			last_overcharge = -1.0                        # not a Perfect as well: the Surge is its own reward
+			return try_cast(i, 1.0, false, true)          # Rift Surge: the Lance flies at full charge now
+		if _charging >= 0:
+			return false
+		_start_charge(i)
+		return true
+	if s.cast_time > 0.0 and not surged:
+		if _casting >= 0 or _charging >= 0:
+			_refuse(i, "")                                # one cast at a time
+			return false
+		_casting = i
+		_cast_t = 0.0
+		_cast_total = s.cast_time
+		if s.gcd > 0.0:
+			_gcd = s.gcd                                  # the GCD runs from the start of a cast
+			_gcd_total = s.gcd
+		Events.cast_started.emit(s.id, s.cast_time)
+		return true
+	return try_cast(i, 0.0, false)
+
+
+func _tick_cast(delta: float) -> void:
+	if _casting < 0:
+		return
+	var s := slots[_casting]
+	_cast_t += delta
+	if not s.cast_moving and _cast_t > MOVE_GRACE and player.has_method("move_intent") and float(player.call("move_intent")) > 0.3:
+		_stop_cast(&"moved")
+		return
+	if _cast_t >= _cast_total:
+		var i := _casting
+		_casting = -1
+		_cast_t = 0.0
+		Events.cast_stopped.emit(s.id, &"done")
+		try_cast(i, 0.0, false, true)
+
+
+func _stop_cast(reason: StringName) -> void:
+	if _casting < 0:
+		return
+	var id := slots[_casting].id if _casting < slots.size() else &""
+	_casting = -1
+	_cast_t = 0.0
+	Events.cast_stopped.emit(id, reason)
+	if reason == &"moved" and player:
+		HitText.pop(player.global_position + Vector3.UP * 2.3, "moved", Color(0.75, 0.8, 0.95))
+
+
+func _tick_queue() -> void:
+	if _queued < 0:
+		return
+	if _now() > _queue_until or _queued >= slots.size():
+		_queued = -1
+		return
+	if wait_for(_queued) > 0.0 or _lock > 0.0:
+		return
+	var i := _queued
+	_queued = -1
+	var s := slots[i]
+	if s.trigger == Skill.Trigger.CHARGE and not (InputMap.has_action(s.action) and Input.is_action_pressed(s.action)) \
+			and not (combat and combat.has(player, &"surge")):
+		var why := s.can_cast(self)
+		if why == "":
+			_lock = LOCK
+			try_cast(i, 0.0, false, true)                 # tapped in the queue window: a tap throw
+		return
+	_begin(i)
+
+
+## The player was struck for `amount` Gloom (after the guard): a hard blow interrupts a cast or a
+## Lance charge and locks that slot; a lighter one pushes the cast back.
+func on_hurt(amount: float) -> void:
+	if _casting < 0 and _charging < 0:
+		return
+	if amount >= HARD_HIT:
+		var i := _casting if _casting >= 0 else _charging
+		var id := slots[i].id
+		if _casting >= 0:
+			_stop_cast(&"interrupted")
+		else:
+			_charging = -1
+			_charge_t = 0.0
+			player.set_charge_glow(0.0)
+			Events.cast_stopped.emit(id, &"interrupted")
+		_cd[i] = maxf(_cd[i], LOCKOUT)
+		if _cd[i] <= LOCKOUT:
+			_cd_total[i] = LOCKOUT
+		if combat:
+			combat.apply(player, &"shaken", 1, LOCKOUT)
+		HitText.pop(player.global_position + Vector3.UP * 2.3, "INTERRUPTED", Color(1.4, 0.4, 0.35), true)
+		Hints.once(&"interrupted", "A hard blow breaks a cast. Guard, dodge, or cast from cover.")
+	elif _casting >= 0:
+		_cast_t = maxf(0.0, _cast_t - PUSHBACK)
+
+
+## Does a Rift Surge empower `s`? (the Lance, the Nova, any spell with a cast time)
+func surge_fits(s: Skill) -> bool:
+	return s != null and (s.id == &"lance" or s.id == &"nova" or s.cast_time > 0.0)
+
+
+## After a spell went off: the spender's Resonance, the Surge, the Nova's resonant burst.
+func _spend(s: Skill, spent: int, surged: bool) -> void:
+	if surged:
+		combat.consume(player, &"surge")
+	if spent > 0:
+		combat.consume(player, &"resonance")
+		player.add_gloom(-CombatState.RES_GLOOM * float(spent))
+		_heat_hold = 0.0                                  # spending vents the staff's heat
+		if spent >= 3:
+			var st: Node = player.stamina() if player.has_method("stamina") else null
+			if st != null:
+				st.refund(CombatState.RES_BREATH * float(spent))
+		if spent >= 3 and player.is_inside_tree():
+			HitText.pop(player.global_position + Vector3.UP * 2.4, "RESONANCE x%d" % spent, Color(1.3, 0.7, 2.8), spent >= RESONANCE_BIG)
+	if s.id == &"nova":
+		var r: float = float(s.call("radius")) if s.has_method("radius") else SkillNova.RADIUS
+		combat.nova_burst(r, spent, surged)
+
+
+const RESONANCE_BIG := 5
+
+
+func _now() -> float:
+	return Time.get_ticks_msec() * 0.001
+
+
+## Put `s` in slot `i` (the Kindling's loadout): it listens to the slot's key. A new spell in the
+## slot starts ready; the same spell keeps its recovery.
+func set_slot(i: int, s: Skill) -> void:
+	if i < 0 or i >= slots.size() or s == null:
+		return
+	var same := slots[i] != null and slots[i].id == s.id
+	slots[i] = s
+	s.action = SLOT_ACTIONS[i] if i < SLOT_ACTIONS.size() else s.action
+	if not same:
+		_cd[i] = 0.0
+		if _charging == i:
+			_cancel_charge()
+		if _casting == i:
+			_stop_cast(&"cancel")
+		if _queued == i:
+			_queued = -1
+
+
+## Take `secs` off slot `i`'s recovery (The Count, combos).
+func refund(i: int, secs: float) -> void:
+	if i >= 0 and i < _cd.size():
+		_cd[i] = maxf(0.0, _cd[i] - secs)
+
+
+func slot_of(id: StringName) -> int:
+	for i in slots.size():
+		if slots[i] != null and slots[i].id == id:
+			return i
+	return -1
 
 
 func _refuse(i: int, why: String) -> void:
@@ -149,8 +459,54 @@ func cooldown_left(i: int) -> float:
 
 
 func cooldown_ratio(i: int) -> float:
-	var full := slots[i].cooldown
+	var full := maxf(slots[i].cooldown, _cd_total[i])
 	return clampf(_cd[i] / full, 0.0, 1.0) if full > 0.0 else 0.0
+
+
+## r33: the recovery that is running on slot `i` (its cooldown, or an interrupt lockout).
+func cooldown_total(i: int) -> float:
+	return maxf(_cd_total[i], 0.0) if _cd[i] > 0.0 else slots[i].cooldown
+
+
+func on_gcd(i: int) -> bool:
+	return slots[i].gcd > 0.0
+
+
+func gcd_left() -> float:
+	return _gcd
+
+
+func gcd_total() -> float:
+	return _gcd_total
+
+
+func queued_slot() -> int:
+	return _queued
+
+
+## Light slot `i`: its own primed() or a Rift Surge it would spend.
+func slot_lit(i: int) -> bool:
+	var s := slots[i]
+	if s == null:
+		return false
+	if s.primed(self):
+		return true
+	return combat != null and surge_fits(s) and combat.has(player, &"surge")
+
+
+func casting_slot() -> int:
+	return _casting
+
+
+## The cast bar: {} when idle.
+func cast_info() -> Dictionary:
+	if _casting >= 0:
+		var s := slots[_casting]
+		return {"id": s.id, "name": s.title, "t": _cast_t, "total": _cast_total, "kind": &"cast", "moving_ok": s.cast_moving, "slot": _casting, "color": s.color}
+	if _charging >= 0:
+		var c := slots[_charging]
+		return {"id": c.id, "name": c.title, "t": _charge_t, "total": maxf(c.max_charge, 0.01), "kind": &"charge", "moving_ok": true, "slot": _charging, "color": c.color}
+	return {}
 
 
 func charging_slot() -> int:
@@ -163,6 +519,13 @@ func charge_ratio() -> float:
 	return clampf(_charge_t / maxf(slots[_charging].max_charge, 0.01), 0.0, 1.0)
 
 
+## Seconds the held charge has gone past full (negative while still filling, 0 when not charging).
+func overcharge() -> float:
+	if _charging < 0:
+		return 0.0
+	return _charge_t - maxf(slots[_charging].max_charge, 0.01)
+
+
 func flash(i: int) -> float:
 	return _flash[i]
 
@@ -172,6 +535,8 @@ func denied(i: int) -> float:
 
 
 func move_scale() -> float:
+	if _casting >= 0:
+		return CAST_MOVE if slots[_casting].cast_moving else CAST_ROOT
 	return CHARGE_MOVE if _charging >= 0 else 1.0
 
 
@@ -186,9 +551,10 @@ func key_label(i: int) -> String:
 	if now - _label_t > 500:
 		_label_cache.clear()
 		_label_t = now
-	var key := "%d/%s" % [i, using_pad]
+	var pad := using_pad or Settings.using_pad      # Settings hears every device change, menus included
+	var key := "%d/%s" % [i, pad]
 	if not _label_cache.has(key):
-		_label_cache[key] = action_label(slots[i].action, using_pad)
+		_label_cache[key] = action_label(slots[i].action, pad)
 	return _label_cache[key]
 
 
@@ -215,7 +581,7 @@ static func action_label(action: StringName, pad: bool) -> String:
 			if ev is InputEventKey:
 				var k := ev as InputEventKey
 				var code := k.keycode
-				if k.physical_keycode != KEY_NONE:
+				if k.physical_keycode != KEY_NONE and DisplayServer.get_name() != "headless":
 					code = DisplayServer.keyboard_get_keycode_from_physical(k.physical_keycode)
 				return OS.get_keycode_string(code)
 	return "—"

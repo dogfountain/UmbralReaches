@@ -30,12 +30,23 @@ func interact(_by: Node) -> void:
 	pass
 
 
+## How the wanderer acts it out: &"cast" (the staff spell gesture, burst and sound: fires, wards,
+## bells), &"talk" (nothing magical: the NPC answers in its own voice), &"use" (a plain reach of the
+## hand). Anything with an npc_life (`life`) is a person. Override for magic.
+func interact_feel() -> StringName:
+	return &"talk" if get("life") != null or is_in_group("npc") else &"use"
+
+
 ## Override to use a wider reach than the player's default. <= 0 means use the player range.
 func interact_reach() -> float:
 	return -1.0
 
 
 static func prompt_key() -> String:
+	if Settings.using_pad:                      # the last input was a pad: name its button
+		for ev in InputMap.action_get_events("interact"):
+			if ev is InputEventJoypadButton:
+				return {JOY_BUTTON_A: "A", JOY_BUTTON_B: "B", JOY_BUTTON_X: "X", JOY_BUTTON_Y: "Y"}.get((ev as InputEventJoypadButton).button_index, "X")
 	for ev in InputMap.action_get_events("interact"):
 		if ev is InputEventKey:
 			var k := ev as InputEventKey

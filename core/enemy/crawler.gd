@@ -23,6 +23,12 @@ func _init() -> void:
 	leap_cooldown = 3.2
 	leap_lead = 0.4
 	hp_bar_y = 0.95
+	role = &"flanker"
+	mass = 0.7
+
+
+func voice_family() -> String:
+	return "chitter"
 
 
 func _build() -> void:
@@ -40,4 +46,4 @@ func _build() -> void:
 		cap.height = 0.7
 		cap.radius = 0.32
 		col.position.y = 0.36
-	set_flesh(EnemyBody.dress(_rig, &"crawler"))
+	set_flesh(EnemyBody.dress(_rig, _kind(&"crawler")))

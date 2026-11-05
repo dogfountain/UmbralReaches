@@ -1,0 +1,422 @@
+extends Node
+## The story director (docs/STORY.md). One per night, added by Tavern (the story lives at the
+## Kindled Keg). Group "story".
+##   - state: Travel.story = {"flags": {id: true}, "picked": {choice key: true}} (saved with the game)
+##   - talk(conv_id, npc, player): runs a conversation from core/story/dialogue_db.gd in the
+##     dialogue box (ui/dialogue.gd): resolves the start node and say_if lines against the world,
+##     applies `do` flags, hides `once` choices already picked; the speaking NPC faces the wanderer
+##     and moves his jaw while his line types
+##   - objectives(): the lines for the HUD (core/story/objective_line.gd), from QuestDB
+##   - opening narration on the first arrival at Hearthward; ending narration after the Ascended
+##     Warden falls (both non-blocking subtitles), and the title card after the last conversation
+## World state comes from Travel (seals_broken, bosses_slain, items) and the four braziers.
+
+const QuestDB := preload("res://core/story/quest_db.gd")
+const DialogueDB := preload("res://core/story/dialogue_db.gd")
+const DialogueUI := preload("res://ui/dialogue.gd")
+const Voice := preload("res://core/npc/npc_voice.gd")
+const QuestBook := preload("res://core/story/quest_book.gd")
+const ShopUI := preload("res://ui/shop.gd")
+const ScapeSynth := preload("res://core/life/wildlife/scape_synth.gd")
+const QuestGiver := preload("res://core/story/quest_giver.gd")
+const QuestRunner := preload("res://core/story/quest_runner.gd")
+const QuestMarkers := preload("res://core/story/quest_markers.gd")
+const QuestOfferUI := preload("res://ui/quest_offer.gd")
+
+signal objectives_changed
+
+var ui: CanvasLayer
+var log_ui: CanvasLayer           ## the tasks' banner and ledger (ui/quest_log.gd)
+var offer_ui: CanvasLayer         ## r33: the accept / turn-in screens (ui/quest_offer.gd)
+var runner: Node                  ## r33: counts kills, seals, places for the tasks (quest_runner.gd)
+var markers: Node3D               ## r33: the marks over the givers' heads, the map pins (quest_markers.gd)
+var _quest_after := ""            ## "offer:id" / "turnin:id" chosen in a conversation
+var _conv := ""
+var _node := ""
+var _npc: Node3D
+var _player: Node3D
+var _lit: Dictionary = {}          ## brazier name -> true, as seen this session (plus the save)
+var opening_delay := 6.0           ## after the zone title card
+
+
+func _ready() -> void:
+	add_to_group("story")
+	process_mode = Node.PROCESS_MODE_ALWAYS      # the dialogue pauses the tree; the portrait lives on
+	_state()
+	ui = DialogueUI.new()
+	ui.name = "Dialogue"
+	get_tree().root.add_child.call_deferred(ui)      # last in the tree: first to see input
+	log_ui = (load("res://ui/quest_log.gd") as GDScript).new()
+	log_ui.name = "QuestLog"
+	get_tree().root.add_child.call_deferred(log_ui)
+	offer_ui = QuestOfferUI.new()
+	offer_ui.name = "QuestOffer"
+	get_tree().root.add_child.call_deferred(offer_ui)
+	runner = QuestRunner.new()
+	runner.name = "QuestRunner"
+	add_child(runner)
+	markers = QuestMarkers.new()
+	add_child(markers)
+	ui.advanced.connect(_on_advanced)
+	ui.chosen.connect(_on_chosen)
+	ui.closed.connect(_on_closed)
+	Events.brazier_kindled.connect(func(b: Node3D) -> void:
+		if String(b.name) in QuestDB.BRAZIERS:
+			_lit[String(b.name)] = true
+		objectives_changed.emit())
+	Events.seal_broken.connect(func(_id: String) -> void: objectives_changed.emit())
+	Events.boss_slain.connect(_on_boss)
+	Events.item_gained.connect(func(_id: String, _a: int, _t: int) -> void: objectives_changed.emit())
+	# an older save with progress already made: the arrival has happened
+	if not flag("arrived") and (not Travel.bosses_slain.is_empty() or not Travel.seals_broken.is_empty()):
+		set_flag("arrived")
+		set_flag("met_keep")
+	if not flag("arrived"):
+		_after_cover(_opening)
+	elif Travel.bosses_slain.has("ascended_warden") and not flag("ending_seen"):
+		# the game was left in the seconds between the Warden's fall and the ending's words
+		_after_cover(_ending)
+
+
+## Run `fn` opening_delay seconds after the loading screen lifts (ui/loading_screen.gd is a child of
+## Main while it covers the night): before, the timer ran under the cover and the opening line
+## landed on the zone's title card.
+func _after_cover(fn: Callable) -> void:
+	var t := 0.0
+	while is_inside_tree() and get_tree().root.get_node_or_null("Main/LoadingScreen") != null and t < 60.0:
+		await get_tree().create_timer(0.1).timeout
+		t += 0.1
+	if not is_inside_tree():
+		return
+	await get_tree().create_timer(opening_delay).timeout
+	if is_inside_tree():
+		fn.call()
+
+
+func _exit_tree() -> void:
+	if is_instance_valid(ui):
+		ui.queue_free()
+	if is_instance_valid(shop):
+		shop.queue_free()
+	if is_instance_valid(log_ui):
+		log_ui.queue_free()
+	if is_instance_valid(offer_ui):
+		offer_ui.queue_free()
+
+
+# --- state ----------------------------------------------------------------------------------
+
+func _state() -> Dictionary:
+	if not Travel.story.has("flags"):
+		Travel.story["flags"] = {}
+	if not Travel.story.has("picked"):
+		Travel.story["picked"] = {}
+	return Travel.story
+
+
+func flag(id: String) -> bool:
+	return bool((_state().flags as Dictionary).get(id, false))
+
+
+func set_flag(id: String, on := true) -> void:
+	var f: Dictionary = _state().flags
+	if on:
+		f[id] = true
+	else:
+		f.erase(id)
+	objectives_changed.emit()
+	Travel.save_soon()
+
+
+## Run a node's or choice's actions: story flags here, tasks / attitudes / ash in QuestBook.
+## Returns QuestBook.run's result (poor: a payment failed; shop: a merchant to open after).
+func _do(actions: String) -> Dictionary:
+	var r := QuestBook.run(actions)
+	for a: String in r.rest:
+		if a.begins_with("flag:-"):
+			set_flag(a.trim_prefix("flag:-"), false)
+		elif a.begins_with("flag:"):
+			set_flag(a.trim_prefix("flag:"))
+	if String(r.scene) != "":
+		var ks := get_tree().get_first_node_in_group("keg_scenes")
+		if ks and ks.has_method("play"):
+			ks.call_deferred("play", String(r.scene))
+	return r
+
+
+## How many of the valley's four braziers burn (live nodes, else the save's kindle memory).
+func kindled() -> int:
+	var names := {}
+	for n: String in _lit:
+		names[n] = true
+	var scene := get_tree().current_scene
+	if scene:
+		for n: String in QuestDB.BRAZIERS:
+			var b := scene.get_node_or_null("Zone/Braziers/" + n)
+			if b and bool(b.get("lit")):
+				names[n] = true
+		var saved: PackedStringArray = Travel.lit_by_path.get(scene.scene_file_path, PackedStringArray())
+		for n: String in QuestDB.BRAZIERS:
+			if n in saved:
+				names[n] = true
+	return names.size()
+
+
+func world() -> Dictionary:
+	return {"flags": _state().flags, "kindled": kindled(), "seals": Travel.seals_broken,
+		"bosses": Travel.bosses_slain, "items": Travel.items}
+
+
+## The HUD's lines: the story's spine (at most 3), then the newest tracked tasks (3, each with its
+## name and count: QuestBook.lines), then the kindling; seven at most (r33).
+func objectives() -> Array:
+	var all := QuestDB.active(world(), 9)
+	var out: Array = []
+	for o: Dictionary in all:
+		if bool(o.main) and out.size() < 3:
+			out.append(o)
+	out.append_array(QuestBook.lines(3))
+	for o2: Dictionary in all:
+		if not bool(o2.main) and out.size() < 7:
+			out.append(o2)
+	return out.slice(0, 7)
+
+
+# --- conversations ---------------------------------------------------------------------------
+
+func talk(conv_id: String, npc: Node3D = null, player: Node3D = null) -> bool:
+	if not DialogueDB.CONV.has(conv_id) or not is_instance_valid(ui) or ui.is_open():
+		return false
+	var start := DialogueDB.start_node(conv_id, world())
+	if start == "":
+		return false
+	_conv = conv_id
+	_npc = npc if is_instance_valid(npc) else null
+	_player = player
+	_plife = null                     # each speaker's portrait breathes and blinks in its own rhythm
+	if _npc and "attend" in _npc:
+		_npc.set("attend", _player)
+	var c: Dictionary = DialogueDB.CONV[conv_id]
+	ui.open(String(c.name), c.get("portrait", {}))
+	ui.set_voice(Voice.for_node(_npc) if _npc else {}, String(c.name))   # each NPC speaks in his own voice
+	ui.call("set_mood", QuestBook.att(conv_id))
+	_show(start)
+	return true
+
+
+var _syn := {}                    ## a line made on the spot (a failed payment), shown as node "#syn"
+var _shop_after := ""
+
+
+func _show(node_id: String) -> void:
+	_node = node_id
+	var n := _syn if node_id == "#syn" else DialogueDB.node(_conv, node_id)
+	if n.is_empty():
+		_end()
+		return
+	if n.has("do"):
+		var r := _do(String(n["do"]))
+		if String(r.shop) != "":
+			_shop_after = String(r.shop)
+	var ws := world()
+	var choices := DialogueDB.choices_of(_conv, node_id, n, ws, _state().picked)
+	if node_id == "hub":
+		choices = QuestGiver.merge(choices, _conv, get_tree())      # r33: the offered tasks' lines
+	var labels: Array[String] = []
+	for ch: Dictionary in choices:
+		labels.append(QuestBook.label(String(ch.text), String(ch.get("do", ""))))
+	ui.set_meta("choices", choices)
+	ui.call("set_mood", QuestBook.att(_conv))
+	ui.line(String(n.get("who", (DialogueDB.CONV[_conv] as Dictionary).name)), DialogueDB.text_of(n, ws), labels)
+	_speaking(true)
+
+
+func _on_advanced() -> void:
+	if _conv == "":
+		return
+	var n := _syn if _node == "#syn" else DialogueDB.node(_conv, _node)
+	if n.has("choices"):
+		return
+	var nx := String(n.get("next", ""))
+	if nx == "":
+		_end()
+	else:
+		_show(nx)
+
+
+func _on_chosen(i: int) -> void:
+	if _conv == "":
+		return
+	var choices: Array = ui.get_meta("choices", [])
+	if i < 0 or i >= choices.size():
+		return
+	var ch: Dictionary = choices[i]
+	if ch.has("quest_ui"):
+		_quest_after = String(ch.quest_ui)
+		_end()
+		return
+	if String(ch.get("do", "")) != "":
+		var r := _do(String(ch["do"]))
+		if bool(r.poor):
+			_syn = {"who": String((DialogueDB.CONV[_conv] as Dictionary).name), "say": "You haven't the ash for that. (%d in your satchel.)" % Travel.count("grave_ash"), "next": _node}
+			_show("#syn")
+			return
+		if String(r.shop) != "":
+			_shop_after = String(r.shop)
+	_state().picked[ch.key] = true
+	var to := String(ch.to)
+	if to == "":
+		_end()
+	else:
+		_show(to)
+
+
+func _end() -> void:
+	var was := _conv
+	_conv = ""
+	_speaking(false)
+	if is_instance_valid(_npc) and "attend" in _npc:
+		_npc.set("attend", null)
+	_npc = null
+	if is_instance_valid(ui) and ui.is_open():
+		ui.close()
+	Travel.save_soon()
+	objectives_changed.emit()
+	if _quest_after != "":
+		var qa := _quest_after
+		_quest_after = ""
+		open_quest.call_deferred(qa, String((DialogueDB.CONV.get(was, {}) as Dictionary).get("name", "")))
+	if _shop_after != "":
+		var who := _shop_after
+		_shop_after = ""
+		open_shop.call_deferred(who)
+	if was == "keep" and flag("ending_told") and not flag("ending_card"):
+		set_flag("ending_card")
+		Events.zone_entered.emit("THE DOOR IS SHUT", "Hearthward keeps its fire")
+
+
+func _on_closed() -> void:
+	# the box was closed from the UI (Esc): end the conversation where it stands
+	if _conv != "":
+		_shop_after = ""
+		_end()
+
+
+## r33: the accept ("offer:id") or turn-in ("turnin:id") screen, after a conversation.
+func open_quest(what: String, giver_name := "") -> bool:
+	if not is_instance_valid(offer_ui) or not offer_ui.is_inside_tree():
+		return false
+	var p := what.split(":", true, 1)
+	if p.size() < 2:
+		return false
+	if p[0] == "offer":
+		return bool(offer_ui.call("open_offer", p[1], giver_name))
+	if p[0] == "turnin":
+		return bool(offer_ui.call("open_turnin", p[1], giver_name))
+	return false
+
+
+## The merchants' shop (ui/shop.gd): "keep" (the Keg's slate) or "grisel" (the ash-wife).
+var shop: CanvasLayer
+
+
+func open_shop(who: String, npc: Node3D = null) -> bool:
+	if not is_instance_valid(shop):
+		shop = ShopUI.new()
+		shop.name = "Shop"
+		get_tree().root.add_child(shop)
+	if (is_instance_valid(ui) and ui.is_open()) or shop.call("is_open"):
+		return false
+	shop.call("open", who, npc)
+	return true
+
+
+func _speaking(on: bool) -> void:
+	if is_instance_valid(_npc) and "speaking" in _npc:
+		_npc.set("speaking", on)
+
+
+func _process(d: float) -> void:
+	if _end_step > 0:
+		_ending_tick(d)
+	# the NPC's jaw moves while his line types, and stops when it has
+	if _conv != "" and is_instance_valid(ui):
+		_speaking(ui.typing())
+		_portrait_live(d)
+
+
+## The box's portrait bust lives: breathes, blinks, glances, talks by syllable (npc_life.gd).
+var _plife: RefCounted
+
+func _portrait_live(d: float) -> void:
+	var r: Variant = ui.get("_rig")
+	if not (r is DwarfRig) or not is_instance_valid(r):
+		return
+	var rig := r as DwarfRig
+	if _plife == null:
+		_plife = (load("res://core/npc/npc_life.gd") as GDScript).new(hash(_conv))
+	rig.set_meta("live", true)        # the box's own idle sway stands aside (ui/dialogue.gd)
+	rig.reset()
+	_plife.call("portrait", rig, d, ui.typing(), 0.085)
+	rig.apply()
+
+
+# --- beats ---------------------------------------------------------------------------------
+
+func _opening() -> void:
+	if flag("arrived"):
+		return
+	set_flag("arrived")
+	if is_instance_valid(ui):
+		ui.narrate(DialogueDB.OPENING)
+
+
+func _on_boss(id: String) -> void:
+	objectives_changed.emit()
+	if id == "ascended_warden" and not flag("ending_seen"):
+		get_tree().create_timer(1.5).timeout.connect(_ending)      # the bar drops; a breath of silence
+
+
+## The ending, staged as one beat (r30): no toasts (boss_arena, summit_dress and reactivity keep
+## quiet for the Warden); the sky's spin is already easing to still (reactivity.gd, ~9 s) when
+## "The sky stops turning." is said; once it has been read, one deep bell (Brannoc's: low, long,
+## once, everywhere at once); then the last two lines. The flag is set when the beat starts, not when
+## the Warden falls, so leaving the game in between still lets it play on the next load (_ready).
+func _ending() -> void:
+	if flag("ending_seen") or not is_instance_valid(ui):
+		return
+	set_flag("ending_seen")
+	ui.narrate([DialogueDB.ENDING[0]])
+	_end_step = 1
+	_end_t = 0.0
+
+
+var _end_step := 0                ## the ending beat: 1 = first line showing, 2 = the bell ringing
+var _end_t := 0.0
+
+func _ending_tick(d: float) -> void:
+	_end_t += d
+	if not is_instance_valid(ui):
+		_end_step = 0
+	elif _end_step == 1 and (not ui.narrating() or _end_t > 30.0):
+		ring_bell()
+		_end_step = 2
+		_end_t = 0.0
+	elif _end_step == 2 and _end_t >= 2.4:
+		ui.narrate(DialogueDB.ENDING.slice(1))
+		_end_step = 0
+
+
+## The one bell: the scape's bell voice two octaves down (A2), so its decay runs ~20 s. Not
+## positional: it is heard over the whole valley. The explore music keeps its bell out until now.
+func ring_bell() -> void:
+	var a := AudioStreamPlayer.new()
+	a.name = "EndingBell"
+	a.stream = ScapeSynth.stream("bell")
+	a.pitch_scale = 0.25
+	a.volume_db = -3.0
+	a.bus = &"Music" if AudioServer.get_bus_index("Music") >= 0 else &"Master"
+	a.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(a)
+	a.finished.connect(a.queue_free)
+	a.play()

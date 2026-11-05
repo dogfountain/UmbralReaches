@@ -15,12 +15,25 @@ extends CharacterRig
 @export var hip_spread := 0.17
 @export var upper_len := 0.26          ## hip → knee (goes out and up: spider knees)
 @export var stride_len := 0.55         ## metres per half-cycle
+## Opt-in (r30, the Leaper only): legs under the body like a hound's -- thigh down, elbow back on
+## the forelegs, stifle forward and a hock on the hind legs, a lateral-sequence walk. Off by
+## default, so every other rig (and the Thornwarden's fitted model) keeps the spider layout.
+@export var upright := false
 
 var _body: Node3D
 var _front: Node3D
 var _tail: Node3D
 var _legs: Array[Dictionary] = []      ## {hip, knee, foot, side, front, phase_off}
 var _coil := 0.0
+var _coil_dur := 0.6
+var _snap := 0.0          ## strike: head and forelegs thrown forward
+var _snap_t := -1.0
+var _flinch := 0.0
+var _flinch_side := 0.0
+var _fold := 0.0          ## death: legs give, belly to the ground
+var _howl := 0.0          ## a pack call: rears on the hind legs, head thrown up
+var _howl_t := -1.0
+var _howl_dur := 0.8
 
 
 func _build() -> void:
@@ -42,14 +55,26 @@ func _build() -> void:
 		["fl", -1.0, true, 0.0], ["fr", 1.0, true, PI],
 		["bl", -1.0, false, PI], ["br", 1.0, false, 0.0],
 	]
+	if upright:
+		# lateral sequence: left hind, left fore, right hind, right fore, a quarter cycle apart
+		defs = [
+			["fl", -1.0, true, PI * 0.5], ["fr", 1.0, true, PI * 1.5],
+			["bl", -1.0, false, 0.0], ["br", 1.0, false, PI],
+		]
 	for d in defs:
 		var tag: String = d[0]
 		var sx: float = d[1]
 		var is_front: bool = d[2]
 		var z := -body_len * 0.36 if is_front else body_len * 0.34
 		var hip := ProcMesh.node(_body, "Hip_" + tag, Vector3(sx * hip_spread, -0.02, z))
-		var knee := ProcMesh.node(hip, "Knee", Vector3(sx * upper_len, 0.1, 0.0))
-		var foot := ProcMesh.node(knee, "Foot", Vector3(sx * 0.07, -(body_height + 0.08), 0.0))
+		var knee_at := Vector3(sx * upper_len, 0.1, 0.0)
+		var foot_at := Vector3(sx * 0.07, -(body_height + 0.08), 0.0)
+		if upright:
+			var seg := (body_height - 0.05) * 0.5
+			knee_at = Vector3(0.0, -seg, 0.06 if is_front else -0.08)
+			foot_at = Vector3(0.0, -seg, -0.04 if is_front else 0.1)
+		var knee := ProcMesh.node(hip, "Knee", knee_at)
+		var foot := ProcMesh.node(knee, "Foot", foot_at)
 		_sockets["leg_%s_hip" % tag] = hip
 		_sockets["leg_%s_knee" % tag] = knee
 		_sockets["leg_%s_foot" % tag] = foot
@@ -79,25 +104,46 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	_prev_yaw = yaw
 	if _gesture_t >= 0.0:
 		_gesture_t += delta
-		_gesture = sin(clampf(_gesture_t / 0.6, 0.0, 1.0) * PI)
-		if _gesture_t > 0.6:
+		# coil fast, hold it trembling for the rest of the telegraph, then let go
+		var k := _gesture_t / _coil_dur
+		_gesture = clampf(k * 2.2, 0.0, 1.0) * (1.0 + sin(_t * 40.0) * 0.06)
+		if k > 1.15:
 			_gesture_t = -1.0
 			_gesture = 0.0
+	if _snap_t >= 0.0:
+		_snap_t += delta
+		_snap = sin(clampf(_snap_t / 0.3, 0.0, 1.0) * PI)
+		if _snap_t > 0.3:
+			_snap_t = -1.0
+			_snap = 0.0
+	_flinch = move_toward(_flinch, 0.0, delta * 4.5)
+	if _fold > 0.0:
+		_fold = minf(_fold + delta * 1.8, 1.0)
 	# coil = the crouch before a pounce; Enemy squashes the whole visual too, this bends the legs
 	_coil = move_toward(_coil, _gesture, delta * 6.0)
+	if _howl_t >= 0.0:
+		_howl_t += delta
+		_howl = sin(clampf(_howl_t / _howl_dur, 0.0, 1.0) * PI)
+		if _howl_t > _howl_dur:
+			_howl_t = -1.0
+			_howl = 0.0
 
 	var st := _stride
 	var bob := absf(sin(_phase)) * 0.035 * st
 	var breathe := sin(_t * 2.4) * 0.012 * (1.0 - clampf(st, 0.0, 1.0))
-	_body.position.y = body_height + bob + breathe - _land * 0.14 - _coil * 0.16 + _air * 0.05
-	_body.rotation.x = 0.06 * sin(_phase * 2.0) * st - _air * 0.12 + _coil * 0.18 + _land * 0.1
-	_body.rotation.z = -_turn * 0.05 + sin(_phase) * 0.04 * st
+	_body.position.y = body_height + bob + breathe - _land * 0.14 - _coil * 0.16 + _air * 0.05 - _fold * body_height * 0.75
+	_body.rotation.x = 0.06 * sin(_phase * 2.0) * st - _air * 0.12 + _coil * 0.18 + _land * 0.1 + _snap * 0.22 - _flinch * 0.3 - _howl * 0.35
+	_body.rotation.z = -_turn * 0.05 + sin(_phase) * 0.04 * st + _flinch * _flinch_side * 0.35 + _fold * 0.4
 	_front.rotation.y = -_turn * 0.08 + sin(_phase) * 0.05 * st
-	_head.rotation.x = -0.1 * st + _coil * 0.35 + sin(_t * 1.1) * 0.05 * (1.0 - st) - _air * 0.25
+	_front.rotation.x = _snap * 0.3 - _coil * 0.2
+	_head.rotation.x = -0.1 * st + _coil * 0.35 + sin(_t * 1.1) * 0.05 * (1.0 - st) - _air * 0.25 - _snap * 0.55 - _flinch * 0.5 + _fold * 0.4 - _howl * 0.9
 	_head.rotation.y = sin(_t * 0.6) * 0.18 * (1.0 - clampf(st, 0.0, 1.0))
 	_tail.rotation.y = sin(_phase + 1.4) * 0.35 * st + sin(_t * 1.7) * 0.12 - _turn * 0.1
 	_tail.rotation.x = -0.15 + _air * 0.35 + _coil * 0.2
 
+	if upright:
+		_animate_upright(st)
+		return
 	for leg in _legs:
 		var hip: Node3D = leg.hip
 		var knee: Node3D = leg.knee
@@ -110,13 +156,68 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		var yaw_swing := swing * 0.42 * st
 		var air_reach := (-0.65 if front else 0.75) * _air   # forelegs reach, hind legs trail
 		hip.rotation.y = -sx * (yaw_swing + air_reach)
-		hip.rotation.z = sx * (lift * 0.38 * st - _coil * 0.25 + _land * 0.2 - _air * 0.15)
-		knee.rotation.z = -sx * (lift * 0.25 * st + _coil * 0.35 - _air * 0.4)
+		var reach := (_snap * 0.5) if front else 0.0
+		hip.rotation.z = sx * (lift * 0.38 * st - _coil * 0.25 + _land * 0.2 - _air * 0.15 + reach + _fold * 0.55)
+		knee.rotation.z = -sx * (lift * 0.25 * st + _coil * 0.35 - _air * 0.4 - _fold * 0.3)
 		knee.rotation.x = (0.25 if front else -0.25) * _air
 
 
-func cast() -> void:
+## Hound legs (upright): fore/aft swing is a pitch at the hip, the lift folds the knee / hock, and
+## a crouch (coil, landing, death) folds every leg in a zig-zag so the paws stay on the ground.
+func _animate_upright(st: float) -> void:
+	for leg in _legs:
+		var hip: Node3D = leg.hip
+		var knee: Node3D = leg.knee
+		var sx: float = leg.side
+		var front: bool = leg.front
+		var ph: float = _phase + float(leg.off)
+		var swing := sin(ph)                  # >0 = foot behind the hip, <0 = ahead
+		var lift := maxf(0.0, -cos(ph))
+		var fb := 1.0 if front else -1.0
+		var bend := _coil * 0.6 + _land * 0.4 + _fold * 0.5 + _howl * (0.0 if front else 0.7)
+		var reach := (0.75 * _air + _snap * 0.6 + _howl * 0.5) if front else -0.85 * _air
+		hip.rotation.x = -swing * 0.5 * st + reach + fb * bend * 0.55
+		hip.rotation.z = sx * (_fold * 0.5 + _flinch * 0.1)
+		hip.rotation.y = 0.0
+		knee.rotation.x = -fb * (bend + lift * 0.9 * st + (0.35 if front else 0.2) * _air)
+		knee.rotation.z = 0.0
+
+
+func cast(_sound := "") -> void:
+	telegraph(_coil_dur)
+
+
+## The crouch-and-tremble before a strike or pounce, held for `dur` seconds.
+func telegraph(dur: float) -> void:
+	_coil_dur = maxf(dur, 0.12)
 	_gesture_t = 0.0
+
+
+## A pack call: up on the haunches, head thrown back (no coil: it is not an attack).
+func howl(dur: float) -> void:
+	_howl_dur = maxf(dur, 0.2)
+	_howl_t = 0.0
+
+
+func strike() -> void:
+	_gesture_t = -1.0
+	_gesture = 0.0
+	_snap_t = 0.0
+
+
+func flinch(amount: float, side := 0.0) -> void:
+	_flinch = clampf(maxf(_flinch, amount), 0.0, 1.0)
+	_flinch_side = side
+
+
+func stagger() -> void:
+	_gesture_t = -1.0
+	_gesture = 0.0
+	_flinch = 1.0
+
+
+func collapse() -> void:
+	_fold = 0.001
 
 
 func muzzle() -> Vector3:

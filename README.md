@@ -16,22 +16,26 @@ Needs a GPU with Vulkan or Direct3D 12 (Forward+ renderer).
 
 **The loop:** away from light, Gloom rises (faster near the rift). At 100 a shade takes shape and hunts you. Reach a lit brazier and it unmakes the shade; let it touch you and you are Hollowed back to your last kindled brazier. Kindle all four braziers on the way to the summit. The chasm floor is lava — falling in Hollows you outright.
 
-**Picking this up as a developer or an agent?** Read `AGENTS.md` for how the project is structured, then `AGENT_HANDOVER.md` for the bake/export traps.
+**Picking this up as a developer or an agent?** Read `AGENTS.md`, then `ARCHITECTURE.md` (the module map); bake/export traps are in `.cursor/skills/umbral-pipeline` and `docs/archive/AGENT_HANDOVER.md`.
 
 ## Project layout
 
 ```
 autoload/      Events, LightGrid, InputSetup, Settings, Travel
-core/player/   Player (controller) + CharacterRig (skin) + loadout
-core/items/    EquipmentPiece wearables (staff, lantern)
-core/util/     Groups, Layers, ProcMesh
-core/world/    Zone shell, Interactable, braziers, mirrors
-core/enemy/    shade.gd
-ui/            hud.gd, settings_menu.gd, fonts/Cinzel (OFL)
-world/         main.tscn (Stair of Ascension; Vale removed)
-art/           textures, materials, models
-tools/         bake_*.gd — do not headless-rebake shipped scenes
-assets/        provenance.csv
+core/player/   Player (controller) + CharacterRig (skin) + bolts
+core/skills/   SkillBook and the spells
+core/items/    ItemDB, EquipmentPiece wearables
+core/enemy/    Enemy kinds, bosses, EnemySpawner
+core/world/    Zone shell, interactables, Tavern, arenas; realm/ = the procedural world
+core/life/     progression, village, wildlife, secrets, encounters
+core/story/    story director, quests, dialogue
+core/npc/      the Keg's dwarves
+core/vfx/      FX and procedural audio
+core/util/     Groups, Layers, ProcMesh, save_dir
+ui/            HUD, menus, loading screen, fonts/Cinzel (OFL)
+world/         main.tscn + main.gd (the night), areas/ossuary
+zz/            tests and probes (tools/run_tests.sh)
+tools/         bakers and generators; do not headless-rebake shipped scenes
 ```
 
 ## Rebuild from source
@@ -39,7 +43,7 @@ assets/        provenance.csv
 ```sh
 python3 tools/gen_textures.py                      # tileable painted-style textures
 godot --headless --path . --import                 # import them
-xvfb-run godot --path . --rendering-driver vulkan -s tools/bake_main.gd   # bake world/main.tscn; needs a real renderer (headless drops MultiMesh data)
+xvfb-run godot --path . --rendering-driver vulkan -s tools/bake_main.gd -- --i-know   # LEGACY: overwrites world/main.tscn; refuses headless (drops MultiMesh data)
 godot --headless --path . --export-release "Windows" build/windows/UmbralReaches.exe
 godot --headless --path . --export-release "Linux" build/linux/UmbralReaches.x86_64
 ```
@@ -49,6 +53,7 @@ The zone is assembled by `tools/bake_main.gd` and saved as a normal scene, so ev
 ## Tests and capture (user args go after `--`)
 
 ```sh
+tools/run_tests.sh                                                   # every zz/*_test.tscn, headless, isolated HOME
 godot --path . -- --demo --quit-after-demo --shots-dir=/tmp/shots   # autopilot walks the zone, kindles every brazier, saves screenshots
 godot --path . -- --test-shade                                      # forces full Gloom in the dark: expects spawn, Hollowed, respawn
 godot --path . --write-movie demo.avi --fixed-fps 30 -- --demo --quit-after-demo   # deterministic video capture

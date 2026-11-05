@@ -1,0 +1,220 @@
+class_name Realm
+extends RefCounted
+## Entry point for the redesigned zone (docs/REALM_PLAN.md). On by default (`-- --no-realm` for
+## the old world); `--realm` is still accepted:
+##   godot --path . -- --realm                          everything
+##   godot --path . -- --realm --realm-modules=land,flora   only those modules (for working on one)
+## Each module is a script with `static func build(root: Node) -> void` (it may await), loaded by
+## path, so a module that does not exist yet (or fails to parse) is skipped, not fatal. Order:
+##   1 retire the old world layers (this file)   2 land (terrain, paths, water)
+##   3 rift (lava, the crossing)  4 bosses (henge, ward, Ossuary access, camps)  5 tavern (kept)
+##   6 lore (landmarks, villages, inscriptions)  7 TerrainStamp.apply (site floors)
+##   8 flora (trees, undergrowth, ground cover)  9 summit dress, braziers, kept systems
+##   10 assets (quality pass hooks)  11 cull_scatter / chunks
+## Modules own their own files; this file and the hooks in glimmers.gd / main.gd belong to the lead.
+
+const MODULES := {
+	"land": "res://core/world/realm/realm_land.gd",
+	"rift": "res://core/world/realm/realm_rift.gd",
+	"bosses": "res://core/world/realm/realm_bosses.gd",
+	"lore": "res://core/world/realm/realm_lore.gd",
+	"flora": "res://core/world/realm/realm_flora.gd",
+	"assets": "res://core/world/realm/realm_assets.gd",
+	# living-world systems (docs/LIFE_PLAN.md), built last, each owns its own folder
+	"progression": "res://core/life/progression/progression.gd",
+	"village": "res://core/life/village/village.gd",
+	"life": "res://core/life/wildlife/wildlife.gd",
+	"secrets": "res://core/life/secrets/secrets.gd",
+	"encounters": "res://core/life/encounters/encounters.gd",
+}
+
+const PRELOAD := ["res://art/models/mossy_platform.glb", "res://art/models/summit_pillar.glb", "res://art/models/summit_mage.glb"]
+
+## Baked stair-era layers the Realm replaces (hidden, collision off). The spawn brazier
+## (Zone/Braziers/Sanctuary) and everything the Tavern builds stay.
+const RETIRED := [
+	"Zone/Stair", "Zone/StairBody", "Zone/Sanctuary", "Zone/SanctuaryBody", "Zone/Ruins", "Zone/RuinsBody",
+	"Zone/Boulders", "Zone/BouldersBody", "Zone/Forest", "Zone/ForestBody", "Zone/DeadTrees", "Zone/TreesBody",
+	"Zone/ForestFloor", "Zone/RiftCrystals", "Zone/RiftDebris", "Zone/CrystalLights",
+]
+
+
+## The Realm is the zone now. `-- --no-realm` builds the old stair-era world (kept for
+## comparison and its legacy tests: henge_walk, summit_probe, lanewalk, fit).
+static func enabled() -> bool:
+	var args := OS.get_cmdline_user_args()
+	if "--no-realm" in args:
+		return false
+	return true
+
+
+static func module_on(id: String) -> bool:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--realm-modules="):
+			return id in a.trim_prefix("--realm-modules=").split(",")
+	return true
+
+
+## Build-time profile: accumulated microseconds per key (stages and shared generators), printed
+## at the end of build. Cheap enough to leave on.
+static var prof := {}
+## Build progress for the loading screen (ui/loading_screen.gd): 0..1 and the step now running.
+static var progress := 0.0
+static var stage := ""
+const STEPS := 14
+const STAGE_NAMES := {
+	"land": "Raising the land", "rift": "Opening the rift", "bosses": "Waking the wardens",
+	"tavern": "Lighting the Keg", "lore": "Carving the stones", "stamp": "Settling the ground",
+	"flora": "Growing the wood", "summit": "Dressing the summit", "assets": "Placing the relics",
+	"progression": "Kindling the fires", "village": "Waking the village", "life": "Stirring the wild",
+	"secrets": "Hiding what is hidden", "encounters": "Gathering the dark",
+}
+static var _step := 0
+
+
+static func _mark(id: String) -> void:
+	stage = String(STAGE_NAMES.get(id, id))
+	progress = float(_step) / float(STEPS)
+	_step += 1
+
+
+static func prof_add(key: String, since_usec: int) -> void:
+	prof[key] = int(prof.get(key, 0)) + (Time.get_ticks_usec() - since_usec)
+
+
+## Forget what the last build registered (called when its night is torn down: world/main.gd
+## _exit_tree). The Deeper Night rebuilds the Realm in the same process (Travel.go to the same
+## scene), and the site registry is static: the first build's sites stayed, so the second build's
+## lore saw every spot as taken by itself and skipped 35 of 92 inscriptions and 55 of 96 sites
+## (road waystones and mileposts, the barrows, Thornwood's relics, field walls, the cart...).
+static func reset_registries() -> void:
+	WorldLanes.sites.clear()
+	WorldLanes.extra_lanes.clear()
+	WorldLanes.portals.clear()
+	WorldLanes.clear_cache()
+	prof.clear()
+	progress = 0.0
+	stage = ""
+	_step = 0
+
+
+## Engine resources the world's builders keep in static vars (meshes, materials, shapes). Statics
+## outlive the renderer at quit ("RID allocations leaked at exit", "resources still in use"), and a
+## rebuild should not inherit the last night's. Dropped with the night (world/main.gd _exit_tree);
+## rebuilt on next use (GenCache makes that fast).
+const _STATIC_CACHES := {
+	"res://core/world/mage_statue.gd": ["_figure", "_pedestal", "_runes", "_mats"],
+	"res://core/world/gothic.gd": ["_gobo"],
+	"res://core/world/realm/realm_assets.gd": ["_mats", "_meshes"],
+	"res://core/world/realm/rock_kit.gd": ["_meshes", "_mats", "_shapes"],
+	"res://core/world/realm/tree_gen.gd": ["_cache"],
+	"res://core/world/mesh_chunks.gd": ["_lod_cache"],
+	"res://core/world/realm/gen_cache.gd": ["_shapes"],
+	"res://world/areas/ossuary/oss_kit.gd": ["_mats", "_skulls", "_bones", "_candles", "_puddle", "_flame_mesh", "_halo_mesh"],
+	"res://world/areas/ossuary/ossuary.gd": ["_plate", "_ribs", "_great_rib"],
+}
+
+
+static func release_caches() -> void:
+	for path: String in _STATIC_CACHES:
+		var s := load(path) as GDScript
+		if s == null:
+			continue
+		for v: String in _STATIC_CACHES[path]:
+			var cur: Variant = s.get(v)
+			if cur is Dictionary:
+				(cur as Dictionary).clear()
+			elif cur is Array:
+				(cur as Array).clear()
+			elif cur != null:
+				s.set(v, null)
+
+
+static func build(root: Node) -> void:
+	if root.has_meta("realm_built"):
+		return
+	root.set_meta("realm_built", true)
+	prof.clear()
+	_step = 0
+	progress = 0.0
+	var t0 := Time.get_ticks_msec()
+	# big scenes needed late in the build (summit platform, pillars, mage) load on worker threads
+	# while the modules run; SummitDress's load() then picks them up ready instead of blocking
+	for path: String in PRELOAD:
+		if ResourceLoader.exists(path):
+			ResourceLoader.load_threaded_request(path, "", true)
+	WorldLanes.legacy = false
+	retire(root)
+	await _run("land", root)
+	var t := Time.get_ticks_usec()
+	await root.get_tree().physics_frame
+	prof_add("stage: frame wait", t)
+	await _run("rift", root)
+	await _run("bosses", root)
+	t = Time.get_ticks_usec()
+	_mark("tavern")
+	await root.get_tree().process_frame     # let the loading screen draw this step
+	Tavern.build(root)
+	prof_add("stage: tavern", t)
+	await _run("lore", root)
+	t = Time.get_ticks_usec()
+	_mark("stamp")
+	await root.get_tree().process_frame     # let the loading screen draw this step
+	await TerrainStamp.apply(root)
+	prof_add("stage: terrain stamp", t)
+	await _run("flora", root)
+	t = Time.get_ticks_usec()
+	_mark("summit")
+	await root.get_tree().process_frame     # let the loading screen draw this step
+	SummitDress.dress(root)
+	prof_add("stage: summit dress", t)
+	await _run("assets", root)
+	for id: String in ["progression", "village", "life", "secrets", "encounters"]:
+		await _run(id, root)
+	t = Time.get_ticks_usec()
+	print("REALM cull ", WorldLanes.cull_scatter(root))
+	prof_add("stage: cull scatter", t)
+	var keys := prof.keys()
+	keys.sort_custom(func(a, b) -> bool: return int(prof[a]) > int(prof[b]))
+	for k: String in keys:
+		print("REALM_PROF %7.1f ms  %s" % [float(prof[k]) / 1000.0, k])
+	progress = 1.0
+	root.set_meta("realm_done", true)              # waiters (camps, tests) can key on this
+	print("REALM built in %d ms" % (Time.get_ticks_msec() - t0))
+
+
+static func _run(id: String, root: Node) -> void:
+	_mark(id)
+	if id != "land":                            # land first, before main.gd's _ready carries on
+		await root.get_tree().process_frame     # let the loading screen draw this step
+	if not module_on(id):
+		print("REALM skip ", id, " (--realm-modules)")
+		return
+	var path: String = MODULES[id]
+	if not ResourceLoader.exists(path):
+		print("REALM skip ", id, " (not written yet)")
+		return
+	var s := load(path) as GDScript
+	if s == null or not s.can_instantiate():
+		push_error("REALM %s failed to load" % id)
+		return
+	var t := Time.get_ticks_msec()
+	var tu := Time.get_ticks_usec()
+	await s.call("build", root)
+	prof_add("module: " + id, tu)
+	print("REALM %s in %d ms" % [id, Time.get_ticks_msec() - t])
+
+
+## Hide the replaced layers and switch their collision off (the scene is never rebaked).
+static func retire(root: Node) -> void:
+	for path: String in RETIRED:
+		var n := root.get_node_or_null(path)
+		if n == null:
+			continue
+		if n is Node3D:
+			(n as Node3D).visible = false
+		for cs in n.find_children("*", "CollisionShape3D", true, false):
+			(cs as CollisionShape3D).disabled = true
+		if n is CollisionObject3D:
+			(n as CollisionObject3D).collision_layer = 0
+		n.process_mode = Node.PROCESS_MODE_DISABLED

@@ -7,6 +7,7 @@ extends RefCounted
 
 
 static func apply(root: Node, env: Environment, cam: Camera3D, moon: DirectionalLight3D, far_m: float, fog_light: Color, vol_albedo: Color, vol_emit: Color) -> void:
+	var t0 := Time.get_ticks_usec()
 	cam.near = 0.08
 	cam.far = far_m
 	_fog(env, fog_light, vol_albedo, vol_emit)
@@ -18,10 +19,30 @@ static func apply(root: Node, env: Environment, cam: Camera3D, moon: Directional
 	_aim_sky_moon(env, moon)
 	_swirl_vortex(env)
 	_sky_flare(root, moon)
-	_thicken_canopy(root)
+	if not _realm_retires(root, "Zone/Forest"):
+		_thicken_canopy(root)                     # the Realm hides the old forest: no copy to make
 	_thin_particles(root)
 	SurfaceDetail.apply()
 	apply_quality(env, cam)
+	print("ATMOS apply %.1f ms" % ((Time.get_ticks_usec() - t0) / 1000.0))
+
+
+## True when the Realm is on and `path` (or an ancestor of `n`) is one of the old layers it hides:
+## the legacy floor rebucketing, canopy copy and trunk occluders would be work (and, for
+## occluders, invisible walls) for geometry that is never shown.
+static func _realm_retires(root: Node, path: String) -> bool:
+	if not Realm.enabled():
+		return false
+	for r: String in Realm.RETIRED:
+		if path == r or path.begins_with(r + "/"):
+			return true
+	return false
+
+
+static func _retired_node(root: Node, n: Node) -> bool:
+	if not Realm.enabled():
+		return false
+	return _realm_retires(root, str(root.get_path_to(n)))
 
 
 static func _thin_particles(root: Node) -> void:
@@ -46,17 +67,23 @@ static func _thin_particles(root: Node) -> void:
 
 static func apply_zone_settings(root: Node, env: Environment, cam: Camera3D, moon: DirectionalLight3D) -> void:
 	set_fog(env, Settings.fog_enabled)
-	if Settings.quality_preset == 0:
-		env.volumetric_fog_enabled = false
 	apply_quality(env, cam)
 	env.ssao_enabled = Settings.ssao_enabled
 	env.glow_enabled = Settings.glow_enabled
 	LightPolicy.apply_all(root, moon)
+	_flora_detail(root)
 
 
+## The setting is the volumetric fog (the costly part). Plain distance fog is the night's depth
+## and always stays on. (The Performance preset used to switch volumetric off behind the toggle's
+## back; it now does it through the toggle, which the menu shows.)
 static func set_fog(env: Environment, on: bool) -> void:
-	env.fog_enabled = on
+	env.fog_enabled = true
 	env.volumetric_fog_enabled = on
+
+
+const HAZE_TOP := 1.2            ## world y below which the ground haze thickens (Realm ground sits about 0)
+const HAZE_DENSITY := 0.025
 
 
 static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit: Color) -> void:
@@ -67,18 +94,25 @@ static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit
 	env.fog_density = 0.0055
 	env.fog_aerial_perspective = 0.16
 	env.fog_sky_affect = 0.14
+	# ENS art pass (docs/enshrouded/art.md): low ground haze that pools in hollows (the fen, the
+	# rift floor) and thins on high ground. Plain depth fog, so it costs nothing per froxel.
+	env.fog_height = HAZE_TOP
+	env.fog_height_density = HAZE_DENSITY
 	env.volumetric_fog_enabled = true
-	env.volumetric_fog_density = 0.011
+	env.volumetric_fog_density = 0.012
 	env.volumetric_fog_albedo = vol_albedo
 	env.volumetric_fog_emission = vol_emit
-	env.volumetric_fog_emission_energy = 0.22
-	env.volumetric_fog_anisotropy = 0.32
+	env.volumetric_fog_emission_energy = 0.16
+	env.volumetric_fog_anisotropy = 0.5           # forward scatter: the moon side of the sky glows through the fog, shafts read
 	env.volumetric_fog_length = 40.0
 	env.volumetric_fog_detail_spread = 1.15
 	env.volumetric_fog_sky_affect = 0.16
 	env.volumetric_fog_ambient_inject = 0.08
 	env.ambient_light_energy = 0.22
-	env.tonemap_exposure = 0.91
+	# ambient mostly a set azure, less from the violet vortex sky (it cast magenta on all stone)
+	env.ambient_light_sky_contribution = 0.45
+	env.ambient_light_color = Color(0.2, 0.47, 0.95)
+	env.tonemap_exposure = 1.12           # ENS pass: the calmer grade (sat 1.36) turned blue chroma into luma; keep the night as dark
 	env.ssao_radius = 1.2
 	env.ssao_intensity = 1.25
 	env.ssao_light_affect = 0.32
@@ -91,14 +125,15 @@ static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit
 
 
 static func _moon(moon: DirectionalLight3D, far_m: float) -> void:
-	moon.light_energy = maxf(moon.light_energy, 0.5)
-	moon.light_volumetric_fog_energy = 1.35
+	# a strong azure key: the moonlit stone and ground read bright blue over cool shadow
+	# (it was 0.6 and lavender, so the flat ambient carried everything and the night read grey)
+	moon.light_color = Color(0.45, 0.73, 1.0)
+	moon.light_energy = maxf(moon.light_energy, 1.05)
+	moon.light_volumetric_fog_energy = 1.45
 	moon.light_angular_distance = 2.5
 	moon.shadow_opacity = maxf(moon.shadow_opacity, 0.84)
-	moon.directional_shadow_blend_splits = true
-	moon.directional_shadow_fade_start = 0.82
-	moon.shadow_bias = 0.035
-	moon.shadow_normal_bias = 0.9
+	# the shadow map itself (atlas, splits, bias, range) is LightPolicy._moon's alone: it runs right
+	# after this and again on every settings change (two copies here had drifted: fade 0.82 vs 0.78)
 	moon.directional_shadow_max_distance = minf(moon.directional_shadow_max_distance, far_m * 0.5)
 
 
@@ -146,11 +181,36 @@ static func apply_quality(env: Environment, cam: Camera3D) -> void:
 	# The sky is the far plane. Far blur smears the stars, so it stays off.
 	attrs.dof_blur_far_enabled = false
 	attrs.dof_blur_near_enabled = false
+	_detail(cam)
+
+
+## World detail (Settings.detail, set by the presets): how many pixels a mesh may lose before it
+## drops a LOD level, and occlusion culling. Colours, fog and light values are untouched.
+const LOD_THRESHOLD := [4.0, 1.6, 1.0]        ## pixels; Godot's default is 1.0
+
+
+static func _detail(cam: Camera3D) -> void:
+	var vp := cam.get_viewport() if cam and cam.is_inside_tree() else null
+	if vp == null:
+		return
+	var d := clampi(Settings.detail, 0, 2)
+	vp.mesh_lod_threshold = LOD_THRESHOLD[d]
+	vp.use_occlusion_culling = not ("--no-occlusion" in OS.get_cmdline_user_args())
+
+
+## Undergrowth density and ranges follow the detail level (realm_flora.gd apply_detail).
+static func _flora_detail(root: Node) -> void:
+	var flora: Node = root.get_node_or_null("RealmFlora") if root else null
+	if flora:
+		(load("res://core/world/realm/realm_flora.gd") as GDScript).call("apply_detail", flora, clampi(Settings.detail, 0, 2))
 
 
 static func _cull_geometry(root: Node, far_m: float) -> void:
+	var realm := Realm.enabled()
 	for gi in root.find_children("*", "GeometryInstance3D", true, false):
 		if _under_player(gi) or _under_enemy(gi):
+			continue
+		if realm and _retired_node(root, gi):
 			continue
 		var n := String(gi.name).to_lower()
 		# Visibility range is distance to the *node origin*, not the mesh. The
@@ -197,7 +257,8 @@ static func _cull_geometry(root: Node, far_m: float) -> void:
 		)
 		if cull > 0.0:
 			gi.extra_cull_margin = maxf(gi.extra_cull_margin, cull)
-	_cell_floor(root)
+	if not _realm_retires(root, "Zone/ForestFloor"):
+		_cell_floor(root)
 	_pin_named_spans(root)
 
 
@@ -256,7 +317,7 @@ static func _cell_floor(root: Node) -> void:
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_colors = b.colors
-		mm.mesh = b.mesh
+		mm.mesh = MeshChunks.with_lods(b.mesh)      # caps and spheres are 48-300 tris each, thousands of them
 		mm.instance_count = xfs.size()
 		var box := AABB()
 		for i in xfs.size():
@@ -348,7 +409,7 @@ static func _occluders(root: Node) -> void:
 			continue
 		if not col.is_in_group(Groups.OCCLUDER_TRUNK):
 			col.add_to_group(Groups.OCCLUDER_TRUNK)
-		if _under_player(col) or _skip_occluder(col):
+		if _under_player(col) or _skip_occluder(col) or _retired_node(root, col):
 			continue
 		var shape: Shape3D = (col as CollisionShape3D).shape
 		if shape == null:
@@ -374,6 +435,237 @@ static func _occluders(root: Node) -> void:
 		occ.occluder = box
 		group.add_child(occ)
 		occ.global_transform = (col as CollisionShape3D).global_transform
+
+
+# --- occlusion culling (r22) ----------------------------------------------------------------------
+## The viewport's occlusion culling is switched on in apply_quality (it was never on: the old trunk
+## occluders did nothing). Occluders must sit *inside* what they stand for, or things behind an
+## occluder vanish while the real surface would have shown them; everything below is built shrunk.
+
+const OCC_SHRINK := 0.07          ## OssKit bevels every arris by up to 4.5 cm: stay inside that
+const OCC_MIN_FACE := 1.2         ## a kit box must be at least this wide and tall to occlude
+const OCC_MIN_THICK := 0.14
+
+
+## Builders' solid boxes (OssKit.commit hands them over): one ArrayOccluder3D per kit commit, in the
+## parent's space, from the boxes big enough to hide something (walls, piers, floors, towers).
+## Thin rails, bars and trim stay out. Returns how many boxes went in.
+static func kit_occluder(parent: Node3D, solids: Array) -> int:
+	if parent == null or solids.is_empty() or "--no-occluders" in OS.get_cmdline_user_args():
+		return 0
+	var verts := PackedVector3Array()
+	var idx := PackedInt32Array()
+	for sb: Array in solids:
+		var c: Vector3 = sb[0]
+		var b: Basis = sb[1]
+		var h: Vector3 = (sb[2] as Vector3).abs()
+		var dims := [h.x * 2.0, h.y * 2.0, h.z * 2.0]
+		dims.sort()
+		if dims[0] < OCC_MIN_THICK or dims[1] < OCC_MIN_FACE:
+			continue
+		h = (h - Vector3.ONE * OCC_SHRINK).max(Vector3.ONE * 0.02)
+		var base := verts.size()
+		for k in 8:
+			verts.append(c + b.x * (h.x if k & 1 else -h.x) + b.y * (h.y if k & 2 else -h.y) + b.z * (h.z if k & 4 else -h.z))
+		for f: Array in _BOX_TRIS:
+			idx.append(base + int(f[0]))
+			idx.append(base + int(f[1]))
+			idx.append(base + int(f[2]))
+	if idx.is_empty():
+		return 0
+	var occ := OccluderInstance3D.new()
+	occ.name = "KitOccluder"
+	var ao := ArrayOccluder3D.new()
+	ao.set_arrays(verts, idx)
+	occ.occluder = ao
+	parent.add_child(occ)
+	return verts.size() / 8
+
+
+const _BOX_TRIS := [[0, 1, 3], [0, 3, 2], [4, 6, 7], [4, 7, 5], [0, 4, 5], [0, 5, 1],
+	[2, 3, 7], [2, 7, 6], [0, 2, 6], [0, 6, 4], [1, 5, 7], [1, 7, 3]]
+
+
+## After the Realm is built (PerfWatch calls this once `realm_done` is set; skipped headless):
+## flora detail, LightPolicy.realm_pass, _realm_render_pass (below, spread over frames) and the
+## terrain as an occluder. Hills hide whole tree chunks behind them in the Thornwood and on the crags. Built at
+## 4 m from the final terrain grid (after TerrainStamp), each vertex lowered to the lowest ground in
+## its 4 m neighbourhood (so every occluder triangle stays under the real surface) and a little
+## more; the Ossuary (a crypt under the ground) and its fen cut are left out.
+static func post_build(root: Node) -> void:
+	if root == null or root.has_meta("post_built") or DisplayServer.get_name() == "headless":
+		return                                      # nothing is drawn headless: tests keep the built tree
+	root.set_meta("post_built", true)
+	var t := Time.get_ticks_usec()
+	var tris := _terrain_occluder(root)
+	var t_occ := Time.get_ticks_usec() - t
+	_flora_detail(root)
+	var lp: Array = LightPolicy.realm_pass(root)
+	print("ATMOS realm lights %d: %d given a distance fade, shadows kept %d, off %d" % lp)
+	var st: Vector4i = await _realm_render_pass(root)
+	if not is_instance_valid(root):
+		return
+	print("ATMOS post-build: terrain occluder %d triangles (%.1f ms); %d spread meshes -> %d chunks; %d tiny shadow casters off; %d particle ranges; %.1f ms over %d frames" % [
+		tris, t_occ / 1000.0, st.x, st.y, st.z, st.w, (Time.get_ticks_usec() - t) / 1000.0, _pass_frames])
+	root.set_meta("post_done", true)                # the loading screen waits for this
+
+
+static var _pass_frames := 0
+const PASS_BUDGET_US := 6000        ## per frame: the pass runs during the first second of play
+
+
+## One pass over what the Realm modules built (they run after Atmosphere.apply, so _cull_geometry
+## never saw them):
+##  - MultiMeshes spread over more than SPREAD_M are split into cells (MeshChunks.split_multimesh):
+##    per-cell LOD and frustum culling, and a visibility range measured from each cell
+##  - meshes smaller than TINY_SHADOW_M stop casting moon shadows (candles, bones, pebbles: a few
+##    pixels of shadow, a full draw in every shadow split each)
+##  - particles get a visibility range (GPU particles are simulated only while visible), except
+##    flames, lava, embers and the other always-seen kinds
+const SPREAD_M := 48.0
+const TINY_SHADOW_M := 0.45
+const PARTICLE_END := 48.0
+
+
+## A heavy mesh spanning more than SPREAD_M with no LODs and no chunking yet.
+static func _span_heavy(mi: MeshInstance3D) -> bool:
+	if mi.mesh == null or not mi.visible or mi.has_meta("chunked") or mi.mesh.get_surface_count() == 0:
+		return false
+	if String(mi.name).begins_with("Terrain") or mi.is_in_group(Groups.CULL_SPAN) or _skips_range(String(mi.name).to_lower()):
+		return false
+	var box := mi.global_transform * mi.mesh.get_aabb()
+	if maxf(box.size.x, box.size.z) < SPREAD_M:
+		return false
+	if (RenderingServer.mesh_get_surface(mi.mesh.get_rid(), 0).get("lods", []) as Array).size() > 0:
+		return false
+	var am := mi.mesh as ArrayMesh
+	if am == null:
+		return false
+	var tris := 0
+	for si in am.get_surface_count():
+		var n := am.surface_get_array_index_len(si)
+		tris += (n if n > 0 else am.surface_get_array_len(si)) / 3
+	return tris >= 4000
+
+
+static func _realm_render_pass(root: Node) -> Vector4i:
+	var split := 0
+	var cells := 0
+	var shadows := 0
+	var parts := 0
+	var skip_flora := root.get_node_or_null("RealmFlora")
+	var tree := root.get_tree()
+	var slice := Time.get_ticks_usec()
+	_pass_frames = 1
+	for n in root.find_children("*", "GeometryInstance3D", true, false):
+		if Time.get_ticks_usec() - slice > PASS_BUDGET_US:
+			await tree.process_frame
+			slice = Time.get_ticks_usec()
+			_pass_frames += 1
+		if not is_instance_valid(n):
+			continue
+		var gi := n as GeometryInstance3D
+		if _under_player(gi) or _under_enemy(gi) or (skip_flora and skip_flora.is_ancestor_of(gi)):
+			continue
+		if _retired_node(root, gi):
+			continue
+		if gi is GPUParticles3D:
+			var gp := gi as GPUParticles3D
+			if gp.visibility_range_end <= 0.0 and not _skips_range(String(gp.name).to_lower()) and not _named_under(gp, "Lava"):
+				gp.visibility_range_end = PARTICLE_END
+				gp.visibility_range_end_margin = 8.0
+				gp.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+				parts += 1
+			continue
+		var mesh: Mesh = null
+		var mmi := gi as MultiMeshInstance3D
+		if mmi != null and mmi.multimesh != null and mmi.visible and not mmi.has_meta("chunked"):
+			mesh = mmi.multimesh.mesh
+			var box := mmi.multimesh.get_aabb()
+			if maxf(box.size.x, box.size.z) > SPREAD_M and mmi.multimesh.instance_count >= 8:
+				var made := MeshChunks.split_multimesh(mmi)
+				if made > 0:
+					split += 1
+					cells += made
+					continue
+		elif gi is MeshInstance3D:
+			var mi := gi as MeshInstance3D
+			mesh = mi.mesh
+			if _span_heavy(mi):
+				# one mesh over a whole village or road: never culled, never LOD'd, in every shadow
+				# split. 24 m chunks with LODs (cached on disk by content), like the Crossing's.
+				var leafy := String(mi.name).to_lower().contains("leaf") or String(mi.name).to_lower().contains("card")
+				var made := MeshChunks.split(mi, not leafy)
+				if made > 0:
+					split += 1
+					cells += made
+					continue
+		if mesh != null and gi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+			var sz := mesh.get_aabb().size
+			var sc := gi.global_basis.get_scale()
+			if mmi != null and mmi.multimesh.instance_count > 0 and DisplayServer.get_name() != "headless":
+				sc *= mmi.multimesh.get_instance_transform(0).basis.get_scale()
+			if maxf(sz.x * sc.x, maxf(sz.y * sc.y, sz.z * sc.z)) < TINY_SHADOW_M:
+				gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				shadows += 1
+	# the chunks split_multimesh added are new nodes: they inherit the original's settings
+	return Vector4i(split, cells, shadows, parts)
+
+
+static func _terrain_occluder(root: Node) -> int:
+	if "--no-occluders" in OS.get_cmdline_user_args():
+		return 0
+	var terrain := root.get_node_or_null("Zone/Terrain") as MeshInstance3D
+	if terrain == null or terrain.mesh == null or terrain.get_node_or_null("TerrainOccluder") != null:
+		return 0
+	var verts: PackedVector3Array = terrain.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	# the Realm terrain is a regular grid: find its row length from the first row's x
+	var nx := 1
+	while nx < verts.size() and is_equal_approx(verts[nx].z, verts[0].z):
+		nx += 1
+	if nx < 3 or verts.size() % nx != 0:
+		return 0
+	var nz := verts.size() / nx
+	const S := 2                                   # 2 m grid -> 4 m occluder grid
+	const DROP := 0.35
+	var ob := RealmLayout.OSSUARY
+	var skip := Rect2(ob.position.x - 10.0, ob.position.z - 8.0, ob.size.x + 20.0, ob.size.z + 16.0)
+	var cx := (nx - 1) / S + 1
+	var cz := (nz - 1) / S + 1
+	var ov := PackedVector3Array()
+	ov.resize(cx * cz)
+	var keep := PackedByteArray()
+	keep.resize(cx * cz)
+	for j in cz:
+		for i in cx:
+			var fi := mini(i * S, nx - 1)
+			var fj := mini(j * S, nz - 1)
+			var lo := INF
+			for dj in range(-S, S + 1):
+				for di in range(-S, S + 1):
+					var a := clampi(fi + di, 0, nx - 1)
+					var b := clampi(fj + dj, 0, nz - 1)
+					lo = minf(lo, verts[b * nx + a].y)
+			var v := verts[fj * nx + fi]
+			ov[j * cx + i] = Vector3(v.x, lo - DROP, v.z)
+			keep[j * cx + i] = 0 if skip.has_point(Vector2(v.x, v.z)) else 1
+	var idx := PackedInt32Array()
+	for j in cz - 1:
+		for i in cx - 1:
+			var a := j * cx + i
+			var b := a + 1
+			var c := a + cx
+			var d := c + 1
+			if keep[a] == 0 or keep[b] == 0 or keep[c] == 0 or keep[d] == 0:
+				continue
+			idx.append_array(PackedInt32Array([a, b, c, b, d, c]))
+	var occ := OccluderInstance3D.new()
+	occ.name = "TerrainOccluder"
+	var ao := ArrayOccluder3D.new()
+	ao.set_arrays(ov, idx)
+	occ.occluder = ao
+	terrain.add_child(occ)
+	return idx.size() / 3
 
 
 static func _skip_occluder(n: Node) -> bool:
@@ -467,11 +759,59 @@ static func _thicken_canopy(root: Node) -> void:
 	_canopy_fill(canopy, "CanopyFill", Vector3(1.16, 1.12, 1.16), 0.55, 0.37)
 
 
+## A second, slightly larger and turned copy of every crown, about that crown's own centre, so
+## the canopy reads dense. (It used to scale and rotate the whole Canopy node about the world
+## origin, which threw every copy 5-15 m off its tree: a second forest of crowns with no trunks.)
 static func _canopy_fill(canopy: MeshInstance3D, fill_name: String, sc: Vector3, lift: float, yaw: float) -> void:
+	var old := canopy.get_parent().get_node_or_null(fill_name)
+	if old:
+		old.get_parent().remove_child(old)
+		old.free()
 	var fill := canopy.duplicate() as MeshInstance3D
 	fill.name = fill_name
-	fill.scale = sc
-	fill.position.y += lift
-	fill.rotation.y = yaw
 	fill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var src := canopy.mesh
+	var out := ArrayMesh.new()
+	var turn := Basis(Vector3.UP, yaw).scaled(sc)
+	for si in src.get_surface_count():
+		var arrays := src.surface_get_arrays(si)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+		if idx.is_empty():
+			idx.resize(verts.size())
+			for i in verts.size():
+				idx[i] = i
+		var comp := SeatProps.island_of(verts, idx)
+		var sum := {}
+		for vi in verts.size():
+			if comp[vi] >= 0:
+				var acc: Array = sum.get(comp[vi], [Vector3.ZERO, 0])
+				sum[comp[vi]] = [acc[0] + verts[vi], int(acc[1]) + 1]
+		var rot := Basis(Vector3.UP, yaw)
+		for vi in verts.size():
+			if comp[vi] < 0:
+				continue
+			var acc: Array = sum[comp[vi]]
+			var c: Vector3 = acc[0] / float(acc[1])
+			verts[vi] = c + turn * (verts[vi] - c) + Vector3.UP * lift
+		arrays[Mesh.ARRAY_VERTEX] = verts
+		if arrays[Mesh.ARRAY_NORMAL] != null:
+			var nrm: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+			for vi in nrm.size():
+				nrm[vi] = rot * nrm[vi]
+			arrays[Mesh.ARRAY_NORMAL] = nrm
+		arrays[Mesh.ARRAY_TANGENT] = null
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		out.surface_set_material(si, src.surface_get_material(si))
+	fill.mesh = out
+	fill.custom_aabb = AABB()
 	canopy.get_parent().add_child(fill)
+
+
+## Rebuild the fill from the canopy as it is now: after site clearance removed crowns and the
+## terraces moved them (SeatProps.follow_terrain), the old copy would hang where they used to be.
+static func refresh_canopy_fill(root: Node) -> void:
+	var canopy := root.find_child("Canopy", true, false) as MeshInstance3D
+	if canopy == null or canopy.mesh == null or not canopy.has_meta("thickened"):
+		return
+	_canopy_fill(canopy, "CanopyFill", Vector3(1.16, 1.12, 1.16), 0.55, 0.37)

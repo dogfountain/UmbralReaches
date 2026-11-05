@@ -94,7 +94,18 @@ func _box(parent: Node3D, at: Vector3, size: Vector3, m: Material) -> MeshInstan
 	return mi
 
 
+## Held at the bottom stop (r30: the Ossuary lift ran through the Abbot's fight, an escape from it
+## and a ride past the summit ward). Set false and it resumes its round from the bottom.
+var hold := false
+var _held_u := 0.0
+
+
 func _physics_process(delta: float) -> void:
+	if hold:
+		_held_u = move_toward(_held_u, 0.0, delta / maxf(travel_time, 0.1))
+		_t = 0.0
+		_place(smoothstep(0.0, 1.0, _held_u))
+		return
 	_t = fmod(_t + delta, (travel_time + dwell) * 2.0)
 	var u := 0.0
 	if _t < dwell:
@@ -105,6 +116,7 @@ func _physics_process(delta: float) -> void:
 		u = 1.0
 	else:
 		u = 1.0 - smoothstep(0.0, 1.0, (_t - dwell * 2.0 - travel_time) / travel_time)
+	_held_u = u
 	_place(u)
 
 

@@ -13,7 +13,7 @@ const ILLUM := {
 	&"hero": [1.18, 1.0, 1.0],
 	&"hero_fill": [1.4, 1.25, 1.0],
 	&"glimmer": [1.15, 1.08, 1.4],
-	&"player_lantern": [1.0, 1.25, 1.05],
+	&"player_lantern": [1.12, 1.4, 1.05],        # ENS pass: a wider warm pool at your feet (no shadow, so cheap)
 }
 
 
@@ -111,7 +111,9 @@ static func apply_shadows(light: Light3D) -> void:
 			# The flame still lights the ground. The moon carries the shadow.
 			light.shadow_enabled = false
 		&"hero":
-			light.shadow_enabled = shadows and Settings.shadow_quality > 1
+			# a shadowed spot re-renders everything in its cone every frame (the stair-era window
+			# rig: ~75k triangles, 11 draws); high world detail only
+			light.shadow_enabled = shadows and Settings.shadow_quality > 1 and Settings.detail >= 2
 		&"player_lantern":
 			# The lantern follows the camera, so its shadow map is redrawn every frame.
 			# Moon, windows and braziers still cast. This one does not.
@@ -132,6 +134,10 @@ static func apply_all(root: Node, moon: DirectionalLight3D) -> void:
 	for node in lights:
 		var light := node as Light3D
 		if light == null or not is_instance_valid(light):
+			continue
+		if light.get_meta(&"light_class", &"") == &"realm":
+			if light.has_meta(&"realm_shadow"):
+				light.shadow_enabled = Settings.shadow_quality > 1 and Settings.detail >= 2
 			continue
 		apply_fade(light)
 		apply_shadows(light)
@@ -165,21 +171,64 @@ static func apply_illumination(light: Light3D) -> void:
 		o.omni_attenuation = float(m[2])
 
 
+## The moon's shadow (r29, the "weird shadow lines"). Under the 34 deg moon the open ground was
+## striped with acne: curved bands along every shadow-map texel row, crawling as the camera moved
+## (zz/perf_lines --debug=2 shows them plainly; shots/critE_shadowlines_*). Cause: too little bias for
+## the soft (angular 2.5 deg) blocker search on 1024-atlas texels (two splits over 30 m at fov 90, the
+## far ones ~10 cm): the sloped ground read as its own blocker along every texel row. Now:
+##   bias 0.06, normal bias 2.5 (normal bias is in texels): the stripes are gone at every view tried
+##   High: the near split is 0.25 x 30 m = 7.5 m, so the wanderer and the ground round him sit in one
+##     split (the old 3 m boundary ran right under his feet with its blend band)
+## Tried and left out for the frame budget (perf_tour --attrib --reps=6 and hub A/B, 4x pixels): a
+## 2048 atlas (+0.22-0.31 ms, -1.5..2 % hub fps; crisper contacts: MOON_ATLAS[2] = 2048 if wanted),
+## 4096 (+1.1-2.3 ms more), soft filter Low 2 (+1.0-2.6 ms; it clears the fine penumbra grain), four
+## splits (+355 shadow draws, +560k primitives), a 34 m reach (+34 shadow draws at the hub).
+const MOON_ATLAS := [1024, 1024, 1024]        ## by Settings.shadow_quality (0 = off)
+const MOON_FILTER := [1, 1, 1]                ## RenderingServer.ShadowQuality (1 very low; 2 low costs 1-2.6 ms)
+const MOON_BIAS := 0.06
+const MOON_NORMAL_BIAS := 2.5
+const MOON_FAR := [22.0, 22.0, 30.0]
+const MOON_SPLIT_1 := 0.25
+static var _atlas := 0
+static var _filter := -1
+
+
 static func _moon(moon: DirectionalLight3D) -> void:
 	if moon == null:
 		return
-	var shadows := Settings.shadow_quality > 0
-	moon.shadow_enabled = shadows
+	var q := clampi(Settings.shadow_quality, 0, 2)
+	moon.shadow_enabled = q > 0
+	_moon_maps(q)
 	moon.directional_shadow_blend_splits = true
-	moon.directional_shadow_fade_start = 0.78
-	moon.shadow_bias = 0.035
-	moon.shadow_normal_bias = 0.9
-	if Settings.shadow_quality > 1:
+	moon.directional_shadow_fade_start = 0.8
+	moon.shadow_bias = MOON_BIAS
+	moon.shadow_normal_bias = MOON_NORMAL_BIAS
+	moon.directional_shadow_max_distance = MOON_FAR[q]
+	if q > 1:
 		moon.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-		moon.directional_shadow_max_distance = 30.0
+		moon.directional_shadow_split_1 = MOON_SPLIT_1
 	else:
 		moon.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-		moon.directional_shadow_max_distance = 22.0
+	# soft moon shadows (angular distance) cost a blocker search per shadowed pixel: low world
+	# detail draws them hard; the authored softness comes back on medium/high
+	if not moon.has_meta(&"angular"):
+		moon.set_meta(&"angular", moon.light_angular_distance)
+	moon.light_angular_distance = 0.0 if Settings.detail <= 0 else float(moon.get_meta(&"angular"))
+
+
+## The directional atlas and soft filter are global renderer state: set only when they change
+## (a new atlas size reallocates it). Headless runs have no shadow maps to size.
+static func _moon_maps(q: int) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var size: int = MOON_ATLAS[q]
+	if size != _atlas:
+		_atlas = size
+		RenderingServer.directional_shadow_atlas_set_size(size, true)
+	var f: int = MOON_FILTER[q]
+	if f != _filter:
+		_filter = f
+		RenderingServer.directional_soft_shadow_filter_set_quality(f as RenderingServer.ShadowQuality)
 
 
 static func _brazier_of(light: Light3D) -> Brazier:
@@ -200,3 +249,50 @@ static func _under(node: Node, type_name: String) -> bool:
 			return true
 		n = n.get_parent()
 	return false
+
+
+## Lights the Realm modules add after the zone's first LightPolicy pass (lore windows and candles,
+## camps, the rift). Their authored energy and range stay as they are (apply_illumination would
+## rescale them); they get a distance fade so the clustered renderer can drop the far ones, and a
+## shadowed omni/spot (two to six extra scene renders a frame) keeps its shadow only within
+## REALM_SHADOW_FADE m and only on high world detail. Returns [lights, faded, shadows kept, shadows off].
+const REALM_FADE_BEGIN := 46.0
+const REALM_SHADOW_FADE := 18.0
+
+
+static func realm_pass(root: Node) -> Array:
+	var faded := 0
+	var kept := 0
+	var off := 0
+	var lights := root.find_children("*", "Light3D", true, false)
+	for node in lights:
+		var light := node as Light3D
+		if light == null or light is DirectionalLight3D or _under(light, "Player"):
+			continue
+		if light.has_meta(&"light_class"):
+			# classified by its builder (the Crossing's "prop" lanterns, the summit orb): keep it, but
+			# a light with no fade at all is shaded out to the far plane
+			if not light.distance_fade_enabled and light.get_meta(&"light_class") != &"moon":
+				light.distance_fade_enabled = true
+				light.distance_fade_begin = REALM_FADE_BEGIN
+				light.distance_fade_length = 10.0
+				light.distance_fade_shadow = REALM_SHADOW_FADE
+				faded += 1
+			continue
+		light.set_meta(&"light_class", &"realm")
+		if not light.distance_fade_enabled:
+			light.distance_fade_enabled = true
+			light.distance_fade_begin = REALM_FADE_BEGIN
+			light.distance_fade_length = 10.0
+			light.distance_fade_shadow = REALM_SHADOW_FADE
+			faded += 1
+		if light.shadow_enabled:
+			light.set_meta(&"realm_shadow", true)
+		if light.has_meta(&"realm_shadow"):
+			light.shadow_enabled = Settings.shadow_quality > 1 and Settings.detail >= 2
+			light.distance_fade_shadow = minf(light.distance_fade_shadow, REALM_SHADOW_FADE)
+			if light.shadow_enabled:
+				kept += 1
+			else:
+				off += 1
+	return [lights.size(), faded, kept, off]

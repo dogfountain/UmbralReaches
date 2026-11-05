@@ -200,6 +200,7 @@ def bark(size=1024):
     _maps('bark', col, h, ao, rough, 22.0)
 
 def bark_giant(size=1024):
+    # superseded by tools/gen_bark_giant.gd (fissured plates); kept for reference, not run
     y, x = np.mgrid[0:size, 0:size].astype(np.float32) / size
     ridges = np.abs(np.sin((x + fbm(size, 6, 4) * 0.08) * np.pi * 30 + fbm(size, 4, 3) * 3.2)) ** 0.38
     plates = fbm(size, 36, 5) * 0.50 + fbm(size, 72, 3) * 0.22 + fbm(size, 140, 2) * 0.12
@@ -405,4 +406,4 @@ if __name__ == '__main__':
         tavern_wood(); tavern_beam(); tavern_plaster(); tavern_slate()
         tavern_stone(); tavern_iron(); dwarf_cloth(); dwarf_leather(); dwarf_skin(); dwarf_beard()
     else:
-        stone(); cobble_ring(); ground(); rock(); bark(); bark_giant(); micro()
+        stone(); cobble_ring(); ground(); rock(); bark(); micro()   # bark_giant: tools/gen_bark_giant.gd

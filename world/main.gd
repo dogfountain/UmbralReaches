@@ -8,6 +8,7 @@ extends Zone
 var _shots_dir := ""
 var _args: PackedStringArray
 const BENCH_SECONDS := 10.0
+const SessionState := preload("res://core/world/session_state.gd")
 var _bench_t := -1.0
 var _bench_frames := PackedFloat32Array()
 var _bench_gpu := PackedFloat32Array()
@@ -24,30 +25,46 @@ var _deepdive = null
 
 ## Streamed areas (docs/ZONE_PLAN.md). Anchors are area centres; radii in metres (horizontal).
 const AREAS: Array[Dictionary] = [
-	{"id": "ossuary", "source": "res://world/areas/ossuary/ossuary.gd", "anchor": Vector3(19.0, 4.0, -36.0), "load_r": 110.0, "unload_r": 150.0},
+	# load_r covers the whole Realm: the Ossuary loads at boot under the loading screen instead of a
+	# ~265 ms freeze when a player first walks within 110 m of it (from the far west)
+	{"id": "ossuary", "source": "res://world/areas/ossuary/ossuary.gd", "anchor": Vector3(19.0, 4.0, -36.0), "load_r": 400.0, "unload_r": 500.0},
 ]
 
 
 func _ready() -> void:
 	super._ready()
-	Events.zone_entered.emit("STAIR OF ASCENSION", "where the sky turns inward")
+	# r30: there is no stair under the Realm any more; the card names the land
+	if Realm.enabled():
+		Events.zone_entered.emit("THE UMBRAL REACHES", "where the sky turns inward")
+	else:
+		Events.zone_entered.emit("STAIR OF ASCENSION", "where the sky turns inward")
 	# Summit glass removed with the Crimson Vale — next night TBD.
 	var dress_path := "res://world/zones/ascension/dress.tscn"
 	if ResourceLoader.exists(dress_path):
 		add_child((load(dress_path) as PackedScene).instantiate())
-	else:
-		Gothic.raise(self)
-	Atmosphere.apply(self, _env, _cam, _moon, 82.0, Color("#12183A"), Color("#060A1C"), Color("#3A2480"))
+	elif not Realm.enabled():
+		Gothic.raise(self)            # the stair's window gobos (r30: under the Realm they lit windows that no longer exist)
+	Atmosphere.apply(self, _env, _cam, _moon, 82.0, Color("#12183A"), Color("#060A1C"), Color("#1E4AA0"))   # fog glows azure, not violet
 	_spawn_glimmers()
-	EnemySpawner.seed_stair(self)
+	if not Realm.enabled():
+		EnemySpawner.seed_stair(self)
+	else:
+		EnemySpawner.seed_realm(self)     # camps of the redesigned zone (RealmBosses)
 	AreaStreamer.attach(self, AREAS)
+	var pw := PerfWatch.new()
+	pw.name = "PerfWatch"
+	add_child(pw)
+	LavaWorks.attach(self)
+	var satchel := Satchel.new()
+	satchel.name = "Satchel"
+	add_child(satchel)
 	var amb := Ambience.new()
 	amb.name = "Ambience"
 	add_child(amb)
 	# The Landing brazier stood at x 1.9, in the mouth of the Ossuary bone bridge; move it to the
 	# landing's west side (runtime, so main.tscn stays untouched; kindle memory is by name).
 	var landing := get_node_or_null("Zone/Braziers/Landing") as Node3D
-	if landing:
+	if landing and not Realm.enabled():          # under the Realm, RealmBosses places it
 		landing.position = Vector3(-1.6, landing.position.y, landing.position.z)
 	finish_zone_setup()
 	if _player.get_node_or_null("CameraRig/Pitch/SpringArm") is SpringArm3D:
@@ -93,6 +110,12 @@ func _record_walk() -> void:
 	_player.debug_drive(Vector3.ZERO, false)
 	print("WALK_REC frames=", _walk_frames, " dir=", _walk_rec, " pos=", _player.global_position)
 	get_tree().quit()
+
+
+## Torn down (quit, or the Deeper Night rebuilding the night in this process): the night's static
+## state belongs to this build only. The list lives in core/world/session_state.gd.
+func _exit_tree() -> void:
+	SessionState.reset_night()
 
 
 func _process(delta: float) -> void:

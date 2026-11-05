@@ -5,3 +5,11 @@ build/
 docs/anim/
 /tmp*
 .DS_Store
+
+# Generated output (docs/critique/r30/architect.md #21)
+shots/
+*.log
+__pycache__/
+*.pyc
+# Procedural cache written by dev runs (core/world/realm/gen_cache.gd); regenerate before export.
+art/realm_cache/

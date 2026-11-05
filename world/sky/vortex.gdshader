@@ -15,6 +15,7 @@ uniform float twist = 3.8;          // arm tightness
 uniform float arm_scale = 3.4;      // size of the star clouds
 uniform float detail_scale = 9.0;   // fine filaments
 uniform float spin_speed = 0.015;   // revolutions per second
+uniform float spin_phase = 0.0;     // revolutions; keeps the angle continuous when spin_speed changes (reactivity.gd)
 uniform float intensity = 2.2;      // above 1.0 so glow catches the arms
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -37,7 +38,7 @@ vec3 vortex(vec3 d) {
     float facing = dot(d, c);
     vec2 p = vec2(dot(d, r), dot(d, u)) / max(facing, 0.08);
     float rad = length(p);
-    float ang = atan(p.y, p.x) + twist * log(rad + 0.04) - sky_time * spin_speed * TAU;
+    float ang = atan(p.y, p.x) + twist * log(rad + 0.04) - (sky_time * spin_speed + spin_phase) * TAU;
     vec2 q = vec2(cos(ang), sin(ang)) * rad;
     float clouds = fbm(q * arm_scale + 3.0);
     float fil = 1.0 - abs(2.0 * fbm(q * detail_scale - sky_time * 0.02) - 1.0); // ridged filaments

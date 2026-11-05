@@ -17,6 +17,7 @@ var skulls: Array = [[], []]            # with jaw / without jaw
 var bones: Array = [[], [], []]         # femur, rib, vertebra
 var solids: Array = []                  # [centre, basis, half extents] of every solid box (prop clipping test)
 var rejected := 0
+var keep_lanes := true                  ## reject floor clutter on WorldLanes.FIXED_LANES
 
 static var _mats: Dictionary = {}
 static var _skulls: Array[ArrayMesh] = []
@@ -35,6 +36,10 @@ const HALO := preload("res://world/areas/ossuary/candle_halo.gdshader")
 static func mat(key: String) -> Material:
 	if _mats.has(key):
 		return _mats[key]
+	if key == "hub":
+		# the hub stair's own stone (world-triplanar), so new masonry on it matches exactly
+		_mats[key] = load("res://art/materials/stone.tres")
+		return _mats[key]
 	var m := StandardMaterial3D.new()
 	match key:
 		"stone":      _tri(m, "oss_ashlar", 0.32, Color(0.92, 0.9, 0.88))
@@ -42,7 +47,7 @@ static func mat(key: String) -> Material:
 		"floor":      _tri(m, "oss_floor", 0.22, Color(0.9, 0.88, 0.86))
 		"dark":       _tri(m, "rock", 0.5, Color(0.16, 0.14, 0.15))
 		"iron":       _tri(m, "tavern_iron", 0.6, Color(0.5, 0.48, 0.5))
-		"wood":       _tri(m, "tavern_wood", 0.5, Color(0.55, 0.45, 0.38))
+		"wood":       _tri(m, "tavern_wood", 0.5, Color(0.7, 0.57, 0.46))
 		"slate":      _tri(m, "oss_slate", 0.45, Color(0.9, 0.9, 0.95))
 		"bone", "bone_cm":
 			_tri(m, "oss_bone", 1.6, Color(1.0, 0.97, 0.92))
@@ -97,6 +102,7 @@ static func _tri(m: StandardMaterial3D, tex: String, scale: float, tint: Color) 
 	m.uv1_triplanar_sharpness = 4.0
 	m.uv1_scale = Vector3.ONE * scale
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	m.vertex_color_use_as_albedo = true      # contact AO + per-block tint baked by box()
 
 
 # --- primitive writers ----------------------------------------------------------------------
@@ -126,19 +132,109 @@ func quad(key: String, a: Vector3, b: Vector3, c: Vector3, d: Vector3, out: Vect
 
 
 ## Oriented box. `b` columns are the box axes (unit); size is full extents along them.
+## Visually every box is chamfered (a 45-degree bevel catches a highlight on each arris, so masonry
+## reads as cut stone instead of CSG), carries contact AO in its vertex colours (sides darken
+## toward the foot, undersides are dark) and a small per-block tint jitter (no two ashlars alike).
+## Collision stays the plain box.
 func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := true, shade := 1.0) -> void:
+	var ex := b.x.normalized()
+	var ey := b.y.normalized()
+	var ez := b.z.normalized()
+	var h := size.abs() * 0.5
 	if solid and size.x > 0.05 and size.y > 0.05 and size.z > 0.05:
-		solids.append([c, b.orthonormalized(), size * 0.5])
-	var hx := b.x * size.x * 0.5
-	var hy := b.y * size.y * 0.5
-	var hz := b.z * size.z * 0.5
+		solids.append([c, b.orthonormalized(), h])
+	if solid:
+		_box_col(c, ex * h.x, ey * h.y, ez * h.z)
+	var mn := minf(size.x, minf(size.y, size.z))
+	var ch := 0.0 if mn < 0.09 else minf(mn * 0.14, BEVEL)
+	var jit := 0.93 + 0.1 * float(absi(hash(Vector3i((c * 20.0).round()))) % 1000) / 1000.0
+	var ybot := c.y - absf(ex.y) * h.x - absf(ey.y) * h.y - absf(ez.y) * h.z
+	var upright := ey.y > 0.95
+	var st := _tool(key)
+	var sh := shade * jit
+	var hc := h - Vector3.ONE * ch
 	for s: float in [-1.0, 1.0]:
-		var f := c + hx * s
-		quad(key, f - hy - hz, f + hy - hz, f + hy + hz, f - hy + hz, b.x * s, solid, shade)
-		f = c + hy * s
-		quad(key, f - hx - hz, f + hx - hz, f + hx + hz, f - hx + hz, b.y * s, solid, shade)
-		f = c + hz * s
-		quad(key, f - hx - hy, f + hx - hy, f + hx + hy, f - hx + hy, b.z * s, solid, shade)
+		_rect(st, c + ex * (s * h.x), ez * hc.z, ey * hc.y, ex * s, sh, ybot, upright)
+		_rect(st, c + ez * (s * h.z), ex * hc.x, ey * hc.y, ez * s, sh, ybot, upright)
+		_rect(st, c + ey * (s * h.y), ex * hc.x, ez * hc.z, ey * s, sh, ybot, false)
+	if ch <= 0.0:
+		return
+	for sa: float in [-1.0, 1.0]:
+		for sb: float in [-1.0, 1.0]:
+			# vertical arrises (x/z), then the x/y and y/z ones
+			var p1 := ex * (sa * h.x) + ez * (sb * hc.z)
+			var p2 := ex * (sa * hc.x) + ez * (sb * h.z)
+			_rect(st, c + (p1 + p2) * 0.5, (p1 - p2) * 0.5, ey * hc.y, (ex * sa + ez * sb).normalized(), sh, ybot, upright)
+			p1 = ex * (sa * h.x) + ey * (sb * hc.y)
+			p2 = ex * (sa * hc.x) + ey * (sb * h.y)
+			_rect(st, c + (p1 + p2) * 0.5, (p1 - p2) * 0.5, ez * hc.z, (ex * sa + ey * sb).normalized(), sh, ybot, false)
+			p1 = ey * (sa * h.y) + ez * (sb * hc.z)
+			p2 = ey * (sa * hc.y) + ez * (sb * h.z)
+			_rect(st, c + (p1 + p2) * 0.5, (p1 - p2) * 0.5, ex * hc.x, (ey * sa + ez * sb).normalized(), sh, ybot, false)
+			for sc: float in [-1.0, 1.0]:
+				var o := c
+				var a := o + ex * (sa * h.x) + ey * (sb * hc.y) + ez * (sc * hc.z)
+				var bb := o + ex * (sa * hc.x) + ey * (sb * h.y) + ez * (sc * hc.z)
+				var cc := o + ex * (sa * hc.x) + ey * (sb * hc.y) + ez * (sc * h.z)
+				_tri3(st, a, bb, cc, (ex * sa + ey * sb + ez * sc).normalized(), sh, ybot)
+
+
+const BEVEL := 0.045
+const AO_FLOOR := 0.56      ## vertex shade at a face's foot
+const AO_RISE := 0.75       ## metres over which contact AO fades out
+
+
+static func _ao(n: Vector3, y: float, ybot: float) -> float:
+	if n.y > 0.68:
+		return 1.0
+	if n.y < -0.68:
+		return 0.6
+	var t := clampf((y - ybot) / AO_RISE, 0.0, 1.0)
+	return lerpf(AO_FLOOR, 1.0, t * t * (3.0 - 2.0 * t))
+
+
+## Rectangle centre +-u +-v facing n. Upright side faces are split at the AO band so the contact
+## darkening hugs the foot of a tall wall instead of shading it end to end.
+func _rect(st: SurfaceTool, ctr: Vector3, u: Vector3, v: Vector3, n: Vector3, shade: float, ybot: float, split: bool) -> void:
+	if split and absf(v.y) > 0.01:
+		var ps := (ybot + AO_RISE - ctr.y) / v.y
+		if ps > -0.95 and ps < 0.95:
+			var mid := ctr + v * ps
+			_rect(st, (ctr - v + mid) * 0.5, u, (mid - (ctr - v)) * 0.5, n, shade, ybot, false)
+			_rect(st, (ctr + v + mid) * 0.5, u, ((ctr + v) - mid) * 0.5, n, shade, ybot, false)
+			return
+	var a := ctr - u - v
+	var b := ctr + u - v
+	var c := ctr + u + v
+	var d := ctr - u + v
+	var tri: Array[Vector3] = [a, b, c, a, c, d]
+	if (b - a).cross(c - a).dot(n) > 0.0:
+		tri = [a, c, b, a, d, c]
+	for p in tri:
+		var k := shade * _ao(n, p.y, ybot)
+		st.set_normal(n)
+		st.set_color(Color(k, k, k))
+		st.add_vertex(p)
+
+
+func _tri3(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, n: Vector3, shade: float, ybot: float) -> void:
+	var tri: Array[Vector3] = [a, b, c]
+	if (b - a).cross(c - a).dot(n) > 0.0:
+		tri = [a, c, b]
+	for p in tri:
+		var k := shade * _ao(n, p.y, ybot)
+		st.set_normal(n)
+		st.set_color(Color(k, k, k))
+		st.add_vertex(p)
+
+
+func _box_col(c: Vector3, hx: Vector3, hy: Vector3, hz: Vector3) -> void:
+	for s: float in [-1.0, 1.0]:
+		for f: Array in [[hx, hy, hz], [hy, hx, hz], [hz, hx, hy]]:
+			var o: Vector3 = c + (f[0] as Vector3) * s
+			var u: Vector3 = f[1]
+			var v: Vector3 = f[2]
+			col_faces.append_array(PackedVector3Array([o - u - v, o + u - v, o + u + v, o - u - v, o + u + v, o - u + v]))
 
 
 ## Axis-aligned box from min corner to max corner.
@@ -219,7 +315,7 @@ func _arch_ring(key: String, base: Vector3, along: Vector3, nrm: Vector3, w: flo
 
 ## Straight flight from `lo` (foot, floor height) up to `hi` (head, floor height), `width` across.
 ## Steps are visual only; collision is one smooth ramp under the nosings (CharacterBody-friendly).
-func stairs(key: String, lo: Vector3, hi: Vector3, width: float, steps: int) -> void:
+func stairs(key: String, lo: Vector3, hi: Vector3, width: float, steps: int, base_y := NAN) -> void:
 	var run := Vector3(hi.x - lo.x, 0.0, hi.z - lo.z)
 	var dir := run.normalized()
 	var side := dir.cross(Vector3.UP).normalized()
@@ -228,23 +324,37 @@ func stairs(key: String, lo: Vector3, hi: Vector3, width: float, steps: int) -> 
 	var bas := Basis(side, Vector3.UP, dir)
 	for i in steps:
 		var top := lo.y + rise * float(i + 1)
-		var bottom := lo.y - 0.5
+		var bottom := (lo.y - 0.5) if is_nan(base_y) else base_y
 		var c := lo + dir * (tread * (float(i) + 0.5))
 		box(key, Vector3(c.x, (top + bottom) * 0.5, c.z), Vector3(width, top - bottom, tread + 0.02), bas, false, 0.9 if i % 2 == 0 else 1.0)
-	var f := (hi - lo).normalized()
+	# Collision ramp through the middle of every tread top (shifted half a tread back), so the feet
+	# ride within +-rise/2 of the visible step instead of sinking up to a whole riser into it. The
+	# last half tread, past the ramp's end, gets a flat slab at head height.
+	var back := dir * (tread * 0.5)
+	var lo2 := lo - back
+	var hi2 := hi - back
+	var f := (hi2 - lo2).normalized()
 	var u := side.cross(f).normalized()
 	if u.y < 0.0:
 		u = -u
 	var rb := Basis(side, u, f)
-	# top face runs exactly floor-to-floor (lo -> hi): no lip at either end to snag the capsule
-	var mid := (lo + hi) * 0.5 - u * 0.15
-	_ramp_faces(mid, Vector3(width, 0.3, (hi - lo).length()), rb)
+	_ramp_faces((lo2 + hi2) * 0.5 - u * 0.15, Vector3(width, 0.3, (hi2 - lo2).length()), rb)
+	_ramp_faces(hi - back * 0.5 + Vector3.DOWN * 0.15, Vector3(width, 0.3, tread * 0.5 + 0.04), bas)
 
 
 func _ramp_faces(c: Vector3, size: Vector3, b: Basis) -> void:
-	var tmp := OssKit.new()
-	tmp.box("x", c, size, b)
-	col_faces.append_array(tmp.col_faces)
+	_box_col(c, b.x * size.x * 0.5, b.y * size.y * 0.5, b.z * size.z * 0.5)
+
+
+## Masonry foundation under a rectangular footprint (holder/world space): a plinth from `floor_y`
+## down to `ground_y - bury` (the lowest ground under the footprint, sampled by the caller), with
+## a chamfered, slightly proud top course. On a slope the downhill side simply shows more plinth,
+## so a building never floats and never needs the ground bent to fit it.
+func foundation(key: String, lo: Vector2, hi: Vector2, floor_y: float, ground_y: float, bury := Metrics.FOUNDATION_BURY) -> void:
+	# the plinth stands proud of the walls from the ground up (no overhanging course to float
+	# over a slope); one closed block, so no internal faces
+	var bottom := minf(ground_y, floor_y) - bury
+	block(key, Vector3(lo.x - 0.12, bottom, lo.y - 0.12), Vector3(hi.x + 0.12, floor_y, hi.y + 0.12), true, 0.86)
 
 
 ## Square pinnacle: shaft `w` wide and `h` tall from `base`, then a pyramid of `spike` height.
@@ -293,6 +403,8 @@ func parapet(key: String, a: Vector3, b: Vector3, h := 1.0, t := 0.35) -> void:
 
 ## True when `p` is inside any solid box (shrunk by `margin`): props there would clip.
 func blocked(p: Vector3, margin := 0.02) -> bool:
+	if keep_lanes and WorldLanes.intrudes_fixed(AABB(p - Vector3(0.08, 0.1, 0.08), Vector3(0.16, 0.3, 0.16))) != "":
+		return true                         # floor clutter never lands on a walkway
 	for sb in solids:
 		var b: Basis = sb[1]
 		var h: Vector3 = sb[2]
@@ -363,6 +475,10 @@ func bone(at: Vector3, b: Basis, kind := 0, check := true) -> void:
 
 ## Organic mesh (CreatureMesh output) merged into the area's single bone surface.
 func append_mesh(key: String, mesh: ArrayMesh, xf: Transform3D) -> void:
+	# its own surface: SurfaceTool drops box vertices when organic meshes (UVs, other format)
+	# are appended into the same tool, so `wood` boxes vanished once a barrel was added
+	if not key.ends_with("_cm"):
+		key += "#m"
 	if not _st.has(key):
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -518,11 +634,12 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 	for key in _st:
 		var st: SurfaceTool = _st[key]
 		var mi := MeshInstance3D.new()
-		mi.name = "Mesh_" + key
+		mi.name = "Mesh_" + key.replace("#", "_")
 		mi.mesh = st.commit()
-		mi.material_override = mat(key)
+		mi.material_override = mat(key.split("#")[0])
 		parent.add_child(mi)
 		draws += 1
+	Atmosphere.kit_occluder(parent, solids)    # walls/piers/floors hide what is behind them (occlusion culling)
 	if not col_faces.is_empty():
 		var body := StaticBody3D.new()
 		body.name = body_name
@@ -555,10 +672,12 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 			mm.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 			parent.add_child(mm)
 			counter[0] += 1
+	# a skull is a few pixels past ~30 m: these ranges keep the crypt's thousands of them (and
+	# the summit view down into it) off the GPU when they cannot be read anyway
 	for v in 2:
-		add.call("Skulls%d" % v, skull_mesh(v), skulls[v], mat("bone"), 48.0)
+		add.call("Skulls%d" % v, skull_mesh(v), skulls[v], mat("bone"), 34.0)
 	for kind in 3:
-		add.call("Bones%d" % kind, bone_mesh(kind), bones[kind], mat("bone"), 40.0 if kind == 0 else 28.0)
+		add.call("Bones%d" % kind, bone_mesh(kind), bones[kind], mat("bone"), 30.0 if kind == 0 else 22.0)
 	add.call("WaxPuddles", puddle_mesh(), puddles, mat("wax"), 30.0)
 	var tips: Array[Transform3D] = []
 	for v in 3:

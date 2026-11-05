@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode blend_mix, depth_draw_never, cull_disabled, unshaded, shadows_disabled;
+render_mode blend_mix, depth_draw_never, cull_disabled, unshaded, shadows_disabled, fog_disabled;
 // A black void in the cowl. The centre stays solid; the rim and the chin break into mist.
 
 varying vec3 obj;

@@ -1,0 +1,17 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://art/textures/bark_giant_albedo.png" id="1_a"]
+[ext_resource type="Texture2D" path="res://art/textures/bark_giant_normal.png" id="2_n"]
+
+[resource]
+vertex_color_use_as_albedo = true
+albedo_color = Color(1.0, 1.04, 1.1, 1)
+albedo_texture = ExtResource("1_a")
+roughness = 0.86
+normal_enabled = true
+normal_scale = 2.2
+normal_texture = ExtResource("2_n")
+rim_enabled = true
+rim = 0.3
+rim_tint = 0.35
+texture_filter = 5

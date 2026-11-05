@@ -14,3 +14,4 @@ const CULL_FOLIAGE := "cull_foliage"
 const CULL_SKIP := "cull_skip"
 const OCCLUDER_TRUNK := "occluder_trunk"
 const ENEMY_SHOT := "enemy_shot"
+const BRAZIER := "brazier"            ## every Brazier (joins in _ready): Travel saves read lit fires from it

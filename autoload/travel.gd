@@ -11,13 +11,39 @@ var yaw := 0.0
 var lit_by_path: Dictionary = {}
 var area_lit: Dictionary = {}      ## "area_id/brazier" -> true; survives streaming and travel
 var relics: Dictionary = {}        ## reliquary id -> chosen variant (StringName)
+var seals_broken: Dictionary = {}  ## seal id -> true (WardSeal / EnemySpawner camps)
+var bosses_slain: Dictionary = {}  ## boss id -> true (BossArena)
+var items: Dictionary = {}         ## ItemDB id -> count (the Satchel)
 var checkpoints: Dictionary = {}   ## scene path -> Vector3 (last kindled brazier's spawn point)
 var saved_hollows := 0
+## Per-system saved state for the living-world systems (docs/LIFE_PLAN.md): one sub-dictionary
+## per system id ("progression", "village", "life", "secrets", "encounters"), saved in its own
+## [systems] section. Each system reads/writes ONLY its own key; call save_game() after changing it.
+var systems: Dictionary = {}
+var story: Dictionary = {}         ## story state (core/story/story.gd): {"flags": {}, "picked": {}}; own [story] section
 
 ## Progress save (user://savegame.cfg): kindles (hub + areas), relics, checkpoint, hollow count.
-## Written ~0.6 s after any change; read once at boot. Launch with `-- --fresh` to ignore it.
-const SAVE_PATH := "user://savegame.cfg"
+## Written ~0.6 s after any change (kill ash: ~10 s, see save_lazy); read once at boot. Launch with
+## `-- --fresh` to ignore it, `-- --save-dir=/scratch` to keep every save file there (tests).
+const SaveDir := preload("res://core/util/save_dir.gd")
+var SAVE_PATH: String = SaveDir.path("savegame.cfg")
+## Format version written to [progress] version. Readers take what they know from any version and
+## carry the rest along: keys this build doesn't know (a newer build's, or a section another system
+## adds) survive a save. Writes go to SAVE_PATH.tmp, then are renamed over the save; the previous
+## good save is kept as SAVE_PATH.bak and loaded if the main file is ever unreadable.
+## Cost (r30): a save runs on the main thread mid-combat, so it never walks the scene tree (lit
+## braziers come from the Groups.BRAZIER registry) and never re-parses a file: _loaded_cfg is the
+## one canonical ConfigFile, and whether the main file is a good save is remembered, not re-read.
+const SAVE_VERSION := 1
+const LAZY_S := 10.0                 ## kill ash: rides the next save, or this long at most
 var _save_queued := false
+var _lazy_queued := false
+var _saves := 0                      ## save_game() count; a lazy timer skips if one ran since it was set
+var _loaded_cfg: ConfigFile = null   ## the save as read at boot (unknown keys ride along); updated in place
+var _main_ok: Variant = null         ## SAVE_PATH holds a good save: true/false once known, null = not checked
+## Set by erase_save(): the running night still holds the old progress in its nodes (lit fires,
+## systems, the story), so nothing more is written this session; the next launch starts clean.
+var erased := false
 
 var _fade_layer: CanvasLayer
 var _fade: ColorRect
@@ -30,6 +56,21 @@ func _ready() -> void:
 	if not "--fresh" in OS.get_cmdline_user_args():
 		load_game()
 	Events.brazier_kindled.connect(func(_b: Node3D) -> void: save_soon())
+	Events.seal_broken.connect(func(id: String) -> void:
+		seals_broken[id] = true
+		save_game())
+	Events.boss_slain.connect(func(id: String) -> void:
+		bosses_slain[id] = true
+		if ItemDB.BOSS_TROPHY.has(id):
+			give(ItemDB.BOSS_TROPHY[id], 1, false)
+		if id == "thornwarden" and not relics.has("thorn"):
+			relics["thorn"] = &"splinter"          # the Thorn Heart arrives attuned to Splinter
+		give("grave_ash", ItemDB.ASH_PER_BOSS, false)
+		save_game())
+	Events.enemy_killed.connect(func(e: Node) -> void:
+		if not e.has_meta(&"boss_id"):
+			give("grave_ash", ItemDB.ASH_PER_KILL, false, false)
+			save_lazy())
 	_fade_layer = CanvasLayer.new()
 	_fade_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	_fade_layer.layer = 80
@@ -148,10 +189,20 @@ func _remember_kindles() -> void:
 	if path.is_empty():
 		return
 	var names := PackedStringArray()
-	for node in scene.find_children("*", "Node", true, false):
-		if node is Brazier and (node as Brazier).lit:
+	for node in _braziers(scene):
+		if (node as Brazier).lit:
 			names.append(node.name)
 	lit_by_path[path] = names
+
+
+## The braziers under `root`, in tree order, from the registry (Brazier joins Groups.BRAZIER in
+## _ready) instead of walking ~9,500 nodes: that walk was 2 ms of every save.
+func _braziers(root: Node) -> Array[Node]:
+	var out: Array[Node] = []
+	for node in get_tree().get_nodes_in_group(Groups.BRAZIER):
+		if node is Brazier and root.is_ancestor_of(node):
+			out.append(node)
+	return out
 
 
 func was_lit(b_name: String) -> bool:
@@ -169,12 +220,56 @@ func restore_kindles(root: Node) -> void:
 	var names: PackedStringArray = lit_by_path.get(path, PackedStringArray())
 	if names.is_empty():
 		return
-	for node in root.find_children("*", "Node", true, false):
-		if node is Brazier and node.name in names:
+	for node in _braziers(root):
+		if node.name in names:
 			(node as Brazier).kindle_quiet()
 
 
 # --- progress save ---------------------------------------------------------------------------
+
+## Put something in the Satchel. Unique kinds (relics, trophies) never stack past 1.
+## `save` = write the save now (key items); else it rides the next save (`soon`: within 0.6 s;
+## false = the caller schedules it, e.g. kill ash via save_lazy).
+func give(id: String, amount := 1, save := true, soon := true) -> void:
+	var kind := String(ItemDB.def(id).kind)
+	var have := int(items.get(id, 0))
+	var total := mini(have + amount, 1) if kind != "material" else have + amount
+	if total == have:
+		return
+	items[id] = total
+	Events.item_gained.emit(id, total - have, total)
+	if save:
+		save_game()
+	elif soon:
+		save_soon()
+
+
+func count(id: String) -> int:
+	return int(items.get(id, 0))
+
+
+## Older saves knew relics and bosses but had no Satchel: fill it from what they did record.
+func _migrate_items() -> void:
+	if relics.has("bone"):
+		items["bone_reliquary"] = 1
+	for b in bosses_slain:
+		if ItemDB.BOSS_TROPHY.has(b):
+			items[ItemDB.BOSS_TROPHY[b]] = 1
+	if bosses_slain.has("thornwarden") and not relics.has("thorn"):
+		relics["thorn"] = &"splinter"
+
+
+## Progress you can lose by quitting is progress lost: save on the way out too.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE or what == NOTIFICATION_APPLICATION_PAUSED:
+		if not _busy and is_inside_tree():
+			save_game()
+
+
+## Save now (relics, seals, bosses): no 0.6 s window to quit inside.
+func save_now() -> void:
+	save_game()
+
 
 func save_soon() -> void:
 	if _save_queued:
@@ -183,6 +278,19 @@ func save_soon() -> void:
 	get_tree().create_timer(0.6, true, false, true).timeout.connect(func() -> void:
 		_save_queued = false
 		save_game())
+
+
+## Low-stakes changes (kill ash): ride whatever save comes next (kindle, rest, area change, quit),
+## or LAZY_S at most, so a fight is not interrupted by a save 0.6 s after every kill.
+func save_lazy() -> void:
+	if _lazy_queued:
+		return
+	_lazy_queued = true
+	var at := _saves
+	get_tree().create_timer(LAZY_S, true, false, true).timeout.connect(func() -> void:
+		_lazy_queued = false
+		if _saves == at:
+			save_game())
 
 
 func note_checkpoint(scene_path: String, at: Vector3) -> void:
@@ -196,39 +304,78 @@ func checkpoint_for(scene_path: String) -> Vector3:
 
 
 func save_game() -> void:
-	if _busy:
+	if _busy or erased:
 		return
+	_saves += 1
 	_remember_kindles()
-	var cfg := ConfigFile.new()
-	cfg.set_value("progress", "version", 1)
-	cfg.set_value("progress", "lit_by_path", lit_by_path)
+	var cfg := _base_cfg()
+	cfg.set_value("progress", "version", SAVE_VERSION)
+	cfg.set_value("progress", "lit_by_path", _compact_kindles())
 	cfg.set_value("progress", "area_lit", area_lit)
 	var rel := {}
 	for k in relics:
 		rel[k] = String(relics[k])
 	cfg.set_value("progress", "relics", rel)
 	cfg.set_value("progress", "checkpoints", checkpoints)
+	cfg.set_value("progress", "seals", seals_broken)
+	cfg.set_value("progress", "bosses", bosses_slain)
+	cfg.set_value("progress", "items", items)
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER)
 	if p and "hollow_count" in p:
 		saved_hollows = int(p.hollow_count)
 	cfg.set_value("progress", "hollows", saved_hollows)
-	var err := cfg.save(SAVE_PATH)
-	if err != OK:
-		push_warning("Travel.save_game failed: %s" % err)
+	cfg.set_value("story", "state", story)        # story agent: its own section (older saves lack it)
+	cfg.set_value("systems", "state", systems)
+	_write_save(cfg)
 
 
 func load_game() -> void:
-	var cfg := ConfigFile.new()
-	if cfg.load(SAVE_PATH) != OK:
+	var cfg := _read_save()
+	if cfg == null:
 		return
-	lit_by_path = cfg.get_value("progress", "lit_by_path", {})
-	area_lit = cfg.get_value("progress", "area_lit", {})
+	_loaded_cfg = cfg
+	if int(cfg.get_value("progress", "version", 1)) > SAVE_VERSION:
+		push_warning("Travel: save is format %s (this build writes %d); unknown keys are kept" % [cfg.get_value("progress", "version"), SAVE_VERSION])
+	# every value is checked as it comes in: a hand-edited or damaged save loads what it can and
+	# drops the rest, instead of a script error the first time something reads a wrong-typed entry
+	lit_by_path = {}
+	var lit := _dict(cfg, "lit_by_path")
+	for k in lit:
+		var names: Variant = lit[k]
+		if (k is String or k is StringName) and (names is PackedStringArray or names is Array):
+			var clean := PackedStringArray()
+			for n: Variant in names:
+				if n is String or n is StringName:
+					clean.append(String(n))
+			lit_by_path[String(k)] = clean
+	area_lit = _flags(_dict(cfg, "area_lit"))
 	relics.clear()
-	var rel: Dictionary = cfg.get_value("progress", "relics", {})
+	var rel := _dict(cfg, "relics")
 	for k in rel:
-		relics[k] = StringName(String(rel[k]))
-	checkpoints = cfg.get_value("progress", "checkpoints", {})
-	saved_hollows = int(cfg.get_value("progress", "hollows", 0))
+		if (k is String or k is StringName) and (rel[k] is String or rel[k] is StringName):
+			relics[String(k)] = StringName(String(rel[k]))
+	checkpoints = {}
+	var cps := _dict(cfg, "checkpoints")
+	for k in cps:
+		if (k is String or k is StringName) and _sane_point(cps[k]):
+			checkpoints[String(k)] = cps[k]
+	seals_broken = _flags(_dict(cfg, "seals"))
+	bosses_slain = _flags(_dict(cfg, "bosses"))
+	items = {}
+	var its := _dict(cfg, "items")
+	for k in its:
+		var n: Variant = its[k]
+		if (k is String or k is StringName) and (n is int or n is float or (n is String and String(n).is_valid_int())):
+			var c := clampi(int(n), 0, 999999)
+			if c > 0:
+				items[String(k)] = c
+	_migrate_items()
+	var hv: Variant = cfg.get_value("progress", "hollows", 0)
+	saved_hollows = maxi(0, int(hv)) if (hv is int or hv is float) else 0
+	var st: Variant = cfg.get_value("story", "state", {})
+	story = (st as Dictionary).duplicate(true) if st is Dictionary else {}
+	var sy: Variant = cfg.get_value("systems", "state", {})
+	systems = (sy as Dictionary).duplicate(true) if sy is Dictionary else {}
 	print("SAVE loaded: %d scenes with kindles, %d area fires, %d relics" % [lit_by_path.size(), area_lit.size(), relics.size()])
 
 
@@ -238,5 +385,112 @@ func erase_save() -> void:
 	area_lit.clear()
 	relics.clear()
 	checkpoints.clear()
+	seals_broken.clear()
+	bosses_slain.clear()
+	items.clear()
 	saved_hollows = 0
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	story.clear()
+	systems.clear()
+	_loaded_cfg = null
+	_main_ok = null
+	erased = true
+	for suffix: String in ["", ".bak", ".tmp"]:
+		if FileAccess.file_exists(SAVE_PATH + suffix):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH + suffix))
+	# the Journal keeps its own file (user://codex.cfg): a full erase clears it too
+	var codex := load("res://core/world/realm/lore/codex_store.gd")
+	if codex:
+		codex.call("reset", true)
+
+
+## A [progress] dictionary from the save, or {} if it is missing or the wrong type.
+func _dict(cfg: ConfigFile, key: String) -> Dictionary:
+	var v: Variant = cfg.get_value("progress", key, {})
+	return v if v is Dictionary else {}
+
+
+## An id -> true set (seals, bosses, area fires): string keys whose value is set; anything else dropped.
+func _flags(d: Dictionary) -> Dictionary:
+	var out := {}
+	for k in d:
+		var v: Variant = d[k]
+		var on := bool(v) if (v is bool or v is int or v is float) else v != null
+		if (k is String or k is StringName) and on:
+			out[String(k)] = true
+	return out
+
+
+## A checkpoint the player can stand at: a finite Vector3 inside any world this game builds.
+func _sane_point(v: Variant) -> bool:
+	if not v is Vector3:
+		return false
+	var p: Vector3 = v
+	return p.is_finite() and absf(p.x) < 5000.0 and absf(p.z) < 5000.0 and p.y > -200.0 and p.y < 2000.0
+
+
+## Kindle memory without the scenes that have none lit (every test scene visited used to add one).
+func _compact_kindles() -> Dictionary:
+	var out := {}
+	for k in lit_by_path:
+		var names: Variant = lit_by_path[k]
+		if not ((names is PackedStringArray or names is Array) and names.is_empty()):
+			out[k] = names
+	return out
+
+
+## What the next save is built on: the loaded save (so keys this build doesn't write survive), or new.
+## The same object every time: save_game() overwrites every key it owns, so no copy is needed.
+func _base_cfg() -> ConfigFile:
+	if _loaded_cfg == null:
+		_loaded_cfg = ConfigFile.new()
+	return _loaded_cfg
+
+
+## The newest readable save: the main file, else the backup. null if there is none.
+func _read_save() -> ConfigFile:
+	for path: String in [SAVE_PATH, SAVE_PATH + ".bak"]:
+		if not FileAccess.file_exists(path):
+			continue
+		var cfg := ConfigFile.new()
+		if cfg.load(path) == OK and cfg.has_section("progress"):
+			_main_ok = path == SAVE_PATH
+			if path != SAVE_PATH:
+				push_warning("Travel: %s was unreadable; loaded the backup" % SAVE_PATH)
+			return cfg
+		if path == SAVE_PATH:
+			_main_ok = false
+		push_warning("Travel: %s is unreadable" % path)
+	return null
+
+
+## Atomic save: write a temp file, keep the current good save as .bak, then rename the temp over
+## the save (a crash mid-write leaves the old save, never half a file). Nothing is parsed back:
+## ConfigFile.save reports a failed write, and whether the main file is good is tracked in _main_ok
+## (set when it was loaded or last written); only a main file this run never saw is checked, once.
+func _write_save(cfg: ConfigFile) -> void:
+	var tmp := SAVE_PATH + ".tmp"
+	var err := cfg.save(tmp)
+	if err != OK or not FileAccess.file_exists(tmp):
+		push_warning("Travel.save_game failed: %s" % str(err))
+		return
+	var main := ProjectSettings.globalize_path(SAVE_PATH)
+	var exists := FileAccess.file_exists(SAVE_PATH)
+	if exists and _main_ok == null:
+		var prev := ConfigFile.new()           # e.g. a --fresh run: the file on disk was never read
+		_main_ok = prev.load(SAVE_PATH) == OK and prev.has_section("progress")
+	if exists and _main_ok:
+		DirAccess.copy_absolute(main, main + ".bak")
+	err = DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), main)
+	if err != OK:
+		push_warning("Travel.save_game rename failed: %s" % err)
+		return
+	_main_ok = true
+	_loaded_cfg = cfg
+
+
+
+## A system's saved state (created empty on first use). Mutate the returned dictionary in place.
+func system_state(id: String) -> Dictionary:
+	if not systems.has(id) or not (systems[id] is Dictionary):
+		systems[id] = {}
+	return systems[id]

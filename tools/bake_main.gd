@@ -1,7 +1,10 @@
 extends SceneTree
 ## Bakes res://world/main.tscn from code: terrain, stair, sanctuary, ruins, props, braziers, player, lighting.
 ## Every node is owned by the scene scene_root, so the result is fully editable in the Godot editor.
-## Re-run after layout changes:  godot --headless --path . -s tools/bake_main.gd
+## LEGACY: the Realm (core/world/realm/) retires most of these layers at boot. main.tscn is now
+## hand-owned and must NEVER be re-saved headless (MultiMesh instance data / AABBs wipe). This tool
+## refuses to run under --headless; with a real GPU it still needs `-- --i-know` (it overwrites
+## world/main.tscn):  godot --path . --rendering-driver vulkan -s tools/bake_main.gd -- --i-know
 
 const RUN := 1.1        # stair tread depth (m)
 const RISE := 0.42      # stair riser height (m)
@@ -20,6 +23,10 @@ var sanct_top := 0.0
 
 
 func _initialize() -> void:
+	if DisplayServer.get_name() == "headless" or "--i-know" not in OS.get_cmdline_user_args():
+		push_error("bake_main.gd overwrites world/main.tscn: never headless; pass -- --i-know with a GPU")
+		quit(1)
+		return
 	rng.seed = 2026
 	n1.seed = 11
 	n1.frequency = 0.012

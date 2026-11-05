@@ -4,19 +4,24 @@
 [ext_resource type="Texture2D" path="res://art/textures/bark_normal.png" id="2_5ffh8"]
 [ext_resource type="Texture2D" path="res://art/textures/bark_rough.png" id="3_rough"]
 
+[ext_resource type="Texture2D" path="res://art/textures/bark_ao.png" id="ao_tex"]
+
 [resource]
+ao_enabled = true
+ao_light_affect = 0.35
+ao_texture = ExtResource("ao_tex")
 albedo_color = Color(0.40, 0.46, 0.64, 1)
 albedo_texture = ExtResource("1_nxd7x")
 roughness = 0.78
 roughness_texture = ExtResource("3_rough")
 normal_enabled = true
-normal_scale = 2.55
+normal_scale = 1.9
 normal_texture = ExtResource("2_5ffh8")
 rim_enabled = true
-rim = 0.50
+rim = 0.4
 rim_tint = 0.32
 uv1_scale = Vector3(0.6, 0.6, 0.6)
 uv1_triplanar = true
-uv1_triplanar_sharpness = 2.0
+uv1_triplanar_sharpness = 4.0
 uv1_world_triplanar = true
 texture_filter = 5

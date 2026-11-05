@@ -4,11 +4,16 @@
 [ext_resource type="Texture2D" path="res://art/textures/bark_giant_normal.png" id="2_ekuuf"]
 [ext_resource type="Texture2D" path="res://art/textures/bark_giant_rough.png" id="3_rough"]
 
+[ext_resource type="Texture2D" path="res://art/textures/bark_giant_ao.png" id="ao_tex"]
+
 [resource]
-albedo_color = Color(0.78, 0.84, 0.9, 1)
+ao_enabled = true
+ao_light_affect = 0.35
+ao_texture = ExtResource("ao_tex")
+albedo_color = Color(0.72, 0.76, 0.84, 1)
 emission_enabled = true
 emission = Color(0.18, 0.28, 0.55, 1)
-emission_energy_multiplier = 0.55
+emission_energy_multiplier = 0.3
 albedo_texture = ExtResource("1_1vxpj")
 roughness = 0.78
 roughness_texture = ExtResource("3_rough")
@@ -16,7 +21,7 @@ normal_enabled = true
 normal_scale = 2.45
 normal_texture = ExtResource("2_ekuuf")
 rim_enabled = true
-rim = 0.52
+rim = 0.34
 rim_tint = 0.32
 uv1_scale = Vector3(0.3, 0.3, 0.3)
 uv1_triplanar = true

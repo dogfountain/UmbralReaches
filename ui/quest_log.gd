@@ -1,0 +1,499 @@
+extends CanvasLayer
+## The tasks (story; no class_name). Added by the story director (core/story/story.gd).
+##   banner   "NEW TASK" / "TASK DONE" with the task's name and who set it, top centre, on
+##            Events.quest_changed (a moved-on step only flashes the objective line)
+##   progress the count toast under it ("Bone ash: 3/5"), from QuestBook.bump / the runner (r33)
+##   ledger   [L] (d-pad left): r33, after an MMO's quest log: the tasks under way down the left,
+##            in chapters by where they lead (Hearthward, the Thornwood, ...), finished ones after;
+##            the chosen task on the right: who set it and their words, the steps done (struck)
+##            and the one now with its count, what it pays and the gear to choose from, how it
+##            ended. [T] track / untrack it on the HUD, [X] abandon it (press twice), up/down to
+##            move. The world pauses while it is open.
+## Data: core/story/quest_chains.gd; state: core/story/quest_book.gd.
+
+const Book := preload("res://core/story/quest_book.gd")
+const Chains := preload("res://core/story/quest_chains.gd")
+const Offer := preload("res://ui/quest_offer.gd")
+const UIType := preload("res://ui/type.gd")
+const UiSound := preload("res://ui/ui_sound.gd")   ## quiet menu sounds (F)
+const ACTION := "quest_log"
+const LANTERN := Color("#FFB347")
+const QUIET := Color(0.78, 0.8, 0.9)
+const INK := Color(0.93, 0.89, 0.82)
+
+var _font: Font
+var _banner: VBoxContainer
+var _b_top: Label
+var _b_name: Label
+var _b_sub: Label
+var _b_tw: Tween
+var _prog: VBoxContainer
+var _panel: PanelContainer
+var _list: VBoxContainer
+var _detail: VBoxContainer
+var _count: Label
+var _hint: Label
+var _paused_it := false
+var _was_captured := false
+var _last_state := {}            ## id -> [step, done] (only real changes raise a banner)
+var _rows: Array = []            ## [[quest id, Button], ...] in list order
+var sel := ""                    ## the task shown on the right
+var _abandon_armed := ""
+
+
+static func ensure_action() -> void:
+	if InputMap.has_action(ACTION):
+		return
+	InputMap.add_action(ACTION, 0.2)
+	var k := InputEventKey.new()
+	k.physical_keycode = KEY_L
+	InputMap.action_add_event(ACTION, k)
+	var b := InputEventJoypadButton.new()
+	b.button_index = JOY_BUTTON_DPAD_LEFT
+	InputMap.action_add_event(ACTION, b)
+
+
+func _ready() -> void:
+	layer = 59
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	add_to_group("quest_log")
+	ensure_action()
+	_font = load("res://ui/fonts/Cinzel.ttf")
+	_build_banner()
+	_build_progress()
+	_build_ledger()
+	for id: String in Chains.ORDER:
+		_last_state[id] = [Book.step(id), Book.done(id)]
+	Events.quest_changed.connect(_on_changed)
+
+
+func _lbl(size: int, col: Color, font := true) -> Label:
+	var l := Label.new()
+	l.add_theme_font_override("font", _font if font else UIType.body())
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", col)
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	l.add_theme_constant_override("shadow_offset_x", 2)
+	l.add_theme_constant_override("shadow_offset_y", 2)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+
+func _build_banner() -> void:
+	_banner = VBoxContainer.new()
+	_banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_banner.offset_left = -500
+	_banner.offset_right = 500
+	_banner.offset_top = 120
+	_banner.offset_bottom = 260
+	_banner.alignment = BoxContainer.ALIGNMENT_BEGIN
+	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_banner.modulate.a = 0.0
+	add_child(_banner)
+	_b_top = _lbl(18, Color(1.0, 0.7, 0.28, 0.85))
+	_b_name = _lbl(38, Color(0.96, 0.92, 0.84))
+	_b_sub = _lbl(20, QUIET, false)
+	for l: Label in [_b_top, _b_name, _b_sub]:
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_banner.add_child(l)
+
+
+func _build_progress() -> void:
+	_prog = VBoxContainer.new()
+	_prog.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_prog.offset_left = -420
+	_prog.offset_right = 420
+	_prog.offset_top = 270
+	_prog.offset_bottom = 380
+	_prog.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_prog.add_theme_constant_override("separation", 2)
+	add_child(_prog)
+
+
+func _frame(bg: Color, border: Color, top := 3) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.border_color = border
+	sb.set_border_width_all(2)
+	sb.border_width_top = top
+	sb.set_corner_radius_all(4)
+	return sb
+
+
+func _build_ledger() -> void:
+	_panel = PanelContainer.new()
+	_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_panel.offset_left = -720
+	_panel.offset_right = 720
+	_panel.offset_top = -430
+	_panel.offset_bottom = 430
+	var sb := _frame(Color(0.03, 0.025, 0.06, 0.95), Color(1.0, 0.7, 0.28, 0.5))
+	sb.content_margin_left = 30
+	sb.content_margin_right = 30
+	sb.content_margin_top = 22
+	sb.content_margin_bottom = 20
+	_panel.add_theme_stylebox_override("panel", sb)
+	_panel.visible = false
+	add_child(_panel)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 10)
+	_panel.add_child(col)
+	var head := HBoxContainer.new()
+	col.add_child(head)
+	var t := _lbl(32, LANTERN)
+	t.text = "Tasks"
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(t)
+	_count = _lbl(18, Color(QUIET, 0.7), false)
+	_count.size_flags_vertical = Control.SIZE_SHRINK_END
+	head.add_child(_count)
+	var row := HBoxContainer.new()
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 24)
+	col.add_child(row)
+	var left := ScrollContainer.new()
+	left.custom_minimum_size = Vector2(470, 0)
+	left.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	row.add_child(left)
+	_list = VBoxContainer.new()
+	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_list.add_theme_constant_override("separation", 2)
+	left.add_child(_list)
+	var rule := ColorRect.new()
+	rule.color = Color(1.0, 0.7, 0.28, 0.22)
+	rule.custom_minimum_size = Vector2(2, 0)
+	row.add_child(rule)
+	var right := ScrollContainer.new()
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	row.add_child(right)
+	_detail = VBoxContainer.new()
+	_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_detail.add_theme_constant_override("separation", 8)
+	right.add_child(_detail)
+	_hint = _lbl(17, Color(QUIET, 0.7), false)
+	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	col.add_child(_hint)
+
+
+# --- banner and progress -----------------------------------------------------------------------------
+
+func _on_changed(id: String, s: int, done: bool) -> void:
+	var was: Array = _last_state.get(id, [-1, false])
+	_last_state[id] = [s, done]
+	if not Chains.QUESTS.has(id):
+		return
+	var qd: Dictionary = Chains.QUESTS[id]
+	if (int(was[0]) < 0 or bool(was[1])) and s >= 0 and not done:
+		banner("NEW TASK", String(qd.name), String(qd.where))
+	elif done and not bool(was[1]):
+		banner("TASK DONE", String(qd.name), outcome(id))
+	elif not done and Book.ready(id) and int(was[0]) != s:
+		progress("%s: return to %s" % [String(qd.name), String(Chains.GIVER_NAMES.get(String(Chains.step(id, s).get("who", "")), "the giver"))], true)
+	if is_open():
+		_fill()
+
+
+## The banner never draws over a menu or a conversation (both pause the tree), its own ledger included.
+func _process(_d: float) -> void:
+	_banner.visible = not get_tree().paused
+	_prog.visible = not get_tree().paused
+
+
+func banner(top: String, name_text: String, sub: String) -> void:
+	_b_top.text = top
+	_b_name.text = name_text
+	_b_sub.text = sub
+	if _b_tw:
+		_b_tw.kill()
+	_b_tw = create_tween()
+	_b_tw.set_pause_mode(Tween.TWEEN_PAUSE_STOP)     # a task begun in a conversation waits for it to close
+	_b_tw.tween_property(_banner, "modulate:a", 1.0, 0.5)
+	_b_tw.tween_interval(3.6)
+	_b_tw.tween_property(_banner, "modulate:a", 0.0, 1.2)
+
+
+## A count toast ("Bone ash: 3/5"), gold when the count is full; three at most, newest at the top.
+func progress(text: String, full := false) -> void:
+	var l := _lbl(24, LANTERN if full else Color(0.96, 0.9, 0.74), false)
+	l.text = text
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_prog.add_child(l)
+	_prog.move_child(l, 0)
+	while _prog.get_child_count() > 3:
+		var c := _prog.get_child(_prog.get_child_count() - 1)
+		_prog.remove_child(c)
+		c.queue_free()
+	var tw := l.create_tween()
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_STOP)
+	tw.tween_interval(2.4)
+	tw.tween_property(l, "modulate:a", 0.0, 0.8)
+	tw.tween_callback(l.queue_free)
+
+
+## The progress lines showing now (tests).
+func progress_lines() -> PackedStringArray:
+	var out := PackedStringArray()
+	for c in _prog.get_children():
+		if c is Label and not c.is_queued_for_deletion():
+			out.append((c as Label).text)
+	return out
+
+
+static func outcome(id: String) -> String:
+	var o: Dictionary = (Chains.QUESTS.get(id, {}) as Dictionary).get("outcome", {})
+	return String(o.get(Book.pick(id), o.get("", "")))
+
+
+# --- ledger -------------------------------------------------------------------------------------------
+
+func is_open() -> bool:
+	return _panel.visible
+
+
+func open() -> void:
+	_abandon_armed = ""
+	_fill()
+	UiSound.play(self, "tab")
+	_panel.visible = true
+	_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_paused_it = not get_tree().paused
+	get_tree().paused = true
+
+
+func close() -> void:
+	if not _panel.visible:
+		return
+	UiSound.play(self, "back")
+	_panel.visible = false
+	if _paused_it:
+		get_tree().paused = false
+	_paused_it = false
+	if _was_captured:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## The list's order: under way by chapter, then finished (a daily done today shows as resting).
+func entries() -> Array:
+	var out: Array = []
+	for z: Array in Chains.ZONES:
+		for id: String in Chains.ORDER:
+			if Book.active(id) and String(Chains.QUESTS[id].get("zone", "")) == String(z[0]):
+				out.append(id)
+	for id2: String in Chains.ORDER:
+		if Book.done(id2):
+			out.append(id2)
+	return out
+
+
+func _fill() -> void:
+	for c in _list.get_children():
+		c.queue_free()
+	_rows.clear()
+	var ids := entries()
+	var under := 0
+	for id: String in ids:
+		if Book.active(id):
+			under += 1
+	_count.text = "%d under way" % under
+	if not sel in ids:
+		sel = String(ids[0]) if not ids.is_empty() else ""
+	var zone := "#"
+	for id: String in ids:
+		var done := Book.done(id)
+		var z := "#done" if done else String(Chains.QUESTS[id].get("zone", ""))
+		if z != zone:
+			zone = z
+			var h := _lbl(16, Color(1.0, 0.7, 0.28, 0.75))
+			h.text = "FINISHED" if done else Chains.zone_name(z).to_upper()
+			if _list.get_child_count() > 0:
+				var gap := Control.new()
+				gap.custom_minimum_size = Vector2(0, 8)
+				_list.add_child(gap)
+			_list.add_child(h)
+		var b := Button.new()
+		b.flat = true
+		b.focus_mode = Control.FOCUS_NONE
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_font_override("font", UIType.body())
+		b.add_theme_font_size_override("font_size", 21)
+		var tag := ""
+		if Book.ready(id):
+			tag = "   ✓ ready"
+		elif String(Chains.QUESTS[id].get("repeat", "")) == "daily":
+			tag = "   (daily)"
+		var mark := "◇  " if done else ("◆  " if Book.tracked(id) else "·  ")
+		b.text = mark + String(Chains.QUESTS[id].name) + tag
+		b.pressed.connect(func() -> void: select(id))
+		_list.add_child(b)
+		_rows.append([id, b])
+	_mark_rows()
+	_fill_detail()
+	if ids.is_empty():
+		var none := _lbl(21, QUIET, false)
+		none.text = "Nobody has asked anything of you yet. Talk to the people of Hearthward, and the regulars at the Kindled Keg. Look for the gold mark over their heads."
+		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_list.add_child(none)
+	_hint.text = "[↑↓]  choose      [T]  track      [X]  abandon      [L]  close" if Book.active(sel) else "[↑↓]  choose      [L]  close"
+
+
+func _mark_rows() -> void:
+	for r: Array in _rows:
+		var b: Button = r[1]
+		var on := String(r[0]) == sel
+		var done := Book.done(String(r[0]))
+		var c := LANTERN if on else (Color(0.62, 0.6, 0.64) if done else INK)
+		b.add_theme_color_override("font_color", c)
+		b.add_theme_color_override("font_hover_color", LANTERN)
+
+
+func select(id: String) -> void:
+	if sel != id:
+		_abandon_armed = ""
+	sel = id
+	UiSound.play(self, "move")
+	_fill()
+
+
+func _fill_detail() -> void:
+	for c in _detail.get_children():
+		c.queue_free()
+	if sel == "" or not Chains.QUESTS.has(sel):
+		return
+	var qd: Dictionary = Chains.QUESTS[sel]
+	var n := _lbl(30, Color(0.96, 0.92, 0.84))
+	n.text = String(qd.name)
+	n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail.add_child(n)
+	var w := _lbl(17, Color(QUIET, 0.75), false)
+	w.text = "%s   ·   %s" % [String(qd.where), Chains.zone_name(String(qd.get("zone", "")))]
+	_detail.add_child(w)
+	var tx := _lbl(20, Color(0.86, 0.83, 0.78), false)
+	tx.text = String(qd.get("text", ""))
+	tx.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail.add_child(tx)
+	var done := Book.done(sel)
+	var h := _lbl(16, Color(1.0, 0.7, 0.28, 0.75))
+	h.text = "HOW IT ENDED" if done else "WHAT IS WANTED"
+	_detail.add_child(h)
+	if done:
+		var o := _lbl(20, INK, false)
+		o.text = outcome(sel)
+		o.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_detail.add_child(o)
+		if Book.resting(sel):
+			var rs := _lbl(17, Color(QUIET, 0.7), false)
+			rs.text = "Done for today. Ask again tomorrow."
+			_detail.add_child(rs)
+	else:
+		var cur := Book.step(sel)
+		for si in cur + 1:
+			var stp := Chains.step(sel, si)
+			var st := _lbl(19, INK if si == cur else Color(0.55, 0.54, 0.58), false)
+			st.text = ("  ›  " if si == cur else "  ✓  ") + Chains.step_text(sel, si, Book.q(sel) if si == cur else {})
+			if si < cur and String(stp.kind) in Chains.COUNTED:
+				st.text = "  ✓  " + String(stp.text).replace(" ({n}/{of})", "")
+			st.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			_detail.add_child(st)
+		var ph := _lbl(16, Color(1.0, 0.7, 0.28, 0.75))
+		ph.text = "WHAT IT PAYS"
+		_detail.add_child(ph)
+		var pay := _lbl(19, INK, false)
+		pay.text = Offer.pay_line(qd.get("reward", {}))
+		pay.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_detail.add_child(pay)
+		var pieces := Book.offered_gear(sel)
+		if not pieces.is_empty():
+			var names: PackedStringArray = []
+			for p: Dictionary in pieces:
+				names.append(String(p.get("name", "gear")))
+			var ch := _lbl(18, Color(QUIET, 0.85), false)
+			ch.text = "Choose one at the end: " + ",  ".join(names)
+			ch.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			_detail.add_child(ch)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 14)
+		_detail.add_child(row)
+		var trk := _button("Untrack" if Book.tracked(sel) else "Track")
+		trk.pressed.connect(toggle_track)
+		row.add_child(trk)
+		var ab := _button("Abandon?  (again)" if _abandon_armed == sel else "Abandon")
+		ab.pressed.connect(abandon)
+		row.add_child(ab)
+
+
+func _button(t: String) -> Button:
+	var b := Button.new()
+	b.text = t
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(170, 42)
+	b.add_theme_font_override("font", _font)
+	b.add_theme_font_size_override("font_size", 19)
+	b.add_theme_color_override("font_color", INK)
+	b.add_theme_color_override("font_hover_color", LANTERN)
+	for st: String in ["normal", "hover", "pressed"]:
+		var sb := _frame(Color(0.08, 0.06, 0.08, 0.95) if st == "normal" else Color(0.16, 0.1, 0.06, 0.95), Color(1.0, 0.7, 0.28, 0.5), 2)
+		sb.content_margin_left = 14
+		sb.content_margin_right = 14
+		b.add_theme_stylebox_override(st, sb)
+	return b
+
+
+func toggle_track() -> void:
+	if not Book.active(sel):
+		return
+	Book.set_tracked(sel, not Book.tracked(sel))
+	UiSound.play(self, "confirm")
+	_fill()
+
+
+## Abandon the chosen task: the first press arms it, the second sets it aside (the giver can offer
+## it again; a finished task is never dropped).
+func abandon() -> void:
+	if not Book.active(sel):
+		return
+	if _abandon_armed != sel:
+		_abandon_armed = sel
+		UiSound.play(self, "move")
+		_fill()
+		return
+	_abandon_armed = ""
+	Book.drop(sel)
+	UiSound.play(self, "back")
+	_fill()
+
+
+func _step_sel(d: int) -> void:
+	if _rows.is_empty():
+		return
+	var i := 0
+	for j in _rows.size():
+		if String(_rows[j][0]) == sel:
+			i = j
+	select(String(_rows[clampi(i + d, 0, _rows.size() - 1)][0]))
+
+
+func _input(event: InputEvent) -> void:
+	if not _panel.visible:
+		return
+	if event.is_action_pressed(ACTION) or event.is_action_pressed("toggle_settings") or (event is InputEventJoypadButton and (event as InputEventJoypadButton).pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_B):
+		close()
+		get_viewport().set_input_as_handled()
+	elif event is InputEventKey or event is InputEventJoypadButton:
+		if event.is_pressed() and not event.is_echo():
+			if event.is_action_pressed("ui_down") or event.is_action_pressed("move_back") or (event is InputEventJoypadButton and (event as InputEventJoypadButton).button_index == JOY_BUTTON_DPAD_DOWN):
+				_step_sel(1)
+			elif event.is_action_pressed("ui_up") or event.is_action_pressed("move_forward") or (event is InputEventJoypadButton and (event as InputEventJoypadButton).button_index == JOY_BUTTON_DPAD_UP):
+				_step_sel(-1)
+			elif event is InputEventKey and (event as InputEventKey).physical_keycode == KEY_T or (event is InputEventJoypadButton and (event as InputEventJoypadButton).button_index == JOY_BUTTON_Y):
+				toggle_track()
+			elif event is InputEventKey and (event as InputEventKey).physical_keycode == KEY_X or (event is InputEventJoypadButton and (event as InputEventJoypadButton).button_index == JOY_BUTTON_X):
+				abandon()
+		get_viewport().set_input_as_handled()      # nothing reaches the world while the ledger is open
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed(ACTION) and not _panel.visible and not get_tree().paused:
+		open()
+		get_viewport().set_input_as_handled()

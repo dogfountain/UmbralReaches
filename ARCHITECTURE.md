@@ -1,29 +1,102 @@
-# Architecture — last verified 2026-11-02
+# Architecture — last verified 2026-11-04 (r30)
 
-Godot **4.7.2** Forward+ / Jolt. Playable night: Stair of Ascension (`world/main.tscn`).
+Godot **4.7.2** Forward+ / Jolt, typed GDScript. One playable night: the **Realm** (the redesigned
+Stair of Ascension zone), booted from `world/main.tscn` + `world/main.gd`. This file is a map of
+the code as it is, not a wish list; `docs/critique/r30/architect.md` lists what should change.
 
-## Layout
+## Boot and teardown
 
-Feature folders (`core/player`, `core/world`, `core/enemy`, `ui`, `world`, `autoload`). Files `snake_case`, nodes `PascalCase`. New content is a scene or a Resource.
+```
+world/main.tscn (baked: Zone, Player, HUD, SettingsMenu, WorldEnvironment, Moon, Grade)
+  Zone._ready            core/world/zone.gd   opens ui/loading_screen.gd, wires Settings + Events
+  main.gd _ready         world/main.gd        Gothic, Atmosphere, Glimmers, EnemySpawner.seed_realm,
+                                              AreaStreamer (Ossuary), PerfWatch, LavaWorks, Satchel,
+                                              Ambience, then finish_zone_setup() (BoltPool, lights, kindles)
+  Glimmers._ready        core/world/glimmers.gd  awaits Realm.build(root)
+  Realm.build            core/world/realm/realm.gd  retire baked stair layers -> land -> rift -> bosses
+                         -> Tavern (adds Story) -> lore -> TerrainStamp -> flora -> SummitDress
+                         -> assets -> progression -> village -> life -> secrets -> encounters -> cull
+  loading screen         ui/loading_screen.gd  waits for the build + shader warm-up, then lifts
+teardown (quit, or the Deeper Night rebuilding in-process)
+  main.gd _exit_tree     SessionState.reset_night()  (core/world/session_state.gd)
+```
 
-**Autoloads (five):** `Events`, `Settings`, `Travel`, `LightGrid`, `InputSetup`. No GameManager. No AudioManager — sounds live on the node that makes them.
+`-- --no-realm` still boots the legacy baked stair (kept for henge_walk, summit_probe, lanewalk,
+fit). `-- --realm-modules=land,flora` builds only those modules.
 
-## Runtime vs bake
+## Folders (owner, entry point, state)
 
-`main.tscn` is static architecture. Runtime (or `tools/bake_dress.gd` → `world/zones/ascension/dress.tscn`) adds WindowRig, occluders, lantern/brazier GLBs, glimmers, enemies. **Never `--headless` save `main.tscn`** (MultiMesh AABB wipe).
+| Folder | What lives there |
+| --- | --- |
+| `autoload/` | Five services: `Events` (signals only), `Settings` (settings.cfg), `Travel` (scene change + fade, savegame.cfg, inventory, kindles, checkpoints, story/systems blobs), `LightGrid` (safe-light registry), `InputSetup` (InputMap). |
+| `core/player/` | `Player` (controller: move, traversal, camera, lock-on, gloom, interact, cast; `player.gd`), `CharacterRig` (skin: skeleton, sockets, stride, cloth, staff; also the base of the enemy rigs), wanderer mesh/texture generators, `MagicBolt` + `BoltPool` (Zone-owned). |
+| `core/skills/` | `SkillBook` + `Skill` subclasses (bolt, lance, nova, step, tether, ward, well, familiar), `Afflict` (burn/chill manager), `Combo` feed, `Aim`. |
+| `core/items/` | `ItemDB` (all carryables) and `EquipmentPiece` data (staff, lantern, gauntlets, boots). |
+| `core/enemy/` | `Enemy` base + kinds (husk, leaper, spitter, crawler, …) and bosses (Thornwarden, Bone Abbot, Ascended Warden), rigs (`hunch_rig`, `quad_rig`), `EnemyBody`, `EnemySpawner` (camps, seal guards), `AttackKit`. |
+| `core/world/` | `Zone` shell, interactables (Brazier, WardSeal, MirrorGate, Reliquary, ChainLift), `BossArena`, `Tavern`, `ThornHenge`, `Atmosphere`, `Ambience`, `AreaStreamer` + `Area`, `TerrainStamp`, `WorldLanes` (site registry), `SessionState` (night-state registry). |
+| `core/world/realm/` | The procedural world: `Realm` (module runner), `realm_land/rift/bosses/lore/flora/assets`, `RealmLayout`, `RockKit`, `TreeGen`, `GenCache` (disk cache), `lore/` (landmarks, inscriptions, `CodexStore`), `realm_wayfinding` (r30 lanterns, edges, watchtower), `realm_pois` + `loot_chest` (r31 places: Drowned Belfry, Charcoal Hollow, Almonry, Watchers' Spire; chests, guardian sites, Tether anchors, updrafts, glide perches; docs/enshrouded/world.md). |
+| `core/life/` | Living-world systems, each started as a Realm module: `progression/` (Kindling: ash -> upgrades, `UpgradeDB`), `village/`, `wildlife/` (beasts, birds, weather, soundscape), `secrets/`, `encounters/` (tiers, elites, Gloom tide, its own HUD). |
+| `core/story/` | Story director (`story.gd`, group `story`, added by Tavern), quests (`quest_db`, `quest_book`, `quest_world`), `dialogue_db`, objective line. |
+| `core/npc/` | Dwarf NPCs at the Keg (`dwarf_*`, `bartender`, `keg_scenes`, `npc_voice`). |
+| `core/vfx/` | Static FX helpers: `Vfx`, `Sfx` (voice pool), `SpellFx`, `Synth`/`StaffSfx` (procedural audio), hit text. They parent to `current_scene`. |
+| `core/util/` | `Groups`, `Layers`, `ProcMesh`, `save_dir.gd` (the `--save-dir` seam). |
+| `core/debug/` | Boot diagnostics, perf watch, deep-dive recorder. |
+| `ui/` | HUD, settings menu, loading screen, Satchel, Kindling (`growth.gd`), Journal (`codex.gd`), quest log, dialogue, shop, hotbar, hints. |
+| `world/` | `main.tscn` / `main.gd` (the night), `areas/ossuary/` (streamed Ossuary), `zones/ascension/` (baked meshes), `lab/` (light lab). |
+| `zz/` | Tests (`*_test.tscn`), probes, shot generators. Not shipped. |
+| `tools/` | Bakers, texture/audio generators, `run_tests.sh`. Not shipped. |
 
-## Player / combat
+Who creates UI today (there is no single UI root): `main.tscn` (HUD, SettingsMenu), `main.gd`
+(Satchel), `progression.gd` (Kindling, combo readout), `story.gd` (dialogue, quest log, shop),
+`realm_lore.gd` (Journal), `encounters/director.gd` (encounter HUD), `boss_arena.gd` (boss bar),
+`secrets/panel.gd`, `hud.gd` (hotbar, objective line), `zone.gd` (loading screen).
 
-`Player` owns move, camera, gloom. `CharacterRig` owns skeleton, sockets, stride, cloth. Talk through `animate()`, `cast()`, `equip()`, `set_view()`, `debug_drive()`. Staff in `hand_r`. Bolts come from `BoltPool` on the Zone.
+## Rules that hold
+
+- Feature folders; files `snake_case`, nodes `PascalCase`. Most scripts have no `class_name` and
+  are preloaded by path; anything another feature calls should be reached through a typed ref
+  (`preload` const or `class_name`), not `.call("name")`.
+- Gameplay talks through `Events` signals and `Groups.*`. 21 more group names are still raw strings
+  (`story`, `bolt_pool`, `boss_arena`, `progression`, …).
+- **Static state.** `static var` is allowed for immutable caches. Night state in statics must be
+  listed and reset in `core/world/session_state.gd`; a `static var` typed Node or Callable must be
+  in its `NODE_REFS` (the test runner's lint fails otherwise). Engine-resource caches in world
+  builders are released by `Realm.release_caches()`.
+- `Player` is the controller, `CharacterRig` the skin: `animate()`, `cast()`, `equip()`,
+  `set_view()`, `debug_drive()`. Staff in `hand_r`. Bolts from the Zone's `BoltPool`.
+- Pause with `get_tree().paused`, never `Engine.time_scale = 0`.
+
+## Persistence
+
+| File | Owner | Holds |
+| --- | --- | --- |
+| `savegame.cfg` (+ `.bak`, atomic `.tmp` rename) | `Travel` | progress, kindles, checkpoints, items, bosses, seals, `story`, `systems` (per-system sections: progression, village, secrets, …) |
+| `settings.cfg` | `Settings` | graphics, display, audio, camera |
+| `codex.cfg` | `CodexStore` (static) | Journal read state |
+| `user://realm_cache/`, `res://art/realm_cache/` | `GenCache` | procedural meshes/shapes; only `-- --bake-cache` writes `res://` |
+
+All three cfg files live in `core/util/save_dir.gd`'s folder: `user://` unless `-- --save-dir=` or
+`UMBRAL_SAVE_DIR` is given. `tools/run_tests.sh` runs every test with an isolated HOME (some tests read `user://savegame.cfg` directly).
 
 ## Rendering
 
-Glow budget: intensity 0.62, bloom 0.06, HDR threshold 1.15, levels 0 and 1 only. Internal height cap 960. Stretch `canvas_items`. No AA. Far DoF off. Player lantern shadows off. ForestFloor is 16 m cells; vis-range is node-origin distance.
+Glow budget (`core/world/atmosphere.gd`): intensity 0.62, bloom 0.06, HDR threshold 1.15, levels 0
+and 1 only. Internal height cap 960 (810 on the lowest detail). Stretch `canvas_items`. AA is a setting (`Settings.AA_NAMES`:
+Off, FXAA, SMAA, TAA, MSAA 2x/4x), default Off. Far DoF off. Player lantern shadows off.
 
 ## Physics
 
-Layers: WORLD 1, PLAYER 2, HURTBOX 4, INTERACT 8, PROPS 16. Groups: `Groups.*`. Pause with `get_tree().paused`, not `Engine.time_scale`.
+Layers (`core/util/layers.gd`): WORLD 1, PLAYER 2, HURTBOX 4, INTERACT 8, PROPS 16.
+
+## Tests
+
+`tools/run_tests.sh [name …]` runs every `zz/*_test.tscn` headless, each in its own scratch HOME with a
+timeout, and fails on a nonzero exit (a PASS line then a deliberate self-kill is allowed), any `FAIL` line, or any `SCRIPT ERROR` /
+`Parse Error` / `Failed to load script` in the log (a parse error elsewhere cascades silently
+otherwise). It also runs the static lint. Run it before every pack.
 
 ## Pack
 
-Linux `.pck` into `Umbral Reaches.app/Contents/Resources`. See `.cursor/skills/umbral-pack`. Binding do-not-undo: `.cursor/rules/umbral-constraints.mdc`.
+Linux `.pck` into `Umbral Reaches.app/Contents/Resources` (`.cursor/skills/umbral-pack`). Never
+headless-save `world/main.tscn` (`tools/bake_main.gd` refuses to). Binding do-not-undo:
+`.cursor/rules/umbral-constraints.mdc`, `.cursor/skills/umbral-donts`.

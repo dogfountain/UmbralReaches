@@ -11,6 +11,7 @@ const TICK := 0.25
 var table: Array[Dictionary] = []
 var _live: Dictionary = {}       # id -> Area
 var _t := 0.0
+var _failed: Dictionary = {}     # id -> true: a source that would not load is not retried every tick
 
 
 static func attach(zone: Node3D, entries: Array[Dictionary]) -> AreaStreamer:
@@ -50,7 +51,7 @@ func _sync(pos: Vector3, force: bool) -> void:
 		var below: bool = pos.y <= float(e.get("y_max", INF))
 		var want := d < float(e.load_r) and below
 		var a := live(id)
-		if a == null and (want or (force and d < float(e.load_r) * 1.2)):
+		if a == null and not _failed.has(id) and (want or (force and d < float(e.load_r) * 1.2)):
 			_load(e, force)
 		elif a != null and d > float(e.unload_r):
 			_live.erase(id)
@@ -60,14 +61,17 @@ func _sync(pos: Vector3, force: bool) -> void:
 func _load(e: Dictionary, force := false) -> void:
 	var src: String = e.source
 	var node: Node = null
-	var res := load(src)
+	var res: Resource = load(src) if ResourceLoader.exists(src) else null
 	if res is PackedScene:
 		node = (res as PackedScene).instantiate()
-	elif res is GDScript:
+	elif res is GDScript and (res as GDScript).can_instantiate():
 		node = (res as GDScript).new()
 	var a := node as Area
 	if a == null:
-		push_error("AreaStreamer: %s is not an Area" % src)
+		push_error("AreaStreamer: %s is missing or not an Area; area '%s' stays unloaded" % [src, e.id])
+		_failed[e.id] = true
+		if node != null:
+			node.free()
 		return
 	a.area_id = e.id
 	a.instant = force

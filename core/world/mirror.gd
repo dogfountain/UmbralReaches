@@ -25,7 +25,7 @@ func _ready() -> void:
 	add_to_group(Groups.INTERACTABLE)
 	if not has_node("Glass"):
 		_build()
-	LightGrid.register(self, light_radius)
+	LightGrid.register(self, light_radius, LightGrid.MIRROR)
 
 
 func can_interact() -> bool:
@@ -38,6 +38,10 @@ func interact_reach() -> float:
 
 func interact_text() -> String:
 	return prompt.replace("[E]", "[%s]" % Interactable.prompt_key())
+
+
+func interact_feel() -> StringName:
+	return &"cast"
 
 
 func interact(by: Node) -> void:

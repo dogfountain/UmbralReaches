@@ -11,13 +11,24 @@ uniform vec3 skin_deep : source_color = vec3(0.24, 0.16, 0.22);   // folds, cavi
 uniform vec3 vein : source_color = vec3(0.16, 0.05, 0.12);
 uniform vec3 bone_col : source_color = vec3(0.82, 0.78, 0.66);
 uniform vec3 rag_col : source_color = vec3(0.1, 0.08, 0.09);
+uniform vec3 linen_col : source_color = vec3(0.5, 0.45, 0.37);   // rag + bone channel: bandages, robes
 uniform vec3 eye_col : source_color = vec3(1.0, 0.36, 0.12);
 uniform float eye_energy = 5.0;
-uniform vec3 rim_col : source_color = vec3(0.45, 0.32, 0.9);
+// r30: a low warm back-rim (it was violet emission, a hologram outline the grade then turned blue)
+uniform vec3 rim_col : source_color = vec3(0.55, 0.36, 0.22);
+// r30: 0 = the old wet sheen everywhere; up to ~0.5 = dry hide, bark, chitin (roughness up, specular down)
+uniform float matte = 0.15;
 uniform float rim_amount = 0.55;
-uniform float vein_amount = 0.6;
+uniform float vein_amount = 0.45;
 uniform float vein_scale = 7.0;
 uniform vec3 burn_col : source_color = vec3(1.2, 0.45, 2.2);
+// skin detail (core/enemy/skin_tex.gd): tiled over CreatureMesh's metric UVs, one repeat per
+// detail_tile metres. Height darkens the creases and roughens the raised skin.
+uniform sampler2D detail_normal : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform sampler2D detail_height : hint_default_white, filter_linear_mipmap, repeat_enable;
+uniform float detail_tile = 0.18;
+uniform float detail_depth = 0.85;
+uniform float crease = 0.55;
 
 instance uniform float hit_flash = 0.0;
 instance uniform float glint = 0.0;
@@ -41,20 +52,28 @@ void fragment() {
 	float flesh = COLOR.a;
 	float rag = UV2.y;
 	// veins: ridged noise stretched along the tube (UV.y = metres along)
-	float n = vnoise(vec3(UV.x * 6.0, UV.y * vein_scale, 0.0) + opos * 3.0);
+	vec2 duv = UV / detail_tile;
+	float hgt = texture(detail_height, duv).r;
+	float n = vnoise(vec3(UV.x * 40.0, UV.y * vein_scale * 1.6, 0.0) + opos * 5.0);
 	float ridge = 1.0 - abs(n * 2.0 - 1.0);
-	float veins = smoothstep(0.86, 0.98, ridge) * vein_amount * flesh * (1.0 - rag);
+	float veins = smoothstep(0.93, 0.995, ridge) * vein_amount * flesh * (1.0 - rag);
 	float mottle = vnoise(opos * 11.0);
 	vec3 base = mix(skin_deep, skin, smoothstep(0.15, 0.85, mottle * 0.6 + 0.4)) * COLOR.rgb;
+	base *= mix(1.0, 0.45 + 0.75 * hgt, crease * (1.0 - rag * 0.5));
 	base = mix(base, vein, veins);
 	vec3 albedo = mix(bone_col * COLOR.rgb, base, flesh);
-	albedo = mix(albedo, rag_col * COLOR.rgb, rag);
+	albedo = mix(albedo, mix(linen_col, rag_col, flesh) * COLOR.rgb * mix(0.75, 1.15, hgt), rag);
 
+	albedo = mix(albedo, albedo * (0.7 + 0.45 * hgt), (1.0 - flesh) * 0.6);   // pitted bone
 	ALBEDO = albedo;
-	ROUGHNESS = mix(0.32, mix(0.48, 0.95, rag), flesh) - veins * 0.15;
-	SPECULAR = mix(0.55, 0.42, flesh) * (1.0 - rag);
+	NORMAL_MAP = texture(detail_normal, duv).rgb;
+	NORMAL_MAP_DEPTH = detail_depth * (1.0 - rag * 0.6);
+	ROUGHNESS = clamp(mix(mix(0.32, 0.48, flesh) + matte * 0.9, 0.95, rag) - veins * 0.15 + (hgt - 0.5) * 0.25, 0.05, 1.0);
+	SPECULAR = mix(0.55, 0.42, flesh) * (1.0 - rag) * (1.0 - matte * 1.2);
 	float ndv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
-	float rim = pow(1.0 - ndv, 3.0) * rim_amount * (1.0 - rag * 0.6);
+	// the rim only where the surface faces up a little (moonlit edges), not round a body in shadow
+	float up = clamp(dot(NORMAL, (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz) * 0.5 + 0.5, 0.0, 1.0);
+	float rim = pow(1.0 - ndv, 3.0) * rim_amount * (1.0 - rag * 0.6) * up;
 
 	// death: burn away from the noise field, with a hot violet edge
 	float d = vnoise(opos * 9.0) * 0.7 + vnoise(opos * 23.0) * 0.3;

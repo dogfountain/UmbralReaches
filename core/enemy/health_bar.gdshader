@@ -15,12 +15,18 @@ uniform float notch = 0.006;            // half-width of a segment notch, metres
 
 uniform vec3 frame_col : source_color = vec3(0.03, 0.02, 0.04);
 uniform vec3 back_col : source_color = vec3(0.16, 0.09, 0.12);
-uniform vec3 fill_col : source_color = vec3(0.86, 0.14, 0.22);
-uniform vec3 trail_col : source_color = vec3(0.98, 0.7, 0.62);
+// r29: ember, not crimson -- the night grade pulls hues under ~16 deg to blue (zz/critA_color_shot)
+uniform vec3 fill_col : source_color = vec3(0.92, 0.36, 0.12);
+uniform vec3 trail_col : source_color = vec3(1.0, 0.8, 0.45);
 
 instance uniform float fill : hint_range(0.0, 1.0) = 1.0;     // current health ratio
 instance uniform float trail : hint_range(0.0, 1.0) = 1.0;    // eases down behind `fill` after a hit
 instance uniform float segments : hint_range(1.0, 16.0) = 3.0; // max_hp: one notch between each hit point
+// r31: the poise meter (a gold strip along the bar's underside, filling toward a stagger) and the
+// BROKEN state after one (the frame burns gold: every blow lands harder for a beat)
+instance uniform float poise : hint_range(0.0, 1.0) = 0.0;
+instance uniform float broken : hint_range(0.0, 1.0) = 0.0;
+uniform vec3 poise_col : source_color = vec3(1.0, 0.82, 0.36);
 
 void vertex() {
 	// Face the camera, keep the node's position only.
@@ -32,7 +38,7 @@ void fragment() {
 	vec2 m = UV * size;                                  // metres from the top-left corner
 	vec2 inner = size - vec2(frame * 2.0);
 	vec2 q = (m - vec2(frame)) / inner;                  // 0..1 inside the frame
-	vec3 col = frame_col;
+	vec3 col = mix(frame_col, poise_col * (0.75 + 0.35 * sin(TIME * 16.0)), broken);
 	if (q.x >= 0.0 && q.x <= 1.0 && q.y >= 0.0 && q.y <= 1.0) {
 		col = back_col;
 		if (q.x <= trail) {
@@ -42,6 +48,9 @@ void fragment() {
 			col = fill_col;
 		}
 		col *= 1.15 - 0.45 * q.y;                        // lit top edge, darker underside
+		if (q.y > 0.68 && q.x <= poise) {
+			col = mix(col, poise_col * 1.3, 0.9);
+		}
 		float k = q.x * segments;
 		float to_notch = abs(k - round(k)) / segments * inner.x;
 		if (segments > 1.5 && to_notch < notch && k > 0.02 && k < segments - 0.02) {

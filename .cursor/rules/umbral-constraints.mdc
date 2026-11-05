@@ -6,10 +6,10 @@ alwaysApply: true
 # Do not undo
 
 - **Gothic is lights only.** Do not use `gothic_bay.glb` or `toad.glb` as level meshes. Do not restore bead-arches, blob guardians, mint panes, paper-strip robes, or the Sketchfab priest.
-- **Never headless-rebake** `main.tscn` or `vale.tscn` (MultiMesh AABB wipe). Runtime dressing is how visuals swap.
+- **Never headless-rebake** `world/main.tscn` (MultiMesh AABB wipe; `tools/bake_main.gd` refuses headless). Runtime dressing is how visuals swap.
 - Glow budget stays tight: intensity 0.62, bloom 0.06, HDR threshold 1.15, glow levels 0 and 1 only. Internal height cap 960. Far DoF off. Player lantern shadows off.
 - Character: robe pieces + procedural stride. Staff in `hand_r`. Dark void face. Wave shader on cloth, not silver. No purple `arcane_robe.gdshader` on the wanderer.
 - `art/blender/` has `.gdignore`. Export glTF with `export_apply=True`, `export_yup=True`. Do not put `.blend` under `art/models/`.
 - Pack the Mac app with export preset **Linux** into `Umbral Reaches.app/Contents/Resources`, then `codesign --force --deep --sign -` and `touch` the `.app`. Do not rebake to pack script/shader/player changes.
 - Arch walkable: `ARCH_W` 1.16, `ARCH_Y0` 0.46. Four stair lanterns only. Do not drape Path or snap Step/Base/Deck.
-- Pipeline traps: `AGENT_HANDOVER.md`. Godot `--check-only` hangs. Do not pkill the owner's Godot editor.
+- Run `tools/run_tests.sh` before packing (isolated HOME; fails on any SCRIPT ERROR / Parse Error). Pipeline traps: `docs/archive/AGENT_HANDOVER.md`. Godot `--check-only` hangs. Do not pkill the owner's Godot editor.

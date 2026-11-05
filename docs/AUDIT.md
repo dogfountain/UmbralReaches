@@ -37,3 +37,14 @@ The audit used the real project in Godot 4.7.2 (Forward+, Jolt), checked six way
 - **Save:** a save written on launch 1 restores on launch 2 (spawn at the Ossuary gate on solid floor, fire lit, relic kept).
 - **Kill reward:** Gloom 50 → 44 after a kill.
 - **Skills and spawns:** Nova variants, the Shade, and spawn placement all pass.
+
+## World assembly pass (Nov 2026)
+
+Research and plan: the "World Assembly Research" doc. What landed, in placement order:
+
+1. **Metrics** — `core/world/metrics.gd`: grid 0.5 m, storey 3 m, doors 1.6×2.6 / 2.6×3.4 m, walkway ≥ 1.6 m, risers 0.27 m, treads 0.72 m, foundations 0.6 m below grade. Builders and checkers read only these.
+2. **Registry** — `core/world/world_lanes.gd`: hub lanes (ray-measured floors), Ossuary lanes (fixed floors), terrain footprints, and runtime `sites` + `extra_lanes` registered by builders. `intrudes()` (props), `intrudes_fixed()` (Ossuary clutter), `cull_scatter()` (grass/ferns/pebbles inside sites; buffer-level, one read/write per MultiMesh).
+3. **Terrain stamp** — `core/world/terrain_stamp.gd`, before any seating: ground rises to structure undersides / drops under buried walk surfaces (capped), registered sites are cut to `cut_y`, 4 m smoothstep falloff, mesh + collision rebuilt. The sanctuary is excluded on purpose.
+4. **Foundation** — `OssKit.foundation()`; `OssKit.stairs(base_y)` so step blocks reach below sloping ground.
+5. **First landmark** — `core/world/tavern.gd`, the Hollow Lantern (x 10–20, z 26–33): stone ground floor, jettied timber upper, slate gable, chimney, porch steps, walk-in taproom (hearth, bar, tables, chandelier).
+6. **Audit** — `zz/fit.tscn` (14 s headless: floating edges, buried floors), `zz/lanes.tscn` (capsule sweep; run under xvfb for MultiMesh props), plus the walk tests.

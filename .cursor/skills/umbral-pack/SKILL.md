@@ -14,7 +14,23 @@ The owner plays `/Users/luke/Downloads/UmbralReaches/Umbral Reaches.app`. That b
 - `pkill` the owner's Godot editor.
 - Rebake just to ship a script, shader, or player change.
 
+## Realm cache (before packing)
+
+Dev and test runs no longer write `res://art/realm_cache/` (r30): misses go to `user://realm_cache/`.
+Only a run with `-- --bake-cache` writes the shipped cache and its `_salts.bin`. Before a pack that
+follows generator edits (RockKit, TreeGen, flora, lore, ...), prune the stale entries, then bake:
+
+```sh
+HOME=/private/tmp/claude-501/bake_home godot --headless --path /Users/luke/UmbralReaches res://zz/storage_cache.tscn -- --prune
+HOME=/private/tmp/claude-501/bake_home godot --headless --path /Users/luke/UmbralReaches res://zz/realm_walks.tscn -- --bake-cache --save-dir=/private/tmp/claude-501/bake_saves
+```
+
+Any scene that builds the Realm (and streams the Ossuary) bakes what it builds; `storage_cache`
+(no flag) reports what is left stale or duplicated.
+
 ## Pack
+
+Gate first: `tools/run_tests.sh` must end `ALL n PASS` (each test runs in a scratch HOME; never against the owner's saves).
 
 ```sh
 godot --headless --path /Users/luke/UmbralReaches --import --quit

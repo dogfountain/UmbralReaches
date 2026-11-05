@@ -30,16 +30,65 @@ static func host() -> Node:
 ## opts: count, life, speed (Vector2 min/max), size, gravity (float, +up), spread (deg),
 ##       dir (Vector3), radius (emission sphere), ring (emission ring radius), damping,
 ##       additive (bool), trail (seconds, 0 = none), radial (radial accel), scale_var.
+## Bursts are pooled per preset: busy fights used to allocate (and free) dozens of new
+## GPUParticles3D per second, and relying on `finished` alone could leak nodes when it never
+## fired. Each burst now reuses an idle emitter of the same preset and is always reclaimed by a
+## timer at lifetime + trail + margin.
+static var _pool: Dictionary = {}          # preset key -> Array of idle GPUParticles3D
+static var _idle_total := 0
+const POOL_CAP := 6                        # per preset
+const POOL_TOTAL := 96                     # across presets (effects vary radius etc. -> many presets)
+
+
+## opts "ratio" (0..1) emits that share of `count` (amount_ratio) without making a new preset: vary
+## the size of a burst with it, never with count/speed/etc. -- each distinct opts is a preset kept
+## forever (a material in _procs, up to POOL_CAP emitters), so a value per hit grew without bound.
 static func burst(at: Vector3, color: Color, opts := {}) -> GPUParticles3D:
 	var h := host()
 	if h == null:
 		return null
-	var p := _make(color, opts, true)
-	h.add_child(p)
+	var ratio := 1.0
+	if opts.has("ratio"):
+		ratio = clampf(float(opts.ratio), 0.0, 1.0)
+		opts = opts.duplicate()
+		opts.erase("ratio")
+	var key := "%s|%s" % [color, opts]
+	var p: GPUParticles3D = null
+	var idle: Array = _pool.get(key, [])
+	while not idle.is_empty() and p == null:
+		var c: Variant = idle.pop_back()
+		_idle_total = maxi(0, _idle_total - 1)
+		if is_instance_valid(c) and (c as Node).get_parent() == h:
+			p = c
+	if p == null:
+		p = _make(color, opts, true)
+		h.add_child(p)
+	p.visible = true
 	p.global_position = at
+	p.amount_ratio = ratio
+	p.restart()
 	p.emitting = true
-	p.finished.connect(p.queue_free)
+	var life := p.lifetime + (p.trail_lifetime if p.trail_enabled else 0.0) + 0.4
+	var tree := h.get_tree()
+	var token := Time.get_ticks_usec()
+	p.set_meta(&"burst_token", token)
+	var pid := p.get_instance_id()          # an id, not the node: a scene change frees it first
+	tree.create_timer(life, false).timeout.connect(func() -> void: _reclaim(instance_from_id(pid) as GPUParticles3D, key, token))
 	return p
+
+
+static func _reclaim(p: GPUParticles3D, key: String, token: int) -> void:
+	if not is_instance_valid(p) or int(p.get_meta(&"burst_token", -1)) != token:
+		return                                  # freed with its scene, or already reused
+	p.emitting = false
+	p.visible = false
+	var idle: Array = _pool.get(key, [])
+	if idle.size() >= POOL_CAP or _idle_total >= POOL_TOTAL:
+		p.queue_free()
+		return
+	idle.append(p)
+	_idle_total += 1
+	_pool[key] = idle
 
 
 ## Same presets, but looping and owned by the caller (charge swirl, slide dust, ward embers).
@@ -348,3 +397,80 @@ static func arc(from: Vector3, to: Vector3, color: Color, time := 0.22, jag := 0
 		pts.append(from + dir * t + side * randf_range(-j, j) + up2 * randf_range(-j, j))
 	ribbon(pts, 0.09, 0.03, color, time)
 	ribbon(pts, 0.22, 0.08, Color(color.r, color.g, color.b, 0.35), time * 0.8)
+
+
+# --- impacts (ENS art pass, docs/enshrouded/art.md) ---------------------------------------------
+
+static var _star_tex: ImageTexture
+static var _flash_mats := {}
+static var _flash_quad: QuadMesh
+const IMPACT_CORE := Color(2.6, 2.1, 1.5)          ## warm white-gold: the grade keeps bright warm light
+
+## A melee/bolt hit that reads at a glance: a 0.12 s four-point flash star at the contact point
+## (warm white core, scaled by `big`), hot sparks thrown along `dir` (the blow's direction; ZERO =
+## all round) in `color`, and for big hits a short flash light. Two pooled bursts + one quad.
+static func impact(at: Vector3, color: Color, dir := Vector3.ZERO, big := false) -> void:
+	var h := host()
+	if h == null:
+		return
+	var d := dir.normalized() if dir.length_squared() > 0.01 else Vector3.UP
+	var spread := 55.0 if dir.length_squared() > 0.01 else 180.0
+	# sparks: keyed on a quantised direction so the preset count stays bounded (Vfx caches per opts)
+	var qd := Vector3(snappedf(d.x, 0.5), snappedf(d.y + 0.35, 0.5), snappedf(d.z, 0.5))
+	if qd.length_squared() < 0.01:
+		qd = Vector3.UP
+	burst(at, color, {"count": 18 if big else 12, "life": 0.32, "speed": Vector2(4.0, 9.0), "size": 0.03, "gravity": -11.0, "trail": 0.07, "dir": qd.normalized(), "spread": spread, "damping": 3.0})
+	burst(at, IMPACT_CORE, {"count": 6, "life": 0.18, "speed": Vector2(0.4, 1.4), "size": 0.16 if big else 0.11, "gravity": 0.0, "scale_var": 0.3})
+	_flash_star(h, at, color, 0.95 if big else 0.6)
+	if big:
+		light(at, Color(1.0, 0.8, 0.6), 2.4, 3.5, 0.14)
+
+
+static func _star() -> ImageTexture:
+	if _star_tex == null:
+		var n := 64
+		var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+		for y in n:
+			for x in n:
+				var u := (float(x) + 0.5) / n * 2.0 - 1.0
+				var v := (float(y) + 0.5) / n * 2.0 - 1.0
+				var r := sqrt(u * u + v * v)
+				var core := pow(maxf(0.0, 1.0 - r / 0.42), 2.0)
+				var spike := pow(maxf(0.0, 1.0 - absf(u) / 0.07), 2.0) * maxf(0.0, 1.0 - absf(v)) \
+						+ pow(maxf(0.0, 1.0 - absf(v) / 0.07), 2.0) * maxf(0.0, 1.0 - absf(u))
+				var a := clampf(core + spike * 0.85, 0.0, 1.0)
+				img.set_pixel(x, y, Color(1, 1, 1, a))
+		_star_tex = ImageTexture.create_from_image(img)
+	return _star_tex
+
+
+static func _flash_star(h: Node, at: Vector3, color: Color, size: float) -> void:
+	if _flash_quad == null:
+		_flash_quad = QuadMesh.new()
+		_flash_quad.size = Vector2.ONE
+	var key := "%s" % color
+	if not _flash_mats.has(key):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		m.no_depth_test = true
+		m.disable_receive_shadows = true
+		m.disable_fog = true
+		m.albedo_texture = _star()
+		# white-hot middle, the hit's own colour at the tips: lerp half-way to the warm core
+		m.albedo_color = Color(lerpf(color.r, IMPACT_CORE.r, 0.5), lerpf(color.g, IMPACT_CORE.g, 0.5), lerpf(color.b, IMPACT_CORE.b, 0.5), 1.0)
+		m.render_priority = 8
+		_flash_mats[key] = m
+	var mi := MeshInstance3D.new()
+	mi.mesh = _flash_quad
+	mi.material_override = _flash_mats[key]
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	h.add_child(mi)
+	mi.global_position = at
+	mi.scale = Vector3.ONE * size * 0.35
+	var tw := mi.create_tween()
+	tw.tween_property(mi, "scale", Vector3.ONE * size, 0.07).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mi, "scale", Vector3.ONE * size * 0.2, 0.08).set_ease(Tween.EASE_IN)
+	tw.tween_callback(mi.queue_free)

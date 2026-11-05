@@ -1,0 +1,123 @@
+class_name ItemDB
+extends RefCounted
+## Everything you can carry. Kinds: relic (unique, changes a skill), trophy (unique, proof of a
+## slain boss and a seal shard), material (stacks), charm (unique, worn for a small effect), core
+## (unique, a staff core set in the orb at a fire: changes Rift Bolt). Icons
+## are drawn by the Satchel from `shape` and `tint`, so no art files are needed.
+
+const DEFS := {
+	"grave_ash": {"name": "Grave Ash", "kind": "material", "shape": "mound", "tint": Color(0.62, 0.58, 0.66),
+		"desc": "The Kindlers sweep it from the chapel floor at dawn and feed it back to the First Hearth. 'Ash to ember, ember to flame.' It is the last warmth the hollowed have, and the only thing they give back.",
+		"text": "What the hollowed leave when they come apart. Every kill gives a pinch; the great ones give a fistful. The fires will want it."},
+	"bone_reliquary": {"name": "Bone Reliquary", "kind": "relic", "relic": "bone", "shape": "skull", "tint": Color(0.95, 0.9, 0.8),
+		"desc": "Abbot Osric's own reliquary, cast round the bones he could not number. Inside, a knucklebone wrapped in a leaf of the Tally: the last count, crossed out, and a larger one written under it.",
+		"text": "Taken from the charnel mound when the Bone Abbot fell. Changes Umbral Nova. Attune it at any kindled fire."},
+	"thorn_heart": {"name": "Thorn Heart", "kind": "relic", "relic": "thorn", "shape": "heart", "tint": Color(0.75, 0.16, 0.2),
+		"desc": "The Rooted asked a thorn to stand where the axe would come, and gave it a heart to root in. The Song of the Ring does not say whose. It has not finished beating.",
+		"text": "Still beating, slowly. Cut from the Thornwarden in the henge on the western hill. Changes Rift Bolt: Splinter or Briar. Also a seal shard: the summit ward counts it."},
+	"abbot_crown": {"name": "Abbot's Crown", "kind": "trophy", "shape": "crown", "tint": Color(0.88, 0.78, 0.5),
+		"desc": "Osric had it made from the knuckles of the first brothers to die in his care, so that he would never lose count of them. He never did.",
+		"text": "Knucklebone and iron, warm from the crypt. The Bone Abbot wore it below the Ossuary. A seal shard: the summit ward counts it."},
+	"ascension_seal": {"name": "Ascension Seal", "kind": "trophy", "shape": "sigil", "tint": Color(0.7, 0.5, 1.0),
+		"desc": "The latch of the door in the sky. Hierarch Aurel swore by his third edict to hold it until the last of the faithful were through; his fingers had grown round it. Without it, the sky can close, if it wants to.",
+		"text": "It fell out of his opened fingers. The latch is yours. Without it the door can close, if it wants to."},
+	# gear (core/items/gear_*.gd): what salvaged gear gives back, spent raising and reforging gear at a fire
+	"ember_shard": {"name": "Ember Shard", "kind": "material", "shape": "cinder", "tint": Color(1.0, 0.56, 0.3),
+		"desc": "Break a fitting over a kindled fire and the warmth that was worked into it comes out as a hard red flake. The Kindlers kept jars of them and called it 'banking the work'.",
+		"text": "Salvage gear for it. A kindled fire takes it, with grave ash, to raise or reforge what you wear."},
+	# r33 loot: gathered in the Realm at night (core/items/gather.gd), traded at Hild's forge, Bet's
+	# garden and the Keg (hearth_db.gd TRADES, meals and works that name "mats")
+	"ash_bloom": {"name": "Ash-bloom", "kind": "material", "shape": "branch", "tint": Color(0.86, 0.84, 0.96),
+		"desc": "A pale flower that opens only after dark, in ground where something was burned. The Kindlers called it the hearth's ghost and put it in their tea.",
+		"text": "Gathered where the ground glows faintly at night. Bet Reed and the Keg cook with it."},
+	"grave_iron": {"name": "Grave-iron", "kind": "material", "shape": "stone", "tint": Color(0.62, 0.38, 0.3),
+		"desc": "Rust-red ore that bleeds up through old graves and barrow stones. The lay brothers said it was the coffin nails remembering what they were for.",
+		"text": "Mined from red-veined stones in the fen, the barrows and the ash. Hild smelts it into ember shards."},
+	# progression system: charms found in the world, worn on cords (2, 3 with the Kindling's Charm
+	# Cord); effects in core/life/progression/upgrade_db.gd CHARM_FX
+	# secrets system: found in the valley's hidden places (core/life/secrets/pages.gd REWARDS)
+	"relic_fragment": {"name": "Relic Fragment", "kind": "material", "shape": "shard", "tint": Color(0.78, 0.72, 0.95),
+		"desc": "A sliver of something the faithful once kissed: bell-bronze, saint's bone, heartwood. The Order kept them in gold. The fires keep them better.",
+		"text": "Found in the valley's hidden places. A kindled fire knows what to make of it."},
+	"charm_candle": {"name": "Maud's Candle-Stub", "kind": "charm", "shape": "candle", "tint": Color(1.0, 0.78, 0.45),
+		"desc": "The stub of the candle Maud keeps in her window for Hobb. She lights a new one every night. This one she burned down the night the knocking started.",
+		"text": "Worn: Gloom gathers 10% slower in the dark."},
+	"charm_thread": {"name": "Pell's Red Thread", "kind": "charm", "shape": "thread", "tint": Color(0.86, 0.2, 0.17),
+		"desc": "A twist of red wool off a child's hood: nine winters. Someone keeps mending Pell's shoe. Someone else kept this.",
+		"text": "Worn: Rift Step reaches 1.5 m further."},
+	"charm_lampglass": {"name": "Corvin's Lamp-Glass", "kind": "charm", "shape": "lens", "tint": Color(0.95, 0.86, 0.5),
+		"desc": "A pane from the lamp Corvin carried to the fen burials so the sunk dead would have light. The penitents took his face and his hands. They missed the glass.",
+		"text": "Worn: Lantern Ward burns 2 s longer."},
+	"charm_bead": {"name": "Lisle's Tally-Bead", "kind": "charm", "shape": "bead", "tint": Color(0.92, 0.88, 0.78),
+		"desc": "One bead off the string Brother Lisle counted the Abbot's dead on. The string is gone. The bead remembers a number.",
+		"text": "Worn: every kill takes 2 more Gloom off you."},
+	"charm_clapper": {"name": "Clapper of the Last Bell", "kind": "charm", "shape": "bell", "tint": Color(0.82, 0.6, 0.34),
+		"desc": "The Last Bell on the Rift's rim rang last and longest. Its clapper lies a little way off, as if it walked.",
+		"text": "Worn: +8% damage from every spell."},
+	"charm_ring": {"name": "Woodsman's Ring", "kind": "charm", "shape": "ring", "tint": Color(0.64, 0.64, 0.7),
+		"desc": "An iron ring off an axe-haft. The abbey's woodsmen were told not to cut the thorn. The notice is still nailed up.",
+		"text": "Worn: Ember Lance charges 15% faster."},
+	# encounters' elite bounties (core/life/encounters/elites.gd LOOT), worn as charms (progression)
+	"hobbs_knuckles": {"name": "Hobb's Iron Knuckles", "kind": "charm", "shape": "fist", "tint": Color(0.55, 0.5, 0.48),
+		"desc": "Iron rings a pilgrim wore to knock on doors along the road, begging. They are worn bright on one side.",
+		"text": "Bounty of Hobb, Who Knocks Thrice. Maud's son came down. Worn: Rift Bolt's Lash hits 25% harder."},
+	"lisles_tally": {"name": "Lisle's Tally Board", "kind": "charm", "shape": "tablet", "tint": Color(0.7, 0.6, 0.45),
+		"desc": "A lay brother's board of fives, scored through. The last group is three, then a fourth stroke begun and never finished.",
+		"text": "Bounty of Brother Lisle, the Counted. The count stops here. Worn: Umbral Nova deals 0.25 more for every Mark it detonates."},
+	"briar_antler": {"name": "Briar Antler", "kind": "charm", "shape": "branch", "tint": Color(0.45, 0.22, 0.16),
+		"desc": "A tine of the hart's thorn crown. It is still trying to root in your hand.",
+		"text": "Bounty of the Briar Hart, from the deep Thornwood. Worn: Rift Step roots what it passes in brambles for 2 s."},
+	"heart_stone": {"name": "The Heart-Stone", "kind": "charm", "shape": "stone", "tint": Color(0.4, 0.55, 0.5),
+		"desc": "One of the three stones the fen dead are sunk under: the heart's. Rope-worn, and warm on one face.",
+		"text": "Bounty of Old Sunk, Three Stones. Corvin's rite would have lit this instead. Worn: +10 Gloom held, and fire takes the Gloom off you 15% faster."},
+	"cinder_censer": {"name": "Cinder Censer", "kind": "charm", "shape": "lantern", "tint": Color(0.9, 0.45, 0.2),
+		"desc": "A choir censer packed with Rift coal. It never goes out and it never warms anyone.",
+		"text": "Bounty of the Cinder Cantor, last voice of the Stair's choir. Worn: Ember Lance bursts 0.6 m wider."},
+	"scraped_face": {"name": "The Scraped Face", "kind": "charm", "shape": "mask", "tint": Color(0.85, 0.82, 0.8),
+		"desc": "A penitent's face-plate, chiselled blank. On the inside, someone carved a small fire.",
+		"text": "Bounty of the Faceless Penitent (the Deeper Night). Worn: every spell recovers 5% sooner."},
+	# build charms (progression, laid in the world): each bends a spell toward a way of fighting
+	"charm_hook": {"name": "Ferryman's Hook", "kind": "charm", "shape": "hook", "tint": Color(0.5, 0.78, 0.74),
+		"desc": "The fen ferrymen drew the drowned ashore with it, and the ones who would not stay drowned. The rope is gone; the hook still pulls.",
+		"text": "Worn: Rift Tether Marks everything along its chain, and recovers 2 s sooner."},
+	"charm_rosary": {"name": "Ember Rosary", "kind": "charm", "shape": "rosary", "tint": Color(1.0, 0.5, 0.25),
+		"desc": "Prayer beads of fired clay from the Chapel of the First Kindling. Each one was held in the first fire. Some are still warm.",
+		"text": "Worn: a foe that burns (Cinder Core, Cinder Scar, a Maelstrom) takes a Mark for every second it burns."},
+	"charm_jar": {"name": "Sexton's Wisp-Jar", "kind": "charm", "shape": "jar", "tint": Color(0.78, 0.72, 1.0),
+		"desc": "A stoppered jar the sexton carried to the henge, to bring the lost home in. Something taps on the glass when you are kind to it.",
+		"text": "Worn: a Bound Shade stays 6 s longer, and its darts burst on a Marked foe (0.5 more to all within 1.5 m)."},
+	# quest charms (progression effects; awarded by the village's quests, core/story)
+	"charm_ferrule": {"name": "Edda's Ferrule", "kind": "charm", "shape": "ferrule", "tint": Color(0.62, 0.6, 0.64),
+		"desc": "Iron off the jaws of Edda's tongs, drawn out on Hild's anvil and shrunk onto your staff. It rings when it strikes stone.",
+		"text": "Worn: Rift Step recovers 20% sooner, and you land with the iron's ring: every foe within 2 m of where you arrive takes a Mark."},
+	"charm_waystone": {"name": "Chip of the First Waystone", "kind": "charm", "shape": "waystone", "tint": Color(0.7, 0.68, 0.6),
+		"desc": "A flake of the first stone the pilgrims set on the road. Oswin says every road in the valley is measured from it, and every light along it.",
+		"text": "Worn: Lantern Ward and Umbral Well hold 1.5 s longer."},
+	"charm_chalk": {"name": "Nan's Chalk", "kind": "charm", "shape": "chalk", "tint": Color(0.94, 0.92, 0.86),
+		"desc": "The stub Nan chalks the Keg's slate with. Nobody has ever argued with one of her tallies twice.",
+		"text": "Worn: Rift Tether's hook and a Bound Shade's darts lay 2 Marks, not 1."},
+	# staff cores (progression): one sits in the orb and changes every Rift Bolt
+	"core_prism": {"name": "Prism Core", "kind": "core", "shape": "prism", "tint": Color(0.74, 0.95, 1.0),
+		"desc": "Ground from a reliquary's crystal at a kindled fire. Light that goes in once comes out three times.",
+		"text": "A staff core. Rift Bolt splits into a fan of three. Set it in the orb at a fire (Kindling, Staff)."},
+	"core_lodestar": {"name": "Lodestar Core", "kind": "core", "shape": "lodestar", "tint": Color(1.0, 0.85, 0.42),
+		"desc": "Bell-bronze and saint's bone, forged round a spark. Pilgrims followed a star to the Stair. This one follows them back.",
+		"text": "A staff core. Rift Bolt leaps from foe to foe. Set it in the orb at a fire (Kindling, Staff)."},
+	"core_cinder": {"name": "Cinder Core", "kind": "core", "shape": "cinder", "tint": Color(1.0, 0.48, 0.22),
+		"desc": "A coal from the Rift's rim that will not go out, and would rather not be held.",
+		"text": "A staff core. Rift Bolt sets foes burning. Set it in the orb at a fire (Kindling, Staff)."},
+	"core_rime": {"name": "Rime Core", "kind": "core", "shape": "rime", "tint": Color(0.62, 0.85, 1.0),
+		"desc": "Fen ice from under the drowned graves, that does not melt in the hand. The dead below it were very cold.",
+		"text": "A staff core. Rift Bolt chills, and freezes on the third. Set it in the orb at a fire (Kindling, Staff)."},
+}
+const ORDER := ["bone_reliquary", "thorn_heart", "abbot_crown", "ascension_seal", "grave_ash", "relic_fragment", "ember_shard", "ash_bloom", "grave_iron",
+	"charm_candle", "charm_thread", "charm_lampglass", "charm_bead", "charm_clapper", "charm_ring",
+	"hobbs_knuckles", "lisles_tally", "briar_antler", "heart_stone", "cinder_censer", "scraped_face",
+	"charm_hook", "charm_rosary", "charm_jar", "charm_ferrule", "charm_waystone", "charm_chalk", "core_prism", "core_lodestar", "core_cinder", "core_rime"]
+const BOSS_TROPHY := {"thornwarden": "thorn_heart", "bone_abbot": "abbot_crown", "ascended_warden": "ascension_seal"}
+const ASH_PER_KILL := 1
+const ASH_PER_BOSS := 25
+
+
+static func def(id: String) -> Dictionary:
+	return DEFS.get(id, {"name": id, "kind": "material", "shape": "mound", "tint": Color.WHITE, "text": ""})

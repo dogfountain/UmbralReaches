@@ -5,12 +5,14 @@ description: Wanderer, camera, staff, gloom, and combat facts for Umbral Reaches
 
 # Player
 
+Last verified 2026-11-04 against `core/player/player.gd`.
+
 `Player` (`CharacterBody3D`) owns move, camera, gloom, interact, cast. `CharacterRig` owns skeleton, sockets, stride, loadout. Talk through `animate()`, `cast()`, `equip()` — never bone names.
 
 ## Look (do not rewrite)
 
 - Robe **pieces** + procedural stride. Dark void face.
-- Wave shader on cloth (`robe_cloth.gdshader`). Not silver. Not purple `arcane_robe.gdshader`.
+- Wave shader on cloth (`robe_wave.gdshader`). Not silver. Not purple `arcane_robe.gdshader`.
 - Staff on `hand_r` only. Left arm swings. Gauntlets and boots stay.
 - Stop generating new body meshes unless the owner asks. Prior "refine the character" passes were rejected.
 
@@ -27,13 +29,13 @@ Crosshair: `ui/hud.gd`, 48×48 center, plus + dot, lilac/cream.
 ## Staff
 
 - One-hand. Trail quiet while running: `amount_ratio` / lifetime drop toward 0.16 / 0.38 at sprint (`character_rig.gd`).
-- Cast: `magic_bolt.tscn`, cooldown 0.42. `cast()` is no longer cosmetic.
+- Cast: `magic_bolt.tscn` from the Zone's `BoltPool`; Rift Bolt cooldown 0.28 (`core/skills/skill_bolt.gd`). Skills live in `core/skills/` behind `SkillBook`. `cast()` is no longer cosmetic.
 - Layers: player body `Layers.PLAYER`, mask `Layers.WORLD`. Bolt masks WORLD.
 
 ## Move / gloom
 
-- Walk 4.5, sprint 7.5, jump 5.2. Hold Space to keep jumping on landing (`is_action_pressed` + `velocity.y <= 0`). No step-up — use ramps. Floor snap 0.5, floor max angle ~46°.
-- Gloom 3.6/s dark, 6.3/s past rift `z < -40` (stair). Drain 12/s in LightGrid zones. 100 spawns a shade; touch Hollows to last kindled brazier. Lava Hollows on contact (`Area` mask **must** be `Layers.PLAYER`).
+- Walk 4.5, sprint 7.5, jump 5.2, air (double) jump 5.8. Hold Space to keep jumping on landing (`is_action_pressed` + `velocity.y <= 0`). Step-up walks ledges up to `STEP_MAX` 0.45 m; mantle to 1.1 m (about 2.4 m with a jump); plus slide, hang, climb, vault, roll. Floor snap 0.5, floor max angle 46°.
+- Gloom `gloom_rate_dark` 2.0/s away from light, `gloom_rate_rift` 3.5/s in the Ashen Rift; sprinting in the dark ×1.5; each kill drains 6. Drain 12/s in LightGrid zones. 100 spawns a shade; touch Hollows to last kindled brazier. Lava Hollows on contact (`Area` mask **must** be `Layers.PLAYER`).
 - `push_pos` is a project shader global, written every physics frame from `player.gd`. Declare new globals in `project.godot` or shaders fail to compile.
 
 ## Composition

@@ -3,9 +3,14 @@ extends Node3D
 ## A planted warm light (Lantern Ward skill). Registered with LightGrid for its whole life, so
 ## every existing rule about light applies to it for free: Gloom drains, shades dissipate,
 ## light-averse enemies slink, spawners hold off. The ground ring shows the safe radius.
+## r30: it is a "ward" zone, not a fire: it never counts as a rest (camps do not refill, a tide
+## does not break), it drains Gloom at DRAIN/s up to DRAIN_CAP a cast (not the fire's 12/s), and
+## bosses and elites walk through it (Enemy._light_barrier skips them). A breather, not a fortress.
 
 const LIFE := 7.0
 const RADIUS := 7.0
+const DRAIN := 4.0              ## Gloom/s inside it (a fire is 12)
+const DRAIN_CAP := 25.0         ## at most this much Gloom drained per cast
 const WARM := Color("#FFB347")
 const FLARE_SHADER := preload("res://world/flare.gdshader")
 const RUNE_SHADER := preload("res://world/vfx/rune_circle.gdshader")
@@ -40,6 +45,7 @@ static func plant(by: Player) -> LanternWard:
 	var w := LanternWard.new()
 	w.position = _ground_below(by)       # before add_child: _ready spawns effects at its position
 	host.add_child(w)
+	by.ward_drain_left = DRAIN_CAP
 	return w
 
 
@@ -110,7 +116,7 @@ func _ready() -> void:
 	Vfx.ring(global_position, RADIUS, Color(2.4, 1.3, 0.45), 0.5, 0.05, Vector3.UP, 1.4)
 	Vfx.burst(global_position + Vector3.UP * 0.3, Color(2.6, 1.4, 0.5), {"count": 50, "life": 0.9, "speed": Vector2(2.0, 6.0), "size": 0.05, "gravity": -3.0, "trail": 0.1, "dir": Vector3.UP, "spread": 50.0})
 	Sfx.play(SFX_CHIME, global_position + Vector3.UP, -2.0)
-	LightGrid.register(self, RADIUS)
+	LightGrid.register(self, RADIUS, LightGrid.WARD, DRAIN)
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(_light, "light_energy", 3.2, 0.35).set_ease(Tween.EASE_OUT)
 	tw.tween_property(_ring, "scale", Vector3(1.0, 0.02, 1.0), 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

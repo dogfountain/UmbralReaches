@@ -162,8 +162,8 @@ static func _skip(mi: MeshInstance3D) -> bool:
 		return true
 	var p: Node = mi
 	while p:
-		if p is CharacterBody3D or String(p.name) in SKIP_ANCESTOR:
-			return true
+		if p is CharacterBody3D or String(p.name) in SKIP_ANCESTOR or p.has_meta("site"):
+			return true                          # registered builders bring their own collision
 		p = p.get_parent()
 	return false
 

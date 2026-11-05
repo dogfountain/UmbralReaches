@@ -46,6 +46,7 @@ interactable="E / interact. Implements can_interact, interact_text, interact."
 light_source="Safe light registered with LightGrid."
 shade="Gloom hunter."
 saveable="Persisted across a future save file."
+brazier="Every Brazier. Lookup with Groups.BRAZIER (Travel reads lit fires from it)."
 
 [layer_names]
 
@@ -59,6 +60,7 @@ saveable="Persisted across a future save file."
 
 3d/physics_engine="Jolt Physics"
 common/physics_interpolation=true
+common/physics_jitter_fix=0.0
 
 [rendering]
 

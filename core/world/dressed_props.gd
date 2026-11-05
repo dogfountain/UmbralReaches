@@ -28,6 +28,7 @@ static func dress_brazier(node: Node3D) -> void:
 		base.visible = false
 	if bowl != null:
 		bowl.visible = false
+	_solidify_brazier(node, model)
 	for gi in node.find_children("*", "GeometryInstance3D", true, false):
 		(gi as GeometryInstance3D).ignore_occlusion_culling = true
 		(gi as GeometryInstance3D).visibility_range_end = 0.0
@@ -365,3 +366,25 @@ static func _rebuild(tris: Array) -> ArrayMesh:
 		st.add_vertex(t[2])
 	st.generate_normals()
 	return st.commit()
+
+
+## The braziers were ghosts: you walked straight through plinth and bowl. A cylinder on the PROPS
+## layer (player and enemies collide, the camera arm ignores it) sized from the dressed model.
+static func _solidify_brazier(node: Node3D, model: Node) -> void:
+	if node.get_node_or_null("BrazierBody") != null or not node.is_inside_tree():
+		return
+	var bb := node.global_transform.affine_inverse() * WorldLanes.bounds(model)
+	if bb.size.y < 0.2:
+		return
+	var body := StaticBody3D.new()
+	body.name = "BrazierBody"
+	body.collision_layer = Layers.PROPS
+	body.collision_mask = 0
+	var cs := CollisionShape3D.new()
+	var cyl := CylinderShape3D.new()
+	cyl.radius = clampf(minf(bb.size.x, bb.size.z) * 0.36, 0.2, 0.6)
+	cyl.height = bb.size.y
+	cs.shape = cyl
+	cs.position = Vector3(bb.get_center().x, bb.position.y + bb.size.y * 0.5, bb.get_center().z)
+	body.add_child(cs)
+	node.add_child(body)

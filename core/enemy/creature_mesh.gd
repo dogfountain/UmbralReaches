@@ -19,6 +19,11 @@ var _st := SurfaceTool.new()
 var _pos := PackedVector3Array()
 var _out := PackedVector3Array()
 var _seed := 0.0
+## Opt-in (EnemyBody): UVs in metres -- UV.x round the part (snapped to whole TILE repeats so a
+## tiling skin texture has no seam), UV.y along it -- so a detail map has one texel density over
+## the whole body. Off by default: every other caller keeps its old UVs (and cached meshes).
+var metric_uv := false
+const TILE := 0.18
 
 
 func _init(seed_value := 0) -> void:
@@ -94,6 +99,12 @@ func tube(pts: PackedVector3Array, radii: PackedFloat32Array, sides := 9, col :=
 	var nrm := tans[0].cross(refv).normalized()
 	var start := _pos.size()
 	var along := 0.0
+	var around := 1.0
+	if metric_uv:
+		var mr := 0.0
+		for r in radii:
+			mr = maxf(mr, r)
+		around = maxf(1.0, roundf(TAU * mr * (squash.x + squash.y) * 0.5 / TILE)) * TILE
 	for i in n:
 		if i > 0:
 			var axis := tans[i - 1].cross(tans[i])
@@ -106,7 +117,8 @@ func tube(pts: PackedVector3Array, radii: PackedFloat32Array, sides := 9, col :=
 			var dir := nrm * cos(a) * squash.x + bin * sin(a) * squash.y
 			var d := dir.normalized()
 			var bump := 1.0 + lumps * (fbm(pts[i] * 9.0 + d * 1.7) - 0.5) * 2.0
-			_vert(pts[i] + dir * radii[i] * bump, d, Vector2(float(s) / float(sides), along), col, bone, glow, rag)
+			var u := float(s) / float(sides) * (around if metric_uv else 1.0)
+			_vert(pts[i] + dir * radii[i] * bump, d, Vector2(u, along), col, bone, glow, rag)
 	for i in n - 1:
 		for s in sides:
 			var a0 := start + i * sides + s
@@ -139,7 +151,11 @@ func blob(center: Vector3, radii: Vector3, basis := Basis.IDENTITY, col := Color
 			var bump := 1.0 + lumps * (fbm(center * 3.0 + unit * 2.3) - 0.5) * 2.0
 			var p := center + basis * (unit * radii * bump)
 			var nn := (basis * Vector3(unit.x / radii.x, unit.y / radii.y, unit.z / radii.z)).normalized()
-			_vert(p, nn, Vector2(float(s) / float(segs), v), col, bone, glow, rag)
+			var uv := Vector2(float(s) / float(segs), v)
+			if metric_uv:
+				var circ := maxf(1.0, roundf(TAU * maxf(radii.x, radii.z) / TILE)) * TILE
+				uv = Vector2(uv.x * circ, v * PI * radii.y)
+			_vert(p, nn, uv, col, bone, glow, rag)
 	for r in rings:
 		for s in segs:
 			var a0 := start + r * segs + s
@@ -197,3 +213,147 @@ func rib(spine: Vector3, side: float, radius: float, height: float, thick: float
 		pts.append(spine + Vector3(side * sin(a) * radius, height * (1.0 - t) * 0.3 - t * 0.04, cos(a) * radius * 0.9 - radius * 0.9))
 		radii.append(thick * (1.0 - t * 0.5))
 	tube(pts, radii, 5, Color(0.9, 0.86, 0.75), 1.0, 0.05)
+
+
+## A hanging strand (hair, a rag tail, a vine): from `root` along `dir`, sagging under `droop`
+## (metres of fall at the tip), tapering to a point. rag = 1 makes it matte cloth/hair.
+func strand(root: Vector3, dir: Vector3, length: float, width: float, droop: float, col := Color.WHITE,
+		rag := 1.0, flat := 0.45, segs := 6) -> void:
+	var pts := PackedVector3Array()
+	var radii := PackedFloat32Array()
+	for k in segs:
+		var t := float(k) / float(segs - 1)
+		var wob := Vector3(noise(root * 7.0 + Vector3(t * 3.0, 0, 0)) - 0.5, 0.0, noise(root * 5.0 + Vector3(0, t * 3.0, 0)) - 0.5) * length * 0.25 * t
+		pts.append(root + dir * length * t + Vector3.DOWN * droop * t * t + wob)
+		radii.append(width * (1.0 - t * 0.85))
+	radii[segs - 1] = 0.0
+	tube(pts, radii, 5, col, 0.0, 0.05, 0.0, Vector2(1.0, flat), rag)
+
+
+## Bandage / binding: a flat strip spiralling round the segment a -> b (radius r) `turns` times.
+func wrap(a: Vector3, b: Vector3, r: float, turns: float, width: float, col := Color(0.75, 0.68, 0.6)) -> void:
+	var axis := (b - a)
+	var length := axis.length()
+	if length < 0.001:
+		return
+	var t0 := axis / length
+	var refv := Vector3.UP if absf(t0.dot(Vector3.UP)) < 0.9 else Vector3.BACK
+	var u := t0.cross(refv).normalized()
+	var v := t0.cross(u)
+	var pts := PackedVector3Array()
+	var radii := PackedFloat32Array()
+	var n := int(turns * 10.0) + 2
+	for k in n:
+		var t := float(k) / float(n - 1)
+		var ang := t * turns * TAU
+		pts.append(a + axis * t + (u * cos(ang) + v * sin(ang)) * r * (1.0 + 0.06 * sin(t * 37.0)))
+		radii.append(width)
+	tube(pts, radii, 4, col, 1.0, 0.0, 0.0, Vector2(0.35, 1.0), 0.85)    # bone + rag = linen (flesh.gdshader)
+
+
+## A flattened, overlapping plate (chitin, bark, a scale): an oriented squashed blob.
+func plate(center: Vector3, size: Vector3, normal: Vector3, col := Color.WHITE, bone := 0.6, lumps := 0.08) -> void:
+	var y := normal.normalized()
+	var x := y.cross(Vector3.FORWARD if absf(y.dot(Vector3.FORWARD)) < 0.9 else Vector3.RIGHT).normalized()
+	var z := x.cross(y)
+	blob(center, size, Basis(x, y, z), col, bone, lumps, 0.0, 5, 9)
+
+
+# --- cloth (r30): surfaces, not tubes ---------------------------------------------------------
+# Robes, copes, veils and sleeves used to be rows of tapering tubes: each panel a cone with a gap to
+# the next, so cloth read as rods, icicles or a picket fence and the body showed between them.
+
+## A lofted skirt: one closed (or front-open) surface hanging from an ellipse at `top` (rx across,
+## rz front-back), `length` down (plus `back_extra` behind), flaring by `flare` at the hem, with
+## `folds` vertical folds and a torn hem (`tear` 0..1). Both faces are built (cloth has an inside).
+## `open_front` (radians, half-width) leaves an opening at the front (-Z): a cope, an open coat.
+## Vertex colour `col`, rag = 1 (matte cloth: linen_col in flesh.gdshader).
+func skirt(top: Vector3, rx: float, rz: float, length: float, back_extra := 0.0, flare := 0.5, folds := 9,
+		tear := 0.3, col := Color.WHITE, open_front := 0.0, rows := 9, cols := 36) -> void:
+	var front := PI * 1.5                      # -Z is the front (the body faces -Z)
+	var a0 := front + open_front if open_front > 0.0 else 0.0
+	var span := TAU - open_front * 2.0 if open_front > 0.0 else TAU
+	var closed := open_front <= 0.0
+	var nc := cols if closed else cols + 1
+	var hem := PackedFloat32Array()
+	for j in nc:
+		var th := a0 + span * float(j) / float(cols)
+		var back := clampf(sin(th), 0.0, 1.0)
+		var rag := 1.0 - tear * fbm(Vector3(cos(th) * 3.0, sin(th) * 3.0, 0.7)) * (0.5 + 0.5 * back)
+		hem.append((length + back_extra * back) * rag)
+	for face in 2:
+		var inner := face == 1
+		var start := _pos.size()
+		for i in rows + 1:
+			var t := float(i) / float(rows)
+			for j in nc:
+				var th := a0 + span * float(j) / float(cols)
+				var fold := 1.0 + 0.07 * sin(float(folds) * th + 1.3 * fbm(Vector3(th, t * 2.0, 0.0))) * (0.3 + t)
+				var r := lerpf(1.0, 1.0 + flare, pow(t, 1.5)) * fold * (0.985 if inner else 1.0)
+				var dirv := Vector3(cos(th) * rx, 0.0, sin(th) * rz)
+				var pt := top + dirv * r + Vector3.DOWN * hem[j] * t
+				var n := Vector3(cos(th) / maxf(rx, 0.01), flare * 0.4, sin(th) / maxf(rz, 0.01)).normalized()
+				if inner:
+					n = -n
+				var u := th * (rx + rz) * 0.5
+				_vert(pt, n, Vector2(u, hem[j] * t), col, 0.0, 0.0, 1.0)
+		for i in rows:
+			for j in cols:
+				var j1 := (j + 1) % nc if closed else j + 1
+				var a := start + i * nc + j
+				var b := start + i * nc + j1
+				var c := start + (i + 1) * nc + j
+				var d := start + (i + 1) * nc + j1
+				_tri(a, c, b)
+				_tri(b, c, d)
+
+
+## A flat two-sided strip (a veil, a stole, a sleeve, a lappet, a rag): from `root` along `dir`,
+## sagging `droop` metres at the tip, `width` metres wide (constant to 85%, then a short taper),
+## twisting `twist` radians along its length. Same arguments as strand(), so either can be used.
+func ribbon(root: Vector3, dir: Vector3, length: float, width: float, droop: float, col := Color.WHITE,
+		rag := 1.0, twist := 0.3, segs := 7, bone := 0.0) -> void:
+	var d0 := dir.normalized()
+	var side0 := d0.cross(Vector3.UP)
+	if side0.length() < 0.2:
+		side0 = d0.cross(Vector3.FORWARD)
+	side0 = side0.normalized()
+	var pts: Array[Vector3] = []
+	var sides: Array[Vector3] = []
+	var ws := PackedFloat32Array()
+	for k in segs:
+		var t := float(k) / float(segs - 1)
+		var wob := Vector3(noise(root * 7.0 + Vector3(t * 3.0, 0, 0)) - 0.5, 0.0, noise(root * 5.0 + Vector3(0, t * 3.0, 0)) - 0.5) * length * 0.18 * t
+		pts.append(root + d0 * length * t + Vector3.DOWN * droop * t * t + wob)
+		sides.append(side0.rotated(d0, twist * t))
+		ws.append(width * (1.0 if t < 0.85 else lerpf(1.0, 0.35, (t - 0.85) / 0.15)))
+	for face in 2:
+		var start := _pos.size()
+		var along := 0.0
+		for k in segs:
+			if k > 0:
+				along += pts[k].distance_to(pts[k - 1])
+			var tan := (pts[mini(k + 1, segs - 1)] - pts[maxi(k - 1, 0)]).normalized()
+			var n := tan.cross(sides[k]).normalized() * (1.0 if face == 0 else -1.0)
+			var off := n * 0.002
+			_vert(pts[k] - sides[k] * ws[k] * 0.5 + off, n, Vector2(0.0, along), col, bone, 0.0, rag)
+			_vert(pts[k] + sides[k] * ws[k] * 0.5 + off, n, Vector2(width, along), col, bone, 0.0, rag)
+		for k in segs - 1:
+			var a := start + k * 2
+			_tri(a, a + 2, a + 1)
+			_tri(a + 1, a + 2, a + 3)
+
+
+## A ring (a hoop, a halo, a hem band): a closed tube of radius `r` round `center` in the plane
+## normal to `axis`, `thick` thick.
+func ring(center: Vector3, axis: Vector3, r: float, thick: float, col := Color.WHITE, bone := 1.0, glow := 0.0, segs := 32) -> void:
+	var ax := axis.normalized()
+	var u := ax.cross(Vector3.UP if absf(ax.dot(Vector3.UP)) < 0.9 else Vector3.FORWARD).normalized()
+	var v := ax.cross(u)
+	var pts := PackedVector3Array()
+	var radii := PackedFloat32Array()
+	for k in segs + 1:
+		var a := TAU * float(k) / float(segs)
+		pts.append(center + (u * cos(a) + v * sin(a)) * r)
+		radii.append(thick)
+	tube(pts, radii, 6, col, bone, 0.02, glow)
