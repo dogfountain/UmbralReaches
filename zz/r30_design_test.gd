@@ -101,10 +101,9 @@ func _physics_process(_d: float) -> void:
 				shade.take_hit(1.0, null)
 				check("a second bolt passes through too", is_instance_valid(shade) and not shade._dying)
 				check("it closes between walk and sprint", shade.speed > p.walk_speed and shade.speed < p.sprint_speed, "%.1f m/s" % shade.speed)
-			if t - t0 == 70 + 50:
 				shade.take_hit(1.0, p)               # even the wanderer's own spell: nothing
 				check("a spell from the wanderer does not unmake it", is_instance_valid(shade) and not shade._dying)
-				shade.unmake_by_light()
+				shade.unmake_by_light()              # before it reaches the wanderer (6 m/s from 8 m)
 				check("only light unmakes it", shade._dying)
 			if t - t0 == 70 + 120:
 				phase = 3
