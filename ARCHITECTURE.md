@@ -7,6 +7,9 @@ the code as it is, not a wish list; `docs/critique/r30/architect.md` lists what 
 ## Boot and teardown
 
 ```
+ui/title_boot.tscn (the project's main scene): ui/title_screen.gd -- Continue / New Game / Settings / Quit,
+                         picks a save slot, then loads world/main.tscn. Skipped headless and under any
+                         harness flag (--demo, --shots-dir, --no-title, ...).
 world/main.tscn (baked: Zone, Player, HUD, SettingsMenu, WorldEnvironment, Moon, Grade)
   Zone._ready            core/world/zone.gd   opens ui/loading_screen.gd, wires Settings + Events
   main.gd _ready         world/main.gd        Gothic, Atmosphere, Glimmers, EnemySpawner.seed_realm,
@@ -51,6 +54,16 @@ fit). `-- --realm-modules=land,flora` builds only those modules.
 | `zz/` | Tests (`*_test.tscn`), probes, shot generators. Not shipped. |
 | `tools/` | Bakers, texture/audio generators, `run_tests.sh`. Not shipped. |
 
+All on-screen text (banners, narration and lesson subtitles, toasts, the objective) posts to
+`ui/text_director.gd`, a child of the HUD: lanes, priorities, a busy rule while narration or a
+dialogue box is up, and one discovery banner per 90 s. Encounter banners, secrets banners and
+`world_events.gd` still draw on their own (to route next).
+
+**The slice.** `core/util/slice.gd` (`Slice.full()`): without `-- --full` (or Engine meta
+`full_night`) the night is the 30-minute slice: no horses, Kindled Watch, roaming events, faction
+tiers, daily bounties, attunement gates or gear raise/reforge/salvage. Tests that cover those set
+`full_night` first. See docs/DECISIONS.md.
+
 Who creates UI today (there is no single UI root): `main.tscn` (HUD, SettingsMenu), `main.gd`
 (Satchel), `progression.gd` (Kindling, combo readout), `story.gd` (dialogue, quest log, shop),
 `realm_lore.gd` (Journal), `encounters/director.gd` (encounter HUD), `boss_arena.gd` (boss bar),
@@ -75,7 +88,7 @@ Who creates UI today (there is no single UI root): `main.tscn` (HUD, SettingsMen
 
 | File | Owner | Holds |
 | --- | --- | --- |
-| `savegame.cfg` (+ `.bak`, atomic `.tmp` rename) | `Travel` | progress, kindles, checkpoints, items, bosses, seals, `story`, `systems` (per-system sections: progression, village, secrets, …) |
+| `slot_N/savegame.cfg` (N = 1..3; + `.bak`, atomic `.tmp` rename; an old root `savegame.cfg` migrates into slot 1) | `Travel` | progress, kindles, checkpoints, items, bosses, seals, `story`, `systems` (per-system sections: progression, village, secrets, …) |
 | `settings.cfg` | `Settings` | graphics, display, audio, camera |
 | `codex.cfg` | `CodexStore` (static) | Journal read state |
 | `user://realm_cache/`, `res://art/realm_cache/` | `GenCache` | procedural meshes/shapes; only `-- --bake-cache` writes `res://` |
