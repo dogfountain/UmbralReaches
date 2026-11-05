@@ -15,7 +15,7 @@ const ORBIT_SH := preload("res://core/life/wildlife/orbit.gdshader")
 const FIREFLY_SH := preload("res://core/life/wildlife/firefly.gdshader")
 const RIPPLE_SH := preload("res://core/life/wildlife/ripple.gdshader")
 const GHOST_SH := preload("res://core/life/wildlife/ghost.gdshader")
-const VERSION := 7
+const VERSION := 8
 
 ## part ids (UV2.x)
 const BODY := 0.0
@@ -41,6 +41,11 @@ const RIG := {
 	"deer": {"head_pivot": Vector3(0, 1.0, -0.5), "hip_front": Vector2(0.9, -0.38), "hip_back": Vector2(0.95, 0.38), "leg_amp": 0.55},
 	"stag": {"head_pivot": Vector3(0, 1.0, -0.5), "hip_front": Vector2(0.9, -0.38), "hip_back": Vector2(0.95, 0.38), "leg_amp": 0.55},
 	"elk": {"head_pivot": Vector3(0, 1.0, -0.5) * ELK_S, "hip_front": Vector2(0.9, -0.38) * ELK_S, "hip_back": Vector2(0.95, 0.38) * ELK_S, "leg_amp": 0.45},
+	# r36 horses (core/world/mount): deer-built, scaled per breed (HORSE_S)
+	"horse_palfrey": {"head_pivot": Vector3(0, 1.0, -0.5) * 1.42, "hip_front": Vector2(0.9, -0.42) * 1.42, "hip_back": Vector2(0.95, 0.42) * 1.42, "leg_amp": 0.6},
+	"horse_garron": {"head_pivot": Vector3(0, 1.0, -0.5) * 1.3, "hip_front": Vector2(0.9, -0.42) * 1.3, "hip_back": Vector2(0.95, 0.42) * 1.3, "leg_amp": 0.55},
+	"horse_draught": {"head_pivot": Vector3(0, 1.0, -0.5) * 1.6, "hip_front": Vector2(0.9, -0.42) * 1.6, "hip_back": Vector2(0.95, 0.42) * 1.6, "leg_amp": 0.45},
+	"horse_fenpony": {"head_pivot": Vector3(0, 1.0, -0.5) * 1.15, "hip_front": Vector2(0.9, -0.42) * 1.15, "hip_back": Vector2(0.95, 0.42) * 1.15, "leg_amp": 0.6},
 	"fox": {"head_pivot": Vector3(0, 0.36, -0.2), "hip_front": Vector2(0.3, -0.18), "hip_back": Vector2(0.32, 0.17), "leg_amp": 0.6, "tail_sway": 0.18},
 	"rat": {"head_pivot": Vector3(0, 0.05, -0.05), "hip_front": Vector2(0.03, -0.045), "hip_back": Vector2(0.03, 0.045), "leg_amp": 0.8, "tail_sway": 0.3},
 	"mouse": {"head_pivot": Vector3(0, 0.03, -0.03), "hip_front": Vector2(0.018, -0.027), "hip_back": Vector2(0.018, 0.027), "leg_amp": 0.9, "tail_sway": 0.35},
@@ -58,6 +63,10 @@ const LOOK := {
 	"deer": {"detail": 0.18, "detail_scale": 3.0, "streak": 3.0, "roughness": 0.88, "eye_col": Color(0.55, 0.95, 0.6), "eye_energy": 1.4, "rim_amount": 0.12},
 	"stag": {"detail": 0.18, "detail_scale": 3.0, "streak": 3.0, "roughness": 0.88, "eye_col": Color(0.55, 0.95, 0.6), "eye_energy": 1.4, "rim_amount": 0.12},
 	"elk": {"detail": 0.2, "detail_scale": 3.0, "streak": 3.0, "roughness": 0.95, "eye_col": Color(0.55, 0.95, 0.6), "eye_energy": 0.6, "rim_amount": 0.6},
+	"horse_palfrey": {"detail": 0.14, "detail_scale": 2.5, "streak": 3.0, "roughness": 0.7, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.25},
+	"horse_garron": {"detail": 0.32, "detail_scale": 3.0, "streak": 3.5, "roughness": 0.92, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.3},
+	"horse_draught": {"detail": 0.16, "detail_scale": 2.0, "streak": 3.0, "roughness": 0.6, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.35},
+	"horse_fenpony": {"detail": 0.4, "detail_scale": 3.5, "streak": 4.0, "roughness": 0.95, "eye_col": Color(0.5, 0.42, 0.3), "eye_energy": 0.2, "rim_amount": 0.2},
 	"fox": {"detail": 0.2, "detail_scale": 4.0, "streak": 3.0, "roughness": 0.88, "eye_col": Color(1.0, 0.85, 0.45), "eye_energy": 1.4, "rim_amount": 0.12},
 	"rat": {"detail": 0.5, "streak": 2.0, "roughness": 0.8, "eye_col": Color(1.0, 0.3, 0.2), "eye_energy": 1.0, "detail_scale": 20.0},
 	"branch": {"detail": 0.8, "streak": 4.0, "roughness": 0.95, "detail_scale": 3.0},
@@ -226,6 +235,10 @@ static func _build(kind: String) -> ArrayMesh:
 		"stag": _deer(cm, 1.0, 1)
 		"elk": _deer(cm, ELK_S, 2)
 		"fox": _fox(cm)
+		"horse_palfrey": _horse(cm, 1.42, Color(0.36, 0.17, 0.08), Color(0.08, 0.05, 0.04), 0.0, 1.0)
+		"horse_garron": _horse(cm, 1.3, Color(0.52, 0.5, 0.48), Color(0.86, 0.84, 0.8), 1.0, 1.18)
+		"horse_draught": _horse(cm, 1.6, Color(0.07, 0.06, 0.06), Color(0.1, 0.08, 0.07), 1.0, 1.3)
+		"horse_fenpony": _horse(cm, 1.15, Color(0.6, 0.48, 0.3), Color(0.24, 0.17, 0.1), 0.6, 1.25)
 		"rat": _rat(cm)
 		"mouse": _mouse(cm)
 		"plover": _plover(cm)
@@ -619,3 +632,57 @@ static func _plover(cm) -> void:
 		for t: Vector3 in [Vector3(0.0, 0, -0.03), Vector3(0.012 * side, 0, -0.022), Vector3(-0.003 * side, 0, 0.015)]:
 			cm.tube(_p([foot, foot + t]), _r([0.003, 0.0]), 3, leg, 0.5, 0.0, lp)
 	cm.blob(Vector3(0, 0.12, 0.12), Vector3(0.035, 0.008, 0.05), _tilt(-0.2), white, 0.0, 0.1, TAIL, 4, 6)
+
+
+
+## r36 a horse (core/world/mount): built on the deer's frame at scale `s`, a heavier barrel, a long
+## crested neck, a long head, a mane and a full tail; `feather` hangs hair over the hooves (garrons,
+## draughts), `girth` thickens the body. The rig is the deer's (RIG horse_*): legs swing, head pivots.
+static func _horse(cm, s: float, coat: Color, mane: Color, feather: float, girth: float) -> void:
+	var belly := coat.lightened(0.08)
+	var leg := coat.darkened(0.35)
+	var hoof := Color(0.05, 0.045, 0.04)
+	var v := func(x: float, y: float, z: float) -> Vector3: return Vector3(x, y, z) * s
+	var g := girth
+	# barrel, chest and quarters (rounder and deeper than a deer's)
+	cm.blob(v.call(0, 0.98, 0.0), Vector3(0.23 * g, 0.27 * g, 0.52) * s, Basis.IDENTITY, coat, 0.0, 0.05, BODY, 9, 14)
+	cm.blob(v.call(0, 1.0, -0.33), Vector3(0.22 * g, 0.29 * g, 0.24) * s, Basis.IDENTITY, coat, 0.0, 0.05, BODY, 7, 11)
+	cm.blob(v.call(0, 1.03, 0.33), Vector3(0.24 * g, 0.28 * g, 0.26) * s, Basis.IDENTITY, coat, 0.0, 0.05, BODY, 7, 11)
+	cm.blob(v.call(0, 0.82, 0.02), Vector3(0.16 * g, 0.1, 0.38) * s, Basis.IDENTITY, belly, 0.0, 0.04, BODY, 5, 10)
+	# a saddle cloth and a plain saddle, so a horse reads as kept, not wild
+	cm.blob(v.call(0, 1.22, -0.04), Vector3(0.25 * g, 0.03, 0.2) * s, Basis.IDENTITY, Color(0.24, 0.16, 0.12), 0.0, 0.02, BODY, 4, 10)
+	cm.blob(v.call(0, 1.26, -0.04), Vector3(0.14, 0.05, 0.16) * s, Basis.IDENTITY, Color(0.2, 0.12, 0.07), 0.0, 0.03, BODY, 5, 10)
+	# tail: a full fall from the dock
+	cm.tube(_p([v.call(0, 1.16, 0.56), v.call(0, 1.02, 0.66), v.call(0, 0.74, 0.7), v.call(0, 0.5, 0.68)]), _r([0.05 * s, 0.07 * s, 0.07 * s, 0.03 * s]), 7, mane, 0.0, 0.3, TAIL, Vector2(1.0, 0.6))
+	for side: float in [1.0, -1.0]:
+		var x := 0.12 * side * g
+		var fp := LEG_FR if side > 0.0 else LEG_FL
+		var bp := LEG_BR if side > 0.0 else LEG_BL
+		cm.blob(v.call(x * 1.05, 0.84, -0.38), Vector3(0.085, 0.17, 0.11) * s, Basis.IDENTITY, coat, 0.0, 0.05, fp, 6, 8)
+		cm.tube(_p([v.call(x, 0.82, -0.38), v.call(x, 0.62, -0.365), v.call(x * 0.95, 0.42, -0.38)]), _r([0.07 * s, 0.05 * s, 0.038 * s]), 7, coat.darkened(0.1), 0.0, 0.05, fp)
+		_lower_leg(cm, v, x * 0.95, -0.38, 0.42, leg, hoof, fp, s)
+		cm.blob(v.call(x * 1.05, 0.88, 0.37), Vector3(0.09, 0.21, 0.16) * s, Basis.IDENTITY, coat, 0.0, 0.05, bp, 6, 9)
+		cm.tube(_p([v.call(x, 0.78, 0.37), v.call(x, 0.6, 0.43), v.call(x * 0.95, 0.44, 0.48)]), _r([0.075 * s, 0.05 * s, 0.038 * s]), 7, coat.darkened(0.1), 0.0, 0.05, bp)
+		_lower_leg(cm, v, x * 0.95, 0.475, 0.42, leg, hoof, bp, s, 0.42)
+		if feather > 0.0:
+			for z: float in [-0.39, 0.42]:
+				var part := fp if z < 0.0 else bp
+				cm.blob(v.call(x * 0.95, 0.07, z), Vector3(0.045, 0.06 * feather, 0.05) * s, Basis.IDENTITY, mane.lightened(0.1), 0.0, 0.3, part, 4, 7)
+		# eye, ear
+		cm.blob(v.call(0.07 * side, 1.62, -0.98), Vector3(0.024, 0.022, 0.02) * s, Basis.IDENTITY, hoof, 0.0, 0.0, HEAD, 4, 6, 1.0)
+		var ear_b := Basis(Vector3.FORWARD, -side * 0.25) * Basis(Vector3.RIGHT, -0.2)
+		cm.blob(v.call(0.06 * side, 1.78, -0.9), Vector3(0.025, 0.07, 0.016) * s, ear_b, coat, 0.0, 0.04, HEAD, 4, 7)
+	# neck: deep at the chest, arched, crested; the mane along its top
+	cm.tube(_p([v.call(0, 1.05, -0.45), v.call(0, 1.3, -0.62), v.call(0, 1.52, -0.78), v.call(0, 1.66, -0.86)]), _r([0.2 * s * g, 0.15 * s, 0.11 * s, 0.09 * s]), 10, coat, 0.0, 0.04, HEAD)
+	for k in 9:
+		var t := float(k) / 8.0
+		var root: Vector3 = v.call(0.02, lerpf(1.24, 1.72, t), lerpf(-0.5, -0.86, t))
+		cm.tube(_p([root, root + v.call(0.06, -0.16 + 0.05 * t, 0.03)]), _r([0.045 * s, 0.0]), 5, mane, 0.0, 0.3, HEAD, Vector2(1.0, 0.5))
+	# head: long, the face flat, the muzzle soft
+	cm.blob(v.call(0, 1.66, -0.93), Vector3(0.075, 0.09, 0.12) * s, _tilt(-0.9), coat, 0.0, 0.04, HEAD, 7, 10)
+	cm.tube(_p([v.call(0, 1.62, -0.98), v.call(0, 1.48, -1.08), v.call(0, 1.36, -1.14)]), _r([0.07 * s, 0.058 * s, 0.05 * s]), 8, coat, 0.0, 0.03, HEAD, Vector2(1.0, 0.85))
+	cm.blob(v.call(0, 1.33, -1.15), Vector3(0.052, 0.048, 0.055) * s, Basis.IDENTITY, coat.darkened(0.25), 0.0, 0.03, HEAD, 5, 8)
+	# a bridle: brow band and reins down to the saddle
+	cm.tube(_p([v.call(-0.08, 1.6, -0.95), v.call(0, 1.64, -0.99), v.call(0.08, 1.6, -0.95)]), _r([0.008 * s, 0.008 * s, 0.008 * s]), 4, Color(0.14, 0.08, 0.05), 1.0, 0.0, HEAD)
+	for side2: float in [1.0, -1.0]:
+		cm.tube(_p([v.call(0.05 * side2, 1.36, -1.1), v.call(0.12 * side2, 1.3, -0.6), v.call(0.1 * side2, 1.3, -0.25)]), _r([0.007 * s, 0.007 * s, 0.007 * s]), 4, Color(0.14, 0.08, 0.05), 1.0, 0.0, HEAD)

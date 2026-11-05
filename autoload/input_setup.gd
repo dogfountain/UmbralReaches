@@ -70,6 +70,7 @@ func _ready() -> void:
 	# menus on the d-pad (up satchel, down journal, left tasks). K is added here too, since the
 	# growth UI only adds its own binding when the action does not exist yet.
 	_keys("kindling", [KEY_K])
+	_keys("mount", [KEY_H])                          # r36: call your horse (core/world/mount/stables.gd)
 	_button("kindling", JOY_BUTTON_DPAD_RIGHT)
 
 

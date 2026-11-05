@@ -1532,6 +1532,7 @@ const TOE_OUT := 0.07
 const STEP_KEYS := [[0.0, 0.3], [1.5, 0.52], [3.0, 0.78], [4.5, 1.0], [7.5, 1.5], [11.0, 1.8]]
 
 ## Traversal state the Player feeds in (all 0..1 blends unless noted).
+var ride := 0.0                     ## r36: astride a horse (core/world/mount): 0..1
 var hang := 0.0                     ## hanging from a ledge by the hands
 var hang_shimmy := 0.0              ## -1..1 moving sideways along the ledge
 var steep := 0.0                    ## sliding down a slope too steep to stand on
@@ -2035,6 +2036,8 @@ func _moves_pose(speed: float, on_floor: bool, dt: float) -> void:
 		_el[0].rotation.x -= 0.2 * k
 		_staff_off.x -= 0.25 * k
 		_sh[1].rotation.z += 0.35 * k
+	if ride > 0.001:
+		_pose_ride(ride)
 	if hang > 0.001:
 		_pose_hang(hang)
 		_staff_frame = _staff_frame.slerp(Basis(Vector3.BACK, -PI * 0.5) * Basis(Vector3.RIGHT, 0.12), hang)
@@ -2109,6 +2112,26 @@ func _pose_roll(u: float) -> void:
 
 ## Hanging by the hands: arms overhead, the body long against the wall, toes finding it; the staff
 ## laid along the ledge in the right fist. Shimmying swings the legs and walks the hands.
+## r36 astride a horse: thighs forward and spread round the barrel, knees bent, heels down, the
+## back upright, both hands low in front on the reins (the staff rides on the back: its own offset).
+func _pose_ride(k: float) -> void:
+	var bob := sin(_t * 9.0) * 0.012
+	_pelvis.position.y = lerpf(_pelvis.position.y, H_PELVIS + bob, k)
+	_torso.rotation.x = lerpf(_torso.rotation.x, 0.06, k)
+	_torso.rotation.y = lerpf(_torso.rotation.y, 0.0, k)
+	_head.rotation.x = lerpf(_head.rotation.x, -0.05, k)
+	_sh[0].rotation = _sh[0].rotation.lerp(Vector3(0.55, 0.0, -0.18), k)
+	_sh[1].rotation = _sh[1].rotation.lerp(Vector3(0.55, 0.0, 0.18), k)
+	_el[0].rotation.x = lerpf(_el[0].rotation.x, 0.9, k)
+	_el[1].rotation.x = lerpf(_el[1].rotation.x, 0.9, k)
+	for i in 2:
+		var sd := 1.0 if i == 0 else -1.0
+		_hip[i].rotation.x = lerpf(_hip[i].rotation.x, 1.15, k)
+		_hip[i].rotation.z = lerpf(_hip[i].rotation.z, 0.42 * sd, k)
+		_knee[i].rotation.x = lerpf(_knee[i].rotation.x, -1.25, k)
+		_foot[i].rotation.x = lerpf(_foot[i].rotation.x, 0.2, k)
+
+
 func _pose_hang(k: float) -> void:
 	var sh := hang_shimmy
 	var walk := sin(_t * 9.0) * absf(sh)

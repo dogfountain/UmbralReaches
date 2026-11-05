@@ -269,6 +269,7 @@ func _plant() -> void:
 	if _realm:
 		_make_rares()
 		(load("res://core/world/watch/watch_posts.gd") as GDScript).call("build", get_parent() as Node3D)   # r36 the Kindled Watch
+		(load("res://core/world/mount/stables.gd") as GDScript).call("build", get_parent() as Node3D)   # r36 horses
 		if get_parent().get_node_or_null("RoamEvents") == null:            # r36 roaming events
 			var roam: Node = (load("res://core/world/roam/roam_events.gd") as GDScript).new()
 			roam.name = "RoamEvents"

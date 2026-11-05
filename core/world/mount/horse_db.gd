@@ -1,0 +1,22 @@
+extends RefCounted
+## r36 horses (docs/critique/r36_plan.md, step 5): a breed for each place that keeps them, bought
+## with grave ash at its hitching post, then ridden anywhere and called with H. Load by path.
+##   state: Travel.system_state("stable") = {owned: [breed ids], ride: breed id ("" none)}
+
+## breed -> {name, mesh (LifeKit kind), walk, trot, gallop (m/s), turn (rad/s), climb (m a step it
+## takes), cost (ash), where (the post's place), at (xz), face (xz), line (the post's word)}
+const BREEDS := {
+	"palfrey": {"name": "Pilgrim's Palfrey", "mesh": "horse_palfrey", "walk": 2.6, "trot": 6.5, "gallop": 11.0, "turn": 2.6, "climb": 0.75,
+		"cost": 40, "where": "Hearthward's stable-yard", "at": Vector2(22.0, 46.0), "face": Vector2(-1.0, 0.0),
+		"line": "A bay palfrey, the last of the pilgrims' string. Fennick fed it all winter on the promise somebody would ride it out again."},
+	"garron": {"name": "Moor Garron", "mesh": "horse_garron", "walk": 2.4, "trot": 6.0, "gallop": 9.5, "turn": 2.9, "climb": 1.05,
+		"cost": 60, "where": "Ysolt's fire under the tor", "at": Vector2(128.0, -6.0), "face": Vector2(-1.0, 0.0),
+		"line": "A grey hill pony with feathered feet, sure on stone and heather. Ysolt says it knows the cairns better than she does."},
+	"draught": {"name": "Pit Draught", "mesh": "horse_draught", "walk": 2.2, "trot": 5.5, "gallop": 9.0, "turn": 1.9, "climb": 0.9,
+		"cost": 80, "where": "the Founder's Pits", "at": Vector2(112.0, -66.0), "face": Vector2(-0.6, 0.8),
+		"line": "A black draught horse that hauled bell-metal out of the pits. Nothing hollowed stands in its way twice.", "trample": true},
+	"fenpony": {"name": "Fen Pony", "mesh": "horse_fenpony", "walk": 2.4, "trot": 6.2, "gallop": 10.0, "turn": 3.1, "climb": 0.8,
+		"cost": 50, "where": "Cadoc's bank on the mere", "at": Vector2(104.0, 90.0), "face": Vector2(-0.7, -0.7),
+		"line": "A shaggy dun pony that wades where a big horse sinks. Cadoc rows nobody now, but he kept the pony.", "wade": true},
+}
+const ORDER := ["palfrey", "garron", "fenpony", "draught"]

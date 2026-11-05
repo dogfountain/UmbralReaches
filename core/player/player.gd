@@ -212,6 +212,8 @@ const VIOLET := Color(1.3, 0.6, 3.0)
 const EMBER := Color(2.6, 0.9, 0.3)
 
 @onready var _visual: CharacterRig = $Visual
+## r36: the horse the wanderer sits (core/world/mount/horse.gd), or null.
+var riding: Node3D = null
 @onready var _rig: Node3D = $CameraRig
 @onready var _pitch_node: Node3D = $CameraRig/Pitch
 @onready var _arm: SpringArm3D = $CameraRig/Pitch/SpringArm
@@ -422,6 +424,22 @@ func _physics_process(delta: float) -> void:
 				_sprint_latch = false
 			sprint = Input.is_action_pressed("sprint") or _sprint_latch
 	_wish_len = wish.length()
+	# r36 on horseback (core/world/mount/horse.gd): the horse takes the wish; jump gets down
+	if riding != null:
+		if not is_instance_valid(riding) or _hollowing:
+			riding = null
+		else:
+			if Input.is_action_just_pressed("jump"):
+				riding.call("dismount")
+			else:
+				riding.call("drive", self, wish, sprint, delta)
+				_grounded = true
+				_visual.ride = move_toward(_visual.ride, 1.0, delta * 4.0)
+				_visual.animate(Vector3.ZERO, true, delta)
+				_update_gloom(delta)
+				return
+	if _visual.ride > 0.0:
+		_visual.ride = move_toward(_visual.ride, 0.0, delta * 4.0)
 
 	if sprint and _stam != null:
 		# r31 Breath: winded, no sprint; hunted (a foe awake near), the sprint spends it
