@@ -181,6 +181,10 @@ func _henge() -> void:
 	check("henge: the boss is raid-sized", b._rig != null and b._rig.scale.x >= 2.5 and b.max_hp >= 500, "x%.1f, %d hp" % [b._rig.scale.x if b._rig else 0.0, b.max_hp])
 	check("henge: the pull is announced (emote)", arena.last_emote != "", arena.last_emote)
 	await _secs(2.6)
+	# r35: its own theme (boss_themes.gd), rendered on a thread on the first pull
+	var themes := get_tree().get_first_node_in_group(&"boss_themes")
+	check("henge: the Thornwarden's theme plays (not the shared danger pad)", themes != null and String(themes.get("playing_id")) == "thornwarden" and float(themes.get("theme_k")) > 0.3,
+		"%s %.2f" % [themes.get("playing_id") if themes else "-", float(themes.get("theme_k")) if themes else 0.0])
 	# phase I: the Thornstorm, line of sight
 	b.global_position = C + Vector3.UP * 0.2
 	b.velocity = Vector3.ZERO
@@ -281,12 +285,14 @@ func _henge() -> void:
 	p.gloom = 0.0; p.wounds = 0.0
 	_tp(C + gout * 6.0)
 	check("henge: no soft enrage (r35)", not (Thornwarden as Script).get_script_constant_map().has("ENRAGE_AT") and is_equal_approx(b.dmg_mult, 1.0))
+	check("henge: the theme's high stem has risen with the phases", themes != null and float(themes.get("_high_k")) > 0.3, "%.2f" % (float(themes.get("_high_k")) if themes else 0.0))
 	# the kill
 	b._ward_t = 0.0
 	b.set_meta(&"test_no_floor", true)
 	b.take_hit(9999.0)
 	await _frames(40)
 	check("henge: the kill is saved", Travel.bosses_slain.has("thornwarden"))
+	check("henge: its theme lets go when it falls", themes != null and float(themes.get("_want")) == 0.0)
 	check("henge: the raid door opens on the kill", not _shut(seal) and not Player.boss_fight_active(get_tree()))
 	check("henge: the room settles (briars off)", not bool(room.get("briars_on")) and String(room.get("mood")) == "won")
 	for e in get_tree().get_nodes_in_group(Groups.ENEMY):

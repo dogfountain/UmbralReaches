@@ -189,6 +189,9 @@ func _ready() -> void:
 		music = Music.new()
 		music.name = "Music"
 		add_child(music)
+		# r35: a composed theme for each great one (boss_themes.gd); ScapeMusic ducks under it
+		var themes: Node = (load("res://core/life/wildlife/boss_themes.gd") as GDScript).new()
+		add_child(themes)
 	_pick()
 
 

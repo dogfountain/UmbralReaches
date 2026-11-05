@@ -91,10 +91,12 @@ func _process(dt: float) -> void:
 	var danger := 1.0 if state == "danger" else 0.0
 	intensity = move_toward(intensity, danger, dt / (2.0 if danger > intensity else 6.0))
 	rest_k = move_toward(rest_k, 1.0 if state == "rest" else 0.0, dt / 5.0)
+	# r35: a boss's own theme (boss_themes.gd) takes the fight: the dark pad and heartbeat step aside
+	var tk := _theme_k()
 	_pad(_pad_rest, -27.0, rest_k * (1.0 - intensity), dt)
-	_pad(_pad_dark, -25.0, intensity, dt)
+	_pad(_pad_dark, -25.0, intensity * (1.0 - tk), dt)
 	# the heartbeat under danger
-	if intensity > 0.4:
+	if intensity > 0.4 and tk < 0.5:
 		_pulse_t -= dt
 		if _pulse_t <= 0.0:
 			_pulse_t = 0.82 if boss else 1.05
@@ -111,6 +113,14 @@ func _process(dt: float) -> void:
 		_note_t -= dt
 		if _note_t <= 0.0:
 			_next_phrase()
+
+
+var _themes: Node = null
+
+func _theme_k() -> float:
+	if _themes == null or not is_instance_valid(_themes):
+		_themes = get_tree().get_first_node_in_group(&"boss_themes") if is_inside_tree() else null
+	return float(_themes.get("theme_k")) if _themes != null else 0.0
 
 
 func _pad(p: AudioStreamPlayer, top: float, g: float, _dt: float) -> void:
@@ -187,7 +197,7 @@ func _next_phrase() -> void:
 			_phrase = _melody(_rng.randi_range(4, 7), 0.55, 1.3, "harp", 0.0)
 			_note_t = _rng.randf_range(7.0, 14.0)
 		"danger":
-			if _rng.randf() < 0.5:
+			if _rng.randf() < 0.5 and _theme_k() < 0.5:
 				var s: int = DARK[_rng.randi() % DARK.size()]
 				_phrase = [[0.0, s, _bell_voice(), -6.0]]
 			_note_t = _rng.randf_range(9.0, 16.0)

@@ -457,6 +457,28 @@ Step. The *ideas* in the three boss rooms (bramble maze, shrinking briars, the g
   - The Kindling refuses ranks for untaught spells and shows them as "Not yet taught".
   - Checked by `zz/spell_staging_test` (13 checks).
 
+### Implemented: boss themes and the great bell (r35)
+
+- `core/life/wildlife/boss_themes.gd` composes a theme for each great one, synthesised like the
+  rest of the music. Each has two stems that loop in step: BASE from the pull, and HIGH, which rises
+  with the boss's phase and is full in its last.
+  - **Thornwarden:** D dorian, 6/8, 88 bpm. A frame drum and rim, a reed drone on D–A, and a plucked
+    ostinato on Dm / C / Bb / C. HIGH adds a bowed fiddle line and a doubled drum.
+  - **Bone Abbot:** D phrygian, 4/4, 56 bpm. Organ on Dm / Eb / Bb–A, a low choir, a toll on every
+    downbeat and a bone tick on every beat ("he counts"). HIGH adds the chant and timpani.
+  - **Ascended Warden:** D lydian, 3/4, 72 bpm. A high choir on D / E / D / C#m, bell arpeggios
+    rising through each bar and a sub drone. HIGH adds timpani and a falling brass line ("the sky
+    falls").
+  - Rendered on a worker thread on the first pull (0.2–1.3 s a stem) and cached by GenCache.
+    ScapeMusic's danger pad and heartbeat step aside while a theme plays. The theme fades when the
+    boss falls, the fight is held, or you walk away.
+- **The ending's bell** is a tower bell built from its partials: hum, prime, minor-third tierce,
+  quint, nominal and above on A2. The hum swells in after the strike ("from the bottom up") and it
+  rings for about 24 s. It replaces the small bell pitched two octaves down.
+- Checked by `zz/boss_theme_test` (lengths, body, loop seams, stems in step, the bell's length and
+  strike; `--dump=<dir>` writes WAVs) and three new checks in `zz/raids_r34_test`. The music has not
+  been listened to by a person yet.
+
 ## Test run (this critique)
 
 `tools/run_tests.sh`, 4 jobs, isolated HOME.

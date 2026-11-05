@@ -407,13 +407,14 @@ func _ending_tick(d: float) -> void:
 		_end_step = 0
 
 
-## The one bell: the scape's bell voice two octaves down (A2), so its decay runs ~20 s. Not
-## positional: it is heard over the whole valley. The explore music keeps its bell out until now.
+## The one bell. r35: a great bell of its own (boss_themes.gd great_bell: a tower bell's partials on
+## A2, the hum swelling in after the strike, ~24 s), not the scape's small bell pitched two octaves
+## down. Not positional: it is heard over the whole valley. The explore music keeps its bell out until now.
 func ring_bell() -> void:
 	var a := AudioStreamPlayer.new()
 	a.name = "EndingBell"
-	a.stream = ScapeSynth.stream("bell")
-	a.pitch_scale = 0.25
+	a.stream = (load("res://core/life/wildlife/boss_themes.gd") as GDScript).call("great_bell")
+	a.pitch_scale = 1.0
 	a.volume_db = -3.0
 	a.bus = &"Music" if AudioServer.get_bus_index("Music") >= 0 else &"Master"
 	a.process_mode = Node.PROCESS_MODE_ALWAYS
