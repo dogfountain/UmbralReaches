@@ -72,6 +72,9 @@ static func contributions(st: Dictionary) -> Dictionary:
 		var lg := String(p.get("legend", ""))
 		if GearDB.LEGENDS.has(lg):
 			flags.append_array(GearDB.LEGENDS[lg].get("flags", []))
+		var tr := String(p.get("trait", ""))          # r36: a piece's trait
+		if GearDB.TRAITS.has(tr):
+			flags.append_array(GearDB.TRAITS[tr].get("flags", []))
 	var counts := set_counts(st)
 	for s: String in counts:
 		var sd: Dictionary = GearDB.SETS.get(s, {})
@@ -108,7 +111,8 @@ static func fold(m: Dictionary, c: Dictionary) -> void:
 const FLAG_NAMES := {"rosary": "burning foes gather Marks", "hook": "the Tether Marks its whole chain",
 	"chalk": "hooks and darts lay 2 Marks", "tally": "Nova: 1.5 a Mark", "door": "Step: the Open Door",
 	"bramble": "the Ward roots in brambles", "jar": "the Shade lingers and bursts", "ferrule": "Step lands with a Mark",
-	"step_briar": "Step roots in brambles"}
+	"step_briar": "Step roots in brambles", "kill_spark": "kills hasten your spells", "ash_hunger": "kills give more ash",
+	"peal_echo": "the Peal rings twice"}
 
 
 ## Plain lines summing up what the gear worn gives (the panel's footer).

@@ -71,7 +71,7 @@ func cast(book: SkillBook, _charge: float) -> bool:
 	for k in n:
 		var s := Shade.new()
 		s.owner_p = p
-		s.life = LIFE + (6.0 if jar else 0.0)
+		s.life = LIFE + (6.0 if jar else 0.0) + float(DB.get_mod("shade_life", 0.0))
 		s.rate = 0.75 if r >= 1 else 1.1
 		s.seek = r >= 1
 		s.last_breath = r >= 3

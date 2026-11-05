@@ -52,11 +52,21 @@ func cast(book: SkillBook, _charge: float) -> bool:
 	if v == &"carillon":
 		_carillon(p, r, power)
 		return true
-	var reach := REACH_WIDE if r >= 1 else REACH
+	var reach := (REACH_WIDE if r >= 1 else REACH) + float(DB.get_mod("peal_reach", 0.0))
 	var half := HALF_TOLL if v == &"toll" else (HALF_WIDE if r >= 1 else HALF)
 	var mult := 2.0 if v == &"toll" else 1.0
-	struck = _stroke(p, p.global_position, Aim.forward(p), reach, half, DMG * mult * power, r, 2 if v == &"toll" else 1)
+	var fwd := Aim.forward(p)
+	struck = _stroke(p, p.global_position, fwd, reach, half, DMG * mult * power, r, 2 if v == &"toll" else 1)
 	_stroke_fx(p, reach, half)
+	# r36 gear trait: the stroke rings again half a second on, at half strength, from where it began
+	if bool(DB.get_mod("peal_echo", false)):
+		var pid := p.get_instance_id()
+		var from := p.global_position
+		p.get_tree().create_timer(0.5, false).timeout.connect(func() -> void:
+			var p2 := instance_from_id(pid) as Player
+			if p2 != null and p2.is_inside_tree():
+				struck += _stroke(p2, from, fwd, reach, half, DMG * mult * power * 0.5, r, 0)
+				_stroke_fx(p2, reach * 0.8, half))
 	p.kick(0.35)
 	return true
 

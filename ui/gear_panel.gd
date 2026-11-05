@@ -447,6 +447,8 @@ func _show() -> void:
 	if GearDB.LEGENDS.has(lg):
 		lines.append(String(GearDB.LEGENDS[lg].text))
 		lore = String(GearDB.LEGENDS[lg].lore)
+	if GearDB.trait_line(p) != "":
+		lines.append(GearDB.trait_line(p))
 	var s := String(p.get("set", ""))
 	if GearDB.SETS.has(s):
 		var sd: Dictionary = GearDB.SETS[s]

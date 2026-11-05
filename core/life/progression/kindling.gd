@@ -232,6 +232,7 @@ func _script_for(id: StringName, owned: bool) -> Script:
 
 func _on_killed(e: Node) -> void:
 	teach("lance")                                    # r35: the first kill
+	_kill_traits(e)
 	var relief := float(DB.live.get("kill_relief", 0.0))
 	if relief <= 0.0 or _player == null or not is_instance_valid(_player) or not (e is Node3D):
 		return
@@ -636,3 +637,25 @@ func gift(id: String) -> bool:
 	_commit()
 	Events.toast.emit("Learned: %s. Set it on your bar at a kindled fire." % String(DB.spell(id).name))
 	return true
+
+
+
+## r36 gear: what a kill near the wanderer is worth to her traits and affixes.
+##   kill_spark  one kill in four takes 1 s off every spell's recovery
+##   ash_hunger  one more pinch of grave ash a kill
+##   ash_find    that share of a pinch more, rounded by chance
+func _kill_traits(e: Node) -> void:
+	if _player == null or not is_instance_valid(_player) or not (e is Node3D) or e.has_meta(&"boss_id"):
+		return
+	if (e as Node3D).global_position.distance_to(_player.global_position) > 28.0:
+		return
+	if bool(DB.live.get("kill_spark", false)) and randf() < 0.25:
+		var book := _player.skills()
+		if book:
+			for i in book.slots.size():
+				book.refund(i, 1.0)
+	var extra := (1 if bool(DB.live.get("ash_hunger", false)) else 0)
+	if randf() < float(DB.live.get("ash_find", 0.0)):
+		extra += 1
+	if extra > 0:
+		Travel.give("grave_ash", extra, false, false)

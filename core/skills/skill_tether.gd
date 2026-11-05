@@ -45,7 +45,7 @@ func rank() -> int:
 
 
 func reach() -> float:
-	return RANGE_LONG if rank() >= 1 else RANGE
+	return (RANGE_LONG if rank() >= 1 else RANGE) + float(DB.get_mod("tether_reach", 0.0))
 
 
 func cast(book: SkillBook, _charge: float) -> bool:

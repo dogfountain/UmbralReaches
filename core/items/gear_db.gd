@@ -61,13 +61,18 @@ const AFFIX := {
 	"lance_blast": {"key": "lance_blast", "op": "add", "roll": [0.15, 0.3], "fmt": "Ember Lance bursts %.2f m wider", "of": "of the Wide Flame"},
 	"ward_life": {"key": "ward_life", "op": "add", "roll": [0.4, 0.8], "fmt": "Lantern Ward burns %.1f s longer", "of": "of the Long Wick"},
 	"well_life": {"key": "well_life", "op": "add", "roll": [0.4, 0.8], "fmt": "Umbral Well holds %.1f s longer", "of": "of the Deep Well"},
+	# r36: the learned spells and the Peal get lines of their own
+	"shade_life": {"key": "shade_life", "op": "add", "roll": [0.8, 1.6], "fmt": "A Bound Shade stays %.1f s longer", "of": "of the Kept Shade"},
+	"tether_reach": {"key": "tether_reach", "op": "add", "roll": [1.0, 2.0], "fmt": "Rift Tether reaches %.1f m further", "of": "of the Long Chain"},
+	"peal_reach": {"key": "peal_reach", "op": "add", "roll": [0.5, 1.0], "fmt": "The Founder's Peal carries %.1f m further", "of": "of the Carrying Note"},
+	"ash_find": {"key": "ash_find", "op": "add", "roll": [0.04, 0.08], "fmt": "Foes give %d%% more grave ash", "pct": true, "of": "of the Gleaner"},
 }
 ## Which affixes each slot can roll: every slot leans toward a way of fighting.
 const SLOT_AFFIX := {
-	"focus": ["power", "lash_power", "mark_dmg", "lance_charge", "lance_blast"],
-	"vestment": ["gloom_add", "dark_mult", "lit_mult", "kill_relief", "power"],
-	"lantern": ["ward_life", "well_life", "lit_mult", "kill_relief", "mark_dmg"],
-	"girdle": ["cd", "step_range", "step_cd", "kill_relief", "lash_power"],
+	"focus": ["power", "lash_power", "mark_dmg", "lance_charge", "lance_blast", "peal_reach"],
+	"vestment": ["gloom_add", "dark_mult", "lit_mult", "kill_relief", "power", "ash_find"],
+	"lantern": ["ward_life", "well_life", "lit_mult", "kill_relief", "mark_dmg", "shade_life"],
+	"girdle": ["cd", "step_range", "step_cd", "kill_relief", "lash_power", "tether_reach"],
 }
 
 ## Plain pieces: the base name by slot, the better ones further down (picked by rarity).
@@ -124,6 +129,37 @@ const LEGENDS := {
 		"lore": "The pilgrims roped themselves together on the Stair. This length was cut."},
 }
 const LEGEND_ORDER := ["door_splinter", "sunk_shroud", "unlit_lamp", "stair_rope"]
+
+## r36 traits: one line on a Hallowed piece (half the time) or better (always) that changes how you
+## play, not a number. Most switch on a behaviour the spells already have (the legends' and sets'
+## flags); kill_spark, ash_hunger and peal_echo are new (kindling.gd _on_killed, skill_peal.gd).
+const TRAITS := {
+	"rosary": {"flags": ["rosary"], "slots": ["focus", "lantern"], "text": "Trait: a burning foe takes a Mark for every second it burns."},
+	"hook": {"flags": ["hook"], "slots": ["focus", "girdle"], "text": "Trait: Rift Tether Marks everything along its chain."},
+	"chalk": {"flags": ["chalk"], "slots": ["focus", "lantern"], "text": "Trait: the Tether's hook and a Shade's darts lay 2 Marks."},
+	"ferrule": {"flags": ["ferrule"], "slots": ["girdle"], "text": "Trait: every foe within 2 m of where Rift Step lands takes a Mark."},
+	"step_briar": {"flags": ["step_briar"], "slots": ["girdle", "vestment"], "text": "Trait: Rift Step roots what it passes in brambles."},
+	"bramble": {"flags": ["bramble"], "slots": ["vestment", "lantern"], "text": "Trait: Lantern Ward roots what crosses its light in brambles."},
+	"kill_spark": {"flags": ["kill_spark"], "slots": ["vestment", "girdle"], "text": "Trait: a kill takes 1 s off every spell's recovery, one time in four."},
+	"ash_hunger": {"flags": ["ash_hunger"], "slots": ["vestment", "lantern"], "text": "Trait: every kill near you gives one more pinch of grave ash."},
+	"peal_echo": {"flags": ["peal_echo"], "slots": ["focus"], "text": "Trait: the Founder's Peal rings twice, the second at half strength."},
+}
+
+
+## r36: a trait for a fresh piece of `rarity` in `slot` ("" when it rolls none).
+static func roll_trait(rng: RandomNumberGenerator, slot: String, rarity: int) -> String:
+	if rarity < 2 or (rarity == 2 and rng.randf() >= 0.5):
+		return ""
+	var pool: Array = []
+	for t: String in TRAITS:
+		if (TRAITS[t].slots as Array).has(slot):
+			pool.append(t)
+	return String(pool[rng.randi_range(0, pool.size() - 1)]) if not pool.is_empty() else ""
+
+
+static func trait_line(p: Dictionary) -> String:
+	var t := String(p.get("trait", ""))
+	return String(TRAITS[t].text) if TRAITS.has(t) else ""
 
 const BAG_CAP := 30
 ## Salvage: ember shards back for a piece (by rarity), plus its level.
@@ -184,6 +220,10 @@ static func make(rng: RandomNumberGenerator, opts := {}) -> Dictionary:
 			break
 		var a := String(pool.pop_at(rng.randi_range(0, pool.size() - 1)))
 		(p.aff as Array).append([a, roll_value(rng, a)])
+	if legend == "":
+		var tr := roll_trait(rng, slot, rarity)
+		if tr != "":
+			p["trait"] = tr
 	p["name"] = name_of(p)
 	return p
 

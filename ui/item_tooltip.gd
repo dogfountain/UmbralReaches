@@ -53,6 +53,8 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 	var lg := String(p.get("legend", ""))
 	if GearDB.LEGENDS.has(lg):
 		lines.append(_c(LootDB.quality_color(4), String(GearDB.LEGENDS[lg].text)))
+	if GearDB.trait_line(p) != "":
+		lines.append(_c(Color("#E8C27A"), GearDB.trait_line(p)))
 	var s := String(p.get("set", ""))
 	if GearDB.SETS.has(s):
 		lines.append_array(set_block(s, st))
