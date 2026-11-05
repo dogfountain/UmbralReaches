@@ -31,32 +31,24 @@ instance uniform float pulse_phase = 0.0;   // set once per body (GruntModel), s
 
 varying vec3 opos;
 
-float hash3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
-float vnoise(vec3 p) {
-	vec3 i = floor(p), f = fract(p);
-	f = f * f * (3.0 - 2.0 * f);
-	return mix(mix(mix(hash3(i), hash3(i + vec3(1, 0, 0)), f.x), mix(hash3(i + vec3(0, 1, 0)), hash3(i + vec3(1, 1, 0)), f.x), f.y),
-	           mix(mix(hash3(i + vec3(0, 0, 1)), hash3(i + vec3(1, 0, 1)), f.x), mix(hash3(i + vec3(0, 1, 1)), hash3(i + vec3(1, 1, 1)), f.x), f.y), f.z);
-}
-
 void vertex() {
 	opos = VERTEX;
 }
 
 void fragment() {
 	vec3 orm = texture(orm_tex, UV).rgb;
-	ALBEDO = cl_albedo(texture(albedo_tex, UV).rgb, orm.r, opos);   // r35: the shared character finish
+	vec2 wear = cl_wear_mask(NORMAL, VERTEX, orm.r);   // r36: edges worn, cavities matte
+	ALBEDO = cl_wear_albedo(cl_albedo(texture(albedo_tex, UV).rgb, orm.r, opos), wear);   // r35: the shared character finish
 	AO = orm.r;
 	AO_LIGHT_AFFECT = 0.6;
-	ROUGHNESS = cl_rough(orm.g, opos);
+	ROUGHNESS = cl_wear_rough(cl_rough(orm.g, opos), wear);
+	SPECULAR = cl_wear_spec(0.5, wear);
 	METALLIC = orm.b;
 	NORMAL_MAP = texture(normal_tex, UV).rgb;
 	NORMAL_MAP_DEPTH = normal_depth;
 	float ndv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
-	float up = clamp(dot(NORMAL, (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz) * 0.5 + 0.5, 0.0, 1.0);
-	float rim = pow(1.0 - ndv, 3.0) * rim_amount * up;
 
-	float d = vnoise(opos * 9.0) * 0.7 + vnoise(opos * 23.0) * 0.3;
+	float d = cl_noise(opos * 9.0) * 0.7 + cl_noise(opos * 23.0) * 0.3;
 	ALPHA = 1.0;
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	if (dissolve > 0.001) {

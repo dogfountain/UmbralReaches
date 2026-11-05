@@ -29,6 +29,8 @@ uniform float far_energy = 0.07;      // 1.45 x 0.72, the old coat's glow x vein
 uniform float read_near = 1.3;
 uniform float read_far = 3.0;
 uniform float albedo_gain = 1.3;
+uniform float sheen = 0.6;           // r36: light-driven fibre sheen (RIM), see fragment()
+uniform float sheen_tint = 0.5;
 uniform sampler2D wool_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D wool_n : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D trim_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -227,6 +229,14 @@ void fragment() {
 	ROUGHNESS = mix(clamp(0.9 * mix(0.75, 1.08, a4.a), 0.0, 1.0), 0.72, trim);
 	SPECULAR = mix(0.28, 0.4, trim);
 	METALLIC = 0.0;
+	// r36 wool sheen: Godot's rim term is lit by the scene's real lights (moon, lanterns, spells),
+	// unlike the emissive rim below, so the cloth's grazing edges catch the moon in the open and
+	// the lantern beside it -- a fibre sheen that reads the silhouette without glowing in the dark.
+	// Half light colour, half the wool's own (the moon's blue edge stays wine, not silver).
+	// Godot's own rim falloff is broad at wool roughness (exponent ~1.6): it lit the whole coat and
+	// flattened it, so the term is held to the true grazing edge here (the shader's rim, ^2.6).
+	RIM = sheen * rim * occl * (1.0 - trim * 0.5);
+	RIM_TINT = sheen_tint;
 	vec3 glyph = glyph_color * a4.a * glyph_glow * trim * (0.75 + 0.25 * sin(TIME * 1.3 + lpos.x * 9.0));
 	EMISSION = veins + glyph + rim_color * rim * mix(0.25, 0.55, step(0.01, magic_amt)) * occl
 		+ rim_key(col, NORMAL, VERTEX, VIEW_MATRIX, MODEL_MATRIX) * occl;

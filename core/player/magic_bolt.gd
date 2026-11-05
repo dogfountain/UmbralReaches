@@ -528,6 +528,32 @@ func _build_visual() -> void:
 	add_child(flare)
 
 
+## Drop the shared meshes and materials (night teardown: BoltPool._exit_tree). Statics outlive the
+## renderer at quit. Rebuilt by _ensure_shared on the next bolt.
+static func release_shared() -> void:
+	_core_mats.clear()
+	_shock_mats.clear()
+	_streak_mat = null
+	_heat_mesh = null
+	_heat_mat = null
+	_glow_pierce = null
+	_core_mesh = null
+	_core_mesh_h = null
+	_aura_mesh = null
+	_aura_mesh_h = null
+	_glow = null
+	_glow_h = null
+	_shell = null
+	_shell_h = null
+	_trail_pm = null
+	_burst_pm = null
+	_trail_quad = null
+	_burst_quad = null
+	_shock_mesh = null
+	_shock_mat = null
+	_flare_mesh = null
+
+
 static func _ensure_shared() -> void:
 	if _core_mesh != null:
 		return

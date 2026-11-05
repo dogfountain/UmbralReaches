@@ -20,6 +20,29 @@ static var _ring_mesh: PlaneMesh
 static var _fade: GradientTexture1D
 
 
+## Drop every engine resource held in a static (the night is torn down: BoltPool._exit_tree).
+## Statics outlive the renderer at quit, and a rebuilt night should not inherit the last one's
+## presets. Pooled emitters are children of the scene going away, so the pool only forgets them.
+## Rebuilt on next use. (The exit "ParticlesShaderRD never freed" is NOT these: it survives this
+## release -- see the r36 note in core/player/bolt_pool.gd.)
+static func release() -> void:
+	_dot = null
+	_scorch_tex = null
+	_scorch_glow_tex = null
+	_draw_mats.clear()
+	_procs.clear()
+	_quads.clear()
+	_trail_meshes.clear()
+	_ring_mats.clear()
+	_ring_mesh = null
+	_fade = null
+	_pool.clear()
+	_idle_total = 0
+	_star_tex = null
+	_flash_mats.clear()
+	_flash_quad = null
+
+
 static func host() -> Node:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.current_scene if tree else null

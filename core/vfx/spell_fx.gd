@@ -29,6 +29,16 @@ static var _mats := {}
 static var _spear: ArrayMesh
 
 
+## Drop the cached meshes and materials (night teardown: BoltPool._exit_tree). Rebuilt on use.
+static func release() -> void:
+	_plane = null
+	_sphere = null
+	_cyl = null
+	_quad = null
+	_mats.clear()
+	_spear = null
+
+
 static func _mat(key: String, shader: Shader, params: Dictionary) -> ShaderMaterial:
 	if _mats.has(key):
 		return _mats[key]
