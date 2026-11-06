@@ -84,7 +84,7 @@ static func mat(key: String) -> Material:
 			m.albedo_color = Color(1.0, 0.62, 0.3)
 			m.emission_enabled = true
 			m.emission = Color(1.0, 0.5, 0.18)
-			m.emission_energy_multiplier = 1.25
+			m.emission_energy_multiplier = 0.5
 			m.cull_mode = BaseMaterial3D.CULL_DISABLED
 		"flame":
 			var sm := ShaderMaterial.new()

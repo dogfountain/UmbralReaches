@@ -952,7 +952,7 @@ func _pose(dt: float) -> void:
 	r.update_glow()
 	var gm: StandardMaterial3D = r.glow_mat
 	if gm and tool_l == "tongs":
-		gm.emission_energy_multiplier = 0.2 + 2.6 * heat * heat
+		gm.emission_energy_multiplier = 0.2 + 1.3 * heat * heat      # r37 cap (was 2.6)
 		gm.albedo_color = Color(0.35, 0.3, 0.28).lerp(Color(1.0, 0.55, 0.15), heat)
 		(r.glow as Node3D).visible = act in ["hammer", "heat", "quench"] and state == "act"
 

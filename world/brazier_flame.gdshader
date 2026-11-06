@@ -6,10 +6,10 @@ render_mode blend_add, unshaded, cull_disabled, depth_draw_never, shadows_disabl
 // low and central, orange body, the deep-red tips fading out before they go dim enough for the
 // grade to pull them blue; the tongue narrows as it rises.
 
-uniform vec3 fire_hot : source_color = vec3(1.0, 0.82, 0.35);
+uniform vec3 fire_hot : source_color = vec3(1.0, 0.66, 0.22);
 uniform vec3 fire_mid : source_color = vec3(1.0, 0.32, 0.06);
 uniform vec3 fire_cool : source_color = vec3(0.45, 0.04, 0.01);
-uniform float intensity = 1.15;
+uniform float intensity = 0.95;
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) {

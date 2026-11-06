@@ -620,7 +620,7 @@ func spawn_knots(boss: Node) -> Array[HeartKnot]:
 	core.albedo_color = Color(0.4, 0.12, 0.03)
 	core.emission_enabled = true
 	core.emission = Color(1.0, 0.4, 0.1)
-	core.emission_energy_multiplier = 2.6
+	core.emission_energy_multiplier = 1.5
 	var mesh := cm.commit()
 	for deg: float in KNOT_ANGLES:
 		var kn := HeartKnot.new()

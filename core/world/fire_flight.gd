@@ -179,7 +179,7 @@ func _make_wisp(at: Vector3) -> void:
 	m.albedo_color = Color(1.0, 0.7, 0.35)
 	m.emission_enabled = true
 	m.emission = Color(1.0, 0.55, 0.22)
-	m.emission_energy_multiplier = 4.0
+	m.emission_energy_multiplier = 1.2
 	core.material_override = m
 	core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_wisp.add_child(core)

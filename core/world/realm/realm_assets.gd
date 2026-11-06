@@ -285,7 +285,7 @@ static func _mat(key: String) -> Material:
 			m.albedo_color = Color(1.0, 0.66, 0.36)
 			m.emission_enabled = true
 			m.emission = Color(1.0, 0.6, 0.28)
-			m.emission_energy_multiplier = 1.6
+			m.emission_energy_multiplier = 1.1
 		"rune":
 			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			m.albedo_color = Color(0.5, 0.68, 1.0) * 0.9

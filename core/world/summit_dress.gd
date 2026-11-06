@@ -148,7 +148,7 @@ static func dress(root: Node) -> void:
 	lore_more.call("place", holder, "bs_last_step", Vector3(-1.7, 25.6, -69.4))
 	lore_more.call("place", holder, "bs_dais", SUMMIT + Vector3(DAIS_C.x, TOP_DECK_Y + 0.25, DAIS_C.y + DAIS_R + 0.9))
 	# the "where do I go" for the whole map: a pale column from above the dais into the vortex eye
-	Wayfinding.beacon(holder, dais, "ascended_warden", Color(1.0, 0.86, 0.62), 170.0, 1.1)
+	Wayfinding.beacon(holder, dais, "ascended_warden", Color(1.0, 0.86, 0.62), 170.0, 1.1, 9.0, true)
 	arena.on_slain = func(_fresh: bool) -> void:
 		if is_instance_valid(raid):
 			raid.call("set_mood", "won")

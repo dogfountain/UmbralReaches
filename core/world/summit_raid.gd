@@ -38,13 +38,13 @@ var _edge_lights: Array[OmniLight3D] = []
 class Pylon extends Node3D:
 	var lit := true
 	var progress := 0.0
-	var _flame: MeshInstance3D
+	var _flame: Node3D
 	var _light: OmniLight3D
 	var _ring: MeshInstance3D
 	var _fill: MeshInstance3D
 	var _ring_mat: StandardMaterial3D
 
-	func setup(flame_mat: Material) -> void:
+	func setup(flame_mat: ShaderMaterial) -> void:
 		var k := OssKit.new()
 		k.keep_lanes = false
 		k.box("stone", Vector3(0, 0.25, 0), Vector3(2.0, 0.5, 2.0), Basis.IDENTITY, true, 0.85)
@@ -52,15 +52,21 @@ class Pylon extends Node3D:
 		k.box("stone", Vector3(0, 5.4, 0), Vector3(1.5, 0.3, 1.5), Basis.IDENTITY, true, 0.8)
 		k.box("iron", Vector3(0, 5.65, 0), Vector3(1.2, 0.2, 1.2), Basis.IDENTITY, false)
 		k.commit(self, "PylonBody")
-		var qm := QuadMesh.new()
-		qm.size = Vector2(1.3, 2.2)
-		qm.center_offset = Vector3(0, 1.0, 0)
-		_flame = MeshInstance3D.new()
-		_flame.mesh = qm
-		_flame.material_override = flame_mat
-		_flame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# r37: the crown is the brazier's crossed flame cards (world/brazier_flame.gdshader), not a flat
+		# billboard: a hot pale core under an orange body, so it can not clip to a white blob
+		_flame = Node3D.new()
 		_flame.position = Vector3(0, 5.7, 0)
 		add_child(_flame)
+		for i in 2:
+			var qm := QuadMesh.new()
+			qm.size = Vector2(1.0, 1.8)
+			qm.center_offset = Vector3(0, 0.85, 0)
+			var card := MeshInstance3D.new()
+			card.mesh = qm
+			card.material_override = flame_mat
+			card.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			card.rotation.y = float(i) * PI * 0.5
+			_flame.add_child(card)
 		_light = OmniLight3D.new()
 		_light.light_color = GOLD
 		_light.light_energy = 2.4
@@ -168,18 +174,21 @@ func _build(_hb: Basis) -> void:
 	fm.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
 	fm.cull_mode = BaseMaterial3D.CULL_DISABLED
 	fm.albedo_texture = Glow.call("_tongue")
-	fm.albedo_color = Color(1.3, 0.78, 0.32, 1.0)
+	fm.albedo_color = Color(1.0, 0.6, 0.24, 1.0)      # r37 cap (was 1.3, 0.78, 0.32)
 	fm.disable_fog = true
+	var card_mat := ShaderMaterial.new()
+	card_mat.shader = load("res://world/brazier_flame.gdshader") as Shader
+	card_mat.set_shader_parameter(&"fire_mid", Color(1.0, 0.5, 0.12))       # a gold crown: the brazier's card, warmer in the body
 	for deg: float in PYLON_ANGLES:
 		var p := Pylon.new()
 		p.name = "Pylon%d" % pylons.size()
 		add_child(p)
 		p.global_position = C + _dir(deg) * PYLON_R
-		p.setup(fm)
+		p.setup(card_mat)
 		pylons.append(p)
 	# the edge fires: a bowl at each end of the two broken edges, red, one light per edge
 	var em := fm.duplicate() as StandardMaterial3D
-	em.albedo_color = Color(1.4, 0.5, 0.18, 1.0)
+	em.albedo_color = Color(1.0, 0.38, 0.14, 1.0)      # r37 cap (was 1.4, 0.5, 0.18)
 	var k := OssKit.new()
 	k.keep_lanes = false
 	var spots: Array[Vector3] = []

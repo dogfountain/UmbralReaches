@@ -36,8 +36,8 @@ uniform vec3 moss_tint : source_color = vec3(0.42, 0.62, 0.42);
 uniform float moss_scale = 0.45;
 
 uniform float ember : hint_range(0.0, 1.0) = 0.0;
-uniform vec3 ember_color : source_color = vec3(1.0, 0.34, 0.07);
-uniform float ember_energy = 0.95;
+uniform vec3 ember_color : source_color = vec3(0.78, 0.17, 0.035);   // r37: dull ember red (was 1.0, 0.34, 0.07), geology not neon
+uniform float ember_energy = 0.5;     // r37 (was 0.95): a banked glow, peak ~0.4 per channel
 uniform float soot : hint_range(0.0, 1.0) = 0.0;          // ash: darkened, glassy-black near cracks
 
 uniform float rim_amount : hint_range(0.0, 1.0) = 0.3;
@@ -107,7 +107,7 @@ void fragment() {
 	// ash: soot and ember cracks
 	float crack = smoothstep(0.55, 0.95, msk.r);
 	// only some cracks are alive: the mesh's ember region, broken up by the macro tone
-	float region = (1.0 - COLOR.b) * smoothstep(0.35, 0.6, macro);
+	float region = (1.0 - COLOR.b) * smoothstep(0.45, 0.75, macro);   // r37: fewer live cracks (was 0.35, 0.6)
 	col *= 1.0 - soot * (0.35 + 0.4 * crack);
 	float glow = crack * region * ember;
 	col = mix(col, vec3(0.03, 0.02, 0.02), glow * 0.8);
@@ -121,5 +121,5 @@ void fragment() {
 	RIM = rim_amount * (1.0 - moss * 0.5);
 	RIM_TINT = rim_tint_amt;
 	float flick = 0.82 + 0.18 * sin(TIME * 1.3 + wpos.x * 1.7 + wpos.z * 1.1);
-	EMISSION = ember_color * ember_energy * glow * flick;
+	EMISSION = ember_color * ember_energy * glow * glow * flick;   // r37: glow^2 keeps the heat in the crack middles, edges stay dark crust
 }
