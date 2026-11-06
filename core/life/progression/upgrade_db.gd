@@ -130,7 +130,7 @@ const CORE_SPOTS := {
 const OATHS: Array[Dictionary] = [
 	{"tier": 1, "cost": 12, "gate": 0,
 		"a": {"id": "hearth", "name": "Oath of the Hearth", "glyph": "hearth",
-			"text": "Fire takes the Gloom off you and mends you 60% faster: braziers, wards, every warm light.",
+			"text": "A fire takes the Gloom off you and mends the plate 60% faster; a ward takes the Gloom off faster, and does not mend.",
 			"lore": "Stay by the fire. That is the whole of the Kindlers' teaching."},
 		"b": {"id": "hollow", "name": "Oath of the Hollow", "glyph": "hollow",
 			"text": "Every kill mends 4 more Wounds.",
