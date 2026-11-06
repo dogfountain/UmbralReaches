@@ -12,6 +12,7 @@ const SELF := "res://core/npc/dwarf_look.gd"
 const SHADER_PATH := "res://core/npc/dwarf.gdshader"   ## loaded, not preloaded: a const outlives the renderer at quit
 const SIZE := 128
 const LAYERS := 10
+const LAYER_NAMES := ["skin", "cloth", "linen", "leather", "hair", "metal", "wood", "foam", "eye", "fur"]
 
 static var _mat: ShaderMaterial
 static var _mat_out: ShaderMaterial
@@ -42,6 +43,11 @@ static func material() -> ShaderMaterial:
 	if _mat:
 		return _mat
 	var t0 := Time.get_ticks_msec()
+	var baked := _baked_material()
+	if baked != null:
+		_mat = baked
+		print("DWARF look ready in %d ms (baked maps)" % (Time.get_ticks_msec() - t0))
+		return _mat
 	var alb: Array[Image] = []
 	var hgt: Array[Image] = []
 	var cached: Variant = GenCache.load_var("dwarf_look|%d" % SIZE, SELF)
@@ -84,6 +90,42 @@ static func material() -> ShaderMaterial:
 	_mat.set_shader_parameter("detail_normal", tn)
 	print("DWARF look ready in %d ms (%s)" % [Time.get_ticks_msec() - t0, "cached" if cached is Dictionary else "generated"])
 	return _mat
+
+
+## art pass: the maps baked by tools/blender/people_textures.py (512 px PBR layers, real normals):
+## art/textures/people/people_<layer>_{albedo,normal}.png in DwarfMesh.MAT_* order. Null if any is
+## missing (the generated 128 px layers below then stand in).
+static func _baked_material() -> ShaderMaterial:
+	var alb: Array[Image] = []
+	var nrm: Array[Image] = []
+	for nm: String in LAYER_NAMES:
+		var ta := load("res://art/textures/people/people_%s_albedo.png" % nm) as Texture2D
+		var tn := load("res://art/textures/people/people_%s_normal.png" % nm) as Texture2D
+		if ta == null or tn == null:
+			return null
+		var ia := ta.get_image()
+		var inn := tn.get_image()
+		if ia == null or inn == null:
+			return null
+		if ia.is_compressed():
+			ia.decompress()
+		if inn.is_compressed():
+			inn.decompress()
+		ia.convert(Image.FORMAT_RGBA8)
+		inn.convert(Image.FORMAT_RGBA8)
+		ia.generate_mipmaps()
+		inn.generate_mipmaps()
+		alb.append(ia)
+		nrm.append(inn)
+	var arr_a := Texture2DArray.new()
+	arr_a.create_from_images(alb)
+	var arr_n := Texture2DArray.new()
+	arr_n.create_from_images(nrm)
+	var m := ShaderMaterial.new()
+	m.shader = load(SHADER_PATH) as Shader
+	m.set_shader_parameter("detail_albedo", arr_a)
+	m.set_shader_parameter("detail_normal", arr_n)
+	return m
 
 
 static func _noise(seed_v: int, freq: float, kind := FastNoiseLite.TYPE_SIMPLEX_SMOOTH, octaves := 3) -> Image:
