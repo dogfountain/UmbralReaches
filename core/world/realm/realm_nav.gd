@@ -67,15 +67,31 @@ static func build(root: Node) -> void:
 		_install(root, nm, t0, key, false)
 		return
 	var done := [false]
-	NavigationServer3D.bake_from_source_geometry_data_async(nm, source, func() -> void: done[0] = true)
+	# Baked on a WorkerThreadPool task this module owns (not the server's own async bake), so a quit
+	# or scene change mid-bake can wait for it: the engine crashed tearing down under a live bake.
+	_task = WorkerThreadPool.add_task(func() -> void:
+		NavigationServer3D.bake_from_source_geometry_data(nm, source)
+		done[0] = true, false, "RealmNav bake")
+	root.tree_exiting.connect(_finish_task, CONNECT_ONE_SHOT)
 	var tree := root.get_tree()
 	while not done[0] and Time.get_ticks_msec() - t0 < WAIT_MS:
 		await tree.process_frame
 	if done[0]:
+		_finish_task()
 		_install(root, nm, t0, key, true)
 	else:
 		print("REALM_NAV bake still running after %d ms: enemies keep flat steering until it lands" % WAIT_MS)
 		_land_late(root, nm, done, t0, key)
+
+
+static var _task := -1
+
+
+## Block until a running bake is done (the night is being freed, or the game is quitting).
+static func _finish_task() -> void:
+	if _task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_task)
+		_task = -1
 
 
 ## A late bake: poll on the tree's timer until it lands, then install it (build() does not wait).
@@ -85,6 +101,7 @@ static func _land_late(root: Node, nm: NavigationMesh, done: Array, t0: int, key
 		await tree.create_timer(0.5, false).timeout
 		if not is_instance_valid(root) or not root.is_inside_tree():
 			return
+	_finish_task()
 	_install(root, nm, t0, key, true)
 
 
