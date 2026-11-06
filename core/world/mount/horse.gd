@@ -1,13 +1,13 @@
 extends Interactable
-## r36 a horse (core/world/mount): one creature-shader MultiMesh instance (life_kit's horse_* meshes:
-## legs and head animated on the GPU from the gait phase), a state, and the ride. Stands at its
+## r36 a horse (core/world/mount): a skinned glTF (art/models/horse_*.glb, built by
+## tools/blender/horse_build.py) posed by horse_rig.gd from the gait phase, a state, and the ride. Stands at its
 ## hitching post (or where it was left) grazing; [E] buys it there, rides it once owned; [E] while
 ## riding gets down. Player.riding hands the drive to `drive()` every physics frame.
 ##   walk / trot / gallop by the move stick and sprint; turns toward the move direction at the
 ##   breed's rate; follows the ground with a ray (refuses a step taller than `climb`); stops at a
 ##   wall; slows to a walk in water unless it wades; a draught throws the hollowed aside (trample).
 
-const LifeKit := preload("res://core/life/wildlife/life_kit.gd")
+const HorseRig := preload("res://core/world/mount/horse_rig.gd")
 const DB := preload("res://core/world/mount/horse_db.gd")
 const VAudio := preload("res://core/life/village/village_audio.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
@@ -16,7 +16,9 @@ var breed := "palfrey"
 var at_post := true              ## standing at its hitching post (for sale until owned)
 var rider: Node3D = null
 var speed := 0.0
-var _mmi: MultiMeshInstance3D
+var _rig: Node3D
+var _speed_prev := 0.0
+var _accel := Vector2.ZERO            ## fore-aft and sideways acceleration, for the lantern
 var _d: Dictionary
 var _yaw := 0.0
 var _phase := 0.0
@@ -29,8 +31,8 @@ var _mount_t := 9.0
 var _mount_from := Vector3.ZERO
 const LEAVE_T := 1.0
 const MOUNT_T := 1.15                ## r36: step up, foot in the stirrup, swing over, settle
-const STIRRUP_Y := 0.62              ## the left stirrup's tread above the ground (x the breed's scale)
-const SEAT_Y := 1.315             ## the saddle's seat top, x the breed's scale, above the horse's origin
+## the saddle's seat top, the stirrup tread and the barrel under the rider are the breed's own metres
+## (horse_db.gd: seat, stirrup_y, stirrup_x, bw / bc / bl), measured off the built model
 var _space: PhysicsDirectSpaceState3D
 var _leave_t := 0.0                  ## walking out of a boss ring before getting down
 var _leave_dir := Vector3.ZERO
@@ -41,13 +43,12 @@ func _ready() -> void:
 	_d = DB.BREEDS.get(breed, DB.BREEDS["palfrey"])
 	add_to_group(Groups.INTERACTABLE)
 	add_to_group(&"horse")
-	_mmi = LifeKit.group(String(_d.mesh), 1)
-	_mmi.top_level = true            # placed every rendered frame from the interpolated transform (_process)
-	_mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	_mmi.visibility_range_end = 120.0
-	add_child(_mmi)
+	_rig = HorseRig.new()
+	_rig.setup(breed, _d)
+	_rig.top_level = true            # placed every rendered frame from the interpolated transform (_process)
+	add_child(_rig)
 	_yaw = global_basis.get_euler().y
-	_write()
+	_write(NAN, 0.0)
 
 
 func can_interact() -> bool:
@@ -185,17 +186,19 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 			speed = move_toward(speed, 0.0, maxf(speed, 3.0) / 0.2 * dt)       # eased to a stop in ~0.2 s
 		else:
 			global_position = Vector3(next.x, lerpf(global_position.y, g.y, 1.0 - exp(-14.0 * dt)), next.z)
-			_phase += speed * dt * 2.6 / _scale()            # unwrapped: a wrap would swing the legs back a frame
+			_phase += TAU * _rig.freq(speed) * dt            # unwrapped: a wrap would swing the legs back a frame
 	if bool(_d.get("trample", false)) and speed > 6.0:
 		_trample(fwd)
 	global_basis = Basis(Vector3.UP, _yaw)
-	_head = lerpf(_head, -0.15 if speed > 7.0 else 0.0, 1.0 - exp(-4.0 * dt))
-	_write()
+	_head = lerpf(_head, 0.0, 1.0 - exp(-4.0 * dt))
+	_accel = Vector2((speed - _speed_prev) / maxf(dt, 0.001), speed * _turn_v)
+	_speed_prev = speed
+	_write(NAN, dt)
 	_hooves(dt)
 	# the rider sits the saddle, facing where the horse faces
-	# the pelvis on the saddle's seat (the seat's top is 1.315 x scale above the horse's origin; the
-	# rig's pelvis stands 0.955 above its feet), a hand's width behind the pommel
-	var seat := global_position + Vector3.UP * (SEAT_Y * _scale() - CharacterRig.H_PELVIS + 0.02 + _bob()) + fwd * (0.04 * _scale())
+	# the pelvis on the saddle's seat (the seat's top is `seat` above the horse's origin; the rig's
+	# pelvis stands 0.955 above its feet), a hand's width behind the pommel
+	var seat := global_position + Vector3.UP * (float(_d.seat) - CharacterRig.H_PELVIS + 0.02 + _bob()) + fwd * (0.04 * _scale())
 	var vis := p.get_node_or_null("Visual") as Node3D
 	if _mount_t < MOUNT_T:
 		# r36: getting on, from the near (left) side: a step to the stirrup, the left foot in it and a
@@ -207,7 +210,7 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		var left := -global_basis.x.normalized()
 		var side := global_position + left * 0.7 * sc + fwd * 0.03 * sc
 		side.y = global_position.y
-		var stand := global_position + left * 0.5 * sc + fwd * 0.03 * sc + Vector3.UP * (STIRRUP_Y * sc)
+		var stand := global_position + left * float(_d.stirrup_x) + fwd * 0.03 * sc + Vector3.UP * float(_d.stirrup_y)
 		var over := seat + Vector3.UP * 0.16 + left * 0.06 * sc
 		var at: Vector3
 		if m < 0.22:
@@ -228,10 +231,9 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		vis.set("mount", -1.0)
 	p.global_position = seat
 	if vis and "saddle" in vis:
-		# the barrel under the rider, in the coat's space (origin at the pelvis): its centre 0.98 x
-		# scale above the horse's origin, so (0.98 - 1.315) x scale below the seat
-		var g: float = float(LifeKit.HORSES.get(breed, {}).get("girth", 1.0))
-		vis.set("saddle", Vector3(0.25 * g * _scale() * 1.05, (0.98 - SEAT_Y) * _scale() - 0.02, 0.285 * _scale() * 1.05))
+		# the barrel under the rider, in the coat's space (origin at the pelvis): its half width, its
+		# centre below the seat, its half length
+		vis.set("saddle", Vector3(float(_d.bw) * 1.05, float(_d.bc) - float(_d.seat) - 0.02, float(_d.bl) * 1.05))
 	if vis:
 		# facing where the horse faces, in WORLD space: the player node itself turns with the camera,
 		# so a local yaw sat the rider sideways
@@ -241,15 +243,15 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 
 
 func _process(dt: float) -> void:
-	if _mmi:
-		_mmi.global_transform = get_global_transform_interpolated()
+	if _rig:
+		_rig.global_transform = get_global_transform_interpolated()
 	# a rider that died, was hollowed or was moved off (a respawn, travel) is no longer riding
 	if rider != null and (not is_instance_valid(rider) or rider.get("riding") != self):
 		rider = null
 		speed = 0.0
 	if rider != null:
 		# ridden: drive() steps the gait on the tick; draw it at the frame's moment, as the body is
-		_write(lerpf(_phase_prev, _phase, Engine.get_physics_interpolation_fraction()))
+		_write(lerpf(_phase_prev, _phase, Engine.get_physics_interpolation_fraction()), dt)
 		return
 	# standing: graze now and then, flick the head up
 	_graze_t -= dt
@@ -259,26 +261,26 @@ func _process(dt: float) -> void:
 	_head = lerpf(_head, 0.7 if down else 0.0, 1.0 - exp(-1.5 * dt))
 	if speed > 0.0:
 		speed = move_toward(speed, 0.0, 9.0 * dt)
-	_write()
+	if _near_camera():
+		_write(NAN, dt)
 
 
-func _bob(ph := NAN) -> float:
-	if is_nan(ph):
-		ph = _phase
-	var k := clampf(speed / 9.0, 0.0, 1.0)
-	return absf(sin(ph)) * 0.06 * k * _scale() - 0.03 * k * _scale()
+func _bob(_ph := NAN) -> float:
+	return _rig.last_dy if _rig else 0.0
 
 
-func _write(ph := NAN) -> void:
-	if _mmi == null:
+## Posed only when the camera could see it (the rig is a skeleton, 30 bones a frame).
+func _near_camera() -> bool:
+	var cam := get_viewport().get_camera_3d()
+	return cam == null or cam.global_position.distance_squared_to(global_position) < 110.0 * 110.0
+
+
+func _write(ph := NAN, dt := 0.0) -> void:
+	if _rig == null:
 		return
 	if is_nan(ph):
 		ph = _phase
-	var mm := _mmi.multimesh
-	# the gait moves the whole body: a bob twice a stride and a little pitch, more at a gallop
-	var k := clampf(speed / 9.0, 0.0, 1.0)
-	mm.set_instance_transform(0, Transform3D(Basis(Vector3.RIGHT, sin(ph * 2.0 + 0.6) * 0.035 * k), Vector3(0, _bob(ph), 0)))
-	mm.set_instance_custom_data(0, Color(0.0, 0.0, ph if speed > 0.05 else 0.0, _head))
+	_rig.pose(ph, speed, _head, dt, _accel)
 
 
 ## Flat direction from the nearest boss ring's centre out through the horse.
@@ -298,7 +300,7 @@ func _away_from_ring() -> Vector3:
 
 
 func _scale() -> float:
-	return float((LifeKit.RIG.get(String(_d.mesh), {}) as Dictionary).get("head_pivot", Vector3(0, 1.42, 0)).y)
+	return float(_d.seat) / 1.315                  # the old unit (deer-built horses), for the reach and trample distances
 
 
 func _hooves(dt: float) -> void:

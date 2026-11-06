@@ -1,10 +1,10 @@
 extends Node3D
-## Studio renders of the four horse breeds (core/world/mount, life_kit horse_* meshes) side-on and
-## three-quarter, and the wanderer seated on one (the rig's ride pose), under the studios' night rig.
+## Studio renders of the four horse breeds (core/world/mount, horse_rig.gd) side-on and
+## three-quarter, and a walk, a trot and a gallop frame, and the wanderer seated on one (the rig's ride pose), under the studios' night rig.
 ##   godot --path . res://zz/horse_studio.tscn -- --tag=x
 ## -> shots/horse/<tag>_<breed>_<view>.png, <tag>_riding.png
 
-const LifeKit := preload("res://core/life/wildlife/life_kit.gd")
+const HorseRig := preload("res://core/world/mount/horse_rig.gd")
 const DB := preload("res://core/world/mount/horse_db.gd")
 
 var tag := "studio"
@@ -57,14 +57,23 @@ func _ready() -> void:
 func _run() -> void:
 	for b: String in DB.ORDER:
 		var d: Dictionary = DB.BREEDS[b]
-		var mmi := LifeKit.group(String(d.mesh), 1)
-		add_child(mmi)
-		mmi.multimesh.set_instance_transform(0, Transform3D.IDENTITY)
-		mmi.multimesh.set_instance_custom_data(0, Color(0, 0, 0, 0))
-		var s: float = float((LifeKit.RIG.get(String(d.mesh), {}) as Dictionary).get("head_pivot", Vector3(0, 1.42, 0)).y)
+		var rig := HorseRig.new()
+		rig.setup(b, d)
+		add_child(rig)
+		rig.pose(0.0, 0.0, 0.0, 0.0)
+		var s: float = float(d.seat) / 1.315
 		await _shot("%s_side" % b, Vector3(3.4 * s, 1.0 * s, 0.2 * s), Vector3(0, 0.95 * s, -0.1 * s))
 		await _shot("%s_34" % b, Vector3(2.0 * s, 1.3 * s, -2.4 * s), Vector3(0, 1.0 * s, -0.3 * s))
-		mmi.queue_free()
+		await _shot("%s_back" % b, Vector3(-1.8 * s, 1.6 * s, 3.0 * s), Vector3(0, 1.0 * s, 0.0))
+		for gait: Array in [["walk", 0.4, float(d.walk)], ["trot", 0.3, float(d.trot)], ["gallop", 0.2, float(d.gallop)]]:
+			var ph: float = TAU * float(gait[1])
+			for i in 30:
+				rig.pose(ph, float(gait[2]), 0.0, 0.016)
+			await _shot("%s_%s" % [b, gait[0]], Vector3(3.6 * s, 1.0 * s, 0.2 * s), Vector3(0, 0.95 * s, -0.1 * s))
+		rig.pose(0.0, 0.0, 0.7, 0.5)
+		rig.pose(0.0, 0.0, 0.7, 0.5)
+		await _shot("%s_graze" % b, Vector3(3.0 * s, 1.0 * s, -1.5 * s), Vector3(0, 0.9 * s, -0.5 * s))
+		rig.queue_free()
 		await _frames(2)
 	_sheet()
 	get_tree().quit(0)
