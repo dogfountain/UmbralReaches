@@ -278,6 +278,9 @@ func _begin(i: int) -> bool:
 	if why != "":
 		_refuse(i, why)
 		return false
+	if s.trigger == Skill.Trigger.CHARGE and player.riding != null:
+		_refuse(i, "")                                    # a charge does not fill from a saddle: the slot flashes and says no
+		return false
 	_lock = LOCK
 	var surged: bool = combat != null and surge_fits(s) and combat.has(player, &"surge")
 	if s.trigger == Skill.Trigger.CHARGE:
