@@ -20,6 +20,7 @@ const TracksScript := preload("res://core/life/wildlife/tracks.gd")
 const PhenomenaScript := preload("res://core/life/wildlife/phenomena.gd")
 const RL := preload("res://core/world/realm/realm_land.gd")
 const Marches := preload("res://core/life/wildlife/life_marches.gd")
+const Settle := preload("res://core/life/wildlife/life_settle.gd")
 
 const NEAR_R := 16.0
 const OUT_TICK := 0.2                    ## logic interval for groups out of the camera's view
@@ -100,9 +101,11 @@ func setup(r: Node) -> void:
 		tracks = TracksScript.new()
 		add_child(tracks)
 	_place_moths()
+	Settle.moths(self, root, counts)
 	_place_pools(space)
 	_place_pools(space, true)
 	_place_crows(space)
+	Settle.rats(self, space, _add_group, counts)
 	_place_owls(space)
 	_place_owls(space, true)
 	_place_herds(space)

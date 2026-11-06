@@ -4,6 +4,7 @@ extends RefCounted
 ## build, after every Realm module before it. Load by path (no class_name).
 
 const RL := preload("res://core/world/realm/realm_land.gd")
+const Zones := preload("res://core/world/realm/dress_zones.gd")
 
 ## lights whose name says they are indoors, cold or not a flame
 const LIGHT_SKIP := ["hearth", "taproom", "glow", "orb", "fill", "bolt", "seal", "rim", "window", "crystal", "chapel", "pit", "gallery", "bridge"]
@@ -195,6 +196,60 @@ static func crow_roosts(root: Node, space: PhysicsDirectSpaceState3D, rng: Rando
 		if bn >= 3:
 			var ps: Array = groups[best]
 			out.append({"name": "%s_trees" % pair[0], "center": _mean(ps), "perches": ps.slice(0, 6)})
+	if not Zones.off():
+		out.append_array(settlement_roosts(space, rng))
+	return out
+
+
+## Crows where people live and where the wall is broken: on the roofs round each square, strutting
+## on its stones off the walk lanes, and on the wall's crumbled tops at the breaches. A roost needs at
+## least five perches (the director seats three or four crows on them).
+static func settlement_roosts(space: PhysicsDirectSpaceState3D, rng: RandomNumberGenerator) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for sq: Dictionary in Zones.SQUARES:
+		var c: Vector2 = sq.c
+		var r: float = sq.r
+		var gy := ground(space, c.x, c.y)
+		var tops: Array = []
+		var floor_ps: Array = []
+		for i in 90:
+			var a := rng.randf() * TAU
+			var d := r + rng.randf_range(1.0, 14.0)
+			var p := c + Vector2(cos(a), sin(a)) * d
+			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, gy + 14.0, p.y), Vector3(p.x, gy - 2.0, p.y), 1))
+			if hit.is_empty():
+				continue
+			var hp: Vector3 = hit.position
+			if hp.y > gy + 2.2 and hp.y < gy + 10.0 and hit.normal.y > 0.3 and not String((hit.collider as Node).name).begins_with("Terrain"):
+				tops.append([hp, rng.randf_range(-PI, PI)])
+		for i in 40:
+			var a2 := rng.randf() * TAU
+			var q := c + Vector2(cos(a2), sin(a2)) * r * rng.randf_range(0.2, 0.95)
+			if Zones.lane_dist(q) < 2.6:
+				continue
+			var gq := ground(space, q.x, q.y)
+			floor_ps.append([Vector3(q.x, gq, q.y), rng.randf_range(-PI, PI)])
+		shuffle(tops, rng)
+		var ps: Array = tops.slice(0, 3) + floor_ps.slice(0, 3)
+		if ps.size() >= 5:
+			out.append({"name": "town_" + String(sq.id), "center": _mean(ps), "perches": ps})
+	var bi := 0
+	for b: Array in Zones.breaches():
+		var bp: Vector2 = b[0]
+		var gb := ground(space, bp.x, bp.y)
+		var tops2: Array = []
+		for i in 60:
+			var q2 := bp + Vector2(rng.randf_range(-9.0, 9.0), rng.randf_range(-11.0, 11.0))
+			var hit2 := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(q2.x, gb + 12.0, q2.y), Vector3(q2.x, gb - 3.0, q2.y), 1))
+			if hit2.is_empty():
+				continue
+			var hp2: Vector3 = hit2.position
+			if hp2.y > gb + 1.6 and hit2.normal.y > 0.5 and not String((hit2.collider as Node).name).begins_with("Terrain"):
+				tops2.append([hp2, rng.randf_range(-PI, PI)])
+		shuffle(tops2, rng)
+		if tops2.size() >= 5:
+			out.append({"name": "breach_%d" % bi, "center": _mean(tops2), "perches": tops2.slice(0, 6)})
+		bi += 1
 	return out
 
 
