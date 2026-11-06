@@ -7,6 +7,7 @@ extends Node3D
 ## holds a second longer. In group "umbral_well" so the Lance can find it.
 
 const Afflict := preload("res://core/skills/afflict.gd")
+const CombatState := preload("res://core/skills/combat_state.gd")
 const Combo := preload("res://core/skills/combo.gd")
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 const HEART := preload("res://core/skills/well_heart.gdshader")
@@ -190,7 +191,7 @@ func _collapse() -> void:
 		else:
 			dmg += 0.5 * float(marks)
 		total += marks
-		e.call("take_hit", dmg * power * (Afflict.shatter(e) if horizon else 1.0), self)
+		CombatState.strike(e, dmg * power * (Afflict.shatter(e) if horizon else 1.0), &"umbral", self)
 		var away := (e as Node3D).global_position - global_position
 		away.y = 0.0
 		if away.length() > 0.1:
@@ -206,7 +207,7 @@ func _collapse() -> void:
 			Vfx.arc(at, to, Color(2.0, 0.9, 3.4), 0.3, 0.25)
 			Vfx.burst(to, Color(2.0, 1.0, 3.4), {"count": 16, "life": 0.35, "speed": Vector2(2.0, 5.0), "size": 0.045, "gravity": -4.0, "trail": 0.06})
 			t.call("add_mark", 1)
-			t.call("take_hit", 1.0 * power, self)
+			CombatState.strike(t, 1.0 * power, &"umbral", self)
 	if horizon and total >= 3:
 		Combo.note("DETONATION", at + Vector3.UP * 1.5, Color(0.85, 0.55, 1.0), "%d Marks" % total)
 	_heart.visible = false

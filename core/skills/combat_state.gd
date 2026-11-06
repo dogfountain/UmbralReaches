@@ -104,6 +104,18 @@ static func of(n: Node) -> Node:
 	return p.call("combat") as Node
 
 
+## A spell's blow on `node` that is not the bolt: through deal (Sundered, the crit roll, the damage
+## event) when the wanderer's combat state is up, else a plain hit.
+static func strike(node: Node, dmg: float, school: StringName, from: Node = null) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	var cs := of(node)
+	if cs != null:
+		cs.deal(node, dmg, school, from)
+	elif node.has_method("take_hit"):
+		node.call("take_hit", dmg, from)
+
+
 # --- statuses ----------------------------------------------------------------------------------------
 
 ## Apply `stacks` of status `id` to `node`: a fresh one starts, an existing one refreshes its timer and

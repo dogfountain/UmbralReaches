@@ -6,6 +6,7 @@ extends Node3D
 ## makes a dart that strikes a Marked foe burst on its neighbours. Never collides with anything.
 
 const Aim := preload("res://core/skills/aim.gd")
+const CombatState := preload("res://core/skills/combat_state.gd")
 const Combo := preload("res://core/skills/combo.gd")
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 const PALE := Color(1.6, 1.3, 3.2)
@@ -179,7 +180,7 @@ func _strike(t: Node3D, at: Vector3) -> void:
 		return
 	at = Aim.chest(t)
 	var had := int(t.get("marks")) if t.get("marks") != null else 0
-	t.call("take_hit", DART_DMG * power, self)
+	CombatState.strike(t, DART_DMG * power, &"umbral", self)
 	t.call("add_mark", marks)
 	Vfx.burst(at, PALE, {"count": 14, "life": 0.3, "speed": Vector2(1.5, 4.0), "size": 0.04, "gravity": -3.0, "trail": 0.06})
 	if jar and had > 0:
@@ -188,7 +189,7 @@ func _strike(t: Node3D, at: Vector3) -> void:
 			if o == null or o == t or (o.has_method("is_alive") and not o.call("is_alive")):
 				continue
 			if o.global_position.distance_to(t.global_position) <= 1.5:
-				o.call("take_hit", 0.5 * power, self)
+				CombatState.strike(o, 0.5 * power, &"umbral", self)
 		Vfx.ring(at, 1.5, PALE, 0.25, 0.08, Vector3.UP, 1.0)
 
 
@@ -218,7 +219,7 @@ func _burst_at(at: Vector3) -> void:
 		total += m
 		var dmg := (2.0 if o.global_position.distance_to(at) < 1.8 else 0.0) + float(m)
 		if dmg > 0.0:
-			o.call("take_hit", dmg * power, self)
+			CombatState.strike(o, dmg * power, &"umbral", self)
 	SpellFx.disc(at - Vector3.UP * 0.9, DIVE_R, 0, SpellFx.VIOLET * 0.8, Color(2.6, 2.2, 3.6), 0.6)
 	SpellFx.shell(at, 0.2, DIVE_R, Color(1.3, 1.0, 2.8), 0.32)
 	Vfx.burst(at, PALE, {"count": 50, "life": 0.5, "speed": Vector2(3.0, 8.0), "size": 0.05, "gravity": -4.0, "trail": 0.08})

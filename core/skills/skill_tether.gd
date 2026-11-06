@@ -12,6 +12,7 @@ const DB := preload("res://core/life/progression/upgrade_db.gd")
 const Aim := preload("res://core/skills/aim.gd")
 const Chain := preload("res://core/skills/tether_chain.gd")
 const Drag := preload("res://core/skills/tether_drag.gd")
+const CombatState := preload("res://core/skills/combat_state.gd")
 const Combo := preload("res://core/skills/combo.gd")
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 
@@ -146,7 +147,7 @@ func _arrive(p: Player, e: Node3D, r: int, had: int, power: float) -> void:
 			if o == null or (o.has_method("is_alive") and not o.call("is_alive")):
 				continue
 			if o.global_position.distance_to(at) <= REEL_R:
-				o.call("take_hit", float(m) * power, p)
+				CombatState.strike(o, float(m) * power, &"umbral", p)
 				hurt += 1
 		SpellFx.disc(at, REEL_R, 0, Color(0.4, 1.8, 1.6), Chain.TEAL_HOT, 0.5)
 		SpellFx.shell(at + Vector3.UP, 0.3, REEL_R, Color(0.4, 1.6, 1.5), 0.3)
