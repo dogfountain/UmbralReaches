@@ -844,6 +844,10 @@ static func _pools(zone: Node3D) -> int:
 	mi.mesh = m
 	mi.material_override = load(WATER_MAT)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var box := m.get_aabb()                    # a sheet has no thickness: grow it so a glance along it stays in frame
+	box.position.y -= 3.0
+	box.size.y += 6.0
+	mi.custom_aabb = box
 	zone.add_child(mi)
 	return cells
 

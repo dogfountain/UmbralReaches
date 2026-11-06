@@ -31,7 +31,7 @@ uniform float shore_soft = 0.25;     // m of water over which a pool fades in at
 // r34 flora: seen from high above (overviews, the map camera) the pools read as holes: fresnel is ~0
 // looking straight down and the peat colour is near black. Water always mirrors some sky, and more
 // of it with distance; inside the player's 82 m far plane the near look is unchanged but for the floor.
-uniform float sky_floor = 0.05;      // share of the reflection kept looking straight down
+uniform float sky_floor = 0.14;      // share of the reflection kept looking straight down
 uniform float far_sky = 0.55;        // extra sky sheen on far water (fades in 70..260 m)
 
 varying vec3 wpos;
