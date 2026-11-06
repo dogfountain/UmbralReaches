@@ -292,7 +292,7 @@ func proc_surge(reason: StringName) -> void:
 		var at := player.global_position + Vector3.UP * 2.5
 		HitText.pop(at, "RIFT SURGE", Color(2.4, 1.6, 0.8), true)
 		Vfx.burst(player.global_position + Vector3.UP * 1.2, Color(2.4, 1.5, 0.7), {"count": 20, "life": 0.45, "speed": Vector2(1.0, 3.0), "size": 0.045, "gravity": -1.0, "radius": 0.4, "trail": 0.06})
-		Hints.once(&"rift_surge", "RIFT SURGE: a crit or a parry lights it. Your next Lance throws at full charge, your next Nova bursts double, your next cast is instant.")
+		Hints.once(&"rift_surge", "RIFT SURGE: a crit (a chance), a parry, a perfect dodge or stepping through a blow lights it. Your next Lance throws at full charge, your next Nova gains one point and doubles its resonance crumb, your next cast is instant.")
 
 
 ## A builder landed: `n` Resonance on the wanderer.

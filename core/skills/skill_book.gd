@@ -89,7 +89,7 @@ func _physics_process(delta: float) -> void:
 		_swallow = false
 	if player == null or player.skills_locked():
 		_cancel_charge()
-		_stop_cast(&"cancel")
+		_stop_cast(&"cancel", "broken off")
 		return
 	_tick_cast(delta)
 	if not _input_ok():
@@ -225,10 +225,15 @@ func try_cast(i: int, charge: float, quiet: bool, _released := false) -> bool:
 	player.note_combat()
 	Events.skill_cast.emit(s.id)
 	if s.pose != &"" and s.pose != s.id:
-		var rig: Variant = player.get("_visual")
-		if rig is Object and (rig as Object).has_method("cast_pose"):
-			(rig as Object).call("cast_pose", s.pose)
+		_show_pose(s.pose)
 	return true
+
+
+## The staff pose for `kind` (CharacterRig.cast_pose), if the wanderer has a rig.
+func _show_pose(kind: StringName) -> void:
+	var rig: Variant = player.get("_visual")
+	if rig is Object and (rig as Object).has_method("cast_pose"):
+		(rig as Object).call("cast_pose", kind)
 
 
 # --- cast lock, cast times, interrupts, the spend -----------------------------------------------
@@ -291,6 +296,7 @@ func _begin(i: int) -> bool:
 		_cast_t = 0.0
 		_cast_total = s.cast_time
 		Events.cast_started.emit(s.id, s.cast_time)
+		_show_pose(s.pose if s.pose != &"" else s.id)     # the channel has its pose from the first instant
 		return true
 	return try_cast(i, 0.0, false)
 
@@ -311,15 +317,17 @@ func _tick_cast(delta: float) -> void:
 		try_cast(i, 0.0, false, true)
 
 
-func _stop_cast(reason: StringName) -> void:
+func _stop_cast(reason: StringName, word := "") -> void:
 	if _casting < 0:
 		return
 	var id := slots[_casting].id if _casting < slots.size() else &""
 	_casting = -1
 	_cast_t = 0.0
 	Events.cast_stopped.emit(id, reason)
-	if reason == &"moved" and player:
-		HitText.pop(player.global_position + Vector3.UP * 2.3, "moved", Color(0.75, 0.8, 0.95))
+	if reason == &"moved":
+		word = "moved"
+	if word != "" and player:
+		HitText.pop(player.global_position + Vector3.UP * 2.3, word, Color(0.75, 0.8, 0.95))
 
 
 ## The player was struck for `amount` Gloom (after the guard): a hard blow interrupts a cast or a
@@ -346,6 +354,7 @@ func on_hurt(amount: float) -> void:
 		Hints.once(&"interrupted", "A hard blow breaks a cast. Guard, dodge, or cast from cover.")
 	elif _casting >= 0:
 		_cast_t = maxf(0.0, _cast_t - PUSHBACK)
+		HitText.pop(player.global_position + Vector3.UP * 2.3, "set back", Color(0.75, 0.8, 0.95))
 
 
 ## Does a Rift Surge empower `s`? (the Lance, the Nova, any spell with a cast time)
@@ -359,20 +368,32 @@ func _spend(s: Skill, spent: int, surged: bool) -> void:
 		combat.consume(player, &"surge")
 	if spent > 0:
 		combat.consume(player, &"resonance")
-		player.mend(CombatState.RES_GLOOM * float(spent))     # r35: spent Resonance mends Wounds
+		var closed := minf(CombatState.RES_GLOOM * float(spent), maxf(0.0, player.wounds))
+		player.mend(CombatState.RES_GLOOM * float(spent))     # spent Resonance mends Wounds
 		_heat_hold = 0.0                                  # spending vents the staff's heat
+		var breath := 0.0
 		if spent >= 3:
 			var st: Node = player.stamina() if player.has_method("stamina") else null
 			if st != null:
-				st.refund(CombatState.RES_BREATH * float(spent))
-		if spent >= 3 and player.is_inside_tree():
-			HitText.pop(player.global_position + Vector3.UP * 2.4, "RESONANCE x%d" % spent, Color(1.3, 0.7, 2.8), spent >= RESONANCE_BIG)
+				breath = CombatState.RES_BREATH * float(spent)
+				st.refund(breath)
+		var word := "RESONANCE x%d" % spent if spent >= 3 else ""
+		if closed > 0.0:
+			word += ("  " if word != "" else "") + "mends %s" % _num(closed)
+		if breath > 0.0:
+			word += "  breath %s" % _num(breath)
+		if word != "" and player.is_inside_tree():
+			HitText.pop(player.global_position + Vector3.UP * 2.4, word, Color(1.3, 0.7, 2.8), spent >= RESONANCE_BIG)
 	if s.id == &"nova":
 		var r: float = float(s.call("radius")) if s.has_method("radius") else SkillNova.RADIUS
 		combat.nova_burst(r, spent, surged)
 
 
 const RESONANCE_BIG := 5
+
+
+static func _num(v: float) -> String:
+	return str(roundi(v)) if is_equal_approx(v, roundf(v)) else "%.1f" % v
 
 
 func _now() -> float:
