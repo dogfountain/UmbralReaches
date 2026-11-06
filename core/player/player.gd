@@ -11,6 +11,7 @@ var locomotion: PlayerLocomotion = PlayerLocomotion.new(self)
 var traversal: PlayerTraversal = PlayerTraversal.new(self)
 var evasion: PlayerEvasion = PlayerEvasion.new(self)
 var casting: PlayerCasting = PlayerCasting.new(self)
+var interaction: PlayerInteraction = PlayerInteraction.new(self)
 
 @export_group("Movement")
 @export var walk_speed := 4.5
@@ -88,7 +89,6 @@ var _rig_height := 1.55
 
 const SPRINT_FOV_KICK := 6.0
 var _interact_target: Interactable
-var _interact_near: Array[Interactable] = []
 var _hint := ""
 var _debug_drive := false
 var _debug_wish := Vector3.ZERO
@@ -210,6 +210,7 @@ func _ready() -> void:
 	add_child(traversal)
 	add_child(evasion)
 	add_child(casting)
+	add_child(interaction)
 	add_to_group(Groups.PLAYER)
 	collision_layer = Layers.PLAYER
 	collision_mask = Layers.WORLD | Layers.PROPS
@@ -257,7 +258,7 @@ func _ready() -> void:
 	_visual.set_process(_visual.has_merged_body())     # it blends the body's bones between ticks
 	_visual.walk_speed = walk_speed
 	_visual.sprint_speed = sprint_speed
-	_setup_interact_sensor()
+	interaction._setup_interact_sensor()
 	_col = get_node_or_null("Collision") as CollisionShape3D
 	if _col and _col.shape is CapsuleShape3D:
 		_col.shape = _col.shape.duplicate()          # we resize it for the slide
@@ -307,7 +308,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event.is_action_pressed("interact"):
 		if not (_interact_target == null and _grapple != null and _grapple.try_fire()):
-			_try_interact()                    # r31: nothing to use here: the Tether line bites a marked anchor
+			interaction._try_interact()                    # r31: nothing to use here: the Tether line bites a marked anchor
 	elif event.is_action_pressed("lock_on"):
 		targeting._toggle_lock()
 	elif event.is_action_pressed("target_next"):
@@ -592,7 +593,7 @@ func _physics_process(delta: float) -> void:
 	_sprint_held = sprint
 	casting._animate(delta, horiz)
 	vitals._update_gloom(delta)
-	_scan_interactables()
+	interaction._scan_interactables()
 	_fall_t = _fall_t + delta if not _grounded and velocity.y < -1.0 and _steep_t <= 0.0 and not _gliding else 0.0
 	if _gliding and (_grounded or is_on_ceiling()):
 		evasion._end_glide()
@@ -642,75 +643,6 @@ static func boss_fight_active(tree: SceneTree) -> bool:
 		if bool(a.get("_active")):
 			return true
 	return false
-
-
-# --- Interaction -------------------------------------------------------------
-
-func _setup_interact_sensor() -> void:
-	var sense := Area3D.new()
-	sense.name = "InteractSensor"
-	sense.collision_layer = 0
-	sense.collision_mask = Layers.INTERACT
-	sense.monitoring = true
-	sense.monitorable = false
-	var cs := CollisionShape3D.new()
-	var sph := SphereShape3D.new()
-	sph.radius = 3.2
-	cs.shape = sph
-	sense.add_child(cs)
-	add_child(sense)
-	sense.area_entered.connect(_on_interact_in)
-	sense.area_exited.connect(_on_interact_out)
-
-
-func _on_interact_in(area: Area3D) -> void:
-	var it := area.get_parent() as Interactable
-	if it and not _interact_near.has(it):
-		_interact_near.append(it)
-
-
-func _on_interact_out(area: Area3D) -> void:
-	var it := area.get_parent() as Interactable
-	if it:
-		_interact_near.erase(it)
-
-
-func _scan_interactables() -> void:
-	var best: Interactable = null
-	var best_d := INF
-	var i := 0
-	while i < _interact_near.size():
-		var it := _interact_near[i]
-		if not is_instance_valid(it):
-			_interact_near.remove_at(i)
-			continue
-		i += 1
-		if not it.can_interact():
-			continue
-		var reach := it.interact_reach()
-		if reach <= 0.0:
-			reach = interact_range
-		var d := global_position.distance_squared_to(it.global_position)
-		if d < reach * reach and d < best_d:
-			best_d = d
-			best = it
-	_interact_target = best
-	var hint := best.interact_text() if best else ""
-	if hint != _hint:
-		_hint = hint
-		Events.interact_hint.emit(hint)
-
-
-func _try_interact() -> void:
-	if is_instance_valid(_interact_target) and _interact_target.can_interact():
-		match _interact_target.interact_feel():
-			&"cast":
-				_visual.cast()               # fires, wards and bells take the staff's magic
-			&"talk":
-				_visual.cast_pose(&"greet")  # people get a nod, not a spell in the face
-			_:
-				_visual.cast_pose(&"reach")
-		_interact_target.interact(self)
 
 
 # --- Skills surface -------------------------------------------------------------------------
@@ -949,3 +881,4 @@ func set_charge_glow(c: float) -> void: casting.set_charge_glow(c)
 func nova_fx(radius: float, detonated: Array) -> void: casting.nova_fx(radius, detonated)
 func _animate(delta: float, horiz: Vector3) -> void: casting._animate(delta, horiz)
 func _on_skill_cast(id: StringName) -> void: casting._on_skill_cast(id)
+func _try_interact() -> void: interaction._try_interact()

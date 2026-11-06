@@ -34,7 +34,7 @@ func _autopilot(delta: float) -> Array:
 	player._pitch = lerpf(player._pitch, float(m.get_meta("pitch", -0.12)), 1.0 - exp(-1.5 * delta))
 	if player._waiting:
 		if m.get_meta("kindle", false) and player._interact_target != null:
-			player._try_interact()   # keep trying while waiting: arrival can land a few cm outside interact range
+			player.interaction._try_interact()   # keep trying while waiting: arrival can land a few cm outside interact range
 		if m.has_meta("yaw"):
 			player._yaw = lerp_angle(player._yaw, float(m.get_meta("yaw")), 1.0 - exp(-1.5 * delta))
 		player._wait -= delta
@@ -47,7 +47,7 @@ func _autopilot(delta: float) -> Array:
 	if to.length() < 0.6:
 		Events.autopilot_reached.emit(m.name)
 		if m.get_meta("kindle", false):
-			player._try_interact()
+			player.interaction._try_interact()
 		var w := float(m.get_meta("wait", 0.0))
 		if w > 0.0:
 			player._waiting = true
