@@ -557,6 +557,7 @@ func _tick_mantle(delta: float) -> void:
 	# camera's eased offset (r29)
 	player._cam_off.y -= maxf(p.y - player.global_position.y, 0.0) * 0.6
 	player.global_position = p
+	player.locomotion._ease_tick(delta)
 	player.casting._animate(delta, Vector3.ZERO)
 	player.vitals._update_gloom(delta)
 	if u >= 1.0:
