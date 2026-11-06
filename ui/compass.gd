@@ -22,6 +22,8 @@ var _font: Font
 var _scan := 0.0
 var _marks: Array[Dictionary] = []       ## {pos: Vector3, col: Color, kind: "beacon"|"cold"|"lit"}
 var _alpha := 0.0
+var _sig: Array = []
+var _dirty := true
 
 
 func _ready() -> void:
@@ -43,7 +45,18 @@ func _process(delta: float) -> void:
 	if _scan <= 0.0:
 		_scan = 0.5
 		_rescan()
-	queue_redraw()
+		_dirty = true
+	# redraw when the picture moves: the heading turned, the eye moved (the distance numbers), the marks
+	# were re-read, or the strip fades. An invisible, settled compass is not a picture.
+	var cam := get_viewport().get_camera_3d()
+	var sig: Array = []
+	if cam != null:
+		var f := -cam.global_basis.z
+		sig = [snappedf(atan2(f.x, -f.z), 0.0005), snappedf(cam.global_position.x, 0.5), snappedf(cam.global_position.z, 0.5), _alpha]
+	if _dirty or sig != _sig:
+		_sig = sig
+		_dirty = false
+		queue_redraw()
 
 
 func _rescan() -> void:

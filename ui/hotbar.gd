@@ -68,12 +68,30 @@ func _process(delta: float) -> void:
 			_ready_pulse[i] = 1.0
 		_was_ready[i] = 1 if is_ready else 0
 		_ready_pulse[i] = maxf(0.0, _ready_pulse[i] - delta * 2.2)
-	queue_redraw()
+	# redraw while something on the bar moves (a cooldown, a pulse, a glow, a charge, the name fade: _anim is what
+	# the last draw saw), when the slots or the keys change, and otherwise only to look again ten times a second
+	_idle -= delta
+	var keys := ""
+	var pulsing := false
+	for i in _book.slots.size():
+		keys += _book.key_label(i) + ","
+		pulsing = pulsing or _ready_pulse[i] > 0.0
+	var shown := "%s|%s|%s" % [sig, get_viewport_rect().size, keys]
+	if _anim or pulsing or _t < NAME_FADE or shown != _shown_sig or _idle <= 0.0:
+		_shown_sig = shown
+		_idle = 0.1
+		queue_redraw()
+
+
+var _anim := true
+var _idle := 0.0
+var _shown_sig := ""
 
 
 func _draw() -> void:
 	if not is_instance_valid(_book):
 		return
+	_anim = false
 	var name_a := clampf((NAME_FADE - _t) / 2.0, 0.0, 1.0)
 	for vi in _vis.size():
 		var i: int = _vis[vi]
@@ -88,6 +106,7 @@ func _draw() -> void:
 		var cr := _book.cooldown_ratio(i)
 		var gcd := _gcd_ratio() if (not _book.has_method("on_gcd") or bool(_book.call("on_gcd", i))) else 0.0
 		if cr > 0.0:
+			_anim = true
 			_pie(r, cr, SHADE)
 			_sweep_edge(r, cr)
 			var left := _book.cooldown_left(i)
@@ -112,6 +131,7 @@ func _draw() -> void:
 			draw_string(_font, r.position + Vector2(0, SLOT - 26), str(ch.x), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 20, Color(1.0, 0.95, 0.85) if ch.x > 0 else Color(0.7, 0.55, 0.5))
 		# charge ring (Ember Lance)
 		if _book.charging_slot() == i:
+			_anim = true
 			var c := _book.charge_ratio()
 			var col := s.color.lerp(Color(1.6, 1.4, 1.0), c) if c < 1.0 else Color(1.8, 1.6, 1.2)
 			draw_arc(r.get_center(), SLOT * 0.47, -PI * 0.5, -PI * 0.5 + TAU * c, 48, col, 4.0, false)
@@ -123,6 +143,8 @@ func _draw() -> void:
 		# frame: cast flash > ready pulse > idle
 		var frame := FRAME
 		var f := _book.flash(i)
+		if f > 0.0 or _book.denied(i) > 0.0:
+			_anim = true
 		if f > 0.0:
 			frame = FRAME.lerp(Color(1.4, 1.3, 1.6), f)
 		elif _ready_pulse[i] > 0.0:
@@ -133,6 +155,7 @@ func _draw() -> void:
 		var primed := s.primed(_book)
 		var surge_lit := bool(_book.call("slot_lit", i)) if _book.has_method("slot_lit") else false
 		if primed or surge_lit or _proc(s):
+			_anim = true
 			var glow := 0.6 + 0.4 * sin(_t * 12.0)
 			frame = frame.lerp(Color(1.5, 0.9, 2.6), glow)
 			draw_rect(r.grow(3.0), Color(1.2, 0.6, 2.4, 0.35 * glow), false, 3.0)
@@ -140,6 +163,7 @@ func _draw() -> void:
 		draw_rect(r, frame, false, 2.0 + f * 2.0)
 		# r33: the press held in the spell queue fires next: a gold inner line and a notch over the slot
 		if _book.has_method("queued_slot") and int(_book.call("queued_slot")) == i:
+			_anim = true
 			var qa := 0.6 + 0.4 * sin(_t * 18.0)
 			draw_rect(r.grow(-4.0), Color(1.0, 0.82, 0.4, qa), false, 2.0)
 			var qc := o + Vector2(SLOT * 0.5, -18.0)
@@ -166,6 +190,7 @@ func _draw() -> void:
 			draw_string(_font, o + Vector2(0, 17), "+%d" % roundi(s.gloom_cost), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 14, COST)
 		var act := s.active(_book)
 		if act > 0.0:
+			_anim = true
 			var br := Rect2(o + Vector2(4, SLOT + 3), Vector2((SLOT - 8) * act, 4))
 			draw_rect(Rect2(o + Vector2(4, SLOT + 3), Vector2(SLOT - 8, 4)), Color(0.02, 0.01, 0.04, 0.8))
 			draw_rect(br, Color(s.color.lightened(0.2), 0.9))
@@ -186,6 +211,7 @@ func _core_gem(c: Vector2) -> void:
 	var core := String(DB.get_mod("core", ""))
 	if core == "":
 		return
+	_anim = true
 	var col: Color = DB.core(core).get("tint", Color.WHITE)
 	var pulse := 0.8 + 0.2 * sin(_t * 3.0)
 	var d := PackedVector2Array([c + Vector2(0, -7), c + Vector2(6, 0), c + Vector2(0, 7), c + Vector2(-6, 0)])
