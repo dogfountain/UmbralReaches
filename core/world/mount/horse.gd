@@ -2,15 +2,28 @@ extends Interactable
 ## r36 a horse (core/world/mount): a skinned glTF (art/models/horse_*.glb, built by
 ## tools/blender/horse_build.py) posed by horse_rig.gd from the gait phase, a state, and the ride. Stands at its
 ## hitching post (or where it was left) grazing; [E] buys it there, rides it once owned; [E] while
-## riding gets down. Player.riding hands the drive to `drive()` every physics frame.
+## riding gets down; the jump key makes the HORSE leap (try_jump). Player.riding hands the drive to
+## `drive()` every physics frame.
 ##   walk / trot / gallop by the move stick and sprint; turns toward the move direction at the
 ##   breed's rate; follows the ground with a ray (refuses a step taller than `climb`); stops at a
 ##   wall; slows to a walk in water unless it wades; a draught throws the hollowed aside (trample).
+##   Leap: a gather (haunches drop), a push-off with vertical speed under gravity (a standstill hop ~0.6 m,
+##   a gallop leap ~1.2 m, times the breed's `jump`), steering eased and speed kept in the air, then the
+##   ground ray catches it: landing is soft (the rig squats, dust, a thud) and a short cooldown follows.
 
 const HorseRig := preload("res://core/world/mount/horse_rig.gd")
 const DB := preload("res://core/world/mount/horse_db.gd")
 const VAudio := preload("res://core/life/village/village_audio.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
+const Kit := preload("res://core/life/secrets/kit.gd")
+
+const GRAVITY := 24.0                ## m/s^2 on the leap (a horse's jump is snappy, not floaty)
+const HOP_H := 0.6                   ## apex of a standing hop (m)
+const LEAP_H := 1.2                  ## apex of a gallop leap (m)
+const GATHER_T := 0.11               ## the crouch before the push-off
+const JUMP_CD := 0.35                ## after a landing
+const JUMP_BUFFER := 0.2             ## a press just before landing still leaps
+const AIR_MAX := 2.5                 ## s: a leap that never finds ground is set down where it began
 
 var breed := "palfrey"
 var at_post := true              ## standing at its hitching post (for sale until owned)
@@ -36,6 +49,15 @@ const MOUNT_T := 1.15                ## r36: step up, foot in the stirrup, swing
 var _space: PhysicsDirectSpaceState3D
 var _leave_t := 0.0                  ## walking out of a boss ring before getting down
 var _leave_dir := Vector3.ZERO
+var _gather := 0.0                   ## seconds left in the crouch (> 0: about to push off)
+var _air := false
+var _vy := 0.0
+var _air_t := 0.0
+var _air_y0 := 0.0
+var _land := 0.0                     ## 1 at touchdown, easing to 0: the squat
+var _jump_cd := 0.0
+var _jump_buf := 0.0
+var _lean := 0.0                     ## the rider's lean into the leap (rad, + forward)
 var _trampled := {}                  ## enemy instance id -> msec of the last trample on it
 
 
@@ -120,11 +142,78 @@ func dismount() -> void:
 	var p := rider as Player
 	rider = null
 	speed = 0.0
+	_gather = 0.0
+	_lean = 0.0
+	var rig := p.get_node_or_null("Visual") if p != null and is_instance_valid(p) else null
+	if rig != null and "ride_lean" in rig:
+		rig.set("ride_lean", 0.0)
 	if p != null and is_instance_valid(p):
 		p.riding = null
 		var side := global_basis.x.normalized()
 		var to := global_position + side * 1.1
 		p.teleport(_ground(to) + Vector3.UP * 0.1)
+
+
+## The jump key on horseback (PlayerMount): a gather, then the push-off. Only from the ground, once the
+## rider is seated, and not in the cooldown; a press a moment early is remembered.
+func try_jump() -> void:
+	if rider == null or _air or _gather > 0.0 or _mount_t < MOUNT_T or _leave_t > 0.0:
+		return
+	if _jump_cd > 0.0:
+		_jump_buf = JUMP_BUFFER
+		return
+	_gather = GATHER_T * (1.0 - 0.5 * clampf(speed / float(_d.gallop), 0.0, 1.0))
+
+
+## The push-off: vertical speed for an apex of HOP_H..LEAP_H by speed, times the breed's `jump`.
+func _launch() -> void:
+	var k := clampf(speed / float(_d.gallop), 0.0, 1.0)
+	var h := lerpf(HOP_H, LEAP_H, k) * float(_d.get("jump", 1.0))
+	_vy = sqrt(2.0 * GRAVITY * h)
+	_air = true
+	_air_t = 0.0
+	_air_y0 = global_position.y
+	_gather = 0.0
+	if speed > float(_d.trot):
+		speed = minf(speed + 0.8, float(_d.gallop) * 1.05)       # the leap carries forward
+	VAudio.play("dig", global_position, -9.0, 0.6)
+	VAudio.play("knock", global_position, -12.0, 0.7)
+
+
+## Hold the vertical state through the tick: the crouch, the climb and fall under gravity, the landing.
+func _vertical(dt: float, ground_y: float) -> void:
+	_jump_cd = maxf(0.0, _jump_cd - dt)
+	_jump_buf = maxf(0.0, _jump_buf - dt)
+	_land = move_toward(_land, 0.0, dt * 4.0)
+	if _gather > 0.0:
+		_gather -= dt
+		if _gather <= 0.0:
+			_launch()
+	elif not _air and _jump_buf > 0.0 and _jump_cd <= 0.0 and _land < 0.6:
+		_jump_buf = 0.0
+		try_jump()
+	if not _air:
+		return
+	_air_t += dt
+	_vy -= GRAVITY * dt
+	var ny := global_position.y + _vy * dt
+	if (_vy <= 0.0 and ny <= ground_y) or _air_t > AIR_MAX:
+		var impact := clampf(-_vy / 7.0, 0.0, 1.0)
+		global_position.y = ground_y if _air_t <= AIR_MAX else _air_y0
+		_air = false
+		_vy = 0.0
+		_jump_cd = JUMP_CD
+		_land = 0.35 + 0.65 * impact
+		VAudio.play("dig", global_position, -5.0 + 4.0 * impact, 0.55)
+		VAudio.play("knock", global_position, -8.0 + 4.0 * impact, 0.6)
+		Kit.fx_dust(global_position + Vector3.UP * 0.1, Color(0.5, 0.46, 0.4, 0.55), 8 + int(10.0 * impact))
+	else:
+		global_position.y = ny
+
+
+## While airborne the body is not lerped to the ground; on it, it follows (14/s) as before.
+func _follow_y(ground_y: float, dt: float) -> float:
+	return global_position.y if _air else lerpf(global_position.y, ground_y, 1.0 - exp(-14.0 * dt))
 
 
 ## Player.riding: move the horse from the rider's wish (world xz) and sprint; seat the rider.
@@ -156,10 +245,12 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		_turn_v = lerpf(_turn_v, want_turn, 1.0 - exp(-8.0 * dt))       # eases into and out of a turn
 	else:
 		_turn_v = lerpf(_turn_v, 0.0, 1.0 - exp(-8.0 * dt))
-	_yaw += _turn_v * dt
+	_yaw += _turn_v * dt * (0.35 if _air else 1.0)
 	var wading := RealmLand.in_water(global_position.x, global_position.z)
 	if wading and not bool(_d.get("wade", false)):
 		want = minf(want, float(_d.walk))
+	if _air or _gather > 0.0:
+		want = maxf(want, speed)                 # nothing to push against: the stride is carried through the leap
 	speed = move_toward(speed, want, (6.0 if want > speed else 9.0) * dt)
 	var fwd := Vector3(-sin(_yaw), 0.0, -cos(_yaw))
 	if speed > 0.05:
@@ -168,7 +259,7 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		var g := _ground(next)
 		var chest := global_position + Vector3.UP * 1.2 * _scale()
 		var wall := _space.intersect_ray(PhysicsRayQueryParameters3D.create(chest, chest + fwd * (0.9 * _scale() + speed * dt), Layers.WORLD | Layers.PROPS, [p.get_rid()]))
-		var blocked := g.y - global_position.y > float(_d.climb) or g.y - global_position.y < -6.0
+		var blocked := g.y - global_position.y > float(_d.climb) or (g.y - global_position.y < -6.0 and not _air)
 		if not wall.is_empty() and not blocked:
 			# a wall: slide along it (scrub off the speed into it) rather than stop dead
 			var n: Vector3 = wall.normal
@@ -180,13 +271,24 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 					var sn := global_position + slide.normalized() * speed * dt * slide.length()
 					var sg := _ground(sn)
 					if sg.y - global_position.y <= float(_d.climb) and sg.y - global_position.y >= -6.0:
-						global_position = Vector3(sn.x, lerpf(global_position.y, sg.y, 1.0 - exp(-14.0 * dt)), sn.z)
+						global_position = Vector3(sn.x, _follow_y(sg.y, dt), sn.z)
 			speed = move_toward(speed, 0.0, maxf(speed, 3.0) / 0.2 * dt)
 		elif blocked:
 			speed = move_toward(speed, 0.0, maxf(speed, 3.0) / 0.2 * dt)       # eased to a stop in ~0.2 s
 		else:
-			global_position = Vector3(next.x, lerpf(global_position.y, g.y, 1.0 - exp(-14.0 * dt)), next.z)
+			global_position = Vector3(next.x, _follow_y(g.y, dt), next.z)
 			_phase += TAU * _rig.freq(speed) * dt            # unwrapped: a wrap would swing the legs back a frame
+	# the vertical: the crouch, the climb and fall, the landing on the ground under the hooves
+	_vertical(dt, _ground(global_position).y)
+	var s_air := clampf(_vy / 7.0, -1.0, 1.0)
+	var lean_want := 0.0
+	if _air:
+		lean_want = 0.34 * maxf(s_air, 0.0) + 0.1 * (1.0 - absf(s_air)) - 0.12 * maxf(-s_air, 0.0)
+	elif _gather > 0.0:
+		lean_want = 0.12
+	elif _land > 0.0:
+		lean_want = -0.12 * _land
+	_lean = lerpf(_lean, lean_want, 1.0 - exp(-14.0 * dt))
 	if bool(_d.get("trample", false)) and speed > 6.0:
 		_trample(fwd)
 	global_basis = Basis(Vector3.UP, _yaw)
@@ -234,6 +336,8 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		# the barrel under the rider, in the coat's space (origin at the pelvis): its half width, its
 		# centre below the seat, its half length
 		vis.set("saddle", Vector3(float(_d.bw) * 1.05, float(_d.bc) - float(_d.seat) - 0.02, float(_d.bl) * 1.05))
+	if vis and "ride_lean" in vis:
+		vis.set("ride_lean", _lean)
 	if vis:
 		# facing where the horse faces, in WORLD space: the player node itself turns with the camera,
 		# so a local yaw sat the rider sideways
@@ -253,6 +357,8 @@ func _process(dt: float) -> void:
 		# ridden: drive() steps the gait on the tick; draw it at the frame's moment, as the body is
 		_write(lerpf(_phase_prev, _phase, Engine.get_physics_interpolation_fraction()), dt)
 		return
+	if _air or _land > 0.0:
+		_vertical(dt, _ground(global_position).y)       # left in the air (got down mid-leap): it comes down
 	# standing: graze now and then, flick the head up
 	_graze_t -= dt
 	if _graze_t <= 0.0:
@@ -280,6 +386,10 @@ func _write(ph := NAN, dt := 0.0) -> void:
 		return
 	if is_nan(ph):
 		ph = _phase
+	_rig.air = 1.0 if _air else 0.0
+	_rig.vy = _vy
+	_rig.gather = clampf(_gather / GATHER_T, 0.0, 1.0) if _gather > 0.0 else 0.0
+	_rig.land = _land
 	_rig.pose(ph, speed, _head, dt, _accel)
 
 
@@ -304,7 +414,7 @@ func _scale() -> float:
 
 
 func _hooves(dt: float) -> void:
-	if speed < 1.0:
+	if speed < 1.0 or _air:
 		return
 	_sfx_t -= dt
 	if _sfx_t <= 0.0:

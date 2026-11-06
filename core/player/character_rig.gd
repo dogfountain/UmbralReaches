@@ -1540,6 +1540,7 @@ var ride := 0.0                     ## r36: astride a horse (core/world/mount): 
 ## r36: the horse's barrel under the saddle in the coat's space (x half-width, y centre, z half-height);
 ## the coat drapes over it while `ride` is on (robe_skin.gdshader `saddle`)
 var saddle := Vector3.ZERO
+var ride_lean := 0.0                ## the horse leaps (horse.gd): the rider's lean with it, rad, + forward
 var _saddle_sent := 0.0
 ## r36: climbing on (horse.gd): 0..1 through the mount (-1 when not), and the rig's offset from its
 ## seat meanwhile (rig space: +x right, +y up, +z back). The left foot finds the stirrup, the
@@ -2182,11 +2183,11 @@ func _ride_legs(k: float) -> void:
 func _pose_ride(k: float) -> void:
 	var bob := sin(_t * 9.0) * 0.012
 	_pelvis.position.y = lerpf(_pelvis.position.y, H_PELVIS + bob, k)
-	_torso.rotation.x = lerpf(_torso.rotation.x, 0.06, k)
+	_torso.rotation.x = lerpf(_torso.rotation.x, 0.06 + ride_lean, k)
 	_torso.rotation.y = lerpf(_torso.rotation.y, 0.0, k)
-	_head.rotation.x = lerpf(_head.rotation.x, -0.05, k)
-	_sh[0].rotation = _sh[0].rotation.lerp(Vector3(0.55, 0.0, -0.18), k)
-	_sh[1].rotation = _sh[1].rotation.lerp(Vector3(0.55, 0.0, 0.18), k)
+	_head.rotation.x = lerpf(_head.rotation.x, -0.05 - ride_lean * 0.5, k)
+	_sh[0].rotation = _sh[0].rotation.lerp(Vector3(0.55 + ride_lean * 0.8, 0.0, -0.18), k)
+	_sh[1].rotation = _sh[1].rotation.lerp(Vector3(0.55 + ride_lean * 0.8, 0.0, 0.18), k)
 	_el[0].rotation.x = lerpf(_el[0].rotation.x, 0.9, k)
 	_el[1].rotation.x = lerpf(_el[1].rotation.x, 0.9, k)
 	for i in 2:

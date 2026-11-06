@@ -4,6 +4,8 @@ extends Node
 ## Part of Player (core/player/player.gd): `riding` and `_visual.ride` stay where the horse and the
 ## rig already look for them.
 
+const HorseScript := preload("res://core/world/mount/horse.gd")
+
 var player: Player
 
 
@@ -11,14 +13,14 @@ func _init(p: Player) -> void:
 	player = p
 
 
-## Off the horse (a hollow, a fall out of the world, the jump key): the horse stays where it is.
+## Off the horse (a hollow, a fall out of the world, the interact key): the horse stays where it is.
 func get_down() -> void:
 	if player.riding != null and is_instance_valid(player.riding):
 		player.riding.call("dismount")
 
 
 ## One physics tick on horseback. Returns true when the horse drove the tick (Player skips its
-## own movement); false when the wanderer is on foot, was just unseated, or jumped down.
+## own movement); false when the wanderer is on foot or was just unseated.
 func ride_tick(wish: Vector3, sprint: bool, delta: float) -> bool:
 	var horse := player.riding
 	if horse == null:
@@ -27,8 +29,7 @@ func ride_tick(wish: Vector3, sprint: bool, delta: float) -> bool:
 		player.riding = null
 		return false
 	if Input.is_action_just_pressed("jump"):
-		get_down()
-		return false
+		(horse as HorseScript).try_jump()             # the jump key leaps the horse; [interact] gets down
 	horse.call("drive", player, wish, sprint, delta)
 	player._grounded = true
 	player._visual.ride = lerpf(player._visual.ride, 1.0, 1.0 - exp(-8.0 * delta))

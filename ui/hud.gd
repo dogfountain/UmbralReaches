@@ -402,7 +402,7 @@ func show_card() -> void:
 
 
 ## The ids of the just-in-time prompts (each is a Hints lesson "tip_<id>", once per save).
-const PROMPTS := ["move", "jump2", "hang", "slide", "lock", "gloom", "roll"]
+const PROMPTS := ["move", "jump2", "hang", "slide", "lock", "gloom", "roll", "ride"]
 
 
 ## The first key or mouse button bound to `action` (rebinding-proof), else `fallback`.
@@ -432,6 +432,8 @@ func _tips_tick(delta: float) -> void:
 	_air_t = 0.0 if grounded else _air_t + 0.25
 	if p.has_method("is_hanging") and p.call("is_hanging"):
 		_jit("hang", "%s  climb up   ·   push away + %s  kick off   ·   %s  let go" % [_pk("jump", "A"), _pk("jump", "A"), _pk("slide", "B")])
+	elif p.get("riding") != null:
+		_jit("ride", "%s  leap   ·   %s  get down" % [_pk("jump", "A"), _pk("interact", "X")])
 	elif not staged_in():
 		_jit("move", "%s  move   ·   mouse  look   ·   %s  sprint   ·   %s  jump" % [_pk_move(), _pk("sprint", "L3"), _pk("jump", "A")])
 	elif not Hints.seen(&"tip_move"):
