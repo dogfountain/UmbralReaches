@@ -64,6 +64,7 @@ var _acolytes_t := 10.0
 var _gale_t := 12.0
 var _gale_left := 0.0
 var _gale_fx := 0.0
+var _lee_said := false       ## "sheltered" is said once on entering the lee
 var _star_t := 2.0
 var _star_p_t := 3.0
 var _asc_t := 0.0
@@ -140,11 +141,12 @@ func on_engaged(arena: Node) -> void:
 	# door with that much less (5% of his life a bell, up to 35% for all seven)
 	var carried := QuestBook.bells_carried()
 	if carried > 0:
-		hp = float(max_hp) * (1.0 - BELL_HOLD * float(carried))
+		max_hp = maxi(1, roundi(float(max_hp) * (1.0 - BELL_HOLD * float(carried))))   # a shorter life, a full bar
+		hp = float(max_hp)
 	if carried > 0:
-		BossKit.emote(self, "Far below, Hearthward rings %s. He holds the door with less." % BELL_WORDS[mini(carried, 7)], BossKit.EMOTE_COL)
+		BossKit.emote(self, "Far below, Hearthward rings %s. He holds the door with less: a twentieth a bell." % BELL_WORDS[mini(carried, 7)], BossKit.EMOTE_COL)
 	else:
-		BossKit.emote(self, "The founder's bell rings in you." if _attuned else "The Ascended Warden turns from the door.", BossKit.EMOTE_COL)
+		BossKit.emote(self, "The founder's bell rings in you. The sky will hold." if _attuned else "The Ascended Warden turns from the door.", BossKit.EMOTE_COL)
 
 
 func _physics_process(delta: float) -> void:
@@ -426,7 +428,8 @@ func _begin_gale() -> void:
 		if is_alive() and not ascended and phase == 2:
 			_gale_left = GALE_TIME
 			BossKit.cast(self, "Gale of the Door", GALE_TIME, false))
-	BossKit.emote(self, "The door behind him opens a crack.", Color(0.85, 0.9, 1.0))
+	_lee_said = false
+	BossKit.emote(self, "The door behind him opens a crack. The lit pylons are the lee.", Color(0.85, 0.9, 1.0))
 	# the lee of every lit pylon lights up for the whole gale
 	if _room != null and "pylons" in _room:
 		var shields: Array = []
@@ -450,13 +453,15 @@ func _tick_gale(delta: float) -> void:
 	var sheltered := _room != null and bool(_room.call("gale_shelter", global_position, p.global_position))
 	if not sheltered and not p.is_evading():
 		BossKit.push(p, away, GALE_SPEED * minf(dmg_mult, 1.3), delta)
+	if sheltered != _lee_said:
+		_lee_said = sheltered
+		if sheltered:
+			HitText.pop(p.global_position + Vector3.UP * 2.2, "sheltered", Color(0.85, 0.9, 1.0))
 	_gale_fx -= delta
 	if _gale_fx <= 0.0:
 		_gale_fx = 0.18
 		var n := away.normalized()
 		Vfx.burst(p.global_position + Vector3.UP * 1.2 - n * 3.0, Color(1.3, 1.35, 1.6, 0.7), {"count": 10, "life": 0.5, "speed": Vector2(8.0, 12.0), "size": 0.04, "dir": n, "spread": 8.0, "gravity": 0.0, "trail": 0.12, "radius": 2.0})
-		if sheltered:
-			HitText.pop(p.global_position + Vector3.UP * 2.2, "sheltered", Color(0.85, 0.9, 1.0))
 	if _gale_left <= 0.0:
 		_gale_left = 0.0
 		_finish_cast(false, false)
