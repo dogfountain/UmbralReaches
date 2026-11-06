@@ -4,7 +4,6 @@ extends RefCounted
 
 const Chains := preload("res://core/story/quest_chains.gd")
 const PLATFORM := "res://art/models/mossy_platform.glb"
-const MAGE := "res://art/models/summit_mage.glb"
 const PILLAR := "res://art/models/summit_pillar.glb"
 const MOSS_DIFF := "res://art/textures/import/rock_moss_diff.jpg"
 const MOSS_NOR := "res://art/textures/import/rock_moss_nor.jpg"
@@ -58,8 +57,8 @@ static func _cut_gate(mi: MeshInstance3D, holder: Node3D, box: AABB) -> void:
 static func dress(root: Node) -> void:
 	if root == null or root.has_meta("summit_dressed"):
 		return
-	if Check.res(PLATFORM, PackedScene) == null or Check.res(MAGE, PackedScene) == null:
-		push_error("SUMMIT_DRESS missing platform/mage glb")
+	if Check.res(PLATFORM, PackedScene) == null:
+		push_error("SUMMIT_DRESS missing platform glb")
 		return
 	root.set_meta("summit_dressed", true)
 	var holder := Node3D.new()

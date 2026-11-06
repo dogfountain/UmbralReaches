@@ -30,7 +30,7 @@ const MODULES := {
 	"nav": "res://core/world/realm/realm_nav.gd",
 }
 
-const PRELOAD := ["res://art/models/mossy_platform.glb", "res://art/models/summit_pillar.glb", "res://art/models/summit_mage.glb"]
+const PRELOAD := ["res://art/models/mossy_platform.glb", "res://art/models/summit_pillar.glb"]
 
 ## Baked stair-era layers the Realm replaces (hidden, collision off). The spawn brazier
 ## (Zone/Braziers/Sanctuary) and everything the Tavern builds stay.
