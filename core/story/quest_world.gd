@@ -336,22 +336,31 @@ func _process(delta: float) -> void:
 					_esc_stuck = 0.0
 				else:
 					_esc_stuck += 0.25
-	# Father Harrow wakes over his lantern
-	if Book.active("slow_way") and Book.step("slow_way") <= 1 and not is_instance_valid(hollow):
+	# Father Harrow stands over his lantern where a gallop can see him; he wakes (the step, his name) at `wake`
+	if Book.active("slow_way") and Book.step("slow_way") <= 1:
 		var at: Vector3 = spots.get("hollow", Vector3.INF)
 		if at != Vector3.INF:
 			var d := pl.global_position.distance_to(at)
 			var s := Book.step("slow_way")
-			if (s == 0 and d < float(Chains.HOLLOW.wake)) or (s == 1 and d < 60.0):
+			if d > HOLLOW_STAND_R + 20.0:
+				_hollow_failed = false
+			if not is_instance_valid(hollow) and d < HOLLOW_STAND_R and not _hollow_failed:
 				if not _wake_hollow(at):
-					Book.advance("slow_way", 2)          # nothing to fight: only the lantern
-				elif s == 0:
-					Book.advance("slow_way")
+					# the step stays where it is: the objective is still the man, not the lantern
+					_hollow_failed = true
+					_narrate("The reeds would not give him up.")
+			if s == 0 and is_instance_valid(hollow) and d < float(Chains.HOLLOW.wake):
+				Book.advance("slow_way")
+				# one voice: his name is the banner; the narrator says it only when there is no banner to carry it
+				var lg := get_tree().get_first_node_in_group("quest_log")
+				if lg and lg.has_method("banner"):
+					lg.call("banner", "IN THE REEDS", String(Chains.HOLLOW.title), "Ostrin's father. His face is a hole. Put him to rest.")
+				else:
 					_narrate("A man stands over a cold lantern in the reeds. He turns. His face is a hole.")
-					# his name over the fight (the data had a title nothing ever showed)
-					var lg := get_tree().get_first_node_in_group("quest_log")
-					if lg and lg.has_method("banner"):
-						lg.call("banner", "IN THE REEDS", String(Chains.HOLLOW.title), "Ostrin's father. Put him to rest.")
+
+
+const HOLLOW_STAND_R := 70.0   ## the body stands this far out, in view on a gallop; it wakes at Chains.HOLLOW.wake
+var _hollow_failed := false
 
 
 func _wake_hollow(at: Vector3) -> bool:
