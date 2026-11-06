@@ -13,6 +13,7 @@ const Stamina := preload("res://core/player/stamina.gd")
 var _glide_dir := Vector3.FORWARD
 var _glide_speed := 0.0
 var _roll_speed := 0.0
+var _evade_set := false                ## the roll's i-frame window has been stamped
 var _unseen := false                  ## Rift Step: the body stays hidden until the evade grace ends
 const MARK_REACH := 1.2               ## a foe this close to the step's line is marked
 
@@ -256,6 +257,7 @@ func _try_dodge(wish: Vector3) -> bool:
 	if player._book != null:
 		player._book.cancel_lock()                     # ... and the cast lock, so a spell can follow the roll at once
 	player._dodge_roll = true
+	_evade_set = false
 	player.locomotion._end_slide()
 	player._roll_t = 0.0
 	player._roll_evade = true
@@ -284,6 +286,7 @@ func _try_dodge(wish: Vector3) -> bool:
 func _land_roll(dir: Vector3, speed: float) -> void:
 	player._dodge_roll = false
 	player._rolled_landing = true
+	_evade_set = false
 	player.locomotion._end_slide()
 	player._roll_t = 0.0
 	player._roll_evade = false
@@ -298,8 +301,11 @@ func _land_roll(dir: Vector3, speed: float) -> void:
 func _tick_roll(delta: float, wish := Vector3.ZERO) -> Vector3:
 	player._roll_t += delta
 	var u := clampf(player._roll_t / player._roll_len, 0.0, 1.0)
-	if player._roll_evade and not player._crawl and player._roll_t >= Player.ROLL_EVADE.x and player._roll_t <= Player.ROLL_EVADE.y * (player._roll_len / Player.ROLL_TIME):
-		player._evade_t = maxf(player._evade_t, 0.02)
+	var evade_end := Player.ROLL_EVADE.y * (player._roll_len / Player.ROLL_TIME)
+	if player._roll_evade and not player._crawl and player._roll_t >= Player.ROLL_EVADE.x and player._roll_t <= evade_end:
+		if not _evade_set:
+			_evade_set = true                           # one window, set once, counting down
+			player._evade_t = maxf(player._evade_t, evade_end - player._roll_t)
 		player._evade_roll = true
 	var spd := _roll_speed * lerpf(1.0, 0.55, u * u)
 	if u >= 1.0:

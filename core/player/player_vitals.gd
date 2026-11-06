@@ -21,6 +21,7 @@ var _gloom_emit_t := 0.0
 var _wounds_emit := 0.0
 var _wounds_emit_t := 0.0
 var _stuck_from := Vector3.INF
+const SLIDE_PERFECT_T := 0.12
 var _grace_amount := 0.0              ## the wound the HURT_GRACE window is already holding
 
 
@@ -57,7 +58,9 @@ func on_evaded(attacker: Node) -> void:
 		player._arts.parry(attacker)                   # r31: the staff turned it aside
 		_surge(&"parry")
 		return
-	if player._evade_roll and player._dodge_roll and player._roll_t >= 0.0 and player._roll_t <= Player.PERFECT_T and now >= player._riposte_cd:
+	var perfect_roll: bool = player._dodge_roll and player._roll_t >= 0.0 and player._roll_t <= Player.PERFECT_T
+	var perfect_slide: bool = player._sliding and player.locomotion._slide_t <= SLIDE_PERFECT_T    # the slide's first moments are a dodge too
+	if player._evade_roll and (perfect_roll or perfect_slide) and now >= player._riposte_cd:
 		_perfect_dodge(attacker)                # r31: rolled the instant it landed
 		_surge(&"dodge")
 		return

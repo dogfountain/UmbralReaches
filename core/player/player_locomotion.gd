@@ -177,8 +177,9 @@ func _tick_slide(delta: float, wish: Vector3) -> Vector3:
 	_slide_speed = maxf(0.0, _slide_speed - player.slide_friction * delta * (1.0 - clampf(downhill * 3.0, 0.0, 0.9)))
 	if wish.length_squared() > 0.01:
 		var w := wish.normalized()
-		var turn := clampf(player._slide_dir.signed_angle_to(w, Vector3.UP), -1.4 * delta, 1.4 * delta)
+		var turn := clampf(player._slide_dir.signed_angle_to(w, Vector3.UP), -3.2 * delta, 3.2 * delta)
 		player._slide_dir = player._slide_dir.rotated(Vector3.UP, turn)
+		_slide_speed *= 1.0 - 0.15 * absf(turn) / (PI * 0.5)       # a hard turn costs about 15 % per 90 degrees
 	var horiz := player._slide_dir * _slide_speed
 	player.velocity.x = horiz.x
 	player.velocity.z = horiz.z
@@ -186,7 +187,7 @@ func _tick_slide(delta: float, wish: Vector3) -> Vector3:
 	player._slide_sfx.pitch_scale = 0.7 + 0.06 * _slide_speed
 	var limit := player.slide_max_time + maxf(0.0, downhill) * 3.0
 	var held := Input.is_action_pressed("slide") or _slide_t < 0.3
-	if _slide_speed < 2.4 or _slide_t > limit or _slide_air > 0.18 or not held:
+	if _slide_speed < 2.4 or _slide_t > limit or _slide_air > 0.35 or not held:
 		if player._grounded and not _headroom():
 			_end_slide()
 			_set_capsule(1.1)                     # slid under something: stay low, crawl out (see _tick_roll)
@@ -402,7 +403,7 @@ func _ground_move(cur: Vector3, target: Vector3, delta: float) -> Vector3:
 		return cur.normalized() * s if speed > 0.0001 else Vector3.ZERO
 	var tdir := target / want
 	var dir := tdir
-	if speed > player.walk_speed * 0.45:
+	if speed > 0.3:
 		dir = cur / speed
 		var ang := dir.signed_angle_to(tdir, Vector3.UP)
 		if absf(ang) > player.skid_angle:

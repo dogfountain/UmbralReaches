@@ -26,7 +26,7 @@ var mount: PlayerMount = PlayerMount.new(self)
 @export var turn_rate_sprint := 8.0     ## ... and at a full sprint (wider arcs, keeps speed)
 @export var skid_angle := 2.2           ## a reversal sharper than this (rad) brakes instead of arcing
 @export var air_accel := 8.5            ## air steering; weaker than ground but enough to correct a jump
-@export var air_drag := 0.6             ## no stick in the air: momentum is kept, barely bled
+@export var air_drag := 2.0             ## no stick in the air: a mistimed jump bleeds (a held stick keeps air_accel)
 @export var jump_velocity := 5.2
 @export var gravity := 16.0
 @export var coyote_time := 0.13         ## grace to still jump just after walking off an edge
@@ -37,7 +37,7 @@ var mount: PlayerMount = PlayerMount.new(self)
 @export_group("Slide")
 @export var slide_boost := 1.3          ## entry speed = max(current * this, sprint * 1.15)
 @export var slide_min_speed := 3.4      ## need at least a brisk walk to drop into a slide
-@export var slide_friction := 4.2       ## m/s² on the flat
+@export var slide_friction := 2.8       ## m/s² on the flat
 @export var slide_slope_gain := 13.0    ## extra m/s² per unit of downhill slope
 @export var slide_max_time := 1.2       ## on the flat; downhill extends it
 @export var slide_cooldown := 0.35
@@ -486,7 +486,7 @@ func _physics_process(delta: float) -> void:
 			locomotion._slide_input(horiz, wish)
 			if traversal._try_vault(horiz, wish):
 				return
-	_run_blend = lerpf(_run_blend, clampf((horiz.length() - walk_speed) / maxf(sprint_speed - walk_speed, 0.1), 0.0, 1.0) if _grounded else _run_blend, 1.0 - exp(-5.0 * delta))
+	_run_blend = lerpf(_run_blend, clampf((horiz.length() - walk_speed) / maxf(sprint_speed - walk_speed, 0.1), 0.0, 1.0), 1.0 - exp(-5.0 * delta))   # in the air too: the gait follows the speed you carry
 
 	# Coyote time and jump buffering: without them, a jump pressed one frame early or one frame
 	# late is silently dropped, which is most of what made the movement feel unresponsive.
@@ -510,10 +510,12 @@ func _physics_process(delta: float) -> void:
 				evasion._start_glide()                   # r31: out of jumps in the air: spread the robe
 			else:
 				_buffered_jump = jump_buffer
-		# variable height: let go while rising and the arc flattens
+		# variable height: let go while rising and the arc eases down to a short hop (not a one-frame halving)
 		if _jump_rising and not Input.is_action_pressed("jump") and velocity.y > 0.0:
-			velocity.y *= jump_cut
+			_jump_cut_t = 0.08
 			_jump_rising = false
+		if not _grounded and not _gliding and velocity.y < 0.0 and Input.is_action_pressed("jump"):
+			_buffered_jump = jump_buffer             # held through a fall: hop the frame you arrive
 	if _buffered_jump > 0.0 and _coyote > 0.0:
 		if _sliding:
 			locomotion._end_slide()                 # slide-hop: the slide's speed carries into the jump, plus a little
@@ -534,10 +536,13 @@ func _physics_process(delta: float) -> void:
 		velocity.y = move_toward(velocity.y, want_vy, (16.0 if velocity.y < want_vy - 4.0 else 9.0) * delta)
 	elif not _grounded:
 		var g := gravity
+		if _jump_cut_t > 0.0:
+			velocity.y = lerpf(velocity.y, JUMP_CUT_V, minf(delta / _jump_cut_t, 1.0)) if velocity.y > JUMP_CUT_V else velocity.y
+			_jump_cut_t = maxf(0.0, _jump_cut_t - delta)
 		if velocity.y < 0.0:
 			g *= FALL_GRAVITY
-		elif _jump_rising and Input.is_action_pressed("jump") and velocity.y < 1.6:
-			g *= APEX_GRAVITY
+		elif _jump_rising and Input.is_action_pressed("jump") and velocity.y < 2.2:
+			g *= lerpf(APEX_GRAVITY, 1.0, smoothstep(0.0, 2.2, velocity.y))     # the hang fades as the rise does
 		velocity.y -= g * delta
 	elif velocity.y <= 0.0:
 		_jump_rising = false
@@ -624,6 +629,8 @@ func debug_drive(wish: Vector3, sprint := false) -> void:
 
 
 var _look_t := 0.0
+var _jump_cut_t := 0.0
+const JUMP_CUT_V := 2.2                  ## a released jump eases its rise down to this
 var _look_foe: Enemy
 var _sprint_held := false
 
