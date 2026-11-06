@@ -117,7 +117,7 @@ func _ready() -> void:
 	_hurt.monitorable = false
 	var hcol := CollisionShape3D.new()
 	_hurt_shape = SphereShape3D.new()
-	_hurt_shape.radius = 1.05
+	_hurt_shape.radius = 0.32
 	hcol.shape = _hurt_shape
 	_hurt.add_child(hcol)
 	add_child(_hurt)
@@ -168,7 +168,7 @@ func arm(is_heavy: bool) -> void:
 	if _streak:
 		_streak.visible = true
 	if _hurt_shape:
-		_hurt_shape.radius = 1.35 if heavy else 1.05
+		_hurt_shape.radius = 0.45 if heavy else 0.32
 	if _core:
 		_core.visible = true
 		_core.mesh = SpellFx.spear_mesh() if heavy else _core_mesh

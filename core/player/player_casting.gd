@@ -60,8 +60,11 @@ func fire_bolt(cfg: Dictionary) -> MagicBolt:
 		return null
 	# the staff's own voice: a lash for the empowered 3rd bolt; the Lance plays its throw below;
 	# cfg.sound overrides (a staff core's own cast sound)
-	var voice := "" if bool(cfg.get("heavy", false)) else ("lash" if bool(cfg.get("empower", false)) else "bolt")
+	var lash_voice := bool(cfg.get("empower", false)) and not bool(cfg.get("heavy", false)) and not cfg.has("sound")
+	var voice := "" if bool(cfg.get("heavy", false)) or lash_voice else "bolt"
 	player._visual.cast(String(cfg.get("sound", voice)))
+	if lash_voice:
+		StaffSfx.play("lash", player._visual.muzzle(), -1.0)      # the third bolt is its own attack before it lands
 	var pool := player.get_tree().get_first_node_in_group("bolt_pool") as BoltPool
 	var bolt: MagicBolt
 	if pool:
@@ -248,7 +251,7 @@ func _update_aim_ring(c: float, muzzle: Vector3) -> void:
 	if space == null:
 		return
 	var aim := _aim_from(muzzle)
-	var q := PhysicsRayQueryParameters3D.create(muzzle, muzzle + aim * 60.0, Layers.WORLD | Layers.PROPS, [player.get_rid()])
+	var q := PhysicsRayQueryParameters3D.create(muzzle, muzzle + aim * (lerpf(18.0, 30.0, c) * MagicBolt.LIFE), Layers.WORLD | Layers.PROPS, [player.get_rid()])
 	var hit := space.intersect_ray(q)
 	if hit.is_empty():
 		player._aim_ring.visible = false
