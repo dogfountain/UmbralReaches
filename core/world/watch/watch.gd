@@ -25,6 +25,7 @@ const CUT := 1.1                 ## what a watchman's cut does
 const REACH := 1.8
 const GUARD_R := 14.0            ## watchmen leave the post for foes this close to it
 const FALLEN_FOR := 150.0
+const SEE_FIRST := 10.0          ## seconds inside the ring before the dark may come
 const SWING := 1.7               ## the village's chop cycle; the cut lands at 0.62 of it
 
 var id := ""
@@ -37,6 +38,7 @@ var _village: Node = null
 var _awake := false
 var _scan := 0.0
 var _next := 30.0
+var _present := 0.0              ## seconds she has been inside the assault ring
 var _wave: Array[Node3D] = []
 var _blow_t := {}                ## enemy id -> seconds to its next blow
 var _swing_t: Array[float] = []
@@ -156,8 +158,12 @@ func _physics_process(delta: float) -> void:
 			_wake()
 		elif d > WAKE + 10.0 and _awake and _wave.is_empty():
 			_sleep()
+		if d >= ASSAULT_R:
+			_present = 0.0
 		if _awake and _wave.is_empty() and _fallen_t <= 0.0 and d < ASSAULT_R:
-			_next -= 1.0
+			_present += 1.0
+			if _present >= SEE_FIRST:        # the first dark waits until the post has been in sight a while
+				_next -= 1.0
 			if _next <= 0.0:
 				_assault()
 	if not _awake:
@@ -231,7 +237,7 @@ func _fight(delta: float) -> void:
 			_swing_t[m] += delta
 			var now := fposmod(_swing_t[m], SWING) / SWING
 			if was < 0.62 and now >= 0.62:
-				foe.take_hit(CUT, null)
+				foe.take_hit(CUT, v)               # from the watchman: the hollowed flinches away from the blade
 				Vfx.burst(foe.global_position + Vector3.UP, Color(0.9, 0.85, 0.8), {"count": 6, "life": 0.3, "speed": Vector2(1.0, 3.0), "size": 0.03, "gravity": -6.0})
 		# blows on him from foes at his side
 		for e2 in _wave:
@@ -310,7 +316,7 @@ func _held() -> void:
 		rng.randomize()
 		var piece := GearDB.make(rng, {"rarity": 2 if n >= 6 else 1})
 		var got := GearRuntime.store(piece)
-		line += "  The quartermaster gives you %s." % String(piece.get("name", "gear"))
+		line = "%s holds. (+6 grave ash)  It leaves you %s." % [title, String(piece.get("name", "gear"))]
 		if got != "":
 			Events.toast.emit(got)
 	Events.toast.emit(line)
@@ -333,7 +339,12 @@ func _fall() -> void:
 
 
 func _rise() -> void:
+	# one after another, a short rise rather than a pop from kneel to idle at full health
 	for m in men.size():
+		hp[m] = HP * 0.3
+		await get_tree().create_timer(0.7 * float(m + 1)).timeout
+		if not is_instance_valid(self) or m >= men.size() or hp.size() <= m:
+			return
 		hp[m] = HP
 		if is_instance_valid(men[m]):
 			men[m].set_meta(&"down", false)

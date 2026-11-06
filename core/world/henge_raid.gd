@@ -479,7 +479,7 @@ func _bowls_and_lights() -> void:
 		var l := OmniLight3D.new()
 		l.light_color = Color(1.0, 0.55, 0.25)
 		l.light_energy = 2.0
-		l.omni_range = 10.0
+		l.omni_range = 3.5
 		l.shadow_enabled = false
 		l.set_meta(&"light_class", "fill")
 		host.add_child(l)

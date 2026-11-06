@@ -4,12 +4,8 @@
 [ext_resource type="Texture2D" path="res://art/textures/bark_giant_normal.png" id="2_ekuuf"]
 [ext_resource type="Texture2D" path="res://art/textures/bark_giant_rough.png" id="3_rough"]
 
-[ext_resource type="Texture2D" path="res://art/textures/bark_giant_ao.png" id="ao_tex"]
 
 [resource]
-ao_enabled = true
-ao_light_affect = 0.35
-ao_texture = ExtResource("ao_tex")
 albedo_color = Color(0.72, 0.76, 0.84, 1)
 emission_enabled = true
 emission = Color(0.18, 0.28, 0.55, 1)

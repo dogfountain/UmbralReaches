@@ -26,10 +26,11 @@ const EVERY := Vector2(420.0, 660.0)
 const CALL_FOR := 180.0
 const ARRIVE_R := 15.0
 const LEAVE_R := 46.0
+const AWAY_GRACE := 8.0                 ## seconds past LEAVE_R before a surge is lost
+var _away := 0.0
 const WAVES := 3
 const WAVE_GAP := 32.0                  ## a wave comes anyway after this long
-const HAVEN_C := Vector2(4.0, 36.0)     ## encounters' haven: no events in Hearthward
-const HAVEN_R := 40.0
+const EncDirector := preload("res://core/life/encounters/director.gd")
 const SURGE := Color(0.62, 0.42, 1.0)
 const SID := "world_events"
 const REWARD_ASH := 24
@@ -116,8 +117,12 @@ func _process(delta: float) -> void:
 		"active":
 			_prune()
 			if _flat(pp, at) > LEAVE_R:
-				_end("lost")
-				return
+				_away += 0.5
+				if _away >= AWAY_GRACE:          # a gallop across the edge and back is still your fight
+					_end("lost")
+					return
+			else:
+				_away = 0.0
 			_wave_t -= 0.5
 			if foes.is_empty() or (_wave_t <= 0.0 and wave < WAVES):
 				if wave >= WAVES:
@@ -135,11 +140,18 @@ func _quiet_time() -> bool:
 	return get_tree().get_first_node_in_group("fire_flight") == null
 
 
+## The one haven the director keeps (its circle, the Keg's grown rectangle, the holds): a surge is not
+## planted on ground a tide may not arm on.
+static func _in_haven(p: Vector2) -> bool:
+	return p.distance_to(EncDirector.HAVEN_C) < EncDirector.HAVEN_R or Rect2(RealmLayout.TAVERN).grow(6.0).has_point(p) \
+		or p.distance_to(EncDirector.HOLDS_C) < EncDirector.HOLDS_R
+
+
 func _pick_and_start(pp: Vector3) -> void:
 	var cands: Array[Dictionary] = []
 	for s in sites():
 		var d := _flat(pp, s.at)
-		if d > 30.0 and d < 150.0 and Vector2(s.at.x, s.at.z).distance_to(HAVEN_C) > HAVEN_R:
+		if d > 30.0 and d < 150.0 and not _in_haven(Vector2(s.at.x, s.at.z)):
 			cands.append(s)
 	if cands.is_empty():
 		clock = 60.0
@@ -161,12 +173,12 @@ func start_event(site_id: String) -> bool:
 			phase = "warn"
 			clock = CALL_FOR
 			wave = 0
+			_away = 0.0
 			foes.clear()
 			events_run += 1
 			_make_fx()
 			Events.world_event.emit(event_id(), "warn", at)
-			Events.toast.emit("The Gloom is welling up at %s. Go, and break it before it spills." % _bare(site_name))
-			_banner("Gloom Surge", "at %s" % _bare(site_name))
+			_banner("Gloom Surge", "at %s: go, and break it before it spills" % _bare(site_name))      # one call: the plate
 			return true
 	return false
 

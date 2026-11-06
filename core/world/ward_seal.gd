@@ -22,6 +22,9 @@ var _light: OmniLight3D
 ## An arena-only gate (r30): no camps, no persistence, open until a fight shuts it. Progression seals
 ## (the bone portcullis, the summit ward) stay what they are; the arena shuts its own gate at its mouth.
 var arena_only := false
+var _marks: Array[MeshInstance3D] = []          ## one per bell the door wants, filled as bells are answered
+var _poll := 0.0
+var _spoken_at := -1                            ## the bell count the door last spoke for
 
 
 static func make(host: Node3D, id: String, at: Vector3, facing: Vector3, w: float, h: float, look_kind: String, label: String, bosses: Array[String] = []) -> WardSeal:
@@ -83,9 +86,60 @@ func _ready() -> void:
 	Events.seal_broken.connect(_on_broken)
 	Events.boss_slain.connect(func(_id: String) -> void: _refresh(true))
 	if requires_bells > 0:
-		Events.quest_changed.connect(func(_id: String, _s: int, _d: bool) -> void: _refresh(true))
+		Events.quest_changed.connect(func(_id: String, _s: int, _d: bool) -> void:
+			_update_marks()
+			_refresh(true))
+		_build_marks()
+		set_process(true)
+	else:
+		set_process(false)
 	Events.seal_progress.connect(_on_progress)
 	_refresh(false)
+
+
+## The door shows its count in the place: a mark for each bell it wants, lit as each is answered.
+func _build_marks() -> void:
+	var w := 0.34
+	for i in requires_bells:
+		var mi := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 0.1
+		sm.height = 0.2
+		sm.radial_segments = 10
+		sm.rings = 5
+		mi.mesh = sm
+		mi.material_override = StandardMaterial3D.new()
+		mi.position = Vector3((float(i) - float(requires_bells - 1) * 0.5) * w, size.y + 0.35, 0.0)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_vis.add_child(mi)
+		_marks.append(mi)
+	_update_marks()
+
+
+func _update_marks() -> void:
+	var rung := QuestBookScript.bells()
+	for i in _marks.size():
+		var m := _marks[i].material_override as StandardMaterial3D
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_color = Color(1.0, 0.78, 0.45) if i < rung else Color(0.16, 0.12, 0.2)
+
+
+## Stand at the veil short of the peal and it says what it wants, once per count.
+func _process(delta: float) -> void:
+	if _open or requires_bells <= 0:
+		return
+	_poll -= delta
+	if _poll > 0.0:
+		return
+	_poll = 0.3
+	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	if p == null or p.global_position.distance_to(global_position) > 7.0:
+		return
+	var rung := QuestBookScript.bells()
+	if rung >= requires_bells or rung == _spoken_at:
+		return
+	_spoken_at = rung
+	Events.toast.emit(BossArena.no_peal(rung, requires_bells))
 
 
 func _on_progress(id: String, cleared: int, total: int) -> void:

@@ -117,11 +117,11 @@ static func _lantern(k: OssKit, holder: Node3D, p: Vector3) -> void:
 	var l := OmniLight3D.new()
 	l.name = "WayLamp"
 	l.light_color = Color(1.0, 0.6, 0.3)
-	l.light_energy = 1.0
-	l.omni_range = 7.5
+	l.light_energy = 0.5                        # a coal in a stone: a mark on the road, never read as a fire
+	l.omni_range = 5.0
 	l.shadow_enabled = false
 	l.set_meta(&"light_class", "fill")
-	l.set_meta(&"base", {"e": 1.0, "r": 7.5, "a": 1.0})
+	l.set_meta(&"base", {"e": 0.5, "r": 5.0, "a": 1.0})
 	holder.add_child(l)
 	l.global_position = p + Vector3.UP * 2.05
 	LightPolicy.apply_fade(l)

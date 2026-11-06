@@ -8,6 +8,7 @@ extends Interactable
 @export var lit_range := 14.5
 
 var lit := false
+var _spawn_at := Vector3(INF, 0.0, 0.0)           ## spawn_point(), found once for the 'already resting here' test
 var _t := 0.0
 var _energy := 0.0
 
@@ -67,12 +68,22 @@ func _ready() -> void:
 
 
 func can_interact() -> bool:
-	return not lit or not Travel.relics.is_empty()
+	return not lit or not _remembered()
+
+
+## Already the wanderer's checkpoint (the lit fire has nothing to offer: it is quiet).
+func _remembered() -> bool:
+	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player if is_inside_tree() else null
+	if p == null:
+		return false
+	if _spawn_at.x == INF:
+		_spawn_at = spawn_point()
+	return p.checkpoint.distance_to(_spawn_at) < 1.0
 
 
 func interact_text() -> String:
 	if lit:
-		return "[%s]  Attune your relics" % Interactable.prompt_key()
+		return "[%s]  Rest" % Interactable.prompt_key()
 	return "[%s]  Kindle the brazier" % Interactable.prompt_key()
 
 
@@ -82,13 +93,7 @@ func interact_feel() -> StringName:
 
 func interact(by: Node) -> void:
 	if lit:
-		remember(by)                         # r30: resting at any lit fire moves the checkpoint here
-		# a kindled fire is where relics are attuned: the satchel opens in attune mode
-		var sat := get_tree().current_scene.get_node_or_null("Satchel") if get_tree().current_scene else null
-		if sat and sat.has_method("open_menu"):
-			sat.call("open_menu", true)
-		else:
-			Reliquary.attune("bone")
+		remember(by)                         # resting at any lit fire moves the checkpoint here (relics swap in the satchel)
 		return
 	_set_lit(true, true)
 	if by.has_method("set_checkpoint"):
@@ -142,15 +147,14 @@ static func lit_at(tree: SceneTree, pos: Vector3) -> Brazier:
 
 ## The Hearthfire (core/life/progression/hearth.gd) widens every fire's sanctuary: `r` is the new
 ## LightGrid radius. The light's own range grows with it so the warm circle reads as far as it
-## holds. The first call remembers the scene's radius and range as the base.
+## holds (the pool equals the sanctuary).
 func set_reach(r: float) -> void:
 	if not has_meta(&"reach_base"):
-		set_meta(&"reach_base", Vector2(light_radius, lit_range))
-	var base: Vector2 = get_meta(&"reach_base")
+		set_meta(&"reach_base", Vector2(light_radius, lit_range))      # the hearth reads this as the base
 	if is_equal_approx(r, light_radius):
 		return
 	light_radius = r
-	lit_range = base.y * r / maxf(base.x, 0.1)
+	lit_range = _pool_range()
 	if lit:
 		LightGrid.register(self, light_radius)
 		var b: Variant = _light.get_meta(&"base", {})
@@ -159,6 +163,11 @@ func set_reach(r: float) -> void:
 			_light.set_meta(&"base", b)
 			LightPolicy.apply_fade(_light)
 			LightPolicy.apply_illumination(_light)
+
+
+## The authored range that, after the beacon class widens it, ends exactly where the sanctuary ends.
+func _pool_range() -> float:
+	return light_radius / float((LightPolicy.ILLUM[&"beacon"] as Array)[1])
 
 
 func kindle_quiet() -> void:
@@ -198,7 +207,7 @@ func _set_lit(on: bool, animate: bool) -> void:
 	var target_energy := lit_energy if on else 0.25
 	_light.set_meta(&"base", {
 		"e": target_energy,
-		"r": lit_range if on else 2.5,
+		"r": _pool_range() if on else 2.5,
 		"a": 1.0,
 	})
 	LightPolicy.apply_fade(_light)

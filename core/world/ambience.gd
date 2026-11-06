@@ -142,6 +142,7 @@ func _music_level() -> void:
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS         # a menu ducks the beds; it does not cut them to silence
 	_rng.seed = 5309
 	if "--no-ambience" in OS.get_cmdline_user_args():      # debugging: no soundscape at all
 		set_process(false)
@@ -293,7 +294,11 @@ func _make_buses() -> void:
 		_verbs[bus] = rv
 
 
+var _duck := 0.0                                ## dB the beds sit lower while the game is paused
+
+
 func _process(delta: float) -> void:
+	_duck = move_toward(_duck, -9.0 if get_tree().paused else 0.0, delta * 30.0)
 	_t -= delta
 	if _t <= 0.0:
 		_t = 0.25
@@ -307,7 +312,7 @@ func _process(delta: float) -> void:
 			if p.playing:
 				p.stop()
 			continue
-		p.volume_db = float(BEDS[key][1]) + linear_to_db(sin(g * PI * 0.5))      # equal-power
+		p.volume_db = float(BEDS[key][1]) + linear_to_db(sin(g * PI * 0.5)) + _duck      # equal-power
 		if not p.playing:
 			p.play(_rng.randf() * p.stream.get_length())
 		var tw := _twins.get(key) as AudioStreamPlayer

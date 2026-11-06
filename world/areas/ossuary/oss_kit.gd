@@ -187,15 +187,16 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 
 
 const BEVEL := 0.045
+var under_shade := 0.6      ## vertex shade of a downward face (a room whose ceiling should take its hearth lifts it)
 const AO_FLOOR := 0.56      ## vertex shade at a face's foot
 const AO_RISE := 0.75       ## metres over which contact AO fades out
 
 
-static func _ao(n: Vector3, y: float, ybot: float) -> float:
+static func _ao(n: Vector3, y: float, ybot: float, under := 0.6) -> float:
 	if n.y > 0.68:
 		return 1.0
 	if n.y < -0.68:
-		return 0.6
+		return under
 	var t := clampf((y - ybot) / AO_RISE, 0.0, 1.0)
 	return lerpf(AO_FLOOR, 1.0, t * t * (3.0 - 2.0 * t))
 
@@ -218,7 +219,7 @@ func _rect(st: SurfaceTool, ctr: Vector3, u: Vector3, v: Vector3, n: Vector3, sh
 	if (b - a).cross(c - a).dot(n) > 0.0:
 		tri = [a, c, b, a, d, c]
 	for p in tri:
-		var k := shade * _ao(n, p.y, ybot)
+		var k := shade * _ao(n, p.y, ybot, under_shade)
 		st.set_normal(n)
 		st.set_color(Color(k, k, k))
 		st.add_vertex(p)
@@ -229,7 +230,7 @@ func _tri3(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, n: Vector3, shad
 	if (b - a).cross(c - a).dot(n) > 0.0:
 		tri = [a, c, b]
 	for p in tri:
-		var k := shade * _ao(n, p.y, ybot)
+		var k := shade * _ao(n, p.y, ybot, under_shade)
 		st.set_normal(n)
 		st.set_color(Color(k, k, k))
 		st.add_vertex(p)
@@ -719,6 +720,6 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 			_flame_mesh.size = Vector2(0.075, 0.17)
 			_halo_mesh = QuadMesh.new()
 			_halo_mesh.size = Vector2(0.55, 0.55)
-		add.call("Flames", _flame_mesh, tips, mat("flame"), 120.0)
-		add.call("Halos", _halo_mesh, tips, mat("halo"), 120.0)
+		add.call("Flames", _flame_mesh, tips, mat("flame"), 55.0)    # the wax range: no flame floats over a candle that has faded
+		add.call("Halos", _halo_mesh, tips, mat("halo"), 55.0)
 	return draws + int(counter[0])

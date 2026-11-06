@@ -132,7 +132,7 @@ func _scatter_wisps() -> void:
 		core.mesh = orb
 		var core_mat := StandardMaterial3D.new()
 		core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		core_mat.albedo_color = Color(col.r * 1.2, col.g * 1.2, col.b * 1.2)
+		core_mat.albedo_color = col / maxf(col.r, maxf(col.g, col.b)) * 1.1       # the candle's rule: body under 1.15
 		core_mat.disable_receive_shadows = true
 		core.material_override = core_mat
 		core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -140,6 +140,22 @@ func _scatter_wisps() -> void:
 		core.visibility_range_end_margin = 8.0
 		core.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		holder.add_child(core)
+		var hot := MeshInstance3D.new()                  # a small core over the threshold
+		var hs0 := SphereMesh.new()
+		hs0.radius = r * 0.4
+		hs0.height = r * 0.8
+		hs0.radial_segments = 6
+		hs0.rings = 3
+		hot.mesh = hs0
+		var hot_mat := StandardMaterial3D.new()
+		hot_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		hot_mat.albedo_color = col / maxf(col.r, maxf(col.g, col.b)) * 1.6
+		hot.material_override = hot_mat
+		hot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		hot.visibility_range_end = 36.0
+		hot.visibility_range_end_margin = 8.0
+		hot.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		holder.add_child(hot)
 		var halo := MeshInstance3D.new()
 		var q := QuadMesh.new()
 		var hs := r * 7.0
@@ -151,7 +167,7 @@ func _scatter_wisps() -> void:
 		hmat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 		hmat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 		hmat.disable_receive_shadows = true
-		hmat.albedo_color = Color(col.r, col.g, col.b)
+		hmat.albedo_color = col / maxf(col.r, maxf(col.g, col.b)) * 0.8
 		hmat.albedo_texture = _radial()
 		halo.material_override = hmat
 		halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -182,7 +198,7 @@ func _scatter_buds() -> void:
 		mm.set_instance_transform(i, xf)
 		var col := _palette(i)
 		mm.set_instance_color(i, Color(clampf(col.r * 0.22, 0.1, 0.82), clampf(col.g * 0.22, 0.08, 0.7), clampf(col.b * 0.22, 0.08, 0.8)))
-		mm.set_instance_custom_data(i, Color(col.r, col.g, col.b, 2.8))
+		mm.set_instance_custom_data(i, Color(col.r, col.g, col.b, 0.38))      # cap under the threshold; only the spots clear it
 		box = box.expand(p)
 		if i % 4 == 0:
 			_omni(p + Vector3(0.0, 0.85, 0.0), col, 1.35, 5.5)

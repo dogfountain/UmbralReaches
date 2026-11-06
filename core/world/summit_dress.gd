@@ -4,7 +4,6 @@ extends RefCounted
 
 const Chains := preload("res://core/story/quest_chains.gd")
 const PLATFORM := "res://art/models/mossy_platform.glb"
-const MAGE := "res://art/models/summit_mage.glb"
 const PILLAR := "res://art/models/summit_pillar.glb"
 const MOSS_DIFF := "res://art/textures/import/rock_moss_diff.jpg"
 const MOSS_NOR := "res://art/textures/import/rock_moss_nor.jpg"
@@ -58,8 +57,8 @@ static func _cut_gate(mi: MeshInstance3D, holder: Node3D, box: AABB) -> void:
 static func dress(root: Node) -> void:
 	if root == null or root.has_meta("summit_dressed"):
 		return
-	if Check.res(PLATFORM, PackedScene) == null or Check.res(MAGE, PackedScene) == null:
-		push_error("SUMMIT_DRESS missing platform/mage glb")
+	if Check.res(PLATFORM, PackedScene) == null:
+		push_error("SUMMIT_DRESS missing platform glb")
 		return
 	root.set_meta("summit_dressed", true)
 	var holder := Node3D.new()
@@ -529,7 +528,26 @@ static func _stone_material() -> Material:
 	return s
 
 
+## The glb stores every copy of a moss rock as its own mesh with the same bytes. Point every copy at the
+## first one (same picture, one upload, one collision hull per stone instead of per copy).
+static var _rock_meshes: Dictionary = {}
+
+
+static func _share_meshes(model: Node) -> void:
+	for node in model.find_children("MossRock*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		if mi.mesh == null or mi.mesh.get_surface_count() == 0:
+			continue
+		var base := String(mi.name).get_slice("..", 0).trim_suffix(".")
+		var key := "%s|%d|%s" % [base, mi.mesh.surface_get_array_len(0), str(mi.mesh.get_aabb().size)]
+		if _rock_meshes.has(key):
+			mi.mesh = _rock_meshes[key]
+		else:
+			_rock_meshes[key] = mi.mesh
+
+
 static func _paint_platform(model: Node) -> void:
+	_share_meshes(model)
 	var moss := _moss_material()
 	var stone := _stone_material()
 	for node in model.find_children("*", "MeshInstance3D", true, false):
@@ -573,6 +591,7 @@ static func _paint_platform(model: Node) -> void:
 
 
 static func _paint_pillar(model: Node) -> void:
+	_share_meshes(model)
 	var moss := _moss_material()
 	var stone := _stone_material()
 	for node in model.find_children("*", "MeshInstance3D", true, false):

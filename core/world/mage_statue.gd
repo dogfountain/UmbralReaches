@@ -86,13 +86,13 @@ static func _mat(key: String) -> Material:
 			m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 		"rune":
 			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			m.albedo_color = Color(0.7, 0.85, 1.6)
+			m.albedo_color = Color(0.6, 0.75, 1.1)       # a line, not a bloom: the blue channel sits near the threshold
 			m.cull_mode = BaseMaterial3D.CULL_DISABLED
 		"orb":
 			m.albedo_color = Color(0.75, 0.85, 1.0)
 			m.emission_enabled = true
 			m.emission = Color(0.45, 0.62, 1.0)
-			m.emission_energy_multiplier = 3.0
+			m.emission_energy_multiplier = 1.15     # just over the threshold: a pale sphere, hot only at the rim
 			m.roughness = 0.2
 			m.rim_enabled = true
 			m.rim = 1.0
@@ -307,8 +307,9 @@ func _build_orb() -> void:
 	_orb_light.name = "OrbLight"
 	_orb_light.light_color = Color(0.55, 0.7, 1.0)
 	_orb_light.light_energy = 1.6
-	_orb_light.omni_range = 9.0
-	_orb_light.light_volumetric_fog_energy = 0.7
+	_orb_light.omni_range = 3.5
+	_orb_light.light_volumetric_fog_energy = 0.0
+	_orb_light.shadow_enabled = false
 	_orb_light.set_meta(&"light_class", "fill")
 	_orb.add_child(_orb_light)
 	var motes := Vfx.emitter(Color(0.7, 0.9, 1.8), {"count": 26, "life": 2.2, "speed": Vector2(0.05, 0.25), "size": 0.035, "gravity": -0.25, "radius": 0.35, "swirl": 1.2, "turbulence": true})
