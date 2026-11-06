@@ -797,10 +797,7 @@ func _physics_process(delta: float) -> void:
 		_hitstop -= 1
 		if _state == WINDUP or _state == LEAP_PREP:
 			_state_t += delta                    # the tell's clock keeps time with its red fill
-		if _visual:
-			_visual.position = Vector3(randf_range(-1.0, 1.0), randf_range(-0.4, 0.4), randf_range(-1.0, 1.0)) * 0.035 * float(_hitstop)
-		if _hitstop == 0 and _visual:
-			_visual.position = Vector3.ZERO
+		_shudder()
 		return
 	_cache_player()
 	_poise_dmg = maxf(0.0, _poise_dmg - delta * poise / POISE_WINDOW)
@@ -1679,6 +1676,8 @@ func _die() -> void:
 	var big := _last_dmg >= 3.0
 	if _last_from != Vector3.ZERO:
 		_knock = _last_from * (6.5 if big else 3.2) / maxf(mass, 0.4) * (0.35 if boss else 1.0)
+		if mass < 0.6:
+			_knock = _knock.limit_length(4.5)        # a light body folds where it died, in frame
 		if big and not boss:
 			velocity.y = 3.2
 	Sfx.play_stream(Synth.voice(voice_family(), "die"), global_position + Vector3.UP * hp_bar_y * 0.7, -2.0 if boss else -4.0, _voice_pitch())
@@ -1705,7 +1704,7 @@ func _die() -> void:
 	Vfx.scorch(global_position, 0.6 + hp_bar_y * 0.35, Color(0.5, 0.2, 0.9), 4.0)    # the stain it leaves
 	# the body folds first (HunchRig/QuadRig collapse), then burns away
 	var tw := create_tween()
-	tw.tween_interval(0.25)
+	tw.tween_interval(0.65)                       # the fold is near done before the burn
 	tw.tween_method(_set_dissolve, 0.0, 1.0, 0.95)
 	tw.tween_callback(queue_free)
 
@@ -1726,7 +1725,23 @@ func _final_blow_check() -> void:
 
 
 ## Dead: keep the rig folding and the body settling to the ground while it dissolves.
+## The crunch of a landed hit: a frozen shudder, scaled to the body (capped near 8 cm times its scale).
+func _shudder() -> void:
+	if _visual == null:
+		return
+	if _hitstop == 0:
+		_visual.position = Vector3.ZERO
+		return
+	var k := maxf(_rig.scale.x, 1.0) if _rig != null else 1.0
+	var v := Vector3(randf_range(-1.0, 1.0), randf_range(-0.4, 0.4), randf_range(-1.0, 1.0)) * 0.035 * float(_hitstop)
+	_visual.position = v.limit_length(0.08) * k
+
+
 func _tick_dying(delta: float) -> void:
+	if _hitstop > 0:                             # the killing blow freezes and shudders like any other
+		_hitstop -= 1
+		_shudder()
+		return
 	_dying += delta
 	if _visual:
 		_visual.position = Vector3.ZERO
