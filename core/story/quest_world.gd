@@ -73,7 +73,9 @@ static func _spot(nav: RefCounted, near: Vector2, r := 0.3) -> Vector3:
 				continue
 			# on the floor people walk on, not on top of a tomb or a wall
 			var walk_y: float = RealmLayout.ground(nav.get("_space"), x, z)
-			if p.y - walk_y > 0.6:
+			# (a plinth standing in the shallows is the floor there: the ground under it is the river bed)
+			var wl := RealmLayout.water_level_at(x, z)
+			if p.y - walk_y > 0.6 and (is_nan(wl) or walk_y >= wl):
 				continue
 			if r > 0.35:
 				var ok := true

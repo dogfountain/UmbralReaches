@@ -21,6 +21,7 @@ var want := {}                     ## id -> Vector2 (as authored)
 var edges := {}                    ## id -> {other id: length}
 var dropped: Array[String] = []    ## "a-b: why" for the report
 var moved: Array[String] = []
+var decks: Array = []  ## {rect: Rect2 (xz), y: deck top}: a bridge over low ground; the ground ray would start under it
 var _space: PhysicsDirectSpaceState3D
 var _q := PhysicsShapeQueryParameters3D.new()
 var _exclude: Array[RID] = []
@@ -39,6 +40,11 @@ func _init() -> void:
 func floor_at(x: float, z: float) -> float:
 	var gy := RealmLayout.ground(_space, x, z)
 	var ex := _exclude
+	for d in decks:
+		if (d.rect as Rect2).has_point(Vector2(x, z)):
+			var dh := _space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(x, float(d.y) + 1.0, z), Vector3(x, float(d.y) - 0.6, z), Layers.WORLD, ex))
+			if dh:
+				return (dh.position as Vector3).y
 	for i in 3:
 		var hit := _space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(x, gy + 1.9, z), Vector3(x, gy - 1.5, z), Layers.WORLD, ex))
 		if not hit:
