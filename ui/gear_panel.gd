@@ -274,6 +274,9 @@ func close_menu() -> void:
 		return
 	_root.visible = false
 	if hosted:
+		var cs := get_tree().get_first_node_in_group(&"character_screen")
+		if cs:
+			cs.release(self)                  # closed directly: the screen closes too and gives the night back
 		return                              # a page of the character screen: it keeps the pause and the mouse
 	UiSound.play(self, "back")
 	if get_tree().paused:

@@ -691,7 +691,7 @@ func _burst(at: Vector3) -> void:
 		var host2 := get_tree().current_scene
 		if host2:
 			host2.add_child(shock)
-	var old: Variant = shock.get_meta(&"burst_tween", null)
+	var old: Variant = shock.get_meta(&"burst_tween") if shock.has_meta(&"burst_tween") else null   # get_meta(k, null) still errors
 	if old is Tween and (old as Tween).is_valid():
 		(old as Tween).kill()                       # a reused dome starts over, its old tween must not hide it
 	shock.visible = true

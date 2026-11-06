@@ -1,8 +1,8 @@
 extends Interactable
-## "Tend the fire" at a kindled brazier (progression): opens the Kindling. It only offers itself
-## while the brazier has nothing of its own to say once lit (no relics yet); with relics the
-## brazier's own "Attune" opens the Satchel in attune mode, which hands over to the Kindling too
-## (ui/satchel.gd hook), so either way a lit fire is where ash is spent.
+## The one prompt at a kindled brazier (progression): "Rest · Kindling" when the fire is not yet the
+## wanderer's checkpoint (the press rests there, then opens the Kindling), "Tend the fire · Kindling"
+## once it is. The brazier itself only speaks while unlit ("Kindle the brazier"). Relics swap in the
+## satchel (sheets 117, 118).
 
 var brazier: Node3D
 
@@ -12,18 +12,21 @@ func _ready() -> void:
 
 
 func can_interact() -> bool:
-	return is_instance_valid(brazier) and bool(brazier.get("lit")) and not brazier.call("can_interact")
+	return brazier is Brazier and (brazier as Brazier).lit
 
 
 func interact_text() -> String:
-	return "[%s]  Tend the fire  ·  Kindling" % Interactable.prompt_key()
+	var rest := brazier is Brazier and not (brazier as Brazier).is_checkpoint()
+	return "[%s]  %s  ·  Kindling" % [Interactable.prompt_key(), "Rest" if rest else "Tend the fire"]
 
 
 func interact_feel() -> StringName:
 	return &"cast"
 
 
-func interact(_by: Node) -> void:
+func interact(by: Node) -> void:
+	if brazier is Brazier and not (brazier as Brazier).is_checkpoint():
+		(brazier as Brazier).remember(by)       # resting here moves the checkpoint (sheet 117)
 	var g := get_tree().get_first_node_in_group("growth")
 	if g:
 		g.call("open_menu", true)

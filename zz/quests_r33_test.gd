@@ -289,7 +289,7 @@ func _slay_region() -> void:
 	Book.drop("road_clear")
 	Book.accept("unpaid_toll")
 	runner.call("note_kill", "wretch", Vector2(-92, -30))
-	runner.call("note_kill", "tollman", Vector2(43, -6))
+	runner.call("note_kill", "tollman", Vector2(-92, -30))    # sheet 193: tollmen count where they stand (thornwood, henge)
 	ok(int(Book.q("unpaid_toll").get("n", 0)) == 1, "only tollmen count for the toll")
 	Book.drop("unpaid_toll")
 

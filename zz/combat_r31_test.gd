@@ -274,7 +274,11 @@ func _s_guard() -> void:
 	Input.action_press("guard")
 	await _frames(1)
 	ok(bool(arts.call("guarding")), "holding guard raises the staff")
-	ok(p.is_evading(), "a fresh guard is a parry window")
+	var wait := 0
+	while not p.is_evading() and wait < 20:      # sheet 38: the window opens when the staff is across the body
+		await _frames(1)
+		wait += 1
+	ok(p.is_evading(), "a fresh guard is a parry window (open after %d frames)" % wait)
 	var b0: float = st.get("breath")
 	p.on_evaded(w)
 	ok(int(arts.get("parries")) == 1, "the blow is parried")

@@ -68,11 +68,11 @@ func _ready() -> void:
 
 
 func can_interact() -> bool:
-	return not lit or not _remembered()
+	return not lit                         # lit: the fire's FireSpot speaks for it ("Rest · Kindling")
 
 
-## Already the wanderer's checkpoint (the lit fire has nothing to offer: it is quiet).
-func _remembered() -> bool:
+## Already the wanderer's checkpoint (FireSpot then offers "Tend the fire", not "Rest").
+func is_checkpoint() -> bool:
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player if is_inside_tree() else null
 	if p == null:
 		return false

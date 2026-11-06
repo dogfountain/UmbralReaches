@@ -125,6 +125,14 @@ func close() -> void:
 	UiSound.play(self, "back")
 
 
+## A hosted page was closed directly (its own key, a test, a script) rather than through this screen:
+## close the screen with it, so the night is not left paused behind an empty frame. _unhost clears
+## _panel before it closes the page, so the screen's own teardown never comes back through here.
+func release(panel: Node) -> void:
+	if _open and panel != null and panel == _panel:
+		close()
+
+
 ## The page showing now: [tab id, page id] (tests, hints).
 func showing() -> Array:
 	return [String(TABS[_top][0]), String(TABS[_top][2][_sub[_top]][0])] if _open else []

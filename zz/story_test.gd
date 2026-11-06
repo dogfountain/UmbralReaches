@@ -16,6 +16,8 @@ extends Node
 const QuestDB := preload("res://core/story/quest_db.gd")
 const DialogueDB := preload("res://core/story/dialogue_db.gd")
 const StoryScript := preload("res://core/story/story.gd")
+const Book := preload("res://core/story/quest_book.gd")
+const Chains := preload("res://core/story/quest_chains.gd")
 
 var fails := 0
 var _bak := {}
@@ -86,10 +88,10 @@ func _quests() -> void:
 	var ws := {"flags": {}, "kindled": 0, "seals": {}, "bosses": {}, "items": {}}
 	ok(_ids(ws) == ["arrive"], "fresh: find the keep  %s" % [_ids(ws)])
 	ws.flags["met_keep"] = true
-	ok(_ids(ws) == ["thorn_seal", "oss_seal", "kindle"], "met the keep: two seals + kindling  %s" % [_ids(ws)])
-	ok(String(QuestDB.active(ws)[2].text).ends_with("(0/4)"), "kindling shows its count")
+	ok(_ids(ws) == ["doors", "kindle"], "met the keep: the two doors + kindling (sheet 237)  %s" % [_ids(ws)])
+	ok(String(QuestDB.active(ws)[1].text).ends_with("(0/4)"), "kindling shows its count")
 	ws.kindled = 2
-	ok(String(QuestDB.active(ws)[2].text).ends_with("(2/4)"), "kindling 2/4")
+	ok(String(QuestDB.active(ws)[1].text).ends_with("(2/4)"), "kindling 2/4")
 	ws.seals["henge"] = true
 	ok(_ids(ws) == ["thornwarden", "oss_seal", "kindle"], "thorn seal broken -> the Thornwarden  %s" % [_ids(ws)])
 	ws.bosses["thornwarden"] = true
@@ -99,11 +101,17 @@ func _quests() -> void:
 	ws.kindled = 4
 	ok(not "kindle" in _ids(ws), "all four braziers: kindling done")
 	ws.bosses["bone_abbot"] = true
-	ok(_ids(ws) == ["summit_seal", "warden"], "both shards -> summit ward + Warden  %s" % [_ids(ws)])
+	ok(_ids(ws) == ["peal"], "both shards -> the Founder's peal (four bells) first  %s" % [_ids(ws)])
+	for b: String in Chains.BELLS.slice(0, Chains.BELLS_NEEDED):   # four bells answered, as play records them
+		Book.start(b)
+		Book.choose(b, "rung")
+	ok(_ids(ws) == ["summit_seal"], "four bells -> the summit ward  %s" % [_ids(ws)])
 	ws.seals["summit"] = true
 	ok(_ids(ws) == ["warden"], "summit ward open  %s" % [_ids(ws)])
 	ws.bosses["ascended_warden"] = true
 	ok(_ids(ws) == ["return"], "Warden slain -> return to the Keg  %s" % [_ids(ws)])
+	for b: String in Chains.BELLS.slice(0, Chains.BELLS_NEEDED):   # the four test bells: not tracked tasks later on
+		Book.drop(b)
 	ws.flags["ending_told"] = true
 	ok(_ids(ws).is_empty(), "ending told: nothing left  %s" % [_ids(ws)])
 	# out of order: the Abbot first, before ever meeting the keep
@@ -189,7 +197,7 @@ func _flow() -> void:
 	ui.press()
 	ok(not ui.is_open() and not get_tree().paused, "conversation ends, world unpaused")
 	var ids: Array = story.objectives().map(func(o: Dictionary) -> String: return String(o.id))
-	ok(ids == ["thorn_seal", "oss_seal", "kindle"], "objectives after meeting the keep %s" % [ids])
+	ok(ids == ["doors", "kindle"], "objectives after meeting the keep %s" % [ids])
 	# Esc closes mid-conversation
 	story.talk("hesk")
 	ok(ui.is_open(), "Hesk talks")

@@ -31,7 +31,7 @@ const OBJECTIVES := [
 	{"id": "bone_abbot", "main": true, "when": "seal:oss_gallery", "done": "boss:bone_abbot",
 		"text": "Take the Abbot's crown from the Bone Abbot"},
 	# after both keepers: one line. The peal until four bells are answered, then the climb, then the door.
-	{"id": "peal", "main": true, "when": "boss:thornwarden,boss:bone_abbot", "done": "bells:4",
+	{"id": "peal", "main": true, "when": "boss:thornwarden,boss:bone_abbot", "done": "bells:4|boss:ascended_warden",
 		"text": "The door will hear a peal, not a crown: answer four of the Founder's bells. Brannoc has the first"},
 	{"id": "summit_seal", "main": true, "when": "boss:thornwarden,boss:bone_abbot,bells:4", "done": "seal:summit|boss:ascended_warden",
 		"text": "Carry heart and crown to the summit ward across the Crossing"},

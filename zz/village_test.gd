@@ -305,6 +305,7 @@ func _restore() -> void:
 			toasts.append(s)
 	Events.toast.connect(cb)
 	VState.kindled_override = 4
+	(VState.data().flags as Dictionary)["oil"] = true    # sheet 156: the longer round is the oil, not three fires
 	Travel.seals_broken = {"henge": true, "oss_gallery": true, "summit": true}
 	Travel.bosses_slain = {"thornwarden": true, "bone_abbot": true, "ascended_warden": true}
 	village.call("refresh", true)
