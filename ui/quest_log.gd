@@ -202,9 +202,9 @@ func banner(top: String, name_text: String, sub: String) -> void:
 
 
 func _show_banner(top: String, name_text: String, sub: String) -> void:
-	_b_top.text = top
+	_b_top.text = TextDirector.sentence(top)           # the same case rule as every other line; the name stays as the lore spells it
 	_b_name.text = name_text
-	_b_sub.text = sub
+	_b_sub.text = TextDirector.sentence(sub)
 	if _b_tw:
 		_b_tw.kill()
 	_b_tw = create_tween()
