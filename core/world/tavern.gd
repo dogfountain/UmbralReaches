@@ -23,6 +23,27 @@ const CHIM := Rect2(26.0, 29.4, 1.1, 1.6)
 var _rng := RandomNumberGenerator.new()
 
 
+## Start making every rig mesh the Keg will ask for on worker threads (cache misses only); the Realm
+## starts it with the load and prewarm_rigs() collects it.
+static func warm_start() -> Dictionary:
+	var warm: Array = []
+	for i in PATRONS.size():
+		var sd := 911 + i * 37
+		warm.append({"seated": bool(PATRONS[i][3]), "seed": sd, "hat": String(PATRONS[i][4])})
+		if WANDERERS.has(i) and bool(PATRONS[i][3]):
+			warm.append({"seated": false, "seed": sd, "hat": String(PATRONS[i][4])})
+	warm.append({"seated": false, "seed": 5150, "apron": true, "hat": "bare", "rag": true})
+	return DwarfRig.warm_start(warm)
+
+
+## Wait for the Keg's rig meshes (started by the Realm, or started here when it is not running).
+static func prewarm_rigs(root: Node) -> void:
+	var h: Dictionary = DwarfRig.warm_batches.get("tavern", {})
+	if h.is_empty():
+		h = warm_start()
+	await DwarfRig.warm_finish(h, root.get_tree())
+
+
 static func build(root: Node) -> Tavern:
 	if root.get_node_or_null("HollowLantern") != null:
 		return null

@@ -23,6 +23,8 @@ const SCALE := 1.1                 ## adults are built 1.53 m tall and shown at 
 
 const KEYS := ["seed", "sex", "age", "garment", "apron", "hood", "hat", "hair", "beard", "r", "l", "satchel", "shawl", "pale", "barefoot", "girth", "cloth", "cloth2", "hair_c", "skin", "leather"]
 
+const AGE_SIZE := {"child": [0.68, 0.86], "teen": [0.9, 0.95], "old": [0.97, 0.98]}   ## age -> [body, head] size factors
+
 static var _mem := {}              ## key -> ArrayMesh (the portrait reuses the world copy)
 
 
@@ -56,45 +58,14 @@ static func create(opts: Dictionary) -> Node3D:
 
 
 func _build(opts: Dictionary) -> void:
-	cfg = opts
-	_o = opts
-	seated = false
-	has_mug = false
-	var sd := int(opts.get("seed", 1))
-	_rng.seed = sd
-	match String(opts.get("age", "adult")):
-		"child":
-			k = 0.68
-			hs = 0.86
-		"teen":
-			k = 0.9
-			hs = 0.95
-		"old":
-			k = 0.97
-			hs = 0.98
-		_:
-			k = 1.0
-			hs = 1.0
-	_rest_layout()
-	var parts := PackedStringArray()
-	for key: String in KEYS:
-		parts.append(str(opts.get(key, "")))
-	_key = "vil4|%s|%d|%d" % ["|".join(parts), GenCache.salt(SELF_V), GenCache.salt("res://core/life/village/villager_mesh.gd") ^ GenCache.salt(MESH_SRC) ^ GenCache.salt(FACE_SRC)]
-	var mesh: ArrayMesh = _mem.get(_key)
+	var key := _prep(opts)
+	var mesh: ArrayMesh = _mem.get(key)
 	if mesh == null:
-		mesh = GenCache.load_mesh(_key, SELF_V)
+		mesh = GenCache.load_mesh(key, SELF_V)
 	if mesh == null:
-		var t0 := Time.get_ticks_msec()
-		var mb: Variant = VMesh.new(sd)
-		_body_v(mb)
-		mb.bake_ao()
-		var im := ImporterMesh.new()
-		im.add_surface(Mesh.PRIMITIVE_TRIANGLES, mb.arrays(), [], {}, null, "villager")
-		im.generate_lods(25.0, 60.0, [])
-		mesh = im.get_mesh()
-		GenCache.save_mesh(_key, SELF_V, mesh)
-		print("VILLAGER built %s: %d verts in %d ms" % [opts.get("name", sd), mb.vertex_count(), Time.get_ticks_msec() - t0])
-	_mem[_key] = mesh
+		mesh = _generate().get_mesh()
+		GenCache.save_mesh(key, SELF_V, mesh)
+	_mem[key] = mesh
 	mesh.surface_set_material(0, DwarfLook.material_outdoor())
 	_assemble(mesh)
 	scale = Vector3.ONE * SCALE
@@ -103,6 +74,38 @@ func _build(opts: Dictionary) -> void:
 	mesh_instance.extra_cull_margin = 1.2 if String(opts.get("r", "")) == "pole" else 0.6
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	_glow_part()
+
+
+## Take the options in (size, layout, rng, cache key); the key is returned.
+func _prep(opts: Dictionary) -> String:
+	cfg = opts
+	_o = opts
+	seated = false
+	has_mug = false
+	_rng.seed = int(opts.get("seed", 1))
+	var size: Array = AGE_SIZE.get(String(opts.get("age", "adult")), [1.0, 1.0])
+	k = size[0]
+	hs = size[1]
+	_rest_layout()
+	var parts := PackedStringArray()
+	for key: String in KEYS:
+		parts.append(str(opts.get(key, "")))
+	_key = "vil4|%s|%d|%d" % ["|".join(parts), GenCache.salt(SELF_V), GenCache.salt("res://core/life/village/villager_mesh.gd") ^ GenCache.salt(MESH_SRC) ^ GenCache.salt(FACE_SRC)]
+	return _key
+
+
+## The cache miss: the mesh as an ImporterMesh (no renderer touched: a worker thread can run it).
+func _generate() -> ImporterMesh:
+	var t0 := Time.get_ticks_msec()
+	var sd := int(cfg.get("seed", 1))
+	var mb: Variant = VMesh.new(sd)
+	_body_v(mb)
+	mb.bake_ao()
+	var im := ImporterMesh.new()
+	im.add_surface(Mesh.PRIMITIVE_TRIANGLES, mb.arrays(), [], {}, null, "villager")
+	im.generate_lods(25.0, 60.0, [])
+	print("VILLAGER built %s: %d verts in %d ms" % [cfg.get("name", sd), mb.vertex_count(), Time.get_ticks_msec() - t0])
+	return im
 
 
 # =====================================================================================================
