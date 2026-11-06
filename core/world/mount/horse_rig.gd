@@ -23,7 +23,7 @@ const BONES := ["root", "hips", "barrel", "chest", "neck1", "neck2", "neck3", "h
 static var _mats := {}
 
 var breed := ""
-## r37 west: a breed that wears another breed's textures (the Weir Cob: the garron's, dyed dun in material())
+## West marches: a breed that wears another breed's textures (the Weir Cob: the garron's, dyed dun in material())
 const TEX_ALIAS := {"weir_cob": "garron"}
 var skel: Skeleton3D
 var mesh_inst: MeshInstance3D

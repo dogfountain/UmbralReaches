@@ -31,7 +31,7 @@ extends RefCounted
 ##   ESCORT / HOLLOW  the two moving pieces (Oswin's walk, Father Harrow)
 ## House style (docs/LORE.md): terse, concrete, dark. Load by path.
 
-## r37 west: Weirford's four chains (quest_chains_r37_west.gd), listed in the blocks marked `# --- west marches ---`.
+## West marches: Weirford's four chains (quest_chains_r37_west.gd), listed in the blocks marked `# --- west marches ---`.
 const R37WQ := preload("res://core/story/quest_chains_r37_west.gd")
 
 ## The ledger's chapters (ui/quest_log.gd), in order: [id, name].

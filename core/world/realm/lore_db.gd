@@ -9,7 +9,7 @@ extends RefCounted
 ##   kind: grave | waystone | tablet | rune | page | notice | plaque | lectern | letter | ledger
 ##   series/part: a multi-part story (SERIES), shown in the journal in part order, gaps kept.
 
-## r37 west: Weirford, the Sorrow, the Hierarch, the Siege Lines (lore/r37_west_texts.gd), in the blocks marked `# --- west marches ---`.
+## West marches: Weirford, the Sorrow, the Hierarch, the Siege Lines (lore/r37_west_texts.gd), in the blocks marked `# --- west marches ---`.
 const R37WL := preload("res://core/world/realm/lore/r37_west_texts.gd")
 
 const TEXTS := {

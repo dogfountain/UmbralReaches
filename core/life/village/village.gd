@@ -341,7 +341,7 @@ func _near_camp(p: Vector2, r: float) -> bool:
 
 # --- people -------------------------------------------------------------------------------------
 
-## Hearthward's cast and the outposts' and Weirford's (r37 west: village_cast_r37_west.gd), as one table.
+## Hearthward's cast and the outposts' and Weirford's (west marches: village_cast_r37_west.gd), as one table.
 static var _cast_all: Dictionary = {}
 
 
