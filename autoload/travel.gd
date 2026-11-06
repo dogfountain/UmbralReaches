@@ -455,6 +455,7 @@ func load_game() -> void:
 ## the next use_slot starts clean and saving works again (r35 B10: the session used to go on, never saving).
 func erase_save() -> void:
 	_reset_progress()
+	HudPrefs.forget()
 	erased = true
 	for suffix: String in ["", ".bak", ".tmp"]:
 		if FileAccess.file_exists(SAVE_PATH + suffix):

@@ -57,6 +57,7 @@ static func reset_night() -> void:
 	EnemySpawner.kind_hook = Callable()
 	EnemySpawner.dress_hook = Callable()
 	EnemySpawner.hold_for_rest = false
+	HudPrefs.forget()                # the HUD toggles live in the slot's file: read them again
 
 
 ## Names of NODE_REFS statics that still hold something live (for tests: empty after reset_night).
