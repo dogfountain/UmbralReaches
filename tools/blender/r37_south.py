@@ -25,7 +25,7 @@ ONLY = ARGS[ARGS.index("--only") + 1] if "--only" in ARGS else "all"
 PREVIEW = ARGS[ARGS.index("--preview") + 1] if "--preview" in ARGS else ""
 DATA = {}          # name -> python literal, written to r37_south_data.gd
 
-STONE_UV = 0.22
+STONE_UV = 0.16
 
 
 def rng_for(seed):
@@ -39,7 +39,7 @@ def rng_for(seed):
 # =================================================================================================
 
 def build_wall():
-    stone = L.pbr("R37_WallStone", L.tex_masonry(1024, 3701, rows=8), 1.5)
+    stone = L.pbr_files("R37_WallStone", "oss_ashlar")
     dark = L.flat("R37_Dark", (0.01, 0.01, 0.012), 1.0)
     wood = L.pbr("R37_GateWood", L.tex_planks(512, 3702), 2.4)
     iron = L.flat("R37_Iron", (0.08, 0.075, 0.07), 0.55, 0.85)

@@ -78,7 +78,6 @@ static func reserve(root: Node) -> void:
 	var space := (root as Node3D).get_world_3d().direct_space_state
 	# --- the Grandmother Oak: a level round under the trunk and its roots' first reach, trees kept away
 	var oy := _ground_med(space, OAK_C)
-	WorldLanes.register_terrace("poi_r37s_oak", OAK_C, 10.5, oy)
 	Flora.tree_clear.append([OAK_C, 24.0])
 	spots["r37s_oak"] = {"at": Vector3(OAK_C.x, oy, OAK_C.y), "yaw": 0.0, "rect": Rect2(OAK_C - Vector2(11, 11), Vector2(22, 22))}
 	# --- the shepherds' hut and fold: the fold's round first (a terrace), the hut beside it
@@ -87,7 +86,6 @@ static func reserve(root: Node) -> void:
 	if fq == Vector2.INF:
 		fq = fold_pref
 	var fy := _ground_med(space, fq)
-	WorldLanes.register_terrace("poi_r37s_fold", fq, 8.8, fy)
 	spots["r37s_fold"] = {"at": Vector3(fq.x, fy, fq.y), "yaw": 0.0, "rect": Rect2(fq - Vector2(9, 9), Vector2(18, 18))}
 	var hut_pref := fq + Vector2(-14.0, -2.0)
 	var hq := LK.search_spot(space, hut_pref, 12.0, Vector2(5.5, 5.0), 1.5, 1.6, [], 2.0)
@@ -115,7 +113,7 @@ static func reserve(root: Node) -> void:
 	# --- the wall: two lanes keep the flora and the props off the line
 	for side in [-1, 1]:
 		var x := float(side) * RealmLayout.MARCH_WALL_X
-		WorldLanes.register_lane("r37s_wall_%d" % side, [Vector2(x, WALL_Z0), Vector2(x, WALL_Z1)], 4.6)
+		WorldLanes.register_lane("r37s_wall_%d" % side, [Vector2(x, WALL_Z0), Vector2(x, WALL_Z1)], 2.6)
 	print("REALM_POI r37 south reserved %s" % [spots.keys()])
 
 
