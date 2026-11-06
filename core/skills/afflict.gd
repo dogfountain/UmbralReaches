@@ -12,6 +12,7 @@ extends Node
 const DB := preload("res://core/life/progression/upgrade_db.gd")
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 const Combo := preload("res://core/skills/combo.gd")
+const Hints := preload("res://ui/hints.gd")
 
 const TICK := 0.5
 const BURN_DMG := 0.3
@@ -156,7 +157,7 @@ static func hold(e: Node, kind: StringName, ms: int) -> void:
 ## The foe's speed from whatever still holds it (the rime and the plain slow when they are on).
 static func _settle(e: Node) -> void:
 	if _inst != null and is_instance_valid(_inst):
-		var recs: Dictionary = _inst.get("_rec")
+		var recs: Dictionary = _inst._rec
 		if recs.has(e.get_instance_id()):
 			_inst._apply_speed(recs[e.get_instance_id()])
 			return

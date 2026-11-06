@@ -112,8 +112,8 @@ static func strike(node: Node, dmg: float, school: StringName, from: Node = null
 	var cs := of(node)
 	if cs != null:
 		cs.deal(node, dmg, school, from)
-	elif node.has_method("take_hit"):
-		node.call("take_hit", dmg, from)
+	elif node is Enemy:
+		(node as Enemy).take_hit(dmg, from)
 
 
 # --- statuses ----------------------------------------------------------------------------------------
