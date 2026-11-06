@@ -14,6 +14,10 @@
 #     but several still quit(0)); "0 FAIL" / "FAIL 0" counts are ignored.
 #   - (whole run) the static lint finds a Node/Callable-typed `static var` that
 #     core/world/session_state.gd does not list (it would dangle after the night is freed).
+#   - (whole run) the ratchet lint (tools/lint.sh, baseline tools/lint_baseline.txt) finds a file with
+#     more string .call("..."), has_method(, .get("_x") or round-tag comments than its baseline, or a
+#     file over 1,000 lines that grew by more than 50 lines. Lower counts pass; tighten with
+#     `tools/lint.sh --update`. It runs once per invocation, however many tests are named.
 # Exit status is the number of failing tests (0 = all green). Logs are kept in $OUT_DIR.
 #
 # Run it before every pack (see .cursor/skills/umbral-pack).
@@ -103,6 +107,11 @@ EOF2
 static_total="$(cd "$ROOT" && grep -rhE '^static var ' core ui world autoload --include='*.gd' 2>/dev/null | wc -l | tr -d ' ')"
 echo "lint: $static_total static vars in shipping code"
 
+# Ratchet lint (grep/awk only, about a second): counts may fall, never rise. See tools/lint.sh.
+ratchet_fail=0
+ratchet_out="$("$ROOT/tools/lint.sh" 2>&1)" || ratchet_fail=1
+echo "$ratchet_out"
+
 echo "Umbral tests: ${#tests[@]} scene(s), jobs=$JOBS, timeout=${TEST_TIMEOUT}s, logs in $OUT_DIR"
 running=0
 for t in "${tests[@]}"; do
@@ -128,6 +137,7 @@ for t in "${tests[@]}"; do
 	esac
 done
 if [ "$lint_fail" -ne 0 ]; then echo "static lint                  FAIL"; failed=$((failed + 1)); fi
+if [ "$ratchet_fail" -ne 0 ]; then echo "ratchet lint                 FAIL (tools/lint.sh; --update only when counts fell)"; failed=$((failed + 1)); fi
 echo "----"
 if [ "$failed" -eq 0 ]; then echo "ALL ${#tests[@]} PASS"; else echo "$failed of ${#tests[@]} FAILED (logs: $OUT_DIR)"; fi
 exit "$failed"

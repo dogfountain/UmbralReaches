@@ -19,6 +19,7 @@ extends Node3D
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
 const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
+const TextDirector := preload("res://ui/text_director.gd")
 
 const FIRST := Vector2(200.0, 320.0)
 const EVERY := Vector2(420.0, 660.0)
@@ -51,6 +52,7 @@ var _motes: GPUParticles3D
 var _light: OmniLight3D
 var _marker: Node3D
 var _rng := RandomNumberGenerator.new()
+var _held: Array[Array] = []            ## banners waiting for the text director: [title, line]
 
 
 func _ready() -> void:
@@ -85,6 +87,8 @@ func sites() -> Array[Dictionary]:
 
 
 func _process(delta: float) -> void:
+	if not _held.is_empty():
+		_pump_held()
 	_t -= delta
 	if _t > 0.0:
 		return
@@ -295,7 +299,34 @@ func _end(how: String) -> void:
 	_clear_fx()
 
 
+## The carved banner goes through the text director's banner lane (a discovery-class line, priority 2):
+## it waits for narration, a dialogue box or a lock-on fight, and for the banner on screen. The 90 s
+## discovery limit does not apply (a surge call is a warning, not a place name). No director (a bare
+## test scene): it draws at once.
 func _banner(title: String, line: String) -> void:
+	if TextDirector.of(self) == null:
+		_draw_banner(title, line)
+		return
+	while _held.size() >= 3:
+		_held.pop_front()
+	_held.append([title, line])
+	_pump_held()
+
+
+func _pump_held() -> void:
+	var td := TextDirector.of(self)
+	if td == null:
+		for h in _held:
+			_draw_banner(String(h[0]), String(h[1]))
+		_held.clear()
+		return
+	if td.can_begin(&"discovery"):
+		var h: Array = _held.pop_front()
+		td.begin(&"discovery", 7.4)
+		_draw_banner(String(h[0]), String(h[1]))
+
+
+func _draw_banner(title: String, line: String) -> void:
 	var d := get_parent().get_node_or_null("Discovery") if get_parent() else null
 	var b: Variant = d.get("banner") if d else null
 	if b is Node:
