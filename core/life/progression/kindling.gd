@@ -621,7 +621,12 @@ func teach(id: String) -> bool:
 	Travel.save_soon()
 	var slot := DB.loadout(st).find(id) + 1
 	var key := String(DB.SLOT_KEYS[slot]) if slot >= 1 and slot < DB.SLOT_KEYS.size() else "the Loadout"
-	Events.toast.emit(String(TEACH_LINES.get(id, "%s")) % key)
+	var line := String(TEACH_LINES.get(id, "%s")) % key
+	if id == "ward" or not is_inside_tree():
+		Events.toast.emit(line)          # the keep's own line: said at once
+	else:
+		# a kill's or a seal's banner is still on the screen: the teaching waits until it has left
+		get_tree().create_timer(2.6).timeout.connect(func() -> void: Events.toast.emit(line))
 	return true
 
 
