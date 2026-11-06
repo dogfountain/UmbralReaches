@@ -110,7 +110,7 @@ func _absorb(dmg: float, from: Node) -> float:
 		var now2 := Time.get_ticks_msec()
 		if now2 - int(get_meta(&"speak_pop", 0)) > 700:
 			set_meta(&"speak_pop", now2)
-			HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.6), "shrouded", Color(0.75, 1.0, 0.45))
+			HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.6), "the song is thin" if _attuned else "shrouded", Color(0.75, 1.0, 0.45))
 	return BossKit.absorb(self, dmg, from, BossKit.phase_floor(self, phase, phase_marks(), _sig))
 
 
@@ -202,7 +202,7 @@ func _physics_process(delta: float) -> void:
 	elif phase == 2 and _wave_t <= 0.0:
 		_wave_t = WAVE_EVERY
 		BossKit.cast(self, "Call of the Stones", 1.6, false, _call_stones)
-		BossKit.emote(self, "A Thornspeaker answers the call.")
+		BossKit.emote(self, "A Thornspeaker answers. The song is weak: your blows land at three quarters." if _attuned else "A Thornspeaker answers. Its song is up: your blows are halved.")
 		if _rig and _rig.has_method("howl"):
 			_rig.call("howl", 1.4)
 	elif phase <= 2 and _storm_t <= 0.0 and is_on_floor():
@@ -500,6 +500,7 @@ func _end_rooting(left: int) -> void:
 		var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		if p:
 			p.take_wound(16.0 * float(left), global_position)
+			HitText.pop(p.global_position + Vector3.UP * 2.4, "%d on the plate" % (16 * left), Color(1.0, 0.45, 0.3), true)
 		for kn: Node in _room.get("knots") if _room != null else []:
 			if is_instance_valid(kn):
 				kn.queue_free()
