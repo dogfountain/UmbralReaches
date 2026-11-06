@@ -213,7 +213,7 @@ func tick(dt: float, ctx: Dictionary) -> void:
 	_herd_flee = maxf(0.0, _herd_flee - dt)
 	var bolt_from := Vector3.INF
 	var pl: Vector3 = ctx.player
-	var fast := float(ctx.player_speed) > 5.5
+	var fast := float(ctx.player_speed) > 8.0   # a trot is a pass; a gallop lifts heads
 	for a in animals:
 		var st := int(a.state)
 		var p: Vector3 = a.pos
