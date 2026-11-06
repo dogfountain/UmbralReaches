@@ -83,6 +83,7 @@ class BossBar extends Control:
 			draw_colored_polygon(PackedVector2Array([Vector2(x - 5, -6), Vector2(x + 5, -6), Vector2(x, 1)]), Color(0.95, 0.85, 1.0, 0.9))
 		draw_rect(Rect2(0, 0, w, h), Color(0.5, 0.35, 0.7).lerp(Color(1.6, 1.0, 2.0), _flash), false, 1.0 + _flash * 2.0)
 var _warned := false
+var _warned_bells := -1
 var _cast_bar: CastBar
 var _cast_lbl: Label
 
@@ -179,8 +180,9 @@ func _physics_process(_d: float) -> void:
 	if requires_bells > 0:
 		var rung := int((load("res://core/story/quest_book.gd") as GDScript).call("bells"))
 		if rung < requires_bells:
-			if not _warned:
+			if not _warned or rung != _warned_bells:      # a bell answered while away lets the door speak again
 				_warned = true
+				_warned_bells = rung
 				Events.toast.emit(no_peal(rung, requires_bells))
 			return
 	_begin()
