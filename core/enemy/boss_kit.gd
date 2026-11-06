@@ -406,7 +406,8 @@ const RAGE := Color(2.6, 0.35, 0.15)
 static func cast(e: Enemy, cast_name: String, time: float, interruptible := false, done := Callable()) -> void:
 	if e == null or not e.is_alive():
 		return
-	if e.casting() and e._cast_bound < 0:
+	var yields: bool = e.has_meta(&"yield_cast") and e.cast_name == String(e.get_meta(&"yield_cast"))
+	if e.casting() and e._cast_bound < 0 and not yields:
 		# another timed cast holds the bar (a lash during a mending): this one goes unshown, never lost
 		if done.is_valid():
 			e.get_tree().create_timer(time, false).timeout.connect(done)

@@ -141,6 +141,7 @@ func _absorb(dmg: float, from: Node) -> float:
 func _build() -> void:
 	super._build()
 	name = "BoneAbbot"
+	set_meta(&"yield_cast", "Bone Rain")           # the rain's long bar gives way to the next rite's
 	BossKit.embiggen(self, SCALE)
 	strike_range = 3.0                          # embiggen caps reach at 1.7x; his arms are 2.6x
 	# upright and slow: a priest, not a grunt (no twitch at this size: big means deliberate)
@@ -602,7 +603,7 @@ func _tolling() -> void:
 ## The vault lets go: three fields fill (one where you stand), bones crash down on them, and they
 ## stay foul with ossuary dust for a while.
 func _bone_rain() -> void:
-	BossKit.cast(self, "Bone Rain", RAIN_TIME)
+	BossKit.cast(self, "Bone Rain", RAIN_TIME + 5.0)     # the bar stays up while the dust can hurt
 	if _rig and _rig.has_method("telegraph"):
 		_rig.call("telegraph", 0.8)
 	var under := _floor_at(_p.global_position)
@@ -805,7 +806,7 @@ func _sweep() -> void:
 func _requiem() -> void:
 	_reliq_t = 2.4
 	_reliq_hits = 0
-	BossKit.cast(self, "Requiem", 2.4, true)
+	BossKit.cast(self, "Requiem", 3.0, true)       # up until the last drip has landed
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", 2.2)
 	_glint = 1.0
