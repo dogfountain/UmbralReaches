@@ -127,7 +127,7 @@ func _on_state(next: int) -> void:
 		var target := _lob_target()
 		set_meta(&"lob_at", target)
 		AttackKit.zone(self, target, lob_windup + lob_flight, spit_gloom, {"radius": HURL_R, "color": AttackKit.RED, "fx": "blast", "release": lob_windup,
-			"on_land": AttackKit.linger.bind(target, HURL_R * 0.8, BURN_T, 4.0, 0.5, EMBER)})
+			"on_land": AttackKit.linger.bind(target, HURL_R * 0.8, BURN_T, 4.0 * Tiers.dmg_of(self), 0.5, EMBER)})
 
 
 func _lob() -> void:
