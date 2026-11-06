@@ -307,7 +307,7 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.unit_frames = v
 		HudPrefs.save())
 	uf.set_pressed_no_signal(HudPrefs.unit_frames)
-	var ct := _check(p, "Combat Text", "The Gloom blows put on you and kills take off, at your shoulder", func(v: bool) -> void:
+	var ct := _check(p, "Combat Text", "The wounds a blow opens and a kill closes, at your shoulder", func(v: bool) -> void:
 		HudPrefs.combat_text = v
 		HudPrefs.save())
 	ct.set_pressed_no_signal(HudPrefs.combat_text)
@@ -549,7 +549,7 @@ func _footer() -> HBoxContainer:
 	var erase := Button.new()
 	_erase_btn = erase
 	erase.text = "Erase Saved Progress"
-	erase.tooltip_text = "Deletes the save and the Journal. The night you are in carries on as it is; the next launch starts from the beginning. Settings are kept."
+	erase.tooltip_text = "Deletes the save and the Journal, and returns you to the title. Settings are kept."
 	_style_small(erase, 16)
 	erase.pressed.connect(func() -> void:           # two-step so a stray click cannot wipe a run
 		if erase.text.begins_with("Confirm"):

@@ -18,8 +18,8 @@ const TRACK := {
 	"chests": ["chest"],
 }
 const TRACK_NAMES := {
-	"quests": "Tasks", "rares": "Rare foes", "travel": "Waygates", "gather": "Gathering",
-	"town": "Traders & teachers", "foes": "Foes nearby", "chests": "Chests nearby",
+	"quests": "Tasks", "rares": "Rare foes", "travel": "Fires & bells", "gather": "Gathering",
+	"town": "Traders", "foes": "Foes nearby", "chests": "Chests nearby",
 }
 
 static var track := {"quests": true, "rares": true, "travel": true, "gather": true, "town": true, "foes": true, "chests": true}

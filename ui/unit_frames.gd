@@ -805,7 +805,7 @@ func _draw_player() -> void:
 	if hp.x >= 0.0:
 		var hr := Rect2(Vector2(x, y), Vector2(w, 16))
 		_bar(hr, hp.x / hp.y, HEALTH, 1.0)
-		_text(hr.position + Vector2(0, 13), "%d / %d" % [roundi(hp.x), roundi(hp.y)], 12, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
+		_text(hr.position + Vector2(0, 13), "%s / %s" % [_num(hp.x), _num(hp.y)], 12, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
 		y += 19.0
 		if gloom_known:
 			var gb := Rect2(Vector2(x, y), Vector2(w, 12))
@@ -1071,7 +1071,7 @@ func _draw_unit(e: Node3D, at: Vector2, w: float, a: float, is_boss: bool) -> vo
 
 
 func _num(v: float) -> String:
-	return str(roundi(v)) if v >= 10.0 or is_equal_approx(v, roundf(v)) else "%.1f" % v
+	return str(roundi(v)) if is_equal_approx(v, roundf(v)) else "%.1f" % v         # a pool that is not whole shows its tenth
 
 
 ## The uninterruptible mark: a small grey shield.
