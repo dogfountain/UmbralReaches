@@ -91,3 +91,35 @@ heights. What each place stands on:
   10 m higher so the terrace (y 16) is a shelf. The Grandmother Oak stands on a 3 m knoll (`OAK_C`).
 - Encounter tiers for every new region are in `Tiers.REGION_BASE`; mist banks, ambience, flora looks (RealmFlora
   `LOOKS`), wildlife (extra herds, foxes, hares, owls, frogs and flocks from their own streams) cover the new ground.
+
+## West Marches (the West agent)
+
+Built in `core/world/realm/realm_pois_r37_west.gd` (reserve before the stamp and flora, build after), hooked by
+the `# --- west marches ---` blocks in the shared registries. Assets are made by script in `tools/blender`
+(`r37_west_textures.py`: seamless procedural PBR sets; `r37_west.py`: statue, mill, bridge, palisade, trebuchets,
+siege tower; `boss_hierarch.py`: the boss) and placed through `r37_west_kit.gd` (tiling `art/textures/r37_*`
+sets over `<part>__<set>` meshes, `<asset>-colonly` collision, vertex-colour macro tone).
+
+- **Weirford** (road x -205): the stone bridge over the Sorrow, the weir and a working mill (the wheel turns:
+  `r37_wheel_spin.gd`), the Grey Heron inn, the smithy, two cottages, stables (the Weir Cob, `horse_db.gd`), the watch
+  post (`watch_posts.gd` "weirford", three sword watchmen), a covered well, a stall, lit windows without lights, an
+  Ember Road fire (`WeirfordFire`). Eight people with routines and babble talk: `village_cast_r37_west.gd`
+  (merged by `village.gd` `cast_all()` and the nodes/edges), `village_talk_r37_west.gd`.
+- **The Sorrow's Banks**: the drowned shrine in the river (a chest and the secret *Aldith's Walk*,
+  `core/life/secrets/site_r37_west.gd`: an iron ring raises a sunk walk to a lamp-islet and a box), ford posts,
+  two camps, a rare (the Drowned Reeve), a fire (`SorrowFire`).
+- **The Fallen Hierarch**: `r37_statue.glb` (head shell ~28 k tris, torso and arm ~10 k, debris; the engine
+  generates mesh LODs on import) plus a separate ~1.6 k-tri far mesh node `StatueFar` (meta `far_mesh`, fades in from
+  330 m while the near model fades out from 420 m; the Foundation's far-detail hook can replace it). The skull is a
+  hollow bowl split open round the raid floor; the body lies away from it (`BODY_DIR`); the open hand is a POI with a
+  stair of fallen blocks and a chest. Boss: **the Speaking Crown** (`core/enemy/hierarch_voice.gd`, a Husk rig with
+  `boss_hierarch.glb`, 640 HP, 3 phases; room `core/world/hierarch_raid.gd`; id `r37_hierarch`, trophy `crown_shard`).
+- **The Siege Lines**: the outer earthwork's palisade and gate, rotted trebuchets (`r37_trebuchet.glb`), a four-storey
+  siege tower with its stairs built in (a chest on top), two more camps, a rare (the Gate-Breaker), the mini-boss
+  **Captain Varr, the Wall-Breaker** (`elite_siege_captain.gd`, `Elites.ELITES["siege_captain"]`), a fire (`SiegeFire`).
+- **Quests** (`quest_chains_r37_west.gd`): The Stopped Wheel, The Lamp on the Lines, Lights for the Sunk, and
+  The Voice in the Head (after the Wheel; ends in the boss). Lore: `lore/r37_west_texts.gd` (22 texts, a series,
+  four codex places), placed by `lore/r37_west_places.gd` and the POIs.
+
+Tuning notes: the statue's head is oversized so the raid floor (r 24) fits inside it; the whole figure is about
+100 m long rather than 60. Switches: `--no-r37-west` (places, writings, secret).

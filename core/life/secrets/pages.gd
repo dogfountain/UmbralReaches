@@ -29,6 +29,8 @@ const SECRETS := {
 	# --- south marches ---
 	"oak_crown": {"name": "The Crown of the Oak", "region": "oak"},
 	"well_listener": {"name": "The Listener's Cairn", "region": "well"},
+	# --- west marches ---
+	"aldith_walk": {"name": "Aldith's Walk", "region": "sorrow"},
 	# --- the east marches ---
 	"boathouse": {"name": "The Sunken Boat-House", "region": "stillwater"},
 	"salt_vault": {"name": "The Brine-Clerk's Vault", "region": "saltpans"},
@@ -104,6 +106,11 @@ const TEXTS := {
 		"text": "Nine springs we sang up the stair and the oak sang back, a note under the note. The Order's axes bit it on the tenth and it stopped, not dead: listening. We hid the knot where the sky sees it and the Order will not climb. Whoever climbs: sing it one line. It will know the tune."},
 	"sc_well_listener": {"title": "Scratched on the cairn", "kind": "carved stone",
 		"text": "I sat here nine nights with the falls at my back and listened to it answer. It does not repeat you. It tells you what you will say next. On the ninth night I said nothing, and it said my name, and I said nothing again, and it said it again. Go up. Do not answer."},
+	# --- west marches (site_r37_west.gd) ---
+	"sc_aldith": {"title": "Scratched on the lamp-post", "kind": "carved post",
+		"text": "Aldith's lamp. The river took her roof and then the saint. I cut a road under the water to the last lamp and let it down behind me, because the ford is for the living and this is for what they paid. A."},
+	"sc_aldith_ring": {"title": "A plate on the ring", "kind": "plaque",
+		"text": "RING. One pull, and let go. The slabs come up on their own. Under it, in a miller's hand: the river does not mind. It was never the river's lamp."},
 	# --- the east marches ---
 	"sc_boat_lamp": {"title": "Scratched on a rafter", "kind": "carved beam",
 		"text": "When the lamp went dark the boats stopped coming in. We left ours here, roof-deep, tied to the posts, so the lake would remember where the shore was. Oil in the loft. Take it. Carry it up."},
@@ -145,6 +152,8 @@ const REWARDS := {
 	# --- south marches ---
 	"oak_crown": {"relic_fragment": 2, "grave_ash": 35},
 	"well_listener": {"relic_fragment": 1, "grave_ash": 30, "grave_iron": 1},
+	# --- west marches ---
+	"aldith_walk": {"relic_fragment": 1, "grave_ash": 28},
 	# --- the east marches ---
 	"boathouse": {"relic_fragment": 1, "grave_ash": 25, "ember_shard": 1},
 	"salt_vault": {"relic_fragment": 1, "grave_ash": 30},

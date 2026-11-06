@@ -81,6 +81,15 @@ const ELITES := {
 		"note": "Whoever drops a stone down the Well is answered. Something at the bottom has been answering for nine winters, and has learned to throw back what it hears. Where you stood when it spat, the ground rings again two breaths later. Do not stand and dodge: keep walking, and close with it. -- cut in the lintel of the Descent",
 		"trait": "Spits; the ground where you stood rings again two seconds later. Calls two drowned at half health.",
 	},
+	# --- west marches ---
+	"siege_captain": {
+		"title": "Captain Varr, the Wall-Breaker", "kind": "husk", "script": "res://core/life/encounters/elite_siege_captain.gd",
+		"haunt": [Vector2(-218, 172), Vector2(-212, 180), Vector2(-224, 164), Vector2(-206, 150)], "region": "siege",
+		"hp": 34, "ash": 32, "scale": 1.4, "glow": Color(2.2, 1.4, 0.4), "loot": "varrs_signet",
+		"where": "the Siege Lines, between the tower and the palisade",
+		"note": "THE MARCHES' WAR-BAND NEVER STOOD DOWN. The captain is still giving the order to go in. He brings the hammer down in front of him, flat and wide, and calls two of his own out of the earthwork when he is alone. Do not stand in the ring. Do not let him be alone. -- scratched on the Weirford watch's tally board",
+		"trait": "Siege Hammer: a wide disc fills, then slams. Hold the Line: calls two conscripts.",
+	},
 	# --- the east marches ---
 	"brine_wife": {
 		"title": "The Brine-Wife, Bitter Mother", "kind": "husk", "script": "res://core/life/encounters/elite_brine_wife.gd",
@@ -119,6 +128,10 @@ const LOOT := {
 	"echo_bell": {"name": "The Echo Bell", "shape": "lantern", "tint": Color(0.5, 0.42, 0.26),
 		"desc": "A small struck-bronze bell from the Answerer's halos. It rings once when you lift it, and again, softer, from somewhere below you.",
 		"text": "Bounty of the Answerer, from the landing of the Well of Echoes."},
+	# --- west marches ---
+	"varrs_signet": {"name": "Varr's Signet", "shape": "ring", "tint": Color(0.7, 0.58, 0.32),
+		"desc": "A captain's signet, the Marches' wall-and-tower stamped in it, worn flat on one side from being pressed into wax for orders nobody took.",
+		"text": "Bounty of Captain Varr, the Wall-Breaker. The order to go in is rescinded."},
 	# --- the east marches ---
 	"brine_censer": {"name": "The Brine-Wife's Censer", "shape": "lantern", "tint": Color(0.82, 0.88, 0.92),
 		"desc": "An iron pan-ladle with a handle worn to a groove. Everything it ever held has crystallised on it, in layers, like a tree's rings.",
@@ -380,6 +393,30 @@ static func _build(id: String, rig: CharacterRig) -> Dictionary:
 		# --- south marches ---
 		"root_wife", "well_answer":
 			parts = SouthParts.build(id, rig, sd)
+		# --- west marches ---
+		"siege_captain":
+			# a kettle helm and gorget, a rampart coat in rags, a broken ram-beam slung across the back, iron-shod fists
+			var h: CreatureMesh = Variants.cm(sd)
+			h.blob(Vector3(0, 0.07, 0.01), Vector3(0.17, 0.12, 0.18), Basis.IDENTITY, IRON, 1.0, 0.1, 0.0, 7, 12, 1.0)
+			h.tube(PackedVector3Array([Vector3(-0.2, 0.0, 0.0), Vector3(0, 0.0, -0.17), Vector3(0.2, 0.0, 0.0)]), PackedFloat32Array([0.02, 0.02, 0.02]), 4, IRON, 1.0, 0.05)
+			h.blob(Vector3(0, -0.12, -0.04), Vector3(0.14, 0.05, 0.12), Basis.IDENTITY, IRON, 1.0, 0.08, 0.0, 6, 10)
+			parts["head"] = h.commit()
+			var c: CreatureMesh = Variants.cm(sd + 1)
+			var f := Variants.chest_front("husk") + 0.04
+			c.plate(Vector3(0, 0.0, -f), Vector3(0.17, 0.15, 0.012), Vector3(0, 0.1, -1.0), IRON, 1.0, 0.04)
+			for k in 12:
+				var ang := TAU * float(k) / 12.0
+				c.strand(Vector3(cos(ang) * 0.22, 0.12, sin(ang) * 0.17), Vector3(cos(ang) * 0.3, -1.0, sin(ang) * 0.3).normalized(), 0.3 + 0.09 * float(k % 3), 0.05, 0.03, RAG, 1.0, 0.25, 5)
+			c.tube(PackedVector3Array([Vector3(-0.34, 0.3, 0.14), Vector3(-0.1, 0.12, 0.2), Vector3(0.14, -0.06, 0.22), Vector3(0.38, -0.26, 0.18)]),
+				PackedFloat32Array([0.045, 0.05, 0.05, 0.04]), 6, WOOD, 1.0, 0.1)
+			for k in 3:
+				Variants._ring(c, Vector3(-0.14 + 0.16 * float(k), 0.1 - 0.07 * float(k), 0.21), 0.058, 0.011, IRON, 0.0, 1.0)
+			parts["chest"] = c.commit()
+			for side: String in ["l", "r"]:
+				var a: CreatureMesh = Variants.cm(sd + (2 if side == "l" else 3))
+				for k in 3:
+					Variants._ring(a, Vector3(0, -0.03 - 0.025 * float(k), -0.01), 0.055, 0.012, IRON, 0.35 if k == 1 else 0.0, 1.0)
+				parts["hand_" + side] = a.commit()
 		# --- the east marches ---
 		"brine_wife":
 			# salt crust grown in spikes over the shoulders and brow, a pan-ladle in the right hand

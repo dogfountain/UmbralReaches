@@ -53,6 +53,7 @@ const GROUP_GLIDE := "glide_perch"
 const GROUP_GUARDIAN := "guardian_site"           ## core/life/encounters/guardians.gd (the enemies pass)
 const GROUP_UPDRAFT := "updraft"                  ## the cloak-glide's lift (Player._updraft)
 const SID := "world_pois"
+const R37West := preload("res://core/world/realm/realm_pois_r37_west.gd")      # --- west marches ---
 const R34_PATH := "res://core/world/realm/realm_pois_r34.gd"   ## r34 places (docs/r34/places.md)
 # --- south marches ---
 const SOUTH_PATH := "res://core/world/realm/realm_pois_r37_south.gd"     ## the South pass (the wall, the fold, the oak, the well)
@@ -156,6 +157,8 @@ static func reserve(root: Node) -> void:
 	# --- south marches ---
 	var south_pois: Variant = load(SOUTH_PATH)     # no preload: a cycle
 	south_pois.reserve(root)
+	# --- west marches ---
+	R37West.reserve(root)
 	# --- the east marches ---
 	var east_pois: Variant = load(R37E_PATH)
 	east_pois.reserve(root, skip)
@@ -247,6 +250,8 @@ static func build(root: Node) -> void:
 	# --- south marches ---
 	var south_build: Variant = load(SOUTH_PATH)
 	south_build.build(holder)
+	# --- west marches ---
+	R37West.build(holder)
 	# --- the east marches ---
 	var east_pois: Variant = load(R37E_PATH)
 	east_pois.build(holder)

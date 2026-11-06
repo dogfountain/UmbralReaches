@@ -32,6 +32,11 @@ const R34_FIRES := {
 	# --- south marches ---
 	"OakFire": [Vector2(-44.0, 192.0), Vector2(-52.0, 198.0)],          # beside downs_track, in the Grandmother Oak's shade (the door looks this way)
 	"WellFire": [Vector2(44.0, 192.0), Vector2(52.0, 198.0)],           # beside downs_track, on the way to the Well's rim and the descent gate
+	# --- west marches ---
+	"WeirfordFire": [Vector2(-196.0, 74.0), Vector2(-199.0, 77.0)],     # the town square, east of the bridge
+	"SorrowFire": [Vector2(-190.0, -20.0), Vector2(-196.0, -22.0)],     # a ford on weir_track
+	"HierarchFire": [Vector2(-196.0, -76.0), Vector2(-203.0, -80.0)],   # where weir_track reaches the valley
+	"SiegeFire": [Vector2(-214.0, 128.0), Vector2(-220.0, 131.0)],      # beside siege_track at the outer earthwork
 	# --- the east marches ---
 	"StillwaterFire": [Vector2(220.0, 52.0), Vector2(214.0, 40.0)],    # the lake's south shore, off spire_track
 	"AnchorFire": [Vector2(204.0, -84.0), Vector2(206.0, -100.0)],     # the foot of the cliff, anchor_track's end

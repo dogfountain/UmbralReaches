@@ -98,6 +98,17 @@ const RARES := {
 		"spots": [Vector2(96, 224), Vector2(110, 222), Vector2(140, 226)], "ash": 34, "loot": [["relic_fragment", 1]],
 		"route": [Vector2(96, 224), Vector2(122, 228), Vector2(146, 222), Vector2(130, 214), Vector2(104, 218)],
 		"line": "The Flint-Hound lies down on the chalk it was bred to guard. It does not get up."},
+	# --- west marches ---
+	"drowned_reeve": {"title": "The Drowned Reeve", "kind": "husk", "variant": "drowned", "hp": 38, "scale": 1.4,
+		"spots": [Vector2(-224, -28), Vector2(-226, -36), Vector2(-220, -18)], "ash": 40, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(-224, -28), Vector2(-228, -14), Vector2(-226, 6), Vector2(-222, -10), Vector2(-224, -28)],
+		"line": "The Drowned Reeve sinks to his knees in the shallows. The tolls are paid."},
+	"moss_mason": {"title": "The Moss-Mason", "kind": "husk", "variant": "stonebound", "hp": 44, "scale": 1.45,
+		"spots": [Vector2(-232, -96), Vector2(-240, -100), Vector2(-226, -90)], "ash": 44, "loot": [["relic_fragment", 2]],
+		"line": "The Moss-Mason sets down his chisel. The Hierarch's thumb will stay unfinished."},
+	"gate_breaker": {"title": "The Gate-Breaker", "kind": "bulwark", "hp": 36, "scale": 1.4,
+		"spots": [Vector2(-196, 162), Vector2(-204, 170), Vector2(-192, 152)], "ash": 42, "loot": [["relic_fragment", 2]],
+		"line": "The Gate-Breaker drops its ram. The gate it wanted is a long way east."},
 	# --- the east marches ---
 	"salt_widow": {"title": "The Salt-Widow", "kind": "gaunt", "hp": 30, "scale": 1.4,
 		"spots": [Vector2(236, 150), Vector2(244, 156), Vector2(228, 146)], "ash": 40, "loot": [["relic_fragment", 2]],

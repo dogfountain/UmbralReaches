@@ -10,6 +10,7 @@ extends RefCounted
 ## grant: pay: shop:). Text: {ash}, {hollows}, {kindled}.
 ## House style (docs/LORE.md): terse, concrete, dark. Load by path.
 
+const R37WT := preload("res://core/life/village/village_talk_r37_west.gd")    # --- west marches --- Weirford's conversations
 const R37E := preload("res://core/life/village/village_r37_east.gd")   ## the east marches: Saltmarket's talk
 
 const CONV := {
@@ -437,6 +438,15 @@ const CONV := {
 		"flock": {"say": "The ones that came back came back wrong. Thin, and too quiet, and they stand in the fog facing the Stair. They still follow the bell. I just can't say what's holding the rope.", "next": "hub"},
 		"well": {"say": "Water, once. We drew it by rope. Then the rope came up wet and not our own, and my father cut the ledge so we'd go down on our feet, like honest men. It answers. Don't answer back.", "next": "hub"},
 	}},
+	# --- west marches ---
+	"dorrit": R37WT.CONV["dorrit"],
+	"osk": R37WT.CONV["osk"],
+	"bryn": R37WT.CONV["bryn"],
+	"cassel": R37WT.CONV["cassel"],
+	"ennis": R37WT.CONV["ennis"],
+	"wren": R37WT.CONV["wren"],
+	"tolliver": R37WT.CONV["tolliver"],
+	"gwyn": R37WT.CONV["gwyn"],
 	# --- the east marches ---
 	"marl": R37E.CONV_MARL, "teasel": R37E.CONV_TEASEL, "orrin": R37E.CONV_ORRIN, "ardel": R37E.CONV_ARDEL, "pip": R37E.CONV_PIP,
 }

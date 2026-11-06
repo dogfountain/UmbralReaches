@@ -33,6 +33,8 @@ extends RefCounted
 
 # --- south marches ---
 const South := preload("res://core/story/quest_chains_r37_south.gd")
+## West marches: Weirford's four chains (quest_chains_r37_west.gd), listed in the blocks marked `# --- west marches ---`.
+const R37WQ := preload("res://core/story/quest_chains_r37_west.gd")
 
 ## The ledger's chapters (ui/quest_log.gd), in order: [id, name].
 const ZONES := [["hearth", "Hearthward"], ["road", "The Pilgrims' Road"], ["thornwood", "The Thornwood"],
@@ -40,9 +42,8 @@ const ZONES := [["hearth", "Hearthward"], ["road", "The Pilgrims' Road"], ["thor
 	["moor", "The Lanternless Moor"], ["foundry", "The Founder's Pits"], ["orchard", "The Cinder Orchard"],
 	["necropolis", "The Waiting Field"], ["mere", "Corvin's Mere"],
 	["ossuary", "The Ossuary"], ["summit", "The Summit of Ascension"],
-	# --- south marches ---
 	["downs", "The Southern Downs"], ["oak", "The Grandmother Oak"], ["well", "The Well of Echoes"],
-	# --- the east marches ---
+	R37WQ.ZONES[0], R37WQ.ZONES[1], R37WQ.ZONES[2], R37WQ.ZONES[3],
 	["stillwater", "Stillwater"], ["anchorholds", "The Anchorholds"], ["saltmarket", "Saltmarket"], ["saltpans", "The White Pans"]]
 
 const R37E := preload("res://core/story/quest_chains_r37_east.gd")   ## the east marches: its tasks and pickups are listed in the `# --- the east marches ---` blocks
@@ -65,9 +66,8 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"keg_tab", "rare_head", "keeper_again",
 	# r36 Act III: the door
 	"the_latch", "still_climbing", "names_under", "full_peal",
-	# --- south marches ---
 	"shepherd_strays", "oak_song", "well_answer",
-	# --- the east marches ---
+	"wf_wheel", "wf_watch", "wf_lights", "wf_crown",
 	"salt_sweep", "salt_widow", "spire_coal", "anchor_names", "anchor_vow"]
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
@@ -75,9 +75,9 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 	"wyck": "Wyck", "grisel": "Grisel", "keep": "The keep", "harrow": "Ostrin Harrow", "hesk": "Hesk", "brannoc": "Brannoc",
 	"ruan": "Gammer Ruan", "jory": "Jory Quell", "ysolt": "Ysolt the cairn-keeper", "elspeth": "Elspeth Fane",
 	"linnet": "Linnet the grafter", "agathe": "Sister Agathe", "cadoc": "Cadoc the ferryman",
-	# --- south marches ---
 	"dunstan": "Dunstan Pike",
-	# --- the east marches ---
+	"osk": "Osk the miller", "cassel": "Captain Cassel", "ennis": "Sister Ennis", "tolliver": "Old Tolliver",
+	"dorrit": "Dorrit Marl", "bryn": "Bryn Gale", "wren": "Wren", "gwyn": "Gwyn the ostler",
 	"marl": "Marl Pannick", "teasel": "Teasel Dray", "orrin": "Orrin Vail", "ardel": "Ardel Wick", "pip": "Pip"}
 
 ## r34: the raids' attunements (WoW's attunement chains, adapted): the last task of each pre-raid
@@ -86,9 +86,8 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 ## r34: the named rares the bounties want (core/enemy/rares.gd RARES keys; checked by the audit
 ## against that file when it loads).
 const RARE_IDS := ["old_rook", "brother_chisel", "hennet", "clapper", "old_pippin", "last_pilgrim", "ferryman",
-	# --- south marches ---
 	"bell_wether", "flint_hound",
-	# --- the east marches ---
+	"drowned_reeve", "moss_mason", "gate_breaker",
 	"salt_widow", "drowned_lamplighter"]
 
 const ATTUNE := {"thornwarden": "keeper_leave", "bone_abbot": "abbot_names", "ascended_warden": "founder_peal"}
@@ -855,16 +854,10 @@ const QUESTS := {
 		"reward": {"ash": 60, "items": {"ember_shard": 5, "relic_fragment": 5}},
 		"choose": [{"legend": "door_splinter"}, {"legend": "sunk_shroud"}, {"legend": "unlit_lamp"}, {"legend": "stair_rope"}],
 		"outcome": {"": "Brannoc rang the chimney tongue seven times, slowly, and the Keg went quiet for each one. Then he put his head down on the bar and laughed."}},
-	# --- south marches ---
-	"shepherd_strays": South.QUESTS["shepherd_strays"],
-	"oak_song": South.QUESTS["oak_song"],
-	"well_answer": South.QUESTS["well_answer"],
-	# --- the east marches ---
-	"salt_sweep": R37E.SALT_SWEEP,
-	"salt_widow": R37E.SALT_WIDOW,
-	"spire_coal": R37E.SPIRE_COAL,
-	"anchor_names": R37E.ANCHOR_NAMES,
-	"anchor_vow": R37E.ANCHOR_VOW,
+	"shepherd_strays": South.QUESTS["shepherd_strays"], "oak_song": South.QUESTS["oak_song"], "well_answer": South.QUESTS["well_answer"],
+	"wf_wheel": R37WQ.QUESTS["wf_wheel"], "wf_watch": R37WQ.QUESTS["wf_watch"], "wf_lights": R37WQ.QUESTS["wf_lights"],
+	"wf_crown": R37WQ.QUESTS["wf_crown"], "salt_sweep": R37E.SALT_SWEEP, "salt_widow": R37E.SALT_WIDOW,
+	"spire_coal": R37E.SPIRE_COAL, "anchor_names": R37E.ANCHOR_NAMES, "anchor_vow": R37E.ANCHOR_VOW,
 }
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
@@ -982,14 +975,11 @@ const PICKUPS := {
 		"say": "The Passing Bell on its frame, the new rope coiled at its foot. The rope is braided hair. Grey, brown, a child's yellow."},
 	"bell_mere": {"quest": "bell_mere", "step": 1, "near": Vector2(132.0, 108.0), "kind": "bell", "name": "the Ferry Bell", "verb": "Stand at", "conv": "bell_mere",
 		"say": "Corvin's ferry bell on its post at the water's edge, the bronze furred with weed below the line the mere rose to. CALL AND WAIT, cut in the post."},
-	# --- south marches ---
-	"cairn_down_1": South.PICKUPS["cairn_down_1"],
-	"cairn_down_2": South.PICKUPS["cairn_down_2"],
-	"cairn_down_3": South.PICKUPS["cairn_down_3"],
-	# --- the east marches ---
-	"coal_ardel": R37E.COAL_ARDEL,
-	"anchor_page_a": R37E.PAGE_A,
-	"anchor_page_b": R37E.PAGE_B,
+	"cairn_down_1": South.PICKUPS["cairn_down_1"], "cairn_down_2": South.PICKUPS["cairn_down_2"], "cairn_down_3": South.PICKUPS["cairn_down_3"],
+	"wf_sluice_key": R37WQ.PICKUPS["wf_sluice_key"], "wf_signal_lamp": R37WQ.PICKUPS["wf_signal_lamp"], "wf_votive_a": R37WQ.PICKUPS["wf_votive_a"],
+	"wf_votive_b": R37WQ.PICKUPS["wf_votive_b"], "wf_votive_c": R37WQ.PICKUPS["wf_votive_c"], "wf_votive_place": R37WQ.PICKUPS["wf_votive_place"],
+	"wf_rub_hand": R37WQ.PICKUPS["wf_rub_hand"], "wf_rub_shoulder": R37WQ.PICKUPS["wf_rub_shoulder"], "wf_rub_lip": R37WQ.PICKUPS["wf_rub_lip"],
+	"coal_ardel": R37E.COAL_ARDEL, "anchor_page_a": R37E.PAGE_A, "anchor_page_b": R37E.PAGE_B,
 	"anchor_page_c": R37E.PAGE_C,
 }
 

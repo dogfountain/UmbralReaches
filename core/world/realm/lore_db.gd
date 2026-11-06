@@ -9,6 +9,9 @@ extends RefCounted
 ##   kind: grave | waystone | tablet | rune | page | notice | plaque | lectern | letter | ledger
 ##   series/part: a multi-part story (SERIES), shown in the journal in part order, gaps kept.
 
+## West marches: Weirford, the Sorrow, the Hierarch, the Siege Lines (lore/r37_west_texts.gd), in the blocks marked `# --- west marches ---`.
+const R37WL := preload("res://core/world/realm/lore/r37_west_texts.gd")
+
 const TEXTS := {
 	# --- Hearthward -------------------------------------------------------------------------------
 	"hw_notice_keep": {"region": "hearth", "kind": "notice", "title": "Notice",
@@ -362,6 +365,29 @@ const TEXTS := {
 		"text": "I called my name down the Well to hear it come back. It came back as my brother's. I called his. It came back as mine. I have stopped going near the edge. He has not."},
 	"poi_r37s_well_echo": {"region": "well", "kind": "rune", "title": "On the echo stone",
 		"text": "Drop a pebble beside the stone and count. A shepherd's boy counted to nineteen once. The stone says nine. Somebody has scratched under it: ask quietly. It answers with what you said last."},
+	# --- west marches ---
+	"r37w_bridge": R37WL.TEXTS["r37w_bridge"],
+	"r37w_mill": R37WL.TEXTS["r37w_mill"],
+	"r37w_inn": R37WL.TEXTS["r37w_inn"],
+	"r37w_notice": R37WL.TEXTS["r37w_notice"],
+	"r37w_smith": R37WL.TEXTS["r37w_smith"],
+	"wf_grave": R37WL.TEXTS["wf_grave"],
+	"r37w_shrine": R37WL.TEXTS["r37w_shrine"],
+	"sr_ford": R37WL.TEXTS["sr_ford"],
+	"sr_reeve": R37WL.TEXTS["sr_reeve"],
+	"sr_boats": R37WL.TEXTS["sr_boats"],
+	"r37w_statue": R37WL.TEXTS["r37w_statue"],
+	"r37w_hand": R37WL.TEXTS["r37w_hand"],
+	"hr_warning": R37WL.TEXTS["hr_warning"],
+	"hr_mason": R37WL.TEXTS["hr_mason"],
+	"hr_boy": R37WL.TEXTS["hr_boy"],
+	"r37w_siege_line": R37WL.TEXTS["r37w_siege_line"],
+	"r37w_trebs": R37WL.TEXTS["r37w_trebs"],
+	"r37w_tower": R37WL.TEXTS["r37w_tower"],
+	"sg_roll_1": R37WL.TEXTS["sg_roll_1"],
+	"sg_roll_2": R37WL.TEXTS["sg_roll_2"],
+	"sg_roll_3": R37WL.TEXTS["sg_roll_3"],
+	"sg_grave": R37WL.TEXTS["sg_grave"],
 	# --- the east marches ---
 	"r37e_spire_door": {"region": "stillwater", "kind": "plaque", "title": "The Lamplighters' door",
 		"text": "THE LAMPLIGHTERS OF THE MARCHES. A flame kept on this bluff since the first road. If you can read this by it, the road is behind you. If you cannot, walk toward the cold."},
@@ -414,6 +440,8 @@ const SERIES := {
 		"blurb": "Leaves of the bell-founder's book, from her furnace under the rim to the Saints' Quarry."},
 	"lamplog": {"title": "Corvin's Lamp-Log", "count": 3,
 		"blurb": "Brother Corvin's nightly count of the lamps he rowed out over the mere."},
+	# --- west marches ---
+	"marches": R37WL.SERIES["marches"],
 }
 
 ## Region ids in the journal's order, with the names and lines the region banner shows.
@@ -422,6 +450,8 @@ const REGION_ORDER := ["hearth", "road", "chapel", "glade", "thornwood", "henge"
 	"holds", "quarry", "moor", "foundry", "orchard", "necropolis", "mere",
 	# --- south marches ---
 	"downs", "oak", "well",
+	# --- west marches ---
+	"weirford", "sorrow", "hierarch", "siege",
 	# --- the east marches ---
 	"stillwater", "anchorholds", "saltmarket", "saltpans"]
 const PLACE_INFO := {
@@ -471,6 +501,11 @@ const PLACE_INFO := {
 		"text": "A dead oak the width of a barn, hollow to the sky, older than the Order or the henge. A stair of timber winds up inside it, put there by the Rooted, who climbed to sing to stars they did not trust. Something keeps its roots."},
 	"well": {"name": "The Well of Echoes", "line": "it answers with what you said last",
 		"text": "A sinkhole forty paces across and a good deal deeper, a stream pouring in over its east rim. The shepherds cut a ledge down the wall to the pool and a cave beyond it. What answers when you call is not an echo."},
+	# --- west marches ---
+	"weirford": R37WL.PLACE_INFO["weirford"],
+	"sorrow": R37WL.PLACE_INFO["sorrow"],
+	"hierarch": R37WL.PLACE_INFO["hierarch"],
+	"siege": R37WL.PLACE_INFO["siege"],
 	# --- the east marches ---
 	"stillwater": {"name": "Stillwater", "line": "the lamp that waits",
 		"text": "A cold lake under a bluff, black and still, with the Lamplighters' Spire standing over it. The Marches steered home by its flame for forty generations. The lamp has been dark nine winters. It will light for anyone who carries the fire up."},

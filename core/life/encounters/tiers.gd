@@ -45,6 +45,9 @@ const REGION_POOL := {
 	# --- south marches ---
 	"downs": ["gaunt", "gaunt", "wretch", "crawler", "leaper"], "oak": ["burrower", "mite", "crawler", "wretch"],
 	"well": ["spitter", "husk", "wretch", "spitter", "ossuant"],
+	# --- west marches ---
+	"weirford": ["wretch", "crawler"], "sorrow": ["wretch", "spitter", "crawler", "husk", "gaunt"],
+	"hierarch": ["husk", "bulwark", "chanter", "leaper", "husk"], "siege": ["bulwark", "husk", "chanter", "gaunt", "cinder"],
 	# --- the east marches ---
 	"stillwater": ["husk", "spitter", "wretch", "gaunt", "husk"], "anchorholds": ["bulwark", "chanter", "leaper", "husk", "quiller"],
 	"saltmarket": ["wretch", "crawler"], "saltpans": ["husk", "burrower", "cinder", "gaunt", "crawler"],
@@ -55,6 +58,9 @@ const REGION_POOL := {
 const REGION_VARIANT := {
 	"quarry": {"husk": "stonebound", "bulwark": "stonebound", "leaper": "stonebound"},
 	"mere": {"husk": "drowned", "wretch": "drowned", "ossuant": "drowned"},
+	# --- west marches ---
+	"sorrow": {"husk": "drowned", "wretch": "drowned"},
+	"hierarch": {"husk": "stonebound", "bulwark": "stonebound", "leaper": "stonebound"},
 	# --- the east marches ---
 	"stillwater": {"husk": "drowned", "wretch": "drowned"},
 	"anchorholds": {"husk": "stonebound", "bulwark": "stonebound"},
