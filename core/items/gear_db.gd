@@ -96,7 +96,7 @@ const SETS := {
 		"pieces": {"focus": "Ferryman's Hook-Ring", "vestment": "Ferryman's Fen-Cloak", "lantern": "Ferryman's Bow-Lamp Glass", "girdle": "Ferryman's Tow-Rope"},
 		"lore": "Fen clothes, oiled against the water and the dead in it. The ferrymen never lost a passenger. Some came back to argue.",
 		"two": {"text": "+0.15 damage for every Mark detonated.", "mods": [["mark_dmg", "add", 0.15]]},
-		"four": {"text": "Rift Tether Marks everything along its chain, and the hook and a Bound Shade's darts lay 2 Marks, not 1.",
+		"four": {"text": "Rift Tether Marks everything along its chain and recovers 2 s sooner, and the hook and a Bound Shade's darts lay 2 Marks, not 1.",
 			"flags": ["hook", "chalk"]}},
 	"tally": {"name": "Lay Brother's Tally", "tint": Color("#E8DCC0"),
 		"pieces": {"focus": "Tally-Bead Collar", "vestment": "Lay Brother's Scapular", "lantern": "Charnel Lamp-Horn", "girdle": "Counted Cincture"},
@@ -135,7 +135,7 @@ const LEGEND_ORDER := ["door_splinter", "sunk_shroud", "unlit_lamp", "stair_rope
 ## flags); kill_spark, ash_hunger and peal_echo are new (kindling.gd _on_killed, skill_peal.gd).
 const TRAITS := {
 	"rosary": {"flags": ["rosary"], "slots": ["focus", "lantern"], "text": "Trait: a burning foe takes a Mark for every second it burns."},
-	"hook": {"flags": ["hook"], "slots": ["focus", "girdle"], "text": "Trait: Rift Tether Marks everything along its chain."},
+	"hook": {"flags": ["hook"], "slots": ["focus", "girdle"], "text": "Trait: Rift Tether Marks everything along its chain and recovers 2 s sooner."},
 	"chalk": {"flags": ["chalk"], "slots": ["focus", "lantern"], "text": "Trait: the Tether's hook and a Shade's darts lay 2 Marks."},
 	"ferrule": {"flags": ["ferrule"], "slots": ["girdle"], "text": "Trait: every foe within 2 m of where Rift Step lands takes a Mark."},
 	"step_briar": {"flags": ["step_briar"], "slots": ["girdle", "vestment"], "text": "Trait: Rift Step slows what it passes to a little under half speed for 2 s, within about a metre and a half of the line."},
