@@ -440,9 +440,9 @@ def ears(P, J):
         for k in range(8):
             t = k / 7.0
             # a leaf: base to a point, curving in and slightly forward
-            up = Vector((sx * (0.012 * t + 0.03 * t * t), 0.012 * t * 0.5 - 0.035 * t * t, 0.135 * ea * t))
+            up = Vector((sx * (0.012 * t + 0.03 * t * t), 0.012 * t * 0.5 - 0.035 * t * t, 0.105 * ea * t))
             pts.append(base + up)
-            w = 0.036 * (1.0 - t) ** 0.6 * (0.8 + 0.5 * math.sin(min(t * 2.2, 1.6))) + 0.004
+            w = 0.04 * (1.0 - t) ** 0.6 * (0.8 + 0.5 * math.sin(min(t * 2.2, 1.6))) + 0.004
             secs.append((w * 0.8, 0.012 * (1.0 - t) + 0.003, 0.014 * (1.0 - t) + 0.003, 2.1))
         out.append(sloft("ear%s" % ("r" if sx > 0 else "l"), pts, secs, 10, cap0=True, cap1=True, sock="ear_%s" % ("r" if sx > 0 else "l")))
     return out
@@ -572,7 +572,7 @@ def mane(P, J, rng, side=1, count=70):
         p1 = root + Vector((out_x * 0.75, 0, 0.02)) + Vector((0, 0.0, 0.0))
         p2 = root + Vector((out_x * 1.15 + side * rng.uniform(0.0, 0.05), -d.y * 0.0, -L * 0.95)) + Vector((0, rng.uniform(-0.02, 0.04), 0))
         p1 = (p0 + p2) * 0.5 + Vector((side * rx * 0.55, 0.0, 0.03))
-        w = rng.uniform(0.04, 0.06)
+        w = rng.uniform(0.055, 0.08)
         out.append(lock("mane", p0, p1, p2, w, 4, "mane_%d" % (1 + min(2, int(t * 3.0))), rng.randrange(0, 6) / 6.0, rng))
     return out
 
@@ -601,7 +601,7 @@ def tail(P, J, rng, count=64):
         p2 = root + G(sway + math.cos(a) * 0.06, -L * 0.93 + 0.3 * 0.0, 0.1 + math.sin(a) * 0.06 + rng.uniform(0.0, 0.08))
         p1 = root + G(sway * 0.4 + math.cos(a) * 0.06, -0.12, 0.12 + math.sin(a) * 0.05)
         p2.z = max(p2.z, 0.0) if False else p2.z
-        out.append(lock("tail", root, p1, p2, rng.uniform(0.04, 0.062), 6, "tail", rng.randrange(0, 6) / 6.0, rng))
+        out.append(lock("tail", root, p1, p2, rng.uniform(0.06, 0.09), 6, "tail", rng.randrange(0, 6) / 6.0, rng))
     return out
 
 

@@ -39,10 +39,10 @@ BREEDS = {
                     coat=(0.14, 0.058, 0.032), points=(0.025, 0.021, 0.019), mane_col=(0.035, 0.03, 0.03), socks="", blaze=0.5, dapple=0.0, dorsal=0.0,
                     cloth=(0.28, 0.05, 0.05), trim=(0.5, 0.36, 0.14), leather=(0.2, 0.1, 0.05), seed=3),
     "garron": dict(S=(1.04, 0.935, 0.97), neck=1.1, crest=1.2, head=1.04, headw=1.1, barrel=1.02, bone=1.15, fetlock=1.12, hoof=1.12, feather=0.7, mane=1.35, tail=1.25, ear=0.95,
-                   coat=(0.2, 0.2, 0.21), points=(0.085, 0.082, 0.082), mane_col=(0.5, 0.5, 0.5), socks="", blaze=0.0, dapple=0.8, dorsal=0.0,
+                   coat=(0.1, 0.1, 0.108), points=(0.05, 0.05, 0.052), mane_col=(0.26, 0.26, 0.27), socks="", blaze=0.0, dapple=0.8, dorsal=0.0,
                    cloth=(0.09, 0.15, 0.27), trim=(0.45, 0.45, 0.48), leather=(0.16, 0.1, 0.06), seed=5),
     "fenpony": dict(S=(0.98, 0.865, 0.9), neck=0.95, crest=1.1, head=0.93, headw=1.05, barrel=1.04, bone=1.1, fetlock=1.05, hoof=1.0, feather=0.5, mane=1.55, tail=1.35, ear=0.9,
-                    coat=(0.26, 0.185, 0.1), points=(0.05, 0.04, 0.03), mane_col=(0.07, 0.05, 0.035), socks="", blaze=0.0, dapple=0.0, dorsal=1.0,
+                    coat=(0.12, 0.085, 0.045), points=(0.03, 0.024, 0.018), mane_col=(0.07, 0.05, 0.035), socks="", blaze=0.0, dapple=0.0, dorsal=1.0,
                     cloth=(0.1, 0.19, 0.09), trim=(0.38, 0.32, 0.2), leather=(0.18, 0.1, 0.05), seed=9),
     "draught": dict(S=(1.18, 1.14, 1.1), neck=1.25, crest=1.45, head=1.1, headw=1.2, barrel=1.07, bone=1.35, fetlock=1.3, hoof=1.4, feather=1.0, mane=1.25, tail=1.1, ear=1.0,
                     coat=(0.045, 0.04, 0.04), points=(0.03, 0.026, 0.026), mane_col=(0.03, 0.026, 0.026), socks="all", blaze=1.0, dapple=0.0, dorsal=0.0,
@@ -105,7 +105,7 @@ def coat_mat():
         bars = m.math('MULTIPLY', m.math('GREATER_THAN', m.noise(40.0, 1.0, 0.5), 0.5), m.math('LESS_THAN', Z, 0.75))
         col = m.mix(m.math('MULTIPLY', m.math('MAXIMUM', stripe, m.math('MULTIPLY', bars, 0.5)), 0.85), col, (0.04, 0.03, 0.02))
     # white: a blaze down the face, socks
-    wcol = (0.5, 0.47, 0.42)
+    wcol = (0.3, 0.28, 0.25)
     if B["blaze"] > 0.0:
         bl = m.math('MULTIPLY', m.math('MULTIPLY', m.math('LESS_THAN', m.math('ABSOLUTE', X), 0.022 * B["blaze"] + 0.004), m.math('GREATER_THAN', Y, 0.93)), m.math('GREATER_THAN', Z, 1.28))
         col = m.mix(m.math('MULTIPLY', bl, 0.9), col, wcol)
@@ -143,7 +143,7 @@ def hoof_mat():
 
 def eye_mat():
     m = K.Mat("Eye")
-    return m.finish((0.025, 0.014, 0.01), 0.12, 0.0, None, emit=(0.8, 0.45, 0.16), emit_strength=0.5)
+    return m.finish((0.025, 0.014, 0.01), 0.12, 0.0, None, emit=(0.8, 0.45, 0.16), emit_strength=0.1)
 
 
 def dark_mat():
@@ -326,14 +326,14 @@ for sidx in range(6):
     wsl = sl.stop - sl.start
     for k in range(wsl // 2 + 1):
         cx = nrng.uniform(0, wsl)
-        wdt = nrng.uniform(0.7, 1.6)
+        wdt = nrng.uniform(2.0, 4.0)
         ph = nrng.uniform(0, 6.28)
         rows = np.arange(SIZE)
         wob = np.sin(rows * nrng.uniform(0.004, 0.02) + ph) * nrng.uniform(0.5, 3.0)
         d = (np.arange(wsl)[None, :] - (cx + wob)[:, None]) / wdt
         strand[:, sl] = np.maximum(strand[:, sl], (np.exp(-d * d) * nrng.uniform(0.5, 1.0)).astype(np.float32))
 v = np.linspace(0.0, 1.0, SIZE, dtype=np.float32)[:, None]
-tone = 0.55 + 0.7 * strand
+tone = 0.8 + 0.3 * strand
 tone *= (0.65 + 0.55 * v)                                  # root dark, tips weathered paler
 tone *= 1.0 + 0.15 * np.sin(v * 31.0 + 1.0)
 tint = np.array(B["mane_col"], dtype=np.float32)
@@ -341,13 +341,18 @@ tip = np.minimum(tint * 1.7 + 0.03, 1.0)
 alb[:, x0:, :3] = (tint[None, None, :] * (1.0 - v[:, :, None] * 0.6) + tip[None, None, :] * (v[:, :, None] * 0.6)) * tone[:, :, None]
 alb[:, x0:, 3] = 1.0
 gy, gx = np.gradient(strand)
-nor[:, x0:, 0] = 0.5 - gx * 0.7
-nor[:, x0:, 1] = 0.5 - gy * 0.2
+nor[:, x0:, 0] = 0.5 - gx * 0.12
+nor[:, x0:, 1] = 0.5
+
 nor[:, x0:, 2] = 1.0
-rgh[:, x0:, :3] = (0.55 - 0.1 * strand)[:, :, None]
+rgh[:, x0:, :3] = 0.8
 met[:, x0:, :3] = 0.0
 ao[:, x0:, :3] = (0.55 + 0.45 * v * (0.5 + 0.5 * strand))[:, :, None]
 emi[:, x0:, :3] = 0.0
+FILL = np.array([0.075, 0.046, 0.024], dtype=np.float32)
+emi[:, :x0, :3] += alb[:, :x0, :3] * FILL * (1.0 - np.minimum(emi[:, :x0, :3].max(axis=2, keepdims=True) * 4.0, 1.0))
+emi[:, x0:, :3] += alb[:, x0:, :3] * FILL
+emi[:, :, :3] = np.clip(emi[:, :, :3], 0.0, 1.0)
 alb[:, x0:, :3] = np.clip(alb[:, x0:, :3], 0, 1)
 
 orm = np.ones((SIZE, SIZE, 4), dtype=np.float32)

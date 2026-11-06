@@ -115,7 +115,7 @@ static func material(b: String) -> StandardMaterial3D:
 	m.emission_energy_multiplier = 1.5
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED          # hair locks are one-sided ribbons
 	m.rim_enabled = true
-	m.rim = 0.35
+	m.rim = 0.2
 	m.rim_tint = 0.4
 	_mats[b] = m
 	return m
@@ -223,10 +223,10 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 	var br := sin(_t * 1.9 + _seed) * 0.01                      # breathing
 	var head_run := -0.1 * k + sin(ph * 2.0 + 2.2) * 0.07 * k    # the head carried out and nodding
 	var gz := graze
-	_pose_bone("neck1", -gz * 0.28 + head_run * 0.35 + br)
-	_pose_bone("neck2", -gz * 0.34 + head_run * 0.3)
-	_pose_bone("neck3", -gz * 0.26 + head_run * 0.25)
-	_pose_bone("head", -gz * 0.18 + head_run * 0.1 + 0.05 * k)
+	_pose_bone("neck1", -gz * 0.5 + head_run * 0.35 + br)
+	_pose_bone("neck2", -gz * 0.62 + head_run * 0.3)
+	_pose_bone("neck3", -gz * 0.45 + head_run * 0.25)
+	_pose_bone("head", -gz * 0.25 + head_run * 0.1 + 0.05 * k)
 	# ears: a flick now and then, laid back at the gallop
 	_flick_t -= dt
 	if _flick_t <= 0.0:
