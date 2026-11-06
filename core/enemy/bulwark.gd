@@ -9,7 +9,7 @@ extends Husk
 
 const KinLook := preload("res://core/enemy/kin_look.gd")
 const SHIELD_HP := 6.0
-const GUARD_ARC := 0.3          ## dot of facing vs. the blow's source above which the shield takes it
+const GUARD_ARC := 0.55         ## dot of facing vs. the blow's source above which the shield takes it
 
 var shield_hp := SHIELD_HP
 var _shield: MeshInstance3D

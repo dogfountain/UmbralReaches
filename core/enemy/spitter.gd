@@ -105,6 +105,10 @@ func _on_state(next: int) -> void:
 var spit_cast := "Bile Spit"
 
 
+func can_cast() -> bool:
+	return super.can_cast() and _lit_t <= 2.5       # no new spit at someone sheltering in light
+
+
 func _chases_directly() -> bool:
 	return false
 
@@ -145,7 +149,9 @@ func _think() -> void:
 			else:
 				_hold_post(from_home)
 		CHASE:
-			if _dist > chase_range * 1.25 or from_home > hunt_leash:
+			if _dist > chase_range * 1.25 or from_home > hunt_leash or (_lit_t > 2.5 and _ward_lit()):
+				if _lit_t > 2.5:
+					_calm_t = 3.5                   # sheltered in light: it gives up the chase like a melee body
 				_set_state(IDLE)
 				_hold_post(from_home)
 			elif _shot_cd <= 0.0 and can_cast() and _dist <= fire_range and _strike_clear(_p):
