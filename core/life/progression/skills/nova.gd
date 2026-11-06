@@ -8,6 +8,7 @@ extends SkillNova
 ## The Count (each detonated Mark takes 0.6 s off the recovery). A frozen foe SHATTERs (x2); three
 ## or more Marks at once is a DETONATION.
 
+const CombatState := preload("res://core/skills/combat_state.gd")
 const DB := preload("res://core/life/progression/upgrade_db.gd")
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 const UNDERTOW_MIN := 2.5
@@ -55,7 +56,8 @@ func _wake(p: Player) -> void:
 
 func _detonate(p: Player) -> void:
 	var r := radius()
-	var power := float(DB.get_mod("power", 1.0))
+	var book := p.skills()
+	var power := float(DB.get_mod("power", 1.0)) * (book.cast_power if book else 1.0)
 	var per := (1.5 if bool(DB.get_mod("tally", false)) else 1.0) + float(DB.get_mod("mark_dmg", 0.0))
 	var undertow := int(DB.get_mod("nova", 0)) >= 3
 	var at := p.global_position + Vector3.UP * 0.9
@@ -81,7 +83,11 @@ func _detonate(p: Player) -> void:
 			detonated.append(e)
 			if int(DB.get_mod("nova", 0)) >= 2:
 				_motes(p, e, marks)
-		e.take_hit((1.0 + float(marks) * per) * power * Afflict.shatter(e), p)
+		var ring := (1.0 + float(marks) * per) * power * Afflict.shatter(e)
+		if book != null and book.combat != null:
+			book.combat.deal(e, ring, &"umbral", p)
+		else:
+			e.take_hit(ring, p)
 		if undertow and dist > UNDERTOW_MIN:
 			e.shove(-away * minf(SHOVE * 1.1, (dist - 1.6) * 3.2))
 			Vfx.arc(e.global_position + Vector3.UP * 0.9, at, Color(1.4, 0.6, 3.0), 0.3, 0.2)

@@ -2,6 +2,7 @@ extends Node3D
 ## Rift Step rank III, Rend (progression): the tear you leave behind holds open for DELAY, then
 ## bursts: damage x spell power and a Mark to every enemy within RADIUS.
 
+const CombatState := preload("res://core/skills/combat_state.gd")
 const DELAY := 0.4
 const RADIUS := 3.0
 const DMG := 1.5
@@ -40,7 +41,7 @@ func _physics_process(delta: float) -> void:
 		var d := e.global_position - global_position
 		if Vector2(d.x, d.z).length() <= RADIUS and absf(d.y) < 2.5:
 			e.add_mark(1)
-			e.take_hit(DMG * power, self)
+			CombatState.strike(e, DMG * power, &"umbral", self)
 			var dir := Vector3(d.x, 0.0, d.z).normalized() if Vector2(d.x, d.z).length() > 0.1 else Vector3.FORWARD
 			e.shove(dir * 6.0)
 			Vfx.arc(at, e.global_position + Vector3.UP, Color(1.6, 0.8, 3.2), 0.25, 0.25)

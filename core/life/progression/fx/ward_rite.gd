@@ -6,6 +6,7 @@ extends Node
 ##           at most once a CINDER_EVERY s each
 ## Ticks five times a second over the enemy group, only while the ward stands.
 
+const CombatState := preload("res://core/skills/combat_state.gd")
 const HEARTH_MEND := 2.0
 const HEARTH_SHORT := 2.0
 const CINDER_DMG := 0.6
@@ -52,6 +53,6 @@ func _physics_process(delta: float) -> void:
 				if now - float(_burnt.get(id, -99.0)) < CINDER_EVERY:
 					continue
 				_burnt[id] = now
-				e.take_hit(CINDER_DMG * power, player)
+				CombatState.strike(e, CINDER_DMG * power, &"umbral", player)
 				e.add_mark(1)
 				Vfx.burst(e.global_position + Vector3.UP * 0.8, Color(3.0, 1.4, 0.4), {"count": 12, "life": 0.35, "speed": Vector2(1.0, 3.0), "size": 0.04, "gravity": -2.0, "trail": 0.05})
