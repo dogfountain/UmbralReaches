@@ -12,6 +12,7 @@ var traversal: PlayerTraversal = PlayerTraversal.new(self)
 var evasion: PlayerEvasion = PlayerEvasion.new(self)
 var casting: PlayerCasting = PlayerCasting.new(self)
 var interaction: PlayerInteraction = PlayerInteraction.new(self)
+var mount: PlayerMount = PlayerMount.new(self)
 
 @export_group("Movement")
 @export var walk_speed := 4.5
@@ -211,6 +212,7 @@ func _ready() -> void:
 	add_child(evasion)
 	add_child(casting)
 	add_child(interaction)
+	add_child(mount)
 	add_to_group(Groups.PLAYER)
 	collision_layer = Layers.PLAYER
 	collision_mask = Layers.WORLD | Layers.PROPS
@@ -409,19 +411,8 @@ func _physics_process(delta: float) -> void:
 			sprint = Input.is_action_pressed("sprint") or _sprint_latch
 	_wish_len = wish.length()
 	# r36 on horseback (core/world/mount/horse.gd): the horse takes the wish; jump gets down
-	if riding != null:
-		if not is_instance_valid(riding) or _hollowing:
-			riding = null
-		else:
-			if Input.is_action_just_pressed("jump"):
-				riding.call("dismount")
-			else:
-				riding.call("drive", self, wish, sprint, delta)
-				_grounded = true
-				_visual.ride = move_toward(_visual.ride, 1.0, delta * 4.0)
-				_visual.animate(Vector3.ZERO, true, delta)
-				vitals._update_gloom(delta)
-				return
+	if riding != null and mount.ride_tick(wish, sprint, delta):
+		return
 	if _visual.ride > 0.0:
 		_visual.ride = move_toward(_visual.ride, 0.0, delta * 4.0)
 
