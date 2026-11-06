@@ -10,6 +10,7 @@ extends Interactable
 
 const GearDB := preload("res://core/items/gear_db.gd")
 const LootDB := preload("res://core/items/loot_db.gd")
+const LootModel := preload("res://core/items/loot_model.gd")
 
 var entries: Array = []
 var title := "Remains"
@@ -18,6 +19,8 @@ var _beam: MeshInstance3D
 var _beam_mat: ShaderMaterial
 const BEAM_SHADER := preload("res://core/items/loot_beam.gdshader")
 var _label: Label3D
+var _item: Node3D             ## the best piece lying on the ground (loot_model.gd)
+var _glint: MeshInstance3D
 var _done := false
 var kept := false             ## the last save wrote this bag: while the game closes it is not poured (Continue lays it back)
 
@@ -38,9 +41,8 @@ func _ready() -> void:
 	tube.cap_top = false                # an open tube: a cap read as a floating disc at the top
 	tube.cap_bottom = false
 	_beam = ProcMesh.mesh(self, "Beam", tube, mat, Vector3(0, h * 0.5, 0), Vector3.ZERO, false)
-	# the bundle: a dark cloth mound with a glint in the quality colour
-	ProcMesh.mesh(self, "Bundle", ProcMesh.sphere(0.24, 0.26, 10, 5), ProcMesh.std_mat(Color(0.16, 0.12, 0.13), 0.95), Vector3(0, 0.1, 0), Vector3.ZERO, false)
-	ProcMesh.mesh(self, "Glint", ProcMesh.sphere(0.06, 0.12, 8, 4), ProcMesh.glow_mat(Color(col.r * 2.4, col.g * 2.4, col.b * 2.4)), Vector3(0, 0.26, 0), Vector3.ZERO, false)
+	_glint = ProcMesh.mesh(self, "Glint", ProcMesh.sphere(0.02, 0.04, 8, 4), ProcMesh.glow_mat(Color(col.r * 2.4, col.g * 2.4, col.b * 2.4)), Vector3(0, 0.3, 0), Vector3.ZERO, false)
+	_refresh_item()
 	var motes := Vfx.emitter(Color(col.r * 2.0, col.g * 2.0, col.b * 2.0), {"count": 10 + 5 * q, "life": 1.3, "speed": Vector2(0.2, 0.7), "size": 0.03, "gravity": -0.6, "radius": 0.2})
 	motes.name = "Motes"
 	add_child(motes)
@@ -61,6 +63,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	if _glint and _glint.visible:
+		_glint.scale = Vector3.ONE * (0.8 + 0.35 * sin(_t * 3.4))
 	if _beam:
 		_beam_mat.set_shader_parameter("pulse", sin(_t * 2.6))
 
@@ -85,13 +89,39 @@ static func entry_name(e: Dictionary) -> String:
 	return "%s%s" % [String(ItemDB.def(String(e.get("id", ""))).get("name", "?")), (" x%d" % n) if n > 1 else ""]
 
 
-func _refresh_label() -> void:
-	if _label == null:
-		return
+func best_entry() -> Dictionary:
 	var best := {}
 	for e: Dictionary in entries:
 		if best.is_empty() or entry_quality(e) > entry_quality(best):
 			best = e
+	return best
+
+
+## Lay the best entry on the ground (rebuilt when the bag is partly taken), with a glint over the
+## Hallowed and better.
+func _refresh_item() -> void:
+	if _item:
+		_item.queue_free()
+		_item = null
+	var best := best_entry()
+	var q := best_quality()
+	if not best.is_empty():
+		_item = LootModel.build(best, q)
+	if _item:
+		add_child(_item)
+	var col := LootDB.quality_color(q)
+	if _beam_mat:
+		_beam_mat.set_shader_parameter("beam_color", Color(col.r * 1.3, col.g * 1.3, col.b * 1.3))
+	if _glint:
+		_glint.visible = q >= 2 and not best.is_empty()
+		_glint.position.y = LootModel.height_of(_item) + 0.05
+		(_glint.material_override as StandardMaterial3D).albedo_color =Color(col.r * 2.4, col.g * 2.4, col.b * 2.4)
+
+
+func _refresh_label() -> void:
+	if _label == null:
+		return
+	var best := best_entry()
 	_label.text = entry_name(best) + ("  +%d" % (entries.size() - 1) if entries.size() > 1 else "") if not best.is_empty() else ""
 
 
@@ -127,6 +157,7 @@ func take(i: int) -> String:
 	var e: Dictionary = entries.pop_at(i)
 	var line := _store(e)
 	_refresh_label()
+	_refresh_item()
 	if kept:
 		Travel.save_soon()                          # the record must not still hold what was taken
 	if entries.is_empty():
