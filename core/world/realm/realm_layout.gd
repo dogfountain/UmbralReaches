@@ -9,7 +9,7 @@ extends RefCounted
 ## terrain mesh (adding detail noise, path carving and site stamps); everyone else asks
 ## `RealmLayout.ground(space, x, z)` once the terrain exists, or `macro_height()` before it does.
 
-## r37: doubled again (docs/r37_expansion.md): the Outer Marches west and east of the old gates, and
+## doubled again (docs/r37_expansion.md): the Outer Marches west and east of the old gates, and
 ## the southern downs. The old Realm (x -155..155, z -150..175) is OLD_BOUNDS; nothing in it moves.
 const BOUNDS := Rect2(-260.0, -150.0, 520.0, 390.0)        ## playable xz (x -260..260, z -150..240); r34: 310 x 325
 const OLD_BOUNDS := Rect2(-155.0, -150.0, 310.0, 325.0)    ## the r34 Realm, inside the March Wall
@@ -45,7 +45,7 @@ const RAIDS := [
 		"gate": Vector2(-56.0, -16.0), "boss": "thornwarden"},
 	{"id": "summit", "c": Vector2(0.0, -118.0), "r": 28.0, "y": 27.35, "fall": 10.0, "mode": "clear",
 		"gate": Vector2(0.0, -90.0), "boss": "ascended_warden"},
-	# r37: the two Marches bosses (docs/r37_expansion.md). The West agent builds the Hierarch's fight in
+	# the two Marches bosses (docs/r37_expansion.md). The West agent builds the Hierarch's fight in
 	# the toppled statue's broken crown; the East agent the Anchoress's on the cliff terrace.
 	{"id": "hierarch", "c": Vector2(-214.0, -104.0), "r": 24.0, "y": 4.0, "fall": 12.0, "mode": "level",
 		"gate": Vector2(-200.0, -82.0), "boss": "r37_hierarch"},
@@ -104,7 +104,7 @@ const REGIONS := [
 	{"id": "mere", "name": "Corvin's Mere", "rect": Rect2(64, 90, 86, 62), "biome": "fen", "tier": 1,
 		"purpose": "a drowned water-meadow: causeways, islets, floating lamps, a half-sunk chapel",
 		"lore": "Brother Corvin rowed fire out here to the sunk dead. Some of his lamps still float."},
-	# --- r37: the Outer Marches and the southern downs (docs/r37_expansion.md) --------------------
+	# --- the Outer Marches and the southern downs (docs/r37_expansion.md) --------------------
 	# West Marches (the West agent)
 	{"id": "weirford", "name": "Weirford", "c": Vector2(-205, 66), "r": 26.0, "biome": "meadow", "tier": 1,
 		"purpose": "a living outpost at the river crossing: inn, mill on the weir, smithy, stables, a watch post",
@@ -143,20 +143,20 @@ const REGIONS := [
 		"lore": "Drop a stone and count. Nobody has ever counted to the end of the echoes."},
 ]
 
-## r37: the Sorrow (West Marches): the river's centreline from the Crowns to the south edge, with the
+## the Sorrow (West Marches): the river's centreline from the Crowns to the south edge, with the
 ## bed's half width. RealmLand carves the channel and the water stands in it in stepped reaches (the
 ## weir at Weirford is one step); the road crosses on a bridge at the weir. The Foundation agent owns it.
 const RIVER := {"w": 6.0, "pts": [Vector2(-212, -150), Vector2(-206, -112), Vector2(-196, -72), Vector2(-204, -30),
 	Vector2(-214, 10), Vector2(-208, 46), Vector2(-205, 60), Vector2(-212, 96), Vector2(-226, 146), Vector2(-236, 196), Vector2(-240, 240)]}
-## r37: Stillwater's lake (East Marches): an elliptical basin, its surface, and the Spire's bluff.
+## Stillwater's lake (East Marches): an elliptical basin, its surface, and the Spire's bluff.
 const LAKE_C := Vector2(206.0, 4.0)
 const LAKE_R := Vector2(30.0, 40.0)          ## semi-axes x, z
 const LAKE_Y := -0.9                          ## the water line (as the fen's pools)
 const SPIRE_C := Vector2(240.0, 8.0)          ## the Lamplighters' Spire on its bluff (~12 m above the water)
-## r37: the Well of Echoes' sinkhole (the southern downs).
+## the Well of Echoes' sinkhole (the southern downs).
 const WELL_C := Vector2(72.0, 204.0)
 const WELL_R := 20.0                          ## the rim radius; the floor pool ~24 m below the downs
-## r37: the March Wall: the old Realm's west and east boundary (x -155 and 155, z -110..240), standing
+## the March Wall: the old Realm's west and east boundary (x -155 and 155, z -110..240), standing
 ## where the r34 edge rims were. Gates where the road crosses; breaches where the tracks do. The South
 ## agent builds it.
 const MARCH_WALL_X := 155.0
@@ -167,7 +167,7 @@ const MARCH_GATES := [Vector2(-155, 67), Vector2(155, 68)]
 ## stop), places of interest, camps. Checked by zz/layout_r34_test (inside the region, on dry walkable
 ## ground off the ways and sites; "poi_wet" may stand in water). Builders may move a slot a few metres.
 const SLOTS := {
-	# --- r37 (docs/r37_expansion.md): builders may move a slot a few metres; a region agent may edit
+	# --- (docs/r37_expansion.md): builders may move a slot a few metres; a region agent may edit
 	# only its own regions' entries here.
 	"weirford": [
 		{"kind": "fire", "at": Vector2(-196, 74), "note": "the town's square, east of the bridge"},
@@ -280,7 +280,7 @@ const BASE_PATHS := [
 	{"id": "orchard_lane", "w": 1.4, "pts": [Vector2(-98, 63), Vector2(-102, 84), Vector2(-108, 104), Vector2(-112, 122)]},
 	{"id": "mere_causeway", "w": 1.6, "pts": [Vector2(92, 65), Vector2(96, 84), Vector2(100, 104), Vector2(104, 120)]},
 	{"id": "south_track", "w": 1.4, "pts": [Vector2(-112, 122), Vector2(-80, 132), Vector2(-40, 134), Vector2(0, 128), Vector2(40, 134), Vector2(76, 128), Vector2(104, 120)]},
-	# r37 (docs/r37_expansion.md)
+	# the Marches (docs/r37_expansion.md)
 	{"id": "weir_track", "w": 1.4, "pts": [Vector2(-196, 66), Vector2(-192, 36), Vector2(-188, 0), Vector2(-188, -40), Vector2(-196, -76), Vector2(-200, -82)]},
 	{"id": "siege_track", "w": 1.4, "pts": [Vector2(-214, 65), Vector2(-216, 100), Vector2(-214, 128), Vector2(-206, 160), Vector2(-196, 190)]},
 	{"id": "spire_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 52), Vector2(226, 30), Vector2(236, 14)]},
