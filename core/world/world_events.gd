@@ -28,7 +28,7 @@ const ARRIVE_R := 15.0
 const LEAVE_R := 46.0
 const WAVES := 3
 const WAVE_GAP := 32.0                  ## a wave comes anyway after this long
-const Director := preload("res://core/life/encounters/director.gd")
+const EncDirector := preload("res://core/life/encounters/director.gd")
 const SURGE := Color(0.62, 0.42, 1.0)
 const SID := "world_events"
 const REWARD_ASH := 24
@@ -137,8 +137,8 @@ func _quiet_time() -> bool:
 ## The one haven the director keeps (its circle, the Keg's grown rectangle, the holds): a surge is not
 ## planted on ground a tide may not arm on.
 static func _in_haven(p: Vector2) -> bool:
-	return p.distance_to(Director.HAVEN_C) < Director.HAVEN_R or Rect2(RealmLayout.TAVERN).grow(6.0).has_point(p) \
-		or p.distance_to(Director.HOLDS_C) < Director.HOLDS_R
+	return p.distance_to(EncDirector.HAVEN_C) < EncDirector.HAVEN_R or Rect2(RealmLayout.TAVERN).grow(6.0).has_point(p) \
+		or p.distance_to(EncDirector.HOLDS_C) < EncDirector.HOLDS_R
 
 
 func _pick_and_start(pp: Vector3) -> void:
