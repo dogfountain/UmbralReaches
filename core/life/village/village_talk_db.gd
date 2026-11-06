@@ -418,4 +418,21 @@ const CONV := {
 		"corvin": {"say": "The penitents said lighting the sunk was heresy. Kindler's work. They took his face off the chapel wall, then his hands off his arms. He still rowed out. I held the lamp for him after. In my teeth, the last time.", "next": "hub"},
 		"water": {"say": "The ones who didn't stay down. They walk the bottom and come up in the nave, in rows, like it's a feast day. Don't wade at night. Wade anyway, if you're going to.", "next": "hub"},
 	}},
+	# --- r37 south ---
+	"dunstan": {"name": "Dunstan Pike", "start": [["!met:dunstan", "meet"], ["", "hub"]], "nodes": {
+		"meet": {"say": "Mind the chalk, it's loose at the edge of the fold. And mind the sheep. They're not mine any more, whatever they tell you.", "next": "meet2"},
+		"meet2": {"say": "Dunstan Pike. I stayed. Everyone with a crook walked north after the bells, behind the Order's banner, and the flock went after them. I counted the fold at dusk and it was one short. Then I stopped counting.", "do": "met:dunstan", "next": "hub"},
+		"hub": {"say_if": [
+			["qd:shepherd_strays", "Three cairns up and the Bell-Wether down. I can hear the downs again. It's very quiet. I'd forgotten it could be."],
+			["qat:shepherd_strays:1", "Cairns are up. Now the Bell-Wether. You'll know it by the bell. It's the only thing out there still keeping time."],
+			["qat:shepherd_strays:0", "Three cairns, spilled across the chalk. Raise them as they were. Fifth stone for luck, top stone to the north."],
+			["", "The oak's down west, the Well's east. I don't go to either. Both of them are listening."],
+		], "choices": [
+			{"text": "What happened to the flock?", "to": "flock", "once": true},
+			{"text": "What's in the Well?", "to": "well", "once": true},
+			{"text": "Goodbye.", "to": ""},
+		]},
+		"flock": {"say": "The ones that came back came back wrong. Thin, and too quiet, and they stand in the fog facing the Stair. They still follow the bell. I just can't say what's holding the rope.", "next": "hub"},
+		"well": {"say": "Water, once. We drew it by rope. Then the rope came up wet and not our own, and my father cut the ledge so we'd go down on our feet, like honest men. It answers. Don't answer back.", "next": "hub"},
+	}},
 }

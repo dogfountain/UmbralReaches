@@ -26,6 +26,9 @@ const SECRETS := {
 	"cutters_nook": {"name": "The Cutters' Nook", "region": "quarry"},
 	"ninth_rank": {"name": "The Ninth Rank", "region": "necropolis"},
 	"corvin_sluice": {"name": "Corvin's Sluice", "region": "mere"},
+	# --- r37 south ---
+	"oak_crown": {"name": "The Crown of the Oak", "region": "oak"},
+	"well_listener": {"name": "The Listener's Cairn", "region": "well"},
 }
 
 ## The ten secrets of r23 (zz/secrets_test walks these; the r28 ones have zz/secret_expansion_test).
@@ -93,6 +96,11 @@ const TEXTS := {
 		"text": "Corvin's lamp. When they took my boat I built a road under the water to the last lamp, and let it down again behind me so the Order could not follow. C."},
 	"sc_lever": {"title": "A plate on the lever", "kind": "plaque",
 		"text": "SLUICE. Do not pull without leave of the lamp-brother. Under it, newer: he is not coming. Pull it."},
+	# --- r37 south ---
+	"sc_oak_top": {"title": "A leaf of the Rooted's reckoning", "kind": "bark leaf",
+		"text": "Nine springs we sang up the stair and the oak sang back, a note under the note. The Order's axes bit it on the tenth and it stopped, not dead: listening. We hid the knot where the sky sees it and the Order will not climb. Whoever climbs: sing it one line. It will know the tune."},
+	"sc_well_listener": {"title": "Scratched on the cairn", "kind": "carved stone",
+		"text": "I sat here nine nights with the falls at my back and listened to it answer. It does not repeat you. It tells you what you will say next. On the ninth night I said nothing, and it said my name, and I said nothing again, and it said it again. Go up. Do not answer."},
 }
 
 ## Items handed out. relic_fragment is new (no ItemDB entry yet; the progression agent owns
@@ -122,6 +130,9 @@ const REWARDS := {
 	"cutters_nook": {"relic_fragment": 1, "grave_ash": 25, "grave_iron": 2},
 	"ninth_rank": {"relic_fragment": 1, "grave_ash": 30},
 	"corvin_sluice": {"relic_fragment": 1, "grave_ash": 25},
+	# --- r37 south ---
+	"oak_crown": {"relic_fragment": 2, "grave_ash": 35},
+	"well_listener": {"relic_fragment": 1, "grave_ash": 30, "grave_iron": 1},
 }
 
 

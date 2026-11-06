@@ -337,6 +337,31 @@ const TEXTS := {
 		"text": "Weighted with three stones, as the Abbot ordered. A fourth stone set on top, smaller, with a lamp scratched on it."},
 	"cm_fare": {"region": "mere", "kind": "notice", "title": "The fare-board",
 		"text": "THE LAMP-BOAT. No fare. No questions. Leave a name and Brother Corvin will row a lamp out for it. The board is covered in names, one over another, until none can be read."},
+	# --- r37 south ---
+	"poi_r37s_gate_w": {"region": "road", "kind": "plaque", "title": "The West March Gate",
+		"text": "MARCH OF THE OLD REALM. Pilgrims enter by this gate and leave by the other. The Order's wall ends where the road's care ends; what lies beyond is not the Order's and not your business. Under it, scratched with a nail: it was somebody's business."},
+	"poi_r37s_gate_e": {"region": "road", "kind": "plaque", "title": "The East March Gate",
+		"text": "Eleven miles of wall in one summer, so the faithful would know where the road's care ended. The leaves were hung in the second summer. The hinges were not oiled in the third. Anyone may leave by this gate. Few came back by it."},
+	"poi_r37s_hut": {"region": "downs", "kind": "page", "title": "The shepherd's slate",
+		"text": "Ninety-one ewes, twelve rams, forty lambs. The Order took the wool for the pilgrims' robes and left us the mutton. When they walked up the Stair I counted the flock again and it was eleven short. Next morning, seven. I stopped counting. -- D. Pike, shepherd"},
+	"poi_r37s_fold": {"region": "downs", "kind": "notice", "title": "The fold-tally",
+		"text": "TALLY OF THE FOLD, notched on the gate-post in fives. The notches stop at four hundred and six. Under them, newer and less steady: and I still bring them in at dusk."},
+	"poi_r37s_oak_heart": {"region": "oak", "kind": "rune", "title": "Cut in the heartwood",
+		"text": "THE FIRST FIRE WAS CARRIED OUT OF THIS TREE, in an oak-knot packed with moss, to the Ring, to the Holds, to Edda's hearth. We keep the knot. We do not say where. Under it, in another hand: the Order took off its beard and thought it dead. It is only quiet."},
+	"poi_r37s_well_gate": {"region": "well", "kind": "plaque", "title": "On the lintel of the Descent",
+		"text": "THE DESCENT. The shepherds drew water here by rope until the rope came up wet and not their own. Then they cut a ledge, so the water could be fetched by those trusted to climb back. Count your steps down. Count them again coming up."},
+	"r37s_down_way": {"region": "downs", "kind": "waystone", "title": "A drovers' waystone",
+		"text": "SOUTH DOWNS. Water at the Well, six hundred paces. Wool at the fold. The mileage cut under it was never finished, and is not about miles."},
+	"r37s_down_grave": {"region": "downs", "kind": "grave", "title": "A shepherd's grave",
+		"text": "PIKE, MAB. She counted the flock from the high down every dusk, and was counted. A crook set in the turf for a stone."},
+	"r37s_down_cairn": {"region": "downs", "kind": "rune", "title": "A sheep-walk cairn",
+		"text": "Four stones and a fifth for luck, raised on the flock's road so the lambs would know the way home in fog. Somebody has turned the top stone to face north, as the shepherds did. As the flock did."},
+	"r37s_oak_notice": {"region": "oak", "kind": "notice", "title": "The abbey's notice at the oak",
+		"text": "BY ORDER OF THE ABBEY. This tree is a heathen oak and shall not be sung to. Axes are provided at the fold. NOTE, in a clerk's hand: the axes were tried. See the axes. They are still in it."},
+	"r37s_well_page": {"region": "well", "kind": "page", "title": "A page weighted with a stone",
+		"text": "I called my name down the Well to hear it come back. It came back as my brother's. I called his. It came back as mine. I have stopped going near the edge. He has not."},
+	"poi_r37s_well_echo": {"region": "well", "kind": "rune", "title": "On the echo stone",
+		"text": "Drop a pebble beside the stone and count. A shepherd's boy counted to nineteen once. The stone says nine. Somebody has scratched under it: ask quietly. It answers with what you said last."},
 }
 
 ## Multi-part stories, in journal order. `count` = parts in the world.
@@ -365,7 +390,9 @@ const SERIES := {
 ## Region ids in the journal's order, with the names and lines the region banner shows.
 ## r34 places: the new regions join the Journal after the old (west to east, north to south).
 const REGION_ORDER := ["hearth", "road", "chapel", "glade", "thornwood", "henge", "fen", "barrows", "ossuary", "rift", "summit", "crags",
-	"holds", "quarry", "moor", "foundry", "orchard", "necropolis", "mere"]
+	"holds", "quarry", "moor", "foundry", "orchard", "necropolis", "mere",
+	# --- r37 south ---
+	"downs", "oak", "well"]
 const PLACE_INFO := {
 	"hearth": {"name": "Hearthward", "line": "the last kindled village",
 		"text": "The road's last village before the Stair. Its fires were carried home from the chapel in pots and hands; the Kindled Keg keeps the last of them. Most cottages have gone quiet."},
@@ -406,6 +433,13 @@ const PLACE_INFO := {
 		"text": "Pilgrims who died on the road before the Stair were buried here in ranks, every grave facing the mountain, so they would be first when the sky called. They are still waiting."},
 	"mere": {"name": "Corvin's Mere", "line": "his lamps still float",
 		"text": "A drowned water-meadow south of the road. Brother Corvin rowed fire out across it to the sunk dead so they would not lie in the dark. Some of his lamps are still out on the water."},
+	# --- r37 south ---
+	"downs": {"name": "The Southern Downs", "line": "sheep country, and nobody to count them",
+		"text": "Open chalk south of the Waiting Field, between the oak and the well. The shepherds' huts still stand; the shepherds walked north in the winter of the Night and did not come back. A few of the flock did, and they are not sheep now."},
+	"oak": {"name": "The Grandmother Oak", "line": "the first fire was carried out of it",
+		"text": "A dead oak the width of a barn, hollow to the sky, older than the Order or the henge. A stair of timber winds up inside it, put there by the Rooted, who climbed to sing to stars they did not trust. Something keeps its roots."},
+	"well": {"name": "The Well of Echoes", "line": "it answers with what you said last",
+		"text": "A sinkhole forty paces across and a good deal deeper, a stream pouring in over its east rim. The shepherds cut a ledge down the wall to the pool and a cave beyond it. What answers when you call is not an echo."},
 }
 
 ## Names for landmarks, graves and waystones (labels for builders, tests and docs).

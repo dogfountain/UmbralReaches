@@ -442,6 +442,16 @@ static func outpost(parent: Node, space: PhysicsDirectSpaceState3D, c: Vector2, 
 			k.box("lore_beam", bp + bb * Vector3(0, 0.18, 1.28), Vector3(0.84, 0.34, 0.05), bb, false, 0.5)
 			var post: Vector3 = g.call(-0.6, 2.4)
 			k.box("lore_beam", post + Vector3.UP * 0.55, Vector3(0.12, 1.1, 0.12), Basis(Vector3.BACK, 0.12), false, 0.55)
+		# --- r37 south ---
+		"downs":
+			# a hurdle leaned on two stakes, a feed-sack and a coil of rope: a shepherd's camp
+			var dp: Vector3 = g.call(-2.2, 0.4)
+			var db := Basis(Vector3.UP, 0.3)
+			k.box("lore_beam", dp + db * Vector3(0, 0.55, 0), Vector3(1.6, 0.9, 0.05), db * Basis(Vector3.RIGHT, -0.18), false, 0.6)
+			for s6: float in [-0.7, 0.7]:
+				k.box("lore_beam", dp + db * Vector3(s6, 0.4, 0.2), Vector3(0.06, 0.8, 0.06), db, false, 0.6)
+			k.box("lore_plaster", dp + db * Vector3(1.3, 0.14, 0.7), Vector3(0.5, 0.3, 0.35), db, false, 0.7)
+			k.box("lore_beam", dp + db * Vector3(-1.2, 0.06, 0.9), Vector3(0.5, 0.1, 0.5), db * Basis(Vector3.UP, 0.7), false, 0.5)
 	_commit(k, h, "OutpostBody")
 	var flame := Vfx.emitter(Color(1.0, 0.55, 0.2), {"count": 16, "life": 0.7, "speed": Vector2(0.3, 0.9), "size": 0.15, "gravity": 1.4, "radius": 0.13, "spread": 12.0, "dir": Vector3.UP, "scale_var": 0.5})
 	if flame:

@@ -346,6 +346,20 @@ const CAST := {
 			],
 			"watch": [{"go": "cadoc_w1"}, {"act": "idle", "at": "cadoc_w2", "face": "@out_cadoc", "t": [10.0, 14.0]}, {"go": "cadoc_w3"}, {"go": "cadoc_fire"}],
 		}},
+	# --- r37 south: the shepherd who stayed, camped at the fold on the southern downs
+	"dunstan": {"name": "Dunstan", "title": "Dunstan Pike, the shepherd who stayed", "when": "", "camp": "outpost",
+		"rig": {"seed": 5919, "sex": "m", "age": "old", "garment": "coat", "hat": "brim", "hair": "wild", "beard": "short",
+			"r": "crook", "girth": 1.04, "cloth": Color(0.34, 0.3, 0.24), "cloth2": Color(0.28, 0.26, 0.22),
+			"hair_c": Color(0.7, 0.66, 0.58), "skin": Color(0.78, 0.58, 0.44), "leather": Color(0.38, 0.24, 0.12)},
+		"home": "dunstan_fire", "speed": 0.85,
+		"schedule": {"dusk": "camp", "work": "count", "midnight": "camp", "late": "count"},
+		"routines": {
+			"camp": [
+				{"act": "warm", "at": "dunstan_fire", "face": "@fire_dunstan", "t": [8.0, 12.0]},
+				{"act": "sit", "at": "dunstan_seat", "face": "@fire_dunstan", "t": [18.0, 26.0], "seat": 0.36},
+			],
+			"count": [{"go": "dunstan_w1"}, {"act": "idle", "at": "dunstan_w2", "face": "@out_dunstan", "t": [10.0, 16.0]}, {"go": "dunstan_w3"}, {"go": "dunstan_fire"}],
+		}},
 }
 
 ## r34: the outposts of the doubled world (docs/r34/layout.md SLOTS): where each new giver camps.
@@ -360,6 +374,8 @@ const OUTPOSTS := {
 	"linnet": {"near": [Vector2(-106.0, 112.0), Vector2(-96.0, 112.0)], "region": "orchard", "style": "orchard", "look": Vector2(-86.0, 122.0)},
 	"agathe": {"near": [Vector2(-10.0, 108.0), Vector2(15.0, 105.0)], "region": "necropolis", "style": "necropolis", "look": Vector2(0.0, -104.0)},
 	"cadoc": {"near": [Vector2(111.0, 97.0), Vector2(95.0, 100.0), Vector2(130.0, 95.0)], "region": "mere", "style": "mere", "look": Vector2(84.0, 112.0)},
+	# --- r37 south ---
+	"dunstan": {"near": [Vector2(-14.0, 200.0), Vector2(26.0, 200.0), Vector2(-4.0, 194.0), Vector2(-24.0, 206.0)], "region": "downs", "style": "downs", "look": Vector2(0.0, 150.0)},
 }
 
 ## What returns. `when` is checked on load and after every event; once true it stays (saved).

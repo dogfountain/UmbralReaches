@@ -38,6 +38,9 @@ const REGION_POOL := {
 	"moor": ["gaunt", "gaunt", "wretch", "crawler", "husk"], "orchard": ["burrower", "mite", "crawler", "burrower", "wretch"],
 	"necropolis": ["pilgrim", "pilgrim", "ossuant", "chanter", "quiller"], "mere": ["husk", "spitter", "wretch", "spitter", "ossuant"],
 	"holds": ["crawler", "wretch"],
+	# --- r37 south ---
+	"downs": ["gaunt", "gaunt", "wretch", "crawler", "leaper"], "oak": ["burrower", "mite", "crawler", "wretch"],
+	"well": ["spitter", "husk", "wretch", "spitter", "ossuant"],
 }
 
 ## r34: a region's own look for some kinds (Variants.REGIONAL): what the quarry and the mere make of
