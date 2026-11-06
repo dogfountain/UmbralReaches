@@ -207,7 +207,7 @@ const QUESTS := {
 		"offer": true, "avail": "qd:thorn_door",
 		"text": "The Thornwarden roots in a heart. Cut it out and the wood forgets it was ever kept. I won't say do it. I won't say don't. Bring me a thorn off it, after. I'll bury it face down.",
 		"steps": [
-			{"kind": "cond", "cond": "boss:thornwarden", "at": Vector2(-72.0, -18.0), "label": "The Thornwarden",
+			{"kind": "cond", "cond": "boss:thornwarden", "at": Vector2(-72.0, -18.0), "label": "The Thornwarden", "past": "The Thorn Heart is already cut.",
 				"text": "Cut the Thorn Heart from the Thornwarden in the Ring"},
 			{"kind": "turnin", "who": "wyck", "text": "Bring a thorn to Wyck"},
 		],
@@ -218,7 +218,7 @@ const QUESTS := {
 		"offer": true,
 		"text": "Tollmen. Ride with the war bands, ring a bell, and the whole wood comes running. One of 'em had my brother's axe. Put two of 'em down before they ring. Then I'll drink easier.",
 		"steps": [
-			{"kind": "slay", "of": 2, "kinds": ["tollman"], "label": "Tollmen", "at": Vector2(-92.0, -30.0),
+			{"kind": "slay", "of": 2, "kinds": ["tollman"], "region": "thornwood,henge", "label": "Tollmen", "at": Vector2(-92.0, -30.0),
 				"text": "Put down tollmen riding with the war bands ({n}/{of})"},
 			{"kind": "turnin", "who": "hesk", "text": "Tell Hesk the tolls are unpaid"},
 		],
@@ -230,7 +230,7 @@ const QUESTS := {
 		"offer": true, "avail": "met:abel",
 		"text": "The bone-walkers in the fen are the lay brothers, still counting. They carry their tally-beads on them. Bring me the beads and the count stops. I'll lay them flat. The beads, I mean. Them too.",
 		"steps": [
-			{"kind": "collect", "of": 4, "chance": 0.75, "kinds": ["ossuant"], "label": "Tally-beads", "at": Vector2(96.0, -30.0),
+			{"kind": "collect", "of": 4, "chance": 0.75, "kinds": ["ossuant"], "region": "fen,barrows", "label": "Tally-beads", "at": Vector2(96.0, -30.0),
 				"text": "Take tally-beads from the bone-walkers of the fen and the Barrow Field ({n}/{of})"},
 			{"kind": "turnin", "who": "abel", "text": "Bring the tally-beads to Abel"},
 		],
@@ -467,7 +467,7 @@ const QUESTS := {
 		"offer": true, "avail": "qd:founder_moulds", "raid": "ascended_warden",
 		"text": "The rim bells fell when the Stair broke. Ring them where they lie, the way she taught: the great bell first, Homecoming, then Patience, then Hope. Bottom to top. Then take the tongue I've cast in her mould, out of the furnace, to her son at the Keg. He'll know what it's for. It's for the door.",
 		"steps": [
-			{"kind": "cond", "cond": "secret:solved:bells", "at": Vector2(-37.6, -27.0), "label": "The Fallen Bells",
+			{"kind": "cond", "cond": "secret:solved:bells", "at": Vector2(-37.6, -27.0), "label": "The Fallen Bells", "past": "The fallen bells are already rung.",
 				"text": "Ring the fallen bells by the Rift in the Founder's order: Homecoming, Patience, Hope"},
 			{"kind": "find", "text": "Take the bell-tongue Elspeth cast, from the Founder's furnace"},
 			{"kind": "turnin", "who": "brannoc", "text": "Bring the warm tongue to Brannoc Bellwright at the Kindled Keg"},
@@ -649,7 +649,7 @@ const QUESTS := {
 		"offer": true, "avail": "boss:thornwarden,boss:bone_abbot",
 		"text": "Mother cast seven for the road up. One for each country the pilgrims crossed. When the sky opened they went quiet, top first. The door at the summit hangs from a bell; it won't open to a heart and a crown alone. It opens to a peal. Find me four. Seven, if you've the legs.",
 		"steps": [
-			{"kind": "cond", "cond": "bells:4", "text": "Answer for the Founder's bells ({bells} of 7; four wake the door)"},
+			{"kind": "cond", "cond": "bells:4", "past": "Four of the Founder's bells are already answered.", "text": "Answer for the Founder's bells ({bells} of 7; four wake the door)"},
 			{"kind": "turnin", "who": "brannoc", "text": "Tell Brannoc the door will hear a peal"},
 		],
 		"reward": {"ash": 30, "items": {"ember_shard": 2}, "spell": "peal"},

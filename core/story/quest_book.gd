@@ -112,8 +112,8 @@ static func start(id: String) -> bool:
 		d["c"] = c
 	(st().quests as Dictionary)[id] = d
 	_touch(d)
-	_toast(Chains.step_text(id, 0, d))         # the banner (ui/quest_log.gd) names the task
 	_changed(id)
+	_announce(id, 0, d)                        # the banner (ui/quest_log.gd) names the task
 	return true
 
 
@@ -133,8 +133,22 @@ static func advance(id: String, to := -1) -> void:
 	d["n"] = 0
 	d.erase("left")
 	_touch(d)
-	_toast(String(Chains.step_text(id, nx, d)))
 	_changed(id)
+	_announce(id, nx, d)
+
+
+## Toast the step just landed on. A world condition that is already true (the heart already cut, the
+## bells already rung) is spoken in the past from the step's `past`, then the task moves on at once.
+static func _announce(id: String, s: int, d: Dictionary) -> void:
+	var stp := Chains.step(id, s)
+	if String(stp.get("kind", "")) == "cond" and stp.has("past"):
+		var ws := {"flags": Travel.story.get("flags", {}), "kindled": 0, "seals": Travel.seals_broken,
+			"bosses": Travel.bosses_slain, "items": Travel.items}
+		if QuestDB.test(String(stp.get("cond", "")), ws):
+			_toast(String(stp.past))
+			advance(id, s + 1)
+			return
+	_toast(String(Chains.step_text(id, s, d)))
 
 
 static func complete(id: String, choice := -1) -> void:
