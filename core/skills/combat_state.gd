@@ -85,6 +85,7 @@ var procs := 0                  ## tests
 
 var _recs := {}                 ## instance id -> {"node": Node, "st": {id -> rec}}
 var _surge_icd := 0.0
+var _scar_said := false          ## the word "scar" shows once a night
 var _target_t := 0.0
 
 
@@ -120,6 +121,9 @@ func apply(node: Node, id: StringName, stacks := 1, dur := -1.0) -> int:
 	if r.is_empty():
 		r = {"id": id, "stacks": 0, "left": full, "dur": full, "tick": float(d.get("tick", 0.0))}
 		st[id] = r
+		if id == &"ember_scar" and node is Node3D and not _scar_said:
+			_scar_said = true
+			HitText.pop((node as Node3D).global_position + Vector3.UP * (float(node.get("hp_bar_y")) + 0.9), "scar", Color(2.4, 1.0, 0.4))
 	r["stacks"] = mini(int(d["max"]), int(r["stacks"]) + maxi(stacks, 1))
 	r["left"] = full
 	r["dur"] = full
@@ -257,7 +261,9 @@ func deal(node: Node, dmg: float, school: StringName, from: Node = null, opts :=
 	if at == Vector3.INF and node is Node3D:
 		var hb: Variant = node.get("hp_bar_y")
 		at = (node as Node3D).global_position + Vector3.UP * (float(hb) + 0.35 if hb != null else 1.6)
+	HitText.hush = bool(opts.get("dot", false))
 	node.take_hit(amount, from)
+	HitText.hush = false
 	var dealt := amount
 	if before is float and is_instance_valid(node):
 		var after: Variant = node.get("hp")

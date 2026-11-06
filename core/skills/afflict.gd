@@ -133,6 +133,7 @@ static func _freeze(r: Dictionary) -> void:
 	Vfx.burst(en.global_position + Vector3.UP, RIME, {"count": 30, "life": 0.5, "speed": Vector2(1.5, 4.0), "size": 0.05, "gravity": -5.0, "trail": 0.05})
 	StaffSfx.play("chill_hit", en.global_position, 0.0, 0.7)
 	HitText.pop(en.global_position + Vector3.UP * (h + 0.5), "frozen", Color(0.7, 0.9, 1.0))
+	Hints.once(&"frozen_shatter", "Frozen: the Lance, the Nova and a well's Event Horizon shatter the ice for double. The staff does not.")
 
 
 static func is_frozen(e: Node) -> bool:
@@ -240,7 +241,11 @@ func _physics_process(delta: float) -> void:
 			if float(r.burn_tick) <= 0.0:
 				r.burn_tick = TICK
 				r.burn_n = int(r.burn_n) + 1
+				if int(r.burn_n) == 1:
+					HitText.pop((e as Node3D).global_position + Vector3.UP * (float(e.get("hp_bar_y")) + 0.35), "burning", Color(2.4, 1.0, 0.4))
+				HitText.hush = true
 				e.call("take_hit", float(r.burn_dmg) * power, null)
+				HitText.hush = false
 				if rosary and int(r.burn_n) % 2 == 0 and _alive(e):
 					e.call("add_mark", 1)
 			if float(r.burn) <= 0.0:

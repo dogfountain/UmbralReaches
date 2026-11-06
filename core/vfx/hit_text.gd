@@ -6,11 +6,15 @@ const LIFE := 0.7
 const FONT := preload("res://ui/fonts/Cinzel.ttf")
 
 static var _pool: Array[HitText] = []
+## Set around a damage-over-time tick: the health steps down, the number stays quiet.
+static var hush := false
 
 var _busy := false
 
 
 static func pop(at: Vector3, text: String, col: Color, big := false) -> void:
+	if hush and not text.is_empty() and text.unicode_at(0) >= 48 and text.unicode_at(0) <= 57:
+		return
 	var tree := Engine.get_main_loop() as SceneTree
 	if tree == null or tree.current_scene == null:
 		return
