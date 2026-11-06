@@ -2,6 +2,9 @@ class_name Player
 extends CharacterBody3D
 ## Third-person wanderer: movement, orbit camera, lantern, Gloom, interaction, autopilot (demo/tests).
 
+## Components (core/player/player_*.gd): the state stays on Player, the logic lives here.
+var autopilot_ctl: PlayerAutopilot = null
+
 @export_group("Movement")
 @export var walk_speed := 4.5
 @export var sprint_speed := 7.5
@@ -65,9 +68,6 @@ var _ash_banked := -1                   ## grave ash held at the last fire; abov
 var _ash_mound: Node3D
 var autopilot := false
 var hollow_count := 0
-
-var _waypoints: Array[Marker3D] = []
-var _wp := 0
 var _wait := 0.0
 var _waiting := false
 var _yaw := 0.0
@@ -220,6 +220,7 @@ var riding: Node3D = null
 
 
 func _ready() -> void:
+
 	add_to_group(Groups.PLAYER)
 	collision_layer = Layers.PLAYER
 	collision_mask = Layers.WORLD | Layers.PROPS
@@ -407,7 +408,7 @@ func _physics_process(delta: float) -> void:
 			wish = _debug_wish
 			sprint = _debug_sprint
 		elif autopilot:
-			var cmd := _autopilot(delta)
+			var cmd := _ap()._autopilot(delta)
 			wish = cmd[0]
 			sprint = cmd[1]
 		else:
@@ -727,13 +728,6 @@ func debug_drive(wish: Vector3, sprint := false) -> void:
 
 func cast_impulse() -> void:
 	_shake_want = maxf(_shake_want, deg_to_rad(0.15))
-
-
-func start_autopilot(markers: Array[Marker3D]) -> void:
-	_waypoints = markers
-	_wp = 0
-	_waiting = false
-	autopilot = true
 
 
 # --- Camera ------------------------------------------------------------------
@@ -1924,46 +1918,6 @@ func _look_target() -> Vector3:
 	if hit.is_empty():
 		return far
 	return hit.position
-
-
-# --- Autopilot (demo recording and smoke tests) -----------------------------
-# Each Marker3D may carry metadata: wait (s), kindle (bool), sprint (bool), pitch (rad), shot (bool).
-
-func _autopilot(delta: float) -> Array:
-	if _wp >= _waypoints.size():
-		if autopilot:
-			autopilot = false
-			Events.autopilot_finished.emit()
-		return [Vector3.ZERO, false]
-	var m := _waypoints[_wp]
-	_pitch = lerpf(_pitch, float(m.get_meta("pitch", -0.12)), 1.0 - exp(-1.5 * delta))
-	if _waiting:
-		if m.get_meta("kindle", false) and _interact_target != null:
-			_try_interact()   # keep trying while waiting: arrival can land a few cm outside interact range
-		if m.has_meta("yaw"):
-			_yaw = lerp_angle(_yaw, float(m.get_meta("yaw")), 1.0 - exp(-1.5 * delta))
-		_wait -= delta
-		if _wait <= 0.0:
-			_waiting = false
-			_wp += 1
-		return [Vector3.ZERO, false]
-	var to := m.global_position - global_position
-	to.y = 0.0
-	if to.length() < 0.6:
-		Events.autopilot_reached.emit(m.name)
-		if m.get_meta("kindle", false):
-			_try_interact()
-		var w := float(m.get_meta("wait", 0.0))
-		if w > 0.0:
-			_waiting = true
-			_wait = w
-		else:
-			_wp += 1
-		return [Vector3.ZERO, false]
-	var dir := to.normalized()
-	_yaw = lerp_angle(_yaw, atan2(-dir.x, -dir.z), 1.0 - exp(-2.0 * delta))
-	return [dir, bool(m.get_meta("sprint", false))]
-
 
 
 # --- traversal (r28): ledge hang + climb, vault, wall kick, steep slopes, beams, dodge roll ---------
@@ -3296,3 +3250,14 @@ func _tick_mantle(delta: float) -> void:
 		var dir := Vector3(_mantle_to.x - _mantle_from.x, 0.0, _mantle_to.z - _mantle_from.z).normalized()
 		velocity = dir * walk_speed
 		_air_jumps_left = air_jumps
+
+
+# --- component forwarding (public surface kept on Player) -----------------------------------
+
+func _ap() -> PlayerAutopilot:
+	if autopilot_ctl == null:
+		autopilot_ctl = PlayerAutopilot.new(self)
+		add_child(autopilot_ctl)
+	return autopilot_ctl
+
+func start_autopilot(markers: Array[Marker3D]) -> void: _ap().start_autopilot(markers)
