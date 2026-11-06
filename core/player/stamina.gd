@@ -80,11 +80,12 @@ func drain(amount: float) -> void:
 			HitText.pop(at, "winded", Color(0.75, 0.8, 0.95))
 
 
-func refund(amount: float) -> void:
+## `clears_winded`: a perfect dodge or a parry catches the breath back, so the stumble goes with it.
+func refund(amount: float, clears_winded := false) -> void:
 	breath = minf(breath_max, breath + amount)
 	_flash = 1.0
 	_flash_good = true
-	if winded and breath >= WINDED_UNTIL:
+	if winded and (clears_winded or breath >= WINDED_UNTIL):
 		winded = false
 
 

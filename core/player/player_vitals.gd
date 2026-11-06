@@ -21,6 +21,7 @@ var _gloom_emit_t := 0.0
 var _wounds_emit := 0.0
 var _wounds_emit_t := 0.0
 var _stuck_from := Vector3.INF
+var _grace_amount := 0.0              ## the wound the HURT_GRACE window is already holding
 
 
 func _init(p: Player) -> void:
@@ -238,13 +239,23 @@ func note_shade_passed() -> void:
 func take_wound(amount: float, from_pos := Vector3.INF) -> void:
 	if player._hollowing:
 		return
-	if Time.get_ticks_msec() * 0.001 < player._hurt_grace_until:
-		return                                   # two strikes landing together count once
-	player._hurt_grace_until = Time.get_ticks_msec() * 0.001 + Player.HURT_GRACE
+	var now := Time.get_ticks_msec() * 0.001
+	var inside := now < player._hurt_grace_until
+	if inside and amount <= _grace_amount:
+		return                                   # two strikes landing together count once: the heavier one
+	if not inside:
+		_grace_amount = 0.0
+		player._hurt_grace_until = now + Player.HURT_GRACE
 	if player._arts != null:
-		amount = player._arts.absorb(amount, from_pos)   # r31: a held guard turns most of a blow from the front
+		amount = player._arts.absorb(amount, from_pos)   # a held guard turns most of a blow from the front
+	var whole := amount
+	if inside:
+		amount = maxf(0.0, amount - _grace_amount)       # the heavier blow replaces the lighter: only the difference is new
+	_grace_amount = maxf(_grace_amount, whole)
+	if amount <= 0.0:
+		return
 	if player._book != null:
-		player._book.on_hurt(amount)                    # r33: a hard blow interrupts a cast, a light one pushes it back
+		player._book.on_hurt(whole)                    # r33: a hard blow interrupts a cast, a light one pushes it back
 	player.camera_ctl.kick(clampf(amount / 30.0, 0.3, 1.0))
 	Sfx.play(Player.SFX_HURT, player.global_position + Vector3.UP, -3.0)
 	Events.player_hurt.emit(amount, from_pos)
@@ -413,7 +424,7 @@ func _perfect_dodge(attacker: Node) -> void:
 	player._riposte_cd = now + 1.5
 	player._riposte_ready = true
 	if player._stam != null:
-		player._stam.refund(Stamina.PERFECT_REFUND)
+		player._stam.refund(Stamina.PERFECT_REFUND, true)
 	var at := player.global_position + Vector3.UP * 2.0
 	HitText.pop(at, "PERFECT DODGE", Color(1.5, 1.2, 0.6), true)
 	Hints.once(&"perfect_dodge", "PERFECT DODGE: roll the instant a blow lands. Breath back, and your next strike or bolt is a riposte.")

@@ -378,6 +378,7 @@ func _physics_process(delta: float) -> void:
 	camera_ctl._spring3(true, 11.0, delta)                 # critically damped: no velocity kick on a step
 	_shade_lock = maxf(0.0, _shade_lock - delta)
 	_evade_t = maxf(0.0, _evade_t - delta)
+	evasion._tick_unseen()
 	_combat_t = maxf(0.0, _combat_t - delta)
 	if _mantle_t >= 0.0:
 		traversal._tick_mantle(delta)
