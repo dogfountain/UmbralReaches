@@ -169,8 +169,26 @@ func _process(delta: float) -> void:
 	_pick_target(delta)
 	_tick_boss(delta)
 	_tick_encounter_layout()
-	if _alpha > 0.0:
+	if _alpha > 0.0 and _plate_dirty():
 		queue_redraw()
+
+
+var _sig: Array = []
+
+## A settled plate waits: it redraws when a value on it changes (health, gloom, level, window, the eye's
+## blink), and every frame while something on it is moving (a pulse, a target, a buff timer, a cast,
+## a number rising, the fade).
+func _plate_dirty() -> bool:
+	var gr := float(_p("gloom", 0.0)) / maxf(float(_p("gloom_max", 100.0)), 0.001)
+	var sig: Array = [snappedf(_alpha, 0.001), _p("wounds", 0.0), _p("wounds_max", 0.0), _p("gloom", 0.0),
+		_p("gloom_max", 100.0), _player_level(), _vs(), fposmod(_t, 5.3) > 0.12, HudPrefs.gloom_known()]
+	var moving := _fight > 0.0 or gr > 0.75 or not _buffs.is_empty() or not _portrait_pops.is_empty() \
+		or _buff_note_t > 0.0 or _target != null or _boss != null or _t_alpha > 0.0 or _b_alpha > 0.0 \
+		or _soft_t > 0.0 or _alpha < 1.0 or not _cast_state().is_empty()
+	if moving or sig != _sig:
+		_sig = sig
+		return true
+	return false
 
 
 # --- data ------------------------------------------------------------------------------------------
@@ -1109,6 +1127,25 @@ func _emblem(c: Vector2, rank: String, col: Color, a: float) -> void:
 ## The wanderer's own cast bar, over the hotbar: a charging Lance, a heavy staff draw, or anything
 ## the player reports through cast_info().
 func _draw_player_cast() -> void:
+	var cs := _cast_state()
+	if cs.is_empty():
+		return
+	var name_t := String(cs.name)
+	var t := float(cs.t)
+	var col: Color = cs.col
+	var full := bool(cs.full)
+	var w := 300.0
+	var r := Rect2(Vector2(_vs().x * 0.5 - w * 0.5, _vs().y - 200.0), Vector2(w, 16))
+	draw_rect(r.grow(3.0), Color(PLATE, 0.9))
+	draw_rect(r, Color(0.02, 0.015, 0.02, 0.9))
+	var c := Color(minf(col.r, 1.0), minf(col.g, 1.0), minf(col.b, 1.0))
+	draw_rect(Rect2(r.position, Vector2(r.size.x * clampf(t, 0.0, 1.0), r.size.y)), c.lerp(Color(1, 0.95, 0.85), 0.5 if full else 0.0))
+	draw_rect(r.grow(3.0), Color(GOLD if full else RIM, 0.95), false, 1.5)
+	_text(r.position + Vector2(0, 13), name_t + ("  ·  READY" if full else ""), 13, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
+
+
+## What the wanderer's own cast bar shows right now: {name, t, col, full}, or {} when there is no cast.
+func _cast_state() -> Dictionary:
 	var name_t := ""
 	var t := -1.0
 	var col := LILAC
@@ -1152,12 +1189,5 @@ func _draw_player_cast() -> void:
 		t = 1.0
 		col = Color(0.85, 0.25, 0.2)
 	if t < 0.0:
-		return
-	var w := 300.0
-	var r := Rect2(Vector2(_vs().x * 0.5 - w * 0.5, _vs().y - 200.0), Vector2(w, 16))
-	draw_rect(r.grow(3.0), Color(PLATE, 0.9))
-	draw_rect(r, Color(0.02, 0.015, 0.02, 0.9))
-	var c := Color(minf(col.r, 1.0), minf(col.g, 1.0), minf(col.b, 1.0))
-	draw_rect(Rect2(r.position, Vector2(r.size.x * clampf(t, 0.0, 1.0), r.size.y)), c.lerp(Color(1, 0.95, 0.85), 0.5 if full else 0.0))
-	draw_rect(r.grow(3.0), Color(GOLD if full else RIM, 0.95), false, 1.5)
-	_text(r.position + Vector2(0, 13), name_t + ("  ·  READY" if full else ""), 13, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
+		return {}
+	return {"name": name_t, "t": t, "col": col, "full": full}

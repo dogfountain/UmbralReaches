@@ -1424,7 +1424,7 @@ func _show() -> void:
 				_d_kind.text = "RAISE TO %s  ·  %s" % [["", "I", "II", "III", "IV"][t + 1], String(nx.name).to_upper()]
 				_d_text.text = String(nx.text)
 				# the live sanctuary and the live bar, plus only this tier's own step up
-				var live_reach := HearthDB.reach(hh.call("hs"), float(DB.live.get("reach_add", 0.0)))
+				var live_reach := float(HearthDB.TIERS[t].reach) + float(DB.live.get("reach_add", 0.0))
 				var live_gloom := float(DB.live.get("gloom_add", 0.0))
 				_d_now.text = "Kindled fires reach +%.1f m (now +%.1f); Gloom held +%d (now +%d). Needs %s." % [live_reach + float(nx.reach) - float(HearthDB.TIERS[t].reach), live_reach, roundi(live_gloom + float(nx.gloom) - float(HearthDB.TIERS[t].gloom)), roundi(live_gloom), String(nx.need_text)]
 				_d_lore.text = String(nx.lore)

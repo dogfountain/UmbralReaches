@@ -316,13 +316,13 @@ func _process(delta: float) -> void:
 		return
 	_bag_restore_t = 0.5
 	# Continue: lay each saved bag back once the night has a wanderer and a gear service to lay it
-	var gear := get_tree().get_first_node_in_group("gear")
+	var gear: Variant = get_tree().get_first_node_in_group("gear")        # gear_runtime.gd (no class_name)
 	if gear == null or get_tree().get_first_node_in_group(Groups.PLAYER) == null or get_tree().current_scene == null:
 		return
 	var saved := loot_bags
 	loot_bags = []
 	for r: Variant in saved:
-		var b: Variant = gear.call("drop_bag", (r as Dictionary).entries, (r as Dictionary).pos - Vector3(0, 0.05, 0), String((r as Dictionary).title))
+		var b: Variant = gear.drop_bag((r as Dictionary).entries, (r as Dictionary).pos - Vector3(0, 0.05, 0), String((r as Dictionary).title))
 		if b is Node:
 			(b as Node).set("kept", true)
 			loot_bags.append(r)
