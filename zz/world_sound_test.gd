@@ -104,7 +104,7 @@ func _run() -> void:
 	check(_verb("SFX") != null and _verb("Ambience") != null, "reverbs on SFX and Ambience")
 	await _put(Vector3(-30, 0, 66))
 	await _secs(2.0)
-	check(not _verb_on("SFX") and amb.muffle < 0.01, "outdoors: no room, no muffle")
+	check(_verb("SFX").wet < 0.08 and amb.muffle < 0.01, "outdoors: only a thin open-air tail, no muffle")
 
 	# ---- the soundscape per region (static mix) and the rooms
 	var where := {"village": Vector3(6, 0.5, 40), "heath": Vector3(-60, 0.5, 70), "wood": Vector3(-85, 4, -40), "fen": Vector3(75, -1, -30),
@@ -123,6 +123,13 @@ func _run() -> void:
 	check(AmbienceScript.zone_at(Vector3(0, -8, -50), "", "crossing") == "rift", "down in the rift is a room")
 	check(AmbienceScript.zone_at(Vector3(0, 6, -50), "", "crossing") == "", "up on the Crossing is open air")
 	check(AmbienceScript.zone_at(Vector3(20, 2, -60), "ossuary", "ossuary") == "ossuary", "the Ossuary is a room")
+	var g_open: Dictionary = AmbienceScript.room_goal("", {"heath": 1.0})
+	var g_wood: Dictionary = AmbienceScript.room_goal("", {"wood": 1.0})
+	var g_cliff: Dictionary = AmbienceScript.room_goal("", {"crossing": 1.0})
+	var g_mix: Dictionary = AmbienceScript.room_goal("", {"heath": 0.5, "wood": 0.5})
+	check(float(g_open.wet) < float(g_wood.wet) and float(g_wood.wet) < float(g_cliff.wet), "open land, wood and cliff each have their own reverb")
+	check(float(g_mix.wet) > float(g_open.wet) and float(g_mix.wet) < float(g_wood.wet), "and a blend of regions blends them")
+	check(float(AmbienceScript.room_goal("ossuary", {"wood": 1.0}).wet) > 0.2, "a room overrides the place")
 
 	# ---- walking from the meadow into the Thornwood: a gradual crossfade
 	await _put(Vector3(8, 0, 42))
@@ -163,7 +170,7 @@ func _run() -> void:
 	check(float(amb.bed_gain.get("hearth", 0.0)) > 0.8, "the hearth's room tone (%.2f)" % float(amb.bed_gain.get("hearth", 0.0)))
 	await _put(Vector3(30, 0, 44))
 	await _secs(3.0)
-	check(not _verb_on("SFX") and amb.muffle < 0.01, "outside again: no room, no muffle")
+	check(_verb("SFX").wet < 0.08 and amb.muffle < 0.01, "outside again: no room, no muffle")
 
 	# ---- the Ossuary
 	var area := main.get_node_or_null("Area_ossuary") as Node3D

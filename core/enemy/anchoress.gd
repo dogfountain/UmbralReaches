@@ -293,7 +293,7 @@ func _swing(turn: float) -> void:
 	if turn == 0.0:
 		_sig += 1 if phase == 1 else 0
 	BossKit.zone(get_parent(), global_position, 1.3, 30.0, {"by": self, "rect": Vector2(LANE_W, LANE_LEN), "yaw": yaw, "color": GLOW})
-	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP * 2.0, 1.0, 0.6)
+	say("windup", global_position + Vector3.UP * 2.0, 1.0, 0.6)
 
 
 func _double_swing() -> void:
@@ -444,3 +444,7 @@ func _under_lands() -> void:
 		p.take_wound(UNDER_GLOOM * 0.6 * dmg_mult, global_position)
 	else:
 		p.take_wound(UNDER_GLOOM * dmg_mult, global_position)
+
+
+func voice_family() -> String:
+	return "anchoress"

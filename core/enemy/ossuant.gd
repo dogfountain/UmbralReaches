@@ -40,7 +40,7 @@ func _hit_sound() -> String:
 
 
 func voice_family() -> String:
-	return "rattle"
+	return "ossuant"
 
 
 func _ichor() -> Color:

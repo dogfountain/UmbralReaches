@@ -68,6 +68,8 @@ static func _fire(s: AudioStream, at: Vector3, volume_db: float, pitch: float, j
 		return
 	p.stream = s
 	p.volume_db = db
+	if s.resource_path.begins_with("res://art/audio/kit/"):
+		pitch = pow(maxf(pitch, 0.1), 0.4)        # the kit's takes are rendered with their weight: a call site's 0.5 only darkens them a little
 	p.pitch_scale = maxf(pitch * randf_range(1.0 - jitter, 1.0 + jitter), 0.05)
 	p.global_position = at
 	p.play()
@@ -101,6 +103,10 @@ static func _voice(host: Node, now: int) -> AudioStreamPlayer3D:
 		p.unit_size = 4.0
 		p.max_db = 6.0                          # a toll or a chant may sit a decibel over a roar (+3 asked, +4/5 allowed)
 		p.bus = &"SFX"
+		p.attenuation_filter_cutoff_hz = 3800.0     # the far ones are duller: a distance low-pass
+		p.attenuation_filter_db = -18.0
+		p.panning_strength = 1.15                   # a little wider than flat, so a side reads in headphones
+		p.doppler_tracking = AudioStreamPlayer3D.DOPPLER_TRACKING_DISABLED
 		host.add_child(p)
 		_voices.append(p)
 		_started.append(now)
@@ -133,6 +139,7 @@ static func release() -> void:
 	_next = 0
 	_streams.clear()
 	_recent.clear()
+	EnemyAudio.release()
 
 
 static var _names := {}

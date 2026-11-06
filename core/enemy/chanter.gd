@@ -49,7 +49,7 @@ func _init() -> void:
 
 
 func voice_family() -> String:
-	return "whisper"
+	return "chanter"
 
 
 func _build() -> void:
@@ -134,7 +134,7 @@ func _on_state(next: int) -> void:
 			_rig.call("telegraph", SIGIL_CAST + SIGIL_FALL)
 		_glint = 1.0
 		begin_cast("Grave Sigil", SIGIL_CAST, true)          # r33: a cast bar; any blow breaks it (and the sigil fades)
-		Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP * 1.5, 0.0, _voice_pitch())
+		say("windup", global_position + Vector3.UP * 1.5, 0.0, _voice_pitch())
 		if _p:
 			var at := _p.global_position
 			var space := get_world_3d().direct_space_state
@@ -198,7 +198,7 @@ func _start_slip() -> bool:
 		if _rig and _rig.has_method("telegraph"):
 			_rig.call("telegraph", SLIP_TELL)
 		SpellFx.tear(_slip_to, 2.0, SLIP_TELL + 0.3)
-		Sfx.play_stream(Synth.voice(voice_family(), "flee"), global_position + Vector3.UP, -6.0, _voice_pitch())
+		say("flee", global_position + Vector3.UP, -6.0, _voice_pitch())
 		return true
 	_slip_cd = 2.0
 	return false

@@ -50,7 +50,7 @@ func _init() -> void:
 
 
 func voice_family() -> String:
-	return "bellow"
+	return "husk"
 
 
 func _build() -> void:
@@ -92,7 +92,7 @@ func _start_slam() -> void:
 	if _rig and _rig.has_method("telegraph"):
 		_rig.call("telegraph", slam_windup)
 	_glint = 1.0
-	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP, 1.0, _voice_pitch() * 0.85)
+	say("windup", global_position + Vector3.UP, 1.0, _voice_pitch() * 0.85)
 	var at := global_position + _face_dir * 1.5
 	_slam_at = at
 	AttackKit.zone(self, at, slam_windup, strike_gloom * 1.15, {"radius": SLAM_R * maxf(_rig.scale.x if _rig else 1.0, 1.0), "fx": "slam", "color": Color(2.6, 0.5, 0.1)})
@@ -110,7 +110,7 @@ func _start_charge(d: float) -> void:
 	if _rig and _rig.has_method("telegraph"):
 		_rig.call("telegraph", charge_windup)
 	_glint = 1.0
-	Sfx.play_stream(Synth.voice(voice_family(), "call"), global_position + Vector3.UP, -4.0, _voice_pitch() * 1.1)
+	say("alert", global_position + Vector3.UP, -4.0, _voice_pitch() * 1.1)
 	# the lane shows for the windup and stays (full) while it runs
 	_lane = SpellFx.danger(global_position, charge_windup, {"rect": Vector2(0.85, _charge_len * 0.5), "yaw": atan2(-_charge_dir.x, -_charge_dir.z), "color": Color(2.6, 0.62, 0.1), "hold": _charge_len / CHARGE_SPEED + 0.1})
 	if _lane:

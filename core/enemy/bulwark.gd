@@ -120,3 +120,11 @@ func _break_shield(toward: Vector3) -> void:
 	stagger()
 
 const WOODCHIPS := Color(0.36, 0.26, 0.18)
+
+
+func voice_family() -> String:
+	return "bulwark"
+
+
+func _hit_sound() -> String:
+	return "stone"

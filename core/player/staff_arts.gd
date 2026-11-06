@@ -443,6 +443,7 @@ func _land_blow() -> void:
 		var at := e.global_position + Vector3.UP * minf(e.hp_bar_y * 0.6, 1.4)
 		Vfx.burst(at, Color(1.5, 0.75, 2.8), {"count": 18 if finisher else 10, "life": 0.3, "speed": Vector2(3.0, 7.0), "size": 0.04, "dir": fwd, "spread": 55.0, "gravity": -6.0, "trail": 0.07})
 		StaffSfx.play("bolt_hit", at, -2.0 if finisher else -5.0, 0.7 if finisher else 0.9)
+		EnemyAudio.player("thwack", at, -1.0 if finisher else -4.0, 0.85 if heavy_hit else 1.0)      # wood on the body: its material answers from take_hit
 	if hit_any and player.has_method("combat") and player.call("combat") != null:
 		(player.call("combat") as Node).call("build", 1)  # r33: a landed blow builds one Resonance
 	if _riposte and hit_any:
@@ -536,6 +537,7 @@ func parry(attacker: Node) -> void:
 	player.call("_visual_pose", &"parry")
 	StaffSfx.play("perfect", at, -3.0)
 	StaffSfx.play("tap", at, -2.0, 1.6)
+	EnemyAudio.player("parry", at, -1.0)
 	Vfx.burst(at + (-(player.get("_visual") as Node3D).global_basis.z) * 0.5, Color(2.2, 1.6, 0.8), {"count": 22, "life": 0.25, "speed": Vector2(3.0, 7.0), "size": 0.035, "gravity": -9.0, "trail": 0.06})
 	SpellFx.shell(at, 0.2, 1.4, Color(1.6, 1.2, 0.6), 0.2)
 	player.hitstop(0.14, 0.15)
@@ -566,6 +568,7 @@ func absorb(amount: float, from_pos: Vector3) -> float:
 	blocks += 1
 	HitText.pop(player.global_position + Vector3.UP * 2.2, "blocked, %d got through" % roundi(amount * BLOCK_KEEP), Color(0.85, 0.85, 1.0))
 	StaffSfx.play("tap", player.global_position + Vector3.UP * 1.3, -3.0, 0.9)
+	EnemyAudio.player("block", player.global_position + Vector3.UP * 1.3, -2.0)
 	player.kick(0.25)
 	return amount * BLOCK_KEEP
 

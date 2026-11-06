@@ -91,7 +91,7 @@ func _on_state(next: int) -> void:
 		_rig.call("telegraph", _cur_wind())
 	_glint = 1.0
 	begin_cast("Acid Lob" if _lobbing else spit_cast, _cur_wind(), true)   # r33: a cast bar; a blow breaks it
-	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP, -2.0, _voice_pitch())
+	say("windup", global_position + Vector3.UP, -2.0, _voice_pitch())
 	if _p and _lobbing:
 		var target := _lob_target()
 		set_meta(&"lob_at", target)
@@ -224,7 +224,7 @@ func _spit() -> void:
 		from = _sac.global_position
 	var aim := _spit_aim(from)
 	SpitOrb.launch(get_tree().current_scene, from, aim - from, spit_gloom)
-	Sfx.play("res://art/audio/spit.wav", from, -4.0)
+	Sfx.play_stream(EnemyAudio.kit("spit"), from, -4.0)
 	Vfx.burst(from, Color(0.3, 1.6, 1.1), {"count": 14, "life": 0.3, "speed": Vector2(1.0, 3.0), "size": 0.05, "dir": (aim - from).normalized(), "spread": 30.0, "gravity": -6.0})
 
 
@@ -256,7 +256,7 @@ func _lob() -> void:
 	var to: Vector3 = get_meta(&"lob_at", _p.global_position if _p else global_position)
 	var from := _sac.global_position if _sac else global_position + Vector3.UP * 1.45
 	AttackKit.lob(from, to, lob_flight, AttackKit.ACID)
-	Sfx.play("res://art/audio/spit.wav", from, -3.0, 0.75)
+	Sfx.play_stream(EnemyAudio.kit("spit"), from, -3.0, 0.75)
 	_lobbing = false
 
 

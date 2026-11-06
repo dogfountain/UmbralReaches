@@ -40,7 +40,7 @@ func _init() -> void:
 
 
 func _voice_pitch() -> float:
-	return 1.6
+	return 1.25
 
 
 func _build() -> void:

@@ -11,7 +11,6 @@ extends Node3D
 ## shards turns, and its arms lift and reach as it closes.
 
 const SHROUD := preload("res://world/vfx/shade_shroud.gdshader")
-const SFX_ROAR := "res://art/audio/pounce_shriek.wav"
 const HOVER := 3.4              ## core height above the player's feet
 const REACH := 1.8              ## horizontal distance at which it takes you
 const PRESENCE_R := 14.0        ## camera tremor radius
@@ -32,6 +31,8 @@ var _halo: Node3D
 var _arms: Array[Node3D] = []
 var _eye_light: OmniLight3D
 var _pool: Decal
+var _warned := false          ## its swell has sounded for this approach
+var _idle_voice_t := randf_range(2.0, 7.0)
 var _whisper: AudioStreamPlayer3D
 var _skins: Array[GeometryInstance3D] = []
 var _reach := 0.0
@@ -402,7 +403,7 @@ func _arrive() -> void:
 	SpellFx.tear(global_position + Vector3.DOWN * 3.0, 7.5, 1.6)
 	SpellFx.shell(global_position, 0.5, 6.0, Color(0.8, 0.3, 2.2), 0.6)
 	Vfx.burst(global_position, Color(0.01, 0.0, 0.03, 0.9), {"count": 60, "life": 1.6, "speed": Vector2(2.0, 6.0), "size": 1.1, "gravity": 0.0, "damping": 3.0, "additive": false, "turbulence": true})
-	Sfx.play(SFX_ROAR, global_position, 2.0, 0.42, 0.02)
+	EnemyAudio.say("shade", "alert", global_position, get_instance_id(), 2.0)       # reversed swell: it tears in
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(_body, "scale", Vector3.ONE, 1.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_method(_set_dissolve, 1.0, 0.0, 1.3)
@@ -433,6 +434,11 @@ func unmake_by_light() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	_idle_voice_t -= delta
+	if _idle_voice_t <= 0.0:
+		_idle_voice_t = randf_range(5.0, 11.0)
+		if not _dying:
+			EnemyAudio.say("shade", "idle", global_position + Vector3.UP, get_instance_id(), -2.0)
 	# slow heavy bob, lean into the drift, halo turns, mask tracks you
 	_body.position.y = sin(_t * 0.9) * 0.28
 	var lean := clampf(_vel.length() / maxf(speed, 0.1), 0.0, 1.0) * 0.22
@@ -496,6 +502,11 @@ func _physics_process(delta: float) -> void:
 ## Camera tremor grows as it closes; the player feels it before they see it.
 func _tremble(near: float, delta: float) -> void:
 	_tremor_t -= delta
+	if near > PRESENCE_R * 1.4:
+		_warned = false
+	elif near <= PRESENCE_R and not _warned and not _dying:
+		_warned = true
+		EnemyAudio.say("shade", "windup", global_position, get_instance_id(), 0.0)  # the swell that builds as it closes: nearer than it looks
 	if _tremor_t > 0.0 or near > PRESENCE_R:
 		return
 	_tremor_t = 0.22
@@ -506,7 +517,7 @@ func _take(player: Player) -> void:
 	_dying = true
 	_reach = 1.0
 	Vfx.burst(player.global_position + Vector3.UP * 1.0, Color(0.01, 0.0, 0.03, 0.95), {"count": 50, "life": 1.0, "speed": Vector2(1.0, 4.0), "size": 0.8, "gravity": 0.0, "radial": -4.0, "additive": false, "radius": 1.6})
-	Sfx.play(SFX_ROAR, global_position, 0.0, 0.36, 0.02)
+	EnemyAudio.say("shade", "attack", global_position, get_instance_id(), 3.0)      # the reach that takes you
 	player.hollow()
 	_unmake(0.8)
 
@@ -551,7 +562,7 @@ func dissipate() -> void:
 	_dying = true
 	SpellFx.implosion(global_position + Vector3.DOWN * 0.9, 4.0)
 	Vfx.burst(global_position + Vector3.UP * 1.8, Color(0.6, 0.25, 1.4), {"count": 40, "life": 0.9, "speed": Vector2(4.0, 9.0), "size": 0.06, "gravity": -3.0, "trail": 0.12})
-	Sfx.play(SFX_ROAR, global_position, -2.0, 0.6, 0.02)
+	EnemyAudio.say("shade", "die", global_position, get_instance_id(), 0.0)         # unmade by light
 	_unmake(0.9)
 
 

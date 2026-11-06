@@ -38,5 +38,5 @@ func _spit() -> void:
 	for k in 3:
 		var d := dir.rotated(Vector3.UP, FAN * float(k - 1))
 		SpitOrb.launch(get_tree().current_scene, from, d, spit_gloom)
-	Sfx.play("res://art/audio/spit.wav", from, -1.0, 0.8)
+	Sfx.play_stream(EnemyAudio.kit("spit"), from, -1.0, 0.8)
 	Vfx.burst(from, Color(2.2, 0.8, 0.2), {"count": 24, "life": 0.35, "speed": Vector2(1.0, 3.5), "size": 0.05, "dir": dir.normalized(), "spread": 40.0, "gravity": -6.0})

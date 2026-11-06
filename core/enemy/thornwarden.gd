@@ -241,7 +241,7 @@ func _tick_lash(delta: float) -> void:
 		if _rig and _rig.has_method("telegraph"):
 			_rig.call("telegraph", 0.85)
 		_glint = 1.0
-		Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP, 1.0, _voice_pitch())
+		say("windup", global_position + Vector3.UP, 1.0, _voice_pitch())
 		BossKit.cast(self, "Bramble Lash", 0.85)
 		BossKit.zone(get_parent(), global_position, 0.85, 24.0, {"by": self, "radius": LASH_R, "spikes": "thorn"})
 
@@ -255,7 +255,7 @@ func _snare() -> void:
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", 1.0)
 	BossKit.cast(self, "Briar Snare", 1.3)
-	Sfx.play_stream(Synth.voice(voice_family(), "call"), global_position + Vector3.UP * 2.0, 2.0, 0.6)
+	say("alert", global_position + Vector3.UP * 2.0, 2.0, 0.6)
 	var n := 16
 	for i in n:
 		var a := gap_a + TAU * float(i) / float(n)
@@ -561,3 +561,11 @@ func _bloom() -> void:
 	for rg: Array in rings:
 		BossKit.zone(get_parent(), c, float(rg[0]), 24.0, {"by": self, "radius": float(rg[2]), "holes": [[c, float(rg[1])]], "color": BossKit.THORN, "h": 2.5})
 	_sig += 1
+
+
+func voice_family() -> String:
+	return "thorn"
+
+
+func _hit_sound() -> String:
+	return "wood"

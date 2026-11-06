@@ -10,6 +10,10 @@ extends Node
 ##   spots    one-shot calls placed in 3D round the listener from the region's palette: a bittern
 ##            booming in the fen, a twig snapping in the wood, stones skittering on the Crossing, drips
 ##            and bones in the crypt. Rain, the Gloom tide and danger thin them.
+##   places   every soundscape has an open-air acoustic (a thin tail on open land, soft and short in the wood, a far echo
+##            off rock on the cliffs and the Anchorholds, a long dark one at the Well): blended by the same region weights as the
+##            beds, so walking from the heath into the Thornwood lets the reverb change gradually. SFX, the creature voices
+##            (the Voices bus: a gentle compressor, then SFX) and the Ambience bus all share it.
 ##   rooms    indoors the outdoor layers (beds, rain, wind, wildlife: the "AmbOut" bus) are muffled by
 ##            a low-pass; reverb zones (the tavern, the Ossuary, down in the Ashen Rift) add a room to
 ##            every sound (SFX and Ambience buses) and ease in and out.
@@ -24,6 +28,7 @@ const FADE := 2.5                 ## seconds for a bed to come fully in or out
 const BASE_DB := -6.0
 const OUT_BUS := &"AmbOut"        ## outdoor layers: muffled indoors, sends to Ambience
 const MUSIC_BUS := &"Music"       ## the generative music (scape_music.gd): its own level, no room reverb
+const VOICES_BUS := &"Voices"     ## creature voices (enemy_audio.gd): compressed a little, then into SFX (and its reverb)
 
 ## bed -> [source, top dB, outdoor]
 const BEDS := {
@@ -113,6 +118,18 @@ const ROOMS := {
 	"ossuary": {"room_size": 0.84, "damping": 0.3, "wet": 0.28, "spread": 1.0, "predelay_msec": 48.0, "hipass": 0.1},
 	"rift": {"room_size": 0.93, "damping": 0.45, "wet": 0.17, "spread": 1.0, "predelay_msec": 95.0, "hipass": 0.2},
 }
+## open-air acoustics by kind of place (used when no room is: blended by the soundscape weights)
+const PLACES := {
+	"open": {"room_size": 0.5, "damping": 0.75, "wet": 0.035, "spread": 0.9, "predelay_msec": 40.0, "hipass": 0.25},
+	"wood": {"room_size": 0.45, "damping": 0.85, "wet": 0.07, "spread": 1.0, "predelay_msec": 18.0, "hipass": 0.2},
+	"cliff": {"room_size": 0.82, "damping": 0.4, "wet": 0.12, "spread": 1.0, "predelay_msec": 120.0, "hipass": 0.25},
+	"well": {"room_size": 0.92, "damping": 0.35, "wet": 0.22, "spread": 1.0, "predelay_msec": 70.0, "hipass": 0.15},
+}
+const SCAPE_PLACE := {"village": "open", "heath": "open", "wood": "wood", "fen": "open", "crossing": "cliff", "summit": "cliff",
+	"quarry": "cliff", "holds": "wood", "foundry": "cliff", "moor": "open", "orchard": "wood", "necropolis": "open", "mere": "open",
+	"sorrow": "wood", "hierarch": "open", "siege": "open", "stillwater": "open", "anchorholds": "cliff", "salt": "open", "downs": "open",
+	"well": "well"}
+const ROOM_KEYS := ["room_size", "damping", "spread", "predelay_msec", "hipass"]
 ## outdoor layers indoors: [low-pass cutoff Hz, AmbOut volume dB]
 const MUFFLE := {"": [20000.0, 0.0], "tavern": [700.0, -4.0], "ossuary": [320.0, -16.0], "rift": [20000.0, 0.0]}
 
@@ -137,11 +154,11 @@ var _spot_i := 0
 var _rng := RandomNumberGenerator.new()
 var _verbs := {}                  ## bus name -> AudioEffectReverb we added
 var _lowpass: AudioEffectLowPassFilter
-var _room_from := {}
-var _room_k := 1.0
-var _room_last := ""
+var _room_goal: Dictionary = PLACES["open"]   ## reverb settings the buses ease toward (a room, or the blended place)
+var _room_busy := true
 var _muffle_to := ""
 var _limiter: AudioEffectHardLimiter
+var _master_comp: AudioEffectCompressor
 var _music_v := -1.0
 
 
@@ -244,6 +261,12 @@ func _exit_tree() -> void:
 			if AudioServer.get_bus_effect(mi, i) == _limiter:
 				AudioServer.remove_bus_effect(mi, i)
 		_limiter = null
+	if _master_comp != null:
+		var ci := AudioServer.get_bus_index("Master")
+		for i in range(AudioServer.get_bus_effect_count(ci) - 1, -1, -1):
+			if AudioServer.get_bus_effect(ci, i) == _master_comp:
+				AudioServer.remove_bus_effect(ci, i)
+		_master_comp = null
 
 
 static func _bed_stream(src: String) -> AudioStreamWAV:
@@ -285,7 +308,27 @@ func _make_buses() -> void:
 			_limiter.ceiling_db = -0.5
 			_limiter.pre_gain_db = 0.0
 			_limiter.release = 0.12
+			# a gentle glue first (2:1 from -12 dB, slow attack so the transients of a blow stay), the limiter last
+			_master_comp = AudioEffectCompressor.new()
+			_master_comp.threshold = -12.0
+			_master_comp.ratio = 2.0
+			_master_comp.attack_us = 25000.0
+			_master_comp.release_ms = 320.0
+			_master_comp.gain = 0.0
+			AudioServer.add_bus_effect(master, _master_comp)
 			AudioServer.add_bus_effect(master, _limiter)
+	if AudioServer.get_bus_index(VOICES_BUS) < 0 and AudioServer.get_bus_index("SFX") >= 0:
+		AudioServer.add_bus()
+		var vi := AudioServer.bus_count - 1
+		AudioServer.set_bus_name(vi, VOICES_BUS)
+		AudioServer.set_bus_send(vi, "SFX")
+		var vc := AudioEffectCompressor.new()      # a pack in full cry sits level; a lone wind-up keeps its edge
+		vc.threshold = -16.0
+		vc.ratio = 2.5
+		vc.attack_us = 8000.0
+		vc.release_ms = 180.0
+		vc.gain = 1.0
+		AudioServer.add_bus_effect(AudioServer.get_bus_index(VOICES_BUS), vc)
 	if AudioServer.get_bus_index(OUT_BUS) < 0:
 		AudioServer.add_bus()
 		var i := AudioServer.bus_count - 1
@@ -313,6 +356,7 @@ func _make_buses() -> void:
 		AudioServer.add_bus_effect(bi, rv)
 		AudioServer.set_bus_effect_enabled(bi, AudioServer.get_bus_effect_count(bi) - 1, false)
 		_verbs[bus] = rv
+	_room_busy = true
 
 
 var _duck := 0.0                                ## dB the beds sit lower while the game is paused
@@ -433,6 +477,7 @@ func _pick() -> void:
 		bed_want[key] = clampf(float(bed_want[key]), 0.0, 1.0)
 	scape = best
 	reverb_zone = zone_at(p, area, best)
+	_set_room_goal(room_goal(reverb_zone, mix))
 
 
 ## The reverb room at p: the tavern, the Ossuary, down in the Ashen Rift below its rim, or "".
@@ -446,30 +491,56 @@ static func zone_at(p: Vector3, area: String, best: String) -> String:
 	return ""
 
 
-## Ease the reverb and the indoor muffle toward the current zone.
+## The reverb the listener stands in: the room if there is one (tavern, Ossuary, the Rift), else the open-air acoustics
+## of the soundscapes round them, weighted like the beds (so it changes gradually across a region's blend).
+static func room_goal(zone: String, mix: Dictionary) -> Dictionary:
+	if ROOMS.has(zone):
+		return ROOMS[zone]
+	var out := {}
+	var total := 0.0
+	for sc: String in mix:
+		var place: Dictionary = PLACES[String(SCAPE_PLACE.get(sc, "open"))]
+		var w := float(mix[sc])
+		total += w
+		for k: String in place:
+			out[k] = float(out.get(k, 0.0)) + float(place[k]) * w
+	if total <= 0.001:
+		return PLACES["open"]
+	for k: String in out:
+		out[k] = float(out[k]) / total
+	return out
+
+
+func _set_room_goal(g: Dictionary) -> void:
+	for k: String in g:
+		if absf(float(g[k]) - float(_room_goal.get(k, -1000.0))) > 0.003 * maxf(1.0, absf(float(g[k])) * 0.1):
+			_room_busy = true
+	_room_goal = g
+
+
+## Ease the reverb toward the goal, and the indoor muffle toward the current zone.
 func _rooms(dt: float) -> void:
-	if reverb_zone != _room_last:
-		_room_last = reverb_zone
-		_room_k = 0.0
-		_room_from = {}
+	if _room_busy:
+		var k := 1.0 - exp(-dt / 0.45)
+		var still := true
 		for bus: String in _verbs:
 			var rv: AudioEffectReverb = _verbs[bus]
-			_room_from[bus] = {"room_size": rv.room_size, "damping": rv.damping, "wet": rv.wet, "spread": rv.spread, "predelay_msec": rv.predelay_msec, "hipass": rv.hipass}
-	if _room_k < 1.0:
-		_room_k = minf(1.0, _room_k + dt / 1.2)
-		var want: Dictionary = ROOMS.get(reverb_zone, {})
-		for bus: String in _verbs:
-			var rv: AudioEffectReverb = _verbs[bus]
-			var from: Dictionary = _room_from.get(bus, {})
-			for k: String in ["room_size", "damping", "spread", "predelay_msec", "hipass"]:
-				if want.has(k):
-					rv.set(k, lerpf(float(from.get(k, want[k])), float(want[k]), smoothstep(0.0, 1.0, _room_k)))
-			var wet := float(want.get("wet", 0.0)) * (0.6 if bus == "Ambience" else 1.0)
-			rv.wet = lerpf(float(from.get("wet", 0.0)), wet, smoothstep(0.0, 1.0, _room_k))
+			for key: String in ROOM_KEYS:
+				var now := float(rv.get(key))
+				var to := float(_room_goal.get(key, now))
+				if absf(to - now) > 0.0005 * maxf(1.0, absf(to)):
+					still = false
+				rv.set(key, lerpf(now, to, k))
+			var wet := float(_room_goal.get("wet", 0.0)) * (0.6 if bus == "Ambience" else 1.0)
+			if absf(wet - rv.wet) > 0.0004:
+				still = false
+			rv.wet = lerpf(rv.wet, wet, k)
 			var bi := AudioServer.get_bus_index(bus)
 			for i in AudioServer.get_bus_effect_count(bi):
 				if AudioServer.get_bus_effect(bi, i) == rv:
 					AudioServer.set_bus_effect_enabled(bi, i, rv.wet > 0.004)
+		if still:
+			_room_busy = false
 		if not _verbs.is_empty():
 			reverb_wet = (_verbs.values()[0] as AudioEffectReverb).wet
 	# muffle the outdoors

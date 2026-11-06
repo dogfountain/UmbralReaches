@@ -122,7 +122,7 @@ func _on_state(next: int) -> void:
 		_rig.call("telegraph", lob_windup)
 	_glint = 1.0
 	begin_cast("Cinder Hurl", lob_windup, true)
-	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP, -2.0, 0.8)
+	say("windup", global_position + Vector3.UP, -2.0, 0.8)
 	if _p:
 		var target := _lob_target()
 		set_meta(&"lob_at", target)
@@ -134,7 +134,7 @@ func _lob() -> void:
 	var to: Vector3 = get_meta(&"lob_at", _p.global_position if _p else global_position)
 	var from := _sac.global_position if _sac else global_position + Vector3.UP * 1.45
 	AttackKit.lob(from, to, lob_flight, EMBER)
-	Sfx.play("res://art/audio/spit.wav", from, -3.0, 0.6)
+	Sfx.play_stream(EnemyAudio.kit("spit"), from, -3.0, 0.6)
 	_lobbing = false
 
 
@@ -144,3 +144,7 @@ func _spit() -> void:
 
 func _ichor() -> Color:
 	return Color(0.3, 0.1, 0.03)
+
+
+func voice_family() -> String:
+	return "cinder"

@@ -371,7 +371,7 @@ static func transition(e: Enemy, line: String, col: Color, dur := 1.4) -> void:
 	SpellFx.shell(at, e.hp_bar_y * 0.3, e.hp_bar_y * 0.75, Color(col.r * 0.4, col.g * 0.4, col.b * 0.4), dur)
 	Vfx.burst(at, Color(0.05, 0.03, 0.06, 0.85), {"count": 30, "life": 1.2, "speed": Vector2(0.4, 1.6), "size": 0.4, "gravity": 0.8, "radius": 0.8, "additive": false, "turbulence": true})
 	Sfx.play_stream(Synth.get_stream("stagger"), at, 2.0, 0.55)
-	Sfx.play_stream(Synth.voice(e.voice_family(), "hurt"), at, 0.0, 0.55)
+	e.say("stagger", at, 1.0, 1.0)
 	var eid := e.get_instance_id()
 	e.get_tree().create_timer(dur * 0.55, false).timeout.connect(func() -> void:
 		var e2 := instance_from_id(eid) as Enemy
@@ -381,8 +381,8 @@ static func transition(e: Enemy, line: String, col: Color, dur := 1.4) -> void:
 
 ## Phase change: a roar, the eyes flare, a non-damaging shock ring, and the arena hears of it.
 static func roar(e: Enemy, line: String, col: Color) -> void:
-	Sfx.play_stream(Synth.get_stream("roar"), e.global_position + Vector3.UP * 2.0, 3.0, 0.9)   # 3D players cap at max_db 3
-	Sfx.play_stream(Synth.voice(e.voice_family(), "call"), e.global_position + Vector3.UP * 2.0, 2.0, 0.5)
+	e.say("phase", e.global_position + Vector3.UP * 2.0, 3.0, 1.0)          # the great one's own roar, long and low
+	Sfx.play_stream(Synth.get_stream("roar"), e.global_position + Vector3.UP * 2.0, -2.0, 0.8)
 	if line != "":
 		Events.toast.emit(line)
 	e._glint = 1.0

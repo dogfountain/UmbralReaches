@@ -669,7 +669,7 @@ func _reckoning(n: int) -> void:
 	if _plates.is_empty():
 		return
 	BossKit.cast(self, _reckon_label(), RECKON_TIME, false, _reckoned)
-	Sfx.play_stream(Synth.voice(voice_family(), "call"), global_position + Vector3.UP * 3.0, 3.0, 0.5)
+	say("alert", global_position + Vector3.UP * 3.0, 3.0, 0.5)
 	for pl: Dictionary in _plates:
 		var at: Vector3 = pl.at
 		Vfx.ring(at + Vector3.UP * 0.08, PLATE_R, BossKit.HOLY, RECKON_TIME, 0.12, Vector3.UP, 1.3)
@@ -793,7 +793,7 @@ func _sweep() -> void:
 	if _rig and _rig.has_method("telegraph"):
 		_rig.call("telegraph", 0.9)
 	_glint = 1.0
-	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP * 2.0, 3.0, 0.6)
+	say("windup", global_position + Vector3.UP * 2.0, 3.0, 0.6)
 	BossKit.cast(self, "Crozier Sweep", 0.9)
 	BossKit.zone(get_parent(), global_position, 0.9, 30.0, {"by": self, "radius": 7.5, "half_angle": deg_to_rad(75.0), "yaw": yaw, "color": BossKit.BONE})
 	get_tree().create_timer(0.9, false).timeout.connect(func() -> void:
@@ -951,4 +951,4 @@ func _floor_at(p: Vector3) -> Vector3:
 
 
 func voice_family() -> String:
-	return "rattle"
+	return "abbot"

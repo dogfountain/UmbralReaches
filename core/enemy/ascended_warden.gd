@@ -585,3 +585,11 @@ func _descend(left: int) -> void:
 	_eclipse_t = 18.0
 	_acolytes_t = 24.0
 	_flare_t = 14.0
+
+
+func voice_family() -> String:
+	return "warden"
+
+
+func _hit_sound() -> String:
+	return "stone"
