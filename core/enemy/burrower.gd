@@ -179,12 +179,12 @@ func _physics_process(delta: float) -> void:
 
 
 ## Staggered or riposted mid-dig (only the dig-in can be broken): it climbs back out.
-func stagger() -> void:
+func stagger(extra_time := 0.0) -> void:
 	if _under:
 		return
 	if _dig_tw:
 		_dig_tw.kill()
-	super.stagger()
+	super.stagger(extra_time)
 
 
 func riposted() -> void:
