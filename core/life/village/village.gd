@@ -144,6 +144,8 @@ func _build() -> void:
 		report.append("no clear spot for the sexton's grave")
 	# r34: the outposts of the doubled world, one giver camped in each new region
 	_outposts(space, node_xz, edges)
+	# --- r37 east ---
+	(load("res://core/world/realm/realm_pois_r37_east.gd") as GDScript).call("hamlet", self, space, node_xz, edges)
 	await get_tree().process_frame
 	# --- the walking network ------------------------------------------------------------------
 	nav.call("build", space, node_xz, edges)

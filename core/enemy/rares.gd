@@ -89,6 +89,15 @@ const RARES := {
 	"fare_caller": {"title": "The Fare-Caller", "kind": "husk", "variant": "drowned", "hp": 40, "scale": 1.4,
 		"spots": [Vector2(135, 111), Vector2(129, 105)], "ash": 42, "loot": [["relic_fragment", 2], ["ferry_coin", 1]],
 		"line": "The Fare-Caller goes under without its fare."},
+	# --- r37 east ---
+	"salt_widow": {"title": "The Salt-Widow", "kind": "gaunt", "hp": 30, "scale": 1.4,
+		"spots": [Vector2(236, 150), Vector2(244, 156), Vector2(228, 146)], "ash": 40, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(236, 150), Vector2(246, 164), Vector2(232, 172), Vector2(222, 160), Vector2(228, 146)],
+		"line": "The Salt-Widow sits down on the white, and the white takes her."},
+	"drowned_lamplighter": {"title": "The Drowned Lamplighter", "kind": "husk", "variant": "drowned", "hp": 36, "scale": 1.35,
+		"spots": [Vector2(180, 18), Vector2(178, -2), Vector2(184, 30)], "ash": 38, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(180, 18), Vector2(176, -2), Vector2(178, -24), Vector2(184, 6), Vector2(186, 28)],
+		"line": "The Drowned Lamplighter lets the lamp go. It does not float."},
 }
 
 var haunts: Dictionary = {}      ## id -> Vector3 on the ground
