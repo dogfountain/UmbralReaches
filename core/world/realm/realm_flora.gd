@@ -18,6 +18,7 @@ extends RefCounted
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
+const MarchesLooks := preload("res://core/world/realm/flora_looks_marches.gd")
 
 const CHUNK := 24.0                    ## undergrowth chunks
 const TREE_CHUNK := 32.0               ## tree chunks
@@ -36,7 +37,7 @@ const TREE_P := {
 	"birch": {"oldforest": 0.09, "meadow": 0.03, "glade": 0.16, "heath": 0.025, "ruin": 0.05, "fen": 0.01},
 	"pine": {"oldforest": 0.08, "crag": 0.14, "heath": 0.012, "ash": 0.004},
 	"willow": {"fen": 0.2},
-	"snag": {"fen": 0.09, "oldforest": 0.035, "ash": 0.02, "ruin": 0.035, "crag": 0.015, "heath": 0.006},
+	"snag": {"fen": 0.09, "oldforest": 0.035, "ash": 0.02, "ruin": 0.035, "crag": 0.015, "heath": 0.006, "salt": 0.004},
 	"sapling": {"oldforest": 0.3, "glade": 0.08, "meadow": 0.012, "fen": 0.04, "ruin": 0.06, "heath": 0.015, "crag": 0.04},
 	"windtree": {}, "yew": {},                     # r34: only where a LOOK adds them
 }
@@ -48,7 +49,7 @@ const TREE_SPACING := {"oak": 6.2, "birch": 3.2, "pine": 3.6, "willow": 5.5, "sn
 ## oaks, bracken and shrubs thickest at the forest's edges (_under_mod), tall-grass and flower drifts
 ## on the open ground, and stones in the turf (STONES). Measured with zz/perf_tour --stress=2.
 const UNDER := {
-	"grass": {"meadow": 6.5, "heath": 3.2, "glade": 3.8, "oldforest": 1.3, "ruin": 3.2, "fen": 1.6, "crag": 1.1, "ash": 0.03},
+	"grass": {"meadow": 6.5, "heath": 3.2, "glade": 3.8, "oldforest": 1.3, "ruin": 3.2, "fen": 1.6, "crag": 1.1, "ash": 0.03, "salt": 0.02},
 	"tallgrass": {"meadow": 0.2, "heath": 0.32, "fen": 0.28, "ruin": 0.2, "glade": 0.09, "oldforest": 0.05},
 	"flowers": {"meadow": 0.45, "heath": 0.2, "glade": 0.48, "ruin": 0.14, "oldforest": 0.015},
 	"heather": {"heath": 0.42, "crag": 0.2, "meadow": 0.012, "ruin": 0.03},
@@ -65,7 +66,7 @@ const UNDER := {
 	"stump": {"oldforest": 0.005, "fen": 0.004, "meadow": 0.001, "heath": 0.001, "ash": 0.001},
 	"roots": {"oldforest": 0.008},
 	# r34 flora: the new regions' own ground cover (no biome rate: LOOKS add them)
-	"gorse": {}, "deadbush": {}, "ashdrift": {}, "cinders": {}, "lily": {}, "scaffold": {},
+	"gorse": {}, "deadbush": {"salt": 0.006}, "ashdrift": {}, "cinders": {}, "lily": {}, "scaffold": {},
 }
 
 ## r34 flora: each new region's own look over its biome (docs/r34/layout.md). Weighted by how far
@@ -459,11 +460,12 @@ static func looks_at(x: float, z: float) -> Array:
 	if no_looks:
 		return out
 	for r: Dictionary in RealmLayout.REGIONS:
-		if not LOOKS.has(r.id):
+		var look: Dictionary = LOOKS.get(r.id, MarchesLooks.LOOKS.get(r.id, {}))
+		if look.is_empty():
 			continue
 		var lw := _look_weight(r, x, z)
 		if lw > 0.001:
-			out.append([LOOKS[r.id], lw, String(r.id)])
+			out.append([look, lw, String(r.id)])
 	return out
 
 
@@ -551,12 +553,27 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 	var grid := {}                      # Vector2i(4 m) -> Array of [Vector2, spacing]
 	var cands: Array = []
 	var step := 3.5
-	var area := RealmLayout.BOUNDS.grow(MARGIN)
+	# the old Realm's candidates first, from the old streams (its wood is the wood it was); the new ground's follow
+	var area := RealmLayout.OLD_BOUNDS.grow(MARGIN)
 	var z := area.position.y
 	while z < area.end.y:
 		var x := area.position.x
 		while x < area.end.x:
 			cands.append(Vector2(x + rng_main.randf_range(0.0, step), z + rng_main.randf_range(0.0, step)))
+			x += step
+		z += step
+	var n_old := cands.size()
+	var rng_new := RandomNumberGenerator.new()
+	var rng_new_look := RandomNumberGenerator.new()
+	rng_new.seed = 20261137
+	rng_new_look.seed = 20261138
+	var full := RealmLayout.BOUNDS.grow(MARGIN)
+	z = full.position.y
+	while z < full.end.y:
+		var x := full.position.x
+		while x < full.end.x:
+			if not area.has_point(Vector2(x, z)):
+				cands.append(Vector2(x + rng_new.randf_range(0.0, step), z + rng_new.randf_range(0.0, step)))
 			x += step
 		z += step
 	# big trees first so the small ones fill round them
@@ -576,7 +593,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 		for ci in cands.size():
 			var c: Vector2 = cands[ci]
 			var lk: Array = clk[ci]
-			var rng := rng_main if lk.is_empty() else rng2
+			var rng := (rng_main if lk.is_empty() else rng2) if ci < n_old else (rng_new if lk.is_empty() else rng_new_look)
 			var w := biome_w(c.x, c.y)
 			var p := _rate(TREE_P[sp], w)
 			for e: Array in lk:
@@ -1032,7 +1049,8 @@ static func _place_under(_rng: RandomNumberGenerator, items: Dictionary) -> void
 		_list_hash[sp] = hash(ids[sp][0]) if not (ids[sp] as Array).is_empty() else 0
 	_under_kinds = kinds
 	_under_ids = ids
-	var b := RealmLayout.BOUNDS
+	# the old Realm's rows as they were; the rest of the new world is a second set of rows from other seeds
+	var b := RealmLayout.OLD_BOUNDS
 	var nrow := int(ceil(b.size.y / UCELL))
 	var out: Array = []
 	for j in nrow:
@@ -1043,6 +1061,17 @@ static func _place_under(_rng: RandomNumberGenerator, items: Dictionary) -> void
 		while x < b.end.x:
 			_under_cell(rng, items, out, kinds, ids, x, z)
 			x += UCELL
+	var nb := RealmLayout.BOUNDS
+	var nrow2 := int(ceil(nb.size.y / UCELL))
+	for j in nrow2:
+		var rng2 := RandomNumberGenerator.new()
+		rng2.seed = 20261141 + j * 7919
+		var z2 := nb.position.y + j * UCELL
+		var x2 := nb.position.x
+		while x2 < nb.end.x:
+			if not b.has_point(Vector2(x2, z2)):
+				_under_cell(rng2, items, out, kinds, ids, x2, z2)
+			x2 += UCELL
 	for e: Array in out:
 		if bool(e[3]) and WorldLanes.intrudes(_space, (e[1] as Transform3D) * mesh_aabb(e[0]), 0.3) != "":
 			continue
@@ -1231,7 +1260,7 @@ static func _add(items: Dictionary, id: String, xf: Transform3D, col: Color, sp 
 
 ## Stones per m2 by biome: half-buried RockKit boulders (shared, LOD'd meshes), ankle-high, no
 ## collision. Mossy in the wood and the fen, granite on the open ground, ash by the rift.
-const STONES := {"crag": 0.07, "ruin": 0.05, "heath": 0.035, "oldforest": 0.032, "ash": 0.03, "glade": 0.015, "meadow": 0.01, "fen": 0.012}
+const STONES := {"crag": 0.07, "ruin": 0.05, "heath": 0.035, "oldforest": 0.032, "ash": 0.03, "glade": 0.015, "meadow": 0.01, "fen": 0.012, "salt": 0.004}
 const STONE_STYLE := {"oldforest": "mossy", "fen": "mossy", "glade": "mossy", "ash": "ash"}
 const STONE_SIZES := [Vector3(0.55, 0.34, 0.48), Vector3(0.9, 0.5, 0.75)]
 const STONE_RANGE := 44.0
@@ -1253,11 +1282,23 @@ static func _place_stones(rng: RandomNumberGenerator) -> Dictionary:
 	var out := {}                      # mesh key "kind|style|variant" -> Array of [Transform3D, Color]
 	if r30:
 		return out
-	var b := RealmLayout.BOUNDS
+	# the old Realm's cells first from `rng` (as before); the new ground's from a stream of its own
+	var rng2 := RandomNumberGenerator.new()
+	rng2.seed = 20261139
+	_stone_pass(rng, out, true)
+	_stone_pass(rng2, out, false)
+	return out
+
+
+static func _stone_pass(rng: RandomNumberGenerator, out: Dictionary, old: bool) -> void:
+	var b := RealmLayout.OLD_BOUNDS if old else RealmLayout.BOUNDS
 	var z := b.position.y
 	while z < b.end.y:
 		var x := b.position.x
 		while x < b.end.x:
+			if not old and RealmLayout.OLD_BOUNDS.has_point(Vector2(x, z)):
+				x += STONE_CELL
+				continue
 			var w := biome_w(x, z)
 			var lk: Array = _lk[_bidx(x, z)]
 			var smul := 1.0
@@ -1307,7 +1348,6 @@ static func _place_stones(rng: RandomNumberGenerator) -> Dictionary:
 					_place_prop(rng, out, kind, float(props[kind]) * float(e[1]), String((e[0] as Dictionary).get("style", "granite")), x, z)
 			x += STONE_CELL
 		z += STONE_CELL
-	return out
 
 
 static func _place_prop(rng: RandomNumberGenerator, out: Dictionary, kind: String, rate: float, lstyle: String, x: float, z: float) -> void:
@@ -1443,6 +1483,7 @@ static func _emit(host: Node3D, items: Dictionary) -> Vector2i:
 	var n_mm := 0
 	var n_col := 0
 	var solid_lod := {}
+	var canopy := {}                    # tall-tree chunk key -> [[base, height, crown radius]] for its far shell
 	for id: String in items:
 		var d: Dictionary = TreeGen.kind(id)
 		var sp := id.substr(0, id.rfind("_"))
@@ -1482,6 +1523,8 @@ static func _emit(host: Node3D, items: Dictionary) -> Vector2i:
 				ch.position = Vector3(cx, ground_y(cx, cz), cz)
 				chunks[key] = ch
 			var list: Array = per[key]
+			if bool(d.tall) and float(d.h) > 4.0:
+				FarDetail.note_crowns(canopy, key, list, float(d.h), float(d.spread))
 			if not bool(d.tall):
 				# undergrowth in random order, so a lower visible_instance_count (world detail,
 				# apply_detail) thins the whole chunk evenly instead of dropping one corner
@@ -1532,14 +1575,19 @@ static func _emit(host: Node3D, items: Dictionary) -> Vector2i:
 				var rb: float = m[2]
 				var re: float = m[3]
 				if swap:
-					# near and far meshes hand over at one distance with the same hysteresis
+					# near and far meshes cross-fade (dither) at one distance, and the far ones end where the
+					# forest's canopy shell (FarDetail) has taken over: nothing hard-cuts in or out
 					mmi.visibility_range_begin = rb
-					mmi.visibility_range_begin_margin = 3.0 if rb > 0.0 else 0.0
-					mmi.visibility_range_end = re
-					mmi.visibility_range_end_margin = 3.0 if re > 0.0 else 0.0
-					mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+					mmi.visibility_range_begin_margin = 6.0 if rb > 0.0 else 0.0
+					mmi.visibility_range_end = re if re > 0.0 else FarDetail.FAR_TREE_END
+					mmi.visibility_range_end_margin = 6.0 if re > 0.0 else 30.0
+					mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 				elif re > 0.0:
 					_set_range(mmi, m[1], re)
+				elif bool(d.tall):
+					mmi.visibility_range_end = FarDetail.FAR_TREE_END       # dead trees, cypresses... fade out at the horizon's edge
+					mmi.visibility_range_end_margin = 30.0
+					mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 				mmi.add_to_group(Groups.CULL_SKIP)
 				mmi.set_meta(&"flora", [sp, m[1], bool(d.tall), re, list.size(), int(mmi.cast_shadow)])
 				ch.add_child(mmi)
@@ -1573,6 +1621,7 @@ static func _emit(host: Node3D, items: Dictionary) -> Vector2i:
 						cs.position = xf.origin - ch.position + Vector3(0, hh * 0.5, 0)
 					body.add_child(cs)
 					n_col += 1
+	n_mm += FarDetail.shells(host, canopy, TREE_CHUNK, func(x: float, z: float) -> float: return ground_y(x, z))
 	return Vector2i(n_mm, n_col)
 
 
