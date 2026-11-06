@@ -473,7 +473,8 @@ func _physics_process(delta: float) -> void:
 				target = target.limit_length(walk_speed * 0.72)
 			horiz = locomotion._ground_move(cur, target, delta)
 			if _beam_k > 0.3 and _beam_mid != 0.0:
-				horiz += _beam_side * _beam_mid * 8.0 * _beam_k      # eased back toward the middle
+				var lat := horiz.dot(_beam_side)                     # a damped spring toward the middle, not a kick
+				horiz += _beam_side * (20.0 * _beam_mid - 8.0 * lat) * delta * _beam_k
 		elif target.length_squared() > 0.0001 and _kick_lock <= 0.0:
 			# air: steer toward the stick, never faster than you already were (or a sprint)
 			horiz = cur.lerp(target, 1.0 - exp(-air_accel * delta))
@@ -725,10 +726,10 @@ const HANG_DROP := 2.0            ## feet below the ledge top while hanging
 const WALL_GAP := 0.38            ## capsule centre off the wall face while hanging (radius 0.35)
 const CLIMB_TIME := 0.62
 const SHIMMY := 1.3               ## m/s along a ledge
-const VAULT_MIN := 0.5            ## (below this the step-up walks over it)
+const VAULT_MIN := 0.42           ## (overlaps the step-up: a kerb between the two is still crossed)
 const VAULT_MAX := 1.25
 const VAULT_DEPTH := 1.1          ## thicker than this is a ledge to climb onto, not a wall to vault
-const VAULT_SPEED := 3.8          ## at least a run
+const VAULT_SPEED := 3.2          ## at least a run
 const KICK_UP := 6.4
 const KICK_OUT := 5.0
 const ROLL_TIME := 0.55
