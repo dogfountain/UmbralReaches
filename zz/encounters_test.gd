@@ -309,7 +309,7 @@ func _ambush() -> void:
 
 func _elites() -> void:
 	var haunts: Dictionary = d.get("haunts")
-	check("elites: five haunts on clear ground", haunts.size() == 5, ", ".join(haunts.keys()))
+	check("elites: every haunt on clear ground (%d of %d)" % [haunts.size(), Elites.ELITES.size()], haunts.size() == Elites.ELITES.size(), ", ".join(haunts.keys()))
 	var posts: Array = d.get("posts")
 	check("elites: a notice per elite and the board", posts.size() == haunts.size() + 1, str(posts.size()))
 	# every elite builds and dresses (parts, title)

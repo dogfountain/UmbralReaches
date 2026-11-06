@@ -273,7 +273,7 @@ func _slot_why(rid: String, kind: String, q: Vector2) -> PackedStringArray:
 	if kind != "camp":
 		for st: Dictionary in WorldLanes.sites:
 			var sn := String(st.name)
-			if (sn.begins_with("poi_") or sn.begins_with("brazier_")) and not is_nan(WorldLanes.site_floor(st, q, 6.0)):
+			if (sn.begins_with("poi_") or sn.begins_with("brazier_") or sn.begins_with("r37") or sn.begins_with("raid_")) and not is_nan(WorldLanes.site_floor(st, q, 6.0)):
 				return why
 	if String(RealmLayout.region_at(q.x, q.y).get("id", "")) != rid:
 		why.append("in %s" % RealmLayout.region_at(q.x, q.y).get("id", "-"))
@@ -296,7 +296,7 @@ func _slot_why(rid: String, kind: String, q: Vector2) -> PackedStringArray:
 	# planted there) is taken, not blocked; only a site from before phase 2 makes it unusable
 	for st: Dictionary in WorldLanes.sites:
 		var sn := String(st.name)
-		if sn.begins_with("poi_") or sn.begins_with("brazier_") or sn.begins_with("r34_") or sn.begins_with("secrets_"):
+		if sn.begins_with("poi_") or sn.begins_with("brazier_") or sn.begins_with("r34_") or sn.begins_with("secrets_") or sn.begins_with("r37"):
 			continue
 		if not is_nan(WorldLanes.site_floor(st, q, 1.0)):
 			why.append("on site %s" % sn)

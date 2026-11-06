@@ -180,17 +180,17 @@ const SLOTS := {
 	# only its own regions' entries here.
 	"weirford": [
 		{"kind": "fire", "at": Vector2(-196, 74), "note": "the town's square, east of the bridge"},
-		{"kind": "poi", "at": Vector2(-207, 56), "note": "the mill on the weir"},
+		{"kind": "poi_wet", "at": Vector2(-207, 56), "note": "the mill on the weir"},
 		{"kind": "poi", "at": Vector2(-190, 60), "note": "the inn, the smithy, the stables"}],
 	"sorrow": [
 		{"kind": "fire", "at": Vector2(-190, -20), "note": "a ford on weir_track"},
 		{"kind": "poi_wet", "at": Vector2(-208, -40), "note": "the drowned shrine in the river"},
-		{"kind": "camp", "at": Vector2(-232, 0), "note": "the west bank"},
+		{"kind": "camp", "at": Vector2(-240, -10), "note": "the west bank"},
 		{"kind": "camp", "at": Vector2(-178, -50), "note": "the east bank"}],
 	"hierarch": [
 		{"kind": "fire", "at": Vector2(-196, -76), "note": "where weir_track reaches the valley"},
 		{"kind": "poi", "at": Vector2(-236, -84), "note": "the statue's hand, palm up"},
-		{"kind": "camp", "at": Vector2(-178, -124), "note": "under the Crowns"}],
+		{"kind": "camp", "at": Vector2(-186, -118), "note": "under the Crowns"}],
 	"siege": [
 		{"kind": "fire", "at": Vector2(-214, 128), "note": "beside siege_track at the outer earthwork"},
 		{"kind": "poi", "at": Vector2(-236, 170), "note": "the siege tower"},
@@ -297,7 +297,7 @@ const BASE_PATHS := [
 	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(204, -84), Vector2(206, -114)]},
 	{"id": "salt_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 104), Vector2(206, 140), Vector2(202, 180), Vector2(196, 212)]},
 	{"id": "downs_track", "w": 1.4, "pts": [Vector2(-196, 190), Vector2(-150, 196), Vector2(-110, 190), Vector2(-44, 192), Vector2(0, 186), Vector2(44, 192), Vector2(110, 186), Vector2(160, 200), Vector2(196, 212)]},
-	{"id": "field_stair", "w": 1.4, "pts": [Vector2(0, 128), Vector2(0, 150), Vector2(0, 186)]},
+	{"id": "downs_link", "w": 1.4, "pts": [Vector2(40, 134), Vector2(50, 158), Vector2(48, 176), Vector2(44, 192)]},     # the Waiting Field to the downs, east of the mausoleum
 ]
 
 ## r35 (docs/critique/r35_full.md: "the south half is a grid of rectangles and straight roads"): the
@@ -307,7 +307,7 @@ const BASE_PATHS := [
 ## The main road keeps its line: its waystones and cart stand a fixed step beside it (lore/road.gd).
 const MEANDER_IDS := {"west_track": 2.4, "moor_track": 2.4, "necropolis_way": 2.2, "orchard_lane": 2.2,
 	"mere_causeway": 2.0, "south_track": 2.6, "weir_track": 2.4, "siege_track": 2.4, "spire_track": 2.0,
-	"anchor_track": 2.4, "salt_track": 2.2, "downs_track": 2.8, "field_stair": 1.6}
+	"anchor_track": 2.4, "salt_track": 2.2, "downs_track": 2.8, "downs_link": 1.6}
 const MEANDER_STEP := 6.0
 static var PATHS: Array = _meander(BASE_PATHS)
 

@@ -120,9 +120,9 @@ const REALM_CAMPS: Array[Dictionary] = [
 	# --- west marches (docs/r37_expansion.md): the Sorrow's Banks (tier 2: the drowned and what hunts the fords),
 	# the Fallen Hierarch's valley (tier 3: stone-bound husks and bulwarks round the skull), the Siege Lines
 	# (tier 2: the Marches' war-bands that never went home). Weirford itself has no camp: its watch holds it.
-	{"at": Vector3(-232.0, 60.0, 0.0), "kinds": ["husk@drowned", "spitter", "wretch@drowned"], "probe": 0.0},          # the Sorrow's west bank
+	{"at": Vector3(-240.0, 60.0, -10.0), "kinds": ["husk@drowned", "spitter", "wretch@drowned"], "probe": 0.0},          # the Sorrow's west bank
 	{"at": Vector3(-178.0, 60.0, -50.0), "kinds": ["crawler", "gaunt", "crawler"], "probe": 0.0},                      # the east bank, off weir_track
-	{"at": Vector3(-178.0, 60.0, -124.0), "kinds": ["husk@stonebound", "bulwark@stonebound", "chanter"], "probe": 0.0, "r": 2.6},   # the Hierarch's camp under the Crowns
+	{"at": Vector3(-186.0, 60.0, -118.0), "kinds": ["husk@stonebound", "bulwark@stonebound", "chanter"], "probe": 0.0, "r": 2.6},   # the Hierarch's camp under the Crowns
 	{"at": Vector3(-248.0, 60.0, -116.0), "kinds": ["husk@stonebound", "husk@stonebound", "chanter"], "probe": 0.0},   # the crown's far side, west of the skull
 	{"at": Vector3(-180.0, 60.0, 150.0), "kinds": ["bulwark", "husk", "chanter"], "probe": 0.0},                       # the palisade
 	{"at": Vector3(-240.0, 60.0, 218.0), "kinds": ["leaper", "husk", "wretch"], "probe": 0.0},                         # the south rings
@@ -135,7 +135,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(188.0, 60.0, 44.0), "kinds": ["spitter", "husk"], "probe": 0.0},               # the south shore, off the fire
 	{"at": Vector3(180.0, 60.0, -100.0), "kinds": ["bulwark", "chanter", "leaper"], "probe": 0.0},  # the scree
 	{"at": Vector3(232.0, 60.0, -94.0), "kinds": ["bulwark", "quiller", "wretch"], "probe": 0.0},  # the east cells
-	{"at": Vector3(190.0, 60.0, -62.0), "kinds": ["leaper", "gaunt", "gaunt"], "probe": 0.0},      # anchor_track's lower bend
+	{"at": Vector3(184.0, 60.0, -60.0), "kinds": ["leaper", "gaunt", "gaunt"], "probe": 0.0},      # anchor_track's lower bend
 	{"at": Vector3(190.0, 60.0, 118.0), "kinds": ["wretch", "crawler"], "probe": 0.0},            # Saltmarket's west approach
 	{"at": Vector3(178.0, 60.0, 196.0), "kinds": ["burrower", "burrower", "crawler", "mite"], "probe": 0.0, "r": 1.8},   # the west pans
 	{"at": Vector3(240.0, 60.0, 140.0), "kinds": ["cinder", "wretch", "gaunt"], "probe": 0.0},    # the east pans
