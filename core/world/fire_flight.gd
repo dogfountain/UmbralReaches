@@ -8,6 +8,7 @@ extends Node3D
 ## no flight in GROUP). Load by path (no class_name).
 
 const GROUP := "fire_flight"
+const HorseScript := preload("res://core/world/mount/horse.gd")
 const SPEED := 26.0                     ## metres a second along the ground
 const CLEAR := 20.0                     ## the arc's top clears the land under it by this much
 const EMBER := Color(3.2, 1.5, 0.5)     ## HDR: blooms under the 1.15 threshold
@@ -83,6 +84,9 @@ func start(p: Player, a: Brazier, b: Brazier) -> void:
 		"gravity": 2.6, "spread": 70.0, "dir": Vector3.UP, "radius": 0.45, "turbulence": true})
 	Vfx.light(p.global_position + Vector3.UP, Color(1.0, 0.55, 0.25), 3.0, 7.0, 0.6)
 	Sfx.play("res://art/audio/ward_chime.wav", p.global_position, -6.0, 0.7)
+	var mount := p.riding as HorseScript
+	if mount != null:
+		mount.dismount()                 # you arrive on your feet; the horse stays where it stood
 	p.visible = false
 	p.velocity = Vector3.ZERO
 	p.teleport(_land_at)
