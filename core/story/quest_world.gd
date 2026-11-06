@@ -158,6 +158,8 @@ func sync() -> void:
 			want[k] = false          # shown, not yet takeable: he stands over it
 	for k2: String in pickups.keys():
 		if not want.has(k2):
+			if String(Chains.PICKUPS[k2].kind) == "bell":
+				_bell_taken[k2] = true            # the choice was just made here: its outcome prop swings once
 			(pickups[k2] as Node).queue_free()
 			pickups.erase(k2)
 	for k3: String in want:
@@ -166,6 +168,9 @@ func sync() -> void:
 		(pickups[k3] as Node).set("live", bool(want[k3]))
 	_sync_oswin()
 	_sync_props()
+
+
+var _bell_taken := {}              ## bell pickup key -> true: it was answered this session
 
 
 func _add_pickup(k: String) -> void:
@@ -244,15 +249,11 @@ func _sync_oswin() -> void:
 			o.set("follow", _player())
 			o.set("pinned", true)
 	elif Book.active("forty_first") and s == 1:
-		var st: Vector3 = spots.get("stair", Vector3.INF)
-		if st != Vector3.INF and Vector2(o.global_position.x - st.x, o.global_position.z - st.z).length() > 0.5:
-			# the last few steps to the stone itself (process() kneels him there)
-			if not (o.get("follow") is Vector3):
-				o.call("release")
-				o.set("pinned", true)
-				o.set("follow", st)
-		elif not (bool(o.get("pinned")) and String(o.get("act")) == "kneel"):
-			o.call("hold", "kneel", _stone3())
+		# one point, the stone: he walks to it, and kneels with his hands on it (process() decides when)
+		if not (bool(o.get("pinned")) and String(o.get("act")) == "kneel") and not (o.get("follow") is Vector3):
+			o.call("release")
+			o.set("pinned", true)
+			o.set("follow", _stone3())
 	elif not Book.started("forty_first") and (o.get("follow") != null or bool(o.get("pinned"))):
 		# the walk was set aside (or a reload lost it): back to his own night from wherever he stands
 		o.call("release")
@@ -273,6 +274,23 @@ func _sync_oswin() -> void:
 			o.set("follow", away)
 			_leaving = o
 			_leave_t = 0.0
+
+
+const KNEEL_R := 0.8          ## m from the stone (xz) at which Oswin kneels
+const KNEEL_STUCK_S := 3.0    ## or after this long without closing on it
+var _esc_best := INF
+var _esc_stuck := 0.0
+var _esc_waited := false
+
+
+## One line, his, when he has stopped because you ran ahead; he walks on when you are back inside the wait radius.
+func _oswin_waits(o: Node3D) -> void:
+	var w := bool(o.get("waiting"))
+	if w and not _esc_waited:
+		_esc_waited = true
+		_narrate("Oswin stops on the road. \"I will wait here. Go on, I will keep.\"")
+	elif not w:
+		_esc_waited = false
 
 
 func _stone3() -> Vector3:
@@ -300,33 +318,54 @@ func _process(delta: float) -> void:
 	if pl == null:
 		return
 	# the escort arrives
+	var stone := _stone3()
 	if Book.active("forty_first") and Book.step("forty_first") == 0:
 		var o := _villager("oswin")
-		var st: Vector3 = spots.get("stair", Vector3.INF)
-		if o and st != Vector3.INF and Vector2(o.global_position.x - st.x, o.global_position.z - st.z).length() < float(Chains.ESCORT.reach):
+		if o and spots.get("stair", Vector3.INF) != Vector3.INF and Vector2(o.global_position.x - stone.x, o.global_position.z - stone.z).length() < float(Chains.ESCORT.reach):
 			Book.advance("forty_first")
 			_narrate("Oswin stops at the stone. He touches it with both hands. \"Forty-one.\"")
-	if Book.active("forty_first") and Book.step("forty_first") == 1:
+		elif o:
+			_oswin_waits(o)
+	elif Book.active("forty_first") and Book.step("forty_first") == 1:
 		var o2 := _villager("oswin")
-		var st2: Vector3 = spots.get("stair", Vector3.INF)
-		if o2 and o2.get("follow") is Vector3 and Vector2(o2.global_position.x - st2.x, o2.global_position.z - st2.z).length() < 0.5:
-			o2.call("hold", "kneel", _stone3())
-	# Father Harrow wakes over his lantern
-	if Book.active("slow_way") and Book.step("slow_way") <= 1 and not is_instance_valid(hollow):
+		if o2 and o2.get("follow") is Vector3:
+			# he kneels once he has closed to the stone, or has been stuck against it (a wall in the last step)
+			var d2 := Vector2(o2.global_position.x - stone.x, o2.global_position.z - stone.z).length()
+			if d2 < KNEEL_R or _esc_stuck >= KNEEL_STUCK_S:
+				o2.call("hold", "kneel", stone)
+				_esc_stuck = 0.0
+				_esc_best = INF
+			else:
+				if d2 < _esc_best - 0.15:
+					_esc_best = d2
+					_esc_stuck = 0.0
+				else:
+					_esc_stuck += 0.25
+	# Father Harrow stands over his lantern where a gallop can see him; he wakes (the step, his name) at `wake`
+	if Book.active("slow_way") and Book.step("slow_way") <= 1:
 		var at: Vector3 = spots.get("hollow", Vector3.INF)
 		if at != Vector3.INF:
 			var d := pl.global_position.distance_to(at)
 			var s := Book.step("slow_way")
-			if (s == 0 and d < float(Chains.HOLLOW.wake)) or (s == 1 and d < 60.0):
+			if d > HOLLOW_STAND_R + 20.0:
+				_hollow_failed = false
+			if not is_instance_valid(hollow) and d < HOLLOW_STAND_R and not _hollow_failed:
 				if not _wake_hollow(at):
-					Book.advance("slow_way", 2)          # nothing to fight: only the lantern
-				elif s == 0:
-					Book.advance("slow_way")
+					# the step stays where it is: the objective is still the man, not the lantern
+					_hollow_failed = true
+					_narrate("The reeds would not give him up.")
+			if s == 0 and is_instance_valid(hollow) and d < float(Chains.HOLLOW.wake):
+				Book.advance("slow_way")
+				# one voice: his name is the banner; the narrator says it only when there is no banner to carry it
+				var lg := get_tree().get_first_node_in_group("quest_log")
+				if lg and lg.has_method("banner"):
+					lg.call("banner", "IN THE REEDS", String(Chains.HOLLOW.title), "Ostrin's father. His face is a hole. Put him to rest.")
+				else:
 					_narrate("A man stands over a cold lantern in the reeds. He turns. His face is a hole.")
-					# his name over the fight (the data had a title nothing ever showed)
-					var lg := get_tree().get_first_node_in_group("quest_log")
-					if lg and lg.has_method("banner"):
-						lg.call("banner", "IN THE REEDS", String(Chains.HOLLOW.title), "Ostrin's father. Put him to rest.")
+
+
+const HOLLOW_STAND_R := 70.0   ## the body stands this far out, in view on a gallop; it wakes at Chains.HOLLOW.wake
+var _hollow_failed := false
 
 
 func _wake_hollow(at: Vector3) -> bool:
@@ -373,6 +412,15 @@ func _sync_props() -> void:
 		want["lantern"] = "lit" if Book.pick("slow_way") == "truth" else "cold"
 	if Book.done("forty_first") and Book.pick("forty_first") == "truth":
 		want["staff"] = "staff"
+	# the Founder's bells stay where they hang: rung (tongue still in) or carried (the loop empty)
+	for bk: String in Chains.PICKUPS:
+		var bd: Dictionary = Chains.PICKUPS[bk]
+		if String(bd.kind) == "bell" and Book.started(String(bd.quest)) and not pickups.has(bk) and Book.pick(String(bd.quest)) in ["rung", "carried"]:
+			want["bell:" + bk] = Book.pick(String(bd.quest))
+	if Book.done("alms_loaf"):
+		want["loaf"] = "loaf"
+	if Book.done("ring_heart"):
+		want["thorn"] = "thorn"
 	for id: String in props.keys():
 		if not want.has(id) or String((props[id] as Node).get_meta("v", "")) != String(want[id]):
 			(props[id] as Node).queue_free()
@@ -383,7 +431,19 @@ func _sync_props() -> void:
 		var xf: Variant = _prop_xf(id2, String(want[id2]))
 		if xf == null:
 			continue
-		var kind: String = {"tongs": "tongs", "names": "slabs", "mug": "mug_full", "staff": "staff"}.get(id2, "lantern_lit" if want[id2] == "lit" else "lantern")
+		if id2.begins_with("bell:"):
+			var bkey := id2.trim_prefix("bell:")
+			var bat: Vector3 = spots.get(bkey, Vector3.INF)
+			if bat == Vector3.INF:
+				continue
+			var bh := QProps.make(self, "Outcome_" + bkey, "bell" if want[id2] == "rung" else "bell_bare", Transform3D(Basis(Vector3.UP, float(hash(bkey) % 628) * 0.01), bat))
+			bh.set_meta("v", String(want[id2]))
+			props[id2] = bh
+			if want[id2] == "rung" and _bell_taken.has(bkey):
+				QProps.ring_bell(bh, 1.0)            # rung on the choice, once, where you are looking
+			_bell_taken.erase(bkey)
+			continue
+		var kind: String = {"tongs": "tongs", "names": "slabs", "mug": "mug_full", "staff": "staff", "loaf": "loaf_circle", "thorn": "thorn"}.get(id2, "lantern_lit" if want[id2] == "lit" else "lantern")
 		var h := QProps.make(self, "Outcome_" + id2, kind, xf as Transform3D)
 		h.set_meta("v", String(want[id2]))
 		props[id2] = h
@@ -406,6 +466,16 @@ func _prop_xf(id: String, v: String) -> Variant:
 		"mug":
 			var p3: Vector3 = spots.get("mug_fire", Vector3.INF)
 			return null if p3 == Vector3.INF else Transform3D(Basis.IDENTITY, p3)
+		"loaf":
+			# beside the mug, inside its own chalk circle
+			var pl2: Vector3 = spots.get("mug_fire", Vector3.INF)
+			return null if pl2 == Vector3.INF else Transform3D(Basis(Vector3.UP, 0.2), pl2 + Vector3(0.9, 0.0, -0.3))
+		"thorn":
+			# by Wyck's fire: wherever he stands in the Thornwood, a pace to the side
+			var wy := _villager("wyck")
+			if wy == null:
+				return null
+			return Transform3D(Basis(Vector3.UP, 0.5), wy.global_position + Vector3(0.9, 0.0, 0.4))
 		"staff":
 			var p4: Vector3 = spots.get("staff", Vector3.INF)
 			return null if p4 == Vector3.INF else Transform3D(Basis(Vector3.UP, 0.4), p4)

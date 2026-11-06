@@ -28,27 +28,43 @@ static func _worn_uids() -> Dictionary:
 	return out
 
 
-## What can be sold now: unworn gear (best first), then sellable materials.
+## What the night charged for a material you can sell back: the fire's smelt (HearthDB.SMELT), the shop's fragment.
+const COST_NOTE := {"ember_shard": 6, "relic_fragment": 14}
+
+
+## A piece worth a second thought: named, or Hallowed and better. Selling it asks once.
+static func asks(p: Dictionary) -> bool:
+	return String(p.get("named", "")) != "" or int(p.get("rarity", 0)) >= 2
+
+
+## What can be sold now: unworn gear (the piece you would miss first), then sellable materials.
 static func sell_rows() -> Array:
 	var out: Array = []
 	var worn := _worn_uids()
 	var bag: Array = (GearStats.state().bag as Array).duplicate()
 	bag.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		if int(a.get("rarity", 0)) != int(b.get("rarity", 0)):
-			return int(a.get("rarity", 0)) < int(b.get("rarity", 0))
+			return int(a.get("rarity", 0)) > int(b.get("rarity", 0))
+		var na := String(a.get("named", "")) != ""
+		var nb := String(b.get("named", "")) != ""
+		if na != nb:
+			return na
+		if GearDB.item_level(a) != GearDB.item_level(b):
+			return GearDB.item_level(a) > GearDB.item_level(b)
 		return int(a.get("uid", 0)) < int(b.get("uid", 0)))
 	for p: Dictionary in bag:
 		if worn.has(int(p.get("uid", -1))):
 			continue
 		out.append({"id": "gear:%d" % int(p.uid), "name": String(p.get("name", "gear")), "piece": p, "quality": int(p.get("rarity", 0)),
 			"text": "%s %s, item level %d." % [LootDB.quality_name(int(p.get("rarity", 0))), String(GearDB.SLOT_NAMES.get(String(p.slot), "")), GearDB.item_level(p)],
-			"price": LootDB.sell_price_piece(p), "left": -1, "group": "Gear", "ok": true, "why": "", "sub": "ilvl %d" % GearDB.item_level(p)})
+			"price": LootDB.sell_price_piece(p), "left": -1, "group": "Gear", "ask": asks(p), "ok": true, "why": "", "sub": "ilvl %d" % GearDB.item_level(p)})
 	for id: String in LootDB.SELL_ITEM:
 		var n := Travel.count(id)
 		if n <= 0:
 			continue
 		out.append({"id": "item:" + id, "item": id, "name": String(ItemDB.def(id).get("name", id)), "quality": LootDB.item_quality(id),
-			"text": String(ItemDB.def(id).get("text", "")), "price": LootDB.sell_price_item(id), "left": n, "group": "Materials",
+			"text": String(ItemDB.def(id).get("text", "")) + ("  The night charged %d ash for it; it pays %d." % [int(COST_NOTE[id]), LootDB.sell_price_item(id)] if COST_NOTE.has(id) else ""),
+			"price": LootDB.sell_price_item(id), "left": n, "group": "Materials",
 			"ok": true, "why": "", "sub": "%d carried, sells one" % n})
 	return out
 
@@ -101,6 +117,7 @@ static func buyback_rows() -> Array:
 		var d := e as Dictionary
 		var price := int(d.get("price", 0))
 		var row := {"id": "bb:%d" % i, "price": price, "left": -1, "group": "Sold tonight"}
+		var drops := bb.size() >= LootDB.BUYBACK_CAP and i == bb.size() - 1      # the shelf is full: this one goes next
 		if String(d.get("kind", "")) == "gear":
 			var p: Dictionary = d.get("piece", {})
 			row["name"] = String(p.get("name", "gear"))
@@ -108,6 +125,8 @@ static func buyback_rows() -> Array:
 			row["quality"] = int(p.get("rarity", 0))
 			row["text"] = "You sold this. Buy it back for what you were paid."
 			row["sub"] = "ilvl %d" % GearDB.item_level(p)
+			if drops:
+				row["text"] += " The shelf is full: the next sale drops this one."
 		else:
 			var id := String(d.get("id", ""))
 			row["name"] = String(ItemDB.def(id).get("name", id))
@@ -115,6 +134,8 @@ static func buyback_rows() -> Array:
 			row["quality"] = LootDB.item_quality(id)
 			row["text"] = "You sold this. Buy it back for what you were paid."
 			row["sub"] = "x%d" % int(d.get("n", 1))
+			if drops:
+				row["text"] += " The shelf is full: the next sale drops this one."
 		var why := ""
 		if ash < price:
 			why = "You need %d more grave ash." % (price - ash)

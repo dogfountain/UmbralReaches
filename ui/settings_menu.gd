@@ -185,7 +185,7 @@ func _build_display(p: VBoxContainer) -> void:
 
 
 func _build_graphics(p: VBoxContainer) -> void:
-	_preset_option = _option(p, "Quality Preset", Settings.PRESET_NAMES + ["Custom"], "Sets everything below at once", func(i: int) -> void:
+	_preset_option = _option(p, "Quality Preset", Settings.PRESET_NAMES + ["Custom"], "Sets everything below at once. Cinematic turns on reflections and a heavier blur.", func(i: int) -> void:
 		if i < Settings.PRESET_NAMES.size():
 			Settings.apply_preset(i)
 		_refresh())
@@ -307,7 +307,7 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.unit_frames = v
 		HudPrefs.save())
 	uf.set_pressed_no_signal(HudPrefs.unit_frames)
-	var ct := _check(p, "Combat Text", "The Gloom blows put on you and kills take off, at your shoulder", func(v: bool) -> void:
+	var ct := _check(p, "Combat Text", "The wounds a blow opens and a kill closes, at your shoulder", func(v: bool) -> void:
 		HudPrefs.combat_text = v
 		HudPrefs.save())
 	ct.set_pressed_no_signal(HudPrefs.combat_text)
@@ -549,7 +549,7 @@ func _footer() -> HBoxContainer:
 	var erase := Button.new()
 	_erase_btn = erase
 	erase.text = "Erase Saved Progress"
-	erase.tooltip_text = "Deletes the save and the Journal. The night you are in carries on as it is; the next launch starts from the beginning. Settings are kept."
+	erase.tooltip_text = "Deletes the save and the Journal, and returns you to the title. Settings are kept."
 	_style_small(erase, 16)
 	erase.pressed.connect(func() -> void:           # two-step so a stray click cannot wipe a run
 		if erase.text.begins_with("Confirm"):
@@ -573,6 +573,7 @@ func _footer() -> HBoxContainer:
 		if quit_btn.text.begins_with("Really"):
 			Settings.flush()
 			Travel.save_now()
+			Travel.leaving = true
 			get_tree().quit()
 		else:
 			quit_btn.text = "Really quit?"
@@ -817,9 +818,9 @@ func _input(event: InputEvent) -> void:
 		_listen_input(event)
 		return
 	if event.is_action_pressed("toggle_settings"):
-		if not _root.visible and get_tree().paused and event is InputEventKey and (event as InputEventKey).physical_keycode == KEY_ESCAPE:
-			return            # Esc over an open Kindling / Journal / shop closes that menu (each has
-			                  # its own Esc), it does not stack Settings on top; F2 / Start still open it
+		if not _root.visible and get_tree().paused:
+			return            # another menu has the night paused (Kindling, Journal, shop, a conversation): Esc,
+			                  # F2 and Start belong to it, Settings does not stack on top
 		if _root.visible:
 			close()
 		else:
@@ -865,6 +866,6 @@ func close() -> void:
 	# opened over the Kindling, a dialogue, the shop or the Journal (each pauses the world): leave
 	# the world paused for them. Unpausing here let the night run on behind an open menu.
 	get_tree().paused = _was_paused
-	if _was_captured:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if _was_captured and not _was_paused:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED         # only when no other menu is open under this one
 	get_viewport().gui_release_focus()

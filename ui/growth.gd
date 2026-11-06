@@ -35,6 +35,7 @@ const WARN := Color(0.95, 0.55, 0.42)
 const PANEL_BG := Color(0.035, 0.02, 0.055, 0.97)
 const TABS := [["embers", "Embers"], ["spells", "Spells"], ["oaths", "Oaths"], ["relics", "Relics"], ["charms", "Charms"], ["staff", "Staff"], ["loadout", "Loadout"], ["paths", "Paths"], ["hearth", "Hearth"]]
 const Combo := preload("res://core/skills/combo.gd")
+const SkillLance := preload("res://core/skills/skill_lance.gd")
 ## The combos the kit can make (Loadout page): [name, what makes it, spells it needs].
 const COMBOS := [
 	["KINDLED RIFT", "Ember Lance bursts on a Marked foe: each Mark flares for 0.5 and the foe burns.", ["lance"]],
@@ -478,7 +479,9 @@ func _build() -> void:
 	rule3.color = Color(EDGE, 0.5)
 	rule3.custom_minimum_size = Vector2(0, 1)
 	col.add_child(rule3)
-	var foot := _label("[W A S D] choose      [Space] or click: kindle      [Q] [E] page      [K] or [Esc] leave", 14, DIM)
+	_foot = _label("", 14, DIM)
+	_foot_refresh()
+	var foot := _foot
 	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(foot)
 	# particles live above everything, in screen space
@@ -522,7 +525,20 @@ func _k() -> Node:
 
 ## Open the Kindling (`tab` = "embers" | "spells" | "oaths" | "relics" | "charms" | "staff" |
 ## "loadout", "" keeps the last).
+var _foot: Label
+
+
+## The foot of the Kindling from the live labels: the four move keys, jump, kindling and inventory. Q and E stay
+## letters (the character screen pages on those physical keys), and so do Esc and the physical 1 to 4.
+func _foot_refresh() -> void:
+	if _foot == null:
+		return
+	var move := " ".join(["move_forward", "move_left", "move_back", "move_right"].map(func(a: String) -> String: return InputSetup.live_label(a, false, "?")))
+	_foot.text = "[%s] choose      [%s] or click: kindle      [Q] [E] page      [%s] or [Esc] leave" % [move, InputSetup.live_label("jump", false, "Space"), InputSetup.live_label("kindling", false, "K")]
+
+
 func open_menu(_from_fire := false, tab := "") -> void:
+	_foot_refresh()
 	if _root.visible:
 		return
 	if not hosted and _cs() != null:
@@ -547,8 +563,10 @@ func close_menu() -> void:
 	if not _root.visible:
 		return
 	_root.visible = false
-	UiSound.play(self, "back")
 	_confirm = ""
+	if hosted:
+		return                              # a page of the character screen: it keeps the pause, the mouse and the sting
+	UiSound.play(self, "back")
 	if get_tree().paused:
 		get_tree().paused = false
 	if _was_captured:
@@ -1106,7 +1124,7 @@ func _page_hearth() -> void:
 	now.glyph = "hearth"
 	now.tint = EMBER
 	now.title = "%s  ·  %s" % [["BANKED", "I", "II", "III", "IV"][t], String(HearthDB.TIERS[t].name)]
-	now.line = "Fires reach +%.1f m  ·  +%d Gloom held  ·  comfort %d" % [HearthDB.reach(hs, float(DB.live.get("reach_add", 0.0))), int(HearthDB.TIERS[t].gloom), int(h.call("comfort"))]
+	now.line = "Fires reach +%.1f m  ·  +%d Gloom held  ·  comfort %d" % [HearthDB.reach(hs, float(DB.live.get("reach_add", 0.0))), roundi(float(DB.live.get("gloom_add", 0.0))), int(h.call("comfort"))]
 	now.look = "owned"
 	row.add_child(now)
 	var up := _card("hearth", "raise", 384, 124)
@@ -1422,7 +1440,10 @@ func _show() -> void:
 				var nx: Dictionary = HearthDB.TIERS[t + 1]
 				_d_kind.text = "RAISE TO %s  ·  %s" % [["", "I", "II", "III", "IV"][t + 1], String(nx.name).to_upper()]
 				_d_text.text = String(nx.text)
-				_d_now.text = "Kindled fires reach +%.1f m (now +%.1f); Gloom held +%d (now +%d). Needs %s." % [float(nx.reach), float(HearthDB.TIERS[t].reach), int(nx.gloom), int(HearthDB.TIERS[t].gloom), String(nx.need_text)]
+				# the live sanctuary and the live bar, plus only this tier's own step up
+				var live_reach := float(HearthDB.TIERS[t].reach) + float(DB.live.get("reach_add", 0.0))
+				var live_gloom := float(DB.live.get("gloom_add", 0.0))
+				_d_now.text = "Kindled fires reach +%.1f m (now +%.1f); Gloom held +%d (now +%d). Needs %s." % [live_reach + float(nx.reach) - float(HearthDB.TIERS[t].reach), live_reach, roundi(live_gloom + float(nx.gloom) - float(HearthDB.TIERS[t].gloom)), roundi(live_gloom), String(nx.need_text)]
 				_d_lore.text = String(nx.lore)
 				why = String(hh.call("why_not_raise", at_home_fire())) if hh else "?"
 				verb = "FEED THE HEARTHFIRE  ·  %d ASH%s" % [int(nx.ash), (", %d FRAGMENT%s" % [int(nx.frag), "" if int(nx.frag) == 1 else "S"]) if int(nx.frag) > 0 else ""]
@@ -1462,15 +1483,20 @@ func _show() -> void:
 
 
 func _ember_value(id: String, r: int) -> String:
+	# the live numbers the Kindling already wrote onto the wanderer; the next rank adds only this ember's step
+	var m := DB.live
+	var rk := DB.rank(_st(), id)
+	var dr := r - rk
 	match id:
 		"warmth":
-			return "%d Gloom" % (100 + 15 * r)
+			return "%d Gloom" % roundi(100.0 + float(m.get("gloom_add", 0.0)) + 15.0 * dr)
 		"banked":
-			return "%d%% drift" % (100 - 12 * r)
+			var was := maxf(1.0 - 0.12 * rk, 0.05)
+			return "%d%% drift" % roundi(100.0 * float(m.get("dark_mult", 1.0)) * (1.0 - 0.12 * r) / was)
 		"will":
-			return "+%d%% damage" % (10 * r)
+			return "+%d%% damage" % roundi(100.0 * (float(m.get("power", 1.0)) - 1.0) + 10.0 * dr)
 		"quick":
-			return "-%d%% recovery" % (7 * r)
+			return "-%d%% recovery" % roundi(100.0 * (1.0 - float(m.get("cd", 1.0))) + 7.0 * dr)
 		"cord":
 			return "%d cords" % (DB.BASE_SLOTS + r)
 	return str(r)
@@ -1480,11 +1506,11 @@ func _ember_value(id: String, r: int) -> String:
 func _stock_text(id: String) -> String:
 	match id:
 		"bolt":
-			return "A fast bolt that Marks what it hits. Every 3rd bolt in a chain is a Rift Lash: a bigger burst and two Marks."
+			return "A fast bolt that Marks what it hits. A bolt in the chain is a Rift Lash: a bigger burst and more Marks."
 		"lance":
 			return "Hold to charge, let go to throw. A full charge pierces every body on its line and bursts on the world."
 		"nova":
-			return "A ring blast round you: 1 damage, +1 for every Mark it detonates. Pops spit and unmakes shades."
+			return "A ring blast round you that detonates every Mark in it. Pops spit and unmakes shades."
 		"ward":
 			return "Plant a warm light: Gloom drains in it, shades come apart on its edge, foes slink from it."
 		"step":
@@ -1500,25 +1526,25 @@ func _stats(id: String, r: int) -> String:
 	match id:
 		"bolt":
 			var every := int(m.get("lash_every", 3))
-			return "%.1f damage, %.1f m burst, %d m/s%s; every %s bolt a Lash (%.1f, %d Marks)%s" % [pw, 1.8 + (0.5 if r >= 1 else 0.0), int(34.0 * (1.2 if r >= 1 else 1.0)), ", seeking" if r >= 1 else "", "2nd" if every == 2 else "3rd", 2.0 * pw * float(m.get("lash_power", 1.0)), 3 if r >= 2 else 2, "; passes through bodies" if r >= 3 else ""]
+			return "%.1f damage, %.1f m burst, %d m/s%s; every %s bolt a Lash (%.1f, %d Marks, %.1f m burst)%s" % [pw, 1.8 + (0.5 if r >= 1 else 0.0), int(34.0 * (1.2 if r >= 1 else 1.0)), ", seeking" if r >= 1 else "", "2nd" if every == 2 else "3rd", 2.0 * pw * float(m.get("lash_power", 1.0)), 3 if r >= 2 else 2, 3.2 + (0.5 if r >= 1 else 0.0) + (0.8 if r >= 2 else 0.0), "; passes through bodies" if r >= 3 else ""]
 		"lance":
 			var ch := 0.9 * (0.75 if r >= 1 else 1.0) * float(m.get("lance_charge", 1.0))
 			var bl := (1.0 if r >= 2 else 0.0) + float(m.get("lance_blast", 0.0))
-			return "charges in %.2f s, %.1f to %.1f damage, %.1f to %.1f m burst%s%s%s" % [ch, (2.5 if r >= 2 else 2.0) * pw, 4.0 * pw, 3.0 + bl, 4.6 + bl, "; Perfect +30%" if r >= 1 else "", "; 3 cinders" if r >= 2 else "", "; Cinder Scar" if r >= 3 else ""]
+			return "charges in %.2f s, %.1f to %.1f damage, %.1f to %.1f m burst%s%s%s" % [ch, (2.5 if r >= 2 else 2.0) * pw, SkillLance.DMG_FULL * pw * (1.5 if bool(m.get("pyre", false)) else 1.0), 3.0 + bl, 4.6 + bl, "; Perfect +30%" if r >= 1 else "", "; 3 cinders" if r >= 2 else "", "; Cinder Scar" if r >= 3 else ""]
 		"nova":
-			return "%.1f m ring, %.1f s recovery, %.1f per Mark%s%s%s" % [7.2 if r >= 1 else 6.0, (5.5 if r >= 2 else 7.0) * cd, (1.5 if bool(m.get("tally", false)) else 1.0) + float(m.get("mark_dmg", 0.0)), "; echo" if r >= 1 else "", "; motes 2 Gloom" if r >= 2 else "", "; Undertow" if r >= 3 else ""]
+			return "%.1f m ring, %.1f s recovery, %.1f per Mark%s%s%s" % [7.2 if r >= 1 else 6.0, (5.5 if r >= 2 else 7.0) * cd, (1.5 if bool(m.get("tally", false)) else 1.0) + float(m.get("mark_dmg", 0.0)), "; echo" if r >= 1 else "", "; motes mend 2 Wounds" if r >= 2 else "", "; Undertow" if r >= 3 else ""]
 		"ward":
 			return "burns %.0f s, %.0f s recovery%s%s%s" % [7.0 + (3.0 if r >= 1 else 0.0) + float(m.get("ward_life", 0.0)), (17.0 if r >= 2 else 24.0) * cd, "; pulses" if r >= 1 else "", "; spells +30% in its light" if r >= 2 else "", "; Mirror Flame" if r >= 3 else ""]
 		"step":
-			return "%.1f m, untouchable %.2f s, %.1f s recovery%s%s%s" % [7.5 + (2.0 if r >= 1 else 0.0) + float(m.get("step_range", 0.0)), 0.6 if r >= 2 else 0.35, 2.1 * cd * (0.5 if bool(m.get("door", false)) else 1.0), "; arrival shock" if r >= 1 else "", "; next bolt a Lash" if r >= 2 else "", "; Rend" if r >= 3 else ""]
+			return "%.1f m, untouchable %.2f s, %.1f s recovery%s%s%s" % [7.5 + (2.0 if r >= 1 else 0.0) + float(m.get("step_range", 0.0)), (0.6 if r >= 2 else 0.35) + float(m.get("step_evade_add", 0.0)), 2.1 * cd * float(m.get("step_cd", 1.0)) * (0.5 if bool(m.get("door", false)) else 1.0), "; arrival shock" if r >= 1 else "", "; next bolt a Lash" if r >= 2 else "", "; Rend" if r >= 3 else ""]
 		"tether":
 			return "reaches %d m, %.1f s recovery, drags %d%s%s" % [24 if r >= 1 else 18, (6.0 - (2.0 if bool(m.get("hook", false)) else 0.0)) * cd, 2 if r >= 2 else 1, "; staggers" if r >= 1 else "", "; Reel" if r >= 3 else ""]
 		"well":
 			return "%.1f m for %.0f s, %.0f s recovery%s%s" % [5.5 if r >= 1 else 4.5, 4.0 if r >= 1 else 3.0, 11.0 * cd, "; eats spit" if r >= 2 else "", "; Event Horizon" if r >= 3 else ""]
 		"familiar":
-			return "%d shade%s for %.0f s, a dart every %.2f s (%.1f + a Mark), %.0f s recovery%s" % [2 if r >= 2 else 1, "s" if r >= 2 else "", 14.0 + (6.0 if bool(m.get("jar", false)) else 0.0), 0.75 if r >= 1 else 1.1, 0.5 * pw, 22.0 * cd, "; Last Breath" if r >= 3 else ""]
+			return "%d shade%s for %.0f s, a dart every %.2f s (%.1f + a Mark), %.0f s recovery%s" % [2 if r >= 2 else 1, "s" if r >= 2 else "", 14.0 + (6.0 if bool(m.get("jar", false)) else 0.0) + float(m.get("shade_life", 0.0)), 0.75 if r >= 1 else 1.1, 0.5 * pw, 22.0 * cd, "; Last Breath" if r >= 3 else ""]
 		"peal":
-			return "%d m, a %d-degree cone, %.1f damage and a Mark, staggers; %.0f s recovery%s%s" % [11 if r >= 1 else 9, 110 if r >= 1 else 75, pw, 9.0 * cd, "; Resonance" if r >= 2 else "", "; Great Bell" if r >= 3 else ""]
+			return "%d m, a %d-degree cone, %.1f damage and a Mark, staggers ordinary foes; %.0f s recovery%s%s" % [11 if r >= 1 else 9, 110 if r >= 1 else 75, pw, 9.0 * cd, "; Resonance" if r >= 2 else "", "; Great Bell" if r >= 3 else ""]
 	return ""
 
 

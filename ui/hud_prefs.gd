@@ -18,8 +18,8 @@ const TRACK := {
 	"chests": ["chest"],
 }
 const TRACK_NAMES := {
-	"quests": "Tasks", "rares": "Rare foes", "travel": "Waygates", "gather": "Gathering",
-	"town": "Traders & teachers", "foes": "Foes nearby", "chests": "Chests nearby",
+	"quests": "Tasks", "rares": "Rare foes", "travel": "Fires & bells", "gather": "Gathering",
+	"town": "Traders", "foes": "Foes nearby", "chests": "Chests nearby",
 }
 
 static var track := {"quests": true, "rares": true, "travel": true, "gather": true, "town": true, "foes": true, "chests": true}
@@ -51,7 +51,7 @@ static func save() -> void:
 	cfg.set_value("hud", "combat_text", combat_text)
 	cfg.set_value("hud", "unit_frames", unit_frames)
 	cfg.set_value("hud", "enemy_plates", enemy_plates)
-	cfg.save(SaveDir.path(FILE))
+	SaveDir.save_atomic(cfg, SaveDir.path(FILE))
 
 
 ## Is a minimap kind tracked? Unknown kinds show.

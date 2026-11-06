@@ -17,6 +17,13 @@ var bosses_slain: Dictionary = {}  ## boss id -> true (BossArena)
 var items: Dictionary = {}         ## ItemDB id -> count (the Satchel)
 var checkpoints: Dictionary = {}   ## scene path -> Vector3 (last kindled brazier's spawn point)
 var saved_hollows := 0
+## Loot bags still on the ground (core/items/loot_bag.gd): [{pos: Vector3, title, entries}]. Written with the
+## save so a quit does not leave the piece in a bag that is gone, and Continue lays each one back.
+var loot_bags: Array = []
+var leaving := false               ## the game is closing: a bag the save kept is not poured on the way out
+var _bag_restore_t := 0.0
+var _wrote_ok := false             ## a write has succeeded this session: the .bak (the night before) is not copied again
+var _warned_rename := false
 ## Per-system saved state for the living-world systems (docs/LIFE_PLAN.md): one sub-dictionary
 ## per system id ("progression", "village", "life", "secrets", "encounters"), saved in its own
 ## [systems] section. Each system reads/writes ONLY its own key; call save_game() after changing it.
@@ -275,9 +282,52 @@ func _migrate_items() -> void:
 
 ## Progress you can lose by quitting is progress lost: save on the way out too.
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
+		leaving = true
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE or what == NOTIFICATION_APPLICATION_PAUSED:
 		if not _busy and is_inside_tree():
 			save_game()
+
+
+## Every loot bag still standing: where it is and what is in it. Each is marked `kept` (its _exit_tree
+## does not pour it while the game closes). When the game is closing and the bags are already freed,
+## the last record stands.
+func _collect_bags() -> Array:
+	if not is_inside_tree():
+		return loot_bags
+	var out: Array = []
+	for b: Node in get_tree().get_nodes_in_group("loot_bag"):
+		if not is_instance_valid(b) or not b.is_inside_tree() or not (b is Node3D):
+			continue
+		var bag: Variant = b                   # loot_bag.gd (no class_name; it reads Travel, so no preload here)
+		if not bag.can_interact():
+			continue
+		bag.kept = true
+		out.append({"pos": (b as Node3D).global_position, "title": String(bag.title), "entries": (bag.entries as Array).duplicate(true)})
+	if out.is_empty() and leaving:
+		return loot_bags
+	loot_bags = out
+	return out
+
+
+func _process(delta: float) -> void:
+	if loot_bags.is_empty() or _busy:
+		return
+	_bag_restore_t -= delta
+	if _bag_restore_t > 0.0:
+		return
+	_bag_restore_t = 0.5
+	# Continue: lay each saved bag back once the night has a wanderer and a gear service to lay it
+	var gear: Variant = get_tree().get_first_node_in_group("gear")        # gear_runtime.gd (no class_name)
+	if gear == null or get_tree().get_first_node_in_group(Groups.PLAYER) == null or get_tree().current_scene == null:
+		return
+	var saved := loot_bags
+	loot_bags = []
+	for r: Variant in saved:
+		var b: Variant = gear.drop_bag((r as Dictionary).entries, (r as Dictionary).pos - Vector3(0, 0.05, 0), String((r as Dictionary).title))
+		if b is Node:
+			(b as Node).set("kept", true)
+			loot_bags.append(r)
 
 
 ## Save now (relics, seals, bosses): no 0.6 s window to quit inside.
@@ -334,6 +384,7 @@ func save_game() -> void:
 	cfg.set_value("progress", "seals", seals_broken)
 	cfg.set_value("progress", "bosses", bosses_slain)
 	cfg.set_value("progress", "items", items)
+	cfg.set_value("progress", "loot_bags", _collect_bags())
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER)
 	if p and "hollow_count" in p:
 		saved_hollows = int(p.hollow_count)
@@ -384,6 +435,12 @@ func load_game() -> void:
 			if c > 0:
 				items[String(k)] = c
 	_migrate_items()
+	loot_bags = []
+	var lb: Variant = cfg.get_value("progress", "loot_bags", [])
+	if lb is Array:
+		for r: Variant in lb:
+			if r is Dictionary and (r as Dictionary).get("pos") is Vector3 and _sane_point((r as Dictionary).pos) and (r as Dictionary).get("entries") is Array and not ((r as Dictionary).entries as Array).is_empty():
+				loot_bags.append({"pos": r.pos, "title": String(r.get("title", "the remains")), "entries": (r.entries as Array).duplicate(true)})
 	var hv: Variant = cfg.get_value("progress", "hollows", 0)
 	saved_hollows = maxi(0, int(hv)) if (hv is int or hv is float) else 0
 	var st: Variant = cfg.get_value("story", "state", {})
@@ -415,6 +472,7 @@ func _reset_progress() -> void:
 	seals_broken.clear()
 	bosses_slain.clear()
 	items.clear()
+	loot_bags.clear()
 	saved_hollows = 0
 	story.clear()
 	systems.clear()
@@ -449,7 +507,7 @@ func use_slot(n: int, fresh := false) -> void:
 		load_game()
 	var c := _slots_cfg()
 	c.set_value("slots", "last", slot)
-	c.save(SaveDir.dir() + "slots.cfg")
+	SaveDir.save_atomic(c, SaveDir.dir() + "slots.cfg")
 
 
 ## The title screen's line about slot `n`: {exists, text, fires, bosses, hollows}.
@@ -457,6 +515,7 @@ func slot_summary(n: int) -> Dictionary:
 	var out := {"exists": false, "text": "", "fires": 0, "bosses": 0, "hollows": 0}
 	var path := SaveDir.slot_path(n, "savegame.cfg")
 	for p: String in [path, path + ".bak"]:
+		var from_bak := p.ends_with(".bak")
 		if not FileAccess.file_exists(p):
 			continue
 		var cfg := ConfigFile.new()
@@ -470,7 +529,16 @@ func slot_summary(n: int) -> Dictionary:
 					fires += (lit[k] as Variant).size()
 		var al: Variant = cfg.get_value("progress", "area_lit", {})
 		if al is Dictionary:
-			fires += (al as Dictionary).size()
+			# an area fire (the ossuary gate) is also a lit brazier by name under its scene: count it once
+			var named := {}
+			if lit is Dictionary:
+				for k2 in lit:
+					if lit[k2] is Array or lit[k2] is PackedStringArray:
+						for nm: Variant in lit[k2]:
+							named[String(nm)] = true
+			for ak in al:
+				if not named.has(String(ak).get_file()):
+					fires += 1
 		var bs: Variant = cfg.get_value("progress", "bosses", {})
 		var bosses: int = (bs as Dictionary).size() if bs is Dictionary else 0
 		var hv: Variant = cfg.get_value("progress", "hollows", 0)
@@ -480,7 +548,8 @@ func slot_summary(n: int) -> Dictionary:
 		out.fires = fires
 		out.bosses = bosses
 		out.hollows = hollows
-		out.text = "%d fire%s kindled  ·  %d keeper%s slain  ·  %s" % [fires, "" if fires == 1 else "s", bosses, "" if bosses == 1 else "s", when]
+		out.text = "%d fire%s kindled  ·  %d keeper%s slain  ·  %s%s" % [fires, "" if fires == 1 else "s", bosses, "" if bosses == 1 else "s", when, "  ·  from the backup" if from_bak else ""]
+		out["backup"] = from_bak
 		return out
 	return out
 
@@ -590,13 +659,17 @@ func _write_save(cfg: ConfigFile) -> void:
 	if exists and _main_ok == null:
 		var prev := ConfigFile.new()           # e.g. a --fresh run: the file on disk was never read
 		_main_ok = prev.load(SAVE_PATH) == OK and prev.has_section("progress")
-	if exists and _main_ok:
-		DirAccess.copy_absolute(main, main + ".bak")
+	if exists and _main_ok and (not _wrote_ok or not FileAccess.file_exists(main + ".bak")):
+		DirAccess.copy_absolute(main, main + ".bak")        # once a session: the night before it started
 	err = DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), main)
 	if err != OK:
-		push_warning("Travel.save_game rename failed: %s" % err)
+		# the previous main file is untouched (rename is all-or-nothing); say so once, not every save
+		if not _warned_rename:
+			_warned_rename = true
+			push_warning("Travel.save_game rename failed: %s; the previous save stands" % err)
 		return
 	_main_ok = true
+	_wrote_ok = true
 	_loaded_cfg = cfg
 
 

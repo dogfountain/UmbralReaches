@@ -50,9 +50,13 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 	var slot := String(p.get("slot", ""))
 	lines.append(_c(INK, String(GearDB.SLOT_NAMES.get(slot, slot))) + ("    " + _c(GOLD, "Worn") if worn else ""))
 	lines.append(_c(INK, GearDB.base_line(p)))
+	# the sentence that changes a verb leads; the percents are the second look (small and quiet beneath it,
+	# full size on the gear page where they are reforged: opts "full")
+	var verb_led := GearDB.trait_line(p) != "" and not bool(opts.get("full", false))
 	for a: Variant in p.get("aff", []):
 		if a is Array:
-			lines.append(_c(STAT, "+ " + GearDB.affix_line(p, a)))
+			var al := "+ " + GearDB.affix_line(p, a)
+			lines.append("[font_size=14]%s[/font_size]" % _c(QUIET, al) if verb_led else _c(STAT, al))
 	var lg := String(p.get("legend", ""))
 	if GearDB.LEGENDS.has(lg):
 		lines.append(_c(LootDB.quality_color(4), String(GearDB.LEGENDS[lg].text)))

@@ -27,7 +27,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	offset_left = -640
 	offset_right = -44
-	offset_top = 34
+	offset_top = 86                       # under the compass strip (it ends at 82), not behind it
 	offset_bottom = 420
 	alignment = BoxContainer.ALIGNMENT_BEGIN
 	add_theme_constant_override("separation", 6)

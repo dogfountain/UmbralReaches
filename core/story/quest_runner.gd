@@ -49,9 +49,10 @@ static func kind_of(e: Node) -> String:
 static func in_region(id: String, x: float, z: float) -> bool:
 	if id == "":
 		return true
-	for r: Dictionary in RealmLayout.REGIONS:
-		if String(r.id) == id:
-			return RealmLayout.place_weight(r, x, z) > 0.5
+	for want in id.split(","):          # "fen,barrows": any of several grounds
+		for r: Dictionary in RealmLayout.REGIONS:
+			if String(r.id) == want.strip_edges() and RealmLayout.place_weight(r, x, z) > 0.5:
+				return true
 	return false
 
 

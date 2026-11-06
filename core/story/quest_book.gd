@@ -6,8 +6,8 @@ extends RefCounted
 ##   tick   int                      bumps on every quest change (the newest task is shown first)
 ##   track  {id: false}              tasks the wanderer took off the tracker (ui/quest_log.gd)
 ## r33 per task: "n" the current step's count (slay / collect / seal), "of" a seal's guard total,
-## "rw" the gear offered at the accept screen (one is chosen at the turn-in), "day" the date a
-## daily was handed in, "c" how many times it was, "left" a carried coal's seconds.
+## "rw" the gear offered at the accept screen (one is chosen at the turn-in), "day" the village
+## night a daily was handed in, "c" how many times it was, "left" a carried coal's seconds.
 ## Quest data (names, steps, rewards): quest_chains.gd. The world side (pickups, the escort, the
 ## hollowed man, the props that show an outcome) is quest_world.gd; the conversations drive the
 ## steps through `run()` actions, and test them through `term()` conditions (QuestDB.test and
@@ -112,8 +112,8 @@ static func start(id: String) -> bool:
 		d["c"] = c
 	(st().quests as Dictionary)[id] = d
 	_touch(d)
-	_toast(Chains.step_text(id, 0, d))         # the banner (ui/quest_log.gd) names the task
 	_changed(id)
+	_announce(id, 0, d)                        # the banner (ui/quest_log.gd) names the task
 	return true
 
 
@@ -133,8 +133,22 @@ static func advance(id: String, to := -1) -> void:
 	d["n"] = 0
 	d.erase("left")
 	_touch(d)
-	_toast(String(Chains.step_text(id, nx, d)))
 	_changed(id)
+	_announce(id, nx, d)
+
+
+## Toast the step just landed on. A world condition that is already true (the heart already cut, the
+## bells already rung) is spoken in the past from the step's `past`, then the task moves on at once.
+static func _announce(id: String, s: int, d: Dictionary) -> void:
+	var stp := Chains.step(id, s)
+	if String(stp.get("kind", "")) == "cond" and stp.has("past"):
+		var cond := String(stp.get("cond", "")).split(":", true, 1)
+		var met: Variant = Travel.bosses_slain.has(cond[1]) if cond[0] == "boss" and cond.size() > 1 else (term(cond[0], cond[1]) if cond.size() > 1 else null)
+		if met == true:
+			_toast(String(stp.past))
+			advance(id, s + 1)
+			return
+	_toast(String(Chains.step_text(id, s, d)))
 
 
 static func complete(id: String, choice := -1) -> void:
@@ -230,8 +244,15 @@ static func find(id: String, key: String) -> int:
 
 # --- r33: offered tasks, the turn-in, dailies, counts, the tracker --------------------------------
 
+## A daily's "day" is the village night count (Village.nights, the integer the cart restocks on), never
+## the machine's date: a session across midnight does not refresh the board, a new evening at the green does.
 static func today() -> String:
-	return day_override if day_override != "" else Time.get_date_string_from_system()
+	if day_override != "":
+		return day_override
+	var tree := Engine.get_main_loop() as SceneTree
+	var v: Node = tree.get_first_node_in_group("villager") if tree else null
+	var village: Variant = v.get("village") if v else null
+	return "night %d" % (int((village as Object).get("nights")) if village is Object else 0)
 
 
 ## A daily handed in on an earlier day may be taken up again.

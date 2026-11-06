@@ -170,16 +170,17 @@ func world() -> Dictionary:
 ## The HUD's lines: the story's spine (at most 3), then the newest tracked tasks (3, each with its
 ## name and count: QuestBook.lines), then the kindling; seven at most (r33).
 func objectives() -> Array:
+	# the corner holds three lines at most: the spine (two), the one tracked task, then the side line if there is room
 	var all := QuestDB.active(world(), 9)
 	var out: Array = []
 	for o: Dictionary in all:
-		if bool(o.main) and out.size() < 3:
+		if bool(o.main) and out.size() < 2:
 			out.append(o)
-	out.append_array(QuestBook.lines(3))
+	out.append_array(QuestBook.lines(1))
 	for o2: Dictionary in all:
-		if not bool(o2.main) and out.size() < 7:
+		if not bool(o2.main) and out.size() < 3:
 			out.append(o2)
-	return out.slice(0, 7)
+	return out.slice(0, 3)
 
 
 # --- conversations ---------------------------------------------------------------------------

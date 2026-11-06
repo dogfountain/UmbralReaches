@@ -254,7 +254,7 @@ func _process(delta: float) -> void:
 		_seen_capture = true
 	_tips_tick(delta)
 	if _aim:
-		_aim.visible = not _menu_open()          # no crosshair over a conversation or a menu
+		_aim.visible = not _menu_open() and not _td.is_up(&"lesson")          # no crosshair over a menu, a conversation or a lesson
 	if not _debug.visible:
 		return
 	_debug_t += delta
@@ -407,16 +407,7 @@ const PROMPTS := ["move", "jump2", "hang", "slide", "lock", "gloom", "roll"]
 
 ## The first key or mouse button bound to `action` (rebinding-proof), else `fallback`.
 func _key(action: String, fallback: String) -> String:
-	if not InputMap.has_action(action):
-		return fallback
-	for ev in InputMap.action_get_events(action):
-		if ev is InputEventKey:
-			var k := ev as InputEventKey
-			var code := k.physical_keycode if k.physical_keycode != KEY_NONE else k.keycode
-			return OS.get_keycode_string(code)
-		if ev is InputEventMouseButton:
-			return String({MOUSE_BUTTON_LEFT: "LMB", MOUSE_BUTTON_RIGHT: "RMB", MOUSE_BUTTON_MIDDLE: "MMB"}.get((ev as InputEventMouseButton).button_index, fallback))
-	return fallback
+	return InputSetup.live_label(action, false, fallback)
 
 
 ## Just-in-time prompts: one line, the first time an action matters, once per save. They go to the
@@ -428,6 +419,9 @@ func _tips_tick(delta: float) -> void:
 	_tip_check = 0.25
 	if _menu_open() or (not staged_in() and not _lifting):
 		return
+	var zn := get_tree().current_scene
+	if zn != null and zn.get_node_or_null("LoadingScreen") != null:
+		return                         # the cover is still up: no lesson over a tour
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	if p == null or not p.is_inside_tree():
 		return
@@ -458,7 +452,10 @@ func _jit(id: String, text: String) -> void:
 
 
 func _pk_move() -> String:
-	return "Left stick" if _pad else "WASD"
+	if _pad:
+		return "Left stick"
+	var keys: Array = ["move_forward", "move_left", "move_back", "move_right"].map(func(a: String) -> String: return InputSetup.live_label(a, false, "?"))
+	return "WASD" if "".join(keys) == "WASD" else " ".join(keys)
 
 
 ## A combat lesson (ui/hints.gd), or a prompt: the text director's lesson lane.
@@ -514,9 +511,7 @@ func _stage_tick(delta: float) -> void:
 
 ## Key or pad name for a tip, by the device in use.
 func _pk(action: String, pad_name: String) -> String:
-	if _pad:
-		return pad_name
-	return _key(action, action)
+	return InputSetup.live_label(action, _pad, pad_name if _pad else action)
 
 
 func _foe_near(p: Node3D, r: float) -> bool:

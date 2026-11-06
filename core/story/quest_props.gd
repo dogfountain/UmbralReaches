@@ -77,6 +77,16 @@ static func make(parent: Node3D, n: String, kind: String, xf: Transform3D) -> No
 			for i in 4:
 				var a := float(i) * 1.6
 				k.box("glow", Vector3(cos(a) * 0.05, 0.07, sin(a) * 0.05), Vector3(0.07, 0.05, 0.06), Basis(Vector3.UP, a), false, 0.9)
+		"loaf_circle":
+			# One Loaf's outcome: the loaf by the green's fire, inside a chalk circle
+			_chalk(k, Vector3.ZERO, 0.36)
+			k.box("plaster", Vector3(0, 0.07, 0), Vector3(0.24, 0.1, 0.16), Basis(Vector3.UP, 0.2), false, 0.62)
+			k.box("dark", Vector3(0, 0.122, 0), Vector3(0.16, 0.006, 0.014), Basis(Vector3.UP, 0.2), false, 1.0)
+			k.box("dark", Vector3(0, 0.122, 0), Vector3(0.014, 0.006, 0.11), Basis(Vector3.UP, 0.2), false, 1.0)
+		"thorn":
+			# What the Oaks Keep: a thorn buried face down, only the butt showing in a low mound
+			k.box("stone", Vector3(0, 0.03, 0), Vector3(0.34, 0.06, 0.28), Basis(Vector3.UP, 0.5), false, 1.0)
+			k.box("dark", Vector3(0.0, 0.08, 0.0), Vector3(0.05, 0.1, 0.05), Basis(Vector3.RIGHT, 0.12) * Basis(Vector3.UP, 0.5), false, 0.8)
 		"loaf":
 			# r33: the Almonry's last loaf on a board, a cross cut in the crust
 			k.box("wood", Vector3(0, 0.02, 0), Vector3(0.42, 0.04, 0.3), Basis(Vector3.UP, 0.2), false, 0.7)
@@ -91,7 +101,7 @@ static func make(parent: Node3D, n: String, kind: String, xf: Transform3D) -> No
 			k.box("iron", cb * Vector3(0, 0.33, -0.06) + Vector3(0, 0.05, 0), Vector3(0.1, 0.05, 0.03), cb, false, 0.5)
 		# r36 Act II: one of the Founder's bells, hung low on a timber frame (the pickup opens its
 		# conversation: ring it, or carry the tongue)
-		"bell":
+		"bell", "bell_bare":
 			for sx: float in [-0.62, 0.62]:
 				k.box("wood", Vector3(sx, 0.75, 0), Vector3(0.12, 1.5, 0.12), Basis.IDENTITY, false, 0.7)
 			k.box("wood", Vector3(0, 1.52, 0), Vector3(1.5, 0.12, 0.14), Basis.IDENTITY, false, 0.7)
@@ -107,7 +117,8 @@ static func make(parent: Node3D, n: String, kind: String, xf: Transform3D) -> No
 				var row: Array = rows[i]
 				for j in 2:
 					kb.box("iron", Vector3(0, float(row[0]) - hs, 0), Vector3(float(row[1]), float(row[2]), float(row[1])), Basis(Vector3.UP, 0.785 * float(j)), false, 0.42 + 0.03 * float(i))
-			kb.box("iron", Vector3(0, 0.66 - hs, 0), Vector3(0.06, 0.2, 0.06), Basis.IDENTITY, false, 0.4)
+			if kind == "bell":                 # "bell_bare": the tongue was carried away, the loop hangs empty
+				kb.box("iron", Vector3(0, 0.66 - hs, 0), Vector3(0.06, 0.2, 0.06), Basis.IDENTITY, false, 0.4)
 			sw.take(kb, FAR)
 			for c in sw.get_children():
 				if c is GeometryInstance3D:

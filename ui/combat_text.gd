@@ -65,10 +65,18 @@ func pop(at: Vector3, text: String, kind := "damage") -> void:
 		"jitter": Vector2(randf_range(-14.0, 14.0), randf_range(-6.0, 6.0))})
 
 
+## The amount the plate took: a whole stays whole, a fraction keeps its hundredths (6.25, 21.6).
+static func amount_text(amount: float) -> String:
+	if is_equal_approx(amount, roundf(amount)):
+		return str(roundi(amount))
+	var t := "%.2f" % amount
+	return t.rstrip("0").rstrip(".")
+
+
 func _on_hurt(amount: float, _from: Vector3) -> void:
 	if amount < 0.5 or _player == null:
 		return
-	pop(_player.global_position + Vector3.UP * 1.9, "−%d" % roundi(amount), "hurt_big" if amount >= 20.0 else "hurt")
+	pop(_player.global_position + Vector3.UP * 1.9, "−" + amount_text(amount), "hurt_big" if amount >= 20.0 else "hurt")
 	# the blow lands on the Wounds just after this signal: count it as already there
 	_last_gloom = float(_player.get("wounds")) + amount if "wounds" in _player else -1.0
 
@@ -81,12 +89,14 @@ func _process(delta: float) -> void:
 		if _last_gloom >= 0.0 and w <= _last_gloom - 2.0:
 			pop(_player.global_position + Vector3.UP * 1.7, "+%d" % roundi(_last_gloom - w), "heal")
 		_last_gloom = w
+	var had := not _pops.is_empty()
 	for i in range(_pops.size() - 1, -1, -1):
 		_pops[i].t = float(_pops[i].t) + delta
 		if float(_pops[i].t) > LIFE:
 			_pops.remove_at(i)
 	visible = not get_tree().paused
-	if not _pops.is_empty() or visible:
+	# redraw only while a pop is alive, and through the frame the last one dies
+	if visible and (had or not _pops.is_empty()):
 		queue_redraw()
 
 

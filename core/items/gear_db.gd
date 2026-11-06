@@ -65,7 +65,7 @@ const AFFIX := {
 	"shade_life": {"key": "shade_life", "op": "add", "roll": [0.8, 1.6], "fmt": "A Bound Shade stays %.1f s longer", "of": "of the Kept Shade"},
 	"tether_reach": {"key": "tether_reach", "op": "add", "roll": [1.0, 2.0], "fmt": "Rift Tether reaches %.1f m further", "of": "of the Long Chain"},
 	"peal_reach": {"key": "peal_reach", "op": "add", "roll": [0.5, 1.0], "fmt": "The Founder's Peal carries %.1f m further", "of": "of the Carrying Note"},
-	"ash_find": {"key": "ash_find", "op": "add", "roll": [0.04, 0.08], "fmt": "Foes give %d%% more grave ash", "pct": true, "of": "of the Gleaner"},
+	"ash_find": {"key": "ash_find", "op": "add", "roll": [0.04, 0.08], "fmt": "About %d kills in a hundred leave one more pinch of grave ash, beside you", "pct": true, "of": "of the Gleaner"},
 }
 ## Which affixes each slot can roll: every slot leans toward a way of fighting.
 const SLOT_AFFIX := {
@@ -96,7 +96,7 @@ const SETS := {
 		"pieces": {"focus": "Ferryman's Hook-Ring", "vestment": "Ferryman's Fen-Cloak", "lantern": "Ferryman's Bow-Lamp Glass", "girdle": "Ferryman's Tow-Rope"},
 		"lore": "Fen clothes, oiled against the water and the dead in it. The ferrymen never lost a passenger. Some came back to argue.",
 		"two": {"text": "+0.15 damage for every Mark detonated.", "mods": [["mark_dmg", "add", 0.15]]},
-		"four": {"text": "Rift Tether Marks everything along its chain, and the hook and a Bound Shade's darts lay 2 Marks, not 1.",
+		"four": {"text": "Rift Tether Marks everything along its chain and recovers 2 s sooner, and the hook and a Bound Shade's darts lay 2 Marks, not 1.",
 			"flags": ["hook", "chalk"]}},
 	"tally": {"name": "Lay Brother's Tally", "tint": Color("#E8DCC0"),
 		"pieces": {"focus": "Tally-Bead Collar", "vestment": "Lay Brother's Scapular", "lantern": "Charnel Lamp-Horn", "girdle": "Counted Cincture"},
@@ -125,7 +125,7 @@ const LEGENDS := {
 		"text": "Legend: a Bound Shade stays 6 s longer, and its darts burst on a Marked foe.",
 		"lore": "A lamp-glass that was never lit. Something lives in it instead of a flame."},
 	"stair_rope": {"slot": "girdle", "name": "Rope of the Stair", "flags": ["ferrule", "step_briar"],
-		"text": "Legend: every foe within 2 m of where Rift Step lands takes a Mark, and the step roots what it passes in brambles.",
+		"text": "Legend: every foe within 2 m of where Rift Step lands takes a Mark, and the step slows what it passes (within about a metre and a half of the line) to a little under half speed for 2 s.",
 		"lore": "The pilgrims roped themselves together on the Stair. This length was cut."},
 }
 const LEGEND_ORDER := ["door_splinter", "sunk_shroud", "unlit_lamp", "stair_rope"]
@@ -135,10 +135,10 @@ const LEGEND_ORDER := ["door_splinter", "sunk_shroud", "unlit_lamp", "stair_rope
 ## flags); kill_spark, ash_hunger and peal_echo are new (kindling.gd _on_killed, skill_peal.gd).
 const TRAITS := {
 	"rosary": {"flags": ["rosary"], "slots": ["focus", "lantern"], "text": "Trait: a burning foe takes a Mark for every second it burns."},
-	"hook": {"flags": ["hook"], "slots": ["focus", "girdle"], "text": "Trait: Rift Tether Marks everything along its chain."},
+	"hook": {"flags": ["hook"], "slots": ["focus", "girdle"], "text": "Trait: Rift Tether Marks everything along its chain and recovers 2 s sooner."},
 	"chalk": {"flags": ["chalk"], "slots": ["focus", "lantern"], "text": "Trait: the Tether's hook and a Shade's darts lay 2 Marks."},
 	"ferrule": {"flags": ["ferrule"], "slots": ["girdle"], "text": "Trait: every foe within 2 m of where Rift Step lands takes a Mark."},
-	"step_briar": {"flags": ["step_briar"], "slots": ["girdle", "vestment"], "text": "Trait: Rift Step roots what it passes in brambles."},
+	"step_briar": {"flags": ["step_briar"], "slots": ["girdle", "vestment"], "text": "Trait: Rift Step slows what it passes to a little under half speed for 2 s, within about a metre and a half of the line."},
 	"bramble": {"flags": ["bramble"], "slots": ["vestment", "lantern"], "text": "Trait: Lantern Ward roots what crosses its light in brambles."},
 	"kill_spark": {"flags": ["kill_spark"], "slots": ["vestment", "girdle"], "text": "Trait: a kill takes 1 s off every spell's recovery, one time in four."},
 	"ash_hunger": {"flags": ["ash_hunger"], "slots": ["vestment", "lantern"], "text": "Trait: every kill near you gives one more pinch of grave ash."},

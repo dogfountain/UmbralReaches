@@ -169,8 +169,26 @@ func _process(delta: float) -> void:
 	_pick_target(delta)
 	_tick_boss(delta)
 	_tick_encounter_layout()
-	if _alpha > 0.0:
+	if _alpha > 0.0 and _plate_dirty():
 		queue_redraw()
+
+
+var _sig: Array = []
+
+## A settled plate waits: it redraws when a value on it changes (health, gloom, level, window, the eye's
+## blink), and every frame while something on it is moving (a pulse, a target, a buff timer, a cast,
+## a number rising, the fade).
+func _plate_dirty() -> bool:
+	var gr := float(_p("gloom", 0.0)) / maxf(float(_p("gloom_max", 100.0)), 0.001)
+	var sig: Array = [snappedf(_alpha, 0.001), _p("wounds", 0.0), _p("wounds_max", 0.0), _p("gloom", 0.0),
+		_p("gloom_max", 100.0), _player_level(), _vs(), fposmod(_t, 5.3) > 0.12, HudPrefs.gloom_known()]
+	var moving := _fight > 0.0 or gr > 0.75 or not _buffs.is_empty() or not _portrait_pops.is_empty() \
+		or _buff_note_t > 0.0 or _target != null or _boss != null or _t_alpha > 0.0 or _b_alpha > 0.0 \
+		or _soft_t > 0.0 or _alpha < 1.0 or not _cast_state().is_empty()
+	if moving or sig != _sig:
+		_sig = sig
+		return true
+	return false
 
 
 # --- data ------------------------------------------------------------------------------------------
@@ -526,6 +544,8 @@ func _subline(e: Node, rank: String) -> String:
 	return "  ·  ".join(parts)
 
 
+const FEINT_S := 0.3    ## enemy.gd FEINT lasts this long
+
 ## {name, t, interruptible, col} while it winds up a move, else {}.
 func _cast_of(e: Node) -> Dictionary:
 	var b: Array = _broke.get(e.get_instance_id(), [])
@@ -546,7 +566,9 @@ func _cast_of(e: Node) -> Dictionary:
 	var st := int(e.get("_state"))
 	var st_t := float(e.get("_state_t")) if "_state_t" in e else 0.0
 	match st:
-		2, 8:   # WINDUP, FEINT (a feint looks like a blow until it isn't)
+		8:      # FEINT: a rear with no red. The bar says so over the 0.3 s the fake lasts; BREAK waits for the red
+			return {"name": "Feint", "t": clampf(st_t / FEINT_S, 0.0, 1.0), "interruptible": false}
+		2:      # WINDUP: the real blow (the red starts with this fill)
 			var w := float(e.get("_cur_windup")) if "_cur_windup" in e else 0.42
 			var chained := int(e.get("_combo_left")) > 0 if "_combo_left" in e else false
 			return {"name": "Flurry" if chained else "Strike", "t": clampf(st_t / maxf(w, 0.05), 0.0, 1.0), "interruptible": true}
@@ -688,9 +710,10 @@ func _tick_encounter_layout() -> void:
 				break
 	if not is_instance_valid(_enc_hud):
 		return
-	if "_status" in _enc_hud and _enc_hud.get("_status") is Control:
+	# the tide line and the nightmare line move to our plate only while the frames are on
+	if HudPrefs.unit_frames and "_status" in _enc_hud and _enc_hud.get("_status") is Control:
 		(_enc_hud.get("_status") as Control).position = Vector2(PF_POS.x + 6, _buff_row_y() + ICON + 26.0)
-	if "_ng" in _enc_hud and _enc_hud.get("_ng") is Control:
+	if HudPrefs.unit_frames and "_ng" in _enc_hud and _enc_hud.get("_ng") is Control:
 		(_enc_hud.get("_ng") as Control).position = Vector2(PF_POS.x + PORTRAIT_R * 2.0 + 16.0, PF_POS.y + 96.0)
 	if "_elite_box" in _enc_hud and _enc_hud.get("_elite_box") is Control:
 		var box := _enc_hud.get("_elite_box") as Control
@@ -783,7 +806,7 @@ func _draw_player() -> void:
 	if hp.x >= 0.0:
 		var hr := Rect2(Vector2(x, y), Vector2(w, 16))
 		_bar(hr, hp.x / hp.y, HEALTH, 1.0)
-		_text(hr.position + Vector2(0, 13), "%d / %d" % [roundi(hp.x), roundi(hp.y)], 12, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
+		_text(hr.position + Vector2(0, 13), "%s / %s" % [_num(hp.x), _num(hp.y)], 12, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
 		y += 19.0
 		if gloom_known:
 			var gb := Rect2(Vector2(x, y), Vector2(w, 12))
@@ -1049,7 +1072,7 @@ func _draw_unit(e: Node3D, at: Vector2, w: float, a: float, is_boss: bool) -> vo
 
 
 func _num(v: float) -> String:
-	return str(roundi(v)) if v >= 10.0 or is_equal_approx(v, roundf(v)) else "%.1f" % v
+	return str(roundi(v)) if is_equal_approx(v, roundf(v)) else "%.1f" % v         # a pool that is not whole shows its tenth
 
 
 ## The uninterruptible mark: a small grey shield.
@@ -1105,6 +1128,25 @@ func _emblem(c: Vector2, rank: String, col: Color, a: float) -> void:
 ## The wanderer's own cast bar, over the hotbar: a charging Lance, a heavy staff draw, or anything
 ## the player reports through cast_info().
 func _draw_player_cast() -> void:
+	var cs := _cast_state()
+	if cs.is_empty():
+		return
+	var name_t := String(cs.name)
+	var t := float(cs.t)
+	var col: Color = cs.col
+	var full := bool(cs.full)
+	var w := 300.0
+	var r := Rect2(Vector2(_vs().x * 0.5 - w * 0.5, _vs().y - 200.0), Vector2(w, 16))
+	draw_rect(r.grow(3.0), Color(PLATE, 0.9))
+	draw_rect(r, Color(0.02, 0.015, 0.02, 0.9))
+	var c := Color(minf(col.r, 1.0), minf(col.g, 1.0), minf(col.b, 1.0))
+	draw_rect(Rect2(r.position, Vector2(r.size.x * clampf(t, 0.0, 1.0), r.size.y)), c.lerp(Color(1, 0.95, 0.85), 0.5 if full else 0.0))
+	draw_rect(r.grow(3.0), Color(GOLD if full else RIM, 0.95), false, 1.5)
+	_text(r.position + Vector2(0, 13), name_t + ("  ·  READY" if full else ""), 13, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
+
+
+## What the wanderer's own cast bar shows right now: {name, t, col, full}, or {} when there is no cast.
+func _cast_state() -> Dictionary:
 	var name_t := ""
 	var t := -1.0
 	var col := LILAC
@@ -1148,12 +1190,5 @@ func _draw_player_cast() -> void:
 		t = 1.0
 		col = Color(0.85, 0.25, 0.2)
 	if t < 0.0:
-		return
-	var w := 300.0
-	var r := Rect2(Vector2(_vs().x * 0.5 - w * 0.5, _vs().y - 200.0), Vector2(w, 16))
-	draw_rect(r.grow(3.0), Color(PLATE, 0.9))
-	draw_rect(r, Color(0.02, 0.015, 0.02, 0.9))
-	var c := Color(minf(col.r, 1.0), minf(col.g, 1.0), minf(col.b, 1.0))
-	draw_rect(Rect2(r.position, Vector2(r.size.x * clampf(t, 0.0, 1.0), r.size.y)), c.lerp(Color(1, 0.95, 0.85), 0.5 if full else 0.0))
-	draw_rect(r.grow(3.0), Color(GOLD if full else RIM, 0.95), false, 1.5)
-	_text(r.position + Vector2(0, 13), name_t + ("  ·  READY" if full else ""), 13, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
+		return {}
+	return {"name": name_t, "t": t, "col": col, "full": full}

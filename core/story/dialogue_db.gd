@@ -305,7 +305,7 @@ const CONV := {
 			]},
 			"rung": {"say": "You ring it slow, the way dusk is rung. Far off in the Holds a door opens. Then another.", "who": "", "do": "qp:bell_holds:rung,qa:bell_holds", "next": ""},
 			"carried": {"say": "You lift the tongue out of its loop. Bark and lichen come away on the iron, and it hangs from your hand like a sleeper's arm. The Holds' bell hangs dumb.", "who": "", "do": "qp:bell_holds:carried,qa:bell_holds", "next": ""},
-			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+			"gone": {"say_if": [["qp:bell_holds:carried", "The bell hangs dumb and empty; the loop is bare where you took the tongue."], ["", "The bell hangs where you left it, tongue and all."]], "who": "", "next": ""},
 		},
 	},
 	# r36 Act II: The Mason's Bell (quest bell_quarry, step 1; the pickup opens this)
@@ -320,7 +320,7 @@ const CONV := {
 			]},
 			"rung": {"say": "You ring stop. The quarry, which has never been quiet, goes quiet. Somewhere a pick is set down on stone.", "who": "", "do": "qp:bell_quarry:rung,qa:bell_quarry", "next": ""},
 			"carried": {"say": "You lift the tongue out of its loop. Stone dust is ground into the iron, grey in every pit of it, and your palm comes away white. The bell hangs dumb.", "who": "", "do": "qp:bell_quarry:carried,qa:bell_quarry", "next": ""},
-			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+			"gone": {"say_if": [["qp:bell_quarry:carried", "The bell hangs dumb and empty; the loop is bare where you took the tongue."], ["", "The bell hangs where you left it, tongue and all."]], "who": "", "next": ""},
 		},
 	},
 	# r36 Act II: The Wayfarer's Bell (quest bell_moor, step 1; the pickup opens this)
@@ -335,7 +335,7 @@ const CONV := {
 			]},
 			"rung": {"say": "You ring it into the dark, slow, a step's length apart. Out on the moor something stops walking toward the bog.", "who": "", "do": "qp:bell_moor:rung,qa:bell_moor", "next": ""},
 			"carried": {"say": "You lift the tongue out of its loop. Fog has beaded on it and runs cold down your wrist. The bell hangs dumb; the moor does not notice.", "who": "", "do": "qp:bell_moor:carried,qa:bell_moor", "next": ""},
-			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+			"gone": {"say_if": [["qp:bell_moor:carried", "The bell hangs dumb and empty; the loop is bare where you took the tongue."], ["", "The bell hangs where you left it, tongue and all."]], "who": "", "next": ""},
 		},
 	},
 	# r36 Act II: The Tenor (quest bell_foundry, step 1; the pickup opens this)
@@ -350,7 +350,7 @@ const CONV := {
 			]},
 			"rung": {"say": "You ring the Tenor where it was cast. The slag heaps hum back at it, every one, a note lower.", "who": "", "do": "qp:bell_foundry:rung,qa:bell_foundry", "next": ""},
 			"carried": {"say": "You lift the tongue out of its loop. It is still warm from the pits, and the iron ticks as it cools in your hand. The Tenor hangs dumb.", "who": "", "do": "qp:bell_foundry:carried,qa:bell_foundry", "next": ""},
-			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+			"gone": {"say_if": [["qp:bell_foundry:carried", "The bell hangs dumb and empty; the loop is bare where you took the tongue."], ["", "The bell hangs where you left it, tongue and all."]], "who": "", "next": ""},
 		},
 	},
 	# r36 Act II: The Harvest Bell (quest bell_orchard, step 1; the pickup opens this)
@@ -365,7 +365,7 @@ const CONV := {
 			]},
 			"rung": {"say": "You ring the harvest in. Nothing to bring in. The burned rows listen anyway, the way trees do.", "who": "", "do": "qp:bell_orchard:rung,qa:bell_orchard", "next": ""},
 			"carried": {"say": "You lift the tongue out of its loop. Ash comes off it like flour, and under the ash the iron is stained the colour of a burned apple. The bell hangs dumb.", "who": "", "do": "qp:bell_orchard:carried,qa:bell_orchard", "next": ""},
-			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+			"gone": {"say_if": [["qp:bell_orchard:carried", "The bell hangs dumb and empty; the loop is bare where you took the tongue."], ["", "The bell hangs where you left it, tongue and all."]], "who": "", "next": ""},
 		},
 	},
 	# r36 Act II: The Passing Bell (quest bell_necropolis, step 1; the pickup opens this)
@@ -380,7 +380,7 @@ const CONV := {
 			]},
 			"rung": {"say": "One stroke. For all of them. The ranks of the Waiting Field do not turn to face the mountain. For once.", "who": "", "do": "qp:bell_necropolis:rung,qa:bell_necropolis", "next": ""},
 			"carried": {"say": "You lift the tongue out of its loop. Names are scratched in the lip of the bell, hundreds, small and crooked, and your thumb finds them on the way out. The bell hangs dumb.", "who": "", "do": "qp:bell_necropolis:carried,qa:bell_necropolis", "next": ""},
-			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+			"gone": {"say_if": [["qp:bell_necropolis:carried", "The bell hangs dumb and empty; the loop is bare where you took the tongue."], ["", "The bell hangs where you left it, tongue and all."]], "who": "", "next": ""},
 		},
 	},
 	# r36 Act II: The Ferry Bell (quest bell_mere, step 1; the pickup opens this)
@@ -395,7 +395,7 @@ const CONV := {
 			]},
 			"rung": {"say": "You ring for the ferry. Out on the black water an oar dips, once, and does not come closer. It does not need to.", "who": "", "do": "qp:bell_mere:rung,qa:bell_mere", "next": ""},
 			"carried": {"say": "You lift the tongue out of its loop. It is slick with mere water, and smells of reeds and a long time under. The bell hangs dumb across the black water.", "who": "", "do": "qp:bell_mere:carried,qa:bell_mere", "next": ""},
-			"gone": {"say": "The bell hangs where you left it.", "who": "", "next": ""},
+			"gone": {"say_if": [["qp:bell_mere:carried", "The bell hangs dumb and empty; the loop is bare where you took the tongue."], ["", "The bell hangs where you left it, tongue and all."]], "who": "", "next": ""},
 		},
 	},
 }

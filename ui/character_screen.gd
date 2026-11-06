@@ -44,11 +44,13 @@ var _top := 0
 var _sub: Array[int] = [0, 0, 0, 0]
 var _open := false
 var _was_captured := false
+var _was_paused := false
 var _panel: Node = null                    ## the hosted panel showing now
 var _root: Control
 var _top_btns: Array[Button] = []
 var _sub_row: HBoxContainer
 var _trig := [false, false]                ## pad LT / RT held (edge detect on the axes)
+var _hint: Label
 var _backdrop: CanvasLayer                 ## a dim under every page (layer 58): pages without their own dim
 
 
@@ -74,11 +76,26 @@ func is_open() -> bool:
 	return _open
 
 
-## Open at `top` (a tab id) and `page` (a page id; "" keeps that tab's last page).
+## The close word names every key bound to inventory (Tab and I by default); Q and E are the physical page keys.
+func _hint_refresh() -> void:
+	if _hint == null:
+		return
+	var names := PackedStringArray()
+	for ev in InputMap.action_get_events("inventory"):
+		if InputSetup.slot_of(ev) == "key":
+			names.append(InputSetup.event_name(ev))
+	_hint.text = "[1-4] tabs   ·   [Q] [E] pages   ·   [%s] close" % " / ".join(names if not names.is_empty() else PackedStringArray(["Tab"]))
+
+
+## Open at `top` (a tab id) and `page` (a page id). A page you were not sent to is the tab's first, not a stale
+## page left from an hour ago (switching tabs while it is open keeps each tab's page).
 func open_at(top: String, page := "", from_fire := false) -> void:
+	_hint_refresh()
 	var ti := _tab_index(top)
 	if ti < 0:
 		return
+	if page == "" and not _open:
+		_sub[ti] = 0
 	if page != "":
 		var pi := _page_index(ti, page)
 		if pi >= 0:
@@ -86,6 +103,7 @@ func open_at(top: String, page := "", from_fire := false) -> void:
 	if not _open:
 		_open = true
 		_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+		_was_paused = get_tree().paused          # opened over a shop or a conversation: leave it as it was found
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		get_tree().paused = true
 		_root.visible = true
@@ -101,8 +119,8 @@ func close() -> void:
 	_unhost()
 	_root.visible = false
 	_backdrop.visible = false
-	get_tree().paused = false
-	if _was_captured:
+	get_tree().paused = _was_paused
+	if _was_captured and not _was_paused:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	UiSound.play(self, "back")
 
@@ -340,7 +358,8 @@ func _build() -> void:
 	_sub_row.add_theme_constant_override("separation", 6)
 	col.add_child(_sub_row)
 	var hint := Label.new()
-	hint.text = "[1-4] tabs   ·   [Q] [E] pages   ·   [Tab] close"
+	_hint = hint
+	_hint_refresh()
 	hint.add_theme_font_override("font", UIType.body())
 	hint.add_theme_font_size_override("font_size", 15)
 	hint.add_theme_color_override("font_color", DIM)

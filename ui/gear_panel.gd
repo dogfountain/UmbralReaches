@@ -273,6 +273,8 @@ func close_menu() -> void:
 	if not _root.visible:
 		return
 	_root.visible = false
+	if hosted:
+		return                              # a page of the character screen: it keeps the pause and the mouse
 	UiSound.play(self, "back")
 	if get_tree().paused:
 		get_tree().paused = false
@@ -466,7 +468,7 @@ func _show() -> void:
 	_d_lore.text = lore
 	# r33 loot: the shared tooltip replaces the plain lines (kept in _d_body, hidden, for tests)
 	var cur: Dictionary = GearStats.worn(st).get(String(p.slot), {})
-	var tip := Tip.piece(p, cur, st)
+	var tip := Tip.piece(p, cur, st, {"full": true})        # the page you reforge on shows every line in full
 	var parts := tip.split("\n", true, 1)
 	_d_rich.text = parts[1] if parts.size() > 1 else tip
 	if aff.size() > 1 and Slice.full():
@@ -524,6 +526,9 @@ func _upgrade() -> void:
 	_rebuild()
 	if res != "":
 		_why.text = res
+	else:
+		var up := GearStats.find(_st(), _sel_uid)
+		_why.text = "%s is now level %d." % [String(up.get("name", "It")), int(up.get("level", 0))]
 
 
 func _reforge() -> void:
@@ -534,6 +539,10 @@ func _reforge() -> void:
 	if rt == null or p.is_empty():
 		return
 	var n := (p.get("aff", []) as Array).size()
+	var was := ""
+	if _reforge_idx < n:
+		was = GearDB.affix_line(p, (p.get("aff", []) as Array)[_reforge_idx])
+	var at_idx := _reforge_idx
 	var res := String(rt.call("reforge", _sel_uid, _reforge_idx, at_fire()))
 	if res == "" and n > 1:
 		_reforge_idx = (_reforge_idx + 1) % n       # the next press reforges the next line
@@ -541,6 +550,12 @@ func _reforge() -> void:
 	_rebuild()
 	if res != "":
 		_why.text = res
+	else:
+		# one line, the verb first: the affix that left and the one that came
+		var np := GearStats.find(_st(), _sel_uid)
+		var affs: Array = np.get("aff", [])
+		if at_idx < affs.size():
+			_why.text = "Reforged: %s becomes %s." % [was, GearDB.affix_line(np, affs[at_idx])]
 
 
 func _salvage() -> void:
@@ -555,10 +570,13 @@ func _salvage() -> void:
 		_show()
 		return
 	_confirm_salvage = -1
+	var sp := GearStats.find(_st(), _sel_uid)
+	var shards := GearDB.salvage_value(sp) if not sp.is_empty() else 0
 	rt.call("salvage", _sel_uid)
 	_sel_uid = -1
 	UiSound.play(self, "confirm")
 	_rebuild()
+	_why.text = "Salvaged: +%d shards." % shards
 
 
 ## r35: the one character screen (ui/character_screen.gd), when the night has one.

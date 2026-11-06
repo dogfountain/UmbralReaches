@@ -88,7 +88,7 @@ const DEFS := {
 		"text": "Bounty of Brother Lisle, the Counted. The count stops here. Worn: Umbral Nova deals 0.25 more for every Mark it detonates."},
 	"briar_antler": {"name": "Briar Antler", "kind": "charm", "shape": "branch", "tint": Color(0.45, 0.22, 0.16),
 		"desc": "A tine of the hart's thorn crown. It is still trying to root in your hand.",
-		"text": "Bounty of the Briar Hart, from the deep Thornwood. Worn: Rift Step roots what it passes in brambles for 2 s."},
+		"text": "Bounty of the Briar Hart, from the deep Thornwood. Worn: Rift Step slows what it passes to a little under half speed for 2 s, within about a metre and a half of the line."},
 	"heart_stone": {"name": "The Heart-Stone", "kind": "charm", "shape": "stone", "tint": Color(0.4, 0.55, 0.5),
 		"desc": "One of the three stones the fen dead are sunk under: the heart's. Rope-worn, and warm on one face.",
 		"text": "Bounty of Old Sunk, Three Stones. Corvin's rite would have lit this instead. Worn: +10 Gloom held, and fire takes the Gloom off you and mends you 15% faster."},

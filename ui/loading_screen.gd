@@ -13,10 +13,8 @@ extends CanvasLayer
 
 const VIEWS := [
 	# [position (y NAN = stand on the ground there), pitch]
-	[Vector3(0.0, NAN, 30.0), -0.12],          # spawn and the village green
-	[Vector3(-8.6, NAN, 34.0), -0.3],          # the market cart
+	[Vector3(0.0, NAN, 30.0), -0.12],          # spawn, the green, the cart and the meadow beyond (one stop: the same materials)
 	[Vector3(11.4, 1.1, 27.0), -0.1],          # inside the Keg
-	[Vector3(8.0, NAN, 48.0), -0.1],           # meadow
 	[Vector3(-28.0, NAN, 30.0), -0.08],        # thornwood edge
 	[Vector3(-39.4, NAN, 8.7), -0.08],         # the west way into the wood
 	[Vector3(-75.0, NAN, 20.0), -0.08],        # deep in the wood
@@ -45,6 +43,7 @@ const WarmAttackKit := preload("res://core/enemy/attack_kit.gd")
 const WarmBossKit := preload("res://core/enemy/boss_kit.gd")
 const BOSSES := ["res://core/enemy/thornwarden.gd", "res://core/enemy/bone_abbot.gd", "res://core/enemy/ascended_warden.gd"]
 const CORES := ["core_prism", "core_lodestar", "core_cinder", "core_rime"]
+const SKIP_AFTER_VIEW := 2        # stops (spawn, the Keg) the tour must have shown before a key may leave the rest
 const DIRS := 6                 # headings per stop
 const FRAMES_PER_DIR := 2
 const FX_HOLD := 14             # frames the warm-up enemies stay in view
@@ -153,6 +152,9 @@ func _label(font: Font, text: String, size: int, c: Color) -> Label:
 func _input(event: InputEvent) -> void:
 	if _phase != "done" and (event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton):
 		get_viewport().set_input_as_handled()
+		# after the build, the first stops are compiled: one key may leave the rest of the tour for the fade
+		if _phase == "warm" and _view >= SKIP_AFTER_VIEW and event.is_pressed() and not event.is_echo():
+			_next("steady")
 
 
 func _process(delta: float) -> void:
@@ -178,7 +180,8 @@ func _process(delta: float) -> void:
 				_next("warm")
 		"warm":
 			_stage.text = "Warming the world"
-			_hint.text = "Every stone, flame and shade is shown to the renderer once, so it never stops to prepare one mid-play."
+			_hint.text = "Every stone, flame and shade is shown to the renderer once, so it never stops to prepare one mid-play." \
+				+ ("\nPress any key to go in." if _view >= SKIP_AFTER_VIEW else "")
 			_warm_step()
 		"steady":
 			_stage.text = "Almost there"
@@ -193,7 +196,8 @@ func _process(delta: float) -> void:
 			if _fade <= 0.0:
 				_finish()
 				return
-	_shown = move_toward(_shown, _target, delta * 1.2)
+	# the bar is the work done (stops completed), not a crawl behind it: it arrives with the cover
+	_shown = move_toward(_shown, _target, delta * (1.2 if _phase == "build" else 6.0))
 	_fill.size.x = 440.0 * _shown
 
 

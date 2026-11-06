@@ -177,6 +177,16 @@ func first_event(action: String, slot: String) -> InputEvent:
 	return null
 
 
+## What `action` is called now for the device in hand: the first pad button when `pad`, else the first key or
+## mouse button; `fallback` (or the action's name) when nothing of that kind is bound. Lessons, prompts and
+## the menu feet read this so a rebind is never taught as the old letter.
+func live_label(action: String, pad := false, fallback := "") -> String:
+	var ev := first_event(action, "pad" if pad else "key")
+	if ev != null:
+		return event_name(ev)
+	return fallback if fallback != "" else action
+
+
 ## "" if `ev` may be bound to `action`; else why not (the message the Controls page shows).
 func refusal(action: String, ev: InputEvent) -> String:
 	var d := event_to(ev)
@@ -210,7 +220,22 @@ func rebind(action: String, slot: String, ev: InputEvent) -> String:
 	mine[slot] = event_to(ev)
 	b[action] = mine
 	Settings.apply()
+	_forget_tips(action)
 	return ""
+
+
+## The just-in-time lessons (ui/hud.gd) that name each action: a rebind forgets them, so the next one prints the new key.
+const TIP_ACTIONS := {"move": ["move_forward", "move_back", "move_left", "move_right", "sprint", "jump"], "jump2": ["jump"],
+	"hang": ["jump", "slide"], "slide": ["slide", "jump"], "lock": ["lock_on", "dodge"], "roll": ["dodge"]}
+
+
+func _forget_tips(action: String) -> void:
+	var l: Variant = Travel.story.get("lessons", {})
+	if not (l is Dictionary):
+		return
+	for id: String in TIP_ACTIONS:
+		if action in (TIP_ACTIONS[id] as Array):
+			(l as Dictionary).erase("tip_" + id)
 
 
 func _replace(action: String, slot: String, ev: InputEvent) -> void:
