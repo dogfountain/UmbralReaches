@@ -578,7 +578,7 @@ func _dress_extras(st: Dictionary) -> void:
 	core.piece = {}
 	core.ref_id = "core:" + cid
 	core.rim = (cd.get("tint", Color.WHITE) as Color).lerp(Color.WHITE, 0.2)
-	core.tex = _icons.glyph_icon(String(cd.get("glyph", "core")), cd.get("tint", Color.WHITE))
+	core.tex = _icons.item_icon(cid) if cid != "" else _icons.glyph_icon(String(cd.get("glyph", "core")), cd.get("tint", Color.WHITE))
 	core.caption = String(cd.get("name", "Staff core"))
 	core.corner = ""
 	core.selected = _sel_mini == core.ref_id
@@ -593,7 +593,7 @@ func _dress_extras(st: Dictionary) -> void:
 			var d := ItemDB.def(id)
 			m.ref_id = id
 			m.rim = (d.get("tint", Color.WHITE) as Color).lerp(Color.WHITE, 0.15)
-			m.tex = _icons.glyph_icon(String(d.get("shape", "")), d.get("tint", Color.WHITE))
+			m.tex = _icons.item_icon(id)
 			m.selected = _sel_mini == id
 		else:
 			m.ghost = "cord"
@@ -609,7 +609,7 @@ func _dress_extras(st: Dictionary) -> void:
 			var m2 := _mini()
 			m2.ref_id = id
 			m2.rim = (d2.get("tint", Color.WHITE) as Color).lerp(Color.WHITE, 0.15)
-			m2.tex = _icons.glyph_icon(String(d2.get("shape", "")), d2.get("tint", Color.WHITE))
+			m2.tex = _icons.item_icon(id)
 			m2.selected = _sel_mini == id
 			_extras.add_child(m2)
 			any = true
