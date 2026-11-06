@@ -53,6 +53,7 @@ const MARK_MAX := 3
 const MARK_LIFE := 5.0
 const BAR_RANGE := 28.0          ## the plate and its beads end here (sleep is 46), fading over BAR_FADE
 const BAR_FADE := 4.0
+const STRIKE_AT := 0.2           ## the rake's damage lands as the arm comes through (the pose peaks around it)
 const HIT_COL := Color(0.86, 0.8, 1.0)
 const HIT_BIG := Color(1.0, 0.55, 0.3)
 
@@ -819,7 +820,7 @@ func _physics_process(delta: float) -> void:
 	if _shroud_t > 0.0:
 		_shroud_t = maxf(0.0, _shroud_t - delta)
 		_flesh_param(&"glint", 0.35 + 0.25 * sin(_shroud_t * 9.0) if _shroud_t > 0.0 else 0.0)
-	if _state == STRIKE and not _struck and _state_t >= 0.06:
+	if _state == STRIKE and not _struck and _state_t >= STRIKE_AT:
 		_resolve_strike()
 	if is_instance_valid(_danger) and _face:
 		_danger.rotation.y = _face.rotation.y
@@ -1166,7 +1167,7 @@ func _think() -> void:
 				_set_state(STRIKE)
 		STRIKE:
 			_wish = Vector3.ZERO
-			if _struck and _state_t >= 0.22:
+			if _struck and _state_t >= STRIKE_AT + 0.16:
 				if _combo_left > 0 and dist <= strike_range + 1.2 and _lit_t <= 0.0:
 					# the chain: the next blow gets its own (shorter) rear and its own cone
 					_combo_left -= 1
