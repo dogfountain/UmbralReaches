@@ -4,6 +4,7 @@ extends CharacterBody3D
 
 ## Components (core/player/player_*.gd): the state stays on Player, the logic lives here.
 var autopilot_ctl: PlayerAutopilot = null
+var targeting: PlayerTargeting = PlayerTargeting.new(self)
 
 @export_group("Movement")
 @export var walk_speed := 4.5
@@ -220,7 +221,7 @@ var riding: Node3D = null
 
 
 func _ready() -> void:
-
+	add_child(targeting)
 	add_to_group(Groups.PLAYER)
 	collision_layer = Layers.PLAYER
 	collision_mask = Layers.WORLD | Layers.PROPS
@@ -320,9 +321,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		if not (_interact_target == null and _grapple != null and _grapple.try_fire()):
 			_try_interact()                    # r31: nothing to use here: the Tether line bites a marked anchor
 	elif event.is_action_pressed("lock_on"):
-		_toggle_lock()
+		targeting._toggle_lock()
 	elif event.is_action_pressed("target_next"):
-		cycle_target()
+		targeting.cycle_target()
 
 
 func _process(delta: float) -> void:
@@ -354,7 +355,7 @@ func _process(delta: float) -> void:
 	# grass parts around the body where it is DRAWN (r29: set on the tick, the parting stepped at 60 Hz)
 	RenderingServer.global_shader_parameter_set("push_pos", body_xf.origin)
 	if is_instance_valid(_lock):
-		_lock_view(delta, body_xf.origin)
+		targeting._lock_view(delta, body_xf.origin)
 	elif _recentre:
 		var behind := _visual.global_rotation.y
 		_yaw = lerp_angle(_yaw, behind, 1.0 - exp(-9.0 * delta))
@@ -441,7 +442,7 @@ func _physics_process(delta: float) -> void:
 			sprint = false
 		elif _stam.in_fight() and _grounded and wish.length_squared() > 0.04 and not autopilot:
 			_stam.drain(Stamina.SPRINT_COST * delta)
-	_lock_tick(delta)
+	targeting._lock_tick(delta)
 	if _climb_t >= 0.0:
 		_tick_climb(delta)
 		return
@@ -780,7 +781,7 @@ func _animate(delta: float, horiz: Vector3) -> void:
 	# casting / locked on: square up or twist the chest toward the aim; otherwise face the run
 	# (quick to turn from a walk, a wider sweep at a sprint; the body leans into it, see the rig)
 	if _roll_t < 0.0 and _vault_t < 0.0 and not _hang and _climb_t < 0.0:
-		_facing(delta, horiz if _steep_k < 0.5 else Vector3(_steep_n.x, 0.0, _steep_n.z), _sprint_held)
+		targeting._facing(delta, horiz if _steep_k < 0.5 else Vector3(_steep_n.x, 0.0, _steep_n.z), _sprint_held)
 	if _crawl:
 		_slide_blend = move_toward(_slide_blend, 1.0, delta * 6.0)    # crawling out from under: the low pose
 	elif not _sliding:
@@ -791,7 +792,7 @@ func _animate(delta: float, horiz: Vector3) -> void:
 	_look_t -= delta
 	if _look_t <= 0.0:
 		_look_t = 0.2
-		_look_foe = _nearest_foe()
+		_look_foe = targeting._nearest_foe()
 	if is_instance_valid(_lock):
 		_visual.look_at_point = _lock.global_position + Vector3.UP * (_lock.hp_bar_y * 0.6)
 	elif _look_foe and is_instance_valid(_look_foe) and _look_foe.is_alive():
@@ -805,23 +806,6 @@ func _animate(delta: float, horiz: Vector3) -> void:
 var _look_t := 0.0
 var _look_foe: Enemy
 var _sprint_held := false
-
-
-## The closest living enemy within 14 m that isn't behind the wanderer (for the head's look-at).
-func _nearest_foe() -> Enemy:
-	var best: Enemy = null
-	var bd := 14.0 * 14.0
-	var fwd := -_visual.global_basis.z
-	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
-		var e := node as Enemy
-		if e == null or not e.is_alive():
-			continue
-		var to := e.global_position - global_position
-		var d := to.length_squared()
-		if d < bd and Vector2(to.x, to.z).normalized().dot(Vector2(fwd.x, fwd.z).normalized()) > -0.3:
-			bd = d
-			best = e
-	return best
 
 
 func _on_skill_cast(id: StringName) -> void:
@@ -1006,7 +990,7 @@ func hollow() -> void:
 
 func _respawn_now() -> void:
 	teleport(checkpoint)                      # no interpolation streak across the map, no stale state
-	_release_lock()
+	targeting._release_lock()
 	if _stam != null:
 		_stam.refill()
 	if _arts != null:
@@ -1247,7 +1231,7 @@ func _assist(muzzle: Vector3, aim: Vector3) -> Vector3:
 ## r31: where a bolt goes. Locked on, straight at the target's chest (in sight); otherwise the
 ## crosshair, nudged by the assist.
 func _combat_aim(muzzle: Vector3) -> Vector3:
-	var lk := lock_target()
+	var lk := targeting.lock_target()
 	if lk and lk.is_alive():
 		var chest := lk.global_position + Vector3.UP * (lk.hp_bar_y * 0.55)
 		var to := chest - muzzle
@@ -1257,7 +1241,7 @@ func _combat_aim(muzzle: Vector3) -> Vector3:
 
 
 func _aim_from(muzzle: Vector3) -> Vector3:
-	var look := _look_target()
+	var look := targeting._look_target()
 	var cam_fwd := -_cam.global_transform.basis.z.normalized()
 	var aim := look - muzzle
 	if aim.length_squared() < 0.04 or aim.normalized().dot(cam_fwd) < 0.12:
@@ -1280,12 +1264,6 @@ func combat() -> Node:
 ## r33: how hard the wanderer is being steered this tick (0..1): a rooted cast cancels on it.
 func move_intent() -> float:
 	return _wish_len
-
-
-## r33: the current (remembered) target, null if none.
-func current_target() -> Node3D:
-	var cs := combat()
-	return cs.call("get_target") as Node3D if cs != null else null
 
 
 func skills_locked() -> bool:
@@ -1901,25 +1879,6 @@ func is_sliding() -> bool:
 	return _sliding
 
 
-## Screen-center hit (the HUD crosshair). Parallel-to-camera from the staff orb
-## misses around the edges up close — OTS offset. Converge on this point instead.
-func _look_target() -> Vector3:
-	var center := get_viewport().get_visible_rect().get_center()
-	var from := _cam.project_ray_origin(center)
-	var dir := _cam.project_ray_normal(center)
-	var far := from + dir * 96.0
-	var space := get_world_3d().direct_space_state
-	if space == null:
-		return far
-	var q := PhysicsRayQueryParameters3D.create(from, far)
-	q.collision_mask = Layers.WORLD | Layers.PROPS | Layers.HURTBOX
-	q.exclude = [get_rid()]
-	var hit := space.intersect_ray(q)
-	if hit.is_empty():
-		return far
-	return hit.position
-
-
 # --- traversal (r28): ledge hang + climb, vault, wall kick, steep slopes, beams, dodge roll ---------
 # Each is a short state the main tick hands over to (hang, climb and vault place the body
 # directly; the roll and the steep slide still go through move_and_slide). The rig gets a pose
@@ -1984,11 +1943,7 @@ var _beam_frame := 0
 var _lock: Enemy = null
 var _lock_flick := 0.0
 var _lock_flick_t := 0.0
-var _lock_lost := 0.0
-var _lock_los_t := 0.0
-var _lock_mark: MeshInstance3D
 var _recentre := false
-var _twist := 0.0
 var _air_base := 0.0
 var _cam_air := 0.0
 var _cam_air_prev := 0.0
@@ -2025,10 +1980,6 @@ func is_hanging() -> bool:
 
 func is_rolling() -> bool:
 	return _roll_t >= 0.0
-
-
-func lock_target() -> Enemy:
-	return _lock if is_instance_valid(_lock) else null
 
 
 func _trav_busy() -> bool:
@@ -2613,256 +2564,6 @@ func _headroom(at := Vector3.INF) -> bool:
 	return space.intersect_shape(_tall_q, 1).is_empty()
 
 
-# --- target lock -------------------------------------------------------------------------------------
-
-func _toggle_lock() -> void:
-	if is_instance_valid(_lock):
-		_release_lock()
-		return
-	var t := _remembered_target()              # r33: the target you had is the one you lock back onto
-	if t == null:
-		t = _pick_target(0)
-	if t:
-		_set_lock(t)
-	else:
-		_recentre = true                         # nothing to lock: swing the view behind the wanderer
-
-
-func _set_lock(t: Enemy) -> void:
-	_lock = t
-	var cs := combat()
-	if cs != null:
-		cs.call("set_target", t)               # r33: the lock is the target (remembered after it lets go)
-	_lock_lost = 0.0
-	_visual.lock = true
-	if _lock_mark == null:
-		_lock_mark = _make_lock_mark()
-	_lock_mark.visible = true
-	Sfx.play("res://art/audio/mark_tick.wav", global_position + Vector3.UP, -12.0, 1.2, 0.02)
-
-
-func _release_lock() -> void:
-	_lock = null
-	_visual.lock = false
-	if _lock_mark:
-		_lock_mark.visible = false
-
-
-## r33: the remembered target when it is still a fair pick (alive, in range, in sight).
-func _remembered_target() -> Enemy:
-	var t := current_target() as Enemy
-	if t == null or not is_instance_valid(t) or not t.is_alive():
-		return null
-	if global_position.distance_to(t.global_position) > LOCK_RANGE:
-		return null
-	if not _ray(global_position + Vector3.UP * 1.4, t.global_position + Vector3.UP * (t.hp_bar_y * 0.55)).is_empty():
-		return null
-	return t
-
-
-## r33 combat, Tab-style: the next foe nearest-first in front of the view (wraps to the nearest); the
-## camera locks onto it. Returns the new target or null.
-func cycle_target() -> Enemy:
-	var cam_xf := _cam.global_transform
-	var fwd := -cam_xf.basis.z
-	fwd.y = 0.0
-	fwd = fwd.normalized() if fwd.length_squared() > 0.0001 else Vector3.FORWARD
-	var near: Array = []
-	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
-		var e := node as Enemy
-		if e == null or not e.is_alive():
-			continue
-		var to := e.global_position - global_position
-		var d := to.length()
-		if d > LOCK_RANGE:
-			continue
-		var flat := Vector3(to.x, 0.0, to.z)
-		if d > 2.5 and flat.length_squared() > 0.0001 and flat.normalized().dot(fwd) < 0.0:
-			continue                           # behind you: Tab picks what you can see
-		near.append([d, e])
-	if near.is_empty():
-		return null
-	near.sort_custom(func(a, b): return a[0] < b[0])
-	var cur := current_target()
-	var start := 0
-	for k in near.size():
-		if near[k][1] == cur:
-			start = k + 1
-			break
-	for n in near.size():
-		var e: Enemy = near[(start + n) % near.size()][1]
-		if e == cur and near.size() > 1:
-			continue
-		if _ray(global_position + Vector3.UP * 1.4, e.global_position + Vector3.UP * (e.hp_bar_y * 0.55)).is_empty():
-			_set_lock(e)
-			return e
-	return null
-
-
-## The foe nearest the middle of the view (side 0), or the next one left (-1) / right (+1) of the
-## current target, in sight and within LOCK_RANGE.
-func _pick_target(side: int) -> Enemy:
-	var cam_xf := _cam.global_transform
-	var fwd := -cam_xf.basis.z
-	var right := cam_xf.basis.x
-	var cur_s := 0.0
-	if side != 0 and is_instance_valid(_lock):
-		cur_s = (_lock.global_position - cam_xf.origin).normalized().dot(right)
-	var best: Enemy = null
-	var best_score := INF
-	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
-		var e := node as Enemy
-		if e == null or not e.is_alive() or e == _lock:
-			continue
-		var chest := e.global_position + Vector3.UP * (e.hp_bar_y * 0.55)
-		var to := chest - cam_xf.origin
-		var d := to.length()
-		if global_position.distance_to(e.global_position) > LOCK_RANGE or d < 0.5:
-			continue
-		var dir := to / d
-		var dot := dir.dot(fwd)
-		var s := dir.dot(right)
-		var score := 0.0
-		if side == 0:
-			if dot < 0.45:
-				continue
-			score = (1.0 - dot) * 12.0 + d * 0.04
-		else:
-			if dot < 0.0 or (s - cur_s) * float(side) <= 0.02:
-				continue
-			score = absf(s - cur_s) * 6.0 + d * 0.03
-		if score >= best_score:
-			continue
-		if not _ray(global_position + Vector3.UP * 1.4, chest).is_empty():
-			continue
-		best_score = score
-		best = e
-	return best
-
-
-## Physics tick: drop the lock when the target dies, goes far, or stays out of sight; a dead
-## target hands the lock to the next one in view.
-func _lock_tick(delta: float) -> void:
-	_regrab = maxf(0.0, _regrab - delta)
-	_roll_cd = maxf(0.0, _roll_cd - delta)
-	_kick_lock = maxf(0.0, _kick_lock - delta)
-	if _lock == null:
-		return
-	if not is_instance_valid(_lock) or not _lock.is_alive():
-		var nxt := _pick_target(0)
-		if nxt:
-			_set_lock(nxt)
-		else:
-			_release_lock()
-		return
-	if global_position.distance_to(_lock.global_position) > LOCK_RANGE + 6.0 or _hollowing:
-		_release_lock()
-		return
-	_lock_los_t -= delta
-	if _lock_los_t <= 0.0:
-		_lock_los_t = 0.2
-		var seen := _ray(global_position + Vector3.UP * 1.4, _lock.global_position + Vector3.UP * (_lock.hp_bar_y * 0.55)).is_empty()
-		_lock_lost = 0.0 if seen else _lock_lost + 0.2
-		if _lock_lost > 1.4:
-			_release_lock()
-
-
-## Render frame: the view swings onto the target (framing the wanderer and the foe), the mark sits
-## on it; a hard flick of the mouse or stick moves the lock to the next foe that side.
-func _lock_view(delta: float, body: Vector3) -> void:
-	_lock_flick_t = maxf(0.0, _lock_flick_t - delta)
-	_lock_flick = move_toward(_lock_flick, 0.0, delta * 360.0)     # only a quick flick adds up
-	if absf(_lock_flick) > 90.0:
-		var nxt := _pick_target(int(signf(_lock_flick)))
-		_lock_flick = 0.0
-		_lock_flick_t = 0.0
-		if nxt:
-			_set_lock(nxt)
-	var tp := _lock.get_global_transform_interpolated().origin + Vector3.UP * (_lock.hp_bar_y * 0.55)
-	# aim from the camera's own pivot (over the right shoulder), not the body: the target then sits
-	# on the crosshair, clear of the wanderer, instead of hiding behind the robe up close (r29)
-	var pivot := body + Vector3.UP * 1.3 + Basis(Vector3.UP, _yaw) * Vector3(_arm.position.x, 0.0, 0.0)
-	var to := tp - pivot
-	if Vector2(to.x, to.z).length() < 1.2:
-		to = tp - (body + Vector3.UP * 1.3)     # right on top of it: the shoulder offset would spin the view
-	var flat := Vector2(to.x, to.z).length()
-	if flat > 0.4:
-		var rate := 7.0 if flat > 3.0 else 4.0
-		_yaw = lerp_angle(_yaw, atan2(-to.x, -to.z), 1.0 - exp(-rate * delta))
-	var want_pitch := clampf(atan2(to.y, maxf(flat, 1.0)) * 0.6 - 0.2, pitch_min, 0.15)
-	_pitch = lerpf(_pitch, want_pitch, 1.0 - exp(-4.0 * delta))
-	if _lock_mark:
-		_lock_mark.global_position = tp + Vector3.UP * 0.15
-
-
-func _make_lock_mark() -> MeshInstance3D:
-	var img := Image.create(64, 64, false, Image.FORMAT_RGBA8)
-	for y in 64:
-		for x in 64:
-			var d := Vector2(x - 31.5, y - 31.5)
-			var r := absf(d.x) + absf(d.y)                 # a diamond
-			var a := clampf(1.0 - absf(r - 24.0) / 3.5, 0.0, 1.0) + clampf(1.0 - r / 4.0, 0.0, 1.0)
-			img.set_pixel(x, y, Color(1, 1, 1, clampf(a, 0.0, 1.0)))
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	m.no_depth_test = true
-	m.fixed_size = true
-	m.disable_fog = true
-	m.albedo_texture = ImageTexture.create_from_image(img)
-	m.albedo_color = Color(1.4, 0.75, 2.6, 0.9)
-	var q := QuadMesh.new()
-	q.size = Vector2(0.045, 0.045)
-	var mi := MeshInstance3D.new()
-	mi.name = "LockMark"
-	mi.mesh = q
-	mi.material_override = m
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mi.top_level = true
-	mi.visible = false
-	add_child(mi)
-	return mi
-
-
-## Where the upper body should look: the lock target, else the camera's aim. Facing and twist:
-## locked on (walking) or standing in a fight, the body squares up to the aim and steps round;
-## running while casting, the legs keep to the run and the chest turns toward the aim (up to
-## ~65 degrees, beyond which the body turns and back-pedals).
-func _facing(delta: float, horiz: Vector3, sprint_held: bool) -> void:
-	var locked := is_instance_valid(_lock)
-	var aim_yaw := _yaw
-	if locked:
-		var to := _lock.global_position - global_position
-		aim_yaw = atan2(-to.x, -to.z)
-	var spd := horiz.length()
-	var want_twist := 0.0
-	if _sliding or _roll_t >= 0.0 or _hang or _climb_t >= 0.0 or _vault_t >= 0.0:
-		_twist = lerpf(_twist, 0.0, 1.0 - exp(-10.0 * delta))
-		_visual.twist = _twist
-		return
-	if _arts != null and _arts.phase() >= 0:
-		_visual.rotation.y = lerp_angle(_visual.rotation.y, _face_yaw, 1.0 - exp(-24.0 * delta))   # r31: squared to the strike
-		_twist = lerpf(_twist, 0.0, 1.0 - exp(-10.0 * delta))
-		_visual.twist = _twist
-		return
-	if locked or _combat_t > 0.0:
-		var move_yaw := atan2(-horiz.x, -horiz.z)
-		var free_run := spd > 2.2 and (not locked or (sprint_held and spd > walk_speed * 1.05))
-		var diff := angle_difference(move_yaw, aim_yaw)
-		if free_run and absf(diff) < 1.9:
-			_visual.rotation.y = lerp_angle(_visual.rotation.y, move_yaw, 1.0 - exp(-lerpf(15.0, 9.0, _run_blend) * delta))
-			want_twist = clampf(angle_difference(_visual.rotation.y, aim_yaw), -1.15, 1.15)
-		else:
-			_visual.rotation.y = lerp_angle(_visual.rotation.y, aim_yaw, 1.0 - exp(-14.0 * delta))
-	elif spd > 0.2:
-		var rate := lerpf(15.0, 9.0, _run_blend)
-		_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(-horiz.x, -horiz.z), 1.0 - exp(-rate * delta))
-	_twist = lerpf(_twist, want_twist, 1.0 - exp(-10.0 * delta))
-	_visual.twist = _twist
-
-
 # --- camera feel ---------------------------------------------------------------------------------------
 
 ## Physics tick: the jump hold (the view rises only part of a jump's height, then settles when you
@@ -3261,3 +2962,20 @@ func _ap() -> PlayerAutopilot:
 	return autopilot_ctl
 
 func start_autopilot(markers: Array[Marker3D]) -> void: _ap().start_autopilot(markers)
+func _toggle_lock() -> void: targeting._toggle_lock()
+func _set_lock(t: Enemy) -> void: targeting._set_lock(t)
+func _release_lock() -> void: targeting._release_lock()
+## r33 combat, Tab-style: the next foe nearest-first in front of the view (wraps to the nearest); the
+## camera locks onto it. Returns the new target or null.
+func cycle_target() -> Enemy: return targeting.cycle_target()
+## The foe nearest the middle of the view (side 0), or the next one left (-1) / right (+1) of the
+## current target, in sight and within LOCK_RANGE.
+func _pick_target(side: int) -> Enemy: return targeting._pick_target(side)
+## Render frame: the view swings onto the target (framing the wanderer and the foe), the mark sits
+## on it; a hard flick of the mouse or stick moves the lock to the next foe that side.
+func _lock_view(delta: float, body: Vector3) -> void: targeting._lock_view(delta, body)
+func lock_target() -> Enemy: return targeting.lock_target()
+## The closest living enemy within 14 m that isn't behind the wanderer (for the head's look-at).
+func _nearest_foe() -> Enemy: return targeting._nearest_foe()
+## r33: the current (remembered) target, null if none.
+func current_target() -> Node3D: return targeting.current_target()
