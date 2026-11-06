@@ -10,6 +10,8 @@ static var _pool: Array[HitText] = []
 static var hush := false
 
 var _busy := false
+var _born := 0            ## msec this number began (the oldest yields when the pool is full)
+var _tw: Tween
 
 
 static func pop(at: Vector3, text: String, col: Color, big := false) -> void:
@@ -32,16 +34,24 @@ static func pop(at: Vector3, text: String, col: Color, big := false) -> void:
 		i += 1
 	if label == null:
 		if _pool.size() >= 24:
-			return
-		label = HitText.new()
-		host.add_child(label)
-		_pool.append(label)
+			# the pool is full: the oldest number yields, so the hit just landed is the one on screen
+			for h in _pool:
+				if is_instance_valid(h) and h.get_parent() == host and (label == null or h._born < label._born):
+					label = h
+			if label == null:
+				return
+			if label._tw != null and label._tw.is_valid():
+				label._tw.kill()
+		else:
+			label = HitText.new()
+			host.add_child(label)
+			_pool.append(label)
 	label._show(at, text, col, big)
 
 
 func _init() -> void:
 	billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	no_depth_test = true
+	no_depth_test = false                 # a number behind the mound stays behind the mound
 	shaded = false
 	double_sided = true
 	font = FONT
@@ -56,6 +66,7 @@ func _init() -> void:
 
 func _show(at: Vector3, txt: String, col: Color, big: bool) -> void:
 	_busy = true
+	_born = Time.get_ticks_msec()
 	text = txt
 	modulate = col
 	var s := 1.45 if big else 1.0
@@ -66,6 +77,7 @@ func _show(at: Vector3, txt: String, col: Color, big: bool) -> void:
 	global_position = at + Vector3(randf_range(-0.25, 0.25), 0.0, randf_range(-0.25, 0.25))
 	visible = true
 	var tw := create_tween().set_parallel(true)
+	_tw = tw
 	tw.tween_property(self, "scale", Vector3.ONE * s, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_property(self, "global_position:y", at.y + 0.8, LIFE).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_property(self, "modulate:a", 0.0, LIFE * 0.45).set_delay(LIFE * 0.55)
