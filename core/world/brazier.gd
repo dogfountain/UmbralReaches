@@ -142,15 +142,12 @@ static func lit_at(tree: SceneTree, pos: Vector3) -> Brazier:
 
 ## The Hearthfire (core/life/progression/hearth.gd) widens every fire's sanctuary: `r` is the new
 ## LightGrid radius. The light's own range grows with it so the warm circle reads as far as it
-## holds. The first call remembers the scene's radius and range as the base.
+## holds (the pool equals the sanctuary).
 func set_reach(r: float) -> void:
-	if not has_meta(&"reach_base"):
-		set_meta(&"reach_base", Vector2(light_radius, lit_range))
-	var base: Vector2 = get_meta(&"reach_base")
 	if is_equal_approx(r, light_radius):
 		return
 	light_radius = r
-	lit_range = base.y * r / maxf(base.x, 0.1)
+	lit_range = _pool_range()
 	if lit:
 		LightGrid.register(self, light_radius)
 		var b: Variant = _light.get_meta(&"base", {})
@@ -159,6 +156,11 @@ func set_reach(r: float) -> void:
 			_light.set_meta(&"base", b)
 			LightPolicy.apply_fade(_light)
 			LightPolicy.apply_illumination(_light)
+
+
+## The authored range that, after the beacon class widens it, ends exactly where the sanctuary ends.
+func _pool_range() -> float:
+	return light_radius / float((LightPolicy.ILLUM[&"beacon"] as Array)[1])
 
 
 func kindle_quiet() -> void:
@@ -198,7 +200,7 @@ func _set_lit(on: bool, animate: bool) -> void:
 	var target_energy := lit_energy if on else 0.25
 	_light.set_meta(&"base", {
 		"e": target_energy,
-		"r": lit_range if on else 2.5,
+		"r": _pool_range() if on else 2.5,
 		"a": 1.0,
 	})
 	LightPolicy.apply_fade(_light)
