@@ -25,7 +25,9 @@ func ride_tick(wish: Vector3, sprint: bool, delta: float) -> bool:
 		return false
 	horse.call("drive", player, wish, sprint, delta)
 	player._grounded = true
-	player._visual.ride = move_toward(player._visual.ride, 1.0, delta * 4.0)
+	player._visual.ride = lerpf(player._visual.ride, 1.0, 1.0 - exp(-8.0 * delta))
+	if player._visual.ride > 0.995:
+		player._visual.ride = 1.0
 	player._visual.animate(Vector3.ZERO, true, delta)
 	player.vitals._update_gloom(delta)
 	return true

@@ -419,7 +419,9 @@ func _physics_process(delta: float) -> void:
 	if riding != null and mount.ride_tick(wish, sprint, delta):
 		return
 	if _visual.ride > 0.0:
-		_visual.ride = move_toward(_visual.ride, 0.0, delta * 4.0)
+		_visual.ride = lerpf(_visual.ride, 0.0, 1.0 - exp(-8.0 * delta))
+		if _visual.ride < 0.005:
+			_visual.ride = 0.0
 
 	if sprint and _stam != null:
 		# r31 Breath: winded, no sprint; hunted (a foe awake near), the sprint spends it

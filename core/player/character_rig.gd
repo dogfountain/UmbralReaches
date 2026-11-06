@@ -484,7 +484,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		_hero_pose(speed, on_floor, idle, breathe, delta)
 		if gait:
 			_moves_pose(speed, on_floor, delta)        # traversal / roll / idle acts (FK)
-			if ride < 0.5:
+			if ride < 0.05:
 				_gait_legs(delta)                      # planted feet: two-bone IK onto the ground
 		elif foot_ik and on_floor and slide < 0.4 and ride < 0.5 and not Engine.is_editor_hint():
 			_foot_ik(delta)
@@ -1743,6 +1743,8 @@ func _gait_advance(speed: float, flat: Vector3, on_floor: bool, dt: float) -> vo
 	_g_D = clampf((_g_td + _g_lo) / maxf(2.0 * L, 0.05), 0.2, 0.66)
 	var plant := on_floor and slide < 0.05 and _legs_free()
 	_plant_k = move_toward(_plant_k, 1.0 if plant else 0.0, dt * (9.0 if plant else 14.0))
+	if slide > 0.2 or not on_floor:
+		_plant_k = 0.0                               # a slide or a jump has already decided the legs
 	if not plant:
 		_g_air = true
 		return
