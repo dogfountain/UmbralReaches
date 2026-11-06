@@ -62,6 +62,11 @@ void sky() {
         vec3 col = mix(col_deep, col_rift * 0.42, k);
         col = mix(col, col_lilac * 0.28, k * arms * 0.45);
         col += vec3(0.035, 0.04, 0.07) * k;
+        // radiance feeds ambient and aerial perspective: a cool silver horizon band lifts the shade
+        // sides and the far land, and the ground half bounces a dim blue-green instead of abyss blue
+        float below = smoothstep(0.0, -0.45, EYEDIR.y);
+        col = mix(col, vec3(0.045, 0.07, 0.095), below * 0.75);
+        col += vec3(0.07, 0.11, 0.17) * pow(1.0 - abs(EYEDIR.y), 5.0);
         COLOR = col;
     } else if (AT_HALF_RES_PASS) {
         vec3 col = vortex(EYEDIR);
@@ -110,6 +115,8 @@ void sky() {
         col += vec3(0.52, 0.68, 1.05) * (streak * 0.9 + cross * 0.4);
         col += vec3(0.42, 0.52, 0.92) * ghosts * 0.35;
         col = mix(col_deep * 0.5, col, smoothstep(-0.05, 0.12, EYEDIR.y)); // horizon falloff
+        // moon-silvered haze low on the sky: ridges and towers separate from it
+        col += vec3(0.075, 0.125, 0.22) * exp(-abs(EYEDIR.y) * 6.5);
         COLOR = col;
     }
 }

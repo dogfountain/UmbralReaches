@@ -95,12 +95,12 @@ const HAZE_DENSITY := 0.025
 
 static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit: Color) -> void:
 	env.fog_enabled = true
-	env.fog_light_color = fog_light
-	env.fog_light_energy = 0.48
-	env.fog_sun_scatter = 0.06
-	env.fog_density = 0.0055
-	env.fog_aerial_perspective = 0.16
-	env.fog_sky_affect = 0.14
+	env.fog_light_color = fog_light.lerp(Color(0.34, 0.46, 0.68), 0.55)    # silvered blue haze: the distance lightens into layers
+	env.fog_light_energy = 0.52
+	env.fog_sun_scatter = 0.12                  # the moon side of the haze is the brighter
+	env.fog_density = 0.0068
+	env.fog_aerial_perspective = 0.32
+	env.fog_sky_affect = 0.2
 	# ENS art pass (docs/enshrouded/art.md): low ground haze that pools in hollows (the fen, the
 	# rift floor) and thins on high ground. Plain depth fog, so it costs nothing per froxel.
 	env.fog_height = HAZE_TOP
@@ -115,11 +115,11 @@ static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit
 	env.volumetric_fog_detail_spread = 1.15
 	env.volumetric_fog_sky_affect = 0.16
 	env.volumetric_fog_ambient_inject = 0.08
-	env.ambient_light_energy = 0.22
+	env.ambient_light_energy = 0.26
 	# ambient mostly a set azure, less from the violet vortex sky (it cast magenta on all stone)
-	env.ambient_light_sky_contribution = 0.45
-	env.ambient_light_color = Color(0.2, 0.47, 0.95)
-	env.tonemap_exposure = 1.12           # ENS pass: the calmer grade (sat 1.36) turned blue chroma into luma; keep the night as dark
+	env.ambient_light_sky_contribution = 0.55
+	env.ambient_light_color = Color(0.36, 0.52, 0.84)
+	env.tonemap_exposure = 1.0           # ENS pass: the calmer grade (sat 1.36) turned blue chroma into luma; keep the night as dark
 	env.ssao_radius = 1.2
 	env.ssao_intensity = 1.25
 	env.ssao_light_affect = 0.32
@@ -134,11 +134,21 @@ static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit
 	_glow_budget(env)
 
 
+const MOON_ELEVATION := 29.0          ## degrees above the horizon
+
+
 static func _moon(moon: DirectionalLight3D, far_m: float) -> void:
+	# a lower moon (29 deg, was 34): shadows run long across the ground and the relief reads. The
+	# azimuth is the scene's own (the sky moon and the shafts follow it).
+	var heading := -moon.global_basis.z
+	heading.y = 0.0
+	if heading.length() > 0.01:
+		heading = heading.normalized() * cos(deg_to_rad(MOON_ELEVATION)) + Vector3.DOWN * sin(deg_to_rad(MOON_ELEVATION))
+		moon.global_basis = Basis.looking_at(heading, Vector3.UP)
 	# a strong azure key: the moonlit stone and ground read bright blue over cool shadow
 	# (it was 0.6 and lavender, so the flat ambient carried everything and the night read grey)
-	moon.light_color = Color(0.45, 0.73, 1.0)
-	moon.light_energy = maxf(moon.light_energy, 1.05)
+	moon.light_color = Color(0.62, 0.78, 1.0)
+	moon.light_energy = maxf(moon.light_energy, 1.2)
 	moon.light_volumetric_fog_energy = 1.45
 	moon.light_angular_distance = 2.5
 	moon.shadow_opacity = maxf(moon.shadow_opacity, 0.84)
