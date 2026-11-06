@@ -316,7 +316,7 @@ func _held() -> void:
 		rng.randomize()
 		var piece := GearDB.make(rng, {"rarity": 2 if n >= 6 else 1})
 		var got := GearRuntime.store(piece)
-		line += "  The quartermaster gives you %s." % String(piece.get("name", "gear"))
+		line = "%s holds. (+6 grave ash)  It leaves you %s." % [title, String(piece.get("name", "gear"))]
 		if got != "":
 			Events.toast.emit(got)
 	Events.toast.emit(line)
