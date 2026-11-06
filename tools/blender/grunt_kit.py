@@ -166,7 +166,7 @@ def skin(name, base, deep, vein=(0.1, 0.04, 0.05), wrinkle=55.0, rough=0.66, wet
     return m.finish(col, r, 0.0, h, 0.55, 0.0035)
 
 
-def hollow_skin(name, base, deep, scale=1.0, wet=0.5, vein_amt=0.55, wrinkle=62.0, face_fade=None, gain=0.68):
+def hollow_skin(name, base, deep, scale=1.0, wet=0.5, vein_amt=0.55, wrinkle=62.0, face_fade=None, gain=0.6):
     """Family 1 (the hollowed people): wet dead skin. Grey-blue base, livid purple pooled in the low
     places (lividity from the cavity), blue-green veins under the surface, a cold waxy sheen
     (roughness 0.34..0.6, wetter in the creases and over the veins), pores and cracked dry patches."""

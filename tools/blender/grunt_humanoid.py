@@ -32,17 +32,17 @@ S = dict(K.SOCKETS)
 #  hs     head scale         claw  claw length   neck   forward reach of the neck
 P = {
     "wretch":  dict(w=0.92, lr=0.82, belly=0.0, hs=1.0, claw=0.11, neck=0.03, ribs=True,
-                    skin=((0.24, 0.265, 0.31), (0.05, 0.058, 0.08)), face=(0.36, 0.39, 0.43), eye=(1.0, 0.36, 0.08)),
+                    skin=((0.2, 0.25, 0.34), (0.04, 0.055, 0.09)), face=(0.3, 0.36, 0.45), eye=(1.0, 0.36, 0.08)),
     "husk":    dict(w=1.25, lr=1.4, belly=1.0, hs=0.82, claw=0.05, neck=0.0, ribs=False,
-                    skin=((0.28, 0.31, 0.32), (0.07, 0.08, 0.085)), face=None, eye=(1.0, 0.5, 0.12)),
+                    skin=((0.24, 0.29, 0.31), (0.06, 0.075, 0.085)), face=None, eye=(1.0, 0.5, 0.12)),
     "spitter": dict(w=0.85, lr=0.72, belly=0.0, hs=0.95, claw=0.06, neck=0.16, ribs=True,
                     skin=((0.34, 0.4, 0.37), (0.09, 0.12, 0.1)), face=None, eye=(0.25, 1.0, 0.75)),
     "ossuant": dict(w=1.08, lr=1.15, belly=0.25, hs=0.95, claw=0.06, neck=0.0, ribs=False,
                     skin=((0.23, 0.2, 0.18), (0.055, 0.045, 0.04)), face=None, eye=(1.0, 0.7, 0.22)),
     "bulwark": dict(w=1.3, lr=1.45, belly=0.55, hs=0.9, claw=0.04, neck=0.0, ribs=False,
-                    skin=((0.21, 0.225, 0.26), (0.05, 0.055, 0.07)), face=None, eye=(1.0, 0.42, 0.1)),
+                    skin=((0.17, 0.2, 0.27), (0.04, 0.05, 0.075)), face=None, eye=(1.0, 0.42, 0.1)),
     "chanter": dict(w=0.82, lr=0.7, belly=0.0, hs=0.92, claw=0.08, neck=0.06, ribs=True,
-                    skin=((0.27, 0.3, 0.35), (0.06, 0.068, 0.09)), face=(0.38, 0.41, 0.46), eye=(0.45, 1.0, 0.3)),
+                    skin=((0.22, 0.27, 0.35), (0.045, 0.06, 0.09)), face=(0.32, 0.38, 0.46), eye=(0.45, 1.0, 0.3)),
 }[KIND]
 W, LR, BELLY, HS = P["w"], P["lr"], P["belly"], P["hs"]
 SEED = float(sum(ord(c) for c in KIND))
