@@ -222,6 +222,8 @@ static func _wall(L: RefCounted, xf: Transform3D, key: String, a: Vector3, b: Ve
 				continue
 			var cl := a + along * ((s0 + s1) * 0.5) + Vector3.UP * ((y0 + y1) * 0.5) + inward * (t * 0.5)
 			k.box(key, xf * cl, Vector3(s1 - s0 + 0.004, y1 - y0, t), wb, true, shade * rng.randf_range(0.92, 1.0))
+			if ruin > 0.0 and absf(y1 - top) < 0.001 and s1 - s0 > 0.3:
+				k.broken_crown(key, xf * (cl + Vector3.UP * ((y1 - y0) * 0.5)), wb, s1 - s0, t, rng, shade)
 	for o: Dictionary in openings:
 		var mid := a + along * float(o.at)
 		var top_ok := true

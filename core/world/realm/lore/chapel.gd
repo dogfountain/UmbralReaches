@@ -193,6 +193,7 @@ static func _solid(L: RefCounted, xa: float, xb: float, zm: float, fy: float, si
 		var x1 := lerpf(xa, xb, float(i + 1) / float(n))
 		var h: float = _prof((x0 + x1) * 0.5, side) * H + L.rng.randf_range(-0.25, 0.15)
 		k.box(KEY, Vector3((x0 + x1) * 0.5, fy + h * 0.5, zm), Vector3(x1 - x0 + 0.004, h, T), Basis.IDENTITY, true, L.rng.randf_range(0.9, 1.0))
+		k.broken_crown(KEY, Vector3((x0 + x1) * 0.5, fy + h, zm), Basis.IDENTITY, x1 - x0, T, L.rng, 0.92)
 		# string course at sill height
 		k.box(KEY, Vector3((x0 + x1) * 0.5, fy + 1.55, zm), Vector3(x1 - x0 + 0.004, 0.16, T + 0.14), Basis.IDENTITY, false, 0.8)
 		if h > 2.2:

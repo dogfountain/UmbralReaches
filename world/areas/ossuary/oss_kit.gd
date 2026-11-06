@@ -50,7 +50,9 @@ static func mat(key: String) -> Material:
 	var m := StandardMaterial3D.new()
 	match key:
 		"stone":      _tri(m, "oss_ashlar", 0.32, Color(0.92, 0.9, 0.88))
-		"plaster":    _tri(m, "oss_plaster", 0.28, Color(0.95, 0.92, 0.88))
+		"plaster":    _tri(m, "oss_plaster", 0.5, Color(0.95, 0.92, 0.88))       # 2 m tile: brick 0.25 x 0.083 m
+		"brick":      _tri(m, "oss_brick", 0.5, Color(0.95, 0.92, 0.9))
+		"ruin":       _tri(m, "oss_ruin", 0.4, Color(0.95, 0.93, 0.9))
 		"floor":      _tri(m, "oss_floor", 0.22, Color(0.9, 0.88, 0.86))
 		"dark":       _tri(m, "rock", 0.5, Color(0.16, 0.14, 0.15))
 		"iron":       _tri(m, "tavern_iron", 0.6, Color(0.5, 0.48, 0.5))
@@ -153,7 +155,9 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 	if solid:
 		_box_col(c, ex * h.x, ey * h.y, ez * h.z)
 	var mn := minf(size.x, minf(size.y, size.z))
-	var ch := 0.0 if mn < 0.09 else minf(mn * 0.14, BEVEL)
+	# small, uneven arris (1-3 cm, never a fixed 4.5 cm chamfer): real dressed stone is eased, not milled
+	var rb := float(absi(hash(Vector3i((c * 37.0).round()))) % 1000) / 1000.0
+	var ch := 0.0 if mn < 0.09 else minf(mn * 0.08, BEVEL * (0.3 + 0.7 * rb))
 	var jit := 0.93 + 0.1 * float(absi(hash(Vector3i((c * 20.0).round()))) % 1000) / 1000.0
 	var ybot := c.y - absf(ex.y) * h.x - absf(ey.y) * h.y - absf(ez.y) * h.z
 	var upright := ey.y > 0.95
@@ -186,7 +190,7 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 				_tri3(st, a, bb, cc, (ex * sa + ey * sb + ez * sc).normalized(), sh, ybot)
 
 
-const BEVEL := 0.045
+const BEVEL := 0.03
 var under_shade := 0.6      ## vertex shade of a downward face (a room whose ceiling should take its hearth lifts it)
 const AO_FLOOR := 0.56      ## vertex shade at a face's foot
 const AO_RISE := 0.75       ## metres over which contact AO fades out
@@ -199,6 +203,15 @@ static func _ao(n: Vector3, y: float, ybot: float, under := 0.6) -> float:
 		return under
 	var t := clampf((y - ybot) / AO_RISE, 0.0, 1.0)
 	return lerpf(AO_FLOOR, 1.0, t * t * (3.0 - 2.0 * t))
+
+
+## Vertex colour: contact AO plus damp grime at a wall's foot (a touch of green-brown, never brighter).
+static func _grime(n: Vector3, y: float, ybot: float, shade: float, under: float) -> Color:
+	var k := shade * _ao(n, y, ybot, under)
+	if absf(n.y) > 0.68:
+		return Color(k, k, k)
+	var m := 1.0 - clampf((y - ybot) / AO_RISE, 0.0, 1.0)
+	return Color(k * (1.0 - 0.1 * m), k * (1.0 - 0.02 * m), k * (1.0 - 0.2 * m))
 
 
 ## Rectangle centre +-u +-v facing n. Upright side faces are split at the AO band so the contact
@@ -219,9 +232,8 @@ func _rect(st: SurfaceTool, ctr: Vector3, u: Vector3, v: Vector3, n: Vector3, sh
 	if (b - a).cross(c - a).dot(n) > 0.0:
 		tri = [a, c, b, a, d, c]
 	for p in tri:
-		var k := shade * _ao(n, p.y, ybot, under_shade)
 		st.set_normal(n)
-		st.set_color(Color(k, k, k))
+		st.set_color(_grime(n, p.y, ybot, shade, under_shade))
 		st.add_vertex(p)
 
 
@@ -230,9 +242,8 @@ func _tri3(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, n: Vector3, shad
 	if (b - a).cross(c - a).dot(n) > 0.0:
 		tri = [a, c, b]
 	for p in tri:
-		var k := shade * _ao(n, p.y, ybot, under_shade)
 		st.set_normal(n)
-		st.set_color(Color(k, k, k))
+		st.set_color(_grime(n, p.y, ybot, shade, under_shade))
 		st.add_vertex(p)
 
 
@@ -365,10 +376,17 @@ func foundation(key: String, lo: Vector2, hi: Vector2, floor_y: float, ground_y:
 	block(key, Vector3(lo.x - 0.12, bottom, lo.y - 0.12), Vector3(hi.x + 0.12, floor_y, hi.y + 0.12), true, 0.86)
 
 
-## Square pinnacle: shaft `w` wide and `h` tall from `base`, then a pyramid of `spike` height.
+## Square pylon: shaft `w` wide and `h` tall from `base`, then a spire of `spike` height. Built as
+## dressed stone rather than a brick stack: a plinth, a shaft that eases in, a belt course and a
+## corbelled cap under a slim pyramid with a ball finial.
 func pinnacle(key: String, base: Vector3, w: float, h: float, spike: float) -> void:
-	box(key, base + Vector3.UP * (h * 0.5), Vector3(w, h, w))
-	box(key, base + Vector3.UP * (h - 0.15), Vector3(w * 1.25, 0.3, w * 1.25), Basis.IDENTITY, true, 0.85)
+	var plinth := minf(0.4, h * 0.2)
+	box(key, base + Vector3.UP * (plinth * 0.5), Vector3(w * 1.3, plinth, w * 1.3), Basis.IDENTITY, true, 0.88)
+	box(key, base + Vector3.UP * (plinth + (h - plinth) * 0.5), Vector3(w * 0.88, h - plinth, w * 0.88))
+	var belt := base.y + plinth + (h - plinth) * 0.58
+	box(key, Vector3(base.x, belt, base.z), Vector3(w * 1.06, 0.1, w * 1.06), Basis.IDENTITY, false, 0.9)
+	box(key, base + Vector3.UP * (h - 0.2), Vector3(w * 1.12, 0.14, w * 1.12), Basis.IDENTITY, false, 0.86)
+	box(key, base + Vector3.UP * (h - 0.06), Vector3(w * 1.28, 0.12, w * 1.28), Basis.IDENTITY, true, 0.92)
 	var top := base + Vector3.UP * h
 	var apex := top + Vector3.UP * spike
 	var hw := w * 0.5
@@ -377,7 +395,26 @@ func pinnacle(key: String, base: Vector3, w: float, h: float, spike: float) -> v
 		var a := c[i]
 		var b := c[(i + 1) % 4]
 		var out := ((a + b) * 0.5 - top).normalized() + Vector3.UP * (hw / spike)
-		quad(key, a, b, apex, apex, out)
+		quad(key, a, b, apex, apex, out, false)
+	box(key, apex - Vector3.UP * 0.02, Vector3.ONE * w * 0.16, Basis(Vector3(0.3, 0.5, 0.2).normalized(), 0.8), false, 0.95)
+
+
+## Broken crown for a ruined wall column: two or three uneven stones sit on `top_c` (the centre of the
+## column's top face, basis `b` = along / up / thickness), so a ruin ends in fallen-away blocks and
+## not a flat saw-cut. Visual only; collision stays the column.
+func broken_crown(key: String, top_c: Vector3, b: Basis, width: float, thick: float, rng: RandomNumberGenerator, shade := 0.9) -> void:
+	var n := 2 if width < 0.8 else 3
+	var seg := width / float(n)
+	for i in n:
+		if rng.randf() < 0.2:
+			continue                                    # a gap where the stone has gone
+		var w := seg * rng.randf_range(0.7, 1.0)
+		var hh := rng.randf_range(0.07, 0.3)
+		var tt := thick * rng.randf_range(0.6, 0.95)
+		var cx := -width * 0.5 + seg * (float(i) + 0.5) + rng.randf_range(-0.05, 0.05)
+		var cz := rng.randf_range(-0.1, 0.1) * thick
+		var tilt := Basis.from_euler(Vector3(rng.randf_range(-0.07, 0.07), rng.randf_range(-0.14, 0.14), rng.randf_range(-0.1, 0.1)))
+		box(key, top_c + b.x * cx + b.y * (hh * 0.5 - 0.03) + b.z * cz, Vector3(w, hh, tt), b * tilt, false, shade * rng.randf_range(0.85, 1.0))
 
 
 ## Glowing pane filling a pointed opening (lit from within). Two-sided, no collision.

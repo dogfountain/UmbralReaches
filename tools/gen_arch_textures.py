@@ -130,6 +130,26 @@ def ruin():
     _maps('oss_ruin', col, h, ao, 0.88 + mortar * 0.08 - fine * 0.06 + pits * 0.06, 14.0)
 
 
+def hewn():
+    """Monolithic weathered limestone (headstones, waystones, steles): strata, pits, hairline cracks,
+    chipped lichen crusts. No joints, so it never reads as a wall on a 30 cm stone."""
+    grain = fbm(S, 6, 6)
+    fine = fbm(S, 64, 4)
+    strata = fbm(S, 3, 4, ny=18)
+    f1, f2, _ = voronoi(S, 6, 0.9)
+    crack = (1 - smooth(0.0, 0.006, f2 - f1)) * smooth(0.55, 0.7, fbm(S, 5, 4))
+    pits = smooth(0.74, 0.9, fbm(S, 40, 3))
+    chips = smooth(0.7, 0.82, fbm(S, 16, 4))
+    lichen = smooth(0.66, 0.8, fbm(S, 12, 4))
+    soot = smooth(0.45, 0.9, fbm(S, 10, 4, ny=2))
+    h = grain * 0.4 + strata * 0.15 + fine * 0.1 - crack * 0.3 - pits * 0.14 - chips * 0.25
+    lum = 0.36 + (grain - 0.5) * 0.18 + (strata - 0.5) * 0.12 + (fine - 0.5) * 0.06 - pits * 0.08 - chips * 0.06 - soot * 0.06
+    col = lum[..., None] * np.array([0.9, 0.87, 0.82])
+    col = col * (1 - lichen[..., None] * 0.3) + lichen[..., None] * np.array([0.14, 0.17, 0.11]) * 0.8
+    col = col * (1 - crack[..., None] * 0.5)
+    _maps('oss_hewn', col, h, 1 - pits * 0.3 - crack * 0.4 - chips * 0.1, 0.84 + pits * 0.08 + lichen * 0.08 - fine * 0.05, 14.0)
+
+
 def floor():
     col, h, ao, mortar, fine, pits = masonry(
         4.5, [0.13, 0.15, 0.14, 0.16, 0.13, 0.15, 0.14], (0.55, 0.95), 23, (0.86, 0.84, 0.8), 0.36,
@@ -175,7 +195,7 @@ def tavern_beam():
     timber('tavern_beam', 2, (0.85, 0.55, 0.38), 0.085, 0.88, 12.0, 0.3, gaps=False)
 
 
-SETS = {'brick': brick, 'plaster': plaster, 'ashlar': ashlar, 'ruin': ruin, 'floor': floor,
+SETS = {'brick': brick, 'plaster': plaster, 'ashlar': ashlar, 'ruin': ruin, 'hewn': hewn, 'floor': floor,
         'wood': tavern_wood, 'beam': tavern_beam}
 
 if __name__ == '__main__':
