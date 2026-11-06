@@ -51,6 +51,8 @@ const CAPSULE_R := 0.35
 const CAPSULE_H := 1.7
 const MARK_MAX := 3
 const MARK_LIFE := 5.0
+const BAR_RANGE := 28.0          ## the plate and its beads end here (sleep is 46), fading over BAR_FADE
+const BAR_FADE := 4.0
 const HIT_COL := Color(0.86, 0.8, 1.0)
 const HIT_BIG := Color(1.0, 0.55, 0.3)
 
@@ -606,9 +608,17 @@ func _remember_home() -> void:
 func _pin_visuals() -> void:
 	if _hp_bar == null:
 		return
-	_hp_bar.visibility_range_end = 0.0
+	_range_cap(_hp_bar)
 	_hp_bar.extra_cull_margin = maxf(_hp_bar.extra_cull_margin, 2.4)
 	_hp_bar.ignore_occlusion_culling = true
+	for pip in _pips:
+		_range_cap(pip)
+
+
+func _range_cap(g: GeometryInstance3D) -> void:
+	g.visibility_range_end = BAR_RANGE
+	g.visibility_range_end_margin = BAR_FADE
+	g.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 
 
 func _build() -> void:
@@ -643,7 +653,7 @@ func _make_hp_bar() -> void:
 	_hp_bar.position = Vector3(0.0, hp_bar_y, 0.0)
 	_hp_bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_hp_bar.extra_cull_margin = 1.2
-	_hp_bar.visibility_range_end = 0.0
+	_range_cap(_hp_bar)
 	_hp_bar.ignore_occlusion_culling = true
 	add_child(_hp_bar)
 	_hp_bar.set_instance_shader_parameter(&"segments", hp_segments(max_hp))
@@ -675,6 +685,7 @@ func _make_pips() -> void:
 		pip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		pip.position = Vector3((float(i) - 1.0) * 0.14, hp_bar_y + 0.16, 0.0)
 		pip.visible = false
+		_range_cap(pip)
 		add_child(pip)
 		_pips.append(pip)
 
@@ -686,7 +697,7 @@ func add_mark(n := 1) -> void:
 	_mark_t = MARK_LIFE
 	_refresh_pips()
 	if marks >= 3:
-		Hints.once(&"nova_marks", "%s  Umbral Nova detonates Marks: each one is another blow." % Hints.key("skill_nova", "Q"))
+		Hints.once(&"nova_marks", "%s  Umbral Nova detonates Marks: each one is another blow. Marks last 5 seconds." % Hints.key("skill_nova", "Q"))
 	Sfx.play(SFX_MARK, global_position, -12.0, 0.9 + 0.12 * float(marks))
 	Vfx.ring(global_position + Vector3.UP * (hp_bar_y + 0.16), 0.22 + 0.06 * float(marks), Color(1.4, 0.6, 3.0), 0.3, 0.2, Vector3.BACK)
 
@@ -701,6 +712,14 @@ func take_marks() -> int:
 func _refresh_pips() -> void:
 	for i in _pips.size():
 		_pips[i].visible = i < marks
+		_pips[i].transparency = 0.0
+
+
+## The beads thin with the clock (the set shares one MARK_LIFE) and fade across the last second.
+func _fade_pips() -> void:
+	var t := 0.45 * (1.0 - _mark_t / MARK_LIFE) + 0.55 * (1.0 - clampf(_mark_t, 0.0, 1.0))
+	for i in marks:
+		_pips[i].transparency = clampf(t, 0.0, 0.95)
 
 
 func is_alive() -> bool:
@@ -833,6 +852,8 @@ func _physics_process(delta: float) -> void:
 		if _mark_t <= 0.0:
 			marks = 0
 			_refresh_pips()
+		else:
+			_fade_pips()
 	_move(delta)
 	_flash_visual(delta)
 	_tick_hp_trail(delta)
