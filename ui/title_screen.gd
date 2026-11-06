@@ -233,6 +233,7 @@ func _open_settings() -> void:
 		_settings = SettingsMenu.new()
 		_settings.set("on_title", true)
 		add_child(_settings)
+		_settings.layer = layer + 5          # its _ready sets 70 (the in-game pause layer); here it must sit above the title (125)
 	_settings.call("open")
 
 
