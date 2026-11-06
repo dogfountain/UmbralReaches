@@ -113,6 +113,7 @@ func _build() -> void:
 	_root.add_child(dim)
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.offset_top = 112.0                       # centred in the space under the tab band
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(center)
 	var panel := PanelContainer.new()
@@ -165,8 +166,13 @@ func _build() -> void:
 	left.add_child(_all_btn)
 	left.add_child(_label("SETS", 18, QUIET, _title_font))
 	_sets_label = _wrap(15, QUIET)
-	_sets_label.custom_minimum_size.x = 290
-	left.add_child(_sets_label)
+	_sets_label.custom_minimum_size.x = 270
+	var sets_scroll := ScrollContainer.new()              # the set notes scroll, so a short window never pushes the panel off the screen
+	sets_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sets_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sets_scroll.custom_minimum_size = Vector2(290, 90)
+	sets_scroll.add_child(_sets_label)
+	left.add_child(sets_scroll)
 
 	# the satchel's gear
 	var mid := VBoxContainer.new()

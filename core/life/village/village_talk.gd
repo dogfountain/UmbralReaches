@@ -14,6 +14,7 @@ extends Node
 const DB := preload("res://core/life/village/village_talk_db.gd")
 const VState := preload("res://core/life/village/village_state.gd")
 const Cast := preload("res://core/life/village/village_cast.gd")
+const Dialogue := preload("res://ui/dialogue.gd")
 const Rig := preload("res://core/life/village/villager_rig.gd")
 const Life := preload("res://core/npc/npc_life.gd")
 const Voice := preload("res://core/npc/npc_voice.gd")
@@ -236,19 +237,16 @@ func _on_closed() -> void:
 # --- the portrait ---------------------------------------------------------------------------------
 
 func _portrait_in(v: Node3D) -> void:
-	var vp: Variant = ui.get("_vp")
-	var pic: Variant = ui.get("_portrait")
-	if not (vp is SubViewport) or not (pic is Control):
+	var box := ui as Dialogue
+	if box == null:
 		return
-	var opts: Dictionary = ((v.get("data") as Dictionary).rig as Dictionary).duplicate()
+	var data: Dictionary = v.get("data") if v.get("data") is Dictionary else {}
+	var opts: Dictionary = (data.get("rig", {}) as Dictionary).duplicate()
 	opts["name"] = String(v.get("id"))
 	_portrait = Rig.create(opts)
-	(vp as SubViewport).add_child(_portrait)
 	var hc: Vector3 = _portrait.get("hc")
 	_portrait.position = Vector3(0, 1.37 - hc.y * Rig.SCALE, 0.02)
-	var frame := (pic as Control).get_parent() as Control
-	if frame:
-		frame.visible = true
+	box.show_portrait(_portrait)
 
 
 func _process(delta: float) -> void:
