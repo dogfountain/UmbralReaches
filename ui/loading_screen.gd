@@ -37,7 +37,13 @@ const VIEWS := [
 	[Vector3(-48.0, NAN, -31.0), -0.05],       # toward the hermit's perch
 ]
 ## r28 additions to the combat set (by path: no class_name). Missing files are skipped.
-const MORE_KIN := ["res://core/enemy/bulwark.gd", "res://core/enemy/chanter.gd", "res://core/enemy/burrower.gd", "res://core/enemy/mite.gd"]
+const MORE_KIN := ["res://core/enemy/bulwark.gd", "res://core/enemy/chanter.gd", "res://core/enemy/burrower.gd", "res://core/enemy/mite.gd",
+	"res://core/enemy/gaunt.gd", "res://core/enemy/quiller.gd", "res://core/enemy/pilgrim.gd", "res://core/enemy/tollman.gd",
+	"res://core/enemy/cinder_caster.gd"]
+## The great ones: their own materials (boss_pbr) and parts, shown once so a pull compiles nothing.
+const WarmAttackKit := preload("res://core/enemy/attack_kit.gd")
+const WarmBossKit := preload("res://core/enemy/boss_kit.gd")
+const BOSSES := ["res://core/enemy/thornwarden.gd", "res://core/enemy/bone_abbot.gd", "res://core/enemy/ascended_warden.gd"]
 const CORES := ["core_prism", "core_lodestar", "core_cinder", "core_rime"]
 const DIRS := 6                 # headings per stop
 const FRAMES_PER_DIR := 2
@@ -61,6 +67,7 @@ var _dir := 0
 var _frame := 0
 var _warm_nodes: Array[Node] = []
 var _warm_bolts: Array[Node] = []
+var _warm_saved := {}             ## the wanderer before the warm-up cast every spell
 var _warm_life: Node
 var _fx_frames := -1
 var _combat_shown := false
@@ -321,7 +328,63 @@ func _show_combat() -> void:
 	Vfx.ribbon(PackedVector3Array([at - right, at, at + right]), 0.2, 0.05, hot, 0.25, false)
 	Vfx.arc(at - right, at + right, col)
 	_show_r28(c, at, right, fwd, col)
+	_show_more(c, at, right, fwd, col, hot)
+	_cast_every_spell(c, fwd)
 	print("LOADING combat set on show: %d nodes" % _warm_nodes.size())
+
+
+## The bosses, and the effect helpers the first set never drew (so a fight compiles none of them).
+func _show_more(c: Vector3, at: Vector3, right: Vector3, fwd: Vector3, col: Color, hot: Color) -> void:
+	for k in BOSSES.size():
+		if not ResourceLoader.exists(BOSSES[k]):
+			continue
+		var b: Node3D = (load(BOSSES[k]) as GDScript).new()
+		b.process_mode = Node.PROCESS_MODE_DISABLED
+		zone.add_child(b)
+		b.remove_from_group(Groups.ENEMY)
+		b.global_position = c + fwd * 5.0 + right * (float(k) - 1.0) * 4.0
+		_warm_nodes.append(b)
+	Vfx.impact(at, hot, fwd, false)
+	Vfx.impact(at, col, fwd, true)
+	var em := Vfx.emitter(col, {})
+	if em:
+		zone.add_child(em)
+		em.global_position = at
+		_warm_nodes.append(em)
+	var ring := SpellFx.target_ring()
+	if ring:
+		zone.add_child(ring)
+		SpellFx.place_ring(ring, c, Vector3.UP, 1.5, 1.0)
+		_warm_nodes.append(ring)
+	var spear := MeshInstance3D.new()
+	spear.mesh = SpellFx.spear_mesh()
+	zone.add_child(spear)
+	spear.global_position = at + right
+	_warm_nodes.append(spear)
+	var foes: Array = _warm_nodes.filter(func(n: Node) -> bool: return n is Enemy)
+	if not foes.is_empty():
+		var z := WarmAttackKit.zone(foes[0] as Enemy, c + right * 3.0, 9.0, 0.0, {})
+		if z:
+			_warm_nodes.append(z)
+	WarmBossKit.lee_marks(c - fwd * 2.0, [c + right * 2.0, c - right * 2.0], 0.6)
+
+
+## Every spell the wanderer knows, cast once from in front of the warm camera with its real code
+## (its own bursts, rings and variant), so the first fight compiles nothing. The wanderer, Gloom,
+## Wounds and the cooldowns are put back when the set is cleared.
+func _cast_every_spell(c: Vector3, fwd: Vector3) -> void:
+	var pl := _player as Player
+	if pl == null or pl.skills() == null:
+		return
+	var sb := pl.skills()
+	_warm_saved = {"pos": _player.global_position, "gloom": _player.get("gloom"), "wounds": _player.get("wounds")}
+	_player.global_position = c - fwd * 1.5
+	for i in sb.slots.size():
+		if sb.slots[i] == null:
+			continue
+		sb.reset_cooldowns()
+		sb.try_cast(i, 1.0, true)
+	sb.reset_cooldowns()
 
 
 ## The r28 expansion's spells, afflictions, enemy attacks, staff cores and sky effects.
@@ -386,6 +449,13 @@ func _clear_combat() -> void:
 		if is_instance_valid(b) and pool and pool.has_method("release"):
 			pool.call("release", b)
 	_warm_bolts.clear()
+	if not _warm_saved.is_empty() and is_instance_valid(_player):
+		_player.global_position = _warm_saved.pos
+		_player.set("gloom", _warm_saved.gloom)
+		_player.set("wounds", _warm_saved.wounds)
+		if _player is Player and (_player as Player).skills() != null:
+			(_player as Player).skills().reset_cooldowns()
+		_warm_saved = {}
 	if is_instance_valid(_warm_life):
 		_warm_life.call("warm_show", false)
 	_warm_life = null

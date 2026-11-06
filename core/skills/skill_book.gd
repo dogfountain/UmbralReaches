@@ -246,6 +246,11 @@ func press(i: int) -> bool:
 
 
 ## A dodge roll cancels the cast lock so the next spell can follow the roll at once.
+## Every spell ready again (the loading screen's warm-up casts each one once, then clears them).
+func reset_cooldowns() -> void:
+	_cd.fill(0.0)
+
+
 func cancel_lock() -> void:
 	_lock = 0.0
 
