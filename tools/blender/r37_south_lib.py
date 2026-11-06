@@ -130,7 +130,7 @@ def tex_masonry(n, seed, rows=7, cold=True):
     block_tone = rng.uniform(-1.0, 1.0, bid + 1)[ids]
     big = fbm(n, 2.4, seed + 1)
     mid = fbm(n, 1.6, seed + 2)
-    fine = fbm(n, 1.0, seed + 3)
+    fine = fbm(n, 1.8, seed + 3)
     height = face * (0.55 + 0.25 * block_rand + 0.35 * (big - 0.5)) + 0.12 * (mid - 0.5) + 0.05 * (fine - 0.5)
     height = np.clip(height, 0.0, 1.0)
     base_lo = (0.17, 0.165, 0.16) if cold else (0.2, 0.17, 0.14)
@@ -149,27 +149,109 @@ def tex_masonry(n, seed, rows=7, cold=True):
 
 
 def tex_bark(n, seed, dead=True):
-    """Weathered oak bark: deep vertical fissures, scaly plates, grey-silver where the tree is dead."""
-    rid = fbm(n, 2.6, seed, aniso=5.0)
-    ridge = 1.0 - np.abs(rid * 2.0 - 1.0)
-    ridge = ridge ** 1.4
-    fine = fbm(n, 1.6, seed + 1, aniso=3.0)
-    scale = fbm(n, 1.2, seed + 2, aniso=1.4)
-    plates = smooth(scale, 0.3, 0.7)
-    height = np.clip(0.62 * ridge + 0.26 * fine + 0.14 * plates, 0.0, 1.0)
-    fis = smooth(height, 0.18, 0.42)                                     # 0 in the fissure floor
-    lo = (0.045, 0.036, 0.03)
-    hi = (0.30, 0.255, 0.215) if dead else (0.22, 0.17, 0.12)
-    tone = np.clip(0.2 + 0.7 * height + 0.18 * (fine - 0.5), 0.0, 1.0)
+    """Weathered dead-oak bark (a tile is ~3 m): deep, meandering, forking vertical furrows between broad rounded
+    plates, short cross-checks, silver-grey and sun-bleached on the plates, dark in the cracks. The height field is
+    strong (the normal map carries real relief); moss is added by vertex colour."""
+    yy = np.arange(n)[:, None].astype(np.float64) * np.ones((1, n))
+    xx = np.arange(n)[None, :].astype(np.float64) * np.ones((n, 1))
+    w1 = fbm(n, 3.4, seed + 20)
+    w2 = fbm(n, 3.0, seed + 21)
+    w3 = fbm(n, 2.4, seed + 22)
+    period = n / 7.0
+    X = xx + (w1 - 0.5) * n * 0.05 + (w3 - 0.5) * n * 0.012
+    ph = X / period + (w2 - 0.5) * 1.5
+    p = np.abs(np.sin(np.pi * ph))                                       # 0 in a furrow, 1 on a plate top
+    plate = smooth(p, 0.10, 0.85)
+    ridge_top = plate * (0.72 + 0.28 * p)
+    Y = yy + (w1 - 0.5) * n * 0.05
+    p2 = np.abs(np.sin(np.pi * (Y / (n / 3.0) + (w3 - 0.5) * 0.8)))
+    mask = smooth(fbm(n, 3.0, seed + 23), 0.5, 0.7)
+    cross = (1.0 - smooth(p2, 0.0, 0.07)) * mask
+    fine = fbm(n, 2.4, seed + 2, aniso=2.0)
+    scale = fbm(n, 2.8, seed + 3)
+    height = np.clip(ridge_top * (0.62 + 0.2 * (scale - 0.5) + 0.1 * (fine - 0.5)) - 0.3 * cross, 0.0, 1.0)
+    lo = np.array([0.11, 0.09, 0.075])
+    hi = np.array([0.46, 0.41, 0.35]) if dead else np.array([0.32, 0.23, 0.17])
+    tone = np.clip(0.3 + 0.45 * ridge_top + 0.3 * (scale - 0.5) + 0.14 * (fine - 0.5), 0.0, 1.0)
     alb = tint(tone, lo, hi)
     if dead:
-        silver = smooth(fbm(n, 2.2, seed + 3, aniso=3.0), 0.5, 0.85)
-        alb = alb * (1.0 - 0.45 * silver[..., None]) + np.array([0.36, 0.34, 0.31])[None, None, :] * 0.45 * silver[..., None] * fis[..., None]
-    moss = smooth(fbm(n, 2.8, seed + 4), 0.64, 0.86) * fis
-    lichen = smooth(fbm(n, 2.2, seed + 5), 0.7, 0.9) * fis
-    alb = alb * (1.0 - 0.6 * moss[..., None]) + np.array([0.09, 0.14, 0.05])[None, None, :] * 0.6 * moss[..., None]
-    alb = alb * (1.0 - 0.5 * lichen[..., None]) + np.array([0.4, 0.42, 0.3])[None, None, :] * 0.5 * lichen[..., None]
-    rough = np.clip(0.9 + 0.1 * (fine - 0.5) - 0.12 * moss, 0.55, 1.0)
+        silver = smooth(fbm(n, 2.8, seed + 5, aniso=2.0), 0.45, 0.8) * plate
+        alb = alb * (1.0 - 0.5 * silver[..., None]) + np.array([0.56, 0.53, 0.48])[None, None, :] * 0.5 * silver[..., None]
+    lich = smooth(fbm(n, 2.8, seed + 6), 0.66, 0.86) * plate
+    alb = alb * (1.0 - 0.45 * lich[..., None]) + np.array([0.46, 0.5, 0.36])[None, None, :] * 0.45 * lich[..., None]
+    alb *= (0.7 + 0.3 * plate)[..., None]
+    rough = np.clip(0.92 + 0.08 * (fine - 0.5) - 0.1 * lich, 0.6, 1.0)
+    return alb, height, rough
+
+
+def _courses(n, seed, rows):
+    """Coursed blocks on an n x n tile: per-pixel block id, distance to the nearest joint (px), per-block randoms."""
+    rng = np.random.default_rng(seed)
+    ids = np.zeros((n, n), dtype=np.int32)
+    d = np.zeros((n, n))
+    hs = rng.uniform(0.8, 1.25, rows)
+    hs = np.round(hs / hs.sum() * n).astype(int)
+    hs[-1] = n - hs[:-1].sum()
+    y = 0
+    bid = 1
+    for ri in range(rows):
+        h = int(hs[ri])
+        widths = []
+        tot = 0
+        while tot < n:
+            w = int(rng.uniform(1.1, 2.4) * h)
+            widths.append(w)
+            tot += w
+        widths[-1] -= tot - n
+        if widths[-1] < h * 0.8 and len(widths) > 1:
+            widths[-2] += widths[-1]
+            widths.pop()
+        x = int(rng.integers(0, n))
+        for w in widths:
+            cols = (np.arange(w) + x) % n
+            ids[y:y + h][:, cols] = bid
+            dx = np.minimum(np.arange(w), w - 1 - np.arange(w))[None, :]
+            dy = np.minimum(np.arange(h), h - 1 - np.arange(h))[:, None]
+            d[y:y + h][:, cols] = np.minimum(dx, dy)
+            x += w
+            bid += 1
+        y += h
+    return ids, d, rng, bid
+
+
+def tex_ashlar(n, seed, rows=7, warm=0.0):
+    """Dressed limestone ashlar at real scale (a tile is ~3.2 m: courses ~0.45 m): chiselled, slightly domed faces,
+    crisp narrow joints, pitting, rain streaks, grey-green lichen and moss in the joints. No red noise."""
+    ids, d, rng, nb = _courses(n, seed, rows)
+    gap = n * 0.005
+    bevel = n * 0.010
+    face = smooth(d, gap, gap + bevel)
+    dome = smooth(d, 0.0, n * 0.06)
+    brand = rng.uniform(0.0, 1.0, nb + 1)[ids]
+    btone = rng.uniform(-1.0, 1.0, nb + 1)[ids]
+    big = fbm(n, 2.6, seed + 1)
+    mid = fbm(n, 1.5, seed + 2)
+    fine = fbm(n, 2.2, seed + 3)
+    grit = fbm(n, 1.8, seed + 7)
+    pit = smooth(fbm(n, 2.0, seed + 8), 0.78, 0.92)
+    chisel = fbm(n, 2.4, seed + 9, aniso_u=3.0)
+    height = face * (0.5 + 0.1 * brand + 0.18 * dome + 0.18 * (big - 0.5) + 0.14 * (mid - 0.5) + 0.12 * (chisel - 0.5) + 0.07 * (fine - 0.5) - 0.12 * pit)
+    height = np.clip(height, 0.0, 1.0)
+    base_lo = np.array([0.28, 0.275, 0.26])
+    base_hi = np.array([0.55, 0.53, 0.49])
+    tone = np.clip(0.5 + 0.26 * btone + 0.22 * (big - 0.5) + 0.12 * (mid - 0.5) + 0.07 * (grit - 0.5), 0.0, 1.0)
+    alb = tint(tone, base_lo, base_hi)
+    if warm:
+        alb = alb * np.array([1.0 + warm, 1.0 + warm * 0.4, 1.0 - warm * 0.5])[None, None, :]
+    alb *= (0.5 + 0.5 * face)[..., None]
+    alb *= (1.0 - 0.28 * pit)[..., None]
+    streak = smooth(fbm(n, 2.4, seed + 5, aniso=9.0), 0.58, 0.9)
+    alb *= (1.0 - 0.3 * streak)[..., None]
+    lich = smooth(fbm(n, 2.2, seed + 4) * (0.75 + 0.25 * fine), 0.6, 0.82) * face
+    alb = alb * (1.0 - 0.5 * lich[..., None]) + np.array([0.40, 0.44, 0.33])[None, None, :] * 0.5 * lich[..., None] * (0.6 + 0.4 * tone[..., None])
+    moss = smooth(1.0 - face, 0.2, 0.9) * smooth(fbm(n, 2.4, seed + 6), 0.45, 0.75)
+    alb = alb * (1.0 - 0.5 * moss[..., None]) + np.array([0.16, 0.19, 0.11])[None, None, :] * 0.5 * moss[..., None]
+    rough = np.clip(0.84 + 0.14 * (fine - 0.5) - 0.12 * lich + 0.08 * (1.0 - face), 0.55, 1.0)
     return alb, height, rough
 
 
@@ -180,14 +262,14 @@ def tex_chalk(n, seed):
     strata = 0.5 + 0.5 * np.sin((yy * 17.0 + warp * 2.2) * math.pi * 2.0 / 1.0)
     strata2 = 0.5 + 0.5 * np.sin((yy * 5.0 + warp * 1.4 + 0.3) * math.pi * 2.0)
     mid = fbm(n, 1.8, seed + 1)
-    fine = fbm(n, 1.0, seed + 2)
+    fine = fbm(n, 1.8, seed + 2)
     cr = 1.0 - np.abs(fbm(n, 2.4, seed + 3, aniso_u=2.2) * 2.0 - 1.0)
     cracks = smooth(cr, 0.88, 0.97)
     height = np.clip(0.35 * strata + 0.25 * strata2 + 0.3 * mid + 0.1 * fine - 0.35 * cracks, 0.0, 1.0)
     tone = np.clip(0.55 + 0.25 * (mid - 0.5) + 0.15 * (strata - 0.5) + 0.08 * (fine - 0.5), 0.0, 1.0)
     alb = tint(tone, (0.3, 0.285, 0.255), (0.62, 0.6, 0.55))
     alb *= (1.0 - 0.6 * cracks)[..., None]
-    flint = smooth(fbm(n, 0.8, seed + 4), 0.86, 0.93)
+    flint = smooth(fbm(n, 1.6, seed + 4), 0.86, 0.93)
     alb = alb * (1.0 - flint[..., None]) + np.array([0.06, 0.06, 0.07])[None, None, :] * flint[..., None]
     moss = smooth(fbm(n, 2.4, seed + 5), 0.66, 0.85)
     alb = alb * (1.0 - 0.5 * moss[..., None]) + np.array([0.12, 0.16, 0.07])[None, None, :] * 0.5 * moss[..., None]
@@ -233,32 +315,40 @@ def tex_planks(n, seed):
 
 # --- materials -----------------------------------------------------------------------------------
 
+def write_png(path, rgb):
+    """An 8-bit RGB PNG from a (h, w, 3) uint8 array, top row first. Written by hand (zlib + struct):
+    Blender's own save of numpy-filled images came out black or colour-shifted."""
+    import zlib
+    import struct
+    h, w, _ = rgb.shape
+    raw = b"".join(b"\x00" + rgb[y].tobytes() for y in range(h))
+
+    def chunk(tag, data):
+        c = struct.pack(">I", len(data)) + tag + data
+        return c + struct.pack(">I", zlib.crc32(tag + data) & 0xffffffff)
+    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw, 6)) + chunk(b"IEND", b"")
+    with open(path, "wb") as f:
+        f.write(png)
+
+
 def _img(name, arr, srgb):
-    h, w = arr.shape[0], arr.shape[1]
-    rgba = np.ones((h, w, 4), dtype=np.float32)
-    rgba[..., :3] = np.clip(arr, 0.0, 1.0)
-    rgba = np.flipud(rgba)
-    im = bpy.data.images.new(name, w, h, alpha=False)
+    """A packed Blender image from a (h, w, 3) array of 0..1 display values (what the file will hold)."""
+    os.makedirs(TEX_DIR, exist_ok=True)
+    path = os.path.join(TEX_DIR, name + ".png")
+    write_png(path, (np.clip(arr, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8))
+    im = bpy.data.images.load(path)
     im.colorspace_settings.name = 'sRGB' if srgb else 'Non-Color'
-    im.pixels.foreach_set(np.ascontiguousarray(rgba, dtype=np.float32).ravel())
-    im.update()
+    im.pack()
     return im
 
 
-def pbr(name, maps, normal_strength=3.0, metal=0.0, save=True):
+def pbr(name, maps, normal_strength=3.0, metal=0.0):
     """A Principled material from (albedo, height, rough)."""
     alb, height, rough = maps
     ao = ao_from_height(height)
     orm = np.stack([ao, rough, np.full_like(rough, metal)], axis=-1)
-    nrm = normal_from_height(height, normal_strength)
+    nrm = normal_from_height(height, normal_strength * 0.03)      # strength = relief as a fraction of the tile edge
     imgs = {"alb": _img(name + "_albedo", alb, True), "nrm": _img(name + "_normal", nrm, False), "orm": _img(name + "_orm", orm, False)}
-    if save:
-        os.makedirs(TEX_DIR, exist_ok=True)
-        for k, im in imgs.items():
-            jpg = k != "nrm"                      # normals stay lossless; albedo and ORM take JPEG (a third of the size)
-            im.filepath_raw = os.path.join(TEX_DIR, im.name + (".jpg" if jpg else ".png"))
-            im.file_format = 'JPEG' if jpg else 'PNG'
-            im.save(quality=92) if jpg else im.save()
     return _material(name, imgs)
 
 
@@ -292,23 +382,11 @@ def _material(name, imgs):
     return m
 
 
-def pbr_files(name, stem, metal=0.0):
-    """A Principled material from the art wave's maps in art/textures: <stem>_albedo / _normal / _ao / _rough .png
-    (real-scale ashlar, giant bark...). Packed into one ORM like pbr()."""
-    d = os.path.join(ROOT, "art", "textures")
-
-    def load(kind, srgb):
-        im = bpy.data.images.load(os.path.join(d, "%s_%s.png" % (stem, kind)))
-        w, h = im.size
-        a = np.array(im.pixels[:], dtype=np.float32).reshape(h, w, im.channels)
-        return np.flipud(a)[..., :3]
-    alb = load("albedo", True)
-    nrm = load("normal", False)
-    ao = load("ao", False)[..., 0]
-    rough = load("rough", False)[..., 0]
-    orm = np.stack([ao, rough, np.full_like(rough, metal)], axis=-1)
-    imgs = {"alb": _img(name + "_albedo", alb, True), "nrm": _img(name + "_normal", nrm, False), "orm": _img(name + "_orm", orm, False)}
-    return _material(name, imgs)
+def ashlar(name, seed, rows=7, warm=0.0):
+    """The dressed-stone material: a 3.2 m tile (box UVs run at 1.95 x the stock 0.16 per metre)."""
+    m = pbr(name, tex_ashlar(1024, seed, rows, warm), 1.2)
+    m["uv_mul"] = 1.95
+    return m
 
 
 def flat(name, color, rough=0.9, metal=0.0):
@@ -372,6 +450,11 @@ class B:
                 elif isinstance(g, bmesh.types.BMFace):
                     vs.update(g.verts)
             verts = list(vs)
+        # UVs from the box's own frame (before the turn and the jitter): no stretch on pitched or tapered stones
+        vset = set(verts)
+        faces = {f for v in vset for f in v.link_faces if all(q in vset for q in f.verts)}
+        off = ((c[0] * 13.1 + c[2] * 7.7) % 1.0, (c[1] * 5.3 + c[0] * 3.1) % 1.0)
+        self._box_uv(faces, scale_uv * float(self.mats[mat].get("uv_mul", 1.0)), off)
         seen = set()
         for v in list(verts):
             if v in seen:
@@ -381,14 +464,12 @@ class B:
             if jit > 0.0:
                 p += Vector((hash3(p.x, p.y, p.z, seed), hash3(p.x + 9, p.y, p.z, seed), hash3(p.x, p.y + 9, p.z, seed))) * jit
             v.co = p
-        faces = {f for v in seen for f in v.link_faces}
         for f in faces:
             f.material_index = self.keys.index(mat)
             f.smooth = False
-        self._box_uv(faces, scale_uv)
         return faces
 
-    def _box_uv(self, faces, s):
+    def _box_uv(self, faces, s, off=(0.0, 0.0)):
         for f in faces:
             f.normal_update()
             n = f.normal
@@ -401,7 +482,7 @@ class B:
                     uv = (p.x * s, p.z * s)
                 else:
                     uv = (p.x * s, p.y * s)
-                l[self.uv].uv = uv
+                l[self.uv].uv = (uv[0] + off[0], uv[1] + off[1])
 
     def loft(self, rings, mat, closed=True, cap_start=False, cap_end=False, smooth=True, box_uv=0.5):
         """Faces between consecutive rings (equal vertex counts), box-projected UVs."""
@@ -588,6 +669,41 @@ class B:
         return ob
 
 
+def moss_colors(ob, seed=0, amount=1.0, tint=(0.42, 0.62, 0.24)):
+    """Vertex colours (multiplied into the albedo by the engine): green moss on the faces that look north (Godot -Z),
+    on upward faces and low on the trunk, broken into patches by noise; white elsewhere. Call on a finished object."""
+    me = ob.data
+    nv = len(me.vertices)
+    co = np.empty(nv * 3, dtype=np.float32)
+    me.vertices.foreach_get("co", co)
+    co = co.reshape(-1, 3)
+    nrm = np.empty(nv * 3, dtype=np.float32)
+    me.vertex_normals.foreach_get("vector", nrm)
+    nrm = nrm.reshape(-1, 3)
+    m = np.zeros(nv, dtype=np.float32)
+    for i in range(nv):
+        x, y, z = co[i]                       # Blender: x, -godot z, godot y
+        n1 = noise.noise(Vector((x * 0.45 + seed, y * 0.45, z * 0.45)))
+        n2 = noise.noise(Vector((x * 1.6, y * 1.6 + seed, z * 1.6)))
+        north = max(0.0, nrm[i][1] * 1.5 - 0.1)
+        up = max(0.0, nrm[i][2] - 0.2) * 0.5
+        low = 1.0 - min(max((z - 0.0) / 9.0, 0.0), 1.0)
+        base = north * 0.85 + up * 0.5 + low * 0.35 + 0.55 * n1 + 0.3 * n2
+        t = min(max((base - 0.55) / 0.35, 0.0), 1.0)
+        m[i] = t * t * (3.0 - 2.0 * t) * amount
+    col = np.ones((nv, 3), dtype=np.float32)
+    tn = np.array(tint, dtype=np.float32)
+    col = col * (1.0 - m[:, None]) + tn[None, :] * m[:, None]
+    nl = len(me.loops)
+    lv = np.empty(nl, dtype=np.int32)
+    me.loops.foreach_get("vertex_index", lv)
+    rgba = np.ones((nl, 4), dtype=np.float32)
+    rgba[:, :3] = col[lv]
+    ca = me.color_attributes.new("Col", 'FLOAT_COLOR', 'CORNER')
+    ca.data.foreach_set("color", rgba.ravel())
+    me.color_attributes.active_color = ca
+
+
 def tris(ob):
     me = ob.data
     me.calc_loop_triangles()
@@ -599,10 +715,14 @@ def export(path, objs, extra=None):
     for o in objs:
         o.select_set(True)
     bpy.context.view_layer.objects.active = objs[0]
-    bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', use_selection=True, export_apply=True,
-                              export_yup=True, export_materials='EXPORT', export_normals=True,
-                              export_texcoords=True, export_tangents=False, export_image_format='AUTO',
-                              export_cameras=False, export_lights=False)
+    kw = dict(filepath=path, export_format='GLB', use_selection=True, export_apply=True,
+              export_yup=True, export_materials='EXPORT', export_normals=True,
+              export_texcoords=True, export_tangents=False, export_image_format='AUTO',
+              export_cameras=False, export_lights=False)
+    try:
+        bpy.ops.export_scene.gltf(export_vertex_color='ACTIVE', **kw)
+    except TypeError:
+        bpy.ops.export_scene.gltf(**kw)
     print("EXPORTED", path, os.path.getsize(path) // 1024, "KB", {o.name: tris(o) for o in objs})
 
 
