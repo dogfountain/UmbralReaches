@@ -62,7 +62,7 @@ func _ready() -> void:
 	_light = OmniLight3D.new()
 	_light.light_color = Color(0.62, 0.4, 1.0)
 	_light.light_energy = 0.0
-	_light.omni_range = radius * 1.7
+	_light.omni_range = radius
 	_light.shadow_enabled = false
 	_light.position = Vector3.UP * 1.2
 	_light.set_meta("light_class", "player_orb")

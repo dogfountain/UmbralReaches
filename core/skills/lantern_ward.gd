@@ -65,7 +65,7 @@ func _ready() -> void:
 	_light = OmniLight3D.new()
 	_light.light_color = WARM
 	_light.light_energy = 0.0
-	_light.omni_range = RADIUS * 1.6
+	_light.omni_range = RADIUS
 	_light.omni_attenuation = 1.1
 	_light.shadow_enabled = false
 	_light.light_volumetric_fog_energy = 1.4
