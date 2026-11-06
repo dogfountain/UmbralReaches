@@ -311,7 +311,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("release_mouse"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event.is_action_pressed("interact"):
-		if not (_interact_target == null and _grapple != null and _grapple.try_fire()):
+		if riding != null and (_interact_target == null or _interact_target == riding):
+			mount.get_down()                               # on horseback [interact] gets down, whatever the sensor found
+		elif not (_interact_target == null and _grapple != null and _grapple.try_fire()):
 			interaction._try_interact()                    # r31: nothing to use here: the Tether line bites a marked anchor
 	elif event.is_action_pressed("lock_on"):
 		targeting._toggle_lock()
@@ -416,7 +418,7 @@ func _physics_process(delta: float) -> void:
 				_sprint_latch = false
 			sprint = Input.is_action_pressed("sprint") or _sprint_latch
 	_wish_len = wish.length()
-	# r36 on horseback (core/world/mount/horse.gd): the horse takes the wish; jump gets down
+	# r36 on horseback (core/world/mount/horse.gd): the horse takes the wish; jump leaps it, interact gets down
 	if riding != null and mount.ride_tick(wish, sprint, delta):
 		return
 	if _visual.ride > 0.0:

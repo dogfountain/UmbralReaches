@@ -77,7 +77,7 @@ def pos(a, r, y):
 
 
 def build(DATA, PREVIEW, objs_out):
-    bark = L.pbr("R37_OakBark", L.tex_bark(2048, 3801, dead=True), 4.2)
+    bark = L.pbr("R37_OakBark", L.tex_bark(2048, 3801, dead=True), 2.4)
     plank = L.pbr("R37_OakPlank", L.tex_planks(512, 3802), 2.4)
     dark = L.flat("R37_OakDark", (0.012, 0.01, 0.01), 1.0)
     iron = L.flat("R37_OakIron", (0.07, 0.065, 0.06), 0.55, 0.85)
@@ -393,6 +393,21 @@ def build(DATA, PREVIEW, objs_out):
         en = pos(a + cr.uniform(-0.3, 0.3), r_in(33.0) - cr.uniform(0.4, 1.3), 36.5 - cr.uniform(6.0, 13.0))
         cb.tube(st, st.lerp(en, 0.5) + Vector((0, 0, 0)), 0.2, 0.12, "bark", sides=5, jit=0.04, seed=k, cap=False)
         cb.tube(st.lerp(en, 0.5), en, 0.12, 0.03, "bark", sides=5, jit=0.04, seed=k + 1)
+    # great snags: thick dead limbs that left the trunk high up and were broken off, reaching up and out
+    for k in range(7):
+        a = 0.9 + k * 0.9 + cr.uniform(-0.2, 0.2)
+        y0 = 22.0 + k * 2.1
+        r0 = r_out(y0) * 0.92
+        out = Vector((math.sin(a), 0, math.cos(a)))
+        p0 = pos(a, r0, y0)
+        p1 = p0 + out * cr.uniform(2.5, 4.0) + Vector((0, cr.uniform(1.0, 2.5), 0))
+        p2 = p1 + out * cr.uniform(2.0, 4.5) + Vector((0, cr.uniform(2.5, 5.0), 0)) + Vector((cr.uniform(-1.5, 1.5), 0, cr.uniform(-1.5, 1.5)))
+        p3 = p2 + out * cr.uniform(0.5, 2.0) + Vector((0, cr.uniform(3.0, 6.0), 0))
+        cb.tube_path([p0 - out * 1.0, p0, p1, p2, p3], [1.5, 1.25, 0.85, 0.5, 0.06], "bark", sides=8, jit=0.12, seed=40 + k)
+        for j in range(3):
+            q = p1.lerp(p2, 0.3 + 0.3 * j)
+            d = (out + Vector((cr.uniform(-1, 1), 0.9, cr.uniform(-1, 1)))).normalized()
+            cb.tube(q, q + d * cr.uniform(2.0, 4.5), 0.22, 0.03, "bark", sides=5, jit=0.04, seed=60 + k * 3 + j)
     objs.append(cb.finish())
 
     # ------------------------------------------------------------------ the stair

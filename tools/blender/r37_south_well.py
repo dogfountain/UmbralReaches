@@ -20,14 +20,14 @@ def rr(seed):
 
 
 def build_well(DATA, objs):
-    chalk = L.pbr("R37_Chalk", L.tex_chalk(1024, 3901), 3.4)
-    ash = L.pbr("R37_Ashlar", L.tex_masonry(1024, 3902, rows=6, cold=False), 3.0)
+    chalk = L.pbr("R37_Chalk", L.tex_chalk(1024, 3901), 1.8)
+    ash = L.pbr("R37_Ashlar", L.tex_masonry(1024, 3902, rows=6, cold=False), 1.5)
     dark = L.flat("R37_WellDark", (0.008, 0.009, 0.011), 1.0)
     iron = L.flat("R37_WellIron", (0.07, 0.065, 0.06), 0.5, 0.85)
     wood = L.pbr("R37_WellWood", L.tex_planks(512, 3903), 2.4)
     bronze = L.flat("R37_Bronze", (0.22, 0.14, 0.06), 0.45, 0.8)
     mats = {"chalk": chalk, "ash": ash, "dark": dark, "iron": iron, "wood": wood, "bronze": bronze}
-    cu = 1.0 / 3.0
+    cu = 0.2
 
     def rubble(b, cx, cz, n, spread, hmax, seed, y0=0.0):
         r = rr(seed)
@@ -157,12 +157,12 @@ def build_well(DATA, objs):
 
 
 def build_hut(DATA, objs):
-    ston = L.pbr("R37_HutStone", L.tex_masonry(1024, 3951, rows=9, cold=False), 3.4)
-    thatch = L.pbr("R37_Thatch", L.tex_thatch(1024, 3952), 3.0)
+    ston = L.pbr("R37_HutStone", L.tex_masonry(1024, 3951, rows=9, cold=False), 1.5)
+    thatch = L.pbr("R37_Thatch", L.tex_thatch(1024, 3952), 1.8)
     wood = L.pbr("R37_HutWood", L.tex_planks(512, 3953), 2.4)
     dark = L.flat("R37_HutDark", (0.01, 0.01, 0.012), 1.0)
     iron = L.flat("R37_HutIron", (0.07, 0.065, 0.06), 0.5, 0.85)
-    cu = 1.0 / 3.2
+    cu = 0.2
     mats = {"stone": ston, "thatch": thatch, "wood": wood, "dark": dark, "iron": iron}
     thatch.use_backface_culling = False
 

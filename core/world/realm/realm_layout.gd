@@ -9,7 +9,7 @@ extends RefCounted
 ## terrain mesh (adding detail noise, path carving and site stamps); everyone else asks
 ## `RealmLayout.ground(space, x, z)` once the terrain exists, or `macro_height()` before it does.
 
-## r37: doubled again (docs/r37_expansion.md): the Outer Marches west and east of the old gates, and
+## doubled again (docs/r37_expansion.md): the Outer Marches west and east of the old gates, and
 ## the southern downs. The old Realm (x -155..155, z -150..175) is OLD_BOUNDS; nothing in it moves.
 const BOUNDS := Rect2(-260.0, -150.0, 520.0, 390.0)        ## playable xz (x -260..260, z -150..240); r34: 310 x 325
 const OLD_BOUNDS := Rect2(-155.0, -150.0, 310.0, 325.0)    ## the r34 Realm, inside the March Wall
@@ -45,7 +45,7 @@ const RAIDS := [
 		"gate": Vector2(-56.0, -16.0), "boss": "thornwarden"},
 	{"id": "summit", "c": Vector2(0.0, -118.0), "r": 28.0, "y": 27.35, "fall": 10.0, "mode": "clear",
 		"gate": Vector2(0.0, -90.0), "boss": "ascended_warden"},
-	# r37: the two Marches bosses (docs/r37_expansion.md). The West agent builds the Hierarch's fight in
+	# the two Marches bosses (docs/r37_expansion.md). The West agent builds the Hierarch's fight in
 	# the toppled statue's broken crown; the East agent the Anchoress's on the cliff terrace.
 	{"id": "hierarch", "c": Vector2(-214.0, -104.0), "r": 24.0, "y": 4.0, "fall": 12.0, "mode": "level",
 		"gate": Vector2(-200.0, -82.0), "boss": "r37_hierarch"},
@@ -104,7 +104,7 @@ const REGIONS := [
 	{"id": "mere", "name": "Corvin's Mere", "rect": Rect2(64, 90, 86, 62), "biome": "fen", "tier": 1,
 		"purpose": "a drowned water-meadow: causeways, islets, floating lamps, a half-sunk chapel",
 		"lore": "Brother Corvin rowed fire out here to the sunk dead. Some of his lamps still float."},
-	# --- r37: the Outer Marches and the southern downs (docs/r37_expansion.md) --------------------
+	# --- the Outer Marches and the southern downs (docs/r37_expansion.md) --------------------
 	# West Marches (the West agent)
 	{"id": "weirford", "name": "Weirford", "c": Vector2(-205, 66), "r": 26.0, "biome": "meadow", "tier": 1,
 		"purpose": "a living outpost at the river crossing: inn, mill on the weir, smithy, stables, a watch post",
@@ -143,20 +143,29 @@ const REGIONS := [
 		"lore": "Drop a stone and count. Nobody has ever counted to the end of the echoes."},
 ]
 
-## r37: the Sorrow (West Marches): the river's centreline from the Crowns to the south edge, with the
+## the Sorrow (West Marches): the river's centreline from the Crowns to the south edge, with the
 ## bed's half width. RealmLand carves the channel and the water stands in it in stepped reaches (the
 ## weir at Weirford is one step); the road crosses on a bridge at the weir. The Foundation agent owns it.
-const RIVER := {"w": 6.0, "pts": [Vector2(-212, -150), Vector2(-206, -112), Vector2(-196, -72), Vector2(-204, -30),
-	Vector2(-214, 10), Vector2(-208, 46), Vector2(-205, 60), Vector2(-212, 96), Vector2(-226, 146), Vector2(-236, 196), Vector2(-240, 240)]}
-## r37: Stillwater's lake (East Marches): an elliptical basin, its surface, and the Spire's bluff.
+const RIVER := {"w": 6.0, "pts": [Vector2(-212, -56), Vector2(-208, -40), Vector2(-204, -30),
+	Vector2(-214, 10), Vector2(-208, 46), Vector2(-205, 60), Vector2(-222, 84), Vector2(-240, 110), Vector2(-250, 140),
+	Vector2(-254, 180), Vector2(-254, 240)]}
+## The river's course as built. The first cut ran the Sorrow through the Fallen Hierarch's
+## raid floor and down siege_track's line; it now rises from a spring west of weir_track's end (the Crowns'
+## run-off goes underground in the statue's valley), keeps to the west of every slot, crosses the road once at
+## Weirford (z~64) and leaves by the south-west edge. Water stands in reaches: RIVER_L0 at the head, falling
+## by RIVER_STEPS = [z, drop] (the weir at z 60 drops 0.5 m; the lowest reach, -0.5, keeps its banks above the flora's water line). The bed is RIVER_DEPTH under the surface.
+const RIVER_L0 := 0.6
+const RIVER_STEPS := [[-14.0, 0.2], [30.0, 0.2], [60.0, 0.5], [120.0, 0.1], [170.0, 0.1]]
+const RIVER_DEPTH := 1.35
+## Stillwater's lake (East Marches): an elliptical basin, its surface, and the Spire's bluff.
 const LAKE_C := Vector2(206.0, 4.0)
 const LAKE_R := Vector2(30.0, 40.0)          ## semi-axes x, z
 const LAKE_Y := -0.9                          ## the water line (as the fen's pools)
 const SPIRE_C := Vector2(240.0, 8.0)          ## the Lamplighters' Spire on its bluff (~12 m above the water)
-## r37: the Well of Echoes' sinkhole (the southern downs).
+## the Well of Echoes' sinkhole (the southern downs).
 const WELL_C := Vector2(72.0, 204.0)
 const WELL_R := 20.0                          ## the rim radius; the floor pool ~24 m below the downs
-## r37: the March Wall: the old Realm's west and east boundary (x -155 and 155, z -110..240), standing
+## the March Wall: the old Realm's west and east boundary (x -155 and 155, z -110..240), standing
 ## where the r34 edge rims were. Gates where the road crosses; breaches where the tracks do. The South
 ## agent builds it.
 const MARCH_WALL_X := 155.0
@@ -167,7 +176,7 @@ const MARCH_GATES := [Vector2(-155, 67), Vector2(155, 68)]
 ## stop), places of interest, camps. Checked by zz/layout_r34_test (inside the region, on dry walkable
 ## ground off the ways and sites; "poi_wet" may stand in water). Builders may move a slot a few metres.
 const SLOTS := {
-	# --- r37 (docs/r37_expansion.md): builders may move a slot a few metres; a region agent may edit
+	# --- (docs/r37_expansion.md): builders may move a slot a few metres; a region agent may edit
 	# only its own regions' entries here.
 	"weirford": [
 		{"kind": "fire", "at": Vector2(-196, 74), "note": "the town's square, east of the bridge"},
@@ -195,13 +204,14 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(172, -36), "note": "the north shore"}],
 	"anchorholds": [
 		{"kind": "fire", "at": Vector2(204, -84), "note": "the foot of the cliff, anchor_track's end"},
-		{"kind": "poi", "at": Vector2(236, -110), "note": "the lower cells and ladders"},
+		{"kind": "poi", "at": Vector2(214, -132), "note": "the cliff terrace: the lower cells, the timber walk, the chapel and the Anchoress's room"},
 		{"kind": "camp", "at": Vector2(180, -100), "note": "the scree"}],
 	"saltmarket": [
-		{"kind": "fire", "at": Vector2(218, 98), "note": "the hamlet's yard"}],
+		{"kind": "fire", "at": Vector2(218, 98), "note": "the hamlet's yard"},
+		{"kind": "poi", "at": Vector2(214, 95), "note": "the hamlet: houses, drying shed, the trader's stall"}],
 	"saltpans": [
-		{"kind": "poi", "at": Vector2(204, 160), "note": "the salt-works and its derricks"},
-		{"kind": "poi", "at": Vector2(236, 214), "note": "the crystal crust"},
+		{"kind": "poi", "at": Vector2(232, 168), "note": "the salt-works, its pans and derricks"},
+		{"kind": "poi", "at": Vector2(238, 212), "note": "the crystal crust"},
 		{"kind": "camp", "at": Vector2(178, 196), "note": "the west pans"},
 		{"kind": "camp", "at": Vector2(240, 140), "note": "the east pans"}],
 	"downs": [
@@ -280,7 +290,7 @@ const BASE_PATHS := [
 	{"id": "orchard_lane", "w": 1.4, "pts": [Vector2(-98, 63), Vector2(-102, 84), Vector2(-108, 104), Vector2(-112, 122)]},
 	{"id": "mere_causeway", "w": 1.6, "pts": [Vector2(92, 65), Vector2(96, 84), Vector2(100, 104), Vector2(104, 120)]},
 	{"id": "south_track", "w": 1.4, "pts": [Vector2(-112, 122), Vector2(-80, 132), Vector2(-40, 134), Vector2(0, 128), Vector2(40, 134), Vector2(76, 128), Vector2(104, 120)]},
-	# r37 (docs/r37_expansion.md)
+	# the Marches (docs/r37_expansion.md)
 	{"id": "weir_track", "w": 1.4, "pts": [Vector2(-196, 66), Vector2(-192, 36), Vector2(-188, 0), Vector2(-188, -40), Vector2(-196, -76), Vector2(-200, -82)]},
 	{"id": "siege_track", "w": 1.4, "pts": [Vector2(-214, 65), Vector2(-216, 100), Vector2(-214, 128), Vector2(-206, 160), Vector2(-196, 190)]},
 	{"id": "spire_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 52), Vector2(226, 30), Vector2(236, 14)]},
@@ -374,6 +384,12 @@ static func raid(id: String) -> Dictionary:
 ##   Waiting Field's slope, the Cinder Orchard's shelf, the southern downs and low rims at the edges
 ## - outside BOUNDS the ground climbs into a horizon ring of hills so the edge is never seen
 static func macro_height(x: float, z: float) -> float:
+	return final_shape(x, z, macro_dry(x, z))
+
+
+## macro_height without the water shapes (the river's bed, the lake, the Well): RealmLand adds its detail
+## noise and hollow floors to this, then final_shape, so the floors cannot lift a riverbed.
+static func macro_dry(x: float, z: float) -> float:
 	var p := Vector2(x, z)
 	var h := 0.0
 	# rolling base
@@ -410,12 +426,19 @@ static func macro_height(x: float, z: float) -> float:
 	# hearth basin and the road plain: pulled flat towards 0 / 0.5
 	var hearth := _bump(p, Vector2(6, 38), 40.0)
 	h = lerpf(h, 0.0, hearth)
-	h = lerpf(h, 0.5, 0.7 * _rect_w(p, Rect2(-155, 50, 310, 30), 10.0) * (1.0 - hearth))
-	# r34: the southern downs and low rims inside the west and east edges (the edge cliffs stand on them)
-	h += smoothstep(148.0, 175.0, z) * 7.0
-	var din := minf(x - BOUNDS.position.x, BOUNDS.end.x - x)
-	h += (1.0 - smoothstep(0.0, 20.0, din)) * 3.5
-	# the Crowns (north wall) and the summit crag. r35: it was one ruled cliff (foot on z -110, crest
+	h = lerpf(h, 0.5, 0.7 * _rect_w(p, Rect2(-258, 50, 516, 30), 10.0) * (1.0 - hearth))       # on across the Marches (identical inside the old Realm)
+	# the southern downs and low rims inside the old west and east edges (the edge cliffs stood on them).
+	# the rim at x +-155 is the March Wall's line now (a crest 3.5 m high that falls away outward), the
+	# downs' rise stays for the old Realm's width and fades out over the Marches (|x| 155..180), and the
+	# new edges (x +-260, z 240) get their own low rims in _marches. Inside OLD_BOUNDS nothing moves.
+	var xout := maxf(absf(x) - MARCH_WALL_X, 0.0)
+	h += smoothstep(148.0, 175.0, z) * 7.0 * (1.0 - smoothstep(0.0, 25.0, xout))
+	var din := MARCH_WALL_X - absf(x)
+	if din >= 0.0:
+		h += (1.0 - smoothstep(0.0, 20.0, din)) * 3.5
+	else:
+		h += (1.0 - smoothstep(0.0, 16.0, -din)) * 3.5
+	# the Crowns (north wall) and the summit crag. It was once one ruled cliff (foot on z -110, crest
 	# 45 m everywhere). The foot now recesses north (never south of -110: nothing in the valley moves),
 	# the crest rises and falls (~32-56 m), and peaks stand beyond the edge -- the tallest behind the
 	# summit, so the Stair's top has a mountain to stand against instead of a flat wall.
@@ -430,6 +453,10 @@ static func macro_height(x: float, z: float) -> float:
 	# keeps the old heights there); this is only the macro shape for planning.
 	var rift := _rect_w(p, Rect2(-24, -118, 48, 106), 10.0) * (1.0 - _bump(p, Vector2(0, -95), 30.0))
 	h = lerpf(h, -18.0, rift * 0.9)
+	# the Outer Marches and the southern downs (zero inside OLD_BOUNDS, eased in over 12 m outside it)
+	var m37 := smoothstep(0.0, 12.0, _out_dist(p, OLD_BOUNDS))
+	if m37 > 0.0:
+		h = _marches(p, h, m37)
 	# horizon ring
 	var out := _out_dist(p, BOUNDS)
 	h += smoothstep(0.0, 60.0, out) * 28.0
@@ -439,7 +466,7 @@ static func macro_height(x: float, z: float) -> float:
 ## r34: shapes that must survive the detail noise (RealmLand calls this after its noise, and again after
 ## the kept core's old heights): the Saints' Quarry's benches and the raid floors.
 static func post_detail(x: float, z: float, h: float) -> float:
-	return raid_shape(x, z, quarry_cut(x, z, h))
+	return raid_shape(x, z, marches_detail(x, z, quarry_cut(x, z, h)))
 
 
 ## r34: the Saints' Quarry: benches 6 m wide and 3.2 m high cut down into whatever stands higher,
@@ -458,6 +485,241 @@ static func quarry_cut(x: float, z: float, h: float) -> float:
 	if x < BOUNDS.position.x + 4.0:
 		w *= smoothstep(BOUNDS.position.x - 6.0, BOUNDS.position.x + 4.0, x)    # the west rim stays a wall
 	return lerpf(h, minf(h, bench), w)
+
+
+# ------------------------------------------------------------------------------------------- ground
+
+## landform anchors the region agents build on (Foundation agent). The raid floors, RIVER, LAKE_*,
+## SPIRE_C and WELL_* above are the rest of the contract.
+const PANS := Rect2(160.0, 112.0, 98.0, 128.0)             ## the White Pans' flat
+const OAK_C := Vector2(-70.0, 206.0)                       ## the Grandmother Oak's knoll
+const SPIRE_Y := LAKE_Y + 12.0                             ## the Spire's bluff top (a plateau r 8, walls to r 20)
+const WELL_FLOOR_Y := -17.0                                ## the sinkhole's floor; its pool stands 0.8 m above it
+const WELL_POOL_Y := -16.2
+const WELL_POOL_R := 9.0                                   ## the floor's flat, with the pool, radius
+const SIEGE_RINGS := [{"c": Vector2(-218.0, 168.0), "r": 29.0}, {"c": Vector2(-218.0, 168.0), "r": 64.0}]   ## low banks, ditches outside
+const SIEGE_RECT := Rect2(-258.0, 110.0, 100.0, 130.0)
+
+
+## The Marches' and the downs' macro shape (m = 0 inside OLD_BOUNDS, 1 from 12 m out). Smooth, cheap.
+static func _marches(p: Vector2, h: float, m: float) -> float:
+	var x := p.x
+	var z := p.y
+	# low rims at the new edges (the edge cliffs and the invisible walls stand on them)
+	var ex := 1.0 - smoothstep(0.0, 20.0, minf(x - BOUNDS.position.x, BOUNDS.end.x - x))
+	var ez := 1.0 - smoothstep(0.0, 20.0, BOUNDS.end.y - z)
+	h += m * 4.0 * maxf(ex, ez)
+	# the Sorrow's valley tilts down to Weirford (so the river is not perched on the plain)
+	var rd := river_near(x, z).x
+	if rd < 80.0:
+		h += m * (1.0 - smoothstep(20.0, 70.0, rd)) * 2.6 * clampf((40.0 - z) / 100.0, 0.0, 1.0)
+	# the Fallen Hierarch: a moss valley under the Crowns, flanks rising round the toppled statue
+	var hv := _rect_w(p, Rect2(-258.0, -140.0, 92.0, 78.0), 12.0)
+	h += m * hv * 11.0 * smoothstep(24.0, 60.0, p.distance_to(Vector2(-214.0, -104.0)))
+	# the Anchorholds: the Crowns' face stands higher here, so the terrace (y 16) is a shelf cut into a wall
+	var ah := _rect_w(p, Rect2(172.0, -150.0, 86.0, 70.0), 18.0)
+	h += m * ah * 10.0 * smoothstep(-70.0, -130.0, z)
+	# towns: Weirford and Saltmarket sit on flat ground
+	h = lerpf(h, 0.6, m * 0.85 * _bump(p, Vector2(-205.0, 66.0), 36.0))
+	h = lerpf(h, 0.6, m * 0.85 * _bump(p, Vector2(212.0, 92.0), 30.0))
+	# the White Pans: flat and pale
+	h = lerpf(h, 0.3, m * 0.92 * _rect_w(p, PANS, 16.0))
+	# the Southern Downs: rolling chalk on the downs' rise, and the Grandmother Oak's knoll
+	var dw := _rect_w(p, Rect2(-155.0, 175.0, 310.0, 65.0), 24.0)
+	h += m * dw * (2.4 * sin(x * 0.043 + 1.1) * sin(z * 0.052 + 0.4) + 1.3 * sin(x * 0.021 - z * 0.033))
+	h += m * 3.2 * _bump(p, OAK_C, 30.0)
+	# the Crowns' peaks beyond the old Realm: the wall keeps climbing to the new corners
+	h += m * (26.0 * _bump(p, Vector2(-156.0, -166.0), 36.0) + 30.0 * _bump(p, Vector2(-222.0, -168.0), 38.0)
+		+ 24.0 * _bump(p, Vector2(150.0, -166.0), 34.0) + 32.0 * _bump(p, Vector2(216.0, -170.0), 38.0))
+	return h
+
+
+## Shapes that must survive the detail noise in the Marches: the pans' evaporation beds and bunds, the
+## siege lines' banks and ditches (RealmLand calls post_detail after its noise).
+static func marches_detail(x: float, z: float, h: float) -> float:
+	var p := Vector2(x, z)
+	var m := smoothstep(0.0, 12.0, _out_dist(p, OLD_BOUNDS))
+	if m <= 0.0:
+		return h
+	var pn := _rect_w(p, PANS.grow(-6.0), 10.0)
+	if pn > 0.0:
+		var u := fposmod(x + 7.0, 20.0)
+		var v := fposmod(z + 3.0, 14.0)
+		var e := minf(minf(u, 20.0 - u), minf(v, 14.0 - v))
+		h += m * pn * ((1.0 - smoothstep(0.5, 1.7, e)) * 0.3 - 0.1 * smoothstep(1.7, 3.2, e))
+	var sg := _rect_w(p, SIEGE_RECT.grow(8.0), 14.0)
+	if sg > 0.0:
+		for ring: Dictionary in SIEGE_RINGS:
+			var c: Vector2 = ring.c
+			var d := p.distance_to(c)
+			var r: float = ring.r
+			if absf(d - r) > 14.0:
+				continue
+			var a := atan2(z - c.y, x - c.x)
+			var gap := 1.0 - smoothstep(0.55, 0.85, sin(a * 3.0 + r))         # breaches in the rings
+			var bank := 1.9 * exp(-pow((d - r) / 2.4, 2.0))
+			var ditch := 1.3 * exp(-pow((d - r - 4.8) / 2.1, 2.0))
+			h += m * sg * gap * (bank - ditch)
+	return h
+
+
+## Water and basins, applied last (after RealmLand's hollow floors, which would lift them): the Sorrow's
+## channel, Stillwater's basin and the Spire's bluff, the Well of Echoes' sinkhole.
+static func final_shape(x: float, z: float, h: float, river := true) -> float:
+	var p := Vector2(x, z)
+	if x < -168.0:
+		if river:
+			h = river_shape(x, z, h)
+	elif x > 170.0 and x < 262.0:
+		h = lake_shape(p, h)
+	elif x > 50.0 and x < 95.0 and z > 180.0:
+		h = well_shape(p, h)
+	return h
+
+
+# --- the Sorrow ----------------------------------------------------------------------------------
+
+static var _rv := PackedVector2Array()           ## the centreline, a Catmull-Rom of RIVER.pts every ~3 m
+static var _rv_s := PackedFloat32Array()         ## arc length at each sample
+
+
+## Build the river's samples (call once, on the main thread, before any threaded height pass).
+static func prepare() -> void:
+	if not _rv.is_empty():
+		return
+	var pts: Array = RIVER.pts
+	var n := pts.size()
+	var out := PackedVector2Array()
+	for i in n - 1:
+		var p0: Vector2 = pts[maxi(i - 1, 0)]
+		var p1: Vector2 = pts[i]
+		var p2: Vector2 = pts[i + 1]
+		var p3: Vector2 = pts[mini(i + 2, n - 1)]
+		var steps := maxi(2, int(p1.distance_to(p2) / 3.0))
+		for k in steps:
+			out.append(p1.cubic_interpolate(p2, p0, p3, float(k) / float(steps)))
+	out.append(pts[n - 1])
+	var ss := PackedFloat32Array()
+	var acc := 0.0
+	for i in out.size():
+		if i > 0:
+			acc += out[i].distance_to(out[i - 1])
+		ss.append(acc)
+	_rv_s = ss
+	_rv = out
+
+
+## Nearest point on the river's centreline: Vector3(distance, z of that point, arc length). INF away.
+static func river_near(x: float, z: float) -> Vector3:
+	if x > -164.0 or x < -272.0:
+		return Vector3(INF, 0.0, 0.0)
+	if _rv.is_empty():
+		prepare()
+	var p := Vector2(x, z)
+	var best := INF
+	var bz := 0.0
+	var bs := 0.0
+	for i in _rv.size() - 1:
+		var a := _rv[i]
+		var ab := _rv[i + 1] - a
+		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+		var q := a + ab * t
+		var d := p.distance_squared_to(q)
+		if d < best:
+			best = d
+			bz = q.y
+			bs = lerpf(_rv_s[i], _rv_s[i + 1], t)
+	return Vector3(sqrt(best), bz, bs)
+
+
+## Half width of the bed at arc length s (a spring pool at the head widens into the river).
+static func river_w(s: float) -> float:
+	return float(RIVER.w) * lerpf(0.45, 1.0, smoothstep(0.0, 16.0, s))
+
+
+## The water surface of the reach at z (hw 0: the stepped surface the water stands at; hw > 0 smooths the
+## steps over 2 hw metres, for the bed and the banks).
+static func river_level(z: float, hw := 0.0) -> float:
+	var l := RIVER_L0
+	for st: Array in RIVER_STEPS:
+		var zb: float = st[0]
+		var t := (1.0 if z >= zb else 0.0) if hw <= 0.0 else smoothstep(zb - hw, zb + hw, z)
+		l -= float(st[1]) * t
+	return l
+
+
+static func river_shape(x: float, z: float, h: float) -> float:
+	var nr := river_near(x, z)
+	var d := nr.x
+	if d > 22.0:
+		return h
+	var w := river_w(nr.z)
+	var bed := river_level(nr.y, 2.0) - RIVER_DEPTH
+	var bank := river_level(nr.y, 9.0) + 0.55
+	var target := lerpf(bed, bank, smoothstep(w * 0.5, w + 1.4, d))
+	return lerpf(h, target, 1.0 - smoothstep(w + 1.5, w + 15.0, d))
+
+
+## 0..1: how much of the point is the river's channel (paths are not levelled across it, no flora in it).
+static func river_mask(x: float, z: float) -> float:
+	if x > -164.0 or x < -272.0:
+		return 0.0
+	var nr := river_near(x, z)
+	if nr.x > 14.0:
+		return 0.0
+	return 1.0 - smoothstep(river_w(nr.z) + 0.6, river_w(nr.z) + 3.5, nr.x)
+
+
+# --- Stillwater, the Spire's bluff -----------------------------------------------------------------
+
+static func lake_e(p: Vector2) -> float:
+	return sqrt(pow((p.x - LAKE_C.x) / LAKE_R.x, 2.0) + pow((p.y - LAKE_C.y) / LAKE_R.y, 2.0))
+
+
+static func lake_shape(p: Vector2, h: float) -> float:
+	var e := lake_e(p)
+	if e < 1.3:
+		var bed := LAKE_Y - 5.0 * smoothstep(1.0, 0.45, e)
+		# a shore that stays above the water all round (the bluff, below, is the only wall)
+		var shore := maxf(h, LAKE_Y + 0.45)
+		var inside := 1.0 - smoothstep(0.92, 1.12, e)
+		var ring := 1.0 - smoothstep(1.0, 1.3, e)
+		h = lerpf(h, shore, ring * 0.9)
+		h = lerpf(h, bed, inside)
+	var db := p.distance_to(SPIRE_C)
+	if db < 22.0:
+		h = lerpf(h, SPIRE_Y, 1.0 - smoothstep(8.0, 20.0, db))
+	return h
+
+
+# --- the Well of Echoes ------------------------------------------------------------------------------
+
+static func well_shape(p: Vector2, h: float) -> float:
+	var d := p.distance_to(WELL_C)
+	if d > WELL_R + 8.0:
+		return h
+	# the downs track skirts the rim: the pit gives way where a path is
+	var open := smoothstep(0.5, 4.5, path_dist(p))
+	var wall := smoothstep(WELL_POOL_R, WELL_R, d)
+	var pit := lerpf(WELL_FLOOR_Y, h, lerpf(1.0, wall, open))
+	# a low lip round the rim
+	return pit + 0.5 * exp(-pow((d - WELL_R - 1.5) / 2.0, 2.0)) * open
+
+
+## The standing water level at xz, or NAN where the fen's own pools (LAKE_Y) rule: the river's reach (over its
+## whole floodplain), the lake, the Well's pit. RealmLand floods the cells of the ground that dips below it.
+static func water_level_at(x: float, z: float) -> float:
+	if x < -168.0:
+		var nr := river_near(x, z)
+		if nr.x < river_w(nr.z) + 16.0:
+			return river_level(nr.y)
+	elif x > 170.0 and x < 262.0:
+		if lake_e(Vector2(x, z)) < 1.4:
+			return LAKE_Y
+	elif x > 50.0 and x < 95.0 and z > 180.0:
+		if Vector2(x, z).distance_to(WELL_C) < WELL_R + 5.0:
+			return WELL_POOL_Y
+	return NAN
 
 
 ## r34: the raid floors (RAIDS): "level" pulls the ground to y inside r and blends back over `fall`;
@@ -524,7 +786,7 @@ static func _area(r: Dictionary) -> float:
 static func region_weight(r: Dictionary, x: float, z: float) -> float:
 	var p := Vector2(x, z)
 	if r.has("rect"):
-		return _rect_w(p + _warp(p), r.rect, 18.0)      # r35: ragged land edges (names keep the plain rect)
+		return _rect_w(p + _warp(p), r.rect, 18.0)      # ragged land edges (names keep the plain rect)
 	return _bump(p, r.c, float(r.r) * 1.4)
 
 

@@ -367,7 +367,7 @@ const NAMES := {"hild": "Hild", "fennick": "Fennick", "oswin": "Oswin", "nan": "
 	"wenna": "Wenna", "wyck": "Wyck", "abel": "Abel", "grisel": "Grisel", "keep": "The keep", "hesk": "Hesk",
 	"harrow": "Ostrin", "brannoc": "Brannoc", "ruan": "Gammer Ruan", "jory": "Jory", "ysolt": "Ysolt",
 	"elspeth": "Elspeth", "linnet": "Linnet", "agathe": "Sister Agathe", "cadoc": "Cadoc",
-	# --- r37 south ---
+	# --- south marches ---
 	"dunstan": "Dunstan"}
 
 

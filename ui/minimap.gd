@@ -578,7 +578,7 @@ func _exit_tree() -> void:
 const BIOME_COL := {
 	"meadow": Color(0.42, 0.47, 0.27), "glade": Color(0.36, 0.5, 0.4), "oldforest": Color(0.23, 0.31, 0.2),
 	"fen": Color(0.3, 0.35, 0.29), "ash": Color(0.27, 0.21, 0.19), "heath": Color(0.5, 0.42, 0.3),
-	"crag": Color(0.46, 0.44, 0.42), "ruin": Color(0.43, 0.39, 0.33),
+	"crag": Color(0.46, 0.44, 0.42), "ruin": Color(0.43, 0.39, 0.33), "salt": Color(0.74, 0.72, 0.66),
 }
 
 
@@ -644,9 +644,9 @@ func _paint() -> void:
 				if wv > 0.0:
 					col = col.lerp(Color(0.78, 0.68, 0.5) * clampf(shade, 0.8, 1.1), wv * 0.85)
 			# water and lava
-			if hc < Land.WATER_Y + 0.05 and Land.in_water(wx, z):
+			if Land.in_water(wx, z):                      # the river's reaches, the lake and the Well's pool stand above and below the fen's line
 				col = Color(0.2, 0.3, 0.36).lerp(Color(0.32, 0.42, 0.46), clampf(shade - 0.6, 0.0, 1.0))
-			elif hc < lava_y + 1.2:
+			elif hc < lava_y + 1.2 and absf(wx) < 40.0 and z < 0.0:        # (the Well of Echoes is deeper than the lava)
 				col = Color(0.85, 0.3, 0.08).lerp(Color(1.0, 0.62, 0.22), clampf(sin(wx * 0.4) * sin(z * 0.35) * 0.5 + 0.5, 0.0, 1.0) * 0.4)
 			# contours every 4 m
 			var cl := absf(fposmod(hc + 2.0, 4.0) - 2.0)

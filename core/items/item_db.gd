@@ -131,13 +131,21 @@ const DEFS := {
 	"core_rime": {"name": "Rime Core", "kind": "core", "shape": "rime", "tint": Color(0.62, 0.85, 1.0),
 		"desc": "Fen ice from under the drowned graves, that does not melt in the hand. The dead below it were very cold.",
 		"text": "A staff core. Rift Bolt chills, and freezes on the third. Set it in the orb at a fire (Kindling, Staff)."},
+	# --- the east marches ---
+	"anchor_stone": {"name": "The Anchor-Stone", "kind": "trophy", "shape": "stone", "tint": Color(0.62, 0.64, 0.6),
+		"desc": "A cairn-stone with an iron ring leaded into it and a chain's worth of link-marks worn into the ring. It is heavier than it should be and it pulls, very slightly, toward the nearest wall.",
+		"text": "The Anchoress swung it for nine winters. Hermits' cairns stand in the cliff's shadow because she asked them to."},
 }
 const ORDER := ["bone_reliquary", "thorn_heart", "abbot_crown", "ascension_seal",
 	"kin_lamp", "slag_heart", "fog_crook", "ferry_coin", "ash_seed", "hair_rope", "mason_mark", "grave_ash", "relic_fragment", "ember_shard", "ash_bloom", "grave_iron",
 	"charm_candle", "charm_thread", "charm_lampglass", "charm_bead", "charm_clapper", "charm_ring",
 	"hobbs_knuckles", "lisles_tally", "briar_antler", "heart_stone", "cinder_censer", "scraped_face",
-	"charm_hook", "charm_rosary", "charm_jar", "charm_ferrule", "charm_waystone", "charm_chalk", "core_prism", "core_lodestar", "core_cinder", "core_rime"]
-const BOSS_TROPHY := {"thornwarden": "thorn_heart", "bone_abbot": "abbot_crown", "ascended_warden": "ascension_seal"}
+	"charm_hook", "charm_rosary", "charm_jar", "charm_ferrule", "charm_waystone", "charm_chalk", "core_prism", "core_lodestar", "core_cinder", "core_rime",
+	# --- the east marches ---
+	"anchor_stone"]
+const BOSS_TROPHY := {"thornwarden": "thorn_heart", "bone_abbot": "abbot_crown", "ascended_warden": "ascension_seal",
+	# --- the east marches ---
+	"r37_anchoress": "anchor_stone"}
 const ASH_PER_KILL := 1
 const ASH_PER_BOSS := 25
 

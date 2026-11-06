@@ -442,7 +442,7 @@ static func outpost(parent: Node, space: PhysicsDirectSpaceState3D, c: Vector2, 
 			k.box("lore_beam", bp + bb * Vector3(0, 0.18, 1.28), Vector3(0.84, 0.34, 0.05), bb, false, 0.5)
 			var post: Vector3 = g.call(-0.6, 2.4)
 			k.box("lore_beam", post + Vector3.UP * 0.55, Vector3(0.12, 1.1, 0.12), Basis(Vector3.BACK, 0.12), false, 0.55)
-		# --- r37 south ---
+		# --- south marches ---
 		"downs":
 			# a hurdle leaned on two stakes, a feed-sack and a coil of rope: a shepherd's camp
 			var dp: Vector3 = g.call(-2.2, 0.4)

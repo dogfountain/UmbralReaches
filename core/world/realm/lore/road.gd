@@ -40,7 +40,7 @@ static func build(parent: Node) -> void:
 	var rng: RandomNumberGenerator = L.rng
 	# --- gates ------------------------------------------------------------------------------------
 	# r34 layout: the gates stand 10 m inside the world's west and east edges (the road runs on to them)
-	var gx := RealmLayout.BOUNDS.end.x - 10.0
+	var gx := RealmLayout.OLD_BOUNDS.end.x - 10.0           # the old gates stay where they were (the March Wall stands beyond them)
 	_gate(L, -gx, "rd_gate_w", "road_gate_w")
 	_gate(L, gx, "rd_gate_e", "road_gate_e")
 	# Wenna's first page, on a pilgrim's abandoned pack by the West Gate

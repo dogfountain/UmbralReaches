@@ -10,6 +10,8 @@ extends RefCounted
 ## grant: pay: shop:). Text: {ash}, {hollows}, {kindled}.
 ## House style (docs/LORE.md): terse, concrete, dark. Load by path.
 
+const R37E := preload("res://core/life/village/village_r37_east.gd")   ## the east marches: Saltmarket's talk
+
 const CONV := {
 	"hild": {"name": "Hild", "start": [["!met:hild", "meet"], ["qat:edda_tongs:1", "tongs_back"], ["", "hub"]], "nodes": {
 		"meet": {"say": "Mind the sparks. They're the only warm thing in the valley that still bites.", "next": "meet2"},
@@ -418,7 +420,7 @@ const CONV := {
 		"corvin": {"say": "The penitents said lighting the sunk was heresy. Kindler's work. They took his face off the chapel wall, then his hands off his arms. He still rowed out. I held the lamp for him after. In my teeth, the last time.", "next": "hub"},
 		"water": {"say": "The ones who didn't stay down. They walk the bottom and come up in the nave, in rows, like it's a feast day. Don't wade at night. Wade anyway, if you're going to.", "next": "hub"},
 	}},
-	# --- r37 south ---
+	# --- south marches ---
 	"dunstan": {"name": "Dunstan Pike", "start": [["!met:dunstan", "meet"], ["", "hub"]], "nodes": {
 		"meet": {"say": "Mind the chalk, it's loose at the edge of the fold. And mind the sheep. They're not mine any more, whatever they tell you.", "next": "meet2"},
 		"meet2": {"say": "Dunstan Pike. I stayed. Everyone with a crook walked north after the bells, behind the Order's banner, and the flock went after them. I counted the fold at dusk and it was one short. Then I stopped counting.", "do": "met:dunstan", "next": "hub"},
@@ -435,4 +437,6 @@ const CONV := {
 		"flock": {"say": "The ones that came back came back wrong. Thin, and too quiet, and they stand in the fog facing the Stair. They still follow the bell. I just can't say what's holding the rope.", "next": "hub"},
 		"well": {"say": "Water, once. We drew it by rope. Then the rope came up wet and not our own, and my father cut the ledge so we'd go down on our feet, like honest men. It answers. Don't answer back.", "next": "hub"},
 	}},
+	# --- the east marches ---
+	"marl": R37E.CONV_MARL, "teasel": R37E.CONV_TEASEL, "orrin": R37E.CONV_ORRIN, "ardel": R37E.CONV_ARDEL, "pip": R37E.CONV_PIP,
 }

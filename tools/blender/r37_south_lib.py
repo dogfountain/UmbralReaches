@@ -326,7 +326,7 @@ class B:
                 l[self.uv].uv = uv
         return f
 
-    def box(self, c, size, mat, yaw=0.0, pitch=0.0, roll=0.0, scale_uv=0.5, cuts=0, jit=0.0, seed=0, taper=1.0):
+    def box(self, c, size, mat, yaw=0.0, pitch=0.0, roll=0.0, scale_uv=0.22, cuts=0, jit=0.0, seed=0, taper=1.0):
         """A box centred on c. taper < 1 narrows the top face (a battered wall)."""
         res = bmesh.ops.create_cube(self.bm, size=1.0)
         verts = res["verts"]

@@ -1400,7 +1400,8 @@ func _footstep(speed := 0.0) -> void:
 
 ## pitch x, extra dB y, per surface
 const SURF_TONE := {&"grass": Vector2(0.8, -2.5), &"fen": Vector2(0.74, -1.0), &"water": Vector2(0.68, 0.0),
-	&"ash": Vector2(1.02, -1.0), &"stone": Vector2(1.2, 1.0), &"wood": Vector2(1.0, 0.5)}
+	&"ash": Vector2(1.02, -1.0), &"stone": Vector2(1.2, 1.0), &"wood": Vector2(1.0, 0.5),
+	&"salt": Vector2(1.14, -0.5)}                  # the White Pans: a dry crunch, a little brighter than grass
 var _surf_t := -1.0
 var _surf: StringName = &"grass"
 
@@ -1421,7 +1422,7 @@ func _surface() -> StringName:
 		_surf = &"water"
 	elif on_terrain:
 		var biome := RealmLayout.biome_at(gp.x, gp.z) if Realm.enabled() else "meadow"
-		_surf = &"fen" if biome == "fen" else (&"ash" if biome == "ash" else &"grass")
+		_surf = &"fen" if biome == "fen" else (&"ash" if biome == "ash" else (&"salt" if biome == "salt" else &"grass"))
 	else:
 		var nm := String((hit.collider as Node).name).to_lower() if hit.collider is Node else ""
 		_surf = &"wood" if (nm.contains("board") or nm.contains("deck") or nm.contains("floor") or nm.contains("dock") or nm.contains("bridge")) else &"stone"
@@ -1540,6 +1541,7 @@ var ride := 0.0                     ## r36: astride a horse (core/world/mount): 
 ## r36: the horse's barrel under the saddle in the coat's space (x half-width, y centre, z half-height);
 ## the coat drapes over it while `ride` is on (robe_skin.gdshader `saddle`)
 var saddle := Vector3.ZERO
+var ride_lean := 0.0                ## the horse leaps (horse.gd): the rider's lean with it, rad, + forward
 var _saddle_sent := 0.0
 ## r36: climbing on (horse.gd): 0..1 through the mount (-1 when not), and the rig's offset from its
 ## seat meanwhile (rig space: +x right, +y up, +z back). The left foot finds the stirrup, the
@@ -2182,11 +2184,11 @@ func _ride_legs(k: float) -> void:
 func _pose_ride(k: float) -> void:
 	var bob := sin(_t * 9.0) * 0.012
 	_pelvis.position.y = lerpf(_pelvis.position.y, H_PELVIS + bob, k)
-	_torso.rotation.x = lerpf(_torso.rotation.x, 0.06, k)
+	_torso.rotation.x = lerpf(_torso.rotation.x, 0.06 + ride_lean, k)
 	_torso.rotation.y = lerpf(_torso.rotation.y, 0.0, k)
-	_head.rotation.x = lerpf(_head.rotation.x, -0.05, k)
-	_sh[0].rotation = _sh[0].rotation.lerp(Vector3(0.55, 0.0, -0.18), k)
-	_sh[1].rotation = _sh[1].rotation.lerp(Vector3(0.55, 0.0, 0.18), k)
+	_head.rotation.x = lerpf(_head.rotation.x, -0.05 - ride_lean * 0.5, k)
+	_sh[0].rotation = _sh[0].rotation.lerp(Vector3(0.55 + ride_lean * 0.8, 0.0, -0.18), k)
+	_sh[1].rotation = _sh[1].rotation.lerp(Vector3(0.55 + ride_lean * 0.8, 0.0, 0.18), k)
 	_el[0].rotation.x = lerpf(_el[0].rotation.x, 0.9, k)
 	_el[1].rotation.x = lerpf(_el[1].rotation.x, 0.9, k)
 	for i in 2:

@@ -110,13 +110,25 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(132.0, 60.0, 58.0), "kinds": ["chanter", "husk", "crawler"], "probe": 0.0},     # the East Gate's approach
 	{"at": Vector3(-144.0, 60.0, -50.0), "kinds": ["leaper", "wretch", "crawler"], "probe": 0.0},  # west_track under the quarry
 	{"at": Vector3(-135.0, 60.0, 40.0), "kinds": ["wretch", "crawler"], "probe": 0.0},             # west_track north of the Holds
-	# --- r37 south ---
+	# --- south marches ---
 	# The Southern Downs (tier 1): open chalk, long sight lines; gaunts who hunt the flock's old ground and a
 	# leaper in the heather. 13 m+ from every fire, off the tracks (the layout's two "downs" camp slots).
 	{"at": Vector3(-120.0, 60.0, 214.0), "kinds": ["gaunt", "gaunt", "wretch"], "probe": 0.0,
 		"patrol": [Vector2(-120, 214), Vector2(-112, 204), Vector2(-126, 205)]},                  # the west downs
 	{"at": Vector3(126.0, 60.0, 214.0), "kinds": ["gaunt", "leaper", "crawler"], "probe": 0.0,
 		"patrol": [Vector2(126, 214), Vector2(134, 206), Vector2(118, 207)]},                     # the east downs
+	# --- the east marches: Stillwater (tier 2: the lake's drowned and what nests on its shore), the Anchorholds
+	# (tier 3: the hermits' own, walled in and let out), Saltmarket's approach (tier 1), the White Pans (tier 2)
+	{"at": Vector3(172.0, 60.0, -36.0), "kinds": ["husk", "spitter", "husk"], "probe": 0.0},      # the north shore
+	{"at": Vector3(246.0, 60.0, -28.0), "kinds": ["gaunt", "wretch", "gaunt"], "probe": 0.0},     # the lake's east bank, under the bluff
+	{"at": Vector3(188.0, 60.0, 44.0), "kinds": ["spitter", "husk"], "probe": 0.0},               # the south shore, off the fire
+	{"at": Vector3(180.0, 60.0, -100.0), "kinds": ["bulwark", "chanter", "leaper"], "probe": 0.0},  # the scree
+	{"at": Vector3(232.0, 60.0, -94.0), "kinds": ["bulwark", "quiller", "wretch"], "probe": 0.0},  # the east cells
+	{"at": Vector3(190.0, 60.0, -62.0), "kinds": ["leaper", "gaunt", "gaunt"], "probe": 0.0},      # anchor_track's lower bend
+	{"at": Vector3(190.0, 60.0, 118.0), "kinds": ["wretch", "crawler"], "probe": 0.0},            # Saltmarket's west approach
+	{"at": Vector3(178.0, 60.0, 196.0), "kinds": ["burrower", "burrower", "crawler", "mite"], "probe": 0.0, "r": 1.8},   # the west pans
+	{"at": Vector3(240.0, 60.0, 140.0), "kinds": ["cinder", "wretch", "gaunt"], "probe": 0.0},    # the east pans
+	{"at": Vector3(210.0, 60.0, 214.0), "kinds": ["husk", "husk", "chanter"], "probe": 0.0},      # the south pans
 ]
 
 

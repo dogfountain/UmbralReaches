@@ -11,7 +11,7 @@ extends RefCounted
 
 const Variants := preload("res://core/life/encounters/variants.gd")
 const SELF_PATH := "res://core/life/encounters/elites.gd"
-# --- r37 south ---
+# --- south marches ---
 const SouthParts := preload("res://core/life/encounters/elite_r37_south.gd")
 
 ## r29: health x1.5 (zz/critA_probe: held Rift Bolt killed the old 8-20 hp in 2-4 s).
@@ -64,7 +64,7 @@ const ELITES := {
 		"note": "No face should turn from the sky. He scraped the saints and then himself. In the deeper dark he steps through it: a tear opens where he will be. Watch for the tear. -- Brother Ansel's last chisel-note",
 		"trait": "Steps through the dark: a tear opens beside you, then he is there.",
 	},
-	# --- r37 south ---
+	# --- south marches ---
 	"root_wife": {
 		"title": "The Root-Wife", "kind": "husk", "script": "res://core/life/encounters/elite_root_wife.gd",
 		"haunt": [Vector2(-82.0, 203.0), Vector2(-80.0, 211.0), Vector2(-84.0, 198.0), Vector2(-76.0, 216.0)], "region": "oak",
@@ -80,6 +80,15 @@ const ELITES := {
 		"where": "the landing at the foot of the Well of Echoes' ledge, by the cave",
 		"note": "Whoever drops a stone down the Well is answered. Something at the bottom has been answering for nine winters, and has learned to throw back what it hears. Where you stood when it spat, the ground rings again two breaths later. Do not stand and dodge: keep walking, and close with it. -- cut in the lintel of the Descent",
 		"trait": "Spits; the ground where you stood rings again two seconds later. Calls two drowned at half health.",
+	},
+	# --- the east marches ---
+	"brine_wife": {
+		"title": "The Brine-Wife, Bitter Mother", "kind": "husk", "script": "res://core/life/encounters/elite_brine_wife.gd",
+		"haunt": [Vector2(232, 172), Vector2(228, 196), Vector2(240, 160), Vector2(222, 204)], "region": "saltpans",
+		"hp": 34, "ash": 30, "scale": 1.36, "glow": Color(1.5, 1.7, 2.0), "loot": "brine_censer",
+		"where": "the White Pans, among the evaporation pans",
+		"note": "BOUNTY. She boiled the pans down for thirty years and has not stopped. Where she stands the brine comes up through the white: a wide ring that fills, then bursts. Past half her strength she grows crystals out of the crust round you. Do not stand in the white. Stand on the timber. -- Marl Pannick, reeve of Saltmarket",
+		"trait": "Brine Burst: a wide ring fills, then slams. Past half health, crystals break the crust around you.",
 	},
 }
 
@@ -103,13 +112,17 @@ const LOOT := {
 	"scraped_face": {"name": "The Scraped Face", "shape": "mask", "tint": Color(0.85, 0.82, 0.8),
 		"desc": "A penitent's face-plate, chiselled blank. On the inside, someone carved a small fire.",
 		"text": "Bounty of the Faceless Penitent (the Deeper Night)."},
-	# --- r37 south ---
+	# --- south marches ---
 	"oak_heartwood": {"name": "Heartwood of the Grandmother Oak", "shape": "branch", "tint": Color(0.5, 0.36, 0.22),
 		"desc": "A split of the oak's dead heart, still warm on one face. The Rooted say the first fire was carried out of this tree; the grain remembers it.",
 		"text": "Bounty of the Root-Wife, from the roots of the Grandmother Oak."},
 	"echo_bell": {"name": "The Echo Bell", "shape": "lantern", "tint": Color(0.5, 0.42, 0.26),
 		"desc": "A small struck-bronze bell from the Answerer's halos. It rings once when you lift it, and again, softer, from somewhere below you.",
 		"text": "Bounty of the Answerer, from the landing of the Well of Echoes."},
+	# --- the east marches ---
+	"brine_censer": {"name": "The Brine-Wife's Censer", "shape": "lantern", "tint": Color(0.82, 0.88, 0.92),
+		"desc": "An iron pan-ladle with a handle worn to a groove. Everything it ever held has crystallised on it, in layers, like a tree's rings.",
+		"text": "Bounty of the Brine-Wife, Bitter Mother. The pans give back what they were given."},
 }
 
 ## Umbral forms in the Deeper Night (NG+): every elite returns colder and harder.
@@ -364,7 +377,26 @@ static func _build(id: String, rig: CharacterRig) -> Dictionary:
 				var t := float(k) / 11.0
 				c.blob(Vector3(lerpf(-0.18, 0.16, t), 0.18 - t * 0.42, -0.14 - 0.03 * sin(t * PI)), Vector3(0.014, 0.01, 0.006), Basis(Vector3.FORWARD, float(k % 2) * 1.57), IRON, 1.0, 0.0, 0.0, 3, 6)
 			parts["chest"] = c.commit()
-		# --- r37 south ---
+		# --- south marches ---
 		"root_wife", "well_answer":
 			parts = SouthParts.build(id, rig, sd)
+		# --- the east marches ---
+		"brine_wife":
+			# salt crust grown in spikes over the shoulders and brow, a pan-ladle in the right hand
+			var c: CreatureMesh = Variants.cm(sd)
+			for k in 9:
+				var ang := TAU * float(k) / 9.0
+				var o := Vector3(cos(ang) * 0.2, 0.2 + 0.03 * float(k % 3), sin(ang) * 0.14)
+				c.claw(o, Vector3(cos(ang) * 0.5, 1.0, sin(ang) * 0.4).normalized(), 0.13 + 0.04 * float(k % 3), 0.035, Vector3.ZERO, BONE)
+			parts["chest"] = c.commit()
+			var h: CreatureMesh = Variants.cm(sd + 1)
+			for k in 5:
+				var ang2 := -1.0 + 0.5 * float(k)
+				h.claw(Vector3(sin(ang2) * 0.1, 0.13, -cos(ang2) * 0.05), Vector3(sin(ang2) * 0.4, 1.0, -0.3).normalized(), 0.1, 0.022, Vector3.ZERO, BONE)
+			parts["head"] = h.commit()
+			var r: CreatureMesh = Variants.cm(sd + 2)
+			r.tube(PackedVector3Array([Vector3(0, -0.02, 0), Vector3(0.0, -0.3, 0.0), Vector3(0.0, -0.6, 0.0)]), PackedFloat32Array([0.012, 0.012, 0.012]), 4, WOOD, 1.0, 0.0)
+			r.blob(Vector3(0, -0.66, 0), Vector3(0.08, 0.05, 0.08), Basis.IDENTITY, IRON, 1.0, 0.05, 0.0, 6, 9)
+			r.blob(Vector3(0, -0.64, 0), Vector3(0.06, 0.03, 0.06), Basis.IDENTITY, BONE, 1.0, 0.08, 0.0, 5, 8)
+			parts["hand_r"] = r.commit()
 	return parts

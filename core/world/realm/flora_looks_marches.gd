@@ -1,0 +1,38 @@
+extends RefCounted
+## The Outer Marches' and the downs' ground cover: one look per region (the same schema as RealmFlora.LOOKS:
+## tree_mul / tree_add, under_mul / under_add, tint, props, stone_mul, style), made by the Foundation agent.
+## RealmFlora.looks_at reads LOOKS first, then this table.
+
+const LOOKS := {
+	# --- the Marches and the downs (the Foundation's ground cover; the region agents' landmarks stand on it)
+	"weirford": {"tree_mul": {"oak": 0.15, "birch": 0.4, "pine": 0.0, "sapling": 0.3},
+		"under_mul": {"grass": 0.7, "heather": 0.3}, "under_add": {"flowers": 0.08, "tallgrass": 0.05}, "tint": Color(0.95, 0.96, 0.88)},
+	"sorrow": {"tree_mul": {"oak": 0.55, "pine": 0.2}, "tree_add": {"willow": 0.05, "birch": 0.06},
+		"under_mul": {"grass": 0.8, "fern": 1.3}, "under_add": {"reeds": 0.012, "cattail": 0.004, "moss": 0.04},
+		"tint": Color(0.84, 0.94, 0.9)},
+	"hierarch": {"tree_mul": {"oak": 0.0, "birch": 0.25, "pine": 0.3, "sapling": 0.4, "snag": 0.6}, "tree_add": {"yew": 0.012},
+		"under_mul": {"grass": 1.2, "heather": 0.4, "fern": 0.5},
+		"under_add": {"moss": 0.5, "fern": 0.12, "mushroom": 0.02, "glowcap": 0.003},
+		"tint": Color(0.78, 0.93, 0.82), "props": {"rubble": 0.03, "block": 0.004}, "stone_mul": 1.5, "style": "mossy"},
+	"siege": {"tree_mul": {"oak": 0.05, "birch": 0.15, "pine": 0.1, "sapling": 0.2, "snag": 0.9},
+		"under_mul": {"grass": 0.6, "tallgrass": 0.7, "flowers": 0.3},
+		"under_add": {"deadbush": 0.018, "cinders": 0.004, "ashdrift": 0.03},
+		"tint": Color(0.72, 0.68, 0.6), "props": {"rubble": 0.05, "slag": 0.006}, "stone_mul": 1.4},
+	"stillwater": {"tree_mul": {"oak": 0.1, "birch": 0.5, "sapling": 0.5}, "tree_add": {"willow": 0.04},
+		"under_mul": {"grass": 0.8, "tallgrass": 1.2, "moss": 1.2},
+		"under_add": {"reeds": 0.014, "cattail": 0.008},
+		"tint": Color(0.82, 0.9, 0.95)},
+	"anchorholds": {"tree_mul": {"pine": 0.4, "birch": 0.1, "sapling": 0.2},
+		"under_mul": {"grass": 0.3, "heather": 1.5, "flowers": 0.2},
+		"tint": Color(0.88, 0.88, 0.84), "props": {"rubble": 0.08, "block": 0.006}, "stone_mul": 1.8, "style": "granite"},
+	"saltmarket": {"tree_mul": {"oak": 0.1, "birch": 0.25, "pine": 0.1, "sapling": 0.2},
+		"under_mul": {"grass": 0.5, "heather": 0.4}, "under_add": {"tallgrass": 0.1, "deadbush": 0.008},
+		"tint": Color(0.92, 0.9, 0.8)},
+	"downs": {"tree_mul": {"oak": 0.1, "birch": 0.15, "pine": 0.1, "sapling": 0.3, "snag": 0.5},
+		"under_mul": {"grass": 1.25, "heather": 0.45, "flowers": 1.7, "shrub": 0.5},
+		"tint": Color(0.95, 0.95, 0.84), "props": {"rubble": 0.01}, "stone_mul": 0.8},
+	"oak": {"tree_mul": {"oak": 0.4, "birch": 0.5, "pine": 0.3, "sapling": 0.6},
+		"under_mul": {"grass": 1.3, "fern": 0.8}, "under_add": {"moss": 0.05, "mushroom": 0.01}, "tint": Color(0.88, 0.95, 0.84)},
+	"well": {"tree_mul": {"pine": 0.3, "sapling": 0.3, "birch": 0.2},
+		"under_mul": {"grass": 0.5, "heather": 1.2}, "tint": Color(0.86, 0.86, 0.84), "props": {"rubble": 0.06}, "stone_mul": 1.6, "style": "granite"},
+}

@@ -30,8 +30,8 @@ const FALL_SHADER := preload("res://core/world/realm/r37_south_fall.gdshader")
 const OAK_C := Vector2(-70.0, 206.0)
 const WALL_Z0 := -110.0
 const WALL_Z1 := 242.0
-const WALL_VIS := Vector2(0.0, 170.0)      ## the detail meshes fade out here...
-const FAR_VIS := Vector2(130.0, 0.0)       ## ...and the far silhouette fades in
+const WALL_VIS := Vector2(0.0, 130.0)      ## the detail meshes fade out here (FarDetail.register: the far silhouette takes over)
+const FAR_END := 130.0
 const POI_IDS := ["r37s_hut", "r37s_oak", "r37s_well", "r37s_gate_w", "r37s_gate_e"]
 
 ## id -> {title, line, region, half}
@@ -42,6 +42,10 @@ const POIS := {
 	"r37s_gate_w": {"title": "The West March Gate", "line": "the Order's wall, and the road through it", "region": "road", "half": Vector2(11.0, 6.0)},
 	"r37s_gate_e": {"title": "The East March Gate", "line": "the Order's wall, and the road through it", "region": "road", "half": Vector2(11.0, 6.0)},
 }
+
+## id -> offset (xz) of the side a visitor comes from
+const APPROACH := {"r37s_oak": Vector2(0.0, -20.0), "r37s_hut": Vector2(0.0, -20.0), "r37s_well": Vector2(-30.0, -12.0),
+	"r37s_gate_w": Vector2(34.0, 4.0), "r37s_gate_e": Vector2(-34.0, 4.0)}
 
 ## Chests: [tier, ItemDB ids -> amount]
 const LOOT := {
@@ -158,6 +162,8 @@ static func _poi(parent: Node3D, id: String, at: Vector3, radius := 0.0) -> Node
 	h.set_meta("centre", at)
 	h.set_meta("radius", radius if radius > 0.0 else (d.half as Vector2).length() + 4.0)
 	h.set_meta("r37", true)
+	var ap: Vector2 = APPROACH.get(id, Vector2(0.0, -20.0))        # where a visitor comes from (the screenshots look from here)
+	h.set_meta("approach", at + Vector3(ap.x, 0.0, ap.y))
 	built.append(id)
 	return h
 
@@ -291,6 +297,13 @@ static func _wall_side(wh: Node3D, space: PhysicsDirectSpaceState3D, side: int, 
 	print("R37S wall side %d: %d segments, %d features, breaches at %s, gate at z %.1f" % [side, n_seg, feats.size(), bz, gz])
 
 
+## A kit part's far silhouette under `host` (core/world/far_detail.gd): drawn from `end` m out to the horizon.
+static func _far(host: Node3D, path: String, part: String, xf: Transform3D, end := FAR_END, fade_host := false) -> void:
+	var m := Kit.mesh(path, part)
+	if m != null:
+		FarDetail.register(host, m, host.global_transform.affine_inverse() * xf, end, null, fade_host)
+
+
 static func _base_y(space: PhysicsDirectSpaceState3D, x: float, z0: float, z1: float) -> float:
 	var s := 0.0
 	var n := 0
@@ -320,7 +333,7 @@ static func _fill(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, x
 		var part := "WallSeg_A" if r < 0.6 else ("WallSeg_B" if r < 0.85 else "WallSeg_C")
 		var xf := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3(sx, 1.0, 1.0)), Vector3(x, by, z))
 		Kit.put(wh, Kit.WALL, part, xf, WALL_VIS, true, "Seg_%d_%d" % [side, int(z)])
-		Kit.put(wh, Kit.WALL, "WallFar", xf, FAR_VIS, false, "SegFar_%d_%d" % [side, int(z)])
+		_far(wh, Kit.WALL, "WallFar", xf)
 		shapes.append([Kit.box(Vector3(sl + 0.3, 10.4, 2.7)), Transform3D(Basis(Vector3.UP, yaw), Vector3(x, by + 2.1, z))])
 	return n
 
@@ -329,7 +342,7 @@ static func _tower(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, 
 	var by := _base_y(space, x, z - 3.6, z + 3.6)
 	var xf := Transform3D(Basis(Vector3.UP, yaw), Vector3(x, by, z))
 	Kit.put(wh, Kit.WALL, "TowerRuin" if ruin else "Tower", xf, WALL_VIS, true, "Tower_%d" % int(z))
-	Kit.put(wh, Kit.WALL, "TowerFar", xf, FAR_VIS, false, "TowerFar_%d" % int(z))
+	_far(wh, Kit.WALL, "TowerFar", xf)
 	var h := 9.2 if ruin else float(Data.TOWER_H) + 0.6
 	shapes.append([Kit.box(Vector3(float(Data.TOWER_S) * 0.98, h + 3.0, float(Data.TOWER_S) * 0.98)), Transform3D(Basis(Vector3.UP, yaw), Vector3(x, by + (h - 3.0) * 0.5, z))])
 
@@ -340,7 +353,7 @@ static func _gatehouse(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Arr
 	var id := "r37s_gate_w" if side < 0 else "r37s_gate_e"
 	var h := _poi(wh, id, Vector3(x, by, z))
 	Kit.put(h, Kit.WALL, "Gatehouse", xf, WALL_VIS, true, "Gatehouse")
-	Kit.put(h, Kit.WALL, "GateFar", xf, FAR_VIS, false, "GateFar")
+	_far(h, Kit.WALL, "GateFar", xf, FAR_END, true)
 	var px := float(Data.GATE_PX)
 	var tw := float(Data.GATE_TW)
 	var td := float(Data.GATE_TD)
@@ -452,8 +465,8 @@ static func _oak(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var h := _poi(host, "r37s_oak", at, 28.0)
 	var xf := Transform3D(Basis(Vector3.UP, float(s.yaw)), at)
 	for part: String in ["Trunk", "Roots", "Limbs", "Crown", "Stair"]:
-		Kit.put(h, Kit.OAK, part, xf, Vector2(0.0, 170.0), true)
-	Kit.put(h, Kit.OAK, "OakFar", xf, Vector2(120.0, 0.0), false)
+		Kit.put(h, Kit.OAK, part, xf, Vector2.ZERO, true)
+	_far(h, Kit.OAK, "OakFar", xf, 120.0, true)
 	var shapes: Array = []
 	for part: String in ["TrunkCol", "StairCol", "RailCol", "LimbCol", "DeckCol"]:
 		var sh := Kit.trimesh(Kit.OAK, part)
@@ -488,8 +501,8 @@ static func _oak(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	_stele_local(h, "poi_r37s_oak_heart", xf * Vector3(2.9, 0.0, -1.2), at.y, float(s.yaw) + PI * 0.5)
 	oak = {"xf": xf, "crown": crown, "tips": tips, "door": xf * Vector3(sin(float(Data.OAK_DOOR.a)) * 6.4, 0.0, cos(float(Data.OAK_DOOR.a)) * 6.4)}
 	# the beacon: a faint column, so the oak reads from the downs' far side
-	var wf := load("res://core/world/realm/realm_wayfinding.gd") as GDScript
-	var bn: Variant = Callable(wf, &"beacon").call(host, at, "", Color(0.42, 0.5, 0.34), 40.0, 0.3, 24.0)
+	var wf: Variant = load("res://core/world/realm/realm_wayfinding.gd")
+	var bn: Variant = wf.beacon(host, at, "", Color(0.42, 0.5, 0.34), 40.0, 0.3, 24.0)
 	if bn is Node:
 		(bn as Node).name = "Beacon_r37s_oak"
 		(bn as Node).set_meta("poi", "r37s_oak")
@@ -546,7 +559,7 @@ static func _well(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	# the path: linear in angle from the rim to the landing at the cave
 	var th0 := -1.8
 	var th_cave := th0 + 7.0
-	var land_y := floor_y + 2.2
+	var land_y := RealmLayout.WELL_POOL_Y + 1.0
 	var n_slab := 0
 	var sweep := th_cave - th0
 	var th := th0
@@ -611,11 +624,12 @@ static func _well(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	well["th_cave"] = th_cave
 	well["slabs"] = n_slab
 	# the descent gate at the rim, the echo stone, the spillway and the fall
+	print("R37S well: rim %.1f floor %.1f, %d slabs, landing %s" % [rim_y, floor_y, n_slab, land_pos.snapped(Vector3.ONE * 0.1)])
 	_gate(h, space, wc, th0, rim_y, r_max)
 	_echo_stone(h, space, wc, R)
 	_spillway_and_fall(h, space, wc, R, rim_y, floor_y, r_max, fall_th)
-	var wf := load("res://core/world/realm/realm_wayfinding.gd") as GDScript
-	var bn: Variant = Callable(wf, &"beacon").call(host, Vector3(wc.x, rim_y, wc.y), "", Color(0.34, 0.5, 0.6), 30.0, 0.3, 12.0)
+	var wf: Variant = load("res://core/world/realm/realm_wayfinding.gd")
+	var bn: Variant = wf.beacon(host, Vector3(wc.x, rim_y, wc.y), "", Color(0.34, 0.5, 0.6), 30.0, 0.3, 12.0)
 	if bn is Node:
 		(bn as Node).name = "Beacon_r37s_well"
 		(bn as Node).set_meta("poi", "r37s_well")
@@ -663,7 +677,7 @@ static func _spillway_and_fall(h: Node3D, space: PhysicsDirectSpaceState3D, wc: 
 	Kit.body(h, "SpillBody", [[wsh, Transform3D(b, centre + b.x * 2.0 + Vector3(0, 0.3, 0))], [wsh, Transform3D(b, centre - b.x * 2.0 + Vector3(0, 0.3, 0))]])
 	# the sheet: samples down the pit wall from the lip to just above the pool, hugging the wall
 	var lip := Vector3(wc.x + radial.x * lip_r, sp_y + 0.05, wc.y + radial.z * lip_r)
-	var foot_y := floor_y + 1.4
+	var foot_y := RealmLayout.WELL_POOL_Y + 0.3
 	var rows := 18
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)

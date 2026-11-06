@@ -14,3 +14,4 @@ A ledger. Newest at the bottom. Status: adopted, open, reversed.
 | 2026-11-06 | Consolidation ends: the Realm doubles to 520 x 390 m (the Outer Marches, the Southern Downs), filled with existing systems and in-house assets (docs/r37_expansion.md). Bosses may be new BossKit scripts over existing rigs. | Adopted |
 | 2026-11-06 | Far detail: big things stay loaded at very low detail and fade in, rather than popping in at range. | Adopted |
 | 2026-11-06 | On horseback the jump key makes the horse jump; you get down with the interact key. | Adopted |
+| 2026-11-06 | r37 Foundation: the camera sees 420 m (was 82); trees cross-fade near -> far -> a canopy shell per chunk; the Realm's other meshes get size-ranged dither-fade visibility (FarDetail); the Sorrow is re-routed off the Hierarch's raid floor and siege_track; the old Realm's heights, trees, undergrowth and wildlife streams are kept, the new ground draws from streams of its own. | Adopted |

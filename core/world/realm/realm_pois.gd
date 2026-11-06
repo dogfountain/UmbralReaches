@@ -54,8 +54,10 @@ const GROUP_GUARDIAN := "guardian_site"           ## core/life/encounters/guardi
 const GROUP_UPDRAFT := "updraft"                  ## the cloak-glide's lift (Player._updraft)
 const SID := "world_pois"
 const R34_PATH := "res://core/world/realm/realm_pois_r34.gd"   ## r34 places (docs/r34/places.md)
-# --- r37 south ---
+# --- south marches ---
 const SOUTH_PATH := "res://core/world/realm/realm_pois_r37_south.gd"     ## the South pass (the wall, the fold, the oak, the well)
+# --- the east marches ---
+const R37E_PATH := "res://core/world/realm/realm_pois_r37_east.gd"   ## East Marches (Stillwater, Anchorholds, Saltmarket, White Pans)
 
 ## [prefer xz, search radius, half extents, max ground rise, title, banner line, region]
 const POIS := {
@@ -89,6 +91,8 @@ static func reserve(root: Node) -> void:
 	for a in OS.get_cmdline_user_args():                  # A/B switch for perf and placement checks:
 		if a == "--no-r31-pois":                          # --no-r31-pois (all) or --no-r31-pois=belfry,spire
 			(load(R34_PATH) as GDScript).call("reserve", root, skip)     # r34: its own switch (--no-r34-pois)
+			var east_pois: Variant = load(R37E_PATH)    # the east marches (no preload: a cycle)
+			east_pois.reserve(root, skip)
 			return
 		if a.begins_with("--no-r31-pois="):
 			skip = a.trim_prefix("--no-r31-pois=").split(",")
@@ -149,8 +153,12 @@ static func reserve(root: Node) -> void:
 	print("REALM_POI reserved %s" % [spots.keys()])
 	# r34 places: the new ground's places (realm_pois_r34.gd, docs/r34/places.md)
 	(load(R34_PATH) as GDScript).call("reserve", root, skip)
-	# --- r37 south ---
-	Callable(load(SOUTH_PATH), &"reserve").call(root)
+	# --- south marches ---
+	var south_pois: Variant = load(SOUTH_PATH)     # no preload: a cycle
+	south_pois.reserve(root)
+	# --- the east marches ---
+	var east_pois: Variant = load(R37E_PATH)
+	east_pois.reserve(root, skip)
 
 
 ## Each place faces where the player comes from.
@@ -236,8 +244,12 @@ static func build(root: Node) -> void:
 		built.append(id)
 	# r34 places: the new ground's places, under the same holder and groups
 	(load(R34_PATH) as GDScript).call("build", holder)
-	# --- r37 south ---
-	Callable(load(SOUTH_PATH), &"build").call(holder)
+	# --- south marches ---
+	var south_build: Variant = load(SOUTH_PATH)
+	south_build.build(holder)
+	# --- the east marches ---
+	var east_pois: Variant = load(R37E_PATH)
+	east_pois.build(holder)
 	# r33: the places are named by the zone discovery (realm_discovery.gd: regions + subzones, the
 	# carved banner, Events.region_discovered); world events (world_events.gd) pick their sites here
 	if root.get_node_or_null("Discovery") == null:

@@ -1,6 +1,6 @@
 extends RefCounted
 ## The South pass's three task chains (data only; quest_chains.gd lists each one at the end of its
-## tables, in a block marked r37 south, so the ledger, the audit and the world find them). No class_name.
+## tables, in a block marked south marches, so the ledger, the audit and the world find them). No class_name.
 ##   shepherd_strays  Dunstan Pike, the shepherd who stayed (a camp at the fold on the southern downs):
 ##                    raise the flock's three fallen marker-cairns, put down the Bell-Wether who still leads
 ##                    them, tell him the road is marked

@@ -20,8 +20,8 @@ const AGENT_RADIUS := 0.5
 const AGENT_HEIGHT := 1.8
 const MAX_CLIMB := 0.4
 const MAX_SLOPE := 40.0
-const WAIT_MS := 12000                    ## the loading screen never waits longer than this
-const AREA := AABB(Vector3(-165.0, -60.0, -160.0), Vector3(330.0, 320.0, 345.0))
+const WAIT_MS := 20000                    ## the loading screen never waits longer than this (twice the ground, was 12 s)
+const AREA := AABB(Vector3(-272.0, -60.0, -160.0), Vector3(544.0, 320.0, 412.0))     ## BOUNDS + 12 m (was x -165..165, z -160..185)
 
 ## Last build's numbers (read by zz/nav_test).
 static var info := {}

@@ -11,12 +11,15 @@ extends Node
 ##   void       every fire, map marker, camp and place of interest stands on ground inside the bounds,
 ##              not under it (in a cliff) or over nothing
 ##   minimap    the painted map covers the new bounds
+##   r37        the Outer Marches' ground: BOUNDS 520 x 390 holds the r34 Realm (OLD_BOUNDS) twice over in area,
+##              the Sorrow, Stillwater, the Spire's bluff, the Well and the White Pans' salt exist as built, and
+##              the far field is loaded (camera far, canopy shells, cross-faded trees)
 ## Run: SCRATCH=<dir> JOBS=1 tools/run_tests.sh layout_r34
 const Land := preload("res://core/world/realm/realm_land.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
 
-const BIOMES := ["meadow", "oldforest", "fen", "ash", "heath", "crag", "ruin", "glade"]
+const BIOMES := ["meadow", "oldforest", "fen", "ash", "heath", "crag", "ruin", "glade", "salt"]
 const NEW_REGIONS := ["quarry", "holds", "foundry", "moor", "orchard", "necropolis", "mere"]
 
 var main: Node
@@ -57,6 +60,7 @@ func _process(d: float) -> void:
 	_roads()
 	_raids()
 	_void()
+	_r37()
 	await _minimap()
 	print("LAYOUT34 %s %d" % ["DONE PASS" if fails == 0 else "DONE FAIL", fails])
 	get_tree().quit(0 if fails == 0 else 1)
@@ -81,8 +85,10 @@ func _terrain(x: float, z: float) -> float:
 func _bounds() -> void:
 	var b := RealmLayout.BOUNDS
 	var old := Rect2(-110.0, -150.0, 220.0, 230.0)
-	check("BOUNDS area %.0f m2 is ~2x the r33 %.0f (1.85..2.3)" % [b.get_area(), old.get_area()], b.get_area() / old.get_area() > 1.85 and b.get_area() / old.get_area() < 2.3)
-	check("BOUNDS holds the r33 world", b.encloses(old))
+	var r34 := RealmLayout.OLD_BOUNDS
+	check("OLD_BOUNDS is the r34 Realm (x -155..155, z -150..175)", r34 == Rect2(-155.0, -150.0, 310.0, 325.0))
+	check("BOUNDS area %.0f m2 is ~2x the r34 %.0f (1.9..2.1)" % [b.get_area(), r34.get_area()], b.get_area() / r34.get_area() > 1.9 and b.get_area() / r34.get_area() < 2.1)
+	check("BOUNDS holds the r34 Realm and the r33 world", b.encloses(r34) and b.encloses(old))
 	for n: String in ["SPAWN", "PLAYER_START", "SUMMIT", "SUMMIT_DAIS", "SUMMIT_WARD"]:
 		var v: Vector3 = (load("res://core/world/realm/realm_layout.gd") as GDScript).get_script_constant_map()[n]
 		check("%s inside BOUNDS" % n, b.has_point(Vector2(v.x, v.z)))
@@ -316,7 +322,10 @@ func _raids() -> void:
 		var c: Vector2 = r.c
 		var rr: float = r.r
 		var y: float = r.y
-		check("raid %s is %.0f m across (55..65)" % [r.id, rr * 2.0], rr * 2.0 >= 55.0 and rr * 2.0 <= 65.0)
+		if String(r.id) in ["hierarch", "anchorhold"]:
+			check("raid %s is %.0f m across (36..65: a r37 floor in a cliff or a valley)" % [r.id, rr * 2.0], rr * 2.0 >= 36.0 and rr * 2.0 <= 65.0)
+		else:
+			check("raid %s is %.0f m across (55..65)" % [r.id, rr * 2.0], rr * 2.0 >= 55.0 and rr * 2.0 <= 65.0)
 		check("raid %s inside BOUNDS" % r.id, RealmLayout.BOUNDS.grow(-2.0).encloses(Rect2(c - Vector2(rr, rr), Vector2(rr, rr) * 2.0)))
 		var lo := INF
 		var hi := -INF
@@ -413,6 +422,75 @@ func _void() -> void:
 	for b in bad:
 		print("LAYOUT34   ", b)
 	check("nothing in the void or in the ground (%d of %d things, %d camps)" % [bad.size(), things.size(), EnemySpawner.REALM_CAMPS.size()], bad.is_empty())
+
+
+# --- r37: the Outer Marches ------------------------------------------------------------------------
+
+func _r37() -> void:
+	# the Sorrow: water stands along the river's whole run, in stepped reaches that never rise downstream
+	var rp: Array = RealmLayout.RIVER.pts
+	var last_y := INF
+	var wet := 0
+	var rose := 0
+	for k in range(0, 240, 6):
+		var z := -50.0 + float(k)
+		# the centreline's x at this z (RIVER.pts run monotone in z; the built line is a smooth curve through them, within 3 m)
+		var pt := Vector2.INF
+		for i in rp.size() - 1:
+			var a: Vector2 = rp[i]
+			var c: Vector2 = rp[i + 1]
+			if z >= a.y and z <= c.y:
+				pt = a.lerp(c, (z - a.y) / maxf(c.y - a.y, 0.001))
+		if pt == Vector2.INF:
+			continue
+		if Land.in_water(pt.x, pt.y):
+			wet += 1
+			var wy := Land.water_y_at(pt.x, pt.y)
+			if wy > last_y + 0.01:
+				rose += 1
+			last_y = wy
+	check("the Sorrow holds water along its run (%d samples wet), its reaches never rise downstream (%d rises)" % [wet, rose], wet >= 30 and rose == 0)
+	var weir_a := Land.water_y_at(-206.0, 52.0)
+	var weir_b := Land.water_y_at(-212.0, 70.0)
+	check("a weir step at Weirford: the reach above (%.2f) is higher than below (%.2f)" % [weir_a, weir_b], weir_a > weir_b + 0.3)
+	# Stillwater: the lake stands at LAKE_Y over a deep basin; the Spire's bluff is ~12 m above it
+	var lc := RealmLayout.LAKE_C
+	check("Stillwater's lake holds water at its centre (ground %.2f, water %.2f)" % [Land.height_at(lc.x, lc.y), Land.water_y_at(lc.x, lc.y)],
+		Land.in_water(lc.x, lc.y) and absf(Land.water_y_at(lc.x, lc.y) - RealmLayout.LAKE_Y) < 0.01 and Land.height_at(lc.x, lc.y) < RealmLayout.LAKE_Y - 3.0)
+	var sc := RealmLayout.SPIRE_C
+	var sy := _terrain(sc.x, sc.y)
+	check("the Spire's bluff stands %.1f m over the water (11..13)" % [sy - RealmLayout.LAKE_Y], sy - RealmLayout.LAKE_Y > 11.0 and sy - RealmLayout.LAKE_Y < 13.0)
+	# the Well of Echoes: ~24 m deep, a pool at the floor, walls steeper than a walk
+	var wc := RealmLayout.WELL_C
+	var wf := _terrain(wc.x, wc.y)
+	var rim := _terrain(wc.x + RealmLayout.WELL_R + 6.0, wc.y + RealmLayout.WELL_R)
+	check("the Well: floor %.1f, rim %.1f: %.1f m deep (22..28), a pool on the floor" % [wf, rim, rim - wf], rim - wf > 22.0 and rim - wf < 28.0 and Land.in_water(wc.x, wc.y))
+	# the White Pans: salt ground, flat
+	var pc := RealmLayout.PANS.get_center()
+	var bw: Dictionary = Land.biome_weights(pc.x, pc.y)
+	check("the White Pans' ground is salt (weight %.2f, biome %s)" % [float(bw.get("salt", 0.0)), RealmLayout.biome_at(pc.x, pc.y)], float(bw.get("salt", 0.0)) > 0.8 and RealmLayout.biome_at(pc.x, pc.y) == "salt")
+	var terrain := main.get_node_or_null("Zone/Terrain") as MeshInstance3D
+	var has_salt := terrain != null and terrain.mesh != null and terrain.mesh.surface_get_arrays(0)[Mesh.ARRAY_CUSTOM0] != null
+	check("the terrain carries the salt weight (CUSTOM0)", has_salt)
+	# the old Realm's rim stands on the March Wall's line (x +-155), a modest crest the wall can sit on
+	var rim_w := _terrain(-155.0, 20.0)
+	var out_w := _terrain(-185.0, 20.0)
+	var in_w := _terrain(-135.0, 20.0)
+	check("a crest on the March Wall's line (x -155: %.1f; 30 m out %.1f, 20 m in %.1f)" % [rim_w, out_w, in_w], rim_w > in_w + 0.5 and rim_w > out_w + 0.5)
+	# far detail: the world is loaded to the horizon, and the forests carry a canopy shell, the trees fade
+	var cam := get_viewport().get_camera_3d()
+	check("the camera sees the far field (far %.0f)" % [cam.far if cam else 0.0], cam != null and cam.far >= FarDetail.VIEW_FAR - 0.5)
+	var shells := 0
+	var fading := 0
+	var rf := main.get_node_or_null("RealmFlora")
+	if rf:
+		for c in rf.get_children():
+			if String(c.name).begins_with("Canopy_"):
+				shells += 1
+		for n in rf.find_children("Flora_oak_*_fs", "MultiMeshInstance3D", true, false):
+			if (n as GeometryInstance3D).visibility_range_fade_mode == GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF:
+				fading += 1
+	check("forests carry canopy shells (%d) and the far trees cross-fade (%d fading far oak meshes)" % [shells, fading], shells >= 40 and fading >= 3)
 
 
 # --- the minimap ----------------------------------------------------------------------------------

@@ -156,8 +156,8 @@ func _camps(sp: Node) -> void:
 
 func _area() -> Dictionary:
 	var area := {}
-	for x in range(-155, 155, 2):
-		for z in range(-150, 175, 2):
+	for x in range(int(RealmLayout.BOUNDS.position.x), int(RealmLayout.BOUNDS.end.x), 2):          # r37: the whole (doubled) world
+		for z in range(int(RealmLayout.BOUNDS.position.y), int(RealmLayout.BOUNDS.end.y), 2):
 			var id := String(RealmLayout.region_at(x + 1.0, z + 1.0).get("id", "-"))
 			area[id] = int(area.get(id, 0)) + 4
 	return area

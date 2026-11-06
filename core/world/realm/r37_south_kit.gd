@@ -1,5 +1,5 @@
 extends RefCounted
-## r37 South: the Blender kits (tools/blender/r37_south.py) as game parts. A glb holds many named
+## The south marches: the Blender kits (tools/blender/r37_south.py) as game parts. A glb holds many named
 ## meshes at the origin; this loads each file once, hands out its meshes by name, and puts a mesh in
 ## the world (a MeshInstance3D out of the atmosphere's blanket cull, with its own fade range) and a
 ## collision shape from a mesh (the oak's *Col proxies). No class_name: preload by path.

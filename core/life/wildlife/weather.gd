@@ -47,8 +47,11 @@ const OFF_AMBIENT_FLASH := 0.32
 const MIST_REGIONS := [Rect2(42, -78, 66, 110), Rect2(-108, -68, 76, 110), Rect2(-100, 48, 200, 26),
 	# r34 flora: the new low ground: Corvin's Mere, the Waiting Field, the Cinder Orchard (ash haze),
 	# the Lanternless Moor's hollows, the west wood round the Rooted Holds
-	Rect2(64, 90, 86, 62), Rect2(-44, 98, 86, 58), Rect2(-150, 90, 82, 62), Rect2(124, -66, 31, 106), Rect2(-150, -40, 40, 80)]
-const MIST_BANKS := [4, 3, 3, 3, 2, 2, 2, 2]
+	Rect2(64, 90, 86, 62), Rect2(-44, 98, 86, 58), Rect2(-150, 90, 82, 62), Rect2(124, -66, 31, 106), Rect2(-150, -40, 40, 80),
+	# the Sorrow's valley, Stillwater, the Fallen Hierarch's moss valley, the White Pans (thin), the siege lines, the downs' hollows
+	Rect2(-240, -56, 60, 170), Rect2(176, -36, 60, 80), Rect2(-250, -130, 80, 60), Rect2(170, 120, 80, 110), Rect2(-250, 120, 90, 110), Rect2(-150, 185, 300, 50)]
+const MIST_BANKS := [4, 3, 3, 3, 2, 2, 2, 2, 3, 3, 2, 1, 2, 2]
+const OLD_MIST := 8                 ## the first eight regions draw from the weather's own stream as ever; the Marches' from another
 const SOUND_MS := 343.0          ## the speed of sound, m/s
 const SKY_R := 60.0              ## sky-layer effects are built at this radius round the camera
 const SPLASH_GRID := 20
@@ -519,15 +522,18 @@ func _sway(dt: float) -> void:
 # --- mist banks -------------------------------------------------------------------------------------
 
 func _build_banks() -> void:
+	var rng_m := RandomNumberGenerator.new()
+	rng_m.seed = 3737
 	for ri in MIST_REGIONS.size():
 		if off and ri >= 2:
 			break
 		var r: Rect2 = MIST_REGIONS[ri]
+		var rr := _rng if ri < OLD_MIST else rng_m
 		for k in MIST_BANKS[ri]:
 			var fv := FogVolume.new()
 			fv.name = "MistBank%d" % _banks.size()
 			fv.shape = RenderingServer.FOG_VOLUME_SHAPE_ELLIPSOID
-			fv.size = Vector3(_rng.randf_range(30, 44), 6.0, _rng.randf_range(30, 44))
+			fv.size = Vector3(rr.randf_range(30, 44), 6.0, rr.randf_range(30, 44))
 			var fm := FogMaterial.new()
 			fm.density = 0.0
 			fm.albedo = Color(0.6, 0.68, 0.84)
@@ -538,20 +544,20 @@ func _build_banks() -> void:
 			# r29: each bank keeps a home hollow (the lowest of a few spots, away from the others):
 			# mist that only drifted with the wind piled up along the region's edges and left the
 			# fen itself clear (a probe found 3 of the fen's 4 banks on its west edge)
-			var home := _bank_home(r)
+			var home := _bank_home(r, rr)
 			fv.position = Vector3(home.x, RL.height_at(home.x, home.y) + 1.6, home.y)
 			fv.visible = false
 			add_child(fv)
-			_banks.append({"node": fv, "mat": fm, "rect": r, "home": home, "phase": _rng.randf_range(0, TAU), "dens": _rng.randf_range(0.055, 0.085) * (0.7 if ri == 2 else 1.0)})   # r29: x1.55 (renders barely showed a bank)
+			_banks.append({"node": fv, "mat": fm, "rect": r, "home": home, "phase": rr.randf_range(0, TAU), "dens": rr.randf_range(0.055, 0.085) * (0.7 if ri == 2 or ri == 11 else 1.0)})   # r29: x1.55 (renders barely showed a bank)
 
 
 ## A low spot in r (the lowest of 14 samples) at least 22 m from the region's other bank homes.
-func _bank_home(r: Rect2) -> Vector2:
+func _bank_home(r: Rect2, rng: RandomNumberGenerator) -> Vector2:
 	var inner := r.grow(-6.0)
 	var best := inner.get_center()
 	var best_h := INF
 	for k in 14:
-		var q := Vector2(_rng.randf_range(inner.position.x, inner.end.x), _rng.randf_range(inner.position.y, inner.end.y))
+		var q := Vector2(rng.randf_range(inner.position.x, inner.end.x), rng.randf_range(inner.position.y, inner.end.y))
 		var ok := true
 		for b in _banks:
 			if b.rect == r and (b.home as Vector2).distance_to(q) < 22.0:
@@ -925,6 +931,7 @@ func _follow(cam: Camera3D, dt: float) -> void:
 			"oldforest", "glade": _debris_mat.albedo_color = Color(0.42, 0.3, 0.16)
 			"ash", "crag": _debris_mat.albedo_color = Color(0.32, 0.31, 0.31)
 			"fen": _debris_mat.albedo_color = Color(0.72, 0.7, 0.62)
+			"salt": _debris_mat.albedo_color = Color(0.82, 0.8, 0.74)         # the White Pans lift salt
 			_: _debris_mat.albedo_color = Color(0.45, 0.42, 0.25)
 		var amb := get_node_or_null("../../Ambience")
 		# the Ambience's room, or simply where the camera is: the crypt and its pit hall lie below the

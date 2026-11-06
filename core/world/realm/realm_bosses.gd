@@ -29,9 +29,13 @@ const R34_FIRES := {
 	"OrchardFire": [Vector2(-99.0, 104.0), Vector2(-106.0, 104.0)],     # beside orchard_lane
 	"FieldFire": [Vector2(8.0, 108.0), Vector2(1.0, 110.0)],            # the Waiting Field's gate, off necropolis_way
 	"MereFire": [Vector2(103.0, 98.0), Vector2(98.0, 96.0)],            # the mere's north bank, by mere_causeway
-	# --- r37 south ---
+	# --- south marches ---
 	"OakFire": [Vector2(-44.0, 192.0), Vector2(-52.0, 198.0)],          # beside downs_track, in the Grandmother Oak's shade (the door looks this way)
 	"WellFire": [Vector2(44.0, 192.0), Vector2(52.0, 198.0)],           # beside downs_track, on the way to the Well's rim and the descent gate
+	# --- the east marches ---
+	"StillwaterFire": [Vector2(220.0, 52.0), Vector2(214.0, 40.0)],    # the lake's south shore, off spire_track
+	"AnchorFire": [Vector2(204.0, -84.0), Vector2(206.0, -100.0)],     # the foot of the cliff, anchor_track's end
+	"SaltFire": [Vector2(218.0, 98.0), Vector2(214.0, 96.0)],          # Saltmarket's yard
 }
 
 

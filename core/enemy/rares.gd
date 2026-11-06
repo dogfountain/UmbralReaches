@@ -89,7 +89,7 @@ const RARES := {
 	"fare_caller": {"title": "The Fare-Caller", "kind": "husk", "variant": "drowned", "hp": 40, "scale": 1.4,
 		"spots": [Vector2(135, 111), Vector2(129, 105)], "ash": 42, "loot": [["relic_fragment", 2], ["ferry_coin", 1]],
 		"line": "The Fare-Caller goes under without its fare."},
-	# --- r37 south ---
+	# --- south marches ---
 	"bell_wether": {"title": "The Bell-Wether", "kind": "gaunt", "hp": 28, "scale": 1.4,
 		"spots": [Vector2(-30, 222), Vector2(-60, 226), Vector2(20, 224)], "ash": 38, "loot": [["relic_fragment", 2]],
 		"route": [Vector2(-30, 222), Vector2(-62, 226), Vector2(-98, 226), Vector2(-62, 232), Vector2(-26, 228), Vector2(10, 224)],
@@ -98,6 +98,15 @@ const RARES := {
 		"spots": [Vector2(96, 224), Vector2(110, 222), Vector2(140, 226)], "ash": 34, "loot": [["relic_fragment", 1]],
 		"route": [Vector2(96, 224), Vector2(122, 228), Vector2(146, 222), Vector2(130, 214), Vector2(104, 218)],
 		"line": "The Flint-Hound lies down on the chalk it was bred to guard. It does not get up."},
+	# --- the east marches ---
+	"salt_widow": {"title": "The Salt-Widow", "kind": "gaunt", "hp": 30, "scale": 1.4,
+		"spots": [Vector2(236, 150), Vector2(244, 156), Vector2(228, 146)], "ash": 40, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(236, 150), Vector2(246, 164), Vector2(232, 172), Vector2(222, 160), Vector2(228, 146)],
+		"line": "The Salt-Widow sits down on the white, and the white takes her."},
+	"drowned_lamplighter": {"title": "The Drowned Lamplighter", "kind": "husk", "variant": "drowned", "hp": 36, "scale": 1.35,
+		"spots": [Vector2(180, 18), Vector2(178, -2), Vector2(184, 30)], "ash": 38, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(180, 18), Vector2(176, -2), Vector2(178, -24), Vector2(184, 6), Vector2(186, 28)],
+		"line": "The Drowned Lamplighter lets the lamp go. It does not float."},
 }
 
 var haunts: Dictionary = {}      ## id -> Vector3 on the ground

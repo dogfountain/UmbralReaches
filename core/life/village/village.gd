@@ -144,6 +144,9 @@ func _build() -> void:
 		report.append("no clear spot for the sexton's grave")
 	# r34: the outposts of the doubled world, one giver camped in each new region
 	_outposts(space, node_xz, edges)
+	# --- the east marches ---
+	var east_pois: Variant = load("res://core/world/realm/realm_pois_r37_east.gd")    # no preload: a cycle
+	east_pois.hamlet(self, space, node_xz, edges)
 	await get_tree().process_frame
 	# --- the walking network ------------------------------------------------------------------
 	nav.call("build", space, node_xz, edges)

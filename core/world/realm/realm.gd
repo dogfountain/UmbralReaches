@@ -112,9 +112,10 @@ const _STATIC_CACHES := {
 	"res://core/world/realm/tree_gen.gd": ["_cache"],
 	"res://core/world/mesh_chunks.gd": ["_lod_cache"],
 	"res://core/world/realm/gen_cache.gd": ["_shapes"],
+	"res://core/world/far_detail.gd": ["_shell_mat", "_far_mat"],
 	"res://world/areas/ossuary/oss_kit.gd": ["_mats", "_skulls", "_bones", "_candles", "_puddle", "_flame_mesh", "_halo_mesh"],
 	"res://world/areas/ossuary/ossuary.gd": ["_plate", "_ribs", "_great_rib"],
-	# --- r37 south ---
+	# --- south marches ---
 	"res://core/world/realm/r37_south_kit.gd": ["_cache"],
 }
 
