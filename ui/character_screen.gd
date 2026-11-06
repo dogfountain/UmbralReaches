@@ -18,9 +18,10 @@ extends CanvasLayer
 const UIType := preload("res://ui/type.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 
-const INK := Color(0.9, 0.84, 1.0)
-const DIM := Color(0.55, 0.5, 0.66)
-const LILAC := Color(0.78, 0.66, 1.0)
+const Med := preload("res://ui/medieval_style.gd")
+const INK := Med.BONE
+const DIM := Med.BONE_DIM
+const LILAC := Med.GILT
 const EMBER := Color(1.0, 0.62, 0.3)
 
 ## [id, title, [[page id, page title, panel, panel page], ...]]. panel: gear | growth | satchel | codex | tasks.
@@ -64,7 +65,7 @@ func _ready() -> void:
 	_backdrop.name = "Backdrop"
 	_backdrop.layer = 58                       # under the hosted panels (59-62), over the HUD
 	var dim := ColorRect.new()
-	dim.color = Color(0.01, 0.0, 0.02, 0.6)
+	dim.color = Color(0.02, 0.012, 0.006, 0.66)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_backdrop.add_child(dim)
@@ -336,10 +337,9 @@ func _build() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
 	var band := Panel.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.03, 0.02, 0.05, 0.92)
-	sb.border_color = Color(0.5, 0.4, 0.8, 0.55)
-	sb.border_width_bottom = 2
+	var sb := Med.frame(4)                     # a forged iron bar along the top, rivets and all
+	sb.texture_margin_left = 14
+	sb.texture_margin_right = 14
 	band.add_theme_stylebox_override("panel", sb)
 	band.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	band.offset_top = 0.0
@@ -410,16 +410,5 @@ func _button(text: String, pt: int, min_size: Vector2) -> Button:
 	b.add_theme_color_override("font_hover_color", INK)
 	b.add_theme_color_override("font_pressed_color", LILAC)
 	b.add_theme_color_override("font_hover_pressed_color", LILAC)
-	var off := StyleBoxFlat.new()
-	off.bg_color = Color(0.08, 0.05, 0.12, 0.7)
-	off.set_corner_radius_all(3)
-	off.set_content_margin_all(8)
-	var on := off.duplicate() as StyleBoxFlat
-	on.bg_color = Color(0.2, 0.14, 0.36, 0.95)
-	on.border_color = LILAC
-	on.border_width_bottom = 2
-	b.add_theme_stylebox_override("normal", off)
-	b.add_theme_stylebox_override("hover", off)
-	b.add_theme_stylebox_override("pressed", on)
-	b.add_theme_stylebox_override("hover_pressed", on)
+	Med.style_tab(b)
 	return b

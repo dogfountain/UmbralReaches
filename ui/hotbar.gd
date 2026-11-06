@@ -12,10 +12,11 @@ const GAP := 14.0
 const NAME_FADE := 14.0       ## names under the slots fade out after this many seconds
 const NAME_PT := 17           ## r29: was 14 on one line (about 7 px tall at 1280x720: unreadable)
 const KEY_PT := 17
-const FRAME := Color(0.66, 0.55, 1.0, 0.55)
-const BG := Color(0.02, 0.016, 0.05, 0.78)
+const Med := preload("res://ui/medieval_style.gd")
+const FRAME := Color(Med.BRONZE, 0.9)
+const BG := Color(0.02, 0.012, 0.006, 0.78)
 const SHADE := Color(0.01, 0.0, 0.03, 0.72)
-const QUIET := Color(0.72, 0.74, 0.86, 0.9)
+const QUIET := Color(Med.BONE, 0.95)
 const COST := Color("#C04DFF")
 const Icons := preload("res://core/life/progression/icons.gd")
 const DB := preload("res://core/life/progression/upgrade_db.gd")
@@ -100,7 +101,7 @@ func _draw() -> void:
 		var o := Vector2(vi * (SLOT + GAP) + shake, 0.0)
 		var r := Rect2(o, Vector2(SLOT, SLOT))
 		var is_ready := _book.cooldown_left(i) <= 0.0
-		draw_rect(r, BG)
+		draw_style_box(Med.slot(), r.grow(3.0))          # an iron-rimmed socket of leather
 		_glyph(s.glyph, r.get_center(), SLOT * 0.3, s.color if is_ready else s.color.darkened(0.55))
 		# cooldown sweep, clockwise from 12 o'clock, plus seconds when > 1 s
 		var cr := _book.cooldown_ratio(i)
@@ -160,7 +161,8 @@ func _draw() -> void:
 			frame = frame.lerp(Color(1.5, 0.9, 2.6), glow)
 			draw_rect(r.grow(3.0), Color(1.2, 0.6, 2.4, 0.35 * glow), false, 3.0)
 			_proc_sparks(r, s.color)
-		draw_rect(r, frame, false, 2.0 + f * 2.0)
+		if not frame.is_equal_approx(FRAME):
+			draw_rect(r.grow(-1.5), frame, false, 2.0 + f * 2.0)        # a cast, a ready pulse or a denial lights the rim
 		# r33: the press held in the spell queue fires next: a gold inner line and a notch over the slot
 		if _book.has_method("queued_slot") and int(_book.call("queued_slot")) == i:
 			_anim = true
@@ -183,7 +185,7 @@ func _draw() -> void:
 		var key := _book.key_label(i)
 		var kw := maxf(28.0, _font.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, KEY_PT).x + 10.0)
 		var kr := Rect2(o + Vector2(-4, SLOT - 20), Vector2(kw, 24))
-		draw_rect(kr, Color(0.06, 0.05, 0.12, 0.95))
+		draw_rect(kr, Color(0.07, 0.045, 0.03, 0.97))
 		draw_rect(kr, FRAME, false, 1.0)
 		draw_string(_font, kr.position + Vector2(0, 18), key, HORIZONTAL_ALIGNMENT_CENTER, kw, KEY_PT, QUIET)
 		if s.gloom_cost > 0.0:

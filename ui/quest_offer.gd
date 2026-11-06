@@ -17,9 +17,12 @@ const Chains := preload("res://core/story/quest_chains.gd")
 const GearDB := preload("res://core/items/gear_db.gd")
 const UIType := preload("res://ui/type.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
-const LANTERN := Color("#FFB347")
-const QUIET := Color(0.78, 0.8, 0.9)
-const INK := Color(0.93, 0.89, 0.82)
+const Med := preload("res://ui/medieval_style.gd")
+## The offer is a sheet of vellum: ink-brown type, oxblood heads, the pay and the gear on leather.
+const LANTERN := Med.INK_RED
+const QUIET := Med.INK_DIM
+const INK := Med.INK
+const BONE := Med.BONE
 
 var mode := ""                     ## "offer" / "turnin" / "" (closed)
 var quest := ""
@@ -52,9 +55,10 @@ func _lbl(font: Font, size: int, col: Color) -> Label:
 	l.add_theme_font_override("font", font)
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", col)
-	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-	l.add_theme_constant_override("shadow_offset_x", 2)
-	l.add_theme_constant_override("shadow_offset_y", 2)
+	if col.get_luminance() > 0.45:                 # light type on leather keeps its shadow; ink on vellum has none
+		l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+		l.add_theme_constant_override("shadow_offset_x", 2)
+		l.add_theme_constant_override("shadow_offset_y", 2)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
@@ -77,13 +81,10 @@ func _build() -> void:
 	_panel.offset_right = 500
 	_panel.offset_top = -420
 	_panel.offset_bottom = 420
-	var sb := _frame(Color(0.03, 0.025, 0.06, 0.96), Color(1.0, 0.7, 0.28, 0.55))
-	sb.content_margin_left = 34
-	sb.content_margin_right = 34
-	sb.content_margin_top = 24
-	sb.content_margin_bottom = 22
-	sb.shadow_color = Color(0, 0, 0, 0.55)
-	sb.shadow_size = 14
+	_panel.theme = Med.theme()
+	var sb := Med.panel("parchment", 44)
+	sb.content_margin_top = 36
+	sb.content_margin_bottom = 34
 	_panel.add_theme_stylebox_override("panel", sb)
 	_panel.visible = false
 	add_child(_panel)
@@ -92,7 +93,7 @@ func _build() -> void:
 	_panel.add_child(col)
 	_title = _lbl(UIType.title(), 34, LANTERN)
 	col.add_child(_title)
-	_giver = _lbl(UIType.body(), 18, Color(QUIET, 0.7))
+	_giver = _lbl(UIType.body(), 18, QUIET)
 	col.add_child(_giver)
 	col.add_child(_rule())
 	var scroll := ScrollContainer.new()
@@ -113,19 +114,19 @@ func _build() -> void:
 	_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(_text)
-	var oh := _lbl(UIType.title(), 19, Color(1.0, 0.7, 0.28, 0.8))
+	var oh := _lbl(UIType.title(), 19, Med.INK_RED)
 	oh.text = "WHAT IS WANTED"
 	oh.name = "ObjHead"
 	body.add_child(oh)
 	_obj = VBoxContainer.new()
 	_obj.add_theme_constant_override("separation", 4)
 	body.add_child(_obj)
-	var rh := _lbl(UIType.title(), 19, Color(1.0, 0.7, 0.28, 0.8))
+	var rh := _lbl(UIType.title(), 19, Med.INK_RED)
 	rh.text = "WHAT IT PAYS"
 	body.add_child(rh)
 	_pay = _lbl(UIType.body(), 21, INK)
 	body.add_child(_pay)
-	_choose_head = _lbl(UIType.body(), 19, Color(QUIET, 0.8))
+	_choose_head = _lbl(UIType.body(), 19, QUIET)
 	body.add_child(_choose_head)
 	_cards = HBoxContainer.new()
 	_cards.add_theme_constant_override("separation", 12)
@@ -143,12 +144,8 @@ func _build() -> void:
 	row.add_child(_ok)
 
 
-func _rule() -> ColorRect:
-	var r := ColorRect.new()
-	r.color = Color(1.0, 0.7, 0.28, 0.25)
-	r.custom_minimum_size = Vector2(0, 2)
-	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return r
+func _rule() -> Control:
+	return Med.rule(Color(Med.INK_RED, 0.7))
 
 
 func _button(t: String) -> Button:
@@ -157,16 +154,7 @@ func _button(t: String) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(190, 48)
 	b.add_theme_font_override("font", UIType.title())
-	b.add_theme_font_size_override("font_size", 22)
-	b.add_theme_color_override("font_color", INK)
-	b.add_theme_color_override("font_hover_color", LANTERN)
-	b.add_theme_color_override("font_disabled_color", Color(QUIET, 0.35))
-	for st: String in ["normal", "hover", "pressed", "disabled"]:
-		var sb := _frame(Color(0.08, 0.06, 0.08, 0.95) if st != "hover" else Color(0.16, 0.1, 0.06, 0.95),
-			Color(1.0, 0.7, 0.28, 0.6 if st != "disabled" else 0.2), 2)
-		sb.content_margin_left = 18
-		sb.content_margin_right = 18
-		b.add_theme_stylebox_override(st, sb)
+	Med.style_button(b, 22, 18, 8)
 	return b
 
 
@@ -271,12 +259,9 @@ func _card(p: Dictionary, i: int) -> Button:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.clip_text = false
 	var rc := GearDB.rarity_color(int(p.get("rarity", 0)))
-	for st: String in ["normal", "hover", "pressed"]:
-		var sb := _frame(Color(0.06, 0.05, 0.07, 0.95) if st == "normal" else Color(0.12, 0.08, 0.06, 0.95), Color(rc, 0.45), 2)
-		sb.content_margin_left = 12
-		sb.content_margin_right = 12
-		sb.content_margin_top = 10
-		sb.content_margin_bottom = 10
+	for st: String in ["normal", "hover", "pressed", "focus"]:
+		var sb := Med.slot(rc)
+		sb.set_content_margin_all(12)
 		b.add_theme_stylebox_override(st, sb)
 	var v := VBoxContainer.new()
 	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -290,7 +275,7 @@ func _card(p: Dictionary, i: int) -> Button:
 	var nm := _lbl(UIType.title(), 18, rc)
 	nm.text = "%d.  %s" % [i + 1, String(p.get("name", "Gear"))]
 	v.add_child(nm)
-	var sl := _lbl(UIType.body(), 15, Color(QUIET, 0.7))
+	var sl := _lbl(UIType.body(), 15, Med.BONE_DIM)
 	sl.text = "%s %s" % [GearDB.rarity_name(int(p.get("rarity", 0))), String(GearDB.SLOT_NAMES.get(String(p.get("slot", "")), ""))]
 	v.add_child(sl)
 	var lines: PackedStringArray = [GearDB.base_line(p)]
@@ -302,7 +287,7 @@ func _card(p: Dictionary, i: int) -> Button:
 	var lg := String(p.get("legend", ""))
 	if lg != "" and GearDB.LEGENDS.has(lg):
 		lines.append(String(GearDB.LEGENDS[lg].text))
-	var ln := _lbl(UIType.body(), 15, INK)
+	var ln := _lbl(UIType.body(), 15, BONE)
 	ln.text = "\n".join(lines)
 	v.add_child(ln)
 	b.custom_minimum_size.y = maxf(150.0, 70.0 + 22.0 * float(lines.size()) + (40.0 if lg != "" else 0.0))

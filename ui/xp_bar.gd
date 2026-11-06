@@ -11,7 +11,7 @@ extends Control
 ## Added by ui/hud.gd. Hidden while paused and under the loading screen.
 
 const LANTERN := Color("#FFB347")
-const RIM := Color(0.46, 0.34, 0.26)
+const RIM := Color(0.62, 0.45, 0.2)
 const INK := Color(0.93, 0.88, 0.8)
 const H := 9.0
 

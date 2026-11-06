@@ -54,10 +54,11 @@ const DIRS := 6                 # headings per stop
 const FRAMES_PER_DIR := 2
 const FX_HOLD := 14             # frames the warm-up enemies stay in view
 const BUILD_SHARE := 0.68       # bar share of the build; the warm tour gets most of the rest
-const BG := Color(0.018, 0.016, 0.045)
-const LILAC := Color("#A98BFF")
-const QUIET := Color(0.72, 0.74, 0.86, 0.9)
-const DIM := Color(0.55, 0.56, 0.68, 0.7)
+const Med := preload("res://ui/medieval_style.gd")
+const BG := Color(0.03, 0.02, 0.012)
+const LILAC := Med.GILT
+const QUIET := Med.BONE
+const DIM := Color(Med.BONE_DIM, 0.85)
 
 var zone: Node3D
 var _player: Node3D
@@ -126,18 +127,26 @@ func _build_ui() -> void:
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.add_theme_constant_override("separation", 18)
 	_root.add_child(col)
+	var crown := Med.rule(Med.GILT_DEEP)
+	crown.custom_minimum_size = Vector2(440, 18)
+	crown.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(crown)
 	var title := _label(font, "UMBRAL REACHES", 54, LILAC)
+	Med.gilt(title, 54)
 	col.add_child(title)
 	_stage = _label(font, "", 18, QUIET)
 	col.add_child(_stage)
+	var trough := PanelContainer.new()                  # the progress bar: a bronze bar filling an iron-rimmed trough
+	trough.add_theme_stylebox_override("panel", Med.frame(8))
+	trough.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(trough)
 	var bar := ColorRect.new()
-	bar.color = Color(1, 1, 1, 0.08)
-	bar.custom_minimum_size = Vector2(440, 3)
-	bar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	col.add_child(bar)
+	bar.color = Color(0.03, 0.02, 0.012)
+	bar.custom_minimum_size = Vector2(440, 8)
+	trough.add_child(bar)
 	_fill = ColorRect.new()
-	_fill.color = LILAC
-	_fill.size = Vector2(0, 3)
+	_fill.color = Med.GILT_DEEP
+	_fill.size = Vector2(0, 8)
 	bar.add_child(_fill)
 	_hint = _label(font, "", 13, DIM)
 	_hint.custom_minimum_size = Vector2(560, 0)

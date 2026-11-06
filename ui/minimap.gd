@@ -24,7 +24,7 @@ extends Control
 const LANTERN := Color("#FFB347")
 const EMBER := Color("#FF6A2A")
 const INK := Color(0.93, 0.88, 0.8)
-const RIM := Color(0.46, 0.34, 0.26)
+const RIM := Color(0.62, 0.45, 0.2)
 const GUARD := Color(1.0, 0.27, 0.2)
 const DIAM := 220.0                      ## on-screen diameter (px at the 1600 x 900 reference)
 const MARGIN := 30.0
@@ -313,10 +313,22 @@ func _draw() -> void:
 		return
 	var c := size * 0.5
 	var r := DIAM * 0.5
-	# the frame: a dark ring with an engraved inner line
-	draw_arc(c, r + 3.0, 0.0, TAU, 96, Color(0.06, 0.045, 0.04, 0.9), 6.0, true)
-	draw_arc(c, r - 1.0, 0.0, TAU, 96, Color(RIM, 0.9), 1.5, true)
-	draw_arc(c, r + 6.5, 0.0, TAU, 96, Color(RIM, 0.55), 1.0, true)
+	# the frame: a brass astrolabe bezel, engraved with degree ticks, a lit edge and four studs
+	draw_arc(c, r + 4.5, 0.0, TAU, 96, Color(0.04, 0.028, 0.015, 0.95), 11.0, true)
+	draw_arc(c, r + 4.5, 0.0, TAU, 96, Color(0.55, 0.39, 0.17), 9.0, true)
+	draw_arc(c, r + 2.2, PI * 0.95, PI * 1.9, 40, Color(0.9, 0.72, 0.38, 0.9), 1.6, true)
+	draw_arc(c, r + 7.0, PI * 0.1, PI * 0.9, 40, Color(0.28, 0.18, 0.07, 0.9), 1.6, true)
+	for k in 72:
+		var ta := TAU * float(k) / 72.0
+		var td := Vector2(cos(ta), sin(ta))
+		var tl := 5.0 if k % 6 == 0 else 2.5
+		draw_line(c + td * (r + 8.0 - tl), c + td * (r + 8.0), Color(0.12, 0.07, 0.03, 0.9), 1.0)
+	draw_arc(c, r - 0.5, 0.0, TAU, 96, Color(0.03, 0.02, 0.01, 0.95), 2.0, true)
+	for k in 4:
+		var sa := TAU * float(k) / 4.0 + PI * 0.25
+		var sp := c + Vector2(cos(sa), sin(sa)) * (r + 4.5)
+		draw_circle(sp, 3.0, Color(0.04, 0.028, 0.015))
+		draw_circle(sp, 2.0, Color(0.95, 0.78, 0.45))
 	# north on the rim
 	var n := _place(_you + Vector3(0, 0, -100000.0), r + 1.0)
 	var np := c + Vector2(n.x, n.y)
@@ -397,11 +409,11 @@ func _draw_place(c: Vector2, r: float) -> void:
 	var sw := maxf(w + 34.0, 150.0)
 	var top := c.y - r - 64.0
 	var plate := Rect2(Vector2(c.x - sw * 0.5, top), Vector2(sw, 24))
-	draw_rect(plate, Color(0.05, 0.038, 0.032, 0.88))
-	draw_rect(plate, Color(RIM, 0.9), false, 1.5)
+	draw_rect(plate, Color(0.1, 0.06, 0.03, 0.92))
+	draw_rect(plate, Color(RIM, 0.95), false, 1.5)
 	for sx: float in [-1.0, 1.0]:
 		var e := Vector2(c.x + sx * sw * 0.5, top + 12.0)
-		draw_colored_polygon(PackedVector2Array([e + Vector2(0, -12), e + Vector2(sx * 9.0, 0), e + Vector2(0, 12)]), Color(0.05, 0.038, 0.032, 0.88))
+		draw_colored_polygon(PackedVector2Array([e + Vector2(0, -12), e + Vector2(sx * 9.0, 0), e + Vector2(0, 12)]), Color(0.1, 0.06, 0.03, 0.92))
 		draw_polyline(PackedVector2Array([e + Vector2(0, -12), e + Vector2(sx * 9.0, 0), e + Vector2(0, 12)]), Color(RIM, 0.9), 1.5, true)
 	var col: Color = TIER_COL[clampi(_tier_i, 0, TIER_COL.size() - 1)]
 	draw_string_outline(_font, Vector2(plate.position.x, top + 18.0), _region, HORIZONTAL_ALIGNMENT_CENTER, sw, pt, 4, Color(0, 0, 0, 0.7))

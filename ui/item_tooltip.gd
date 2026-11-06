@@ -17,10 +17,11 @@ const GearDB := preload("res://core/items/gear_db.gd")
 const GearStats := preload("res://core/items/gear_stats.gd")
 const LootDB := preload("res://core/items/loot_db.gd")
 
-const INK := Color(0.92, 0.88, 1.0)
-const QUIET := Color(0.64, 0.6, 0.74)
-const GREY := Color(0.46, 0.44, 0.5)
-const GOLD := Color(0.95, 0.8, 0.5)
+const Med := preload("res://ui/medieval_style.gd")
+const INK := Med.BONE
+const QUIET := Med.BONE_DIM
+const GREY := Color(0.55, 0.5, 0.44)
+const GOLD := Med.GILT
 const GOOD := Color(0.5, 0.9, 0.45)
 const BAD := Color(0.95, 0.42, 0.36)
 const STAT := Color(0.86, 0.95, 0.82)
@@ -45,7 +46,7 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 	lines.append(_c(QUIET, "%s  ·  Item Level %d" % [LootDB.quality_name(q), GearDB.item_level(p)]))
 	# r36 slice: the trait is the line that changes how you play, so it comes first and reads biggest
 	if GearDB.trait_line(p) != "":
-		lines.append("[font_size=18][b]%s[/b][/font_size]" % _c(Color("#F2CE8A"), GearDB.trait_line(p)))
+		lines.append("[font_size=18][b]%s[/b][/font_size]" % _c(Med.GILT, GearDB.trait_line(p)))
 	var worn := not cur.is_empty() and int(cur.get("uid", -1)) == int(p.get("uid", -2))
 	var slot := String(p.get("slot", ""))
 	lines.append(_c(INK, String(GearDB.SLOT_NAMES.get(slot, slot))) + ("    " + _c(GOLD, "Worn") if worn else ""))
@@ -138,13 +139,7 @@ static func item(id: String, count := -1) -> String:
 ## border that set_quality() tints.
 static func panel(font: Font = null, width := 380.0) -> PanelContainer:
 	var pc := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.03, 0.02, 0.05, 0.96)
-	sb.border_color = LootDB.quality_color(0)
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(4)
-	sb.set_content_margin_all(12)
-	pc.add_theme_stylebox_override("panel", sb)
+	pc.add_theme_stylebox_override("panel", Med.slip_dark(LootDB.quality_color(0)))
 	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var r := RichTextLabel.new()
 	r.name = "Rich"
@@ -165,9 +160,9 @@ static func panel(font: Font = null, width := 380.0) -> PanelContainer:
 
 
 static func set_quality(pc: PanelContainer, q: int) -> void:
-	var sb := pc.get_theme_stylebox("panel") as StyleBoxFlat
+	var sb := pc.get_theme_stylebox("panel") as StyleBoxTexture
 	if sb:
-		sb.border_color = LootDB.quality_color(q)
+		sb.modulate_color = Med.slip_dark(LootDB.quality_color(q)).modulate_color
 
 
 static func set_text(pc: PanelContainer, bb: String, q: int) -> void:
