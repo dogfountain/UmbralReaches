@@ -9,8 +9,11 @@ extends RefCounted
 ## terrain mesh (adding detail noise, path carving and site stamps); everyone else asks
 ## `RealmLayout.ground(space, x, z)` once the terrain exists, or `macro_height()` before it does.
 
-const BOUNDS := Rect2(-155.0, -150.0, 310.0, 325.0)        ## playable xz (x -155..155, z -150..175); r34: was 220 x 230
-const OUTER := Rect2(-244.0, -240.0, 488.0, 504.0)         ## terrain extent incl. the horizon ring (4 m lattice)
+## r37: doubled again (docs/r37_expansion.md): the Outer Marches west and east of the old gates, and
+## the southern downs. The old Realm (x -155..155, z -150..175) is OLD_BOUNDS; nothing in it moves.
+const BOUNDS := Rect2(-260.0, -150.0, 520.0, 390.0)        ## playable xz (x -260..260, z -150..240); r34: 310 x 325
+const OLD_BOUNDS := Rect2(-155.0, -150.0, 310.0, 325.0)    ## the r34 Realm, inside the March Wall
+const OUTER := Rect2(-352.0, -240.0, 704.0, 572.0)         ## terrain extent incl. the horizon ring (4 m lattice)
 const LAVA_Y := -15.5                                       ## the rift's lava surface (LavaWorks)
 
 ## Fixed points (do not move: the kept brazier, tavern, Ossuary and summit depend on them).
@@ -42,6 +45,12 @@ const RAIDS := [
 		"gate": Vector2(-56.0, -16.0), "boss": "thornwarden"},
 	{"id": "summit", "c": Vector2(0.0, -118.0), "r": 28.0, "y": 27.35, "fall": 10.0, "mode": "clear",
 		"gate": Vector2(0.0, -90.0), "boss": "ascended_warden"},
+	# r37: the two Marches bosses (docs/r37_expansion.md). The West agent builds the Hierarch's fight in
+	# the toppled statue's broken crown; the East agent the Anchoress's on the cliff terrace.
+	{"id": "hierarch", "c": Vector2(-214.0, -104.0), "r": 24.0, "y": 4.0, "fall": 12.0, "mode": "level",
+		"gate": Vector2(-200.0, -82.0), "boss": "r37_hierarch"},
+	{"id": "anchorhold", "c": Vector2(214.0, -132.0), "r": 18.0, "y": 16.0, "fall": 10.0, "mode": "level",
+		"gate": Vector2(206.0, -114.0), "boss": "r37_anchoress"},
 ]
 
 ## Regions: [id, name, centre xz, radius or rect, biome, lore one-liner]. Biomes drive flora,
@@ -51,7 +60,7 @@ const RAIDS := [
 const REGIONS := [
 	{"id": "hearth", "name": "Hearthward", "c": Vector2(6, 38), "r": 34.0, "biome": "meadow", "tier": 0,
 		"lore": "The last kindled village: the Kindled Keg, the spawn brazier, cottages gone quiet."},
-	{"id": "road", "name": "The Pilgrims' Road", "rect": Rect2(-155, 50, 310, 30), "biome": "heath", "tier": 0,
+	{"id": "road", "name": "The Pilgrims' Road", "rect": Rect2(-260, 50, 520, 30), "biome": "heath", "tier": 0,
 		"lore": "The old road the ascension pilgrims walked in, lined with waystones and their dead."},
 	{"id": "chapel", "name": "Chapel of the First Kindling", "c": Vector2(-72, 52), "r": 22.0, "biome": "ruin", "tier": 1,
 		"lore": "Where the first fire was lit against the gloom; roofless now, its saints defaced."},
@@ -69,7 +78,7 @@ const REGIONS := [
 		"lore": "Boss: the Bone Abbot. Seal 'oss_gallery'. Streamed area (world/areas/ossuary)."},
 	{"id": "summit", "name": "The Summit of Ascension", "c": Vector2(0, -104), "r": 42.0, "biome": "crag", "tier": 3,
 		"lore": "Boss: the Ascended Warden, last priest of the ascension. Seal 'summit'."},
-	{"id": "crags", "name": "The Crowns", "rect": Rect2(-155, -150, 310, 40), "biome": "crag", "tier": 2,
+	{"id": "crags", "name": "The Crowns", "rect": Rect2(-260, -150, 520, 40), "biome": "crag", "tier": 2,
 		"lore": "The mountain wall the sky turns inward over; the world's northern edge."},
 	{"id": "glade", "name": "The Glimmer Glade", "c": Vector2(-38, 8), "r": 18.0, "biome": "glade", "tier": 0,
 		"lore": "Bioluminescent clearing between the village and the Thornwood; a shrine to the lost."},
@@ -95,12 +104,116 @@ const REGIONS := [
 	{"id": "mere", "name": "Corvin's Mere", "rect": Rect2(64, 90, 86, 62), "biome": "fen", "tier": 1,
 		"purpose": "a drowned water-meadow: causeways, islets, floating lamps, a half-sunk chapel",
 		"lore": "Brother Corvin rowed fire out here to the sunk dead. Some of his lamps still float."},
+	# --- r37: the Outer Marches and the southern downs (docs/r37_expansion.md) --------------------
+	# West Marches (the West agent)
+	{"id": "weirford", "name": "Weirford", "c": Vector2(-205, 66), "r": 26.0, "biome": "meadow", "tier": 1,
+		"purpose": "a living outpost at the river crossing: inn, mill on the weir, smithy, stables, a watch post",
+		"lore": "The last town the Order did not burn: it ground the abbey's flour, and kept its head down."},
+	{"id": "sorrow", "name": "The Sorrow's Banks", "rect": Rect2(-258, -62, 100, 104), "biome": "oldforest", "tier": 2,
+		"purpose": "wooded river valley north of Weirford: alder banks, fords, a drowned shrine, rares",
+		"lore": "The river comes down off the Crowns grey with ash and does not clear until the weir."},
+	{"id": "hierarch", "name": "The Fallen Hierarch", "rect": Rect2(-258, -140, 92, 78), "biome": "heath", "tier": 3,
+		"purpose": "a colossal toppled statue (about 60 m) in a moss valley at the Crowns' foot; the boss in its broken crown",
+		"lore": "The Order raised him taller than the Stair. The night he fell, the sky began to turn."},
+	{"id": "siege", "name": "The Siege Lines", "rect": Rect2(-258, 110, 100, 130), "biome": "ruin", "tier": 2,
+		"purpose": "earthwork rings, palisades, rotted trebuchets and a siege tower where the Marches fought the Order",
+		"lore": "The Marches came against the gates with timber and fire. The gates held; the Marches did not."},
+	# East Marches (the East agent)
+	{"id": "stillwater", "name": "Stillwater", "rect": Rect2(160, -50, 98, 116), "biome": "fen", "tier": 2,
+		"purpose": "a cold lake under a bluff; the Lamplighters' Spire, a climbable beacon tower whose lamp you relight",
+		"lore": "The lamplighters kept a flame on the Spire so the Marches could find the road at night."},
+	{"id": "anchorholds", "name": "The Anchorholds", "rect": Rect2(166, -150, 92, 96), "biome": "crag", "tier": 3,
+		"purpose": "hermits' cells cut into the Crowns' face, ladders and walkways; the boss on the cliff terrace",
+		"lore": "Anchorites walled themselves into the rock to pray the sky still. One of them is still praying."},
+	{"id": "saltmarket", "name": "Saltmarket", "c": Vector2(212, 92), "r": 18.0, "biome": "heath", "tier": 1,
+		"purpose": "a salt-workers' hamlet at the east road's fork: a handful of people, a trader, a fire",
+		"lore": "Salt keeps meat and keeps the hollowed off a threshold. Saltmarket sells both kinds."},
+	{"id": "saltpans", "name": "The White Pans", "rect": Rect2(160, 112, 98, 128), "biome": "salt", "tier": 2,
+		"purpose": "pale salt flats: evaporation pans, timber derricks, a salt-works, crystal crusts; open and strange",
+		"lore": "Flat as a table and white as bone. The wind writes on it and the sun is never there to read it."},
+	# the southern downs (the South agent)
+	{"id": "downs", "name": "The Southern Downs", "rect": Rect2(-155, 175, 310, 65), "biome": "heath", "tier": 1,
+		"purpose": "open chalk downs south of the Waiting Field, between the oak and the well",
+		"lore": "Sheep country once. The shepherds' huts still stand; the shepherds walked north and did not come back."},
+	{"id": "oak", "name": "The Grandmother Oak", "c": Vector2(-70, 206), "r": 30.0, "biome": "oldforest", "tier": 2,
+		"purpose": "a colossal hollow dead oak: a stair inside the trunk, walks along the great limbs, a secret at the top",
+		"lore": "Older than the Order, older than the henge. The Rooted say the first fire was carried out of it."},
+	{"id": "well", "name": "The Well of Echoes", "c": Vector2(72, 204), "r": 30.0, "biome": "crag", "tier": 2,
+		"purpose": "an open sinkhole about 40 m across and 24 m deep, a waterfall into it, a ledge path down to a pool and a cave",
+		"lore": "Drop a stone and count. Nobody has ever counted to the end of the echoes."},
 ]
+
+## r37: the Sorrow (West Marches): the river's centreline from the Crowns to the south edge, with the
+## bed's half width. RealmLand carves the channel and the water stands in it in stepped reaches (the
+## weir at Weirford is one step); the road crosses on a bridge at the weir. The Foundation agent owns it.
+const RIVER := {"w": 6.0, "pts": [Vector2(-212, -150), Vector2(-206, -112), Vector2(-196, -72), Vector2(-204, -30),
+	Vector2(-214, 10), Vector2(-208, 46), Vector2(-205, 60), Vector2(-212, 96), Vector2(-226, 146), Vector2(-236, 196), Vector2(-240, 240)]}
+## r37: Stillwater's lake (East Marches): an elliptical basin, its surface, and the Spire's bluff.
+const LAKE_C := Vector2(206.0, 4.0)
+const LAKE_R := Vector2(30.0, 40.0)          ## semi-axes x, z
+const LAKE_Y := -0.9                          ## the water line (as the fen's pools)
+const SPIRE_C := Vector2(240.0, 8.0)          ## the Lamplighters' Spire on its bluff (~12 m above the water)
+## r37: the Well of Echoes' sinkhole (the southern downs).
+const WELL_C := Vector2(72.0, 204.0)
+const WELL_R := 20.0                          ## the rim radius; the floor pool ~24 m below the downs
+## r37: the March Wall: the old Realm's west and east boundary (x -155 and 155, z -110..240), standing
+## where the r34 edge rims were. Gates where the road crosses; breaches where the tracks do. The South
+## agent builds it.
+const MARCH_WALL_X := 155.0
+const MARCH_GATES := [Vector2(-155, 67), Vector2(155, 68)]
+
 
 ## r34 layout: suggested slots for phase 2 in the new ground (docs/r34/layout.md): a fire (an Ember Road
 ## stop), places of interest, camps. Checked by zz/layout_r34_test (inside the region, on dry walkable
 ## ground off the ways and sites; "poi_wet" may stand in water). Builders may move a slot a few metres.
 const SLOTS := {
+	# --- r37 (docs/r37_expansion.md): builders may move a slot a few metres; a region agent may edit
+	# only its own regions' entries here.
+	"weirford": [
+		{"kind": "fire", "at": Vector2(-196, 74), "note": "the town's square, east of the bridge"},
+		{"kind": "poi", "at": Vector2(-207, 56), "note": "the mill on the weir"},
+		{"kind": "poi", "at": Vector2(-190, 60), "note": "the inn, the smithy, the stables"}],
+	"sorrow": [
+		{"kind": "fire", "at": Vector2(-190, -20), "note": "a ford on weir_track"},
+		{"kind": "poi_wet", "at": Vector2(-208, -40), "note": "the drowned shrine in the river"},
+		{"kind": "camp", "at": Vector2(-232, 0), "note": "the west bank"},
+		{"kind": "camp", "at": Vector2(-178, -50), "note": "the east bank"}],
+	"hierarch": [
+		{"kind": "fire", "at": Vector2(-196, -76), "note": "where weir_track reaches the valley"},
+		{"kind": "poi", "at": Vector2(-236, -84), "note": "the statue's hand, palm up"},
+		{"kind": "camp", "at": Vector2(-178, -124), "note": "under the Crowns"}],
+	"siege": [
+		{"kind": "fire", "at": Vector2(-214, 128), "note": "beside siege_track at the outer earthwork"},
+		{"kind": "poi", "at": Vector2(-236, 170), "note": "the siege tower"},
+		{"kind": "poi", "at": Vector2(-196, 210), "note": "the trebuchet line"},
+		{"kind": "camp", "at": Vector2(-180, 150), "note": "the palisade"},
+		{"kind": "camp", "at": Vector2(-240, 218), "note": "the south rings"}],
+	"stillwater": [
+		{"kind": "fire", "at": Vector2(220, 52), "note": "the lake's south shore, off spire_track"},
+		{"kind": "poi", "at": Vector2(240, 8), "note": "the Lamplighters' Spire"},
+		{"kind": "poi_wet", "at": Vector2(196, -14), "note": "a sunken boat-house"},
+		{"kind": "camp", "at": Vector2(172, -36), "note": "the north shore"}],
+	"anchorholds": [
+		{"kind": "fire", "at": Vector2(204, -84), "note": "the foot of the cliff, anchor_track's end"},
+		{"kind": "poi", "at": Vector2(236, -110), "note": "the lower cells and ladders"},
+		{"kind": "camp", "at": Vector2(180, -100), "note": "the scree"}],
+	"saltmarket": [
+		{"kind": "fire", "at": Vector2(218, 98), "note": "the hamlet's yard"}],
+	"saltpans": [
+		{"kind": "poi", "at": Vector2(204, 160), "note": "the salt-works and its derricks"},
+		{"kind": "poi", "at": Vector2(236, 214), "note": "the crystal crust"},
+		{"kind": "camp", "at": Vector2(178, 196), "note": "the west pans"},
+		{"kind": "camp", "at": Vector2(240, 140), "note": "the east pans"}],
+	"downs": [
+		{"kind": "poi", "at": Vector2(0, 196), "note": "a shepherds' hut and fold"},
+		{"kind": "camp", "at": Vector2(-120, 214), "note": "the west downs"},
+		{"kind": "camp", "at": Vector2(126, 214), "note": "the east downs"}],
+	"oak": [
+		{"kind": "fire", "at": Vector2(-44, 192), "note": "beside downs_track, in the oak's shade"},
+		{"kind": "poi", "at": Vector2(-70, 206), "note": "the Grandmother Oak"}],
+	"well": [
+		{"kind": "fire", "at": Vector2(44, 192), "note": "beside downs_track, east of the hut"},
+		{"kind": "poi", "at": Vector2(72, 204), "note": "the Well of Echoes"}],
 	"quarry": [
 		{"kind": "fire", "at": Vector2(-120, -83), "note": "the pit's mouth, beside west_track's end"},
 		{"kind": "poi", "at": Vector2(-128, -104), "note": "the pit floor: unfinished steps, a crane, squared blocks"},
@@ -157,7 +270,7 @@ const BASE_PATHS := [
 	{"id": "west_way", "w": 1.8, "pts": [Vector2(-4, 30), Vector2(-20, 24), Vector2(-38, 10), Vector2(-46, -2), Vector2(-50, -10)]},
 	{"id": "east_way", "w": 1.8, "pts": [Vector2(26, 22), Vector2(42, 10), Vector2(58, -12), Vector2(72, -34), Vector2(78, -42)]},
 	{"id": "fen_descent", "w": 1.6, "pts": [Vector2(78, -42), Vector2(62, -56), Vector2(44, -62), Vector2(34, -66)]},
-	{"id": "road", "w": 2.2, "pts": [Vector2(-150, 67), Vector2(-104, 64), Vector2(-72, 60), Vector2(-40, 58), Vector2(-6, 54), Vector2(2, 44), Vector2(40, 60), Vector2(104, 66), Vector2(150, 68)]},
+	{"id": "road", "w": 2.2, "pts": [Vector2(-255, 62), Vector2(-232, 64), Vector2(-205, 66), Vector2(-180, 66), Vector2(-150, 67), Vector2(-104, 64), Vector2(-72, 60), Vector2(-40, 58), Vector2(-6, 54), Vector2(2, 44), Vector2(40, 60), Vector2(104, 66), Vector2(150, 68), Vector2(180, 70), Vector2(212, 74), Vector2(240, 72), Vector2(255, 70)]},
 	{"id": "chapel_lane", "w": 1.4, "pts": [Vector2(-60, 58), Vector2(-68, 52)]},
 	{"id": "rift_rim", "w": 2.0, "pts": [Vector2(0, 22), Vector2(0, 4), Vector2(0, -8)]},
 	# r34
@@ -167,6 +280,14 @@ const BASE_PATHS := [
 	{"id": "orchard_lane", "w": 1.4, "pts": [Vector2(-98, 63), Vector2(-102, 84), Vector2(-108, 104), Vector2(-112, 122)]},
 	{"id": "mere_causeway", "w": 1.6, "pts": [Vector2(92, 65), Vector2(96, 84), Vector2(100, 104), Vector2(104, 120)]},
 	{"id": "south_track", "w": 1.4, "pts": [Vector2(-112, 122), Vector2(-80, 132), Vector2(-40, 134), Vector2(0, 128), Vector2(40, 134), Vector2(76, 128), Vector2(104, 120)]},
+	# r37 (docs/r37_expansion.md)
+	{"id": "weir_track", "w": 1.4, "pts": [Vector2(-196, 66), Vector2(-192, 36), Vector2(-188, 0), Vector2(-188, -40), Vector2(-196, -76), Vector2(-200, -82)]},
+	{"id": "siege_track", "w": 1.4, "pts": [Vector2(-214, 65), Vector2(-216, 100), Vector2(-214, 128), Vector2(-206, 160), Vector2(-196, 190)]},
+	{"id": "spire_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 52), Vector2(226, 30), Vector2(236, 14)]},
+	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(204, -84), Vector2(206, -114)]},
+	{"id": "salt_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 104), Vector2(206, 140), Vector2(202, 180), Vector2(196, 212)]},
+	{"id": "downs_track", "w": 1.4, "pts": [Vector2(-196, 190), Vector2(-150, 196), Vector2(-110, 190), Vector2(-44, 192), Vector2(0, 186), Vector2(44, 192), Vector2(110, 186), Vector2(160, 200), Vector2(196, 212)]},
+	{"id": "field_stair", "w": 1.4, "pts": [Vector2(0, 128), Vector2(0, 150), Vector2(0, 186)]},
 ]
 
 ## r35 (docs/critique/r35_full.md: "the south half is a grid of rectangles and straight roads"): the
@@ -175,7 +296,8 @@ const BASE_PATHS := [
 ## to either side and back to zero at both ends. Everything that walks PATHS gets the wandering line.
 ## The main road keeps its line: its waystones and cart stand a fixed step beside it (lore/road.gd).
 const MEANDER_IDS := {"west_track": 2.4, "moor_track": 2.4, "necropolis_way": 2.2, "orchard_lane": 2.2,
-	"mere_causeway": 2.0, "south_track": 2.6}
+	"mere_causeway": 2.0, "south_track": 2.6, "weir_track": 2.4, "siege_track": 2.4, "spire_track": 2.0,
+	"anchor_track": 2.4, "salt_track": 2.2, "downs_track": 2.8, "field_stair": 1.6}
 const MEANDER_STEP := 6.0
 static var PATHS: Array = _meander(BASE_PATHS)
 

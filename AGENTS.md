@@ -2,7 +2,7 @@
 
 Godot **4.7.2** Forward+ prototype. Playable night: the Realm round Hearthward, booted from `world/main.tscn`.
 
-**Phase: consolidation. No new systems. Fix, cut, polish, playtest. Read `docs/PILLARS.md` first.** Decisions are logged in `docs/DECISIONS.md`. The critique being written now: `docs/THE_NIGHT.md`.
+**Phase: r37 world expansion (Luke, 6 Nov): the Outer Marches and Southern Downs, existing systems only, in-house assets. Read `docs/PILLARS.md` and `docs/r37_expansion.md` first.** Decisions are logged in `docs/DECISIONS.md`.
 
 ## How this project is built
 
