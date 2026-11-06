@@ -331,6 +331,7 @@ func forswear(tier: int, at_fire: bool) -> String:
 		return "Only at a kindled fire."
 	(state().oaths as Dictionary).erase(str(tier))
 	_commit()
+	Events.toast.emit("The vow is broken. The ash does not come back, and the other vow is offered again.")
 	return ""
 
 
