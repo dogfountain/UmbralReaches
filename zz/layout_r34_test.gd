@@ -470,8 +470,8 @@ func _r37() -> void:
 	check("Stillwater's lake holds water at its centre (ground %.2f, water %.2f)" % [Land.height_at(lc.x, lc.y), Land.water_y_at(lc.x, lc.y)],
 		Land.in_water(lc.x, lc.y) and absf(Land.water_y_at(lc.x, lc.y) - RealmLayout.LAKE_Y) < 0.01 and Land.height_at(lc.x, lc.y) < RealmLayout.LAKE_Y - 3.0)
 	var sc := RealmLayout.SPIRE_C
-	var sy := _terrain(sc.x, sc.y)
-	check("the Spire's bluff stands %.1f m over the water (11..13)" % [sy - RealmLayout.LAKE_Y], sy - RealmLayout.LAKE_Y > 11.0 and sy - RealmLayout.LAKE_Y < 13.0)
+	var sy := _terrain(sc.x + 6.5, sc.y)        # the bluff's top beside the tower (inside its footprint the ground is cut under its floor)
+	check("the Spire's bluff stands %.1f m over the water (9.5..13 on its shoulder)" % [sy - RealmLayout.LAKE_Y], sy - RealmLayout.LAKE_Y > 9.5 and sy - RealmLayout.LAKE_Y < 13.0)
 	# the Well of Echoes: ~24 m deep, a pool at the floor, walls steeper than a walk
 	var wc := RealmLayout.WELL_C
 	var wf := _terrain(wc.x, wc.y)

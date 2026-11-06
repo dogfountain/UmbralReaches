@@ -35,7 +35,7 @@ const GROUND := 1
 
 ## id -> {at, search, half, rise, title, line, region}
 const POIS := {
-	"lamp_spire": {"at": Vector2(245, 4), "search": 8.0, "half": Vector2(7.5, 7.5), "rise": 6.0,
+	"lamp_spire": {"at": Vector2(242, 6), "search": 8.0, "half": Vector2(5.0, 5.0), "rise": 6.0,      # the pad fits the bluff's flat top (r 8): a wider one levelled the bluff down to its foot
 		"title": "The Lamplighters' Spire", "line": "the flame the Marches steered by", "region": "stillwater"},
 	"saltmarket": {"at": Vector2(214, 95), "search": 0.0, "half": Vector2(21, 17), "rise": 6.0,
 		"title": "Saltmarket", "line": "salt keeps meat, and keeps the hollowed off a threshold", "region": "saltmarket"},
@@ -94,6 +94,8 @@ static func reserve(root: Node, _skip: PackedStringArray) -> void:
 		var to := face - q
 		var yaw := atan2(to.x, to.y)
 		var base := lo
+		if id == "lamp_spire":
+			base = cy            # on the bluff's top: the lowest corner of the pad sat on its shoulder and sank the tower
 		if id == "saltmarket" or id == "saltworks" or id == "crust":
 			base = cy
 			yaw = 0.0

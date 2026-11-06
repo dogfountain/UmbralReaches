@@ -161,7 +161,7 @@ const RIVER_DEPTH := 1.35
 const LAKE_C := Vector2(206.0, 4.0)
 const LAKE_R := Vector2(30.0, 40.0)          ## semi-axes x, z
 const LAKE_Y := -0.9                          ## the water line (as the fen's pools)
-const SPIRE_C := Vector2(245.0, 4.0)          ## the Lamplighters' Spire on its bluff (~12 m above the water)
+const SPIRE_C := Vector2(242.0, 6.0)          ## the Lamplighters' Spire on its bluff (~12 m above the water)
 ## the Well of Echoes' sinkhole (the southern downs).
 const WELL_C := Vector2(72.0, 204.0)
 const WELL_R := 20.0                          ## the rim radius; the floor pool ~24 m below the downs
@@ -200,7 +200,7 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(-240, 218), "note": "the south rings"}],
 	"stillwater": [
 		{"kind": "fire", "at": Vector2(220, 52), "note": "the lake's south shore, off spire_track"},
-		{"kind": "poi", "at": Vector2(245, 4), "note": "the Lamplighters' Spire"},
+		{"kind": "poi", "at": Vector2(242, 6), "note": "the Lamplighters' Spire"},
 		{"kind": "poi_wet", "at": Vector2(196, -14), "note": "a sunken boat-house"},
 		{"kind": "camp", "at": Vector2(172, -36), "note": "the north shore"}],
 	"anchorholds": [
