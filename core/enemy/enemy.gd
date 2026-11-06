@@ -1303,8 +1303,6 @@ func _move_ballistic(delta: float) -> void:
 		velocity.x *= 0.2
 		velocity.z *= 0.2
 		_squash = 0.28
-		if is_instance_valid(_danger):
-			_danger.queue_free()
 		if _state == AIRBORNE:
 			_set_state(RECOVER)
 			_state_t = -0.3        # longer stagger after a pounce: the punish window
@@ -1744,12 +1742,9 @@ func _final_blow_check() -> void:
 func _shudder() -> void:
 	if _visual == null:
 		return
-	if _hitstop == 0:
-		_visual.position = Vector3.ZERO
-		return
 	var k := maxf(_rig.scale.x, 1.0) if _rig != null else 1.0
 	var v := Vector3(randf_range(-1.0, 1.0), randf_range(-0.4, 0.4), randf_range(-1.0, 1.0)) * 0.035 * float(_hitstop)
-	_visual.position = v.limit_length(0.08) * k
+	_visual.position = v.limit_length(0.08) * k if _hitstop > 0 else Vector3.ZERO
 
 
 func _tick_dying(delta: float) -> void:
