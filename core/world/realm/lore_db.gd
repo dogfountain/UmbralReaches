@@ -337,7 +337,7 @@ const TEXTS := {
 		"text": "Weighted with three stones, as the Abbot ordered. A fourth stone set on top, smaller, with a lamp scratched on it."},
 	"cm_fare": {"region": "mere", "kind": "notice", "title": "The fare-board",
 		"text": "THE LAMP-BOAT. No fare. No questions. Leave a name and Brother Corvin will row a lamp out for it. The board is covered in names, one over another, until none can be read."},
-	# --- r37 east ---
+	# --- the east marches ---
 	"r37e_spire_door": {"region": "stillwater", "kind": "plaque", "title": "The Lamplighters' door",
 		"text": "THE LAMPLIGHTERS OF THE MARCHES. A flame kept on this bluff since the first road. If you can read this by it, the road is behind you. If you cannot, walk toward the cold."},
 	"r37e_spire_log": {"region": "stillwater", "kind": "page", "title": "The keeper's log",
@@ -395,7 +395,7 @@ const SERIES := {
 ## r34 places: the new regions join the Journal after the old (west to east, north to south).
 const REGION_ORDER := ["hearth", "road", "chapel", "glade", "thornwood", "henge", "fen", "barrows", "ossuary", "rift", "summit", "crags",
 	"holds", "quarry", "moor", "foundry", "orchard", "necropolis", "mere",
-	# --- r37 east ---
+	# --- the east marches ---
 	"stillwater", "anchorholds", "saltmarket", "saltpans"]
 const PLACE_INFO := {
 	"hearth": {"name": "Hearthward", "line": "the last kindled village",
@@ -437,7 +437,7 @@ const PLACE_INFO := {
 		"text": "Pilgrims who died on the road before the Stair were buried here in ranks, every grave facing the mountain, so they would be first when the sky called. They are still waiting."},
 	"mere": {"name": "Corvin's Mere", "line": "his lamps still float",
 		"text": "A drowned water-meadow south of the road. Brother Corvin rowed fire out across it to the sunk dead so they would not lie in the dark. Some of his lamps are still out on the water."},
-	# --- r37 east ---
+	# --- the east marches ---
 	"stillwater": {"name": "Stillwater", "line": "the lamp that waits",
 		"text": "A cold lake under a bluff, black and still, with the Lamplighters' Spire standing over it. The Marches steered home by its flame for forty generations. The lamp has been dark nine winters. It will light for anyone who carries the fire up."},
 	"anchorholds": {"name": "The Anchorholds", "line": "walled in to pray the sky still",

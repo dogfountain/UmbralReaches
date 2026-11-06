@@ -54,7 +54,7 @@ const BOSS_TABLE := {
 	"thornwarden": ["heartwood_cup", "henge_mantle", "briarwick_glass"],
 	"bone_abbot": ["counting_cord", "charnel_glass", "bone_collar"],
 	"ascended_warden": ["edict_stole", "latch_cord", "sky_cage"],
-	# --- r37 east ---
+	# --- the east marches ---
 	"r37_anchoress": ["anchor_chain", "cell_lantern", "hermit_shawl"],
 }
 ## Any boss without its own table (a later night's) draws from these.

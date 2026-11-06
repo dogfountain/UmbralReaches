@@ -13,7 +13,7 @@ const VState := preload("res://core/life/village/village_state.gd")
 const Book := preload("res://core/story/quest_book.gd")
 const HearthDB := preload("res://core/life/progression/hearth_db.gd")
 
-const R37E := preload("res://core/life/village/village_r37_east.gd")   ## r37 east: Orrin Vail's stall
+const R37E := preload("res://core/life/village/village_r37_east.gd")   ## the east marches: Orrin Vail's stall
 
 const MERCHANTS := {
 	"grisel": {"name": "Grisel the ash-wife", "greet": "Ash, then. Let's see it. Oil, rope, slate, thatch: whatever keeps the village lit."},
@@ -21,12 +21,12 @@ const MERCHANTS := {
 	# the Hearthfire's trades (core/life/progression/hearth_db.gd): open as Hearthward's fire grows
 	"hild": {"name": "Hild's forge", "greet": "Heat's up. Say what you want made, and pay in what you took off them."},
 	"bet": {"name": "Bet Reed's garden", "greet": "Beans, bees and bitter things. Eat what I give you; it's better than it tastes."},
-	# --- r37 east ---
+	# --- the east marches ---
 	"orrin": R37E.MERCHANT_ORRIN,
 }
 
 const GOODS := {
-	# --- r37 east ---
+	# --- the east marches ---
 	"orrin": R37E.GOODS_ORRIN,
 	"grisel": [
 		{"id": "relic_fragment", "item": "relic_fragment", "price": 14, "stock": 2,

@@ -199,7 +199,7 @@ func open_turnin(id: String, giver_name := "") -> bool:
 
 
 const RAID_NAMES := {"thornwarden": "the Thornwarden", "bone_abbot": "the Bone Abbot", "ascended_warden": "the Ascended Warden",
-	# --- r37 east ---
+	# --- the east marches ---
 	"r37_anchoress": "the Anchoress"}
 
 

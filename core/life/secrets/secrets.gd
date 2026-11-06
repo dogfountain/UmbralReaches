@@ -68,9 +68,10 @@ static func build(root: Node) -> void:
 	if not "--no-r34-secrets" in OS.get_cmdline_user_args():
 		SiteR34.build(root, host)
 	build_ms["r34"] = (Time.get_ticks_usec() - t) / 1000
-	# --- r37 east ---
+	# --- the east marches ---
 	if not "--no-r37-east" in OS.get_cmdline_user_args():
-		(load("res://core/life/secrets/site_r37_east.gd") as GDScript).call("build", root, host)
+		var east_site: Variant = load("res://core/life/secrets/site_r37_east.gd")    # no preload: it reads this file
+		east_site.build(root, host)
 	t = Time.get_ticks_usec()
 	Kit.prewarm()
 	build_ms["snd"] = (Time.get_ticks_usec() - t) / 1000

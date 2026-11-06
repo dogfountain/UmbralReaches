@@ -62,7 +62,7 @@ const ELITES := {
 		"note": "No face should turn from the sky. He scraped the saints and then himself. In the deeper dark he steps through it: a tear opens where he will be. Watch for the tear. -- Brother Ansel's last chisel-note",
 		"trait": "Steps through the dark: a tear opens beside you, then he is there.",
 	},
-	# --- r37 east ---
+	# --- the east marches ---
 	"brine_wife": {
 		"title": "The Brine-Wife, Bitter Mother", "kind": "husk", "script": "res://core/life/encounters/elite_brine_wife.gd",
 		"haunt": [Vector2(232, 172), Vector2(228, 196), Vector2(240, 160), Vector2(222, 204)], "region": "saltpans",
@@ -93,7 +93,7 @@ const LOOT := {
 	"scraped_face": {"name": "The Scraped Face", "shape": "mask", "tint": Color(0.85, 0.82, 0.8),
 		"desc": "A penitent's face-plate, chiselled blank. On the inside, someone carved a small fire.",
 		"text": "Bounty of the Faceless Penitent (the Deeper Night)."},
-	# --- r37 east ---
+	# --- the east marches ---
 	"brine_censer": {"name": "The Brine-Wife's Censer", "shape": "lantern", "tint": Color(0.82, 0.88, 0.92),
 		"desc": "An iron pan-ladle with a handle worn to a groove. Everything it ever held has crystallised on it, in layers, like a tree's rings.",
 		"text": "Bounty of the Brine-Wife, Bitter Mother. The pans give back what they were given."},
@@ -351,7 +351,7 @@ static func _build(id: String, rig: CharacterRig) -> Dictionary:
 				var t := float(k) / 11.0
 				c.blob(Vector3(lerpf(-0.18, 0.16, t), 0.18 - t * 0.42, -0.14 - 0.03 * sin(t * PI)), Vector3(0.014, 0.01, 0.006), Basis(Vector3.FORWARD, float(k % 2) * 1.57), IRON, 1.0, 0.0, 0.0, 3, 6)
 			parts["chest"] = c.commit()
-		# --- r37 east ---
+		# --- the east marches ---
 		"brine_wife":
 			# salt crust grown in spikes over the shoulders and brow, a pan-ladle in the right hand
 			var c: CreatureMesh = Variants.cm(sd)

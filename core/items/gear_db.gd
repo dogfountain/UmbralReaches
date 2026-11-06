@@ -429,7 +429,7 @@ const NAMED := {
 		"lore": "Every soul on the Stair paid the toll. He kept one coin from each, and melted them."},
 	"widow_veil": {"name": "Widow's Ash-Veil", "slot": "vestment", "rarity": 3, "aff": ["gloom_add", "kill_relief", "lit_mult"],
 		"lore": "She wore it at every burial in the valley. Then nobody was left to bury her."},
-	# --- r37 east: the Anchoress (the Anchorholds)
+	# --- the east marches: the Anchoress (the Anchorholds)
 	"anchor_chain": {"name": "Anchor-Chain Girdle", "slot": "girdle", "rarity": 3, "aff": ["cd", "kill_relief", "step_cd"],
 		"lore": "Nine winters of her weight on it. It still hangs a little to the left."},
 	"cell_lantern": {"name": "Cell-Door Lantern", "slot": "lantern", "rarity": 3, "aff": ["ward_life", "well_life", "lit_mult"],

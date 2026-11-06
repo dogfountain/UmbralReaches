@@ -37,10 +37,10 @@ const ZONES := [["hearth", "Hearthward"], ["road", "The Pilgrims' Road"], ["thor
 	["moor", "The Lanternless Moor"], ["foundry", "The Founder's Pits"], ["orchard", "The Cinder Orchard"],
 	["necropolis", "The Waiting Field"], ["mere", "Corvin's Mere"],
 	["ossuary", "The Ossuary"], ["summit", "The Summit of Ascension"],
-	# --- r37 east ---
+	# --- the east marches ---
 	["stillwater", "Stillwater"], ["anchorholds", "The Anchorholds"], ["saltmarket", "Saltmarket"], ["saltpans", "The White Pans"]]
 
-const R37E := preload("res://core/story/quest_chains_r37_east.gd")   ## r37 east: its tasks and pickups are listed in the `# --- r37 east ---` blocks
+const R37E := preload("res://core/story/quest_chains_r37_east.gd")   ## the east marches: its tasks and pickups are listed in the `# --- the east marches ---` blocks
 
 const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
 	"hearth_ash", "road_clear", "coal_shrine", "spire_lamps", "alms_loaf",
@@ -60,7 +60,7 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"keg_tab", "rare_head", "keeper_again",
 	# r36 Act III: the door
 	"the_latch", "still_climbing", "names_under", "full_peal",
-	# --- r37 east ---
+	# --- the east marches ---
 	"salt_sweep", "salt_widow", "spire_coal", "anchor_names", "anchor_vow"]
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
@@ -68,7 +68,7 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 	"wyck": "Wyck", "grisel": "Grisel", "keep": "The keep", "harrow": "Ostrin Harrow", "hesk": "Hesk", "brannoc": "Brannoc",
 	"ruan": "Gammer Ruan", "jory": "Jory Quell", "ysolt": "Ysolt the cairn-keeper", "elspeth": "Elspeth Fane",
 	"linnet": "Linnet the grafter", "agathe": "Sister Agathe", "cadoc": "Cadoc the ferryman",
-	# --- r37 east ---
+	# --- the east marches ---
 	"marl": "Marl Pannick", "teasel": "Teasel Dray", "orrin": "Orrin Vail", "ardel": "Ardel Wick", "pip": "Pip"}
 
 ## r34: the raids' attunements (WoW's attunement chains, adapted): the last task of each pre-raid
@@ -77,7 +77,7 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 ## r34: the named rares the bounties want (core/enemy/rares.gd RARES keys; checked by the audit
 ## against that file when it loads).
 const RARE_IDS := ["old_rook", "brother_chisel", "hennet", "clapper", "old_pippin", "last_pilgrim", "ferryman",
-	# --- r37 east ---
+	# --- the east marches ---
 	"salt_widow", "drowned_lamplighter"]
 
 const ATTUNE := {"thornwarden": "keeper_leave", "bone_abbot": "abbot_names", "ascended_warden": "founder_peal"}
@@ -844,7 +844,7 @@ const QUESTS := {
 		"reward": {"ash": 60, "items": {"ember_shard": 5, "relic_fragment": 5}},
 		"choose": [{"legend": "door_splinter"}, {"legend": "sunk_shroud"}, {"legend": "unlit_lamp"}, {"legend": "stair_rope"}],
 		"outcome": {"": "Brannoc rang the chimney tongue seven times, slowly, and the Keg went quiet for each one. Then he put his head down on the bar and laughed."}},
-	# --- r37 east ---
+	# --- the east marches ---
 	"salt_sweep": R37E.SALT_SWEEP,
 	"salt_widow": R37E.SALT_WIDOW,
 	"spire_coal": R37E.SPIRE_COAL,
@@ -967,7 +967,7 @@ const PICKUPS := {
 		"say": "The Passing Bell on its frame, the new rope coiled at its foot. The rope is braided hair. Grey, brown, a child's yellow."},
 	"bell_mere": {"quest": "bell_mere", "step": 1, "near": Vector2(132.0, 108.0), "kind": "bell", "name": "the Ferry Bell", "verb": "Stand at", "conv": "bell_mere",
 		"say": "Corvin's ferry bell on its post at the water's edge, the bronze furred with weed below the line the mere rose to. CALL AND WAIT, cut in the post."},
-	# --- r37 east ---
+	# --- the east marches ---
 	"coal_ardel": R37E.COAL_ARDEL,
 	"anchor_page_a": R37E.PAGE_A,
 	"anchor_page_b": R37E.PAGE_B,

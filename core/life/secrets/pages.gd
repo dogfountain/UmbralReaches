@@ -26,7 +26,7 @@ const SECRETS := {
 	"cutters_nook": {"name": "The Cutters' Nook", "region": "quarry"},
 	"ninth_rank": {"name": "The Ninth Rank", "region": "necropolis"},
 	"corvin_sluice": {"name": "Corvin's Sluice", "region": "mere"},
-	# --- r37 east ---
+	# --- the east marches ---
 	"boathouse": {"name": "The Sunken Boat-House", "region": "stillwater"},
 	"salt_vault": {"name": "The Brine-Clerk's Vault", "region": "saltpans"},
 }
@@ -96,7 +96,7 @@ const TEXTS := {
 		"text": "Corvin's lamp. When they took my boat I built a road under the water to the last lamp, and let it down again behind me so the Order could not follow. C."},
 	"sc_lever": {"title": "A plate on the lever", "kind": "plaque",
 		"text": "SLUICE. Do not pull without leave of the lamp-brother. Under it, newer: he is not coming. Pull it."},
-	# --- r37 east ---
+	# --- the east marches ---
 	"sc_boat_lamp": {"title": "Scratched on a rafter", "kind": "carved beam",
 		"text": "When the lamp went dark the boats stopped coming in. We left ours here, roof-deep, tied to the posts, so the lake would remember where the shore was. Oil in the loft. Take it. Carry it up."},
 	"sc_boat_log": {"title": "The boat-keeper's tin", "kind": "letter",
@@ -134,7 +134,7 @@ const REWARDS := {
 	"cutters_nook": {"relic_fragment": 1, "grave_ash": 25, "grave_iron": 2},
 	"ninth_rank": {"relic_fragment": 1, "grave_ash": 30},
 	"corvin_sluice": {"relic_fragment": 1, "grave_ash": 25},
-	# --- r37 east ---
+	# --- the east marches ---
 	"boathouse": {"relic_fragment": 1, "grave_ash": 25, "ember_shard": 1},
 	"salt_vault": {"relic_fragment": 1, "grave_ash": 30},
 }

@@ -89,7 +89,7 @@ const RARES := {
 	"fare_caller": {"title": "The Fare-Caller", "kind": "husk", "variant": "drowned", "hp": 40, "scale": 1.4,
 		"spots": [Vector2(135, 111), Vector2(129, 105)], "ash": 42, "loot": [["relic_fragment", 2], ["ferry_coin", 1]],
 		"line": "The Fare-Caller goes under without its fare."},
-	# --- r37 east ---
+	# --- the east marches ---
 	"salt_widow": {"title": "The Salt-Widow", "kind": "gaunt", "hp": 30, "scale": 1.4,
 		"spots": [Vector2(236, 150), Vector2(244, 156), Vector2(228, 146)], "ash": 40, "loot": [["relic_fragment", 2]],
 		"route": [Vector2(236, 150), Vector2(246, 164), Vector2(232, 172), Vector2(222, 160), Vector2(228, 146)],

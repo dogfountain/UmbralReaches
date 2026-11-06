@@ -42,7 +42,7 @@ const REGION_POOL := {
 	"moor": ["gaunt", "gaunt", "wretch", "crawler", "husk"], "orchard": ["burrower", "mite", "crawler", "burrower", "wretch"],
 	"necropolis": ["pilgrim", "pilgrim", "ossuant", "chanter", "quiller"], "mere": ["husk", "spitter", "wretch", "spitter", "ossuant"],
 	"holds": ["crawler", "wretch"],
-	# --- r37 east ---
+	# --- the east marches ---
 	"stillwater": ["husk", "spitter", "wretch", "gaunt", "husk"], "anchorholds": ["bulwark", "chanter", "leaper", "husk", "quiller"],
 	"saltmarket": ["wretch", "crawler"], "saltpans": ["husk", "burrower", "cinder", "gaunt", "crawler"],
 }
@@ -52,7 +52,7 @@ const REGION_POOL := {
 const REGION_VARIANT := {
 	"quarry": {"husk": "stonebound", "bulwark": "stonebound", "leaper": "stonebound"},
 	"mere": {"husk": "drowned", "wretch": "drowned", "ossuant": "drowned"},
-	# --- r37 east ---
+	# --- the east marches ---
 	"stillwater": {"husk": "drowned", "wretch": "drowned"},
 	"anchorholds": {"husk": "stonebound", "bulwark": "stonebound"},
 }
