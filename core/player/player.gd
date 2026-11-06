@@ -243,6 +243,7 @@ func _ready() -> void:
 			global_position = saved
 	checkpoint = global_position
 	_ash_banked = Travel.count("grave_ash")
+	vitals.restore_mound.call_deferred()
 	Events.enemy_killed.connect(vitals._on_enemy_killed)
 	Events.skill_cast.connect(casting._on_skill_cast)
 	_rig_height = _rig.position.y

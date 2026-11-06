@@ -10,7 +10,7 @@ uniform sampler2DArray normal_arr : hint_normal, filter_linear_mipmap_anisotropi
 uniform vec3 rune_color : source_color = vec3(1.0, 0.58, 0.24);   // amber, like the embroidery
 uniform float rune_energy = 1.0;
 uniform vec3 glass_color : source_color = vec3(1.0, 0.6, 0.26);
-uniform float glass_energy = 4.5;
+uniform float glass_energy = 1.15;
 
 instance uniform float lantern_glow : instance_index(8) = 1.0;   // the lantern's flicker
 instance uniform float rune_boost : instance_index(9) = 0.0;     // casting wakes the staff's runes

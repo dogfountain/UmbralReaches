@@ -151,8 +151,8 @@ func _update_gloom(delta: float) -> void:
 		_spawn_shade()
 	if lit and is_instance_valid(player._shade):
 		player._shade.unmake_by_light()
-	# r35: a fire mends Wounds (a Lantern Ward does not: it only holds the dark back)
-	if drain < 0.0 and player.wounds > 0.0:
+	# a kindled fire mends Wounds (a camp's mirror and a Lantern Ward only hold the dark back)
+	if drain < 0.0 and player.wounds > 0.0 and LightGrid.is_fire(player.global_position):
 		var before := player.wounds
 		player.wounds = maxf(0.0, player.wounds - player.wounds_mend_lit * delta)
 		_wounds_emit_t += delta
@@ -229,7 +229,7 @@ func note_shade_unmade() -> void:
 ## A bolt or spell passed through the Shade. The first time, say what does work.
 
 func note_shade_passed() -> void:
-	Hints.once(&"shade_drive", "Bolts pass through the Shade. Run for a fire or a lantern: only light unmakes it.")
+	Hints.once(&"shade_drive", "Bolts pass through the Shade. Run for a kindled fire, or set a Lantern Ward: only those unmake it.")
 
 
 ## r35: a blow from the world (a foe, a boss, their hazards). It wounds; it no longer fills the Gloom.
@@ -251,7 +251,7 @@ func take_wound(amount: float, from_pos := Vector3.INF) -> void:
 	player._visual.hurt_react(from_pos, amount)
 	if not player.has_meta("heard_strike"):
 		player.set_meta("heard_strike", true)
-		Events.toast.emit("They wound. A fire closes what they open.")
+		Events.toast.emit("Blows empty the wound plate, not the gloom. A fire closes what they open.")
 	add_wounds(amount)                           # last: at wounds_max this hollows
 
 
@@ -307,20 +307,56 @@ func _drop_ash() -> void:
 		player._ash_banked = have
 	var carried := have - player._ash_banked
 	if carried <= 0:
+		_forget_mound()
 		return
 	var host := player.get_tree().current_scene if player.is_inside_tree() else null
 	if host == null:
 		return
 	Travel.items["grave_ash"] = player._ash_banked
-	Travel.save_soon()
 	var at := player.global_position if player._grounded or player._safe_ground == Vector3.INF else player._safe_ground
+	_make_mound(host, at, carried)
+	var rec := Travel.system_state("ash_mound")      # the save that fires here includes the heap
+	rec["scene"] = _scene_path()
+	rec["at"] = at
+	rec["amount"] = carried
+	Travel.save_soon()
+	Hints.once(&"ash_mound", "Your carried ash lies where you fell. Walk back to it. The next death takes it.")
+
+
+func _scene_path() -> String:
+	return player.owner.scene_file_path if player.owner != null else ""
+
+
+func _make_mound(host: Node, at: Vector3, carried: int) -> void:
 	var m := Node3D.new()
 	m.set_script(ASH_MOUND)
 	m.set("amount", carried)
 	host.add_child(m)
 	m.global_position = at
 	_ash_mound = m
-	Hints.once(&"ash_mound", "Your carried ash lies where you fell. Walk back to it.")
+
+
+## A heap that was lost (a second hollow, or taken) is lost in the save too.
+func _forget_mound() -> void:
+	var rec := Travel.system_state("ash_mound")
+	if not rec.is_empty():
+		rec.clear()
+		Travel.save_soon()
+
+
+## A continue (or coming back to the night) puts the heap back where it fell.
+func restore_mound() -> void:
+	if not player.is_inside_tree() or is_instance_valid(_ash_mound):
+		return
+	var rec := Travel.system_state("ash_mound")
+	if rec.is_empty() or String(rec.get("scene", "")) != _scene_path():
+		return
+	var at: Variant = rec.get("at", null)
+	var amount := int(rec.get("amount", 0))
+	var host := player.get_tree().current_scene
+	if not (at is Vector3) or amount <= 0 or host == null:
+		return
+	_make_mound(host, at as Vector3, amount)
 
 
 ## Off the bottom of the world or falling for ages: not a death. Back to the last solid ground
@@ -403,6 +439,6 @@ func _fall_hurt(impact: float) -> void:
 	player.falls_hurt = g
 	add_wounds(g)
 	HitText.pop(player.global_position + Vector3.UP * 2.2, "jarred +%d" % int(round(g)), Color(0.9, 0.6, 0.55))
-	Hints.once(&"fall_hurt", "Long drops jar the dark in. Roll as you land (dodge), or open the robe to glide (jump again in the air).")
+	Hints.once(&"fall_hurt", "Long drops wound the plate. Roll as you land (dodge), or open the robe to glide (jump again in the air).")
 	player._visual.hurt_react(Vector3.INF, g)
 	player.camera_ctl.kick(clampf(g / 20.0, 0.3, 1.0))
