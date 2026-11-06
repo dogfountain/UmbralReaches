@@ -14,7 +14,7 @@ const SHADER := preload("res://core/enemy/grunt_pbr.gdshader")
 const GruntSkin := preload("res://core/enemy/grunt_skin.gd")
 const SHADOWED := ["chest", "pelvis", "head", "body", "front"]
 
-## kind -> [glb, shader params]. r37 families: hollowed people = wet; rift-born = heat; Ossuary dead = dust
+## kind -> [glb, shader params]. Families: hollowed people = wet; rift-born = heat; Ossuary dead = dust
 const KINDS := {
 	&"wretch": ["res://art/models/grunt_wretch.glb", {"rim_amount": 0.14, "wet": 0.6}],
 	&"husk": ["res://art/models/grunt_husk.glb", {"emit_pulse": 0.35, "pulse_rate": 1.4, "wet": 0.8}],

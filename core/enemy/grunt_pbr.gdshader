@@ -24,7 +24,7 @@ uniform float pulse_rate = 2.2;
 // glow through a membrane: the thin edge of a glowing part lights, its thick middle stays darker
 uniform float membrane = 0.0;
 
-// r37 family finish (one material language per family): `wet` lacquers the low-roughness parts (the hollowed
+// Family finish (one material language per family): `wet` lacquers the low-roughness parts (the hollowed
 // people's slick dead skin, a cold sheen at grazing angles); `dust` lays a matte grey coat on the surfaces
 // that face up (the Ossuary dead, grave dust); `heat` warms the baked emission cracks in step with a slow
 // flicker (the rift-born). All 0 = the pre-r37 look. Emission stays under the 1.15 HDR threshold.
