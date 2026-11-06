@@ -273,6 +273,9 @@ func output_height() -> int:
 	return w.size.y
 
 
+const GRADE_SHARPEN := 1.85                 ## grade.gdshader's default `sharpen`
+
+
 ## Anti-aliasing on the root viewport (Settings.aa_mode): one method at a time.
 func _apply_aa() -> void:
 	var vp := get_viewport()
@@ -280,6 +283,9 @@ func _apply_aa() -> void:
 	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if m == 1 else (Viewport.SCREEN_SPACE_AA_SMAA if m == 2 else Viewport.SCREEN_SPACE_AA_DISABLED)
 	vp.use_taa = m == 3
 	vp.msaa_3d = Viewport.MSAA_2X if m == 4 else (Viewport.MSAA_4X if m == 5 else Viewport.MSAA_DISABLED)
+	# the grade's unsharp mask eases off when an AA method already crisps the edges (no soft-and-sharp stack)
+	if _grade_mat != null:
+		_grade_mat.set_shader_parameter("sharpen", GRADE_SHARPEN * (0.5 if m != 0 else 1.0))
 
 
 func _apply_render_scale() -> void:
