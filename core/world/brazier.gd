@@ -24,6 +24,8 @@ const FIRE_NAMES := {"Sanctuary": "Hearthward's fire", "StairFoot": "The Stair-f
 	"OssuaryGate": "The Ossuary's gate fire"}
 const MAP_LIT := Color(1.0, 0.62, 0.3)
 const MAP_COLD := Color(0.5, 0.48, 0.52)
+## r37 emissive caps: lit coals peak at 1.6 (were 4.0), so they stay gold-orange under AgX, not a white blob
+const COAL_GLOW := 1.6
 
 
 func _ready() -> void:
@@ -209,10 +211,10 @@ func _set_lit(on: bool, animate: bool) -> void:
 	if animate:
 		var tw := create_tween().set_parallel(true)
 		tw.tween_property(self, "_energy", target_energy, 0.8).from(0.25).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-		tw.tween_property(_coal_mat, "emission_energy_multiplier", 4.0, 0.8).from(0.35)
+		tw.tween_property(_coal_mat, "emission_energy_multiplier", COAL_GLOW, 0.8).from(0.35)
 	else:
 		_energy = target_energy
-		_coal_mat.emission_energy_multiplier = 4.0 if on else 0.35
+		_coal_mat.emission_energy_multiplier = COAL_GLOW if on else 0.35
 	if _crackle:
 		if on:
 			_crackle.play()
