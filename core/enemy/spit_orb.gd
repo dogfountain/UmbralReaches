@@ -18,6 +18,7 @@ var velocity := Vector3.ZERO
 var gloom := 10.0
 var _age := 0.0
 var _dead := false
+var _skipped := false         ## it entered you while you were evading: it wounds when the roll ends, once
 var _light: OmniLight3D
 var _body: Node3D
 
@@ -73,7 +74,22 @@ func _physics_process(delta: float) -> void:
 		pop()
 		return
 	velocity.y -= SAG * delta
-	global_position += velocity * delta
+	if _skipped:
+		for b in get_overlapping_bodies():
+			if b is Player and not (b as Player).is_evading():
+				_on_body(b)
+				return
+	var from := global_position
+	var to := from + velocity * delta
+	var q := PhysicsRayQueryParameters3D.create(from, to, Layers.WORLD | Layers.PLAYER | Layers.PROPS)
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)    # a hitch cannot carry it through a body
+	if not hit.is_empty():
+		global_position = hit.position
+		_on_body(hit.collider as Node)
+		if _dead:
+			return
+		to = global_position + velocity * delta * 0.02
+	global_position = to
 	var w := 1.0 + sin(_age * 22.0) * 0.12
 	_body.scale = Vector3(w, 2.0 - w, w)
 
@@ -84,6 +100,7 @@ func _on_body(b: Node) -> void:
 	if b is Player:
 		var p := b as Player
 		if p.is_evading():
+			_skipped = true
 			return                   # stepped through it
 		p.take_wound(gloom, global_position - velocity.normalized() * 3.0)
 	pop()
