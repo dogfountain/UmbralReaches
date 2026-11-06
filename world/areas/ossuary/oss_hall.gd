@@ -73,7 +73,8 @@ var arena: Node                                ## the Abbot's BossArena (set by 
 var hall: Node3D                               ## PitHall (gated)
 var stair: Node3D                              ## CountingStair
 var sectors: Array[Node3D] = []
-var fallen: Array[bool] = []
+var fallen: Array[bool] = []                   ## the stone is gone (collider off): floor_under() reads this
+var marked: Array[bool] = []                   ## the warning has begun (the stone still stands)
 var bells: Array[Node3D] = []
 var sockets: Array[Vector3] = []               ## the three chapel plinth tops
 var deep_lights: Array[OmniLight3D] = []
@@ -126,6 +127,8 @@ func build(a: Node3D) -> void:
 	var t0 := Time.get_ticks_usec()
 	fallen.resize(SECTORS)
 	fallen.fill(false)
+	marked.resize(SECTORS)
+	marked.fill(false)
 	stair = Node3D.new()
 	stair.name = "CountingStair"
 	add_child(stair)
@@ -794,16 +797,15 @@ func _sector(k: OssKit, i: int) -> void:
 ## Phase III / IV: sector i shakes for `warn` seconds, then drops into the deep. Returns false if it
 ## had already fallen (or never falls).
 func collapse(i: int, warn: float) -> bool:
-	if i < 0 or i >= sectors.size() or i == KEEP or fallen[i]:
+	if i < 0 or i >= sectors.size() or i == KEEP or marked[i]:
 		return false
-	fallen[i] = true                                 # floor_under() is false from the warning on
+	marked[i] = true                                 # the stone stands through the shake; floor_under() flips when it goes
 	var n := sectors[i]
 	var am := deg_to_rad(45.0 * float(i))
 	var mid := C + Vector3(cos(am) * 14.2, 0.1, sin(am) * 14.2)
-	for q in 3:
-		for rr: float in [12.0, 16.0]:
-			var aa := am + (float(q) - 1.0) * deg_to_rad(14.0)
-			SpellFx.danger(C + Vector3(cos(aa) * rr, 0.0, sin(aa) * rr), warn, {"radius": 2.6, "color": BossKit.BONE})
+	# the paint is the slice that will drop: a wedge from the hall's centre out to the floor's edge
+	var dir := Vector3(cos(am), 0.0, sin(am))
+	SpellFx.danger(C, warn, {"radius": FLOOR_R, "half_angle": deg_to_rad(22.5), "yaw": atan2(-dir.x, -dir.z), "color": BossKit.BONE})
 	Sfx.play_stream(BossKit.Synth.get_stream("stagger"), mid, 4.0, 0.35)
 	Kit.play("grind", mid, 4.0, 0.6)
 	var home: Vector3 = n.get_meta("home", Vector3.ZERO)
@@ -814,6 +816,7 @@ func collapse(i: int, warn: float) -> bool:
 		var amp := 0.02 + 0.07 * float(s) / float(maxi(shakes, 1))
 		tw.tween_property(n, "position", home + Vector3(randf_range(-amp, amp), randf_range(-amp, amp) * 0.5, randf_range(-amp, amp)), 0.12)
 	tw.tween_callback(func() -> void:
+		fallen[i] = true
 		_set_solid(n, false)
 		Vfx.burst(mid + Vector3.UP * 0.4, Color(0.16, 0.14, 0.13, 0.9), {"count": 60, "life": 1.6, "speed": Vector2(1.0, 4.0), "size": 0.6, "gravity": 1.5, "radius": 4.0, "additive": false, "turbulence": true})
 		Sfx.play_stream(BossKit.Synth.get_stream("bone"), mid, 6.0, 0.4)
@@ -842,7 +845,7 @@ func room_won() -> void:
 
 func fallen_count() -> int:
 	var c := 0
-	for f in fallen:
+	for f in marked:
 		if f:
 			c += 1
 	return c
@@ -856,12 +859,13 @@ func restore() -> void:
 	_tweens.clear()
 	for i in sectors.size():
 		var n := sectors[i]
-		if fallen[i] or not n.visible or n.position != n.get_meta("home", n.position):
+		if fallen[i] or marked[i] or not n.visible or n.position != n.get_meta("home", n.position):
 			n.position = n.get_meta("home", Vector3.ZERO)
 			n.rotation = Vector3.ZERO
 			n.visible = true
 			_set_solid(n, true)
 		fallen[i] = false
+		marked[i] = false
 	_deep_light(false)
 
 
@@ -1039,7 +1043,7 @@ func _on_caught(body: Node3D) -> void:
 		p.add_wounds(18.0)                       # r35: the push-back wounds (Gloom is the dark's alone)
 		Events.player_hurt.emit(18.0, body.global_position)
 		SpellFx.rift_in(back)
-		HitText.pop(back + Vector3.UP * 2.2, "the dead push you back up", GRAVE, true)
+		HitText.pop(back + Vector3.UP * 2.2, "the dead push you back up: the plate steps", GRAVE, true)
 	elif body is Enemy:
 		var e := body as Enemy
 		if e.boss:
