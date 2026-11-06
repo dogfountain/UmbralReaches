@@ -26,6 +26,7 @@ extends RefCounted
 ## Test-only hooks (tests set and clear them themselves; never touched by a night teardown):
 ##   VillageState.sandbox / kindled_override, SecretsState.quiet
 
+const HudPrefs := preload("res://ui/hud_prefs.gd")
 const SecretsState := preload("res://core/life/secrets/state.gd")
 const Reactivity := preload("res://core/life/secrets/reactivity.gd")
 
