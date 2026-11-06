@@ -27,6 +27,8 @@ func _exit_tree() -> void:
 	(load("res://core/life/secrets/beam.gd") as GDScript).call("release")
 	(load("res://core/life/secrets/site_glade.gd") as GDScript).call("release")
 	(load("res://core/life/secrets/site_r34.gd") as GDScript).call("release")     # r34 places
+	# --- r37 east ---
+	(load("res://core/life/secrets/site_r37_east.gd") as GDScript).call("release")
 	Reactivity.release()
 	State.release()
 
