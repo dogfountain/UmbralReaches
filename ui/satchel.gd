@@ -404,6 +404,9 @@ func open_menu(attune := false) -> void:
 
 
 func close_menu() -> void:
+	if hosted:
+		_root.visible = false                # a page of the character screen: it keeps the pause and the mouse
+		return
 	if _root.visible:
 		UiSound.play(self, "back")
 	_root.visible = false

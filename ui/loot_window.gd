@@ -29,6 +29,7 @@ var _tip: PanelContainer
 var _hint: Label
 var _rows: Array[Control] = []
 var _was_captured := false
+var _paused_it := false
 var _font: Font
 
 
@@ -123,6 +124,8 @@ func open_bag(b: Node3D) -> void:
 		_root.visible = true
 		_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		_paused_it = not get_tree().paused       # the bag pauses the night, and gives it back only if it was the one to
+		get_tree().paused = true
 		Events.interact_hint.emit("")
 		UiSound.play(self, "tab")
 
@@ -134,6 +137,9 @@ func close() -> void:
 	_tip.visible = false
 	bag = null
 	UiSound.play(self, "back")
+	if _paused_it:
+		get_tree().paused = false
+		_paused_it = false
 	if _was_captured and not get_tree().paused:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 

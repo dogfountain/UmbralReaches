@@ -44,6 +44,7 @@ var _top := 0
 var _sub: Array[int] = [0, 0, 0, 0]
 var _open := false
 var _was_captured := false
+var _was_paused := false
 var _panel: Node = null                    ## the hosted panel showing now
 var _root: Control
 var _top_btns: Array[Button] = []
@@ -99,6 +100,7 @@ func open_at(top: String, page := "", from_fire := false) -> void:
 	if not _open:
 		_open = true
 		_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+		_was_paused = get_tree().paused          # opened over a shop or a conversation: leave it as it was found
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		get_tree().paused = true
 		_root.visible = true
@@ -114,8 +116,8 @@ func close() -> void:
 	_unhost()
 	_root.visible = false
 	_backdrop.visible = false
-	get_tree().paused = false
-	if _was_captured:
+	get_tree().paused = _was_paused
+	if _was_captured and not _was_paused:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	UiSound.play(self, "back")
 

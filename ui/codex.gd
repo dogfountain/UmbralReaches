@@ -130,8 +130,10 @@ func open_book(tab := -1) -> void:
 func close_book() -> void:
 	if not _book.visible:
 		return
-	UiSound.play(self, "back")
 	_book.visible = false
+	if hosted:
+		return                              # a page of the character screen: it keeps the pause and the mouse
+	UiSound.play(self, "back")
 	get_tree().paused = false
 	if _was_captured:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED

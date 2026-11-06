@@ -563,8 +563,10 @@ func close_menu() -> void:
 	if not _root.visible:
 		return
 	_root.visible = false
-	UiSound.play(self, "back")
 	_confirm = ""
+	if hosted:
+		return                              # a page of the character screen: it keeps the pause, the mouse and the sting
+	UiSound.play(self, "back")
 	if get_tree().paused:
 		get_tree().paused = false
 	if _was_captured:
