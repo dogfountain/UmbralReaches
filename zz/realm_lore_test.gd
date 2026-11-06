@@ -67,7 +67,7 @@ func _process(d: float) -> void:
 		if p.y < gy - 0.3:
 			fail("%s buried (%.2f under ground %.2f)" % [id, p.y, gy])
 		if p.y > gy + 3.0:
-			fail("%s floating %.1f m" % [id, p.y - gy])
+			fail("%s floating %.1f m at %s (ground %.2f)" % [id, p.y - gy, p, gy])
 	# every inscription reads: into the journal and the reading panel (or one toast without a
 	# codex), its toast form wrapped to the HUD's label; the sense point stands in open air
 	var codex := get_tree().get_first_node_in_group("codex")

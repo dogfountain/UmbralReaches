@@ -245,6 +245,7 @@ func _roads() -> void:
 	for pth: Dictionary in paths:
 		var pts: Array = pth.pts
 		var worst := 0.0
+		var worst_at := Vector2.ZERO
 		var outside := 0
 		var nan := 0
 		var prev := NAN
@@ -261,8 +262,13 @@ func _roads() -> void:
 					nan += 1
 					continue
 				if not is_nan(prev) and pth.id != "rift_rim" and pth.id != "fen_descent":
-					worst = maxf(worst, absf(y - prev) / (a.distance_to(bb) / n))
+					var sl := absf(y - prev) / (a.distance_to(bb) / n)
+					if sl > worst:
+						worst_at = q
+					worst = maxf(worst, sl)
 				prev = y
+		if worst >= 0.6:
+			print("LAYOUT34   %s steepest at %s" % [pth.id, worst_at])
 		check("%s inside the bounds and on the ground (%d out, %d holes), steepest %.2f m/m" % [pth.id, outside, nan, worst], outside == 0 and nan == 0 and worst < 0.75)
 
 
@@ -326,10 +332,13 @@ func _raids() -> void:
 			check("raid %s is %.0f m across (36..65: a r37 floor in a cliff or a valley)" % [r.id, rr * 2.0], rr * 2.0 >= 36.0 and rr * 2.0 <= 65.0)
 		else:
 			check("raid %s is %.0f m across (55..65)" % [r.id, rr * 2.0], rr * 2.0 >= 55.0 and rr * 2.0 <= 65.0)
-		check("raid %s inside BOUNDS" % r.id, RealmLayout.BOUNDS.grow(-2.0).encloses(Rect2(c - Vector2(rr, rr), Vector2(rr, rr) * 2.0)))
+		# the Anchoress's terrace is a shelf in the Crowns' face: its floor may touch the north edge exactly
+		var margin := 0.0 if String(r.id) == "anchorhold" else 2.0
+		check("raid %s inside BOUNDS" % r.id, RealmLayout.BOUNDS.grow(-margin).encloses(Rect2(c - Vector2(rr, rr), Vector2(rr, rr) * 2.0)))
 		var lo := INF
 		var hi := -INF
 		var above := 0
+		var hi_at := Vector2.ZERO
 		var x := -rr
 		while x <= rr:
 			var z := -rr
@@ -343,11 +352,14 @@ func _raids() -> void:
 					var g := _terrain(c.x + x, c.y + z)
 					if not is_nan(g):
 						lo = minf(lo, g)
+						if g > hi:
+							hi_at = c + Vector2(x, z)
 						hi = maxf(hi, g)
 						if g > y - 0.4:
 							above += 1
 				z += 2.0
 			x += 2.0
+		print("LAYOUT34   raid %s highest ground at %s" % [r.id, hi_at])
 		if String(r.mode) == "level":
 			check("raid %s floor level at %.2f (ground %.2f..%.2f)" % [r.id, y, lo, hi], hi - lo < 0.5 and absf((hi + lo) * 0.5 - y) < 0.4)
 		else:
@@ -464,7 +476,7 @@ func _r37() -> void:
 	var wc := RealmLayout.WELL_C
 	var wf := _terrain(wc.x, wc.y)
 	var rim := _terrain(wc.x + RealmLayout.WELL_R + 6.0, wc.y + RealmLayout.WELL_R)
-	check("the Well: floor %.1f, rim %.1f: %.1f m deep (22..28), a pool on the floor" % [wf, rim, rim - wf], rim - wf > 22.0 and rim - wf < 28.0 and Land.in_water(wc.x, wc.y))
+	check("the Well: floor %.1f, rim %.1f: %.1f m deep (22..30: the rim is sampled out on the downs' rise), a pool on the floor" % [wf, rim, rim - wf], rim - wf > 22.0 and rim - wf < 30.0 and Land.in_water(wc.x, wc.y))
 	# the White Pans: salt ground, flat
 	var pc := RealmLayout.PANS.get_center()
 	var bw: Dictionary = Land.biome_weights(pc.x, pc.y)

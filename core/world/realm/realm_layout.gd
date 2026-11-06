@@ -49,7 +49,7 @@ const RAIDS := [
 	# the toppled statue's broken crown; the East agent the Anchoress's on the cliff terrace.
 	{"id": "hierarch", "c": Vector2(-214.0, -104.0), "r": 24.0, "y": 4.0, "fall": 12.0, "mode": "level",
 		"gate": Vector2(-200.0, -82.0), "boss": "r37_hierarch"},
-	{"id": "anchorhold", "c": Vector2(214.0, -132.0), "r": 18.0, "y": 16.0, "fall": 10.0, "mode": "level",
+	{"id": "anchorhold", "c": Vector2(214.0, -132.0), "r": 18.0, "y": 16.0, "fall": 20.0, "mode": "level",
 		"gate": Vector2(206.0, -114.0), "boss": "r37_anchoress"},
 ]
 
@@ -161,7 +161,7 @@ const RIVER_DEPTH := 1.35
 const LAKE_C := Vector2(206.0, 4.0)
 const LAKE_R := Vector2(30.0, 40.0)          ## semi-axes x, z
 const LAKE_Y := -0.9                          ## the water line (as the fen's pools)
-const SPIRE_C := Vector2(240.0, 8.0)          ## the Lamplighters' Spire on its bluff (~12 m above the water)
+const SPIRE_C := Vector2(245.0, 4.0)          ## the Lamplighters' Spire on its bluff (~12 m above the water)
 ## the Well of Echoes' sinkhole (the southern downs).
 const WELL_C := Vector2(72.0, 204.0)
 const WELL_R := 20.0                          ## the rim radius; the floor pool ~24 m below the downs
@@ -174,7 +174,7 @@ const MARCH_GATES := [Vector2(-155, 67), Vector2(155, 68)]
 const MARCH_WALL_WEST := [Vector2(-157, -112), Vector2(-165, -90), Vector2(-172, -66), Vector2(-163, -40), Vector2(-170, -14),
 	Vector2(-160, 10), Vector2(-155, 34), Vector2(-155, 52), Vector2(-155, 82), Vector2(-152, 104), Vector2(-158, 128),
 	Vector2(-162, 150), Vector2(-157, 172), Vector2(-165, 196), Vector2(-163, 214), Vector2(-158, 230), Vector2(-156, 242)]
-const MARCH_WALL_EAST := [Vector2(157, -112), Vector2(163, -92), Vector2(171, -70), Vector2(166, -44), Vector2(172, -18),
+const MARCH_WALL_EAST := [Vector2(157, -112), Vector2(163, -92), Vector2(171, -70), Vector2(160, -46), Vector2(159, -22),
 	Vector2(163, 8), Vector2(166, 30), Vector2(158, 44), Vector2(155, 56), Vector2(155, 84), Vector2(152, 106),
 	Vector2(158, 128), Vector2(153, 150), Vector2(162, 172), Vector2(166, 196), Vector2(166, 214), Vector2(160, 230), Vector2(157, 242)]
 ## Short spurs: the wall runs out from its line to a tower on a knoll (the land lifts under the tip).
@@ -218,13 +218,13 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(-240, 218), "note": "the south rings"}],
 	"stillwater": [
 		{"kind": "fire", "at": Vector2(220, 52), "note": "the lake's south shore, off spire_track"},
-		{"kind": "poi", "at": Vector2(240, 8), "note": "the Lamplighters' Spire"},
+		{"kind": "poi", "at": Vector2(245, 4), "note": "the Lamplighters' Spire"},
 		{"kind": "poi_wet", "at": Vector2(196, -14), "note": "a sunken boat-house"},
 		{"kind": "camp", "at": Vector2(172, -36), "note": "the north shore"}],
 	"anchorholds": [
 		{"kind": "fire", "at": Vector2(204, -84), "note": "the foot of the cliff, anchor_track's end"},
 		{"kind": "poi", "at": Vector2(214, -132), "note": "the cliff terrace: the lower cells, the timber walk, the chapel and the Anchoress's room"},
-		{"kind": "camp", "at": Vector2(180, -100), "note": "the scree"}],
+		{"kind": "camp", "at": Vector2(180, -82), "note": "the scree at the cliff's foot"}],
 	"saltmarket": [
 		{"kind": "fire", "at": Vector2(218, 98), "note": "the hamlet's yard"},
 		{"kind": "poi", "at": Vector2(214, 95), "note": "the hamlet: houses, drying shed, the trader's stall"}],
@@ -242,7 +242,7 @@ const SLOTS := {
 		{"kind": "poi", "at": Vector2(-70, 206), "note": "the Grandmother Oak"}],
 	"well": [
 		{"kind": "fire", "at": Vector2(44, 192), "note": "beside downs_track, east of the hut"},
-		{"kind": "poi", "at": Vector2(72, 204), "note": "the Well of Echoes"}],
+		{"kind": "poi_wet", "at": Vector2(72, 204), "note": "the Well of Echoes (its pool is in the pit)"}],
 	"quarry": [
 		{"kind": "fire", "at": Vector2(-120, -83), "note": "the pit's mouth, beside west_track's end"},
 		{"kind": "poi", "at": Vector2(-128, -104), "note": "the pit floor: unfinished steps, a crane, squared blocks"},
@@ -313,7 +313,7 @@ const BASE_PATHS := [
 	{"id": "weir_track", "w": 1.4, "pts": [Vector2(-196, 66), Vector2(-192, 36), Vector2(-188, 0), Vector2(-188, -40), Vector2(-196, -76), Vector2(-200, -82)]},
 	{"id": "siege_track", "w": 1.4, "pts": [Vector2(-214, 65), Vector2(-216, 100), Vector2(-214, 128), Vector2(-206, 160), Vector2(-196, 190)]},
 	{"id": "spire_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 52), Vector2(226, 30), Vector2(236, 14)]},
-	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(204, -84), Vector2(206, -114)]},
+	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(204, -84), Vector2(205, -102), Vector2(206, -108)]},
 	{"id": "salt_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 104), Vector2(206, 140), Vector2(202, 180), Vector2(196, 212)]},
 	{"id": "downs_track", "w": 1.4, "pts": [Vector2(-196, 190), Vector2(-150, 196), Vector2(-110, 190), Vector2(-44, 192), Vector2(0, 186), Vector2(44, 192), Vector2(110, 186), Vector2(160, 200), Vector2(196, 212)]},
 	# the Crowns' foot, east-west: the two boss corners are joined to the old north (through the wall's breaches)

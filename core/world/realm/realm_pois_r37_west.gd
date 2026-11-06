@@ -16,6 +16,7 @@ extends RefCounted
 ## Same API as the Realm's other places (groups "world_poi", "loot_chest"; every host carries meta "region").
 ## Built by realm_pois.gd. No class_name: preload by path.
 
+const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
 const Inscription := preload("res://core/world/realm/lore/inscription.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
@@ -600,6 +601,11 @@ static func _statue(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 		if host.get_node_or_null("Chest_hierarch_crown") == null:
 			_chest(host, "hierarch_crown", Vector3(c.x + out.x * 3.0, sp, c.z + out.y * 3.0), 0.0)
 	arena = ar
+	# a pale column out of the skull (the boss beacon, gone when he falls): the Thornwood's hills hide the
+	# statue's 30 m from Hearthward, so its top reads over them at night
+	var bn: Variant = Wayfinding.beacon(host, c, "r37_hierarch", Color(0.66, 0.76, 0.92), 78.0, 0.45, 20.0)
+	if bn is Node:
+		(bn as Node).name = "Beacon_r37_hierarch"
 	# cover on the floor: three fallen tines (stone slabs on edge), solid, so the Echo's feet and the
 	# Toll's gaps have something to be read against; the mouth's inside edge is lit by the horn's ember
 	var k := _kit()
