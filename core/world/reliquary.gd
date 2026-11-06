@@ -22,7 +22,7 @@ const VARIANTS := {
 const SPELL_OF := {"bone": "nova", "thorn": "bolt", "kin": "ward", "slag": "lance", "fog": "step", "coin": "tether",
 	"seed": "well", "rope": "familiar", "mason": "peal"}
 const TEXT := {
-	&"implosion": "NOVA · IMPLOSION — drags everything within 7.5 m in, marks it, then detonates.",
+	&"implosion": "NOVA · IMPLOSION — drags everything within 9.5 m in, marks it, then detonates.",
 	&"wake": "NOVA · WAKE — leaves a violet field for 3 s that marks whatever stands in it.",
 	&"splinter": "RIFT BOLT · SPLINTER — each bolt bursts into thorns that find and mark up to three more within 4.5 m.",
 	&"briar": "RIFT BOLT · BRIAR — whatever a bolt hits is rooted in brambles: slowed hard for 2 s.",
@@ -137,7 +137,10 @@ static func attune(id: String) -> void:
 	var next: StringName = opts[0] if cur == &"" else opts[(opts.find(cur) + 1) % opts.size()]
 	Travel.relics[id] = next
 	Travel.save_now()
-	Events.toast.emit(TEXT.get(next, String(next)))
+	var line: String = TEXT.get(next, String(next))
+	if next == &"implosion" and bool(DB.get_mod("deep", false)):
+		line = line.replace("9.5 m", "13 m")        # the Deep Reliquary rite widens the drag
+	Events.toast.emit(line)
 	var p := (Engine.get_main_loop() as SceneTree).get_first_node_in_group(Groups.PLAYER) as Node3D
 	if p:
 		Sfx.play("res://art/audio/ward_chime.wav", p.global_position, -2.0)
