@@ -2388,7 +2388,7 @@ func _combat_pose() -> void:
 		_staff_frame = _staff_frame.slerp(Basis(Vector3.BACK, -PI * 0.5) * Basis(Vector3.RIGHT, -0.15), k)
 	if wind > 0.001:
 		# a heavy strike drawn back: the staff high over the shoulder, weight on the back foot, trembling
-		var k := smoothstep(0.0, 0.4, wind)
+		var k := smoothstep(0.0, 1.0, wind)
 		var shake := sin(_t * 37.0) * 0.015 * wind
 		_sh[1].rotation.x += 2.4 * k
 		_sh[0].rotation.x += 2.1 * k

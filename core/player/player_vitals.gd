@@ -105,9 +105,16 @@ func _on_enemy_killed(e: Node) -> void:
 	var now := Time.get_ticks_msec() * 0.001
 	player._chain = player._chain + 1 if now < player._chain_until else 1
 	player._chain_until = now + Player.CHAIN_WINDOW
-	mend(minf(Player.KILL_RELIEF + 2.0 * float(player._chain - 1), 14.0))   # r35: a kill mends Wounds
+	var before := player.wounds
+	mend(minf(Player.KILL_RELIEF + 2.0 * float(player._chain - 1), 14.0))   # a kill mends Wounds
+	var closed := roundi(before - player.wounds)
+	var line := ""
+	if closed > 0:
+		line = "+%d" % closed
 	if player._chain >= 2:
-		HitText.pop(player.global_position + Vector3.UP * 2.3, "chain x%d" % player._chain, Color(1.2, 0.6, 2.6), player._chain >= 4)
+		line = ("%s  chain x%d" % [line, player._chain]).strip_edges()
+	if line != "":
+		HitText.pop(player.global_position + Vector3.UP * 2.3, line, Color(1.2, 0.6, 2.6), player._chain >= 4)
 	Vfx.arc(at, player.global_position + Vector3.UP * 1.2, Color(1.2, 0.55, 2.8), 0.35, 0.18)
 	Vfx.burst(player.global_position + Vector3.UP * 1.1, Color(1.3, 0.6, 3.0), {"count": 12, "life": 0.4, "speed": Vector2(0.5, 1.5), "size": 0.04, "gravity": -1.0, "radius": 0.3})
 
