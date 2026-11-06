@@ -580,7 +580,8 @@ func _tolling() -> void:
 		"holes": [[hole, SHADOW_R], [Vector3(c.x, c.y, c.z), Hall.MOUND_R + 0.4]], "h": 3.0})
 	SpellFx.column(hole, SHADOW_R * 0.8, 6.0, TOLL_TIME + 0.3)
 	Vfx.ring(hole + Vector3.UP * 0.1, SHADOW_R, GRAVE, TOLL_TIME, 0.14, Vector3.UP, 1.4)
-	Vfx.light(hole + Vector3.UP * 2.0, Color(GRAVE.r * 0.6, GRAVE.g * 0.6, GRAVE.b * 0.6), 2.4, SHADOW_R * 3.0, TOLL_TIME + 0.3)
+	Vfx.light(hole + Vector3.UP * 2.0, Color(GRAVE.r * 0.6, GRAVE.g * 0.6, GRAVE.b * 0.6), 2.4, SHADOW_R * 1.25, TOLL_TIME + 0.3)   # reaches the ring and stops
+	Vfx.ring(Vector3(c.x, c.y + 0.1, c.z), Hall.MOUND_R + 0.4, GRAVE, TOLL_TIME, 0.14, Vector3.UP, 1.4)   # the mound's foot is safe too
 	_glint = 1.0
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", TOLL_TIME * 0.8)
@@ -671,7 +672,7 @@ func _reckoning(n: int) -> void:
 	for pl: Dictionary in _plates:
 		var at: Vector3 = pl.at
 		Vfx.ring(at + Vector3.UP * 0.08, PLATE_R, BossKit.HOLY, RECKON_TIME, 0.12, Vector3.UP, 1.3)
-		Vfx.light(at + Vector3.UP * 1.2, Color(0.9, 0.6, 0.25), 1.6, 5.0, RECKON_TIME)
+		Vfx.light(at + Vector3.UP * 1.2, Color(0.9, 0.6, 0.25), 1.6, PLATE_R * 2.0, RECKON_TIME)
 		SpellFx.column(at, PLATE_R * 0.55, 3.0, RECKON_TIME)
 	BossKit.emote(self, "The Reckoning. He counts the living.")
 
@@ -723,8 +724,9 @@ func _end_plates(judge: bool) -> void:
 			_mark_adds(w, bid)
 	_plates.clear()
 	if short > 0 and _p and is_alive():
-		_p.take_wound(SHORT_GLOOM * float(short) * dmg_mult, global_position)
-		HitText.pop(_p.global_position + Vector3.UP * 2.4, "the count is short by %d" % short, BossKit.BONE, true)
+		var cost := SHORT_GLOOM * float(short) * dmg_mult
+		_p.take_wound(cost, global_position)
+		HitText.pop(_p.global_position + Vector3.UP * 2.4, "the count is short by %d: %d on the plate" % [short, roundi(cost)], BossKit.BONE, true)
 	elif judge and is_alive():
 		HitText.pop(global_position + Vector3.UP * (hp_bar_y + 1.0), "all are counted", BossKit.HOLY, true)
 
