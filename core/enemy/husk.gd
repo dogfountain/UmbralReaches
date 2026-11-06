@@ -21,6 +21,8 @@ var _charge_dir := Vector3.ZERO
 var _charge_len := 0.0
 var _charge_from := Vector3.ZERO
 var _charge_hit := false
+var _slam_at := Vector3.INF
+var _puff_at := 0.0
 var _lane: MeshInstance3D
 
 
@@ -92,6 +94,7 @@ func _start_slam() -> void:
 	_glint = 1.0
 	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP, 1.0, _voice_pitch() * 0.85)
 	var at := global_position + _face_dir * 1.5
+	_slam_at = at
 	AttackKit.zone(self, at, slam_windup, strike_gloom * 1.15, {"radius": SLAM_R * maxf(_rig.scale.x if _rig else 1.0, 1.0), "fx": "slam", "color": Color(2.6, 0.5, 0.1)})
 
 
@@ -127,8 +130,8 @@ func _special_think() -> void:
 				if _rig and _rig.has_method("strike"):
 					_rig.call("strike")
 				var p := _player()
-				if p and p.global_position.distance_to(global_position) < 6.0:
-					p.kick(0.45)
+				if p and _slam_at != Vector3.INF and Vector2(p.global_position.x - _slam_at.x, p.global_position.z - _slam_at.z).length() <= SLAM_R * maxf(_rig.scale.x if _rig else 1.0, 1.0):
+					p.kick(0.45)                              # the camera answers only if the slam did
 				_set_state(RECOVER)
 				_state_t = -0.45                          # it has to drag its fists back up
 		&"charge":
@@ -150,7 +153,11 @@ func _special_frame(_delta: float) -> void:
 		var to := _p.global_position - global_position
 		var dy := to.y
 		to.y = 0.0
-		if to.length() < 1.25 and absf(dy) < 1.8:
+		var rel := _p.global_position - _charge_from
+		var along := rel.x * _charge_dir.x + rel.z * _charge_dir.z
+		var side := absf(rel.x * -_charge_dir.z + rel.z * _charge_dir.x)
+		var reached := run.x * _charge_dir.x + run.z * _charge_dir.z >= along - 1.0
+		if side <= 0.85 and along >= -0.3 and along <= _charge_len and reached and absf(dy) < 1.8:
 			_charge_hit = true
 			if _p.is_evading():
 				_p.on_evaded(self)
@@ -162,7 +169,8 @@ func _special_frame(_delta: float) -> void:
 		_end_charge(true)
 	elif run.length() >= _charge_len or _state_t > charge_windup + 2.0:
 		_end_charge(false)
-	elif int(_state_t * 12.0) % 2 == 0:
+	elif _state_t - _puff_at >= 0.08:
+		_puff_at = _state_t
 		Vfx.burst(global_position + Vector3.UP * 0.1, Color(0.15, 0.12, 0.1, 0.8), {"count": 4, "life": 0.6, "speed": Vector2(0.3, 1.2), "size": 0.16, "gravity": -1.0, "additive": false})
 
 
