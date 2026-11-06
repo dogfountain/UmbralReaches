@@ -84,8 +84,8 @@ func _menu() -> void:
 	sm.call("_listen_input", _press(KEY_ESCAPE))
 	_ok(String(sm.get("_listen")) == "" and btn.text == "E", "Esc cancels the rebind")
 	sm.call("_begin_listen", "interact", "key")
-	sm.call("_listen_input", _press(KEY_N))
-	_ok(_first_key("interact") == KEY_N and btn.text == "N", "N is accepted and shown")
+	sm.call("_listen_input", _press(KEY_B))
+	_ok(_first_key("interact") == KEY_B and btn.text == "B", "B is accepted and shown")
 	sm.call("close")
 	InputSetup.reset_bindings()
 

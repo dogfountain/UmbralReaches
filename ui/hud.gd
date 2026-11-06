@@ -157,7 +157,7 @@ func _ready() -> void:
 	_compass = load("res://ui/compass.gd").new()
 	root.add_child(_compass)                                           # heading strip + beacon/brazier markers (ENS art pass)
 	_minimap = load("res://ui/minimap.gd").new()
-	root.add_child(_minimap)                                           # round minimap, bottom right; M: near / wide / off (r32)
+	root.add_child(_minimap)                                           # round minimap, bottom right; N: near / wide / off (r32)
 	root.add_child(load("res://ui/xp_bar.gd").new())                   # r33: XP strip along the bottom, once XP exists
 	root.add_child(load("res://ui/unit_frames.gd").new())              # r33: player / target / boss frames, cast bar
 	root.add_child(load("res://ui/combat_text.gd").new())              # r33: the wanderer's side of a fight, as text
