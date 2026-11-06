@@ -31,6 +31,7 @@ const MOUNT_T := 1.15                ## r36: step up, foot in the stirrup, swing
 const STIRRUP_Y := 0.62              ## the left stirrup's tread above the ground (x the breed's scale)
 const SEAT_Y := 1.315             ## the saddle's seat top, x the breed's scale, above the horse's origin
 var _space: PhysicsDirectSpaceState3D
+var _trampled := {}                  ## enemy instance id -> msec of the last trample on it
 
 
 func _ready() -> void:
@@ -153,8 +154,22 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		var g := _ground(next)
 		var chest := global_position + Vector3.UP * 1.2 * _scale()
 		var wall := _space.intersect_ray(PhysicsRayQueryParameters3D.create(chest, chest + fwd * (0.9 * _scale() + speed * dt), Layers.WORLD | Layers.PROPS, [p.get_rid()]))
-		if not wall.is_empty() or g.y - global_position.y > float(_d.climb) or g.y - global_position.y < -6.0:
-			speed = 0.0
+		var blocked := g.y - global_position.y > float(_d.climb) or g.y - global_position.y < -6.0
+		if not wall.is_empty() and not blocked:
+			# a wall: slide along it (scrub off the speed into it) rather than stop dead
+			var n: Vector3 = wall.normal
+			n.y = 0.0
+			if n.length() > 0.01:
+				n = n.normalized()
+				var slide := fwd - n * fwd.dot(n)
+				if slide.length() > 0.2:
+					var sn := global_position + slide.normalized() * speed * dt * slide.length()
+					var sg := _ground(sn)
+					if sg.y - global_position.y <= float(_d.climb) and sg.y - global_position.y >= -6.0:
+						global_position = Vector3(sn.x, lerpf(global_position.y, sg.y, 1.0 - exp(-14.0 * dt)), sn.z)
+			speed = move_toward(speed, 0.0, maxf(speed, 3.0) / 0.2 * dt)
+		elif blocked:
+			speed = move_toward(speed, 0.0, maxf(speed, 3.0) / 0.2 * dt)       # eased to a stop in ~0.2 s
 		else:
 			global_position = Vector3(next.x, lerpf(global_position.y, g.y, 1.0 - exp(-14.0 * dt)), next.z)
 			_phase += speed * dt * 2.6 / _scale()            # unwrapped: a wrap would swing the legs back a frame
@@ -273,6 +288,11 @@ func _trample(fwd: Vector3) -> void:
 			continue
 		var d := e.global_position - global_position
 		if d.length() < 1.6 * _scale() and d.dot(fwd) > 0.0:
+			var id := e.get_instance_id()
+			var now := Time.get_ticks_msec()
+			if now - int(_trampled.get(id, -9999)) < 1000:
+				continue                                   # once a second per body: bodies fly and live
+			_trampled[id] = now
 			e.take_hit(1.0, rider)
 			e.shove((fwd + d.normalized()).normalized() * 9.0)
 
