@@ -8,6 +8,7 @@ extends CanvasLayer
 ##   - the Deeper Night mark beside the Gloom meter
 ## Costs nothing while the night is quiet: the overlay is hidden at amount 0.
 
+const TextDirector := preload("res://ui/text_director.gd")
 const TITLE_FONT := "res://ui/fonts/Cinzel.ttf"
 const SKY_SHADER := """
 shader_type canvas_item;
@@ -28,6 +29,7 @@ void fragment() {
 }
 """
 
+const FIGHT_WAIT := 6.0
 const DUSK := Color(0.82, 0.74, 1.0)
 const EMBER := Color(1.0, 0.72, 0.42)
 const COLD := Color(0.62, 0.82, 1.0)
@@ -40,6 +42,8 @@ var _t := 0.0
 var _banner: Label
 var _banner_sub: Label
 var _banner_tw: Tween
+var _bq: Array[Array] = []         ## banners waiting for the text director: [text, sub, colour]
+var _bq_wait := 0.0
 var _status: Label
 var _ng: Label
 var _elite_box: Control
@@ -203,6 +207,9 @@ func status(text: String) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	if not _bq.is_empty():
+		_bq_wait += delta
+		_pump_banners()
 	_amount = move_toward(_amount, _target, delta / 5.0)
 	_sky.visible = _amount > 0.002
 	if _sky.visible:
@@ -216,7 +223,38 @@ func _process(delta: float) -> void:
 
 # --- banners --------------------------------------------------------------------------------
 
+## Tide / ambush / bounty / guardian banners are quest-class lines (priority 2) in the text director's
+## banner lane: they wait for narration, a dialogue box and the banner on screen. A lock-on fight also
+## holds them, but not past FIGHT_WAIT seconds (an encounter is a fight; the line must still land).
+## The queue keeps three. No director (a bare test scene): drawn now.
 func banner(text: String, sub := "", col := Color(0, 0, 0, 0)) -> void:
+	if TextDirector.of(self) == null:
+		_show_banner(text, sub, col)
+		return
+	while _bq.size() >= 3:
+		_bq.pop_front()
+	_bq.append([text, sub, col])
+	_pump_banners()
+
+
+func _pump_banners() -> void:
+	var td := TextDirector.of(self)
+	if td == null:
+		for b in _bq:
+			_show_banner(String(b[0]), String(b[1]), b[2])
+		_bq.clear()
+		return
+	var ok: bool = td.can_begin(&"quest")
+	if not ok and _bq_wait >= FIGHT_WAIT and td.in_fight() and not td.narration_or_dialogue() and not td.is_up(&"quest"):
+		ok = true                                      # locked on that long: draw it anyway
+	if ok:
+		var b: Array = _bq.pop_front()
+		_bq_wait = 0.0
+		td.begin(&"quest", 5.6, Rect2(), true)
+		_show_banner(String(b[0]), String(b[1]), b[2])
+
+
+func _show_banner(text: String, sub: String, col: Color) -> void:
 	_banner.text = text
 	_banner_sub.text = sub
 	var c := col if col.a > 0.0 else (COLD if deeper else DUSK)

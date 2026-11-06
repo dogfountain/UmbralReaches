@@ -4,6 +4,7 @@ extends CanvasLayer
 ## It never pauses; the reading closes when the wanderer walks off, reads again, or is hurt.
 
 const Pages := preload("res://core/life/secrets/pages.gd")
+const TextDirector := preload("res://ui/text_director.gd")
 const INK := Color(0.93, 0.88, 0.8)
 const PAPER := Color(0.85, 0.8, 0.72)
 const QUIET := Color(0.6, 0.55, 0.62)
@@ -25,6 +26,7 @@ var _banner: VBoxContainer
 var _b_top: Label
 var _b_name: Label
 var _b_tw: Tween
+var _bq: Array[Array] = []        ## banners waiting for the text director: [top, name]
 
 
 func _ready() -> void:
@@ -136,7 +138,38 @@ func reading_id() -> String:
 	return _id if _reader.visible else ""
 
 
+## A secret-place banner: a discovery-class line in the text director's banner lane (priority 2, one per
+## 90 s; past that limit a quiet corner line, the Journal has it anyway). No director: it draws now.
 func banner(top: String, name_text: String) -> void:
+	var td := TextDirector.of(self)
+	if td == null:
+		_show_banner(top, name_text)
+		return
+	while _bq.size() >= 3:
+		var gone: Array = _bq.pop_front()
+		td.quiet(String(gone[1]))
+	_bq.append([top, name_text])
+	_pump_banners()
+
+
+func _pump_banners() -> void:
+	var td := TextDirector.of(self)
+	if td == null:
+		for b in _bq:
+			_show_banner(String(b[0]), String(b[1]))
+		_bq.clear()
+		return
+	while not _bq.is_empty() and td.can_begin(&"discovery"):
+		var b: Array = _bq.pop_front()
+		if not td.discovery_ok():
+			td.quiet(String(b[1]))
+			continue
+		td.begin(&"discovery", 5.6)
+		_show_banner(String(b[0]), String(b[1]))
+		return
+
+
+func _show_banner(top: String, name_text: String) -> void:
 	_b_top.text = top
 	_b_name.text = name_text
 	if _b_tw:
@@ -148,6 +181,8 @@ func banner(top: String, name_text: String) -> void:
 
 
 func _process(_d: float) -> void:
+	if not _bq.is_empty():
+		_pump_banners()
 	if not _reader.visible or _src == null:
 		return
 	if not is_instance_valid(_src):
