@@ -22,11 +22,11 @@ const OBJECTIVES := [
 	# and the other door is the next line. Either door first still counts.
 	{"id": "doors", "main": true, "when": "flag:met_keep", "done": "seal:henge|boss:thornwarden|seal:oss_gallery|boss:bone_abbot",
 		"text": "Pick a door: the thorn seal west of the Thornwood edge, or the gallery seal in the crypt, through the fen"},
-	{"id": "thorn_seal", "main": true, "when": "seal:oss_gallery|boss:bone_abbot", "done": "seal:henge|boss:thornwarden",
+	{"id": "thorn_seal", "main": true, "when": "flag:met_keep,seal:oss_gallery|flag:met_keep,boss:bone_abbot", "done": "seal:henge|boss:thornwarden",
 		"text": "Break the thorn seal below the western hill"},
 	{"id": "thornwarden", "main": true, "when": "seal:henge", "done": "boss:thornwarden",
 		"text": "Cut the Thorn Heart from the Thornwarden in the Ring"},
-	{"id": "oss_seal", "main": true, "when": "seal:henge|boss:thornwarden", "done": "seal:oss_gallery|boss:bone_abbot",
+	{"id": "oss_seal", "main": true, "when": "flag:met_keep,seal:henge|flag:met_keep,boss:thornwarden", "done": "seal:oss_gallery|boss:bone_abbot",
 		"text": "Break the gallery seal in the Ossuary"},
 	{"id": "bone_abbot", "main": true, "when": "seal:oss_gallery", "done": "boss:bone_abbot",
 		"text": "Take the Abbot's crown from the Bone Abbot"},

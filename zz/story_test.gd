@@ -228,7 +228,7 @@ func _flow() -> void:
 	ok(story.flag("ending_told") and story.flag("ending_card"), "ending told; title card shown")
 	ok(story.objectives().is_empty(), "no objectives left")
 	ok(Travel.story.has("flags") and (Travel.story.flags as Dictionary).has("met_keep"), "flags live in Travel.story")
-	await get_tree().create_timer(4.4).timeout
+	await get_tree().create_timer(10.2).timeout   # the ending waits out the 9 s sky spin (sheet 240)
 	ok(story.flag("ending_seen"), "ending narration fired")
 	story.queue_free()
 	await get_tree().process_frame

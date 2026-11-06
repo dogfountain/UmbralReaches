@@ -388,9 +388,9 @@ func _s_lance() -> void:
 	_setp({"lance": 2})
 	w.hp = 60.0
 	_cast(&"lance", 0.0)
-	await _wait(0.4)
+	await _wait(0.65)                    # a tap flies 9 m at 18 m/s; sheet 40 tightened the near-hit radius
 	ok(get_tree().current_scene.find_child("EmberCinders", true, false) != null, "Lance II: the burst throws cinders")
-	await _wait(0.6)
+	await _wait(0.35)
 	ok(w.hp <= 60.0 - 2.5 + 0.01, "Lance II: a tap hits for 2.5 (hp %.2f)" % w.hp)
 	_setp({"lance": 3})
 	w.hp = 60.0

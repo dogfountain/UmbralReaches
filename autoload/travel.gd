@@ -22,6 +22,7 @@ var saved_hollows := 0
 var loot_bags: Array = []
 var leaving := false               ## the game is closing: a bag the save kept is not poured on the way out
 var _bag_restore_t := 0.0
+var _to_lay: Array = []             ## bags read from the save, laid back once (not the live record)
 var _wrote_ok := false             ## a write has succeeded this session: the .bak (the night before) is not copied again
 var _warned_rename := false
 ## Per-system saved state for the living-world systems (docs/LIFE_PLAN.md): one sub-dictionary
@@ -305,6 +306,7 @@ func _collect_bags() -> Array:
 			continue
 		bag.kept = true
 		out.append({"pos": (b as Node3D).global_position, "title": String(bag.title), "entries": (bag.entries as Array).duplicate(true)})
+	out.append_array(_to_lay)                  # read from the save but not laid back yet: still owed
 	if out.is_empty() and leaving:
 		return loot_bags
 	loot_bags = out
@@ -312,7 +314,7 @@ func _collect_bags() -> Array:
 
 
 func _process(delta: float) -> void:
-	if loot_bags.is_empty() or _busy:
+	if _to_lay.is_empty() or _busy:
 		return
 	_bag_restore_t -= delta
 	if _bag_restore_t > 0.0:
@@ -322,13 +324,13 @@ func _process(delta: float) -> void:
 	var gear: Variant = get_tree().get_first_node_in_group("gear")        # gear_runtime.gd (no class_name)
 	if gear == null or get_tree().get_first_node_in_group(Groups.PLAYER) == null or get_tree().current_scene == null:
 		return
-	var saved := loot_bags
-	loot_bags = []
+	# once only: each laid bag joins the "loot_bag" group, which is what the next save records
+	var saved := _to_lay
+	_to_lay = []
 	for r: Variant in saved:
 		var b: Variant = gear.drop_bag((r as Dictionary).entries, (r as Dictionary).pos - Vector3(0, 0.05, 0), String((r as Dictionary).title))
 		if b is Node:
 			(b as Node).set("kept", true)
-			loot_bags.append(r)
 
 
 ## Save now (relics, seals, bosses): no 0.6 s window to quit inside.
@@ -442,6 +444,7 @@ func load_game() -> void:
 		for r: Variant in lb:
 			if r is Dictionary and (r as Dictionary).get("pos") is Vector3 and _sane_point((r as Dictionary).pos) and (r as Dictionary).get("entries") is Array and not ((r as Dictionary).entries as Array).is_empty():
 				loot_bags.append({"pos": r.pos, "title": String(r.get("title", "the remains")), "entries": (r.entries as Array).duplicate(true)})
+	_to_lay = loot_bags.duplicate(true)
 	var hv: Variant = cfg.get_value("progress", "hollows", 0)
 	saved_hollows = maxi(0, int(hv)) if (hv is int or hv is float) else 0
 	var st: Variant = cfg.get_value("story", "state", {})
@@ -475,6 +478,7 @@ func _reset_progress() -> void:
 	bosses_slain.clear()
 	items.clear()
 	loot_bags.clear()
+	_to_lay.clear()
 	saved_hollows = 0
 	story.clear()
 	systems.clear()
