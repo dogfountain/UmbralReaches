@@ -19,6 +19,7 @@ const Flock := preload("res://core/life/wildlife/life_flock.gd")
 const TracksScript := preload("res://core/life/wildlife/tracks.gd")
 const PhenomenaScript := preload("res://core/life/wildlife/phenomena.gd")
 const RL := preload("res://core/world/realm/realm_land.gd")
+const Marches := preload("res://core/life/wildlife/life_marches.gd")
 
 const NEAR_R := 16.0
 const OUT_TICK := 0.2                    ## logic interval for groups out of the camera's view
@@ -51,6 +52,7 @@ var glide := true                        ## moving groups redrawn between ticks 
 
 var _rng := RandomNumberGenerator.new()
 var _rng2 := RandomNumberGenerator.new()   ## r28 additions draw from their own stream: r23 placement is unchanged
+var _rng3 := RandomNumberGenerator.new()   ## the Marches' and the downs' placements: the old Realm's streams are untouched
 var _frame := 0
 var _enemy_t := 0.0
 var _enemies: Array[Vector3] = []
@@ -85,6 +87,7 @@ func setup(r: Node) -> void:
 	name = "Wildlife"
 	_rng.seed = BUILD_SEED
 	_rng2.seed = BUILD_SEED + 2
+	_rng3.seed = BUILD_SEED + 3
 	var space := get_world_3d().direct_space_state
 	weather = WeatherScript.new()
 	add_child(weather)
@@ -98,8 +101,10 @@ func setup(r: Node) -> void:
 		add_child(tracks)
 	_place_moths()
 	_place_pools(space)
+	_place_pools(space, true)
 	_place_crows(space)
 	_place_owls(space)
+	_place_owls(space, true)
 	_place_herds(space)
 	_place_fireflies()
 	_place_bats()
@@ -165,13 +170,14 @@ func _moths_for(l: OmniLight3D) -> void:
 	counts["moth"] = int(counts.get("moth", 0)) + n
 
 
-func _place_pools(space: PhysicsDirectSpaceState3D) -> void:
-	var pools := LifePlace.pools()
+func _place_pools(space: PhysicsDirectSpaceState3D, new_ground := false) -> void:
+	var pools := LifePlace.pools(new_ground)
 	var heron_perches: Array = []
+	var pr := _rng3 if new_ground else _rng         # the Marches' pools shuffle from their own stream
 	var made := 0
 	for pi in pools.size():
 		var p: Dictionary = pools[pi]
-		if int(p.n) < 3 or made >= 12:              # r34 flora: was 9 (the mere's pools came after the fen's)
+		if int(p.n) < 3 or made >= (6 if new_ground else 12):              # r34 flora: was 9 (the mere's pools came after the fen's); the Marches' six more
 			continue
 		# r34 merge: a chorus 22 m from a camp is never heard (the pond falls silent with a hollowed
 		# thing within 22 m and camps respawn): keep the frog pools 26 m+ off every camp
@@ -185,7 +191,7 @@ func _place_pools(space: PhysicsDirectSpaceState3D) -> void:
 		if by_camp:
 			continue
 		var edge: Array = (p.edge as Array).duplicate()
-		LifePlace.shuffle(edge, _rng)
+		LifePlace.shuffle(edge, pr)
 		var spots: Array[Vector3] = []
 		for e: Vector2 in edge:
 			if spots.size() >= clampi(int(p.n) / 4 + 3, 3, 8):
@@ -198,17 +204,18 @@ func _place_pools(space: PhysicsDirectSpaceState3D) -> void:
 			if not ok:
 				continue
 			var gy := LifePlace.ground(space, e.x, e.y)
-			if gy > RL.WATER_Y + 1.2 or gy < RL.WATER_Y - 0.05:
+			var wy := RL.water_y_at(e.x, e.y)                 # the river's reaches stand at their own levels
+			if gy > wy + 1.2 or gy < wy - 0.05:
 				continue
 			spots.append(Vector3(e.x, gy, e.y))
 		var g := Pond.new()
-		g.name = "Pond%d" % made
+		g.name = ("PondM%d" if new_ground else "Pond%d") % made
 		g.setup(p, spots, BUILD_SEED + 31 * pi)
 		_add_group(g)
 		counts["frog"] = int(counts.get("frog", 0)) + spots.size()
 		made += 1
 		# herons: two spots on each of the bigger pools' banks, facing the water
-		if pi < 6 and edge.size() >= 4:
+		if pi < (3 if new_ground else 6) and edge.size() >= 4:
 			for k in 2:
 				var e: Vector2 = edge[(k * edge.size()) / 2]
 				var w := LifePlace.nearest_water(p, e)
@@ -216,10 +223,10 @@ func _place_pools(space: PhysicsDirectSpaceState3D) -> void:
 				if gy < RL.WATER_Y + 0.9:
 					heron_perches.append([Vector3(e.x, gy, e.y), Birds.yaw_to(Vector3(w.x - e.x, 0, w.y - e.y))])
 	if heron_perches.size() >= 3:
-		LifePlace.shuffle(heron_perches, _rng)
+		LifePlace.shuffle(heron_perches, pr)
 		var h := Birds.new()
-		h.name = "Herons"
-		h.setup("heron", heron_perches, 2, BUILD_SEED + 7)
+		h.name = "HeronsM" if new_ground else "Herons"
+		h.setup("heron", heron_perches, 2, BUILD_SEED + (8 if new_ground else 7))
 		_add_group(h)
 
 
@@ -241,10 +248,13 @@ func _place_crows(space: PhysicsDirectSpaceState3D) -> void:
 		i += 1
 
 
-func _place_owls(space: PhysicsDirectSpaceState3D) -> void:
-	var trunks := LifePlace.trunks(root, ["oldforest", "ruin", "glade"], 0.32)
-	trunks.append_array(LifePlace.trunks(root, ["fen"], 0.22))
-	LifePlace.shuffle(trunks, _rng)
+func _place_owls(space: PhysicsDirectSpaceState3D, new_ground := false) -> void:
+	# the old Realm's owls from the old streams; the Marches' from the third (up to 8 more areas)
+	var ra := _rng3 if new_ground else _rng
+	var rb := _rng3 if new_ground else _rng2
+	var trunks := LifePlace.trunks(root, ["oldforest", "ruin", "glade"], 0.32, new_ground)
+	trunks.append_array(LifePlace.trunks(root, ["fen"], 0.22, new_ground))
+	LifePlace.shuffle(trunks, ra)
 	# areas of ~55 m: each with a few trees to sit in and one or two owls
 	var areas := {}
 	for t: Dictionary in trunks:
@@ -273,8 +283,8 @@ func _place_owls(space: PhysicsDirectSpaceState3D) -> void:
 			var b: Vector3 = t.base
 			var r: float = t.r
 			# the branch faces the nearest path (owls watch the walkers)
-			var dir := _toward_path(Vector2(b.x, b.z))
-			var h := _rng.randf_range(2.9, 3.8)
+			var dir := _toward_path(Vector2(b.x, b.z), ra)
+			var h := ra.randf_range(2.9, 3.8)
 			var root_p := b + Vector3(dir.x, 0, dir.y) * r * 0.7 + Vector3(0, h, 0)
 			var basis := Basis(Vector3.UP, atan2(-dir.y, dir.x))
 			var xf := Transform3D(basis, root_p)
@@ -287,7 +297,7 @@ func _place_owls(space: PhysicsDirectSpaceState3D) -> void:
 			var side := Vector3(-dir.y, 0, dir.x)       # along the trunk's tangent, toward open ground
 			if side.dot(Vector3(dir.x, 0, dir.y)) < 0.0:
 				side = -side
-			perches.append([perch, Birds.yaw_to(side if _rng.randf() < 0.5 else -side)])
+			perches.append([perch, Birds.yaw_to(side if ra.randf() < 0.5 else -side)])
 		if perches.size() < 3:
 			continue
 		# field mice in the open ground under the trees (the owls' hunting)
@@ -298,27 +308,27 @@ func _place_owls(space: PhysicsDirectSpaceState3D) -> void:
 				for k in 6:
 					if prey.size() >= 5:
 						break
-					var a := _rng2.randf_range(0.0, TAU)
-					var q := Vector2(b.x, b.z) + Vector2(cos(a), sin(a)) * _rng2.randf_range(6.0, 14.0)
+					var a := rb.randf_range(0.0, TAU)
+					var q := Vector2(b.x, b.z) + Vector2(cos(a), sin(a)) * rb.randf_range(6.0, 14.0)
 					if LifePlace.open_ground(q.x, q.y) and RealmLayout.path_dist(q) > 2.0 and not RL.in_water(q.x, q.y):
 						prey.append(Vector3(q.x, RL.height_at(q.x, q.y), q.y))
 						break
 		var g := Birds.new()
-		g.name = "Owls%d" % ai
-		g.setup("owl", perches, 1 + int(perches.size() >= 5), BUILD_SEED + 211 * ai, xfs, prey)
+		g.name = ("OwlsM%d" if new_ground else "Owls%d") % ai
+		g.setup("owl", perches, 1 + int(perches.size() >= 5), BUILD_SEED + 211 * ai + (7000 if new_ground else 0), xfs, prey)
 		_add_group(g)
 		# pellets and a moulted feather under the trees they sit in
 		if tracks != null:
 			for pe: Array in perches:
 				var b: Vector3 = pe[0]
-				var u := Vector3(b.x + _rng2.randf_range(-0.8, 0.8), 0, b.z + _rng2.randf_range(-0.8, 0.8))
-				tracks.print_at(u, _rng2.randf_range(-PI, PI), 4, INF)
-				if _rng2.randf() < 0.5:
-					tracks.print_at(u + Vector3(_rng2.randf_range(-1, 1), 0, _rng2.randf_range(-1, 1)), _rng2.randf_range(-PI, PI), 3, INF)
+				var u := Vector3(b.x + rb.randf_range(-0.8, 0.8), 0, b.z + rb.randf_range(-0.8, 0.8))
+				tracks.print_at(u, rb.randf_range(-PI, PI), 4, INF)
+				if rb.randf() < 0.5:
+					tracks.print_at(u + Vector3(rb.randf_range(-1, 1), 0, rb.randf_range(-1, 1)), rb.randf_range(-PI, PI), 3, INF)
 		ai += 1
 
 
-func _toward_path(p: Vector2) -> Vector2:
+func _toward_path(p: Vector2, rng: RandomNumberGenerator = null) -> Vector2:
 	var best := Vector2.RIGHT
 	var bd := INF
 	for path: Dictionary in RealmLayout.PATHS:
@@ -334,7 +344,7 @@ func _toward_path(p: Vector2) -> Vector2:
 				bd = d
 				best = (q - p) / d
 	if bd > 60.0:
-		var ang := _rng.randf_range(0.0, TAU)
+		var ang := (rng if rng != null else _rng).randf_range(0.0, TAU)
 		best = Vector2(cos(ang), sin(ang))
 	return best
 
@@ -386,31 +396,12 @@ func _place_herds(space: PhysicsDirectSpaceState3D) -> void:
 				herds.append(e)
 			if herds.size() >= (2 if pass_i == 0 else 6):     # r34 flora: twice the ground (was 4)
 				break
-	var hi := 0
-	for h in herds:
-		var spots: Array[Vector3] = []
-		var n := hrng.randi_range(3, 5)
-		for k in 30:
-			if spots.size() >= n:
-				break
-			var a := hrng.randf_range(0.0, TAU)
-			var q := h + Vector3(cos(a), 0, sin(a)) * hrng.randf_range(0.0, 6.0)
-			if not LifePlace.open_ground(q.x, q.z):
-				continue
-			var near := false
-			for s in spots:
-				if s.distance_to(q) < 1.6:
-					near = true
-			if near:
-				continue
-			spots.append(Vector3(q.x, LifePlace.ground(space, q.x, q.z), q.z))
-		if spots.size() < 2:
-			continue
-		var g := Beasts.new()
-		g.name = "Deer%d" % hi
-		g.setup("deer", spots, BUILD_SEED + 307 * hi)
-		_add_group(g)
-		hi += 1
+	var hi := Marches.make_herds(_add_group, space, herds, hrng, 0, "Deer%d", 0)
+	Marches.herds(_add_group, space, camps, BUILD_SEED)
+	_place_foxes_and_hares(space, camps)
+
+
+func _place_foxes_and_hares(space: PhysicsDirectSpaceState3D, camps: Array[Vector2]) -> void:
 	# foxes: the village's edge gardens (r30: not the green), the chapel's graves, the road verge
 	# A fox counts an enemy at 1.9x its distance inside a 26 m alert radius, so a camp within ~50 m keeps
 	# it on its guard for good: it never hunts (r30 merge: the verge foxes stood beside the road camp).
@@ -424,7 +415,7 @@ func _place_herds(space: PhysicsDirectSpaceState3D) -> void:
 			keep_off.append(h)                       # an elite walks its haunt: as bad as a camp
 	# then anywhere in the realm that is clear: a scan for open ground 52 m from camps and haunts
 	var scan: Array[Vector2] = []
-	var ob: Rect2 = RealmLayout.BOUNDS
+	var ob: Rect2 = RealmLayout.OLD_BOUNDS            # the old Realm's scan as it was; the Marches follow below
 	var gy := ob.position.y + 6.0
 	while gy < ob.end.y - 6.0:
 		var gx := ob.position.x + 6.0
@@ -470,6 +461,7 @@ func _place_herds(space: PhysicsDirectSpaceState3D) -> void:
 				break
 		if found and fi >= 5:                       # r34 flora: twice the ground (was 3)
 			break
+	Marches.foxes(_add_group, space, keep_off, _rng3, BUILD_SEED)
 	_place_hares(space, keep_off)
 
 
@@ -513,7 +505,8 @@ func _place_hares(space: PhysicsDirectSpaceState3D, keep_off: Array) -> void:
 		hi += 1
 		if hi >= 6:
 			break
-	print("LIFE hares: %d forms" % hi)
+	var hj := Marches.hares(_add_group, space, keep_off, BUILD_SEED)
+	print("LIFE hares: %d forms (+%d in the Marches)" % [hi, hj])
 
 
 ## The great elk: on the most prominent open rise west of the Thornwood or out on the heath.
@@ -563,9 +556,15 @@ func _place_flocks() -> void:
 	var wanted: Array[Vector2] = [Vector2(-40, 66), Vector2(58, 68), Vector2(40, 30), Vector2(-78, 66), Vector2(80, 60), Vector2(-20, 66),
 		Vector2(140, 10), Vector2(24, 120), Vector2(-96, 140)]    # r34 flora: the moor, the Waiting Field, the orchard's south rows
 	var placed: Array[Vector2] = []
-	for c in wanted:
-		if placed.size() >= 5:
+	var old_flocks := wanted.size()
+	# the downs and the Marches' open ground (the first five are as ever; up to four more here, from the third stream)
+	wanted.append_array([Vector2(-110, 205), Vector2(20, 210), Vector2(120, 206), Vector2(-232, 36), Vector2(190, 56)])
+	for wi in wanted.size():
+		var c: Vector2 = wanted[wi]
+		if placed.size() >= 9:
 			break
+		if wi < old_flocks and placed.size() >= 5:
+			continue
 		for k in 40:
 			var q := c + Vector2(_rng2.randf_range(-16, 16), _rng2.randf_range(-10, 10))
 			if not LifePlace.open_ground(q.x, q.y) or RealmLayout.path_dist(q) < 4.0:
@@ -601,7 +600,9 @@ func _place_fireflies() -> void:
 			spots.append(Vector3(q.x, 0.0, q.y))
 	# r34 flora: + the Rooted Holds' clearing, the mere's east bank, the orchard rows, the quarry mouth
 	for q: Vector2 in [Vector2(-80, 46), Vector2(-14, 50), Vector2(28, 50), Vector2(-62, 22), Vector2(-88, -40), Vector2(-50, -46), Vector2(-96, 10), Vector2(60, 10),
-			Vector2(-130, 4), Vector2(126, 112), Vector2(-120, 116), Vector2(-112, -78)]:
+			Vector2(-130, 4), Vector2(126, 112), Vector2(-120, 116), Vector2(-112, -78),
+			# the Sorrow's banks, Stillwater's north shore and the downs' hollows
+			Vector2(-222, 30), Vector2(-196, -34), Vector2(-218, 100), Vector2(176, -18), Vector2(196, 54), Vector2(-40, 214)]:
 		spots.append(Vector3(q.x, 0.0, q.y))
 	var i := 0
 	for s in spots:
@@ -632,6 +633,9 @@ func _place_bats() -> void:
 		# r34 flora: the Founder's Pits' slag heaps, the quarry pit, the mausoleum at the field's top
 		[Vector3(132, RL.height_at(132, -90) + 9.0, -90), 9.0, 6, 90.0], [Vector3(-127, RL.height_at(-127, -104) + 7.0, -104), 10.0, 6, 90.0],
 		[Vector3(0, RL.height_at(0, 147) + 7.0, 147), 6.0, 4, 70.0],
+		# the Anchorholds' cliff, the Well of Echoes' pit, the Fallen Hierarch's broken crown
+		[Vector3(236, RL.height_at(236, -110) + 9.0, -110), 9.0, 6, 90.0], [Vector3(72, -4, 204), 11.0, 7, 90.0],
+		[Vector3(-214, RL.height_at(-214, -104) + 24.0, -104), 14.0, 6, 110.0],
 	]
 	var i := 0
 	for s: Array in swarms:

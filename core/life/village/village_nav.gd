@@ -98,6 +98,9 @@ static func _water_y() -> float:
 
 ## Water only lies in the fen (RealmLand's pools); elsewhere low floors (the Keg's porch) are dry.
 static func _wet(x: float, z: float, y: float) -> bool:
+	var wl := RealmLayout.water_level_at(x, z)          # the Sorrow, the lake and the Well's pit stand at their own levels
+	if not is_nan(wl):
+		return y < wl
 	return y < _water_y() and RealmLayout.biome_at(x, z) == "fen"
 
 

@@ -45,6 +45,7 @@ func _ready() -> void:
 	elif not Realm.enabled():
 		Gothic.raise(self)            # the stair's window gobos (r30: under the Realm they lit windows that no longer exist)
 	Atmosphere.apply(self, _env, _cam, _moon, 82.0, Color("#12183A"), Color("#060A1C"), Color("#1E4AA0"))   # fog glows azure, not violet
+	_cam.far = FarDetail.VIEW_FAR       # the world is loaded to the horizon (far detail); the culling above is still sized to 82 m
 	_spawn_glimmers()
 	if not Realm.enabled():
 		EnemySpawner.seed_stair(self)

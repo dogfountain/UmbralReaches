@@ -1400,7 +1400,8 @@ func _footstep(speed := 0.0) -> void:
 
 ## pitch x, extra dB y, per surface
 const SURF_TONE := {&"grass": Vector2(0.8, -2.5), &"fen": Vector2(0.74, -1.0), &"water": Vector2(0.68, 0.0),
-	&"ash": Vector2(1.02, -1.0), &"stone": Vector2(1.2, 1.0), &"wood": Vector2(1.0, 0.5)}
+	&"ash": Vector2(1.02, -1.0), &"stone": Vector2(1.2, 1.0), &"wood": Vector2(1.0, 0.5),
+	&"salt": Vector2(1.14, -0.5)}                  # the White Pans: a dry crunch, a little brighter than grass
 var _surf_t := -1.0
 var _surf: StringName = &"grass"
 
@@ -1421,7 +1422,7 @@ func _surface() -> StringName:
 		_surf = &"water"
 	elif on_terrain:
 		var biome := RealmLayout.biome_at(gp.x, gp.z) if Realm.enabled() else "meadow"
-		_surf = &"fen" if biome == "fen" else (&"ash" if biome == "ash" else &"grass")
+		_surf = &"fen" if biome == "fen" else (&"ash" if biome == "ash" else (&"salt" if biome == "salt" else &"grass"))
 	else:
 		var nm := String((hit.collider as Node).name).to_lower() if hit.collider is Node else ""
 		_surf = &"wood" if (nm.contains("board") or nm.contains("deck") or nm.contains("floor") or nm.contains("dock") or nm.contains("bridge")) else &"stone"
