@@ -70,6 +70,7 @@ const ELITES := {
 		"where": "the Siege Lines, between the tower and the palisade",
 		"note": "THE MARCHES' WAR-BAND NEVER STOOD DOWN. The captain is still giving the order to go in. He brings the hammer down in front of him, flat and wide, and calls two of his own out of the earthwork when he is alone. Do not stand in the ring. Do not let him be alone. -- scratched on the Weirford watch's tally board",
 		"trait": "Siege Hammer: a wide disc fills, then slams. Hold the Line: calls two conscripts.",
+	},
 	# --- the east marches ---
 	"brine_wife": {
 		"title": "The Brine-Wife, Bitter Mother", "kind": "husk", "script": "res://core/life/encounters/elite_brine_wife.gd",

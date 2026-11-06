@@ -34,18 +34,18 @@ const HAND_LOCAL := Vector3(38.0, 2.7, 37.5)          ## the palm's top, model f
 
 ## id -> {at, size (footprint, local x by z), yaw, h (wall height), region, title, line, kind}
 const BLD := {
-	"inn": {"at": Vector2(-186.0, 56.0), "size": Vector2(13.0, 9.0), "yaw": 0.0, "h": 3.4, "roof": "slate", "wall": "plaster", "glow": 4, "region": "weirford"},
+	"inn": {"at": Vector2(-186.0, 56.0), "size": Vector2(13.0, 9.0), "yaw": 0.0, "h": 3.4, "roof": "slate", "wall": "brick", "glow": 4, "region": "weirford"},
 	"smithy": {"at": Vector2(-174.0, 75.0), "size": Vector2(8.0, 6.0), "yaw": PI, "h": 3.0, "roof": "slate", "wall": "brick", "glow": 1, "open": true, "region": "weirford"},
-	"cot_a": {"at": Vector2(-165.0, 59.0), "size": Vector2(6.5, 5.0), "yaw": 0.0, "h": 2.7, "roof": "wood", "wall": "plaster", "glow": 1, "region": "weirford"},
-	"cot_b": {"at": Vector2(-158.0, 74.0), "size": Vector2(6.0, 5.0), "yaw": PI, "h": 2.7, "roof": "wood", "wall": "plaster", "glow": 1, "region": "weirford"},
-	"stables": {"at": Vector2(-224.0, 78.0), "size": Vector2(12.0, 7.0), "yaw": PI * 0.5, "h": 3.0, "roof": "wood", "wall": "wood", "glow": 0, "open": true, "region": "weirford"},
+	"cot_a": {"at": Vector2(-165.0, 59.0), "size": Vector2(6.5, 5.0), "yaw": 0.0, "h": 2.7, "roof": "wood", "wall": "brick", "glow": 1, "region": "weirford"},
+	"cot_b": {"at": Vector2(-158.0, 74.0), "size": Vector2(6.0, 5.0), "yaw": PI, "h": 2.7, "roof": "wood", "wall": "brick", "glow": 1, "region": "weirford"},
+	"stables": {"at": Vector2(-196.0, 92.0), "size": Vector2(12.0, 7.0), "yaw": PI * 0.5, "h": 3.0, "roof": "wood", "wall": "wood", "glow": 0, "open": true, "region": "weirford"},
 	"watch_hut": {"at": Vector2(-230.0, 61.0), "size": Vector2(5.0, 4.0), "yaw": 0.0, "h": 2.6, "roof": "wood", "wall": "wood", "glow": 1, "region": "weirford"},
-	"mill_house": {"at": Vector2(-221.5, 52.5), "size": Vector2(11.0, 9.5), "yaw": 0.0, "h": 0.0, "region": "weirford"},
+	"mill_house": {"at": Vector2(-221.5, 58.0), "size": Vector2(11.0, 9.5), "yaw": 0.0, "h": 0.0, "region": "weirford"},
 }
 
 const POIS := {
-	"weirford_bridge": {"at": Vector2(-206.0, 65.6), "title": "Weirford Bridge", "line": "the last bridge the Order did not burn", "region": "weirford", "r": 16.0},
-	"weirford_mill": {"at": Vector2(-214.0, 52.5), "title": "The Weir Mill", "line": "it ground the abbey's flour, and kept its head down", "region": "weirford", "r": 14.0},
+	"weirford_bridge": {"at": Vector2(-208.0, 65.6), "title": "Weirford Bridge", "line": "the last bridge the Order did not burn", "region": "weirford", "r": 16.0},
+	"weirford_mill": {"at": Vector2(-214.0, 58.0), "title": "The Weir Mill", "line": "it ground the abbey's flour, and kept its head down", "region": "weirford", "r": 14.0},
 	"weirford_town": {"at": Vector2(-190.0, 66.0), "title": "Weirford", "line": "warm, and wary", "region": "weirford", "r": 26.0},
 	"sorrow_shrine": {"at": Vector2(-208.0, -40.0), "title": "The Drowned Shrine", "line": "the river came to see it, and stayed", "region": "sorrow", "r": 9.0, "wet": true},
 	"hierarch_statue": {"at": HEAD_C, "title": "The Fallen Hierarch", "line": "he was raised taller than the Stair", "region": "hierarch", "r": 34.0},
@@ -115,8 +115,8 @@ static func reserve(root: Node) -> void:
 				hi = maxf(hi, gy)
 		spots["bld_" + id] = {"at": Vector3(d.at.x, lo, d.at.y), "yaw": float(d.yaw), "rect": rc}
 		WorldLanes.register_site("r37w_" + id, rc, lo + 0.05, lo)
-	WorldLanes.register_lane("r37w_bridge", [Vector2(-224.0, 65.6), Vector2(-188.0, 65.6)], 3.4)
-	WorldLanes.register_lane("r37w_weir", [Vector2(-215.0, 52.5), Vector2(-199.0, 52.5)], 3.0)
+	WorldLanes.register_lane("r37w_bridge", [Vector2(-224.0, 65.6), Vector2(-190.0, 65.6)], 3.4)
+	WorldLanes.register_lane("r37w_weir", [Vector2(-215.0, 58.0), Vector2(-199.0, 58.0)], 3.0)
 	Flora.tree_clear.append([Vector2(-200.0, 66.0), 30.0])
 	# the statue's body and arm lie on the land as it is: no cut, nothing grows on them
 	var yaw := body_yaw()
@@ -182,13 +182,12 @@ static func build(holder: Node3D) -> void:
 		host.name = "Poi_" + id
 		host.set_meta("site", "poi_" + id)
 		holder.add_child(host)
-		host.global_position = Vector3(at.x, _g(space, at.x, at.y), at.y)
 		host.add_to_group("world_poi")
 		host.set_meta("poi", id)
 		host.set_meta("title", d.title)
 		host.set_meta("line", d.line)
 		host.set_meta("region", d.region)
-		host.set_meta("centre", host.global_position)
+		host.set_meta("centre", Vector3(at.x, _g(space, at.x, at.y), at.y))
 		host.set_meta("radius", float(d.r))
 		host.set_meta("r37", true)
 		match id:
@@ -323,26 +322,29 @@ static func _clutter(k: OssKit, base: Vector3, yaw: float, rng: RandomNumberGene
 # --- Weirford -------------------------------------------------------------------------------------
 
 static func _bridge(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
-	var ge := _g(space, -190.0, 65.6)
+	var ge := _g(space, -194.0, 65.6)
 	var gw := _g(space, -222.0, 65.6)
 	var y := maxf(ge, gw) - 0.05
-	Kit.place(host, "r37_bridge.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(-206.0, y, 65.6)))
-	host.set_meta("approach", Vector3(-192.0, ge, 65.6))
-	_lore(host, "r37w_bridge", Vector3(-193.5, y + 1.0, 63.6), Vector3(-193.5, y + 1.0, 63.6))
+	var br := Kit.place(host, "r37_bridge.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(-208.0, y, 65.6)))
+	if br:
+		FarDetail.register(br, FarDetail.hull(AABB(Vector3(-14.0, -2.0, -2.2), Vector3(28.0, 3.0, 4.4)), 0.0, Color(0.16, 0.15, 0.14)), Transform3D.IDENTITY, 110.0)
+	host.set_meta("approach", Vector3(-194.0, ge, 65.6))
+	_lore(host, "r37w_bridge", Vector3(-195.5, y + 1.0, 63.6), Vector3(-195.5, y + 1.0, 63.6))
 
 
 static func _mill(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
-	var y := _g(space, -221.5, 52.5)
-	var root := Kit.place(host, "r37_mill.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(-207.0, y, 52.5)), {"spin": "Wheel", "spin_rate": 0.55})
+	var y := _g(space, -221.5, 58.0)
+	var root := Kit.place(host, "r37_mill.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(-207.0, y, 58.0)), {"spin": "Wheel", "spin_rate": 0.55})
 	if root:
 		host.set_meta("walk", [false])
+		FarDetail.register(root, FarDetail.hull(AABB(Vector3(-20.0, 0.0, -4.0), Vector3(12.0, 10.0, 8.0)), 0.5, Color(0.14, 0.12, 0.1)), Transform3D.IDENTITY, 110.0)
 	# the mill's door faces the road: a lit window pane on the south wall and a sack-hoist's landing
 	var k := _kit()
-	k.box("glow", Vector3(-221.5, y + 5.0, 56.45), Vector3(0.9, 0.7, 0.05), Basis.IDENTITY, false, 1.0)
-	k.box("glow", Vector3(-218.0, y + 5.0, 56.45), Vector3(0.9, 0.7, 0.05), Basis.IDENTITY, false, 1.0)
+	k.box("glow", Vector3(-221.5, y + 5.0, 61.95), Vector3(0.9, 0.7, 0.05), Basis.IDENTITY, false, 1.0)
+	k.box("glow", Vector3(-218.0, y + 5.0, 61.95), Vector3(0.9, 0.7, 0.05), Basis.IDENTITY, false, 1.0)
 	k.commit(host, "MillGlow")
-	_chest(host, "weirford_loft", Vector3(-224.5, y + 3.6, 50.5), 0.4)
-	_lore(host, "r37w_mill", Vector3(-217.0, y + 1.0, 57.0), Vector3(-217.0, y + 1.0, 57.0))
+	_chest(host, "weirford_loft", Vector3(-224.5, y + 3.6, 56.0), 0.4)
+	_lore(host, "r37w_mill", Vector3(-217.0, y + 1.0, 63.0), Vector3(-217.0, y + 1.0, 63.0))
 
 
 static func _town(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
@@ -388,7 +390,7 @@ static func _town(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 		k.box("wood", sq + Vector3(sx * 1.6 - 3.0, 0.3, 2.4), Vector3(0.1, 0.6, 0.5), Basis.IDENTITY, false, 0.7)
 	k.box("wood", sq + Vector3(-3.0, 0.62, 2.4), Vector3(3.4, 0.1, 0.5), Basis.IDENTITY, true, 0.75)
 	# lamp posts on the bridge's east end and the square: lit glass, no light
-	for lp: Vector2 in [Vector2(-193.2, 63.7), Vector2(-193.2, 67.5), Vector2(-199.5, 71.0), Vector2(-218.8, 63.7), Vector2(-218.8, 67.5)]:
+	for lp: Vector2 in [Vector2(-195.0, 63.7), Vector2(-195.0, 67.5), Vector2(-199.5, 71.0), Vector2(-221.0, 63.7), Vector2(-221.0, 67.5)]:
 		var lg := _g(space, lp.x, lp.y)
 		k.box("iron", Vector3(lp.x, lg + 1.5, lp.y), Vector3(0.1, 3.0, 0.1), Basis.IDENTITY, false, 0.7)
 		k.box("glow", Vector3(lp.x, lg + 3.1, lp.y), Vector3(0.28, 0.34, 0.28), Basis.IDENTITY, false, 1.0)
@@ -443,20 +445,19 @@ static func _statue(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var origin := Vector3(HEAD_C.x, FLOOR_Y - 0.15, HEAD_C.y)
 	var xf := Transform3D(Basis(Vector3.UP, yaw), origin)
 	# the near model (the engine's own mesh LODs) fades out where the far mesh takes over
-	var near := Kit.place(host, "r37_statue.glb", xf, {"range_end": 420.0})
+	var near := Kit.place(host, "r37_statue.glb", xf)
 	if near:
 		near.name = "Statue"
-	var far := Kit.place(host, "r37_statue_far.glb", xf, {"shadow": false})
-	if far:
-		far.name = "StatueFar"
-		far.set_meta("far_mesh", true)             # the Foundation's far-detail hook finds it by this meta
-		for mi in far.find_children("*", "MeshInstance3D", true, false):
-			var m := mi as MeshInstance3D
-			m.visibility_range_begin = 330.0
-			m.visibility_range_begin_margin = 40.0
-			m.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		for b in far.find_children("*", "StaticBody3D", true, false):
-			b.queue_free()                         # the far copy is only to look at
+		# the far mesh (r37_statue_far.glb, ~1.6k triangles) from 160 m out to the horizon; the near model fades out there
+		var far_ps := Kit.scene("r37_statue_far.glb")
+		if far_ps:
+			var far_root := far_ps.instantiate() as Node3D
+			for mi in far_root.find_children("*", "MeshInstance3D", true, false):
+				var m := mi as MeshInstance3D
+				if m.mesh != null:
+					FarDetail.register(near, m.mesh, Transform3D.IDENTITY, 160.0, null, false)
+			far_root.free()
+		FarDetail.near_ends(near, 160.0, 30.0)
 	# the arena: the floor inside the skull; its mouth is the gate toward the weir track
 	var c := Vector3(HEAD_C.x, FLOOR_Y, HEAD_C.y)
 	var raid := RealmLayout.raid("hierarch")
@@ -503,7 +504,6 @@ static func _hand(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var hx := _hand_xz()
 	var origin_y := FLOOR_Y - 0.15
 	var palm := Vector3(hx.x, origin_y + HAND_LOCAL.y, hx.y)
-	host.global_position = palm
 	host.set_meta("centre", palm)
 	var k := _kit()
 	var b := Basis(Vector3.UP, body_yaw())
@@ -569,7 +569,9 @@ static func _tower(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var rc := _bx(Vector2(-236.0, 170.0), Vector2(7.5, 7.5))
 	var gy := _lo(space, rc)
 	var at := Vector3(-236.0, gy - 0.1, 170.0)
-	Kit.place(host, "r37_siege_tower.glb", Transform3D(Basis(Vector3.UP, -PI * 0.5), at), {"range_end": 400.0})
+	var tw := Kit.place(host, "r37_siege_tower.glb", Transform3D(Basis(Vector3.UP, -PI * 0.5), at))
+	if tw:
+		FarDetail.register(tw, FarDetail.hull(AABB(Vector3(-3.4, 0.0, -3.4), Vector3(6.8, 16.0, 6.8)), 0.1, Color(0.14, 0.12, 0.1)), Transform3D.IDENTITY, 120.0)
 	# its top: the platform (z 14.4 in the model) is 14.4 m over the wheels' foot
 	_chest(host, "siege_tower_top", at + Vector3(0.0, 14.6, 0.0), -PI * 0.5)
 	var fb := Basis(Vector3.UP, -PI * 0.5)                # the tower's open face (model +Y, Godot -Z) looks east, toward the Realm
