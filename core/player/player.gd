@@ -329,7 +329,10 @@ func _process(delta: float) -> void:
 	if not autopilot:
 		var look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
 		if is_instance_valid(_lock):
-			if absf(look.x) > 0.75 and _lock_flick_t <= 0.0:
+			if absf(look.x) < 0.4:
+				_stick_armed = true                      # back to the middle before the next swap
+			if absf(look.x) > 0.75 and _lock_flick_t <= 0.0 and _stick_armed:
+				_stick_armed = false
 				_lock_flick = signf(look.x) * 100.0      # stick flick: next target that side
 				_lock_flick_t = 0.4
 			look = Vector2.ZERO
@@ -339,8 +342,8 @@ func _process(delta: float) -> void:
 			_recentre = false
 			# r29: a response curve (fine aim near the centre, full speed at the rim) and, held hard
 			# over, a turn that speeds up so a 180 doesn't take 1.2 s
-			look = look / mag * pow(mag, 1.6)
-			var boost := 1.0 + 0.6 * smoothstep(0.2, 0.6, _look_hold)
+			look = look / mag * pow(clampf((mag - 0.15) / 0.85, 0.0, 1.0), 1.25)     # the deadzone eases in: no step up to the curve
+			var boost := 1.0 + 0.6 * smoothstep(0.05, 0.6, _look_hold)
 			_yaw -= look.x * stick_sensitivity * boost * delta
 			_pitch = clampf(_pitch - look.y * stick_sensitivity * 0.8 * delta * (-1.0 if invert_y else 1.0), pitch_min, pitch_max)
 	var body_xf := get_global_transform_interpolated()
@@ -631,6 +634,7 @@ func debug_drive(wish: Vector3, sprint := false) -> void:
 
 var _look_t := 0.0
 var _jump_cut_t := 0.0
+var _stick_armed := true
 const JUMP_CUT_V := 2.2                  ## a released jump eases its rise down to this
 var _look_foe: Enemy
 var _sprint_held := false
