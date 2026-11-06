@@ -28,7 +28,7 @@ const GOODS := {
 	],
 	"keep": [
 		{"id": "ale", "name": "A mug of the Keg's ale", "glyph": "mug", "price": 1, "stock": 3,
-			"text": "Warm, brown and bitter. Takes the edge off the Gloom while it lasts.",
+			"text": "Warm, brown and bitter. Takes 14 Gloom off at once: drink it for the walk. In my fire, where the Gloom is already falling, you will not see it.",
 			"say": "Mind the foam. It's the only thing in the valley that rises."},
 		{"id": "round", "name": "Stand the room a round", "glyph": "mugs", "price": 6, "stock": 1,
 			"text": "Every mug in the Keg filled on your ash. The regulars drink to you, and they remember who paid.",
