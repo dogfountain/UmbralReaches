@@ -77,6 +77,12 @@ static func apply_fade(light: Light3D) -> void:
 			light.distance_fade_shadow = 12.0
 			light.distance_fade_length = 8.0
 			light.light_volumetric_fog_energy = 0.8
+		&"lamp":
+			# a kindled lamp: comfort light, short range, never a shadow
+			light.distance_fade_begin = 26.0
+			light.distance_fade_shadow = 0.0
+			light.distance_fade_length = 8.0
+			light.light_volumetric_fog_energy = 0.5
 		&"glimmer":
 			light.distance_fade_begin = 16.0
 			light.distance_fade_shadow = 8.0

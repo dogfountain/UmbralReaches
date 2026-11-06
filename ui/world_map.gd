@@ -407,6 +407,11 @@ func _collect() -> void:
 			continue
 		_marks.append({"at": at, "kind": "fire" if b.lit else "ash", "name": b.display_name(),
 			"note": "A lit fire: a stop on the Ember Road" if b.lit else "Cold ash; kindle it to rest here"})
+	for n in tree.get_nodes_in_group(&"lamp"):
+		var lp := n as Lamp
+		if lp == null or not lp.lit or fog_at(lp.global_position.x, lp.global_position.z) < 0.5:
+			continue
+		_marks.append({"at": Vector2(lp.global_position.x, lp.global_position.z), "kind": "lamp", "name": "A lamp you lit", "note": "Light to find the way by; it does not drive back the dark"})
 	for a in tree.get_nodes_in_group(&"boss_arena"):
 		var ba := a as BossArena
 		if ba == null or ba.boss_id == "":
@@ -493,7 +498,8 @@ func paint(c: Control) -> void:
 	var txt := "Drag or stick: pan     Wheel or triggers: zoom     Space or A: find yourself     %s or Esc: close" % close_k
 	c.draw_string(_serif, Vector2(28.0, by + 33.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 21, Color(0.82, 0.75, 0.62))
 	var x := vs.x - 28.0
-	for it: Array in [["horse", "Horse"], ["watch", "Outpost"], ["boss", "Boss"], ["quest_target", "Task"], ["fire", "Lit fire"], ["you", "You"]]:
+	var lamps := Lamp.tally(get_tree())
+	for it: Array in [["horse", "Horse"], ["watch", "Outpost"], ["boss", "Boss"], ["quest_target", "Task"], ["lamp", "Lamps %d of %d" % [lamps.x, lamps.y]], ["fire", "Lit fire"], ["you", "You"]]:
 		var w := _serif.get_string_size(String(it[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
 		x -= w
 		c.draw_string(_serif, Vector2(x, by + 33.0), String(it[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color(0.72, 0.65, 0.54))
@@ -567,6 +573,10 @@ func _glyph(c: Control, kind: String, p: Vector2, hot: bool, s := 1.0) -> void:
 			c.draw_polyline(loop, INK, 2.0 * s, true)
 			if down:
 				c.draw_line(p + Vector2(-10, 9) * s, p + Vector2(10, -9) * s, INK, 2.6 * s, true)
+		"lamp":
+			c.draw_circle(p, 4.6 * s, Color(1.0, 0.72, 0.34))
+			c.draw_circle(p, 2.0 * s, Color(1.0, 0.95, 0.74))
+			c.draw_arc(p, 4.6 * s, 0.0, TAU, 14, INK, 1.4 * s, true)
 		"watch":
 			c.draw_line(p + Vector2(-5, 9) * s, p + Vector2(-5, -10) * s, INK, 2.2 * s, true)
 			var fl := PackedVector2Array([p + Vector2(-5, -10) * s, p + Vector2(8, -6) * s, p + Vector2(-5, -1) * s])

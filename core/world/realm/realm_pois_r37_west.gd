@@ -279,7 +279,11 @@ static func _window(k: OssKit, base: Vector3, b: Basis, x: float, y: float, z: f
 		k.box("r37_board", base + b * Vector3(x + sx * 0.82, y, z + 0.08), Vector3(0.5, 1.0, 0.06), b * Basis(Vector3.UP, sx * 0.9), false, 0.7)
 
 
-## An iron lantern on a post with a bracket: cage bars, a pane of glow inside, a cap and a ring.
+## The street lanterns: (x, z, facing).
+const LANTERNS := [Vector3(-195.0, 63.7, PI), Vector3(-195.0, 67.5, 0.0), Vector3(-199.5, 71.0, 0.0), Vector3(-221.0, 63.7, PI), Vector3(-221.0, 67.5, 0.0)]
+
+
+## An iron lantern on a post with a bracket: cage bars, cold glass inside, a cap and a ring.
 static func _lantern(k: OssKit, at: Vector3, face: float) -> void:
 	var b := Basis(Vector3.UP, face)
 	k.box("iron", at + Vector3(0, 0.12, 0), Vector3(0.28, 0.24, 0.28), Basis.IDENTITY, false, 0.7)
@@ -287,7 +291,7 @@ static func _lantern(k: OssKit, at: Vector3, face: float) -> void:
 	k.box("iron", at + b * Vector3(0, 3.1, 0.3), Vector3(0.06, 0.06, 0.6), b, false, 0.7)
 	k.box("iron", at + b * Vector3(0, 3.35, 0.14), Vector3(0.05, 0.4, 0.05), b, false, 0.7)
 	var lp := at + b * Vector3(0, 2.8, 0.6)
-	k.box("glow", lp, Vector3(0.22, 0.36, 0.22), Basis.IDENTITY, false, 1.0)
+	k.box("dark", lp, Vector3(0.22, 0.36, 0.22), Basis.IDENTITY, false, 0.5)
 	for sx: float in [-1.0, 1.0]:
 		for sz: float in [-1.0, 1.0]:
 			k.box("iron", lp + Vector3(sx * 0.13, 0, sz * 0.13), Vector3(0.035, 0.42, 0.035), Basis.IDENTITY, false, 0.7)
@@ -500,8 +504,8 @@ static func _town(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	for sx: float in [-1.0, 1.0]:
 		k.box("wood", sq + Vector3(sx * 1.6 - 3.0, 0.3, 2.4), Vector3(0.1, 0.6, 0.5), Basis.IDENTITY, false, 0.7)
 	k.box("wood", sq + Vector3(-3.0, 0.62, 2.4), Vector3(3.4, 0.1, 0.5), Basis.IDENTITY, true, 0.75)
-	# iron lanterns on the bridge's ends and in the square (lit glass inside a cage, no light)
-	for lp: Vector3 in [Vector3(-195.0, 63.7, PI), Vector3(-195.0, 67.5, 0.0), Vector3(-199.5, 71.0, 0.0), Vector3(-221.0, 63.7, PI), Vector3(-221.0, 67.5, 0.0)]:
+	# iron lanterns on the bridge's ends and in the square (cold glass in a cage: the wanderer lights them, lamps/lamp_places.gd)
+	for lp: Vector3 in LANTERNS:
 		_lantern(k, Vector3(lp.x, _g(space, lp.x, lp.y), lp.y), lp.z)
 	k.commit(host, "TownDressing")
 	_lore(host, "r37w_inn", inn + Vector3(-5.5, 1.1, 5.3), inn + Vector3(-5.5, 1.1, 5.3))
