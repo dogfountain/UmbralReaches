@@ -774,7 +774,7 @@ func _draw_player() -> void:
 	var g := float(_p("gloom", 0.0))
 	var gmax := maxf(float(_p("gloom_max", 100.0)), 0.001)
 	var gr := clampf(g / gmax, 0.0, 1.0)
-	# r37: the Gloom bar is not drawn until Gloom first rises above 0 (a new game opens without it)
+	# the Gloom bar is not drawn until Gloom first rises above 0 (a new game opens without it)
 	HudPrefs.note_gloom(gr)
 	var gloom_known := HudPrefs.gloom_known()
 	var gcol := LILAC.lerp(EMBER, smoothstep(0.5, 1.0, gr))

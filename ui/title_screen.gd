@@ -1,5 +1,5 @@
 extends CanvasLayer
-## The title screen (r37): shown on a real launch, before the world is built. Built in code (no scene).
+## The title screen: shown on a real launch, before the world is built. Built in code (no scene).
 ##   Continue    (if a save exists)  -> the save slots that hold one; one tap if only one does
 ##   New Game                         -> a slot; an occupied slot asks twice before it is wiped
 ##   Settings                         -> the settings menu (its own instance)

@@ -82,7 +82,7 @@ func _seat() -> void:
 func _apply(on: bool) -> void:
 	_was_lit = on
 	if _coal_mat:
-		_coal_mat.emission_energy_multiplier = 1.6 if on else 0.0    # r37 cap (was 5.0)
+		_coal_mat.emission_energy_multiplier = 1.6 if on else 0.0    # emissive cap (was 5.0)
 		_coal_mat.albedo_color = Color(1.0, 0.55, 0.25) if on else Color(0.12, 0.1, 0.1)
 	if _sparks:
 		_sparks.emitting = on

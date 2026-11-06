@@ -290,7 +290,7 @@ static func _spawn(parent: Node3D, mesh: ArrayMesh, xf: Transform3D, collide: bo
 ## reads as a warm line against the bright vortex (an additive column vanished into it), unshaded
 ## and under the glow threshold. Not built if `boss_id` is already slain; it narrows and goes out
 ## when that boss falls.
-## `soft` (r37, the summit): an additive column with radial falloff to nothing at its edge and a fade at
+## `soft` (the summit): an additive column with radial falloff to nothing at its edge and a fade at
 ## foot and top (world/beacon_column.gdshader), energy capped under the glow threshold.
 static func beacon(parent: Node3D, at: Vector3, boss_id: String, col: Color, height: float, radius: float, ceiling := 9.0, soft := false) -> Node3D:
 	if boss_id != "" and Travel.bosses_slain.has(boss_id):

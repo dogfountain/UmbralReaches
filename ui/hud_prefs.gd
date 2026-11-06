@@ -69,7 +69,7 @@ static func set_track(group: String, on: bool) -> void:
 	save()
 
 
-# --- the staged opening (r37) ----------------------------------------------------------------------
+# --- the staged opening ----------------------------------------------------------------------
 
 ## A new game: the story has not had its arrival yet, and there is no progress in the save.
 static var test_force := false          ## zz/opening_test: stage the opening in a headless run too

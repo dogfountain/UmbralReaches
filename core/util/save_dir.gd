@@ -6,7 +6,7 @@ extends RefCounted
 ## CodexStore (codex.cfg) when they start. No class_name: preload by path.
 ##   const SaveDir := preload("res://core/util/save_dir.gd")
 
-## r37, three save slots: savegame.cfg lives in <dir>/slot_<n>/ (an old <dir>/savegame.cfg is copied into
+## three save slots: savegame.cfg lives in <dir>/slot_<n>/ (an old <dir>/savegame.cfg is copied into
 ## slot_1 on first launch: Travel._migrate_legacy). The Journal's codex.cfg is per slot too, but slot 1 keeps
 ## the original <dir>/codex.cfg (the Journal of every existing save, and CodexStore's test guard), slots 2 and 3
 ## use <dir>/slot_<n>/codex.cfg. Everything else (settings.cfg, hud.cfg, slots.cfg) is shared.

@@ -5,7 +5,7 @@ extends CanvasLayer
 ## with the target and boss frames and the cast bar), floating combat text (ui/combat_text.gd) and
 ## an XP strip (ui/xp_bar.gd, only once XP exists). The plain bar stays as the fallback when the
 ## frames are switched off in settings.
-## r37: the controls card is gone. A one-line prompt shows the first time each action matters (a ledge,
+## the controls card is gone. A one-line prompt shows the first time each action matters (a ledge,
 ## a foe in range...), once per save (Hints.once). Every transient line of text goes through the
 ## TextDirector (ui/text_director.gd): lanes, priorities, one banner at a time.
 
@@ -94,7 +94,7 @@ func _ready() -> void:
 	add_to_group(&"hud")                         # ui/hints.gd finds the tip line here
 	process_mode = Node.PROCESS_MODE_ALWAYS     # the card and the crosshair step aside while the tree is paused
 	_font = load("res://ui/fonts/Cinzel.ttf")
-	var outer := Control.new()                  # r37: the fade sits here, over the whole HUD (root) so an opening can hide the HUD alone
+	var outer := Control.new()                  # the fade sits here, over the whole HUD (root) so an opening can hide the HUD alone
 	outer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	outer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(outer)
@@ -477,7 +477,7 @@ var _lifting := false                  ## the black has lifted but the HUD has n
 var _stage_t := 0.0
 
 
-## r37, the staged opening of a new game (core/story/story.gd calls these three in order):
+## the staged opening of a new game (core/story/story.gd calls these three in order):
 ##   hold_opening(true)   black, no HUD (the HUD does this itself at boot when the game is new)
 ##   fade_in_opening()    the black lifts over the world; the HUD stays away
 ##   hold_opening(false)  the HUD arrives (what has not been earned yet stays hidden: see _stage_tick)

@@ -52,7 +52,7 @@ class Pylon extends Node3D:
 		k.box("stone", Vector3(0, 5.4, 0), Vector3(1.5, 0.3, 1.5), Basis.IDENTITY, true, 0.8)
 		k.box("iron", Vector3(0, 5.65, 0), Vector3(1.2, 0.2, 1.2), Basis.IDENTITY, false)
 		k.commit(self, "PylonBody")
-		# r37: the crown is the brazier's crossed flame cards (world/brazier_flame.gdshader), not a flat
+		# the crown is the brazier's crossed flame cards (world/brazier_flame.gdshader), not a flat
 		# billboard: a hot pale core under an orange body, so it can not clip to a white blob
 		_flame = Node3D.new()
 		_flame.position = Vector3(0, 5.7, 0)
@@ -174,7 +174,7 @@ func _build(_hb: Basis) -> void:
 	fm.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
 	fm.cull_mode = BaseMaterial3D.CULL_DISABLED
 	fm.albedo_texture = Glow.call("_tongue")
-	fm.albedo_color = Color(1.0, 0.6, 0.24, 1.0)      # r37 cap (was 1.3, 0.78, 0.32)
+	fm.albedo_color = Color(1.0, 0.6, 0.24, 1.0)      # emissive cap (was 1.3, 0.78, 0.32)
 	fm.disable_fog = true
 	var card_mat := ShaderMaterial.new()
 	card_mat.shader = load("res://world/brazier_flame.gdshader") as Shader
@@ -188,7 +188,7 @@ func _build(_hb: Basis) -> void:
 		pylons.append(p)
 	# the edge fires: a bowl at each end of the two broken edges, red, one light per edge
 	var em := fm.duplicate() as StandardMaterial3D
-	em.albedo_color = Color(1.0, 0.38, 0.14, 1.0)      # r37 cap (was 1.4, 0.5, 0.18)
+	em.albedo_color = Color(1.0, 0.38, 0.14, 1.0)      # emissive cap (was 1.4, 0.5, 0.18)
 	var k := OssKit.new()
 	k.keep_lanes = false
 	var spots: Array[Vector3] = []

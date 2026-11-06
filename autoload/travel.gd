@@ -27,7 +27,7 @@ var story: Dictionary = {}         ## story state (core/story/story.gd): {"flags
 ## Written ~0.6 s after any change (kill ash: ~10 s, see save_lazy); read once at boot. Launch with
 ## `-- --fresh` to ignore it, `-- --save-dir=/scratch` to keep every save file there (tests).
 const SaveDir := preload("res://core/util/save_dir.gd")
-const SLOTS := 3                     ## save slots (r37): <dir>/slot_<n>/savegame.cfg
+const SLOTS := 3                     ## save slots: <dir>/slot_<n>/savegame.cfg
 const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
 var slot := 1                        ## the slot in play (use_slot); the last one used is remembered in slots.cfg
 var forced_title := false            ## set by to_title(): ui/title_boot.gd shows the title even under a harness flag
@@ -424,7 +424,7 @@ func _reset_progress() -> void:
 	_lazy_queued = false
 
 
-# --- save slots (r37) ---------------------------------------------------------------------------------
+# --- save slots ---------------------------------------------------------------------------------
 
 ## Play slot `n` (1..SLOTS). `fresh`: a New Game: whatever the slot held is wiped first. Otherwise its save
 ## is loaded. Saving works again afterwards (an erased session is over).

@@ -77,7 +77,7 @@ func _ready() -> void:
 	_keys("minimap", [KEY_M])
 	_keys("codex", [KEY_J])
 	_button("codex", JOY_BUTTON_DPAD_DOWN)
-	_keys("show_objective", [KEY_Y])                 # r37: hold to see the objective (it shows for 6 s when it changes, then hides)
+	_keys("show_objective", [KEY_Y])                 # hold to see the objective (it shows for 6 s when it changes, then hides)
 	_button("show_objective", JOY_BUTTON_BACK)
 	_keys("target_next", [KEY_T])                    # r33 combat: cycle targets nearest-first (Tab itself is the satchel)
 	# what the player's own bindings replace is remembered first (Reset to defaults), then theirs are laid over

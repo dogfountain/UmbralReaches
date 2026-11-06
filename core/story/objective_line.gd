@@ -45,7 +45,7 @@ func _process(delta: float) -> void:
 	show_lines(lines)
 
 
-## r37: the tracker shows for SHOW_S seconds when what it says changes, then hides; holding the
+## the tracker shows for SHOW_S seconds when what it says changes, then hides; holding the
 ## "show_objective" action (Y, View) brings it back. It also stands aside while a banner is up
 ## (the text director's banner lane) and while the HUD is still holding a new game's opening.
 const SHOW_S := 6.0
@@ -118,7 +118,7 @@ func show_lines(lines: Array) -> void:
 			elif of > 0 and old != "" and not old.contains("#%d/%d#" % [int(o.get("n", 0)), of]):
 				_pulse(s)
 		else:
-			# r37: a sentence is body text in sentence case; Cinzel stays on the task names above
+			# a sentence is body text in sentence case; Cinzel stays on the task names above
 			var l := _label(("◆  " if o.main else "◇  ") + TextDirector.sentence(String(o.text)), 21 if o.main else 19, QUIET, UIType.body())
 			add_child(l)
 			_blocks.append(l)

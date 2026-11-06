@@ -24,7 +24,7 @@ const FIRE_NAMES := {"Sanctuary": "Hearthward's fire", "StairFoot": "The Stair-f
 	"OssuaryGate": "The Ossuary's gate fire"}
 const MAP_LIT := Color(1.0, 0.62, 0.3)
 const MAP_COLD := Color(0.5, 0.48, 0.52)
-## r37 emissive caps: lit coals peak at 1.6 (were 4.0), so they stay gold-orange under AgX, not a white blob
+## Emissive caps: lit coals peak at 1.6 (were 4.0), so they stay gold-orange under AgX, not a white blob
 const COAL_GLOW := 1.6
 
 

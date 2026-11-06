@@ -357,7 +357,7 @@ const KEY_ROWS := [
 ]
 
 
-## r37: the bindings are editable. Click a button, press the new key / mouse button (or controller button for the
+## the bindings are editable. Click a button, press the new key / mouse button (or controller button for the
 ## pad column); Esc cancels. A key or button that already does something else is refused, with the message below.
 ## Saved in settings.cfg (Settings.bindings) and applied by InputSetup on boot.
 func _build_bindings(p: VBoxContainer) -> void:

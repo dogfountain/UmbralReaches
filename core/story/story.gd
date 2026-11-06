@@ -392,7 +392,7 @@ func _opening() -> void:
 	_stage_opening(hud)
 
 
-## r37, a new game opens in beats. The first line alone on black; the black lifts over the world with no HUD;
+## a new game opens in beats. The first line alone on black; the black lifts over the world with no HUD;
 ## when the wanderer first moves the HUD arrives and the second line is spoken; the Gloom bar waits for
 ## Gloom, the compass and minimap for the Keep, the hotbar's slots for the spells taught.
 func _stage_opening(hud: Node) -> void:
