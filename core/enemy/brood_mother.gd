@@ -116,7 +116,8 @@ func _start_brood() -> void:
 		_rig.call("telegraph", BROOD_TELL)
 	_glint = 1.0
 	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP * 2.0, 2.0, 0.55)
-	Hints.once(&"brood", "The swelling sac is about to hatch. Burst a bolt on it to rupture the brood.")
+	begin_cast("Brood", BROOD_TELL, false)
+	Hints.once(&"brood", "The swelling sac is about to hatch. A blow on the body leaves the brood; a bolt that bursts on the sac ruptures it.")
 
 
 func _on_state(next: int) -> void:
