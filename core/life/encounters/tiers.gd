@@ -132,6 +132,14 @@ static func scale_stats(e: Node, tier: int) -> void:
 	e.set_meta(&"enc_tier", tier)
 
 
+## The `dmg` multiplier of the tier stored on a pawn (`enc_tier`), 1.0 when it was never scaled.
+## For the literal blows (pools, slag, a tollman's clang) that scale_stats does not reach.
+static func dmg_of(e: Node) -> float:
+	if e == null or not e.has_meta(&"enc_tier"):
+		return 1.0
+	return float(info(int(e.get_meta(&"enc_tier"))).dmg)
+
+
 ## r31: the deeper the night, the cannier the pack -- more chains and feints, never shorter tells.
 ## Tier 0-1 as built; each tier past 1 adds a little (capped), so the late game has teeth that are
 ## not just a longer health bar.
