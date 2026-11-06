@@ -216,7 +216,7 @@ Ascent (YA).
 
 ## Where it is in the world (RealmLore)
 
-Built at runtime by `core/world/realm/realm_lore.gd` (module 5 of the Realm, docs/REALM_PLAN.md);
+Built at runtime by `core/world/realm/realm_lore.gd` (module 5 of the Realm);
 builders in `core/world/realm/lore/`, texts in `core/world/realm/lore_db.gd` (**86 writings**, 7
 series; plus `lore/lore_more.gd`: the Ninth Company and the five boss-space writings; plus the 25+
 secrets' own texts in `core/life/secrets/pages.gd`; place names and banner lines in `PLACE_INFO`). Every carrier is an `Inscription` (a

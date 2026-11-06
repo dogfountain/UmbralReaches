@@ -12,4 +12,4 @@ alwaysApply: true
 - `art/blender/` has `.gdignore`. Export glTF with `export_apply=True`, `export_yup=True`. Do not put `.blend` under `art/models/`.
 - Pack the Mac app with export preset **Linux** into `Umbral Reaches.app/Contents/Resources`, then `codesign --force --deep --sign -` and `touch` the `.app`. Do not rebake to pack script/shader/player changes.
 - Arch walkable: `ARCH_W` 1.16, `ARCH_Y0` 0.46. Four stair lanterns only. Do not drape Path or snap Step/Base/Deck.
-- Run `tools/run_tests.sh` before packing (isolated HOME; fails on any SCRIPT ERROR / Parse Error). Pipeline traps: `docs/archive/AGENT_HANDOVER.md`. Godot `--check-only` hangs. Do not pkill the owner's Godot editor.
+- Run `tools/run_tests.sh` before packing (isolated HOME; fails on any SCRIPT ERROR / Parse Error). Pipeline traps: `.cursor/skills/umbral-pipeline`. Godot `--check-only` hangs. Do not pkill the owner's Godot editor.

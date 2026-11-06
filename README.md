@@ -77,7 +77,7 @@ ui/            HUD, menus, character screen, loading screen, fonts/Cinzel (OFL)
 world/         main.tscn + main.gd (the night), areas/ossuary
 zz/            tests and probes
 tools/         bakers, generators, run_tests.sh, pack_mac.sh
-docs/          PILLARS, DECISIONS, LORE, STORY; docs/archive for old notes
+docs/          PILLARS, DECISIONS, LORE (canon), STORY (how it is wired), THE_NIGHT (the critique)
 ```
 
 ## The v0.1 look measurement

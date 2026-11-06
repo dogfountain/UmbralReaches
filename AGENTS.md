@@ -2,7 +2,7 @@
 
 Godot **4.7.2** Forward+ prototype. Playable night: the Realm round Hearthward, booted from `world/main.tscn`.
 
-**Phase: consolidation. No new systems. Fix, cut, polish, playtest. Read `docs/PILLARS.md` first.** Decisions are logged in `docs/DECISIONS.md`.
+**Phase: consolidation. No new systems. Fix, cut, polish, playtest. Read `docs/PILLARS.md` first.** Decisions are logged in `docs/DECISIONS.md`. The critique being written now: `docs/THE_NIGHT.md`.
 
 ## How this project is built
 
@@ -13,7 +13,7 @@ Follow official Godot practice, not Unity/Unreal:
 - `Player` is the controller; `CharacterRig` is the skin. `Zone` is the shared night shell.
 - Static architecture is baked; the wanderer, portals, glimmers, and shades spawn at runtime.
 
-Cursor rules in `.cursor/rules/` are binding. Current truth: `ARCHITECTURE.md`. Learned playbook lives in `.cursor/skills/` (`umbral-pack`, `umbral-donts`, `umbral-nights`, `umbral-culling`, `umbral-player`, `umbral-pipeline`, `umbral-blender`, `umbral-unreal`, `unreal-export`). Blender modeling copies (`blender-modeler`, `godot-export`, …) are MIT from [arjun988/blender-skills](https://github.com/arjun988/blender-skills); `umbral-donts` still wins. Unreal Mac port: `umbral-unreal` + `unreal-export`. Archived notes: `docs/archive/`.
+Cursor rules in `.cursor/rules/` are binding. Current truth: `ARCHITECTURE.md`. Learned playbook lives in `.cursor/skills/` (`umbral-pack`, `umbral-donts`, `umbral-nights`, `umbral-culling`, `umbral-player`, `umbral-pipeline`, `umbral-blender`, `umbral-unreal`, `unreal-export`). Blender modeling copies (`blender-modeler`, `godot-export`, …) are MIT from [arjun988/blender-skills](https://github.com/arjun988/blender-skills); `umbral-donts` still wins. Unreal Mac port: `umbral-unreal` + `unreal-export`.
 
 ## Everyday commands
 

@@ -2,7 +2,7 @@
 
 Godot **4.7.2** Forward+ / Jolt, typed GDScript. One playable night: the **Realm** (the redesigned
 Stair of Ascension zone), booted from `world/main.tscn` + `world/main.gd`. This file is a map of
-the code as it is, not a wish list; `docs/critique/r30/architect.md` lists what should change.
+the code as it is, not a wish list; `docs/THE_NIGHT.md` is the current critique.
 
 ## Boot and teardown
 
@@ -41,7 +41,7 @@ fit). `-- --realm-modules=land,flora` builds only those modules.
 | `core/world/watch/` | r36 the Kindled Watch: `WatchPosts` (where four posts stand, one `build` call) and `Watch` (three watchmen on villager rigs, assaults by the dark, holds pay grave ash and gear). Asleep beyond 70 m. |
 | `core/world/roam/` | r36 `RoamEvents`: processions, incursions, rift tears and kneeling pilgrims near the wanderer, one at a time, each with a map pin. |
 | `core/world/night/` | r36 `ReachState`: the act (1 to 5), pressure, bells rung or carried, quiet countries, the three factions (`FACTIONS` is the single source for their zones, regions and bells). |
-| `core/world/realm/` | The procedural world: `Realm` (module runner), `realm_land/rift/bosses/lore/flora/assets`, `RealmLayout`, `RockKit`, `TreeGen`, `GenCache` (disk cache), `lore/` (landmarks, inscriptions, `CodexStore`), `realm_wayfinding` (r30 lanterns, edges, watchtower), `realm_pois` + `loot_chest` (r31 places: Drowned Belfry, Charcoal Hollow, Almonry, Watchers' Spire; chests, guardian sites, Tether anchors, updrafts, glide perches; docs/enshrouded/world.md). |
+| `core/world/realm/` | The procedural world: `Realm` (module runner), `realm_land/rift/bosses/lore/flora/assets`, `RealmLayout`, `RockKit`, `TreeGen`, `GenCache` (disk cache), `lore/` (landmarks, inscriptions, `CodexStore`), `realm_wayfinding` (r30 lanterns, edges, watchtower), `realm_pois` + `loot_chest` (r31 places: Drowned Belfry, Charcoal Hollow, Almonry, Watchers' Spire; chests, guardian sites, Tether anchors, updrafts, glide perches). |
 | `core/life/wildlife/boss_themes.gd` | r35 composed (synthesised) themes for the three bosses and the ending bell, rendered on a worker thread and cached through `GenCache`. |
 | `core/life/` | Living-world systems, each started as a Realm module: `progression/` (Kindling: ash -> upgrades, `UpgradeDB`), `village/`, `wildlife/` (beasts, birds, weather, soundscape), `secrets/`, `encounters/` (tiers, elites, Gloom tide, its own HUD). |
 | `core/story/` | Story director (`story.gd`, group `story`, added by Tavern), quests (`quest_db`, `quest_book`, `quest_world`), `dialogue_db`, objective line. |

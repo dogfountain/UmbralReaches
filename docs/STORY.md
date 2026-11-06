@@ -35,7 +35,7 @@ the road to the three who hold the valley, and the ending after the Ascended War
    bells, one for each far country. Each country's giver offers its bell after their own chain. You
    put down its keeper (a named rare), then at the bell you **ring it there** or **lift the tongue
    out for Hearthward**. Four bells open the ward and the dais. Every carried tongue rings at the Keg
-   when the Warden wakes, and he holds the door with 5% less. See docs/critique/r36_plan.md.
+   when the Warden wakes, and he holds the door with 5% less.
 5. **Ending**, one beat (`story.gd` `_ending` / `_ending_tick`). The Warden's fall raises no toasts
    (boss_arena skips "falls.", summit_dress and reactivity say nothing for him). 1.5 s after the
    bar drops: *The sky stops turning.*, while the vortex's spin eases to **zero** over ~9 s

@@ -88,7 +88,7 @@ run_one() {
 	fi
 }
 
-# Static lint (docs/critique/r30/architect.md #2): a static var typed Node / Callable outlives the
+# Static lint: a static var typed Node / Callable outlives the
 # night that set it. Every one must be listed in core/world/session_state.gd NODE_REFS (which
 # reset_night() clears). Also reports the static var total so growth is visible.
 lint_fail=0
