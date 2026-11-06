@@ -137,6 +137,7 @@ func _physics_process(_d: float) -> void:
 		if is_instance_valid(_boss):
 			_tick_cast()
 			if _bar:
+				_bar.max_value = float(_boss.max_hp)
 				_bar.value = _boss.hp
 				var ph: Variant = _boss.get("phase")
 				var lbl := String(_boss.get_meta(&"phase_label", ""))
