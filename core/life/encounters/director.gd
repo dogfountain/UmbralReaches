@@ -753,14 +753,12 @@ func bell_note(bell: Node3D, awake: bool) -> void:
 		hud.call("show_note", "A silent bell", "Cracked iron on a black frame. It will not move. Above the Crowns the sky is still turning.", "", bell)
 		return
 	var fl: Variant = Travel.story.get("flags", {})
-	if not (fl is Dictionary and bool((fl as Dictionary).get("ending_told", false))):
-		hud.call("show_note", "The Bell of the Deeper Night",
-			"Cracked iron, hung mouth up. The sky has stopped turning, but the dark it pulled down is still here. Not yet: the keeper is pouring at the keg, and the last mug is his to give first. Then ring it.",
-			"", bell)
-		return
+	var told: bool = fl is Dictionary and bool((fl as Dictionary).get("ending_told", false))
 	hud.call("show_note", "The Bell of the Deeper Night",
-		"Cracked iron, hung mouth up. The sky has stopped turning, but the dark it pulled down is still here. Ring this top first, the way the Stair's bells stopped, and something below pulls the door ajar: the three who hold the valley rise, their seals close, and every hollowed thing comes back harder. What you carry, you keep.",
-		"[%s] again to ring it" % Interactable.prompt_key(), bell)
+		"Cracked iron, hung mouth up. The sky has stopped turning, but the dark it pulled down is still here. "
+		+ ("Ring this top first, the way the Stair's bells stopped, and something below pulls the door ajar: the three who hold the valley rise, their seals close, and every hollowed thing comes back harder. What you carry, you keep." if told
+		else "Not yet: the keeper is pouring at the keg, and the last mug is his to give first. Then ring it."),
+		"[%s] again to ring it" % Interactable.prompt_key() if told else "", bell)
 
 
 ## NG+: the bosses and seals reset (Travel progress for them only), the night deepens two tiers,

@@ -87,12 +87,9 @@ func interact_feel() -> StringName:
 func interact(_by: Node) -> void:
 	if director == null:
 		return
-	if not awake():
-		director.call("bell_note", self, false)
-		return
-	if not told():
+	if not awake() or not told():
 		_armed_until = 0.0
-		director.call("bell_note", self, true)
+		director.call("bell_note", self, awake())
 		return
 	var now := Time.get_ticks_msec() * 0.001
 	if now < _armed_until:
