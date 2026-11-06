@@ -45,6 +45,16 @@ static func slot_path(n: int, file: String) -> String:
 	return d + file
 
 
+## Write `cfg` to `path` through a temp file and a rename: quitting mid-write leaves the old file, never half
+## of a new one. Returns OK or the error.
+static func save_atomic(cfg: ConfigFile, path: String) -> int:
+	var tmp := path + ".tmp"
+	var err := cfg.save(tmp)
+	if err != OK:
+		return err
+	return DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(path))
+
+
 ## True when saves are redirected away from user:// (tests, tools).
 static func redirected() -> bool:
 	return dir() != "user://"

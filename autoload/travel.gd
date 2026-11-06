@@ -22,6 +22,8 @@ var saved_hollows := 0
 var loot_bags: Array = []
 var leaving := false               ## the game is closing: a bag the save kept is not poured on the way out
 var _bag_restore_t := 0.0
+var _wrote_ok := false             ## a write has succeeded this session: the .bak (the night before) is not copied again
+var _warned_rename := false
 ## Per-system saved state for the living-world systems (docs/LIFE_PLAN.md): one sub-dictionary
 ## per system id ("progression", "village", "life", "secrets", "encounters"), saved in its own
 ## [systems] section. Each system reads/writes ONLY its own key; call save_game() after changing it.
@@ -505,7 +507,7 @@ func use_slot(n: int, fresh := false) -> void:
 		load_game()
 	var c := _slots_cfg()
 	c.set_value("slots", "last", slot)
-	c.save(SaveDir.dir() + "slots.cfg")
+	SaveDir.save_atomic(c, SaveDir.dir() + "slots.cfg")
 
 
 ## The title screen's line about slot `n`: {exists, text, fires, bosses, hollows}.
@@ -513,6 +515,7 @@ func slot_summary(n: int) -> Dictionary:
 	var out := {"exists": false, "text": "", "fires": 0, "bosses": 0, "hollows": 0}
 	var path := SaveDir.slot_path(n, "savegame.cfg")
 	for p: String in [path, path + ".bak"]:
+		var from_bak := p.ends_with(".bak")
 		if not FileAccess.file_exists(p):
 			continue
 		var cfg := ConfigFile.new()
@@ -545,7 +548,8 @@ func slot_summary(n: int) -> Dictionary:
 		out.fires = fires
 		out.bosses = bosses
 		out.hollows = hollows
-		out.text = "%d fire%s kindled  ·  %d keeper%s slain  ·  %s" % [fires, "" if fires == 1 else "s", bosses, "" if bosses == 1 else "s", when]
+		out.text = "%d fire%s kindled  ·  %d keeper%s slain  ·  %s%s" % [fires, "" if fires == 1 else "s", bosses, "" if bosses == 1 else "s", when, "  ·  from the backup" if from_bak else ""]
+		out["backup"] = from_bak
 		return out
 	return out
 
@@ -655,13 +659,17 @@ func _write_save(cfg: ConfigFile) -> void:
 	if exists and _main_ok == null:
 		var prev := ConfigFile.new()           # e.g. a --fresh run: the file on disk was never read
 		_main_ok = prev.load(SAVE_PATH) == OK and prev.has_section("progress")
-	if exists and _main_ok:
-		DirAccess.copy_absolute(main, main + ".bak")
+	if exists and _main_ok and (not _wrote_ok or not FileAccess.file_exists(main + ".bak")):
+		DirAccess.copy_absolute(main, main + ".bak")        # once a session: the night before it started
 	err = DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), main)
 	if err != OK:
-		push_warning("Travel.save_game rename failed: %s" % err)
+		# the previous main file is untouched (rename is all-or-nothing); say so once, not every save
+		if not _warned_rename:
+			_warned_rename = true
+			push_warning("Travel.save_game rename failed: %s; the previous save stands" % err)
 		return
 	_main_ok = true
+	_wrote_ok = true
 	_loaded_cfg = cfg
 
 

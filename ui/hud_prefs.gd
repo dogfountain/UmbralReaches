@@ -51,7 +51,7 @@ static func save() -> void:
 	cfg.set_value("hud", "combat_text", combat_text)
 	cfg.set_value("hud", "unit_frames", unit_frames)
 	cfg.set_value("hud", "enemy_plates", enemy_plates)
-	cfg.save(SaveDir.path(FILE))
+	SaveDir.save_atomic(cfg, SaveDir.path(FILE))
 
 
 ## Is a minimap kind tracked? Unknown kinds show.
