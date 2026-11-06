@@ -67,6 +67,8 @@ var _dir := 0
 var _frame := 0
 var _warm_nodes: Array[Node] = []
 var _warm_bolts: Array[Node] = []
+const SPELL_LEFTOVERS: Array[StringName] = [&"lantern_ward", &"bound_shade", &"umbral_well"]
+var _spell_keep := {}             ## instance ids of spell leftovers that stood before the warm casts
 var _warm_saved := {}             ## the wanderer before the warm-up cast every spell
 var _warm_life: Node
 var _fx_frames := -1
@@ -385,6 +387,10 @@ func _cast_every_spell(c: Vector3, fwd: Vector3) -> void:
 	var sb := pl.skills()
 	_warm_saved = {"pos": _player.global_position, "gloom": _player.get("gloom"), "wounds": _player.get("wounds")}
 	_player.global_position = c - fwd * 1.5
+	_spell_keep.clear()
+	for g: StringName in SPELL_LEFTOVERS:
+		for n in get_tree().get_nodes_in_group(g):
+			_spell_keep[n.get_instance_id()] = true
 	for i in sb.slots.size():
 		if sb.slots[i] == null:
 			continue
@@ -455,6 +461,13 @@ func _clear_combat() -> void:
 		if is_instance_valid(b) and pool and pool.has_method("release"):
 			pool.call("release", b)
 	_warm_bolts.clear()
+	# what the warm-up's own casts left standing (a Lantern Ward's light, a bound shade, a well): gone
+	# before the cover lifts, or the wanderer loads in beside a spell nobody cast
+	for g: StringName in SPELL_LEFTOVERS:
+		for n in get_tree().get_nodes_in_group(g):
+			if not _spell_keep.has(n.get_instance_id()):
+				n.queue_free()
+	_spell_keep.clear()
 	if not _warm_saved.is_empty() and is_instance_valid(_player):
 		_player.global_position = _warm_saved.pos
 		_player.set("gloom", _warm_saved.gloom)
