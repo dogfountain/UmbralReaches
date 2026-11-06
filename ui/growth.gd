@@ -479,7 +479,9 @@ func _build() -> void:
 	rule3.color = Color(EDGE, 0.5)
 	rule3.custom_minimum_size = Vector2(0, 1)
 	col.add_child(rule3)
-	var foot := _label("[W A S D] choose      [Space] or click: kindle      [Q] [E] page      [K] or [Esc] leave", 14, DIM)
+	_foot = _label("", 14, DIM)
+	_foot_refresh()
+	var foot := _foot
 	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(foot)
 	# particles live above everything, in screen space
@@ -523,7 +525,20 @@ func _k() -> Node:
 
 ## Open the Kindling (`tab` = "embers" | "spells" | "oaths" | "relics" | "charms" | "staff" |
 ## "loadout", "" keeps the last).
+var _foot: Label
+
+
+## The foot of the Kindling from the live labels: the four move keys, jump, kindling and inventory. Q and E stay
+## letters (the character screen pages on those physical keys), and so do Esc and the physical 1 to 4.
+func _foot_refresh() -> void:
+	if _foot == null:
+		return
+	var move := " ".join(["move_forward", "move_left", "move_back", "move_right"].map(func(a: String) -> String: return InputSetup.live_label(a, false, "?")))
+	_foot.text = "[%s] choose      [%s] or click: kindle      [Q] [E] page      [%s] or [Esc] leave" % [move, InputSetup.live_label("jump", false, "Space"), InputSetup.live_label("kindling", false, "K")]
+
+
 func open_menu(_from_fire := false, tab := "") -> void:
+	_foot_refresh()
 	if _root.visible:
 		return
 	if not hosted and _cs() != null:

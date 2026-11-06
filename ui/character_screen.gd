@@ -49,6 +49,7 @@ var _root: Control
 var _top_btns: Array[Button] = []
 var _sub_row: HBoxContainer
 var _trig := [false, false]                ## pad LT / RT held (edge detect on the axes)
+var _hint: Label
 var _backdrop: CanvasLayer                 ## a dim under every page (layer 58): pages without their own dim
 
 
@@ -75,7 +76,19 @@ func is_open() -> bool:
 
 
 ## Open at `top` (a tab id) and `page` (a page id; "" keeps that tab's last page).
+## The close word names every key bound to inventory (Tab and I by default); Q and E are the physical page keys.
+func _hint_refresh() -> void:
+	if _hint == null:
+		return
+	var names := PackedStringArray()
+	for ev in InputMap.action_get_events("inventory"):
+		if InputSetup.slot_of(ev) == "key":
+			names.append(InputSetup.event_name(ev))
+	_hint.text = "[1-4] tabs   ·   [Q] [E] pages   ·   [%s] close" % " / ".join(names if not names.is_empty() else PackedStringArray(["Tab"]))
+
+
 func open_at(top: String, page := "", from_fire := false) -> void:
+	_hint_refresh()
 	var ti := _tab_index(top)
 	if ti < 0:
 		return
@@ -340,7 +353,8 @@ func _build() -> void:
 	_sub_row.add_theme_constant_override("separation", 6)
 	col.add_child(_sub_row)
 	var hint := Label.new()
-	hint.text = "[1-4] tabs   ·   [Q] [E] pages   ·   [Tab] close"
+	_hint = hint
+	_hint_refresh()
 	hint.add_theme_font_override("font", UIType.body())
 	hint.add_theme_font_size_override("font_size", 15)
 	hint.add_theme_color_override("font_color", DIM)

@@ -177,6 +177,16 @@ func first_event(action: String, slot: String) -> InputEvent:
 	return null
 
 
+## What `action` is called now for the device in hand: the first pad button when `pad`, else the first key or
+## mouse button; `fallback` (or the action's name) when nothing of that kind is bound. Lessons, prompts and
+## the menu feet read this so a rebind is never taught as the old letter.
+func live_label(action: String, pad := false, fallback := "") -> String:
+	var ev := first_event(action, "pad" if pad else "key")
+	if ev != null:
+		return event_name(ev)
+	return fallback if fallback != "" else action
+
+
 ## "" if `ev` may be bound to `action`; else why not (the message the Controls page shows).
 func refusal(action: String, ev: InputEvent) -> String:
 	var d := event_to(ev)
