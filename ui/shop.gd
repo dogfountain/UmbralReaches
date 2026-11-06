@@ -33,6 +33,7 @@ var who := ""
 var rows: Array = []
 var sel := 0
 var bought: Array[String] = []          ## ids bought this time (tests)
+var _sell_ask := ""                      ## a named or Hallowed piece asks once: the id awaiting its second press
 var tab := 0                            ## 0 wares, 1 sell, 2 buy back (r33 loot)
 var _tab_btns: Array[Button] = []
 var _d_rich: RichTextLabel
@@ -263,6 +264,7 @@ func close() -> void:
 # --- the list --------------------------------------------------------------------------------------
 
 func set_tab(i: int) -> void:
+	_sell_ask = ""
 	tab = clampi(i, 0, TABS.size() - 1)
 	sel = 0
 	UiSound.play(self, "tab")
@@ -400,6 +402,11 @@ func buy(id: String) -> bool:
 	var r: Dictionary
 	match tab:
 		1:
+			if sel < rows.size() and String(rows[sel].id) == id and bool(rows[sel].get("ask", false)) and _sell_ask != id:
+				_sell_ask = id
+				_say("%s for %d ash? Press again to sell." % [String(rows[sel].name), int(rows[sel].price)])
+				return false
+			_sell_ask = ""
 			r = Vendor.sell(id)
 		2:
 			r = Vendor.buy_back(id)
