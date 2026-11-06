@@ -719,6 +719,6 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 			_flame_mesh.size = Vector2(0.075, 0.17)
 			_halo_mesh = QuadMesh.new()
 			_halo_mesh.size = Vector2(0.55, 0.55)
-		add.call("Flames", _flame_mesh, tips, mat("flame"), 120.0)
-		add.call("Halos", _halo_mesh, tips, mat("halo"), 120.0)
+		add.call("Flames", _flame_mesh, tips, mat("flame"), 55.0)    # the wax range: no flame floats over a candle that has faded
+		add.call("Halos", _halo_mesh, tips, mat("halo"), 55.0)
 	return draws + int(counter[0])
