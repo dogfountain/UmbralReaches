@@ -3,7 +3,7 @@
 #
 #   tools/run_tests.sh                 # every zz/*_test.tscn
 #   tools/run_tests.sh quest skill     # only zz/quest_test.tscn, zz/skill_test.tscn
-#   JOBS=2 TEST_TIMEOUT=300 tools/run_tests.sh
+#   JOBS=2 TEST_TIMEOUT=300 tools/run_tests.sh   # JOBS defaults to the performance cores; longest tests run first
 #
 # Each test runs in its own scratch HOME, so user:// (savegame.cfg, settings.cfg, codex.cfg)
 # is never the owner's real profile. A test FAILS when any of these is true:
@@ -26,7 +26,7 @@ set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 GODOT="${GODOT:-$(command -v godot || echo /opt/homebrew/bin/godot)}"
 TEST_TIMEOUT="${TEST_TIMEOUT:-240}"
-JOBS="${JOBS:-4}"
+JOBS="${JOBS:-$(( $(sysctl -n hw.perflevel0.physicalcpu 2>/dev/null || nproc 2>/dev/null || echo 4) ))}"   # one per performance core
 SCRATCH="${SCRATCH:-${TMPDIR:-/tmp}}"
 mkdir -p "$SCRATCH"
 RUN_DIR="$(mktemp -d "${SCRATCH%/}/umbral_tests.XXXXXX")" || { echo "cannot make a run dir under $SCRATCH" >&2; exit 99; }
@@ -113,15 +113,42 @@ ratchet_out="$("$ROOT/tools/lint.sh" 2>&1)" || ratchet_fail=1
 echo "$ratchet_out"
 
 echo "Umbral tests: ${#tests[@]} scene(s), jobs=$JOBS, timeout=${TEST_TIMEOUT}s, logs in $OUT_DIR"
-running=0
-for t in "${tests[@]}"; do
+# Longest first (durations from the last run; a test never timed counts as long), so the 2-minute
+# tests are not the tail. Then a real pool: macOS bash 3.2 has no `wait -n`, and the old fallback ran
+# lockstep batches that each waited for their slowest test while the other slots sat idle.
+TIMES="$ROOT/.godot/umbral_test_times"
+ordered=()
+while IFS= read -r line; do ordered+=("${line#* }"); done <<EOF3
+$(for t in "${tests[@]}"; do
+	n="$(basename "$t" .tscn)"
+	s="$(awk -v n="$n" '$1 == n {print $2}' "$TIMES" 2>/dev/null)"
+	echo "${s:-999} $t"
+done | sort -rn)
+EOF3
+pids=()
+live() {
+	local n=0 p
+	for p in "${pids[@]-}"; do
+		[ -n "$p" ] && kill -0 "$p" 2>/dev/null && n=$((n + 1))
+	done
+	echo "$n"
+}
+for t in "${ordered[@]}"; do
+	while [ "$(live)" -ge "$JOBS" ]; do sleep 0.5; done
 	run_one "$t" &
-	running=$((running + 1))
-	if [ "$running" -ge "$JOBS" ]; then
-		if wait -n 2>/dev/null; then running=$((running - 1)); else wait; running=0; fi
-	fi
+	pids+=($!)
 done
 wait
+
+# remember each passing test's time for the next run's order
+{
+	for t in "${tests[@]}"; do
+		n="$(basename "$t" .tscn)"
+		s="$(grep -oE '^PASS [0-9]+' "$OUT_DIR/$n.status" 2>/dev/null | awk '{print $2}')"
+		[ -n "$s" ] && echo "$n $s"
+	done
+	awk 'NR==FNR {seen[$1]=1; next} !($1 in seen)' <(for t in "${tests[@]}"; do basename "$t" .tscn; done) "$TIMES" 2>/dev/null
+} > "$TIMES.new" && mv "$TIMES.new" "$TIMES"
 
 failed=0
 for t in "${tests[@]}"; do

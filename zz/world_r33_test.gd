@@ -18,6 +18,7 @@ var main: Node
 var t := 0
 var step := 0
 var wait := 0
+var _road_tries := 0
 var fails := 0
 var found: Array[String] = []
 var travelled: Array = []
@@ -140,12 +141,18 @@ func _physics_process(_d: float) -> void:
 			var why2 := FireRoad.blocked_reason(get_tree())
 			if why2 != "":
 				print("WORLD33 note: road blocked at the shrine (%s): clearing nearby foes" % why2)
-				for e in get_tree().get_nodes_in_group(Groups.ENEMY):
-					if (e as Node3D).global_position.distance_to(p.global_position) < 25.0:
-						(e as Node).queue_free()
 			step = 2
 			wait = 2
 		2:
+			# "something hunts you" is any foe on the wanderer, however far: clear them all (a busy
+			# machine gives a distant one time to notice), and try again until the road is clear
+			for e in get_tree().get_nodes_in_group(Groups.ENEMY):
+				(e as Node).remove_from_group(Groups.ENEMY)
+				(e as Node).queue_free()
+			if FireRoad.blocked_reason(get_tree()) != "" and _road_tries < 30:
+				_road_tries += 1
+				wait = 2
+				return
 			flight = FireRoad.travel(shrine, landing)
 			check("the flight starts", flight != null)
 			if flight == null:
