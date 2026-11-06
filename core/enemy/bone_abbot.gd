@@ -856,8 +856,8 @@ func _tithe() -> void:
 			continue
 		BossKit.zone(get_parent(), at, 0.75 + 0.16 * float(i), 22.0, {"by": self, "radius": 1.5, "color": BossKit.BONE, "spikes": "bone"})
 		get_tree().create_timer(0.75 + 0.16 * float(i), false).timeout.connect(func() -> void:
-			if is_instance_valid(self) and is_alive() and _rig and _rig.has_method("strike"):
-				_rig.call("strike"))                                # the crozier meets each spike
+			if is_instance_valid(self) and is_alive() and _rig is HunchRig:
+				(_rig as HunchRig).strike())                                # the crozier meets each spike
 
 
 ## The reliquary found while the Requiem is sung: two such bolts break the song. While it raises the

@@ -26,6 +26,7 @@ const THORN := Color(2.6, 0.5, 0.1)          ## r29: was (2.6, 0.32, 0.18), whic
 const BONE := Color(2.2, 1.9, 1.4)
 const HOLY := Color(2.6, 2.1, 1.1)           ## r30: white-gold (violet was the player's own bolt colour, and the grade turned it blue)
 
+const Hints := preload("res://ui/hints.gd")
 const BOLT_CHIP := 0.7          ## r30: a boss takes this from a plain (non-heavy) Rift Bolt; Lance, Nova, Shatter stay full
 const SIG_NEEDED := 2           ## a phase cannot end before its signature move has been shown this often
 const INTRO := 1.8              ## seconds a boss stands, shelled, after it rises: the title card's grace
