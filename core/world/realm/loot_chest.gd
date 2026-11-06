@@ -148,10 +148,10 @@ func open() -> Array[String]:
 		Travel.give(id, n, false, false)
 		got.append("%s%s" % [String(ItemDB.def(id).name), (" x%d" % n) if n > 1 else ""])
 	var piece := _gear_piece()
-	if not piece.is_empty():
-		got.append("a piece of gear")
 	Travel.save_soon()
-	Events.toast.emit("Opened %s: %s." % [TIER_NAME.get(tier, "the chest"), ", ".join(got) if not got.is_empty() else "empty, long since"])
+	# the toast names what entered the bag; the piece is the bag on the ground, which carries its own name
+	var told := ", ".join(got) if not got.is_empty() else ("what it held is in the bag" if not piece.is_empty() else "empty, long since")
+	Events.toast.emit("Opened %s: %s." % [TIER_NAME.get(tier, "the chest"), told])
 	if is_inside_tree():
 		Sfx.play("res://art/audio/ward_chime.wav", global_position, -8.0)
 		var tw := create_tween()
