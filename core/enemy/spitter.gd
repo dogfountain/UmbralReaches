@@ -7,6 +7,8 @@ extends Enemy
 ## disc filling under you from the moment the sac swells, and a pool of acid where it lands.
 ## A Nova near it makes it spit back at once.
 
+const Tiers := preload("res://core/life/encounters/tiers.gd")
+
 @export var kite_min := 6.0
 @export var kite_max := 10.0
 @export var fire_range := 15.0

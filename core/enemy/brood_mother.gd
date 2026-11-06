@@ -11,6 +11,7 @@ extends Spitter
 ##           quicker and the spray widens. At most six of its mites live at once.
 ## No class_name (project rule): Guardians loads it by path.
 
+const Guardians := preload("res://core/life/encounters/guardians.gd")
 const MITE := "res://core/enemy/mite.gd"
 const BROOD_TELL := 1.6
 const SCALE := 1.7
