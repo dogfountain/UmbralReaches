@@ -62,7 +62,7 @@ static func _boathouse(root: Node, host: Node3D) -> void:
 			var a := TAU * float(i) / 8.0
 			var q := want + Vector2(cos(a), sin(a)) * r
 			var g := Kit.low(sp, q, 2.4)
-			if g < WATER - 0.2 and g > WATER - 3.2 and WorldLanes.site_at(q, 4.0).is_empty() and not _camp_near(q, 9.0) and r < best_d:
+			if g < WATER - 0.2 and g > WATER - 6.8 and WorldLanes.site_at(q, 4.0).is_empty() and not _camp_near(q, 9.0) and r < best_d:
 				best_d = r
 				best = q
 	if best == Vector2.INF:

@@ -27,8 +27,8 @@ const SALT_WIDOW := {"name": "The Salt-Widow", "giver": "marl", "where": "Marl P
 	"offer": true, "avail": "qd:salt_sweep",
 	"text": "There's one that doesn't walk, it stalks. Corra Vane's widow, who went out to bring her husband in off the pans and has been bringing him in ever since. She takes what she finds. She's taken three of ours. Whatever's left of her is mostly salt.",
 	"steps": [
-		{"kind": "slay", "of": 1, "rares": ["salt_widow"], "label": "The Salt-Widow", "at": Vector2(236.0, 150.0),
-			"text": "Put down the Salt-Widow on the pans' east edge"},
+		{"kind": "slay", "of": 1, "rares": ["salt_widow"], "label": "The Salt-Widow", "at": Vector2(238.0, 134.0),
+			"text": "Put down the Salt-Widow on the pans' north edge"},
 		{"kind": "turnin", "who": "marl", "text": "Tell Marl the widow has stopped"},
 	],
 	"reward": {"ash": 18, "items": {"relic_fragment": 1}},

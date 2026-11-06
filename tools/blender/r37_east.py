@@ -16,13 +16,15 @@ import os
 import sys
 import json
 import numpy as np
-from mathutils import Vector, Euler, Matrix
+from mathutils import Vector, Euler, Matrix, noise
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 PREVIEW = args[args.index("--preview") + 1] if "--preview" in args else ""
 
 # ================================================================== textures
+import tempfile
+TMP = tempfile.mkdtemp(prefix="r37e_")
 N = 1024
 
 
@@ -117,6 +119,20 @@ def blocks(n, rows, bw, seed, mortar_px, jitter=0.0):
     return ids, edge, rng
 
 
+def write_png(path, rgb):
+    """An 8-bit RGB PNG from a (h, w, 3) uint8 array (zlib + struct: Blender's own image saving came out black)."""
+    import zlib
+    import struct
+    h, w, _ = rgb.shape
+    raw = b"".join(b"\x00" + rgb[y].tobytes() for y in range(h))
+
+    def chunk(tag, data):
+        c = struct.pack(">I", len(data)) + tag + data
+        return c + struct.pack(">I", zlib.crc32(tag + data) & 0xffffffff)
+    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw, 6)) + chunk(b"IEND", b"")
+    open(path, "wb").write(png)
+
+
 def finish(name, albedo, height, rough, metal=0.0, ao=None, nstrength=3.0, size=N):
     """Make the three images (albedo sRGB, normal, ORM) as packed Blender images."""
     h = height.astype(np.float32)
@@ -130,10 +146,9 @@ def finish(name, albedo, height, rough, metal=0.0, ao=None, nstrength=3.0, size=
     orm = np.stack([ao, np.clip(rough, 0.04, 1.0), np.full_like(h, metal) if np.isscalar(metal) else metal], -1)
     out = {}
     for suf, arr, cs in (("albedo", np.clip(albedo, 0, 1), "sRGB"), ("normal", normal, "Non-Color"), ("orm", orm, "Non-Color")):
-        img = bpy.data.images.new("r37e_%s_%s" % (name, suf), size, size, alpha=False)
-        rgba = np.ones((size, size, 4), np.float32)
-        rgba[..., :3] = arr
-        img.pixels.foreach_set(rgba[::-1].ravel())
+        path = os.path.join(TMP, "r37e_%s_%s.png" % (name, suf))
+        write_png(path, (np.clip(arr, 0, 1) * 255.0 + 0.5).astype(np.uint8))
+        img = bpy.data.images.load(path)
         img.colorspace_settings.name = cs
         img.pack()
         out[suf] = img
@@ -282,12 +297,15 @@ def mk_mat(name, tex, tile, emit=None, emit_strength=0.0, color=None, rough=0.5,
         nm = nt.nodes.new('ShaderNodeNormalMap')
         nt.links.new(nrm.outputs['Color'], nm.inputs['Color'])
         nt.links.new(nm.outputs['Normal'], bsdf.inputs['Normal'])
-        o = nt.nodes.new('ShaderNodeTexImage')
-        o.image = tex['orm']
-        sep = nt.nodes.new('ShaderNodeSeparateColor')
-        nt.links.new(o.outputs['Color'], sep.inputs['Color'])
-        nt.links.new(sep.outputs['Green'], bsdf.inputs['Roughness'])
-        nt.links.new(sep.outputs['Blue'], bsdf.inputs['Metallic'])
+        if 'orm' in tex:
+            o = nt.nodes.new('ShaderNodeTexImage')
+            o.image = tex['orm']
+            sep = nt.nodes.new('ShaderNodeSeparateColor')
+            nt.links.new(o.outputs['Color'], sep.inputs['Color'])
+            nt.links.new(sep.outputs['Green'], bsdf.inputs['Roughness'])
+            nt.links.new(sep.outputs['Blue'], bsdf.inputs['Metallic'])
+        else:
+            bsdf.inputs['Roughness'].default_value = rough
     else:
         bsdf.inputs['Base Color'].default_value = (*color, 1.0)
         bsdf.inputs['Roughness'].default_value = rough
@@ -302,15 +320,27 @@ def mk_mat(name, tex, tile, emit=None, emit_strength=0.0, color=None, rough=0.5,
     return m
 
 
+def art(base):
+    """The art wave's real-scale textures (art/textures/<base>_{albedo,normal,rough}.png)."""
+    out = {}
+    for suf, cs in (("albedo", "sRGB"), ("normal", "Non-Color")):
+        img = bpy.data.images.load(os.path.join(ROOT, "art/textures", "%s_%s.png" % (base, suf)))
+        img.colorspace_settings.name = cs
+        img.pack()
+        out[suf] = img
+    return out
+
+
 def build_materials():
-    mk_mat("stone", tex_stone(11, 6, (0.2, 0.38), (0.42, 0.42, 0.4), 0.02, 0.0), 2.4)
-    mk_mat("stone_dark", tex_stone(12, 7, (0.18, 0.32), (0.27, 0.27, 0.27), 0.0, 0.25), 2.4)
-    mk_mat("timber", tex_timber(21, 6, (0.34, 0.25, 0.17), 0.1), 1.6)
-    mk_mat("timber_old", tex_timber(22, 5, (0.3, 0.27, 0.22), 0.55), 1.6)
+    mk_mat("stone", art("oss_ashlar"), 3.125, rough=0.88)
+    mk_mat("stone_dark", art("oss_ruin"), 2.5, rough=0.92)
+    mk_mat("timber", art("tavern_beam"), 1.7, rough=0.8)
+    mk_mat("timber_old", art("oss_hewn"), 2.5, rough=0.9)
     mk_mat("salt", tex_salt(31), 3.0)
-    mk_mat("plaster", tex_plaster(41), 2.4)
-    mk_mat("slate", tex_slate(51), 2.0)
+    mk_mat("plaster", art("tavern_plaster"), 2.0, rough=0.92)
+    mk_mat("slate", art("tavern_slate"), 1.6, rough=0.75)
     mk_mat("iron", tex_iron(61), 1.0)
+    mk_mat("window_glass", None, 1.0, color=(0.03, 0.035, 0.04), rough=0.1)
     mk_mat("glass_dark", None, 1.0, color=(0.02, 0.025, 0.03), rough=0.1)
     mk_mat("lamp_glass", None, 1.0, color=(0.55, 0.38, 0.18), rough=0.25, emit=(1.0, 0.55, 0.2), emit_strength=0.0)
     mk_mat("void", None, 1.0, color=(0.008, 0.008, 0.01), rough=1.0)
@@ -393,6 +423,21 @@ class MB:
         if col:
             r = max(r0, r1)
             COL.setdefault(CURRENT[0], []).append([round(v, 3) for v in (c[0], c[1] + h / 2, c[2], 2 * r, h, 2 * r, 0, 0, 0)])
+        return self
+
+    def blob(self, c, r, mat, seed=0, sub=3):
+        """A rounded, eroded mound (icosphere, noise-displaced, flat base) of radii r at c (base on y=c.y)."""
+        res = bmesh.ops.create_icosphere(self.bm, subdivisions=sub, radius=1.0)
+        vs = set(res['verts'])
+        for v in vs:
+            n = noise.noise(v.co * 2.3 + Vector((seed, seed * 0.7, 0.3)))
+            q = Vector((v.co.x * r[0], v.co.y * r[1], v.co.z * r[2])) * (1.0 + 0.14 * n)
+            q.y = max(q.y, 0.0) * (1.0 + 0.1 * abs(n))
+            v.co = q + Vector(c)
+        for f in self.bm.faces:
+            if all(v in vs for v in f.verts):
+                f.material_index = self._mi(mat)
+                f.smooth = True
         return self
 
     def cone(self, c, r, h, n, mat):
@@ -825,38 +870,154 @@ def works_hall():
     return mb.build()
 
 
+def beam(mb, a, b, tw, th, mat, col=False):
+    """A timber/iron member from point a to point b (Y-up), section tw x th."""
+    a, b = Vector(a), Vector(b)
+    d = b - a
+    z = d.normalized()
+    x = Vector((0, 1, 0)).cross(z)
+    if x.length < 1e-4:
+        x = Vector((1, 0, 0))
+    x.normalize()
+    y = z.cross(x)
+    R = Matrix(((x.x, y.x, z.x), (x.y, y.y, z.y), (x.z, y.z, z.z)))
+    mb.box(tuple((a + b) / 2), (tw, th, d.length), mat, rot=tuple(R.to_euler('XYZ')), col=col)
+
+
 def derrick():
+    """A brine derrick: four battered legs with lapped cross braces and iron straps, a working floor,
+    a king post, a long boom on a pivot block with a counterweight crate and a bucket on its rope."""
     CURRENT[0] = "derrick"
     mb = MB("Derrick")
     H = 9.0
+    top = 0.55
     for (sx, sz) in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
-        # legs lean in toward the top
-        a = Vector((sx * 2.0, 0, sz * 2.0))
-        b = Vector((sx * 0.5, H, sz * 0.5))
-        d = b - a
-        mid = (a + b) / 2
-        pitch = math.atan2(math.hypot(d.x, d.z), d.y)
-        yaw = math.atan2(d.x, d.z)
-        M = Euler((0, yaw, 0), 'XYZ').to_matrix() @ Euler((math.pi / 2 - (math.pi / 2 - pitch) * 0 - math.atan2(d.y, math.hypot(d.x, d.z)) * 0 + 0, 0, 0), 'XYZ').to_matrix()
-        # build the leg as a box along the vector with a look-at basis
-        z = d.normalized()
-        x = Vector((0, 1, 0)).cross(z).normalized() if abs(z.y) < 0.99 else Vector((1, 0, 0))
-        y = z.cross(x)
-        R = Matrix(((x.x, y.x, z.x), (x.y, y.y, z.y), (x.z, y.z, z.z)))
-        mb.box(tuple(mid), (0.28, 0.28, d.length), "timber", rot=tuple(R.to_euler('XYZ')))
-    for yy in (2.5, 5.2, 7.4):
-        w = 2.0 - (yy / H) * 1.5
-        for (c, s) in (((0, yy, w), (2 * w, 0.14, 0.14)), ((0, yy, -w), (2 * w, 0.14, 0.14)), ((w, yy, 0), (0.14, 0.14, 2 * w)), ((-w, yy, 0), (0.14, 0.14, 2 * w))):
+        a = (sx * 2.0, 0.0, sz * 2.0)
+        b = (sx * top, H, sz * top)
+        beam(mb, a, b, 0.3, 0.3, "timber")
+        mb.box((a[0], 0.25, a[2]), (0.7, 0.5, 0.7), "stone", col=False)                      # footing stone
+        for t in (0.3, 0.62):                                                               # iron straps where the braces land
+            p = (a[0] + (b[0] - a[0]) * t, H * t, a[2] + (b[2] - a[2]) * t)
+            mb.box(p, (0.36, 0.1, 0.36), "iron")
+    levels = (2.5, 5.2, 7.4)
+    for k, yy in enumerate(levels):
+        w = 2.0 - (yy / H) * 1.45
+        for (c, s) in (((0, yy, w), (2 * w, 0.16, 0.16)), ((0, yy, -w), (2 * w, 0.16, 0.16)), ((w, yy, 0), (0.16, 0.16, 2 * w)), ((-w, yy, 0), (0.16, 0.16, 2 * w))):
             mb.box(c, s, "timber")
-    mb.box((0, 5.0, 0), (2.4, 0.14, 2.4), "timber_old", col=True)                       # the working floor
-    mb.box((0, H + 0.1, 0), (1.4, 0.3, 1.4), "timber")
-    # the boom: a long beam out over the pan with a pulley, a counterweight of stones in a crate
-    mb.box((0, H + 0.6, 2.6), (0.3, 0.3, 7.0), "timber")
-    mb.box((0, H + 0.6, -2.4), (0.9, 0.9, 0.9), "stone_dark")
-    mb.box((0, H - 1.2, 5.6), (0.03, 4.0, 0.03), "iron")
-    mb.cyl((0, H - 3.6, 5.6), 0.5, 0.4, 0.55, 10, "timber_old")
-    mb.box((0, H + 1.3, 0), (0.3, 1.6, 0.3), "timber")
+        if k < 2:
+            w2 = 2.0 - (levels[k + 1] / H) * 1.45
+            for sgn in (-1, 1):                                                              # X braces on the four faces
+                beam(mb, (-w, yy, sgn * w), (w2 * 1.0, levels[k + 1], sgn * w2), 0.12, 0.14, "timber")
+                beam(mb, (w, yy, sgn * w), (-w2, levels[k + 1], sgn * w2), 0.12, 0.14, "timber")
+                beam(mb, (sgn * w, yy, -w), (sgn * w2, levels[k + 1], w2), 0.12, 0.14, "timber")
+                beam(mb, (sgn * w, yy, w), (sgn * w2, levels[k + 1], -w2), 0.12, 0.14, "timber")
+    mb.box((0, 5.0, 0), (2.4, 0.16, 2.4), "timber_old", col=True)                           # the working floor
+    for i in range(5):
+        mb.box((-0.9 + i * 0.45, 5.1, 0), (0.38, 0.05, 2.4), "timber")
+    mb.box((0, H + 0.1, 0), (1.5, 0.35, 1.5), "timber")
+    mb.box((0, H + 1.2, 0), (0.34, 2.2, 0.34), "timber")                                     # king post
+    beam(mb, (0, H + 0.5, -2.6), (0, H + 0.5, 5.4), 0.3, 0.34, "timber")                     # the boom
+    beam(mb, (0, H + 2.0, 0), (0, H + 0.7, 4.0), 0.1, 0.1, "iron")                           # stay
+    mb.box((0, H + 0.5, 0), (0.6, 0.55, 0.5), "iron")                                         # pivot block
+    mb.box((0, H + 0.5, -2.4), (1.0, 0.9, 0.9), "stone_dark")                                 # counterweight crate
+    mb.box((0, H + 0.5, -2.4), (1.06, 0.1, 0.96), "iron")
+    mb.box((0, H - 1.6, 5.2), (0.04, 4.2, 0.04), "iron")                                      # rope
+    mb.cyl((0, H - 4.2, 5.2), 0.48, 0.4, 0.55, 10, "timber_old")                              # bucket
+    mb.box((0, H - 3.65, 5.2), (0.98, 0.06, 0.06), "iron")
     COL["derrick"] = [[round(v, 3) for v in (sx * 1.25, 4.5, sz * 1.25, 0.4, 9.0, 0.4, 0, 0, 0)] for sx in (-1, 1) for sz in (-1, 1)]
+    return mb.build()
+
+
+def salt_heap():
+    """A heap of raked salt: a rounded, eroded mound with a crusted shoulder, no pyramid."""
+    CURRENT[0] = "heap"
+    mb = MB("Salt_Heap")
+    mb.blob((0, 0, 0), (1.9, 1.15, 1.6), "salt", seed=4)
+    mb.blob((1.1, 0, 0.5), (1.0, 0.6, 0.9), "salt", seed=9)
+    mb.blob((-0.9, 0, -0.7), (0.8, 0.45, 0.7), "salt", seed=13)
+    return mb.build()
+
+
+def house(name, w, d, wall_h, roof_h, door_x=0.0, lit=True):
+    """A hamlet house on a buried stone plinth: ashlar ground storey, a timber-framed plaster upper storey
+    (posts, rails, braces), a door with jambs, straps and steps, shuttered windows, a deep slate roof with
+    eaves, rafter ends and barge boards, and a stone chimney. Front is +z."""
+    CURRENT[0] = name.lower()
+    mb = MB(name)
+    PL = 0.45                                           # plinth top
+    mb.box((0, PL / 2 - 0.9, 0), (w + 0.7, PL + 1.8, d + 0.7), "stone", col=False)          # buried 1.35 m below, so a slope never shows a gap
+    sill = 1.25
+    wall(mb, 'x', (0, d / 2), w, 0.55, PL, sill, "stone", holes=[(door_x, 1.15, PL, sill)], col=False)
+    wall(mb, 'x', (0, -d / 2), w, 0.55, PL, sill, "stone", col=False)
+    wall(mb, 'z', (w / 2, 0), d, 0.55, PL, sill, "stone", col=False)
+    wall(mb, 'z', (-w / 2, 0), d, 0.55, PL, sill, "stone", col=False)
+    win = [(-w / 3, 0.9, sill + 0.25, sill + 1.15), (w / 3.4, 0.9, sill + 0.25, sill + 1.15)]
+    wall(mb, 'x', (0, d / 2), w, 0.5, sill, wall_h, "plaster", holes=[(door_x, 1.15, sill, sill + 1.0)] + [h for h in win if abs(h[0] - door_x) > 1.2], col=False)
+    wall(mb, 'x', (0, -d / 2), w, 0.5, sill, wall_h, "plaster", holes=[(w / 4, 0.9, sill + 0.25, sill + 1.15)], col=False)
+    wall(mb, 'z', (w / 2, 0), d, 0.5, sill, wall_h, "plaster", col=False)
+    wall(mb, 'z', (-w / 2, 0), d, 0.5, sill, wall_h, "plaster", holes=[(0.6, 0.9, sill + 0.25, sill + 1.15)], col=False)
+    mb.box((0, (PL + wall_h) / 2, 0), (w - 0.5, wall_h - PL, d - 0.5), "void")                # the dark inside
+    mb.box((0, PL + 0.05, 0), (w - 0.5, 0.1, d - 0.5), "timber_old")
+    # the timber frame on the plaster: posts, a rail at the sill and a wall plate, braces in the end bays
+    nb = max(int(w // 1.7), 2)
+    for face in (1, -1):
+        zf = face * (d / 2 + 0.3)
+        for i in range(nb + 1):
+            x = -w / 2 + 0.12 + i * (w - 0.24) / nb
+            mb.box((x, (sill + wall_h) / 2, zf), (0.16, wall_h - sill, 0.12), "timber")
+        mb.box((0, sill, zf), (w + 0.3, 0.16, 0.14), "timber")
+        mb.box((0, wall_h - 0.1, zf), (w + 0.4, 0.22, 0.16), "timber")
+        xa = -w / 2 + 0.12
+        xb = xa + (w - 0.24) / nb
+        beam(mb, (xa, sill + 0.1, zf), (xb, wall_h - 0.2, zf), 0.1, 0.12, "timber")
+        beam(mb, (w / 2 - 0.12, sill + 0.1, zf), (w / 2 - 0.12 - (w - 0.24) / nb, wall_h - 0.2, zf), 0.1, 0.12, "timber")
+    for face in (1, -1):
+        xf_ = face * (w / 2 + 0.3)
+        for z in (-d / 2 + 0.12, 0.0, d / 2 - 0.12):
+            mb.box((xf_, (sill + wall_h) / 2, z), (0.12, wall_h - sill, 0.16), "timber")
+        mb.box((xf_, wall_h - 0.1, 0), (0.16, 0.22, d + 0.4), "timber")
+    # the door: jambs, a lintel, plank leaves ajar, strap hinges, a latch, a worn stone step and a mounting block
+    zd = d / 2
+    for sgn in (-1, 1):
+        mb.box((door_x + sgn * 0.62, 1.2, zd + 0.1), (0.14, 2.0, 0.2), "timber")
+    mb.box((door_x, 2.28, zd + 0.1), (1.5, 0.2, 0.22), "timber")
+    mb.box((door_x - 0.35, 1.2, zd + 0.34), (0.6, 1.9, 0.07), "timber_old", rot=(0, 0.75, 0))
+    mb.box((door_x - 0.35, 1.7, zd + 0.4), (0.6, 0.07, 0.04), "iron", rot=(0, 0.75, 0))
+    mb.box((door_x - 0.35, 0.8, zd + 0.4), (0.6, 0.07, 0.04), "iron", rot=(0, 0.75, 0))
+    mb.box((door_x, 0.2, zd + 0.85), (1.5, 0.3, 0.9), "stone", col=True)
+    mb.box((door_x, 0.35, zd + 0.45), (1.3, 0.1, 0.6), "stone")
+    # windows: sills, lintels, glass, open shutters
+    wins = [(h[0], 'f') for h in win if abs(h[0] - door_x) > 1.2] + [(w / 4, 'b')]
+    for (x, side) in wins:
+        z = (d / 2 + 0.28) if side == 'f' else (-d / 2 - 0.28)
+        sg = 1 if side == 'f' else -1
+        mb.box((x, sill + 0.2, z), (1.15, 0.12, 0.3), "stone")
+        mb.box((x, sill + 1.2, z), (1.15, 0.14, 0.26), "timber")
+        mb.box((x, sill + 0.7, z - sg * 0.12), (0.8, 0.9, 0.05), "window_glass")
+        mb.box((x, sill + 0.7, z), (0.05, 0.9, 0.06), "timber")
+        mb.box((x, sill + 0.7, z), (0.8, 0.05, 0.06), "timber")
+        for sgn in (-1, 1):
+            mb.box((x + sgn * 0.62, sill + 0.7, z + sg * 0.14), (0.4, 0.95, 0.05), "timber_old", rot=(0, sgn * sg * 0.9, 0))
+    zw = (-w / 2 - 0.28)
+    mb.box((zw, sill + 0.7, 0.6), (0.06, 0.9, 0.8), "window_glass")
+    # the roof: a deep slate gable over the eaves, rafter ends, barge boards, a ridge cap, a stone chimney
+    ov = 0.85
+    mb.wedge((0, wall_h, 0), d + 2 * ov, w + 1.0, roof_h, "slate", ry=math.pi / 2, col=False)
+    mb.box((0, wall_h + roof_h + 0.03, 0), (w + 1.1, 0.14, 0.3), "timber")
+    for i in range(int(w // 0.7) + 1):
+        x = -w / 2 - 0.3 + i * (w + 0.6) / int(w // 0.7)
+        for sg in (-1, 1):
+            beam(mb, (x, wall_h - 0.05, sg * (d / 2 + 0.1)), (x, wall_h + 0.1, sg * (d / 2 + ov - 0.05)), 0.1, 0.1, "timber")
+    slope = math.atan2(roof_h, d / 2 + ov)
+    for sg in (-1, 1):
+        mb.box((0, wall_h + 0.02, sg * (d / 2 + ov)), (w + 1.1, 0.16, 0.12), "timber")
+        for e in (-1, 1):
+            beam(mb, (e * (w / 2 + 0.5), wall_h, sg * (d / 2 + ov)), (e * (w / 2 + 0.5), wall_h + roof_h, 0), 0.08, 0.14, "timber")
+    mb.box((w / 2 - 0.8, wall_h + roof_h * 0.75, 0.0), (0.8, roof_h * 1.7, 0.9), "stone")
+    mb.box((w / 2 - 0.8, wall_h + roof_h * 1.62, 0.0), (1.05, 0.18, 1.15), "stone")
+    mb.box((w / 2 - 0.8, wall_h + roof_h * 1.62 + 0.1, 0.0), (0.55, 0.05, 0.6), "void")
+    COL[name.lower()] = [[0, 0.0, 0, w + 0.7, 1.0, d + 0.7, 0, 0, 0], [0, wall_h / 2 + 0.2, 0, w + 0.3, wall_h, d + 0.3, 0, 0, 0],
+                         [0, wall_h + roof_h * 0.35, 0, w, roof_h * 0.7, d, 0, 0, 0]]
     return mb.build()
 
 
@@ -886,39 +1047,6 @@ def crystal(name, seed):
     return mb.build()
 
 
-def salt_heap():
-    CURRENT[0] = "heap"
-    mb = MB("Salt_Heap")
-    mb.cyl((0, 0, 0), 1.8, 0.5, 1.5, 9, "salt", cap=False)
-    mb.cone((0, 1.5, 0), 0.5, 0.35, 9, "salt")
-    return mb.build()
-
-
-# ================================================================== the hamlet
-def house(name, w, d, wall_h, roof_h, door_x=0.0):
-    CURRENT[0] = name.lower()
-    mb = MB(name)
-    mb.box((0, 0.2, 0), (w + 0.4, 0.4, d + 0.4), "stone", col=False)
-    wall(mb, 'x', (0, d / 2), w, 0.5, 0.4, wall_h, "plaster", holes=[(door_x, 1.1, 0.4, 2.2), (-w / 3, 0.8, 1.2, 2.0)])
-    wall(mb, 'x', (0, -d / 2), w, 0.5, 0.4, wall_h, "plaster", holes=[(w / 4, 0.8, 1.2, 2.0)])
-    wall(mb, 'z', (w / 2, 0), d, 0.5, 0.4, wall_h, "plaster")
-    wall(mb, 'z', (-w / 2, 0), d, 0.5, 0.4, wall_h, "plaster", holes=[(0.5, 0.8, 1.2, 2.0)])
-    mb.box((0, wall_h * 0.5 + 0.2, 0), (w - 0.6, wall_h, d - 0.6), "void")
-    mb.box((0, 0.35, 0), (w - 0.5, 0.1, d - 0.5), "timber_old")
-    # exposed timbers
-    for i in range(int(w // 1.6) + 1):
-        x = -w / 2 + 0.25 + i * (w - 0.5) / max(int(w // 1.6), 1)
-        mb.box((x, wall_h / 2 + 0.2, d / 2 + 0.29), (0.16, wall_h - 0.4, 0.1), "timber")
-    mb.box((0, wall_h - 0.05, d / 2 + 0.29), (w + 0.2, 0.2, 0.12), "timber")
-    # door and shutters
-    mb.box((door_x, 1.3, d / 2 + 0.1), (1.0, 1.9, 0.08), "timber_old", rot=(0, 0.5, 0))
-    mb.wedge((0, wall_h, 0), d + 1.0, w + 0.9, roof_h, "slate", ry=math.pi / 2, col=False)
-    COL[name.lower()] = [[0, wall_h / 2 + 0.2, 0, w + 0.2, wall_h, d + 0.2, 0, 0, 0], [0, wall_h + roof_h * 0.35, 0, w, roof_h * 0.7, d, 0, 0, 0]]
-    # chimney
-    mb.box((w / 2 - 0.9, wall_h + roof_h * 0.7, 0.0), (0.7, roof_h * 1.6, 0.7), "stone")
-    return mb.build()
-
-
 def drying_shed():
     CURRENT[0] = "drying_shed"
     mb = MB("Drying_Shed")
@@ -930,7 +1058,7 @@ def drying_shed():
         mb.box((0, 1.4 + i * 0.45, 0), (7.0, 0.05, 0.05), "timber")
         for j in range(9):
             mb.box((-3.2 + j * 0.8, 1.2 + i * 0.45, 0.0), (0.18, 0.4, 0.04), "salt")
-    mb.wedge((0, 3.2, 0), 4.2, 8.0, 1.0, "timber_old", ry=0.0)
+    mb.wedge((0, 3.2, 0), 4.6, 8.2, 1.1, "slate", ry=math.pi / 2)
     COL["drying_shed"] = [[x, 1.6, z, 0.3, 3.2, 0.3, 0, 0, 0] for x in (-3.4, 0, 3.4) for z in (-1.6, 1.6)]
     return mb.build()
 
@@ -944,7 +1072,7 @@ def stall():
         mb.box((x, 1.0, 0.9), (0.14, 2.0, 0.14), "timber")
     mb.box((0, 1.0, 0.55), (3.2, 0.1, 1.0), "timber_old", col=False)
     mb.box((0, 0.5, 0.55), (3.0, 1.0, 0.9), "timber", col=False)
-    mb.wedge((0, 2.4, 0.0), 3.6, 3.0, 0.5, "plaster", ry=math.pi / 2)
+    mb.wedge((0, 2.4, 0.0), 3.4, 3.8, 0.6, "slate", ry=math.pi / 2)
     for i in range(5):
         mb.cyl((-1.1 + i * 0.55, 1.05, 0.5), 0.2, 0.12, 0.34, 8, "salt")
     COL["stall"] = [[0, 0.5, 0.55, 3.2, 1.0, 1.0, 0, 0, 0]]
@@ -1004,7 +1132,7 @@ def main():
     export(cells, os.path.join(models, "r37e_cells.glb"))
     sw = [works_hall(), derrick(), pan_unit(), crystal("Crystal_A", 3), crystal("Crystal_B", 9), salt_heap()]
     export(sw, os.path.join(models, "r37e_saltworks.glb"))
-    ham = [house("House_A", 7.0, 5.0, 3.0, 2.4, 0.6), house("House_B", 6.0, 4.6, 2.8, 2.1, -0.8), house("House_C", 8.0, 5.6, 3.2, 2.7, 0.0),
+    ham = [house("House_A", 7.0, 5.0, 3.2, 2.4, 0.6), house("House_B", 6.0, 4.6, 3.0, 2.1, -0.8), house("House_C", 8.0, 5.6, 3.3, 2.7, 0.0),
            drying_shed(), stall()]
     export(ham, os.path.join(models, "r37e_hamlet.glb"))
     write_boxes()

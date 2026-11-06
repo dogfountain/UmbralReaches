@@ -91,8 +91,8 @@ const RARES := {
 		"line": "The Fare-Caller goes under without its fare."},
 	# --- the east marches ---
 	"salt_widow": {"title": "The Salt-Widow", "kind": "gaunt", "hp": 30, "scale": 1.4,
-		"spots": [Vector2(236, 150), Vector2(244, 156), Vector2(228, 146)], "ash": 40, "loot": [["relic_fragment", 2]],
-		"route": [Vector2(236, 150), Vector2(246, 164), Vector2(232, 172), Vector2(222, 160), Vector2(228, 146)],
+		"spots": [Vector2(238, 132), Vector2(248, 138), Vector2(224, 134)], "ash": 40, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(238, 132), Vector2(250, 142), Vector2(236, 138), Vector2(222, 134), Vector2(212, 130)],
 		"line": "The Salt-Widow sits down on the white, and the white takes her."},
 	"drowned_lamplighter": {"title": "The Drowned Lamplighter", "kind": "husk", "variant": "drowned", "hp": 36, "scale": 1.35,
 		"spots": [Vector2(180, 18), Vector2(178, -2), Vector2(184, 30)], "ash": 38, "loot": [["relic_fragment", 2]],
