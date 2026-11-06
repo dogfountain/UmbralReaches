@@ -532,7 +532,7 @@ func _summon_choir() -> void:
 				e._hp_bar.set_instance_shader_parameter(&"segments", Enemy.hp_segments(CHOIR_HP))
 			e._rally_t = 4.0
 	if not spots.is_empty():
-		BossKit.emote(self, "The Choir sings him whole.")
+		BossKit.emote(self, "The Choir wards him while they sing. Silence them.")
 
 
 func _tick_choir(delta: float) -> void:
@@ -547,7 +547,7 @@ func _tick_choir(delta: float) -> void:
 			for e in ch:
 				Vfx.arc(e.global_position + Vector3.UP * 1.6, global_position + Vector3.UP * hp_bar_y * 0.6, AttackKit.GLOAM, 0.35, 0.2)
 		if not was:
-			HitText.pop(global_position + Vector3.UP * (hp_bar_y + 1.2), "hymned", AttackKit.GLOAM, true)
+			HitText.pop(global_position + Vector3.UP * (hp_bar_y + 1.2), "warded", AttackKit.GLOAM, true)
 	elif was:
 		_shroud_t = 0.0
 		HitText.pop(global_position + Vector3.UP * (hp_bar_y + 1.2), "the hymn falters", WEAK_COL, true)
