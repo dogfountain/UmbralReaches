@@ -43,7 +43,9 @@ const WarmAttackKit := preload("res://core/enemy/attack_kit.gd")
 const WarmBossKit := preload("res://core/enemy/boss_kit.gd")
 const WarmHorseRig := preload("res://core/world/mount/horse_rig.gd")
 const WarmHorseDB := preload("res://core/world/mount/horse_db.gd")
-const BOSSES := ["res://core/enemy/thornwarden.gd", "res://core/enemy/bone_abbot.gd", "res://core/enemy/ascended_warden.gd"]
+const BOSSES := ["res://core/enemy/thornwarden.gd", "res://core/enemy/bone_abbot.gd", "res://core/enemy/ascended_warden.gd",
+	# --- r37 east ---
+	"res://core/enemy/anchoress.gd"]
 const CORES := ["core_prism", "core_lodestar", "core_cinder", "core_rime"]
 const SKIP_AFTER_VIEW := 2        # stops (spawn, the Keg) the tour must have shown before a key may leave the rest
 const DIRS := 6                 # headings per stop
