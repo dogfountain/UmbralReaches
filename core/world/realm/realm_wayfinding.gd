@@ -290,7 +290,9 @@ static func _spawn(parent: Node3D, mesh: ArrayMesh, xf: Transform3D, collide: bo
 ## reads as a warm line against the bright vortex (an additive column vanished into it), unshaded
 ## and under the glow threshold. Not built if `boss_id` is already slain; it narrows and goes out
 ## when that boss falls.
-static func beacon(parent: Node3D, at: Vector3, boss_id: String, col: Color, height: float, radius: float, ceiling := 9.0) -> Node3D:
+## `soft` (r37, the summit): an additive column with radial falloff to nothing at its edge and a fade at
+## foot and top (world/beacon_column.gdshader), energy capped under the glow threshold.
+static func beacon(parent: Node3D, at: Vector3, boss_id: String, col: Color, height: float, radius: float, ceiling := 9.0, soft := false) -> Node3D:
 	if boss_id != "" and Travel.bosses_slain.has(boss_id):
 		return null
 	var root: Node3D = Beacon.new()
@@ -308,16 +310,24 @@ static func beacon(parent: Node3D, at: Vector3, boss_id: String, col: Color, hei
 		cyl.cap_top = false
 		cyl.cap_bottom = false
 		mi.mesh = cyl
-		var m := StandardMaterial3D.new()
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		m.cull_mode = BaseMaterial3D.CULL_DISABLED
-		m.disable_fog = true
-		m.albedo_texture = _fade_tex()
-		var c := col * float(layer[2])
-		c.a = float(layer[1])
-		m.albedo_color = c
-		mi.material_override = m
+		if soft:
+			var sm := ShaderMaterial.new()
+			sm.shader = load("res://world/beacon_column.gdshader") as Shader
+			sm.set_shader_parameter(&"tint", Color(col.r, col.g, col.b))
+			sm.set_shader_parameter(&"energy", 0.8 * float(layer[2]))
+			sm.set_shader_parameter(&"alpha", float(layer[1]) * 0.9)
+			mi.material_override = sm
+		else:
+			var m := StandardMaterial3D.new()
+			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			m.cull_mode = BaseMaterial3D.CULL_DISABLED
+			m.disable_fog = true
+			m.albedo_texture = _fade_tex()
+			var c := col * float(layer[2])
+			c.a = float(layer[1])
+			m.albedo_color = c
+			mi.material_override = m
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 		mi.extra_cull_margin = 20.0
