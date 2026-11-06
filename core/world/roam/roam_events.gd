@@ -74,6 +74,8 @@ func _physics_process(delta: float) -> void:
 			_tick_pilgrim()
 		_:
 			_tick_foes()
+	if kind != "" and _t > LAST - 5.0 and is_instance_valid(_pin):
+		_pin.queue_free()                 # it lets go of the map in its last seconds; nothing here is saved
 	if kind != "" and _t > LAST:
 		_end(false)
 
@@ -175,8 +177,16 @@ func _tick_foes() -> void:
 		if not is_instance_valid(_foes[i]) or not (_foes[i] as Enemy).is_alive():
 			_foes.remove_at(i)
 			_done_n += 1
-	if is_instance_valid(_pin) and not _foes.is_empty() and is_instance_valid(_foes[0]):
-		_pin.global_position = (_foes[0] as Node3D).global_position
+	if is_instance_valid(_pin) and not _foes.is_empty():
+		# the pin rides the file, not one body: killing the leader leaves it on the rest
+		var sum := Vector3.ZERO
+		var n := 0
+		for f in _foes:
+			if is_instance_valid(f):
+				sum += (f as Node3D).global_position
+				n += 1
+		if n > 0:
+			_pin.global_position = sum / float(n)
 	if _done_n >= _need:
 		_end(true)
 
@@ -192,7 +202,7 @@ func _tick_tear(delta: float) -> void:
 		var e: Enemy = _make(Crawler if _rng.randf() < 0.5 else Leaper)
 		e.set_meta(&"roam", kind)
 		get_parent().add_child(e)
-		e.global_position = _at + Vector3(_rng.randf_range(-1.5, 1.5), 1.0, _rng.randf_range(-1.5, 1.5))
+		e.global_position = _ground(_at + Vector3(_rng.randf_range(-1.5, 1.5), 0.0, _rng.randf_range(-1.5, 1.5))) + Vector3.UP * 0.1
 		_foes.append(e)
 		Vfx.burst(_at + Vector3.UP * 1.4, Color(1.2, 0.6, 3.0), {"count": 30, "life": 0.6, "speed": Vector2(1.0, 4.0), "size": 0.05, "gravity": 0.0, "trail": 0.08})
 
@@ -235,7 +245,7 @@ func _tick_pilgrim() -> void:
 		var home := _who.global_position + (_who.global_position - Vector3(0.0, 0.0, -104.0)).normalized() * 40.0
 		home.y = _who.global_position.y
 		_who.set("follow", home)
-		Events.toast.emit("\"I was going up. I don't know why I was going up.\" The pilgrim turns round and walks home.")
+		Events.toast.emit("\"I was going up. I don't know why I was going up.\" The pilgrim turns round and walks home.  (+10 grave ash, +1 relic fragment)")
 		Travel.give("grave_ash", 10, false)
 		Travel.give("relic_fragment", 1, false)
 		_t = LAST - 20.0                 # she walks a while, then the night takes her out of sight
