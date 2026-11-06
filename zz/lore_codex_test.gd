@@ -33,7 +33,9 @@ func _process(d: float) -> void:
 	if done:
 		return
 	var rl := get_tree().root.find_child("RealmLore", true, false)
-	if rl == null or not rl.has_meta("scraps"):
+	var main := get_tree().root.find_child("Main", true, false)
+	# the whole Realm, not just the lore module: the places' own stones (RealmPois) come after it
+	if rl == null or not rl.has_meta("scraps") or main == null or not main.has_meta("realm_done"):
 		if t > 150.0:
 			fail("RealmLore never finished")
 			_end()
