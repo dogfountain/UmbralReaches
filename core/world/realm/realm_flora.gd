@@ -189,9 +189,9 @@ static func build(root: Node) -> void:
 	var space := (root as Node3D).get_world_3d().direct_space_state
 	_noises()
 	var area := RealmLayout.BOUNDS.grow(MARGIN)
-	_x0 = area.position.x
+	_x0 = RealmLayout.OLD_BOUNDS.position.x - MARGIN - 4.0 * ceilf((RealmLayout.OLD_BOUNDS.position.x - area.position.x - MARGIN) / 4.0)   # the old Realm's lattice phase (cover, biome cells)
 	_z0 = area.position.y
-	_nx = int(area.size.x / CELL) + 1
+	_nx = int((area.end.x - _x0) / CELL) + 1
 	_nz = int(area.size.y / CELL) + 1
 	_sample(space)
 	var t1 := Time.get_ticks_msec()
@@ -463,7 +463,7 @@ static func looks_at(x: float, z: float) -> Array:
 		var look: Dictionary = LOOKS.get(r.id, MarchesLooks.LOOKS.get(r.id, {}))
 		if look.is_empty():
 			continue
-		var lw := _look_weight(r, x, z)
+		var lw := _look_weight(r, x, z) * (RealmLayout.marches_mask(Vector2(x, z)) if String(r.id) in RealmLayout.MARCHES_IDS else 1.0)
 		if lw > 0.001:
 			out.append([look, lw, String(r.id)])
 	return out
@@ -593,7 +593,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 		for ci in cands.size():
 			var c: Vector2 = cands[ci]
 			var lk: Array = clk[ci]
-			var rng := (rng_main if lk.is_empty() else rng2) if ci < n_old else (rng_new if lk.is_empty() else rng_new_look)
+			var rng := (rng_new if lk.is_empty() else rng_new_look) if ci >= n_old or (RealmLayout.BOUNDS.has_point(c) and not RealmLayout.OLD_BOUNDS.has_point(c)) else (rng_main if lk.is_empty() else rng2)
 			var w := biome_w(c.x, c.y)
 			var p := _rate(TREE_P[sp], w)
 			for e: Array in lk:

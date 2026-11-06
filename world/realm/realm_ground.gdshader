@@ -2,8 +2,10 @@ shader_type spatial;
 render_mode diffuse_burley, specular_schlick_ggx;
 // Realm ground (core/world/realm/realm_land.gd). Biome splat from vertex data:
 //   COLOR  r meadow  g forest loam  b fen mud  a ash      UV  x heath  y crag scree
-//   UV2    x ruin flagstone  y worn path (overlay)   CUSTOM0 x salt crust (r37, the White Pans; its own
-//   textures salt_alb / salt_nrm, tools/realm_salt_texture.gd: weight slot 7)
+//   UV2    x ruin flagstone  y worn path (overlay)
+// Salt crust (the White Pans; its own textures salt_alb / salt_nrm, tools/realm_salt_texture.gd) is weight slot 7:
+// not in the vertex data (a custom vertex channel did not survive the terrain's rebuilds) but analytic: the same
+// warped rect falloff as RealmLayout.place_weight, from salt_rect; the vertex weights share what it leaves.
 // Layers live in two texture arrays (tools/realm_land_textures.gd):
 //   alb: rgb albedo, a height      nrm: rg tilt (x, z), b roughness, a AO
 // Height-blended between layers; steep ground (> ~35 deg) turns to triplanar cliff rock (layer 8).
@@ -21,6 +23,7 @@ uniform sampler2DArray nrm : hint_default_white, filter_linear_mipmap_anisotropi
 uniform sampler2D salt_alb : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D salt_nrm : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float salt_scale = 0.2;
+uniform vec4 salt_rect = vec4(160.0, 112.0, 258.0, 240.0);     // x0 z0 x1 z1 = RealmLayout.PANS
 uniform vec3 tint = vec3(0.8, 0.88, 1.0);        // cool night grading of the authored colours
 uniform float saturation = 0.95;
 uniform float brightness = 1.2;          // ENS pass: 1.35 -> 1.2, open ground under the moon left no room for warm pools
@@ -48,7 +51,6 @@ varying vec3 wpos;
 varying vec3 wnrm;
 varying vec4 w_a;
 varying vec4 w_b;
-varying float w_salt;
 
 // (the layer scales and turns are local consts in fragment(): global const arrays were left as
 // orphan names at exit, zz/quit_probe --verbose)
@@ -58,7 +60,6 @@ void vertex() {
 	wnrm = normalize(MODEL_NORMAL_MATRIX * NORMAL);
 	w_a = COLOR;
 	w_b = vec4(UV, UV2);
-	w_salt = CUSTOM0.x;
 }
 
 // sin-free hash (Hoskins): the lumps and drifts ran 16 sin() a pixel
@@ -106,7 +107,14 @@ void fragment() {
 	// cos/sin of each layer's turn (i * 1.3 rad), so no pixel computes 14 trig calls for constants
 	const vec2 LAYER_CS[8] = vec2[](vec2(1.000000000, 0.000000000), vec2(0.267498829, 0.963558185), vec2(-0.856888753, 0.515501372), vec2(-0.725932304, -0.687766159), vec2(0.468516671, -0.883454656), vec2(0.976587626, 0.215119988), vec2(0.053955421, 0.998543345), vec2(-0.947733, 0.319096));
 	// layer order (tools/realm_land_textures.gd): meadow r, heath UV.x, loam g, mud b, ash a, crag UV.y, ruin UV2.x
-	float w[8] = float[](w_a.r, w_b.x, w_a.g, w_a.b, w_a.a, w_b.y, w_b.z, w_salt);
+	vec2 sq = wpos.xz;
+	sq += vec2(sin(sq.y * 0.09 + 1.3) + 0.6 * sin(sq.y * 0.21 + sq.x * 0.05), sin(sq.x * 0.08 + 0.4) + 0.6 * sin(sq.x * 0.19 - sq.y * 0.06)) * 4.4;
+	vec2 sd = max(max(salt_rect.xy - sq, vec2(0.0)), sq - salt_rect.zw);
+	float salt_t = clamp(1.0 - length(sd) / 18.0, 0.0, 1.0);
+	float w_salt = salt_t * salt_t * (3.0 - 2.0 * salt_t);
+	float w_rest = w_a.r + w_b.x + w_a.g + w_a.b + w_a.a + w_b.y + w_b.z;
+	float w_k = (1.0 - w_salt) / max(w_rest, 0.001);
+	float w[8] = float[](w_a.r * w_k, w_b.x * w_k, w_a.g * w_k, w_a.b * w_k, w_a.a * w_k, w_b.y * w_k, w_b.z * w_k, w_salt);
 	float path = clamp(w_b.w, 0.0, 1.0);
 	vec2 p = wpos.xz;
 	// distance LOD: near, the tiles at their own scale with their normal maps; far, the same layers

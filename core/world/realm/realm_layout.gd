@@ -785,9 +785,23 @@ static func _area(r: Dictionary) -> float:
 
 static func region_weight(r: Dictionary, x: float, z: float) -> float:
 	var p := Vector2(x, z)
+	var w: float
 	if r.has("rect"):
-		return _rect_w(p + _warp(p), r.rect, 18.0)      # ragged land edges (names keep the plain rect)
-	return _bump(p, r.c, float(r.r) * 1.4)
+		w = _rect_w(p + _warp(p), r.rect, 18.0)      # ragged land edges (names keep the plain rect)
+	else:
+		w = _bump(p, r.c, float(r.r) * 1.4)
+	if w > 0.0 and String(r.id) in MARCHES_IDS:
+		w *= marches_mask(p)                         # the Marches' land never bleeds into the old Realm's biomes
+	return w
+
+
+## The regions added beyond OLD_BOUNDS (the Outer Marches and the Southern Downs).
+const MARCHES_IDS := ["weirford", "sorrow", "hierarch", "siege", "stillwater", "anchorholds", "saltmarket", "saltpans", "downs", "oak", "well"]
+
+
+## 0 inside OLD_BOUNDS, easing to 1 over 12 m outside it.
+static func marches_mask(p: Vector2) -> float:
+	return smoothstep(0.0, 12.0, _out_dist(p, OLD_BOUNDS))
 
 
 ## The landform biome (footsteps, weather, wildlife, ambience): the heaviest region by its blend

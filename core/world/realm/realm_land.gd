@@ -53,7 +53,7 @@ const WATER_MAT := "res://art/materials/realm_ground_water.tres"
 ## Paths whose profile is pinned at their last point (and may cut into the keep blend band).
 const PATH_PIN := {"fen_descent": [4.0, true], "rift_rim": [0.4, false]}
 const BIOMES := ["meadow", "loam", "mud", "ash", "heath", "crag", "ruin", "salt"]
-const NB := 8                          ## biome weights ("salt", the White Pans, rides in the vertex CUSTOM0)
+const NB := 8                          ## biome weights ("salt", the White Pans, is analytic in the ground shader: salt_rect)
 const BIOME_OF := {"meadow": 0, "oldforest": 1, "fen": 2, "ash": 3, "heath": 4, "crag": 5, "ruin": 6, "salt": 7, "glade": 0}
 
 static var _h := PackedFloat32Array()           ## final designed heights (GNX * GNZ)
@@ -582,7 +582,7 @@ static func _splat(x: float, z: float, h: float, nrm_y: float, ring: bool) -> Ar
 	for i in NB:
 		bw[i] /= maxf(tot, 0.0001)
 	var wear := 0.0 if ring else _wear_g[roundi((z - GZ0) / STEP) * GNX + roundi((x - GX0) / STEP)]
-	return [Color(bw[0], bw[1], bw[2], bw[3]), Vector2(bw[4], bw[5]), Vector2(bw[6], wear), bw[7]]
+	return [Color(bw[0], bw[1], bw[2], bw[3]), Vector2(bw[4], bw[5]), Vector2(bw[6], wear)]
 
 
 static func _grid_normal(hs: PackedFloat32Array, nx: int, nz: int, step: float, i: int, j: int) -> Vector3:
@@ -601,14 +601,12 @@ static func _terrain_mesh() -> MeshInstance3D:
 	var cols := PackedColorArray()
 	var uv := PackedVector2Array()
 	var uv2 := PackedVector2Array()
-	var salt := PackedFloat32Array()
 	var n := GNX * GNZ
 	verts.resize(n)
 	nrms.resize(n)
 	cols.resize(n)
 	uv.resize(n)
 	uv2.resize(n)
-	salt.resize(n)
 	# r34: rows in parallel (the splat's biome blend is the cost and pure math); stitched after
 	var rows: Array = []
 	rows.resize(GNZ)
@@ -620,7 +618,6 @@ static func _terrain_mesh() -> MeshInstance3D:
 		var rc: PackedColorArray = r[1]
 		var ru: PackedVector2Array = r[2]
 		var ru2: PackedVector2Array = r[3]
-		var rs: PackedFloat32Array = r[4]
 		for i in GNX:
 			var k := j * GNX + i
 			verts[k] = Vector3(GX0 + i * STEP, _h[k], GZ0 + j * STEP)
@@ -628,10 +625,9 @@ static func _terrain_mesh() -> MeshInstance3D:
 			cols[k] = rc[i]
 			uv[k] = ru[i]
 			uv2[k] = ru2[i]
-			salt[k] = rs[i]
 	var idx := _grid_indices(GNX, GNZ, func(_i: int, _j: int) -> bool: return true)
 	var mi := MeshInstance3D.new()
-	mi.mesh = _array_mesh(verts, nrms, cols, uv, uv2, idx, salt)
+	mi.mesh = _array_mesh(verts, nrms, cols, uv, uv2, idx)
 	mi.material_override = load(MAT)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	return mi
@@ -643,12 +639,10 @@ static func _mesh_row(j: int) -> Array:
 	var rc := PackedColorArray()
 	var ru := PackedVector2Array()
 	var ru2 := PackedVector2Array()
-	var rs := PackedFloat32Array()
 	rn.resize(GNX)
 	rc.resize(GNX)
 	ru.resize(GNX)
 	ru2.resize(GNX)
-	rs.resize(GNX)
 	var z := GZ0 + j * STEP
 	for i in GNX:
 		var k := j * GNX + i
@@ -658,8 +652,7 @@ static func _mesh_row(j: int) -> Array:
 		rc[i] = sp[0]
 		ru[i] = sp[1]
 		ru2[i] = sp[2]
-		rs[i] = sp[3]
-	return [rn, rc, ru, ru2, rs]
+	return [rn, rc, ru, ru2]
 
 
 ## Two clockwise-from-above triangles per accepted cell (Godot's front face), same diagonal everywhere.
@@ -677,7 +670,7 @@ static func _grid_indices(nx: int, nz: int, accept: Callable) -> PackedInt32Arra
 	return idx
 
 
-static func _array_mesh(verts: PackedVector3Array, nrms: PackedVector3Array, cols: PackedColorArray, uv: PackedVector2Array, uv2: PackedVector2Array, idx: PackedInt32Array, salt: PackedFloat32Array) -> ArrayMesh:
+static func _array_mesh(verts: PackedVector3Array, nrms: PackedVector3Array, cols: PackedColorArray, uv: PackedVector2Array, uv2: PackedVector2Array, idx: PackedInt32Array) -> ArrayMesh:
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = verts
@@ -685,10 +678,9 @@ static func _array_mesh(verts: PackedVector3Array, nrms: PackedVector3Array, col
 	arrays[Mesh.ARRAY_COLOR] = cols
 	arrays[Mesh.ARRAY_TEX_UV] = uv
 	arrays[Mesh.ARRAY_TEX_UV2] = uv2
-	arrays[Mesh.ARRAY_CUSTOM0] = salt              # the White Pans' salt weight (one float a vertex)
 	arrays[Mesh.ARRAY_INDEX] = idx
 	var m := ArrayMesh.new()
-	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, Mesh.ARRAY_CUSTOM_R_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return m
 
 
@@ -754,7 +746,6 @@ static func _ring(zone: Node3D) -> int:
 		var cols := PackedColorArray()
 		var uv := PackedVector2Array()
 		var uv2 := PackedVector2Array()
-		var salt := PackedFloat32Array()
 		for k in idx.size():
 			var g := idx[k]
 			if not remap.has(g):
@@ -770,11 +761,10 @@ static func _ring(zone: Node3D) -> int:
 				cols.append(sp[0])
 				uv.append(sp[1])
 				uv2.append(sp[2])
-				salt.append(sp[3])
 			idx[k] = remap[g]
 		var mi := MeshInstance3D.new()
 		mi.name = "TerrainRing" + key
-		mi.mesh = _array_mesh(verts, nrms, cols, uv, uv2, idx, salt)
+		mi.mesh = _array_mesh(verts, nrms, cols, uv, uv2, idx)
 		mi.material_override = load(MAT)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		zone.add_child(mi)
