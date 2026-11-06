@@ -455,7 +455,7 @@ func _end_intermission(fed: int) -> void:
 	if _hp_bar:
 		_hp_bar.visible = true
 	if fed > 0:
-		hp = minf(float(max_hp) * INTER_AT, hp + float(max_hp) * TALLY_HEAL * float(fed))
+		hp = minf(float(max_hp), hp + float(max_hp) * TALLY_HEAL * float(fed))
 		_refresh_hp(true)
 		HitText.pop(global_position + Vector3.UP * (hp_bar_y + 1.0), "fed by %d %s" % [fed, "tally" if fed == 1 else "tallies"], GRAVE, true)
 	_rise_phase_two(fed)
