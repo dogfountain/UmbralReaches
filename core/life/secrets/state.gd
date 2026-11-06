@@ -9,11 +9,12 @@ extends RefCounted
 ##   elites  {id: true}       elite guardians put down
 ##   react   {boss: true}     world changes already played (the next load applies them silently)
 ##   marks   {seal: true}     seal-break marks laid
+##   lamps   {lamp: true}     lamps the wanderer has lit (core/world/realm/lamps)
 ## Sites register a dictionary (see register()) so the director and zz/secrets_test can find them.
 
 const Kit := preload("res://core/life/secrets/kit.gd")
 const Pages := preload("res://core/life/secrets/pages.gd")
-const GROUPS := ["solved", "open", "looted", "pages", "found", "elites", "react", "marks"]
+const GROUPS := ["solved", "open", "looted", "pages", "found", "elites", "react", "marks", "lamps"]
 
 static var sites: Array[Dictionary] = []
 static var elites: Array[Dictionary] = []

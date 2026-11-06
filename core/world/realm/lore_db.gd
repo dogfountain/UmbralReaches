@@ -11,6 +11,8 @@ extends RefCounted
 
 ## West marches: Weirford, the Sorrow, the Hierarch, the Siege Lines (lore/r37_west_texts.gd), in the blocks marked `# --- west marches ---`.
 const R37WL := preload("res://core/world/realm/lore/r37_west_texts.gd")
+## The lights others keep (lamps/lamps_kept.gd): the pilgrim's page and the press-house notice.
+const R37LL := preload("res://core/world/realm/lore/lamp_texts.gd")
 
 const TEXTS := {
 	# --- Hearthward -------------------------------------------------------------------------------
@@ -417,6 +419,9 @@ const TEXTS := {
 		"text": "WE ASK NOTHING. And under it, in a different hand, newer, going over the same letters: but we are listening."},
 	"r37e_walk_plate": {"region": "anchorholds", "kind": "plaque", "title": "The walk",
 		"text": "THE WALK. Carried from the lowest cell to the highest by hand. The ladders are for those who still believe they are going up."},
+	# --- lamps ---
+	"lamp_pilgrim": R37LL.TEXTS["lamp_pilgrim"],
+	"lamp_window": R37LL.TEXTS["lamp_window"],
 }
 
 ## Multi-part stories, in journal order. `count` = parts in the world.

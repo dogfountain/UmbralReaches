@@ -19,6 +19,8 @@ const PROP_RANGE := 70.0           ## small props fade out past this
 static var lights_used := 0
 static var draws_total := 0                     ## mesh + multimesh instances added (all landmarks)
 static var scraps: Array[String] = []           ## lore ids placed
+static var cold_lamps: Array[Vector3] = []      ## the glass points of the road's standing lanterns, for the lamps module to kindle (facing in cold_yaws)
+static var cold_yaws: Array[float] = []
 static var site_names: Array[String] = []       ## sites this module registered
 static var landmarks: Array[Dictionary] = []    ## {name, at, sites} for the report/test
 static var _statues: Dictionary = {}
@@ -65,6 +67,8 @@ static func reset() -> void:
 	lights_used = 0
 	draws_total = 0
 	scraps.clear()
+	cold_lamps.clear()
+	cold_yaws.clear()
 	site_names.clear()
 	landmarks.clear()
 

@@ -98,6 +98,8 @@ static func build(parent: Node) -> void:
 			L.p.box("lore_beam", at3 + Vector3.UP * 0.25, Vector3(0.16, 0.5, 0.16), Basis(Vector3.BACK, 0.2), true, 0.6)
 		else:
 			var lc: Vector3 = L.lamp_post(at3, yaw3, false)
+			LK.cold_lamps.append(lc)
+			LK.cold_yaws.append(yaw3)
 			if not "rd_lamp" in LK.scraps:
 				L.scrap("rd_lamp", at3 + Basis(Vector3.UP, yaw3) * Vector3(0, 0.3, -1.0), lc)
 	# --- pilgrim graves --------------------------------------------------------------------------
