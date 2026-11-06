@@ -95,6 +95,7 @@ var acts_done := 0                    ## steps finished (tests)
 
 var _rng := RandomNumberGenerator.new()
 var _t := 0.0
+var _stance_c := {}                       ## per-person stance (see _stance)
 var _blocked := 0.0
 var _side := 0.0
 var _side_to := 0.0
@@ -989,8 +990,24 @@ func _legs_walk(k: float, amt: float) -> float:
 ## Arms that are not posed by an act: swing with the stride, or carry the tool the way it is
 ## carried (the lamplighter's pole and lantern, a staff planted as you walk, the spade on the
 ## shoulder, the candle cupped at the chest).
+## art pass: no two people stand alike. Arm hang (swing offset, how far off the flank, forearm bend,
+## left and right not mirrored) and a lean of the chest, fixed per villager from its id.
+func _stance() -> Dictionary:
+	if _stance_c.is_empty():
+		var rs := RandomNumberGenerator.new()
+		rs.seed = hash(id) * 31 + 5
+		_stance_c = {
+			"sw": [rs.randf_range(-0.06, 0.12), rs.randf_range(-0.06, 0.12)],
+			"ab": [rs.randf_range(-0.02, 0.2), rs.randf_range(-0.02, 0.2)],
+			"fb": [rs.randf_range(0.06, 0.55), rs.randf_range(0.06, 0.55)],
+			"lean": rs.randf_range(-0.04, 0.09),
+		}
+	return _stance_c
+
+
 func _arms_carry(k: float, tool_r: String, tool_l: String, free: Array) -> void:
 	var r := rig
+	var st := _stance()
 	var sr := cos(TAU * gait) * walk_amt * float(_gait[3]) / 0.32
 	var idle: float = sin(_t * 0.9) * 0.03 + ((life.breath() - 0.5) * 0.02 if life else 0.0)
 	if free[0]:
@@ -1006,8 +1023,8 @@ func _arms_carry(k: float, tool_r: String, tool_l: String, free: Array) -> void:
 			"candle":
 				r.hold(0, Vector3(0.03, 1.0, -0.22) * k, Vector3(0, 1, 0), Vector3(-1, 0, -0.2))
 			_:
-				r.q(B_ARM_R, Quaternion(Vector3.RIGHT, -0.32 * sr + idle) * Quaternion(Vector3.BACK, 0.06))
-				r.q(B_FORE_R, Quaternion(Vector3.RIGHT, 0.22 + 0.15 * maxf(0.0, -sr)))
+				r.q(B_ARM_R, Quaternion(Vector3.RIGHT, -0.32 * sr + idle + float(st["sw"][0])) * Quaternion(Vector3.BACK, 0.02 + float(st["ab"][0])))
+				r.q(B_FORE_R, Quaternion(Vector3.RIGHT, float(st["fb"][0]) + 0.15 * maxf(0.0, -sr)))
 	if free[1]:
 		match tool_l:
 			"lantern":
@@ -1016,8 +1033,8 @@ func _arms_carry(k: float, tool_r: String, tool_l: String, free: Array) -> void:
 				if tool_r == "candle" and free[0]:
 					r.arm_to("l", Vector3(-0.03, 1.02, -0.25) * k, Vector3(-0.9, -0.6, 0.3), null)
 				else:
-					r.q(B_ARM_L, Quaternion(Vector3.RIGHT, 0.32 * sr - idle) * Quaternion(Vector3.BACK, -0.06))
-					r.q(B_FORE_L, Quaternion(Vector3.RIGHT, 0.22 + 0.15 * maxf(0.0, sr)))
+					r.q(B_ARM_L, Quaternion(Vector3.RIGHT, 0.32 * sr - idle + float(st["sw"][1])) * Quaternion(Vector3.BACK, -0.02 - float(st["ab"][1])))
+					r.q(B_FORE_L, Quaternion(Vector3.RIGHT, float(st["fb"][1]) + 0.15 * maxf(0.0, sr)))
 
 
 func _hands_clasped(k: float, at: Vector3) -> void:
@@ -1048,7 +1065,7 @@ func _head(k: float, target: Vector3, pitch: float, dt: float) -> void:
 			_look_t = _rng.randf_range(2.0, 5.0)
 			_look_to = Vector2(_rng.randf_range(-0.6, 0.6), _rng.randf_range(-0.1, 0.15)) if _rng.randf() < 0.6 else Vector2.ZERO
 	_look = life.gaze(_look_to, dt, 3.0) if life else _look.lerp(_look_to, minf(1.0, dt * 3.0))
-	r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.UP, _look.x * 0.25))
+	r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.UP, _look.x * 0.25) * Quaternion(Vector3.RIGHT, float(_stance()["lean"])))
 	r.q(B_HEAD, Quaternion(Vector3.UP, _look.x * 0.75) * Quaternion(Vector3.RIGHT, -(pitch + _look.y)))
 
 

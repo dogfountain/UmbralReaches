@@ -51,16 +51,16 @@ varying flat float mat_spec;
 // ndepth     .55   .7    .6    1     1     .6    .8    .9    0     1.2
 // spec       .45   .25   .3    .45   .28   .5    .35   .4    .9    .25
 void layer_params(int m, out vec4 p, out float spec) {
-	if (m == 0) { p = vec4(9.0, 9.0, 0.62, 0.2); spec = 0.45; }   // models pass: normal depth 0.55 -> 0.2 (the tile read as cracked plaster on the new, deeper faces)
-	else if (m == 1) { p = vec4(24.0, 24.0, 0.93, 0.7); spec = 0.25; }
-	else if (m == 2) { p = vec4(30.0, 30.0, 0.86, 0.6); spec = 0.3; }
-	else if (m == 3) { p = vec4(9.0, 9.0, 0.58, 1.0); spec = 0.45; }
-	else if (m == 4) { p = vec4(10.0, 3.0, 0.82, 0.45); spec = 0.16; }   // models pass: duller (grey hair shone blue-white under the moon)   // r35 hair: coarser, shallower detail (it crawled at 960p)
-	else if (m == 5) { p = vec4(10.0, 10.0, 0.36, 0.6); spec = 0.5; }
-	else if (m == 6) { p = vec4(5.0, 2.0, 0.72, 0.8); spec = 0.35; }
-	else if (m == 7) { p = vec4(16.0, 16.0, 0.8, 0.9); spec = 0.4; }
+	if (m == 0) { p = vec4(4.0, 4.0, 0.64, 0.55); spec = 0.4; }   // art pass: baked 512 px skin (pores, value mottling), one tile per 25 cm   // models pass: normal depth 0.55 -> 0.2 (the tile read as cracked plaster on the new, deeper faces)
+	else if (m == 1) { p = vec4(6.0, 6.0, 0.93, 0.8); spec = 0.25; }   // art pass: baked twill, 24 threads a 17 cm tile
+	else if (m == 2) { p = vec4(6.0, 6.0, 0.86, 0.7); spec = 0.3; }
+	else if (m == 3) { p = vec4(4.0, 4.0, 0.58, 1.0); spec = 0.45; }
+	else if (m == 4) { p = vec4(3.0, 1.6, 0.8, 0.5); spec = 0.2; }   // models pass: duller (grey hair shone blue-white under the moon)   // r35 hair: coarser, shallower detail (it crawled at 960p)
+	else if (m == 5) { p = vec4(4.0, 4.0, 0.36, 0.6); spec = 0.5; }
+	else if (m == 6) { p = vec4(3.0, 1.5, 0.72, 0.8); spec = 0.35; }
+	else if (m == 7) { p = vec4(8.0, 8.0, 0.8, 0.9); spec = 0.4; }
 	else if (m == 8) { p = vec4(1.0, 1.0, 0.08, 0.0); spec = 0.9; }
-	else { p = vec4(14.0, 6.0, 0.9, 1.2); spec = 0.25; }
+	else { p = vec4(4.0, 2.0, 0.9, 1.2); spec = 0.25; }
 }
 
 vec3 to_linear(vec3 c) {
@@ -99,13 +99,13 @@ void fragment() {
 	} else if (m == 4 || m == 9) {
 		// hair and fur: strands run along v (UV.y, metres along the lock); each strand its own shade,
 		// the roots darker, a fine ridge per strand for the light to catch (faded by footprint)
-		vec3 sp = vec3(UV.x * 520.0, UV.y * 9.0, 0.0);
+		vec3 sp = vec3(UV.x * 210.0, UV.y * 5.0, 0.0);   // art pass: 5 mm strands (520/m crawled at 960p)
 		float strand = cl_noise(sp);
 		float f = cl_fade(sp);
 		base *= mix(1.0, 0.72 + 0.5 * strand, f) * mix(0.82, 1.0, smoothstep(0.0, 0.06, UV.y));
 		NORMAL = cl_bump(NORMAL, VERTEX, (strand - 0.5) * f, hair_relief);
 	}
-	ALBEDO = cl_wear_albedo(cl_albedo(base * mix(vec3(1.0), d.rgb * 2.0, detail_mix * (m == 0 ? 0.4 : 1.0)), m == 8 ? 1.0 : COLOR.a, opos), wear);
+	ALBEDO = cl_wear_albedo(cl_albedo(base * mix(vec3(1.0), d.rgb * 2.0, detail_mix * (m == 0 ? 0.9 : 1.0)), m == 8 ? 1.0 : COLOR.a, opos), wear);
 	NORMAL_MAP = texture(detail_normal, uvw).rgb;
 	NORMAL_MAP_DEPTH = mat_p.w;
 	ROUGHNESS = cl_wear_rough(clamp(mat_p.z + (d.a - 0.5) * 0.5, 0.04, 1.0), wear);

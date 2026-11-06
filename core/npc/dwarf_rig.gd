@@ -153,10 +153,10 @@ func face() -> Variant:
 	f.eye_x = 0.37
 	f.eye_y = 0.1
 	f.brow = r.randf_range(1.3, 1.8)
-	f.nose = r.randf_range(0.95, 1.2)
-	f.nose_w = r.randf_range(1.1, 1.35)
-	f.bulb = r.randf_range(1.0, 1.5)
-	f.hook = r.randf_range(0.0, 0.3)
+	f.nose = r.randf_range(0.8, 1.1)          # art pass: was 0.95-1.2 / bulb 1-1.5 (a potato under the brow)
+	f.nose_w = r.randf_range(0.95, 1.2)
+	f.bulb = r.randf_range(0.25, 0.75)
+	f.hook = r.randf_range(0.0, 0.6)
 	f.cheek = r.randf_range(0.6, 0.9)
 	f.fat = r.randf_range(0.5, 1.0)
 	f.jaw = r.randf_range(0.8, 0.9)
@@ -174,6 +174,21 @@ func face() -> Variant:
 # the body
 # =====================================================================================================
 
+## art pass: people of a cold valley are not saturated clay. Pull the palette's skin toward its own
+## grey (saturation x0.72), shift its value by the person (seeded, +-11%) and give it a faint cool
+## undertone in the shade side; the baked skin maps add the pores and mottling on top.
+func _realistic_skin(c: Color) -> Color:
+	var r := RandomNumberGenerator.new()
+	r.seed = int(_o.get("seed", 1)) * 104729 + 7
+	var g := c.r * 0.3 + c.g * 0.59 + c.b * 0.11
+	var out := Color(g, g, g).lerp(c, 0.72)
+	var v := r.randf_range(0.89, 1.11)
+	out = Color(out.r * v, out.g * v * r.randf_range(0.98, 1.02), out.b * v * r.randf_range(0.98, 1.05))
+	if String(_o.get("age", "adult")) == "old":
+		out = out.lerp(Color(g, g, g), 0.15)
+	return Color(clampf(out.r, 0.0, 1.0), clampf(out.g, 0.0, 1.0), clampf(out.b, 0.0, 1.0))
+
+
 func _pick(a: Array) -> Variant:
 	return a[_rng.randi_range(0, a.size() - 1)]
 
@@ -182,7 +197,7 @@ func _body(mb: Variant, hat: String) -> void:
 	var tunic: Color = _pick(TUNICS)
 	var trouser: Color = _pick(TROUSERS)
 	var beard: Color = _pick(BEARDS)
-	var skin: Color = _pick(SKINS)
+	var skin: Color = _realistic_skin(_pick(SKINS))
 	var eye: Color = _pick(EYES)
 	var leather: Color = _pick(LEATHERS)
 	if hat == "":
@@ -383,7 +398,7 @@ func _beard(mb: Variant, beard: Color, long: float, style: int) -> void:
 			for j in path.size():
 				lock.append(path[j] + off * (1.0 + float(j)) + Vector3(0, -0.004 * t, -0.006 * t))
 			lock[0] = lock[0].lerp(path[1], t * 0.6)
-			mb.tube(lock, PackedFloat32Array([0.008, 0.009, 0.007, 0.005, 0.002]), 5, beard.lightened(_rng.randf_range(-0.06, 0.12)), DwarfMesh.MAT_HAIR, {"lumps": 0.0, "squash": Vector2(1.0, 0.5)})
+			mb.tube(lock, PackedFloat32Array([0.012, 0.013, 0.01, 0.007, 0.003]), 5, beard.lightened(_rng.randf_range(-0.06, 0.12)), DwarfMesh.MAT_HAIR, {"lumps": 0.0, "squash": Vector2(1.0, 0.65)})
 	# the beard: a jaw mass (jaw) and a chest mass that fades to the chest bone, then combed locks
 	# laid over that envelope (they hug it instead of sticking out as spikes), three layers deep
 	var top := hc + Vector3(0, -0.12, 0)
@@ -421,7 +436,7 @@ func _beard(mb: Variant, beard: Color, long: float, style: int) -> void:
 				p += Vector3(curl * 0.02, 0.012, -0.012) * smoothstep(0.75, 1.0, t / ln)
 				pts.append(p)
 				rr.append(w0 * (1.0 - 0.88 * pow(t / ln, 1.4)))
-			mb.tube(pts, rr, 6, beard.lightened(_rng.randf_range(-0.1, 0.1) + 0.06 * float(layer) - 0.03), DwarfMesh.MAT_HAIR, {"lumps": 0.03, "squash": Vector2(1.0, 0.42), "ao": 0.85 + 0.08 * float(layer)})
+			mb.tube(pts, rr, 6, beard.lightened(_rng.randf_range(-0.1, 0.1) + 0.06 * float(layer) - 0.03), DwarfMesh.MAT_HAIR, {"lumps": 0.03, "squash": Vector2(1.0, 0.6), "ao": 0.85 + 0.08 * float(layer)})
 	# braids with iron rings, or a fork of two
 	var tips: Array[Vector3] = []
 	if style == 0:
@@ -454,7 +469,7 @@ func _hat(mb: Variant, hat: String, tunic: Color, beard: Color, leather: Color) 
 			for k in 30:
 				var a := lerpf(-2.1, 2.1, (float(k) + _rng.randf_range(-0.4, 0.4)) / 29.0) + PI
 				var root := hc + Vector3(sin(a) * 0.14, -0.005, -cos(a) * 0.14)
-				mb.strand(root, Vector3(sin(a) * 0.08, -1, -cos(a) * 0.1), _rng.randf_range(0.11, 0.17), 0.011, beard.lightened(_rng.randf_range(-0.08, 0.06)), Vector3.ZERO, 0.3, 4, 4)
+				mb.strand(root, Vector3(sin(a) * 0.08, -1, -cos(a) * 0.1), _rng.randf_range(0.11, 0.17), 0.016, beard.lightened(_rng.randf_range(-0.08, 0.06)), Vector3.ZERO, 0.3, 4, 4)
 			mb.blob(hc + Vector3(0, 0.065, 0.005), Vector3(0.155, 0.14, 0.158), Basis.IDENTITY, IRON, DwarfMesh.MAT_METAL, {"phi": Vector2(0.0, 0.56), "lumps": 0.01, "rings": 10, "segs": 22})
 			mb.ring(hc + Vector3(0, 0.042, 0.005), Vector2(0.16, 0.163), 0.012, 0.03, Basis.IDENTITY, IRON.darkened(0.2), DwarfMesh.MAT_METAL, 24)
 			for k in 12:
