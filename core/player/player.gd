@@ -10,6 +10,7 @@ var vitals: PlayerVitals = PlayerVitals.new(self)
 var locomotion: PlayerLocomotion = PlayerLocomotion.new(self)
 var traversal: PlayerTraversal = PlayerTraversal.new(self)
 var evasion: PlayerEvasion = PlayerEvasion.new(self)
+var casting: PlayerCasting = PlayerCasting.new(self)
 
 @export_group("Movement")
 @export var walk_speed := 4.5
@@ -150,8 +151,6 @@ var _charge_orb: MeshInstance3D
 var _charge_halo: MeshInstance3D
 var _charge_light: OmniLight3D
 var _charge_sfx: AudioStreamPlayer3D
-var _charge_was_full := false
-var _charge_c := 0.0                    ## the SkillBook's charge (physics tick); drawn per frame
 var _tp_offset := Vector3.ZERO          ## camera trails the body across a teleport, decays fast
 # --- movement feel ---
 const STEP_MAX := 0.45                  ## ledges up to this tall are walked straight up (no ramp needed)
@@ -210,6 +209,7 @@ func _ready() -> void:
 	add_child(locomotion)
 	add_child(traversal)
 	add_child(evasion)
+	add_child(casting)
 	add_to_group(Groups.PLAYER)
 	collision_layer = Layers.PLAYER
 	collision_mask = Layers.WORLD | Layers.PROPS
@@ -241,7 +241,7 @@ func _ready() -> void:
 	checkpoint = global_position
 	_ash_banked = Travel.count("grave_ash")
 	Events.enemy_killed.connect(vitals._on_enemy_killed)
-	Events.skill_cast.connect(_on_skill_cast)
+	Events.skill_cast.connect(casting._on_skill_cast)
 	_rig_height = _rig.position.y
 	# Interpolated cameras: rig is top-level so look isn't stuck on the 60 Hz physics tick.
 	_rig.top_level = true
@@ -363,7 +363,7 @@ func _process(delta: float) -> void:
 	camera_ctl._cam_frame(delta)
 	_pitch_node.rotation.x = _pitch - _land_dip * 0.12 + _shake
 	camera_ctl._update_arm(delta)
-	_frame_fx()
+	casting._frame_fx()
 
 
 func _physics_process(delta: float) -> void:
@@ -384,7 +384,7 @@ func _physics_process(delta: float) -> void:
 	if _grapple != null and _grapple.pulling():
 		_grapple.tick(delta)
 		_grounded = false
-		_animate(delta, Vector3(velocity.x, 0.0, velocity.z))
+		casting._animate(delta, Vector3(velocity.x, 0.0, velocity.z))
 		vitals._update_gloom(delta)
 		return
 	if _gliding and (_hang or _climb_t >= 0.0 or _vault_t >= 0.0):
@@ -590,7 +590,7 @@ func _physics_process(delta: float) -> void:
 
 	camera_ctl._update_camera(delta, horiz, sprint, vy_before)
 	_sprint_held = sprint
-	_animate(delta, horiz)
+	casting._animate(delta, horiz)
 	vitals._update_gloom(delta)
 	_scan_interactables()
 	_fall_t = _fall_t + delta if not _grounded and velocity.y < -1.0 and _steep_t <= 0.0 and not _gliding else 0.0
@@ -629,41 +629,9 @@ func debug_drive(wish: Vector3, sprint := false) -> void:
 	_debug_sprint = sprint
 
 
-# --- Animation ---------------------------------------------------------------
-
-func _animate(delta: float, horiz: Vector3) -> void:
-	# casting / locked on: square up or twist the chest toward the aim; otherwise face the run
-	# (quick to turn from a walk, a wider sweep at a sprint; the body leans into it, see the rig)
-	if _roll_t < 0.0 and _vault_t < 0.0 and not _hang and _climb_t < 0.0:
-		targeting._facing(delta, horiz if _steep_k < 0.5 else Vector3(_steep_n.x, 0.0, _steep_n.z), _sprint_held)
-	if _crawl:
-		_slide_blend = move_toward(_slide_blend, 1.0, delta * 6.0)    # crawling out from under: the low pose
-	elif not _sliding:
-		_slide_blend = move_toward(_slide_blend, 0.0, delta * 6.0)
-	_visual.slide = _slide_blend
-	if _sliding:
-		_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(-_slide_dir.x, -_slide_dir.z), 1.0 - exp(-12.0 * delta))
-	_look_t -= delta
-	if _look_t <= 0.0:
-		_look_t = 0.2
-		_look_foe = targeting._nearest_foe()
-	if is_instance_valid(_lock):
-		_visual.look_at_point = _lock.global_position + Vector3.UP * (_lock.hp_bar_y * 0.6)
-	elif _look_foe and is_instance_valid(_look_foe) and _look_foe.is_alive():
-		_visual.look_at_point = _look_foe.global_position + Vector3.UP * (_look_foe.hp_bar_y * 0.6)
-	elif _cam:
-		_visual.look_at_point = _cam.global_position - _cam.global_basis.z * 30.0
-	_visual.animate(velocity, _grounded, delta)
-	_last_pos = global_position
-
-
 var _look_t := 0.0
 var _look_foe: Enemy
 var _sprint_held := false
-
-
-func _on_skill_cast(id: StringName) -> void:
-	_visual.cast_pose(id)
 
 
 ## True while any BossArena (or arena-like node in the "boss_arena" group) has a live fight.
@@ -745,111 +713,6 @@ func _try_interact() -> void:
 		_interact_target.interact(self)
 
 
-## Spawn one staff bolt toward the crosshair. cfg keys (all optional): heavy, dmg, blast, speed,
-## marks (Umbral Marks per hit), pierce. Skills call this; it owns aim, pooling and the gesture.
-func fire_bolt(cfg: Dictionary) -> MagicBolt:
-	if _hollowing or _visual == null:
-		return null
-	var host := get_tree().current_scene
-	if host == null:
-		return null
-	# the staff's own voice: a lash for the empowered 3rd bolt; the Lance plays its throw below;
-	# cfg.sound overrides (a staff core's own cast sound)
-	var voice := "" if bool(cfg.get("heavy", false)) else ("lash" if bool(cfg.get("empower", false)) else "bolt")
-	_visual.cast(String(cfg.get("sound", voice)))
-	var pool := get_tree().get_first_node_in_group("bolt_pool") as BoltPool
-	var bolt: MagicBolt
-	if pool:
-		bolt = pool.take()
-	else:
-		bolt = BOLT.instantiate() as MagicBolt
-		host.add_child(bolt)
-	var muzzle := _visual.muzzle()
-	var aim := _combat_aim(muzzle)
-	if cfg.has("dir"):
-		aim = (cfg.dir as Vector3).normalized()      # r36: a fanned throw (the Slag Heart's Scatter)
-	var up := Vector3.UP
-	if absf(aim.dot(up)) > 0.95:
-		up = Vector3.RIGHT
-	bolt.transform = Transform3D(Basis.looking_at(aim, up), muzzle + aim * 0.28)
-	bolt.direction = aim
-	bolt.arm_with(cfg)
-	bolt.add_collision_exception_with(self)
-	var heavy := bool(cfg.get("heavy", false))
-	# r33 combat: a Lance spends Resonance (SkillBook.cast_power) and scars; a Rift Bolt builds it
-	if heavy:
-		bolt.hit_dmg *= _book.cast_power
-		bolt.scar = 2 if _book.cast_spent >= 3 else 1
-	else:
-		bolt.resonant = 2 if bool(cfg.get("empower", false)) else 1
-	var col := EMBER if heavy else VIOLET
-	Vfx.burst(muzzle + aim * 0.2, col, {"count": 16 if heavy else 8, "life": 0.22, "speed": Vector2(1.5, 4.0), "size": 0.05, "dir": aim, "spread": 35.0, "gravity": 0.0, "trail": 0.05})
-	Vfx.light(muzzle, Color(col.r, col.g, col.b) * 0.5, 2.5 if heavy else 1.6, 4.5, 0.12)
-	# the orb flashes as the shot leaves it: a quick bright pulse and a ring along the aim
-	SpellFx.shell(muzzle, 0.05, 0.4, Color(col.r, col.g, col.b) * (0.45 if heavy else 0.8), 0.1)
-	Vfx.ring(muzzle + aim * 0.25, 0.55 if heavy else 0.32, col, 0.16, 0.08, aim)
-	if heavy:
-		StaffSfx.play("lance_fire", muzzle, -1.0)
-		StaffSfx.play("swish", muzzle, -6.0)
-	return bolt
-
-
-## Soft aim assist: if an enemy's chest is within ~6 degrees of the aim and in clear sight, aim
-## at it. Narrow on purpose -- it fixes near misses, it does not pick targets for you.
-func _assist(muzzle: Vector3, aim: Vector3) -> Vector3:
-	var best := aim
-	var best_dot := -1.0
-	var space := get_world_3d().direct_space_state
-	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
-		var e := node as Enemy
-		if e == null or not e.is_alive():
-			continue
-		var chest := e.global_position + Vector3.UP * (e.hp_bar_y * 0.55)
-		var to := chest - muzzle
-		var d := to.length()
-		if d < 0.3 or d > ASSIST_RANGE:
-			continue
-		var dir := to / d
-		# r31: up close the over-the-shoulder crosshair and the staff disagree by tens of degrees, so
-		# the cone widens with nearness (~35 deg at 1 m) and narrows back to ~6 deg by 9 m. The pick is
-		# by margin inside each foe's own cone, so a near foe off-centre does not steal from a far one
-		# dead on the crosshair.
-		var cone := lerpf(CLOSE_ASSIST_COS, ASSIST_COS, clampf((d - 1.0) / 8.0, 0.0, 1.0))
-		var dt := dir.dot(aim)
-		var flat_aim := Vector2(aim.x, aim.z).normalized()
-		if d < 4.0:
-			dt = maxf(dt, Vector2(dir.x, dir.z).normalized().dot(flat_aim))   # a squat foe under the crosshair
-		if dt - cone <= best_dot or dt < cone:
-			continue
-		var q := PhysicsRayQueryParameters3D.create(muzzle, chest, Layers.WORLD, [get_rid()])
-		if space and not space.intersect_ray(q).is_empty():
-			continue
-		best_dot = dt - cone
-		best = dir
-	return best
-
-
-## r31: where a bolt goes. Locked on, straight at the target's chest (in sight); otherwise the
-## crosshair, nudged by the assist.
-func _combat_aim(muzzle: Vector3) -> Vector3:
-	var lk := targeting.lock_target()
-	if lk and lk.is_alive():
-		var chest := lk.global_position + Vector3.UP * (lk.hp_bar_y * 0.55)
-		var to := chest - muzzle
-		if to.length() > 0.2 and to.length() < LOCK_AIM_RANGE and locomotion._ray(muzzle, chest).is_empty():
-			return to.normalized()
-	return _assist(muzzle, _aim_from(muzzle))
-
-
-func _aim_from(muzzle: Vector3) -> Vector3:
-	var look := targeting._look_target()
-	var cam_fwd := -_cam.global_transform.basis.z.normalized()
-	var aim := look - muzzle
-	if aim.length_squared() < 0.04 or aim.normalized().dot(cam_fwd) < 0.12:
-		return cam_fwd
-	return aim.normalized()
-
-
 # --- Skills surface -------------------------------------------------------------------------
 
 func skills() -> SkillBook:
@@ -879,106 +742,6 @@ func skills_locked_for_arts() -> bool:
 
 func note_combat() -> void:
 	_combat_t = COMBAT_FACE_TIME
-
-
-## Called by the SkillBook on its physics tick. The ember orb, its light, the particles and the
-## Lance's landing ring are PLACED every rendered frame (_frame_fx) at the staff head as it is drawn:
-## placed here they stepped at 60 Hz against the interpolated staff (r29).
-func set_charge_glow(c: float) -> void:
-	if _visual:
-		_visual.charge = c
-	_charge_c = c
-	if c <= 0.0 and _aim_ring:
-		_aim_ring.visible = false
-	if _charge_fx == null:
-		return
-	var on := c > 0.0
-	if on != _charge_fx.emitting:
-		if on:
-			_charge_fx.global_position = _muzzle_drawn()
-		_charge_fx.emitting = on
-		if on:
-			_charge_sfx.play()
-		else:
-			_charge_sfx.stop()
-			_charge_was_full = false
-	if not on:
-		_charge_vis(0.0)
-	if on:
-		_charge_fx.amount_ratio = 0.35 + 0.65 * c
-		_charge_sfx.pitch_scale = 0.8 + 0.5 * c
-		if c >= 1.0 and not _charge_was_full:
-			_charge_was_full = true      # full charge: a ring snap tells you it will pierce
-			Vfx.ring(_visual.muzzle(), 0.7, Color(2.6, 1.8, 1.0), 0.25, 0.14, -_cam.global_basis.z)
-			Vfx.burst(_visual.muzzle(), Color(2.8, 1.6, 0.8), {"count": 18, "life": 0.3, "speed": Vector2(2.0, 4.0), "size": 0.04, "trail": 0.06, "gravity": 0.0})
-
-
-## Rendered frame: everything that rides the staff head while charging.
-func _frame_fx() -> void:
-	if _charge_c <= 0.0 or _visual == null:
-		return
-	var at := _muzzle_drawn()
-	if _charge_fx:
-		_charge_fx.global_position = at
-	_charge_vis(_charge_c, at)
-	_update_aim_ring(_charge_c, at)
-
-
-## Where the staff orb is DRAWN this frame (the rig's bones are blended between ticks).
-func _muzzle_drawn() -> Vector3:
-	if _visual.has_method("muzzle_drawn"):
-		return _visual.muzzle_drawn()
-	return _visual.muzzle()
-
-
-## The ember orb at the staff head: swells with the charge, flickers, and burns white at full.
-func _charge_vis(c: float, at := Vector3.INF) -> void:
-	if _charge_orb == null:
-		return
-	var on := c > 0.0
-	_charge_orb.visible = on
-	_charge_halo.visible = on
-	_charge_light.visible = on
-	if not on:
-		return
-	if at == Vector3.INF:
-		at = _muzzle_drawn()
-	var t := Time.get_ticks_msec() * 0.001
-	var flick := 1.0 + 0.08 * sin(t * 37.0) + 0.05 * sin(t * 23.0 + 1.3)
-	var full := c >= 1.0
-	var r := lerpf(0.05, 0.2, smoothstep(0.0, 1.0, c)) * flick * (1.15 if full else 1.0)
-	_charge_orb.global_transform = Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * r * 2.0), at)
-	_charge_halo.global_transform = Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * r * 4.2), at)
-	(_charge_orb.material_override as StandardMaterial3D).albedo_color = Color(3.2, 1.3, 0.45).lerp(Color(4.2, 3.4, 2.4), 0.6 if full else 0.0)
-	(_charge_halo.material_override as StandardMaterial3D).albedo_color.a = 0.22 + 0.25 * c
-	_charge_light.global_position = at
-	_charge_light.light_energy = (0.6 + 2.2 * c) * flick
-	_charge_light.omni_range = 2.5 + 2.5 * c
-
-
-## Lance aim: a round marker where the throw will land, sized to the blast it will have now.
-func _update_aim_ring(c: float, muzzle: Vector3) -> void:
-	if _aim_ring == null:
-		return
-	if c <= 0.0:
-		_aim_ring.visible = false
-		return
-	var space := get_world_3d().direct_space_state
-	if space == null:
-		return
-	var aim := _aim_from(muzzle)
-	var q := PhysicsRayQueryParameters3D.create(muzzle, muzzle + aim * 60.0, Layers.WORLD | Layers.PROPS, [get_rid()])
-	var hit := space.intersect_ray(q)
-	if hit.is_empty():
-		_aim_ring.visible = false
-		return
-	_aim_ring.visible = true
-	# the circle is the blast the charging skill will really have (Wide Ember, the Cinder Censer...)
-	var blast := lerpf(SkillLance.BLAST_MIN, SkillLance.BLAST_MAX, c)
-	var si := _book.charging_slot() if _book else -1
-	if si >= 0 and si < _book.slots.size() and _book.slots[si] != null and _book.slots[si].has_method("blast_at"):
-		blast = float(_book.slots[si].call("blast_at", c))
-	SpellFx.place_ring(_aim_ring, hit.position, hit.normal, blast, c)
 
 
 # --- r31 combat and traversal surface (Breath, staff arts, Tether line, cloak-glide) ------------
@@ -1017,20 +780,6 @@ func _face_now(dir: Vector3) -> void:
 		return
 	_face_yaw = atan2(-dir.x, -dir.z)
 	_visual.rotation.y = lerp_angle(_visual.rotation.y, _face_yaw, 0.6)
-
-
-func nova_fx(radius: float, detonated: Array) -> void:
-	_visual.cast("")
-	StaffSfx.play("nova", global_position, 0.0)
-	var at := global_position + Vector3.UP * 0.9
-	SpellFx.nova(global_position, radius)     # round disc drawn at exactly the damage radius
-	for e in detonated:
-		var en := e as Node3D
-		if en == null or not is_instance_valid(en):
-			continue
-		var hit := en.global_position + Vector3.UP * 1.0
-		Vfx.arc(at, hit, Color(1.8, 1.0, 3.2), 0.28, 0.35)
-		Vfx.burst(hit, Color(2.0, 1.1, 3.4), {"count": 26, "life": 0.4, "speed": Vector2(2.5, 6.0), "size": 0.05, "trail": 0.08, "gravity": -4.0})
 
 
 # --- traversal (r28): ledge hang + climb, vault, wall kick, steep slopes, beams, dodge roll ---------
@@ -1190,3 +939,13 @@ func can_shadowstep() -> bool: return evasion.can_shadowstep()
 ## whatever ground is within 3 m below, so stairs and slopes land cleanly and a gap is crossed
 ## in the air. Vertical speed is cancelled, so a mid-air step is also a brief hang.
 func shadowstep() -> bool: return evasion.shadowstep()
+## Spawn one staff bolt toward the crosshair. cfg keys (all optional): heavy, dmg, blast, speed,
+## marks (Umbral Marks per hit), pierce. Skills call this; it owns aim, pooling and the gesture.
+func fire_bolt(cfg: Dictionary) -> MagicBolt: return casting.fire_bolt(cfg)
+## Called by the SkillBook on its physics tick. The ember orb, its light, the particles and the
+## Lance's landing ring are PLACED every rendered frame (_frame_fx) at the staff head as it is drawn:
+## placed here they stepped at 60 Hz against the interpolated staff (r29).
+func set_charge_glow(c: float) -> void: casting.set_charge_glow(c)
+func nova_fx(radius: float, detonated: Array) -> void: casting.nova_fx(radius, detonated)
+func _animate(delta: float, horiz: Vector3) -> void: casting._animate(delta, horiz)
+func _on_skill_cast(id: StringName) -> void: casting._on_skill_cast(id)
