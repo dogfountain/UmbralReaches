@@ -269,8 +269,9 @@ func _show_banner(text: String, sub: String, col: Color) -> void:
 	_banner_tw.parallel().tween_property(_banner_sub, "modulate:a", 0.0, 1.4)
 
 
+## The banner raised last: the one waiting for the text director, else the one on screen.
 func banner_text() -> String:
-	return _banner.text
+	return String(_bq.back()[0]) if not _bq.is_empty() else _banner.text
 
 
 # --- the elite bar ------------------------------------------------------------------------------
