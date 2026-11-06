@@ -102,7 +102,8 @@ const NODES: Array[Dictionary] = [
 		"text": "Jump 6% higher; walk and run 4% faster.", "fx": {"jump_mult": 1.06, "move_mult": 1.04},
 		"lore": "The Stair has three thousand steps and some of them are missing."},
 	{"id": "w_first", "path": "road", "depth": 7, "cost": 3, "glyph": "waystone", "name": "The Forty-First Stone",
-		"text": "Rift Step reaches 1.5 m further and recovers 15% sooner; XX: 1.5, "step_cd_mult": 0.85, "dark_mult": 0.94},
+		"text": "Rift Step reaches 1.5 m further and recovers 15% sooner; Gloom gathers 6% slower in the dark and by the Rift.",
+		"fx": {"step_range": 1.5, "step_cd_mult": 0.85, "dark_mult": 0.94},
 		"lore": "Oswin wanted the forty-first before he went up. You are past it."},
 ]
 
