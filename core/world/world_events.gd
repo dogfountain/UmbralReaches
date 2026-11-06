@@ -28,8 +28,7 @@ const ARRIVE_R := 15.0
 const LEAVE_R := 46.0
 const WAVES := 3
 const WAVE_GAP := 32.0                  ## a wave comes anyway after this long
-const HAVEN_C := Vector2(4.0, 36.0)     ## encounters' haven: no events in Hearthward
-const HAVEN_R := 40.0
+const Director := preload("res://core/life/encounters/director.gd")
 const SURGE := Color(0.62, 0.42, 1.0)
 const SID := "world_events"
 const REWARD_ASH := 24
@@ -135,11 +134,18 @@ func _quiet_time() -> bool:
 	return get_tree().get_first_node_in_group("fire_flight") == null
 
 
+## The one haven the director keeps (its circle, the Keg's grown rectangle, the holds): a surge is not
+## planted on ground a tide may not arm on.
+static func _in_haven(p: Vector2) -> bool:
+	return p.distance_to(Director.HAVEN_C) < Director.HAVEN_R or Rect2(RealmLayout.TAVERN).grow(6.0).has_point(p) \
+		or p.distance_to(Director.HOLDS_C) < Director.HOLDS_R
+
+
 func _pick_and_start(pp: Vector3) -> void:
 	var cands: Array[Dictionary] = []
 	for s in sites():
 		var d := _flat(pp, s.at)
-		if d > 30.0 and d < 150.0 and Vector2(s.at.x, s.at.z).distance_to(HAVEN_C) > HAVEN_R:
+		if d > 30.0 and d < 150.0 and not _in_haven(Vector2(s.at.x, s.at.z)):
 			cands.append(s)
 	if cands.is_empty():
 		clock = 60.0
