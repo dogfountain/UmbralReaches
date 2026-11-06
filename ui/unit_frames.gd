@@ -526,6 +526,8 @@ func _subline(e: Node, rank: String) -> String:
 	return "  ·  ".join(parts)
 
 
+const FEINT_S := 0.3    ## enemy.gd FEINT lasts this long
+
 ## {name, t, interruptible, col} while it winds up a move, else {}.
 func _cast_of(e: Node) -> Dictionary:
 	var b: Array = _broke.get(e.get_instance_id(), [])
@@ -546,7 +548,9 @@ func _cast_of(e: Node) -> Dictionary:
 	var st := int(e.get("_state"))
 	var st_t := float(e.get("_state_t")) if "_state_t" in e else 0.0
 	match st:
-		2, 8:   # WINDUP, FEINT (a feint looks like a blow until it isn't)
+		8:      # FEINT: a rear with no red. The bar says so over the 0.3 s the fake lasts; BREAK waits for the red
+			return {"name": "Feint", "t": clampf(st_t / FEINT_S, 0.0, 1.0), "interruptible": false}
+		2:      # WINDUP: the real blow (the red starts with this fill)
 			var w := float(e.get("_cur_windup")) if "_cur_windup" in e else 0.42
 			var chained := int(e.get("_combo_left")) > 0 if "_combo_left" in e else false
 			return {"name": "Flurry" if chained else "Strike", "t": clampf(st_t / maxf(w, 0.05), 0.0, 1.0), "interruptible": true}
