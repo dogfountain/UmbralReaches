@@ -18,5 +18,10 @@ const BREEDS := {
 	"fenpony": {"name": "Fen Pony", "model": "res://art/models/horse_fenpony.glb", "size": 0.865, "seat": 1.299, "stirrup_y": 0.832, "stirrup_x": 0.316, "bw": 0.267, "bc": 0.981, "bl": 0.27, "walk": 2.4, "trot": 6.2, "gallop": 10.0, "turn": 3.1, "climb": 0.8,
 		"cost": 50, "where": "Cadoc's bank on the mere", "at": Vector2(104.0, 90.0), "face": Vector2(-0.7, -0.7),
 		"line": "A shaggy dun pony that wades where a big horse sinks. Cadoc rows nobody now, but he kept the pony.", "wade": true},
+	# --- r37 west: the Weir Cob, kept at Weirford's stables (the garron's frame, a mill-horse's temper)
+	"weir_cob": {"name": "Weir Cob", "model": "res://art/models/horse_garron.glb", "size": 0.97, "seat": 1.405, "stirrup_y": 0.9, "stirrup_x": 0.329, "bw": 0.278, "bc": 1.061, "bl": 0.291, "walk": 2.5, "trot": 6.3, "gallop": 10.2, "turn": 2.7, "climb": 0.9,
+		"cost": 55, "where": "Weirford's stables", "at": Vector2(-215.0, 79.0), "face": Vector2(-1.0, 0.0),
+		"line": "A broad dun cob that walked the mill-wheel's sweep for nine winters and has opinions about hills. It crosses the Sorrow's fords like a lane.", "wade": true},
 }
-const ORDER := ["palfrey", "garron", "fenpony", "draught"]
+const ORDER := ["palfrey", "garron", "fenpony", "draught",
+	"weir_cob"]       # --- r37 west ---

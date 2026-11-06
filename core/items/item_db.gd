@@ -40,6 +40,10 @@ const DEFS := {
 	"abbot_crown": {"name": "Abbot's Crown", "kind": "trophy", "shape": "crown", "tint": Color(0.88, 0.78, 0.5),
 		"desc": "Osric had it made from the knuckles of the first brothers to die in his care, so that he would never lose count of them. He never did.",
 		"text": "Knucklebone and iron, warm from the crypt. The Bone Abbot wore it below the Ossuary. A seal shard: the summit ward counts it."},
+	# --- r37 west ---
+	"crown_shard": {"name": "Shard of the Speaking Crown", "kind": "trophy", "shape": "crown", "tint": Color(0.66, 0.6, 0.5),
+		"desc": "A tine of the Hierarch's tiara, broken off in the fight. Hold it to your ear and it says the first word of an edict, and stops.",
+		"text": "Cut from the Speaking Crown in the Fallen Hierarch's skull, in the Marches' west. Proof the voice is quiet."},
 	"ascension_seal": {"name": "Ascension Seal", "kind": "trophy", "shape": "sigil", "tint": Color(0.7, 0.5, 1.0),
 		"desc": "The latch of the door in the sky. Hierarch Aurel swore by his third edict to hold it until the last of the faithful were through; his fingers had grown round it. Without it, the sky can close, if it wants to.",
 		"text": "It fell out of his opened fingers. The latch is yours. Without it the door can close, if it wants to."},
@@ -136,8 +140,12 @@ const ORDER := ["bone_reliquary", "thorn_heart", "abbot_crown", "ascension_seal"
 	"kin_lamp", "slag_heart", "fog_crook", "ferry_coin", "ash_seed", "hair_rope", "mason_mark", "grave_ash", "relic_fragment", "ember_shard", "ash_bloom", "grave_iron",
 	"charm_candle", "charm_thread", "charm_lampglass", "charm_bead", "charm_clapper", "charm_ring",
 	"hobbs_knuckles", "lisles_tally", "briar_antler", "heart_stone", "cinder_censer", "scraped_face",
-	"charm_hook", "charm_rosary", "charm_jar", "charm_ferrule", "charm_waystone", "charm_chalk", "core_prism", "core_lodestar", "core_cinder", "core_rime"]
-const BOSS_TROPHY := {"thornwarden": "thorn_heart", "bone_abbot": "abbot_crown", "ascended_warden": "ascension_seal"}
+	"charm_hook", "charm_rosary", "charm_jar", "charm_ferrule", "charm_waystone", "charm_chalk", "core_prism", "core_lodestar", "core_cinder", "core_rime",
+	# --- r37 west ---
+	"crown_shard", "varrs_signet"]
+const BOSS_TROPHY := {"thornwarden": "thorn_heart", "bone_abbot": "abbot_crown", "ascended_warden": "ascension_seal",
+	# --- r37 west ---
+	"r37_hierarch": "crown_shard"}
 const ASH_PER_KILL := 1
 const ASH_PER_BOSS := 25
 

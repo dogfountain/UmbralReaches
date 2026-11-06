@@ -110,6 +110,17 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(132.0, 60.0, 58.0), "kinds": ["chanter", "husk", "crawler"], "probe": 0.0},     # the East Gate's approach
 	{"at": Vector3(-144.0, 60.0, -50.0), "kinds": ["leaper", "wretch", "crawler"], "probe": 0.0},  # west_track under the quarry
 	{"at": Vector3(-135.0, 60.0, 40.0), "kinds": ["wretch", "crawler"], "probe": 0.0},             # west_track north of the Holds
+	# --- r37 west (docs/r37_expansion.md): the Sorrow's Banks (tier 2: the drowned and what hunts the fords),
+	# the Fallen Hierarch's valley (tier 3: stone-bound husks and bulwarks round the skull), the Siege Lines
+	# (tier 2: the Marches' war-bands that never went home). Weirford itself has no camp: its watch holds it.
+	{"at": Vector3(-232.0, 60.0, 0.0), "kinds": ["husk@drowned", "spitter", "wretch@drowned"], "probe": 0.0},          # the Sorrow's west bank
+	{"at": Vector3(-178.0, 60.0, -50.0), "kinds": ["crawler", "gaunt", "crawler"], "probe": 0.0},                      # the east bank, off weir_track
+	{"at": Vector3(-178.0, 60.0, -124.0), "kinds": ["husk@stonebound", "bulwark@stonebound", "chanter"], "probe": 0.0, "r": 2.6},   # the Hierarch's camp under the Crowns
+	{"at": Vector3(-248.0, 60.0, -116.0), "kinds": ["husk@stonebound", "husk@stonebound", "chanter"], "probe": 0.0},   # the crown's far side, west of the skull
+	{"at": Vector3(-180.0, 60.0, 150.0), "kinds": ["bulwark", "husk", "chanter"], "probe": 0.0},                       # the palisade
+	{"at": Vector3(-240.0, 60.0, 218.0), "kinds": ["leaper", "husk", "wretch"], "probe": 0.0},                         # the south rings
+	{"at": Vector3(-222.0, 60.0, 190.0), "kinds": ["gaunt", "gaunt", "wretch"], "probe": 0.0},                         # below the siege tower
+	{"at": Vector3(-196.0, 60.0, 228.0), "kinds": ["cinder", "bulwark", "cinder"], "probe": 0.0, "r": 2.8},            # behind the trebuchet line
 ]
 
 

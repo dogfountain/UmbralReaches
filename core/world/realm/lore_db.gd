@@ -9,6 +9,9 @@ extends RefCounted
 ##   kind: grave | waystone | tablet | rune | page | notice | plaque | lectern | letter | ledger
 ##   series/part: a multi-part story (SERIES), shown in the journal in part order, gaps kept.
 
+## r37 west: Weirford, the Sorrow, the Hierarch, the Siege Lines (lore/r37_west_texts.gd), in the blocks marked `# --- r37 west ---`.
+const R37WL := preload("res://core/world/realm/lore/r37_west_texts.gd")
+
 const TEXTS := {
 	# --- Hearthward -------------------------------------------------------------------------------
 	"hw_notice_keep": {"region": "hearth", "kind": "notice", "title": "Notice",
@@ -337,6 +340,29 @@ const TEXTS := {
 		"text": "Weighted with three stones, as the Abbot ordered. A fourth stone set on top, smaller, with a lamp scratched on it."},
 	"cm_fare": {"region": "mere", "kind": "notice", "title": "The fare-board",
 		"text": "THE LAMP-BOAT. No fare. No questions. Leave a name and Brother Corvin will row a lamp out for it. The board is covered in names, one over another, until none can be read."},
+	# --- r37 west ---
+	"r37w_bridge": R37WL.TEXTS["r37w_bridge"],
+	"r37w_mill": R37WL.TEXTS["r37w_mill"],
+	"r37w_inn": R37WL.TEXTS["r37w_inn"],
+	"r37w_notice": R37WL.TEXTS["r37w_notice"],
+	"r37w_smith": R37WL.TEXTS["r37w_smith"],
+	"wf_grave": R37WL.TEXTS["wf_grave"],
+	"r37w_shrine": R37WL.TEXTS["r37w_shrine"],
+	"sr_ford": R37WL.TEXTS["sr_ford"],
+	"sr_reeve": R37WL.TEXTS["sr_reeve"],
+	"sr_boats": R37WL.TEXTS["sr_boats"],
+	"r37w_statue": R37WL.TEXTS["r37w_statue"],
+	"r37w_hand": R37WL.TEXTS["r37w_hand"],
+	"hr_warning": R37WL.TEXTS["hr_warning"],
+	"hr_mason": R37WL.TEXTS["hr_mason"],
+	"hr_boy": R37WL.TEXTS["hr_boy"],
+	"r37w_siege_line": R37WL.TEXTS["r37w_siege_line"],
+	"r37w_trebs": R37WL.TEXTS["r37w_trebs"],
+	"r37w_tower": R37WL.TEXTS["r37w_tower"],
+	"sg_roll_1": R37WL.TEXTS["sg_roll_1"],
+	"sg_roll_2": R37WL.TEXTS["sg_roll_2"],
+	"sg_roll_3": R37WL.TEXTS["sg_roll_3"],
+	"sg_grave": R37WL.TEXTS["sg_grave"],
 }
 
 ## Multi-part stories, in journal order. `count` = parts in the world.
@@ -360,12 +386,16 @@ const SERIES := {
 		"blurb": "Leaves of the bell-founder's book, from her furnace under the rim to the Saints' Quarry."},
 	"lamplog": {"title": "Corvin's Lamp-Log", "count": 3,
 		"blurb": "Brother Corvin's nightly count of the lamps he rowed out over the mere."},
+	# --- r37 west ---
+	"marches": R37WL.SERIES["marches"],
 }
 
 ## Region ids in the journal's order, with the names and lines the region banner shows.
 ## r34 places: the new regions join the Journal after the old (west to east, north to south).
 const REGION_ORDER := ["hearth", "road", "chapel", "glade", "thornwood", "henge", "fen", "barrows", "ossuary", "rift", "summit", "crags",
-	"holds", "quarry", "moor", "foundry", "orchard", "necropolis", "mere"]
+	"holds", "quarry", "moor", "foundry", "orchard", "necropolis", "mere",
+	# --- r37 west ---
+	"weirford", "sorrow", "hierarch", "siege"]
 const PLACE_INFO := {
 	"hearth": {"name": "Hearthward", "line": "the last kindled village",
 		"text": "The road's last village before the Stair. Its fires were carried home from the chapel in pots and hands; the Kindled Keg keeps the last of them. Most cottages have gone quiet."},
@@ -406,6 +436,11 @@ const PLACE_INFO := {
 		"text": "Pilgrims who died on the road before the Stair were buried here in ranks, every grave facing the mountain, so they would be first when the sky called. They are still waiting."},
 	"mere": {"name": "Corvin's Mere", "line": "his lamps still float",
 		"text": "A drowned water-meadow south of the road. Brother Corvin rowed fire out across it to the sunk dead so they would not lie in the dark. Some of his lamps are still out on the water."},
+	# --- r37 west ---
+	"weirford": R37WL.PLACE_INFO["weirford"],
+	"sorrow": R37WL.PLACE_INFO["sorrow"],
+	"hierarch": R37WL.PLACE_INFO["hierarch"],
+	"siege": R37WL.PLACE_INFO["siege"],
 }
 
 ## Names for landmarks, graves and waystones (labels for builders, tests and docs).

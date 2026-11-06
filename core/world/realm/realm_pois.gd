@@ -53,6 +53,7 @@ const GROUP_GLIDE := "glide_perch"
 const GROUP_GUARDIAN := "guardian_site"           ## core/life/encounters/guardians.gd (the enemies pass)
 const GROUP_UPDRAFT := "updraft"                  ## the cloak-glide's lift (Player._updraft)
 const SID := "world_pois"
+const R37West := preload("res://core/world/realm/realm_pois_r37_west.gd")      # --- r37 west ---
 const R34_PATH := "res://core/world/realm/realm_pois_r34.gd"   ## r34 places (docs/r34/places.md)
 
 ## [prefer xz, search radius, half extents, max ground rise, title, banner line, region]
@@ -147,6 +148,8 @@ static func reserve(root: Node) -> void:
 	print("REALM_POI reserved %s" % [spots.keys()])
 	# r34 places: the new ground's places (realm_pois_r34.gd, docs/r34/places.md)
 	(load(R34_PATH) as GDScript).call("reserve", root, skip)
+	# --- r37 west ---
+	R37West.reserve(root)
 
 
 ## Each place faces where the player comes from.
@@ -232,6 +235,8 @@ static func build(root: Node) -> void:
 		built.append(id)
 	# r34 places: the new ground's places, under the same holder and groups
 	(load(R34_PATH) as GDScript).call("build", holder)
+	# --- r37 west ---
+	R37West.build(holder)
 	# r33: the places are named by the zone discovery (realm_discovery.gd: regions + subzones, the
 	# carved banner, Events.region_discovered); world events (world_events.gd) pick their sites here
 	if root.get_node_or_null("Discovery") == null:

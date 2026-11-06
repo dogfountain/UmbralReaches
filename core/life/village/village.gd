@@ -22,6 +22,7 @@ extends Node3D
 
 const SELF := "res://core/life/village/village.gd"
 const Cast := preload("res://core/life/village/village_cast.gd")
+const R37W := preload("res://core/life/village/village_cast_r37_west.gd")      # --- r37 west --- Weirford's people
 const VState := preload("res://core/life/village/village_state.gd")
 const VNav := preload("res://core/life/village/village_nav.gd")
 const Props := preload("res://core/life/village/village_props.gd")
@@ -144,6 +145,9 @@ func _build() -> void:
 		report.append("no clear spot for the sexton's grave")
 	# r34: the outposts of the doubled world, one giver camped in each new region
 	_outposts(space, node_xz, edges)
+	# --- r37 west --- Weirford's walks (its own island of the network; the nav drops what the town stands on)
+	node_xz.merge(R37W.NODES)
+	edges.append_array(R37W.EDGES)
 	await get_tree().process_frame
 	# --- the walking network ------------------------------------------------------------------
 	nav.call("build", space, node_xz, edges)
@@ -334,8 +338,19 @@ func _near_camp(p: Vector2, r: float) -> bool:
 
 # --- people -------------------------------------------------------------------------------------
 
+## Hearthward's cast and the outposts' and Weirford's (r37 west: village_cast_r37_west.gd), as one table.
+static var _cast_all: Dictionary = {}
+
+
+static func cast_all() -> Dictionary:
+	if _cast_all.is_empty():
+		_cast_all = Cast.CAST.duplicate()
+		_cast_all.merge(R37W.CAST)
+	return _cast_all
+
+
 func _present(id: String) -> bool:
-	var d: Dictionary = Cast.CAST[id]
+	var d: Dictionary = cast_all()[id]
 	var when := String(d.get("when", ""))
 	if when == "":
 		return true
@@ -343,10 +358,11 @@ func _present(id: String) -> bool:
 
 
 func _spawn_present() -> void:
-	for id: String in Cast.CAST:
+	var everyone := cast_all()
+	for id: String in everyone:
 		if villagers.has(id) or not _present(id):
 			continue
-		var d: Dictionary = QuestWorld.override(id, Cast.CAST[id])
+		var d: Dictionary = QuestWorld.override(id, everyone[id])
 		if d.is_empty():
 			continue
 		if d.has("camp") and not nav.call("has", String(d.home)):
@@ -426,7 +442,7 @@ func _process(delta: float) -> void:
 ## village is in danger ("flee": into the Keg).
 func routine_for(id: String) -> String:
 	var v: Node = villagers.get(id)
-	var d: Dictionary = v.get("data") if v else Cast.CAST.get(id, {})
+	var d: Dictionary = v.get("data") if v else cast_all().get(id, {})
 	var sch: Dictionary = d.get("schedule", {})
 	var base := String(sch.get(phase, ""))
 	if mode == "danger" and (d.get("routines", {}) as Dictionary).has("flee"):

@@ -7,6 +7,7 @@ extends Node
 ## - live reactions: a boss falling plays its world change (Reactivity) and wakes sites that wait on
 ##   it; a seal breaking leaves its mark.
 
+const SiteR37W := preload("res://core/life/secrets/site_r37_west.gd")      # --- r37 west ---
 const State := preload("res://core/life/secrets/state.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
 const Pages := preload("res://core/life/secrets/pages.gd")
@@ -27,6 +28,7 @@ func _exit_tree() -> void:
 	(load("res://core/life/secrets/beam.gd") as GDScript).call("release")
 	(load("res://core/life/secrets/site_glade.gd") as GDScript).call("release")
 	(load("res://core/life/secrets/site_r34.gd") as GDScript).call("release")     # r34 places
+	SiteR37W.release()     # --- r37 west ---
 	Reactivity.release()
 	State.release()
 

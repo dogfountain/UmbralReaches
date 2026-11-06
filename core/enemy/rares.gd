@@ -89,6 +89,17 @@ const RARES := {
 	"fare_caller": {"title": "The Fare-Caller", "kind": "husk", "variant": "drowned", "hp": 40, "scale": 1.4,
 		"spots": [Vector2(135, 111), Vector2(129, 105)], "ash": 42, "loot": [["relic_fragment", 2], ["ferry_coin", 1]],
 		"line": "The Fare-Caller goes under without its fare."},
+	# --- r37 west ---
+	"drowned_reeve": {"title": "The Drowned Reeve", "kind": "husk", "variant": "drowned", "hp": 38, "scale": 1.4,
+		"spots": [Vector2(-224, -28), Vector2(-226, -36), Vector2(-220, -18)], "ash": 40, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(-224, -28), Vector2(-228, -14), Vector2(-226, 6), Vector2(-222, -10), Vector2(-224, -28)],
+		"line": "The Drowned Reeve sinks to his knees in the shallows. The tolls are paid."},
+	"moss_mason": {"title": "The Moss-Mason", "kind": "husk", "variant": "stonebound", "hp": 44, "scale": 1.45,
+		"spots": [Vector2(-232, -96), Vector2(-240, -100), Vector2(-226, -90)], "ash": 44, "loot": [["relic_fragment", 2]],
+		"line": "The Moss-Mason sets down his chisel. The Hierarch's thumb will stay unfinished."},
+	"gate_breaker": {"title": "The Gate-Breaker", "kind": "bulwark", "hp": 36, "scale": 1.4,
+		"spots": [Vector2(-196, 162), Vector2(-204, 170), Vector2(-192, 152)], "ash": 42, "loot": [["relic_fragment", 2]],
+		"line": "The Gate-Breaker drops its ram. The gate it wanted is a long way east."},
 }
 
 var haunts: Dictionary = {}      ## id -> Vector3 on the ground

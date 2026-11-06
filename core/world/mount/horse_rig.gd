@@ -23,6 +23,8 @@ const BONES := ["root", "hips", "barrel", "chest", "neck1", "neck2", "neck3", "h
 static var _mats := {}
 
 var breed := ""
+## r37 west: a breed that wears another breed's textures (the Weir Cob: the garron's, dyed dun in material())
+const TEX_ALIAS := {"weir_cob": "garron"}
 var skel: Skeleton3D
 var mesh_inst: MeshInstance3D
 var last_dy := 0.0                     ## the back's drop this frame (m): the rider rides it
@@ -95,7 +97,7 @@ static func material(b: String) -> StandardMaterial3D:
 	if _mats.has(b):
 		return _mats[b]
 	var m := StandardMaterial3D.new()
-	var pre := "res://art/textures/horse_%s_" % b
+	var pre := "res://art/textures/horse_%s_" % String(TEX_ALIAS.get(b, b))
 	m.albedo_texture = load(pre + "albedo.png")
 	m.normal_enabled = true
 	m.normal_texture = load(pre + "normal.png")
@@ -117,6 +119,8 @@ static func material(b: String) -> StandardMaterial3D:
 	m.rim_enabled = true
 	m.rim = 0.2
 	m.rim_tint = 0.4
+	if b == "weir_cob":                                    # --- r37 west --- a warm dun over the garron's coat
+		m.albedo_color = Color(1.14, 0.98, 0.8)
 	_mats[b] = m
 	return m
 

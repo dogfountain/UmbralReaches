@@ -28,6 +28,7 @@ const SiteWood := preload("res://core/life/secrets/site_wood.gd")
 const SiteGlade := preload("res://core/life/secrets/site_glade.gd")
 const SiteBreath := preload("res://core/life/secrets/site_breath.gd")
 const SiteCompany := preload("res://core/life/secrets/site_company.gd")
+const SiteR37W := preload("res://core/life/secrets/site_r37_west.gd")      # --- r37 west --- the Sorrow's hidden walk
 const SiteR34 := preload("res://core/life/secrets/site_r34.gd")      # r34 places: the new ground's secrets
 const Reactivity := preload("res://core/life/secrets/reactivity.gd")
 const Director := preload("res://core/life/secrets/director.gd")
@@ -68,6 +69,9 @@ static func build(root: Node) -> void:
 	if not "--no-r34-secrets" in OS.get_cmdline_user_args():
 		SiteR34.build(root, host)
 	build_ms["r34"] = (Time.get_ticks_usec() - t) / 1000
+	# --- r37 west ---
+	if not "--no-r37-west" in OS.get_cmdline_user_args():
+		SiteR37W.build(root, host)
 	t = Time.get_ticks_usec()
 	Kit.prewarm()
 	build_ms["snd"] = (Time.get_ticks_usec() - t) / 1000
