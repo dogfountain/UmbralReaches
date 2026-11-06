@@ -162,6 +162,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		hip.rotation.z = sx * (lift * 0.38 * st - _coil * 0.25 + _land * 0.2 - _air * 0.15 + reach + _fold * 0.55 + _reel * 0.3)
 		knee.rotation.z = -sx * (lift * 0.25 * st + _coil * 0.35 - _air * 0.4 - _fold * 0.3)
 		knee.rotation.x = (0.25 if front else -0.25) * _air
+		(leg.foot as Node3D).rotation.z = -(hip.rotation.z + knee.rotation.z)     # the paw stays flat
 
 
 ## Hound legs (upright): fore/aft swing is a pitch at the hip, the lift folds the knee / hock, and
@@ -183,6 +184,7 @@ func _animate_upright(st: float) -> void:
 		hip.rotation.y = 0.0
 		knee.rotation.x = -fb * (bend + lift * 0.9 * st + (0.35 if front else 0.2) * _air)
 		knee.rotation.z = 0.0
+		(leg.foot as Node3D).rotation.x = -(hip.rotation.x + knee.rotation.x)
 
 
 func cast(_sound := "") -> void:
