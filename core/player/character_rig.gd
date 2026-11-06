@@ -904,7 +904,7 @@ func _hero_pose(speed: float, on_floor: bool, idle: float, breathe: float, delta
 func _idle_life(idle: float, breathe: float) -> void:
 	if idle <= 0.001:
 		return
-	var shift := sin(_t * 0.43)
+	var shift := sin(_t * 1.1)
 	for i in 2:
 		var carry := -shift if i == 0 else shift         # > 0: this leg carries the weight
 		_knee[i].rotation.x -= maxf(0.0, -carry) * 0.12 * idle
@@ -912,7 +912,7 @@ func _idle_life(idle: float, breathe: float) -> void:
 	_pelvis.position.y -= absf(shift) * 0.008 * idle
 	_sh[0].rotation.z -= breathe * 0.015 * idle
 	_sh[1].rotation.z += breathe * 0.012 * idle
-	var fidget := pow(maxf(0.0, sin(_t * 0.23 + 0.7)), 12.0)          # a rare regrip
+	var fidget := smoothstep(0.9, 0.99, sin(_t * 0.23 + 0.7))         # a rare regrip, eased in and out
 	_el[0].rotation.x += fidget * 0.25 * idle
 	_staff_off.x += sin(_t * 0.37 + 1.0) * 0.03 * idle - fidget * 0.06 * idle
 	_staff_off.z += (0.04 + sin(_t * 0.6) * 0.02) * idle
@@ -2107,7 +2107,7 @@ func _moves_pose(speed: float, on_floor: bool, dt: float) -> void:
 				&"climb":
 					_pose_climb(u)
 				&"mantle":
-					_pose_climb(0.35 + 0.65 * u)         # the same, from hands already on the top
+					_pose_climb(0.15 + 0.85 * u)         # the same, from hands already on the top
 				&"wallkick":
 					_pose_wallkick(u)
 	_staff_frame = Basis(Vector3.UP, sf_yaw) * _staff_frame
@@ -2263,7 +2263,7 @@ func _pose_vault(u: float) -> void:
 
 ## Kicking off a wall: the push leg straight back into it, the other tucked, arms thrown up.
 func _pose_wallkick(u: float) -> void:
-	var k := smoothstep(0.0, 0.1, u) * (1.0 - smoothstep(0.45, 1.0, u))
+	var k := smoothstep(0.0, 0.16, u) * (1.0 - smoothstep(0.55, 1.0, u))      # the foot is on the wall as the velocity changes, held for the lock
 	_hip[0].rotation.x = lerpf(_hip[0].rotation.x, -0.7, k)
 	_knee[0].rotation.x = lerpf(_knee[0].rotation.x, -0.15, k)
 	_foot[0].rotation.x = lerpf(_foot[0].rotation.x, -0.5, k)
