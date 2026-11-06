@@ -252,6 +252,8 @@ func _c(key: String, fallback: Color) -> Color:
 	return v if v is Color else fallback
 
 
+var _skin_c := Color(0.7, 0.55, 0.45)   ## the face's skin tone, shared by neck and hands
+
 func _body_v(mb: Variant) -> void:
 	var f := String(cfg.get("sex", "m")) == "f"
 	var age := String(cfg.get("age", "adult"))
@@ -260,6 +262,8 @@ func _body_v(mb: Variant) -> void:
 	skin = skin.lerp(Color(0.62, 0.48, 0.37), _rng.randf_range(0.1, 0.4))
 	if bool(cfg.get("pale", false)):
 		skin = skin.lerp(Color(0.78, 0.8, 0.86), 0.55)
+	skin = _realistic_skin(skin)
+	_skin_c = skin
 	var cloth := _c("cloth", TUNICS[_rng.randi_range(0, TUNICS.size() - 1)])
 	var cloth2 := _c("cloth2", TROUSERS[_rng.randi_range(0, TROUSERS.size() - 1)])
 	var hair := _c("hair_c", BEARDS[_rng.randi_range(0, BEARDS.size() - 1)])
@@ -382,9 +386,7 @@ func _torso_v(mb: Variant, f: bool, cloth: Color, leather: Color, girth: float, 
 		mb.blob(Vector3(s * (sw - 0.03), 1.195, 0.012) * k, Vector3(0.046, 0.042, 0.05) * k, Basis.IDENTITY, body.lightened(0.03), DwarfMesh.MAT_CLOTH, {"lumps": 0.03, "rings": 8, "segs": 14})
 		mb.tube(PackedVector3Array([Vector3(s * 0.06, 1.255, 0.0) * k, Vector3(s * (sw - 0.04), 1.248, 0.01) * k, Vector3(s * (sw + 0.02), 1.19, 0.02) * k]), _pf([0.004, 0.004, 0.004], k), 4, body.darkened(0.3), DwarfMesh.MAT_CLOTH, {"lumps": 0.0})
 	mb.ring(Vector3(0, 1.255 * k, 0.0), Vector2(0.056, 0.05) * k, 0.008 * k, 0.012 * k, Basis.IDENTITY, body.darkened(0.12), DwarfMesh.MAT_CLOTH, 16)
-	var skin_n := _c("skin", SKINS[0])
-	if bool(cfg.get("pale", false)):
-		skin_n = skin_n.lerp(Color(0.78, 0.8, 0.86), 0.55)
+	var skin_n := _skin_c
 	mb.bind_blend(B_CHEST, B_HEAD, Vector3(0, 1.24 * k, 0), (rests[B_HEAD] as Vector3) + Vector3(0, 0.03, 0))
 	mb.tube(PackedVector3Array([Vector3(0, 1.22 * k, 0.005), (rests[B_HEAD] as Vector3) + Vector3(0, -0.02, -0.005), hc + Vector3(0, -0.06, 0.0) * hs]), _pf([0.05, 0.045, 0.043], k * (0.92 if f else 1.0)), 12, skin_n.darkened(0.06), DwarfMesh.MAT_SKIN, {"caps": false})
 	# belt (except robes with a cord, dresses with a sash)
@@ -414,7 +416,7 @@ func _head_v(mb: Variant, f: bool, skin: Color, age: String, hair: Color) -> voi
 	var fc: Variant = face()
 	var pale := bool(cfg.get("pale", false))
 	fc.skin = skin
-	fc.ruddy = skin.lerp(Color(0.84, 0.46, 0.32), 0.04 if pale else 0.13)   # models pass: was 0.2 (doll-pink cheeks)
+	fc.ruddy = skin.lerp(Color(0.8, 0.5, 0.38), 0.03 if pale else 0.08)   # models pass: was 0.2 (doll-pink cheeks)
 	fc.lip_c = fc.ruddy.lerp(Color(0.62, 0.24, 0.22), (0.3 if f else 0.18) * (0.4 if pale else 1.0))
 	if not f and age in ["adult", "old"]:
 		fc.stubble = 0.5 if String(cfg.get("beard", "")) == "" else 1.0
@@ -446,26 +448,26 @@ func _hair_v(mb: Variant, hair: Color, style: String, f: bool) -> void:
 		"short", "fringe":
 			if style == "short":
 				mb.blob(c + Vector3(0, 0.012, 0.006) * S, fr + Vector3(0.007, 0.002, 0.006) * S, Basis(Vector3.RIGHT, 0.36), hair.darkened(0.08), DwarfMesh.MAT_HAIR, {"phi": Vector2(0.0, 0.45), "lumps": 0.12, "rings": 8, "segs": 20})
-				_locks(mb, c, fr, hair, 70, Vector2(0.035, 0.06), 0.0105)
+				_locks(mb, c, fr, hair, 44, Vector2(0.035, 0.06), 0.0145)
 				if String(cfg.get("hat", "")) == "" and not hood:
-					_fringe(mb, c + Vector3(0, 0.012, 0.006) * S, fr + Vector3(0.007, 0.002, 0.006) * S, Basis(Vector3.RIGHT, 0.36), 0.45, hair, 30)
-			for i in (36 if style == "short" else 30):
-				var a := lerpf(-2.2, 2.2, (float(i) + _rng.randf_range(-0.4, 0.4)) / 35.0) + PI
+					_fringe(mb, c + Vector3(0, 0.012, 0.006) * S, fr + Vector3(0.007, 0.002, 0.006) * S, Basis(Vector3.RIGHT, 0.36), 0.45, hair, 14)
+			for i in (22 if style == "short" else 18):
+				var a := lerpf(-2.2, 2.2, (float(i) + _rng.randf_range(-0.4, 0.4)) / (21.0 if style == "short" else 17.0)) + PI
 				var root := c + Vector3(sin(a) * (fr.x + 0.004 * S), (0.02 + (0.03 if style == "short" else 0.0) - 0.01 * cos(a)) * S, -cos(a) * fr.z)
-				mb.strand(root, Vector3(sin(a) * 0.3, -1, -cos(a) * 0.4), _rng.randf_range(0.04, 0.07) * S, 0.009 * S, hair.lightened(_rng.randf_range(-0.08, 0.08)), Vector3.ZERO, 0.3, 3, 4)
+				mb.strand(root, Vector3(sin(a) * 0.3, -1, -cos(a) * 0.4), _rng.randf_range(0.04, 0.07) * S, 0.014 * S, hair.lightened(_rng.randf_range(-0.08, 0.08)), Vector3.ZERO, 0.3, 3, 5)
 		"bun", "braids", "long", "wild":
 			# a combed scalp (parting), then the style; under a hood only what hangs below it shows (the cap
 			# and the parting poked through the hood's crown and under its rim)
 			if not hood:
 				mb.blob(c + Vector3(0, 0.014, 0.004) * S, fr + Vector3(0.008, 0.003, 0.007) * S, Basis(Vector3.RIGHT, 0.36), hair.darkened(0.06), DwarfMesh.MAT_HAIR, {"phi": Vector2(0.0, 0.38 if String(cfg.get("hat", "")) != "" else 0.47), "lumps": 0.06, "rings": 9, "segs": 20})
 			if String(cfg.get("hat", "")) == "" and not hood:
-				_locks(mb, c, fr, hair, 46, Vector2(0.06, 0.1), 0.0095)
-				_fringe(mb, c + Vector3(0, 0.014, 0.004) * S, fr + Vector3(0.008, 0.003, 0.007) * S, Basis(Vector3.RIGHT, 0.36), 0.47, hair, 30)
-			for i in (0 if hood else 26):
-				var a2 := lerpf(-1.35, 1.35, float(i) / 25.0)
+				_locks(mb, c, fr, hair, 30, Vector2(0.06, 0.1), 0.0135)
+				_fringe(mb, c + Vector3(0, 0.014, 0.004) * S, fr + Vector3(0.008, 0.003, 0.007) * S, Basis(Vector3.RIGHT, 0.36), 0.47, hair, 14)
+			for i in (0 if hood else 16):
+				var a2 := lerpf(-1.35, 1.35, float(i) / 15.0)
 				var root2 := c + Vector3(sin(a2) * 0.03, 0.105, -0.04) * S
 				var dir2 := Vector3(sin(a2) * 1.0, -0.15, 0.7 + absf(a2) * 0.2)
-				mb.strand(root2, dir2, (0.12 + absf(a2) * 0.03) * S, 0.009 * S, hair.lightened(_rng.randf_range(-0.06, 0.08)), Vector3(0, -0.8, 0), 0.6, 5, 4)
+				mb.strand(root2, dir2, (0.12 + absf(a2) * 0.03) * S, 0.015 * S, hair.lightened(_rng.randf_range(-0.06, 0.08)), Vector3(0, -0.8, 0), 0.6, 5, 4)
 			match style:
 				"bun":
 					mb.blob(c + Vector3(0, 0.02, 0.105) * S, Vector3(0.045, 0.04, 0.035) * S, Basis.IDENTITY, hair.darkened(0.1), DwarfMesh.MAT_HAIR, {"lumps": 0.2, "rings": 7, "segs": 12})
@@ -479,14 +481,14 @@ func _hair_v(mb: Variant, hair: Color, style: String, f: bool) -> void:
 						mb.ring(path[2] + Vector3(0, 0.02, 0), Vector2(0.016, 0.016) * S, 0.005 * S, 0.012 * S, Basis.IDENTITY, Color(0.5, 0.42, 0.3), DwarfMesh.MAT_LINEN, 8)
 						mb.bind(B_HEAD)
 				"long", "wild":
-					var n := 60 if style == "long" else 70
+					var n := 34 if style == "long" else 40
 					mb.bind_blend(B_HEAD, B_CHEST, c + Vector3(0, -0.05, 0) * S, c + Vector3(0, -0.25, 0) * S)
 					for i in n:
 						var a3 := lerpf(-2.0, 2.0, (float(i) + _rng.randf_range(-0.45, 0.45)) / float(n - 1)) + PI
 						var root3 := c + Vector3(sin(a3) * (fr.x + 0.01 * S), (0.03 + 0.02 * cos(a3)) * S, -cos(a3) * (fr.z + 0.005 * S))
 						var ln := _rng.randf_range(0.2, 0.3) if style == "long" else _rng.randf_range(0.14, 0.3)
 						var curl := Vector3.ZERO if style == "long" else Vector3(_rng.randf_range(-0.6, 0.6), 0, _rng.randf_range(-0.3, 0.5))
-						mb.strand(root3, Vector3(sin(a3) * 0.25, -1, -cos(a3) * 0.35), ln * S, 0.011 * S, hair.lightened(_rng.randf_range(-0.08, 0.08)), curl, 0.35, 6, 4)
+						mb.strand(root3, Vector3(sin(a3) * 0.25, -1, -cos(a3) * 0.35), ln * S, 0.017 * S, hair.lightened(_rng.randf_range(-0.08, 0.08)), curl, 0.35, 6, 5)
 					mb.bind(B_HEAD)
 
 
@@ -524,7 +526,7 @@ func _fringe(mb: Variant, cc: Vector3, rr: Vector3, b: Basis, pmax: float, hair:
 		var root := cc + b * local
 		var out := (b * local).normalized()
 		var dir := (Vector3.DOWN + out * 0.12 + Vector3(u * 0.3, 0, 0)).normalized()
-		mb.strand(root - out * 0.002, dir, _rng.randf_range(0.01, 0.028) * S * (1.0 - 0.3 * absf(u)), 0.0042 * S,
+		mb.strand(root - out * 0.002, dir, _rng.randf_range(0.012, 0.03) * S * (1.0 - 0.3 * absf(u)), 0.0085 * S,
 			hair.lightened(_rng.randf_range(-0.08, 0.06)), -out * 0.15, 0.3, 3, 4)
 
 
@@ -541,16 +543,16 @@ func _beard_v(mb: Variant, hair: Color, kind: String) -> void:
 		var path := PackedVector3Array()
 		for q: Array in [[0.03, my + 0.13, 0.08], [0.17, my + 0.08, 0.12], [0.3, my - 0.02, 0.12], [0.36, my - 0.15, 0.1]]:
 			path.append(fc.point(s * float(q[0]), float(q[1])) + fc.normal(s * float(q[0]), float(q[1])) * rz * float(q[2]))
-		mb.tube(path, _pf([0.006, 0.0075, 0.006, 0.003], S), 7, col.lightened(0.04), DwarfMesh.MAT_HAIR, {"lumps": 0.1, "squash": Vector2(1.0, 0.65)})
+		mb.tube(path, _pf([0.0085, 0.0105, 0.009, 0.005], S), 7, col.lightened(0.04), DwarfMesh.MAT_HAIR, {"lumps": 0.1, "squash": Vector2(1.0, 0.65)})
 	# short: a trimmed shell over jaw and chin, and a fringe of short hairs along its lower edge
 	fc.beard_shell(mb, col.darkened(0.05), 0.0045 * S, -0.08, 0.004 * S if kind == "short" else 0.0)
-	for i in 40:
+	for i in 18:
 		var x := _rng.randf_range(-0.8, 0.8)
 		var y := -sqrt(maxf(0.95 - x * x, 0.0)) + _rng.randf_range(0.0, 0.06)
 		var root: Vector3 = fc.point(x, y)
 		var nn: Vector3 = fc.normal(x, y)
 		mb.bind(B_JAW if absf(x) < 0.55 else B_HEAD)
-		mb.strand(root + nn * 0.003 * S, Vector3.DOWN + nn * 0.4, _rng.randf_range(0.012, 0.02) * S, 0.004 * S, col.lightened(_rng.randf_range(-0.08, 0.08)), Vector3.ZERO, 0.2, 2, 3)
+		mb.strand(root + nn * 0.003 * S, Vector3.DOWN + nn * 0.4, _rng.randf_range(0.014, 0.024) * S, 0.0085 * S, col.lightened(_rng.randf_range(-0.08, 0.08)), Vector3.ZERO, 0.2, 2, 3)
 	if kind != "long":
 		mb.bind(B_HEAD)
 		return
@@ -560,7 +562,7 @@ func _beard_v(mb: Variant, hair: Color, kind: String) -> void:
 	mb.blob(c + Vector3(0, -0.1, -0.055) * S, Vector3(0.068, 0.045, 0.05) * S, Basis.IDENTITY, col.darkened(0.12), DwarfMesh.MAT_HAIR, {"lumps": 0.12, "rings": 8, "segs": 16})
 	mb.blob(c + Vector3(0, -0.22, -0.075) * S, Vector3(0.055, 0.11, 0.032) * S, Basis(Vector3.RIGHT, -0.15), col.darkened(0.14), DwarfMesh.MAT_HAIR, {"lumps": 0.15, "rings": 8, "segs": 14})
 	for layer in 2:
-		var m := 17
+		var m := 11
 		for i2 in m:
 			var a := lerpf(-1.4, 1.4, (float(i2) + _rng.randf_range(-0.4, 0.4)) / float(m - 1)) * (1.0 - 0.1 * float(layer))
 			var ln := _rng.randf_range(0.6, 1.0) - absf(a) * 0.25
@@ -574,8 +576,8 @@ func _beard_v(mb: Variant, hair: Color, kind: String) -> void:
 				var rzz := lerpf(0.06, 0.03, t)
 				var aa := a * lerpf(1.0, 0.7, t)
 				pts.append(c + Vector3(sin(aa) * rx + sin(wave + t * 10.0) * 0.008 * t, y2, lerpf(-0.045, -0.085, t) - cos(aa) * rzz - 0.006 * float(layer)) * S)
-				rr.append(0.014 * S * (1.0 - 0.9 * pow(t / ln, 1.3)))
-			mb.tube(pts, rr, 6, col.lightened(_rng.randf_range(-0.1, 0.12) + 0.05 * float(layer) - 0.04), DwarfMesh.MAT_HAIR, {"lumps": 0.03, "squash": Vector2(1.0, 0.45)})
+				rr.append(0.021 * S * (1.0 - 0.85 * pow(t / ln, 1.3)))
+			mb.tube(pts, rr, 6, col.lightened(_rng.randf_range(-0.1, 0.12) + 0.05 * float(layer) - 0.04), DwarfMesh.MAT_HAIR, {"lumps": 0.03, "squash": Vector2(1.0, 0.62)})
 	mb.bind(B_HEAD)
 
 
