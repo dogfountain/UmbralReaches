@@ -1527,8 +1527,8 @@ func _resolve_strike() -> void:
 	to.y = 0.0
 	var d := to.length()
 	var fwd := _face_dir if _face_dir.length_squared() > 0.01 else (to / maxf(d, 0.001))
-	var in_cone := d < 0.6 or fwd.normalized().dot(to / maxf(d, 0.001)) >= cos(deg_to_rad(strike_arc + 10.0))
-	if d <= strike_range + 0.5 and in_cone and absf(dy) < 1.8 and _strike_clear(_p):
+	var in_cone := d < 0.6 or fwd.normalized().dot(to / maxf(d, 0.001)) >= cos(deg_to_rad(strike_arc))
+	if d <= strike_range + 0.45 and in_cone and absf(dy) < 1.8 and _strike_clear(_p):
 		if _p.is_evading():
 			_p.on_evaded(self)
 		else:
