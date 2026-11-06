@@ -94,14 +94,16 @@ func _build_post() -> void:
 
 
 func _wake() -> void:
-	_awake = true
 	if _village == null:
 		# the village is built after the posts: find its director when the post first wakes
 		for vn in get_tree().get_nodes_in_group("villager"):
 			_village = vn.get("village")
 			if _village != null:
 				break
-	if not men.is_empty() or _village == null:
+	if _village == null:
+		return                    # not built yet (a load right beside the post): try again next scan
+	_awake = true
+	if not men.is_empty():
 		return
 	var right := face.cross(Vector3.UP).normalized()
 	_posts = [face * 2.4 + right * -1.6, face * 2.8, face * 2.4 + right * 1.6]
