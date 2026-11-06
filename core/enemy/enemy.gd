@@ -457,6 +457,7 @@ func _provoke(from: Node) -> void:
 	_provoked_ms = now
 	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
 		if node != self and node is Enemy and (node as Enemy)._state == IDLE and (node as Node3D).global_position.distance_to(global_position) < ALARM_R:
+			(node as Enemy).wake()                   # a camp at the edge of earshot stands up on the hit
 			(node as Enemy).alerted(from)
 
 

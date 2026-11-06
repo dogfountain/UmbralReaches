@@ -8,7 +8,7 @@ extends RefCounted
 ## With no mesh (still baking, or --no-realm) every call answers "no help" and flat steering carries on.
 
 const REQUERY := 0.5
-const STALL_T := 1.0
+const STALL_T := 0.45
 const CORNER_R := 0.8            ## a corner this close (planar) is reached
 const BEND := 1.5                ## a path bending less than this off the straight line is not worth following
 const CLEAR_THINKS := 3          ## consecutive clear thinks before it drops back to the straight line
