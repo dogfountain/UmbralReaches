@@ -52,7 +52,7 @@ func _init() -> void:
 
 
 func voice_family() -> String:
-	return "whisper"
+	return "tollman"
 
 
 func _build() -> void:
@@ -207,7 +207,11 @@ func _special_think() -> void:
 
 func _toll_fx(k: int) -> void:
 	var at := _bell_at()
-	Sfx.play("res://art/audio/ward_chime.wav", at, 0.0 + float(k) * 2.0, 0.42)
+	var bell := EnemyAudio.kit("bell")
+	if bell != null:
+		Sfx.play_stream(bell, at, 2.0 + float(k) * 2.0, 1.0 - 0.05 * float(k), 0.01)
+	else:
+		Sfx.play("res://art/audio/ward_chime.wav", at, 0.0 + float(k) * 2.0, 0.42)
 	Sfx.play_stream(Synth.get_stream("block"), at, -6.0, 0.4)
 	Vfx.ring(global_position + Vector3.UP * 0.1, 3.0 + 4.0 * float(k), GOLD, 0.9, 0.08, Vector3.UP, 1.2)
 	Vfx.ring(at, 0.6, GOLD, 0.35, 0.04, Vector3.BACK, 1.0)

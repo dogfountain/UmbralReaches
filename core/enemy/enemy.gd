@@ -148,6 +148,7 @@ var _moves: Array[MeshInstance3D] = []
 var _combo_left := 0
 var _cur_windup := 0.42      ## this windup's length (a chained blow is shorter)
 var _feinted := false
+var _vb := EnemyAudio.Voicebox.new()   ## idle-breath timer and stride (EnemyAudio)
 var _flee_t := 0.0           ## falling back, hurt
 var _fled := false
 var _shaken_t := 0.0         ## a Nova just went off near it: backing off
@@ -161,7 +162,6 @@ var _detour_mem := 0.0       ## seconds the side is still remembered after the w
 var _provoked_ms := -100000  ## when a hit last stirred its pack (once a second at most)
 var _ward_t := 0.0           ## a boss between phases: blows mostly turned
 var _shroud_t := 0.0         ## a chanter's working on it: half damage
-var _hurt_voice_cd := 0.0
 var _allies := 0             ## living packmates within 10 m (think rate)
 var _ward_ally: Enemy        ## nearest support (a guard stands between it and you)
 var _shield_ally: Enemy      ## nearest melee packmate (a support keeps it between you)
@@ -261,9 +261,7 @@ func _kind(own: StringName) -> StringName:
 	return body_kind if body_kind != &"" else own
 
 const LIGHT_MARGIN := 0.6    ## enemies stop this far outside any lit brazier / ward radius
-const SFX_DIE := "res://art/audio/enemy_die.wav"
 const SFX_MARK := "res://art/audio/mark_tick.wav"
-const SFX_SHRIEK := "res://art/audio/pounce_shriek.wav"
 
 static var _pip_mesh: SphereMesh
 
@@ -408,10 +406,9 @@ func take_hit(dmg: float, from: Node = null) -> void:
 	if hp <= 0.001:
 		_hitstop = 6
 	_refresh_hp(true)
-	Sfx.play_stream(Synth.get_stream(_hit_sound()), at, -5.0 + minf(dmg, 4.0), 1.15 - minf(dmg, 4.0) * 0.06)
-	if hp > 0.001 and _hurt_voice_cd <= 0.0:
-		_hurt_voice_cd = 0.7
-		Sfx.play_stream(Synth.voice(voice_family(), "hurt"), at, -9.0, _voice_pitch())
+	EnemyAudio.hit(_hit_sound(), at, dmg, -2.0)
+	if hp > 0.001:
+		say("hurt", at, -4.0, _voice_pitch())      # EnemyAudio spaces its cries (OWNER_GAP)
 	var p := _player()
 	if p:
 		p.cast_impulse()
@@ -480,7 +477,7 @@ func _start_flee() -> void:
 	_combo_left = 0
 	if _state == WINDUP or _state == FEINT or _state == CHASE or _state == CALL:
 		_set_state(CHASE)
-	Sfx.play_stream(Synth.voice(voice_family(), "flee"), global_position + Vector3.UP, -6.0, _voice_pitch())
+	say("flee", global_position + Vector3.UP, -4.0, _voice_pitch())
 
 
 ## Knockback speed for a hit; bosses shrug most of it off.
@@ -509,7 +506,8 @@ func stagger(extra_time := 0.0) -> void:
 	if _rig and _rig.has_method("stagger"):
 		_rig.call("stagger")
 	HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.6), "broken", Color(1.0, 0.8, 0.5))
-	Sfx.play_stream(Synth.get_stream("stagger"), global_position + Vector3.UP, -3.0, 1.0 if not boss else 0.7)
+	Sfx.play_stream(Synth.get_stream("stagger"), global_position + Vector3.UP, -3.0, 1.0 if not boss else 0.85)
+	say("stagger", global_position + Vector3.UP * hp_bar_y * 0.6, -2.0, _voice_pitch())
 	Vfx.ring(global_position + Vector3.UP * 0.1, 1.2 * maxf(hp_bar_y / 2.0, 0.6), Color(1.6, 1.2, 0.5), 0.4, 0.1, Vector3.UP, 1.0)
 
 
@@ -517,9 +515,13 @@ func _hit_sound() -> String:
 	return "flesh"
 
 
-## Synth voice family (Synth.VOICES): growls, cries and calls.
+## Voice set (EnemyAudio / Bank.SETS): the creature's breath, calls, tells, blows, cries and fall.
 func voice_family() -> String:
-	return "rasp"
+	return "hollow"
+
+
+## One of its voices (idle alert windup attack hurt stagger die flee; a great one's phase). `pitch`: size factor.
+func say(act: String, at: Vector3, db := 0.0, pitch := 1.0) -> void: EnemyAudio.say(voice_family(), act, at, get_instance_id(), db, pitch, boss)
 
 
 ## Its telegraphed area moves (AttackKit) are cancelled: staggered, riposted or dead.
@@ -805,6 +807,7 @@ func _physics_process(delta: float) -> void:
 		_shudder()
 		return
 	_cache_player()
+	_vb.tick(self, voice_family(), delta, _dist, boss, _state == IDLE or _state == CHASE or _state == RECOVER, _voice_pitch())
 	_poise_dmg = maxf(0.0, _poise_dmg - delta * poise / POISE_WINDOW)
 	_stagger_cd = maxf(0.0, _stagger_cd - delta)
 	_flee_t = maxf(0.0, _flee_t - delta)
@@ -816,7 +819,6 @@ func _physics_process(delta: float) -> void:
 	_fallen = maxf(0.0, _fallen - delta * 0.12)
 	_regroup_t = maxf(0.0, _regroup_t - delta)
 	_hunt_t = maxf(0.0, _hunt_t - delta)
-	_hurt_voice_cd = maxf(0.0, _hurt_voice_cd - delta)
 	if _shroud_t > 0.0:
 		_shroud_t = maxf(0.0, _shroud_t - delta)
 		_flesh_param(&"glint", 0.35 + 0.25 * sin(_shroud_t * 9.0) if _shroud_t > 0.0 else 0.0)
@@ -1323,7 +1325,6 @@ func _leap_target(player: Player) -> Vector3:
 func _pounce(player: Player) -> void:
 	var target := _leap_target(player)
 	launch_at(target, leap_apex)
-	Sfx.play(SFX_SHRIEK, global_position, -4.0)
 	_leap_cd = leap_cooldown
 	_set_state(AIRBORNE)
 
@@ -1386,6 +1387,8 @@ func _set_state(next: int) -> void:
 		_danger.queue_free()                    # cancelled (staggered, out of reach): no false tell
 	if next == WINDUP and was != STRIKE:
 		_cur_windup = windup_time               # only a chained blow (STRIKE -> WINDUP) is shorter
+	if next == STRIKE or next == AIRBORNE or (next == SPECIAL and was != SPECIAL) or (was == IDLE and next == CHASE and not boss):
+		say("alert" if next == CHASE else "attack", global_position + Vector3.UP * hp_bar_y * 0.6, -3.0 if next == CHASE else 0.0, _voice_pitch())   # woken: one bark
 	_on_state(next)
 
 
@@ -1400,7 +1403,7 @@ func _on_state(next: int) -> void:
 		if _rig and _rig.has_method("telegraph"):
 			_rig.call("telegraph", 0.3)
 		_glint = 0.6
-		Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP, -4.0, _voice_pitch() * 1.1)
+		say("windup", global_position + Vector3.UP, -5.0, _voice_pitch() * 1.1)
 		return
 	if next == WINDUP or next == LEAP_PREP:
 		var life := _cur_windup if next == WINDUP else leap_prep
@@ -1410,7 +1413,7 @@ func _on_state(next: int) -> void:
 			else:
 				_rig.cast()
 		_glint = 1.0
-		Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP, -1.0, _voice_pitch() * clampf(0.5 / maxf(life, 0.2), 0.8, 1.5))
+		say("windup", global_position + Vector3.UP, 0.0, _voice_pitch() * clampf(0.5 / maxf(life, 0.2), 0.8, 1.5))
 		if next == WINDUP:
 			_struck = false
 			var reach := strike_range + 0.45
@@ -1433,7 +1436,7 @@ func _on_state(next: int) -> void:
 
 ## Pitch of this kind's voice (small things higher, bosses lower).
 func _voice_pitch() -> float:
-	return clampf(1.9 / maxf(hp_bar_y, 0.6), 0.6, 1.8) * (0.6 if boss else 1.0)
+	return clampf(1.9 / maxf(hp_bar_y, 0.6), 0.6, 1.8)
 
 
 ## Into a real windup (from the chase or after a feint): full tell, maybe the start of a chain.
@@ -1540,7 +1543,7 @@ func _call_pack() -> void:
 	_glint = 1.0
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", 0.8)
-	Sfx.play_stream(Synth.voice(voice_family(), "call"), global_position + Vector3.UP * 1.4, 0.0, _voice_pitch())
+	say("alert", global_position + Vector3.UP * 1.4, 1.0, _voice_pitch())
 	Vfx.ring(global_position + Vector3.UP * (hp_bar_y * 0.8), 1.2, Color(1.4, 0.5, 0.3), 0.6, 0.05, Vector3.UP, 0.8)
 	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
 		if node != self and node is Enemy and (node as Enemy).global_position.distance_to(global_position) < ALARM_R:
@@ -1693,7 +1696,7 @@ func _die() -> void:
 			_knock = _knock.limit_length(4.5)        # a light body folds where it died, in frame
 		if big and not boss:
 			velocity.y = 3.2
-	Sfx.play_stream(Synth.voice(voice_family(), "die"), global_position + Vector3.UP * hp_bar_y * 0.7, -2.0 if boss else -4.0, _voice_pitch())
+	say("die", global_position + Vector3.UP * hp_bar_y * 0.7, 1.0 if boss else -2.0, _voice_pitch())
 	if not boss and _allies >= 1:
 		_final_blow_check()
 		_tell_fallen()
@@ -1709,7 +1712,7 @@ func _die() -> void:
 		pip.visible = false
 	Events.enemy_killed.emit(self)
 	var at := global_position + Vector3.UP * (hp_bar_y * 0.5)
-	Sfx.play(SFX_DIE, at, -6.0)
+	EnemyAudio.hit(_hit_sound(), at, 4.0, -3.0)           # the last blow's weight; the fall is in the die take
 	Vfx.burst(at, Color(0.03, 0.02, 0.05, 0.8), {"count": 26, "life": 1.4, "speed": Vector2(0.3, 1.4), "size": 0.32, "gravity": 0.9, "radius": 0.45, "additive": false, "turbulence": true})
 	Vfx.burst(at, Color(1.2, 0.45, 2.4), {"count": 30, "life": 1.1, "speed": Vector2(0.5, 2.2), "size": 0.05, "gravity": 1.4, "radius": 0.5, "turbulence": true})
 	Vfx.light(at, Color(0.7, 0.4, 1.0), 2.2, 4.0, 0.6)
@@ -1954,7 +1957,7 @@ func _ally_fell() -> void:
 	_alarms.append([global_position, now])        # one of them howls the regroup
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", 0.7)
-	Sfx.play_stream(Synth.voice(voice_family(), "call"), global_position + Vector3.UP * 1.4, -2.0, _voice_pitch() * 0.9)
+	say("alert", global_position + Vector3.UP * 1.4, -1.0, _voice_pitch() * 0.9)
 	HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.6), "they regroup", Color(1.0, 0.7, 0.45))
 
 

@@ -74,7 +74,7 @@ func _try_special(d: float) -> bool:
 	if _rig and _rig.has_method("telegraph"):
 		_rig.call("telegraph", DIVE)
 	Sfx.play_stream(Synth.get_stream("burrow"), global_position, -2.0, 1.0)
-	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP * 0.5, -2.0, _voice_pitch() * 0.8)
+	say("windup", global_position + Vector3.UP * 0.5, -2.0, _voice_pitch() * 0.8)
 	_dirt(global_position, 30)
 	if _visual:
 		_dig_tw = create_tween()
@@ -163,7 +163,7 @@ func _surface() -> void:
 	if _rig and _rig.has_method("strike"):
 		_rig.call("strike")
 	_dirt(global_position, 40)
-	Sfx.play_stream(Synth.voice(voice_family(), "call"), global_position + Vector3.UP * 0.5, -4.0, _voice_pitch())
+	say("alert", global_position + Vector3.UP * 0.5, -4.0, _voice_pitch())
 
 
 func _dirt(at: Vector3, n: int) -> void:
@@ -193,3 +193,11 @@ func riposted() -> void:
 	if _dig_tw:
 		_dig_tw.kill()
 	super.riposted()
+
+
+func voice_family() -> String:
+	return "burrower"
+
+
+func _hit_sound() -> String:
+	return "chitin"

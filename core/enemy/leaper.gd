@@ -56,7 +56,7 @@ func _build() -> void:
 
 
 func voice_family() -> String:
-	return "shriek"
+	return "leaper"
 
 
 ## Tail sweep: only when you are close and NOT in front of its jaws (that is the rake's job).
@@ -77,7 +77,7 @@ func _try_special(d: float) -> bool:
 	if _rig and _rig.has_method("telegraph"):
 		_rig.call("telegraph", SWEEP_TELL)
 	_glint = 1.0
-	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP, 0.0, _voice_pitch())
+	say("windup", global_position + Vector3.UP, 0.0, _voice_pitch())
 	var r := SWEEP_R * maxf(_rig.scale.x if _rig else 1.0, 1.0)
 	AttackKit.zone(self, global_position, SWEEP_TELL, strike_gloom * 0.8, {"radius": r, "fx": "slam", "h": 1.4})
 	return true

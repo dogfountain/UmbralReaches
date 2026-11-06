@@ -317,3 +317,11 @@ func _verdict() -> void:
 	for rg: Array in [[1.4, 2.6, 5.4], [2.3, 9.0, 12.0], [3.2, 15.5, 18.5]]:
 		BossKit.zone(get_parent(), c, float(rg[0]), 26.0, {"by": self, "radius": float(rg[2]), "holes": [[c, float(rg[1])]], "color": Color(2.4, 0.9, 0.35), "h": 3.0})
 	_sig += 1
+
+
+func voice_family() -> String:
+	return "hierarch"
+
+
+func _hit_sound() -> String:
+	return "stone"

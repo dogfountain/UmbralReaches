@@ -59,7 +59,7 @@ func _build() -> void:
 
 
 func _voice_pitch() -> float:
-	return 0.82
+	return 0.9
 
 
 ## Candle-gold rim on its own copy of the Wretch's body material.
@@ -151,7 +151,7 @@ func rise() -> void:
 	_rising = 0.0
 	Vfx.burst(global_position + Vector3.UP * 0.2, Color(0.2, 0.16, 0.12, 0.95), {"count": 30, "life": 0.9, "speed": Vector2(1.5, 4.5), "size": 0.12, "gravity": -9.0, "additive": false, "radius": 0.5})
 	Sfx.play_stream(Synth.get_stream("burrow"), global_position, -2.0, 0.8)
-	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP, -4.0, _voice_pitch())
+	say("windup", global_position + Vector3.UP, -4.0, _voice_pitch())
 
 
 func is_risen() -> bool:

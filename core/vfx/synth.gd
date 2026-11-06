@@ -6,7 +6,8 @@ extends RefCounted
 ## "growl" (a rattling rise for a strike windup: the audible tell), "stagger" (a heavy downward
 ## thump), "roar" (a boss phase change), "spike" (bone/thorn eruption), "block" (a blow turned on
 ## a shield), "burrow" (earth churned from below), "chant" (a caster's rising drone).
-## Creature voices (r28): voice(family, act) -> a variant of that family's cry, round-robin so the
+## Kinds with rendered takes (art/audio/kit, see EnemyAudio) are served from those, a take at a time; the
+## code below is the fallback. Creature voices (r28): voice(family, act) -> a variant of that family's cry, round-robin so the
 ## same take never plays twice in a row. Families: rasp (wretch), bellow (husk, bulwark), chitter
 ## (crawler, mite, burrower), shriek (leaper), gurgle (spitter), rattle (ossuant), whisper (chanter).
 ## Acts: tell (windup), hurt, die, call (a pack's alarm howl), flee (a hurt one falling back).
@@ -29,15 +30,16 @@ static func release() -> void:
 ## Build every kind now (called during load by the encounter director). Built lazily, the first
 ## hit / growl / roar of a fight synthesised in script and cost a visible frame; the PCM is cached.
 static func prewarm() -> void:
+	# the rendered takes (EnemyAudio) replace these: only a kind or family without one is still built here
 	for k: String in KINDS:
-		get_stream(k)
-	for fam: String in VOICES:
-		for act: String in ACTS:
-			for v in _takes(act):
-				_voice_take(fam, act, v)
+		if EnemyAudio.kit(k) == null:
+			get_stream(k)
 
 
 static func get_stream(kind: String) -> AudioStreamWAV:
+	var banked := EnemyAudio.kit(kind) as AudioStreamWAV         # rendered, layered, several takes: preferred
+	if banked != null:
+		return banked
 	if _cache.has(kind):
 		return _cache[kind]
 	var cached: Variant = GenCache.load_var("synth_" + kind, "res://core/vfx/synth.gd")

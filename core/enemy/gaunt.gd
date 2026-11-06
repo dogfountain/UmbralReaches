@@ -128,7 +128,7 @@ func _start_dart(d: float) -> void:
 		_rig.call("telegraph", DART_TELL)
 	_glint = 1.0
 	_squash = 0.2
-	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP, 0.0, _voice_pitch() * 1.2)
+	say("windup", global_position + Vector3.UP, 0.0, _voice_pitch() * 1.2)
 	_lane = SpellFx.danger(global_position, DART_TELL, {"rect": Vector2(0.7, _dart_len * 0.5), "yaw": atan2(-_dart_dir.x, -_dart_dir.z), "hold": _dart_len / DART_SPEED + 0.1})
 	if _lane:
 		track_move(_lane)
@@ -147,7 +147,7 @@ func _special_think() -> void:
 		_drive = _dart_dir * DART_SPEED
 		if _rig and _rig.has_method("strike"):
 			_rig.call("strike")
-		Sfx.play_stream(Synth.voice(voice_family(), "call"), global_position + Vector3.UP, -6.0, _voice_pitch() * 1.3)
+		say("alert", global_position + Vector3.UP, -6.0, _voice_pitch() * 1.3)
 
 
 func _special_frame(_delta: float) -> void:
@@ -181,3 +181,7 @@ func _special_frame(_delta: float) -> void:
 		_state_t = -0.35                           # winded: the punish window
 	elif int(_state_t * 14.0) % 2 == 0:
 		Vfx.burst(global_position + Vector3.UP * 0.1, Color(0.15, 0.12, 0.1, 0.8), {"count": 3, "life": 0.5, "speed": Vector2(0.3, 1.0), "size": 0.12, "gravity": -1.0, "additive": false})
+
+
+func voice_family() -> String:
+	return "gaunt"

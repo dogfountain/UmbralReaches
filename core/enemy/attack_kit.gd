@@ -95,7 +95,7 @@ static func _land(at: Vector3, opts: Dictionary, col: Color) -> void:
 			Vfx.burst(centre + Vector3.UP * 0.3, col, {"count": 34, "life": 0.6, "speed": Vector2(1.5, 5.0), "size": 0.05, "gravity": 2.0, "ring": span, "trail": 0.08})
 			SpellFx.column(centre, span * 0.7, 2.6, 0.4)
 		"acid":
-			Sfx.play("res://art/audio/spit.wav", centre, -2.0, 0.7)
+			Sfx.play_stream(EnemyAudio.kit("spit"), centre, -2.0, 0.7)
 			Vfx.burst(centre + Vector3.UP * 0.2, col, {"count": 28, "life": 0.5, "speed": Vector2(1.0, 3.5), "size": 0.06, "gravity": -7.0, "ring": span * 0.6})
 		"dirt":
 			Sfx.play_stream(Synth.get_stream("burrow"), centre, 0.0, 1.2)

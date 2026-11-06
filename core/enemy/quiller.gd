@@ -43,7 +43,7 @@ func _init() -> void:
 
 
 func voice_family() -> String:
-	return "rattle"
+	return "quiller"
 
 
 func _hit_sound() -> String:
@@ -108,7 +108,7 @@ func _spring_back() -> void:
 	get_tree().create_timer(0.25, false).timeout.connect(func() -> void:
 		if is_inside_tree() and _state != DEAD:
 			launch_at(land, 1.0))
-	Sfx.play_stream(Synth.voice(voice_family(), "flee"), global_position + Vector3.UP, -6.0, _voice_pitch())
+	say("flee", global_position + Vector3.UP, -6.0, _voice_pitch())
 	Vfx.burst(global_position + Vector3.UP * 0.1, Color(0.3, 0.27, 0.22, 0.9), {"count": 10, "life": 0.5, "speed": Vector2(1.0, 2.5), "size": 0.1, "gravity": -6.0, "additive": false})
 
 
@@ -121,7 +121,7 @@ func _on_state(next: int) -> void:
 	if _rig and _rig.has_method("telegraph"):
 		_rig.call("telegraph", DRAW)
 	_glint = 1.0
-	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP * 1.5, -2.0, _voice_pitch() * 1.1)
+	say("windup", global_position + Vector3.UP * 1.5, -2.0, _voice_pitch() * 1.1)
 	if _p == null:
 		return
 	# lead a little: where you are, plus a third of where you are going

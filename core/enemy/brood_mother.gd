@@ -103,7 +103,7 @@ func _spray() -> void:
 	for k in n:
 		var ang := deg_to_rad(-12.0 * float(n - 1) * 0.5 + 12.0 * float(k))
 		SpitOrb.launch(get_tree().current_scene, from, aim.rotated(Vector3.UP, ang), spit_gloom * 0.8)
-	Sfx.play("res://art/audio/spit.wav", from, 0.0, 0.6)
+	Sfx.play_stream(EnemyAudio.kit("spit"), from, 0.0, 0.6)
 	_set_state(RECOVER)
 
 
@@ -116,7 +116,7 @@ func _start_brood() -> void:
 	if _rig and _rig.has_method("telegraph"):
 		_rig.call("telegraph", BROOD_TELL)
 	_glint = 1.0
-	Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP * 2.0, 2.0, 0.55)
+	say("windup", global_position + Vector3.UP * 2.0, 2.0, 0.55)
 	begin_cast("Brood", BROOD_TELL, false)
 	Hints.once(&"brood", "The swelling sac is about to hatch. A blow on the body leaves the brood; a bolt that bursts on the sac ruptures it.")
 
@@ -154,7 +154,7 @@ func _hatch() -> void:
 	for m in got:
 		m.alerted(self)
 	Vfx.burst(_sac.global_position if _sac else global_position + Vector3.UP * 2.0, Color(0.3, 1.6, 1.1), {"count": 40, "life": 0.6, "speed": Vector2(2.0, 5.0), "size": 0.07, "gravity": -8.0, "additive": false})
-	Sfx.play("res://art/audio/spit.wav", global_position + Vector3.UP * 2.0, 2.0, 0.5)
+	Sfx.play_stream(EnemyAudio.kit("spit"), global_position + Vector3.UP * 2.0, 2.0, 0.5)
 
 
 func _special_breakable() -> bool:
@@ -183,7 +183,7 @@ func _physics_process(delta: float) -> void:
 		walk_speed *= 1.15
 		weak_r = 0.28
 		_brood_t = minf(_brood_t, 2.5)
-		Sfx.play_stream(Synth.voice(voice_family(), "call"), global_position + Vector3.UP * 2.5, 3.0, 0.5)
+		say("alert", global_position + Vector3.UP * 2.5, 3.0, 0.5)
 		HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.9), "enraged", Color(1.2, 0.6, 0.3), true)
 		Vfx.ring(global_position + Vector3.UP * 0.15, 6.0, Color(0.3, 1.6, 1.1), 0.8, 0.06, Vector3.UP, 1.2)
 	if _sac and _state == SPECIAL and _brooding:
@@ -192,3 +192,11 @@ func _physics_process(delta: float) -> void:
 		_sac.set_instance_shader_parameter(&"swell", k)
 	elif _sac and _state != WINDUP:
 		_sac.scale = Vector3.ONE * (1.4 if not enraged else 1.8)
+
+
+func voice_family() -> String:
+	return "brood"
+
+
+func _hit_sound() -> String:
+	return "chitin"

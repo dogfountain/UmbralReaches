@@ -275,7 +275,8 @@ func _try_dodge(wish: Vector3) -> bool:
 		player._visual.rotation.y = atan2(-player._roll_dir.x, -player._roll_dir.z)
 		player._visual.play_move(&"roll", Player.ROLL_TIME)
 		player.locomotion._set_capsule(1.1)
-	StaffSfx.play("swish", player.global_position + Vector3.UP, -8.0, 0.85)
+	StaffSfx.play("swish", player.global_position + Vector3.UP, -10.0, 0.85)
+	EnemyAudio.player("dodge", player.global_position + Vector3.UP, -6.0)
 	Sfx.play("res://art/audio/step_%d.wav" % randi_range(0, 7), player.global_position, -8.0, 0.8, 0.03)
 	return true
 

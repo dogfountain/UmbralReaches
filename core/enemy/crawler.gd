@@ -28,7 +28,7 @@ func _init() -> void:
 
 
 func voice_family() -> String:
-	return "chitter"
+	return "crawler"
 
 
 func _build() -> void:
@@ -47,3 +47,7 @@ func _build() -> void:
 		cap.radius = 0.32
 		col.position.y = 0.36
 	set_flesh(EnemyBody.dress(_rig, _kind(&"crawler")))
+
+
+func _hit_sound() -> String:
+	return "chitin"
