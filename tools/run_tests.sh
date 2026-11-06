@@ -25,7 +25,7 @@ set -u
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 GODOT="${GODOT:-$(command -v godot || echo /opt/homebrew/bin/godot)}"
-TEST_TIMEOUT="${TEST_TIMEOUT:-240}"
+TEST_TIMEOUT="${TEST_TIMEOUT:-300}"   # the doubled Realm builds in ~20 s more
 JOBS="${JOBS:-$(( $(sysctl -n hw.perflevel0.physicalcpu 2>/dev/null || nproc 2>/dev/null || echo 4) ))}"   # one per performance core
 SCRATCH="${SCRATCH:-${TMPDIR:-/tmp}}"
 mkdir -p "$SCRATCH"

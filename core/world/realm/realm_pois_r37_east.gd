@@ -35,7 +35,7 @@ const GROUND := 1
 
 ## id -> {at, search, half, rise, title, line, region}
 const POIS := {
-	"spire": {"at": Vector2(245, 4), "search": 8.0, "half": Vector2(7.5, 7.5), "rise": 6.0,
+	"lamp_spire": {"at": Vector2(245, 4), "search": 8.0, "half": Vector2(7.5, 7.5), "rise": 6.0,
 		"title": "The Lamplighters' Spire", "line": "the flame the Marches steered by", "region": "stillwater"},
 	"saltmarket": {"at": Vector2(214, 95), "search": 0.0, "half": Vector2(21, 17), "rise": 6.0,
 		"title": "Saltmarket", "line": "salt keeps meat, and keeps the hollowed off a threshold", "region": "saltmarket"},
@@ -102,8 +102,8 @@ static func reserve(root: Node, _skip: PackedStringArray) -> void:
 		else:
 			WorldLanes.register_site("poi_" + id, rect, lo + 0.05, lo)
 		spots[id] = {"at": Vector3(q.x, base, q.y), "yaw": yaw, "rect": rect, "lo": lo, "hi": hi}
-	if spots.has("spire"):
-		Flora.tree_clear.append([Vector2((spots.spire.at as Vector3).x, (spots.spire.at as Vector3).z), 20.0])
+	if spots.has("lamp_spire"):
+		Flora.tree_clear.append([Vector2((spots.lamp_spire.at as Vector3).x, (spots.lamp_spire.at as Vector3).z), 20.0])
 	# the Anchoress's cairns and the walk are built on the raid floor (reserved by RealmBosses)
 	print("REALM_POI r37e reserved %s" % [spots.keys()])
 
@@ -148,7 +148,7 @@ static func build(holder: Node3D) -> void:
 		host.set_meta("radius", (d.half as Vector2).length() + 4.0)
 		host.set_meta("r37", true)
 		match id:
-			"spire": _spire(host, space, s)
+			"lamp_spire": _spire(host, space, s)
 			"saltmarket": _saltmarket(host, space, s)
 			"saltworks": _saltworks(host, space, s)
 			"crust": _crust(host, space, s)

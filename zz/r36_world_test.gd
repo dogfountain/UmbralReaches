@@ -29,6 +29,10 @@ var p: Player
 var _travel := {}
 
 
+const WatchPosts := preload("res://core/world/watch/watch_posts.gd")
+
+const HorseDB := preload("res://core/world/mount/horse_db.gd")
+
 func _init() -> void:
 	Engine.set_meta(&"full_night", true)   # the 30-minute slice hides horses, watch, roaming events, dailies, attunements
 
@@ -79,7 +83,7 @@ func _wait(s: float) -> void:
 func _watch() -> void:
 	print("-- the Kindled Watch")
 	var posts := get_tree().get_nodes_in_group(&"watch_post")
-	ok(posts.size() == 4, "four watch-posts stand on the roads (%d)" % posts.size())
+	ok(posts.size() == WatchPosts.POSTS.size(), "every watch-post stands (%d of %d)" % [posts.size(), WatchPosts.POSTS.size()])
 	if posts.is_empty():
 		return
 	var w: Node3D = posts[0]
@@ -139,7 +143,7 @@ func _roam() -> void:
 func _horses() -> void:
 	print("-- horses")
 	var hs := get_tree().get_nodes_in_group(&"horse")
-	ok(hs.size() == 4, "four horses at their posts (%d)" % hs.size())
+	ok(hs.size() == HorseDB.BREEDS.size(), "every breed at its post (%d of %d)" % [hs.size(), HorseDB.BREEDS.size()])
 	if hs.is_empty():
 		return
 	var h: Node3D = hs[0]

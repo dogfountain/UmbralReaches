@@ -64,16 +64,21 @@ static func _trim(r: Rect2) -> Rect2:
 		var ox := minf(r.end.x, o.end.x) - maxf(r.position.x, o.position.x)
 		var oz := minf(r.end.y, o.end.y) - maxf(r.position.y, o.position.y)
 		var c := r.get_center()
+		var cut := r
 		if ox <= oz:
 			if o.get_center().x < c.x:
-				r = Rect2(o.end.x + 0.05, r.position.y, r.end.x - o.end.x - 0.05, r.size.y)
+				cut = Rect2(o.end.x + 0.05, r.position.y, r.end.x - o.end.x - 0.05, r.size.y)
 			else:
-				r = Rect2(r.position.x, r.position.y, o.position.x - 0.05 - r.position.x, r.size.y)
+				cut = Rect2(r.position.x, r.position.y, o.position.x - 0.05 - r.position.x, r.size.y)
 		else:
 			if o.get_center().y < c.y:
-				r = Rect2(r.position.x, o.end.y + 0.05, r.size.x, r.end.y - o.end.y - 0.05)
+				cut = Rect2(r.position.x, o.end.y + 0.05, r.size.x, r.end.y - o.end.y - 0.05)
 			else:
-				r = Rect2(r.position.x, r.position.y, r.size.x, o.position.y - 0.05 - r.position.y)
+				cut = Rect2(r.position.x, r.position.y, r.size.x, o.position.y - 0.05 - r.position.y)
+		# a secret standing inside another site (the brine-clerk's vault in the salt-works' yard) would be
+		# cut to nothing, or past it to a negative rect: it keeps its claim and shares the ground instead
+		if cut.size.x >= 0.5 and cut.size.y >= 0.5:
+			r = cut
 	return r
 
 

@@ -309,7 +309,8 @@ func _ambush() -> void:
 
 func _elites() -> void:
 	var haunts: Dictionary = d.get("haunts")
-	check("elites: every haunt on clear ground (%d of %d)" % [haunts.size(), Elites.ELITES.size()], haunts.size() == Elites.ELITES.size(), ", ".join(haunts.keys()))
+	var nightly: Array = Elites.ELITES.keys().filter(func(k: String) -> bool: return not bool((Elites.ELITES[k] as Dictionary).get("ng_only", false)))   # Deeper-Night-only elites have no haunt in a first night
+	check("elites: every haunt on clear ground (%d of %d)" % [haunts.size(), nightly.size()], haunts.size() == nightly.size(), ", ".join(haunts.keys()))
 	var posts: Array = d.get("posts")
 	check("elites: a notice per elite and the board", posts.size() == haunts.size() + 1, str(posts.size()))
 	# every elite builds and dresses (parts, title)
