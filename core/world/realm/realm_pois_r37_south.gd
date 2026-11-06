@@ -1,7 +1,7 @@
 extends RefCounted
 ## The South pass (docs/r37_expansion.md): the doubled Realm's southern ground and the old Realm's wall.
 ##
-##   March Wall   the old Realm's boundary, a curtain wall that follows the land (RealmLayout.MARCH_WALL_WEST /
+##   March Wall   the old Realm's boundary, a curtain wall that follows the land (RealmMarch.WALL_WEST /
 ##                _EAST, a polyline per side) from the Crowns' foot (z -112) to the south edge: a kit of
 ##                segments (three states of ruin), towers at its bends and every ~50 m on the straight, two
 ##                GATEHOUSES where the Pilgrims' Road crosses (RealmLayout.MARCH_GATES; the gate leaves hang
@@ -114,7 +114,7 @@ static func reserve(root: Node) -> void:
 	spots["r37s_well"] = {"at": Vector3(wc.x, _ground_med(space, wc), wc.y), "yaw": 0.0, "rect": Rect2(wc - Vector2(26, 26), Vector2(52, 52))}
 	# --- the wall: two lanes keep the flora and the props off the line
 	for side in [-1, 1]:
-		WorldLanes.register_lane("r37s_wall_%d" % side, (RealmLayout.MARCH_WALL_WEST if side < 0 else RealmLayout.MARCH_WALL_EAST) as Array, 2.6)
+		WorldLanes.register_lane("r37s_wall_%d" % side, (RealmMarch.WALL_WEST if side < 0 else RealmMarch.WALL_EAST) as Array, 2.6)
 	print("REALM_POI r37 south reserved %s" % [spots.keys()])
 
 
@@ -213,7 +213,7 @@ static func _wall(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 # --- the line: one polyline per side, walked by arc length u -------------------------------------
 
 static func line_of(side: int) -> Dictionary:
-	var src: Array = RealmLayout.MARCH_WALL_WEST if side < 0 else RealmLayout.MARCH_WALL_EAST
+	var src: Array = RealmMarch.WALL_WEST if side < 0 else RealmMarch.WALL_EAST
 	var p := PackedVector2Array()
 	var s := PackedFloat64Array()
 	var acc := 0.0
@@ -261,10 +261,10 @@ static func _breach_zs(side: int, gz: float) -> Array[float]:
 	var add := func(z: float) -> void:
 		if z < WALL_Z0 + 18.0 or z > WALL_Z1 - 12.0 or absf(z - gz) < 30.0:
 			return
-		for rn: Array in RealmLayout.MARCH_RUINS:
+		for rn: Array in RealmMarch.RUINS:
 			if int(rn[0]) == side and z > float(rn[1]) - 16.0 and z < float(rn[2]) + 16.0:
 				return
-		for sp: Dictionary in RealmLayout.MARCH_SPURS:
+		for sp: Dictionary in RealmMarch.SPURS:
 			if int(sp.side) == side and absf(z - float((sp.base as Vector2).y)) < 18.0:
 				return
 		for e: float in out:
@@ -281,25 +281,25 @@ static func _breach_zs(side: int, gz: float) -> Array[float]:
 			var b: Vector2 = pts[i + 1]
 			if a.x * fs < 100.0 and b.x * fs < 100.0:
 				continue
-			var fa := (a.x - RealmLayout.wall_x(side, a.y)) * fs
-			var fb := (b.x - RealmLayout.wall_x(side, b.y)) * fs
+			var fa := (a.x - RealmMarch.wall_x(side, a.y)) * fs
+			var fb := (b.x - RealmMarch.wall_x(side, b.y)) * fs
 			if fa * fb < 0.0:
 				var lo := 0.0
 				var hi := 1.0
 				for _k in 12:
 					var mid := (lo + hi) * 0.5
 					var q := a.lerp(b, mid)
-					if (q.x - RealmLayout.wall_x(side, q.y)) * fs * fa > 0.0:
+					if (q.x - RealmMarch.wall_x(side, q.y)) * fs * fa > 0.0:
 						lo = mid
 					else:
 						hi = mid
 				add.call(a.lerp(b, lo).y)
-	for oz: Array in RealmLayout.MARCH_OPENINGS:
+	for oz: Array in RealmMarch.OPENINGS:
 		if int(oz[0]) == side:
 			add.call(float(oz[1]))
 	for c: Dictionary in EnemySpawner.REALM_CAMPS:
 		var cp: Vector3 = c.at
-		if cp.x * fs > 0.0 and RealmLayout.wall_dist(Vector2(cp.x, cp.z)) < 10.0:
+		if cp.x * fs > 0.0 and RealmMarch.wall_dist(Vector2(cp.x, cp.z)) < 10.0:
 			add.call(cp.z)
 	for s: Dictionary in WorldLanes.sites:
 		var sn := String(s.name)
@@ -310,14 +310,14 @@ static func _breach_zs(side: int, gz: float) -> Array[float]:
 			var gr := r.grow(7.0)
 			var zz := r.position.y
 			while zz <= r.end.y:
-				if gr.has_point(Vector2(RealmLayout.wall_x(side, zz), zz)):
+				if gr.has_point(Vector2(RealmMarch.wall_x(side, zz), zz)):
 					add.call(r.get_center().y)
 					break
 				zz += 3.0
 	for slot_list: Variant in RealmLayout.SLOTS.values():
 		for sl: Dictionary in slot_list:
 			var q: Vector2 = sl.at
-			if q.x * fs > 0.0 and RealmLayout.wall_dist(q) < 9.0:
+			if q.x * fs > 0.0 and RealmMarch.wall_dist(q) < 9.0:
 				add.call(q.y)
 	out.sort()
 	return out
@@ -331,13 +331,13 @@ static func _wall_side(wh: Node3D, space: PhysicsDirectSpaceState3D, side: int, 
 	var feats: Array[Dictionary] = []
 	gate_z[side] = gz
 	feats.append({"u": _u_of_z(line, gz), "half": 10.4, "kind": "gate"})
-	for rn: Array in RealmLayout.MARCH_RUINS:
+	for rn: Array in RealmMarch.RUINS:
 		if int(rn[0]) == side:
 			var u0 := _u_of_z(line, float(rn[1]))
 			var u1 := _u_of_z(line, float(rn[2]))
 			feats.append({"u": (u0 + u1) * 0.5, "half": (u1 - u0) * 0.5, "kind": "ruin"})
 	var spurs: Array[Dictionary] = []
-	for sp: Dictionary in RealmLayout.MARCH_SPURS:
+	for sp: Dictionary in RealmMarch.SPURS:
 		if int(sp.side) == side:
 			spurs.append(sp)
 			feats.append({"u": _u_of_z(line, float((sp.base as Vector2).y)), "half": 3.9, "kind": "tower"})

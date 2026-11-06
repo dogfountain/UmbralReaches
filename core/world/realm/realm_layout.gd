@@ -167,28 +167,10 @@ const WELL_C := Vector2(72.0, 204.0)
 const WELL_R := 20.0                          ## the rim radius; the floor pool ~24 m below the downs
 ## the March Wall: the old Realm's west and east boundary, from the Crowns' foot (z -112) to the south
 ## edge. It follows the land: one polyline (x, z; z ascending) per side that swings out onto knolls and
-## ridges and back, straight only where the road crosses (the gates, x +-155). MARCH_WALL_X is the old
-## Realm's nominal edge (OLD_BOUNDS), where the r34 downs' rise fades out; use wall_x() for the line.
+## ridges and back, straight only where the road crosses (the gates, x +-155). The line itself is
+## RealmMarch (wall_x); MARCH_WALL_X is the old Realm's nominal edge (OLD_BOUNDS), where the r34 downs' rise fades out.
 const MARCH_WALL_X := 155.0
 const MARCH_GATES := [Vector2(-155, 67), Vector2(155, 68)]
-const MARCH_WALL_WEST := [Vector2(-157, -112), Vector2(-165, -90), Vector2(-172, -66), Vector2(-163, -40), Vector2(-170, -14),
-	Vector2(-160, 10), Vector2(-155, 34), Vector2(-155, 52), Vector2(-155, 82), Vector2(-152, 104), Vector2(-158, 128),
-	Vector2(-162, 150), Vector2(-157, 172), Vector2(-165, 196), Vector2(-163, 214), Vector2(-158, 230), Vector2(-156, 242)]
-const MARCH_WALL_EAST := [Vector2(157, -112), Vector2(163, -92), Vector2(171, -70), Vector2(160, -46), Vector2(159, -22),
-	Vector2(163, 8), Vector2(166, 30), Vector2(158, 44), Vector2(155, 56), Vector2(155, 84), Vector2(152, 106),
-	Vector2(158, 128), Vector2(153, 150), Vector2(162, 172), Vector2(166, 196), Vector2(166, 214), Vector2(160, 230), Vector2(157, 242)]
-## Short spurs: the wall runs out from its line to a tower on a knoll (the land lifts under the tip).
-const MARCH_SPURS := [{"side": -1, "base": Vector2(-160, 10), "tip": Vector2(-176, 24)}, {"side": 1, "base": Vector2(158, 44), "tip": Vector2(174, 52)}]
-## The long fall: [side, z0, z1] where the wall has come down (stubs and rubble, nothing to bar the way).
-const MARCH_RUINS := [[-1, 112.0, 184.0]]
-## Extra openings besides the gates and the track crossings: [side, z].
-const MARCH_OPENINGS := [[-1, -24.0], [1, -26.0], [1, 132.0]]
-## Cross-ridges in the Marches (they break up the long north-south valleys): a polyline, half width, height.
-## A way that crosses one gets a saddle.
-const MARCH_RIDGES := [
-	{"pts": [Vector2(-262, 30), Vector2(-238, 21), Vector2(-214, 28), Vector2(-196, 23), Vector2(-176, 30), Vector2(-160, 24)], "w": 15.0, "h": 6.5},
-	{"pts": [Vector2(160, -57), Vector2(184, -64), Vector2(208, -59), Vector2(234, -65), Vector2(262, -57)], "w": 11.0, "h": 6.0},
-]
 
 
 ## r34 layout: suggested slots for phase 2 in the new ground (docs/r34/layout.md): a fire (an Ember Road
@@ -318,7 +300,7 @@ const BASE_PATHS := [
 	{"id": "downs_track", "w": 1.4, "pts": [Vector2(-196, 190), Vector2(-150, 196), Vector2(-110, 190), Vector2(-44, 192), Vector2(0, 186), Vector2(44, 192), Vector2(110, 186), Vector2(160, 200), Vector2(196, 212)]},
 	# the Crowns' foot, east-west: the two boss corners are joined to the old north (through the wall's breaches)
 	{"id": "crowns_west", "w": 1.4, "pts": [Vector2(-196, -76), Vector2(-178, -72), Vector2(-164, -76), Vector2(-150, -74), Vector2(-140, -70), Vector2(-132, -66)]},
-	{"id": "crowns_east", "w": 1.4, "pts": [Vector2(196, -70), Vector2(182, -74), Vector2(168, -72), Vector2(156, -68), Vector2(146, -64), Vector2(138, -62), Vector2(130, -66), Vector2(128, -72)]},
+	{"id": "crowns_east", "w": 1.4, "pts": [Vector2(196, -70), Vector2(182, -74), Vector2(168, -72), Vector2(156, -68), Vector2(146, -67), Vector2(138, -66), Vector2(131, -69), Vector2(128, -72)]},
 	{"id": "downs_link", "w": 1.4, "pts": [Vector2(40, 134), Vector2(50, 158), Vector2(48, 176), Vector2(44, 192)]},     # the Waiting Field to the downs, east of the mausoleum
 ]
 
@@ -455,11 +437,8 @@ static func macro_dry(x: float, z: float) -> float:
 	# new edges (x +-260, z 240) get their own low rims in _marches. Inside OLD_BOUNDS nothing moves.
 	var xout := maxf(absf(x) - MARCH_WALL_X, 0.0)
 	h += smoothstep(148.0, 175.0, z) * 7.0 * (1.0 - smoothstep(0.0, 25.0, xout))
-	var din := wall_x(-1 if x < 0.0 else 1, z) - absf(x)
-	if din >= 0.0:
-		h += (1.0 - smoothstep(0.0, 20.0, din)) * 3.5
-	else:
-		h += (1.0 - smoothstep(0.0, 16.0, -din)) * 3.5
+	# the rim stays where it stood, and the wall's line gets its own crest where it leaves it
+	h += maxf(_crest(MARCH_WALL_X - absf(x)), _crest(RealmMarch.wall_x(-1 if x < 0.0 else 1, z) - absf(x)))
 	# the Crowns (north wall) and the summit crag. It was once one ruled cliff (foot on z -110, crest
 	# 45 m everywhere). The foot now recesses north (never south of -110: nothing in the valley moves),
 	# the crest rises and falls (~32-56 m), and peaks stand beyond the edge -- the tallest behind the
@@ -523,49 +502,6 @@ const SIEGE_RINGS := [{"c": Vector2(-218.0, 168.0), "r": 29.0}, {"c": Vector2(-2
 const SIEGE_RECT := Rect2(-258.0, 110.0, 100.0, 130.0)
 
 
-## x of the March Wall at z on one side (-1 west, +1 east): its polyline, held at the ends.
-static func wall_x(side: int, z: float) -> float:
-	var pts: Array = MARCH_WALL_WEST if side < 0 else MARCH_WALL_EAST
-	var first: Vector2 = pts[0]
-	if z <= first.y:
-		return first.x
-	for i in pts.size() - 1:
-		var b: Vector2 = pts[i + 1]
-		if z <= b.y:
-			var a: Vector2 = pts[i]
-			return lerpf(a.x, b.x, (z - a.y) / maxf(b.y - a.y, 0.001))
-	var last: Vector2 = pts[pts.size() - 1]
-	return last.x
-
-
-## Distance from p to the March Wall's line on p's side of the Realm (a spur's wall is not counted).
-static func wall_dist(p: Vector2) -> float:
-	var pts: Array = MARCH_WALL_WEST if p.x < 0.0 else MARCH_WALL_EAST
-	var best := INF
-	for i in pts.size() - 1:
-		var a: Vector2 = pts[i]
-		var ab := (pts[i + 1] as Vector2) - a
-		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
-		best = minf(best, p.distance_to(a + ab * t))
-	return best
-
-
-## 0..1 across a ridge's polyline: 1 on the crest line, easing to 0 at its half width.
-static func _ridge_w(p: Vector2, rg: Dictionary) -> float:
-	var pts: Array = rg.pts
-	var w := float(rg.w)
-	var best := INF
-	for i in pts.size() - 1:
-		var a: Vector2 = pts[i]
-		var ab := (pts[i + 1] as Vector2) - a
-		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
-		best = minf(best, p.distance_to(a + ab * t))
-	if best >= w * 1.6:
-		return 0.0
-	var u := 1.0 - best / (w * 1.6)
-	return u * u * (3.0 - 2.0 * u)
-
-
 ## The Marches' and the downs' macro shape (m = 0 inside OLD_BOUNDS, 1 from 12 m out). Smooth, cheap.
 static func _marches(p: Vector2, h: float, m: float) -> float:
 	var x := p.x
@@ -594,16 +530,21 @@ static func _marches(p: Vector2, h: float, m: float) -> float:
 	h += m * dw * (2.4 * sin(x * 0.043 + 1.1) * sin(z * 0.052 + 0.4) + 1.3 * sin(x * 0.021 - z * 0.033))
 	h += m * 3.2 * _bump(p, OAK_C, 30.0)
 	# cross-ridges, and the knolls the March Wall's spurs end on
-	for rg: Dictionary in MARCH_RIDGES:
-		var rw := _ridge_w(p, rg)
+	for rg: Dictionary in RealmMarch.RIDGES:
+		var rw := RealmMarch.ridge_w(p, rg)
 		if rw > 0.0:
 			h += m * rw * float(rg.h) * lerpf(0.3, 1.0, smoothstep(1.5, 15.0, path_dist(p)))
-	for sp: Dictionary in MARCH_SPURS:
+	for sp: Dictionary in RealmMarch.SPURS:
 		h += m * 3.6 * _bump(p, sp.tip, 12.0)
 	# the Crowns' peaks beyond the old Realm: the wall keeps climbing to the new corners
 	h += m * (26.0 * _bump(p, Vector2(-156.0, -166.0), 36.0) + 30.0 * _bump(p, Vector2(-222.0, -168.0), 38.0)
 		+ 24.0 * _bump(p, Vector2(150.0, -166.0), 34.0) + 32.0 * _bump(p, Vector2(216.0, -170.0), 38.0))
 	return h
+
+
+## The March Wall's crest, 3.5 m high, by metres inside (+) or outside (-) its line.
+static func _crest(din: float) -> float:
+	return (1.0 - smoothstep(0.0, 20.0, din)) * 3.5 if din >= 0.0 else (1.0 - smoothstep(0.0, 16.0, -din)) * 3.5
 
 
 ## Shapes that must survive the detail noise in the Marches: the pans' evaporation beds and bunds, the

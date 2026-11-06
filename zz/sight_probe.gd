@@ -40,6 +40,14 @@ func _process(d: float) -> void:
 				top = maxf(top, bb.end.y)
 				lo = minf(lo, bb.position.y)
 			print("SIGHT %s meshes y %.1f..%.1f" % [nm, lo, top])
+	for pth: Dictionary in RealmLayout.PATHS:
+		if String(pth.id) == "anchor_track":
+			var pts: Array = pth.pts
+			var line := ""
+			for i in range(maxi(0, pts.size() - 26), pts.size()):
+				var q: Vector2 = pts[i]
+				line += "(%.0f,%.0f:%.1f) " % [q.x, q.y, RealmLayout.ground(space, q.x, q.y)]
+			print("SIGHT track ", line)
 	for ey: Vector3 in EYES:
 		EYE = ey
 		print("SIGHT eye %s" % ey)

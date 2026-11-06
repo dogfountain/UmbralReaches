@@ -138,14 +138,14 @@ func _draw() -> void:
 		if rd.has("blobs"):
 			for b: Dictionary in rd.blobs:
 				ring.call(b.c, float(b.r), Color(0.6, 1, 0.2))
-	for wl: Array in [RealmLayout.MARCH_WALL_WEST, RealmLayout.MARCH_WALL_EAST]:
+	for wl: Array in [RealmMarch.WALL_WEST, RealmMarch.WALL_EAST]:
 		for i in wl.size() - 1:
 			for k in 40:
 				plot.call((wl[i] as Vector2).lerp(wl[i + 1], k / 40.0), Color(0.3, 0.6, 1.0), px * 0.7)
-	for sp: Dictionary in RealmLayout.MARCH_SPURS:
+	for sp: Dictionary in RealmMarch.SPURS:
 		for k in 12:
 			plot.call((sp.base as Vector2).lerp(sp.tip, k / 12.0), Color(0.3, 0.6, 1.0), px * 0.7)
-	for rg: Dictionary in RealmLayout.MARCH_RIDGES:
+	for rg: Dictionary in RealmMarch.RIDGES:
 		var rp: Array = rg.pts
 		for i in rp.size() - 1:
 			for k in 40:

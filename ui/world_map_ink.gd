@@ -135,11 +135,11 @@ func _ways() -> void:
 func _wall() -> void:
 	var gates: Array = RealmLayout.MARCH_GATES
 	for sx in [-1, 1]:
-		var src: Array = RealmLayout.MARCH_WALL_WEST if sx < 0 else RealmLayout.MARCH_WALL_EAST
+		var src: Array = RealmMarch.WALL_WEST if sx < 0 else RealmMarch.WALL_EAST
 		var gz: float = (gates[0] as Vector2).y
 		var ruin_z0 := 1.0e9
 		var ruin_z1 := -1.0e9
-		for rn: Array in RealmLayout.MARCH_RUINS:
+		for rn: Array in RealmMarch.RUINS:
 			if int(rn[0]) == sx:
 				ruin_z0 = float(rn[1])
 				ruin_z1 = float(rn[2])
@@ -153,7 +153,7 @@ func _wall() -> void:
 					runs.append(run)
 				run = PackedVector2Array()
 			else:
-				run.append(_w(Vector2(RealmLayout.wall_x(sx, z), z)))
+				run.append(_w(Vector2(RealmMarch.wall_x(sx, z), z)))
 			z += 4.0
 		if run.size() > 1:
 			runs.append(run)
@@ -166,12 +166,12 @@ func _wall() -> void:
 				off2.append(q + Vector2(3.5, 0))
 			draw_polyline(off, INK, 1.8, true)
 			draw_polyline(off2, INK, 1.8, true)
-		for sp: Dictionary in RealmLayout.MARCH_SPURS:
+		for sp: Dictionary in RealmMarch.SPURS:
 			if int(sp.side) == sx:
 				draw_line(_w(sp.base), _w(sp.tip), INK, 3.0, true)
 				draw_rect(Rect2(_w(sp.tip) - Vector2(3, 3), Vector2(6, 6)), INK)
 		for e: float in [gz - 6.0, gz + 6.0]:
-			var g := _w(Vector2(RealmLayout.wall_x(sx, e), e))
+			var g := _w(Vector2(RealmMarch.wall_x(sx, e), e))
 			draw_rect(Rect2(g.x - 6.0, g.y - 6.0, 12.0, 12.0), PAPER)
 			draw_rect(Rect2(g.x - 6.0, g.y - 6.0, 12.0, 12.0), INK, false, 2.0)
 

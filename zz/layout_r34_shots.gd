@@ -19,6 +19,13 @@ var VIEWS := [
 	["summit_raid", Vector3(0.0, 60.0, -60.0), Vector3(0.0, 27.0, -118.0), 400.0, false],
 	["south_edge", Vector3(40.0, 18.0, 140.0), Vector3(40.0, 4.0, 178.0), 400.0, false],
 	["west_edge", Vector3(-120.0, 14.0, 60.0), Vector3(-160.0, 4.0, 60.0), 400.0, false],
+	# sight lines from Hearthward (eye height, the night's fog) and the March Wall's bends
+	["spawn_east", Vector3(-4.0, 1.9, 40.0), Vector3(245.0, 30.0, 4.0), 600.0, false],
+	["spawn_nw", Vector3(-4.0, 1.9, 40.0), Vector3(-214.0, 30.0, -104.0), 600.0, false],
+	["spawn_south", Vector3(0.0, 1.9, 40.0), Vector3(-70.0, 45.0, 206.0), 600.0, false],
+	["wall_west_fall", Vector3(-125.0, 16.0, 150.0), Vector3(-165.0, 5.0, 150.0), 400.0, false],
+	["wall_east_bend", Vector3(125.0, 18.0, -20.0), Vector3(160.0, 5.0, -24.0), 400.0, false],
+	["wall_spur", Vector3(-135.0, 16.0, 20.0), Vector3(-172.0, 8.0, 22.0), 400.0, false],
 ]
 const SETTLE := 50
 var main: Node
@@ -52,7 +59,15 @@ func _env() -> Environment:
 	return (we[0] as WorldEnvironment).environment if not we.is_empty() else null
 
 
-func _process(_d: float) -> void:
+var _t := 0.0
+
+
+func _process(d: float) -> void:
+	_t += d
+	if _t > 150.0:
+		print("LAYOUTSHOTS watchdog quit")
+		get_tree().quit(1)
+		return
 	if main == null or not main.has_meta("realm_done"):
 		return
 	for n in get_tree().get_nodes_in_group(Groups.ENEMY):
