@@ -21,7 +21,7 @@ def rr(seed):
 
 def build_well(DATA, objs):
     chalk = L.pbr("R37_Chalk", L.tex_chalk(1024, 3901), 1.8)
-    ash = L.pbr_files("R37_Ashlar", "oss_ashlar")
+    ash = L.ashlar("R37_Ashlar", 4102, warm=0.03)
     dark = L.flat("R37_WellDark", (0.008, 0.009, 0.011), 1.0)
     iron = L.flat("R37_WellIron", (0.07, 0.065, 0.06), 0.5, 0.85)
     wood = L.pbr("R37_WellWood", L.tex_planks(512, 3903), 2.4)
@@ -157,7 +157,7 @@ def build_well(DATA, objs):
 
 
 def build_hut(DATA, objs):
-    ston = L.pbr_files("R37_HutStone", "oss_ashlar")
+    ston = L.ashlar("R37_HutStone", 4103, warm=0.05)
     thatch = L.pbr("R37_Thatch", L.tex_thatch(1024, 3952), 1.8)
     wood = L.pbr("R37_HutWood", L.tex_planks(512, 3953), 2.4)
     dark = L.flat("R37_HutDark", (0.01, 0.01, 0.012), 1.0)

@@ -39,7 +39,7 @@ def rng_for(seed):
 # =================================================================================================
 
 def build_wall():
-    stone = L.pbr_files("R37_WallStone", "oss_ashlar")
+    stone = L.ashlar("R37_WallStone", 4101)
     dark = L.flat("R37_Dark", (0.01, 0.01, 0.012), 1.0)
     wood = L.pbr("R37_GateWood", L.tex_planks(512, 3702), 2.4)
     iron = L.flat("R37_Iron", (0.08, 0.075, 0.07), 0.55, 0.85)

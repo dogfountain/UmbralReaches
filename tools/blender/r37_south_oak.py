@@ -36,7 +36,7 @@ DYF = 0.7
 
 def r_out(y):
     if y < 0.0:
-        return 6.2 + (-y) * 0.95
+        return 6.2 + (-y) * 0.3
     if y < 5.0:
         return 6.2 - 1.0 * (y / 5.0)
     return 5.2 - 0.7 * ((y - 5.0) / 33.0)
@@ -69,7 +69,7 @@ def stair_a(s):
 
 def sway(y):
     """The trunk leans and wanders: ring centres drift a little with height."""
-    return Vector((0.7 * math.sin(y * 0.11 + 0.4) + 0.012 * y, 0, 0.6 * math.cos(y * 0.09 + 1.1)))
+    return Vector((1.3 * math.sin(y * 0.11 + 0.4) + 0.02 * y, 0, 1.1 * math.cos(y * 0.09 + 1.1)))
 
 
 def pos(a, r, y):
@@ -77,7 +77,7 @@ def pos(a, r, y):
 
 
 def build(DATA, PREVIEW, objs_out):
-    bark = L.pbr_files("R37_OakBark", "bark_giant")
+    bark = L.pbr("R37_OakBark", L.tex_bark(1024, 3801), 3.6)
     plank = L.pbr("R37_OakPlank", L.tex_planks(512, 3802), 2.4)
     dark = L.flat("R37_OakDark", (0.012, 0.01, 0.01), 1.0)
     iron = L.flat("R37_OakIron", (0.07, 0.065, 0.06), 0.55, 0.85)
@@ -137,22 +137,24 @@ def build(DATA, PREVIEW, objs_out):
     floor_i = int(round((0.0 - Y0) / DYF))       # y = 0
 
     def jag(a):
-        return 3.8 * (hash3(math.sin(a) * 2.4, 5.0, math.cos(a) * 2.4, 3) * 1.6) + 1.6 * hash3(math.sin(a * 3) * 3.0, 9.0, math.cos(a * 3) * 3.0, 4) + 1.4 * math.sin(a * 5 + 1.0)
+        return 3.8 * (hash3(math.sin(a) * 2.4, 5.0, math.cos(a) * 2.4, 3) * 1.6) + 1.6 * hash3(math.sin(a * 3) * 3.0, 9.0, math.cos(a * 3) * 3.0, 4) + 1.4 * math.sin(a * 5 + 1.0) + 4.6 * max(0.0, math.cos(a - 2.3)) ** 3 + 4.0 * max(0.0, math.cos(a - 5.4)) ** 7
 
     # root flare azimuths and the lair gap
     root_az = [0.25 + k * math.tau / 9.0 for k in range(9)]
     LAIR_A = 4.35         # west-south-west: the gap between two roots where the Root-Wife keeps her bed
     root_az = [a for a in root_az if abs(((a - LAIR_A + math.pi) % math.tau) - math.pi) > 0.55]
+    DOOR_A = (ent_c0 + 2.5) / NC * math.tau
+    root_az = [a for a in root_az if abs(((a - DOOR_A + math.pi) % math.tau) - math.pi) > 0.75]    # no buttress in the doorway
 
     def bulge(a, y):
         # the buttress swell of the root flare (to ~y 6)
         k = 0.0
         for ra in root_az:
             d = ((a - ra + math.pi) % math.tau) - math.pi
-            k = max(k, math.exp(-(d / 0.2) ** 2))
-        return 1.0 + 0.3 * k * (1.0 - sm(y, 0.0, 6.5))
+            k = max(k, math.exp(-(d / 0.17) ** 2))
+        return 1.0 + 0.62 * k * (1.0 - sm(y, 0.0, 10.0)) ** 1.3
 
-    burls = [(0.9, 6.5, 0.26, 1.7), (2.4, 12.5, 0.22, 1.3), (4.0, 17.0, 0.3, 2.0), (5.3, 9.0, 0.2, 1.2), (1.9, 25.0, 0.25, 1.8), (3.3, 29.5, 0.2, 1.4), (0.3, 20.5, 0.24, 1.5)]
+    burls = [(0.9, 6.5, 0.34, 1.7), (2.4, 12.5, 0.3, 1.3), (4.0, 17.0, 0.4, 2.0), (5.3, 9.0, 0.28, 1.2), (1.9, 25.0, 0.34, 1.8), (3.3, 29.5, 0.3, 1.4), (0.3, 20.5, 0.32, 1.5), (3.0, 4.0, 0.3, 1.6), (5.8, 24.0, 0.3, 1.6)]
 
     def surf(a, y, inner):
         base = r_in(y) if inner else r_out(y)
@@ -161,7 +163,7 @@ def build(DATA, PREVIEW, objs_out):
             for (ba, by, bk, bs) in burls:
                 d = ((a - ba + math.pi) % math.tau) - math.pi
                 base *= 1.0 + bk * math.exp(-((d * 5.0 / bs) ** 2) - (((y - by) / (bs * 1.4)) ** 2))
-        ridge = 0.05 * math.sin(a * 13.0 + 2.2 * hash3(math.sin(a) * 1.7, y * 0.2, math.cos(a) * 1.7, 11)) + 0.06 * hash3(math.sin(a) * 2.2, y * 0.3, math.cos(a) * 2.2, 12)
+        ridge = 0.085 * math.sin(a * 11.0 + y * 0.045 + 2.4 * hash3(math.sin(a) * 1.7, y * 0.15, math.cos(a) * 1.7, 11)) + 0.045 * math.sin(a * 23.0 - y * 0.08) + 0.07 * hash3(math.sin(a) * 2.2, y * 0.3, math.cos(a) * 2.2, 12)
         if inner:
             return base * (1.0 + ridge * 0.8)
         return base * bulge(a, y) * (1.0 + ridge)
@@ -191,16 +193,17 @@ def build(DATA, PREVIEW, objs_out):
         inner.append(ri)
 
     b = B("Trunk", mats)
-    tiles = round(math.tau * 5.2 / 3.0)
+    tiles = round(math.tau * 6.2 / 3.0)
     vs_ = [ys[i] / 3.0 for i in range(NI)]
 
     def uvq(f, j, i):
         u0 = tiles * j / NF
         u1 = tiles * (j + 1) / NF
-        f.loops[0][b.uv].uv = (u0, vs_[i])
-        f.loops[1][b.uv].uv = (u1, vs_[i])
-        f.loops[2][b.uv].uv = (u1, vs_[i + 1])
-        f.loops[3][b.uv].uv = (u0, vs_[i + 1])
+        j2_ = (j + 1) % NF
+        f.loops[0][b.uv].uv = (u0, outer[i][j].y / 3.0)
+        f.loops[1][b.uv].uv = (u1, outer[i][j2_].y / 3.0)
+        f.loops[2][b.uv].uv = (u1, outer[i + 1][j2_].y / 3.0)
+        f.loops[3][b.uv].uv = (u0, outer[i + 1][j].y / 3.0)
 
     bm = b.bm
     vo = [[bm.verts.new(p) for p in ring] for ring in outer]
@@ -219,10 +222,11 @@ def build(DATA, PREVIEW, objs_out):
                 g = bm.faces.new([vi[i][j2], vi[i][j], vi[i + 1][j], vi[i + 1][j2]])
                 g.material_index = 0
                 g.smooth = True
-                g.loops[0][b.uv].uv = (tiles * (j + 1) / NF, vs_[i])
-                g.loops[1][b.uv].uv = (tiles * j / NF, vs_[i])
-                g.loops[2][b.uv].uv = (tiles * j / NF, vs_[i + 1])
-                g.loops[3][b.uv].uv = (tiles * (j + 1) / NF, vs_[i + 1])
+                j2_ = (j + 1) % NF
+                g.loops[0][b.uv].uv = (tiles * (j + 1) / NF, inner[i][j2_].y / 3.0)
+                g.loops[1][b.uv].uv = (tiles * j / NF, inner[i][j].y / 3.0)
+                g.loops[2][b.uv].uv = (tiles * j / NF, inner[i + 1][j].y / 3.0)
+                g.loops[3][b.uv].uv = (tiles * (j + 1) / NF, inner[i + 1][j2_].y / 3.0)
     # jambs: between the outer and inner faces where an open cell meets a closed one
     def jamb(p0o, p1o, p1i, p0i, rev):
         pts = [p0o, p1o, p1i, p0i]
@@ -281,6 +285,7 @@ def build(DATA, PREVIEW, objs_out):
         pass
     # the root flare's skirt below ground: closed so no light shows through the terrain's seams
     trunk = b.finish()
+    L.moss_colors(trunk, 3)
     objs.append(trunk)
 
     # ------------------------------------------------------------------ roots
@@ -290,7 +295,7 @@ def build(DATA, PREVIEW, objs_out):
         outer_pt = k >= len(root_az)
         pts = []
         # radial distance, height, sideways wander
-        prof = [(4.6, 3.4, 1.9), (6.8, 1.7, 1.5), (9.8, 0.75, 1.1), (14.0, 0.15, 0.8), (19.0, -0.5, 0.5), (24.0, -1.1, 0.3)]
+        prof = [(4.6, 3.6, 2.4), (6.6, 2.0, 2.0), (9.0, 1.0, 1.6), (12.0, 0.35, 1.2), (15.0, -0.2, 0.9), (18.5, -0.8, 0.6)]
         if outer_pt:
             prof = [(5.6, 1.2, 1.1), (8.0, 0.55, 0.8), (11.5, 0.1, 0.55), (15.5, -0.5, 0.3)]
         wander = rr.uniform(-0.5, 0.5)
@@ -301,78 +306,165 @@ def build(DATA, PREVIEW, objs_out):
             c = pos(aa, rad * sc if i > 0 else rad, hy)
             rings.append((c, rw * sc))
         rb.tube_path([c for c, _ in rings], [w for _, w in rings], "bark", sides=9, jit=0.14, seed=k * 7)
-    objs.append(rb.finish())
+    # the door's frame: two roots swell up either side and arch over the opening
+    ad = (ent_c0 + 2.5) / NC * math.tau
+    fp = [(-0.42, -0.5, 0.95, 0.7), (-0.42, 1.2, 0.5, 0.58), (-0.39, 3.0, 0.4, 0.5), (-0.27, 4.4, 0.42, 0.46), (-0.1, 5.2, 0.5, 0.42),
+          (0.1, 5.3, 0.5, 0.42), (0.27, 4.4, 0.42, 0.46), (0.39, 3.0, 0.4, 0.5), (0.42, 1.2, 0.5, 0.58), (0.42, -0.5, 0.95, 0.7)]
+    rb.tube_path([pos(ad + da, surf(ad + da, max(y, 0.0), False) + off, y) for (da, y, off, _) in fp], [w for (_, _, _, w) in fp], "bark", sides=9, jit=0.1, seed=3, cap_end=False)
+    robj = rb.finish()
+    L.moss_colors(robj, 11)
+    objs.append(robj)
 
     # ------------------------------------------------------------------ limbs
     lb = B("Limbs", mats)
-    limb_col = []         # [(walk centre top points, widths)] for the collision proxy
+    limb_col = []         # [(walk top point, flat walk width)] per limb, for the collision proxy
     limb_tips = []
+    # per limb: length past the door, walk fraction, lateral sweep (amp, freq, phase), rise (up, droop), twist at the end
+    SPEC = [
+        {"L": 21.0, "tw": 0.70, "lat": (4.2, 1.25, 0.4), "up": (3.4, 0.85), "drop": 3.6, "twist": 1.5},
+        {"L": 24.0, "tw": 0.66, "lat": (-5.0, 1.15, 2.0), "up": (4.2, 0.8), "drop": 2.6, "twist": -1.9},
+        {"L": 17.0, "tw": 0.72, "lat": (3.4, 1.4, 4.1), "up": (2.0, 0.6), "drop": 0.6, "twist": 2.2},
+    ]
+    N_RING = 40
+    SIDES = 18
     twig_r = random.Random(9)
+
+    def grow(start, dirv, length, r0, depth, seed, grav=0.18, lift=0.25):
+        """A dead branch: a curving, tapering tube that forks into smaller ones. No straight cylinders: the path
+        wanders, rises and droops, and the radius wobbles."""
+        rg = random.Random(seed)
+        pts = [Vector(start)]
+        rad = [r0]
+        d = Vector(dirv).normalized()
+        n = 5 if length > 5.0 else 3
+        seg = length / (n - 1)
+        for k in range(1, n):
+            s_ = k / (n - 1)
+            d = (d + Vector((rg.uniform(-0.38, 0.38), rg.uniform(-0.25, 0.3), rg.uniform(-0.38, 0.38)))).normalized()
+            d = (d + Vector((0, lift * math.sin(math.pi * min(1.0, s_ * 1.3)) - grav * s_ * s_ * 2.0, 0)) * 0.55).normalized()
+            pts.append(pts[-1] + d * seg)
+            rad.append(max(r0 * (1.0 - 0.9 * s_ ** 0.85) * (1.0 + 0.12 * math.sin(k * 2.1 + seed)), 0.03))
+        sides = 8 if r0 > 0.7 else (6 if r0 > 0.25 else 4)
+        lb.tube_path(pts, rad, "bark", sides=sides, jit=0.06 + 0.05 * min(r0, 1.0), seed=seed)
+        if depth <= 0 or length < 2.2:
+            return pts
+        nk = 3 if depth >= 2 else 2
+        for q in range(nk):
+            s_ = rg.uniform(0.3, 0.8) if q else rg.uniform(0.28, 0.45)
+            i0 = min(int(s_ * (n - 1)), n - 2)
+            f = s_ * (n - 1) - i0
+            at = pts[i0].lerp(pts[i0 + 1], f)
+            tang = (pts[i0 + 1] - pts[i0]).normalized()
+            rr0 = rad[i0] * (1.0 - f) + rad[i0 + 1] * f
+            ax = tang.cross(Vector((rg.uniform(-1, 1), rg.uniform(0.2, 1.0), rg.uniform(-1, 1)))).normalized()
+            ang = rg.uniform(0.45, 0.95) * (1 if (q % 2 == 0) else -1)
+            cd = (tang * math.cos(ang) + ax * math.sin(ang) + Vector((0, 0.35, 0))).normalized()
+            grow(at - cd * rr0 * 0.5, cd, length * rg.uniform(0.42, 0.66), max(rr0 * 0.66, 0.05), depth - 1, seed * 3 + q + 1, grav, lift)
+        return pts
+
     for li, lm in enumerate(limbs):
+        sp = SPEC[li]
         a = lm["a_door"]
         dirv = Vector((math.sin(a), 0, math.cos(a)))
         side = Vector((dirv.z, 0, -dirv.x))
         sill = lm["y"]                                   # the walk's top at the door
         d0 = r_in(sill) + 0.25
-        Lm = [15.0, 18.0, 13.5][li]
-        phase = [0.4, 2.0, 4.1][li]
-        n = 14
-        rings = []
+        Lm = sp["L"]
+        tw_ = sp["tw"]
+        la, lf, lph = sp["lat"]
+        ru, rf = sp["up"]
+        rout = r_out(sill)
+
+        def top_at(t):
+            d = d0 + Lm * t
+            lat = la * (math.sin(t * math.pi * lf + lph) - math.sin(lph)) * sm(t, 0.0, 0.25)
+            rise = ru * math.sin(math.pi * t * rf) - sp["drop"] * t ** 3
+            return Vector((0, sill + rise, 0)) + dirv * d + side * lat + sway(sill)
+
         tops = []
-        for k in range(n + 1):
-            t = k / n
-            d = d0 + (Lm + 1.3) * t
-            lat = 3.6 * math.sin(t * math.pi * 1.1 + phase) - 3.6 * math.sin(phase)
-            rise = 2.2 * math.sin(math.pi * t * 0.55) - 3.2 * t ** 3
-            if li == 2:
-                rise = 1.6 * math.sin(math.pi * t * 0.5) - 1.0 * t ** 2
-            w = 3.0 - 1.5 * t ** 0.8
-            rv = 2.0 - 1.15 * t
-            top = Vector((0, sill + rise, 0)) + dirv * d + side * lat + sway(sill)
-            tops.append((top, w))
-            c = top - Vector((0, 0.72 * rv, 0))
-            tang = (dirv + side * (3.6 * math.cos(t * math.pi * 1.1 + phase) * math.pi * 1.1 / (Lm + 1.3))).normalized()
-            sd = Vector((tang.z, 0, -tang.x))
+        rings = []
+        prof = []
+        for k in range(N_RING + 1):
+            t = k / N_RING
+            top = top_at(t)
+            tn = top_at(min(t + 0.01, 1.0)) - top_at(max(t - 0.01, 0.0))
+            tang = tn.normalized()
+            flat = Vector((tang.x, 0, tang.z)).normalized()
+            sd = Vector((flat.z, 0, -flat.x))
+            d = d0 + Lm * t
+            F = sm(d, rout - 0.5, rout + 0.7) * math.exp(-(((d - rout - 0.6) / 3.0) ** 2))      # the buttress where it leaves the trunk
+            taper = 1.0 - 0.62 * sm(t, 0.0, 0.92)
+            w = (3.2 * taper + 2.6 * F) * (1.0 - 0.8 * sm(t, 0.94, 1.0))
+            rv = (2.0 * taper + 2.0 * F) * (1.0 - 0.85 * sm(t, 0.9, 1.0))
+            rv = max(rv, 0.08)
+            release = sm(t, tw_, 1.0)
+            clamp = 0.72 + 0.28 * release
+            phi = sp["twist"] * release
             ring = []
-            sides = 12
-            for q in range(sides):
-                bb = math.tau * q / sides
-                horiz = math.cos(bb) * w / 2.0 * (1.0 + 0.25 * (1.0 - t))
-                vert = math.sin(bb) * rv
-                vert = min(vert, 0.72 * rv)
-                p = c + sd * horiz + Vector((0, vert, 0))
-                p += (p - c).normalized() * (hash3(p.x, p.y, p.z, 21 + li) * 0.28 + 0.12 * math.sin(t * 9.0 + q * 0.7 + li))
+            for q in range(SIDES):
+                bb = math.tau * q / SIDES
+                horiz = math.cos(bb) * w / 2.0
+                vert = min(math.sin(bb) * rv, clamp * rv)
+                if math.sin(bb) < 0:
+                    bump = 1.0 + 0.1 * math.sin(5.0 * bb + t * 11.0 + li * 2.0) * sm(t, 0.05, 0.3) + 0.06 * math.sin(3.0 * bb - t * 7.0)
+                    horiz *= bump
+                    vert *= bump
+                o = sd * horiz + Vector((0, vert, 0))
+                if phi != 0.0:
+                    o = o * math.cos(phi) + tang.cross(o) * math.sin(phi) + tang * tang.dot(o) * (1.0 - math.cos(phi))
+                c = top - Vector((0, 0.72 * rv, 0))
+                p = c + o
+                lump = hash3(p.x * 1.3, p.y * 1.3, p.z * 1.3, 21 + li) * (0.16 + 0.22 * sm(t, 0.1, 0.5)) * min(1.0, rv)
+                if math.sin(bb) < 0.7 or release > 0.0:
+                    p += (p - c).normalized() * lump
                 ring.append(p)
             rings.append(ring)
-        tiles_l = max(1, round(math.tau * 1.9 / 3.0))
-        us = [tiles_l * q / 12 for q in range(12)]
-        vs = [(d0 + (Lm + 1.3) * k / n) / 3.0 for k in range(n + 1)]
+            if t <= tw_:
+                tops.append((top, w * 0.66))
+        tiles_l = max(1, round(math.tau * 2.6 / 3.0))
+        us = [tiles_l * q / SIDES for q in range(SIDES)]
+        vs = []
+        acc = 0.0
+        for k in range(N_RING + 1):
+            if k:
+                acc += (rings[k][0] - rings[k - 1][0]).length
+            vs.append(acc / 3.0)
         lb._loft_cyl(rings, "bark", us, vs, tiles_l)
-        # the tip: broken off in a splinter spike
-        tip_c = tops[-1][0] - Vector((0, 0.5, 0))
-        lb.tube(tip_c, tip_c + dirv * 2.4 + Vector((0, 2.6, 0)), 0.75, 0.05, "bark", sides=6, jit=0.1, seed=li)
-        # dead twigs and snapped stubs from the limb
-        for q in range(9):
-            t = twig_r.uniform(0.18, 0.95)
-            idx = min(n, int(t * n))
-            base, wd = tops[idx]
-            sgn = twig_r.choice([-1.0, 1.0])
-            ang = twig_r.uniform(0.3, 0.8)
-            dv = (dirv * twig_r.uniform(0.1, 0.7) + side * sgn + Vector((0, ang * 1.2, 0))).normalized()
-            ln = twig_r.uniform(2.5, 6.5) * (1.0 - 0.4 * t)
-            st = base + side * sgn * (wd * 0.4) - Vector((0, 0.4, 0))
-            en = st + dv * ln
-            mid = st.lerp(en, 0.55) + Vector((0, twig_r.uniform(0.2, 0.7), 0)) + side * sgn * 0.3
-            r0 = 0.32 * (1.0 - 0.5 * t) + 0.05
-            lb.tube(st, mid, r0, r0 * 0.55, "bark", sides=5, jit=0.05, seed=q + li * 10, cap=False)
-            lb.tube(mid, en, r0 * 0.55, 0.03, "bark", sides=5, jit=0.05, seed=q + li * 10 + 1)
-            if twig_r.random() < 0.6:
-                s2 = mid
-                e2 = s2 + (dv + Vector((twig_r.uniform(-.7, .7), 0.3, twig_r.uniform(-.7, .7)))).normalized() * ln * 0.45
-                lb.tube(s2, e2, r0 * 0.4, 0.02, "bark", sides=4, jit=0.03, seed=q + 99)
+        # the end of the main limb: splintered into two broken spikes
+        tip_c = sum((p for p in rings[-1]), Vector()) / SIDES
+        lb.tube_path([tip_c - dirv * 0.4, tip_c + dirv * 0.8 + Vector((0, 0.3, 0)), tip_c + dirv * 1.5 + Vector((0, 2.4, 0))], [0.28, 0.2, 0.03], "bark", sides=5, jit=0.05, seed=li)
+        # great forks: leave the limb at different points, rise steeply, fork again and again into twigs
+        forks = [(0.30, 1, 7.0, 0.42), (0.50, -1, 9.0, 0.38), (0.66, 1, 7.5, 0.3), (0.82, -1, 6.0, 0.24), (0.9, 1, 4.5, 0.2)]
+        for fi, (ft, fs, fl, fr) in enumerate(forks):
+            k = int(ft * N_RING)
+            ring = rings[k]
+            cen = sum((p for p in ring), Vector()) / SIDES
+            tn = top_at(ft + 0.02) - top_at(ft - 0.02)
+            tg = tn.normalized()
+            sd_ = Vector((tg.z, 0, -tg.x)) * fs
+            wv = max(abs((ring[0] - ring[SIDES // 2]).length), 0.5) * 0.5
+            start = cen + sd_ * wv * 0.55 + Vector((0, 0.5, 0))
+            dv = (tg * 0.35 + sd_ * 0.95 + Vector((0, 0.65 + 0.35 * (fi % 2), 0))).normalized()
+            if li == 2 and fi in (1, 3):
+                dv = (dv + Vector((0, 0.9, 0))).normalized()
+            grow(start, dv, fl, min(wv * fr * 2.2, 1.3), 2, 500 + li * 40 + fi * 7, grav=0.1 + 0.1 * (li == 0), lift=0.35)
+        # dead stubs hanging underneath and splintered snags on the limb's top edge
+        for q in range(7):
+            ft = twig_r.uniform(0.2, 0.85)
+            k = int(ft * N_RING)
+            ring = rings[k]
+            cen = sum((p for p in ring), Vector()) / SIDES
+            sg = twig_r.choice([-1.0, 1.0])
+            tn = top_at(ft + 0.02) - top_at(ft - 0.02)
+            tg = tn.normalized()
+            sd_ = Vector((tg.z, 0, -tg.x)) * sg
+            st = cen + sd_ * 0.9 - Vector((0, 0.5, 0))
+            grow(st, (sd_ * 0.7 + Vector((0, -0.55, 0)) + tg * 0.2).normalized(), twig_r.uniform(2.2, 4.8), 0.22, 1, 900 + li * 17 + q, grav=0.5, lift=0.0)
         limb_col.append(tops)
         limb_tips.append(tops[-1][0])
-    objs.append(lb.finish())
+    limbs_ob = lb.finish()
+    L.moss_colors(limbs_ob, 5)
+    objs.append(limbs_ob)
 
     # ------------------------------------------------------------------ crown spikes on the broken rim
     cb = B("Crown", mats)
@@ -408,7 +500,9 @@ def build(DATA, PREVIEW, objs_out):
             q = p1.lerp(p2, 0.3 + 0.3 * j)
             d = (out + Vector((cr.uniform(-1, 1), 0.9, cr.uniform(-1, 1)))).normalized()
             cb.tube(q, q + d * cr.uniform(2.0, 4.5), 0.22, 0.03, "bark", sides=5, jit=0.04, seed=60 + k * 3 + j)
-    objs.append(cb.finish())
+    crown_ob = cb.finish()
+    L.moss_colors(crown_ob, 7, 0.6)
+    objs.append(crown_ob)
 
     # ------------------------------------------------------------------ the stair
     sb = B("Stair", mats)
