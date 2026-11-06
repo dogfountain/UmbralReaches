@@ -32,28 +32,30 @@ S = dict(K.SOCKETS)
 #  hs     head scale         claw  claw length   neck   forward reach of the neck
 P = {
     "wretch":  dict(w=0.92, lr=0.82, belly=0.0, hs=1.0, claw=0.11, neck=0.03, ribs=True,
-                    skin=((0.17, 0.15, 0.155), (0.045, 0.035, 0.04)), face=(0.6, 0.55, 0.48), eye=(1.0, 0.36, 0.08)),
+                    skin=((0.2, 0.25, 0.34), (0.04, 0.055, 0.09)), face=(0.3, 0.36, 0.45), eye=(1.0, 0.36, 0.08)),
     "husk":    dict(w=1.25, lr=1.4, belly=1.0, hs=0.82, claw=0.05, neck=0.0, ribs=False,
-                    skin=((0.43, 0.44, 0.25), (0.14, 0.13, 0.06)), face=None, eye=(1.0, 0.5, 0.12)),
+                    skin=((0.24, 0.29, 0.31), (0.06, 0.075, 0.085)), face=None, eye=(1.0, 0.5, 0.12)),
     "spitter": dict(w=0.85, lr=0.72, belly=0.0, hs=0.95, claw=0.06, neck=0.16, ribs=True,
-                    skin=((0.6, 0.64, 0.56), (0.22, 0.27, 0.22)), face=None, eye=(0.25, 1.0, 0.75)),
+                    skin=((0.34, 0.4, 0.37), (0.09, 0.12, 0.1)), face=None, eye=(0.25, 1.0, 0.75)),
     "ossuant": dict(w=1.08, lr=1.15, belly=0.25, hs=0.95, claw=0.06, neck=0.0, ribs=False,
-                    skin=((0.2, 0.15, 0.13), (0.06, 0.04, 0.035)), face=None, eye=(1.0, 0.7, 0.22)),
+                    skin=((0.23, 0.2, 0.18), (0.055, 0.045, 0.04)), face=None, eye=(1.0, 0.7, 0.22)),
     "bulwark": dict(w=1.3, lr=1.45, belly=0.55, hs=0.9, claw=0.04, neck=0.0, ribs=False,
-                    skin=((0.3, 0.29, 0.3), (0.09, 0.085, 0.09)), face=None, eye=(1.0, 0.42, 0.1)),
+                    skin=((0.17, 0.2, 0.27), (0.04, 0.05, 0.075)), face=None, eye=(1.0, 0.42, 0.1)),
     "chanter": dict(w=0.82, lr=0.7, belly=0.0, hs=0.92, claw=0.08, neck=0.06, ribs=True,
-                    skin=((0.4, 0.42, 0.44), (0.12, 0.12, 0.15)), face=(0.62, 0.6, 0.55), eye=(0.45, 1.0, 0.3)),
+                    skin=((0.22, 0.27, 0.35), (0.045, 0.06, 0.09)), face=(0.32, 0.38, 0.46), eye=(0.45, 1.0, 0.3)),
 }[KIND]
 W, LR, BELLY, HS = P["w"], P["lr"], P["belly"], P["hs"]
 SEED = float(sum(ord(c) for c in KIND))
 
-SKIN = GK.skin("Skin", P["skin"][0], P["skin"][1], wrinkle=70.0 if KIND != "husk" else 40.0,
-               wet=0.45 if KIND == "spitter" else 0.0, rough=0.7 if KIND in ("ossuant", "husk") else 0.62)
+# family 1 (the hollowed people): grey-blue wet dead skin; the Ossuant's is dry sinew
+_WET = {"spitter": 1.0, "ossuant": -0.5, "husk": 0.7}.get(KIND, 0.45)
+SKIN = GK.hollow_skin("Skin", P["skin"][0], P["skin"][1], wet=_WET, wrinkle=40.0 if KIND == "husk" else 62.0,
+                      vein_amt=0.7 if KIND in ("spitter", "husk") else 0.55)
 # models pass: the face grades into the body's skin down the jaw and nape (it read as a mask stuck on)
 _HY = 1.705 - (0.04 if BELLY > 0.5 else 0.0)
-FACE = GK.skin("Face", P["face"], tuple(c * 0.35 for c in P["face"]), wrinkle=90.0, rough=0.6,
-               fade=(P["skin"][0], _HY - 0.1 * HS, _HY - 0.01 * HS)) if P["face"] else SKIN
-CLAW = GK.bone("Claw", (0.42, 0.36, 0.28), (0.1, 0.07, 0.05), 12.0)
+FACE = GK.hollow_skin("Face", P["face"], tuple(c * 0.3 for c in P["face"]), wet=0.5, wrinkle=90.0,
+                      face_fade=(P["skin"][0], _HY - 0.1 * HS, _HY - 0.01 * HS)) if P["face"] else SKIN
+CLAW = GK.grave_bone("Claw", (0.34, 0.3, 0.24), (0.1, 0.07, 0.05), 12.0)
 EYE = GK.glow("Eye", P["eye"], 8.0)
 MATS = [SKIN, CLAW, EYE] + ([FACE] if FACE is not SKIN else [])
 objs = []
@@ -426,7 +428,7 @@ elif KIND == "spitter":
         bpy.data.objects.remove(o)
 
 elif KIND == "ossuant":
-    BONE = mat(GK.bone("Bone", (0.7, 0.63, 0.5), (0.22, 0.17, 0.11)))   # models pass: grimed (paper-white read as stuck-on plastic)
+    BONE = mat(GK.grave_bone("Bone", (0.62, 0.57, 0.46), (0.2, 0.15, 0.1)))   # models pass: grimed (paper-white read as stuck-on plastic)
     LEATHER = mat(GK.leather("Leather", (0.12, 0.08, 0.06)))
     KEEP.add("Bone")
     # skull mask over the face, a crest of spikes swept back like a helm's (it read as a punk crown)
@@ -500,7 +502,7 @@ elif KIND == "bulwark":
     IRON = mat(GK.iron("Iron"))
     WOOD = mat(GK.wood("Wood", (0.2, 0.13, 0.08), 0.6))
     LEATHER = mat(GK.leather("Leather", (0.14, 0.09, 0.06)))
-    BONE = mat(GK.bone("Bone", (0.82, 0.76, 0.62)))
+    BONE = mat(GK.grave_bone("Bone", (0.66, 0.61, 0.5)))
     KEEP.add("Bone")
     # the slit helm, a crest of iron spikes, the eyes burning in the slit
     hc = HC + Vector((0, 0.005, 0.015))
@@ -579,7 +581,7 @@ elif KIND == "bulwark":
 
 elif KIND == "chanter":
     ROBE = mat(GK.cloth("Robe", (0.075, 0.08, 0.06), "caban", 8.0, (0.035, 0.03, 0.02), 0.9))
-    BONE = mat(GK.bone("Bone", (0.8, 0.74, 0.6)))
+    BONE = mat(GK.grave_bone("Bone", (0.64, 0.59, 0.48)))
     IRON = mat(GK.iron("Iron", (0.16, 0.15, 0.15)))
     GLOAM = mat(GK.glow("Glow", (0.45, 1.0, 0.3), 4.0))
     KEEP.add("Bone")
@@ -632,4 +634,4 @@ if PREVIEW:
     K.preview(PREVIEW, 0.95, 3.0)
 if EXPORT:
     WEIGHTS["staff"] = _rigid("hand_r")
-    GK.export_skinned(objs, MATS, "grunt_" + KIND, S, WEIGHTS, {"shield": ("shield_chest", S["chest"])}, 2048, 26000)
+    GK.export_skinned(objs, MATS, "grunt_" + KIND, S, WEIGHTS, {"shield": ("shield_chest", S["chest"])}, 2048, 12000)   # r37: LOD0 budget (Godot generates the lower LODs on import)

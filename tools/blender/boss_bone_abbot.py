@@ -14,6 +14,7 @@ from mathutils import Vector, noise
 
 sys.path.insert(0, os.path.dirname(__file__))
 import boss_kit as K
+import grunt_kit as GK
 from boss_kit import G
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -95,7 +96,7 @@ def sinew_mat():
     return m.finish(col, 0.5, 0.0, v, 0.6, 0.002)
 
 
-BONE = bone_mat()
+BONE = GK.grave_bone("Bone", (0.7, 0.64, 0.52), (0.22, 0.17, 0.11), 7.0, 0.7)   # r37: the Ossuary family's bone
 CLOTH = cloth_mat()
 GOLD = gold_mat()
 WAX = wax_mat()

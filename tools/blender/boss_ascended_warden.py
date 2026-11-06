@@ -28,12 +28,12 @@ def linen_mat():
     sc = m.scan("rough_linen", 7.0)
     weave = sc["disp"]
     blot = m.noise(4.0, 6.0, 0.6)
-    col = m.mul(m.mono(sc["color"]), (1.2, 1.15, 1.04))
-    col = m.mix(m.math('MULTIPLY', blot, 0.3), col, (0.5, 0.47, 0.41))
+    col = m.mul(m.mono(sc["color"]), (0.88, 0.84, 0.77))
+    col = m.mix(m.math("MULTIPLY", blot, 0.55), col, (0.3, 0.27, 0.22))
     z = m.zpos()
     # grime rising from the hem, and a gilt band of runes above it
     grime = m.math('SUBTRACT', 1.0, m.math('MULTIPLY', m.math('SUBTRACT', z, 0.28), 2.2), True)
-    col = m.mix(m.math('MULTIPLY', grime, 0.55), col, (0.22, 0.2, 0.17))
+    col = m.mix(m.math("MULTIPLY", grime, 0.75), col, (0.1, 0.09, 0.075))
     band = m.math('MULTIPLY', m.math('GREATER_THAN', z, 0.34), m.math('LESS_THAN', z, 0.46))
     rules = m.math('ADD', m.math('MULTIPLY', m.math('GREATER_THAN', z, 0.34), m.math('LESS_THAN', z, 0.352)),
                    m.math('MULTIPLY', m.math('GREATER_THAN', z, 0.448), m.math('LESS_THAN', z, 0.46)))

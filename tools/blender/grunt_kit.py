@@ -166,6 +166,105 @@ def skin(name, base, deep, vein=(0.1, 0.04, 0.05), wrinkle=55.0, rough=0.66, wet
     return m.finish(col, r, 0.0, h, 0.55, 0.0035)
 
 
+def hollow_skin(name, base, deep, scale=1.0, wet=0.5, vein_amt=0.55, wrinkle=62.0, face_fade=None, gain=0.6):
+    """Family 1 (the hollowed people): wet dead skin. Grey-blue base, livid purple pooled in the low
+    places (lividity from the cavity), blue-green veins under the surface, a cold waxy sheen
+    (roughness 0.34..0.6, wetter in the creases and over the veins), pores and cracked dry patches."""
+    base = tuple(c * gain for c in base)
+    deep = tuple(c * gain for c in deep)
+    if face_fade is not None:
+        face_fade = (tuple(c * gain for c in face_fade[0]), face_fade[1], face_fade[2])
+    m = K.Mat(name)
+    mott = m.noise(3.5 * scale, 6.0, 0.62)
+    col = m.ramp(mott, [(0.28, deep), (0.7, base)])
+    livid = m.noise(7.0 * scale, 4.0, 0.55)
+    purple = (base[0] * 0.78, base[1] * 0.62, base[2] * 0.95)
+    col = m.mix(m.math('MULTIPLY', m.math('SUBTRACT', livid, 0.52, True), 1.6, True), col, purple)
+    # blue-green subcutaneous veins: fine ridged branching
+    vn = m.noise(8.0 * scale, 4.0, 0.45, dist=0.7)
+    vmask = m.math('LESS_THAN', m.math('ABSOLUTE', m.math('SUBTRACT', vn, 0.5)), 0.016)
+    vmask = m.math('MULTIPLY', vmask, vein_amt)
+    col = m.mix(vmask, col, (base[0] * 0.55, base[1] * 0.75, base[2] * 0.72))
+    # dry cracked patches: pale flaking where the skin has split
+    dry = m.math('GREATER_THAN', m.noise(5.0 * scale, 3.0, 0.5), 0.68)
+    wr = m.voronoi(wrinkle * scale, 'DISTANCE_TO_EDGE')
+    split = m.math('MULTIPLY', m.math('LESS_THAN', wr, 0.05), dry)
+    col = m.mix(m.math('MULTIPLY', dry, 0.35), col, (base[0] * 1.22, base[1] * 1.2, base[2] * 1.16))
+    col = m.mix(m.math('MULTIPLY', split, 0.9), col, (deep[0] * 0.5, deep[1] * 0.4, deep[2] * 0.45))
+    if face_fade is not None:
+        sep = m.n('ShaderNodeSeparateXYZ')
+        m.links.new(m.coord.outputs['Object'], sep.inputs[0])
+        f = m.math('MULTIPLY', m.math('SUBTRACT', sep.outputs['Z'], face_fade[1]), 1.0 / max(face_fade[2] - face_fade[1], 1e-4), True)
+        col = m.mix(f, face_fade[0], col)
+    col = mulc(m, col, cavity(m, 0.45, 0.56, 0.42, 1.08))
+    pores = m.noise(300.0 * scale, 2.0, 0.5)
+    h = m.math('ADD', m.math('MULTIPLY', wr, 0.8), m.math('MULTIPLY', pores, 0.8))
+    h = m.math('ADD', h, m.math('MULTIPLY', vmask, 0.6))
+    h = m.math('ADD', h, m.math('MULTIPLY', split, -1.2))
+    h = m.math('ADD', h, m.math('MULTIPLY', m.noise(14.0 * scale, 5.0, 0.6), 1.1))
+    r = m.math('ADD', m.math('MULTIPLY', dry, 0.28), 0.5 - wet * 0.22)
+    r = m.math('ADD', r, m.math('MULTIPLY', m.math('SUBTRACT', livid, 0.5), 0.2))
+    r = m.math('SUBTRACT', r, m.math('MULTIPLY', vmask, 0.12))
+    return m.finish(col, r, 0.0, h, 0.7, 0.0035)
+
+
+def ember_chitin(name, base, edge, ember=(1.0, 0.36, 0.06), plates=11.0, rough=0.5, crack_w=0.03, strength=2.0):
+    """Family 2 (the rift-born): cracked chitin. Dark lacquered plates (voronoi cells), a paler worn
+    edge on every ridge, and a thin ember glow in the cracks between plates, deepest in the gaps."""
+    m = K.Mat(name)
+    cell = m.voronoi(plates, 'F1')
+    edgev = m.voronoi(plates, 'DISTANCE_TO_EDGE')
+    crack = m.math('LESS_THAN', edgev, crack_w)
+    mottle = m.noise(6.0, 5.0, 0.6)
+    col = m.ramp(mottle, [(0.3, tuple(c * 0.55 for c in base)), (0.72, base)])
+    # each plate its own value: cells are not one tone
+    plate_t = m.math('MULTIPLY', m.math('SUBTRACT', cell, 0.4), 0.5)
+    col = mulc(m, col, m.ramp(m.math('ADD', plate_t, 0.5, True), [(0.2, (0.7, 0.7, 0.7)), (0.8, (1.15, 1.15, 1.15))]))
+    geo = m.n('ShaderNodeNewGeometry')
+    ridge = m.math('SUBTRACT', geo.outputs['Pointiness'], 0.5)
+    ridge = m.math('MULTIPLY', m.math('MAXIMUM', m.math('SUBTRACT', ridge, 0.03), 0.0), 5.0, True)
+    col = m.mix(ridge, col, edge)
+    col = m.mix(m.math('MULTIPLY', crack, 0.95), col, (0.015, 0.008, 0.006))      # charred in the crack
+    col = mulc(m, col, cavity(m, 0.44, 0.56, 0.3, 1.0))
+    grain = m.noise(110.0, 4.0, 0.55)
+    h = m.math('ADD', m.math('MULTIPLY', cell, 0.55), m.math('MULTIPLY', grain, 0.3))
+    h = m.math('ADD', h, m.math('MULTIPLY', crack, -1.0))
+    r = m.math('SUBTRACT', rough, m.math('MULTIPLY', ridge, 0.22))
+    r = m.math('ADD', r, m.math('MULTIPLY', m.math('SUBTRACT', mottle, 0.5), 0.2))
+    # ember: only some cracks are lit (a noise gate), a thin hot core with a faint bloom, flickering mass
+    # by noise; the rest of the gaps stay charred black. Dim on purpose: the shader's emit_energy lifts it.
+    gate = m.ramp(m.noise(4.5, 3.0, 0.5), [(0.5, (0, 0, 0)), (0.62, (1, 1, 1))])
+    gate = m.mono(gate)
+    core = m.math('LESS_THAN', edgev, crack_w * 0.4)
+    heat = m.math('MULTIPLY', m.math('SUBTRACT', 1.0, m.math('MULTIPLY', edgev, 1.0 / (crack_w * 1.8), True)), 0.1)
+    vary = m.math('ADD', 0.45, m.noise(9.0, 3.0, 0.5))
+    em = m.math('MULTIPLY', m.math('MULTIPLY', m.math('ADD', core, heat, True), vary, True), gate, True)
+    emc = m.mix(em, (0.0, 0.0, 0.0), ember)
+    return m.finish(col, r, 0.0, h, 0.5, 0.003, emit=emc, emit_strength=strength)
+
+
+def grave_bone(name, base=(0.62, 0.57, 0.46), dirt=(0.2, 0.17, 0.12), scale=7.0, dust=0.55):
+    """Family 3 (the Ossuary dead): old bone. Yellowed, stained brown in the pores, hairline cracks
+    in a net, a matte dust that clings in the hollows (roughness up, albedo toward ash-grey)."""
+    m = K.Mat(name)
+    sc = m.scan("beige_wall_001", scale)
+    d = m.noise(6.0, 8.0, 0.6)
+    fine = m.voronoi(40.0, 'DISTANCE_TO_EDGE')
+    hair = m.math('MULTIPLY', m.math('LESS_THAN', fine, 0.012), m.math('GREATER_THAN', m.noise(8.0, 3.0, 0.5), 0.45))
+    col = m.mul(m.mono(sc["color"]), tuple(c * 1.5 for c in base))
+    col = m.mix(m.math('MULTIPLY', m.math('SUBTRACT', 1.0, d), 0.7), col, dirt)
+    col = m.mix(m.math('MULTIPLY', hair, 0.9), col, (0.06, 0.05, 0.035))
+    geo = m.n('ShaderNodeNewGeometry')
+    hollow = m.math('MULTIPLY', m.math('MAXIMUM', m.math('SUBTRACT', 0.5, geo.outputs['Pointiness']), 0.0), 5.0, True)
+    ash = (base[0] * 0.8, base[1] * 0.8, base[2] * 0.78)
+    col = m.mix(m.math('MULTIPLY', hollow, dust), col, ash)                           # dust gathers in the hollows
+    col = mulc(m, col, cavity(m, 0.45, 0.56, 0.4, 1.1))
+    h = m.math('ADD', m.math('MULTIPLY', sc["disp"], 0.7), m.math('MULTIPLY', hair, -0.8))
+    rough = m.math('ADD', m.math('MULTIPLY', sc["rough"], 0.35), 0.5)
+    rough = m.math('ADD', rough, m.math('MULTIPLY', hollow, 0.2), True)
+    return m.finish(col, rough, 0.0, h, 0.7, 0.0028)
+
+
 def chitin(name, base, edge, plates=14.0, rough=0.58):
     """Matte chitin: dark plates, a paler worn edge on every ridge (from curvature), a fine grain;
     lacquered only at the very edges."""
