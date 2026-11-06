@@ -536,6 +536,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	var lag := Vector3.ZERO
 	if _stride < 0.2 or _land > 0.08 or _air > 0.15 or local_acc.length() > 10.0:
 		lag = Vector3(_hem_spring.y * 0.15 + _lag.x * 0.25, _lag.y * 0.15, _hem_spring.x * 0.15 + _lag.z * 0.2)
+	lag.x += clampf(_turn * 0.02, -0.06, 0.06)       # a hard turn drags the hem; a straight sprint stays quiet
 	# Boot tips in coat mesh space for X/Y; Z uses body-forward so torso pitch can't fake a long toe.
 	var mesh_xf: Transform3D = _coat_mi.global_transform if _coat_mi else (_chest.global_transform if _chest else global_transform)
 	var inv := mesh_xf.affine_inverse()
@@ -2360,7 +2361,7 @@ func _hood_tick(dt: float) -> void:
 	_hood_pp = hp
 	_hood_pv = hv
 	if ha.length() > 90.0:
-		ha = Vector3.ZERO
+		ha = ha.normalized() * 90.0                  # a step-up or a mantle still tosses the hood
 	var la := global_basis.orthonormalized().inverse() * ha
 	var target := Vector2(clampf(la.z * 0.012 + la.y * 0.006, -0.35, 0.35), clampf(-la.x * 0.012, -0.3, 0.3))
 	_hood_v += (target - _hood_s) * 110.0 * dt
