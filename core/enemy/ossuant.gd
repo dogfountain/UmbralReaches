@@ -73,7 +73,9 @@ func _die() -> void:
 	_wish = Vector3.ZERO
 	velocity = Vector3.ZERO
 	if _hp_bar:
-		_hp_bar.visible = false
+		_hp_bar.visible = true
+		_hp_bar.set_instance_shader_parameter(&"fill", 0.0)       # the bar climbs toward the half it rises with
+		_hp_bar.set_instance_shader_parameter(&"trail", 0.0)
 	var at := global_position + Vector3.UP * 0.6
 	Vfx.burst(at, Color(0.85, 0.78, 0.65), {"count": 22, "life": 0.6, "speed": Vector2(1.5, 3.5), "size": 0.06, "gravity": -9.0, "additive": false})
 	HitText.pop(global_position + Vector3.UP * 1.4, "it will rise", Color(0.85, 0.7, 1.0))
@@ -88,6 +90,9 @@ func _physics_process(delta: float) -> void:
 	if _heap:
 		_heap_t -= delta
 		var urgency := 1.0 - _heap_t / REFORM_TIME
+		if _hp_bar:
+			_hp_bar.set_instance_shader_parameter(&"fill", 0.5 * clampf(urgency, 0.0, 1.0))
+			_hp_bar.set_instance_shader_parameter(&"trail", 0.5 * clampf(urgency, 0.0, 1.0))
 		_flesh_param(&"glint", 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.001 * (4.0 + 10.0 * urgency)))
 		if _heap_t <= 0.0:
 			_reform()
@@ -112,6 +117,8 @@ func _reform() -> void:
 
 func _shatter() -> void:
 	_heap = false
+	if _hp_bar:
+		_hp_bar.visible = false
 	_flesh_param(&"glint", 0.0)
 	_shatter_fx()
 	_state = IDLE        # let the base death run its full path (events, dissolve, free)
