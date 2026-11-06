@@ -158,6 +158,8 @@ func sync() -> void:
 			want[k] = false          # shown, not yet takeable: he stands over it
 	for k2: String in pickups.keys():
 		if not want.has(k2):
+			if String(Chains.PICKUPS[k2].kind) == "bell":
+				_bell_taken[k2] = true            # the choice was just made here: its outcome prop swings once
 			(pickups[k2] as Node).queue_free()
 			pickups.erase(k2)
 	for k3: String in want:
@@ -166,6 +168,9 @@ func sync() -> void:
 		(pickups[k3] as Node).set("live", bool(want[k3]))
 	_sync_oswin()
 	_sync_props()
+
+
+var _bell_taken := {}              ## bell pickup key -> true: it was answered this session
 
 
 func _add_pickup(k: String) -> void:
@@ -407,6 +412,11 @@ func _sync_props() -> void:
 		want["lantern"] = "lit" if Book.pick("slow_way") == "truth" else "cold"
 	if Book.done("forty_first") and Book.pick("forty_first") == "truth":
 		want["staff"] = "staff"
+	# the Founder's bells stay where they hang: rung (tongue still in) or carried (the loop empty)
+	for bk: String in Chains.PICKUPS:
+		var bd: Dictionary = Chains.PICKUPS[bk]
+		if String(bd.kind) == "bell" and Book.started(String(bd.quest)) and not pickups.has(bk) and Book.pick(String(bd.quest)) in ["rung", "carried"]:
+			want["bell:" + bk] = Book.pick(String(bd.quest))
 	if Book.done("alms_loaf"):
 		want["loaf"] = "loaf"
 	if Book.done("ring_heart"):
@@ -420,6 +430,18 @@ func _sync_props() -> void:
 			continue
 		var xf: Variant = _prop_xf(id2, String(want[id2]))
 		if xf == null:
+			continue
+		if id2.begins_with("bell:"):
+			var bkey := id2.trim_prefix("bell:")
+			var bat: Vector3 = spots.get(bkey, Vector3.INF)
+			if bat == Vector3.INF:
+				continue
+			var bh := QProps.make(self, "Outcome_" + bkey, "bell" if want[id2] == "rung" else "bell_bare", Transform3D(Basis(Vector3.UP, float(hash(bkey) % 628) * 0.01), bat))
+			bh.set_meta("v", String(want[id2]))
+			props[id2] = bh
+			if want[id2] == "rung" and _bell_taken.has(bkey):
+				QProps.ring_bell(bh, 1.0)            # rung on the choice, once, where you are looking
+			_bell_taken.erase(bkey)
 			continue
 		var kind: String = {"tongs": "tongs", "names": "slabs", "mug": "mug_full", "staff": "staff", "loaf": "loaf_circle", "thorn": "thorn"}.get(id2, "lantern_lit" if want[id2] == "lit" else "lantern")
 		var h := QProps.make(self, "Outcome_" + id2, kind, xf as Transform3D)
