@@ -228,7 +228,7 @@ static func rift_out(at: Vector3) -> void:
 static func rift_in(at: Vector3) -> void:
 	tear(at, 2.6, 0.55)
 	shell(at + Vector3.UP, 0.2, 1.6, Color(1.2, 0.5, 2.8), 0.3)
-	disc(at, 1.6, 0, VIOLET, VIOLET_HOT, 0.6)
+	disc(at, 1.2, 0, VIOLET, VIOLET_HOT, 0.6)
 	Vfx.burst(at + Vector3.UP, VIOLET_HOT, {"count": 46, "life": 0.45, "speed": Vector2(3.0, 7.0), "size": 0.045, "gravity": -3.0, "trail": 0.08})
 	Vfx.light(at + Vector3.UP, Color(0.7, 0.4, 1.0), 4.0, 6.0, 0.35)
 

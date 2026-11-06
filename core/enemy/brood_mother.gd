@@ -11,6 +11,7 @@ extends Spitter
 ##           quicker and the spray widens. At most six of its mites live at once.
 ## No class_name (project rule): Guardians loads it by path.
 
+const Guardians := preload("res://core/life/encounters/guardians.gd")
 const MITE := "res://core/enemy/mite.gd"
 const BROOD_TELL := 1.6
 const SCALE := 1.7
@@ -90,7 +91,7 @@ func _lob() -> void:
 	var pv := Vector3(_p.velocity.x, 0.0, _p.velocity.z)
 	var at := _p.global_position + (pv.normalized() * 3.0 if pv.length() > 1.0 else Vector3(randf_range(-2.5, 2.5), 0.0, randf_range(-2.5, 2.5)))
 	AttackKit.zone(self, at, lob_flight + 0.3, spit_gloom, {"radius": LOB_R, "color": AttackKit.ACID, "fx": "acid", "bound": false,
-		"on_land": AttackKit.linger.bind(at, LOB_R * 0.85, 3.2, 3.0, 0.5, Color(0.2, 1.1, 0.75))})
+		"on_land": AttackKit.linger.bind(at, LOB_R * 0.85, 3.2, 3.0 * Tiers.dmg_of(self), 0.5, Color(0.2, 1.1, 0.75))})
 	AttackKit.lob(_sac.global_position if _sac else global_position + Vector3.UP * 2.4, at, lob_flight + 0.3, AttackKit.ACID)
 
 
@@ -149,6 +150,7 @@ func _hatch() -> void:
 	var host := get_parent()
 	var got := BossKit.summon(host, load(MITE) as GDScript, global_position, n, 1.8, gid)
 	broods += got.size()
+	Guardians.scale_summoned(got, int(get_meta(&"enc_tier", 0)), "mite")
 	for m in got:
 		m.alerted(self)
 	Vfx.burst(_sac.global_position if _sac else global_position + Vector3.UP * 2.0, Color(0.3, 1.6, 1.1), {"count": 40, "life": 0.6, "speed": Vector2(2.0, 5.0), "size": 0.07, "gravity": -8.0, "additive": false})
@@ -169,7 +171,7 @@ func _on_weak_hit(_dmg: float) -> void:
 	stagger()
 	HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.9), "the brood ruptures", WEAK_COL, true)
 	Vfx.burst(_sac.global_position if _sac else global_position + Vector3.UP * 2.0, Color(0.3, 1.6, 1.1), {"count": 50, "life": 0.7, "speed": Vector2(2.0, 6.0), "size": 0.08, "gravity": -9.0, "additive": false})
-	AttackKit.linger(global_position, 1.6, 3.0, 3.0, 0.5, Color(0.2, 1.1, 0.75))
+	AttackKit.linger(global_position, 1.6, 3.0, 3.0 * Tiers.dmg_of(self), 0.5, Color(0.2, 1.1, 0.75))
 
 
 func _physics_process(delta: float) -> void:

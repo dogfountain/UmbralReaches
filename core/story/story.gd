@@ -423,7 +423,7 @@ func _stage_opening(hud: Node) -> void:
 func _on_boss(id: String) -> void:
 	objectives_changed.emit()
 	if id == "ascended_warden" and not flag("ending_seen"):
-		get_tree().create_timer(1.5).timeout.connect(_ending)      # the bar drops; a breath of silence
+		get_tree().create_timer(9.5).timeout.connect(_ending)      # after the 9 s spin tween, the bar dropped; a breath of silence
 
 
 ## The ending, staged as one beat (r30): no toasts (boss_arena, summit_dress and reactivity keep

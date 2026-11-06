@@ -179,7 +179,7 @@ func _start_clang() -> void:
 	if _rig and _rig.has_method("telegraph"):
 		_rig.call("telegraph", CLANG_TELL)
 	_glint = 1.0
-	AttackKit.zone(self, global_position, CLANG_TELL, 14.0, {"radius": CLANG_R, "fx": "slam", "color": AttackKit.RED})
+	AttackKit.zone(self, global_position, CLANG_TELL, 14.0 * Tiers.dmg_of(self), {"radius": CLANG_R, "fx": "slam", "color": AttackKit.RED})
 
 
 func _special_think() -> void:

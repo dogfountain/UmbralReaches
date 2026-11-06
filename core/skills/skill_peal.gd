@@ -95,7 +95,7 @@ func _stroke(p: Player, from: Vector3, fwd: Vector3, reach: float, half: float, 
 		e.add_mark(2 if r >= 2 and had > 0 else 1)
 		if not e.boss:
 			if staggers > 0:
-				e.stagger()                 # the toll's second stagger in one frame added no time, only a second "broken"
+				e.stagger(0.6 * float(staggers - 1))   # the toll's second stagger is a longer reel, not a second "broken"
 		if r >= 3:
 			Afflict.slow(e, 0.5, 2.0)
 		n += 1

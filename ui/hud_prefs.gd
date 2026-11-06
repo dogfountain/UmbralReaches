@@ -30,6 +30,11 @@ static var card_request := 0           ## bumped by the settings menu: the HUD s
 static var _loaded := false
 
 
+## The next ensure() reads the slot's file again (a new night, another slot, an erased save).
+static func forget() -> void:
+	_loaded = false
+
+
 static func ensure() -> void:
 	if _loaded:
 		return

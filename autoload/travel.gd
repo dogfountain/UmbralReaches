@@ -33,6 +33,7 @@ var story: Dictionary = {}         ## story state (core/story/story.gd): {"flags
 ## Progress save (user://slot_<n>/savegame.cfg, see use_slot): kindles (hub + areas), relics, checkpoint, hollow count.
 ## Written ~0.6 s after any change (kill ash: ~10 s, see save_lazy); read once at boot. Launch with
 ## `-- --fresh` to ignore it, `-- --save-dir=/scratch` to keep every save file there (tests).
+const HudPrefs := preload("res://ui/hud_prefs.gd")
 const SaveDir := preload("res://core/util/save_dir.gd")
 const SLOTS := 3                     ## save slots: <dir>/slot_<n>/savegame.cfg
 const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
@@ -455,6 +456,7 @@ func load_game() -> void:
 ## the next use_slot starts clean and saving works again (r35 B10: the session used to go on, never saving).
 func erase_save() -> void:
 	_reset_progress()
+	HudPrefs.forget()
 	erased = true
 	for suffix: String in ["", ".bak", ".tmp"]:
 		if FileAccess.file_exists(SAVE_PATH + suffix):

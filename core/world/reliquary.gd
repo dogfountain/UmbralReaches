@@ -39,7 +39,7 @@ const TEXT := {
 	&"wander": "UMBRAL WELL · WANDER — the well drifts after the nearest foe, 2.5 m a second, dragging what it passes.",
 	&"swarm": "BOUND SHADE · SWARM — binds three small shades at 60% strength, for 10 s.",
 	&"vigil": "BOUND SHADE · VIGIL — the shade keeps watch where you bound it, darting faster, for 6 s longer.",
-	&"toll": "FOUNDER'S PEAL · TOLL — one great stroke in a narrow cone: twice the damage, and it staggers twice.",
+	&"toll": "FOUNDER'S PEAL · TOLL — one great stroke in a narrow cone: twice the damage, and it staggers a lesser foe twice; a great one keeps its feet.",
 	&"carillon": "FOUNDER'S PEAL · CARILLON — three quick rings all round you, each a light blow and a Mark.",
 }
 

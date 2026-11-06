@@ -65,21 +65,21 @@ const SPELLS: Array[Dictionary] = [
 		["Rend", "The tear you leave bursts a moment later: 1.5 damage and a Mark to all within 3 m."]]},
 	# learned at the Kindling (LEARN), then ranked like the five; they take a hotbar slot (LOADOUT)
 	{"id": "tether", "name": "Rift Tether", "glyph": "tether", "color": Color("#5FE3D0"), "learn": {"cost": 14, "gate": 0},
-		"text": "Throw a rift chain at the foe nearest your aim (18 m): it is Marked and dragged to you. The great ones drag you to them instead.",
+		"text": "Throw a rift chain at the foe nearest your aim (18 m at first): it is Marked and dragged to you. The great ones drag you to them instead.",
 		"lore": "The ferrymen of the fen kept a hooked chain for the dead who would not lie down. The Rift kept the chain.",
 		"ranks": [
 		["Long Chain", "Reaches 24 m, and what it drags arrives staggered."],
 		["Fork", "The chain forks to a second foe within 6 m of the first and drags both."],
 		["Reel", "A foe dragged in with Marks on it bursts at your feet: 1 damage per Mark to all within 2.5 m (the Marks are spent)."]]},
 	{"id": "well", "name": "Umbral Well", "glyph": "well", "color": Color("#8A6CFF"), "learn": {"cost": 20, "gate": 1},
-		"text": "Open a well of dark where you aim (22 m). For 3 s it drags foes to its heart, slows them and Marks them each second; then it collapses: 1 damage, +0.5 per Mark. An Ember Lance burst over it lights a Maelstrom.",
+		"text": "Open a well of dark where you aim (22 m). At first, for 3 s it drags foes to its heart, slows them and Marks them each second; then it collapses: 1 damage, +0.5 per Mark. An Ember Lance burst over it lights a Maelstrom.",
 		"lore": "Brother Anselm wrote that the Rift is not a hole but a mouth. He wrote it twice, the second time smaller.",
 		"ranks": [
 		["Deeper Pull", "Wider (5.5 m, was 4.5) and stronger, and it holds 4 s."],
 		["Hungry Dark", "It swallows spit that comes near, and the collapse throws it back as shards at the nearest foes."],
 		["Event Horizon", "The collapse detonates every Mark inside it, as Umbral Nova does."]]},
 	{"id": "familiar", "name": "Bound Shade", "glyph": "familiar", "color": Color("#C9B8FF"), "learn": {"cost": 24, "gate": 1},
-		"text": "Bind a shade for 14 s. It circles you and darts at the foe nearest your aim every 1.1 s: 0.5 damage and a Mark.",
+		"text": "Bind a shade for 14 s. At first it circles you and darts at the foe nearest your aim every 1.1 s: 0.5 damage and a Mark.",
 		"lore": "Not every shade is hungry. Some only want to be useful again.",
 		"ranks": [
 		["Keen Eyes", "It darts every 0.75 s, and its darts seek."],

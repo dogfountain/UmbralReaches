@@ -16,6 +16,13 @@ var kind := "ash_bloom"
 var rng_seed := 0
 var _ready_to_take := true
 var _vis: Node3D
+static var _mats: Dictionary = {}       ## shared by every node of the kind (one material, not one per bloom)
+
+
+static func _mat(key: String, make: Callable) -> Material:
+	if not _mats.has(key):
+		_mats[key] = make.call()
+	return _mats[key]
 
 
 func _ready() -> void:
@@ -37,22 +44,24 @@ func _build() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = rng_seed
 	if kind == "grave_iron":
-		var stone := ProcMesh.std_mat(Color(0.2, 0.18, 0.19), 0.95)
+		var stone := _mat("stone", func() -> Material: return ProcMesh.std_mat(Color(0.2, 0.18, 0.19), 0.95))
 		var rock := ProcMesh.mesh(_vis, "Rock", ProcMesh.sphere(0.75, 1.0, 8, 5), stone, Vector3(0, 0.3, 0), Vector3(0, rng.randf() * TAU, 0), true)
 		rock.scale = Vector3(1.0, 0.75, 0.85)
 		ProcMesh.mesh(_vis, "Rock2", ProcMesh.sphere(0.3, 0.4, 7, 4), stone, Vector3(0.42, 0.12, 0.18), Vector3(0, rng.randf() * TAU, 0), true)
-		var vein := ProcMesh.glow_mat(Color(1.3, 0.42, 0.22))
+		var vein := _mat("vein", func() -> Material: return ProcMesh.glow_mat(Color(1.3, 0.42, 0.22)))
 		for i in 4:
 			var a := rng.randf() * TAU
 			var v := ProcMesh.mesh(_vis, "Vein%d" % i, ProcMesh.box(Vector3(0.06, 0.06, 0.6)), vein,
 				Vector3(cos(a) * 0.74, 0.3 + rng.randf() * 0.25, sin(a) * 0.64), Vector3(rng.randf_range(-0.6, 0.6), a, 0), false)
 			v.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	else:
-		var stem := ProcMesh.std_mat(Color(0.18, 0.22, 0.2), 0.9)
-		var petal := ProcMesh.glow_mat(Color(1.5, 1.42, 1.8))
+		var stem := _mat("stem", func() -> Material: return ProcMesh.std_mat(Color(0.18, 0.22, 0.2), 0.9))
+		var petal := _mat("petal", func() -> Material: return ProcMesh.glow_mat(Color(1.5, 1.42, 1.8)))
 		# a pale ring of ash on the ground, where something burned
-		var ash := ProcMesh.glow_mat(Color(0.5, 0.46, 0.62, 0.35))
-		ash.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		var ash := _mat("ash", func() -> Material:
+			var m := ProcMesh.glow_mat(Color(0.5, 0.46, 0.62, 0.35))
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			return m)
 		var ring := ProcMesh.mesh(_vis, "AshRing", ProcMesh.cyl(0.7, 0.7, 0.01, 16), ash, Vector3(0, 0.03, 0), Vector3.ZERO, false)
 		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		for i in 9:
@@ -67,6 +76,7 @@ func _build() -> void:
 	var motes := Vfx.emitter(Color(col.r * 1.6, col.g * 1.6, col.b * 1.6), {"count": 10, "life": 2.2, "speed": Vector2(0.1, 0.3), "size": 0.035, "gravity": -0.25, "radius": 0.45})
 	motes.position = Vector3(0, 0.6, 0)
 	motes.name = "Motes"
+	motes.visibility_range_end = 22.0
 	_vis.add_child(motes)
 	motes.emitting = true
 
@@ -75,6 +85,9 @@ func _set_ready(on: bool) -> void:
 	_ready_to_take = on
 	if _vis:
 		_vis.visible = on
+	var sense := get_node_or_null("InteractSense") as Area3D
+	if sense:
+		sense.set_deferred("monitorable", on)       # a spent node takes no E
 	if on:
 		add_to_group("map_marker")
 	elif is_in_group("map_marker"):

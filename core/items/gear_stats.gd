@@ -111,7 +111,7 @@ static func fold(m: Dictionary, c: Dictionary) -> void:
 const FLAG_NAMES := {"rosary": "burning foes gather Marks", "hook": "the Tether Marks its whole chain",
 	"chalk": "hooks and darts lay 2 Marks", "tally": "Nova: 1.5 a Mark", "door": "Step: the Open Door",
 	"bramble": "the Ward roots in brambles", "jar": "the Shade lingers and bursts", "ferrule": "Step lands with a Mark",
-	"step_briar": "Step roots in brambles", "kill_spark": "kills hasten your spells", "ash_hunger": "kills give more ash",
+	"step_briar": "Step roots in brambles", "kill_spark": "a kill beside you hastens your spells", "ash_hunger": "a kill beside you gives more ash",
 	"peal_echo": "the Peal rings twice"}
 
 
@@ -133,9 +133,9 @@ static func summary(st: Dictionary) -> PackedStringArray:
 	if float(tmp.dark_mult) < 0.9999:
 		out.append("Gloom gathers %d%% slower" % roundi((1.0 - float(tmp.dark_mult)) * 100.0))
 	if float(tmp.lit_mult) > 1.0001:
-		out.append("fire clears Gloom %d%% faster" % roundi((float(tmp.lit_mult) - 1.0) * 100.0))
+		out.append("fire clears Gloom %d%% faster and mends the plate" % roundi((float(tmp.lit_mult) - 1.0) * 100.0))
 	if float(tmp.kill_relief) > 0.0:
-		out.append("%.1f Wounds mended a kill" % float(tmp.kill_relief))
+		out.append("%.1f Wounds mended a kill within 28 m" % float(tmp.kill_relief))
 	if float(tmp.step_range) > 0.0:
 		out.append("Step +%.1f m" % float(tmp.step_range))
 	if float(tmp.step_cd) < 0.9999:

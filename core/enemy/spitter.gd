@@ -7,6 +7,8 @@ extends Enemy
 ## disc filling under you from the moment the sac swells, and a pool of acid where it lands.
 ## A Nova near it makes it spit back at once.
 
+const Tiers := preload("res://core/life/encounters/tiers.gd")
+
 @export var kite_min := 6.0
 @export var kite_max := 10.0
 @export var fire_range := 15.0
@@ -94,7 +96,7 @@ func _on_state(next: int) -> void:
 		var target := _lob_target()
 		set_meta(&"lob_at", target)
 		AttackKit.zone(self, target, lob_windup + lob_flight, spit_gloom * 1.2, {"radius": LOB_R, "color": AttackKit.ACID, "fx": "acid", "release": lob_windup,
-			"on_land": AttackKit.linger.bind(target, LOB_R * 0.85, 3.2, 3.0, 0.5, Color(0.2, 1.1, 0.75))})   # static: lands even if the spitter is dead by then
+			"on_land": AttackKit.linger.bind(target, LOB_R * 0.85, 3.2, 3.0 * Tiers.dmg_of(self), 0.5, Color(0.2, 1.1, 0.75))})   # static: lands even if the spitter is dead by then
 	elif _p:
 		var to := _p.global_position - global_position
 		to.y = 0.0

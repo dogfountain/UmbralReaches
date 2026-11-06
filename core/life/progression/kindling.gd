@@ -602,7 +602,7 @@ static func ground_spot(space: PhysicsDirectSpaceState3D, xz: Vector2) -> Vector
 ## Start with Rift Bolt. The Keep teaches Lantern Ward (dialogue "teach:ward"), the first kill Ember
 ## Lance, the first seal Rift Step, the first great one Umbral Nova. Each is said once, with its key.
 const TEACH_LINES := {
-	"ward": "The Keep's fire takes to your lantern. Lantern Ward: %s.",
+	"ward": "The Keep's fire is yours to set. Lantern Ward: %s plants a fire where you stand; your hand lamp is only a lamp between casts.",
 	"lance": "The first of them falls, and the staff drinks its ember. Ember Lance: %s.",
 	"step": "The seal breaks, and the Rift pulls at your feet. Rift Step: %s.",
 	"nova": "The great one's dark comes apart round you, and you keep some. Umbral Nova: %s.",

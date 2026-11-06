@@ -125,6 +125,7 @@ static func _lantern(k: OssKit, holder: Node3D, p: Vector3) -> void:
 	holder.add_child(l)
 	l.global_position = p + Vector3.UP * 2.05
 	LightPolicy.apply_fade(l)
+	l.light_volumetric_fog_energy = 0.0           # a mark on the road: it throws no shaft into the fog
 	LightPolicy.apply_illumination(l)
 	l.shadow_enabled = false
 

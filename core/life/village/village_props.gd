@@ -335,7 +335,7 @@ static func hermit(parent: Node, space: PhysicsDirectSpaceState3D, c: Vector2) -
 		h.add_child(smoke)
 		smoke.global_position = f + Vector3.UP * 0.7
 		smoke.emitting = true
-	var l := light(h, "CampFire", f + Vector3.UP * 0.55, Color(1.0, 0.52, 0.2), 1.1, 6.5)
+	var l := light(h, "CampFire", f + Vector3.UP * 0.55, Color(1.0, 0.52, 0.2), 1.1, 5.5)
 	return {"fire": f, "seat": seat, "grave": g, "light": l}
 
 

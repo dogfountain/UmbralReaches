@@ -51,8 +51,8 @@ const AFFIX := {
 	"cd": {"key": "cd", "op": "add", "roll": [-0.03, -0.015], "fmt": "Spells recover %d%% sooner", "pct": true, "of": "of Haste"},
 	"gloom_add": {"key": "gloom_add", "op": "add", "roll": [4.0, 8.0], "fmt": "+%d Gloom held", "of": "of the Deep Breath"},
 	"dark_mult": {"key": "dark_mult", "op": "mul", "roll": [-0.05, -0.025], "fmt": "Gloom gathers %d%% slower", "pct": true, "of": "of the Shuttered Eye"},
-	"lit_mult": {"key": "lit_mult", "op": "mul", "roll": [0.06, 0.12], "fmt": "Fire takes Gloom off %d%% faster", "pct": true, "of": "of the Hearth"},
-	"kill_relief": {"key": "kill_relief", "op": "add", "roll": [0.5, 1.0], "fmt": "Every kill mends %.1f Wounds", "of": "of the Reaper"},
+	"lit_mult": {"key": "lit_mult", "op": "mul", "roll": [0.06, 0.12], "fmt": "Fire takes Gloom off %d%% faster, and mends the plate", "pct": true, "of": "of the Hearth"},
+	"kill_relief": {"key": "kill_relief", "op": "add", "roll": [0.5, 1.0], "fmt": "Every kill within 28 m mends %.1f Wounds", "of": "of the Reaper"},
 	"step_range": {"key": "step_range", "op": "add", "roll": [0.3, 0.6], "fmt": "Rift Step reaches %.1f m further", "of": "of the Long Road"},
 	"step_cd": {"key": "step_cd", "op": "mul", "roll": [-0.07, -0.035], "fmt": "Rift Step recovers %d%% sooner", "pct": true, "of": "of Swift Feet"},
 	"lash_power": {"key": "lash_power", "op": "add", "roll": [0.06, 0.12], "fmt": "The Lash hits %d%% harder", "pct": true, "of": "of the Lash"},
@@ -65,7 +65,7 @@ const AFFIX := {
 	"shade_life": {"key": "shade_life", "op": "add", "roll": [0.8, 1.6], "fmt": "A Bound Shade stays %.1f s longer", "of": "of the Kept Shade"},
 	"tether_reach": {"key": "tether_reach", "op": "add", "roll": [1.0, 2.0], "fmt": "Rift Tether reaches %.1f m further", "of": "of the Long Chain"},
 	"peal_reach": {"key": "peal_reach", "op": "add", "roll": [0.5, 1.0], "fmt": "The Founder's Peal carries %.1f m further", "of": "of the Carrying Note"},
-	"ash_find": {"key": "ash_find", "op": "add", "roll": [0.04, 0.08], "fmt": "About %d kills in a hundred leave one more pinch of grave ash, beside you", "pct": true, "of": "of the Gleaner"},
+	"ash_find": {"key": "ash_find", "op": "add", "roll": [0.04, 0.08], "fmt": "About %d kills in a hundred leave one more pinch of grave ash (a kill beside you, within 28 m; a great one does not pay)", "pct": true, "of": "of the Gleaner"},
 }
 ## Which affixes each slot can roll: every slot leans toward a way of fighting.
 const SLOT_AFFIX := {
@@ -102,7 +102,7 @@ const SETS := {
 		"pieces": {"focus": "Tally-Bead Collar", "vestment": "Lay Brother's Scapular", "lantern": "Charnel Lamp-Horn", "girdle": "Counted Cincture"},
 		"lore": "Brother Lisle's order counted the dead into the Ossuary. They wore their count on everything.",
 		"two": {"text": "+15 Gloom held.", "mods": [["gloom_add", "add", 15.0]]},
-		"four": {"text": "Umbral Nova deals 1.5 damage for every Mark it detonates (as the Oath of the Tally), and every kill mends 2 Wounds.",
+		"four": {"text": "Umbral Nova deals 1.5 damage for every Mark it detonates (as the Oath of the Tally), and every kill within 28 m mends 2 Wounds.",
 			"mods": [["kill_relief", "add", 2.0]], "flags": ["tally"]}},
 	"bell": {"name": "Bellwright's Garb", "tint": Color("#D79A52"),
 		"pieces": {"focus": "Clapper-Ring", "vestment": "Bellwright's Apron", "lantern": "Belfry Lamp-Glass", "girdle": "Bell-Rope Girdle"},
@@ -140,8 +140,8 @@ const TRAITS := {
 	"ferrule": {"flags": ["ferrule"], "slots": ["girdle"], "text": "Trait: every foe within 2 m of where Rift Step lands takes a Mark."},
 	"step_briar": {"flags": ["step_briar"], "slots": ["girdle", "vestment"], "text": "Trait: Rift Step slows what it passes to a little under half speed for 2 s, within about a metre and a half of the line."},
 	"bramble": {"flags": ["bramble"], "slots": ["vestment", "lantern"], "text": "Trait: Lantern Ward roots what crosses its light in brambles."},
-	"kill_spark": {"flags": ["kill_spark"], "slots": ["vestment", "girdle"], "text": "Trait: a kill takes 1 s off every spell's recovery, one time in four."},
-	"ash_hunger": {"flags": ["ash_hunger"], "slots": ["vestment", "lantern"], "text": "Trait: every kill near you gives one more pinch of grave ash."},
+	"kill_spark": {"flags": ["kill_spark"], "slots": ["vestment", "girdle"], "text": "Trait: a kill beside you, within 28 m, takes 1 s off every spell's recovery, one time in four; a great one does not pay."},
+	"ash_hunger": {"flags": ["ash_hunger"], "slots": ["vestment", "lantern"], "text": "Trait: every kill beside you, within 28 m, gives one more pinch of grave ash; a great one does not pay."},
 	"peal_echo": {"flags": ["peal_echo"], "slots": ["focus"], "text": "Trait: the Founder's Peal rings twice, the second at half strength."},
 }
 

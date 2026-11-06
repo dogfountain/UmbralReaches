@@ -213,7 +213,7 @@ func _build_graphics(p: VBoxContainer) -> void:
 	_shadow_option = _option(p, "Shadows", Settings.SHADOW_NAMES, "", func(i: int) -> void:
 		Settings.shadow_quality = i
 		_custom())
-	_fog_btn = _check(p, "Volumetric Fog", "", func(v: bool) -> void:
+	_fog_btn = _check(p, "Volumetric Fog", "Off removes the shafts and depth of the air; the distance fog and height haze stay", func(v: bool) -> void:
 		Settings.fog_enabled = v
 		_custom())
 	_ssao_btn = _check(p, "Ambient Occlusion", "Contact shadows in corners and under props", func(v: bool) -> void:
