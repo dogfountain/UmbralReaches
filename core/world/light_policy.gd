@@ -187,8 +187,8 @@ const MOON_ATLAS := [1024, 1024, 1024]        ## by Settings.shadow_quality (0 =
 const MOON_FILTER := [1, 1, 1]                ## RenderingServer.ShadowQuality (1 very low; 2 low costs 1-2.6 ms)
 const MOON_BIAS := 0.06
 const MOON_NORMAL_BIAS := 2.5
-const MOON_FAR := [22.0, 22.0, 30.0]
-const MOON_SPLIT_1 := 0.25
+const MOON_FAR := [22.0, 34.0, 64.0]
+const MOON_SPLIT_1 := 0.16
 static var _atlas := 0
 static var _filter := -1
 
