@@ -26,6 +26,8 @@ const EVERY := Vector2(420.0, 660.0)
 const CALL_FOR := 180.0
 const ARRIVE_R := 15.0
 const LEAVE_R := 46.0
+const AWAY_GRACE := 8.0                 ## seconds past LEAVE_R before a surge is lost
+var _away := 0.0
 const WAVES := 3
 const WAVE_GAP := 32.0                  ## a wave comes anyway after this long
 const EncDirector := preload("res://core/life/encounters/director.gd")
@@ -115,8 +117,12 @@ func _process(delta: float) -> void:
 		"active":
 			_prune()
 			if _flat(pp, at) > LEAVE_R:
-				_end("lost")
-				return
+				_away += 0.5
+				if _away >= AWAY_GRACE:          # a gallop across the edge and back is still your fight
+					_end("lost")
+					return
+			else:
+				_away = 0.0
 			_wave_t -= 0.5
 			if foes.is_empty() or (_wave_t <= 0.0 and wave < WAVES):
 				if wave >= WAVES:
@@ -167,12 +173,12 @@ func start_event(site_id: String) -> bool:
 			phase = "warn"
 			clock = CALL_FOR
 			wave = 0
+			_away = 0.0
 			foes.clear()
 			events_run += 1
 			_make_fx()
 			Events.world_event.emit(event_id(), "warn", at)
-			Events.toast.emit("The Gloom is welling up at %s. Go, and break it before it spills." % _bare(site_name))
-			_banner("Gloom Surge", "at %s" % _bare(site_name))
+			_banner("Gloom Surge", "at %s: go, and break it before it spills" % _bare(site_name))      # one call: the plate
 			return true
 	return false
 
