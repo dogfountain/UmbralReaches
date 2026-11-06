@@ -99,6 +99,7 @@ static func _voice(host: Node, now: int) -> AudioStreamPlayer3D:
 		p.name = "SfxVoice%d" % _voices.size()
 		p.max_distance = MAX_D
 		p.unit_size = 4.0
+		p.max_db = 6.0                          # a toll or a chant may sit a decibel over a roar (+3 asked, +4/5 allowed)
 		p.bus = &"SFX"
 		host.add_child(p)
 		_voices.append(p)

@@ -12,6 +12,8 @@ const DB := preload("res://core/life/progression/upgrade_db.gd")
 const Aim := preload("res://core/skills/aim.gd")
 const Chain := preload("res://core/skills/tether_chain.gd")
 const Drag := preload("res://core/skills/tether_drag.gd")
+const CombatState := preload("res://core/skills/combat_state.gd")
+const Afflict := preload("res://core/skills/afflict.gd")
 const Combo := preload("res://core/skills/combo.gd")
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 
@@ -48,12 +50,27 @@ func reach() -> float:
 	return (RANGE_LONG if rank() >= 1 else RANGE) + float(DB.get_mod("tether_reach", 0.0))
 
 
+## A locked foe inside the chain's reach and in sight is the hook, wherever the crosshair is (the
+## bolt already flies to a lock; the chain used to need the crosshair on the chest).
+func _locked_in_reach(p: Player, from: Vector3) -> Node3D:
+	var lk := p.targeting.lock_target()
+	if lk == null or not lk.is_alive():
+		return null
+	var chest := Aim.chest(lk)
+	var d := from.distance_to(chest)
+	if d < 0.6 or d > reach() or not Aim.clear(p, from, chest):
+		return null
+	return lk
+
+
 func cast(book: SkillBook, _charge: float) -> bool:
 	var p := book.player
 	var r := rank()
 	var power := float(DB.get_mod("power", 1.0))
 	var from := Aim.muzzle(p)
-	var first := Aim.pick(p, reach(), CONE)
+	var first := _locked_in_reach(p, from)
+	if first == null:
+		first = Aim.pick(p, reach(), CONE)
 	hooked = 0
 	if first == null:
 		# a miss: the chain flies out to the crosshair and snaps back; costs only a second
@@ -122,7 +139,7 @@ func _hook(p: Player, e: Node3D, k: int, r: int, power: float, from: Vector3) ->
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(land + Vector3.UP * 2.5, land + Vector3.DOWN * 4.0, Layers.WORLD | Layers.PROPS, [p.get_rid()]))
 		if not hit.is_empty():
 			land = (hit.position as Vector3) + Vector3.UP * 0.05
-	var t := clampf(e.global_position.distance_to(land) / DRAG_SPEED, 0.22, 0.6)
+	var t := clampf(e.global_position.distance_to(land) / DRAG_SPEED, 0.18, 1.15)
 	Chain.throw(p, e, t)
 	Drag.start(e, land, t, func() -> void:
 		if is_instance_valid(e) and is_instance_valid(p):
@@ -146,7 +163,7 @@ func _arrive(p: Player, e: Node3D, r: int, had: int, power: float) -> void:
 			if o == null or (o.has_method("is_alive") and not o.call("is_alive")):
 				continue
 			if o.global_position.distance_to(at) <= REEL_R:
-				o.call("take_hit", float(m) * power, p)
+				CombatState.strike(o, float(m) * power, &"umbral", p)
 				hurt += 1
 		SpellFx.disc(at, REEL_R, 0, Color(0.4, 1.8, 1.6), Chain.TEAL_HOT, 0.5)
 		SpellFx.shell(at + Vector3.UP, 0.3, REEL_R, Color(0.4, 1.6, 1.5), 0.3)
@@ -208,17 +225,8 @@ func _anchor(e: Node3D) -> void:
 	if en == null:
 		return
 	en.add_mark(1)
-	if not en.has_meta(&"briar_base"):
-		en.set_meta(&"briar_base", en.walk_speed)
-	en.walk_speed = 0.0
-	var until := Time.get_ticks_msec() + int(ANCHOR_SECS * 1000.0)
-	en.set_meta(&"briar_until", until)
+	Afflict.hold(en, &"anchor", int(ANCHOR_SECS * 1000.0))
 	Vfx.ring(en.global_position + Vector3.UP * 0.06, 1.0, Chain.TEAL_HOT, ANCHOR_SECS, 0.08, Vector3.UP, 1.0)
-	var eid := en.get_instance_id()
-	en.get_tree().create_timer(ANCHOR_SECS + 0.05, false).timeout.connect(func() -> void:
-		var e2 := instance_from_id(eid) as Enemy
-		if e2 != null and int(e2.get_meta(&"briar_until", 0)) <= Time.get_ticks_msec():
-			e2.walk_speed = float(e2.get_meta(&"briar_base", e2.walk_speed)))
 
 
 ## r36 Haul: you land with a shock that throws back what stands within HAUL_R.

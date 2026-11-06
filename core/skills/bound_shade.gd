@@ -6,6 +6,7 @@ extends Node3D
 ## makes a dart that strikes a Marked foe burst on its neighbours. Never collides with anything.
 
 const Aim := preload("res://core/skills/aim.gd")
+const CombatState := preload("res://core/skills/combat_state.gd")
 const Combo := preload("res://core/skills/combo.gd")
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 const PALE := Color(1.6, 1.3, 3.2)
@@ -147,10 +148,11 @@ func _physics_process(delta: float) -> void:
 			_fade()
 
 
-## The foe nearest the crosshair within REACH of the wanderer, else the nearest within 9 m.
+## The foe nearest the crosshair within REACH of the wanderer. An empty cone holds the dart. (A
+## Vigil shade keeps watch where it was left: there is no crosshair, so it takes the nearest.)
 func _target() -> Node3D:
 	var t := Aim.pick(owner_p, REACH, 0.8)
-	if t == null:
+	if t == null and not owner_p is Player:
 		t = Aim.nearest(get_tree(), owner_p.global_position, 9.0)
 	return t
 
@@ -167,7 +169,7 @@ func _loose(t: Node3D) -> void:
 		var u := float(i) / 9.0
 		pts.append(from.lerp(to, u) + bend * sin(u * PI))
 	Vfx.ribbon(pts, 0.03, 0.12, Color(1.4, 1.0, 3.0, 0.9), 0.22)
-	StaffSfx.play("dart", from, -6.0)
+	StaffSfx.play("dart", from, -3.0)
 	_vis.scale = Vector3.ONE * 1.25
 	create_tween().tween_property(_vis, "scale", Vector3.ONE, 0.2)
 	var tid := t.get_instance_id()
@@ -179,7 +181,7 @@ func _strike(t: Node3D, at: Vector3) -> void:
 		return
 	at = Aim.chest(t)
 	var had := int(t.get("marks")) if t.get("marks") != null else 0
-	t.call("take_hit", DART_DMG * power, self)
+	CombatState.strike(t, DART_DMG * power, &"umbral", self)
 	t.call("add_mark", marks)
 	Vfx.burst(at, PALE, {"count": 14, "life": 0.3, "speed": Vector2(1.5, 4.0), "size": 0.04, "gravity": -3.0, "trail": 0.06})
 	if jar and had > 0:
@@ -188,7 +190,7 @@ func _strike(t: Node3D, at: Vector3) -> void:
 			if o == null or o == t or (o.has_method("is_alive") and not o.call("is_alive")):
 				continue
 			if o.global_position.distance_to(t.global_position) <= 1.5:
-				o.call("take_hit", 0.5 * power, self)
+				CombatState.strike(o, 0.5 * power, &"umbral", self)
 		Vfx.ring(at, 1.5, PALE, 0.25, 0.08, Vector3.UP, 1.0)
 
 
@@ -203,7 +205,7 @@ func _dive() -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "global_position", to, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void: _burst_at(to))
-	StaffSfx.play("dart", global_position, -2.0, 0.6)
+	StaffSfx.play("dart", global_position, -1.0, 0.6)
 
 
 func _burst_at(at: Vector3) -> void:
@@ -212,13 +214,14 @@ func _burst_at(at: Vector3) -> void:
 		var o := node as Node3D
 		if o == null or (o.has_method("is_alive") and not o.call("is_alive")):
 			continue
-		if o.global_position.distance_to(at) > DIVE_R + 0.8:
+		var flat := Vector2(o.global_position.x - at.x, o.global_position.z - at.z).length()   # along the ground
+		if flat > DIVE_R or absf(o.global_position.y - at.y) > 3.5:
 			continue
 		var m := int(o.call("take_marks")) if o.has_method("take_marks") else 0
 		total += m
-		var dmg := (2.0 if o.global_position.distance_to(at) < 1.8 else 0.0) + float(m)
+		var dmg := (2.0 if flat < 1.8 else 0.0) + float(m)
 		if dmg > 0.0:
-			o.call("take_hit", dmg * power, self)
+			CombatState.strike(o, dmg * power, &"umbral", self)
 	SpellFx.disc(at - Vector3.UP * 0.9, DIVE_R, 0, SpellFx.VIOLET * 0.8, Color(2.6, 2.2, 3.6), 0.6)
 	SpellFx.shell(at, 0.2, DIVE_R, Color(1.3, 1.0, 2.8), 0.32)
 	Vfx.burst(at, PALE, {"count": 50, "life": 0.5, "speed": Vector2(3.0, 8.0), "size": 0.05, "gravity": -4.0, "trail": 0.08})

@@ -6,10 +6,13 @@ const BOLT := preload("res://core/player/magic_bolt.tscn")
 const CAP := 12
 const BURST_CAP := 6
 const SHOCK_CAP := 6
+const LIVE_CAP := 24            ## no more bolts than this are ever made; past it take() answers null
+const FX_CAP := 12              ## bursts and shocks grow to this, then the oldest is reused
 
 var _free: Array[MagicBolt] = []
 var _bursts: Array[GPUParticles3D] = []
 var _shocks: Array[MeshInstance3D] = []
+var _made := 0                  ## bolts instantiated so far
 
 
 func _ready() -> void:
@@ -20,6 +23,7 @@ func _ready() -> void:
 		bolt.visible = false
 		add_child(bolt)
 		_free.append(bolt)
+		_made += 1
 	for i in BURST_CAP:
 		var bang := MagicBolt.make_particles(true)
 		bang.emitting = false
@@ -39,6 +43,15 @@ func _ready() -> void:
 ## one reproduces with every bolt node and material already freed and released before quit (a
 ## lone MagicBolt.make_particles in an empty scene), so it is not a reference we keep.
 func _exit_tree() -> void:
+	# drop the particle process materials before their nodes go (a lone one is what the exit
+	# log's ParticlesShaderRD line counts)
+	for p in _bursts:
+		if is_instance_valid(p):
+			p.process_material = null
+			p.draw_pass_1 = null
+	for b in get_children():
+		if b is MagicBolt:
+			(b as MagicBolt).drop_materials()
 	MagicBolt.release_shared()
 	Vfx.release()
 	SpellFx.release()
@@ -47,8 +60,11 @@ func _exit_tree() -> void:
 func take() -> MagicBolt:
 	var bolt: MagicBolt
 	if _free.is_empty():
+		if _made >= LIVE_CAP:
+			return null
 		bolt = BOLT.instantiate() as MagicBolt
 		add_child(bolt)
+		_made += 1
 	else:
 		bolt = _free.pop_back()
 	bolt.process_mode = Node.PROCESS_MODE_INHERIT
@@ -70,6 +86,10 @@ func take_burst() -> GPUParticles3D:
 	for p in _bursts:
 		if is_instance_valid(p) and not p.emitting:
 			return p
+	if _bursts.size() >= FX_CAP:
+		var oldest: GPUParticles3D = _bursts.pop_front()
+		_bursts.append(oldest)
+		return oldest
 	var bang := MagicBolt.make_particles(true)
 	add_child(bang)
 	_bursts.append(bang)
@@ -80,6 +100,10 @@ func take_shock() -> MeshInstance3D:
 	for s in _shocks:
 		if is_instance_valid(s) and not s.visible:
 			return s
+	if _shocks.size() >= FX_CAP:
+		var oldest: MeshInstance3D = _shocks.pop_front()
+		_shocks.append(oldest)
+		return oldest
 	var shock := MagicBolt.make_shock()
 	add_child(shock)
 	_shocks.append(shock)

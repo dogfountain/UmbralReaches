@@ -94,8 +94,8 @@ func _stroke(p: Player, from: Vector3, fwd: Vector3, reach: float, half: float, 
 		e.take_hit(hit, p)
 		e.add_mark(2 if r >= 2 and had > 0 else 1)
 		if not e.boss:
-			for k in staggers:
-				e.stagger()
+			if staggers > 0:
+				e.stagger()                 # the toll's second stagger in one frame added no time, only a second "broken"
 		if r >= 3:
 			Afflict.slow(e, 0.5, 2.0)
 		n += 1
@@ -119,7 +119,10 @@ func _stroke_fx(p: Player, reach: float, half: float) -> void:
 	for k in 3:
 		Vfx.ring(at + f * (0.6 + 0.9 * float(k)), 0.8 + reach * 0.22 * float(k + 1), GOLD * (1.0 - 0.25 * float(k)), 0.35 + 0.08 * float(k), 0.06, f, 1.0)
 	Vfx.burst(at + f * 1.2, GOLD, {"count": 26, "life": 0.4, "speed": Vector2(4.0, 9.0), "size": 0.04, "gravity": 0.0, "trail": 0.08, "dir": f, "spread": half})
-	Vfx.light(at + f * 2.0, Color(1.0, 0.8, 0.45), 3.0, reach, 0.3)
+	# the flash is a ball that stays inside the cone: tangent to its edges, its far side at the reach
+	var sn := sin(deg_to_rad(clampf(half, 5.0, 85.0)))
+	var ball := reach * sn / (1.0 + sn)
+	Vfx.light(at + f * (ball / sn), Color(1.0, 0.8, 0.45), 3.0, ball, 0.3)
 	StaffSfx.play("nova", at, -3.0, 0.62)
 
 
@@ -128,10 +131,11 @@ func _carillon(p: Player, r: int, power: float) -> void:
 	struck = 0
 	var pid := p.get_instance_id()
 	for k in 3:
-		p.get_tree().create_timer(CAR_GAP * float(k), false).timeout.connect(func() -> void:
+		var ring := k                       # this ring's own index, kept for its timer
+		p.get_tree().create_timer(CAR_GAP * float(ring), false).timeout.connect(func() -> void:
 			var p2 := instance_from_id(pid) as Player
 			if p2 == null or not p2.is_inside_tree():
 				return
 			struck += _stroke(p2, p2.global_position, Vector3.FORWARD, CAR_R, 180.0, CAR_DMG * power, r, 0)
-			Vfx.ring(p2.global_position + Vector3.UP * 0.1, CAR_R * (0.6 + 0.2 * float(k)), GOLD, 0.3, 0.05, Vector3.UP, 1.0)
-			StaffSfx.play("nova", p2.global_position, -6.0, 0.9 + 0.12 * float(k)))
+			Vfx.ring(p2.global_position + Vector3.UP * 0.1, CAR_R * (0.6 + 0.2 * float(ring)), GOLD, 0.3, 0.05, Vector3.UP, 1.0)
+			StaffSfx.play("nova", p2.global_position, -6.0, 0.9 + 0.12 * float(ring)))

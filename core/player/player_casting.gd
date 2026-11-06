@@ -10,6 +10,8 @@ const BOLT := preload("res://core/player/magic_bolt.tscn")
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 
 var _charge_was_full := false
+var _over_pulsed := false               ## the overcharge peak has rung once
+const OVER_PEAK := 0.15                 ## seconds past full when the auto-fire peak shows
 var _charge_c := 0.0                    ## the SkillBook's charge (physics tick); drawn per frame
 
 
@@ -60,12 +62,17 @@ func fire_bolt(cfg: Dictionary) -> MagicBolt:
 		return null
 	# the staff's own voice: a lash for the empowered 3rd bolt; the Lance plays its throw below;
 	# cfg.sound overrides (a staff core's own cast sound)
-	var voice := "" if bool(cfg.get("heavy", false)) else ("lash" if bool(cfg.get("empower", false)) else "bolt")
+	var lash_voice := bool(cfg.get("empower", false)) and not bool(cfg.get("heavy", false)) and not cfg.has("sound")
+	var voice := "" if bool(cfg.get("heavy", false)) or lash_voice else "bolt"
 	player._visual.cast(String(cfg.get("sound", voice)))
+	if lash_voice:
+		StaffSfx.play("lash", player._visual.muzzle(), -1.0)      # the third bolt is its own attack before it lands
 	var pool := player.get_tree().get_first_node_in_group("bolt_pool") as BoltPool
 	var bolt: MagicBolt
 	if pool:
 		bolt = pool.take()
+		if bolt == null:
+			return null                               # the pool is at its live cap
 	else:
 		bolt = BOLT.instantiate() as MagicBolt
 		host.add_child(bolt)
@@ -179,6 +186,7 @@ func set_charge_glow(c: float) -> void:
 		else:
 			player._charge_sfx.stop()
 			_charge_was_full = false
+			_over_pulsed = false
 	if not on:
 		_charge_vis(0.0)
 	if on:
@@ -188,6 +196,9 @@ func set_charge_glow(c: float) -> void:
 			_charge_was_full = true      # full charge: a ring snap tells you it will pierce
 			Vfx.ring(player._visual.muzzle(), 0.7, Color(2.6, 1.8, 1.0), 0.25, 0.14, -player._cam.global_basis.z)
 			Vfx.burst(player._visual.muzzle(), Color(2.8, 1.6, 0.8), {"count": 18, "life": 0.3, "speed": Vector2(2.0, 4.0), "size": 0.04, "trail": 0.06, "gravity": 0.0})
+		elif c >= 1.0 and not _over_pulsed and player._book != null and player._book.overcharge() >= OVER_PEAK:
+			_over_pulsed = true          # a held lance is about to throw itself: one more ring, the peak
+			Vfx.ring(player._visual.muzzle(), 0.9, Color(3.4, 2.6, 1.6), 0.22, 0.12, -player._cam.global_basis.z)
 
 
 ## Rendered frame: everything that rides the staff head while charging.
@@ -232,7 +243,8 @@ func _charge_vis(c: float, at := Vector3.INF) -> void:
 	(player._charge_orb.material_override as StandardMaterial3D).albedo_color = Color(3.2, 1.3, 0.45).lerp(Color(4.2, 3.4, 2.4), 0.6 if full else 0.0)
 	(player._charge_halo.material_override as StandardMaterial3D).albedo_color.a = 0.22 + 0.25 * c
 	player._charge_light.global_position = at
-	player._charge_light.light_energy = (0.6 + 2.2 * c) * flick
+	var peak := full and _over_pulsed
+	player._charge_light.light_energy = (3.4 if peak else 0.6 + 2.2 * c) * flick
 	player._charge_light.omni_range = 2.5 + 2.5 * c
 
 
@@ -248,7 +260,7 @@ func _update_aim_ring(c: float, muzzle: Vector3) -> void:
 	if space == null:
 		return
 	var aim := _aim_from(muzzle)
-	var q := PhysicsRayQueryParameters3D.create(muzzle, muzzle + aim * 60.0, Layers.WORLD | Layers.PROPS, [player.get_rid()])
+	var q := PhysicsRayQueryParameters3D.create(muzzle, muzzle + aim * (lerpf(18.0, 30.0, c) * MagicBolt.LIFE), Layers.WORLD | Layers.PROPS, [player.get_rid()])
 	var hit := space.intersect_ray(q)
 	if hit.is_empty():
 		player._aim_ring.visible = false

@@ -12,6 +12,7 @@ extends Node
 const DB := preload("res://core/life/progression/upgrade_db.gd")
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 const Combo := preload("res://core/skills/combo.gd")
+const Hints := preload("res://ui/hints.gd")
 
 const TICK := 0.5
 const BURN_DMG := 0.3
@@ -133,6 +134,41 @@ static func _freeze(r: Dictionary) -> void:
 	Vfx.burst(en.global_position + Vector3.UP, RIME, {"count": 30, "life": 0.5, "speed": Vector2(1.5, 4.0), "size": 0.05, "gravity": -5.0, "trail": 0.05})
 	StaffSfx.play("chill_hit", en.global_position, 0.0, 0.7)
 	HitText.pop(en.global_position + Vector3.UP * (h + 0.5), "frozen", Color(0.7, 0.9, 1.0))
+	Hints.once(&"frozen_shatter", "Frozen: the Lance, the Nova and a well's Event Horizon shatter the ice for double. The staff does not.")
+
+
+## Briar and Anchor each keep their own clock (`briar_until`, `anchor_until`, in ms) on one shared
+## base speed (`briar_base`). `kind` is &"briar" or &"anchor"; the foe is held until the later of the
+## two ends and then walks at its own speed once.
+static func hold(e: Node, kind: StringName, ms: int) -> void:
+	if not _alive(e):
+		return
+	if not e.has_meta(&"briar_base"):
+		e.set_meta(&"briar_base", e.get("walk_speed"))
+	e.set_meta(StringName("%s_until" % kind), Time.get_ticks_msec() + ms)
+	_settle(e)
+	var eid := e.get_instance_id()
+	e.get_tree().create_timer(float(ms) / 1000.0 + 0.05, false).timeout.connect(func() -> void:
+		var e2 := instance_from_id(eid) as Node
+		if e2 != null and is_instance_valid(e2):
+			_settle(e2))
+
+
+## The foe's speed from whatever still holds it (the rime and the plain slow when they are on).
+static func _settle(e: Node) -> void:
+	if _inst != null and is_instance_valid(_inst):
+		var recs: Dictionary = _inst._rec
+		if recs.has(e.get_instance_id()):
+			_inst._apply_speed(recs[e.get_instance_id()])
+			return
+	var now := Time.get_ticks_msec()
+	var base := float(e.get_meta(&"briar_base", e.get("walk_speed")))
+	var f := 1.0
+	if int(e.get_meta(&"anchor_until", 0)) > now:
+		f = 0.0
+	elif int(e.get_meta(&"briar_until", 0)) > now:
+		f = 0.45
+	e.set("walk_speed", base * f)
 
 
 static func is_frozen(e: Node) -> bool:
@@ -240,7 +276,11 @@ func _physics_process(delta: float) -> void:
 			if float(r.burn_tick) <= 0.0:
 				r.burn_tick = TICK
 				r.burn_n = int(r.burn_n) + 1
+				if int(r.burn_n) == 1:
+					HitText.pop((e as Node3D).global_position + Vector3.UP * (float(e.get("hp_bar_y")) + 0.35), "burning", Color(2.4, 1.0, 0.4))
+				HitText.hush = true
 				e.call("take_hit", float(r.burn_dmg) * power, null)
+				HitText.hush = false
 				if rosary and int(r.burn_n) % 2 == 0 and _alive(e):
 					e.call("add_mark", 1)
 			if float(r.burn) <= 0.0:
@@ -276,7 +316,10 @@ func _apply_speed(r: Dictionary) -> void:
 		f = CHILL_SLOW
 	if float(r.slow) > 0.0:
 		f = minf(f, float(r.slow_f))
-	if int(e.get_meta(&"briar_until", 0)) > Time.get_ticks_msec():
+	var now := Time.get_ticks_msec()
+	if int(e.get_meta(&"anchor_until", 0)) > now:
+		f = 0.0
+	elif int(e.get_meta(&"briar_until", 0)) > now:
 		f = minf(f, 0.45)
 	e.set("walk_speed", float(r.base) * f)
 
@@ -307,6 +350,7 @@ func _drop(id: int, r: Dictionary, restore: bool) -> void:
 		(r.ice as Node).queue_free()
 	if restore and is_instance_valid(r.get("e")):
 		var e := r.get("e") as Node
-		var briar := int(e.get_meta(&"briar_until", 0)) > Time.get_ticks_msec()
-		e.set("walk_speed", float(r.base) * (0.45 if briar else 1.0))
+		var now := Time.get_ticks_msec()
+		var held := 0.0 if int(e.get_meta(&"anchor_until", 0)) > now else (0.45 if int(e.get_meta(&"briar_until", 0)) > now else 1.0)
+		e.set("walk_speed", float(r.base) * held)
 	_rec.erase(id)

@@ -117,7 +117,7 @@ func _ready() -> void:
 	_hurt.monitorable = false
 	var hcol := CollisionShape3D.new()
 	_hurt_shape = SphereShape3D.new()
-	_hurt_shape.radius = 1.05
+	_hurt_shape.radius = 0.32
 	hcol.shape = _hurt_shape
 	_hurt.add_child(hcol)
 	add_child(_hurt)
@@ -168,7 +168,7 @@ func arm(is_heavy: bool) -> void:
 	if _streak:
 		_streak.visible = true
 	if _hurt_shape:
-		_hurt_shape.radius = 1.35 if heavy else 1.05
+		_hurt_shape.radius = 0.45 if heavy else 0.32
 	if _core:
 		_core.visible = true
 		_core.mesh = SpellFx.spear_mesh() if heavy else _core_mesh
@@ -236,6 +236,13 @@ func arm_with(cfg: Dictionary) -> void:
 		if _glow_pierce == null:
 			_glow_pierce = ProcMesh.glow_mat(Color(3.2, 2.4, 1.6))
 		_core.material_override = _glow_pierce   # white-hot
+
+
+## Pool teardown: let go of the particle material before the node (see BoltPool._exit_tree).
+func drop_materials() -> void:
+	if _trail:
+		_trail.process_material = null
+		_trail.draw_pass_1 = null
 
 
 func reset_idle() -> void:
@@ -676,12 +683,16 @@ func _burst(at: Vector3) -> void:
 		var host2 := get_tree().current_scene
 		if host2:
 			host2.add_child(shock)
+	var old: Variant = shock.get_meta(&"burst_tween", null)
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()                       # a reused dome starts over, its old tween must not hide it
 	shock.visible = true
 	shock.scale = Vector3.ONE
 	shock.global_position = at
 	shock.material_override = _shock_for(core)
 	shock.set_instance_shader_parameter(&"progress", 0.0)
 	var tw := shock.create_tween()
+	shock.set_meta(&"burst_tween", tw)
 	tw.set_parallel(true)
 	tw.tween_property(shock, "scale", Vector3.ONE * 6.5, 0.32).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_method(func(v: float) -> void: shock.set_instance_shader_parameter(&"progress", v), 0.0, 1.0, 0.32)
@@ -763,6 +774,8 @@ func _do_split() -> void:
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as PhysicsBody3D
 	for sgn: float in [-1.0, 1.0]:
 		var b := pool.take()
+		if b == null:
+			break                                     # the pool is at its cap: no split
 		var dir := direction.rotated(axis, SPLIT_ANGLE * sgn).normalized()
 		b.transform = Transform3D(Basis.looking_at(dir, axis), global_position + dir * 0.1)
 		b.direction = dir
@@ -918,16 +931,7 @@ func _splinter(at: Vector3) -> void:
 
 ## Thorn Heart · Briar: what the bolt hits is rooted in brambles: 45 % speed for 2.2 s.
 func _briar(e: Enemy) -> void:
-	if not e.has_meta(&"briar_base"):
-		e.set_meta(&"briar_base", e.walk_speed)
-	var base: float = e.get_meta(&"briar_base")
-	e.walk_speed = base * 0.45
-	var until := Time.get_ticks_msec() + 2200
-	e.set_meta(&"briar_until", until)
+	Afflict.hold(e, &"briar", 2200)
 	Vfx.ring(e.global_position + Vector3.UP * 0.06, 0.9, Color(2.0, 0.3, 0.25), 0.5, 0.06, Vector3.UP, 1.0)
 	Vfx.burst(e.global_position + Vector3.UP * 0.3, Color(0.5, 0.08, 0.06), {"count": 12, "life": 0.6, "speed": Vector2(0.5, 1.6), "size": 0.06, "gravity": 2.0, "additive": false})
-	var eid := e.get_instance_id()
-	e.get_tree().create_timer(2.25, false).timeout.connect(func() -> void:
-		var e2 := instance_from_id(eid) as Enemy
-		if e2 != null and int(e2.get_meta(&"briar_until", 0)) <= Time.get_ticks_msec():
-			e2.walk_speed = float(e2.get_meta(&"briar_base", e2.walk_speed)))
+

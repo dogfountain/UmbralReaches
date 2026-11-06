@@ -85,6 +85,7 @@ var procs := 0                  ## tests
 
 var _recs := {}                 ## instance id -> {"node": Node, "st": {id -> rec}}
 var _surge_icd := 0.0
+var _scar_said := false          ## the word "scar" shows once a night
 var _target_t := 0.0
 
 
@@ -101,6 +102,18 @@ static func of(n: Node) -> Node:
 	if p == null or not p.has_method("combat"):
 		return null
 	return p.call("combat") as Node
+
+
+## A spell's blow on `node` that is not the bolt: through deal (Sundered, the crit roll, the damage
+## event) when the wanderer's combat state is up, else a plain hit.
+static func strike(node: Node, dmg: float, school: StringName, from: Node = null) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	var cs := of(node)
+	if cs != null:
+		cs.deal(node, dmg, school, from)
+	elif node is Enemy:
+		(node as Enemy).take_hit(dmg, from)
 
 
 # --- statuses ----------------------------------------------------------------------------------------
@@ -120,6 +133,9 @@ func apply(node: Node, id: StringName, stacks := 1, dur := -1.0) -> int:
 	if r.is_empty():
 		r = {"id": id, "stacks": 0, "left": full, "dur": full, "tick": float(d.get("tick", 0.0))}
 		st[id] = r
+		if id == &"ember_scar" and node is Node3D and not _scar_said:
+			_scar_said = true
+			HitText.pop((node as Node3D).global_position + Vector3.UP * (float(node.get("hp_bar_y")) + 0.9), "scar", Color(2.4, 1.0, 0.4))
 	r["stacks"] = mini(int(d["max"]), int(r["stacks"]) + maxi(stacks, 1))
 	r["left"] = full
 	r["dur"] = full
@@ -257,7 +273,9 @@ func deal(node: Node, dmg: float, school: StringName, from: Node = null, opts :=
 	if at == Vector3.INF and node is Node3D:
 		var hb: Variant = node.get("hp_bar_y")
 		at = (node as Node3D).global_position + Vector3.UP * (float(hb) + 0.35 if hb != null else 1.6)
+	HitText.hush = bool(opts.get("dot", false))
 	node.take_hit(amount, from)
+	HitText.hush = false
 	var dealt := amount
 	if before is float and is_instance_valid(node):
 		var after: Variant = node.get("hp")
@@ -286,7 +304,7 @@ func proc_surge(reason: StringName) -> void:
 		var at := player.global_position + Vector3.UP * 2.5
 		HitText.pop(at, "RIFT SURGE", Color(2.4, 1.6, 0.8), true)
 		Vfx.burst(player.global_position + Vector3.UP * 1.2, Color(2.4, 1.5, 0.7), {"count": 20, "life": 0.45, "speed": Vector2(1.0, 3.0), "size": 0.045, "gravity": -1.0, "radius": 0.4, "trail": 0.06})
-		Hints.once(&"rift_surge", "RIFT SURGE: a crit or a parry lights it. Your next Lance throws at full charge, your next Nova bursts double, your next cast is instant.")
+		Hints.once(&"rift_surge", "RIFT SURGE: a crit (a chance), a parry, a perfect dodge or stepping through a blow lights it. Your next Lance throws at full charge, your next Nova gains one point and doubles its resonance crumb, your next cast is instant.")
 
 
 ## A builder landed: `n` Resonance on the wanderer.
