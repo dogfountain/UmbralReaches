@@ -15,6 +15,8 @@ var entries: Array = []
 var title := "Remains"
 var _t := 0.0
 var _beam: MeshInstance3D
+var _beam_mat: ShaderMaterial
+const BEAM_SHADER := preload("res://core/items/loot_beam.gdshader")
 var _label: Label3D
 var _done := false
 var kept := false             ## the last save wrote this bag: while the game closes it is not poured (Continue lays it back)
@@ -26,11 +28,16 @@ func _ready() -> void:
 	var q := best_quality()
 	var col := LootDB.quality_color(q)
 	var h := 1.6 + 0.8 * float(q)
-	var mat := ProcMesh.glow_mat(Color(col.r * 1.6, col.g * 1.6, col.b * 1.6, 0.5))
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_beam = ProcMesh.mesh(self, "Beam", ProcMesh.cyl(0.05, 0.11, h, 8), mat, Vector3(0, h * 0.5, 0), Vector3.ZERO, false)
+	# a soft column of light, not a pole: wide, faint, fading upward (loot_beam.gdshader)
+	var mat := ShaderMaterial.new()
+	mat.shader = BEAM_SHADER
+	mat.set_shader_parameter("beam_color", Color(col.r * 1.3, col.g * 1.3, col.b * 1.3))
+	mat.set_shader_parameter("strength", 0.85 + 0.25 * float(q))
+	_beam_mat = mat
+	var tube := ProcMesh.cyl(0.2, 0.32, h, 16)
+	tube.cap_top = false                # an open tube: a cap read as a floating disc at the top
+	tube.cap_bottom = false
+	_beam = ProcMesh.mesh(self, "Beam", tube, mat, Vector3(0, h * 0.5, 0), Vector3.ZERO, false)
 	# the bundle: a dark cloth mound with a glint in the quality colour
 	ProcMesh.mesh(self, "Bundle", ProcMesh.sphere(0.24, 0.26, 10, 5), ProcMesh.std_mat(Color(0.16, 0.12, 0.13), 0.95), Vector3(0, 0.1, 0), Vector3.ZERO, false)
 	ProcMesh.mesh(self, "Glint", ProcMesh.sphere(0.06, 0.12, 8, 4), ProcMesh.glow_mat(Color(col.r * 2.4, col.g * 2.4, col.b * 2.4)), Vector3(0, 0.26, 0), Vector3.ZERO, false)
@@ -55,8 +62,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	if _beam:
-		_beam.rotation.y += delta * 0.7
-		_beam.scale = Vector3.ONE * (1.0 + 0.05 * sin(_t * 2.6))
+		_beam_mat.set_shader_parameter("pulse", sin(_t * 2.6))
 
 
 func best_quality() -> int:
