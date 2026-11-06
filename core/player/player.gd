@@ -95,6 +95,7 @@ var _debug_drive := false
 var _debug_wish := Vector3.ZERO
 var _debug_sprint := false
 var _shake := 0.0
+const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const BOLT := preload("res://core/player/magic_bolt.tscn")
 # r31 combat and traversal (Enshrouded pass): Breath, staff arts, the Tether line, the cloak-glide
 const Stamina := preload("res://core/player/stamina.gd")
@@ -474,6 +475,8 @@ func _physics_process(delta: float) -> void:
 			cur = locomotion.air_redirect(cur, delta)
 		if _grounded:
 			target *= locomotion._slope_scale(target) * (1.0 - _land_slow)
+			if RealmLand.in_water(global_position.x, global_position.z):
+				target *= 0.8                        # a pool is a drag on foot (not a swim)
 			if _beam_k > 0.3:
 				# balancing: careful steps along it, the stick's sideways push mostly ignored
 				target -= _beam_side * target.dot(_beam_side) * 0.85 * _beam_k

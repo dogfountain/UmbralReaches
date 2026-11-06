@@ -1399,8 +1399,8 @@ func _footstep(speed := 0.0) -> void:
 
 
 ## pitch x, extra dB y, per surface
-const SURF_TONE := {&"grass": Vector2(0.9, -2.5), &"fen": Vector2(0.84, -1.0), &"water": Vector2(0.8, 0.0),
-	&"ash": Vector2(1.06, -1.0), &"stone": Vector2(1.12, 1.0), &"wood": Vector2(0.96, 0.5)}
+const SURF_TONE := {&"grass": Vector2(0.8, -2.5), &"fen": Vector2(0.74, -1.0), &"water": Vector2(0.68, 0.0),
+	&"ash": Vector2(1.02, -1.0), &"stone": Vector2(1.2, 1.0), &"wood": Vector2(1.0, 0.5)}
 var _surf_t := -1.0
 var _surf: StringName = &"grass"
 
