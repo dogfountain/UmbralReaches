@@ -22,6 +22,10 @@ var speed := SPEED
 var _t := 0.0
 var _dying := false
 var _blocked_t := 0.0
+var _wall := false              ## a wall across the line to her (10 Hz)
+var _look_cd := 0.0
+var _corner := Vector3.INF      ## the next path corner round it (NavAssist), INF: none
+var _nav: NavAssist = null
 var _body: Node3D
 var _mask: Node3D
 var _halo: Node3D
@@ -469,24 +473,23 @@ func _physics_process(delta: float) -> void:
 	if _dying or not is_instance_valid(target):
 		return
 	var goal := target.global_position + Vector3.UP * HOVER
-	if _blocked_t >= 2.5:
-		var around := _ring_goal(target)
-		goal = around if around != Vector3.ZERO else goal + Vector3.UP * 3.0
+	_look_for_wall(delta)
+	if _wall:
+		# a wall across the line to her: round it by the navigation mesh's corners (NavAssist), the
+		# same fallback the walkers use; with no mesh yet it only rises over the top after 2.5 s
+		if _corner != Vector3.INF:
+			goal = _corner + Vector3.UP * HOVER
+		elif _blocked_t >= 2.5:
+			goal += Vector3.UP * 3.0
 	var to := goal - global_position
 	var near := Vector2(global_position.x - target.global_position.x, global_position.z - target.global_position.z).length()
 	_tremble(near, delta)
 	if near < REACH and absf(global_position.y - target.global_position.y - HOVER) < 2.5:
 		if target.is_evading():
 			return
-		if not _blocked(target):
+		if not _wall:
 			_take(target)
 			return
-		_blocked_t += delta
-		return
-	if _blocked(target):
-		_blocked_t += delta
-	else:
-		_blocked_t = maxf(0.0, _blocked_t - delta * 2.0)
 	var d := to.length()
 	var v := to / maxf(d, 0.001) * minf(speed, d / maxf(delta, 0.001))
 	_vel = _vel.lerp(v, 1.0 - exp(-4.0 * delta))
@@ -524,24 +527,28 @@ func _blocked(player: Player) -> bool:
 	return not space.intersect_ray(q).is_empty()
 
 
-func _ring_goal(player: Player) -> Vector3:
-	var space := get_world_3d().direct_space_state
-	if space == null:
-		return Vector3.ZERO
-	var best := Vector3.ZERO
-	var best_d := INF
-	var origin := player.global_position + Vector3.UP * (HOVER + 2.0)
-	for i in 8:
-		var a := TAU * float(i) / 8.0
-		var p := origin + Vector3(cos(a), 0.0, sin(a)) * 2.6
-		var q := PhysicsRayQueryParameters3D.create(p, player.global_position + Vector3.UP * 0.9)
-		q.collision_mask = Layers.WORLD
-		if space.intersect_ray(q).is_empty():
-			var d := global_position.distance_squared_to(p)
-			if d < best_d:
-				best_d = d
-				best = p
-	return best
+## Ten times a second: is a wall across the line to her, and (if so) the next corner round it.
+func _look_for_wall(delta: float) -> void:
+	_look_cd -= delta
+	if _look_cd > 0.0:
+		return
+	_look_cd = 0.1
+	_wall = _blocked(target)
+	if _wall:
+		_blocked_t += 0.1
+	else:
+		_blocked_t = maxf(0.0, _blocked_t - 0.2)
+	_corner = Vector3.INF
+	if not NavAssist.ready():
+		return
+	if _nav == null:
+		if not _wall:
+			return
+		_nav = NavAssist.new()
+	# it flies; the mesh is on the ground under it
+	var c := _nav.next_point(global_position + Vector3.DOWN * HOVER, target.global_position, _wall, 0.1)
+	if c != Vector3.INF:
+		_corner = c
 
 
 ## Light unmakes it: the shroud burns away from the hem up, the halo bursts outward.
