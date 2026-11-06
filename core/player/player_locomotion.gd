@@ -11,6 +11,8 @@ const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 var _slide_t := 0.0
 var _slide_speed := 0.0
 var _slide_air := 0.0
+var _air_aim := Vector3.ZERO
+var _air_aim_t := 0.0
 var _tall_q: PhysicsShapeQueryParameters3D
 
 
@@ -103,15 +105,22 @@ func _air_jump(wish: Vector3, sprint: bool) -> void:
 		# the second jump re-aims: lets you correct a bad first jump or chase a pouncer down
 		var flat := Vector3(player.velocity.x, 0.0, player.velocity.z)
 		var speed := maxf(flat.length(), player.sprint_speed if sprint else player.walk_speed)
-		var aimed := flat.lerp(wish.normalized() * speed, 0.7)
-		player.velocity.x = aimed.x
-		player.velocity.z = aimed.z
+		_air_aim = flat.lerp(wish.normalized() * speed, 0.7)      # eased in over ~0.15 s (air_redirect), not one frame
+		_air_aim_t = 0.15
 	player._visual.air_tuck()
 	var feet := player.global_position + Vector3.UP * 0.1
 	Vfx.ring(feet, 1.1, Color(1.2, 0.55, 2.8), 0.32, 0.12)
 	Vfx.burst(feet, Color(1.4, 0.65, 3.0), {"count": 24, "life": 0.4, "speed": Vector2(1.5, 3.5), "size": 0.04, "dir": Vector3.DOWN, "spread": 70.0, "gravity": 0.0, "trail": 0.06})
 	Vfx.burst(feet, Color(0.04, 0.02, 0.08, 0.6), {"count": 10, "life": 0.6, "speed": Vector2(0.5, 1.2), "size": 0.3, "dir": Vector3.DOWN, "spread": 80.0, "gravity": 0.3, "additive": false})
 	Sfx.play(Player.SFX_JUMP, feet, -5.0)
+
+
+## The second jump's horizontal redirect, eased toward the stick's line.
+func air_redirect(cur: Vector3, delta: float) -> Vector3:
+	if _air_aim_t <= 0.0:
+		return cur
+	_air_aim_t = maxf(0.0, _air_aim_t - delta)
+	return cur.lerp(_air_aim, 1.0 - exp(-12.0 * delta))
 
 
 ## Held slide key: on the ground it slides once per press (and keeps trying until fast enough,
@@ -446,9 +455,11 @@ func _land(was_grounded: bool, vy_before: float) -> void:
 		player.camera_ctl.kick(0.3)                                # rolled out: no speed lost
 	elif impact > Player.LAND_SLOW_V:
 		player._land_slow = clampf((impact - Player.LAND_SLOW_V) / 10.0, 0.0, 0.5 if impact < Player.ROLL_LAND_V else 0.75)
+		player.velocity.x *= 1.0 - player._land_slow * 0.5          # half of it comes off at once, the rest recovers
+		player.velocity.z *= 1.0 - player._land_slow * 0.5
 	player.vitals._fall_hurt(impact)
-	if impact > 5.0:
-		var k := clampf((impact - 5.0) / 8.0, 0.0, 1.0)
+	if impact > 6.0:
+		var k := clampf((impact - 6.0) / 8.0, 0.0, 1.0)
 		Vfx.burst(player.global_position + Vector3.UP * 0.05, Color(0.16, 0.15, 0.17, 0.55), {"count": 14, "life": 0.6, "speed": Vector2(0.6, 1.8), "size": 0.22, "gravity": -0.4, "dir": Vector3.UP, "spread": 85.0, "additive": false, "radius": 0.3})
 		if k > 0.4:
 			player.camera_ctl.kick(0.15 + 0.35 * k)

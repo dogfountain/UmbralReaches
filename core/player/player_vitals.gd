@@ -152,7 +152,7 @@ func _update_gloom(delta: float) -> void:
 	player.gloom = clampf(player.gloom + rate * delta, 0.0, player.gloom_max)
 	if not is_equal_approx(prev, player.gloom):
 		_gloom_emit_t += delta
-		if absf(player.gloom - _gloom_emit) >= 0.5 or _gloom_emit_t >= 0.1:
+		if absf(player.gloom - _gloom_emit) >= 0.2 or _gloom_emit_t >= 0.1:
 			Events.gloom_changed.emit(player.gloom, player.gloom_max)
 			_gloom_emit = player.gloom
 			_gloom_emit_t = 0.0
@@ -228,6 +228,8 @@ func _spawn_shade() -> void:
 	player._shade = s
 	s.tree_exiting.connect(_on_shade_leaving)
 	Events.shade_spawned.emit()
+	player.camera_ctl.kick(0.4)                  # the arrival is a blow
+	player._visual.hurt_react(s.global_position, 8.0)
 	if not _shade_warned:
 		_shade_warned = true
 		Events.toast.emit("The dark has taken shape. Find light.")

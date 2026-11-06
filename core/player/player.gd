@@ -102,7 +102,7 @@ const StaffArts := preload("res://core/player/staff_arts.gd")
 const Grapple := preload("res://core/player/grapple.gd")
 const BreathMeter := preload("res://ui/breath_meter.gd")
 const PERFECT_T := 0.2                  ## a dodge roll that a blow meets this early is a perfect dodge
-const FALL_HURT_V := 16.0               ## landings harder than this (m/s down, ~6 m) wound you ...
+const FALL_HURT_V := 14.0               ## landings harder than this (m/s down, ~5 m) wound you ...
 const FALL_GLOOM := 2.6                 ## ... this much per m/s over (halved when rolled out), never to wounds_max
 const GLIDE_SINK := 2.3                 ## m/s down under the spread robe
 const GLIDE_SPEED := 8.8
@@ -163,7 +163,7 @@ const SLIDE_HOP_BOOST := 1.08           ## jumping out of a slide keeps its spee
 const STEP_DOWN := 0.5                  ## walking off a drop this small keeps you on the ground
 const SLOPE_UPHILL_SLOW := 0.32         ## speed lost per unit of uphill grade (25 deg: -13 %)
 const SLOPE_DOWNHILL_GAIN := 0.08
-const LAND_SLOW_V := 7.5                ## landings harder than this (m/s down) cost speed briefly
+const LAND_SLOW_V := 8.0                ## landings harder than this (m/s down) cost speed briefly
 const ARM_LEN := 3.7                    ## camera distance (stair spring length)
 const ARM_PROBE := 0.24                 ## camera collision sphere
 var _grounded := true                   ## on the floor this frame (move_and_slide, or glued down a step)
@@ -468,6 +468,8 @@ func _physics_process(delta: float) -> void:
 	else:
 		var target := wish * (sprint_speed if sprint else walk_speed) * _book.move_scale() * (float(_arts.move_scale()) if _arts != null else 1.0)
 		var cur := Vector3(velocity.x, 0.0, velocity.z)
+		if not _grounded:
+			cur = locomotion.air_redirect(cur, delta)
 		if _grounded:
 			target *= locomotion._slope_scale(target) * (1.0 - _land_slow)
 			if _beam_k > 0.3:
@@ -741,7 +743,7 @@ const ROLL_DIST := 4.4
 const ROLL_EVADE := Vector2(0.04, 0.3)   ## untouchable window inside the roll (s)
 const HOP_TIME := 0.36
 const ROLL_CD := 0.3
-const ROLL_LAND_V := 11.0         ## a landing this hard turns into a roll if you are moving
+const ROLL_LAND_V := 10.0         ## a landing this hard turns into a roll if you are moving
 const STEEP_MAX_V := 10.0
 const BEAM_W := 0.32              ## both sides this far out are open air: a beam
 const LOCK_RANGE := 26.0

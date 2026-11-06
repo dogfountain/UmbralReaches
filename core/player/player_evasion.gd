@@ -43,8 +43,7 @@ func _start_glide() -> void:
 	_glide_dir = _glide_dir.normalized()
 	_glide_speed = maxf(flat.length(), 5.5)
 	player._jump_rising = false
-	player.velocity.y = maxf(player.velocity.y, -4.0)
-	if player._arts != null:
+	if player._arts != null:       # the fall eases into the sink (Player tick), it is not set in one frame
 		player._arts.cancel()
 	StaffSfx.play("swish", player.global_position + Vector3.UP * 1.2, -6.0, 0.6)
 	Vfx.burst(player.global_position + Vector3.UP * 1.0, Color(0.05, 0.03, 0.09, 0.55), {"count": 12, "life": 0.6, "speed": Vector2(0.5, 1.5), "size": 0.3, "gravity": 0.4, "additive": false, "radius": 0.5})

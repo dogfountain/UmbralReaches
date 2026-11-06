@@ -75,6 +75,10 @@ func drain(amount: float) -> void:
 		winded = true
 		_flash = 1.0
 		_flash_good = false
+		var pl := _player as Player
+		if pl != null:                               # the body stumbles: a short heavy step
+			pl._land_slow = maxf(pl._land_slow, 0.35)
+			pl._visual.hurt_react(Vector3.INF, 6.0)
 		var at := _player.global_position + Vector3.UP * 2.2 if _player else Vector3.INF
 		if at != Vector3.INF:
 			HitText.pop(at, "winded", Color(0.75, 0.8, 0.95))
