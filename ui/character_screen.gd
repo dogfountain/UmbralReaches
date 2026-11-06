@@ -76,7 +76,6 @@ func is_open() -> bool:
 	return _open
 
 
-## Open at `top` (a tab id) and `page` (a page id; "" keeps that tab's last page).
 ## The close word names every key bound to inventory (Tab and I by default); Q and E are the physical page keys.
 func _hint_refresh() -> void:
 	if _hint == null:
@@ -88,11 +87,15 @@ func _hint_refresh() -> void:
 	_hint.text = "[1-4] tabs   ·   [Q] [E] pages   ·   [%s] close" % " / ".join(names if not names.is_empty() else PackedStringArray(["Tab"]))
 
 
+## Open at `top` (a tab id) and `page` (a page id). A page you were not sent to is the tab's first, not a stale
+## page left from an hour ago (switching tabs while it is open keeps each tab's page).
 func open_at(top: String, page := "", from_fire := false) -> void:
 	_hint_refresh()
 	var ti := _tab_index(top)
 	if ti < 0:
 		return
+	if page == "" and not _open:
+		_sub[ti] = 0
 	if page != "":
 		var pi := _page_index(ti, page)
 		if pi >= 0:
