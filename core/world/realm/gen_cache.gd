@@ -29,6 +29,7 @@ const MANIFEST := "_salts.bin"
 static var _salts := {}
 static var _shapes := {}                ## mesh -> shape (instances sharing a mesh share the hull)
 static var _manifest: Variant = null    ## generator path -> salt, as last seen by a dev run
+static var _primed := {}                ## key -> ArrayMesh loaded or generated ahead of load_mesh (main thread only)
 static var _lock := Mutex.new()
 static var enabled := true
 static var _dev: Variant = null
@@ -108,6 +109,8 @@ static func _fresh(r: Resource, script_path: String) -> bool:
 
 ## A cached mesh for `key` from generator `script_path`, or null.
 static func load_mesh(key: String, script_path: String) -> ArrayMesh:
+	if _primed.has(key):
+		return _primed[key]
 	if not enabled:
 		return null
 	for dir: String in [RES_DIR, USER_DIR]:
@@ -117,6 +120,22 @@ static func load_mesh(key: String, script_path: String) -> ArrayMesh:
 			if _fresh(m, script_path):
 				return m
 	return null
+
+
+## Hold a mesh for the next load_mesh(key): a batch that wants many entries (the rigs) loads the
+## hits here and generates the misses on workers, then the ordinary load path finds them all.
+static func prime(key: String, mesh: ArrayMesh) -> void:
+	if mesh != null:
+		_primed[key] = mesh
+
+
+## Load the cached mesh for `key` ahead of use; true when it was there (and fresh).
+static func prime_mesh(key: String, script_path: String) -> bool:
+	var m := load_mesh(key, script_path)
+	if m == null:
+		return false
+	_primed[key] = m
+	return true
 
 
 static func save_mesh(key: String, script_path: String, mesh: ArrayMesh) -> void:

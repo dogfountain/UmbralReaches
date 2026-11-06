@@ -29,6 +29,9 @@ const Props := preload("res://core/life/village/village_props.gd")
 const Talk := preload("res://core/life/village/village_talk.gd")
 const VAudio := preload("res://core/life/village/village_audio.gd")
 const VillagerScript := preload("res://core/life/village/villager.gd")
+const Rig := preload("res://core/life/village/villager_rig.gd")
+const Watch := preload("res://core/world/watch/watch.gd")
+const RoamEvents := preload("res://core/world/roam/roam_events.gd")
 const QuestWorld := preload("res://core/story/quest_world.gd")
 
 const CYCLE := 600.0                  ## one village night (s)
@@ -170,6 +173,7 @@ func _build() -> void:
 	QuestWorld.prepare(self)
 	# --- the people ---------------------------------------------------------------------------
 	phase = _phase_name()
+	await _prewarm_rigs()
 	_spawn_present()
 	talker = Talk.new()
 	talker.name = "VillageTalk"
@@ -360,6 +364,31 @@ func _present(id: String) -> bool:
 	if when == "":
 		return true
 	return VState.test(when, VState.world(get_tree()), get_tree())
+
+
+## Start making the meshes of the people who are always there (and the Watch's and the pilgrims'
+## looks) on worker threads; the Realm starts it with the load and _prewarm_rigs() collects it.
+static func warm_start() -> Dictionary:
+	var warm: Array = []
+	var everyone := cast_all()
+	for id: String in everyone:
+		var rd: Variant = (everyone[id] as Dictionary).get("rig")
+		if rd is Dictionary and String((everyone[id] as Dictionary).get("when", "")) == "":
+			var o: Dictionary = (rd as Dictionary).duplicate()
+			o["name"] = id
+			warm.append(o)
+	for look: Dictionary in Watch.LOOKS:
+		warm.append(look.duplicate())
+	for look: Dictionary in RoamEvents.PILGRIMS:
+		warm.append(look.duplicate())
+	return DwarfRig.warm_begin(warm, func() -> Node: return Rig.new(), Rig.SELF_V)
+
+
+func _prewarm_rigs() -> void:
+	var h: Dictionary = DwarfRig.warm_batches.get("village", {})
+	if h.is_empty():
+		h = warm_start()
+	await DwarfRig.warm_finish(h, get_tree())
 
 
 func _spawn_present() -> void:

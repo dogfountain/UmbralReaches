@@ -30,7 +30,12 @@ const MODULES := {
 	"nav": "res://core/world/realm/realm_nav.gd",
 }
 
-const PRELOAD := ["res://art/models/mossy_platform.glb", "res://art/models/summit_pillar.glb"]
+const PRELOAD := [
+	"res://art/models/mossy_platform.glb", "res://art/models/summit_pillar.glb",
+	# the east and south marches' kit scenes (13-17 MB each) are the biggest loads of the places pass
+	"res://art/models/r37e_spire.glb", "res://art/models/r37e_saltworks.glb", "res://art/models/r37e_hamlet.glb", "res://art/models/r37e_cells.glb",
+	"res://art/models/r37_south_hut.glb", "res://art/models/r37_south_oak.glb", "res://art/models/r37_south_wall.glb", "res://art/models/r37_south_well.glb",
+]
 
 ## Baked stair-era layers the Realm replaces (hidden, collision off). The spawn brazier
 ## (Zone/Braziers/Sanctuary) and everything the Tavern builds stay.
@@ -111,7 +116,7 @@ const _STATIC_CACHES := {
 	"res://core/world/realm/rock_kit.gd": ["_meshes", "_mats", "_shapes"],
 	"res://core/world/realm/tree_gen.gd": ["_cache"],
 	"res://core/world/mesh_chunks.gd": ["_lod_cache"],
-	"res://core/world/realm/gen_cache.gd": ["_shapes"],
+	"res://core/world/realm/gen_cache.gd": ["_shapes", "_primed"],
 	"res://core/world/far_detail.gd": ["_shell_mat", "_far_mat"],
 	"res://world/areas/ossuary/oss_kit.gd": ["_mats", "_skulls", "_bones", "_candles", "_puddle", "_flame_mesh", "_halo_mesh"],
 	"res://world/areas/ossuary/ossuary.gd": ["_plate", "_ribs", "_great_rib"],
@@ -150,7 +155,13 @@ static func build(root: Node) -> void:
 			ResourceLoader.load_threaded_request(path, "", true)
 	WorldLanes.legacy = false
 	retire(root)
+	root.tree_exiting.connect(DwarfRig.warm_abandon_all, CONNECT_ONE_SHOT)
 	await _run("land", root)
+	# the Keg's people are the longest cache misses (a mesh each, 0.6 s of GDScript): they build on
+	# worker threads beside the rift and the wardens (not beside the land, whose own threads they slow)
+	DwarfRig.warm_batches["tavern"] = Tavern.warm_start()
+	var village_script: Variant = load("res://core/life/village/village.gd")      # no preload: a cycle through Realm
+	DwarfRig.warm_batches["village"] = village_script.warm_start()
 	var t := Time.get_ticks_usec()
 	await root.get_tree().physics_frame
 	prof_add("stage: frame wait", t)
@@ -159,6 +170,7 @@ static func build(root: Node) -> void:
 	t = Time.get_ticks_usec()
 	_mark("tavern")
 	await root.get_tree().process_frame     # let the loading screen draw this step
+	await Tavern.prewarm_rigs(root)
 	Tavern.build(root)
 	prof_add("stage: tavern", t)
 	await _run("lore", root)
@@ -167,6 +179,8 @@ static func build(root: Node) -> void:
 	await root.get_tree().process_frame     # let the loading screen draw this step
 	await TerrainStamp.apply(root)
 	prof_add("stage: terrain stamp", t)
+	# the village's people are done before the wood grows (their threads would slow it past its budget)
+	await DwarfRig.warm_finish(DwarfRig.warm_batches.get("village", {}), root.get_tree())
 	await _run("flora", root)
 	t = Time.get_ticks_usec()
 	_mark("summit")

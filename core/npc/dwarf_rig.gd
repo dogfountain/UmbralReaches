@@ -23,6 +23,7 @@ const MESH_SRC := "res://core/npc/dwarf_mesh.gd"
 
 const Face := preload("res://core/npc/npc_face.gd")
 const FACE_SRC := "res://core/npc/npc_face.gd"
+const WARM_THREADS := 3                ## measured: past three workers the generators slow each other as much as they gain
 
 const BONES := ["root", "spine", "chest", "head", "jaw", "arm_r", "fore_r", "hand_r", "arm_l", "fore_l", "hand_l", "thigh_r", "shin_r", "thigh_l", "shin_l", "lid"]
 const PARENT := [-1, 0, 1, 2, 3, 2, 5, 6, 2, 8, 9, 0, 11, 0, 13, 3]
@@ -77,28 +78,104 @@ static func make(opts := {}) -> DwarfRig:
 
 
 func _build(opts: Dictionary) -> void:
+	var key := _prep(opts)
+	var mesh := GenCache.load_mesh(key, SELF)
+	if mesh == null:
+		mesh = _generate().get_mesh()
+		GenCache.save_mesh(key, SELF, mesh)
+	mesh.surface_set_material(0, DwarfLook.material())
+	_assemble(mesh)
+
+
+## Take the options in (layout, rng, cache key); the key is returned.
+func _prep(opts: Dictionary) -> String:
 	_o = opts
 	seated = bool(opts.get("seated", true))
 	has_mug = bool(opts.get("mug", true))
-	var sd := int(opts.get("seed", 1))
-	_rng.seed = sd
-	var hat := String(opts.get("hat", ""))
+	_rng.seed = int(opts.get("seed", 1))
 	_rest_layout()
-	_key = "dwarf4|%s|%d|%s|%s|%s|%s|%d" % [seated, sd, opts.get("apron", false), hat, opts.get("rag", false), has_mug, GenCache.salt(MESH_SRC) ^ GenCache.salt(FACE_SRC)]
-	var mesh := GenCache.load_mesh(_key, SELF)
-	if mesh == null:
-		var t0 := Time.get_ticks_msec()
-		var mb := DwarfMesh.new(sd)
-		_body(mb, hat)
-		mb.bake_ao()
-		var im := ImporterMesh.new()
-		im.add_surface(Mesh.PRIMITIVE_TRIANGLES, mb.arrays(), [], {}, null, "dwarf")
-		im.generate_lods(25.0, 60.0, [])
-		mesh = im.get_mesh()
-		GenCache.save_mesh(_key, SELF, mesh)
-		print("DWARF built %s: %d verts in %d ms" % [_key.get_slice("|", 2), mb.vertex_count(), Time.get_ticks_msec() - t0])
-	mesh.surface_set_material(0, DwarfLook.material())
-	_assemble(mesh)
+	_key = "dwarf4|%s|%d|%s|%s|%s|%s|%d" % [seated, int(opts.get("seed", 1)), opts.get("apron", false), String(opts.get("hat", "")), opts.get("rag", false), has_mug, GenCache.salt(MESH_SRC) ^ GenCache.salt(FACE_SRC)]
+	return _key
+
+
+## The cache miss: the whole mesh, as an ImporterMesh (lods made, no renderer touched, so it can run
+## on a worker thread; get_mesh() on the result must run on the main thread).
+func _generate() -> ImporterMesh:
+	var t0 := Time.get_ticks_msec()
+	var sd := int(_o.get("seed", 1))
+	var mb := DwarfMesh.new(sd)
+	_body(mb, String(_o.get("hat", "")))
+	mb.bake_ao()
+	var im := ImporterMesh.new()
+	im.add_surface(Mesh.PRIMITIVE_TRIANGLES, mb.arrays(), [], {}, null, "dwarf")
+	im.generate_lods(25.0, 60.0, [])
+	print("DWARF built %s: %d verts in %d ms" % [sd, mb.vertex_count(), Time.get_ticks_msec() - t0])
+	return im
+
+
+## Start making the meshes of the rigs `make()` will be asked for (a list of the same option
+## dictionaries) on worker threads, so the cache misses of a first night are built beside the rest
+## of the load and not one dwarf after another. Cache hits are only loaded here (held for make());
+## warm_finish() collects the rest. Returns the handle warm_finish() takes.
+static func warm_start(list: Array, threads := WARM_THREADS) -> Dictionary:
+	return warm_begin(list, func() -> Node: return DwarfRig.new(), SELF, threads)
+
+
+## warm_start() for a rig class: `maker` returns a fresh instance of it, `script_path` is its generator.
+static func warm_begin(list: Array, maker: Callable, script_path: String, threads := WARM_THREADS) -> Dictionary:
+	var seen := {}
+	var miss: Array = []                 # [rig, cache key] still to generate
+	for o: Dictionary in list:
+		if seen.has(str(o)):
+			continue
+		seen[str(o)] = true
+		var r: DwarfRig = maker.call()
+		var key := r._prep(o)
+		if GenCache.prime_mesh(key, script_path):
+			r.free()
+		else:
+			miss.append([r, key])
+	var h := {"miss": miss, "made": [], "script": script_path, "group": -1}
+	(h.made as Array).resize(miss.size())
+	if not miss.is_empty():
+		var made: Array = h.made
+		h.group = WorkerThreadPool.add_group_task(func(i: int) -> void:
+			made[i] = (miss[i][0] as DwarfRig)._generate(), miss.size(), threads, false, "rig meshes")
+	return h
+
+
+## Wait (by frames: the renderer is served from the main thread) for a warm_start() batch, then
+## save its meshes to the cache and hold them for make(). Safe to call twice.
+static func warm_finish(h: Dictionary, tree: SceneTree) -> void:
+	var group := int(h.get("group", -1))
+	if group < 0:
+		return
+	h.group = -1
+	while not WorkerThreadPool.is_group_task_completed(group):
+		await tree.process_frame
+	WorkerThreadPool.wait_for_group_task_completion(group)
+	var miss: Array = h.miss
+	for i in miss.size():
+		var mesh := ((h.made as Array)[i] as ImporterMesh).get_mesh()
+		GenCache.save_mesh(miss[i][1], h.script, mesh)
+		GenCache.prime(miss[i][1], mesh)
+		(miss[i][0] as DwarfRig).free()
+
+
+## Batches started early (the Realm's), by name, until their stage collects them.
+static var warm_batches := {}
+
+
+## The night is torn down mid-build: let every batch's workers finish, then free its rigs.
+static func warm_abandon_all() -> void:
+	for h: Dictionary in warm_batches.values():
+		var group := int(h.get("group", -1))
+		if group >= 0:
+			h.group = -1
+			WorkerThreadPool.wait_for_group_task_completion(group)
+			for m: Array in h.miss:
+				(m[0] as DwarfRig).free()
+	warm_batches.clear()
 
 
 func _rest_layout() -> void:
