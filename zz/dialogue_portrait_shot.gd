@@ -46,22 +46,27 @@ func _run() -> void:
 	var pl := get_tree().get_first_node_in_group(Groups.PLAYER)
 	var vs := get_tree().get_nodes_in_group("villager")
 	print("PORTRAIT villagers ", vs.size())
-	var done := 0
+	var want := ["grisel", "hild", "edda", "abel", "nan"]
+	var bad := 0
+	var story0 := get_tree().get_first_node_in_group("story")
 	for v: Node in vs:
-		if done >= 2:
-			break
+		var id := String(v.get("id"))
 		if not bool(v.call("can_interact")):
+			print("PORTRAIT skip ", id)
 			continue
 		v.call("interact", pl)
-		await get_tree().create_timer(1.2, true, false, true).timeout
-		await _shot("%d_a" % done)
-		await get_tree().create_timer(0.35, true, false, true).timeout
-		await _shot("%d_b" % done)
-		var ui := get_tree().get_first_node_in_group("story").get("ui") as CanvasLayer
-		print("PORTRAIT ", v.get("id"), " frame visible ", ((ui.get("_portrait") as Control).get_parent() as Control).visible)
+		await get_tree().create_timer(0.8, true, false, true).timeout
+		var ui := story0.get("ui") as CanvasLayer
+		var ok: bool = ui.call("is_open") and ui.call("portrait_visible")
+		var west := id.begins_with("r37") or want.has(id) or v.get("village") != null and String(v.get("village").name).to_lower().contains("weir")
+		print("PORTRAIT ", id, " open+face=", ok)
+		if not ok:
+			bad += 1
+		if want.has(id) or (bad == 1 and not ok):
+			await _shot("v_" + id)
 		ui.call("close")
-		await _frames(10)
-		done += 1
+		await _frames(6)
+	print("PORTRAIT bad=", bad, " of ", vs.size())
 	var story := get_tree().get_first_node_in_group("story")
 	for cid: String in ["keep", "hesk"]:
 		if story.call("talk", cid, null, pl):

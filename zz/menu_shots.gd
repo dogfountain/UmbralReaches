@@ -93,7 +93,7 @@ func _run() -> void:
 		await _shot("loot")
 		get_tree().get_first_node_in_group("loot_window").call("take_all")
 	var dl := _layer("dialogue.gd")
-	dl.call("open", "Grisel the Ash-Wife")
+	dl.call("open", "Grisel the Ash-Wife", {"seated": false, "seed": 911, "hat": "hood"})
 	var ch: Array[String] = ["What do you sell?", "Tell me of the Ossuary.", "Farewell."]
 	dl.call("line", "Grisel the Ash-Wife", "Ash for the fires, wanderer. The dead pay in it and so do the living, if they have any sense left in them.", ch)
 	await get_tree().create_timer(4.0, true, false, true).timeout

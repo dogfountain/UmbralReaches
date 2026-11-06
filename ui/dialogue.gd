@@ -34,6 +34,7 @@ var _choices: VBoxContainer
 var _hint: Label
 var _portrait: TextureRect
 var _vp: SubViewport
+var _ext: Node3D                   ## a bust handed in by show_portrait()
 var _rig: Node3D
 var _rig_key := ""
 var _sub: Label
@@ -232,7 +233,32 @@ func is_open() -> bool:
 	return _open
 
 
+## The portrait the box owns: callers that build their own bust (villagers) hand it over here and it is shown
+## in the framed square; hide_portrait() drops it and hides the frame. open() always starts from no bust.
+func show_portrait(bust: Node3D) -> void:
+	if is_instance_valid(_ext) and _ext != bust:
+		_ext.queue_free()
+	_ext = bust
+	if is_instance_valid(bust) and bust.get_parent() != _vp:
+		if bust.get_parent():
+			bust.get_parent().remove_child(bust)
+		_vp.add_child(bust)
+	_portrait.get_parent().visible = true
+
+
+func hide_portrait() -> void:
+	if is_instance_valid(_ext):
+		_ext.queue_free()
+	_ext = null
+	_portrait.get_parent().visible = false
+
+
+func portrait_visible() -> bool:
+	return _portrait.get_parent().visible
+
+
 func open(speaker: String, portrait_opts: Dictionary = {}) -> void:
+	hide_portrait()
 	_portrait_rig(portrait_opts)
 	_portrait.get_parent().visible = not portrait_opts.is_empty()
 	_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
