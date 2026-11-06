@@ -65,6 +65,9 @@ static func register_site(n: String, rect: Rect2, floor_y: float, cut_y := NAN, 
 	for s in sites:
 		if s.name == n:
 			return
+	if rect.size.x < 0.0 or rect.size.y < 0.0:
+		push_warning("WorldLanes: site %s registered with a negative size %s (flipped)" % [n, rect])
+		rect = rect.abs()            # a negative rect made every later intersects() an engine error
 	sites.append({"name": n, "rect": rect, "floor_y": floor_y, "cut_y": floor_y - 0.3 if is_nan(cut_y) else cut_y, "hard": hard})
 
 

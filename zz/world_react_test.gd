@@ -246,6 +246,7 @@ func _run() -> void:
 		var h0: int = owls.hunts
 		var dived := false
 		var mantled := false
+		var hunter: Dictionary = {}
 		for i in 160:
 			await _secs(0.1)
 			for b: Dictionary in owls.birds:
@@ -253,6 +254,7 @@ func _run() -> void:
 					dived = true
 				if int(b.state) == 8:
 					mantled = true
+					hunter = b
 			if mantled:
 				break
 			if i == 40 and owls.hunts == h0:
@@ -260,9 +262,9 @@ func _run() -> void:
 		check(owls.hunts > h0 and dived, "an owl drops off its branch onto a mouse (hunts %d)" % owls.hunts)
 		check(mantled, "and mantles over it on the ground (catches %d)" % owls.catches)
 		var back := false
-		for i in 120:
+		for i in 120:            # the owl that hunted (another one flushed by the wanderer waits till she leaves)
 			await _secs(0.25)
-			if owls.perched_count() >= owls.birds.size():
+			if not hunter.is_empty() and int(hunter.state) == 0:
 				back = true
 				break
 		check(back, "then flies back up to a branch")

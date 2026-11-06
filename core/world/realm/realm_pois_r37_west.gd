@@ -508,6 +508,7 @@ static func _town(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	_lore(host, "r37w_smith", sm + Vector3(-4.4, 1.1, 3.4), sm + Vector3(-4.4, 1.1, 3.4))
 	host.set_meta("route", [Vector3(-186.0, inn.y, 61.0)])
 	host.set_meta("walk", [true])
+	host.set_meta("approach", Vector3(-186.0, _g(space, -186.0, 64.0), 64.0))     # the street in front of the inn
 
 
 # --- the Sorrow's Banks ---------------------------------------------------------------------------------

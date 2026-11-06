@@ -211,7 +211,7 @@ func _static_checks() -> void:
 
 ## r34: the r31 four only (the new ground's places have zz/places_r34_test).
 func _hosts() -> Array:
-	return get_tree().get_nodes_in_group(Pois.GROUP_POI).filter(func(h: Node) -> bool: return not h.has_meta("r34"))
+	return get_tree().get_nodes_in_group(Pois.GROUP_POI).filter(func(h: Node) -> bool: return not h.has_meta("r34") and not h.has_meta("r37"))      # the r34 and r37 places have their own tests
 
 
 func _chests() -> void:

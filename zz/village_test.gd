@@ -17,6 +17,7 @@ extends Node
 ##              ConfigFile encoding
 ##   talk       the dialogue box opens on a villager, lines advance, the ash-wife's shop sells lamp oil
 ## Ends: VILLAGE TEST PASS  /  VILLAGE TEST FAIL n
+const VillageScript := preload("res://core/life/village/village.gd")
 const Cast := preload("res://core/life/village/village_cast.gd")
 const VState := preload("res://core/life/village/village_state.gd")
 const TalkDB := preload("res://core/life/village/village_talk_db.gd")
@@ -131,7 +132,7 @@ func _data() -> void:
 					print("    bad choice ", cid, ":", nid, " -> ", to)
 				if VState.audit_cond(String(ch.get("if", ""))) != "":
 					bad += 1
-		if not Cast.CAST.has(cid):
+		if not VillageScript.cast_all().has(cid):          # Hearthward's cast and the Marches' outposts
 			bad += 1
 			print("    conversation without a villager ", cid)
 	for vid: String in Cast.CAST:
