@@ -1,6 +1,9 @@
 class_name Enemy
 extends CharacterBody3D
-## Melee crawler base. Flat steering, no navmesh. A landed blow goes to the wanderer's Wounds
+## Melee crawler base. Steering is flat and cheap (straight at the target, local wall-following); only
+## when the straight line is walled or it stops making progress does it ask the baked navigation mesh
+## for a path (NavAssist, at think rate, at most twice a second) and follow its corners; the same
+## fallback walks it home on a leash. A landed blow goes to the wanderer's Wounds
 ## (Player.take_wound; a guard or a roll can turn it); Gloom is the dark's clock only, never a foe's damage.
 
 enum { IDLE, CHASE, WINDUP, STRIKE, RECOVER, DEAD, LEAP_PREP, AIRBORNE, FEINT, SPECIAL, CALL }
@@ -149,6 +152,8 @@ var _wary_t := 0.0           ## ...and for a while it keeps a wider ring
 var _rally_t := 0.0          ## answering a call: a little faster
 var _detour := Vector3.ZERO  ## a way round what blocks the straight line to the player (zero: none)
 var _detour_side := 0.0      ## the side it last went round (kept, so it does not dither at a post)
+var _nav: NavAssist = null          ## the chase fallback (made on first need): path corners round walls
+var _nav_home: NavAssist = null     ## the same for the walk home (leash, evade)
 var _detour_mem := 0.0       ## seconds the side is still remembered after the way looked clear
 var _provoked_ms := -100000  ## when a hit last stirred its pack (once a second at most)
 var _ward_t := 0.0           ## a boss between phases: blows mostly turned
@@ -916,8 +921,20 @@ func _update_detour() -> void:
 	_detour = Vector3.ZERO
 	if _state != CHASE or _p == null or crawler or _dist < 3.0 or _dist == INF or not is_on_floor():
 		_detour_side = 0.0
+		if _nav != null:
+			_nav.reset()
 		return
 	var space := get_world_3d().direct_space_state
+	# the baked mesh when the straight line is walled or progress has stopped (NavAssist); else the
+	# local wall-following below
+	var corner := _nav_point(false, _p.global_position, not _waiting)
+	if corner != Vector3.INF:
+		var cd := corner - global_position
+		cd.y = 0.0
+		if cd.length_squared() > 0.01:
+			_detour = cd.normalized()
+			_detour_side = 0.0
+			return
 	var to := _to / _dist
 	var from := global_position + Vector3.UP * 0.9
 	# while going round, the whole line to the player must be clear before it turns back in (a short
@@ -944,6 +961,39 @@ func _update_detour() -> void:
 			_detour_side = sd
 			return
 	# boxed in (a corner): the stuck nudge and its hop take over
+
+
+## The next path corner to `goal` when flat steering is blocked or stalled, else Vector3.INF. `home_leg`
+## picks the walk-home state over the chase one. Think rate only.
+func _nav_point(home_leg: bool, goal: Vector3, moving: bool) -> Vector3:
+	if not NavAssist.ready():
+		return Vector3.INF
+	var nav := _nav_home if home_leg else _nav
+	if nav == null:
+		nav = NavAssist.new()
+		if home_leg:
+			_nav_home = nav
+		else:
+			_nav = nav
+	var dt := 1.0 / think_hz
+	nav.watch(global_position, dt, walk_speed, moving)
+	var up := Vector3.UP * 1.2
+	var blocked := NavAssist.line_blocked(get_world_3d().direct_space_state, global_position + up, goal + up, get_rid())
+	return nav.next_point(global_position, goal, blocked, dt)
+
+
+## Walking home (leash, evade): the way back, round walls when the straight line is walled.
+func _home_dir() -> Vector3:
+	var back := home - global_position
+	back.y = 0.0
+	if back.length() > 3.0:
+		var corner := _nav_point(true, home, true)
+		if corner != Vector3.INF:
+			back = corner - global_position
+			back.y = 0.0
+	elif _nav_home != null:
+		_nav_home.reset()
+	return back.normalized() if back.length_squared() > 0.0001 else Vector3.ZERO
 
 
 ## The first wall within `reach` along `dir` at hip height, or {} (a slope underfoot is not a wall).
@@ -1695,9 +1745,7 @@ func _hold_post(from_home: float) -> void:
 	if home == Vector3.ZERO or from_home < 0.45:
 		_wish = Vector3.ZERO
 		return
-	var back := home - global_position
-	back.y = 0.0
-	_wish = back / maxf(back.length(), 0.001)
+	_wish = _home_dir()
 
 
 func _home_planar() -> float:
@@ -2040,7 +2088,7 @@ func _tick_evade(step: float) -> void:
 			SpellFx.rift_in(home)
 		_end_evade()
 		return
-	_wish = back.normalized()
+	_wish = _home_dir()
 	_face_dir = _wish
 
 
