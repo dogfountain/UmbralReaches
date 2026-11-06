@@ -1107,7 +1107,7 @@ func _page_hearth() -> void:
 	now.glyph = "hearth"
 	now.tint = EMBER
 	now.title = "%s  ·  %s" % [["BANKED", "I", "II", "III", "IV"][t], String(HearthDB.TIERS[t].name)]
-	now.line = "Fires reach +%.1f m  ·  +%d Gloom held  ·  comfort %d" % [HearthDB.reach(hs, float(DB.live.get("reach_add", 0.0))), int(HearthDB.TIERS[t].gloom), int(h.call("comfort"))]
+	now.line = "Fires reach +%.1f m  ·  +%d Gloom held  ·  comfort %d" % [HearthDB.reach(hs, float(DB.live.get("reach_add", 0.0))), roundi(float(DB.live.get("gloom_add", 0.0))), int(h.call("comfort"))]
 	now.look = "owned"
 	row.add_child(now)
 	var up := _card("hearth", "raise", 384, 124)
@@ -1423,7 +1423,10 @@ func _show() -> void:
 				var nx: Dictionary = HearthDB.TIERS[t + 1]
 				_d_kind.text = "RAISE TO %s  ·  %s" % [["", "I", "II", "III", "IV"][t + 1], String(nx.name).to_upper()]
 				_d_text.text = String(nx.text)
-				_d_now.text = "Kindled fires reach +%.1f m (now +%.1f); Gloom held +%d (now +%d). Needs %s." % [float(nx.reach), float(HearthDB.TIERS[t].reach), int(nx.gloom), int(HearthDB.TIERS[t].gloom), String(nx.need_text)]
+				# the live sanctuary and the live bar, plus only this tier's own step up
+				var live_reach := HearthDB.reach(hh.call("hs"), float(DB.live.get("reach_add", 0.0)))
+				var live_gloom := float(DB.live.get("gloom_add", 0.0))
+				_d_now.text = "Kindled fires reach +%.1f m (now +%.1f); Gloom held +%d (now +%d). Needs %s." % [live_reach + float(nx.reach) - float(HearthDB.TIERS[t].reach), live_reach, roundi(live_gloom + float(nx.gloom) - float(HearthDB.TIERS[t].gloom)), roundi(live_gloom), String(nx.need_text)]
 				_d_lore.text = String(nx.lore)
 				why = String(hh.call("why_not_raise", at_home_fire())) if hh else "?"
 				verb = "FEED THE HEARTHFIRE  ·  %d ASH%s" % [int(nx.ash), (", %d FRAGMENT%s" % [int(nx.frag), "" if int(nx.frag) == 1 else "S"]) if int(nx.frag) > 0 else ""]
