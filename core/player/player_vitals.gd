@@ -36,11 +36,11 @@ func lava_burn(amount: float) -> void:
 	var from := player.global_position
 	add_wounds(amount)                        # r35: lava wounds (it filled the Gloom before the split)
 	Events.player_hurt.emit(amount, from)
-	player.traversal._end_traverse()
+	player._end_traverse()
 	Vfx.burst(from + Vector3.UP * 0.6, SpellFx.EMBER_HOT, {"count": 50, "life": 0.7, "speed": Vector2(3.0, 8.0), "size": 0.05, "gravity": -8.0, "trail": 0.08, "dir": Vector3.UP, "spread": 50.0})
-	player.locomotion._end_slide()
+	player._end_slide()
 	var to := player._safe_ground if player._safe_ground != Vector3.INF else player.checkpoint
-	player.locomotion.teleport(to + Vector3.UP * 0.1)
+	player.teleport(to + Vector3.UP * 0.1)
 	SpellFx.rift_in(to)
 	player.camera_ctl.kick(0.8)
 	Events.toast.emit("The molten dark spits you back out.")
@@ -280,7 +280,7 @@ func hollow() -> void:
 
 
 func _respawn_now() -> void:
-	player.locomotion.teleport(player.checkpoint)                      # no interpolation streak across the map, no stale state
+	player.teleport(player.checkpoint)                      # no interpolation streak across the map, no stale state
 	player.targeting._release_lock()
 	if player._stam != null:
 		player._stam.refill()
@@ -332,7 +332,7 @@ func _fell_out() -> void:
 	var to := player._safe_ground if player._safe_ground != Vector3.INF else player.checkpoint
 	if to.y < -38.0:
 		to = player.checkpoint
-	player.locomotion.teleport(to + Vector3.UP * 0.1)
+	player.teleport(to + Vector3.UP * 0.1)
 	add_gloom(8.0)
 	SpellFx.rift_in(to)
 	player.camera_ctl.kick(0.5)
@@ -344,7 +344,7 @@ func _fell_out() -> void:
 ## put it back on the last safe ground.
 
 func _stuck_tick(delta: float, wish: Vector3) -> void:
-	if player._hollowing or player.autopilot or player.traversal._trav_busy() or player._mantle_t >= 0.0 or wish.length_squared() < 0.25:
+	if player._hollowing or player.autopilot or player._trav_busy() or player._mantle_t >= 0.0 or wish.length_squared() < 0.25:
 		player._stuck_t = 0.0
 		_stuck_from = player.global_position
 		return
@@ -356,17 +356,17 @@ func _stuck_tick(delta: float, wish: Vector3) -> void:
 	if player._stuck_t < 1.0:
 		return
 	player._stuck_t = 0.0
-	if player.locomotion._headroom() or (player._col and (player._col.shape as CapsuleShape3D).height < player._col_h):
+	if player._headroom() or (player._col and (player._col.shape as CapsuleShape3D).height < player._col_h):
 		return                                  # just a wall in the way, or crouched under something
 	for up: float in [0.3, 0.6, 1.0, 1.5]:
 		var at := player.global_position + Vector3.UP * up
-		if player.locomotion._headroom(at):
+		if player._headroom(at):
 			print("Player: freed from geometry at %s (+%.1f m)" % [player.global_position, up])
-			player.locomotion.teleport(at)
+			player.teleport(at)
 			return
-	if player._safe_ground != Vector3.INF and player.locomotion._headroom(player._safe_ground):
+	if player._safe_ground != Vector3.INF and player._headroom(player._safe_ground):
 		print("Player: stuck at %s, back to safe ground %s" % [player.global_position, player._safe_ground])
-		player.locomotion.teleport(player._safe_ground + Vector3.UP * 0.05)
+		player.teleport(player._safe_ground + Vector3.UP * 0.05)
 
 
 ## A dodge roll met a blow in its first PERFECT_T seconds: time slows, Breath comes back, the

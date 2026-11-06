@@ -6,6 +6,7 @@ extends CharacterBody3D
 var autopilot_ctl: PlayerAutopilot = null
 var targeting: PlayerTargeting = PlayerTargeting.new(self)
 var camera_ctl: PlayerCamera = PlayerCamera.new(self)
+var vitals: PlayerVitals = PlayerVitals.new(self)
 
 @export_group("Movement")
 @export var walk_speed := 4.5
@@ -63,11 +64,7 @@ var ward_drain_left := 0.0              ## Gloom the current Lantern Ward may st
 
 const SPRINT_DARK_MULT := 1.5           ## sprinting in the dark gathers Gloom this much faster (noise)
 const SLIDE_EVADE := 0.22               ## a slide's first moments pass under strikes, like a roll
-var _gloom_zone_t := 0.0
-var _in_rift := false
-var _in_fight := false
 var _ash_banked := -1                   ## grave ash held at the last fire; above it is "carried"
-var _ash_mound: Node3D
 var autopilot := false
 var hollow_count := 0
 var _wait := 0.0
@@ -77,7 +74,6 @@ var _pitch := -0.18
 var _t := 0.0
 var _shade: Shade
 var _shade_lock := 0.0
-var _shade_warned := false
 var _hollowing := false
 var _coyote := 0.0
 var _buffered_jump := 0.0
@@ -93,8 +89,6 @@ var _hint := ""
 var _debug_drive := false
 var _debug_wish := Vector3.ZERO
 var _debug_sprint := false
-var _gloom_emit := 0.0
-var _gloom_emit_t := 0.0
 var _shake := 0.0
 const BOLT := preload("res://core/player/magic_bolt.tscn")
 # r31 combat and traversal (Enshrouded pass): Breath, staff arts, the Tether line, the cloak-glide
@@ -216,6 +210,7 @@ var riding: Node3D = null
 func _ready() -> void:
 	add_child(targeting)
 	add_child(camera_ctl)
+	add_child(vitals)
 	add_to_group(Groups.PLAYER)
 	collision_layer = Layers.PLAYER
 	collision_mask = Layers.WORLD | Layers.PROPS
@@ -246,7 +241,7 @@ func _ready() -> void:
 			global_position = saved
 	checkpoint = global_position
 	_ash_banked = Travel.count("grave_ash")
-	Events.enemy_killed.connect(_on_enemy_killed)
+	Events.enemy_killed.connect(vitals._on_enemy_killed)
 	Events.skill_cast.connect(_on_skill_cast)
 	_rig_height = _rig.position.y
 	# Interpolated cameras: rig is top-level so look isn't stuck on the 60 Hz physics tick.
@@ -391,7 +386,7 @@ func _physics_process(delta: float) -> void:
 		_grapple.tick(delta)
 		_grounded = false
 		_animate(delta, Vector3(velocity.x, 0.0, velocity.z))
-		_update_gloom(delta)
+		vitals._update_gloom(delta)
 		return
 	if _gliding and (_hang or _climb_t >= 0.0 or _vault_t >= 0.0):
 		_end_glide()
@@ -425,7 +420,7 @@ func _physics_process(delta: float) -> void:
 				_grounded = true
 				_visual.ride = move_toward(_visual.ride, 1.0, delta * 4.0)
 				_visual.animate(Vector3.ZERO, true, delta)
-				_update_gloom(delta)
+				vitals._update_gloom(delta)
 				return
 	if _visual.ride > 0.0:
 		_visual.ride = move_toward(_visual.ride, 0.0, delta * 4.0)
@@ -597,7 +592,7 @@ func _physics_process(delta: float) -> void:
 	camera_ctl._update_camera(delta, horiz, sprint, vy_before)
 	_sprint_held = sprint
 	_animate(delta, horiz)
-	_update_gloom(delta)
+	vitals._update_gloom(delta)
 	_scan_interactables()
 	_fall_t = _fall_t + delta if not _grounded and velocity.y < -1.0 and _steep_t <= 0.0 and not _gliding else 0.0
 	if _gliding and (_grounded or is_on_ceiling()):
@@ -605,26 +600,8 @@ func _physics_process(delta: float) -> void:
 	_glide_k = move_toward(_glide_k, 1.0 if _gliding else 0.0, delta * (5.0 if _gliding else 7.0))
 	_visual.set("glide", _glide_k)
 	if global_position.y < -40.0 or _fall_t > FALL_RESCUE_T:
-		_fell_out()      # fell into the chasm, or through the world
-	_stuck_tick(delta, wish)
-
-
-## Lava: a heavy Gloom burn and a throw back to the last solid ground (see Lava).
-func lava_burn(amount: float) -> void:
-	if _burn_cd > 0.0 or _hollowing:
-		return
-	_burn_cd = 1.0
-	var from := global_position
-	add_wounds(amount)                        # r35: lava wounds (it filled the Gloom before the split)
-	Events.player_hurt.emit(amount, from)
-	_end_traverse()
-	Vfx.burst(from + Vector3.UP * 0.6, SpellFx.EMBER_HOT, {"count": 50, "life": 0.7, "speed": Vector2(3.0, 8.0), "size": 0.05, "gravity": -8.0, "trail": 0.08, "dir": Vector3.UP, "spread": 50.0})
-	_end_slide()
-	var to := _safe_ground if _safe_ground != Vector3.INF else checkpoint
-	teleport(to + Vector3.UP * 0.1)
-	SpellFx.rift_in(to)
-	camera_ctl.kick(0.8)
-	Events.toast.emit("The molten dark spits you back out.")
+		vitals._fell_out()      # fell into the chasm, or through the world
+	vitals._stuck_tick(delta, wish)
 
 
 func set_checkpoint(at: Vector3) -> void:
@@ -645,69 +622,6 @@ var _chain := 0
 var _chain_until := 0.0
 var _riposte_ready := false
 var _riposte_cd := 0.0
-
-
-## A strike or pounce passed through you during a Rift Step: slow time, stagger and mark the
-## attacker, and arm a free Rift Lash on your next bolt.
-func on_evaded(attacker: Node) -> void:
-	var now := Time.get_ticks_msec() * 0.001
-	var at := global_position + Vector3.UP * 2.0
-	if _arts != null and _arts.parrying() and _evade_t <= 0.0:
-		_arts.parry(attacker)                   # r31: the staff turned it aside
-		_surge(&"parry")
-		return
-	if _evade_roll and _dodge_roll and _roll_t >= 0.0 and _roll_t <= PERFECT_T and now >= _riposte_cd:
-		_perfect_dodge(attacker)                # r31: rolled the instant it landed
-		_surge(&"dodge")
-		return
-	if _evade_roll:
-		HitText.pop(at, "evaded", Color(0.6, 0.75, 1.0))    # a plain roll: through it, no riposte
-		return
-	if now < _riposte_cd:
-		HitText.pop(at, "evaded", Color(0.6, 0.75, 1.0))
-		return
-	_riposte_cd = now + 1.5
-	_riposte_ready = true
-	_surge(&"riposte")
-	HitText.pop(at, "RIPOSTE", Color(1.3, 0.75, 2.6), true)
-	Hints.once(&"riposte", "RIPOSTE: stepping through a blow makes your next bolt a Rift Lash.")
-	if attacker.has_method("add_mark"):
-		attacker.add_mark(2)
-	if attacker.has_method("riposted"):
-		attacker.riposted()
-	Sfx.play("res://art/audio/mark_tick.wav", at, 0.0, 0.7, 0.02)
-	SpellFx.shell(global_position + Vector3.UP, 0.3, 2.2, Color(1.2, 0.5, 2.8), 0.3)
-	camera_ctl.kick(0.5)
-	TimeSlow.request(get_tree(), 0.35, 0.22)
-
-
-## r33: a parry, a perfect dodge or a riposte lights Rift Surge (CombatState).
-func _surge(reason: StringName) -> void:
-	var cs := combat()
-	if cs != null:
-		cs.call("proc_surge", reason)
-
-
-func consume_riposte() -> bool:
-	var r := _riposte_ready
-	_riposte_ready = false
-	return r
-
-
-func _on_enemy_killed(e: Node) -> void:
-	if _hollowing or not (e is Node3D) or not is_inside_tree():
-		return
-	var at := (e as Node3D).global_position + Vector3.UP * 1.0
-	if at.distance_to(global_position) > 28.0:
-		return
-	var now := Time.get_ticks_msec() * 0.001
-	_chain = _chain + 1 if now < _chain_until else 1
-	_chain_until = now + CHAIN_WINDOW
-	mend(minf(KILL_RELIEF + 2.0 * float(_chain - 1), 14.0))   # r35: a kill mends Wounds
-	if _chain >= 2:
-		HitText.pop(global_position + Vector3.UP * 2.3, "chain x%d" % _chain, Color(1.2, 0.6, 2.6), _chain >= 4)
-	Vfx.arc(at, global_position + Vector3.UP * 1.2, Color(1.2, 0.55, 2.8), 0.35, 0.18)
-	Vfx.burst(global_position + Vector3.UP * 1.1, Color(1.3, 0.6, 3.0), {"count": 12, "life": 0.4, "speed": Vector2(0.5, 1.5), "size": 0.04, "gravity": -1.0, "radius": 0.3})
 
 
 func debug_drive(wish: Vector3, sprint := false) -> void:
@@ -753,87 +667,6 @@ func _on_skill_cast(id: StringName) -> void:
 	_visual.cast_pose(id)
 
 
-# --- Gloom and the shade -----------------------------------------------------
-
-func _update_gloom(delta: float) -> void:
-	if _hollowing:
-		return
-	_gloom_zone_t -= delta
-	if _gloom_zone_t <= 0.0:
-		_gloom_zone_t = 0.25
-		_in_fight = boss_fight_active(get_tree())
-		_in_rift = _rift_here()
-	# r30: a fire drains at the player's rate; a Lantern Ward at its own (4/s, at most 25 a cast);
-	# inside a live boss arena the dark does not gather on its own (the boss is the pressure);
-	# the rift rate is the Ashen Rift itself, not everything north of z -40.
-	var drain := LightGrid.drain_at(global_position)
-	var lit := drain != 0.0
-	var rate := gloom_rate_rift if _in_rift else gloom_rate_dark
-	if drain < 0.0:
-		rate = -gloom_drain_lit
-	elif drain > 0.0:
-		var want := drain * gloom_drain_lit / 12.0
-		rate = -want if ward_drain_left > 0.0 and gloom > 0.0 else 0.0
-		ward_drain_left = maxf(0.0, ward_drain_left + rate * delta)
-	elif _in_fight:
-		rate = 0.0
-	elif _sprint_held and _run_blend > 0.6 and _grounded:
-		rate *= SPRINT_DARK_MULT
-	var prev := gloom
-	gloom = clampf(gloom + rate * delta, 0.0, gloom_max)
-	if not is_equal_approx(prev, gloom):
-		_gloom_emit_t += delta
-		if absf(gloom - _gloom_emit) >= 0.5 or _gloom_emit_t >= 0.1:
-			Events.gloom_changed.emit(gloom, gloom_max)
-			_gloom_emit = gloom
-			_gloom_emit_t = 0.0
-	else:
-		_gloom_emit_t = 0.0
-	if gloom >= gloom_max and not is_instance_valid(_shade) and _shade_lock <= 0.0:
-		_spawn_shade()
-	if lit and is_instance_valid(_shade):
-		_shade.unmake_by_light()
-	# r35: a fire mends Wounds (a Lantern Ward does not: it only holds the dark back)
-	if drain < 0.0 and wounds > 0.0:
-		var before := wounds
-		wounds = maxf(0.0, wounds - wounds_mend_lit * delta)
-		_wounds_emit_t += delta
-		if wounds <= 0.0 or before - _wounds_emit >= 0.5 or _wounds_emit_t >= 0.1:
-			_emit_wounds()
-
-
-func add_gloom(amount: float) -> void:
-	gloom = clampf(gloom + amount, 0.0, gloom_max)
-	Events.gloom_changed.emit(gloom, gloom_max)
-
-
-var _wounds_emit := 0.0
-var _wounds_emit_t := 0.0
-
-func _emit_wounds() -> void:
-	_wounds_emit = wounds
-	_wounds_emit_t = 0.0
-	Events.wounds_changed.emit(wounds, wounds_max)
-
-
-## Raw Wounds (positive hurts, negative mends) with no hit reaction. At wounds_max you are hollowed.
-## Blows from the world go through take_wound (grace window, guard, the reaction); this is for
-## mending and for scripted hurts that do their own show (lava, a long fall, a crypt push-back).
-func add_wounds(amount: float) -> void:
-	if _hollowing:
-		return
-	wounds = clampf(wounds + amount, 0.0, wounds_max)
-	_emit_wounds()
-	if wounds >= wounds_max - 0.01:
-		hollow()
-
-
-## Kills, spent Resonance, Nova motes and the like: a little of the hurt closes.
-func mend(amount: float) -> void:
-	if amount > 0.0 and wounds > 0.0:
-		add_wounds(-amount)
-
-
 ## True while any BossArena (or arena-like node in the "boss_arena" group) has a live fight.
 static func boss_fight_active(tree: SceneTree) -> bool:
 	if tree == null:
@@ -842,178 +675,6 @@ static func boss_fight_active(tree: SceneTree) -> bool:
 		if bool(a.get("_active")):
 			return true
 	return false
-
-
-## The Ashen Rift proper: the chasm region and its crossing, not the Ossuary under the fen or the
-## summit platform (both used to take the rift rate because they lie north of z -40).
-func _rift_here() -> bool:
-	if not rift_enabled or global_position.z >= rift_z + 28.0:
-		return false
-	var p := global_position
-	if RealmLayout.OSSUARY.has_point(p):
-		return false
-	if Vector2(p.x - RealmLayout.SUMMIT.x, p.z - RealmLayout.SUMMIT.z).length() < 26.0:
-		return false
-	return String(RealmLayout.region_at(p.x, p.z).get("id", "")) == "rift"
-
-
-func _spawn_shade() -> void:
-	var s := Shade.new()
-	var host := get_tree().current_scene
-	if host == null:
-		return
-	host.add_child(s)
-	var behind := Basis(Vector3.UP, _yaw) * Vector3(0.0, 0.0, 1.0)
-	s.target = self
-	s.global_position = global_position + behind * 16.0 + Vector3.UP * Shade.HOVER
-	_shade = s
-	s.tree_exiting.connect(_on_shade_leaving)
-	Events.shade_spawned.emit()
-	if not _shade_warned:
-		_shade_warned = true
-		Events.toast.emit("The dark has taken shape. Find light.")
-
-
-func note_shade_unmade() -> void:
-	_shade_lock = 2.0
-
-
-## A bolt or spell passed through the Shade. The first time, say what does work.
-func note_shade_passed() -> void:
-	Hints.once(&"shade_drive", "Bolts pass through the Shade. Run for a fire or a lantern: only light unmakes it.")
-
-
-## r35: a blow from the world (a foe, a boss, their hazards). It wounds; it no longer fills the Gloom.
-## Two strikes inside HURT_GRACE count once; a held guard turns most of a blow from the front.
-func take_wound(amount: float, from_pos := Vector3.INF) -> void:
-	if _hollowing:
-		return
-	if Time.get_ticks_msec() * 0.001 < _hurt_grace_until:
-		return                                   # two strikes landing together count once
-	_hurt_grace_until = Time.get_ticks_msec() * 0.001 + HURT_GRACE
-	if _arts != null:
-		amount = _arts.absorb(amount, from_pos)   # r31: a held guard turns most of a blow from the front
-	if _book != null:
-		_book.on_hurt(amount)                    # r33: a hard blow interrupts a cast, a light one pushes it back
-	camera_ctl.kick(clampf(amount / 30.0, 0.3, 1.0))
-	Sfx.play(SFX_HURT, global_position + Vector3.UP, -3.0)
-	Events.player_hurt.emit(amount, from_pos)
-	_visual.hurt_react(from_pos, amount)
-	if not has_meta("heard_strike"):
-		set_meta("heard_strike", true)
-		Events.toast.emit("They wound. A fire closes what they open.")
-	add_wounds(amount)                           # last: at wounds_max this hollows
-
-
-func _on_shade_leaving() -> void:
-	_shade = null
-
-
-func hollow() -> void:
-	if _hollowing:
-		return
-	_hollowing = true
-	hollow_count += 1
-	_drop_ash()
-	Travel.saved_hollows = hollow_count
-	Travel.save_soon()
-	_shade_warned = false
-	Events.hollowed.emit()
-	await get_tree().create_timer(0.9).timeout
-	if not is_inside_tree():
-		return
-	_respawn_now()
-	await get_tree().create_timer(0.4).timeout
-	if not is_inside_tree():
-		return
-	_hollowing = false
-
-
-func _respawn_now() -> void:
-	teleport(checkpoint)                      # no interpolation streak across the map, no stale state
-	targeting._release_lock()
-	if _stam != null:
-		_stam.refill()
-	if _arts != null:
-		_arts.cancel()
-	gloom = 0.0
-	wounds = 0.0
-	Events.gloom_changed.emit(gloom, gloom_max)
-	_emit_wounds()
-	if is_instance_valid(_shade):
-		_shade.queue_free()
-	Events.respawned.emit(checkpoint)
-
-
-## Hollowing costs the ash carried since the last fire: it is left in a mound where you fell.
-## Walk back to it to take it up; be hollowed again first and it is gone.
-func _drop_ash() -> void:
-	if is_instance_valid(_ash_mound):
-		_ash_mound.queue_free()               # the old mound is lost
-	_ash_mound = null
-	var have := Travel.count("grave_ash")
-	if _ash_banked < 0 or _ash_banked > have:
-		_ash_banked = have
-	var carried := have - _ash_banked
-	if carried <= 0:
-		return
-	var host := get_tree().current_scene if is_inside_tree() else null
-	if host == null:
-		return
-	Travel.items["grave_ash"] = _ash_banked
-	Travel.save_soon()
-	var at := global_position if _grounded or _safe_ground == Vector3.INF else _safe_ground
-	var m := Node3D.new()
-	m.set_script(ASH_MOUND)
-	m.set("amount", carried)
-	host.add_child(m)
-	m.global_position = at
-	_ash_mound = m
-	Hints.once(&"ash_mound", "Your carried ash lies where you fell. Walk back to it.")
-
-
-## Off the bottom of the world or falling for ages: not a death. Back to the last solid ground
-## stood on (else the checkpoint) with a little Gloom for it; r29: it used to respawn at the
-## brazier with the Gloom wiped, a free cleanse for jumping into the chasm.
-func _fell_out() -> void:
-	_fall_t = 0.0
-	var to := _safe_ground if _safe_ground != Vector3.INF else checkpoint
-	if to.y < -38.0:
-		to = checkpoint
-	teleport(to + Vector3.UP * 0.1)
-	add_gloom(8.0)
-	SpellFx.rift_in(to)
-	camera_ctl.kick(0.5)
-	Events.toast.emit("The dark gives you back. It keeps a little.")
-
-
-## Stuck inside geometry (pushed in by a moving platform, a bad spawn, a seam): after a second of
-## pushing the stick without moving while the capsule overlaps the world, lift the body out, or
-## put it back on the last safe ground.
-func _stuck_tick(delta: float, wish: Vector3) -> void:
-	if _hollowing or autopilot or _trav_busy() or _mantle_t >= 0.0 or wish.length_squared() < 0.25:
-		_stuck_t = 0.0
-		_stuck_from = global_position
-		return
-	if _stuck_from == Vector3.INF or global_position.distance_squared_to(_stuck_from) > 0.0225:
-		_stuck_from = global_position
-		_stuck_t = 0.0
-		return
-	_stuck_t += delta
-	if _stuck_t < 1.0:
-		return
-	_stuck_t = 0.0
-	if _headroom() or (_col and (_col.shape as CapsuleShape3D).height < _col_h):
-		return                                  # just a wall in the way, or crouched under something
-	for up: float in [0.3, 0.6, 1.0, 1.5]:
-		var at := global_position + Vector3.UP * up
-		if _headroom(at):
-			print("Player: freed from geometry at %s (+%.1f m)" % [global_position, up])
-			teleport(at)
-			return
-	if _safe_ground != Vector3.INF and _headroom(_safe_ground):
-		print("Player: stuck at %s, back to safe ground %s" % [global_position, _safe_ground])
-		teleport(_safe_ground + Vector3.UP * 0.05)
 
 
 # --- Interaction -------------------------------------------------------------
@@ -1363,43 +1024,6 @@ func _face_now(dir: Vector3) -> void:
 	_visual.rotation.y = lerp_angle(_visual.rotation.y, _face_yaw, 0.6)
 
 
-## A dodge roll met a blow in its first PERFECT_T seconds: time slows, Breath comes back, the
-## attacker is Marked and the next strike or bolt is a riposte.
-func _perfect_dodge(attacker: Node) -> void:
-	var now := Time.get_ticks_msec() * 0.001
-	_riposte_cd = now + 1.5
-	_riposte_ready = true
-	if _stam != null:
-		_stam.refund(Stamina.PERFECT_REFUND)
-	var at := global_position + Vector3.UP * 2.0
-	HitText.pop(at, "PERFECT DODGE", Color(1.5, 1.2, 0.6), true)
-	Hints.once(&"perfect_dodge", "PERFECT DODGE: roll the instant a blow lands. Breath back, and your next strike or bolt is a riposte.")
-	if attacker and is_instance_valid(attacker) and attacker.has_method("add_mark"):
-		attacker.add_mark(1)
-	StaffSfx.play("perfect", at, -4.0)
-	SpellFx.shell(global_position + Vector3.UP, 0.3, 2.0, Color(1.6, 1.2, 0.6), 0.3)
-	hitstop(0.2, 0.3)
-
-
-## Gloom from a hard landing: the jolt lets the dark in. Rolled out, half; never to the cap.
-func _fall_hurt(impact: float) -> void:
-	var rolled := _rolled_landing
-	_rolled_landing = false
-	falls_hurt = 0.0
-	if impact <= FALL_HURT_V or autopilot or _hollowing:
-		return
-	var g := minf((impact - FALL_HURT_V) * FALL_GLOOM, 30.0) * (0.5 if rolled else 1.0)
-	g = minf(g, maxf(0.0, wounds_max - 1.0 - wounds))     # a fall wounds; it never hollows on its own
-	if g <= 0.0:
-		return
-	falls_hurt = g
-	add_wounds(g)
-	HitText.pop(global_position + Vector3.UP * 2.2, "jarred +%d" % int(round(g)), Color(0.9, 0.6, 0.55))
-	Hints.once(&"fall_hurt", "Long drops jar the dark in. Roll as you land (dodge), or open the robe to glide (jump again in the air).")
-	_visual.hurt_react(Vector3.INF, g)
-	camera_ctl.kick(clampf(g / 20.0, 0.3, 1.0))
-
-
 func _can_glide() -> bool:
 	if _grounded or _hang or _sliding or _roll_t >= 0.0 or _hollowing or _gliding:
 		return false
@@ -1582,7 +1206,7 @@ func _tick_step(delta: float) -> void:
 		_step_t = 0.0
 		_visual.visible = true
 		_step_burst()
-	_update_gloom(delta)
+	vitals._update_gloom(delta)
 
 
 func _step_burst() -> void:
@@ -1900,7 +1524,6 @@ const CRAWL_SPEED := 1.6
 const FALL_RESCUE_T := 6.0        ## falling this long (through the world, off the map): back to safe ground
 var _fall_t := 0.0
 var _stuck_t := 0.0
-var _stuck_from := Vector3.INF
 
 
 func is_hanging() -> bool:
@@ -2062,7 +1685,7 @@ func _tick_hang(delta: float, wish: Vector3) -> void:
 	_visual.hang_shimmy = lerpf(_visual.hang_shimmy, -shimmy, 1.0 - exp(-10.0 * delta))
 	_ease_tick(delta)
 	_animate(delta, Vector3.ZERO)
-	_update_gloom(delta)
+	vitals._update_gloom(delta)
 	_cam_air_prev = _cam_air
 	_cam_air = lerpf(_cam_air, 0.0, 1.0 - exp(-8.0 * delta))
 	_air_base = global_position.y
@@ -2141,7 +1764,7 @@ func _tick_climb(delta: float) -> void:
 	_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(_hang_n.x, _hang_n.z), 1.0 - exp(-12.0 * delta))
 	_ease_tick(delta)
 	_animate(delta, Vector3.ZERO)
-	_update_gloom(delta)
+	vitals._update_gloom(delta)
 	_cam_air_prev = _cam_air
 	_air_base = global_position.y
 	if u >= 1.0:
@@ -2235,7 +1858,7 @@ func _tick_vault(delta: float) -> void:
 	velocity = _vault_v
 	_ease_tick(delta)
 	_animate(delta, _vault_v)
-	_update_gloom(delta)
+	vitals._update_gloom(delta)
 	# the view rises only part of the hop over the wall, like a jump's (r29: it rode the whole arc,
 	# the bumpiest camera on the movement course)
 	_cam_air_prev = _cam_air
@@ -2651,7 +2274,7 @@ func _land(was_grounded: bool, vy_before: float) -> void:
 		camera_ctl.kick(0.3)                                # rolled out: no speed lost
 	elif impact > LAND_SLOW_V:
 		_land_slow = clampf((impact - LAND_SLOW_V) / 10.0, 0.0, 0.5 if impact < ROLL_LAND_V else 0.75)
-	_fall_hurt(impact)
+	vitals._fall_hurt(impact)
 	if impact > 5.0:
 		var k := clampf((impact - 5.0) / 8.0, 0.0, 1.0)
 		Vfx.burst(global_position + Vector3.UP * 0.05, Color(0.16, 0.15, 0.17, 0.55), {"count": 14, "life": 0.6, "speed": Vector2(0.6, 1.8), "size": 0.22, "gravity": -0.4, "dir": Vector3.UP, "spread": 85.0, "additive": false, "radius": 0.3})
@@ -2713,7 +2336,7 @@ func _tick_mantle(delta: float) -> void:
 	_cam_off.y -= maxf(p.y - global_position.y, 0.0) * 0.6
 	global_position = p
 	_animate(delta, Vector3.ZERO)
-	_update_gloom(delta)
+	vitals._update_gloom(delta)
 	if u >= 1.0:
 		_mantle_t = -1.0
 		var dir := Vector3(_mantle_to.x - _mantle_from.x, 0.0, _mantle_to.z - _mantle_from.z).normalized()
@@ -2751,3 +2374,28 @@ func set_view(yaw: float, pitch: float) -> void: camera_ctl.set_view(yaw, pitch)
 func cast_impulse() -> void: camera_ctl.cast_impulse()
 ## Camera punch, 0..1. Rides the existing land-dip pitch channel.
 func kick(amount: float) -> void: camera_ctl.kick(amount)
+## Lava: a heavy Gloom burn and a throw back to the last solid ground (see Lava).
+func lava_burn(amount: float) -> void: vitals.lava_burn(amount)
+## A strike or pounce passed through you during a Rift Step: slow time, stagger and mark the
+## attacker, and arm a free Rift Lash on your next bolt.
+func on_evaded(attacker: Node) -> void: vitals.on_evaded(attacker)
+## r33: a parry, a perfect dodge or a riposte lights Rift Surge (CombatState).
+func _surge(reason: StringName) -> void: vitals._surge(reason)
+func consume_riposte() -> bool: return vitals.consume_riposte()
+func add_gloom(amount: float) -> void: vitals.add_gloom(amount)
+## Raw Wounds (positive hurts, negative mends) with no hit reaction. At wounds_max you are hollowed.
+## Blows from the world go through take_wound (grace window, guard, the reaction); this is for
+## mending and for scripted hurts that do their own show (lava, a long fall, a crypt push-back).
+func add_wounds(amount: float) -> void: vitals.add_wounds(amount)
+## Kills, spent Resonance, Nova motes and the like: a little of the hurt closes.
+func mend(amount: float) -> void: vitals.mend(amount)
+func note_shade_unmade() -> void: vitals.note_shade_unmade()
+## A bolt or spell passed through the Shade. The first time, say what does work.
+func note_shade_passed() -> void: vitals.note_shade_passed()
+## r35: a blow from the world (a foe, a boss, their hazards). It wounds; it no longer fills the Gloom.
+## Two strikes inside HURT_GRACE count once; a held guard turns most of a blow from the front.
+func take_wound(amount: float, from_pos := Vector3.INF) -> void: vitals.take_wound(amount, from_pos)
+func hollow() -> void: await vitals.hollow()
+## Hollowing costs the ash carried since the last fire: it is left in a mound where you fell.
+## Walk back to it to take it up; be hollowed again first and it is gone.
+func _drop_ash() -> void: vitals._drop_ash()
