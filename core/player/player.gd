@@ -440,8 +440,12 @@ func _physics_process(delta: float) -> void:
 	if _vault_t >= 0.0:
 		traversal._tick_vault(delta)
 		return
-	if not autopilot and not _hollowing and Input.is_action_just_pressed("dodge") and evasion._try_dodge(wish):
-		pass
+	_dodge_buf = maxf(0.0, _dodge_buf - delta)
+	if not autopilot and not _hollowing:
+		if Input.is_action_just_pressed("dodge"):
+			_dodge_buf = DODGE_BUFFER
+		if _dodge_buf > 0.0 and evasion._try_dodge(wish):
+			_dodge_buf = 0.0                         # a press a hair early still rolls when the cooldown ends
 	_slide_cd = maxf(0.0, _slide_cd - delta)
 	_land_slow = move_toward(_land_slow, 0.0, delta * 2.2)
 	if not Input.is_action_pressed("slide"):
@@ -642,6 +646,8 @@ func debug_drive(wish: Vector3, sprint := false) -> void:
 var _look_t := 0.0
 var _jump_cut_t := 0.0
 var _stick_armed := true
+var _dodge_buf := 0.0
+const DODGE_BUFFER := 0.12
 const JUMP_CUT_V := 2.2                  ## a released jump eases its rise down to this
 var _look_foe: Enemy
 var _sprint_held := false

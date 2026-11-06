@@ -2118,7 +2118,7 @@ func _moves_pose(speed: float, on_floor: bool, dt: float) -> void:
 ## Tucked forward roll about the body's middle: the whole skeleton turns once, the staff with it.
 func _pose_roll(u: float) -> void:
 	var k := smoothstep(0.0, 0.14, u) * (1.0 - smoothstep(0.78, 1.0, u))
-	var spin := -TAU * smoothstep(0.06, 0.86, u)
+	var spin := -TAU * smoothstep(0.12, 0.86, u)       # the compress reads before the spin
 	var centre := Vector3(0.0, lerpf(_pelvis.position.y, 0.5, k), 0.0)
 	_pelvis.position = centre + Basis(Vector3.RIGHT, spin) * Vector3(0.0, -0.12 * k, 0.0)
 	_pelvis.rotation.x += spin
