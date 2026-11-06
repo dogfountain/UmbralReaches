@@ -97,6 +97,12 @@ func _ready() -> void:
 	offset_top = -DIAM - MARGIN - 26.0
 	offset_bottom = -MARGIN - 26.0
 	_font = load("res://ui/fonts/Cinzel.ttf")
+	Events.brazier_kindled.connect(_mark_changed)
+	Events.seal_broken.connect(_mark_changed)
+	Events.boss_slain.connect(_mark_changed)
+	Events.enemy_killed.connect(_mark_changed)
+	Events.quest_changed.connect(_mark_changed)
+	Events.world_event.connect(_mark_changed)
 	_ground = ColorRect.new()
 	_ground.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ground.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -147,16 +153,39 @@ func _process(delta: float) -> void:
 	_mat.set_shader_parameter("centre_uv", (Vector2(_you.x, _you.z) - _origin) / _size_m)
 	_mat.set_shader_parameter("right_uv", _right * rad / _size_m)
 	_mat.set_shader_parameter("fwd_uv", _fwd * rad / _size_m)
+	# the group walk runs when a mark can have changed (a fire, a seal, a kill, a task: _mark_changed), every
+	# half second while something moving is marked (foes), and only as a slow backstop otherwise
 	_scan -= delta
 	if _scan <= 0.0:
-		_scan = 0.5
+		_scan = 0.5 if _moving_marks else 4.0
 		_rescan()
+		_dirty = true
+	var young := false
 	for k: int in _new_marks:
 		_new_marks[k] = float(_new_marks[k]) + delta
-	queue_redraw()
+		young = young or float(_new_marks[k]) < 2.4
+	# redraw when the picture would move by a pixel: you moved, the camera yawed, the range changed, a mark
+	# came or went, a ping or a pulse is running, or the disc is fading
+	var sig: Array = [snappedf(_you.x, 0.1), snappedf(_you.z, 0.1), snappedf(_fwd.x, 0.002), snappedf(_fwd.y, 0.002),
+		snappedf(_facing.x, 0.02), snappedf(_facing.y, 0.02), _range_i, get_viewport_rect().size]
+	if _dirty or young or _pulsing or _alpha < 1.0 or sig != _sig:
+		_sig = sig
+		_dirty = false
+		queue_redraw()
 
 
 # --- markers ----------------------------------------------------------------------------------
+
+var _sig: Array = []
+var _dirty := true
+var _moving_marks := false              ## foes are marked: they walk, so the scan keeps its half second
+var _pulsing := false                   ## a guard ring or a task pin pulses: the disc redraws with it
+
+
+## Something a mark depends on changed: look again at the next frame.
+func _mark_changed(_a: Variant = null, _b: Variant = null, _c: Variant = null) -> void:
+	_scan = 0.0
+
 
 func _rescan() -> void:
 	_guards.clear()
@@ -195,6 +224,12 @@ func _rescan() -> void:
 			_marks.append({"pos": c3.global_position, "kind": "chest", "col": LANTERN})
 	_scan_markers()
 	_scan_place()
+	_moving_marks = false
+	_pulsing = not _guards.is_empty()
+	for mk: Dictionary in _marks:
+		var kd := String(mk.get("kind", ""))
+		_moving_marks = _moving_marks or kd == "foe"
+		_pulsing = _pulsing or kd == "m:quest_target"
 
 
 ## r33: the shared map_marker contract (wow_rules.md): Node3D, meta map_kind, optional map_label /
