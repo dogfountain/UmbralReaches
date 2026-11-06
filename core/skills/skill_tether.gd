@@ -139,7 +139,7 @@ func _hook(p: Player, e: Node3D, k: int, r: int, power: float, from: Vector3) ->
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(land + Vector3.UP * 2.5, land + Vector3.DOWN * 4.0, Layers.WORLD | Layers.PROPS, [p.get_rid()]))
 		if not hit.is_empty():
 			land = (hit.position as Vector3) + Vector3.UP * 0.05
-	var t := clampf(e.global_position.distance_to(land) / DRAG_SPEED, 0.22, 0.6)
+	var t := clampf(e.global_position.distance_to(land) / DRAG_SPEED, 0.18, 1.15)
 	Chain.throw(p, e, t)
 	Drag.start(e, land, t, func() -> void:
 		if is_instance_valid(e) and is_instance_valid(p):

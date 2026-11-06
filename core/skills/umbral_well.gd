@@ -77,7 +77,7 @@ func _ready() -> void:
 	_smoke.emitting = true
 	SpellFx.disc(global_position, radius, 0, SpellFx.VIOLET * 0.32, SpellFx.VIOLET_HOT * 0.42, life + OPEN + 0.3)   # a held field: quieter than a Nova
 	SpellFx.implosion(global_position, radius)
-	StaffSfx.play("well_open", global_position + Vector3.UP, 0.0)
+	StaffSfx.play("well_open", global_position + Vector3.UP, -2.0)
 
 
 func _physics_process(delta: float) -> void:

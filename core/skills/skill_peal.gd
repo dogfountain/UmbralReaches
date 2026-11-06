@@ -131,10 +131,11 @@ func _carillon(p: Player, r: int, power: float) -> void:
 	struck = 0
 	var pid := p.get_instance_id()
 	for k in 3:
-		p.get_tree().create_timer(CAR_GAP * float(k), false).timeout.connect(func() -> void:
+		var ring := k                       # this ring's own index, kept for its timer
+		p.get_tree().create_timer(CAR_GAP * float(ring), false).timeout.connect(func() -> void:
 			var p2 := instance_from_id(pid) as Player
 			if p2 == null or not p2.is_inside_tree():
 				return
 			struck += _stroke(p2, p2.global_position, Vector3.FORWARD, CAR_R, 180.0, CAR_DMG * power, r, 0)
-			Vfx.ring(p2.global_position + Vector3.UP * 0.1, CAR_R * (0.6 + 0.2 * float(k)), GOLD, 0.3, 0.05, Vector3.UP, 1.0)
-			StaffSfx.play("nova", p2.global_position, -6.0, 0.9 + 0.12 * float(k)))
+			Vfx.ring(p2.global_position + Vector3.UP * 0.1, CAR_R * (0.6 + 0.2 * float(ring)), GOLD, 0.3, 0.05, Vector3.UP, 1.0)
+			StaffSfx.play("nova", p2.global_position, -6.0, 0.9 + 0.12 * float(ring)))

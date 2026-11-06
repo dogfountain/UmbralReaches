@@ -169,7 +169,7 @@ func _loose(t: Node3D) -> void:
 		var u := float(i) / 9.0
 		pts.append(from.lerp(to, u) + bend * sin(u * PI))
 	Vfx.ribbon(pts, 0.03, 0.12, Color(1.4, 1.0, 3.0, 0.9), 0.22)
-	StaffSfx.play("dart", from, -6.0)
+	StaffSfx.play("dart", from, -3.0)
 	_vis.scale = Vector3.ONE * 1.25
 	create_tween().tween_property(_vis, "scale", Vector3.ONE, 0.2)
 	var tid := t.get_instance_id()
@@ -205,7 +205,7 @@ func _dive() -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "global_position", to, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void: _burst_at(to))
-	StaffSfx.play("dart", global_position, -2.0, 0.6)
+	StaffSfx.play("dart", global_position, -1.0, 0.6)
 
 
 func _burst_at(at: Vector3) -> void:

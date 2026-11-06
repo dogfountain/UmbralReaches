@@ -115,7 +115,7 @@ func _ready() -> void:
 	swirl.emitting = true
 	Vfx.ring(global_position, RADIUS, Color(2.4, 1.3, 0.45), 0.5, 0.05, Vector3.UP, 1.4)
 	Vfx.burst(global_position + Vector3.UP * 0.3, Color(2.6, 1.4, 0.5), {"count": 50, "life": 0.9, "speed": Vector2(2.0, 6.0), "size": 0.05, "gravity": -3.0, "trail": 0.1, "dir": Vector3.UP, "spread": 50.0})
-	Sfx.play(SFX_CHIME, global_position + Vector3.UP, -2.0)
+	Sfx.play(SFX_CHIME, global_position + Vector3.UP, 1.0)
 	LightGrid.register(self, RADIUS, LightGrid.WARD, DRAIN)
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(_light, "light_energy", 3.2, 0.35).set_ease(Tween.EASE_OUT)
