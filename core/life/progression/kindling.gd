@@ -247,7 +247,8 @@ func _on_item(id: String, _amount: int, _total: int) -> void:
 		# a found core goes in the orb at once if the orb holds the Hollow Core
 		if DB.core_of(st) == "":
 			st["core"] = id
-			Events.toast.emit("%s. It settles into the orb: every Rift Bolt is changed." % ItemDB.def(id).name)
+			var verb: String = {"core_prism": "bolts split", "core_lodestar": "bolts chain", "core_cinder": "bolts burn", "core_rime": "bolts chill"}.get(id, "every Rift Bolt is changed")
+			Events.toast.emit("%s. It settles into the orb: %s." % [ItemDB.def(id).name, verb])
 		refresh()
 	elif String(ItemDB.def(id).kind) == "charm":
 		# a found charm goes on at once if a slot is free
@@ -255,6 +256,9 @@ func _on_item(id: String, _amount: int, _total: int) -> void:
 		if not w.has(id) and w.size() < DB.slots(st):
 			w.append(id)
 			st["worn"] = w
+			Events.toast.emit("%s is on." % ItemDB.def(id).name)
+		elif not w.has(id):
+			Events.toast.emit("%s is in the bag: your sockets are full. Change it at a fire." % ItemDB.def(id).name)
 		refresh()
 	elif id == "grave_ash" and not st.has("told") and ash() >= 6:
 		st["told"] = true
