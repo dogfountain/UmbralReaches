@@ -136,6 +136,40 @@ static func _freeze(r: Dictionary) -> void:
 	Hints.once(&"frozen_shatter", "Frozen: the Lance, the Nova and a well's Event Horizon shatter the ice for double. The staff does not.")
 
 
+## Briar and Anchor each keep their own clock (`briar_until`, `anchor_until`, in ms) on one shared
+## base speed (`briar_base`). `kind` is &"briar" or &"anchor"; the foe is held until the later of the
+## two ends and then walks at its own speed once.
+static func hold(e: Node, kind: StringName, ms: int) -> void:
+	if not _alive(e):
+		return
+	if not e.has_meta(&"briar_base"):
+		e.set_meta(&"briar_base", e.get("walk_speed"))
+	e.set_meta(StringName("%s_until" % kind), Time.get_ticks_msec() + ms)
+	_settle(e)
+	var eid := e.get_instance_id()
+	e.get_tree().create_timer(float(ms) / 1000.0 + 0.05, false).timeout.connect(func() -> void:
+		var e2 := instance_from_id(eid) as Node
+		if e2 != null and is_instance_valid(e2):
+			_settle(e2))
+
+
+## The foe's speed from whatever still holds it (the rime and the plain slow when they are on).
+static func _settle(e: Node) -> void:
+	if _inst != null and is_instance_valid(_inst):
+		var recs: Dictionary = _inst.get("_rec")
+		if recs.has(e.get_instance_id()):
+			_inst._apply_speed(recs[e.get_instance_id()])
+			return
+	var now := Time.get_ticks_msec()
+	var base := float(e.get_meta(&"briar_base", e.get("walk_speed")))
+	var f := 1.0
+	if int(e.get_meta(&"anchor_until", 0)) > now:
+		f = 0.0
+	elif int(e.get_meta(&"briar_until", 0)) > now:
+		f = 0.45
+	e.set("walk_speed", base * f)
+
+
 static func is_frozen(e: Node) -> bool:
 	if _inst == null or not is_instance_valid(_inst) or e == null:
 		return false
@@ -281,7 +315,10 @@ func _apply_speed(r: Dictionary) -> void:
 		f = CHILL_SLOW
 	if float(r.slow) > 0.0:
 		f = minf(f, float(r.slow_f))
-	if int(e.get_meta(&"briar_until", 0)) > Time.get_ticks_msec():
+	var now := Time.get_ticks_msec()
+	if int(e.get_meta(&"anchor_until", 0)) > now:
+		f = 0.0
+	elif int(e.get_meta(&"briar_until", 0)) > now:
 		f = minf(f, 0.45)
 	e.set("walk_speed", float(r.base) * f)
 
@@ -312,6 +349,7 @@ func _drop(id: int, r: Dictionary, restore: bool) -> void:
 		(r.ice as Node).queue_free()
 	if restore and is_instance_valid(r.get("e")):
 		var e := r.get("e") as Node
-		var briar := int(e.get_meta(&"briar_until", 0)) > Time.get_ticks_msec()
-		e.set("walk_speed", float(r.base) * (0.45 if briar else 1.0))
+		var now := Time.get_ticks_msec()
+		var held := 0.0 if int(e.get_meta(&"anchor_until", 0)) > now else (0.45 if int(e.get_meta(&"briar_until", 0)) > now else 1.0)
+		e.set("walk_speed", float(r.base) * held)
 	_rec.erase(id)

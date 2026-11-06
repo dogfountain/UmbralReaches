@@ -931,16 +931,7 @@ func _splinter(at: Vector3) -> void:
 
 ## Thorn Heart · Briar: what the bolt hits is rooted in brambles: 45 % speed for 2.2 s.
 func _briar(e: Enemy) -> void:
-	if not e.has_meta(&"briar_base"):
-		e.set_meta(&"briar_base", e.walk_speed)
-	var base: float = e.get_meta(&"briar_base")
-	e.walk_speed = base * 0.45
-	var until := Time.get_ticks_msec() + 2200
-	e.set_meta(&"briar_until", until)
+	Afflict.hold(e, &"briar", 2200)
 	Vfx.ring(e.global_position + Vector3.UP * 0.06, 0.9, Color(2.0, 0.3, 0.25), 0.5, 0.06, Vector3.UP, 1.0)
 	Vfx.burst(e.global_position + Vector3.UP * 0.3, Color(0.5, 0.08, 0.06), {"count": 12, "life": 0.6, "speed": Vector2(0.5, 1.6), "size": 0.06, "gravity": 2.0, "additive": false})
-	var eid := e.get_instance_id()
-	e.get_tree().create_timer(2.25, false).timeout.connect(func() -> void:
-		var e2 := instance_from_id(eid) as Enemy
-		if e2 != null and int(e2.get_meta(&"briar_until", 0)) <= Time.get_ticks_msec():
-			e2.walk_speed = float(e2.get_meta(&"briar_base", e2.walk_speed)))
+

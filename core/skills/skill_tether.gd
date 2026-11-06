@@ -13,6 +13,7 @@ const Aim := preload("res://core/skills/aim.gd")
 const Chain := preload("res://core/skills/tether_chain.gd")
 const Drag := preload("res://core/skills/tether_drag.gd")
 const CombatState := preload("res://core/skills/combat_state.gd")
+const Afflict := preload("res://core/skills/afflict.gd")
 const Combo := preload("res://core/skills/combo.gd")
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 
@@ -224,17 +225,8 @@ func _anchor(e: Node3D) -> void:
 	if en == null:
 		return
 	en.add_mark(1)
-	if not en.has_meta(&"briar_base"):
-		en.set_meta(&"briar_base", en.walk_speed)
-	en.walk_speed = 0.0
-	var until := Time.get_ticks_msec() + int(ANCHOR_SECS * 1000.0)
-	en.set_meta(&"briar_until", until)
+	Afflict.hold(en, &"anchor", int(ANCHOR_SECS * 1000.0))
 	Vfx.ring(en.global_position + Vector3.UP * 0.06, 1.0, Chain.TEAL_HOT, ANCHOR_SECS, 0.08, Vector3.UP, 1.0)
-	var eid := en.get_instance_id()
-	en.get_tree().create_timer(ANCHOR_SECS + 0.05, false).timeout.connect(func() -> void:
-		var e2 := instance_from_id(eid) as Enemy
-		if e2 != null and int(e2.get_meta(&"briar_until", 0)) <= Time.get_ticks_msec():
-			e2.walk_speed = float(e2.get_meta(&"briar_base", e2.walk_speed)))
 
 
 ## r36 Haul: you land with a shock that throws back what stands within HAUL_R.
