@@ -41,7 +41,7 @@ func _trav_busy() -> bool:
 ## Drop every traversal state (teleports, respawns, lava).
 
 func _end_traverse() -> void:
-	player._end_glide()
+	player.evasion._end_glide()
 	if player._grapple != null:
 		player._grapple.cancel()
 	player._hang = false
