@@ -13,9 +13,10 @@ signal chosen(slot: int, fresh: bool)
 const UIType := preload("res://ui/type.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const SettingsMenu := preload("res://ui/settings_menu.gd")
-const LILAC := Color("#A98BFF")
-const INK := Color(0.92, 0.9, 1.0)
-const DIM := Color(0.62, 0.64, 0.78, 0.9)
+const Med := preload("res://ui/medieval_style.gd")
+const LILAC := Med.BONE_DIM
+const INK := Med.BONE
+const DIM := Color(Med.BONE_DIM, 0.9)
 ## Launch flags that mean "a harness is running this": the title would only stand in its way.
 const SKIP_FLAGS := ["--demo", "--bench", "--perf-baseline", "--test-shade", "--walk-rec", "--deepdive", "--shots-dir",
 	"--save-dir", "--fresh", "--no-title", "--quit-after-demo", "--loading", "--dev-start"]
@@ -46,24 +47,44 @@ func _ready() -> void:
 	layer = 125
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var bg := ColorRect.new()
-	bg.color = Color(0.012, 0.01, 0.03, 1.0)
+	bg.color = Color(0.03, 0.02, 0.012, 1.0)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var glow := ColorRect.new()                       # a faint violet low light, nothing more
 	glow.set_anchors_preset(Control.PRESET_FULL_RECT)
-	glow.color = Color(0.1, 0.06, 0.2, 0.0)
+	glow.color = Color(0.3, 0.16, 0.05, 0.0)
 	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(glow)
 	var tw := create_tween().set_loops()
 	tw.tween_property(glow, "color:a", 0.22, 4.0).set_trans(Tween.TRANS_SINE)
 	tw.tween_property(glow, "color:a", 0.06, 4.0).set_trans(Tween.TRANS_SINE)
+	var vig := _Border.new()
+	vig.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(vig)
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.theme = Med.theme()
 	add_child(center)
 	_title_col = VBoxContainer.new()
 	_title_col.add_theme_constant_override("separation", 10)
 	center.add_child(_title_col)
-	_title_col.add_child(_label("THE UMBRAL REACHES", 72, INK, UIType.title(), true))
+	var crest := _Crest.new()
+	crest.custom_minimum_size = Vector2(96, 112)
+	crest.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_title_col.add_child(crest)
+	var crown := Med.rule(Med.GILT_DEEP)
+	crown.custom_minimum_size = Vector2(520, 18)
+	crown.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_title_col.add_child(crown)
+	var ttl := _label("THE UMBRAL REACHES", 72, Med.GILT, UIType.title(), true)
+	Med.gilt(ttl, 72)
+	ttl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title_col.add_child(ttl)
+	var tail := Med.rule(Med.GILT_DEEP)
+	tail.custom_minimum_size = Vector2(520, 18)
+	tail.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_title_col.add_child(tail)
 	_title_col.add_child(_label("where the sky turns inward", 24, LILAC, UIType.body(), true))
 	_title_col.add_child(_gap(46))
 	_menu = VBoxContainer.new()
@@ -106,25 +127,8 @@ func _button(parent: Control, text: String, on_press: Callable, size := 24) -> B
 	b.text = text
 	b.add_theme_font_override("font", UIType.title())
 	b.add_theme_font_size_override("font_size", size)
-	b.add_theme_color_override("font_color", INK)
-	b.add_theme_color_override("font_hover_color", Color.WHITE)
-	b.add_theme_color_override("font_focus_color", Color.WHITE)
-	b.add_theme_color_override("font_disabled_color", DIM)
-	b.custom_minimum_size = Vector2(0, 52)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.06, 0.045, 0.12, 0.85)
-	sb.border_color = Color(0.5, 0.4, 0.8, 0.5)
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(4)
-	sb.set_content_margin_all(10)
-	var hov := sb.duplicate() as StyleBoxFlat
-	hov.bg_color = Color(0.16, 0.1, 0.3, 0.95)
-	hov.border_color = LILAC
-	b.add_theme_stylebox_override("normal", sb)
-	b.add_theme_stylebox_override("hover", hov)
-	b.add_theme_stylebox_override("focus", hov)
-	b.add_theme_stylebox_override("pressed", hov)
-	b.add_theme_stylebox_override("disabled", sb)
+	Med.style_button(b, size, 22, 8)
+	b.custom_minimum_size = Vector2(0, 56)
 	b.pressed.connect(func() -> void:
 		UiSound.play(self, "confirm")
 		on_press.call())
@@ -140,6 +144,34 @@ func _clear(box: Container) -> void:
 			_buttons.erase(c)
 		box.remove_child(c)
 		c.queue_free()
+
+
+## A thin double rule inset from the screen edge with a bronze square at each corner, like an illuminated page.
+class _Border extends Control:
+	func _draw() -> void:
+		var m := 28.0
+		var r := Rect2(Vector2(m, m), size - Vector2(m, m) * 2.0)
+		draw_rect(r, Color(0.62, 0.45, 0.2, 0.55), false, 2.0)
+		draw_rect(r.grow(-7), Color(0.62, 0.45, 0.2, 0.3), false, 1.0)
+		for c: Vector2 in [r.position, Vector2(r.end.x, r.position.y), Vector2(r.position.x, r.end.y), r.end]:
+			draw_rect(Rect2(c - Vector2(7, 7), Vector2(14, 14)), Color(0.78, 0.58, 0.24, 0.9))
+			draw_rect(Rect2(c - Vector2(7, 7), Vector2(14, 14)), Color(0.05, 0.03, 0.015), false, 2.0)
+			draw_circle(c, 2.5, Color(0.1, 0.05, 0.02))
+
+
+## A heater shield in oxblood and bronze, bearing a gilt crescent over a small flame.
+class _Crest extends Control:
+	func _draw() -> void:
+		var c := Vector2(size.x * 0.5, 0.0)
+		var pts := PackedVector2Array([c + Vector2(-40, 6), c + Vector2(40, 6), c + Vector2(40, 52), c + Vector2(26, 82), c + Vector2(0, 106), c + Vector2(-26, 82), c + Vector2(-40, 52)])
+		draw_colored_polygon(pts, Color(0.36, 0.07, 0.06))
+		var ring := pts.duplicate()
+		ring.append(pts[0])
+		draw_polyline(ring, Color(0.62, 0.45, 0.2), 4.0, true)
+		draw_polyline(ring, Color(0.9, 0.72, 0.38), 1.5, true)
+		draw_circle(c + Vector2(0, 42), 20.0, Color(0.95, 0.78, 0.4))
+		draw_circle(c + Vector2(8, 38), 18.0, Color(0.36, 0.07, 0.06))
+		draw_colored_polygon(PackedVector2Array([c + Vector2(-6, 76), c + Vector2(0, 58), c + Vector2(6, 76)]), Color(0.95, 0.78, 0.4))
 
 
 # --- pages ---------------------------------------------------------------------------------------------

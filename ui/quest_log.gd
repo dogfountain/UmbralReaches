@@ -18,9 +18,10 @@ const UIType := preload("res://ui/type.gd")
 const UiSound := preload("res://ui/ui_sound.gd")   ## quiet menu sounds (F)
 const TextDirector := preload("res://ui/text_director.gd")
 const ACTION := "quest_log"
-const LANTERN := Color("#FFB347")
-const QUIET := Color(0.78, 0.8, 0.9)
-const INK := Color(0.93, 0.89, 0.82)
+const Med := preload("res://ui/medieval_style.gd")
+const LANTERN := Med.GILT
+const QUIET := Med.BONE_DIM
+const INK := Med.BONE
 
 var _font: Font
 var _banner: VBoxContainer
@@ -81,8 +82,8 @@ func _build_banner() -> void:
 	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_banner.modulate.a = 0.0
 	add_child(_banner)
-	_b_top = _lbl(18, Color(1.0, 0.7, 0.28, 0.85))
-	_b_name = _lbl(38, Color(0.96, 0.92, 0.84))
+	_b_top = _lbl(18, Med.GILT_DEEP)
+	_b_name = _lbl(38, Med.BONE)
 	_b_sub = _lbl(20, QUIET, false)
 	for l: Label in [_b_top, _b_name, _b_sub]:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -118,12 +119,8 @@ func _build_ledger() -> void:
 	_panel.offset_right = 720
 	_panel.offset_top = -430
 	_panel.offset_bottom = 430
-	var sb := _frame(Color(0.03, 0.025, 0.06, 0.95), Color(1.0, 0.7, 0.28, 0.5))
-	sb.content_margin_left = 30
-	sb.content_margin_right = 30
-	sb.content_margin_top = 22
-	sb.content_margin_bottom = 20
-	_panel.add_theme_stylebox_override("panel", sb)
+	_panel.theme = Med.theme()
+	_panel.add_theme_stylebox_override("panel", Med.panel("leather", 36))
 	_panel.visible = false
 	add_child(_panel)
 	var col := VBoxContainer.new()
@@ -150,9 +147,7 @@ func _build_ledger() -> void:
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list.add_theme_constant_override("separation", 2)
 	left.add_child(_list)
-	var rule := ColorRect.new()
-	rule.color = Color(1.0, 0.7, 0.28, 0.22)
-	rule.custom_minimum_size = Vector2(2, 0)
+	var rule := VSeparator.new()
 	row.add_child(rule)
 	var right := ScrollContainer.new()
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -313,7 +308,7 @@ func _fill() -> void:
 		var z := "#done" if done else String(Chains.QUESTS[id].get("zone", ""))
 		if z != zone:
 			zone = z
-			var h := _lbl(16, Color(1.0, 0.7, 0.28, 0.75))
+			var h := _lbl(16, Color(Med.GILT_DEEP, 0.95))
 			h.text = "FINISHED" if done else Chains.zone_name(z).to_upper()
 			if _list.get_child_count() > 0:
 				var gap := Control.new()
@@ -370,19 +365,19 @@ func _fill_detail() -> void:
 	if sel == "" or not Chains.QUESTS.has(sel):
 		return
 	var qd: Dictionary = Chains.QUESTS[sel]
-	var n := _lbl(30, Color(0.96, 0.92, 0.84))
+	var n := _lbl(30, Med.BONE)
 	n.text = String(qd.name)
 	n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail.add_child(n)
 	var w := _lbl(17, Color(QUIET, 0.75), false)
 	w.text = "%s   ·   %s" % [String(qd.where), Chains.zone_name(String(qd.get("zone", "")))]
 	_detail.add_child(w)
-	var tx := _lbl(20, Color(0.86, 0.83, 0.78), false)
+	var tx := _lbl(20, Med.BONE, false)
 	tx.text = String(qd.get("text", ""))
 	tx.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail.add_child(tx)
 	var done := Book.done(sel)
-	var h := _lbl(16, Color(1.0, 0.7, 0.28, 0.75))
+	var h := _lbl(16, Color(Med.GILT_DEEP, 0.95))
 	h.text = "HOW IT ENDED" if done else "WHAT IS WANTED"
 	_detail.add_child(h)
 	if done:
@@ -404,7 +399,7 @@ func _fill_detail() -> void:
 				st.text = "  ✓  " + String(stp.text).replace(" ({n}/{of})", "")
 			st.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			_detail.add_child(st)
-		var ph := _lbl(16, Color(1.0, 0.7, 0.28, 0.75))
+		var ph := _lbl(16, Color(Med.GILT_DEEP, 0.95))
 		ph.text = "WHAT IT PAYS"
 		_detail.add_child(ph)
 		var pay := _lbl(19, INK, false)
@@ -440,11 +435,7 @@ func _button(t: String) -> Button:
 	b.add_theme_font_size_override("font_size", 19)
 	b.add_theme_color_override("font_color", INK)
 	b.add_theme_color_override("font_hover_color", LANTERN)
-	for st: String in ["normal", "hover", "pressed"]:
-		var sb := _frame(Color(0.08, 0.06, 0.08, 0.95) if st == "normal" else Color(0.16, 0.1, 0.06, 0.95), Color(1.0, 0.7, 0.28, 0.5), 2)
-		sb.content_margin_left = 14
-		sb.content_margin_right = 14
-		b.add_theme_stylebox_override(st, sb)
+	Med.style_button(b, 19, 14, 6)
 	return b
 
 

@@ -10,7 +10,7 @@ extends Control
 
 const LANTERN := Color("#FFB347")
 const EMBER := Color("#FF6A2A")
-const INK := Color(0.82, 0.84, 0.95)
+const INK := Color(0.9, 0.84, 0.7)
 const SPAN := deg_to_rad(180.0)          ## heading shown across the full width
 const WIDTH := 500.0                     ## kept clear of the objective lines at the top right (1600 px wide and up)
 const HEIGHT := 46.0
@@ -110,10 +110,10 @@ func _draw() -> void:
 		var t0 := float(i) / steps
 		var t1 := float(i + 1) / steps
 		var a := _edge(lerpf(t0, t1, 0.5)) * 0.42 * _alpha
-		draw_rect(Rect2(t0 * WIDTH, band_y - 12.0, (t1 - t0) * WIDTH + 0.5, 26.0), Color(0.015, 0.02, 0.04, a))
+		draw_rect(Rect2(t0 * WIDTH, band_y - 12.0, (t1 - t0) * WIDTH + 0.5, 26.0), Color(0.035, 0.022, 0.012, a))
 		var la := _edge(lerpf(t0, t1, 0.5)) * 0.55 * _alpha
-		draw_line(Vector2(t0 * WIDTH, band_y - 12.0), Vector2(t1 * WIDTH, band_y - 12.0), Color(INK.r, INK.g, INK.b, la * 0.5), 1.0)
-		draw_line(Vector2(t0 * WIDTH, band_y + 14.0), Vector2(t1 * WIDTH, band_y + 14.0), Color(INK.r, INK.g, INK.b, la * 0.5), 1.0)
+		draw_line(Vector2(t0 * WIDTH, band_y - 12.0), Vector2(t1 * WIDTH, band_y - 12.0), Color(0.62, 0.45, 0.2, la * 0.8), 1.5)
+		draw_line(Vector2(t0 * WIDTH, band_y + 14.0), Vector2(t1 * WIDTH, band_y + 14.0), Color(0.62, 0.45, 0.2, la * 0.8), 1.5)
 	# ticks and winds
 	var winds := {0: "N", 90: "E", 180: "S", 270: "W"}
 	for deg in range(0, 360, 15):

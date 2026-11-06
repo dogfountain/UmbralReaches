@@ -15,8 +15,9 @@ const Icons := preload("res://core/life/progression/icons.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const UIType := preload("res://ui/type.gd")
 
-const INK := Color(0.92, 0.88, 1.0)
-const QUIET := Color(0.64, 0.6, 0.74)
+const Med := preload("res://ui/medieval_style.gd")
+const INK := Med.BONE
+const QUIET := Med.BONE_DIM
 const LEAVE_R := 5.0
 
 var bag: Node3D
@@ -48,16 +49,8 @@ func _build() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
 	_panel = PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.035, 0.02, 0.05, 0.95)
-	sb.border_color = Color(1.0, 0.7, 0.3, 0.55)
-	sb.set_border_width_all(2)
-	sb.border_width_top = 3
-	sb.set_corner_radius_all(5)
-	sb.set_content_margin_all(14)
-	sb.shadow_color = Color(0, 0, 0, 0.5)
-	sb.shadow_size = 10
-	_panel.add_theme_stylebox_override("panel", sb)
+	_panel.theme = Med.theme()
+	_panel.add_theme_stylebox_override("panel", Med.panel("leather", 30))
 	_panel.position = Vector2(140, 220)
 	_panel.custom_minimum_size = Vector2(360, 0)
 	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -66,10 +59,9 @@ func _build() -> void:
 	col.add_theme_constant_override("separation", 8)
 	_panel.add_child(col)
 	_title = Label.new()
-	_title.add_theme_font_override("font", UIType.title())
-	_title.add_theme_font_size_override("font_size", 22)
-	_title.add_theme_color_override("font_color", Color(1.0, 0.78, 0.45))
+	Med.gilt(_title, 22)
 	col.add_child(_title)
+	col.add_child(Med.rule())
 	_rows_box = VBoxContainer.new()
 	_rows_box.add_theme_constant_override("separation", 4)
 	col.add_child(_rows_box)
@@ -95,14 +87,7 @@ func _button(t: String, cb: Callable) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_override("font", _font)
 	b.add_theme_font_size_override("font_size", 16)
-	for st: String in ["normal", "hover", "pressed"]:
-		var s := StyleBoxFlat.new()
-		s.bg_color = Color(0.12, 0.07, 0.04, 0.9) if st == "normal" else Color(0.22, 0.12, 0.05, 0.95)
-		s.border_color = Color(1.0, 0.7, 0.3, 0.5 if st == "normal" else 0.9)
-		s.set_border_width_all(1)
-		s.set_content_margin_all(7)
-		b.add_theme_stylebox_override(st, s)
-	b.add_theme_color_override("font_color", Color(1.0, 0.82, 0.55))
+	Med.style_button(b, 16, 12, 5)
 	b.pressed.connect(cb)
 	return b
 
@@ -204,8 +189,7 @@ func _sub(e: Dictionary, q: int) -> String:
 
 func _draw_icon(ci: Control, e: Dictionary, q: int) -> void:
 	var col := LootDB.quality_color(q)
-	ci.draw_rect(Rect2(Vector2.ZERO, ci.size), Color(0.05, 0.03, 0.07, 0.95), true)
-	ci.draw_rect(Rect2(Vector2.ONE, ci.size - Vector2(2, 2)), col, false, 2.0)
+	ci.draw_style_box(Med.slot(col), Rect2(Vector2.ZERO, ci.size))
 	var c := ci.size * 0.5
 	if String(e.get("kind", "")) == "gear":
 		var p: Dictionary = e.get("piece", {})
@@ -220,8 +204,8 @@ func _mark() -> void:
 	for i in _rows.size():
 		var on := i == sel
 		var s := StyleBoxFlat.new()
-		s.bg_color = Color(0.2, 0.12, 0.05, 0.5) if on else Color(0, 0, 0, 0)
-		s.border_color = Color(1.0, 0.7, 0.3, 0.45) if on else Color(0, 0, 0, 0)
+		s.bg_color = Color(0.36, 0.22, 0.09, 0.55) if on else Color(0, 0, 0, 0)
+		s.border_color = Color(Med.GILT, 0.6) if on else Color(0, 0, 0, 0)
 		s.set_border_width_all(1)
 		_rows[i].add_theme_stylebox_override("normal", s)
 		_rows[i].add_theme_stylebox_override("hover", s)

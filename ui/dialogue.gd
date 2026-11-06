@@ -15,8 +15,9 @@ signal closed
 
 const UIType := preload("res://ui/type.gd")
 const TextDirector := preload("res://ui/text_director.gd")
-const LANTERN := Color("#FFB347")
-const QUIET := Color(0.78, 0.8, 0.9)
+const Med := preload("res://ui/medieval_style.gd")
+const LANTERN := Med.GILT
+const QUIET := Med.BONE_DIM
 const CPS := 52.0                          ## typed characters per second
 const DwarfRigScript := preload("res://core/npc/dwarf_rig.gd")
 const Voice := preload("res://core/npc/npc_voice.gd")
@@ -79,18 +80,12 @@ func _build_box() -> void:
 	_panel.offset_top = -330
 	_panel.offset_bottom = -40
 	_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN      # long menus grow up, never off the screen
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.03, 0.025, 0.06, 0.95)
-	sb.border_color = Color(1.0, 0.7, 0.28, 0.55)
-	sb.set_border_width_all(2)
-	sb.border_width_top = 3
-	sb.set_corner_radius_all(4)
-	sb.content_margin_left = 22
-	sb.content_margin_right = 26
-	sb.content_margin_top = 18
-	sb.content_margin_bottom = 16
-	sb.shadow_color = Color(0, 0, 0, 0.5)
-	sb.shadow_size = 12
+	_panel.theme = Med.theme()
+	var sb := Med.panel("leather", 36)
+	sb.content_margin_left = 34
+	sb.content_margin_right = 36
+	sb.content_margin_top = 30
+	sb.content_margin_bottom = 26
 	_panel.add_theme_stylebox_override("panel", sb)
 	_root.add_child(_panel)
 	var row := HBoxContainer.new()
@@ -98,10 +93,8 @@ func _build_box() -> void:
 	_panel.add_child(row)
 	# portrait: the speaker's own rig, lit by a candle, in a framed square
 	var frame := PanelContainer.new()
-	var fsb := StyleBoxFlat.new()
-	fsb.bg_color = Color(0.0, 0.0, 0.0, 0.6)
-	fsb.border_color = Color(1.0, 0.7, 0.28, 0.4)
-	fsb.set_border_width_all(2)
+	var fsb := Med.slot(Med.BRONZE.lightened(0.3))
+	fsb.set_content_margin_all(5)
 	frame.add_theme_stylebox_override("panel", fsb)
 	frame.custom_minimum_size = Vector2(250, 250)
 	frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -124,27 +117,23 @@ func _build_box() -> void:
 	col.add_theme_constant_override("separation", 10)
 	row.add_child(col)
 	_name = Label.new()
-	_name.add_theme_font_override("font", _font)
-	_name.add_theme_font_size_override("font_size", 30)
-	_name.add_theme_color_override("font_color", LANTERN)
-	_name.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-	_name.add_theme_constant_override("shadow_offset_x", 2)
-	_name.add_theme_constant_override("shadow_offset_y", 2)
+	Med.gilt(_name, 28)
 	var name_row := HBoxContainer.new()
 	name_row.add_theme_constant_override("separation", 18)
 	col.add_child(name_row)
-	name_row.add_child(_name)
+	var banner := PanelContainer.new()                  # the speaker's name on a small cloth banner
+	banner.add_theme_stylebox_override("panel", Med.banner())
+	banner.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	banner.add_child(_name)
+	name_row.add_child(banner)
 	_mood = Label.new()
 	_mood.add_theme_font_override("font", UIType.body())
 	_mood.add_theme_font_size_override("font_size", 18)
-	_mood.add_theme_color_override("font_color", Color(QUIET, 0.6))
+	_mood.add_theme_color_override("font_color", Color(QUIET, 0.85))
 	_mood.size_flags_vertical = Control.SIZE_SHRINK_END
 	_mood.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(_mood)
-	var rule := ColorRect.new()
-	rule.color = Color(1.0, 0.7, 0.28, 0.35)
-	rule.custom_minimum_size = Vector2(0, 2)
-	col.add_child(rule)
+	col.add_child(Med.rule())
 	_text = RichTextLabel.new()
 	_text.bbcode_enabled = false
 	_text.fit_content = true
@@ -152,7 +141,7 @@ func _build_box() -> void:
 	_text.custom_minimum_size = Vector2(0, 96)
 	_text.add_theme_font_override("normal_font", UIType.body())
 	_text.add_theme_font_size_override("normal_font_size", 27)
-	_text.add_theme_color_override("default_color", Color(0.93, 0.9, 0.84))
+	_text.add_theme_color_override("default_color", Med.BONE)
 	_text.add_theme_constant_override("line_separation", 6)
 	_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_text)

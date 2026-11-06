@@ -9,11 +9,12 @@ extends CanvasLayer
 ## a foe in range...), once per save (Hints.once). Every transient line of text goes through the
 ## TextDirector (ui/text_director.gd): lanes, priorities, one banner at a time.
 
-const LILAC := Color("#A98BFF")
+const Med := preload("res://ui/medieval_style.gd")
+const LILAC := Med.GILT
 const LANTERN := Color("#FFB347")
 const EMBER := Color("#FF5A1F")
 const VOID := Color("#05040D")
-const QUIET := Color(0.72, 0.74, 0.86, 0.85)
+const QUIET := Color(Med.BONE, 0.9)
 
 const BAKE_INFO := "res://world/zones/ascension/bake_info.gd"
 const BOOT_DIAG := preload("res://core/debug/boot_diag.gd")
@@ -77,7 +78,7 @@ class GloomBar extends Control:
 
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
-		draw_rect(r, Color(0.02, 0.016, 0.05, 0.7))
+		draw_rect(r, Color(0.03, 0.02, 0.012, 0.85))
 		var t := value
 		var fill := Color("#A98BFF").lerp(Color("#FF5A1F"), smoothstep(0.5, 1.0, t))
 		if t > 0.75:
@@ -86,7 +87,10 @@ class GloomBar extends Control:
 		for i in range(1, 4):   # quarter ticks
 			var x := size.x * i / 4.0
 			draw_line(Vector2(x, 0), Vector2(x, size.y), Color(0, 0, 0, 0.6), 2.0)
-		draw_rect(r, Color(0.66, 0.55, 1.0, 0.45), false, 2.0)
+		draw_rect(r, Color(0.05, 0.03, 0.015), false, 3.0)               # forged rim: dark outline, bronze edge, rivets at the ends
+		draw_rect(r.grow(-1.0), Color(Med.BRONZE, 0.95), false, 1.5)
+		for rx in [2.0, size.x - 2.0]:
+			draw_circle(Vector2(rx, size.y * 0.5), 2.2, Med.BRONZE.lightened(0.3))
 
 
 func _ready() -> void:
@@ -126,13 +130,13 @@ func _ready() -> void:
 	_prompt.offset_right = 500
 	_prompt.modulate.a = 0.0
 
-	_title = _label(root, "", 64, Color(0.92, 0.9, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	_title = _label(root, "", 64, Med.GILT, HORIZONTAL_ALIGNMENT_CENTER)
 	_title.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	_title.offset_top = 250
 	_title.offset_bottom = 340
 	_title.offset_left = -900
 	_title.offset_right = 900
-	_subtitle = _label(root, "", 26, LILAC, HORIZONTAL_ALIGNMENT_CENTER)
+	_subtitle = _label(root, "", 26, Med.BONE, HORIZONTAL_ALIGNMENT_CENTER)
 	_subtitle.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	_subtitle.offset_top = 340
 	_subtitle.offset_bottom = 380

@@ -24,8 +24,9 @@ const GearDB := preload("res://core/items/gear_db.gd")
 const GearStats := preload("res://core/items/gear_stats.gd")
 const Tip := preload("res://ui/item_tooltip.gd")
 const TABS := ["Wares", "Sell", "Buy back"]
-const LANTERN := Color("#FFB347")
-const QUIET := Color(0.78, 0.8, 0.9)
+const Med := preload("res://ui/medieval_style.gd")
+const LANTERN := Med.GILT
+const QUIET := Med.BONE_DIM
 const ASH_TINT := Color(0.62, 0.58, 0.66)
 const CPS := 55.0
 
@@ -100,14 +101,10 @@ func _build() -> void:
 	_panel.offset_right = 640
 	_panel.offset_top = -380
 	_panel.offset_bottom = 380
-	var sb := _box(Color(0.03, 0.025, 0.06, 0.96), Color(1.0, 0.7, 0.28, 0.55))
-	sb.border_width_top = 3
-	sb.content_margin_left = 28
-	sb.content_margin_right = 28
-	sb.content_margin_top = 20
-	sb.content_margin_bottom = 18
-	sb.shadow_color = Color(0, 0, 0, 0.55)
-	sb.shadow_size = 14
+	_panel.theme = Med.theme()
+	var sb := Med.panel("leather", 34)
+	sb.content_margin_top = 28
+	sb.content_margin_bottom = 26
 	_panel.add_theme_stylebox_override("panel", sb)
 	add_child(_panel)
 	var col := VBoxContainer.new()
@@ -115,7 +112,7 @@ func _build() -> void:
 	_panel.add_child(col)
 	_title = _label(32, LANTERN, true)
 	col.add_child(_title)
-	_line = _label(23, Color(0.93, 0.9, 0.84))
+	_line = _label(23, Med.BONE)
 	_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_line.custom_minimum_size = Vector2(0, 62)
 	col.add_child(_line)
@@ -132,10 +129,7 @@ func _build() -> void:
 		tabs.add_child(tb)
 		_tab_btns.append(tb)
 	col.add_child(tabs)
-	var rule := ColorRect.new()
-	rule.color = Color(1.0, 0.7, 0.28, 0.35)
-	rule.custom_minimum_size = Vector2(0, 2)
-	col.add_child(rule)
+	col.add_child(Med.rule())
 	var row := HBoxContainer.new()
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", 26)
@@ -152,11 +146,7 @@ func _build() -> void:
 	# the marked ware
 	var det := PanelContainer.new()
 	det.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var dsb := _box(Color(0.0, 0.0, 0.0, 0.35), Color(1.0, 0.7, 0.28, 0.25), 1)
-	dsb.content_margin_left = 18
-	dsb.content_margin_right = 18
-	dsb.content_margin_top = 16
-	dsb.content_margin_bottom = 16
+	var dsb := Med.inset(18)
 	det.add_theme_stylebox_override("panel", dsb)
 	row.add_child(det)
 	var dc := VBoxContainer.new()
@@ -172,7 +162,7 @@ func _build() -> void:
 	_d_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_d_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dc.add_child(_d_name)
-	_d_text = _label(21, Color(0.86, 0.84, 0.8))
+	_d_text = _label(21, Med.BONE)
 	_d_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_d_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	dc.add_child(_d_text)
@@ -182,10 +172,10 @@ func _build() -> void:
 	_d_rich.custom_minimum_size = Vector2(0, 200)
 	_d_rich.add_theme_font_size_override("normal_font_size", 17)
 	_d_rich.add_theme_font_size_override("bold_font_size", 19)
-	_d_rich.add_theme_color_override("default_color", Color(0.9, 0.87, 0.95))
+	_d_rich.add_theme_color_override("default_color", Med.BONE)
 	_d_rich.visible = false
 	dc.add_child(_d_rich)
-	_d_price = _label(24, Color(0.9, 0.87, 0.95), true)
+	_d_price = _label(24, Med.BONE, true)
 	_d_price.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dc.add_child(_d_price)
 	_d_why = _label(19, Color(0.95, 0.55, 0.45))
@@ -196,12 +186,7 @@ func _build() -> void:
 	_buy.focus_mode = Control.FOCUS_NONE
 	_buy.add_theme_font_override("font", _font)
 	_buy.add_theme_font_size_override("font_size", 24)
-	_buy.add_theme_stylebox_override("normal", _box(Color(0.14, 0.08, 0.03, 0.9), Color(1.0, 0.7, 0.28, 0.6)))
-	_buy.add_theme_stylebox_override("hover", _box(Color(0.24, 0.13, 0.04, 0.95), LANTERN))
-	_buy.add_theme_stylebox_override("pressed", _box(Color(0.3, 0.16, 0.05, 0.95), LANTERN))
-	_buy.add_theme_stylebox_override("disabled", _box(Color(0.06, 0.05, 0.06, 0.8), Color(0.5, 0.45, 0.4, 0.3)))
-	_buy.add_theme_color_override("font_color", LANTERN)
-	_buy.add_theme_color_override("font_disabled_color", Color(0.5, 0.48, 0.5))
+	Med.style_button(_buy, 24, 16, 8)
 	_buy.custom_minimum_size = Vector2(0, 50)
 	_buy.pressed.connect(func() -> void: buy_marked())
 	dc.add_child(_buy)
@@ -213,7 +198,7 @@ func _build() -> void:
 	_ash_icon.custom_minimum_size = Vector2(34, 34)
 	_ash_icon.draw.connect(func() -> void: Icons.draw(_ash_icon, "mound", Vector2(17, 19), 13.0, ASH_TINT))
 	foot.add_child(_ash_icon)
-	_ash = _label(23, Color(0.88, 0.85, 0.92), true)
+	_ash = _label(23, Med.BONE, true)
 	foot.add_child(_ash)
 	var fill := Control.new()
 	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -281,9 +266,12 @@ func _refresh() -> void:
 			rows = Shop.stock(who, get_tree())
 	for i in _tab_btns.size():
 		var on := i == tab
-		_tab_btns[i].add_theme_stylebox_override("normal", _box(Color(0.24, 0.13, 0.04, 0.9) if on else Color(0.06, 0.04, 0.06, 0.8), Color(1.0, 0.7, 0.28, 0.8 if on else 0.25), 1))
-		_tab_btns[i].add_theme_stylebox_override("hover", _box(Color(0.24, 0.13, 0.04, 0.9), LANTERN, 1))
-		_tab_btns[i].add_theme_color_override("font_color", LANTERN if on else Color(0.7, 0.66, 0.6))
+		var tbx := Med.tab(on)
+		_tab_btns[i].add_theme_stylebox_override("normal", tbx)
+		_tab_btns[i].add_theme_stylebox_override("hover", tbx)
+		_tab_btns[i].add_theme_stylebox_override("pressed", tbx)
+		_tab_btns[i].add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		_tab_btns[i].add_theme_color_override("font_color", LANTERN if on else Med.BONE_DIM)
 	for c in _items:
 		c.queue_free()
 	_items.clear()
@@ -292,7 +280,7 @@ func _refresh() -> void:
 		var r: Dictionary = rows[i]
 		if String(r.get("group", "")) != group:
 			group = String(r.get("group", ""))
-			var h := _label(17, Color(1.0, 0.7, 0.28, 0.7), true)
+			var h := _label(17, Color(Med.GILT, 0.75), true)
 			h.text = group.to_upper()
 			_list.add_child(h)
 			_items.append(h)
@@ -351,8 +339,8 @@ func _mark() -> void:
 		if c is Button:
 			var i := int(c.get_meta("row"))
 			var on := i == sel
-			(c as Button).add_theme_stylebox_override("normal", _box(Color(0.2, 0.11, 0.03, 0.55) if on else Color(0, 0, 0, 0), Color(1.0, 0.7, 0.28, 0.55) if on else Color(0, 0, 0, 0), 1))
-			(c as Button).add_theme_stylebox_override("hover", _box(Color(0.2, 0.11, 0.03, 0.55), Color(1.0, 0.7, 0.28, 0.55), 1))
+			(c as Button).add_theme_stylebox_override("normal", _box(Color(0.36, 0.22, 0.09, 0.55) if on else Color(0, 0, 0, 0), Color(Med.GILT, 0.6) if on else Color(0, 0, 0, 0), 1))
+			(c as Button).add_theme_stylebox_override("hover", _box(Color(0.36, 0.22, 0.09, 0.55), Color(Med.GILT, 0.6), 1))
 	if sel < rows.size():
 		var r: Dictionary = rows[sel]
 		_d_name.text = String(r.name)

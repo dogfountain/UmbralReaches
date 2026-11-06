@@ -24,11 +24,12 @@ const HearthRT := preload("res://core/life/progression/hearth.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const Icons := preload("res://core/life/progression/icons.gd")
 
-const INK := Color(0.92, 0.88, 1.0)
-const QUIET := Color(0.64, 0.6, 0.74)
-const DIM := Color(0.46, 0.43, 0.55)
-const LILAC := Color("#A98BFF")
-const EDGE := Color(0.42, 0.32, 0.58)
+const Med := preload("res://ui/medieval_style.gd")
+const INK := Med.BONE
+const QUIET := Med.BONE_DIM
+const DIM := Med.BONE_FAINT
+const LILAC := Med.GILT
+const EDGE := Med.BRONZE
 const EMBER := Color(1.0, 0.66, 0.36)
 const EMBER_HOT := Color(1.0, 0.84, 0.6)
 const WARN := Color(0.95, 0.55, 0.42)
@@ -129,41 +130,28 @@ class Card extends Control:
 
 	func _draw() -> void:
 		var r := Rect2(Vector2(2, 2), size - Vector2(4, 4))
-		var bg := Color(0.06, 0.035, 0.085, 0.94)
-		var edge := EDGE
+		var rim := Color(0.86, 0.84, 0.8)
 		var icon_col := tint
 		var title_col := INK
 		match look:
 			"owned":
-				bg = Color(0.1, 0.055, 0.06, 0.96)
-				edge = Color(0.85, 0.55, 0.3, 0.9)
+				rim = Color(1.0, 0.7, 0.42)
 			"open":
-				edge = LILAC
+				rim = Color(1.1, 0.92, 0.6)
 			"poor":
-				edge = Color(EDGE, 0.9)
+				rim = Color(0.8, 0.74, 0.7)
 			"locked", "lost":
-				bg = Color(0.035, 0.022, 0.05, 0.9)
-				edge = Color(0.3, 0.24, 0.4, 0.7)
+				rim = Color(0.5, 0.46, 0.44, 0.85)
 				icon_col = Color(tint.darkened(0.55), 0.7)
 				title_col = DIM
 			"forsworn":
-				bg = Color(0.03, 0.02, 0.04, 0.9)
-				edge = Color(0.28, 0.22, 0.34, 0.6)
+				rim = Color(0.38, 0.34, 0.34, 0.8)
 				icon_col = Color(tint.darkened(0.6), 0.5)
 				title_col = DIM
-		if kind == "head":
-			bg = Color(0, 0, 0, 0)
-			edge = Color(0, 0, 0, 0)
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = bg
-		sb.border_color = edge
-		sb.set_border_width_all(2 if selected else 1)
-		sb.set_corner_radius_all(5)
 		if selected:
-			sb.border_color = edge.lightened(0.35)
-			sb.shadow_color = Color(edge, 0.35)
-			sb.shadow_size = 10
-		draw_style_box(sb, r)
+			rim = Color(minf(rim.r * 1.35, 1.6), minf(rim.g * 1.35, 1.6), minf(rim.b * 1.35, 1.6), rim.a)
+		if kind != "head":
+			draw_style_box(Med.slot(rim), r)
 		if look == "owned" and kind != "head":
 			draw_rect(Rect2(r.position + Vector2(6, 2), Vector2(r.size.x - 12, 2)), Color(1.0, 0.6, 0.3, 0.55))
 		var f := font if font else ThemeDB.fallback_font
@@ -285,7 +273,7 @@ func _build() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_root)
 	var dim := ColorRect.new()
-	dim.color = Color(0.01, 0.0, 0.02, 0.76)
+	dim.color = Med.BACKDROP
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(dim)
@@ -311,17 +299,8 @@ func _build() -> void:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(center)
 	var panel := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = PANEL_BG
-	sb.border_color = Color(0.5, 0.4, 0.8, 0.6)
-	sb.set_border_width_all(2)
-	sb.border_width_bottom = 3
-	sb.set_corner_radius_all(6)
-	sb.set_content_margin_all(28)
-	sb.shadow_color = Color(1.0, 0.45, 0.15, 0.12)
-	sb.shadow_size = 24
-	sb.shadow_offset = Vector2(0, 10)
-	panel.add_theme_stylebox_override("panel", sb)
+	panel.theme = Med.theme()
+	panel.add_theme_stylebox_override("panel", Med.panel("leather", 40))
 	center.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 12)
@@ -335,6 +314,7 @@ func _build() -> void:
 	tbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(tbox)
 	_title_lbl = _label("KINDLING", 34, INK)
+	Med.gilt(_title_lbl, 34)
 	tbox.add_child(_title_lbl)
 	var sub := _label("Ash to ember, ember to flame.", 17, QUIET, _body_font)
 	tbox.add_child(sub)
@@ -349,7 +329,7 @@ func _build() -> void:
 	abox.add_child(arow)
 	var mound := Glyph.new()
 	mound.glyph = "mound"
-	mound.tint = Color(0.78, 0.72, 0.82)
+	mound.tint = Color(0.78, 0.74, 0.7)
 	mound.custom_minimum_size = Vector2(46, 46)
 	arow.add_child(mound)
 	_ash_label = _label("0", 34, EMBER_HOT)
@@ -377,28 +357,14 @@ func _build() -> void:
 		b.add_theme_color_override("font_hover_color", INK)
 		b.add_theme_color_override("font_pressed_color", LILAC)
 		b.add_theme_color_override("font_hover_pressed_color", LILAC)
-		var off := StyleBoxFlat.new()
-		off.bg_color = Color(0.08, 0.05, 0.12, 0.7)
-		off.set_corner_radius_all(3)
-		var on := StyleBoxFlat.new()
-		on.bg_color = Color(0.2, 0.14, 0.36, 0.9)
-		on.border_color = LILAC
-		on.border_width_bottom = 2
-		on.set_corner_radius_all(3)
-		b.add_theme_stylebox_override("normal", off)
-		b.add_theme_stylebox_override("hover", off)
-		b.add_theme_stylebox_override("pressed", on)
-		b.add_theme_stylebox_override("hover_pressed", on)
+		Med.style_tab(b)
 		var idx := i
 		b.pressed.connect(func() -> void:
 			show_tab(idx)
 			UiSound.play(self, "tab"))
 		bar.add_child(b)
 		_tab_btns.append(b)
-	var rule := ColorRect.new()
-	rule.color = Color(EDGE, 0.8)
-	rule.custom_minimum_size = Vector2(0, 1)
-	col.add_child(rule)
+	col.add_child(Med.rule())
 	# body: page on the left, detail on the right
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 26)
@@ -412,10 +378,7 @@ func _build() -> void:
 	_page_box.add_theme_constant_override("separation", 10)
 	_page_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_page_box)
-	var vr := ColorRect.new()
-	vr.color = Color(EDGE, 0.5)
-	vr.custom_minimum_size = Vector2(1, 0)
-	body.add_child(vr)
+	body.add_child(VSeparator.new())
 	var info := VBoxContainer.new()
 	info.custom_minimum_size = Vector2(420, 0)
 	info.add_theme_constant_override("separation", 10)
@@ -436,15 +399,12 @@ func _build() -> void:
 	nbox.add_child(_d_name)
 	_d_kind = _label("", 13, QUIET)
 	nbox.add_child(_d_kind)
-	var rule2 := ColorRect.new()
-	rule2.color = Color(EDGE, 0.8)
-	rule2.custom_minimum_size = Vector2(0, 1)
-	info.add_child(rule2)
-	_d_text = _wrap(17, Color(0.86, 0.82, 0.92))
+	info.add_child(Med.rule())
+	_d_text = _wrap(17, Med.BONE)
 	info.add_child(_d_text)
 	_d_now = _wrap(15, EMBER)
 	info.add_child(_d_now)
-	_d_lore = _wrap(16, Color(0.62, 0.58, 0.68), _body_font)
+	_d_lore = _wrap(16, Med.BONE_DIM, _body_font)
 	info.add_child(_d_lore)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -459,28 +419,11 @@ func _build() -> void:
 	_d_btn.add_theme_color_override("font_color", EMBER_HOT)
 	_d_btn.add_theme_color_override("font_hover_color", Color(1, 0.95, 0.85))
 	_d_btn.add_theme_color_override("font_disabled_color", DIM)
-	var bn := StyleBoxFlat.new()
-	bn.bg_color = Color(0.3, 0.12, 0.06, 0.9)
-	bn.border_color = Color(1.0, 0.6, 0.3, 0.8)
-	bn.set_border_width_all(1)
-	bn.set_corner_radius_all(4)
-	var bh := bn.duplicate() as StyleBoxFlat
-	bh.bg_color = Color(0.45, 0.18, 0.07, 0.95)
-	bh.border_color = EMBER_HOT
-	var bd := bn.duplicate() as StyleBoxFlat
-	bd.bg_color = Color(0.08, 0.05, 0.1, 0.8)
-	bd.border_color = Color(EDGE, 0.6)
-	_d_btn.add_theme_stylebox_override("normal", bn)
-	_d_btn.add_theme_stylebox_override("hover", bh)
-	_d_btn.add_theme_stylebox_override("pressed", bh)
-	_d_btn.add_theme_stylebox_override("disabled", bd)
+	Med.style_button(_d_btn, 18, 16, 8)
 	_d_btn.pressed.connect(act)
 	info.add_child(_d_btn)
 	# footer
-	var rule3 := ColorRect.new()
-	rule3.color = Color(EDGE, 0.5)
-	rule3.custom_minimum_size = Vector2(0, 1)
-	col.add_child(rule3)
+	col.add_child(Med.rule(Color(Med.BRONZE, 0.6), false))
 	_foot = _label("", 14, DIM)
 	_foot_refresh()
 	var foot := _foot

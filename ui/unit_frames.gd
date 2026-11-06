@@ -35,15 +35,16 @@ const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Elites := preload("res://core/life/encounters/elites.gd")
 const Guardians := preload("res://core/life/encounters/guardians.gd")
 const UIType := preload("res://ui/type.gd")
+const Med := preload("res://ui/medieval_style.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 
 const LANTERN := Color("#FFB347")
 const EMBER := Color("#FF6A2A")
-const LILAC := Color("#A98BFF")
+const LILAC := Med.GILT
 const INK := Color(0.93, 0.88, 0.8)
 const QUIET := Color(0.78, 0.74, 0.7, 0.9)
-const PLATE := Color(0.045, 0.035, 0.03, 0.84)
-const RIM := Color(0.46, 0.34, 0.26)
+const PLATE := Color(0.06, 0.04, 0.028, 0.9)
+const RIM := Color(0.5, 0.4, 0.28)
 const GOLD := Color(0.95, 0.74, 0.36)
 const MOON := Color(0.78, 0.86, 1.0)
 const BLOOD := Color(0.78, 0.2, 0.14)
@@ -752,11 +753,13 @@ func _text(at: Vector2, t: String, pt: int, col: Color, font: Font = null, align
 
 func _plate(r: Rect2, a: float, rim := RIM) -> void:
 	draw_rect(r, Color(PLATE, PLATE.a * a))
-	draw_rect(r.grow(-3.0), Color(rim, 0.35 * a), false, 1.0)
-	draw_rect(r, Color(rim, 0.85 * a), false, 1.5)
-	# engraved corner studs
+	draw_rect(r.grow(-3.0), Color(rim, 0.3 * a), false, 1.0)
+	draw_rect(r.grow(1.0), Color(0.03, 0.02, 0.015, 0.95 * a), false, 2.0)                  # forged iron rim: dark outline, iron bar
+	draw_rect(r, Color(Med.IRON.lightened(0.1), 0.95 * a), false, 2.0)
+	draw_line(r.position + Vector2(1, 1), Vector2(r.end.x - 1, r.position.y + 1), Color(1, 1, 1, 0.22 * a), 1.0)
 	for c: Vector2 in [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]:
-		_diamond(c, 3.5, Color(rim.lightened(0.25), a))
+		draw_circle(c, 3.6, Color(0.04, 0.025, 0.015, a))                                      # bronze rivets
+		draw_circle(c, 2.6, Color(Med.BRONZE.lightened(0.25), a))
 
 
 func _bar(r: Rect2, ratio: float, col: Color, a: float, trail := -1.0, notches: Array = []) -> void:
@@ -872,7 +875,11 @@ func _portrait(c: Vector2) -> void:
 		ring = GOLD.lerp(EMBER, 0.6 + 0.4 * sin(_t * 5.0))
 	draw_arc(c, r + 1.0, 0.0, TAU, 64, Color(0.02, 0.015, 0.01), 5.0, true)
 	draw_arc(c, r + 1.0, 0.0, TAU, 64, Color(ring, 0.95), 2.0, true)
-	draw_arc(c, r + 5.5, 0.0, TAU, 64, Color(RIM, 0.75), 1.0, true)
+	draw_arc(c, r + 6.5, 0.0, TAU, 64, Color(0.03, 0.02, 0.015, 0.95), 6.0, true)           # forged iron collar with eight rivets
+	draw_arc(c, r + 6.5, 0.0, TAU, 64, Color(Med.IRON, 0.95), 4.0, true)
+	for k in 8:
+		var ka := TAU * float(k) / 8.0 + 0.4
+		draw_circle(c + Vector2(cos(ka), sin(ka)) * (r + 6.5), 1.7, Color(Med.BRONZE.lightened(0.3), 0.95))
 	# level badge
 	var lv := _player_level().x
 	if lv >= 0:

@@ -4,10 +4,10 @@ extends CanvasLayer
 ## live and calls Settings.apply(); world/main.gd (Zone) pushes them into the window/environment/
 ## camera. The quality preset shows "Custom" as soon as one graphics option is changed by hand.
 
-const LILAC := Color("#A98BFF")
-const QUIET := Color(0.72, 0.74, 0.86, 0.9)
-const DIM := Color(0.55, 0.56, 0.68, 0.85)
-const PANEL_BG := Color(0.03, 0.025, 0.07, 0.95)
+const Med := preload("res://ui/medieval_style.gd")
+const LILAC := Med.GILT
+const QUIET := Med.BONE
+const DIM := Med.BONE_DIM
 const TABS := ["Display", "Graphics", "Audio", "Controls"]
 const UiSound := preload("res://ui/ui_sound.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
@@ -71,27 +71,24 @@ func _ready() -> void:
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_STOP
 	_root.visible = false
+	_root.theme = Med.theme()
 	add_child(_root)
 	var backdrop := ColorRect.new()
-	backdrop.color = Color(0, 0, 0, 0.6)
+	backdrop.color = Med.BACKDROP
 	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(backdrop)
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(center)
 	_panel = PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = PANEL_BG
-	sb.border_color = Color(0.5, 0.4, 0.8, 0.6)
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(6)
-	sb.set_content_margin_all(28)
-	_panel.add_theme_stylebox_override("panel", sb)
+	_panel.add_theme_stylebox_override("panel", Med.panel("leather", 40))
 	center.add_child(_panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 14)
 	_panel.add_child(col)
-	col.add_child(_title("SETTINGS", 32, Color(0.92, 0.9, 1.0)))
+	var ttl := _title("SETTINGS", 32, Med.GILT)
+	Med.gilt(ttl, 32)
+	col.add_child(ttl)
 	# tab bar
 	var bar := HBoxContainer.new()
 	bar.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -104,20 +101,12 @@ func _ready() -> void:
 		b.focus_mode = Control.FOCUS_NONE        # Q / E and the bumpers switch tabs; focus stays on the page
 		b.custom_minimum_size = Vector2(130, 34)
 		_style_small(b, 16)
-		b.add_theme_color_override("font_pressed_color", LILAC)
-		b.add_theme_color_override("font_color", DIM)
-		var on := StyleBoxFlat.new()
-		on.bg_color = Color(0.2, 0.14, 0.36, 0.9)
-		on.border_color = LILAC
-		on.border_width_bottom = 2
-		on.set_corner_radius_all(3)
-		b.add_theme_stylebox_override("pressed", on)
-		b.add_theme_stylebox_override("hover_pressed", on)
+		Med.style_tab(b)
 		var idx := i
 		b.pressed.connect(func() -> void: _show_tab(idx))
 		bar.add_child(b)
 		_tab_btns.append(b)
-	col.add_child(HSeparator.new())
+	col.add_child(Med.rule())
 	var holder := Control.new()
 	holder.custom_minimum_size = Vector2(640, 420)
 	holder.size_flags_vertical = Control.SIZE_EXPAND_FILL

@@ -17,10 +17,11 @@ const UIType := preload("res://ui/type.gd")
 const Tip := preload("res://ui/item_tooltip.gd")
 const LootDB := preload("res://core/items/loot_db.gd")
 
-const INK := Color(0.92, 0.88, 1.0)
-const QUIET := Color(0.64, 0.6, 0.74)
-const DIM := Color(0.46, 0.43, 0.55)
-const EDGE := Color(0.42, 0.32, 0.58)
+const Med := preload("res://ui/medieval_style.gd")
+const INK := Med.BONE
+const QUIET := Med.BONE_DIM
+const DIM := Med.BONE_FAINT
+const EDGE := Med.BRONZE
 const EMBER := Color(1.0, 0.66, 0.36)
 const WARN := Color(0.95, 0.55, 0.42)
 const PANEL_BG := Color(0.035, 0.02, 0.055, 0.97)
@@ -95,15 +96,7 @@ func _button(t: String, cb: Callable) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_override("font", _body_font)
 	b.add_theme_font_size_override("font_size", 17)
-	for st: String in ["normal", "hover", "pressed", "disabled"]:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color(0.09, 0.05, 0.13, 0.95) if st != "hover" else Color(0.16, 0.09, 0.22, 0.95)
-		sb.border_color = EDGE if st != "hover" else INK
-		sb.set_border_width_all(1)
-		sb.set_content_margin_all(8)
-		b.add_theme_stylebox_override(st, sb)
-	b.add_theme_color_override("font_color", INK)
-	b.add_theme_color_override("font_disabled_color", DIM)
+	Med.style_button(b, 17, 12, 6)
 	b.pressed.connect(cb)
 	return b
 
@@ -114,7 +107,7 @@ func _build() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_root)
 	var dim := ColorRect.new()
-	dim.color = Color(0.01, 0.0, 0.02, 0.76)
+	dim.color = Med.BACKDROP
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(dim)
@@ -123,12 +116,8 @@ func _build() -> void:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(center)
 	var panel := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = PANEL_BG
-	sb.border_color = Color(0.5, 0.4, 0.8, 0.6)
-	sb.set_border_width_all(2)
-	sb.set_content_margin_all(24)
-	panel.add_theme_stylebox_override("panel", sb)
+	panel.theme = Med.theme()
+	panel.add_theme_stylebox_override("panel", Med.panel("leather", 24))
 	panel.custom_minimum_size = Vector2(1180, 660)
 	center.add_child(panel)
 	var col := VBoxContainer.new()
@@ -137,7 +126,7 @@ func _build() -> void:
 
 	var head := HBoxContainer.new()
 	col.add_child(head)
-	var title := _label("GEAR", 30, INK, _title_font)
+	var title := _label("GEAR", 30, Med.GILT, _title_font)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
 	_fire_label = _label("", 16, QUIET)
@@ -166,6 +155,10 @@ func _build() -> void:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.custom_minimum_size = Vector2(290, 58)
 		b.clip_text = true
+		for st: String in ["normal", "hover", "pressed", "disabled", "focus"]:
+			var ssb := Med.slot()
+			ssb.set_content_margin_all(10)
+			b.add_theme_stylebox_override(st, ssb)
 		_slot_btns[slot] = b
 		left.add_child(b)
 	_all_btn = _button("Show every slot", _pick_slot.bind(""))
@@ -185,12 +178,7 @@ func _build() -> void:
 	_list.add_theme_font_override("font", _body_font)
 	_list.add_theme_font_size_override("font_size", 17)
 	_list.add_theme_color_override("font_color", INK)
-	var lsb := StyleBoxFlat.new()
-	lsb.bg_color = Color(0.05, 0.03, 0.08, 0.9)
-	lsb.border_color = EDGE
-	lsb.set_border_width_all(1)
-	lsb.set_content_margin_all(6)
-	_list.add_theme_stylebox_override("panel", lsb)
+	_list.add_theme_stylebox_override("panel", Med.inset(8))
 	_list.item_selected.connect(func(i: int) -> void:
 		if i >= 0 and i < _rows.size():
 			_sel_uid = _rows[i]
@@ -356,9 +344,8 @@ func _rebuild() -> void:
 		else:
 			b.text = "%s  ·  ilvl %d\n  %s%s" % [GearDB.SLOT_NAMES[slot], GearDB.item_level(p), String(p.name), _lv(p)]
 			b.add_theme_color_override("font_color", GearDB.rarity_color(int(p.rarity)))
-		var nsb := b.get_theme_stylebox("normal") as StyleBoxFlat
-		nsb.border_color = INK if _filter == slot else (LootDB.quality_color(int(p.rarity)).darkened(0.2) if not p.is_empty() else EDGE)
-		nsb.set_border_width_all(2 if not p.is_empty() else 1)
+		var nsb := b.get_theme_stylebox("normal") as StyleBoxTexture
+		nsb.modulate_color = Color(1.5, 1.4, 1.2) if _filter == slot else (LootDB.quality_color(int(p.rarity)) if not p.is_empty() else Color(0.7, 0.7, 0.7))
 	_all_btn.disabled = _filter == ""
 	# sets
 	var counts := GearStats.set_counts(st)

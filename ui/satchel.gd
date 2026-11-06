@@ -12,11 +12,12 @@ const GearRuntime := preload("res://core/items/gear_runtime.gd")
 const SLOT := 92.0
 const GROUPS := [["relic", "Relics"], ["trophy", "Trophies"], ["core", "Staff Cores"], ["charm", "Charms"], ["material", "Materials"]]
 const _PROG := preload("res://core/life/progression/icons.gd")   # progression: charm icons, worn notes
-const INK := Color(0.9, 0.84, 1.0)
-const QUIET := Color(0.62, 0.56, 0.72)
-const EDGE := Color(0.42, 0.32, 0.58)
+const Med := preload("res://ui/medieval_style.gd")
+const INK := Med.BONE
+const QUIET := Med.BONE_DIM
+const EDGE := Med.BRONZE
 const _LOOT := preload("res://core/items/loot_db.gd")       # r33 loot: item quality
-const _GOLD := Color(0.95, 0.8, 0.5)
+const _GOLD := Med.GILT
 
 var _root: Control
 var hosted := false                 ## r35: a page of the character screen (it owns keys and pause)
@@ -61,9 +62,10 @@ class Slot extends Control:
 	func _draw() -> void:
 		var d := ItemDB.def(id)
 		var r := Rect2(Vector2(3, 3), size - Vector2(6, 6))
-		draw_rect(r, Color(0.06, 0.03, 0.09, 0.92), true)
 		var qc := _LOOT.quality_color(_LOOT.item_quality(id))
-		draw_rect(r, qc.lightened(0.35) if selected else qc.darkened(0.15), false, 3.0 if selected else 2.0)
+		draw_style_box(Med.slot(qc.lightened(0.45) if selected else qc), Rect2(Vector2.ZERO, size))
+		if selected:
+			draw_rect(r.grow(-3.0), Color(Med.GILT, 0.7), false, 1.0)
 		var c := size * 0.5
 		var t: Color = d.tint
 		match String(d.shape):
@@ -127,16 +129,12 @@ func _build() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_root)
 	var dim := ColorRect.new()
-	dim.color = Color(0.01, 0.0, 0.02, 0.72)
+	dim.color = Med.BACKDROP
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(dim)
 	var panel := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.04, 0.02, 0.06, 0.96)
-	sb.border_color = EDGE
-	sb.set_border_width_all(1)
-	sb.set_content_margin_all(28)
-	panel.add_theme_stylebox_override("panel", sb)
+	panel.theme = Med.theme()
+	panel.add_theme_stylebox_override("panel", Med.panel("leather", 36))
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.custom_minimum_size = Vector2(1000, 600)
 	panel.position = Vector2(-500, -300)
@@ -148,6 +146,7 @@ func _build() -> void:
 	col.add_child(head)
 	var title := _label("SATCHEL", 30, INK)
 	_title_lbl = title
+	Med.gilt(title, 30)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
 	# lore hook: the Journal (ui/codex.gd, group "codex") opens from here too
@@ -213,15 +212,12 @@ func _build() -> void:
 	info.add_child(_name)
 	_kind = _label("", 15, QUIET)
 	info.add_child(_kind)
-	var rule := ColorRect.new()
-	rule.color = EDGE
-	rule.custom_minimum_size = Vector2(0, 1)
-	info.add_child(rule)
+	info.add_child(Med.rule())
 	_text = Label.new()
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_text.custom_minimum_size = Vector2(340, 0)
 	_text.add_theme_font_size_override("font_size", 17)
-	_text.add_theme_color_override("font_color", Color(0.82, 0.78, 0.88))
+	_text.add_theme_color_override("font_color", Med.BONE)
 	info.add_child(_text)
 	_flav = RichTextLabel.new()
 	_flav.bbcode_enabled = true
@@ -231,7 +227,7 @@ func _build() -> void:
 	_flav.add_theme_font_size_override("italics_font_size", 16)
 	_flav.add_theme_font_size_override("normal_font_size", 16)
 	info.add_child(_flav)
-	_hint = _label("", 16, Color(1.0, 0.72, 0.42))
+	_hint = _label("", 16, Med.GILT)
 	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_hint.custom_minimum_size = Vector2(340, 0)
 	info.add_child(_hint)
@@ -436,7 +432,7 @@ func _on_gained(id: String, amount: int, total: int) -> void:
 	# ENS art pass: a pickup toast on a dark plate with an edge in the item's own colour, popping in
 	# from the right, so a gain reads at a glance over a bright sky
 	var plate := StyleBoxFlat.new()
-	plate.bg_color = Color(0.02, 0.02, 0.04, 0.55)
+	plate.bg_color = Color(0.05, 0.03, 0.015, 0.78)
 	plate.border_color = (d.tint as Color).lightened(0.2)
 	plate.border_width_right = 3
 	plate.set_corner_radius_all(4)

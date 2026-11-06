@@ -27,11 +27,12 @@ const Banner := preload("res://core/world/realm/discovery_banner.gd")   ## r35: 
 ## A finished story is worth something to a fire (once each, kept in the secrets' save as
 ## looted "series_<id>"): grave ash, and the Ninth Company's offering shows itself (site_company).
 const SERIES_REWARD := {"grave_ash": 20}
-const INK := Color(0.93, 0.88, 0.8)
-const PAPER := Color(0.85, 0.8, 0.72)
-const QUIET := Color(0.6, 0.55, 0.62)
+const Med := preload("res://ui/medieval_style.gd")
+const INK := Med.BONE
+const PAPER := Med.BONE
+const QUIET := Med.BONE_DIM
 const EMBER := Color(1.0, 0.62, 0.3)
-const EDGE := Color(0.46, 0.34, 0.26)
+const EDGE := Med.BRONZE
 const BG := Color(0.05, 0.035, 0.04, 0.97)
 const READ_CLOSE_DIST := 4.5
 const ROMAN := ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii"]
@@ -50,7 +51,7 @@ var _list_scroll: ScrollContainer
 var _counts: Label
 var _p_title: Label
 var _p_meta: Label
-var _p_body: Label
+var _p_body: RichTextLabel
 var _p_foot: Label
 var _was_captured := false
 var _first_button: Button
@@ -58,7 +59,7 @@ var _first_button: Button
 var _reader: PanelContainer
 var _r_meta: Label
 var _r_title: Label
-var _r_body: Label
+var _r_body: RichTextLabel
 var _r_foot: Label
 var _r_new: Label
 var _r_tw: Tween
@@ -154,7 +155,7 @@ func show_reading(id: String, src: Node3D = null, fresh := false) -> void:
 	_r_src = src
 	_r_meta.text = ("%s  ·  %s" % [LoreDB.kind_name(String(e.kind)), LoreDB.place_name(String(e.region))]).to_upper()
 	_r_title.text = String(e.title)
-	_r_body.text = String(e.text)
+	_r_body.text = _drop(String(e.text), 54)
 	var foot := ""
 	var ser := String(e.get("series", ""))
 	if ser != "":
@@ -394,7 +395,7 @@ func _build_reader() -> void:
 	add_child(root)
 	_reader = PanelContainer.new()
 	_reader.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_reader.add_theme_stylebox_override("panel", _paper_box(0.93))
+	_reader.add_theme_stylebox_override("panel", Med.panel("parchment", 40))
 	_reader.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_reader.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_reader.offset_left = -440
@@ -409,16 +410,16 @@ func _build_reader() -> void:
 	var head := HBoxContainer.new()
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(head)
-	_r_meta = _label(head, "", 15, QUIET, _title_font)
+	_r_meta = _label(head, "", 15, Med.INK_DIM, _title_font)
 	_r_meta.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_r_new = _label(head, "", 15, EMBER, _title_font, HORIZONTAL_ALIGNMENT_RIGHT)
-	_r_title = _label(col, "", 30, INK, _title_font)
-	col.add_child(_rule())
-	_r_body = _label(col, "", 25, PAPER, _body_font)
-	_r_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_r_body.custom_minimum_size = Vector2(820, 0)
-	_r_body.add_theme_constant_override("line_spacing", 6)
-	_r_foot = _label(col, "", 15, QUIET, _body_font)
+	_r_new = _label(head, "", 15, Med.INK_RED, _title_font, HORIZONTAL_ALIGNMENT_RIGHT)
+	_r_title = _label(col, "", 30, Med.INK, _title_font)
+	for ink_l: Label in [_r_meta, _r_new, _r_title]:
+		_ink(ink_l, ink_l.get_theme_color("font_color"))
+	col.add_child(Med.rule(Color(Med.INK_RED, 0.7)))
+	_r_body = _body_rich(col, 25, 820.0, 6)
+	_r_foot = _label(col, "", 15, Med.INK_DIM, _body_font)
+	_ink(_r_foot, Med.INK_DIM)
 	_reader.visible = false
 
 
@@ -430,10 +431,11 @@ func _build_book() -> void:
 	_book.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_book)
 	var dim := ColorRect.new()
-	dim.color = Color(0.01, 0.0, 0.01, 0.74)
+	dim.color = Med.BACKDROP
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_book.add_child(dim)
 	var panel := PanelContainer.new()
+	panel.theme = Med.theme()
 	panel.add_theme_stylebox_override("panel", _paper_box(0.97, 30))
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.custom_minimum_size = Vector2(1280, 760)
@@ -495,23 +497,27 @@ func _build_book() -> void:
 	_list.add_theme_constant_override("separation", 2)
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list_scroll.add_child(_list)
+	var sheet := PanelContainer.new()                  # the open page: a sheet of vellum set into the leather
+	sheet.add_theme_stylebox_override("panel", Med.panel("parchment", 40))
+	sheet.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(sheet)
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 10)
 	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_child(page)
-	_p_meta = _label(page, "", 15, QUIET, _title_font)
-	_p_title = _label(page, "", 32, INK, _title_font)
+	sheet.add_child(page)
+	_p_meta = _label(page, "", 15, Med.INK_DIM, _title_font)
+	_p_title = _label(page, "", 32, Med.INK, _title_font)
 	_p_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	page.add_child(_rule())
-	_p_body = _label(page, "", 24, PAPER, _body_font)
-	_p_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_p_body.custom_minimum_size = Vector2(700, 0)
-	_p_body.add_theme_constant_override("line_spacing", 7)
-	_p_foot = _label(page, "", 16, QUIET, _body_font)
+	_ink(_p_meta, Med.INK_DIM)
+	_ink(_p_title, Med.INK)
+	page.add_child(Med.rule(Color(Med.INK_RED, 0.7)))
+	_p_body = _body_rich(page, 24, 640.0, 7)
+	_p_foot = _label(page, "", 16, Med.INK_DIM, _body_font)
+	_ink(_p_foot, Med.INK_DIM)
 	_p_foot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_p_foot.custom_minimum_size = Vector2(700, 0)
+	_p_foot.custom_minimum_size = Vector2(640, 0)
 	_map_view = MapView.new()
-	_map_view.custom_minimum_size = Vector2(760, 540)
+	_map_view.custom_minimum_size = Vector2(700, 540)
 	_map_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_map_view.set("font", _body_font)
 	_map_view.set("title_font", _title_font)
@@ -928,7 +934,7 @@ class MapView extends Control:
 func _page(meta: String, title: String, body: String, foot: String) -> void:
 	_p_meta.text = meta
 	_p_title.text = title
-	_p_body.text = body
+	_p_body.text = _drop(body, 50)
 	_p_foot.text = foot
 
 
@@ -1017,42 +1023,48 @@ func _label(parent: Node, t: String, size: int, c: Color, font: Font, align := H
 	return l
 
 
-func _rule() -> ColorRect:
-	var r := ColorRect.new()
-	r.color = EDGE
-	r.custom_minimum_size = Vector2(0, 1)
+func _rule() -> Control:
+	return Med.rule(Color(Med.BRONZE, 0.9))
+
+
+## Ink on vellum: the label loses its shadow.
+func _ink(l: Control, c: Color) -> void:
+	l.add_theme_color_override("font_color", c)
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+
+
+## A body of text as a book page: first letter a dropped capital in oxblood Cinzel.
+func _body_rich(parent: Node, size: int, w: float, sep: int) -> RichTextLabel:
+	var r := RichTextLabel.new()
+	r.bbcode_enabled = true
+	r.fit_content = true
+	r.scroll_active = false
+	r.custom_minimum_size = Vector2(w, 0)
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.add_theme_font_override("normal_font", _body_font)
+	r.add_theme_font_size_override("normal_font_size", size)
+	r.add_theme_color_override("default_color", Med.INK)
+	r.add_theme_constant_override("line_separation", sep)
+	parent.add_child(r)
 	return r
 
 
-func _paper_box(alpha: float, margin := 24) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(BG.r, BG.g, BG.b, alpha)
-	sb.border_color = EDGE
-	sb.set_border_width_all(1)
-	sb.border_width_top = 2
-	sb.set_corner_radius_all(2)
-	sb.set_content_margin_all(margin)
-	sb.shadow_color = Color(0, 0, 0, 0.55)
-	sb.shadow_size = 14
-	return sb
+func _drop(t: String, cap: int) -> String:
+	return Med.drop_cap(t.replace("[", "[lb]"), cap) if not t.begins_with("[lb]") else t.replace("[", "[lb]")
 
 
-func _tab_box(on: bool) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.16, 0.08, 0.05, 0.9) if on else Color(0, 0, 0, 0)
-	sb.border_color = EMBER.darkened(0.3) if on else Color(0, 0, 0, 0)
-	sb.border_width_bottom = 2
-	sb.set_content_margin_all(8)
-	sb.content_margin_left = 14
-	sb.content_margin_right = 14
-	return sb
+func _paper_box(alpha: float, margin := 24) -> StyleBoxTexture:
+	return Med.panel("leather", margin + 6)
+
+
+func _tab_box(on: bool) -> StyleBoxTexture:
+	return Med.tab(on)
 
 
 func _row_box(on: bool) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.2, 0.1, 0.06, 0.55) if on else Color(0, 0, 0, 0)
-	sb.border_color = EMBER.darkened(0.35)
+	sb.bg_color = Color(0.36, 0.22, 0.09, 0.55) if on else Color(0, 0, 0, 0)
+	sb.border_color = Med.GILT_DEEP
 	sb.border_width_left = 3 if on else 0
 	sb.content_margin_left = 12
 	sb.content_margin_top = 4
