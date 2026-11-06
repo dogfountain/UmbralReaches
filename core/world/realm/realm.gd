@@ -26,6 +26,8 @@ const MODULES := {
 	"life": "res://core/life/wildlife/wildlife.gd",
 	"secrets": "res://core/life/secrets/secrets.gd",
 	"encounters": "res://core/life/encounters/encounters.gd",
+	# the navigation mesh enemies path on when flat steering is walled (core/enemy/nav_assist.gd)
+	"nav": "res://core/world/realm/realm_nav.gd",
 }
 
 const PRELOAD := ["res://art/models/mossy_platform.glb", "res://art/models/summit_pillar.glb", "res://art/models/summit_mage.glb"]
@@ -61,13 +63,13 @@ static var prof := {}
 ## Build progress for the loading screen (ui/loading_screen.gd): 0..1 and the step now running.
 static var progress := 0.0
 static var stage := ""
-const STEPS := 14
+const STEPS := 15
 const STAGE_NAMES := {
 	"land": "Raising the land", "rift": "Opening the rift", "bosses": "Waking the wardens",
 	"tavern": "Lighting the Keg", "lore": "Carving the stones", "stamp": "Settling the ground",
 	"flora": "Growing the wood", "summit": "Dressing the summit", "assets": "Placing the relics",
 	"progression": "Kindling the fires", "village": "Waking the village", "life": "Stirring the wild",
-	"secrets": "Hiding what is hidden", "encounters": "Gathering the dark",
+	"secrets": "Hiding what is hidden", "encounters": "Gathering the dark", "nav": "Marking the ways",
 }
 static var _step := 0
 
@@ -171,6 +173,7 @@ static func build(root: Node) -> void:
 	await _run("assets", root)
 	for id: String in ["progression", "village", "life", "secrets", "encounters"]:
 		await _run(id, root)
+	await _run("nav", root)                      # after every collider is in; waits a bounded time for the bake
 	t = Time.get_ticks_usec()
 	print("REALM cull ", WorldLanes.cull_scatter(root))
 	prof_add("stage: cull scatter", t)
