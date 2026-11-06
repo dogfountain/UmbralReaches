@@ -63,6 +63,8 @@ def smooth(a, lo, hi):
 
 
 def normal_from_height(h, strength):
+    for _ in range(2):
+        h = (h * 4 + np.roll(h, 1, 0) + np.roll(h, -1, 0) + np.roll(h, 1, 1) + np.roll(h, -1, 1)) / 8.0
     dx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) * 0.5 * strength * h.shape[1]
     dy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) * 0.5 * strength * h.shape[0]
     nx, ny, nz = -dx, dy, np.ones_like(h)
@@ -257,6 +259,10 @@ def pbr(name, maps, normal_strength=3.0, metal=0.0, save=True):
             im.filepath_raw = os.path.join(TEX_DIR, im.name + (".jpg" if jpg else ".png"))
             im.file_format = 'JPEG' if jpg else 'PNG'
             im.save(quality=92) if jpg else im.save()
+    return _material(name, imgs)
+
+
+def _material(name, imgs):
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
@@ -284,6 +290,25 @@ def pbr(name, maps, normal_strength=3.0, metal=0.0, save=True):
     go.node_tree = grp
     nt.links.new(sep.outputs["Red"], go.inputs["Occlusion"])
     return m
+
+
+def pbr_files(name, stem, metal=0.0):
+    """A Principled material from the art wave's maps in art/textures: <stem>_albedo / _normal / _ao / _rough .png
+    (real-scale ashlar, giant bark...). Packed into one ORM like pbr()."""
+    d = os.path.join(ROOT, "art", "textures")
+
+    def load(kind, srgb):
+        im = bpy.data.images.load(os.path.join(d, "%s_%s.png" % (stem, kind)))
+        w, h = im.size
+        a = np.array(im.pixels[:], dtype=np.float32).reshape(h, w, im.channels)
+        return np.flipud(a)[..., :3]
+    alb = load("albedo", True)
+    nrm = load("normal", False)
+    ao = load("ao", False)[..., 0]
+    rough = load("rough", False)[..., 0]
+    orm = np.stack([ao, rough, np.full_like(rough, metal)], axis=-1)
+    imgs = {"alb": _img(name + "_albedo", alb, True), "nrm": _img(name + "_normal", nrm, False), "orm": _img(name + "_orm", orm, False)}
+    return _material(name, imgs)
 
 
 def flat(name, color, rough=0.9, metal=0.0):
@@ -326,7 +351,7 @@ class B:
                 l[self.uv].uv = uv
         return f
 
-    def box(self, c, size, mat, yaw=0.0, pitch=0.0, roll=0.0, scale_uv=0.22, cuts=0, jit=0.0, seed=0, taper=1.0):
+    def box(self, c, size, mat, yaw=0.0, pitch=0.0, roll=0.0, scale_uv=0.16, cuts=0, jit=0.0, seed=0, taper=1.0):
         """A box centred on c. taper < 1 narrows the top face (a battered wall)."""
         res = bmesh.ops.create_cube(self.bm, size=1.0)
         verts = res["verts"]

@@ -77,7 +77,7 @@ def pos(a, r, y):
 
 
 def build(DATA, PREVIEW, objs_out):
-    bark = L.pbr("R37_OakBark", L.tex_bark(2048, 3801, dead=True), 2.4)
+    bark = L.pbr_files("R37_OakBark", "bark_giant")
     plank = L.pbr("R37_OakPlank", L.tex_planks(512, 3802), 2.4)
     dark = L.flat("R37_OakDark", (0.012, 0.01, 0.01), 1.0)
     iron = L.flat("R37_OakIron", (0.07, 0.065, 0.06), 0.55, 0.85)
@@ -322,16 +322,16 @@ def build(DATA, PREVIEW, objs_out):
         for k in range(n + 1):
             t = k / n
             d = d0 + (Lm + 1.3) * t
-            lat = 2.6 * math.sin(t * math.pi * 0.85 + phase) - 2.6 * math.sin(phase)
+            lat = 3.6 * math.sin(t * math.pi * 1.1 + phase) - 3.6 * math.sin(phase)
             rise = 2.2 * math.sin(math.pi * t * 0.55) - 3.2 * t ** 3
             if li == 2:
                 rise = 1.6 * math.sin(math.pi * t * 0.5) - 1.0 * t ** 2
-            w = 3.4 - 1.9 * t ** 0.8
-            rv = 1.9 - 1.1 * t
+            w = 3.0 - 1.5 * t ** 0.8
+            rv = 2.0 - 1.15 * t
             top = Vector((0, sill + rise, 0)) + dirv * d + side * lat + sway(sill)
             tops.append((top, w))
-            c = top - Vector((0, 0.55 * rv, 0))
-            tang = (dirv + side * (2.6 * math.cos(t * math.pi * 0.85 + phase) * math.pi * 0.85 / (Lm + 1.3))).normalized()
+            c = top - Vector((0, 0.72 * rv, 0))
+            tang = (dirv + side * (3.6 * math.cos(t * math.pi * 1.1 + phase) * math.pi * 1.1 / (Lm + 1.3))).normalized()
             sd = Vector((tang.z, 0, -tang.x))
             ring = []
             sides = 12
@@ -339,12 +339,12 @@ def build(DATA, PREVIEW, objs_out):
                 bb = math.tau * q / sides
                 horiz = math.cos(bb) * w / 2.0 * (1.0 + 0.25 * (1.0 - t))
                 vert = math.sin(bb) * rv
-                vert = min(vert, 0.55 * rv)
+                vert = min(vert, 0.72 * rv)
                 p = c + sd * horiz + Vector((0, vert, 0))
-                p += (p - c).normalized() * hash3(p.x, p.y, p.z, 21 + li) * 0.18
+                p += (p - c).normalized() * (hash3(p.x, p.y, p.z, 21 + li) * 0.28 + 0.12 * math.sin(t * 9.0 + q * 0.7 + li))
                 ring.append(p)
             rings.append(ring)
-        tiles_l = max(1, round(math.tau * 1.6 / 3.0 * 2))
+        tiles_l = max(1, round(math.tau * 1.9 / 3.0))
         us = [tiles_l * q / 12 for q in range(12)]
         vs = [(d0 + (Lm + 1.3) * k / n) / 3.0 for k in range(n + 1)]
         lb._loft_cyl(rings, "bark", us, vs, tiles_l)
