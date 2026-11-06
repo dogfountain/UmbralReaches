@@ -1,6 +1,6 @@
 extends Control
 ## The minimap (r32): a round, painted map of the Realm in the HUD's bottom-right corner, turned so
-## up is where the camera looks, the wanderer's arrow at its centre. M switches between near
+## up is where the camera looks, the wanderer's arrow at its centre. N switches between near
 ## (55 m) and wide (120 m); a third press hides it.
 ##
 ## The ground is painted once from RealmLand's heightfield (hillshade, biome colours, worn paths,
@@ -32,7 +32,7 @@ const RANGES := [55.0, 120.0]            ## metres from centre to rim
 const PPM := 2.0                         ## painted map pixels per metre
 const ENEMY_NEAR := 40.0
 const CHEST_NEAR := 45.0
-const ACTION := "minimap"
+const ACTION := "minimap"                ## N (M is the whole map: ui/world_map.gd)
 const Land := preload("res://core/world/realm/realm_land.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")

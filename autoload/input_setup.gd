@@ -74,7 +74,9 @@ func _ready() -> void:
 	# every other action lives here too (zz/robust_test fails on InputMap.add_action elsewhere)
 	_keys("quest_log", [KEY_L])
 	_button("quest_log", JOY_BUTTON_DPAD_LEFT)
-	_keys("minimap", [KEY_M])
+	_keys("minimap", [KEY_N])                        # the corner dial: near, wide, off
+	_keys("world_map", [KEY_M])                      # the whole Realm on a sheet of parchment (ui/world_map.gd)
+	_button("world_map", JOY_BUTTON_MISC1)           # the Share / Capture button; the Journal's Map page reaches it on any pad
 	_keys("codex", [KEY_J])
 	_button("codex", JOY_BUTTON_DPAD_DOWN)
 	_keys("show_objective", [KEY_Y])                 # hold to see the objective (it shows for 6 s when it changes, then hides)
@@ -95,7 +97,7 @@ const REBINDABLE := [
 	["Kindle / talk / use", "interact"], ["Call your horse", "mount"],
 	["Skill 1 (bolt)", "skill_bolt"], ["Skill 2 (lance)", "skill_lance"], ["Skill 3 (nova)", "skill_nova"],
 	["Skill 4 (ward)", "skill_ward"], ["Skill 5 (step)", "skill_step"],
-	["Show objective (hold)", "show_objective"], ["Character", "inventory"], ["Gear", "gear"], ["Kindling", "kindling"], ["Journal", "codex"], ["Tasks", "quest_log"], ["Minimap", "minimap"],
+	["Show objective (hold)", "show_objective"], ["Character", "inventory"], ["Gear", "gear"], ["Kindling", "kindling"], ["Journal", "codex"], ["Tasks", "quest_log"], ["World map", "world_map"], ["Minimap", "minimap"],
 	["Fullscreen", "fullscreen"], ["Colour grade", "toggle_grade"], ["Stats overlay", "toggle_debug"],
 ]
 ## Keys that cannot be bound: Esc is Settings and cancels the rebind itself.

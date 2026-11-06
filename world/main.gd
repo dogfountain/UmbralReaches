@@ -63,6 +63,9 @@ func _ready() -> void:
 	var cscreen: CanvasLayer = (load("res://ui/character_screen.gd") as GDScript).new()
 	cscreen.name = "CharacterScreen"
 	add_child(cscreen)
+	var wmap: CanvasLayer = (load("res://ui/world_map.gd") as GDScript).new()
+	wmap.name = "WorldMap"
+	add_child(wmap)
 	var amb := Ambience.new()
 	amb.name = "Ambience"
 	add_child(amb)
