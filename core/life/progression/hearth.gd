@@ -144,7 +144,7 @@ func step(dt: float) -> void:
 		h["rested"] = r
 		if r <= 0.0:
 			_dirty = true
-			Events.toast.emit("You are no longer rested.")
+			Events.toast.emit("The fire's ease is gone." if int(ps().get("rested_xp", 0)) > 0 else "The fire's ease is gone, and the memory it kept with it.")
 	# Rested: come home from the dark (ARM_R out), then stand at home a few seconds
 	var p := _player()
 	if p and Vector2(p.global_position.x, p.global_position.z).distance_to(HearthDB.HOME) > ARM_R:
@@ -187,7 +187,7 @@ func rest_here() -> bool:
 	xp_changed.emit(xp_info())
 	_home_t = 0.0
 	armed = false
-	Events.toast.emit("Rested (comfort %d, %s): Gloom gathers slower and your spells recover sooner." % [comfort(), HearthDB.fmt_secs(full)] if not was else "Rested again: %s." % HearthDB.fmt_secs(full))
+	Events.toast.emit("Rested (comfort %d, %s): Gloom gathers slower and your spells recover sooner, and the pale stretch on the bar pays kills twice." % [comfort(), HearthDB.fmt_secs(full)] if not was else "Rested again: %s." % HearthDB.fmt_secs(full))
 	_refresh()
 	Travel.save_soon()
 	return true
