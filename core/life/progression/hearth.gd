@@ -260,7 +260,7 @@ func _ding() -> void:
 	if pl == null or not pl.is_inside_tree():
 		return
 	Vfx.burst(pl.global_position + Vector3(0, 0.2, 0), Color(2.4, 1.7, 0.8), {"count": 60, "life": 1.4, "speed": Vector2(1.5, 4.0), "size": 0.05, "gravity": -1.2, "radius": 0.5})
-	Sfx.play("res://art/audio/ward_chime.wav", pl.global_position, -3.0, 1.15)
+	Sfx.play("res://art/audio/ward_chime.wav", pl.global_position, -2.0, 0.5)   # a lower note than the ward, chest and horse use
 
 
 func why_not_path(id: String) -> String:
