@@ -35,7 +35,7 @@ const GROUND := 1
 
 ## id -> {at, search, half, rise, title, line, region}
 const POIS := {
-	"spire": {"at": Vector2(240, 8), "search": 9.0, "half": Vector2(7.5, 7.5), "rise": 3.0,
+	"spire": {"at": Vector2(245, 4), "search": 8.0, "half": Vector2(7.5, 7.5), "rise": 6.0,
 		"title": "The Lamplighters' Spire", "line": "the flame the Marches steered by", "region": "stillwater"},
 	"saltmarket": {"at": Vector2(214, 95), "search": 0.0, "half": Vector2(21, 17), "rise": 6.0,
 		"title": "Saltmarket", "line": "salt keeps meat, and keeps the hollowed off a threshold", "region": "saltmarket"},
@@ -57,6 +57,7 @@ static var lamp_node: Node3D = null
 
 
 static func release() -> void:
+	_win_mat = null
 	_boxes_map.clear()
 	_meshes.clear()
 	lamp_node = null
@@ -169,13 +170,20 @@ static func mesh(path: String, nm: String) -> Mesh:
 		var mi := inst.find_child(nm, true, false) as MeshInstance3D
 		if mi:
 			out = mi.mesh
+			# the art wave's textures are night values (the lore kit lifts them 1.1-1.5x): lift them here too
+			for i in out.get_surface_count():
+				var sm := out.surface_get_material(i) as StandardMaterial3D
+				if sm != null and sm.albedo_texture != null:
+					var m2 := sm.duplicate() as StandardMaterial3D
+					m2.albedo_color = Color(1.2, 1.3, 1.45) if sm.resource_name == "plaster" else Color(1.55, 1.5, 1.45)
+					out.surface_set_material(i, m2)
 		inst.free()
 	_meshes[key] = out
 	return out
 
 
 ## One piece of a kit GLB at `xf`; `lod` = [begin, end] visibility range (0 = open) with a fade.
-static func piece(host: Node3D, path: String, nm: String, xf: Transform3D, lod := Vector2(0, 0), shadows := true) -> MeshInstance3D:
+static func piece(host: Node3D, path: String, nm: String, xf: Transform3D, lod := Vector2(0, 0), shadows := true, lit_windows := false) -> MeshInstance3D:
 	var m := mesh(path, nm)
 	if m == null:
 		push_warning("r37e: no mesh %s in %s" % [nm, path])
@@ -192,7 +200,27 @@ static func piece(host: Node3D, path: String, nm: String, xf: Transform3D, lod :
 		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	host.add_child(mi)
 	mi.global_transform = xf
+	if lit_windows:
+		for i in m.get_surface_count():
+			var sm2 := m.surface_get_material(i)
+			if sm2 != null and sm2.resource_name == "window_glass":
+				mi.set_surface_override_material(i, _window_mat())
 	return mi
+
+
+static var _win_mat: StandardMaterial3D = null
+
+
+## A lit window: warm and low (under the bloom threshold; the hearth is behind it).
+static func _window_mat() -> StandardMaterial3D:
+	if _win_mat == null:
+		_win_mat = StandardMaterial3D.new()
+		_win_mat.albedo_color = Color(0.9, 0.6, 0.3)
+		_win_mat.emission_enabled = true
+		_win_mat.emission = Color(1.0, 0.62, 0.28)
+		_win_mat.emission_energy_multiplier = 1.05
+		_win_mat.roughness = 0.4
+	return _win_mat
 
 
 ## Collision from a generated box table (rows [c, size, quaternion]) placed by `xf`.
@@ -261,7 +289,9 @@ static func _spire(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary
 	# a plinth of the bluff's own rock round the foot: the tower never floats on a slope
 	var lod0 := piece(host, SPIRE, "Spire_LOD0", xf, Vector2(0, 115))
 	piece(host, SPIRE, "Spire_LOD1", xf, Vector2(95, 320), false)
-	piece(host, SPIRE, "Spire_Far", xf, Vector2(290, 0), false)
+	var far_m := mesh(SPIRE, "Spire_Far")
+	if far_m != null:
+		FarDetail.register(host, far_m, xf, 290.0, null, false)
 	cols(host, "SpireBody", _tbl("SPIRE_BOXES"), xf)
 	ramps(host, "SpireStair", _tbl("SPIRE_RAMPS"), xf)
 	# rock heaped at the foot, round the three sides the door is not on
@@ -346,13 +376,13 @@ static func _saltmarket(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dicti
 		var p := Vector3(c.x + off.x, c.y, c.z + off.y)
 		p.y = _gy(space, p.x, p.z)
 		var xf := Transform3D(Basis(Vector3.UP, deg_to_rad(float(h[2]))), p)
-		piece(host, HAMLET, String(h[0]), xf, Vector2(0, 230))
+		piece(host, HAMLET, String(h[0]), xf, Vector2(0, 230), true, String(h[0]) in ["House_A", "House_B"])
 		cols(host, String(h[0]) + "Body", _tbl(HOUSE_COL[h[0]]), xf)
 		if String(h[0]) == "Stall":
 			P._light(host, p + Vector3(0, 2.2, 0.4), Color(1.0, 0.62, 0.3), 0.9, 8.0)
 			P._lore(host, "r37e_market_board", xf * Vector3(2.0, 1.0, 0.4))
-		if String(h[0]) == "House_A":
-			P._light(host, p + xf.basis * Vector3(0, 1.6, 2.2), Color(1.0, 0.7, 0.4), 0.6, 5.0)
+		if String(h[0]) == "House_A" or String(h[0]) == "House_B":
+			P._light(host, p + xf.basis * Vector3(0, 1.9, 3.3), Color(1.0, 0.66, 0.34), 0.7, 6.0)       # the hearth through the window
 	# the yard: barrels and crates stacked against the houses' backs (nothing on the walks), heaps of salt
 	var k := OssKit.new()
 	k.keep_lanes = false
@@ -420,6 +450,7 @@ static func _saltworks(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictio
 	# the boiling hall, its door facing the pans
 	var hx := Transform3D(Basis(Vector3.UP, -PI * 0.5), at.call(2.0, -14.0))
 	piece(host, WORKS, "Works_Hall", hx, Vector2(0, 260))
+	FarDetail.register(host, FarDetail.hull(AABB(Vector3(-8.0, 0.0, -5.0), Vector3(16.0, 11.0, 10.0)), 0.25), hx, 250.0, null, false)
 	cols(host, "HallBody", _tbl("WORKS_HALL_BOXES"), hx)
 	_smoke(host, hx * Vector3(5.0, 11.4, -1.0), Color(0.55, 0.55, 0.55), 8)
 	P._light(host, hx * Vector3(-3.0, 3.4, 4.6), Color(1.0, 0.6, 0.3), 1.0, 9.0)
@@ -613,6 +644,7 @@ static func _cells(host: Node3D, space: PhysicsDirectSpaceState3D, C: Vector3, r
 		var cxf := Transform3D(Basis(Vector3.UP, atan2(cn.x, cn.z)), cp)
 		print("REALM_POI r37e chapel at %s" % [cxf.origin.snapped(Vector3.ONE * 0.1)])
 		piece(host, CELLS, "Chapel_Front", cxf, Vector2(0, 260))
+		FarDetail.register(host, FarDetail.hull(AABB(Vector3(-4.0, 0.0, -1.0), Vector3(8.0, 9.5, 2.0)), 0.3), cxf, 250.0, null, false)
 		cols(host, "ChapelBody", _tbl("CHAPEL_BOXES"), cxf)
 		P._lore(host, "r37e_chapel_lintel", cxf * Vector3(2.4, 1.0, 2.2))
 		P._light(host, cxf * Vector3(0, 2.4, 1.6), Color(1.0, 0.7, 0.4), 0.7, 7.0)
