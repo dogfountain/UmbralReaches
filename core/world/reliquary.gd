@@ -21,6 +21,7 @@ const VARIANTS := {
 ## r36: which spell each relic changes (the Kindling's relic page and the tests read it).
 const SPELL_OF := {"bone": "nova", "thorn": "bolt", "kin": "ward", "slag": "lance", "fog": "step", "coin": "tether",
 	"seed": "well", "rope": "familiar", "mason": "peal"}
+const DB := preload("res://core/life/progression/upgrade_db.gd")
 const TEXT := {
 	&"implosion": "NOVA · IMPLOSION — drags everything within 9.5 m in, marks it, then detonates.",
 	&"wake": "NOVA · WAKE — leaves a violet field for 3 s that marks whatever stands in it.",
