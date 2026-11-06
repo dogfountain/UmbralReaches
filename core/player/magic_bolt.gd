@@ -51,6 +51,8 @@ var scar := 0             ## r33: Ember Scar stacks the Lance leaves on what it 
 var school: StringName = &"umbral"   ## r33: damage school for the combat feed
 var _built := false
 var _leaps := 0
+var _first_dmg := 0.0            ## damage of the first strike; every Lodestar leap is a fraction of it, not compounding
+var _on_shade := false           ## the bolt met a shade: it passes through, so no burst and no number
 var _split := false
 var _seek_target: Node3D
 var _seek_scan := 0
@@ -148,6 +150,8 @@ func arm(is_heavy: bool) -> void:
 	lance_marks = false
 	burst_hooks.clear()
 	_leaps = 0
+	_first_dmg = 0.0
+	_on_shade = false
 	_split = false
 	_seek_target = null
 	_combo = false
@@ -361,6 +365,8 @@ func _blast(at: Vector3, radius: float) -> void:
 
 func _impact_fx(at: Vector3) -> void:
 	var n := _hit_normal
+	if _on_shade and not heavy and not empowered:
+		return
 	if heavy:
 		SpellFx.lance_impact(at, n, blast, pierce)   # round fire field at exactly the blast radius
 		StaffSfx.play("lance_hit", at, 0.0)
@@ -467,6 +473,8 @@ func _apply_hit(node: Object) -> bool:
 			_hit_ids[id] = true
 			_fresh = true
 			var dmg := hit_dmg
+			if _first_dmg <= 0.0:
+				_first_dmg = dmg
 			if heavy and n is Enemy:
 				dmg *= Afflict.shatter(n)
 				if lance_marks:
@@ -805,8 +813,10 @@ func _leap(at: Vector3) -> bool:
 			best = e
 	if best == null:
 		return false
+	if _first_dmg <= 0.0:
+		_first_dmg = hit_dmg
 	_leaps += 1
-	hit_dmg *= LEAP_DMG
+	hit_dmg = _first_dmg * LEAP_DMG
 	var to := best.global_position + Vector3.UP * (best.hp_bar_y * 0.55)
 	direction = (to - at).normalized()
 	global_position = at + direction * 0.3
@@ -822,6 +832,10 @@ func _leap(at: Vector3) -> bool:
 ## r33 combat: the hit goes through CombatState (crit, Sundered, the damage feed); the first foe a
 ## Rift Bolt lands on builds Resonance, the Lance leaves Ember Scar. Plain take_hit without one.
 func _strike(n: Node, dmg: float) -> void:
+	if n.is_in_group(Groups.SHADE):
+		_on_shade = true
+		n.take_hit(dmg, self)           # a shade takes no number and no burst: only light unmakes it
+		return
 	var cs := CombatState.of(self)
 	if cs == null:
 		n.take_hit(dmg, self)
