@@ -254,7 +254,7 @@ func _process(delta: float) -> void:
 		_seen_capture = true
 	_tips_tick(delta)
 	if _aim:
-		_aim.visible = not _menu_open()          # no crosshair over a conversation or a menu
+		_aim.visible = not _menu_open() and not _td.is_up(&"lesson")          # no crosshair over a menu, a conversation or a lesson
 	if not _debug.visible:
 		return
 	_debug_t += delta
