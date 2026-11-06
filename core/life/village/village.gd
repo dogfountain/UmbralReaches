@@ -85,6 +85,8 @@ func _build() -> void:
 	# --- props first (the walking network then avoids the solid ones) ---------------------------
 	nav = VNav.new()
 	nav.call("use_space", space)
+	var west_pois: Variant = load("res://core/world/realm/realm_pois_r37_west.gd")      # no preload: a cycle
+	nav.set("decks", west_pois.decks())
 	var node_xz: Dictionary = Cast.NODES.duplicate()
 	var edges: Array = Cast.EDGES.duplicate()
 	var spots := {}

@@ -70,13 +70,23 @@ const CAMPS := [Vector2(-232.0, 0.0), Vector2(-178.0, -50.0), Vector2(-178.0, -1
 
 static var spots := {}                   ## id -> {at: Vector3, yaw, rect}
 static var built: Array[String] = []
+static var deck_rect := Rect2()          ## the bridge's walkable deck (xz) ...
+static var deck_y := 0.0                 ## ... and its top: the walking network floors it (people cross the Sorrow)
 static var arena: Node = null            ## the Speaking Crown's BossArena (tests)
 
 
 static func release() -> void:
 	spots.clear()
+	deck_rect = Rect2()
 	arena = null
 	Kit.release()
+
+
+## The walkable decks for the villagers' nav (village_nav.gd decks): [] until the bridge is built.
+static func decks() -> Array:
+	if deck_rect.size == Vector2.ZERO:
+		return []
+	return [{"rect": deck_rect, "y": deck_y}]
 
 
 static func body_yaw() -> float:
@@ -323,7 +333,9 @@ static func _house(k: OssKit, base: Vector3, yaw: float, size: Vector2, h: float
 		k.box("stone", base + b * Vector3(0, 2.55, d * 0.5 + 0.04), Vector3(dw + 0.7, 0.16, 0.26), b, false, 0.85)
 		k.box("r37_board", base + b * Vector3(-dw * 0.25, 1.15, d * 0.5 - 0.18), Vector3(dw * 0.5, 2.3, 0.08), b * Basis(Vector3.UP, -1.0), false, 0.65)
 		k.box("iron", base + b * Vector3(-dw * 0.25, 1.9, d * 0.5 - 0.12), Vector3(dw * 0.46, 0.08, 0.04), b * Basis(Vector3.UP, -1.0), false, 0.7)
-		k.box("stone", base + b * Vector3(0, 0.38, d * 0.5 + 0.35), Vector3(dw + 0.5, 0.28, 0.7), b, true, 0.85)
+		# two low risers up to the door (each a body's step high: the people's nav climbs 0.32 m at most)
+		k.box("stone", base + b * Vector3(0, 0.33, d * 0.5 + 0.35), Vector3(dw + 0.5, 0.28, 0.7), b, true, 0.85)
+		k.box("stone", base + b * Vector3(0, -0.06, d * 0.5 + 1.0), Vector3(dw + 0.9, 0.68, 0.6), b, true, 0.85)
 	for x: float in [-w * 0.5, w * 0.5]:
 		for z: float in [-d * 0.5, d * 0.5]:
 			k.box("r37_board", base + b * Vector3(x, h * 0.5 + 0.3, z), Vector3(0.3, h + 0.2, 0.3), b, false, 0.8)
@@ -401,8 +413,30 @@ static func _bridge(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var br := Kit.place(host, "r37_bridge.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(-208.0, y, 65.6)))
 	if br:
 		FarDetail.register(br, FarDetail.hull(AABB(Vector3(-14.0, -2.0, -2.2), Vector3(28.0, 3.0, 4.4)), 0.0, Color(0.16, 0.15, 0.14)), Transform3D.IDENTITY, 110.0)
+	deck_rect = Rect2(Vector2(-222.0, 64.3), Vector2(28.0, 2.6))
+	deck_y = y
+	_abutment(host, space, y)
 	host.set_meta("approach", Vector3(-194.0, ge, 65.6))
 	_lore(host, "r37w_bridge", Vector3(-195.5, y + 1.0, 63.6), Vector3(-195.5, y + 1.0, 63.6))
+
+
+## The deck stands half a metre over the west bank: a stone approach ramp from its end down to the ground
+## (a tilted slab, its far end buried), so the Watch's road does not drop off the bridge.
+static func _abutment(host: Node3D, space: PhysicsDirectSpaceState3D, y: float) -> void:
+	var xa := -221.8
+	var xb := -226.4
+	var yb := _g(space, xb, 65.6)
+	var dir := Vector2(xb - xa, yb - y)
+	var len := dir.length()
+	var ang := atan2(dir.y, dir.x)
+	var u := dir / len
+	var up := Vector2(u.y, -u.x)            # u runs west and down: this is the slab's upper normal
+	var thick := 1.4
+	var run := len + 1.0
+	var c2 := Vector2(xa, y) + u * (run * 0.5 - 0.3) - up * (thick * 0.5)
+	var k := _kit()
+	k.box("stone", Vector3(c2.x, c2.y, 65.6), Vector3(run, thick, 2.2), Basis(Vector3.BACK, ang), true, 0.85)
+	k.commit(host, "BridgeApproach")
 
 
 static func _mill(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:

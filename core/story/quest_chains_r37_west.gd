@@ -71,7 +71,7 @@ const QUESTS := {
 }
 
 const PICKUPS := {
-	"wf_sluice_key": {"quest": "wf_wheel", "step": 1, "near": Vector2(-206.0, -38.0), "kind": "mark", "name": "the sluice key", "verb": "Take",
+	"wf_sluice_key": {"quest": "wf_wheel", "step": 1, "near": Vector2(-208.0, -37.8), "kind": "mark", "name": "the sluice key", "verb": "Take",
 		"say": "An iron key as long as a forearm, wedged between two stones of the shrine's plinth. OSK, scratched on the bow. The river has worn it smooth and left it exactly where a miller would look."},
 	"wf_signal_lamp": {"quest": "wf_watch", "step": 0, "near": Vector2(-228.0, 67.0), "kind": "lantern_lit", "name": "a signal lamp", "verb": "Take",
 		"say": "A hooded lamp on the Watch's rack, filled and lit, the flame leaning south as though it knew. Cassel's mark on the hood. Go."},
