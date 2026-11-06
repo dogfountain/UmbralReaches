@@ -10,6 +10,7 @@ extends RefCounted
 const REQUERY := 0.5
 const STALL_T := 1.0
 const CORNER_R := 0.8            ## a corner this close (planar) is reached
+const BEND := 1.5                ## a path bending less than this off the straight line is not worth following
 const CLEAR_THINKS := 3          ## consecutive clear thinks before it drops back to the straight line
 
 static var map: RID
@@ -136,6 +137,19 @@ func _query(pos: Vector3, goal: Vector3) -> void:
 	queries += 1
 	if p.size() < 2:
 		pts = PackedVector3Array()                # unreachable on the mesh: flat steering
+		return
+	# a path that never leaves the straight line (by more than BEND m) has nothing to teach flat steering,
+	# and walking its stale, collinear corners fights the local wall-following round a wall the mesh does
+	# not know (a gate, a briar): the mesh only helps where it bends
+	var a2 := Vector2(pos.x, pos.z)
+	var line := Vector2(goal.x, goal.z) - a2
+	var ll := line.length()
+	var bend := 0.0
+	if ll > 0.1:
+		for q in p:
+			bend = maxf(bend, absf(line.cross(Vector2(q.x, q.z) - a2)) / ll)
+	if bend < BEND:
+		pts = PackedVector3Array()
 		return
 	pts = p
 	idx = 1

@@ -979,7 +979,24 @@ func _nav_point(home_leg: bool, goal: Vector3, moving: bool) -> Vector3:
 	nav.watch(global_position, dt, walk_speed, moving)
 	var up := Vector3.UP * 1.2
 	var blocked := NavAssist.line_blocked(get_world_3d().direct_space_state, global_position + up, goal + up, get_rid())
-	return nav.next_point(global_position, goal, blocked, dt)
+	var corner := nav.next_point(global_position, goal, blocked, dt)
+	if corner != Vector3.INF:
+		# a corner that lies the way the goal does (the mesh's path is cut into short collinear steps) adds
+		# nothing to flat steering, and flat steering keeps the local wall-following's side memory. Only a
+		# real bend steers: that is where the straight line fails.
+		var to_goal := Vector2(goal.x - global_position.x, goal.z - global_position.z)
+		var to_corner := Vector2(corner.x - global_position.x, corner.z - global_position.z)
+		if to_goal.length_squared() < 0.01 or to_corner.length_squared() < 0.01 or to_goal.normalized().dot(to_corner.normalized()) > 0.94:
+			return Vector3.INF
+	if corner != Vector3.INF:
+		# an inner corner: the first 2 m towards it must be open too (a wall that grew since the bake lies
+		# across the mesh's path; stopping short of the corner, which hugs a static wall by the agent radius)
+		var d := corner - global_position
+		d.y = 0.0
+		var reach := minf(d.length() - 0.8, 2.0)
+		if reach > 0.3 and NavAssist.line_blocked(get_world_3d().direct_space_state, global_position + up, global_position + up + d.normalized() * reach, get_rid()):
+			return Vector3.INF
+	return corner
 
 
 ## Walking home (leash, evade): the way back, round walls when the straight line is walled.
