@@ -46,7 +46,7 @@ const NODES: Array[Dictionary] = [
 		"text": "Room for a third meal: three of the Keg's or Bet's dishes at once, one of each kind.", "fx": {"belly": 1.0},
 		"lore": "Last bread, last bed, last fire before the Stair. Eat the bread twice."},
 	{"id": "h_ember", "path": "hearth", "depth": 5, "cost": 1, "glyph": "will", "name": "Ember Heart",
-		"text": "Every kill mends 1 Wound.", "fx": {"kill_relief": 1.0},
+		"text": "A kill beside you, within 28 m, mends 1 Wound.", "fx": {"kill_relief": 1.0},
 		"lore": "Ash to ember. Some of what they give back is warmth."},
 	{"id": "h_reach", "path": "hearth", "depth": 6, "cost": 2, "glyph": "hearth", "name": "Wide Hearth",
 		"text": "Every kindled fire's sanctuary reaches 1.5 m further.", "fx": {"reach_add": 1.5},

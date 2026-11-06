@@ -133,7 +133,7 @@ const OATHS: Array[Dictionary] = [
 			"text": "A fire takes the Gloom off you and mends the plate 60% faster; a ward takes the Gloom off faster, and does not mend.",
 			"lore": "Stay by the fire. That is the whole of the Kindlers' teaching."},
 		"b": {"id": "hollow", "name": "Oath of the Hollow", "glyph": "hollow",
-			"text": "Every kill mends 4 more Wounds.",
+			"text": "A kill beside you, within 28 m, mends 4 more Wounds.",
 			"lore": "Take back from them what the sky took from them."}},
 	{"tier": 2, "cost": 20, "gate": 1,
 		"a": {"id": "lash", "name": "Oath of the Lash", "glyph": "bolt",
