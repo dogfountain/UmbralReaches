@@ -28,6 +28,28 @@ static func find(st: Dictionary, uid: int) -> Dictionary:
 	return {}
 
 
+## The gear screen's "new" marker: uids the wanderer has looked at. A save from before it had none, so
+## the first call counts everything carried then as seen (call it before adding a piece to the bag).
+static func seen_init(st: Dictionary) -> Array:
+	if not (st.get("seen") is Array):
+		var all: Array = []
+		for p: Variant in st.get("bag", []):
+			if p is Dictionary:
+				all.append(int((p as Dictionary).get("uid", -1)))
+		st["seen"] = all
+	return st.seen
+
+
+static func is_new(st: Dictionary, uid: int) -> bool:
+	return not seen_init(st).has(uid)
+
+
+static func mark_seen(st: Dictionary, uid: int) -> void:
+	var seen := seen_init(st)
+	if not seen.has(uid):
+		seen.append(uid)
+
+
 ## The pieces worn now, by slot (only slots holding a piece that is still in the bag).
 static func worn(st: Dictionary) -> Dictionary:
 	var out := {}
@@ -172,7 +194,9 @@ const STAT_NAMES := {"power": ["spell power", false, true], "cd": ["faster spell
 	"step_range": ["Rift Step reach (m)", false, false], "step_cd": ["faster Rift Step recovery", true, true],
 	"lash_power": ["Lash damage", false, true], "mark_dmg": ["damage a Mark", false, false],
 	"lance_charge": ["faster Lance charge", true, true], "lance_blast": ["Lance burst (m)", false, false],
-	"ward_life": ["Lantern Ward (s)", false, false], "well_life": ["Umbral Well (s)", false, false]}
+	"ward_life": ["Lantern Ward (s)", false, false], "well_life": ["Umbral Well (s)", false, false],
+	"shade_life": ["Bound Shade (s)", false, false], "tether_reach": ["Rift Tether reach (m)", false, false],
+	"peal_reach": ["Founder's Peal reach (m)", false, false], "ash_find": ["grave ash a kill", false, true]}
 
 
 ## {mod key -> value} for one piece alone (base + affixes; "mul" affixes as their offset from 1).
