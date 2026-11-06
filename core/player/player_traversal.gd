@@ -15,6 +15,7 @@ var _hang_n := Vector3.ZERO       ## out of the wall, flat
 var _hang_top := 0.0
 var _hang_t := 0.0
 var _hang_push := 0.0
+var _hang_jump_buf := false
 var _climb_from := Vector3.ZERO
 var _climb_to := Vector3.ZERO
 var _climb_len := Player.CLIMB_TIME
@@ -119,6 +120,7 @@ func _start_hang(pos: Vector3, nf: Vector3, top: float) -> void:
 	_hang_n = nf
 	_hang_top = top
 	_hang_t = 0.0
+	_hang_jump_buf = false
 	_hang_push = 0.0
 	player._grounded = false
 	player._jump_rising = false
@@ -138,7 +140,10 @@ func _tick_hang(delta: float, wish: Vector3) -> void:
 	var lat := wish.dot(along) if wish.length_squared() > 0.04 else 0.0
 	var into := wish.dot(-_hang_n) if wish.length_squared() > 0.04 else 0.0
 	var ready := _hang_t > 0.18 and not player.autopilot
-	if ready and Input.is_action_just_pressed("jump"):
+	if not ready and Input.is_action_just_pressed("jump"):
+		_hang_jump_buf = true                        # pressed during the catch: it is not lost
+	if ready and (Input.is_action_just_pressed("jump") or _hang_jump_buf):
+		_hang_jump_buf = false
 		if into < -0.4:
 			_hang_kick(wish)                       # pulling away: kick off the wall
 		else:
@@ -185,8 +190,8 @@ func _ledge_at(pos: Vector3) -> bool:
 func _let_go(push: float) -> void:
 	player._hang = false
 	player._visual.hang = 0.0
-	player._regrab = 0.45
-	player.velocity = _hang_n * push
+	player._regrab = 0.25
+	player.velocity = _hang_n * push + Vector3.DOWN * 1.5
 	player._air_base = player.global_position.y
 
 
@@ -249,7 +254,7 @@ func _tick_climb(delta: float) -> void:
 	player._air_base = player.global_position.y
 	if u >= 1.0:
 		player._climb_t = -1.0
-		player.velocity = -_hang_n * 1.2
+		player.velocity = -_hang_n * 0.4
 		player._grounded = true
 		player._regrab = 0.3
 		player._air_jumps_left = player.air_jumps
@@ -358,7 +363,7 @@ func _tick_vault(delta: float) -> void:
 ## A tall wall touched (or right beside you) in the air, and not the one you just kicked off.
 
 func _can_wallkick(wish: Vector3) -> bool:
-	if player._grounded or player._hollowing or player._coyote > 0.0:
+	if player._grounded or player._hollowing:
 		return false
 	var n := Vector3.ZERO
 	if player._wall_t > 0.0:
@@ -432,7 +437,7 @@ func _note_contacts(delta: float) -> void:
 	for i in player.get_slide_collision_count():
 		var n := player.get_slide_collision(i).get_normal()
 		if absf(n.y) < 0.3:
-			player._wall_t = 0.15
+			player._wall_t = 0.28
 			player._wall_n = Vector3(n.x, 0.0, n.z).normalized()
 		elif n.y >= 0.3 and n.y < 0.72 and player._steep_t <= 0.0:
 			# a capsule rolling off a stair nose touches its edge at a slant too: only a real slope
@@ -552,6 +557,7 @@ func _tick_mantle(delta: float) -> void:
 	# camera's eased offset (r29)
 	player._cam_off.y -= maxf(p.y - player.global_position.y, 0.0) * 0.6
 	player.global_position = p
+	player.locomotion._ease_tick(delta)
 	player.casting._animate(delta, Vector3.ZERO)
 	player.vitals._update_gloom(delta)
 	if u >= 1.0:

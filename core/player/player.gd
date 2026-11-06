@@ -26,7 +26,7 @@ var mount: PlayerMount = PlayerMount.new(self)
 @export var turn_rate_sprint := 8.0     ## ... and at a full sprint (wider arcs, keeps speed)
 @export var skid_angle := 2.2           ## a reversal sharper than this (rad) brakes instead of arcing
 @export var air_accel := 8.5            ## air steering; weaker than ground but enough to correct a jump
-@export var air_drag := 0.6             ## no stick in the air: momentum is kept, barely bled
+@export var air_drag := 2.0             ## no stick in the air: a mistimed jump bleeds (a held stick keeps air_accel)
 @export var jump_velocity := 5.2
 @export var gravity := 16.0
 @export var coyote_time := 0.13         ## grace to still jump just after walking off an edge
@@ -37,7 +37,7 @@ var mount: PlayerMount = PlayerMount.new(self)
 @export_group("Slide")
 @export var slide_boost := 1.3          ## entry speed = max(current * this, sprint * 1.15)
 @export var slide_min_speed := 3.4      ## need at least a brisk walk to drop into a slide
-@export var slide_friction := 4.2       ## m/s² on the flat
+@export var slide_friction := 2.8       ## m/s² on the flat
 @export var slide_slope_gain := 13.0    ## extra m/s² per unit of downhill slope
 @export var slide_max_time := 1.2       ## on the flat; downhill extends it
 @export var slide_cooldown := 0.35
@@ -95,6 +95,7 @@ var _debug_drive := false
 var _debug_wish := Vector3.ZERO
 var _debug_sprint := false
 var _shake := 0.0
+const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const BOLT := preload("res://core/player/magic_bolt.tscn")
 # r31 combat and traversal (Enshrouded pass): Breath, staff arts, the Tether line, the cloak-glide
 const Stamina := preload("res://core/player/stamina.gd")
@@ -102,7 +103,7 @@ const StaffArts := preload("res://core/player/staff_arts.gd")
 const Grapple := preload("res://core/player/grapple.gd")
 const BreathMeter := preload("res://ui/breath_meter.gd")
 const PERFECT_T := 0.2                  ## a dodge roll that a blow meets this early is a perfect dodge
-const FALL_HURT_V := 16.0               ## landings harder than this (m/s down, ~6 m) wound you ...
+const FALL_HURT_V := 14.0               ## landings harder than this (m/s down, ~5 m) wound you ...
 const FALL_GLOOM := 2.6                 ## ... this much per m/s over (halved when rolled out), never to wounds_max
 const GLIDE_SINK := 2.3                 ## m/s down under the spread robe
 const GLIDE_SPEED := 8.8
@@ -163,7 +164,7 @@ const SLIDE_HOP_BOOST := 1.08           ## jumping out of a slide keeps its spee
 const STEP_DOWN := 0.5                  ## walking off a drop this small keeps you on the ground
 const SLOPE_UPHILL_SLOW := 0.32         ## speed lost per unit of uphill grade (25 deg: -13 %)
 const SLOPE_DOWNHILL_GAIN := 0.08
-const LAND_SLOW_V := 7.5                ## landings harder than this (m/s down) cost speed briefly
+const LAND_SLOW_V := 8.0                ## landings harder than this (m/s down) cost speed briefly
 const ARM_LEN := 3.7                    ## camera distance (stair spring length)
 const ARM_PROBE := 0.24                 ## camera collision sphere
 var _grounded := true                   ## on the floor this frame (move_and_slide, or glued down a step)
@@ -243,6 +244,7 @@ func _ready() -> void:
 			global_position = saved
 	checkpoint = global_position
 	_ash_banked = Travel.count("grave_ash")
+	vitals.restore_mound.call_deferred()
 	Events.enemy_killed.connect(vitals._on_enemy_killed)
 	Events.skill_cast.connect(casting._on_skill_cast)
 	_rig_height = _rig.position.y
@@ -328,7 +330,10 @@ func _process(delta: float) -> void:
 	if not autopilot:
 		var look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
 		if is_instance_valid(_lock):
-			if absf(look.x) > 0.75 and _lock_flick_t <= 0.0:
+			if absf(look.x) < 0.4:
+				_stick_armed = true                      # back to the middle before the next swap
+			if absf(look.x) > 0.75 and _lock_flick_t <= 0.0 and _stick_armed:
+				_stick_armed = false
 				_lock_flick = signf(look.x) * 100.0      # stick flick: next target that side
 				_lock_flick_t = 0.4
 			look = Vector2.ZERO
@@ -338,8 +343,8 @@ func _process(delta: float) -> void:
 			_recentre = false
 			# r29: a response curve (fine aim near the centre, full speed at the rim) and, held hard
 			# over, a turn that speeds up so a 180 doesn't take 1.2 s
-			look = look / mag * pow(mag, 1.6)
-			var boost := 1.0 + 0.6 * smoothstep(0.2, 0.6, _look_hold)
+			look = look / mag * pow(clampf((mag - 0.15) / 0.85, 0.0, 1.0), 1.25)     # the deadzone eases in: no step up to the curve
+			var boost := 1.0 + 0.6 * smoothstep(0.05, 0.6, _look_hold)
 			_yaw -= look.x * stick_sensitivity * boost * delta
 			_pitch = clampf(_pitch - look.y * stick_sensitivity * 0.8 * delta * (-1.0 if invert_y else 1.0), pitch_min, pitch_max)
 	var body_xf := get_global_transform_interpolated()
@@ -377,6 +382,7 @@ func _physics_process(delta: float) -> void:
 	camera_ctl._spring3(true, 11.0, delta)                 # critically damped: no velocity kick on a step
 	_shade_lock = maxf(0.0, _shade_lock - delta)
 	_evade_t = maxf(0.0, _evade_t - delta)
+	evasion._tick_unseen()
 	_combat_t = maxf(0.0, _combat_t - delta)
 	if _mantle_t >= 0.0:
 		traversal._tick_mantle(delta)
@@ -414,7 +420,9 @@ func _physics_process(delta: float) -> void:
 	if riding != null and mount.ride_tick(wish, sprint, delta):
 		return
 	if _visual.ride > 0.0:
-		_visual.ride = move_toward(_visual.ride, 0.0, delta * 4.0)
+		_visual.ride = lerpf(_visual.ride, 0.0, 1.0 - exp(-8.0 * delta))
+		if _visual.ride < 0.005:
+			_visual.ride = 0.0
 
 	if sprint and _stam != null:
 		# r31 Breath: winded, no sprint; hunted (a foe awake near), the sprint spends it
@@ -432,8 +440,12 @@ func _physics_process(delta: float) -> void:
 	if _vault_t >= 0.0:
 		traversal._tick_vault(delta)
 		return
-	if not autopilot and not _hollowing and Input.is_action_just_pressed("dodge") and evasion._try_dodge(wish):
-		pass
+	_dodge_buf = maxf(0.0, _dodge_buf - delta)
+	if not autopilot and not _hollowing:
+		if Input.is_action_just_pressed("dodge"):
+			_dodge_buf = DODGE_BUFFER
+		if _dodge_buf > 0.0 and evasion._try_dodge(wish):
+			_dodge_buf = 0.0                         # a press a hair early still rolls when the cooldown ends
 	_slide_cd = maxf(0.0, _slide_cd - delta)
 	_land_slow = move_toward(_land_slow, 0.0, delta * 2.2)
 	if not Input.is_action_pressed("slide"):
@@ -463,15 +475,20 @@ func _physics_process(delta: float) -> void:
 	else:
 		var target := wish * (sprint_speed if sprint else walk_speed) * _book.move_scale() * (float(_arts.move_scale()) if _arts != null else 1.0)
 		var cur := Vector3(velocity.x, 0.0, velocity.z)
+		if not _grounded:
+			cur = locomotion.air_redirect(cur, delta)
 		if _grounded:
 			target *= locomotion._slope_scale(target) * (1.0 - _land_slow)
+			if RealmLand.in_water(global_position.x, global_position.z):
+				target *= 0.8                        # a pool is a drag on foot (not a swim)
 			if _beam_k > 0.3:
 				# balancing: careful steps along it, the stick's sideways push mostly ignored
 				target -= _beam_side * target.dot(_beam_side) * 0.85 * _beam_k
 				target = target.limit_length(walk_speed * 0.72)
 			horiz = locomotion._ground_move(cur, target, delta)
 			if _beam_k > 0.3 and _beam_mid != 0.0:
-				horiz += _beam_side * _beam_mid * 8.0 * _beam_k      # eased back toward the middle
+				var lat := horiz.dot(_beam_side)                     # a damped spring toward the middle, not a kick
+				horiz += _beam_side * (20.0 * _beam_mid - 8.0 * lat) * delta * _beam_k
 		elif target.length_squared() > 0.0001 and _kick_lock <= 0.0:
 			# air: steer toward the stick, never faster than you already were (or a sprint)
 			horiz = cur.lerp(target, 1.0 - exp(-air_accel * delta))
@@ -484,7 +501,7 @@ func _physics_process(delta: float) -> void:
 			locomotion._slide_input(horiz, wish)
 			if traversal._try_vault(horiz, wish):
 				return
-	_run_blend = lerpf(_run_blend, clampf((horiz.length() - walk_speed) / maxf(sprint_speed - walk_speed, 0.1), 0.0, 1.0) if _grounded else _run_blend, 1.0 - exp(-5.0 * delta))
+	_run_blend = lerpf(_run_blend, clampf((horiz.length() - walk_speed) / maxf(sprint_speed - walk_speed, 0.1), 0.0, 1.0), 1.0 - exp(-5.0 * delta))   # in the air too: the gait follows the speed you carry
 
 	# Coyote time and jump buffering: without them, a jump pressed one frame early or one frame
 	# late is silently dropped, which is most of what made the movement feel unresponsive.
@@ -508,10 +525,12 @@ func _physics_process(delta: float) -> void:
 				evasion._start_glide()                   # r31: out of jumps in the air: spread the robe
 			else:
 				_buffered_jump = jump_buffer
-		# variable height: let go while rising and the arc flattens
+		# variable height: let go while rising and the arc eases down to a short hop (not a one-frame halving)
 		if _jump_rising and not Input.is_action_pressed("jump") and velocity.y > 0.0:
-			velocity.y *= jump_cut
+			_jump_cut_t = 0.08
 			_jump_rising = false
+		if not _grounded and not _gliding and velocity.y < 0.0 and Input.is_action_pressed("jump"):
+			_buffered_jump = jump_buffer             # held through a fall: hop the frame you arrive
 	if _buffered_jump > 0.0 and _coyote > 0.0:
 		if _sliding:
 			locomotion._end_slide()                 # slide-hop: the slide's speed carries into the jump, plus a little
@@ -532,10 +551,13 @@ func _physics_process(delta: float) -> void:
 		velocity.y = move_toward(velocity.y, want_vy, (16.0 if velocity.y < want_vy - 4.0 else 9.0) * delta)
 	elif not _grounded:
 		var g := gravity
+		if _jump_cut_t > 0.0:
+			velocity.y = lerpf(velocity.y, JUMP_CUT_V, minf(delta / _jump_cut_t, 1.0)) if velocity.y > JUMP_CUT_V else velocity.y
+			_jump_cut_t = maxf(0.0, _jump_cut_t - delta)
 		if velocity.y < 0.0:
 			g *= FALL_GRAVITY
-		elif _jump_rising and Input.is_action_pressed("jump") and velocity.y < 1.6:
-			g *= APEX_GRAVITY
+		elif _jump_rising and Input.is_action_pressed("jump") and velocity.y < 2.2:
+			g *= lerpf(APEX_GRAVITY, 1.0, smoothstep(0.0, 2.2, velocity.y))     # the hang fades as the rise does
 		velocity.y -= g * delta
 	elif velocity.y <= 0.0:
 		_jump_rising = false
@@ -622,6 +644,11 @@ func debug_drive(wish: Vector3, sprint := false) -> void:
 
 
 var _look_t := 0.0
+var _jump_cut_t := 0.0
+var _stick_armed := true
+var _dodge_buf := 0.0
+const DODGE_BUFFER := 0.12
+const JUMP_CUT_V := 2.2                  ## a released jump eases its rise down to this
 var _look_foe: Enemy
 var _sprint_held := false
 
@@ -702,7 +729,7 @@ func _face_now(dir: Vector3) -> void:
 	if dir.length_squared() < 0.0001:
 		return
 	_face_yaw = atan2(-dir.x, -dir.z)
-	_visual.rotation.y = lerp_angle(_visual.rotation.y, _face_yaw, 0.6)
+	_visual.rotation.y = lerp_angle(_visual.rotation.y, _face_yaw, 1.0 - exp(-18.0 * get_physics_process_delta_time()))
 
 
 # --- traversal (r28): ledge hang + climb, vault, wall kick, steep slopes, beams, dodge roll ---------
@@ -716,10 +743,10 @@ const HANG_DROP := 2.0            ## feet below the ledge top while hanging
 const WALL_GAP := 0.38            ## capsule centre off the wall face while hanging (radius 0.35)
 const CLIMB_TIME := 0.62
 const SHIMMY := 1.3               ## m/s along a ledge
-const VAULT_MIN := 0.5            ## (below this the step-up walks over it)
+const VAULT_MIN := 0.42           ## (overlaps the step-up: a kerb between the two is still crossed)
 const VAULT_MAX := 1.25
 const VAULT_DEPTH := 1.1          ## thicker than this is a ledge to climb onto, not a wall to vault
-const VAULT_SPEED := 3.8          ## at least a run
+const VAULT_SPEED := 3.2          ## at least a run
 const KICK_UP := 6.4
 const KICK_OUT := 5.0
 const ROLL_TIME := 0.55
@@ -727,7 +754,7 @@ const ROLL_DIST := 4.4
 const ROLL_EVADE := Vector2(0.04, 0.3)   ## untouchable window inside the roll (s)
 const HOP_TIME := 0.36
 const ROLL_CD := 0.3
-const ROLL_LAND_V := 11.0         ## a landing this hard turns into a roll if you are moving
+const ROLL_LAND_V := 10.0         ## a landing this hard turns into a roll if you are moving
 const STEEP_MAX_V := 10.0
 const BEAM_W := 0.32              ## both sides this far out are open air: a beam
 const LOCK_RANGE := 26.0

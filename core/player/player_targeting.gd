@@ -246,7 +246,7 @@ func _lock_view(delta: float, body: Vector3) -> void:
 	if flat > 0.4:
 		var rate := 7.0 if flat > 3.0 else 4.0
 		player._yaw = lerp_angle(player._yaw, atan2(-to.x, -to.z), 1.0 - exp(-rate * delta))
-	var want_pitch := clampf(atan2(to.y, maxf(flat, 1.0)) * 0.6 - 0.2, player.pitch_min, 0.15)
+	var want_pitch := clampf(atan2(to.y, maxf(flat, 1.0)) * 0.6 - 0.2, player.pitch_min, 0.45)
 	player._pitch = lerpf(player._pitch, want_pitch, 1.0 - exp(-4.0 * delta))
 	if _lock_mark:
 		_lock_mark.global_position = tp + Vector3.UP * 0.15

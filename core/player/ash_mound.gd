@@ -1,7 +1,7 @@
 extends Node3D
 ## r30: the ash a hollowed wanderer was carrying, left where they fell (Player._drop_ash). Walk
 ## within REACH to take it back up. A second hollowing first loses it (the Player frees the old
-## mound). Runtime only: not written to the save.
+## mound). The Player writes its place and amount to the save (Travel.system_state) so a continue puts it back.
 
 const REACH := 1.8
 const ASH := Color(0.62, 0.58, 0.66)
@@ -64,6 +64,10 @@ func take() -> void:
 	_taken = true
 	if amount > 0:
 		Travel.give("grave_ash", amount, false)
+		Events.toast.emit("The ash comes back to you: %d." % amount)
+	var rec := Travel.system_state("ash_mound")     # taken: the save forgets the heap
+	rec.clear()
+	Travel.save_soon()
 	Vfx.burst(global_position + Vector3.UP * 0.4, ASH, {"count": 30, "life": 0.8, "speed": Vector2(1.0, 3.5), "size": 0.05, "gravity": -2.0, "dir": Vector3.UP, "spread": 40.0})
 	var tw := create_tween()
 	tw.tween_property(_heap, "scale", Vector3(1.2, 0.05, 1.2), 0.3)

@@ -75,16 +75,21 @@ func drain(amount: float) -> void:
 		winded = true
 		_flash = 1.0
 		_flash_good = false
+		var pl := _player as Player
+		if pl != null:                               # the body stumbles: a short heavy step
+			pl._land_slow = maxf(pl._land_slow, 0.35)
+			pl._visual.hurt_react(Vector3.INF, 6.0)
 		var at := _player.global_position + Vector3.UP * 2.2 if _player else Vector3.INF
 		if at != Vector3.INF:
 			HitText.pop(at, "winded", Color(0.75, 0.8, 0.95))
 
 
-func refund(amount: float) -> void:
+## `clears_winded`: a perfect dodge or a parry catches the breath back, so the stumble goes with it.
+func refund(amount: float, clears_winded := false) -> void:
 	breath = minf(breath_max, breath + amount)
 	_flash = 1.0
 	_flash_good = true
-	if winded and breath >= WINDED_UNTIL:
+	if winded and (clears_winded or breath >= WINDED_UNTIL):
 		winded = false
 
 

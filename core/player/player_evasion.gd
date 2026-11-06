@@ -13,6 +13,9 @@ const Stamina := preload("res://core/player/stamina.gd")
 var _glide_dir := Vector3.FORWARD
 var _glide_speed := 0.0
 var _roll_speed := 0.0
+var _evade_set := false                ## the roll's i-frame window has been stamped
+var _unseen := false                  ## Rift Step: the body stays hidden until the evade grace ends
+const MARK_REACH := 1.2               ## a foe this close to the step's line is marked
 
 
 func _init(p: Player) -> void:
@@ -40,8 +43,7 @@ func _start_glide() -> void:
 	_glide_dir = _glide_dir.normalized()
 	_glide_speed = maxf(flat.length(), 5.5)
 	player._jump_rising = false
-	player.velocity.y = maxf(player.velocity.y, -4.0)
-	if player._arts != null:
+	if player._arts != null:       # the fall eases into the sink (Player tick), it is not set in one frame
 		player._arts.cancel()
 	StaffSfx.play("swish", player.global_position + Vector3.UP * 1.2, -6.0, 0.6)
 	Vfx.burst(player.global_position + Vector3.UP * 1.0, Color(0.05, 0.03, 0.09, 0.55), {"count": 12, "life": 0.6, "speed": Vector2(0.5, 1.5), "size": 0.3, "gravity": 0.4, "additive": false, "radius": 0.5})
@@ -148,12 +150,14 @@ func shadowstep() -> bool:
 	player.reset_physics_interpolation()
 	player._tp_offset += from - to                   # camera swoops across the gap instead of hard-cutting
 	SpellFx.rift_seam(from, to)
+	_corridor(from, to)
 	SpellFx.rift_in(to)
 	var keep := maxf(Vector2(player.velocity.x, player.velocity.z).length(), player.sprint_speed * 0.9)   # keep the run going
 	player.velocity = Vector3(dir.x, 0.0, dir.z) * keep
 	player._step_t = player.step_reveal
 	player._evade_t = player.step_evade
 	player._visual.visible = false
+	_unseen = true
 	player._visual.rotation.y = atan2(-dir.x, -dir.z)
 	_mark_path(from, to)
 	player._last_pos = to                            # our own move (the camera swoops via _tp_offset), not a teleport
@@ -187,6 +191,14 @@ func _rift_target(dir: Vector3) -> Vector3:
 	return dest
 
 
+## The violet that marks: the same 1.2 m to either side that _mark_path uses.
+func _corridor(from: Vector3, to: Vector3) -> void:
+	var pts := PackedVector3Array()
+	for i in 12:
+		pts.append((from + Vector3.UP).lerp(to + Vector3.UP, float(i) / 11.0))
+	Vfx.ribbon(pts, MARK_REACH * 2.0, MARK_REACH * 2.0, Color(0.6, 0.3, 1.6, 0.22), 0.35)
+
+
 func _mark_path(from: Vector3, to: Vector3) -> void:
 	var a := from + Vector3.UP
 	var b := to + Vector3.UP
@@ -195,7 +207,7 @@ func _mark_path(from: Vector3, to: Vector3) -> void:
 		if e == null or not e.is_alive():
 			continue
 		var c := e.global_position + Vector3.UP * 0.9
-		if c.distance_to(Geometry3D.get_closest_point_to_segment(c, a, b)) < 1.2:
+		if c.distance_to(Geometry3D.get_closest_point_to_segment(c, a, b)) < MARK_REACH:
 			e.add_mark(1)
 			Vfx.burst(c, SpellFx.VIOLET_HOT, {"count": 16, "life": 0.35, "speed": Vector2(2.0, 4.5), "size": 0.04, "gravity": -3.0, "trail": 0.06})
 
@@ -206,9 +218,17 @@ func _tick_step(delta: float) -> void:
 	player._step_t -= delta
 	if player._step_t <= 0.0:
 		player._step_t = 0.0
+		_tick_unseen()
+	player.vitals._update_gloom(delta)
+
+
+## The body re-forms when the grace (step_evade) ends, not before: it is not hittable-looking while
+## blows still miss.
+func _tick_unseen() -> void:
+	if _unseen and player._evade_t <= 0.0 and player._step_t <= 0.0:
+		_unseen = false
 		player._visual.visible = true
 		_step_burst()
-	player.vitals._update_gloom(delta)
 
 
 func _step_burst() -> void:
@@ -236,6 +256,7 @@ func _try_dodge(wish: Vector3) -> bool:
 	if player._book != null:
 		player._book.cancel_lock()                     # ... and the cast lock, so a spell can follow the roll at once
 	player._dodge_roll = true
+	_evade_set = false
 	player.locomotion._end_slide()
 	player._roll_t = 0.0
 	player._roll_evade = true
@@ -264,6 +285,7 @@ func _try_dodge(wish: Vector3) -> bool:
 func _land_roll(dir: Vector3, speed: float) -> void:
 	player._dodge_roll = false
 	player._rolled_landing = true
+	_evade_set = false
 	player.locomotion._end_slide()
 	player._roll_t = 0.0
 	player._roll_evade = false
@@ -278,8 +300,11 @@ func _land_roll(dir: Vector3, speed: float) -> void:
 func _tick_roll(delta: float, wish := Vector3.ZERO) -> Vector3:
 	player._roll_t += delta
 	var u := clampf(player._roll_t / player._roll_len, 0.0, 1.0)
-	if player._roll_evade and not player._crawl and player._roll_t >= Player.ROLL_EVADE.x and player._roll_t <= Player.ROLL_EVADE.y * (player._roll_len / Player.ROLL_TIME):
-		player._evade_t = maxf(player._evade_t, 0.02)
+	var evade_end := Player.ROLL_EVADE.y * (player._roll_len / Player.ROLL_TIME)
+	if player._roll_evade and not player._crawl and player._roll_t >= Player.ROLL_EVADE.x and player._roll_t <= evade_end:
+		if not _evade_set:
+			_evade_set = true                           # one window, set once, counting down
+			player._evade_t = maxf(player._evade_t, evade_end - player._roll_t)
 		player._evade_roll = true
 	var spd := _roll_speed * lerpf(1.0, 0.55, u * u)
 	if u >= 1.0:

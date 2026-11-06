@@ -67,6 +67,7 @@ var _hold := -1.0                ## the staff key held this long (-1 not held)
 var _drawing := false            ## a heavy is being drawn
 var _guard_t := -1.0             ## guard held this long (-1 not held)
 var _guard_k := 0.0
+var _parry_clock := -1.0         ## runs from the moment the staff is across the body (guard_k > 0.65)
 var _last_guard := -10.0
 var _parry_ok := false
 var _broken := 0.0
@@ -94,7 +95,7 @@ func guarding() -> bool:
 
 ## Inside a guard's opening: a blow now is parried (Player.is_evading reads this).
 func parrying() -> bool:
-	return _guard_t >= 0.0 and _guard_t <= PARRY_WIN and _parry_ok
+	return _parry_clock >= 0.0 and _parry_clock <= PARRY_WIN and _parry_ok
 
 
 func phase() -> int:
@@ -141,7 +142,7 @@ func _find_close(reach: float) -> Node3D:
 		return null
 	var at := player.global_position
 	var lk := player.lock_target()
-	if lk and lk.is_alive():
+	if lk and lk.is_alive() and reach > CLOSE_R + 0.01:       # the staff key reaches a lock; the trigger asks the cone and sight like any body
 		var dl := Vector2(lk.global_position.x - at.x, lk.global_position.z - at.z).length()
 		if dl <= reach + 0.8 and absf(lk.global_position.y - at.y) < 2.2:
 			return lk
@@ -162,7 +163,7 @@ func _find_close(reach: float) -> Node3D:
 		var dt := 1.0 if flat.length() < 0.5 else flat.normalized().dot(Vector2(fwd.x, fwd.z))
 		if dt < CLOSE_COS:
 			continue
-		var score := d - dt * 1.5
+		var score := d - dt * 1.5 - (1.0 if e == lk else 0.0)
 		if score >= best_s:
 			continue
 		if not _clear(at + Vector3.UP * 1.1, e.global_position + Vector3.UP * minf(e.hp_bar_y * 0.5, 1.2)):
@@ -237,7 +238,13 @@ func _read_input(delta: float) -> void:
 		_hold = 0.0
 	if _hold >= 0.0:
 		if _held(&"staff_strike"):
-			_hold += delta
+			if player.is_grounded():
+				_hold += delta
+			else:
+				_hold = 0.0                              # time in the air is not a draw
+				if _drawing:
+					_drawing = false
+					_heavy_c = 0.0
 			if _hold >= HEAVY_HOLD and not _drawing and _phase < 0 and player.is_grounded() and _broken <= 0.0:
 				_drawing = true
 				_heavy_c = 0.0
@@ -295,7 +302,7 @@ func _begin(i: int, tgt: Node3D) -> bool:
 	_hit_done = false
 	_queued = false
 	_target = tgt
-	_riposte = player.consume_riposte()
+	_riposte = player._riposte_ready                  # armed, not spent: the blow that connects spends it
 	_aim_lunge(tgt, _hit_at)
 	player.note_combat()
 	player.call("_visual_pose", c[0])
@@ -317,7 +324,7 @@ func heavy(c: float) -> bool:
 	_queued = false
 	_heavy_c = clampf(c, 0.0, 1.0)
 	_target = close_target(PICK_R)
-	_riposte = player.consume_riposte()
+	_riposte = player._riposte_ready
 	_aim_lunge(_target, _hit_at)
 	player.note_combat()
 	player.call("_visual_pose", &"heavy")
@@ -346,7 +353,7 @@ func drive(wish: Vector3) -> Vector3:
 	if _phase < 0:
 		return Vector3.ZERO
 	if _t < _hit_at:
-		return _lunge + wish * 0.6
+		return _lunge * smoothstep(0.0, _hit_at * 0.5, _t) + wish * 0.6
 	return wish * 0.8 * (1.0 - clampf((_t - _hit_at) / 0.15, 0.0, 1.0))
 
 
@@ -439,11 +446,12 @@ func _land_blow() -> void:
 	if hit_any and player.has_method("combat") and player.call("combat") != null:
 		(player.call("combat") as Node).call("build", 1)  # r33: a landed blow builds one Resonance
 	if _riposte and hit_any:
+		player.consume_riposte()
 		HitText.pop(body + Vector3.UP * 2.3, "RIPOSTE", Color(1.3, 0.75, 2.6), true)
 		Combo.note("RIPOSTE STRIKE", Vector3.INF, Color(1.3, 0.75, 2.6))
 	if finisher:
 		var g := body + fwd * reach
-		Vfx.ring(g + Vector3.UP * 0.08, radius, Color(1.2, 0.55, 2.8), 0.3, 0.1, Vector3.UP, 0.9)
+		_front_ring(body, g, fwd, radius, arc)
 		Vfx.burst(g + Vector3.UP * 0.1, Color(0.18, 0.15, 0.2, 0.55), {"count": 14, "life": 0.6, "speed": Vector2(0.8, 2.4), "size": 0.25, "gravity": -0.4, "dir": Vector3.UP, "spread": 85.0, "additive": false, "radius": radius * 0.5})
 		StaffSfx.play("tap", g, -2.0 if heavy_hit else -6.0, 0.7)
 	if hit_any:
@@ -486,21 +494,27 @@ func _start_guard() -> void:
 	_parry_ok = now - _last_guard >= PARRY_RELOCK
 	_last_guard = now
 	_guard_t = 0.0
+	_parry_clock = -1.0
 	player.note_combat()
 	StaffSfx.play("tap", player.global_position + Vector3.UP * 1.3, -12.0, 1.5)
 
 
 func _end_guard() -> void:
 	_guard_t = -1.0
+	_parry_clock = -1.0
 
 
 func _tick_guard(delta: float) -> void:
 	if _guard_t >= 0.0:
 		_guard_t += delta
+		if _parry_clock >= 0.0:
+			_parry_clock += delta
 		var st := player.stamina()
 		if st:
 			st.holding = true
 	_guard_k = move_toward(_guard_k, 1.0 if _guard_t >= 0.0 else 0.0, delta * (14.0 if _guard_t >= 0.0 else 6.0))
+	if _guard_t >= 0.0 and _parry_clock < 0.0 and _guard_k > 0.65:
+		_parry_clock = 0.0                        # the window opens when the staff is across, and lasts PARRY_WIN
 
 
 ## Player.on_evaded during a parry window: the blow is turned aside.
@@ -509,7 +523,7 @@ func parry(attacker: Node) -> void:
 	_parry_ok = false
 	var st := player.stamina()
 	if st:
-		st.refund(Stamina.PERFECT_REFUND)
+		st.refund(Stamina.PERFECT_REFUND, true)
 	var at := player.global_position + Vector3.UP * 1.4
 	HitText.pop(at + Vector3.UP * 0.9, "PARRY", Color(1.5, 1.2, 0.6), true)
 	Hints.once(&"parry", "PARRY: guard just as a blow lands. The attacker reels and your next strike or bolt is a riposte.")
@@ -550,7 +564,59 @@ func absorb(amount: float, from_pos: Vector3) -> float:
 			StaffSfx.play("shatter", player.global_position + Vector3.UP, -4.0, 0.8)
 			return amount
 	blocks += 1
-	HitText.pop(player.global_position + Vector3.UP * 2.2, "blocked", Color(0.85, 0.85, 1.0))
+	HitText.pop(player.global_position + Vector3.UP * 2.2, "blocked, %d got through" % roundi(amount * BLOCK_KEEP), Color(0.85, 0.85, 1.0))
 	StaffSfx.play("tap", player.global_position + Vector3.UP * 1.3, -3.0, 0.9)
 	player.kick(0.25)
 	return amount * BLOCK_KEEP
+
+
+## The finisher's ring: only the front of the circle, cut on the arc the blow itself keeps
+## (directions from the body at least `arc` against the facing), out to the same radius.
+func _front_ring(body: Vector3, centre: Vector3, fwd: Vector3, radius: float, arc: float) -> void:
+	var host := get_tree().current_scene
+	if host == null:
+		return
+	const N := 48
+	const W := 0.09
+	var verts := PackedVector3Array()
+	var idx := PackedInt32Array()
+	var keep: Array[bool] = []
+	for i in N + 1:
+		var a := TAU * float(i) / float(N)
+		var dir := Vector3(cos(a), 0.0, sin(a))
+		var p := centre + dir * radius
+		var to := p - body
+		to.y = 0.0
+		var d := to.length()
+		keep.append(d <= 0.6 or (to / d).dot(fwd) >= arc)
+		verts.append(dir * (1.0 - W))
+		verts.append(dir)
+	for i in N:
+		if keep[i] and keep[i + 1]:
+			var o := i * 2
+			idx.append_array([o, o + 1, o + 3, o, o + 3, o + 2])
+	if idx.is_empty():
+		return
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_INDEX] = idx
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.albedo_color = Color(1.2, 0.55, 2.8, 0.9)
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	host.add_child(mi)
+	mi.global_position = centre + Vector3.UP * 0.12
+	mi.scale = Vector3(radius * 0.35, 1.0, radius * 0.35)
+	var tw := mi.create_tween().set_parallel(true)
+	tw.tween_property(mi, "scale", Vector3(radius, 1.0, radius), 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.3)
+	tw.chain().tween_callback(mi.queue_free)

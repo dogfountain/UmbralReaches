@@ -21,6 +21,8 @@ var _gloom_emit_t := 0.0
 var _wounds_emit := 0.0
 var _wounds_emit_t := 0.0
 var _stuck_from := Vector3.INF
+const SLIDE_PERFECT_T := 0.12
+var _grace_amount := 0.0              ## the wound the HURT_GRACE window is already holding
 
 
 func _init(p: Player) -> void:
@@ -56,7 +58,9 @@ func on_evaded(attacker: Node) -> void:
 		player._arts.parry(attacker)                   # r31: the staff turned it aside
 		_surge(&"parry")
 		return
-	if player._evade_roll and player._dodge_roll and player._roll_t >= 0.0 and player._roll_t <= Player.PERFECT_T and now >= player._riposte_cd:
+	var perfect_roll: bool = player._dodge_roll and player._roll_t >= 0.0 and player._roll_t <= Player.PERFECT_T
+	var perfect_slide: bool = player._sliding and player.locomotion._slide_t <= SLIDE_PERFECT_T    # the slide's first moments are a dodge too
+	if player._evade_roll and (perfect_roll or perfect_slide) and now >= player._riposte_cd:
 		_perfect_dodge(attacker)                # r31: rolled the instant it landed
 		_surge(&"dodge")
 		return
@@ -104,9 +108,16 @@ func _on_enemy_killed(e: Node) -> void:
 	var now := Time.get_ticks_msec() * 0.001
 	player._chain = player._chain + 1 if now < player._chain_until else 1
 	player._chain_until = now + Player.CHAIN_WINDOW
-	mend(minf(Player.KILL_RELIEF + 2.0 * float(player._chain - 1), 14.0))   # r35: a kill mends Wounds
+	var before := player.wounds
+	mend(minf(Player.KILL_RELIEF + 2.0 * float(player._chain - 1), 14.0))   # a kill mends Wounds
+	var closed := roundi(before - player.wounds)
+	var line := ""
+	if closed > 0:
+		line = "+%d" % closed
 	if player._chain >= 2:
-		HitText.pop(player.global_position + Vector3.UP * 2.3, "chain x%d" % player._chain, Color(1.2, 0.6, 2.6), player._chain >= 4)
+		line = ("%s  chain x%d" % [line, player._chain]).strip_edges()
+	if line != "":
+		HitText.pop(player.global_position + Vector3.UP * 2.3, line, Color(1.2, 0.6, 2.6), player._chain >= 4)
 	Vfx.arc(at, player.global_position + Vector3.UP * 1.2, Color(1.2, 0.55, 2.8), 0.35, 0.18)
 	Vfx.burst(player.global_position + Vector3.UP * 1.1, Color(1.3, 0.6, 3.0), {"count": 12, "life": 0.4, "speed": Vector2(0.5, 1.5), "size": 0.04, "gravity": -1.0, "radius": 0.3})
 
@@ -141,7 +152,7 @@ func _update_gloom(delta: float) -> void:
 	player.gloom = clampf(player.gloom + rate * delta, 0.0, player.gloom_max)
 	if not is_equal_approx(prev, player.gloom):
 		_gloom_emit_t += delta
-		if absf(player.gloom - _gloom_emit) >= 0.5 or _gloom_emit_t >= 0.1:
+		if absf(player.gloom - _gloom_emit) >= 0.2 or _gloom_emit_t >= 0.1:
 			Events.gloom_changed.emit(player.gloom, player.gloom_max)
 			_gloom_emit = player.gloom
 			_gloom_emit_t = 0.0
@@ -151,8 +162,8 @@ func _update_gloom(delta: float) -> void:
 		_spawn_shade()
 	if lit and is_instance_valid(player._shade):
 		player._shade.unmake_by_light()
-	# r35: a fire mends Wounds (a Lantern Ward does not: it only holds the dark back)
-	if drain < 0.0 and player.wounds > 0.0:
+	# a kindled fire mends Wounds (a camp's mirror and a Lantern Ward only hold the dark back)
+	if drain < 0.0 and player.wounds > 0.0 and LightGrid.is_fire(player.global_position):
 		var before := player.wounds
 		player.wounds = maxf(0.0, player.wounds - player.wounds_mend_lit * delta)
 		_wounds_emit_t += delta
@@ -217,6 +228,8 @@ func _spawn_shade() -> void:
 	player._shade = s
 	s.tree_exiting.connect(_on_shade_leaving)
 	Events.shade_spawned.emit()
+	player.camera_ctl.kick(0.4)                  # the arrival is a blow
+	player._visual.hurt_react(s.global_position, 8.0)
 	if not _shade_warned:
 		_shade_warned = true
 		Events.toast.emit("The dark has taken shape. Find light.")
@@ -229,7 +242,7 @@ func note_shade_unmade() -> void:
 ## A bolt or spell passed through the Shade. The first time, say what does work.
 
 func note_shade_passed() -> void:
-	Hints.once(&"shade_drive", "Bolts pass through the Shade. Run for a fire or a lantern: only light unmakes it.")
+	Hints.once(&"shade_drive", "Bolts pass through the Shade. Run for a kindled fire, or set a Lantern Ward: only those unmake it.")
 
 
 ## r35: a blow from the world (a foe, a boss, their hazards). It wounds; it no longer fills the Gloom.
@@ -238,20 +251,30 @@ func note_shade_passed() -> void:
 func take_wound(amount: float, from_pos := Vector3.INF) -> void:
 	if player._hollowing:
 		return
-	if Time.get_ticks_msec() * 0.001 < player._hurt_grace_until:
-		return                                   # two strikes landing together count once
-	player._hurt_grace_until = Time.get_ticks_msec() * 0.001 + Player.HURT_GRACE
+	var now := Time.get_ticks_msec() * 0.001
+	var inside := now < player._hurt_grace_until
+	if inside and amount <= _grace_amount:
+		return                                   # two strikes landing together count once: the heavier one
+	if not inside:
+		_grace_amount = 0.0
+		player._hurt_grace_until = now + Player.HURT_GRACE
 	if player._arts != null:
-		amount = player._arts.absorb(amount, from_pos)   # r31: a held guard turns most of a blow from the front
+		amount = player._arts.absorb(amount, from_pos)   # a held guard turns most of a blow from the front
+	var whole := amount
+	if inside:
+		amount = maxf(0.0, amount - _grace_amount)       # the heavier blow replaces the lighter: only the difference is new
+	_grace_amount = maxf(_grace_amount, whole)
+	if amount <= 0.0:
+		return
 	if player._book != null:
-		player._book.on_hurt(amount)                    # r33: a hard blow interrupts a cast, a light one pushes it back
+		player._book.on_hurt(whole)                    # r33: a hard blow interrupts a cast, a light one pushes it back
 	player.camera_ctl.kick(clampf(amount / 30.0, 0.3, 1.0))
 	Sfx.play(Player.SFX_HURT, player.global_position + Vector3.UP, -3.0)
 	Events.player_hurt.emit(amount, from_pos)
 	player._visual.hurt_react(from_pos, amount)
 	if not player.has_meta("heard_strike"):
 		player.set_meta("heard_strike", true)
-		Events.toast.emit("They wound. A fire closes what they open.")
+		Events.toast.emit("Blows empty the wound plate, not the gloom. A fire closes what they open.")
 	add_wounds(amount)                           # last: at wounds_max this hollows
 
 
@@ -263,6 +286,7 @@ func hollow() -> void:
 	if player._hollowing:
 		return
 	player._hollowing = true
+	player.mount.get_down()                      # on your feet for the fade to the fire; the horse stays
 	player.hollow_count += 1
 	_drop_ash()
 	Travel.saved_hollows = player.hollow_count
@@ -307,20 +331,56 @@ func _drop_ash() -> void:
 		player._ash_banked = have
 	var carried := have - player._ash_banked
 	if carried <= 0:
+		_forget_mound()
 		return
 	var host := player.get_tree().current_scene if player.is_inside_tree() else null
 	if host == null:
 		return
 	Travel.items["grave_ash"] = player._ash_banked
-	Travel.save_soon()
 	var at := player.global_position if player._grounded or player._safe_ground == Vector3.INF else player._safe_ground
+	_make_mound(host, at, carried)
+	var rec := Travel.system_state("ash_mound")      # the save that fires here includes the heap
+	rec["scene"] = _scene_path()
+	rec["at"] = at
+	rec["amount"] = carried
+	Travel.save_soon()
+	Hints.once(&"ash_mound", "Your carried ash lies where you fell. Walk back to it. The next death takes it.")
+
+
+func _scene_path() -> String:
+	return player.owner.scene_file_path if player.owner != null else ""
+
+
+func _make_mound(host: Node, at: Vector3, carried: int) -> void:
 	var m := Node3D.new()
 	m.set_script(ASH_MOUND)
 	m.set("amount", carried)
 	host.add_child(m)
 	m.global_position = at
 	_ash_mound = m
-	Hints.once(&"ash_mound", "Your carried ash lies where you fell. Walk back to it.")
+
+
+## A heap that was lost (a second hollow, or taken) is lost in the save too.
+func _forget_mound() -> void:
+	var rec := Travel.system_state("ash_mound")
+	if not rec.is_empty():
+		rec.clear()
+		Travel.save_soon()
+
+
+## A continue (or coming back to the night) puts the heap back where it fell.
+func restore_mound() -> void:
+	if not player.is_inside_tree() or is_instance_valid(_ash_mound):
+		return
+	var rec := Travel.system_state("ash_mound")
+	if rec.is_empty() or String(rec.get("scene", "")) != _scene_path():
+		return
+	var at: Variant = rec.get("at", null)
+	var amount := int(rec.get("amount", 0))
+	var host := player.get_tree().current_scene
+	if not (at is Vector3) or amount <= 0 or host == null:
+		return
+	_make_mound(host, at as Vector3, amount)
 
 
 ## Off the bottom of the world or falling for ages: not a death. Back to the last solid ground
@@ -329,6 +389,7 @@ func _drop_ash() -> void:
 
 func _fell_out() -> void:
 	player._fall_t = 0.0
+	player.mount.get_down()
 	var to := player._safe_ground if player._safe_ground != Vector3.INF else player.checkpoint
 	if to.y < -38.0:
 		to = player.checkpoint
@@ -377,7 +438,7 @@ func _perfect_dodge(attacker: Node) -> void:
 	player._riposte_cd = now + 1.5
 	player._riposte_ready = true
 	if player._stam != null:
-		player._stam.refund(Stamina.PERFECT_REFUND)
+		player._stam.refund(Stamina.PERFECT_REFUND, true)
 	var at := player.global_position + Vector3.UP * 2.0
 	HitText.pop(at, "PERFECT DODGE", Color(1.5, 1.2, 0.6), true)
 	Hints.once(&"perfect_dodge", "PERFECT DODGE: roll the instant a blow lands. Breath back, and your next strike or bolt is a riposte.")
@@ -403,6 +464,6 @@ func _fall_hurt(impact: float) -> void:
 	player.falls_hurt = g
 	add_wounds(g)
 	HitText.pop(player.global_position + Vector3.UP * 2.2, "jarred +%d" % int(round(g)), Color(0.9, 0.6, 0.55))
-	Hints.once(&"fall_hurt", "Long drops jar the dark in. Roll as you land (dodge), or open the robe to glide (jump again in the air).")
+	Hints.once(&"fall_hurt", "Long drops wound the plate. Roll as you land (dodge), or open the robe to glide (jump again in the air).")
 	player._visual.hurt_react(Vector3.INF, g)
 	player.camera_ctl.kick(clampf(g / 20.0, 0.3, 1.0))

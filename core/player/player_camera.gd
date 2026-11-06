@@ -52,10 +52,10 @@ func _update_camera(_delta: float, horiz: Vector3, _sprint: bool, vy_before: flo
 	# FOV follows real speed (walk 0 -> sprint full kick -> slides and hops a bit beyond)
 	var spd := horiz.length()
 	_fov_want = clampf((spd - player.walk_speed) / maxf(player.sprint_speed - player.walk_speed, 0.1), 0.0, 1.6) * Player.SPRINT_FOV_KICK
-	# a slight roll into strafes (max ~1.4 degrees)
+	# a slight roll into strafes (max ~3.5 degrees at a full lateral sprint)
 	var right := Basis(Vector3.UP, player._yaw) * Vector3.RIGHT
 	var lateral := Vector3(player.velocity.x, 0.0, player.velocity.z).dot(right)
-	_roll_want = clampf(-lateral / player.sprint_speed, -1.0, 1.0) * deg_to_rad(1.4)
+	_roll_want = clampf(-lateral / player.sprint_speed, -1.0, 1.0) * deg_to_rad(3.5)
 	if player._grounded and not player._was_floor:
 		var dip := clampf(-vy_before / 9.0, 0.0, 1.0)
 		_land_dip_want = maxf(_land_dip_want, dip)
@@ -73,7 +73,7 @@ func _cam_frame(delta: float) -> void:
 	_fov_kick = lerpf(_fov_kick, _fov_want, 1.0 - exp(-6.0 * delta))
 	_fov_burst = lerpf(_fov_burst, player._fov_burst_want, snap)
 	player._fov_burst_want *= exp(-4.0 * delta)
-	var fov := Settings.fov + maxf(_fov_kick, _fov_burst)
+	var fov := Settings.fov + minf(_fov_kick + _fov_burst, 14.0)      # one motion: the burst rides on the speed kick
 	if absf(player._cam.fov - fov) > 0.0001:
 		player._cam.fov = fov
 	_cam_roll = lerpf(_cam_roll, _roll_want, 1.0 - exp(-5.0 * delta))
@@ -113,7 +113,7 @@ func _cam_feel_tick(delta: float) -> void:
 	var lead := right * flat.dot(right) * 0.065 * (0.4 + 0.6 * player._run_blend)
 	if is_instance_valid(player._lock):
 		lead = Vector3.ZERO
-	player._look_ahead = player._look_ahead.lerp(lead.limit_length(0.45), 1.0 - exp(-2.5 * delta))
+	player._look_ahead = player._look_ahead.lerp(lead.limit_length(0.45), 1.0 - exp(-6.0 * delta))
 
 
 ## A thin thing between the camera and the wanderer (a post, a lantern pole, a sapling) is ignored
@@ -185,6 +185,7 @@ func _update_arm(delta: float) -> void:
 	var fk := smoothstep(0.0, 1.0, _fight_k)
 	player._rig.global_position += Vector3.UP * 0.32 * fk
 	var want := Player.ARM_LEN * lerpf(1.0, 0.62, clampf(player._pitch / player.pitch_max, 0.0, 1.0))
+	want *= lerpf(1.0, 0.62, clampf((-player._pitch - 0.18) / maxf(-player.pitch_min - 0.18, 0.1), 0.0, 1.0))   # looking down shortens it too: no ground clip
 	want += 0.35 * player._run_blend - 0.25 * player._slide_blend + 0.45 * fk
 	var space := player.get_world_3d().direct_space_state if player.is_inside_tree() else null
 	var reach := want
@@ -207,12 +208,16 @@ func _update_arm(delta: float) -> void:
 			_thin_hold = 0.15                    # a post or a pole: let it pass, don't yank the view in
 		_thin_hold = maxf(0.0, _thin_hold - delta)
 		if _thin_hold > 0.0:
-			reach = want
+			_thin_q.transform = Transform3D(Basis.IDENTITY, player._arm.global_position + player._arm.global_basis.z.normalized() * want)
+			if not space.intersect_shape(_thin_q, 1).is_empty():
+				_thin_hold = 0.0                 # strafed from the pole onto a wall: the camera spot is no longer clear
+			else:
+				reach = want
 	reach = maxf(reach, 0.5)
 	if reach < _cam_len:
 		_cam_len = minf(lerpf(_cam_len, reach, 1.0 - exp(-28.0 * delta)), reach + 0.25)
 	else:
-		_cam_len = lerpf(_cam_len, reach, 1.0 - exp(-3.2 * delta))
+		_cam_len = lerpf(_cam_len, reach, 1.0 - exp(-8.0 * delta))
 	player._arm.spring_length = _cam_len
 	player._cam.position = Vector3(0.0, 0.0, _cam_len)
 
@@ -254,3 +259,4 @@ func _shoulder_tick(space: PhysicsDirectSpaceState3D, want: float, delta: float)
 	var k_want := 0.0 if _sight_hold > 0.0 else smoothstep(Player.SHOULDER_NEAR * 0.5, Player.SHOULDER_NEAR, reach)
 	player._shoulder_k = lerpf(player._shoulder_k, k_want, 1.0 - exp(-(9.0 if k_want < player._shoulder_k else 2.5) * delta))
 	player._arm.position.x = Player.SHOULDER * player._shoulder_k
+	player._cam.h_offset = 0.12 * player._shoulder_k           # the crosshair side follows the boom

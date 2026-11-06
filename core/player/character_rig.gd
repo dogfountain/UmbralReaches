@@ -484,7 +484,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		_hero_pose(speed, on_floor, idle, breathe, delta)
 		if gait:
 			_moves_pose(speed, on_floor, delta)        # traversal / roll / idle acts (FK)
-			if ride < 0.5:
+			if ride < 0.05:
 				_gait_legs(delta)                      # planted feet: two-bone IK onto the ground
 		elif foot_ik and on_floor and slide < 0.4 and ride < 0.5 and not Engine.is_editor_hint():
 			_foot_ik(delta)
@@ -536,6 +536,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	var lag := Vector3.ZERO
 	if _stride < 0.2 or _land > 0.08 or _air > 0.15 or local_acc.length() > 10.0:
 		lag = Vector3(_hem_spring.y * 0.15 + _lag.x * 0.25, _lag.y * 0.15, _hem_spring.x * 0.15 + _lag.z * 0.2)
+	lag.x += clampf(_turn * 0.02, -0.06, 0.06)       # a hard turn drags the hem; a straight sprint stays quiet
 	# Boot tips in coat mesh space for X/Y; Z uses body-forward so torso pitch can't fake a long toe.
 	var mesh_xf: Transform3D = _coat_mi.global_transform if _coat_mi else (_chest.global_transform if _chest else global_transform)
 	var inv := mesh_xf.affine_inverse()
@@ -903,7 +904,7 @@ func _hero_pose(speed: float, on_floor: bool, idle: float, breathe: float, delta
 func _idle_life(idle: float, breathe: float) -> void:
 	if idle <= 0.001:
 		return
-	var shift := sin(_t * 0.43)
+	var shift := sin(_t * 1.1)
 	for i in 2:
 		var carry := -shift if i == 0 else shift         # > 0: this leg carries the weight
 		_knee[i].rotation.x -= maxf(0.0, -carry) * 0.12 * idle
@@ -911,7 +912,7 @@ func _idle_life(idle: float, breathe: float) -> void:
 	_pelvis.position.y -= absf(shift) * 0.008 * idle
 	_sh[0].rotation.z -= breathe * 0.015 * idle
 	_sh[1].rotation.z += breathe * 0.012 * idle
-	var fidget := pow(maxf(0.0, sin(_t * 0.23 + 0.7)), 12.0)          # a rare regrip
+	var fidget := smoothstep(0.9, 0.99, sin(_t * 0.23 + 0.7))         # a rare regrip, eased in and out
 	_el[0].rotation.x += fidget * 0.25 * idle
 	_staff_off.x += sin(_t * 0.37 + 1.0) * 0.03 * idle - fidget * 0.06 * idle
 	_staff_off.z += (0.04 + sin(_t * 0.6) * 0.02) * idle
@@ -945,7 +946,7 @@ func cast_pose(kind: StringName) -> void:
 	if kind == _cast_kind and _cast_t >= 0.0 and _cast_k > 0.05:
 		# a repeat while the last one is still out (held Rift Bolt fires every 0.28 s, the flick
 		# lasts 0.42): carry on from where the staff is instead of snapping it back to rest
-		_cast_t = float(CAST_LEN.get(kind, 0.45)) * 0.16 * clampf(_cast_k, 0.0, 1.0)
+		_cast_t = float(CAST_LEN.get(kind, 0.45)) * 0.35 * clampf(_cast_k, 0.0, 1.0)
 	else:
 		_cast_t = 0.0
 		_cast_k = 0.0
@@ -1398,8 +1399,8 @@ func _footstep(speed := 0.0) -> void:
 
 
 ## pitch x, extra dB y, per surface
-const SURF_TONE := {&"grass": Vector2(0.9, -2.5), &"fen": Vector2(0.84, -1.0), &"water": Vector2(0.8, 0.0),
-	&"ash": Vector2(1.06, -1.0), &"stone": Vector2(1.12, 1.0), &"wood": Vector2(0.96, 0.5)}
+const SURF_TONE := {&"grass": Vector2(0.8, -2.5), &"fen": Vector2(0.74, -1.0), &"water": Vector2(0.68, 0.0),
+	&"ash": Vector2(1.02, -1.0), &"stone": Vector2(1.2, 1.0), &"wood": Vector2(1.0, 0.5)}
 var _surf_t := -1.0
 var _surf: StringName = &"grass"
 
@@ -1743,6 +1744,8 @@ func _gait_advance(speed: float, flat: Vector3, on_floor: bool, dt: float) -> vo
 	_g_D = clampf((_g_td + _g_lo) / maxf(2.0 * L, 0.05), 0.2, 0.66)
 	var plant := on_floor and slide < 0.05 and _legs_free()
 	_plant_k = move_toward(_plant_k, 1.0 if plant else 0.0, dt * (9.0 if plant else 14.0))
+	if slide > 0.2 or not on_floor:
+		_plant_k = 0.0                               # a slide or a jump has already decided the legs
 	if not plant:
 		_g_air = true
 		return
@@ -2104,7 +2107,7 @@ func _moves_pose(speed: float, on_floor: bool, dt: float) -> void:
 				&"climb":
 					_pose_climb(u)
 				&"mantle":
-					_pose_climb(0.35 + 0.65 * u)         # the same, from hands already on the top
+					_pose_climb(0.15 + 0.85 * u)         # the same, from hands already on the top
 				&"wallkick":
 					_pose_wallkick(u)
 	_staff_frame = Basis(Vector3.UP, sf_yaw) * _staff_frame
@@ -2115,7 +2118,7 @@ func _moves_pose(speed: float, on_floor: bool, dt: float) -> void:
 ## Tucked forward roll about the body's middle: the whole skeleton turns once, the staff with it.
 func _pose_roll(u: float) -> void:
 	var k := smoothstep(0.0, 0.14, u) * (1.0 - smoothstep(0.78, 1.0, u))
-	var spin := -TAU * smoothstep(0.06, 0.86, u)
+	var spin := -TAU * smoothstep(0.12, 0.86, u)       # the compress reads before the spin
 	var centre := Vector3(0.0, lerpf(_pelvis.position.y, 0.5, k), 0.0)
 	_pelvis.position = centre + Basis(Vector3.RIGHT, spin) * Vector3(0.0, -0.12 * k, 0.0)
 	_pelvis.rotation.x += spin
@@ -2260,7 +2263,7 @@ func _pose_vault(u: float) -> void:
 
 ## Kicking off a wall: the push leg straight back into it, the other tucked, arms thrown up.
 func _pose_wallkick(u: float) -> void:
-	var k := smoothstep(0.0, 0.1, u) * (1.0 - smoothstep(0.45, 1.0, u))
+	var k := smoothstep(0.0, 0.16, u) * (1.0 - smoothstep(0.55, 1.0, u))      # the foot is on the wall as the velocity changes, held for the lock
 	_hip[0].rotation.x = lerpf(_hip[0].rotation.x, -0.7, k)
 	_knee[0].rotation.x = lerpf(_knee[0].rotation.x, -0.15, k)
 	_foot[0].rotation.x = lerpf(_foot[0].rotation.x, -0.5, k)
@@ -2358,7 +2361,7 @@ func _hood_tick(dt: float) -> void:
 	_hood_pp = hp
 	_hood_pv = hv
 	if ha.length() > 90.0:
-		ha = Vector3.ZERO
+		ha = ha.normalized() * 90.0                  # a step-up or a mantle still tosses the hood
 	var la := global_basis.orthonormalized().inverse() * ha
 	var target := Vector2(clampf(la.z * 0.012 + la.y * 0.006, -0.35, 0.35), clampf(-la.x * 0.012, -0.3, 0.3))
 	_hood_v += (target - _hood_s) * 110.0 * dt
@@ -2388,7 +2391,7 @@ func _combat_pose() -> void:
 		_staff_frame = _staff_frame.slerp(Basis(Vector3.BACK, -PI * 0.5) * Basis(Vector3.RIGHT, -0.15), k)
 	if wind > 0.001:
 		# a heavy strike drawn back: the staff high over the shoulder, weight on the back foot, trembling
-		var k := smoothstep(0.0, 0.4, wind)
+		var k := smoothstep(0.0, 1.0, wind)
 		var shake := sin(_t * 37.0) * 0.015 * wind
 		_sh[1].rotation.x += 2.4 * k
 		_sh[0].rotation.x += 2.1 * k

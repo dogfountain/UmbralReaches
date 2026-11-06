@@ -60,7 +60,7 @@ func _scan_interactables() -> void:
 		if reach <= 0.0:
 			reach = player.interact_range
 		var d := player.global_position.distance_squared_to(it.global_position)
-		if d < reach * reach and d < best_d:
+		if d < reach * reach and d < best_d and _seen(it):
 			best_d = d
 			best = it
 	player._interact_target = best
@@ -68,6 +68,18 @@ func _scan_interactables() -> void:
 	if hint != player._hint:
 		player._hint = hint
 		Events.interact_hint.emit(hint)
+
+
+## No wall between your chest and its chest: a person on the far side of the Keg's wall is not yours to nod at.
+func _seen(it: Interactable) -> bool:
+	if not player.is_inside_tree():
+		return true
+	var a := player.global_position + Vector3.UP * 1.2
+	var b := it.global_position + Vector3.UP * 1.0
+	if a.distance_squared_to(b) < 0.64:
+		return true
+	var hit := player.locomotion._ray(a, b)
+	return hit.is_empty() or (hit.position as Vector3).distance_to(b) < 0.7
 
 
 func _try_interact() -> void:
