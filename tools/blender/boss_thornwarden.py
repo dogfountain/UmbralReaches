@@ -15,6 +15,7 @@ from mathutils import Vector, noise
 
 sys.path.insert(0, os.path.dirname(__file__))
 import boss_kit as K
+import grunt_kit as GK
 from boss_kit import G
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -33,10 +34,16 @@ def bark_mat():
     moss_n = m.noise(5.0, 6.0, 0.6)
     crev = m.math('LESS_THAN', sc["disp"], 0.35)
     moss = m.math('MULTIPLY', m.math('GREATER_THAN', moss_n, 0.55), m.math('ADD', crev, 0.25), True)
-    col = m.mul(sc["color"], (0.62, 0.5, 0.42))
-    col = m.mix(moss, col, (0.1, 0.17, 0.05))
+    col = m.mul(sc["color"], (0.5, 0.42, 0.37))
+    col = m.mix(moss, col, (0.08, 0.14, 0.04))
+    # r37: split bark chars black in its deepest fissures, and the heart's ember shows through them
+    deep = m.math('LESS_THAN', sc["disp"], 0.2)
+    char = m.math('MULTIPLY', deep, m.math('ADD', 0.35, m.noise(4.0, 3.0, 0.5)), True)
+    col = m.mix(m.math('MULTIPLY', char, 0.8), col, (0.012, 0.008, 0.006))
     h = m.math('ADD', m.math('MULTIPLY', sc["disp"], 1.0), m.math('MULTIPLY', moss, 0.15))
-    return m.finish(col, m.math('ADD', m.math('MULTIPLY', sc["rough"], 0.4), 0.55), 0.0, h, 1.0, 0.008)
+    seam = m.math('MULTIPLY', m.math('LESS_THAN', sc["disp"], 0.09), m.math('GREATER_THAN', m.noise(3.0, 2.0, 0.5), 0.52))
+    ember = m.mix(seam, (0.0, 0.0, 0.0), (1.0, 0.3, 0.05))
+    return m.finish(col, m.math('ADD', m.math('MULTIPLY', sc["rough"], 0.4), 0.55), 0.0, h, 1.0, 0.008, emit=ember, emit_strength=2.4)
 
 
 def bone_mat():
@@ -56,7 +63,7 @@ def hide_mat():
     m = K.Mat("Hide")
     sc = m.scan("brown_leather", 5.0)
     v = m.noise(6.0, 6.0, 0.6)
-    col = m.mul(sc["color"], (0.32, 0.22, 0.18))
+    col = m.mul(sc["color"], (0.26, 0.2, 0.17))
     moss = m.math('MULTIPLY', m.math('GREATER_THAN', m.noise(4.0, 6.0, 0.6), 0.62), m.math('GREATER_THAN', m.zpos(), 0.75))
     col = m.mix(moss, col, (0.08, 0.13, 0.04))
     col = m.mix(m.math('MULTIPLY', v, 0.3), col, (0.02, 0.012, 0.01))

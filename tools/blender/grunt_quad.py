@@ -94,7 +94,7 @@ def build(fl, name, m, res=0.006, rough=0.0015, seed=0.0):
 
 EYE_COL = {"crawler": (1.0, 0.16, 0.08), "leaper": (1.0, 0.45, 0.08), "burrower": (1.0, 0.5, 0.1), "mite": (0.25, 1.0, 0.8)}[KIND]
 EYE = GK.glow("Eye", EYE_COL, 8.0)
-CLAW = GK.bone("Claw", (0.36, 0.3, 0.24), (0.08, 0.06, 0.05), 14.0)
+CLAW = GK.chitin("Claw", (0.045, 0.036, 0.032), (0.32, 0.25, 0.18), 14.0, 0.42)
 MATS = [EYE, CLAW]
 KEEP = {"Eye", "Claw", "Glow", "Sac"}
 
@@ -107,8 +107,8 @@ def mat(m):
 
 # =====================================================================================================
 if KIND == "leaper":
-    SKIN = mat(GK.skin("Skin", (0.075, 0.055, 0.05), (0.02, 0.012, 0.012), wrinkle=48.0, rough=0.62, vein=(0.16, 0.035, 0.02), vein_amt=0.25))
-    BONE = mat(GK.bone("Bone", (0.62, 0.55, 0.45), (0.2, 0.15, 0.1)))
+    SKIN = mat(GK.ember_chitin("Skin", (0.055, 0.045, 0.045), (0.22, 0.16, 0.13), plates=13.0, rough=0.52, strength=2.0))
+    BONE = mat(GK.chitin("Bone", (0.09, 0.075, 0.065), (0.38, 0.3, 0.22), 9.0, 0.46))
     EMBER = mat(GK.glow("Glow", (1.0, 0.42, 0.08), 4.0, (0.05, 0.015, 0.01)))
     # body: a deep chest, a tucked waist, heavy haunches; the shoulder hump at the withers
     bd = Flesh("spine")
@@ -209,14 +209,14 @@ if KIND == "leaper":
 else:
     big = {"crawler": 1.0, "burrower": 1.15, "mite": 0.9}[KIND]
     if KIND == "crawler":
-        SKIN = mat(GK.skin("Skin", (0.1, 0.085, 0.09), (0.03, 0.022, 0.025), wrinkle=40.0, rough=0.64))
-        SHELL = mat(GK.chitin("Chitin", (0.06, 0.05, 0.055), (0.2, 0.17, 0.16)))
+        SKIN = mat(GK.ember_chitin("Skin", (0.06, 0.05, 0.052), (0.2, 0.15, 0.13), plates=15.0, rough=0.55))
+        SHELL = mat(GK.ember_chitin("Chitin", (0.05, 0.042, 0.045), (0.26, 0.2, 0.17), plates=9.0, rough=0.46, strength=2.2))
     elif KIND == "burrower":
-        SKIN = mat(GK.skin("Skin", (0.2, 0.14, 0.09), (0.06, 0.04, 0.025), wrinkle=36.0, rough=0.75))
-        SHELL = mat(GK.chitin("Chitin", (0.16, 0.11, 0.07), (0.42, 0.34, 0.24), 9.0, 0.7))
+        SKIN = mat(GK.ember_chitin("Skin", (0.12, 0.085, 0.055), (0.34, 0.26, 0.18), plates=12.0, rough=0.7, strength=1.8))
+        SHELL = mat(GK.ember_chitin("Chitin", (0.1, 0.07, 0.045), (0.36, 0.28, 0.2), plates=8.0, rough=0.66, strength=1.8))
     else:
-        SKIN = mat(GK.skin("Skin", (0.42, 0.4, 0.44), (0.14, 0.12, 0.16), wrinkle=60.0, rough=0.55))
-        SHELL = mat(GK.chitin("Chitin", (0.3, 0.28, 0.32), (0.62, 0.6, 0.62), 16.0, 0.5))
+        SKIN = mat(GK.ember_chitin("Skin", (0.2, 0.18, 0.21), (0.46, 0.42, 0.45), plates=18.0, rough=0.5, strength=2.0))
+        SHELL = mat(GK.ember_chitin("Chitin", (0.17, 0.15, 0.18), (0.5, 0.46, 0.5), plates=14.0, rough=0.44, strength=2.0))
     # chitin is fused + decimated with the rest (kept apart it was half the triangles)
     # body: a thorax at the front, a swollen abdomen behind, hung low between the knees
     bd = Flesh("spine")
@@ -343,4 +343,4 @@ if PREVIEW:
     K.preview(PREVIEW, BH * 0.8, 2.6 if KIND != "leaper" else 3.4, views=((35, BH + 0.5), (95, BH + 0.3)))
 if EXPORT:
     GK.export_skinned(objs, MATS, "grunt_" + KIND, S, WEIGHTS, {}, 1024 if KIND == "mite" else 2048,
-                      {"mite": 9000, "crawler": 18000, "burrower": 20000, "leaper": 24000}[KIND])
+                      {"mite": 5000, "crawler": 9000, "burrower": 10000, "leaper": 11000}[KIND])
