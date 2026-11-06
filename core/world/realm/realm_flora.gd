@@ -1575,13 +1575,14 @@ static func _emit(host: Node3D, items: Dictionary) -> Vector2i:
 				var rb: float = m[2]
 				var re: float = m[3]
 				if swap:
-					# near and far meshes cross-fade (dither) at one distance, and the far ones end where the
-					# forest's canopy shell (FarDetail) has taken over: nothing hard-cuts in or out
+					# far meshes dither in/out and end where the canopy shell (FarDetail) takes over
 					mmi.visibility_range_begin = rb
 					mmi.visibility_range_begin_margin = 6.0 if rb > 0.0 else 0.0
-					mmi.visibility_range_end = re if re > 0.0 else FarDetail.FAR_TREE_END
-					mmi.visibility_range_end_margin = 6.0 if re > 0.0 else 30.0
-					mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+					mmi.visibility_range_end = re if re > 0.0 else (FarDetail.FAR_CARD_END if m[1] == "fc" else FarDetail.FAR_TREE_END)
+					mmi.visibility_range_end_margin = 6.0 if re > 0.0 else 20.0
+					mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED if rb <= 0.0 else GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+					if rb <= 0.0:
+						mmi.visibility_range_end_margin = 3.0
 				elif re > 0.0:
 					_set_range(mmi, m[1], re)
 				elif bool(d.tall):

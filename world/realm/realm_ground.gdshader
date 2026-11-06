@@ -112,7 +112,12 @@ void fragment() {
 	// distance LOD: near, the tiles at their own scale with their normal maps; far, the same layers
 	// at far_scale (turned) so the 3 m repeat never lines up across a field, albedo only (one fetch a
 	// layer instead of two; the normal detail is sub-pixel there and only crawled)
-	float fk = smoothstep(far_lo, far_hi, length(wpos - CAMERA_POSITION_WORLD));
+	float cdist = length(wpos - CAMERA_POSITION_WORLD);
+	float fk = smoothstep(far_lo, far_hi, cdist);
+	// very far ground (the camera sees 420 m): only the layers that matter, one cliff axis, no drift noise
+	float fz = smoothstep(90.0, 150.0, cdist);
+	float wmax = max(max(max(w[0], w[1]), max(w[2], w[3])), max(max(w[4], w[5]), max(w[6], w[7])));
+	float wmin = min(mix(0.02, 0.3, fz), wmax * 0.99);
 	bool near_on = fk < 0.999;
 	bool far_on = fk > 0.001;
 
@@ -127,7 +132,7 @@ void fragment() {
 	float smax = -10.0;
 	for (int i = 0; i < 8; i++) {
 		s_i[i] = -10.0;
-		if (w[i] > 0.02) {
+		if (w[i] > wmin) {
 			vec2 cs = LAYER_CS[i];
 			vec2 uv = vec2(cs.x * p.x - cs.y * p.y, cs.y * p.x + cs.x * p.y) * (i == 7 ? salt_scale : SCALE[i]);
 			vec4 a;
@@ -207,7 +212,7 @@ void fragment() {
 	col *= mix(0.72, 1.22, macro) * mix(0.85, 1.12, macro2);
 	col = mix(col, col * vec3(0.82, 1.08, 0.95), smoothstep(0.45, 0.7, macro2) * (1.0 - path));   // greener / browner patches
 	// a third, mid-scale patch layer: moss-green drifts and cold slate drifts (painted-in variation)
-	float drift = vnoise(rot(p, 1.1) * 0.045) - vnoise(rot(p, 2.7) * 0.11) * 0.5;
+	float drift = fz > 0.95 ? 0.0 : vnoise(rot(p, 1.1) * 0.045) - vnoise(rot(p, 2.7) * 0.11) * 0.5;
 	vec3 moss_c = col * vec3(0.78, 1.12, 0.86);
 	vec3 slate_c = col * vec3(0.9, 0.97, 1.1);
 	col = mix(col, drift > 0.12 ? moss_c : slate_c, smoothstep(0.08, 0.32, abs(drift)) * patch_hue * 2.5 * (1.0 - path * 0.6));
@@ -224,6 +229,9 @@ void fragment() {
 	vec3 n_ws = gn;
 	if (flat_k < 0.999) {
 		vec3 bw = pow(abs(wnrm), vec3(4.0));
+		if (fz > 0.5) {
+			bw = step(bw.yzx, bw) * step(bw.zxy, bw);
+		}
 		bw /= (bw.x + bw.y + bw.z);
 		vec3 rc = vec3(0.0);
 		vec3 rn = vec3(0.0);

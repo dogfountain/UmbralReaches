@@ -69,10 +69,15 @@ void fragment() {
 	float t = TIME;
 	vec2 p = wpos.xz;
 	float e = 0.15;
-	float h0 = waves(p, t);
-	float hx = waves(p + vec2(e, 0.0), t);
-	float hz = waves(p + vec2(0.0, e), t);
-	vec3 n = normalize(vec3(-(hx - h0) / e * ripple, 1.0, -(hz - h0) / e * ripple));
+	// ripples are sub-pixel past ~100 m and the far field (the river, the lake) is a lot of pixels: still water there
+	float rk = 1.0 - smoothstep(60.0, 120.0, -VERTEX.z);
+	vec3 n = vec3(0.0, 1.0, 0.0);
+	if (rk > 0.0) {
+		float h0 = waves(p, t);
+		float hx = waves(p + vec2(e, 0.0), t);
+		float hz = waves(p + vec2(0.0, e), t);
+		n = normalize(vec3(-(hx - h0) / e * ripple * rk, 1.0, -(hz - h0) / e * ripple * rk));
+	}
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 
 	float depth = texture(depth_tex, SCREEN_UV).r;

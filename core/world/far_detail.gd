@@ -14,8 +14,9 @@ extends RefCounted
 ## the far mesh starts. Anything you register stays loaded to the horizon (group cull_skip: nothing re-ranges it).
 
 const VIEW_FAR := 420.0                  ## camera far plane (m); the fog has swallowed the world by then
-const FAR_TREE_END := 210.0              ## the @far tree meshes end here (the canopy shell carries on)
-const CANOPY_BEGIN := 150.0              ## a forest chunk's canopy shell fades in from here
+const FAR_TREE_END := 150.0              ## the @far tree meshes end here (the canopy shell carries on)
+const FAR_CARD_END := 85.0               ## far leaf cards (overdraw) end here; trunks and the canopy shell carry on
+const CANOPY_BEGIN := 65.0              ## a forest chunk's canopy shell fades in from here
 const SHELL_CELL := 4.0
 
 static var _shell_mat: StandardMaterial3D
