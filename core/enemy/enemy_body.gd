@@ -32,7 +32,7 @@ const SELF_PATH := "res://core/enemy/enemy_body.gd"
 const CM_PATH := "res://core/enemy/creature_mesh.gd"
 const SHADOWED := ["chest", "pelvis", "head", "body", "front"]
 const BOSSES := [&"thornwarden", &"bone_abbot", &"ascended_warden",
-	&"hierarch"]       # --- r37 west ---
+	&"hierarch"]       # --- west marches ---
 
 static var _meshes := {}    # kind -> {joint: ArrayMesh}
 static var _mats := {}      # kind -> ShaderMaterial
@@ -91,7 +91,7 @@ const MODELS := {
 	&"bone_abbot": "res://art/models/boss_bone_abbot.glb",
 	&"ascended_warden": "res://art/models/boss_ascended_warden.glb",
 	&"thornwarden": "res://art/models/boss_thornwarden.glb",
-	# --- r37 west ---
+	# --- west marches ---
 	&"hierarch": "res://art/models/boss_hierarch.glb",
 }
 const BOSS_PBR := preload("res://core/enemy/boss_pbr.gdshader")

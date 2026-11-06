@@ -38,6 +38,15 @@ var _rest_p := {}                      ## bone name -> rest global origin
 var _rest_l := {}                      ## bone name -> rest local position
 var _par := {}                         ## bone name -> parent name ("" none)
 var _wrot := {}                        ## bone name -> its world rotation this pose (scratch)
+## The leap, set by horse.gd before each pose: `air` 1 while off the ground, `vy` its vertical speed
+## (+ climbing), `gather` 0..1 the crouch before the push-off, `land` 0..1 the squat after touchdown.
+var air := 0.0
+var vy := 0.0
+var gather := 0.0
+var land := 0.0
+var _fold_f := 0.0                     ## extra pastern fold on the forelegs in the leap
+var _fold_h := 0.0
+var _air_w := 0.0                      ## air eased 0..1 (the legs blend into and out of the leap pose)
 var _t := 0.0
 var _flick := 0.0
 var _flick_t := 3.0
@@ -119,7 +128,7 @@ static func material(b: String) -> StandardMaterial3D:
 	m.rim_enabled = true
 	m.rim = 0.2
 	m.rim_tint = 0.4
-	if b == "weir_cob":                                    # --- r37 west --- a warm dun over the garron's coat
+	if b == "weir_cob":                                    # --- west marches --- a warm dun over the garron's coat
 		m.albedo_color = Color(1.14, 0.98, 0.8)
 	_mats[b] = m
 	return m
@@ -174,6 +183,14 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 	var k := clampf(speed / gallop_s, 0.0, 1.0)
 	var g := _blend(speed)
 	var moving := speed > 0.15
+	_air_w = lerpf(_air_w, air, 1.0 - exp(-18.0 * maxf(dt, 0.001)))
+	var aw := _air_w
+	var sv := clampf(vy / 7.0, -1.0, 1.0)                   # +1 leaving the ground .. 0 apex .. -1 arriving
+	var rise_w := maxf(sv, 0.0)
+	var fall_w := clampf(-sv * 1.4, 0.0, 1.0)                # reaching for the ground
+	var tuck := clampf(1.0 - absf(sv - 0.15) * 1.3, 0.0, 1.0)
+	_fold_f = tuck * aw * 1.1
+	_fold_h = (rise_w * 0.5 + tuck * 0.3) * aw
 	var cyc := ph / TAU
 	var sz := size
 	# --- legs: foot targets, then how far the back must drop to reach them
@@ -204,6 +221,18 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 			dz *= amp
 			dy *= amp
 		swing[l] = sw
+		if aw > 0.001:
+			var front := l.begins_with("f")
+			var ay: float
+			var az: float
+			if front:
+				ay = (0.42 * tuck + 0.1 * fall_w) * sz                  # knees up, cannons folded back under the chest
+				az = (0.24 * tuck - 0.42 * fall_w) * sz                 # then reaching forward to land
+			else:
+				ay = (0.14 * rise_w + 0.12 * tuck) * sz
+				az = (0.4 * rise_w + 0.1 * tuck - 0.22 * fall_w) * sz   # trailing on the push, forward on the way down
+			dy = lerpf(dy, ay, aw)
+			dz = lerpf(dz, az, aw)
 		var tp := fp + Vector3(0, dy, dz)
 		tgt[l] = tp
 		need = maxf(need, ((tp - L.hip).length() - (float(L.l1) + float(L.l2)) * 0.985))
@@ -216,7 +245,10 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 		pitch = sin(ph * 2.0 + 0.6) * (0.012 + 0.05 * k)
 		if speed > trot_s:
 			pitch += sin(ph) * 0.05 * k
-	last_dy = bounce - drop
+	# the leap: haunches drop and the forehand lifts in the gather, push up through the climb, nose down to land
+	pitch += (0.16 * gather + 0.2 * rise_w * aw - 0.14 * fall_w * aw - 0.05 * land)
+	bounce *= 1.0 - aw
+	last_dy = bounce - drop - (0.1 * gather + 0.09 * land) * sz
 	# --- the bones (world-aligned rotations about X, accumulated down the chains)
 	_wrot.clear()
 	var root_off := Vector3(0, last_dy, 0)
@@ -226,6 +258,7 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 	_pose_bone("chest", -pitch * 0.4)
 	var br := sin(_t * 1.9 + _seed) * 0.01                      # breathing
 	var head_run := -0.1 * k + sin(ph * 2.0 + 2.2) * 0.07 * k    # the head carried out and nodding
+	head_run += -0.22 * tuck * aw - 0.1 * gather               # the neck stretched out over the jump, tucked in the gather
 	var gz := graze
 	_pose_bone("neck1", -gz * 0.5 + head_run * 0.35 + br)
 	_pose_bone("neck2", -gz * 0.62 + head_run * 0.3)
@@ -289,7 +322,7 @@ func _leg(L: Dictionary, target: Vector3, sw: float, k: float, front: bool) -> v
 	var a1 := atan2(n1.y, n1.x) - atan2(r1.y, r1.x)
 	var a2 := atan2(n2.y, n2.x) - atan2(r2.y, r2.x)
 	# the pastern and hoof: kept level on the ground, folded back and up in the swing
-	var fold := -sin(sw * PI) * (0.5 + 0.5 * k) * (0.9 if front else 0.55)
+	var fold := -sin(sw * PI) * (0.5 + 0.5 * k) * (0.9 if front else 0.55) - (_fold_f if front else _fold_h)
 	_pose_bone(L.up, a1, 0.0, Vector3.ZERO, true)
 	_pose_bone(L.low, a2, 0.0, Vector3.ZERO, true)
 	_pose_bone(L.fet, fold, 0.0, Vector3.ZERO, true)

@@ -62,7 +62,7 @@ static func eligible_light(root: Node, l: OmniLight3D) -> bool:
 ## The fen pools: grid cells under water flood-filled into pools, biggest first.
 ## Each: {cells: Array[Vector2], center: Vector2, edge: Array[Vector2] (land just off the water,
 ## nudged toward it), n: cell count}.
-static func pools() -> Array[Dictionary]:
+static func pools(new_ground := false) -> Array[Dictionary]:
 	var wet := {}
 	for j in RL.GNZ - 1:
 		for i in RL.GNX - 1:
@@ -100,7 +100,13 @@ static func pools() -> Array[Dictionary]:
 						edge.append(toward)
 		out.append({"cells": cells, "center": sum / float(cells.size()), "edge": edge, "n": cells.size()})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.n) > int(b.n))
-	return out
+	# the old Realm's pools (centre inside OLD_BOUNDS) keep their place in the list; the Marches' (the Sorrow,
+	# Stillwater, the Well's pool) are asked for with new_ground = true
+	var keep: Array[Dictionary] = []
+	for p: Dictionary in out:
+		if RealmLayout.OLD_BOUNDS.has_point(p.center as Vector2) != new_ground:
+			keep.append(p)
+	return keep
 
 
 ## Nearest water cell centre to p (for frogs leaping in, herons facing the pool).
@@ -228,7 +234,7 @@ static func _mean(ps: Array) -> Vector3:
 
 
 ## Big trunks (flora collision cylinders) in a biome list: owl trees. Each {base: Vector3, r: float}.
-static func trunks(root: Node, biomes: Array, min_r: float) -> Array[Dictionary]:
+static func trunks(root: Node, biomes: Array, min_r: float, new_ground := false) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var flora := root.get_node_or_null("RealmFlora")
 	if flora == null:
@@ -244,6 +250,8 @@ static func trunks(root: Node, biomes: Array, min_r: float) -> Array[Dictionary]
 			var p := cs.global_position - Vector3(0, cy.height * 0.5, 0)
 			if not RealmLayout.BOUNDS.grow(-4.0).has_point(Vector2(p.x, p.z)):
 				continue
+			if RealmLayout.OLD_BOUNDS.grow(-4.0).has_point(Vector2(p.x, p.z)) == new_ground:
+				continue                                     # the old Realm's trees, or (new_ground) the Marches' and the downs'
 			if not (RealmLayout.biome_at(p.x, p.z) in biomes):
 				continue
 			# trees on a site were culled from the flora MultiMesh but keep their collider: skip them
@@ -273,15 +281,20 @@ static func open_ground(x: float, z: float) -> bool:
 
 ## Grazing spots at the forest's edges: open ground (no canopy overhead) with woodland close by
 ## (RealmFlora's canopy cover), anywhere a deer could stand.
-static func forest_edges(rng: RandomNumberGenerator) -> Array[Vector3]:
+static func forest_edges(rng: RandomNumberGenerator, new_ground := false) -> Array[Vector3]:
 	var out: Array[Vector3] = []
-	var bb := RealmLayout.BOUNDS.grow(-6.0)          # r34 layout: the whole (doubled) Realm (was x -104..104, z -66..76)
+	# r34 layout: the whole (doubled) Realm; the old Realm's lattice as it was, and (new_ground) the Marches' and
+	# the downs' on a lattice of their own
+	var bb := (RealmLayout.BOUNDS if new_ground else RealmLayout.OLD_BOUNDS).grow(-6.0)
 	var x := bb.position.x
 	while x < bb.end.x:
 		var z := maxf(bb.position.y, -66.0)           # (south of the Crowns)
 		while z < bb.end.y:
 			var px := x + rng.randf_range(-2.5, 2.5)
 			var pz := z + rng.randf_range(-2.5, 2.5)
+			if new_ground and RealmLayout.OLD_BOUNDS.grow(-6.0).has_point(Vector2(px, pz)):
+				z += 7.0
+				continue
 			if Flora.cover_at(px, pz) < 0.12 and open_ground(px, pz) and RealmLayout.path_dist(Vector2(px, pz)) > 3.0:
 				var wood := 0.0
 				for k in 8:

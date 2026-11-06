@@ -198,7 +198,9 @@ func open_turnin(id: String, giver_name := "") -> bool:
 	return true
 
 
-const RAID_NAMES := {"thornwarden": "the Thornwarden", "bone_abbot": "the Bone Abbot", "ascended_warden": "the Ascended Warden"}
+const RAID_NAMES := {"thornwarden": "the Thornwarden", "bone_abbot": "the Bone Abbot", "ascended_warden": "the Ascended Warden",
+	# --- the east marches ---
+	"r37_anchoress": "the Anchoress"}
 
 
 func _fill(giver_name: String) -> void:

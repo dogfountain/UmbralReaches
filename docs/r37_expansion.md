@@ -55,15 +55,47 @@ Totals: 2 bosses, 4 named mini-bosses (elite_kit), ~14 camps, rares per region, 
 
 ## Far detail (the Foundation agent)
 
-Things must not pop into existence on the horizon. Everything big is loaded and drawn at very low
-detail far away (terrain is already whole; landmark silhouettes, the March Wall, tree masses as
-impostor cards or a far canopy shell) and detail fades in up close with visibility-range fades and
-dependency HLOD, never a hard cut. Grass and small props may still end at range, but fade.
+Things must not pop into existence on the horizon. The camera sees `FarDetail.VIEW_FAR` = 420 m (it was 82); the fog
+swallows the world by then. Terrain is whole (one mesh + the horizon ring); trees go near mesh -> `@far` mesh
+(cross-faded) -> a canopy shell per forest chunk, all to the horizon; everything else the Realm builds gets a
+visibility range by size with a dither fade (< 1.5 m ends 70 m, < 5 m 130 m, < 14 m 240 m, bigger never ends);
+grass and small clutter keep their short ranges and thin out. Nothing is a hard cut.
+
+For a landmark (tower, wall, statue, hall) give it a far mesh and register it (core/world/far_detail.gd):
+`var far := FarDetail.hull(aabb, taper, color)` (a ~12-triangle box, tapered to a point for a tower or a roof; or
+your own 100-300 triangle Mesh) then `FarDetail.register(host_node, far, local_xf, near_end := 90.0)`. It draws
+from `near_end` out to the horizon and fades the host's own meshes out at the same distance (`FarDetail.near_ends`
+does that alone). A registered mesh sits in group `cull_skip`: nothing re-ranges it. Meshes bigger than 14 m with
+no registered far mesh are never ranged, so they draw at full detail out to 420 m: give big landmarks LODs
+(MeshChunks) or a far mesh.
+
+## The ground, as built (the Foundation agent)
+
+Heights inside OLD_BOUNDS are the r34 heights (the rim at x +-155 is a 3.5 m crest, the March Wall's line; the
+downs' 7 m rise stays for |x| < 155 and fades out over x 155..180). Use `RealmLayout.ground(space, x, z)` for
+heights. What each place stands on:
+- The Sorrow: `RIVER.pts` (re-routed: it rises from a spring at (-212, -56), crosses the road once at Weirford
+  z~64, leaves at (-254, 240)). Channel half width 6 m, bed `RIVER_DEPTH` under the water. Reaches stand at
+  `RealmLayout.river_level(z)`: 0.6 at the head, falling by `RIVER_STEPS`; the weir is the 0.5 m drop at z 60.
+  `RealmLayout.river_mask(x, z)` is 1 in the channel (the road is not levelled across it: build the bridge deck
+  from the banks, ~0.5). `Land.water_y_at(x, z)` and `Land.in_water(x, z)` answer for every kind of water.
+- Stillwater: the basin is cut at `LAKE_C`/`LAKE_R`, water at `LAKE_Y` (-0.9), 5 m deep at the middle; the Spire's
+  bluff is a plateau (r 8 m) at `SPIRE_Y` = 11.1 with steep walls into the lake. spire_track runs over the lake's
+  south-east corner on a causeway (paths never go under water).
+- The Well: pit centred `WELL_C`, floor `WELL_FLOOR_Y` -17, pool `WELL_POOL_Y` -16.2 inside r 9, walls steep up to the
+  rim at r `WELL_R`. The pit gives way within 4 m of a path, so downs_track passes on the rim (a drop beside it).
+- White Pans: `PANS` is flat (0.3) with shallow evaporation beds and 0.3 m bunds on a 20 x 14 m lattice; biome "salt"
+  (own ground textures, footsteps, wind ambience, sparse dead brush). Weirford and Saltmarket are flattened (0.6).
+- Siege Lines: two earthwork rings (`SIEGE_RINGS`, centre (-218, 168), r 29 and 64): a 1.9 m bank and a ditch
+  outside, with breaches. The Hierarch's valley flanks rise 11 m round the raid floor. The Anchorholds' face is
+  10 m higher so the terrace (y 16) is a shelf. The Grandmother Oak stands on a 3 m knoll (`OAK_C`).
+- Encounter tiers for every new region are in `Tiers.REGION_BASE`; mist banks, ambience, flora looks (RealmFlora
+  `LOOKS`), wildlife (extra herds, foxes, hares, owls, frogs and flocks from their own streams) cover the new ground.
 
 ## West Marches (the West agent)
 
 Built in `core/world/realm/realm_pois_r37_west.gd` (reserve before the stamp and flora, build after), hooked by
-the `# --- r37 west ---` blocks in the shared registries. Assets are made by script in `tools/blender`
+the `# --- west marches ---` blocks in the shared registries. Assets are made by script in `tools/blender`
 (`r37_west_textures.py`: seamless procedural PBR sets; `r37_west.py`: statue, mill, bridge, palisade, trebuchets,
 siege tower; `boss_hierarch.py`: the boss) and placed through `r37_west_kit.gd` (tiling `art/textures/r37_*`
 sets over `<part>__<set>` meshes, `<asset>-colonly` collision, vertex-colour macro tone).

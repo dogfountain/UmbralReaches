@@ -176,8 +176,26 @@ func _horses() -> void:
 	var moved := Vector2(h.global_position.x - from.x, h.global_position.z - from.z).length()
 	ok(moved > 2.0, "it carries you forward at a gallop (%.1f m)" % moved)
 	ok(p.global_position.distance_to(h.global_position) < 3.0, "you sit the saddle")
-	h.call("dismount")
-	ok(p.riding == null, "and you get down")
+	# the jump key leaps the horse (it no longer gets you down); [interact] does
+	await _wait(0.8)                       # settle after the gallop
+	var y0: float = h.global_position.y
+	var peak := y0
+	h.call("try_jump")
+	var airborne := false
+	for i in 90:
+		await get_tree().physics_frame
+		peak = maxf(peak, h.global_position.y)
+		airborne = airborne or bool(h.get("_air"))
+	ok(airborne and peak - y0 > 0.3, "the horse leaps (%.2f m up)" % (peak - y0))
+	ok(not bool(h.get("_air")) and absf(h.global_position.y - y0) < 0.6, "and lands again, softly")
+	ok(p.riding == h, "the jump did not get you down")
+	await _wait(0.5)                       # the landing cooldown
+	h.call("try_jump")
+	var iev := InputEventAction.new()
+	iev.action = "interact"
+	iev.pressed = true
+	p.call("_unhandled_input", iev)
+	ok(p.riding == null, "and [interact] gets you down")
 	# the call
 	p.teleport(p.global_position + Vector3(20.0, 0.0, 0.0))
 	await _wait(0.3)

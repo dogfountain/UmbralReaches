@@ -610,6 +610,15 @@ static func _realm_render_pass(root: Node) -> Vector4i:
 					split += 1
 					cells += made
 					continue
+			# far detail: what the Realm built ends by its size with a dither fade (landmarks never end);
+			# the camera sees FarDetail.VIEW_FAR now. Only meshes whose node origin is near the mesh (the
+			# range is measured to the origin, and a baked-in-world-coordinates mesh sits far from it).
+			if mi.mesh != null and mi.visible:
+				var ab := mi.mesh.get_aabb()
+				var gs := mi.global_basis.get_scale()
+				var ext := maxf(ab.size.x * gs.x, maxf(ab.size.y * gs.y, ab.size.z * gs.z))
+				if ab.get_center().length() <= maxf(ext, 3.0) + 1.0:
+					FarDetail.generic_range(mi, ext)
 		if mesh != null and gi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
 			var sz := mesh.get_aabb().size
 			var sc := gi.global_basis.get_scale()

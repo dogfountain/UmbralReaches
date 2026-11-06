@@ -62,7 +62,7 @@ const ELITES := {
 		"note": "No face should turn from the sky. He scraped the saints and then himself. In the deeper dark he steps through it: a tear opens where he will be. Watch for the tear. -- Brother Ansel's last chisel-note",
 		"trait": "Steps through the dark: a tear opens beside you, then he is there.",
 	},
-	# --- r37 west ---
+	# --- west marches ---
 	"siege_captain": {
 		"title": "Captain Varr, the Wall-Breaker", "kind": "husk", "script": "res://core/life/encounters/elite_siege_captain.gd",
 		"haunt": [Vector2(-218, 172), Vector2(-212, 180), Vector2(-224, 164), Vector2(-206, 150)], "region": "siege",
@@ -70,6 +70,14 @@ const ELITES := {
 		"where": "the Siege Lines, between the tower and the palisade",
 		"note": "THE MARCHES' WAR-BAND NEVER STOOD DOWN. The captain is still giving the order to go in. He brings the hammer down in front of him, flat and wide, and calls two of his own out of the earthwork when he is alone. Do not stand in the ring. Do not let him be alone. -- scratched on the Weirford watch's tally board",
 		"trait": "Siege Hammer: a wide disc fills, then slams. Hold the Line: calls two conscripts.",
+	# --- the east marches ---
+	"brine_wife": {
+		"title": "The Brine-Wife, Bitter Mother", "kind": "husk", "script": "res://core/life/encounters/elite_brine_wife.gd",
+		"haunt": [Vector2(232, 172), Vector2(228, 196), Vector2(240, 160), Vector2(222, 204)], "region": "saltpans",
+		"hp": 34, "ash": 30, "scale": 1.36, "glow": Color(1.5, 1.7, 2.0), "loot": "brine_censer",
+		"where": "the White Pans, among the evaporation pans",
+		"note": "BOUNTY. She boiled the pans down for thirty years and has not stopped. Where she stands the brine comes up through the white: a wide ring that fills, then bursts. Past half her strength she grows crystals out of the crust round you. Do not stand in the white. Stand on the timber. -- Marl Pannick, reeve of Saltmarket",
+		"trait": "Brine Burst: a wide ring fills, then slams. Past half health, crystals break the crust around you.",
 	},
 }
 
@@ -93,10 +101,14 @@ const LOOT := {
 	"scraped_face": {"name": "The Scraped Face", "shape": "mask", "tint": Color(0.85, 0.82, 0.8),
 		"desc": "A penitent's face-plate, chiselled blank. On the inside, someone carved a small fire.",
 		"text": "Bounty of the Faceless Penitent (the Deeper Night)."},
-	# --- r37 west ---
+	# --- west marches ---
 	"varrs_signet": {"name": "Varr's Signet", "shape": "ring", "tint": Color(0.7, 0.58, 0.32),
 		"desc": "A captain's signet, the Marches' wall-and-tower stamped in it, worn flat on one side from being pressed into wax for orders nobody took.",
 		"text": "Bounty of Captain Varr, the Wall-Breaker. The order to go in is rescinded."},
+	# --- the east marches ---
+	"brine_censer": {"name": "The Brine-Wife's Censer", "shape": "lantern", "tint": Color(0.82, 0.88, 0.92),
+		"desc": "An iron pan-ladle with a handle worn to a groove. Everything it ever held has crystallised on it, in layers, like a tree's rings.",
+		"text": "Bounty of the Brine-Wife, Bitter Mother. The pans give back what they were given."},
 }
 
 ## Umbral forms in the Deeper Night (NG+): every elite returns colder and harder.
@@ -351,7 +363,7 @@ static func _build(id: String, rig: CharacterRig) -> Dictionary:
 				var t := float(k) / 11.0
 				c.blob(Vector3(lerpf(-0.18, 0.16, t), 0.18 - t * 0.42, -0.14 - 0.03 * sin(t * PI)), Vector3(0.014, 0.01, 0.006), Basis(Vector3.FORWARD, float(k % 2) * 1.57), IRON, 1.0, 0.0, 0.0, 3, 6)
 			parts["chest"] = c.commit()
-		# --- r37 west ---
+		# --- west marches ---
 		"siege_captain":
 			# a kettle helm and gorget, a rampart coat in rags, a broken ram-beam slung across the back, iron-shod fists
 			var h: CreatureMesh = Variants.cm(sd)
@@ -375,4 +387,23 @@ static func _build(id: String, rig: CharacterRig) -> Dictionary:
 				for k in 3:
 					Variants._ring(a, Vector3(0, -0.03 - 0.025 * float(k), -0.01), 0.055, 0.012, IRON, 0.35 if k == 1 else 0.0, 1.0)
 				parts["hand_" + side] = a.commit()
+		# --- the east marches ---
+		"brine_wife":
+			# salt crust grown in spikes over the shoulders and brow, a pan-ladle in the right hand
+			var c: CreatureMesh = Variants.cm(sd)
+			for k in 9:
+				var ang := TAU * float(k) / 9.0
+				var o := Vector3(cos(ang) * 0.2, 0.2 + 0.03 * float(k % 3), sin(ang) * 0.14)
+				c.claw(o, Vector3(cos(ang) * 0.5, 1.0, sin(ang) * 0.4).normalized(), 0.13 + 0.04 * float(k % 3), 0.035, Vector3.ZERO, BONE)
+			parts["chest"] = c.commit()
+			var h: CreatureMesh = Variants.cm(sd + 1)
+			for k in 5:
+				var ang2 := -1.0 + 0.5 * float(k)
+				h.claw(Vector3(sin(ang2) * 0.1, 0.13, -cos(ang2) * 0.05), Vector3(sin(ang2) * 0.4, 1.0, -0.3).normalized(), 0.1, 0.022, Vector3.ZERO, BONE)
+			parts["head"] = h.commit()
+			var r: CreatureMesh = Variants.cm(sd + 2)
+			r.tube(PackedVector3Array([Vector3(0, -0.02, 0), Vector3(0.0, -0.3, 0.0), Vector3(0.0, -0.6, 0.0)]), PackedFloat32Array([0.012, 0.012, 0.012]), 4, WOOD, 1.0, 0.0)
+			r.blob(Vector3(0, -0.66, 0), Vector3(0.08, 0.05, 0.08), Basis.IDENTITY, IRON, 1.0, 0.05, 0.0, 6, 9)
+			r.blob(Vector3(0, -0.64, 0), Vector3(0.06, 0.03, 0.06), Basis.IDENTITY, BONE, 1.0, 0.08, 0.0, 5, 8)
+			parts["hand_r"] = r.commit()
 	return parts

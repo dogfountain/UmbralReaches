@@ -10,7 +10,8 @@ extends RefCounted
 ## grant: pay: shop:). Text: {ash}, {hollows}, {kindled}.
 ## House style (docs/LORE.md): terse, concrete, dark. Load by path.
 
-const R37WT := preload("res://core/life/village/village_talk_r37_west.gd")    # --- r37 west --- Weirford's conversations
+const R37WT := preload("res://core/life/village/village_talk_r37_west.gd")    # --- west marches --- Weirford's conversations
+const R37E := preload("res://core/life/village/village_r37_east.gd")   ## the east marches: Saltmarket's talk
 
 const CONV := {
 	"hild": {"name": "Hild", "start": [["!met:hild", "meet"], ["qat:edda_tongs:1", "tongs_back"], ["", "hub"]], "nodes": {
@@ -420,7 +421,7 @@ const CONV := {
 		"corvin": {"say": "The penitents said lighting the sunk was heresy. Kindler's work. They took his face off the chapel wall, then his hands off his arms. He still rowed out. I held the lamp for him after. In my teeth, the last time.", "next": "hub"},
 		"water": {"say": "The ones who didn't stay down. They walk the bottom and come up in the nave, in rows, like it's a feast day. Don't wade at night. Wade anyway, if you're going to.", "next": "hub"},
 	}},
-	# --- r37 west ---
+	# --- west marches ---
 	"dorrit": R37WT.CONV["dorrit"],
 	"osk": R37WT.CONV["osk"],
 	"bryn": R37WT.CONV["bryn"],
@@ -429,4 +430,6 @@ const CONV := {
 	"wren": R37WT.CONV["wren"],
 	"tolliver": R37WT.CONV["tolliver"],
 	"gwyn": R37WT.CONV["gwyn"],
+	# --- the east marches ---
+	"marl": R37E.CONV_MARL, "teasel": R37E.CONV_TEASEL, "orrin": R37E.CONV_ORRIN, "ardel": R37E.CONV_ARDEL, "pip": R37E.CONV_PIP,
 }

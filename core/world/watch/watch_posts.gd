@@ -11,8 +11,10 @@ const POSTS := {
 	"pits_road": {"name": "The Watch at the Pits' Gate", "at": Vector2(100.0, -46.0), "face": Vector2(0.6, -0.8)},
 	"orchard_way": {"name": "The Watch on the Orchard Way", "at": Vector2(-62.0, 98.0), "face": Vector2(-0.7, 0.7)},
 	"mere_way": {"name": "The Watch on the Mere Way", "at": Vector2(76.0, 92.0), "face": Vector2(0.7, 0.7)},
-	# --- r37 west ---
+	# --- west marches ---
 	"weirford": {"name": "The Weirford Watch", "at": Vector2(-228.0, 70.0), "face": Vector2(-1.0, 0.1)},
+	# --- the east marches ---
+	"salt_gate": {"name": "The Watch at Saltmarket", "at": Vector2(211.0, 124.0), "face": Vector2(0.1, 1.0)},
 }
 
 

@@ -2,7 +2,8 @@ shader_type spatial;
 render_mode diffuse_burley, specular_schlick_ggx;
 // Realm ground (core/world/realm/realm_land.gd). Biome splat from vertex data:
 //   COLOR  r meadow  g forest loam  b fen mud  a ash      UV  x heath  y crag scree
-//   UV2    x ruin flagstone  y worn path (overlay)
+//   UV2    x ruin flagstone  y worn path (overlay)   CUSTOM0 x salt crust (r37, the White Pans; its own
+//   textures salt_alb / salt_nrm, tools/realm_salt_texture.gd: weight slot 7)
 // Layers live in two texture arrays (tools/realm_land_textures.gd):
 //   alb: rgb albedo, a height      nrm: rg tilt (x, z), b roughness, a AO
 // Height-blended between layers; steep ground (> ~35 deg) turns to triplanar cliff rock (layer 8).
@@ -17,6 +18,9 @@ render_mode diffuse_burley, specular_schlick_ggx;
 
 uniform sampler2DArray alb : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray nrm : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D salt_alb : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D salt_nrm : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float salt_scale = 0.2;
 uniform vec3 tint = vec3(0.8, 0.88, 1.0);        // cool night grading of the authored colours
 uniform float saturation = 0.95;
 uniform float brightness = 1.2;          // ENS pass: 1.35 -> 1.2, open ground under the moon left no room for warm pools
@@ -44,6 +48,7 @@ varying vec3 wpos;
 varying vec3 wnrm;
 varying vec4 w_a;
 varying vec4 w_b;
+varying float w_salt;
 
 // (the layer scales and turns are local consts in fragment(): global const arrays were left as
 // orphan names at exit, zz/quit_probe --verbose)
@@ -53,6 +58,7 @@ void vertex() {
 	wnrm = normalize(MODEL_NORMAL_MATRIX * NORMAL);
 	w_a = COLOR;
 	w_b = vec4(UV, UV2);
+	w_salt = CUSTOM0.x;
 }
 
 // sin-free hash (Hoskins): the lumps and drifts ran 16 sin() a pixel
@@ -98,9 +104,9 @@ void fragment() {
 		vec4(0.5, 0.5, 0.471, 0.818), vec4(0.5, 0.5, 0.778, 0.877), vec4(0.5, 0.5, 0.735, 0.861), vec4(0.5, 0.5, 0.795, 0.877),
 		vec4(0.5, 0.5, 0.863, 0.768), vec4(0.5, 0.5, 0.820, 0.863));
 	// cos/sin of each layer's turn (i * 1.3 rad), so no pixel computes 14 trig calls for constants
-	const vec2 LAYER_CS[7] = vec2[](vec2(1.000000000, 0.000000000), vec2(0.267498829, 0.963558185), vec2(-0.856888753, 0.515501372), vec2(-0.725932304, -0.687766159), vec2(0.468516671, -0.883454656), vec2(0.976587626, 0.215119988), vec2(0.053955421, 0.998543345));
+	const vec2 LAYER_CS[8] = vec2[](vec2(1.000000000, 0.000000000), vec2(0.267498829, 0.963558185), vec2(-0.856888753, 0.515501372), vec2(-0.725932304, -0.687766159), vec2(0.468516671, -0.883454656), vec2(0.976587626, 0.215119988), vec2(0.053955421, 0.998543345), vec2(-0.947733, 0.319096));
 	// layer order (tools/realm_land_textures.gd): meadow r, heath UV.x, loam g, mud b, ash a, crag UV.y, ruin UV2.x
-	float w[8] = float[](w_a.r, w_b.x, w_a.g, w_a.b, w_a.a, w_b.y, w_b.z, 0.0);
+	float w[8] = float[](w_a.r, w_b.x, w_a.g, w_a.b, w_a.a, w_b.y, w_b.z, w_salt);
 	float path = clamp(w_b.w, 0.0, 1.0);
 	vec2 p = wpos.xz;
 	// distance LOD: near, the tiles at their own scale with their normal maps; far, the same layers
@@ -119,14 +125,28 @@ void fragment() {
 	vec4 n_i[8];
 	float s_i[8];
 	float smax = -10.0;
-	for (int i = 0; i < 7; i++) {
+	for (int i = 0; i < 8; i++) {
 		s_i[i] = -10.0;
 		if (w[i] > 0.02) {
 			vec2 cs = LAYER_CS[i];
-			vec2 uv = vec2(cs.x * p.x - cs.y * p.y, cs.y * p.x + cs.x * p.y) * SCALE[i];
+			vec2 uv = vec2(cs.x * p.x - cs.y * p.y, cs.y * p.x + cs.x * p.y) * (i == 7 ? salt_scale : SCALE[i]);
 			vec4 a;
 			vec4 n;
-			if (!far_on) {
+			if (i == 7) {
+				// r37: the White Pans' salt crust (its own 2D textures)
+				vec2 fuv7 = vec2(0.62 * uv.x - 0.78 * uv.y, 0.78 * uv.x + 0.62 * uv.y) * far_scale;
+				if (!far_on) {
+					a = texture(salt_alb, uv);
+					n = texture(salt_nrm, uv);
+				} else {
+					a = texture(salt_alb, fuv7);
+					n = vec4(0.5, 0.5, 0.62, 0.82);
+					if (near_on) {
+						a = mix(texture(salt_alb, uv), a, fk);
+						n = mix(texture(salt_nrm, uv), n, fk);
+					}
+				}
+			} else if (!far_on) {
 				a = texture(alb, vec3(uv, float(i)));
 				n = texture(nrm, vec3(uv, float(i)));
 			} else {
@@ -149,7 +169,7 @@ void fragment() {
 	float rough = 0.0;
 	float ao = 0.0;
 	float tot = 0.0;
-	for (int i = 0; i < 7; i++) {
+	for (int i = 0; i < 8; i++) {
 		if (s_i[i] > -9.0) {
 			float b = max(s_i[i] - (smax - blend_depth), 0.0);
 			col += a_i[i].rgb * b;

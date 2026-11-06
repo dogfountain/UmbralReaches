@@ -13,8 +13,10 @@ const REGION_BASE := {
 	# r34: the new ground, at the tiers RealmLayout.REGIONS suggests (the far quarry and the
 	# Founder's Pits under the Crowns are the hard ones; the Rooted Holds stay gentle)
 	"quarry": 2, "foundry": 2, "holds": 1, "moor": 1, "orchard": 1, "necropolis": 1, "mere": 1,
-	# --- r37 west ---
-	"weirford": 1, "sorrow": 2, "hierarch": 3, "siege": 2,
+	# the Outer Marches and the downs, at the tiers RealmLayout.REGIONS suggests (Weirford and Saltmarket
+	# are the safe towns; the Hierarch's valley and the Anchorholds, each under a boss, are the hard ones)
+	"weirford": 1, "sorrow": 2, "hierarch": 3, "siege": 2, "stillwater": 2, "anchorholds": 3, "saltmarket": 1,
+	"saltpans": 2, "downs": 1, "oak": 2, "well": 2,
 }
 
 ## Per tier: health x, Gloom per blow x, pace x, chance a pawn wears a variant, chance a camp gets
@@ -40,9 +42,12 @@ const REGION_POOL := {
 	"moor": ["gaunt", "gaunt", "wretch", "crawler", "husk"], "orchard": ["burrower", "mite", "crawler", "burrower", "wretch"],
 	"necropolis": ["pilgrim", "pilgrim", "ossuant", "chanter", "quiller"], "mere": ["husk", "spitter", "wretch", "spitter", "ossuant"],
 	"holds": ["crawler", "wretch"],
-	# --- r37 west ---
+	# --- west marches ---
 	"weirford": ["wretch", "crawler"], "sorrow": ["wretch", "spitter", "crawler", "husk", "gaunt"],
 	"hierarch": ["husk", "bulwark", "chanter", "leaper", "husk"], "siege": ["bulwark", "husk", "chanter", "gaunt", "cinder"],
+	# --- the east marches ---
+	"stillwater": ["husk", "spitter", "wretch", "gaunt", "husk"], "anchorholds": ["bulwark", "chanter", "leaper", "husk", "quiller"],
+	"saltmarket": ["wretch", "crawler"], "saltpans": ["husk", "burrower", "cinder", "gaunt", "crawler"],
 }
 
 ## r34: a region's own look for some kinds (Variants.REGIONAL): what the quarry and the mere make of
@@ -50,9 +55,12 @@ const REGION_POOL := {
 const REGION_VARIANT := {
 	"quarry": {"husk": "stonebound", "bulwark": "stonebound", "leaper": "stonebound"},
 	"mere": {"husk": "drowned", "wretch": "drowned", "ossuant": "drowned"},
-	# --- r37 west ---
+	# --- west marches ---
 	"sorrow": {"husk": "drowned", "wretch": "drowned"},
 	"hierarch": {"husk": "stonebound", "bulwark": "stonebound", "leaper": "stonebound"},
+	# --- the east marches ---
+	"stillwater": {"husk": "drowned", "wretch": "drowned"},
+	"anchorholds": {"husk": "stonebound", "bulwark": "stonebound"},
 }
 
 const KIND_PATHS := {

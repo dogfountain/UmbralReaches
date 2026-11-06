@@ -26,8 +26,11 @@ const SECRETS := {
 	"cutters_nook": {"name": "The Cutters' Nook", "region": "quarry"},
 	"ninth_rank": {"name": "The Ninth Rank", "region": "necropolis"},
 	"corvin_sluice": {"name": "Corvin's Sluice", "region": "mere"},
-	# --- r37 west ---
+	# --- west marches ---
 	"aldith_walk": {"name": "Aldith's Walk", "region": "sorrow"},
+	# --- the east marches ---
+	"boathouse": {"name": "The Sunken Boat-House", "region": "stillwater"},
+	"salt_vault": {"name": "The Brine-Clerk's Vault", "region": "saltpans"},
 }
 
 ## The ten secrets of r23 (zz/secrets_test walks these; the r28 ones have zz/secret_expansion_test).
@@ -95,11 +98,20 @@ const TEXTS := {
 		"text": "Corvin's lamp. When they took my boat I built a road under the water to the last lamp, and let it down again behind me so the Order could not follow. C."},
 	"sc_lever": {"title": "A plate on the lever", "kind": "plaque",
 		"text": "SLUICE. Do not pull without leave of the lamp-brother. Under it, newer: he is not coming. Pull it."},
-	# --- r37 west (site_r37_west.gd) ---
+	# --- west marches (site_r37_west.gd) ---
 	"sc_aldith": {"title": "Scratched on the lamp-post", "kind": "carved post",
 		"text": "Aldith's lamp. The river took her roof and then the saint. I cut a road under the water to the last lamp and let it down behind me, because the ford is for the living and this is for what they paid. A."},
 	"sc_aldith_ring": {"title": "A plate on the ring", "kind": "plaque",
 		"text": "RING. One pull, and let go. The slabs come up on their own. Under it, in a miller's hand: the river does not mind. It was never the river's lamp."},
+	# --- the east marches ---
+	"sc_boat_lamp": {"title": "Scratched on a rafter", "kind": "carved beam",
+		"text": "When the lamp went dark the boats stopped coming in. We left ours here, roof-deep, tied to the posts, so the lake would remember where the shore was. Oil in the loft. Take it. Carry it up."},
+	"sc_boat_log": {"title": "The boat-keeper's tin", "kind": "letter",
+		"text": "Forty-one nights I rowed out to see the Spire's flame from the water. It always looked nearer than it was. That is the lamp's whole art."},
+	"sc_vault_slate": {"title": "The brine-clerk's slate", "kind": "slate",
+		"text": "The three valves, for the strongroom, in the order the brine runs: first the east pan, where the salt is oldest; then the west, where it is whitest; last the middle, which never was a pan. Turn them wrong and the sluice floods the floor."},
+	"sc_vault_plate": {"title": "A plate on the winch", "kind": "plaque",
+		"text": "STRONGROOM. The works' own ash, laid by against a bad winter. It has been a bad winter for nine years. Open it."},
 }
 
 ## Items handed out. relic_fragment is new (no ItemDB entry yet; the progression agent owns
@@ -129,8 +141,11 @@ const REWARDS := {
 	"cutters_nook": {"relic_fragment": 1, "grave_ash": 25, "grave_iron": 2},
 	"ninth_rank": {"relic_fragment": 1, "grave_ash": 30},
 	"corvin_sluice": {"relic_fragment": 1, "grave_ash": 25},
-	# --- r37 west ---
+	# --- west marches ---
 	"aldith_walk": {"relic_fragment": 1, "grave_ash": 28},
+	# --- the east marches ---
+	"boathouse": {"relic_fragment": 1, "grave_ash": 25, "ember_shard": 1},
+	"salt_vault": {"relic_fragment": 1, "grave_ash": 30},
 }
 
 

@@ -40,7 +40,7 @@ const DEFS := {
 	"abbot_crown": {"name": "Abbot's Crown", "kind": "trophy", "shape": "crown", "tint": Color(0.88, 0.78, 0.5),
 		"desc": "Osric had it made from the knuckles of the first brothers to die in his care, so that he would never lose count of them. He never did.",
 		"text": "Knucklebone and iron, warm from the crypt. The Bone Abbot wore it below the Ossuary. A seal shard: the summit ward counts it."},
-	# --- r37 west ---
+	# --- west marches ---
 	"crown_shard": {"name": "Shard of the Speaking Crown", "kind": "trophy", "shape": "crown", "tint": Color(0.66, 0.6, 0.5),
 		"desc": "A tine of the Hierarch's tiara, broken off in the fight. Hold it to your ear and it says the first word of an edict, and stops.",
 		"text": "Cut from the Speaking Crown in the Fallen Hierarch's skull, in the Marches' west. Proof the voice is quiet."},
@@ -135,17 +135,25 @@ const DEFS := {
 	"core_rime": {"name": "Rime Core", "kind": "core", "shape": "rime", "tint": Color(0.62, 0.85, 1.0),
 		"desc": "Fen ice from under the drowned graves, that does not melt in the hand. The dead below it were very cold.",
 		"text": "A staff core. Rift Bolt chills, and freezes on the third. Set it in the orb at a fire (Kindling, Staff)."},
+	# --- the east marches ---
+	"anchor_stone": {"name": "The Anchor-Stone", "kind": "trophy", "shape": "stone", "tint": Color(0.62, 0.64, 0.6),
+		"desc": "A cairn-stone with an iron ring leaded into it and a chain's worth of link-marks worn into the ring. It is heavier than it should be and it pulls, very slightly, toward the nearest wall.",
+		"text": "The Anchoress swung it for nine winters. Hermits' cairns stand in the cliff's shadow because she asked them to."},
 }
 const ORDER := ["bone_reliquary", "thorn_heart", "abbot_crown", "ascension_seal",
 	"kin_lamp", "slag_heart", "fog_crook", "ferry_coin", "ash_seed", "hair_rope", "mason_mark", "grave_ash", "relic_fragment", "ember_shard", "ash_bloom", "grave_iron",
 	"charm_candle", "charm_thread", "charm_lampglass", "charm_bead", "charm_clapper", "charm_ring",
 	"hobbs_knuckles", "lisles_tally", "briar_antler", "heart_stone", "cinder_censer", "scraped_face",
 	"charm_hook", "charm_rosary", "charm_jar", "charm_ferrule", "charm_waystone", "charm_chalk", "core_prism", "core_lodestar", "core_cinder", "core_rime",
-	# --- r37 west ---
-	"crown_shard", "varrs_signet"]
+	# --- west marches ---
+	"crown_shard", "varrs_signet",
+	# --- east marches ---
+	"anchor_stone"]
 const BOSS_TROPHY := {"thornwarden": "thorn_heart", "bone_abbot": "abbot_crown", "ascended_warden": "ascension_seal",
-	# --- r37 west ---
-	"r37_hierarch": "crown_shard"}
+	# --- west marches ---
+	"r37_hierarch": "crown_shard",
+	# --- east marches ---
+	"r37_anchoress": "anchor_stone"}
 const ASH_PER_KILL := 1
 const ASH_PER_BOSS := 25
 

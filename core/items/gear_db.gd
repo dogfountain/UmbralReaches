@@ -429,4 +429,11 @@ const NAMED := {
 		"lore": "Every soul on the Stair paid the toll. He kept one coin from each, and melted them."},
 	"widow_veil": {"name": "Widow's Ash-Veil", "slot": "vestment", "rarity": 3, "aff": ["gloom_add", "kill_relief", "lit_mult"],
 		"lore": "She wore it at every burial in the valley. Then nobody was left to bury her."},
+	# --- the east marches: the Anchoress (the Anchorholds)
+	"anchor_chain": {"name": "Anchor-Chain Girdle", "slot": "girdle", "rarity": 3, "aff": ["cd", "kill_relief", "step_cd"],
+		"lore": "Nine winters of her weight on it. It still hangs a little to the left."},
+	"cell_lantern": {"name": "Cell-Door Lantern", "slot": "lantern", "rarity": 3, "aff": ["ward_life", "well_life", "lit_mult"],
+		"lore": "Lit once a day through a slot in a wall, to show a hermit her own hands."},
+	"hermit_shawl": {"name": "Hermit's Salt-Shawl", "slot": "vestment", "rarity": 3, "aff": ["dark_mult", "gloom_add", "ward_life"],
+		"lore": "Grey wool, stiff with sea-breath from nowhere near the sea. It keeps the cold out and the prayers in."},
 }

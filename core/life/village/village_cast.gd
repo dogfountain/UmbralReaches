@@ -14,6 +14,8 @@ extends RefCounted
 ## Load by path: const Cast := preload("res://core/life/village/village_cast.gd")
 
 ## Phases of the village night (fractions of VillageClock.CYCLE).
+const R37E := preload("res://core/life/village/village_r37_east.gd")   ## the east marches: Saltmarket's people (listed in the `# --- the east marches ---` block of CAST)
+
 const PHASES := [[0.0, "dusk"], [0.12, "work"], [0.55, "midnight"], [0.66, "late"]]
 
 const NODES := {
@@ -346,6 +348,8 @@ const CAST := {
 			],
 			"watch": [{"go": "cadoc_w1"}, {"act": "idle", "at": "cadoc_w2", "face": "@out_cadoc", "t": [10.0, 14.0]}, {"go": "cadoc_w3"}, {"go": "cadoc_fire"}],
 		}},
+	# --- the east marches ---
+	"marl": R37E.MARL, "teasel": R37E.TEASEL, "orrin": R37E.ORRIN, "ardel": R37E.ARDEL, "pip": R37E.PIP,
 }
 
 ## r34: the outposts of the doubled world (docs/r34/layout.md SLOTS): where each new giver camps.

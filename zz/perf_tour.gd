@@ -73,6 +73,13 @@ var realm_points := [
 	["r34_necropolis", Vector3(-2.0, NAN, 100.0), -3.09],          # up the Waiting Field
 	["r34_mere", Vector3(97.0, NAN, 92.0), -2.9],
 	["r34_henge_raid", Vector3(-62.0, NAN, -14.0), 1.18],      # the raid floor from its rim
+	# r37: the Outer Marches and the downs (far detail: the long views are the cost)
+	["r37_river", Vector3(-188.0, NAN, 40.0), 1.57],           # west across the Sorrow
+	["r37_lake", Vector3(190.0, NAN, 46.0), -0.42],             # north over Stillwater to the Spire's bluff
+	["r37_well", Vector3(72.0, NAN, 176.0), 3.14],              # south to the sinkhole
+	["r37_pans", Vector3(172.0, NAN, 138.0), -2.1],             # over the White Pans
+	["r37_marches", Vector3(-160.0, NAN, 20.0), 1.57],          # the west Marches from the March Wall's line
+	["r37_far_east", Vector3(150.0, NAN, 10.0), -1.57],         # the east Marches from the moor
 ]
 ## The path: legs of [goal xz (y ignored), label]; a leg starting with "@" teleports there instead.
 var route := [

@@ -3,9 +3,13 @@
 [ext_resource type="Shader" path="res://world/realm/realm_ground.gdshader" id="1"]
 [ext_resource type="CompressedTexture2DArray" path="res://art/textures/land_albedo.png" id="2"]
 [ext_resource type="CompressedTexture2DArray" path="res://art/textures/land_normal.png" id="3"]
+[ext_resource type="Texture2D" path="res://art/textures/land_salt_albedo.png" id="4"]
+[ext_resource type="Texture2D" path="res://art/textures/land_salt_normal.png" id="5"]
 
 [resource]
 render_priority = 0
 shader = ExtResource("1")
 shader_parameter/alb = ExtResource("2")
 shader_parameter/nrm = ExtResource("3")
+shader_parameter/salt_alb = ExtResource("4")
+shader_parameter/salt_nrm = ExtResource("5")

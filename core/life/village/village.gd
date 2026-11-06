@@ -22,7 +22,7 @@ extends Node3D
 
 const SELF := "res://core/life/village/village.gd"
 const Cast := preload("res://core/life/village/village_cast.gd")
-const R37W := preload("res://core/life/village/village_cast_r37_west.gd")      # --- r37 west --- Weirford's people
+const R37W := preload("res://core/life/village/village_cast_r37_west.gd")      # --- west marches --- Weirford's people
 const VState := preload("res://core/life/village/village_state.gd")
 const VNav := preload("res://core/life/village/village_nav.gd")
 const Props := preload("res://core/life/village/village_props.gd")
@@ -145,9 +145,12 @@ func _build() -> void:
 		report.append("no clear spot for the sexton's grave")
 	# r34: the outposts of the doubled world, one giver camped in each new region
 	_outposts(space, node_xz, edges)
-	# --- r37 west --- Weirford's walks (its own island of the network; the nav drops what the town stands on)
+	# --- west marches --- Weirford's walks (its own island of the network; the nav drops what the town stands on)
 	node_xz.merge(R37W.NODES)
 	edges.append_array(R37W.EDGES)
+	# --- the east marches ---
+	var east_pois: Variant = load("res://core/world/realm/realm_pois_r37_east.gd")    # no preload: a cycle
+	east_pois.hamlet(self, space, node_xz, edges)
 	await get_tree().process_frame
 	# --- the walking network ------------------------------------------------------------------
 	nav.call("build", space, node_xz, edges)

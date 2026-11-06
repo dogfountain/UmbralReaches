@@ -54,7 +54,7 @@ func _process(d: float) -> void:
 
 func _col_biome(bw: Dictionary) -> Color:
 	var cols := {"meadow": Color(0.42, 0.5, 0.28), "loam": Color(0.2, 0.32, 0.16), "mud": Color(0.3, 0.3, 0.24),
-		"ash": Color(0.3, 0.24, 0.22), "heath": Color(0.52, 0.42, 0.3), "crag": Color(0.5, 0.5, 0.5), "ruin": Color(0.55, 0.5, 0.42)}
+		"ash": Color(0.3, 0.24, 0.22), "heath": Color(0.52, 0.42, 0.3), "crag": Color(0.5, 0.5, 0.5), "ruin": Color(0.55, 0.5, 0.42), "salt": Color(0.88, 0.87, 0.82)}
 	var c := Color(0, 0, 0)
 	for k: String in bw:
 		c += cols[k] * float(bw[k])
@@ -89,7 +89,7 @@ func _draw() -> void:
 			c = c.lerp(Color(0.95, 0.95, 1.0), tint * 0.35)
 			if Land.in_water(x, z):
 				c = Color(0.12, 0.2, 0.3)
-			if gy < -5.0:
+			if gy < -5.0 and absf(x) < 40.0 and z < 0.0:          # (r37: the Well of Echoes is deep too: no lava tint there)
 				c = c.lerp(Color(0.5, 0.12, 0.02), 0.6)
 			if RealmLayout.path_dist(Vector2(x, z)) < 0.0:
 				c = Color(0.85, 0.75, 0.55)

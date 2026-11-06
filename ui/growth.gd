@@ -54,7 +54,7 @@ const RELIC_FROM := {"thorn_heart": "the Thornwarden, in the Ring of Thorns", "b
 	"fog_crook": "the Fog-Shepherd, on the moor", "ferry_coin": "the Fare-Caller, at the ferry post",
 	"ash_seed": "the Ash-Sower, in the Cinder Orchard", "hair_rope": "the Passing-Ringer, in the Waiting Field",
 	"mason_mark": "the Bell-Hewer, at the quarry crane",
-	# --- r37 west ---
+	# --- west marches ---
 	"crown_shard": "the Speaking Crown, in the Fallen Hierarch's skull",
 	"abbot_crown": "the Bone Abbot, below the Ossuary", "ascension_seal": "the Ascended Warden, at the summit"}
 

@@ -9,7 +9,7 @@ extends RefCounted
 ##   kind: grave | waystone | tablet | rune | page | notice | plaque | lectern | letter | ledger
 ##   series/part: a multi-part story (SERIES), shown in the journal in part order, gaps kept.
 
-## r37 west: Weirford, the Sorrow, the Hierarch, the Siege Lines (lore/r37_west_texts.gd), in the blocks marked `# --- r37 west ---`.
+## r37 west: Weirford, the Sorrow, the Hierarch, the Siege Lines (lore/r37_west_texts.gd), in the blocks marked `# --- west marches ---`.
 const R37WL := preload("res://core/world/realm/lore/r37_west_texts.gd")
 
 const TEXTS := {
@@ -340,7 +340,7 @@ const TEXTS := {
 		"text": "Weighted with three stones, as the Abbot ordered. A fourth stone set on top, smaller, with a lamp scratched on it."},
 	"cm_fare": {"region": "mere", "kind": "notice", "title": "The fare-board",
 		"text": "THE LAMP-BOAT. No fare. No questions. Leave a name and Brother Corvin will row a lamp out for it. The board is covered in names, one over another, until none can be read."},
-	# --- r37 west ---
+	# --- west marches ---
 	"r37w_bridge": R37WL.TEXTS["r37w_bridge"],
 	"r37w_mill": R37WL.TEXTS["r37w_mill"],
 	"r37w_inn": R37WL.TEXTS["r37w_inn"],
@@ -363,6 +363,35 @@ const TEXTS := {
 	"sg_roll_2": R37WL.TEXTS["sg_roll_2"],
 	"sg_roll_3": R37WL.TEXTS["sg_roll_3"],
 	"sg_grave": R37WL.TEXTS["sg_grave"],
+	# --- the east marches ---
+	"r37e_spire_door": {"region": "stillwater", "kind": "plaque", "title": "The Lamplighters' door",
+		"text": "THE LAMPLIGHTERS OF THE MARCHES. A flame kept on this bluff since the first road. If you can read this by it, the road is behind you. If you cannot, walk toward the cold."},
+	"r37e_spire_log": {"region": "stillwater", "kind": "page", "title": "The keeper's log",
+		"text": "Fourteen flights. I counted them every night for forty years and lost the count the night the sky turned. Oil low. Wick low. The Hierarch's riders came to ask me to put the lamp out, so the Stair would be brighter. I told them the Stair could light itself."},
+	"r37e_spire_plate": {"region": "stillwater", "kind": "plaque", "title": "The lamp's plate",
+		"text": "LIGHT FOR THE ROAD. Carried up by hand, lit by hand, never by the sky's leave. WICK, WICK AND WICK. The lamp is lit by whoever carries the fire up."},
+	"r37e_market_board": {"region": "saltmarket", "kind": "notice", "title": "The market board",
+		"text": "SALTMARKET. Salt by the sack, by the pound, by the pinch. Trade in ash, not coin: the coin was the Order's. No credit. No haggling. Rake your own."},
+	"r37e_salt_marker": {"region": "saltmarket", "kind": "waystone", "title": "A marker",
+		"text": "SALTMARKET, ONE MILE. THE PANS, THREE. THE STAIR, ELEVEN, IF YOU WANT IT. Scratched under, newer: you don't."},
+	"r37e_hearth_slate": {"region": "saltmarket", "kind": "page", "title": "The yard's slate",
+		"text": "Names of those who went out on the white and came back. Corra Vane is not on this slate. Her wife wrote beside it: she came back. Not to us."},
+	"r37e_works_ledger": {"region": "saltpans", "kind": "ledger", "title": "The works' ledger",
+		"text": "Brine in: four hundred barrels. Salt out: nine thousand pounds, white as a bride, to the abbey's kitchens and the abbey's dead. The abbey paid in blessings. We salted our own with them."},
+	"r37e_works_gate": {"region": "saltpans", "kind": "notice", "title": "The works' gate",
+		"text": "THE WORKS. No shoes on the pans: the crust is a year's work. No lanterns on the pans: it is a year's work. Nobody ever said what to do after dark."},
+	"r37e_crust_slate": {"region": "saltpans", "kind": "page", "title": "Left under a crystal",
+		"text": "The crust grows back if you leave it. Crystals where the brine pools. They sing in a wind. Wren listened a whole day and went up to the Anchorholds to pray in silence. I don't blame her. -- T."},
+	"r37e_anchor_gate": {"region": "anchorholds", "kind": "plaque", "title": "The hermits' gate",
+		"text": "THE ANCHORHOLDS. By leave of the Order, who did not ask what was being walled in. Pray here and ask nothing. The sky is not to be asked."},
+	"r37e_cell_scratch": {"region": "anchorholds", "kind": "rune", "title": "Scratched inside a lintel",
+		"text": "Day one. Day two. Day three. Tally on tally, down to day forty, and then a drawing of a door, quite small, quite carefully drawn."},
+	"r37e_cell_ledger": {"region": "anchorholds", "kind": "ledger", "title": "The cell ledger",
+		"text": "Through the slot: bread, one cup, one lamp. The lamp is lit once a day so the anchorite can see her own hands, and put out after, so she can see nothing else."},
+	"r37e_chapel_lintel": {"region": "anchorholds", "kind": "plaque", "title": "Cut over the chapel door",
+		"text": "WE ASK NOTHING. And under it, in a different hand, newer, going over the same letters: but we are listening."},
+	"r37e_walk_plate": {"region": "anchorholds", "kind": "plaque", "title": "The walk",
+		"text": "THE WALK. Carried from the lowest cell to the highest by hand. The ladders are for those who still believe they are going up."},
 }
 
 ## Multi-part stories, in journal order. `count` = parts in the world.
@@ -386,7 +415,7 @@ const SERIES := {
 		"blurb": "Leaves of the bell-founder's book, from her furnace under the rim to the Saints' Quarry."},
 	"lamplog": {"title": "Corvin's Lamp-Log", "count": 3,
 		"blurb": "Brother Corvin's nightly count of the lamps he rowed out over the mere."},
-	# --- r37 west ---
+	# --- west marches ---
 	"marches": R37WL.SERIES["marches"],
 }
 
@@ -394,8 +423,10 @@ const SERIES := {
 ## r34 places: the new regions join the Journal after the old (west to east, north to south).
 const REGION_ORDER := ["hearth", "road", "chapel", "glade", "thornwood", "henge", "fen", "barrows", "ossuary", "rift", "summit", "crags",
 	"holds", "quarry", "moor", "foundry", "orchard", "necropolis", "mere",
-	# --- r37 west ---
-	"weirford", "sorrow", "hierarch", "siege"]
+	# --- west marches ---
+	"weirford", "sorrow", "hierarch", "siege",
+	# --- the east marches ---
+	"stillwater", "anchorholds", "saltmarket", "saltpans"]
 const PLACE_INFO := {
 	"hearth": {"name": "Hearthward", "line": "the last kindled village",
 		"text": "The road's last village before the Stair. Its fires were carried home from the chapel in pots and hands; the Kindled Keg keeps the last of them. Most cottages have gone quiet."},
@@ -436,11 +467,20 @@ const PLACE_INFO := {
 		"text": "Pilgrims who died on the road before the Stair were buried here in ranks, every grave facing the mountain, so they would be first when the sky called. They are still waiting."},
 	"mere": {"name": "Corvin's Mere", "line": "his lamps still float",
 		"text": "A drowned water-meadow south of the road. Brother Corvin rowed fire out across it to the sunk dead so they would not lie in the dark. Some of his lamps are still out on the water."},
-	# --- r37 west ---
+	# --- west marches ---
 	"weirford": R37WL.PLACE_INFO["weirford"],
 	"sorrow": R37WL.PLACE_INFO["sorrow"],
 	"hierarch": R37WL.PLACE_INFO["hierarch"],
 	"siege": R37WL.PLACE_INFO["siege"],
+	# --- the east marches ---
+	"stillwater": {"name": "Stillwater", "line": "the lamp that waits",
+		"text": "A cold lake under a bluff, black and still, with the Lamplighters' Spire standing over it. The Marches steered home by its flame for forty generations. The lamp has been dark nine winters. It will light for anyone who carries the fire up."},
+	"anchorholds": {"name": "The Anchorholds", "line": "walled in to pray the sky still",
+		"text": "Hermits' cells cut into the face of the Crowns, joined by ladders and timber walks. The anchorites bound themselves to the rock with chain and asked nothing of the sky. The one who bound herself hardest is still on the terrace."},
+	"saltmarket": {"name": "Saltmarket", "line": "salt keeps the hollowed off a threshold",
+		"text": "A hamlet of salt-workers at the east road's fork, who rake the pans by day and the dark by night. The Order bought their salt for forty years. They kept raking after it stopped paying."},
+	"saltpans": {"name": "The White Pans", "line": "flat as a table, white as bone",
+		"text": "Evaporation pans and timber derricks across a white crust that grows back if it is left. The wind writes on it. Some who walked out on it to look have not walked off."},
 }
 
 ## Names for landmarks, graves and waystones (labels for builders, tests and docs).
