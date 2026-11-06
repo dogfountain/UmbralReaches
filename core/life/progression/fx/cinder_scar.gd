@@ -87,9 +87,9 @@ func _light_up() -> void:
 	_light.light_color = Color(1.0, 0.5, 0.2)
 	_light.light_energy = 2.2
 	_light.omni_range = RADIUS   # the light ends where the burn does
-_light.distance_fade_enabled = true   # a scar walked away from fades with distance
-_light.distance_fade_begin = 24.0
-_light.distance_fade_length = 8.0
+	_light.distance_fade_enabled = true   # a scar walked away from fades with distance
+	_light.distance_fade_begin = 24.0
+	_light.distance_fade_length = 8.0
 	_light.shadow_enabled = false
 	_light.position = Vector3.UP * 0.6
 	_light.set_meta("light_class", "player_orb")
