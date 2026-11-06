@@ -367,6 +367,12 @@ func _show_more(c: Vector3, at: Vector3, right: Vector3, fwd: Vector3, col: Colo
 		if z:
 			_warm_nodes.append(z)
 	WarmBossKit.lee_marks(c - fwd * 2.0, [c + right * 2.0, c - right * 2.0], 0.6)
+	# a boss zone landing (BossKit._land): thorn and bone spikes, the ring burst and the turbulent
+	# dust. The first Briar Snare compiled these mid-fight: a 74 ms frame.
+	WarmBossKit.spikes(zone, c + right * 1.5, {"radius": 1.0}, "thorn")
+	WarmBossKit.spikes(zone, c - right * 1.5, {"radius": 1.0}, "bone")
+	Vfx.burst(at, hot, {"count": 40, "life": 0.6, "speed": Vector2(2.0, 6.0), "size": 0.06, "gravity": -6.0, "ring": 1.0})
+	Vfx.burst(c + Vector3.UP * 0.2, Color(0.08, 0.06, 0.06, 0.8), {"count": 16, "life": 1.0, "speed": Vector2(0.5, 2.0), "size": 0.45, "gravity": 0.6, "radius": 0.5, "additive": false, "turbulence": true})
 
 
 ## Every spell the wanderer knows, cast once from in front of the warm camera with its real code
