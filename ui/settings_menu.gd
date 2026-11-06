@@ -818,9 +818,9 @@ func _input(event: InputEvent) -> void:
 		_listen_input(event)
 		return
 	if event.is_action_pressed("toggle_settings"):
-		if not _root.visible and get_tree().paused and event is InputEventKey and (event as InputEventKey).physical_keycode == KEY_ESCAPE:
-			return            # Esc over an open Kindling / Journal / shop closes that menu (each has
-			                  # its own Esc), it does not stack Settings on top; F2 / Start still open it
+		if not _root.visible and get_tree().paused:
+			return            # another menu has the night paused (Kindling, Journal, shop, a conversation): Esc,
+			                  # F2 and Start belong to it, Settings does not stack on top
 		if _root.visible:
 			close()
 		else:
@@ -866,6 +866,6 @@ func close() -> void:
 	# opened over the Kindling, a dialogue, the shop or the Journal (each pauses the world): leave
 	# the world paused for them. Unpausing here let the night run on behind an open menu.
 	get_tree().paused = _was_paused
-	if _was_captured:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if _was_captured and not _was_paused:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED         # only when no other menu is open under this one
 	get_viewport().gui_release_focus()
