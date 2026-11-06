@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://vww5ecqwrwo6"
-path="res://.godot/imported/oss_floor_rough.png-a3b43625c6d28912bdc05fa357743681.ctex"
+path.s3tc="res://.godot/imported/oss_floor_rough.png-a3b43625c6d28912bdc05fa357743681.s3tc.ctex"
+path.etc2="res://.godot/imported/oss_floor_rough.png-a3b43625c6d28912bdc05fa357743681.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://art/textures/oss_floor_rough.png"
-dest_files=["res://.godot/imported/oss_floor_rough.png-a3b43625c6d28912bdc05fa357743681.ctex"]
+dest_files=["res://.godot/imported/oss_floor_rough.png-a3b43625c6d28912bdc05fa357743681.s3tc.ctex", "res://.godot/imported/oss_floor_rough.png-a3b43625c6d28912bdc05fa357743681.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

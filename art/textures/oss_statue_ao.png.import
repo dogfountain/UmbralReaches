@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://f7e7dawpskwe"
-path="res://.godot/imported/oss_statue_ao.png-d55b0324253a9e6cc432cb8e6695db7f.ctex"
+path.s3tc="res://.godot/imported/oss_statue_ao.png-d55b0324253a9e6cc432cb8e6695db7f.s3tc.ctex"
+path.etc2="res://.godot/imported/oss_statue_ao.png-d55b0324253a9e6cc432cb8e6695db7f.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://art/textures/oss_statue_ao.png"
-dest_files=["res://.godot/imported/oss_statue_ao.png-d55b0324253a9e6cc432cb8e6695db7f.ctex"]
+dest_files=["res://.godot/imported/oss_statue_ao.png-d55b0324253a9e6cc432cb8e6695db7f.s3tc.ctex", "res://.godot/imported/oss_statue_ao.png-d55b0324253a9e6cc432cb8e6695db7f.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

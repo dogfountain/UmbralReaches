@@ -303,7 +303,7 @@ static func _tri(m: StandardMaterial3D, tex: String, scale: float, tint: Color) 
 	m.normal_texture = load(T + tex + "_normal.png")
 	if ResourceLoader.exists(T + tex + "_rough.png"):
 		m.roughness_texture = load(T + tex + "_rough.png")
-	if ResourceLoader.exists(T + tex + "_ao.png"):
+	if tex != "bark" and ResourceLoader.exists(T + tex + "_ao.png"):   # the trunks dropped their occlusion; roots match
 		m.ao_enabled = true
 		m.ao_texture = load(T + tex + "_ao.png")
 		m.ao_light_affect = 0.3
