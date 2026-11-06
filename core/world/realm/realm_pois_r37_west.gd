@@ -234,62 +234,135 @@ static func _kit() -> OssKit:
 	return k
 
 
-## A gabled building in local space (+z the front, rotated by yaw): a stone course, walls with a door in the
-## front, a roof of two slabs, gable fills, a chimney. `o`: wall (OssKit key), roof (key), glow (lit window
-## panes on the front), open (no front wall: a forge, a stable), door_w. Walls are solid, the floor is the
-## levelled ground (the site cut it).
+## Our own wall materials for OssKit (world-triplanar over the tiling sets): coursed, irregular ashlar for walls
+## (calm: no per-brick bevel) and weathered boards for frames, doors and shutters.
+static func _mats() -> void:
+	if OssKit._mats.has("r37_wall"):
+		return
+	for pair: Array in [["r37_wall", "ashlar", 0.22], ["r37_board", "timber", 0.5]]:
+		var m := Kit.mat(String(pair[1])).duplicate() as StandardMaterial3D
+		m.uv1_triplanar = true
+		m.uv1_world_triplanar = true
+		m.uv1_triplanar_sharpness = 6.0
+		m.uv1_scale = Vector3.ONE * float(pair[2])
+		OssKit._mats[String(pair[0])] = m
+
+
+## A window in the front wall (local +z face): stone sill and lintel, timber frame, a mullion and a transom, four small
+## panes with the glow behind them (recessed, so it reads as light through glass), shutters standing ajar.
+static func _window(k: OssKit, base: Vector3, b: Basis, x: float, y: float, z: float, lit: bool) -> void:
+	k.box("stone", base + b * Vector3(x, y - 0.55, z + 0.1), Vector3(1.3, 0.12, 0.3), b, false, 0.85)
+	k.box("stone", base + b * Vector3(x, y + 0.55, z + 0.04), Vector3(1.3, 0.14, 0.2), b, false, 0.85)
+	k.box("wood", base + b * Vector3(x, y, z - 0.02), Vector3(0.96, 0.96, 0.05), b, false, 0.35)
+	if lit:
+		for sx: float in [-0.21, 0.21]:
+			for sy: float in [-0.21, 0.21]:
+				k.box("glow", base + b * Vector3(x + sx, y + sy, z + 0.01), Vector3(0.36, 0.36, 0.03), b, false, 1.0)
+	for sx: float in [-0.48, 0.48]:
+		k.box("r37_board", base + b * Vector3(x + sx, y, z + 0.05), Vector3(0.09, 1.0, 0.1), b, false, 0.8)
+	for sy: float in [-0.5, 0.5]:
+		k.box("r37_board", base + b * Vector3(x, y + sy, z + 0.05), Vector3(1.0, 0.09, 0.1), b, false, 0.8)
+	k.box("r37_board", base + b * Vector3(x, y, z + 0.06), Vector3(0.06, 1.0, 0.08), b, false, 0.8)
+	k.box("r37_board", base + b * Vector3(x, y, z + 0.06), Vector3(1.0, 0.06, 0.08), b, false, 0.8)
+	for sx: float in [-1.0, 1.0]:
+		k.box("r37_board", base + b * Vector3(x + sx * 0.82, y, z + 0.08), Vector3(0.5, 1.0, 0.06), b * Basis(Vector3.UP, sx * 0.9), false, 0.7)
+
+
+## An iron lantern on a post with a bracket: cage bars, a pane of glow inside, a cap and a ring.
+static func _lantern(k: OssKit, at: Vector3, face: float) -> void:
+	var b := Basis(Vector3.UP, face)
+	k.box("iron", at + Vector3(0, 0.12, 0), Vector3(0.28, 0.24, 0.28), Basis.IDENTITY, false, 0.7)
+	k.box("iron", at + Vector3(0, 1.6, 0), Vector3(0.09, 3.2, 0.09), Basis.IDENTITY, false, 0.7)
+	k.box("iron", at + b * Vector3(0, 3.1, 0.3), Vector3(0.06, 0.06, 0.6), b, false, 0.7)
+	k.box("iron", at + b * Vector3(0, 3.35, 0.14), Vector3(0.05, 0.4, 0.05), b, false, 0.7)
+	var lp := at + b * Vector3(0, 2.8, 0.6)
+	k.box("glow", lp, Vector3(0.22, 0.36, 0.22), Basis.IDENTITY, false, 1.0)
+	for sx: float in [-1.0, 1.0]:
+		for sz: float in [-1.0, 1.0]:
+			k.box("iron", lp + Vector3(sx * 0.13, 0, sz * 0.13), Vector3(0.035, 0.42, 0.035), Basis.IDENTITY, false, 0.7)
+	k.box("iron", lp + Vector3(0, -0.24, 0), Vector3(0.32, 0.04, 0.32), Basis.IDENTITY, false, 0.7)
+	k.box("iron", lp + Vector3(0, 0.26, 0), Vector3(0.3, 0.08, 0.3), Basis(Vector3.UP, 0.78), false, 0.7)
+	k.box("iron", lp + Vector3(0, 0.38, 0), Vector3(0.12, 0.1, 0.12), Basis.IDENTITY, false, 0.7)
+
+
+## A gabled building in local space (+z the front, rotated by yaw) on a level stone plinth: coursed walls, a framed
+## door (lintel, jambs, plank leaf with a strap, step), timber framing on every wall, windows (_window), a thick roof
+## with eaves, under-boarding, fascia and ridge tiles, and a chimney with a drip course, a cap and pots.
+## `o`: roof, glow (windows lit), open (a forge, a stable: no front wall), door_w.
 static func _house(k: OssKit, base: Vector3, yaw: float, size: Vector2, h: float, o: Dictionary) -> void:
+	_mats()
 	var b := Basis(Vector3.UP, yaw)
 	var w := size.x
 	var d := size.y
-	var t := 0.32
-	var wall: String = o.get("wall", "plaster")
+	var t := 0.34
+	var wall := "r37_wall"
 	var roof: String = o.get("roof", "slate")
 	var dw := float(o.get("door_w", 1.4))
 	var open := bool(o.get("open", false))
-	k.box("stone", base + b * Vector3(0, 0.32, -d * 0.5 + t * 0.5), Vector3(w + 0.2, 0.64, t + 0.12), b, true, 0.8)
-	k.box("stone", base + b * Vector3(-w * 0.5 + t * 0.5, 0.32, 0), Vector3(t + 0.12, 0.64, d), b, true, 0.8)
-	k.box("stone", base + b * Vector3(w * 0.5 - t * 0.5, 0.32, 0), Vector3(t + 0.12, 0.64, d), b, true, 0.8)
-	k.box(wall, base + b * Vector3(0, 0.64 + (h - 0.64) * 0.5, -d * 0.5 + t * 0.5), Vector3(w, h - 0.64, t), b, true, 0.9)
-	k.box(wall, base + b * Vector3(-w * 0.5 + t * 0.5, 0.64 + (h - 0.64) * 0.5, 0), Vector3(t, h - 0.64, d), b, true, 0.9)
-	k.box(wall, base + b * Vector3(w * 0.5 - t * 0.5, 0.64 + (h - 0.64) * 0.5, 0), Vector3(t, h - 0.64, d), b, true, 0.9)
+	k.box("stone", base + b * Vector3(0, -0.5, 0), Vector3(w + 0.7, 1.4, d + 0.7), b, true, 0.78)
+	var y0 := 0.9
+	var wh := h - y0 + 0.2
+	k.box(wall, base + b * Vector3(0, y0 + wh * 0.5, -d * 0.5 + t * 0.5), Vector3(w, wh, t), b, true, 0.9)
+	k.box(wall, base + b * Vector3(-w * 0.5 + t * 0.5, y0 + wh * 0.5, 0), Vector3(t, wh, d), b, true, 0.9)
+	k.box(wall, base + b * Vector3(w * 0.5 - t * 0.5, y0 + wh * 0.5, 0), Vector3(t, wh, d), b, true, 0.9)
+	k.box("stone", base + b * Vector3(0, 0.6, 0), Vector3(w + 0.3, 0.12, d + 0.3), b, false, 0.8)
 	if open:
-		# a half wall and two corner posts at the front; a beam across
 		for sx: float in [-1.0, 1.0]:
-			k.box("wood", base + b * Vector3(sx * (w * 0.5 - 0.2), h * 0.5, d * 0.5 - 0.2), Vector3(0.34, h, 0.34), b, true, 0.75)
-		k.box("wood", base + b * Vector3(0, h - 0.15, d * 0.5 - 0.2), Vector3(w, 0.3, 0.3), b, false, 0.8)
+			k.box("r37_board", base + b * Vector3(sx * (w * 0.5 - 0.2), h * 0.5 + 0.5, d * 0.5 - 0.2), Vector3(0.36, h, 0.36), b, true, 0.8)
+		k.box("r37_board", base + b * Vector3(0, h - 0.1, d * 0.5 - 0.2), Vector3(w, 0.34, 0.34), b, false, 0.8)
+		for sx: float in [-1.0, 1.0]:
+			k.box("r37_board", base + b * Vector3(sx * (w * 0.5 - 0.9), h - 0.6, d * 0.5 - 0.2), Vector3(0.16, 1.1, 0.16), b * Basis(Vector3(0, 0, 1), sx * 0.7), false, 0.8)
 	else:
 		var seg := (w - dw) * 0.5
 		for sx: float in [-1.0, 1.0]:
-			k.box(wall, base + b * Vector3(sx * (dw * 0.5 + seg * 0.5), 0.64 + (h - 0.64) * 0.5, d * 0.5 - t * 0.5), Vector3(seg, h - 0.64, t), b, true, 0.9)
-			k.box("stone", base + b * Vector3(sx * (dw * 0.5 + seg * 0.5), 0.32, d * 0.5 - t * 0.5), Vector3(seg + 0.1, 0.64, t + 0.12), b, true, 0.8)
-		k.box("wood", base + b * Vector3(0, 2.3 + (h - 2.3) * 0.5, d * 0.5 - t * 0.5), Vector3(dw + 0.2, h - 2.3, t), b, true, 0.8)
-	# timber frame on the front and back
-	for x: float in [-w * 0.5 + 0.15, w * 0.5 - 0.15]:
-		k.box("wood", base + b * Vector3(x, h * 0.5, d * 0.5 - 0.08), Vector3(0.22, h, 0.14), b, false, 0.75)
-	k.box("wood", base + b * Vector3(0, h - 0.1, d * 0.5 - 0.06), Vector3(w + 0.1, 0.2, 0.16), b, false, 0.8)
-	# lit windows: warm panes proud of the front (no lights; the glow mat sits just over the threshold)
+			k.box(wall, base + b * Vector3(sx * (dw * 0.5 + seg * 0.5), y0 + wh * 0.5, d * 0.5 - t * 0.5), Vector3(seg, wh, t), b, true, 0.9)
+		k.box(wall, base + b * Vector3(0, 2.4 + (h + 0.2 - 2.4) * 0.5 + 0.1, d * 0.5 - t * 0.5), Vector3(dw + 0.3, h - 2.4 + 0.2, t), b, true, 0.9)
+		for sx: float in [-1.0, 1.0]:
+			k.box("r37_board", base + b * Vector3(sx * (dw * 0.5 + 0.08), 1.6, d * 0.5 + 0.03), Vector3(0.16, 2.3, 0.14), b, false, 0.85)
+		k.box("r37_board", base + b * Vector3(0, 2.4, d * 0.5 + 0.03), Vector3(dw + 0.4, 0.18, 0.16), b, false, 0.85)
+		k.box("stone", base + b * Vector3(0, 2.55, d * 0.5 + 0.04), Vector3(dw + 0.7, 0.16, 0.26), b, false, 0.85)
+		k.box("r37_board", base + b * Vector3(-dw * 0.25, 1.15, d * 0.5 - 0.18), Vector3(dw * 0.5, 2.3, 0.08), b * Basis(Vector3.UP, -1.0), false, 0.65)
+		k.box("iron", base + b * Vector3(-dw * 0.25, 1.9, d * 0.5 - 0.12), Vector3(dw * 0.46, 0.08, 0.04), b * Basis(Vector3.UP, -1.0), false, 0.7)
+		k.box("stone", base + b * Vector3(0, 0.38, d * 0.5 + 0.35), Vector3(dw + 0.5, 0.28, 0.7), b, true, 0.85)
+	for x: float in [-w * 0.5, w * 0.5]:
+		for z: float in [-d * 0.5, d * 0.5]:
+			k.box("r37_board", base + b * Vector3(x, h * 0.5 + 0.3, z), Vector3(0.3, h + 0.2, 0.3), b, false, 0.8)
+	for z: float in [-d * 0.5 - 0.02, d * 0.5 + 0.02]:
+		k.box("r37_board", base + b * Vector3(0, h + 0.05, z), Vector3(w + 0.3, 0.26, 0.2), b, false, 0.8)
+		k.box("r37_board", base + b * Vector3(0, 2.2, z), Vector3(w, 0.16, 0.14), b, false, 0.75)
+	for x: float in [-w * 0.5 - 0.02, w * 0.5 + 0.02]:
+		k.box("r37_board", base + b * Vector3(x, h + 0.05, 0), Vector3(0.2, 0.26, d + 0.3), b, false, 0.8)
+		k.box("r37_board", base + b * Vector3(x, 2.2, 0), Vector3(0.14, 0.16, d), b, false, 0.75)
+		for s: float in [-1.0, 1.0]:
+			k.box("r37_board", base + b * Vector3(x, 1.9, s * d * 0.28), Vector3(0.12, 0.14, 2.0), b * Basis(Vector3.RIGHT, s * 0.7), false, 0.75)
 	var nglow := int(o.get("glow", 0))
-	for i in nglow:
-		var x := (float(i) - float(nglow - 1) * 0.5) * (w / float(nglow + 1)) * 1.2 + (0.0 if nglow > 1 else -w * 0.28)
-		if absf(x) < dw * 0.5 + 0.7 and not open:
-			x = signf(x if x != 0.0 else 1.0) * (dw * 0.5 + 1.1)
-		k.box("glow", base + b * Vector3(x, 1.7, d * 0.5 + 0.02), Vector3(0.9, 0.7, 0.05), b, false, 1.0)
-		k.box("wood", base + b * Vector3(x, 1.7, d * 0.5 + 0.0), Vector3(1.1, 0.9, 0.06), b, false, 0.6)
-	# roof: two slabs and the gable fills
-	var pitch := deg_to_rad(36.0)
-	var run := d * 0.5 + 0.55
+	if not open:
+		var span := w * 0.5 - dw * 0.5 - 1.0
+		if span > 0.9:
+			var xs: Array[float] = [-(dw * 0.5 + span * 0.55), dw * 0.5 + span * 0.55]
+			for i in xs.size():
+				_window(k, base, b, xs[i], 1.9, d * 0.5 + 0.02, i < nglow or nglow >= 2)
+	var pitch := deg_to_rad(38.0)
+	var run := d * 0.5 + 0.7
 	var slope_len := run / cos(pitch)
 	var rise := run * tan(pitch)
 	for s: float in [-1.0, 1.0]:
-		var c := b * Vector3(0, h + rise * 0.5 - 0.05, s * (d * 0.25 + 0.2))
-		k.box(roof, base + c, Vector3(w + 1.0, 0.16, slope_len), b * Basis(Vector3.RIGHT, s * pitch), false, 0.85)
-	k.box("wood", base + b * Vector3(0, h + rise - 0.02, 0), Vector3(w + 1.1, 0.22, 0.28), b, false, 0.7)
-	for j in 3:
-		var hw := (d - 0.6) * (1.0 - float(j) / 3.2)
-		k.box(wall, base + b * Vector3(-w * 0.5 + t * 0.5, h + 0.3 + 0.6 * float(j), 0), Vector3(t, 0.6, hw), b, false, 0.85)
-		k.box(wall, base + b * Vector3(w * 0.5 - t * 0.5, h + 0.3 + 0.6 * float(j), 0), Vector3(t, 0.6, hw), b, false, 0.85)
-	k.box("stone", base + b * Vector3(w * 0.3, h + rise * 0.7, -d * 0.2), Vector3(0.9, rise * 1.3, 0.9), b, true, 0.8)
+		var c := b * Vector3(0, h + rise * 0.5 + 0.05, s * (d * 0.25 + 0.3))
+		var rb := b * Basis(Vector3.RIGHT, s * pitch)
+		k.box(roof, base + c, Vector3(w + 1.2, 0.34, slope_len), rb, false, 0.85)
+		k.box("r37_board", base + c + rb * Vector3(0, -0.2, 0), Vector3(w + 1.0, 0.14, slope_len - 0.1), rb, false, 0.75)
+		k.box("r37_board", base + c + rb * Vector3(0, 0.0, slope_len * 0.5), Vector3(w + 1.3, 0.22, 0.14), rb, false, 0.8)
+	for i in int(w / 0.8):
+		k.box("stone", base + b * Vector3(-w * 0.5 + 0.4 + 0.8 * float(i), h + rise + 0.16, 0), Vector3(0.7, 0.26, 0.5), b, false, 0.85)
+	for j in 4:
+		var hw := (d - 0.6) * (1.0 - float(j) / 4.2)
+		for sx: float in [-1.0, 1.0]:
+			k.box(wall, base + b * Vector3(sx * (w * 0.5 - t * 0.5), h + 0.3 + 0.5 * float(j), 0), Vector3(t, 0.5, hw), b, false, 0.9)
+	var cx := w * 0.3
+	k.box("stone", base + b * Vector3(cx, h + rise * 0.6, -d * 0.18), Vector3(1.1, rise * 1.5 + 1.4, 1.1), b, true, 0.8)
+	k.box("stone", base + b * Vector3(cx, h + rise * 1.35 + 0.6, -d * 0.18), Vector3(1.4, 0.2, 1.4), b, false, 0.85)
+	for sx: float in [-0.25, 0.25]:
+		k.box("ruin", base + b * Vector3(cx + sx, h + rise * 1.35 + 0.95, -d * 0.18), Vector3(0.3, 0.5, 0.3), b, false, 0.7)
 
 
 static func _building(host: Node3D, space: PhysicsDirectSpaceState3D, id: String) -> Vector3:
@@ -338,6 +411,9 @@ static func _mill(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	if root:
 		host.set_meta("walk", [false])
 		FarDetail.register(root, FarDetail.hull(AABB(Vector3(-20.0, 0.0, -4.0), Vector3(12.0, 10.0, 8.0)), 0.5, Color(0.14, 0.12, 0.1)), Transform3D.IDENTITY, 110.0)
+	# the weir itself stands at the water: its crest (model z 0.25) just over the reach's surface
+	var wl := RealmLayout.river_level(58.0)
+	Kit.place(host, "r37_weir.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(-207.0, wl - 0.15, 58.0)))
 	# the mill's door faces the road: a lit window pane on the south wall and a sack-hoist's landing
 	var k := _kit()
 	k.box("glow", Vector3(-221.5, y + 5.0, 61.95), Vector3(0.9, 0.7, 0.05), Basis.IDENTITY, false, 1.0)
@@ -389,12 +465,9 @@ static func _town(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	for sx: float in [-1.0, 1.0]:
 		k.box("wood", sq + Vector3(sx * 1.6 - 3.0, 0.3, 2.4), Vector3(0.1, 0.6, 0.5), Basis.IDENTITY, false, 0.7)
 	k.box("wood", sq + Vector3(-3.0, 0.62, 2.4), Vector3(3.4, 0.1, 0.5), Basis.IDENTITY, true, 0.75)
-	# lamp posts on the bridge's east end and the square: lit glass, no light
-	for lp: Vector2 in [Vector2(-195.0, 63.7), Vector2(-195.0, 67.5), Vector2(-199.5, 71.0), Vector2(-221.0, 63.7), Vector2(-221.0, 67.5)]:
-		var lg := _g(space, lp.x, lp.y)
-		k.box("iron", Vector3(lp.x, lg + 1.5, lp.y), Vector3(0.1, 3.0, 0.1), Basis.IDENTITY, false, 0.7)
-		k.box("glow", Vector3(lp.x, lg + 3.1, lp.y), Vector3(0.28, 0.34, 0.28), Basis.IDENTITY, false, 1.0)
-		k.box("iron", Vector3(lp.x, lg + 3.34, lp.y), Vector3(0.4, 0.06, 0.4), Basis.IDENTITY, false, 0.7)
+	# iron lanterns on the bridge's ends and in the square (lit glass inside a cage, no light)
+	for lp: Vector3 in [Vector3(-195.0, 63.7, PI), Vector3(-195.0, 67.5, 0.0), Vector3(-199.5, 71.0, 0.0), Vector3(-221.0, 63.7, PI), Vector3(-221.0, 67.5, 0.0)]:
+		_lantern(k, Vector3(lp.x, _g(space, lp.x, lp.y), lp.y), lp.z)
 	k.commit(host, "TownDressing")
 	_lore(host, "r37w_inn", inn + Vector3(-5.5, 1.1, 5.3), inn + Vector3(-5.5, 1.1, 5.3))
 	_lore(host, "r37w_notice", sq + Vector3(-5.5, 1.1, -5.0), sq + Vector3(-5.5, 1.1, -5.0))
@@ -411,8 +484,10 @@ static func _shrine(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	rng.seed = 37002
 	var k := _kit()
 	# a roofless little shrine on a plinth in the shallows: four piers, a broken arch, a stone altar, a leaning saint
-	var base := at + Vector3(0, 0.05, 0)
-	k.box("ruin", base + Vector3(0, 0.2, 0), Vector3(6.6, 0.5, 6.6), Basis.IDENTITY, true, 0.8)
+	var wl := RealmLayout.river_level(-40.0)
+	var top := wl + 0.35                                  # the plinth stands just over the reach's surface
+	var base := Vector3(at.x, top, at.z)
+	k.box("ruin", Vector3(at.x, (at.y + top) * 0.5 - 0.1, at.z), Vector3(6.6, top - at.y + 0.2, 6.6), Basis.IDENTITY, true, 0.8)
 	for sx: float in [-1.0, 1.0]:
 		for sz: float in [-1.0, 1.0]:
 			k.box("stone", base + Vector3(sx * 2.6, 1.9, sz * 2.6), Vector3(0.8, 3.4, 0.8), Basis(Vector3.UP, rng.randf_range(-0.05, 0.05)), true, 0.85)
@@ -423,7 +498,11 @@ static func _shrine(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	for i in 5:
 		var s := rng.randf_range(0.5, 1.0)
 		k.box("ruin", base + Vector3(rng.randf_range(-4.5, 4.5), 0.2, rng.randf_range(-4.5, 4.5)), Vector3(s, s * 0.6, s), Basis(Vector3.UP, rng.randf() * TAU), false, 0.8)
-	k.commit(host, "ShrineBody")
+	var sb := Node3D.new()
+	sb.name = "Shrine"
+	host.add_child(sb)
+	k.commit(sb, "ShrineBody")
+	FarDetail.register(sb, FarDetail.hull(AABB(Vector3(at.x - 3.6, top - 0.5, at.z - 3.6), Vector3(7.2, 5.0, 7.2)), 0.0, Color(0.16, 0.15, 0.14)), Transform3D.IDENTITY, 110.0)
 	# fords: pairs of marker posts with a rope hook, on weir_track where it crosses and at two more banks
 	for fp: Vector2 in [Vector2(-196.0, -66.0), Vector2(-190.0, -22.0), Vector2(-206.0, 20.0)]:
 		for sx: float in [-1.0, 1.0]:
@@ -435,6 +514,7 @@ static func _shrine(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	_chest(host, "sorrow_shrine", base + Vector3(1.6, 1.4, 0.4), 0.0)
 	_lore(host, "r37w_shrine", base + Vector3(-2.2, 1.2, 3.4), base + Vector3(-2.2, 1.2, 3.4))
 	host.set_meta("wet", true)
+	host.set_meta("plinth_y", top)
 	host.set_meta("approach", Vector3(-202.0, _g(space, -202.0, -37.0), -37.0))
 
 
@@ -528,8 +608,11 @@ static func _siege_line(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 37003
 	var gate_at := Vector2(-214.0, 116.0)
+	var line := Node3D.new()
+	line.name = "Palisade"
+	host.add_child(line)
 	var gy := _g(space, gate_at.x, gate_at.y)
-	Kit.place(host, "r37_palisade.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(gate_at.x, gy, gate_at.y)), {"pick": "PalGate", "shift": Vector3(26.0, 0.0, 0.0)})
+	Kit.place(line, "r37_palisade.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(gate_at.x, gy, gate_at.y)), {"pick": "PalGate", "shift": Vector3(26.0, 0.0, 0.0)})
 	var variants := ["PalA", "PalA", "PalB", "PalA", "PalC", "PalB", "PalA", "PalA"]
 	var shifts := {"PalA": 0.0, "PalB": 8.0, "PalC": 16.0}
 	for side: float in [-1.0, 1.0]:
@@ -538,13 +621,15 @@ static func _siege_line(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 			var z := gate_at.y + 0.02 * float(i) * float(i) * rng.randf_range(0.6, 1.4)
 			var gg := _g(space, x, z)
 			var v: String = variants[(i + (0 if side < 0.0 else 3)) % variants.size()]
-			Kit.place(host, "r37_palisade.glb", Transform3D(Basis(Vector3.UP, rng.randf_range(-0.06, 0.06)), Vector3(x, gg - 0.05, z)), {"pick": v, "shift": Vector3(float(shifts[v]), 0.0, 0.0), "range_end": 260.0})
+			Kit.place(line, "r37_palisade.glb", Transform3D(Basis(Vector3.UP, rng.randf_range(-0.06, 0.06)), Vector3(x, gg - 0.05, z)), {"pick": v, "shift": Vector3(float(shifts[v]), 0.0, 0.0), "range_end": 260.0})
 	# a second, shorter line south on the track, and stakes scattered in front of the gate
 	for i in 5:
 		var z2 := 138.0 + 4.2 * float(i)
 		var x2 := -218.0 + 1.5 * float(i)
 		var g2 := _g(space, x2, z2)
-		Kit.place(host, "r37_palisade.glb", Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(x2, g2 - 0.05, z2)), {"pick": "PalB" if i % 2 == 0 else "PalA", "shift": Vector3(8.0 if i % 2 == 0 else 0.0, 0.0, 0.0), "range_end": 260.0})
+		Kit.place(line, "r37_palisade.glb", Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(x2, g2 - 0.05, z2)), {"pick": "PalB" if i % 2 == 0 else "PalA", "shift": Vector3(8.0 if i % 2 == 0 else 0.0, 0.0, 0.0), "range_end": 260.0})
+	var lg := _g(space, gate_at.x, gate_at.y + 4.0)
+	FarDetail.register(line, FarDetail.hull(AABB(Vector3(gate_at.x - 38.0, lg - 0.5, gate_at.y - 1.0), Vector3(76.0, 4.6, 4.0)), 0.0, Color(0.14, 0.12, 0.1)), Transform3D.IDENTITY, 120.0)
 	var k := _kit()
 	for i in 14:
 		var p := Vector2(gate_at.x + rng.randf_range(-14.0, 14.0), gate_at.y - rng.randf_range(3.0, 11.0))
@@ -560,8 +645,10 @@ static func _trebs(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 		var z := 206.0 + 4.0 * float(i % 2)
 		var gy := _lo(space, _bx(Vector2(x, z), Vector2(8.0, 5.0)))
 		var fallen := i == 1
-		Kit.place(host, "r37_trebuchet.glb", Transform3D(Basis(Vector3.UP, -PI * 0.25 + 0.1 * float(i)), Vector3(x, gy + 0.05, z)),
-			{"pick": "TrebB" if fallen else "TrebA", "shift": Vector3(30.0 if fallen else 0.0, 0.0, 0.0), "range_end": 300.0})
+		var tr := Kit.place(host, "r37_trebuchet.glb", Transform3D(Basis(Vector3.UP, -PI * 0.25 + 0.1 * float(i)), Vector3(x, gy + 0.05, z)),
+			{"pick": "TrebB" if fallen else "TrebA", "shift": Vector3(30.0 if fallen else 0.0, 0.0, 0.0)})
+		if tr:
+			FarDetail.register(tr, FarDetail.hull(AABB(Vector3(-12.0, 0.0, -4.0), Vector3(19.0, 12.0, 8.0)), 0.3, Color(0.14, 0.12, 0.1)), Transform3D.IDENTITY, 110.0)
 	_lore(host, "r37w_trebs", Vector3(-194.0, _g(space, -194.0, 200.0) + 1.1, 200.0), Vector3(-194.0, _g(space, -194.0, 200.0) + 1.1, 200.0))
 
 

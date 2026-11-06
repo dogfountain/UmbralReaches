@@ -3,14 +3,15 @@ extends Node
 ##   godot --path . res://zz/r37_west_shots.tscn -- --out=<dir> [--only=name,name]
 const SETTLE := 45
 const VIEWS := [
-	["bridge", Vector3(-192, -99, 62), Vector3(-208, 3, 65.6)],
+	["bridge", Vector3(-196, -98, 52), Vector3(-208, 1, 66)],
 	["mill", Vector3(-205, -99, 66), Vector3(-218, 4, 58)],
-	["inn", Vector3(-186, -99, 70), Vector3(-186, 3, 57)],
-	["smithy", Vector3(-174, -99, 66), Vector3(-174, 2, 75)],
+	["inn", Vector3(-186, -99, 79), Vector3(-186, 3, 57)],
+	["smithy", Vector3(-174, -99, 62), Vector3(-174, 2, 75)],
 	["square", Vector3(-188, -99, 69), Vector3(-192, 2, 77)],
 	["stables", Vector3(-184, -99, 90), Vector3(-196, 2, 92)],
 	["statue_in", Vector3(-200, -99, -85), Vector3(-214, 8, -104)],
-	["statue_far", Vector3(-190, -99, -66), Vector3(-230, 20, -92)],
+	["statue_far", Vector3(-176, -98, -48), Vector3(-224, 10, -104)],
+	["statue_path", Vector3(-190, -98, -66), Vector3(-222, 8, -100)],
 	["hand", Vector3(-222, -99, -68), Vector3(-236, 3, -84)],
 	["tower", Vector3(-214, -99, 170), Vector3(-236, 8, 170)],
 	["trebs", Vector3(-190, -99, 194), Vector3(-196, 5, 208)],
@@ -24,6 +25,7 @@ var wait := 0
 var out := "/tmp"
 var only: PackedStringArray = []
 var lamp: OmniLight3D
+var night := false
 
 
 func _ready() -> void:
@@ -32,6 +34,8 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="):
 			out = a.trim_prefix("--out=")
+		elif a == "--night":
+			night = true
 		elif a.begins_with("--only="):
 			only = a.trim_prefix("--only=").split(",")
 	get_window().size = Vector2i(1280, 800)
@@ -53,7 +57,7 @@ func _process(_d: float) -> void:
 			(c as CanvasLayer).visible = false
 	for a in get_tree().get_nodes_in_group(&"boss_arena"):
 		(a as Node).set_physics_process(false)
-	if lamp == null:
+	if lamp == null and not night:
 		lamp = OmniLight3D.new()
 		lamp.light_energy = 9.0
 		lamp.omni_range = 60.0
@@ -65,7 +69,7 @@ func _process(_d: float) -> void:
 		wait -= 1
 		return
 	if i >= 0:
-		var path := out.path_join("west_%s.png" % _list()[i][0])
+		var path := out.path_join("west_%s%s.png" % [_list()[i][0], "_night" if night else ""])
 		get_viewport().get_texture().get_image().save_png(path)
 		print("WESTSHOT ", path)
 	i += 1
@@ -77,8 +81,10 @@ func _process(_d: float) -> void:
 	var v: Array = _list()[i]
 	var from := _at(v[1])
 	var to: Vector3 = v[2]
-	p.set_view(atan2(-(to.x - from.x), -(to.z - from.z)), -0.05)
-	lamp.global_position = from + Vector3(0, 6, 0) + (to - from).normalized() * 6.0
+	var flat := Vector2(to.x - from.x, to.z - from.z).length()
+	p.set_view(atan2(-(to.x - from.x), -(to.z - from.z)), clampf(atan2(to.y - from.y, flat), -0.6, 0.4))
+	if lamp:
+		lamp.global_position = from + Vector3(0, 6, 0) + (to - from).normalized() * 6.0
 	wait = SETTLE
 
 
@@ -90,7 +96,7 @@ func _list() -> Array:
 
 func _at(at: Vector3) -> Vector3:
 	if at.y < -50.0:
-		at.y = RealmLayout.ground(p.get_world_3d().direct_space_state, at.x, at.z) + 0.2
+		at.y = RealmLayout.ground(p.get_world_3d().direct_space_state, at.x, at.z) + (9.0 if at.y > -98.5 else 0.2)
 	return at
 
 
