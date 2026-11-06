@@ -107,8 +107,7 @@ const NODES: Array[Dictionary] = [
 		"lore": "Oswin wanted the forty-first before he went up. You are past it."},
 ]
 
-## Memory per deed (hearth.gd listens and calls UpgradeDB.give_memory via the runtime).
-const MEMORY := {"kill": 3, "kindle": 40, "seal": 50, "boss": 150, "quest": 60, "keepsake": 25, "home": 30}
+## Memory per deed lives in one table: level.gd `XP` (hearth.gd give_memory reads it via LevelDB.xp_for).
 const MAX_LEVEL := 30
 
 

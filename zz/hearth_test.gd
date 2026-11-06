@@ -11,6 +11,7 @@ extends Node
 
 const DB := preload("res://core/life/progression/upgrade_db.gd")
 const PathsDB := preload("res://core/life/progression/paths_db.gd")
+const LevelDB := preload("res://core/life/progression/level.gd")
 const HearthDB := preload("res://core/life/progression/hearth_db.gd")
 const HearthRT := preload("res://core/life/progression/hearth.gd")
 const Shop := preload("res://core/life/village/village_shop.gd")
@@ -111,7 +112,7 @@ func _run() -> void:
 	print("-- memory and the Paths")
 	var m0 := int(h.call("memory"))
 	_kill(10)
-	ok(int(h.call("memory")) == m0 + 10 * PathsDB.MEMORY.kill, "10 kills -> %d memory (%d)" % [10 * PathsDB.MEMORY.kill, int(h.call("memory"))])
+	ok(int(h.call("memory")) == m0 + 10 * LevelDB.XP.kill, "10 kills -> %d memory (%d)" % [10 * LevelDB.XP.kill, int(h.call("memory"))])
 	ok(PathsDB.level_of(0).level == 0 and PathsDB.level_of(40).level == 1 and PathsDB.level_of(40 + 48).level == 2, "Remembrances: 40, then 48 more")
 	h.call("give_memory", 2000, "test")
 	var free := int(h.call("free_points"))
