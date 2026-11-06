@@ -122,6 +122,9 @@ func load_settings() -> void:
 	ambience_volume = clampf(_v(cfg, "audio", "ambience", ambience_volume), 0.0, 1.0)
 	music_volume = clampf(_v(cfg, "audio", "music", music_volume), 0.0, 1.0)
 	bindings = _clean_bindings(cfg.get_value("input", "bindings", {}))
+	var mp := matching_preset()       # the saved fields win over the stored index: a file that matches no preset is Custom
+	if mp >= 0:
+		quality_preset = mp
 
 
 ## Saved bindings kept only if they have the right shape: action -> {"key"|"pad": {"t": String, "c": int}}.

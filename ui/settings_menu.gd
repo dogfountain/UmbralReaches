@@ -185,7 +185,7 @@ func _build_display(p: VBoxContainer) -> void:
 
 
 func _build_graphics(p: VBoxContainer) -> void:
-	_preset_option = _option(p, "Quality Preset", Settings.PRESET_NAMES + ["Custom"], "Sets everything below at once", func(i: int) -> void:
+	_preset_option = _option(p, "Quality Preset", Settings.PRESET_NAMES + ["Custom"], "Sets everything below at once. Cinematic turns on reflections and a heavier blur.", func(i: int) -> void:
 		if i < Settings.PRESET_NAMES.size():
 			Settings.apply_preset(i)
 		_refresh())
