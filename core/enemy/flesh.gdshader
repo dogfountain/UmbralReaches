@@ -16,7 +16,7 @@ uniform vec3 bone_col : source_color = vec3(0.82, 0.78, 0.66);
 uniform vec3 rag_col : source_color = vec3(0.1, 0.08, 0.09);
 uniform vec3 linen_col : source_color = vec3(0.5, 0.45, 0.37);   // rag + bone channel: bandages, robes
 uniform vec3 eye_col : source_color = vec3(1.0, 0.36, 0.12);
-uniform float eye_energy = 5.0;
+uniform float eye_energy = 1.3;
 // r30: a low warm back-rim (it was violet emission, a hologram outline the grade then turned blue)
 uniform vec3 rim_col : source_color = vec3(0.55, 0.36, 0.22);
 // r30: 0 = the old wet sheen everywhere; up to ~0.5 = dry hide, bark, chitin (roughness up, specular down)
