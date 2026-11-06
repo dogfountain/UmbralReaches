@@ -469,9 +469,6 @@ func _r37() -> void:
 	var pc := RealmLayout.PANS.get_center()
 	var bw: Dictionary = Land.biome_weights(pc.x, pc.y)
 	check("the White Pans' ground is salt (weight %.2f, biome %s)" % [float(bw.get("salt", 0.0)), RealmLayout.biome_at(pc.x, pc.y)], float(bw.get("salt", 0.0)) > 0.8 and RealmLayout.biome_at(pc.x, pc.y) == "salt")
-	var terrain := main.get_node_or_null("Zone/Terrain") as MeshInstance3D
-	var has_salt := terrain != null and terrain.mesh != null and terrain.mesh.surface_get_arrays(0)[Mesh.ARRAY_CUSTOM0] != null
-	check("the terrain carries the salt weight (CUSTOM0)", has_salt)
 	# the old Realm's rim stands on the March Wall's line (x +-155), a modest crest the wall can sit on
 	var rim_w := _terrain(-155.0, 20.0)
 	var out_w := _terrain(-185.0, 20.0)

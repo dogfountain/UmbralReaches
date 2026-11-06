@@ -31,7 +31,9 @@ const SIGN := {
 	"necropolis": [["cypress", 6], ["headstone", 1], ["yew", 2], ["tallgrass", 400]],
 	"mere": [["lily", 100], ["reeds", 100], ["willow", 10]],
 }
-const BUDGET_MS := 2200                ## without making meshes (a cold GenCache: a test's fresh HOME)
+# the Realm is twice the ground (520 x 390 m): ~4.2 s measured (ground rays 0.5, field 0.65, trees 0.5, undergrowth 1.4,
+# nodes 1.1 s), none of it waste found; the old limit was for 310 x 325 m
+const BUDGET_MS := 5000                ## without making meshes (a cold GenCache: a test's fresh HOME)
 
 var main: Node
 var t := 0.0
@@ -69,8 +71,18 @@ func _process(d: float) -> void:
 	get_tree().quit(0 if fails == 0 else 1)
 
 
+## The old Realm's region at x, z: the Marches' regions (whose blend reaches 18 m over the old edges) are not asked.
 func _reg(x: float, z: float) -> String:
-	return String(RealmLayout.region_at(x, z).get("id", "-"))
+	var best := ""
+	var best_s := 0.0
+	for r: Dictionary in RealmLayout.REGIONS:
+		if String(r.id) in RealmLayout.MARCHES_IDS:
+			continue
+		var sc := RealmLayout.place_score(r, x, z)
+		if sc > best_s:
+			best_s = sc
+			best = String(r.id)
+	return best if best != "" else "-"
 
 
 ## Open ground: not inside a site's box (grown 1 m) and 1 m+ off a way's edge.
@@ -78,8 +90,8 @@ var _camps: Array[Vector2] = []           ## outpost candidates and fires: kept 
 
 
 func _open(x: float, z: float) -> bool:
-	if RealmLayout.path_dist(Vector2(x, z)) < 1.0:
-		return false
+	if RealmLayout.path_dist(Vector2(x, z)) < 1.0 or not RealmLayout.OLD_BOUNDS.has_point(Vector2(x, z)) or absf(absf(x) - RealmLayout.MARCH_WALL_X) < 10.0:
+		return false                  # (judged on the old Realm's ground, less the March Wall's band: its sites and keep-outs are the wall's)
 	for c in _camps:
 		if c.distance_to(Vector2(x, z)) < Flora.OUTPOST_CLEAR:
 			return false
