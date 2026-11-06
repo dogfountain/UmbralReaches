@@ -148,12 +148,9 @@ func _physics_process(delta: float) -> void:
 			_fade()
 
 
-## The foe nearest the crosshair within REACH of the wanderer, else the nearest within 9 m.
+## The foe nearest the crosshair within REACH of the wanderer. An empty cone holds the dart.
 func _target() -> Node3D:
-	var t := Aim.pick(owner_p, REACH, 0.8)
-	if t == null:
-		t = Aim.nearest(get_tree(), owner_p.global_position, 9.0)
-	return t
+	return Aim.pick(owner_p, REACH, 0.8)
 
 
 func _loose(t: Node3D) -> void:
@@ -213,11 +210,12 @@ func _burst_at(at: Vector3) -> void:
 		var o := node as Node3D
 		if o == null or (o.has_method("is_alive") and not o.call("is_alive")):
 			continue
-		if o.global_position.distance_to(at) > DIVE_R + 0.8:
+		var flat := Vector2(o.global_position.x - at.x, o.global_position.z - at.z).length()   # along the ground
+		if flat > DIVE_R or absf(o.global_position.y - at.y) > 3.5:
 			continue
 		var m := int(o.call("take_marks")) if o.has_method("take_marks") else 0
 		total += m
-		var dmg := (2.0 if o.global_position.distance_to(at) < 1.8 else 0.0) + float(m)
+		var dmg := (2.0 if flat < 1.8 else 0.0) + float(m)
 		if dmg > 0.0:
 			CombatState.strike(o, dmg * power, &"umbral", self)
 	SpellFx.disc(at - Vector3.UP * 0.9, DIVE_R, 0, SpellFx.VIOLET * 0.8, Color(2.6, 2.2, 3.6), 0.6)
