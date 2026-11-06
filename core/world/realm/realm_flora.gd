@@ -19,6 +19,8 @@ const TreeGen := preload("res://core/world/realm/tree_gen.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const MarchesLooks := preload("res://core/world/realm/flora_looks_marches.gd")
+const Zones := preload("res://core/world/realm/dress_zones.gd")
+const R30 := preload("res://core/world/realm/flora_r30.gd")
 
 const CHUNK := 24.0                    ## undergrowth chunks
 const TREE_CHUNK := 32.0               ## tree chunks
@@ -107,19 +109,6 @@ const LOOKS := {
 }
 const TINTED := ["grass", "tallgrass", "heather", "flowers", "fern", "shrub", "moss"]
 const LOOK_EDGE := 8.0                 ## a look fades out this far outside its region
-## The r30 table, kept for A/B perf runs: `-- --no-r31-flora` builds the wood as it was (this table,
-## no edge crowding, no stones).
-const UNDER_R30 := {
-	"grass": {"meadow": 6.5, "heath": 2.8, "glade": 3.6, "oldforest": 0.7, "ruin": 3.0, "fen": 1.3, "crag": 0.9, "ash": 0.03},
-	"tallgrass": {"meadow": 0.1, "heath": 0.22, "fen": 0.18, "ruin": 0.14, "glade": 0.06, "oldforest": 0.03},
-	"flowers": {"meadow": 0.32, "heath": 0.14, "glade": 0.4, "ruin": 0.1},
-	"heather": {"heath": 0.38, "crag": 0.16, "meadow": 0.012, "ruin": 0.03},
-	"fern": {"oldforest": 0.3, "glade": 0.12, "fen": 0.03, "ruin": 0.05, "meadow": 0.004},
-	"shrub": {"oldforest": 0.05, "meadow": 0.006, "heath": 0.01, "ruin": 0.025, "glade": 0.015, "fen": 0.01, "crag": 0.012},
-	"bramble": {"oldforest": 0.018, "ruin": 0.025, "fen": 0.004},
-	"litter": {"oldforest": 0.2, "glade": 0.02, "ruin": 0.04, "meadow": 0.005},
-	"moss": {"oldforest": 0.1, "fen": 0.09, "glade": 0.04, "crag": 0.03, "ruin": 0.03},
-}
 static var r30 := false                ## --no-r31-flora (A/B)
 ## Tree-free rounds [Vector2 centre, radius] other modules ask for before the flora runs (r31: the
 ## places' vistas, realm_pois.gd). Undergrowth still grows there; only trees keep out.
@@ -127,7 +116,7 @@ static var tree_clear: Array = []
 
 
 static func _under_table(sp: String) -> Dictionary:
-	return UNDER_R30[sp] if r30 and UNDER_R30.has(sp) else UNDER[sp]
+	return R30.UNDER[sp] if r30 and R30.UNDER.has(sp) else UNDER[sp]
 
 ## species groups: visibility range end (0 = none: the camera far plane, 82 m, ends them),
 ## shadows, keep-off path distance (m from the path edge), clearance from sites
@@ -166,6 +155,7 @@ static var _gnz := PackedFloat32Array()         # normal z
 static var _ok := PackedByteArray()             # 1 = the terrain itself was hit
 static var _pd := PackedFloat32Array()          # distance to the nearest path edge (capped)
 static var _sd := PackedFloat32Array()          # distance to the nearest keep-out (capped)
+static var _soft := PackedFloat32Array()        # 0..1: low plants allowed inside a keep-out (squares, pad margins)
 static var _cover := PackedFloat32Array()       # canopy cover 0..1 (UCELL grid)
 static var _bw: Array = []                      # biome weights per 4 m cell: Dictionary
 static var _bnx := 0
@@ -320,6 +310,7 @@ static func _keepout(root: Node) -> void:
 			var a: Vector2 = pts[s]
 			var b: Vector2 = pts[s + 1]
 			_seg_field(_pd, a, b, w, BAND)
+	for l: Array in Zones.lanes(): _seg_field(_pd, l[0], l[1], Zones.LANE_W, BAND)         # the squares' walk lanes stay bare
 	# keep-outs
 	# sites by their bounding rect, as WorldLanes.intrudes and zz/audit judge them (a round terrace
 	# or a diagonal flight claims its whole box)
@@ -360,6 +351,10 @@ static func _keepout(root: Node) -> void:
 	for k in n:
 		if _gy[k] < RealmLayout.LAVA_Y + 2.5 or _ok[k] == 0:
 			_sd[k] = 0.0
+	_soft = Zones.soft_field(_x0, _z0, _nx, _nz, CELL)         # where low plants may grow inside a keep-out
+	for k in n:
+		if _gy[k] < RealmLayout.LAVA_Y + 2.5 or _ok[k] == 0:
+			_soft[k] = 0.0
 
 
 static func _cells_in(r: Rect2) -> Rect2i:
@@ -1087,7 +1082,7 @@ static var spreads := {}               ## species -> widest variant footprint ra
 ## [id, Transform3D, Color, true, species] for the physics check.
 static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Array, kinds: Array, ids: Dictionary, x: float, z: float) -> void:
 	var k := _idx(x + UCELL * 0.5, z + UCELL * 0.5)
-	if _sd[k] < 0.3 or _pd[k] < 0.0:
+	if (_sd[k] < 0.3 and _soft[k] <= 0.0) or _pd[k] < 0.0:
 		return
 	var bc := _bidx(x, z)
 	var nk := kinds.size()
@@ -1123,15 +1118,20 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 		var keep_p := float(st[2])
 		var keep_s := float(st[3]) + float(spreads[sp])
 		var tinted: bool = sp in TINTED
+		var soft_kind: bool = sp in Zones.SOFT_KINDS and not r30 and not Zones.off()
 		var list: Array = ids[sp]
 		var lh: int = _list_hash[sp]
 		for c in n:
 			var px := x + rng.randf() * UCELL
 			var pz := z + rng.randf() * UCELL
 			var kk := _idx(px, pz)
-			if _pd[kk] < keep_p or _sd[kk] < keep_s or _ok[kk] == 0:
+			if _ok[kk] == 0 or (not soft_kind and (_pd[kk] < keep_p or _sd[kk] < keep_s)):
 				continue
-			if _pd[kk] < keep_p + 1.5 and RealmLayout.path_dist(Vector2(px, pz)) < keep_p:
+			if soft_kind and (_sd[kk] < keep_s + 3.2 or _pd[kk] < keep_p + 2.0):      # near a keep-out: a ragged edge, not a ruled one
+				var f := Zones.edge_f(_sd[kk], _soft[kk], _pd[kk], keep_s, keep_p, _noise[2].get_noise_2d(px * 0.35, pz * 0.35))
+				if f <= 0.0 or (f < 1.0 and Zones.h01(px, pz) > f) or (_pd[kk] < 1.0 and RealmLayout.path_dist(Vector2(px, pz)) < 0.4):
+					continue
+			elif _pd[kk] < keep_p + 1.5 and RealmLayout.path_dist(Vector2(px, pz)) < keep_p:
 				continue                                   # the grid is 1 m: exact near the edge
 			var gy := ground_y(px, pz)
 			if sp == "lily":

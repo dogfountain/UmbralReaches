@@ -68,6 +68,7 @@ static var _n_roll: FastNoiseLite
 static var _n_ridge: FastNoiseLite
 static var _n_fine: FastNoiseLite
 static var _n_patch: FastNoiseLite
+const Zones := preload("res://core/world/realm/dress_zones.gd")
 static var _n_gully: FastNoiseLite
 static var _n_step: FastNoiseLite
 static var _wear_g := PackedFloat32Array()     ## path wear per grid vertex
@@ -458,6 +459,7 @@ static func _pre_row(j: int) -> Array:
 				wear = maxf(wear, (1.0 - smoothstep(e - 1.6, e + 1.8, near.x)) * (1.0 - rmask))     # wide ramp: the shader cuts the edge
 			if not pr.over:
 				h = lerpf(h, near.y, _carve_w(near.x, pr.w) * free * (1.0 - rmask))
+		wear = maxf(wear, maxf(Zones.lane_wear(Vector2(x, z)) * 0.85, Zones.fire_wear(x, z) * 0.7))     # the walk lanes of the squares, the fire pads
 		wr[i] = wear
 		hr[i] = h
 	return [hr, wr]
@@ -470,6 +472,7 @@ static func _heights() -> void:
 	var pre := PackedFloat32Array()
 	pre.resize(GNX * GNZ)
 	_wear_g.resize(GNX * GNZ)
+	Zones.lane_dist(Vector2.ZERO)          # builds its tables here, on this thread, before the rows read them
 	# rows in parallel (pure math: noise reads, path distances); each task fills its own row,
 	# the rows are stitched together after (no shared writes)
 	var rows: Array = []
@@ -576,6 +579,17 @@ static func _splat(x: float, z: float, h: float, nrm_y: float, ring: bool) -> Ar
 		bw[2] -= dry
 		bw[4] += dry * 0.5
 		bw[0] += dry * 0.5
+	# settlement squares are cobbled, the ground round a well is mud (dress_zones.gd)
+	var pave := Zones.pave_w(x, z, _n_patch.get_noise_2d(x * 2.1, z * 2.1))
+	if pave > 0.0:
+		for i in NB:
+			bw[i] *= 1.0 - pave * 0.92
+		bw[6] += pave * 0.92
+	var mud := Zones.wet_w(x, z)
+	if mud > 0.0:
+		for i in NB:
+			bw[i] *= 1.0 - mud * 0.8
+		bw[2] += mud * 0.8
 	var tot := 0.0
 	for v in bw:
 		tot += v

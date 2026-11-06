@@ -26,6 +26,7 @@ const MODULES := {
 	"life": "res://core/life/wildlife/wildlife.gd",
 	"secrets": "res://core/life/secrets/secrets.gd",
 	"encounters": "res://core/life/encounters/encounters.gd",
+	"dress": "res://core/world/realm/site_dress.gd",            # clutter on the cleared ground, after everything it must avoid exists
 	# the navigation mesh enemies path on when flat steering is walled (core/enemy/nav_assist.gd)
 	"nav": "res://core/world/realm/realm_nav.gd",
 }
@@ -68,13 +69,13 @@ static var prof := {}
 ## Build progress for the loading screen (ui/loading_screen.gd): 0..1 and the step now running.
 static var progress := 0.0
 static var stage := ""
-const STEPS := 15
+const STEPS := 16
 const STAGE_NAMES := {
 	"land": "Raising the land", "rift": "Opening the rift", "bosses": "Waking the wardens",
 	"tavern": "Lighting the Keg", "lore": "Carving the stones", "stamp": "Settling the ground",
 	"flora": "Growing the wood", "summit": "Dressing the summit", "assets": "Placing the relics",
 	"progression": "Kindling the fires", "village": "Waking the village", "life": "Stirring the wild",
-	"secrets": "Hiding what is hidden", "encounters": "Gathering the dark", "nav": "Marking the ways",
+	"secrets": "Hiding what is hidden", "encounters": "Gathering the dark", "dress": "Setting out the yards", "nav": "Marking the ways",
 }
 static var _step := 0
 
@@ -122,6 +123,7 @@ const _STATIC_CACHES := {
 	"res://world/areas/ossuary/ossuary.gd": ["_plate", "_ribs", "_great_rib"],
 	# --- south marches ---
 	"res://core/world/realm/r37_south_kit.gd": ["_cache"],
+	"res://core/world/realm/site_props.gd": ["_meshes", "_cloth"],
 }
 
 
@@ -190,6 +192,7 @@ static func build(root: Node) -> void:
 	await _run("assets", root)
 	for id: String in ["progression", "village", "life", "secrets", "encounters"]:
 		await _run(id, root)
+	await _run("dress", root)
 	await _run("nav", root)                      # after every collider is in; waits a bounded time for the bake
 	t = Time.get_ticks_usec()
 	print("REALM cull ", WorldLanes.cull_scatter(root))
