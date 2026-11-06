@@ -18,7 +18,7 @@ const RING := 2.4
 const TOLL_R := 34.0
 const CLANG_TELL := 0.6
 const CLANG_R := 2.3
-const GOLD := Color(2.4, 1.7, 0.6)
+const GOLD := Color(1.1, 0.78, 0.28)      ## the sound's footprint: under the bloom threshold, not a ward
 var look_kind := "chanter"
 
 var _toll_cd := 0.0
