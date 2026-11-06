@@ -148,9 +148,13 @@ func _physics_process(delta: float) -> void:
 			_fade()
 
 
-## The foe nearest the crosshair within REACH of the wanderer. An empty cone holds the dart.
+## The foe nearest the crosshair within REACH of the wanderer. An empty cone holds the dart. (A
+## Vigil shade keeps watch where it was left: there is no crosshair, so it takes the nearest.)
 func _target() -> Node3D:
-	return Aim.pick(owner_p, REACH, 0.8)
+	var t := Aim.pick(owner_p, REACH, 0.8)
+	if t == null and not owner_p is Player:
+		t = Aim.nearest(get_tree(), owner_p.global_position, 9.0)
+	return t
 
 
 func _loose(t: Node3D) -> void:
