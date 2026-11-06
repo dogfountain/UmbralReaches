@@ -238,6 +238,13 @@ func arm_with(cfg: Dictionary) -> void:
 		_core.material_override = _glow_pierce   # white-hot
 
 
+## Pool teardown: let go of the particle material before the node (see BoltPool._exit_tree).
+func drop_materials() -> void:
+	if _trail:
+		_trail.process_material = null
+		_trail.draw_pass_1 = null
+
+
 func reset_idle() -> void:
 	if _streak_mesh:
 		_streak_mesh.clear_surfaces()
@@ -676,12 +683,16 @@ func _burst(at: Vector3) -> void:
 		var host2 := get_tree().current_scene
 		if host2:
 			host2.add_child(shock)
+	var old: Variant = shock.get_meta(&"burst_tween", null)
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()                       # a reused dome starts over, its old tween must not hide it
 	shock.visible = true
 	shock.scale = Vector3.ONE
 	shock.global_position = at
 	shock.material_override = _shock_for(core)
 	shock.set_instance_shader_parameter(&"progress", 0.0)
 	var tw := shock.create_tween()
+	shock.set_meta(&"burst_tween", tw)
 	tw.set_parallel(true)
 	tw.tween_property(shock, "scale", Vector3.ONE * 6.5, 0.32).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_method(func(v: float) -> void: shock.set_instance_shader_parameter(&"progress", v), 0.0, 1.0, 0.32)
@@ -763,6 +774,8 @@ func _do_split() -> void:
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as PhysicsBody3D
 	for sgn: float in [-1.0, 1.0]:
 		var b := pool.take()
+		if b == null:
+			break                                     # the pool is at its cap: no split
 		var dir := direction.rotated(axis, SPLIT_ANGLE * sgn).normalized()
 		b.transform = Transform3D(Basis.looking_at(dir, axis), global_position + dir * 0.1)
 		b.direction = dir

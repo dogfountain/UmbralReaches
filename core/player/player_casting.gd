@@ -69,6 +69,8 @@ func fire_bolt(cfg: Dictionary) -> MagicBolt:
 	var bolt: MagicBolt
 	if pool:
 		bolt = pool.take()
+		if bolt == null:
+			return null                               # the pool is at its live cap
 	else:
 		bolt = BOLT.instantiate() as MagicBolt
 		host.add_child(bolt)
