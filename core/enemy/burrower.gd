@@ -108,7 +108,7 @@ func _special_think() -> void:
 				_phase = 2
 				_drive = Vector3.ZERO
 				_tell_at = _state_t
-				AttackKit.zone(self, global_position, TELL, strike_gloom * 1.2, {"radius": ERUPT_R, "fx": "dirt", "color": Color(2.4, 0.78, 0.14), "h": 1.8})
+				AttackKit.zone(self, global_position, TELL, strike_gloom * 1.2, {"radius": ERUPT_R, "fx": "dirt", "color": AttackKit.RED, "h": 1.8})
 		2:
 			if _state_t >= _tell_at + TELL:
 				_surface()
