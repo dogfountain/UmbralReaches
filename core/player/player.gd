@@ -7,6 +7,7 @@ var autopilot_ctl: PlayerAutopilot = null
 var targeting: PlayerTargeting = PlayerTargeting.new(self)
 var camera_ctl: PlayerCamera = PlayerCamera.new(self)
 var vitals: PlayerVitals = PlayerVitals.new(self)
+var locomotion: PlayerLocomotion = PlayerLocomotion.new(self)
 
 @export_group("Movement")
 @export var walk_speed := 4.5
@@ -135,11 +136,8 @@ var _combat_t := 0.0
 var _air_jumps_left := 1
 var _jump_rising := false
 var _sliding := false
-var _slide_t := 0.0
 var _slide_cd := 0.0
 var _slide_dir := Vector3.FORWARD
-var _slide_speed := 0.0
-var _slide_air := 0.0
 var _slide_blend := 0.0
 var _cam_drop := 0.0
 var _col: CollisionShape3D
@@ -211,6 +209,7 @@ func _ready() -> void:
 	add_child(targeting)
 	add_child(camera_ctl)
 	add_child(vitals)
+	add_child(locomotion)
 	add_to_group(Groups.PLAYER)
 	collision_layer = Layers.PLAYER
 	collision_mask = Layers.WORLD | Layers.PROPS
@@ -264,7 +263,7 @@ func _ready() -> void:
 		_col.shape = _col.shape.duplicate()          # we resize it for the slide
 		_col_h = (_col.shape as CapsuleShape3D).height
 		_col_y = _col.position.y
-	_setup_movement_fx()
+	locomotion._setup_movement_fx()
 	_aim_ring = SpellFx.target_ring()
 	add_child(_aim_ring)
 	_book = SkillBook.new()
@@ -370,7 +369,7 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	_t += delta
 	if _last_pos != Vector3.INF and global_position.distance_squared_to(_last_pos) > 4.0:
-		_on_teleported()                        # tests, respawns, travel: plain global_position works
+		locomotion._on_teleported()                        # tests, respawns, travel: plain global_position works
 	_cam_off_prev = _cam_off
 	camera_ctl._spring3(true, 11.0, delta)                 # critically damped: no velocity kick on a step
 	_shade_lock = maxf(0.0, _shade_lock - delta)
@@ -464,7 +463,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = horiz.x
 		velocity.z = horiz.z
 	elif _sliding:
-		horiz = _tick_slide(delta, wish)
+		horiz = locomotion._tick_slide(delta, wish)
 	elif not _grounded and _steep_t > 0.0 and velocity.y <= 0.5:
 		horiz = _tick_steep(delta, wish, Vector3(velocity.x, 0.0, velocity.z))
 		velocity.x = horiz.x
@@ -473,12 +472,12 @@ func _physics_process(delta: float) -> void:
 		var target := wish * (sprint_speed if sprint else walk_speed) * _book.move_scale() * (float(_arts.move_scale()) if _arts != null else 1.0)
 		var cur := Vector3(velocity.x, 0.0, velocity.z)
 		if _grounded:
-			target *= _slope_scale(target) * (1.0 - _land_slow)
+			target *= locomotion._slope_scale(target) * (1.0 - _land_slow)
 			if _beam_k > 0.3:
 				# balancing: careful steps along it, the stick's sideways push mostly ignored
 				target -= _beam_side * target.dot(_beam_side) * 0.85 * _beam_k
 				target = target.limit_length(walk_speed * 0.72)
-			horiz = _ground_move(cur, target, delta)
+			horiz = locomotion._ground_move(cur, target, delta)
 			if _beam_k > 0.3 and _beam_mid != 0.0:
 				horiz += _beam_side * _beam_mid * 8.0 * _beam_k      # eased back toward the middle
 		elif target.length_squared() > 0.0001 and _kick_lock <= 0.0:
@@ -490,7 +489,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = horiz.x
 		velocity.z = horiz.z
 		if not autopilot and not _hollowing:
-			_slide_input(horiz, wish)
+			locomotion._slide_input(horiz, wish)
 			if _try_vault(horiz, wish):
 				return
 	_run_blend = lerpf(_run_blend, clampf((horiz.length() - walk_speed) / maxf(sprint_speed - walk_speed, 0.1), 0.0, 1.0) if _grounded else _run_blend, 1.0 - exp(-5.0 * delta))
@@ -512,7 +511,7 @@ func _physics_process(delta: float) -> void:
 			elif _gliding:
 				_end_glide()                     # r31: fold the robe, drop
 			elif _coyote <= 0.0 and not _grounded and _air_jumps_left > 0 and (_stam == null or _stam.spend(Stamina.AIR_JUMP)):
-				_air_jump(wish, sprint)
+				locomotion._air_jump(wish, sprint)
 			elif _coyote <= 0.0 and not _grounded and _can_glide():
 				_start_glide()                   # r31: out of jumps in the air: spread the robe
 			else:
@@ -523,7 +522,7 @@ func _physics_process(delta: float) -> void:
 			_jump_rising = false
 	if _buffered_jump > 0.0 and _coyote > 0.0:
 		if _sliding:
-			_end_slide()                 # slide-hop: the slide's speed carries into the jump, plus a little
+			locomotion._end_slide()                 # slide-hop: the slide's speed carries into the jump, plus a little
 			var hv := Vector2(velocity.x, velocity.z) * SLIDE_HOP_BOOST
 			hv = hv.limit_length(sprint_speed * 1.7)
 			velocity.x = hv.x
@@ -557,7 +556,7 @@ func _physics_process(delta: float) -> void:
 	_glued = false
 	if not autopilot and not _hollowing:
 		if _grounded:
-			if _try_step_up(pre_h, delta):
+			if locomotion._try_step_up(pre_h, delta):
 				velocity.x = pre_h.x             # a riser doesn't eat the stride
 				velocity.z = pre_h.z
 		elif wish.length_squared() > 0.1 and _try_mantle(wish):
@@ -565,9 +564,9 @@ func _physics_process(delta: float) -> void:
 		elif not _grounded and _try_grab(wish):
 			return
 	if not _grounded and was_grounded and velocity.y <= 0.0 and not _jump_rising and global_position.y <= y0 + 0.002:
-		_step_down()
+		locomotion._step_down()
 	_note_contacts(delta)
-	_land(was_grounded, vy_before)
+	locomotion._land(was_grounded, vy_before)
 	_beam_probe(horiz)
 	_beam_k = move_toward(_beam_k, 1.0 if _beam_on else 0.0, delta * (8.0 if _beam_on else 3.0))
 	var steep_on := not _grounded and _steep_t > 0.0 and velocity.y <= 0.5
@@ -837,7 +836,7 @@ func _combat_aim(muzzle: Vector3) -> Vector3:
 	if lk and lk.is_alive():
 		var chest := lk.global_position + Vector3.UP * (lk.hp_bar_y * 0.55)
 		var to := chest - muzzle
-		if to.length() > 0.2 and to.length() < LOCK_AIM_RANGE and _ray(muzzle, chest).is_empty():
+		if to.length() > 0.2 and to.length() < LOCK_AIM_RANGE and locomotion._ray(muzzle, chest).is_empty():
 			return to.normalized()
 	return _assist(muzzle, _aim_from(muzzle))
 
@@ -1029,7 +1028,7 @@ func _can_glide() -> bool:
 		return false
 	if _stam != null and not _stam.can(Stamina.GLIDE):
 		return false
-	return _ray(global_position + Vector3.UP * 0.1, global_position + Vector3.DOWN * GLIDE_MIN_H).is_empty()
+	return locomotion._ray(global_position + Vector3.UP * 0.1, global_position + Vector3.DOWN * GLIDE_MIN_H).is_empty()
 
 
 func _start_glide() -> void:
@@ -1097,12 +1096,12 @@ func _updraft(at: Vector3) -> float:
 
 func _grapple_begin() -> void:
 	_end_glide()
-	_end_slide()
+	locomotion._end_slide()
 	if _arts != null:
 		_arts.cancel()
 	if _roll_t >= 0.0:
 		_roll_t = -1.0
-		_set_capsule(_col_h)
+		locomotion._set_capsule(_col_h)
 	_hang = false
 	_climb_t = -1.0
 	_vault_t = -1.0
@@ -1136,7 +1135,7 @@ func shadowstep() -> bool:
 	if dir.length_squared() < 0.04:
 		dir = Basis(Vector3.UP, _yaw) * Vector3.FORWARD
 	dir = dir.normalized()
-	_end_slide()
+	locomotion._end_slide()
 	_evade_roll = false
 	var from := global_position
 	var to := _rift_target(dir)
@@ -1229,216 +1228,6 @@ func nova_fx(radius: float, detonated: Array) -> void:
 		Vfx.burst(hit, Color(2.0, 1.1, 3.4), {"count": 26, "life": 0.4, "speed": Vector2(2.5, 6.0), "size": 0.05, "trail": 0.08, "gravity": -4.0})
 
 
-# --- Movement: double jump, slide ----------------------------------------------------------
-
-func _setup_movement_fx() -> void:
-	_slide_fx = Vfx.emitter(Color(0.55, 0.5, 0.7, 0.55), {"count": 40, "life": 0.5, "speed": Vector2(0.5, 2.0), "size": 0.18, "gravity": -1.0, "dir": Vector3.UP, "spread": 60.0, "additive": false, "radius": 0.2})
-	add_child(_slide_fx)
-	var sparks := Vfx.emitter(Color(1.6, 0.9, 2.4), {"count": 24, "life": 0.25, "speed": Vector2(2.0, 4.0), "size": 0.03, "gravity": -8.0, "dir": Vector3.UP, "spread": 70.0, "trail": 0.05})
-	sparks.name = "Sparks"
-	_slide_fx.add_child(sparks)
-	_slide_sfx = AudioStreamPlayer3D.new()
-	_slide_sfx.bus = &"SFX"
-	var scrape := Sfx.stream("res://art/audio/slide_scrape.wav")
-	if scrape is AudioStreamWAV:
-		var w := (scrape as AudioStreamWAV).duplicate() as AudioStreamWAV
-		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		w.loop_begin = 0
-		w.loop_end = int(w.get_length() * float(w.mix_rate))
-		scrape = w
-	_slide_sfx.stream = scrape
-	_slide_sfx.volume_db = -8.0
-	add_child(_slide_sfx)
-	_charge_fx = Vfx.emitter(Color(2.4, 0.8, 0.25), {"count": 40, "life": 0.45, "speed": Vector2(0.0, 0.3), "size": 0.045, "gravity": 0.6, "radius": 0.75, "radial": -9.0, "swirl": 4.0, "damping": 0.5, "trail": 0.08})
-	_charge_fx.top_level = true
-	add_child(_charge_fx)
-	# the Lance gathering at the staff head: an ember orb that swells with the charge, with its light
-	_charge_orb = MeshInstance3D.new()
-	_charge_orb.name = "ChargeOrb"
-	var orb := SphereMesh.new()
-	orb.radius = 0.5
-	orb.height = 1.0
-	orb.radial_segments = 16
-	orb.rings = 8
-	_charge_orb.mesh = orb
-	var om := StandardMaterial3D.new()
-	om.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	om.albedo_color = Color(3.2, 1.3, 0.45)
-	_charge_orb.material_override = om
-	_charge_orb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_charge_orb.top_level = true
-	_charge_orb.visible = false
-	add_child(_charge_orb)
-	_charge_halo = MeshInstance3D.new()
-	_charge_halo.name = "ChargeHalo"
-	_charge_halo.mesh = orb
-	var hm := StandardMaterial3D.new()
-	hm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	hm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	hm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	hm.albedo_color = Color(1.6, 0.5, 0.15, 0.35)
-	hm.cull_mode = BaseMaterial3D.CULL_FRONT
-	_charge_halo.material_override = hm
-	_charge_halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_charge_halo.top_level = true
-	_charge_halo.visible = false
-	add_child(_charge_halo)
-	_charge_light = OmniLight3D.new()
-	_charge_light.light_color = Color(1.0, 0.5, 0.2)
-	_charge_light.shadow_enabled = false
-	_charge_light.top_level = true
-	_charge_light.visible = false
-	_charge_light.set_meta("light_class", "player_orb")
-	add_child(_charge_light)
-	_charge_sfx = AudioStreamPlayer3D.new()
-	_charge_sfx.bus = &"SFX"
-	var charge: AudioStream = StaffSfx.stream("lance_charge")   # seamless synthesised loop
-	if charge == null:
-		charge = Sfx.stream("res://art/audio/lance_charge.wav")
-	if charge is AudioStreamWAV and (charge as AudioStreamWAV).loop_mode == AudioStreamWAV.LOOP_DISABLED:
-		var c := (charge as AudioStreamWAV).duplicate() as AudioStreamWAV
-		c.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		c.loop_begin = int(0.6 * float(c.mix_rate))
-		c.loop_end = int(c.get_length() * float(c.mix_rate))
-		charge = c
-	_charge_sfx.stream = charge
-	_charge_sfx.volume_db = -7.0
-	add_child(_charge_sfx)
-
-
-func _air_jump(wish: Vector3, sprint: bool) -> void:
-	_air_jumps_left -= 1
-	velocity.y = air_jump_velocity
-	_jump_rising = true
-	if wish.length_squared() > 0.01:
-		# the second jump re-aims: lets you correct a bad first jump or chase a pouncer down
-		var flat := Vector3(velocity.x, 0.0, velocity.z)
-		var speed := maxf(flat.length(), sprint_speed if sprint else walk_speed)
-		var aimed := flat.lerp(wish.normalized() * speed, 0.7)
-		velocity.x = aimed.x
-		velocity.z = aimed.z
-	_visual.air_tuck()
-	var feet := global_position + Vector3.UP * 0.1
-	Vfx.ring(feet, 1.1, Color(1.2, 0.55, 2.8), 0.32, 0.12)
-	Vfx.burst(feet, Color(1.4, 0.65, 3.0), {"count": 24, "life": 0.4, "speed": Vector2(1.5, 3.5), "size": 0.04, "dir": Vector3.DOWN, "spread": 70.0, "gravity": 0.0, "trail": 0.06})
-	Vfx.burst(feet, Color(0.04, 0.02, 0.08, 0.6), {"count": 10, "life": 0.6, "speed": Vector2(0.5, 1.2), "size": 0.3, "dir": Vector3.DOWN, "spread": 80.0, "gravity": 0.3, "additive": false})
-	Sfx.play(SFX_JUMP, feet, -5.0)
-
-
-## Held slide key: on the ground it slides once per press (and keeps trying until fast enough,
-## which doubles as an input buffer through the cooldown); in the air it crouches and queues,
-## and the landing drops straight into a slide that banks part of the fall speed.
-func _slide_input(horiz: Vector3, wish: Vector3) -> void:
-	if not Input.is_action_pressed("slide"):
-		return
-	if not _grounded:
-		if _gliding:
-			_end_glide()                         # r31: dive out of the glide
-			velocity.y = minf(velocity.y, -6.0)
-		_slide_queued = true
-		_visual.hold_tuck(0.6)
-		return
-	if _slide_queued:
-		_slide_queued = false
-		_slide_latch = true
-		_try_slide(horiz, wish, slide_land_min, slide_land_gain * maxf(0.0, -_air_vy))
-	elif Settings.using_pad and is_instance_valid(_lock) and wish.length_squared() < 0.04:
-		pass                                     # r31: pad, locked on, stick idle: B is the guard (StaffArts)
-	elif Input.is_action_just_pressed("slide") and (is_instance_valid(_lock) and not Input.is_action_pressed("sprint") \
-			or horiz.length() < slide_min_speed and wish.length_squared() > 0.04):
-		_slide_latch = true                      # slow, or squared up to a foe: the slide key rolls
-		_try_dodge(wish)
-	elif not _slide_latch and _try_slide(horiz, wish, slide_min_speed, 0.0):
-		_slide_latch = true
-
-
-func _try_slide(horiz: Vector3, wish: Vector3, min_speed: float, bonus: float) -> bool:
-	var speed := horiz.length()
-	if _slide_cd > 0.0 or not _grounded or speed < min_speed:
-		return false
-	_sliding = true
-	_slide_t = 0.0
-	_slide_air = 0.0
-	_evade_t = maxf(_evade_t, SLIDE_EVADE)     # r30: the slide's start passes under a strike (no riposte)
-	_evade_roll = true
-	_slide_dir = (horiz if speed > 0.1 else wish).normalized()
-	_slide_speed = maxf(speed * slide_boost, sprint_speed * 1.15) + bonus
-	_set_capsule(1.0)
-	_slide_fx.emitting = true
-	(_slide_fx.get_node("Sparks") as GPUParticles3D).emitting = true
-	_slide_sfx.play()
-	_fov_burst_want = maxf(_fov_burst_want, 8.0)
-	camera_ctl.kick(0.3 + minf(bonus * 0.05, 0.3))
-	return true
-
-
-func _tick_slide(delta: float, wish: Vector3) -> Vector3:
-	_slide_t += delta
-	_slide_blend = move_toward(_slide_blend, 1.0, delta * 8.0)
-	var downhill := 0.0
-	if _grounded:
-		_slide_air = 0.0
-		var n := get_floor_normal()
-		var down := Vector3(n.x, 0.0, n.z)            # horizontal part of the normal points downhill
-		downhill = down.dot(_slide_dir)
-		_slide_speed += downhill * slide_slope_gain * delta
-	else:
-		_slide_air += delta
-	_slide_speed = maxf(0.0, _slide_speed - slide_friction * delta * (1.0 - clampf(downhill * 3.0, 0.0, 0.9)))
-	if wish.length_squared() > 0.01:
-		var w := wish.normalized()
-		var turn := clampf(_slide_dir.signed_angle_to(w, Vector3.UP), -1.4 * delta, 1.4 * delta)
-		_slide_dir = _slide_dir.rotated(Vector3.UP, turn)
-	var horiz := _slide_dir * _slide_speed
-	velocity.x = horiz.x
-	velocity.z = horiz.z
-	_slide_fx.global_position = global_position + Vector3.UP * 0.05
-	_slide_sfx.pitch_scale = 0.7 + 0.06 * _slide_speed
-	var limit := slide_max_time + maxf(0.0, downhill) * 3.0
-	var held := Input.is_action_pressed("slide") or _slide_t < 0.3
-	if _slide_speed < 2.4 or _slide_t > limit or _slide_air > 0.18 or not held:
-		if _grounded and not _headroom():
-			_end_slide()
-			_set_capsule(1.1)                     # slid under something: stay low, crawl out (see _tick_roll)
-			_roll_t = ROLL_TIME * 0.98
-			_roll_len = ROLL_TIME
-			_roll_dir = _slide_dir
-			_roll_evade = false
-			_crawl = true
-			_visual.play_move(&"roll", ROLL_TIME)
-		else:
-			_end_slide()
-	return horiz
-
-
-func _end_slide() -> void:
-	if not _sliding:
-		return
-	_sliding = false
-	_slide_cd = slide_cooldown
-	_set_capsule(_col_h)
-	_slide_fx.emitting = false
-	(_slide_fx.get_node("Sparks") as GPUParticles3D).emitting = false
-	_slide_sfx.stop()
-
-
-func _set_capsule(h: float) -> void:
-	if _col == null or not (_col.shape is CapsuleShape3D):
-		return
-	var cap := _col.shape as CapsuleShape3D
-	cap.height = maxf(h, cap.radius * 2.0)
-	_col.position.y = _col_y - (_col_h - cap.height) * 0.5
-
-
-## On the ground this frame, including being held down a stair edge (_step_down).
-func is_grounded() -> bool:
-	return _grounded
-
-
-func is_sliding() -> bool:
-	return _sliding
-
-
 # --- traversal (r28): ledge hang + climb, vault, wall kick, steep slopes, beams, dodge roll ---------
 # Each is a short state the main tick hands over to (hang, climb and vault place the body
 # directly; the roll and the steep slide still go through move_and_slide). The rig gets a pose
@@ -1513,7 +1302,6 @@ var _crawl := false               ## the roll's low capsule held under something
 var _sprint_latch := false
 var _look_hold := 0.0
 var _first_frame := true
-var _tall_q: PhysicsShapeQueryParameters3D
 const THIN_RAYS := 5                          ## rays across the boom's width for the thin-occluder test
 const THIN_HALF_W := 0.45                     ## m either side of the boom they span
 const SHOULDER := 0.95                        ## the camera boom's offset over the right shoulder (m)
@@ -1548,10 +1336,10 @@ func _end_traverse() -> void:
 	_vault_t = -1.0
 	_mantle_t = -1.0                          # r29: a lava throw mid-mantle was dragged back by the mantle tick
 	_kick_lock = 0.0
-	_end_slide()
+	locomotion._end_slide()
 	if _roll_t >= 0.0:
 		_roll_t = -1.0
-		_set_capsule(_col_h)
+		locomotion._set_capsule(_col_h)
 	_crawl = false
 	_steep_t = 0.0
 	_beam_on = false
@@ -1561,30 +1349,6 @@ func _end_traverse() -> void:
 	_visual.hang = 0.0
 	if _visual.has_method("cancel_move"):
 		_visual.cancel_move()
-
-
-## The skin's glide after a position snap (hang, step-up), for ticks that skip the main path.
-func _ease_tick(delta: float) -> void:
-	camera_ctl._spring3(false, 22.0, delta)
-	_visual.position = global_basis.inverse() * _vis_off
-
-
-func _ray(a: Vector3, b: Vector3, mask := Layers.WORLD) -> Dictionary:
-	var space := get_world_3d().direct_space_state
-	return space.intersect_ray(PhysicsRayQueryParameters3D.create(a, b, mask, [get_rid()]))
-
-
-## The capsule would stand at `pos` without touching anything.
-func _fits(pos: Vector3) -> bool:
-	if _col == null:
-		return true
-	var q := PhysicsShapeQueryParameters3D.new()
-	q.shape = _col.shape
-	q.transform = Transform3D(Basis.IDENTITY, pos + Vector3.UP * _col_y)
-	q.collision_mask = collision_mask
-	q.exclude = [get_rid()]
-	q.margin = 0.0
-	return get_world_3d().direct_space_state.intersect_shape(q, 1).is_empty()
 
 
 # --- ledge hang and climb ---------------------------------------------------------------------------
@@ -1602,7 +1366,7 @@ func _try_grab(wish: Vector3) -> bool:
 	else:
 		return false
 	var chest := global_position + Vector3.UP * 1.3
-	var hit := _ray(chest, chest + dir * 0.8)
+	var hit := locomotion._ray(chest, chest + dir * 0.8)
 	if hit.is_empty():
 		return false
 	var n: Vector3 = hit.normal
@@ -1612,7 +1376,7 @@ func _try_grab(wish: Vector3) -> bool:
 	nf = nf.normalized()
 	var face: Vector3 = hit.position
 	var over := face - nf * 0.22
-	var top_hit := _ray(Vector3(over.x, global_position.y + GRAB_MAX + 0.4, over.z), Vector3(over.x, global_position.y + GRAB_MIN - 0.05, over.z))
+	var top_hit := locomotion._ray(Vector3(over.x, global_position.y + GRAB_MAX + 0.4, over.z), Vector3(over.x, global_position.y + GRAB_MIN - 0.05, over.z))
 	if top_hit.is_empty() or (top_hit.normal as Vector3).y < 0.75:
 		return false
 	var top: float = (top_hit.position as Vector3).y
@@ -1620,20 +1384,20 @@ func _try_grab(wish: Vector3) -> bool:
 	if rise < GRAB_MIN or rise > GRAB_MAX:
 		return false
 	# the face must run right up to the lip (not a sloped bank or a step back)
-	var lip := _ray(Vector3(face.x, top - 0.12, face.z) + nf * 0.3, Vector3(face.x, top - 0.12, face.z) - nf * 0.3)
+	var lip := locomotion._ray(Vector3(face.x, top - 0.12, face.z) + nf * 0.3, Vector3(face.x, top - 0.12, face.z) - nf * 0.3)
 	if lip.is_empty():
 		return false
 	var lip_p: Vector3 = lip.position
 	var hang_pos := Vector3(lip_p.x, top - HANG_DROP, lip_p.z) + nf * WALL_GAP
-	if not _fits(hang_pos):
+	if not locomotion._fits(hang_pos):
 		return false
 	_start_hang(hang_pos, nf, top)
 	return true
 
 
 func _start_hang(pos: Vector3, nf: Vector3, top: float) -> void:
-	_end_slide()
-	_ease_shift(pos - global_position)          # the skin and the camera glide into the hang
+	locomotion._end_slide()
+	locomotion._ease_shift(pos - global_position)          # the skin and the camera glide into the hang
 	global_position = pos
 	_visual.position = global_basis.inverse() * _vis_off
 	velocity = Vector3.ZERO
@@ -1683,7 +1447,7 @@ func _tick_hang(delta: float, wish: Vector3) -> void:
 			shimmy = signf(lat)
 	_visual.hang = 1.0
 	_visual.hang_shimmy = lerpf(_visual.hang_shimmy, -shimmy, 1.0 - exp(-10.0 * delta))
-	_ease_tick(delta)
+	locomotion._ease_tick(delta)
 	_animate(delta, Vector3.ZERO)
 	vitals._update_gloom(delta)
 	_cam_air_prev = _cam_air
@@ -1693,14 +1457,14 @@ func _tick_hang(delta: float, wish: Vector3) -> void:
 
 ## Is the ledge still under the hands (and the wall still there) with the body at `pos`?
 func _ledge_at(pos: Vector3) -> bool:
-	var face := _ray(pos + Vector3.UP * (HANG_DROP - 0.12), pos + Vector3.UP * (HANG_DROP - 0.12) - _hang_n * (WALL_GAP + 0.3))
+	var face := locomotion._ray(pos + Vector3.UP * (HANG_DROP - 0.12), pos + Vector3.UP * (HANG_DROP - 0.12) - _hang_n * (WALL_GAP + 0.3))
 	if face.is_empty():
 		return false
 	var over: Vector3 = (face.position as Vector3) - _hang_n * 0.22
-	var top := _ray(Vector3(over.x, _hang_top + 0.3, over.z), Vector3(over.x, _hang_top - 0.3, over.z))
+	var top := locomotion._ray(Vector3(over.x, _hang_top + 0.3, over.z), Vector3(over.x, _hang_top - 0.3, over.z))
 	if top.is_empty() or absf((top.position as Vector3).y - _hang_top) > 0.12:
 		return false
-	return _fits(pos)
+	return locomotion._fits(pos)
 
 
 func _let_go(push: float) -> void:
@@ -1733,11 +1497,11 @@ func _try_climb() -> bool:
 	var stand := Vector3.INF
 	for depth: float in [0.42, 0.3, 0.2]:
 		var on := Vector3(global_position.x, _hang_top, global_position.z) - _hang_n * (WALL_GAP + depth)
-		var deck := _ray(on + Vector3.UP * 0.4, on + Vector3.DOWN * 0.3)
+		var deck := locomotion._ray(on + Vector3.UP * 0.4, on + Vector3.DOWN * 0.3)
 		if deck.is_empty() or (deck.normal as Vector3).y < 0.7:
 			continue
 		var at: Vector3 = (deck.position as Vector3) + Vector3.UP * 0.03
-		if _fits(at):
+		if locomotion._fits(at):
 			stand = at
 			break
 	if stand == Vector3.INF:
@@ -1762,7 +1526,7 @@ func _tick_climb(delta: float) -> void:
 	global_position = Vector3(lerpf(_climb_from.x, _climb_to.x, fwd_u), lerpf(_climb_from.y, _climb_to.y, up_u), lerpf(_climb_from.z, _climb_to.z, fwd_u))
 	velocity = Vector3.ZERO
 	_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(_hang_n.x, _hang_n.z), 1.0 - exp(-12.0 * delta))
-	_ease_tick(delta)
+	locomotion._ease_tick(delta)
 	_animate(delta, Vector3.ZERO)
 	vitals._update_gloom(delta)
 	_cam_air_prev = _cam_air
@@ -1787,7 +1551,7 @@ func _try_vault(horiz: Vector3, wish: Vector3) -> bool:
 	if Vector3(wish.x, 0.0, wish.z).normalized().dot(dir) < 0.7:
 		return false
 	var knee := global_position + Vector3.UP * 0.32
-	var hit := _ray(knee, knee + dir * (0.45 + spd * 0.09))
+	var hit := locomotion._ray(knee, knee + dir * (0.45 + spd * 0.09))
 	if hit.is_empty():
 		return false
 	var n: Vector3 = hit.normal
@@ -1797,7 +1561,7 @@ func _try_vault(horiz: Vector3, wish: Vector3) -> bool:
 	var face: Vector3 = hit.position
 	var y0 := global_position.y
 	var over := face + dir * 0.12
-	var top_hit := _ray(Vector3(over.x, y0 + VAULT_MAX + 0.3, over.z), Vector3(over.x, y0 + VAULT_MIN - 0.05, over.z))
+	var top_hit := locomotion._ray(Vector3(over.x, y0 + VAULT_MAX + 0.3, over.z), Vector3(over.x, y0 + VAULT_MIN - 0.05, over.z))
 	if top_hit.is_empty() or (top_hit.normal as Vector3).y < 0.7:
 		return false
 	var top: float = (top_hit.position as Vector3).y
@@ -1809,7 +1573,7 @@ func _try_vault(horiz: Vector3, wish: Vector3) -> bool:
 	for k in range(1, 12):
 		var d := 0.12 + 0.1 * float(k)
 		var p := face + dir * d
-		var h := _ray(Vector3(p.x, top + 0.3, p.z), Vector3(p.x, top - 0.25, p.z))
+		var h := locomotion._ray(Vector3(p.x, top + 0.3, p.z), Vector3(p.x, top - 0.25, p.z))
 		if h.is_empty():
 			depth = d - 0.05
 			break
@@ -1817,16 +1581,16 @@ func _try_vault(horiz: Vector3, wish: Vector3) -> bool:
 		return false
 	# ground beyond, not far down, and room to land
 	var lx := face + dir * (depth + 0.9)
-	var land := _ray(Vector3(lx.x, top + 0.3, lx.z), Vector3(lx.x, y0 - 2.4, lx.z))
+	var land := locomotion._ray(Vector3(lx.x, top + 0.3, lx.z), Vector3(lx.x, y0 - 2.4, lx.z))
 	if land.is_empty() or (land.normal as Vector3).y < 0.7:
 		return false
 	var to: Vector3 = (land.position as Vector3) + Vector3.UP * 0.03
-	if not _fits(to):
+	if not locomotion._fits(to):
 		return false
 	var apex := top + 0.14
 	if test_move(Transform3D(global_basis, Vector3(global_position.x, apex, global_position.z)), Vector3(to.x - global_position.x, 0.0, to.z - global_position.z)):
 		return false                              # something in the way over the top
-	_end_slide()
+	locomotion._end_slide()
 	_vault_from = global_position
 	_vault_to = to
 	_vault_apex = apex
@@ -1856,7 +1620,7 @@ func _tick_vault(delta: float) -> void:
 		y = lerpf(_vault_apex, _vault_to.y, b * b)
 	global_position = Vector3(h.x, y, h.z)
 	velocity = _vault_v
-	_ease_tick(delta)
+	locomotion._ease_tick(delta)
 	_animate(delta, _vault_v)
 	vitals._update_gloom(delta)
 	# the view rises only part of the hop over the wall, like a jump's (r29: it rode the whole arc,
@@ -1886,7 +1650,7 @@ func _can_wallkick(wish: Vector3) -> bool:
 			if d.length_squared() < 0.01:
 				continue
 			var c := global_position + Vector3.UP * 0.9
-			var hit := _ray(c, c + d.normalized() * 0.7)
+			var hit := locomotion._ray(c, c + d.normalized() * 0.7)
 			if hit.is_empty() or absf((hit.normal as Vector3).y) > 0.3:
 				continue
 			var hn: Vector3 = hit.normal
@@ -1898,7 +1662,7 @@ func _can_wallkick(wish: Vector3) -> bool:
 		return false
 	# tall enough to kick: wall above the head too (parapets and kerbs don't count)
 	var head := global_position + Vector3.UP * 1.65
-	if _ray(head, head - n * 0.75).is_empty():
+	if locomotion._ray(head, head - n * 0.75).is_empty():
 		return false
 	_wall_n = n
 	return true
@@ -1939,7 +1703,7 @@ func _note_contacts(delta: float) -> void:
 	if _steep_t <= 0.0 and velocity.y <= 0.0 and get_slide_collision_count() == 0 and _hang == false:
 		# stepped off onto a slope too steep to stand on: take to it instead of free-falling past it
 		var c := global_position + Vector3.UP * 0.2
-		var hit := _ray(c, c + Vector3.DOWN * 0.9)
+		var hit := locomotion._ray(c, c + Vector3.DOWN * 0.9)
 		if not hit.is_empty():
 			var hn: Vector3 = hit.normal
 			if hn.y >= 0.3 and hn.y < 0.72:
@@ -1955,7 +1719,7 @@ func _note_contacts(delta: float) -> void:
 			# a capsule rolling off a stair nose touches its edge at a slant too: only a real slope
 			# (the ground under the body is itself that steep) counts
 			var c := global_position + Vector3.UP * 0.3 + Vector3(n.x, 0.0, n.z).normalized() * 0.15
-			var hit := _ray(c, c + Vector3.DOWN * 1.0)
+			var hit := locomotion._ray(c, c + Vector3.DOWN * 1.0)
 			if not hit.is_empty() and (hit.normal as Vector3).y < 0.72 and (hit.normal as Vector3).y >= 0.3:
 				_steep_t = 0.12
 				_steep_n = hit.normal
@@ -1998,18 +1762,18 @@ func _beam_probe(horiz: Vector3) -> void:
 	_beam_side = fwd.cross(Vector3.UP).normalized()
 	var base := global_position + Vector3.UP * 0.25
 	var drop := Vector3.DOWN * 0.6
-	var l := _ray(base - _beam_side * BEAM_W, base - _beam_side * BEAM_W + drop)
-	var r := _ray(base + _beam_side * BEAM_W, base + _beam_side * BEAM_W + drop)
+	var l := locomotion._ray(base - _beam_side * BEAM_W, base - _beam_side * BEAM_W + drop)
+	var r := locomotion._ray(base + _beam_side * BEAM_W, base + _beam_side * BEAM_W + drop)
 	_beam_on = l.is_empty() and r.is_empty()
 	if _beam_on:
 		# and standing on something right under the middle (not mid-way down a stair)
-		var c := _ray(base, base + Vector3.DOWN * 0.4)
+		var c := locomotion._ray(base, base + Vector3.DOWN * 0.4)
 		_beam_on = not c.is_empty() and (c.position as Vector3).y > global_position.y - 0.1
 	if not _beam_on:
 		_beam_mid = 0.0
 		return
-	var lh := not _ray(base - _beam_side * 0.15, base - _beam_side * 0.15 + drop).is_empty()
-	var rh := not _ray(base + _beam_side * 0.15, base + _beam_side * 0.15 + drop).is_empty()
+	var lh := not locomotion._ray(base - _beam_side * 0.15, base - _beam_side * 0.15 + drop).is_empty()
+	var rh := not locomotion._ray(base + _beam_side * 0.15, base + _beam_side * 0.15 + drop).is_empty()
 	_beam_mid = (0.0 if lh == rh else (-0.12 if lh else 0.12))
 
 
@@ -2027,7 +1791,7 @@ func _try_dodge(wish: Vector3) -> bool:
 	if _book != null:
 		_book.cancel_lock()                     # ... and the cast lock, so a spell can follow the roll at once
 	_dodge_roll = true
-	_end_slide()
+	locomotion._end_slide()
 	_roll_t = 0.0
 	_roll_evade = true
 	if wish.length_squared() < 0.04:
@@ -2044,7 +1808,7 @@ func _try_dodge(wish: Vector3) -> bool:
 		_roll_speed = maxf(ROLL_DIST / ROLL_TIME * 1.25, Vector2(velocity.x, velocity.z).length())
 		_visual.rotation.y = atan2(-_roll_dir.x, -_roll_dir.z)
 		_visual.play_move(&"roll", ROLL_TIME)
-		_set_capsule(1.1)
+		locomotion._set_capsule(1.1)
 	StaffSfx.play("swish", global_position + Vector3.UP, -8.0, 0.85)
 	Sfx.play("res://art/audio/step_%d.wav" % randi_range(0, 7), global_position, -8.0, 0.8, 0.03)
 	return true
@@ -2054,7 +1818,7 @@ func _try_dodge(wish: Vector3) -> bool:
 func _land_roll(dir: Vector3, speed: float) -> void:
 	_dodge_roll = false
 	_rolled_landing = true
-	_end_slide()
+	locomotion._end_slide()
 	_roll_t = 0.0
 	_roll_evade = false
 	_roll_dir = dir
@@ -2062,7 +1826,7 @@ func _land_roll(dir: Vector3, speed: float) -> void:
 	_roll_speed = maxf(speed, walk_speed * 1.2)
 	_visual.rotation.y = atan2(-dir.x, -dir.z)
 	_visual.play_move(&"roll", ROLL_TIME)
-	_set_capsule(1.1)
+	locomotion._set_capsule(1.1)
 
 
 func _tick_roll(delta: float, wish := Vector3.ZERO) -> Vector3:
@@ -2076,8 +1840,8 @@ func _tick_roll(delta: float, wish := Vector3.ZERO) -> Vector3:
 		_roll_t = -1.0
 		_roll_cd = ROLL_CD
 		if _col and (_col.shape as CapsuleShape3D).height < _col_h:
-			if _headroom():
-				_set_capsule(_col_h)
+			if locomotion._headroom():
+				locomotion._set_capsule(_col_h)
 				_crawl = false
 			else:
 				# under something: stay low and crawl along the stick until there is room to stand.
@@ -2092,194 +1856,6 @@ func _tick_roll(delta: float, wish := Vector3.ZERO) -> Vector3:
 				return _roll_dir * CRAWL_SPEED
 		return _roll_dir * minf(spd, sprint_speed)
 	return _roll_dir * spd
-
-
-## Room to stand at the body's spot: the full capsule, a little thinner and lifted off the floor so
-## a wall it leans on or the ground under it doesn't count (test_move from a touching start does).
-func _headroom(at := Vector3.INF) -> bool:
-	if _col == null or not (_col.shape is CapsuleShape3D):
-		return true
-	var space := get_world_3d().direct_space_state
-	if space == null:
-		return true
-	if _tall_q == null:
-		var cap := CapsuleShape3D.new()
-		cap.radius = (_col.shape as CapsuleShape3D).radius - 0.04
-		cap.height = maxf(_col_h - 0.08, cap.radius * 2.0 + 0.01)
-		_tall_q = PhysicsShapeQueryParameters3D.new()
-		_tall_q.shape = cap
-		_tall_q.exclude = [get_rid()]
-		_tall_q.margin = 0.0
-	_tall_q.collision_mask = collision_mask
-	var p := global_position if at == Vector3.INF else at
-	_tall_q.transform = Transform3D(Basis.IDENTITY, p + Vector3.UP * (_col_h * 0.5 + 0.04))
-	return space.intersect_shape(_tall_q, 1).is_empty()
-
-
-# --- movement feel: step-up and mantle -----------------------------------------------------------
-
-## Walk straight up small ledges (stair risers, kerbs, plinth edges) instead of stopping dead.
-## Test: blocked at foot level, clear STEP_MAX higher, ground found just ahead within the step.
-func _try_step_up(horiz: Vector3, delta: float) -> bool:
-	if horiz.length() < 0.6 or not is_on_wall() or _sliding:
-		return false
-	var dir := horiz.normalized()
-	var wall_n := get_wall_normal()
-	var flat_n := Vector3(wall_n.x, 0.0, wall_n.z)
-	# a capsule meets a step's edge with its rounded bottom, so the contact normal tilts up:
-	# judge the contact by its horizontal direction only
-	if flat_n.length() < 0.2 or flat_n.normalized().dot(-dir) < 0.35:
-		return false                               # glancing contact
-	var lift := Vector3.UP * STEP_MAX
-	var probe := dir * 0.38                         # a capsule radius ahead: land on the step, not its edge
-	var fwd := dir * maxf(horiz.length() * delta, 0.06)
-	if test_move(global_transform, lift):
-		return false                               # no headroom
-	var up := global_transform.translated(lift)
-	if test_move(up, probe):
-		return false                               # still blocked higher: a real wall
-	var col := KinematicCollision3D.new()
-	if not test_move(up.translated(probe), -lift, col):
-		return false
-	if col.get_normal().y < 0.7:
-		return false
-	var rise := STEP_MAX - col.get_travel().length()
-	if rise < 0.03:
-		return false
-	global_position += Vector3.UP * (rise + 0.01) + fwd
-	# stand on the tread, not balanced on its nose (a capsule's round bottom slides back off it)
-	var extra := Vector3.ZERO
-	var below := KinematicCollision3D.new()
-	for k in 5:
-		if test_move(global_transform.translated(extra), Vector3.DOWN * 0.1, below) and below.get_normal().y >= 0.75:
-			break
-		if test_move(global_transform.translated(extra), dir * 0.06):
-			break
-		extra += dir * 0.06
-	global_position += extra
-	velocity.y = 0.0
-	_ease_shift(Vector3.UP * (rise + 0.01) + extra)   # body pops up; the skin and camera glide after it
-	_visual.step_bump(rise)
-	return true
-
-
-## Moved from outside (global_position set by a test, a respawn, a lava throw): drop the smoothing
-## state so the skin and the camera don't glide across the jump, and re-test the ground.
-func _on_teleported() -> void:
-	_vis_off = Vector3.ZERO
-	_vis_off_v = Vector3.ZERO
-	_cam_off = Vector3.ZERO
-	_cam_off_v = Vector3.ZERO
-	_cam_off_prev = Vector3.ZERO
-	_glued = false
-	_grounded = is_on_floor()
-	_land_slow = 0.0
-	_end_traverse()
-	_air_base = global_position.y
-	_cam_air = 0.0
-	_cam_air_prev = 0.0
-
-
-## Teleport helper: same as setting global_position, plus no interpolation streak.
-func teleport(pos: Vector3, keep_velocity := false) -> void:
-	global_position = pos
-	if not keep_velocity:
-		velocity = Vector3.ZERO
-	reset_physics_interpolation()
-	_on_teleported()
-	_last_pos = pos
-
-
-## Shift the body by `d` without the skin or the view jumping: both ease after it.
-func _ease_shift(d: Vector3) -> void:
-	_vis_off -= d
-	_cam_off -= d
-
-
-## Walking off a small drop (a stair going down, a kerb): settle straight onto the lower ground
-## instead of a little fall each tread. The shape cast stops on a stair nose too (the capsule's
-## round bottom rolls off it smoothly frame by frame). Real drops (> STEP_DOWN) fall as before.
-func _step_down() -> void:
-	if _mantle_t >= 0.0 or _hollowing:
-		return
-	# real floor under the middle of the body, not just a corner beside it
-	var space := get_world_3d().direct_space_state
-	var c := global_position + Vector3.UP * 0.3
-	var ray := PhysicsRayQueryParameters3D.create(c, c + Vector3.DOWN * (STEP_DOWN + 0.32), collision_mask, [get_rid()])
-	var hit := space.intersect_ray(ray)
-	if hit.is_empty() or (hit.normal as Vector3).y < 0.69:
-		return
-	var col := KinematicCollision3D.new()
-	if not test_move(global_transform, Vector3.DOWN * STEP_DOWN, col):
-		return
-	if col.get_normal().y < 0.3:
-		return                                     # a wall, not ground
-	var drop := col.get_travel()
-	global_position += drop
-	velocity.y = 0.0
-	_grounded = true
-	_glued = true
-	_ease_shift(drop)
-
-
-## Ground speed model. The run turns toward the stick at a speed-dependent rate (no speed lost
-## mid-turn, unlike a straight lerp), a hard reversal skids to a stop first, speeding up is quick
-## to a walk and builds to a sprint, and stopping is exponential plus a constant bite.
-func _ground_move(cur: Vector3, target: Vector3, delta: float) -> Vector3:
-	var speed := cur.length()
-	var want := target.length()
-	if want < 0.01:
-		var s := maxf(0.0, (speed + decel_bite / decel) * exp(-decel * delta) - decel_bite / decel)
-		return cur.normalized() * s if speed > 0.0001 else Vector3.ZERO
-	var tdir := target / want
-	var dir := tdir
-	if speed > walk_speed * 0.45:
-		dir = cur / speed
-		var ang := dir.signed_angle_to(tdir, Vector3.UP)
-		if absf(ang) > skid_angle:
-			# reversal: brake along the old line, then turn on the spot once slow
-			var s := maxf(0.0, (speed + decel_bite / decel) * exp(-decel * 1.3 * delta) - decel_bite / decel)
-			return dir * s
-		var rate := lerpf(turn_rate, turn_rate_sprint, _run_blend)
-		dir = dir.rotated(Vector3.UP, clampf(ang, -rate * delta, rate * delta))
-		speed *= lerpf(1.0, maxf(0.0, dir.dot(tdir)), 1.0 - exp(-4.0 * delta))   # cornering bleeds a little
-	elif speed > 0.0001:
-		speed *= maxf(0.0, (cur / speed).dot(tdir))   # slow: face the stick at once, keep what points that way
-	var r := accel
-	if speed > want:
-		r = coast
-	elif speed > walk_speed * 0.98:
-		r = sprint_accel
-	speed = lerpf(speed, want, 1.0 - exp(-r * delta))
-	return dir * speed
-
-
-## Uphill is slower, downhill a touch quicker (on top of floor_constant_speed).
-func _slope_scale(target: Vector3) -> float:
-	if target.length_squared() < 0.0001 or not is_on_floor():
-		return 1.0
-	var n := get_floor_normal()
-	var grade := -Vector2(n.x, n.z).dot(Vector2(target.x, target.z).normalized())   # + uphill
-	return 1.0 - SLOPE_UPHILL_SLOW * maxf(grade, 0.0) + SLOPE_DOWNHILL_GAIN * maxf(-grade, 0.0)
-
-
-## Landing weight: hard landings cost speed for a moment, kick up dust and dip the view.
-func _land(was_grounded: bool, vy_before: float) -> void:
-	if not _grounded or was_grounded:
-		return
-	var impact := -vy_before
-	var flat := Vector3(velocity.x, 0.0, velocity.z)
-	if impact > ROLL_LAND_V and not _sliding and _roll_t < 0.0 and (flat.length() > 2.5 or Input.is_action_pressed("dodge")):
-		_land_roll(flat.normalized() if flat.length() > 0.1 else -_visual.global_basis.z, flat.length())
-		camera_ctl.kick(0.3)                                # rolled out: no speed lost
-	elif impact > LAND_SLOW_V:
-		_land_slow = clampf((impact - LAND_SLOW_V) / 10.0, 0.0, 0.5 if impact < ROLL_LAND_V else 0.75)
-	vitals._fall_hurt(impact)
-	if impact > 5.0:
-		var k := clampf((impact - 5.0) / 8.0, 0.0, 1.0)
-		Vfx.burst(global_position + Vector3.UP * 0.05, Color(0.16, 0.15, 0.17, 0.55), {"count": 14, "life": 0.6, "speed": Vector2(0.6, 1.8), "size": 0.22, "gravity": -0.4, "dir": Vector3.UP, "spread": 85.0, "additive": false, "radius": 0.3})
-		if k > 0.4:
-			camera_ctl.kick(0.15 + 0.35 * k)
 
 
 ## Jumping at a ledge (top 0.3-1.7 m above the feet) while pushing toward it vaults onto it.
@@ -2399,3 +1975,11 @@ func hollow() -> void: await vitals.hollow()
 ## Hollowing costs the ash carried since the last fire: it is left in a mound where you fell.
 ## Walk back to it to take it up; be hollowed again first and it is gone.
 func _drop_ash() -> void: vitals._drop_ash()
+## On the ground this frame, including being held down a stair edge (_step_down).
+func is_grounded() -> bool: return locomotion.is_grounded()
+func is_sliding() -> bool: return locomotion.is_sliding()
+## Teleport helper: same as setting global_position, plus no interpolation streak.
+func teleport(pos: Vector3, keep_velocity := false) -> void: locomotion.teleport(pos, keep_velocity)
+## The capsule would stand at `pos` without touching anything.
+func _fits(pos: Vector3) -> bool: return locomotion._fits(pos)
+func _ray(a: Vector3, b: Vector3, mask := Layers.WORLD) -> Dictionary: return locomotion._ray(a, b, mask)

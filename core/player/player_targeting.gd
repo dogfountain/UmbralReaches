@@ -108,7 +108,7 @@ func _remembered_target() -> Enemy:
 		return null
 	if player.global_position.distance_to(t.global_position) > Player.LOCK_RANGE:
 		return null
-	if not player._ray(player.global_position + Vector3.UP * 1.4, t.global_position + Vector3.UP * (t.hp_bar_y * 0.55)).is_empty():
+	if not player.locomotion._ray(player.global_position + Vector3.UP * 1.4, t.global_position + Vector3.UP * (t.hp_bar_y * 0.55)).is_empty():
 		return null
 	return t
 
@@ -147,7 +147,7 @@ func cycle_target() -> Enemy:
 		var e: Enemy = near[(start + n) % near.size()][1]
 		if e == cur and near.size() > 1:
 			continue
-		if player._ray(player.global_position + Vector3.UP * 1.4, e.global_position + Vector3.UP * (e.hp_bar_y * 0.55)).is_empty():
+		if player.locomotion._ray(player.global_position + Vector3.UP * 1.4, e.global_position + Vector3.UP * (e.hp_bar_y * 0.55)).is_empty():
 			_set_lock(e)
 			return e
 	return null
@@ -188,7 +188,7 @@ func _pick_target(side: int) -> Enemy:
 			score = absf(s - cur_s) * 6.0 + d * 0.03
 		if score >= best_score:
 			continue
-		if not player._ray(player.global_position + Vector3.UP * 1.4, chest).is_empty():
+		if not player.locomotion._ray(player.global_position + Vector3.UP * 1.4, chest).is_empty():
 			continue
 		best_score = score
 		best = e
@@ -217,7 +217,7 @@ func _lock_tick(delta: float) -> void:
 	_lock_los_t -= delta
 	if _lock_los_t <= 0.0:
 		_lock_los_t = 0.2
-		var seen := player._ray(player.global_position + Vector3.UP * 1.4, player._lock.global_position + Vector3.UP * (player._lock.hp_bar_y * 0.55)).is_empty()
+		var seen := player.locomotion._ray(player.global_position + Vector3.UP * 1.4, player._lock.global_position + Vector3.UP * (player._lock.hp_bar_y * 0.55)).is_empty()
 		_lock_lost = 0.0 if seen else _lock_lost + 0.2
 		if _lock_lost > 1.4:
 			_release_lock()

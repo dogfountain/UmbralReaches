@@ -123,7 +123,7 @@ func _slide_input(horiz: Vector3, wish: Vector3) -> void:
 		return
 	if not player._grounded:
 		if player._gliding:
-			player.evasion._end_glide()                         # r31: dive out of the glide
+			player._end_glide()                         # r31: dive out of the glide
 			player.velocity.y = minf(player.velocity.y, -6.0)
 		player._slide_queued = true
 		player._visual.hold_tuck(0.6)
@@ -137,7 +137,7 @@ func _slide_input(horiz: Vector3, wish: Vector3) -> void:
 	elif Input.is_action_just_pressed("slide") and (is_instance_valid(player._lock) and not Input.is_action_pressed("sprint") \
 			or horiz.length() < player.slide_min_speed and wish.length_squared() > 0.04):
 		player._slide_latch = true                      # slow, or squared up to a foe: the slide key rolls
-		player.evasion._try_dodge(wish)
+		player._try_dodge(wish)
 	elif not player._slide_latch and _try_slide(horiz, wish, player.slide_min_speed, 0.0):
 		player._slide_latch = true
 
@@ -339,7 +339,7 @@ func _on_teleported() -> void:
 	player._glued = false
 	player._grounded = player.is_on_floor()
 	player._land_slow = 0.0
-	player.traversal._end_traverse()
+	player._end_traverse()
 	player._air_base = player.global_position.y
 	player._cam_air = 0.0
 	player._cam_air_prev = 0.0
@@ -441,7 +441,7 @@ func _land(was_grounded: bool, vy_before: float) -> void:
 	var impact := -vy_before
 	var flat := Vector3(player.velocity.x, 0.0, player.velocity.z)
 	if impact > Player.ROLL_LAND_V and not player._sliding and player._roll_t < 0.0 and (flat.length() > 2.5 or Input.is_action_pressed("dodge")):
-		player.evasion._land_roll(flat.normalized() if flat.length() > 0.1 else -player._visual.global_basis.z, flat.length())
+		player._land_roll(flat.normalized() if flat.length() > 0.1 else -player._visual.global_basis.z, flat.length())
 		player.camera_ctl.kick(0.3)                                # rolled out: no speed lost
 	elif impact > Player.LAND_SLOW_V:
 		player._land_slow = clampf((impact - Player.LAND_SLOW_V) / 10.0, 0.0, 0.5 if impact < Player.ROLL_LAND_V else 0.75)
