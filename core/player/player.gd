@@ -5,6 +5,7 @@ extends CharacterBody3D
 ## Components (core/player/player_*.gd): the state stays on Player, the logic lives here.
 var autopilot_ctl: PlayerAutopilot = null
 var targeting: PlayerTargeting = PlayerTargeting.new(self)
+var camera_ctl: PlayerCamera = PlayerCamera.new(self)
 
 @export_group("Movement")
 @export var walk_speed := 4.5
@@ -80,13 +81,7 @@ var _shade_warned := false
 var _hollowing := false
 var _coyote := 0.0
 var _buffered_jump := 0.0
-var _fov_kick := 0.0
-var _fov_want := 0.0                    ## speed FOV kick target (physics tick); eased per rendered frame
-var _fov_burst := 0.0                   ## a sudden widening (Rift Step, slide entry), eased per frame
 var _fov_burst_want := 0.0
-var _land_dip_want := 0.0
-var _shake_want := 0.0
-var _roll_want := 0.0
 var _land_dip := 0.0
 var _was_floor := true
 var _rig_height := 1.55
@@ -188,12 +183,10 @@ var _cam_off_v := Vector3.ZERO
 var _cam_off_prev := Vector3.ZERO       ## last tick's value: _process interpolates like the body does
 var _last_pos := Vector3.INF            ## where physics left the body: a bigger jump = moved from outside
 var _land_slow := 0.0
-var _cam_len := ARM_LEN
 var _run_blend := 0.0                   ## 0 walk .. 1 full sprint (camera, turn rate)
 var _mantle_t := -1.0
 var _mantle_from := Vector3.ZERO
 var _mantle_to := Vector3.ZERO
-var _cam_roll := 0.0
 var _slide_latch := false               ## a held key slides once; release to arm the next
 var _slide_queued := false              ## slide held in the air: drop into it on landing
 var _air_vy := 0.0                      ## last airborne vertical speed (landing -> slide bonus)
@@ -222,6 +215,7 @@ var riding: Node3D = null
 
 func _ready() -> void:
 	add_child(targeting)
+	add_child(camera_ctl)
 	add_to_group(Groups.PLAYER)
 	collision_layer = Layers.PLAYER
 	collision_mask = Layers.WORLD | Layers.PROPS
@@ -372,9 +366,9 @@ func _process(delta: float) -> void:
 	cam_off += _look_ahead_prev.lerp(_look_ahead, fr)
 	_rig.global_position = body_xf.origin + Vector3(0.0, _rig_height - _cam_drop, 0.0) + cam_off + _tp_offset
 	_rig.global_rotation = Vector3(0.0, _yaw, 0.0)
-	_cam_frame(delta)
+	camera_ctl._cam_frame(delta)
 	_pitch_node.rotation.x = _pitch - _land_dip * 0.12 + _shake
-	_update_arm(delta)
+	camera_ctl._update_arm(delta)
 	_frame_fx()
 
 
@@ -383,7 +377,7 @@ func _physics_process(delta: float) -> void:
 	if _last_pos != Vector3.INF and global_position.distance_squared_to(_last_pos) > 4.0:
 		_on_teleported()                        # tests, respawns, travel: plain global_position works
 	_cam_off_prev = _cam_off
-	_spring3(true, 11.0, delta)                 # critically damped: no velocity kick on a step
+	camera_ctl._spring3(true, 11.0, delta)                 # critically damped: no velocity kick on a step
 	_shade_lock = maxf(0.0, _shade_lock - delta)
 	_evade_t = maxf(0.0, _evade_t - delta)
 	_combat_t = maxf(0.0, _combat_t - delta)
@@ -588,8 +582,8 @@ func _physics_process(delta: float) -> void:
 		_slide_sfx.stop()
 	_visual.steep = _steep_k
 	_visual.beam = _beam_k
-	_cam_feel_tick(delta)
-	_spring3(false, 22.0, delta)
+	camera_ctl._cam_feel_tick(delta)
+	camera_ctl._spring3(false, 22.0, delta)
 	_visual.position = global_basis.inverse() * _vis_off
 	if not _grounded:
 		_air_vy = velocity.y
@@ -600,7 +594,7 @@ func _physics_process(delta: float) -> void:
 			_safe_ground = global_position
 	_burn_cd = maxf(0.0, _burn_cd - delta)
 
-	_update_camera(delta, horiz, sprint, vy_before)
+	camera_ctl._update_camera(delta, horiz, sprint, vy_before)
 	_sprint_held = sprint
 	_animate(delta, horiz)
 	_update_gloom(delta)
@@ -629,7 +623,7 @@ func lava_burn(amount: float) -> void:
 	var to := _safe_ground if _safe_ground != Vector3.INF else checkpoint
 	teleport(to + Vector3.UP * 0.1)
 	SpellFx.rift_in(to)
-	kick(0.8)
+	camera_ctl.kick(0.8)
 	Events.toast.emit("The molten dark spits you back out.")
 
 
@@ -683,7 +677,7 @@ func on_evaded(attacker: Node) -> void:
 		attacker.riposted()
 	Sfx.play("res://art/audio/mark_tick.wav", at, 0.0, 0.7, 0.02)
 	SpellFx.shell(global_position + Vector3.UP, 0.3, 2.2, Color(1.2, 0.5, 2.8), 0.3)
-	kick(0.5)
+	camera_ctl.kick(0.5)
 	TimeSlow.request(get_tree(), 0.35, 0.22)
 
 
@@ -716,63 +710,10 @@ func _on_enemy_killed(e: Node) -> void:
 	Vfx.burst(global_position + Vector3.UP * 1.1, Color(1.3, 0.6, 3.0), {"count": 12, "life": 0.4, "speed": Vector2(0.5, 1.5), "size": 0.04, "gravity": -1.0, "radius": 0.3})
 
 
-func set_view(yaw: float, pitch: float) -> void:
-	_yaw = yaw
-	_pitch = pitch
-
-
 func debug_drive(wish: Vector3, sprint := false) -> void:
 	_debug_drive = wish.length_squared() > 0.0001
 	_debug_wish = wish
 	_debug_sprint = sprint
-
-
-func cast_impulse() -> void:
-	_shake_want = maxf(_shake_want, deg_to_rad(0.15))
-
-
-# --- Camera ------------------------------------------------------------------
-
-## The spring arm used to sit perfectly still whatever the player did. Two cheap reactions:
-## the view opens up at a sprint, and the camera dips on a hard landing. Base FOV stays
-## Settings.fov, so the settings menu remains the one source of truth and the kick rides on top.
-
-## Physics tick: only the TARGETS (speed kick, strafe roll) and the landing event are decided here;
-## _cam_frame eases FOV, roll and the landing dip every rendered frame (r29: set on the tick, they
-## stepped at 60 Hz on a 120-144 Hz screen -- a sprint's FOV kick visibly ratcheted).
-func _update_camera(_delta: float, horiz: Vector3, _sprint: bool, vy_before: float) -> void:
-	# FOV follows real speed (walk 0 -> sprint full kick -> slides and hops a bit beyond)
-	var spd := horiz.length()
-	_fov_want = clampf((spd - walk_speed) / maxf(sprint_speed - walk_speed, 0.1), 0.0, 1.6) * SPRINT_FOV_KICK
-	# a slight roll into strafes (max ~1.4 degrees)
-	var right := Basis(Vector3.UP, _yaw) * Vector3.RIGHT
-	var lateral := Vector3(velocity.x, 0.0, velocity.z).dot(right)
-	_roll_want = clampf(-lateral / sprint_speed, -1.0, 1.0) * deg_to_rad(1.4)
-	if _grounded and not _was_floor:
-		var dip := clampf(-vy_before / 9.0, 0.0, 1.0)
-		_land_dip_want = maxf(_land_dip_want, dip)
-		if dip > 0.25:                           # a real drop: the staff's ferrule strikes the ground too
-			StaffSfx.play("tap", global_position, lerpf(-12.0, -4.0, dip), 0.92)
-	_was_floor = _grounded
-
-
-## Rendered frame: FOV kick, strafe roll and the landing dip ease toward their targets here.
-func _cam_frame(delta: float) -> void:
-	# punches (kick, landing dip, the Rift Step's widening) arrive over ~3 frames instead of in one:
-	# set on a physics tick, a one-frame snap of up to 7 degrees read as a hitch at 144 Hz
-	var snap := 1.0 - exp(-38.0 * delta)
-	_fov_kick = lerpf(_fov_kick, _fov_want, 1.0 - exp(-6.0 * delta))
-	_fov_burst = lerpf(_fov_burst, _fov_burst_want, snap)
-	_fov_burst_want *= exp(-4.0 * delta)
-	var fov := Settings.fov + maxf(_fov_kick, _fov_burst)
-	if absf(_cam.fov - fov) > 0.0001:
-		_cam.fov = fov
-	_cam_roll = lerpf(_cam_roll, _roll_want, 1.0 - exp(-5.0 * delta))
-	_cam.rotation.z = _cam_roll
-	_land_dip = lerpf(_land_dip, _land_dip_want, snap)
-	_land_dip_want = move_toward(_land_dip_want, 0.0, delta * 3.0)
-	_shake = lerpf(_shake, _shake_want, snap)
-	_shake_want = move_toward(_shake_want, 0.0, delta * 0.12)   # ~0.15 s for a full kick
 
 
 # --- Animation ---------------------------------------------------------------
@@ -954,7 +895,7 @@ func take_wound(amount: float, from_pos := Vector3.INF) -> void:
 		amount = _arts.absorb(amount, from_pos)   # r31: a held guard turns most of a blow from the front
 	if _book != null:
 		_book.on_hurt(amount)                    # r33: a hard blow interrupts a cast, a light one pushes it back
-	kick(clampf(amount / 30.0, 0.3, 1.0))
+	camera_ctl.kick(clampf(amount / 30.0, 0.3, 1.0))
 	Sfx.play(SFX_HURT, global_position + Vector3.UP, -3.0)
 	Events.player_hurt.emit(amount, from_pos)
 	_visual.hurt_react(from_pos, amount)
@@ -1042,7 +983,7 @@ func _fell_out() -> void:
 	teleport(to + Vector3.UP * 0.1)
 	add_gloom(8.0)
 	SpellFx.rift_in(to)
-	kick(0.5)
+	camera_ctl.kick(0.5)
 	Events.toast.emit("The dark gives you back. It keeps a little.")
 
 
@@ -1380,11 +1321,6 @@ func _update_aim_ring(c: float, muzzle: Vector3) -> void:
 	SpellFx.place_ring(_aim_ring, hit.position, hit.normal, blast, c)
 
 
-## Camera punch, 0..1. Rides the existing land-dip pitch channel.
-func kick(amount: float) -> void:
-	_shake_want = maxf(_shake_want, deg_to_rad(0.15 + 1.1 * clampf(amount, 0.0, 1.0)))
-
-
 # --- r31 combat and traversal surface (Breath, staff arts, Tether line, cloak-glide) ------------
 
 func stamina() -> Node:
@@ -1461,7 +1397,7 @@ func _fall_hurt(impact: float) -> void:
 	HitText.pop(global_position + Vector3.UP * 2.2, "jarred +%d" % int(round(g)), Color(0.9, 0.6, 0.55))
 	Hints.once(&"fall_hurt", "Long drops jar the dark in. Roll as you land (dodge), or open the robe to glide (jump again in the air).")
 	_visual.hurt_react(Vector3.INF, g)
-	kick(clampf(g / 20.0, 0.3, 1.0))
+	camera_ctl.kick(clampf(g / 20.0, 0.3, 1.0))
 
 
 func _can_glide() -> bool:
@@ -1599,7 +1535,7 @@ func shadowstep() -> bool:
 	Sfx.play(SFX_STEP, from, -6.0)
 	Sfx.play(SFX_STEP, to, -2.0)
 	_fov_burst_want = maxf(_fov_burst_want, 12.0)
-	kick(0.25)
+	camera_ctl.kick(0.25)
 	return true
 
 
@@ -1808,7 +1744,7 @@ func _try_slide(horiz: Vector3, wish: Vector3, min_speed: float, bonus: float) -
 	(_slide_fx.get_node("Sparks") as GPUParticles3D).emitting = true
 	_slide_sfx.play()
 	_fov_burst_want = maxf(_fov_burst_want, 8.0)
-	kick(0.3 + minf(bonus * 0.05, 0.3))
+	camera_ctl.kick(0.3 + minf(bonus * 0.05, 0.3))
 	return true
 
 
@@ -1949,23 +1885,16 @@ var _cam_air := 0.0
 var _cam_air_prev := 0.0
 var _look_ahead := Vector3.ZERO
 var _look_ahead_prev := Vector3.ZERO
-var _thin_hold := 0.0
 var _crawl := false               ## the roll's low capsule held under something (no room to stand)
 var _sprint_latch := false
 var _look_hold := 0.0
 var _first_frame := true
-var _fight_k := 0.0
-var _arm_q: PhysicsShapeQueryParameters3D
-var _thin_q: PhysicsShapeQueryParameters3D
-var _thin_ray: PhysicsRayQueryParameters3D   ## reused by _thin_occluder (r35: five rays, no allocation each)
 var _tall_q: PhysicsShapeQueryParameters3D
 const THIN_RAYS := 5                          ## rays across the boom's width for the thin-occluder test
 const THIN_HALF_W := 0.45                     ## m either side of the boom they span
 const SHOULDER := 0.95                        ## the camera boom's offset over the right shoulder (m)
 const SHOULDER_NEAR := 1.8                    ## a shoulder camera closer than this swings in behind the wanderer
 const SIGHT_HIDDEN := 4                       ## of the six sight rays (chest and head x three) blocked = hidden
-var _sight_ray: PhysicsRayQueryParameters3D
-var _sight_hold := 0.0
 var _shoulder_k := 1.0                        ## 1 = boom over the shoulder, 0 = swung in behind the wanderer
 const CRAWL_SPEED := 1.6
 const FALL_RESCUE_T := 6.0        ## falling this long (through the world, off the map): back to safe ground
@@ -2013,7 +1942,7 @@ func _end_traverse() -> void:
 
 ## The skin's glide after a position snap (hang, step-up), for ticks that skip the main path.
 func _ease_tick(delta: float) -> void:
-	_spring3(false, 22.0, delta)
+	camera_ctl._spring3(false, 22.0, delta)
 	_visual.position = global_basis.inverse() * _vis_off
 
 
@@ -2098,7 +2027,7 @@ func _start_hang(pos: Vector3, nf: Vector3, top: float) -> void:
 	_visual.hang = 1.0
 	Sfx.play("res://art/audio/step_%d.wav" % randi_range(0, 7), pos + Vector3.UP * HANG_DROP, -6.0, 0.8, 0.03)
 	StaffSfx.play("tap", pos + Vector3.UP * HANG_DROP, -12.0, 0.85)
-	kick(0.2)
+	camera_ctl.kick(0.2)
 
 
 func _tick_hang(delta: float, wish: Vector3) -> void:
@@ -2374,7 +2303,7 @@ func _wall_kick(wish: Vector3) -> void:
 	Vfx.burst(at, Color(0.16, 0.15, 0.17, 0.5), {"count": 10, "life": 0.5, "speed": Vector2(0.5, 1.6), "size": 0.16, "gravity": -0.3, "dir": n, "spread": 60.0, "additive": false})
 	Sfx.play(SFX_JUMP, at, -5.0, 0.95)
 	Sfx.play("res://art/audio/step_%d.wav" % randi_range(0, 7), at, -4.0, 0.85, 0.03)
-	kick(0.2)
+	camera_ctl.kick(0.2)
 
 
 ## Remember walls touched in the air (wall kick) and slopes too steep to stand on (steep slide).
@@ -2564,66 +2493,6 @@ func _headroom(at := Vector3.INF) -> bool:
 	return space.intersect_shape(_tall_q, 1).is_empty()
 
 
-# --- camera feel ---------------------------------------------------------------------------------------
-
-## Physics tick: the jump hold (the view rises only part of a jump's height, then settles when you
-## land, wherever that is) and the look-ahead (the view leads a run across the screen).
-func _cam_feel_tick(delta: float) -> void:
-	_cam_air_prev = _cam_air
-	_look_ahead_prev = _look_ahead
-	var want := 0.0
-	if _grounded or _hang:
-		_air_base = global_position.y
-	else:
-		var up := global_position.y - _air_base
-		if up > 0.0:
-			want = -minf(up * 0.45, 1.1)
-		else:
-			_air_base = global_position.y           # below the take-off: follow the fall at once
-	_cam_air = lerpf(_cam_air, want, 1.0 - exp(-(14.0 if want < _cam_air else 9.0) * delta))
-	var flat := Vector3(velocity.x, 0.0, velocity.z)
-	var right := Basis(Vector3.UP, _yaw) * Vector3.RIGHT
-	var lead := right * flat.dot(right) * 0.065 * (0.4 + 0.6 * _run_blend)
-	if is_instance_valid(_lock):
-		lead = Vector3.ZERO
-	_look_ahead = _look_ahead.lerp(lead.limit_length(0.45), 1.0 - exp(-2.5 * delta))
-
-
-## A thin thing between the camera and the wanderer (a post, a lantern pole, a sapling) is ignored
-## instead of yanking the camera in: the camera's own spot must be clear and it must cover less than
-## half of the wanderer's width (THIN_RAYS parallel rays across +-THIN_HALF_W, fewer than half
-## blocked). r35: it used to be "one of two edge rays gets through", so a stele or a raid standing
-## stone off to one side passed as a pole: the camera stayed behind it and the stone hid the wanderer
-## (shots/critB_first_review_seg_strafe.png) or filled half the screen in the henge raid.
-func _thin_occluder(from: Vector3, dir: Vector3, want: float) -> bool:
-	var space := get_world_3d().direct_space_state
-	var cam_at := from + dir * want
-	if _thin_q == null:
-		var sph := SphereShape3D.new()
-		sph.radius = ARM_PROBE
-		_thin_q = PhysicsShapeQueryParameters3D.new()
-		_thin_q.shape = sph
-		_thin_q.collision_mask = Layers.WORLD
-		_thin_q.exclude = [get_rid()]
-	var q := _thin_q
-	q.transform = Transform3D(Basis.IDENTITY, cam_at)
-	if not space.intersect_shape(q, 1).is_empty():
-		return false
-	if _thin_ray == null:
-		_thin_ray = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ONE, Layers.WORLD, [get_rid()])
-	var side := _arm.global_basis.x.normalized()
-	var blocked := 0
-	for i in THIN_RAYS:
-		var a := from + side * lerpf(-THIN_HALF_W, THIN_HALF_W, float(i) / float(THIN_RAYS - 1))
-		_thin_ray.from = a
-		_thin_ray.to = a + dir * want
-		if not space.intersect_ray(_thin_ray).is_empty():
-			blocked += 1
-			if blocked * 2 >= THIN_RAYS:
-				return false
-	return true
-
-
 # --- movement feel: step-up and mantle -----------------------------------------------------------
 
 ## Walk straight up small ledges (stair risers, kerbs, plinth edges) instead of stopping dead.
@@ -2696,26 +2565,6 @@ func teleport(pos: Vector3, keep_velocity := false) -> void:
 	reset_physics_interpolation()
 	_on_teleported()
 	_last_pos = pos
-
-
-## Critically damped spring toward 0 (exact, any frame rate) for the camera or the visual offset.
-func _spring3(cam: bool, w: float, dt: float) -> void:
-	var x := _cam_off if cam else _vis_off
-	var v := _cam_off_v if cam else _vis_off_v
-	if x.length_squared() < 0.0000003 and v.length_squared() < 0.00003:
-		x = Vector3.ZERO
-		v = Vector3.ZERO
-	else:
-		var e := exp(-w * dt)
-		var j := v + w * x
-		x = (x + j * dt) * e
-		v = (v - w * j * dt) * e
-	if cam:
-		_cam_off = x.limit_length(0.8)
-		_cam_off_v = v
-	else:
-		_vis_off = x.limit_length(0.6)
-		_vis_off_v = v
 
 
 ## Shift the body by `d` without the skin or the view jumping: both ease after it.
@@ -2799,7 +2648,7 @@ func _land(was_grounded: bool, vy_before: float) -> void:
 	var flat := Vector3(velocity.x, 0.0, velocity.z)
 	if impact > ROLL_LAND_V and not _sliding and _roll_t < 0.0 and (flat.length() > 2.5 or Input.is_action_pressed("dodge")):
 		_land_roll(flat.normalized() if flat.length() > 0.1 else -_visual.global_basis.z, flat.length())
-		kick(0.3)                                # rolled out: no speed lost
+		camera_ctl.kick(0.3)                                # rolled out: no speed lost
 	elif impact > LAND_SLOW_V:
 		_land_slow = clampf((impact - LAND_SLOW_V) / 10.0, 0.0, 0.5 if impact < ROLL_LAND_V else 0.75)
 	_fall_hurt(impact)
@@ -2807,88 +2656,7 @@ func _land(was_grounded: bool, vy_before: float) -> void:
 		var k := clampf((impact - 5.0) / 8.0, 0.0, 1.0)
 		Vfx.burst(global_position + Vector3.UP * 0.05, Color(0.16, 0.15, 0.17, 0.55), {"count": 14, "life": 0.6, "speed": Vector2(0.6, 1.8), "size": 0.22, "gravity": -0.4, "dir": Vector3.UP, "spread": 85.0, "additive": false, "radius": 0.3})
 		if k > 0.4:
-			kick(0.15 + 0.35 * k)
-
-
-## Camera boom: our own sphere probe (the SpringArm's collision is off). Pulls in fast when
-## something comes between, eases back out slowly, shortens when looking up (no ground clipping),
-## and lengthens a little at a sprint.
-func _update_arm(delta: float) -> void:
-	# close fight (locked on, or a foe within ~4.5 m ahead): the view rises and pulls back a little so
-	# what is in front of the wanderer reads over the shoulder instead of behind the robe (r29)
-	var close := is_instance_valid(_lock) or (is_instance_valid(_look_foe) and _look_foe.is_alive() and _look_foe.global_position.distance_squared_to(global_position) < 20.0)
-	_fight_k = move_toward(_fight_k, 1.0 if close else 0.0, delta * (1.6 if close else 0.8))
-	var fk := smoothstep(0.0, 1.0, _fight_k)
-	_rig.global_position += Vector3.UP * 0.32 * fk
-	var want := ARM_LEN * lerpf(1.0, 0.62, clampf(_pitch / pitch_max, 0.0, 1.0))
-	want += 0.35 * _run_blend - 0.25 * _slide_blend + 0.45 * fk
-	var space := get_world_3d().direct_space_state if is_inside_tree() else null
-	var reach := want
-	if space:
-		_shoulder_tick(space, want, delta)
-		if _arm_q == null:                       # one query object, not two allocations per rendered frame
-			var sph := SphereShape3D.new()
-			sph.radius = ARM_PROBE
-			_arm_q = PhysicsShapeQueryParameters3D.new()
-			_arm_q.shape = sph
-			_arm_q.collision_mask = Layers.WORLD
-			_arm_q.exclude = [get_rid()]
-		var q := _arm_q
-		q.transform = Transform3D(Basis.IDENTITY, _arm.global_position)
-		q.motion = _arm.global_basis.z.normalized() * want
-		var frac: PackedFloat32Array = space.cast_motion(q)
-		if frac.size() > 0:
-			reach = want * frac[0]
-		if reach < want - 0.05 and _thin_occluder(_arm.global_position, _arm.global_basis.z.normalized(), want):
-			_thin_hold = 0.15                    # a post or a pole: let it pass, don't yank the view in
-		_thin_hold = maxf(0.0, _thin_hold - delta)
-		if _thin_hold > 0.0:
-			reach = want
-	reach = maxf(reach, 0.5)
-	if reach < _cam_len:
-		_cam_len = minf(lerpf(_cam_len, reach, 1.0 - exp(-28.0 * delta)), reach + 0.25)
-	else:
-		_cam_len = lerpf(_cam_len, reach, 1.0 - exp(-3.2 * delta))
-	_arm.spring_length = _cam_len
-	_cam.position = Vector3(0.0, 0.0, _cam_len)
-
-
-## r35: the boom sits SHOULDER m over the right shoulder, and the spring cast only watches the boom,
-## so a stele or a raid stone to its left could stand between the camera and the wanderer without
-## touching it: the view stayed behind the stone (shots/critB_first_review_seg_strafe.png). Each
-## rendered frame this looks at the wanderer from where the full-shoulder camera would stand. When
-## most of the body is hidden (SIGHT_HIDDEN of the six rays), or that camera would have to come in
-## closer than SHOULDER_NEAR (the offset then pushes the wanderer out of frame), the boom swings in
-## behind the wanderer, where the spring cast below handles whatever is still in the way; it swings
-## back out once the shoulder view is clear again. Judged from the full-shoulder spot, which does not
-## move with the swing, so the swing cannot feed back on itself.
-func _shoulder_tick(space: PhysicsDirectSpaceState3D, want: float, delta: float) -> void:
-	var dir := _arm.global_basis.z.normalized()
-	var piv := _pitch_node.global_transform * Vector3(SHOULDER, _arm.position.y, _arm.position.z)
-	if _sight_ray == null:
-		_sight_ray = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ONE, Layers.WORLD, [get_rid()])
-	var r := _sight_ray
-	r.from = piv
-	r.to = piv + dir * want
-	var hit := space.intersect_ray(r)
-	var reach := want if hit.is_empty() else maxf(0.0, piv.distance_to(hit.position) - ARM_PROBE)
-	var cam_at := piv + dir * reach
-	var body := global_position
-	var across := (body - cam_at).cross(Vector3.UP)
-	across = across.normalized() if across.length_squared() > 0.0001 else _arm.global_basis.x
-	var hidden := 0
-	for y: float in [1.1, 1.6]:
-		for s: float in [-0.3, 0.0, 0.3]:
-			r.from = cam_at
-			r.to = body + Vector3.UP * y + across * s
-			if not space.intersect_ray(r).is_empty():
-				hidden += 1
-	if hidden >= SIGHT_HIDDEN:
-		_sight_hold = 0.5                        # stays in a beat, so the edge of a stone does not flicker it
-	_sight_hold = maxf(0.0, _sight_hold - delta)
-	var k_want := 0.0 if _sight_hold > 0.0 else smoothstep(SHOULDER_NEAR * 0.5, SHOULDER_NEAR, reach)
-	_shoulder_k = lerpf(_shoulder_k, k_want, 1.0 - exp(-(9.0 if k_want < _shoulder_k else 2.5) * delta))
-	_arm.position.x = SHOULDER * _shoulder_k
+			camera_ctl.kick(0.15 + 0.35 * k)
 
 
 ## Jumping at a ledge (top 0.3-1.7 m above the feet) while pushing toward it vaults onto it.
@@ -2929,7 +2697,7 @@ func _try_mantle(wish: Vector3) -> bool:
 	velocity = Vector3.ZERO
 	_visual.play_move(&"mantle", MANTLE_TIME * 1.5)
 	Sfx.play(SFX_JUMP, global_position, -8.0, 0.85)
-	kick(0.15)
+	camera_ctl.kick(0.15)
 	return true
 
 
@@ -2979,3 +2747,7 @@ func lock_target() -> Enemy: return targeting.lock_target()
 func _nearest_foe() -> Enemy: return targeting._nearest_foe()
 ## r33: the current (remembered) target, null if none.
 func current_target() -> Node3D: return targeting.current_target()
+func set_view(yaw: float, pitch: float) -> void: camera_ctl.set_view(yaw, pitch)
+func cast_impulse() -> void: camera_ctl.cast_impulse()
+## Camera punch, 0..1. Rides the existing land-dip pitch channel.
+func kick(amount: float) -> void: camera_ctl.kick(amount)
