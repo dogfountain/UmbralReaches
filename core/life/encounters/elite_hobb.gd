@@ -42,9 +42,9 @@ func _on_state(next: int) -> void:
 	super._on_state(next)
 
 
-func stagger() -> void:
+func stagger(extra_time := 0.0) -> void:
 	_combo = 9
-	super.stagger()
+	super.stagger(extra_time)
 
 
 func riposted() -> void:
