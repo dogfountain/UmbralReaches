@@ -244,15 +244,11 @@ func _sync_oswin() -> void:
 			o.set("follow", _player())
 			o.set("pinned", true)
 	elif Book.active("forty_first") and s == 1:
-		var st: Vector3 = spots.get("stair", Vector3.INF)
-		if st != Vector3.INF and Vector2(o.global_position.x - st.x, o.global_position.z - st.z).length() > 0.5:
-			# the last few steps to the stone itself (process() kneels him there)
-			if not (o.get("follow") is Vector3):
-				o.call("release")
-				o.set("pinned", true)
-				o.set("follow", st)
-		elif not (bool(o.get("pinned")) and String(o.get("act")) == "kneel"):
-			o.call("hold", "kneel", _stone3())
+		# one point, the stone: he walks to it, and kneels with his hands on it (process() decides when)
+		if not (bool(o.get("pinned")) and String(o.get("act")) == "kneel") and not (o.get("follow") is Vector3):
+			o.call("release")
+			o.set("pinned", true)
+			o.set("follow", _stone3())
 	elif not Book.started("forty_first") and (o.get("follow") != null or bool(o.get("pinned"))):
 		# the walk was set aside (or a reload lost it): back to his own night from wherever he stands
 		o.call("release")
@@ -273,6 +269,23 @@ func _sync_oswin() -> void:
 			o.set("follow", away)
 			_leaving = o
 			_leave_t = 0.0
+
+
+const KNEEL_R := 0.8          ## m from the stone (xz) at which Oswin kneels
+const KNEEL_STUCK_S := 3.0    ## or after this long without closing on it
+var _esc_best := INF
+var _esc_stuck := 0.0
+var _esc_waited := false
+
+
+## One line, his, when he has stopped because you ran ahead; he walks on when you are back inside the wait radius.
+func _oswin_waits(o: Node3D) -> void:
+	var w := bool(o.get("waiting"))
+	if w and not _esc_waited:
+		_esc_waited = true
+		_narrate("Oswin stops on the road. \"I will wait here. Go on, I will keep.\"")
+	elif not w:
+		_esc_waited = false
 
 
 func _stone3() -> Vector3:
@@ -300,17 +313,29 @@ func _process(delta: float) -> void:
 	if pl == null:
 		return
 	# the escort arrives
+	var stone := _stone3()
 	if Book.active("forty_first") and Book.step("forty_first") == 0:
 		var o := _villager("oswin")
-		var st: Vector3 = spots.get("stair", Vector3.INF)
-		if o and st != Vector3.INF and Vector2(o.global_position.x - st.x, o.global_position.z - st.z).length() < float(Chains.ESCORT.reach):
+		if o and spots.get("stair", Vector3.INF) != Vector3.INF and Vector2(o.global_position.x - stone.x, o.global_position.z - stone.z).length() < float(Chains.ESCORT.reach):
 			Book.advance("forty_first")
 			_narrate("Oswin stops at the stone. He touches it with both hands. \"Forty-one.\"")
-	if Book.active("forty_first") and Book.step("forty_first") == 1:
+		elif o:
+			_oswin_waits(o)
+	elif Book.active("forty_first") and Book.step("forty_first") == 1:
 		var o2 := _villager("oswin")
-		var st2: Vector3 = spots.get("stair", Vector3.INF)
-		if o2 and o2.get("follow") is Vector3 and Vector2(o2.global_position.x - st2.x, o2.global_position.z - st2.z).length() < 0.5:
-			o2.call("hold", "kneel", _stone3())
+		if o2 and o2.get("follow") is Vector3:
+			# he kneels once he has closed to the stone, or has been stuck against it (a wall in the last step)
+			var d2 := Vector2(o2.global_position.x - stone.x, o2.global_position.z - stone.z).length()
+			if d2 < KNEEL_R or _esc_stuck >= KNEEL_STUCK_S:
+				o2.call("hold", "kneel", stone)
+				_esc_stuck = 0.0
+				_esc_best = INF
+			else:
+				if d2 < _esc_best - 0.15:
+					_esc_best = d2
+					_esc_stuck = 0.0
+				else:
+					_esc_stuck += 0.25
 	# Father Harrow wakes over his lantern
 	if Book.active("slow_way") and Book.step("slow_way") <= 1 and not is_instance_valid(hollow):
 		var at: Vector3 = spots.get("hollow", Vector3.INF)
