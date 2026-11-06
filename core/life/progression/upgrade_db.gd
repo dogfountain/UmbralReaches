@@ -154,7 +154,7 @@ const OATHS: Array[Dictionary] = [
 ## Rites: one per relic or trophy, bought once, needing it in the satchel.
 const RITES: Array[Dictionary] = [
 	{"id": "bramble", "needs": "thorn_heart", "name": "Bramble Ward", "glyph": "bramble", "cost": 18,
-		"text": "Lantern Ward roots what crosses its light in brambles: slowed hard, and Marked once.",
+		"text": "Lantern Ward snags what crosses its light in brambles: slowed hard for a moment, and Marked once.",
 		"lore": "The Thorn Heart still beats. Plant it by a fire and see what grows."},
 	{"id": "deep", "needs": "bone_reliquary", "name": "Deep Reliquary", "glyph": "skull", "cost": 22,
 		"text": "Implosion drags from 13 m (was 9.5). Wake lingers 5 s (was 3) over a wider field.",
