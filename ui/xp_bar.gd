@@ -23,6 +23,9 @@ var _shown := 0.0              ## eased fill
 var _last_xp := -1.0
 var _num_t := 0.0
 var _gain := 0.0
+var _dirty := true
+var _num_was := false          ## the number was up last frame: one more redraw clears it
+var _alpha_drawn := -1.0
 
 
 func _ready() -> void:
@@ -40,12 +43,17 @@ func _process(delta: float) -> void:
 	_scan -= delta
 	if _scan <= 0.0:
 		_scan = 0.5
-		_info = _read()
+		var fresh := _read()
+		if fresh != _info:
+			_dirty = true                # level, rested stretch or a cap changed
+		_info = fresh
 	var zone := get_tree().current_scene
 	var hidden := _info.is_empty() or get_tree().paused or (zone != null and zone.get_node_or_null("LoadingScreen") != null)
 	_alpha = move_toward(_alpha, 0.0 if hidden else 1.0, delta * 4.0)
 	modulate.a = _alpha
 	visible = _alpha > 0.0
+	if not visible:
+		return
 	if _info.is_empty():
 		return
 	var xp := float(_info.xp) + 100000.0 * float(_info.get("level", 0))     # monotonic across a level-up
@@ -55,8 +63,14 @@ func _process(delta: float) -> void:
 	_last_xp = xp
 	_num_t = maxf(0.0, _num_t - delta)
 	var want := 1.0 if bool(_info.get("capped", false)) else clampf(float(_info.xp) / maxf(float(_info.next), 0.001), 0.0, 1.0)
+	var before := _shown
 	_shown = want if want < _shown else lerpf(_shown, want, 1.0 - exp(-6.0 * delta))
-	queue_redraw()
+	# a settled strip waits for the next gain: redraw while the fill moves, the number is up, or it fades
+	if _dirty or absf(_shown - before) > 0.000001 or _num_t > 0.0 or _num_was or _alpha < 1.0 or _alpha != _alpha_drawn:
+		_dirty = false
+		_alpha_drawn = _alpha
+		queue_redraw()
+	_num_was = _num_t > 0.0
 
 
 func _read() -> Dictionary:

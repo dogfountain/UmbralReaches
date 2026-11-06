@@ -10,6 +10,7 @@ const A0 := PI * 0.62              ## the arc spans the left side of the crossha
 const A1 := PI * 1.38
 var _alpha := 0.0
 var _shown := 0.0
+var _was_on := false
 
 
 func _ready() -> void:
@@ -28,7 +29,10 @@ func _process(delta: float) -> void:
 	_shown = lerpf(_shown, r, 1.0 - exp(-14.0 * delta))
 	_alpha = move_toward(_alpha, want, delta * (6.0 if want > 0.0 else 1.2))
 	visible = _alpha > 0.01
-	queue_redraw()
+	# redraw across the fade and while on screen; a full bar that is invisible is not a picture
+	if want > 0.0 or _alpha > 0.0 or _was_on:
+		queue_redraw()
+	_was_on = _alpha > 0.0 or want > 0.0
 
 
 func _draw() -> void:
