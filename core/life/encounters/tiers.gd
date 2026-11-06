@@ -42,6 +42,9 @@ const REGION_POOL := {
 	"moor": ["gaunt", "gaunt", "wretch", "crawler", "husk"], "orchard": ["burrower", "mite", "crawler", "burrower", "wretch"],
 	"necropolis": ["pilgrim", "pilgrim", "ossuant", "chanter", "quiller"], "mere": ["husk", "spitter", "wretch", "spitter", "ossuant"],
 	"holds": ["crawler", "wretch"],
+	# --- south marches ---
+	"downs": ["gaunt", "gaunt", "wretch", "crawler", "leaper"], "oak": ["burrower", "mite", "crawler", "wretch"],
+	"well": ["spitter", "husk", "wretch", "spitter", "ossuant"],
 	# --- the east marches ---
 	"stillwater": ["husk", "spitter", "wretch", "gaunt", "husk"], "anchorholds": ["bulwark", "chanter", "leaper", "husk", "quiller"],
 	"saltmarket": ["wretch", "crawler"], "saltpans": ["husk", "burrower", "cinder", "gaunt", "crawler"],

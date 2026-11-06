@@ -29,6 +29,8 @@ const SiteGlade := preload("res://core/life/secrets/site_glade.gd")
 const SiteBreath := preload("res://core/life/secrets/site_breath.gd")
 const SiteCompany := preload("res://core/life/secrets/site_company.gd")
 const SiteR34 := preload("res://core/life/secrets/site_r34.gd")      # r34 places: the new ground's secrets
+# --- south marches ---
+const SiteSouth := preload("res://core/life/secrets/site_r37_south.gd")
 const Reactivity := preload("res://core/life/secrets/reactivity.gd")
 const Director := preload("res://core/life/secrets/director.gd")
 const SecretsPanel := preload("res://core/life/secrets/panel.gd")
@@ -68,6 +70,8 @@ static func build(root: Node) -> void:
 	if not "--no-r34-secrets" in OS.get_cmdline_user_args():
 		SiteR34.build(root, host)
 	build_ms["r34"] = (Time.get_ticks_usec() - t) / 1000
+	# --- south marches ---
+	SiteSouth.build(root, host)
 	# --- the east marches ---
 	if not "--no-r37-east" in OS.get_cmdline_user_args():
 		var east_site: Variant = load("res://core/life/secrets/site_r37_east.gd")    # no preload: it reads this file

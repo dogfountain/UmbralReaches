@@ -54,6 +54,8 @@ const GROUP_GUARDIAN := "guardian_site"           ## core/life/encounters/guardi
 const GROUP_UPDRAFT := "updraft"                  ## the cloak-glide's lift (Player._updraft)
 const SID := "world_pois"
 const R34_PATH := "res://core/world/realm/realm_pois_r34.gd"   ## r34 places (docs/r34/places.md)
+# --- south marches ---
+const SOUTH_PATH := "res://core/world/realm/realm_pois_r37_south.gd"     ## the South pass (the wall, the fold, the oak, the well)
 # --- the east marches ---
 const R37E_PATH := "res://core/world/realm/realm_pois_r37_east.gd"   ## East Marches (Stillwater, Anchorholds, Saltmarket, White Pans)
 
@@ -151,6 +153,9 @@ static func reserve(root: Node) -> void:
 	print("REALM_POI reserved %s" % [spots.keys()])
 	# r34 places: the new ground's places (realm_pois_r34.gd, docs/r34/places.md)
 	(load(R34_PATH) as GDScript).call("reserve", root, skip)
+	# --- south marches ---
+	var south_pois: Variant = load(SOUTH_PATH)     # no preload: a cycle
+	south_pois.reserve(root)
 	# --- the east marches ---
 	var east_pois: Variant = load(R37E_PATH)
 	east_pois.reserve(root, skip)
@@ -239,6 +244,9 @@ static func build(root: Node) -> void:
 		built.append(id)
 	# r34 places: the new ground's places, under the same holder and groups
 	(load(R34_PATH) as GDScript).call("build", holder)
+	# --- south marches ---
+	var south_build: Variant = load(SOUTH_PATH)
+	south_build.build(holder)
 	# --- the east marches ---
 	var east_pois: Variant = load(R37E_PATH)
 	east_pois.build(holder)

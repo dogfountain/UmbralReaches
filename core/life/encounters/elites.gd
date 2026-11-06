@@ -11,6 +11,8 @@ extends RefCounted
 
 const Variants := preload("res://core/life/encounters/variants.gd")
 const SELF_PATH := "res://core/life/encounters/elites.gd"
+# --- south marches ---
+const SouthParts := preload("res://core/life/encounters/elite_r37_south.gd")
 
 ## r29: health x1.5 (zz/critA_probe: held Rift Bolt killed the old 8-20 hp in 2-4 s).
 const ELITES := {
@@ -62,6 +64,23 @@ const ELITES := {
 		"note": "No face should turn from the sky. He scraped the saints and then himself. In the deeper dark he steps through it: a tear opens where he will be. Watch for the tear. -- Brother Ansel's last chisel-note",
 		"trait": "Steps through the dark: a tear opens beside you, then he is there.",
 	},
+	# --- south marches ---
+	"root_wife": {
+		"title": "The Root-Wife", "kind": "husk", "script": "res://core/life/encounters/elite_root_wife.gd",
+		"haunt": [Vector2(-82.0, 203.0), Vector2(-80.0, 211.0), Vector2(-84.0, 198.0), Vector2(-76.0, 216.0)], "region": "oak",
+		"hp": 32, "ash": 28, "scale": 1.38, "glow": Color(0.5, 1.5, 0.4), "loot": "oak_heartwood",
+		"where": "the roots of the Grandmother Oak, on the southern downs",
+		"note": "She keeps the oak. The Rooted sang to it every spring and it sang back; now it sings through her. When she stops and the ground goes soft, three roots are coming up: one where you stand and one at each hand. Walk through the line, do not run along it. Two grubs follow her up when she is hurt. -- scratched in the hollow, in the Rooted's hand",
+		"trait": "Three root-snares fill at once, one under you and one at each side. Calls two grubs at half health.",
+	},
+	"well_answer": {
+		"title": "The Answerer", "kind": "spitter", "script": "res://core/life/encounters/elite_answerer.gd",
+		"haunt": [Vector2(64.5, 208.0), Vector2(63.0, 207.0), Vector2(66.0, 209.5), Vector2(62.0, 210.0)], "region": "well",
+		"hp": 16, "ash": 26, "scale": 1.3, "glow": Color(0.55, 1.1, 1.8), "loot": "echo_bell",
+		"where": "the landing at the foot of the Well of Echoes' ledge, by the cave",
+		"note": "Whoever drops a stone down the Well is answered. Something at the bottom has been answering for nine winters, and has learned to throw back what it hears. Where you stood when it spat, the ground rings again two breaths later. Do not stand and dodge: keep walking, and close with it. -- cut in the lintel of the Descent",
+		"trait": "Spits; the ground where you stood rings again two seconds later. Calls two drowned at half health.",
+	},
 	# --- the east marches ---
 	"brine_wife": {
 		"title": "The Brine-Wife, Bitter Mother", "kind": "husk", "script": "res://core/life/encounters/elite_brine_wife.gd",
@@ -93,6 +112,13 @@ const LOOT := {
 	"scraped_face": {"name": "The Scraped Face", "shape": "mask", "tint": Color(0.85, 0.82, 0.8),
 		"desc": "A penitent's face-plate, chiselled blank. On the inside, someone carved a small fire.",
 		"text": "Bounty of the Faceless Penitent (the Deeper Night)."},
+	# --- south marches ---
+	"oak_heartwood": {"name": "Heartwood of the Grandmother Oak", "shape": "branch", "tint": Color(0.5, 0.36, 0.22),
+		"desc": "A split of the oak's dead heart, still warm on one face. The Rooted say the first fire was carried out of this tree; the grain remembers it.",
+		"text": "Bounty of the Root-Wife, from the roots of the Grandmother Oak."},
+	"echo_bell": {"name": "The Echo Bell", "shape": "lantern", "tint": Color(0.5, 0.42, 0.26),
+		"desc": "A small struck-bronze bell from the Answerer's halos. It rings once when you lift it, and again, softer, from somewhere below you.",
+		"text": "Bounty of the Answerer, from the landing of the Well of Echoes."},
 	# --- the east marches ---
 	"brine_censer": {"name": "The Brine-Wife's Censer", "shape": "lantern", "tint": Color(0.82, 0.88, 0.92),
 		"desc": "An iron pan-ladle with a handle worn to a groove. Everything it ever held has crystallised on it, in layers, like a tree's rings.",
@@ -351,6 +377,9 @@ static func _build(id: String, rig: CharacterRig) -> Dictionary:
 				var t := float(k) / 11.0
 				c.blob(Vector3(lerpf(-0.18, 0.16, t), 0.18 - t * 0.42, -0.14 - 0.03 * sin(t * PI)), Vector3(0.014, 0.01, 0.006), Basis(Vector3.FORWARD, float(k % 2) * 1.57), IRON, 1.0, 0.0, 0.0, 3, 6)
 			parts["chest"] = c.commit()
+		# --- south marches ---
+		"root_wife", "well_answer":
+			parts = SouthParts.build(id, rig, sd)
 		# --- the east marches ---
 		"brine_wife":
 			# salt crust grown in spikes over the shoulders and brow, a pan-ladle in the right hand
