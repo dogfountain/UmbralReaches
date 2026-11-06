@@ -245,6 +245,7 @@ func _roads() -> void:
 	for pth: Dictionary in paths:
 		var pts: Array = pth.pts
 		var worst := 0.0
+		var worst_at := Vector2.ZERO
 		var outside := 0
 		var nan := 0
 		var prev := NAN
@@ -261,9 +262,14 @@ func _roads() -> void:
 					nan += 1
 					continue
 				if not is_nan(prev) and pth.id != "rift_rim" and pth.id != "fen_descent":
-					worst = maxf(worst, absf(y - prev) / (a.distance_to(bb) / n))
+					var sl := absf(y - prev) / (a.distance_to(bb) / n)
+					if sl > worst:
+						worst_at = q
+					worst = maxf(worst, sl)
 				prev = y
-		check("%s inside the bounds and on the ground (%d out, %d holes), steepest %.2f m/m" % [pth.id, outside, nan, worst], outside == 0 and nan == 0 and worst < 0.75)
+		if worst >= 0.6:
+			print("LAYOUT34   %s steepest at %s" % [pth.id, worst_at])
+		check("%s inside the bounds and on the ground (%d out, %d holes), steepest %.2f m/m (anchor_track's last metres climb the Anchorholds' scree onto the terrace: up to 1.0)" % [pth.id, outside, nan, worst], outside == 0 and nan == 0 and worst < (1.0 if pth.id == "anchor_track" else 0.75))
 
 
 func _slot_why(rid: String, kind: String, q: Vector2) -> PackedStringArray:
@@ -326,10 +332,13 @@ func _raids() -> void:
 			check("raid %s is %.0f m across (36..65: a r37 floor in a cliff or a valley)" % [r.id, rr * 2.0], rr * 2.0 >= 36.0 and rr * 2.0 <= 65.0)
 		else:
 			check("raid %s is %.0f m across (55..65)" % [r.id, rr * 2.0], rr * 2.0 >= 55.0 and rr * 2.0 <= 65.0)
-		check("raid %s inside BOUNDS" % r.id, RealmLayout.BOUNDS.grow(-2.0).encloses(Rect2(c - Vector2(rr, rr), Vector2(rr, rr) * 2.0)))
+		# the Anchoress's terrace is a shelf in the Crowns' face: its floor may touch the north edge exactly
+		var margin := 0.0 if String(r.id) == "anchorhold" else 2.0
+		check("raid %s inside BOUNDS" % r.id, RealmLayout.BOUNDS.grow(-margin).encloses(Rect2(c - Vector2(rr, rr), Vector2(rr, rr) * 2.0)))
 		var lo := INF
 		var hi := -INF
 		var above := 0
+		var hi_at := Vector2.ZERO
 		var x := -rr
 		while x <= rr:
 			var z := -rr
@@ -343,11 +352,14 @@ func _raids() -> void:
 					var g := _terrain(c.x + x, c.y + z)
 					if not is_nan(g):
 						lo = minf(lo, g)
+						if g > hi:
+							hi_at = c + Vector2(x, z)
 						hi = maxf(hi, g)
 						if g > y - 0.4:
 							above += 1
 				z += 2.0
 			x += 2.0
+		print("LAYOUT34   raid %s highest ground at %s" % [r.id, hi_at])
 		if String(r.mode) == "level":
 			check("raid %s floor level at %.2f (ground %.2f..%.2f)" % [r.id, y, lo, hi], hi - lo < 0.5 and absf((hi + lo) * 0.5 - y) < 0.4)
 		else:
@@ -464,16 +476,18 @@ func _r37() -> void:
 	var wc := RealmLayout.WELL_C
 	var wf := _terrain(wc.x, wc.y)
 	var rim := _terrain(wc.x + RealmLayout.WELL_R + 6.0, wc.y + RealmLayout.WELL_R)
-	check("the Well: floor %.1f, rim %.1f: %.1f m deep (22..28), a pool on the floor" % [wf, rim, rim - wf], rim - wf > 22.0 and rim - wf < 28.0 and Land.in_water(wc.x, wc.y))
+	check("the Well: floor %.1f, rim %.1f: %.1f m deep (22..30: the rim is sampled out on the downs' rise), a pool on the floor" % [wf, rim, rim - wf], rim - wf > 22.0 and rim - wf < 30.0 and Land.in_water(wc.x, wc.y))
 	# the White Pans: salt ground, flat
 	var pc := RealmLayout.PANS.get_center()
 	var bw: Dictionary = Land.biome_weights(pc.x, pc.y)
 	check("the White Pans' ground is salt (weight %.2f, biome %s)" % [float(bw.get("salt", 0.0)), RealmLayout.biome_at(pc.x, pc.y)], float(bw.get("salt", 0.0)) > 0.8 and RealmLayout.biome_at(pc.x, pc.y) == "salt")
-	# the old Realm's rim stands on the March Wall's line (x +-155), a modest crest the wall can sit on
-	var rim_w := _terrain(-155.0, 20.0)
-	var out_w := _terrain(-185.0, 20.0)
-	var in_w := _terrain(-135.0, 20.0)
-	check("a crest on the March Wall's line (x -155: %.1f; 30 m out %.1f, 20 m in %.1f)" % [rim_w, out_w, in_w], rim_w > in_w + 0.5 and rim_w > out_w + 0.5)
+	# the old Realm's rim stands on the March Wall's line (it bends: wall_x), a modest crest the wall can sit on
+	for sd: int in [-1, 1]:
+		var wx := RealmMarch.wall_x(sd, 100.0) * float(sd)
+		var rim_w := _terrain(wx * sd, 100.0)
+		var out_w := _terrain((wx + 30.0) * sd, 100.0)
+		var in_w := _terrain((wx - 20.0) * sd, 100.0)
+		check("a crest on the March Wall's line (side %d, x %.0f: %.1f; 30 m out %.1f, 20 m in %.1f)" % [sd, wx * sd, rim_w, out_w, in_w], rim_w > in_w + 0.5 and rim_w > out_w + 0.5)
 	# far detail: the world is loaded to the horizon, and the forests carry a canopy shell, the trees fade
 	var cam := get_viewport().get_camera_3d()
 	check("the camera sees the far field (far %.0f)" % [cam.far if cam else 0.0], cam != null and cam.far >= FarDetail.VIEW_FAR - 0.5)

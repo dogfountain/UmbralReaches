@@ -25,7 +25,8 @@ const MIN_OPEN := 400.0                   ## m2 of open ground below which a reg
 const SIGN := {
 	"quarry": [["rubble", 40], ["block", 5], ["scaffold", 2]],
 	"holds": [["heather", 30]],
-	"foundry": [["slag", 20], ["deadbush", 10], ["cinders", 4], ["ashdrift", 20]],
+	# (foundry deadbush 8: the Crowns-foot link crosses the pits' south edge and keeps its brush off the track)
+	"foundry": [["slag", 20], ["deadbush", 8], ["cinders", 4], ["ashdrift", 20]],
 	"moor": [["windtree", 6], ["gorse", 20], ["cairn", 2], ["heather", 800]],
 	"orchard": [["fruit", 40], ["ashdrift", 200], ["cinders", 5]],
 	"necropolis": [["cypress", 6], ["headstone", 1], ["yew", 2], ["tallgrass", 400]],
@@ -90,7 +91,7 @@ var _camps: Array[Vector2] = []           ## outpost candidates and fires: kept 
 
 
 func _open(x: float, z: float) -> bool:
-	if RealmLayout.path_dist(Vector2(x, z)) < 1.0 or not RealmLayout.OLD_BOUNDS.has_point(Vector2(x, z)) or absf(absf(x) - RealmLayout.MARCH_WALL_X) < 10.0:
+	if RealmLayout.path_dist(Vector2(x, z)) < 1.0 or not RealmLayout.OLD_BOUNDS.has_point(Vector2(x, z)) or RealmMarch.wall_dist(Vector2(x, z)) < 10.0:
 		return false                  # (judged on the old Realm's ground, less the March Wall's band: its sites and keep-outs are the wall's)
 	for c in _camps:
 		if c.distance_to(Vector2(x, z)) < Flora.OUTPOST_CLEAR:

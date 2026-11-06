@@ -133,7 +133,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(172.0, 60.0, -36.0), "kinds": ["husk", "spitter", "husk"], "probe": 0.0},      # the north shore
 	{"at": Vector3(246.0, 60.0, -28.0), "kinds": ["gaunt", "wretch", "gaunt"], "probe": 0.0},     # the lake's east bank, under the bluff
 	{"at": Vector3(188.0, 60.0, 44.0), "kinds": ["spitter", "husk"], "probe": 0.0},               # the south shore, off the fire
-	{"at": Vector3(180.0, 60.0, -100.0), "kinds": ["bulwark", "chanter", "leaper"], "probe": 0.0},  # the scree
+	{"at": Vector3(180.0, 60.0, -82.0), "kinds": ["bulwark", "chanter", "leaper"], "probe": 0.0},  # the scree
 	{"at": Vector3(232.0, 60.0, -94.0), "kinds": ["bulwark", "quiller", "wretch"], "probe": 0.0},  # the east cells
 	{"at": Vector3(184.0, 60.0, -60.0), "kinds": ["leaper", "gaunt", "gaunt"], "probe": 0.0},      # anchor_track's lower bend
 	{"at": Vector3(190.0, 60.0, 118.0), "kinds": ["wretch", "crawler"], "probe": 0.0},            # Saltmarket's west approach
