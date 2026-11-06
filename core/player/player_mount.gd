@@ -11,6 +11,12 @@ func _init(p: Player) -> void:
 	player = p
 
 
+## Off the horse (a hollow, a fall out of the world, the jump key): the horse stays where it is.
+func get_down() -> void:
+	if player.riding != null and is_instance_valid(player.riding):
+		player.riding.call("dismount")
+
+
 ## One physics tick on horseback. Returns true when the horse drove the tick (Player skips its
 ## own movement); false when the wanderer is on foot, was just unseated, or jumped down.
 func ride_tick(wish: Vector3, sprint: bool, delta: float) -> bool:
@@ -21,7 +27,7 @@ func ride_tick(wish: Vector3, sprint: bool, delta: float) -> bool:
 		player.riding = null
 		return false
 	if Input.is_action_just_pressed("jump"):
-		horse.call("dismount")
+		get_down()
 		return false
 	horse.call("drive", player, wish, sprint, delta)
 	player._grounded = true

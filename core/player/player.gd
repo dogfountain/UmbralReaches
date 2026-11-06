@@ -720,7 +720,7 @@ func _face_now(dir: Vector3) -> void:
 	if dir.length_squared() < 0.0001:
 		return
 	_face_yaw = atan2(-dir.x, -dir.z)
-	_visual.rotation.y = lerp_angle(_visual.rotation.y, _face_yaw, 0.6)
+	_visual.rotation.y = lerp_angle(_visual.rotation.y, _face_yaw, 1.0 - exp(-18.0 * get_physics_process_delta_time()))
 
 
 # --- traversal (r28): ledge hang + climb, vault, wall kick, steep slopes, beams, dodge roll ---------

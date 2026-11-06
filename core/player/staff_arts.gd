@@ -67,6 +67,7 @@ var _hold := -1.0                ## the staff key held this long (-1 not held)
 var _drawing := false            ## a heavy is being drawn
 var _guard_t := -1.0             ## guard held this long (-1 not held)
 var _guard_k := 0.0
+var _parry_clock := -1.0         ## runs from the moment the staff is across the body (guard_k > 0.65)
 var _last_guard := -10.0
 var _parry_ok := false
 var _broken := 0.0
@@ -94,7 +95,7 @@ func guarding() -> bool:
 
 ## Inside a guard's opening: a blow now is parried (Player.is_evading reads this).
 func parrying() -> bool:
-	return _guard_t >= 0.0 and _guard_t <= PARRY_WIN and _parry_ok
+	return _parry_clock >= 0.0 and _parry_clock <= PARRY_WIN and _parry_ok
 
 
 func phase() -> int:
@@ -352,7 +353,7 @@ func drive(wish: Vector3) -> Vector3:
 	if _phase < 0:
 		return Vector3.ZERO
 	if _t < _hit_at:
-		return _lunge + wish * 0.6
+		return _lunge * smoothstep(0.0, _hit_at * 0.5, _t) + wish * 0.6
 	return wish * 0.8 * (1.0 - clampf((_t - _hit_at) / 0.15, 0.0, 1.0))
 
 
@@ -493,21 +494,27 @@ func _start_guard() -> void:
 	_parry_ok = now - _last_guard >= PARRY_RELOCK
 	_last_guard = now
 	_guard_t = 0.0
+	_parry_clock = -1.0
 	player.note_combat()
 	StaffSfx.play("tap", player.global_position + Vector3.UP * 1.3, -12.0, 1.5)
 
 
 func _end_guard() -> void:
 	_guard_t = -1.0
+	_parry_clock = -1.0
 
 
 func _tick_guard(delta: float) -> void:
 	if _guard_t >= 0.0:
 		_guard_t += delta
+		if _parry_clock >= 0.0:
+			_parry_clock += delta
 		var st := player.stamina()
 		if st:
 			st.holding = true
 	_guard_k = move_toward(_guard_k, 1.0 if _guard_t >= 0.0 else 0.0, delta * (14.0 if _guard_t >= 0.0 else 6.0))
+	if _guard_t >= 0.0 and _parry_clock < 0.0 and _guard_k > 0.65:
+		_parry_clock = 0.0                        # the window opens when the staff is across, and lasts PARRY_WIN
 
 
 ## Player.on_evaded during a parry window: the blow is turned aside.

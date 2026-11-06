@@ -946,7 +946,7 @@ func cast_pose(kind: StringName) -> void:
 	if kind == _cast_kind and _cast_t >= 0.0 and _cast_k > 0.05:
 		# a repeat while the last one is still out (held Rift Bolt fires every 0.28 s, the flick
 		# lasts 0.42): carry on from where the staff is instead of snapping it back to rest
-		_cast_t = float(CAST_LEN.get(kind, 0.45)) * 0.16 * clampf(_cast_k, 0.0, 1.0)
+		_cast_t = float(CAST_LEN.get(kind, 0.45)) * 0.35 * clampf(_cast_k, 0.0, 1.0)
 	else:
 		_cast_t = 0.0
 		_cast_k = 0.0

@@ -286,6 +286,7 @@ func hollow() -> void:
 	if player._hollowing:
 		return
 	player._hollowing = true
+	player.mount.get_down()                      # on your feet for the fade to the fire; the horse stays
 	player.hollow_count += 1
 	_drop_ash()
 	Travel.saved_hollows = player.hollow_count
@@ -388,6 +389,7 @@ func restore_mound() -> void:
 
 func _fell_out() -> void:
 	player._fall_t = 0.0
+	player.mount.get_down()
 	var to := player._safe_ground if player._safe_ground != Vector3.INF else player.checkpoint
 	if to.y < -38.0:
 		to = player.checkpoint
