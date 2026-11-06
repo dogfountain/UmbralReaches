@@ -32,7 +32,7 @@ fit). `-- --realm-modules=land,flora` builds only those modules.
 | Folder | What lives there |
 | --- | --- |
 | `autoload/` | Five services: `Events` (signals only), `Settings` (settings.cfg), `Travel` (scene change + fade, savegame.cfg, inventory, kindles, checkpoints, story/systems blobs), `LightGrid` (safe-light registry), `InputSetup` (InputMap). |
-| `core/player/` | `Player` (controller: move, traversal, camera, lock-on, gloom, interact, cast; `player.gd`), `CharacterRig` (skin: skeleton, sockets, stride, cloth, staff; also the base of the enemy rigs), wanderer mesh/texture generators, `MagicBolt` + `BoltPool` (Zone-owned). |
+| `core/player/` | `Player` (`player.gd`: state, signals, exports, the tick order and thin forwarders; the logic lives in child components: `PlayerLocomotion`, `PlayerTraversal`, `PlayerEvasion`, `PlayerCamera`, `PlayerTargeting`, `PlayerVitals` (Gloom, Wounds, hollowing), `PlayerCasting`, `PlayerInteraction`, `PlayerMount`, and `PlayerAutopilot` (built only for demos/tests)), `CharacterRig` (skin: skeleton, sockets, stride, cloth, staff; also the base of the enemy rigs), wanderer mesh/texture generators, `MagicBolt` + `BoltPool` (Zone-owned). |
 | `core/skills/` | `SkillBook` + `Skill` subclasses (bolt, lance, nova, step, tether, ward, well, familiar), `Afflict` (burn/chill manager), `Combo` feed, `Aim`. |
 | `core/items/` | `ItemDB` (all carryables) and `EquipmentPiece` data (staff, lantern, gauntlets, boots). |
 | `core/enemy/` | `Enemy` base + kinds (husk, leaper, spitter, crawler, …) and bosses (Thornwarden, Bone Abbot, Ascended Warden), rigs (`hunch_rig`, `quad_rig`), `EnemyBody`, `EnemySpawner` (camps, seal guards), `AttackKit`. |
@@ -111,7 +111,18 @@ Layers (`core/util/layers.gd`): WORLD 1, PLAYER 2, HURTBOX 4, INTERACT 8, PROPS 
 `tools/run_tests.sh [name …]` runs every `zz/*_test.tscn` headless, each in its own scratch HOME with a
 timeout, and fails on a nonzero exit (a PASS line then a deliberate self-kill is allowed), any `FAIL` line, or any `SCRIPT ERROR` /
 `Parse Error` / `Failed to load script` in the log (a parse error elsewhere cascades silently
-otherwise). It also runs the static lint. Run it before every pack.
+otherwise). It also runs the static lint and `tools/lint.sh`, a ratchet: per file, string `.call("…")`, `has_method`,
+`.get("_private")` and round-tag comments may not rise above `tools/lint_baseline.txt`, and a file over
+1,000 lines may not grow by more than 50. Run `tools/lint.sh --update` only after counts went down.
+Run it before every pack.
+
+## Navigation
+
+`RealmNav` (`core/world/realm/realm_nav.gd`) bakes one navigation mesh from WORLD collision as a late
+Realm module, on a worker thread, cached through GenCache. Enemies and the Shade keep cheap straight
+steering and ask `NavAssist` (`core/enemy/nav_assist.gd`) for a path corner only when the straight
+line is walled or they stall (at most one query per 0.5 s). Dynamic walls (briars, gates, the raid
+maze) are not in the mesh.
 
 ## Pack
 

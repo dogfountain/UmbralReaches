@@ -5,7 +5,7 @@ description: Wanderer, camera, staff, gloom, and combat facts for Umbral Reaches
 
 # Player
 
-Last verified 2026-11-04 against `core/player/player.gd`.
+Last verified 2026-11-04 against `core/player/player.gd`. Since 2026-11-06 `player.gd` keeps state, signals, exports and the tick order; the logic is in `core/player/player_*.gd` components (see ARCHITECTURE.md). Public names are unchanged.
 
 `Player` (`CharacterBody3D`) owns move, camera, gloom, interact, cast. `CharacterRig` owns skeleton, sockets, stride, loadout. Talk through `animate()`, `cast()`, `equip()` — never bone names.
 
