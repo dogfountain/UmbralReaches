@@ -17,6 +17,7 @@ var _t := 0.0
 var _beam: MeshInstance3D
 var _label: Label3D
 var _done := false
+var kept := false             ## the last save wrote this bag: while the game closes it is not poured (Continue lays it back)
 
 
 func _ready() -> void:
@@ -120,6 +121,8 @@ func take(i: int) -> String:
 	var e: Dictionary = entries.pop_at(i)
 	var line := _store(e)
 	_refresh_label()
+	if kept:
+		Travel.save_soon()                          # the record must not still hold what was taken
 	if entries.is_empty():
 		_finish()
 	return line
@@ -155,6 +158,8 @@ func _finish() -> void:
 
 
 func _exit_tree() -> void:
+	if kept and Travel.leaving:
+		return                                       # the save holds this bag: pouring it too would grant it twice
 	if not entries.is_empty():
 		for e: Dictionary in entries:
 			_store(e)

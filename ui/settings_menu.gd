@@ -573,6 +573,7 @@ func _footer() -> HBoxContainer:
 		if quit_btn.text.begins_with("Really"):
 			Settings.flush()
 			Travel.save_now()
+			Travel.leaving = true
 			get_tree().quit()
 		else:
 			quit_btn.text = "Really quit?"

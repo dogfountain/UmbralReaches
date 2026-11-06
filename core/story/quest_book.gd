@@ -142,9 +142,9 @@ static func advance(id: String, to := -1) -> void:
 static func _announce(id: String, s: int, d: Dictionary) -> void:
 	var stp := Chains.step(id, s)
 	if String(stp.get("kind", "")) == "cond" and stp.has("past"):
-		var ws := {"flags": Travel.story.get("flags", {}), "kindled": 0, "seals": Travel.seals_broken,
-			"bosses": Travel.bosses_slain, "items": Travel.items}
-		if QuestDB.test(String(stp.get("cond", "")), ws):
+		var cond := String(stp.get("cond", "")).split(":", true, 1)
+		var met: Variant = Travel.bosses_slain.has(cond[1]) if cond[0] == "boss" and cond.size() > 1 else (term(cond[0], cond[1]) if cond.size() > 1 else null)
+		if met == true:
 			_toast(String(stp.past))
 			advance(id, s + 1)
 			return
