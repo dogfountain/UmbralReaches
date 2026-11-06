@@ -326,8 +326,9 @@ static func intro(e: Enemy, col: Color, dur := INTRO) -> void:
 ##  - `floor_hp` > 0: the phase is not over until its signature move has been seen SIG_NEEDED
 ##    times; blows that would take it below are turned ("warded", the phase shell's look).
 static func absorb(e: Enemy, dmg: float, from: Node, floor_hp: float) -> float:
-	if from is MagicBolt and not (from as MagicBolt).heavy:
-		dmg *= BOLT_CHIP
+	if from is MagicBolt and not (from as MagicBolt).heavy and not (from as MagicBolt).empowered:
+		dmg *= BOLT_CHIP                          # the Lash (empowered) lands whole; a plain bolt pays the tax
+		Hints.once(&"bolt_chip", "A great one takes a plain bolt at seven tenths. The Lash, the Lance, and the staff land whole.")
 	# r34 raids: a floor holds only what is above it (a boss already below it -- set by a test, or a
 	# phase that moved on -- is not made immortal by it)
 	if floor_hp > 0.0 and e.hp > floor_hp and e.hp - dmg < floor_hp:
