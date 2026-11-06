@@ -17,6 +17,7 @@ var title := "Remains"
 var _t := 0.0
 var _beam: MeshInstance3D
 var _beam_mat: ShaderMaterial
+var _name_t := 0.0
 const BEAM_SHADER := preload("res://core/items/loot_beam.gdshader")
 var _label: Label3D
 var _item: Node3D             ## the best piece lying on the ground (loot_model.gd)
@@ -35,9 +36,9 @@ func _ready() -> void:
 	var mat := ShaderMaterial.new()
 	mat.shader = BEAM_SHADER
 	mat.set_shader_parameter("beam_color", Color(col.r * 1.3, col.g * 1.3, col.b * 1.3))
-	mat.set_shader_parameter("strength", 0.85 + 0.25 * float(q))
+	mat.set_shader_parameter("strength", 0.55 + 0.2 * float(q))
 	_beam_mat = mat
-	var tube := ProcMesh.cyl(0.2, 0.32, h, 16)
+	var tube := ProcMesh.cyl(0.1, 0.17, h, 16)     # slim: the item under it is what you look at
 	tube.cap_top = false                # an open tube: a cap read as a floating disc at the top
 	tube.cap_bottom = false
 	_beam = ProcMesh.mesh(self, "Beam", tube, mat, Vector3(0, h * 0.5, 0), Vector3.ZERO, false)
@@ -55,8 +56,8 @@ func _ready() -> void:
 	_label.pixel_size = 0.004
 	_label.outline_size = 10
 	_label.modulate = col.lightened(0.15)
-	_label.position = Vector3(0, h + 0.25, 0)
-	_label.visibility_range_end = 22.0
+	_label.position = Vector3(0, 0.95, 0)          # just above the item, not at the top of the beam
+	_label.visibility_range_end = 12.0
 	_refresh_label()
 	add_child(_label)
 
@@ -67,6 +68,25 @@ func _process(delta: float) -> void:
 		_glint.scale = Vector3.ONE * (0.8 + 0.35 * sin(_t * 3.4))
 	if _beam:
 		_beam_mat.set_shader_parameter("pulse", sin(_t * 2.6))
+	_name_t -= delta
+	if _name_t <= 0.0 and _label:
+		_name_t = 0.2
+		_label.visible = _nearest()
+
+
+## Only the drop nearest the wanderer (within reach of the eye) names itself: a pile of drops after a
+## fight stacked every name into one unreadable line.
+func _nearest() -> bool:
+	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	if p == null:
+		return true
+	var me := global_position.distance_squared_to(p.global_position)
+	if me > 81.0:
+		return false
+	for b in get_tree().get_nodes_in_group("loot_bag"):
+		if b != self and b is Node3D and (b as Node3D).global_position.distance_squared_to(p.global_position) < me:
+			return false
+	return true
 
 
 func best_quality() -> int:
