@@ -491,7 +491,7 @@ func knockback(dmg: float) -> float:
 
 ## A long reel: windup cancelled, token given up, open to a free combo. The reward for reading a
 ## tell (heavy hit on a windup) or for pressure (poise). Not again for STAGGER_CD.
-func stagger() -> void:
+func stagger(extra_time := 0.0) -> void:
 	if _state == DEAD:
 		return
 	_poise_dmg = 0.0
@@ -505,7 +505,7 @@ func stagger() -> void:
 		cancel_moves()                           # a boss's set pieces outlast a stagger (a phase change takes them)
 	_hitstop = maxi(_hitstop, 5)              # the reel lands with a longer crunch than a plain hit
 	_set_state(RECOVER)
-	_state_t = -(STAGGER_TIME - recover_time)
+	_state_t = -(STAGGER_TIME - recover_time + extra_time)    # extra_time: the Toll's second stagger, as a longer reel
 	if _rig and _rig.has_method("stagger"):
 		_rig.call("stagger")
 	HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.6), "broken", Color(1.0, 0.8, 0.5))
