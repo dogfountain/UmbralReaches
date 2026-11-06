@@ -1346,7 +1346,7 @@ func _set_state(next: int) -> void:
 		elif was == IDLE and (next == CHASE or next == CALL):
 			_pull_pack()                        # r33: a pull is the whole camp
 	if (next == WINDUP or next == LEAP_PREP) and _dist < 6.0 and _p != null and not Hints.seen(&"break_windup"):
-		Hints.once(&"break_windup", "Hit the red tell with a Lash or a Lance to break it.")
+		Hints.once(&"break_windup", "A blow of 2 or more breaks a red tell at once: the Lash, the Lance, the staff's last swing. A lighter blow breaks it only when the foe's poise fills. On a great one the Lash is chipped under that line; the Lance and the last swing still clear it.")
 	if next != CHASE:
 		_waiting = false
 	if not (next == WINDUP or next == STRIKE or next == LEAP_PREP or next == AIRBORNE or next == FEINT or next == SPECIAL):
@@ -2038,7 +2038,7 @@ func interrupt(_by: Node = null) -> bool:
 	if bound and _state == st and _state != DEAD:
 		_set_state(RECOVER)
 		_state_t = -0.4
-	Hints.once(&"interrupt", "A foe's cast can be broken: strike a lesser caster mid-cast, or a great one with a heavy blow.")
+	Hints.once(&"interrupt", "A foe's cast can be broken: any blow on a lesser caster; on a great one, the Lance, the knot, or a blow that still counts as 2 after the chip.")
 	return n != ""
 
 
