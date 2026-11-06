@@ -419,6 +419,9 @@ func _tips_tick(delta: float) -> void:
 	_tip_check = 0.25
 	if _menu_open() or (not staged_in() and not _lifting):
 		return
+	var zn := get_tree().current_scene
+	if zn != null and zn.get_node_or_null("LoadingScreen") != null:
+		return                         # the cover is still up: no lesson over a tour
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	if p == null or not p.is_inside_tree():
 		return
