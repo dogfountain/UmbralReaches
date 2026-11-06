@@ -2,7 +2,8 @@ class_name EnemySpawner
 extends Node3D
 ## Plants enemies on a zone. Packs are several pawns around one camp.
 
-const RESPAWN := 10.0
+const RESPAWN := 10.0            ## a seal camp's refill (the seal's progress is its kills)
+const RESPAWN_ROAM := 90.0       ## a cleared road camp stays down long enough to leave and come back on foot
 const RETRY := 1.5
 const KEEP_CLEAR := 7.0
 const HAVEN := Vector3(-3.4, 0.0, -8.5)
@@ -420,7 +421,8 @@ func _respawn_delay(slot: Dictionary) -> float:
 	if hold_for_rest and String(slot.get("seal", "")) == "":
 		return REST_HOLD
 	# r36 the night progresses: a quiet country (its bell rung) and a kin faction's country wait longer
-	return RESPAWN * ReachState.respawn_mult(slot.at) if _realm else RESPAWN
+	var base := RESPAWN if String(slot.get("seal", "")) != "" else RESPAWN_ROAM
+	return base * ReachState.respawn_mult(slot.at) if _realm else base
 
 
 const ReachState := preload("res://core/world/night/reach_state.gd")

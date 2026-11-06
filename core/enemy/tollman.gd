@@ -18,7 +18,7 @@ const RING := 2.4
 const TOLL_R := 34.0
 const CLANG_TELL := 0.6
 const CLANG_R := 2.3
-const GOLD := Color(2.4, 1.7, 0.6)
+const GOLD := Color(1.1, 0.78, 0.28)      ## the sound's footprint: under the bloom threshold, not a ward
 var look_kind := "chanter"
 
 var _toll_cd := 0.0
@@ -221,7 +221,7 @@ func _finish_toll() -> void:
 	_toll_cd = 14.0
 	var n := Enemy.toll(get_tree(), global_position, TOLL_R, self)
 	HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.7), "the toll is rung", GOLD, true)
-	Vfx.ring(global_position + Vector3.UP * 0.15, TOLL_R * 0.5, GOLD, 1.4, 0.05, Vector3.UP, 0.9)
+	Vfx.ring(global_position + Vector3.UP * 0.15, TOLL_R, Color(0.9, 0.65, 0.22), 1.4, 0.12, Vector3.UP, 0.8)    # the earshot, dim, under the bloom
 	Sfx.play_stream(Synth.get_stream("roar"), global_position + Vector3.UP * 2.0, -4.0, 1.3)
 	if n > 0:
 		Events.toast.emit("The toll is rung. Everything in earshot is coming.")

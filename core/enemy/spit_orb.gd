@@ -16,17 +16,20 @@ static var _shape: SphereShape3D
 
 var velocity := Vector3.ZERO
 var gloom := 10.0
+var dim := false              ## a volley's side orbs: a quiet light, none in the fog
 var _age := 0.0
 var _dead := false
+var _skipped := false         ## it entered you while you were evading: it wounds when the roll ends, once
 var _light: OmniLight3D
 var _body: Node3D
 
 
-static func launch(host: Node, from: Vector3, dir: Vector3, gloom_amount: float) -> SpitOrb:
+static func launch(host: Node, from: Vector3, dir: Vector3, gloom_amount: float, dim := false) -> SpitOrb:
 	if host == null:
 		return null
 	var orb := SpitOrb.new()
 	orb.gloom = gloom_amount
+	orb.dim = dim
 	orb.velocity = dir.normalized() * SPEED
 	host.add_child(orb)
 	orb.global_position = from
@@ -56,10 +59,10 @@ func _ready() -> void:
 	_body.add_child(flare)
 	_light = OmniLight3D.new()
 	_light.light_color = Color(0.3, 1.0, 0.8)
-	_light.light_energy = 1.3
+	_light.light_energy = 0.35 if dim else 1.3
 	_light.omni_range = 3.2
 	_light.shadow_enabled = false
-	_light.light_volumetric_fog_energy = 0.4
+	_light.light_volumetric_fog_energy = 0.0 if dim else 0.4
 	_light.set_meta("light_class", "glimmer")
 	add_child(_light)
 	body_entered.connect(_on_body)
@@ -73,7 +76,22 @@ func _physics_process(delta: float) -> void:
 		pop()
 		return
 	velocity.y -= SAG * delta
-	global_position += velocity * delta
+	if _skipped:
+		for b in get_overlapping_bodies():
+			if b is Player and not (b as Player).is_evading():
+				_on_body(b)
+				return
+	var from := global_position
+	var to := from + velocity * delta
+	var q := PhysicsRayQueryParameters3D.create(from, to, Layers.WORLD | Layers.PLAYER | Layers.PROPS)
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)    # a hitch cannot carry it through a body
+	if not hit.is_empty():
+		global_position = hit.position
+		_on_body(hit.collider as Node)
+		if _dead:
+			return
+		to = global_position + velocity * delta * 0.02
+	global_position = to
 	var w := 1.0 + sin(_age * 22.0) * 0.12
 	_body.scale = Vector3(w, 2.0 - w, w)
 
@@ -84,6 +102,7 @@ func _on_body(b: Node) -> void:
 	if b is Player:
 		var p := b as Player
 		if p.is_evading():
+			_skipped = true
 			return                   # stepped through it
 		p.take_wound(gloom, global_position - velocity.normalized() * 3.0)
 	pop()

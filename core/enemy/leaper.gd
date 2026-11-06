@@ -84,14 +84,14 @@ func _try_special(d: float) -> bool:
 
 
 func _special_think() -> void:
-	if _state_t >= SWEEP_TELL + 0.32:
+	if _state_t >= SWEEP_TELL + 0.12:
 		_set_state(RECOVER)
 		_state_t = -0.15
 
 
 ## The spin itself: one full turn in 0.3 s right as the disc lands.
 func _special_frame(delta: float) -> void:
-	if _state_t >= SWEEP_TELL and _spun < TAU and _face:
+	if _state_t >= SWEEP_TELL - 0.3 and _spun < TAU and _face:       # the turn ends as the disc lands
 		var step := minf(TAU * delta / 0.3, TAU - _spun)
 		_spun += step
 		_face.rotation.y += step

@@ -147,7 +147,10 @@ func _process(delta: float) -> void:
 		var d := p.global_position.distance_to(at)
 		if e == null:
 			nodes.erase(id)
-			if now >= int(_dead_until.get(id, 0)) and d < NEAR and d > 30.0 and not LightGrid.is_lit(at):
+			var due := now >= int(_dead_until.get(id, 0))
+			var lit := LightGrid.is_lit(at)
+			_show_marker(id, due and not lit)      # a lit haunt has no body, so no pin either
+			if due and d < NEAR and not lit:
 				spawn_rare(id)
 			continue
 		var de := p.global_position.distance_to(e.global_position)

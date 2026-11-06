@@ -26,6 +26,7 @@ const THORN := Color(2.6, 0.5, 0.1)          ## r29: was (2.6, 0.32, 0.18), whic
 const BONE := Color(2.2, 1.9, 1.4)
 const HOLY := Color(2.6, 2.1, 1.1)           ## r30: white-gold (violet was the player's own bolt colour, and the grade turned it blue)
 
+const Hints := preload("res://ui/hints.gd")
 const BOLT_CHIP := 0.7          ## r30: a boss takes this from a plain (non-heavy) Rift Bolt; Lance, Nova, Shatter stay full
 const SIG_NEEDED := 2           ## a phase cannot end before its signature move has been shown this often
 const INTRO := 1.8              ## seconds a boss stands, shelled, after it rises: the title card's grace
@@ -95,15 +96,15 @@ static func inside(pos: Vector3, at: Vector3, opts: Dictionary) -> bool:
 	var local := Basis(Vector3.UP, yaw).inverse() * Vector3(d.x, 0.0, d.z)
 	var rect: Vector2 = opts.get("rect", Vector2.ZERO)
 	if rect != Vector2.ZERO:
-		return absf(local.x) <= rect.x + 0.25 and local.z <= 0.25 and local.z >= -rect.y * 2.0 - 0.25
+		return absf(local.x) <= rect.x and local.z <= 0.0 and local.z >= -rect.y * 2.0
 	var r: float = opts.get("radius", 1.0)
 	var flat := Vector2(local.x, local.z)
-	if flat.length() > r + 0.2:
+	if flat.length() > r:
 		return false
 	var half: float = opts.get("half_angle", PI)
 	if half >= PI - 0.01 or flat.length() < 0.5:
 		return true
-	return absf(atan2(local.x, -local.z)) <= half + 0.08
+	return absf(atan2(local.x, -local.z)) <= half
 
 
 static func _land(host: Node, at: Vector3, opts: Dictionary, col: Color) -> void:
@@ -326,8 +327,9 @@ static func intro(e: Enemy, col: Color, dur := INTRO) -> void:
 ##  - `floor_hp` > 0: the phase is not over until its signature move has been seen SIG_NEEDED
 ##    times; blows that would take it below are turned ("warded", the phase shell's look).
 static func absorb(e: Enemy, dmg: float, from: Node, floor_hp: float) -> float:
-	if from is MagicBolt and not (from as MagicBolt).heavy:
-		dmg *= BOLT_CHIP
+	if from is MagicBolt and not (from as MagicBolt).heavy and not (from as MagicBolt).empowered:
+		dmg *= BOLT_CHIP                          # the Lash (empowered) lands whole; a plain bolt pays the tax
+		Hints.once(&"bolt_chip", "A great one takes a plain bolt at seven tenths. The Lash, the Lance, and the staff land whole.")
 	# r34 raids: a floor holds only what is above it (a boss already below it -- set by a test, or a
 	# phase that moved on -- is not made immortal by it)
 	if floor_hp > 0.0 and e.hp > floor_hp and e.hp - dmg < floor_hp:
@@ -406,7 +408,8 @@ const RAGE := Color(2.6, 0.35, 0.15)
 static func cast(e: Enemy, cast_name: String, time: float, interruptible := false, done := Callable()) -> void:
 	if e == null or not e.is_alive():
 		return
-	if e.casting() and e._cast_bound < 0:
+	var yields: bool = e.has_meta(&"yield_cast") and e.cast_name == String(e.get_meta(&"yield_cast"))
+	if e.casting() and e._cast_bound < 0 and not yields:
 		# another timed cast holds the bar (a lash during a mending): this one goes unshown, never lost
 		if done.is_valid():
 			e.get_tree().create_timer(time, false).timeout.connect(done)

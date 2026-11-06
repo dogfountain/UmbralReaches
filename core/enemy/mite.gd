@@ -6,7 +6,7 @@ extends Crawler
 ## No class_name (project rule): the spawner preloads it.
 
 const KinLook := preload("res://core/enemy/kin_look.gd")
-const VIS_RANGE := 45.0
+const VIS_RANGE := 40.0      ## draw ends where sleep begins (sleep_range 40)
 
 
 func _init() -> void:

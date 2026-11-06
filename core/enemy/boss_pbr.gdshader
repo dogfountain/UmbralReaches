@@ -15,7 +15,7 @@ uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, r
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform sampler2D orm_tex : hint_default_white, filter_linear_mipmap, repeat_disable;
 uniform sampler2D emit_tex : source_color, hint_default_black, filter_linear_mipmap, repeat_disable;
-uniform float emit_energy = 6.0;
+uniform float emit_energy = 1.3;
 uniform float normal_depth = 1.0;
 uniform vec3 rim_col : source_color = vec3(0.55, 0.36, 0.22);
 uniform float rim_amount = 0.12;

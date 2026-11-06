@@ -30,7 +30,6 @@ var _body: Node3D
 var _mask: Node3D
 var _halo: Node3D
 var _arms: Array[Node3D] = []
-var _core_light: OmniLight3D
 var _eye_light: OmniLight3D
 var _pool: Decal
 var _whisper: AudioStreamPlayer3D
@@ -108,7 +107,7 @@ static func _mat(key: String) -> Material:
 		"eye":
 			var s := StandardMaterial3D.new()
 			s.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			s.albedo_color = Color(5.0, 1.5, 0.45)
+			s.albedo_color = Color(1.3, 0.4, 0.12)
 			m = s
 		"shard":
 			var s := StandardMaterial3D.new()
@@ -316,13 +315,15 @@ func _build_body() -> void:
 	eye.height = 0.056
 	for s: float in [-1.0, 1.0]:
 		_skin(eye, _mat("eye"), _mask, Vector3(s * 0.095, 0.03, -0.215))
-		var sparks := Vfx.emitter(Color(3.0, 0.9, 0.3), {"count": 10, "life": 0.9, "speed": Vector2(0.05, 0.3), "size": 0.02, "gravity": -0.6, "trail": 0.12, "radius": 0.02})
+		var sparks := Vfx.emitter(Color(1.3, 0.4, 0.12), {"count": 10, "life": 0.9, "speed": Vector2(0.05, 0.3), "size": 0.02, "gravity": -0.6, "trail": 0.12, "radius": 0.02})
 		sparks.position = Vector3(s * 0.095, 0.03, -0.22)
 		_mask.add_child(sparks)
 		sparks.emitting = true
 	_eye_light = OmniLight3D.new()
 	_eye_light.light_color = Color(1.0, 0.45, 0.15)
-	_eye_light.omni_range = 2.2
+	_eye_light.omni_range = 2.0
+	_eye_light.shadow_enabled = false
+	_eye_light.light_volumetric_fog_energy = 0.0
 	_eye_light.light_energy = 0.6
 	_eye_light.position = Vector3(0, 0.0, -0.9)     # throws ember light forward, keeps the bone pale
 	_eye_light.set_meta(&"light_class", "fill")
@@ -353,13 +354,6 @@ func _build_body() -> void:
 
 
 func _build_presence() -> void:
-	_core_light = OmniLight3D.new()
-	_core_light.light_color = Color(0.55, 0.3, 1.0)
-	_core_light.omni_range = 9.0
-	_core_light.light_energy = 2.0
-	_core_light.position = Vector3(0, -2.6, -0.4)
-	_core_light.set_meta(&"light_class", "fill")
-	_body.add_child(_core_light)
 	# dark cloud swallowing the lower body (volumetric fog is on in every night's environment)
 	var fog := FogVolume.new()
 	fog.shape = RenderingServer.FOG_VOLUME_SHAPE_ELLIPSOID
@@ -444,7 +438,6 @@ func _process(delta: float) -> void:
 	var lean := clampf(_vel.length() / maxf(speed, 0.1), 0.0, 1.0) * 0.22
 	_body.rotation.x = lerpf(_body.rotation.x, -lean, 1.0 - exp(-3.0 * delta))
 	_halo.rotation.z += delta * 0.35
-	_core_light.light_energy = 1.7 + 0.6 * sin(_t * 2.6) + 0.3 * sin(_t * 7.1)
 	_eye_light.light_energy = 0.5 + 0.2 * sin(_t * 9.0)
 	_reach = move_toward(_reach, _reach_goal(), delta * 1.6)
 	for i in _arms.size():
@@ -566,6 +559,5 @@ func _unmake(time: float) -> void:
 	var tw := create_tween().set_parallel(true)
 	tw.tween_method(_set_dissolve, 0.0, 1.0, time)
 	tw.tween_property(_halo, "scale", Vector3.ONE * 2.2, time).set_ease(Tween.EASE_OUT)
-	tw.tween_property(_core_light, "light_energy", 0.0, time)
 	tw.tween_property(_body, "scale", Vector3(1.15, 0.6, 1.15), time).set_ease(Tween.EASE_IN)
 	tw.chain().tween_callback(queue_free)

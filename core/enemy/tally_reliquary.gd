@@ -84,8 +84,8 @@ func _build() -> void:
 	_visual.add_child(_core)
 	_light = OmniLight3D.new()
 	_light.light_color = GRAVE
-	_light.omni_range = 5.0
-	_light.light_energy = 1.2
+	_light.omni_range = 3.5
+	_light.light_energy = 0.4
 	_light.shadow_enabled = false
 	_light.position = Vector3(0, 1.7, 0)
 	add_child(_light)
@@ -121,7 +121,7 @@ func _physics_process(delta: float) -> void:
 		_tick_bar_poise()
 	var pulse := 0.5 + 0.5 * sin(_t * 3.1)
 	if _light:
-		_light.light_energy = 0.9 + 0.5 * pulse
+		_light.light_energy = 0.35 + 0.2 * pulse
 	if _core:
 		_core.scale = Vector3.ONE * (0.9 + 0.25 * pulse)
 	if _beam and feed_to != Vector3.INF:

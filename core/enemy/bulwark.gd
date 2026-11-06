@@ -9,7 +9,7 @@ extends Husk
 
 const KinLook := preload("res://core/enemy/kin_look.gd")
 const SHIELD_HP := 6.0
-const GUARD_ARC := 0.3          ## dot of facing vs. the blow's source above which the shield takes it
+const GUARD_ARC := 0.55         ## dot of facing vs. the blow's source above which the shield takes it
 
 var shield_hp := SHIELD_HP
 var _shield: MeshInstance3D
@@ -74,7 +74,7 @@ func _absorb(dmg: float, from: Node) -> float:
 	Vfx.burst(at, Color(0.3, 0.22, 0.15), {"count": 6, "life": 0.5, "speed": Vector2(1.0, 3.0), "size": 0.05, "gravity": -9.0, "additive": false})
 	HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.35), "blocked", Color(0.7, 0.7, 0.75))
 	if from is MagicBolt or from is Player:
-		Hints.once(&"bulwark", "The shield turns blows from the front. Circle it, or break it with a Lance.")
+		Hints.once(&"bulwark", "The shield turns blows from the front: any blow chips its boards, a blow of 3 or more chips twice. A full Lance breaks them in one throw and the body takes the next blow. Circle it to hit the body at once.")
 	_hitstop = 2
 	_flash = 0.05
 	if _rig and _rig.has_method("flinch"):

@@ -30,6 +30,7 @@ var _snap := 0.0          ## strike: head and forelegs thrown forward
 var _snap_t := -1.0
 var _flinch := 0.0
 var _flinch_side := 0.0
+var _reel := 0.0          ## stagger: belly down, legs splayed, for the whole punish
 var _fold := 0.0          ## death: legs give, belly to the ground
 var _howl := 0.0          ## a pack call: rears on the hind legs, head thrown up
 var _howl_t := -1.0
@@ -117,6 +118,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 			_snap_t = -1.0
 			_snap = 0.0
 	_flinch = move_toward(_flinch, 0.0, delta * 4.5)
+	_reel = move_toward(_reel, 0.0, delta * 0.9)
 	if _fold > 0.0:
 		_fold = minf(_fold + delta * 1.8, 1.0)
 	# coil = the crouch before a pounce; Enemy squashes the whole visual too, this bends the legs
@@ -131,7 +133,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	var st := _stride
 	var bob := absf(sin(_phase)) * 0.035 * st
 	var breathe := sin(_t * 2.4) * 0.012 * (1.0 - clampf(st, 0.0, 1.0))
-	_body.position.y = body_height + bob + breathe - _land * 0.14 - _coil * 0.16 + _air * 0.05 - _fold * body_height * 0.75
+	_body.position.y = body_height + bob + breathe - _land * 0.14 - _coil * 0.16 + _air * 0.05 - _fold * body_height * 0.75 - _reel * body_height * 0.35
 	_body.rotation.x = 0.06 * sin(_phase * 2.0) * st - _air * 0.12 + _coil * 0.18 + _land * 0.1 + _snap * 0.22 - _flinch * 0.3 - _howl * 0.35
 	_body.rotation.z = -_turn * 0.05 + sin(_phase) * 0.04 * st + _flinch * _flinch_side * 0.35 + _fold * 0.4
 	_front.rotation.y = -_turn * 0.08 + sin(_phase) * 0.05 * st
@@ -157,9 +159,10 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		var air_reach := (-0.65 if front else 0.75) * _air   # forelegs reach, hind legs trail
 		hip.rotation.y = -sx * (yaw_swing + air_reach)
 		var reach := (_snap * 0.5) if front else 0.0
-		hip.rotation.z = sx * (lift * 0.38 * st - _coil * 0.25 + _land * 0.2 - _air * 0.15 + reach + _fold * 0.55)
+		hip.rotation.z = sx * (lift * 0.38 * st - _coil * 0.25 + _land * 0.2 - _air * 0.15 + reach + _fold * 0.55 + _reel * 0.3)
 		knee.rotation.z = -sx * (lift * 0.25 * st + _coil * 0.35 - _air * 0.4 - _fold * 0.3)
 		knee.rotation.x = (0.25 if front else -0.25) * _air
+		(leg.foot as Node3D).rotation.z = -(hip.rotation.z + knee.rotation.z)     # the paw stays flat
 
 
 ## Hound legs (upright): fore/aft swing is a pitch at the hip, the lift folds the knee / hock, and
@@ -177,10 +180,11 @@ func _animate_upright(st: float) -> void:
 		var bend := _coil * 0.6 + _land * 0.4 + _fold * 0.5 + _howl * (0.0 if front else 0.7)
 		var reach := (0.75 * _air + _snap * 0.6 + _howl * 0.5) if front else -0.85 * _air
 		hip.rotation.x = -swing * 0.5 * st + reach + fb * bend * 0.55
-		hip.rotation.z = sx * (_fold * 0.5 + _flinch * 0.1)
+		hip.rotation.z = sx * (_fold * 0.5 + _flinch * 0.1 + _reel * 0.3)
 		hip.rotation.y = 0.0
 		knee.rotation.x = -fb * (bend + lift * 0.9 * st + (0.35 if front else 0.2) * _air)
 		knee.rotation.z = 0.0
+		(leg.foot as Node3D).rotation.x = -(hip.rotation.x + knee.rotation.x)
 
 
 func cast(_sound := "") -> void:
@@ -214,6 +218,7 @@ func stagger() -> void:
 	_gesture_t = -1.0
 	_gesture = 0.0
 	_flinch = 1.0
+	_reel = 1.0
 
 
 func collapse() -> void:

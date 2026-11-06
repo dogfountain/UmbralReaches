@@ -112,7 +112,7 @@ func _think() -> void:
 		WINDUP:
 			_wish = Vector3.ZERO
 			_face_dir = _to / maxf(_dist, 0.001)
-			if _state_t >= SIGIL_CAST:
+			if _state_t >= SIGIL_CAST + SIGIL_FALL:                 # the arms stay up while the disc is live
 				if _rig and _rig.has_method("strike"):
 					_rig.call("strike")
 				_shot_cd = spit_cooldown + randf_range(-0.3, 0.5)
@@ -131,7 +131,7 @@ func _on_state(next: int) -> void:
 	if next == WINDUP:
 		# the sigil: it shows under you the moment the staff goes up, and lands 1.5 s later
 		if _rig and _rig.has_method("telegraph"):
-			_rig.call("telegraph", SIGIL_CAST)
+			_rig.call("telegraph", SIGIL_CAST + SIGIL_FALL)
 		_glint = 1.0
 		begin_cast("Grave Sigil", SIGIL_CAST, true)          # r33: a cast bar; any blow breaks it (and the sigil fades)
 		Sfx.play_stream(Synth.voice(voice_family(), "tell"), global_position + Vector3.UP * 1.5, 0.0, _voice_pitch())
@@ -215,7 +215,7 @@ func _special_think() -> void:
 			_thread_t -= 1.0 / think_hz
 			if _thread_t <= 0.0:
 				_thread_t = 0.2
-				Vfx.arc(_staff_tip(), _ally.global_position + Vector3.UP * (_ally.hp_bar_y * 0.55), GLOAM, 0.22, 0.25)
+				Vfx.arc(_staff_tip(), _ally.global_position + Vector3.UP * (_ally.hp_bar_y * 0.55), GLOAM, 0.45, 0.08)      # arcs overlap into one steady beam
 			if _state_t >= CHANNEL:
 				_ally.shroud(6.0)
 				HitText.pop(_ally.global_position + Vector3.UP * (_ally.hp_bar_y + 0.4), "shrouded", GLOAM)

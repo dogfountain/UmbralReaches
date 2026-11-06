@@ -32,6 +32,7 @@ var phase := 1
 var rooted := false             ## the intermission: rooted in the altar, immune
 var _sig := 0                   ## signature moves shown this phase (pounces in I, volleys in II, blooms in III)
 var _land_at := Vector3.INF
+var _slam_locked := false
 var _lanes_t := 4.0
 var _behind_t := 0.0
 var _lash_cd := 3.0
@@ -110,7 +111,7 @@ func _absorb(dmg: float, from: Node) -> float:
 		var now2 := Time.get_ticks_msec()
 		if now2 - int(get_meta(&"speak_pop", 0)) > 700:
 			set_meta(&"speak_pop", now2)
-			HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.6), "shrouded", Color(0.75, 1.0, 0.45))
+			HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.6), "the song is thin" if _attuned else "shrouded", Color(0.75, 1.0, 0.45))
 	return BossKit.absorb(self, dmg, from, BossKit.phase_floor(self, phase, phase_marks(), _sig))
 
 
@@ -134,15 +135,14 @@ func speakers() -> int:
 
 func _pounce(player: Player) -> void:
 	super._pounce(player)
+	_slam_locked = false
 	if phase == 1:
 		_sig += 1
-	# the jump is committed: show where it comes down, for exactly the time it is in the air
-	var flat := Vector3(velocity.x, 0.0, velocity.z)
-	var t := flight_time(leap_apex, player.global_position.y - global_position.y)
-	_land_at = global_position + flat * t
-	_land_at.y = player.global_position.y
-	BossKit.zone(get_parent(), _land_at, maxf(t, 0.3), 30.0 if phase >= 2 else 22.0,
-		{"by": self, "radius": SLAM_R2 if phase >= 2 else SLAM_R, "spikes": "thorn" if phase >= 2 else ""})
+
+
+## The slam's circle is read at the crouch and the jump comes down on it (the red is the truth).
+func _leap_target(player: Player) -> Vector3:
+	return _land_at if _slam_locked else super._leap_target(player)
 
 
 func _physics_process(delta: float) -> void:
@@ -202,7 +202,7 @@ func _physics_process(delta: float) -> void:
 	elif phase == 2 and _wave_t <= 0.0:
 		_wave_t = WAVE_EVERY
 		BossKit.cast(self, "Call of the Stones", 1.6, false, _call_stones)
-		BossKit.emote(self, "A Thornspeaker answers the call.")
+		BossKit.emote(self, "A Thornspeaker answers. The song is weak: your blows land at three quarters." if _attuned else "A Thornspeaker answers. Its song is up: your blows are halved.")
 		if _rig and _rig.has_method("howl"):
 			_rig.call("howl", 1.4)
 	elif phase <= 2 and _storm_t <= 0.0 and is_on_floor():
@@ -395,6 +395,15 @@ func _on_state(next: int) -> void:
 	super._on_state(next)
 	if next == LEAP_PREP:
 		begin_cast("Bramble Pounce", leap_prep, false)     # bound to the crouch
+		if is_instance_valid(_danger):
+			_danger.queue_free()                           # the slam's own circle replaces the small disc
+		if _p != null:
+			_slam_locked = false
+			_land_at = _leap_target(_p)
+			_slam_locked = true
+			var t := flight_time(leap_apex, _land_at.y - global_position.y)
+			BossKit.zone(get_parent(), _land_at, leap_prep + maxf(t, 0.3), 30.0 if phase >= 2 else 22.0,
+				{"by": self, "radius": SLAM_R2 if phase >= 2 else SLAM_R, "spikes": "thorn" if phase >= 2 else ""})
 
 
 ## Thornlash Volley: five lanes of thorns from its feet, fanned 22 degrees apart, aimed through you.
@@ -500,6 +509,7 @@ func _end_rooting(left: int) -> void:
 		var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		if p:
 			p.take_wound(16.0 * float(left), global_position)
+			HitText.pop(p.global_position + Vector3.UP * 2.4, "%d on the plate" % (16 * left), Color(1.0, 0.45, 0.3), true)
 		for kn: Node in _room.get("knots") if _room != null else []:
 			if is_instance_valid(kn):
 				kn.queue_free()

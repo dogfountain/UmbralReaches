@@ -57,7 +57,7 @@ func _ready() -> void:
 ## The rear-up before a strike, held for `dur` seconds (Enemy passes its windup time).
 func telegraph(dur: float) -> void:
 	_wind_dur = maxf(dur, 0.12)
-	_wind_t = 0.0
+	_wind_t = 0.0 if _wind <= 0.6 else _wind * _wind_dur * 0.55     # a feint that becomes a swing stays reared
 
 
 ## Kept for callers that only know the base contract: a windup of the default length, and no
@@ -80,7 +80,7 @@ func strike() -> void:
 
 ## `side` -1..1: which way the hit came from (local x), for a twist away from it.
 func flinch(amount: float, side := 0.0) -> void:
-	_flinch = clampf(maxf(_flinch, amount), 0.0, 1.0)
+	_flinch = clampf(maxf(_flinch, maxf(amount, 0.45)), 0.0, 1.0)
 	_flinch_side = side
 
 
@@ -115,8 +115,8 @@ func _tick_poses(delta: float) -> void:
 		_rake = sin(clampf(k, 0.0, 1.0) * PI * 0.5) if k < 1.0 else maxf(0.0, 1.0 - (k - 1.0) * 1.6)
 		if _rake <= 0.0 and k >= 1.0:
 			_rake_t = -1.0
-	_flinch = move_toward(_flinch, 0.0, delta * 4.5)
-	_reel = move_toward(_reel, 0.0, delta * 1.1)
+	_flinch = move_toward(_flinch, 0.0, delta * 2.2)
+	_reel = move_toward(_reel, 0.0, delta * 0.75)
 	if _howl_t >= 0.0:
 		_howl_t += delta
 		var hk := clampf(_howl_t / _howl_dur, 0.0, 1.0)
@@ -145,6 +145,7 @@ func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) ->
 	# legs: a bent-knee shuffle; the limp leg swings short and drags
 	var knee_rest := crouch * 0.95 + w * 0.25 + fold * 1.6
 	var hip_rest := crouch * 0.45 + w * 0.1 + fold * 1.1
+	var reach_max := 0.0
 	for i in 2:
 		var ps := s if i == 0 else -s
 		var pc := c if i == 0 else -c
@@ -157,8 +158,9 @@ func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) ->
 		_hip[i].rotation.z = (-1.0 if i == 0 else 1.0) * (0.06 + crouch * 0.08)
 		_knee[i].rotation.x = -knee
 		_foot[i].rotation.x = -(hip - knee) * 0.75
+		reach_max = maxf(reach_max, 0.42 * cos(hip) + 0.42 * cos(hip - knee))
 	# the pelvis drops to keep the bent feet on the ground (thigh and shin are 0.42 m each)
-	var bend := 0.42 * (1.0 - cos(hip_rest)) + 0.42 * (1.0 - cos(hip_rest - knee_rest))
+	var bend := maxf(0.0, 0.84 - reach_max)       # down until the longer leg's foot meets the ground
 	var lurch := absf(s) * limp * 0.05 * st
 	_pelvis.position.y = PELVIS_Y - bend + 0.04 * st * (absf(c) - 0.6) * gait - lurch - _land * 0.13 + _air * 0.04 + breathe * 0.006 * idle
 	_pelvis.position.x = -s * (0.03 + limp * 0.05) * st + sin(_t * 0.9) * 0.02 * sway * idle
@@ -187,6 +189,8 @@ func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) ->
 		var rake := -r * 0.95
 		var x := reach + swing + raise + rake + (0.14 * sin(_t * 1.2 + float(i)) * sway * idle)
 		x = lerpf(x, 0.25, reel * 0.7) + fold * 0.6
+		if w > 0.85:
+			x += sin(_t * 28.0) * 0.05 * w            # the held tell trembles
 		x = minf(x, 2.9)
 		_sh[i].rotation.x = x
 		_sh[i].rotation.y = sx * (w * 0.35 - r * 0.25)

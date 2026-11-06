@@ -98,11 +98,15 @@ func _on_state(next: int) -> void:
 	elif _p:
 		var to := _p.global_position - global_position
 		to.y = 0.0
-		_danger = SpellFx.danger(global_position, spit_windup, {"rect": Vector2(0.45, to.length() * 0.5 + 0.6), "yaw": atan2(-to.x, -to.z), "color": Color(0.3, 1.6, 1.1)})
+		_danger = SpellFx.danger(global_position, spit_windup, {"rect": Vector2(0.55, to.length() * 0.5 + 0.6), "yaw": atan2(-to.x, -to.z), "color": Color(0.3, 1.6, 1.1)})
 
 
 ## r33: the name its spit's cast bar shows (an elite names its own).
 var spit_cast := "Bile Spit"
+
+
+func can_cast() -> bool:
+	return super.can_cast() and _lit_t <= 2.5       # no new spit at someone sheltering in light
 
 
 func _chases_directly() -> bool:
@@ -145,7 +149,9 @@ func _think() -> void:
 			else:
 				_hold_post(from_home)
 		CHASE:
-			if _dist > chase_range * 1.25 or from_home > hunt_leash:
+			if _dist > chase_range * 1.25 or from_home > hunt_leash or (_lit_t > 2.5 and _ward_lit()):
+				if _lit_t > 2.5:
+					_calm_t = 3.5                   # sheltered in light: it gives up the chase like a melee body
 				_set_state(IDLE)
 				_hold_post(from_home)
 			elif _shot_cd <= 0.0 and can_cast() and _dist <= fire_range and _strike_clear(_p):
@@ -214,14 +220,33 @@ func _spit() -> void:
 	var from := global_position + Vector3.UP * 1.45
 	if _sac:
 		from = _sac.global_position
+	var aim := _spit_aim(from)
+	SpitOrb.launch(get_tree().current_scene, from, aim - from, spit_gloom)
+	Sfx.play("res://art/audio/spit.wav", from, -4.0)
+	Vfx.burst(from, Color(0.3, 1.6, 1.1), {"count": 14, "life": 0.3, "speed": Vector2(1.0, 3.0), "size": 0.05, "dir": (aim - from).normalized(), "spread": 30.0, "gravity": -6.0})
+
+
+## The point the orb is thrown at: where you are plus half your run over its flight (the lane follows it).
+func _spit_aim(from: Vector3) -> Vector3:
 	var aim := _p.global_position + Vector3.UP * 1.05
 	var t := from.distance_to(aim) / SpitOrb.SPEED
 	var pv := Vector3(_p.velocity.x, 0.0, _p.velocity.z)
 	aim += pv * t * 0.5                                 # half lead: a straight line still dodges it
 	aim.y += 0.5 * SpitOrb.SAG * t * t                  # cancel the droop
-	SpitOrb.launch(get_tree().current_scene, from, aim - from, spit_gloom)
-	Sfx.play("res://art/audio/spit.wav", from, -4.0)
-	Vfx.burst(from, Color(0.3, 1.6, 1.1), {"count": 14, "life": 0.3, "speed": Vector2(1.0, 3.0), "size": 0.05, "dir": (aim - from).normalized(), "spread": 30.0, "gravity": -6.0})
+	return aim
+
+
+## Each windup frame the lane is laid along the line the orb will fly (it reads true to the last moment).
+func _aim_lane() -> void:
+	var from := global_position
+	var d := _spit_aim(global_position + Vector3.UP * 1.45) - from
+	d.y = 0.0
+	if d.length() < 0.3:
+		return
+	var half := Vector2(0.55, d.length() * 0.5 + 0.6)
+	var b := Basis(Vector3.UP, atan2(-d.x, -d.z))
+	_danger.global_transform = Transform3D(b * Basis.from_scale(Vector3(half.x, 1.0, half.y)), from + Vector3.UP * 0.08 + b * Vector3(0.0, 0.0, -half.y))
+	_danger.set_instance_shader_parameter(&"size_m", half)
 
 
 ## The glob leaves on a high arc toward the disc that has been filling since the sac swelled.
@@ -235,6 +260,8 @@ func _lob() -> void:
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
+	if _state == WINDUP and not _lobbing and _p != null and is_instance_valid(_danger) and _hitstop == 0:
+		_aim_lane()
 	if _sac:
 		var swell := clampf(_state_t / _cur_wind(), 0.0, 1.0) if _state == WINDUP else 0.0
 		_sac.scale = Vector3.ONE * (1.0 + swell * 0.9 + sin(_state_t * 30.0) * 0.08 * swell)

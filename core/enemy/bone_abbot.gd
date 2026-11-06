@@ -141,6 +141,7 @@ func _absorb(dmg: float, from: Node) -> float:
 func _build() -> void:
 	super._build()
 	name = "BoneAbbot"
+	set_meta(&"yield_cast", "Bone Rain")           # the rain's long bar gives way to the next rite's
 	BossKit.embiggen(self, SCALE)
 	strike_range = 3.0                          # embiggen caps reach at 1.7x; his arms are 2.6x
 	# upright and slow: a priest, not a grunt (no twitch at this size: big means deliberate)
@@ -455,7 +456,7 @@ func _end_intermission(fed: int) -> void:
 	if _hp_bar:
 		_hp_bar.visible = true
 	if fed > 0:
-		hp = minf(float(max_hp) * INTER_AT, hp + float(max_hp) * TALLY_HEAL * float(fed))
+		hp = minf(float(max_hp), hp + float(max_hp) * TALLY_HEAL * float(fed))
 		_refresh_hp(true)
 		HitText.pop(global_position + Vector3.UP * (hp_bar_y + 1.0), "fed by %d %s" % [fed, "tally" if fed == 1 else "tallies"], GRAVE, true)
 	_rise_phase_two(fed)
@@ -532,7 +533,7 @@ func _summon_choir() -> void:
 				e._hp_bar.set_instance_shader_parameter(&"segments", Enemy.hp_segments(CHOIR_HP))
 			e._rally_t = 4.0
 	if not spots.is_empty():
-		BossKit.emote(self, "The Choir sings him whole.")
+		BossKit.emote(self, "The Choir wards him while they sing. Silence them.")
 
 
 func _tick_choir(delta: float) -> void:
@@ -547,7 +548,7 @@ func _tick_choir(delta: float) -> void:
 			for e in ch:
 				Vfx.arc(e.global_position + Vector3.UP * 1.6, global_position + Vector3.UP * hp_bar_y * 0.6, AttackKit.GLOAM, 0.35, 0.2)
 		if not was:
-			HitText.pop(global_position + Vector3.UP * (hp_bar_y + 1.2), "hymned", AttackKit.GLOAM, true)
+			HitText.pop(global_position + Vector3.UP * (hp_bar_y + 1.2), "warded", AttackKit.GLOAM, true)
 	elif was:
 		_shroud_t = 0.0
 		HitText.pop(global_position + Vector3.UP * (hp_bar_y + 1.2), "the hymn falters", WEAK_COL, true)
@@ -580,7 +581,8 @@ func _tolling() -> void:
 		"holes": [[hole, SHADOW_R], [Vector3(c.x, c.y, c.z), Hall.MOUND_R + 0.4]], "h": 3.0})
 	SpellFx.column(hole, SHADOW_R * 0.8, 6.0, TOLL_TIME + 0.3)
 	Vfx.ring(hole + Vector3.UP * 0.1, SHADOW_R, GRAVE, TOLL_TIME, 0.14, Vector3.UP, 1.4)
-	Vfx.light(hole + Vector3.UP * 2.0, Color(GRAVE.r * 0.6, GRAVE.g * 0.6, GRAVE.b * 0.6), 2.4, SHADOW_R * 3.0, TOLL_TIME + 0.3)
+	Vfx.light(hole + Vector3.UP * 2.0, Color(GRAVE.r * 0.6, GRAVE.g * 0.6, GRAVE.b * 0.6), 2.4, SHADOW_R * 1.25, TOLL_TIME + 0.3)   # reaches the ring and stops
+	Vfx.ring(Vector3(c.x, c.y + 0.1, c.z), Hall.MOUND_R + 0.4, GRAVE, TOLL_TIME, 0.14, Vector3.UP, 1.4)   # the mound's foot is safe too
 	_glint = 1.0
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", TOLL_TIME * 0.8)
@@ -601,7 +603,7 @@ func _tolling() -> void:
 ## The vault lets go: three fields fill (one where you stand), bones crash down on them, and they
 ## stay foul with ossuary dust for a while.
 func _bone_rain() -> void:
-	BossKit.cast(self, "Bone Rain", RAIN_TIME)
+	BossKit.cast(self, "Bone Rain", RAIN_TIME + 5.0)     # the bar stays up while the dust can hurt
 	if _rig and _rig.has_method("telegraph"):
 		_rig.call("telegraph", 0.8)
 	var under := _floor_at(_p.global_position)
@@ -671,7 +673,7 @@ func _reckoning(n: int) -> void:
 	for pl: Dictionary in _plates:
 		var at: Vector3 = pl.at
 		Vfx.ring(at + Vector3.UP * 0.08, PLATE_R, BossKit.HOLY, RECKON_TIME, 0.12, Vector3.UP, 1.3)
-		Vfx.light(at + Vector3.UP * 1.2, Color(0.9, 0.6, 0.25), 1.6, 5.0, RECKON_TIME)
+		Vfx.light(at + Vector3.UP * 1.2, Color(0.9, 0.6, 0.25), 1.6, PLATE_R * 2.0, RECKON_TIME)
 		SpellFx.column(at, PLATE_R * 0.55, 3.0, RECKON_TIME)
 	BossKit.emote(self, "The Reckoning. He counts the living.")
 
@@ -723,8 +725,9 @@ func _end_plates(judge: bool) -> void:
 			_mark_adds(w, bid)
 	_plates.clear()
 	if short > 0 and _p and is_alive():
-		_p.take_wound(SHORT_GLOOM * float(short) * dmg_mult, global_position)
-		HitText.pop(_p.global_position + Vector3.UP * 2.4, "the count is short by %d" % short, BossKit.BONE, true)
+		var cost := SHORT_GLOOM * float(short) * dmg_mult
+		_p.take_wound(cost, global_position)
+		HitText.pop(_p.global_position + Vector3.UP * 2.4, "the count is short by %d: %d on the plate" % [short, roundi(cost)], BossKit.BONE, true)
 	elif judge and is_alive():
 		HitText.pop(global_position + Vector3.UP * (hp_bar_y + 1.0), "all are counted", BossKit.HOLY, true)
 
@@ -803,7 +806,7 @@ func _sweep() -> void:
 func _requiem() -> void:
 	_reliq_t = 2.4
 	_reliq_hits = 0
-	BossKit.cast(self, "Requiem", 2.4, true)
+	BossKit.cast(self, "Requiem", 3.0, true)       # up until the last drip has landed
 	if _rig and _rig.has_method("howl"):
 		_rig.call("howl", 2.2)
 	_glint = 1.0
@@ -840,18 +843,21 @@ func _tithe() -> void:
 	var to := _p.global_position - global_position
 	to.y = 0.0
 	var dir := to.normalized()
+	var n := int(clampf((to.length() + 3.0) / 2.0, 4.0, 11.0))
 	if _rig and _rig.has_method("telegraph"):
-		_rig.call("telegraph", 0.7)
+		_rig.call("telegraph", 0.75 + 0.16 * float(n - 1))      # the arms stay up for the whole line
 	_face_dir = dir
 	_glint = 1.0
 	Sfx.play_stream(Synth.get_stream("spike"), global_position + Vector3.UP, 0.0, 0.7)
-	var n := int(clampf((to.length() + 3.0) / 2.0, 4.0, 11.0))
 	BossKit.cast(self, "Tithe Line", 0.75 + 0.16 * float(n - 1))
 	for i in n:
 		var at := _floor_at(global_position + dir * (3.0 + 2.0 * float(i)))
 		if at == Vector3.INF:
 			continue
 		BossKit.zone(get_parent(), at, 0.75 + 0.16 * float(i), 22.0, {"by": self, "radius": 1.5, "color": BossKit.BONE, "spikes": "bone"})
+		get_tree().create_timer(0.75 + 0.16 * float(i), false).timeout.connect(func() -> void:
+			if is_instance_valid(self) and is_alive() and _rig is HunchRig:
+				(_rig as HunchRig).strike())                                # the crozier meets each spike
 
 
 ## The reliquary found while the Requiem is sung: two such bolts break the song. While it raises the

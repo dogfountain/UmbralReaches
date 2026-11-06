@@ -41,11 +41,11 @@ func _init() -> void:
 func _build() -> void:
 	name = "Burrower"
 	var rig := QuadRig.new()
-	rig.body_height = 0.34
-	rig.body_len = 0.72
-	rig.hip_spread = 0.14
+	rig.body_height = 0.48
+	rig.body_len = 1.05
+	rig.hip_spread = 0.22
 	rig.upper_len = 0.24
-	rig.stride_len = 0.42
+	rig.stride_len = 0.75
 	attach_rig(rig)
 	rig.scale = Vector3.ONE * 1.18
 	var col := get_node_or_null("Collision") as CollisionShape3D
@@ -108,7 +108,7 @@ func _special_think() -> void:
 				_phase = 2
 				_drive = Vector3.ZERO
 				_tell_at = _state_t
-				AttackKit.zone(self, global_position, TELL, strike_gloom * 1.2, {"radius": ERUPT_R, "fx": "dirt", "color": Color(2.4, 0.78, 0.14), "h": 1.8})
+				AttackKit.zone(self, global_position, TELL, strike_gloom * 1.2, {"radius": ERUPT_R, "fx": "dirt", "color": AttackKit.RED, "h": 1.8})
 		2:
 			if _state_t >= _tell_at + TELL:
 				_surface()
@@ -126,6 +126,7 @@ func _special_frame(delta: float) -> void:
 		_trail_t -= delta
 		if _trail_t <= 0.0:
 			_trail_t = 0.09
+			Vfx.scorch(global_position, 0.45, Color(0.05, 0.03, 0.02), 0.4)       # the path is a seam in the ground
 			Vfx.burst(global_position + Vector3.UP * 0.05, Color(0.2, 0.15, 0.11, 0.9), {"count": 5, "life": 0.7, "speed": Vector2(0.6, 2.2), "size": 0.1, "gravity": -7.0, "additive": false, "radius": 0.25})
 	elif _phase == 2:
 		_drive = Vector3.ZERO

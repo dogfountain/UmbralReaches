@@ -51,6 +51,9 @@ const CAPSULE_R := 0.35
 const CAPSULE_H := 1.7
 const MARK_MAX := 3
 const MARK_LIFE := 5.0
+const BAR_RANGE := 28.0          ## the plate and its beads end here (sleep is 46), fading over BAR_FADE
+const BAR_FADE := 4.0
+const STRIKE_AT := 0.2           ## the rake's damage lands as the arm comes through (the pose peaks around it)
 const HIT_COL := Color(0.86, 0.8, 1.0)
 const HIT_BIG := Color(1.0, 0.55, 0.3)
 
@@ -203,7 +206,7 @@ const AttackKit := preload("res://core/enemy/attack_kit.gd")
 ## Attack tokens: at most MAX_ATTACKERS ordinary enemies wind up on the player at once; the rest
 ## circle at WAIT_RING and step in when one finishes. A pack reads as a pack, not a pile.
 const MAX_ATTACKERS := 2
-const WAIT_RING := 2.9
+const WAIT_RING := 2.15
 const POISE_WINDOW := 2.5
 const STAGGER_CD := 3.0
 const STAGGER_TIME := 1.1
@@ -455,6 +458,7 @@ func _provoke(from: Node) -> void:
 	_provoked_ms = now
 	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
 		if node != self and node is Enemy and (node as Enemy)._state == IDLE and (node as Node3D).global_position.distance_to(global_position) < ALARM_R:
+			(node as Enemy).wake()                   # a camp at the edge of earshot stands up on the hit
 			(node as Enemy).alerted(from)
 
 
@@ -594,6 +598,9 @@ func wake() -> void:
 
 
 func sleep() -> void:
+	if process_mode != Node.PROCESS_MODE_DISABLED:
+		cancel_moves()                           # a tell in the air dies with the body
+		_finish_cast(false, false)
 	visible = true
 	process_mode = Node.PROCESS_MODE_DISABLED
 
@@ -606,9 +613,17 @@ func _remember_home() -> void:
 func _pin_visuals() -> void:
 	if _hp_bar == null:
 		return
-	_hp_bar.visibility_range_end = 0.0
+	_range_cap(_hp_bar)
 	_hp_bar.extra_cull_margin = maxf(_hp_bar.extra_cull_margin, 2.4)
 	_hp_bar.ignore_occlusion_culling = true
+	for pip in _pips:
+		_range_cap(pip)
+
+
+func _range_cap(g: GeometryInstance3D) -> void:
+	g.visibility_range_end = BAR_RANGE
+	g.visibility_range_end_margin = BAR_FADE
+	g.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 
 
 func _build() -> void:
@@ -643,7 +658,7 @@ func _make_hp_bar() -> void:
 	_hp_bar.position = Vector3(0.0, hp_bar_y, 0.0)
 	_hp_bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_hp_bar.extra_cull_margin = 1.2
-	_hp_bar.visibility_range_end = 0.0
+	_range_cap(_hp_bar)
 	_hp_bar.ignore_occlusion_culling = true
 	add_child(_hp_bar)
 	_hp_bar.set_instance_shader_parameter(&"segments", hp_segments(max_hp))
@@ -675,6 +690,7 @@ func _make_pips() -> void:
 		pip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		pip.position = Vector3((float(i) - 1.0) * 0.14, hp_bar_y + 0.16, 0.0)
 		pip.visible = false
+		_range_cap(pip)
 		add_child(pip)
 		_pips.append(pip)
 
@@ -686,7 +702,7 @@ func add_mark(n := 1) -> void:
 	_mark_t = MARK_LIFE
 	_refresh_pips()
 	if marks >= 3:
-		Hints.once(&"nova_marks", "%s  Umbral Nova detonates Marks: each one is another blow." % Hints.key("skill_nova", "Q"))
+		Hints.once(&"nova_marks", "%s  Umbral Nova detonates Marks: each one is another blow. Marks last 5 seconds." % Hints.key("skill_nova", "Q"))
 	Sfx.play(SFX_MARK, global_position, -12.0, 0.9 + 0.12 * float(marks))
 	Vfx.ring(global_position + Vector3.UP * (hp_bar_y + 0.16), 0.22 + 0.06 * float(marks), Color(1.4, 0.6, 3.0), 0.3, 0.2, Vector3.BACK)
 
@@ -701,6 +717,14 @@ func take_marks() -> int:
 func _refresh_pips() -> void:
 	for i in _pips.size():
 		_pips[i].visible = i < marks
+		_pips[i].transparency = 0.0
+
+
+## The beads thin with the clock (the set shares one MARK_LIFE) and fade across the last second.
+func _fade_pips() -> void:
+	var t := 0.45 * (1.0 - _mark_t / MARK_LIFE) + 0.55 * (1.0 - clampf(_mark_t, 0.0, 1.0))
+	for i in marks:
+		_pips[i].transparency = clampf(t, 0.0, 0.95)
 
 
 func is_alive() -> bool:
@@ -778,10 +802,7 @@ func _physics_process(delta: float) -> void:
 		_hitstop -= 1
 		if _state == WINDUP or _state == LEAP_PREP:
 			_state_t += delta                    # the tell's clock keeps time with its red fill
-		if _visual:
-			_visual.position = Vector3(randf_range(-1.0, 1.0), randf_range(-0.4, 0.4), randf_range(-1.0, 1.0)) * 0.035 * float(_hitstop)
-		if _hitstop == 0 and _visual:
-			_visual.position = Vector3.ZERO
+		_shudder()
 		return
 	_cache_player()
 	_poise_dmg = maxf(0.0, _poise_dmg - delta * poise / POISE_WINDOW)
@@ -799,7 +820,7 @@ func _physics_process(delta: float) -> void:
 	if _shroud_t > 0.0:
 		_shroud_t = maxf(0.0, _shroud_t - delta)
 		_flesh_param(&"glint", 0.35 + 0.25 * sin(_shroud_t * 9.0) if _shroud_t > 0.0 else 0.0)
-	if _state == STRIKE and not _struck and _state_t >= 0.06:
+	if _state == STRIKE and not _struck and _state_t >= STRIKE_AT:
 		_resolve_strike()
 	if is_instance_valid(_danger) and _face:
 		_danger.rotation.y = _face.rotation.y
@@ -824,6 +845,9 @@ func _physics_process(delta: float) -> void:
 		_aim_at_player()
 	elif _state == LEAP_PREP and _to.length_squared() > 0.01:
 		_face_dir = _to.normalized()
+		if is_instance_valid(_danger) and _p != null and _state_t < leap_prep - 0.15:
+			var lt := _leap_target(_p as Player)                  # the disc leads you, then locks for the last 0.15 s
+			_danger.global_position = Vector3(lt.x, lt.y + 0.08, lt.z)
 	elif _state == SPECIAL:
 		_special_frame(delta)
 	_leap_cd = maxf(0.0, _leap_cd - delta)
@@ -833,6 +857,8 @@ func _physics_process(delta: float) -> void:
 		if _mark_t <= 0.0:
 			marks = 0
 			_refresh_pips()
+		else:
+			_fade_pips()
 	_move(delta)
 	_flash_visual(delta)
 	_tick_hp_trail(delta)
@@ -1141,7 +1167,7 @@ func _think() -> void:
 				_set_state(STRIKE)
 		STRIKE:
 			_wish = Vector3.ZERO
-			if _struck and _state_t >= 0.22:
+			if _struck and _state_t >= STRIKE_AT + 0.16:
 				if _combo_left > 0 and dist <= strike_range + 1.2 and _lit_t <= 0.0:
 					# the chain: the next blow gets its own (shorter) rear and its own cone
 					_combo_left -= 1
@@ -1185,7 +1211,7 @@ func _move(delta: float) -> void:
 		if crawler and _hop_cd <= 0.0 and dist > 1.6:
 			# Skittering hop that actually covers ground: ballistic, momentum kept in the air.
 			var hop := minf(dist - 0.9, hop_len)
-			launch_at(LightGrid.outside(global_position + _wish * hop, LIGHT_MARGIN, _wardproof()), 0.55)
+			launch_at(LightGrid.outside(global_position + _wish * hop, LIGHT_MARGIN, _wardproof()), 0.28 if mass < 0.6 else 0.55)
 			_hop_cd = 0.75
 			_move_ballistic(delta)
 			return
@@ -1240,7 +1266,7 @@ func _at_rest() -> bool:
 var _anim_dt := 0.0
 
 
-func _animate_rig(on_floor: bool, delta: float, full := 16.0) -> void:
+func _animate_rig(on_floor: bool, delta: float, full := 28.0) -> void:
 	_anim_dt = minf(_anim_dt + delta, 0.1)
 	if _dist >= full and (_dist > 46.0 or (Engine.get_physics_frames() + get_instance_id()) % 2 != 0):
 		return
@@ -1282,7 +1308,8 @@ func _move_ballistic(delta: float) -> void:
 			_state_t = -0.3        # longer stagger after a pounce: the punish window
 
 
-func _pounce(player: Player) -> void:
+## Where a pounce would come down on you now: your feet plus your run over the flight (leap_lead of it).
+func _leap_target(player: Player) -> Vector3:
 	var dy := player.global_position.y - global_position.y
 	var t := flight_time(leap_apex, dy)
 	var pv := Vector3(player.velocity.x, 0.0, player.velocity.z)
@@ -1290,8 +1317,12 @@ func _pounce(player: Player) -> void:
 	var flat := Vector3(target.x - global_position.x, 0.0, target.z - global_position.z)
 	if flat.length() > leap_max + 1.5:
 		flat = flat.normalized() * (leap_max + 1.5)
-	target = Vector3(global_position.x + flat.x, player.global_position.y, global_position.z + flat.z)
-	launch_at(LightGrid.outside(target, LIGHT_MARGIN, _wardproof()), leap_apex)
+	return LightGrid.outside(Vector3(global_position.x + flat.x, player.global_position.y, global_position.z + flat.z), LIGHT_MARGIN, _wardproof())
+
+
+func _pounce(player: Player) -> void:
+	var target := _leap_target(player)
+	launch_at(target, leap_apex)
 	Sfx.play(SFX_SHRIEK, global_position, -4.0)
 	_leap_cd = leap_cooldown
 	_set_state(AIRBORNE)
@@ -1346,7 +1377,7 @@ func _set_state(next: int) -> void:
 		elif was == IDLE and (next == CHASE or next == CALL):
 			_pull_pack()                        # r33: a pull is the whole camp
 	if (next == WINDUP or next == LEAP_PREP) and _dist < 6.0 and _p != null and not Hints.seen(&"break_windup"):
-		Hints.once(&"break_windup", "Hit the red tell with a Lash or a Lance to break it.")
+		Hints.once(&"break_windup", "A blow of 2 or more breaks a red tell at once: the Lash, the Lance, the staff's last swing. A lighter blow breaks it only when the foe's poise fills. On a great one the Lash is chipped under that line; the Lance and the last swing still clear it.")
 	if next != CHASE:
 		_waiting = false
 	if not (next == WINDUP or next == STRIKE or next == LEAP_PREP or next == AIRBORNE or next == FEINT or next == SPECIAL):
@@ -1386,7 +1417,7 @@ func _on_state(next: int) -> void:
 			_danger = SpellFx.danger(Vector3.ZERO, life, {"radius": reach, "half_angle": deg_to_rad(strike_arc), "parent": self, "yaw": _face.rotation.y if _face else 0.0})
 		elif _p != null:
 			# a pounce: the red fills under YOU (where it will come down if you stay)
-			_danger = SpellFx.danger(_p.global_position, life, {"radius": 1.5})
+			_danger = SpellFx.danger(_leap_target(_p as Player), life, {"radius": 1.7, "hold": 1.2})
 	elif next == STRIKE:
 		if _rig and _rig.has_method("strike"):
 			_rig.call("strike")
@@ -1527,8 +1558,8 @@ func _resolve_strike() -> void:
 	to.y = 0.0
 	var d := to.length()
 	var fwd := _face_dir if _face_dir.length_squared() > 0.01 else (to / maxf(d, 0.001))
-	var in_cone := d < 0.6 or fwd.normalized().dot(to / maxf(d, 0.001)) >= cos(deg_to_rad(strike_arc + 10.0))
-	if d <= strike_range + 0.5 and in_cone and absf(dy) < 1.8 and _strike_clear(_p):
+	var in_cone := d < 0.6 or fwd.normalized().dot(to / maxf(d, 0.001)) >= cos(deg_to_rad(strike_arc))
+	if d <= strike_range + 0.45 and in_cone and absf(dy) < 1.8 and _strike_clear(_p):
 		if _p.is_evading():
 			_p.on_evaded(self)
 		else:
@@ -1611,7 +1642,7 @@ func _circle(dist: float) -> void:
 		_orbit = -_orbit
 	var tangent := Vector3(-dir.z, 0.0, dir.x) * _orbit
 	var radial := clampf((dist - ring) * 0.9, -1.0, 1.0)
-	_wish = (tangent * drift + dir * radial).normalized() * 0.7
+	_wish = (tangent * drift + dir * radial).normalized() * 0.9
 	_face_dir = dir
 
 
@@ -1658,6 +1689,8 @@ func _die() -> void:
 	var big := _last_dmg >= 3.0
 	if _last_from != Vector3.ZERO:
 		_knock = _last_from * (6.5 if big else 3.2) / maxf(mass, 0.4) * (0.35 if boss else 1.0)
+		if mass < 0.6:
+			_knock = _knock.limit_length(4.5)        # a light body folds where it died, in frame
 		if big and not boss:
 			velocity.y = 3.2
 	Sfx.play_stream(Synth.voice(voice_family(), "die"), global_position + Vector3.UP * hp_bar_y * 0.7, -2.0 if boss else -4.0, _voice_pitch())
@@ -1684,7 +1717,7 @@ func _die() -> void:
 	Vfx.scorch(global_position, 0.6 + hp_bar_y * 0.35, Color(0.5, 0.2, 0.9), 4.0)    # the stain it leaves
 	# the body folds first (HunchRig/QuadRig collapse), then burns away
 	var tw := create_tween()
-	tw.tween_interval(0.25)
+	tw.tween_interval(0.65)                       # the fold is near done before the burn
 	tw.tween_method(_set_dissolve, 0.0, 1.0, 0.95)
 	tw.tween_callback(queue_free)
 
@@ -1705,7 +1738,20 @@ func _final_blow_check() -> void:
 
 
 ## Dead: keep the rig folding and the body settling to the ground while it dissolves.
+## The crunch of a landed hit: a frozen shudder, scaled to the body (capped near 8 cm times its scale).
+func _shudder() -> void:
+	if _visual == null:
+		return
+	var k := maxf(_rig.scale.x, 1.0) if _rig != null else 1.0
+	var v := Vector3(randf_range(-1.0, 1.0), randf_range(-0.4, 0.4), randf_range(-1.0, 1.0)) * 0.035 * float(_hitstop)
+	_visual.position = v.limit_length(0.08) * k if _hitstop > 0 else Vector3.ZERO
+
+
 func _tick_dying(delta: float) -> void:
+	if _hitstop > 0:                             # the killing blow freezes and shudders like any other
+		_hitstop -= 1
+		_shudder()
+		return
 	_dying += delta
 	if _visual:
 		_visual.position = Vector3.ZERO
@@ -2038,7 +2084,7 @@ func interrupt(_by: Node = null) -> bool:
 	if bound and _state == st and _state != DEAD:
 		_set_state(RECOVER)
 		_state_t = -0.4
-	Hints.once(&"interrupt", "A foe's cast can be broken: strike a lesser caster mid-cast, or a great one with a heavy blow.")
+	Hints.once(&"interrupt", "A foe's cast can be broken: any blow on a lesser caster; on a great one, the Lance, the knot, or a blow that still counts as 2 after the chip.")
 	return n != ""
 
 

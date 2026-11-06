@@ -101,7 +101,13 @@ func _spring_back() -> void:
 	_hop_back_cd = 5.0
 	var away := -_to / maxf(_dist, 0.001)
 	var land := LightGrid.outside(global_position + away.rotated(Vector3.UP, randf_range(-0.5, 0.5)) * HOP_BACK, LIGHT_MARGIN, _wardproof())
-	launch_at(land, 1.0)
+	var to_land := land - global_position
+	to_land.y = 0.0
+	if to_land.length() > 0.5:      # a short thread along the jump, painted before the body leaves
+		SpellFx.danger(global_position, 0.3, {"rect": Vector2(0.42, to_land.length() * 0.5), "yaw": atan2(-to_land.x, -to_land.z), "color": Color(0.8, 0.74, 0.6)})
+	get_tree().create_timer(0.25, false).timeout.connect(func() -> void:
+		if is_inside_tree() and _state != DEAD:
+			launch_at(land, 1.0))
 	Sfx.play_stream(Synth.voice(voice_family(), "flee"), global_position + Vector3.UP, -6.0, _voice_pitch())
 	Vfx.burst(global_position + Vector3.UP * 0.1, Color(0.3, 0.27, 0.22, 0.9), {"count": 10, "life": 0.5, "speed": Vector2(1.0, 2.5), "size": 0.1, "gravity": -6.0, "additive": false})
 
