@@ -1466,15 +1466,20 @@ func _show() -> void:
 
 
 func _ember_value(id: String, r: int) -> String:
+	# the live numbers the Kindling already wrote onto the wanderer; the next rank adds only this ember's step
+	var m := DB.live
+	var rk := DB.rank(_st(), id)
+	var dr := r - rk
 	match id:
 		"warmth":
-			return "%d Gloom" % (100 + 15 * r)
+			return "%d Gloom" % roundi(100.0 + float(m.get("gloom_add", 0.0)) + 15.0 * dr)
 		"banked":
-			return "%d%% drift" % (100 - 12 * r)
+			var was := maxf(1.0 - 0.12 * rk, 0.05)
+			return "%d%% drift" % roundi(100.0 * float(m.get("dark_mult", 1.0)) * (1.0 - 0.12 * r) / was)
 		"will":
-			return "+%d%% damage" % (10 * r)
+			return "+%d%% damage" % roundi(100.0 * (float(m.get("power", 1.0)) - 1.0) + 10.0 * dr)
 		"quick":
-			return "-%d%% recovery" % (7 * r)
+			return "-%d%% recovery" % roundi(100.0 * (1.0 - float(m.get("cd", 1.0))) + 7.0 * dr)
 		"cord":
 			return "%d cords" % (DB.BASE_SLOTS + r)
 	return str(r)
