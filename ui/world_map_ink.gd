@@ -134,21 +134,44 @@ func _ways() -> void:
 
 func _wall() -> void:
 	var gates: Array = RealmLayout.MARCH_GATES
-	for sx in [-1.0, 1.0]:
-		var x: float = RealmLayout.MARCH_WALL_X * sx
+	for sx in [-1, 1]:
+		var src: Array = RealmLayout.MARCH_WALL_WEST if sx < 0 else RealmLayout.MARCH_WALL_EAST
 		var gz: float = (gates[0] as Vector2).y
-		for seg: Array in [[-110.0, gz - 6.0], [gz + 6.0, 240.0]]:
-			var a := _w(Vector2(x, seg[0]))
-			var b := _w(Vector2(x, seg[1]))
-			draw_rect(Rect2(a.x - 3.5, a.y, 7.0, b.y - a.y), Color(0.84, 0.76, 0.58, 0.9))
-			draw_line(a + Vector2(-3.5, 0), b + Vector2(-3.5, 0), INK, 1.8, true)
-			draw_line(a + Vector2(3.5, 0), b + Vector2(3.5, 0), INK, 1.8, true)
-			var y := a.y
-			while y < b.y:
-				draw_rect(Rect2(a.x + 3.5 * sx - (0.0 if sx > 0 else 3.5), y, 3.5, 3.0), INK)
-				y += 8.0
+		var ruin_z0 := 1.0e9
+		var ruin_z1 := -1.0e9
+		for rn: Array in RealmLayout.MARCH_RUINS:
+			if int(rn[0]) == sx:
+				ruin_z0 = float(rn[1])
+				ruin_z1 = float(rn[2])
+		var run := PackedVector2Array()
+		var runs: Array[PackedVector2Array] = []
+		var z := -112.0
+		while z <= 242.0:
+			var open := absf(z - gz) < 6.0 or (z > ruin_z0 and z < ruin_z1)
+			if open:
+				if run.size() > 1:
+					runs.append(run)
+				run = PackedVector2Array()
+			else:
+				run.append(_w(Vector2(RealmLayout.wall_x(sx, z), z)))
+			z += 4.0
+		if run.size() > 1:
+			runs.append(run)
+		for r: PackedVector2Array in runs:
+			draw_polyline(r, Color(0.84, 0.76, 0.58, 0.9), 7.0, true)
+			var off := PackedVector2Array()
+			var off2 := PackedVector2Array()
+			for q: Vector2 in r:
+				off.append(q + Vector2(-3.5, 0))
+				off2.append(q + Vector2(3.5, 0))
+			draw_polyline(off, INK, 1.8, true)
+			draw_polyline(off2, INK, 1.8, true)
+		for sp: Dictionary in RealmLayout.MARCH_SPURS:
+			if int(sp.side) == sx:
+				draw_line(_w(sp.base), _w(sp.tip), INK, 3.0, true)
+				draw_rect(Rect2(_w(sp.tip) - Vector2(3, 3), Vector2(6, 6)), INK)
 		for e: float in [gz - 6.0, gz + 6.0]:
-			var g := _w(Vector2(x, e))
+			var g := _w(Vector2(RealmLayout.wall_x(sx, e), e))
 			draw_rect(Rect2(g.x - 6.0, g.y - 6.0, 12.0, 12.0), PAPER)
 			draw_rect(Rect2(g.x - 6.0, g.y - 6.0, 12.0, 12.0), INK, false, 2.0)
 

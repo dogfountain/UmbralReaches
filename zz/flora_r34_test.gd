@@ -90,7 +90,7 @@ var _camps: Array[Vector2] = []           ## outpost candidates and fires: kept 
 
 
 func _open(x: float, z: float) -> bool:
-	if RealmLayout.path_dist(Vector2(x, z)) < 1.0 or not RealmLayout.OLD_BOUNDS.has_point(Vector2(x, z)) or absf(absf(x) - RealmLayout.MARCH_WALL_X) < 10.0:
+	if RealmLayout.path_dist(Vector2(x, z)) < 1.0 or not RealmLayout.OLD_BOUNDS.has_point(Vector2(x, z)) or RealmLayout.wall_dist(Vector2(x, z)) < 10.0:
 		return false                  # (judged on the old Realm's ground, less the March Wall's band: its sites and keep-outs are the wall's)
 	for c in _camps:
 		if c.distance_to(Vector2(x, z)) < Flora.OUTPOST_CLEAR:

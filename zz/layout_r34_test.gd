@@ -469,11 +469,13 @@ func _r37() -> void:
 	var pc := RealmLayout.PANS.get_center()
 	var bw: Dictionary = Land.biome_weights(pc.x, pc.y)
 	check("the White Pans' ground is salt (weight %.2f, biome %s)" % [float(bw.get("salt", 0.0)), RealmLayout.biome_at(pc.x, pc.y)], float(bw.get("salt", 0.0)) > 0.8 and RealmLayout.biome_at(pc.x, pc.y) == "salt")
-	# the old Realm's rim stands on the March Wall's line (x +-155), a modest crest the wall can sit on
-	var rim_w := _terrain(-155.0, 20.0)
-	var out_w := _terrain(-185.0, 20.0)
-	var in_w := _terrain(-135.0, 20.0)
-	check("a crest on the March Wall's line (x -155: %.1f; 30 m out %.1f, 20 m in %.1f)" % [rim_w, out_w, in_w], rim_w > in_w + 0.5 and rim_w > out_w + 0.5)
+	# the old Realm's rim stands on the March Wall's line (it bends: wall_x), a modest crest the wall can sit on
+	for sd: int in [-1, 1]:
+		var wx := RealmLayout.wall_x(sd, 20.0) * float(sd)
+		var rim_w := _terrain(wx * sd, 20.0)
+		var out_w := _terrain((wx + 30.0) * sd, 20.0)
+		var in_w := _terrain((wx - 20.0) * sd, 20.0)
+		check("a crest on the March Wall's line (side %d, x %.0f: %.1f; 30 m out %.1f, 20 m in %.1f)" % [sd, wx * sd, rim_w, out_w, in_w], rim_w > in_w + 0.5 and rim_w > out_w + 0.5)
 	# far detail: the world is loaded to the horizon, and the forests carry a canopy shell, the trees fade
 	var cam := get_viewport().get_camera_3d()
 	check("the camera sees the far field (far %.0f)" % [cam.far if cam else 0.0], cam != null and cam.far >= FarDetail.VIEW_FAR - 0.5)

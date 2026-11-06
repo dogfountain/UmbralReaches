@@ -1,11 +1,13 @@
 extends RefCounted
 ## The South pass (docs/r37_expansion.md): the doubled Realm's southern ground and the old Realm's wall.
 ##
-##   March Wall   the old Realm's boundary, a curtain wall along x = -155 and x = +155 from the Crowns'
-##                foot (z -110) to the south edge: a kit of segments (three states of ruin), towers every
-##                ~48 m, two GATEHOUSES where the Pilgrims' Road crosses (RealmLayout.MARCH_GATES; the
-##                gate leaves hang broken, the road runs clear), and BREACHES wherever a track crosses the
-##                line or a camp, a site or a slot stands in its way (the wall never blocks a way).
+##   March Wall   the old Realm's boundary, a curtain wall that follows the land (RealmLayout.MARCH_WALL_WEST /
+##                _EAST, a polyline per side) from the Crowns' foot (z -112) to the south edge: a kit of
+##                segments (three states of ruin), towers at its bends and every ~50 m on the straight, two
+##                GATEHOUSES where the Pilgrims' Road crosses (RealmLayout.MARCH_GATES; the gate leaves hang
+##                broken, the road runs clear), BREACHES wherever a track crosses the line or a camp, a site or
+##                a slot stands in its way (the wall never blocks a way), spurs out to towers on knolls, and
+##                one long fall (MARCH_RUINS: stubs and rubble, no barrier).
 ##                Detail meshes with LODs and a far silhouette mesh (visibility ranges, never a hard cut).
 ##   Southern Downs  the shepherds' hut and fold (the shepherd's camp is village_cast OUTPOSTS "dunstan")
 ##   Grandmother Oak  a 40 m hollow dead oak (Blender: trunk, roots, limbs, a stair in the trunk): the
@@ -28,7 +30,7 @@ const Data := preload("res://core/world/realm/r37_south_data.gd")
 const FALL_SHADER := preload("res://core/world/realm/r37_south_fall.gdshader")
 
 const OAK_C := Vector2(-70.0, 206.0)
-const WALL_Z0 := -110.0
+const WALL_Z0 := -112.0
 const WALL_Z1 := 242.0
 const WALL_VIS := Vector2(0.0, 130.0)      ## the detail meshes fade out here (FarDetail.register: the far silhouette takes over)
 const FAR_END := 130.0
@@ -112,8 +114,7 @@ static func reserve(root: Node) -> void:
 	spots["r37s_well"] = {"at": Vector3(wc.x, _ground_med(space, wc), wc.y), "yaw": 0.0, "rect": Rect2(wc - Vector2(26, 26), Vector2(52, 52))}
 	# --- the wall: two lanes keep the flora and the props off the line
 	for side in [-1, 1]:
-		var x := float(side) * RealmLayout.MARCH_WALL_X
-		WorldLanes.register_lane("r37s_wall_%d" % side, [Vector2(x, WALL_Z0), Vector2(x, WALL_Z1)], 2.6)
+		WorldLanes.register_lane("r37s_wall_%d" % side, (RealmLayout.MARCH_WALL_WEST if side < 0 else RealmLayout.MARCH_WALL_EAST) as Array, 2.6)
 	print("REALM_POI r37 south reserved %s" % [spots.keys()])
 
 
@@ -209,17 +210,68 @@ static func _wall(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 		_wall_side(wh, space, side, float(gzs.get(side, 67.0)))
 
 
-## Every place along the line (z) where the wall must open: tracks that cross it, camps, sites, slots.
+# --- the line: one polyline per side, walked by arc length u -------------------------------------
+
+static func line_of(side: int) -> Dictionary:
+	var src: Array = RealmLayout.MARCH_WALL_WEST if side < 0 else RealmLayout.MARCH_WALL_EAST
+	var p := PackedVector2Array()
+	var s := PackedFloat64Array()
+	var acc := 0.0
+	for i in src.size():
+		var v: Vector2 = src[i]
+		if i > 0:
+			acc += v.distance_to(p[i - 1])
+		p.append(v)
+		s.append(acc)
+	return {"p": p, "s": s, "len": acc}
+
+
+static func _at(line: Dictionary, u: float) -> Vector2:
+	var p: PackedVector2Array = line.p
+	var s: PackedFloat64Array = line.s
+	var i := s.size() - 2
+	for k in s.size() - 1:
+		if u <= s[k + 1]:
+			i = k
+			break
+	return p[i].lerp(p[i + 1], clampf((u - s[i]) / maxf(s[i + 1] - s[i], 0.001), 0.0, 1.0))
+
+
+## Arc length at which the line reaches z (it only ever runs south).
+static func _u_of_z(line: Dictionary, z: float) -> float:
+	var p: PackedVector2Array = line.p
+	var s: PackedFloat64Array = line.s
+	for i in p.size() - 1:
+		if z <= p[i + 1].y:
+			return lerpf(s[i], s[i + 1], clampf((z - p[i].y) / maxf(p[i + 1].y - p[i].y, 0.001), 0.0, 1.0))
+	return line.len
+
+
+## The yaw that puts a part's local +Z on the outer face of a chord a -> b (local X then runs along the wall).
+static func _yaw_of(side: int, a: Vector2, b: Vector2) -> float:
+	var t := (b - a).normalized()
+	var n := Vector2(t.y, -t.x) if side > 0 else Vector2(-t.y, t.x)
+	return atan2(n.x, n.y)
+
+
+## Where the wall must open (z): tracks that cross the line, camps, sites and slots on it, and the openings
+## the layout names -- never near a gate, the fallen stretch or a spur's root.
 static func _breach_zs(side: int, gz: float) -> Array[float]:
-	var x := float(side) * RealmLayout.MARCH_WALL_X
 	var out: Array[float] = []
 	var add := func(z: float) -> void:
 		if z < WALL_Z0 + 18.0 or z > WALL_Z1 - 12.0 or absf(z - gz) < 30.0:
 			return
+		for rn: Array in RealmLayout.MARCH_RUINS:
+			if int(rn[0]) == side and z > float(rn[1]) - 16.0 and z < float(rn[2]) + 16.0:
+				return
+		for sp: Dictionary in RealmLayout.MARCH_SPURS:
+			if int(sp.side) == side and absf(z - float((sp.base as Vector2).y)) < 18.0:
+				return
 		for e: float in out:
 			if absf(e - z) < 22.0:
 				return
 		out.append(z)
+	var fs := float(side)
 	for path: Dictionary in RealmLayout.PATHS:
 		if String(path.id) == "road":
 			continue
@@ -227,70 +279,121 @@ static func _breach_zs(side: int, gz: float) -> Array[float]:
 		for i in pts.size() - 1:
 			var a: Vector2 = pts[i]
 			var b: Vector2 = pts[i + 1]
-			if (a.x - x) * (b.x - x) < 0.0:
-				add.call(lerpf(a.y, b.y, (x - a.x) / (b.x - a.x)))
+			if a.x * fs < 100.0 and b.x * fs < 100.0:
+				continue
+			var fa := (a.x - RealmLayout.wall_x(side, a.y)) * fs
+			var fb := (b.x - RealmLayout.wall_x(side, b.y)) * fs
+			if fa * fb < 0.0:
+				var lo := 0.0
+				var hi := 1.0
+				for _k in 12:
+					var mid := (lo + hi) * 0.5
+					var q := a.lerp(b, mid)
+					if (q.x - RealmLayout.wall_x(side, q.y)) * fs * fa > 0.0:
+						lo = mid
+					else:
+						hi = mid
+				add.call(a.lerp(b, lo).y)
+	for oz: Array in RealmLayout.MARCH_OPENINGS:
+		if int(oz[0]) == side:
+			add.call(float(oz[1]))
 	for c: Dictionary in EnemySpawner.REALM_CAMPS:
 		var cp: Vector3 = c.at
-		if absf(cp.x - x) < 10.0:
+		if cp.x * fs > 0.0 and RealmLayout.wall_dist(Vector2(cp.x, cp.z)) < 10.0:
 			add.call(cp.z)
 	for s: Dictionary in WorldLanes.sites:
 		var sn := String(s.name)
 		if sn.begins_with("poi_r37s") or sn.begins_with("r37s"):
 			continue
 		var r: Rect2 = s.rect
-		if r.size.y < 36.0 and r.position.x < x + 7.0 and r.end.x > x - 7.0 and (r.position.x * float(side) > 100.0 or r.end.x * float(side) > 100.0):
-			add.call(r.get_center().y)
+		if r.size.x > 0.0 and r.size.y > 0.0 and r.size.y < 36.0 and (r.position.x * fs > 100.0 or r.end.x * fs > 100.0):
+			var gr := r.grow(7.0)
+			var zz := r.position.y
+			while zz <= r.end.y:
+				if gr.has_point(Vector2(RealmLayout.wall_x(side, zz), zz)):
+					add.call(r.get_center().y)
+					break
+				zz += 3.0
 	for slot_list: Variant in RealmLayout.SLOTS.values():
 		for sl: Dictionary in slot_list:
 			var q: Vector2 = sl.at
-			if absf(q.x - x) < 9.0:
+			if q.x * fs > 0.0 and RealmLayout.wall_dist(q) < 9.0:
 				add.call(q.y)
 	out.sort()
 	return out
 
 
 static func _wall_side(wh: Node3D, space: PhysicsDirectSpaceState3D, side: int, gz: float) -> void:
-	var x := float(side) * RealmLayout.MARCH_WALL_X
-	var yaw := float(side) * PI * 0.5                      # local +Z (the outer face) looks away from the old Realm
+	var line := line_of(side)
+	var total: float = line.len
+	var pv: PackedVector2Array = line.p
+	var sv: PackedFloat64Array = line.s
 	var feats: Array[Dictionary] = []
 	gate_z[side] = gz
-	feats.append({"z": gz, "half": 10.4, "kind": "gate"})
+	feats.append({"u": _u_of_z(line, gz), "half": 10.4, "kind": "gate"})
+	for rn: Array in RealmLayout.MARCH_RUINS:
+		if int(rn[0]) == side:
+			var u0 := _u_of_z(line, float(rn[1]))
+			var u1 := _u_of_z(line, float(rn[2]))
+			feats.append({"u": (u0 + u1) * 0.5, "half": (u1 - u0) * 0.5, "kind": "ruin"})
+	var spurs: Array[Dictionary] = []
+	for sp: Dictionary in RealmLayout.MARCH_SPURS:
+		if int(sp.side) == side:
+			spurs.append(sp)
+			feats.append({"u": _u_of_z(line, float((sp.base as Vector2).y)), "half": 3.9, "kind": "tower"})
 	var bz := _breach_zs(side, gz)
 	breaches[side] = bz
 	for z: float in bz:
-		feats.append({"z": z, "half": 13.8, "kind": "breach"})
-	# towers: the ends and every ~48 m, clear of gates and breaches
-	var tz := WALL_Z0 + 4.0
+		feats.append({"u": _u_of_z(line, z), "half": 13.8, "kind": "breach"})
+	# towers: the ends, the bends, and a filler wherever a straight run goes over ~60 m
+	var cand: Array[float] = []
+	var prev := NAN
+	for i in pv.size():
+		var turn := 0.0
+		if i > 0 and i < pv.size() - 1:
+			turn = absf((pv[i] - pv[i - 1]).angle_to(pv[i + 1] - pv[i]))
+		var end := i == 0 or i == pv.size() - 1
+		if end or (turn > deg_to_rad(14.0) and (is_nan(prev) or sv[i] - prev >= 24.0)):
+			while not is_nan(prev) and sv[i] - prev > 62.0:
+				prev += 46.0
+				cand.append(prev)
+			cand.append(sv[i])
+			prev = sv[i]
 	var tn := 0
-	while tz < WALL_Z1:
+	for tu: float in cand:
 		var ok := true
 		for f: Dictionary in feats:
-			if absf(float(f.z) - tz) < float(f.half) + 6.0:
+			if absf(float(f.u) - tu) < float(f.half) + 6.0:
 				ok = false
 		if ok:
-			feats.append({"z": tz, "half": 3.9, "kind": "tower_ruin" if tn % 3 == 1 or tz > WALL_Z1 - 8.0 else "tower"})
-		tz += 48.0 if tz < WALL_Z1 - 50.0 else 24.0
-		tn += 1
-	feats.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.z) < float(b.z))
+			feats.append({"u": tu, "half": 3.9, "kind": "tower_ruin" if tn % 3 == 1 or tu > total - 8.0 else "tower"})
+			tn += 1
+	feats.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.u) < float(b.u))
 	var shapes: Array = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 37101 + side
-	var cur := WALL_Z0
+	var cur := 0.0
 	var n_seg := 0
 	for f: Dictionary in feats:
-		var lo := float(f.z) - float(f.half)
+		var lo := float(f.u) - float(f.half)
 		if lo < cur - 0.6:
 			continue
-		n_seg += _fill(wh, space, shapes, x, yaw, side, cur, lo, rng)
+		n_seg += _fill(wh, space, shapes, line, side, cur, lo, rng)
+		var c := _at(line, float(f.u))
+		var yaw := _yaw_of(side, _at(line, float(f.u) - 4.0), _at(line, float(f.u) + 4.0))
 		match String(f.kind):
 			"gate":
-				_gatehouse(wh, space, shapes, x, yaw, side, float(f.z))
+				_gatehouse(wh, space, shapes, c, yaw, side)
 			"breach":
-				_breach(wh, space, shapes, x, yaw, side, float(f.z), rng)
+				_breach(wh, space, shapes, line, side, float(f.u), rng)
+			"ruin":
+				_ruin(wh, space, shapes, line, side, float(f.u) - float(f.half), float(f.u) + float(f.half), rng)
 			_:
-				_tower(wh, space, shapes, x, yaw, float(f.z), String(f.kind) == "tower_ruin")
-		cur = float(f.z) + float(f.half)
-	n_seg += _fill(wh, space, shapes, x, yaw, side, cur, WALL_Z1, rng)
+				_tower(wh, space, shapes, c, yaw, String(f.kind) == "tower_ruin")
+		cur = float(f.u) + float(f.half)
+	n_seg += _fill(wh, space, shapes, line, side, cur, total, rng)
+	for sp: Dictionary in spurs:
+		n_seg += _spur(wh, space, shapes, sp.base, sp.tip, rng)
 	Kit.body(wh, "MarchWallBody_%d" % side, shapes)
 	print("R37S wall side %d: %d segments, %d features, breaches at %s, gate at z %.1f" % [side, n_seg, feats.size(), bz, gz])
 
@@ -302,50 +405,73 @@ static func _far(host: Node3D, path: String, part: String, xf: Transform3D, end 
 		FarDetail.register(host, m, host.global_transform.affine_inverse() * xf, end, null, fade_host)
 
 
-static func _base_y(space: PhysicsDirectSpaceState3D, x: float, z0: float, z1: float) -> float:
+## The wall's footing along the chord a -> b: the mean ground, held within reach of the lowest point.
+static func _base_y(space: PhysicsDirectSpaceState3D, a: Vector2, b: Vector2) -> float:
+	var t := (b - a).normalized()
+	var perp := Vector2(t.y, -t.x)
 	var s := 0.0
 	var n := 0
 	var lo := INF
 	for iz in 5:
+		var q := a.lerp(b, float(iz) / 4.0)
 		for ox: float in [-1.6, 0.0, 1.6]:
-			var g := RealmLayout.ground(space, x + ox, lerpf(z0, z1, float(iz) / 4.0))
+			var g := RealmLayout.ground(space, q.x + perp.x * ox, q.y + perp.y * ox)
 			s += g
 			n += 1
 			lo = minf(lo, g)
 	return clampf(s / float(n) - 0.2, lo - 0.1, lo + 1.6)
 
 
-## Plain segments between z a and b, each scaled to fit. Returns how many.
-static func _fill(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, x: float, yaw: float, side: int, a: float, b: float, rng: RandomNumberGenerator) -> int:
-	var len := b - a
-	if len < 1.2:
+## One plain segment a -> b (yaw puts local +Z on the outer face), scaled to fit.
+static func _put_seg(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, a: Vector2, b: Vector2, yaw: float, rng: RandomNumberGenerator) -> void:
+	var sl := a.distance_to(b)
+	var mid := (a + b) * 0.5
+	var by := _base_y(space, a, b)
+	var r := rng.randf()
+	var part := "WallSeg_A" if r < 0.6 else ("WallSeg_B" if r < 0.85 else "WallSeg_C")
+	var xf := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3(sl / float(Data.WALL_LEN), 1.0, 1.0)), Vector3(mid.x, by, mid.y))
+	Kit.put(wh, Kit.WALL, part, xf, WALL_VIS, true, "Seg_%d_%d" % [int(mid.x), int(mid.y)])
+	_far(wh, Kit.WALL, "WallFar", xf)
+	shapes.append([Kit.box(Vector3(sl + 0.3, 10.4, 2.7)), Transform3D(Basis(Vector3.UP, yaw), Vector3(mid.x, by + 2.1, mid.y))])
+
+
+## Plain segments along the line between arc lengths a and b, split at its bends, each scaled to fit. Returns how many.
+static func _fill(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, line: Dictionary, side: int, a: float, b: float, rng: RandomNumberGenerator) -> int:
+	if b - a < 1.2:
 		return 0
-	var n := maxi(1, roundi(len / 12.0))
-	var sl := len / float(n)
-	var sx := sl / float(Data.WALL_LEN)
-	for i in n:
-		var z0 := a + sl * float(i)
-		var z := z0 + sl * 0.5
-		var by := _base_y(space, x, z0, z0 + sl)
-		var r := rng.randf()
-		var part := "WallSeg_A" if r < 0.6 else ("WallSeg_B" if r < 0.85 else "WallSeg_C")
-		var xf := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3(sx, 1.0, 1.0)), Vector3(x, by, z))
-		Kit.put(wh, Kit.WALL, part, xf, WALL_VIS, true, "Seg_%d_%d" % [side, int(z)])
-		_far(wh, Kit.WALL, "WallFar", xf)
-		shapes.append([Kit.box(Vector3(sl + 0.3, 10.4, 2.7)), Transform3D(Basis(Vector3.UP, yaw), Vector3(x, by + 2.1, z))])
-	return n
+	var sv: PackedFloat64Array = line.s
+	var cuts: Array[float] = [a]
+	for sx: float in sv:
+		if sx > a + 1.0 and sx < b - 1.0:
+			cuts.append(sx)
+	cuts.append(b)
+	var made := 0
+	for k in cuts.size() - 1:
+		var c0 := cuts[k]
+		var len := cuts[k + 1] - c0
+		if len < 0.8:
+			continue
+		var n := maxi(1, roundi(len / 12.0))
+		for i in n:
+			var pa := _at(line, c0 + len * float(i) / float(n))
+			var pb := _at(line, c0 + len * float(i + 1) / float(n))
+			_put_seg(wh, space, shapes, pa, pb, _yaw_of(side, pa, pb), rng)
+			made += 1
+	return made
 
 
-static func _tower(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, x: float, yaw: float, z: float, ruin: bool) -> void:
-	var by := _base_y(space, x, z - 3.6, z + 3.6)
-	var xf := Transform3D(Basis(Vector3.UP, yaw), Vector3(x, by, z))
-	Kit.put(wh, Kit.WALL, "TowerRuin" if ruin else "Tower", xf, WALL_VIS, true, "Tower_%d" % int(z))
+static func _tower(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, c: Vector2, yaw: float, ruin: bool) -> void:
+	var by := _base_y(space, c + Vector2(0.0, -3.6), c + Vector2(0.0, 3.6))
+	var xf := Transform3D(Basis(Vector3.UP, yaw), Vector3(c.x, by, c.y))
+	Kit.put(wh, Kit.WALL, "TowerRuin" if ruin else "Tower", xf, WALL_VIS, true, "Tower_%d_%d" % [int(c.x), int(c.y)])
 	_far(wh, Kit.WALL, "TowerFar", xf)
 	var h := 9.2 if ruin else float(Data.TOWER_H) + 0.6
-	shapes.append([Kit.box(Vector3(float(Data.TOWER_S) * 0.98, h + 3.0, float(Data.TOWER_S) * 0.98)), Transform3D(Basis(Vector3.UP, yaw), Vector3(x, by + (h - 3.0) * 0.5, z))])
+	shapes.append([Kit.box(Vector3(float(Data.TOWER_S) * 0.98, h + 3.0, float(Data.TOWER_S) * 0.98)), Transform3D(Basis(Vector3.UP, yaw), Vector3(c.x, by + (h - 3.0) * 0.5, c.y))])
 
 
-static func _gatehouse(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, x: float, yaw: float, side: int, z: float) -> void:
+static func _gatehouse(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, c: Vector2, yaw: float, side: int) -> void:
+	var x := c.x
+	var z := c.y
 	var by := RealmLayout.ground(space, x, z) - 0.1
 	var xf := Transform3D(Basis(Vector3.UP, yaw), Vector3(x, by, z))
 	var id := "r37s_gate_w" if side < 0 else "r37s_gate_e"
@@ -371,26 +497,73 @@ static func _gatehouse(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Arr
 	h.set_meta("r37_gate", true)
 
 
-static func _breach(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, x: float, yaw: float, side: int, z: float, rng: RandomNumberGenerator) -> void:
-	var off := 10.2
-	for s: int in [-1, 1]:
-		var zz := z + float(s) * off
-		var by := _base_y(space, x, zz - 3.2, zz + 3.2)
-		# the stub's gap end is local +X; local +X is world -z on the east wall and +z on the west one
-		var plus_z := side < 0
-		var mirror: bool = (s < 0) != plus_z          # north stub (s<0) needs +X -> +z, south stub needs -z
-		var sc := Vector3(-1.0 if mirror else 1.0, 1.0, 1.0)
-		var xf := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(sc), Vector3(x, by, zz))
-		Kit.put(wh, Kit.WALL, "BreachStub", xf, WALL_VIS, true, "Stub_%d_%d" % [side, int(zz)])
-		var rb := Basis(Vector3.UP, yaw)
-		var ctr := func(lx: float) -> Vector3: return xf * Vector3(lx, 0.0, 0.0)
-		for seg: Array in [[-2.9, 1.5, 6.4], [-1.0, 2.3, 5.4], [0.7, 1.8, 3.4], [2.1, 1.2, 1.8]]:
-			var c: Vector3 = ctr.call(float(seg[0]))
-			var hh := float(seg[2])
-			shapes.append([Kit.box(Vector3(float(seg[1]), hh + 3.0, 2.6)), Transform3D(rb, Vector3(c.x, by + (hh - 3.0) * 0.5, c.z))])
+## One broken end of the wall at arc length u: the stub and its collision. `toward` is +1 when the gap
+## lies at greater u than the stub, -1 when at smaller u.
+static func _stub(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, line: Dictionary, side: int, u: float, toward: int) -> void:
+	var c := _at(line, u)
+	var pa := _at(line, u - 3.2)
+	var pb := _at(line, u + 3.2)
+	var by := _base_y(space, pa, pb)
+	var yaw := _yaw_of(side, pa, pb)
+	# the stub's gap end is local +X; local +X runs with +u on the west wall and against it on the east one
+	var mirror: bool = (toward > 0) != (side < 0)
+	var sc := Vector3(-1.0 if mirror else 1.0, 1.0, 1.0)
+	var xf := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(sc), Vector3(c.x, by, c.y))
+	Kit.put(wh, Kit.WALL, "BreachStub", xf, WALL_VIS, true, "Stub_%d_%d" % [int(c.x), int(c.y)])
+	var rb := Basis(Vector3.UP, yaw)
+	for seg: Array in [[-2.9, 1.5, 6.4], [-1.0, 2.3, 5.4], [0.7, 1.8, 3.4], [2.1, 1.2, 1.8]]:
+		var w: Vector3 = xf * Vector3(float(seg[0]), 0.0, 0.0)
+		var hh := float(seg[2])
+		shapes.append([Kit.box(Vector3(float(seg[1]), hh + 3.0, 2.6)), Transform3D(rb, Vector3(w.x, by + (hh - 3.0) * 0.5, w.z))])
+
+
+static func _breach(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, line: Dictionary, side: int, u: float, rng: RandomNumberGenerator) -> void:
+	_stub(wh, space, shapes, line, side, u - 10.2, 1)
+	_stub(wh, space, shapes, line, side, u + 10.2, -1)
 	# the rubble the wall left in the gap: low enough to walk over, never a wall
-	var gy := RealmLayout.ground(space, x, z)
-	Kit.put(wh, Kit.WALL, "Rubble", Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(x, gy - 0.1, z)), WALL_VIS, false, "Rubble_%d_%d" % [side, int(z)])
+	var c := _at(line, u)
+	var gy := RealmLayout.ground(space, c.x, c.y)
+	Kit.put(wh, Kit.WALL, "Rubble", Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(c.x, gy - 0.1, c.y)), WALL_VIS, false, "Rubble_%d_%d" % [side, int(c.y)])
+
+
+## The long fall: a stub at each end, between them heaps of rubble and low fallen lengths, nothing that bars the way.
+static func _ruin(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, line: Dictionary, side: int, u0: float, u1: float, rng: RandomNumberGenerator) -> void:
+	_stub(wh, space, shapes, line, side, u0 + 3.6, 1)
+	_stub(wh, space, shapes, line, side, u1 - 3.6, -1)
+	var u := u0 + 9.0
+	var k := 0
+	while u < u1 - 9.0:
+		var c := _at(line, u)
+		var n := (_at(line, u + 2.0) - _at(line, u - 2.0)).normalized()
+		var perp := Vector2(n.y, -n.x)
+		var q := c + perp * rng.randf_range(-1.8, 1.8)
+		var gy := RealmLayout.ground(space, q.x, q.y)
+		var sc := rng.randf_range(0.9, 1.5)
+		Kit.put(wh, Kit.WALL, "Rubble", Transform3D(Basis(Vector3.UP, rng.randf() * TAU) * Basis.from_scale(Vector3(sc, sc * rng.randf_range(0.7, 1.1), sc)), Vector3(q.x, gy - 0.12, q.y)), WALL_VIS, false, "Fall_%d_%d" % [side, k])
+		# every third heap has a length of the wall lying in it, low, walk-through
+		if k % 3 == 1:
+			var pa := _at(line, u - 4.0)
+			var pb := _at(line, u + 4.0)
+			var by := _base_y(space, pa, pb)
+			var yaw := _yaw_of(side, pa, pb) + rng.randf_range(-0.35, 0.35)
+			var flip := -0.8 if k % 2 == 0 else 0.8
+			var xf := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3(flip, 0.32, 0.9)), Vector3(c.x, by - 0.2, c.y))
+			Kit.put(wh, Kit.WALL, "BreachStub", xf, WALL_VIS, false, "Fallen_%d_%d" % [side, k])
+		u += rng.randf_range(6.5, 9.5)
+		k += 1
+
+
+## A spur: the wall runs out from `base` (on the line) to a tower at `tip`, on a knoll. Returns segments.
+static func _spur(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, base: Vector2, tip: Vector2, rng: RandomNumberGenerator) -> int:
+	var d := (tip - base).normalized()
+	var a := base + d * 3.9
+	var b := tip - d * 3.6
+	var yaw := atan2(-d.y, d.x)
+	var n := maxi(1, roundi(a.distance_to(b) / 12.0))
+	for i in n:
+		_put_seg(wh, space, shapes, a.lerp(b, float(i) / float(n)), a.lerp(b, float(i + 1) / float(n)), yaw, rng)
+	_tower(wh, space, shapes, tip, yaw, false)
+	return n
 
 
 # =================================================================================================

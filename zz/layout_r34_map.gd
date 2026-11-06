@@ -133,6 +133,23 @@ func _draw() -> void:
 					plot.call((e[0] as Vector2).lerp(e[1], tt), Color(1, 1, 0.2), px * 0.5)
 		else:
 			ring.call(rd.c, float(rd.r), Color(1, 1, 0.2))
+	# blobs a region adds to its rect, the March Wall's line and its spurs, the cross-ridges' crests
+	for rd: Dictionary in RealmLayout.REGIONS:
+		if rd.has("blobs"):
+			for b: Dictionary in rd.blobs:
+				ring.call(b.c, float(b.r), Color(0.6, 1, 0.2))
+	for wl: Array in [RealmLayout.MARCH_WALL_WEST, RealmLayout.MARCH_WALL_EAST]:
+		for i in wl.size() - 1:
+			for k in 40:
+				plot.call((wl[i] as Vector2).lerp(wl[i + 1], k / 40.0), Color(0.3, 0.6, 1.0), px * 0.7)
+	for sp: Dictionary in RealmLayout.MARCH_SPURS:
+		for k in 12:
+			plot.call((sp.base as Vector2).lerp(sp.tip, k / 12.0), Color(0.3, 0.6, 1.0), px * 0.7)
+	for rg: Dictionary in RealmLayout.MARCH_RIDGES:
+		var rp: Array = rg.pts
+		for i in rp.size() - 1:
+			for k in 40:
+				plot.call((rp[i] as Vector2).lerp(rp[i + 1], k / 40.0), Color(1, 0.5, 0.2), px * 0.5)
 	# raids
 	for rd: Dictionary in (load("res://core/world/realm/realm_layout.gd") as GDScript).get_script_constant_map().get("RAIDS", []):
 		ring.call(rd.c, float(rd.r), Color(1, 0.2, 0.1))
