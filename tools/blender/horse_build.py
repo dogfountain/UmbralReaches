@@ -31,7 +31,7 @@ BREED = args[args.index("--breed") + 1] if "--breed" in args else "palfrey"
 PREVIEW = args[args.index("--preview") + 1] if "--preview" in args else ""
 EXPORT = "--no-export" not in args
 SIZE = 1024 if "--lite" in args else 2048
-BODY_TRIS = 5200
+BODY_TRIS = 4300
 
 # scale (sx lateral, sy height, sz length) and the shape knobs of each breed; coat colours.
 BREEDS = {
@@ -95,7 +95,7 @@ def coat_mat():
     # points: the lower legs, muzzle, ears and tail root darker
     low = m.ramp(Z, [(0.35, (1, 1, 1)), (0.75, (0, 0, 0))])
     face = m.math('MULTIPLY', m.math('GREATER_THAN', Y, 0.9), m.math('GREATER_THAN', Z, 1.25))
-    face_lo = m.math('MULTIPLY', face, m.ramp(Z, [(1.3, (1, 1, 1)), (1.46, (0, 0, 0))]))
+    face_lo = m.math('MULTIPLY', face, m.math('SUBTRACT', 1.0, m.math('MULTIPLY', m.math('SUBTRACT', Z, 1.3), 6.25, True)))
     pmask = m.math('MAXIMUM', m.mono(low), face_lo)
     pmask = m.math('MULTIPLY', pmask, 1.0 if BREED != "garron" else 0.8)
     col = m.mix(pmask, col, pts)
@@ -229,7 +229,7 @@ print("TACK", info)
 
 # hair: wide opaque locks (no alpha)
 HAIR = []
-for o in HK.mane(P, J, rng, 1, 56) + HK.forelock(P, J, rng, 8) + HK.tail(P, J, rng, 46) + HK.feathers(P, J, rng):
+for o in HK.mane(P, J, rng, 1, 56) + HK.forelock(P, J, rng, 8) + HK.tail(P, J, rng, 40) + HK.feathers(P, J, rng):
     HAIR.append(o)
     add(o)
 

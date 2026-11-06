@@ -165,8 +165,8 @@ def build(P, body, mats):
     # blanket: trim underlay larger, the cloth over it
     def hem(u, v):
         return 0.0
-    out.append(drape(body, "blanket_trim", -0.38, 0.3, -128, 128, 0.010, TR, nz=9, nt=16, thick=0.008))
-    out.append(drape(body, "blanket", -0.355, 0.275, -121, 121, 0.017, CL, nz=9, nt=16, thick=0.012))
+    out.append(drape(body, "blanket_trim", -0.38, 0.3, -128, 128, 0.010, TR, nz=7, nt=12, thick=0.008))
+    out.append(drape(body, "blanket", -0.355, 0.275, -121, 121, 0.017, CL, nz=7, nt=12, thick=0.012))
     # saddle: panels, flaps, the seat tree with pommel and cantle
     for sgn in (-1, 1):
         a, b = (12, 70) if sgn > 0 else (-12, -70)
