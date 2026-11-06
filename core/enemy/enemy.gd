@@ -841,6 +841,9 @@ func _physics_process(delta: float) -> void:
 		_aim_at_player()
 	elif _state == LEAP_PREP and _to.length_squared() > 0.01:
 		_face_dir = _to.normalized()
+		if is_instance_valid(_danger) and _p != null and _state_t < leap_prep - 0.15:
+			var lt := _leap_target(_p as Player)                  # the disc leads you, then locks for the last 0.15 s
+			_danger.global_position = Vector3(lt.x, lt.y + 0.08, lt.z)
 	elif _state == SPECIAL:
 		_special_frame(delta)
 	_leap_cd = maxf(0.0, _leap_cd - delta)
@@ -1296,12 +1299,15 @@ func _move_ballistic(delta: float) -> void:
 		velocity.x *= 0.2
 		velocity.z *= 0.2
 		_squash = 0.28
+		if is_instance_valid(_danger):
+			_danger.queue_free()
 		if _state == AIRBORNE:
 			_set_state(RECOVER)
 			_state_t = -0.3        # longer stagger after a pounce: the punish window
 
 
-func _pounce(player: Player) -> void:
+## Where a pounce would come down on you now: your feet plus your run over the flight (leap_lead of it).
+func _leap_target(player: Player) -> Vector3:
 	var dy := player.global_position.y - global_position.y
 	var t := flight_time(leap_apex, dy)
 	var pv := Vector3(player.velocity.x, 0.0, player.velocity.z)
@@ -1309,8 +1315,12 @@ func _pounce(player: Player) -> void:
 	var flat := Vector3(target.x - global_position.x, 0.0, target.z - global_position.z)
 	if flat.length() > leap_max + 1.5:
 		flat = flat.normalized() * (leap_max + 1.5)
-	target = Vector3(global_position.x + flat.x, player.global_position.y, global_position.z + flat.z)
-	launch_at(LightGrid.outside(target, LIGHT_MARGIN, _wardproof()), leap_apex)
+	return LightGrid.outside(Vector3(global_position.x + flat.x, player.global_position.y, global_position.z + flat.z), LIGHT_MARGIN, _wardproof())
+
+
+func _pounce(player: Player) -> void:
+	var target := _leap_target(player)
+	launch_at(target, leap_apex)
 	Sfx.play(SFX_SHRIEK, global_position, -4.0)
 	_leap_cd = leap_cooldown
 	_set_state(AIRBORNE)
@@ -1405,7 +1415,7 @@ func _on_state(next: int) -> void:
 			_danger = SpellFx.danger(Vector3.ZERO, life, {"radius": reach, "half_angle": deg_to_rad(strike_arc), "parent": self, "yaw": _face.rotation.y if _face else 0.0})
 		elif _p != null:
 			# a pounce: the red fills under YOU (where it will come down if you stay)
-			_danger = SpellFx.danger(_p.global_position, life, {"radius": 1.5})
+			_danger = SpellFx.danger(_leap_target(_p as Player), life, {"radius": 1.7, "hold": 1.2})
 	elif next == STRIKE:
 		if _rig and _rig.has_method("strike"):
 			_rig.call("strike")
