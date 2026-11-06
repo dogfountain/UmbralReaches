@@ -42,6 +42,12 @@ func pulling() -> bool:
 	return _pulling
 
 
+## The line is placed every rendered frame at the staff head as it is drawn (a physics-tick muzzle stepped at 60 Hz).
+func _process(_delta: float) -> void:
+	if _pulling:
+		_draw_line()
+
+
 func _physics_process(delta: float) -> void:
 	if player == null:
 		return
@@ -142,7 +148,6 @@ func tick(delta: float) -> void:
 	player.move_and_slide()
 	var moved := player.global_position.distance_to(before)
 	_stuck = _stuck + delta if moved < _speed * delta * 0.2 else 0.0
-	_draw_line()
 	if d < 0.7 or _t > MAX_TIME or _stuck > 0.2:
 		finish(_stuck <= 0.2)
 
@@ -191,8 +196,7 @@ func _draw_line() -> void:
 		_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_line.top_level = true
 		add_child(_line)
-	var rig: Variant = player.get("_visual")
-	var a: Vector3 = (rig as Object).call("muzzle") if rig is Object and (rig as Object).has_method("muzzle") else player.global_position + Vector3.UP * 1.5
+	var a: Vector3 = player._visual.muzzle_drawn() if player._visual != null else player.global_position + Vector3.UP * 1.5
 	var b := _anchor.global_position
 	var ln := a.distance_to(b)
 	if ln < 0.05:
