@@ -726,6 +726,24 @@ func _pins() -> Array:
 		out.append({"at": Vector2(keep.global_position.x, keep.global_position.z), "kind": "keg", "name": "The Kindled Keg"})
 	for tp: Dictionary in _task_pins():
 		out.append({"at": tp.at, "kind": "task", "name": tp.task})
+	# the same pins the compass and the corner map read (group map_marker): a watch, a horse, a rung bell, a
+	# roam event, a quest target. Not a second list: only what the book does not already draw is added.
+	var drawn: Array[Vector2] = []
+	for pn: Dictionary in out:
+		drawn.append(pn.at)
+	for m in get_tree().get_nodes_in_group(&"map_marker"):
+		var m3 := m as Node3D
+		if m3 == null or not m3.is_inside_tree() or not m3.has_meta(&"map_kind"):
+			continue
+		var kind := String(m3.get_meta(&"map_kind"))
+		if kind in ["quest_available", "quest_turnin", "fire", "ash"] or (not m3.is_visible_in_tree() and not m3.has_meta(&"map_always")):
+			continue
+		var at := Vector2(m3.global_position.x, m3.global_position.z)
+		var dup := false
+		for d: Vector2 in drawn:
+			dup = dup or d.distance_to(at) < 3.0
+		if not dup:
+			out.append({"at": at, "kind": "mark", "name": String(m3.get_meta(&"map_label", kind)), "col": m3.get_meta(&"map_color", Color(1.0, 0.8, 0.4))})
 	return out
 
 
@@ -889,6 +907,9 @@ class MapView extends Control:
 				"task":
 					draw_arc(pp, 7.0, 0.0, TAU, 24, Color(1.0, 0.8, 0.4), 2.0)
 					draw_circle(pp, 2.0, Color(1.0, 0.8, 0.4))
+				"mark":
+					var mc: Color = pn.get("col", Color(1.0, 0.8, 0.4))
+					draw_colored_polygon(PackedVector2Array([pp + Vector2(0, -5), pp + Vector2(5, 0), pp + Vector2(0, 5), pp + Vector2(-5, 0)]), mc)
 		if focus != Vector2.INF:
 			var fp := _to(focus)
 			draw_arc(fp, 11.0, 0.0, TAU, 24, M_INK, 1.5)
