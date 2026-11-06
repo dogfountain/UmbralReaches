@@ -468,7 +468,7 @@ func _show() -> void:
 	_d_lore.text = lore
 	# r33 loot: the shared tooltip replaces the plain lines (kept in _d_body, hidden, for tests)
 	var cur: Dictionary = GearStats.worn(st).get(String(p.slot), {})
-	var tip := Tip.piece(p, cur, st)
+	var tip := Tip.piece(p, cur, st, {"full": true})        # the page you reforge on shows every line in full
 	var parts := tip.split("\n", true, 1)
 	_d_rich.text = parts[1] if parts.size() > 1 else tip
 	if aff.size() > 1 and Slice.full():
