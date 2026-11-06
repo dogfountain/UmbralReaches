@@ -25,13 +25,5 @@ static func once(id: StringName, text: String) -> void:
 
 
 ## The first key (or pad button, when `pad`) bound to `action`, for a lesson's text.
-static func key(action: String, fallback: String) -> String:
-	if not InputMap.has_action(action):
-		return fallback
-	for ev in InputMap.action_get_events(action):
-		if ev is InputEventKey:
-			var k := ev as InputEventKey
-			return OS.get_keycode_string(k.physical_keycode if k.physical_keycode != KEY_NONE else k.keycode)
-		if ev is InputEventMouseButton:
-			return String({MOUSE_BUTTON_LEFT: "LMB", MOUSE_BUTTON_RIGHT: "RMB"}.get((ev as InputEventMouseButton).button_index, fallback))
-	return fallback
+static func key(action: String, fallback: String, pad := false) -> String:
+	return InputSetup.live_label(action, pad, fallback)

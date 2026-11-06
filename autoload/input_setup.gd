@@ -220,7 +220,22 @@ func rebind(action: String, slot: String, ev: InputEvent) -> String:
 	mine[slot] = event_to(ev)
 	b[action] = mine
 	Settings.apply()
+	_forget_tips(action)
 	return ""
+
+
+## The just-in-time lessons (ui/hud.gd) that name each action: a rebind forgets them, so the next one prints the new key.
+const TIP_ACTIONS := {"move": ["move_forward", "move_back", "move_left", "move_right", "sprint", "jump"], "jump2": ["jump"],
+	"hang": ["jump", "slide"], "slide": ["slide", "jump"], "lock": ["lock_on", "dodge"], "roll": ["dodge"]}
+
+
+func _forget_tips(action: String) -> void:
+	var l: Variant = Travel.story.get("lessons", {})
+	if not (l is Dictionary):
+		return
+	for id: String in TIP_ACTIONS:
+		if action in (TIP_ACTIONS[id] as Array):
+			(l as Dictionary).erase("tip_" + id)
 
 
 func _replace(action: String, slot: String, ev: InputEvent) -> void:
