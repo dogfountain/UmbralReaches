@@ -9,6 +9,7 @@ extends Node3D
 @export var travel_time := 7.0
 @export var dwell := 3.0
 
+const HorseScript := preload("res://core/world/mount/horse.gd")
 var _deck: AnimatableBody3D
 var _t := 0.0
 const DECK := Vector3(2.6, 0.3, 2.6)
@@ -98,9 +99,27 @@ func _box(parent: Node3D, at: Vector3, size: Vector3, m: Material) -> MeshInstan
 ## and a ride past the summit ward). Set false and it resumes its round from the bottom.
 var hold := false
 var _held_u := 0.0
+var _down_t := 0.0
+
+
+## A horse is not a passenger of a 2.6 m cage: a rider who steps onto the deck gets down (once, kindly).
+func _get_down() -> void:
+	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+	if p == null or p.riding == null or _deck == null:
+		return
+	var d := p.global_position - _deck.global_position
+	if absf(d.x) < DECK.x * 0.5 + 0.5 and absf(d.z) < DECK.z * 0.5 + 0.5 and d.y > -1.0 and d.y < 2.5:
+		var h := p.riding as HorseScript
+		if h != null:
+			h.dismount()
+			Events.toast.emit("The horse will not take the cage. You get down.")
 
 
 func _physics_process(delta: float) -> void:
+	_down_t -= delta
+	if _down_t <= 0.0:
+		_down_t = 0.25
+		_get_down()
 	if hold:
 		_held_u = move_toward(_held_u, 0.0, delta / maxf(travel_time, 0.1))
 		_t = 0.0
@@ -132,4 +151,4 @@ func _place(u: float) -> void:
 		var b := Vector3(bottom.x, y + 0.55, bottom.z + s * (DECK.z * 0.5 - 0.05))
 		ch.global_position = (a + b) * 0.5
 		var d := b - a
-		ch.global_basis = Basis(Vector3.RIGHT, d.normalized().cross(Vector3.RIGHT).normalized(), Vector3.ZERO).orthonormalized() if false else Basis(Quaternion(Vector3.UP, d.normalized())).scaled(Vector3(1.0, d.length(), 1.0))
+		ch.global_basis = Basis(Quaternion(Vector3.UP, d.normalized())).scaled(Vector3(1.0, d.length(), 1.0))
