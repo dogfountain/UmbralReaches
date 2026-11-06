@@ -278,7 +278,7 @@ func banner_text() -> String:
 
 func show_elite(title: String, hp: float, max_hp: float) -> void:
 	_elite_box.visible = true
-	_elite_name.text = title.to_upper()
+	_elite_name.text = TextDirector.sentence(title)
 	_elite_name.add_theme_color_override("font_color", COLD if deeper else EMBER)
 	_elite_bar.max_value = maxf(max_hp, 1.0)
 	_elite_bar.value = hp
