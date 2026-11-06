@@ -6,6 +6,7 @@ extends "res://core/enemy/ossuant.gd"
 const ID := "lisle"
 const Elites := preload("res://core/life/encounters/elites.gd")
 const Kit := preload("res://core/life/encounters/elite_kit.gd")
+const Guardians := preload("res://core/life/encounters/guardians.gd")
 var _called := false
 var _rises := 0
 
@@ -26,7 +27,8 @@ func take_hit(dmg: float, from: Node = null) -> void:
 		_called = true
 		BossKit.roar(self, "Brother Lisle calls the count.", Color(1.2, 0.55, 2.6))
 		var crawler := load("res://core/enemy/crawler.gd") as GDScript
-		BossKit.summon(get_parent(), crawler, global_position, 2, 3.2, "elite_" + ID)
+		var got := BossKit.summon(get_parent(), crawler, global_position, 2, 3.2, "elite_" + ID)
+		Guardians.scale_summoned(got, int(get_meta(&"enc_tier", 0)), "crawler")   # the camp crawler of his row
 
 
 func _die() -> void:

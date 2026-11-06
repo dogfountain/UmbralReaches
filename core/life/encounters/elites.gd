@@ -19,7 +19,7 @@ const ELITES := {
 		"haunt": [Vector2(48, 73), Vector2(56, 74), Vector2(44, 70)], "region": "road",
 		"hp": 21, "ash": 20, "scale": 1.28, "glow": Color(1.8, 0.7, 0.2), "loot": "hobbs_knuckles",
 		"where": "the Pilgrims' Road, east of Hearthward",
-		"note": "BOUNTY. A tall one walks the east road at night in a pilgrim's hood, and knocks. Three slow knocks, door to door, as Maud's boy used to. Do not open. Do not answer. Whoever puts it down: twenty measures of ash at the Keg, and Maud need never know whose hands they were. -- the keep",
+		"note": "BOUNTY. A tall one walks the east road at night in a pilgrim's hood, and knocks. Three slow knocks, door to door, as Maud's boy used to. Do not open. Do not answer. Whoever puts it down: ash at the Keg, and Maud need never know whose hands they were. -- the keep",
 		"trait": "Knocks thrice: a three-blow chain, each blow with its own tell.",
 	},
 	"lisle": {
