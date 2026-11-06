@@ -80,7 +80,7 @@ func strike() -> void:
 
 ## `side` -1..1: which way the hit came from (local x), for a twist away from it.
 func flinch(amount: float, side := 0.0) -> void:
-	_flinch = clampf(maxf(_flinch, amount), 0.0, 1.0)
+	_flinch = clampf(maxf(_flinch, maxf(amount, 0.45)), 0.0, 1.0)
 	_flinch_side = side
 
 
@@ -115,8 +115,8 @@ func _tick_poses(delta: float) -> void:
 		_rake = sin(clampf(k, 0.0, 1.0) * PI * 0.5) if k < 1.0 else maxf(0.0, 1.0 - (k - 1.0) * 1.6)
 		if _rake <= 0.0 and k >= 1.0:
 			_rake_t = -1.0
-	_flinch = move_toward(_flinch, 0.0, delta * 4.5)
-	_reel = move_toward(_reel, 0.0, delta * 1.1)
+	_flinch = move_toward(_flinch, 0.0, delta * 2.2)
+	_reel = move_toward(_reel, 0.0, delta * 0.75)
 	if _howl_t >= 0.0:
 		_howl_t += delta
 		var hk := clampf(_howl_t / _howl_dur, 0.0, 1.0)
