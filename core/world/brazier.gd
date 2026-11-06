@@ -144,6 +144,8 @@ static func lit_at(tree: SceneTree, pos: Vector3) -> Brazier:
 ## LightGrid radius. The light's own range grows with it so the warm circle reads as far as it
 ## holds (the pool equals the sanctuary).
 func set_reach(r: float) -> void:
+	if not has_meta(&"reach_base"):
+		set_meta(&"reach_base", Vector2(light_radius, lit_range))      # the hearth reads this as the base
 	if is_equal_approx(r, light_radius):
 		return
 	light_radius = r
