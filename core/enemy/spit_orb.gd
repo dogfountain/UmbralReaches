@@ -16,6 +16,7 @@ static var _shape: SphereShape3D
 
 var velocity := Vector3.ZERO
 var gloom := 10.0
+var dim := false              ## a volley's side orbs: a quiet light, none in the fog
 var _age := 0.0
 var _dead := false
 var _skipped := false         ## it entered you while you were evading: it wounds when the roll ends, once
@@ -23,11 +24,12 @@ var _light: OmniLight3D
 var _body: Node3D
 
 
-static func launch(host: Node, from: Vector3, dir: Vector3, gloom_amount: float) -> SpitOrb:
+static func launch(host: Node, from: Vector3, dir: Vector3, gloom_amount: float, dim := false) -> SpitOrb:
 	if host == null:
 		return null
 	var orb := SpitOrb.new()
 	orb.gloom = gloom_amount
+	orb.dim = dim
 	orb.velocity = dir.normalized() * SPEED
 	host.add_child(orb)
 	orb.global_position = from
@@ -57,10 +59,10 @@ func _ready() -> void:
 	_body.add_child(flare)
 	_light = OmniLight3D.new()
 	_light.light_color = Color(0.3, 1.0, 0.8)
-	_light.light_energy = 1.3
+	_light.light_energy = 0.35 if dim else 1.3
 	_light.omni_range = 3.2
 	_light.shadow_enabled = false
-	_light.light_volumetric_fog_energy = 0.4
+	_light.light_volumetric_fog_energy = 0.0 if dim else 0.4
 	_light.set_meta("light_class", "glimmer")
 	add_child(_light)
 	body_entered.connect(_on_body)

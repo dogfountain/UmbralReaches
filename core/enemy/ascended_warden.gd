@@ -38,6 +38,8 @@ var _sig := 0                   ## signature moves this phase (I: fans, II: judg
 var anchors: Array[Vector3] = []
 var _blink_t := 5.0
 var _fan_t := 99.0
+var _fan_cone: MeshInstance3D
+var _fan_yaw := 0.0
 var _fans_left := 0
 var _judge_t := 4.0
 var _eclipse_t := 16.0
@@ -184,6 +186,7 @@ func _physics_process(delta: float) -> void:
 		return                                  # reeling between phases: nothing new starts
 	_blink_t -= delta
 	_fan_t -= delta
+	_track_fan()
 	_judge_t -= delta
 	_eclipse_t -= delta
 	_flare_t -= delta
@@ -279,8 +282,24 @@ func _aim_fan(double: bool) -> void:
 	var cone := SpellFx.danger(global_position, FAN_WINDUP, {"radius": 20.0, "half_angle": deg_to_rad(33.0), "yaw": atan2(-to.x, -to.z), "color": BossKit.HOLY})
 	if cone:
 		track_move(cone)
+	_fan_cone = cone
+	_fan_yaw = atan2(-to.x, -to.z)
 	_fan_t = FAN_WINDUP
 	_fans_left = 2 if double else 1
+
+
+## The cone follows you until the last 0.2 s, then holds; the volley flies along the frozen yaw.
+func _track_fan() -> void:
+	if _fan_t <= 0.2 or _fan_t > FAN_WINDUP or _p == null or not is_instance_valid(_fan_cone):
+		return
+	var to := _p.global_position - global_position
+	to.y = 0.0
+	if to.length() < 0.5:
+		return
+	_fan_yaw = atan2(-to.x, -to.z)
+	_face_dir = to.normalized()
+	var origin := _fan_cone.global_position
+	_fan_cone.global_transform = Transform3D(Basis(Vector3.UP, _fan_yaw) * Basis.from_scale(Vector3(20.0, 1.0, 20.0)), origin)
 
 
 func _fan() -> void:
@@ -293,10 +312,14 @@ func _fan() -> void:
 		_rig.call("strike")
 	var from := global_position + Vector3.UP * (hp_bar_y * 0.7)
 	var aim := (p.global_position + Vector3.UP - from)
+	var flat := Vector2(aim.x, aim.z).length()
+	var fwd := Basis(Vector3.UP, _fan_yaw) * Vector3.FORWARD           # the locked cone, not where you are now
+	if not (phase >= 3 and _fans_left == 1):
+		aim = Vector3(fwd.x * flat, aim.y, fwd.z * flat)
 	var off := 5.0 if _fans_left == 1 and phase >= 3 else 0.0     # the second volley fills the gaps
 	for k in 7:
 		var ang := deg_to_rad(-30.0 + 10.0 * float(k) + off)
-		SpitOrb.launch(get_tree().current_scene, from, aim.rotated(Vector3.UP, ang), 17.0)
+		SpitOrb.launch(get_tree().current_scene, from, aim.rotated(Vector3.UP, ang), 17.0, k != 3)
 	Vfx.burst(from, Color(2.2, 1.8, 1.0), {"count": 30, "life": 0.4, "speed": Vector2(2.0, 5.0), "size": 0.05, "dir": aim.normalized(), "spread": 40.0, "gravity": 0.0})
 
 

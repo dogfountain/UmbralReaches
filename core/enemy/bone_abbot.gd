@@ -843,18 +843,21 @@ func _tithe() -> void:
 	var to := _p.global_position - global_position
 	to.y = 0.0
 	var dir := to.normalized()
+	var n := int(clampf((to.length() + 3.0) / 2.0, 4.0, 11.0))
 	if _rig and _rig.has_method("telegraph"):
-		_rig.call("telegraph", 0.7)
+		_rig.call("telegraph", 0.75 + 0.16 * float(n - 1))      # the arms stay up for the whole line
 	_face_dir = dir
 	_glint = 1.0
 	Sfx.play_stream(Synth.get_stream("spike"), global_position + Vector3.UP, 0.0, 0.7)
-	var n := int(clampf((to.length() + 3.0) / 2.0, 4.0, 11.0))
 	BossKit.cast(self, "Tithe Line", 0.75 + 0.16 * float(n - 1))
 	for i in n:
 		var at := _floor_at(global_position + dir * (3.0 + 2.0 * float(i)))
 		if at == Vector3.INF:
 			continue
 		BossKit.zone(get_parent(), at, 0.75 + 0.16 * float(i), 22.0, {"by": self, "radius": 1.5, "color": BossKit.BONE, "spikes": "bone"})
+		get_tree().create_timer(0.75 + 0.16 * float(i), false).timeout.connect(func() -> void:
+			if is_instance_valid(self) and is_alive() and _rig and _rig.has_method("strike"):
+				_rig.call("strike"))                                # the crozier meets each spike
 
 
 ## The reliquary found while the Requiem is sung: two such bolts break the song. While it raises the
