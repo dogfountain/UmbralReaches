@@ -95,15 +95,15 @@ static func inside(pos: Vector3, at: Vector3, opts: Dictionary) -> bool:
 	var local := Basis(Vector3.UP, yaw).inverse() * Vector3(d.x, 0.0, d.z)
 	var rect: Vector2 = opts.get("rect", Vector2.ZERO)
 	if rect != Vector2.ZERO:
-		return absf(local.x) <= rect.x + 0.25 and local.z <= 0.25 and local.z >= -rect.y * 2.0 - 0.25
+		return absf(local.x) <= rect.x and local.z <= 0.0 and local.z >= -rect.y * 2.0
 	var r: float = opts.get("radius", 1.0)
 	var flat := Vector2(local.x, local.z)
-	if flat.length() > r + 0.2:
+	if flat.length() > r:
 		return false
 	var half: float = opts.get("half_angle", PI)
 	if half >= PI - 0.01 or flat.length() < 0.5:
 		return true
-	return absf(atan2(local.x, -local.z)) <= half + 0.08
+	return absf(atan2(local.x, -local.z)) <= half
 
 
 static func _land(host: Node, at: Vector3, opts: Dictionary, col: Color) -> void:
