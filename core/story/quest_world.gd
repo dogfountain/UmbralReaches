@@ -407,6 +407,10 @@ func _sync_props() -> void:
 		want["lantern"] = "lit" if Book.pick("slow_way") == "truth" else "cold"
 	if Book.done("forty_first") and Book.pick("forty_first") == "truth":
 		want["staff"] = "staff"
+	if Book.done("alms_loaf"):
+		want["loaf"] = "loaf"
+	if Book.done("ring_heart"):
+		want["thorn"] = "thorn"
 	for id: String in props.keys():
 		if not want.has(id) or String((props[id] as Node).get_meta("v", "")) != String(want[id]):
 			(props[id] as Node).queue_free()
@@ -417,7 +421,7 @@ func _sync_props() -> void:
 		var xf: Variant = _prop_xf(id2, String(want[id2]))
 		if xf == null:
 			continue
-		var kind: String = {"tongs": "tongs", "names": "slabs", "mug": "mug_full", "staff": "staff"}.get(id2, "lantern_lit" if want[id2] == "lit" else "lantern")
+		var kind: String = {"tongs": "tongs", "names": "slabs", "mug": "mug_full", "staff": "staff", "loaf": "loaf_circle", "thorn": "thorn"}.get(id2, "lantern_lit" if want[id2] == "lit" else "lantern")
 		var h := QProps.make(self, "Outcome_" + id2, kind, xf as Transform3D)
 		h.set_meta("v", String(want[id2]))
 		props[id2] = h
@@ -440,6 +444,16 @@ func _prop_xf(id: String, v: String) -> Variant:
 		"mug":
 			var p3: Vector3 = spots.get("mug_fire", Vector3.INF)
 			return null if p3 == Vector3.INF else Transform3D(Basis.IDENTITY, p3)
+		"loaf":
+			# beside the mug, inside its own chalk circle
+			var pl2: Vector3 = spots.get("mug_fire", Vector3.INF)
+			return null if pl2 == Vector3.INF else Transform3D(Basis(Vector3.UP, 0.2), pl2 + Vector3(0.9, 0.0, -0.3))
+		"thorn":
+			# by Wyck's fire: wherever he stands in the Thornwood, a pace to the side
+			var wy := _villager("wyck")
+			if wy == null:
+				return null
+			return Transform3D(Basis(Vector3.UP, 0.5), wy.global_position + Vector3(0.9, 0.0, 0.4))
 		"staff":
 			var p4: Vector3 = spots.get("staff", Vector3.INF)
 			return null if p4 == Vector3.INF else Transform3D(Basis(Vector3.UP, 0.4), p4)

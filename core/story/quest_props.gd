@@ -77,6 +77,16 @@ static func make(parent: Node3D, n: String, kind: String, xf: Transform3D) -> No
 			for i in 4:
 				var a := float(i) * 1.6
 				k.box("glow", Vector3(cos(a) * 0.05, 0.07, sin(a) * 0.05), Vector3(0.07, 0.05, 0.06), Basis(Vector3.UP, a), false, 0.9)
+		"loaf_circle":
+			# One Loaf's outcome: the loaf by the green's fire, inside a chalk circle
+			_chalk(k, Vector3.ZERO, 0.36)
+			k.box("plaster", Vector3(0, 0.07, 0), Vector3(0.24, 0.1, 0.16), Basis(Vector3.UP, 0.2), false, 0.62)
+			k.box("dark", Vector3(0, 0.122, 0), Vector3(0.16, 0.006, 0.014), Basis(Vector3.UP, 0.2), false, 1.0)
+			k.box("dark", Vector3(0, 0.122, 0), Vector3(0.014, 0.006, 0.11), Basis(Vector3.UP, 0.2), false, 1.0)
+		"thorn":
+			# What the Oaks Keep: a thorn buried face down, only the butt showing in a low mound
+			k.box("stone", Vector3(0, 0.03, 0), Vector3(0.34, 0.06, 0.28), Basis(Vector3.UP, 0.5), false, 1.0)
+			k.box("dark", Vector3(0.0, 0.08, 0.0), Vector3(0.05, 0.1, 0.05), Basis(Vector3.RIGHT, 0.12) * Basis(Vector3.UP, 0.5), false, 0.8)
 		"loaf":
 			# r33: the Almonry's last loaf on a board, a cross cut in the crust
 			k.box("wood", Vector3(0, 0.02, 0), Vector3(0.42, 0.04, 0.3), Basis(Vector3.UP, 0.2), false, 0.7)

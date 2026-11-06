@@ -213,7 +213,7 @@ const QUESTS := {
 		],
 		"reward": {"ash": 25},
 		"choose": [{"set": "kindler", "slot": "focus", "rarity": 2}, {"set": "kindler", "slot": "lantern", "rarity": 2}, {"set": "kindler", "slot": "vestment", "rarity": 2}],
-		"outcome": {"": "Wyck buried the thorn face down by his fire, and sang the verse the abbey chiselled off."}},
+		"outcome": {"": "Wyck buried the thorn face down, and sang the verse the abbey chiselled off."}},
 	"unpaid_toll": {"name": "The Toll Unpaid", "giver": "hesk", "where": "Hesk the Woodcutter, at the Keg", "zone": "thornwood",
 		"offer": true,
 		"text": "Tollmen. Ride with the war bands, ring a bell, and the whole wood comes running. One of 'em had my brother's axe. Put two of 'em down before they ring. Then I'll drink easier.",
@@ -260,7 +260,7 @@ const QUESTS := {
 		],
 		"reward": {"ash": 14},
 		"choose": [{"set": "bell", "slot": "focus", "rarity": 1}, {"set": "bell", "slot": "vestment", "rarity": 1}, {"set": "bell", "slot": "girdle", "rarity": 1}],
-		"outcome": {"": "Brannoc hung the drowned bell's tongue over the Keg's door. It doesn't ring. He checks."}},
+		"outcome": {"": "Brannoc keeps the drowned bell's tongue by him. It doesn't ring. He checks."}},
 	# the summit: the keep's last word
 	"crossing_ward": {"name": "The Ward on the Crossing", "giver": "keep", "where": "The keep of the Kindled Keg", "zone": "summit",
 		"offer": true, "avail": "boss:thornwarden,boss:bone_abbot,qd:founders_peal",
@@ -474,7 +474,7 @@ const QUESTS := {
 		],
 		"reward": {"ash": 25},
 		"choose": [{"set": "bell", "slot": "focus", "rarity": 2}, {"set": "bell", "slot": "vestment", "rarity": 2}, {"set": "bell", "slot": "lantern", "rarity": 2}],
-		"outcome": {"": "Brannoc hung the warm tongue in the Keg's chimney. Up at the summit, the great bell in the Warden's hand will ring wrong, Mother's way."}},
+		"outcome": {"": "Brannoc keeps the warm tongue by him. Up at the summit, the great bell in the Warden's hand will ring wrong, Mother's way."}},
 	# the Cinder Orchard: Linnet the grafter (the Kindlers' orchard)
 	"orchard_buds": {"name": "A Living Bud", "giver": "linnet", "where": "Linnet, at her fire in the Cinder Orchard", "zone": "orchard",
 		"offer": true,
