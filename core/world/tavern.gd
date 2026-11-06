@@ -69,6 +69,7 @@ func _build() -> void:
 	WorldLanes.register_portal("tavern_door", Vector3(DOOR_X, FY, Z0 - 1.4), Vector3.FORWARD)
 	WorldLanes.register_lane("tavern_path", [Vector2(3.0, 18.0), Vector2(12.0, 18.0), Vector2(DOOR_X, 21.0), Vector2(DOOR_X, 22.6)], 1.0)
 	var k := OssKit.new()
+	k.under_shade = 0.88                     # rafters and the ceiling take the hearth instead of a black grid
 	_yard_wall(k, space)
 	# --- foundation and floor --------------------------------------------------------------
 	k.foundation("stone", Vector2(X0 - 0.05, Z0 - 0.05), Vector2(X1 + 0.05, Z1 + 0.05), FY, g.x)
