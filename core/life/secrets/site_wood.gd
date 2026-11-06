@@ -25,6 +25,8 @@ static var _knelt: Array[String] = []
 
 
 static func build(root: Node, host: Node3D) -> void:
+	# a fresh build is a cold one: puzzle progress that is not the save does not outlive its night
+	_knelt.clear()
 	var sp := Kit.space(root)
 	var node := Node3D.new()
 	node.name = "Wood"

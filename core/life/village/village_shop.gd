@@ -65,13 +65,15 @@ const RUMOURS := [
 
 static var _sold := {}            ## "who/id" -> bought this village night
 static var _night := -1
+static var _slot := -1            ## the save slot the sold list belongs to
 
 
 static func _restock(tree: SceneTree) -> void:
 	var v := tree.root.find_child("Village", true, false) if tree else null
 	var n := int(v.get("nights")) if v else 0
-	if n != _night:
+	if n != _night or _slot != Travel.slot:
 		_night = n
+		_slot = Travel.slot
 		_sold.clear()
 
 
