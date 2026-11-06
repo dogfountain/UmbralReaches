@@ -710,9 +710,10 @@ func _tick_encounter_layout() -> void:
 				break
 	if not is_instance_valid(_enc_hud):
 		return
-	if "_status" in _enc_hud and _enc_hud.get("_status") is Control:
+	# the tide line and the nightmare line move to our plate only while the frames are on
+	if HudPrefs.unit_frames and "_status" in _enc_hud and _enc_hud.get("_status") is Control:
 		(_enc_hud.get("_status") as Control).position = Vector2(PF_POS.x + 6, _buff_row_y() + ICON + 26.0)
-	if "_ng" in _enc_hud and _enc_hud.get("_ng") is Control:
+	if HudPrefs.unit_frames and "_ng" in _enc_hud and _enc_hud.get("_ng") is Control:
 		(_enc_hud.get("_ng") as Control).position = Vector2(PF_POS.x + PORTRAIT_R * 2.0 + 16.0, PF_POS.y + 96.0)
 	if "_elite_box" in _enc_hud and _enc_hud.get("_elite_box") is Control:
 		var box := _enc_hud.get("_elite_box") as Control
