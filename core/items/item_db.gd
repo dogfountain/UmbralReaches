@@ -63,7 +63,7 @@ const DEFS := {
 		"text": "Found in the valley's hidden places. A kindled fire knows what to make of it."},
 	"charm_candle": {"name": "Maud's Candle-Stub", "kind": "charm", "shape": "candle", "tint": Color(1.0, 0.78, 0.45),
 		"desc": "The stub of the candle Maud keeps in her window for Hobb. She lights a new one every night. This one she burned down the night the knocking started.",
-		"text": "Worn: Gloom gathers 10% slower in the dark."},
+		"text": "Worn: Gloom gathers 10% slower in the dark and by the Rift."},
 	"charm_thread": {"name": "Pell's Red Thread", "kind": "charm", "shape": "thread", "tint": Color(0.86, 0.2, 0.17),
 		"desc": "A twist of red wool off a child's hood: nine winters. Someone keeps mending Pell's shoe. Someone else kept this.",
 		"text": "Worn: Rift Step reaches 1.5 m further."},
