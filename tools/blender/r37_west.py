@@ -280,7 +280,7 @@ HEAD_R = (27.0, 25.5, 19.0)         # outer ellipsoid radii
 SHELL_T = 4.2
 GATE_PHI = 0.93                      # azimuth of the arena's mouth (Blender atan2(y, x))
 NECK_PHI = 0.0
-FACE_DIR = Vector((0.0, 0.55, 0.83)).normalized()    # the face looks up and a little to the gate
+FACE_DIR = Vector((0.0, 0.88, 0.47)).normalized()    # the face looks up and a little to the gate
 CUT_DIR = Vector((-0.24, -0.43, 0.87)).normalized()  # the split: opens the skull on the far side
 CROWN_DIR = Vector((-1.0, 0.0, 0.0))
 
@@ -320,16 +320,18 @@ def build_head(P):
         if f_ > 0.25:
             def bump(r0, c0, rr, hh):
                 return hh * math.exp(-(((r_ - r0) ** 2 + (c_ - c0) ** 2) / (rr * rr)))
-            push += bump(0.0, -0.05, 0.11, 0.17)                 # the nose's ridge
-            push += bump(0.0, 0.3, 0.17, 0.09)                 # the brow
-            push += bump(0.0, 0.34, 0.5, 0.06)
+            push += bump(0.0, -0.05, 0.12, 0.30)                 # the nose's ridge
+            push += bump(0.0, 0.3, 0.2, 0.17)                 # the brow
+            push += bump(0.0, 0.34, 0.55, 0.11)
             for s in (-1, 1):
-                push -= bump(s * 0.29, 0.14, 0.1, 0.12)        # the closed eyes' hollows
+                push -= bump(s * 0.29, 0.14, 0.11, 0.24)        # the closed eyes' hollows
                 push += bump(s * 0.29, 0.14, 0.12, 0.02)
-                push += bump(s * 0.5, -0.12, 0.19, 0.09)       # cheekbones
+                push += bump(s * 0.5, -0.12, 0.21, 0.15)       # cheekbones
                 push += bump(s * 0.3, -0.34, 0.1, 0.012)
-            push -= 0.1 * math.exp(-(((c_ + 0.4) / 0.03) ** 2)) * math.exp(-((r_ / 0.3) ** 2))   # the mouth's line
-            push += bump(0.0, -0.62, 0.16, 0.1)                # the chin
+            push -= 0.2 * math.exp(-(((c_ + 0.4) / 0.04) ** 2)) * math.exp(-((r_ / 0.3) ** 2))   # the mouth's line
+            push += bump(0.0, -0.62, 0.17, 0.12)                # the chin
+            push += bump(0.0, -0.3, 0.2, 0.1)
+            push += bump(0.0, -0.46, 0.14, 0.09)
         # the crown band round the brow's far side: a ridge of lozenges
         band = math.exp(-(((c_ - 0.62) / 0.05) ** 2)) * (0.5 + 0.5 * math.sin(math.atan2(r_, f_) * 26.0))
         push += 0.018 * band
@@ -409,6 +411,26 @@ def build_tines(P, rng_seed=5):
                 box(P, "stone", tip + lean * 1.4, (0.7, 0.7, 0.7), yaw=rnd.random() * 3, pitch=0.5)
 
 
+def build_beard(P):
+    """A long forked beard of stone locks lying from the chin down the chest."""
+    import random
+    rnd = random.Random(11)
+    side = FACE_DIR.cross(CROWN_DIR).normalized()
+    crown = side.cross(FACE_DIR).normalized()
+    cu = (FACE_DIR - crown * 0.62).normalized()
+    chin = Vector((HEAD_R[0] * cu.x, HEAD_R[1] * cu.y, HEAD_R[2] * cu.z))
+    for k in range(7):
+        t = (k - 3) / 3.0
+        start = chin + side * (t * 5.0) + Vector((0, 0, 0.5))
+        pts = []
+        for i in range(8):
+            u = i / 7.0
+            pts.append(start + Vector((u * (14.0 + 4 * rnd.random()), t * 3.2 * u + 1.2 * math.sin(u * 5 + k), -u * 3.0 + 1.6 * math.sin(u * 3 + k))))
+        for i in range(7):
+            w = 2.2 * (1.0 - 0.7 * (i / 7.0))
+            beam(P, "stone", pts[i], pts[i + 1], w, w * 0.8)
+
+
 def build_torso(P):
     """Robe and shoulders: x 22..56, the break at the waist; drapery ridges along its length."""
     segs = 96
@@ -430,7 +452,7 @@ def build_torso(P):
             a = math.tau * k / ring_n
             fold = 0.55 * math.sin(a * 11.0 + x * 0.35 + 1.3 * noise.noise(Vector((x * 0.08, a, 1.0)))) * (v > -1.0)
             fold += 0.3 * noise.noise(Vector((x * 0.3, a * 2.0, 0.0)))
-            r = 1.0 + 0.018 * fold + 0.02 * fbm(Vector((x * 0.12, u * 0.12, v * 0.12)), 3)
+            r = 1.0 + 0.05 * fold + 0.02 * fbm(Vector((x * 0.12, u * 0.12, v * 0.12)), 3)
             ring.append(Vector((x, u * r, v * r + (1.0 if v > 0 else 0.0))))
         rings.append(ring)
     # the waist's break: the last ring ragged, dropped, and a rough plug behind it
@@ -527,6 +549,7 @@ def asset_statue():
     P_head, P_body, P_deb = Parts(), Parts(), Parts()
     build_head(P_head)
     build_tines(P_head)
+    build_beard(P_head)
     build_torso(P_body)
     hand = build_arm(P_body)
     build_debris(P_deb)
@@ -568,6 +591,7 @@ def asset_statue():
 def asset_mill():
     reset()
     P = Parts()
+    WP = Parts()                          # the weir, its own glb (set at the water, not the bank)
     W = Parts()                           # the wheel, its own node (turns about its axle)
     # model frame: z 0 = the bank, the mill's footprint x -19..-10, y -3.6..3.6; the weir runs along X
     # (the river across it, flow towards -Y), its crest at z 0.2, the wheel at x -8.2 on the mill's east wall
@@ -611,13 +635,13 @@ def asset_mill():
     box(P, "ashlar", (-8.2, -2.2, -0.6), (4.6, 0.8, 2.6))
     box(P, "ashlar", (-8.2, 2.2, -0.6), (4.6, 0.8, 2.6))
     # the weir: a stone spillway across the river (x -8 .. 8), a timber apron, wing walls
-    box(P, "ashlar", (0.0, 0.0, -0.9), (17.0, 3.6, 2.2))
-    box(P, "ashlar", (0.0, 0.2, 0.05), (17.0, 1.2, 0.25), pitch=0.0)
-    box(P, "ashlar", (0.0, -2.6, -1.5), (17.0, 2.4, 1.0))
+    box(WP, "ashlar", (0.0, 0.0, -0.9), (17.0, 3.6, 2.2))
+    box(WP, "ashlar", (0.0, 0.2, 0.05), (17.0, 1.2, 0.25), pitch=0.0)
+    box(WP, "ashlar", (0.0, -2.6, -1.5), (17.0, 2.4, 1.0))
     for k in range(9):
-        beam(P, "timber", (-8 + 2 * k, 1.9, -0.2), (-8 + 2 * k, 1.9, 1.6), 0.3)       # the stop-log posts
-    box(P, "ashlar", (-9.4, 0, 0.6), (2.0, 5.0, 2.6))
-    box(P, "ashlar", (9.4, 0, 0.6), (2.0, 5.0, 2.6))
+        beam(WP, "timber", (-8 + 2 * k, 1.9, -0.2), (-8 + 2 * k, 1.9, 1.6), 0.3)       # the stop-log posts
+    box(WP, "ashlar", (-9.4, 0, 0.6), (2.0, 5.0, 2.6))
+    box(WP, "ashlar", (9.4, 0, 0.6), (2.0, 5.0, 2.6))
     # wheel: rim rings, spokes, buckets (an overshot wheel, 6.4 m across, 1.5 m wide), axle along Y
     R = 3.2
     c = Vector((-8.2, 0.0, 3.4))
@@ -646,6 +670,9 @@ def asset_mill():
         o.location = c
     col = make_collision(mill, "Mill", 1.0)
     export(mill + wheel + [col], os.path.join(MODELS, "r37_mill.glb"), "mill")
+    weir = finish(WP, "Weir")
+    wcol = make_collision(weir, "Weir", 1.0)
+    export(weir + [wcol], os.path.join(MODELS, "r37_weir.glb"), "weir")
     preview(mill + wheel, "mill", [((-30, -24, 14), (-11, 0, 3), 32), ((-4, 24, 12), (-12, 0, 3), 30)])
 
 

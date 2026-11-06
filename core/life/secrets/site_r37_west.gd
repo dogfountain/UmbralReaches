@@ -11,7 +11,7 @@ extends RefCounted
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
-const WATER := -0.9
+const WATER := 0.6        ## the Sorrow's head reach (RealmLayout.river_level at the shrine)
 
 
 static func release() -> void:
@@ -45,7 +45,9 @@ static func _walk(root: Node, host: Node3D, shrine: Node3D) -> void:
 		print("SECRETS aldith's walk: no shrine")
 		return
 	var sp := Kit.space(root)
-	var s0 := Vector2(shrine.global_position.x, shrine.global_position.z)
+	var sc: Vector3 = shrine.get_meta("centre")
+	var sy: float = float(shrine.get_meta("plinth_y", sc.y))
+	var s0 := Vector2(sc.x, sc.z)
 	# the islet: round, in the deeper water upstream or downstream of the shrine, off the sites and the camps
 	var isle := Vector2.INF
 	var deepest := WATER - 0.05
@@ -81,12 +83,12 @@ static func _walk(root: Node, host: Node3D, shrine: Node3D) -> void:
 	k.box("iron", ic + Vector3(-0.9, 0.9, -0.9), Vector3(0.08, 1.8, 0.08), Basis.IDENTITY, true, 0.8)
 	k.box("glow", ic + Vector3(-0.9, 1.7, -0.9), Vector3(0.18, 0.24, 0.18), Basis.IDENTITY, false, 0.55)
 	# the ring: set in the shrine's plinth, a post with an iron ring on a hook
-	var lv := Vector3(shrine.global_position.x + 3.3, shrine.global_position.y + 0.9, shrine.global_position.z + 1.6)
+	var lv := Vector3(sc.x + 3.3, sy + 0.5, sc.z + 1.6)
 	k.box("stone", lv + Vector3.UP * 0.0, Vector3(0.5, 0.5, 0.5), Basis.IDENTITY, true, 0.8)
 	k.commit(node, "WalkBody")
 	var ring := Kit.mi(node, _bx(Vector3(0.34, 0.34, 0.05)), OssKit.mat("iron"), Transform3D(Basis(Vector3.RIGHT, 0.4), lv + Vector3(0.0, 0.45, 0.0)), 50.0)
 	# the sunk walk: a ramp of stone from the shrine's step to the islet, under the water until raised
-	var a := Vector3(shrine.global_position.x + 1.0, WATER + 0.3, shrine.global_position.z + (3.4 if isle.y > s0.y else -3.4))
+	var a := Vector3(sc.x + 1.0, sy - 0.1, sc.z + (3.4 if isle.y > s0.y else -3.4))
 	var e := ic + Vector3(0, 0.05, 0) + (Vector3(a.x, 0, a.z) - Vector3(ic.x, 0, ic.z)).normalized() * 1.6
 	var mid := (a + e) * 0.5
 	var run := Vector3(e.x - a.x, e.y - a.y, e.z - a.z)
