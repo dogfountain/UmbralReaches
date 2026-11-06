@@ -29,6 +29,8 @@ static func release() -> void:
 
 
 static func build(root: Node, host: Node3D) -> void:
+	# a fresh build is a cold one: puzzle progress that is not the save does not outlive its night
+	_lit.clear()
 	var pois := root.get_node_or_null("RealmPois")
 	if pois == null:
 		print("SECRETS r34: no places built")

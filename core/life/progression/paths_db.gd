@@ -34,7 +34,7 @@ const NODES: Array[Dictionary] = [
 		"text": "+10 Gloom held.", "fx": {"gloom_add": 10.0},
 		"lore": "Edda's first lesson: keep your hands warm and the rest follows."},
 	{"id": "h_breath", "path": "hearth", "depth": 1, "cost": 1, "glyph": "coals", "name": "Slow Breath",
-		"text": "Gloom gathers 6% slower in the dark.", "fx": {"dark_mult": 0.94},
+		"text": "Gloom gathers 6% slower in the dark and by the Rift.", "fx": {"dark_mult": 0.94},
 		"lore": "Breathe as the banked coals do: seldom, and all the way down."},
 	{"id": "h_carrier", "path": "hearth", "depth": 2, "cost": 1, "glyph": "lantern", "name": "Coal-Carrier",
 		"text": "Fire takes the Gloom off you and mends you 20% faster.", "fx": {"lit_mult": 1.2},
@@ -46,7 +46,7 @@ const NODES: Array[Dictionary] = [
 		"text": "Room for a third meal: three of the Keg's or Bet's dishes at once, one of each kind.", "fx": {"belly": 1.0},
 		"lore": "Last bread, last bed, last fire before the Stair. Eat the bread twice."},
 	{"id": "h_ember", "path": "hearth", "depth": 5, "cost": 1, "glyph": "will", "name": "Ember Heart",
-		"text": "Every kill mends 1 Wound.", "fx": {"kill_relief": 1.0},
+		"text": "A kill beside you, within 28 m, mends 1 Wound.", "fx": {"kill_relief": 1.0},
 		"lore": "Ash to ember. Some of what they give back is warmth."},
 	{"id": "h_reach", "path": "hearth", "depth": 6, "cost": 2, "glyph": "hearth", "name": "Wide Hearth",
 		"text": "Every kindled fire's sanctuary reaches 1.5 m further.", "fx": {"reach_add": 1.5},
@@ -96,19 +96,18 @@ const NODES: Array[Dictionary] = [
 		"text": "Rift Step recovers 10% sooner.", "fx": {"step_cd_mult": 0.9},
 		"lore": "Through, and back, and through."},
 	{"id": "w_hardened", "path": "road", "depth": 5, "cost": 2, "glyph": "waystone", "name": "Road-Hardened",
-		"text": "Gloom gathers 8% slower in the dark.", "fx": {"dark_mult": 0.92},
+		"text": "Gloom gathers 8% slower in the dark and by the Rift.", "fx": {"dark_mult": 0.92},
 		"lore": "Forty waystones from the West Gate to the Stair. You have walked them in the dark."},
 	{"id": "w_spring", "path": "road", "depth": 6, "cost": 1, "glyph": "step", "name": "High Spring",
-		"text": "Jump 6% higher; walk and run 4% faster.", "fx": {"jump_mult": 1.06, "move_mult": 1.04},
+		"text": "Jump 6% higher; walk and run 4% faster.", "fx": {"jump_mult": 1.0296, "move_mult": 1.04},
 		"lore": "The Stair has three thousand steps and some of them are missing."},
 	{"id": "w_first", "path": "road", "depth": 7, "cost": 3, "glyph": "waystone", "name": "The Forty-First Stone",
-		"text": "Rift Step reaches 1.5 m further and recovers 15% sooner; Gloom gathers 6% slower.",
+		"text": "Rift Step reaches 1.5 m further and recovers 15% sooner; Gloom gathers 6% slower in the dark and by the Rift.",
 		"fx": {"step_range": 1.5, "step_cd_mult": 0.85, "dark_mult": 0.94},
 		"lore": "Oswin wanted the forty-first before he went up. You are past it."},
 ]
 
-## Memory per deed (hearth.gd listens and calls UpgradeDB.give_memory via the runtime).
-const MEMORY := {"kill": 3, "kindle": 40, "seal": 50, "boss": 150, "quest": 60, "keepsake": 25, "home": 30}
+## Memory per deed lives in one table: level.gd `XP` (hearth.gd give_memory reads it via LevelDB.xp_for).
 const MAX_LEVEL := 30
 
 

@@ -367,7 +367,7 @@ const RESTORE := [
 	{"id": "wrights_home", "when": "kindled:1|seal:henge|seal:oss_gallery|bosses:1",
 		"toast": "Smoke from the Wrights' chimney. They have come home from the Keg."},
 	{"id": "well", "when": "kindled:2|bosses:1|v:paid_well", "toast": "Hearthward's well is drawn again."},
-	{"id": "lamps_more", "when": "kindled:3|v:oil", "toast": "Fennick's round is longer tonight."},
+	{"id": "lamps_more", "when": "v:oil", "toast": "Fennick's round is longer tonight."},
 	{"id": "lamps_all", "when": "bosses:2|v:oil2", "toast": "Every lamp in Hearthward is burning."},
 	{"id": "reed_home", "when": "boss:thornwarden|boss:bone_abbot", "toast": "A light in the Reeds' window. Bet Reed has come back."},
 	{"id": "reed_roof", "when": "v:paid_slates|bosses:3", "toast": "New slates on the Reeds' roof."},

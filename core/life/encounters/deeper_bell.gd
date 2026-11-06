@@ -61,6 +61,12 @@ func awake() -> bool:
 	return Travel.bosses_slain.has("ascended_warden")
 
 
+## The last mug is the keeper's to pour first: the bell rings only once he has been told.
+func told() -> bool:
+	var fl: Variant = Travel.story.get("flags", {})
+	return fl is Dictionary and bool((fl as Dictionary).get("ending_told", false))
+
+
 func can_interact() -> bool:
 	return director != null
 
@@ -69,7 +75,7 @@ func interact_text() -> String:
 	var key := Interactable.prompt_key()
 	if not awake():
 		return "[%s]  Touch the silent bell" % key
-	if Time.get_ticks_msec() * 0.001 < _armed_until:
+	if told() and Time.get_ticks_msec() * 0.001 < _armed_until:
 		return "[%s]  Ring it: begin the Deeper Night" % key
 	return "[%s]  The bell of the Deeper Night" % key
 
@@ -81,8 +87,9 @@ func interact_feel() -> StringName:
 func interact(_by: Node) -> void:
 	if director == null:
 		return
-	if not awake():
-		director.call("bell_note", self, false)
+	if not awake() or not told():
+		_armed_until = 0.0
+		director.call("bell_note", self, awake())
 		return
 	var now := Time.get_ticks_msec() * 0.001
 	if now < _armed_until:

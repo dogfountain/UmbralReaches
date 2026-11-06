@@ -344,8 +344,25 @@ func enrage(e: Enemy) -> void:
 	BossKit.roar(e, "", Color(1.8, 0.7, 0.25))
 	HitText.pop(e.global_position + Vector3.UP * (e.hp_bar_y + 0.9), "it calls its kin", Color(1.2, 0.6, 0.3), true)
 	var got := BossKit.summon(e.get_parent(), Tiers.script_for(String(d.enrage_call)), e.global_position, 2, 3.5, "guardian_" + String(e.get_meta(&"guardian_key", "")))
+	scale_summoned(got, int(e.get_meta(&"enc_tier", 0)), String(d.enrage_call))
 	for m in got:
 		m.alerted(e)
+
+
+## Kin that rose in the tree (a summon) take the same two calls the escort loop makes: the
+## tier's stats (scale_live also raises the bar) and the region's own look at the spot.
+static func scale_summoned(got: Array, tier: int, kind: String) -> void:
+	for m: Enemy in got:
+		if not is_instance_valid(m):
+			continue
+		Tiers.scale_live(m, tier)
+		var rv := Tiers.region_variant(m.global_position, kind)
+		if rv != "":
+			Variants.pre(m, rv)
+			Variants.dress(m, rv)
+			if m._hp_bar:
+				m._hp_bar.set_instance_shader_parameter(&"segments", Enemy.hp_segments(m.max_hp))
+			m._refresh_hp(false)
 
 
 func _on_killed(e: Node) -> void:

@@ -28,7 +28,7 @@ const GOODS := {
 	],
 	"keep": [
 		{"id": "ale", "name": "A mug of the Keg's ale", "glyph": "mug", "price": 1, "stock": 3,
-			"text": "Warm, brown and bitter. Takes the edge off the Gloom while it lasts.",
+			"text": "Warm, brown and bitter. Takes 14 Gloom off at once: drink it for the walk. In my fire, where the Gloom is already falling, you will not see it.",
 			"say": "Mind the foam. It's the only thing in the valley that rises."},
 		{"id": "round", "name": "Stand the room a round", "glyph": "mugs", "price": 6, "stock": 1,
 			"text": "Every mug in the Keg filled on your ash. The regulars drink to you, and they remember who paid.",
@@ -65,13 +65,15 @@ const RUMOURS := [
 
 static var _sold := {}            ## "who/id" -> bought this village night
 static var _night := -1
+static var _slot := -1            ## the save slot the sold list belongs to
 
 
 static func _restock(tree: SceneTree) -> void:
 	var v := tree.root.find_child("Village", true, false) if tree else null
 	var n := int(v.get("nights")) if v else 0
-	if n != _night:
+	if n != _night or _slot != Travel.slot:
 		_night = n
+		_slot = Travel.slot
 		_sold.clear()
 
 

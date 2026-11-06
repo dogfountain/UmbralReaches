@@ -2,7 +2,7 @@ extends RefCounted
 ## THE WANDERER'S LEVEL AND XP BAR (r33 progression; WoW's character level and rested XP, adapted).
 ## Load by path (no class_name):  const LevelDB := preload("res://core/life/progression/level.gd")
 ##
-## The level is the Remembrance (paths_db.gd): MEMORY is the XP. Every level-up is one point to
+## The level is the Remembrance (paths_db.gd): the memory is the XP, and `XP` below is the only table of what each deed pays. Every level-up is one point to
 ## spend on a Path (the Kindling's PATHS tab, [K]); each of the great ones put down is one more.
 ## Max level PathsDB.MAX_LEVEL (30). XP to go from level L to L+1: PathsDB.need(L) = 40 + 8 L.
 ##

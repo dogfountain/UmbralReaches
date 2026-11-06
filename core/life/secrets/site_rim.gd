@@ -36,6 +36,9 @@ static var walk_y := 4.5
 
 
 static func build(root: Node, host: Node3D) -> void:
+	# a fresh build is a cold one: puzzle progress that is not the save does not outlive its night
+	_seq.clear()
+	_seq_t = 0.0
 	var sp := Kit.space(root)
 	Kit.clear_flora(root, [Vector3(TOWER.x - 2.0, TOWER.y, 9.5), Vector3(-30.5, -31.0, 7.5), Vector3(-27.0, -22.0, 7.0),
 		Vector3(LANDING.x, LANDING.y, 3.5), Vector3(-25.0, -11.0, 5.0)])

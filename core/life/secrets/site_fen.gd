@@ -28,6 +28,8 @@ static var lit := {}
 
 
 static func build(root: Node, host: Node3D) -> void:
+	# a fresh build is a cold one: puzzle progress that is not the save does not outlive its night
+	lit.clear()
 	var sp := Kit.space(root)
 	var node := Node3D.new()
 	node.name = "Fen"
@@ -302,6 +304,11 @@ static func _toggle(id: String, lamps: Dictionary, at: Vector3) -> void:
 	if lit.has(id):
 		lit.erase(id)
 		Kit.play("clank", at, -10.0, 1.6)
+	elif not RITE.has(id):
+		Kit.play("clank", at, -10.0, 1.6)
+		State.toast("The rite names three lamps. This one goes out.")
+		State.refresh(false)
+		return
 	else:
 		lit[id] = true
 		Kit.play("hum", at, -8.0, 1.3)

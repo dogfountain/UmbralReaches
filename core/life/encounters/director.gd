@@ -458,11 +458,15 @@ func _ambush_tick(dt: float, pos: Vector3, lit: bool) -> void:
 		s.cd = maxf(0.0, float(s.cd) - dt)
 	if tide_on or lit or _ambush_gap > 0.0 or _busy_fight():
 		return
+	# a horse's gallop covers the trigger ring in a breath: the ring reaches as far as the headlight
+	# a rider would have had on foot (it grows with the pace past a jog)
+	var pace := Vector2(_player.velocity.x, _player.velocity.z).length() if _player else 0.0
+	var reach := AMBUSH_R + maxf(0.0, pace - 5.0)
 	for s: Dictionary in ambushes:
 		if float(s.cd) > 0.0:
 			continue
 		var at: Vector3 = s.at
-		if Vector2(pos.x - at.x, pos.z - at.z).length() < AMBUSH_R and absf(pos.y - at.y) < 4.0:
+		if Vector2(pos.x - at.x, pos.z - at.z).length() < reach and absf(pos.y - at.y) < 4.0:
 			trigger_ambush(s)
 			return
 
@@ -480,7 +484,8 @@ func trigger_ambush(s: Dictionary) -> int:
 		fwd = Vector3((s.dir as Vector2).x, 0, (s.dir as Vector2).y)
 	fwd = fwd.normalized()
 	var side := Vector3(-fwd.z, 0, fwd.x)
-	var offsets: Array[Vector3] = [fwd * 10.0 + side * 4.0, fwd * 10.0 - side * 4.5, side * 8.0 + fwd * 2.0, -side * 8.0 + fwd * 2.0, -fwd * 9.0]
+	var lead := maxf(1.0, (Vector2(_player.velocity.x, _player.velocity.z).length() if _player else 0.0) / 5.0)   # a gallop is met further on
+	var offsets: Array[Vector3] = [fwd * 10.0 * lead + side * 4.0, fwd * 10.0 * lead - side * 4.5, side * 8.0 + fwd * 2.0, -side * 8.0 + fwd * 2.0, -fwd * 9.0]
 	var pool: Array = Tiers.REGION_POOL.get(Tiers.region_id(pos), ["wretch"])
 	var made := 0
 	for o in offsets:
@@ -747,9 +752,13 @@ func bell_note(bell: Node3D, awake: bool) -> void:
 	if not awake:
 		hud.call("show_note", "A silent bell", "Cracked iron on a black frame. It will not move. Above the Crowns the sky is still turning.", "", bell)
 		return
+	var fl: Variant = Travel.story.get("flags", {})
+	var told: bool = fl is Dictionary and bool((fl as Dictionary).get("ending_told", false))
 	hud.call("show_note", "The Bell of the Deeper Night",
-		"Cracked iron, hung mouth up. The sky has stopped turning, but the dark it pulled down is still here. Ring this top first, the way the Stair's bells stopped, and something below pulls the door ajar: the three who hold the valley rise, their seals close, and every hollowed thing comes back harder. What you carry, you keep.",
-		"[%s] again to ring it" % Interactable.prompt_key(), bell)
+		"Cracked iron, hung mouth up. The sky has stopped turning, but the dark it pulled down is still here. "
+		+ ("Ring this top first, the way the Stair's bells stopped, and something below pulls the door ajar: the three who hold the valley rise, their seals close, and every hollowed thing comes back harder. What you carry, you keep." if told
+		else "Not yet: the keeper is pouring at the keg, and the last mug is his to give first. Then ring it."),
+		"[%s] again to ring it" % Interactable.prompt_key() if told else "", bell)
 
 
 ## NG+: the bosses and seals reset (Travel progress for them only), the night deepens two tiers,

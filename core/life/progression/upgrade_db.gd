@@ -88,7 +88,7 @@ const SPELLS: Array[Dictionary] = [
 	# r36 Act II: Brannoc teaches it when the peal is answered (The Founder's Peal turn-in); the
 	# Kindling teaches it after that too, should the gift be lost to an old save
 	{"id": "peal", "name": "Founder's Peal", "glyph": "peal", "color": Color("#E8C27A"), "learn": {"cost": 16, "gate": 2, "story": "founders_peal"},
-		"text": "Strike the bell in you: a stroke goes out in a 75-degree cone, 9 m. Every foe in it takes 1 damage and a Mark, and is staggered; spit in it is knocked from the air.",
+		"text": "Strike the bell in you: a stroke goes out in a 75-degree cone, 9 m. Every foe in it takes 1 damage and a Mark, and a lesser foe is staggered while a great one keeps its feet; spit in it is knocked from the air.",
 		"lore": "\"Mother said every bell has one note it was cast for, and one it learns. The one it learns is the one you hear.\" Brannoc Bellwright.",
 		"ranks": [
 		["Wide Stroke", "The cone opens to 110 degrees and reaches 11 m."],
@@ -130,10 +130,10 @@ const CORE_SPOTS := {
 const OATHS: Array[Dictionary] = [
 	{"tier": 1, "cost": 12, "gate": 0,
 		"a": {"id": "hearth", "name": "Oath of the Hearth", "glyph": "hearth",
-			"text": "Fire takes the Gloom off you and mends you 60% faster: braziers, wards, every warm light.",
+			"text": "A fire takes the Gloom off you and mends the plate 60% faster; a ward takes the Gloom off faster, and does not mend.",
 			"lore": "Stay by the fire. That is the whole of the Kindlers' teaching."},
 		"b": {"id": "hollow", "name": "Oath of the Hollow", "glyph": "hollow",
-			"text": "Every kill mends 4 more Wounds.",
+			"text": "A kill beside you, within 28 m, mends 4 more Wounds.",
 			"lore": "Take back from them what the sky took from them."}},
 	{"tier": 2, "cost": 20, "gate": 1,
 		"a": {"id": "lash", "name": "Oath of the Lash", "glyph": "bolt",
@@ -154,7 +154,7 @@ const OATHS: Array[Dictionary] = [
 ## Rites: one per relic or trophy, bought once, needing it in the satchel.
 const RITES: Array[Dictionary] = [
 	{"id": "bramble", "needs": "thorn_heart", "name": "Bramble Ward", "glyph": "bramble", "cost": 18,
-		"text": "Lantern Ward roots what crosses its light in brambles: slowed hard, and Marked once.",
+		"text": "Lantern Ward snags what crosses its light in brambles: slowed hard for a moment, and Marked once.",
 		"lore": "The Thorn Heart still beats. Plant it by a fire and see what grows."},
 	{"id": "deep", "needs": "bone_reliquary", "name": "Deep Reliquary", "glyph": "skull", "cost": 22,
 		"text": "Implosion drags from 13 m (was 9.5). Wake lingers 5 s (was 3) over a wider field.",
