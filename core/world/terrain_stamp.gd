@@ -249,7 +249,9 @@ static func _write(terrain: MeshInstance3D, body: StaticBody3D, grid: _Grid, arr
 		arrays[Mesh.ARRAY_NORMAL] = nrm
 	arrays[Mesh.ARRAY_VERTEX] = verts
 	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	# the Realm ground carries the salt weight in CUSTOM0 (one float): keep the channel through the rebuild
+	var flags := (Mesh.ARRAY_CUSTOM_R_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT) if arrays[Mesh.ARRAY_CUSTOM0] != null else 0
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, flags)
 	mesh.surface_set_material(0, terrain.mesh.surface_get_material(0))
 	terrain.mesh = mesh
 	# collision follows: shift each face vertex by the same field (bilinear between grid points)

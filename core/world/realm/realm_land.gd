@@ -22,22 +22,22 @@ extends RefCounted
 ## API for other modules (load this script by path; no class_name by rule):
 ##   height_at(x, z)        designed ground height before site stamps (bilinear, BOUNDS + 10 m)
 ##   old_height_at(x, z)    the old baked terrain's height (kept core reference), NAN outside it
-##   biome_weights(x, z)    {"meadow", "loam", "mud", "ash", "heath", "crag", "ruin"} -> 0..1
+##   biome_weights(x, z)    {"meadow", "loam", "mud", "ash", "heath", "crag", "ruin", "salt"} -> 0..1
 ##   in_water(x, z)         true where a fen pool covers the ground; WATER_Y is its surface
 ##   keep_weight(x, z)      1 inside the kept core, fading to 0 over KEEP_FALL
 
 const STEP := 2.0
-## r34 layout: the grid covers BOUNDS + 9..10 m (BOUNDS x -155..155, z -150..175); the ring covers
-## OUTER on a 4 m lattice that the grid's outer rows land on (GX0 - RX0 and GZ0 - RZ0 are multiples of 4).
-const GX0 := -164.0
+## the grid covers BOUNDS + 12 m (BOUNDS x -260..260, z -150..240); the ring covers OUTER on a
+## 4 m lattice that the grid's outer rows land on (GX0 - RX0 and GZ0 - RZ0 are multiples of 4).
+const GX0 := -272.0
 const GZ0 := -160.0
-const GNX := 165                      ## x -164 .. 164
-const GNZ := 173                      ## z -160 .. 184
+const GNX := 273                      ## x -272 .. 272
+const GNZ := 207                      ## z -160 .. 252
 const RSTEP := 4.0
-const RX0 := -244.0
+const RX0 := -352.0
 const RZ0 := -240.0
-const RNX := 123                      ## x -244 .. 244
-const RNZ := 127                      ## z -240 .. 264
+const RNX := 177                      ## x -352 .. 352
+const RNZ := 144                      ## z -240 .. 332
 const KEEP_FALL := 15.0
 const WATER_Y := -0.9
 const POOL_DEPTH := 0.55
@@ -52,8 +52,9 @@ const MAT := "res://art/materials/realm_ground.tres"
 const WATER_MAT := "res://art/materials/realm_ground_water.tres"
 ## Paths whose profile is pinned at their last point (and may cut into the keep blend band).
 const PATH_PIN := {"fen_descent": [4.0, true], "rift_rim": [0.4, false]}
-const BIOMES := ["meadow", "loam", "mud", "ash", "heath", "crag", "ruin"]
-const BIOME_OF := {"meadow": 0, "oldforest": 1, "fen": 2, "ash": 3, "heath": 4, "crag": 5, "ruin": 6, "glade": 0}
+const BIOMES := ["meadow", "loam", "mud", "ash", "heath", "crag", "ruin", "salt"]
+const NB := 8                          ## biome weights ("salt", the White Pans, rides in the vertex CUSTOM0)
+const BIOME_OF := {"meadow": 0, "oldforest": 1, "fen": 2, "ash": 3, "heath": 4, "crag": 5, "ruin": 6, "salt": 7, "glade": 0}
 
 static var _h := PackedFloat32Array()           ## final designed heights (GNX * GNZ)
 static var _water := PackedByteArray()          ## per grid cell: 1 = pool
@@ -101,6 +102,7 @@ static func build(root: Node) -> void:
 			_rift_r = r.rect
 	var ob := RealmLayout.OSSUARY
 	_oss_r = Rect2(ob.position.x, ob.position.z, ob.size.x, ob.size.z)
+	RealmLayout.prepare()
 	_make_profiles()
 	_heights()
 	var t1 := Time.get_ticks_msec()
@@ -247,9 +249,9 @@ static func keep_weight(x: float, z: float) -> float:
 	return 1.0 - smoothstep(0.0, KEEP_FALL, _keep_d(x, z))
 
 
-## Biome weights, normalised: [meadow, loam, mud, ash, heath, crag, ruin].
+## Biome weights, normalised: [meadow, loam, mud, ash, heath, crag, ruin, salt].
 static func _bw(x: float, z: float) -> PackedFloat32Array:
-	var w := PackedFloat32Array([0, 0, 0, 0, 0, 0, 0])
+	var w := PackedFloat32Array([0, 0, 0, 0, 0, 0, 0, 0])
 	for r: Dictionary in RealmLayout.REGIONS:
 		var k := RealmLayout.region_weight(r, x, z)
 		if k <= 0.0:
@@ -267,7 +269,7 @@ static func _bw(x: float, z: float) -> PackedFloat32Array:
 	if tot < 1.0:
 		w[0] += 1.0 - tot
 		tot = 1.0
-	for i in 7:
+	for i in NB:
 		w[i] /= tot
 	return w
 
@@ -275,7 +277,7 @@ static func _bw(x: float, z: float) -> PackedFloat32Array:
 static func biome_weights(x: float, z: float) -> Dictionary:
 	var w := _bw(x, z)
 	var out := {}
-	for i in 7:
+	for i in NB:
 		out[BIOMES[i]] = w[i]
 	return out
 
@@ -283,8 +285,8 @@ static func biome_weights(x: float, z: float) -> Dictionary:
 # -------------------------------------------------------------------------------------- heights
 
 ## Macro + detail + hollow floors (no paths, flats or kept core). Shared by grid and ring.
-static func _base(x: float, z: float, bw: PackedFloat32Array) -> float:
-	var m := RealmLayout.macro_height(x, z)
+static func _base(x: float, z: float, bw: PackedFloat32Array, river := true) -> float:
+	var m := RealmLayout.macro_dry(x, z)
 	var out := RealmLayout._out_dist(Vector2(x, z), RealmLayout.BOUNDS)
 	var roll := _n_roll.get_noise_2d(x, z)
 	var ridge := _n_ridge.get_noise_2d(x, z)            # ridged: sharp crests, broad valleys
@@ -293,7 +295,7 @@ static func _base(x: float, z: float, bw: PackedFloat32Array) -> float:
 	var calm := 1.0 - _designed_w(x, z)
 	var hill := smoothstep(1.5, 9.0, m) * calm
 	var mountain := clampf(smoothstep(12.0, 40.0, m) + smoothstep(0.0, 50.0, out), 0.0, 1.0) * calm
-	var amp_roll := 0.35 * bw[0] + 0.3 * bw[4] + 0.9 * bw[1] + 0.35 * bw[2] + 0.5 * bw[3] + 1.0 * bw[5] + 0.3 * bw[6]
+	var amp_roll := 0.35 * bw[0] + 0.3 * bw[4] + 0.9 * bw[1] + 0.35 * bw[2] + 0.5 * bw[3] + 1.0 * bw[5] + 0.3 * bw[6] + 0.08 * bw[7]
 	var gully := _n_gully.get_noise_2d(x, z)            # ridged: sharp spurs between gullies
 	var h := m
 	h += roll * amp_roll * calm
@@ -318,7 +320,7 @@ static func _base(x: float, z: float, bw: PackedFloat32Array) -> float:
 	var wet := h
 	if h < WATER_Y:
 		wet = WATER_Y - POOL_DEPTH * (1.0 - exp(-(WATER_Y - h) / 0.5))
-	return lerpf(dry, wet, fen)
+	return RealmLayout.final_shape(x, z, lerpf(dry, wet, fen), river)
 
 
 ## r34: 1 on the raid floors and the quarry (where the designed shape must stay flat/stepped), 0 away.
@@ -363,7 +365,7 @@ static func _make_profiles() -> void:
 			var sum := 0.0
 			for o in [-w - 1.0, -w * 0.5, 0.0, w * 0.5, w + 1.0]:
 				var q := p + nrm * float(o)
-				sum += _base(q.x, q.y, _bw(q.x, q.y))
+				sum += _base(q.x, q.y, _bw(q.x, q.y), false)       # (the river is crossed on a bridge, not filled)
 			raw[k] = maxf(sum / 5.0, WATER_Y + 0.28)      # causeways over the fen pools
 		# in the kept core's blend band the base shape means nothing: hold the last free value (or the pin)
 		var last := NAN
@@ -446,15 +448,16 @@ static func _pre_row(j: int) -> Array:
 		var kd := _keep_d(x, z)
 		var free := 1.0 - (1.0 - smoothstep(0.0, KEEP_FALL, kd) if not _old.is_empty() else 0.0)
 		var wear := 0.0
+		var rmask := RealmLayout.river_mask(x, z)
 		for pr: Dictionary in _profiles:
 			var near := _path_near(pr, x, z)
 			if near.x == INF:
 				continue
 			if kd > 0.0:
 				var e: float = float(pr.w) + _n_patch.get_noise_2d(x * 1.7, z * 1.7) * 0.6
-				wear = maxf(wear, 1.0 - smoothstep(e - 1.6, e + 1.8, near.x))     # wide ramp: the shader cuts the edge
+				wear = maxf(wear, (1.0 - smoothstep(e - 1.6, e + 1.8, near.x)) * (1.0 - rmask))     # wide ramp: the shader cuts the edge
 			if not pr.over:
-				h = lerpf(h, near.y, _carve_w(near.x, pr.w) * free)
+				h = lerpf(h, near.y, _carve_w(near.x, pr.w) * free * (1.0 - rmask))
 		wr[i] = wear
 		hr[i] = h
 	return [hr, wr]
@@ -528,6 +531,12 @@ static func height_at(x: float, z: float) -> float:
 	return lerpf(lerpf(_h[j * GNX + i], _h[j * GNX + i + 1], tx), lerpf(_h[(j + 1) * GNX + i], _h[(j + 1) * GNX + i + 1], tx), tz)
 
 
+## The surface of the water at xz (the fen's WATER_Y unless a reach / the lake / the Well gives one).
+static func water_y_at(x: float, z: float) -> float:
+	var wl := RealmLayout.water_level_at(x, z)
+	return WATER_Y if is_nan(wl) else wl
+
+
 static func in_water(x: float, z: float) -> bool:
 	if _water.is_empty():
 		return false
@@ -535,7 +544,7 @@ static func in_water(x: float, z: float) -> bool:
 	var j := floori((z - GZ0) / STEP)
 	if i < 0 or j < 0 or i >= GNX - 1 or j >= GNZ - 1:
 		return false
-	return _water[j * GNX + i] == 1 and height_at(x, z) < WATER_Y
+	return _water[j * GNX + i] == 1 and height_at(x, z) < water_y_at(x, z)
 
 
 # -------------------------------------------------------------------------------------- meshes
@@ -558,7 +567,7 @@ static func _splat(x: float, z: float, h: float, nrm_y: float, ring: bool) -> Ar
 	# high ground and rough slopes turn to scree
 	var crag := smoothstep(14.0, 26.0, h) * (1.0 - bw[3]) + (1.0 - smoothstep(0.78, 0.9, nrm_y)) * 0.5
 	if crag > 0.0:
-		for i in 7:
+		for i in NB:
 			bw[i] *= 1.0 - clampf(crag, 0.0, 1.0)
 		bw[5] += clampf(crag, 0.0, 1.0)
 	# loam creeps into meadow edges, mud gathers in fen hollows
@@ -570,10 +579,10 @@ static func _splat(x: float, z: float, h: float, nrm_y: float, ring: bool) -> Ar
 	var tot := 0.0
 	for v in bw:
 		tot += v
-	for i in 7:
+	for i in NB:
 		bw[i] /= maxf(tot, 0.0001)
 	var wear := 0.0 if ring else _wear_g[roundi((z - GZ0) / STEP) * GNX + roundi((x - GX0) / STEP)]
-	return [Color(bw[0], bw[1], bw[2], bw[3]), Vector2(bw[4], bw[5]), Vector2(bw[6], wear)]
+	return [Color(bw[0], bw[1], bw[2], bw[3]), Vector2(bw[4], bw[5]), Vector2(bw[6], wear), bw[7]]
 
 
 static func _grid_normal(hs: PackedFloat32Array, nx: int, nz: int, step: float, i: int, j: int) -> Vector3:
@@ -592,12 +601,14 @@ static func _terrain_mesh() -> MeshInstance3D:
 	var cols := PackedColorArray()
 	var uv := PackedVector2Array()
 	var uv2 := PackedVector2Array()
+	var salt := PackedFloat32Array()
 	var n := GNX * GNZ
 	verts.resize(n)
 	nrms.resize(n)
 	cols.resize(n)
 	uv.resize(n)
 	uv2.resize(n)
+	salt.resize(n)
 	# r34: rows in parallel (the splat's biome blend is the cost and pure math); stitched after
 	var rows: Array = []
 	rows.resize(GNZ)
@@ -609,6 +620,7 @@ static func _terrain_mesh() -> MeshInstance3D:
 		var rc: PackedColorArray = r[1]
 		var ru: PackedVector2Array = r[2]
 		var ru2: PackedVector2Array = r[3]
+		var rs: PackedFloat32Array = r[4]
 		for i in GNX:
 			var k := j * GNX + i
 			verts[k] = Vector3(GX0 + i * STEP, _h[k], GZ0 + j * STEP)
@@ -616,9 +628,10 @@ static func _terrain_mesh() -> MeshInstance3D:
 			cols[k] = rc[i]
 			uv[k] = ru[i]
 			uv2[k] = ru2[i]
+			salt[k] = rs[i]
 	var idx := _grid_indices(GNX, GNZ, func(_i: int, _j: int) -> bool: return true)
 	var mi := MeshInstance3D.new()
-	mi.mesh = _array_mesh(verts, nrms, cols, uv, uv2, idx)
+	mi.mesh = _array_mesh(verts, nrms, cols, uv, uv2, idx, salt)
 	mi.material_override = load(MAT)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	return mi
@@ -630,10 +643,12 @@ static func _mesh_row(j: int) -> Array:
 	var rc := PackedColorArray()
 	var ru := PackedVector2Array()
 	var ru2 := PackedVector2Array()
+	var rs := PackedFloat32Array()
 	rn.resize(GNX)
 	rc.resize(GNX)
 	ru.resize(GNX)
 	ru2.resize(GNX)
+	rs.resize(GNX)
 	var z := GZ0 + j * STEP
 	for i in GNX:
 		var k := j * GNX + i
@@ -643,7 +658,8 @@ static func _mesh_row(j: int) -> Array:
 		rc[i] = sp[0]
 		ru[i] = sp[1]
 		ru2[i] = sp[2]
-	return [rn, rc, ru, ru2]
+		rs[i] = sp[3]
+	return [rn, rc, ru, ru2, rs]
 
 
 ## Two clockwise-from-above triangles per accepted cell (Godot's front face), same diagonal everywhere.
@@ -661,7 +677,7 @@ static func _grid_indices(nx: int, nz: int, accept: Callable) -> PackedInt32Arra
 	return idx
 
 
-static func _array_mesh(verts: PackedVector3Array, nrms: PackedVector3Array, cols: PackedColorArray, uv: PackedVector2Array, uv2: PackedVector2Array, idx: PackedInt32Array) -> ArrayMesh:
+static func _array_mesh(verts: PackedVector3Array, nrms: PackedVector3Array, cols: PackedColorArray, uv: PackedVector2Array, uv2: PackedVector2Array, idx: PackedInt32Array, salt: PackedFloat32Array) -> ArrayMesh:
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = verts
@@ -669,9 +685,10 @@ static func _array_mesh(verts: PackedVector3Array, nrms: PackedVector3Array, col
 	arrays[Mesh.ARRAY_COLOR] = cols
 	arrays[Mesh.ARRAY_TEX_UV] = uv
 	arrays[Mesh.ARRAY_TEX_UV2] = uv2
+	arrays[Mesh.ARRAY_CUSTOM0] = salt              # the White Pans' salt weight (one float a vertex)
 	arrays[Mesh.ARRAY_INDEX] = idx
 	var m := ArrayMesh.new()
-	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, Mesh.ARRAY_CUSTOM_R_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)
 	return m
 
 
@@ -737,6 +754,7 @@ static func _ring(zone: Node3D) -> int:
 		var cols := PackedColorArray()
 		var uv := PackedVector2Array()
 		var uv2 := PackedVector2Array()
+		var salt := PackedFloat32Array()
 		for k in idx.size():
 			var g := idx[k]
 			if not remap.has(g):
@@ -752,10 +770,11 @@ static func _ring(zone: Node3D) -> int:
 				cols.append(sp[0])
 				uv.append(sp[1])
 				uv2.append(sp[2])
+				salt.append(sp[3])
 			idx[k] = remap[g]
 		var mi := MeshInstance3D.new()
 		mi.name = "TerrainRing" + key
-		mi.mesh = _array_mesh(verts, nrms, cols, uv, uv2, idx)
+		mi.mesh = _array_mesh(verts, nrms, cols, uv, uv2, idx, salt)
 		mi.material_override = load(MAT)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		zone.add_child(mi)
@@ -763,11 +782,19 @@ static func _ring(zone: Node3D) -> int:
 	return made
 
 
-## Fen pools: one flat mesh at WATER_Y over every grid cell whose ground dips below it (outside the
-## kept core), grown by one cell so the shoreline is the terrain's own intersection.
+## Water: one mesh over every grid cell whose ground dips below its water level (outside the kept core),
+## grown by one cell so the shoreline is the terrain's own intersection. a cell's level is the fen's
+## WATER_Y unless RealmLayout.water_level_at gives one (the Sorrow's stepped reaches, the lake, the Well's
+## pool); where two neighbours differ a vertical skirt closes the step (the weir's lip).
 static func _pools(zone: Node3D) -> int:
 	_water.resize(GNX * GNZ)
 	_water.fill(0)
+	var lvl := PackedFloat32Array()
+	lvl.resize(GNX * GNZ)
+	for j in GNZ - 1:
+		for i in GNX - 1:
+			var wl := RealmLayout.water_level_at(GX0 + (i + 0.5) * STEP, GZ0 + (j + 0.5) * STEP)
+			lvl[j * GNX + i] = WATER_Y if is_nan(wl) else wl
 	var wet := PackedByteArray()
 	wet.resize(GNX * GNZ)
 	wet.fill(0)
@@ -777,7 +804,7 @@ static func _pools(zone: Node3D) -> int:
 			var lo := minf(minf(_h[k], _h[k + 1]), minf(_h[k + GNX], _h[k + GNX + 1]))
 			var x := GX0 + (i + 0.5) * STEP
 			var z := GZ0 + (j + 0.5) * STEP
-			if lo < WATER_Y - 0.01 and keep_weight(x, z) < 0.05:
+			if lo < lvl[k] - 0.01 and keep_weight(x, z) < 0.05:
 				wet[k] = 1
 	# pools reaching into the kept core's blend band follow their own shore (flood fill), but never
 	# down into the chasm: a cell joins only if its ground stays shallow
@@ -798,12 +825,15 @@ static func _pools(zone: Node3D) -> int:
 			if wet[n] == 1:
 				continue
 			var lo2 := minf(minf(_h[n], _h[n + 1]), minf(_h[n + GNX], _h[n + GNX + 1]))
-			if lo2 < WATER_Y - 0.01 and lo2 > WATER_Y - 2.0:
+			if lo2 < lvl[n] - 0.01 and lo2 > lvl[n] - 2.0:
 				wet[n] = 1
 				front.append(n)
 	var cells := 0
 	var verts := PackedVector3Array()
 	var idx := PackedInt32Array()
+	var on_cell := PackedByteArray()
+	on_cell.resize(GNX * GNZ)
+	on_cell.fill(0)
 	for j in GNZ - 1:
 		for i in GNX - 1:
 			var on := false
@@ -818,17 +848,39 @@ static func _pools(zone: Node3D) -> int:
 			# skip cells wholly above the water (the grown ring outside the shore)
 			var k := j * GNX + i
 			var lo := minf(minf(_h[k], _h[k + 1]), minf(_h[k + GNX], _h[k + GNX + 1]))
-			if lo > WATER_Y + 0.02:
+			var wy := lvl[k]
+			if lo > wy + 0.02:
 				continue
 			_water[k] = 1
+			on_cell[k] = 1
 			cells += 1
 			var x := GX0 + i * STEP
 			var z := GZ0 + j * STEP
 			var b := verts.size()
-			verts.append_array(PackedVector3Array([Vector3(x, WATER_Y, z), Vector3(x + STEP, WATER_Y, z), Vector3(x, WATER_Y, z + STEP), Vector3(x + STEP, WATER_Y, z + STEP)]))
+			verts.append_array(PackedVector3Array([Vector3(x, wy, z), Vector3(x + STEP, wy, z), Vector3(x, wy, z + STEP), Vector3(x + STEP, wy, z + STEP)]))
 			idx.append_array(PackedInt32Array([b, b + 1, b + 2, b + 1, b + 3, b + 2]))
 	if cells == 0:
 		return 0
+	# skirts where neighbouring reaches stand at different levels: a vertical face down the shared edge
+	for j in GNZ - 1:
+		for i in GNX - 1:
+			var k := j * GNX + i
+			if on_cell[k] == 0:
+				continue
+			var x := GX0 + i * STEP
+			var z := GZ0 + j * STEP
+			if i + 1 < GNX - 1 and on_cell[k + 1] == 1 and absf(lvl[k] - lvl[k + 1]) > 0.01:
+				var hi := maxf(lvl[k], lvl[k + 1])
+				var lo := minf(lvl[k], lvl[k + 1])
+				var b := verts.size()
+				verts.append_array(PackedVector3Array([Vector3(x + STEP, hi, z), Vector3(x + STEP, hi, z + STEP), Vector3(x + STEP, lo, z), Vector3(x + STEP, lo, z + STEP)]))
+				idx.append_array(PackedInt32Array([b, b + 1, b + 2, b + 1, b + 3, b + 2, b, b + 2, b + 1, b + 1, b + 2, b + 3]))
+			if j + 1 < GNZ - 1 and on_cell[k + GNX] == 1 and absf(lvl[k] - lvl[k + GNX]) > 0.01:
+				var hi2 := maxf(lvl[k], lvl[k + GNX])
+				var lo2 := minf(lvl[k], lvl[k + GNX])
+				var b2 := verts.size()
+				verts.append_array(PackedVector3Array([Vector3(x, hi2, z + STEP), Vector3(x + STEP, hi2, z + STEP), Vector3(x, lo2, z + STEP), Vector3(x + STEP, lo2, z + STEP)]))
+				idx.append_array(PackedInt32Array([b2, b2 + 1, b2 + 2, b2 + 1, b2 + 3, b2 + 2, b2, b2 + 2, b2 + 1, b2 + 1, b2 + 2, b2 + 3]))
 	var nrms := PackedVector3Array()
 	nrms.resize(verts.size())
 	nrms.fill(Vector3.UP)

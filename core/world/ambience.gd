@@ -57,13 +57,25 @@ const SCAPES := {
 	"orchard": {"night": 0.9, "meadow": 0.4, "leaves": 0.25, "crickets": 0.2},
 	"necropolis": {"night": 0.9, "meadow": 0.45, "crickets": 0.65},
 	"mere": {"night": 0.7, "fen": 1.0, "crickets": 0.3, "meadow": 0.2},
+	# the Outer Marches and the downs (Foundation): the river's water, the siege's wind, the salt's silence
+	"sorrow": {"night": 0.7, "leaves": 0.55, "fen": 0.5, "crickets": 0.2},
+	"hierarch": {"night": 0.7, "high_wind": 0.4, "leaves": 0.3, "crickets": 0.1},
+	"siege": {"night": 0.7, "high_wind": 0.4, "meadow": 0.2, "crickets": 0.15},
+	"stillwater": {"night": 0.7, "fen": 0.85, "crickets": 0.2, "high_wind": 0.1},
+	"anchorholds": {"night": 0.6, "high_wind": 0.75, "chasm": 0.1},
+	"salt": {"night": 0.55, "high_wind": 0.7, "crickets": 0.05},
+	"downs": {"night": 0.85, "meadow": 0.6, "high_wind": 0.3, "crickets": 0.2},
+	"well": {"night": 0.5, "chasm": 0.7, "high_wind": 0.2},
 }
 
 ## RealmLayout region id -> soundscape
 const REGION_SCAPE := {"hearth": "village", "chapel": "village", "road": "heath", "thornwood": "wood", "henge": "wood",
 	"glade": "wood", "fen": "fen", "barrows": "fen", "rift": "crossing", "ossuary": "crossing", "summit": "summit", "crags": "summit",
 	# r34 flora: the new ground, each its own scape (SCAPES / SPOTS)
-	"quarry": "quarry", "holds": "holds", "foundry": "foundry", "moor": "moor", "orchard": "orchard", "necropolis": "necropolis", "mere": "mere"}
+	"quarry": "quarry", "holds": "holds", "foundry": "foundry", "moor": "moor", "orchard": "orchard", "necropolis": "necropolis", "mere": "mere",
+	# the Marches
+	"weirford": "village", "sorrow": "sorrow", "hierarch": "hierarch", "siege": "siege", "stillwater": "stillwater",
+	"anchorholds": "anchorholds", "saltmarket": "heath", "saltpans": "salt", "downs": "downs", "oak": "wood", "well": "well"}
 
 ## soundscape -> [interval min, max (s), distance min, max (m), palette [[sound, weight, height]]]
 ## sound "life:x" plays LifeSynth's x; height: metres above the ground, or "lava" (down on the lava)
@@ -84,6 +96,15 @@ const SPOTS := {
 	"orchard": [8.0, 17.0, 14.0, 42.0, [["creak", 0.3, 3.0], ["twig", 0.25, 0.2], ["life:crow", 0.25, 5.0], ["life:owl2", 0.15, 5.0]]],
 	"necropolis": [9.0, 20.0, 18.0, 46.0, [["bell_far", 0.3, 6.0], ["life:crow", 0.3, 4.0], ["life:owl2", 0.2, 5.0], ["creak", 0.1, 1.5], ["whisper", 0.06, 1.2]]],
 	"mere": [6.0, 13.0, 12.0, 40.0, [["life:plop", 0.35, 0.0], ["bittern", 0.3, 0.3], ["life:heron", 0.2, 1.0], ["peewit", 0.06, 3.0]]],
+	# the Marches
+	"sorrow": [6.0, 14.0, 12.0, 38.0, [["life:plop", 0.3, 0.0], ["twig", 0.2, 0.2], ["life:owl", 0.2, 6.0], ["bittern", 0.15, 0.3], ["creak", 0.1, 3.0]]],
+	"hierarch": [8.0, 18.0, 14.0, 42.0, [["life:crow", 0.3, 8.0], ["howl", 0.15, 20.0], ["creak", 0.2, 3.0], ["life:owl", 0.2, 6.0], ["twig", 0.15, 0.2]]],
+	"siege": [7.0, 16.0, 14.0, 42.0, [["creak", 0.35, 2.0], ["pebbles", 0.2, 0.0], ["life:crow", 0.25, 6.0], ["howl", 0.1, 20.0], ["bell_far", 0.1, 6.0]]],
+	"stillwater": [6.0, 13.0, 12.0, 40.0, [["life:plop", 0.35, 0.0], ["life:heron", 0.2, 1.0], ["bittern", 0.2, 0.3], ["life:owl2", 0.15, 5.0], ["bell_far", 0.1, 8.0]]],
+	"anchorholds": [8.0, 18.0, 14.0, 44.0, [["howl", 0.25, 25.0], ["pebbles", 0.3, 0.0], ["bell_far", 0.25, 12.0], ["life:crow", 0.2, 8.0]]],
+	"salt": [9.0, 20.0, 18.0, 50.0, [["howl", 0.3, 20.0], ["pebbles", 0.3, 0.0], ["creak", 0.3, 3.0], ["whisper", 0.1, 1.0]]],
+	"downs": [8.0, 18.0, 18.0, 50.0, [["peewit", 0.3, 3.0], ["nightjar", 0.25, 1.0], ["life:owl2", 0.2, 5.0], ["vixen", 0.15, 0.3], ["howl", 0.1, 20.0]]],
+	"well": [6.0, 13.0, 10.0, 30.0, [["drip", 0.4, 2.0], ["pebbles", 0.3, 0.0], ["howl", 0.15, 15.0], ["whisper", 0.1, 1.5]]],
 }
 
 ## reverb zones: AudioEffectReverb settings

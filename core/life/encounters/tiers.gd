@@ -13,6 +13,10 @@ const REGION_BASE := {
 	# r34: the new ground, at the tiers RealmLayout.REGIONS suggests (the far quarry and the
 	# Founder's Pits under the Crowns are the hard ones; the Rooted Holds stay gentle)
 	"quarry": 2, "foundry": 2, "holds": 1, "moor": 1, "orchard": 1, "necropolis": 1, "mere": 1,
+	# the Outer Marches and the downs, at the tiers RealmLayout.REGIONS suggests (Weirford and Saltmarket
+	# are the safe towns; the Hierarch's valley and the Anchorholds, each under a boss, are the hard ones)
+	"weirford": 1, "sorrow": 2, "hierarch": 3, "siege": 2, "stillwater": 2, "anchorholds": 3, "saltmarket": 1,
+	"saltpans": 2, "downs": 1, "oak": 2, "well": 2,
 }
 
 ## Per tier: health x, Gloom per blow x, pace x, chance a pawn wears a variant, chance a camp gets
