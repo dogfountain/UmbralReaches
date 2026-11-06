@@ -36,7 +36,7 @@ func lava_burn(amount: float) -> void:
 	var from := player.global_position
 	add_wounds(amount)                        # r35: lava wounds (it filled the Gloom before the split)
 	Events.player_hurt.emit(amount, from)
-	player._end_traverse()
+	player.traversal._end_traverse()
 	Vfx.burst(from + Vector3.UP * 0.6, SpellFx.EMBER_HOT, {"count": 50, "life": 0.7, "speed": Vector2(3.0, 8.0), "size": 0.05, "gravity": -8.0, "trail": 0.08, "dir": Vector3.UP, "spread": 50.0})
 	player.locomotion._end_slide()
 	var to := player._safe_ground if player._safe_ground != Vector3.INF else player.checkpoint
@@ -344,7 +344,7 @@ func _fell_out() -> void:
 ## put it back on the last safe ground.
 
 func _stuck_tick(delta: float, wish: Vector3) -> void:
-	if player._hollowing or player.autopilot or player._trav_busy() or player._mantle_t >= 0.0 or wish.length_squared() < 0.25:
+	if player._hollowing or player.autopilot or player.traversal._trav_busy() or player._mantle_t >= 0.0 or wish.length_squared() < 0.25:
 		player._stuck_t = 0.0
 		_stuck_from = player.global_position
 		return

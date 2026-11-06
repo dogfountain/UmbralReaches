@@ -339,7 +339,7 @@ func _on_teleported() -> void:
 	player._glued = false
 	player._grounded = player.is_on_floor()
 	player._land_slow = 0.0
-	player._end_traverse()
+	player.traversal._end_traverse()
 	player._air_base = player.global_position.y
 	player._cam_air = 0.0
 	player._cam_air_prev = 0.0

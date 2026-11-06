@@ -41,7 +41,7 @@ func _trav_busy() -> bool:
 ## Drop every traversal state (teleports, respawns, lava).
 
 func _end_traverse() -> void:
-	player.evasion._end_glide()
+	player._end_glide()
 	if player._grapple != null:
 		player._grapple.cancel()
 	player._hang = false
@@ -162,7 +162,7 @@ func _tick_hang(delta: float, wish: Vector3) -> void:
 	player._visual.hang = 1.0
 	player._visual.hang_shimmy = lerpf(player._visual.hang_shimmy, -shimmy, 1.0 - exp(-10.0 * delta))
 	player.locomotion._ease_tick(delta)
-	player.casting._animate(delta, Vector3.ZERO)
+	player._animate(delta, Vector3.ZERO)
 	player.vitals._update_gloom(delta)
 	player._cam_air_prev = player._cam_air
 	player._cam_air = lerpf(player._cam_air, 0.0, 1.0 - exp(-8.0 * delta))
@@ -243,7 +243,7 @@ func _tick_climb(delta: float) -> void:
 	player.velocity = Vector3.ZERO
 	player._visual.rotation.y = lerp_angle(player._visual.rotation.y, atan2(_hang_n.x, _hang_n.z), 1.0 - exp(-12.0 * delta))
 	player.locomotion._ease_tick(delta)
-	player.casting._animate(delta, Vector3.ZERO)
+	player._animate(delta, Vector3.ZERO)
 	player.vitals._update_gloom(delta)
 	player._cam_air_prev = player._cam_air
 	player._air_base = player.global_position.y
@@ -338,7 +338,7 @@ func _tick_vault(delta: float) -> void:
 	player.global_position = Vector3(h.x, y, h.z)
 	player.velocity = _vault_v
 	player.locomotion._ease_tick(delta)
-	player.casting._animate(delta, _vault_v)
+	player._animate(delta, _vault_v)
 	player.vitals._update_gloom(delta)
 	# the view rises only part of the hop over the wall, like a jump's (r29: it rode the whole arc,
 	# the bumpiest camera on the movement course)
@@ -552,7 +552,7 @@ func _tick_mantle(delta: float) -> void:
 	# camera's eased offset (r29)
 	player._cam_off.y -= maxf(p.y - player.global_position.y, 0.0) * 0.6
 	player.global_position = p
-	player.casting._animate(delta, Vector3.ZERO)
+	player._animate(delta, Vector3.ZERO)
 	player.vitals._update_gloom(delta)
 	if u >= 1.0:
 		player._mantle_t = -1.0

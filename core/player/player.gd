@@ -8,6 +8,7 @@ var targeting: PlayerTargeting = PlayerTargeting.new(self)
 var camera_ctl: PlayerCamera = PlayerCamera.new(self)
 var vitals: PlayerVitals = PlayerVitals.new(self)
 var locomotion: PlayerLocomotion = PlayerLocomotion.new(self)
+var traversal: PlayerTraversal = PlayerTraversal.new(self)
 
 @export_group("Movement")
 @export var walk_speed := 4.5
@@ -177,8 +178,6 @@ var _last_pos := Vector3.INF            ## where physics left the body: a bigger
 var _land_slow := 0.0
 var _run_blend := 0.0                   ## 0 walk .. 1 full sprint (camera, turn rate)
 var _mantle_t := -1.0
-var _mantle_from := Vector3.ZERO
-var _mantle_to := Vector3.ZERO
 var _slide_latch := false               ## a held key slides once; release to arm the next
 var _slide_queued := false              ## slide held in the air: drop into it on landing
 var _air_vy := 0.0                      ## last airborne vertical speed (landing -> slide bonus)
@@ -210,6 +209,7 @@ func _ready() -> void:
 	add_child(camera_ctl)
 	add_child(vitals)
 	add_child(locomotion)
+	add_child(traversal)
 	add_to_group(Groups.PLAYER)
 	collision_layer = Layers.PLAYER
 	collision_mask = Layers.WORLD | Layers.PROPS
@@ -376,7 +376,7 @@ func _physics_process(delta: float) -> void:
 	_evade_t = maxf(0.0, _evade_t - delta)
 	_combat_t = maxf(0.0, _combat_t - delta)
 	if _mantle_t >= 0.0:
-		_tick_mantle(delta)
+		traversal._tick_mantle(delta)
 		return
 	if _step_t > 0.0:
 		_tick_step(delta)
@@ -432,13 +432,13 @@ func _physics_process(delta: float) -> void:
 			_stam.drain(Stamina.SPRINT_COST * delta)
 	targeting._lock_tick(delta)
 	if _climb_t >= 0.0:
-		_tick_climb(delta)
+		traversal._tick_climb(delta)
 		return
 	if _hang:
-		_tick_hang(delta, wish)
+		traversal._tick_hang(delta, wish)
 		return
 	if _vault_t >= 0.0:
-		_tick_vault(delta)
+		traversal._tick_vault(delta)
 		return
 	if not autopilot and not _hollowing and Input.is_action_just_pressed("dodge") and _try_dodge(wish):
 		pass
@@ -465,7 +465,7 @@ func _physics_process(delta: float) -> void:
 	elif _sliding:
 		horiz = locomotion._tick_slide(delta, wish)
 	elif not _grounded and _steep_t > 0.0 and velocity.y <= 0.5:
-		horiz = _tick_steep(delta, wish, Vector3(velocity.x, 0.0, velocity.z))
+		horiz = traversal._tick_steep(delta, wish, Vector3(velocity.x, 0.0, velocity.z))
 		velocity.x = horiz.x
 		velocity.z = horiz.z
 	else:
@@ -490,7 +490,7 @@ func _physics_process(delta: float) -> void:
 		velocity.z = horiz.z
 		if not autopilot and not _hollowing:
 			locomotion._slide_input(horiz, wish)
-			if _try_vault(horiz, wish):
+			if traversal._try_vault(horiz, wish):
 				return
 	_run_blend = lerpf(_run_blend, clampf((horiz.length() - walk_speed) / maxf(sprint_speed - walk_speed, 0.1), 0.0, 1.0) if _grounded else _run_blend, 1.0 - exp(-5.0 * delta))
 
@@ -500,8 +500,8 @@ func _physics_process(delta: float) -> void:
 	_buffered_jump = maxf(0.0, _buffered_jump - delta)
 	if not autopilot and not _hollowing:
 		if Input.is_action_just_pressed("jump"):
-			if _can_wallkick(wish):
-				_wall_kick(wish)
+			if traversal._can_wallkick(wish):
+				traversal._wall_kick(wish)
 			elif _steep_t > 0.0 and not _grounded and _coyote <= 0.0:
 				var off := Vector3(_steep_n.x, 0.0, _steep_n.z).normalized()   # leap off the slope
 				velocity = Vector3(velocity.x, 0.0, velocity.z) * 0.6 + off * 3.0 + Vector3.UP * jump_velocity
@@ -559,15 +559,15 @@ func _physics_process(delta: float) -> void:
 			if locomotion._try_step_up(pre_h, delta):
 				velocity.x = pre_h.x             # a riser doesn't eat the stride
 				velocity.z = pre_h.z
-		elif wish.length_squared() > 0.1 and _try_mantle(wish):
+		elif wish.length_squared() > 0.1 and traversal._try_mantle(wish):
 			return
-		elif not _grounded and _try_grab(wish):
+		elif not _grounded and traversal._try_grab(wish):
 			return
 	if not _grounded and was_grounded and velocity.y <= 0.0 and not _jump_rising and global_position.y <= y0 + 0.002:
 		locomotion._step_down()
-	_note_contacts(delta)
+	traversal._note_contacts(delta)
 	locomotion._land(was_grounded, vy_before)
-	_beam_probe(horiz)
+	traversal._beam_probe(horiz)
 	_beam_k = move_toward(_beam_k, 1.0 if _beam_on else 0.0, delta * (8.0 if _beam_on else 3.0))
 	var steep_on := not _grounded and _steep_t > 0.0 and velocity.y <= 0.5
 	_steep_k = move_toward(_steep_k, 1.0 if steep_on else 0.0, delta * (6.0 if steep_on else 4.0))
@@ -868,13 +868,13 @@ func move_intent() -> float:
 
 
 func skills_locked() -> bool:
-	return _hollowing or autopilot or _step_t > 0.0 or _mantle_t >= 0.0 or _trav_busy() \
+	return _hollowing or autopilot or _step_t > 0.0 or _mantle_t >= 0.0 or traversal._trav_busy() \
 			or (_arts != null and (_arts.busy() or _arts.guarding())) or (_grapple != null and _grapple.pulling())
 
 
 ## r31: what stops the staff arts and the Tether line (spells being busy does not).
 func skills_locked_for_arts() -> bool:
-	return _hollowing or autopilot or _step_t > 0.0 or _mantle_t >= 0.0 or _trav_busy() or (_grapple != null and _grapple.pulling())
+	return _hollowing or autopilot or _step_t > 0.0 or _mantle_t >= 0.0 or traversal._trav_busy() or (_grapple != null and _grapple.pulling())
 
 
 func note_combat() -> void:
@@ -1255,21 +1255,9 @@ const STEEP_MAX_V := 10.0
 const BEAM_W := 0.32              ## both sides this far out are open air: a beam
 const LOCK_RANGE := 26.0
 var _hang := false
-var _hang_n := Vector3.ZERO       ## out of the wall, flat
-var _hang_top := 0.0
-var _hang_t := 0.0
-var _hang_push := 0.0
 var _regrab := 0.0
 var _climb_t := -1.0
-var _climb_from := Vector3.ZERO
-var _climb_to := Vector3.ZERO
-var _climb_len := CLIMB_TIME
 var _vault_t := -1.0
-var _vault_len := 0.42
-var _vault_from := Vector3.ZERO
-var _vault_to := Vector3.ZERO
-var _vault_apex := 0.0
-var _vault_v := Vector3.ZERO
 var _roll_t := -1.0
 var _roll_len := ROLL_TIME
 var _roll_dir := Vector3.FORWARD
@@ -1288,7 +1276,6 @@ var _beam_k := 0.0
 var _beam_on := false
 var _beam_mid := 0.0
 var _beam_side := Vector3.RIGHT
-var _beam_frame := 0
 var _lock: Enemy = null
 var _lock_flick := 0.0
 var _lock_flick_t := 0.0
@@ -1314,467 +1301,8 @@ var _fall_t := 0.0
 var _stuck_t := 0.0
 
 
-func is_hanging() -> bool:
-	return _hang
-
-
 func is_rolling() -> bool:
 	return _roll_t >= 0.0
-
-
-func _trav_busy() -> bool:
-	return _hang or _climb_t >= 0.0 or _vault_t >= 0.0 or _roll_t >= 0.0
-
-
-## Drop every traversal state (teleports, respawns, lava).
-func _end_traverse() -> void:
-	_end_glide()
-	if _grapple != null:
-		_grapple.cancel()
-	_hang = false
-	_climb_t = -1.0
-	_vault_t = -1.0
-	_mantle_t = -1.0                          # r29: a lava throw mid-mantle was dragged back by the mantle tick
-	_kick_lock = 0.0
-	locomotion._end_slide()
-	if _roll_t >= 0.0:
-		_roll_t = -1.0
-		locomotion._set_capsule(_col_h)
-	_crawl = false
-	_steep_t = 0.0
-	_beam_on = false
-	if _step_t > 0.0:                         # moved during a Rift Step's reveal: show the body now
-		_step_t = 0.0
-		_visual.visible = true
-	_visual.hang = 0.0
-	if _visual.has_method("cancel_move"):
-		_visual.cancel_move()
-
-
-# --- ledge hang and climb ---------------------------------------------------------------------------
-
-## In the air, against a wall whose top is above mantle height but within the hands' reach: catch it.
-func _try_grab(wish: Vector3) -> bool:
-	if _regrab > 0.0 or velocity.y > 1.5 or _sliding or _hollowing or autopilot or _roll_t >= 0.0:
-		return false
-	var flat := Vector3(velocity.x, 0.0, velocity.z)
-	var dir := Vector3.ZERO
-	if wish.length_squared() > 0.04:
-		dir = Vector3(wish.x, 0.0, wish.z).normalized()
-	elif flat.length() > 1.0:
-		dir = flat.normalized()
-	else:
-		return false
-	var chest := global_position + Vector3.UP * 1.3
-	var hit := locomotion._ray(chest, chest + dir * 0.8)
-	if hit.is_empty():
-		return false
-	var n: Vector3 = hit.normal
-	var nf := Vector3(n.x, 0.0, n.z)
-	if absf(n.y) > 0.35 or nf.length() < 0.3 or nf.normalized().dot(-dir) < 0.5:
-		return false
-	nf = nf.normalized()
-	var face: Vector3 = hit.position
-	var over := face - nf * 0.22
-	var top_hit := locomotion._ray(Vector3(over.x, global_position.y + GRAB_MAX + 0.4, over.z), Vector3(over.x, global_position.y + GRAB_MIN - 0.05, over.z))
-	if top_hit.is_empty() or (top_hit.normal as Vector3).y < 0.75:
-		return false
-	var top: float = (top_hit.position as Vector3).y
-	var rise := top - global_position.y
-	if rise < GRAB_MIN or rise > GRAB_MAX:
-		return false
-	# the face must run right up to the lip (not a sloped bank or a step back)
-	var lip := locomotion._ray(Vector3(face.x, top - 0.12, face.z) + nf * 0.3, Vector3(face.x, top - 0.12, face.z) - nf * 0.3)
-	if lip.is_empty():
-		return false
-	var lip_p: Vector3 = lip.position
-	var hang_pos := Vector3(lip_p.x, top - HANG_DROP, lip_p.z) + nf * WALL_GAP
-	if not locomotion._fits(hang_pos):
-		return false
-	_start_hang(hang_pos, nf, top)
-	return true
-
-
-func _start_hang(pos: Vector3, nf: Vector3, top: float) -> void:
-	locomotion._end_slide()
-	locomotion._ease_shift(pos - global_position)          # the skin and the camera glide into the hang
-	global_position = pos
-	_visual.position = global_basis.inverse() * _vis_off
-	velocity = Vector3.ZERO
-	_hang = true
-	_hang_n = nf
-	_hang_top = top
-	_hang_t = 0.0
-	_hang_push = 0.0
-	_grounded = false
-	_jump_rising = false
-	_air_jumps_left = air_jumps
-	_kick_n = Vector3.ZERO
-	_visual.rotation.y = atan2(nf.x, nf.z)
-	_visual.hang = 1.0
-	Sfx.play("res://art/audio/step_%d.wav" % randi_range(0, 7), pos + Vector3.UP * HANG_DROP, -6.0, 0.8, 0.03)
-	StaffSfx.play("tap", pos + Vector3.UP * HANG_DROP, -12.0, 0.85)
-	camera_ctl.kick(0.2)
-
-
-func _tick_hang(delta: float, wish: Vector3) -> void:
-	_hang_t += delta
-	velocity = Vector3.ZERO
-	var along := _hang_n.cross(Vector3.UP).normalized()
-	var lat := wish.dot(along) if wish.length_squared() > 0.04 else 0.0
-	var into := wish.dot(-_hang_n) if wish.length_squared() > 0.04 else 0.0
-	var ready := _hang_t > 0.18 and not autopilot
-	if ready and Input.is_action_just_pressed("jump"):
-		if into < -0.4:
-			_hang_kick(wish)                       # pulling away: kick off the wall
-		else:
-			_try_climb()
-		return
-	if ready and (Input.is_action_just_pressed("slide") or Input.is_action_just_pressed("dodge")):
-		_let_go(1.0)
-		return
-	_hang_push = _hang_push + delta if into > 0.6 else 0.0
-	if ready and _hang_push > 0.12 and _try_climb():
-		return
-	if ready and into < -0.7 and _hang_t > 0.45:
-		_let_go(1.5)
-		return
-	var shimmy := 0.0
-	if absf(lat) > 0.3:
-		var step := along * signf(lat) * SHIMMY * delta
-		if _ledge_at(global_position + step):
-			global_position += step
-			shimmy = signf(lat)
-	_visual.hang = 1.0
-	_visual.hang_shimmy = lerpf(_visual.hang_shimmy, -shimmy, 1.0 - exp(-10.0 * delta))
-	locomotion._ease_tick(delta)
-	_animate(delta, Vector3.ZERO)
-	vitals._update_gloom(delta)
-	_cam_air_prev = _cam_air
-	_cam_air = lerpf(_cam_air, 0.0, 1.0 - exp(-8.0 * delta))
-	_air_base = global_position.y
-
-
-## Is the ledge still under the hands (and the wall still there) with the body at `pos`?
-func _ledge_at(pos: Vector3) -> bool:
-	var face := locomotion._ray(pos + Vector3.UP * (HANG_DROP - 0.12), pos + Vector3.UP * (HANG_DROP - 0.12) - _hang_n * (WALL_GAP + 0.3))
-	if face.is_empty():
-		return false
-	var over: Vector3 = (face.position as Vector3) - _hang_n * 0.22
-	var top := locomotion._ray(Vector3(over.x, _hang_top + 0.3, over.z), Vector3(over.x, _hang_top - 0.3, over.z))
-	if top.is_empty() or absf((top.position as Vector3).y - _hang_top) > 0.12:
-		return false
-	return locomotion._fits(pos)
-
-
-func _let_go(push: float) -> void:
-	_hang = false
-	_visual.hang = 0.0
-	_regrab = 0.45
-	velocity = _hang_n * push
-	_air_base = global_position.y
-
-
-func _hang_kick(wish: Vector3) -> void:
-	_hang = false
-	_visual.hang = 0.0
-	_regrab = 0.3
-	var out := _hang_n * KICK_OUT
-	if wish.length_squared() > 0.04:
-		out = (out + Vector3(wish.x, 0.0, wish.z).normalized() * 2.0).limit_length(KICK_OUT * 1.1)
-	velocity = Vector3(out.x, KICK_UP * 0.9, out.z)
-	_jump_rising = true
-	_kick_n = _hang_n
-	_kick_lock = 0.22
-	_visual.rotation.y = atan2(-out.x, -out.z)
-	_visual.play_move(&"wallkick", 0.42)
-	Sfx.play(SFX_JUMP, global_position + Vector3.UP * 1.5, -6.0)
-
-
-## From the hang up onto the ledge, if there is room to stand up there.
-func _try_climb() -> bool:
-	# stand well onto the top if it is deep, else on the wall's crown (then it's a balance)
-	var stand := Vector3.INF
-	for depth: float in [0.42, 0.3, 0.2]:
-		var on := Vector3(global_position.x, _hang_top, global_position.z) - _hang_n * (WALL_GAP + depth)
-		var deck := locomotion._ray(on + Vector3.UP * 0.4, on + Vector3.DOWN * 0.3)
-		if deck.is_empty() or (deck.normal as Vector3).y < 0.7:
-			continue
-		var at: Vector3 = (deck.position as Vector3) + Vector3.UP * 0.03
-		if locomotion._fits(at):
-			stand = at
-			break
-	if stand == Vector3.INF:
-		return false
-	_hang = false
-	_visual.hang = 0.0
-	_climb_from = global_position
-	_climb_to = stand
-	_climb_t = 0.0
-	_climb_len = CLIMB_TIME
-	_visual.play_move(&"climb", CLIMB_TIME)
-	Sfx.play(SFX_JUMP, global_position + Vector3.UP * 1.6, -9.0, 0.8)
-	return true
-
-
-func _tick_climb(delta: float) -> void:
-	_climb_t += delta
-	var u := clampf(_climb_t / _climb_len, 0.0, 1.0)
-	# up first (the pull and the press), then over onto the ledge
-	var up_u := smoothstep(0.0, 0.62, u)
-	var fwd_u := smoothstep(0.38, 1.0, u)
-	global_position = Vector3(lerpf(_climb_from.x, _climb_to.x, fwd_u), lerpf(_climb_from.y, _climb_to.y, up_u), lerpf(_climb_from.z, _climb_to.z, fwd_u))
-	velocity = Vector3.ZERO
-	_visual.rotation.y = lerp_angle(_visual.rotation.y, atan2(_hang_n.x, _hang_n.z), 1.0 - exp(-12.0 * delta))
-	locomotion._ease_tick(delta)
-	_animate(delta, Vector3.ZERO)
-	vitals._update_gloom(delta)
-	_cam_air_prev = _cam_air
-	_air_base = global_position.y
-	if u >= 1.0:
-		_climb_t = -1.0
-		velocity = -_hang_n * 1.2
-		_grounded = true
-		_regrab = 0.3
-		_air_jumps_left = air_jumps
-
-
-# --- vault -------------------------------------------------------------------------------------------
-
-## Running at a wall between knee and chest height that is thin, with ground beyond: over it in
-## one movement, keeping the speed. (Deeper tops are ledges: jump and mantle, or climb.)
-func _try_vault(horiz: Vector3, wish: Vector3) -> bool:
-	var spd := horiz.length()
-	if spd < VAULT_SPEED or wish.length_squared() < 0.25 or not _grounded or _hollowing or autopilot:
-		return false
-	var dir := horiz / spd
-	if Vector3(wish.x, 0.0, wish.z).normalized().dot(dir) < 0.7:
-		return false
-	var knee := global_position + Vector3.UP * 0.32
-	var hit := locomotion._ray(knee, knee + dir * (0.45 + spd * 0.09))
-	if hit.is_empty():
-		return false
-	var n: Vector3 = hit.normal
-	var nf := Vector3(n.x, 0.0, n.z)
-	if absf(n.y) > 0.3 or nf.length() < 0.3 or nf.normalized().dot(-dir) < 0.6:
-		return false
-	var face: Vector3 = hit.position
-	var y0 := global_position.y
-	var over := face + dir * 0.12
-	var top_hit := locomotion._ray(Vector3(over.x, y0 + VAULT_MAX + 0.3, over.z), Vector3(over.x, y0 + VAULT_MIN - 0.05, over.z))
-	if top_hit.is_empty() or (top_hit.normal as Vector3).y < 0.7:
-		return false
-	var top: float = (top_hit.position as Vector3).y
-	var rise := top - y0
-	if rise < VAULT_MIN or rise > VAULT_MAX:
-		return false
-	# how thick: walk along the top until it ends
-	var depth := -1.0
-	for k in range(1, 12):
-		var d := 0.12 + 0.1 * float(k)
-		var p := face + dir * d
-		var h := locomotion._ray(Vector3(p.x, top + 0.3, p.z), Vector3(p.x, top - 0.25, p.z))
-		if h.is_empty():
-			depth = d - 0.05
-			break
-	if depth < 0.0 or depth > VAULT_DEPTH:
-		return false
-	# ground beyond, not far down, and room to land
-	var lx := face + dir * (depth + 0.9)
-	var land := locomotion._ray(Vector3(lx.x, top + 0.3, lx.z), Vector3(lx.x, y0 - 2.4, lx.z))
-	if land.is_empty() or (land.normal as Vector3).y < 0.7:
-		return false
-	var to: Vector3 = (land.position as Vector3) + Vector3.UP * 0.03
-	if not locomotion._fits(to):
-		return false
-	var apex := top + 0.14
-	if test_move(Transform3D(global_basis, Vector3(global_position.x, apex, global_position.z)), Vector3(to.x - global_position.x, 0.0, to.z - global_position.z)):
-		return false                              # something in the way over the top
-	locomotion._end_slide()
-	_vault_from = global_position
-	_vault_to = to
-	_vault_apex = apex
-	_vault_v = dir * maxf(spd, walk_speed)
-	var run := Vector2(to.x - global_position.x, to.z - global_position.z).length()
-	_vault_len = clampf(run / maxf(spd, 4.0), 0.3, 0.55)
-	_vault_t = 0.0
-	velocity = _vault_v
-	var side := 1.0 if (Basis(Vector3.UP, _yaw) * Vector3.RIGHT).dot(dir) >= 0.0 else -1.0
-	_visual.rotation.y = atan2(-dir.x, -dir.z)
-	_visual.play_move(&"vault", _vault_len, side)
-	Sfx.play(SFX_JUMP, global_position + Vector3.UP, -8.0, 0.9)
-	StaffSfx.play("swish", global_position + Vector3.UP * 1.2, -10.0)
-	return true
-
-
-func _tick_vault(delta: float) -> void:
-	_vault_t += delta
-	var u := clampf(_vault_t / _vault_len, 0.0, 1.0)
-	var h := Vector3(_vault_from.x, 0.0, _vault_from.z).lerp(Vector3(_vault_to.x, 0.0, _vault_to.z), u)
-	var y: float
-	if u < 0.42:
-		var a := u / 0.42
-		y = lerpf(_vault_from.y, _vault_apex, 1.0 - (1.0 - a) * (1.0 - a))
-	else:
-		var b := (u - 0.42) / 0.58
-		y = lerpf(_vault_apex, _vault_to.y, b * b)
-	global_position = Vector3(h.x, y, h.z)
-	velocity = _vault_v
-	locomotion._ease_tick(delta)
-	_animate(delta, _vault_v)
-	vitals._update_gloom(delta)
-	# the view rises only part of the hop over the wall, like a jump's (r29: it rode the whole arc,
-	# the bumpiest camera on the movement course)
-	_cam_air_prev = _cam_air
-	_air_base = minf(_vault_from.y, _vault_to.y)
-	var up := global_position.y - _air_base
-	_cam_air = lerpf(_cam_air, -minf(maxf(up, 0.0) * 0.65, 1.1), 1.0 - exp(-16.0 * delta))
-	if u >= 1.0:
-		_vault_t = -1.0
-		velocity = _vault_v
-		_grounded = true
-		_air_base = global_position.y
-
-
-# --- wall kick -----------------------------------------------------------------------------------------
-
-## A tall wall touched (or right beside you) in the air, and not the one you just kicked off.
-func _can_wallkick(wish: Vector3) -> bool:
-	if _grounded or _hollowing or _coyote > 0.0:
-		return false
-	var n := Vector3.ZERO
-	if _wall_t > 0.0:
-		n = _wall_n
-	else:
-		for d: Vector3 in [Vector3(velocity.x, 0.0, velocity.z), Vector3(wish.x, 0.0, wish.z)]:
-			if d.length_squared() < 0.01:
-				continue
-			var c := global_position + Vector3.UP * 0.9
-			var hit := locomotion._ray(c, c + d.normalized() * 0.7)
-			if hit.is_empty() or absf((hit.normal as Vector3).y) > 0.3:
-				continue
-			var hn: Vector3 = hit.normal
-			n = Vector3(hn.x, 0.0, hn.z).normalized()
-			break
-	if n == Vector3.ZERO:
-		return false
-	if _kick_n != Vector3.ZERO and n.dot(_kick_n) > 0.7:
-		return false
-	# tall enough to kick: wall above the head too (parapets and kerbs don't count)
-	var head := global_position + Vector3.UP * 1.65
-	if locomotion._ray(head, head - n * 0.75).is_empty():
-		return false
-	_wall_n = n
-	return true
-
-
-func _wall_kick(wish: Vector3) -> void:
-	if _stam != null:
-		_stam.drain(Stamina.WALL_KICK)          # r31: costs Breath, never refused (a kick is a save)
-	var n := _wall_n
-	var flat := Vector3(velocity.x, 0.0, velocity.z)
-	var along := flat - n * flat.dot(n)
-	var out := n * KICK_OUT + along * 0.55
-	if wish.length_squared() > 0.04:
-		out += Vector3(wish.x, 0.0, wish.z).normalized() * 1.2
-	out = out.limit_length(sprint_speed)
-	velocity = Vector3(out.x, KICK_UP, out.z)
-	_jump_rising = true
-	_kick_n = n
-	_wall_t = 0.0
-	_regrab = 0.15
-	_kick_lock = 0.22                             # the kick's line holds a moment before the stick steers
-	_visual.rotation.y = atan2(-out.x, -out.z)
-	_visual.play_move(&"wallkick", 0.42)
-	var at := global_position + Vector3.UP * 0.6 - n * 0.35
-	Vfx.burst(at, Color(0.16, 0.15, 0.17, 0.5), {"count": 10, "life": 0.5, "speed": Vector2(0.5, 1.6), "size": 0.16, "gravity": -0.3, "dir": n, "spread": 60.0, "additive": false})
-	Sfx.play(SFX_JUMP, at, -5.0, 0.95)
-	Sfx.play("res://art/audio/step_%d.wav" % randi_range(0, 7), at, -4.0, 0.85, 0.03)
-	camera_ctl.kick(0.2)
-
-
-## Remember walls touched in the air (wall kick) and slopes too steep to stand on (steep slide).
-func _note_contacts(delta: float) -> void:
-	_wall_t = maxf(0.0, _wall_t - delta)
-	_steep_t = maxf(0.0, _steep_t - delta)
-	if _grounded:
-		_kick_n = Vector3.ZERO
-		return
-	if _steep_t <= 0.0 and velocity.y <= 0.0 and get_slide_collision_count() == 0 and _hang == false:
-		# stepped off onto a slope too steep to stand on: take to it instead of free-falling past it
-		var c := global_position + Vector3.UP * 0.2
-		var hit := locomotion._ray(c, c + Vector3.DOWN * 0.9)
-		if not hit.is_empty():
-			var hn: Vector3 = hit.normal
-			if hn.y >= 0.3 and hn.y < 0.72:
-				_steep_t = 0.12
-				_steep_n = hn
-				velocity.y = minf(velocity.y, -4.0)
-	for i in get_slide_collision_count():
-		var n := get_slide_collision(i).get_normal()
-		if absf(n.y) < 0.3:
-			_wall_t = 0.15
-			_wall_n = Vector3(n.x, 0.0, n.z).normalized()
-		elif n.y >= 0.3 and n.y < 0.72 and _steep_t <= 0.0:
-			# a capsule rolling off a stair nose touches its edge at a slant too: only a real slope
-			# (the ground under the body is itself that steep) counts
-			var c := global_position + Vector3.UP * 0.3 + Vector3(n.x, 0.0, n.z).normalized() * 0.15
-			var hit := locomotion._ray(c, c + Vector3.DOWN * 1.0)
-			if not hit.is_empty() and (hit.normal as Vector3).y < 0.72 and (hit.normal as Vector3).y >= 0.3:
-				_steep_t = 0.12
-				_steep_n = hit.normal
-		elif n.y >= 0.3 and n.y < 0.72:
-			_steep_t = 0.12
-			_steep_n = n
-
-
-## Down a slope too steep to stand on: a controlled slide (speed builds to a cap, a little
-## steering across it), the rig's surfing crouch, dust and scrape. Jump leaves it outward.
-func _tick_steep(delta: float, wish: Vector3, cur: Vector3) -> Vector3:
-	var down := Vector3(_steep_n.x, 0.0, _steep_n.z).normalized()
-	var across := down.cross(Vector3.UP)
-	var h := cur + down * gravity * 0.6 * delta
-	if wish.length_squared() > 0.04:
-		h += across * wish.dot(across) * 3.0 * delta
-	h = h.limit_length(STEEP_MAX_V)
-	velocity.y = maxf(velocity.y, -STEEP_MAX_V)
-	_slide_fx.global_position = global_position + Vector3.UP * 0.05
-	if not _slide_fx.emitting:
-		_slide_fx.emitting = true
-		_slide_sfx.play()
-	_slide_sfx.pitch_scale = 0.6 + 0.05 * h.length()
-	return h
-
-
-# --- beams -------------------------------------------------------------------------------------------
-
-## On something narrow (both sides open air): balance. Checked every other tick, two short rays
-## (two more on the beam to find its middle and lean you back toward it).
-func _beam_probe(horiz: Vector3) -> void:
-	_beam_frame += 1
-	if not is_on_floor() or _glued or _sliding or _roll_t >= 0.0:
-		_beam_on = false
-		return
-	if _beam_frame % 2 != 0:
-		return
-	var fwd := horiz.normalized() if horiz.length() > 0.3 else -_visual.global_basis.z
-	fwd = Vector3(fwd.x, 0.0, fwd.z).normalized()
-	_beam_side = fwd.cross(Vector3.UP).normalized()
-	var base := global_position + Vector3.UP * 0.25
-	var drop := Vector3.DOWN * 0.6
-	var l := locomotion._ray(base - _beam_side * BEAM_W, base - _beam_side * BEAM_W + drop)
-	var r := locomotion._ray(base + _beam_side * BEAM_W, base + _beam_side * BEAM_W + drop)
-	_beam_on = l.is_empty() and r.is_empty()
-	if _beam_on:
-		# and standing on something right under the middle (not mid-way down a stair)
-		var c := locomotion._ray(base, base + Vector3.DOWN * 0.4)
-		_beam_on = not c.is_empty() and (c.position as Vector3).y > global_position.y - 0.1
-	if not _beam_on:
-		_beam_mid = 0.0
-		return
-	var lh := not locomotion._ray(base - _beam_side * 0.15, base - _beam_side * 0.15 + drop).is_empty()
-	var rh := not locomotion._ray(base + _beam_side * 0.15, base + _beam_side * 0.15 + drop).is_empty()
-	_beam_mid = (0.0 if lh == rh else (-0.12 if lh else 0.12))
 
 
 # --- dodge roll ----------------------------------------------------------------------------------------
@@ -1782,7 +1310,7 @@ func _beam_probe(horiz: Vector3) -> void:
 ## A tucked roll along the stick (or a backstep with no stick): brief i-frames, keeps the run, no
 ## cooldown beyond its own length. Distinct from the Rift Step: no riposte, no marks, stays visible.
 func _try_dodge(wish: Vector3) -> bool:
-	if _roll_cd > 0.0 or _roll_t >= 0.0 or not _grounded or _hollowing or _trav_busy() or _mantle_t >= 0.0 or _step_t > 0.0:
+	if _roll_cd > 0.0 or _roll_t >= 0.0 or not _grounded or _hollowing or traversal._trav_busy() or _mantle_t >= 0.0 or _step_t > 0.0:
 		return false
 	if _stam != null and not _stam.spend(Stamina.HOP if wish.length_squared() < 0.04 else Stamina.ROLL):
 		return false                            # r31: no Breath, no roll
@@ -1858,68 +1386,6 @@ func _tick_roll(delta: float, wish := Vector3.ZERO) -> Vector3:
 	return _roll_dir * spd
 
 
-## Jumping at a ledge (top 0.3-1.7 m above the feet) while pushing toward it vaults onto it.
-func _try_mantle(wish: Vector3) -> bool:
-	if not is_on_wall() or velocity.y > 3.5 or _sliding:
-		return false
-	var dir := Vector3(wish.x, 0.0, wish.z).normalized()
-	var wall_n := get_wall_normal()
-	if wall_n.dot(-dir) < 0.5:
-		return false
-	var space := get_world_3d().direct_space_state
-	var probe_top := global_position + dir * 0.6 + Vector3.UP * (MANTLE_MAX + 0.4)
-	var q := PhysicsRayQueryParameters3D.create(probe_top, probe_top + Vector3.DOWN * (MANTLE_MAX + 0.1), collision_mask, [get_rid()])
-	var hit := space.intersect_ray(q)
-	if hit.is_empty() or (hit.normal as Vector3).y < 0.75:
-		return false
-	var top: Vector3 = hit.position
-	# the ledge must be deep enough to stand on (no vaulting onto railings over the lava)
-	var deep := top + dir * 0.75 + Vector3.UP * 0.5
-	var q2 := PhysicsRayQueryParameters3D.create(deep, deep + Vector3.DOWN * 0.8, collision_mask, [get_rid()])
-	var hit2 := space.intersect_ray(q2)
-	if hit2.is_empty() or absf((hit2.position as Vector3).y - top.y) > 0.2:
-		return false
-	var rise := top.y - global_position.y
-	if rise < 0.3 or rise > MANTLE_MAX:
-		return false
-	var dest := top + Vector3.UP * 0.05 + dir * 0.15
-	var land := Transform3D(global_basis, dest)
-	if test_move(land, Vector3.UP * 0.05):
-		return false                               # no room to stand up there
-	# head clearance on the way up, tested a little off the wall (touching it counts as a hit)
-	var off_wall := global_transform.translated(Vector3(wall_n.x, 0.0, wall_n.z).normalized() * 0.06)
-	if test_move(off_wall, Vector3.UP * (rise + 0.1)):
-		return false
-	_mantle_from = global_position
-	_mantle_to = dest
-	_mantle_t = 0.0
-	velocity = Vector3.ZERO
-	_visual.play_move(&"mantle", MANTLE_TIME * 1.5)
-	Sfx.play(SFX_JUMP, global_position, -8.0, 0.85)
-	camera_ctl.kick(0.15)
-	return true
-
-
-func _tick_mantle(delta: float) -> void:
-	_mantle_t += delta
-	var u := clampf(_mantle_t / MANTLE_TIME, 0.0, 1.0)
-	# up first, then over: the rise leads the forward move
-	var up_u := 1.0 - pow(1.0 - minf(u * 1.4, 1.0), 2.0)
-	var fwd_u := smoothstep(0.25, 1.0, u)
-	var p := Vector3(lerpf(_mantle_from.x, _mantle_to.x, fwd_u), lerpf(_mantle_from.y, _mantle_to.y, up_u), lerpf(_mantle_from.z, _mantle_to.z, fwd_u))
-	# the view takes the pull-up over ~0.4 s instead of 0.24: part of each tick's rise goes into the
-	# camera's eased offset (r29)
-	_cam_off.y -= maxf(p.y - global_position.y, 0.0) * 0.6
-	global_position = p
-	_animate(delta, Vector3.ZERO)
-	vitals._update_gloom(delta)
-	if u >= 1.0:
-		_mantle_t = -1.0
-		var dir := Vector3(_mantle_to.x - _mantle_from.x, 0.0, _mantle_to.z - _mantle_from.z).normalized()
-		velocity = dir * walk_speed
-		_air_jumps_left = air_jumps
-
-
 # --- component forwarding (public surface kept on Player) -----------------------------------
 
 func _ap() -> PlayerAutopilot:
@@ -1983,3 +1449,6 @@ func teleport(pos: Vector3, keep_velocity := false) -> void: locomotion.teleport
 ## The capsule would stand at `pos` without touching anything.
 func _fits(pos: Vector3) -> bool: return locomotion._fits(pos)
 func _ray(a: Vector3, b: Vector3, mask := Layers.WORLD) -> Dictionary: return locomotion._ray(a, b, mask)
+## A tall wall touched (or right beside you) in the air, and not the one you just kicked off.
+func _can_wallkick(wish: Vector3) -> bool: return traversal._can_wallkick(wish)
+func is_hanging() -> bool: return traversal.is_hanging()
