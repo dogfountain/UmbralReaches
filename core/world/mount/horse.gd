@@ -27,10 +27,13 @@ var _sfx_t := 0.0
 var _turn_v := 0.0
 var _mount_t := 9.0
 var _mount_from := Vector3.ZERO
+const LEAVE_T := 1.0
 const MOUNT_T := 1.15                ## r36: step up, foot in the stirrup, swing over, settle
 const STIRRUP_Y := 0.62              ## the left stirrup's tread above the ground (x the breed's scale)
 const SEAT_Y := 1.315             ## the saddle's seat top, x the breed's scale, above the horse's origin
 var _space: PhysicsDirectSpaceState3D
+var _leave_t := 0.0                  ## walking out of a boss ring before getting down
+var _leave_dir := Vector3.ZERO
 var _trampled := {}                  ## enemy instance id -> msec of the last trample on it
 
 
@@ -127,9 +130,19 @@ func dismount() -> void:
 func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	_space = get_world_3d().direct_space_state
 	if Player.boss_fight_active(get_tree()):
-		dismount()
-		Events.toast.emit("The horse will go no nearer. You get down.")
-		return
+		if _leave_t <= 0.0:
+			_leave_t = LEAVE_T
+			_leave_dir = _away_from_ring()
+			Events.toast.emit("The horse will go no nearer. It turns.")
+		_leave_t -= dt
+		if _leave_t <= 0.0:
+			_leave_t = 0.0
+			dismount()
+			return
+		wish = _leave_dir                       # a second of walking out, then down at the edge facing the fight
+		sprint = false
+	else:
+		_leave_t = 0.0
 	_phase_prev = _phase
 	var want := 0.0
 	var w := Vector3(wish.x, 0.0, wish.z)
@@ -266,6 +279,22 @@ func _write(ph := NAN) -> void:
 	var k := clampf(speed / 9.0, 0.0, 1.0)
 	mm.set_instance_transform(0, Transform3D(Basis(Vector3.RIGHT, sin(ph * 2.0 + 0.6) * 0.035 * k), Vector3(0, _bob(ph), 0)))
 	mm.set_instance_custom_data(0, Color(0.0, 0.0, ph if speed > 0.05 else 0.0, _head))
+
+
+## Flat direction from the nearest boss ring's centre out through the horse.
+func _away_from_ring() -> Vector3:
+	var best := Vector3.ZERO
+	var bd := INF
+	for a in get_tree().get_nodes_in_group(&"boss_arena"):
+		var n := a as Node3D
+		if n == null:
+			continue
+		var d := global_position - n.global_position
+		d.y = 0.0
+		if d.length() < bd:
+			bd = d.length()
+			best = d
+	return best.normalized() if best.length() > 0.1 else -global_basis.z
 
 
 func _scale() -> float:
