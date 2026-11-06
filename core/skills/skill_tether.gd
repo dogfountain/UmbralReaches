@@ -49,12 +49,27 @@ func reach() -> float:
 	return (RANGE_LONG if rank() >= 1 else RANGE) + float(DB.get_mod("tether_reach", 0.0))
 
 
+## A locked foe inside the chain's reach and in sight is the hook, wherever the crosshair is (the
+## bolt already flies to a lock; the chain used to need the crosshair on the chest).
+func _locked_in_reach(p: Player, from: Vector3) -> Node3D:
+	var lk := p.targeting.lock_target()
+	if lk == null or not lk.is_alive():
+		return null
+	var chest := Aim.chest(lk)
+	var d := from.distance_to(chest)
+	if d < 0.6 or d > reach() or not Aim.clear(p, from, chest):
+		return null
+	return lk
+
+
 func cast(book: SkillBook, _charge: float) -> bool:
 	var p := book.player
 	var r := rank()
 	var power := float(DB.get_mod("power", 1.0))
 	var from := Aim.muzzle(p)
-	var first := Aim.pick(p, reach(), CONE)
+	var first := _locked_in_reach(p, from)
+	if first == null:
+		first = Aim.pick(p, reach(), CONE)
 	hooked = 0
 	if first == null:
 		# a miss: the chain flies out to the crosshair and snaps back; costs only a second
