@@ -11,7 +11,7 @@ extends Wretch
 ## No class_name (project rule): EnemySpawner.KIN and Tiers.KIND_PATHS load it by path.
 
 const Variants := preload("res://core/life/encounters/variants.gd")
-const RISE_R := 6.5
+const RISE_R := 14.0
 const RISE_T := 1.15
 const SUNK := 1.3
 const CLOTH := Color(0.33, 0.29, 0.24)
@@ -184,7 +184,8 @@ func _physics_process(delta: float) -> void:
 
 func alerted(by: Node) -> void:
 	if dormant:
-		rise()
+		if _p != null and _dist <= RISE_R:          # a grave you have left stays in the ground
+			rise()
 		return
 	super.alerted(by)
 
