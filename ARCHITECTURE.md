@@ -59,10 +59,10 @@ All on-screen text (banners, narration and lesson subtitles, toasts, the objecti
 dialogue box is up, and one discovery banner per 90 s. Encounter banners, secrets banners and
 `world_events.gd` still draw on their own (to route next).
 
-**The slice.** `core/util/slice.gd` (`Slice.full()`): without `-- --full` (or Engine meta
-`full_night`) the night is the 30-minute slice: no horses, Kindled Watch, roaming events, faction
-tiers, daily bounties, attunement gates or gear raise/reforge/salvage. Tests that cover those set
-`full_night` first. See docs/DECISIONS.md.
+**The slice.** `core/util/slice.gd` (`Slice.full()`): the full night is the default. `-- --slice`
+(or Engine meta `full_night` set to false) gives the 30-minute slice instead: no horses, Kindled
+Watch, roaming events, faction tiers, daily bounties, attunement gates or gear
+raise/reforge/salvage. See docs/DECISIONS.md.
 
 Who creates UI today (there is no single UI root): `main.tscn` (HUD, SettingsMenu), `main.gd`
 (Satchel), `progression.gd` (Kindling, combo readout), `story.gd` (dialogue, quest log, shop),

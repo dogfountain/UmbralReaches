@@ -40,7 +40,7 @@ Needs a GPU with Vulkan, Metal (through MoltenVK) or Direct3D 12. First load bui
 | Gear | O | |
 | Kindling | K | d-pad right |
 | Journal / Quests / Map | J / L / M | d-pad down / left |
-| Call your horse (to move behind `--full`; the flag is not built yet) | H | |
+| Call your horse | H | |
 | Settings / free the mouse | F2 or Esc | Start |
 | Grade / stats / render scale / fullscreen | F1 / F3 / F4 / F11 | |
 
