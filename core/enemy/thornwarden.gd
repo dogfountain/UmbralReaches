@@ -32,6 +32,7 @@ var phase := 1
 var rooted := false             ## the intermission: rooted in the altar, immune
 var _sig := 0                   ## signature moves shown this phase (pounces in I, volleys in II, blooms in III)
 var _land_at := Vector3.INF
+var _slam_locked := false
 var _lanes_t := 4.0
 var _behind_t := 0.0
 var _lash_cd := 3.0
@@ -134,15 +135,14 @@ func speakers() -> int:
 
 func _pounce(player: Player) -> void:
 	super._pounce(player)
+	_slam_locked = false
 	if phase == 1:
 		_sig += 1
-	# the jump is committed: show where it comes down, for exactly the time it is in the air
-	var flat := Vector3(velocity.x, 0.0, velocity.z)
-	var t := flight_time(leap_apex, player.global_position.y - global_position.y)
-	_land_at = global_position + flat * t
-	_land_at.y = player.global_position.y
-	BossKit.zone(get_parent(), _land_at, maxf(t, 0.3), 30.0 if phase >= 2 else 22.0,
-		{"by": self, "radius": SLAM_R2 if phase >= 2 else SLAM_R, "spikes": "thorn" if phase >= 2 else ""})
+
+
+## The slam's circle is read at the crouch and the jump comes down on it (the red is the truth).
+func _leap_target(player: Player) -> Vector3:
+	return _land_at if _slam_locked else super._leap_target(player)
 
 
 func _physics_process(delta: float) -> void:
@@ -395,6 +395,15 @@ func _on_state(next: int) -> void:
 	super._on_state(next)
 	if next == LEAP_PREP:
 		begin_cast("Bramble Pounce", leap_prep, false)     # bound to the crouch
+		if is_instance_valid(_danger):
+			_danger.queue_free()                           # the slam's own circle replaces the small disc
+		if _p != null:
+			_slam_locked = false
+			_land_at = _leap_target(_p)
+			_slam_locked = true
+			var t := flight_time(leap_apex, _land_at.y - global_position.y)
+			BossKit.zone(get_parent(), _land_at, leap_prep + maxf(t, 0.3), 30.0 if phase >= 2 else 22.0,
+				{"by": self, "radius": SLAM_R2 if phase >= 2 else SLAM_R, "spikes": "thorn" if phase >= 2 else ""})
 
 
 ## Thornlash Volley: five lanes of thorns from its feet, fanned 22 degrees apart, aimed through you.
