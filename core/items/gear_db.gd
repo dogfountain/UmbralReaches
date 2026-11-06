@@ -290,6 +290,38 @@ static func affix_line(p: Dictionary, a: Array) -> String:
 	return String(d.fmt) % v
 
 
+## How good an affix roll is inside its range, as a tier 1..TIERS (TIERS is the best). `a` is the
+## [affix id, roll] pair stored on the piece; the roll is read against the affix's Worn range.
+const TIERS := 5
+
+
+static func affix_tier(a: Array) -> int:
+	var d: Dictionary = AFFIX.get(String(a[0]), {})
+	if d.is_empty():
+		return 1
+	var r: Array = d.roll
+	var span := float(r[1]) - float(r[0])
+	if is_zero_approx(span):
+		return TIERS
+	var f := clampf((float(a[1]) - float(r[0])) / span, 0.0, 1.0)
+	return clampi(int(f * float(TIERS)) + 1, 1, TIERS)
+
+
+## What a reforge of line `idx` can become: the slot's affixes this piece does not already hold
+## on another line (the same list gear_runtime.gd reforge() draws from), by their name suffix.
+static func reforge_pool(p: Dictionary, idx: int) -> PackedStringArray:
+	var out := PackedStringArray()
+	var aff: Array = p.get("aff", [])
+	for a: String in SLOT_AFFIX.get(String(p.get("slot", "")), []):
+		var held := false
+		for i in aff.size():
+			if i != idx and String(aff[i][0]) == a:
+				held = true
+		if not held:
+			out.append(String(AFFIX[a].of))
+	return out
+
+
 ## Cost to raise `p` one level: {ash, shards}, or {} at its cap.
 static func upgrade_cost(p: Dictionary) -> Dictionary:
 	var lv := int(p.get("level", 0))

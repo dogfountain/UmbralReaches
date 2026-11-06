@@ -310,6 +310,7 @@ static func store(piece: Dictionary) -> String:
 		st["next_uid"] = n + 1
 		piece["uid"] = n
 	var line := ""
+	GearStats.seen_init(st)                  # a piece that arrives after this is new to the gear screen until looked at
 	if bag.size() >= GearDB.BAG_CAP:
 		var v := GearDB.salvage_value(piece)
 		Travel.give("ember_shard", v, false)
