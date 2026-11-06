@@ -245,8 +245,15 @@ func tick(dt: float, ctx: Dictionary) -> void:
 			if int(b.state) == PERCH and kind == "crow":
 				_take_off(b, ctx.player, rng.randf_range(0.0, 0.35))
 	if kind == "owl" and not mice.is_empty():
-		# the mice are drawn to 32 m: past that (and with no owl after one) they wait where they are
-		_mice_live = center.distance_to(ctx.cam) < MICE_SEEN
+		# the mice are simulated within MICE_SEEN of the camera: past that (and with no owl after one) they
+		# wait where they are. Measured to the mice, not the roost: a field can lie well off the owls' trees,
+		# and its mice never noticed a wanderer standing among them
+		_mice_live = false
+		var cam: Vector3 = ctx.cam
+		for m in mice:
+			if (m.home as Vector3).distance_to(cam) < MICE_SEEN:
+				_mice_live = true
+				break
 		if not _mice_live:
 			for b in birds:
 				var st := int(b.state)

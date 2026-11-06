@@ -47,6 +47,7 @@ func _process(d: float) -> void:
 	if started:
 		for e in get_tree().get_nodes_in_group(Groups.ENEMY):
 			if not (e as Node).has_meta("world_fake") and not (e as Node).is_queued_for_deletion():
+				(e as Node).remove_from_group(Groups.ENEMY)      # out of the wildlife's sight this frame, not at frame end
 				(e as Node).queue_free()
 		return
 	if main == null or not main.has_meta("realm_done") or main.get_node_or_null("Wildlife") == null:
@@ -55,6 +56,14 @@ func _process(d: float) -> void:
 			_end()
 		return
 	started = true
+	# foes respawn as fast as the loop above frees them; run that loop before every other node (the
+	# wildlife counted each respawn before it went, so a herd or a fox watched foes that were not there)
+	process_priority = -1000
+	for sp in get_tree().get_nodes_in_group(&"enemy_spawner"):    # their respawn timers outlive a disabled node
+		sp.queue_free()
+	var enc := main.find_child("Encounters", true, false)
+	if enc:
+		enc.process_mode = Node.PROCESS_MODE_DISABLED
 	_run()
 
 
@@ -83,6 +92,23 @@ func _safe_near(c: Vector3, dist: float) -> Vector3:
 		if RealmLayout.BOUNDS.grow(-6.0).has_point(Vector2(q.x, q.z)) and not RL.in_water(q.x, q.z) and RealmLayout.biome_at(q.x, q.z) not in ["ash", "crag"]:
 			return q
 	return RealmLayout.PLAYER_START
+
+
+## Every foe gone now, and out of the wildlife's foe list: a foe left marked for deletion stayed in the
+## group, and a herd or a fox watched it for the whole check (beasts mind a foe at 1.9x their alert ring).
+func _no_foes() -> void:
+	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
+		if not (e as Node).has_meta("world_fake"):
+			(e as Node).remove_from_group(Groups.ENEMY)
+			if (e as Node).get_parent():
+				(e as Node).get_parent().remove_child(e)
+			(e as Node).queue_free()
+	(w.get("_enemies") as Array).clear()
+	w.set("_enemy_t", 1.0e9)            # and the director does not look again until _foes_back()
+
+
+func _foes_back() -> void:
+	w.set("_enemy_t", 0.0)
 
 
 func _group(kind: String, pred := Callable()) -> Node3D:
@@ -121,6 +147,7 @@ func _run() -> void:
 	else:
 		var lead: Vector3 = herd.positions()[0]
 		await _put(_safe_near(lead, 42.0))
+		_no_foes()
 		await _secs(1.0)
 		for i in 30:
 			if herd.fleeing() == 0:
@@ -136,7 +163,9 @@ func _run() -> void:
 		for a: Dictionary in herd.animals:
 			sts.append(int(a.state))
 		print("WORLD herd states before the far alarm ", sts, " player ", player.global_position, " lead ", lead, " speed ", w._player_speed)
-		w.alarm(lead + Vector3(80, 0, 0), 0.35)
+		# 70 m from the group's centre: inside the director's 88 m reach for a 0.35 alarm, and still past the
+		# herd's bolt ring (18 + 30 * 0.35 m) yet inside its startle ring (60 + 110 * 0.35 m) from the lead
+		w.alarm((herd.center as Vector3) + Vector3(70, 0, 0), 0.35)
 		await _frames(3)
 		var alert := 0
 		for a: Dictionary in herd.animals:
@@ -164,6 +193,7 @@ func _run() -> void:
 		await _secs(5.0)
 		check(int(w.tracks.laid) - laid0 >= 8, "hoofprints where they ran (%d)" % (int(w.tracks.laid) - laid0))
 		check(int(w.tracks.live()) > 0, "prints live (%d)" % int(w.tracks.live()))
+		_foes_back()
 
 	# ---- the fox's pounce
 	var fox := _group("fox")
@@ -172,6 +202,7 @@ func _run() -> void:
 	else:
 		var fp: Vector3 = fox.positions()[0]
 		await _put(_safe_near(fp, 40.0))
+		_no_foes()
 		await _secs(1.0)
 		for a: Dictionary in fox.animals:
 			a.hunt_t = 0.0
@@ -188,8 +219,15 @@ func _run() -> void:
 
 			if fox.pounces > p0:
 				break
+		if not stalked:
+			var diag := []
+			for a: Dictionary in fox.animals:
+				var fpos: Vector3 = a.pos
+				diag.append([int(a.state), snappedf(float(a.hunt_t), 0.1), snappedf(float(a.t), 0.1), fpos.snapped(Vector3.ONE * 0.1), fox._ok(fpos.x, fpos.z)])
+			print("WORLD fox never stalked: ", diag, " visible ", fox.visible, " player at ", snappedf(player.global_position.distance_to(fp), 0.1))
 		check(stalked, "the fox creeps up on something in the grass")
 		check(fox.pounces > p0, "and leaps on it (pounces %d, catches %d)" % [fox.pounces, fox.catches])
+		_foes_back()
 
 	# ---- the owl's hunt
 	var owls := _group("owl", func(g: Node) -> bool: return not (g.mice as Array).is_empty())
@@ -243,11 +281,15 @@ func _run() -> void:
 				if stand != Vector3.INF:
 					break
 			await _put(stand if stand != Vector3.INF else mp[0] + Vector3(1.5, 0, 0))
-			await _secs(1.5)
 			var ran := 0
-			for m: Dictionary in owls.mice:
-				if int(m.state) == 1 or int(m.state) == 2:
-					ran += 1
+			for i in 16:                 # up to 4 s: a group out of view ticks slowly
+				await _secs(0.25)
+				ran = 0
+				for m: Dictionary in owls.mice:
+					if int(m.state) == 1 or int(m.state) == 2:
+						ran += 1
+				if ran > 0:
+					break
 			check(ran > 0, "mice run for cover from the wanderer (%d)" % ran)
 
 	# ---- lapwings

@@ -462,7 +462,7 @@ func _step(a: Dictionary, dt: float, _ctx: Dictionary) -> void:
 					a.t = rng.randf_range(3.0, 8.0)
 		WALK:
 			a.pitch_to = graze_pitch * 0.4
-			if _move(a, dt, walk_speed):
+			if _move(a, dt, walk_speed) or float(a.t) < -10.0:      # a stroll that cannot arrive is given up
 				a.state = GRAZE
 				a.t = rng.randf_range(1.0, 3.0)
 				a.pitch_to = graze_pitch
@@ -590,8 +590,11 @@ func _move(a: Dictionary, dt: float, sp: float) -> bool:
 	var d := to.length()
 	if d < 0.3:
 		return true
-	a.speed = move_toward(float(a.speed), sp, dt * sp * 1.5)
 	var want := yaw_to(to)
+	# ease off while facing away: at full pace a target inside the turning circle was orbited for ever
+	# (a fox circled its walk target a minute and never hunted again)
+	var face := cos(wrap_angle(want - float(a.yaw)))
+	a.speed = move_toward(float(a.speed), sp * clampf(face, 0.15, 1.0), dt * sp * 1.5)
 	a.yaw = turn(float(a.yaw), want, dt * (4.0 if sp > 2.0 else 1.6))
 	var fwd := Vector3(-sin(float(a.yaw)), 0, -cos(float(a.yaw)))
 	var step := minf(float(a.speed) * dt, d)

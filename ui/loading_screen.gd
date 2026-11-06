@@ -41,6 +41,8 @@ const MORE_KIN := ["res://core/enemy/bulwark.gd", "res://core/enemy/chanter.gd",
 ## The great ones: their own materials (boss_pbr) and parts, shown once so a pull compiles nothing.
 const WarmAttackKit := preload("res://core/enemy/attack_kit.gd")
 const WarmBossKit := preload("res://core/enemy/boss_kit.gd")
+const WarmHorseRig := preload("res://core/world/mount/horse_rig.gd")
+const WarmHorseDB := preload("res://core/world/mount/horse_db.gd")
 const BOSSES := ["res://core/enemy/thornwarden.gd", "res://core/enemy/bone_abbot.gd", "res://core/enemy/ascended_warden.gd"]
 const CORES := ["core_prism", "core_lodestar", "core_cinder", "core_rime"]
 const SKIP_AFTER_VIEW := 2        # stops (spawn, the Keg) the tour must have shown before a key may leave the rest
@@ -350,6 +352,15 @@ func _show_more(c: Vector3, at: Vector3, right: Vector3, fwd: Vector3, col: Colo
 		b.remove_from_group(Groups.ENEMY)
 		b.global_position = c + fwd * 5.0 + right * (float(k) - 1.0) * 4.0
 		_warm_nodes.append(b)
+	# the skinned horses (one material per breed): a stable or the first ride compiles none of them
+	var bi := 0
+	for breed: String in WarmHorseDB.BREEDS:
+		var h: Node3D = WarmHorseRig.new()
+		zone.add_child(h)
+		h.setup(breed, WarmHorseDB.BREEDS[breed] as Dictionary)
+		h.global_position = c - fwd * 4.0 + right * (float(bi) - 1.0) * 2.5
+		_warm_nodes.append(h)
+		bi += 1
 	Vfx.impact(at, hot, fwd, false)
 	Vfx.impact(at, col, fwd, true)
 	var em := Vfx.emitter(col, {})
