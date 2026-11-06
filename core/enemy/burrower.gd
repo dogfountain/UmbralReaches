@@ -126,6 +126,7 @@ func _special_frame(delta: float) -> void:
 		_trail_t -= delta
 		if _trail_t <= 0.0:
 			_trail_t = 0.09
+			Vfx.scorch(global_position, 0.45, Color(0.05, 0.03, 0.02), 0.4)       # the path is a seam in the ground
 			Vfx.burst(global_position + Vector3.UP * 0.05, Color(0.2, 0.15, 0.11, 0.9), {"count": 5, "life": 0.7, "speed": Vector2(0.6, 2.2), "size": 0.1, "gravity": -7.0, "additive": false, "radius": 0.25})
 	elif _phase == 2:
 		_drive = Vector3.ZERO

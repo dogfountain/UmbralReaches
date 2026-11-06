@@ -215,7 +215,7 @@ func _special_think() -> void:
 			_thread_t -= 1.0 / think_hz
 			if _thread_t <= 0.0:
 				_thread_t = 0.2
-				Vfx.arc(_staff_tip(), _ally.global_position + Vector3.UP * (_ally.hp_bar_y * 0.55), GLOAM, 0.22, 0.25)
+				Vfx.arc(_staff_tip(), _ally.global_position + Vector3.UP * (_ally.hp_bar_y * 0.55), GLOAM, 0.45, 0.08)      # arcs overlap into one steady beam
 			if _state_t >= CHANNEL:
 				_ally.shroud(6.0)
 				HitText.pop(_ally.global_position + Vector3.UP * (_ally.hp_bar_y + 0.4), "shrouded", GLOAM)
