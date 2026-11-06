@@ -41,11 +41,11 @@ func _init() -> void:
 func _build() -> void:
 	name = "Burrower"
 	var rig := QuadRig.new()
-	rig.body_height = 0.34
-	rig.body_len = 0.72
-	rig.hip_spread = 0.14
+	rig.body_height = 0.48
+	rig.body_len = 1.05
+	rig.hip_spread = 0.22
 	rig.upper_len = 0.24
-	rig.stride_len = 0.42
+	rig.stride_len = 0.75
 	attach_rig(rig)
 	rig.scale = Vector3.ONE * 1.18
 	var col := get_node_or_null("Collision") as CollisionShape3D

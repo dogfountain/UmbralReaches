@@ -205,7 +205,7 @@ const AttackKit := preload("res://core/enemy/attack_kit.gd")
 ## Attack tokens: at most MAX_ATTACKERS ordinary enemies wind up on the player at once; the rest
 ## circle at WAIT_RING and step in when one finishes. A pack reads as a pack, not a pile.
 const MAX_ATTACKERS := 2
-const WAIT_RING := 2.9
+const WAIT_RING := 2.15
 const POISE_WINDOW := 2.5
 const STAGGER_CD := 3.0
 const STAGGER_TIME := 1.1
@@ -597,6 +597,9 @@ func wake() -> void:
 
 
 func sleep() -> void:
+	if process_mode != Node.PROCESS_MODE_DISABLED:
+		cancel_moves()                           # a tell in the air dies with the body
+		_finish_cast(false, false)
 	visible = true
 	process_mode = Node.PROCESS_MODE_DISABLED
 
@@ -1207,7 +1210,7 @@ func _move(delta: float) -> void:
 		if crawler and _hop_cd <= 0.0 and dist > 1.6:
 			# Skittering hop that actually covers ground: ballistic, momentum kept in the air.
 			var hop := minf(dist - 0.9, hop_len)
-			launch_at(LightGrid.outside(global_position + _wish * hop, LIGHT_MARGIN, _wardproof()), 0.55)
+			launch_at(LightGrid.outside(global_position + _wish * hop, LIGHT_MARGIN, _wardproof()), 0.28 if mass < 0.6 else 0.55)
 			_hop_cd = 0.75
 			_move_ballistic(delta)
 			return
@@ -1262,7 +1265,7 @@ func _at_rest() -> bool:
 var _anim_dt := 0.0
 
 
-func _animate_rig(on_floor: bool, delta: float, full := 16.0) -> void:
+func _animate_rig(on_floor: bool, delta: float, full := 28.0) -> void:
 	_anim_dt = minf(_anim_dt + delta, 0.1)
 	if _dist >= full and (_dist > 46.0 or (Engine.get_physics_frames() + get_instance_id()) % 2 != 0):
 		return
@@ -1640,7 +1643,7 @@ func _circle(dist: float) -> void:
 		_orbit = -_orbit
 	var tangent := Vector3(-dir.z, 0.0, dir.x) * _orbit
 	var radial := clampf((dist - ring) * 0.9, -1.0, 1.0)
-	_wish = (tangent * drift + dir * radial).normalized() * 0.7
+	_wish = (tangent * drift + dir * radial).normalized() * 0.9
 	_face_dir = dir
 
 
