@@ -90,7 +90,7 @@ func _ready() -> void:
 	Travel._busy = true
 	Settings.set_preset_fields(2)
 	Settings.shadow_quality = 2
-	Settings.aa_mode = 2                       # SMAA: clean edges, no TAA ghosting in motion
+	Settings.aa_mode = int(OS.get_environment("TRAILER_AA")) if OS.get_environment("TRAILER_AA") != "" else 3   # 3 TAA (ground gravel and grass shimmered under SMAA); 2 SMAA
 	if not _preview:
 		Settings.window_size_index = 2         # 1920x1080: the window sets Movie Maker's frame size
 	Settings.fov = 80.0
@@ -225,6 +225,11 @@ func _setup_world() -> void:
 		if s and String(s.resource_path).ends_with("villager.gd"):
 			(n as Node3D).visible = false
 			n.process_mode = Node.PROCESS_MODE_DISABLED
+	# the cold candle niches read as bare grey boxes close to the lens: stood down with the villagers
+	for n in get_tree().get_nodes_in_group(Lamp.GROUP):
+		var lamp := n as Lamp
+		if lamp != null and lamp.look == "niche" and not lamp.lit:
+			lamp.visible = false
 	for c in p.get_children():
 		if c is SkillBook:
 			book = c

@@ -225,7 +225,7 @@ func _e_loot() -> void:
 # --- the slide, on the game's camera -------------------------------------------------------------------------
 
 func _s_slide() -> void:
-	d.put_player(d.ARENA + Vector3(14.0, 0.0, 0.0), d.WEST, -0.16)
+	d.put_player(d.ARENA + Vector3(24.0, 0.0, 0.0), d.WEST, -0.16)   # clear for 16 m west: from +14 the road met a cottage wall
 	d.drive(d.fwd_of(d.WEST), true)
 	d._drive = d._drive_to
 	d.use_player_cam()
