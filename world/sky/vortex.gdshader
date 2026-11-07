@@ -108,9 +108,10 @@ void sky() {
         float dm = length(EYEDIR - md);
         float ghosts = exp(-dm * dm * 720.0) * 0.6;
         // the moon and its flare toned down about 30 % (Luke, 7 Nov: the moon read too bright), with its light
-        col += vec3(0.72, 0.82, 1.02) * (disc * 1.5 + corona * 0.35);
-        col += vec3(0.52, 0.68, 1.05) * (streak * 0.62 + cross * 0.28);
-        col += vec3(0.42, 0.52, 0.92) * ghosts * 0.25;
+        // and again by half (the moon's glow washed the sky pale and the land with it)
+        col += vec3(0.72, 0.82, 1.02) * (disc * 0.9 + corona * 0.15);
+        col += vec3(0.52, 0.68, 1.05) * (streak * 0.28 + cross * 0.12);
+        col += vec3(0.42, 0.52, 0.92) * ghosts * 0.1;
         col = mix(col_deep * 0.5, col, smoothstep(-0.05, 0.12, EYEDIR.y)); // horizon falloff
         // moon-silvered haze low on the sky: ridges and towers separate from it
         col += vec3(0.11, 0.17, 0.29) * exp(-abs(EYEDIR.y) * 9.0);   // a thinner, brighter band: the ridges read dark against it

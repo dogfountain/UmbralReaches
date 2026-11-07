@@ -779,7 +779,7 @@ static func _sky_flare(root: Node, moon: DirectionalLight3D) -> void:
 		var q := QuadMesh.new()
 		var mat := ShaderMaterial.new()
 		mat.shader = load("res://world/sky_flare.gdshader")
-		mat.set_shader_parameter("color", Color(0.41, 0.55, 0.78, 1.0))      # 30 % under its old 0.58, 0.78, 1.12: toned with the moon
+		mat.set_shader_parameter("color", Color(0.2, 0.27, 0.39, 1.0))       # a third of its old 0.58, 0.78, 1.12: the moon's flare washed the sky
 		q.material = mat
 		flare.mesh = q
 		root.add_child(flare)
