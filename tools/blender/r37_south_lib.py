@@ -293,6 +293,37 @@ def tex_thatch(n, seed):
     return alb, height, rough
 
 
+def tex_heartwood(n, seed):
+    """Rotted heartwood (a tile is ~1.5 m): smooth, dark, brown, with a fine fibrous vertical grain, punky pale
+    patches and black rot pockets. Low relief. -> albedo, height, rough."""
+    grain = fbm(n, 1.5, seed, aniso=20.0)
+    fine = fbm(n, 1.1, seed + 1, aniso=9.0)
+    cloud = fbm(n, 3.0, seed + 2)
+    punk = smooth(fbm(n, 2.6, seed + 3, aniso=2.5), 0.58, 0.8)
+    pocket = smooth(fbm(n, 2.6, seed + 4), 0.66, 0.84)
+    height = np.clip(0.5 + 0.25 * (grain - 0.5) + 0.1 * (fine - 0.5) - 0.25 * pocket + 0.1 * punk, 0.0, 1.0)
+    tone = np.clip(0.42 + 0.45 * (grain - 0.5) + 0.2 * (cloud - 0.5) + 0.1 * (fine - 0.5), 0.0, 1.0)
+    alb = tint(tone, (0.11, 0.07, 0.045), (0.5, 0.32, 0.18))
+    alb = alb * (1.0 - 0.5 * punk[..., None]) + np.array([0.3, 0.19, 0.1])[None, None, :] * 0.5 * punk[..., None]
+    alb *= (1.0 - 0.6 * pocket)[..., None]
+    rough = np.clip(0.93 + 0.06 * (fine - 0.5), 0.7, 1.0)
+    return alb, height, rough
+
+
+def tex_soil(n, seed):
+    """Crumbly rotted wood and soil for a hollow's floor: brown-black, fibrous, with pale crumbs. -> albedo, height, rough."""
+    crumb = fbm(n, 1.2, seed)
+    mid = fbm(n, 2.0, seed + 1)
+    fibre = fbm(n, 1.3, seed + 2, aniso=5.0)
+    pale = smooth(fbm(n, 1.4, seed + 3), 0.68, 0.85)
+    height = np.clip(0.3 + 0.45 * crumb + 0.2 * (mid - 0.5) + 0.2 * (fibre - 0.5), 0.0, 1.0)
+    tone = np.clip(0.35 + 0.5 * (crumb - 0.5) + 0.3 * (mid - 0.5) + 0.2 * (fibre - 0.5), 0.0, 1.0)
+    alb = tint(tone, (0.06, 0.045, 0.033), (0.32, 0.23, 0.15))
+    alb = alb * (1.0 - 0.5 * pale[..., None]) + np.array([0.26, 0.19, 0.12])[None, None, :] * 0.5 * pale[..., None]
+    rough = np.clip(0.95 + 0.05 * (crumb - 0.5), 0.8, 1.0)
+    return alb, height, rough
+
+
 def tex_planks(n, seed):
     """Weathered grey oak planks, six to the tile, with grain, knots, nail rows and gaps."""
     cols = 6
