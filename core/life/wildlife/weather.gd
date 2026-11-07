@@ -84,6 +84,8 @@ var _cycle_i := 0
 var _front_t := 80.0
 var _t := 0.0
 var _applied := {"fog_depth_begin": 0.0, "volumetric_fog_density": 0.0, "ambient_light_energy": 0.0, "fog_height_density": 0.0}
+var _roof := false
+var _roof_t := 0.0
 var _under := 0.0                ## 0..1: the camera is underground (the crypt, the pit hall at y -32): no weather, no ground haze
 var _bank_acc := 0.0
 var _step_acc := 0.0
@@ -235,15 +237,27 @@ func _step(delta: float) -> void:
 	if _bank_acc >= 0.1:
 		_banks_step(_bank_acc)
 		_bank_acc = 0.0
-	# below the Realm's ground the ground haze (it thickens with depth under Atmosphere.HAZE_TOP) filled
+	# under the Realm's ground (not the open Rift floor or the Well's sinkhole) the ground haze (it thickens with depth under Atmosphere.HAZE_TOP) filled
 	# the Abbot's pit hall 36 m down with a wall of mist; a crypt has still air and no weather
-	_under = smoothstep(-5.0, -11.0, cam.global_position.y) if cam != null else 0.0
+	_under = move_toward(_under, 1.0 if _roofed(cam, delta) else 0.0, delta * 1.5)
 	_apply_env()
 	_bed_acc += delta
 	if _bed_acc >= 1.0 / 15.0:
 		_beds_step(_bed_acc)
 		_bed_acc = 0.0
 	_sway(delta)
+
+
+## Below the Realm's ground: more than 4 m under the terrain surface at the camera's xz (the crypt, the pit
+## hall, the Counting Stair). The open Rift floor and the Well's sinkhole are carved into the terrain itself,
+## so they are not "under". Looked up four times a second.
+func _roofed(cam: Camera3D, delta: float) -> bool:
+	_roof_t -= delta
+	if _roof_t > 0.0:
+		return _roof
+	_roof_t = 0.25
+	_roof = cam != null and cam.global_position.y < RL.height_at(cam.global_position.x, cam.global_position.z) - 4.0
+	return _roof
 
 
 func _apply_env() -> void:
