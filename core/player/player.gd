@@ -49,8 +49,8 @@ var invert_y := false
 @export var pitch_max := 0.6
 @export_group("Gloom")
 @export var gloom_max := 100.0
-@export var gloom_rate_dark := 3.0      ## per second away from light: ~33 s of open dark fills the bar, so the Shade is a real chance
-@export var gloom_rate_rift := 5.0      ## per second in the Ashen Rift proper: ~20 s to a Shade
+@export var gloom_rate_dark := 0.75     ## per second away from light: ~2 min 13 s of open dark fills the bar
+@export var gloom_rate_rift := 1.25     ## per second in the Ashen Rift proper: ~80 s to a Shade
 @export var gloom_drain_lit := 12.0     ## per second inside a fire (a ward drains at its own rate)
 @export var rift_z := -40.0             ## world z beyond which the rift rate may apply (plus region "rift")
 @export var rift_enabled := true
