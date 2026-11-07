@@ -163,7 +163,9 @@ class Card extends Control:
 		if kind != "head":
 			var tag := ""
 			var tc := DIM
-			if look == "owned":
+			if look == "owned" and kind == "pick":
+				pass                       # "On [F]" says it already; the tag would print over a wrapped line
+			elif look == "owned":
 				tag = {"charm": "WORN", "oath": "SWORN", "relic": "", "slot": "CHOSEN", "pick": "ON THE BAR", "core": "IN THE ORB", "spell": "",
 					"path": "REMEMBERED", "service": "OPEN", "hearth": "BURNING", "walk": ""}.get(kind, "KINDLED")
 				tc = Color(1.0, 0.7, 0.42, 0.95)
@@ -424,7 +426,7 @@ func _build() -> void:
 	info.add_child(_d_btn)
 	# footer
 	col.add_child(Med.rule(Color(Med.BRONZE, 0.6), false))
-	_foot = _label("", 14, DIM)
+	_foot = _label("", 15, QUIET)
 	_foot_refresh()
 	var foot := _foot
 	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -846,7 +848,7 @@ func _page_loadout() -> void:
 		c.tint = sp.color
 		c.title = String(sp.name)
 		var at := lo.find(id)
-		c.line = ("On [%s]" % DB.SLOT_KEYS[at + 1]) if at >= 0 else ("Rank %s" % ROMAN[DB.rank(st, id)] if DB.rank(st, id) > 0 else ("Known" if known else ("Not yet taught" if DB.TAUGHT_LATER.has(id) else "Learn it under Spells")))
+		c.line = ("On [%s]" % DB.SLOT_KEYS[at + 1]) if at >= 0 else ("Rank %s" % ROMAN[DB.rank(st, id)] if DB.rank(st, id) > 0 else ("Known" if known else ("Not yet taught" if DB.TAUGHT_LATER.has(id) else "Learn in Spells")))
 		c.look = "owned" if at >= 0 else ("open" if known else "lost")
 		grid.add_child(c)
 	_heading("Combos", "spells that feed each other")
@@ -1071,7 +1073,7 @@ func _page_hearth() -> void:
 	var now := _card("head", "now", 384, 124)
 	now.glyph = "hearth"
 	now.tint = EMBER
-	now.title = "%s  ·  %s" % [["BANKED", "I", "II", "III", "IV"][t], String(HearthDB.TIERS[t].name)]
+	now.title = "%s  ·  %s" % [["BANKED", "I", "II", "III", "IV"][t], String(HearthDB.TIERS[t].name)] if t > 0 else "BANKED"
 	now.line = "Fires reach +%.1f m  ·  +%d Gloom held  ·  comfort %d" % [HearthDB.reach(hs, float(DB.live.get("reach_add", 0.0))), roundi(float(DB.live.get("gloom_add", 0.0))), int(h.call("comfort"))]
 	now.look = "owned"
 	row.add_child(now)

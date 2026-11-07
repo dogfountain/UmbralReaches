@@ -227,6 +227,26 @@ func _label(parent: Control, text: String, size: int, color: Color, align := HOR
 	return l
 
 
+## What the first-steps line teaches, once each is done it is struck from the line (and from the save).
+var _did := {}
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		_did["look"] = true
+	elif event is InputEventJoypadMotion and absf((event as InputEventJoypadMotion).axis_value) > 0.5 \
+			and ((event as InputEventJoypadMotion).axis == JOY_AXIS_RIGHT_X or (event as InputEventJoypadMotion).axis == JOY_AXIS_RIGHT_Y):
+		_did["look"] = true
+	elif event.is_pressed() and not event.is_echo():
+		for a: String in ["move_forward", "move_left", "move_back", "move_right"]:
+			if event.is_action(a):
+				_did["move"] = true
+		if event.is_action("sprint"):
+			_did["sprint"] = true
+		if event.is_action("jump"):
+			_did["jump"] = true
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_debug"):
 		_debug.visible = not _debug.visible
@@ -431,6 +451,11 @@ func _tips_tick(delta: float) -> void:
 		return
 	var v: Vector3 = p.get("velocity") if p.get("velocity") != null else Vector3.ZERO
 	var flat := Vector2(v.x, v.z).length()
+	if flat > 1.0:
+		_did["move"] = true
+	var fight := _foe_near(p, 24.0)
+	if fight:
+		_td.retire_basic()              # control lessons never draw over a fight
 	var grounded: bool = bool(p.call("is_grounded")) if p.has_method("is_grounded") else true
 	_sprint_t = _sprint_t + 0.25 if flat > 6.5 and grounded else 0.0
 	_air_t = 0.0 if grounded else _air_t + 0.25
@@ -438,23 +463,40 @@ func _tips_tick(delta: float) -> void:
 		_jit("hang", "%s  climb up   ·   push away + %s  kick off   ·   %s  let go" % [_pk("jump", "A"), _pk("jump", "A"), _pk("slide", "B")])
 	elif p.get("riding") != null:
 		_jit("ride", "%s  leap   ·   %s  get down" % [_pk("jump", "A"), _pk("interact", "X")])
-	elif not staged_in():
-		_jit("move", "%s  move   ·   mouse  look   ·   %s  sprint   ·   %s  jump" % [_pk_move(), _pk("sprint", "L3"), _pk("jump", "A")])
+	elif fight:
+		if p.has_method("lock_target") and p.call("lock_target") == null:
+			_jit("lock", "%s  lock on to it   ·   %s  roll through a blow" % [_pk("lock_on", "R3"), _pk("dodge", "B")], false)
 	elif not Hints.seen(&"tip_move"):
-		_jit("move", "%s  move   ·   mouse  look   ·   %s  sprint   ·   %s  jump" % [_pk_move(), _pk("sprint", "L3"), _pk("jump", "A")])
+		_first_steps()
 	elif _air_t > 0.4:
 		_jit("jump2", "%s again in the air: a second jump" % _pk("jump", "A"))   # the first ledge or leap
 	elif _sprint_t > 1.5:
 		_jit("slide", "%s  while running: slide   ·   %s  in a slide: a long leap" % [_pk("slide", "B"), _pk("jump", "A")])
-	elif p.has_method("lock_target") and p.call("lock_target") == null and _foe_near(p, 16.0):
-		_jit("lock", "%s  lock on to it   ·   %s  roll through a blow" % [_pk("lock_on", "R3"), _pk("dodge", "B")])
 	elif p.get("gloom") != null and float(p.get("gloom")) > 55.0:
 		_jit("gloom", "The Gloom fills away from light. Full, it takes shape and hunts you. Firelight drains it.")
 
 
-## A just-in-time prompt, once per save.
-func _jit(id: String, text: String) -> void:
-	Hints.once(StringName("tip_" + id), text)
+## A just-in-time prompt, once per save. `basic`: it teaches a control, so a fight cuts it short.
+func _jit(id: String, text: String, basic := true) -> void:
+	Hints.once(StringName("tip_" + id), text, basic)
+
+
+## The first-steps line names only what has not been done yet: move, look, sprint, jump. All four done, it is
+## never shown at all.
+func _first_steps() -> void:
+	var parts: Array[String] = []
+	if not _did.has("move"):
+		parts.append("%s  move" % _pk_move())
+	if not _did.has("look"):
+		parts.append("%s  look" % ("Right stick" if _pad else "Mouse"))
+	if not _did.has("sprint"):
+		parts.append("%s  sprint" % _pk("sprint", "L3"))
+	if not _did.has("jump"):
+		parts.append("%s  jump" % _pk("jump", "A"))
+	if parts.is_empty():
+		Hints.mark(&"tip_move")
+		return
+	_jit("move", "   ·   ".join(parts))
 
 
 func _pk_move() -> String:
@@ -465,8 +507,8 @@ func _pk_move() -> String:
 
 
 ## A combat lesson (ui/hints.gd), or a prompt: the text director's lesson lane.
-func lesson(text: String) -> void:
-	_td.post_lesson(text)
+func lesson(text: String, basic := false) -> void:
+	_td.post_lesson(text, basic)
 
 
 ## The HUD is on screen (the opening is staged: see core/story/story.gd). True outside a new game's first beats.

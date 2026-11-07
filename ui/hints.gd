@@ -9,17 +9,23 @@ static func seen(id: StringName) -> bool:
 	return l is Dictionary and (l as Dictionary).has(String(id))
 
 
-static func once(id: StringName, text: String) -> void:
-	if seen(id):
-		return
+## The lesson is learned without being shown (the player did the thing already).
+static func mark(id: StringName) -> void:
 	var l: Variant = Travel.story.get("lessons", {})
 	var d: Dictionary = l if l is Dictionary else {}
 	d[String(id)] = true
 	Travel.story["lessons"] = d
+
+
+## `basic`: a control lesson (move, jump): the HUD retires it when a fight starts.
+static func once(id: StringName, text: String, basic := false) -> void:
+	if seen(id):
+		return
+	mark(id)
 	var tree := Engine.get_main_loop() as SceneTree
 	var hud := tree.get_first_node_in_group(&"hud") if tree else null
 	if hud and hud.has_method("lesson"):
-		hud.call("lesson", text)
+		hud.call("lesson", text, basic)
 	else:
 		Events.toast.emit(text)
 

@@ -157,7 +157,7 @@ func _draw() -> void:
 				_diamond(Vector2(x, y), 4.5, col, false)
 			_:
 				draw_circle(Vector2(x, y), 2.6, col)
-	_draw_distances(labels, band_y + 30.0)
+	_draw_distances(labels, band_y + 33.0)
 
 
 ## r35: beacons a few degrees apart printed their distances over each other ("179283 M"). The nearest
@@ -168,7 +168,7 @@ func _draw_distances(labels: Array, y: float) -> void:
 	for l: Array in labels:
 		var x: float = l[1]
 		var text: String = l[2]
-		var dw := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, 12).x
+		var dw := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15).x
 		var span := Vector2(x - dw * 0.5 - LABEL_GAP, x + dw * 0.5 + LABEL_GAP)
 		var free := true
 		for t: Vector2 in taken:
@@ -178,7 +178,9 @@ func _draw_distances(labels: Array, y: float) -> void:
 		if not free:
 			continue
 		taken.append(span)
-		draw_string(_font, Vector2(x - dw * 0.5, y), text, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(INK.r, INK.g, INK.b, float(l[3]) * 0.8))
+		var pos := Vector2(x - dw * 0.5, y)
+		draw_string_outline(_font, pos, text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, 4, Color(0.0, 0.0, 0.0, float(l[3]) * 0.8))
+		draw_string(_font, pos, text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(INK.r, INK.g, INK.b, float(l[3]) * 0.95))
 
 
 ## Screen x for a world bearing; off-band bearings return -1 (or are pinned to the edge for markers).

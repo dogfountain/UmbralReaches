@@ -28,6 +28,8 @@ var mode := ""                     ## "offer" / "turnin" / "" (closed)
 var quest := ""
 var choice := -1
 var _panel: PanelContainer
+var _scroll: ScrollContainer
+var _body: VBoxContainer
 var _title: Label
 var _giver: Label
 var _text: RichTextLabel
@@ -79,8 +81,9 @@ func _build() -> void:
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	_panel.offset_left = -500
 	_panel.offset_right = 500
-	_panel.offset_top = -420
-	_panel.offset_bottom = 420
+	_panel.offset_top = 0.0                    # the sheet is as tall as its words (see _fit): no page of empty vellum
+	_panel.offset_bottom = 0.0
+	_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_panel.theme = Med.theme()
 	var sb := Med.panel("parchment", 44)
 	sb.content_margin_top = 36
@@ -97,10 +100,12 @@ func _build() -> void:
 	col.add_child(_giver)
 	col.add_child(_rule())
 	var scroll := ScrollContainer.new()
+	_scroll = scroll
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	col.add_child(scroll)
 	var body := VBoxContainer.new()
+	_body = body
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 10)
 	scroll.add_child(body)
@@ -313,11 +318,25 @@ func pick(i: int) -> void:
 func _show() -> void:
 	UiSound.play(self, "tab")
 	_panel.visible = true
+	_fit.call_deferred()
 	_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_paused_it = not get_tree().paused
 	get_tree().paused = true
 	Events.interact_hint.emit("")
+
+
+## The scroll takes the height its words need (at least a short sheet, at most what leaves the skill bar clear).
+func _fit() -> void:
+	_scroll.custom_minimum_size.y = 0.0
+	await get_tree().process_frame               # the words wrap at the sheet's width once it is laid out
+	await get_tree().process_frame
+	if not _panel.visible:
+		return
+	var room := maxf(220.0, get_viewport().get_visible_rect().size.y - 330.0)
+	_scroll.custom_minimum_size.y = clampf(_body.get_combined_minimum_size().y + 6.0, 200.0, room)
+	_panel.offset_top = 0.0
+	_panel.offset_bottom = 0.0
 
 
 func close() -> void:

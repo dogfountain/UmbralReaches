@@ -10,8 +10,8 @@ extends Control
 const SLOT := 78.0
 const GAP := 14.0
 const NAME_FADE := 14.0       ## names under the slots fade out after this many seconds
-const NAME_PT := 17           ## r29: was 14 on one line (about 7 px tall at 1280x720: unreadable)
-const KEY_PT := 17
+const NAME_PT := 20           ## r29: was 14 on one line (about 7 px tall at 1280x720: unreadable)
+const KEY_PT := 18
 const Med := preload("res://ui/medieval_style.gd")
 const FRAME := Color(Med.BRONZE, 0.9)
 const BG := Color(0.02, 0.012, 0.006, 0.78)
@@ -45,8 +45,8 @@ func _process(delta: float) -> void:
 		_was_ready.resize(_book.slots.size())
 		_ready_pulse.resize(_book.slots.size())
 		_was_ready.fill(1)
-		offset_top = -(SLOT + 46.0 + 30.0)
-		offset_bottom = -30.0             # the two-line names run a few px under the box (not clipped)
+		offset_top = -(SLOT + 52.0 + 36.0)
+		offset_bottom = -36.0             # the two-line names run a few px under the box (not clipped)
 	var sig := ""
 	var vis: Array[int] = []
 	for i in _book.slots.size():
@@ -203,9 +203,13 @@ func _draw() -> void:
 			var nc := Color(QUIET, QUIET.a * name_a)
 			var words := s.title.split(" ", false)
 			for w in words.size():
-				var at := o + Vector2(-GAP * 0.5 + 1.0, SLOT + 25.0 + float(w) * (NAME_PT + 1.0))
-				draw_string_outline(_font, at, words[w], HORIZONTAL_ALIGNMENT_CENTER, SLOT + GAP - 2.0, NAME_PT, 5, Color(0.0, 0.0, 0.02, 0.85 * name_a))
-				draw_string(_font, at, words[w], HORIZONTAL_ALIGNMENT_CENTER, SLOT + GAP - 2.0, NAME_PT, nc)
+				var at := o + Vector2(-GAP * 0.5 + 1.0, SLOT + 26.0 + float(w) * (NAME_PT + 2.0))
+				var pt := NAME_PT
+				var ww := _font.get_string_size(words[w], HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
+				if ww > SLOT + GAP - 4.0:
+					pt = maxi(13, floori(pt * (SLOT + GAP - 4.0) / ww))      # a long word (Lantern) shrinks to fit, never clips
+				draw_string_outline(_font, at, words[w], HORIZONTAL_ALIGNMENT_CENTER, SLOT + GAP - 2.0, pt, 4, Color(0.0, 0.0, 0.02, 0.9 * name_a))
+				draw_string(_font, at, words[w], HORIZONTAL_ALIGNMENT_CENTER, SLOT + GAP - 2.0, pt, nc)
 
 
 ## The staff core in the orb, as a small faceted gem on the bolt slot (none for the Hollow Core).
