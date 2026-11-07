@@ -452,6 +452,9 @@ static func ribbon(pts: PackedVector3Array, width0: float, width1: float, color:
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	mat.albedo_color = Color(1, 1, 1, 1)
+	mat.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA      # a ribbon passing the lens is a fat white bar
+	mat.distance_fade_min_distance = 0.5
+	mat.distance_fade_max_distance = 3.0
 	for plane in 2:
 		im.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP, mat)
 		for i in pts.size():
