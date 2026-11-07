@@ -179,7 +179,9 @@ void fragment() {
 			}
 			a_i[i] = a;
 			n_i[i] = n;
-			s_i[i] = a.a * 0.6 + w[i] * 1.4;
+			// flagstones: the mortar joints sit low in the height map, so a pale neighbour (salt, gravel, scree) won
+			// them in the fade of a square's rim and traced every joint white; the joints take the slab's height
+			s_i[i] = (i == 6 ? max(a.a, 0.55) : a.a) * 0.6 + w[i] * 1.4;
 			smax = max(smax, s_i[i]);
 		}
 	}
@@ -202,6 +204,17 @@ void fragment() {
 		col /= tot; tilt /= tot; rough /= tot; ao /= tot;
 	} else {
 		col = vec3(0.15); rough = 0.9; ao = 1.0;
+	}
+
+	// mortar: wherever the flagstone layer is present at all, its dark joints stay dark. The blend above lets a pale
+	// neighbour (salt crust, gravel) fill the joint pixels as the paving thins out, which drew every joint as a bright line
+	if (s_i[6] > -9.0) {
+		float joint = 1.0 - smoothstep(0.1, 0.2, dot(a_i[6].rgb, vec3(0.299, 0.587, 0.114)));
+		float jk = joint * smoothstep(0.12, 0.55, w[6]);
+		col = mix(col, a_i[6].rgb, jk);
+		tilt = mix(tilt, n_i[6].rg * 2.0 - 1.0, jk);
+		rough = mix(rough, n_i[6].b, jk);
+		ao = mix(ao, n_i[6].a, jk);
 	}
 
 	// worn path: overlay with an irregular, height-aware edge

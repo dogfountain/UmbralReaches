@@ -23,7 +23,7 @@ const WIN := Vector2i(1280, 800)
 const CELL := Vector2i(480, 300)
 const COLS := 4
 const SECTIONS := ["horse", "wanderer", "spells", "enemies_a", "enemies_b", "enemies_c", "enemies_d", "bosses_a", "bosses_b", "bosses_c",
-	"villagers", "regions_a", "regions_b", "places", "ui", "warmth"]
+	"villagers", "regions_a", "regions_b", "places", "ui", "warmth", "spots"]
 const ENEMY_SETS := {
 	"enemies_a": ["wretch", "husk", "crawler", "leaper"],
 	"enemies_b": ["spitter", "ossuant", "shade", "gaunt"],
@@ -86,6 +86,7 @@ var only: Array = []
 var time_limit := 170.0
 var nolit := false
 var still_filter: Array = []       ## --filter=a,b: only the _view_still shots whose file name has one of these
+var spots: Array = []              ## --spot=name:camx,camz,camup,tx,tz,tup (section "spots"): a still from here at there
 var headless := false
 var main: Node
 var p: Player
@@ -153,6 +154,8 @@ func _ready() -> void:
 			time_limit = float(a.trim_prefix("--timeout="))
 		elif a.begins_with("--filter="):
 			still_filter = Array(a.trim_prefix("--filter=").split(",", false))
+		elif a.begins_with("--spot="):
+			spots.append(a.trim_prefix("--spot="))
 		elif a == "--nolit":
 			nolit = true
 		elif a == "--lightlog":
@@ -274,6 +277,13 @@ func _run() -> void:
 				await _s_ui()
 			"warmth":
 				await _s_warmth()
+			"spots":
+				for sp: String in spots:
+					var nm := sp.get_slice(":", 0)
+					var v := sp.get_slice(":", 1).split_floats(",")
+					_clear_enemies()
+					_ui_hide()
+					await _view_still(nm + ".png", nm, _gp(v[0], v[1], v[2]), _gp(v[3], v[4], v[5]))
 			_:
 				if ENEMY_SETS.has(sec):
 					for kind: String in ENEMY_SETS[sec]:

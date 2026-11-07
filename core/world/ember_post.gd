@@ -13,8 +13,6 @@ const OFFSET := Vector3(-2.3, 0.0, 0.4)  ## brazier-local: to its side, off the 
 ## OFFSET stood on brazier_w and cut the green_w edge (zz/village_test). Its post goes to the north-west
 ## diagonal, 2.4 m clear of the respawn spot and every walking node and edge.
 const SEAT_OFFSETS := {"Sanctuary": Vector3(-2.3, 0.0, 2.6)}
-const IRON := Color(0.26, 0.27, 0.3)               ## lifted, and barely metal: at 0.09 and 0.6 it read pure black against the grade
-const STONE := Color(0.32, 0.3, 0.28)
 
 var brazier: Brazier
 var _coal_mat: StandardMaterial3D
@@ -89,24 +87,19 @@ func _apply(on: bool) -> void:
 
 
 func _build() -> void:
-	var iron := StandardMaterial3D.new()
-	iron.albedo_color = IRON
-	iron.metallic = 0.25
-	iron.roughness = 0.62
-	iron.rim_enabled = true                  # a thin cool edge on the silhouette so the post stands off the dark
-	iron.rim = 0.35
-	iron.rim_tint = 0.5
-	var stone := StandardMaterial3D.new()
-	stone.albedo_color = STONE
-	stone.roughness = 0.95
+	# the game's own timber and ironwork (the tavern's beam and iron grain, as the other props use), not flat grey colours:
+	# the post and arm are stained wood, the collars, brace and cage are iron, the footing is hewn stone
+	var wood := OssKit.mat("wood")
+	var iron := OssKit.mat("iron")
+	var stone := OssKit.mat("ruin")
 	# footing
 	_mesh(_box(Vector3(0.6, 0.3, 0.6)), stone, Vector3(0, 0.1, 0))
 	_mesh(_box(Vector3(0.42, 0.14, 0.42)), stone, Vector3(0, 0.3, 0))
 	# the post, its collar, the arm and the hook
-	_mesh(_cyl(0.055, 0.07, 2.3, 8), iron, Vector3(0, 1.45, 0))
+	_mesh(_cyl(0.055, 0.07, 2.3, 8), wood, Vector3(0, 1.45, 0))
 	_mesh(_cyl(0.09, 0.09, 0.08, 8), iron, Vector3(0, 0.45, 0))
 	_mesh(_cyl(0.08, 0.08, 0.06, 8), iron, Vector3(0, 2.2, 0))
-	var arm := _mesh(_box(Vector3(0.72, 0.05, 0.05)), iron, Vector3(0.32, 2.5, 0))
+	var arm := _mesh(_box(Vector3(0.72, 0.05, 0.05)), wood, Vector3(0.32, 2.5, 0))
 	arm.rotation.z = 0.0
 	var brace := _mesh(_box(Vector3(0.5, 0.04, 0.04)), iron, Vector3(0.2, 2.33, 0))
 	brace.rotation.z = 0.62
