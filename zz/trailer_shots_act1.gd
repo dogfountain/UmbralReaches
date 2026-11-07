@@ -93,9 +93,7 @@ func _e_keg_song() -> void:
 
 func _s_spellbar() -> void:
 	d._s_fight_otc()
-	var hud := d.main.find_child("HUD", true, false) as CanvasLayer
-	if hud:
-		d.keep_layers.append(hud)
+	d.keep_hud = true
 
 
 func _u_spellbar(tt: float) -> void:
@@ -119,10 +117,18 @@ func _home_fire() -> void:
 	d.put_player(GREEN, 0.0)
 
 
+## The world is paused behind a menu, so the lens is the free one, on the wanderer at the fire.
+func _ui_cam() -> void:
+	var me: Vector3 = d.p.global_position
+	d.frame_cam(me + Vector3(1.6, 1.7, 3.4), me + Vector3.UP * 1.2)
+	d.light_at(me, 4.0)
+
+
 func _open_screen(top: String, page: String, from_fire: bool) -> void:
 	var cs := _screen()
 	if cs == null:
 		return
+	d.keep_menus = true
 	d.keep_layers.append(cs)
 	cs.call("open_at", top, page, from_fire)
 
@@ -136,11 +142,12 @@ func _close_screen() -> void:
 
 func _s_hearth_tithe() -> void:
 	_home_fire()
-	d.use_player_cam()
+	d.use_free_cam()
 	_open_screen("kindling", "hearth", true)
 
 
 func _u_hearth_tithe(tt: float) -> void:
+	_ui_cam()
 	if tt > 0.7 and d.once("tithe_buy"):
 		var hr: Node = d.get_tree().get_first_node_in_group(&"hearth")
 		if hr:
@@ -155,11 +162,12 @@ func _e_hearth_tithe() -> void:
 
 func _s_kindling() -> void:
 	_home_fire()
-	d.use_player_cam()
+	d.use_free_cam()
 	_open_screen("kindling", "spells", true)
 
 
 func _u_kindling(tt: float) -> void:
+	_ui_cam()
 	if tt > 1.0 and d.once("kin_oaths"):
 		var cs := _screen()
 		if cs:
@@ -172,12 +180,12 @@ func _e_kindling() -> void:
 
 func _s_gear() -> void:
 	_home_fire()
-	d.use_player_cam()
+	d.use_free_cam()
 	_open_screen("wanderer", "gear", false)
 
 
 func _u_gear(_tt: float) -> void:
-	pass
+	_ui_cam()
 
 
 func _e_gear() -> void:
@@ -189,7 +197,7 @@ func _e_gear() -> void:
 func _s_staff_heavy() -> void:
 	d.clear_spawned()
 	d.put_player(d.ARENA, d.WEST)
-	_husk = d.spawn(d.HUSK_P, d.ARENA + d.fwd_of(d.WEST) * 2.6)
+	_husk = d.spawn(d.BULWARK_P, d.ARENA + d.fwd_of(d.WEST) * 2.6)
 	if _husk:
 		_husk.set("max_hp", 9999)
 		_husk.set("hp", 9999.0)

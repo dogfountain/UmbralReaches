@@ -61,6 +61,8 @@ var _cur: Object
 var _lead := 0
 var hollow_ok := false                        ## a shot that shows the Gloom lets it run (cleared at each cut)
 var lead_black: ColorRect
+var keep_menus := false                        ## menu layers (58..64) are left alone this shot
+var keep_hud := false                          ## HUD layers (up to 12) are left alone this shot
 var keep_layers: Array[CanvasLayer] = []   ## UI the shot wants on screen (the rest is hidden every frame)
 # title layer
 var layer: CanvasLayer
@@ -290,6 +292,8 @@ func _next_shot() -> void:
 	_release_inputs()
 	_clear_card()
 	keep_layers.clear()
+	keep_menus = false
+	keep_hud = false
 	var sf := _fn("s", id)
 	if sf.is_valid():
 		sf.call()
@@ -305,9 +309,26 @@ func _fn(k: String, id: String) -> Callable:
 	return Callable()
 
 
+func _kept(c: Node) -> bool:
+	var ly := (c as CanvasLayer).layer
+	if keep_menus and ly >= 58 and ly <= 64:
+		return true                                       # the character screen and the pages it hosts open themselves
+	if keep_hud and ly <= 12:
+		return true                                       # the HUD and its readouts (they show and hide themselves)
+	for k in keep_layers:
+		if k == c or k.is_ancestor_of(c):
+			return true
+	return false
+
+
 func _hide_overlays() -> void:
 	for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
-		if c != layer and String(c.name) != "Grade" and not (c in keep_layers):
+		if c == layer or String(c.name) == "Grade":
+			continue
+		if _kept(c):
+			if (keep_menus and String(c.name) in ["CharacterScreen", "Backdrop", "GearPanel", "Kindling", "Codex", "WorldMap"]) or keep_hud:
+				(c as CanvasLayer).visible = true      # an earlier cut hid it; it shows and hides its own contents
+		else:
 			(c as CanvasLayer).visible = false
 	for l in get_tree().root.find_children("*", "Label3D", true, false):
 		(l as Label3D).visible = false                  # floating combo words and damage numbers

@@ -154,9 +154,11 @@ func _s_gloom_shade() -> void:
 func _u_gloom_shade(tt: float) -> void:
 	d.p.gloom = maxf(d.p.gloom, d.p.gloom_max * 0.96)
 	var f: Vector3 = d.fwd_of(-d.WEST)
+	if tt > 0.3 and is_instance_valid(d.p._shade) and d.once("shade_close"):
+		d.p._shade.global_position = d.p.global_position - f * 8.0 + Vector3.UP * 3.4     # it has been gaining on the runner
 	# the lens runs ahead of the wanderer, low, looking back down the road at the Shade
 	var k: float = d.sm(clampf(tt / 2.4, 0.0, 1.0))
-	d.frame_cam(d.pp() + f * lerpf(5.0, 3.6, k) + Vector3.UP * 1.1 + f.cross(Vector3.UP) * 0.8, d.pp() - f * 3.5 + Vector3.UP * 1.6)
+	d.frame_cam(d.pp() + f * lerpf(3.6, 2.8, k) + Vector3.UP * 0.9 + f.cross(Vector3.UP) * 0.7, d.pp() - f * 5.0 + Vector3.UP * 2.4)
 	d.light_at(d.pp(), 3.0)
 
 
@@ -174,42 +176,42 @@ func _e_gloom_shade() -> void:
 func _s_loot() -> void:
 	d.clear_spawned()
 	d.put_player(d.ARENA, d.WEST)
-	_husk = d.spawn(d.HUSK_P, d.ARENA + d.fwd_of(d.WEST) * 6.0)
+	_husk = d.spawn(d.HUSK_P, d.ARENA + d.fwd_of(d.WEST) * 5.0)
 	d.use_free_cam()
 	d.cam.fov = 50.0
 
 
 func _u_loot(tt: float) -> void:
 	var f: Vector3 = d.fwd_of(d.WEST)
-	var spot: Vector3 = d.ARENA + f * 4.0
 	var side := f.cross(Vector3.UP)
-	d.frame_cam(d.on_ground(spot + side * 4.2 - f * 1.5, 1.0), d.on_ground(spot, 0.9))
+	var bag := d.get_tree().get_first_node_in_group("loot_bag") as Node3D
+	var spot: Vector3 = bag.global_position if bag else d.ARENA + f * 4.0
+	var focus: Vector3 = d.pp().lerp(spot, 0.6) if bag else spot
+	d.frame_cam(d.on_ground(focus + side * 3.8 - f * 1.0, 1.1), focus + Vector3.UP * 0.8)
 	d.light_at(spot, 3.0)
 	if is_instance_valid(_husk) and tt < 0.9:
 		d.aim_at(_husk.global_position)
-		if tt > 0.2 and d.once("loot_bolt"):
+		if tt > 0.15 and d.once("loot_bolt"):
 			d.press(d.slot_action(0))
-	if tt > 0.8 and d.once("loot_fall"):
+	if tt > 0.7 and d.once("loot_fall"):
 		d.release(d.slot_action(0))
 		var at: Vector3 = d.on_ground(spot, 0.0)
 		if is_instance_valid(_husk):
 			at = _husk.global_position
 			_husk.call("take_hit", 9999.0, d.p)
-		var gear := d.get_tree().get_first_node_in_group("gear")
+		var gear: Node = d.get_tree().get_first_node_in_group("gear")
 		if gear:
-			var rng := RandomNumberGenerator.new()
+			var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 			rng.seed = 41
 			var piece: Dictionary = GearDB.make(rng, {"rarity": 3, "uid": 99001})
 			gear.call("drop_bag", [{"kind": "gear", "piece": piece}, {"kind": "item", "id": "grave_ash", "n": 7}], at, "the remains")
 		d.drive(Vector3.ZERO)
-	if tt > 1.0:
-		var bag := d.get_tree().get_first_node_in_group("loot_bag") as Node3D
-		if bag:
-			d.aim_at(bag.global_position)
-			if bag.global_position.distance_to(d.p.global_position) > 1.4:
-				d.drive((bag.global_position - d.p.global_position).normalized() * 0.55)
-			else:
-				d.drive(Vector3.ZERO)
+	if tt > 1.0 and bag:
+		d.aim_at(bag.global_position)
+		if bag.global_position.distance_to(d.p.global_position) > 1.6:
+			d.drive((bag.global_position - d.p.global_position).normalized() * 0.55)
+		else:
+			d.drive(Vector3.ZERO)
 
 
 func _e_loot() -> void:
