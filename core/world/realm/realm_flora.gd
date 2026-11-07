@@ -210,6 +210,7 @@ static func build(root: Node) -> void:
 ## The scatter proper: the ground, keep-outs, biomes, then trees, undergrowth and stones into
 ## _final_items / _final_stones (the cache stores exactly those).
 static func _scatter(root: Node, space: PhysicsDirectSpaceState3D) -> void:
+	_last_buf = null
 	_sample(space)
 	_lap("sample")
 	_keepout(root)
@@ -654,16 +655,26 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 	rng2.seed = 20261134
 	_place_rows(space, rng2, items, grid, cover)
 	var clk: Array = []
-	for c: Vector2 in cands:
-		clk.append(_lk[_bidx(c.x, c.y)])
+	var cw: Array = []                  # per candidate: biome weights, which stream, the stand noise
+	var csel := PackedInt32Array()
+	var cn0 := PackedFloat32Array()
+	for ci in cands.size():
+		var c: Vector2 = cands[ci]
+		var lk0: Array = _lk[_bidx(c.x, c.y)]
+		clk.append(lk0)
+		cw.append(biome_w(c.x, c.y))
+		cn0.append(_noise[0].get_noise_2d(c.x, c.y))
+		var newg := ci >= n_old or (RealmLayout.BOUNDS.has_point(c) and not RealmLayout.OLD_BOUNDS.has_point(c))
+		csel.append((0 if lk0.is_empty() else 1) + (2 if newg else 0))
+	var streams: Array = [rng_main, rng2, rng_new, rng_new_look]
 	for sp: String in order:
 		var spacing: float = TREE_SPACING[sp]
 		var ids := TreeGen.ids(sp)
 		for ci in cands.size():
 			var c: Vector2 = cands[ci]
 			var lk: Array = clk[ci]
-			var rng := (rng_new if lk.is_empty() else rng_new_look) if ci >= n_old or (RealmLayout.BOUNDS.has_point(c) and not RealmLayout.OLD_BOUNDS.has_point(c)) else (rng_main if lk.is_empty() else rng2)
-			var w := biome_w(c.x, c.y)
+			var rng: RandomNumberGenerator = streams[csel[ci]]
+			var w: Dictionary = cw[ci]
 			var p := _rate(TREE_P[sp], w)
 			for e: Array in lk:
 				var L: Dictionary = e[0]
@@ -671,7 +682,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 				p = p * lerpf(1.0, float((L.get("tree_mul", {}) as Dictionary).get(sp, 1.0)), lw) + float((L.get("tree_add", {}) as Dictionary).get(sp, 0.0)) * lw
 			if p <= 0.0:
 				continue
-			p *= _tree_mod(sp, c, w)
+			p *= _tree_mod(sp, c, w, cn0[ci])
 			if rng.randf() >= p:
 				continue
 			var at := c + Vector2(rng.randf_range(-1.0, 1.0), rng.randf_range(-1.0, 1.0))
@@ -1053,8 +1064,8 @@ static func _site_hits(st: Dictionary, r: Rect2, pad: float) -> bool:
 	return (st.rect as Rect2).grow(pad).intersects(r)
 
 
-static func _tree_mod(sp: String, c: Vector2, w: Dictionary) -> float:
-	var n0 := _noise[0].get_noise_2d(c.x, c.y)            # stands and clearings
+static func _tree_mod(sp: String, c: Vector2, w: Dictionary, n0: float) -> float:
+	# n0: the stands-and-clearings noise at c
 	var m := clampf(1.0 + n0 * 1.3, 0.05, 1.8)
 	if float(w.get("oldforest", 0.0)) > 0.5 and n0 < -0.45:
 		m *= 0.1                                           # Thornwood clearings
@@ -1226,6 +1237,16 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 	var fen := _fw[bc]
 	var tint := _tc[bc]
 	var rates: PackedFloat32Array = _rc[bc]
+	var ok := _ok
+	var pd := _pd
+	var sd := _sd
+	var softf := _soft
+	var gnv := _gn
+	var gyv := _gy
+	var x0 := _x0
+	var z0 := _z0
+	var nx := _nx
+	var nz := _nz
 	_nm.fill(NAN)
 	var near_spawn := Vector2(x, z).distance_to(Vector2(RealmLayout.SPAWN.x, RealmLayout.SPAWN.z)) < 18.0
 	for s: int in _ck[bc]:
@@ -1262,16 +1283,26 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 		for c in n:
 			var px := x + rng.randf() * UCELL
 			var pz := z + rng.randf() * UCELL
-			var kk := _idx(px, pz)
-			if _ok[kk] == 0 or (not soft_kind and (_pd[kk] < keep_p or _sd[kk] < keep_s)):
+			var kk := clampi(int((pz - z0) / CELL), 0, nz - 1) * nx + clampi(int((px - x0) / CELL), 0, nx - 1)
+			var pdk := pd[kk]
+			var sdk := sd[kk]
+			if ok[kk] == 0 or (not soft_kind and (pdk < keep_p or sdk < keep_s)):
 				continue
-			if soft_kind and (_sd[kk] < keep_s + 3.2 or _pd[kk] < keep_p + 2.0):      # near a keep-out: a ragged edge, not a ruled one
-				var f := Zones.edge_f(_sd[kk], _soft[kk], _pd[kk], keep_s, keep_p, _noise[2].get_noise_2d(px * 0.35, pz * 0.35))
-				if f <= 0.0 or (f < 1.0 and Zones.h01(px, pz) > f) or (_pd[kk] < 1.0 and RealmLayout.path_dist(Vector2(px, pz)) < 0.4):
+			if soft_kind and (sdk < keep_s + 3.2 or pdk < keep_p + 2.0):      # near a keep-out: a ragged edge, not a ruled one
+				var f := Zones.edge_f(sdk, softf[kk], pdk, keep_s, keep_p, _noise[2].get_noise_2d(px * 0.35, pz * 0.35))
+				if f <= 0.0 or (f < 1.0 and Zones.h01(px, pz) > f) or (pdk < 1.0 and RealmLayout.path_dist(Vector2(px, pz)) < 0.4):
 					continue
-			elif _pd[kk] < keep_p + 1.5 and RealmLayout.path_dist(Vector2(px, pz)) < keep_p:
+			elif pdk < keep_p + 1.5 and RealmLayout.path_dist(Vector2(px, pz)) < keep_p:
 				continue                                   # the grid is 1 m: exact near the edge
-			var gy := ground_y(px, pz)
+			# ground_y(px, pz), inline
+			var fx := clampf((px - x0) / CELL, 0.0, nx - 1.001)
+			var fz := clampf((pz - z0) / CELL, 0.0, nz - 1.001)
+			var gi := int(fx)
+			var gj := int(fz)
+			var gtx := fx - gi
+			var gtz := fz - gj
+			var gbase := gj * nx + gi
+			var gy := lerpf(lerpf(gyv[gbase], gyv[gbase + 1], gtx), lerpf(gyv[gbase + nx], gyv[gbase + nx + 1], gtx), gtz)
 			if code == 17:
 				if gy > WATER_Y - 0.15 or not Land.in_water(px, pz):
 					continue
@@ -1280,13 +1311,13 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 				continue
 			if wet and gy < WATER_Y - 0.4:
 				continue
-			if _gn[kk] < 0.6 and code != 6 and code != 17:
+			if gnv[kk] < 0.6 and code != 6 and code != 17:
 				continue
-			var nrm := Vector3(_gnx[kk], _gn[kk], _gnz[kk]).normalized() if code != 17 else Vector3.UP
+			var nrm := Vector3(_gnx[kk], gnv[kk], _gnz[kk]).normalized() if code != 17 else Vector3.UP
 			var id: String = _variant(list, px, pz, CHUNK, 1, rng, lh)
 			var xf := _plant_xf(rng, code, Vector3(px, gy, pz), nrm)
-			var near_way := _pd[kk] < 4.0
-			if (_sd[kk] < 8.0 or near_way) and _clash(null, id, xf, false, AABB(), 0.6 if near_way else 0.4):
+			var near_way := pdk < 4.0
+			if (sdk < 8.0 or near_way) and _clash(null, id, xf, false, AABB(), 0.6 if near_way else 0.4):
 				continue
 			var lane := false
 			if near_way:
@@ -1379,10 +1410,21 @@ static func _plant_xf(rng: RandomNumberGenerator, code: int, p: Vector3, nrm: Ve
 
 ## Each chunk draws only `per` variants of a species (every variant is a draw call per chunk);
 ## neighbouring chunks pick different ones, so the variety is still there across the wood.
+static var _vcx := -999999
+static var _vcz := -999999
+static var _vh := 0
+
+
 static func _variant(list: Array, x: float, z: float, csize: float, per: int, rng: RandomNumberGenerator, lh := 0) -> String:
 	if list.size() <= per:
 		return list[rng.randi() % list.size()]
-	var h := absi(hash(Vector2i(floori(x / csize), floori(z / csize))) + (lh if lh != 0 else hash(list[0])))
+	var cx := floori(x / csize)
+	var cz := floori(z / csize)
+	if cx != _vcx or cz != _vcz:
+		_vcx = cx
+		_vcz = cz
+		_vh = hash(Vector2i(cx, cz))
+	var h := absi(_vh + (lh if lh != 0 else hash(list[0])))
 	return list[(h + rng.randi() % per) % list.size()]
 
 
@@ -1398,6 +1440,10 @@ class Buf:
 	var pos := Vector3.ZERO             ## the chunk node's position
 
 
+static var _last_buf: Buf              ## the batch the last plant went into
+static var _last_store := {}
+static var _last_name := ""
+static var _last_key := Vector3i.ZERO
 static var _canopy := {}               ## tall-tree chunk key -> [[base, height, crown radius, conifer]] for its far shell
 static var _kinds := {}                ## kind id -> [chunk size, tag]
 
@@ -1405,16 +1451,24 @@ static var _kinds := {}                ## kind id -> [chunk size, tag]
 ## Append one plant to `store[name][chunk key]`; the chunk is `csize` m, `tag` 1 for the tall trees.
 static func _push(store: Dictionary, name: String, csize: float, tag: int, xf: Transform3D, col: Color) -> Vector3i:
 	var key := Vector3i(floori(xf.origin.x / csize), floori(xf.origin.z / csize), tag)
-	var per: Dictionary = store.get(name, {})
-	if per.is_empty():
-		store[name] = per
-	var b: Buf = per.get(key)
-	if b == null:
-		b = Buf.new()
-		var cx := (key.x + 0.5) * csize
-		var cz := (key.y + 0.5) * csize
-		b.pos = Vector3(cx, ground_y(cx, cz), cz)
-		per[key] = b
+	var b: Buf
+	if _last_buf != null and is_same(_last_store, store) and _last_name == name and _last_key == key:
+		b = _last_buf
+	else:
+		var per: Dictionary = store.get(name, {})
+		if per.is_empty():
+			store[name] = per
+		b = per.get(key)
+		if b == null:
+			b = Buf.new()
+			var cx := (key.x + 0.5) * csize
+			var cz := (key.y + 0.5) * csize
+			b.pos = Vector3(cx, ground_y(cx, cz), cz)
+			per[key] = b
+		_last_buf = b
+		_last_store = store
+		_last_name = name
+		_last_key = key
 	var org := xf.origin - b.pos
 	var bs := xf.basis
 	var o := b.f.size()
