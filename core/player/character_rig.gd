@@ -350,7 +350,7 @@ func _capture_bones() -> void:
 		_bone_prev[i] = _bone_cur[i]
 		_bone_cur[i] = inv * _drivers[i].global_transform
 	_cap_frame = Engine.get_physics_frames()
-	if not Engine.is_in_physics_frame() or not is_physics_interpolated_and_enabled():
+	if not Engine.is_in_physics_frame() or not (render_placed or is_physics_interpolated_and_enabled()):
 		_apply_bones(1.0)
 
 
@@ -1516,7 +1516,7 @@ func cancel_move() -> void:
 func _process(delta: float) -> void:
 	if _skel != null:
 		# a tick without animate() (a held pose): show the last capture, don't blend
-		var live := is_physics_interpolated_and_enabled() and Engine.get_physics_frames() - _cap_frame < 2
+		var live := (render_placed or is_physics_interpolated_and_enabled()) and Engine.get_physics_frames() - _cap_frame < 2
 		var f := Engine.get_physics_interpolation_fraction() if live else 1.0
 		_apply_bones(f)
 		_push_cloth(f)
@@ -1550,6 +1550,7 @@ var ride := 0.0                     ## r36: astride a horse (core/world/mount): 
 ## r36: the horse's barrel under the saddle in the coat's space (x half-width, y centre, z half-height);
 ## the coat drapes over it while `ride` is on (robe_skin.gdshader `saddle`)
 var saddle := Vector3.ZERO
+var render_placed := false          ## placed every rendered frame by its mount (horse.gd): blend the bones with the tick fraction though off the physics interpolation
 var ride_roll := 0.0                ## the rider's sway with the horse's bank and rock (rad, + leaning left)
 var ride_lean := 0.0                ## the horse leaps (horse.gd): the rider's lean with it, rad, + forward
 var ride_bob := 0.0                 ## the seat's vertical speed (m/s, horse.gd): the head and hood nod a beat behind it
