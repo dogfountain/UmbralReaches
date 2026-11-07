@@ -294,7 +294,10 @@ func _world() -> void:
 	m0 = int(Travel.system_state("progression").memory)
 	Travel.system_state("progression")["rested_xp"] = 0
 	Events.enemy_killed.emit(re)
-	await get_tree().process_frame
+	for _i in 10:                         # under a loaded machine the XP lands a frame or two after the bag
+		await get_tree().process_frame
+		if int(Travel.system_state("progression").memory) == m0 + LevelDB.XP.rare:
+			break
 	ok(get_tree().get_nodes_in_group("loot_bag").size() == 3, "a foe carrying meta rare_id leaves a rare's bag by itself")
 	ok(int(Travel.system_state("progression").memory) == m0 + LevelDB.XP.rare, "and gives rare XP")
 	var titled := false
