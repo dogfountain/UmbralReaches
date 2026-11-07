@@ -1552,6 +1552,7 @@ var ride := 0.0                     ## r36: astride a horse (core/world/mount): 
 var saddle := Vector3.ZERO
 var ride_roll := 0.0                ## the rider's sway with the horse's bank and rock (rad, + leaning left)
 var ride_lean := 0.0                ## the horse leaps (horse.gd): the rider's lean with it, rad, + forward
+var ride_bob := 0.0                 ## the seat's vertical speed (m/s, horse.gd): the head and hood nod a beat behind it
 var _saddle_sent := 0.0
 ## r36: climbing on (horse.gd): 0..1 through the mount (-1 when not), and the rig's offset from its
 ## seat meanwhile (rig space: +x right, +y up, +z back). The left foot finds the stirrup, the
@@ -2198,7 +2199,7 @@ func _pose_ride(k: float) -> void:
 	_torso.rotation.y = lerpf(_torso.rotation.y, 0.0, k)
 	_torso.rotation.z = lerpf(_torso.rotation.z, ride_roll, k)
 	_head.rotation.z = lerpf(_head.rotation.z, -ride_roll * 0.5, k)
-	_head.rotation.x = lerpf(_head.rotation.x, -0.05 - ride_lean * 0.5, k)
+	_head.rotation.x = lerpf(_head.rotation.x, -0.05 - ride_lean * 0.5 + clampf(ride_bob, -1.0, 1.0) * 0.09, k * 0.6)
 	# the staff is slung along the horse's flank, head back over the haunches, clear of the neck and head
 	# the staff is carried slung across the body: head up over the left shoulder, butt low and outside the right flank, clear of the horse's neck and head
 	_staff_frame = _staff_frame.slerp(Basis(Vector3.BACK, 0.95) * Basis(Vector3.RIGHT, -0.1), k)

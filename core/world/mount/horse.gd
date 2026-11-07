@@ -350,6 +350,7 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		vis.set("ride_lean", _rs.y)
 	if vis and "ride_roll" in vis:
 		vis.set("ride_roll", _rs.z)
+		vis.set("ride_bob", _rv.x)
 	if vis:
 		# facing where the horse faces, in WORLD space: the player node itself turns with the camera,
 		# so a local yaw sat the rider sideways
@@ -368,7 +369,11 @@ func _ride_follow(dt: float, _fwd: Vector3) -> void:
 	var k := clampf(speed / float(_d.gallop), 0.0, 1.0)
 	var acc := clampf(_accel.x / 6.0, -1.0, 1.0)
 	var t := Vector3.ZERO
-	t.x = _rig.last_dy * 0.6 + trot_w * 0.03 * (1.0 + sin(_phase + 0.3)) + (0.12 if _air else 0.0)
+	# the seat rides the back (most of it: the hips take the rest), rises out of the saddle once a trot
+	# stride (a posting trot, ~9 cm) and rocks fore-and-aft with the gallop's bound
+	var gal_w := smoothstep(float(_d.trot), float(_d.gallop), speed)
+	t.x = _rig.last_dy * 0.85 + trot_w * 0.045 * (1.0 + sin(_phase + 0.3)) \
+			+ gal_w * 0.035 * sin(_phase + 1.2) + (0.12 if _air else 0.0)
 	t.y = _lean + 0.1 * smoothstep(0.35, 0.65, k) + 0.28 * smoothstep(0.6, 1.0, k) + 0.1 * _rig.rock - _rig.body_pitch * (0.2 if _air else 0.7) - acc * 0.07
 	t.z = -_rig.body_roll * 0.9
 	_rv += ((t - _rs) * Vector3(150.0, 45.0, 60.0) - _rv * Vector3(18.0, 7.0, 8.0)) * d
