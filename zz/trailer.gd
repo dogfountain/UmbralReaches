@@ -14,6 +14,7 @@ extends Node
 
 const Order := preload("res://zz/trailer_order.gd")
 const Cam := preload("res://zz/trailer_cam.gd")
+const Qc := preload("res://zz/trailer_qc.gd")
 const Act1 := preload("res://zz/trailer_shots_act1.gd")
 const Act2 := preload("res://zz/trailer_shots_act2.gd")
 const Act3 := preload("res://zz/trailer_shots_act3.gd")
@@ -37,6 +38,7 @@ const TOP_PITCH := 65.0                        ## degrees down for the top-down 
 const TOUGH := 1.0                             ## enemies' health for the shoot: the game's own, so they fall to the bolts
 
 var main: Node
+var _qc := Qc.new(self)
 var p: Player
 var book: Node
 var life: Node
@@ -207,6 +209,7 @@ func _process(d: float) -> void:
 		print("CUTDBG %s t=%.2f frame=%d drawn=%d proc=%d cam=%s paused=%s pp=%s" % [id, t, frame, Engine.get_frames_drawn(), Engine.get_process_frames(), vc.name if vc else "-", get_tree().paused, pp().snapped(Vector3.ONE * 0.1)])
 	_fn("u", id).call(t)
 	_apply_cam(d)
+	_qc.step(id, t, d, _drive_to, _sprint)
 	if frame % 15 == 0 and not (id in Order.NO_SUBJECT):
 		_frame_check(id)
 	if t >= float(SHOTS[si][1]):
@@ -262,6 +265,7 @@ func _next_shot() -> void:
 	if si >= 0 and _cur != null:
 		var prev: String = SHOTS[si][0]
 		_motion_report(prev)
+		_qc.report(prev)
 		var ef := _fn("e", prev)
 		if ef.is_valid():
 			ef.call()
