@@ -61,7 +61,7 @@ func _ready() -> void:
 	add_child(cam)
 	cam.current = true
 	# views: [distance, yaw (0 = side-on from the left), grazing 0/walking 1, label]
-	views = [[3.2, 90.0, 1], [3.2, 40.0, 0], [6.0, 90.0, 0], [6.0, 40.0, 1], [12.0, 90.0, 1], [20.0, 30.0, 0]]
+	views = [[3.2, 90.0, 1], [3.2, 140.0, 0], [3.2, 180.0, 1], [6.0, 90.0, 0], [6.0, 140.0, 1], [6.0, 180.0, 0]]
 	_next_kind()
 
 
@@ -95,7 +95,7 @@ func _set_view() -> void:
 	var graze: bool = int(v[2]) == 0
 	var gait := 1.2
 	# custom: x moving, y head yaw, z gait, w head pitch
-	mmi.multimesh.set_instance_custom_data(0, Color(0.0 if graze else 1.0, 0.0, gait, (-1.65 if k != "elk" else -1.2) if (graze and k != "hare") else 0.0))
+	mmi.multimesh.set_instance_custom_data(0, Color(0.0 if graze else 1.0, 0.0, gait, (-1.65 if k == "deer" or k == "stag" else (-1.2 if k == "elk" else -0.7)) if (graze and k != "hare") else 0.0))
 	var eye := Vector3(sin(yaw) * d, 1.4 if d < 8.0 else 1.6, cos(yaw) * d) * 1.0
 	cam.global_position = eye
 	cam.look_at(Vector3(0, 0.7 * minf(sc, 1.2) + (0.2 if k == "elk" else 0.0), 0))

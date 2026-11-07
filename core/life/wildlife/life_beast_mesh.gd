@@ -211,33 +211,34 @@ static func fox(cm) -> void:
 	var white := Color(0.9, 0.87, 0.8)
 	var cream := Color(0.82, 0.66, 0.46)
 	var black := Color(0.05, 0.04, 0.035)
-	# one continuous trunk: deep chest, a lean waist, the haunch carried in the same skin (no separate thigh blob)
-	loft(cm, [key(0, 0.335, -0.2, 0.05, 0.075), key(0, 0.345, -0.13, 0.072, 0.1), key(0, 0.34, -0.02, 0.078, 0.1), key(0, 0.335, 0.08, 0.07, 0.092),
-		key(0, 0.34, 0.17, 0.082, 0.098), key(0, 0.335, 0.25, 0.07, 0.085), key(0, 0.325, 0.31, 0.035, 0.05), key(0, 0.32, 0.34, 0.008, 0.016)],
-		1.0, 18, 14, red, coat_fn(red, dark, cream, red, 2.0, 0.3, white), BODY)
+	# one trunk with the muscle swell of the shoulder and the haunch carried in its own skin
+	loft(cm, [key(0, 0.335, -0.2, 0.05, 0.075), key(0, 0.345, -0.14, 0.078, 0.1), key(0, 0.34, -0.03, 0.078, 0.098), key(0, 0.335, 0.07, 0.07, 0.09),
+		key(0, 0.34, 0.16, 0.086, 0.1), key(0, 0.335, 0.24, 0.074, 0.088), key(0, 0.325, 0.31, 0.035, 0.05), key(0, 0.32, 0.34, 0.008, 0.016)],
+		1.0, 20, 14, red, coat_fn(red, dark, cream, red, 2.0, 0.3, white), BODY)
+	var stock := func(t: float, _up: float, _sd: float) -> Color:
+		return red.lerp(black, smoothstep(0.42, 0.62, t))
 	for side: float in [1.0, -1.0]:
-		var x := 0.052 * side
+		var x := 0.05 * side
 		var fp := LEG_FR if side > 0.0 else LEG_FL
 		var bp := LEG_BR if side > 0.0 else LEG_BL
-		# legs: the top tucked inside the trunk, a full forearm / gaskin, black stockings that fade up from the paw
-		var fl := [key(x * 0.6, 0.31, -0.17, 0.034, 0.055), key(x * 0.95, 0.25, -0.172, 0.036, 0.05), key(x, 0.19, -0.178, 0.028, 0.036),
-			key(x, 0.12, -0.184, 0.022, 0.026), key(x, 0.06, -0.19, 0.02, 0.023), key(x, 0.022, -0.196, 0.021, 0.025)]
-		loft(cm, fl, 1.0, 14, 9, red, leg_fn(red, black, 0.34, side, 0.16, 0.0), fp, Vector3.BACK)
-		cm.blob(Vector3(x, 0.012, -0.214), Vector3(0.021, 0.013, 0.032), Basis.IDENTITY, black, 0.0, 0.0, fp, 4, 7)
-		var hl := [key(x * 0.5, 0.325, 0.17, 0.03, 0.055), key(x * 0.85, 0.27, 0.17, 0.036, 0.065), key(x, 0.2, 0.16, 0.03, 0.05),
-			key(x, 0.145, 0.195, 0.02, 0.028), key(x, 0.07, 0.19, 0.02, 0.024), key(x, 0.022, 0.19, 0.021, 0.025)]
-		loft(cm, hl, 1.0, 14, 9, red, leg_fn(red, black, 0.38, side, 0.16, 0.0), bp, Vector3.BACK)
-		cm.blob(Vector3(x, 0.012, 0.172), Vector3(0.021, 0.013, 0.032), Basis.IDENTITY, black, 0.0, 0.0, bp, 4, 7)
-		# ears: real triangles, rufous in front, dark backs and tips, a cream hollow; amber eyes; white cheeks
+		# slim legs that start inside the trunk and taper to a thin ankle, then a small paw with toes
+		var fl := [key(x * 0.55, 0.32, -0.16, 0.03, 0.045), key(x * 0.9, 0.25, -0.17, 0.026, 0.036), key(x, 0.17, -0.178, 0.02, 0.026),
+			key(x, 0.09, -0.186, 0.014, 0.017), key(x, 0.04, -0.19, 0.013, 0.016)]
+		loft(cm, fl, 1.0, 12, 8, red, stock, fp, Vector3.BACK)
+		loft(cm, [key(x, 0.04, -0.188, 0.015, 0.02), key(x, 0.017, -0.2, 0.017, 0.026), key(x, 0.006, -0.225, 0.013, 0.02)], 1.0, 5, 8, black, Callable(), fp, Vector3.UP)
+		var hl := [key(x * 0.5, 0.32, 0.17, 0.03, 0.05), key(x * 0.85, 0.27, 0.175, 0.03, 0.045), key(x, 0.2, 0.17, 0.022, 0.032),
+			key(x, 0.14, 0.2, 0.016, 0.02), key(x, 0.08, 0.195, 0.013, 0.016), key(x, 0.04, 0.19, 0.013, 0.016)]
+		loft(cm, hl, 1.0, 12, 8, red, stock, bp, Vector3.BACK)
+		loft(cm, [key(x, 0.04, 0.188, 0.015, 0.02), key(x, 0.017, 0.178, 0.017, 0.026), key(x, 0.006, 0.153, 0.013, 0.02)], 1.0, 5, 8, black, Callable(), bp, Vector3.UP)
+		# ears: broad triangles splayed outward and back (so they keep their width in profile), rufous front, dark back and tip
 		var ear := func(t: float, up: float, _sd: float) -> Color:
-			var c := red.lerp(cream, smoothstep(0.0, -0.8, up) * 0.6)
-			c = c.lerp(black, smoothstep(0.1, 0.8, up))
-			return c.lerp(black, smoothstep(0.7, 0.95, t))
-		loft(cm, [key(0.04 * side, 0.472, -0.322, 0.04, 0.036), key(0.05 * side, 0.52, -0.316, 0.036, 0.028), key(0.06 * side, 0.572, -0.31, 0.022, 0.016),
-			key(0.07 * side, 0.64, -0.303, 0.004, 0.004)], 1.0, 10, 8, red, ear, HEAD, Vector3.BACK)
+			var c := red.lerp(cream, smoothstep(0.0, -0.8, up) * 0.5)
+			c = c.lerp(black, smoothstep(0.1, 0.8, up) * 0.8)
+			return c.lerp(black, smoothstep(0.75, 0.95, t))
+		loft(cm, [key(0.038 * side, 0.47, -0.322, 0.034, 0.03), key(0.05 * side, 0.52, -0.315, 0.03, 0.026), key(0.064 * side, 0.575, -0.305, 0.019, 0.014),
+			key(0.078 * side, 0.635, -0.292, 0.004, 0.003)], 1.0, 10, 8, red, ear, HEAD, Vector3(0.55 * side, 0, 0.85))
 		cm.blob(Vector3(0.036 * side, 0.466, -0.374), Vector3(0.012, 0.01, 0.009), Basis.IDENTITY, black, 0.0, 0.0, HEAD, 3, 5, 1.0)
 		cm.blob(Vector3(0.04 * side, 0.428, -0.365), Vector3(0.017, 0.02, 0.036), Basis.IDENTITY, white.darkened(0.08), 0.0, 0.05, HEAD, 5, 8)
-	# neck and head: a flowing neck, broad cheeks, a slim tapering muzzle ending in a black nose
 	loft(cm, [key(0, 0.35, -0.16, 0.06, 0.085), key(0, 0.405, -0.23, 0.052, 0.072), key(0, 0.44, -0.29, 0.046, 0.058)], 1.0, 6, 12, red,
 		coat_fn(red, dark, white, red, 2.0, 0.9, white), HEAD)
 	var head := func(t: float, up: float, _side: float) -> Color:
@@ -248,7 +249,6 @@ static func fox(cm) -> void:
 	loft(cm, [key(0, 0.455, -0.29, 0.046, 0.05), key(0, 0.452, -0.335, 0.056, 0.054), key(0, 0.442, -0.385, 0.038, 0.037), key(0, 0.432, -0.44, 0.021, 0.022),
 		key(0, 0.424, -0.485, 0.012, 0.013), key(0, 0.421, -0.502, 0.009, 0.009)], 1.0, 12, 12, red, head, HEAD)
 	cm.blob(Vector3(0, 0.422, -0.504), Vector3(0.014, 0.011, 0.01), Basis.IDENTITY, black, 1.0, 0.0, HEAD, 4, 7)
-	# the brush: thick, rufous over the top, a white tip
 	var tail := func(t: float, up: float, _side: float) -> Color:
 		return red.darkened(0.08).lerp(dark, smoothstep(0.4, 1.0, up) * 0.45).lerp(cream, smoothstep(-0.1, -0.9, up) * 0.5).lerp(white, smoothstep(0.78, 0.9, t))
 	loft(cm, [key(0, 0.335, 0.26, 0.028, 0.03), key(0, 0.32, 0.34, 0.06, 0.06), key(0, 0.27, 0.46, 0.078, 0.075), key(0, 0.22, 0.56, 0.06, 0.06),
@@ -263,31 +263,41 @@ static func hare(cm) -> void:
 	var belly := Color(0.74, 0.66, 0.54)
 	var black := Color(0.07, 0.055, 0.045)
 	var white := Color(0.9, 0.88, 0.84)
-	loft(cm, [key(0, 0.17, -0.1, 0.045, 0.07), key(0, 0.2, -0.03, 0.062, 0.085), key(0, 0.225, 0.07, 0.08, 0.098), key(0, 0.2, 0.15, 0.078, 0.092),
-		key(0, 0.17, 0.2, 0.04, 0.06), key(0, 0.155, 0.225, 0.01, 0.02)], 1.0, 12, 12, fur, coat_fn(fur, dark, belly, fur, 2.0), BODY, Vector3.UP, 0.0, 0.015)
+	# an egg of a body hunched over big haunches, the highest point over the hips
+	loft(cm, [key(0, 0.16, -0.12, 0.04, 0.06), key(0, 0.19, -0.07, 0.056, 0.082), key(0, 0.215, 0.0, 0.068, 0.098), key(0, 0.23, 0.08, 0.082, 0.108),
+		key(0, 0.215, 0.15, 0.08, 0.1), key(0, 0.17, 0.205, 0.056, 0.075), key(0, 0.14, 0.235, 0.02, 0.035), key(0, 0.135, 0.245, 0.006, 0.012)],
+		1.0, 20, 14, fur, coat_fn(fur, dark, belly, fur, 2.0), BODY, Vector3.UP, 0.0, 0.008)
+	var paw := func(t: float, _up: float, _sd: float) -> Color:
+		return fur.lerp(fur.lightened(0.15), smoothstep(0.6, 1.0, t))
 	for side: float in [1.0, -1.0]:
 		var x := 0.045 * side
 		var fp := LEG_FR if side > 0.0 else LEG_FL
 		var bp := LEG_BR if side > 0.0 else LEG_BL
-		loft(cm, [key(x * 0.8, 0.17, -0.1, 0.03, 0.045), key(x * 0.95, 0.12, -0.105, 0.022, 0.03), key(x * 0.95, 0.07, -0.11, 0.015, 0.018), key(x * 0.9, 0.025, -0.12, 0.012, 0.014)], 1.0, 8, 7, fur, leg_fn(fur, fur.darkened(0.1), 0.6, side, 0.3, 0.0), fp, Vector3.BACK)
-		# the haunch, a short stifle, a long flat foot (the hock back, the foot forward)
-		loft(cm, [key(x * 0.6, 0.2, 0.13, 0.03, 0.06), key(x * 0.95, 0.16, 0.14, 0.04, 0.08), key(x * 0.95, 0.1, 0.17, 0.03, 0.05), key(x, 0.065, 0.2, 0.02, 0.028),
-			key(x * 0.95, 0.03, 0.15, 0.02, 0.04), key(x * 0.95, 0.018, 0.1, 0.02, 0.05)], 1.0, 12, 8, fur, leg_fn(fur, fur.darkened(0.12), 0.6, side, 0.3, 0.0), bp, Vector3.BACK)
-		# head details: big side eyes and tall black-tipped ears laid half back
-		cm.blob(Vector3(0.037 * side, 0.285, -0.19), Vector3(0.016, 0.017, 0.014), Basis.IDENTITY, black, 0.0, 0.0, HEAD, 4, 6)
-		cm.blob(Vector3(0.042 * side, 0.285, -0.194), Vector3(0.011, 0.012, 0.01), Basis.IDENTITY, black, 0.0, 0.0, HEAD, 3, 5, 1.0)
-		var ear := func(t: float, _up: float, _sd: float) -> Color:
-			return fur.lerp(belly, 0.0).lerp(black, smoothstep(0.78, 0.95, t))
-		loft(cm, [key(0.018 * side, 0.305, -0.16, 0.008, 0.018), key(0.028 * side, 0.37, -0.13, 0.008, 0.028), key(0.036 * side, 0.43, -0.1, 0.007, 0.026),
-			key(0.04 * side, 0.475, -0.075, 0.005, 0.014), key(0.04 * side, 0.5, -0.062, 0.001, 0.003)], 1.0, 9, 7, fur, ear, HEAD, Vector3.BACK)
-	loft(cm, [key(0, 0.2, -0.1, 0.042, 0.06), key(0, 0.235, -0.14, 0.04, 0.052)], 1.0, 4, 9, fur, Callable(), HEAD)
+		loft(cm, [key(x * 0.7, 0.16, -0.1, 0.028, 0.04), key(x * 0.95, 0.11, -0.105, 0.02, 0.026), key(x, 0.06, -0.11, 0.013, 0.016), key(x, 0.02, -0.115, 0.012, 0.015)],
+			1.0, 9, 7, fur, paw, fp, Vector3.BACK)
+		loft(cm, [key(x, 0.02, -0.113, 0.013, 0.012), key(x, 0.008, -0.13, 0.014, 0.012), key(x, 0.004, -0.15, 0.01, 0.008)], 1.0, 4, 7, fur, Callable(), fp, Vector3.UP)
+		# hind: the thigh swell sits above (it is in the trunk), a short shin down to a hock at the back, then the long foot lies flat
+		loft(cm, [key(x * 0.55, 0.2, 0.1, 0.03, 0.06), key(x * 1.0, 0.15, 0.14, 0.038, 0.07), key(x * 1.0, 0.1, 0.18, 0.026, 0.04), key(x, 0.055, 0.205, 0.018, 0.026),
+			key(x, 0.03, 0.205, 0.016, 0.02)], 1.0, 12, 8, fur, Callable(), bp, Vector3.BACK)
+		loft(cm, [key(x, 0.03, 0.205, 0.017, 0.016), key(x, 0.017, 0.14, 0.02, 0.014), key(x, 0.01, 0.07, 0.019, 0.013), key(x, 0.007, 0.03, 0.012, 0.01)],
+			1.0, 10, 8, fur, paw, bp, Vector3.UP)
+		# head details: big side eyes and ears with width, laid half back, black-tipped
+		cm.blob(Vector3(0.04 * side, 0.283, -0.19), Vector3(0.016, 0.018, 0.015), Basis.IDENTITY, black, 0.0, 0.0, HEAD, 4, 6)
+		cm.blob(Vector3(0.046 * side, 0.283, -0.194), Vector3(0.011, 0.012, 0.01), Basis.IDENTITY, black, 0.0, 0.0, HEAD, 3, 5, 1.0)
+		var ear := func(t: float, up: float, _sd: float) -> Color:
+			var c := fur.lerp(belly, smoothstep(0.0, -0.8, up) * 0.35)
+			return c.lerp(black, smoothstep(0.75, 0.93, t))
+		loft(cm, [key(0.02 * side, 0.3, -0.16, 0.012, 0.02), key(0.03 * side, 0.36, -0.135, 0.012, 0.03), key(0.04 * side, 0.43, -0.105, 0.011, 0.03),
+			key(0.046 * side, 0.485, -0.08, 0.008, 0.02), key(0.048 * side, 0.52, -0.065, 0.002, 0.004)], 1.0, 10, 8, fur, ear, HEAD, Vector3(0.45 * side, 0, 0.9))
+	loft(cm, [key(0, 0.2, -0.1, 0.044, 0.062), key(0, 0.24, -0.14, 0.042, 0.055)], 1.0, 4, 10, fur, Callable(), HEAD)
 	var head := func(t: float, up: float, _side: float) -> Color:
 		var c := fur.lerp(dark, smoothstep(0.6, 0.95, up) * 0.5)
-		return c.lerp(belly, smoothstep(0.6, 0.95, t) * 0.7 + smoothstep(-0.2, -0.8, up) * 0.6)
-	loft(cm, [key(0, 0.285, -0.145, 0.035, 0.045), key(0, 0.28, -0.185, 0.044, 0.049), key(0, 0.268, -0.225, 0.03, 0.033), key(0, 0.257, -0.255, 0.019, 0.02),
-		key(0, 0.252, -0.268, 0.012, 0.013)], 1.0, 8, 10, fur, head, HEAD)
-	cm.blob(Vector3(0, 0.253, -0.272), Vector3(0.014, 0.011, 0.008), Basis.IDENTITY, black, 1.0, 0.0, HEAD, 3, 6)
-	cm.blob(Vector3(0, 0.2, 0.235), Vector3(0.036, 0.04, 0.03), Basis.IDENTITY, white, 0.0, 0.06, TAIL, 5, 8)
+		return c.lerp(belly, smoothstep(0.65, 0.95, t) * 0.6 + smoothstep(-0.2, -0.8, up) * 0.6)
+	# a rounded skull, a deep blunt muzzle
+	loft(cm, [key(0, 0.285, -0.13, 0.03, 0.04), key(0, 0.29, -0.165, 0.045, 0.055), key(0, 0.28, -0.205, 0.048, 0.054), key(0, 0.268, -0.235, 0.038, 0.042),
+		key(0, 0.26, -0.255, 0.028, 0.03), key(0, 0.255, -0.268, 0.018, 0.02)], 1.0, 10, 12, fur, head, HEAD)
+	cm.blob(Vector3(0, 0.256, -0.272), Vector3(0.017, 0.014, 0.01), Basis.IDENTITY, black, 1.0, 0.0, HEAD, 4, 7)
+	cm.blob(Vector3(0, 0.185, 0.24), Vector3(0.036, 0.04, 0.03), Basis.IDENTITY, white, 0.0, 0.06, TAIL, 5, 8)
 
 
 # --- boar ------------------------------------------------------------------------------------------

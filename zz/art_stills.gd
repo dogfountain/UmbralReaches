@@ -259,6 +259,11 @@ func _run() -> void:
 		await _lineup(["hare"], 5.0, 140.0, false, "line_hare_6", 40.0)
 		await _lineup(["boar"], 3.8, 90.0, true, "line_boar_3", 45.0)
 		await _lineup(["boar"], 7.0, 140.0, false, "line_boar_6", 45.0)
+	if _want("front"):
+		for k: String in ["fox", "hare"]:
+			await _lineup([k], 2.6, 180.0, false, "line_%s_front_3" % k, 40.0)
+			await _lineup([k], 5.0, 180.0, true, "line_%s_front_6" % k, 40.0)
+			await _lineup([k], 2.6, 90.0, false, "line_%s_stand_3" % k, 40.0)
 	if _want("beasts"):
 		for k: String in ["fox", "hare"]:
 			await _herd_view([k], 3.0, "beast_" + k)
