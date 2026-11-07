@@ -126,8 +126,7 @@ func _u_shutter_fight(tt: float) -> void:
 	var foe: Node3D = d.target()
 	if foe:
 		d.aim_at(foe.global_position)
-	if tt > 0.1 and d.once("sf_bolts"):
-		d.press(d.slot_action(0))
+	d.fire_window(tt, "sf_bolts", 0.1, 0.8)
 	if tt > 1.6:
 		d.drive(Cam.flat(d.pp() - bell_at()) * 0.35)         # giving ground from the swing
 	if _shut and is_instance_valid(_shut) and _shut.hp < 12.0:
@@ -370,8 +369,7 @@ func _u_escort_top(tt: float) -> void:
 	if foe:
 		d.aim_at(foe.global_position)
 		d.drive(Cam.flat(foe.global_position - d.pp()) * 0.25)
-		if tt > 0.3 and d.once("et_bolts"):
-			d.press(d.slot_action(0))
+		d.fire_window(tt, "et_bolts", 0.3, 1.0)
 	else:
 		esc_drive(tt)
 
@@ -406,7 +404,7 @@ func start_defend(quest: String, wave_from: int) -> void:
 	d.put_player(c + Vector3(-2.2, 0.0, 3.2), Cam.yaw_dir(Vector3(0.3, 0.0, -1.0)), -0.08)
 
 
-func def_fight(tt: float, key: String) -> void:
+func def_fight(tt: float, key: String, stop := 99.0) -> void:
 	_def.tick(d.get_process_delta_time())
 	adopt(_def.foes)
 	for f: Enemy in _def.foes:
@@ -420,8 +418,7 @@ func def_fight(tt: float, key: String) -> void:
 	var foe: Node3D = d.target()
 	if foe:
 		d.aim_at(foe.global_position)
-		if tt > 0.3 and d.once(key):
-			d.press(d.slot_action(0))
+		d.fire_window(tt, key, 0.3, stop)
 		if d.pp().distance_to(_def.global_position) > 4.0:
 			d.drive(Cam.flat(_def.global_position - d.pp()) * 0.4)
 		else:
@@ -489,7 +486,7 @@ func _s_defend_top() -> void:
 
 
 func _u_defend_top(tt: float) -> void:
-	def_fight(tt, "dt_bolts")
+	def_fight(tt, "dt_bolts", 1.0)
 	var mid: Vector3 = _def.global_position.lerp(d.pp(), 0.3)
 	d.top_down(mid, 8.5 - tt * 0.4, 48.0)
 	d.light_at(mid, 6.0)
@@ -591,6 +588,8 @@ func _e_roam() -> void:
 
 
 var _fire: Node3D
+var _ri_mid := Vector3.ZERO
+var _ri_moved := {}
 
 
 func _s_roam_incursion() -> void:
@@ -598,6 +597,8 @@ func _s_roam_incursion() -> void:
 	# the nearest lit fire 35 m or more off the open road: the wanderer is walked 45 m from it, the event starts, then
 	# she stands at its edge (the dark leans on it; hollowed gather where its light ends)
 	_fire = null
+	_ri_mid = Vector3.ZERO
+	_ri_moved.clear()
 	var best := INF
 	for b in d.get_tree().get_nodes_in_group(Groups.BRAZIER):
 		var bn := b as Node3D
@@ -633,13 +634,27 @@ func _u_roam_incursion(tt: float) -> void:
 		return
 	adopt_roam()
 	var f := _fire.global_position
-	d.top_down(f, 20.0 - tt * 0.6, 62.0)
-	d.light_at(f, 6.0)
+	# the event raises its hollowed wherever the dice put them (in the ruin 20 m off, out of the picture): the shoot
+	# stands each at the edge of the fire's light (7.5 m), as the defend shots draw their waves in
+	for e in d.foes():
+		if not _ri_moved.has(e.get_instance_id()):
+			_ri_moved[e.get_instance_id()] = true
+			var off: Vector3 = Cam.flat(e.global_position - f)
+			if off.length() < 0.1:
+				off = Vector3.FORWARD
+			var np: Vector3 = f + off.normalized() * 7.5
+			e.global_position = Vector3(np.x, d.gy(np.x, np.z) + 0.1, np.z)
 	var foe: Node3D = d.target()
+	# the wanderer at the fire and the dark at its edge, not the fire alone from 20 m (she was a speck)
+	var mid: Vector3 = d.pp().lerp(f, 0.3)
+	if foe and foe.global_position.distance_to(d.pp()) < 12.0:
+		mid = d.pp().lerp(foe.global_position, 0.35)
+	_ri_mid = mid if _ri_mid == Vector3.ZERO else _ri_mid.lerp(mid, 0.06)
+	d.top_down(_ri_mid, 9.5 - tt * 0.5, 48.0)
+	d.light_at(f, 6.0)
 	if foe:
 		d.aim_at(foe.global_position)
-		if tt > 0.3 and d.once("ri_bolts"):
-			d.press(d.slot_action(0))
+		d.fire_window(tt, "ri_bolts", 0.4, 1.1)
 
 
 func _e_roam_incursion() -> void:

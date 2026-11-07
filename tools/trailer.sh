@@ -95,6 +95,18 @@ trim_black() {
 	echo "trimmed $n black frame(s) off $(basename "$f")"
 }
 
+# the engine's drawn-frame count can lag the process frame under load, which leaves the cut starting inside the lead-in
+# black: move the start past black frames that a lit frame follows within 1.5 s (a card, all black, keeps its start)
+skip_lead() {
+	local avi="$1" start="$2" fps="$3" w n=0 v
+	w=$("$FFMPEG" -nostdin -ss "$start" -t 1.5 -i "$avi" -vf "signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-" -f null - 2>/dev/null | grep YAVG | awk -F= '{print int($2)}')
+	for v in $w; do
+		[ "$v" -ge 3 ] && { awk -v s="$start" -v n="$n" -v f="$fps" 'BEGIN{printf "%.4f", s + n/f}'; return; }
+		n=$((n + 1))
+	done
+	echo "$start"
+}
+
 # one trimmed shot per `CLIP id start= drawn= dur=` line in every group log (movie frame = drawn + 1)
 cmd_cut() {
 	local want=" $* "
@@ -108,6 +120,7 @@ cmd_cut() {
 			[ $# -gt 0 ] && [[ "$want" != *" $id "* ]] && continue
 			local start
 			start=$(awk -v d="$drawn" -v f="$fps" 'BEGIN{printf "%.4f", (d+1)/f}')
+			start=$(skip_lead "$base.avi" "$start" "$fps")
 			"$FFMPEG" -nostdin -loglevel error -y -ss "$start" -i "$base.avi" -t "$dur" \
 				-c:v libx264 -preset fast -crf 14 -pix_fmt yuv420p -r "$fps" -c:a aac -b:a 192k -ar 48000 "$OUT/shots/$id.mp4"
 			trim_black "$OUT/shots/$id.mp4"

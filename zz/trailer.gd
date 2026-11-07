@@ -596,6 +596,15 @@ func once(k: String) -> bool:
 	return true
 
 
+## Holds the bolt from t0 to t1 of a shot, once each: a short chain with one Lash in it. Held the whole shot, the Lash's
+## burst wheel (every second bolt under the Oath) filled the frame again and again.
+func fire_window(tt: float, key: String, t0: float, t1: float) -> void:
+	if tt > t0 and once(key):
+		press(slot_action(0))
+	if tt > t1 and once(key + "_up"):
+		release(slot_action(0))
+
+
 func press(action: StringName) -> void:
 	if action != &"":
 		Input.action_press(action)

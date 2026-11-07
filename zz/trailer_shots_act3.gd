@@ -220,7 +220,11 @@ func _u_pans_wide(tt: float) -> void:
 	# high on the works' edge, the white pans laid out below, the wanderer walking the rim
 	var a: Vector3 = d.on_ground(Vector3(wc.x - 24.0, 0.0, wc.z - 20.0), 8.0)
 	var b: Vector3 = d.on_ground(Vector3(wc.x - 14.0, 0.0, wc.z - 26.0), 9.0)
-	cam.dolly(a, b, d.pp() + Vector3(8.0, -1.0, 10.0), k)
+	# aimed just ahead of the wanderer: a look point 13 m on put the brine towers between it and the lens, and the
+	# occlusion pull dropped the lens under the scaffold for the last half second
+	cam.dolly(a, b, d.pp() + Vector3(1.5, 0.6, 1.5), k)
+	if tt > 1.3:
+		d.drive(Vector3.ZERO)                     # she stops at the pans' rim, short of the towers
 	d.light_at(d.pp(), 4.0)
 	fill_follow(d.pp() + Vector3(2.0, 3.0, 2.0))
 

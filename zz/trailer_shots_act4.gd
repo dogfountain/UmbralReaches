@@ -23,7 +23,7 @@ const BOSS := {
 	"anchoress": {"boss": "r37_anchoress", "W": 9.0, "pre": false, "cam": [-8.0, 0, 3.0, 0, 1.6, 0, 2.6], "push": 2.5, "fov": 52.0, "lit": [8.0, 32.0]},
 	"anchoress_move": {"boss": "r37_anchoress", "W": 10.0, "pre": true, "cam": [9.0, 0, 7.5, 0, 5.0, 0, 1.0], "push": 1.5, "fov": 58.0, "lit": [8.0, 32.0]},
 	"anchoress_phase": {"boss": "r37_anchoress", "W": 9.0, "pre": true, "cam": [-8.0, 0, 4.0, 0, 1.6, 0, 2.8], "push": 2.0, "fov": 56.0, "lit": [8.0, 32.0]},
-	"hierarch_voice": {"boss": "r37_hierarch", "W": 11.0, "pre": true, "cam": [17.0, 0, 7.0, 0, 8.0, 0, 3.0], "push": 2.0, "fov": 58.0, "lit": [8.0, 40.0]},
+	"hierarch_voice": {"boss": "r37_hierarch", "W": 11.0, "pre": true, "cam": [17.0, 0, 7.0, 0, 8.0, 0, 1.2], "push": 2.0, "fov": 58.0, "lit": [8.0, 40.0]},
 	"hierarch_edict": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [10.5, 0, 3.5, 0, 1.2, 0, 4.5], "push": 2.5, "fov": 56.0, "lit": [5.0, 40.0]},
 	"hierarch_phase": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [9.5, 0, 3.0, 0, 1.8, 0, 4.2], "push": 1.5, "fov": 52.0, "lit": [9.0, 40.0]},
 	"final_blow": {"boss": "thornwarden", "W": 11.0, "pre": true, "cam": [11.0, 0, 5.0, 0, 5.0, 0, 2.8], "push": 1.5, "fov": 55.0, "lit": [5.0, 40.0]},
@@ -61,7 +61,9 @@ func _u_card_depths(tt: float) -> void:
 func _s_finale() -> void:
 	kit.reset_arenas()
 	d.clear_spawned()
-	d.put_player(d.GREEN, 0.0, 0.05)
+	# six metres up the green: from the old mark the near brazier blurred into an orange dome across the corner and a
+	# cottage wall filled the right third as the lens tilted up
+	d.put_player(d.GREEN + Vector3(0.0, 0.0, -6.0), 0.0, 0.05)
 	d.use_free_cam()
 	d.cam.fov = 62.0
 	var ph: Node = d.life.get("phenomena") if d.life else null
@@ -73,7 +75,8 @@ func _s_finale() -> void:
 func _u_finale(tt: float) -> void:
 	# the wanderer small against the valley, the camera tilting up into the vortex; the title
 	var k: float = d.sm(clampf(tt / 2.2, 0.0, 1.0))
-	d.frame_cam(d.pp() + Vector3(1.5, 1.4, 5.0), d.pp() + Vector3(0.0, lerpf(1.6, 40.0, k), -lerpf(4.0, 60.0, k)))
+	# the lens left of the wanderer and turned a little left: the cottage on the green's east side stays out of frame
+	d.frame_cam(d.pp() + Vector3(-1.0, 1.7, 3.8), d.pp() + Vector3(-lerpf(1.0, 14.0, k), lerpf(1.6, 40.0, k), -lerpf(4.0, 60.0, k)))
 	d.light_at(d.pp(), 4.0)
 	if tt > 1.8 and d.once("title_in"):
 		d.boom("lance_hit", 0.0)
