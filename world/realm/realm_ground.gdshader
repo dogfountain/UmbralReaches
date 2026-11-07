@@ -44,6 +44,12 @@ uniform float patch_hue = 0.22;
 uniform float far_lo = 20.0;                     // metres: layer detail starts handing over to the far tiling
 uniform float far_hi = 32.0;                     // all far beyond this
 uniform float far_scale = 0.31;                  // far tiles are ~3x larger
+// Lights on the ground. The ground's albedo is dark and graded cold (tint), so a warm lamp, brazier or spell
+// light left the road and the plaza near-black beside the grass (whose own shader is brighter and
+// translucent). light() below keeps the engine's Burley diffuse but gives every positional light (omni,
+// spot) a gain and takes the cold tint back off their colour; the moon (directional) is unchanged.
+uniform float lamp_gain = 2.4;
+uniform float lamp_untint = 0.75;                // how much of the cold grade is undone for positional lights
 
 vec2 rot_c(vec2 p) { return vec2(0.8 * p.x - 0.6 * p.y, 0.6 * p.x + 0.8 * p.y); }
 
@@ -288,4 +294,25 @@ void fragment() {
 	AO_LIGHT_AFFECT = 0.35;
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.6);
 	EMISSION = rim_color * rim_strength * fres * (0.4 + 0.6 * flat_k);
+}
+
+// The engine's Burley diffuse with a gain on positional lights, and a plain GGX highlight (the ground is rough:
+// this is the wet fen and the wet flagstones catching a flame).
+void light() {
+	float NdotL = clamp(dot(NORMAL, LIGHT), 0.0, 1.0);
+	float NdotV = clamp(dot(NORMAL, VIEW), 0.0001, 1.0);
+	vec3 H = normalize(VIEW + LIGHT);
+	float LdotH = clamp(dot(LIGHT, H), 0.0, 1.0);
+	float fd90 = 0.5 + 2.0 * LdotH * LdotH * ROUGHNESS;
+	float fl = 1.0 + (fd90 - 1.0) * pow(1.0 - NdotL, 5.0);
+	float fv = 1.0 + (fd90 - 1.0) * pow(1.0 - NdotV, 5.0);
+	vec3 lc = LIGHT_COLOR;
+	if (!LIGHT_IS_DIRECTIONAL) {
+		lc *= lamp_gain * mix(vec3(1.0), vec3(1.0) / tint, lamp_untint);
+	}
+	DIFFUSE_LIGHT += lc * ATTENUATION * NdotL * fl * fv / PI;
+	float a = max(ROUGHNESS * ROUGHNESS, 0.04);
+	float NdotH = clamp(dot(NORMAL, H), 0.0, 1.0);
+	float dd = NdotH * NdotH * (a * a - 1.0) + 1.0;
+	SPECULAR_LIGHT += LIGHT_COLOR * ATTENUATION * NdotL * (a * a / (PI * dd * dd)) * 0.04 * SPECULAR_AMOUNT;
 }

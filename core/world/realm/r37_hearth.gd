@@ -15,20 +15,20 @@ const PIER := 0.65
 static func plaster() -> StandardMaterial3D:
 	var n := FastNoiseLite.new()
 	n.seed = 37
-	n.frequency = 0.02
+	n.frequency = 0.05
 	n.fractal_octaves = 3
 	var img := n.get_image(256, 256, false, false, true)
 	img.convert(Image.FORMAT_RGB8)
-	img.adjust_bcs(1.0, 0.18, 1.0)             # a faint mottle, not a marbling
-	img.adjust_bcs(1.75, 1.0, 1.0)
+	img.adjust_bcs(1.0, 0.1, 1.0)             # a faint mottle, not a marbling
+	img.adjust_bcs(1.5, 1.0, 1.0)
 	img.generate_mipmaps()
 	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.9, 0.82, 0.68)
+	m.albedo_color = Color(0.6, 0.56, 0.5)
 	m.albedo_texture = ImageTexture.create_from_image(img)
 	m.roughness = 0.95
 	m.uv1_triplanar = true
 	m.uv1_world_triplanar = true
-	m.uv1_scale = Vector3.ONE * 0.35
+	m.uv1_scale = Vector3.ONE * 0.8
 	return m
 
 
@@ -189,5 +189,5 @@ static func lantern() -> Node3D:
 	foot.radial_segments = 6
 	foot.rings = 1
 	n.add_child(_mesh(foot, iron, Vector3(0, -0.095, 0)))
-	n.add_child(_mesh(_box(Vector3(0.012, 0.5, 0.012)), iron, Vector3(0, 0.4, 0)))      # the chain up to the beam
+	n.add_child(_mesh(_box(Vector3(0.008, 0.3, 0.008)), iron, Vector3(0, 0.3, 0)))      # the chain up to the beam
 	return n
