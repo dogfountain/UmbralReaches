@@ -87,6 +87,7 @@ var _front_t := 80.0
 var _t := 0.0
 var _applied := {"fog_depth_begin": 0.0, "volumetric_fog_density": 0.0, "ambient_light_energy": 0.0, "fog_height_density": 0.0}
 var _roof := false
+var _cam_was := Vector3(INF, INF, INF)
 var _roof_t := 0.0
 var _under := 0.0                ## 0..1: the camera is underground (the crypt, the pit hall at y -32): no weather, no ground haze
 var _indoor := 0.0               ## 0..1: the camera is in a warm room (Interiors): warm low ambient, thin fog
@@ -245,10 +246,17 @@ func _step(delta: float) -> void:
 		_bank_acc = 0.0
 	# under the Realm's ground (not the open Rift floor or the Well's sinkhole) the ground haze (it thickens with depth under Atmosphere.HAZE_TOP) filled
 	# the Abbot's pit hall 36 m down with a wall of mist; a crypt has still air and no weather
-	_under = move_toward(_under, 1.0 if _roofed(cam, delta) else 0.0, delta * 1.5)
+	# a camera that jumps (a load, a respawn, travel, a cut) takes the place's air at once; walking in eases
+	var jumped := cam != null and _cam_was.distance_to(cam.global_position) > 6.0
+	if cam != null:
+		_cam_was = cam.global_position
+	if jumped:
+		_roof_t = 0.0
+	var ease := 1000.0 if jumped else 1.0
+	_under = move_toward(_under, 1.0 if _roofed(cam, delta) else 0.0, delta * 1.5 * ease)
 	var room := Interiors.at(cam.global_position) if cam != null else 0.0
-	_indoor = move_toward(_indoor, 1.0 if room >= 1.0 else 0.0, delta * 2.0)       # ~0.5 s at the door
-	_cold_room = move_toward(_cold_room, 1.0 if room > 0.0 and room < 1.0 else 0.0, delta * 2.0)
+	_indoor = move_toward(_indoor, 1.0 if room >= 1.0 else 0.0, delta * 2.0 * ease)       # ~0.5 s at the door
+	_cold_room = move_toward(_cold_room, 1.0 if room > 0.0 and room < 1.0 else 0.0, delta * 2.0 * ease)
 	_apply_env()
 	_bed_acc += delta
 	if _bed_acc >= 1.0 / 15.0:
