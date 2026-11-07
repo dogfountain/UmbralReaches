@@ -30,6 +30,7 @@ import spells  # noqa: E402,F401
 import spells2  # noqa: E402,F401
 import kindling  # noqa: E402,F401
 import auras  # noqa: E402,F401
+import gear  # noqa: E402,F401
 
 OUT = os.path.join(HERE, "..", "ui", "icons")
 
