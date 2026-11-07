@@ -71,10 +71,13 @@ const RARE_SHARDS := Vector2i(2, 4)
 const RARE_FRAG_CHANCE := 0.25
 ## A rare's own extra named piece (rare id -> GearDB.NAMED id), when the enemies pass adds one.
 const RARE_OWN := {"drowned_reeve": "reeve_tally", "moss_mason": "mason_girdle", "gate_breaker": "breaker_cinch",
-	"salt_widow": "widow_salt", "drowned_lamplighter": "lamplighter_wick"}
+	"salt_widow": "widow_salt", "drowned_lamplighter": "lamplighter_wick",
+	# the Founder's bells' keepers: each its own piece
+	"kin_caller": "kin_bell_ring", "bell_hewer": "hewer_apron", "fog_shepherd": "shepherd_strap", "slag_born": "slag_glass",
+	"ash_sower": "sower_cloak", "passing_ringer": "ringer_clapper", "fare_caller": "fare_lamp"}
 
 ## A chest's gear source (loot_chest.gd's tier) and what the bag adds on top of the chest's own loot.
-const CHEST_SRC := {"wood": "tough", "iron": "elite", "reliquary": "elite"}
+const CHEST_SRC := {"wood": "tough", "iron": "elite", "reliquary": "reliquary"}
 const CHEST_EXTRA := {
 	"wood": {"ember_shard": 1},
 	"iron": {"ember_shard": 2, "grave_iron": 1},

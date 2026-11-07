@@ -366,7 +366,7 @@ func _slow_way() -> void:
 	ok(await _take("lantern"), "take the lantern")
 	player.global_position = home
 	player.process_mode = Node.PROCESS_MODE_INHERIT
-	await converse(ostrin, ["It was him", "Neither"])
+	await converse(ostrin, ["It was him", "lamp-glass"])
 	ok(Book.done("slow_way") and Book.pick("slow_way") == "truth", "Slow Way done, truth told")
 	await _frames(2)
 	var lp: Node = (quests.get("props") as Dictionary).get("lantern")

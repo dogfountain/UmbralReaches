@@ -230,11 +230,17 @@ const CONV := {
 				["", "Out on the fen, past the fen brazier under the Ossuary's door. A tin lantern with our name scratched on the base."],
 			], "next": "hub"},
 			"lantern": {"say": "That's it. That's his. ...Was it him? Tell me.", "choices": [
-				{"text": "It was him. Hollow. I put him to rest.", "to": "truth", "do": "qp:slow_way:truth,qc:slow_way,att:harrow:2"},
-				{"text": "Just the lantern, in the reeds. No sign of him.", "to": "mercy", "do": "qp:slow_way:mercy,qc:slow_way"},
+				{"text": "It was him. Hollow. I put him to rest.", "to": "truth", "do": "qp:slow_way:truth,att:harrow:2"},
+				{"text": "Just the lantern, in the reeds. No sign of him.", "to": "mercy", "do": "qp:slow_way:mercy"},
 			]},
-			"truth": {"say": "...Good. Good. He'd have hated standing. Light it. Put it on the counter where I can see it. He kept it lit for Mother; I'll keep it lit for him.", "next": ""},
-			"mercy": {"say": "No sign. ...Then he's still walking, somewhere down there. That's something. I'll keep it on the counter, cold, till he comes for it.", "next": ""},
+			"truth": {"say": "...Good. Good. He'd have hated standing. Light it. Put it on the counter where I can see it. He kept it lit for Mother; I'll keep it lit for him.", "next": "keepsake"},
+			"mercy": {"say": "No sign. ...Then he's still walking, somewhere down there. That's something. I'll keep it on the counter, cold, till he comes for it.", "next": "keepsake"},
+			"keepsake": {"say": "He left a few things in the house, and I can't carry all of them, and you walked a fen for me. Take one. Something that's seen the dark and come out the other side of it. Go on.", "choices": [
+				{"text": "His lamp-glass.", "to": "keepsake_done", "do": "qc:slow_way:0"},
+				{"text": "His old coat.", "to": "keepsake_done", "do": "qc:slow_way:1"},
+				{"text": "His belt.", "to": "keepsake_done", "do": "qc:slow_way:2"},
+			]},
+			"keepsake_done": {"say": "Good. Wear it down the road. It knows the way, better than I do.", "next": ""},
 			"fen": {"say": "Osric's brothers sank the hollowed there under three stones. Eyes, mouth, heart. When the crypt filled they ran short of stones. Some came back.", "next": "hub"},
 			"oss": {"say_if": [
 				["boss:bone_abbot", "Nobody's counting down there now. You saw to that. I don't go. Neither should you."],

@@ -130,7 +130,7 @@ func _data() -> void:
 			if String(Chains.QUESTS[id].get("zone", "")) == rid and not id in ACT3:
 				n += 1
 				ok(Chains.giver(id) == giver, "%s is %s's" % [id, giver])
-		ok(n >= 3 and n <= 6, "%s: a chain of %d tasks (r36: and its bell)" % [rid, n])
+		ok(n >= 3 and n <= 8, "%s: a chain of %d tasks (with its bell and its signature task)" % [rid, n])
 	for boss: String in ["thornwarden", "bone_abbot", "ascended_warden"]:
 		var chain: Array = []
 		for id2: String in Chains.ORDER:
@@ -275,6 +275,7 @@ func _chain(rid: String) -> void:
 		if wn != null:
 			ok(markers.call("mark_of", wn) == "turnin", "%s wears the '?' for %s" % [who, id])
 		var pieces: Array = Book.offered_gear(id)
+		(GearStats.state().bag as Array).clear()                 # a long walk through the chains fills the 30-piece bag
 		var bag0 := (GearStats.state().bag as Array).size()
 		var ash0 := Travel.count("grave_ash")
 		ok(Book.turn_in(id, 0 if not pieces.is_empty() else -1) and Book.done(id), "%s handed in" % id)
