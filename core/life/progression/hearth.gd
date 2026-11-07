@@ -82,6 +82,8 @@ func _ensure() -> void:
 	if not (h.get("meals") is Dictionary):
 		h["meals"] = {}
 	h["rested"] = maxf(0.0, float(h.get("rested", 0.0)))
+	h.erase("ward")                    # a ward lasts a night, and the village's night count starts again with the Realm
+	h.erase("ward_night")
 	var p := ps()
 	if not (p.get("paths") is Dictionary):
 		p["paths"] = {}
@@ -138,6 +140,11 @@ func step(dt: float) -> void:
 			Events.toast.emit("%s wears off." % String(HearthDB.meal(String((e as Dictionary).get("id", ""))).get("name", "A meal")))
 		else:
 			(e as Dictionary)["left"] = left
+	if bool(h.get("ward", false)) and _night() != int(h.get("ward_night", -1)):
+		h.erase("ward")
+		h.erase("ward_night")
+		_dirty = true
+		Events.toast.emit("The night-ward burns down with the night.")
 	var r := float(h.get("rested", 0.0))
 	if r > 0.0:
 		r = maxf(0.0, r - dt)
@@ -369,6 +376,59 @@ func service_why(id: String) -> String:
 		return "Opens with the Hearthfire %s (%s)." % [["", "I", "II", "III", "IV"][int(s.tier)], String(HearthDB.TIERS[int(s.tier)].name)]
 	if s.has("needs") and not VState.test(String(s.needs), VState.world(get_tree())):
 		return "Waits on %s." % String(s.needs_text)
+	return ""
+
+
+# --- the tithe: ash given to the green's fire --------------------------------------------------------
+
+## The village's night count (Village.nights): a night-ward lasts until it turns over.
+func _night() -> int:
+	var v := get_tree().root.find_child("Village", true, false) if get_tree() else null
+	return int(v.get("nights")) if v else 0
+
+
+func ward_active() -> bool:
+	return bool(hs().get("ward", false))
+
+
+## "" when the tithe `id` can be paid now, else why not.
+func why_not_tithe(id: String, at_home_fire: bool) -> String:
+	var t := HearthDB.tithe(id)
+	if t.is_empty():
+		return "?"
+	if tier() < int(t.tier):
+		return "The fire takes no tithe until it draws (the Hearthfire I)."
+	if not at_home_fire:
+		return "Only at Hearthward's fire, on the green."
+	if id == "rest":
+		if int(PathsDB.level_of(memory()).level) >= PathsDB.MAX_LEVEL:
+			return "There is nothing left for the fire to keep."
+		if LevelDB.rest_pool(ps()) <= int(ps().get("rested_xp", 0)):
+			return "The fire holds all the pale stretch it can for you."
+	elif ward_active():
+		return "The night-ward still holds."
+	if Travel.count("grave_ash") < int(t.price):
+		return "Needs %d grave ash (you carry %d)." % [int(t.price), Travel.count("grave_ash")]
+	return ""
+
+
+func tithe(id: String, at_home_fire: bool) -> String:
+	var why := why_not_tithe(id, at_home_fire)
+	if why != "":
+		return why
+	var t := HearthDB.tithe(id)
+	_spend(int(t.price))
+	if id == "rest":
+		ps()["rested_xp"] = LevelDB.rest_pool(ps())
+		xp_changed.emit(xp_info())
+		Events.toast.emit("The fire keeps the memory: rested XP, and kills pay double until it is spent.")
+	else:
+		var h := hs()
+		h["ward"] = true
+		h["ward_night"] = _night()
+		Events.toast.emit("The night-ward takes: +15 Gloom held, Gloom gathers 8% slower, the Lantern Ward burns 2 s longer, until the night ends.")
+	_refresh()
+	Travel.save_game()
 	return ""
 
 

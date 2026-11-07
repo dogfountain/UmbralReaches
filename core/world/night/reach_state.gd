@@ -9,7 +9,7 @@ extends Node
 ##             slower, and the bell stands lit on its frame (a mirror light: no rest, but the
 ##             hollowed keep off it), a place to breathe
 ##   factions  the Rooted (the Holds, the Thornwood), the Kindlers (Hearthward, the Orchard, the
-##             chapel) and the road folk (the moor, the mere, the pits, the quarry). Standing comes
+##             chapel), the road folk (the moor, the mere, the pits, the quarry) and the Marchers (Weirford and Stillwater, the bell at the Spire). Standing comes
 ##             from tasks done in their country and bells answered for them; at FRIEND it brings one
 ##             gift, at KIN their country's camps come back twice as slow and their watch-posts'
 ##             men stand longer. Each change is announced once.
@@ -29,12 +29,15 @@ const FACTIONS := {
 	"road": {"name": "the road folk", "zones": ["moor", "mere", "foundry", "quarry"], "bells": ["bell_moor", "bell_mere", "bell_foundry", "bell_quarry"],
 		"gift": {"grave_iron": 3, "relic_fragment": 2}, "friend": "The road folk know your face. Ysolt sends iron; Cadoc sends nothing, and says so.",
 		"kin": "On the moor and the mere they keep a place at the fire for you now."},
+	"marchers": {"name": "the Marchers", "zones": ["weirford", "sorrow", "hierarch", "siege", "stillwater", "anchorholds", "saltmarket", "saltpans"], "bells": ["bell_spire"],
+		"gift": {"relic_fragment": 3, "grave_iron": 2}, "friend": "A tin of lamp-wick and a twist of salt are left by your next fire. The Marchers' way of saying the Order's door was never theirs.",
+		"kin": "The Marchers leave a lamp lit on the road for you now. Their dead lie quieter where you pass."},
 }
 const FRIEND := 6
 const KIN := 12
 ## the far countries (RealmLayout region ids) each bell answers for
 const BELL_REGION := {"bell_holds": "holds", "bell_quarry": "quarry", "bell_moor": "moor", "bell_foundry": "foundry",
-	"bell_orchard": "orchard", "bell_necropolis": "necropolis", "bell_mere": "mere"}
+	"bell_orchard": "orchard", "bell_necropolis": "necropolis", "bell_mere": "mere", "bell_spire": "stillwater"}
 ## One source of truth: a faction's zones are both its quest zones and its RealmLayout region ids
 ## (the two share names), so the regions are read from FACTIONS rather than listed twice.
 ## The Waiting Field and its Passing Bell are the Kindlers': the dead there are the pilgrims who walked

@@ -191,6 +191,12 @@ static func bells() -> int:
 	return n
 
 
+## The summit door's peal: `need` bells answered for, and the one cast for the country the Order shut out
+## (Chains.BELL_SHUT_OUT, in the Marches) among them. Act II goes through the Marches.
+static func peal_open(need: int) -> bool:
+	return bells() >= need and pick(Chains.BELL_SHUT_OUT) != ""
+
+
 ## r36: the bells whose tongues hang at the Keg (each costs the Ascended Warden some of his hold).
 static func bells_carried() -> int:
 	var n := 0
@@ -509,6 +515,8 @@ static func term(key: String, val: String) -> Variant:
 			return sl is Dictionary and (sl as Dictionary).has(val)
 		"bells":
 			return bells() >= int(val)
+		"peal":
+			return peal_open(int(val))
 		"secrets":
 			var s2: Variant = Travel.systems.get("secrets", {})
 			var f: Variant = (s2 as Dictionary).get("found", {}) if s2 is Dictionary else {}
@@ -516,7 +524,7 @@ static func term(key: String, val: String) -> Variant:
 	return null
 
 
-const TERMS := ["q", "qat", "qd", "qp", "att", "ash", "secret", "secrets", "elite", "bells"]
+const TERMS := ["q", "qat", "qd", "qp", "att", "ash", "secret", "secrets", "elite", "bells", "peal"]
 
 
 # --- the objective line -----------------------------------------------------------------------------

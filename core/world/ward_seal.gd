@@ -136,7 +136,7 @@ func _process(delta: float) -> void:
 	if p == null or p.global_position.distance_to(global_position) > 7.0:
 		return
 	var rung := QuestBookScript.bells()
-	if rung >= requires_bells or rung == _spoken_at:
+	if QuestBookScript.peal_open(requires_bells) or rung == _spoken_at:
 		return
 	_spoken_at = rung
 	Events.toast.emit(BossArena.no_peal(rung, requires_bells))
@@ -162,7 +162,7 @@ func bosses_ok() -> bool:
 	for b in requires_bosses:
 		if not Travel.bosses_slain.has(b):
 			return false
-	return requires_bells <= 0 or QuestBookScript.bells() >= requires_bells
+	return requires_bells <= 0 or QuestBookScript.peal_open(requires_bells)
 
 
 const QuestBookScript := preload("res://core/story/quest_book.gd")

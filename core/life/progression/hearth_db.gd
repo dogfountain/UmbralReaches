@@ -18,6 +18,7 @@ extends RefCounted
 ##   works   {id -> true}            Hild's works and Brannoc's bells, bought once
 ##   meals   {kind -> {id, left}}    what the wanderer has eaten, by kind (seconds left)
 ##   rested  float                   seconds of Rested left
+##   ward    bool                    the tithe's night-ward is up (ward_night: the village night it was given)
 ##   gleaned int                     kills counted toward the Ash-Gleaner's second pinch
 
 ## Hearthward's fire: the brazier on the green. Within this many metres of HOME counts.
@@ -76,6 +77,30 @@ const WORKS: Array[Dictionary] = [
 		"text": "Hild casts fire-dogs from grave-iron for every brazier: each kindled fire reaches 0.5 m further, and +6 Gloom held. Takes 4 grave-iron.",
 		"fx": {"reach_add": 0.5, "gloom_add": 6.0}, "say": "Coffin-iron. Holds heat like it's sorry for something."},
 ]
+
+## The tithe: grave ash given to the Hearthward fire once it draws (tier I), the sink for the ash that
+## piles up when the upgrades are bought (quest ash tops out at 60, the upgrades cost under 30). Two
+## offerings, paid at the green's fire: the fire keeps rested XP for you (as a rest would, the pale stretch
+## on the bar), or wards you for the rest of the night (a modest buff; it ends with the night, and a
+## night is what the village clock counts: Village.nights). Prices are meant to be felt: a boss pays 25,
+## a rare 40.
+const TITHES: Array[Dictionary] = [
+	{"id": "rest", "name": "Tithe for the pale stretch", "glyph": "candle", "price": 50, "tier": 1,
+		"text": "Give the fire ash and it keeps the memory for you: half a level of rested XP, as a rest at the green would. Kills pay double until it is spent. It holds no more than a level and a half.",
+		"say": "\"It is not a trade,\" Col says. \"It is a habit. Don't ask what it's for.\""},
+	{"id": "ward", "name": "The night-ward", "glyph": "ward", "price": 70, "tier": 1,
+		"text": "Give the fire ash and it lends you a ward until the night ends: +15 Gloom held, Gloom gathers 8% slower, and the Lantern Ward burns 2 s longer. It does not take a place at the table.",
+		"say": "\"For one night,\" Nan says. \"After that you owe it again. The fire is not generous. It is fair.\""},
+]
+const WARD_FX := {"gloom_add": 15.0, "dark_mult": 0.92, "ward_life": 2.0}
+
+
+static func tithe(id: String) -> Dictionary:
+	for t: Dictionary in TITHES:
+		if t.id == id:
+			return t
+	return {}
+
 
 ## Smelting: Hild turns grave ash into the gear smith's ember shards (equipment system), when that
 ## system is in the build. `rate` ash per shard.
@@ -223,6 +248,9 @@ static func apply(m: Dictionary, hs: Dictionary) -> void:
 	if float(hs.get("rested", 0.0)) > 0.0:
 		_fx(m, REST_FX)
 		m["rested"] = true
+	if bool(hs.get("ward", false)):
+		_fx(m, WARD_FX)
+		m["warded"] = true
 
 
 static func _fx(m: Dictionary, fx: Dictionary) -> void:

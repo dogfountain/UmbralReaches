@@ -1,7 +1,7 @@
 extends Node
 ## r36 Act II, the Founder's peal (docs/critique/r36_plan.md), headless, no world:
 ##   godot --headless --path . res://zz/act2_test.tscn
-## The data hangs together (seven bells, one per far country, each with its giver, keeper, bell and
+## The data hangs together (eight bells: seven far countries and the Marches', one each, each with its giver, keeper, bell and
 ## conversation); bells count when answered for, rung or carried; the summit ward and the Warden's
 ## arena stay shut to heart and crown alone; the Ward on the Crossing waits for Brannoc's peal; the
 ## Warden loses a share of his life for every tongue carried home.
@@ -12,6 +12,8 @@ const Book := preload("res://core/story/quest_book.gd")
 const QuestDB := preload("res://core/story/quest_db.gd")
 const DialogueDB := preload("res://core/story/dialogue_db.gd")
 const Warden := preload("res://core/enemy/ascended_warden.gd")
+const LootDB := preload("res://core/items/loot_db.gd")
+const GearDB := preload("res://core/items/gear_db.gd")
 
 var bad := 0
 
@@ -45,7 +47,7 @@ func _ready() -> void:
 func _data() -> void:
 	ok(Chains.audit().is_empty(), "the quest audit is clean %s" % [Chains.audit()])
 	ok(DialogueDB.audit().is_empty(), "the dialogue audit is clean %s" % [DialogueDB.audit()])
-	ok(Chains.BELLS.size() == 7 and Chains.BELL_KEEPERS.size() == 7, "seven bells, seven keepers")
+	ok(Chains.BELLS.size() == 8 and Chains.BELL_KEEPERS.size() == 8, "eight bells, eight keepers")
 	var zones := {}
 	var rares: Dictionary = (load("res://core/enemy/rares.gd") as Script).get_script_constant_map().get("RARES", {})
 	for i in Chains.BELLS.size():
@@ -69,7 +71,26 @@ func _data() -> void:
 		var pk: Vector2 = Chains.PICKUPS[keys[0]].near if keys.size() == 1 else Vector2.INF
 		var spot: Vector2 = (rares.get(keeper, {}) as Dictionary).get("spots", [Vector2.ZERO])[0]
 		ok(pk.distance_to(spot) < 8.0, "%s: the keeper haunts its bell (%.1f m)" % [id, pk.distance_to(spot)])
-	ok(zones.size() == 7, "one bell in each far country (%s)" % [zones.keys()])
+	ok(zones.size() == 8, "one bell in each far country, and the Marches (%s)" % [zones.keys()])
+	_eighth()
+
+
+## The eighth bell: cast for the country the Order shut out, hung at the Lamplighters' Spire in the Marches.
+func _eighth() -> void:
+	var qd: Dictionary = Chains.QUESTS["bell_spire"]
+	ok(Chains.BELLS[0] == Chains.BELL_SHUT_OUT and String(qd.zone) == "stillwater", "the shut-out bell is a Stillwater task")
+	ok(String(qd.avail).contains("qd:spire_coal"), "it waits for the Spire's lamp to be lit (Ardel's coal)")
+	ok(String(qd.giver) == "ardel" and Chains.GIVER_NAMES.has("ardel"), "Ardel at Saltmarket gives it: the story goes through a Marches fire")
+	var at: Vector2 = (qd.steps[0] as Dictionary).at
+	ok(at.distance_to(RealmLayout.SPIRE_C) < 12.0, "the keeper stands at the Spire (%.1f m from it)" % at.distance_to(RealmLayout.SPIRE_C))
+	ok(String(RealmLayout.region_at(at.x, at.y).get("id", "")) == "stillwater", "in Stillwater")
+	ok(String(LootDB.RARE_OWN.get("lamp_shutter", "")) == "shutter_hasp" and GearDB.NAMED.has("shutter_hasp"), "the keeper has its own piece")
+	var main_steps: Array = Chains.QUESTS["founders_peal"].steps
+	ok(String((main_steps[0] as Dictionary).cond).begins_with("peal:") and String(Chains.QUESTS["full_peal"].steps[0].cond) == "bells:8", "the peal asks for the Marches' bell; the full peal for all eight")
+	ok(Chains.audit().is_empty(), "the audit passes with the eighth")
+	Travel.story = {}
+	ok(QuestDB.audit_cond("peal:4") == "", "peal:n is a condition term")
+	ok(not String(QuestDB.objective("peal").text).is_empty() and String(QuestDB.objective("summit_seal").when).contains("peal:4"), "the main objective asks for the peal, not just four bells")
 
 
 func _counting() -> void:
@@ -81,11 +102,15 @@ func _counting() -> void:
 	ok(Book.bells() == 2 and Book.bells_carried() == 1, "a rung bell and a carried one both count; one hangs at the Keg")
 	ok(not QuestDB.test("bells:4", {}), "two bells are not a peal")
 	Book.start("founders_peal")
-	ok(Chains.step_text("founders_peal", 0, Book.q("founders_peal")).contains("2 of 7"), "Brannoc's step counts them: %s" % Chains.step_text("founders_peal", 0, Book.q("founders_peal")))
+	ok(Chains.step_text("founders_peal", 0, Book.q("founders_peal")).contains("2 of 8"), "Brannoc's step counts them: %s" % Chains.step_text("founders_peal", 0, Book.q("founders_peal")))
 	for id: String in ["bell_quarry", "bell_moor"]:
 		Book.start(id)
 		Book.choose(id, "carried")
-	ok(QuestDB.test("bells:4", {}), "four bells are a peal")
+	ok(QuestDB.test("bells:4", {}), "four bells are four bells")
+	ok(not QuestDB.test("peal:4", {}) and not Book.peal_open(4), "but a peal wants the Marches' bell among them")
+	Book.start("bell_spire")
+	Book.choose("bell_spire", "rung")
+	ok(QuestDB.test("peal:4", {}) and Book.peal_open(4), "with the Spire's bell, the door hears it")
 	ok(Book.bells_carried() == 3, "three tongues at the Keg")
 
 
@@ -96,12 +121,18 @@ func _gates() -> void:
 	ward.requires_bosses = ["thornwarden", "bone_abbot"]
 	Travel.bosses_slain["thornwarden"] = true
 	Travel.bosses_slain["bone_abbot"] = true
-	ok(ward.bosses_ok(), "heart, crown and four bells: the ward will open")
+	ok(ward.bosses_ok(), "heart, crown and four bells, the Marches' among them: the ward will open")
+	Book.drop("bell_spire")
+	Book.start("bell_spire")
+	ok(not ward.bosses_ok(), "four bells that leave out the Marches' do not open it")
+	Book.choose("bell_spire", "carried")
+	ok(ward.bosses_ok(), "the tongue carried home counts as much as the bell rung")
 	Travel.story = {}
 	ok(not ward.bosses_ok(), "heart and crown, no bells: the ward stays shut")
 	ward.free()
 	ok(BossArena.no_peal(0, 4).begins_with("Nothing answers."), "the dais says why: %s" % BossArena.no_peal(0, 4))
 	ok(BossArena.no_peal(2, 4).contains("2") and BossArena.no_peal(2, 4).contains("4"), "and how far: %s" % BossArena.no_peal(2, 4))
+	ok(BossArena.no_peal(4, 4).contains("shut out"), "four bells without the Marches' says which is missing: %s" % BossArena.no_peal(4, 4))
 	# the Crossing's task waits for the peal
 	var avail := String(Chains.QUESTS["crossing_ward"].avail)
 	var ws := {"bosses": Travel.bosses_slain}
@@ -110,8 +141,8 @@ func _gates() -> void:
 	Book.complete("founders_peal")
 	ok(QuestDB.test(avail, ws), "and is once Brannoc has his peal")
 	# the Warden holds less for every tongue carried home (all seven: about a third)
-	ok(is_equal_approx(Warden.BELL_HOLD * 7.0, 0.35), "seven tongues cost the Warden 35% of his life")
-	ok(Warden.BELL_WORDS.size() == 8, "a word for every count of bells")
+	ok(is_equal_approx(Warden.BELL_HOLD * 8.0, 0.4), "eight tongues cost the Warden 40% of his life")
+	ok(Warden.BELL_WORDS.size() == 9, "a word for every count of bells")
 
 
 ## r36 Act III: the door, those still climbing, the names, the full peal; the valley after.

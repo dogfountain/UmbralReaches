@@ -214,7 +214,7 @@ func _refresh_targets() -> void:
 		if id == "forty_first" and s == 0:
 			at = Chains.ESCORT.to
 		var bell := ""
-		if not (at is Vector2) and String(stp.get("cond", "")).begins_with("bells:"):
+		if not (at is Vector2) and (String(stp.get("cond", "")).begins_with("bells:") or String(stp.get("cond", "")).begins_with("peal:")):
 			bell = _next_bell()                 # the peal's step wants bells, not a place: point at the nearest unanswered one
 			if bell != "":
 				at = Chains.step(bell, 0).get("at")
@@ -277,6 +277,8 @@ func _next_bell() -> String:
 	var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	var best := ""
 	var best_d := INF
+	if Book.pick(Chains.BELL_SHUT_OUT) == "" and Book.bells() >= Chains.BELLS_NEEDED:
+		return Chains.BELL_SHUT_OUT         # the door has its four but not the Marches' bell: that one is the way on
 	for bid: String in Chains.BELLS:
 		if Book.pick(bid) != "":
 			continue

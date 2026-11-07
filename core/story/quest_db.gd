@@ -30,12 +30,12 @@ const OBJECTIVES := [
 		"text": "Break the gallery seal in the Ossuary"},
 	{"id": "bone_abbot", "main": true, "when": "seal:oss_gallery", "done": "boss:bone_abbot",
 		"text": "Take the Abbot's crown from the Bone Abbot"},
-	# after both keepers: one line. The peal until four bells are answered, then the climb, then the door.
-	{"id": "peal", "main": true, "when": "boss:thornwarden,boss:bone_abbot", "done": "bells:4|boss:ascended_warden",
-		"text": "The door will hear a peal, not a crown: answer four of the Founder's bells. Brannoc has the first"},
-	{"id": "summit_seal", "main": true, "when": "boss:thornwarden,boss:bone_abbot,bells:4", "done": "seal:summit|boss:ascended_warden",
+	# after both keepers: one line. The peal until four bells (the Marches' among them) are answered, then the climb, then the door.
+	{"id": "peal", "main": true, "when": "boss:thornwarden,boss:bone_abbot", "done": "peal:4|boss:ascended_warden",
+		"text": "The door will hear a peal, not a crown: answer four of the Founder's bells, the Marches' among them. Brannoc has the first"},
+	{"id": "summit_seal", "main": true, "when": "boss:thornwarden,boss:bone_abbot,peal:4", "done": "seal:summit|boss:ascended_warden",
 		"text": "Carry heart and crown to the summit ward across the Crossing"},
-	{"id": "warden", "main": true, "when": "boss:thornwarden,boss:bone_abbot,bells:4,seal:summit", "done": "boss:ascended_warden",
+	{"id": "warden", "main": true, "when": "boss:thornwarden,boss:bone_abbot,peal:4,seal:summit", "done": "boss:ascended_warden",
 		"text": "Shut the door: face what holds it at the summit"},
 	{"id": "return", "main": true, "when": "boss:ascended_warden", "done": "flag:ending_told", "who": "keep", "mark": "turnin",
 		"text": "Return to the Kindled Keg"},

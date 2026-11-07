@@ -514,6 +514,8 @@ const NAMED := {
 		"lore": "Every pocket holds a pinch of grey seed. Plant one in ash and something comes up, slowly, that is not a tree."},
 	"ringer_clapper": {"name": "Passing-Ringer's Muffled Clapper", "slot": "focus", "rarity": 3, "aff": ["mark_dmg", "lance_charge", "power"],
 		"lore": "Wrapped in wool so it would strike once, softly, for each of the dead. It struck a great many times."},
+	"shutter_hasp": {"name": "Shutter's Hasp-Belt", "slot": "girdle", "rarity": 3, "aff": ["ward_life", "cd", "tether_reach"],
+		"lore": "The hasp that held the Spire's shutter closed for nine winters, hammered round to a belt. It still wants something to hold shut."},
 	"fare_lamp": {"name": "Fare-Caller's Coin-Lamp", "slot": "lantern", "rarity": 3, "aff": ["well_life", "shade_life", "mark_dmg"],
 		"lore": "A lamp with a slot cut in the lid for a coin, and a coin in it that has never once come out."},
 }

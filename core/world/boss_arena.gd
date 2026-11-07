@@ -84,6 +84,7 @@ class BossBar extends Control:
 		draw_rect(Rect2(0, 0, w, h), Color(0.5, 0.35, 0.7).lerp(Color(1.6, 1.0, 2.0), _flash), false, 1.0 + _flash * 2.0)
 var _warned := false
 var _warned_bells := -1
+const QuestBookScript := preload("res://core/story/quest_book.gd")
 var _cast_bar: CastBar
 var _cast_lbl: Label
 
@@ -184,8 +185,8 @@ func _physics_process(_d: float) -> void:
 				Events.toast.emit(nothing_answers(requires_bosses))
 			return
 	if requires_bells > 0:
-		var rung := int((load("res://core/story/quest_book.gd") as GDScript).call("bells"))
-		if rung < requires_bells:
+		var rung := QuestBookScript.bells()
+		if not QuestBookScript.peal_open(requires_bells):
 			if not _warned or rung != _warned_bells:      # a bell answered while away lets the door speak again
 				_warned = true
 				_warned_bells = rung
@@ -243,7 +244,9 @@ func _past_gate(at: Vector3) -> bool:
 static func no_peal(rung: int, need: int) -> String:
 	if rung == 0:
 		return "Nothing answers. The door was hung to a bell, and no bell rings below."
-	return "Nothing answers. The door hears %d of the Founder's bells. It wants %d." % [rung, need]
+	if rung >= need:
+		return "Nothing answers. The door hears %d of the Founder's bells, and not the one cast for the country the Order shut out. It wants that one." % rung
+	return "Nothing answers. The door hears %d of the Founder's bells. It wants %d, and the Marches' among them." % [rung, need]
 
 
 static func nothing_answers(req: Array) -> String:

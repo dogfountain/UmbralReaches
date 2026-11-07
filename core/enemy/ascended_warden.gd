@@ -29,7 +29,7 @@ const HP := 760
 const QuestBook := preload("res://core/story/quest_book.gd")
 var _attuned := false
 const BELL_HOLD := 0.05
-const BELL_WORDS := ["", "one bell", "two bells", "three bells", "four bells", "five bells", "six bells", "seven bells"]
+const BELL_WORDS := ["", "one bell", "two bells", "three bells", "four bells", "five bells", "six bells", "seven bells", "eight bells"]
 const SCALE := 5.0               ## r35: 3 -> 5 (~9 m): the final boss towers over the 56 m deck, "halfway into the sky"
 
 var phase := 1
@@ -140,13 +140,13 @@ func on_engaged(arena: Node) -> void:
 	_attuned = QuestBook.attuned("ascended_warden")
 	# r35: world cues, not text: one short line a mechanic, no instructions (the arena shows what to do)
 	# r36 Act II: every bell-tongue carried to Hearthward rings at the Keg as he wakes: he holds the
-	# door with that much less (5% of his life a bell, up to 35% for all seven)
+	# door with that much less (5% of his life a bell, up to 40% for all eight)
 	var carried := QuestBook.bells_carried()
 	if carried > 0:
 		max_hp = maxi(1, roundi(float(max_hp) * (1.0 - BELL_HOLD * float(carried))))   # a shorter life, a full bar
 		hp = float(max_hp)
 	if carried > 0:
-		BossKit.emote(self, "Far below, Hearthward rings %s. He holds the door with less: a twentieth a bell." % BELL_WORDS[mini(carried, 7)], BossKit.EMOTE_COL)
+		BossKit.emote(self, "Far below, Hearthward rings %s. He holds the door with less: a twentieth a bell." % BELL_WORDS[mini(carried, 8)], BossKit.EMOTE_COL)
 	else:
 		BossKit.emote(self, "The founder's bell rings in you. The sky will hold." if _attuned else "The Ascended Warden turns from the door.", BossKit.EMOTE_COL)
 

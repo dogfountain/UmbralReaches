@@ -126,6 +126,9 @@ const CONV_ARDEL := {"name": "Ardel Wick", "start": [["!met:ardel", "meet"], [""
 	"meet": {"say": "You'll have seen it from the road, or you won't have. The Spire. North of here, past the lake, on the bluff. It was never very high. It was high enough.", "next": "meet2"},
 	"meet2": {"say": "Ardel Wick. Lamplighter, third of my line. I kept the wick trimmed and the oil full until the winter the oil stopped coming. And then I kept it trimmed anyway.", "do": "met:ardel", "next": "hub"},
 	"hub": {"say_if": [
+		["qp:bell_spire:rung", "I heard it from the window. Eight, Brannoc's mother cast. I would have said seven and been wrong nine winters. Three lanterns on the lake road last night. Walking toward us."],
+		["qp:bell_spire:carried", "You took its tongue to the Keg. Fine. The Marches never needed ringing for. We needed someone to come and ask. You came and asked."],
+		["qd:spire_coal,q:founders_peal", "There's a bell at the Spire's foot. Past the lamp. The Order left a man at it and told him to see it stayed quiet. He saw to it. He's very good. Be better."],
 		["secret:open:spire_lamp", "I saw it. The glow on the lake, the first night. I sat up till dawn. It's a good light. It's still your light, you know. I only carried the wick."],
 		["qd:spire_coal", "North and up. It's a long climb: fourteen flights, and the last of them is the worst. Keep the coal in the dish. The wind off the lake will take it."],
 		["", "A flame that stays lit when it's looked at is a poor sort of flame. The lamp's dark, and it's waiting. It will light for anyone who carries the fire up. That's the whole of the trade."],
