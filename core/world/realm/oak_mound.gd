@@ -6,8 +6,11 @@ extends RefCounted
 const OUT := 10.0
 const SINK := 0.5               ## the earth stands this far up the roots' undersides (the ground is a 2 m grid: it cannot follow a root's flank)
 const BINS := 24
+const DOOR_HALF := 0.4          ## radians
 
-static func queue(roots: Mesh, centre: Vector2, oy: float) -> void:
+## `door` is the doorway's angle (atan2 of its x, z offset) and `ground` a Callable x, z -> y of the land as it is:
+## the doorway and its approach (DOOR_HALF either side) keep the land as it is.
+static func queue(roots: Mesh, centre: Vector2, oy: float, door: float, ground: Callable) -> void:
 	if roots == null or "--no-oak-mound" in OS.get_cmdline_user_args():
 		return
 	var n := BINS
@@ -50,6 +53,12 @@ static func queue(roots: Mesh, centre: Vector2, oy: float) -> void:
 		rows.append(row)
 	for d in first:                                   # inside the first root: its row
 		rows[d] = rows[first].duplicate()
+	for d in far + 1:                                 # the doorway is walked through: the land stays as it is there
+		for a in n:
+			var ang := float(a) / float(n) * TAU
+			if absf(wrapf(ang - door, -PI, PI)) <= DOOR_HALF:
+				var q := centre + Vector2(sin(ang), cos(ang)) * (float(d) + 0.5)
+				rows[d][a] = float(ground.call(q.x, q.y)) - SINK
 	var ring := PackedFloat32Array()
 	ring.resize((far + 1) * n)
 	for d in far + 1:

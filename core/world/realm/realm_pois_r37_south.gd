@@ -83,7 +83,8 @@ static func reserve(root: Node) -> void:
 	# --- the Grandmother Oak: a level round under the trunk and its roots' first reach, trees kept away
 	var oy := _ground_med(space, OAK_C)
 	Flora.tree_clear.append([OAK_C, 24.0])
-	OakMound.queue(Kit.mesh(Kit.OAK, "Roots"), OAK_C, oy)
+	var land := func(x: float, z: float) -> float: return RealmLayout.ground(space, x, z)
+	OakMound.queue(Kit.mesh(Kit.OAK, "Roots"), OAK_C, oy, float(Data.OAK_DOOR.a), land)
 	spots["r37s_oak"] = {"at": Vector3(OAK_C.x, oy, OAK_C.y), "yaw": 0.0, "rect": Rect2(OAK_C - Vector2(11, 11), Vector2(22, 22))}
 	# --- the shepherds' hut and fold: the fold's round first (a terrace), the hut beside it
 	var fold_pref := Vector2(12.0, 207.0)
