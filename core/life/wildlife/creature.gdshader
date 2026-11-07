@@ -57,8 +57,8 @@ void fragment() {
 	ALBEDO = base;
 	// r36 horses: a little warm fill so a coat keeps its colour under the moon's blue key
 	EMISSION = base * vec3(1.0, 0.62, 0.36) * warm;
-	ROUGHNESS = mix(roughness, 0.38, max(horn * 0.8, wet * 0.6));
-	SPECULAR = 0.35 + horn * 0.2;
+	ROUGHNESS = mix(roughness, 0.62, max(horn * 0.8, wet * 0.6));
+	SPECULAR = 0.3 - horn * 0.12;
 	RIM = rim_lit;
 	RIM_TINT = 0.4;
 	NORMAL = normalize(NORMAL + vec3(d - 0.5, fine - 0.5, 0.0) * fur_bump * (1.0 - horn));

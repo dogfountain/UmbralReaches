@@ -17,6 +17,9 @@ uniform float flap_hz = 7.0;
 uniform vec2 hip_front = vec2(0.6, -0.3);           // (y, z) of the front shoulder joint
 uniform vec2 hip_back = vec2(0.6, 0.3);
 uniform float leg_amp = 0.45;
+uniform vec2 knee_front = vec2(0.45, -0.3);         // (y, z) of the front carpus; below it the leg flexes
+uniform vec2 knee_back = vec2(0.45, 0.3);           // the hock
+uniform float knee_flex = 0.0;                      // radians of flex in mid-swing (0 = stiff legs); c.x = how much it is walking
 uniform vec3 throat_c = vec3(0.0, 0.02, -0.04);
 uniform float tail_sway = 0.12;
 uniform vec3 eye_col : source_color = vec3(0.9, 0.55, 0.15);
@@ -62,7 +65,18 @@ void rig_vertex(inout vec3 VERT, inout vec3 NORM, vec4 c, vec2 uv2, int iid, flo
 		float off = (part == 4 || part == 7) ? 0.0 : 3.14159;
 		vec2 hp = front ? hip_front : hip_back;
 		vec3 h = vec3(0.0, hp.x, hp.y);
-		mat3 r = rot_x(sin(c.z + off) * leg_amp);
+		float ph = c.z + off;
+		if (knee_flex > 0.0) {
+			// the lower leg folds up behind the knee (front) or forward at the hock as the leg swings through
+			vec2 kn = front ? knee_front : knee_back;
+			float w = smoothstep(kn.x + 0.05, kn.x - 0.05, p.y);
+			float fl = max(0.0, cos(ph)) * clamp(c.x, 0.0, 1.0) * knee_flex * (front ? -1.0 : 1.0) * w;
+			vec3 k = vec3(0.0, kn.x, kn.y);
+			mat3 rk = rot_x(fl);
+			p = k + rk * (p - k);
+			n = rk * n;
+		}
+		mat3 r = rot_x(sin(ph) * leg_amp);
 		p = h + r * (p - h);
 		n = r * n;
 	} else if (part == 8) {
