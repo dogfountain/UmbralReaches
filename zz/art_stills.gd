@@ -170,7 +170,7 @@ func _herd_view(kinds: Array, dist: float, tagn: String, pref := 0.5) -> void:
 ## In-world lineup: the species placed by hand on open ground by a herd's meadow (nothing bolts or hides),
 ## the real creature shader, light and fog. `kinds` stand in a loose row; the camera sits `dist` m off at
 ## yaw `yawd` (90 = side-on, 140 = front three-quarter, 40 = rear three-quarter).
-func _lineup(kinds: Array, dist: float, yawd: float, walking: bool, tagn: String, fov := 0.0) -> void:
+func _lineup(kinds: Array, dist: float, yawd: float, walking: bool, tagn: String, fov := 0.0, gait := -99.0, pitch := -99.0) -> void:
 	var meadow: Node3D = null
 	for g in w.groups:
 		if String(g.kind) == "deer":
@@ -194,7 +194,7 @@ func _lineup(kinds: Array, dist: float, yawd: float, walking: bool, tagn: String
 		var q := base + Vector3(float(i % 2) * 1.3, 0, float(i) * 2.6 - float(kinds.size() - 1) * 1.3)
 		q.y = RealmLayout.ground(player.get_world_3d().direct_space_state, q.x, q.z)
 		mmi.global_transform = Transform3D(Basis(Vector3.UP, deg_to_rad(float(i % 2) * 14.0)), q)
-		mmi.multimesh.set_instance_custom_data(0, Color(1.0 if walking else 0.0, 0.0, 1.2 + float(i) * 0.9, 0.0 if (walking or k == "hare") else -1.0))
+		mmi.multimesh.set_instance_custom_data(0, Color(1.0 if walking else 0.0, 0.0, 1.2 + float(i) * 0.9 if gait < -50.0 else gait, (0.0 if (walking or k == "hare") else -1.0) if pitch < -50.0 else pitch))
 		made.append(mmi)
 		mid += q
 	mid /= float(kinds.size())
@@ -264,6 +264,11 @@ func _run() -> void:
 			await _lineup([k], 2.6, 180.0, false, "line_%s_front_3" % k, 40.0)
 			await _lineup([k], 5.0, 180.0, true, "line_%s_front_6" % k, 40.0)
 			await _lineup([k], 2.6, 90.0, false, "line_%s_stand_3" % k, 40.0)
+			await _lineup([k], 2.6, 140.0, true, "line_%s_run3q_3" % k, 40.0)
+		await _lineup(["hare"], 2.6, 90.0, true, "line_hare_gather", 40.0, -1.5708)
+		await _lineup(["hare"], 2.6, 90.0, true, "line_hare_extend", 40.0, 1.5708)
+		await _lineup(["hare"], 2.6, 90.0, false, "line_hare_alert", 40.0, 0.0, 0.5)
+		await _lineup(["hare"], 2.6, 140.0, false, "line_hare_alert3q", 40.0, 0.0, 0.5)
 	if _want("beasts"):
 		for k: String in ["fox", "hare"]:
 			await _herd_view([k], 3.0, "beast_" + k)

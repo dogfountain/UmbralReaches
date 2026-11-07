@@ -238,7 +238,7 @@ static func fox(cm) -> void:
 		loft(cm, [key(0.038 * side, 0.47, -0.322, 0.034, 0.03), key(0.05 * side, 0.52, -0.315, 0.03, 0.026), key(0.064 * side, 0.575, -0.305, 0.019, 0.014),
 			key(0.078 * side, 0.635, -0.292, 0.004, 0.003)], 1.0, 10, 8, red, ear, HEAD, Vector3(0.55 * side, 0, 0.85))
 		cm.blob(Vector3(0.036 * side, 0.466, -0.374), Vector3(0.012, 0.01, 0.009), Basis.IDENTITY, black, 0.0, 0.0, HEAD, 3, 5, 1.0)
-		cm.blob(Vector3(0.04 * side, 0.428, -0.365), Vector3(0.017, 0.02, 0.036), Basis.IDENTITY, white.darkened(0.08), 0.0, 0.05, HEAD, 5, 8)
+		cm.blob(Vector3(0.05 * side, 0.428, -0.365), Vector3(0.02, 0.022, 0.038), Basis.IDENTITY, white.darkened(0.08), 0.0, 0.05, HEAD, 5, 8)
 	loft(cm, [key(0, 0.35, -0.16, 0.06, 0.085), key(0, 0.405, -0.23, 0.052, 0.072), key(0, 0.44, -0.29, 0.046, 0.058)], 1.0, 6, 12, red,
 		coat_fn(red, dark, white, red, 2.0, 0.9, white), HEAD)
 	var head := func(t: float, up: float, _side: float) -> Color:
@@ -246,8 +246,8 @@ static func fox(cm) -> void:
 		c = c.lerp(white, smoothstep(-0.15, -0.7, up))
 		c = c.lerp(white, smoothstep(0.35, 0.55, t) * smoothstep(0.3, -0.4, up) * 0.8)
 		return c.lerp(black, smoothstep(0.88, 0.98, t))
-	loft(cm, [key(0, 0.455, -0.29, 0.046, 0.05), key(0, 0.452, -0.335, 0.056, 0.054), key(0, 0.442, -0.385, 0.038, 0.037), key(0, 0.432, -0.44, 0.021, 0.022),
-		key(0, 0.424, -0.485, 0.012, 0.013), key(0, 0.421, -0.502, 0.009, 0.009)], 1.0, 12, 12, red, head, HEAD)
+	loft(cm, [key(0, 0.455, -0.29, 0.056, 0.054), key(0, 0.452, -0.335, 0.07, 0.058), key(0, 0.442, -0.385, 0.048, 0.04), key(0, 0.432, -0.44, 0.026, 0.024),
+		key(0, 0.424, -0.485, 0.014, 0.014), key(0, 0.421, -0.502, 0.01, 0.01)], 1.0, 12, 12, red, head, HEAD)
 	cm.blob(Vector3(0, 0.422, -0.504), Vector3(0.014, 0.011, 0.01), Basis.IDENTITY, black, 1.0, 0.0, HEAD, 4, 7)
 	var tail := func(t: float, up: float, _side: float) -> Color:
 		return red.darkened(0.08).lerp(dark, smoothstep(0.4, 1.0, up) * 0.45).lerp(cream, smoothstep(-0.1, -0.9, up) * 0.5).lerp(white, smoothstep(0.78, 0.9, t))
@@ -277,9 +277,9 @@ static func hare(cm) -> void:
 			1.0, 9, 7, fur, paw, fp, Vector3.BACK)
 		loft(cm, [key(x, 0.02, -0.113, 0.013, 0.012), key(x, 0.008, -0.13, 0.014, 0.012), key(x, 0.004, -0.15, 0.01, 0.008)], 1.0, 4, 7, fur, Callable(), fp, Vector3.UP)
 		# hind: the thigh swell sits above (it is in the trunk), a short shin down to a hock at the back, then the long foot lies flat
-		loft(cm, [key(x * 0.55, 0.2, 0.1, 0.03, 0.06), key(x * 1.0, 0.15, 0.14, 0.038, 0.07), key(x * 1.0, 0.1, 0.18, 0.026, 0.04), key(x, 0.055, 0.205, 0.018, 0.026),
-			key(x, 0.03, 0.205, 0.016, 0.02)], 1.0, 12, 8, fur, Callable(), bp, Vector3.BACK)
-		loft(cm, [key(x, 0.03, 0.205, 0.017, 0.016), key(x, 0.017, 0.14, 0.02, 0.014), key(x, 0.01, 0.07, 0.019, 0.013), key(x, 0.007, 0.03, 0.012, 0.01)],
+		loft(cm, [key(x * 0.5, 0.21, 0.1, 0.04, 0.07), key(x * 1.0, 0.15, 0.13, 0.052, 0.092), key(x * 1.05, 0.1, 0.18, 0.038, 0.058), key(x, 0.055, 0.205, 0.026, 0.036),
+			key(x, 0.03, 0.205, 0.022, 0.026)], 1.0, 14, 10, fur, Callable(), bp, Vector3.BACK)
+		loft(cm, [key(x, 0.03, 0.205, 0.024, 0.02), key(x, 0.018, 0.14, 0.03, 0.018), key(x, 0.01, 0.07, 0.032, 0.016), key(x, 0.007, 0.03, 0.02, 0.012)],
 			1.0, 10, 8, fur, paw, bp, Vector3.UP)
 		# head details: big side eyes and ears with width, laid half back, black-tipped
 		cm.blob(Vector3(0.04 * side, 0.283, -0.19), Vector3(0.016, 0.018, 0.015), Basis.IDENTITY, black, 0.0, 0.0, HEAD, 4, 6)

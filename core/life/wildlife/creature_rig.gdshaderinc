@@ -17,6 +17,7 @@ uniform float flap_hz = 7.0;
 uniform vec2 hip_front = vec2(0.6, -0.3);           // (y, z) of the front shoulder joint
 uniform vec2 hip_back = vec2(0.6, 0.3);
 uniform float leg_amp = 0.45;
+uniform float pair_gait = 0.0;                      // 1: a bounding gait, both forelegs together and both hind legs together (hares)
 uniform vec2 knee_front = vec2(0.45, -0.3);         // (y, z) of the front carpus; below it the leg flexes
 uniform vec2 knee_back = vec2(0.45, 0.3);           // the hock
 uniform float knee_flex = 0.0;                      // radians of flex in mid-swing (0 = stiff legs); c.x = how much it is walking
@@ -63,6 +64,9 @@ void rig_vertex(inout vec3 VERT, inout vec3 NORM, vec4 c, vec2 uv2, int iid, flo
 	} else if (part >= 4 && part <= 7) {
 		bool front = part <= 5;
 		float off = (part == 4 || part == 7) ? 0.0 : 3.14159;
+		if (pair_gait > 0.5) {
+			off = front ? 0.0 : 3.14159;
+		}
 		vec2 hp = front ? hip_front : hip_back;
 		vec3 h = vec3(0.0, hp.x, hp.y);
 		float ph = c.z + off;
