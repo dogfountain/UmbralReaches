@@ -1124,6 +1124,13 @@ static func _place_under(_rng: RandomNumberGenerator, items: Dictionary) -> void
 		_list_hash[sp] = hash(ids[sp][0]) if not (ids[sp] as Array).is_empty() else 0
 	_under_kinds = kinds
 	_under_ids = ids
+	_soft_on = not r30 and not Zones.off()
+	_nm.resize(9)
+	_ukind.clear()
+	for sp: String in kinds:
+		var st: Array = STYLE[sp]
+		_ukind.append([int(KCODE.get(sp, 99)), float(st[2]), float(st[3]) + float(spreads[sp]), sp in TINTED,
+			sp in Zones.SOFT_KINDS and _soft_on, ids[sp], _list_hash[sp]])
 	# the old Realm's rows as they were; the rest of the new world is a second set of rows from other seeds
 	var b := RealmLayout.OLD_BOUNDS
 	var nrow := int(ceil(b.size.y / UCELL))
@@ -1134,7 +1141,7 @@ static func _place_under(_rng: RandomNumberGenerator, items: Dictionary) -> void
 		var z := b.position.y + j * UCELL
 		var x := b.position.x
 		while x < b.end.x:
-			_under_cell(rng, items, out, kinds, ids, x, z)
+			_under_cell(rng, items, out, kinds, x, z)
 			x += UCELL
 	var nb := RealmLayout.BOUNDS
 	var nrow2 := int(ceil(nb.size.y / UCELL))
@@ -1145,7 +1152,7 @@ static func _place_under(_rng: RandomNumberGenerator, items: Dictionary) -> void
 		var x2 := nb.position.x
 		while x2 < nb.end.x:
 			if not b.has_point(Vector2(x2, z2)):
-				_under_cell(rng2, items, out, kinds, ids, x2, z2)
+				_under_cell(rng2, items, out, kinds, x2, z2)
 			x2 += UCELL
 	_lap("under_cells")
 	for e: Array in out:
@@ -1197,49 +1204,61 @@ static func _intrudes(b: AABB, pad: float) -> bool:
 static var spreads := {}               ## species -> widest variant footprint radius (m)
 
 
+## Kind codes for the undergrowth's hot loops (an int match instead of string compares).
+const KCODE := {"grass": 0, "tallgrass": 1, "flowers": 2, "heather": 3, "fern": 4, "litter": 5, "moss": 6, "roots": 7,
+	"mushroom": 8, "shrub": 9, "bramble": 10, "glowcap": 11, "gorse": 12, "deadbush": 13, "scaffold": 14,
+	"ashdrift": 15, "cinders": 16, "lily": 17, "reeds": 18, "cattail": 19, "log": 20, "stump": 21}
+static var _ukind: Array = []          ## per UNDER kind: [code, keep_p, keep_s, tinted, soft kind, variant list, list hash]
+static var _nm := PackedFloat32Array() ## noise values of the cell being placed (NAN = not asked yet)
+static var _soft_on := true
+
+
 ## One 2 m cell of undergrowth into `items`; plants on a runtime lane's ground into `out` as
 ## [id, Transform3D, Color, true, species] for the physics check.
-static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Array, kinds: Array, ids: Dictionary, x: float, z: float) -> void:
+static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Array, kinds: Array, x: float, z: float) -> void:
 	var k := _idx(x + UCELL * 0.5, z + UCELL * 0.5)
 	if (_sd[k] < 0.3 and _soft[k] <= 0.0) or _pd[k] < 0.0:
 		return
 	var bc := _bidx(x, z)
-	var nk := kinds.size()
 	var cov := cover_at(x, z)
 	var y := _gy[k]
 	var shore := y < WATER_Y + 0.3 and y > WATER_Y - 0.35
 	var fen := _fw[bc]
 	var tint := _tc[bc]
 	var rates: PackedFloat32Array = _rc[bc]
+	_nm.fill(NAN)
+	var near_spawn := Vector2(x, z).distance_to(Vector2(RealmLayout.SPAWN.x, RealmLayout.SPAWN.z)) < 18.0
 	for s: int in _ck[bc]:
 		var sp: String = kinds[s]
+		var uk: Array = _ukind[s]
+		var code: int = uk[0]
 		var rate := rates[s]
-		if rate <= 0.0 and not ((sp == "reeds" or sp == "cattail") and shore):
+		var wet := code == 18 or code == 19
+		if rate <= 0.0 and not (wet and shore):
 			continue
-		if sp == "reeds" or sp == "cattail":
+		if wet:
 			if shore and fen > 0.2:
-				var boost := (0.3 if sp == "reeds" else 0.1) * clampf(_noise[2].get_noise_2d(x * 1.7, z * 1.7) * 3.0 + 0.2, 0.0, 1.5)
+				var boost := (0.3 if code == 18 else 0.1) * clampf(_nv(7, 2, x * 1.7, z * 1.7) * 3.0 + 0.2, 0.0, 1.5)
 				for e: Array in _lk[bc]:
 					boost *= lerpf(1.0, float(((e[0] as Dictionary).get("under_mul", {}) as Dictionary).get(sp, 1.0)), float(e[1]))
 				rate += boost
 		if rate <= 0.0:
 			continue
-		if sp == "lily" and y > WATER_Y - 0.12:
+		if code == 17 and y > WATER_Y - 0.12:
 			continue                                   # pads only on open water
-		rate *= _under_mod(sp, x, z, cov)
+		rate *= _under_mod(code, x, z, cov, near_spawn)
 		var expect := rate * UCELL * UCELL
 		var n := int(expect)
 		if rng.randf() < expect - n:
 			n += 1
 		if n == 0:
 			continue
-		var st: Array = STYLE[sp]
-		var keep_p := float(st[2])
-		var keep_s := float(st[3]) + float(spreads[sp])
-		var tinted: bool = sp in TINTED
-		var soft_kind: bool = sp in Zones.SOFT_KINDS and not r30 and not Zones.off()
-		var list: Array = ids[sp]
-		var lh: int = _list_hash[sp]
+		var keep_p: float = uk[1]
+		var keep_s: float = uk[2]
+		var tinted: bool = uk[3]
+		var soft_kind: bool = uk[4]
+		var list: Array = uk[5]
+		var lh: int = uk[6]
 		for c in n:
 			var px := x + rng.randf() * UCELL
 			var pz := z + rng.randf() * UCELL
@@ -1253,65 +1272,72 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 			elif _pd[kk] < keep_p + 1.5 and RealmLayout.path_dist(Vector2(px, pz)) < keep_p:
 				continue                                   # the grid is 1 m: exact near the edge
 			var gy := ground_y(px, pz)
-			if sp == "lily":
+			if code == 17:
 				if gy > WATER_Y - 0.15 or not Land.in_water(px, pz):
 					continue
 				gy = WATER_Y
-			elif gy < WATER_Y + 0.12 and not (sp == "reeds" or sp == "cattail"):
+			elif gy < WATER_Y + 0.12 and not wet:
 				continue
-			if (sp == "reeds" or sp == "cattail") and gy < WATER_Y - 0.4:
+			if wet and gy < WATER_Y - 0.4:
 				continue
-			if _gn[kk] < 0.6 and sp != "moss" and sp != "lily":
+			if _gn[kk] < 0.6 and code != 6 and code != 17:
 				continue
-			var nrm := Vector3(_gnx[kk], _gn[kk], _gnz[kk]).normalized() if sp != "lily" else Vector3.UP
+			var nrm := Vector3(_gnx[kk], _gn[kk], _gnz[kk]).normalized() if code != 17 else Vector3.UP
 			var id: String = _variant(list, px, pz, CHUNK, 1, rng, lh)
-			var xf := _plant_xf(rng, sp, Vector3(px, gy, pz), nrm)
+			var xf := _plant_xf(rng, code, Vector3(px, gy, pz), nrm)
 			var near_way := _pd[kk] < 4.0
 			if (_sd[kk] < 8.0 or near_way) and _clash(null, id, xf, false, AABB(), 0.6 if near_way else 0.4):
 				continue
 			var lane := false
 			if near_way:
 				lane = _near_lane(xf * mesh_aabb(id))
-			var col := _tint(rng, 0.14 if sp != "flowers" else 0.05)
+			var col := _tint(rng, 0.14 if code != 2 else 0.05)
 			if tinted:
 				col = Color(col.r * tint.r, col.g * tint.g, col.b * tint.b, 1.0)
 			if lane:
-				out.append([id, xf, col, lane, sp])        # WorldLanes.intrudes after the pass
+				out.append([id, xf, col, lane, sp])        # the lane check after the pass
 			else:
 				_add(items, id, xf, col, sp)
 
 
-static func _under_mod(sp: String, x: float, z: float, cov: float) -> float:
+## A noise value for the cell being placed, asked once per slot: the kinds of a cell share the same
+## few lookups.
+static func _nv(slot: int, ni: int, x: float, z: float) -> float:
+	var v := _nm[slot]
+	if is_nan(v):
+		v = _noise[ni].get_noise_2d(x, z)
+		_nm[slot] = v
+	return v
+
+
+static func _under_mod(code: int, x: float, z: float, cov: float, near_spawn: bool) -> float:
 	var m := 1.0
-	match sp:
-		"grass", "flowers", "heather", "tallgrass":
+	match code:
+		0, 2, 3, 1:                                    # grass, flowers, heather, tallgrass
 			m *= 1.0 - 0.75 * cov
-			m *= clampf(0.85 + _noise[1].get_noise_2d(x, z) * 0.7, 0.35, 1.4)
-		"fern":
+			m *= clampf(0.85 + _nv(0, 1, x, z) * 0.7, 0.35, 1.4)
+		4:                                             # fern
 			m *= 0.35 + 1.1 * cov
-			m *= clampf(0.6 + _noise[2].get_noise_2d(x, z) * 1.5, 0.0, 1.8)
+			m *= clampf(0.6 + _nv(1, 2, x, z) * 1.5, 0.0, 1.8)
 			m *= 1.0 + 0.8 * _edge(cov)
-		"litter", "moss", "mushroom", "roots":
+		5, 6, 8, 7:                                    # litter, moss, mushroom, roots
 			m *= 0.25 + 1.3 * cov
-			m *= clampf(0.6 + _noise[4].get_noise_2d(x, z) * 1.3, 0.0, 1.8)
-		"shrub", "bramble":
-			m *= clampf(0.4 + _noise[5].get_noise_2d(x, z) * 1.8, 0.0, 2.2)
+			m *= clampf(0.6 + _nv(3, 4, x, z) * 1.3, 0.0, 1.8)
+		9, 10:                                         # shrub, bramble
+			m *= clampf(0.4 + _nv(4, 5, x, z) * 1.8, 0.0, 2.2)
 			m *= 1.0 + 1.6 * _edge(cov)
-		"glowcap":
+		11:                                            # glowcap
 			m *= 0.3 + cov
-		"gorse", "deadbush", "scaffold":
-			m *= clampf(0.4 + _noise[5].get_noise_2d(x, z) * 1.8, 0.0, 2.2)
-		"ashdrift", "cinders":
-			m *= clampf(0.7 + _noise[4].get_noise_2d(x * 0.8, z * 0.8) * 1.6, 0.0, 2.0)
-		"lily":
-			m *= clampf(0.5 + _noise[2].get_noise_2d(x * 1.3, z * 1.3) * 2.0, 0.0, 2.0)
-		"flowers":
-			pass
-	if sp == "flowers":
-		m *= clampf(0.3 + _noise[3].get_noise_2d(x, z) * 2.0, 0.0, 2.0)
+		12, 13, 14:                                    # gorse, deadbush, scaffold
+			m *= clampf(0.4 + _nv(4, 5, x, z) * 1.8, 0.0, 2.2)
+		15, 16:                                        # ashdrift, cinders
+			m *= clampf(0.7 + _nv(5, 4, x * 0.8, z * 0.8) * 1.6, 0.0, 2.0)
+		17:                                            # lily
+			m *= clampf(0.5 + _nv(6, 2, x * 1.3, z * 1.3) * 2.0, 0.0, 2.0)
+	if code == 2:
+		m *= clampf(0.3 + _nv(2, 3, x, z) * 2.0, 0.0, 2.0)
 	# the meadow round the spawn and the tavern stays walkable and open: grass only near them
-	var sd := Vector2(x, z).distance_to(Vector2(RealmLayout.SPAWN.x, RealmLayout.SPAWN.z))
-	if sd < 18.0 and sp in ["shrub", "bramble", "tallgrass", "log", "stump"]:
+	if near_spawn and (code == 9 or code == 10 or code == 1 or code == 20 or code == 21):
 		m *= 0.1
 	return m
 
@@ -1324,16 +1350,16 @@ static func _edge(cov: float) -> float:
 	return clampf(1.0 - absf(cov - 0.35) / 0.3, 0.0, 1.0)
 
 
-static func _plant_xf(rng: RandomNumberGenerator, sp: String, p: Vector3, nrm: Vector3) -> Transform3D:
+static func _plant_xf(rng: RandomNumberGenerator, code: int, p: Vector3, nrm: Vector3) -> Transform3D:
 	var yaw := rng.randf() * TAU
 	var s := rng.randf_range(0.8, 1.25)
 	var up := Vector3.UP
-	match sp:
-		"litter", "moss", "roots", "ashdrift", "scaffold":
+	match code:
+		5, 6, 7, 15, 14:                               # litter, moss, roots, ashdrift, scaffold
 			up = nrm
-		"lily":
+		17:                                            # lily
 			up = Vector3.UP
-		"log":
+		20:                                            # log
 			up = nrm.lerp(Vector3.UP, 0.3).normalized()
 		_:
 			up = nrm.lerp(Vector3.UP, 0.7).normalized()
@@ -1341,12 +1367,12 @@ static func _plant_xf(rng: RandomNumberGenerator, sp: String, p: Vector3, nrm: V
 	var rt := up.cross(fwd).normalized()
 	fwd = rt.cross(up).normalized()
 	var basis := Basis(rt, up, fwd)
-	if sp == "log":
+	if code == 20:
 		s = rng.randf_range(0.85, 1.1)
-	elif sp in ["reeds", "cattail", "tallgrass"]:
+	elif code == 18 or code == 19 or code == 1:
 		basis = basis.scaled(Vector3(1, rng.randf_range(0.85, 1.25), 1))
 	var sink := 0.0
-	if sp in ["log", "stump", "roots"]:
+	if code == 20 or code == 21 or code == 7:
 		sink = -0.08
 	return Transform3D(basis.scaled(Vector3(s, s, s)), p + up * sink)
 
