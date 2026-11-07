@@ -40,6 +40,7 @@ const MORE_KIN := ["res://core/enemy/bulwark.gd", "res://core/enemy/chanter.gd",
 	"res://core/enemy/cinder_caster.gd"]
 ## The great ones: their own materials (boss_pbr) and parts, shown once so a pull compiles nothing.
 const PanelWarm := preload("res://ui/panel_warm.gd")
+const PauseScope := preload("res://core/world/pause_scope.gd")
 const WarmAttackKit := preload("res://core/enemy/attack_kit.gd")
 const WarmBossKit := preload("res://core/enemy/boss_kit.gd")
 const WarmHorseRig := preload("res://core/world/mount/horse_rig.gd")
@@ -232,6 +233,7 @@ func _next(p: String) -> void:
 		_start_tour()
 	elif p == "panels":
 		_end_tour()
+		PauseScope.mark(zone)                 # scenery branches skip the pause's notification walk
 		_pw = PanelWarm.new()
 		_pw.zone = zone
 		add_child(_pw)
