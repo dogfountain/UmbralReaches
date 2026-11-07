@@ -42,6 +42,7 @@ func _setup_movement_fx() -> void:
 	player.add_child(player._slide_sfx)
 	player._charge_fx = Vfx.emitter(Color(2.4, 0.8, 0.25), {"count": 40, "life": 0.45, "speed": Vector2(0.0, 0.3), "size": 0.045, "gravity": 0.6, "radius": 0.75, "radial": -9.0, "swirl": 4.0, "damping": 0.5, "trail": 0.08})
 	player._charge_fx.top_level = true
+	player._charge_fx.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # placed every rendered frame at the drawn staff head
 	player.add_child(player._charge_fx)
 	# the Lance gathering at the staff head: an ember orb that swells with the charge, with its light
 	player._charge_orb = MeshInstance3D.new()
@@ -58,6 +59,7 @@ func _setup_movement_fx() -> void:
 	player._charge_orb.material_override = om
 	player._charge_orb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	player._charge_orb.top_level = true
+	player._charge_orb.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # placed every rendered frame at the drawn staff head
 	player._charge_orb.visible = false
 	player.add_child(player._charge_orb)
 	player._charge_halo = MeshInstance3D.new()
@@ -72,12 +74,14 @@ func _setup_movement_fx() -> void:
 	player._charge_halo.material_override = hm
 	player._charge_halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	player._charge_halo.top_level = true
+	player._charge_halo.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # placed every rendered frame at the drawn staff head
 	player._charge_halo.visible = false
 	player.add_child(player._charge_halo)
 	player._charge_light = OmniLight3D.new()
 	player._charge_light.light_color = Color(1.0, 0.5, 0.2)
 	player._charge_light.shadow_enabled = false
 	player._charge_light.top_level = true
+	player._charge_light.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # placed every rendered frame at the drawn staff head
 	player._charge_light.visible = false
 	player._charge_light.set_meta("light_class", "player_orb")
 	player.add_child(player._charge_light)

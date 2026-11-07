@@ -278,6 +278,7 @@ func _make_lock_mark() -> MeshInstance3D:
 	mi.material_override = m
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.top_level = true
+	mi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # placed every rendered frame on the drawn target
 	mi.visible = false
 	player.add_child(mi)
 	return mi

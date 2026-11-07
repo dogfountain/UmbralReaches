@@ -11,6 +11,7 @@ var _glint: MeshInstance3D
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # its bob and turn are set every rendered frame
 	add_to_group(Groups.INTERACTABLE)
 	_t = randf() * 6.0
 	var d := ItemDB.def(item_id)

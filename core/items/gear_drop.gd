@@ -16,6 +16,7 @@ var _beam: MeshInstance3D
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # it drifts to the wanderer and turns every rendered frame
 	add_to_group("gear_drop")
 	var r := int(piece.get("rarity", 0))
 	var col := GearDB.rarity_color(r)

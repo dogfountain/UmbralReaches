@@ -15,6 +15,7 @@ static var _mesh: QuadMesh
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # its glow is scaled every rendered frame
 	name = "UnkindledGlow"
 	if _mesh == null:
 		_mesh = QuadMesh.new()

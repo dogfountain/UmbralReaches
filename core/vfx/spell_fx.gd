@@ -157,6 +157,7 @@ static func target_ring() -> MeshInstance3D:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.top_level = true
 	mi.visible = false
+	mi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # the owner places it every rendered frame
 	return mi
 
 

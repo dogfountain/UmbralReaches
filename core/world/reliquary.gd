@@ -54,6 +54,7 @@ var _light: OmniLight3D
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # its bob and turn are set every rendered frame
 	add_to_group(Groups.INTERACTABLE)
 	_vis = Node3D.new()
 	_vis.scale = Vector3.ONE * size
