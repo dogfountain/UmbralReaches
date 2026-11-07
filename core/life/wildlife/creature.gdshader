@@ -66,7 +66,8 @@ void fragment() {
 	EMISSION += rim_col * fres * rim_amount * 0.12;
 	if (v_eye > 0.5) {
 		ALBEDO = vec3(0.02);
-		ROUGHNESS = 0.15;
+		ROUGHNESS = 0.08;
+		SPECULAR = 1.0;
 		EMISSION += eye_col * eye_energy * v_blink;
 	}
 }

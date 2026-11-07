@@ -109,6 +109,7 @@ static func ensure_mats() -> void:
 	OssKit._mats["lamp_iron"] = li
 	var lw := (OssKit.mat("lore_beam") as StandardMaterial3D).duplicate() as StandardMaterial3D
 	lw.albedo_color = Color(1.9, 1.75, 1.6)
+	lw.uv1_scale = Vector3.ONE * 2.2          # the beam grain at a post's width: finer, not stretched
 	lw.rim_enabled = true
 	lw.rim = 0.4
 	lw.rim_tint = 0.5
