@@ -11,7 +11,7 @@ const PLACES := {
 	"foundry": [Vector2(123, -76), Vector2(135, -105), 6.0, 4.5, 2.2, 60.0, 1.5, 0.8, 0.5],
 	"orchard": [Vector2(-99, 104), Vector2(-128, 132), 3.0, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
 	"quarry": [Vector2(-120, -83), Vector2(-128, -104), 4.0, 4.5, 2.4, 60.0, 1.5, 0.8, 0.5],
-	"moor": [Vector2(125, -15), Vector2(142, -24), 4.0, 8.0, 6.0, 58.0, 1.5, 1.0, 0.5],
+	"moor": [Vector2(129, -14), Vector2(142, -24), 4.0, 5.0, 6.0, 58.0, 1.0, 1.0, 0.3],
 	"holds": [Vector2(-133, 13), Vector2(-121, 11), 3.0, 4.2, 4.8, 58.0, 0.5, 1.0, 0.4],
 	"crowns": [Vector2(0, 66), Vector2(0, -110), 30.0, 5.0, 2.4, 60.0, 1.5, 1.2, 0.6],
 	"stillwater": [Vector2(232, 26), Vector2(241, 8), 24.0, 20.0, 12.0, 80.0, 0.5, 1.0, 0.0, 1.0],
@@ -29,7 +29,7 @@ const PLACES := {
 ## The places whose lens is picked by the clear-lens solver (vista_clear: never behind a wall, a roof, a sign or a headstone,
 ## the wanderer kept in the lower third); the rest trail the wanderer with the plain Cam.vista.
 ## id -> a fixed sideways shift of the lens (+ = right of the walk), to slide it past something in the foreground.
-const LENS_SIDE := {"moor": 4.5}
+const LENS_SIDE := {"moor": 2.0}
 const CLEAR_LENS := ["quarry", "holds", "stillwater", "moor", "necropolis", "siege", "saltmarket", "well", "anchorholds", "hierarch"]
 
 
