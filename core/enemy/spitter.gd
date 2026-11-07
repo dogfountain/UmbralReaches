@@ -140,7 +140,7 @@ func _think() -> void:
 	if _strafe_t <= 0.0:
 		_strafe_t = randf_range(1.2, 2.2)
 		_strafe = -_strafe
-	if _p == null:
+	if _p == null and not _on_threat:
 		_hold_post(_home_planar())
 		return
 	var from_home := _home_planar()
@@ -156,12 +156,12 @@ func _think() -> void:
 					_calm_t = 3.5                   # sheltered in light: it gives up the chase like a melee body
 				_set_state(IDLE)
 				_hold_post(from_home)
-			elif _shot_cd <= 0.0 and can_cast() and _dist <= fire_range and _strike_clear(_p):
+			elif _shot_cd <= 0.0 and can_cast() and _dist <= fire_range and (_on_threat or _strike_clear(_p)):
 				_wish = Vector3.ZERO
 				_face_dir = _to / maxf(_dist, 0.001)
 				_lobbing = _dist > kite_max + 1.5 and randf() < 0.5 and not has_meta(&"elite_id")
 				_set_state(WINDUP)
-			elif _shot_cd <= 0.0 and can_cast() and _dist <= fire_range and not has_meta(&"elite_id"):
+			elif _shot_cd <= 0.0 and can_cast() and _dist <= fire_range and not _on_threat and not has_meta(&"elite_id"):
 				# no line on you (cover, a rise): lob over it
 				_wish = Vector3.ZERO
 				_face_dir = _to / maxf(_dist, 0.001)
@@ -193,7 +193,7 @@ func _kite() -> void:
 		return
 	var dir := _to / _dist
 	var side := Vector3(-dir.z, 0.0, dir.x) * _strafe
-	if is_instance_valid(_shield_ally) and _shield_ally.is_alive() and _dist >= kite_min * 0.8:
+	if _p != null and is_instance_valid(_shield_ally) and _shield_ally.is_alive() and _dist >= kite_min * 0.8:
 		# keep a packmate between us: the spot 3.5 m behind it, on the line from you
 		var a := _shield_ally.global_position
 		var back := a - _p.global_position
@@ -217,19 +217,25 @@ func _kite() -> void:
 
 
 func _spit() -> void:
-	if _p == null:
+	if _p == null and not _on_threat:
 		return
 	var from := global_position + Vector3.UP * 1.45
 	if _sac:
 		from = _sac.global_position
 	var aim := _spit_aim(from)
-	SpitOrb.launch(get_tree().current_scene, from, aim - from, spit_gloom)
+	var orb := SpitOrb.launch(get_tree().current_scene, from, aim - from, spit_gloom)
+	if orb != null:
+		orb.at_ward = _on_threat
 	Sfx.play_stream(EnemyAudio.kit("spit"), from, -4.0)
 	Vfx.burst(from, Color(0.3, 1.6, 1.1), {"count": 14, "life": 0.3, "speed": Vector2(1.0, 3.0), "size": 0.05, "dir": (aim - from).normalized(), "spread": 30.0, "gravity": -6.0})
 
 
 ## The point the orb is thrown at: where you are plus half your run over its flight (the lane follows it).
 func _spit_aim(from: Vector3) -> Vector3:
+	if _on_threat:
+		var t := _threat_node()
+		var at := (t.global_position if t != null else global_position + _to) + Vector3.UP * 1.0
+		return at + Vector3.UP * 0.5 * SpitOrb.SAG * pow(from.distance_to(at) / SpitOrb.SPEED, 2.0)
 	var aim := _p.global_position + Vector3.UP * 1.05
 	var t := from.distance_to(aim) / SpitOrb.SPEED
 	var pv := Vector3(_p.velocity.x, 0.0, _p.velocity.z)
@@ -262,7 +268,7 @@ func _lob() -> void:
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
-	if _state == WINDUP and not _lobbing and _p != null and is_instance_valid(_danger) and _hitstop == 0:
+	if _state == WINDUP and not _lobbing and (_p != null or _on_threat) and is_instance_valid(_danger) and _hitstop == 0:
 		_aim_lane()
 	if _sac:
 		var swell := clampf(_state_t / _cur_wind(), 0.0, 1.0) if _state == WINDUP else 0.0

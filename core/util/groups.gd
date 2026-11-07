@@ -13,5 +13,6 @@ const CULL_SMALL := "cull_small"
 const CULL_FOLIAGE := "cull_foliage"
 const CULL_SKIP := "cull_skip"
 const OCCLUDER_TRUNK := "occluder_trunk"
+const WARD_TARGET := "ward_target"    ## an escort walker / defend ward (WardTarget): foes sent at it go for it
 const ENEMY_SHOT := "enemy_shot"
 const BRAZIER := "brazier"            ## every Brazier (joins in _ready): Travel saves read lit fires from it
