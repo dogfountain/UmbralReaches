@@ -13,9 +13,9 @@ const LEGS := ["fl", "fr", "hl", "hr"]
 ## leg phase offsets (fraction of a stride) in LEGS order, duty (stance share), reach (m, half sweep),
 ## lift (m), and the stride length (m) of each gait
 const GAITS := {
-	"walk": {"off": [0.25, 0.75, 0.0, 0.5], "duty": 0.66, "lift": 0.075, "stride": 1.95, "reach": 0.34},
-	"trot": {"off": [0.0, 0.5, 0.5, 0.0], "duty": 0.46, "lift": 0.13, "stride": 3.4, "reach": 0.42},
-	"gallop": {"off": [0.52, 0.64, 0.0, 0.12], "duty": 0.3, "lift": 0.2, "stride": 5.4, "reach": 0.5},
+	"walk": {"off": [0.25, 0.75, 0.0, 0.5], "duty": 0.68, "lift": 0.085, "stride": 1.5, "reach": 0.5},
+	"trot": {"off": [0.0, 0.5, 0.5, 0.0], "duty": 0.46, "lift": 0.14, "stride": 2.9, "reach": 0.6},
+	"gallop": {"off": [0.52, 0.64, 0.0, 0.12], "duty": 0.3, "lift": 0.2, "stride": 4.6, "reach": 0.62},
 }
 const BONES := ["root", "hips", "barrel", "chest", "neck1", "neck2", "neck3", "head", "ear_r", "ear_l", "tail0", "tail1", "tail2", "tail3",
 	"lantern", "mane1", "mane2", "mane3", "fl_up", "fl_low", "fl_fet", "fr_up", "fr_low", "fr_fet", "hl_up", "hl_low", "hl_fet", "hr_up", "hr_low", "hr_fet"]
@@ -32,6 +32,17 @@ var walk_s := 2.4
 var trot_s := 6.0
 var gallop_s := 10.0
 var size := 1.0                        ## withers height over the palfrey's: strides, lifts
+var heft := 1.0                        ## how heavy it moves (horse_db): cadence, nod, how lazily tail and mane follow
+var turn := 0.0                        ## the horse's yaw rate (rad/s, + left), set by horse.gd: the bank and the head's lead
+var body_pitch := 0.0                  ## outputs for the rider to follow, with lag (+ nose up)
+var body_roll := 0.0
+var _bank := 0.0
+var _turn_s := 0.0
+var _acc_s := 0.0
+var _tail_a: Array[Vector2] = [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO]
+var _tail_v: Array[Vector2] = [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO]
+var _mane_a: Array[Vector2] = [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO]
+var _mane_v: Array[Vector2] = [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO]
 var _bi := {}                          ## bone name -> index
 var _rest_g := {}                      ## bone name -> rest global basis (skeleton space)
 var _rest_p := {}                      ## bone name -> rest global origin
@@ -63,6 +74,7 @@ func setup(b: String, d: Dictionary) -> void:
 	trot_s = float(d.trot)
 	gallop_s = float(d.gallop)
 	size = float(d.get("size", 1.0))
+	heft = float(d.get("heft", 1.0))
 	_seed = float(hash(b) % 1000) * 0.01
 	var ps := load(String(d.model)) as PackedScene
 	var root := ps.instantiate()
@@ -147,7 +159,7 @@ static func _find(n: Node, cls: String) -> Node:
 ## Strides per second at `speed` (the gait's stride length grows with speed; at a standstill nothing).
 func freq(speed: float) -> float:
 	var g := _blend(speed)
-	return speed / maxf(float(g.stride) * size, 0.5)
+	return speed / maxf(float(g.stride) * size * pow(heft, 0.3), 0.5)
 
 
 ## The gait parameters at a speed: walk below `walk_s`, blending to trot, then to gallop.
@@ -189,7 +201,7 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 	var rise_w := maxf(sv, 0.0)
 	var fall_w := clampf(-sv * 1.4, 0.0, 1.0)                # reaching for the ground
 	var tuck := clampf(1.0 - absf(sv - 0.15) * 1.3, 0.0, 1.0)
-	_fold_f = tuck * aw * 1.1
+	_fold_f = tuck * aw * 1.5
 	_fold_h = (rise_w * 0.5 + tuck * 0.3) * aw
 	var cyc := ph / TAU
 	var sz := size
@@ -209,24 +221,24 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 		if moving:
 			var u := fposmod(cyc + float(g.off[i]), 1.0)
 			var duty: float = g.duty
-			var s_reach: float = float(g.reach) * sz
+			var s_reach: float = float(g.reach) * sz * pow(heft, 0.3)
 			if u < duty:
-				dz = s_reach * (1.0 - 2.0 * u / duty)                    # stance: the hoof slides back under the body
+				dz = -s_reach * (1.0 - 2.0 * u / duty)                   # stance: the planted hoof travels from the front of its sweep to the back (+z is aft)
 			else:
 				sw = (u - duty) / (1.0 - duty)
 				var e := sw * sw * (3.0 - 2.0 * sw)
-				dz = -s_reach + 2.0 * s_reach * e                         # swing: it comes forward
+				dz = s_reach - 2.0 * s_reach * e                          # swing: it comes forward
 				dy = sin(sw * PI) * float(g.lift) * sz * (1.0 + 0.4 * sin(sw * PI))
-			var amp := clampf(speed / 1.2, 0.0, 1.0)
-			dz *= amp
-			dy *= amp
+			var amp_l := clampf(speed / 1.2, 0.0, 1.0)
+			dz *= amp_l
+			dy *= amp_l
 		swing[l] = sw
 		if aw > 0.001:
 			var front := l.begins_with("f")
 			var ay: float
 			var az: float
 			if front:
-				ay = (0.42 * tuck + 0.1 * fall_w) * sz                  # knees up, cannons folded back under the chest
+				ay = (0.5 * tuck + 0.1 * fall_w) * sz                  # knees up, cannons folded back under the chest
 				az = (0.24 * tuck - 0.42 * fall_w) * sz                 # then reaching forward to land
 			else:
 				ay = (0.14 * rise_w + 0.12 * tuck) * sz
@@ -237,33 +249,58 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 		tgt[l] = tp
 		need = maxf(need, ((tp - L.hip).length() - (float(L.l1) + float(L.l2)) * 0.985))
 	var drop := clampf(need, 0.0, 0.2) if moving else 0.0
-	# body motion: a bounce twice a stride, a rock at the gallop
+	# --- gait weights and the stride's own timing
+	var ww := 1.0 - smoothstep(walk_s, walk_s + (trot_s - walk_s) * 0.55, speed)
+	var gw := smoothstep(trot_s, trot_s + (gallop_s - trot_s) * 0.7, speed)
+	var tw := maxf(1.0 - ww - gw, 0.0)
+	var amp := clampf(speed / 1.2, 0.0, 1.0) if moving else 0.0
+	var hs := 1.0 / sqrt(heft)                                   # heavy horses move the body less, and later
+	var flex := cos(TAU * (cyc - 0.83))                          # the gallop's gather (-) and extension (+) round the suspension
+	var dtc := clampf(dt, 0.0, 0.033)
+	if dt > 0.0005:
+		_acc_s = lerpf(_acc_s, accel.x, 1.0 - exp(-6.0 * dt))
+		_turn_s = lerpf(_turn_s, turn, 1.0 - exp(-9.0 * dt))
+	var acc := clampf(_acc_s / 6.0, -1.0, 1.0)
+	# --- body motion: a rock at the walk, a two-beat bounce at the trot, a gathered / extended suspension at the gallop
 	var bounce := 0.0
 	var pitch := 0.0
-	if moving:
-		bounce = absf(sin(ph * 2.0 + 0.6)) * (0.012 + 0.05 * k) * sz - 0.015 * k
-		pitch = sin(ph * 2.0 + 0.6) * (0.012 + 0.05 * k)
-		if speed > trot_s:
-			pitch += sin(ph) * 0.05 * k
-	# the leap: haunches drop and the forehand lifts in the gather, push up through the climb, nose down to land
-	pitch += (0.16 * gather + 0.2 * rise_w * aw - 0.14 * fall_w * aw - 0.05 * land)
+	var roll := 0.0
+	bounce = amp * sz * hs * (ww * 0.014 * sin(ph * 2.0 + 0.6) + tw * 0.05 * (absf(sin(ph * 2.0 + 0.6)) - 0.64) + gw * 0.075 * flex)
+	pitch = amp * (ww * 0.035 * sin(ph * 2.0 + 0.6) + tw * 0.035 * sin(ph * 2.0 + 0.6) + gw * (0.075 * flex + 0.03 * sin(ph * 2.0 + 0.6))) * hs
+	roll = amp * (ww * 0.04 + tw * 0.012) * sin(ph + 0.3) * hs + amp * gw * 0.03 * sin(ph + 1.0)
+	# starts and stops: the haunches coil under a start, sit down into a halt
+	pitch += 0.07 * maxf(acc, 0.0) + 0.09 * maxf(-acc, 0.0)
+	# turns: the body banks into it (the horse leans left into a left turn)
+	var bank_want := clampf(atan(speed * turn / 9.8) * 0.9, -0.3, 0.3)
+	_bank = lerpf(_bank, bank_want, 1.0 - exp(-5.0 * maxf(dt, 0.001)))
+	roll -= _bank
+	# the leap: haunches drop and the forehand lifts in the gather, the hindquarters push through the climb,
+	# the nose tips down over the top, the forehand reaches for the ground and takes the landing
+	pitch += 0.2 * gather + (0.3 * rise_w - 0.2 * tuck) * aw - 0.2 * fall_w * aw - 0.09 * land
 	bounce *= 1.0 - aw
-	last_dy = bounce - drop - (0.1 * gather + 0.09 * land) * sz
+	last_dy = bounce - drop - (0.13 * gather + 0.1 * land) * sz
+	body_pitch = pitch
+	body_roll = roll
 	# --- the bones (world-aligned rotations about X, accumulated down the chains)
 	_wrot.clear()
 	var root_off := Vector3(0, last_dy, 0)
 	_pose_bone("root", 0.0, 0.0, root_off)
-	_pose_bone("hips", pitch * 0.6)
-	_pose_bone("barrel", pitch * 0.3 + sin(ph * 2.0 + 1.0) * 0.012 * k)
-	_pose_bone("chest", -pitch * 0.4)
+	var fx := gw * flex * amp
+	_pose_bone("hips", pitch * 0.6 + 0.07 * fx, roll * 0.5)
+	_pose_bone("barrel", pitch * 0.3 - 0.1 * fx + sin(ph * 2.0 + 1.0) * 0.012 * k, roll * 0.3)
+	_pose_bone("chest", -pitch * 0.4 - 0.05 * fx, roll * 0.5)
 	var br := sin(_t * 1.9 + _seed) * 0.01                      # breathing
-	var head_run := -0.1 * k + sin(ph * 2.0 + 2.2) * 0.07 * k    # the head carried out and nodding
-	head_run += -0.22 * tuck * aw - 0.1 * gather               # the neck stretched out over the jump, tucked in the gather
+	# the head: a nod once a stride at the walk, lightly at the trot, deep at the gallop, carried out with speed
+	var nod := amp * (ww * 0.22 * sin(ph + 0.5) * heft + tw * 0.05 * sin(ph * 2.0 + 2.2) - gw * 0.3 * sin(TAU * (cyc - 0.35)))
+	var head_run := -0.1 * k + nod
+	head_run += -0.22 * tuck * aw - 0.1 * gather - 0.14 * land   # the neck stretched out over the jump, tucked in the gather
+	head_run += 0.2 * maxf(-acc, 0.0) - 0.05 * maxf(acc, 0.0)    # up and bracing into a halt
 	var gz := graze
-	_pose_bone("neck1", -gz * 0.5 + head_run * 0.35 + br)
-	_pose_bone("neck2", -gz * 0.62 + head_run * 0.3)
-	_pose_bone("neck3", -gz * 0.45 + head_run * 0.25)
-	_pose_bone("head", -gz * 0.25 + head_run * 0.1 + 0.05 * k)
+	var lead := _turn_s * 0.28                                     # the head leads into the turn
+	_pose_bone("neck1", -gz * 0.5 + head_run * 0.35 + br, 0.0, Vector3.ZERO, false, lead * 0.2)
+	_pose_bone("neck2", -gz * 0.62 + head_run * 0.3, 0.0, Vector3.ZERO, false, lead * 0.3)
+	_pose_bone("neck3", -gz * 0.45 + head_run * 0.25, 0.0, Vector3.ZERO, false, lead * 0.3)
+	_pose_bone("head", -gz * 0.25 + head_run * 0.1 + 0.05 * k, -_bank * 0.25, Vector3.ZERO, false, lead * 0.2)
 	# ears: a flick now and then, laid back at the gallop
 	_flick_t -= dt
 	if _flick_t <= 0.0:
@@ -272,16 +309,29 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 	_flick = maxf(0.0, _flick - dt * 3.0)
 	_pose_bone("ear_r", -0.15 * k + sin(_flick * 9.0) * 0.18 * _flick, 0.0)
 	_pose_bone("ear_l", -0.15 * k + sin(_flick * 7.0) * 0.1 * _flick, 0.0)
-	# tail: lifted at speed, swaying, each joint lagging
-	var tl := -0.35 * k
-	_pose_bone("tail0", tl, sin(_t * 1.3 + _seed) * 0.12 + sin(ph) * 0.05 * k)
-	_pose_bone("tail1", tl * 0.8 + sin(ph * 2.0 + 0.5) * 0.08 * k, sin(_t * 1.7 + 1.0) * 0.14)
-	_pose_bone("tail2", tl * 0.6 + sin(ph * 2.0 + 1.0) * 0.1 * k, sin(_t * 1.9 + 2.0) * 0.16)
-	_pose_bone("tail3", tl * 0.4 + sin(ph * 2.0 + 1.5) * 0.12 * k, sin(_t * 2.3 + 3.0) * 0.18)
-	# mane: tips trail back with speed, a slow stir
+	# tail and mane: chains of springs, each joint softer and later than the last, shaken by the body's own
+	# vertical and sideways motion, streaming out and up with speed
+	var vyb := clampf((last_dy - _prev_dy) / maxf(dt, 0.001), -4.0, 4.0) if dt > 0.0005 else 0.0
+	if dt > 0.0005:
+		_prev_dy = last_dy
+	var drive := Vector2(-vyb * 0.09 + acc * -0.12 - sin(ph * 2.0 + 0.5) * 0.04 * k, -accel.y * 0.012 + sin(_t * 1.3 + _seed) * 0.1 + sin(ph) * 0.06 * k)
+	var lift := -0.4 * k - 0.1 * gw
+	for j in 4:
+		var kj := (70.0 - 11.0 * float(j)) / heft
+		var cj := 2.0 * sqrt(kj) * 0.32
+		var tgt_j := Vector2(lift * (1.0 - 0.18 * float(j)), 0.0) + drive * (0.7 + 0.35 * float(j)) + Vector2(sin(_t * 1.7 + float(j)) * 0.03, sin(_t * (1.7 + 0.2 * float(j)) + 1.0 + float(j)) * 0.07)
+		if dtc > 0.0:
+			_tail_v[j] += ((tgt_j - _tail_a[j]) * kj - _tail_v[j] * cj) * dtc
+			_tail_a[j] = (_tail_a[j] + _tail_v[j] * dtc).clamp(Vector2(-0.9, -0.7), Vector2(0.9, 0.7))
+		_pose_bone("tail%d" % j, _tail_a[j].x, _tail_a[j].y)
 	for j in 3:
-		var nm := "mane%d" % (j + 1)
-		_pose_bone(nm, -0.55 * k - sin(ph * 2.0 - float(j) * 0.7) * 0.12 * k + sin(_t * 1.5 + float(j)) * 0.04, sin(_t * 1.1 + float(j) * 1.3) * 0.05 + sin(ph * 2.0 - float(j)) * 0.06 * k)
+		var km := (46.0 - 8.0 * float(j)) / heft
+		var cm := 2.0 * sqrt(km) * 0.3
+		var tgt_m := Vector2(-0.5 * k, 0.0) + Vector2(drive.x * 0.8 - nod * 0.4, drive.y * 0.5) + Vector2(sin(_t * 1.5 + float(j)) * 0.04, sin(_t * 1.1 + float(j) * 1.3) * 0.05)
+		if dtc > 0.0:
+			_mane_v[j] += ((tgt_m - _mane_a[j]) * km - _mane_v[j] * cm) * dtc
+			_mane_a[j] = (_mane_a[j] + _mane_v[j] * dtc).clamp(Vector2(-0.9, -0.6), Vector2(0.9, 0.6))
+		_pose_bone("mane%d" % (j + 1), _mane_a[j].x, _mane_a[j].y)
 	# lantern: a damped pendulum shaken by the stride and the horse's acceleration
 	var shake := Vector2(sin(ph * 2.0 + 0.4) * 0.5 * k, sin(ph + 1.2) * 0.4 * k)
 	var force := Vector2(-accel.x * 0.05, -accel.y * 0.05) + shake * 3.0
@@ -295,7 +345,7 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 		if not _legs.has(l):
 			continue
 		var L: Dictionary = _legs[l]
-		_leg(L, tgt[l] + Vector3(0, drop * 0.0, 0), float(swing[l]), k, l.begins_with("f"))
+		_leg(L, tgt[l], float(swing[l]), k, l.begins_with("f"))
 
 
 ## Two-bone solve in the sagittal plane (y up, z fore-aft) to put the fetlock on `target`.
@@ -330,12 +380,12 @@ func _leg(L: Dictionary, target: Vector3, sw: float, k: float, front: bool) -> v
 
 ## Pose `bone` with a rotation about X (and Z): accumulated onto its parent's, or absolute (the legs,
 ## solved in world space). Parents are posed first.
-func _pose_bone(bone: String, ax: float, az := 0.0, off := Vector3.ZERO, absolute := false) -> void:
+func _pose_bone(bone: String, ax: float, az := 0.0, off := Vector3.ZERO, absolute := false, ay := 0.0) -> void:
 	if not _bi.has(bone):
 		return
 	var par: String = _par[bone]
 	var pw: Basis = _wrot[par] if par != "" and _wrot.has(par) else Basis.IDENTITY
-	var r := Basis(Vector3.RIGHT, ax) * Basis(Vector3.FORWARD, az)
+	var r := Basis(Vector3.UP, ay) * Basis(Vector3.RIGHT, ax) * Basis(Vector3.FORWARD, az)
 	var w: Basis = r if absolute else pw * r
 	_wrot[bone] = w
 	var pg: Basis = pw * (_rest_g[par] as Basis) if par != "" else Basis.IDENTITY
