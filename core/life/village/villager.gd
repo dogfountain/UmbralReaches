@@ -918,6 +918,16 @@ func _pose(dt: float) -> void:
 			r.arm_to("r", Vector3(0.16, 0.98 + 0.1 * bt, -0.3 - 0.08 * bt) * k, Vector3(0.9, -0.6, 0.2), Quaternion(Vector3.FORWARD, 0.6 + 0.5 * bt) * Quaternion(Vector3.RIGHT, -0.4))
 		elif arms_free[1] and tool_l == "":
 			r.arm_to("l", Vector3(-0.16, 0.98 + 0.1 * bt, -0.3 - 0.08 * bt) * k, Vector3(-0.9, -0.6, 0.2), Quaternion(Vector3.FORWARD, -0.6 - 0.5 * bt) * Quaternion(Vector3.RIGHT, -0.4))
+	if cur in ["idle", "watch", "attend", "warm", "look_up", "read", "knock", "chat", "sell"] and walk_amt < 0.1:
+		# standing is never still: the weight rolls from one foot to the other, the free knee softens
+		var ws := sin(_t * 0.4 + float(hash(id) % 628) * 0.01)
+		r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.FORWARD, 0.04 * ws))
+		var rest_r := 0.05 * maxf(0.0, ws)
+		var rest_l := 0.05 * maxf(0.0, -ws)
+		r.q(B_THIGH_R, (r.get_q(B_THIGH_R) as Quaternion) * Quaternion(Vector3.RIGHT, rest_r))
+		r.q(B_SHIN_R, (r.get_q(B_SHIN_R) as Quaternion) * Quaternion(Vector3.RIGHT, -2.0 * rest_r))
+		r.q(B_THIGH_L, (r.get_q(B_THIGH_L) as Quaternion) * Quaternion(Vector3.RIGHT, rest_l))
+		r.q(B_SHIN_L, (r.get_q(B_SHIN_L) as Quaternion) * Quaternion(Vector3.RIGHT, -2.0 * rest_l))
 	if _foot_push > 0.001 and cur == "dig":
 		r.q(B_THIGH_R, Quaternion(Vector3.RIGHT, 0.55 * _foot_push))
 		r.q(B_SHIN_R, Quaternion(Vector3.RIGHT, -0.75 * _foot_push))

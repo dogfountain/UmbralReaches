@@ -42,6 +42,8 @@ var _howl := 0.0          ## a pack call: chest up, head back, arms flung wide a
 var _howl_t := -1.0
 var _howl_dur := 0.8
 var _twitch_t := 0.0
+var _idle_phase := 0.0
+var _breath_pitch := 0.0
 var _twitch_to := Vector2.ZERO
 var _twitch_at := Vector2.ZERO
 
@@ -54,6 +56,8 @@ const PELVIS_Y := 1.04
 func _ready() -> void:
 	super._ready()
 	_twitch_t = randf_range(0.5, 2.0)
+	_idle_phase = randf() * TAU
+	_t = randf() * 30.0
 
 
 ## The rear-up before a strike, held for `dur` seconds (Enemy passes its windup time).
@@ -139,6 +143,7 @@ func _tick_poses(delta: float) -> void:
 		_rake = sin(clampf(k, 0.0, 1.0) * PI * 0.5) if k < 1.0 else maxf(0.0, 1.0 - (k - 1.0) * 1.6)
 		if _rake <= 0.0 and k >= 1.0:
 			_rake_t = -1.0
+	_breath_pitch = sin(_t * 1.9) * 0.025 * sway
 	_flinch = move_toward(_flinch, 0.0, delta * 2.2)
 	_reel = move_toward(_reel, 0.0, delta * 0.75)
 	if _howl_t >= 0.0:
@@ -166,6 +171,7 @@ func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) ->
 	var reel := _reel
 	var fold := _fold
 	var gait := 1.0 + limp * 0.4
+	var shift := sin(_t * 0.55 + _idle_phase) * sway    # weight rolls from one foot to the other
 	# legs: a bent-knee shuffle; the limp leg swings short and drags
 	var knee_rest := crouch * 0.95 + w * 0.25 + fold * 1.6
 	var hip_rest := crouch * 0.45 + w * 0.1 + fold * 1.1
@@ -178,6 +184,7 @@ func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) ->
 		var knee := maxf(0.0, pc) * 1.05 * st * short + 0.12 * st + knee_rest + _land * 0.5
 		hip += _air * 0.45 + _land * 0.25
 		knee += _air * 0.75
+		knee += maxf(0.0, shift if i == 0 else -shift) * 0.14 * idle      # the resting leg softens
 		_hip[i].rotation.x = hip
 		_hip[i].rotation.z = (-1.0 if i == 0 else 1.0) * (0.06 + crouch * 0.08)
 		_knee[i].rotation.x = -knee
@@ -187,16 +194,16 @@ func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) ->
 	var bend := maxf(0.0, 0.84 - reach_max)       # down until the longer leg's foot meets the ground
 	var lurch := absf(s) * limp * 0.05 * st
 	_pelvis.position.y = PELVIS_Y - bend + 0.04 * st * (absf(c) - 0.6) * gait - lurch - _land * 0.13 + _air * 0.04 + breathe * 0.006 * idle
-	_pelvis.position.x = -s * (0.03 + limp * 0.05) * st + sin(_t * 0.9) * 0.02 * sway * idle
+	_pelvis.position.x = -s * (0.03 + limp * 0.05) * st + sin(_t * 0.9) * 0.02 * sway * idle + shift * 0.035 * idle
 	_pelvis.rotation.y = s * 0.12 * st
-	_pelvis.rotation.z = -_turn * 0.02 + s * limp * 0.12 * st + sin(_t * 0.9) * 0.03 * sway * idle
+	_pelvis.rotation.z = -_turn * 0.02 + s * limp * 0.12 * st + sin(_t * 0.9) * 0.03 * sway * idle - shift * 0.05 * idle
 	# spine: hunched, rocking with the stride; rears back on the windup, lunges on the rake
 	var hw := _howl
 	var lean := -hunch - 0.12 * st + w * (hunch * 0.6 + 0.55) - r * 0.65 + f * 0.45 + reel * 0.25 - fold * 0.5 + hw * (hunch + 0.3)
-	_torso.rotation.x = lean - _land * 0.25 + _air * 0.08 + sin(_t * 1.3) * 0.03 * sway * idle
+	_torso.rotation.x = lean - _land * 0.25 + _air * 0.08 + sin(_t * 1.3) * 0.05 * sway * idle + _breath_pitch * idle
 	_torso.rotation.y = -s * 0.2 * st + _flinch_side * f * 0.4 + sin(_t * 0.5) * 0.08 * reel
-	_torso.rotation.z = -_turn * 0.05 + sin(_t * 0.7) * 0.05 * sway * idle + s * limp * 0.1 * st + sin(_t * 2.1) * 0.12 * reel
-	_chest.scale = Vector3(1.0 + breathe * 0.025 * idle + w * 0.05, 1.0 + breathe * 0.03 * idle, 1.0 + breathe * 0.025 * idle)
+	_torso.rotation.z = -_turn * 0.05 + sin(_t * 0.7) * 0.05 * sway * idle + shift * 0.06 * idle + s * limp * 0.1 * st + sin(_t * 2.1) * 0.12 * reel
+	_chest.scale = Vector3(1.0 + breathe * 0.045 * idle + w * 0.05, 1.0 + breathe * 0.055 * idle, 1.0 + breathe * 0.045 * idle)
 	# head: jutting forward against the hunch, twitching; thrown back on a flinch, up on the windup
 	var jut := hunch * head_jut
 	_head.rotation.x = jut + 0.06 * st - breathe * 0.03 * idle + _twitch_at.x - w * 0.45 + r * 0.25 - f * 0.5 + reel * 0.6 - hw * (jut + 0.75)
