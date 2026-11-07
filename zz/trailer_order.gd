@@ -32,9 +32,13 @@ const ORDER := [
 	["defend", 2.2, 0.0, "III", "TOP"], ["defend_game", 2.2, 0.0, "III", "GAME"], ["defend_top", 2.4, 0.0, "III", "TOP"],
 	["map", 1.6, 0.0, "III", "UI"], ["roam", 1.6, 0.0, "III", "CIN"], ["roam_incursion", 2.2, 0.0, "III", "TOP"], ["treasure", 1.6, 0.0, "III", "CIN"],
 	# act IV: descend
-	["card_depths", 0.8, 0.0, "IV", "CARD"], ["thorn_reveal", 2.2, 0.0, "IV", "CIN"], ["thorn_knots", 2.2, 0.0, "IV", "TOP"],
+	["card_depths", 0.8, 0.0, "IV", "CARD"], ["thorn_reveal", 2.2, 0.0, "IV", "CIN"], ["thorn_move", 2.0, 0.0, "IV", "CIN"],
+	["thorn_knots", 2.2, 0.0, "IV", "CIN"],
 	["boss_reveal", 2.4, 0.0, "IV", "CIN"], ["boss_game", 2.4, 0.0, "IV", "GAME"], ["boss_wide", 2.4, 0.0, "IV", "CIN"],
-	["warden", 2.0, 0.0, "IV", "CIN"], ["anchoress", 2.0, 0.0, "IV", "CIN"], ["hierarch_voice", 2.2, 0.0, "IV", "TOP"],
+	["abbot_phase", 2.2, 0.0, "IV", "CIN"],
+	["warden", 2.0, 0.0, "IV", "CIN"], ["warden_move", 2.0, 0.0, "IV", "CIN"], ["warden_phase", 2.2, 0.0, "IV", "CIN"],
+	["anchoress", 2.0, 0.0, "IV", "CIN"], ["anchoress_move", 2.0, 0.0, "IV", "CIN"], ["anchoress_phase", 2.0, 0.0, "IV", "CIN"],
+	["hierarch_voice", 2.2, 0.0, "IV", "CIN"], ["hierarch_edict", 2.0, 0.0, "IV", "CIN"], ["hierarch_phase", 2.0, 0.0, "IV", "CIN"],
 	["final_blow", 2.8, 0.0, "IV", "CIN"],
 	["finale", 4.5, 0.0, "V", "CIN"],
 ]
@@ -43,4 +47,6 @@ const NO_SUBJECT := ["cold", "card_dark", "card_realm", "card_depths", "fp_run",
 	"village", "keg_song", "wildlife_herd", "familiar", "hearth_tithe", "kindling", "gear", "map", "thornwood", "necropolis", "mere", "foundry", "orchard", "quarry", "moor", "holds", "crowns",
 	"stillwater", "lamp_spire", "anchorholds", "hierarch", "siege", "saltmarket", "pans", "oak", "well", "bells", "roam", "rain_mist",
 	"thorn_reveal", "thorn_knots", "warden", "anchoress", "hierarch_voice", "final_blow", "boss_low", "horse_breeds", "weirford", "defend", "spell_arcana",
-	"weirford_life", "saltmarket_life", "pans_wide", "downs", "bell_ring", "secret", "escort_top", "defend_top", "roam_incursion", "horse_fp"]
+	"weirford_life", "saltmarket_life", "pans_wide", "downs", "bell_ring", "secret", "escort_top", "defend_top", "roam_incursion", "horse_fp",
+	"thorn_move", "abbot_phase", "warden_move", "warden_phase", "anchoress_move", "anchoress_phase", "hierarch_edict", "hierarch_phase",
+	"boss_game", "boss_wide"]
