@@ -196,6 +196,13 @@ func _set_mark(m: Node3D, n: Node3D, state: String, qid: String, daily: bool) ->
 	var label := String((Chains.QUESTS.get(qid, {}) as Dictionary).get("name", ""))
 	if qid.begins_with("main:"):                  # r34 merge: a main-story objective (quest_db.gd)
 		label = String(StoryDB.objective(qid.substr(5)).get("text", ""))
+	# a giver indoors (villager.hidden: the whole body, mark and all, is switched off) keeps its pin, sitting at the
+	# door they went in by, and says so: the map skips anything not visible in the tree unless it is map_always
+	if n.get("hidden") == true:
+		m.set_meta("map_always", true)
+		label = (label + " (" if label != "" else "(") + "indoors for now)"
+	elif m.has_meta("map_always"):
+		m.remove_meta("map_always")
 	m.set_meta("map_label", label)
 	m.set_meta("map_color", col)
 	if not m.is_in_group("map_marker"):

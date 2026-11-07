@@ -40,6 +40,8 @@ const CYCLE := ["clear", "mist", "clear", "gusts", "drizzle", "storm", "clear", 
 const EASE_S := 25.0
 ## Environment offsets at full strength (added on top of whatever the base is)
 const OFF_BEGIN_MIST := -26.0      ## m: depth fog starts nearer in mist and rain
+const UNDER_BEGIN := 45.0           ## underground the depth fog starts past the pit hall's far wall
+const UNDER_VOL := 0.007            ## and the volumetric fog thins to a trace (candle shafts still read)
 const OFF_BEGIN_RAIN := -18.0
 const OFF_VOL_MIST := 0.004
 const OFF_VOL_RAIN := 0.002
@@ -81,7 +83,8 @@ var _rng := RandomNumberGenerator.new()
 var _cycle_i := 0
 var _front_t := 80.0
 var _t := 0.0
-var _applied := {"fog_depth_begin": 0.0, "volumetric_fog_density": 0.0, "ambient_light_energy": 0.0}
+var _applied := {"fog_depth_begin": 0.0, "volumetric_fog_density": 0.0, "ambient_light_energy": 0.0, "fog_height_density": 0.0}
+var _under := 0.0                ## 0..1: the camera is underground (the crypt, the pit hall at y -32): no weather, no ground haze
 var _bank_acc := 0.0
 var _step_acc := 0.0
 var _bed_acc := 0.0
@@ -232,6 +235,9 @@ func _step(delta: float) -> void:
 	if _bank_acc >= 0.1:
 		_banks_step(_bank_acc)
 		_bank_acc = 0.0
+	# below the Realm's ground the ground haze (it thickens with depth under Atmosphere.HAZE_TOP) filled
+	# the Abbot's pit hall 36 m down with a wall of mist; a crypt has still air and no weather
+	_under = smoothstep(-5.0, -11.0, cam.global_position.y) if cam != null else 0.0
 	_apply_env()
 	_bed_acc += delta
 	if _bed_acc >= 1.0 / 15.0:
@@ -243,10 +249,11 @@ func _step(delta: float) -> void:
 func _apply_env() -> void:
 	if _env == null:
 		return
-	var mist := float(state.mist)
-	var rain := float(state.rain)
-	_env_offset("fog_depth_begin", mist * OFF_BEGIN_MIST + rain * OFF_BEGIN_RAIN, 0.05)
-	_env_offset("volumetric_fog_density", mist * OFF_VOL_MIST + rain * OFF_VOL_RAIN, 0.00002)
+	var mist := float(state.mist) * (1.0 - _under)
+	var rain := float(state.rain) * (1.0 - _under)
+	_env_offset("fog_depth_begin", mist * OFF_BEGIN_MIST + rain * OFF_BEGIN_RAIN + _under * UNDER_BEGIN, 0.05)
+	_env_offset("volumetric_fog_density", mist * OFF_VOL_MIST + rain * OFF_VOL_RAIN - _under * UNDER_VOL, 0.00002)
+	_env_offset("fog_height_density", -_under * Atmosphere.HAZE_DENSITY, 0.0002)
 	_env_offset("ambient_light_energy", flash * OFF_AMBIENT_FLASH * _flash_gain + _pulse, 0.0)
 
 
