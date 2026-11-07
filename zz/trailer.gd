@@ -81,7 +81,7 @@ func _ready() -> void:
 			_want = a.split("=")[1].split(",")
 		elif a == "--preview":
 			_preview = true
-	_provs = [self, Act1.new(self), Act2.new(self), Act3.new(self), Act4.new(self)]
+	_provs = [Act4.new(self), Act1.new(self), Act2.new(self), Act3.new(self), self]
 	Travel._busy = true
 	Settings.set_preset_fields(2)
 	Settings.shadow_quality = 2

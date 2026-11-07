@@ -27,9 +27,11 @@ const ORDER := [
 	["escort", 2.0, 0.0, "III", "GAME"], ["defend", 2.2, 0.0, "III", "TOP"], ["map", 1.6, 0.0, "III", "UI"],
 	["roam", 1.6, 0.0, "III", "CIN"], ["treasure", 1.6, 0.0, "III", "CIN"],
 	# act IV: descend
-	["card_depths", 0.8, 0.0, "IV", "CARD"], ["thorn_reveal", 2.2, 0.0, "IV", "CIN"], ["thorn_knots", 2.2, 0.0, "IV", "TOP"],
-	["boss_reveal", 2.4, 0.0, "IV", "CIN"], ["boss_game", 2.4, 0.0, "IV", "GAME"], ["boss_wide", 2.4, 0.0, "IV", "CIN"],
-	["warden", 2.0, 0.0, "IV", "CIN"], ["anchoress", 2.0, 0.0, "IV", "CIN"], ["hierarch_voice", 2.2, 0.0, "IV", "TOP"],
+	["card_depths", 0.8, 0.0, "IV", "CARD"], ["thorn_reveal", 2.2, 0.0, "IV", "CIN"], ["thorn_move", 2.0, 0.0, "IV", "CIN"], ["thorn_knots", 2.2, 0.0, "IV", "TOP"],
+	["boss_reveal", 2.4, 0.0, "IV", "CIN"], ["boss_game", 2.4, 0.0, "IV", "GAME"], ["boss_wide", 2.4, 0.0, "IV", "CIN"], ["abbot_phase", 2.2, 0.0, "IV", "CIN"],
+	["warden", 2.0, 0.0, "IV", "CIN"], ["warden_move", 2.0, 0.0, "IV", "CIN"], ["warden_phase", 2.2, 0.0, "IV", "CIN"],
+	["anchoress", 2.0, 0.0, "IV", "CIN"], ["anchoress_move", 2.0, 0.0, "IV", "CIN"], ["anchoress_phase", 2.0, 0.0, "IV", "CIN"],
+	["hierarch_voice", 2.2, 0.0, "IV", "TOP"], ["hierarch_edict", 2.0, 0.0, "IV", "CIN"], ["hierarch_phase", 2.0, 0.0, "IV", "CIN"],
 	["final_blow", 2.8, 0.0, "IV", "CIN"],
 	["finale", 4.5, 0.0, "V", "CIN"],
 ]
@@ -37,4 +39,4 @@ const ORDER := [
 const NO_SUBJECT := ["cold", "card_dark", "card_realm", "card_depths", "fp_run", "fp_lance", "finale", "wildlife", "tavern", "boss_reveal",
 	"village", "hearth_tithe", "kindling", "gear", "map", "thornwood", "necropolis", "mere", "foundry", "orchard", "quarry", "moor", "holds", "crowns",
 	"stillwater", "lamp_spire", "anchorholds", "hierarch", "siege", "saltmarket", "pans", "oak", "well", "bells", "roam", "rain_mist",
-	"thorn_reveal", "thorn_knots", "warden", "anchoress", "hierarch_voice", "final_blow", "boss_low", "horse_breeds", "weirford", "defend", "spell_arcana"]
+	"thorn_reveal", "thorn_move", "thorn_knots", "abbot_phase", "warden_move", "warden_phase", "anchoress_move", "anchoress_phase", "hierarch_edict", "hierarch_phase", "boss_game", "boss_wide", "warden", "anchoress", "hierarch_voice", "final_blow", "boss_low", "horse_breeds", "weirford", "defend", "spell_arcana"]
