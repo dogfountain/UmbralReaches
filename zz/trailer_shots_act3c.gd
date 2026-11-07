@@ -532,9 +532,8 @@ func _s_roam() -> void:
 	print("TRAILER roam procession started: %s" % ok)
 	adopt_roam()
 	var fl: Array[Node3D] = d.foes()
-	var m: Vector3 = d.ARENA
 	if not fl.is_empty():
-		m = Vector3.ZERO
+		var m := Vector3.ZERO
 		for f in fl:
 			m += f.global_position
 		m /= float(fl.size())
@@ -545,18 +544,11 @@ func _s_roam() -> void:
 	d.cam.fov = 56.0
 	d.key.light_energy = 6.0
 	d.key.omni_range = 30.0
-	# a lens spot off to the side of the line from the wanderer to the file, that sees both ends and every foe
-	var pts: Array = [d.pp() + Vector3.UP * 1.4, m + Vector3.UP * 1.2]
-	for f in fl:
-		pts.append(f.global_position + Vector3.UP * 1.0)
-	var mid: Vector3 = d.pp().lerp(m, 0.5)
-	var across := Cam.flat(m - d.pp()).cross(Vector3.UP)
-	_roam_cam = d.solve_cam(pts, mid, d.yaw_to(across), 11.0, 4.0)
-	gather_props()
-	var lens_xz := clear_stand(Vector2(_roam_cam.x, _roam_cam.z))              # not hard against a lamp post or a sign
-	_roam_cam = Vector3(lens_xz.x, _roam_cam.y, lens_xz.y)
+	_roam_cam = d.cam.global_position
 
 
+## The procession and the wanderer, kept in view from a spot the world does not block (found again every quarter second,
+## because the file moves and the event may rise anywhere on the road).
 func _u_roam(tt: float) -> void:
 	adopt_roam()
 	var foes: Array[Node3D] = d.foes()
@@ -566,9 +558,17 @@ func _u_roam(tt: float) -> void:
 		for f in foes:
 			mid += f.global_position
 		mid /= float(foes.size())
-	var k: float = d.sm(clampf(tt / 1.6, 0.0, 1.0))
 	var between: Vector3 = d.pp().lerp(mid, 0.5)
-	d.hold_cam(_roam_cam.lerp(between + Vector3.UP * 3.0, k * 0.15), between + Vector3.UP * 1.2)
+	if int(round(tt * 60.0)) % 15 == 0:
+		var pts: Array = [d.pp() + Vector3.UP * 1.4, mid + Vector3.UP * 1.2]
+		for f in foes:
+			pts.append(f.global_position + Vector3.UP * 1.0)
+		var across := Cam.flat(mid - d.pp()).cross(Vector3.UP)
+		_roam_cam = d.solve_cam(pts, between, d.yaw_to(across), 12.0, 6.5)
+	d.hold_cam(_roam_cam, between + Vector3.UP * 1.2)
+	if int(round(tt * 60.0)) % 4 == 0:
+		for hb in d.main.find_children("HealthBar", "MeshInstance3D", true, false):
+			(hb as Node3D).visible = false           # the procession is the picture, not its health bars
 	d.aim_at(mid)
 	d.light_at(mid.lerp(d.pp(), 0.4), 5.0)
 
