@@ -58,14 +58,7 @@ func _ready() -> void:
 	flare.mesh = _flare_mesh
 	flare.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_body.add_child(flare)
-	_light = OmniLight3D.new()
-	_light.light_color = Color(0.3, 1.0, 0.8)
-	_light.light_energy = 0.35 if dim else 1.3
-	_light.omni_range = 3.2
-	_light.shadow_enabled = false
-	_light.light_volumetric_fog_energy = 0.0 if dim else 0.4
-	_light.set_meta("light_class", "glimmer")
-	add_child(_light)
+	_light = Vfx.carry(self, TEAL, 1.3, 3.2, dim)
 	body_entered.connect(_on_body)
 
 
@@ -138,8 +131,10 @@ func pop() -> void:
 	Vfx.burst(global_position, TEAL, {"count": 22, "life": 0.45, "speed": Vector2(1.5, 4.0), "size": 0.045, "gravity": -7.0, "trail": 0.06})
 	Vfx.burst(global_position, Color(0.05, 0.25, 0.18, 0.7), {"count": 8, "life": 0.6, "speed": Vector2(0.3, 1.0), "size": 0.25, "gravity": -1.0, "additive": false})
 	remove_from_group(Groups.ENEMY_SHOT)
+	Vfx.light(global_position, TEAL, 1.8, 3.5, 0.2, 1)         # the burst, in the orb's own colour
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(_body, "scale", Vector3.ONE * 2.4, 0.16).set_ease(Tween.EASE_OUT)
+	_light.set_process(false)
 	tw.tween_property(_light, "light_energy", 0.0, 0.2)
 	tw.chain().tween_callback(queue_free)
 

@@ -68,6 +68,7 @@ const HIT_BIG := Color(1.0, 0.55, 0.3)
 @export var light_averse := true
 @export var gravity := 16.0
 @export var hp_bar_y := 2.02
+var glow_col := Color(1.2, 0.45, 2.4)    ## the colour this kind burns in: its death burst, flash light, hit sparks and stain
 @export var crawler := false
 @export var leaper := false
 @export_group("Melee")
@@ -395,7 +396,7 @@ func take_hit(dmg: float, from: Node = null) -> void:
 	_flash = 0.08
 	_hit_fx = 1.0
 	var at := global_position + Vector3.UP * (hp_bar_y * 0.6)
-	Vfx.impact(at, Color(1.6, 0.8, 2.4), _last_from if from is Node3D else Vector3.ZERO, dmg >= 3.0)
+	Vfx.impact(at, Vfx.hot(glow_col), _last_from if from is Node3D else Vector3.ZERO, dmg >= 3.0)
 	# three presets (the hitstop's tiers), not one per damage value: Vfx pools and caches by preset,
 	# and damage carries every multiplier. The count still follows the hit through amount_ratio (r30).
 	var tier := 0 if dmg < 1.5 else (1 if dmg < 3.0 else 2)
@@ -1618,6 +1619,7 @@ func _swipe_fx() -> void:
 		var a := lerpf(-deg_to_rad(strike_arc) * 0.8, deg_to_rad(strike_arc) * 0.8, float(i) / 8.0)
 		pts.append(c + (fwd * cos(a) + side * sin(a)) * r + Vector3.UP * (0.45 - 0.9 * float(i) / 8.0) * (hp_bar_y * 0.25))
 	Vfx.ribbon(pts, 0.03, 0.16, Color(1.8, 0.62, 0.18, 0.8), 0.18)
+	Vfx.light(c + fwd * r * 0.6, Color(1.8, 0.62, 0.18), 1.1, 3.0, 0.14, 0)     # the rake's own flash
 
 
 # --- attack tokens ------------------------------------------------------------------------------
@@ -1751,10 +1753,10 @@ func _die() -> void:
 	var at := global_position + Vector3.UP * (hp_bar_y * 0.5)
 	EnemyAudio.hit(_hit_sound(), at, 4.0, -3.0)           # the last blow's weight; the fall is in the die take
 	Vfx.burst(at, Color(0.03, 0.02, 0.05, 0.8), {"count": 26, "life": 1.4, "speed": Vector2(0.3, 1.4), "size": 0.32, "gravity": 0.9, "radius": 0.45, "additive": false, "turbulence": true})
-	Vfx.burst(at, Color(1.2, 0.45, 2.4), {"count": 30, "life": 1.1, "speed": Vector2(0.5, 2.2), "size": 0.05, "gravity": 1.4, "radius": 0.5, "turbulence": true})
-	Vfx.light(at, Color(0.7, 0.4, 1.0), 2.2, 4.0, 0.6)
+	Vfx.burst(at, glow_col, {"count": 30, "life": 1.1, "speed": Vector2(0.5, 2.2), "size": 0.05, "gravity": 1.4, "radius": 0.5, "turbulence": true})
+	Vfx.light(at, glow_col, 2.2, 4.0, 0.6, 2 if boss else 1)
 	Vfx.burst(at, _ichor(), {"count": 24, "life": 0.8, "speed": Vector2(2.0, 5.0), "size": 0.09, "gravity": -9.5, "additive": false})
-	Vfx.scorch(global_position, 0.6 + hp_bar_y * 0.35, Color(0.5, 0.2, 0.9), 4.0)    # the stain it leaves
+	Vfx.scorch(global_position, 0.6 + hp_bar_y * 0.35, glow_col * Color(0.42, 0.45, 0.4), 4.0)    # the stain it leaves
 	# the body folds first (HunchRig/QuadRig collapse), then burns away
 	var tw := create_tween()
 	tw.tween_interval(0.85)                       # it falls and lies a beat before the burn

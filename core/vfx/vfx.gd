@@ -7,6 +7,7 @@ extends RefCounted
 ##
 ## Colours are HDR on purpose (> 1 blooms under the tight glow budget: threshold 1.15).
 
+const ShotLight := preload("res://core/vfx/shot_light.gd")
 const RING_SHADER := preload("res://world/vfx/ring_wave.gdshader")
 
 static var _dot: GradientTexture2D
@@ -314,22 +315,88 @@ static func ring(at: Vector3, radius: float, color: Color, time := 0.45, width :
 	tw.tween_callback(mi.queue_free)
 
 
-static func light(at: Vector3, color: Color, energy: float, rng: float, time := 0.3) -> void:
+const LIGHT_CAP := 12                  ## transient flashes + carried shot lights alive at once
+const LIGHT_GROUP := &"vfx_light"
+
+
+## An effect's HDR colour as a light colour: same hue, brightest channel at 1 (the energy carries power).
+static func tone(col: Color) -> Color:
+	var m := maxf(col.r, maxf(col.g, col.b))
+	if m <= 0.001:
+		return Color(1, 1, 1)
+	return Color(col.r / m, col.g / m, col.b / m)
+
+
+## A body's glow colour lifted toward white-hot: the spark colour of a hit on it.
+static func hot(g: Color) -> Color:
+	return Color(g.r * 0.9 + 0.5, g.g * 0.9 + 0.3, g.b * 0.9 + 0.3)
+
+
+## Flash light at an effect, in the effect's own colour (`color` may be the HDR effect colour).
+## Unshadowed, tweened out. At most LIGHT_CAP are alive (flashes and carried shot lights together): a
+## new one beyond the cap takes the place of the lowest-priority, oldest flash, or is dropped when
+## everything alive outranks it. `priority`: 0 spark, 1 default, 2 heavy hit / boss, 3 the player's own.
+static func light(at: Vector3, color: Color, energy: float, rng: float, time := 0.3, priority := 1) -> void:
 	var h := host()
-	if h == null:
+	if h == null or not h.is_inside_tree():
+		return
+	if not _make_room(h.get_tree(), priority):
 		return
 	var l := OmniLight3D.new()
-	l.light_color = color
+	l.light_color = tone(color)
 	l.light_energy = energy
 	l.omni_range = rng
 	l.shadow_enabled = false
 	l.light_volumetric_fog_energy = 0.6
 	l.set_meta("light_class", "player_orb")
+	l.set_meta(&"vfx_pri", priority)
+	l.set_meta(&"vfx_born", Time.get_ticks_msec())
+	l.add_to_group(LIGHT_GROUP)
 	h.add_child(l)
 	l.global_position = at
 	var tw := l.create_tween()
 	tw.tween_property(l, "light_energy", 0.0, time).set_ease(Tween.EASE_IN)
 	tw.tween_callback(l.queue_free)
+
+
+## A light carried by a shot (child of `parent`), in the shot's colour. Counts against the cap but
+## is never culled: it makes room by retiring flashes. Quiet beside the player's lantern (ShotLight).
+static func carry(parent: Node, color: Color, energy: float, rng: float, dim := false) -> OmniLight3D:
+	var l := ShotLight.new()
+	l.light_color = tone(color)
+	l.base_energy = energy * (0.4 if dim else 1.0)
+	l.light_energy = l.base_energy
+	l.omni_range = rng
+	l.shadow_enabled = false
+	l.light_volumetric_fog_energy = 0.0 if dim else 0.3
+	l.set_meta("light_class", "glimmer")
+	l.set_meta(&"vfx_pri", 3)
+	l.add_to_group(LIGHT_GROUP)
+	parent.add_child(l)
+	if parent.is_inside_tree():
+		_make_room(parent.get_tree(), 3)
+	return l
+
+
+static func _make_room(tree: SceneTree, priority: int) -> bool:
+	var live := tree.get_nodes_in_group(LIGHT_GROUP)
+	if live.size() < LIGHT_CAP:
+		return true
+	var victim: OmniLight3D = null
+	var vkey := 1 << 60
+	for n in live:
+		var o := n as OmniLight3D
+		if o == null or o.is_queued_for_deletion() or not o.has_meta(&"vfx_born"):
+			continue                       # carried lights are not culled
+		var key := int(o.get_meta(&"vfx_pri", 1)) * (1 << 40) + int(o.get_meta(&"vfx_born", 0))
+		if key < vkey:
+			vkey = key
+			victim = o
+	if victim == null or int(victim.get_meta(&"vfx_pri", 1)) > priority:
+		return false
+	victim.remove_from_group(LIGHT_GROUP)
+	victim.queue_free()
+	return true
 
 
 ## Burn mark projected onto whatever is below (lance impact, nova). Glows, then cools to soot.
@@ -446,7 +513,7 @@ static func impact(at: Vector3, color: Color, dir := Vector3.ZERO, big := false)
 	burst(at, IMPACT_CORE, {"count": 6, "life": 0.18, "speed": Vector2(0.4, 1.4), "size": 0.16 if big else 0.11, "gravity": 0.0, "scale_var": 0.3})
 	_flash_star(h, at, color, 0.95 if big else 0.6)
 	if big:
-		light(at, Color(1.0, 0.8, 0.6), 2.4, 3.5, 0.14)
+		light(at, color, 2.4, 3.5, 0.14, 2)
 
 
 static func _star() -> ImageTexture:

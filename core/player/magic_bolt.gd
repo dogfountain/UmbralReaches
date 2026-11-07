@@ -378,7 +378,7 @@ func _impact_fx(at: Vector3) -> void:
 		SpellFx.disc(at, blast, 0, SpellFx.VIOLET, SpellFx.VIOLET_HOT, 0.7, n)
 		SpellFx.shell(at, 0.3, blast, Color(1.2, 0.5, 2.8), 0.3)
 		Vfx.burst(at, Color(1.8, 0.9, 3.4), {"count": 36, "life": 0.45, "speed": Vector2(3.0, 8.0), "size": 0.045, "gravity": -6.0, "trail": 0.08, "dir": n, "spread": 80.0})
-		Vfx.light(at, Color(0.7, 0.4, 1.0), 3.0, blast * 2.4, 0.3)
+		Vfx.light(at, SpellFx.VIOLET, 3.0, blast * 2.4, 0.3, 3)
 	else:
 		var bc: Color = _look[5]
 		if shard:

@@ -88,6 +88,7 @@ static func dress(e: Node, variant: String) -> void:
 	if rig == null:
 		return
 	e.set_meta(&"enc_dressed", variant)
+	e.set("glow_col", VARIANTS[variant].glow)
 	var kind := kind_of(e)
 	var quad := rig is QuadRig
 	var parts := parts_for(variant, kind, rig)

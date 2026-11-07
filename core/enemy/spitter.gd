@@ -30,6 +30,7 @@ static var _sac_mesh: SphereMesh
 
 func _init() -> void:
 	max_hp = 1
+	glow_col = SpitOrb.TEAL
 	hp = 1.0
 	walk_speed = 2.8
 	chase_range = 16.0
@@ -225,7 +226,8 @@ func _spit() -> void:
 	if orb != null:
 		orb.at_ward = _on_threat
 	Sfx.play_stream(EnemyAudio.kit("spit"), from, -4.0)
-	Vfx.burst(from, Color(0.3, 1.6, 1.1), {"count": 14, "life": 0.3, "speed": Vector2(1.0, 3.0), "size": 0.05, "dir": (aim - from).normalized(), "spread": 30.0, "gravity": -6.0})
+	Vfx.light(from, SpitOrb.TEAL, 1.2, 3.0, 0.12, 0)
+	Vfx.burst(from, SpitOrb.TEAL, {"count": 14, "life": 0.3, "speed": Vector2(1.0, 3.0), "size": 0.05, "dir": (aim - from).normalized(), "spread": 30.0, "gravity": -6.0})
 
 
 const MUZZLE_FWD := 0.4        ## m: a shot leaves at least this far in front of the body's centre

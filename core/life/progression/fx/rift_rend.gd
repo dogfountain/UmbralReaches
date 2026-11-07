@@ -48,6 +48,6 @@ func _physics_process(delta: float) -> void:
 	SpellFx.shell(at, 0.3, RADIUS, Color(1.2, 0.5, 2.8), 0.3)
 	SpellFx.tear(global_position, 2.2, 0.35)
 	Vfx.burst(at, SpellFx.VIOLET_HOT, {"count": 40, "life": 0.4, "speed": Vector2(3.0, 7.0), "size": 0.045, "gravity": -3.0, "trail": 0.08})
-	Vfx.light(at, Color(0.7, 0.4, 1.0), 4.0, RADIUS * 2.2, 0.3)
+	Vfx.light(at, SpellFx.VIOLET, 4.0, RADIUS * 2.2, 0.3, 2)
 	Sfx.play("res://art/audio/step_blink.wav", at, -4.0, 0.7)
 	get_tree().create_timer(0.5, false).timeout.connect(queue_free)

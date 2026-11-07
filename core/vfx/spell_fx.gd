@@ -197,7 +197,7 @@ static func nova(feet: Vector3, radius: float) -> void:
 	Vfx.burst(feet + Vector3.UP * 0.15, VIOLET, {"count": 70, "life": 0.5, "speed": Vector2(7.0, 12.0), "size": 0.05, "gravity": -1.0, "damping": 6.0, "trail": 0.1, "dir": Vector3.UP, "spread": 85.0, "ring": 0.5})
 	Vfx.burst(chest, Color(0.03, 0.0, 0.06, 0.85), {"count": 36, "life": 0.7, "speed": Vector2(4.0, 8.0), "size": 0.3, "gravity": 0.0, "damping": 5.0, "additive": false, "dir": Vector3.UP, "spread": 95.0})
 	Vfx.burst(feet, Color(1.0, 0.45, 2.4), {"count": 40, "life": 1.4, "speed": Vector2(0.3, 1.2), "size": 0.06, "gravity": 1.6, "ring": radius * 0.85, "turbulence": true})
-	Vfx.light(chest, Color(0.7, 0.4, 1.0), 7.0, radius * 2.4, 0.5)
+	Vfx.light(chest, VIOLET, 7.0, radius * 2.4, 0.5, 3)
 
 
 static func lance_impact(at: Vector3, normal: Vector3, radius: float, pierce: bool) -> void:
@@ -208,7 +208,7 @@ static func lance_impact(at: Vector3, normal: Vector3, radius: float, pierce: bo
 	Vfx.burst(at, hot, {"count": 60, "life": 0.9, "speed": Vector2(4.0, 10.0), "size": 0.05, "gravity": -10.0, "trail": 0.1, "dir": normal, "spread": 70.0})
 	Vfx.burst(at, Color(1.8, 0.5, 0.15), {"count": 40, "life": 1.8, "speed": Vector2(0.4, 2.2), "size": 0.07, "gravity": 1.8, "radius": radius * 0.6, "turbulence": true})
 	Vfx.burst(at + normal * 0.4, Color(0.05, 0.03, 0.04, 0.8), {"count": 22, "life": 1.6, "speed": Vector2(0.6, 1.8), "size": 0.7, "gravity": 1.0, "radius": radius * 0.4, "additive": false, "turbulence": true})
-	Vfx.light(at + normal * 0.6, Color(1.0, 0.5, 0.2), 8.0, radius * 3.2, 0.55)
+	Vfx.light(at + normal * 0.6, hot if pierce else EMBER, 8.0, radius * 3.2, 0.55, 3)
 
 
 ## Bone Reliquary · Implosion: a dome collapsing inward onto the caster, motes sucked in.
@@ -217,7 +217,7 @@ static func implosion(feet: Vector3, radius: float) -> void:
 	shell(chest, radius, 0.3, Color(1.0, 0.4, 2.6), 0.35)
 	disc(feet, radius, 0, VIOLET * 0.8, VIOLET_HOT, 0.5)
 	Vfx.burst(chest, VIOLET_HOT, {"count": 70, "life": 0.35, "speed": Vector2(0.0, 0.4), "size": 0.05, "radius": radius * 0.9, "radial": -radius * 2.6, "gravity": 0.0, "trail": 0.1})
-	Vfx.light(chest, Color(0.7, 0.4, 1.0), 4.0, radius * 1.6, 0.35)
+	Vfx.light(chest, VIOLET, 4.0, radius * 1.6, 0.35, 2)
 
 
 static func rift_out(at: Vector3) -> void:
@@ -231,7 +231,7 @@ static func rift_in(at: Vector3) -> void:
 	shell(at + Vector3.UP, 0.2, 1.6, Color(1.2, 0.5, 2.8), 0.3)
 	disc(at, 1.2, 0, VIOLET, VIOLET_HOT, 0.6)
 	Vfx.burst(at + Vector3.UP, VIOLET_HOT, {"count": 46, "life": 0.45, "speed": Vector2(3.0, 7.0), "size": 0.045, "gravity": -3.0, "trail": 0.08})
-	Vfx.light(at + Vector3.UP, Color(0.7, 0.4, 1.0), 4.0, 6.0, 0.35)
+	Vfx.light(at + Vector3.UP, VIOLET, 4.0, 6.0, 0.35, 2)
 
 
 static func rift_seam(from: Vector3, to: Vector3) -> void:

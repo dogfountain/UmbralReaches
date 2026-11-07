@@ -225,7 +225,7 @@ func _burst_at(at: Vector3) -> void:
 	SpellFx.disc(at - Vector3.UP * 0.9, DIVE_R, 0, SpellFx.VIOLET * 0.8, Color(2.6, 2.2, 3.6), 0.6)
 	SpellFx.shell(at, 0.2, DIVE_R, Color(1.3, 1.0, 2.8), 0.32)
 	Vfx.burst(at, PALE, {"count": 50, "life": 0.5, "speed": Vector2(3.0, 8.0), "size": 0.05, "gravity": -4.0, "trail": 0.08})
-	Vfx.light(at, Color(0.75, 0.6, 1.0), 4.0, DIVE_R * 2.4, 0.35)
+	Vfx.light(at, SpellFx.VIOLET, 4.0, DIVE_R * 2.4, 0.35, 2)
 	StaffSfx.play("echo", at, -2.0, 1.2)
 	if total >= 3:
 		Combo.note("DETONATION", at + Vector3.UP, Color(0.85, 0.55, 1.0), "%d Marks" % total)

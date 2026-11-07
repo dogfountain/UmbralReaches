@@ -122,7 +122,7 @@ func _stroke_fx(p: Player, reach: float, half: float) -> void:
 	# the flash is a ball that stays inside the cone: tangent to its edges, its far side at the reach
 	var sn := sin(deg_to_rad(clampf(half, 5.0, 85.0)))
 	var ball := reach * sn / (1.0 + sn)
-	Vfx.light(at + f * (ball / sn), Color(1.0, 0.8, 0.45), 3.0, ball, 0.3)
+	Vfx.light(at + f * (ball / sn), GOLD, 3.0, ball, 0.3, 2)
 	StaffSfx.play("nova", at, -3.0, 0.62)
 
 
