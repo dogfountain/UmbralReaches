@@ -265,10 +265,11 @@ func open(speaker: String, portrait_opts: Dictionary = {}) -> void:
 	_name.text = speaker
 	_mood.text = ""
 	_panel.visible = true
+	if not _open:                               # opened again while up (a new page): the first open owns the pause
+		_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+		_paused_it = not get_tree().paused
 	_open = true
-	_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	_paused_it = not get_tree().paused
 	get_tree().paused = true
 	Events.interact_hint.emit("")
 

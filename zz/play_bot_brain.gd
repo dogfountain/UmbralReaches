@@ -115,7 +115,7 @@ func _ready() -> void:
 			if _boss_deaths % 3 == 0:
 				_black["main:" + String(_foe.get_meta(&"boss_id"))] = game_t + 600.0
 				rec.note("PLAN", "three deaths to %s: leaving it for ten minutes" % String(_foe.get_meta(&"boss_id")))
-		rec.problem("DIED", "hollowed (death %d) near %s, gloom %.0f wounds %.0f" % [_deaths, _where(), p.gloom, p.wounds]))
+		rec.problem("DIED", "hollowed (death %d) near %s, gloom %.0f of %.0f wounds %.0f" % [_deaths, _where(), p.gloom, p.gloom_max, p.wounds]))
 	Events.respawned.connect(func(at: Vector3) -> void: rec.note("RESPAWN", "at (%.0f, %.0f, %.0f)" % [at.x, at.y, at.z]))
 	Events.enemy_killed.connect(func(_e: Node) -> void: _kills += 1)
 	Events.quest_changed.connect(_on_quest)
@@ -310,7 +310,7 @@ func _watch(dt: float) -> void:
 	if game_t >= _shot_next:
 		_shot_next += 60.0
 		rec.shot("t%03d_%s" % [int(game_t / 60.0), activity])
-		rec.note("STATUS", "wall=%ds ts=%.1f act=%s goal=%s gloom=%.0f wounds=%.0f kills=%d walked=%.0fm tasks acc=%d done=%d" % [(Time.get_ticks_msec() - host.t_wall) / 1000, Engine.time_scale, activity, goal.get("label", "-"), p.gloom, p.wounds, _kills, _dist_walked, _accepted, _handed])
+		rec.note("STATUS", "wall=%ds ts=%.1f act=%s goal=%s gloom=%.0f/%.0f wounds=%.0f kills=%d walked=%.0fm tasks acc=%d done=%d" % [(Time.get_ticks_msec() - host.t_wall) / 1000, Engine.time_scale, activity, goal.get("label", "-"), p.gloom, p.gloom_max, p.wounds, _kills, _dist_walked, _accepted, _handed])
 	# fall / off the world
 	if pos.y < -45.0 and game_t - _fell_logged > 20.0:
 		_fell_logged = game_t
@@ -381,6 +381,7 @@ func _ui(dt: float) -> bool:
 	_shop_t = 0.0
 	if talking or offering:
 		_was_talking = true
+		_paused_t = 0.0                    # a dialogue holds the pause; only a pause left after it ends is a stray one
 	elif _was_talking:
 		_was_talking = false
 		_after_talk()

@@ -136,10 +136,27 @@ func _assist(muzzle: Vector3, aim: Vector3) -> Vector3:
 			continue
 		var q := PhysicsRayQueryParameters3D.create(muzzle, chest, Layers.WORLD, [player.get_rid()])
 		if space and not space.intersect_ray(q).is_empty():
-			continue
+			# a low foe behind a lip of ground: its back is often clear when its chest is not
+			var top := _clear_point(e, muzzle)
+			if top == Vector3.INF:
+				continue
+			dir = (top - muzzle).normalized()
+			dt = dir.dot(aim)
+			if dt < cone or dt - cone <= best_dot:
+				continue
 		best_dot = dt - cone
 		best = dir
 	return best
+
+
+## A point on a low foe that the muzzle can see when its chest is hidden by a lip of ground: the
+## top of its body (the bolt's own hurt sphere is 0.32 m wide, so a hair high still lands). INF if none.
+func _clear_point(e: Enemy, muzzle: Vector3) -> Vector3:
+	for f: float in [0.8, 1.0]:
+		var pt := e.global_position + Vector3.UP * (e.hp_bar_y * f)
+		if pt.distance_to(muzzle) > 0.2 and player.locomotion._ray(muzzle, pt).is_empty():
+			return pt
+	return Vector3.INF
 
 
 ## r31: where a bolt goes. Locked on, straight at the target's chest (in sight); otherwise the
@@ -152,6 +169,10 @@ func _combat_aim(muzzle: Vector3) -> Vector3:
 		var to := chest - muzzle
 		if to.length() > 0.2 and to.length() < Player.LOCK_AIM_RANGE and player.locomotion._ray(muzzle, chest).is_empty():
 			return to.normalized()
+		if to.length() > 0.2 and to.length() < Player.LOCK_AIM_RANGE:
+			var top := _clear_point(lk, muzzle)
+			if top != Vector3.INF:
+				return (top - muzzle).normalized()
 	return _assist(muzzle, _aim_from(muzzle))
 
 

@@ -132,6 +132,7 @@ func on_engaged(arena: Node) -> void:
 
 func _absorb(dmg: float, from: Node) -> float:
 	if _inter == 1:
+		BossKit.warded_hit(self, "break the three tallies", Color(0.7, 1.0, 0.8), from)
 		return 0.0                              # in the mound: nothing reaches him
 	if phase >= 4:
 		dmg *= BURN_TAKEN
@@ -343,6 +344,7 @@ func _begin_intermission() -> void:
 	_wave_t = 4.0
 	_waves = 0
 	set_meta(&"phase_label", "THE COUNT IS TAKEN")
+	set_meta(&"ward_hint", "break the three tallies")
 	BossKit.cast(self, "The Count Is Taken", it + 1.6)
 	BossKit.emote(self, "The Abbot sinks into the mound.")
 	var eid := get_instance_id()
@@ -433,6 +435,7 @@ func _end_intermission(fed: int) -> void:
 		return
 	_inter = 2
 	remove_meta(&"phase_label")
+	remove_meta(&"ward_hint")
 	if casting():
 		_finish_cast(false, false)
 	for t in _tallies:

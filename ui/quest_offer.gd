@@ -323,11 +323,13 @@ func pick(i: int) -> void:
 
 func _show() -> void:
 	UiSound.play(self, "tab")
+	var reopen := _panel.visible                # shown again while already up: the first open owns the pause
 	_panel.visible = true
 	_fit.call_deferred()
-	_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	if not reopen:
+		_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+		_paused_it = not get_tree().paused
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	_paused_it = not get_tree().paused
 	get_tree().paused = true
 	Events.interact_hint.emit("")
 
