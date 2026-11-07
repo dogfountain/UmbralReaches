@@ -112,6 +112,7 @@ func steer_clear(dir: Vector3, clear := 1.7) -> Vector3:
 const CAM_TRIES := [[1.0, 1.0, 0.0], [0.85, 1.15, 0.0], [1.0, 1.0, -6.0], [1.0, 1.0, 6.0], [1.0, 1.3, 2.5], [1.0, 1.3, -2.5], [0.7, 1.35, 2.0], [0.7, 1.35, -2.0], [0.55, 1.6, 0.0],
 		[0.8, 1.9, 4.0], [0.8, 1.9, -4.0], [1.3, 1.5, 0.0], [0.4, 2.2, 0.0], [0.3, 2.8, 0.0]]
 var _try := 0
+var _side_off := 0.0                       ## a fixed sideways shift of the trailing lens (metres, + = the walker's right)
 
 
 func _lens_clear(head: Vector3, from: Vector3, at: Vector3) -> bool:
@@ -142,7 +143,7 @@ func _vista_spot(i: int, me: Vector3, look: Vector3, k: float, back: float, h: f
 	var dir := Cam.flat(look - me)
 	var side := dir.cross(Vector3.UP)
 	var c: Array = CAM_TRIES[i]
-	var from: Vector3 = me - dir * back * float(c[0]) + side * (lat * (k * 2.0 - 1.0) + float(c[2])) + Vector3.UP * (h + rise * k) * float(c[1])
+	var from: Vector3 = me - dir * back * float(c[0]) + side * (lat * (k * 2.0 - 1.0) + float(c[2]) + _side_off) + Vector3.UP * (h + rise * k) * float(c[1])
 	var flat_len := Vector2(look.x - from.x, look.z - from.z).length()
 	var to_head: Vector3 = me + Vector3.UP * 1.5 - from
 	var head_ang := atan2(to_head.y, maxf(Vector2(to_head.x, to_head.z).length(), 0.5))

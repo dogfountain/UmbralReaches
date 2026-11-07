@@ -463,13 +463,15 @@ func _e_defend() -> void:
 func _s_defend_game() -> void:
 	d.clear_spawned()
 	start_defend("MOOR_FIRES", 0)
-	d.use_player_cam()
+	d.use_free_cam()
+	d.cam.fov = 58.0
 	fill(_def.global_position + Vector3(0.0, 2.5, 0.0), 2.0, 12.0)
 
 
 func _u_defend_game(tt: float) -> void:
 	def_fight(tt, "dg_bolts")
-	d.p.set_view(float(d.p.get("_yaw")), -0.32)
+	var mid: Vector3 = _def.global_position.lerp(d.pp(), 0.4)
+	d.top_down(mid, 6.5, 30.0)                  # a game-camera height and a shallow pitch: over the grass, not in it
 	d.light_at(_def.global_position.lerp(d.pp(), 0.5), 5.0)
 
 
@@ -531,15 +533,22 @@ func _s_roam() -> void:
 		ok = bool(re.call("start", "procession"))
 	print("TRAILER roam procession started: %s" % ok)
 	adopt_roam()
-	var fl: Array[Node3D] = d.foes()
-	if not fl.is_empty():
-		var m := Vector3.ZERO
-		for f in fl:
-			m += f.global_position
-		m /= float(fl.size())
-		# the file walks toward the summit: the wanderer stands ahead of it on the way, watching it come
-		var ahead := Cam.flat(Vector3(0.0, 0.0, -104.0) - m)
-		d.put_player(m + ahead * 12.0, Cam.yaw_dir(-ahead), -0.05)
+	# the event rises wherever the dice put it; the shoot stands the file on the open road west of the green instead
+	# (the stretch the horse shots ride), walking west with the wanderer waiting ahead of it
+	var dir := Vector3(-1.0, 0.0, 0.0)
+	var head: Vector3 = d.ARENA + Vector3(-34.0, 0.0, 0.0)
+	var route: Array[Vector3] = [d.on_ground(head + dir * -12.0), d.on_ground(head + dir * 30.0)]
+	var i := 0
+	for f in d.foes():
+		var e := f as Enemy
+		if e == null:
+			continue
+		var at: Vector3 = d.on_ground(head - dir * 2.2 * float(i), 0.1)
+		e.global_position = at
+		e.home = at
+		e.patrol.assign(route)
+		i += 1
+	d.put_player(d.ARENA + Vector3(-46.0, 0.0, 0.0), Cam.yaw_dir(-dir), -0.05)
 	d.use_free_cam()
 	d.cam.fov = 56.0
 	d.key.light_energy = 6.0
@@ -563,7 +572,7 @@ func _u_roam(tt: float) -> void:
 		var pts: Array = [d.pp() + Vector3.UP * 1.4, mid + Vector3.UP * 1.2]
 		for f in foes:
 			pts.append(f.global_position + Vector3.UP * 1.0)
-		var across := Cam.flat(mid - d.pp()).cross(Vector3.UP)
+		var across := Cam.flat(mid - d.pp()).cross(Vector3.UP) * -1.0
 		_roam_cam = d.solve_cam(pts, between, d.yaw_to(across), 12.0, 6.5)
 	d.hold_cam(_roam_cam, between + Vector3.UP * 1.2)
 	if int(round(tt * 60.0)) % 4 == 0:

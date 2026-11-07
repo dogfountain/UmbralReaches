@@ -12,9 +12,9 @@ const PLACES := {
 	"orchard": [Vector2(-99, 104), Vector2(-128, 132), 3.0, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
 	"quarry": [Vector2(-120, -83), Vector2(-128, -104), 4.0, 4.5, 2.4, 60.0, 1.5, 0.8, 0.5],
 	"moor": [Vector2(125, -15), Vector2(142, -24), 4.0, 8.0, 6.0, 58.0, 1.5, 1.0, 0.5],
-	"holds": [Vector2(-141, 13), Vector2(-122, 12), 3.0, 5.5, 7.0, 58.0, 0.5, 1.0, 0.5],
+	"holds": [Vector2(-133, 13), Vector2(-121, 11), 3.0, 4.2, 4.8, 58.0, 0.5, 1.0, 0.4],
 	"crowns": [Vector2(0, 66), Vector2(0, -110), 30.0, 5.0, 2.4, 60.0, 1.5, 1.2, 0.6],
-	"stillwater": [Vector2(230, 30), Vector2(240, 8), 16.0, 9.0, 6.0, 62.0, 0.5, 1.0, 0.3, 0.6],
+	"stillwater": [Vector2(232, 26), Vector2(241, 8), 24.0, 20.0, 12.0, 80.0, 0.5, 1.0, 0.0, 1.0],
 	"anchorholds": [Vector2(204, -112), Vector2(215, -135), 5.0, 7.0, 6.0, 62.0, 1.0, 1.0, 0.3, 0.3],
 	"hierarch": [Vector2(-190, -74), Vector2(-214, -103), 3.0, 14.0, 14.0, 62.0, 1.0, 1.0, 0.0, 0.3],
 	"siege": [Vector2(-216, 132), Vector2(-236, 170), 8.0, 8.0, 6.0, 58.0, 1.5, 1.0, 0.5],
@@ -28,6 +28,8 @@ const PLACES := {
 
 ## The places whose lens is picked by the clear-lens solver (vista_clear: never behind a wall, a roof, a sign or a headstone,
 ## the wanderer kept in the lower third); the rest trail the wanderer with the plain Cam.vista.
+## id -> a fixed sideways shift of the lens (+ = right of the walk), to slide it past something in the foreground.
+const LENS_SIDE := {"moor": 4.5}
 const CLEAR_LENS := ["quarry", "holds", "stillwater", "moor", "necropolis", "siege", "saltmarket", "well", "anchorholds", "hierarch"]
 
 
@@ -45,6 +47,7 @@ func _s_any(id: String) -> void:
 	var pl: Array = PLACES[id]
 	gather_props()
 	_try = 0
+	_side_off = float(LENS_SIDE.get(id, 0.0))
 	var st: Vector2 = clear_stand(pl[0])
 	var look := _look(id)
 	d.put_player(Vector3(st.x, 0.0, st.y), Cam.yaw_dir(look - Vector3(st.x, look.y, st.y)), -0.05)
@@ -238,44 +241,42 @@ func fill_follow(at: Vector3, energy := 3.0, rng := 16.0) -> void:
 
 
 var _spire_xf := Transform3D.IDENTITY
-const SPIRE_WAY := [Vector3(1.95, 6.73, 1.4), Vector3(-1.4, 8.57, 1.95), Vector3(-1.95, 10.41, -1.4), Vector3(1.4, 12.26, -1.95), Vector3(1.95, 14.1, 1.4), Vector3(-1.4, 15.94, 1.95)]
-var _spire_i := 0
 
 
+## The Spire from outside: the lens starts low at the foot (the wanderer at the door) and cranes up the stone to the lamp
+## room, where the great lamp is kindled as the lens arrives.
 func _s_lamp_spire() -> void:
 	d.clear_spawned()
 	var sp: Dictionary = R37E.spots.lamp_spire
 	_spire_xf = Transform3D(Basis(Vector3.UP, float(sp.yaw)), sp.at)
-	_spire_i = 0
-	var st := _spire_xf * Vector3(1.95, 4.95, -1.4)
-	d.put_player(st, Cam.yaw_dir(_spire_xf.basis * Vector3(0.0, 0.0, 1.0)), 0.05, false)
-	(d.p.get_node("Visual") as Node3D).visible = false
+	var lamp := R37E.lamp_node as Lamp
+	if lamp != null:
+		lamp.douse()
+	var st: Vector3 = _spire_xf * Vector3(2.5, 0.0, 7.5)
+	d.put_player(st, Cam.yaw_dir(_spire_xf.basis * Vector3(0.0, 0.0, -1.0)), -0.05)
+	d.drive(Vector3.ZERO)
 	d.use_free_cam()
-	d.cam.fov = 84.0
-	d.key.light_energy = 0.35          # a narrow stair: the usual fill a metre and a half over the head blew the walls white
+	d.cam.fov = 58.0
+	fill(st + Vector3(0.0, 3.0, 2.0), 3.0, 12.0)
 
 
 func _u_lamp_spire(tt: float) -> void:
-	if _spire_i < SPIRE_WAY.size():
-		var w: Vector3 = _spire_xf * (SPIRE_WAY[_spire_i] as Vector3)
-		var to: Vector3 = w - d.pp()
-		to.y = 0.0
-		if to.length() < 0.9:
-			_spire_i += 1
-		else:
-			d.aim_at(w)
-			d.drive(to.normalized() * 0.8)
-	var h: Vector3 = d.head()
-	var f: Vector3 = d.fwd_of(float(d.p.get("_yaw")))
-	d.hold_cam(h + f * 0.25, h + f * 8.0 + Vector3.UP * (1.6 + sin(tt * 9.0) * 0.06))
-	d._snap = true
-	d.light_at(h, 1.5)
-	fill_follow(h + Vector3(0.0, 0.5, 0.0) + f * 0.6, 0.8, 6.0)     # the tower's own candles
+	var c: Vector3 = _spire_xf.origin
+	var k: float = d.sm(clampf(tt / 1.8, 0.0, 1.0))
+	var a := lerpf(0.5, 0.15, k)                                    # round from the door side
+	var r := lerpf(15.0, 12.0, k)
+	var from: Vector3 = c + Vector3(sin(a) * r, lerpf(1.8, 27.5, k), cos(a) * r)
+	var at: Vector3 = c + Vector3(0.0, lerpf(3.5, 27.5, k), 0.0)
+	d.hold_cam(from, at)
+	d.light_at(c, lerpf(4.0, 22.0, k))
+	if tt > 1.3 and d.once("ls_kindle"):
+		var lamp := R37E.lamp_node as Lamp
+		if lamp != null and not lamp.lit:
+			lamp.interact(d.p)
+		fill(c + Vector3(0.0, 28.5, 1.5), 9.0, 14.0, Color(1.0, 0.75, 0.4))      # the great lamp's glow on the gallery
 
 
 func _e_lamp_spire() -> void:
-	d.key.light_energy = 3.0
-	(d.p.get_node("Visual") as Node3D).visible = true
 	d.drive(Vector3.ZERO)
 	clear_fills()
 	d.cam.fov = 62.0
