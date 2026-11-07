@@ -303,12 +303,12 @@ static func _spire(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary
 	# rock heaped at the foot, round the three sides the door is not on
 	for i in 7:
 		var a := float(i) / 7.0 * TAU + rng.randf() * 0.4
-		var q := Vector3(cos(a) * 6.4, 0.0, sin(a) * 6.4)
-		if q.z > 3.0 and absf(q.x) < 3.5:
+		var q := Vector3(cos(a) * 8.6, 0.0, sin(a) * 8.6)          # clear of the slab and its plinth (their edge is 5.2 m out, a rock 1.5 m wide)
+		if q.z > 0.0 and absf(q.x) < 7.0:
 			continue
 		var w := xf * q
-		w.y = _gy(space, w.x, w.z) - 0.3
-		P._rock(host, w, Vector3(2.2, 1.6, 2.0) * rng.randf_range(0.8, 1.3), "ash", 20 + i, rng.randf() * TAU)
+		w.y = _gy(space, w.x, w.z) - 0.45
+		P._rock(host, w, Vector3(2.2, 1.6, 2.0) * rng.randf_range(0.8, 1.3), "granite", 20 + i, rng.randf() * TAU)
 	# the great lamp: dark until the wanderer lights it
 	var lamp_at := xf * Vector3(0, LAMP_Y - 0.7, 0)
 	var state := {"lit": State.has("open", "spire_lamp")}

@@ -17,6 +17,7 @@ var t := 0
 var cam: Camera3D
 var bell := Vector3.ZERO         ## --bell=x:z puts a bell prop on the ground there
 var bell_kind := "bell"
+var lamp := false                ## --lamp: a lantern-warm light beside the bell
 
 
 func _ready() -> void:
@@ -28,6 +29,8 @@ func _ready() -> void:
 			out = a.trim_prefix("--out=")
 		elif a.begins_with("--tag="):
 			tag = a.trim_prefix("--tag=")
+		elif a == "--lamp":
+			lamp = true
 		elif a.begins_with("--bell="):
 			var g := a.trim_prefix("--bell=").split(":")
 			bell = Vector3(float(g[0]), 0.0, float(g[1]))
@@ -65,6 +68,13 @@ func _process(_d: float) -> void:
 		if bell.y == 0.0:
 			bell.y = _ground(bell.x, bell.z)
 		QuestProps.make(main as Node3D, "TestBell", bell_kind, Transform3D(Basis.IDENTITY, bell))
+		if lamp:
+			var ol := OmniLight3D.new()
+			ol.light_color = Color(1.0, 0.68, 0.36)
+			ol.light_energy = 1.6
+			ol.omni_range = 7.0
+			main.add_child(ol)
+			ol.global_position = bell + Vector3(1.4, 1.3, 1.2)
 	if cam == null:
 		cam = Camera3D.new()
 		cam.fov = 70.0

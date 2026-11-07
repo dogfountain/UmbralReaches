@@ -10,9 +10,9 @@ const SEGS := 28
 ## raised bands and the sound-bow where the clapper strikes, green-dark in the hollows.
 const OUTER := [
 	[0.000, -0.105, 0.78], [0.060, -0.105, 0.78], [0.085, -0.135, 0.8], [0.110, -0.185, 0.8],
-	[0.150, -0.225, 0.95], [0.175, -0.250, 0.78], [0.185, -0.330, 0.7], [0.192, -0.430, 0.68],
-	[0.205, -0.500, 0.74], [0.226, -0.560, 0.98], [0.232, -0.585, 0.72], [0.262, -0.650, 0.66],
-	[0.310, -0.725, 0.7], [0.352, -0.790, 0.82], [0.372, -0.820, 1.0], [0.378, -0.850, 1.02],
+	[0.150, -0.225, 0.95], [0.175, -0.250, 0.55], [0.185, -0.330, 0.8], [0.192, -0.430, 0.8],
+	[0.205, -0.500, 0.82], [0.226, -0.560, 0.98], [0.232, -0.585, 0.56], [0.262, -0.650, 0.62],
+	[0.310, -0.725, 0.8], [0.352, -0.790, 0.82], [0.372, -0.820, 1.0], [0.378, -0.850, 1.02],
 ]
 ## The lip: the flat ring the sound-bow ends in, then the inner wall back up to the crown's underside.
 const LIP := [[0.378, -0.850, 0.9], [0.312, -0.850, 0.88]]
@@ -35,14 +35,14 @@ static func mesh(tongue := true) -> ArrayMesh:
 		return _cache[tongue]
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var bronze := Color(1.0, 0.42, 0.1)
+	var bronze := Color.WHITE
 	var iron := Color(0.36, 0.34, 0.36)
-	_lathe(st, OUTER, bronze, 1.0, 0.0)
-	_lathe(st, LIP, bronze, 1.0, 0.0)
-	_lathe(st, INNER, bronze, -1.0, 0.0)
-	_ring(st, Vector3(0, -0.035, 0), 0.062, 0.02, bronze * 0.9)         # the crown's hanging loop
+	_lathe(st, OUTER, bronze, 1.0, true)
+	_lathe(st, LIP, bronze, 1.0, true)
+	_lathe(st, INNER, bronze, -1.0, true)
+	_ring(st, Vector3(0, -0.035, 0), 0.062, 0.02, _bronze(0.8))         # the crown's hanging loop
 	if tongue:
-		_lathe(st, TONGUE, iron, 1.0, 0.0)
+		_lathe(st, TONGUE, iron, 1.0, false)
 	var m := st.commit()
 	_cache[tongue] = m
 	return m
@@ -52,9 +52,9 @@ static func material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.vertex_color_use_as_albedo = true
 	m.albedo_color = Color(1, 1, 1)
-	m.metallic = 0.0
-	m.metallic_specular = 0.4
-	m.roughness = 0.5
+	m.metallic = 0.75
+	m.metallic_specular = 0.6
+	m.roughness = 0.4
 	m.rim_enabled = true                      # reads against a dark wall in moonlight
 	m.rim = 0.2
 	m.rim_tint = 0.0
@@ -65,7 +65,7 @@ static func material() -> StandardMaterial3D:
 ## Revolves `pts` ([radius, y, tone]) about +Y. `side` +1: the surface faces away from the axis (outer
 ## wall, lip); -1: toward it (inner wall). Normals come from the profile's slope; the winding is checked
 ## against them.
-static func _lathe(st: SurfaceTool, pts: Array, col: Color, side: float, _unused: float) -> void:
+static func _lathe(st: SurfaceTool, pts: Array, col: Color, side: float, cast: bool) -> void:
 	var n := pts.size()
 	var nrm: Array[Vector2] = []
 	for i in n:
@@ -95,12 +95,23 @@ static func _lathe(st: SurfaceTool, pts: Array, col: Color, side: float, _unused
 			var n01 := _nv(nrm[i], a1)
 			var n10 := _nv(nrm[i + 1], a0)
 			var n11 := _nv(nrm[i + 1], a1)
-			var c0 := col * float(p[2])
-			var c1 := col * float(q[2])
+			var c0 := _bronze(float(p[2])) if cast else col * float(p[2])
+			var c1 := _bronze(float(q[2])) if cast else col * float(q[2])
 			c0.a = 1.0
 			c1.a = 1.0
 			_tri(st, [v00, v10, v11], [n00, n10, n11], [c0, c1, c1])
 			_tri(st, [v00, v11, v01], [n00, n11, n01], [c0, c1, c0])
+
+
+## Old cast bronze by tone: green-grey verdigris in the recesses (low), dark bronze body, the metal
+## worn bright and warm on the raised bands, the sound-bow and the lip where it is struck (high).
+static func _bronze(t: float) -> Color:
+	var verd := Color(0.14, 0.34, 0.24)
+	var body := Color(0.36, 0.17, 0.06)
+	var worn := Color(1.0, 0.7, 0.3)
+	if t >= 0.9:
+		return body.lerp(worn, clampf((t - 0.88) / 0.1, 0.0, 1.0))
+	return verd.lerp(body, clampf((t - 0.5) / 0.3, 0.0, 1.0))
 
 
 static func _at(p: Array, a: float) -> Vector3:
