@@ -68,7 +68,7 @@ func _u_bells(tt: float) -> void:
 	var b := bell_at()
 	var k: float = d.sm(clampf(tt / 2.0, 0.0, 1.0))
 	# low on the bell, the keeper at its side, the Spire standing behind them; a slow orbit
-	cam.orbit(b, k, 7.2, 6.2, 0.55, 0.2, 3.4, 2.9, 1.2)
+	cam.orbit(b + Vector3(-1.2, 0.0, 0.8), k, 6.0, 5.2, 0.6, 0.3, 2.3, 2.0, 1.3)
 	d.light_at(b, 4.0)
 	if is_instance_valid(_shut):
 		d.aim_at(_shut.global_position)
@@ -97,7 +97,7 @@ func _s_shutter_fight() -> void:
 
 func _u_shutter_fight(tt: float) -> void:
 	var sp: Vector3 = _shut.global_position if is_instance_valid(_shut) else bell_at()
-	two_shot(d.pp(), sp, d.sm(clampf(tt / 2.6, 0.0, 1.0)), 7.5, 3.0, 1.0, 0.6, 1.2)
+	two_shot(d.pp(), sp, d.sm(clampf(tt / 2.6, 0.0, 1.0)), 7.0, 3.5, -1.0, 0.3, 1.2)
 	d.light_at(d.pp().lerp(bell_at(), 0.5), 5.0)
 	var foe: Node3D = d.target()
 	if foe:
