@@ -27,6 +27,12 @@ func interact_reach() -> float:
 	return 1.9
 
 
+## A thing lying on a table, a board or a sill is taken from any side within reach: the table's own slab or
+## leg must not hide it (the Almonry's last loaf gave no prompt from the west, where the road comes in).
+func ignores_sight() -> bool:
+	return true
+
+
 func interact_feel() -> StringName:
 	return &"use"
 

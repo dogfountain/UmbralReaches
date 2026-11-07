@@ -315,6 +315,10 @@ func interact_text() -> String:
 	return "[%s]  Talk to the keep" % Interactable.prompt_key()
 
 
+func ignores_sight() -> bool:
+	return true                      # the bar counter is chest-high between the keep and the room: it must not hide him
+
+
 func interact_reach() -> float:
 	return 2.8
 
