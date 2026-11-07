@@ -99,6 +99,11 @@ static func warm_rig(host: Node, script: GDScript) -> void:
 	e.collision_layer = 0
 	e.collision_mask = 0
 	e.scale = Vector3.ONE * 0.01
+	# the health plate is sized in metres by its shader, not by the node's scale: left on, the "speck" drew a full-size
+	# bar three metres in front of the lens (over a herd of deer, in the trailer) for the half second it lived
+	var plate := e.get_node_or_null("HealthBar") as Node3D
+	if plate != null:
+		plate.visible = false
 	var cam := host.get_viewport().get_camera_3d()
 	e.global_position = (cam.global_position - cam.global_basis.z * 3.0) if cam != null else Vector3(0.0, 1.0, 0.0)
 	var eid := e.get_instance_id()
