@@ -1411,28 +1411,61 @@ func _build_ledge(c: Vector3, yaw: float, rise: float) -> Array:
 	var f := fwd_of(yaw)
 	var side := f.cross(Vector3.UP)
 	var space := (main as Node3D).get_world_3d().direct_space_state
+	# open ground: the first of a few spots round `c` with nothing within 7 m
+	var ball := BoxShape3D.new()
+	ball.size = Vector3(20.0, 3.5, 20.0)
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = ball
+	q.collision_mask = Layers.WORLD | Layers.PROPS
 	var base := on_ground(c)
+	for off: Vector3 in [Vector3.ZERO]:
+		var cand := on_ground(c + off)
+		q.transform = Transform3D(Basis(), cand + Vector3.UP * 2.0)
+		if space.intersect_shape(q, 1).is_empty():
+			base = cand
+			break
 	var body := StaticBody3D.new()
 	body.name = "TrailerLedge"
 	body.collision_layer = Layers.WORLD
 	body.collision_mask = 0
-	var size := Vector3(4.5, rise, 3.0)
-	var box := BoxShape3D.new()
-	box.size = size
-	var cs := CollisionShape3D.new()
-	cs.shape = box
-	body.add_child(cs)
-	var bm := BoxMesh.new()
-	bm.size = size
-	var mi := MeshInstance3D.new()
-	mi.mesh = bm
-	mi.material_override = _ashlar()
-	body.add_child(mi)
 	main.add_child(body)
-	body.global_transform = Transform3D(Basis.looking_at(f, Vector3.UP), base + Vector3.UP * (rise * 0.5 - 0.15))
+	body.global_transform = Transform3D(Basis.looking_at(f, Vector3.UP), base)
 	_grab_wall = body
+	var mat := _ashlar()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	# a broken terrace wall: the high stretch the wanderer climbs, a lower crumbled step beside it, a few fallen
+	# blocks at its foot and two stones left on the top at the back (local: +z is back, -z the face)
+	var parts: Array = [
+		[Vector3(0.0, rise * 0.5 - 0.15, 0.0), Vector3(4.5, rise, 3.0), 0.0, true],
+		[Vector3(-3.6, 0.55, 0.3), Vector3(2.4, 1.2, 2.4), 0.0, true],
+		[Vector3(2.5, 0.2, 0.4), Vector3(1.4, 0.4, 1.6), 0.0, true],
+		[Vector3(2.2, 0.2, -2.1), Vector3(0.8, 0.45, 0.6), 0.5, false],
+		[Vector3(-2.6, 0.18, -1.7), Vector3(0.7, 0.4, 0.5), -0.4, false],
+		[Vector3(-3.6, 0.16, -0.4), Vector3(0.6, 0.35, 0.5), 0.9, false],
+	]
+	for pt: Array in parts:
+		var sz: Vector3 = pt[1]
+		var holder := Node3D.new()
+		holder.position = pt[0]
+		holder.rotation.y = float(pt[2])
+		body.add_child(holder)
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = sz
+		mi.mesh = bm
+		mi.material_override = mat
+		holder.add_child(mi)
+		if bool(pt[3]):
+			var cs := CollisionShape3D.new()       # a direct child of the body: a nested shape does not collide
+			var bx := BoxShape3D.new()
+			bx.size = sz
+			cs.shape = bx
+			cs.position = holder.position
+			cs.rotation.y = holder.rotation.y
+			body.add_child(cs)
 	var near_face := base - f * 1.5
-	var out := space.intersect_ray(PhysicsRayQueryParameters3D.create(near_face - f * 0.0 + Vector3.UP * 3.0, near_face + Vector3.DOWN * 3.0, Layers.WORLD))
+	var out := space.intersect_ray(PhysicsRayQueryParameters3D.create(near_face + Vector3.UP * 3.0, near_face + Vector3.DOWN * 3.0, Layers.WORLD))
 	return [(out.position as Vector3) if not out.is_empty() else near_face, f, side]
 
 
