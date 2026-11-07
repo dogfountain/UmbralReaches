@@ -13,6 +13,7 @@ Authored in Godot coordinates (origin: the trunk's axis at ground level; the doo
 """
 import math
 import random
+import numpy as np_mod
 import bpy
 from mathutils import Vector, Matrix
 
@@ -132,20 +133,14 @@ def build(DATA, PREVIEW, objs_out):
 
     ENT_J0 = ent_c0 * 2                 # the entrance's fine columns ENT_J0 .. +9, fine rows 4 .. 9 (y 0 .. 4.2)
 
-    def arch_open(i, j):
-        """The doorway: a rounded, ragged arch inside the collision opening (never wider or taller than it)."""
-        u = (j - (ENT_J0 + 4.5)) / 5.0
-        top = 4.55 * (1.0 - 0.6 * abs(u) ** 2.1) + 0.5 * (hash3(j * 0.5, 3.0, 1.0, 21) - 0.5)
-        yt = ys[i] + DYF
-        if yt > 4.2:
-            return False
-        return yt <= top + 0.3 * (hash3(j * 1.3, i * 0.9, 2.0, 22) - 0.5)
+    def in_ent(i, j):
+        return ENT_J0 <= j % NF < ENT_J0 + 10 and floor_i <= i < floor_i + 6
 
     def open_fine(i, j):
         j %= NF
         ci, cj = i // 2, j // 2
         if 2 <= ci < 5 and ent_c0 <= cj < ent_c0 + 5:
-            return arch_open(i, j) if ENT_J0 <= j < ENT_J0 + 10 else False
+            return ENT_J0 <= j < ENT_J0 + 10
         return open_coarse(ci, cj)
 
     NI = (KC - 1) * 2 + 1            # fine rings 0..NI-1  (NI = 59)
@@ -213,17 +208,6 @@ def build(DATA, PREVIEW, objs_out):
         outer.append(ro)
         inner.append(ri)
 
-    for i in range(floor_i - 1, floor_i + 9):
-        for j in range(ENT_J0 - 1, ENT_J0 + 12):
-            jj = j % NF
-            if i < 0 or i >= NI:
-                continue
-            for ring in (outer, inner):
-                if ring[i][jj] is None:
-                    continue
-                k = 0.16 if ring is outer else 0.1
-                ring[i][jj] = ring[i][jj] + Vector((hash3(i, jj, 1.0, 41) - 0.5, (hash3(i, jj, 2.0, 42) - 0.5) * 0.6, hash3(i, jj, 3.0, 43) - 0.5)) * k * 2.0
-
     b = B("Trunk", mats)
     tiles = round(math.tau * 6.2 / 3.0)
     vs_ = [ys[i] / 3.0 for i in range(NI)]
@@ -284,16 +268,149 @@ def build(DATA, PREVIEW, objs_out):
             j2 = (j + 1) % NF
             jm = (j - 1) % NF
             # left neighbour closed: jamb along column j
-            if not open_fine(i, jm):
+            ent = in_ent(i, j)
+            if not ent and not open_fine(i, jm):
                 jamb(vo[i][j], vo[i + 1][j], vi[i + 1][j], vi[i][j], False)
-            if not open_fine(i, j2):
+            if not ent and not open_fine(i, j2):
                 jamb(vo[i][j2], vo[i + 1][j2], vi[i + 1][j2], vi[i][j2], True)
             if i > floor_i and not open_fine(i - 1, j):
                 jamb(vo[i][j], vo[i][j2], vi[i][j2], vi[i][j], True)
-            if i + 1 < NI - 1 and not open_fine(i + 1, j):
+            if not ent and i + 1 < NI - 1 and not open_fine(i + 1, j):
                 jamb(vo[i + 1][j], vo[i + 1][j2], vi[i + 1][j2], vi[i + 1][j], False)
             if i == floor_i:
                 jamb(vo[i][j], vo[i][j2], vi[i][j2], vi[i][j], True)
+    # the doorway, cut by a curve and not by the grid: filler panels from the open block's edge to a smooth ragged
+    # arch on the outer and the inner face, and a rounded lip of bark wrapping from one face to the other
+    def nz(t, k):
+        return 0.5 * math.sin(3.0 * t + 1.3 + k) + 0.5 * math.sin(5.1 * t + 0.4 + 2.0 * k)
+
+    a_l = math.tau * ENT_J0 / NF
+    a_r = math.tau * (ENT_J0 + 10) / NF
+    NA = 44
+    arch_t = [-math.pi / 2 + math.pi * k / NA for k in range(NA + 1)]
+    arch_p = []
+    for t in arch_t:
+        u = math.sin(t) * (1.0 - 0.07 * nz(t, 0) * math.cos(t))
+        yy = 3.85 * max(math.cos(t), 0.0) ** 0.85 * (1.0 + 0.09 * nz(t, 1)) + 0.0
+        aa = a_l + (a_r - a_l) * (1.0 + u) / 2.0
+        arch_p.append((aa, yy))
+
+    def perimeter(ring):
+        loop = []
+        for i in range(floor_i, floor_i + 7):
+            loop.append(ring[i][ENT_J0])
+        for j in range(ENT_J0 + 1, ENT_J0 + 11):
+            loop.append(ring[floor_i + 6][j])
+        for i in range(floor_i + 5, floor_i - 1, -1):
+            loop.append(ring[i][ENT_J0 + 10])
+        return loop
+
+    def facing(face, toward, c_ref=None):
+        face.normal_update()
+        n = face.normal
+        cen = face.calc_center_median()
+        sgn = 1.0
+        if c_ref is not None:
+            sgn = 1.0 if (n.dot(c_ref - cen) > 0) else -1.0
+        else:
+            rad = Vector((cen.x - sway(cen.y).x, 0.0, cen.z - sway(cen.y).z))
+            sgn = 1.0 if (n.dot(rad) > 0) == toward else -1.0
+        if sgn < 0:
+            face.normal_flip()
+
+    def new_tri(v0, v1, v2, toward, c_ref=None):
+        try:
+            f = bm.faces.new([v0, v1, v2])
+        except ValueError:
+            return
+        f.material_index = 0
+        f.smooth = True
+        facing(f, toward, c_ref)
+        for l in f.loops:
+            c = l.vert.co
+            ang = math.atan2(c.x - sway(c.y).x, c.z - sway(c.y).z) % math.tau
+            l[b.uv].uv = (tiles * ang / math.tau, c.y / 3.0)
+
+    def strip(P, A, toward):
+        def cum(pts):
+            out = [0.0]
+            for k in range(1, len(pts)):
+                out.append(out[-1] + (pts[k].co - pts[k - 1].co).length)
+            return [x / out[-1] for x in out]
+        cp, ca = cum(P), cum(A)
+        i = j = 0
+        while i < len(P) - 1 or j < len(A) - 1:
+            adv_p = j >= len(A) - 1 or (i < len(P) - 1 and cp[i + 1] <= ca[j + 1])
+            if adv_p:
+                new_tri(P[i], P[i + 1], A[j], toward)
+                i += 1
+            else:
+                new_tri(P[i], A[j + 1], A[j], toward)
+                j += 1
+
+    P_o = perimeter(vo)
+    P_i = perimeter(vi)
+    A_o = []
+    A_i = []
+    ad_mid = (a_l + a_r) / 2.0
+    for k, (aa, yy) in enumerate(arch_p):
+        if k == 0:
+            A_o.append(vo[floor_i][ENT_J0])
+            A_i.append(vi[floor_i][ENT_J0])
+        elif k == NA:
+            A_o.append(vo[floor_i][ENT_J0 + 10])
+            A_i.append(vi[floor_i][ENT_J0 + 10])
+        else:
+            A_o.append(bm.verts.new(pos(aa, surf(aa, yy, False), yy)))
+            A_i.append(bm.verts.new(pos(aa, surf(aa, yy, True), yy)))
+    strip(P_o, A_o, True)
+    strip(P_i, A_i, False)
+    arc_u = [0.0]
+    for k in range(1, NA + 1):
+        arc_u.append(arc_u[-1] + (A_o[k].co - A_o[k - 1].co).length)
+    hole_c = pos(ad_mid, (r_out(1.8) + r_in(1.8)) * 0.5, 1.8)
+    ring_prev = A_o
+    LIP = 5
+    lip_faces = []
+    for kk in range(1, LIP + 1):
+        f_ = kk / LIP
+        ring = []
+        for k in range(NA + 1):
+            if kk == LIP:
+                ring.append(A_i[k])
+                continue
+            if k == 0 or k == NA:
+                ring.append(A_o[k].co.lerp(A_i[k].co, f_) and bm.verts.new(A_o[k].co.lerp(A_i[k].co, f_)))
+                continue
+            po_, pi_ = A_o[k].co, A_i[k].co
+            q = po_.lerp(pi_, f_)
+            rad = Vector((q.x - sway(q.y).x, 0.0, q.z - sway(q.y).z))
+            rad = rad.normalized() if rad.length > 1e-6 else Vector((0, 0, 1))
+            d = hole_c - q
+            d = d - rad * d.dot(rad)
+            d = d.normalized() if d.length > 1e-6 else Vector((0, 1, 0))
+            t_ = arch_t[k]
+            amp = (0.26 + 0.12 * nz(t_, 3)) * math.cos(t_) ** 0.7
+            q = q + d * amp * math.sin(math.pi * f_)
+            ring.append(bm.verts.new(q))
+        for k in range(NA):
+            try:
+                f = bm.faces.new([ring_prev[k], ring_prev[k + 1], ring[k + 1], ring[k]])
+            except ValueError:
+                continue
+            f.material_index = 0
+            f.smooth = True
+            lip_faces.append(f)
+            for l, (kk_, ff_) in zip(f.loops, ((k, f_ - 1.0 / LIP), (k + 1, f_ - 1.0 / LIP), (k + 1, f_), (k, f_))):
+                l[b.uv].uv = (arc_u[kk_] / 3.0, ff_ * 1.3 / 3.0 + 0.5)
+        ring_prev = ring
+    mid_f = lip_faces[len(lip_faces) // 2]
+    mid_f.normal_update()
+    flip_lip = mid_f.normal.dot(hole_c - mid_f.calc_center_median()) < 0
+    for f in lip_faces:
+        f.normal_update()
+        if flip_lip:
+            f.normal_flip()
     # the broken rim: outer top ring to inner top ring
     for j in range(NF):
         j2 = (j + 1) % NF
@@ -603,12 +720,12 @@ def build(DATA, PREVIEW, objs_out):
         chord = 2.0 * rm * math.sin(DA / 2) * 1.04 + 0.04
         slope = math.atan2(RISE, rm * DA)
         # tread: a plank across the stair, pitched with the flight; the riser below it dark
-        sb.box(tuple(pos(am, rm, y - 0.09)), (STAIR_W + 0.1, 0.17, chord), "plank", yaw=am + math.pi / 2, pitch=-slope, cuts=0, scale_uv=0.5)
+        sb.box(tuple(pos(am, rm, y - 0.09)), (STAIR_W + 0.1, 0.17, chord), "bark", yaw=am + math.pi / 2, pitch=-slope, cuts=0, scale_uv=0.5)
         if s % 4 == 0:
             # a bracket from the wall down to the tread's underside
             rw = r_in(y)
             sb.box(tuple(pos(am, (rw + rm) / 2 + 0.3, y - 0.55)), (0.28, 0.32, rw - rm + 0.6), "bark", yaw=am + math.pi / 2 + math.pi / 2, pitch=0.0, scale_uv=0.5)
-        if s % 3 == 1:
+        if s % 1 == 0:
             # a post at the inner edge, a rope between posts
             pp = pos(stair_a(s) + DA * 0.5, ri_ + 0.06, stair_y(s) + RISE * 0.5)
             sb.box(tuple(pp + Vector((0, 0.52, 0))), (0.09, 1.04, 0.09), "bark", scale_uv=0.5)
@@ -641,7 +758,15 @@ def build(DATA, PREVIEW, objs_out):
         ri_ = 0.9
         rm = (rwk + ri_) / 2 - 0.05
         sb.box(tuple(pos(a, rm, y_top - 0.12)), (rwk - ri_, 0.24, 2.0 * rm * math.sin(0.17) + 0.18), "plank", yaw=a + math.pi / 2, scale_uv=0.5)
-    objs.append(sb.finish())
+    stair_ob = sb.finish()
+    L.moss_colors(stair_ob, 5, 0.0)
+    ca2 = stair_ob.data.color_attributes["Col"]
+    cols2 = np_mod.empty(len(stair_ob.data.loops) * 4, dtype=np_mod.float32)
+    ca2.data.foreach_get("color", cols2)
+    cols2 = cols2.reshape(-1, 4)
+    cols2[:, :3] *= 0.42
+    ca2.data.foreach_set("color", cols2.ravel())
+    objs.append(stair_ob)
 
     # ------------------------------------------------------------------ collision proxies (never drawn)
     cm = {"dark": dark}

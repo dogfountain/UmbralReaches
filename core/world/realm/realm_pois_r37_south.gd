@@ -27,6 +27,7 @@ const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Kit := preload("res://core/world/realm/r37_south_kit.gd")
 const OakMound := preload("res://core/world/realm/oak_mound.gd")
+const OakHollowGlow := preload("res://core/world/realm/oak_hollow_glow.gd")
 const Data := preload("res://core/world/realm/r37_south_data.gd")
 const FALL_SHADER := preload("res://core/world/realm/r37_south_fall.gdshader")
 
@@ -642,6 +643,7 @@ static func _oak(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	for part: String in ["Trunk", "Roots", "Limbs", "Crown", "Stair"]:
 		Kit.put(h, Kit.OAK, part, xf, Vector2.ZERO, true)
 	_far(h, Kit.OAK, "OakFar", xf, 120.0, true)
+	OakHollowGlow.build(h, xf)
 	var shapes: Array = []
 	for part: String in ["TrunkCol", "StairCol", "RailCol", "LimbCol", "DeckCol"]:
 		var sh := Kit.trimesh(Kit.OAK, part)
