@@ -51,7 +51,7 @@ const RIG := {
 	"rat": {"head_pivot": Vector3(0, 0.05, -0.05), "hip_front": Vector2(0.03, -0.045), "hip_back": Vector2(0.03, 0.045), "leg_amp": 0.8, "tail_sway": 0.3},
 	"mouse": {"head_pivot": Vector3(0, 0.03, -0.03), "hip_front": Vector2(0.018, -0.027), "hip_back": Vector2(0.018, 0.027), "leg_amp": 0.9, "tail_sway": 0.35},
 	"hare": {"head_pivot": Vector3(0, 0.25, -0.15), "hip_front": Vector2(0.17, -0.1), "hip_back": Vector2(0.2, 0.13), "leg_amp": 0.85, "tail_sway": 0.1,
-		"knee_front": Vector2(0.09, -0.105), "knee_back": Vector2(0.1, 0.17), "knee_flex": 0.6},
+		"knee_front": Vector2(0.09, -0.105), "knee_back": Vector2(0.1, 0.17), "knee_flex": 0.6, "pair_gait": 1.0},
 	"boar": {"head_pivot": Vector3(0, 0.55, -0.4), "hip_front": Vector2(0.58, -0.28), "hip_back": Vector2(0.6, 0.34), "leg_amp": 0.5, "tail_sway": 0.25,
 		"knee_front": Vector2(0.4, -0.29), "knee_back": Vector2(0.42, 0.4), "knee_flex": 0.6},
 	"plover": {"head_pivot": Vector3(0, 0.17, -0.06), "wing_hinge": Vector3(0.03, 0.165, -0.02), "flap_hz": 5.2, "wing_amp": 0.9, "wing_fold": 1.45, "wing_roll": 1.25,
