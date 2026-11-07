@@ -168,6 +168,9 @@ func _physics_process(_d: float) -> void:
 	if p == null:
 		return
 	var d := p.global_position - global_position
+	if not _warmed and Vector2(d.x, d.z).length() < radius + 24.0 and absf(d.y) < ceiling + 8.0:
+		_warmed = true                          # first-use costs of the boss's moves, paid while it is quiet
+		BossKit.warm(self)
 	if Vector2(d.x, d.z).length() > radius or d.y < -1.0 or d.y > ceiling:
 		return
 	if not _past_gate(p.global_position):
@@ -322,6 +325,7 @@ func _reset() -> void:
 # the gates open, the bar goes away, and the dark gathers on you again out there. Coming back in
 # resumes it where it was. Only being hollowed resets a fight (Events.hollowed -> _reset).
 
+var _warmed := false                   ## BossKit.warm has run for this arena
 var _held := false                     ## walked out mid-fight: boss, adds and room frozen as they were
 var _held_modes: Dictionary = {}       ## node instance id -> its process_mode before the hold
 

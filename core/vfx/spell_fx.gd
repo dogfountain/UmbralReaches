@@ -245,6 +245,22 @@ static func rift_seam(from: Vector3, to: Vector3) -> void:
 
 # --- attack telegraphs ------------------------------------------------------------------------
 
+## A boss's accent (bone-white, holy gold) drawn as a zone fill goes pale, and the night grade then
+## turns pale to cyan-white: a flat bright sheet. Every threat fill stays in the ember family the
+## grade keeps, nudged by type (red-orange for thorn and blood, amber for bone, gold for holy light).
+static func threat_tint(c: Color) -> Color:
+	var mx := maxf(c.r, maxf(c.g, c.b))
+	if mx <= 0.001:
+		return DANGER_RED
+	var sat := 1.0 - minf(c.r, minf(c.g, c.b)) / mx
+	if c.g > c.r * 1.15 or c.b > c.r * 1.15:
+		return c                                   # a green or violet threat keeps its hue
+	if sat > 0.78:
+		return c                                   # already a saturated ember
+	var gold := clampf((c.g / maxf(c.r, 0.001) - 0.7) * 2.0, 0.0, 1.0)     # holy is greener than bone
+	return Color(2.6, 0.6 + 0.12 * gold, 0.1)
+
+
 ## The ground area an attack is about to hit, filling over `life` seconds (core/vfx/danger_zone).
 ## opts: "radius" (disc/sector, m), "half_angle" (rad, < PI makes a cone toward local -Z),
 ##       "rect" Vector2(half width, half length) (a lane; its back edge sits at `at`),
@@ -253,7 +269,7 @@ static func rift_seam(from: Vector3, to: Vector3) -> void:
 ## Returns the MeshInstance3D (freed by itself), or null.
 static func danger(at: Vector3, life: float, opts := {}) -> MeshInstance3D:
 	_meshes()
-	var col: Color = opts.get("color", DANGER_RED)
+	var col := threat_tint(opts.get("color", DANGER_RED))
 	var rect: Vector2 = opts.get("rect", Vector2.ZERO)
 	var shape := 1 if rect != Vector2.ZERO else 0
 	var half: float = opts.get("half_angle", PI)
