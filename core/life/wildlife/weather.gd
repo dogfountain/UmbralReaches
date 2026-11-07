@@ -336,11 +336,14 @@ func _build_rain() -> void:
 	pm.scale_max = 1.2
 	_rain.process_material = pm
 	var q := QuadMesh.new()
-	q.size = Vector2(0.012, 0.5)
+	q.size = Vector2(0.009, 0.5)
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.albedo_color = Color(0.62, 0.74, 0.92, 0.2)
+	m.albedo_color = Color(0.5, 0.62, 0.8, 0.15)
+	m.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
+	m.distance_fade_min_distance = 2.2
+	m.distance_fade_max_distance = 7.0     # no bright stripe across the wall at arm's length
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
 	m.billboard_keep_scale = true
 	m.disable_receive_shadows = true

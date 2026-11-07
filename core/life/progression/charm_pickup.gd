@@ -1,8 +1,9 @@
 extends Interactable
-## A charm lying in the world (progression): a small keepsake on a flat stone, turning slowly in a
+## A charm lying in the world (progression): a small keepsake over an open iron-bound chest, turning slowly in a
 ## faint glint so it can be found at night. [E] puts it in the satchel (and on, if a cord is free).
 
 const DB := preload("res://core/life/progression/upgrade_db.gd")
+const CharmChest := preload("res://core/life/progression/charm_chest.gd")
 
 var item_id := ""
 var _vis: Node3D
@@ -16,23 +17,10 @@ func _ready() -> void:
 	_t = randf() * 6.0
 	var d := ItemDB.def(item_id)
 	var tint: Color = d.get("tint", Color.WHITE)
-	var stone := MeshInstance3D.new()
-	var sm := CylinderMesh.new()
-	sm.top_radius = 0.32
-	sm.bottom_radius = 0.38
-	sm.height = 0.14
-	sm.radial_segments = 9
-	sm.rings = 1
-	var smat := StandardMaterial3D.new()
-	smat.albedo_color = Color(0.2, 0.19, 0.22)
-	smat.roughness = 0.95
-	sm.material = smat
-	stone.mesh = sm
-	stone.position = Vector3.UP * 0.05
-	stone.rotation.y = randf() * TAU
-	add_child(stone)
+	var chest := CharmChest.build(self)
+	chest.rotation.y = randf_range(-0.5, 0.5)
 	_vis = Node3D.new()
-	_vis.position = Vector3.UP * 0.55
+	_vis.position = Vector3.UP * 0.62
 	add_child(_vis)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = tint
@@ -84,10 +72,10 @@ func _ready() -> void:
 	q.material = gm
 	_glint.mesh = q
 	_glint.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_glint.position = Vector3.UP * 0.55
+	_glint.position = Vector3.UP * 0.62
 	add_child(_glint)
 	var motes := Vfx.emitter(Color(tint.r * 1.8, tint.g * 1.5, tint.b * 1.2), {"count": 8, "life": 1.8, "speed": Vector2(0.05, 0.2), "size": 0.025, "gravity": -0.3, "radius": 0.3, "turbulence": true})
-	motes.position = Vector3.UP * 0.45
+	motes.position = Vector3.UP * 0.5
 	add_child(motes)
 	motes.emitting = true
 
@@ -107,7 +95,7 @@ func _process(delta: float) -> void:
 	if not _near:
 		return
 	_vis.rotation.y += delta * 0.8
-	_vis.position.y = 0.55 + sin(_t * 1.6) * 0.04
+	_vis.position.y = 0.62 + sin(_t * 1.6) * 0.04
 	_glint.scale = Vector3.ONE * (0.85 + 0.25 * sin(_t * 2.3))
 
 
