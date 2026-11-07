@@ -89,12 +89,19 @@ func state() -> Dictionary:
 	return Travel.system_state(SID)
 
 
+func _arrived() -> bool:
+	var f: Variant = Travel.story.get("flags", {})
+	return f is Dictionary and (f as Dictionary).has("arrived")
+
+
 func _ensure_state() -> void:
 	var st := state()
 	if not st.has("taught"):
 		# r35: a new game starts with Rift Bolt; a save from before staging keeps all five
-		var fresh := st.is_empty() and Travel.bosses_slain.is_empty() and Travel.seals_broken.is_empty() \
-				and not ((Travel.story.get("flags", {}) as Dictionary).has("arrived") if Travel.story.get("flags", {}) is Dictionary else false)
+		# Only a save read from disk can be from before staging. A new game is fresh even if the opening
+		# has already set story flags (it can, when the first frames are slow).
+		var fresh := not Travel.from_save or (st.is_empty() and Travel.bosses_slain.is_empty() \
+				and Travel.seals_broken.is_empty() and not _arrived())
 		st["taught"] = [] if fresh else DB.TAUGHT_LATER.duplicate()
 	for k: String in ["ranks", "oaths"]:
 		if not (st.get(k) is Dictionary):

@@ -54,6 +54,7 @@ var _save_queued := false
 var _lazy_queued := false
 var _saves := 0                      ## save_game() count; a lazy timer skips if one ran since it was set
 var _loaded_cfg: ConfigFile = null   ## the save as read at boot (unknown keys ride along); updated in place
+var from_save := false               ## this session continues a save read from disk (not a new game)
 var _main_ok: Variant = null         ## SAVE_PATH holds a good save: true/false once known, null = not checked
 ## Set by erase_save(): the running night still holds the old progress in its nodes (lit fires,
 ## systems, the story), so nothing more is written this session; the next launch starts clean.
@@ -402,6 +403,7 @@ func load_game() -> void:
 	if cfg == null:
 		return
 	_loaded_cfg = cfg
+	from_save = true
 	if int(cfg.get_value("progress", "version", 1)) > SAVE_VERSION:
 		push_warning("Travel: save is format %s (this build writes %d); unknown keys are kept" % [cfg.get_value("progress", "version"), SAVE_VERSION])
 	# every value is checked as it comes in: a hand-edited or damaged save loads what it can and
@@ -483,6 +485,7 @@ func _reset_progress() -> void:
 	story.clear()
 	systems.clear()
 	_loaded_cfg = null
+	from_save = false
 	_main_ok = null
 	_save_queued = false
 	_lazy_queued = false
