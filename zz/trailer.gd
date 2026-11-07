@@ -1540,6 +1540,7 @@ func _u_grab(tt: float) -> void:
 	if not _mv.is_empty():
 		hold_cam(_mv_cam, (_mv[1] as Vector3) + (_mv[2] as Vector3) * 0.2 + Vector3.UP * 1.6)       # the jump, the hang, the climb
 	light_at(pp(), 4.0)
+	key.light_energy = 1.2          # pale wall paving blew out under the usual fill
 	if _mv.is_empty():
 		return
 	var to_face := ((_mv[1] as Vector3) - p.global_position).dot(_mv[2] as Vector3)
@@ -1553,6 +1554,7 @@ func _u_grab(tt: float) -> void:
 
 
 func _e_grab() -> void:
+	key.light_energy = 3.0
 	if is_instance_valid(_grab_wall):
 		_grab_wall.queue_free()
 	release("jump")
