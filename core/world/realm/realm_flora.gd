@@ -992,13 +992,14 @@ static func _clash(space: PhysicsDirectSpaceState3D, id: String, xf: Transform3D
 		var c1 := Vector2i(floori((r.end.x + 0.5) / SITE_CELL), floori((r.end.y + 0.5) / SITE_CELL))
 		for cj in range(c0.y, c1.y + 1):
 			for ci in range(c0.x, c1.x + 1):
-				for si: int in _site_grid.get(Vector2i(ci, cj), []):
+				var cell := Vector2i(ci, cj)
+				for si: int in _site_grid.get(cell, _NONE):
 					var st: Dictionary = sites[si]
 					if _site_hits(st, r, pad) and wb.end.y > float(st.floor_y) - 1.0 and (wb.position.y < float(st.floor_y) + 6.4 or pad > 0.5):
 						return true
-		for box: AABB in _portal_boxes:
-			if box.intersects(wb):
-				return true
+				for pi: int in _portal_grid.get(cell, _NONE):
+					if _portal_boxes[pi].intersects(wb):
+						return true
 		if space != null and WorldLanes.intrudes(space, wb, 0.3) != "":
 			return true
 	return false
@@ -1010,6 +1011,8 @@ static func _clash(space: PhysicsDirectSpaceState3D, id: String, xf: Transform3D
 const SITE_CELL := 8.0
 static var _site_grid := {}
 static var _portal_boxes: Array[AABB] = []
+static var _portal_grid := {}          ## Vector2i(8 m) -> indices into _portal_boxes of those reaching the cell
+static var _NONE: Array = []
 
 
 ## Runtime lanes' boxes (WorldLanes.extra_lanes grown by their width and intrudes' pads): only a
@@ -1029,6 +1032,7 @@ static func _near_lane(b: AABB) -> bool:
 static func _index_sites() -> void:
 	_site_grid.clear()
 	_portal_boxes.clear()
+	_portal_grid.clear()
 	_lane_rects.clear()
 	_lane_bounds.clear()
 	for lane: Array in (WorldLanes.LANES + WorldLanes.extra_lanes if WorldLanes.legacy else WorldLanes.extra_lanes):
@@ -1054,7 +1058,14 @@ static func _index_sites() -> void:
 	for p: Dictionary in WorldLanes.portals:
 		var pb: Array = WorldLanes.portal_box(p)
 		var ext: Vector3 = pb[1]
-		_portal_boxes.append((pb[0] as Transform3D) * AABB(-ext - Vector3(0.3, 0.3, 0.3), ext * 2.0 + Vector3(0.6, 0.6, 0.6)))
+		var pbox := (pb[0] as Transform3D) * AABB(-ext - Vector3(0.3, 0.3, 0.3), ext * 2.0 + Vector3(0.6, 0.6, 0.6))
+		for cj in range(floori((pbox.position.z - 0.5) / SITE_CELL), floori((pbox.end.z + 0.5) / SITE_CELL) + 1):
+			for ci in range(floori((pbox.position.x - 0.5) / SITE_CELL), floori((pbox.end.x + 0.5) / SITE_CELL) + 1):
+				var pk := Vector2i(ci, cj)
+				if not _portal_grid.has(pk):
+					_portal_grid[pk] = []
+				(_portal_grid[pk] as Array).append(_portal_boxes.size())
+		_portal_boxes.append(pbox)
 
 
 ## r34: a raid floor by its circle, any other site by its box (as before r34).
