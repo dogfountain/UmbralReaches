@@ -68,7 +68,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_scan -= delta
-	if _scan > 0.0:
+	# until a player is held, look every frame: a half-second wait left a reloaded hotbar unranked
+	if _scan > 0.0 and _player != null and is_instance_valid(_player):
 		return
 	_scan = 0.5
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
