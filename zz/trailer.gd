@@ -1237,7 +1237,7 @@ func _s_treasure() -> void:
 	_chest.global_position = at
 	use_free_cam()
 	cam.fov = 42.0
-	put_player(at + Vector3(0.0, 0.0, 2.8), 0.0)
+	put_player(at + Vector3(-1.9, 0.0, 1.5), atan2(-1.9, 1.5))   # beside the chest's front corner, so the piece that lands in front of it is not hidden
 	_tr_cam = solve_cam([at + Vector3.UP * 0.4, at + Vector3(0.0, 1.0, 0.4), at + Vector3(0.0, 1.5, 1.6)], at + Vector3(0.0, 0.0, 0.9), yaw_to(Vector3(1.0, 0.0, 0.12).normalized()), 3.4, 1.7)
 	hold_cam(_tr_cam, at + Vector3(0.0, 0.7, 0.9))
 	_snap = true
@@ -1254,7 +1254,7 @@ func _u_treasure(tt: float) -> void:
 		_chest._lid.rotation.x = lerpf(0.0, -1.95, sm(clampf((tt - 0.85) / 0.5, 0.0, 1.0)))
 	if tt < 0.85:
 		aim_at(at)
-		drive(Vector3(0.0, 0.0, -0.5) if p.global_position.z - at.z > 1.55 else Vector3.ZERO)
+		drive(Vector3.ZERO)
 	elif once("take_charm"):
 		drive(Vector3.ZERO)
 		p._visual.cast_pose(&"reach")
