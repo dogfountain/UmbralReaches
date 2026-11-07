@@ -636,6 +636,9 @@ static func _ensure_shared() -> void:
 	_streak_mat.vertex_color_use_as_albedo = true
 	_streak_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_streak_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	_streak_mat.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA      # a ribbon passing the lens is a fat white bar
+	_streak_mat.distance_fade_min_distance = 0.5
+	_streak_mat.distance_fade_max_distance = 3.0
 	_heat_mesh = SphereMesh.new()
 	_heat_mesh.radius = 0.3
 	_heat_mesh.height = 0.6

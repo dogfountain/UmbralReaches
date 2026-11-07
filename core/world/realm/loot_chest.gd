@@ -13,6 +13,7 @@ extends Interactable
 ##     sometimes). The piece is laid as a shaft of light in front of the chest.
 ## Tiers: "wood" (a burner's box), "iron" (iron-banded), "reliquary" (a stone ossuary chest).
 
+const CharmChest := preload("res://core/life/progression/charm_chest.gd")
 const SID := "world_pois"
 const GROUP := "loot_chest"
 const GEAR_SRC := {"wood": "tough", "iron": "elite", "reliquary": "elite"}
@@ -65,30 +66,42 @@ func _build() -> void:
 	var vis := Node3D.new()
 	vis.name = "Vis"
 	add_child(vis)
-	_box(vis, Vector3(0, size.y * 0.5, 0), size, body_key)
-	_box(vis, Vector3(0, 0.03, 0), Vector3(size.x + 0.06, 0.06, size.z + 0.06), band_key if tier != "wood" else "wood")
-	# bands round the body (iron) or rope (wood)
-	for x: float in [-size.x * 0.32, size.x * 0.32]:
-		_box(vis, Vector3(x, size.y * 0.5, 0), Vector3(0.07, size.y + 0.02, size.z + 0.03), band_key)
-	# lid: hinged at the back edge (local -z), so it swings up and back
-	_lid = Node3D.new()
-	_lid.name = "Lid"
-	_lid.position = Vector3(0, size.y, -size.z * 0.5)
-	vis.add_child(_lid)
-	var lh := 0.16 if tier != "reliquary" else 0.24
-	_box(_lid, Vector3(0, lh * 0.5, size.z * 0.5), Vector3(size.x + 0.04, lh, size.z + 0.04), body_key)
-	for x: float in [-size.x * 0.32, size.x * 0.32]:
-		_box(_lid, Vector3(x, lh * 0.5, size.z * 0.5), Vector3(0.08, lh + 0.02, size.z + 0.07), band_key)
-	if tier == "reliquary":
-		# a skull on the lid, as the Ossuary's own chests have
-		var sk := MeshInstance3D.new()
-		sk.mesh = OssKit.skull_mesh()
-		sk.material_override = OssKit.mat("bone")
-		sk.position = Vector3(0, lh + 0.08, size.z * 0.5)
-		sk.scale = Vector3.ONE * 0.9
-		_lid.add_child(sk)
-	# the lock: a small warm glint on the front, the eye's first read of "something to open"
-	_box(_lid, Vector3(0, -0.02, size.z + 0.03), Vector3(0.12, 0.14, 0.04), "glow")
+	var lh := 0.16
+	if tier != "reliquary":
+		# the iron-bound oak chest of the charm pickups (straps, studs, brass lock plate, rounded lid), scaled up
+		var oak := CharmChest.build(vis)
+		oak.scale = Vector3.ONE * (size.x / 0.6)
+		_lid = oak.get_child(oak.get_child_count() - 1) as Node3D        # the hinge: closed at 0, thrown back when opened
+		_lid.rotation.x = 0.0
+		var lid_mi := _lid.get_child(0) as MeshInstance3D       # the arch is wound for the open side: show both faces closed
+		var lid_mat := (lid_mi.material_override as StandardMaterial3D).duplicate() as StandardMaterial3D
+		lid_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		lid_mi.material_override = lid_mat
+	else:
+		_box(vis, Vector3(0, size.y * 0.5, 0), size, body_key)
+		_box(vis, Vector3(0, 0.03, 0), Vector3(size.x + 0.06, 0.06, size.z + 0.06), band_key if tier != "wood" else "wood")
+		# bands round the body (iron) or rope (wood)
+		for x: float in [-size.x * 0.32, size.x * 0.32]:
+			_box(vis, Vector3(x, size.y * 0.5, 0), Vector3(0.07, size.y + 0.02, size.z + 0.03), band_key)
+		# lid: hinged at the back edge (local -z), so it swings up and back
+		_lid = Node3D.new()
+		_lid.name = "Lid"
+		_lid.position = Vector3(0, size.y, -size.z * 0.5)
+		vis.add_child(_lid)
+		lh = 0.24
+		_box(_lid, Vector3(0, lh * 0.5, size.z * 0.5), Vector3(size.x + 0.04, lh, size.z + 0.04), body_key)
+		for x: float in [-size.x * 0.32, size.x * 0.32]:
+			_box(_lid, Vector3(x, lh * 0.5, size.z * 0.5), Vector3(0.08, lh + 0.02, size.z + 0.07), band_key)
+		if tier == "reliquary":
+			# a skull on the lid, as the Ossuary's own chests have
+			var sk := MeshInstance3D.new()
+			sk.mesh = OssKit.skull_mesh()
+			sk.material_override = OssKit.mat("bone")
+			sk.position = Vector3(0, lh + 0.08, size.z * 0.5)
+			sk.scale = Vector3.ONE * 0.9
+			_lid.add_child(sk)
+		# the lock: a small warm glint on the front, the eye's first read of "something to open"
+		_box(_lid, Vector3(0, -0.02, size.z + 0.03), Vector3(0.12, 0.14, 0.04), "glow")
 	_motes = Vfx.emitter(Color(1.5, 0.95, 0.45), {"count": 8, "life": 1.8, "speed": Vector2(0.05, 0.2), "size": 0.025, "gravity": -0.25, "radius": 0.4, "swirl": 0.8})
 	_motes.position = Vector3(0, size.y + 0.1, 0)
 	add_child(_motes)
