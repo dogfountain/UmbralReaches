@@ -290,6 +290,13 @@ func _run() -> void:
 	k.call("toggle_charm", "heart_stone")
 	k.call("toggle_charm", "charm_bead")
 	ok(is_equal_approx(p.gloom_max, max_before), "and comes off again")
+	# the bar never reads past its capacity: fill it while a +10 charm is worn, take the charm off
+	k.call("toggle_charm", "heart_stone")
+	p.add_gloom(500.0)
+	ok(p.gloom <= p.gloom_max + 0.001, "gloom is capped at its capacity (%.0f / %.0f)" % [p.gloom, p.gloom_max])
+	k.call("toggle_charm", "heart_stone")
+	ok(p.gloom <= p.gloom_max + 0.001, "and a smaller capacity pulls it down (%.0f / %.0f)" % [p.gloom, p.gloom_max])
+	p.gloom = 0.0
 
 	print("-- satchel hooks")
 	var sat := main.get_node_or_null("Satchel")
