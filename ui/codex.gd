@@ -788,8 +788,12 @@ func _task_pins() -> Array:
 					if String(pk.quest) == id and int(pk.step) == s and not got.has(k):
 						at = spots.get(k, Vector3.INF)
 						break
-			"escort":
+			"escort" when not (qd.steps as Array)[s].has("path"):
 				at = spots.get("stair", Vector3.INF)
+			"escort", "defend":
+				var live_at: Variant = ((qd.steps as Array)[s] as Dictionary).get("at")
+				if live_at is Vector2:
+					at = Vector3((live_at as Vector2).x, 0.0, (live_at as Vector2).y)
 			"reach", "kill":
 				at = spots.get("hollow", Vector3.INF)
 			"talk":

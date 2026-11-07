@@ -49,6 +49,7 @@ const ZONES := [["hearth", "Hearthward"], ["road", "The Pilgrims' Road"], ["thor
 ## Act II's signature tasks, one a country (quest_chains_signature.gd), listed after the east marches' in each table.
 const Sig := preload("res://core/story/quest_chains_signature.gd")
 const Bells := preload("res://core/story/quest_chains_bells.gd")   ## the eight bells (the seven far countries' and the Marches'): quests and pickups
+const LiveSteps := preload("res://core/story/encounter_kit.gd")
 const R37E := preload("res://core/story/quest_chains_r37_east.gd")   ## the east marches: its tasks and pickups are listed in the `# --- the east marches ---` blocks
 
 const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
@@ -887,8 +888,7 @@ const PICKUPS := {
 	"anchor_page_c": R37E.PAGE_C,
 	"foreman_stone": Sig.PICKUPS["foreman_stone"], "foreman_place": Sig.PICKUPS["foreman_place"],
 	"moor_flame_fire": Sig.PICKUPS["moor_flame_fire"], "moor_flame_mid": Sig.PICKUPS["moor_flame_mid"],
-	"pour_ladle": Sig.PICKUPS["pour_ladle"], "scion_linnet": Sig.PICKUPS["scion_linnet"],
-	"ferry_lamp_out": Sig.PICKUPS["ferry_lamp_out"], "ferry_lamp_back": Sig.PICKUPS["ferry_lamp_back"],
+	"pour_ladle": Sig.PICKUPS["pour_ladle"], "scion_linnet": Sig.PICKUPS["scion_linnet"], "ferry_lamp_out": Sig.PICKUPS["ferry_lamp_out"],
 }
 
 ## Oswin's walk: from wherever he is to the waystone. He keeps 2-3 m behind you and waits when you
@@ -900,7 +900,7 @@ const ESCORT := {"quest": "forty_first", "step": 0, "who": "oswin", "to": Vector
 const HOLLOW := {"quest": "slow_way", "near": Vector2(58.0, -47.0), "wake": 24.0, "hp": 9, "title": "Father Harrow, hollowed"}
 
 const KINDS := ["find", "gather", "talk", "escort", "kill", "place", "reach",
-	"slay", "collect", "seal", "cond", "visit", "carry", "turnin"]
+	"slay", "collect", "seal", "cond", "visit", "carry", "turnin", "defend"]
 ## Step kinds that count up to `of` (the tracker shows n/of; progress toasts fire on them).
 const COUNTED := ["gather", "slay", "collect", "seal"]
 
@@ -1024,6 +1024,7 @@ static func audit() -> Array[String]:
 			if kind in ["slay", "collect", "cond", "visit", "seal"] and not (qd.steps[si].get("to", qd.steps[si].get("at")) is Vector2) \
 					and not String(qd.steps[si].get("cond", "")).begins_with("bells:") and not String(qd.steps[si].get("cond", "")).begins_with("peal:") and not id in ["rare_head", "keeper_again"]:
 				bad.append("%s step %d (%s) has no map target" % [id, si, kind])
+			bad.append_array(LiveSteps.audit(id, si, qd.steps[si]))      # escort.gd / defend.gd steps
 			if kind == "carry" and (si == 0 or not PICKUPS.has(String(qd.steps[si].get("from", ""))) or int(PICKUPS[qd.steps[si].from].step) != si - 1):
 				bad.append("%s step %d carries no pickup taken the step before" % [id, si])
 		if bool(qd.get("offer", false)):

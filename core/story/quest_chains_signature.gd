@@ -5,11 +5,14 @@ extends RefCounted
 ## each country gets one task of a different shape, built from the existing step kinds only:
 ##   bounds_beaten  The Rooted Holds   walk the bounds: three ward-stones, in order (visit, visit, visit)
 ##   quarry_stone   The Saints' Quarry set a founding-stone where it belongs (find, visit, place)
-##   moor_fires     The Lanternless Moor  a flame relayed cairn to cairn (carry, find, carry)
+##   moor_fires     The Lanternless Moor  a flame relayed cairn to cairn, the middle one held while it catches
+##                  (carry, defend, find, carry)
 ##   founder_pour   The Founder's Pits  a timed pour, before the bronze sets (carry against the clock)
-##   orchard_stand  The Cinder Orchard  carry the scion to the old tree, then hold it while it takes (carry, slay)
+##   orchard_stand  The Cinder Orchard  carry the scion to the old tree, then hold it while it takes (carry, defend)
 ##   field_round    The Waiting Field  the sexton's round, end to end, with what rises on the way (visit, slay, visit)
-##   mere_ferry     Corvin's Mere      the ferry's last crossing, out and back (carry, find, carry)
+##   mere_ferry     Corvin's Mere      the ferry's last crossing: the lamp out, the passenger walked back (carry, escort)
+## Two step kinds are live (escort.gd, defend.gd; run by quest_runner.gd): an escort walks `path` with
+## `hp` and an `ambush` by waypoint; a defend holds `at` for `time` seconds against `waves`.
 ## Every step that goes somewhere has a place for the map; every task pays and offers gear.
 ## House style (docs/LORE.md): terse, concrete, dark.
 
@@ -47,6 +50,11 @@ const MOOR_FIRES := {"name": "Fire Down the Moor", "giver": "ysolt", "where": "Y
 		{"kind": "carry", "from": "moor_flame_fire", "to": Vector2(147.0, 0.0), "r": 5.0, "time": 50.0, "label": "Flame",
 			"lost": "The flame has gone out on the moor. Ysolt's fire has more.",
 			"text": "Carry the flame to the middle cairn before the wind has it ({t} s)"},
+		{"kind": "defend", "at": Vector2(147.0, 1.0), "time": 40.0, "hp": 22.0, "label": "The middle cairn", "noun": "cairn", "prop": "cairn",
+			"waves": [{"at": 6.0, "kinds": ["wretch", "gaunt"], "n": 2, "say": "Shapes come up the moor toward the cairn."},
+				{"at": 22.0, "kinds": ["wretch", "gaunt"], "n": 3, "say": "More, from the south."}],
+			"lost": "The cairn's coals are scattered. It will have to catch again.", "held": "The cairn has caught. It burns on its own.",
+			"text": "Stand at the middle cairn while its old coal catches; keep the dark off it ({t} s)"},
 		{"kind": "find", "at": Vector2(147.0, 2.0), "text": "Light a fresh flame at the middle cairn"},
 		{"kind": "carry", "from": "moor_flame_mid", "to": Vector2(135.0, 24.0), "r": 5.0, "time": 50.0, "label": "Flame",
 			"lost": "The flame has gone out between the cairns. Light another at the middle cairn.",
@@ -79,8 +87,12 @@ const ORCHARD_STAND := {"name": "The Graft Takes", "giver": "linnet", "where": "
 		{"kind": "carry", "from": "scion_linnet", "to": Vector2(-84.5, 117.5), "r": 5.5, "time": 80.0, "label": "Scion",
 			"lost": "The scion has dried in your hand. Linnet has cut another.",
 			"text": "Carry the scion to the old tree at the heart of the rows before it dries ({t} s)"},
-		{"kind": "slay", "of": 6, "region": "orchard", "label": "What comes for the graft", "at": Vector2(-90.0, 120.0),
-			"text": "Stand by the old tree while the graft takes: put down what comes for it ({n}/{of})"},
+		{"kind": "defend", "at": Vector2(-84.5, 117.5), "time": 90.0, "hp": 30.0, "label": "The graft", "noun": "graft", "prop": "bud",
+			"waves": [{"at": 8.0, "kinds": ["mite", "wretch"], "n": 3, "say": "Something green-hungry comes down the rows."},
+				{"at": 36.0, "kinds": ["wretch", "mite"], "n": 4, "say": "More, from the far rows."},
+				{"at": 64.0, "kinds": ["burrower", "wretch", "mite"], "n": 4, "say": "The ground moves under the old tree."}],
+			"lost": "The scion is torn out. Linnet has cut another; bind it in again.", "held": "The graft has taken. It is green to the tip.",
+			"text": "Stand by the old tree while the graft takes; do not let them touch it ({t} s)"},
 		{"kind": "turnin", "who": "linnet", "text": "Tell Linnet the graft has taken"},
 	],
 	"reward": {"ash": 24, "items": {"relic_fragment": 1}},
@@ -103,16 +115,17 @@ const FIELD_ROUND := {"name": "The Sexton's Round", "giver": "agathe", "where": 
 
 const MERE_FERRY := {"name": "The Last Crossing", "giver": "cadoc", "where": "Cadoc the ferryman, on the mere's north bank", "zone": "mere",
 	"offer": true, "avail": "qd:mere_lamps",
-	"text": "The ferry ran lit, always: a lamp at the bow going over, another at the stern coming back, so the water knew the boat was full. I can't row it, and I won't do it half. Take my lamp to the east landing. Somebody waits there with another. Bring that one back, lit, and don't let either go out. The mere has been waiting for a full boat nine winters.",
+	"text": "The ferry ran lit, always: a lamp at the bow going over, another at the stern coming back, so the water knew the boat was full. I can't row it, and I won't do it half. Take my lamp to the east landing. Somebody waits there, with another. Walk them back to me along the shore, lit, and don't let the mere have either. The mere has been waiting for a full boat nine winters.",
 	"steps": [
 		{"kind": "find", "at": Vector2(110.0, 99.0), "text": "Take the ferry-lamp from Cadoc's bow-post"},
 		{"kind": "carry", "from": "ferry_lamp_out", "to": Vector2(128.0, 114.0), "r": 6.0, "time": 75.0, "label": "Ferry-lamp",
 			"lost": "The ferry-lamp has guttered in the wet. Cadoc has another.",
 			"text": "Carry the ferry-lamp to the east landing before it gutters ({t} s)"},
-		{"kind": "find", "at": Vector2(129.0, 112.0), "text": "Take the passenger's lamp, burning on the east landing"},
-		{"kind": "carry", "from": "ferry_lamp_back", "to": Vector2(111.0, 97.0), "r": 6.0, "time": 95.0, "label": "Passenger's lamp",
-			"lost": "The passenger's lamp has gone out on the way back. It will be lit on the east landing again.",
-			"text": "Carry the passenger's lamp back to Cadoc's landing ({t} s)"},
+		{"kind": "escort", "at": Vector2(111.5, 97.5), "label": "The passenger", "hp": 22.0,
+			"path": [Vector2(129.0, 112.0), Vector2(124.0, 108.0), Vector2(117.0, 102.0), Vector2(111.5, 97.5)],
+			"ambush": {1: {"kinds": ["spitter", "wretch"], "n": 3}, 2: {"kinds": ["wretch"], "n": 2}},
+			"rig": {"seed": 7210, "sex": "f", "age": "old", "garment": "robe", "hood": true, "hair": "bun", "l": "lantern"},
+			"text": "Walk the passenger from the east landing back to Cadoc's, lamp lit; keep what the mere sends off them"},
 		{"kind": "turnin", "who": "cadoc", "text": "Tell Cadoc the boat came back full"},
 	],
 	"reward": {"ash": 24, "items": {"relic_fragment": 1}},
@@ -126,7 +139,7 @@ const PICKUPS := {
 		"say": "You settle the stone against the last step, the name turned up. It sits as if it had been waiting sixty years for the level."},
 	"moor_flame_fire": {"quest": "moor_fires", "step": 0, "near": Vector2(133.0, -12.0), "camp": "ysolt", "kind": "coal", "name": "a flame from Ysolt's fire", "verb": "Take",
 		"say": "A coal in a hollowed stone, cupped in sheep's wool against the wind. It burns low and level. It does not like the open."},
-	"moor_flame_mid": {"quest": "moor_fires", "step": 2, "near": Vector2(147.0, 2.0), "kind": "coal", "name": "the middle cairn's flame", "verb": "Light a flame at",
+	"moor_flame_mid": {"quest": "moor_fires", "step": 3, "near": Vector2(147.0, 2.0), "kind": "coal", "name": "the middle cairn's flame", "verb": "Light a flame at",
 		"say": "You hold the wool to the old coal until it takes. The cairn's stones are warm on every side. Somebody has been lighting this one for a long time."},
 	"pour_ladle": {"quest": "founder_pour", "step": 0, "near": Vector2(128.0, -105.0), "kind": "coal", "name": "a ladle of white bronze", "verb": "Lift",
 		"say": "The ladle's iron handle is wound with wet rag, and the bronze in it is the colour of the inside of the sun. The heat comes through the rag. It is already thinking about setting."},
@@ -134,6 +147,4 @@ const PICKUPS := {
 		"say": "A finger of green wood, wrapped in damp wool and waxed at the cut. It has two buds. Linnet has marked one with a thread, which means she has named it."},
 	"ferry_lamp_out": {"quest": "mere_ferry", "step": 0, "near": Vector2(110.0, 99.0), "camp": "cadoc", "kind": "lantern_lit", "name": "the ferry-lamp", "verb": "Take",
 		"say": "A bow-lamp on a boat-hook, the oil still sweet. It has hung on this post every night for nine winters, lit, and every night Cadoc has put it out himself."},
-	"ferry_lamp_back": {"quest": "mere_ferry", "step": 2, "near": Vector2(129.0, 112.0), "kind": "lantern_lit", "name": "the passenger's lamp", "verb": "Take",
-		"say": "Another lamp, older, set on the stones where the east landing meets the water. It burns upright, a little steadier than a lamp should in this wind. Nobody is with it. It is waiting for the boat."},
 }
