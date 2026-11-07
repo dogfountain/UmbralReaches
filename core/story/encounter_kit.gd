@@ -33,8 +33,9 @@ static func walk_y(node: Node3D, x: float, z: float) -> float:
 
 
 ## One foe of `kind` ("wretch", "husk", ...: core/enemy/<kind>.gd) standing at `at`, tagged so it
-## counts for no other task. Null when the kind is not there.
-static func spawn_foe(host: Node, kind: String, at: Vector3, tag: String) -> Enemy:
+## counts for no other task. With a `ward` it goes for that target (Enemy.ward) and its range and
+## leash cover the whole step. Null when the kind is not there.
+static func spawn_foe(host: Node, kind: String, at: Vector3, tag: String, ward: WardTarget = null) -> Enemy:
 	var path := "res://core/enemy/%s.gd" % kind
 	if not ResourceLoader.exists(path):
 		return null
@@ -47,12 +48,16 @@ static func spawn_foe(host: Node, kind: String, at: Vector3, tag: String) -> Ene
 	e.set_meta("quest", tag)
 	host.add_child(e)
 	e.station(at)
+	if ward != null:
+		e.ward = ward
+		e.chase_range = maxf(e.chase_range, 40.0)
+		e.hunt_leash = maxf(e.hunt_leash, 60.0)
 	return e
 
 
 ## A ring of `n` foes of the given kinds round `centre` at `radius`, starting at angle `a0`
 ## (`arc` of the circle: TAU = all round).
-static func spawn_ring(host: Node3D, kinds: Array, n: int, centre: Vector3, radius: float, a0: float, tag: String, arc := TAU) -> Array[Enemy]:
+static func spawn_ring(host: Node3D, kinds: Array, n: int, centre: Vector3, radius: float, a0: float, tag: String, arc := TAU, ward: WardTarget = null) -> Array[Enemy]:
 	var out: Array[Enemy] = []
 	if kinds.is_empty():
 		return out
@@ -60,7 +65,7 @@ static func spawn_ring(host: Node3D, kinds: Array, n: int, centre: Vector3, radi
 		var a := a0 + arc * float(i) / float(maxi(n, 1))
 		var x := centre.x + cos(a) * radius
 		var z := centre.z + sin(a) * radius
-		var e := spawn_foe(host, String(kinds[i % kinds.size()]), Vector3(x, ground_y(host, x, z), z), tag)
+		var e := spawn_foe(host, String(kinds[i % kinds.size()]), Vector3(x, ground_y(host, x, z), z), tag, ward)
 		if e:
 			out.append(e)
 	return out

@@ -16,6 +16,7 @@ static var _shape: SphereShape3D
 
 var velocity := Vector3.ZERO
 var gloom := 10.0
+var at_ward := false          ## spat at an escort walker / defend ward: it wounds the WardTarget it reaches
 var dim := false              ## a volley's side orbs: a quiet light, none in the fog
 var _age := 0.0
 var _dead := false
@@ -81,6 +82,8 @@ func _physics_process(delta: float) -> void:
 			if b is Player and not (b as Player).is_evading():
 				_on_body(b)
 				return
+	if at_ward and _hit_ward():
+		return
 	var from := global_position
 	var to := from + velocity * delta
 	var q := PhysicsRayQueryParameters3D.create(from, to, Layers.WORLD | Layers.PLAYER | Layers.PROPS)
@@ -106,6 +109,20 @@ func _on_body(b: Node) -> void:
 			return                   # stepped through it
 		p.take_wound(gloom, global_position - velocity.normalized() * 3.0)
 	pop()
+
+
+## A WardTarget within a body's reach of the orb takes it (the orb is spent).
+func _hit_ward() -> bool:
+	for n: Node in get_tree().get_nodes_in_group(Groups.WARD_TARGET):
+		var w := n as WardTarget
+		if w == null or not w.threat_alive():
+			continue
+		var d := w.global_position - global_position
+		if absf(d.y + 1.0) < 1.6 and Vector2(d.x, d.z).length() < 0.8:
+			w.threat_hit(gloom * WardTarget.SPIT, self)
+			pop()
+			return true
+	return false
 
 
 ## Anything with take_hit can be shot down: a bolt's proximity fuse finds it on the HURTBOX layer.

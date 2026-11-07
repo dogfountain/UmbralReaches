@@ -358,6 +358,8 @@ func _limb(socket_name: String, n_name: String, mesh: Mesh, at: Vector3, skin: M
 func take_hit(dmg: float, from: Node = null) -> void:
 	if _state == DEAD:
 		return
+	if from != null and (from is Player or from is MagicBolt or from.is_in_group(Groups.PLAYER)):
+		_peel_t = WARD_PEEL                      # the wanderer hit it: she is the one to fight now
 	if _evading:
 		# r35: walking home is not a shield (it was WoW's immune "evade"): the blow lands, and it
 		# turns back on you with what it has left
@@ -819,6 +821,7 @@ func _physics_process(delta: float) -> void:
 	_fallen = maxf(0.0, _fallen - delta * 0.12)
 	_regroup_t = maxf(0.0, _regroup_t - delta)
 	_hunt_t = maxf(0.0, _hunt_t - delta)
+	_peel_t = maxf(0.0, _peel_t - delta)
 	if _shroud_t > 0.0:
 		_shroud_t = maxf(0.0, _shroud_t - delta)
 		_flesh_param(&"glint", 0.35 + 0.25 * sin(_shroud_t * 9.0) if _shroud_t > 0.0 else 0.0)
@@ -875,28 +878,57 @@ func _physics_process(delta: float) -> void:
 func _cache_player() -> void:
 	if not is_instance_valid(_p):
 		_p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+	_on_threat = false
 	if _p == null:
 		_to = Vector3.ZERO
 		_dist = INF
+	else:
+		_to = _p.global_position - global_position
+		_to.y = 0.0
+		_dist = _to.length()
+	# The Kindled Watch: an assault on a watch-post goes for its watchmen while the wanderer keeps
+	# her distance; she is the first choice once she comes close. An escort or defend step's foes
+	# (`ward`) go for what they were sent at the same way, but nearer: a hit from the wanderer, or
+	# her coming within WARD_AGGRO, pulls them onto her until they lose her.
+	var tgt := _threat_node()
+	if tgt == null:
 		return
-	_to = _p.global_position - global_position
-	_to.y = 0.0
-	_dist = _to.length()
-	# r36 the Kindled Watch: an assault on a watch-post goes for its watchmen while the wanderer
-	# keeps her distance; she is always the first choice once she comes close
-	if focus != null and _dist > FOCUS_DROP:
+	if prefers_threat(_dist):
+		_to = tgt.global_position - global_position
+		_to.y = 0.0
+		_dist = _to.length()
+		_on_threat = true
+
+
+## Does it go for its threat rather than the wanderer, she being `d` metres off (INF: not here)?
+func prefers_threat(d: float) -> bool:
+	return d == INF or (d > (FOCUS_DROP if focus != null else WARD_AGGRO) and (_peel_t <= 0.0 or d > WARD_LOSE))
+
+
+## What this one was sent at: a watchman (`focus`) or an escort/defend step's WardTarget; null = the wanderer.
+func _threat_node() -> Node3D:
+	if focus != null:
 		if is_instance_valid(focus) and not bool(focus.get_meta(&"down", false)):
-			_to = focus.global_position - global_position
-			_to.y = 0.0
-			_dist = _to.length()
-		else:
-			focus = null
+			return focus
+		focus = null
+	if ward != null:
+		if is_instance_valid(ward) and ward.threat_alive():
+			return ward
+		ward = null
+	return null
 
 
 ## r36: the watchman this one fights (core/world/watch/watch.gd), while the wanderer is further than
 ## FOCUS_DROP. Its blows are counted by the watch, not by the strike (which only hurts the wanderer).
 var focus: Node3D = null
 const FOCUS_DROP := 7.0
+## The escort/defend step's foe (core/story/encounter_kit.gd): the WardTarget it goes for.
+var ward: WardTarget = null
+var _peel_t := 0.0             ## seconds left of "the wanderer hit me": I fight her, not the ward
+var _on_threat := false        ## this frame _to / _dist point at the focus or ward, not the wanderer
+const WARD_AGGRO := 3.5        ## the wanderer this close pulls a ward-foe onto her
+const WARD_PEEL := 5.0
+const WARD_LOSE := 14.0        ## ... and she is lost, and it goes back to the ward, past this
 
 
 ## Packmates push apart within 1.4 m, and -- once they are near the player -- also spread round
@@ -1060,7 +1092,7 @@ func _chases_directly() -> bool:
 
 ## Light makes them slink, it does not freeze them. Sanctuary / river zones used to pin Wretches.
 func _aim_at_player() -> void:
-	if _p == null or _dist < 0.05:
+	if (_p == null and not _on_threat) or _dist < 0.05:
 		_wish = Vector3.ZERO
 		return
 	_wish = _to / _dist
@@ -1077,11 +1109,11 @@ func _aim_at_player() -> void:
 func _think() -> void:
 	_update_separation()
 	_update_detour()
-	if _p != null and LightGrid.is_lit(_p.global_position, _wardproof()):
+	if _p != null and not _on_threat and LightGrid.is_lit(_p.global_position, _wardproof()):
 		_lit_t += 1.0 / think_hz
 	else:
 		_lit_t = 0.0
-	if _p == null:
+	if _p == null and not _on_threat:
 		_hold_post(_home_planar())
 		return
 	var player := _p
@@ -1131,7 +1163,7 @@ func _think() -> void:
 				_calm_t = 3.5 if _lit_t > 2.5 else 0.8
 				_set_state(IDLE)
 				_hold_post(from_home)
-			elif not boss and _try_special(dist):
+			elif not boss and not _on_threat and _try_special(dist):
 				_waiting = false
 			elif role == &"guard" and _guard():
 				_guarding = true
@@ -1146,7 +1178,7 @@ func _think() -> void:
 			elif not boss and dist <= _wait_ring() + 1.2 and not _has_token() and _pool_full():
 				_waiting = true
 				_circle(dist)
-			elif leaper and _leap_cd <= 0.0 and is_on_floor() and dist >= leap_min and dist <= leap_max and _lit_t <= 0.0 and _strike_clear(player) and _take_token():
+			elif leaper and not _on_threat and _leap_cd <= 0.0 and is_on_floor() and dist >= leap_min and dist <= leap_max and _lit_t <= 0.0 and _strike_clear(player) and _take_token():
 				_face_dir = to / maxf(dist, 0.001)
 				_set_state(LEAP_PREP)
 			else:
@@ -1554,6 +1586,10 @@ func _call_pack() -> void:
 ## A Rift Step through it is a riposte; stepping back out of the cone is a clean dodge.
 func _resolve_strike() -> void:
 	_struck = true
+	if _on_threat:                               # a blow at the ward (a watchman's are counted by the watch)
+		if ward != null and _threat_node() == ward:
+			ward.swing_at(self)
+		return
 	if _p == null or not is_instance_valid(_p):
 		return
 	var to := _p.global_position - global_position
@@ -2247,49 +2283,11 @@ func rank() -> String:
 
 ## A number to read, not a stat: the night's danger tier where it stands, its weight, its rank.
 func level() -> int:
-	if boss:
-		return -1
-	if has_meta(&"level"):
-		return int(get_meta(&"level"))
-	var lv := 1 + 2 * int(get_meta(&"enc_tier", 0)) + (1 if max_hp >= 4 else 0)
-	match rank():
-		"elite":
-			lv += 2
-		"rare":
-			lv += 3
-	return lv
+	return EnemyStatus.level(self)
 
 
 func debuffs() -> Array[Dictionary]:
-	var out: Array[Dictionary] = []
-	if marks > 0:
-		out.append({"id": "umbral_mark", "name": "Umbral Mark", "left": maxf(_mark_t, 0.0), "stacks": marks, "harmful": true})
-	if _broken_t > 0.0:
-		out.append({"id": "broken", "name": "Broken", "left": _broken_t, "stacks": 1, "harmful": true})
-	var rec := _affliction()
-	if not rec.is_empty():
-		if float(rec.get("burn", 0.0)) > 0.0:
-			out.append({"id": "burning", "name": "Burning", "left": float(rec.burn), "stacks": 1, "harmful": true})
-		if float(rec.get("frozen", 0.0)) > 0.0:
-			out.append({"id": "frozen", "name": "Frozen", "left": float(rec.frozen), "stacks": 1, "harmful": true})
-		elif float(rec.get("chill", 0.0)) > 0.0:
-			out.append({"id": "chilled", "name": "Chilled", "left": float(rec.chill), "stacks": maxi(int(rec.get("stacks", 1)), 1), "harmful": true})
-		if float(rec.get("slow", 0.0)) > 0.0:
-			out.append({"id": "slowed", "name": "Slowed", "left": float(rec.slow), "stacks": 1, "harmful": true})
-	if _silence_t > 0.0:
-		out.append({"id": "silenced", "name": "Interrupted", "left": _silence_t, "stacks": 1, "harmful": true})
-	if _shroud_t > 0.0:
-		out.append({"id": "shrouded", "name": "Shrouded", "left": _shroud_t, "stacks": 1, "harmful": false})
-	if _ward_t > 0.0:
-		out.append({"id": "warded", "name": "Warded", "left": _ward_t, "stacks": 1, "harmful": false})
-	if dmg_mult > 1.001:
-		out.append({"id": "enraged", "name": "Enraged", "left": -1.0, "stacks": 1, "harmful": false})
-	var extra: Variant = get_meta(&"statuses") if has_meta(&"statuses") else null
-	if extra is Array:
-		for d: Variant in extra:
-			if d is Dictionary:
-				out.append(d)
-	return out
+	return EnemyStatus.list(self)
 
 
 ## The record core/skills/afflict.gd keeps for it ({} when none). Read only: never creates one.

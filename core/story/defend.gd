@@ -1,11 +1,13 @@
-extends Node3D
+extends WardTarget
 ## A task step that holds a spot (story; no class_name): kind "defend" at `at`, for `time` seconds.
 ## The quest runner (quest_runner.gd) adds one while the step is current and frees it when the step
 ## moves on. A small standing thing (a graft, a lamp, a ferry post: `prop`) has health, shown in the
 ## small frame at the top of the screen:
 ##   - the clock runs only while the wanderer stands within STAY of it,
 ##   - `waves` ({"at": seconds, "kinds": [...], "n": 3}) put foes from the enemy scripts round it,
-##   - foes in reach of it wound it (DPS each); it mends a little when nothing is near,
+##   - the foes sent at it (Enemy.ward) go for it and wound it with their real blows (WardTarget);
+##     a foe the wanderer hits, or one she comes close to, turns on her instead; it mends a
+##     little when nothing is near,
 ##   - if it is broken the step resets: the foes are cleared, its health and the clock restart
 ##     (the task stays where it is; there is no dead end),
 ##   - the clock out ends the step (`held`).
@@ -18,8 +20,6 @@ const Kit := preload("res://core/story/encounter_kit.gd")
 const QProps := preload("res://core/story/quest_props.gd")
 
 const STAY := 16.0             ## the wanderer must be this close for the clock to run
-const REACH := 2.6             ## a foe inside this wounds it
-const DPS := 1.5               ## hp a second from each foe in reach
 const REGEN := 0.35
 const WAVE_R := 12.0
 const SCAN_S := 0.25
@@ -27,8 +27,6 @@ const RESET_S := 3.0
 
 var quest := ""
 var step: Dictionary = {}
-var max_hp := 30.0
-var hp := 30.0
 var time_left := 60.0
 var elapsed := 0.0
 var away := false              ## the clock is stopped: the wanderer has left it
@@ -106,6 +104,7 @@ func tick(delta: float) -> void:
 		elapsed += delta
 		time_left = maxf(float(step.get("time", 60.0)) - elapsed, 0.0)
 		_waves()
+	hurt_t += delta
 	_scan_t -= delta
 	if _scan_t <= 0.0:
 		_scan_t = SCAN_S
@@ -132,21 +131,19 @@ func _waves() -> void:
 		var w: Dictionary = waves[_wave_i]
 		_wave_i += 1
 		var a0 := float(hash("%s%d%d" % [quest, _wave_i, resets]) % 628) * 0.01
-		foes.append_array(Kit.spawn_ring(self, w.get("kinds", ["wretch"]), int(w.get("n", 2)), global_position, WAVE_R, a0, quest))
+		foes.append_array(Kit.spawn_ring(self, w.get("kinds", ["wretch"]), int(w.get("n", 2)), global_position, WAVE_R, a0, quest, TAU, self))
 		Events.toast.emit(String(w.get("say", "Something comes for it.")))
 
 
 func _scan(dt: float) -> void:
 	Kit.prune(foes)
-	var near := Kit.foes_near(get_tree(), global_position, REACH + 4.0)
-	var hitters := 0
-	for e: Enemy in near:
-		if Vector2(e.global_position.x - global_position.x, e.global_position.z - global_position.z).length() < REACH:
-			hitters += 1
-	if hitters > 0:
-		hp = maxf(hp - DPS * dt * float(hitters), 0.0)
-	elif near.is_empty():
+	if Kit.foes_near(get_tree(), global_position, 6.6).is_empty() and hurt_t > 3.0:
 		hp = minf(hp + REGEN * dt, max_hp)
+
+
+## Threat target: while it is broken (the pause) or held out, it draws no foe.
+func threat_alive() -> bool:
+	return hp > 0.0 and _pause <= 0.0 and not done
 
 
 func _break() -> void:
