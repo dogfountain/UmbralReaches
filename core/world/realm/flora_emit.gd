@@ -146,10 +146,7 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 			var fk: Dictionary = TreeGen.kind(id + "@far")
 			if fk.solid != null:
 				lods.append([id + "@far", fk.solid])
-	var t_lods := Time.get_ticks_usec()
 	_prefetch_lods(lods)
-	print("FLORA_EMIT lods ", (Time.get_ticks_usec() - t_lods) / 1000)
-	var t_batches := Time.get_ticks_usec()
 	for id: String in items:
 		var d: Dictionary = TreeGen.kind(id)
 		var sp := id.substr(0, id.rfind("_"))
@@ -203,8 +200,6 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 						cs.position = org + Vector3(0, hh * 0.5, 0)
 					body.add_child(cs)
 					counts.y += 1
-	print("FLORA_EMIT trees ", (Time.get_ticks_usec() - t_batches) / 1000)
-	t_batches = Time.get_ticks_usec()
 	for key: String in stones:
 		var mesh: Mesh = prop_mesh.call(key)
 		var kind := key.split("|")[0]
@@ -231,10 +226,7 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 					cs.shape = bx
 					cs.transform = Transform3D(bas.orthonormalized(), Vector3(buf[o + 3], buf[o + 7], buf[o + 11]) + bas.y.normalized() * sz.y * sc * 0.5)
 					body.add_child(cs)
-	print("FLORA_EMIT stones ", (Time.get_ticks_usec() - t_batches) / 1000)
-	t_batches = Time.get_ticks_usec()
 	counts.x += FarDetail.shells(host, canopy, TREE_CHUNK, ground)
-	print("FLORA_EMIT shells ", (Time.get_ticks_usec() - t_batches) / 1000)
 	_lod_ready.clear()
 	return counts
 
