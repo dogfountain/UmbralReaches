@@ -83,7 +83,18 @@ The eight bells, escort and defend steps, the Hearth and the ash tithe, Gloom an
 ### Finale (4.5 s)
 | 64 | finale | CIN | 4.5 | the wanderer small against the valley, the camera tilts to the vortex, UMBRAL REACHES (kept) |
 
-Total at these lengths is about 125 s; the assembly trims trailing frames of montage shots to land near 110 s.
+
 
 ## Not shown
 (see the report; anything cut for cause is listed there)
+
+## Extension (Luke: longer, about 2.5 to 3 minutes, more shown, shots not slower)
+
+Added shots, in cut order (most 1.5 to 3 s, a few held moments):
+
+Act I: `keg_song` (CIN 2.0, the Keg's song, second angle), `staff_heavy` (GAME 2.0, staff heavy blow), `staff_parry` (CIN 2.0, the parry on a rearing wretch), `hearth_ward` (CIN 2.4, a tithe bought: the night-ward glowing on the green), `hearth_tithe` shown as the purchase (UI 2.0).
+Act II: `familiar` (CIN 2.2, the Familiar fights beside the wanderer), `kick` (CIN 1.8, wall-kick), `slide` (GAME 1.6, slide under), `wildlife_herd` (CIN 2.0, deer on the flats).
+Act III: horses `horse_fp` (FP 2.2, first-person ride), `horse_gallop_b` (GAME 2.2, a second breed over the moor); settlements with life: `weirford_life` (CIN 2.4), `saltmarket_life` (CIN 2.2), `downs` (CIN 1.8), `pans_wide` (CIN 2.0); `escort_attack` (GAME 2.4, the passenger under attack), `escort_top` (TOP 2.2), `defend_game` (GAME 2.2), `defend_top` (TOP 2.4, waves); `bell_ring` (CIN 2.4, the eighth bell rung), `shutter_fight` (GAME 2.6, the Shutter), `secret` (CIN 2.4, a secret site opens), `roam_incursion` (TOP 2.2).
+Act IV: per boss a reveal, a signature move and a phase change: Thornwarden (`thorn_reveal`, `thorn_move` 2.0, `thorn_knots`), Abbot (`boss_reveal`, `boss_game`, `boss_wide`, `abbot_phase` 2.2 Tallies/Requiem), Warden (`warden`, `warden_move` 2.0, `warden_phase` 2.2), Anchoress (`anchoress`, `anchoress_move`, `anchoress_phase`), Hierarch's Voice (`hierarch_voice`, `hierarch_edict`, `hierarch_phase`), then `final_blow`.
+
+Running length at these counts: about 170 s. Anything that cannot be made to work in the real systems is dropped and named in the report.
