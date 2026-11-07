@@ -23,7 +23,7 @@ const WIN := Vector2i(1280, 800)
 const CELL := Vector2i(480, 300)
 const COLS := 4
 const SECTIONS := ["horse", "wanderer", "spells", "enemies_a", "enemies_b", "enemies_c", "enemies_d", "bosses_a", "bosses_b", "bosses_c",
-	"villagers", "regions_a", "regions_b", "places", "ui"]
+	"villagers", "regions_a", "regions_b", "places", "ui", "warmth"]
 const ENEMY_SETS := {
 	"enemies_a": ["wretch", "husk", "crawler", "leaper"],
 	"enemies_b": ["spitter", "ossuant", "shade", "gaunt"],
@@ -272,6 +272,8 @@ func _run() -> void:
 				await _s_places()
 			"ui":
 				await _s_ui()
+			"warmth":
+				await _s_warmth()
 			_:
 				if ENEMY_SETS.has(sec):
 					for kind: String in ENEMY_SETS[sec]:
@@ -1633,6 +1635,55 @@ func _s_regions(from: int, to: int) -> void:
 		if k < 2:
 			_fail("region %s: only %d usable view(s)" % [String(r.id), k])
 	_unpark()
+
+
+## Stills only: is a fire, a lamp and a lit room warm against the night? (tavern, a cottage, the Hearth, a lamp post, a kindled brazier)
+func _s_warmth() -> void:
+	_clear_enemies()
+	_ui_hide()
+	var g := func(x: float, z: float) -> float: return _gy(x, z)
+	# the clearest eye 5.5 m round a point (the open side of a fire on a slope)
+	var ring := func(c: Vector3) -> Vector3:
+		var best := Vector3(c.x, c.y + 2.0, c.z + 5.5)
+		var best_d := -1.0
+		for k in 12:
+			var a := TAU * float(k) / 12.0
+			var q := Vector3(c.x + cos(a) * 5.5, 0.0, c.z + sin(a) * 5.5)
+			q.y = _gy(q.x, q.z) + 1.7
+			var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(q, c + Vector3(0, 0.8, 0), Layers.WORLD))
+			var d := q.distance_to(c) if hit.is_empty() else q.distance_to(hit.position)
+			if d > best_d:
+				best_d = d
+				best = q
+		return best
+	await _view_still("w_tavern_a.png", "tavern interior from the west end looking at the hearth", Vector3(12.0, -0.7 + 1.7, 27.0), Vector3(24.0, -0.7 + 0.9, 30.4))
+	await _view_still("w_tavern_b.png", "tavern interior from the hearth looking at the door and the bar", Vector3(23.0, -0.7 + 1.7, 28.0), Vector3(14.0, -0.7 + 1.0, 31.0))
+	await _view_still("w_tavern_out.png", "the tavern from the porch, outside looking in", Vector3(17.6, g.call(17.6, 20.6) + 1.7, 20.6), Vector3(17.6, -0.7 + 1.3, 27.0))
+	var cy: float = g.call(-165.0, 59.0) + 0.66
+	await _view_still("w_house_a.png", "a Weirford cottage from inside", Vector3(-167.4, cy + 1.6, 60.9), Vector3(-162.8, cy + 1.0, 57.2))
+	await _view_still("w_house_out.png", "the cottage from outside, its lit window", Vector3(-165.0, g.call(-165.0, 70.0) + 1.7, 70.0), Vector3(-165.0, cy + 1.5, 61.5))
+	var sanc := main.find_child("Sanctuary", true, false) as Node3D
+	if sanc != null:
+		var sp := sanc.global_position
+		await _view_still("w_hearth_fire.png", "the Hearth's fire at night", ring.call(sp), sp + Vector3(0, 0.8, 0))
+	for n in get_tree().get_nodes_in_group(&"lamp"):
+		var lq := n as Lamp
+		if lq != null and lq.lit and lq.look == "post":
+			var lp := lq.global_position
+			await _view_still("w_lamp_post.png", "a lamp post at night", ring.call(lp), lp + Vector3(0, 1.0, 0))
+			break
+	var wild: Brazier = null
+	var bd := 1.0e9
+	for n in main.find_children("*", "Brazier", true, false):
+		var q := n as Brazier
+		if q != null and not q.lit and q.visible and q.global_position.distance_to(studio) < bd:
+			bd = q.global_position.distance_to(studio)
+			wild = q
+	if wild != null:
+		wild.kindle_quiet()
+		var bp := wild.global_position
+		await _secs(1.0)
+		await _view_still("w_brazier_wild.png", "a kindled brazier in the wild", ring.call(bp), bp + Vector3(0, 0.8, 0))
 
 
 func _s_places() -> void:

@@ -202,6 +202,7 @@ func _build() -> void:
 	k.box("iron", post + Vector3(0, 2.43, -0.5), Vector3(0.3, 0.05, 0.3), Basis.IDENTITY, false)
 	k.commit(self, "TavernBody")
 	_panes_one_sided()
+	_warm_materials()
 	for mmi in find_children("*", "MultiMeshInstance3D", true, false):
 		mmi.set_meta("site_owned", true)
 	_lights(post + Vector3(0, 2.2, -0.5))
@@ -580,29 +581,50 @@ func _panes_one_sided() -> void:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
+## The inn's own masonry and boards take firelight: warm albedo (no blue-grey stone), the tables and bar a honey wood,
+## the window glass brighter. Copies of the kit's materials: the crypt keeps its cold stone.
+const WARM_TINT := {"stone": Color(1.0, 0.86, 0.7), "plaster": Color(1.0, 0.9, 0.76), "floor": Color(1.0, 0.84, 0.66), "wood": Color(1.25, 0.9, 0.62), "slate": Color(0.95, 0.85, 0.78), "brick": Color(1.0, 0.86, 0.72)}
+
+
+func _warm_materials() -> void:
+	for key: String in WARM_TINT:
+		var mi := get_node_or_null("Mesh_" + key) as MeshInstance3D
+		if mi == null or not (mi.material_override is StandardMaterial3D):
+			continue
+		var m := (mi.material_override as StandardMaterial3D).duplicate() as StandardMaterial3D
+		m.albedo_color = m.albedo_color * (WARM_TINT[key] as Color)
+		mi.material_override = m
+	for gn: String in ["Mesh_glow", "Mesh_glow_pane"]:
+		var gl := get_node_or_null(gn) as MeshInstance3D
+		if gl != null and gl.material_override is StandardMaterial3D:
+			var gm := (gl.material_override as StandardMaterial3D).duplicate() as StandardMaterial3D
+			gm.emission_energy_multiplier = 1.2
+			gl.material_override = gm
+
+
 func _lights(lamp: Vector3) -> void:
-	_omni("Hearth", Vector3(X1 - T - 0.8, FY + 0.9, CHIM.get_center().y), Color(1.0, 0.52, 0.2), 2.6, 9.0)
-	_omni("Taproom", Vector3((X0 + X1) * 0.5 - 2.0, FY + 2.2, 30.2), Color(1.0, 0.66, 0.36), 1.2, 10.0)
-	_omni("DoorLamp", lamp, Color(1.0, 0.6, 0.28), 1.3, 7.0)
+	var hz := CHIM.get_center().y
+	var cy := FY + H1 * 0.5
+	Interiors.add("tavern", Vector3((X0 + X1) * 0.5, cy, (Z0 + Z1) * 0.5), 0.0, Vector3((X1 - X0) * 0.5 - T, H1 * 0.5 + 0.1, (Z1 - Z0) * 0.5 - T))
+	# the hearth: the room's heart, a soft-shadowed fire (about 1900 K) that throws the tables' shadows across the floor
+	Interiors.light(self, "Hearth", Vector3(X1 - T - 0.8, FY + 0.9, hz), Color(1.0, 0.42, 0.12), 5.5, 13.0, true, 0.12)
+	Interiors.light(self, "HearthRug", Vector3(X1 - T - 2.2, FY + 0.5, hz), Color(1.0, 0.5, 0.18), 1.6, 6.5, false, 0.12)
+	# two iron-ring chandeliers (a ring of wax: 2300 K) with shadows; the rest of the room is candle pools without
+	for cx: float in [14.2, 20.6]:
+		Interiors.light(self, "Chandelier", Vector3(cx, FY + H1 - 0.55, 30.2), Color(1.0, 0.7, 0.36), 2.4, 8.0, true, 0.06)
+	# a table's candles light the faces round it
+	for tc: Vector2 in [Vector2(12.6, 28.9), Vector2(15.2, 29.6), Vector2(20.4, 28.9), Vector2(21.8, 31.8)]:
+		Interiors.light(self, "Candles", Vector3(tc.x, FY + 1.05, tc.y), Color(1.0, 0.72, 0.38), 1.35, 4.2, false, 0.1)
+	for bx: float in [13.0, 16.8]:
+		Interiors.light(self, "BarCandles", Vector3(bx, FY + 1.5, Z1 - T - 1.3), Color(1.0, 0.7, 0.36), 1.4, 5.0, false, 0.09)
+	# out of the door and the front windows the room spills warm onto the porch and the yard
+	Interiors.light(self, "DoorLamp", lamp, Color(1.0, 0.6, 0.28), 2.2, 9.0, false, 0.1)
+	Interiors.light(self, "DoorSpill", Vector3(DOOR_X, FY + 1.4, Z0 - 0.8), Color(1.0, 0.62, 0.3), 2.0, 8.0, false, 0.08)
+	for wx: float in [X0 + 4.8, X0 + 10.6]:
+		Interiors.light(self, "WindowSpill", Vector3(wx, FY + 1.6, Z0 - 0.7), Color(1.0, 0.6, 0.28), 1.3, 5.5, false, 0.08)
 	var fire := Vfx.emitter(Color(1.0, 0.45, 0.12), {"count": 26, "life": 0.7, "speed": Vector2(0.4, 1.1), "size": 0.2, "gravity": -1.4, "radius": 0.3, "additive": true, "spread": 25.0})
 	if fire:
 		fire.name = "HearthFire"
 		add_child(fire)
 		fire.global_position = Vector3(X1 - T - 0.3, FY + 0.42, CHIM.get_center().y)
 		fire.emitting = true
-
-
-func _omni(n: String, at: Vector3, col: Color, e: float, r: float) -> void:
-	var l := OmniLight3D.new()
-	l.name = n
-	l.light_color = col
-	l.omni_range = r
-	l.light_energy = e
-	l.shadow_enabled = false
-	l.set_meta(&"light_class", "fill")
-	l.set_meta(&"base", {"e": e, "r": r, "a": 1.0})
-	add_child(l)
-	l.global_position = at
-	LightPolicy.apply_fade(l)
-	LightPolicy.apply_illumination(l)
-	l.shadow_enabled = false
