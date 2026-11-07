@@ -282,6 +282,19 @@ static func _glow_mat(e: float) -> StandardMaterial3D:
 	return m
 
 
+## The great lamp's glass while it is dark: sooted and cold, a gloss that catches the moon (the model's own pane read as
+## a flat grey sheet across the lamp room)
+static func _dark_glass() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.07, 0.065, 0.06)
+	m.metallic = 0.35
+	m.roughness = 0.12
+	m.metallic_specular = 0.8
+	m.rim_enabled = true
+	m.rim = 0.25
+	return m
+
+
 # --- The Lamplighters' Spire -------------------------------------------------------------------------
 
 static func _spire(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary) -> void:
@@ -313,6 +326,7 @@ static func _spire(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary
 	var lamp_at := xf * Vector3(0, LAMP_Y - 0.7, 0)
 	var state := {"lit": State.has("open", "spire_lamp")}
 	var glass_mat := _glow_mat(3.2)
+	var dark_mat := _dark_glass()
 	var flame := MeshInstance3D.new()
 	flame.name = "LampFlame"
 	var qm := QuadMesh.new()
@@ -333,7 +347,7 @@ static func _spire(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary
 			for i in lod0.mesh.get_surface_count():
 				var sm := lod0.mesh.surface_get_material(i)
 				if sm != null and sm.resource_name == "lamp_glass":
-					lod0.set_surface_override_material(i, glass_mat if on else null)
+					lod0.set_surface_override_material(i, glass_mat if on else dark_mat)
 		if on and bh[0] == null:
 			var b: Variant = Wayfinding.beacon(host, xf * Vector3(0, 0, 0), "", Color(1.0, 0.74, 0.4), 70.0, 0.5, LAMP_Y + 6.0, true, 110.0)
 			if b is Node:

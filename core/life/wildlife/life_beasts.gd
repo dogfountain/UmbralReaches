@@ -130,6 +130,11 @@ func setup(k: String, spots: Array[Vector3], seed_v: int) -> void:
 			"state": GRAZE, "t": rng.randf_range(0.5, 4.0), "head": 0.0, "head_to": 0.0, "pitch": graze_pitch, "pitch_to": graze_pitch,
 			"gait": 0.0, "mv": 0.0, "target": spots[i], "speed": 0.0, "ray_t": 0.0, "gy": spots[i].y, "hide_t": 0.0,
 			"look_t": 0.0, "roar_t": rng.randf_range(30.0, 110.0), "k": 0.0, "from": spots[i], "step_d": 0.0, "foot": 0, "hunt_t": rng.randf_range(8.0, 25.0)})
+	for _i in 30:
+		_keep_apart(1.0)                        # the spots can sit a body apart or less: space the herd before it is drawn
+	for a in animals:
+		a.home = a.pos
+		a.target = a.pos
 	_home0 = center
 	_sent_t = rng.randf_range(15.0, 35.0)
 	_drift_t = rng.randf_range(40.0, 90.0)
@@ -250,6 +255,7 @@ func tick(dt: float, ctx: Dictionary) -> void:
 		_step(a, dt, ctx)
 	if bolt_from != Vector3.INF:
 		_bolt(bolt_from)
+	_keep_apart(dt)
 	_herd_life(dt, ctx)
 	# a herd standing still that stays still has nothing new to draw
 	var was := _still
@@ -257,6 +263,39 @@ func tick(dt: float, ctx: Dictionary) -> void:
 	if not (was and _still) or _dirty:
 		_write()
 	_dirty = false
+
+
+## Deer and elk keep a body's length between them: a stroll could end inside another grazer (a hind's body through
+## the stag's legs). Two standing too close step apart slowly, as a herd shuffles on its grass.
+func _keep_apart(dt: float) -> void:
+	if kind != "deer" and kind != "elk":
+		return
+	var gap := 3.4 if kind == "elk" else 2.4             # a body and a head: a deer is about 2 m nose to tail
+	for i in animals.size():
+		var a: Dictionary = animals[i]
+		var sa := int(a.state)
+		if sa == HIDE or sa == FLEE:
+			continue
+		for j in range(i + 1, animals.size()):
+			var b: Dictionary = animals[j]
+			var sb := int(b.state)
+			if sb == HIDE or sb == FLEE:
+				continue
+			var d: Vector3 = (b.pos as Vector3) - (a.pos as Vector3)
+			d.y = 0.0
+			var l := d.length()
+			if l >= gap:
+				continue
+			var dir := d / l if l > 0.01 else Vector3(cos(float(i)), 0.0, sin(float(i)))
+			var step := minf((gap - l) * 0.5, dt * 0.6)
+			for e: Array in [[a, -dir], [b, dir]]:
+				var an: Dictionary = e[0]
+				var np: Vector3 = (an.pos as Vector3) + (e[1] as Vector3) * step
+				if _ok(np.x, np.z):
+					an.pos = Vector3(np.x, _ground(np.x, np.z, np.y), np.z)
+					if int(an.state) == WALK:
+						an.target = Vector3((an.target as Vector3).x, np.y, (an.target as Vector3).z)
+			_dirty = true
 
 
 ## Nothing would move between ticks: everyone standing, heads, pitch and feet settled.
