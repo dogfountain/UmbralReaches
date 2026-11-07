@@ -9,12 +9,18 @@ extends Node
 ##   cond / visit     checked at 4 Hz: a world condition (a boss down) / the wanderer within `r`
 ##   carry            a coal from the step before: `time` seconds to bring it within `r` of `to`;
 ##                    run out, or come back hollowed, and it goes out (the task falls back a step)
+##   escort / defend  live steps (escort.gd, defend.gd): a walker led along `path` against foes that
+##                    wound it, or a standing thing held for `time` against waves. Each is a child of
+##                    this node while its step is current and is freed when the step moves on (or
+##                    the night ends); a fall or a break resets inside the step, never the task
 ## No per-frame scans: one pass over ORDER (48 tasks, r34) four times a second; only active ones do work.
 ## Load by path: const QuestRunner := preload("res://core/story/quest_runner.gd")
 
 const Book := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const QuestDB := preload("res://core/story/quest_db.gd")
+const Escort := preload("res://core/story/escort.gd")
+const Defend := preload("res://core/story/defend.gd")
 
 ## Tests: every collect step drops (1.0), or the data's chance (-1).
 static var chance_override := -1.0
@@ -22,6 +28,7 @@ static var chance_override := -1.0
 var _tick := 0.0
 var _carrying := ""               ## the task whose coal is burning down (found by check())
 var _rng := RandomNumberGenerator.new()
+var _enc := {}                    ## task id -> its live escort / defend node
 
 
 func _ready() -> void:
@@ -116,7 +123,18 @@ func _gutter(id: String, why: String) -> void:
 	Book.advance(id, Book.step(id) - 1)
 
 
+func _exit_tree() -> void:
+	for n: Variant in _enc.values():
+		if is_instance_valid(n):
+			(n as Node).queue_free()
+	_enc.clear()
+
+
 func _process(delta: float) -> void:
+	for id: String in _enc:                     # the hold's clock reads out in the task's line
+		var n: Variant = _enc[id]
+		if n is Defend and is_instance_valid(n) and Book.active(id):
+			Book.q(id)["left"] = (n as Defend).time_left
 	# the carried coal burns down in real seconds (the world pauses with menus, and so does this)
 	if _carrying != "":
 		var id := _carrying
@@ -141,6 +159,7 @@ func _process(delta: float) -> void:
 func check() -> void:
 	var ws: Dictionary = {}
 	var pl := _player()
+	var live := {}
 	for id: String in Chains.ORDER:
 		if not Book.active(id):
 			continue
@@ -173,6 +192,42 @@ func check() -> void:
 				if pl and _near(pl, stp.to as Vector2, float(stp.get("r", 5.0))):
 					Book.progress("%s: delivered" % String(stp.get("label", "")), true)
 					Book.advance(id)
+			"escort", "defend":
+				if stp.has("path") or stp.has("time"):
+					live[id] = true
+					_encounter(id, stp)
+	for id2: String in _enc.keys():
+		if not live.has(id2):
+			var gone: Variant = _enc[id2]
+			if is_instance_valid(gone):
+				(gone as Node).queue_free()
+			_enc.erase(id2)
+
+
+## Stand up the live node for an escort / defend step if it is not there yet.
+func _encounter(id: String, stp: Dictionary) -> void:
+	var have: Variant = _enc.get(id)
+	if is_instance_valid(have) and int((have as Node).get_meta(&"step", -1)) == Book.step(id):
+		return
+	if is_instance_valid(have):
+		(have as Node).queue_free()
+	var s := Book.step(id)
+	var key := "wp%d" % s
+	if String(stp.kind) == "escort":
+		var e: Escort = Escort.new()
+		e.setup(id, stp, int(Book.q(id).get(key, 0)))
+		e.reached.connect(func(i: int) -> void: Book.q(id)[key] = i)
+		e.arrived.connect(func() -> void: Book.advance(id))
+		e.set_meta(&"step", s)
+		add_child(e)
+		_enc[id] = e
+	else:
+		var d: Defend = Defend.new()
+		d.setup(id, stp)
+		d.held.connect(func() -> void: Book.advance(id))
+		d.set_meta(&"step", s)
+		add_child(d)
+		_enc[id] = d
 
 
 func _near(pl: Node3D, at: Vector2, r: float) -> bool:

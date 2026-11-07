@@ -18,6 +18,7 @@ extends Node
 const Book := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const Giver := preload("res://core/story/quest_giver.gd")
+const Kit := preload("res://core/story/encounter_kit.gd")
 const Runner := preload("res://core/story/quest_runner.gd")
 const QuestDB := preload("res://core/story/quest_db.gd")
 const QuestWorld := preload("res://core/story/quest_world.gd")
@@ -326,6 +327,21 @@ func _step(id: String, s: int) -> void:
 			await _stand(stp.at as Vector2)
 		"carry":
 			await _stand(stp.to as Vector2)
+		"defend", "escort":
+			# the live steps: the runner's node plays through with the wanderer beside it and the foes put down
+			runner.call("check")
+			var live: Node3D = (runner.get("_enc") as Dictionary).get(id) as Node3D
+			ok(live != null, "%s: the %s step stands up in the world" % [id, stp.kind])
+			var keep2 := player.global_position
+			var n := 0
+			while live != null and is_instance_valid(live) and not bool(live.get("done")) and n < 4000:
+				n += 1
+				player.global_position = live.global_position + Vector3(1.5, 0.0, 0.0)
+				for f: Enemy in Kit.foes_near(get_tree(), live.global_position, 14.0):
+					f.queue_free()            # ours and the realm's own: the wanderer puts them down
+				live.call("tick", 0.5)
+			player.global_position = keep2
+			await _frames(1)
 		"cond":
 			var c := String(stp.cond)
 			if c.begins_with("secret:"):
