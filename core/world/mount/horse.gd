@@ -58,6 +58,8 @@ var _land := 0.0                     ## 1 at touchdown, easing to 0: the squat
 var _jump_cd := 0.0
 var _jump_buf := 0.0
 var _lean := 0.0                     ## the rider's lean into the leap (rad, + forward)
+var _rs := Vector3.ZERO              ## the rider's damped follow of the horse: height (m), pitch (rad, + forward), roll (rad)
+var _rv := Vector3.ZERO
 var _trampled := {}                  ## enemy instance id -> msec of the last trample on it
 
 
@@ -145,8 +147,12 @@ func dismount() -> void:
 	_gather = 0.0
 	_lean = 0.0
 	var rig := p.get_node_or_null("Visual") if p != null and is_instance_valid(p) else null
+	_rs = Vector3.ZERO
+	_rv = Vector3.ZERO
 	if rig != null and "ride_lean" in rig:
 		rig.set("ride_lean", 0.0)
+	if rig != null and "ride_roll" in rig:
+		rig.set("ride_roll", 0.0)
 	if p != null and is_instance_valid(p):
 		p.riding = null
 		var side := global_basis.x.normalized()
@@ -251,7 +257,7 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		want = minf(want, float(_d.walk))
 	if _air or _gather > 0.0:
 		want = maxf(want, speed)                 # nothing to push against: the stride is carried through the leap
-	speed = move_toward(speed, want, (6.0 if want > speed else 9.0) * dt)
+	speed = move_toward(speed, want, (6.0 if want > speed else 9.0) * dt * lerpf(0.5, 1.0, smoothstep(0.0, 1.5, speed)) * (1.0 / float(_d.get("heft", 1.0))))
 	var fwd := Vector3(-sin(_yaw), 0.0, -cos(_yaw))
 	if speed > 0.05:
 		var step := fwd * speed * dt
@@ -300,7 +306,8 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	# the rider sits the saddle, facing where the horse faces
 	# the pelvis on the saddle's seat (the seat's top is `seat` above the horse's origin; the rig's
 	# pelvis stands 0.955 above its feet), a hand's width behind the pommel
-	var seat := global_position + Vector3.UP * (float(_d.seat) - CharacterRig.H_PELVIS + 0.02 + _bob()) + fwd * (0.04 * _scale())
+	_ride_follow(dt, fwd)
+	var seat := global_position + Vector3.UP * (float(_d.seat) - CharacterRig.H_PELVIS + 0.02 + _rs.x) + fwd * (0.04 * _scale())
 	var vis := p.get_node_or_null("Visual") as Node3D
 	if _mount_t < MOUNT_T:
 		# r36: getting on, from the near (left) side: a step to the stirrup, the left foot in it and a
@@ -337,13 +344,32 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		# centre below the seat, its half length
 		vis.set("saddle", Vector3(float(_d.bw) * 1.05, float(_d.bc) - float(_d.seat) - 0.02, float(_d.bl) * 1.05))
 	if vis and "ride_lean" in vis:
-		vis.set("ride_lean", _lean)
+		vis.set("ride_lean", _rs.y)
+	if vis and "ride_roll" in vis:
+		vis.set("ride_roll", _rs.z)
 	if vis:
 		# facing where the horse faces, in WORLD space: the player node itself turns with the camera,
 		# so a local yaw sat the rider sideways
 		var cur := vis.global_rotation.y
 		vis.global_rotation.y = lerp_angle(cur, _yaw, 1.0 - exp(-12.0 * dt))
 	p.velocity = fwd * speed
+
+
+## The rider is not bolted to the saddle: height, pitch and roll chase the horse's through damped springs
+## (so they lag and settle), with a post at the trot, a crouch into the gallop and a lean into turns.
+func _ride_follow(dt: float, _fwd: Vector3) -> void:
+	var d := minf(dt, 0.033)
+	if _rig == null or d <= 0.0:
+		return
+	var trot_w := smoothstep(float(_d.walk), float(_d.trot), speed) * (1.0 - smoothstep(float(_d.trot), float(_d.gallop), speed))
+	var k := clampf(speed / float(_d.gallop), 0.0, 1.0)
+	var acc := clampf(_accel.x / 6.0, -1.0, 1.0)
+	var t := Vector3.ZERO
+	t.x = _rig.last_dy * 0.6 + trot_w * 0.03 * (1.0 + sin(_phase + 0.3)) + (0.07 if _air else 0.0)
+	t.y = _lean + 0.16 * smoothstep(0.3, 1.0, k) - _rig.body_pitch * 0.8 - acc * 0.07
+	t.z = -_rig.body_roll * 0.9
+	_rv += ((t - _rs) * Vector3(150.0, 45.0, 60.0) - _rv * Vector3(18.0, 7.0, 8.0)) * d
+	_rs += _rv * d
 
 
 func _process(dt: float) -> void:
