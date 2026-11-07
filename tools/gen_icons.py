@@ -30,6 +30,11 @@ import spells  # noqa: E402,F401
 import spells2  # noqa: E402,F401
 import kindling  # noqa: E402,F401
 import auras  # noqa: E402,F401
+import items_relics  # noqa: E402,F401
+import items_charms  # noqa: E402,F401
+import items_misc  # noqa: E402,F401
+import hearth  # noqa: E402,F401
+import village  # noqa: E402,F401
 
 OUT = os.path.join(HERE, "..", "ui", "icons")
 

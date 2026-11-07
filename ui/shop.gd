@@ -196,7 +196,7 @@ func _build() -> void:
 	col.add_child(foot)
 	_ash_icon = Control.new()
 	_ash_icon.custom_minimum_size = Vector2(34, 34)
-	_ash_icon.draw.connect(func() -> void: Icons.draw(_ash_icon, "mound", Vector2(17, 19), 13.0, ASH_TINT))
+	_ash_icon.draw.connect(func() -> void: Icons.draw(_ash_icon, Icons.item_glyph("grave_ash"), Vector2(17, 17), 10.0, Color.WHITE if IconArt.art("item", "grave_ash") != null else ASH_TINT))
 	foot.add_child(_ash_icon)
 	_ash = _label(23, Med.BONE, true)
 	foot.add_child(_ash)
@@ -480,6 +480,10 @@ func _draw_icon(ci: Control, r: Dictionary, c: Vector2, u: float, ok: bool) -> v
 		var qc := LootDB.quality_color(int(r.get("quality", 0))) * Color(dim, dim, dim, 1.0)
 		ci.draw_arc(c, u * 1.35, 0.0, TAU, 32, qc, 2.0)
 		Icons.draw(ci, String(GearDB.SLOT_GLYPH.get(String((r.piece as Dictionary).get("slot", "")), "prism")), c, u, qc.lightened(0.15))
+		return
+	var rg := Icons.row_glyph(r)
+	if rg.contains("/"):                       # painted art: a round picture in the medallion
+		Icons.draw(ci, rg, c, u * 0.8, Color(dim, dim, dim, 1.0))
 		return
 	if r.has("item"):
 		var d := ItemDB.def(String(r.item))
