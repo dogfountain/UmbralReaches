@@ -164,6 +164,9 @@ func _clear_card() -> void:
 
 func _process(d: float) -> void:
 	frame += 1
+	# the shoot's cool fill must not light a warm room blue: indoors the room's own fire and candles carry it
+	if key != null and cam != null:
+		key.visible = Interiors.at(cam.global_position) < 1.0
 	if p == null:
 		p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		if p:

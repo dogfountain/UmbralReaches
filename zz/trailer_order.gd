@@ -20,7 +20,7 @@ const ORDER := [
 	["thornwood", 1.2, 0.0, "III", "CIN"], ["mere", 1.2, 0.0, "III", "CIN"],
 	["foundry", 1.2, 0.0, "III", "CIN"], ["orchard", 1.2, 0.0, "III", "CIN"], ["quarry", 1.2, 0.0, "III", "CIN"],
 	["holds", 1.2, 0.0, "III", "CIN"], ["crowns", 1.4, 0.0, "III", "CIN"],
-	["lamp_kindle", 2.0, 0.0, "III", "CIN"], ["weirford", 1.8, 0.0, "III", "CIN"], ["stillwater", 1.4, 0.0, "III", "CIN"], ["lamp_spire", 1.4, 0.0, "III", "FP"], ["saltmarket_life", 2.2, 0.0, "III", "CIN"], ["pans", 1.2, 0.0, "III", "CIN"],
+	["lamp_kindle", 2.0, 0.0, "III", "CIN"], ["weirford", 1.8, 0.0, "III", "CIN"], ["stillwater", 1.4, 0.0, "III", "CIN"], ["saltmarket_life", 2.2, 0.0, "III", "CIN"], ["pans", 1.2, 0.0, "III", "CIN"],
 	["pans_wide", 1.70, 0.0, "III", "CIN"], ["oak", 1.4, 0.0, "III", "CIN"], ["downs", 1.8, 0.0, "III", "CIN"],
 	["bells", 2.0, 0.0, "III", "CIN"], ["shutter_fight", 2.6, 0.0, "III", "GAME"],
 	["secret", 2.4, 0.0, "III", "CIN"],
