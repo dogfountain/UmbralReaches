@@ -243,6 +243,7 @@ func _s_lamp_spire() -> void:
 	(d.p.get_node("Visual") as Node3D).visible = false
 	d.use_free_cam()
 	d.cam.fov = 84.0
+	d.key.light_energy = 0.35          # a narrow stair: the usual fill a metre and a half over the head blew the walls white
 
 
 func _u_lamp_spire(tt: float) -> void:
@@ -263,6 +264,7 @@ func _u_lamp_spire(tt: float) -> void:
 
 
 func _e_lamp_spire() -> void:
+	d.key.light_energy = 3.0
 	(d.p.get_node("Visual") as Node3D).visible = true
 	d.drive(Vector3.ZERO)
 	clear_fills()
