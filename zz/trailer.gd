@@ -59,6 +59,7 @@ var _preview := false
 var _provs: Array = []
 var _cur: Object
 var _lead := 0
+var hollow_ok := false                        ## a shot that shows the Gloom lets it run (cleared at each cut)
 var lead_black: ColorRect
 var keep_layers: Array[CanvasLayer] = []   ## UI the shot wants on screen (the rest is hidden every frame)
 # title layer
@@ -93,10 +94,21 @@ func _ready() -> void:
 	Settings.monitor = -1
 	Settings.vsync = false
 	Settings.fps_limit = 0
+	_stage_state()
 	_build_titles()
 	_card("THE SKY TURNS INWARD", 1.0)
 	main = load("res://world/main.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(main)
+
+
+## The wanderer as the trailer shows them (in memory; Travel._busy holds the save): ranks and oaths sworn, ash in the
+## satchel, the Hearthfire raised so the tithe and the Kindling have something to show.
+func _stage_state() -> void:
+	Travel.story = {"flags": {"arrived": true, "met_keep": true}, "picked": {}}
+	Travel.items = {"grave_ash": 160, "relic_fragment": 2}
+	Travel.systems = {"progression": {"memory": 900, "ranks": {"bolt": 2, "lance": 2, "nova": 1, "ward": 1, "step": 1, "will": 2, "warmth": 2},
+			"oaths": {"1": "a", "2": "a"}, "known": ["tether", "well", "familiar"], "spent": 120},
+		"hearth": {"tier": 1, "works": {"baskets": true}, "rested": 300.0}}
 
 
 # --- titles ---------------------------------------------------------------------------------------
@@ -179,7 +191,8 @@ func _process(d: float) -> void:
 			print("CLIP %s start=%d drawn=%d dur=%.2f" % [SHOTS[si][0], frame + 1, Engine.get_frames_drawn() + 1, float(SHOTS[si][1])])
 		return
 	t += d
-	p.gloom = 0.0; p.wounds = 0.0                                      # the wanderer is the star: no hollowing
+	if not hollow_ok:
+		p.gloom = 0.0; p.wounds = 0.0                                      # the wanderer is the star: no hollowing
 	_keep_alive()
 	_cull_strays()
 	_steer(d)
@@ -244,7 +257,7 @@ func _setup_world() -> void:
 
 
 func _next_shot() -> void:
-	if si >= 0:
+	if si >= 0 and _cur != null:
 		var prev: String = SHOTS[si][0]
 		_motion_report(prev)
 		var ef := _fn("e", prev)
@@ -256,6 +269,8 @@ func _next_shot() -> void:
 		si += 1
 	t = 0.0
 	_snap = true
+	flags.clear()
+	hollow_ok = false
 	if si >= SHOTS.size():
 		print("TRAILER done frame %d" % frame)
 		phase = "done"
