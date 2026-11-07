@@ -32,7 +32,11 @@ static func fingerprint(root: Node) -> String:
 	for a in root.get_tree().get_nodes_in_group(&"boss_arena"):
 		var ar := a as Node3D
 		arenas.append([ar.global_position, float(ar.get("radius"))])
-	var parts: Array = [GenCache.salt(SELF), OS.get_cmdline_user_args(), WorldLanes.sites, WorldLanes.portals, WorldLanes.extra_lanes,
+	var flags: Array = []
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--no-"):
+			flags.append(a)                         # (the A/B switches; the rest are a harness's own)
+	var parts: Array = [GenCache.salt(SELF), flags, WorldLanes.sites, WorldLanes.portals, WorldLanes.extra_lanes,
 		Zones.lanes(), arenas, RealmLayout.PATHS, RealmLayout.REGIONS, RealmLayout.BOUNDS, RealmLayout.OLD_BOUNDS]
 	for p: String in READS:
 		parts.append(GenCache.salt(p))

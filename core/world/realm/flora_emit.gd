@@ -9,7 +9,6 @@ extends RefCounted
 
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
-const GenCache := preload("res://core/world/realm/gen_cache.gd")
 
 const CHUNK := 24.0                    ## undergrowth chunks
 const TREE_CHUNK := 32.0               ## tree chunks
@@ -76,34 +75,25 @@ static func _basis_at(buf: PackedFloat32Array, o: int) -> Basis:
 	return Basis(Vector3(buf[o], buf[o + 4], buf[o + 8]), Vector3(buf[o + 1], buf[o + 5], buf[o + 9]), Vector3(buf[o + 2], buf[o + 6], buf[o + 10]))
 
 
-static var _lod_ready := {}            ## kind key -> mesh with LODs (loaded from disk or just made)
+static var _lod_ready := {}            ## kind key -> mesh with LODs made for this emit
 
 
-## (The LODs of each kind's solid part are generated once and kept on disk like the mesh.)
-## LODs for every [kind key, solid mesh] pair: the disk hits first, then the rest generated at once
-## on the worker pool (ImporterMesh.generate_lods is native and independent per mesh; the arrays are
-## read and the mesh built on the main thread).
+## LODs for every [kind key, solid mesh] pair, generated at once on the worker pool
+## (ImporterMesh.generate_lods is native and independent per mesh -- about 40 ms for all of them on
+## eight cores, against ~3 ms a mesh to read them back from disk); the arrays are read and the
+## mesh built on the main thread.
 static func _prefetch_lods(pairs: Array) -> void:
 	var todo: Array = []
 	for p: Array in pairs:
-		var id: String = p[0]
-		var solid: Mesh = p[1]
-		if _lod_ready.has(id):
-			continue
-		var m := GenCache.load_mesh("flora|lods|" + id, TreeGen.SELF)
-		if m != null and m.get_surface_count() == solid.get_surface_count():
-			_lod_ready[id] = _with_materials(m, solid)
-		else:
-			todo.append([id, solid, _importer(solid)])
+		if not _lod_ready.has(p[0]):
+			todo.append([p[0], p[1], _importer(p[1])])
 	if todo.is_empty():
 		return
 	var tl := Time.get_ticks_usec()
 	var task := WorkerThreadPool.add_group_task(func(i: int) -> void: (todo[i][2] as ImporterMesh).generate_lods(25.0, 60.0, []), todo.size())
 	WorkerThreadPool.wait_for_group_task_completion(task)
 	for t: Array in todo:
-		var made := (t[2] as ImporterMesh).get_mesh()
-		GenCache.save_mesh("flora|lods|" + String(t[0]), TreeGen.SELF, made)
-		_lod_ready[t[0]] = _with_materials(made, t[1])
+		_lod_ready[t[0]] = _with_materials((t[2] as ImporterMesh).get_mesh(), t[1])
 	Realm.prof_add("gen: with_lods", tl)
 
 

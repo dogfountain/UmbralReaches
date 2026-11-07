@@ -14,6 +14,8 @@ extends Node
 ##              are built after the flora: village.gd _outposts)
 ##   build      the flora build stays under its budget (r33: ~1.05 s over half the ground; r34 phase 1:
 ##              ~2.0-2.8 s; the mesh generation of a cold cache is not counted)
+##   cache      the placement the build stored (flora_cache.gd) reads back as the placement it made, and a
+##              build that adopted a stored one stays under WARM_MS
 ## Run: SCRATCH=<dir> JOBS=1 tools/run_tests.sh flora_r34
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 
@@ -35,6 +37,7 @@ const SIGN := {
 # the Realm is twice the ground (520 x 390 m): ~4.2 s measured (ground rays 0.5, field 0.65, trees 0.5, undergrowth 1.4,
 # nodes 1.1 s), none of it waste found; the old limit was for 310 x 325 m
 const BUDGET_MS := 5000                ## without making meshes (a cold GenCache: a test's fresh HOME)
+const WARM_MS := 1000                  ## a build that adopts the stored placement
 
 var main: Node
 var t := 0.0
@@ -196,6 +199,7 @@ func _check() -> void:
 	check("no tree stands in the water (%d)" % ground, ground == 0)
 	_outposts()
 	check("flora build %d ms (%d ms of it making meshes) <= %d ms" % [Flora.build_ms, Flora.gen_ms, BUDGET_MS], Flora.build_ms - Flora.gen_ms <= BUDGET_MS)
+	_cache()
 
 
 ## Live flora instances (as drawn: a cleared one has a zeroed basis) within r of p, by species.
@@ -234,3 +238,17 @@ func _outposts() -> void:
 		var live := _live_near(at[id], 3.5)
 		check("outpost %s at %s is clear of flora %s" % [id, at[id], live], live.is_empty())
 	check("outposts built (%d)" % at.size(), at.size() >= 5)
+
+
+func _cache() -> void:
+	print("FLORA34 this build %s the placement (%d ms; laps %s)" % ["adopted" if Flora.cached else "scattered", Flora.build_ms, Flora.laps])
+	if Flora.cached:
+		check("a build from the stored placement %d ms <= %d ms" % [Flora.build_ms, WARM_MS], Flora.build_ms <= WARM_MS)
+	var hit: Dictionary = Flora.Cache.load_hit(Flora.last_fp)
+	check("the placement cache holds this build's entry", not hit.is_empty())
+	if not hit.is_empty():
+		var t0 := Time.get_ticks_usec()
+		var same := Flora.placement_digest(hit["items"], hit["stones"]) == Flora.built_digest()
+		check("the stored placement reads back as the one placed (%d plants)" % Flora.instance_list().size(), same)
+		check("the stored trees and counts read back", (hit["trees"] as Array).size() == Flora.trees.size() and (hit["placed"] as Dictionary).hash() == Flora.placed.hash())
+		print("FLORA34 digest check %d ms" % [(Time.get_ticks_usec() - t0) / 1000])

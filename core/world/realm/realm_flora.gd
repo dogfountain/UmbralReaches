@@ -68,6 +68,8 @@ static var trees: Array = []           ## [Vector3 base, kind id, trunk r, heigh
 static var instances: Array = []       ## [kind id, Vector3 pos] of everything (tests)
 static var build_ms := 0
 static var gen_ms := 0                 ## of build_ms: making plant / rock meshes (cold GenCache only)
+static var cached := false             ## the last build adopted the stored placement
+static var last_fp := ""               ## its fingerprint (flora_cache.gd)
 static var rejects := {}               ## why tree candidates were dropped (tuning)
 
 # --- the field -----------------------------------------------------------------------------------
@@ -116,6 +118,8 @@ static func build(root: Node) -> void:
 	var hit := Cache.load_hit(fp)
 	_lap("cache load")
 	var warm := not hit.is_empty() and Cache.verify(space, hit["sp"], _x0, _z0, _nx, _nz, CELL)
+	last_fp = fp
+	cached = warm
 	_lap("cache verify")
 	if warm:
 		_adopt(hit)
@@ -1479,6 +1483,20 @@ static func _finish(store: Dictionary, shuffle: bool) -> Dictionary:
 			done[key] = f
 		out[name] = done
 	return out
+
+
+## Order-free digest of final buffers (tests: the stored placement is the one placed).
+static func placement_digest(items: Dictionary, stones: Dictionary) -> int:
+	var d := 0
+	for store: Dictionary in [items, stones]:
+		for name: String in store:
+			for key: Vector3i in store[name]:
+				d += hash([name, key, hash(store[name][key])])
+	return d
+
+
+static func built_digest() -> int:
+	return placement_digest(_final_items, _final_stones)
 
 
 ## Everything placed as [kind id, position] (tests): rebuilt from the buffers on first use.
