@@ -552,6 +552,9 @@ func _s_roam() -> void:
 	var mid: Vector3 = d.pp().lerp(m, 0.5)
 	var across := Cam.flat(m - d.pp()).cross(Vector3.UP)
 	_roam_cam = d.solve_cam(pts, mid, d.yaw_to(across), 11.0, 4.0)
+	gather_props()
+	var lens_xz := clear_stand(Vector2(_roam_cam.x, _roam_cam.z))              # not hard against a lamp post or a sign
+	_roam_cam = Vector3(lens_xz.x, _roam_cam.y, lens_xz.y)
 
 
 func _u_roam(tt: float) -> void:
