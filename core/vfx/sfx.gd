@@ -14,6 +14,8 @@ extends RefCounted
 ##   - freed or foreign voices are dropped (a voice freed with its scene, or reparented, is rebuilt)
 ##   - `--sfx-trace` prints every one-shot ("SFX <ms> <name> <dB> d=<m>") for mix debugging
 
+const FoleyLib := preload("res://core/vfx/foley.gd")
+
 static var _streams := {}
 
 
@@ -140,6 +142,7 @@ static func release() -> void:
 	_streams.clear()
 	_recent.clear()
 	EnemyAudio.release()
+	FoleyLib.release()
 
 
 static var _names := {}

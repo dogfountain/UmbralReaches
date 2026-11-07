@@ -163,6 +163,21 @@ func freq(speed: float) -> float:
 	return speed / maxf(float(g.stride) * size * pow(heft, 0.3), 0.5)
 
 
+## The legs (indices into LEGS) whose hoof plants as the stride phase goes from `ph0` to `ph1` at `speed`:
+## the instant each leg's stance begins in pose(). Four beats at the walk, two at the trot, the gallop's
+## hind-hind-fore-fore with the suspension as the silence between strides. horse.gd times the hoofbeats off it.
+func footfalls(ph0: float, ph1: float, speed: float) -> Array[int]:
+	var out: Array[int] = []
+	if speed < 0.6 or ph1 <= ph0:
+		return out
+	var off: Array = _blend(speed).off
+	for i in 4:
+		var o: float = off[i]
+		if floorf(ph1 / TAU + o) > floorf(ph0 / TAU + o):
+			out.append(i)
+	return out
+
+
 ## The gait parameters at a speed: walk below `walk_s`, blending to trot, then to gallop.
 func _blend(speed: float) -> Dictionary:
 	var a: Dictionary

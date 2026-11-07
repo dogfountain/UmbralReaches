@@ -23,6 +23,7 @@ extends Node
 const ScapeSynth := preload("res://core/life/wildlife/scape_synth.gd")
 const LifeSynth := preload("res://core/life/wildlife/life_synth.gd")
 const Music := preload("res://core/life/wildlife/scape_music.gd")
+const Foley := preload("res://core/vfx/foley.gd")
 
 const FADE := 2.5                 ## seconds for a bed to come fully in or out
 const BASE_DB := -6.0
@@ -41,11 +42,13 @@ const BEDS := {
 	"chasm": ["scape:chasm", -12.0, true],
 	"high_wind": ["scape:high_wind", -15.0, true],
 	"hearth": ["scape:hearth", -14.0, false],
+	"river": ["foley:river", -13.0, true],         # near the Sorrow: gain follows the distance to its bank (_pick)
+	"murmur": ["foley:murmur", -16.0, true],       # a settlement's talk, far off
 }
 
 ## soundscape -> bed mix (linear)
 const SCAPES := {
-	"village": {"night": 1.0, "crickets": 0.85, "meadow": 0.6},
+	"village": {"night": 1.0, "crickets": 0.85, "meadow": 0.6, "murmur": 0.8},
 	"heath": {"night": 1.0, "meadow": 0.9, "crickets": 0.35},
 	"wood": {"night": 0.75, "leaves": 1.0, "crickets": 0.3},
 	"fen": {"night": 0.75, "fen": 1.0, "crickets": 0.2},
@@ -275,6 +278,8 @@ static func _bed_stream(src: String) -> AudioStreamWAV:
 		return ScapeSynth.stream(src.trim_prefix("scape:"))
 	if src.begins_with("life:"):
 		return LifeSynth.stream(src.trim_prefix("life:"))
+	if src.begins_with("foley:"):
+		return Foley.bed(src.trim_prefix("foley:"))
 	s = load(src) as AudioStreamWAV
 	if s == null:
 		return null
@@ -466,6 +471,11 @@ func _pick() -> void:
 		for key: String in beds:
 			if bed_want.has(key):
 				bed_want[key] = float(bed_want[key]) + w * float(beds[key])
+	# a river is heard from its bank: the water bed swells over the last 26 m
+	if bed_want.has("river") and area == "":
+		var nr := RealmLayout.river_near(p.x, p.z)
+		if nr.x < INF:
+			bed_want["river"] = 1.0 - smoothstep(2.0, 26.0, nr.x - RealmLayout.river_w(nr.z))
 	# rain hushes the insects and thins the meadow's chirrup (the rain beds take over)
 	var rain := float(_weather_state().get("rain", 0.0))
 	if rain > 0.0:
