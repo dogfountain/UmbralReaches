@@ -26,14 +26,14 @@ uniform float salt_scale = 0.2;
 uniform vec4 salt_rect = vec4(160.0, 112.0, 258.0, 240.0);     // x0 z0 x1 z1 = RealmLayout.PANS
 uniform vec3 tint = vec3(0.8, 0.88, 1.0);        // cool night grading of the authored colours
 uniform float saturation = 0.95;
-uniform float brightness = 1.2;          // ENS pass: 1.35 -> 1.2, open ground under the moon left no room for warm pools
+uniform float brightness = 0.6;          // 1.2 -> 0.6 (Luke, 7 Nov: the ground twice as dark); lamp_gain doubled so the fire pools hold
 uniform float broad_normal = 0.35;               // metre-scale lumps so open ground never reads as a smooth dune
 uniform float normal_strength = 1.0;
 uniform float slope_lo = 0.70;                   // world normal.y: all rock below
 uniform float slope_hi = 0.83;                   // all ground above (cos 34 deg)
 uniform float cliff_scale = 0.11;
 uniform vec3 rim_color = vec3(0.45, 0.72, 1.0);
-uniform float rim_strength = 0.14;
+uniform float rim_strength = 0.07;                // 0.14 -> 0.07: a glow at grazing angles that the moon and albedo do not touch; halved with the ground
 uniform float blend_depth = 0.22;                // height-blend softness
 uniform float water_y = -0.9;
 uniform float path_bright = 3.0;               // packed earth catches the moon more than turf
@@ -48,7 +48,7 @@ uniform float far_scale = 0.31;                  // far tiles are ~3x larger
 // light left the road and the plaza near-black beside the grass (whose own shader is brighter and
 // translucent). light() below keeps the engine's Burley diffuse but gives every positional light (omni,
 // spot) a gain and takes the cold tint back off their colour; the moon (directional) is unchanged.
-uniform float lamp_gain = 2.4;
+uniform float lamp_gain = 4.8;                 // 2.4 at brightness 1.2: doubled as the albedo halved, so a fire lights the ground as before
 uniform float lamp_untint = 0.75;                // how much of the cold grade is undone for positional lights
 
 vec2 rot_c(vec2 p) { return vec2(0.8 * p.x - 0.6 * p.y, 0.6 * p.x + 0.8 * p.y); }

@@ -157,8 +157,8 @@ static func _moon(moon: DirectionalLight3D, far_m: float) -> void:
 	# a strong azure key: the moonlit stone and ground read bright blue over cool shadow
 	# (it was 0.6 and lavender, so the flat ambient carried everything and the night read grey)
 	moon.light_color = Color(0.62, 0.78, 1.0)
-	moon.light_energy = 0.55                    # 1.2 -> 0.9 -> 0.55 (Luke, 7 Nov): the moon lit the open ground far too light; the fires carry the night
-	moon.light_volumetric_fog_energy = 0.6     # the moonlit haze laid a pale veil over the unlit ground (was 1.45, then 1.15)
+	moon.light_energy = 0.275                   # 1.2 -> 0.9 -> 0.55 -> 0.275 (Luke, 7 Nov): the moon lit the open ground far too light; the fires carry the night
+	moon.light_volumetric_fog_energy = 0.3     # (0.6 before the last halving) the moonlit haze laid a pale veil over the unlit ground (was 1.45, then 1.15)
 	moon.light_angular_distance = 2.5
 	moon.shadow_opacity = maxf(moon.shadow_opacity, 0.84)
 	# the shadow map itself (atlas, splits, bias, range) is LightPolicy._moon's alone: it runs right
