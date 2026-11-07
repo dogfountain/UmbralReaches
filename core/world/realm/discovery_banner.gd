@@ -13,6 +13,7 @@ extends CanvasLayer
 
 const TITLE_PATH := "res://ui/fonts/Cinzel.ttf"
 const UIType := preload("res://ui/type.gd")
+const TextDirector := preload("res://ui/text_director.gd")
 
 const STONE := Color(0.93, 0.85, 0.68)          ## the carved letters (warm limestone in firelight)
 const BRONZE := Color(0.78, 0.58, 0.34)
@@ -180,6 +181,20 @@ func _push(b: Dictionary) -> void:
 func _process(delta: float) -> void:
 	_clock += delta
 	_plate.visible = not get_tree().paused
+	var td := TextDirector.of(self)
+	if td != null and td.in_combat():
+		# a fight is on: a banner on screen bows out (a first discovery is kept to show again), none starts
+		if _plate.modulate.a > 0.01 and not _cut:
+			_cut = true
+			if _tw:
+				_tw.kill()
+			if not _cur.is_empty() and bool(_cur.fresh):
+				_queue.push_front(_cur)
+			_tw = create_tween()
+			_tw.tween_property(_plate, "modulate:a", 0.0, 0.35)
+			_busy_until = _clock + 0.35
+		return
+	_cut = false
 	if get_tree().paused or _queue.is_empty() or _clock < _hold_until or title_up(self):
 		return
 	# a fresh discovery waits for the one on screen; a plain name (revisit) cuts it short
@@ -191,6 +206,8 @@ func _process(delta: float) -> void:
 
 
 var _cur_fresh := false
+var _cur: Dictionary = {}              ## the banner on screen (kept to show again if a fight cuts it short)
+var _cut := false
 
 
 func _show(b: Dictionary) -> void:
@@ -198,6 +215,7 @@ func _show(b: Dictionary) -> void:
 	var fresh := bool(b.fresh)
 	shown.append({"kind": kind, "name": String(b.name), "fresh": fresh})
 	_cur_fresh = fresh
+	_cur = b
 	var p := _plate
 	p.title = String(b.name).to_upper()
 	p.tint = STONE

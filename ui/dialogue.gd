@@ -163,8 +163,8 @@ func _build_subtitles() -> void:
 	_sub.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_sub.offset_left = -480                   # the text director's lower-centre lane (text_director.gd lane_rect)
 	_sub.offset_right = 480
-	_sub.offset_top = -336
-	_sub.offset_bottom = -230
+	_sub.offset_top = -430
+	_sub.offset_bottom = -270
 	_sub.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

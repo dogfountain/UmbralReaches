@@ -28,6 +28,8 @@ const UiSound := preload("res://ui/ui_sound.gd")
 const Frame := preload("res://ui/world_map_frame.gd")
 const Inker := preload("res://ui/world_map_ink.gd")
 const Shaders := preload("res://ui/world_map_shaders.gd")
+const Labels := preload("res://ui/world_map_labels.gd")
+const Glyphs := preload("res://ui/world_map_glyphs.gd")
 
 const ACTION := "world_map"
 const SHEET := Rect2(-310.0, -214.0, 620.0, 524.0)   ## world xz the parchment covers: the Realm and its margins
@@ -37,7 +39,7 @@ const WASH := 4.0                                     ## biome wash grid (m)
 const FOG := 5.0                                      ## fog-of-war grid (m)
 const ZOOM_MAX := 4.6
 const PAN_SPEED := 640.0                              ## screen px per second at full stick
-const BAR_H := 52.0
+const BAR_H := 78.0
 const PICK_R := 17.0
 const INK := Color(0.19, 0.12, 0.075)
 const GOLD := Color(1.0, 0.76, 0.28)
@@ -84,6 +86,11 @@ var _use_mouse := true
 var _drag := false
 var _trig := 0.0
 var _pulse := 0.0
+var _labels: Labels
+var _art := Glyphs.new()
+var _seen: Array[String] = []             ## region ids walked, as of opening
+var _quest := -1                          ## index of the nearest task mark, or -1
+var _here := ""                           ## the name of the ground under the wanderer
 
 
 func _ready() -> void:
@@ -92,6 +99,8 @@ func _ready() -> void:
 	add_to_group(&"world_map")
 	_cinzel = load("res://ui/fonts/Cinzel.ttf")
 	_serif = load("res://ui/fonts/body_serif.ttf")
+	_labels = Labels.new(_cinzel)
+	_art.cinzel = _cinzel
 	_build()
 	_root.visible = false
 	get_viewport().size_changed.connect(_layout)
@@ -161,6 +170,7 @@ func open() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	get_tree().paused = true
 	_rebuild_fog()
+	_seen = revealed_regions()
 	_collect()
 	_layout()
 	_recentre()
@@ -264,6 +274,7 @@ func _process(delta: float) -> void:
 		close()                                  # someone lifted the pause under us
 		return
 	_pulse += delta
+	_art.pulse = _pulse
 	var v := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	if v != Vector2.ZERO:
 		_cen += v * PAN_SPEED * delta / _zoom
@@ -449,7 +460,20 @@ func _collect() -> void:
 			"quest_target": "Where your task leads", "rare": "Something rare keeps here"}[kind] as String
 		_marks.append({"at": mat, "kind": kind, "name": label if label != "" else note.capitalize(), "note": note if label != "" else ""})
 	if _you != Vector2.INF:
-		_marks.append({"at": _you, "kind": "you", "name": "You", "note": RealmLayout.region_at(_you.x, _you.y).get("name", "")})
+		_here = LoreDB.place_name(String(RealmLayout.region_at(_you.x, _you.y).get("id", "")))
+		_marks.append({"at": _you, "kind": "you", "name": "You", "note": _here})
+	_quest = -1
+	var avoid := PackedVector2Array()
+	var qd := INF
+	for i in _marks.size():
+		var mk := String(_marks[i].kind)
+		if mk != "lamp":
+			avoid.append(_marks[i].at)
+		if mk == "quest_target" and _you != Vector2.INF and _you.distance_to(_marks[i].at) < qd:
+			qd = _you.distance_to(_marks[i].at)
+			_quest = i
+	_labels.set_marks(avoid)
+	_art.facing = _facing
 
 
 func _pick_hover() -> void:
@@ -476,39 +500,111 @@ class Overlay extends Control:
 func paint(c: Control) -> void:
 	var vs := c.size
 	var edge := _area.grow(26.0)
+	_labels.layout(_zoom, _zoom_min, _seen)
+	_labels.draw(c, _zoom, _w2s, _area)
+	_guide(c)
 	for i in _marks.size():
 		var m := _marks[i]
 		if String(m.kind) == "you":
 			continue
 		var p := _w2s(m.at)
 		if edge.has_point(p):
-			_glyph(c, String(m.kind), p, i == _hover)
+			_art.glyph(c, String(m.kind), p, i == _hover)
 	for i in _marks.size():
 		if String(_marks[i].kind) == "you":
 			var p := _w2s(_marks[i].at)
-			_arrow(c, p, i == _hover)
+			_art.arrow(c, p, i == _hover)
+	if _you != Vector2.INF:
+		_pointer(c, _you, CREAM, "You")
+	if _quest >= 0:
+		_pointer(c, _marks[_quest].at, GOLD, "Task")
+	_plate(c)
 	if _hover >= 0 and _hover < _marks.size():
 		_tip(c, _w2s(_marks[_hover].at), _marks[_hover])
-	# the bar: controls and a key to the marks
+	_bar(c, vs)
+
+
+## The legend and the controls, on the dark strip at the foot.
+func _bar(c: Control, vs: Vector2) -> void:
 	var by := vs.y - BAR_H
-	c.draw_rect(Rect2(0.0, by, vs.x, BAR_H), Color(0.05, 0.036, 0.03, 0.96))
+	c.draw_rect(Rect2(0.0, by, vs.x, BAR_H), Color(0.05, 0.036, 0.03, 0.97))
 	c.draw_line(Vector2(0.0, by), Vector2(vs.x, by), Color(0.46, 0.34, 0.26), 1.5)
 	var pad := Input.get_connected_joypads().size() > 0 and not _use_mouse
 	var close_k := InputSetup.live_label(ACTION, pad, "M")
 	var txt := "Drag or stick: pan     Wheel or triggers: zoom     Space or A: find yourself     %s or Esc: close" % close_k
-	c.draw_string(_serif, Vector2(28.0, by + 33.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 21, Color(0.82, 0.75, 0.62))
-	var x := vs.x - 28.0
+	c.draw_string(_serif, Vector2(28.0, by + 65.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color(0.68, 0.61, 0.5))
 	var lamps := Lamp.tally(get_tree())
-	for it: Array in [["horse", "Horse"], ["watch", "Outpost"], ["boss", "Boss"], ["quest_target", "Task"], ["lamp", "Lamps %d of %d" % [lamps.x, lamps.y]], ["fire", "Lit fire"], ["you", "You"]]:
-		var w := _serif.get_string_size(String(it[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
-		x -= w
-		c.draw_string(_serif, Vector2(x, by + 33.0), String(it[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color(0.72, 0.65, 0.54))
-		x -= 18.0
+	var x := 28.0
+	for it: Array in [["you", "You"], ["quest_target", "Your task"], ["quest_available", "Task offered"], ["fire", "Lit fire"],
+			["lamp", "Lamps %d of %d" % [lamps.x, lamps.y]], ["boss", "Boss"], ["watch", "Outpost"], ["rare", "Rare"], ["horse", "Horse"]]:
+		var p := Vector2(x + 12.0, by + 24.0)
 		if String(it[0]) == "you":
-			_arrow(c, Vector2(x, by + 26.0), false, 0.6)
+			_art.arrow(c, p, false, 0.7)
 		else:
-			_glyph(c, String(it[0]), Vector2(x, by + 26.0), false, 0.8)
-		x -= 30.0
+			_art.glyph(c, String(it[0]), p, false, 0.85)
+		c.draw_string(_serif, Vector2(x + 30.0, by + 31.0), String(it[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(0.9, 0.84, 0.7))
+		x += 30.0 + _serif.get_string_size(String(it[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x + 26.0
+
+
+## A gilt dotted course from the wanderer to her nearest task, under the marks.
+func _guide(c: Control) -> void:
+	if _quest < 0 or _you == Vector2.INF:
+		return
+	var a := _w2s(_you)
+	var b := _w2s(_marks[_quest].at)
+	c.draw_dashed_line(a, b, Color(INK, 0.55), 5.0, 9.0, false, true)
+	c.draw_dashed_line(a, b, GOLD, 2.6, 9.0, false, true)
+
+
+## Where the wanderer or her task lie when they are off the view: a chevron on its edge, pointing there.
+func _pointer(c: Control, world: Vector2, col: Color, text: String) -> void:
+	var p := _w2s(world)
+	var box := _area.grow(-36.0)
+	if box.has_point(p):
+		return
+	var ctr := _area.get_center()
+	var d := p - ctr
+	var t := minf(box.size.x * 0.5 / maxf(absf(d.x), 0.001), box.size.y * 0.5 / maxf(absf(d.y), 0.001))
+	var q := ctr + d * t
+	var u := d.normalized()
+	var n := Vector2(-u.y, u.x)
+	var pts := PackedVector2Array([q + u * 15.0, q - u * 9.0 + n * 11.0, q - u * 9.0 - n * 11.0])
+	c.draw_colored_polygon(pts, col)
+	pts.append(pts[0])
+	c.draw_polyline(pts, INK, 2.2, true)
+	var w := _serif.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
+	var tp := (q - u * 30.0 - Vector2(w * 0.5, -6.0)).clamp(_area.position + Vector2(6.0, 20.0), _area.end - Vector2(w + 6.0, 8.0))
+	c.draw_string_outline(_serif, tp, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, 5, Color(0.05, 0.036, 0.03, 0.9))
+	c.draw_string(_serif, tp, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, col)
+
+
+## The sheet's cartouche, top left: where she stands, where her task lies, and what she has found.
+func _plate(c: Control) -> void:
+	var rows: Array[Array] = []
+	if _you != Vector2.INF:
+		rows.append(["you", _here if _here != "" else "The wilds", true])
+	if _quest >= 0:
+		var qm := _marks[_quest]
+		rows.append(["quest_target", "%s  (%d m)" % [String(qm.name), int(_you.distance_to(qm.at))] if _you != Vector2.INF else String(qm.name), false])
+	rows.append(["fire", "Places found %d of %d" % [_seen.size(), RealmLayout.REGIONS.size()], false])
+	var w := 0.0
+	for r in rows:
+		w = maxf(w, (_cinzel if r[2] else _serif).get_string_size(String(r[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x)
+	w += 62.0
+	var h := 14.0 + rows.size() * 30.0
+	var o := Vector2(16.0, 16.0)
+	c.draw_rect(Rect2(o + Vector2(3, 4), Vector2(w, h)), Color(0, 0, 0, 0.35))
+	c.draw_rect(Rect2(o, Vector2(w, h)), Color(0.9, 0.82, 0.62, 0.95))
+	c.draw_rect(Rect2(o, Vector2(w, h)), INK, false, 2.0)
+	c.draw_rect(Rect2(o + Vector2(4, 4), Vector2(w - 8, h - 8)), Color(INK, 0.5), false, 1.0)
+	for i in rows.size():
+		var r := rows[i]
+		var y := o.y + 7.0 + i * 30.0
+		if String(r[0]) == "you":
+			_art.arrow(c, Vector2(o.x + 24.0, y + 15.0), false, 0.62)
+		else:
+			_art.glyph(c, String(r[0]), Vector2(o.x + 24.0, y + 15.0), false, 0.8)
+		c.draw_string(_cinzel if r[2] else _serif, Vector2(o.x + 46.0, y + 22.0), String(r[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 19, INK)
 
 
 func _tip(c: Control, at: Vector2, m: Dictionary) -> void:
@@ -526,84 +622,6 @@ func _tip(c: Control, at: Vector2, m: Dictionary) -> void:
 	c.draw_string(_cinzel, p + Vector2(14.0, 27.0), name_s, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, INK)
 	if note != "":
 		c.draw_string(_serif, p + Vector2(14.0, 54.0), note, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.35, 0.24, 0.15))
-
-
-func _arrow(c: Control, p: Vector2, hot: bool, s := 1.0) -> void:
-	var ang := _facing.angle() + PI * 0.5
-	if s < 1.0:
-		ang = 0.0
-	var pts := PackedVector2Array()
-	for q: Vector2 in [Vector2(0, -13), Vector2(8.5, 9), Vector2(0, 4), Vector2(-8.5, 9)]:
-		pts.append(p + q.rotated(ang) * s)
-	if s >= 1.0:
-		var pr := fmod(_pulse, 1.6) / 1.6
-		c.draw_arc(p, 14.0 + pr * 14.0, 0.0, TAU, 32, Color(CREAM, (1.0 - pr) * 0.7), 2.0, true)
-	c.draw_colored_polygon(pts, CREAM)
-	var loop := pts.duplicate()
-	loop.append(pts[0])
-	c.draw_polyline(loop, INK, 2.2 * s, true)
-	if hot:
-		c.draw_arc(p, 17.0, 0.0, TAU, 28, INK, 2.0, true)
-
-
-func _glyph(c: Control, kind: String, p: Vector2, hot: bool, s := 1.0) -> void:
-	if hot:
-		c.draw_circle(p, 17.0 * s, Color(CREAM, 0.55))
-		c.draw_arc(p, 17.0 * s, 0.0, TAU, 28, INK, 1.6, true)
-	match kind:
-		"fire", "ash":
-			var lit := kind == "fire"
-			var pts := PackedVector2Array()
-			for q: Vector2 in [Vector2(0, -12), Vector2(5.5, -2), Vector2(4.5, 5), Vector2(0, 8), Vector2(-4.5, 5), Vector2(-5.5, -2), Vector2(-1.5, -5)]:
-				pts.append(p + q * s)
-			if lit:
-				c.draw_colored_polygon(pts, GOLD)
-				c.draw_colored_polygon(PackedVector2Array([p + Vector2(0, -3) * s, p + Vector2(2.6, 3) * s, p + Vector2(0, 6) * s, p + Vector2(-2.6, 3) * s]), Color(1.0, 0.93, 0.62))
-			var loop := pts.duplicate()
-			loop.append(pts[0])
-			c.draw_polyline(loop, INK if lit else Color(INK, 0.7), 2.0 * s, true)
-		"boss", "boss_down":
-			var down := kind == "boss_down"
-			var pts := PackedVector2Array()
-			for q: Vector2 in [Vector2(-8, 6), Vector2(-8, -4), Vector2(-4, 0), Vector2(0, -8), Vector2(4, 0), Vector2(8, -4), Vector2(8, 6)]:
-				pts.append(p + q * s)
-			c.draw_colored_polygon(pts, Color(0.55, 0.5, 0.45) if down else SEAL)
-			var loop := pts.duplicate()
-			loop.append(pts[0])
-			c.draw_polyline(loop, INK, 2.0 * s, true)
-			if down:
-				c.draw_line(p + Vector2(-10, 9) * s, p + Vector2(10, -9) * s, INK, 2.6 * s, true)
-		"lamp":
-			c.draw_circle(p, 4.6 * s, Color(1.0, 0.72, 0.34))
-			c.draw_circle(p, 2.0 * s, Color(1.0, 0.95, 0.74))
-			c.draw_arc(p, 4.6 * s, 0.0, TAU, 14, INK, 1.4 * s, true)
-		"watch":
-			c.draw_line(p + Vector2(-5, 9) * s, p + Vector2(-5, -10) * s, INK, 2.2 * s, true)
-			var fl := PackedVector2Array([p + Vector2(-5, -10) * s, p + Vector2(8, -6) * s, p + Vector2(-5, -1) * s])
-			c.draw_colored_polygon(fl, Color(0.3, 0.52, 0.62))
-			c.draw_polyline(PackedVector2Array([fl[0], fl[1], fl[2], fl[0]]), INK, 1.8 * s, true)
-		"horse":
-			c.draw_arc(p + Vector2(0, -1) * s, 7.0 * s, 0.0, PI, 14, Color(0.42, 0.27, 0.15), 3.6 * s, true)
-			c.draw_arc(p + Vector2(0, -1) * s, 7.0 * s, 0.0, PI, 14, INK, 1.2 * s, true)
-			c.draw_circle(p + Vector2(-6.5, -2) * s, 1.4 * s, INK)
-			c.draw_circle(p + Vector2(6.5, -2) * s, 1.4 * s, INK)
-		"quest_available", "quest_turnin":
-			c.draw_circle(p, 9.5 * s, GOLD)
-			c.draw_arc(p, 9.5 * s, 0.0, TAU, 24, INK, 2.0 * s, true)
-			c.draw_string(_cinzel, p + Vector2(-4.6, 5.8) * s, "!" if kind == "quest_available" else "?", HORIZONTAL_ALIGNMENT_LEFT, -1, int(17 * s), INK)
-		"quest_target":
-			var pr := 0.5 + 0.5 * sin(_pulse * 3.0)
-			c.draw_arc(p, (10.0 + pr * 2.5) * s, 0.0, TAU, 28, Color(GOLD, 0.95), 3.2 * s, true)
-			c.draw_arc(p, (10.0 + pr * 2.5) * s + 2.0, 0.0, TAU, 28, INK, 1.2 * s, true)
-			c.draw_circle(p, 3.2 * s, GOLD)
-		"rare":
-			var st := PackedVector2Array()
-			for k in 8:
-				var a := PI * 0.25 * k - PI * 0.5
-				st.append(p + Vector2(cos(a), sin(a)) * (10.0 if k % 2 == 0 else 3.6) * s)
-			c.draw_colored_polygon(st, Color(0.82, 0.88, 1.0))
-			st.append(st[0])
-			c.draw_polyline(st, INK, 1.8 * s, true)
 
 
 # --- baking the sheet -----------------------------------------------------------------------------

@@ -15,9 +15,6 @@ const HALO := Color(0.88, 0.8, 0.62, 0.8)
 func _w(p: Vector2) -> Vector2:
 	return (p - O) * K
 
-func _area(r: Dictionary) -> float:
-	return (r.rect as Rect2).get_area() if r.has("rect") else PI * float(r.r) * float(r.r)
-
 func _hash(x: float, z: float) -> float:
 	return fposmod(sin(x * 127.1 + z * 311.7) * 43758.5453, 1.0)
 
@@ -270,13 +267,16 @@ func _places() -> void:
 	for rr: float in [16.0, 25.0]:
 		_dashed_arc(sc, rr * K, 4.0, 4.0)
 	_tower(_w(Vector2(-236.0, 170.0)), 1.0)
-	# the salt pans and a derrick
+	# the salt pans (evaporation beds: a pale wash, ruled) and a derrick beside them
 	for ix in 3:
 		for iz in 2:
 			var pr := Rect2(_w(Vector2(212.0 + ix * 14.0, 156.0 + iz * 11.0)), Vector2(11.0, 8.0) * K * 0.9)
-			draw_rect(pr, Color(0.96, 0.95, 0.9, 0.9))
-			draw_rect(pr, INK, false, 1.4)
-	var dp := _w(Vector2(246.0, 162.0))
+			draw_rect(pr, Color(0.86, 0.82, 0.68, 0.4))
+			for ry in 3:
+				var yy := pr.position.y + pr.size.y * (ry + 1) / 4.0
+				draw_line(Vector2(pr.position.x + 2.0, yy), Vector2(pr.end.x - 2.0, yy), Color(INK, 0.4), 1.0)
+			draw_rect(pr, Color(INK, 0.9), false, 1.6)
+	var dp := _w(Vector2(254.0, 148.0))
 	draw_polyline(PackedVector2Array([dp + Vector2(-6, 9), dp + Vector2(0, -12), dp + Vector2(6, 9)]), INK, 1.6, true)
 	draw_line(dp + Vector2(-3, 0), dp + Vector2(3, 0), INK, 1.2, true)
 	# the Anchorites' cells in the cliff face
@@ -308,69 +308,8 @@ func _letter(font: Font, s: String, c: Vector2, size: int, col: Color, spacing: 
 		draw_string(font, p + Vector2(0.9, 0.0), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
 		x += font.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + spacing
 
-func _split(name_s: String) -> PackedStringArray:
-	var words := name_s.split(" ")
-	if name_s.length() <= 18 or words.size() < 3:
-		return PackedStringArray([name_s])
-	var best := 1
-	var gap := 999
-	for i in range(1, words.size()):
-		var a := " ".join(words.slice(0, i)).length()
-		var b := " ".join(words.slice(i)).length()
-		if absi(a - b) < gap:
-			gap = absi(a - b)
-			best = i
-	return PackedStringArray([" ".join(words.slice(0, best)), " ".join(words.slice(best))])
-
+## Region names are lettered live by ui/world_map_labels.gd; only the marginal ones are inked here.
 func _letters() -> void:
-	var regs: Array = RealmLayout.REGIONS.duplicate()
-	regs.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _area(a) > _area(b))
-	var taken: Array[Rect2] = []
-	for r: Dictionary in regs:
-		var id := String(r.id)
-		var nm := String((data.names as Dictionary).get(id, r.name)).to_upper()
-		var area := _area(r)
-		var size := 20
-		if area > 30000.0:
-			size = 40
-		elif area > 9000.0:
-			size = 30
-		elif area > 2500.0:
-			size = 24
-		var spacing := size * (0.2 if size >= 30 else 0.1)
-		var c: Vector2 = (r.rect as Rect2).get_center() if r.has("rect") else r.c
-		var tall := r.has("rect") and (r.rect as Rect2).size.y > 2.3 * (r.rect as Rect2).size.x
-		var lines := PackedStringArray([nm]) if tall else _split(nm)
-		var lh := size * 1.25
-		var wmax := 0.0
-		for ln in lines:
-			wmax = maxf(wmax, _width(cinzel, ln, size, spacing))
-		var dims := Vector2(wmax, lh * lines.size())
-		if tall:
-			dims = Vector2(dims.y, dims.x)
-		var done := false
-		for off: float in [0.0, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0]:
-			var ctr := _w(c) + Vector2(0.0, off * (dims.y + 6.0))
-			var nl := Rect2(_w(RealmLayout.BOUNDS.position), RealmLayout.BOUNDS.size * K).grow(-8.0)
-			ctr = ctr.clamp(nl.position + dims * 0.5, nl.end - dims * 0.5)
-			var box := Rect2(ctr - dims * 0.5, dims)
-			var hit := false
-			for o in taken:
-				hit = hit or o.intersects(box.grow(4.0))
-			if hit:
-				continue
-			taken.append(box)
-			if tall:
-				draw_set_transform(ctr, -PI * 0.5, Vector2.ONE)
-				_letter(cinzel, lines[0], Vector2.ZERO, size, INK, spacing)
-				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-			else:
-				for li in lines.size():
-					_letter(cinzel, lines[li], ctr + Vector2(0.0, (li - (lines.size() - 1) * 0.5) * lh), size, INK, spacing)
-			done = true
-			break
-		if not done:
-			continue
 	# a few marginal names in the book hand
 	_along(Vector2(-231.0, 97.0), Vector2(-224.0, 87.0), "the Sorrow")
 	_along(Vector2(-155.0, 170.0), Vector2(-155.0, 120.0), "the March Wall")

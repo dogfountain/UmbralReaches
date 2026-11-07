@@ -38,6 +38,7 @@ const KINDS := {
 	&"quiet": {"lane": &"toast", "pri": 0},
 }
 const UIType := preload("res://ui/type.gd")
+const Stamina := preload("res://core/player/stamina.gd")
 
 var enabled_fight_gate := true         ## tests switch the locked-on rule off
 var _clock := 0.0
@@ -47,7 +48,7 @@ var banner_log: Array[float] = []      ## tests: the clock at every discovery ba
 var _toast_q: Array[Dictionary] = []   ## {"text", "kind"}
 var _lesson_q: Array[String] = []
 var _lesson_basic: Array[String] = []      ## the queued or showing lessons that teach controls: they step aside in a fight
-const TIP_UP := 232.0                      ## the lesson line rides just over the skill bar, not mid-screen
+const TIP_UP := 282.0                      ## the lesson line rides over the interact prompt (its own lane), not on it
 var _toasts: Array[Label] = []
 var _toast_box: VBoxContainer
 var _tip: Label
@@ -56,6 +57,7 @@ var _tip_cool := 0.0
 var _root: Control
 var _dialogue_open := false            ## a stand-in tests (and a poll of the dialogue box) set
 var _locked := false
+var _engaged := false                  ## a foe is awake and near (the stamina watch): place banners wait it out
 var _poll := 0.0
 var _emote_seen := ""
 
@@ -111,7 +113,7 @@ func lane_rect(lane: StringName) -> Rect2:
 		&"banner":
 			return Rect2(v.x * 0.5 - 550.0, 112.0, 1100.0, 300.0)
 		&"sub":
-			return Rect2(v.x * 0.5 - 480.0, v.y - 336.0, 960.0, 106.0)
+			return Rect2(v.x * 0.5 - 480.0, v.y - 430.0, 960.0, 160.0)
 		&"toast":
 			return Rect2(28.0, v.y - 330.0, 280.0, 200.0)
 		&"objective":
@@ -145,6 +147,11 @@ func narration_or_dialogue() -> bool:
 	return _occ.has(&"narration") or _dialogue_open
 
 
+## A fight is on (a foe awake and near, or a lock-on): place banners wait until it ends.
+func in_combat() -> bool:
+	return enabled_fight_gate and (_engaged or _locked)
+
+
 func in_fight() -> bool:
 	return enabled_fight_gate and _locked
 
@@ -159,6 +166,8 @@ func can_begin(kind: StringName) -> bool:
 		return false
 	if in_fight() and not kind in [&"boss_emote", &"lesson", &"narration"]:
 		return false
+	if kind == &"discovery" and in_combat():
+		return false                                     # the carved banner waits for the fight to end
 	if lane == &"sub" and _tip_cool > 0.0 and kind != &"lesson":
 		return false                                     # the last lesson is still fading out
 	for k: StringName in _occ:
@@ -251,7 +260,7 @@ func build(root: Control, title_font: Font) -> void:
 	_tip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_tip.offset_left = -480
 	_tip.offset_right = 480
-	_tip.offset_top = -TIP_UP
+	_tip.offset_top = -TIP_UP - 94.0                 # three lines tall, text sits on the bottom edge: it grows upward, never onto the prompt
 	_tip.offset_bottom = -TIP_UP + 36
 	_tip.modulate.a = 0.0
 	_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -349,6 +358,9 @@ func _poll_world() -> void:
 	_dialogue_open = dlg != null and dlg.has_method("is_open") and bool(dlg.call("is_open"))
 	var p := tree.get_first_node_in_group(Groups.PLAYER)
 	_locked = p != null and p.has_method("lock_target") and p.call("lock_target") != null
+	var pl := p as Player
+	var st := pl.stamina() as Stamina if pl != null else null
+	_engaged = st != null and st.in_fight()
 	# a boss's emote is drawn by its arena; seeing it, the director records it so lower lines wait
 	for a in tree.get_nodes_in_group(&"boss_arena"):
 		var e: Variant = a.get("last_emote")
@@ -417,7 +429,7 @@ func _lesson_bumped() -> void:
 
 func _tip_rect() -> Rect2:
 	var v := _vs()
-	return Rect2(v.x * 0.5 - 480.0, v.y - TIP_UP, 960.0, 36.0)
+	return Rect2(v.x * 0.5 - 480.0, v.y - TIP_UP - 94.0, 960.0, 130.0)
 
 
 ## True while a lesson is on screen or waiting (tests).
