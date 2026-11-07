@@ -80,7 +80,7 @@ static func warm(host: Node, stage := -1, boss := &"") -> void:
 		return
 	Vfx.burst(at, BONE, {"count": 4, "life": 0.3, "speed": Vector2(0.1, 0.2), "size": 0.01, "gravity": -6.0, "ring": 0.02})
 	Vfx.burst(at, Color(0.08, 0.06, 0.06, 0.8), {"count": 4, "life": 0.3, "speed": Vector2(0.1, 0.2), "size": 0.01, "gravity": 0.6, "radius": 0.02, "additive": false, "turbulence": true})
-	Vfx.light(at, Color(0.1, 0.1, 0.1), 0.01, 1.0, 0.1)
+	Vfx.light(at, Color(0.1, 0.1, 0.1), 0.01, 1.0, 0.1, 0)
 
 
 ## Build a throwaway copy of the boss as a speck in front of the camera so its rig, meshes and
@@ -222,7 +222,7 @@ static func _land(host: Node, at: Vector3, opts: Dictionary, col: Color) -> void
 	if rect == Vector2.ZERO:
 		Vfx.burst(at + Vector3.UP * 0.3, col, {"count": 40, "life": 0.6, "speed": Vector2(2.0, 6.0), "size": 0.06, "gravity": -6.0, "ring": r})
 		Vfx.ring(at + Vector3.UP * 0.1, r, col, 0.35, 0.1, Vector3.UP, 1.2)
-	Vfx.light(centre + Vector3.UP, Color(col.r * 0.35, col.g * 0.35, col.b * 0.35), 3.0, span + 2.0, 0.3)
+	Vfx.light(centre + Vector3.UP, col, 3.0, span + 2.0, 0.3, 2)
 	Vfx.burst(centre + Vector3.UP * 0.2, Color(0.08, 0.06, 0.06, 0.8), {"count": 16, "life": 1.0, "speed": Vector2(0.5, 2.0), "size": 0.45, "gravity": 0.6, "radius": span * 0.5, "additive": false, "turbulence": true})
 
 
@@ -535,7 +535,7 @@ static func roar(e: Enemy, line: String, col: Color) -> void:
 	Vfx.ring(at + Vector3.UP * 0.15, 9.0, col, 0.9, 0.06, Vector3.UP, 1.4)
 	SpellFx.shell(at + Vector3.UP * e.hp_bar_y * 0.5, 0.5, 5.0, Color(col.r * 0.5, col.g * 0.5, col.b * 0.5), 0.5)
 	Vfx.burst(at + Vector3.UP * e.hp_bar_y * 0.6, col, {"count": 60, "life": 0.9, "speed": Vector2(3.0, 9.0), "size": 0.06, "gravity": -2.0, "trail": 0.1})
-	Vfx.light(at + Vector3.UP * 2.0, Color(col.r * 0.4, col.g * 0.4, col.b * 0.4), 5.0, 14.0, 0.8)
+	Vfx.light(at + Vector3.UP * 2.0, col, 5.0, 14.0, 0.8, 2)
 	var p := e.get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 	if p:
 		p.kick(1.0)
@@ -688,7 +688,7 @@ static func lee_marks(from: Vector3, shields: Array, life: float, col := Color(1
 		Vfx.ring(spot + Vector3.UP * 0.08, 1.4, col, life, 0.22, Vector3.UP, 4.0)
 		Vfx.ring(spot + Vector3.UP * 0.1, 0.6, col, life, 0.12, Vector3.UP, 3.0)
 		# a pool of cool light on the floor: at night a column alone read as nothing on a dark deck
-		Vfx.light(spot + Vector3.UP * 1.0, col, 6.0, 5.5, life)
+		Vfx.light(spot + Vector3.UP * 1.0, col, 6.0, 5.5, life, 2)
 
 
 ## Move the player along `dir` (flat) at `speed` m/s this frame, colliding with the world.

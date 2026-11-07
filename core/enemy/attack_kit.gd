@@ -103,7 +103,7 @@ static func _land(at: Vector3, opts: Dictionary, col: Color) -> void:
 		_:
 			Sfx.play_stream(Synth.get_stream("stagger"), centre, -2.0, 0.9)
 			Vfx.burst(centre + Vector3.UP * 0.3, col, {"count": 24, "life": 0.45, "speed": Vector2(2.0, 5.0), "size": 0.05, "gravity": -6.0, "ring": span * 0.8})
-	Vfx.light(centre + Vector3.UP, Color(col.r * 0.3, col.g * 0.3, col.b * 0.3), 2.2, span + 2.0, 0.25)
+	Vfx.light(centre + Vector3.UP, col, 2.2, span + 2.0, 0.25, 2)
 
 
 ## A pool that stays: the full zone shows for `life` seconds and fills `gloom` every `every`
@@ -152,6 +152,7 @@ static func lob(from: Vector3, to: Vector3, time: float, col: Color) -> void:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	host.add_child(mi)
 	mi.global_position = from
+	Vfx.carry(mi, col, 0.9, 3.0)            # the glob lights the ground it crosses, in its own colour
 	var apex := maxf(from.y, to.y) + 1.6 + from.distance_to(to) * 0.12
 	var tw := mi.create_tween()
 	tw.tween_method(func(k: float) -> void:

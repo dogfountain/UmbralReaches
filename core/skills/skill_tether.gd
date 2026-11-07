@@ -168,7 +168,7 @@ func _arrive(p: Player, e: Node3D, r: int, had: int, power: float) -> void:
 		SpellFx.disc(at, REEL_R, 0, Color(0.4, 1.8, 1.6), Chain.TEAL_HOT, 0.5)
 		SpellFx.shell(at + Vector3.UP, 0.3, REEL_R, Color(0.4, 1.6, 1.5), 0.3)
 		Vfx.burst(at + Vector3.UP, Chain.TEAL_HOT, {"count": 40, "life": 0.45, "speed": Vector2(3.0, 7.0), "size": 0.05, "gravity": -4.0, "trail": 0.08})
-		Vfx.light(at + Vector3.UP, Color(0.3, 1.0, 0.9), 4.0, REEL_R * 2.5, 0.3)
+		Vfx.light(at + Vector3.UP, Color(0.4, 1.8, 1.6), 4.0, REEL_R * 2.5, 0.3, 2)
 		StaffSfx.play("nova", at, -6.0, 1.35)
 		Combo.note("REEL", at + Vector3.UP * (float(e.get("hp_bar_y")) if e.get("hp_bar_y") != null else 2.0), Color(0.45, 1.0, 0.9), "%d Marks" % m)
 

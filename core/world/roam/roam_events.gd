@@ -104,7 +104,7 @@ func start(k: String) -> bool:
 			_need = 6
 			_spawn_t = 0.5
 			Events.toast.emit("Something tears, out in the dark.")
-			Vfx.light(_at + Vector3.UP * 1.5, Color(0.7, 0.4, 1.0), 6.0, 14.0, 1.2)
+			Vfx.light(_at + Vector3.UP * 1.5, SpellFx.VIOLET, 6.0, 14.0, 1.2, 2)
 		"pilgrim":
 			_pilgrim()
 	_make_pin(k)

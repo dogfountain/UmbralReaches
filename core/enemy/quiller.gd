@@ -25,6 +25,7 @@ static var _mat: ShaderMaterial
 func _init() -> void:
 	super._init()
 	max_hp = 2
+	glow_col = Color(2.2, 1.8, 1.2)
 	hp = 2.0
 	walk_speed = 3.0
 	chase_range = 18.0
@@ -158,6 +159,9 @@ func _loose(from: Vector3, yaw: float) -> void:
 	var pts := PackedVector3Array()
 	for i in 6:
 		pts.append(a.lerp(b, float(i) / 5.0))
-	Vfx.ribbon(pts, 0.05, 0.01, Color(2.2, 1.9, 1.5, 0.9), 0.22)
+	var shard := Color(2.2, 1.9, 1.5, 0.9)
+	Vfx.ribbon(pts, 0.05, 0.01, shard, 0.22)
+	Vfx.light(a, shard, 1.4, 4.0, 0.22)                           # the shard lights the lane as it flies
+	Vfx.light(a.lerp(b, 0.5), shard, 1.0, 5.0, 0.22)
 	Sfx.play_stream(Synth.get_stream("bone"), from + Vector3.UP * 1.4, -2.0, 1.6)
 	Vfx.burst(b, Color(0.85, 0.78, 0.66), {"count": 14, "life": 0.5, "speed": Vector2(1.0, 3.0), "size": 0.04, "gravity": -9.0, "additive": false})

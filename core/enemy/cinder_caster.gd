@@ -22,6 +22,7 @@ static var _slag_parts: Dictionary = {}
 func _init() -> void:
 	super._init()
 	max_hp = 3
+	glow_col = EMBER
 	hp = 3.0
 	walk_speed = 2.5
 	kite_min = 7.0

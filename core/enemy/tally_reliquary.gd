@@ -19,6 +19,7 @@ static var _core_mat: StandardMaterial3D
 
 func _init() -> void:
 	max_hp = 7
+	glow_col = Color(2.2, 1.8, 1.2)
 	hp = 7.0
 	walk_speed = 0.0
 	chase_range = 0.0
