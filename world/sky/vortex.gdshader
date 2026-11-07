@@ -68,7 +68,13 @@ void sky() {
         // sides and the far land, and the ground half bounces a dim blue-green instead of abyss blue
         float below = smoothstep(0.0, -0.45, EYEDIR.y);
         col = mix(col, vec3(0.045, 0.07, 0.095), below * 0.75);
-        col += vec3(0.07, 0.11, 0.17) * pow(1.0 - abs(EYEDIR.y), 5.0);
+        // the band follows the moon: silver-lilac on its side, a deeper teal-blue away from it, so the far land
+        // (fog takes this radiance) goes warm-pale toward the moon and cool-dark the other way; same mean light
+        vec2 hd = normalize(EYEDIR.xz + vec2(1e-4));
+        vec2 mh = normalize(moon_dir.xz + vec2(1e-4));
+        float toward = dot(hd, mh) * 0.5 + 0.5;
+        vec3 band = mix(vec3(0.052, 0.098, 0.168), vec3(0.108, 0.122, 0.178), toward);
+        col += band * pow(1.0 - abs(EYEDIR.y), 5.0);
         COLOR = col;
     } else if (AT_HALF_RES_PASS) {
         vec3 col = vortex(EYEDIR);
