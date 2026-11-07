@@ -22,6 +22,7 @@ const HOP_H := 0.6                   ## apex of a standing hop (m)
 const LEAP_H := 1.2                  ## apex of a gallop leap (m)
 const GATHER_T := 0.11               ## the crouch before the push-off
 const JUMP_CD := 0.35                ## after a landing
+const SINK := 0.075                  ## the pelvis sits this far into the saddle (the barrel and stirrups rise by as much in the rider's frame)
 const JUMP_BUFFER := 0.2             ## a press just before landing still leaps
 const AIR_MAX := 2.5                 ## s: a leap that never finds ground is set down where it began
 
@@ -289,7 +290,7 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	var s_air := clampf(_vy / 7.0, -1.0, 1.0)
 	var lean_want := 0.0
 	if _air:
-		lean_want = 0.34 * maxf(s_air, 0.0) + 0.1 * (1.0 - absf(s_air)) - 0.12 * maxf(-s_air, 0.0)
+		lean_want = 0.55 * maxf(s_air, 0.0) + 0.35 * (1.0 - absf(s_air)) - 0.05 * maxf(-s_air, 0.0)
 	elif _gather > 0.0:
 		lean_want = 0.12
 	elif _land > 0.0:
@@ -307,7 +308,7 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	# the pelvis on the saddle's seat (the seat's top is `seat` above the horse's origin; the rig's
 	# pelvis stands 0.955 above its feet), a hand's width behind the pommel
 	_ride_follow(dt, fwd)
-	var seat := global_position + Vector3.UP * (float(_d.seat) - CharacterRig.H_PELVIS + 0.02 + _rs.x) + fwd * (0.04 * _scale())
+	var seat := global_position + Vector3.UP * (float(_d.seat) - CharacterRig.H_PELVIS + 0.02 - SINK + _rs.x) + fwd * (0.04 * _scale())
 	var vis := p.get_node_or_null("Visual") as Node3D
 	if _mount_t < MOUNT_T:
 		# r36: getting on, from the near (left) side: a step to the stirrup, the left foot in it and a
@@ -342,7 +343,7 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	if vis and "saddle" in vis:
 		# the barrel under the rider, in the coat's space (origin at the pelvis): its half width, its
 		# centre below the seat, its half length
-		vis.set("saddle", Vector3(float(_d.bw) * 1.05, float(_d.bc) - float(_d.seat) - 0.02, float(_d.bl) * 1.05))
+		vis.set("saddle", Vector3(float(_d.bw) * 1.05, float(_d.bc) - float(_d.seat) - 0.02 + SINK, float(_d.bl) * 1.05))
 	if vis and "ride_lean" in vis:
 		vis.set("ride_lean", _rs.y)
 	if vis and "ride_roll" in vis:
@@ -365,8 +366,8 @@ func _ride_follow(dt: float, _fwd: Vector3) -> void:
 	var k := clampf(speed / float(_d.gallop), 0.0, 1.0)
 	var acc := clampf(_accel.x / 6.0, -1.0, 1.0)
 	var t := Vector3.ZERO
-	t.x = _rig.last_dy * 0.6 + trot_w * 0.03 * (1.0 + sin(_phase + 0.3)) + (0.07 if _air else 0.0)
-	t.y = _lean + 0.16 * smoothstep(0.3, 1.0, k) - _rig.body_pitch * 0.8 - acc * 0.07
+	t.x = _rig.last_dy * 0.6 + trot_w * 0.03 * (1.0 + sin(_phase + 0.3)) + (0.12 if _air else 0.0)
+	t.y = _lean + 0.1 * smoothstep(0.35, 0.65, k) + 0.28 * smoothstep(0.6, 1.0, k) + 0.1 * _rig.rock - _rig.body_pitch * (0.2 if _air else 0.7) - acc * 0.07
 	t.z = -_rig.body_roll * 0.9
 	_rv += ((t - _rs) * Vector3(150.0, 45.0, 60.0) - _rv * Vector3(18.0, 7.0, 8.0)) * d
 	_rs += _rv * d

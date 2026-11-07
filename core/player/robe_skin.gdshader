@@ -159,10 +159,10 @@ void vertex() {
 	if (saddle.w > 0.001) {
 		// seated, the skirt is drawn up and spread: what hangs below the barrel's middle is shortened
 		// (more toward the hem) and flared over the horse's flanks, not left hanging down past its belly
-		float mid = saddle.y - saddle.z * 0.1;
+		float mid = saddle.y + saddle.z * 0.25;
 		float below = max(mid - Q.y, 0.0);
-		float gather = saddle.w * leg_push * w2;
-		Q.y += below * 0.62 * gather;
+		float gather = saddle.w * leg_push * smoothstep(0.1, 0.7, w);
+		Q.y += below * 0.78 * gather;
 		Q.x *= 1.0 + 0.5 * gather * smoothstep(0.0, 0.5, below);
 		vec2 e = vec2(Q.x / saddle.x, (Q.y - saddle.y) / saddle.z);
 		float d = length(e);
