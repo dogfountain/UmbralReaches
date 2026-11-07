@@ -59,5 +59,6 @@ static func rats(dir: Node3D, space: PhysicsDirectSpaceState3D, add_group: Calla
 			continue
 		var g := Beasts.new()
 		g.name = "Rats_" + String(e[0])
+		g.floor_y = fy                       # unset, a fleeing rat's height read NAN
 		g.setup("rat", spots, SEED + hash(String(e[0])) % 1000)
 		add_group.call(g)

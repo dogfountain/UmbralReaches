@@ -403,7 +403,7 @@ func _goal(p: Vector3, dir: Vector3, dist: float) -> Vector3:
 
 
 func _ok(x: float, z: float) -> bool:
-	if kind == "rat":
+	if kind == "rat" and not is_nan(floor_y):
 		if space == null:
 			return true
 		var y := LifePlace.floor_below(space, x, floor_y + 1.2, z, 3.0)
@@ -416,7 +416,7 @@ func _ok(x: float, z: float) -> bool:
 ## The floor under (x, z): probed from `reach` above `fallback`. Running, that is a body's step-up:
 ## probed from 6 m, a deer passing a boulder or a wall took its top for the ground and leapt 5 m.
 func _ground(x: float, z: float, fallback: float, reach := 6.0) -> float:
-	if kind == "rat":
+	if kind == "rat" and not is_nan(floor_y):
 		return floor_y
 	if space != null:
 		var y := LifePlace.floor_below(space, x, fallback + reach, z, reach + 8.0)
