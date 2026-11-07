@@ -152,7 +152,7 @@ func _lob() -> void:
 ## The shard's flight down the lane (visual and sound: the zone already decided the hit).
 func _loose(from: Vector3, yaw: float) -> void:
 	var dir := Basis(Vector3.UP, yaw) * Vector3.FORWARD
-	var a := from + Vector3.UP * 1.4
+	var a := from + dir * 0.4 + Vector3.UP * 1.4          # out in front of the chest, not from behind it
 	var b := from + dir * LANE_LEN + Vector3.UP * 1.1
 	var pts := PackedVector3Array()
 	for i in 6:
