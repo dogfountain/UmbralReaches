@@ -45,7 +45,7 @@ func _path(id: String) -> Array:
 
 
 func _build_routes() -> void:
-	var henge: Array[Vector3] = _pts(_path("west_way").slice(0, 4))
+	var henge: Array[Vector3] = _pts(_path("west_way").slice(0, 5))     # through the axis point, between the foot's pinnacles
 	henge.append(Vector3(RealmLayout.HENGE_STAIR_FOOT.x, 0, RealmLayout.HENGE_STAIR_FOOT.y))
 	for v: Vector3 in ThornHenge.stair_pts:
 		henge.append(v)

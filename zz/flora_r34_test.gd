@@ -27,8 +27,9 @@ const MIN_OPEN := 400.0                   ## m2 of open ground below which a reg
 const SIGN := {
 	"quarry": [["rubble", 40], ["block", 5], ["scaffold", 2]],
 	"holds": [["heather", 30]],
-	# (foundry deadbush 8: the Crowns-foot link crosses the pits' south edge and keeps its brush off the track)
-	"foundry": [["slag", 20], ["deadbush", 8], ["cinders", 4], ["ashdrift", 20]],
+	# (foundry deadbush 7: the Crowns-foot link crosses the pits' south edge and keeps its brush off the track; 8 until
+	# west_way's last turn onto the henge stair reshuffled the scatter's draws)
+	"foundry": [["slag", 20], ["deadbush", 7], ["cinders", 4], ["ashdrift", 20]],
 	"moor": [["windtree", 6], ["gorse", 20], ["cairn", 2], ["heather", 800]],
 	"orchard": [["fruit", 40], ["ashdrift", 200], ["cinders", 5]],
 	"necropolis": [["cypress", 6], ["headstone", 1], ["yew", 2], ["tallgrass", 400]],

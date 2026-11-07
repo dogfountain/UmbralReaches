@@ -278,7 +278,9 @@ const SLOTS := {
 ## crosses the Hollow Fen to the moor: every line tried there moved the fen's dressed places -- the
 ## belfry, the drowned graves, the barrow stones. The moor and the Pits are reached from the road.)
 const BASE_PATHS := [
-	{"id": "west_way", "w": 1.8, "pts": [Vector2(-4, 30), Vector2(-20, 24), Vector2(-38, 10), Vector2(-46, -2), Vector2(-50, -10)]},
+	# west_way's last turn meets the henge stair on its own axis, 2.5 m out (thorn_henge.gd's lane): a straight run to the
+	# foot passed 0.3 m from the north pinnacle and walked into it
+	{"id": "west_way", "w": 1.8, "pts": [Vector2(-4, 30), Vector2(-20, 24), Vector2(-38, 10), Vector2(-46, -2), Vector2(-47.6, -10.8), Vector2(-50, -10)]},
 	{"id": "east_way", "w": 1.8, "pts": [Vector2(26, 22), Vector2(42, 10), Vector2(58, -12), Vector2(72, -34), Vector2(78, -42)]},
 	{"id": "fen_descent", "w": 1.6, "pts": [Vector2(78, -42), Vector2(62, -56), Vector2(44, -62), Vector2(34, -66)]},
 	{"id": "road", "w": 2.2, "pts": [Vector2(-255, 62), Vector2(-232, 64), Vector2(-205, 66), Vector2(-180, 66), Vector2(-150, 67), Vector2(-104, 64), Vector2(-72, 60), Vector2(-40, 58), Vector2(-6, 54), Vector2(2, 44), Vector2(40, 60), Vector2(104, 66), Vector2(150, 68), Vector2(180, 70), Vector2(212, 74), Vector2(240, 72), Vector2(255, 70)]},

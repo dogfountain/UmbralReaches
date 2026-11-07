@@ -21,6 +21,13 @@ static var STAIR_R := R
 static var realm := false
 ## The built stair, for walk tests: [foot, landing start, landing end, head, inside the gate].
 static var stair_pts: Array[Vector3] = []
+## The Realm stair's head direction from the henge's middle: what _realm_head_dir's search chose over the hill, held so a
+## change to the ground near the foot (west_way's last turn onto the stair axis) cannot swing the flight, its landing
+## fire and the guard camps placed round them. Re-run the search and update this if the hill itself is reshaped.
+const REALM_HEAD_DIR := Vector2(0.825067, 0.565035)
+## The Realm stair foot's height, held the same way: the lowest ground round the foot, less 0.12, as the hill stood
+## before west_way's last turn; the turn's levelled shoulder lifted that reading 0.45 m and left the first riser a metre.
+const REALM_FOOT_Y := 5.005622
 
 
 static func use_realm() -> void:
@@ -69,7 +76,8 @@ func _build(root: Node) -> void:
 		fg = minf(fg, _ground(space, FOOT.x + o.x, FOOT.y + o.y))
 	var foot := Vector3(FOOT.x, fg - 0.12, FOOT.y)
 	if realm:
-		to_foot = _realm_head_dir(space, foot)                         # the head swings round the hill
+		foot.y = REALM_FOOT_Y                                            # (see the const)
+		to_foot = REALM_HEAD_DIR                                         # the head swings round the hill (see the const)
 	var gate2 := Vector2(C.x, C.z) + to_foot * (STAIR_R if realm else R)   # stair head on the terrace (raid floor) edge
 	var head := Vector3(gate2.x, C.y, gate2.y)
 	var dir3 := Vector3(foot.x - head.x, 0, foot.z - head.z).normalized() if realm else Vector3(to_foot.x, 0, to_foot.y)   # downhill along the flight
@@ -107,7 +115,7 @@ func _build(root: Node) -> void:
 		for pth: Dictionary in RealmLayout.PATHS:
 			if pth.id == "west_way":
 				ww = pth.pts
-		var bend: Vector2 = ww[ww.size() - 2] if ww.size() >= 2 else Vector2(-52.0, -2.0)
+		var bend: Vector2 = ww[ww.size() - 3] if ww.size() >= 3 else Vector2(-52.0, -2.0)     # the bend before the axis point
 		# the lane meets the flight on its own axis, 2.5 m out (the foot's pinnacles stand either side)
 		var axis := Vector2(foot.x + dir3.x * 2.5, foot.z + dir3.z * 2.5)
 		WorldLanes.register_lane("henge_way", [bend, axis], 1.2)
@@ -235,7 +243,9 @@ func _build(root: Node) -> void:
 	hm.material_override = bm
 	add_child(hm)
 	var rest := land_c + side * 3.4
-	if realm and _ground(space, land_c.x - side.x * 3.4, land_c.z - side.z * 3.4) < _ground(space, rest.x, rest.z):
+	# the Realm's rest stays on the side it was laid on (north, away from the guard camps below the stair): a ground
+	# comparison here flipped with west_way's last turn and stood the fire 7 m from a camp
+	if not realm and _ground(space, land_c.x - side.x * 3.4, land_c.z - side.z * 3.4) < _ground(space, rest.x, rest.z):
 		rest = land_c - side * 3.4                                     # the rest on the downhill side
 	k.block("stone", rest + Vector3(-1.3, flight_min - 0.6 - rest.y, -1.3), rest + Vector3(1.3, 0.0, 1.3), true, 0.9)
 	k.commit(self, "HengeBody")
