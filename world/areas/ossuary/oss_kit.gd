@@ -191,6 +191,8 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 
 
 const BEVEL := 0.03
+var candle_lights := true   ## commit() puts a small warm light at each cluster of candles (a few metres apart, at most 28), so a crypt's candles light the stone round them
+var _cluster_pts: Array[Vector3] = []
 var under_shade := 0.6      ## vertex shade of a downward face (a room whose ceiling should take its hearth lifts it)
 const AO_FLOOR := 0.56      ## vertex shade at a face's foot
 const AO_RISE := 0.75       ## metres over which contact AO fades out
@@ -506,6 +508,8 @@ func candle_cluster(at: Vector3, n: int, spread := 0.25, rng: RandomNumberGenera
 		var yaw := rng.randf() * TAU if rng else 0.0
 		(candles[v] as Array).append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc * (rng.randf_range(0.8, 1.25) if rng else 1.0), sc)), p))
 		placed += 1
+	if placed >= 2:
+		_cluster_pts.append(at + Vector3(0, 0.3, 0))
 	if placed >= 3:
 		puddles.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU if rng else 0.0).scaled(Vector3(spread * 0.8 + 0.06, 1.0, spread * 0.7 + 0.05)), at))
 
@@ -764,4 +768,38 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 			_halo_mesh.size = Vector2(0.55, 0.55)
 		add.call("Flames", _flame_mesh, tips, mat("flame"), 55.0)    # the wax range: no flame floats over a candle that has faded
 		add.call("Halos", _halo_mesh, tips, mat("halo"), 55.0)
+	if candle_lights:
+		_light_clusters(parent)
 	return draws + int(counter[0])
+
+
+## One unshadowed warm light per few clustered candles (fade past 14 m): the wax lights the walls and the floor round it.
+func _light_clusters(parent: Node3D) -> void:
+	var kept: Array[Vector3] = []
+	for p: Vector3 in _cluster_pts:
+		if kept.size() >= 28:
+			break
+		var near := false
+		for q: Vector3 in kept:
+			if q.distance_squared_to(p) < 5.0:
+				near = true
+				break
+		if near:
+			continue
+		kept.append(p)
+		var l := OmniLight3D.new()
+		l.name = "CandleLight"
+		l.light_color = Color(1.0, 0.72, 0.38)
+		l.light_energy = 1.0
+		l.omni_range = 4.6
+		l.omni_attenuation = 1.4
+		l.light_specular = 0.3
+		l.light_volumetric_fog_energy = 0.0
+		l.shadow_enabled = false
+		l.distance_fade_enabled = true
+		l.distance_fade_begin = 14.0
+		l.distance_fade_length = 5.0
+		l.set_meta(&"light_class", &"lamp")
+		l.set_meta(&"base", {"e": 1.0, "r": 4.6, "a": 1.4})
+		parent.add_child(l)
+		l.position = p

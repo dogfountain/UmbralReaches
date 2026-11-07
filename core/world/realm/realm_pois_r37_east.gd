@@ -296,6 +296,9 @@ static func _spire(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary
 		FarDetail.register(host, far_m, xf, 290.0, null, false)
 	cols(host, "SpireBody", _tbl("SPIRE_BOXES"), xf)
 	ramps(host, "SpireStair", _tbl("SPIRE_RAMPS"), xf)
+	Interiors.add("lamp_spire", xf * Vector3(0, 7.0, 0), xf.basis.get_euler().y, Vector3(2.5, 7.0, 2.5), false)       # a cold stair, its candles warm
+	for ly: float in [1.6, 5.4, 9.2]:
+		Interiors.light(host, "SpireCandles", xf * Vector3(0, ly, 1.6), Interiors.CANDLE, 1.3, 5.5, false, 0.1)
 	# rock heaped at the foot, round the three sides the door is not on
 	for i in 7:
 		var a := float(i) / 7.0 * TAU + rng.randf() * 0.4

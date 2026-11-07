@@ -7,9 +7,9 @@ extends RefCounted
 ## A cold room (`warm` false: a crypt, a cellar) keeps its cold ambient and only loses the haze.
 ## Also builds a room's lights, so every interior is lit the same way (a hearth glow, candle pools, a soft fill).
 
-const FILL := Color(1.0, 0.62, 0.32)       ## the indoor ambient: a banked fire's bounce (about 2200 K)
-const FIRE := Color(1.0, 0.5, 0.18)
-const CANDLE := Color(1.0, 0.68, 0.34)
+const FILL := Color(0.95, 0.76, 0.58)       ## the indoor ambient: a banked fire's bounce (about 2200 K)
+const FIRE := Color(1.0, 0.7, 0.4)
+const CANDLE := Color(1.0, 0.8, 0.52)
 
 static var _rooms: Dictionary = {}          ## id -> {inv: Transform3D, half: Vector3, warm: bool}
 
@@ -63,7 +63,7 @@ static func light(host: Node3D, n: String, at_world: Vector3, col: Color, e: flo
 	host.add_child(l)
 	l.global_position = at_world
 	LightPolicy.apply_fade(l)
-	l.light_volumetric_fog_energy = 0.4
+	l.light_volumetric_fog_energy = 0.0       # a near-camera omni lights a froxel into a floating glow sphere
 	l.shadow_enabled = shadow and Settings.shadow_quality > 0
 	if shadow:
 		l.distance_fade_shadow = 14.0
@@ -108,7 +108,22 @@ static func room_lights(host: Node3D, id: String, centre: Vector3, yaw: float, h
 		em.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		host.add_child(em)
 		em.global_transform = Transform3D(b, centre + b * Vector3(half.x * 0.5, -half.y + 0.3, -half.z + 0.06))
-	light(host, id + "Glow", centre + up, FIRE.lerp(CANDLE, 0.4), 1.6 if lit else 0.55, r, false, 0.07)
+	var lan := MeshInstance3D.new()                          # a hung lantern: the visible source of the room's light
+	lan.name = id + "Lantern"
+	var lm := BoxMesh.new()
+	lm.size = Vector3(0.1, 0.15, 0.1)
+	lan.mesh = lm
+	var lmat := StandardMaterial3D.new()
+	lmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	lmat.albedo_color = Color(1.0, 0.62, 0.28)
+	lmat.emission_enabled = true
+	lmat.emission = Color(1.0, 0.7, 0.35)
+	lmat.emission_energy_multiplier = 0.7
+	lan.material_override = lmat
+	lan.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	host.add_child(lan)
+	lan.global_position = centre + Vector3(0, half.y * 0.55, 0) - b * Vector3(half.x * 0.25, 0.0, 0.0)
+	light(host, id + "Glow", lan.global_position - Vector3(0, 0.2, 0), FIRE.lerp(CANDLE, 0.4), 1.6 if lit else 0.55, r, false, 0.07)
 	if lit and half.x > 3.0:
 		light(host, id + "GlowB", centre + b * Vector3(half.x * 0.5, 0.0, 0.0) + up, CANDLE, 0.9, r * 0.8, false, 0.06)
 		light(host, id + "GlowC", centre - b * Vector3(half.x * 0.5, 0.0, 0.0) + up, CANDLE, 0.9, r * 0.8, false, 0.06)

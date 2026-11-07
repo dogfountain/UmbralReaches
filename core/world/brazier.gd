@@ -4,7 +4,7 @@ extends Interactable
 
 @export var start_lit := false
 @export var light_radius := 11.0
-@export var lit_energy := 15.0       ## the ground is dark and grainy: 4.6 left no warm pool on it
+@export var lit_energy := 20.0       ## the ground is dark and grainy: 4.6 left no warm pool on it
 @export var lit_range := 14.5
 
 var lit := false
@@ -208,7 +208,7 @@ func _set_lit(on: bool, animate: bool) -> void:
 	var target_energy := lit_energy if on else 0.25
 	_light.set_meta(&"base", {
 		"e": target_energy,
-		"r": _pool_range() if on else 2.5,
+		"r": _pool_range() * 1.25 if on else 2.5,      # the glow reaches a little past the sanctuary's edge
 		"a": 1.0,
 	})
 	LightPolicy.apply_fade(_light)
