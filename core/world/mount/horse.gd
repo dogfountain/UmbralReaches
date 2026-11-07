@@ -65,6 +65,9 @@ var _jump_buf := 0.0
 var _lean := 0.0                     ## the rider's lean into the leap (rad, + forward)
 var _rs := Vector3.ZERO              ## the rider's damped follow of the horse: height (m), pitch (rad, + forward), roll (rad)
 var _rv := Vector3.ZERO
+var _vis: Node3D                     ## the rider's Visual while the horse draws it (placed each rendered frame)
+var _vis_yaw := 0.0
+var _back := INF                     ## the back's drop, smoothed (the seat's floor)
 var _trampled := {}                  ## enemy instance id -> msec of the last trample on it
 
 
@@ -152,8 +155,10 @@ func dismount() -> void:
 	_gather = 0.0
 	_lean = 0.0
 	var rig := p.get_node_or_null("Visual") if p != null and is_instance_valid(p) else null
+	_release_visual()
 	_rs = Vector3.ZERO
 	_rv = Vector3.ZERO
+	_back = INF
 	if rig != null and "ride_lean" in rig:
 		rig.set("ride_lean", 0.0)
 	if rig != null and "ride_roll" in rig:
@@ -304,13 +309,11 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	_head = lerpf(_head, 0.0, 1.0 - exp(-4.0 * dt))
 	_accel = Vector2((speed - _speed_prev) / maxf(dt, 0.001), speed * _turn_v)
 	_speed_prev = speed
-	_write(NAN, dt)
 	_hooves(dt)
 	# the rider sits the saddle, facing where the horse faces
 	# the pelvis on the saddle's seat (the seat's top is `seat` above the horse's origin; the rig's
 	# pelvis stands 0.955 above its feet), a hand's width behind the pommel
-	_ride_follow(dt, fwd)
-	var seat := global_position + Vector3.UP * (float(_d.seat) - CharacterRig.H_PELVIS + 0.02 - SINK + _rs.x) + fwd * (0.04 * _scale())
+	var seat := global_position + Vector3.UP * _seat_lift() + fwd * (0.04 * _scale())
 	var vis := p.get_node_or_null("Visual") as Node3D
 	if _mount_t < MOUNT_T:
 		# r36: getting on, from the near (left) side: a step to the stirrup, the left foot in it and a
@@ -341,6 +344,8 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		seat = at
 	elif vis and "mount" in vis and float(vis.get("mount")) >= 0.0:
 		vis.set("mount", -1.0)
+	if _mount_t >= MOUNT_T and vis != null and _vis == null:
+		_claim_visual(vis)
 	p.global_position = seat
 	if vis and "saddle" in vis:
 		# the barrel under the rider, in the coat's space (origin at the pelvis): its half width, its
@@ -351,19 +356,49 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	if vis and "ride_roll" in vis:
 		vis.set("ride_roll", _rs.z)
 		vis.set("ride_bob", _rv.x)
-	if vis:
+	if vis and _vis == null:
 		# facing where the horse faces, in WORLD space: the player node itself turns with the camera,
 		# so a local yaw sat the rider sideways
 		var cur := vis.global_rotation.y
 		vis.global_rotation.y = lerp_angle(cur, _yaw, 1.0 - exp(-12.0 * dt))
+		_vis_yaw = vis.global_rotation.y
 	p.velocity = fwd * speed
+
+
+## The seated rider is drawn by the horse, once per rendered frame, at the same interpolated moment as the
+## horse itself: the Visual is taken off the physics interpolation (the tick-placed body would step) and
+## the rig blends its bones with the tick fraction anyway (CharacterRig.render_placed).
+func _claim_visual(vis: Node3D) -> void:
+	_vis = vis
+	_vis.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	if "render_placed" in _vis:
+		_vis.set("render_placed", true)
+	_vis_yaw = _vis.global_rotation.y
+
+
+func _release_visual() -> void:
+	if _vis != null and is_instance_valid(_vis):
+		_vis.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_INHERIT
+		if "render_placed" in _vis:
+			_vis.set("render_placed", false)
+		_vis.reset_physics_interpolation()
+	_vis = null
+
+
+func _exit_tree() -> void:
+	_release_visual()
+
+
+## Where the rider's pelvis sits relative to the horse's origin at the rendered moment (m above it).
+func _seat_lift() -> float:
+	return float(_d.seat) - CharacterRig.H_PELVIS + 0.02 - SINK + _rs.x
 
 
 ## The rider is not bolted to the saddle: height, pitch and roll chase the horse's through damped springs
 ## (so they lag and settle), with a post at the trot, a crouch into the gallop and a lean into turns.
-func _ride_follow(dt: float, _fwd: Vector3) -> void:
-	var d := minf(dt, 0.033)
-	if _rig == null or d <= 0.0:
+## Stepped every rendered frame (sub-stepped for a stable spring) from the pose drawn that frame.
+func _ride_follow(dt: float, ph: float) -> void:
+	if _rig == null or dt <= 0.0:
 		return
 	var trot_w := smoothstep(float(_d.walk), float(_d.trot), speed) * (1.0 - smoothstep(float(_d.trot), float(_d.gallop), speed))
 	var k := clampf(speed / float(_d.gallop), 0.0, 1.0)
@@ -372,12 +407,41 @@ func _ride_follow(dt: float, _fwd: Vector3) -> void:
 	# the seat rides the back (most of it: the hips take the rest), rises out of the saddle once a trot
 	# stride (a posting trot, ~9 cm) and rocks fore-and-aft with the gallop's bound
 	var gal_w := smoothstep(float(_d.trot), float(_d.gallop), speed)
-	t.x = _rig.last_dy * 0.85 + trot_w * 0.045 * (1.0 + sin(_phase + 0.3)) \
-			+ gal_w * 0.035 * sin(_phase + 1.2) + (0.12 if _air else 0.0)
+	t.x = _rig.last_dy * 0.85 + trot_w * 0.045 * (1.0 + sin(ph + 0.3)) \
+			+ gal_w * 0.035 * sin(ph + 1.2) + (0.12 if _air else 0.0)
 	t.y = _lean + 0.1 * smoothstep(0.35, 0.65, k) + 0.28 * smoothstep(0.6, 1.0, k) + 0.1 * _rig.rock - _rig.body_pitch * (0.2 if _air else 0.7) - acc * 0.07
 	t.z = -_rig.body_roll * 0.9
-	_rv += ((t - _rs) * Vector3(150.0, 45.0, 60.0) - _rv * Vector3(18.0, 7.0, 8.0)) * d
-	_rs += _rv * d
+	var n := clampi(ceili(dt / (1.0 / 240.0)), 1, 12)
+	var d := minf(dt, 0.1) / float(n)
+	# the back as the seat feels it: its quick ripples (the legs' reach) are taken out
+	var raw: float = _rig.last_dy
+	var prev: float = _back if _back < INF else raw
+	_back = lerpf(prev, raw, 1.0 - exp(-dt / (0.008 if raw > prev else 0.04))) if _back < INF else raw
+	var back_v := clampf((_back - prev) / dt, -6.0, 6.0)
+	t.x = _back * 0.92 + (t.x - raw * 0.85)
+	for _i in n:
+		_rv += ((t - _rs) * Vector3(170.0, 45.0, 60.0) - _rv * Vector3(20.0, 7.0, 8.0)) * d
+		_rs += _rv * d
+		# never far under the saddle: pushed out by the back, its speed matched, whatever the spring lags
+		var pen := _back - 0.015 - _rs.x
+		if pen > 0.0:
+			_rv.x += (pen * 1500.0 + (back_v - _rv.x) * 40.0) * d
+			if pen > 0.04:
+				_rs.x = _back - 0.06
+
+
+## Draw the rider at the rendered moment: the horse's interpolated transform, the back's motion and the
+## rider's spring, all of this frame.
+func _place_rider(dt: float, ph: float) -> void:
+	_ride_follow(dt, ph)
+	if _vis == null or not is_instance_valid(_vis):
+		return
+	var xf := _rig.global_transform
+	var yaw := atan2(-xf.basis.z.x, -xf.basis.z.z)
+	var fwd := Vector3(-sin(yaw), 0.0, -cos(yaw))
+	_vis.global_position = xf.origin + Vector3.UP * _seat_lift() + fwd * (0.04 * _scale())
+	_vis_yaw = lerp_angle(_vis_yaw, yaw, 1.0 - exp(-12.0 * dt))
+	_vis.global_rotation.y = _vis_yaw
 
 
 func _process(dt: float) -> void:
@@ -385,11 +449,14 @@ func _process(dt: float) -> void:
 		_rig.global_transform = get_global_transform_interpolated()
 	# a rider that died, was hollowed or was moved off (a respawn, travel) is no longer riding
 	if rider != null and (not is_instance_valid(rider) or rider.get("riding") != self):
+		_release_visual()
 		rider = null
 		speed = 0.0
 	if rider != null:
 		# ridden: drive() steps the gait on the tick; draw it at the frame's moment, as the body is
-		_write(lerpf(_phase_prev, _phase, Engine.get_physics_interpolation_fraction()), dt)
+		var ph := lerpf(_phase_prev, _phase, Engine.get_physics_interpolation_fraction())
+		_write(ph, dt)
+		_place_rider(dt, ph)
 		return
 	if _air or _land > 0.0:
 		_vertical(dt, _ground(global_position).y)       # left in the air (got down mid-leap): it comes down

@@ -66,6 +66,9 @@ var _flick_t := 3.0
 var _lan := Vector2.ZERO               ## lantern angle (x fore-aft, z side) and velocity
 var _lan_v := Vector2.ZERO
 var _prev_dy := 0.0
+var _extra_env := 0.0
+var _drop_env := 0.0                   ## the back drop, held between the legs reach peaks
+const DROP_RELEASE := 0.35             ## m/s: how fast the held drop lets the back rise
 var _seed := 0.0
 var _legs := {}                        ## leg -> {up, low, fet, hip, knee, fet_p, toe, l1, l2, sign}
 
@@ -265,6 +268,10 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 		tgt[l] = tp
 		need = maxf(need, ((tp - L.hip).length() - (float(L.l1) + float(L.l2)) * 0.985))
 	var drop := clampf(need, 0.0, 0.38) if moving else 0.0
+	# the reach each leg needs peaks four times a stride; the back follows its envelope (it falls to the
+	# deepest reach at once, rises back slowly) so it does not shudder at four times the stride rate
+	_drop_env = maxf(drop, _drop_env - DROP_RELEASE * maxf(dt, 0.0)) if moving else 0.0
+	drop = _drop_env
 	# --- gait weights and the stride's own timing
 	var ww := 1.0 - smoothstep(walk_s, walk_s + (trot_s - walk_s) * 0.55, speed)
 	var gw := smoothstep(trot_s, trot_s + (gallop_s - trot_s) * 0.7, speed)
@@ -368,8 +375,9 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 		extra = maxf(extra, ((tgt[l] as Vector3) - (hips[l] as Vector3)).length() - (float(L.l1) + float(L.l2)) * 0.985)
 	# the hip joints ride the pitching, rolling spine: solve from where they are now, and sink the back a little
 	# further if a hoof would be left short of its place on the ground
-	if extra > 0.0 and moving:
-		extra = minf(extra, 0.4)
+	_extra_env = maxf(minf(extra, 0.4), _extra_env - DROP_RELEASE * maxf(dt, 0.0)) if moving else 0.0
+	if _extra_env > 0.0 and moving:
+		extra = _extra_env
 		last_dy -= extra
 		_pose_bone("root", 0.0, 0.0, Vector3(0, last_dy, 0))
 		for l: String in hips:
