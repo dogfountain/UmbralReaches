@@ -293,6 +293,9 @@ func _s_wildlife_herd() -> void:
 	for g in (d.life.get("groups") as Array if d.life else []):
 		if is_instance_valid(g) and String(g.get("kind")) in ["deer", "elk", "stag"]:
 			var n := (g.call("positions") as Array).size()
+			if OS.get_environment("HERD_AT") != "":
+				var pr := OS.get_environment("HERD_AT").split(",")
+				n = 100 - int((g as Node3D).global_position.distance_to(Vector3(float(pr[0]), (g as Node3D).global_position.y, float(pr[1]))))
 			if n > best:
 				best = n
 				_herd = g
@@ -303,7 +306,7 @@ func _s_wildlife_herd() -> void:
 		return
 	var at := _herd_mid()
 	d.put_player(at + Vector3(35.0, 0.0, 0.0), -d.WEST)
-	_herd_cam = d.solve_cam([at + Vector3.UP * 1.2], at, Cam.yaw_dir(Vector3(1, 0, 0.3)) + PI, 11.0, 1.7)
+	_herd_cam = d.solve_cam([at + Vector3.UP * 1.2], at, d.yaw_to(Vector3(-1, 0, 0.4)), 10.0, 2.3)   # from the west: the herd against the gate's ember post, the lamp posts of the gate behind the lens
 	d.hold_cam(_herd_cam, at + Vector3.UP * 1.0)
 
 
