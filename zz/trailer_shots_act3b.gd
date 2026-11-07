@@ -54,6 +54,130 @@ func wake_villagers(c: Vector3, r: float) -> int:
 	return n
 
 
+## Props a walking wanderer must not step onto (braziers, lamps, lit posts, anything to interact with): their ground
+## positions, gathered once per shot.
+var _props: Array[Node3D] = []
+
+
+func gather_props() -> void:
+	_props.clear()
+	for g in [Groups.BRAZIER, Groups.LIGHT_SOURCE, Lamp.GROUP]:
+		for n in d.get_tree().get_nodes_in_group(g):
+			var n3 := n as Node3D
+			if n3 != null and n3.is_inside_tree() and not _props.has(n3):
+				_props.append(n3)
+
+
+## A stand point moved off any prop it would put the wanderer on (out to 2.8 m from it, along the line from the prop).
+func clear_stand(st: Vector2) -> Vector2:
+	for _pass in 3:
+		for pr in _props:
+			if not is_instance_valid(pr):
+				continue
+			var off := st - Vector2(pr.global_position.x, pr.global_position.z)
+			if off.length() < 2.8:
+				st = Vector2(pr.global_position.x, pr.global_position.z) + (off.normalized() if off.length() > 0.05 else Vector2.RIGHT) * 2.8
+	return st
+
+
+## `dir` (world, flat, length = pace) bent round any prop within a few metres ahead and a metre and a half either
+## side of the line: the stick a player would hold to walk round a brazier. Zero if one stands right in the way.
+func steer_clear(dir: Vector3, clear := 1.7) -> Vector3:
+	var pace := dir.length()
+	if pace < 0.001:
+		return dir
+	var fw := dir / pace
+	var me: Vector3 = d.pp()
+	var out := fw
+	for pr in _props:
+		if not is_instance_valid(pr):
+			continue
+		var r: Vector3 = pr.global_position - me
+		r.y = 0.0
+		var ahead := r.dot(fw)
+		if ahead < -0.3 or ahead > 4.5:
+			continue
+		var perp := fw.cross(Vector3.UP)                # the walker's left
+		var lat := r.dot(perp)                          # + : the prop is to the left
+		if absf(lat) > clear:
+			continue
+		if r.length() < 1.0:
+			return Vector3.ZERO
+		var away := -signf(lat) if absf(lat) > 0.05 else 1.0
+		out += perp * away * (clear - absf(lat)) / clear * 1.8
+	return out.normalized() * pace
+
+
+## Lens placements tried in order for a trailing shot: [back scale, height scale, sideways offset in metres].
+const CAM_TRIES := [[1.0, 1.0, 0.0], [0.85, 1.15, 0.0], [1.0, 1.0, -6.0], [1.0, 1.0, 6.0], [1.0, 1.3, 2.5], [1.0, 1.3, -2.5], [0.7, 1.35, 2.0], [0.7, 1.35, -2.0], [0.55, 1.6, 0.0],
+		[0.8, 1.9, 4.0], [0.8, 1.9, -4.0], [1.3, 1.5, 0.0], [0.4, 2.2, 0.0], [0.3, 2.8, 0.0]]
+var _try := 0
+
+
+func _lens_clear(head: Vector3, from: Vector3, at: Vector3) -> bool:
+	if from.y < d.gy(from.x, from.z) + 0.9:
+		return false
+	var space: PhysicsDirectSpaceState3D = d.main.get_world_3d().direct_space_state
+	var ball := SphereShape3D.new()
+	ball.radius = 0.45
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = ball
+	q.collision_mask = Layers.WORLD | Layers.PROPS
+	q.exclude = [d.p.get_rid()]
+	q.transform = Transform3D(Basis.IDENTITY, from)
+	if not space.intersect_shape(q, 1).is_empty():
+		return false                                       # inside or hard against something
+	q.transform = Transform3D(Basis.IDENTITY, head)
+	q.motion = from - head
+	if space.cast_motion(q)[0] < 1.0:
+		return false                                       # something between the lens and the wanderer
+	var ahead := at - from
+	var rq := PhysicsRayQueryParameters3D.create(from, from + ahead.normalized() * minf(ahead.length(), 5.0), Layers.WORLD | Layers.PROPS)
+	rq.exclude = [d.p.get_rid()]
+	return space.intersect_ray(rq).is_empty()              # nothing across the lens
+
+
+## The lens spot for a trailing vista with the wanderer at `me` and the shot clock at `k`: candidate `i` of CAM_TRIES.
+func _vista_spot(i: int, me: Vector3, look: Vector3, k: float, back: float, h: float, lat: float, rise: float, max_pitch: float) -> Array:
+	var dir := Cam.flat(look - me)
+	var side := dir.cross(Vector3.UP)
+	var c: Array = CAM_TRIES[i]
+	var from: Vector3 = me - dir * back * float(c[0]) + side * (lat * (k * 2.0 - 1.0) + float(c[2])) + Vector3.UP * (h + rise * k) * float(c[1])
+	var flat_len := Vector2(look.x - from.x, look.z - from.z).length()
+	var to_head: Vector3 = me + Vector3.UP * 1.5 - from
+	var head_ang := atan2(to_head.y, maxf(Vector2(to_head.x, to_head.z).length(), 0.5))
+	var body := atan2(1.7, maxf(Vector2(to_head.x, to_head.z).length(), 1.0))      # head to feet, seen from the lens
+	var keep := head_ang + deg_to_rad(d.cam.fov) * 0.5 - body - 0.1             # the whole wanderer in frame, feet above the bottom edge
+	var pitch := minf(minf(atan2(look.y - from.y, maxf(flat_len, 1.0)) * 0.5, max_pitch), keep)
+	return [from, from + (Cam.flat(look - from) * cos(pitch) + Vector3.UP * sin(pitch)) * 20.0]
+
+
+## Picks (and locks) the lens placement for a trailing vista that is clear at the start, the middle and the end of the
+## walk (the wanderer goes `walk` metres toward `look`): never behind a wall, a roof, a sign or a headstone at any point.
+func pick_vista(look: Vector3, back: float, h: float, lat: float, rise: float, max_pitch: float, walk: float) -> void:
+	var me: Vector3 = d.pp()
+	var dir := Cam.flat(look - me)
+	_try = CAM_TRIES.size() - 1
+	for i in CAM_TRIES.size():
+		var ok := true
+		for k in [0.0, 0.5, 1.0]:
+			var m: Vector3 = d.on_ground(me + dir * walk * k)
+			var sp := _vista_spot(i, m, look, k, back, h, lat, rise, max_pitch)
+			if not _lens_clear(m + Vector3.UP * 1.5, sp[0], sp[1]):
+				ok = false
+				break
+		if ok:
+			_try = i
+			break
+	print("TRAILER lens locked: try %d" % _try)
+
+
+## A trailing vista like Cam.vista from the placement pick_vista locked.
+func vista_clear(look: Vector3, k: float, back: float, h: float, lat: float, rise: float, max_pitch := 0.22) -> void:
+	var sp := _vista_spot(_try, d.pp(), look, k, back, h, lat, rise, max_pitch)
+	d.hold_cam(sp[0], sp[1])
+
+
 ## A fixed yaw for the lens: direction (flat) from a to b.
 func flat_dir(a: Vector3, b: Vector3) -> Vector3:
 	return Cam.flat(b - a)

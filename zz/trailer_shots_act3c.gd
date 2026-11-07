@@ -50,28 +50,52 @@ func call_shutter() -> void:
 	d.spawned.append(_shut)
 
 
+var _bell_cam := Vector3.ZERO
+var _bell_aim := Vector3.ZERO
+var _keeper_at := Vector3.ZERO
+
+
+## Locks a lens spot round the bell that sees the bell, the keeper and the wanderer with nothing in the way.
+func lock_bell_cam(pts: Array, yaw0: float, dist: float, h: float) -> void:
+	var b := bell_at()
+	_bell_aim = Vector3.ZERO
+	for v: Vector3 in pts:
+		_bell_aim += v
+	_bell_aim /= float(pts.size())
+	# south of the bell is the open side (the tower and the bluff close the rest): the lens straight out from it
+	var from: Vector3 = d.on_ground(b + Vector3(sin(yaw0), 0.0, cos(yaw0)) * dist, h)
+	_bell_cam = from if _lens_clear(b + Vector3.UP * 1.3, from, _bell_aim) else d.solve_cam(pts, b, yaw0, dist, h)
+	print("TRAILER bell lens %s aim %s dist %.1f" % [_bell_cam, _bell_aim, _bell_cam.distance_to(_bell_aim)])
+
+
 func _s_bells() -> void:
 	d.clear_spawned()
 	put_bell()
 	call_shutter()
 	var b := bell_at()
-	d.put_player(b + Vector3(0.5, 0.0, 6.0), Cam.yaw_dir(Vector3(-0.1, 0.0, -1.0)), -0.05)
-	d.drive(Cam.flat(b - d.pp()) * 0.3)
+	var keeper := b + Vector3(-1.9, 0.1, 1.3)
+	var me := b + Vector3(2.3, 0.0, 1.4)
+	d.put_player(me, Cam.yaw_dir(b - me), -0.05)
+	d.drive(Vector3.ZERO)
+	_keeper_at = keeper
 	if is_instance_valid(_shut):
-		_shut.global_position = b + Vector3(-2.8, 0.1, 1.2)
+		_shut.global_position = keeper
+		_shut.home = keeper
 	d.use_free_cam()
-	d.cam.fov = 52.0
-	fill(b + Vector3(0.0, 2.2, 2.0), 3.0, 14.0)
+	d.cam.fov = 62.0
+	fill(b + Vector3(0.0, 2.6, 4.0), 4.0, 14.0)
+	lock_bell_cam([b + Vector3.UP * 1.3, keeper + Vector3.UP * 1.2, me + Vector3.UP * 1.3], 0.0, 5.6, 2.0)
 
 
 func _u_bells(tt: float) -> void:
 	var b := bell_at()
-	var k: float = d.sm(clampf(tt / 2.0, 0.0, 1.0))
-	# low on the bell, the keeper at its side, the Spire standing behind them; a slow orbit
-	cam.orbit(b + Vector3(-1.2, 0.0, 0.8), k, 6.0, 5.2, 0.6, 0.3, 2.3, 2.0, 1.3)
-	d.light_at(b, 4.0)
 	if is_instance_valid(_shut):
-		d.aim_at(_shut.global_position)
+		_shut.global_position = _keeper_at                  # the keeper stands its post by the bell
+	var k: float = d.sm(clampf(tt / 2.0, 0.0, 1.0))
+	var from := _bell_cam.lerp(_bell_aim + (_bell_cam - _bell_aim) * 0.82, k)
+	d.hold_cam(from, _bell_aim + Vector3.UP * 0.15)
+	d.light_at(b, 4.0)
+	d.aim_at(b)
 
 
 func _e_bells() -> void:
@@ -123,28 +147,27 @@ func _s_bell_ring() -> void:
 	if rung:
 		rung.queue_free()
 	put_bell()
-	call_shutter()
 	var b := bell_at()
-	if is_instance_valid(_shut):
-		_shut.global_position = b + Vector3(-3.4, 0.1, 0.4)
-	d.put_player(b + Vector3(1.0, 0.0, 4.2), Cam.yaw_dir(Vector3(-0.2, 0.0, -1.0)), -0.05)
-	d.drive(Cam.flat(b - d.pp()) * 0.4)
+	var me := b + Vector3(2.3, 0.0, 1.2)
+	d.put_player(me, Cam.yaw_dir(b - me), -0.05)
+	d.drive(Vector3.ZERO)
 	d.aim_at(b)
 	d.use_free_cam()
-	d.cam.fov = 46.0
-	fill(b + Vector3(0.0, 2.0, 1.5), 3.0, 12.0)
+	d.cam.fov = 56.0
+	fill(b + Vector3(0.5, 2.0, 2.4), 6.0, 10.0)
+	lock_bell_cam([b + Vector3.UP * 1.4, b + Vector3.UP * 2.4, me + Vector3.UP * 1.3], 0.0, 5.2, 1.6)
 
 
 func _u_bell_ring(tt: float) -> void:
 	var b := bell_at()
 	var k: float = d.sm(clampf(tt / 2.4, 0.0, 1.0))
-	cam.orbit(b.lerp(d.pp(), 0.4), k, 7.0, 6.0, 1.9, 1.5, 3.3, 3.0, 1.2)
+	var from := _bell_cam.lerp(_bell_aim + (_bell_cam - _bell_aim) * 0.85, k)
+	d.hold_cam(from, _bell_aim + Vector3.UP * 0.4)
 	d.light_at(b, 3.5)
-	if tt > 0.9:
-		d.drive(Vector3.ZERO)
-	if tt > 0.95 and d.once("br_reach"):
+	d.aim_at(b)
+	if tt > 0.7 and d.once("br_reach"):
 		d.p._visual.cast_pose(&"reach")
-	if tt > 1.1 and d.once("br_ring"):
+	if tt > 0.9 and d.once("br_ring"):
 		# the answer the bell asks: rung where it hangs; the keeper of the night's own state does the rest
 		if _bell and is_instance_valid(_bell):
 			_bell.queue_free()
@@ -210,9 +233,17 @@ func _e_secret() -> void:
 ## The real ferry passenger (the Last Crossing's escort step), standing at waypoint `from`; `near_next` puts them a
 ## step short of the next waypoint so its ambush springs as the shot opens.
 func start_escort(from: int, near_next: bool) -> void:
-	var stp: Dictionary = (Sig.MERE_FERRY.steps as Array)[2]
+	var stp: Dictionary = ((Sig.MERE_FERRY.steps as Array)[2] as Dictionary).duplicate(true)
+	# the real ferry path hugs the chapel wall (the passenger came out half inside it): the same step walks the open
+	# road west of the green instead, a few paces from the first brazier-free stretch
+	var road: Array[Vector2] = []
+	for i in 4:
+		road.append(Vector2(d.ARENA.x - 14.0 - 12.0 * float(i), d.ARENA.z))
+	stp["path"] = road
+	stp["at"] = road[3]
+	_shrunk.clear()
 	_esc = Escort.new() as Escort
-	_esc.setup("mere_ferry", stp.duplicate(true), from)
+	_esc.setup("mere_ferry", stp, from)
 	d.main.add_child(_esc)
 	_esc.set_process(false)                              # ticked by the shoot, so its foes are adopted before the director's sweep
 	var path: Array = stp.path
@@ -248,6 +279,14 @@ func _open_side(at: Vector3, side: Vector3) -> float:
 func esc_tick() -> void:
 	_esc.tick(d.get_process_delta_time())
 	adopt(_esc.foes)
+	for f: Enemy in _esc.foes:
+		if is_instance_valid(f) and not _shrunk.has(f.get_instance_id()):
+			# the ambush rises at the ring's 8 m; the shoot draws it in to 5 m so the foes read beside the pair
+			_shrunk[f.get_instance_id()] = true
+			var off: Vector3 = f.global_position - _esc.global_position
+			off.y = 0.0
+			var np: Vector3 = _esc.global_position + off.normalized() * 5.0
+			f.global_position = Vector3(np.x, d.gy(np.x, np.z) + 0.1, np.z)
 
 
 func esc_drive(tt: float) -> void:
@@ -403,7 +442,7 @@ func finish_defend() -> void:
 
 func _s_defend() -> void:
 	d.clear_spawned()
-	start_defend("ORCHARD_STAND", 0)
+	start_defend("MOOR_FIRES", 0)
 	d.use_free_cam()
 	d.cam.fov = 55.0
 	d.key.light_energy = 11.0
@@ -413,7 +452,7 @@ func _s_defend() -> void:
 func _u_defend(tt: float) -> void:
 	def_fight(tt, "df_bolts")
 	var mid: Vector3 = _def.global_position.lerp(d.pp(), 0.3)
-	d.top_down(mid, 17.0, 68.0)
+	d.top_down(mid, 8.0, 42.0)
 	d.light_at(mid, 6.0)
 
 
@@ -440,7 +479,7 @@ func _e_defend_game() -> void:
 
 func _s_defend_top() -> void:
 	d.clear_spawned()
-	start_defend("ORCHARD_STAND", 1)
+	start_defend("MOOR_FIRES", 1)
 	d.use_free_cam()
 	d.cam.fov = 55.0
 	d.key.light_energy = 11.0
@@ -450,7 +489,7 @@ func _s_defend_top() -> void:
 func _u_defend_top(tt: float) -> void:
 	def_fight(tt, "dt_bolts")
 	var mid: Vector3 = _def.global_position.lerp(d.pp(), 0.3)
-	d.top_down(mid, 19.0 - tt * 0.8, 70.0)
+	d.top_down(mid, 8.5 - tt * 0.4, 48.0)
 	d.light_at(mid, 6.0)
 
 
@@ -480,6 +519,9 @@ func end_roam() -> void:
 			pin.queue_free()
 
 
+var _roam_cam := Vector3.ZERO
+
+
 func _s_roam() -> void:
 	d.clear_spawned()
 	d.put_player(d.ARENA + Vector3(-30.0, 0.0, 0.0), d.WEST, -0.05)
@@ -499,11 +541,14 @@ func _s_roam() -> void:
 		var ahead := Cam.flat(Vector3(0.0, 0.0, -104.0) - m)
 		d.put_player(m + ahead * 12.0, Cam.yaw_dir(-ahead), -0.05)
 	d.use_free_cam()
-	d.cam.fov = 50.0
+	d.cam.fov = 56.0
 	d.key.light_energy = 6.0
 	d.key.omni_range = 30.0
+	_roam_cam = d.cam.global_position
 
 
+## The procession and the wanderer, kept in view from a spot the world does not block (found again every quarter second,
+## because the file moves and the event may rise anywhere on the road).
 func _u_roam(tt: float) -> void:
 	adopt_roam()
 	var foes: Array[Node3D] = d.foes()
@@ -513,9 +558,18 @@ func _u_roam(tt: float) -> void:
 		for f in foes:
 			mid += f.global_position
 		mid /= float(foes.size())
-		d.aim_at(mid)
-	var k: float = d.sm(clampf(tt / 1.6, 0.0, 1.0))
-	two_shot(d.pp(), mid, k, 10.0, 3.8, 1.0, 0.4, 1.2)
+	var between: Vector3 = d.pp().lerp(mid, 0.5)
+	if int(round(tt * 60.0)) % 15 == 0:
+		var pts: Array = [d.pp() + Vector3.UP * 1.4, mid + Vector3.UP * 1.2]
+		for f in foes:
+			pts.append(f.global_position + Vector3.UP * 1.0)
+		var across := Cam.flat(mid - d.pp()).cross(Vector3.UP)
+		_roam_cam = d.solve_cam(pts, between, d.yaw_to(across), 12.0, 6.5)
+	d.hold_cam(_roam_cam, between + Vector3.UP * 1.2)
+	if int(round(tt * 60.0)) % 4 == 0:
+		for hb in d.main.find_children("HealthBar", "MeshInstance3D", true, false):
+			(hb as Node3D).visible = false           # the procession is the picture, not its health bars
+	d.aim_at(mid)
 	d.light_at(mid.lerp(d.pp(), 0.4), 5.0)
 
 
