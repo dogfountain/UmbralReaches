@@ -13,6 +13,8 @@ extends RefCounted
 ##   10 assets (quality pass hooks)  11 cull_scatter / chunks
 ## Modules own their own files; this file and the hooks in glimmers.gd / main.gd belong to the lead.
 
+const FadeGuard := preload("res://core/world/fade_guard.gd")
+
 const MODULES := {
 	"land": "res://core/world/realm/realm_land.gd",
 	"rift": "res://core/world/realm/realm_rift.gd",
@@ -208,6 +210,7 @@ static func build(root: Node) -> void:
 	for k: String in keys:
 		print("REALM_PROF %7.1f ms  %s" % [float(prof[k]) / 1000.0, k])
 	progress = 1.0
+	print("FADE_GUARD %d ranged meshes given a fade after the build" % FadeGuard.sweep(root))
 	root.set_meta("realm_done", true)              # waiters (camps, tests) can key on this
 	print("REALM built in %d ms" % (Time.get_ticks_msec() - t0))
 
