@@ -13,9 +13,9 @@ const LEGS := ["fl", "fr", "hl", "hr"]
 ## leg phase offsets (fraction of a stride) in LEGS order, duty (stance share), reach (m, half sweep),
 ## lift (m), and the stride length (m) of each gait
 const GAITS := {
-	"walk": {"off": [0.25, 0.75, 0.0, 0.5], "duty": 0.68, "lift": 0.085, "stride": 1.5, "reach": 0.5},
-	"trot": {"off": [0.0, 0.5, 0.5, 0.0], "duty": 0.46, "lift": 0.14, "stride": 2.9, "reach": 0.6},
-	"gallop": {"off": [0.52, 0.64, 0.0, 0.12], "duty": 0.3, "lift": 0.2, "stride": 4.6, "reach": 0.62},
+	"walk": {"off": [0.25, 0.75, 0.0, 0.5], "duty": 0.68, "lift": 0.085, "stride": 1.5, "reach": 0.51},
+	"trot": {"off": [0.0, 0.5, 0.5, 0.0], "duty": 0.46, "lift": 0.14, "stride": 2.9, "reach": 0.667},
+	"gallop": {"off": [0.52, 0.64, 0.0, 0.12], "duty": 0.3, "lift": 0.2, "stride": 4.6, "reach": 0.69},
 }
 const BONES := ["root", "hips", "barrel", "chest", "neck1", "neck2", "neck3", "head", "ear_r", "ear_l", "tail0", "tail1", "tail2", "tail3",
 	"lantern", "mane1", "mane2", "mane3", "fl_up", "fl_low", "fl_fet", "fr_up", "fr_low", "fr_fet", "hl_up", "hl_low", "hl_fet", "hr_up", "hr_low", "hr_fet"]
@@ -36,6 +36,7 @@ var heft := 1.0                        ## how heavy it moves (horse_db): cadence
 var turn := 0.0                        ## the horse's yaw rate (rad/s, + left), set by horse.gd: the bank and the head's lead
 var body_pitch := 0.0                  ## outputs for the rider to follow, with lag (+ nose up)
 var body_roll := 0.0
+var rock := 0.0                        ## the gallop's gather/extension (-1..1) for the rider's hip-hinge
 var _bank := 0.0
 var _turn_s := 0.0
 var _acc_s := 0.0
@@ -242,13 +243,13 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 				az = (0.24 * tuck - 0.42 * fall_w) * sz                 # then reaching forward to land
 			else:
 				ay = (0.14 * rise_w + 0.12 * tuck) * sz
-				az = (0.4 * rise_w + 0.1 * tuck - 0.22 * fall_w) * sz   # trailing on the push, forward on the way down
+				az = (0.75 * rise_w + 0.1 * tuck - 0.22 * fall_w) * sz   # trailing on the push, forward on the way down
 			dy = lerpf(dy, ay, aw)
 			dz = lerpf(dz, az, aw)
 		var tp := fp + Vector3(0, dy, dz)
 		tgt[l] = tp
 		need = maxf(need, ((tp - L.hip).length() - (float(L.l1) + float(L.l2)) * 0.985))
-	var drop := clampf(need, 0.0, 0.2) if moving else 0.0
+	var drop := clampf(need, 0.0, 0.38) if moving else 0.0
 	# --- gait weights and the stride's own timing
 	var ww := 1.0 - smoothstep(walk_s, walk_s + (trot_s - walk_s) * 0.55, speed)
 	var gw := smoothstep(trot_s, trot_s + (gallop_s - trot_s) * 0.7, speed)
@@ -271,12 +272,12 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 	# starts and stops: the haunches coil under a start, sit down into a halt
 	pitch += 0.07 * maxf(acc, 0.0) + 0.09 * maxf(-acc, 0.0)
 	# turns: the body banks into it (the horse leans left into a left turn)
-	var bank_want := clampf(atan(speed * turn / 9.8) * 0.9, -0.3, 0.3)
+	var bank_want := clampf(atan(speed * turn / 9.8) * 0.9, -0.2, 0.2)
 	_bank = lerpf(_bank, bank_want, 1.0 - exp(-5.0 * maxf(dt, 0.001)))
 	roll -= _bank
 	# the leap: haunches drop and the forehand lifts in the gather, the hindquarters push through the climb,
 	# the nose tips down over the top, the forehand reaches for the ground and takes the landing
-	pitch += 0.2 * gather + (0.3 * rise_w - 0.2 * tuck) * aw - 0.2 * fall_w * aw - 0.09 * land
+	pitch += 0.28 * gather + (0.5 * rise_w - 0.25 * tuck) * aw - 0.42 * fall_w * aw - 0.09 * land
 	bounce *= 1.0 - aw
 	last_dy = bounce - drop - (0.13 * gather + 0.1 * land) * sz
 	body_pitch = pitch
@@ -286,9 +287,10 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 	var root_off := Vector3(0, last_dy, 0)
 	_pose_bone("root", 0.0, 0.0, root_off)
 	var fx := gw * flex * amp
-	_pose_bone("hips", pitch * 0.6 + 0.07 * fx, roll * 0.5)
-	_pose_bone("barrel", pitch * 0.3 - 0.1 * fx + sin(ph * 2.0 + 1.0) * 0.012 * k, roll * 0.3)
-	_pose_bone("chest", -pitch * 0.4 - 0.05 * fx, roll * 0.5)
+	rock = fx
+	_pose_bone("hips", pitch * 0.6 + 0.07 * fx, roll * 0.8)
+	_pose_bone("barrel", pitch * 0.3 - 0.1 * fx + sin(ph * 2.0 + 1.0) * 0.012 * k, roll * 0.2)
+	_pose_bone("chest", -pitch * 0.4 - 0.05 * fx, 0.0)
 	var br := sin(_t * 1.9 + _seed) * 0.01                      # breathing
 	# the head: a nod once a stride at the walk, lightly at the trot, deep at the gallop, carried out with speed
 	var nod := amp * (ww * 0.22 * sin(ph + 0.5) * heft + tw * 0.05 * sin(ph * 2.0 + 2.2) - gw * 0.3 * sin(TAU * (cyc - 0.35)))
