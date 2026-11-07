@@ -1379,17 +1379,82 @@ func _e_vault() -> void:
 	cam.fov = 62.0
 
 
+## The dressed limestone the Ossuary and the summit use (the game's good masonry), for a ledge the shot builds.
+func _ashlar() -> Material:
+	var t := "res://art/textures/oss_ashlar"
+	var s := StandardMaterial3D.new()
+	s.albedo_texture = load(t + "_albedo.png")
+	s.normal_enabled = true
+	s.normal_texture = load(t + "_normal.png")
+	s.roughness_texture = load(t + "_rough.png")
+	s.ao_enabled = true
+	s.ao_texture = load(t + "_ao.png")
+	s.albedo_color = Color(0.74, 0.76, 0.84)
+	s.uv1_triplanar = true
+	s.uv1_world_triplanar = true
+	s.uv1_triplanar_sharpness = 4.0
+	s.uv1_scale = Vector3.ONE * 0.3
+	return s
+
+
+var _grab_wall: Node3D
+
+
+## A low field wall of ramparts stone on open flat ground near `c` (nothing within 5 m of it): [ground point at the
+## near face, direction toward the wall].
+func _build_ledge(c: Vector3, yaw: float, rise: float) -> Array:
+	var f := fwd_of(yaw)
+	var side := f.cross(Vector3.UP)
+	var space := (main as Node3D).get_world_3d().direct_space_state
+	var base := on_ground(c)
+	var body := StaticBody3D.new()
+	body.name = "TrailerLedge"
+	body.collision_layer = Layers.WORLD
+	body.collision_mask = 0
+	var size := Vector3(4.5, rise, 3.0)
+	var box := BoxShape3D.new()
+	box.size = size
+	var cs := CollisionShape3D.new()
+	cs.shape = box
+	body.add_child(cs)
+	var bm := BoxMesh.new()
+	bm.size = size
+	var mi := MeshInstance3D.new()
+	mi.mesh = bm
+	mi.material_override = _ashlar()
+	body.add_child(mi)
+	main.add_child(body)
+	body.global_transform = Transform3D(Basis.looking_at(f, Vector3.UP), base + Vector3.UP * (rise * 0.5 - 0.15))
+	_grab_wall = body
+	var near_face := base - f * 1.5
+	var out := space.intersect_ray(PhysicsRayQueryParameters3D.create(near_face - f * 0.0 + Vector3.UP * 3.0, near_face + Vector3.DOWN * 3.0, Layers.WORLD))
+	return [(out.position as Vector3) if not out.is_empty() else near_face, f, side]
+
+
 func _s_grab() -> void:
-	_start_move("grab", [Vector2(-20, 12), Vector2(-32, 30), Vector2(2, -20), Vector2(-14, -28), Vector2(-64, 40)], 3.0)
+	_grab_wall = null
+	var yaw := PI * 0.5
+	var spot := _build_ledge(ARENA + Vector3(-6.0, 0.0, 0.0), yaw, 2.0)
+	var start: Vector3 = (spot[0] as Vector3) - (spot[1] as Vector3) * 3.2
+	_mv = [on_ground(start, 0.05), spot[0], spot[1]]
+	p.teleport(_mv[0])
+	p.set_view(atan2(-(spot[1] as Vector3).x, -(spot[1] as Vector3).z), -0.15)
+	_aiming = false
+	_drive = Vector3.ZERO
+	_drive_to = Vector3.ZERO
 	use_free_cam()
-	cam.fov = 55.0
-	if not _mv.is_empty():
-		drive(_mv[2])
-		_solve_move_cam(5.0, 1.8, 0.5)
+	cam.fov = 50.0
+	drive(_mv[2])
+	# a locked lens square to the climb, a little ahead of the wall so the hang and the pull-up both read
+	var o: Vector3 = _mv[1]
+	var d: Vector3 = _mv[2]
+	var sd := d.cross(Vector3.UP)
+	_mv_cam = solve_cam([(_mv[0] as Vector3) + Vector3.UP * 1.0, o + Vector3.UP * 1.0, o + d * 1.6 + Vector3.UP * 2.8], o - d * 0.5, yaw_to(sd), 6.2, 1.8)
+	hold_cam(_mv_cam, o - d * 0.6 + Vector3.UP * 1.3)
 
 func _u_grab(tt: float) -> void:
 	if not _mv.is_empty():
-		hold_cam(_mv_cam, pp() + Vector3.UP * 1.1)       # the jump, the hang, the climb
+		hold_cam(_mv_cam, (_mv[1] as Vector3) + (_mv[2] as Vector3) * 0.2 + Vector3.UP * 1.6)       # the jump, the hang, the climb
 	light_at(pp(), 4.0)
 	if _mv.is_empty():
 		return
@@ -1399,9 +1464,13 @@ func _u_grab(tt: float) -> void:
 		flags["grab_j_t"] = tt
 	if flags.has("grab_j_t") and tt - float(flags["grab_j_t"]) > 0.3 and once("grab_j_up"):
 		release("jump")
+	if tt > 1.5 and once("grab_stop"):
+		drive(Vector3.ZERO)
 
 
 func _e_grab() -> void:
+	if is_instance_valid(_grab_wall):
+		_grab_wall.queue_free()
 	release("jump")
 	drive(Vector3.ZERO)
 	cam.fov = 62.0
