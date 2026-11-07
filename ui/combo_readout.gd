@@ -48,6 +48,7 @@ func _paint() -> void:
 		var pop := clampf(1.0 - (now - float(Combo.feed[0].t)) * 4.0, 0.0, 1.0)
 		var size := 22 + int(6.0 * pop)
 		var col := Color(1.0, 0.86, 1.0, a)
+		IconArt.draw_mark(_draw, "hud", "combo", Vector2(x - 14.0, y - 5.0), 20.0, Color(1, 1, 1, a))
 		_shadowed("COMBO", Vector2(x, y), 15, Color(0.75, 0.7, 0.85, a))
 		_shadowed("x%d" % Combo.chain, Vector2(x + 78, y + 2), size, col)
 		var bw := 120.0

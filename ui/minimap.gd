@@ -350,6 +350,8 @@ func _draw() -> void:
 		var p := c + Vector2(q.x, q.y)
 		var col: Color = m.col
 		var a := 0.55 if q.z > 0.0 else 1.0
+		if kind in ["fire", "ash", "beacon", "seal", "boss", "chest"] and IconArt.draw_mark(self, "mark", kind, p, 17.0 if kind != "chest" else 12.0, Color(1, 1, 1, a)):
+			continue
 		match kind:
 			"fire":
 				_flame(p, Color(LANTERN, a))
@@ -493,6 +495,9 @@ func _draw_markers(c: Vector2, r: float, pulse: float) -> void:
 
 
 func _glyph(kind: String, p: Vector2, col: Color, s: float) -> void:
+	# the painted medallions (ui/icons/mark): their own colours carry the meaning; the pulse is `s` for a target
+	if IconArt.draw_mark(self, "mark", kind, p, 19.0 * s, Color(1, 1, 1, col.a)):
+		return
 	var dark := Color(0.06, 0.045, 0.04, 0.92 * col.a)
 	match kind:
 		"quest_available", "quest_turnin":

@@ -251,3 +251,26 @@ def save_png(path, img):
         + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b"")
     with open(path, "wb") as f:
         f.write(png)
+
+
+def save_png_rgba(path, rgba, size=64):
+    """RGBA out, box-filtered down to size x size (premultiplied, so the medallion's edge stays clean)."""
+    k = rgba.shape[0] // size
+    a = np.clip(rgba[..., 3], 0, 1)
+    pre = np.clip(rgba[..., :3], 0, 1) * a[..., None]
+    if k > 1:
+        pre = pre.reshape(size, k, size, k, 3).mean(axis=(1, 3))
+        a = a.reshape(size, k, size, k).mean(axis=(1, 3))
+    rgb = np.where(a[..., None] > 1e-4, pre / np.maximum(a[..., None], 1e-4), 0.0)
+    out = (np.dstack([np.clip(rgb, 0, 1), a]) * 255 + 0.5).astype(np.uint8)
+    h, w, _ = out.shape
+    raw = b"".join(b"\x00" + out[i].tobytes() for i in range(h))
+
+    def chunk(t, d):
+        c = struct.pack(">I", len(d)) + t + d
+        return c + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
+
+    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)) \
+        + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b"")
+    with open(path, "wb") as f:
+        f.write(png)

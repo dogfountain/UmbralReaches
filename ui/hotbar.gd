@@ -284,6 +284,8 @@ func _core_gem(c: Vector2) -> void:
 	_anim = true
 	var col: Color = DB.core(core).get("tint", Color.WHITE)
 	var pulse := 0.8 + 0.2 * sin(_t * 3.0)
+	if IconArt.draw_mark(self, "hud", "core_gem", c, 17.0, Color(col * pulse, 1.0)):
+		return
 	var d := PackedVector2Array([c + Vector2(0, -7), c + Vector2(6, 0), c + Vector2(0, 7), c + Vector2(-6, 0)])
 	draw_colored_polygon(d, Color(col * pulse, 1.0))
 	d.append(d[0])

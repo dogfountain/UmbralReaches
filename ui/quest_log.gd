@@ -16,6 +16,7 @@ const Chains := preload("res://core/story/quest_chains.gd")
 const Offer := preload("res://ui/quest_offer.gd")
 const UIType := preload("res://ui/type.gd")
 const UiSound := preload("res://ui/ui_sound.gd")   ## quiet menu sounds (F)
+const QuestMarks := preload("res://ui/quest_marks.gd")
 const TextDirector := preload("res://ui/text_director.gd")
 const ACTION := "quest_log"
 const Med := preload("res://ui/medieval_style.gd")
@@ -323,10 +324,12 @@ func _fill() -> void:
 		b.add_theme_font_size_override("font_size", 21)
 		var tag := ""
 		if Book.ready(id):
-			tag = "   ✓ ready"
+			tag = "   ready"
 		elif String(Chains.QUESTS[id].get("repeat", "")) == "daily":
 			tag = "   (daily)"
-		var mark := "◇  " if done else ("◆  " if Book.tracked(id) else "·  ")
+		var pin := QuestMarks.lore_art("done" if done else ("ready" if Book.ready(id) else ("tracked" if Book.tracked(id) else "")))
+		IconArt.on_button(b, pin)
+		var mark := "" if pin != null else ("·  " if not done else "◇  ")
 		b.text = mark + String(Chains.QUESTS[id].name) + tag
 		b.pressed.connect(func() -> void: select(id))
 		_list.add_child(b)
@@ -394,19 +397,21 @@ func _fill_detail() -> void:
 		for si in cur + 1:
 			var stp := Chains.step(sel, si)
 			var st := _lbl(19, INK if si == cur else Color(0.55, 0.54, 0.58), false)
-			st.text = ("  ›  " if si == cur else "  ✓  ") + Chains.step_text(sel, si, Book.q(sel) if si == cur else {})
+			var ico := QuestMarks.task_art(String(stp.kind))
+			var lead := "" if ico != null else ("  ›  " if si == cur else "  ✓  ")
+			st.text = lead + Chains.step_text(sel, si, Book.q(sel) if si == cur else {})
 			if si < cur and String(stp.kind) in Chains.COUNTED:
-				st.text = "  ✓  " + String(stp.text).replace(" ({n}/{of})", "")
+				st.text = lead + String(stp.text).replace(" ({n}/{of})", "")
 			st.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			_detail.add_child(st)
+			QuestMarks.row(_detail, st, ico, 24.0, si < cur)
 		var ph := _lbl(16, Color(Med.GILT_DEEP, 0.95))
 		ph.text = "WHAT IT PAYS"
 		_detail.add_child(ph)
 		var pay := _lbl(19, INK, false)
 		pay.text = Offer.pay_line(qd.get("reward", {}))
 		pay.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_detail.add_child(pay)
 		var pieces := Book.offered_gear(sel)
+		QuestMarks.row(_detail, pay, QuestMarks.reward_art(qd.get("reward", {}), not pieces.is_empty() and qd.get("reward", {}).is_empty()), 24.0)
 		if not pieces.is_empty():
 			var names: PackedStringArray = []
 			for p: Dictionary in pieces:

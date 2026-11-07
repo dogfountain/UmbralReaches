@@ -602,7 +602,7 @@ func _fill_writings() -> void:
 		_head("%s   %d / %d" % [LoreDB.place_name(region), got.size(), total])
 		got.sort_custom(func(a: String, b: String) -> bool: return int(CodexStore.read[a]) < int(CodexStore.read[b]))
 		for id in got:
-			_entry(_label_for(id), func() -> void: _show_lore(id))
+			_entry(_label_for(id), func() -> void: _show_lore(id), false, IconArt.art("lore", String(LoreIndex.entry(id).get("kind", ""))))
 
 
 func _fill_places() -> void:
@@ -624,7 +624,7 @@ func _fill_relics() -> void:
 			ids.append(String(id))
 	for id in ids:
 		var d := ItemDB.def(id)
-		_entry(String(d.name), func() -> void: _show_item(id))
+		_entry(String(d.name), func() -> void: _show_item(id), false, IconArt.art("reward", "item"))
 	if ids.is_empty():
 		_head("Your satchel is empty")
 
@@ -918,15 +918,12 @@ class MapView extends Control:
 		# braziers (a flame, grey until kindled), the Keg (a warm square), tasks (gold rings)
 		for pn: Dictionary in pins:
 			var pp := _to(pn.at)
+			if IconArt.draw_mark(self, "mark", String(pn.kind).replace("task", "quest_target"), pp, 20.0):
+				continue                  # (the painted coins; "mark", the secret places, have none and keep their diamond)
 			match String(pn.kind):
 				"fire", "ash":
 					var col := M_EMBER if String(pn.kind) == "fire" else Color(0.55, 0.5, 0.52, 0.8)
 					draw_colored_polygon(PackedVector2Array([pp + Vector2(0, -8), pp + Vector2(4, 1), pp + Vector2(2.5, 4), pp + Vector2(-2.5, 4), pp + Vector2(-4, 1)]), col)
-				"keg":
-					draw_rect(Rect2(pp - Vector2(4, 4), Vector2(8, 8)), Color(1.0, 0.78, 0.45, 0.9))
-				"task":
-					draw_arc(pp, 7.0, 0.0, TAU, 24, Color(1.0, 0.8, 0.4), 2.0)
-					draw_circle(pp, 2.0, Color(1.0, 0.8, 0.4))
 				"mark":
 					var mc: Color = pn.get("col", Color(1.0, 0.8, 0.4))
 					draw_colored_polygon(PackedVector2Array([pp + Vector2(0, -5), pp + Vector2(5, 0), pp + Vector2(0, 5), pp + Vector2(-5, 0)]), mc)
@@ -955,9 +952,10 @@ func _head(t: String) -> void:
 	l.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 
 
-func _entry(t: String, on_pick: Callable, missing := false) -> void:
+func _entry(t: String, on_pick: Callable, missing := false, icon: Texture2D = null) -> void:
 	var b := Button.new()
 	b.text = t
+	IconArt.on_button(b, icon, 24.0)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.flat = false
 	b.clip_text = true

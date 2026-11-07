@@ -45,3 +45,27 @@ static func draw_disc(ci: CanvasItem, tex: Texture2D, c: Vector2, radius: float,
 		pts.append(c + v * radius)
 		uvs.append(Vector2(0.5, 0.5) + v * 0.5)
 	ci.draw_colored_polygon(pts, tint, uvs, tex)
+
+
+## A list button's own mark (the codex rows, the quest log's pins): the icon, scaled to `size`, before the text.
+static func on_button(b: Button, tex: Texture2D, size := 26.0) -> void:
+	if tex == null:
+		return
+	b.icon = tex
+	b.expand_icon = true
+	b.add_theme_constant_override("icon_max_width", int(size))
+	b.add_theme_constant_override("h_separation", 10)
+	b.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+
+
+## A small painted medallion (category "mark", "lore", "task", "reward", "hud") centred on `c`, `size` px
+## across. Returns false when there is none, so the caller draws its old glyph. The art is 64 px with
+## mipmaps; the item filters with them so it stays crisp at 16 to 28 px.
+static func draw_mark(ci: CanvasItem, category: String, id: String, c: Vector2, size: float, tint: Color = Color.WHITE) -> bool:
+	var tex := art(category, id)
+	if tex == null:
+		return false
+	if ci.texture_filter != CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS:
+		ci.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	ci.draw_texture_rect(tex, Rect2(c - Vector2(size, size) * 0.5, Vector2(size, size)), false, tint)
+	return true

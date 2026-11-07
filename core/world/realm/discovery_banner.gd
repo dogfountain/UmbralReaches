@@ -1,6 +1,6 @@
 extends CanvasLayer
 ## r33 world: the engraved place-name banner (WoW's zone text, in our own stone). Drawn in code, no
-## textures: a dark slate band that fades out at both ends, two bronze rules with a lozenge at their
+## textures but for a painted coin at each rule's middle: a dark slate band that fades out at both ends, two bronze rules with a lozenge at their
 ## middles, and the name cut into it (a dark lip above each letter, a pale one below, so it reads as
 ## carved rather than printed). Three sizes:
 ##   region   first entry: "discovered", the big carved name, the place's line under it (~5 s)
@@ -102,6 +102,9 @@ class Plate extends Control:
 		draw_polygon(PackedVector2Array([poly[1], poly[2], poly[3], poly[4]]), PackedColorArray([col, c0, c0, col]))
 
 	func _lozenge(at: Vector2, r: float) -> void:
+		# a painted coin (ui/icons/mark) where the rule is struck: a fire for a place, a gate for a world event
+		if IconArt.draw_mark(self, "mark", "fire" if accent == EMBER else "travel", at, r * 3.6, Color(1, 1, 1, clampf(k * 1.5, 0.0, 1.0))):
+			return
 		var d := PackedVector2Array([at + Vector2(0, -r), at + Vector2(r * 1.4, 0), at + Vector2(0, r), at + Vector2(-r * 1.4, 0)])
 		draw_colored_polygon(d, Color(0.05, 0.035, 0.03, 0.95))
 		var o := d.duplicate()

@@ -34,6 +34,8 @@ func glyph(c: Control, kind: String, p: Vector2, hot: bool, s := 1.0) -> void:
 	if hot:
 		c.draw_circle(p, 17.0 * s, Color(CREAM, 0.55))
 		c.draw_arc(p, 17.0 * s, 0.0, TAU, 28, INK, 1.6, true)
+	if _medal(c, kind, p, s):
+		return
 	if kind != "lamp" and s >= 1.0 and not hot:
 		c.draw_circle(p, 13.0, Color(CREAM, 0.38))
 	match kind:
@@ -90,3 +92,19 @@ func glyph(c: Control, kind: String, p: Vector2, hot: bool, s := 1.0) -> void:
 			c.draw_colored_polygon(st, Color(0.82, 0.88, 1.0))
 			st.append(st[0])
 			c.draw_polyline(st, INK, 1.8 * s, true)
+
+
+## The painted medallion for a kind (ui/icons/mark, from tools/icon_kit/marks.py): a dark-outlined coin that
+## reads on the parchment at 26 px. A task's target keeps its pulsing ring around it. False when none exists.
+func _medal(c: Control, kind: String, p: Vector2, s: float) -> bool:
+	var sz := 30.0 * s
+	if kind == "lamp":
+		sz = 20.0 * s
+	elif kind == "boss" or kind == "boss_down":
+		sz = 34.0 * s
+	if kind == "quest_target":
+		var pr := 0.5 + 0.5 * sin(pulse * 3.0)
+		c.draw_arc(p, (15.0 + pr * 3.0) * s, 0.0, TAU, 28, Color(GOLD, 0.95), 3.0 * s, true)
+		c.draw_arc(p, (15.0 + pr * 3.0) * s + 2.0, 0.0, TAU, 28, INK, 1.2 * s, true)
+		sz = 24.0 * s
+	return IconArt.draw_mark(c, "mark", kind, p, sz)

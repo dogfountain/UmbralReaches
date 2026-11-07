@@ -150,13 +150,16 @@ func _draw() -> void:
 		var y := band_y + 1.0
 		match String(m.kind):
 			"beacon":
-				_diamond(Vector2(x, y), 7.0, col, true)
-				_diamond(Vector2(x, y), 9.5, Color(0.02, 0.02, 0.04, a * 0.6), false)
+				if not IconArt.draw_mark(self, "mark", "beacon", Vector2(x, y), 22.0, Color(1, 1, 1, a)):
+					_diamond(Vector2(x, y), 7.0, col, true)
+					_diamond(Vector2(x, y), 9.5, Color(0.02, 0.02, 0.04, a * 0.6), false)
 				labels.append([rel.length(), x, "%d m" % int(round(rel.length())), a])
 			"cold":
-				_diamond(Vector2(x, y), 4.5, col, false)
+				if not IconArt.draw_mark(self, "mark", "cold", Vector2(x, y), 14.0, Color(1, 1, 1, a)):
+					_diamond(Vector2(x, y), 4.5, col, false)
 			_:
-				draw_circle(Vector2(x, y), 2.6, col)
+				if not IconArt.draw_mark(self, "mark", "lamp", Vector2(x, y), 13.0, Color(1, 1, 1, a)):
+					draw_circle(Vector2(x, y), 2.6, col)
 	_draw_distances(labels, band_y + 33.0)
 
 
