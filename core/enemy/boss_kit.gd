@@ -441,8 +441,50 @@ static func absorb(e: Enemy, dmg: float, from: Node, floor_hp: float) -> float:
 			e.set_meta(&"floor_pop", now)
 			HitText.pop(e.global_position + Vector3.UP * (e.hp_bar_y + 0.6), "warded", Color(0.8, 0.7, 1.0))
 			Vfx.ring(e.global_position + Vector3.UP * (e.hp_bar_y * 0.55), 1.2, Color(0.5, 0.45, 0.6), 0.25, 0.06, Vector3.UP, 0.8)
+		if left <= 0.0:
+			deflect_fx(e, from)
 		dmg = left
 	return dmg
+
+
+## One clear cue for every blow a boss turns completely (a rooted, mounded or ascended intermission):
+## a spark where the blow lands, a ringing note, a "warded" text, and (once per window) a line saying
+## what to do instead. The caller also sets the `ward_hint` meta, which locks the boss bar.
+static func warded_hit(e: Enemy, hint: String, col: Color, from: Node = null) -> void:
+	deflect_fx(e, from)
+	var now := Time.get_ticks_msec()
+	if now - int(e.get_meta(&"ward_pop", 0)) > 600:
+		e.set_meta(&"ward_pop", now)
+		HitText.pop(e.global_position + Vector3.UP * (e.hp_bar_y + 0.6), "warded", Color(0.8, 0.75, 1.0))
+		if hint != "":
+			HitText.pop(e.global_position + Vector3.UP * (e.hp_bar_y + 1.0), hint, col)
+	if hint != "" and now - int(e.get_meta(&"ward_emote", -100000)) > 12000:
+		e.set_meta(&"ward_emote", now)
+		emote(e, "Your blows ring off it: " + hint + ".", col)
+
+
+## The spark and note of a turned blow (throttled: a held trigger must not machine-gun it).
+static func deflect_fx(e: Enemy, from: Node) -> void:
+	var now := Time.get_ticks_msec()
+	if now - int(e.get_meta(&"deflect_ms", 0)) < 110:
+		return
+	e.set_meta(&"deflect_ms", now)
+	var at := e.global_position + Vector3.UP * (e.hp_bar_y * 0.55)
+	var dir := Vector3.UP
+	if from is Node3D:
+		var d := (from as Node3D).global_position - e.global_position
+		d.y = 0.0
+		if d.length() > 0.05:
+			dir = d.normalized()
+			at += dir * 0.8
+	Vfx.burst(at, Color(1.8, 1.6, 2.4), {"count": 14, "life": 0.3, "speed": Vector2(3.0, 7.0), "size": 0.03, "gravity": -9.0, "trail": 0.05, "dir": dir, "spread": 70.0})
+	Vfx.ring(at, 0.9, Color(0.7, 0.6, 1.0), 0.2, 0.05, Vector3.UP, 0.8)
+	Sfx.play_stream(Synth.get_stream("block"), at, -1.0, 1.5)
+
+
+## True while the boss turns every blow (an intermission names its way out in the `ward_hint` meta).
+static func is_warded(e: Enemy) -> bool:
+	return e._ward_t > 0.0 or String(e.get_meta(&"ward_hint", "")) != ""
 
 
 ## The HP floor for a boss in `phase` (1-based) with `marks` (phase_marks()) that has shown its

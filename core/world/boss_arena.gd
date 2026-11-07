@@ -146,10 +146,16 @@ func _physics_process(_d: float) -> void:
 				_bar.value = _boss.hp
 				var ph: Variant = _boss.get("phase")
 				var lbl := String(_boss.get_meta(&"phase_label", ""))
+				var warded := _boss is Enemy and BossKit.is_warded(_boss as Enemy)
+				if _bar_name:
+					_bar_name.add_theme_color_override("font_color", Color(0.7, 0.8, 1.0) if warded else Color(0.92, 0.84, 1.0))
+				if warded != bool(get_meta(&"_shown_ward", false)) and _bar_name:
+					set_meta(&"_shown_ward", warded)
+					set_meta(&"_shown_label", "?")            # forces the name to be rewritten below
 				if lbl != String(get_meta(&"_shown_label", "")) and _bar_name:
 					set_meta(&"_shown_label", lbl)        # r34: an intermission names itself on the bar
 					_bar.phase_flash()
-					_bar_name.text = "%s  ·  %s" % [_named().to_upper(), lbl if lbl != "" else ["", "I", "II", "III", "IV"][clampi(_phase_seen, 0, 4)]]
+					_bar_name.text = "%s  ·  %s%s" % [_named().to_upper(), lbl if lbl != "" else ["", "I", "II", "III", "IV"][clampi(_phase_seen, 0, 4)], _ward_tag(warded)]
 				if ph is int and int(ph) != _phase_seen:
 					_phase_seen = int(ph)
 					_bar.phase_flash()
@@ -423,6 +429,14 @@ func _open_gates() -> void:
 			g.call("reopen")
 		elif g.has_method("release"):
 			g.call("release")
+
+
+## The bar's lock state while the boss turns every blow: what to do instead, when it says.
+func _ward_tag(warded: bool) -> String:
+	if not warded:
+		return ""
+	var hint := String(_boss.get_meta(&"ward_hint", ""))
+	return "   [WARDED: %s]" % hint.to_upper() if hint != "" else "   [WARDED]"
 
 
 func _show_bar() -> void:

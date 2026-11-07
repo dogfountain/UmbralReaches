@@ -112,10 +112,7 @@ func _build() -> void:
 
 func _absorb(dmg: float, from: Node) -> float:
 	if ascended:
-		var now := Time.get_ticks_msec()
-		if now - int(get_meta(&"asc_pop", 0)) > 600:
-			set_meta(&"asc_pop", now)
-			HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.6), "ascended: rekindle the pylons", Color(1.0, 0.9, 0.6))
+		BossKit.warded_hit(self, "rekindle the pylons", Color(1.0, 0.9, 0.6), from)
 		return 0.0
 	return BossKit.absorb(self, dmg, from, BossKit.phase_floor(self, phase, phase_marks(), _sig))
 
@@ -504,6 +501,7 @@ func _ascend() -> void:
 	gravity = 0.0
 	velocity = Vector3.ZERO
 	set_meta(&"phase_label", "THE ASCENSION")
+	set_meta(&"ward_hint", "rekindle the pylons")
 	_star_t = 2.5
 	_star_p_t = 3.5
 	if _rig and _rig.has_method("howl"):
@@ -558,6 +556,7 @@ func on_pylon_lit(_p2: Node) -> void:
 func _descend(left: int) -> void:
 	ascended = false
 	set_meta(&"phase_label", "")
+	remove_meta(&"ward_hint")
 	gravity = _grav
 	if left > 0:
 		BossKit.emote(self, "The sky breaks!", Color(1.0, 0.5, 0.35))

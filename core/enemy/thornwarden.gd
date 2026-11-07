@@ -101,10 +101,7 @@ func on_engaged(arena: Node) -> void:
 
 func _absorb(dmg: float, from: Node) -> float:
 	if rooted:
-		var now := Time.get_ticks_msec()
-		if now - int(get_meta(&"root_pop", 0)) > 600:
-			set_meta(&"root_pop", now)
-			HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.6), "rooted: burn the knots", Color(0.9, 1.0, 0.5))
+		BossKit.warded_hit(self, "burn the heart-knots", Color(0.9, 1.0, 0.5), from)
 		return 0.0
 	if speakers() > 0:
 		dmg *= 0.75 if _attuned else 0.5       # its Thornspeakers' song: kill them first
@@ -438,6 +435,7 @@ func _begin_rooting() -> void:
 	_knot_t = 0.0
 	weak_open = false
 	set_meta(&"phase_label", "HEART OF THE HENGE")
+	set_meta(&"ward_hint", "burn the heart-knots")
 	var c: Vector3 = _arena_c if _arena_c != Vector3.INF else global_position
 	SpellFx.rift_in(global_position)
 	var to := c + (global_position - c).normalized() * 3.2 if global_position.distance_to(c) > 1.0 else c + Vector3(3.2, 0, 0)
@@ -500,6 +498,7 @@ func _tick_rooted(delta: float) -> void:
 func _end_rooting(left: int) -> void:
 	rooted = false
 	set_meta(&"phase_label", "")
+	remove_meta(&"ward_hint")
 	_finish_cast(true, false)
 	if left > 0:
 		var gain := float(max_hp) * 0.05 * float(left)
