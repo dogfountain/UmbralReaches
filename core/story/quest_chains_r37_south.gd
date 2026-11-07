@@ -37,8 +37,8 @@ const QUESTS := {
 		"text": "The first fire was carried out of the Grandmother Oak, in a knot of its own heart, and the Rooted hid the knot where the Order would not climb. Ruan is too old for the stair. She wants to know the oak is whole, that something does not wear its roots, and that the knot is still where they left it.",
 		"steps": [
 			{"kind": "visit", "at": Vector2(-70.0, 206.0), "r": 16.0, "label": "The Grandmother Oak", "text": "Go to the Grandmother Oak on the southern downs, and look up"},
-			{"kind": "cond", "cond": "elite:root_wife", "text": "Put down the Root-Wife, who keeps the oak's roots"},
-			{"kind": "cond", "cond": "secret:found:oak_crown", "text": "Climb the stair inside the oak to its crown, and find what the Rooted hid"},
+			{"kind": "cond", "cond": "elite:root_wife", "at": Vector2(-70.0, 206.0), "label": "The Root-Wife", "text": "Put down the Root-Wife, who keeps the oak's roots"},
+			{"kind": "cond", "cond": "secret:found:oak_crown", "at": Vector2(-70.0, 206.0), "label": "The oak's crown", "text": "Climb the stair inside the oak to its crown, and find what the Rooted hid"},
 			{"kind": "turnin", "who": "ruan", "text": "Tell Gammer Ruan what the oak kept"},
 		],
 		"reward": {"ash": 30, "items": {"relic_fragment": 2}},
@@ -49,8 +49,8 @@ const QUESTS := {
 		"text": "Cadoc hears it on still nights from across the mere, the Well, calling his name back to him a breath after the dead called it. He will not row that way. He wants whatever answers put down, and to know what it was listening for.",
 		"steps": [
 			{"kind": "visit", "at": Vector2(72.0, 204.0), "r": 26.0, "label": "The Well of Echoes", "text": "Walk to the Well of Echoes, south of the mere, and look down"},
-			{"kind": "cond", "cond": "elite:well_answer", "text": "Go down the ledge and put down the Answerer, on the landing by the cave"},
-			{"kind": "cond", "cond": "secret:found:well_listener", "text": "Find the listener's cairn, on the ledge where the falls pour across it"},
+			{"kind": "cond", "cond": "elite:well_answer", "at": Vector2(72.0, 204.0), "label": "The Answerer", "text": "Go down the ledge and put down the Answerer, on the landing by the cave"},
+			{"kind": "cond", "cond": "secret:found:well_listener", "at": Vector2(72.0, 204.0), "label": "The listener's cairn", "text": "Find the listener's cairn, on the ledge where the falls pour across it"},
 			{"kind": "turnin", "who": "cadoc", "text": "Tell Cadoc what answered"},
 		],
 		"reward": {"ash": 30, "items": {"relic_fragment": 1, "ember_shard": 1}},

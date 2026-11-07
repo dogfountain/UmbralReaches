@@ -213,9 +213,14 @@ func _refresh_targets() -> void:
 		var at: Variant = stp.get("to", stp.get("at"))
 		if id == "forty_first" and s == 0:
 			at = Chains.ESCORT.to
+		var bell := ""
+		if not (at is Vector2) and String(stp.get("cond", "")).begins_with("bells:"):
+			bell = _next_bell()                 # the peal's step wants bells, not a place: point at the nearest unanswered one
+			if bell != "":
+				at = Chains.step(bell, 0).get("at")
 		if not (at is Vector2):
 			continue
-		var key := "%s:%d" % [id, s]
+		var key := "%s:%d:%s" % [id, s, bell]
 		want[key] = true
 		var tv: Variant = _targets.get(key)
 		var t: Node3D = tv as Node3D if is_instance_valid(tv) else null
@@ -230,7 +235,7 @@ func _refresh_targets() -> void:
 			t.set_meta("map_color", GOLD)
 			t.set_meta("quest", id)
 			_targets[key] = t
-		var lbl := String(stp.get("label", ""))
+		var lbl := String(stp.get("label", Chains.step(bell, 0).get("label", "") if bell != "" else ""))
 		t.set_meta("map_label", String(Chains.QUESTS[id].name) + ((": " + lbl) if lbl != "" else ""))
 	for k: String in _targets.keys():
 		if not want.has(k):
@@ -238,6 +243,24 @@ func _refresh_targets() -> void:
 			if is_instance_valid(t2):
 				(t2 as Node).queue_free()
 			_targets.erase(k)
+
+
+## The nearest of the Founder's bells not yet answered for ("" when all are), by the bell keeper's beat.
+func _next_bell() -> String:
+	var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	var best := ""
+	var best_d := INF
+	for bid: String in Chains.BELLS:
+		if Book.pick(bid) != "":
+			continue
+		var at: Variant = Chains.step(bid, 0).get("at")
+		if not (at is Vector2):
+			continue
+		var d := 0.0 if pl == null else Vector2(pl.global_position.x, pl.global_position.z).distance_to(at as Vector2)
+		if d < best_d:
+			best_d = d
+			best = bid
+	return best
 
 
 ## An engraved lozenge: a bronze rim, a soot-dark face, a thin inner line (drawn once per night).

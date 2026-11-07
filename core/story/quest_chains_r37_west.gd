@@ -42,7 +42,7 @@ const QUESTS := {
 			{"kind": "turnin", "who": "cassel", "text": "Tell Captain Cassel the lamp is on the Lines"},
 		],
 		"reward": {"ash": 22},
-		"choose": [{"slot": "vestment", "rarity": 1}, {"slot": "lantern", "rarity": 1}],
+		"choose": [{"slot": "vestment", "rarity": 2}, {"slot": "lantern", "rarity": 2}],
 		"outcome": {"": "Cassel climbed to the post's roof that night and looked south for a long time. \"There,\" he said, to nobody. \"That's a lamp.\""}},
 	"wf_lights": {"name": "Lights for the Sunk", "giver": "ennis", "where": "Sister Ennis, on Weirford Bridge", "zone": "weirford",
 		"offer": true,
@@ -66,7 +66,7 @@ const QUESTS := {
 			{"kind": "turnin", "who": "tolliver", "text": "Tell Tolliver the horn is quiet"},
 		],
 		"reward": {"ash": 34, "items": {"relic_fragment": 2}},
-		"choose": [{"slot": "focus", "rarity": 2}, {"slot": "vestment", "rarity": 2}, {"slot": "girdle", "rarity": 2}],
+		"choose": [{"slot": "focus", "rarity": 3}, {"slot": "vestment", "rarity": 3}, {"slot": "girdle", "rarity": 3}],
 		"outcome": {"": "Tolliver held the rubbings a long time, then put them on the stall's fire one by one. \"Nobody should have to read those again,\" he said. \"Least of all the boy.\""}},
 }
 

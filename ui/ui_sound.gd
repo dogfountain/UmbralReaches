@@ -17,8 +17,11 @@ const KINDS := {
 }
 
 
+static var muted := false              ## set while the loading screen opens every panel once
+
+
 static func play(host: Node, kind: String) -> void:
-	if host == null or not host.is_inside_tree() or not KINDS.has(kind):
+	if muted or host == null or not host.is_inside_tree() or not KINDS.has(kind):
 		return
 	var pname := "UiSound_" + kind
 	var pl := host.get_node_or_null(pname) as AudioStreamPlayer

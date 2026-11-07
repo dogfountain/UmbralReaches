@@ -43,7 +43,7 @@ const SPIRE_COAL := {"name": "The Lamplighters' Coal", "giver": "ardel", "where"
 		{"kind": "carry", "from": "coal_ardel", "to": Vector2(240.0, 8.0), "r": 7.0, "time": 170.0, "label": "Coal",
 			"lost": "The coal has gone out on the road. Ardel's fire has more.",
 			"text": "Carry the coal to the foot of the Lamplighters' Spire before it dies ({t} s)"},
-		{"kind": "cond", "cond": "secret:open:spire_lamp", "past": "The Spire's lamp is already lit.",
+		{"kind": "cond", "cond": "secret:open:spire_lamp", "at": Vector2(240.0, 8.0), "label": "The Spire's lamp", "past": "The Spire's lamp is already lit.",
 			"text": "Climb the Spire and light the great lamp"},
 		{"kind": "turnin", "who": "ardel", "text": "Tell Ardel the Spire is lit"},
 	],
@@ -59,6 +59,7 @@ const ANCHOR_NAMES := {"name": "Names From the Rock", "giver": "teasel", "where"
 		{"kind": "turnin", "who": "teasel", "text": "Bring the slates to Teasel"},
 	],
 	"reward": {"ash": 20, "items": {"relic_fragment": 1}},
+	"choose": [{"slot": "vestment", "rarity": 2}, {"slot": "girdle", "rarity": 2}],
 	"outcome": {"": "Teasel read them all twice. Wren's said: SEVEN DAYS, AND THEN I HEARD THE BELL. She folded the slate away and did not say what bell."}}
 
 const ANCHOR_VOW := {"name": "The Vow Unbroken", "giver": "teasel", "where": "Teasel Dray, at the drying shed", "zone": "anchorholds",
