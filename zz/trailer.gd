@@ -12,13 +12,14 @@ extends Node
 ## soft fill light follows it. Cinematic settings in memory (TAA), HUD and floating words hidden.
 ## Saves held. Quits by itself.
 
-const SHOTS := [
-	# a fast cut: fights where the foes are in the frame and fall, movement between, the boss after DESCEND
-	["cold", 1.4], ["run_game", 2.0], ["vault", 2.0], ["card_dark", 0.8], ["fight_otc", 3.2],
-	["wildlife", 1.5], ["fp_run", 1.8], ["fight_side", 3.0], ["grab", 2.6], ["fp_lance", 2.2],
-	["tavern", 1.4], ["fight_top", 3.2], ["treasure", 1.6], ["storm", 1.8], ["card_depths", 0.8],
-	["boss_reveal", 2.4], ["boss_game", 3.0], ["boss_wide", 3.0], ["boss_low", 2.5], ["finale", 4.5],
-]
+const Order := preload("res://zz/trailer_order.gd")
+const Cam := preload("res://zz/trailer_cam.gd")
+const Act1 := preload("res://zz/trailer_shots_act1.gd")
+const Act2 := preload("res://zz/trailer_shots_act2.gd")
+const Act3 := preload("res://zz/trailer_shots_act3.gd")
+const Act4 := preload("res://zz/trailer_shots_act4.gd")
+const LEAD_FRAMES := 6                         ## black frames while a far cut settles (trimmed by the assembly)
+var SHOTS: Array = []
 const GREEN := Vector3(2.0, 0.0, 34.0)        ## the village green (the finale's foreground)
 const ARENA := Vector3(-24.0, 0.0, 60.0)      ## the fight ground: open, outside every sanctuary's light
 const WEST := PI * 0.5                         ## facing west down the road
@@ -29,7 +30,6 @@ const CHANTER_P := "res://core/enemy/chanter.gd"
 const MITE_P := "res://core/enemy/mite.gd"
 const ABBOT_P := "res://core/enemy/bone_abbot.gd"
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
-const NO_SUBJECT := ["boss_low", "cold", "card_dark", "card_depths", "fp_run", "fp_lance", "finale", "wildlife", "tavern", "boss_reveal"]
 const PIT := Vector3(16.0, 4.3, -86.0)         ## the Ossuary pit floor (16 x 16 m at y 4.2): the Abbot's own ground
 const PIT_PLAYER := Vector3(16.0, 4.3, -80.5)
 const PIT_BOSS := Vector3(16.0, 4.3, -90.5)
@@ -54,6 +54,13 @@ var flags := {}
 var _cam_pos := Vector3.ZERO
 var _cam_at := Vector3.ZERO
 var _snap := true
+var _want: PackedStringArray = []
+var _preview := false
+var _provs: Array = []
+var _cur: Object
+var _lead := 0
+var lead_black: ColorRect
+var keep_layers: Array[CanvasLayer] = []   ## UI the shot wants on screen (the rest is hidden every frame)
 # title layer
 var layer: CanvasLayer
 var black: ColorRect
@@ -63,11 +70,24 @@ var _font: Font
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	SHOTS = Order.ORDER.duplicate()
+	for a in OS.get_cmdline_user_args():
+		if a == "--list":
+			for sh: Array in SHOTS:
+				print("SHOT %-14s %.1f s  %s" % [sh[0], float(sh[1]), sh[3] if sh.size() > 3 else ""])
+			get_tree().quit()
+			return
+		elif a.begins_with("--shot=") or a.begins_with("--shots=") or a.begins_with("--only="):
+			_want = a.split("=")[1].split(",")
+		elif a == "--preview":
+			_preview = true
+	_provs = [self, Act1.new(self), Act2.new(self), Act3.new(self), Act4.new(self)]
 	Travel._busy = true
 	Settings.set_preset_fields(2)
 	Settings.shadow_quality = 2
 	Settings.aa_mode = 2                       # SMAA: clean edges, no TAA ghosting in motion
-	Settings.window_size_index = 2             # 1920x1080: the window sets Movie Maker's frame size
+	if not _preview:
+		Settings.window_size_index = 2         # 1920x1080: the window sets Movie Maker's frame size
 	Settings.fov = 80.0
 	Settings.fullscreen = false
 	Settings.monitor = -1
@@ -106,6 +126,11 @@ func _build_titles() -> void:
 	title.add_theme_constant_override("outline_size", 6)
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(title)
+	lead_black = ColorRect.new()
+	lead_black.color = Color(0.0, 0.0, 0.01, 0.0)
+	lead_black.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lead_black.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(lead_black)
 
 
 func _card(text: String, bg_a: float) -> void:
@@ -144,6 +169,15 @@ func _process(d: float) -> void:
 		return
 	if phase != "shots":
 		return
+	if _lead > 0:
+		_lead -= 1
+		_hide_overlays()
+		_fn("u", String(SHOTS[si][0])).call(0.0)
+		_apply_cam(d)
+		if _lead == 0:
+			lead_black.color.a = 0.0
+			print("CLIP %s start=%d drawn=%d dur=%.2f" % [SHOTS[si][0], frame + 1, Engine.get_frames_drawn() + 1, float(SHOTS[si][1])])
+		return
 	t += d
 	p.gloom = 0.0; p.wounds = 0.0                                      # the wanderer is the star: no hollowing
 	_keep_alive()
@@ -156,9 +190,9 @@ func _process(d: float) -> void:
 	if t < 1.1 and int(round(t * 60.0)) % 15 == 1:
 		var vc := get_viewport().get_camera_3d()
 		print("CUTDBG %s t=%.2f frame=%d drawn=%d proc=%d cam=%s paused=%s pp=%s" % [id, t, frame, Engine.get_frames_drawn(), Engine.get_process_frames(), vc.name if vc else "-", get_tree().paused, pp().snapped(Vector3.ONE * 0.1)])
-	call("_u_" + id, t)
+	_fn("u", id).call(t)
 	_apply_cam(d)
-	if frame % 15 == 0 and not (id in NO_SUBJECT):
+	if frame % 15 == 0 and not (id in Order.NO_SUBJECT):
 		_frame_check(id)
 	if t >= float(SHOTS[si][1]):
 		_next_shot()
@@ -213,14 +247,12 @@ func _next_shot() -> void:
 	if si >= 0:
 		var prev: String = SHOTS[si][0]
 		_motion_report(prev)
-		if has_method("_e_" + prev):
-			call("_e_" + prev)
+		var ef := _fn("e", prev)
+		if ef.is_valid():
+			ef.call()
+		print("CLIP_END %s frame=%d drawn=%d" % [prev, frame, Engine.get_frames_drawn()])
 	si += 1
-	var only := ""
-	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--only="):
-			only = a.substr(7)
-	while only != "" and si < SHOTS.size() and not (SHOTS[si][0] in only.split(",")):
+	while not _want.is_empty() and si < SHOTS.size() and not (SHOTS[si][0] in _want):
 		si += 1
 	t = 0.0
 	_snap = true
@@ -231,15 +263,36 @@ func _next_shot() -> void:
 		return
 	var id: String = SHOTS[si][0]
 	print("TRAILER shot %s at frame %d drawn %d" % [id, frame, Engine.get_frames_drawn()])
+	_cur = null
+	for pv in _provs:
+		if pv.has_method("_u_" + id) or (pv.has_method("_u_any") and pv.call("handles", id)):
+			_cur = pv
+			break
+	if _cur == null:
+		print("TRAILER no shot named %s: skipped" % id)
+		_next_shot()
+		return
 	_release_inputs()
 	_clear_card()
-	if has_method("_s_" + id):
-		call("_s_" + id)
+	keep_layers.clear()
+	var sf := _fn("s", id)
+	if sf.is_valid():
+		sf.call()
+	_lead = LEAD_FRAMES
+	lead_black.color.a = 1.0
+
+
+func _fn(k: String, id: String) -> Callable:
+	if _cur.has_method("_%s_%s" % [k, id]):
+		return Callable(_cur, "_%s_%s" % [k, id])
+	if _cur.has_method("_%s_any" % k):
+		return Callable(_cur, "_%s_any" % k).bind(id)
+	return Callable()
 
 
 func _hide_overlays() -> void:
 	for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
-		if c != layer and String(c.name) != "Grade":
+		if c != layer and String(c.name) != "Grade" and not (c in keep_layers):
 			(c as CanvasLayer).visible = false
 	for l in get_tree().root.find_children("*", "Label3D", true, false):
 		(l as Label3D).visible = false                  # floating combo words and damage numbers
