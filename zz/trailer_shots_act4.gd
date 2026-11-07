@@ -13,20 +13,20 @@ const Kit := preload("res://zz/trailer_act4_kit.gd")
 const BOSS := {
 	"thorn_reveal": {"boss": "thornwarden", "W": 11.0, "pre": false, "cam": [9.5, 0, 4.5, 0, 3.4, 0, 3.4], "push": 3.0, "fov": 55.0, "lit": [5.0, 40.0]},
 	"thorn_move": {"boss": "thornwarden", "W": 12.0, "pre": true, "cam": [13.0, 0, 11.0, 0, 6.0, 0, 1.5], "push": 1.5, "fov": 60.0, "lit": [5.0, 40.0]},
-	"thorn_knots": {"boss": "thornwarden", "W": 8.0, "pre": true, "top": 24.0, "fov": 62.0, "lit": [12.0, 70.0]},
+	"thorn_knots": {"boss": "thornwarden", "W": 8.0, "pre": true, "knot": 60.0, "cam": [9.0, 0, 4.0, 0, 4.2, 0, 3.4], "push": 2.0, "fov": 55.0, "lit": [7.0, 40.0]},
 	"boss_reveal": {"boss": "bone_abbot", "W": 9.0, "pre": false, "cam": [11.0, 0, 3.0, 0, 2.4, 0, 3.0], "ring": [70.0, 13.0], "fov": 46.0, "lit": [1.6, 24.0, 1]},
 	"boss_wide": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [17.0, 0, 7.0, 0, 6.0, 0, 1.5], "ring": [70.0, 12.0], "push": 1.0, "fov": 60.0, "lit": [1.6, 30.0, 1]},
-	"abbot_phase": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [0, 0, 0, 0, 6.0, 0, 3.0], "ring": [-70.0, 12.0], "look_c": 18.0, "push": 1.5, "fov": 62.0, "lit": [1.6, 30.0, 1]},
+	"abbot_phase": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [0, 0, 0, 0, 4.5, 0, 3.0], "ring": [-70.0, 12.0], "look_c": 14.5, "push": 1.5, "fov": 62.0, "lit": [1.6, 30.0, 1]},
 	"warden": {"boss": "ascended_warden", "W": 13.0, "pre": false, "cam": [19.0, 0, 4.0, 0, 1.0, 0, 6.0], "push": 3.0, "fov": 62.0, "lit": [6.0, 50.0]},
-	"warden_move": {"boss": "ascended_warden", "W": 13.0, "pre": true, "cam": [20.0, 0, 12.0, 0, 5.0, 0, 5.0], "push": 2.0, "fov": 62.0, "lit": [6.0, 50.0]},
+	"warden_move": {"boss": "ascended_warden", "W": 13.0, "pre": true, "cam": [20.0, 0, -12.0, 0, 5.0, 0, 5.0], "push": 2.0, "fov": 62.0, "lit": [6.0, 50.0]},
 	"warden_phase": {"boss": "ascended_warden", "W": 12.0, "pre": true, "cam": [20.0, 0, 5.0, 0, 1.2, 0, 8.0], "push": 2.0, "fov": 64.0, "lit": [6.0, 50.0]},
 	"anchoress": {"boss": "r37_anchoress", "W": 9.0, "pre": false, "cam": [11.0, 0, 3.0, 0, 1.6, 0, 2.6], "push": 2.5, "fov": 52.0, "lit": [8.0, 32.0]},
 	"anchoress_move": {"boss": "r37_anchoress", "W": 10.0, "pre": true, "cam": [9.0, 0, 7.5, 0, 5.0, 0, 1.0], "push": 1.5, "fov": 58.0, "lit": [8.0, 32.0]},
 	"anchoress_phase": {"boss": "r37_anchoress", "W": 9.0, "pre": true, "cam": [11.0, 0, 4.0, 0, 1.6, 0, 2.8], "push": 2.0, "fov": 56.0, "lit": [8.0, 32.0]},
-	"hierarch_voice": {"boss": "r37_hierarch", "W": 11.0, "pre": true, "top": 40.0, "fov": 62.0, "lit": [12.0, 70.0]},
-	"hierarch_edict": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [13.0, 0, 4.0, 0, 1.2, 0, 4.5], "push": 3.0, "fov": 56.0, "lit": [5.0, 40.0]},
+	"hierarch_voice": {"boss": "r37_hierarch", "W": 11.0, "pre": true, "top": 24.0, "fov": 62.0, "lit": [12.0, 70.0]},
+	"hierarch_edict": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [10.5, 0, 3.5, 0, 1.2, 0, 4.5], "push": 2.5, "fov": 56.0, "lit": [5.0, 40.0]},
 	"hierarch_phase": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [14.0, 0, 5.0, 0, 1.6, 0, 4.0], "push": 2.0, "fov": 58.0, "lit": [5.0, 40.0]},
-	"final_blow": {"boss": "thornwarden", "W": 11.0, "pre": true, "cam": [17.0, 0, 6.0, 0, 1.6, 0, 2.8], "push": 2.0, "fov": 52.0, "lit": [5.0, 40.0]},
+	"final_blow": {"boss": "thornwarden", "W": 11.0, "pre": true, "cam": [11.0, 0, 5.0, 0, 5.0, 0, 2.8], "push": 1.5, "fov": 55.0, "lit": [5.0, 40.0]},
 }
 
 var d
@@ -165,10 +165,15 @@ func _s_any(id: String) -> void:
 		if b == null:
 			print("TRAILER no boss for ", id)
 	d.flags.erase("a4_%s" % id)
-	if cf.has("cam"):
+	d.flags.erase("a4_knot_hit")
+	if cf.has("knot"):
+		_kp = ar.room.at_polar(float(cf.knot), 25.5)
+		_solve_path(id, _kp, ar.global_position)
+	elif cf.has("cam"):
 		_solve_path(id, bat, at)
 
 
+var _kp := Vector3.ZERO
 var _home := Vector3.ZERO
 var _p0 := Vector3.ZERO
 var _p1 := Vector3.ZERO
@@ -194,7 +199,7 @@ func _solve_path(id: String, bp: Vector3, wp: Vector3) -> void:
 func _boss_cam(id: String, tt: float) -> void:
 	var cf: Dictionary = BOSS[id]
 	var k: float = d.sm(clampf(tt / float(d.SHOTS[d.si][1]), 0.0, 1.0))
-	var bp: Vector3 = kit.boss_pos()
+	var bp: Vector3 = _kp if cf.has("knot") else kit.boss_pos()
 	var c: Array = cf.cam
 	var from := _p0.lerp(_p1, k)
 	var at := bp + Vector3.UP * float(c[6])
@@ -240,6 +245,8 @@ func _events(id: String, tt: float, b: Enemy) -> void:
 		"thorn_knots":
 			if b and tt > 0.1 and d.once("a4_" + id):
 				b.hp = float(b.max_hp) * 0.69
+			if b and tt > 1.2 and d.once("a4_knot_hit") and not kit.ar.room.knots.is_empty():
+				(kit.ar.room.knots[0] as Node3D).take_hit(6.0, d.p)
 		"boss_wide":
 			if b and tt > 0.15 and d.once("a4_" + id):
 				(b as BoneAbbot)._requiem()
