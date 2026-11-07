@@ -61,6 +61,7 @@ var _fights := 0
 var _kills := 0
 var _deaths := 0
 var _boss_deaths := 0
+var _dealt: Dictionary = {}                 # foe name -> [hits, damage, hits that did 0], this fight
 
 # --- misc
 var _menu_i := 0
@@ -125,6 +126,15 @@ func _ready() -> void:
 	Events.seal_broken.connect(func(id: String) -> void: rec.note("SEAL", "broken " + id))
 	Events.brazier_kindled.connect(func(b: Node3D) -> void: rec.note("FIRE", "kindled " + String(b.name)))
 	Events.boss_slain.connect(func(id: String) -> void: rec.note("BOSS", "slain " + id))
+	Events.combat_damage.connect(func(t: Node, amount: float, _c: bool, _sc: StringName, _at: Vector3) -> void:
+		if t is Enemy:
+			var k := String(t.name)
+			var d: Array = _dealt.get(k, [0, 0.0, 0])
+			d[0] += 1
+			d[1] += amount
+			if amount <= 0.0:
+				d[2] += 1
+			_dealt[k] = d)
 	Events.boss_engaged.connect(func(_b: Node, t: String) -> void: rec.note("BOSS", "engaged " + t))
 
 
@@ -619,7 +629,8 @@ func _fight(dt: float) -> bool:
 
 
 func _end_fight(why: String) -> void:
-	rec.note("FIGHT", "over (%s) after %.0f s, wounds %.0f, kills so far %d" % [why, _fight_t, p.wounds, _kills])
+	rec.note("FIGHT", "over (%s) after %.0f s, wounds %.0f, kills so far %d; hits on foes (name: hits / damage / zero-damage hits): %s" % [why, _fight_t, p.wounds, _kills, str(_dealt)])
+	_dealt.clear()
 	if _strip.size() >= 2 and not host.headless:
 		rec.strip(_strip.duplicate(), "fight_%02d_%s" % [_fights, why])
 	_strip.clear()
