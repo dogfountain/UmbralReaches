@@ -17,7 +17,7 @@ const PLACES := {
 	"stillwater": [Vector2(220, 52), Vector2(242, 6), 14.0, 5.0, 2.2, 60.0, 1.5, 0.8, 0.5],
 	"anchorholds": [Vector2(200, -62), Vector2(214, -132), 24.0, 8.0, 3.5, 62.0, 1.5, 1.0, 0.5],
 	"hierarch": [Vector2(-190, -56), Vector2(-214, -104), 18.0, 8.0, 3.5, 62.0, 1.5, 1.0, 0.5],
-	"siege": [Vector2(-214, 128), Vector2(-236, 170), 8.0, 5.0, 2.2, 60.0, 1.5, 0.8, 0.5],
+	"siege": [Vector2(-216, 132), Vector2(-236, 170), 8.0, 5.0, 2.2, 60.0, 1.5, 0.8, 0.5],
 	"saltmarket": [Vector2(200, 90), Vector2(214, 95), 3.0, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
 	"pans": [Vector2(200, 150), Vector2(232, 168), 3.0, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
 	"oak": [Vector2(-40, 186), Vector2(-70, 206), 20.0, 9.0, 4.5, 62.0, 1.5, 1.0, 0.4],
@@ -66,6 +66,22 @@ func _u_any(tt: float, id: String) -> void:
 		return
 	cam.vista(_look(id), k, float(pl[3]), float(pl[4]), float(pl[6]), float(pl[7]))
 	d.light_at(d.pp(), 3.0)
+	for e in d.get_tree().get_nodes_in_group(Groups.ENEMY):          # a stray foe's floating health bar must not hang in a place shot
+		(e as Node3D).visible = false
+	# the wanderer halts a couple of metres short of anything solid (never walks into a wall, a tower foot or a rock)
+	if not d.flags.has("pl_halt") and d._drive_to.length() > 0.1:
+		var space: PhysicsDirectSpaceState3D = d.main.get_world_3d().direct_space_state
+		var ball := SphereShape3D.new()
+		ball.radius = 0.45
+		var q := PhysicsShapeQueryParameters3D.new()
+		q.shape = ball
+		q.transform = Transform3D(Basis.IDENTITY, d.pp() + Vector3.UP * 1.0)
+		q.motion = d._drive_to.normalized() * 3.0
+		q.collision_mask = Layers.WORLD | Layers.PROPS
+		q.exclude = [d.p.get_rid()]
+		if space.cast_motion(q)[0] < 1.0:
+			d.flags["pl_halt"] = true
+			d.drive(Vector3.ZERO)
 
 
 func _e_any(_id: String) -> void:

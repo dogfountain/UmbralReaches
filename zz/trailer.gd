@@ -14,6 +14,7 @@ extends Node
 
 const Order := preload("res://zz/trailer_order.gd")
 const Cam := preload("res://zz/trailer_cam.gd")
+const Qc := preload("res://zz/trailer_qc.gd")
 const Act1 := preload("res://zz/trailer_shots_act1.gd")
 const Act2 := preload("res://zz/trailer_shots_act2.gd")
 const Act3 := preload("res://zz/trailer_shots_act3.gd")
@@ -37,6 +38,7 @@ const TOP_PITCH := 65.0                        ## degrees down for the top-down 
 const TOUGH := 1.0                             ## enemies' health for the shoot: the game's own, so they fall to the bolts
 
 var main: Node
+var _qc := Qc.new(self)
 var p: Player
 var book: Node
 var life: Node
@@ -88,7 +90,7 @@ func _ready() -> void:
 	Travel._busy = true
 	Settings.set_preset_fields(2)
 	Settings.shadow_quality = 2
-	Settings.aa_mode = 2                       # SMAA: clean edges, no TAA ghosting in motion
+	Settings.aa_mode = int(OS.get_environment("TRAILER_AA")) if OS.get_environment("TRAILER_AA") != "" else 3   # 3 TAA (ground gravel and grass shimmered under SMAA); 2 SMAA
 	if not _preview:
 		Settings.window_size_index = 2         # 1920x1080: the window sets Movie Maker's frame size
 	Settings.fov = 80.0
@@ -207,6 +209,7 @@ func _process(d: float) -> void:
 		print("CUTDBG %s t=%.2f frame=%d drawn=%d proc=%d cam=%s paused=%s pp=%s" % [id, t, frame, Engine.get_frames_drawn(), Engine.get_process_frames(), vc.name if vc else "-", get_tree().paused, pp().snapped(Vector3.ONE * 0.1)])
 	_fn("u", id).call(t)
 	_apply_cam(d)
+	_qc.step(id, t, d, _drive_to, _sprint)
 	if frame % 15 == 0 and not (id in Order.NO_SUBJECT):
 		_frame_check(id)
 	if t >= float(SHOTS[si][1]):
@@ -222,6 +225,11 @@ func _setup_world() -> void:
 		if s and String(s.resource_path).ends_with("villager.gd"):
 			(n as Node3D).visible = false
 			n.process_mode = Node.PROCESS_MODE_DISABLED
+	# the cold candle niches read as bare grey boxes close to the lens: stood down with the villagers
+	for n in get_tree().get_nodes_in_group(Lamp.GROUP):
+		var lamp := n as Lamp
+		if lamp != null and lamp.look == "niche" and not lamp.lit:
+			lamp.visible = false
 	for c in p.get_children():
 		if c is SkillBook:
 			book = c
@@ -262,6 +270,7 @@ func _next_shot() -> void:
 	if si >= 0 and _cur != null:
 		var prev: String = SHOTS[si][0]
 		_motion_report(prev)
+		_qc.report(prev)
 		var ef := _fn("e", prev)
 		if ef.is_valid():
 			ef.call()

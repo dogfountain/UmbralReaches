@@ -5,6 +5,7 @@
 #   tools/trailer.sh render [id ...]           # Movie Maker, windowed: contiguous shots rendered in groups of $GROUP
 #                                              #   (default: every shot in the cut); clips + logs land in $OUT/clips
 #   tools/trailer.sh cut [id ...]              # trims each rendered shot out of its group clip -> $OUT/shots/<id>.mp4
+#   tools/trailer.sh trim                      # drops the black lead-in frame(s) left on the end of shots already cut
 #   tools/trailer.sh assemble                  # joins the shots in cut order -> $OUT/umbral_trailer.mp4 (H.264 yuv420p AAC)
 #   tools/trailer.sh preview id[,id...]        # a quick 960x540 30 fps render of just those shots (prints the clip path)
 #
@@ -65,6 +66,23 @@ cmd_preview() {
 	echo "$OUT/clips/preview_$first.avi"
 }
 
+# a shot's last frame (sometimes two) is the next shot's lead-in black, which flashes at the cut: drop trailing black
+# frames that follow a lit one (title cards, which really fade, are left alone)
+trim_black() {
+	local f="$1" w n=0 total=0 v
+	w=$("$FFMPEG" -nostdin -sseof -0.2 -i "$f" -vf "signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-" -f null - 2>/dev/null | grep YAVG | awk -F= '{print int($2)}')
+	for v in $w; do total=$((total + 1)); done
+	local arr=($w) i=$((total - 1))
+	while [ $i -ge 0 ] && [ "${arr[$i]}" -lt 3 ]; do n=$((n + 1)); i=$((i - 1)); done
+	[ $i -ge 0 ] && [ "${arr[$i]}" -ge 3 ] || return 0       # all black: a card
+	[ $n -gt 0 ] && [ $n -lt 3 ] || return 0
+	local frames
+	frames=$("$FFMPEG" -nostdin -i "$f" -map 0:v:0 -c copy -f null - 2>&1 | grep -o 'frame= *[0-9]*' | tail -1 | tr -dc 0-9)
+	[ -n "$frames" ] || return 0
+	"$FFMPEG" -nostdin -loglevel error -y -i "$f" -frames:v $((frames - n)) -c:v libx264 -preset fast -crf 14 -pix_fmt yuv420p -r "$FPS" -c:a aac -b:a 192k -ar 48000 "$f.trim.mp4" && mv "$f.trim.mp4" "$f"
+	echo "trimmed $n black frame(s) off $(basename "$f")"
+}
+
 # one trimmed shot per `CLIP id start= drawn= dur=` line in every group log (movie frame = drawn + 1)
 cmd_cut() {
 	local want=" $* "
@@ -80,6 +98,7 @@ cmd_cut() {
 			start=$(awk -v d="$drawn" -v f="$fps" 'BEGIN{printf "%.4f", (d+1)/f}')
 			"$FFMPEG" -nostdin -loglevel error -y -ss "$start" -i "$base.avi" -t "$dur" \
 				-c:v libx264 -preset fast -crf 14 -pix_fmt yuv420p -r "$fps" -c:a aac -b:a 192k -ar 48000 "$OUT/shots/$id.mp4"
+			trim_black "$OUT/shots/$id.mp4"
 			echo "cut $id"
 		done
 	done
@@ -103,6 +122,7 @@ case "${1:-list}" in
 	render) shift; cmd_render "$@" ;;
 	preview) shift; cmd_preview "$1" ;;
 	cut) shift; cmd_cut "$@" ;;
+	trim) for f in "$OUT"/shots/*.mp4; do trim_black "$f"; done ;;   # drop lead-in black from shots cut earlier
 	assemble) cmd_assemble ;;
 	*) sed -n 2,14p "$0" ;;
 esac

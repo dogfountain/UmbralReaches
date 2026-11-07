@@ -225,7 +225,24 @@ func start_escort(from: int, near_next: bool) -> void:
 	var fr: Dictionary = _esc._frame
 	d.keep_layers.append(fr.layer as CanvasLayer)
 	var side := Vector3(dir.y, 0.0, -dir.x)
+	_side_sign = _open_side(_esc.global_position, side)
+	side *= _side_sign
 	d.put_player(_esc.global_position - Vector3(dir.x, 0.0, dir.y) * 1.2 + side * 1.6, Cam.yaw_dir(Vector3(dir.x, 0.0, dir.y)), -0.08)
+
+
+var _side_sign := 1.0
+
+
+## +1 or -1: the side of the walking line with more room (a lens hugging a wall fills the frame with it).
+func _open_side(at: Vector3, side: Vector3) -> float:
+	var space: PhysicsDirectSpaceState3D = d.main.get_world_3d().direct_space_state
+	var room := [0.0, 0.0]
+	for i in 2:
+		var sg := 1.0 if i == 0 else -1.0
+		var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 1.2, at + Vector3.UP * 1.2 + side * sg * 7.0, Layers.WORLD | Layers.PROPS)
+		var hit: Dictionary = space.intersect_ray(q)
+		room[i] = 7.0 if hit.is_empty() else (hit.position as Vector3).distance_to(at + Vector3.UP * 1.2)
+	return 1.0 if float(room[0]) >= float(room[1]) else -1.0
 
 
 func esc_tick() -> void:
@@ -237,7 +254,7 @@ func esc_drive(tt: float) -> void:
 	# keeps pace beside the passenger, a step to the side and a little behind, like a player would
 	var f := -_esc.global_basis.z
 	var side := f.cross(Vector3.UP)
-	var want: Vector3 = _esc.global_position - f * 0.6 + side * 1.7
+	var want: Vector3 = _esc.global_position - f * 0.6 + side * 1.7 * _side_sign
 	var to: Vector3 = want - d.pp()
 	to.y = 0.0
 	d.drive(to.normalized() * clampf(to.length() * 0.7, 0.0, 0.7))
