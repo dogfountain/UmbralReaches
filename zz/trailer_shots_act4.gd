@@ -11,19 +11,19 @@ const Kit := preload("res://zz/trailer_act4_kit.gd")
 ##        cam: [d0, d1, side0, side1, h0, h1, look height] relative to the boss on the wanderer's side,
 ##        fov, lit: [energy, range] of the fill light, top: top-down height (TOP shots)}
 const BOSS := {
-	"thorn_reveal": {"boss": "thornwarden", "W": 11.0, "pre": false, "cam": [15.0, 11.5, 5.0, 3.5, 1.2, 1.8, 3.2], "fov": 55.0, "lit": [5.0, 40.0]},
+	"thorn_reveal": {"boss": "thornwarden", "W": 11.0, "pre": false, "cam": [9.5, 0, 4.5, 0, 3.4, 0, 3.4], "push": 3.0, "fov": 55.0, "lit": [5.0, 40.0]},
 	"thorn_move": {"boss": "thornwarden", "W": 12.0, "pre": true, "cam": [10.0, 9.0, 9.0, 8.0, 5.5, 6.5, 0.8], "fov": 60.0, "lit": [5.0, 40.0]},
-	"thorn_knots": {"boss": "thornwarden", "W": 8.0, "pre": true, "top": 46.0, "fov": 62.0, "lit": [6.0, 60.0]},
-	"boss_reveal": {"boss": "bone_abbot", "W": 9.0, "pre": false, "cam": [10.0, 7.5, 3.0, 2.2, 0.8, 1.4, 3.0], "fov": 52.0, "lit": [4.0, 30.0]},
-	"boss_wide": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [12.0, 11.0, 7.0, 6.0, 5.5, 5.8, 1.2], "fov": 60.0, "lit": [5.0, 36.0]},
-	"abbot_phase": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [11.0, 8.5, -4.0, -3.0, 1.5, 2.2, 2.8], "fov": 55.0, "lit": [5.0, 36.0]},
+	"thorn_knots": {"boss": "thornwarden", "W": 8.0, "pre": true, "top": 34.0, "fov": 62.0, "lit": [12.0, 70.0]},
+	"boss_reveal": {"boss": "bone_abbot", "W": 9.0, "pre": false, "cam": [13.0, 0, 3.0, 0, 2.6, 0, 3.0], "ring": [70.0, 13.0], "fov": 48.0, "lit": [1.6, 24.0, 1]},
+	"boss_wide": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [17.0, 0, 7.0, 0, 6.0, 0, 1.5], "ring": [70.0, 12.0], "push": 1.0, "fov": 60.0, "lit": [1.6, 30.0, 1]},
+	"abbot_phase": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [20.0, 0, -4.0, 0, 7.0, 0, 3.0], "ring": [-70.0, 16.0], "look_c": 1, "push": 1.0, "fov": 62.0, "lit": [1.6, 30.0, 1]},
 	"warden": {"boss": "ascended_warden", "W": 13.0, "pre": false, "cam": [19.0, 15.0, 4.0, 3.0, 0.9, 1.6, 6.0], "fov": 62.0, "lit": [6.0, 50.0]},
 	"warden_move": {"boss": "ascended_warden", "W": 13.0, "pre": true, "cam": [17.0, 15.0, 11.0, 10.0, 5.0, 6.0, 4.0], "fov": 62.0, "lit": [6.0, 50.0]},
 	"warden_phase": {"boss": "ascended_warden", "W": 12.0, "pre": true, "cam": [20.0, 17.0, 5.0, 3.0, 1.2, 2.2, 8.0], "fov": 64.0, "lit": [6.0, 50.0]},
 	"anchoress": {"boss": "r37_anchoress", "W": 9.0, "pre": false, "cam": [11.0, 8.0, 3.0, 2.0, 0.9, 1.5, 2.6], "fov": 52.0, "lit": [4.5, 32.0]},
 	"anchoress_move": {"boss": "r37_anchoress", "W": 10.0, "pre": true, "cam": [8.0, 7.0, 7.5, 6.5, 4.8, 5.5, 1.0], "fov": 58.0, "lit": [5.0, 32.0]},
 	"anchoress_phase": {"boss": "r37_anchoress", "W": 9.0, "pre": true, "cam": [11.0, 9.0, 4.0, 2.5, 1.2, 2.0, 2.8], "fov": 56.0, "lit": [5.0, 32.0]},
-	"hierarch_voice": {"boss": "r37_hierarch", "W": 11.0, "pre": true, "top": 40.0, "fov": 62.0, "lit": [6.0, 60.0]},
+	"hierarch_voice": {"boss": "r37_hierarch", "W": 11.0, "pre": true, "top": 40.0, "fov": 62.0, "lit": [12.0, 70.0]},
 	"hierarch_edict": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [13.0, 10.0, 4.0, 3.0, 1.0, 1.6, 4.5], "fov": 56.0, "lit": [5.0, 40.0]},
 	"hierarch_phase": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [14.0, 12.0, 5.0, 4.0, 1.5, 2.5, 4.0], "fov": 58.0, "lit": [5.0, 40.0]},
 	"final_blow": {"boss": "thornwarden", "W": 11.0, "pre": true, "cam": [17.0, 13.0, 6.0, 5.0, 1.4, 1.8, 2.8], "fov": 52.0, "lit": [5.0, 40.0]},
@@ -90,9 +90,13 @@ func _s_boss_game() -> void:
 	var ar: BossArena = kit.begin("bone_abbot")
 	if ar == null:
 		return
-	var to_mid := Cam.flat(ar.global_position - ar.boss_at)
-	kit.stand(ar.boss_at + to_mid * 9.0, Cam.yaw_dir(-to_mid))
+	var cen := ar.global_position
+	_home = cen + Cam.flat(ar.boss_at - cen).rotated(Vector3.UP, deg_to_rad(70.0)) * 13.0
+	kit.stand(_home, Cam.yaw_dir(Cam.flat(ar.boss_at - _home)))
 	d.use_player_cam()
+	_lit_was = Vector2(3.0, 24.0)
+	d.key.light_energy = 1.2
+	d.key.light_color = Color(1.0, 0.78, 0.5)
 	kit.pre_pull()
 
 
@@ -109,7 +113,7 @@ func _u_boss_game(tt: float) -> void:
 		var wish := away.cross(Vector3.UP) * 0.45
 		if dist < 7.0:
 			wish += away * 0.35
-		var home: Vector3 = kit.ar.global_position - d.p.global_position
+		var home: Vector3 = _home - d.p.global_position
 		home.y = 0.0
 		if home.length() > 4.0:
 			wish += home.normalized() * 0.4
@@ -126,6 +130,8 @@ func _u_boss_game(tt: float) -> void:
 
 func _e_boss_game() -> void:
 	kit.finish()
+	d.key.light_energy = _lit_was.x
+	d.key.light_color = Color(0.62, 0.72, 1.0)
 
 
 # --- the boss shots --------------------------------------------------------------------------------
@@ -139,7 +145,13 @@ func _s_any(id: String) -> void:
 	var to_mid := Cam.flat(ar.global_position - bat)
 	if (ar.global_position - bat).length() < 2.0:
 		to_mid = Vector3.BACK
+	to_mid = to_mid.rotated(Vector3.UP, deg_to_rad(float(cf.get("rot", 0.0))))
 	var at := bat + to_mid * float(cf.W)
+	if cf.has("ring"):
+		var rg: Array = cf.ring
+		var cen := ar.global_position
+		at = cen + Cam.flat(bat - cen).rotated(Vector3.UP, deg_to_rad(float(rg[0]))) * float(rg[1])
+	print("GEOM ", id, " C=", ar.global_position, " gate=", (ar.gate.global_position if ar.gate else "-"), " boss=", bat, " stand=", at)
 	kit.stand(at, Cam.yaw_dir(-to_mid))
 	d.use_free_cam()
 	d.cam.fov = float(cf.fov)
@@ -147,23 +159,42 @@ func _s_any(id: String) -> void:
 	var lit: Array = cf.lit
 	d.key.light_energy = float(lit[0])
 	d.key.omni_range = float(lit[1])
+	d.key.light_color = Color(1.0, 0.78, 0.5) if lit.size() > 2 else Color(0.62, 0.72, 1.0)
 	if bool(cf.pre):
 		var b: Enemy = kit.pre_pull()
 		if b == null:
 			print("TRAILER no boss for ", id)
 	d.flags.erase("a4_%s" % id)
+	if cf.has("cam"):
+		_solve_path(id, bat, at)
+
+
+var _home := Vector3.ZERO
+var _p0 := Vector3.ZERO
+var _p1 := Vector3.ZERO
+
+
+## The lens path, solved once at setup: a start and an end clear of stones and walls, each seeing the boss and the wanderer.
+func _solve_path(id: String, bp: Vector3, wp: Vector3) -> void:
+	var cf: Dictionary = BOSS[id]
+	var c: Array = cf.cam
+	var fw := Cam.flat(wp - bp)
+	var sd := fw.cross(Vector3.UP)
+	var look: Array = [bp + Vector3.UP * (float(c[6]) + 0.5), bp + Vector3.UP * float(c[6]) * 1.6, wp + Vector3.UP * 1.2]
+	var v := fw * float(c[0]) + sd * float(c[2])
+	_p0 = d.solve_cam(look, bp, atan2(v.x, v.z), Vector2(v.x, v.z).length(), float(c[4]))
+	_p1 = _p0 + ((bp + Vector3.UP * float(c[6])) - _p0).normalized() * float(cf.get("push", 2.5))
 
 
 func _boss_cam(id: String, tt: float) -> void:
 	var cf: Dictionary = BOSS[id]
 	var k: float = d.sm(clampf(tt / float(d.SHOTS[d.si][1]), 0.0, 1.0))
 	var bp: Vector3 = kit.boss_pos()
-	var wp: Vector3 = d.pp()
-	var fw := Cam.flat(wp - bp)
-	var sd := fw.cross(Vector3.UP)
 	var c: Array = cf.cam
-	var from := bp + fw * lerpf(float(c[0]), float(c[1]), k) + sd * lerpf(float(c[2]), float(c[3]), k) + Vector3.UP * lerpf(float(c[4]), float(c[5]), k)
+	var from := _p0.lerp(_p1, k)
 	var at := bp + Vector3.UP * float(c[6])
+	if cf.has("look_c"):
+		at = kit.ar.global_position + Vector3.UP * 4.0
 	d.frame_cam(from, at)
 	d.light_at((from + bp) * 0.5, 4.0)
 
@@ -173,8 +204,10 @@ func _u_any(tt: float, id: String) -> void:
 	var b: Enemy = kit.boss()
 	if cf.has("top"):
 		var c: Vector3 = kit.ar.global_position
+		if id == "thorn_knots" and kit.ar.room != null and not kit.ar.room.knots.is_empty() and is_instance_valid(kit.ar.room.knots[0]):
+			c = (kit.ar.room.knots[0] as Node3D).global_position.lerp(c, 0.5)
 		d.top_down(c, float(cf.top))
-		d.light_at(c, 12.0)
+		d.light_at(c, 10.0)
 	else:
 		_boss_cam(id, tt)
 	if b:
@@ -233,3 +266,4 @@ func _e_any(_id: String) -> void:
 	kit.finish()
 	d.key.light_energy = _lit_was.x
 	d.key.omni_range = _lit_was.y
+	d.key.light_color = Color(0.62, 0.72, 1.0)
