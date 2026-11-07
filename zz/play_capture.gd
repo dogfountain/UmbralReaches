@@ -1688,12 +1688,29 @@ func _s_warmth() -> void:
 		lamp_best.light_from_leader(false)
 		await _secs(0.5)
 		var lp := lamp_best.global_position
+		if OS.get_environment("WARMTH_DBG") != "":
+			for n in get_tree().root.find_children("*", "GeometryInstance3D", true, false):
+				var gi := n as GeometryInstance3D
+				if gi == null or not gi.is_visible_in_tree():
+					continue
+				var bb := gi.global_transform * gi.get_aabb()
+				if bb.grow(1.0).has_point(lp - Vector3(0, 0, 0)) or bb.grow(0.5).has_point(lp + Vector3(0, -0.3, 0)):
+					var mat: Material = gi.material_override if gi.material_override != null else (((gi as MeshInstance3D).get_active_material(0)) if gi is MeshInstance3D else null)
+					print("WARMTH geo: ", gi.get_path(), " layers ", gi.layers, " mat ", mat, " ", (mat as ShaderMaterial).shader.resource_path if mat is ShaderMaterial else "-", " aabb ", bb)
+			print("WARMTH lamp at ", lp, " light ", lamp_best.get_node_or_null("LampLight"))
 		# a low eye 4.5 m out, looking at the ground a metre from the post's foot: the pool, the post and the wall
 		var lcam := ring.call(lp) as Vector3
 		var ldir := (lcam - lp) * Vector3(1, 0, 1)
 		lcam = lp + ldir.normalized() * 4.5
 		lcam.y = _gy(lcam.x, lcam.z) + 1.9
 		await _view_still("w_lamp_post.png", "a lamp post at night: its pool on the ground", lcam, Vector3(lp.x, _gy(lp.x, lp.z) + 0.5, lp.z))
+		if OS.get_environment("WARMTH_DBG") != "":
+			var ll := lamp_best.get_node("LampLight") as OmniLight3D
+			ll.light_energy = 60.0
+			ll.set_meta(&"base", {"e": 60.0, "r": 14.0, "a": 1.6})
+			ll.omni_range = 14.0
+			lamp_best.set_process(false)
+			await _view_still("w_lamp_dbg.png", "lamp 10x", lcam, Vector3(lp.x, _gy(lp.x, lp.z) + 0.5, lp.z))
 	var wild: Brazier = null
 	var bd := 1.0e9
 	for n in main.find_children("*", "Brazier", true, false):

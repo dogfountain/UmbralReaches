@@ -7,6 +7,8 @@ extends RefCounted
 ## A cold room (`warm` false: a crypt, a cellar) keeps its cold ambient and only loses the haze.
 ## Also builds a room's lights, so every interior is lit the same way (a hearth glow, candle pools, a soft fill).
 
+const Hearth := preload("res://core/world/realm/r37_hearth.gd")
+
 const FILL := Color(0.95, 0.76, 0.58)       ## the indoor ambient: a banked fire's bounce (about 2200 K)
 const FIRE := Color(1.0, 0.7, 0.4)
 const CANDLE := Color(1.0, 0.8, 0.52)
@@ -82,45 +84,8 @@ static func room_lights(host: Node3D, id: String, centre: Vector3, yaw: float, h
 	var b := Basis(Vector3.UP, yaw)
 	var r := maxf(half.x, half.z) * 1.7
 	var up := Vector3(0, half.y * 0.45, 0)
-	if lit:                                                  # a banked hearth on the back wall: embers the glow comes from
-		var em := MeshInstance3D.new()
-		em.name = id + "Embers"
-		var bm := BoxMesh.new()
-		bm.size = Vector3(minf(half.x * 0.4, 0.7), 0.2, 0.06)
-		em.mesh = bm
-		var hood := MeshInstance3D.new()         # a dark stone fire-back round the embers
-		var hb := BoxMesh.new()
-		hb.size = Vector3(bm.size.x + 0.5, 0.9, 0.14)
-		hood.mesh = hb
-		var hm := StandardMaterial3D.new()
-		hm.albedo_color = Color(0.2, 0.17, 0.15)
-		hm.roughness = 0.9
-		hood.material_override = hm
-		hood.position = Vector3(0, 0.3, -0.05)
-		em.add_child(hood)
-		var m := StandardMaterial3D.new()
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.albedo_color = Color(0.5, 0.16, 0.05)
-		m.emission_enabled = true
-		m.emission = Color(1.0, 0.36, 0.08)
-		m.emission_energy_multiplier = 0.9
-		em.material_override = m
-		em.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		host.add_child(em)
-		em.global_transform = Transform3D(b, centre + b * Vector3(half.x * 0.5, -half.y + 0.3, -half.z + 0.06))
-	var lan := MeshInstance3D.new()                          # a hung lantern: the visible source of the room's light
+	var lan := Hearth.lantern()                              # a hung lantern: the visible source of the room's light
 	lan.name = id + "Lantern"
-	var lm := BoxMesh.new()
-	lm.size = Vector3(0.1, 0.15, 0.1)
-	lan.mesh = lm
-	var lmat := StandardMaterial3D.new()
-	lmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	lmat.albedo_color = Color(1.0, 0.62, 0.28)
-	lmat.emission_enabled = true
-	lmat.emission = Color(1.0, 0.7, 0.35)
-	lmat.emission_energy_multiplier = 0.7
-	lan.material_override = lmat
-	lan.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	host.add_child(lan)
 	lan.global_position = centre + Vector3(0, half.y * 0.55, 0) - b * Vector3(half.x * 0.25, 0.0, 0.0)
 	light(host, id + "Glow", lan.global_position - Vector3(0, 0.2, 0), FIRE.lerp(CANDLE, 0.4), 1.6 if lit else 0.55, r, false, 0.07)
