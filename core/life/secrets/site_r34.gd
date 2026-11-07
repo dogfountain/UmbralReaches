@@ -15,6 +15,7 @@ extends RefCounted
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
+const VillageScript := preload("res://core/life/village/village.gd")
 const WATER := -0.9
 
 ## The Ninth Rank: the graves in the row (left to right), and the order the slate gives (indices).
@@ -50,6 +51,27 @@ static func _camp_near(q: Vector2, r: float) -> bool:
 	for c: Dictionary in EnemySpawner.REALM_CAMPS:
 		var a: Vector3 = c.at
 		if Vector2(a.x, a.z).distance_to(q) < r:
+			return true
+	return false
+
+
+## How near a village outpost camp may come to a claim's rect: the camp reaches ~5.5 m from its fire
+## (walks, seat, stake) and TerrainStamp.settle blends a claim's floor FALLOFF metres past its edge.
+## The secrets build after the village, so a claim laid over a camp sank its fire, its log and the
+## walking nodes under the people standing on them (Sister Agathe floated 0.37 m over the Waiting Field).
+const OUTPOST_REACH := 5.5
+
+
+static func _outpost_near(root: Node, rect: Rect2) -> bool:
+	var v := root.get_node_or_null("Village") as VillageScript
+	if v == null:
+		return false
+	var r := OUTPOST_REACH + TerrainStamp.FALLOFF
+	for id: String in v.outpost_at:
+		var f: Vector3 = v.outpost_at[id]
+		var dx := maxf(maxf(rect.position.x - f.x, 0.0), f.x - rect.end.x)
+		var dz := maxf(maxf(rect.position.y - f.z, 0.0), f.z - rect.end.y)
+		if Vector2(dx, dz).length() < r:
 			return true
 	return false
 
@@ -154,8 +176,9 @@ static func _ninth(root: Node, host: Node3D, ranks: Node3D) -> void:
 	var yaw := float(spot.get("yaw", 0.0))
 	var b := Basis(Vector3.UP, yaw)
 	var want := Vector2(c0.x, c0.z) + Vector2((b * Vector3(0, 0, -11.0)).x, (b * Vector3(0, 0, -11.0)).z)
-	var ok := func(q: Vector2) -> bool: return not _camp_near(q, 8.0) and Kit.gy(sp, q.x, q.y) > WATER + 0.3
-	var q := LK.search_spot(sp, want, 26.0, Vector2(4.5, 3.0), 1.0, 1.8, [], 2.0, ok)
+	var half := Vector2(4.5, 3.0)
+	var ok := func(q: Vector2) -> bool: return not _camp_near(q, 8.0) and not _outpost_near(root, Rect2(q - half, half * 2.0)) and Kit.gy(sp, q.x, q.y) > WATER + 0.3
+	var q := LK.search_spot(sp, want, 26.0, half, 1.0, 1.8, [], 2.0, ok)
 	if q == Vector2.INF:
 		print("SECRETS ninth rank: no clear ground")
 		return
