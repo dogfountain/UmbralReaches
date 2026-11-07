@@ -1048,21 +1048,16 @@ func _s_fight_top() -> void:
 func _u_fight_top(tt: float) -> void:
 	# top-down over the brawl, high enough to hold the wanderer and the pack together
 	var mid := pp().lerp(pack_mid(), 0.45)
-	top_down(mid, clampf(pp().distance_to(pack_mid()) * 0.8 + 4.0, 7.5, 10.0), 55.0)
+	top_down(mid, clampf(pp().distance_to(pack_mid()) * 0.8 + 6.0, 12.0, 14.0), 55.0)    # high enough that a Nova's wheel sits inside the frame
 	light_at(mid, 6.0)
 	var foe := target()
 	if foe:
 		aim_at(foe.global_position)
 	drive(-fwd_of(WEST) * 0.35 + fwd_of(WEST).cross(Vector3.UP) * 0.3)   # kiting back and aside
-	if tt > 0.1 and once("td_bolts"):
-		press(slot_action(0))
+	fire_window(tt, "td_bolts", 0.1, 0.7)              # a short chain: one Lash, not a wheel every second bolt
 	if tt > 1.2 and once("td_nova"):
-		release(slot_action(0))
 		cast(2)                                         # Umbral Nova: the Marks go off
-	if tt > 1.6 and once("td_bolts2"):
-		press(slot_action(0))
 	if tt > 2.5 and once("td_step"):
-		release(slot_action(0))
 		cast(4)                                         # Rift Step out of the press
 
 func _e_fight_top() -> void:
