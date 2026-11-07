@@ -78,7 +78,7 @@ cmd_cut() {
 			[ $# -gt 0 ] && [[ "$want" != *" $id "* ]] && continue
 			local start
 			start=$(awk -v d="$drawn" -v f="$fps" 'BEGIN{printf "%.4f", (d+1)/f}')
-			"$FFMPEG" -loglevel error -y -ss "$start" -i "$base.avi" -t "$dur" \
+			"$FFMPEG" -nostdin -loglevel error -y -ss "$start" -i "$base.avi" -t "$dur" \
 				-c:v libx264 -preset fast -crf 14 -pix_fmt yuv420p -r "$fps" -c:a aac -b:a 192k -ar 48000 "$OUT/shots/$id.mp4"
 			echo "cut $id"
 		done
