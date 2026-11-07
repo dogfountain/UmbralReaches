@@ -139,10 +139,12 @@ class HeartKnot extends StaticBody3D:
 	signal burned(knot: Node)
 	var hp := KNOT_HP
 	var max_hp := KNOT_HP
-	var hp_bar_y := 2.6
+	var hp_bar_y := 3.75                ## above the knot's roots (they stand 3.2 m)
 	var _core: MeshInstance3D
 	var _light: OmniLight3D
 	var _label: Label3D
+	var _bar: MeshInstance3D            ## the foes' own health plate (health_bar.gdshader), not a text gauge
+	var _trail := 1.0
 	var _shake := 0.0
 	var vis: Node3D                     ## the visuals (grown and burned by scale; the body never scales: Jolt)
 
@@ -179,16 +181,33 @@ class HeartKnot extends StaticBody3D:
 		_light.position = Vector3(0, 1.6, 0)
 		_light.set_meta(&"light_class", "fill")
 		add_child(_light)
+		# a title like an elite's (elites.gd) over the same plate a foe wears
 		_label = Label3D.new()
+		_label.text = "Heart-Knot"
 		_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		_label.no_depth_test = true
-		_label.fixed_size = true
-		_label.pixel_size = 0.0011
-		_label.font_size = 26
-		_label.outline_size = 8
-		_label.modulate = Color(1.0, 0.75, 0.45)
-		_label.position = Vector3(0, 3.6, 0)
+		_label.pixel_size = 0.0042
+		_label.font_size = 44
+		_label.outline_size = 10
+		_label.modulate = Color(1.0, 0.82, 0.6)
+		_label.outline_modulate = Color(0.03, 0.02, 0.05, 0.85)
+		_label.position = Vector3(0, hp_bar_y + 0.42, 0)
+		_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(_label)
+		var mat := ShaderMaterial.new()
+		mat.shader = load(Enemy.HP_BAR_SHADER)
+		mat.set_shader_parameter(&"size", Vector2(1.3, 0.13))   # an objective: a broader plate than a foe's
+		var quad := QuadMesh.new()
+		quad.size = Vector2.ONE
+		quad.material = mat
+		_bar = MeshInstance3D.new()
+		_bar.name = "HealthBar"
+		_bar.mesh = quad
+		_bar.position = Vector3(0, hp_bar_y, 0)
+		_bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_bar.extra_cull_margin = 2.4
+		_bar.ignore_occlusion_culling = true
+		add_child(_bar)
+		_bar.set_instance_shader_parameter(&"segments", Enemy.hp_segments(int(max_hp)))
 		_refresh()
 
 	func is_alive() -> bool:
@@ -206,12 +225,15 @@ class HeartKnot extends StaticBody3D:
 			_burn()
 
 	func _refresh() -> void:
-		var n := 10
-		var k := ceili(hp / max_hp * float(n))
-		_label.text = "HEART-KNOT\n" + "|".repeat(k) + ".".repeat(n - k)
+		_bar.set_instance_shader_parameter(&"fill", hp / max_hp)
+		_bar.set_instance_shader_parameter(&"trail", _trail)
 		_light.light_energy = 0.8 + 1.4 * (hp / max_hp)
 
 	func _process(delta: float) -> void:
+		var ratio := hp / max_hp
+		if _trail > ratio:                # the lost health eases away behind the fill, as on a foe
+			_trail = maxf(ratio, _trail - delta * 0.6)
+			_bar.set_instance_shader_parameter(&"trail", _trail)
 		if _shake > 0.0:
 			_shake -= delta
 			_core.position.x = sin(_shake * 90.0) * 0.06
@@ -227,6 +249,7 @@ class HeartKnot extends StaticBody3D:
 		Sfx.play_stream(BossKit.Synth.get_stream("stagger"), at, 2.0, 0.7)
 		burned.emit(self)
 		_label.visible = false
+		_bar.visible = false
 		_light.visible = false
 		var tw := create_tween()
 		tw.tween_property(vis, "scale", Vector3(1.3, 0.05, 1.3), 0.5).set_ease(Tween.EASE_IN)
