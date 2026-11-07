@@ -288,13 +288,7 @@ func _scan_place() -> void:
 
 ## A beacon's own colour (as the compass reads it: its column's material).
 func _beacon_col(b: Node) -> Color:
-	for c in b.get_children():
-		var mi := c as MeshInstance3D
-		if mi and mi.material_override is StandardMaterial3D:
-			var col := (mi.material_override as StandardMaterial3D).albedo_color
-			col.a = 1.0
-			return col
-	return LANTERN
+	return b.get("tint") as Color if "tint" in b else LANTERN
 
 
 ## World xz -> local px from the map's centre; .z = 1 when it had to be pulled in to the rim.

@@ -105,8 +105,9 @@ func _physics_process(_d: float) -> void:
 				_suggest()
 			check("no WindowRig under the Realm", main.get_node_or_null("WindowRig") == null)
 			for bn in main.find_children("Beacon_*", "", true, false):
-				var bm := (bn as Node3D).get_child(0) as MeshInstance3D
-				print("WORLD30 beacon %s at %s vis %s in_tree_vis %s range_end %.1f cam_far %.1f" % [bn.name, (bn as Node3D).global_position, (bn as Node3D).visible, bm.is_visible_in_tree(), bm.visibility_range_end, get_viewport().get_camera_3d().far])
+				var bm := (bn as Node3D).get_node_or_null("FarGlow") as MeshInstance3D
+				check("%s is a marker with a far glow on the place, no sky column" % bn.name, bm != null and (bn as Node3D).get_child_count() == 1 and bm.position.y <= 0.0 and (bn as Node3D).is_in_group(&"landmark_beacon"))
+				print("WORLD30 beacon %s at %s glow_y %.1f cam_far %.1f" % [bn.name, (bn as Node3D).global_position, bm.position.y if bm else 0.0, get_viewport().get_camera_3d().far])
 			# r34: the places agents add their own beacons; the two boss landmarks must still stand
 			check("two landmark beacons (henge, summit)", main.find_child("Beacon_thornwarden", true, false) != null and main.find_child("Beacon_ascended_warden", true, false) != null)
 			_tower()

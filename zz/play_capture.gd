@@ -1547,9 +1547,10 @@ func _view_still(file: String, desc: String, cam_pos: Vector3, target: Vector3) 
 	_park_at(cam_pos, target)
 	var beams := ""
 	for b in get_tree().get_nodes_in_group(&"landmark_beacon"):
-		if b is Node3D and (b as Node3D).visible:
-			beams += " %s@%.0f" % [b.name, cam_pos.distance_to(b.get("anchor"))]
-	print("PLAYCAP beams in %s:%s" % [file, beams if beams != "" else " none"])
+		var gl := b.get_node_or_null("FarGlow") as MeshInstance3D
+		if gl != null and gl.is_visible_in_tree():
+			beams += " %s@%.0f(a%.2f s%.1f vr%.0f lay%d at %s)" % [b.name, cam_pos.distance_to(b.get("anchor")), (gl.material_override as StandardMaterial3D).albedo_color.a, gl.scale.x, gl.visibility_range_end, gl.layers, gl.global_position]
+	print("PLAYCAP far glows in %s:%s" % [file, beams if beams != "" else " none"])
 	await _still(file, desc, 4)
 
 
