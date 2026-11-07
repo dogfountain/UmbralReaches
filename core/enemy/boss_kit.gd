@@ -43,9 +43,11 @@ static var _live: Array = []        ## [[zone mesh id, land time s], ...]: the z
 ## it (sounds, danger zones, rings, spike meshes, bursts and light), so an arena can spread the work
 ## over frames; -1 does it all. Anything drawn is a speck put in front of the camera for a few
 ## frames (culled things never compile), then freed.
-static func warm(host: Node, stage := -1) -> void:
+static func warm(host: Node, stage := -1, boss := &"") -> void:
 	if host == null or not host.is_inside_tree():
 		return
+	if stage == 0 and boss != &"":
+		EnemyBody.prefetch(boss)                # the boss's model and textures load on a worker, ready for the rig
 	if stage == 0 or stage < 0:
 		for k: String in ["chant", "stagger", "roar", "bone", "spike", "block", "growl"]:
 			Synth.get_stream(k)
@@ -91,6 +93,7 @@ static func warm_rig(host: Node, script: GDScript) -> void:
 	if e == null:
 		return
 	e.process_mode = Node.PROCESS_MODE_DISABLED
+	e.visible = false                       # built now (the cost is the model and its textures), drawn a beat later
 	host.add_child(e)
 	e.remove_from_group(Groups.ENEMY)
 	e.collision_layer = 0
@@ -98,7 +101,12 @@ static func warm_rig(host: Node, script: GDScript) -> void:
 	e.scale = Vector3.ONE * 0.01
 	var cam := host.get_viewport().get_camera_3d()
 	e.global_position = (cam.global_position - cam.global_basis.z * 3.0) if cam != null else Vector3(0.0, 1.0, 0.0)
-	host.get_tree().create_timer(0.4, false).timeout.connect(e.queue_free)
+	var eid := e.get_instance_id()
+	host.get_tree().create_timer(0.25, false).timeout.connect(func() -> void:
+		var e2 := instance_from_id(eid) as Enemy
+		if e2 != null:
+			e2.visible = true)               # the first draw (pipelines for the boss shader) is its own frame
+	host.get_tree().create_timer(0.65, false).timeout.connect(e.queue_free)
 
 
 ## One dominant telegraph at a time: the zone landing soonest draws at full strength, ones landing

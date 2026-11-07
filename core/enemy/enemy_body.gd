@@ -135,6 +135,18 @@ static func _dress_model(rig: CharacterRig, kind: StringName) -> Array[MeshInsta
 	return out
 
 
+## Ask the loader's worker threads for a modelled boss's mesh and textures, so the rig's first build finds
+## them already read and decoded instead of stalling a frame on the disk.
+static func prefetch(kind: StringName) -> void:
+	if not MODELS.has(kind) or _model_mats.has(kind):
+		return
+	var base := String(MODELS[kind]).get_file().get_basename()
+	for path: String in [MODELS[kind], "res://art/textures/%s_albedo.png" % base, "res://art/textures/%s_normal.png" % base,
+			"res://art/textures/%s_orm.png" % base, "res://art/textures/%s_emit.png" % base]:
+		if ResourceLoader.exists(path):
+			ResourceLoader.load_threaded_request(path)
+
+
 static func _model_mat(kind: StringName) -> ShaderMaterial:
 	if _model_mats.has(kind):
 		return _model_mats[kind]
