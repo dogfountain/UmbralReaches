@@ -583,7 +583,7 @@ func _panes_one_sided() -> void:
 
 ## The inn's own masonry and boards take firelight: warm albedo (no blue-grey stone), the tables and bar a honey wood,
 ## the window glass brighter. Copies of the kit's materials: the crypt keeps its cold stone.
-const WARM_TINT := {"stone": Color(1.0, 0.86, 0.7), "plaster": Color(1.0, 0.9, 0.76), "floor": Color(1.0, 0.84, 0.66), "wood": Color(1.25, 0.9, 0.62), "slate": Color(0.95, 0.85, 0.78), "brick": Color(1.0, 0.86, 0.72)}
+const WARM_TINT := {"stone": Color(1.0, 0.9, 0.78), "plaster": Color(1.0, 0.9, 0.76), "floor": Color(1.0, 0.84, 0.66), "wood": Color(1.25, 0.9, 0.62), "slate": Color(0.95, 0.85, 0.78), "brick": Color(1.0, 0.86, 0.72)}
 
 
 func _warm_materials() -> void:

@@ -77,8 +77,8 @@ static func light(host: Node3D, n: String, at_world: Vector3, col: Color, e: flo
 
 
 ## A room's warm fill: a long soft pool and, in a big room lit by its people, two more along its length.
-static func room_lights(host: Node3D, id: String, centre: Vector3, yaw: float, half: Vector3, lit: bool) -> void:
-	add(id, centre, yaw, half, true)
+static func room_lights(host: Node3D, id: String, centre: Vector3, yaw: float, half: Vector3, lit: bool, y_pad := 0.0) -> void:
+	add(id, centre, yaw, half + Vector3(0, y_pad, 0), true)       # y_pad: a gabled roof and a floor that follows the ground
 	var b := Basis(Vector3.UP, yaw)
 	var r := maxf(half.x, half.z) * 1.7
 	var up := Vector3(0, half.y * 0.45, 0)
@@ -86,14 +86,24 @@ static func room_lights(host: Node3D, id: String, centre: Vector3, yaw: float, h
 		var em := MeshInstance3D.new()
 		em.name = id + "Embers"
 		var bm := BoxMesh.new()
-		bm.size = Vector3(minf(half.x * 0.5, 1.0), 0.32, 0.1)
+		bm.size = Vector3(minf(half.x * 0.4, 0.7), 0.2, 0.06)
 		em.mesh = bm
+		var hood := MeshInstance3D.new()         # a dark stone fire-back round the embers
+		var hb := BoxMesh.new()
+		hb.size = Vector3(bm.size.x + 0.5, 0.9, 0.14)
+		hood.mesh = hb
+		var hm := StandardMaterial3D.new()
+		hm.albedo_color = Color(0.2, 0.17, 0.15)
+		hm.roughness = 0.9
+		hood.material_override = hm
+		hood.position = Vector3(0, 0.3, -0.05)
+		em.add_child(hood)
 		var m := StandardMaterial3D.new()
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.albedo_color = Color(1.0, 0.45, 0.14)
+		m.albedo_color = Color(0.5, 0.16, 0.05)
 		m.emission_enabled = true
-		m.emission = Color(1.0, 0.4, 0.1)
-		m.emission_energy_multiplier = 1.3
+		m.emission = Color(1.0, 0.36, 0.08)
+		m.emission_energy_multiplier = 0.9
 		em.material_override = m
 		em.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		host.add_child(em)

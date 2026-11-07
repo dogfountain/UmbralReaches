@@ -1652,6 +1652,8 @@ func _s_warmth() -> void:
 			q.y = _gy(q.x, q.z) + 1.7
 			var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(q, c + Vector3(0, 0.8, 0), Layers.WORLD))
 			var d := q.distance_to(c) if hit.is_empty() else q.distance_to(hit.position)
+			if not _space().intersect_ray(PhysicsRayQueryParameters3D.create(q, q + Vector3(0, 6.0, 0), Layers.WORLD | Layers.PROPS)).is_empty():
+				d = 0.0               # under a roof
 			if d > best_d:
 				best_d = d
 				best = q
@@ -1662,13 +1664,18 @@ func _s_warmth() -> void:
 	var cy: float = g.call(-165.0, 59.0) + 0.66
 	await _view_still("w_house_a.png", "a Weirford cottage from inside", Vector3(-167.4, cy + 1.6, 60.9), Vector3(-162.8, cy + 1.0, 57.2))
 	await _view_still("w_house_out.png", "the cottage from outside, its lit window", Vector3(-165.0, g.call(-165.0, 70.0) + 1.7, 70.0), Vector3(-165.0, cy + 1.5, 61.5))
-	var sanc := main.find_child("Sanctuary", true, false) as Node3D
+	var sanc: Brazier = null
+	for n in main.find_children("Sanctuary", "Brazier", true, false):
+		sanc = n as Brazier
 	if sanc != null:
+		sanc.kindle_quiet()
 		var sp := sanc.global_position
 		await _view_still("w_hearth_fire.png", "the Hearth's fire at night", ring.call(sp), sp + Vector3(0, 0.8, 0))
 	for n in get_tree().get_nodes_in_group(&"lamp"):
 		var lq := n as Lamp
-		if lq != null and lq.lit and lq.look == "post":
+		if lq != null and lq.look == "post":
+			lq.light_from_leader(false)
+			await _secs(0.5)
 			var lp := lq.global_position
 			await _view_still("w_lamp_post.png", "a lamp post at night", ring.call(lp), lp + Vector3(0, 1.0, 0))
 			break
@@ -1681,6 +1688,8 @@ func _s_warmth() -> void:
 			wild = q
 	if wild != null:
 		wild.kindle_quiet()
+		var wl := wild.get_node("Light") as OmniLight3D
+		print("WARMTH wild light: e %.2f r %.1f col %s vis %s shadow %s atten %.2f fade %s/%.0f cull %d pos %s" % [wl.light_energy, wl.omni_range, wl.light_color, wl.is_visible_in_tree(), wl.shadow_enabled, wl.omni_attenuation, wl.distance_fade_enabled, wl.distance_fade_begin, wl.light_cull_mask, wl.global_position])
 		var bp := wild.global_position
 		await _secs(1.0)
 		await _view_still("w_brazier_wild.png", "a kindled brazier in the wild", ring.call(bp), bp + Vector3(0, 0.8, 0))

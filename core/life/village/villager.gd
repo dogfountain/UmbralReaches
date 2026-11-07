@@ -160,8 +160,8 @@ func _ready() -> void:
 		lamp_light = OmniLight3D.new()
 		lamp_light.name = "LanternLight"
 		lamp_light.light_color = Color(1.0, 0.64, 0.32)
-		lamp_light.light_energy = 0.85
-		lamp_light.omni_range = 5.5
+		lamp_light.light_energy = 2.0
+		lamp_light.omni_range = 6.5
 		lamp_light.omni_attenuation = 1.2
 		lamp_light.shadow_enabled = false
 		lamp_light.set_meta(&"light_class", &"realm")

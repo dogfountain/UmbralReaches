@@ -396,7 +396,7 @@ static func _building(host: Node3D, space: PhysicsDirectSpaceState3D, id: String
 	if not bool(d.get("open", false)) and float(d.h) > 0.0:
 		var t := 0.34
 		var hh := (float(d.h) - 0.66) * 0.5
-		Interiors.room_lights(host, "bld_" + id, at + Basis(Vector3.UP, float(d.yaw)) * Vector3(0, 0.66 + hh, 0), float(d.yaw), Vector3(d.size.x * 0.5 - t, hh, d.size.y * 0.5 - t), int(d.get("glow", 0)) > 0)
+		Interiors.room_lights(host, "bld_" + id, at + Basis(Vector3.UP, float(d.yaw)) * Vector3(0, 0.66 + hh, 0), float(d.yaw), Vector3(d.size.x * 0.5 - t, hh, d.size.y * 0.5 - t), int(d.get("glow", 0)) > 0, 1.8)
 	return at
 
 
