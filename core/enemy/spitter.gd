@@ -219,15 +219,30 @@ func _kite() -> void:
 func _spit() -> void:
 	if _p == null and not _on_threat:
 		return
-	var from := global_position + Vector3.UP * 1.45
-	if _sac:
-		from = _sac.global_position
+	var from := muzzle_point(1.45)
 	var aim := _spit_aim(from)
 	var orb := SpitOrb.launch(get_tree().current_scene, from, aim - from, spit_gloom)
 	if orb != null:
 		orb.at_ward = _on_threat
 	Sfx.play_stream(EnemyAudio.kit("spit"), from, -4.0)
 	Vfx.burst(from, Color(0.3, 1.6, 1.1), {"count": 14, "life": 0.3, "speed": Vector2(1.0, 3.0), "size": 0.05, "dir": (aim - from).normalized(), "spread": 30.0, "gravity": -6.0})
+
+
+const MUZZLE_FWD := 0.4        ## m: a shot leaves at least this far in front of the body's centre
+
+## Where a shot leaves: the sac (or `up` m above the feet), never behind the front of the body. The windup
+## rears the chest back, and the sac with it, so a raw sac position put the orb at its back.
+func muzzle_point(up: float) -> Vector3:
+	var m := _sac.global_position if _sac else global_position + Vector3.UP * up
+	var fwd := Vector3.ZERO
+	if _face_dir.length_squared() > 0.01:
+		fwd = Vector3(_face_dir.x, 0.0, _face_dir.z).normalized()
+	elif _face:
+		fwd = Vector3(-_face.global_basis.z.x, 0.0, -_face.global_basis.z.z).normalized()
+	var along := (m - global_position).dot(fwd)
+	if along < MUZZLE_FWD:
+		m += fwd * (MUZZLE_FWD - along)
+	return m
 
 
 ## The point the orb is thrown at: where you are plus half your run over its flight (the lane follows it).
@@ -260,7 +275,7 @@ func _aim_lane() -> void:
 ## The glob leaves on a high arc toward the disc that has been filling since the sac swelled.
 func _lob() -> void:
 	var to: Vector3 = get_meta(&"lob_at", _p.global_position if _p else global_position)
-	var from := _sac.global_position if _sac else global_position + Vector3.UP * 1.45
+	var from := muzzle_point(1.45)
 	AttackKit.lob(from, to, lob_flight, AttackKit.ACID)
 	Sfx.play_stream(EnemyAudio.kit("spit"), from, -3.0, 0.75)
 	_lobbing = false

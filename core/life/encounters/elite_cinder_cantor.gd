@@ -28,9 +28,7 @@ func _build() -> void:
 func _spit() -> void:
 	if _p == null:
 		return
-	var from := global_position + Vector3.UP * 1.8
-	if _sac:
-		from = _sac.global_position
+	var from := muzzle_point(1.8)
 	var aim := _p.global_position + Vector3.UP * 1.05
 	var t := from.distance_to(aim) / SpitOrb.SPEED
 	aim.y += 0.5 * SpitOrb.SAG * t * t

@@ -92,12 +92,12 @@ func _lob() -> void:
 	var at := _p.global_position + (pv.normalized() * 3.0 if pv.length() > 1.0 else Vector3(randf_range(-2.5, 2.5), 0.0, randf_range(-2.5, 2.5)))
 	AttackKit.zone(self, at, lob_flight + 0.3, spit_gloom, {"radius": LOB_R, "color": AttackKit.ACID, "fx": "acid", "bound": false,
 		"on_land": AttackKit.linger.bind(at, LOB_R * 0.85, 3.2, 3.0 * Tiers.dmg_of(self), 0.5, Color(0.2, 1.1, 0.75))})
-	AttackKit.lob(_sac.global_position if _sac else global_position + Vector3.UP * 2.4, at, lob_flight + 0.3, AttackKit.ACID)
+	AttackKit.lob(muzzle_point(2.4), at, lob_flight + 0.3, AttackKit.ACID)
 
 
 func _spray() -> void:
 	_spray_cd = 5.0
-	var from := _sac.global_position if _sac else global_position + Vector3.UP * 2.4
+	var from := muzzle_point(2.4)
 	var aim := _p.global_position + Vector3.UP * 1.0 - from
 	var n := 5 if enraged else 3
 	for k in n:

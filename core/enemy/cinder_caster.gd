@@ -132,7 +132,7 @@ func _on_state(next: int) -> void:
 
 func _lob() -> void:
 	var to: Vector3 = get_meta(&"lob_at", _p.global_position if _p else global_position)
-	var from := _sac.global_position if _sac else global_position + Vector3.UP * 1.45
+	var from := muzzle_point(1.45)
 	AttackKit.lob(from, to, lob_flight, EMBER)
 	Sfx.play_stream(EnemyAudio.kit("spit"), from, -3.0, 0.6)
 	_lobbing = false
