@@ -13,17 +13,17 @@ const Kit := preload("res://zz/trailer_act4_kit.gd")
 const BOSS := {
 	"thorn_reveal": {"boss": "thornwarden", "W": 11.0, "pre": false, "cam": [9.5, 0, 4.5, 0, 3.4, 0, 3.4], "push": 3.0, "fov": 55.0, "lit": [5.0, 40.0]},
 	"thorn_move": {"boss": "thornwarden", "W": 12.0, "pre": true, "cam": [13.0, 0, 11.0, 0, 6.0, 0, 1.5], "push": 1.5, "fov": 60.0, "lit": [5.0, 40.0]},
-	"thorn_knots": {"boss": "thornwarden", "W": 8.0, "pre": true, "knot": 60.0, "cam": [9.0, 0, 4.0, 0, 4.2, 0, 3.4], "push": 2.0, "fov": 55.0, "lit": [7.0, 40.0]},
+	"thorn_knots": {"boss": "thornwarden", "W": 8.0, "pre": true, "knot": 60.0, "cam": [9.0, 0, -4.5, 0, 4.2, 0, 3.4], "push": 2.0, "fov": 55.0, "lit": [7.0, 40.0]},
 	"boss_reveal": {"boss": "bone_abbot", "W": 9.0, "pre": false, "cam": [11.0, 0, 3.0, 0, 2.4, 0, 3.0], "ring": [70.0, 13.0], "fov": 46.0, "lit": [1.6, 24.0, 1]},
 	"boss_wide": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [17.0, 0, 7.0, 0, 6.0, 0, 1.5], "ring": [70.0, 12.0], "push": 1.0, "fov": 60.0, "lit": [1.6, 30.0, 1]},
-	"abbot_phase": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [0, 0, 0, 0, 4.5, 0, 3.0], "ring": [-70.0, 12.0], "look_c": 14.5, "push": 1.5, "fov": 62.0, "lit": [1.6, 30.0, 1]},
+	"abbot_phase": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [15.0, 0, -5.0, 0, 3.8, 0, 3.0], "ring": [-70.0, 12.0], "push": 1.5, "fov": 58.0, "lit": [1.6, 30.0, 1]},
 	"warden": {"boss": "ascended_warden", "W": 13.0, "pre": false, "cam": [19.0, 0, 4.0, 0, 1.0, 0, 6.0], "push": 3.0, "fov": 62.0, "lit": [6.0, 50.0]},
-	"warden_move": {"boss": "ascended_warden", "W": 13.0, "pre": true, "cam": [20.0, 0, -12.0, 0, 5.0, 0, 5.0], "push": 2.0, "fov": 62.0, "lit": [6.0, 50.0]},
+	"warden_move": {"boss": "ascended_warden", "W": 13.0, "pre": true, "cam": [21.0, 0, -8.0, 0, 9.0, 0, 5.0], "push": 2.0, "fov": 62.0, "lit": [6.0, 50.0]},
 	"warden_phase": {"boss": "ascended_warden", "W": 12.0, "pre": true, "cam": [20.0, 0, 5.0, 0, 1.2, 0, 8.0], "push": 2.0, "fov": 64.0, "lit": [6.0, 50.0]},
 	"anchoress": {"boss": "r37_anchoress", "W": 9.0, "pre": false, "cam": [11.0, 0, 3.0, 0, 1.6, 0, 2.6], "push": 2.5, "fov": 52.0, "lit": [8.0, 32.0]},
 	"anchoress_move": {"boss": "r37_anchoress", "W": 10.0, "pre": true, "cam": [9.0, 0, 7.5, 0, 5.0, 0, 1.0], "push": 1.5, "fov": 58.0, "lit": [8.0, 32.0]},
 	"anchoress_phase": {"boss": "r37_anchoress", "W": 9.0, "pre": true, "cam": [11.0, 0, 4.0, 0, 1.6, 0, 2.8], "push": 2.0, "fov": 56.0, "lit": [8.0, 32.0]},
-	"hierarch_voice": {"boss": "r37_hierarch", "W": 11.0, "pre": true, "top": 24.0, "fov": 62.0, "lit": [12.0, 70.0]},
+	"hierarch_voice": {"boss": "r37_hierarch", "W": 11.0, "pre": true, "cam": [17.0, 0, 7.0, 0, 8.0, 0, 3.0], "push": 2.0, "fov": 58.0, "lit": [8.0, 40.0]},
 	"hierarch_edict": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [10.5, 0, 3.5, 0, 1.2, 0, 4.5], "push": 2.5, "fov": 56.0, "lit": [5.0, 40.0]},
 	"hierarch_phase": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [14.0, 0, 5.0, 0, 1.6, 0, 4.0], "push": 2.0, "fov": 58.0, "lit": [5.0, 40.0]},
 	"final_blow": {"boss": "thornwarden", "W": 11.0, "pre": true, "cam": [11.0, 0, 5.0, 0, 5.0, 0, 2.8], "push": 1.5, "fov": 55.0, "lit": [5.0, 40.0]},
@@ -216,6 +216,8 @@ func _u_any(tt: float, id: String) -> void:
 		var c: Vector3 = kit.ar.global_position
 		if id == "thorn_knots" and kit.ar.room != null and not kit.ar.room.knots.is_empty() and is_instance_valid(kit.ar.room.knots[0]):
 			c = (kit.ar.room.knots[0] as Node3D).global_position.lerp(c, 0.55)
+		if id == "hierarch_voice":
+			c = (b.global_position if b else kit.ar.boss_at).lerp(d.pp(), 0.45)
 		d.top_down(c, float(cf.top))
 		d.light_at(c, 10.0)
 	else:
