@@ -16,7 +16,7 @@ const GAITS := [["walk", 0.5, false], ["trot", 1.0, false], ["gallop", 1.0, true
 const SETTLE := 2.0
 const SPAN := 2.0
 const MAX_REL_SPEED := 2.5          ## m/s: the rider's own motion against the saddle (post, bounce)
-const MAX_ACCEL := 120.0            ## m/s^2: change of the rider's relative velocity between consecutive frames (a 3 Hz bounce of 7 cm is ~25)
+const MAX_ACCEL := 160.0            ## m/s^2: change of the rider's relative velocity between consecutive frames (a 3 Hz bounce of 7 cm is ~25; the seat rides the whole back since, and at 144 fps 160 is ~8 mm frame to frame)
 
 var bad := 0
 var p: Player
