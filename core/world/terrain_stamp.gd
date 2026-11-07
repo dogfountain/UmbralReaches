@@ -410,7 +410,7 @@ static func _mound_delta(grid: _Grid, m: Dictionary) -> Dictionary:
 			dy = maxf(tgt - w.y, 0.0) * (1.0 - smoothstep(core, reach, d)) * smoothstep(2.0, 5.0, d)
 		raw[idx] = dy
 	# one vertex standing up alone is a spike on a 2 m grid: two passes of a 3 x 3 mean make the heap one swell
-	for pass_n in 2:
+	for pass_n in 4:
 		var soft := {}
 		for idx: int in raw:
 			var sum := 0.0
@@ -425,7 +425,11 @@ static func _mound_delta(grid: _Grid, m: Dictionary) -> Dictionary:
 		if m.has("floor"):                       # inside the hollow the floor is level, whatever the land did there
 			var w := grid.world(idx)
 			var d := Vector2(w.x, w.z).distance_to(c)
-			dy = lerpf(dy, float(m.floor) - w.y, 1.0 - smoothstep(4.5, 6.5, d))
+			var wf := 1.0 - smoothstep(5.3, 6.3, d)
+			var off := absf(wrapf(atan2(w.x - c.x, w.z - c.y) - float(m.door), -PI, PI))
+			var wd := (1.0 - smoothstep(0.35, 1.0, off)) * (1.0 - smoothstep(10.0, 14.0, d)) * (1.0 - wf)
+			var ramp := float(m.sill) - float(m.ramp) * maxf(d - 6.2, 0.0)       # the doorway's approach, up or down to it
+			dy = lerpf(lerpf(dy, float(m.floor) - w.y, wf), ramp - w.y, wd)
 		if absf(dy) > 0.02:
 			out[idx] = dy
 	return out

@@ -4,9 +4,11 @@ extends RefCounted
 ## to the underside of the roots, metre by metre outwards and 15 degrees round (TerrainStamp.mounds), the
 ## gaps between the roots filled by what the roots either side stand on, and blends back to the downs beyond.
 const OUT := 10.0
-const SINK := 0.9               ## the earth stands this far up the roots' undersides (the ground is a 2 m grid: it cannot follow a root's flank)
+const SINK := 1.2               ## the earth stands this far up the roots' undersides (the ground is a 2 m grid: it cannot follow a root's flank)
 const BINS := 24
-const DOOR_HALF := 0.4          ## radians
+const DOOR_HALF := 0.35         ## radians: the doorway's land stays as it is
+const RAMP := 0.22             ## slope of the approach to the door
+const DOOR_EASE := 1.0          ## and eases into the heap over this much more
 
 ## `door` is the doorway's angle (atan2 of its x, z offset) and `ground` a Callable x, z -> y of the land as it is:
 ## the doorway and its approach (DOOR_HALF either side) keep the land as it is.
@@ -56,12 +58,24 @@ static func queue(roots: Mesh, centre: Vector2, oy: float, door: float, ground: 
 	for d in far + 1:                                 # the doorway is walked through: the land stays as it is there
 		for a in n:
 			var ang := float(a) / float(n) * TAU
-			if absf(wrapf(ang - door, -PI, PI)) <= DOOR_HALF:
+			var off := absf(wrapf(ang - door, -PI, PI))
+			if off < DOOR_HALF + DOOR_EASE:
 				var q := centre + Vector2(sin(ang), cos(ang)) * (float(d) + 0.5)
-				rows[d][a] = float(ground.call(q.x, q.y)) - SINK
+				var ramp := oy + 0.1 - RAMP * maxf(float(d) + 0.5 - 6.2, 0.0)         # the approach: never steeper than this, so turf holds
+				var nat := maxf(float(ground.call(q.x, q.y)), ramp) - _sink(a, d, n, door)
+				var keep := (1.0 - smoothstep(DOOR_HALF, DOOR_HALF + DOOR_EASE, off)) * (1.0 - smoothstep(8.0, 13.0, float(d)))
+				rows[d][a] = lerpf(rows[d][a], nat, keep)
 	var ring := PackedFloat32Array()
 	ring.resize((far + 1) * n)
 	for d in far + 1:
 		for a in n:
-			ring[d * n + a] = rows[d][a] + SINK if d >= 3 and not is_nan(rows[d][a]) else NAN
-	TerrainStamp.mounds.append({"c": centre, "core": float(far), "out": float(far) + OUT, "bins": n, "ring": ring, "floor": oy + 0.05})
+			ring[d * n + a] = rows[d][a] + _sink(a, d, n, door) if d >= 3 and not is_nan(rows[d][a]) else NAN
+	TerrainStamp.mounds.append({"c": centre, "core": float(far), "out": float(far) + OUT, "bins": n, "ring": ring, "floor": oy - 0.35, "door": door, "sill": oy + 0.05, "ramp": RAMP})
+
+
+## How far up the roots the earth stands: deep, to bury what the 2 m grid cannot follow, but shallow by the door
+## frame, where a deep heap would stand up as a bank beside the doorway.
+static func _sink(a: int, d: int, n: int, door: float) -> float:
+	var off := absf(wrapf(float(a) / float(n) * TAU - door, -PI, PI))
+	var near := (1.0 - smoothstep(DOOR_HALF + 0.2, DOOR_HALF + 1.4, off)) * (1.0 - smoothstep(8.0, 13.0, float(d)))
+	return lerpf(SINK, 0.35, near)
