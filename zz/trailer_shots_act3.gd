@@ -1,9 +1,8 @@
-extends RefCounted
+extends "res://zz/trailer_shots_act3b.gd"
 ## Act III shots (the realm widens): places, horses, the Marches, bells, escort and defend. PLACES is the data-driven
 ## pattern (a shot per entry, no per-shot method); write a bespoke shot as _s_<id>, _u_<id>(t), _e_<id>() instead.
 ## A place shot puts the wanderer on `stand` walking toward `look`; the lens trails them (trailer_cam.vista).
 
-const Cam := preload("res://zz/trailer_cam.gd")
 ## id -> [stand xz, look xz, look height above ground, lens back, lens height, fov, lateral drift, rise, walk pace]
 const PLACES := {
 	"thornwood": [Vector2(-60, 20), Vector2(-110, -20), 6.0, 4.5, 2.2, 62.0, 1.2, 0.8, 0.5],
@@ -25,15 +24,6 @@ const PLACES := {
 	"well": [Vector2(44, 192), Vector2(72, 204), 0.0, 5.0, 2.4, 60.0, 1.5, 0.8, 0.5],
 	"downs": [Vector2(-10, 190), Vector2(0, 196), 3.0, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
 }
-
-var d
-var cam
-
-
-func _init(director: Object) -> void:
-	d = director
-	cam = Cam.new(director)
-
 
 func handles(id: String) -> bool:
 	return PLACES.has(id)
