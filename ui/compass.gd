@@ -85,13 +85,7 @@ func _rescan() -> void:
 
 
 func _beacon_col(b: Node) -> Color:
-	for c in b.get_children():
-		var mi := c as MeshInstance3D
-		if mi and mi.material_override is StandardMaterial3D:
-			var col := (mi.material_override as StandardMaterial3D).albedo_color
-			col.a = 1.0
-			return col
-	return LANTERN
+	return b.get("tint") as Color if "tint" in b else LANTERN
 
 
 func _draw() -> void:

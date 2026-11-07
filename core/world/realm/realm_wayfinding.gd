@@ -9,8 +9,8 @@ extends RefCounted
 ##                rock instead of on flat ground; and a rockfall across the Pilgrims' Road beyond
 ##                each of its two broken gates (the road ran on through them into the wall)
 ##   climb_tower() a ruined watchtower by the green: a jump-and-grab climb to a vista (zz/world_r30_test)
-##   beacon()     landmark light columns (the henge here, the summit from SummitDress), drawn inside
-##                the 82 m far plane by core/world/realm/landmark_beacon.gd
+##   beacon()     landmark markers for the compass and map, each with a faint far glow on the place
+##                itself (the henge here, the summit from SummitDress): core/world/realm/landmark_beacon.gd
 
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const Glow := preload("res://core/world/realm/unkindled_glow.gd")
@@ -286,82 +286,36 @@ static func _spawn(parent: Node3D, mesh: ArrayMesh, xf: Transform3D, collide: bo
 	return mi
 
 
-## A landmark beacon (r30): a thin light column rising from `ceiling` metres above `at` (clear of the
-## fight under it), the "where do I go" read from across the map. Alpha-blended, not additive: it
-## reads as a warm line against the bright vortex (an additive column vanished into it), unshaded
-## and under the glow threshold. Not built if `boss_id` is already slain; it narrows and goes out
-## when that boss falls.
-## `soft` (the summit): an additive column with radial falloff to nothing at its edge and a fade at
-## foot and top (world/beacon_column.gdshader), energy capped under the glow threshold.
-## `reach` > 0 (a minor column): it narrows away beyond that many metres, so only the boss and summit
-## columns stand across the whole land.
-static func beacon(parent: Node3D, at: Vector3, boss_id: String, col: Color, height: float, radius: float, ceiling := 9.0, soft := false, reach := 0.0) -> Node3D:
+## A landmark's marker and far read (landmark_beacon.gd): the compass and the map list it by `anchor`
+## (`ceiling` metres above `at`, clear of the fight), and a faint glow sprite sits on the place itself,
+## low over `at` for a boss arena (rising embers), at `ceiling` for the summit's crown, half way up
+## for a minor place's lamp or window. Not built if `boss_id` is already slain; it dims and goes out
+## when that boss falls. `soft` marks the summit. `reach` > 0 (a minor place): the glow thins out
+## beyond about twice that many metres. `height` and `radius` are the retired column's size, kept
+## for callers; `radius` scales the glow's strength.
+static func beacon(parent: Node3D, at: Vector3, boss_id: String, col: Color, _height: float, radius: float, ceiling := 9.0, soft := false, reach := 0.0) -> Node3D:
 	if boss_id != "" and Travel.bosses_slain.has(boss_id):
 		return null
 	var root: Node3D = Beacon.new()
 	root.name = "Beacon_" + boss_id
 	root.set("reach", reach)
-	root.set("anchor", at + Vector3.UP * ceiling)       # drawn inside the 82 m far plane (landmark_beacon.gd)
+	root.set("anchor", at + Vector3.UP * ceiling)
+	var peak := maxf(1.0, maxf(col.r, maxf(col.g, col.b)))
+	root.set("tint", Color(col.r / peak, col.g / peak, col.b / peak))        # the glow stays under the bloom threshold
+	var boss := boss_id != "" and not soft
+	var h := ceiling if soft else (ceiling * 0.3 if boss else ceiling * 0.55)
+	root.set("glow_h", h - ceiling)
+	root.set("ember", boss)
+	root.set("strength", 1.0 if soft else (0.85 if boss else 0.6 + radius * 0.3))
 	parent.add_child(root)
-	for layer: Array in [[radius, 0.5, 1.0], [radius * 2.6, 0.1, 0.85]]:
-		var mi := MeshInstance3D.new()
-		var cyl := CylinderMesh.new()
-		cyl.bottom_radius = float(layer[0]) * 0.55
-		cyl.top_radius = float(layer[0])
-		cyl.height = height
-		cyl.radial_segments = 10
-		cyl.rings = 1
-		cyl.cap_top = false
-		cyl.cap_bottom = false
-		mi.mesh = cyl
-		if soft:
-			var sm := ShaderMaterial.new()
-			sm.shader = load("res://world/beacon_column.gdshader") as Shader
-			sm.set_shader_parameter(&"tint", Color(col.r, col.g, col.b))
-			sm.set_shader_parameter(&"energy", 0.8 * float(layer[2]))
-			sm.set_shader_parameter(&"alpha", float(layer[1]) * 0.9)
-			mi.material_override = sm
-		else:
-			var m := StandardMaterial3D.new()
-			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			m.cull_mode = BaseMaterial3D.CULL_DISABLED
-			m.disable_fog = true
-			m.albedo_texture = _fade_tex()
-			var c := col * float(layer[2])
-			c.a = float(layer[1])
-			m.albedo_color = c
-			mi.material_override = m
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-		mi.extra_cull_margin = 20.0
-		mi.position = Vector3(0, height * 0.5, 0)
-		root.add_child(mi)
 	if boss_id != "":
 		Events.boss_slain.connect(func(id: String) -> void:
 			if id != boss_id or not is_instance_valid(root):
 				return
 			var tw := root.create_tween()
-			tw.tween_property(root, "scale", Vector3(0.02, 1.0, 0.02), 2.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			tw.tween_property(root, "scale", Vector3.ONE * 0.02, 2.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 			tw.tween_callback(root.queue_free))
 	return root
-
-
-## Vertical alpha ramp for the beacon: fades in above its foot and out towards its top.
-static var _ftex: GradientTexture2D
-static func _fade_tex() -> GradientTexture2D:
-	if _ftex:
-		return _ftex
-	var g := Gradient.new()
-	g.offsets = PackedFloat32Array([0.0, 0.12, 0.7, 1.0])
-	g.colors = PackedColorArray([Color(1, 1, 1, 0.0), Color(1, 1, 1, 1.0), Color(1, 1, 1, 0.8), Color(1, 1, 1, 0.0)])
-	_ftex = GradientTexture2D.new()
-	_ftex.gradient = g
-	_ftex.fill_from = Vector2(0, 1)
-	_ftex.fill_to = Vector2(0, 0)
-	_ftex.width = 4
-	_ftex.height = 64
-	return _ftex
 
 
 # --- a climb for a vista -----------------------------------------------------------------------
