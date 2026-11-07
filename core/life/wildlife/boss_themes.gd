@@ -69,7 +69,7 @@ func _on_engaged(b: Node, _title: String) -> void:
 	if _ready_for(id):
 		_start(id)
 	else:
-		_build_async(id)
+		_build_async(id)               # the arena normally did this on the approach (prepare)
 
 
 func _process(dt: float) -> void:
@@ -112,8 +112,16 @@ func _start(id: String) -> void:
 
 # --- building -------------------------------------------------------------------------------------
 
+## A theme the pull can start at once: both stems are wrapped and held in memory.
 func _ready_for(id: String) -> bool:
-	return _cache.has(id + ":base") or GenCache.load_var(_key(id, "base"), SELF) is PackedByteArray
+	return _cache.has(id + ":base") and _cache.has(id + ":high")
+
+
+## Called by the arena as the wanderer nears (BossKit.warm): reads the cached stems, or renders them,
+## on a worker thread, so the pull itself touches neither the disk nor the synthesiser.
+func prepare(id: String) -> void:
+	if IDS.has(id) and not _ready_for(id):
+		_build_async(id)
 
 
 ## r35 fix: the worker holds only its own locals (the script, a box, a mutex), never this node: a
@@ -125,8 +133,8 @@ func _build_async(id: String) -> void:
 	var box := {"done": false, "bytes": []}
 	var m := Mutex.new()
 	var task := WorkerThreadPool.add_task(func() -> void:
-		var b: PackedByteArray = scr.call("_encode", scr.call("build", id, "base"))
-		var h: PackedByteArray = scr.call("_encode", scr.call("build", id, "high"))
+		var b: PackedByteArray = scr.call("_fetch", id, "base")
+		var h: PackedByteArray = scr.call("_fetch", id, "high")
 		m.lock()
 		box["bytes"] = [b, h]
 		box["done"] = true
@@ -148,8 +156,6 @@ func _collect_built() -> void:
 			continue
 		WorkerThreadPool.wait_for_task_completion(int(job[0]))
 		_pending.erase(id)
-		GenCache.save_var(_key(id, "base"), SELF, pair[0])
-		GenCache.save_var(_key(id, "high"), SELF, pair[1])
 		_cache[id + ":base"] = _wav(pair[0])
 		_cache[id + ":high"] = _wav(pair[1])
 
@@ -162,6 +168,17 @@ func _exit_tree() -> void:
 
 static func _key(id: String, layer: String) -> String:
 	return "boss_theme_%s_%s_v%d" % [id, layer, VERSION]
+
+
+## One stem's bytes: the cache if it holds them, else rendered and cached. Safe on a worker thread.
+static func _fetch(id: String, layer: String) -> PackedByteArray:
+	var data: Variant = GenCache.load_var(_key(id, layer), SELF)
+	if data is PackedByteArray and (data as PackedByteArray).size() > 64:
+		return data
+	var bytes := _encode(build(id, layer))
+	if not bytes.is_empty():
+		GenCache.save_var(_key(id, layer), SELF, bytes)
+	return bytes
 
 
 ## The theme's stem as a looping stream (built on this thread if it was never cached: tests, bakes).

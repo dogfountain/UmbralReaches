@@ -5,6 +5,8 @@ extends Node3D
 ## shows at the top of the screen. Kill it and the gate opens, the reward appears, and the victory
 ## persists (Travel.bosses_slain). Fall (hollowed) and the arena resets: boss gone, gate open.
 
+const BossThemes := preload("res://core/life/wildlife/boss_themes.gd")
+
 @export var boss_id := ""
 @export var title := "Boss"
 @export var radius := 7.0
@@ -19,6 +21,8 @@ var phase_titles: Dictionary = {}
 ## When the wardens' bosses are missing, what each one is called in the "Nothing answers" line.
 const HOLDS := {"thornwarden": "The Ring's heart", "bone_abbot": "The crypt's crown"}
 const LEAVE := 6.0          ## run this far past the edge and the fight is held (r35: it used to reset)
+const WARM_STAGES := 5     ## BossKit.warm slices (the rig follows as the last step)
+const WARM_GAP := 0.25      ## seconds between warm steps
 const GATE_CLEAR := 1.5     ## metres past the gate line before the fight starts and the gate closes
 
 var boss_script: GDScript
@@ -171,9 +175,10 @@ func _physics_process(_d: float) -> void:
 	var d := p.global_position - global_position
 	if not _warmed and Vector2(d.x, d.z).length() < radius + 24.0 and absf(d.y) < ceiling + 8.0:
 		_warmed = true                          # first-use costs of the boss's moves, paid while it is quiet
-		BossKit.warm(self)
-		if boss_script != null:
-			BossKit.warm_rig(get_parent(), boss_script)
+		var themes := get_tree().get_first_node_in_group(&"boss_themes") as BossThemes
+		if themes != null:
+			themes.prepare(boss_id)             # the theme's stems read or rendered on a thread, not at the pull
+		_warm_step(0)
 	if Vector2(d.x, d.z).length() > radius or d.y < -1.0 or d.y > ceiling:
 		return
 	if not _past_gate(p.global_position):
@@ -193,6 +198,23 @@ func _physics_process(_d: float) -> void:
 				Events.toast.emit(no_peal(rung, requires_bells))
 			return
 	_begin()
+
+
+## The boss's first-use costs, one slice per step a quarter second apart (BossKit.warm stages 0..4,
+## then the rig), so the approach never takes them all in one frame.
+func _warm_step(i: int) -> void:
+	if not is_inside_tree() or slain():
+		return
+	var t0 := Time.get_ticks_usec()
+	if i < WARM_STAGES:
+		BossKit.warm(self, i)
+	elif boss_script != null:
+		BossKit.warm_rig(get_parent(), boss_script)
+	var ms := float(Time.get_ticks_usec() - t0) / 1000.0
+	if ms > 4.0:
+		print("BOSSWARM %s step %d %.1f ms" % [boss_id, i, ms])
+	if i < WARM_STAGES:
+		get_tree().create_timer(WARM_GAP, false).timeout.connect(_warm_step.bind(i + 1))
 
 
 func _named() -> String:

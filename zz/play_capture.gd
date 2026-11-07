@@ -1366,6 +1366,13 @@ func _arena_boss(key: String, seal: String) -> Enemy:
 	var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 4.0, at + Vector3.DOWN * 8.0, Layers.WORLD, [p.get_rid()]))
 	if not hit.is_empty():
 		at = hit.position
+	# as in play, the arena warms the boss's moves and rig as the wanderer nears, a while before the pull
+	var far := c + gout * (arena.radius + 14.0)
+	far.y = c.y + 0.5
+	_mark = "approach " + key
+	_stand(far, _yaw_of(c - far))
+	await _secs(2.0)
+	_mark = "pull " + key
 	_stand(at, _yaw_of(c - at))
 	var box: Array = []
 	await _wait_until(func() -> bool:
@@ -1714,6 +1721,27 @@ func _layer(script_end: String) -> Node:
 	return null
 
 
+## Times the pause itself (the notification walk over every node), before and after PauseScope.mark.
+func _pause_probe() -> void:
+	var n := 1
+	var stack: Array[Node] = [get_tree().root]
+	while not stack.is_empty():
+		var nd: Node = stack.pop_back()
+		for c in nd.get_children():
+			n += 1
+			stack.append(c)
+	var best := 99.0
+	for i in 5:
+		var t0 := Time.get_ticks_usec()
+		get_tree().paused = true
+		best = minf(best, float(Time.get_ticks_usec() - t0) / 1000.0)
+		get_tree().paused = false
+	print("PAUSE_PROBE nodes %d  best of 5 pause %.2f ms" % [n, best])
+
+
+const PauseScope := preload("res://core/world/pause_scope.gd")
+
+
 func _s_ui() -> void:
 	_clear_enemies()
 	_stand(studio, studio_yaw)
@@ -1723,6 +1751,9 @@ func _s_ui() -> void:
 	# the game's own camera back for the UI stills
 	_cam_game()
 	_ui_show()
+	_pause_probe()
+	PauseScope.mark(main)
+	_pause_probe()
 	# what the loading screen does before the cover lifts: every big panel opened once
 	var pw: Node = preload("res://ui/panel_warm.gd").new()
 	pw.set("zone", main)

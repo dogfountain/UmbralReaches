@@ -39,25 +39,32 @@ static var _live: Array = []        ## [[zone mesh id, land time s], ...]: the z
 
 ## Pay the first-use costs of a boss's moves while the arena is still quiet: the danger-zone
 ## shader in each shape and colour, both spike meshes and their materials, the particle, ring and
-## light presets the landings use, and the boss's synthesized sounds. Anything drawn is a speck
-## put in front of the camera for a few frames (culled things never compile), then freed.
-static func warm(host: Node) -> void:
+## light presets the landings use, and the boss's synthesized sounds. `stage` 0..4 does one fifth of
+## it (sounds, danger zones, rings, spike meshes, bursts and light), so an arena can spread the work
+## over frames; -1 does it all. Anything drawn is a speck put in front of the camera for a few
+## frames (culled things never compile), then freed.
+static func warm(host: Node, stage := -1) -> void:
 	if host == null or not host.is_inside_tree():
 		return
-	for k: String in ["chant", "stagger", "roar", "bone", "spike", "block", "growl"]:
-		Synth.get_stream(k)
-	ResourceLoader.load("res://art/audio/ward_chime.wav")
+	if stage == 0 or stage < 0:
+		for k: String in ["chant", "stagger", "roar", "bone", "spike", "block", "growl"]:
+			Synth.get_stream(k)
+		ResourceLoader.load("res://art/audio/ward_chime.wav")
 	var cam := host.get_viewport().get_camera_3d()
 	var at := Vector3(0.0, 1.0, 0.0)
 	if cam != null:
 		at = cam.global_position - cam.global_basis.z * 3.0
 	var cols: Array[Color] = [THORN, BONE, HOLY]
 	for c in cols:
-		SpellFx.danger(at, 0.2, {"radius": 0.02, "color": c, "hold": 0.0})
-		SpellFx.danger(at, 0.2, {"radius": 0.02, "half_angle": 0.5, "color": c, "hold": 0.0})
-		SpellFx.danger(at, 0.2, {"rect": Vector2(0.01, 0.02), "color": c, "hold": 0.0})
-		Vfx.ring(at, 0.02, c, 0.2, 0.1, Vector3.UP, 1.2)
+		if stage == 1 or stage < 0:
+			SpellFx.danger(at, 0.2, {"radius": 0.02, "color": c, "hold": 0.0})
+			SpellFx.danger(at, 0.2, {"radius": 0.02, "half_angle": 0.5, "color": c, "hold": 0.0})
+			SpellFx.danger(at, 0.2, {"rect": Vector2(0.01, 0.02), "color": c, "hold": 0.0})
+		if stage == 2 or stage < 0:
+			Vfx.ring(at, 0.02, c, 0.2, 0.1, Vector3.UP, 1.2)
 	for kind in ["bone", "thorn"]:
+		if stage >= 0 and stage != 3:
+			continue
 		_spike_assets(kind)
 		var sp := MeshInstance3D.new()
 		sp.mesh = _spike_meshes[kind]
@@ -67,6 +74,8 @@ static func warm(host: Node) -> void:
 		sp.global_position = at
 		sp.scale = Vector3.ONE * 0.01
 		host.get_tree().create_timer(0.3, false).timeout.connect(sp.queue_free)
+	if stage >= 0 and stage != 4:
+		return
 	Vfx.burst(at, BONE, {"count": 4, "life": 0.3, "speed": Vector2(0.1, 0.2), "size": 0.01, "gravity": -6.0, "ring": 0.02})
 	Vfx.burst(at, Color(0.08, 0.06, 0.06, 0.8), {"count": 4, "life": 0.3, "speed": Vector2(0.1, 0.2), "size": 0.01, "gravity": 0.6, "radius": 0.02, "additive": false, "turbulence": true})
 	Vfx.light(at, Color(0.1, 0.1, 0.1), 0.01, 1.0, 0.1)
