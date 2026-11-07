@@ -6,6 +6,7 @@
 #   tools/play_capture.sh horse wanderer        # just these
 #   HEADLESS=1 tools/play_capture.sh horse      # the "runs clean" check: no window, no images
 #   OUT=/some/dir TIMEOUT=170 tools/play_capture.sh ui
+#   EXTRA=--lightlog tools/play_capture.sh bosses_a     # extra harness flags (--nolit, --lightlog)
 #
 # Sections: horse wanderer spells enemies_a enemies_b enemies_c enemies_d bosses_a bosses_b bosses_c villagers
 #           regions_a regions_b places ui.
@@ -29,7 +30,7 @@ for s in $SECTIONS; do
 	echo "== $s"
 	args=(--path "$ROOT")
 	[ "$HEADLESS" = "1" ] && args+=(--headless)
-	args+=(res://zz/play_capture.tscn -- "--out=$OUT" "--only=$s" "--timeout=$TIMEOUT")
+	args+=(res://zz/play_capture.tscn -- "--out=$OUT" "--only=$s" "--timeout=$TIMEOUT" ${EXTRA:-})
 	UMBRAL_SAVE_DIR="$SAVES" "$GODOT" "${args[@]}" > "$LOG" 2>&1 &
 	pid=$!
 	# a second, outer watchdog: the harness has its own, this one catches a hung engine
