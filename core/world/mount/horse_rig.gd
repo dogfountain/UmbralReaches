@@ -10,12 +10,13 @@ extends Node3D
 ##   rig.freq(speed)                         (strides per second at a speed: advance the phase by TAU * it)
 
 const LEGS := ["fl", "fr", "hl", "hr"]
-## leg phase offsets (fraction of a stride) in LEGS order, duty (stance share), reach (m, half sweep),
-## lift (m), and the stride length (m) of each gait
+## leg phase offsets (fraction of a stride) in LEGS order, duty (stance share),
+## lift (m), and the stride length (m) of each gait. The sweep of a stance is stride x duty (so the planted hoof
+## is still while the horse moves on); the hips ride the pitching spine and the back sinks to keep every hoof in reach
 const GAITS := {
-	"walk": {"off": [0.25, 0.75, 0.0, 0.5], "duty": 0.68, "lift": 0.085, "stride": 1.5, "reach": 0.51},
-	"trot": {"off": [0.0, 0.5, 0.5, 0.0], "duty": 0.46, "lift": 0.14, "stride": 2.9, "reach": 0.667},
-	"gallop": {"off": [0.52, 0.64, 0.0, 0.12], "duty": 0.3, "lift": 0.2, "stride": 4.6, "reach": 0.69},
+	"walk": {"off": [0.25, 0.75, 0.0, 0.5], "duty": 0.68, "lift": 0.085, "stride": 1.5},
+	"trot": {"off": [0.0, 0.5, 0.5, 0.0], "duty": 0.46, "lift": 0.14, "stride": 2.9},
+	"gallop": {"off": [0.52, 0.64, 0.0, 0.12], "duty": 0.3, "lift": 0.2, "stride": 3.8},
 }
 const BONES := ["root", "hips", "barrel", "chest", "neck1", "neck2", "neck3", "head", "ear_r", "ear_l", "tail0", "tail1", "tail2", "tail3",
 	"lantern", "mane1", "mane2", "mane3", "fl_up", "fl_low", "fl_fet", "fr_up", "fr_low", "fr_fet", "hl_up", "hl_low", "hl_fet", "hr_up", "hr_low", "hr_fet"]
@@ -160,7 +161,7 @@ static func _find(n: Node, cls: String) -> Node:
 ## Strides per second at `speed` (the gait's stride length grows with speed; at a standstill nothing).
 func freq(speed: float) -> float:
 	var g := _blend(speed)
-	return speed / maxf(float(g.stride) * size * pow(heft, 0.3), 0.5)
+	return speed / maxf(float(g.stride) * size, 0.5)
 
 
 ## The legs (indices into LEGS) whose hoof plants as the stride phase goes from `ph0` to `ph1` at `speed`:
@@ -184,8 +185,7 @@ func _blend(speed: float) -> Dictionary:
 	var b: Dictionary
 	var t: float
 	if speed <= walk_s:
-		return {"off": GAITS.walk.off, "duty": GAITS.walk.duty, "lift": float(GAITS.walk.lift) * clampf(speed / walk_s, 0.25, 1.0), "stride": GAITS.walk.stride,
-			"reach": float(GAITS.walk.reach) * clampf(speed / walk_s, 0.15, 1.0)}
+		return {"off": GAITS.walk.off, "duty": GAITS.walk.duty, "lift": float(GAITS.walk.lift) * clampf(speed / walk_s, 0.25, 1.0), "stride": GAITS.walk.stride}
 	if speed <= trot_s:
 		a = GAITS.walk
 		b = GAITS.trot
@@ -200,7 +200,7 @@ func _blend(speed: float) -> Dictionary:
 		var ob: float = b.off[i]
 		var dlt := fposmod(ob - oa + 0.5, 1.0) - 0.5
 		off.append(fposmod(oa + dlt * t, 1.0))
-	return {"off": off, "duty": lerpf(a.duty, b.duty, t), "lift": lerpf(a.lift, b.lift, t), "stride": lerpf(a.stride, b.stride, t), "reach": lerpf(a.reach, b.reach, t)}
+	return {"off": off, "duty": lerpf(a.duty, b.duty, t), "lift": lerpf(a.lift, b.lift, t), "stride": lerpf(a.stride, b.stride, t)}
 
 
 ## Pose the skeleton: stride phase `ph` (radians), the horse's `speed`, head `graze` (0 up .. 0.7 down), `dt`.
@@ -237,7 +237,7 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 		if moving:
 			var u := fposmod(cyc + float(g.off[i]), 1.0)
 			var duty: float = g.duty
-			var s_reach: float = float(g.reach) * sz * pow(heft, 0.3)
+			var s_reach: float = float(g.stride) * float(g.duty) * 0.5 * sz      # half the sweep = half the ground the stance covers: the planted hoof is still
 			if u < duty:
 				dz = -s_reach * (1.0 - 2.0 * u / duty)                   # stance: the planted hoof travels from the front of its sweep to the back (+z is aft)
 			else:
@@ -357,17 +357,32 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 	_lan = _lan.clamp(Vector2(-0.8, -0.8), Vector2(0.8, 0.8))
 	_pose_bone("lantern", _lan.x, _lan.y)
 	# legs
+	var hips := {}
+	var extra := 0.0
 	for i in 4:
 		var l: String = LEGS[i]
 		if not _legs.has(l):
 			continue
 		var L: Dictionary = _legs[l]
-		_leg(L, tgt[l], float(swing[l]), k, l.begins_with("f"))
+		hips[l] = skel.get_bone_global_pose(_bi[L.up]).origin
+		extra = maxf(extra, ((tgt[l] as Vector3) - (hips[l] as Vector3)).length() - (float(L.l1) + float(L.l2)) * 0.985)
+	# the hip joints ride the pitching, rolling spine: solve from where they are now, and sink the back a little
+	# further if a hoof would be left short of its place on the ground
+	if extra > 0.0 and moving:
+		extra = minf(extra, 0.4)
+		last_dy -= extra
+		_pose_bone("root", 0.0, 0.0, Vector3(0, last_dy, 0))
+		for l: String in hips:
+			hips[l] = (hips[l] as Vector3) - Vector3(0, extra, 0)
+	for i in 4:
+		var l: String = LEGS[i]
+		if not _legs.has(l):
+			continue
+		_leg(_legs[l], tgt[l], float(swing[l]), k, l.begins_with("f"), hips[l])
 
 
 ## Two-bone solve in the sagittal plane (y up, z fore-aft) to put the fetlock on `target`.
-func _leg(L: Dictionary, target: Vector3, sw: float, k: float, front: bool) -> void:
-	var hip: Vector3 = L.hip + Vector3(0, last_dy, 0)
+func _leg(L: Dictionary, target: Vector3, sw: float, k: float, front: bool, hip: Vector3) -> void:
 	var rel := target - hip
 	var d := maxf(Vector2(rel.y, rel.z).length(), 0.001)
 	var l1: float = L.l1
