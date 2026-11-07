@@ -20,6 +20,19 @@ static var _synced := false
 ## Path queries made, and the time they took (tests and the perf watch read these).
 static var queries := 0
 static var query_usec := 0
+const MAX_POLYS := 100000               ## the server's default search stops after 4096 polygons and returns the best so far: on this mesh (75k polygons) any route over ~100 m ended far short of its goal
+
+
+## A path over the shared map with the search cap lifted (map_get_path stops at 4096 polygons).
+static func path(from: Vector3, to: Vector3) -> PackedVector3Array:
+	var q := NavigationPathQueryParameters3D.new()
+	q.map = map
+	q.start_position = from
+	q.target_position = to
+	q.path_search_max_polygons = MAX_POLYS
+	var r := NavigationPathQueryResult3D.new()
+	NavigationServer3D.query_path(q, r)
+	return r.path
 
 var pts := PackedVector3Array()
 var idx := 0
@@ -132,7 +145,7 @@ func _query(pos: Vector3, goal: Vector3) -> void:
 	_goal = goal
 	_clear = 0
 	var t := Time.get_ticks_usec()
-	var p := NavigationServer3D.map_get_path(map, pos, goal, true)
+	var p := NavAssist.path(pos, goal)
 	query_usec += Time.get_ticks_usec() - t
 	queries += 1
 	if p.size() < 2:

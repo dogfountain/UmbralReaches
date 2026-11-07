@@ -485,11 +485,11 @@ func _gallery(k: OssKit) -> void:
 	var fen := Realm.enabled() and Realm.module_on("bosses")
 	for i in 8:
 		var at := 1.1 + 1.95 * float(i)
-		if fen and absf(z0 + at - FEN_DOOR_Z) < 0.55 + 0.8 + 0.1:
+		if fen and absf(z0 + at - FEN_DOOR_Z) < 0.55 + 1.0 + 0.1:
 			continue                                 # the fen door takes this bay (realm)
 		low.append({"at": at, "w": 1.1, "spring": 1.5, "sill": 0.7, "niche": true, "k": 0.7})
 	if fen:
-		low.append({"at": FEN_DOOR_Z - z0, "w": 1.6, "spring": 2.2})
+		low.append({"at": FEN_DOOR_Z - z0, "w": 2.0, "spring": 2.4})
 	_wall(k, "plaster", Vector3(x1, y, z0), Vector3(x1, y, z1), 3.4, t, low, Vector3.RIGHT)
 	if fen:
 		_bone_dado(k, Vector3(x1 - t * 0.5, y, z0 + 0.4), Vector3(x1 - t * 0.5, y, FEN_DOOR_Z - 1.0), Vector3.LEFT, [0.47, 0.6])

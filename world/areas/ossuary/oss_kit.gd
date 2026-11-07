@@ -253,7 +253,12 @@ func _box_col(c: Vector3, hx: Vector3, hy: Vector3, hz: Vector3) -> void:
 			var o: Vector3 = c + (f[0] as Vector3) * s
 			var u: Vector3 = f[1]
 			var v: Vector3 = f[2]
-			col_faces.append_array(PackedVector3Array([o - u - v, o + u - v, o + u + v, o - u - v, o + u + v, o - u + v]))
+			var t := PackedVector3Array([o - u - v, o + u - v, o + u + v, o - u - v, o + u + v, o - u + v])
+			# clockwise seen from outside (Godot's front face), every side alike: the navigation bake reads the winding,
+			# and the old mixed order made the slab undersides walkable and ate the ramps' tops
+			if (t[1] - t[0]).cross(t[2] - t[0]).dot(f[0] as Vector3 * s) > 0.0:
+				t = PackedVector3Array([t[0], t[2], t[1], t[3], t[5], t[4]])
+			col_faces.append_array(t)
 
 
 ## Axis-aligned box from min corner to max corner.

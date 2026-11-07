@@ -24,6 +24,7 @@ var _light: OmniLight3D
 var arena_only := false
 var _marks: Array[MeshInstance3D] = []          ## one per bell the door wants, filled as bells are answered
 var _poll := 0.0
+var _nav_layer := 0                             ## the barrier's layers while the nav bake has it lifted
 var _spoken_at := -1                            ## the bell count the door last spoke for
 
 
@@ -274,6 +275,22 @@ func _bar(at: Vector3, s: Vector3, m: Material) -> void:
 	mi.material_override = m
 	mi.position = at
 	_vis.add_child(mi)
+
+
+## The runtime navigation bake (RealmNav) sees a closed seal as a wall and would cut off everything behind it:
+## it calls this with true just before parsing the colliders and with false straight after. A seal that is
+## already open, or a body that is not built yet, is left alone.
+func nav_pass(on: bool) -> void:
+	if _body == null:
+		return
+	if on:
+		if _body.collision_layer == 0:
+			return
+		_nav_layer = _body.collision_layer
+		_body.collision_layer = 0
+	elif _nav_layer != 0:
+		_body.collision_layer = _nav_layer
+		_nav_layer = 0
 
 
 ## Arena gates: drop the barrier again behind a challenger, lift it when the fight ends.

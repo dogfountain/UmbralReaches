@@ -968,7 +968,7 @@ func _steer(gp: Vector3, dt: float, flat: float) -> void:
 		_path_t = 0.8
 		_path_goal = gp
 		if NavAssist.ready():
-			_path = NavigationServer3D.map_get_path(NavAssist.map, pos, gp, true)
+			_path = NavAssist.path(pos, gp)
 			if _path.size() >= 2 and Vector3(_path[_path.size() - 1].x - gp.x, 0.0, _path[_path.size() - 1].z - gp.z).length() > 8.0:
 				if not _no_path_logged.has(String(goal.key)):
 					_no_path_logged[String(goal.key)] = true
