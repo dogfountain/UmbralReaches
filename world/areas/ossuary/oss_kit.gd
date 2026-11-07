@@ -193,7 +193,7 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 
 
 const BEVEL := 0.03
-const FLOOR_LIFT := 0.03          ## floor slabs stand this much proud of the masonry they sit on (no coplanar tops)
+const FLOOR_LIFT := 0.015         ## floor slabs stand this much proud of the masonry they sit on (no coplanar tops)
 var under_shade := 0.6      ## vertex shade of a downward face (a room whose ceiling should take its hearth lifts it)
 const AO_FLOOR := 0.56      ## vertex shade at a face's foot
 const AO_RISE := 0.75       ## metres over which contact AO fades out
