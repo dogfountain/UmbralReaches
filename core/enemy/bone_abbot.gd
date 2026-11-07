@@ -631,6 +631,9 @@ func _bone_rain() -> void:
 		var land := s
 		BossKit.zone(get_parent(), land, RAIN_TIME, 26.0, {"by": self, "radius": RAIN_R, "color": BossKit.BONE})
 		Vfx.burst(land + Vector3.UP * 14.0, Color(0.85, 0.8, 0.7), {"count": 26, "life": 1.6, "speed": Vector2(0.2, 1.0), "size": 0.12, "gravity": -9.0, "radius": RAIN_R * 0.8, "additive": false})
+		for k in 3:                                      # the bones themselves, each carrying a pale light down
+			var off := Vector3(randf_range(-RAIN_R, RAIN_R) * 0.6, 0.0, randf_range(-RAIN_R, RAIN_R) * 0.6)
+			AttackKit.lob(land + off + Vector3.UP * 14.0, land + off + Vector3.UP * 0.3, RAIN_TIME, BossKit.BONE)
 		get_tree().create_timer(RAIN_TIME, false).timeout.connect(func() -> void:
 			if not is_instance_valid(self) or not is_alive():
 				return
