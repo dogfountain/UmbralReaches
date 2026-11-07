@@ -26,6 +26,8 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Kit := preload("res://core/world/realm/r37_south_kit.gd")
+const OakMound := preload("res://core/world/realm/oak_mound.gd")
+const OakHollowGlow := preload("res://core/world/realm/oak_hollow_glow.gd")
 const Data := preload("res://core/world/realm/r37_south_data.gd")
 const FALL_SHADER := preload("res://core/world/realm/r37_south_fall.gdshader")
 
@@ -72,6 +74,7 @@ static var oak := {}                    ## the Oak's measured numbers (build): x
 
 static func reserve(root: Node) -> void:
 	spots.clear()
+	TerrainStamp.mounds.clear()
 	breaches.clear()
 	gate_z.clear()
 	for a in OS.get_cmdline_user_args():
@@ -81,6 +84,8 @@ static func reserve(root: Node) -> void:
 	# --- the Grandmother Oak: a level round under the trunk and its roots' first reach, trees kept away
 	var oy := _ground_med(space, OAK_C)
 	Flora.tree_clear.append([OAK_C, 24.0])
+	var land := func(x: float, z: float) -> float: return RealmLayout.ground(space, x, z)
+	OakMound.queue(Kit.mesh(Kit.OAK, "Roots"), OAK_C, oy, float(Data.OAK_DOOR.a), land)
 	spots["r37s_oak"] = {"at": Vector3(OAK_C.x, oy, OAK_C.y), "yaw": 0.0, "rect": Rect2(OAK_C - Vector2(11, 11), Vector2(22, 22))}
 	# --- the shepherds' hut and fold: the fold's round first (a terrace), the hut beside it
 	var fold_pref := Vector2(12.0, 207.0)
@@ -638,6 +643,7 @@ static func _oak(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	for part: String in ["Trunk", "Roots", "Limbs", "Crown", "Stair"]:
 		Kit.put(h, Kit.OAK, part, xf, Vector2.ZERO, true)
 	_far(h, Kit.OAK, "OakFar", xf, 120.0, true)
+	OakHollowGlow.build(h, xf)
 	var shapes: Array = []
 	for part: String in ["TrunkCol", "StairCol", "RailCol", "LimbCol", "DeckCol"]:
 		var sh := Kit.trimesh(Kit.OAK, part)

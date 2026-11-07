@@ -15,6 +15,7 @@ extends RefCounted
 ##     visibility ranges instead; trunks over 4 m and logs collide (one StaticBody per chunk)
 ## Meshes come from tree_gen.gd. Results for tests: `placed` (kind -> count) and `trees`.
 
+const Footing := preload("res://core/world/footing.gd")
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
@@ -706,6 +707,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 			if not grid.has(key):
 				grid[key] = []
 			(grid[key] as Array).append([at, spacing])
+			pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02)      # after every draw and test: the layout is the one it was
 			_add(items, id, Transform3D(basis, pos), _tint(rng, 0.1))
 			if bool(d.tall):
 				trees.append([pos, id, float(d.r) * s, float(d.h) * s])
@@ -837,6 +839,7 @@ static func _plant_tree(space: PhysicsDirectSpaceState3D, rng: RandomNumberGener
 	if not grid.has(key):
 		grid[key] = []
 	(grid[key] as Array).append([at, spacing])
+	pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02)
 	_add(items, id, Transform3D(basis, pos), _tint(rng, 0.1))
 	if bool(d.tall):
 		trees.append([pos, id, float(d.r) * s, float(d.h) * s])
@@ -1043,6 +1046,13 @@ static func _spaced(grid: Dictionary, p: Vector2, spacing: float) -> bool:
 				if (e[0] as Vector2).distance_to(p) < maxf(spacing, float(e[1])) * 0.5 + minf(spacing, float(e[1])) * 0.5:
 					return false
 	return true
+
+
+const FOOT_SINK := 1.5              ## no tree is sunk further than this under the ground at its middle
+## A tree's origin y on a slope: lowered until no part of its footing (Footing) hangs over the ground.
+static func _foot_y(space: PhysicsDirectSpaceState3D, id: String, basis: Basis, at: Vector2, gy: float) -> float:
+	var gf := func(x: float, z: float) -> float: return _ray_y(space, x, z, gy)
+	return Footing.seat_y(gf, Footing.base_points((TreeGen.kind(id).solid) as Mesh), basis, at, gy, FOOT_SINK)
 
 
 static func _ray_y(space: PhysicsDirectSpaceState3D, x: float, z: float, fallback: float) -> float:

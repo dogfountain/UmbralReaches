@@ -195,10 +195,24 @@ static func apply(root: Node) -> void:
 					hard[idx] = true
 	for pb in proxies:
 		pb.queue_free()
-	if delta.is_empty():
+	var heaped := {}
+	for m: Dictionary in mounds:
+		heaped.merge(_mound_delta(grid, m))
+	mounds.clear()
+	if delta.is_empty() and heaped.is_empty():
 		print("TERRAIN_STAMP nothing to fix")
 		return
 	var out := _spread(delta, hard, grid)
+	for idx: int in heaped:
+		if not out.has(idx) or float(out[idx]) < float(heaped[idx]):
+			out[idx] = heaped[idx]
+	if not heaped.is_empty():
+		var lo := 0.0
+		var hi := 0.0
+		for v: float in heaped.values():
+			lo = minf(lo, v)
+			hi = maxf(hi, v)
+		print("TERRAIN_MOUND %d vertices heaped under roots and the like (%.2f .. %.2f)" % [heaped.size(), lo, hi])
 	_write(terrain, body, grid, arrays, verts, out)
 	WorldLanes.clear_cache()
 	print("TERRAIN_STAMP %d vertices stamped, %d blended" % [delta.size(), out.size() - delta.size()])
@@ -353,6 +367,72 @@ static func _settle_pass(root: Node, terrain: MeshInstance3D, body: StaticBody3D
 	WorldLanes.clear_cache()
 	print("TERRAIN_SETTLE %d floor samples met the ground; %d vertices lowered, %d blended" % [fixed, delta.size(), out.size() - delta.size()])
 	return true
+
+
+## Earth heaped under something modelled for flat ground (a colossal tree's roots), queued before the stamp
+## (so the flora grows on it): {c: Vector2 centre, core: float, out: float, bins: int, ring: PackedFloat32Array}.
+## `ring` holds a world y per metre of distance d and angle bin (index d * bins + a, NAN for none); within `core`
+## of the centre the ground rises to it (bilinear between bins), and from core to out it blends back to the land
+## as it was. Only ever raises. apply() raises it and clears the queue.
+static var mounds: Array[Dictionary] = []
+
+
+static func _mound_y(m: Dictionary, d: float, ang: float) -> float:
+	var ring: PackedFloat32Array = m.ring
+	var n: int = m.bins
+	var rows := ring.size() / n
+	var fa := ang / TAU * float(n)
+	var a0 := (floori(fa) % n + n) % n
+	var a1 := (a0 + 1) % n
+	var ta := fa - floorf(fa)
+	var d0 := mini(int(d), rows - 1)
+	var d1 := mini(d0 + 1, rows - 1)
+	var td := clampf(d - float(d0), 0.0, 1.0)
+	var y0 := lerpf(ring[d0 * n + a0], ring[d0 * n + a1], ta)
+	var y1 := lerpf(ring[d1 * n + a0], ring[d1 * n + a1], ta)
+	return lerpf(y0, y1, td)
+
+
+static func _mound_delta(grid: _Grid, m: Dictionary) -> Dictionary:
+	var raw := {}
+	var c: Vector2 = m.c
+	var core: float = m.core
+	var reach: float = m.out
+	for idx in grid.indices_in(c.x - reach, c.y - reach, c.x + reach, c.y + reach):
+		var w := grid.world(idx)
+		var off := Vector2(w.x, w.z) - c
+		var d := off.length()
+		if d > reach:
+			continue
+		var tgt := _mound_y(m, minf(d, core), atan2(off.x, off.y))
+		var dy := 0.0
+		if not is_nan(tgt):
+			dy = maxf(tgt - w.y, 0.0) * (1.0 - smoothstep(core, reach, d)) * smoothstep(2.0, 5.0, d)
+		raw[idx] = dy
+	# one vertex standing up alone is a spike on a 2 m grid: two passes of a 3 x 3 mean make the heap one swell
+	for pass_n in 4:
+		var soft := {}
+		for idx: int in raw:
+			var sum := 0.0
+			for dj in range(-1, 2):
+				for di in range(-1, 2):
+					sum += float(raw.get(idx + dj * grid.nx + di, 0.0))
+			soft[idx] = sum / 9.0
+		raw = soft
+	var out := {}
+	for idx: int in raw:
+		var dy := float(raw[idx])
+		if m.has("floor"):                       # inside the hollow the floor is level, whatever the land did there
+			var w := grid.world(idx)
+			var d := Vector2(w.x, w.z).distance_to(c)
+			var wf := 1.0 - smoothstep(5.3, 6.3, d)
+			var off := absf(wrapf(atan2(w.x - c.x, w.z - c.y) - float(m.door), -PI, PI))
+			var wd := (1.0 - smoothstep(0.35, 1.0, off)) * (1.0 - smoothstep(10.0, 14.0, d)) * (1.0 - wf)
+			var ramp := float(m.sill) - float(m.ramp) * maxf(d - 6.2, 0.0)       # the doorway's approach, up or down to it
+			dy = lerpf(lerpf(dy, float(m.floor) - w.y, wf), ramp - w.y, wd)
+		if absf(dy) > 0.02:
+			out[idx] = dy
+	return out
 
 
 ## Apply a per-grid-vertex height delta to the terrain mesh (verts + normals) and its collision.
