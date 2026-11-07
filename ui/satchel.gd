@@ -115,8 +115,10 @@ func _ready() -> void:
 	_root.visible = false
 	_feed = VBoxContainer.new()
 	_feed.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_feed.position = Vector2(-360, -220)
-	_feed.custom_minimum_size = Vector2(320, 0)
+	_feed.offset_left = -700.0                 # left of the minimap, right-aligned, wide enough for a long item name
+	_feed.offset_right = -250.0
+	_feed.offset_top = -330.0
+	_feed.offset_bottom = -44.0
 	_feed.alignment = BoxContainer.ALIGNMENT_END
 	_feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_feed)

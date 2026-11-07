@@ -46,6 +46,8 @@ var _last_discovery := -1.0e9
 var banner_log: Array[float] = []      ## tests: the clock at every discovery banner
 var _toast_q: Array[Dictionary] = []   ## {"text", "kind"}
 var _lesson_q: Array[String] = []
+var _lesson_basic: Array[String] = []      ## the queued or showing lessons that teach controls: they step aside in a fight
+const TIP_UP := 232.0                      ## the lesson line rides just over the skill bar, not mid-screen
 var _toasts: Array[Label] = []
 var _toast_box: VBoxContainer
 var _tip: Label
@@ -243,14 +245,14 @@ func build(root: Control, title_font: Font) -> void:
 	_toast_box.alignment = BoxContainer.ALIGNMENT_END
 	_toast_box.add_theme_constant_override("separation", 8)
 	root.add_child(_toast_box)
-	_tip = _make_label(24, Color(0.88, 0.86, 1.0), UIType.body())
+	_tip = _make_label(22, Color(0.88, 0.86, 1.0), UIType.body())
 	_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_tip.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_tip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_tip.offset_left = -480
 	_tip.offset_right = 480
-	_tip.offset_top = -334
-	_tip.offset_bottom = -298
+	_tip.offset_top = -TIP_UP
+	_tip.offset_bottom = -TIP_UP + 36
 	_tip.modulate.a = 0.0
 	_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	root.add_child(_tip)
@@ -299,10 +301,22 @@ func _enqueue_toast(text: String, kind: StringName) -> void:
 	_toast_q.append({"text": text, "kind": kind})
 
 
-func post_lesson(text: String) -> void:
+## `basic`: the line teaches a control (move, jump, slide): it is dropped when a fight starts, see retire_basic().
+func post_lesson(text: String, basic := false) -> void:
 	text = sentence(text)
 	if _lesson_q.size() < 4 and not _lesson_q.has(text) and _tip.text != text:
 		_lesson_q.append(text)
+		if basic:
+			_lesson_basic.append(text)
+
+
+## A fight has begun: the queued control lessons are forgotten and one on screen fades at once.
+func retire_basic() -> void:
+	for t in _lesson_basic:
+		_lesson_q.erase(t)
+	if _tip_t > 0.0 and _lesson_basic.has(_tip.text):
+		_tip_t = 0.01
+	_lesson_basic.clear()
 
 
 func queued() -> int:
@@ -403,7 +417,7 @@ func _lesson_bumped() -> void:
 
 func _tip_rect() -> Rect2:
 	var v := _vs()
-	return Rect2(v.x * 0.5 - 480.0, v.y - 334.0, 960.0, 36.0)
+	return Rect2(v.x * 0.5 - 480.0, v.y - TIP_UP, 960.0, 36.0)
 
 
 ## True while a lesson is on screen or waiting (tests).

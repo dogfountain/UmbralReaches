@@ -539,7 +539,7 @@ func key_label(i: int) -> String:
 	if now - _label_t > 500:
 		_label_cache.clear()
 		_label_t = now
-	var pad := using_pad or Settings.using_pad      # Settings hears every device change, menus included
+	var pad := Settings.using_pad      # the last device in hand (Settings hears every change, menus and mouse motion included)
 	var key := "%d/%s" % [i, pad]
 	if not _label_cache.has(key):
 		_label_cache[key] = action_label(slots[i].action, pad)

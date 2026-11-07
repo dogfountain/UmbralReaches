@@ -223,7 +223,7 @@ func _mark() -> void:
 		Tip.set_text(_tip, Tip.item(String(e.get("id", "")), int(e.get("n", 1))), q)
 	_tip.visible = true
 	_tip.reset_size()
-	_tip.position = _panel.position + Vector2(_panel.size.x + 12, 0)
+	_tip.position = _panel.position + Vector2(maxf(_panel.size.x, _panel.get_combined_minimum_size().x) + 16.0, 0)
 
 
 # --- taking -------------------------------------------------------------------------------------

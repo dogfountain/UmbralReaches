@@ -63,7 +63,7 @@ const RANK_NAME := {"normal": "", "elite": "Elite", "rare": "Rare", "rare_elite"
 const PF_POS := Vector2(22, 16)
 const PORTRAIT_R := 42.0
 const BOSS_LEAVE_M := 60.0         ## a boss this far away is no longer the fight
-const PF_W := 300.0                ## the plate right of the portrait
+const PF_W := 330.0                ## the plate right of the portrait
 const TF_W := 380.0
 const BF_W := 480.0
 const TF_TOP := 92.0               ## under the compass
@@ -785,17 +785,17 @@ func _diamond(p: Vector2, d: float, col: Color) -> void:
 
 func _draw_player() -> void:
 	var c := PF_POS + Vector2(PORTRAIT_R, PORTRAIT_R)
-	var plate := Rect2(PF_POS + Vector2(PORTRAIT_R * 1.55, 10.0), Vector2(PF_W, PORTRAIT_R * 2.0 - 16.0))
+	var plate := Rect2(PF_POS + Vector2(PORTRAIT_R * 1.55, 10.0), Vector2(PF_W, PORTRAIT_R * 2.0 - 4.0))
 	_plate(plate, 1.0)
 	_portrait(c)
 	var x := PF_POS.x + PORTRAIT_R * 2.0 + 12.0
 	var w := plate.end.x - x - 10.0
-	var y := plate.position.y + 22.0
-	_text(Vector2(x, y), "THE WANDERER", 17, INK)
+	var y := plate.position.y + 21.0
+	_text(Vector2(x, y), "THE WANDERER", 20, INK)
 	if _fight > 0.0:
-		var fa := 0.6 + 0.4 * sin(_t * 6.0)
-		_text(Vector2(x, y), "IN COMBAT", 12, Color(EMBER, fa), null, HORIZONTAL_ALIGNMENT_RIGHT, w)
-	y += 8.0
+		var fa := 0.8 + 0.2 * sin(_t * 6.0)
+		_text(Vector2(x, y), "IN COMBAT", 15, Color(EMBER.lightened(0.25), fa), null, HORIZONTAL_ALIGNMENT_RIGHT, w)
+	y += 7.0
 	var hp := _health()
 	var g := float(_p("gloom", 0.0))
 	var gmax := maxf(float(_p("gloom_max", 100.0)), 0.001)
@@ -807,21 +807,21 @@ func _draw_player() -> void:
 	if gr > 0.75:
 		gcol = gcol.lightened(0.25 * (0.5 + 0.5 * sin(_t * 9.0)))
 	if hp.x >= 0.0:
-		var hr := Rect2(Vector2(x, y), Vector2(w, 16))
+		var hr := Rect2(Vector2(x, y), Vector2(w, 21))
 		_bar(hr, hp.x / hp.y, HEALTH, 1.0)
-		_text(hr.position + Vector2(0, 13), "%s / %s" % [_num(hp.x), _num(hp.y)], 12, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
-		y += 19.0
+		_text(hr.position + Vector2(0, 17), "%s / %s" % [_num(hp.x), _num(hp.y)], 15, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
+		y += 24.0
 		if gloom_known:
-			var gb := Rect2(Vector2(x, y), Vector2(w, 12))
+			var gb := Rect2(Vector2(x, y), Vector2(w, 15))
 			_bar(gb, gr, gcol, 1.0, -1.0, [0.25, 0.5, 0.75])
-			_text(gb.position + Vector2(4, 10), "GLOOM", 10, Color(INK, 0.85))
-			y += 15.0
+			_text(gb.position + Vector2(5, 12), "GLOOM", 12, Color(INK, 0.92))
+			y += 18.0
 	elif gloom_known:
-		var gb := Rect2(Vector2(x, y), Vector2(w, 18))
+		var gb := Rect2(Vector2(x, y), Vector2(w, 20))
 		_bar(gb, gr, gcol, 1.0, -1.0, [0.25, 0.5, 0.75])
-		_text(gb.position + Vector2(6, 14), "GLOOM", 12, Color(INK, 0.9))
-		_text(gb.position + Vector2(0, 14), "%d / %d" % [roundi(g), roundi(gmax)], 12, INK, null, HORIZONTAL_ALIGNMENT_RIGHT, w - 6.0)
-		y += 21.0
+		_text(gb.position + Vector2(6, 16), "GLOOM", 14, Color(INK, 0.95))
+		_text(gb.position + Vector2(0, 16), "%d / %d" % [roundi(g), roundi(gmax)], 14, INK, null, HORIZONTAL_ALIGNMENT_RIGHT, w - 6.0)
+		y += 23.0
 	var st := _stamina()
 	if st and st.has_method("ratio"):
 		var br := Rect2(Vector2(x, y), Vector2(w, 8))
@@ -888,12 +888,14 @@ func _portrait(c: Vector2) -> void:
 		draw_arc(b, 13.0, 0.0, TAU, 32, GOLD, 1.5, true)
 		_text(b + Vector2(-13, 5), str(lv), 14, LANTERN, null, HORIZONTAL_ALIGNMENT_CENTER, 26.0)
 	# Gloom gained / shed, rising off the portrait
-	for p: Dictionary in _portrait_pops:
+	for pi in _portrait_pops.size():
+		var p: Dictionary = _portrait_pops[pi]
 		var t := float(p.t)
 		var a := clampf((1.3 - t) / 0.5, 0.0, 1.0)
 		var pop := 1.0 + 0.5 * clampf(1.0 - t * 6.0, 0.0, 1.0)
 		var col: Color = p.col
-		_text(c + Vector2(-r, 8.0 - t * 22.0), String(p.text), int(20 * pop), Color(col, a), null, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0)
+		var at := Vector2(PF_POS.x + PORTRAIT_R * 1.55 + PF_W + 12.0 + pi * 52.0, c.y + 6.0 - t * 22.0)      # right of the plate: the portrait stays clear
+		_text(at, String(p.text), int(22 * pop), Color(col, a), null, HORIZONTAL_ALIGNMENT_LEFT, 80.0)
 
 
 ## A row of aura icons with timers under them and stacks in the corner.
