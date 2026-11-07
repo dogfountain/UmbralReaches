@@ -96,10 +96,10 @@ const HAZE_DENSITY := 0.025
 static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit: Color) -> void:
 	env.fog_enabled = true
 	env.fog_light_color = fog_light.lerp(Color(0.34, 0.46, 0.68), 0.55)    # silvered blue haze: the distance lightens into layers
-	env.fog_light_energy = 0.52
+	env.fog_light_energy = 0.64
 	env.fog_sun_scatter = 0.2                  # the moon side of the haze is the brighter
-	env.fog_density = 0.0068
-	env.fog_aerial_perspective = 0.44
+	env.fog_density = 0.0052
+	env.fog_aerial_perspective = 0.58
 	env.fog_sky_affect = 0.2
 	# ENS art pass (docs/enshrouded/art.md): low ground haze that pools in hollows (the fen, the
 	# rift floor) and thins on high ground. Plain depth fog, so it costs nothing per froxel.

@@ -1566,6 +1566,8 @@ func _region_views(r: Dictionary) -> Array:
 			if not RealmLayout.BOUNDS.grow(-6.0).has_point(q):
 				continue
 			var pos := _gp(q.x, q.y, 2.6)
+			if _eye_buried(pos):
+				continue
 			var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(pos, tg, Layers.WORLD))
 			var clear := 1.0
 			if not hit.is_empty():
@@ -1587,6 +1589,21 @@ func _region_views(r: Dictionary) -> Array:
 	for o2: Array in out:
 		res.append([o2[1], tg])
 	return res
+
+
+## True when a camera at `pos` would sit inside a wall, a rail, a roof or a trunk (anything but the terrain).
+func _eye_buried(pos: Vector3) -> bool:
+	var ball := SphereShape3D.new()
+	ball.radius = 0.7
+	var bq := PhysicsShapeQueryParameters3D.new()
+	bq.shape = ball
+	bq.collision_mask = Layers.WORLD | Layers.PROPS
+	bq.transform = Transform3D(Basis.IDENTITY, pos)
+	for h in _space().intersect_shape(bq, 6):
+		var cn := h.collider as Node
+		if cn != null and not String(cn.name).begins_with("Terrain"):
+			return true
+	return false
 
 
 func _s_regions(from: int, to: int) -> void:
@@ -1644,9 +1661,23 @@ func _s_places() -> void:
 		var tg := _gp(c2.x, c2.y, 2.0)
 		var best_pos := Vector3.ZERO
 		var best_clear := -1.0
-		for k in 8:
-			var a := TAU * float(k) / 8.0 + 0.3
-			var pos2 := _gp(c2.x + cos(a) * 11.0, c2.y + sin(a) * 11.0, 2.0)
+		var ball := SphereShape3D.new()
+		ball.radius = 0.7
+		var bq := PhysicsShapeQueryParameters3D.new()
+		bq.shape = ball
+		bq.collision_mask = Layers.WORLD | Layers.PROPS
+		for k in 16:
+			var a := TAU * float(k) / 16.0 + 0.3
+			var dist := 11.0 if k % 2 == 0 else 15.0
+			var pos2 := _gp(c2.x + cos(a) * dist, c2.y + sin(a) * dist, 2.0)
+			bq.transform = Transform3D(Basis.IDENTITY, pos2)
+			var inside := false
+			for h2 in _space().intersect_shape(bq, 6):
+				var cn := h2.collider as Node
+				if cn != null and not String(cn.name).begins_with("Terrain"):
+					inside = true          # the eye would sit in a wall, a rail or a roof
+			if inside:
+				continue
 			var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(pos2, tg, Layers.WORLD))
 			var cl := 1.0 if hit.is_empty() else pos2.distance_to(hit.position) / maxf(pos2.distance_to(tg), 0.1)
 			if cl > best_clear:

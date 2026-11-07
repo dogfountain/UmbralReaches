@@ -104,7 +104,7 @@ void sky() {
         col += vec3(0.42, 0.52, 0.92) * ghosts * 0.35;
         col = mix(col_deep * 0.5, col, smoothstep(-0.05, 0.12, EYEDIR.y)); // horizon falloff
         // moon-silvered haze low on the sky: ridges and towers separate from it
-        col += vec3(0.075, 0.125, 0.22) * exp(-abs(EYEDIR.y) * 6.5);
+        col += vec3(0.11, 0.17, 0.29) * exp(-abs(EYEDIR.y) * 9.0);   // a thinner, brighter band: the ridges read dark against it
         COLOR = col;
     }
 }
