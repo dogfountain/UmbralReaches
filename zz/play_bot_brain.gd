@@ -60,6 +60,7 @@ var _strip_n := 0
 var _fights := 0
 var _kills := 0
 var _deaths := 0
+var _boss_deaths := 0
 
 # --- misc
 var _menu_i := 0
@@ -80,6 +81,7 @@ var _accepted := 0
 var _handed := 0
 var _toasts: Dictionary = {}
 var _was_talking := false
+var _shop_t := 0.0
 var _asked: Dictionary = {}                 # choice lines taken in the talk now open (so a hub is not looped)
 var _last_area := ""
 
@@ -107,6 +109,11 @@ func _ready() -> void:
 		rec.note("INPUT", "look stick (a pad player): the mouse is not captured here")
 	Events.hollowed.connect(func() -> void:
 		_deaths += 1
+		if _foe != null and is_instance_valid(_foe) and _foe.has_meta(&"boss_id"):
+			_boss_deaths += 1
+			if _boss_deaths % 3 == 0:
+				_black["main:" + String(_foe.get_meta(&"boss_id"))] = game_t + 600.0
+				rec.note("PLAN", "three deaths to %s: leaving it for ten minutes" % String(_foe.get_meta(&"boss_id")))
 		rec.problem("DIED", "hollowed (death %d) near %s, gloom %.0f wounds %.0f" % [_deaths, _where(), p.gloom, p.wounds]))
 	Events.respawned.connect(func(at: Vector3) -> void: rec.note("RESPAWN", "at (%.0f, %.0f, %.0f)" % [at.x, at.y, at.z]))
 	Events.enemy_killed.connect(func(_e: Node) -> void: _kills += 1)
@@ -350,6 +357,18 @@ func _ui(dt: float) -> bool:
 	var offer := get_tree().get_first_node_in_group("quest_offer")
 	var talking: bool = story != null and is_instance_valid(story.ui) and story.ui.is_open()
 	var offering: bool = offer != null and offer.is_open()
+	var shopping: bool = story != null and is_instance_valid(story.shop) and story.shop.is_open()
+	if shopping:
+		activity = "shop"
+		act(&"move_forward", false)
+		_shop_t += dt
+		if _shop_t > 1.5:
+			_shop_t = 0.0
+			rec.note("SHOP", "the wares screen opened from the talk; leaving it")
+			rec.shot("shop")
+			tap(&"toggle_settings")
+		return true
+	_shop_t = 0.0
 	if talking or offering:
 		_was_talking = true
 	elif _was_talking:
@@ -704,6 +723,10 @@ func _lit_fire() -> Node3D:
 
 
 func _choose_goal() -> void:
+	# a long errand is kept for a minute: no flip-flopping between two far places each time the Gloom sends us home
+	if not goal.is_empty() and goal.kind in ["target", "seal", "boss", "hunt"] and game_t - _goal_started < 60.0 \
+			and p.gloom <= 45.0 and float(_black.get(String(goal.key), 0.0)) <= game_t:
+		return
 	var g := {}
 	var n: Node3D
 	if p.gloom > 45.0 or game_t < _rest_until:
@@ -732,10 +755,14 @@ func _choose_goal() -> void:
 		n = _near(_markers("quest_turnin"))
 		if n != null:
 			g = {"pos": n.global_position, "kind": "talk", "label": "turn in: " + String(n.get_meta("map_label", "")), "key": _key_of(n)}
+	if g.is_empty():
+		var f0 := _unlit_fire()
+		if f0 != null and p.global_position.distance_to(f0.global_position) < 14.0:
+			g = {"pos": f0.global_position, "kind": "fire", "label": "kindle " + String(f0.name), "key": "fire:%d" % f0.get_instance_id(), "node": f0}
 	if g.is_empty() and game_t > LATE_S:
 		var mt0 := _main_target()
 		if not mt0.is_empty() and mt0.pos != Vector3.INF and float(_black.get(String(mt0.key), 0.0)) <= game_t:
-			g = mt0
+			g = _main_goal(mt0)
 	if g.is_empty():
 		n = _near(_markers("quest_target"))
 		if n != null:
@@ -756,7 +783,7 @@ func _choose_goal() -> void:
 	if g.is_empty():
 		var mt := _main_target()
 		if not mt.is_empty() and mt.pos != Vector3.INF and float(_black.get(String(mt.key), 0.0)) <= game_t:
-			g = mt
+			g = _main_goal(mt)
 		elif not mt.is_empty() and not _no_path_logged.has(String(mt.key)):
 			_no_path_logged[String(mt.key)] = true
 			rec.problem("MAIN_TARGET_UNKNOWN", "the main objective '%s' has no place the bot can find (no seal/arena node, no map pin)" % mt.label)
@@ -797,6 +824,15 @@ func _prey_near(pin: Vector3) -> Node3D:
 			bd = d
 			best = e
 	return best
+
+
+## The story's place as a goal; a seal is opened by its guardians, so the bot hunts the foes near it.
+func _main_goal(mt: Dictionary) -> Dictionary:
+	if mt.kind == "seal":
+		var guard := _prey_near(mt.pos)
+		if guard != null:
+			return {"pos": guard.global_position, "kind": "hunt", "label": "hunt the guardians for " + String(mt.label), "key": "hunt:" + String(mt.key)}
+	return mt
 
 
 func _wander_goal() -> Dictionary:

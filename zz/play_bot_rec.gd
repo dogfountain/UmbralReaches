@@ -21,6 +21,7 @@ var frames := 0
 var ms_sum := 0.0
 var ms_max := 0.0
 var _shooting := false
+var _cap_ms := 0                          ## when the bot last read the screen back: the frames around it are ours, not the game's
 var _log: FileAccess
 
 
@@ -60,6 +61,10 @@ func problem(kind: String, msg: String, snap := true) -> void:
 func frame(ms: float, activity: String) -> void:
 	frames += 1
 	ms_sum += ms
+	if Time.get_ticks_msec() - _cap_ms < 700:
+		if ms > SPIKE_MS:
+			counts["BOT_CAPTURE_FRAMES"] = int(counts.get("BOT_CAPTURE_FRAMES", 0)) + 1
+		return
 	ms_max = maxf(ms_max, ms)
 	if ms > SPIKE_MS:
 		spike_by_act[activity] = int(spike_by_act.get(activity, 0)) + 1
@@ -73,8 +78,10 @@ func shot(name: String) -> void:
 	if headless or _shooting:
 		return
 	_shooting = true
+	_cap_ms = Time.get_ticks_msec()
 	await RenderingServer.frame_post_draw
 	var img := host.get_viewport().get_texture().get_image()
+	_cap_ms = Time.get_ticks_msec()
 	var path := out.path_join("%s.png" % name)
 	if img != null and not img.is_empty():
 		img.save_png(path)
@@ -87,8 +94,10 @@ func grab() -> Image:
 	if headless or _shooting:
 		return null
 	_shooting = true
+	_cap_ms = Time.get_ticks_msec()
 	await RenderingServer.frame_post_draw
 	var img := host.get_viewport().get_texture().get_image()
+	_cap_ms = Time.get_ticks_msec()
 	_shooting = false
 	if img == null or img.is_empty():
 		return null
