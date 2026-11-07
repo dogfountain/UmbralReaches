@@ -152,6 +152,15 @@ func _run() -> void:
 	add("hurt", "player", load("res://art/audio/hurt.wav"), -3.0, "SFX", 4.0)
 	add("slide_scrape", "player", load("res://art/audio/slide_scrape.wav"), -8.0, "SFX", 4.0, 1.0)
 	add("mark_tick", "player", load("res://art/audio/mark_tick.wav"), 0.0, "SFX", 8.0)
+	var Foley := load("res://core/vfx/foley.gd")
+	for sf: StringName in Foley.SURFACES:
+		add("hoof_%s trot (4 m)" % sf, "horse", Foley.stream("hoof_" + String(sf), 0), Foley.hoof_db(sf, 1.0, 0.5, false), "SFX", 4.0)
+		add("hoof_%s gallop draught (4 m)" % sf, "horse", Foley.stream("hoof_" + String(sf), 0), Foley.hoof_db(sf, 1.6, 1.0, true), "SFX", 4.0)
+	for k: String in ["jingle", "creak", "snort", "breath", "grunt", "thump"]:
+		add("horse_" + k, "horse", Foley.stream("horse_" + k, 0), {"jingle": -17.0, "creak": -26.0, "snort": -10.0, "breath": -16.0, "grunt": -10.0, "thump": -5.0}[k], "SFX", 4.0)
+	for k: String in ["grass", "stone", "wood", "water", "mud", "ash", "salt"]:
+		add("step_%s layer run" % k, "player", Foley.stream("step_" + k, 0), -7.0, "SFX", 4.0, 3.0)
+	add("cloth_run", "player", Foley.stream("cloth_run", 0), -20.0, "SFX", 4.0)
 	for k: String in StaffSfx.KINDS:
 		var v := StaffSfx.variants(k)
 		if v.is_empty():

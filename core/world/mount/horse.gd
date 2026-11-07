@@ -11,9 +11,9 @@ extends Interactable
 ##   a gallop leap ~1.2 m, times the breed's `jump`), steering eased and speed kept in the air, then the
 ##   ground ray catches it: landing is soft (the rig squats, dust, a thud) and a short cooldown follows.
 
+const Foley := preload("res://core/vfx/foley.gd")
 const HorseRig := preload("res://core/world/mount/horse_rig.gd")
 const DB := preload("res://core/world/mount/horse_db.gd")
-const VAudio := preload("res://core/life/village/village_audio.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
 
@@ -39,7 +39,11 @@ var _phase := 0.0
 var _phase_prev := 0.0                ## r36 smooth: the phase a tick ago (drawn blended to the frame)
 var _head := 0.0                 ## head pitch (grazing lowers it)
 var _graze_t := 0.0
-var _sfx_t := 0.0
+var _snort_t := 8.0                 ## seconds to the next idle breath or snort
+var _surf_age := 0.0                ## seconds the cached hoof surface is trusted
+var _surf: StringName = &"grass"
+var _prev_fast := false             ## was at the trot or faster: a snort when it comes back to the walk
+var _stride_n := 0
 var _turn_v := 0.0
 var _mount_t := 9.0
 var _mount_from := Vector3.ZERO
@@ -183,8 +187,7 @@ func _launch() -> void:
 	_gather = 0.0
 	if speed > float(_d.trot):
 		speed = minf(speed + 0.8, float(_d.gallop) * 1.05)       # the leap carries forward
-	VAudio.play("dig", global_position, -9.0, 0.6)
-	VAudio.play("knock", global_position, -12.0, 0.7)
+	_takeoff_sfx(k)
 
 
 ## Hold the vertical state through the tick: the crouch, the climb and fall under gravity, the landing.
@@ -211,8 +214,7 @@ func _vertical(dt: float, ground_y: float) -> void:
 		_vy = 0.0
 		_jump_cd = JUMP_CD
 		_land = 0.35 + 0.65 * impact
-		VAudio.play("dig", global_position, -5.0 + 4.0 * impact, 0.55)
-		VAudio.play("knock", global_position, -8.0 + 4.0 * impact, 0.6)
+		_landing_sfx(impact)
 		Kit.fx_dust(global_position + Vector3.UP * 0.1, Color(0.5, 0.46, 0.4, 0.55), 8 + int(10.0 * impact))
 	else:
 		global_position.y = ny
@@ -440,13 +442,85 @@ func _scale() -> float:
 	return float(_d.seat) / 1.315                  # the old unit (deer-built horses), for the reach and trample distances
 
 
+## Hoofbeats off the gait's own footfalls (horse_rig.footfalls): which hoof, where under the body, how hard.
+## Nothing sounds in the gallop's suspension because no hoof plants then. Breed heft makes the draught
+## heavier and lower, the fen pony lighter. Tack and breath ride the stride; a snort marks a start and a halt.
 func _hooves(dt: float) -> void:
-	if speed < 1.0 or _air:
+	_snort_t -= dt
+	var heft := float(_d.get("heft", 1.0))
+	var gait := clampf((speed - float(_d.walk)) / maxf(float(_d.gallop) - float(_d.walk), 0.1), 0.0, 1.0)
+	if _air:
 		return
-	_sfx_t -= dt
-	if _sfx_t <= 0.0:
-		_sfx_t = clampf(1.6 / speed, 0.12, 0.5)
-		VAudio.play("dig", global_position, -16.0 + minf(speed, 10.0) * 0.6, randf_range(0.7, 0.85))
+	if _surf_age > 0.0:
+		_surf_age -= dt
+	var steps: Array[int] = []
+	if _rig != null:
+		steps = _rig.footfalls(_phase_prev, _phase, speed)
+	if not steps.is_empty():
+		if _surf_age <= 0.0:
+			_surf_age = 0.25
+			_surf = Foley.surface_at(_space, global_position)
+	var fwd := -global_basis.z
+	var side := global_basis.x
+	var sc := _scale()
+	for i: int in steps:
+		var hind := i >= 2
+		var at := global_position + fwd * (-0.8 if hind else 0.85) * sc + side * (0.16 if i % 2 == 1 else -0.16) * sc
+		Foley.hoof(at, _surf, heft, gait, hind)
+		if i == 0:
+			_tack(at, gait, heft)
+	if _prev_fast and speed < float(_d.walk) + 0.6:
+		_prev_fast = false
+		Foley.horse_sfx("snort", global_position + fwd * 1.2 * sc + Vector3.UP * 1.3 * sc, -10.0, pow(heft, -0.3))
+	elif speed > float(_d.trot) + 0.8:
+		_prev_fast = true
+	if _snort_t <= 0.0:
+		_snort_t = randf_range(11.0, 26.0)
+		if speed < 3.0 and rider != null:
+			Foley.horse_sfx("breath" if randf() < 0.5 else "snort", global_position + fwd * 1.2 * sc + Vector3.UP * 1.3 * sc, -17.0, pow(heft, -0.3))
+
+
+## Once a stride (the near fore plants): bit, buckles and stirrup iron, leather at the walk, a blown breath at the gallop.
+func _tack(at: Vector3, gait: float, heft: float) -> void:
+	var up := at + Vector3.UP * 1.3 * _scale()
+	_stride_n += 1
+	var gp := pow(heft, -0.2)
+	Foley.horse_sfx("jingle", up, lerpf(-27.0, -17.0, gait), gp * lerpf(0.95, 1.1, gait))
+	if gait < 0.3 and _stride_n % 2 == 0:
+		Foley.horse_sfx("creak", up, -26.0, gp)
+	if gait > 0.7:
+		Foley.horse_sfx("breath", up, -16.0, gp)
+
+
+## The push-off: a grunt of effort, the hind hooves driving into the ground.
+func _takeoff_sfx(k: float) -> void:
+	var heft := float(_d.get("heft", 1.0))
+	var up := global_position + Vector3.UP * 1.3 * _scale()
+	Foley.horse_sfx("grunt", up + (-global_basis.z) * 1.0, lerpf(-16.0, -10.0, k), pow(heft, -0.3))
+	var sc := _scale()
+	for n in 2:
+		Foley.hoof(global_position + global_basis.x * (0.16 if n == 1 else -0.16) * sc - global_basis.z * -0.8 * sc, _surf, heft, 0.5 + 0.5 * k, true)
+	Foley.horse_sfx("jingle", up, -18.0, 1.0)
+
+
+## Touchdown: the forehand takes it, the hindquarters a beat behind, the weight in a thump, tack jangling.
+func _landing_sfx(impact: float) -> void:
+	var heft := float(_d.get("heft", 1.0))
+	var sc := _scale()
+	_surf = Foley.surface_at(_space, global_position)
+	var g := 0.45 + 0.55 * impact
+	var base := global_position
+	var fwd := -global_basis.z
+	var side := global_basis.x
+	for n in 2:
+		Foley.hoof(base + fwd * 0.85 * sc + side * (0.16 if n == 1 else -0.16) * sc, _surf, heft, g, false)
+	Foley.horse_sfx("thump", base, -12.0 + 7.0 * impact + 4.0 * log(maxf(heft, 0.3)), pow(heft, -0.4))
+	Foley.horse_sfx("jingle", base + Vector3.UP * 1.3 * sc, -14.0 + 3.0 * impact, 1.0)
+	var hind := get_tree().create_timer(0.07)
+	hind.timeout.connect(func() -> void:
+		if is_inside_tree():
+			for n in 2:
+				Foley.hoof(global_position - global_basis.z * -0.8 * sc + global_basis.x * (0.16 if n == 1 else -0.16) * sc, _surf, heft, g, true))
 
 
 func _trample(fwd: Vector3) -> void:

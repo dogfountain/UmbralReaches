@@ -1367,6 +1367,7 @@ func _ensure_audio() -> void:
 
 const STEP_COUNT := 8
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
+const Foley := preload("res://core/vfx/foley.gd")
 var _step_n := 0
 
 
@@ -1387,6 +1388,11 @@ func _footstep(speed := 0.0) -> void:
 	if surf == &"water":
 		Sfx.play("res://art/audio/step_%d.wav" % randi_range(0, STEP_COUNT - 1), global_position, lerpf(-16.0, -9.0, run), 0.62, 0.05)
 	_step_n += 1
+	if hero:
+		# what the ground adds (swish of grass, squelch, crunch of ash, a ring off flags), and the coat's cloth
+		Foley.step(surf, global_position, run)
+		if run > 0.3 or _step_n % 2 == 0:
+			Foley.cloth("run" if run > 0.3 else "walk", global_position + Vector3.UP * 0.9, lerpf(-27.0, -20.0, run))
 	if hero and run < 0.5 and _step_n % 2 == 0:
 		# walking, the staff is a walking stick: its iron ferrule meets the ground every other step
 		StaffSfx.play("tap", global_position + global_basis.x * -0.35, -15.0, 1.0, 0.06)
@@ -1443,6 +1449,9 @@ func _landing_sfx(force: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	var at := global_position
+	if hero:
+		Foley.cloth("flap", at + Vector3.UP * 0.9, lerpf(-24.0, -15.0, force))
+		Foley.step(_surface(), at, 1.0)
 	Sfx.play("res://art/audio/step_%d.wav" % randi_range(0, STEP_COUNT - 1), at, lerpf(-8.0, -1.0, force), 0.78, 0.03)
 	Sfx.play("res://art/audio/step_%d.wav" % randi_range(0, STEP_COUNT - 1), at, lerpf(-12.0, -4.0, force), 0.9, 0.03)
 
