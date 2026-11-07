@@ -10,6 +10,7 @@ extends Spitter
 ## Its skull is the weak point (a bolt there, and it drops).
 ## No class_name (project rule): the spawner and Tiers load it by path.
 
+const QUILL := Color(2.2, 1.9, 1.5)     ## the quill's own pale shaft: its lane warns in the same bone cream
 const DRAW := 0.85
 const LANE_LEN := 17.0
 const HOP_BACK := 5.5
@@ -104,7 +105,7 @@ func _spring_back() -> void:
 	var to_land := land - global_position
 	to_land.y = 0.0
 	if to_land.length() > 0.5:      # a short thread along the jump, painted before the body leaves
-		SpellFx.danger(global_position, 0.3, {"rect": Vector2(0.42, to_land.length() * 0.5), "yaw": atan2(-to_land.x, -to_land.z), "color": Color(0.8, 0.74, 0.6)})
+		SpellFx.danger(global_position, 0.3, {"rect": Vector2(0.42, to_land.length() * 0.5), "yaw": atan2(-to_land.x, -to_land.z), "color": QUILL})
 	get_tree().create_timer(0.25, false).timeout.connect(func() -> void:
 		if is_inside_tree() and _state != DEAD:
 			launch_at(land, 1.0))
@@ -131,7 +132,7 @@ func _on_state(next: int) -> void:
 		aim = _to
 	_aim_yaw = atan2(-aim.x, -aim.z)
 	_lane_from = global_position
-	AttackKit.zone(self, global_position, DRAW, spit_gloom, {"rect": Vector2(0.42, LANE_LEN * 0.5), "yaw": _aim_yaw, "color": AttackKit.RED, "fx": "none",
+	AttackKit.zone(self, global_position, DRAW, spit_gloom, {"rect": Vector2(0.42, LANE_LEN * 0.5), "yaw": _aim_yaw, "color": QUILL, "fx": "none",
 		"h": 2.2, "on_land": _loose.bind(global_position, _aim_yaw)})
 
 

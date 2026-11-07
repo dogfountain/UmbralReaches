@@ -18,6 +18,7 @@ const RING := 2.4
 const TOLL_R := 34.0
 const CLANG_TELL := 0.6
 const CLANG_R := 2.3
+const BRASS := Color(1.9, 1.35, 0.45)      ## the clang's footprint warned on the ground, bright enough to read as a fill
 const GOLD := Color(1.1, 0.78, 0.28)      ## the sound's footprint: under the bloom threshold, not a ward
 var look_kind := "chanter"
 
@@ -179,7 +180,7 @@ func _start_clang() -> void:
 	if _rig and _rig.has_method("telegraph"):
 		_rig.call("telegraph", CLANG_TELL)
 	_glint = 1.0
-	AttackKit.zone(self, global_position, CLANG_TELL, 14.0 * Tiers.dmg_of(self), {"radius": CLANG_R, "fx": "slam", "color": AttackKit.RED})
+	AttackKit.zone(self, global_position, CLANG_TELL, 14.0 * Tiers.dmg_of(self), {"radius": CLANG_R, "fx": "slam", "color": BRASS})
 
 
 func _special_think() -> void:

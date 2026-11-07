@@ -288,7 +288,7 @@ func _thornstorm() -> void:
 		BossKit.lee_marks(global_position, shields, STORM_TIME, Color(1.0, 1.7, 0.8))
 	var c: Vector3 = _arena_c if _arena_c != Vector3.INF else global_position
 	var r := 30.0 if _arena_c != Vector3.INF else 20.0
-	var cone := SpellFx.danger(c, STORM_TIME, {"radius": r, "color": Color(1.6, 0.35, 0.1)})
+	var cone := SpellFx.danger(c, STORM_TIME, {"radius": r, "color": BossKit.THORN})
 	if cone:
 		track_move(cone)
 	Vfx.ring(global_position + Vector3.UP * 0.2, 6.0, BossKit.THORN, STORM_TIME, 0.12, Vector3.UP, 1.3)
