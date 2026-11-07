@@ -1218,50 +1218,53 @@ func _e_tavern() -> void:
 	cam.fov = 62.0
 
 
-var _charm: Node3D
+const LootChest := preload("res://core/world/realm/loot_chest.gd")
+var _chest: LootChest
 var _tr_cam := Vector3.ZERO
 
 
 func _s_treasure() -> void:
-	_charm = null
-	var best := INF
-	for c in _by_script("charm_pickup.gd"):
-		if c is Node3D and c.call("can_interact"):
-			var d := (c as Node3D).global_position.distance_to(ARENA)
-			if d < best:
-				best = d
-				_charm = c
+	# an iron-banded chest of the game's own kind on open road (nothing behind it but the wood), the wanderer
+	# two steps off its front; the lid swings up and the piece it held lies in a shaft of light
+	var at := on_ground(ARENA + Vector3(-7.0, 0.0, -2.0))
+	_chest = LootChest.new()
+	_chest.chest_id = "trailer_chest"
+	_chest.tier = "iron"
+	_chest.loot = {"grave_ash": 40, "relic_fragment": 1}
+	main.add_child(_chest)
+	_chest.global_position = at
 	use_free_cam()
-	cam.fov = 50.0
-	if _charm == null:
-		return
-	var at := _charm.global_position
-	put_player(at + Vector3(0.0, 0.0, 2.2), 0.0)        # two steps south of it, facing it
+	cam.fov = 42.0
+	put_player(at + Vector3(0.0, 0.0, 2.8), 0.0)
+	_tr_cam = solve_cam([at + Vector3.UP * 0.4, at + Vector3(0.0, 1.0, 0.4), at + Vector3(0.0, 1.5, 1.6)], at + Vector3(0.0, 0.0, 0.9), yaw_to(Vector3(1.0, 0.0, 0.12).normalized()), 3.4, 1.7)
+	hold_cam(_tr_cam, at + Vector3(0.0, 0.7, 0.9))
+	_snap = true
 
 
 func _u_treasure(tt: float) -> void:
-	if _charm == null or not is_instance_valid(_charm):
+	if _chest == null or not is_instance_valid(_chest):
 		return
-	var at := _charm.global_position
-	# low, the glint in the foreground, the wanderer walking up to it
-	if once("tr_cam"):
-		_tr_cam = solve_cam([at + Vector3.UP * 0.3, pp() + Vector3.UP * 1.2], at, yaw_to(Vector3(1.0, 0.0, -0.4).normalized()), 2.6, 0.9)
-		_snap = true
-	hold_cam(_tr_cam, at.lerp(pp(), 0.4) + Vector3.UP * 0.7)
-	light_at(at, 2.5)
+	var at := _chest.global_position
+	hold_cam(_tr_cam, at + Vector3(0.0, 0.7, 0.75))
+	light_at(at + Vector3(0.0, 0.0, 1.2), 2.2)
+	if tt > 0.85:
+		# the lid is swung by hand: the chest's own tween does not advance under the recorder
+		_chest._lid.rotation.x = lerpf(0.0, -1.95, sm(clampf((tt - 0.85) / 0.5, 0.0, 1.0)))
 	if tt < 0.85:
 		aim_at(at)
-		drive((at - p.global_position).normalized() * 0.55)
+		drive(Vector3(0.0, 0.0, -0.5) if p.global_position.z - at.z > 1.55 else Vector3.ZERO)
 	elif once("take_charm"):
 		drive(Vector3.ZERO)
 		p._visual.cast_pose(&"reach")
-		_charm.call("interact", p)                       # into the satchel
+		_chest.interact(p)
 		boom("lash", -6.0)
 
 
 func _e_treasure() -> void:
 	drive(Vector3.ZERO)
 	cam.fov = 62.0
+	if is_instance_valid(_chest):
+		_chest.queue_free()
 
 
 # --- movement: real vault / ledge / wall-kick spots (the scan from zz/trav_realm) --------------------
