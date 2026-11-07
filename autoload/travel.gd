@@ -375,6 +375,7 @@ func save_game() -> void:
 	if _busy or erased:
 		return
 	_saves += 1
+	var t_save := Time.get_ticks_usec()
 	_remember_kindles()
 	var cfg := _base_cfg()
 	cfg.set_value("progress", "version", SAVE_VERSION)
@@ -395,7 +396,11 @@ func save_game() -> void:
 	cfg.set_value("progress", "hollows", saved_hollows)
 	cfg.set_value("story", "state", story)        # story agent: its own section (older saves lack it)
 	cfg.set_value("systems", "state", systems)
+	var t_built := Time.get_ticks_usec()
 	_write_save(cfg)
+	var t_done := Time.get_ticks_usec()
+	if t_done - t_save > 8000:
+		print("SAVE slow: build %.1f ms, write %.1f ms" % [float(t_built - t_save) / 1000.0, float(t_done - t_built) / 1000.0])
 
 
 func load_game() -> void:
