@@ -77,11 +77,38 @@ def pos(a, r, y):
     return Vector((r * math.sin(a), y, r * math.cos(a))) + sway(y)
 
 
+def darken_inside(ob, tone=(0.5, 0.4, 0.31)):
+    """Vertices inside the trunk's inner wall (a root, a limb's first reach, the door frame seen from the room):
+    no moss, a dark warm tone, so no outer-bark zebra shows in the hollow."""
+    me_ = ob.data
+    ca_ = me_.color_attributes["Col"]
+    nl_ = len(me_.loops)
+    lv_ = np_mod.empty(nl_, dtype=np_mod.int32)
+    me_.loops.foreach_get("vertex_index", lv_)
+    rg_ = np_mod.empty(nl_ * 4, dtype=np_mod.float32)
+    ca_.data.foreach_get("color", rg_)
+    rg_ = rg_.reshape(-1, 4)
+    co_ = np_mod.empty(len(me_.vertices) * 3, dtype=np_mod.float32)
+    me_.vertices.foreach_get("co", co_)
+    co_ = co_.reshape(-1, 3)
+    tn_ = np_mod.array(tone, dtype=np_mod.float32)
+    for v_i in range(len(me_.vertices)):
+        x_, zg_, yg_ = co_[v_i][0], -co_[v_i][1], co_[v_i][2]
+        if yg_ > 40.0:
+            continue
+        sw_ = sway(max(yg_, 0.0))
+        if math.hypot(x_ - sw_.x, zg_ - sw_.z) < r_in(max(yg_, 0.0)) + 1.3:
+            rg_[lv_ == v_i, :3] = tn_ * (0.75 + 0.25 * sm(yg_, 0.0, 6.0))
+    ca_.data.foreach_set("color", rg_.ravel())
+
+
 def build(DATA, PREVIEW, objs_out):
     bark = L.pbr("R37_OakBark", L.tex_bark(1024, 3801), 3.6)
     plank = L.pbr("R37_OakPlank", L.tex_planks(512, 3802), 2.4)
     dark = L.flat("R37_OakDark", (0.012, 0.01, 0.01), 1.0)
-    rot = L.flat("R37_OakRot", (0.09, 0.065, 0.045), 1.0)
+    rot = L.flat("R37_OakRot", (0.045, 0.03, 0.018), 1.0)
+    leaf_mats = {"leafA": L.flat("R37_OakLeafA", (0.22, 0.12, 0.05), 1.0), "leafB": L.flat("R37_OakLeafB", (0.13, 0.08, 0.04), 1.0),
+                 "leafC": L.flat("R37_OakLeafC", (0.2, 0.06, 0.035), 1.0), "leafD": L.flat("R37_OakLeafD", (0.16, 0.13, 0.05), 1.0)}
     heart = L.pbr("R37_OakHeart", L.tex_heartwood(512, 3811), 1.6)
     soil = L.pbr("R37_OakSoil", L.tex_soil(512, 3812), 2.4)
     iron = L.flat("R37_OakIron", (0.07, 0.065, 0.06), 0.55, 0.85)
@@ -393,6 +420,11 @@ def build(DATA, PREVIEW, objs_out):
     arc_u = [0.0]
     for k in range(1, NA + 1):
         arc_u.append(arc_u[-1] + (A_o[k].co - A_o[k - 1].co).length)
+    for curve in (A_o, A_i):
+        for _ in range(4):
+            cs = [v.co.copy() for v in curve]
+            for k in range(2, NA - 1):
+                curve[k].co = (cs[k - 1] + cs[k] * 2.0 + cs[k + 1]) / 4.0
     hole_c = pos(ad_mid, (r_out(1.8) + r_in(1.8)) * 0.5, 1.8)
     ring_prev = A_o
     LIP = 8
@@ -415,7 +447,7 @@ def build(DATA, PREVIEW, objs_out):
             d = d - rad * d.dot(rad)
             d = d.normalized() if d.length > 1e-6 else Vector((0, 1, 0))
             t_ = arch_t[k]
-            amp = (0.2 + 0.03 * nz(k * 0.2, 3)) * (0.35 + 0.65 * math.cos(t_)) * min(1.0, k / 3.0, (NA - k) / 3.0)
+            amp = (0.2 + 0.03 * nz(k * 0.2, 3)) * (0.55 + 0.45 * math.cos(t_)) * min(1.0, k / 3.0, (NA - k) / 3.0)
             q = q + d * amp * math.sin(math.pi * f_) ** 0.85
             ring.append(bm.verts.new(q))
         for k in range(NA):
@@ -509,7 +541,7 @@ def build(DATA, PREVIEW, objs_out):
     objs.append(trunk)
 
     # ------------------------------------------------------------------ the litter on the hollow's floor
-    lb_ = B("Litter", {"rot": rot})
+    lb_ = B("Litter", {"rot": rot, "heart": heart, **leaf_mats})
     lr = random.Random(5150)
     c0_ = sway(0.0)
     for k in range(520):
@@ -522,6 +554,7 @@ def build(DATA, PREVIEW, objs_out):
         base_y = -0.04 - 0.12 * (1.0 - min(rr_ / 3.5, 1.0)) + 0.03 * math.sin(px_ * 1.3 + pz_ * 0.9) + lr.uniform(0.0, 0.03)
         tilt_x, tilt_z = lr.uniform(-0.25, 0.25), lr.uniform(-0.25, 0.25)
         lobes = lr.choice((5, 6, 7))
+        curl_ = lr.uniform(-0.6, 0.9) * 0.04
         poly = []
         for m_ in range(16):
             tt = m_ / 16.0 * math.tau
@@ -532,8 +565,8 @@ def build(DATA, PREVIEW, objs_out):
         for (qx, qz) in poly:
             wx = qx * math.cos(yw_) - qz * math.sin(yw_)
             wz = qx * math.sin(yw_) + qz * math.cos(yw_)
-            pts_.append((px_ + wx, base_y + 0.02 + tilt_x * qx + tilt_z * qz, pz_ + wz))
-        lb_.face(pts_, "rot")
+            pts_.append((px_ + wx, base_y + 0.02 + tilt_x * qx + tilt_z * qz + curl_ * (qz * qz + 0.3 * qx * qx) * 12.0, pz_ + wz))
+        lb_.face(pts_, lr.choice(("leafA", "leafA", "leafB", "leafC", "leafD")))
     for k in range(90):
         ang_ = lr.uniform(0.0, math.tau)
         rr_ = math.sqrt(lr.uniform(0.0, 1.0)) * (r_in(0.0) - 0.4)
@@ -552,7 +585,7 @@ def build(DATA, PREVIEW, objs_out):
             rr_ = r0_ - j * lr.uniform(0.55, 0.8)
             aj_ = ang_ + lr.uniform(-0.12, 0.12) * j
             path_.append(Vector((c0_.x + math.sin(aj_) * rr_, 0.12 - 0.08 * j + 0.1 * lr.random(), c0_.z + math.cos(aj_) * rr_)))
-        lb_.tube_path(path_, [0.2 - 0.025 * j for j in range(6)], "rot", sides=6, jit=0.04, seed=k)
+        lb_.tube_path(path_, [0.2 - 0.03 * j for j in range(6)], "heart", sides=7, jit=0.07, seed=k)
     lit_ob = lb_.finish()
     L.moss_colors(lit_ob, 2, 0.0)
     ca3 = lit_ob.data.color_attributes["Col"]
@@ -561,11 +594,14 @@ def build(DATA, PREVIEW, objs_out):
     lv3 = np_mod.empty(n3, dtype=np_mod.int32)
     lit_ob.data.loops.foreach_get("vertex_index", lv3)
     rs3 = np_mod.random.RandomState(9)
-    pal = np_mod.array([[0.9, 0.55, 0.25], [0.75, 0.4, 0.18], [0.55, 0.38, 0.2], [0.35, 0.25, 0.14], [0.5, 0.55, 0.22], [1.0, 0.75, 0.35]], dtype=np_mod.float32)
+    pal = np_mod.array([[0.5, 0.26, 0.12], [0.42, 0.2, 0.09], [0.36, 0.25, 0.1], [0.24, 0.14, 0.08], [0.4, 0.11, 0.07], [0.3, 0.17, 0.1]], dtype=np_mod.float32)
     pick = rs3.randint(0, len(pal), len(lit_ob.data.polygons))
     for pi_, poly_ in enumerate(lit_ob.data.polygons):
         for li_ in poly_.loop_indices:
-            c3[li_, :3] = pal[pick[pi_]] * rs3.uniform(0.6, 1.2)
+            if poly_.material_index == 1:
+                c3[li_, :3] = np_mod.array([0.85, 0.72, 0.6], dtype=np_mod.float32)         # a root: heartwood grain, dark
+            else:
+                c3[li_, :3] = pal[pick[pi_]] * rs3.uniform(0.6, 1.15) * 0.35
     ca3.data.foreach_set("color", c3.ravel())
     objs.append(lit_ob)
 
@@ -597,9 +633,10 @@ def build(DATA, PREVIEW, objs_out):
         a0 = ad + da
         r0 = surf(a0, 0.3, False)
         path = [pos(a0, r0 + 0.6, 0.05), pos(a0, r0 - 0.3, 0.2), pos(a0 + sgn * 0.06, r0 - 1.3, 0.1), pos(a0 + sgn * 0.14, r0 - 2.3, -0.15), pos(a0 + sgn * 0.2, r0 - 3.0, -0.5)]
-        rb.tube_path(path, [0.36, 0.3, 0.22, 0.15, 0.08], "bark", sides=7, jit=0.06, seed=90 + k)
+        rb.tube_path(path, [0.36, 0.3, 0.2, 0.11, 0.045], "bark", sides=7, jit=0.1, seed=90 + k)
     robj = rb.finish()
     L.moss_colors(robj, 11)
+    darken_inside(robj)
     objs.append(robj)
 
     # ------------------------------------------------------------------ limbs
@@ -751,6 +788,7 @@ def build(DATA, PREVIEW, objs_out):
         limb_tips.append(tops[-1][0])
     limbs_ob = lb.finish()
     L.moss_colors(limbs_ob, 5)
+    darken_inside(limbs_ob)
     objs.append(limbs_ob)
 
     # ------------------------------------------------------------------ crown spikes on the broken rim

@@ -63,8 +63,8 @@ static func build(host: Node3D, xf: Transform3D) -> void:
 	for t: Transform3D in lit:
 		_light(host, OmniLight3D.new(), t.origin + t.basis.y * 0.3 + Vector3(0, 0.2, 0), CAP_GLOW, 0.5, 3.6)
 	var centre: Vector3 = xf * (_sway(0.0) + Vector3(0.0, 0.7, 0.0))
-	_light(host, OmniLight3D.new(), centre + Vector3(0.6, 0.6, -0.8), Color(0.5, 0.9, 0.75), 1.7, 8.5)
-	_light(host, OmniLight3D.new(), xf * (_sway(4.0) + Vector3(-1.5, 4.0, 1.0)), Color(0.4, 0.55, 0.9), 0.8, 9.0)
+	_light(host, OmniLight3D.new(), centre + Vector3(0.6, 0.6, -0.8), Color(0.66, 0.76, 0.9), 1.7, 8.5)
+	_light(host, OmniLight3D.new(), xf * (_sway(4.0) + Vector3(-1.5, 4.0, 1.0)), Color(0.55, 0.66, 0.9), 0.8, 9.0)
 	var shaft := SpotLight3D.new()
 	shaft.spot_angle = 11.0
 	shaft.spot_range = 44.0
