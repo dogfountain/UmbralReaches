@@ -94,7 +94,7 @@ static func _fix(n: Node) -> bool:
 	# already scaled, and any other value is the builder's (new or changed) and is scaled now
 	if begin > 0.0 and p != null:
 		p.set_meta(&"fade_standin", true)
-	var applied: Variant = g.get_meta(&"range_k", null)
+	var applied: Variant = g.get_meta(&"range_k") if g.has_meta(&"range_k") else null   # (a null default errors)
 	if not (applied is Vector2 and is_equal_approx((applied as Vector2).x, begin) and is_equal_approx((applied as Vector2).y, end)):
 		if end > 0.0:
 			end = minf(end * RANGE_K, FAR_CAP)
@@ -106,7 +106,7 @@ static func _fix(n: Node) -> bool:
 	# the near half of a swap (its stand-in is a sibling that begins) keeps its own cut: two meshes dithering over the
 	# same band punch the same holes, so the pair flickered out and back in as you walked through it
 	if begin <= 0.0 and p != null and _has_standin(p):
-		var orig: Variant = g.get_meta(&"fade_orig", null)
+		var orig: Variant = g.get_meta(&"fade_orig") if g.has_meta(&"fade_orig") else null
 		if orig is Array:                             # faded here before its stand-in arrived: put the builder's cut back
 			g.visibility_range_fade_mode = int(orig[0])
 			g.visibility_range_end_margin = float(orig[1])
@@ -130,9 +130,8 @@ static func _fix(n: Node) -> bool:
 ## Does `p` hold a stand-in (a mesh whose range begins)? Cached on the parent; a parent that later gains one is seen
 ## when that one is fixed (it marks its parent).
 static func _has_standin(p: Node) -> bool:
-	var v: Variant = p.get_meta(&"fade_standin", null)
-	if v != null:
-		return bool(v)
+	if p.has_meta(&"fade_standin"):
+		return bool(p.get_meta(&"fade_standin"))
 	var has := false
 	for c in p.get_children():
 		var cg := c as GeometryInstance3D

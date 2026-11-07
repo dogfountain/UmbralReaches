@@ -70,7 +70,12 @@ void vertex() {
 		// instances branch together: the GPU runs that test coherently).
 		vec3 org = MODEL_MATRIX[3].xyz;
 		float keep = fract(sin(dot(org.xz, vec2(12.9898, 78.233))) * 43758.5453);
-		float drop = smoothstep(fade_end, fade_end + 6.0, distance(NODE_POSITION_WORLD, CAMERA_POSITION_WORLD));
+		float dchunk = distance(NODE_POSITION_WORLD, CAMERA_POSITION_WORLD);
+		// each plant shrinks away over 3 m instead of vanishing in one frame (Luke, 7 Nov: foliage popped): its own edge
+		// is staggered through the 6 m band by its hash, and every edge falls inside the band, so all are gone by the
+		// engine's cull at fade_end + 6 m
+		float edge = fade_end + 3.0 + keep * 3.0;
+		float shrink = 1.0 - smoothstep(edge - 3.0, edge, dchunk);
 		float grow = 1.0;
 		if (ground && thin_from > 0.0) {
 			// density LOD: past thin_from (per plant) ground cover drops toward thin_keep of its
@@ -79,17 +84,18 @@ void vertex() {
 			// Distant grass is where cards stack deepest per pixel (grazing view, depth prepass on
 			// every layer), so this trims the costliest overdraw for a carpet that reads the same.
 			float kept = mix(1.0, thin_keep, smoothstep(min(thin_from, fade_end * 0.5), fade_end, distance(org, CAMERA_POSITION_WORLD)));
-			drop = max(drop, 1.0 - kept);
+			// thinned plants shrink out across 6 % of the hash (a few metres of walking), not in one step
+			shrink = min(shrink, smoothstep(1.0 - kept, 1.0 - kept + 0.06, keep));
 			grow = inversesqrt(kept);
 		}
-		if (keep < drop) {
+		if (shrink <= 0.001) {
 			collapsed = true;
 			VERTEX = org;                   // collapsed: zero-area triangles draw nothing
 			wpos = org;
 			vhue = 0.0;
 			vwind = 0.0;
 		} else {
-			VERTEX = org + (VERTEX - org) * vec3(grow, sqrt(grow), grow);
+			VERTEX = org + (VERTEX - org) * vec3(grow, sqrt(grow), grow) * shrink;
 		}
 	}
 	if (!collapsed) {
