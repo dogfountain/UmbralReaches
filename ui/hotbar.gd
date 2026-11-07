@@ -10,11 +10,13 @@ extends Control
 const SLOT := 78.0
 const GAP := 26.0
 const NAME_FADE := 14.0       ## names under the slots fade out after this many seconds
-const NAME_PT := 19           ## one line, body serif, on a dark plate
-const KEY_PT := 18
+const NAME_PT := 13           ## one line, body serif, on a dark plate
+const KEY_PT := 15
 const Med := preload("res://ui/medieval_style.gd")
 const UIType := preload("res://ui/type.gd")
 const FRAME := Color(Med.BRONZE, 0.9)
+const EMBER := Color(1.0, 0.58, 0.22)
+const STRIP_PAD := 11.0       ## the worn-leather backing strip runs this far past the slots
 const BG := Color(0.02, 0.012, 0.006, 0.78)
 const SHADE := Color(0.01, 0.0, 0.03, 0.72)
 const QUIET := Color(Med.BONE, 0.95)
@@ -46,7 +48,7 @@ func _process(delta: float) -> void:
 		_was_ready.resize(_book.slots.size())
 		_ready_pulse.resize(_book.slots.size())
 		_was_ready.fill(1)
-		offset_top = -(SLOT + 52.0 + 36.0)
+		offset_top = -(SLOT + 56.0 + 36.0)
 		offset_bottom = -36.0             # the name plates run a few px under the box (not clipped)
 	var sig := ""
 	var vis: Array[int] = []
@@ -95,6 +97,7 @@ func _draw() -> void:
 		return
 	_anim = false
 	var name_a := clampf((NAME_FADE - _t) / 2.0, 0.0, 1.0)
+	_strip()
 	for vi in _vis.size():
 		var i: int = _vis[vi]
 		var s := _book.slots[i]
@@ -102,7 +105,8 @@ func _draw() -> void:
 		var o := Vector2(vi * (SLOT + GAP) + shake, 0.0)
 		var r := Rect2(o, Vector2(SLOT, SLOT))
 		var is_ready := _book.cooldown_left(i) <= 0.0
-		draw_style_box(Med.slot(), r.grow(3.0))          # an iron-rimmed socket of leather
+		draw_style_box(Med.slot(Color(1.0, 0.82, 0.56)), r.grow(3.0))          # an iron-rimmed socket of leather
+		_bevel(r.grow(3.0))
 		_glyph(s.glyph, r.get_center(), SLOT * 0.3, s.color if is_ready else s.color.darkened(0.55))
 		# cooldown sweep, clockwise from 12 o'clock, plus seconds when > 1 s
 		var cr := _book.cooldown_ratio(i)
@@ -150,7 +154,7 @@ func _draw() -> void:
 		if f > 0.0:
 			frame = FRAME.lerp(Color(1.4, 1.3, 1.6), f)
 		elif _ready_pulse[i] > 0.0:
-			frame = FRAME.lerp(s.color.lightened(0.3), _ready_pulse[i])
+			frame = FRAME.lerp(Med.GILT.lightened(0.35), _ready_pulse[i])     # a warm glint on the rim, not the spell's colour
 		if _book.denied(i) > 0.0:
 			frame = frame.lerp(Color(1.0, 0.3, 0.25), _book.denied(i))
 		# combo: the next cast is the empowered one (Rift Lash / a riposte) -> the slot burns
@@ -182,13 +186,20 @@ func _draw() -> void:
 				else:
 					d.append(d[0])
 					draw_polyline(d, Color(s.color, 0.45), 1.5, false)
-		# key chip bottom-left, gloom cost top-right
+		# key on a small engraved plate riveted across the bottom rim
 		var key := _book.key_label(i)
-		var kw := maxf(28.0, _font.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, KEY_PT).x + 10.0)
-		var kr := Rect2(o + Vector2(-4, SLOT - 20), Vector2(kw, 24))
-		draw_rect(kr, Color(0.07, 0.045, 0.03, 0.97))
-		draw_rect(kr, FRAME, false, 1.0)
-		draw_string(_font, kr.position + Vector2(0, 18), key, HORIZONTAL_ALIGNMENT_CENTER, kw, KEY_PT, QUIET)
+		var kw := maxf(30.0, _font.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, KEY_PT).x + 16.0)
+		var kr := Rect2(o + Vector2(SLOT * 0.5 - kw * 0.5, SLOT - 9.0), Vector2(kw, 20))
+		var kb := StyleBoxFlat.new()
+		kb.bg_color = Color(0.06, 0.038, 0.024, 0.98)
+		kb.border_color = Color(Med.BRONZE, 0.95)
+		kb.set_border_width_all(1)
+		kb.set_corner_radius_all(3)
+		draw_style_box(kb, kr)
+		draw_line(kr.position + Vector2(3, 1.5), kr.position + Vector2(kw - 3, 1.5), Color(Med.GILT, 0.25), 1.0)
+		_rivet(kr.position + Vector2(4, 10), 1.3)
+		_rivet(kr.position + Vector2(kw - 4, 10), 1.3)
+		draw_string(_font, kr.position + Vector2(0, 15), key, HORIZONTAL_ALIGNMENT_CENTER, kw, KEY_PT, QUIET)
 		if s.gloom_cost > 0.0:
 			draw_string(_font, o + Vector2(0, 17), "+%d" % roundi(s.gloom_cost), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 14, COST)
 		var act := s.active(_book)
@@ -201,16 +212,60 @@ func _draw() -> void:
 			_core_gem(o + Vector2(SLOT - 9, 9))
 		if name_a > 0.0:
 			# one line in the body serif (narrower than Cinzel) on a dark plate; the slot spacing leaves it room
-			var nf := UIType.body()
+			var nf := _font               # Cinzel: its lower case is small capitals, the engraved look
 			var pt := NAME_PT
 			var ww := nf.get_string_size(s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
-			if ww > SLOT + GAP - 8.0:
-				pt = maxi(14, floori(pt * (SLOT + GAP - 8.0) / ww))
+			if ww > SLOT + GAP - 12.0:
+				pt = maxi(11, floori(pt * (SLOT + GAP - 12.0) / ww))
 				ww = nf.get_string_size(s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
-			var plate := Rect2(o.x + SLOT * 0.5 - ww * 0.5 - 6.0, o.y + SLOT + 7.0, ww + 12.0, pt + 9.0)
+			var plate := Rect2(o.x + SLOT * 0.5 - ww * 0.5 - 6.0, o.y + SLOT + 14.0, ww + 12.0, pt + 8.0)
 			draw_rect(plate, Color(0.02, 0.012, 0.01, 0.82 * name_a))
 			draw_rect(plate, Color(Med.BRONZE, 0.45 * name_a), false, 1.0)
 			draw_string(nf, Vector2(plate.position.x + 6.0, plate.position.y + pt + 2.0), s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt, Color(Med.BONE, name_a))
+
+
+## The worn-leather strip behind the row, bronze-rimmed, with a rivet in every gap and at the ends.
+func _strip() -> void:
+	if _vis.is_empty():
+		return
+	var n := _vis.size()
+	var w := n * SLOT + maxf(0.0, n - 1.0) * GAP
+	var sr := Rect2(-STRIP_PAD, -STRIP_PAD, w + STRIP_PAD * 2.0, SLOT + STRIP_PAD * 2.0 + 2.0)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(Med.LEATHER_DEEP, 0.84)
+	sb.border_color = Color(Med.BRONZE, 0.75)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(7)
+	sb.shadow_color = Color(0, 0, 0, 0.5)
+	sb.shadow_size = 6
+	draw_style_box(sb, sr)
+	draw_rect(sr.grow(-4.0), Color(Med.GILT, 0.1), false, 1.0)       # a stitched inner line
+	for k in n + 1:
+		var x := (SLOT + GAP) * float(k) - GAP * 0.5
+		if k == 0:
+			x = -STRIP_PAD * 0.5
+		elif k == n:
+			x = w + STRIP_PAD * 0.5
+		_rivet(Vector2(x, -STRIP_PAD * 0.5 + 1.0), 2.0)
+		_rivet(Vector2(x, SLOT + STRIP_PAD * 0.5 + 1.0), 2.0)
+
+
+## A bevelled rim over a socket: lit top and left edges, shadowed bottom and right, and a rivet in each corner.
+func _bevel(r: Rect2) -> void:
+	var a := r.position
+	var b := r.end
+	draw_line(a + Vector2(2, 0.5), Vector2(b.x - 2, a.y + 0.5), Color(1.0, 0.9, 0.68, 0.3), 1.0)
+	draw_line(a + Vector2(0.5, 2), Vector2(a.x + 0.5, b.y - 2), Color(1.0, 0.9, 0.68, 0.18), 1.0)
+	draw_line(Vector2(a.x + 2, b.y - 0.5), b - Vector2(2, 0.5), Color(0, 0, 0, 0.6), 1.0)
+	draw_line(Vector2(b.x - 0.5, a.y + 2), b - Vector2(0.5, 2), Color(0, 0, 0, 0.5), 1.0)
+	for c in [a + Vector2(3, 3), Vector2(b.x - 3, a.y + 3), Vector2(a.x + 3, b.y - 3), b - Vector2(3, 3)]:
+		_rivet(c, 1.5)
+
+
+func _rivet(c: Vector2, rad: float) -> void:
+	draw_circle(c + Vector2(0.5, 0.7), rad, Color(0, 0, 0, 0.55))
+	draw_circle(c, rad, Color(Med.BRONZE.darkened(0.15), 1.0))
+	draw_circle(c + Vector2(-rad * 0.3, -rad * 0.35), rad * 0.45, Color(Med.GILT, 0.85))
 
 
 ## The staff core in the orb, as a small faceted gem on the bolt slot (none for the Hollow Core).
@@ -300,7 +355,8 @@ func _sweep_edge(r: Rect2, ratio: float) -> void:
 	if absf(dir.y) > 0.001:
 		ty = (SLOT * 0.5) / absf(dir.y)
 	far = c + dir * minf(tx, ty)
-	draw_line(c, far, Color(1.0, 0.85, 0.55, 0.55), 1.5, true)
+	draw_line(c, far, Color(EMBER, 0.28), 3.0, true)
+	draw_line(c, far, Color(1.0, 0.8, 0.5, 0.85), 1.2, true)
 
 
 func _pie(r: Rect2, ratio: float, col: Color) -> void:
