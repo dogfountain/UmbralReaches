@@ -9,7 +9,7 @@ extends RefCounted
 
 const Hearth := preload("res://core/world/realm/r37_hearth.gd")
 
-const FILL := Color(0.95, 0.76, 0.58)       ## the indoor ambient: a banked fire's bounce (about 2200 K)
+const FILL := Color(0.80, 0.72, 0.64)       ## the indoor ambient: a soft warm-neutral bounce; the fire and lamps carry the colour (a hot fill turned plaster flat orange)
 const FIRE := Color(1.0, 0.7, 0.4)
 const CANDLE := Color(1.0, 0.8, 0.52)
 

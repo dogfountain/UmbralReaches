@@ -57,6 +57,10 @@ static func eligible_light(root: Node, l: OmniLight3D) -> bool:
 		if nm.contains(k):
 			return false
 	var p := l.global_position
+	# no moths at a lamp indoors (the tavern's candles, a cottage's hearth): beside a bright candle their lit
+	# wings bloomed into glowing discs the size of a plate floating round the room
+	if path.contains("hollowlantern") or Interiors.at(p) > 0.0:
+		return false
 	return RealmLayout.BOUNDS.grow(4.0).has_point(Vector2(p.x, p.z))
 
 
