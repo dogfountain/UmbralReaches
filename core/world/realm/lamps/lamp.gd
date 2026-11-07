@@ -261,9 +261,19 @@ static func _mesh_for(kind: String, free: bool, chain_len: float) -> Dictionary:
 			d.flame = _lantern(body, glow, ring, iron)
 			d.light = d.flame
 		"post":
-			body.box(Vector3(0, 0.1, 0), Vector3(0.34, 0.2, 0.34), Basis.IDENTITY, stone)
-			body.box(Vector3(0, 1.0, 0), Vector3(0.1, 1.8, 0.1), Basis.IDENTITY, wood)
-			body.box(Vector3(0, 1.84, 0), Vector3(0.24, 0.05, 0.24), Basis.IDENTITY, iron)
+			var o45 := Basis(Vector3.UP, PI * 0.25)
+			body.box(Vector3(0, 0.05, 0), Vector3(0.42, 0.1, 0.42), Basis.IDENTITY, stone * 0.9)       # a stepped plinth
+			body.box(Vector3(0, 0.17, 0), Vector3(0.32, 0.14, 0.32), Basis.IDENTITY, stone)
+			body.box(Vector3(0, 0.25, 0), Vector3(0.36, 0.03, 0.36), Basis.IDENTITY, stone * 1.1)
+			body.box(Vector3(0, 1.1, 0), Vector3(0.1, 1.7, 0.1), Basis.IDENTITY, wood)                  # an octagonal post
+			body.box(Vector3(0, 1.1, 0), Vector3(0.1, 1.7, 0.1), o45, wood * 0.92)
+			for by: float in [0.5, 1.2, 1.78]:
+				body.box(Vector3(0, by, 0), Vector3(0.135, 0.04, 0.135), Basis.IDENTITY, iron)
+				body.box(Vector3(0, by, 0), Vector3(0.135, 0.04, 0.135), o45, iron)
+			body.box(Vector3(0, 1.86, 0), Vector3(0.26, 0.04, 0.26), Basis.IDENTITY, iron)
+			body.box(Vector3(0, 1.9, 0), Vector3(0.18, 0.04, 0.18), o45, iron)
+			for sg: float in [-1.0, 1.0]:                                                               # a scrolled bracket each way
+				body.bar(Vector3(sg * 0.04, 1.62, 0.0), Vector3(sg * 0.2, 1.84, 0.0), 0.022, iron)
 			d.flame = _lantern(body, glow, Vector3(0, 2.34, 0), iron)
 			d.light = d.flame + Vector3(0, 0.05, 0)
 			d.e = 1.0
@@ -354,13 +364,20 @@ static func _mesh_for(kind: String, free: bool, chain_len: float) -> Dictionary:
 ## Returns the flame point.
 static func _lantern(body: LampBuilder, glow: LampBuilder, ring: Vector3, iron: Color) -> Vector3:
 	body.box(ring, Vector3(0.06, 0.07, 0.025), Basis.IDENTITY, iron)
-	body.box(ring + Vector3(0, -0.08, 0), Vector3(0.24, 0.05, 0.24), Basis(Vector3.UP, 0.78), iron)
-	body.box(ring + Vector3(0, -0.13, 0), Vector3(0.14, 0.05, 0.14), Basis.IDENTITY, iron)
-	body.box(ring + Vector3(0, -0.44, 0), Vector3(0.24, 0.04, 0.24), Basis.IDENTITY, iron)
+	body.box(ring + Vector3(0, -0.03, 0), Vector3(0.025, 0.07, 0.06), Basis.IDENTITY, iron)           # the ring, seen from either side
+	body.box(ring + Vector3(0, -0.08, 0), Vector3(0.24, 0.05, 0.24), Basis(Vector3.UP, 0.78), iron)    # hat: stepped, a pyramid
+	body.box(ring + Vector3(0, -0.12, 0), Vector3(0.18, 0.04, 0.18), Basis.IDENTITY, iron)
+	body.box(ring + Vector3(0, -0.15, 0), Vector3(0.12, 0.04, 0.12), Basis(Vector3.UP, 0.78), iron)
+	body.box(ring + Vector3(0, -0.44, 0), Vector3(0.24, 0.04, 0.24), Basis.IDENTITY, iron)           # foot
+	body.box(ring + Vector3(0, -0.47, 0), Vector3(0.14, 0.04, 0.14), Basis(Vector3.UP, 0.78), iron)
 	for sx: float in [-1.0, 1.0]:
 		for sz: float in [-1.0, 1.0]:
 			body.box(ring + Vector3(sx * 0.1, -0.28, sz * 0.1), Vector3(0.03, 0.3, 0.03), Basis.IDENTITY, iron)
-	glow.box(Vector3.ZERO, Vector3(0.15, 0.25, 0.15), Basis.IDENTITY, PANE)
+	for sg: float in [-1.0, 1.0]:                                                                   # a cross-bar on each face
+		body.box(ring + Vector3(sg * 0.1, -0.28, 0), Vector3(0.022, 0.02, 0.2), Basis.IDENTITY, iron)
+		body.box(ring + Vector3(0, -0.28, sg * 0.1), Vector3(0.2, 0.02, 0.022), Basis.IDENTITY, iron)
+	# the glass: a six-sided belly, wider in the middle, warm at the heart and deeper toward the rim
+	glow.lathe(Vector3(0, -0.14, 0), [Vector2(0.0, 0.0), Vector2(0.07, 0.0), Vector2(0.092, 0.1), Vector2(0.092, 0.17), Vector2(0.065, 0.26), Vector2(0.0, 0.265)], 6, PANE, PANE * Color(1.0, 0.8, 0.7))
 	return ring + Vector3(0, -0.28, 0)
 
 

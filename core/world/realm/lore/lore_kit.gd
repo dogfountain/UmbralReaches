@@ -909,10 +909,23 @@ func bench(at: Vector3, yaw: float) -> void:
 ## A lantern on a post (unlit iron cage, cold glass) or lit (`lit` adds an ember glass pane).
 func lamp_post(at: Vector3, yaw: float, lit := false) -> Vector3:
 	var b := Basis(Vector3.UP, yaw)
-	p.box("lore_beam", at + Vector3.UP * 1.1, Vector3(0.13, 2.6, 0.13), b, true, 0.75)
+	var b45 := Basis(Vector3.UP, PI * 0.25) * b
+	p.box("lore_tstone", at + Vector3.UP * 0.06, Vector3(0.46, 0.12, 0.46), b, true, 0.8)          # a stepped plinth
+	p.box("lore_tstone", at + Vector3.UP * 0.2, Vector3(0.32, 0.18, 0.32), b, true, 0.9)
+	p.box("lore_beam", at + Vector3.UP * 1.3, Vector3(0.13, 2.3, 0.13), b, true, 0.75)             # an octagonal post with iron bands
+	p.box("lore_beam", at + Vector3.UP * 1.3, Vector3(0.13, 2.3, 0.13), b45, false, 0.68)
+	for by: float in [0.7, 1.5]:
+		p.box("iron", at + Vector3.UP * by, Vector3(0.18, 0.045, 0.18), b, false)
+		p.box("iron", at + Vector3.UP * by, Vector3(0.18, 0.045, 0.18), b45, false)
+	p.box("lore_beam", at + Vector3.UP * 2.45, Vector3(0.19, 0.07, 0.19), b, false, 0.7)
 	p.box("lore_beam", at + b * Vector3(0, 2.3, -0.25), Vector3(0.08, 0.08, 0.6), b, false, 0.75)
+	var br0 := at + Vector3.UP * 1.95                                                                # the brace under the arm
+	var br1 := at + b * Vector3(0, 2.28, -0.4)
+	p.box("iron", (br0 + br1) * 0.5, Vector3(0.03, 0.03, br0.distance_to(br1)), Basis.looking_at((br1 - br0).normalized(), Vector3.UP), false)
 	var lc := at + b * Vector3(0, 1.95, -0.48)
 	p.box("iron", lc + Vector3.UP * 0.2, Vector3(0.26, 0.04, 0.26), b, false)
+	p.box("iron", lc + Vector3.UP * 0.245, Vector3(0.17, 0.03, 0.17), b45, false)                   # a stepped hat
+	p.box("iron", lc + Vector3.UP * 0.28, Vector3(0.08, 0.03, 0.08), b, false)
 	p.box("iron", lc - Vector3.UP * 0.16, Vector3(0.22, 0.04, 0.22), b, false)
 	for sx: float in [-0.1, 0.1]:
 		for sz: float in [-0.1, 0.1]:
