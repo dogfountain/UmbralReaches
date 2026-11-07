@@ -64,6 +64,7 @@ var _cur: Object
 var _lead := 0
 var hollow_ok := false                        ## a shot that shows the Gloom lets it run (cleared at each cut)
 var lead_black: ColorRect
+var _no_music := OS.get_environment("TRAILER_NO_MUSIC") == "1"
 var keep_menus := false                        ## menu layers (58..64) are left alone this shot
 var keep_hud := false                          ## HUD layers (up to 12) are left alone this shot
 var keep_layers: Array[CanvasLayer] = []   ## UI the shot wants on screen (the rest is hidden every frame)
@@ -434,6 +435,15 @@ func _drive_now(d: float) -> void:
 
 
 func _keep_alive() -> void:
+	# TRAILER_NO_MUSIC=1: the shots carry the spells, blows and voices only (zz/trailer_score.gd lays one score under the
+	# whole cut). The music and the region beds (tonal loops that fade in fresh) restarted at every one of the 94 cuts.
+	# The buses are made at runtime (ambience.gd), so checked here.
+	if _no_music:
+		for bn: String in ["Music", "Ambience", "AmbOut"]:
+			var mb := AudioServer.get_bus_index(bn)
+			if mb >= 0 and not AudioServer.is_bus_mute(mb):
+				AudioServer.set_bus_mute(mb, true)
+				print("TRAILER %s bus muted" % bn)
 	for e in spawned:
 		if is_instance_valid(e) and e != boss:
 			continue

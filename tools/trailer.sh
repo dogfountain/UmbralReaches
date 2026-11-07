@@ -136,9 +136,17 @@ cmd_assemble() {
 		[ -f "$OUT/shots/$id.mp4" ] && echo "file 'shots/$id.mp4'" >> "$list"
 	done
 	[ -s "$list" ] || { echo "no shots cut yet"; exit 1; }
-	( cd "$OUT" && "$FFMPEG" -loglevel error -y -f concat -safe 0 -i concat.txt \
-		-vf "eq=contrast=1.04:saturation=1.06,format=yuv420p" -c:v libx264 -preset slow -crf 17 -r "$FPS" \
-		-c:a aac -b:a 192k -movflags +faststart umbral_trailer.mp4 )
+	if [ -f "$OUT/score.wav" ]; then
+		# one score under the whole cut (zz/trailer_score.gd); the shots carry only the world's sound (TRAILER_NO_MUSIC=1)
+		( cd "$OUT" && "$FFMPEG" -loglevel error -y -f concat -safe 0 -i concat.txt -i score.wav \
+			-filter_complex "[0:a]volume=0.8[w];[1:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.9[m];[w][m]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95[a]" \
+			-map 0:v -map "[a]" -vf "eq=contrast=1.04:saturation=1.06,format=yuv420p" -c:v libx264 -preset slow -crf 17 -r "$FPS" \
+			-c:a aac -b:a 192k -movflags +faststart umbral_trailer.mp4 )
+	else
+		( cd "$OUT" && "$FFMPEG" -loglevel error -y -f concat -safe 0 -i concat.txt \
+			-vf "eq=contrast=1.04:saturation=1.06,format=yuv420p" -c:v libx264 -preset slow -crf 17 -r "$FPS" \
+			-c:a aac -b:a 192k -movflags +faststart umbral_trailer.mp4 )
+	fi
 	echo "$OUT/umbral_trailer.mp4"
 }
 
