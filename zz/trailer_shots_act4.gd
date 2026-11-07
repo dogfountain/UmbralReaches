@@ -20,12 +20,12 @@ const BOSS := {
 	"warden": {"boss": "ascended_warden", "W": 13.0, "pre": false, "cam": [19.0, 0, 4.0, 0, 1.0, 0, 6.0], "push": 3.0, "fov": 62.0, "lit": [6.0, 50.0]},
 	"warden_move": {"boss": "ascended_warden", "W": 13.0, "pre": true, "cam": [21.0, 0, -8.0, 0, 9.0, 0, 5.0], "push": 2.0, "fov": 62.0, "lit": [6.0, 50.0]},
 	"warden_phase": {"boss": "ascended_warden", "W": 12.0, "pre": true, "cam": [20.0, 0, 5.0, 0, 1.2, 0, 8.0], "push": 2.0, "fov": 64.0, "lit": [6.0, 50.0]},
-	"anchoress": {"boss": "r37_anchoress", "W": 9.0, "pre": false, "cam": [11.0, 0, 3.0, 0, 1.6, 0, 2.6], "push": 2.5, "fov": 52.0, "lit": [8.0, 32.0]},
+	"anchoress": {"boss": "r37_anchoress", "W": 9.0, "pre": false, "cam": [-8.0, 0, 3.0, 0, 1.6, 0, 2.6], "push": 2.5, "fov": 52.0, "lit": [8.0, 32.0]},
 	"anchoress_move": {"boss": "r37_anchoress", "W": 10.0, "pre": true, "cam": [9.0, 0, 7.5, 0, 5.0, 0, 1.0], "push": 1.5, "fov": 58.0, "lit": [8.0, 32.0]},
-	"anchoress_phase": {"boss": "r37_anchoress", "W": 9.0, "pre": true, "cam": [11.0, 0, 4.0, 0, 1.6, 0, 2.8], "push": 2.0, "fov": 56.0, "lit": [8.0, 32.0]},
+	"anchoress_phase": {"boss": "r37_anchoress", "W": 9.0, "pre": true, "cam": [-8.0, 0, 4.0, 0, 1.6, 0, 2.8], "push": 2.0, "fov": 56.0, "lit": [8.0, 32.0]},
 	"hierarch_voice": {"boss": "r37_hierarch", "W": 11.0, "pre": true, "cam": [17.0, 0, 7.0, 0, 8.0, 0, 3.0], "push": 2.0, "fov": 58.0, "lit": [8.0, 40.0]},
 	"hierarch_edict": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [10.5, 0, 3.5, 0, 1.2, 0, 4.5], "push": 2.5, "fov": 56.0, "lit": [5.0, 40.0]},
-	"hierarch_phase": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [14.0, 0, 5.0, 0, 1.6, 0, 4.0], "push": 2.0, "fov": 58.0, "lit": [5.0, 40.0]},
+	"hierarch_phase": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [9.5, 0, 3.0, 0, 1.8, 0, 4.2], "push": 1.5, "fov": 52.0, "lit": [9.0, 40.0]},
 	"final_blow": {"boss": "thornwarden", "W": 11.0, "pre": true, "cam": [11.0, 0, 5.0, 0, 5.0, 0, 2.8], "push": 1.5, "fov": 55.0, "lit": [5.0, 40.0]},
 }
 
@@ -222,6 +222,10 @@ func _u_any(tt: float, id: String) -> void:
 		d.light_at(c, 10.0)
 	else:
 		_boss_cam(id, tt)
+	if b and id == "hierarch_phase":
+		b._face_dir = Cam.flat(d.pp() - b.global_position)      # the front (the faceless disc) to the lens, not its back
+		if d.once("a4_hp_face"):
+			b._face.rotation.y = atan2(-b._face_dir.x, -b._face_dir.z)
 	if b:
 		d.aim_at(b.global_position)
 		for l in d.get_tree().root.find_children("*", "Label3D", true, false):

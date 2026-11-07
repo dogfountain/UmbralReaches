@@ -303,7 +303,7 @@ func _s_wildlife_herd() -> void:
 		return
 	var at := _herd_mid()
 	d.put_player(at + Vector3(35.0, 0.0, 0.0), -d.WEST)
-	_herd_cam = d.solve_cam([at + Vector3.UP * 1.2], at, Cam.yaw_dir(Vector3(1, 0, 0.3)) + PI, 11.0, 1.7)
+	_herd_cam = d.solve_cam([at + Vector3.UP * 1.2], at, d.yaw_to(Vector3(-0.6, 0, -0.8)), 9.0, 3.0)   # from the west: the herd against the gate's ember post, the lamp posts of the gate behind the lens
 	d.hold_cam(_herd_cam, at + Vector3.UP * 1.0)
 
 
