@@ -20,6 +20,7 @@ uniform int shape = 0;
 uniform float half_angle = 3.1416;
 instance uniform float progress = 0.0;
 instance uniform float fade = 1.0;
+instance uniform float soft = 0.0;   // 1 for a zone that is not the one landing next: outline only, dim
 instance uniform vec2 size_m = vec2(1.0, 1.0);   // half-extents in metres (x, z)
 uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
 const float HIDE_M = 1.4;       // more than this in front of the zone hides it
@@ -72,8 +73,9 @@ void fragment() {
 	float front = exp(-pow((t - pr) * 18.0, 2.0)) * step(pr, 0.995);
 	// grain so the fill reads as scorched ground rather than a flat decal
 	float g = n2(m * 3.2 + vec2(TIME * 0.3, 0.0)) * 0.5 + n2(m * 7.0) * 0.5;
-	float base = 0.07 + 0.05 * g;
-	float fill = filled * (0.18 + 0.16 * g + 0.25 * pr * pr);
+	float calm = mix(1.0, 0.22, soft);
+	float base = (0.025 + 0.02 * g) * calm;
+	float fill = filled * (0.07 + 0.07 * g + 0.14 * pr * pr) * calm;
 	// the last 12 % of the windup pulses: it is about to land
 	float urgent = smoothstep(0.88, 1.0, pr) * (0.5 + 0.5 * sin(TIME * 40.0));
 	// what stands in front of this pixel of the zone, in metres along the view
@@ -87,13 +89,13 @@ void fragment() {
 	float edge = clamp(outline + front + ring2, 0.0, 1.0);
 	// seen through something: only the outline and the travelling front (no fill over the
 	// wanderer's robe when you stand in it, just the lines that say where and when)
-	float k = (base + fill + urgent * 0.35 * filled) * (1.0 - through) + (outline * (0.9 + 0.6 * pr) + front * 0.9 + ring2 * 0.6) * (1.0 - 0.45 * through);
+	float k = (base + fill + urgent * 0.16 * filled * calm) * (1.0 - through) + (outline * (0.8 + 0.5 * pr) * mix(1.0, 0.6, soft) + front * 0.7 * calm + ring2 * 0.45 * calm) * (1.0 - 0.45 * through);
 	k *= fade;
 	vec3 peak = color / max(max(color.r, max(color.g, color.b)), 0.001);
-	vec3 inner = peak * (0.44 + 0.24 * g + 0.3 * urgent);
+	vec3 inner = peak * (0.5 + 0.2 * g + 0.25 * urgent);
 	vec3 hot = color * (0.55 + 0.6 * edge + 0.3 * urgent);
 	// the travelling front burns white-hot at its leading edge: nothing in the set dressing does that
-	hot = mix(hot, vec3(1.9, 1.75, 1.5) * max(max(color.r, color.g), color.b) * 0.5, clamp(front * 0.55 + urgent * outline * 0.35, 0.0, 1.0));
+	hot = mix(hot, vec3(1.9, 1.6, 1.2) * max(max(color.r, color.g), color.b) * 0.4, clamp(front * 0.3 + urgent * outline * 0.2, 0.0, 1.0));
 	ALBEDO = mix(inner, hot, edge);
-	ALPHA = clamp(k, 0.0, 0.88);
+	ALPHA = clamp(k, 0.0, 0.8);
 }

@@ -34,6 +34,59 @@ const INTRO := 1.8              ## seconds a boss stands, shelled, after it rise
 static var _spike_meshes := {}
 const SPIKE_SHADER := preload("res://core/vfx/spike.gdshader")
 static var _spike_mats := {}
+static var _live: Array = []        ## [[zone mesh id, land time s], ...]: the zones still filling
+
+
+## Pay the first-use costs of a boss's moves while the arena is still quiet: the danger-zone
+## shader in each shape and colour, both spike meshes and their materials, the particle, ring and
+## light presets the landings use, and the boss's synthesized sounds. Anything drawn is a speck
+## put in front of the camera for a few frames (culled things never compile), then freed.
+static func warm(host: Node) -> void:
+	if host == null or not host.is_inside_tree():
+		return
+	for k: String in ["chant", "stagger", "roar", "bone", "spike", "block", "growl"]:
+		Synth.get_stream(k)
+	ResourceLoader.load("res://art/audio/ward_chime.wav")
+	var cam := host.get_viewport().get_camera_3d()
+	var at := Vector3(0.0, 1.0, 0.0)
+	if cam != null:
+		at = cam.global_position - cam.global_basis.z * 3.0
+	var cols: Array[Color] = [THORN, BONE, HOLY]
+	for c in cols:
+		SpellFx.danger(at, 0.2, {"radius": 0.02, "color": c, "hold": 0.0})
+		SpellFx.danger(at, 0.2, {"radius": 0.02, "half_angle": 0.5, "color": c, "hold": 0.0})
+		SpellFx.danger(at, 0.2, {"rect": Vector2(0.01, 0.02), "color": c, "hold": 0.0})
+		Vfx.ring(at, 0.02, c, 0.2, 0.1, Vector3.UP, 1.2)
+	for kind in ["bone", "thorn"]:
+		_spike_assets(kind)
+		var sp := MeshInstance3D.new()
+		sp.mesh = _spike_meshes[kind]
+		sp.material_override = _spike_mats[kind]
+		sp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		host.add_child(sp)
+		sp.global_position = at
+		sp.scale = Vector3.ONE * 0.01
+		host.get_tree().create_timer(0.3, false).timeout.connect(sp.queue_free)
+	Vfx.burst(at, BONE, {"count": 4, "life": 0.3, "speed": Vector2(0.1, 0.2), "size": 0.01, "gravity": -6.0, "ring": 0.02})
+	Vfx.burst(at, Color(0.08, 0.06, 0.06, 0.8), {"count": 4, "life": 0.3, "speed": Vector2(0.1, 0.2), "size": 0.01, "gravity": 0.6, "radius": 0.02, "additive": false, "turbulence": true})
+	Vfx.light(at, Color(0.1, 0.1, 0.1), 0.01, 1.0, 0.1)
+
+
+## One dominant telegraph at a time: the zone landing soonest draws at full strength, ones landing
+## 0.4 s or more after it are dimmed to an outline (the shader's `soft`), so the safe floor stays readable.
+static func _rank() -> void:
+	var now := Time.get_ticks_msec() * 0.001
+	var keep: Array = []
+	var first := INF
+	for z: Array in _live:
+		if instance_from_id(int(z[0])) != null and float(z[1]) > now - 0.05:
+			keep.append(z)
+			first = minf(first, float(z[1]))
+	_live = keep
+	for z: Array in _live:
+		var mi := instance_from_id(int(z[0])) as MeshInstance3D
+		if mi:
+			mi.set_instance_shader_parameter(&"soft", clampf((float(z[1]) - first - 0.4) / 0.6, 0.0, 1.0))
 
 
 ## A telegraphed area that hurts the player if they are in it when the fill completes.
@@ -54,6 +107,9 @@ static func zone(host: Node, at: Vector3, delay: float, gloom: float, opts := {}
 	var mi := SpellFx.danger(at, delay, o)
 	var mid := mi.get_instance_id() if mi != null else 0
 	var bound := by != null and mi != null
+	if mi != null:
+		_live.append([mi.get_instance_id(), Time.get_ticks_msec() * 0.001 + delay])
+		_rank()
 	var by_id := by.get_instance_id() if by != null else 0
 	if bound:
 		by.track_move(mi)
@@ -63,6 +119,7 @@ static func zone(host: Node, at: Vector3, delay: float, gloom: float, opts := {}
 		var h := instance_from_id(hid) as Node
 		if h == null or not h.is_inside_tree():
 			return
+		_rank()
 		if bound and instance_from_id(mid) == null:
 			return                               # taken back by its maker
 		_land(h, at, opts, col)
@@ -128,11 +185,7 @@ static func _land(host: Node, at: Vector3, opts: Dictionary, col: Color) -> void
 	Vfx.burst(centre + Vector3.UP * 0.2, Color(0.08, 0.06, 0.06, 0.8), {"count": 16, "life": 1.0, "speed": Vector2(0.5, 2.0), "size": 0.45, "gravity": 0.6, "radius": span * 0.5, "additive": false, "turbulence": true})
 
 
-## Spikes that erupt over a zone, hold, and sink: bone (pale, for the Abbot) or thorn (dark bark).
-static func spikes(host: Node, at: Vector3, opts: Dictionary, kind: String) -> void:
-	var h := Vfx.host()
-	if h == null:
-		return
+static func _spike_assets(kind: String) -> void:
 	if not _spike_meshes.has(kind):
 		_spike_meshes[kind] = _build_thorn() if kind == "thorn" else _build_bone_spike()
 	if not _spike_mats.has(kind):
@@ -144,6 +197,14 @@ static func spikes(host: Node, at: Vector3, opts: Dictionary, kind: String) -> v
 		m.set_shader_parameter("energy", 2.2 if kind == "bone" else 3.0)
 		m.set_shader_parameter("rough", 0.6 if kind == "bone" else 0.85)
 		_spike_mats[kind] = m
+
+
+## Spikes that erupt over a zone, hold, and sink: bone (pale, for the Abbot) or thorn (dark bark).
+static func spikes(host: Node, at: Vector3, opts: Dictionary, kind: String) -> void:
+	var h := Vfx.host()
+	if h == null:
+		return
+	_spike_assets(kind)
 	var rect: Vector2 = opts.get("rect", Vector2.ZERO)
 	var yaw: float = opts.get("yaw", 0.0)
 	var b := Basis(Vector3.UP, yaw)
