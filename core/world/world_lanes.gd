@@ -46,6 +46,14 @@ static var legacy := true
 static var portals: Array[Dictionary] = []
 
 
+## A site with a floor of its own: it levels the ground (a terrace), or cuts it below its floor (a
+## building). Open-air landmarks (waymarks, graves, low walls) stand on the land as it is.
+static func is_floor_site(st: Dictionary) -> bool:
+	if st.has("seg"):
+		return false
+	return st.get("level", false) or float(st.cut_y) < float(st.floor_y) - 0.01
+
+
 static func register_portal(n: String, at: Vector3, out: Vector3, w := Metrics.DOOR.x, h := Metrics.DOOR.y) -> void:
 	for p in portals:
 		if p.name == n:
