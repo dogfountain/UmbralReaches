@@ -341,11 +341,9 @@ func _build_rain() -> void:
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.albedo_color = Color(0.5, 0.62, 0.8, 0.15)
-	# a streak that falls past the lens (or along a wall at arm's length) is a bright stripe across the
-	# stone: it fades out inside ~2 m and is whole only from ~7 m
 	m.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
 	m.distance_fade_min_distance = 2.2
-	m.distance_fade_max_distance = 7.0
+	m.distance_fade_max_distance = 7.0     # no bright stripe across the wall at arm's length
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
 	m.billboard_keep_scale = true
 	m.disable_receive_shadows = true
