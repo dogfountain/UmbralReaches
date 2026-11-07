@@ -355,6 +355,42 @@ static func _settle_pass(root: Node, terrain: MeshInstance3D, body: StaticBody3D
 	return true
 
 
+## A round mound under something that was modelled for flat ground (a colossal tree's roots): within
+## r_core of `centre` the ground rises to profile(d) (a world y for the distance d, NAN for no change);
+## from r_core to r_out it blends back to the land as it was. Only ever raises. Returns the vertices
+## raised. Call from the build, after the thing stands; the terrain mesh and its collision follow.
+static func mound(any: Node, centre: Vector2, r_core: float, r_out: float, profile: Callable) -> int:
+	var root := any.get_tree().root
+	var terrain := root.find_child("Terrain", true, false) as MeshInstance3D
+	var body := root.find_child("TerrainBody", true, false) as StaticBody3D
+	if terrain == null or terrain.mesh == null or body == null:
+		return 0
+	var arrays := terrain.mesh.surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var grid := _Grid.new()
+	if not grid.build(verts, terrain.global_transform):
+		return 0
+	var delta := {}
+	for idx in grid.indices_in(centre.x - r_out, centre.y - r_out, centre.x + r_out, centre.y + r_out):
+		var w := grid.world(idx)
+		var d := Vector2(w.x, w.z).distance_to(centre)
+		if d > r_out:
+			continue
+		var tgt: float = profile.call(minf(d, r_core))
+		if is_nan(tgt):
+			continue
+		var f := 1.0 - smoothstep(r_core, r_out, d)
+		var dy := (tgt - w.y) * f
+		if dy > 0.02:
+			delta[idx] = dy
+	if delta.is_empty():
+		return 0
+	_write(terrain, body, grid, arrays, verts, delta)
+	WorldLanes.clear_cache()
+	print("TERRAIN_MOUND %d vertices raised round (%.0f, %.0f)" % [delta.size(), centre.x, centre.y])
+	return delta.size()
+
+
 ## Apply a per-grid-vertex height delta to the terrain mesh (verts + normals) and its collision.
 static func _write(terrain: MeshInstance3D, body: StaticBody3D, grid: _Grid, arrays: Array, verts: PackedVector3Array, out: Dictionary) -> void:
 	_own(body, grid)

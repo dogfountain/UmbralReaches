@@ -638,6 +638,7 @@ static func _oak(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	for part: String in ["Trunk", "Roots", "Limbs", "Crown", "Stair"]:
 		Kit.put(h, Kit.OAK, part, xf, Vector2.ZERO, true)
 	_far(h, Kit.OAK, "OakFar", xf, 120.0, true)
+	_oak_mound(h, at)
 	var shapes: Array = []
 	for part: String in ["TrunkCol", "StairCol", "RailCol", "LimbCol", "DeckCol"]:
 		var sh := Kit.trimesh(Kit.OAK, part)
@@ -677,6 +678,36 @@ static func _oak(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	if bn is Node:
 		(bn as Node).name = "Beacon_r37s_oak"
 		(bn as Node).set_meta("poi", "r37s_oak")
+
+
+## The roots were modelled on level ground and the knoll falls away 5 m under their reach: earth is
+## heaped to the underside of the roots, ring by ring, and blends back to the downs beyond them.
+const OAK_MOUND_OUT := 10.0
+const OAK_MOUND_SINK := 0.15              ## the earth stands this far up the roots' undersides
+
+static func _oak_mound(h: Node3D, at: Vector3) -> void:
+	var roots := h.get_node_or_null("Roots") as MeshInstance3D
+	if roots == null or roots.mesh == null:
+		return
+	var low := {}                                   ## 1 m ring -> the lowest root vertex there
+	var far := 0
+	for v: Vector3 in roots.mesh.get_faces():
+		var w := roots.global_transform * v
+		var rb := int(Vector2(w.x - at.x, w.z - at.z).length())
+		low[rb] = minf(float(low.get(rb, INF)), w.y)
+		far = maxi(far, rb)
+	if low.is_empty():
+		return
+	var ring := PackedFloat32Array()                ## every ring from 3 m out to the last, gaps carried on
+	var last := NAN
+	for i in far + 1:
+		if low.has(i):
+			last = float(low[i])
+		ring.append(last if i >= 3 else NAN)
+	var prof := func(d: float) -> float:
+		var y := ring[mini(int(d), far)]
+		return y + OAK_MOUND_SINK if not is_nan(y) else NAN
+	TerrainStamp.mound(h, Vector2(at.x, at.z), float(far), float(far) + OAK_MOUND_OUT, prof)
 
 
 ## A stone inside a built thing: no ground ray (the floor is the caller's y).
