@@ -88,3 +88,50 @@ def scene(top, bottom, seed, cloud=None, cloud_amt=0.4, glow_at=None, glow_col=N
 
 def C_(s):
     return C(s)
+
+
+# --- shared by the repainted illustration sets --------------------------------------------------
+
+def poly(pts, px=None, py=None):
+    """Signed distance to a simple polygon (negative inside). pts = [(x, y), ...] in the -1..1 square."""
+    px = x if px is None else px
+    py = y if py is None else py
+    d = np.full(np.shape(px), 1e9)
+    inside = np.zeros(np.shape(px), dtype=bool)
+    n = len(pts)
+    for i in range(n):
+        ax, ay = pts[i]
+        bx, by = pts[(i + 1) % n]
+        d = np.minimum(d, segment(ax, ay, bx, by, px, py))
+        cond = ((ay > py) != (by > py)) & (px < (bx - ax) * (py - ay) / (by - ay + 1e-12) + ax)
+        inside ^= cond
+    return np.where(inside, -d, d)
+
+
+def xf(px, py, dx=0.0, dy=0.0, ang=0.0, cx=0.0, cy=0.0):
+    """Coordinates for evaluating a shape that was moved by (dx, dy) and turned by ang about (cx, cy)."""
+    qx, qy = px - dx - cx, py - dy - cy
+    c, s = np.cos(ang), np.sin(ang)
+    return qx * c + qy * s + cx, -qx * s + qy * c + cy
+
+
+def smin(a, b, k=0.06):
+    """Smooth union of two distance fields."""
+    h = np.clip(0.5 + 0.5 * (b - a) / k, 0, 1)
+    return b * (1 - h) + a * h - k * h * (1 - h)
+
+
+def obj(img, sd, dark, light, spec, width=0.06, outline=0.03, halo=None, halo_amt=0.45, halo_r=0.07, texture=0.0, seed=0, **kw):
+    """A lit object with a dark painted outline (so its silhouette holds at 30 px) and an optional halo."""
+    if halo is not None:
+        img = add(img, C(halo), np.exp(-np.maximum(sd, 0) / halo_r) * halo_amt)
+    img = over(img, C("#050304"), smooth(sd - outline) * 0.94)
+    col = metal(sd, width, C(dark), C(light), C(spec), **kw)
+    if texture:
+        col = col * (1 - texture + texture * 1.6 * nz(48, seed + 3)[..., None])
+    return over(img, col, smooth(sd))
+
+
+def ground(top, bottom, seed, glow_col, glow_at=(0, 0), glow_r=0.7, stars_=0):
+    img = scene(top, bottom, seed, glow_col, 0.45, glow_at, glow_col, glow_r, stars_)
+    return img

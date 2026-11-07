@@ -47,6 +47,7 @@ func _draw() -> void:
 	if fl > 0.0:
 		base = base.lerp(Color(1.0, 0.85, 0.4) if good else Color(1.0, 0.35, 0.3), fl)
 	draw_arc(c, R, A0, A1, 40, Color(0.05, 0.04, 0.08, 0.45 * _alpha), W + 2.0, true)
+	IconArt.draw_mark(self, "hud", "breath", c + Vector2(-R - 13.0, 0.0), 17.0, Color(1, 1, 1, 0.9 * _alpha))   # painted lungs at the arc's belly
 	var end := lerpf(A1, A0, clampf(_shown, 0.0, 1.0))
 	if _shown > 0.005:
 		draw_arc(c, R, end, A1, 40, Color(base.r, base.g, base.b, 0.9 * _alpha), W, true)

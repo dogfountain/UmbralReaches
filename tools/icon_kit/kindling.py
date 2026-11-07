@@ -56,21 +56,6 @@ def will():
     return finish(img, 22, grade=(1.07, 0.97, 0.88))
 
 
-@K("quick")
-def quick():
-    img = scene("#080604", "#1a0d06", 230, "#503010", 0.5, (0.2, -0.1), "#d08a20", 0.7)
-    for i, (ox, oy, s) in enumerate([(-0.3, 0.2, 0.7), (0.0, 0.0, 0.9), (0.3, -0.2, 1.1)]):
-        u, v = rot(ox, oy, -0.9)
-        wv = v + (nz(6, 231 + i, px=u * 2, py=v) - 0.5) * 0.08
-        shape = np.maximum(np.abs(wv) - 0.11 * s * ss(0.7, -0.5, np.abs(u - 0.2)) , np.abs(u - 0.1) - 0.7 * s)
-        sd = shape * 0.9
-        img = add(img, C("#ff9a2a"), np.exp(-np.maximum(sd, 0) / 0.08) * 0.5)
-        col = mix(C("#ff5a10"), C("#fff0b0"), np.clip(1 - np.abs(wv) / (0.12 * s), 0, 1) ** 1.4 * ss(-0.5, 0.6, u))
-        img = over(img, col, smooth(sd))
-    img = add(img, C("#ffd070"), sparks(40, 235, (-0.9, -0.9, 0.9, 0.9), (0.003, 0.008)) * 0.8)
-    return finish(img, 23, grade=(1.05, 0.97, 0.9))
-
-
 @K("cord")
 def cord():
     img = scene("#0a0705", "#1c130b", 240, "#4a3418", 0.4, (0, 0), "#b07a30", 0.6)
@@ -111,29 +96,6 @@ def hollow():
     mouth = np.abs(circle(0, 0.5, 0.18)) - 0.01
     img = add(img, C("#8a7aff"), smooth(mouth) * (y > 0.3) * 0.0)
     return finish(img, 25, grade=(1.0, 0.97, 1.06))
-
-
-@K("tally")
-def tally():
-    img = scene("#070707", "#141210", 260, "#3a342c", 0.4, (0, 0), "#a06020", 0.8)
-    slab = box(0, 0, 0.74, 0.74)
-    stone = mix(C("#1a1816"), C("#5a554c"), nz(10, 261)) * (0.7 + 0.5 * nz(60, 262)[..., None])
-    d, sp, h = bevel(slab, 0.1, relief=0.5)
-    img = over(img, stone * (0.5 + 0.8 * d[..., None]) + C("#d8cbb0") * sp[..., None] * 0.15, smooth(slab))
-    # five-bar gates, gouged and glowing
-    for row, cnt in enumerate((5, 5, 3)):
-        yy = -0.4 + row * 0.38
-        for k in range(cnt):
-            xx = -0.45 + k * 0.2
-            wob = (nz(6, 263 + k + row * 5, px=np.array(0.0) + k, py=np.array(row * 1.0) + 0.3) - 0.5) * 0.04
-            sd = segment(xx + wob, yy - 0.15, xx - wob, yy + 0.15) - 0.018
-            img = add(img, C("#ff8a2a"), np.exp(-np.maximum(sd, 0) / 0.035) * 0.55)
-            img = over(img, C("#ffd89a"), smooth(sd + 0.006) * 0.9)
-        if cnt == 5:
-            sd = segment(-0.55, yy + 0.12, 0.45, yy - 0.12) - 0.018
-            img = add(img, C("#ff8a2a"), np.exp(-np.maximum(sd, 0) / 0.035) * 0.55)
-            img = over(img, C("#ffd89a"), smooth(sd + 0.006) * 0.9)
-    return finish(img, 26, grade=(1.04, 0.98, 0.92))
 
 
 @K("door")
@@ -239,37 +201,6 @@ def tri(a, b, c):
             n = -n
         return (x - p0[0]) * n[0] + (y - p0[1]) * n[1]
     return np.maximum(np.maximum(edge(a, b, c), edge(b, c, a)), edge(c, a, b))
-
-
-@K("sigil")
-def sigil():
-    img = scene("#02040c", "#0a1230", 310, "#18306a", 0.6, (0, 0), "#3a60d0", 0.7, 70)
-    r = np.hypot(x, y)
-    for rad, w in ((0.7, 0.02), (0.5, 0.015)):
-        d = np.abs(r - rad) - w
-        img = add(img, C("#7aa8ff"), np.exp(-np.maximum(d, 0) / 0.05) * 0.5)
-        img = over(img, C("#e8f0ff"), smooth(d) * 0.9)
-    a = np.arctan2(y, x)
-    star = (np.abs(np.cos(a * 4)) ** 3) * 0.0
-    pts = [(0.5 * np.cos(t * 4 * np.pi / 5 - np.pi / 2), 0.5 * np.sin(t * 4 * np.pi / 5 - np.pi / 2)) for t in range(6)]
-    d = polyline(pts) - 0.012
-    img = add(img, C("#5a8aff"), np.exp(-np.maximum(d, 0) / 0.04) * 0.6)
-    img = over(img, C("#f0f6ff"), smooth(d))
-    img = orb(img, 0, 0, 0.1, "#2a50c0", "#ffffff", halo="#6a9aff", halo_amt=0.9)
-    img = rays(img, 0, 0, 16, "#9ac0ff", 0.45, 20, 0.5)
-    return finish(img, 31, grade=(0.95, 0.99, 1.08))
-
-
-@K("heart")
-def heart():
-    img = scene("#0a0405", "#1c0a0c", 320, "#5a1418", 0.5, (0, 0), "#c02a30", 0.7)
-    hx, hy = x / 0.62, -(y + 0.02) / 0.62
-    f = (hx * hx + hy * hy - 1) ** 3 - hx * hx * hy ** 3
-    shape = np.cbrt(f) * 0.3
-    img = solid(img, shape, "#4a0808", "#ff5a4a", "#ffe0d0", 0.3, halo="#ff3a3a", halo_amt=0.7, halo_r=0.12, shine=10)
-    img = add(img, C("#ffcf90"), np.exp(-np.hypot(x, y - 0.0) / 0.2) * 0.3 * smooth(shape))
-    img = add(img, C("#ff9a8a"), sparks(18, 321, (-0.7, -0.8, 0.7, 0.7), (0.003, 0.007)) * 0.6)
-    return finish(img, 32, grade=(1.06, 0.95, 0.94))
 
 
 @K("candle")
@@ -390,25 +321,3 @@ def cinder():
     img = add(img, C("#ffd070"), cr ** 3 * smooth(lump) * 0.9)
     img = add(img, C("#ffb04a"), sparks(34, 395, (-0.8, -0.9, 0.8, 0.5), (0.003, 0.008)) * 0.9)
     return finish(img, 39, grade=(1.06, 0.96, 0.9))
-
-
-@K("rime")
-def rime():
-    img = scene("#04080e", "#0a1620", 400, "#1c4a68", 0.6, (0, 0), "#4a9ad0", 0.7, 50)
-    for i in range(6):
-        a = i * np.pi / 3
-        dx, dy = np.cos(a), np.sin(a)
-        sd = segment(0, 0, 0.78 * dx, 0.78 * dy) - 0.025
-        img = add(img, C("#6ac8ff"), np.exp(-np.maximum(sd, 0) / 0.06) * 0.6)
-        img = solid(img, sd, "#4a90c0", "#e8f8ff", "#ffffff", 0.025)
-        for f, ln in ((0.35, 0.22), (0.58, 0.16)):
-            for s in (-1, 1):
-                b = a + s * 0.9
-                p0 = (0.78 * f * dx, 0.78 * f * dy)
-                p1 = (p0[0] + ln * np.cos(b), p0[1] + ln * np.sin(b))
-                sd2 = segment(p0[0], p0[1], p1[0], p1[1]) - 0.016
-                img = over(img, C("#dff6ff"), smooth(sd2) * 0.95)
-                img = add(img, C("#6ac8ff"), np.exp(-np.maximum(sd2, 0) / 0.04) * 0.4)
-    img = orb(img, 0, 0, 0.09, "#6ac8ff", "#ffffff", halo="#8adaff", halo_amt=0.8)
-    img = add(img, C("#cfeeff"), sparks(30, 401, (-0.9, -0.9, 0.9, 0.9), (0.003, 0.008)) * 0.8)
-    return finish(img, 40, grade=(0.95, 1.02, 1.07))

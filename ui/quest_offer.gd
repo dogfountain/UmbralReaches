@@ -17,6 +17,7 @@ const Chains := preload("res://core/story/quest_chains.gd")
 const GearDB := preload("res://core/items/gear_db.gd")
 const UIType := preload("res://ui/type.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
+const QuestMarks := preload("res://ui/quest_marks.gd")
 const Med := preload("res://ui/medieval_style.gd")
 ## The offer is a sheet of vellum: ink-brown type, oxblood heads, the pay and the gear on leather.
 const LANTERN := Med.INK_RED
@@ -35,6 +36,7 @@ var _giver: Label
 var _text: RichTextLabel
 var _obj: VBoxContainer
 var _pay: Label
+var _pay_icon: TextureRect
 var _choose_head: Label
 var _cards: HBoxContainer
 var _ok: Button
@@ -130,7 +132,7 @@ func _build() -> void:
 	rh.text = "WHAT IT PAYS"
 	body.add_child(rh)
 	_pay = _lbl(UIType.body(), 21, INK)
-	body.add_child(_pay)
+	_pay_icon = QuestMarks.row(body, _pay, null, 32.0)
 	_choose_head = _lbl(UIType.body(), 19, QUIET)
 	body.add_child(_choose_head)
 	_cards = HBoxContainer.new()
@@ -223,10 +225,14 @@ func _fill(giver_name: String) -> void:
 			var preview := {"left": float(stp.get("time", 0.0))}
 			if String(stp.kind) == "seal":
 				preview["of"] = EnemySpawner.seal_total(String(stp.get("seal", "")))
-			l.text = "  ›  " + Chains.step_text(quest, si, preview)
-			_obj.add_child(l)
+			var ico := QuestMarks.task_art(String(stp.kind))
+			l.text = ("" if ico != null else "  ›  ") + Chains.step_text(quest, si, preview)
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			QuestMarks.row(_obj, l, ico, 32.0)
 	_pay.text = pay_line(qd.get("reward", {}))
 	_pieces = Book.offered_gear(quest)
+	_pay_icon.texture = QuestMarks.reward_art(qd.get("reward", {}), qd.get("reward", {}).is_empty() and not _pieces.is_empty())
+	_pay_icon.visible = _pay_icon.texture != null
 	choice = -1
 	for b in _cardbtns:
 		b.queue_free()
