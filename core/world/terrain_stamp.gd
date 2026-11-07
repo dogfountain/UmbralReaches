@@ -198,8 +198,15 @@ static func apply(root: Node) -> void:
 	if delta.is_empty():
 		print("TERRAIN_STAMP nothing to fix")
 		return
-	# falloff: every stamped vertex pushes its neighbours within FALLOFF, smoothstep-weighted;
-	# a neighbour keeps the strongest push (core vertices keep their exact value)
+	var out := _spread(delta, hard, grid)
+	_write(terrain, body, grid, arrays, verts, out)
+	WorldLanes.clear_cache()
+	print("TERRAIN_STAMP %d vertices stamped, %d blended" % [delta.size(), out.size() - delta.size()])
+
+
+## Falloff: every stamped vertex pushes its neighbours within FALLOFF, smoothstep-weighted; a
+## neighbour keeps the strongest push (core vertices keep their exact value).
+static func _spread(delta: Dictionary, hard: Dictionary, grid: _Grid) -> Dictionary:
 	var out := delta.duplicate()
 	var r := ceili(FALLOFF / grid.step)
 	for idx: int in delta:
@@ -222,9 +229,130 @@ static func apply(root: Node) -> void:
 				var v := dv * t * t * (3.0 - 2.0 * t)
 				if not out.has(n) or absf(v) > absf(float(out[n])):
 					out[n] = v
+	return out
+
+
+const SETTLE_GAP := 0.04         ## the ground ends this far under a floor that stands on it
+const SETTLE_BELOW := 0.25       ## a walk surface this far under a site's floor height ...
+const SETTLE_ABOVE := 0.35       ## ... or this far over it is that site's floor
+const SETTLE_STEP := 0.5
+const SETTLE_BURIED := 0.45      ## a floor buried deeper than this is in the hillside (a cellar, a sunk boathouse): the ground is left alone
+const SETTLE_DEEPEST := 1.5      ## and no vertex drops further than this
+
+
+## The ground height and the walk surface that meets it near `fy` under p, as Vector2(ground,
+## floor) (NAN where there is none): the walk surface nearest the ground, so a floor the ground has
+## swallowed or fights is found, and a stepped yard's upper treads are not. Repeated rays: one body
+## holds many shapes.
+static func walk_surface(space: PhysicsDirectSpaceState3D, p: Vector2, fy: float) -> Vector2:
+	p += Vector2(0.0037, 0.0029)             # off the grid lines: a ray on a triangle edge can slip through
+	var ground := NAN
+	var tops: Array[float] = []
+	var from := Vector3(p.x, fy + 4.0, p.y)  # from well above: a hillside can stand higher than the floor
+	var to := Vector3(p.x, fy - 6.0, p.y)
+	var skip: Array[RID] = []
+	for k in 40:                             # the ground first (whole bodies set aside until the terrain answers)
+		var q := PhysicsRayQueryParameters3D.create(from, to, Layers.WORLD)
+		q.exclude = skip
+		var hit := space.intersect_ray(q)
+		if hit.is_empty():
+			return Vector2(NAN, NAN)
+		skip.append(hit.rid)
+		if String((hit.collider as Node).name) == "TerrainBody":
+			ground = (hit.position as Vector3).y
+			break
+	skip = [skip[skip.size() - 1]]           # the terrain only: a floor laid exactly on it must still be seen
+	var y0 := from.y
+	for k in 40:
+		var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, y0, p.y), to, Layers.WORLD)
+		q.exclude = skip
+		var hit := space.intersect_ray(q)
+		if hit.is_empty():
+			break
+		var y: float = (hit.position as Vector3).y
+		y0 = y - 0.0002
+		if (hit.normal as Vector3).y > 0.9 and y >= fy - SETTLE_BELOW and y <= fy + SETTLE_ABOVE:
+			tops.append(y)
+	if is_nan(ground) or tops.is_empty():
+		return Vector2(NAN, NAN)
+	var best := tops[0]
+	for y in tops:                                  # the surface nearest the site's floor height (a stepped yard has several)
+		if absf(y - fy) < absf(best - fy) - 0.0005:
+			best = y
+	return Vector2(ground, best)
+
+
+## After every building is standing: wherever a walk surface (the real colliders) lies inside a
+## registered site and the ground there is within SETTLE_GAP of it or above it, the grid vertices of
+## that terrain cell drop to SETTLE_GAP under the lowest floor they touch. The stamp cut to a figure
+## decided before the building existed; this measures the floor that was built. Only ever lowers.
+static func settle(root: Node) -> void:
+	var terrain := root.find_child("Terrain", true, false) as MeshInstance3D
+	var body := root.find_child("TerrainBody", true, false) as StaticBody3D
+	if terrain == null or terrain.mesh == null or body == null or WorldLanes.sites.is_empty():
+		return
+	for pass_n in 3:           # each sees what the one before's blending brought up to a floor
+		await root.get_tree().physics_frame
+		if not _settle_pass(root, terrain, body, pass_n == 0):
+			return
+
+
+static func _settle_pass(root: Node, terrain: MeshInstance3D, body: StaticBody3D, report: bool) -> bool:
+	var arrays := terrain.mesh.surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var grid := _Grid.new()
+	if not grid.build(verts, terrain.global_transform):
+		return false
+	var space := (root as Node3D).get_world_3d().direct_space_state
+	var cap := {}            # grid index -> the highest this vertex may stand
+	var fixed := 0
+	var deep := {}
+	for st: Dictionary in WorldLanes.sites:
+		if not WorldLanes.is_floor_site(st):
+			continue
+		var r: Rect2 = st.rect
+		var fy: float = st.floor_y
+		var x := r.position.x + SETTLE_STEP * 0.5
+		while x < r.end.x:
+			var z := r.position.y + SETTLE_STEP * 0.5
+			while z < r.end.y:
+				var p := Vector2(x, z)
+				z += SETTLE_STEP
+				if is_nan(WorldLanes.site_floor(st, p)):
+					continue
+				var s := walk_surface(space, p, fy)
+				if not is_nan(s.x) and not is_nan(s.y) and s.x - s.y > SETTLE_BURIED:
+					deep[st.name] = int(deep.get(st.name, 0)) + 1
+				if is_nan(s.x) or is_nan(s.y) or s.x < s.y - SETTLE_GAP or s.x - s.y > SETTLE_BURIED:
+					continue                       # no floor or no ground here, already clear, or a cellar
+				var fi := floori((p.x - grid.x0) / grid.step)
+				var fj := floori((p.y - grid.z0) / grid.step)
+				fixed += 1
+				for dj in 2:
+					for di in 2:
+						var i := fi + di
+						var j := fj + dj
+						if i < 0 or j < 0 or i >= grid.nx or j >= grid.nz:
+							continue
+						var idx := j * grid.nx + i
+						cap[idx] = minf(float(cap.get(idx, INF)), s.y - SETTLE_GAP)
+			x += SETTLE_STEP
+	if report and not deep.is_empty():
+		print("TERRAIN_SETTLE floors left in the hillside (ground over 45 cm above): ", deep)
+	var delta := {}
+	for idx: int in cap:
+		if grid.vert_of[idx] < 0:
+			continue
+		var dy: float = float(cap[idx]) - grid.ys[idx]
+		if dy < -0.005:
+			delta[idx] = maxf(dy, -SETTLE_DEEPEST)
+	if delta.is_empty():
+		return false
+	var out := _spread(delta, {}, grid)
 	_write(terrain, body, grid, arrays, verts, out)
 	WorldLanes.clear_cache()
-	print("TERRAIN_STAMP %d vertices stamped, %d blended" % [delta.size(), out.size() - delta.size()])
+	print("TERRAIN_SETTLE %d floor samples met the ground; %d vertices lowered, %d blended" % [fixed, delta.size(), out.size() - delta.size()])
+	return true
 
 
 ## Apply a per-grid-vertex height delta to the terrain mesh (verts + normals) and its collision.

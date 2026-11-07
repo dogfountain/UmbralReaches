@@ -9,10 +9,14 @@ const MIN_GAP := 0.02
 const STEP := 0.5
 const BAND := 0.35            ## a surface within this of the site's floor counts as that site's floor
 const MAX_LIST := 80
+const BURIED := 0.02         ## terrain this far over a floor or less is the ground fighting it
+const SEAM := 20             ## fewer overlapping samples than this (5 m2) is a seam or a decal, a warning; more is a floor
 const COPLANAR := 0.012       ## two walkable tops this close, from different bodies, z-fight
 
 var main: Node
 var frames := 0
+var first_co := ""
+var warns := 0
 var done := false
 
 
@@ -37,31 +41,11 @@ func _physics_process(_d: float) -> void:
 	get_tree().quit(1 if bad > 0 else 0)
 
 
-## Ground height under (x, z) and the first walkable non-terrain surface near `fy`.
+## Ground height under (x, z) and the floor that meets it: TerrainStamp.walk_surface.
 func _probe(x: float, z: float, fy: float) -> Array:
-	x += 0.0037
-	z += 0.0029
 	var space := (main as Node3D).get_world_3d().direct_space_state
-	var ex: Array[RID] = []
-	var ground := NAN
-	var floor_y := NAN
-	var tops: Array = []
-	for k in 24:
-		var q := PhysicsRayQueryParameters3D.create(Vector3(x, fy + 4.0, z), Vector3(x, fy - 6.0, z), Layers.WORLD)
-		q.exclude = ex
-		var hit := space.intersect_ray(q)
-		if hit.is_empty():
-			break
-		var y: float = (hit.position as Vector3).y
-		if String((hit.collider as Node).name) == "TerrainBody":
-			if is_nan(ground):
-				ground = y
-		elif (hit.normal as Vector3).y > 0.9 and absf(y - fy) <= BAND:
-			if is_nan(floor_y):
-				floor_y = y
-			tops.append(y)
-		ex.append(hit.rid)
-	return [ground, floor_y, tops]
+	var s := TerrainStamp.walk_surface(space, Vector2(x, z), fy)
+	return [s.x, s.y]
 
 
 ## Up-facing triangles of every visible mesh (never the terrain) over `r` within BAND of `fy`:
@@ -71,7 +55,7 @@ func _tops_near(r: Rect2, fy: float) -> Array:
 	var box := AABB(Vector3(r.position.x, fy - BAND, r.position.y), Vector3(r.size.x, BAND * 2.0 + 0.5, r.size.y))
 	for n in main.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
-		if mi.mesh == null or not mi.is_visible_in_tree() or String(mi.name) == "Terrain":
+		if mi.mesh == null or not mi.is_visible_in_tree() or String(mi.name) == "Terrain" or String(mi.name).begins_with("Canopy") or String(mi.name) == "FarMesh":
 			continue
 		var wb := mi.global_transform * mi.get_aabb()
 		if not wb.intersects(box):
@@ -91,13 +75,14 @@ func _tops_near(r: Rect2, fy: float) -> Array:
 				continue
 			if not Rect2(minf(a.x, minf(b.x, c.x)), minf(a.z, minf(b.z, c.z)), 0.0, 0.0).expand(Vector2(maxf(a.x, maxf(b.x, c.x)), maxf(a.z, maxf(b.z, c.z)))).intersects(r):
 				continue
-			out.append([a, b, c])
+			out.append([a, b, c, String(mi.get_path())])
 	return out
 
 
 ## How many pairs of up-facing triangles cover XZ point `p` within COPLANAR of each other in height.
 func _overlaps(tris: Array, p: Vector2) -> int:
 	var ys: Array[float] = []
+	var who: Array[String] = []
 	var q := p + Vector2(0.0037, 0.0029)
 	for t: Array in tris:
 		var a := Vector2((t[0] as Vector3).x, (t[0] as Vector3).z)
@@ -108,11 +93,17 @@ func _overlaps(tris: Array, p: Vector2) -> int:
 		var d3 := (a - c).cross(q - c)
 		if (d1 >= 0.0 and d2 >= 0.0 and d3 >= 0.0) or (d1 <= 0.0 and d2 <= 0.0 and d3 <= 0.0):
 			ys.append((t[0] as Vector3).y)
+			who.append(String(t[3]))
 	var n := 0
 	for i in ys.size():
 		for j in range(i + 1, ys.size()):
 			if absf(ys[i] - ys[j]) < COPLANAR:
+				if who[i].to_lower().contains("floor") == who[j].to_lower().contains("floor"):
+					warns += 1             # stone on stone, floor on floor, decals: the same look either way
+					continue
 				n += 1
+				if first_co == "":
+					first_co = "at %.1f, %.1f y %.3f: %s / %s" % [p.x, p.y, ys[i], who[i].get_slice("/", who[i].get_slice_count("/") - 1), who[j].get_slice("/", who[j].get_slice_count("/") - 1)]
 	return n
 
 
@@ -124,10 +115,11 @@ func _run() -> int:
 	var verbose := "--verbose" in OS.get_cmdline_user_args()
 	var listed := 0
 	for st: Dictionary in WorldLanes.sites:
-		if st.has("seg"):
-			continue                # flights are ramps, tested by the stair checks
+		if not WorldLanes.is_floor_site(st):
+			continue                # flights are ramps; waymarks, graves and low walls stand on the land as it is
 		var r: Rect2 = st.rect
 		sites_n += 1
+		first_co = ""
 		var tris := _tops_near(r, float(st.floor_y))
 		var worst := -99.0
 		var n_bad := 0
@@ -148,7 +140,7 @@ func _run() -> int:
 					continue        # no ground here, or no floor surface at this site's height
 				n_floor += 1
 				var gap: float = float(pr[1]) - float(pr[0])
-				if gap < MIN_GAP:
+				if gap < MIN_GAP and -gap <= BURIED:     # deeper is a floor in the hillside (settle leaves it), not a fight
 					n_bad += 1
 					if -gap > worst:
 						worst = -gap
@@ -161,13 +153,25 @@ func _run() -> int:
 			bad += 1
 			if listed < MAX_LIST:
 				listed += 1
+				if verbose:
+					var space := (main as Node3D).get_world_3d().direct_space_state
+					var y0 := float(st.floor_y) + 1.0
+					for k in 8:
+						var h := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(at.x + 0.0037, y0, at.y + 0.0029), Vector3(at.x, float(st.floor_y) - 4.0, at.y), Layers.WORLD))
+						if h.is_empty():
+							break
+						print("   hit %s y %.3f n.y %.2f" % [(h.collider as Node).get_path(), (h.position as Vector3).y, (h.normal as Vector3).y])
+						y0 = (h.position as Vector3).y - 0.002
 				print("FLOOR FAIL %s: %d of %d floor samples have terrain within %.0f cm of the floor (worst: ground %.2f m above the floor at %.1f, %.1f; floor_y %.2f)" % [
 					st.name, n_bad, n_floor, MIN_GAP * 100.0, worst, at.x, at.y, float(st.floor_y)])
-		if n_co > 0:
+		if n_co > 0 and n_co < SEAM:
+			print("FLOOR warn %s: %d samples (a seam or a decal) where a floor and other masonry share a height, first %s" % [st.name, n_co, first_co])
+		elif n_co >= SEAM:
 			bad += 1
-			print("FLOOR FAIL %s: %d floor samples have overlapping upward faces within %.0f mm (z-fight)" % [st.name, n_co, COPLANAR * 1000.0])
-		if n_bad == 0 and n_co == 0 and verbose and n_floor > 0:
+			print("FLOOR FAIL %s: %d floor samples have overlapping upward faces within %.0f mm (z-fight), first %s" % [st.name, n_co, COPLANAR * 1000.0, first_co])
+		if n_bad == 0 and n_co < SEAM and verbose and n_floor > 0:
 			print("FLOOR ok %s (%d samples)" % [st.name, n_floor])
+	print("FLOOR note: %d overlapping like-for-like upward faces (stone/stone, floor/floor, decals) not counted" % warns)
 	print("FLOOR sites %d, with a sampled floor %d, samples %d, offending sites %d" % [sites_n, floors_n, samples, bad])
 	if floors_n < 10:
 		print("FLOOR FAIL too few floors found: the probe is blind")

@@ -146,6 +146,8 @@ func quad(key: String, a: Vector3, b: Vector3, c: Vector3, d: Vector3, out: Vect
 ## toward the foot, undersides are dark) and a small per-block tint jitter (no two ashlars alike).
 ## Collision stays the plain box.
 func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := true, shade := 1.0) -> void:
+	if key == "floor" and b.y.y > 0.95:
+		c.y += FLOOR_LIFT              # a floor slab laid at the foundation's height z-fought it (pale stone through the tiles)
 	var ex := b.x.normalized()
 	var ey := b.y.normalized()
 	var ez := b.z.normalized()
@@ -191,6 +193,7 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 
 
 const BEVEL := 0.03
+const FLOOR_LIFT := 0.03          ## floor slabs stand this much proud of the masonry they sit on (no coplanar tops)
 var under_shade := 0.6      ## vertex shade of a downward face (a room whose ceiling should take its hearth lifts it)
 const AO_FLOOR := 0.56      ## vertex shade at a face's foot
 const AO_RISE := 0.75       ## metres over which contact AO fades out

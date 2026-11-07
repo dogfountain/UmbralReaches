@@ -196,6 +196,9 @@ static func build(root: Node) -> void:
 		await _run(id, root)
 	await _run("dress", root)
 	await _run("lamps", root)
+	t = Time.get_ticks_usec()
+	await TerrainStamp.settle(root)              # the ground yields to the floors as built (after every building and its dress, before the nav)
+	prof_add("stage: terrain settle", t)
 	await _run("nav", root)                      # after every collider is in; waits a bounded time for the bake
 	t = Time.get_ticks_usec()
 	print("REALM cull ", WorldLanes.cull_scatter(root))

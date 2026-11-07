@@ -37,8 +37,7 @@ static func build(L: RefCounted, site_name: String, c: Vector2, w: float, d: flo
 	var shade := 0.55 if state == "burned" else 1.0
 	# foundation (local footprint, world rotated): one block per footprint, below grade
 	k.box(stone, xf * Vector3(0, -(fy - gr.x + 0.5) * 0.5, 0), Vector3(w + 0.24, fy - gr.x + 0.5, d + 0.24), bas, true, 0.82 * shade)
-	# the slab stands 3 cm proud of the foundation's top: coplanar, the pale stone fought through the tiles
-	k.box("floor", xf * Vector3(0, -0.03, 0), Vector3(w - T * 2.0, 0.12, d - T * 2.0), bas, true, 0.75 * shade)
+	k.box("floor", xf * Vector3(0, -0.06, 0), Vector3(w - T * 2.0, 0.12, d - T * 2.0), bas, true, 0.75 * shade)
 	# walls: front (with door + window), back (windows), two gable ends
 	var hw := w * 0.5
 	var hd := d * 0.5
