@@ -293,9 +293,6 @@ func _s_wildlife_herd() -> void:
 	for g in (d.life.get("groups") as Array if d.life else []):
 		if is_instance_valid(g) and String(g.get("kind")) in ["deer", "elk", "stag"]:
 			var n := (g.call("positions") as Array).size()
-			if OS.get_environment("HERD_AT") != "":
-				var pr := OS.get_environment("HERD_AT").split(",")
-				n = 100 - int((g as Node3D).global_position.distance_to(Vector3(float(pr[0]), (g as Node3D).global_position.y, float(pr[1]))))
 			if n > best:
 				best = n
 				_herd = g
