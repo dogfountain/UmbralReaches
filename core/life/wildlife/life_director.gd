@@ -802,7 +802,9 @@ func _process(dt: float) -> void:
 			_acc[k] = acc
 			# within 16 m everything glides (heads, pecks, strides: a still group returns at once);
 			# further out only what is on the move (flight, a fleeing herd, a wheeling flock)
-			if glide and inview and (d <= NEAR_R or (moving and d < 70.0) or (g.cheap_glide and d < 60.0)):
+			# herds glide in view out to 60 m even grazing: their meshes draw that far now, and an idle herd's heads,
+			# steps and shuffles stepped at 20 Hz read as lag (Luke, 7 Nov: "deer are very laggy")
+			if glide and inview and (d <= NEAR_R or (moving and d < 70.0) or (g.cheap_glide and d < 60.0) or (_herd[k] == 1 and d < 60.0)):
 				g.glide(acc, interval)
 				var gu := float(Time.get_ticks_usec() - tg)
 				_kacc[_kid[k]] += gu
