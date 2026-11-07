@@ -40,6 +40,7 @@ const MORE_KIN := ["res://core/enemy/bulwark.gd", "res://core/enemy/chanter.gd",
 	"res://core/enemy/cinder_caster.gd"]
 ## The great ones: their own materials (boss_pbr) and parts, shown once so a pull compiles nothing.
 const PanelWarm := preload("res://ui/panel_warm.gd")
+const LootWarm := preload("res://ui/loot_warm.gd")
 const PauseScope := preload("res://core/world/pause_scope.gd")
 const WarmAttackKit := preload("res://core/enemy/attack_kit.gd")
 const WarmBossKit := preload("res://core/enemy/boss_kit.gd")
@@ -75,6 +76,7 @@ var _dir := 0
 var _frame := 0
 var _warm_nodes: Array[Node] = []
 var _warm_bolts: Array[Node] = []
+var _warm_loot: Array[Node] = []     ## ground bags and drops shown for the loot first-use costs (emptied before they are freed)
 const SPELL_LEFTOVERS: Array[StringName] = [&"lantern_ward", &"bound_shade", &"umbral_well"]
 var _spell_keep := {}             ## instance ids of spell leftovers that stood before the warm casts
 var _warm_saved := {}             ## the wanderer before the warm-up cast every spell
@@ -367,6 +369,7 @@ func _show_combat() -> void:
 	_show_r28(c, at, right, fwd, col)
 	_show_more(c, at, right, fwd, col, hot)
 	_cast_every_spell(c, fwd)
+	_warm_loot = LootWarm.show(zone, c, right, fwd)
 	print("LOADING combat set on show: %d nodes" % _warm_nodes.size())
 
 
@@ -496,6 +499,8 @@ func _show_r28(c: Vector3, at: Vector3, right: Vector3, fwd: Vector3, col: Color
 
 
 func _clear_combat() -> void:
+	LootWarm.clear(_warm_loot)
+	_warm_loot.clear()
 	for n in _warm_nodes:
 		if is_instance_valid(n):
 			n.queue_free()

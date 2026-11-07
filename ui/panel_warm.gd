@@ -12,6 +12,11 @@ const SettingsMenu := preload("res://ui/settings_menu.gd")
 const LootWindow := preload("res://ui/loot_window.gd")
 const QuestOffer := preload("res://ui/quest_offer.gd")
 const WorldMap := preload("res://ui/world_map.gd")
+const DialogueBox := preload("res://ui/dialogue.gd")
+const ShopPanel := preload("res://ui/shop.gd")
+const StoryDirector := preload("res://core/story/story.gd")
+const DialogueDB := preload("res://core/story/dialogue_db.gd")
+const DwarfRigScript := preload("res://core/npc/dwarf_rig.gd")
 
 const PAGES := [["wanderer", "gear"], ["wanderer", "charms"], ["wanderer", "relics"], ["wanderer", "staff"],
 	["kindling", "embers"], ["kindling", "spells"], ["kindling", "loadout"], ["kindling", "oaths"],
@@ -34,10 +39,15 @@ func run() -> void:
 	var mouse := Input.mouse_mode
 	var was_paused := get_tree().paused
 	UiSound.muted = true
+	var t0 := Time.get_ticks_usec()
+	await IconArt.warm(get_tree())
+	_lap("icons", t0)
 	await _character_screen()
 	await _settings()
 	await _loot()
 	await _offer()
+	await _dialogue()
+	await _shop()
 	await _map()
 	UiSound.muted = false
 	get_tree().paused = was_paused
@@ -117,6 +127,57 @@ func _offer() -> void:
 		_lap("offer", t0)
 		qo.close()
 		await _frames()
+
+
+## The conversation box through its real entry point: the portrait viewport and its lights, a line with
+## choices (the buttons' styles and the body font's glyphs), and every speaker's portrait rig made once so
+## the generated meshes are cached before a first talk.
+func _dialogue() -> void:
+	var dlg := get_tree().get_first_node_in_group(&"dialogue") as DialogueBox
+	if dlg == null:
+		return
+	var seen := {}
+	var t0 := Time.get_ticks_usec()
+	var n := 0
+	for id: String in DialogueDB.CONV:
+		var opts: Dictionary = (DialogueDB.CONV[id] as Dictionary).get("portrait", {})
+		if opts.is_empty() or seen.has(str(opts)):
+			continue
+		seen[str(opts)] = true
+		DwarfRigScript.make(opts).free()
+		n += 1
+		if n % 4 == 0:
+			await get_tree().process_frame
+	_lap("portrait rigs %d" % n, t0)
+	t0 = Time.get_ticks_usec()
+	dlg.open("Warm", {"seated": true, "seed": 911, "hat": "helm"})
+	dlg.set_mood(2)
+	dlg.line("Warm", "The quick brown fox jumps over the lazy dog, and the night comes on: 0123456789 'x' (no).", ["Ask about the road", "Leave it be"])
+	_lap("dialogue call", t0)
+	for i in 20:
+		await get_tree().process_frame
+	_lap("dialogue", t0)
+	dlg.close()
+	await _frames()
+
+
+## The shop, built the way the first talk builds it (the story director makes it on demand).
+func _shop() -> void:
+	var st := get_tree().get_first_node_in_group(&"story") as StoryDirector
+	if st == null:
+		return
+	var t0 := Time.get_ticks_usec()
+	if not st.open_shop("grisel"):
+		return
+	_lap("shop call", t0)
+	var sh := st.shop as ShopPanel
+	await _frames()
+	for t in 3:
+		sh.set_tab(t)
+		await _frames()
+	_lap("shop", t0)
+	sh.close()
+	await _frames()
 
 
 func _map() -> void:
