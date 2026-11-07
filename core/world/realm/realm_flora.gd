@@ -676,7 +676,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 			if sp == "windtree":
 				yaw = WIND_YAW + (yaw / TAU - 0.5) * 0.7      # thrown downwind (the foliage shader's wind_dir)
 			var basis := Basis(Vector3.UP, yaw).scaled(Vector3(s, s * rng.randf_range(0.92, 1.08), s))
-			var pos := Vector3(at.x, _foot_y(space, id, basis, at, gy), at.y)
+			var pos := Vector3(at.x, gy, at.y)
 			if _clash(space, id, Transform3D(basis, pos), true):
 				# its whole crown keeps clear of sites, lanes and doors: try a smaller tree there
 				var alt := ""
@@ -707,6 +707,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 			if not grid.has(key):
 				grid[key] = []
 			(grid[key] as Array).append([at, spacing])
+			pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02)      # after every draw and test: the layout is the one it was
 			_add(items, id, Transform3D(basis, pos), _tint(rng, 0.1))
 			if bool(d.tall):
 				trees.append([pos, id, float(d.r) * s, float(d.h) * s])
@@ -827,7 +828,7 @@ static func _plant_tree(space: PhysicsDirectSpaceState3D, rng: RandomNumberGener
 		return false
 	var s := rng.randf_range(0.88, 1.12)
 	var basis := Basis(Vector3.UP, yaw).scaled(Vector3(s, s * rng.randf_range(0.94, 1.06), s))
-	var pos := Vector3(at.x, _foot_y(space, id, basis, at, gy), at.y)
+	var pos := Vector3(at.x, gy, at.y)
 	if _clash(space, id, Transform3D(basis, pos), true):
 		rejects[sp + " clash"] = int(rejects.get(sp + " clash", 0)) + 1
 		return false
@@ -838,6 +839,7 @@ static func _plant_tree(space: PhysicsDirectSpaceState3D, rng: RandomNumberGener
 	if not grid.has(key):
 		grid[key] = []
 	(grid[key] as Array).append([at, spacing])
+	pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02)
 	_add(items, id, Transform3D(basis, pos), _tint(rng, 0.1))
 	if bool(d.tall):
 		trees.append([pos, id, float(d.r) * s, float(d.h) * s])
@@ -1047,10 +1049,7 @@ static func _spaced(grid: Dictionary, p: Vector2, spacing: float) -> bool:
 
 
 const FOOT_SINK := 1.5              ## no tree is sunk further than this under the ground at its middle
-
-
-## Where a tree stands on a slope: the origin's y, lowered until no part of its footing (trunk base, flare,
-## the roots' tips; Footing) hangs over the ground. `gy` is the lowest ground near the trunk.
+## A tree's origin y on a slope: lowered until no part of its footing (Footing) hangs over the ground.
 static func _foot_y(space: PhysicsDirectSpaceState3D, id: String, basis: Basis, at: Vector2, gy: float) -> float:
 	var gf := func(x: float, z: float) -> float: return _ray_y(space, x, z, gy)
 	return Footing.seat_y(gf, Footing.base_points((TreeGen.kind(id).solid) as Mesh), basis, at, gy, FOOT_SINK)
