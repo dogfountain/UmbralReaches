@@ -146,7 +146,8 @@ func _vista_spot(i: int, me: Vector3, look: Vector3, k: float, back: float, h: f
 	var flat_len := Vector2(look.x - from.x, look.z - from.z).length()
 	var to_head: Vector3 = me + Vector3.UP * 1.5 - from
 	var head_ang := atan2(to_head.y, maxf(Vector2(to_head.x, to_head.z).length(), 0.5))
-	var keep := head_ang + deg_to_rad(d.cam.fov) * 0.3                      # the wanderer's head no lower than the lower third
+	var body := atan2(1.7, maxf(Vector2(to_head.x, to_head.z).length(), 1.0))      # head to feet, seen from the lens
+	var keep := head_ang + deg_to_rad(d.cam.fov) * 0.5 - body - 0.1             # the whole wanderer in frame, feet above the bottom edge
 	var pitch := minf(minf(atan2(look.y - from.y, maxf(flat_len, 1.0)) * 0.5, max_pitch), keep)
 	return [from, from + (Cam.flat(look - from) * cos(pitch) + Vector3.UP * sin(pitch)) * 20.0]
 
