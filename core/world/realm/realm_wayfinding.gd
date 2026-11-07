@@ -17,6 +17,7 @@ const Glow := preload("res://core/world/realm/unkindled_glow.gd")
 const Beacon := preload("res://core/world/realm/landmark_beacon.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
+const Footing := preload("res://core/world/footing.gd")
 
 const LANTERN_PATHS := ["west_way", "east_way", "fen_descent"]
 const LANTERN_STEP := 26.0              ## metres between lanterns along a path
@@ -209,7 +210,11 @@ static func edges(holder: Node3D, space: PhysicsDirectSpaceState3D) -> int:
 			var mesh := RockKit.cliff(rng.randi_range(0, 3), size, style)
 			var yaw := atan2(inward.x, inward.y) + rng.randf_range(-0.18, 0.18)
 			var s := rng.randf_range(0.9, 1.15)
-			var xf := Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(s, s, s)), Vector3(c.x, minf(g, gin) - 0.8, c.y))
+			var cb := Basis(Vector3.UP, yaw).scaled(Vector3(s, s, s))
+			var gf := func(x: float, z: float) -> float: return Footing.terrain_y(space, x, z, RealmLayout.macro_height(x, z))
+			# the face stands on the lowest ground under its whole foot, then sinks a little into it
+			var cy: float = Footing.seat_y(gf, Footing.base_points(mesh), cb, c, minf(g, gin) + 4.0, 8.0) - 0.5
+			var xf := Transform3D(cb, Vector3(c.x, cy, c.y))
 			_spawn(host, mesh, xf, true, 140.0)
 			count += 1
 			# a few boulders spilled in front of the face
@@ -220,7 +225,9 @@ static func edges(holder: Node3D, space: PhysicsDirectSpaceState3D) -> int:
 				var bm := RockKit.boulder(rng.randi_range(0, 3), BOULDER, style)
 				var gq := RealmLayout.ground(space, q.x, q.y)
 				var bs := rng.randf_range(0.7, 1.25)
-				_spawn(host, bm, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(bs, bs, bs)), Vector3(q.x, gq - 0.25, q.y)), true, 90.0)
+				var bb := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(bs, bs, bs))
+				var by: float = Footing.seat_y(gf, Footing.base_points(bm), bb, q, gq + 1.0, 3.0) - 0.25
+				_spawn(host, bm, Transform3D(bb, Vector3(q.x, by, q.y)), true, 90.0)
 				count += 1
 	count += _road_falls(host, space, rng)
 	return count
@@ -230,6 +237,7 @@ static func edges(holder: Node3D, space: PhysicsDirectSpaceState3D) -> int:
 ## A rockfall now buries it just past each gate: the road vanishes under the slide.
 static func _road_falls(host: Node3D, space: PhysicsDirectSpaceState3D, rng: RandomNumberGenerator) -> int:
 	var n := 0
+	var gf := func(x: float, z: float) -> float: return Footing.terrain_y(space, x, z, RealmLayout.macro_height(x, z))
 	for path: Dictionary in RealmLayout.PATHS:
 		if path.id != "road":
 			continue
@@ -244,14 +252,18 @@ static func _road_falls(host: Node3D, space: PhysicsDirectSpaceState3D, rng: Ran
 				var g := RealmLayout.ground(space, q.x, q.y)
 				var m := RockKit.boulder(rng.randi_range(0, 3), BOULDER, "granite")
 				var bs := rng.randf_range(1.0, 1.5)
-				_spawn(host, m, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(bs, bs, bs)), Vector3(q.x, g - 0.3, q.y)), true, 120.0)
+				var mb := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(bs, bs, bs))
+				var my: float = Footing.seat_y(gf, Footing.base_points(m), mb, q, g + 1.0, 3.0) - 0.3
+				_spawn(host, m, Transform3D(mb, Vector3(q.x, my, q.y)), true, 120.0)
 				n += 1
 			# the slide's tongue: a slab of cliff tipped across the road behind the boulders
 			var c := tip + along * 2.6
 			var g2 := RealmLayout.ground(space, c.x, c.y)
 			var cm := RockKit.cliff(1, CLIFF_SIZES[1], "granite")
 			var yaw := atan2(-along.x, -along.y)
-			_spawn(host, cm, Transform3D(Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, -0.12), Vector3(c.x, g2 - 0.6, c.y)), true, 140.0)
+			var cb := Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, -0.12)
+			var cy: float = Footing.seat_y(gf, Footing.base_points(cm), cb, c, g2 + 2.0, 6.0) - 0.6
+			_spawn(host, cm, Transform3D(cb, Vector3(c.x, cy, c.y)), true, 140.0)
 			n += 1
 	return n
 

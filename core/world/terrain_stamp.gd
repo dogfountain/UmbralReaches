@@ -195,10 +195,19 @@ static func apply(root: Node) -> void:
 					hard[idx] = true
 	for pb in proxies:
 		pb.queue_free()
-	if delta.is_empty():
+	var heaped := {}
+	for m: Dictionary in mounds:
+		heaped.merge(_mound_delta(grid, m))
+	mounds.clear()
+	if delta.is_empty() and heaped.is_empty():
 		print("TERRAIN_STAMP nothing to fix")
 		return
 	var out := _spread(delta, hard, grid)
+	for idx: int in heaped:
+		if not out.has(idx) or float(out[idx]) < float(heaped[idx]):
+			out[idx] = heaped[idx]
+	if not heaped.is_empty():
+		print("TERRAIN_MOUND %d vertices heaped under roots and the like" % heaped.size())
 	_write(terrain, body, grid, arrays, verts, out)
 	WorldLanes.clear_cache()
 	print("TERRAIN_STAMP %d vertices stamped, %d blended" % [delta.size(), out.size() - delta.size()])
@@ -355,40 +364,48 @@ static func _settle_pass(root: Node, terrain: MeshInstance3D, body: StaticBody3D
 	return true
 
 
-## A round mound under something that was modelled for flat ground (a colossal tree's roots): within
-## r_core of `centre` the ground rises to profile(d) (a world y for the distance d, NAN for no change);
-## from r_core to r_out it blends back to the land as it was. Only ever raises. Returns the vertices
-## raised. Call from the build, after the thing stands; the terrain mesh and its collision follow.
-static func mound(any: Node, centre: Vector2, r_core: float, r_out: float, profile: Callable) -> int:
-	var root := any.get_tree().root
-	var terrain := root.find_child("Terrain", true, false) as MeshInstance3D
-	var body := root.find_child("TerrainBody", true, false) as StaticBody3D
-	if terrain == null or terrain.mesh == null or body == null:
-		return 0
-	var arrays := terrain.mesh.surface_get_arrays(0)
-	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	var grid := _Grid.new()
-	if not grid.build(verts, terrain.global_transform):
-		return 0
-	var delta := {}
-	for idx in grid.indices_in(centre.x - r_out, centre.y - r_out, centre.x + r_out, centre.y + r_out):
+## Earth heaped under something modelled for flat ground (a colossal tree's roots), queued before the stamp
+## (so the flora grows on it): {c: Vector2 centre, core: float, out: float, bins: int, ring: PackedFloat32Array}.
+## `ring` holds a world y per metre of distance d and angle bin (index d * bins + a, NAN for none); within `core`
+## of the centre the ground rises to it (bilinear between bins), and from core to out it blends back to the land
+## as it was. Only ever raises. apply() raises it and clears the queue.
+static var mounds: Array[Dictionary] = []
+
+
+static func _mound_y(m: Dictionary, d: float, ang: float) -> float:
+	var ring: PackedFloat32Array = m.ring
+	var n: int = m.bins
+	var rows := ring.size() / n
+	var fa := ang / TAU * float(n)
+	var a0 := (floori(fa) % n + n) % n
+	var a1 := (a0 + 1) % n
+	var ta := fa - floorf(fa)
+	var d0 := mini(int(d), rows - 1)
+	var d1 := mini(d0 + 1, rows - 1)
+	var td := clampf(d - float(d0), 0.0, 1.0)
+	var y0 := lerpf(ring[d0 * n + a0], ring[d0 * n + a1], ta)
+	var y1 := lerpf(ring[d1 * n + a0], ring[d1 * n + a1], ta)
+	return lerpf(y0, y1, td)
+
+
+static func _mound_delta(grid: _Grid, m: Dictionary) -> Dictionary:
+	var out := {}
+	var c: Vector2 = m.c
+	var core: float = m.core
+	var reach: float = m.out
+	for idx in grid.indices_in(c.x - reach, c.y - reach, c.x + reach, c.y + reach):
 		var w := grid.world(idx)
-		var d := Vector2(w.x, w.z).distance_to(centre)
-		if d > r_out:
+		var off := Vector2(w.x, w.z) - c
+		var d := off.length()
+		if d > reach:
 			continue
-		var tgt: float = profile.call(minf(d, r_core))
+		var tgt := _mound_y(m, minf(d, core), atan2(off.x, off.y))
 		if is_nan(tgt):
 			continue
-		var f := 1.0 - smoothstep(r_core, r_out, d)
-		var dy := (tgt - w.y) * f
+		var dy := (tgt - w.y) * (1.0 - smoothstep(core, reach, d))
 		if dy > 0.02:
-			delta[idx] = dy
-	if delta.is_empty():
-		return 0
-	_write(terrain, body, grid, arrays, verts, delta)
-	WorldLanes.clear_cache()
-	print("TERRAIN_MOUND %d vertices raised round (%.0f, %.0f)" % [delta.size(), centre.x, centre.y])
-	return delta.size()
+			out[idx] = dy
+	return out
 
 
 ## Apply a per-grid-vertex height delta to the terrain mesh (verts + normals) and its collision.
