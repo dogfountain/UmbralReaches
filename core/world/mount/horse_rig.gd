@@ -14,7 +14,7 @@ const LEGS := ["fl", "fr", "hl", "hr"]
 ## lift (m), and the stride length (m) of each gait. The sweep of a stance is stride x duty (so the planted hoof
 ## is still while the horse moves on); the hips ride the pitching spine and the back sinks to keep every hoof in reach
 const GAITS := {
-	"walk": {"off": [0.25, 0.75, 0.0, 0.5], "duty": 0.68, "lift": 0.085, "stride": 1.5},
+	"walk": {"off": [0.25, 0.75, 0.0, 0.5], "duty": 0.6, "lift": 0.085, "stride": 1.3},
 	"trot": {"off": [0.0, 0.5, 0.5, 0.0], "duty": 0.46, "lift": 0.14, "stride": 2.9},
 	"gallop": {"off": [0.52, 0.64, 0.0, 0.12], "duty": 0.3, "lift": 0.2, "stride": 3.8},
 }

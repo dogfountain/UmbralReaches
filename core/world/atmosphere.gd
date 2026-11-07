@@ -98,7 +98,7 @@ const FOG_END := 1000.0
 static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit: Color) -> void:
 	env.fog_enabled = true
 	env.fog_light_color = fog_light.lerp(Color(0.34, 0.46, 0.68), 0.55)    # silvered blue haze: the distance lightens into layers
-	env.fog_light_energy = 0.64
+	env.fog_light_energy = 0.74
 	env.fog_sun_scatter = 0.2                  # the moon side of the haze is the brighter
 	# Depth fog, not exponential: the near ~40 m stays clear (roofs, trunks and the player read dark and
 	# crisp), then haze builds with distance into near / mid / far layers. fog_density is the ceiling.
@@ -107,7 +107,7 @@ static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit
 	env.fog_density = 0.9
 	env.fog_depth_begin = FOG_BEGIN
 	env.fog_depth_end = FOG_END
-	env.fog_depth_curve = 0.72
+	env.fog_depth_curve = 0.52
 	env.fog_aerial_perspective = 0.72         # far land takes the sky's horizon colour, which falls off with height (vortex.gdshader)
 	env.fog_sky_affect = 0.2
 	# ENS art pass (docs/enshrouded/art.md): low ground haze that pools in hollows (the fen, the
