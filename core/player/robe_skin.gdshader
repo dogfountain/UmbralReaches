@@ -156,7 +156,7 @@ void vertex() {
 
 	// r36 riding: anything of the coat inside the horse's barrel section is pushed out to its surface
 	// (a little proud), so the coat lies over the horse's flanks
-	if (saddle.w > 0.001) {
+	if (saddle.w > 0.001 && leg_push > 0.01) {      // the coat only: bracers and sleeves are not folded onto the barrel (they became spiky fins)
 		// seated, the skirt is drawn up and spread: what hangs below the barrel's middle is shortened
 		// (more toward the hem) and flared over the horse's flanks, not left hanging down past its belly
 		float mid = saddle.y + saddle.z * 0.25;
