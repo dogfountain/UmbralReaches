@@ -171,6 +171,8 @@ func _physics_process(_d: float) -> void:
 	if not _warmed and Vector2(d.x, d.z).length() < radius + 24.0 and absf(d.y) < ceiling + 8.0:
 		_warmed = true                          # first-use costs of the boss's moves, paid while it is quiet
 		BossKit.warm(self)
+		if boss_script != null:
+			BossKit.warm_rig(get_parent(), boss_script)
 	if Vector2(d.x, d.z).length() > radius or d.y < -1.0 or d.y > ceiling:
 		return
 	if not _past_gate(p.global_position):

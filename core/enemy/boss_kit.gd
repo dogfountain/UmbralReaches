@@ -72,6 +72,26 @@ static func warm(host: Node) -> void:
 	Vfx.light(at, Color(0.1, 0.1, 0.1), 0.01, 1.0, 0.1)
 
 
+## Build a throwaway copy of the boss as a speck in front of the camera so its rig, meshes and
+## shaders are made and drawn once before the pull (a fresh boss cost ~130 ms on its first frame).
+## It is out of every group and off every collision layer, and is freed after a few frames.
+static func warm_rig(host: Node, script: GDScript) -> void:
+	if host == null or script == null or not host.is_inside_tree():
+		return
+	var e := script.new() as Enemy
+	if e == null:
+		return
+	e.process_mode = Node.PROCESS_MODE_DISABLED
+	host.add_child(e)
+	e.remove_from_group(Groups.ENEMY)
+	e.collision_layer = 0
+	e.collision_mask = 0
+	e.scale = Vector3.ONE * 0.01
+	var cam := host.get_viewport().get_camera_3d()
+	e.global_position = (cam.global_position - cam.global_basis.z * 3.0) if cam != null else Vector3(0.0, 1.0, 0.0)
+	host.get_tree().create_timer(0.4, false).timeout.connect(e.queue_free)
+
+
 ## One dominant telegraph at a time: the zone landing soonest draws at full strength, ones landing
 ## 0.4 s or more after it are dimmed to an outline (the shader's `soft`), so the safe floor stays readable.
 static func _rank() -> void:
@@ -172,6 +192,10 @@ static func _land(host: Node, at: Vector3, opts: Dictionary, col: Color) -> void
 	var r: float = opts.get("radius", 1.0)
 	var centre := at + (b * Vector3(0, 0, -rect.y) if rect != Vector2.ZERO else Vector3.ZERO)
 	var span := maxf(r, rect.length())
+	var pl := host.get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+	if pl != null:
+		# a heavy landing is felt through the camera, more the nearer it falls (and only just, far off)
+		pl.kick(0.3 * clampf(1.0 - pl.global_position.distance_to(centre) / (span + 9.0), 0.0, 1.0))
 	if kind != "":
 		spikes(host, at, opts, kind)
 		Sfx.play_stream(Synth.get_stream("spike"), centre + Vector3.UP, 0.0, 1.0 if kind == "bone" else 0.8)

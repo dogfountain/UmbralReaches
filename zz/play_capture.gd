@@ -1310,6 +1310,7 @@ func _boss_family(kind: String) -> void:
 			await _secs(1.0)
 		b._ward_t = 0.0
 		b._broken_t = 0.0
+		b.cancel_moves()                          # the last move's zones must not bleed into this strip
 		if p != null and not ARENA_BOSSES.has(kind):
 			p.global_position = stand_at
 		if not b.has_method(move):
