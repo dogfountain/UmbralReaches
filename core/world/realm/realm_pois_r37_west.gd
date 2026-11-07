@@ -22,6 +22,7 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Kit := preload("res://core/world/realm/r37_west_kit.gd")
+const Hearth := preload("res://core/world/realm/r37_hearth.gd")
 const Raid := preload("res://core/world/hierarch_raid.gd")
 
 const WATER := -0.9
@@ -250,6 +251,7 @@ static func _kit() -> OssKit:
 static func _mats() -> void:
 	if OssKit._mats.has("r37_wall"):
 		return
+	OssKit._mats["r37_plaster"] = Hearth.plaster()
 	for pair: Array in [["r37_wall", "ashlar", 0.22], ["r37_board", "timber", 0.5]]:
 		var m := Kit.mat(String(pair[1])).duplicate() as StandardMaterial3D
 		m.uv1_triplanar = true
@@ -376,10 +378,14 @@ static func _house(k: OssKit, base: Vector3, yaw: float, size: Vector2, h: float
 		for sx: float in [-1.0, 1.0]:
 			k.box(wall, base + b * Vector3(sx * (w * 0.5 - t * 0.5), h + 0.3 + 0.5 * float(j), 0), Vector3(t, 0.5, hw), b, false, 0.9)
 	var cx := w * 0.3
-	k.box("stone", base + b * Vector3(cx, h + rise * 0.6, -d * 0.18), Vector3(1.1, rise * 1.5 + 1.4, 1.1), b, true, 0.8)
-	k.box("stone", base + b * Vector3(cx, h + rise * 1.35 + 0.6, -d * 0.18), Vector3(1.4, 0.2, 1.4), b, false, 0.85)
+	var cz := -d * 0.18
+	if not open:
+		cz = -d * 0.5 + t + 0.35             # the stack stands on the back wall, over the hearth
+		Hearth.surround(k, base, b, w, d, h, t, dw, cx)
+	k.box("stone", base + b * Vector3(cx, h + rise * 0.6, cz), Vector3(1.1, rise * 1.5 + 1.4, 1.1 if open else 0.7), b, true, 0.8)
+	k.box("stone", base + b * Vector3(cx, h + rise * 1.35 + 0.6, cz), Vector3(1.4, 0.2, 1.4), b, false, 0.85)
 	for sx: float in [-0.25, 0.25]:
-		k.box("ruin", base + b * Vector3(cx + sx, h + rise * 1.35 + 0.95, -d * 0.18), Vector3(0.3, 0.5, 0.3), b, false, 0.7)
+		k.box("ruin", base + b * Vector3(cx + sx, h + rise * 1.35 + 0.95, cz), Vector3(0.3, 0.5, 0.3), b, false, 0.7)
 
 
 static func _building(host: Node3D, space: PhysicsDirectSpaceState3D, id: String) -> Vector3:
@@ -397,6 +403,8 @@ static func _building(host: Node3D, space: PhysicsDirectSpaceState3D, id: String
 		var t := 0.34
 		var hh := (float(d.h) - 0.66) * 0.5
 		Interiors.room_lights(host, "bld_" + id, at + Basis(Vector3.UP, float(d.yaw)) * Vector3(0, 0.66 + hh, 0), float(d.yaw), Vector3(d.size.x * 0.5 - t, hh, d.size.y * 0.5 - t), int(d.get("glow", 0)) > 0, 1.8)
+		if int(d.get("glow", 0)) > 0:
+			Hearth.fire(host, at, Basis(Vector3.UP, float(d.yaw)), float(d.size.y), t, float(d.size.x) * 0.3, "bld_" + id)
 	return at
 
 
