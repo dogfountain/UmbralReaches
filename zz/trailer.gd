@@ -19,6 +19,7 @@ const Act1 := preload("res://zz/trailer_shots_act1.gd")
 const Act2 := preload("res://zz/trailer_shots_act2.gd")
 const Act3 := preload("res://zz/trailer_shots_act3.gd")
 const Act4 := preload("res://zz/trailer_shots_act4.gd")
+const Ledges := preload("res://zz/trailer_ledges.gd")
 const LEAD_FRAMES := 6                         ## black frames while a far cut settles (trimmed by the assembly)
 var SHOTS: Array = []
 const GREEN := Vector3(2.0, 0.0, 34.0)        ## the village green (the finale's foreground)
@@ -1469,10 +1470,52 @@ func _build_ledge(c: Vector3, yaw: float, rise: float) -> Array:
 	return [(out.position as Vector3) if not out.is_empty() else near_face, f, side]
 
 
+var _probe: Array = []
+
+
+## "x,y,z,dx,dz;..." in LEDGE_PROBE: the lens visits each ledge in turn, for choosing the best place.
+func _probe_ledges() -> void:
+	_probe.clear()
+	for e in OS.get_environment("LEDGE_PROBE").split(";"):
+		var v := e.split(",")
+		_probe.append([Vector3(float(v[0]), float(v[1]), float(v[2])), Vector3(float(v[3]), 0.0, float(v[4]))])
+	use_free_cam()
+	cam.fov = 55.0
+
+
+func _probe_update(tt: float) -> void:
+	var i := clampi(int(tt / 0.4), 0, _probe.size() - 1)
+	var o: Vector3 = _probe[i][0]
+	var dd: Vector3 = _probe[i][1]
+	p.teleport(o - dd * 3.0 + Vector3.UP * 0.2)
+	var sd := dd.cross(Vector3.UP)
+	hold_cam(o + sd * 6.5 - dd * 0.5 + Vector3.UP * 2.3, o + Vector3.UP * 1.3)
+	light_at(o, 4.0)
+	_snap = true
+
+
 func _s_grab() -> void:
+	if OS.get_environment("LEDGE_PROBE") != "":
+		_probe_ledges()
+		return
+	if OS.get_environment("LEDGE_SCAN") != "":
+		var lg := Ledges.new(self)
+		var found: Array = lg.scan(-300.0, 300.0, -300.0, 300.0, 2.0)
+		print("WHY ", lg.why)
+		print("LEDGES %d" % found.size())
+		for c: Dictionary in found.slice(0, 140):
+			print("LEDGE %s dir %s rise %.2f len %.0f  %s" % [(c.pos as Vector3).snapped(Vector3.ONE * 0.1), c.dir, c.rise, c.len, c.who])
+		get_tree().quit()
+		return
 	_grab_wall = null
-	var yaw := PI * 0.5
-	var spot := _build_ledge(ARENA + Vector3(-6.0, 0.0, 0.0), yaw, 2.0)
+	# a broken stretch of the March Wall: the ledge finder's level, open edge chosen from stills of the candidates
+	var near: Array = Ledges.new(self).scan(146.0, 166.0, 116.0, 136.0, 1.0)
+	var spot: Array = []
+	if near.is_empty():
+		spot = _build_ledge(ARENA + Vector3(-6.0, 0.0, 0.0), PI * 0.5, 2.0)
+	else:
+		var c: Dictionary = near[0]
+		spot = [c.pos, c.dir, c.dir.cross(Vector3.UP)]
 	var start: Vector3 = (spot[0] as Vector3) - (spot[1] as Vector3) * 3.2
 	_mv = [on_ground(start, 0.05), spot[0], spot[1]]
 	p.teleport(_mv[0])
@@ -1481,16 +1524,19 @@ func _s_grab() -> void:
 	_drive = Vector3.ZERO
 	_drive_to = Vector3.ZERO
 	use_free_cam()
-	cam.fov = 50.0
+	cam.fov = 55.0
 	drive(_mv[2])
 	# a locked lens square to the climb, a little ahead of the wall so the hang and the pull-up both read
 	var o: Vector3 = _mv[1]
 	var d: Vector3 = _mv[2]
 	var sd := d.cross(Vector3.UP)
-	_mv_cam = solve_cam([(_mv[0] as Vector3) + Vector3.UP * 1.0, o + Vector3.UP * 1.0, o + d * 1.6 + Vector3.UP * 2.8], o - d * 0.5, yaw_to(sd), 6.2, 1.8)
+	_mv_cam = o + sd * 6.5 - d * 0.5 + Vector3.UP * 2.3          # side-on, a little above the lip, clear of the wall
 	hold_cam(_mv_cam, o - d * 0.6 + Vector3.UP * 1.3)
 
 func _u_grab(tt: float) -> void:
+	if not _probe.is_empty():
+		_probe_update(tt)
+		return
 	if not _mv.is_empty():
 		hold_cam(_mv_cam, (_mv[1] as Vector3) + (_mv[2] as Vector3) * 0.2 + Vector3.UP * 1.6)       # the jump, the hang, the climb
 	light_at(pp(), 4.0)
