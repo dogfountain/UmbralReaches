@@ -67,6 +67,7 @@ var _rs := Vector3.ZERO              ## the rider's damped follow of the horse: 
 var _rv := Vector3.ZERO
 var _vis: Node3D                     ## the rider's Visual while the horse draws it (placed each rendered frame)
 var _vis_yaw := 0.0
+var _vis_local := Transform3D.IDENTITY   ## the rider Visual's own place under the Player, given back on dismount
 var _back := INF                     ## the back's drop, smoothed (the seat's floor)
 var _trampled := {}                  ## enemy instance id -> msec of the last trample on it
 
@@ -373,7 +374,11 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 ## the rig blends its bones with the tick fraction anyway (CharacterRig.render_placed).
 func _claim_visual(vis: Node3D) -> void:
 	_vis = vis
+	_vis_local = vis.transform
 	_vis.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	# off the Player's transform too: the body moves on ticks and is interpolated, and a child placed per
+	# frame under it carried a fraction-of-a-tick wobble that changed with the frame's timing
+	_vis.top_level = true
 	if "render_placed" in _vis:
 		_vis.set("render_placed", true)
 	_vis_yaw = _vis.global_rotation.y
@@ -381,6 +386,8 @@ func _claim_visual(vis: Node3D) -> void:
 
 func _release_visual() -> void:
 	if _vis != null and is_instance_valid(_vis):
+		_vis.top_level = false
+		_vis.transform = _vis_local
 		_vis.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_INHERIT
 		if "render_placed" in _vis:
 			_vis.set("render_placed", false)
@@ -411,7 +418,7 @@ func _ride_follow(dt: float, ph: float) -> void:
 	# stride (a posting trot, ~9 cm) and rocks fore-and-aft with the gallop's bound
 	var gal_w := smoothstep(float(_d.trot), float(_d.gallop), speed)
 	t.x = _rig.last_dy * 0.85 + trot_w * 0.045 * (1.0 + sin(ph + 0.3)) \
-			+ gal_w * 0.035 * sin(ph + 1.2) + (0.12 if _air else 0.0)
+			+ gal_w * 0.035 * (0.5 + 0.5 * sin(ph + 1.2)) + (0.12 if _air else 0.0)
 	t.y = _lean + 0.1 * smoothstep(0.35, 0.65, k) + 0.28 * smoothstep(0.6, 1.0, k) + 0.1 * _rig.rock - _rig.body_pitch * (0.2 if _air else 0.7) - acc * 0.07
 	t.z = -_rig.body_roll * 0.9
 	var n := clampi(ceili(dt / (1.0 / 240.0)), 1, 12)
@@ -421,7 +428,11 @@ func _ride_follow(dt: float, ph: float) -> void:
 	var prev: float = _back if _back < INF else raw
 	_back = lerpf(prev, raw, 1.0 - exp(-dt / (0.008 if raw > prev else 0.04))) if _back < INF else raw
 	var back_v := clampf((_back - prev) / dt, -6.0, 6.0)
-	t.x = _back * 0.92 + (t.x - raw * 0.85)
+	# the seat rides the whole back (it took 92 % and the horse out-bounced its rider), its quick ripples
+	# (the legs' reach) taken out; the horse's own back now eases into those too (horse_rig DROP_ATTACK)
+	# the seat rides the whole back (it took 92 % and the horse out-bounced its rider), its quick ripples
+	# (the legs' reach) taken out, a hand's breadth clear of the floor below so the two never fight
+	t.x = _back + 0.012 + (t.x - raw * 0.85)
 	for _i in n:
 		_rv += ((t - _rs) * Vector3(170.0, 45.0, 60.0) - _rv * Vector3(20.0, 7.0, 8.0)) * d
 		_rs += _rv * d
