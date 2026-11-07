@@ -7,6 +7,12 @@ const DB := preload("res://core/life/progression/upgrade_db.gd")
 
 
 static func draw(ci: CanvasItem, g: String, c: Vector2, u: float, col: Color) -> bool:
+	var art := IconArt.find(g)
+	if art != null:
+		# painted art: a round picture filling the medallion; the caller's colour only says how lit it is
+		var lit := clampf(col.v * 1.15, 0.3, 1.0)
+		IconArt.draw_disc(ci, art, c, u * 1.65, Color(lit, lit, lit, col.a))
+		return true
 	var w := maxf(1.5, u * 0.09)
 	match g:
 		"bolt":

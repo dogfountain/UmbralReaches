@@ -928,6 +928,10 @@ func _draw_auras(list: Array, at: Vector2, a: float, most: int, sz := ICON) -> v
 
 
 func _aura_glyph(g: String, c: Vector2, u: float, col: Color, fallback: String) -> void:
+	var art := IconArt.art("aura", g)
+	if art != null:
+		IconArt.draw_square(self, art, Rect2(c - Vector2(u, u) * 1.47, Vector2(u, u) * 2.94), Color(1, 1, 1, col.a))
+		return
 	match g:
 		"flame":
 			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -u * 1.2), c + Vector2(u * 0.7, u * 0.1), c + Vector2(u * 0.45, u * 0.8), c + Vector2(-u * 0.45, u * 0.8), c + Vector2(-u * 0.7, u * 0.1)]), col)
