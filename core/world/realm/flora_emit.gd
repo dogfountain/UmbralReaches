@@ -208,7 +208,7 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 			var ch := _chunk(host, chunks, ck, CHUNK, ground)
 			var n := buf.size() / 16
 			counts.x += 1
-			var mmi := _batch(ch, buf, n, "Flora_stone_s", mesh, "stone", 0.0, float(pr[4]), ["stone", "s", false, float(pr[4]), n], STYLE["stone"], false, hide_args)
+			var mmi := _batch(ch, buf, n, "Flora_%s_s" % key.replace("|", "_"), mesh, "stone", 0.0, float(pr[4]), ["stone", "s", false, float(pr[4]), n], STYLE["stone"], false, hide_args)
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if kind != "cairn" else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 			if bool(pr[5]):
 				# cairns and cut blocks are knee-high or more: the walker goes round them
