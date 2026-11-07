@@ -106,7 +106,7 @@ static func _shared() -> void:
 
 
 func _home(t: float) -> Vector3:
-	var p := owner_p.global_position
+	var p := owner_p.get_global_transform_interpolated().origin     # where she is drawn, not her last tick
 	var a := phase + t * 1.4
 	return p + Vector3(cos(a) * 1.05, 2.05 + sin(t * 2.3 + phase) * 0.12, sin(a) * 1.05)
 

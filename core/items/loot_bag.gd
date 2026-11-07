@@ -27,6 +27,7 @@ var kept := false             ## the last save wrote this bag: while the game cl
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # its glint pulses every rendered frame
 	add_to_group(Groups.INTERACTABLE)
 	add_to_group("loot_bag")
 	var q := best_quality()

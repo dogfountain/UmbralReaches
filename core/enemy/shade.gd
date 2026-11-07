@@ -54,6 +54,7 @@ func _ready() -> void:
 	add_to_group(Groups.SHADE)
 	_body = Node3D.new()
 	_body.name = "Body"
+	_body.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # bob, lean, arms and mask are set every rendered frame; the Shade itself stays interpolated
 	add_child(_body)
 	_build_meshes()
 	_build_body()
@@ -370,6 +371,7 @@ func _build_presence() -> void:
 	_pool.upper_fade = 0.15
 	_pool.lower_fade = 0.3
 	_pool.top_level = true
+	_pool.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # placed every rendered frame under the drawn body
 	add_child(_pool)
 	# smoke shed from the hem
 	# fewer, smaller smoke cards: 36 one-metre cards filled the screen when it closed on the camera
@@ -456,7 +458,7 @@ func _process(delta: float) -> void:
 			var m := _mask.global_transform.looking_at(look, Vector3.UP)
 			_mask.global_basis = _mask.global_basis.orthonormalized().slerp(m.basis.orthonormalized(), 1.0 - exp(-4.0 * delta))
 	# the pool of shadow follows the ground under it
-	_pool.global_position = global_position + Vector3.DOWN * 3.0
+	_pool.global_position = get_global_transform_interpolated().origin + Vector3.DOWN * 3.0
 	if _whisper and is_instance_valid(target):
 		_whisper.volume_db = linear_to_db(clampf(target.gloom / maxf(target.gloom_max, 1.0), 0.08, 1.0)) - 4.0
 

@@ -59,6 +59,7 @@ static func _ground_below(by: Player) -> Vector3:
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # its ring and totem turn every rendered frame
 	name = "LanternWard"
 	add_to_group(&"lantern_ward")
 	_ensure_shared()

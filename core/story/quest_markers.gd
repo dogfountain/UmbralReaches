@@ -130,6 +130,7 @@ func targets() -> Array:
 func _make_mark(n: Node3D) -> Node3D:
 	var m := Node3D.new()
 	m.name = "QuestMark"
+	m.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # bobbed by a tween on rendered frames
 	var top := 2.05
 	var rig: Variant = n.get("rig")
 	if rig is Object and is_instance_valid(rig) and (rig as Object).has_method("head_top"):

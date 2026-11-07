@@ -77,6 +77,7 @@ func _light() -> void:
 func set_active(on: bool) -> void:
 	if on and _rig == null:
 		_rig = CharacterRig.new()
+		_rig.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # turned every rendered frame
 		_rig.rim_light = false
 		_vp.add_child(_rig)
 		_rig.rotation.y = _yaw

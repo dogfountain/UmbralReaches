@@ -71,6 +71,7 @@ static func _shared() -> void:
 func _ready() -> void:
 	_shared()
 	top_level = true
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # the hook and ribbon are placed every rendered frame
 	_mm = MultiMeshInstance3D.new()
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D

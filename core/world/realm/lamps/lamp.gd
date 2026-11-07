@@ -53,6 +53,7 @@ var _phase := 0.0
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # its flame is scaled every rendered frame
 	var d := _mesh_for(look, free_niche, chain)
 	_flame_at = d.flame
 	_light_at = d.light

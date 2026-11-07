@@ -195,6 +195,7 @@ func _draw_line() -> void:
 		_line.material_override = m
 		_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_line.top_level = true
+		_line.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # placed every rendered frame at the drawn staff head
 		add_child(_line)
 	var a: Vector3 = player._visual.muzzle_drawn() if player._visual != null else player.global_position + Vector3.UP * 1.5
 	var b := _anchor.global_position

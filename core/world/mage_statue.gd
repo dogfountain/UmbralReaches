@@ -294,6 +294,7 @@ static func _build_runes() -> ArrayMesh:
 func _build_orb() -> void:
 	var head := Vector3(0.62, 3.9, -0.38) * FIG_SCALE + Vector3(0, PEDESTAL_H, 0)
 	_orb = MeshInstance3D.new()
+	_orb.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # it bobs every rendered frame
 	_orb.name = "Orb"
 	var sph := SphereMesh.new()
 	sph.radius = 0.14 * FIG_SCALE
