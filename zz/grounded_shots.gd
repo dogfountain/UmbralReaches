@@ -13,6 +13,7 @@ var wait := 0
 var out := "/tmp"
 var tag := "shot"
 var only: PackedStringArray = []
+var rays: PackedStringArray = []        ## --rays=x:y,x:y  screen pixels to cast through at each still (prints what is hit)
 var t := 0
 
 
@@ -26,6 +27,8 @@ func _ready() -> void:
 			out = a.trim_prefix("--out=")
 		elif a.begins_with("--tag="):
 			tag = a.trim_prefix("--tag=")
+		elif a.begins_with("--rays="):
+			rays = a.trim_prefix("--rays=").split(",")
 		elif a.begins_with("--only="):
 			only = a.trim_prefix("--only=").split(",")
 		elif a.begins_with("--view="):
@@ -78,6 +81,7 @@ func _process(_d: float) -> void:
 		var path := out.path_join("%s_%s.png" % [views[i][0], tag])
 		get_viewport().get_texture().get_image().save_png(path)
 		print("GROUNDSHOT ", path)
+		_cast()
 	i += 1
 	while i < views.size() and not only.is_empty() and not String(views[i][0]) in only:
 		i += 1
@@ -102,3 +106,33 @@ func _hold() -> void:
 	p.global_position = Vector3(from.x, _ground(from.x, from.y) + 0.05, from.y)
 	p.velocity = Vector3.ZERO
 	p.reset_physics_interpolation()
+
+
+## What is under each --rays pixel: the first hit on any layer, and every mesh whose box holds the point.
+func _cast() -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var space := (main as Node3D).get_world_3d().direct_space_state
+	for r in rays:
+		var xy := r.split(":")
+		var pt := Vector2(float(xy[0]), float(xy[1]))
+		var from := cam.project_ray_origin(pt)
+		var to := from + cam.project_ray_normal(pt) * 60.0
+		var q := PhysicsRayQueryParameters3D.create(from, to, 0xFFFFF)
+		var hit := space.intersect_ray(q)
+		if hit.is_empty():
+			print("RAY ", r, " no collider hit")
+		else:
+			print("RAY ", r, " hit ", (hit.collider as Node).get_path(), " at ", hit.position)
+		var at: Vector3 = hit.position if not hit.is_empty() else from + cam.project_ray_normal(pt) * 6.0
+		for n in main.find_children("*", "MeshInstance3D", true, false):
+			var mi := n as MeshInstance3D
+			if mi.mesh == null or not mi.is_visible_in_tree():
+				continue
+			if (mi.global_transform * mi.get_aabb()).grow(0.3).has_point(at):
+				var mats: Array[String] = []
+				for k in mi.mesh.get_surface_count():
+					var m := mi.get_active_material(k)
+					mats.append(m.resource_name if m != null else "null")
+				print("   mesh ", mi.get_path(), " ", mi.mesh.resource_name, " ", mats)

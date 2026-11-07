@@ -77,6 +77,22 @@ def pos(a, r, y):
     return Vector((r * math.sin(a), y, r * math.cos(a))) + sway(y)
 
 
+def spline(pts, radii, per=8):
+    """Catmull-Rom through `pts` with `per` samples a span, radii interpolated: a smooth root, no kinks."""
+    pts = [Vector(p) for p in pts]
+    out, rad = [], []
+    n = len(pts)
+    for i in range(n - 1):
+        p0, p1, p2, p3 = pts[max(i - 1, 0)], pts[i], pts[i + 1], pts[min(i + 2, n - 1)]
+        for k in range(per):
+            t = k / per
+            out.append(0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t ** 3))
+            rad.append(radii[i] + (radii[i + 1] - radii[i]) * t)
+    out.append(pts[-1])
+    rad.append(radii[-1])
+    return out, rad
+
+
 def darken_inside(ob, tone=(0.5, 0.4, 0.31)):
     """Vertices inside the trunk's inner wall (a root, a limb's first reach, the door frame seen from the room):
     no moss, a dark warm tone, so no outer-bark zebra shows in the hollow."""
@@ -576,16 +592,18 @@ def build(DATA, PREVIEW, objs_out):
         L_ = lr.uniform(0.08, 0.28)
         y_ = -0.06 - 0.1 * (1.0 - min(rr_ / 3.5, 1.0)) + 0.025
         lb_.tube(Vector((px_, y_, pz_)), Vector((px_ + math.sin(d_) * L_, y_ + lr.uniform(0.0, 0.05), pz_ + math.cos(d_) * L_)), 0.012, 0.007, "rot", sides=4, jit=0.0, seed=k)
-    # a few small roots crossing the floor
+    # a few roots crossing the floor: smooth, gently undulating, half sunk, tapering into the soil
     for k in range(7):
         ang_ = lr.uniform(0.0, math.tau)
+        bend_ = lr.uniform(-0.09, 0.09)
         r0_ = r_in(0.0) - 0.1
         path_ = []
         for j in range(6):
-            rr_ = r0_ - j * lr.uniform(0.55, 0.8)
-            aj_ = ang_ + lr.uniform(-0.12, 0.12) * j
-            path_.append(Vector((c0_.x + math.sin(aj_) * rr_, 0.12 - 0.08 * j + 0.1 * lr.random(), c0_.z + math.cos(aj_) * rr_)))
-        lb_.tube_path(path_, [0.2 - 0.03 * j for j in range(6)], "heart", sides=7, jit=0.07, seed=k)
+            rr_ = r0_ - j * lr.uniform(0.6, 0.75)
+            aj_ = ang_ + bend_ * j + 0.03 * math.sin(j * 1.3 + k)
+            path_.append(Vector((c0_.x + math.sin(aj_) * rr_, -0.03 + 0.06 * math.sin(j * 1.1 + k) - 0.03 * j, c0_.z + math.cos(aj_) * rr_)))
+        sp_, sr_ = spline(path_, [0.2 - 0.03 * j for j in range(6)])
+        lb_.tube_path(sp_, sr_, "heart", sides=8, jit=0.02, seed=k)
     lit_ob = lb_.finish()
     L.moss_colors(lit_ob, 2, 0.0)
     ca3 = lit_ob.data.color_attributes["Col"]
@@ -612,9 +630,9 @@ def build(DATA, PREVIEW, objs_out):
         outer_pt = k >= len(root_az)
         pts = []
         # radial distance, height, sideways wander
-        prof = [(4.6, 3.6, 2.4), (6.6, 2.0, 2.0), (9.0, 1.0, 1.6), (12.0, 0.35, 1.2), (15.0, -0.2, 0.9), (18.5, -0.8, 0.6)]
+        prof = [(7.0, 2.9, 1.9), (8.0, 1.8, 1.8), (9.0, 1.0, 1.6), (12.0, 0.35, 1.2), (15.0, -0.2, 0.9), (18.5, -0.8, 0.6)]
         if outer_pt:
-            prof = [(5.6, 1.2, 1.1), (8.0, 0.55, 0.8), (11.5, 0.1, 0.55), (15.5, -0.5, 0.3)]
+            prof = [(6.7, 1.2, 1.0), (8.0, 0.55, 0.8), (11.5, 0.1, 0.55), (15.5, -0.5, 0.3)]
         wander = rr.uniform(-0.5, 0.5)
         sc = rr.uniform(0.85, 1.2)
         rings = []
@@ -633,7 +651,8 @@ def build(DATA, PREVIEW, objs_out):
         a0 = ad + da
         r0 = surf(a0, 0.3, False)
         path = [pos(a0, r0 + 0.6, 0.05), pos(a0, r0 - 0.3, 0.2), pos(a0 + sgn * 0.06, r0 - 1.3, 0.1), pos(a0 + sgn * 0.14, r0 - 2.3, -0.15), pos(a0 + sgn * 0.2, r0 - 3.0, -0.5)]
-        rb.tube_path(path, [0.36, 0.3, 0.2, 0.11, 0.045], "bark", sides=7, jit=0.1, seed=90 + k)
+        sp_, sr_ = spline(path, [0.36, 0.3, 0.2, 0.11, 0.045])
+        rb.tube_path(sp_, sr_, "bark", sides=8, jit=0.03, seed=90 + k)
     robj = rb.finish()
     L.moss_colors(robj, 11)
     darken_inside(robj)
