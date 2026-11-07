@@ -798,7 +798,11 @@ func _u_fight_otc(tt: float) -> void:
 func _s_fp_lance() -> void:
 	release(slot_action(0))
 	put_player(ARENA, WEST)
-	spawn_pack(ARENA, WEST, 9.0)
+	spawn_pack(ARENA, WEST, 10.0)
+	for e in spawned.duplicate():
+		if is_instance_valid(e) and (e.get_script() as Script).resource_path == CHANTER_P:
+			spawned.erase(e)                   # the Chanter's bone-rain fills the lens with white shards
+			e.queue_free()
 	(p.get_node("Visual") as Node3D).visible = false
 	use_free_cam()
 	cam.fov = 80.0
@@ -812,10 +816,8 @@ func _u_fp_lance(tt: float) -> void:
 	hold_cam(h + aim * 0.2, h + aim * 10.0 + Vector3.DOWN * 0.7)
 	_snap = true
 	light_at(h + aim * 5.0, 3.0)
-	if tt > 0.7 and once("fpl_go"):
+	if tt > 0.9 and once("fpl_go"):
 		release(slot_action(1))
-	if tt > 1.0 and once("fpl_bolt"):
-		press(slot_action(0))
 
 
 func _e_fp_lance() -> void:
