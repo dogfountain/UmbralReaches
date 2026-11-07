@@ -245,20 +245,24 @@ static func rift_seam(from: Vector3, to: Vector3) -> void:
 
 # --- attack telegraphs ------------------------------------------------------------------------
 
-## A boss's accent (bone-white, holy gold) drawn as a zone fill goes pale, and the night grade then
-## turns pale to cyan-white: a flat bright sheet. Every threat fill stays in the ember family the
-## grade keeps, nudged by type (red-orange for thorn and blood, amber for bone, gold for holy light).
+## A telegraph wears the colour of the attack it warns of, so the colour says WHICH attack and the
+## animation (the fill rising, the line brightening, the last-moment pulse) says WHEN. The hue is
+## never changed: a bone-white Requiem is warned in bone, a holy fan in white-gold, a thorn lash in
+## ember, acid in teal. Only the value is made safe: a near-white accent drawn as a fill goes a flat
+## cyan-white sheet under the night grade, so a pale colour is given a floor of saturation (its hue
+## kept) and the shader draws it with a dark contour (see danger_zone.gdshader, `pale`).
 static func threat_tint(c: Color) -> Color:
 	var mx := maxf(c.r, maxf(c.g, c.b))
 	if mx <= 0.001:
 		return DANGER_RED
-	var sat := 1.0 - minf(c.r, minf(c.g, c.b)) / mx
-	if c.g > c.r * 1.15 or c.b > c.r * 1.15:
-		return c                                   # a green or violet threat keeps its hue
-	if sat > 0.78:
-		return c                                   # already a saturated ember
-	var gold := clampf((c.g / maxf(c.r, 0.001) - 0.7) * 2.0, 0.0, 1.0)     # holy is greener than bone
-	return Color(2.6, 0.6 + 0.12 * gold, 0.1)
+	var mn := minf(c.r, minf(c.g, c.b))
+	var sat := 1.0 - mn / mx
+	if sat >= 0.3:
+		return Color(c.r, c.g, c.b)
+	if sat < 0.01:
+		return Color(mx, mx * 0.95, mx * 0.82)     # a colourless white reads as bone
+	var k := (1.0 - 0.3) * mx / (mx - mn)           # stretch away from the grey until the saturation is 0.3
+	return Color(mx - (mx - c.r) * k, mx - (mx - c.g) * k, mx - (mx - c.b) * k)
 
 
 ## The ground area an attack is about to hit, filling over `life` seconds (core/vfx/danger_zone).

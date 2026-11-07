@@ -203,7 +203,7 @@ func _edict(n: int) -> void:
 	for k in n:
 		var yaw := yaw0 + (0.0 if n == 1 else deg_to_rad(26.0) * (float(k) - 0.5) * 2.0)
 		BossKit.zone(get_parent(), global_position, EDICT_TIME, 30.0, {"by": self, "radius": EDICT_R, "half_angle": 0.62, "yaw": yaw, "h": 3.0,
-			"color": Color(2.4, 1.6, 0.6)})
+			"color": BossKit.BONE})
 	Sfx.play_stream(Synth.get_stream("chant"), global_position + Vector3.UP * 3.0, 3.0, 0.55)
 
 

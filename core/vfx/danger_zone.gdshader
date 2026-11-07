@@ -91,11 +91,19 @@ void fragment() {
 	// wanderer's robe when you stand in it, just the lines that say where and when)
 	float k = (base + fill + urgent * 0.16 * filled * calm) * (1.0 - through) + (outline * (0.8 + 0.5 * pr) * mix(1.0, 0.6, soft) + front * 0.7 * calm + ring2 * 0.45 * calm) * (1.0 - 0.45 * through);
 	k *= fade;
-	vec3 peak = color / max(max(color.r, max(color.g, color.b)), 0.001);
-	vec3 inner = peak * (0.5 + 0.2 * g + 0.25 * urgent);
+	float cmax = max(max(color.r, max(color.g, color.b)), 0.001);
+	vec3 peak = color / cmax;
+	// a pale colour (bone, salt, holy white) would wash to a flat sheet and vanish on pale stone:
+	// keep its hue, calm the fill a little, and draw a dark contour just inside the bright line
+	float pale = 1.0 - smoothstep(0.3, 0.62, 1.0 - min(color.r, min(color.g, color.b)) / cmax);
+	float rim = smoothstep(0.05, 0.1, edge_m) * (1.0 - smoothstep(0.17, 0.26, edge_m)) * pale;
+	vec3 inner = peak * (0.5 + 0.2 * g + 0.25 * urgent) * mix(1.0, 0.8, pale);
 	vec3 hot = color * (0.55 + 0.6 * edge + 0.3 * urgent);
 	// the travelling front burns white-hot at its leading edge: nothing in the set dressing does that
 	hot = mix(hot, vec3(1.9, 1.6, 1.2) * max(max(color.r, color.g), color.b) * 0.4, clamp(front * 0.3 + urgent * outline * 0.2, 0.0, 1.0));
-	ALBEDO = mix(inner, hot, edge);
-	ALPHA = clamp(k, 0.0, 0.8);
+	vec3 col_out = mix(inner, hot, edge);
+	float rim_a = rim * 0.5 * fade * mix(1.0, 0.5, soft) * (1.0 - through);
+	col_out = mix(col_out, vec3(0.03, 0.025, 0.02), rim * (1.0 - edge));
+	ALBEDO = col_out;
+	ALPHA = clamp(max(k, rim_a), 0.0, 0.8);
 }

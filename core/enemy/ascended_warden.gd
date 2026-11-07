@@ -420,7 +420,7 @@ func _eclipse() -> void:
 		holes.append([at, pr])
 		SpellFx.column(at, pr * 0.8, 6.0, ECLIPSE_FILL + 0.3)
 		Vfx.ring(at + Vector3.UP * 0.1, pr, BossKit.HOLY, ECLIPSE_FILL, 0.12, Vector3.UP, 1.6)
-	BossKit.zone(get_parent(), _arena_c, ECLIPSE_FILL, 34.0, {"by": self, "radius": _arena_r + 1.0, "color": Color(1.6, 1.0, 0.25), "holes": holes, "h": 3.0})
+	BossKit.zone(get_parent(), _arena_c, ECLIPSE_FILL, 34.0, {"by": self, "radius": _arena_r + 1.0, "color": BossKit.HOLY, "holes": holes, "h": 3.0})
 
 
 func _eclipse_lands() -> void:

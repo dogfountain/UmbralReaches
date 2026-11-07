@@ -6,6 +6,7 @@ extends Crawler
 ## and does not count as a target. It will not tunnel into light.
 ## No class_name (project rule): the spawner preloads it.
 
+const EARTH := Color(1.7, 1.05, 0.5)     ## the eruption throws dirt: its warning is earth ochre, not claw red
 const KinLook := preload("res://core/enemy/kin_look.gd")
 const DIVE := 0.45
 const TUNNEL_SPEED := 7.0
@@ -108,7 +109,7 @@ func _special_think() -> void:
 				_phase = 2
 				_drive = Vector3.ZERO
 				_tell_at = _state_t
-				AttackKit.zone(self, global_position, TELL, strike_gloom * 1.2, {"radius": ERUPT_R, "fx": "dirt", "color": AttackKit.RED, "h": 1.8})
+				AttackKit.zone(self, global_position, TELL, strike_gloom * 1.2, {"radius": ERUPT_R, "fx": "dirt", "color": EARTH, "h": 1.8})
 		2:
 			if _state_t >= _tell_at + TELL:
 				_surface()
