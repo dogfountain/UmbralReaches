@@ -18,7 +18,7 @@ const CELL := 0.5
 const CELL_H := 0.2
 const AGENT_RADIUS := 0.5
 const AGENT_HEIGHT := 1.8
-const MAX_CLIMB := 0.4
+const MAX_CLIMB := 0.65                   ## with a 0.5 m cell the ledge filter drops ramps steeper than atan(climb / cell): 0.4 lost every 27 degree stair (the fen and Counting stairs)
 const MAX_SLOPE := 40.0
 const WAIT_MS := 20000                    ## the loading screen never waits longer than this (twice the ground, was 12 s)
 const AREA := AABB(Vector3(-272.0, -60.0, -160.0), Vector3(544.0, 320.0, 412.0))     ## BOUNDS + 12 m (was x -165..165, z -160..185)
@@ -55,7 +55,13 @@ static func build(root: Node) -> void:
 	NavAssist.map = map
 	var nm := _settings()
 	var source := NavigationMeshSourceGeometryData3D.new()
+	# closed seals are doors, not walls: lifted for the parse so the arenas behind them are on the mesh
+	var seals := root.get_tree().get_nodes_in_group(&"ward_seal")
+	for sn in seals:
+		(sn as WardSeal).nav_pass(true)
 	NavigationServer3D.parse_source_geometry_data(nm, source, root)
+	for sn in seals:
+		(sn as WardSeal).nav_pass(false)
 	info.parse_ms = Time.get_ticks_msec() - t0
 	if not source.has_data():
 		push_warning("RealmNav: no collision geometry parsed")
