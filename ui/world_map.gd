@@ -155,15 +155,15 @@ func is_baked() -> bool:
 
 
 ## The map can be read when the Realm stands, nothing else holds the night, and no loading card is up.
-func can_open() -> bool:
+func can_open(warming := false) -> bool:
 	var zone := get_parent()
 	if zone == null or not zone.has_meta("realm_done") or get_tree().paused:
 		return false
-	return zone.get_node_or_null("LoadingScreen") == null and get_tree().get_first_node_in_group(Groups.PLAYER) != null
+	return (warming or zone.get_node_or_null("LoadingScreen") == null) and get_tree().get_first_node_in_group(Groups.PLAYER) != null
 
 
-func open() -> void:
-	if _open or not can_open():
+func open(warming := false) -> void:
+	if _open or not can_open(warming):
 		return
 	_open = true
 	_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED

@@ -87,7 +87,7 @@ func layout(zoom: float, zmin: float, seen: Array[String]) -> void:
 	_placed.clear()
 	var taken: Array[Rect2] = []
 	var bounds := Rect2(RealmLayout.BOUNDS.position * zoom, RealmLayout.BOUNDS.size * zoom).grow(-6.0)
-	var cap := 260.0 if zoom < 1.3 * zmin else 130.0         # a name strays only so far from its region
+	var cap := 260.0 if zoom < 1.3 * zmin else 170.0         # a name strays only so far from its region
 	for it in _items:
 		if not seen.has(String(it.id)):
 			continue
@@ -109,7 +109,8 @@ func layout(zoom: float, zmin: float, seen: Array[String]) -> void:
 		var best_pos := home
 		var best_hits := 99
 		var cands: Array[Vector2] = [Vector2.ZERO, Vector2(0, -1), Vector2(0, 1), Vector2(0, -2), Vector2(0, 2),
-			Vector2(-0.7, 0), Vector2(0.7, 0), Vector2(-0.7, -1), Vector2(0.7, -1), Vector2(-0.7, 1), Vector2(0.7, 1), Vector2(0, -3), Vector2(0, 3), Vector2(-1.05, 0), Vector2(1.05, 0), Vector2(-1.05, -1), Vector2(1.05, -1), Vector2(-1.05, 1), Vector2(1.05, 1)]
+			Vector2(-0.7, 0), Vector2(0.7, 0), Vector2(-0.7, -1), Vector2(0.7, -1), Vector2(-0.7, 1), Vector2(0.7, 1), Vector2(0, -3), Vector2(0, 3), Vector2(-1.05, 0), Vector2(1.05, 0), Vector2(-1.05, -1), Vector2(1.05, -1), Vector2(-1.05, 1), Vector2(1.05, 1),
+			Vector2(0, -4), Vector2(0, 4), Vector2(-1.4, 0), Vector2(1.4, 0), Vector2(-1.4, -1.5), Vector2(1.4, -1.5), Vector2(-1.4, 1.5), Vector2(1.4, 1.5), Vector2(-0.7, -2.5), Vector2(0.7, -2.5), Vector2(-0.7, 2.5), Vector2(0.7, 2.5)]
 		for k in cands.size():
 			var cd := cands[k]
 			var ctr := home + Vector2(cd.x * dims.x, cd.y * (dims.y + 4.0))
@@ -137,7 +138,7 @@ func layout(zoom: float, zmin: float, seen: Array[String]) -> void:
 				best_pos = ctr
 			if hits == 0:
 				break
-		if best < 0 or (best_hits > 2 and int(it.tier) >= 3):
+		if best < 0 or (best_hits > 5 and int(it.tier) >= 3):
 			continue
 		taken.append(Rect2(best_pos - dims * 0.5, dims))
 		_placed.append({"lines": lines, "size": size, "sp": sp, "lh": lh, "tall": it.tall, "pos": best_pos, "home": home,
@@ -151,8 +152,16 @@ func draw(c: Control, zoom: float, to_screen: Callable, view: Rect2) -> void:
 		var dims: Vector2 = p.dims
 		if not view.grow(dims.length()).has_point(s):
 			continue
+		var nudged := false
+		if view.has_point(s):                          # a name whose middle is on the sheet stays whole: it slides in from the edge
+			var lo := view.position + dims * 0.5 + Vector2(8.0, 8.0)
+			var hi := view.end - dims * 0.5 - Vector2(8.0, 8.0)
+			if lo.x < hi.x and lo.y < hi.y:
+				var q := s.clamp(lo, hi)
+				nudged = q.distance_to(s) > float(p.size) * 0.6
+				s = q
 		var a: float = p.fade
-		if p.moved:
+		if p.moved or nudged:
 			var h: Vector2 = to_screen.call(p.home / zoom)
 			c.draw_line(s, h, Color(INK, 0.4 * a), 1.0, true)
 			c.draw_circle(h, 2.2, Color(INK, 0.55 * a))

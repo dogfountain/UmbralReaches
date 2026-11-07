@@ -39,6 +39,7 @@ const MORE_KIN := ["res://core/enemy/bulwark.gd", "res://core/enemy/chanter.gd",
 	"res://core/enemy/gaunt.gd", "res://core/enemy/quiller.gd", "res://core/enemy/pilgrim.gd", "res://core/enemy/tollman.gd",
 	"res://core/enemy/cinder_caster.gd"]
 ## The great ones: their own materials (boss_pbr) and parts, shown once so a pull compiles nothing.
+const PanelWarm := preload("res://ui/panel_warm.gd")
 const WarmAttackKit := preload("res://core/enemy/attack_kit.gd")
 const WarmBossKit := preload("res://core/enemy/boss_kit.gd")
 const WarmHorseRig := preload("res://core/world/mount/horse_rig.gd")
@@ -77,6 +78,7 @@ const SPELL_LEFTOVERS: Array[StringName] = [&"lantern_ward", &"bound_shade", &"u
 var _spell_keep := {}             ## instance ids of spell leftovers that stood before the warm casts
 var _warm_saved := {}             ## the wanderer before the warm-up cast every spell
 var _warm_life: Node
+var _pw: PanelWarm                ## opens each big panel once under the cover
 var _fx_frames := -1
 var _combat_shown := false
 var _sounds_done := false
@@ -198,6 +200,12 @@ func _process(delta: float) -> void:
 			_hint.text = "Every stone, flame and shade is shown to the renderer once, so it never stops to prepare one mid-play." \
 				+ ("\nPress any key to go in." if _view >= SKIP_AFTER_VIEW else "")
 			_warm_step()
+		"panels":
+			_stage.text = "Laying out the Journal"
+			_hint.text = ""
+			_target = 0.98
+			if _pw == null or _pw.done or _phase_t > 20.0:
+				_next("steady")
 		"steady":
 			_stage.text = "Almost there"
 			_target = 1.0
@@ -222,6 +230,12 @@ func _next(p: String) -> void:
 	_phase_t = 0.0
 	if p == "warm":
 		_start_tour()
+	elif p == "panels":
+		_end_tour()
+		_pw = PanelWarm.new()
+		_pw.zone = zone
+		add_child(_pw)
+		_pw.run()
 	elif p == "steady":
 		_end_tour()
 
@@ -290,7 +304,7 @@ func _warm_step() -> void:
 		_view += 1
 	_target = BUILD_SHARE + 0.04 + (1.0 - BUILD_SHARE - 0.07) * float(_view) / float(VIEWS.size())
 	if _view >= VIEWS.size():
-		_next("steady")
+		_next("panels")
 		return
 	_place()
 

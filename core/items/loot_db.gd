@@ -56,6 +56,8 @@ const BOSS_TABLE := {
 	"ascended_warden": ["edict_stole", "latch_cord", "sky_cage"],
 	# --- the east marches ---
 	"r37_anchoress": ["anchor_chain", "cell_lantern", "hermit_shawl"],
+	# --- the west marches
+	"r37_hierarch": ["horn_collar", "cantor_hush", "held_note"],
 }
 ## Any boss without its own table (a later night's) draws from these.
 const BOSS_FALLBACK := ["heartwood_cup", "counting_cord", "edict_stole", "charnel_glass"]
@@ -63,11 +65,13 @@ const LEGEND_CHANCE := 0.15
 const BOSS_SHARDS := 4
 
 ## Rares: the named pool (first fall of each rare id), and what every fall gives.
-const RARE_TABLE := ["digger_glass", "bone_cincture", "mirewick_stole", "corpse_cradle", "tollmans_ring", "widow_veil"]
+const RARE_TABLE := ["digger_glass", "bone_cincture", "mirewick_stole", "corpse_cradle", "tollmans_ring", "widow_veil",
+	"shepherd_crook", "ringer_gloves", "slag_cowl", "fog_lantern", "cinder_scapular", "pilgrim_orb"]
 const RARE_SHARDS := Vector2i(2, 4)
 const RARE_FRAG_CHANCE := 0.25
 ## A rare's own extra named piece (rare id -> GearDB.NAMED id), when the enemies pass adds one.
-const RARE_OWN := {}
+const RARE_OWN := {"drowned_reeve": "reeve_tally", "moss_mason": "mason_girdle", "gate_breaker": "breaker_cinch",
+	"salt_widow": "widow_salt", "drowned_lamplighter": "lamplighter_wick"}
 
 ## A chest's gear source (loot_chest.gd's tier) and what the bag adds on top of the chest's own loot.
 const CHEST_SRC := {"wood": "tough", "iron": "elite", "reliquary": "elite"}

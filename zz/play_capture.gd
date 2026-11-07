@@ -111,6 +111,7 @@ var perf_skip := 0
 var f_ms := PackedFloat32Array()
 var f_dc := PackedInt32Array()
 var f_pr := PackedInt64Array()
+var spike_s := 0.02                     ## a frame over this is listed (the ui section lowers it: a panel's first open should stay under 12 ms)
 var spikes: Array = []                 ## [marker, ms] for every frame over 20 ms
 var _mark := ""                        ## the step the harness is in (a still or a strip), named in the spike list
 var perf_segs: Array = []              ## [label, first frame index, last frame index]
@@ -196,7 +197,7 @@ func _process(delta: float) -> void:
 			perf_skip -= 1
 		else:
 			f_ms.append(delta * 1000.0)
-			if delta > 0.02:
+			if delta > spike_s:
 				spikes.append([_mark, snappedf(delta * 1000.0, 0.1)])
 			f_dc.append(int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)))
 			f_pr.append(int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME)))
@@ -771,9 +772,9 @@ func _strip(stem: String, n: int, dt: float, desc: String, acts: Array = []) -> 
 
 ## One still of the main view (HUD and all if the UI is showing).
 func _still(file: String, desc: String, settle := 8) -> void:
-	_mark = file
 	for i in settle:
 		await get_tree().process_frame
+		_mark = file
 	if headless:
 		return
 	perf_skip = 3
@@ -1675,6 +1676,19 @@ func _s_ui() -> void:
 	# the game's own camera back for the UI stills
 	_cam_game()
 	_ui_show()
+	# what the loading screen does before the cover lifts: every big panel opened once
+	var pw: Node = preload("res://ui/panel_warm.gd").new()
+	pw.set("zone", main)
+	add_child(pw)
+	pw.call("run")
+	await _wait_until(func() -> bool: return bool(pw.get("done")), 60.0)
+	print("PANEL_WARM second pass")
+	pw.set("done", false)
+	pw.call("run")
+	await _wait_until(func() -> bool: return bool(pw.get("done")), 60.0)
+	pw.queue_free()
+	await _frames(10)
+	spike_s = 0.012
 	await _secs(2.0)
 	await _still("hud_exploring.png", "HUD while exploring (bars, hotbar, minimap, compass, objective)")
 	# HUD in combat: a pack comes at the wanderer
@@ -1690,6 +1704,7 @@ func _s_ui() -> void:
 	_clear_mine()
 	_clear_enemies()
 	# title screen
+	_mark = "open title"
 	var TitleScreen := preload("res://ui/title_screen.gd")
 	var ts := TitleScreen.new()
 	get_tree().root.add_child(ts)
@@ -1726,6 +1741,7 @@ func _s_ui() -> void:
 			["kindling", "spells"], ["kindling", "loadout"], ["kindling", "oaths"], ["kindling", "paths"], ["kindling", "hearth"], ["pack", ""],
 			["journal", "journal"], ["journal", "stories"], ["journal", "writings"], ["journal", "places"], ["journal", "map"], ["journal", "lore"], ["journal", "tasks"]]
 		for pg: Array in PAGES:
+			_mark = "open char %s/%s" % [pg[0], pg[1]]
 			cs.call("open_at", pg[0], pg[1])
 			await _still("char_%s_%s.png" % [pg[0], pg[1] if pg[1] != "" else "all"], "character screen: %s / %s" % [pg[0], pg[1] if pg[1] != "" else "pack"], 12)
 		cs.call("close")
@@ -1743,6 +1759,19 @@ func _s_ui() -> void:
 		await _still("world_map_whole.png", "the world map zoomed out to the whole Realm", 20)
 		wm.call("close")
 		await _frames(4)
+		# every region found: the lettering at the whole-sheet zoom, and at two closer ones
+		const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
+		for r: Dictionary in RealmLayout.REGIONS:
+			CodexStore.discover(String(r.id))
+		wm.call("open")
+		for zf: float in [1.0, 1.6, 2.6]:
+			wm.set("_zoom", float(wm.get("_zoom_min")) * zf)
+			wm.call("_layout")
+			wm.call("_pick_hover")
+			wm.get("_labels").call("reset")
+			await _still("world_map_all_%d.png" % int(zf * 10.0), "world map, every region found, zoom x%.1f of the whole sheet" % zf, 20)
+		wm.call("close")
+		await _frames(4)
 	else:
 		_fail("no world map")
 	# loot window, quest offer, shop, dialogue
@@ -1758,6 +1787,7 @@ func _s_ui() -> void:
 	await _frames(6)
 	var qo := get_tree().get_first_node_in_group("quest_offer")
 	if qo:
+		_mark = "open quest offer"
 		qo.call("open_offer", "edda_tongs", "Edda")
 		await _still("quest_offer.png", "quest offer screen", 10)
 		qo.call("close")
@@ -1765,6 +1795,7 @@ func _s_ui() -> void:
 		_fail("no quest offer layer")
 	var story := get_tree().get_first_node_in_group("story")
 	if story:
+		_mark = "open shop"
 		story.call("open_shop", "grisel")
 		await _secs(0.6)
 		await _still("shop_buy.png", "shop, buy tab (Grisel)", 6)

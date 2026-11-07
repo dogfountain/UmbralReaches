@@ -100,7 +100,7 @@ const QUESTS := {
 			{"kind": "talk", "who": "hild", "text": "Bring Edda's tongs to Hild at the forge"},
 			{"kind": "place", "text": "Lay Edda's tongs back on her stone in the Kindlers' Yard"},
 		],
-		"reward": {"ash": 10},
+		"reward": {"ash": 10, "items": {"ember_shard": 1}},
 		"outcome": {"forge": "Hild shod your staff with a ferrule of Edda's iron. The tongs work the forge again.",
 			"stone": "Edda's tongs lie on her stone again. It stays warm."}},
 	"forty_first": {"name": "The Forty-First Stone", "giver": "oswin", "where": "Oswin the pilgrim, on the west road", "zone": "road",
@@ -129,7 +129,7 @@ const QUESTS := {
 			{"kind": "talk", "who": "keep", "text": "Tell the keep what you found"},
 		],
 		"alt": {"rats": {3: "Tell the keep it was rats"}, "covered": {3: "Square Nan's debt with the keep (10 ash)"}},
-		"reward": {},
+		"reward": {"items": {"ember_shard": 2, "grave_iron": 1}},
 		"outcome": {"told": "The keep knows it was Nan. He leaves a mug by the green's fire himself now.",
 			"covered": "You paid for Nan's mugs. The keep is watching you; Nan drew you a circle.",
 			"rats": "The keep blames rats. Nan keeps her secret, and her mug by the fire."}},
@@ -151,7 +151,7 @@ const QUESTS := {
 		"offer": true, "repeat": "daily",
 		"text": "The green's fire eats more than it used to. Ash off the hollowed burns slow and hot, if you can stand to carry it. Five handfuls. Every night, if you like. The fire won't stop being hungry.",
 		"steps": [
-			{"kind": "collect", "of": 5, "chance": 0.6, "label": "Bone ash", "text": "Gather bone ash from the hollowed you put down ({n}/{of})"},
+			{"kind": "collect", "of": 5, "chance": 0.6, "label": "Bone ash", "at": Vector2(-30.0, 62.0), "text": "Gather bone ash from the hollowed you put down ({n}/{of})"},
 			{"kind": "turnin", "who": "fennick", "text": "Bring the bone ash to Old Fennick"},
 		],
 		"reward": {"ash": 12, "items": {"ember_shard": 2}},
@@ -779,7 +779,7 @@ const QUESTS := {
 		"offer": true, "repeat": "daily", "avail": "flag:met_keep",
 		"text": "I keep a tab for the dark. Every hollowed you put down comes off it. Twenty, and I'll stand you ember and a bed. Every night. The tab never closes.",
 		"steps": [
-			{"kind": "slay", "of": 20, "label": "Hollowed anywhere", "text": "Put down hollowed anywhere in the Reaches ({n}/{of})"},
+			{"kind": "slay", "of": 20, "label": "Hollowed anywhere", "at": Vector2(-30.0, 62.0), "text": "Put down hollowed anywhere in the Reaches ({n}/{of})"},
 			{"kind": "turnin", "who": "keep", "text": "Have the keep strike them off the tab"},
 		],
 		"reward": {"ash": 18, "items": {"ember_shard": 2}},
@@ -837,7 +837,7 @@ const QUESTS := {
 		"offer": true, "avail": "qd:still_climbing",
 		"text": "The dais stone. 'The names of the faithful who went through,' and nothing cut under it. I've been thinking about that. Ask about. Get me a name from every fire in the far country, somebody who went up, and cut them in. Then come and sit down. For good, this time.",
 		"steps": [
-			{"kind": "gather", "of": 4, "text": "Ask a name of the faithful at the fires of the far country ({n}/{of})"},
+			{"kind": "gather", "of": 6, "text": "Ask a name of the faithful at the fires of the far country, the Marches and the downs among them ({n}/{of})"},
 			{"kind": "find", "text": "Cut the names into the dais stone under the door"},
 			{"kind": "turnin", "who": "keep", "text": "Sit on your stool at the Kindled Keg"},
 		],
@@ -956,10 +956,14 @@ const PICKUPS := {
 		"say": "Ysolt gives you three. You tell her one. She picks the hardest: MAUD OF THE TOR, WHO CARRIED HER CAIRN-STONE UP."},
 	"name_linnet": {"quest": "names_under", "step": 0, "near": Vector2(-106.0, 112.0), "camp": "linnet", "kind": "slate", "name": "a name", "verb": "Ask for",
 		"say": "Linnet doesn't look up from the graft. \"Brother Anselm. He pruned. Put that. HE PRUNED.\""},
+	"name_dunstan": {"quest": "names_under", "step": 0, "near": Vector2(-30.0, 222.0), "camp": "dunstan", "kind": "slate", "name": "a name", "verb": "Ask for",
+		"say": "Dunstan counts on his fingers, as he counts the flock. \"Wat. He kept the lead ram. Put: WAT, WHO NEVER LOST ONE.\" He looks at the cairns while you cut it."},
+	"name_ardel": {"quest": "names_under", "step": 0, "near": Vector2(218.0, 98.0), "camp": "ardel", "kind": "slate", "name": "a name", "verb": "Ask for",
+		"say": "Ardel gives it without being asked twice. \"Hale. He trimmed the Spire's lamp, the last one to. HALE, AND HE LEFT IT LIT.\" He does not say how he knows."},
 	"name_cadoc": {"quest": "names_under", "step": 0, "near": Vector2(111.0, 97.0), "camp": "cadoc", "kind": "slate", "name": "a name", "verb": "Ask for",
 		"say": "\"Corvin,\" Cadoc says. \"He rowed them all to the foot of the Stair and then went up himself. Nobody rowed him back.\""},
 	"dais_names": {"quest": "names_under", "step": 1, "near": Vector2(1.5, -101.0), "kind": "place", "name": "the dais stone", "verb": "Cut the names into",
-		"say": "You cut them under the Hierarch's line, small, as straight as you can: BRANN. MAUD OF THE TOR. BROTHER ANSELM, HE PRUNED. CORVIN. There is room under them for a great many more."},
+		"say": "You cut them under the Hierarch's line, small, as straight as you can: BRANN. MAUD OF THE TOR. BROTHER ANSELM, HE PRUNED. CORVIN. WAT, WHO NEVER LOST ONE. HALE, AND HE LEFT IT LIT. There is room under them for a great many more."},
 	# r36 Act II: the Founder's bells (each opens the bell's conversation: ring it here, or carry the tongue)
 	"bell_holds": {"quest": "bell_holds", "step": 1, "near": Vector2(-138.0, 20.0), "kind": "bell", "name": "the Kin Bell", "verb": "Stand at", "conv": "bell_holds",
 		"say": "A small bronze bell hung in the oak's fork on a rope of plaited bark. The Rooted carved their knot into the wood above it, to say they hadn't asked for it and would keep it anyway."},
@@ -1111,6 +1115,11 @@ static func audit() -> Array[String]:
 				bad.append("%s step %d (%s) has no pickup" % [id, si, kind])
 			if kind == "gather" and gather_keys(id, si).size() != int(qd.steps[si].get("of", 1)):
 				bad.append("%s step %d gathers %d of %d" % [id, si, gather_keys(id, si).size(), int(qd.steps[si].get("of", 1))])
+			# every step that sends you somewhere says where, so the map's task row never goes blank (the
+			# peal's steps point at the nearest unanswered bell; the two standing bounties roam)
+			if kind in ["slay", "collect", "cond", "visit", "seal"] and not (qd.steps[si].get("to", qd.steps[si].get("at")) is Vector2) \
+					and not String(qd.steps[si].get("cond", "")).begins_with("bells:") and not id in ["rare_head", "keeper_again"]:
+				bad.append("%s step %d (%s) has no map target" % [id, si, kind])
 			if kind == "carry" and (si == 0 or not PICKUPS.has(String(qd.steps[si].get("from", ""))) or int(PICKUPS[qd.steps[si].from].step) != si - 1):
 				bad.append("%s step %d carries no pickup taken the step before" % [id, si])
 		if bool(qd.get("offer", false)):
