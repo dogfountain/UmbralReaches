@@ -18,7 +18,8 @@ uniform float arm_scale = 3.4;      // size of the star clouds
 uniform float detail_scale = 9.0;   // fine filaments
 uniform float spin_speed = 0.015;   // revolutions per second
 uniform float spin_phase = 0.0;     // revolutions; keeps the angle continuous when spin_speed changes (reactivity.gd)
-uniform float intensity = 2.2;      // above 1.0 so glow catches the arms
+uniform float intensity = 1.1;      // halved (Luke, 7 Nov: the vortex washed the night); was 2.2, above 1.0 so glow caught the arms
+uniform float vortex_size = 0.6;    // the vortex's extent on the sky, against its first size (1.0)
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) {
@@ -38,7 +39,7 @@ vec3 vortex(vec3 d) {
     vec3 r = normalize(cross(vec3(0.0, 1.0, 0.0), c));
     vec3 u = cross(c, r);
     float facing = dot(d, c);
-    vec2 p = vec2(dot(d, r), dot(d, u)) / max(facing, 0.08);
+    vec2 p = vec2(dot(d, r), dot(d, u)) / max(facing, 0.08) / vortex_size;
     float rad = length(p);
     float ang = atan(p.y, p.x) + twist * log(rad + 0.04) - (sky_time * spin_speed + spin_phase) * TAU;
     vec2 q = vec2(cos(ang), sin(ang)) * rad;
@@ -108,10 +109,10 @@ void sky() {
         float dm = length(EYEDIR - md);
         float ghosts = exp(-dm * dm * 720.0) * 0.6;
         // the moon and its flare toned down about 30 % (Luke, 7 Nov: the moon read too bright), with its light
-        // and again by half (the moon's glow washed the sky pale and the land with it)
-        col += vec3(0.72, 0.82, 1.02) * (disc * 0.9 + corona * 0.15);
-        col += vec3(0.52, 0.68, 1.05) * (streak * 0.28 + cross * 0.12);
-        col += vec3(0.42, 0.52, 0.92) * ghosts * 0.1;
+        // and halved twice more (the moon's glow washed the sky pale and the land with it)
+        col += vec3(0.72, 0.82, 1.02) * (disc * 0.45 + corona * 0.075);
+        col += vec3(0.52, 0.68, 1.05) * (streak * 0.14 + cross * 0.06);
+        col += vec3(0.42, 0.52, 0.92) * ghosts * 0.05;
         col = mix(col_deep * 0.5, col, smoothstep(-0.05, 0.12, EYEDIR.y)); // horizon falloff
         // moon-silvered haze low on the sky: ridges and towers separate from it
         col += vec3(0.11, 0.17, 0.29) * exp(-abs(EYEDIR.y) * 9.0);   // a thinner, brighter band: the ridges read dark against it
