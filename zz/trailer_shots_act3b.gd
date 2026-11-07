@@ -59,6 +59,15 @@ func flat_dir(a: Vector3, b: Vector3) -> Vector3:
 	return Cam.flat(b - a)
 
 
+## A two-shot: the lens off to one side of the line a -> b, `dist` out and `h` up, looking at the midpoint, swinging a
+## little over the shot (k 0..1). side is +1 or -1; swing in radians.
+func two_shot(a: Vector3, b: Vector3, k: float, dist: float, h: float, side := 1.0, swing := 0.4, look_up := 1.3) -> void:
+	var mid := a.lerp(b, 0.5)
+	var perp: Vector3 = Cam.flat(b - a).cross(Vector3.UP) * side
+	perp = perp.rotated(Vector3.UP, swing * (k - 0.5))
+	d.frame_cam(mid + perp * dist + Vector3.UP * h, mid + Vector3.UP * look_up)
+
+
 ## Frees a spawned foe list entry that the director would otherwise cull (real systems spawn their own foes).
 func adopt(foes: Array) -> void:
 	for f in foes:

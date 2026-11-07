@@ -74,14 +74,14 @@ func _lamp(id: String) -> Lamp:
 
 func _s_lamp_kindle() -> void:
 	d.clear_spawned()
-	_lamp_node = _lamp("wf_bank_e")
+	_lamp_node = _lamp("wf_lantern_0")
 	if _lamp_node == null:
 		print("TRAILER no lamp wf_bank_e")
 		return
 	_lamp_node.douse()                                   # not yet lit: the wanderer lights it in the shot
 	var at := _lamp_node.global_position
 	wake_villagers(at, 40.0)
-	var from := at + Vector3(4.2, 0.0, 3.4)
+	var from := Vector3(at.x + 5.0, 0.0, at.z + 1.0)
 	d.put_player(from, Cam.yaw_dir(at - from), -0.05)
 	d.drive(Cam.flat(at - from) * 0.45)
 	d.use_free_cam()
@@ -94,9 +94,9 @@ func _u_lamp_kindle(tt: float) -> void:
 	var at := _lamp_node.global_position
 	var k: float = d.sm(clampf(tt / 2.0, 0.0, 1.0))
 	d.aim_at(at)
-	cam.orbit(at, k, 4.6, 3.6, 1.1, 0.5, 1.5, 1.7, 1.3)
+	two_shot(d.pp(), Vector3(at.x, d.pp().y, at.z), k, 5.0, 2.0, -1.0, 0.5, 1.7)
 	d.light_at(d.pp(), 3.0)
-	if d.pp().distance_to(at) < 2.2:
+	if Vector2(d.pp().x - at.x, d.pp().z - at.z).length() < 2.0:
 		d.drive(Vector3.ZERO)
 	if tt > 0.95 and d.once("lk_pose"):
 		d.p._visual.cast_pose(&"reach")
@@ -123,7 +123,7 @@ func _s_weirford_life() -> void:
 func _u_weirford_life(tt: float) -> void:
 	var c: Vector3 = d.on_ground(Vector3(-196.0, 0.0, 73.0))
 	var k: float = d.sm(clampf(tt / 2.4, 0.0, 1.0))
-	cam.orbit(c, k, 11.0, 9.0, 0.5, 1.2, 2.6, 3.0, 1.2)
+	cam.orbit(c, k, 12.0, 10.0, 1.3, 1.9, 3.4, 3.6, 1.2)
 	d.light_at(c, 4.0)
 	d.aim_at(c)
 	if d.pp().distance_to(c) < 5.0:
@@ -224,13 +224,12 @@ func _u_lamp_spire(tt: float) -> void:
 			_spire_i += 1
 		else:
 			d.aim_at(w)
-			d.drive(to.normalized(), true)
+			d.drive(to.normalized() * 0.8)
 	var h: Vector3 = d.head()
 	var f: Vector3 = d.fwd_of(float(d.p.get("_yaw")))
 	d.hold_cam(h + f * 0.25, h + f * 8.0 + Vector3.UP * (1.6 + sin(tt * 9.0) * 0.06))
 	d._snap = true
-	fill_follow(h + Vector3.UP * 0.3)
-	d.light_at(h, 2.0)
+	d.light_at(h, 1.5)
 
 
 func _e_lamp_spire() -> void:
