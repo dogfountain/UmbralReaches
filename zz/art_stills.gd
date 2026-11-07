@@ -9,6 +9,7 @@ extends Node
 ## Saves are locked (Travel._busy); the HUD is hidden; enemies are cleared.
 const RL := preload("res://core/world/realm/realm_land.gd")
 const LifePlace := preload("res://core/life/wildlife/life_place.gd")
+const LifeKit := preload("res://core/life/wildlife/life_kit.gd")
 const LifeGroup := preload("res://core/life/wildlife/life_group.gd")
 const OUT := "/private/tmp/claude-501/-Users-luke-UmbralReaches/968888c4-6238-49b1-a0f8-2ba292b49c0a/scratchpad/wave6/beasts/"
 
@@ -140,7 +141,7 @@ func _setup() -> void:
 	cam.current = true
 
 
-func _herd_view(kinds: Array, dist: float, tagn: String) -> void:
+func _herd_view(kinds: Array, dist: float, tagn: String, pref := 0.5) -> void:
 	var best: Node3D = null
 	var n := 0
 	for g in w.groups:
@@ -150,14 +151,60 @@ func _herd_view(kinds: Array, dist: float, tagn: String) -> void:
 	if best == null:
 		print("ART no group ", kinds)
 		return
+	best.alert_r = 0.0               # a still: nothing bolts or hides from the camera
+	best.flee_r = 0.0
+	best.rest()
 	var p: Vector3 = best.positions()[0]
 	await _put(p + Vector3(20, 0, 0))
-	_frame(p, dist, 1.6, 0.9, 0.5)
+	_frame(p, dist, 1.6, 0.9, pref)
 	await _frames(8)
 	p = best.positions()[0]
-	_frame(p, dist, 1.3, 0.9, 0.5)
+	_frame(p, dist, 1.3 if dist < 8.0 else 1.6, 0.9, pref)
 	await _frames(2)
 	_save(tagn)
+
+
+## In-world lineup: the species placed by hand on open ground by a herd's meadow (nothing bolts or hides),
+## the real creature shader, light and fog. `kinds` stand in a loose row; the camera sits `dist` m off at
+## yaw `yawd` (90 = side-on, 140 = front three-quarter, 40 = rear three-quarter).
+func _lineup(kinds: Array, dist: float, yawd: float, walking: bool, tagn: String) -> void:
+	var meadow: Node3D = null
+	for g in w.groups:
+		if String(g.kind) == "deer":
+			meadow = g
+			break
+	var base: Vector3 = meadow.positions()[0] if meadow != null else player.global_position
+	w.process_mode = Node.PROCESS_MODE_DISABLED     # the real herds hold still and hidden while the lineup is shot
+	for g in w.groups:
+		for c in g.get_children():
+			if c is MultiMeshInstance3D:
+				(c as MultiMeshInstance3D).visible = false
+	await _put(base + Vector3(20, 0, 0))
+	var made: Array[Node] = []
+	var mid := Vector3.ZERO
+	for i in kinds.size():
+		var k: String = kinds[i]
+		var mmi := LifeKit.group(k, 1)
+		get_tree().root.add_child(mmi)
+		mmi.multimesh.custom_aabb = AABB(Vector3(-4, -1, -4), Vector3(8, 6, 8))
+		mmi.multimesh.set_instance_transform(0, Transform3D.IDENTITY)
+		var q := base + Vector3(float(i % 2) * 1.3, 0, float(i) * 2.6 - float(kinds.size() - 1) * 1.3)
+		q.y = RealmLayout.ground(player.get_world_3d().direct_space_state, q.x, q.z)
+		mmi.global_transform = Transform3D(Basis(Vector3.UP, deg_to_rad(float(i % 2) * 14.0)), q)
+		mmi.multimesh.set_instance_custom_data(0, Color(1.0 if walking else 0.0, 0.0, 1.2 + float(i) * 0.9, 0.0 if (walking or k == "hare") else -1.0))
+		made.append(mmi)
+		mid += q
+	mid /= float(kinds.size())
+	var small: bool = kinds.size() == 1 and (kinds[0] == "fox" or kinds[0] == "hare")
+	var yaw := deg_to_rad(yawd)
+	var eye := mid + Vector3(sin(yaw) * dist, (1.2 if small else 1.6) + (0.0 if dist < 8.0 else 0.6), cos(yaw) * dist)
+	eye.y = maxf(eye.y, RealmLayout.ground(player.get_world_3d().direct_space_state, eye.x, eye.z) + 1.0)
+	cam.global_position = eye
+	cam.look_at(mid + Vector3(0, 0.4 if small else 0.9, 0))
+	await _frames(6)
+	_save(tagn)
+	for m in made:
+		m.queue_free()
 
 
 func _run() -> void:
@@ -173,9 +220,25 @@ func _run() -> void:
 	if _want("herd"):
 		await _herd_view(["deer", "elk", "stag"], 7.0, "herd")
 		await _herd_view(["deer", "elk", "stag"], 3.5, "herd_close")
-	if _want("beasts"):
+		for d in [6.0, 12.0, 20.0]:
+			await _herd_view(["deer", "stag"], d, "herd_%d_side" % int(d), 1.57)
+			await _herd_view(["deer", "stag"], d, "herd_%d_3q" % int(d), 0.6)
+		await _herd_view(["elk"], 12.0, "elk_12")
+	if _want("lineup"):
+		for d in [6.0, 12.0, 20.0]:
+			await _lineup(["stag", "deer", "deer"], d, 90.0, d > 8.0, "line_herd_%d_side" % int(d))
+			await _lineup(["stag", "deer", "deer"], d, 140.0 if d < 8 else 35.0, d < 8.0, "line_herd_%d_3q" % int(d))
+		await _lineup(["elk"], 12.0, 90.0, false, "line_elk_12")
+		await _lineup(["elk", "stag"], 6.0, 140.0, true, "line_elk_6")
 		for k: String in ["fox", "hare", "boar"]:
+			await _lineup([k], 3.0, 90.0, true, "line_%s_3" % k)
+			await _lineup([k], 6.0, 140.0, false, "line_%s_6" % k)
+			await _lineup([k], 12.0, 90.0, true, "line_%s_12" % k)
+	if _want("beasts"):
+		for k: String in ["fox", "hare"]:
 			await _herd_view([k], 3.0, "beast_" + k)
+			await _herd_view([k], 6.0, "beast_%s_6" % k, 1.57)
+			await _herd_view([k], 12.0, "beast_%s_12" % k, 0.6)
 	if _want("wisp"):
 		var holders: Array = []
 		for l in get_tree().root.find_children("*", "OmniLight3D", true, false):
