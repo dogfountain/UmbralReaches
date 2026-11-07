@@ -264,7 +264,7 @@ func _blink() -> void:
 	_set_state(IDLE if _p == null else CHASE)
 	SpellFx.rift_in(to)
 	if phase >= 2:
-		BossKit.zone(get_parent(), to, 0.75, 26.0, {"by": self, "radius": 4.6 if phase == 2 else 6.2, "color": BossKit.HOLY})
+		BossKit.zone(get_parent(), to, 1.0, 26.0, {"by": self, "radius": 4.6 if phase == 2 else 6.2, "color": BossKit.HOLY})
 	_aim_fan(phase >= 3)
 
 

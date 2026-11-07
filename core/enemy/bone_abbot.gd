@@ -793,12 +793,12 @@ func _sweep() -> void:
 	var yaw := atan2(-_to.x, -_to.z)
 	_face_dir = _to / maxf(_dist, 0.001)
 	if _rig and _rig.has_method("telegraph"):
-		_rig.call("telegraph", 0.9)
+		_rig.call("telegraph", 1.05)
 	_glint = 1.0
 	say("windup", global_position + Vector3.UP * 2.0, 3.0, 0.6)
-	BossKit.cast(self, "Crozier Sweep", 0.9)
-	BossKit.zone(get_parent(), global_position, 0.9, 30.0, {"by": self, "radius": 7.5, "half_angle": deg_to_rad(75.0), "yaw": yaw, "color": BossKit.BONE})
-	get_tree().create_timer(0.9, false).timeout.connect(func() -> void:
+	BossKit.cast(self, "Crozier Sweep", 1.05)
+	BossKit.zone(get_parent(), global_position, 1.05, 30.0, {"by": self, "radius": 7.5, "half_angle": deg_to_rad(75.0), "yaw": yaw, "color": BossKit.BONE})
+	get_tree().create_timer(1.05, false).timeout.connect(func() -> void:
 		if is_instance_valid(self) and is_alive() and _rig and _rig.has_method("strike"):
 			_rig.call("strike"))
 

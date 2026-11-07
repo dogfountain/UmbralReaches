@@ -445,6 +445,7 @@ static func phase_floor(e: Enemy, phase: int, marks: Array[float], sig: int) -> 
 static func transition(e: Enemy, line: String, col: Color, dur := 1.4) -> void:
 	e._finish_cast(true, false)                  # r33: a cast in flight dies with the phase
 	e.cancel_moves()
+	pose_beat(e)
 	e._combo_left = 0
 	e._ward_t = dur
 	if e._state != Enemy.AIRBORNE and e._state != Enemy.DEAD:
@@ -479,6 +480,55 @@ static func roar(e: Enemy, line: String, col: Color) -> void:
 	var p := e.get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 	if p:
 		p.kick(1.0)
+
+
+## The first instant of a phase change: the world holds a breath on the boss's pose and the view
+## jolts, before the shell closes and the roar follows.
+static func pose_beat(e: Enemy) -> void:
+	var p := e.get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+	if p:
+		p.kick(0.8)
+	if not TimeSlow.active():
+		TimeSlow.request(e.get_tree(), 0.2, 0.3)
+	Vfx.ring(e.global_position + Vector3.UP * 0.1, 3.5, Color(1.5, 1.4, 1.2), 0.3, 0.08, Vector3.UP, 1.2)
+
+
+## A heavy blow or a weak-point burst on a great one: a longer crunch, a brighter flash, a jolt of the
+## view. Plain bolts and staff taps stay quiet, so the heavy ones read.
+static func hit_feel(e: Enemy, dmg: float, weak: bool) -> void:
+	if not e.boss or (dmg < 2.5 and not weak):
+		return
+	e._hitstop = maxi(e._hitstop, 8 if weak else 6)
+	e._flash = maxf(e._flash, 0.14)
+	var p := e.get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+	if p:
+		p.kick(clampf(0.3 + dmg * 0.1, 0.3, 0.8))
+	if dmg >= 4.0 or weak:
+		Vfx.ring(e.global_position + Vector3.UP * e.hp_bar_y * 0.55, 1.6, Color(1.8, 1.4, 0.8), 0.22, 0.06, Vector3.UP, 1.0)
+
+
+## The death of a great one: the world goes slow as the killing blow lands, the view is thrown, the
+## ground rings out, and a low bell tolls over the fall. The rig folds in Enemy._die; this is the weight.
+static func fall(e: Enemy) -> void:
+	if not e.boss:
+		return
+	var tree := e.get_tree()
+	var at := e.global_position
+	var mid := at + Vector3.UP * e.hp_bar_y * 0.5
+	TimeSlow.request(tree, 0.12, 0.7)
+	var p := tree.get_first_node_in_group(Groups.PLAYER) as Player
+	if p:
+		p.kick(1.0)
+	Vfx.ring(at + Vector3.UP * 0.1, 14.0, Color(1.6, 1.3, 0.9), 1.2, 0.08, Vector3.UP, 1.4)
+	Vfx.burst(mid, Color(1.8, 1.4, 0.8), {"count": 70, "life": 1.4, "speed": Vector2(2.0, 8.0), "size": 0.07, "gravity": 1.2, "trail": 0.1})
+	Vfx.light(mid, Color(1.0, 0.8, 0.5), 6.0, 16.0, 1.2)
+	Sfx.play_stream(Synth.get_stream("stagger"), mid, 4.0, 0.5)
+	tree.create_timer(0.9, false).timeout.connect(func() -> void:
+		Sfx.play("res://art/audio/ward_chime.wav", at, 5.0)
+		Vfx.ring(at + Vector3.UP * 0.1, 18.0, Color(1.4, 1.2, 0.8), 1.6, 0.05, Vector3.UP, 1.2)
+		var pl := tree.get_first_node_in_group(Groups.PLAYER) as Player
+		if pl:
+			pl.kick(0.4))
 
 
 # --- r33: casts and add waves ---------------------------------------------------------
