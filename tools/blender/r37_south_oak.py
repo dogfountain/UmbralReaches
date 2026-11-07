@@ -210,6 +210,8 @@ def build(DATA, PREVIEW, objs_out):
 
     b = B("Trunk", mats)
     tiles = round(math.tau * 6.2 / 3.0)
+    tiles_in = round(math.tau * 5.0 / 1.5)
+    v_in = 1.5
     vs_ = [ys[i] / 3.0 for i in range(NI)]
 
     def uvq(f, j, i):
@@ -239,10 +241,10 @@ def build(DATA, PREVIEW, objs_out):
                 g.material_index = 0
                 g.smooth = True
                 j2_ = (j + 1) % NF
-                g.loops[0][b.uv].uv = (tiles * (j + 1) / NF, inner[i][j2_].y / 3.0)
-                g.loops[1][b.uv].uv = (tiles * j / NF, inner[i][j].y / 3.0)
-                g.loops[2][b.uv].uv = (tiles * j / NF, inner[i + 1][j].y / 3.0)
-                g.loops[3][b.uv].uv = (tiles * (j + 1) / NF, inner[i + 1][j2_].y / 3.0)
+                g.loops[0][b.uv].uv = (tiles_in * (j + 1) / NF, inner[i][j2_].y / v_in)
+                g.loops[1][b.uv].uv = (tiles_in * j / NF, inner[i][j].y / v_in)
+                g.loops[2][b.uv].uv = (tiles_in * j / NF, inner[i + 1][j].y / v_in)
+                g.loops[3][b.uv].uv = (tiles_in * (j + 1) / NF, inner[i + 1][j2_].y / v_in)
     # jambs: between the outer and inner faces where an open cell meets a closed one
     def jamb(p0o, p1o, p1i, p0i, rev):
         pts = [p0o, p1o, p1i, p0i]
@@ -291,7 +293,8 @@ def build(DATA, PREVIEW, objs_out):
     arch_p = []
     for t in arch_t:
         u = math.sin(t) * (1.0 - 0.07 * nz(t, 0) * math.cos(t))
-        yy = 3.85 * max(math.cos(t), 0.0) ** 0.85 * (1.0 + 0.09 * nz(t, 1)) + 0.0
+        u = u + 0.09 * u * (1.0 - u * u)                       # a little off true: the weathered doorway leans
+        yy = 3.3 * max(1.0 - abs(u) ** 2.5, 0.0) ** 0.5 * (1.0 + 0.1 * nz(t, 1) + 0.07 * u)
         aa = a_l + (a_r - a_l) * (1.0 + u) / 2.0
         arch_p.append((aa, yy))
 
@@ -329,7 +332,7 @@ def build(DATA, PREVIEW, objs_out):
         for l in f.loops:
             c = l.vert.co
             ang = math.atan2(c.x - sway(c.y).x, c.z - sway(c.y).z) % math.tau
-            l[b.uv].uv = (tiles * ang / math.tau, c.y / 3.0)
+            l[b.uv].uv = ((tiles if toward else tiles_in) * ang / math.tau, c.y / (3.0 if toward else v_in))
 
     def strip(P, A, toward):
         def cum(pts):
@@ -370,7 +373,7 @@ def build(DATA, PREVIEW, objs_out):
         arc_u.append(arc_u[-1] + (A_o[k].co - A_o[k - 1].co).length)
     hole_c = pos(ad_mid, (r_out(1.8) + r_in(1.8)) * 0.5, 1.8)
     ring_prev = A_o
-    LIP = 5
+    LIP = 8
     lip_faces = []
     for kk in range(1, LIP + 1):
         f_ = kk / LIP
@@ -390,8 +393,8 @@ def build(DATA, PREVIEW, objs_out):
             d = d - rad * d.dot(rad)
             d = d.normalized() if d.length > 1e-6 else Vector((0, 1, 0))
             t_ = arch_t[k]
-            amp = (0.26 + 0.12 * nz(t_, 3)) * math.cos(t_) ** 0.7
-            q = q + d * amp * math.sin(math.pi * f_)
+            amp = (0.22 + 0.1 * nz(t_, 3)) * math.cos(t_) ** 0.6
+            q = q + d * amp * math.sin(math.pi * f_) ** 0.85
             ring.append(bm.verts.new(q))
         for k in range(NA):
             try:
@@ -475,7 +478,9 @@ def build(DATA, PREVIEW, objs_out):
         if rad_ < mid_ and yg_ < 38.0:
             f_ = 1.0 - 0.72 * sm(yg_, 3.0, 26.0)
             f_ *= 0.75 + 0.25 * sm(yg_, 0.0, 1.0)       # darkest in the rotted bottom corner, then lighter, then falling off
-            rgba_[lv_ == v_i, :3] *= f_
+            rot_ = 1.0 - sm(yg_, 0.5, 7.0)
+            tint_ = np_.array([1.0 - 0.18 * rot_, 1.0 - 0.38 * rot_, 1.0 - 0.55 * rot_], dtype=np_.float32)
+            rgba_[lv_ == v_i, :3] *= f_ * tint_
     ca_.data.foreach_set("color", rgba_.ravel())
     objs.append(trunk)
 
@@ -720,25 +725,28 @@ def build(DATA, PREVIEW, objs_out):
         chord = 2.0 * rm * math.sin(DA / 2) * 1.04 + 0.04
         slope = math.atan2(RISE, rm * DA)
         # tread: a plank across the stair, pitched with the flight; the riser below it dark
-        sb.box(tuple(pos(am, rm, y - 0.09)), (STAIR_W + 0.1, 0.17, chord), "bark", yaw=am + math.pi / 2, pitch=-slope, cuts=0, scale_uv=0.5)
+        sb.box(tuple(pos(am, rm, y - 0.09)), (STAIR_W + 0.1, 0.17, chord), "plank", yaw=am + math.pi / 2, pitch=-slope, cuts=0, scale_uv=0.5)
         if s % 4 == 0:
             # a bracket from the wall down to the tread's underside
             rw = r_in(y)
             sb.box(tuple(pos(am, (rw + rm) / 2 + 0.3, y - 0.55)), (0.28, 0.32, rw - rm + 0.6), "bark", yaw=am + math.pi / 2 + math.pi / 2, pitch=0.0, scale_uv=0.5)
-        if s % 1 == 0:
-            # a post at the inner edge, a rope between posts
+        if s % 6 == 1:
+            # a root stub standing at the inner edge
             pp = pos(stair_a(s) + DA * 0.5, ri_ + 0.06, stair_y(s) + RISE * 0.5)
-            sb.box(tuple(pp + Vector((0, 0.52, 0))), (0.09, 1.04, 0.09), "bark", scale_uv=0.5)
+            sb.tube(pp - Vector((0, 0.1, 0)), pp + Vector((0.05, 0.85, 0.03)), 0.085, 0.05, "bark", sides=6, jit=0.02, seed=s)
+        if s % 2 == 1:
+            pp = pos(stair_a(s) + DA * 0.5, ri_ + 0.06, stair_y(s) + RISE * 0.5)
             rails.append(pp + Vector((0, 0.95, 0)))
-    for k in range(len(rails) - 1):
-        a_, b_ = rails[k], rails[k + 1]
-        mid = (a_ + b_) / 2 - Vector((0, 0.04, 0))
-        ln = (b_ - a_).length
-        if ln < 3.0:
-            d = (b_ - a_)
-            yaw = math.atan2(d.x, d.z)
-            pitch = -math.atan2(d.y, math.hypot(d.x, d.z))
-            sb.box(tuple(mid), (0.05, 0.05, ln), "rope", yaw=yaw, pitch=pitch)
+    # the rail: one gnarled root laid along the helix in runs, broken where the landings are
+    run = []
+    for k in range(len(rails)):
+        if run and (rails[k] - run[-1]).length >= 3.0:
+            if len(run) > 2:
+                sb.tube_path(run, [0.07 + 0.025 * math.sin(i * 0.9) for i in range(len(run))], "bark", sides=6, jit=0.03, seed=len(run))
+            run = []
+        run.append(rails[k])
+    if len(run) > 2:
+        sb.tube_path(run, [0.07 + 0.025 * math.sin(i * 0.9) for i in range(len(run))], "bark", sides=6, jit=0.03, seed=3)
     # landings at the limb doors: a heavy timber platform spanning the door's width
     for lm in limbs:
         a = lm["a_door"]
@@ -764,7 +772,7 @@ def build(DATA, PREVIEW, objs_out):
     cols2 = np_mod.empty(len(stair_ob.data.loops) * 4, dtype=np_mod.float32)
     ca2.data.foreach_get("color", cols2)
     cols2 = cols2.reshape(-1, 4)
-    cols2[:, :3] *= 0.42
+    cols2[:, :3] *= np_mod.array([0.62, 0.5, 0.38], dtype=np_mod.float32)
     ca2.data.foreach_set("color", cols2.ravel())
     objs.append(stair_ob)
 

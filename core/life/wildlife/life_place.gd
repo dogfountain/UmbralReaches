@@ -333,6 +333,8 @@ static func open_ground(x: float, z: float) -> bool:
 		return false
 	if not WorldLanes.site_at(Vector2(x, z), 2.0).is_empty():
 		return false
+	if Vector2(x, z).distance_to(Vector2(-70.0, 206.0)) < 8.5:       # the Grandmother Oak's hollow and its doorway
+		return false
 	if Vector2(x, z).distance_to(Vector2(RealmLayout.SPAWN.x, RealmLayout.SPAWN.z)) < 18.0:
 		return false
 	return true

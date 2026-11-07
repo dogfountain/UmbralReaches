@@ -14,10 +14,10 @@ static func build(host: Node3D, xf: Transform3D) -> void:
 	rng.seed = 7117
 	var d: Dictionary = TreeGen.kind("glowcap_0")
 	var spots: Array[Transform3D] = []
-	for k in 16:
+	for k in 12:
 		var a := rng.randf() * TAU
 		var r := sqrt(rng.randf()) * 2.8 + 0.5
-		var s := rng.randf_range(1.2, 2.4)
+		var s := rng.randf_range(2.6, 4.4)
 		var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s))
 		spots.append(Transform3D(b, xf * (SWAY0 + Vector3(sin(a) * r, -0.12, cos(a) * r))))
 	# and in the pockets of the wall low down, between the stair's turns
@@ -25,7 +25,7 @@ static func build(host: Node3D, xf: Transform3D) -> void:
 		var a := rng.randf() * TAU
 		var y := rng.randf_range(0.5, 3.0)
 		var r := 4.5 - y * 0.02
-		var s := rng.randf_range(1.0, 1.8)
+		var s := rng.randf_range(2.0, 3.2)
 		var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s))
 		spots.append(Transform3D(b, xf * (SWAY0 + Vector3(sin(a) * r, y, cos(a) * r))))
 	for key: String in ["solid", "cards"]:
