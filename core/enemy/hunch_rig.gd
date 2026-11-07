@@ -36,6 +36,8 @@ var _flinch := 0.0
 var _flinch_side := 0.0
 var _reel := 0.0          ## stagger
 var _fold := 0.0          ## death collapse
+var _fall_base := Transform3D.IDENTITY   ## the rig's own transform when it began to fall
+var _fall_back := false
 var _howl := 0.0          ## a pack call: chest up, head back, arms flung wide and low
 var _howl_t := -1.0
 var _howl_dur := 0.8
@@ -90,14 +92,36 @@ func stagger() -> void:
 	_wind = 0.0
 
 
-func collapse() -> void:
-	_fold = 0.001
+## `back`: the killing blow was heavy, so the body is thrown onto its back instead of pitching
+## forward onto its face.
+func collapse(back := false) -> void:
+	if _fold <= 0.0:
+		_fall_base = transform
+		_fall_back = back
+	_fold = maxf(_fold, 0.001)
 
 
 func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	if delta > 0.0:
 		_tick_poses(delta)
 	super.animate(vel, on_floor, delta)
+	if _fold > 0.0:
+		_topple()
+
+
+## The dead do not hover folded at the knees: they go over. The knees give first, then the whole
+## body falls about the feet, gathering speed like a weight, and settles with a small rebound.
+func _topple() -> void:
+	var u := clampf((_fold - 0.12) / 0.88, 0.0, 1.0)
+	var fall := u * u * (3.0 - 2.0 * u) * 0.35 + u * u * u * 0.65           # slow start, hard finish
+	var rebound := sin(clampf((_fold - 0.82) / 0.18, 0.0, 1.0) * PI) * 0.07
+	var pitch := (1.38 if _fall_back else -1.42) * (fall - rebound)
+	var roll := _flinch_side * 0.25 * fall + sin(_fold * 9.0) * 0.02 * (1.0 - u)
+	var rot := Basis.from_euler(Vector3(pitch, 0.0, roll))
+	var base := _fall_base.basis
+	var scl := base.get_scale()
+	var base_rot := base.orthonormalized()
+	transform = Transform3D(base_rot * rot * Basis.from_scale(scl), _fall_base.origin + base_rot * Vector3(0.0, 0.1 * fall, 0.0))
 
 
 func _tick_poses(delta: float) -> void:
@@ -125,7 +149,7 @@ func _tick_poses(delta: float) -> void:
 			_howl_t = -1.0
 			_howl = 0.0
 	if _fold > 0.0:
-		_fold = minf(_fold + delta * 1.6, 1.0)
+		_fold = minf(_fold + delta * 1.35, 1.0)
 	_twitch_t -= delta
 	if _twitch_t <= 0.0:
 		_twitch_t = randf_range(0.6, 2.6) / maxf(twitch, 0.05)

@@ -1703,7 +1703,7 @@ func _die() -> void:
 	if _weak:
 		_weak.visible = false
 	if _rig and _rig.has_method("collapse"):
-		_rig.call("collapse")
+		_rig.call("collapse", big)
 	_wish = Vector3.ZERO
 	collision_layer = 0
 	if _hp_bar:
@@ -1720,7 +1720,7 @@ func _die() -> void:
 	Vfx.scorch(global_position, 0.6 + hp_bar_y * 0.35, Color(0.5, 0.2, 0.9), 4.0)    # the stain it leaves
 	# the body folds first (HunchRig/QuadRig collapse), then burns away
 	var tw := create_tween()
-	tw.tween_interval(0.65)                       # the fold is near done before the burn
+	tw.tween_interval(0.85)                       # it falls and lies a beat before the burn
 	tw.tween_method(_set_dissolve, 0.0, 1.0, 0.95)
 	tw.tween_callback(queue_free)
 
