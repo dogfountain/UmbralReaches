@@ -94,6 +94,7 @@ func _draw() -> void:
 	var inner := box.grow(-box.size.x * 0.1)
 	if has and tex != null:
 		draw_texture_rect(tex, inner, false, Color(1, 1, 1, a))
+		GearIcons.draw_pips(self, piece, inner, a)
 	elif has:
 		GearIcons.draw_piece(self, piece, inner, Color(1, 1, 1, a))
 	elif ref_id != "" and tex != null:

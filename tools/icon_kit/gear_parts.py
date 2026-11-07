@@ -83,12 +83,13 @@ def orb_glass(img, cx, cy, r, dark, light, halo=None, haloamt=0.5, swirl=0.6, se
     sph = np.sqrt(np.clip(1 - (d / r) ** 2, 0, 1))
     sw = nz(5, seed, px=(x - cx) * 1.5 + (y - cy) * 0.5, py=(y - cy) * 1.5 - (x - cx) * 0.5)
     t = np.clip(sph * 0.8 + (sw - 0.5) * swirl, 0, 1)
-    col = mix(C(dark), C(light), t)
+    col = mix(C(dark), C(light), t ** 1.4)
+    col = col + C(halo if halo else light) * (np.exp(-(d / (r * 0.5)) ** 2) * 0.5)[..., None]
     if stars_:
         col = col + C("#cfd8ff") * (stars(seed + 4, 30, 0.9) * (d < r))[..., None]
-    col = col + C(light) * (ss(0.72, 1.0, d / r) * 0.55)[..., None]
+    col = col + C(light) * (ss(0.72, 1.0, d / r) * 0.35)[..., None]
     hx, hy = cx - r * 0.38, cy - r * 0.42
-    col = col + C("#ffffff") * (np.exp(-(np.hypot(x - hx, (y - hy) * 1.4) / (r * 0.2)) ** 2) * 0.9)[..., None]
+    col = col + C("#ffffff") * (np.exp(-(np.hypot(x - hx, (y - hy) * 1.4) / (r * 0.16)) ** 2) * 0.6)[..., None]
     col = col + C("#ffffff") * (np.exp(-(np.hypot(x - cx + r * 0.3, y - cy - r * 0.55) / (r * 0.35)) ** 2) * 0.12)[..., None]
     return over(img, col, smooth(d - r))
 
@@ -229,6 +230,19 @@ def focus(img, o):
             img = part(img, box(0, yy, 0.075, 0.018, wx, wy), hm, 0.02, shadow=0.3)
 
     def orb():
+        if o.get("empty"):                       # nothing set in it: dust and dark
+            dust = ellipse(0, -0.01, 0.38, 0.06, wx, wy)
+            out = over(img, C("#08060a"), smooth(dust) * 0.95)
+            return over(out, C("#6a6458"), smooth(dust + 0.03) * 0.0 + (nz(60, seed, octaves=1) > 0.7) * smooth(dust) * 0.5)
+        if o.get("flame"):
+            out = add(img, C(oh), np.exp(-np.hypot(x / 0.5, (y - ocy) / 0.5) / 0.4) * 0.55)
+            return fire(out, 0.0, ocy + 0.26, 0.6, 0.15, seed, cool=o["flame"] == "cool")
+        if o.get("coins"):
+            out = img
+            for k, (cx_, cy_) in enumerate([(-0.24, -0.04), (0.05, -0.1), (0.26, -0.02), (-0.1, -0.2), (0.14, -0.24), (-0.02, -0.38), (-0.2, -0.3)]):
+                out = part(out, ellipse(cx_, cy_, 0.15, 0.1, wx, wy), "gilt", 0.08, shadow=0.35, tint=None)
+                out = over(out, C("#6a4410"), smooth(np.abs(ellipse(cx_, cy_, 0.085, 0.055, wx, wy)) - 0.008) * 0.6)
+            return out
         return orb_glass(img, ocx, ocy, r, od, ol, oh, o.get("halo", 0.6), 0.7, seed + 7, stars_=o.get("stars", False))
 
     if holder == "cup":
@@ -265,7 +279,19 @@ def focus(img, o):
             for k in range(11):
                 a = np.pi * (0.06 + 0.88 * k / 10)
                 bx, by = rx * np.cos(a), cy + ry * np.sin(a)
-                img = knot(img, bx, by, 0.062, hm and MAT[hm][0] if isinstance(hm, str) else "#3a2a18", MAT[hm][1] if isinstance(hm, str) else "#d8c8a0", seed + k)
+                if o.get("knuckle"):
+                    tg = np.arctan2(ry * np.cos(a), -rx * np.sin(a))
+                    uu, vv = rot(bx, by, tg, wx, wy)
+                    kn = np.minimum(stadium(0, 0, 0.075, 0.04, uu, vv), np.minimum(circle(-0.07, 0.03, 0.04, uu, vv), np.minimum(circle(-0.07, -0.03, 0.04, uu, vv), np.minimum(circle(0.07, 0.03, 0.04, uu, vv), circle(0.07, -0.03, 0.04, uu, vv)))))
+                    img = part(img, kn, hm, 0.05, shadow=0.3)
+                else:
+                    img = knot(img, bx, by, 0.062, MAT[hm][0], MAT[hm][1], seed + k)
+    elif holder == "armillary":
+        img = orb()
+        img = part(img, polyline([(0, 0.3), (-0.2, 0.12)], wx, wy) - 0.024, hm, 0.025, shadow=0.2)
+        img = part(img, polyline([(0, 0.3), (0.2, 0.12)], wx, wy) - 0.024, hm, 0.025, shadow=0.2)
+        img = part(img, ellipse(0, 0.3, 0.1, 0.07, wx, wy), hm, 0.06, shadow=0.3)
+        img = part(img, polyline([(0, 0.3), (0, ocy - 0.4)], wx, wy) - 0.012, hm, 0.015, shadow=0.0)
     elif holder == "cage":
         img = orb()
         for k, a in enumerate((0.0, 0.5, 1.0, 1.5, 2.0, 2.5)):
@@ -282,7 +308,14 @@ def focus(img, o):
         cy = -0.12
         rr = 0.44
         img = part(img, segment(0, 0.98, 0, cy + rr, wx, wy) - 0.058, sm, 0.06, tex=0.35, texmap=tex)
-        img = orb_glass(img, 0.0, cy, r * 0.85, od, ol, oh, o.get("halo", 0.5), 0.7, seed + 7)
+        if o.get("clapper_in"):
+            img = add(img, C(oh), np.exp(-np.hypot(x, y - cy) / 0.3) * 0.35)
+            img = part(img, segment(0, cy - rr + 0.04, 0, cy + 0.1, wx, wy) - 0.018, "darkiron", 0.02, shadow=0.2)
+            img = part(img, circle(0, cy + 0.2, 0.15, wx, wy), hm, 0.15, shadow=0.45, relief=1.2)
+            for sg in (-1, 1):
+                img = add(img, C(ol), np.exp(-np.abs(ellipse(sg * 0.0, cy + 0.2, 0.3 + 0.0, 0.3, wx, wy) - 0.0) / 0.01) * (np.sign(wx) == sg) * (np.abs(wx) > 0.2) * 0.4)
+        else:
+            img = orb_glass(img, 0.0, cy, r * 0.85, od, ol, oh, o.get("halo", 0.5), 0.7, seed + 7)
         rsd = np.abs(circle(0, cy, rr, wx, wy)) - 0.052
         img = part(img, rsd, hm, 0.055, shadow=0.45)
         if o.get("hook"):
@@ -295,6 +328,10 @@ def focus(img, o):
         img = part(img, horn, hm, 0.09, tex=0.2)
         img = part(img, stadium(0, -0.25, 0.4, 0.04, wx, wy), hm, 0.04, shadow=0.1)
         img = part(img, box(0, 0.2, 0.12, 0.014, wx, wy), "gilt", 0.02, shadow=0.0)
+        if o.get("sound"):
+            for k in range(3):
+                arc = np.abs(ellipse(0, -0.5, 0.3 + 0.13 * k, 0.12 + 0.07 * k, wx, wy)) - 0.006
+                img = add(img, C(ol), smooth(arc) * (wy < -0.5) * (0.55 - 0.15 * k))
     elif holder == "rope":
         cy = 0.0
         img = twist_ring(img, 0, cy, 0.4, 0.13, 0.05, "#3a2a14", "#b89a68", back="back", shadow=0.0)
@@ -302,6 +339,14 @@ def focus(img, o):
         img = twist_ring(img, 0, cy, 0.4, 0.13, 0.05, "#3a2a14", "#b89a68", back="front")
         img = knot(img, 0.0, cy + 0.15, 0.07, "#3a2a14", "#b89a68", seed)
         img = knot(img, 0.0, 0.25, 0.06, "#3a2a14", "#b89a68", seed + 3)
+        if o.get("bell"):
+            bw = 0.05 + 0.17 * np.clip((wy - 0.3) / 0.25, 0, 1) ** 0.6
+            img = part(img, np.maximum(np.abs(wx - 0.3) - bw, np.maximum(0.3 - wy, wy - 0.56)), "bronze", 0.12, shadow=0.5)
+            img = part(img, stadium(0.3, 0.56, 0.22, 0.018, wx, wy), "bronze", 0.03, shadow=0.1)
+            img = part(img, segment(0.12, 0.15, 0.3, 0.3, wx, wy) - 0.014, ("#3a2a14", "#b89a68", "#fff0d0"), 0.02, shadow=0.2)
+            for k in range(2):
+                a2 = np.abs(ellipse(0.3, 0.45, 0.3 + 0.12 * k, 0.28 + 0.1 * k, wx, wy)) - 0.007
+                img = add(img, C(ol), smooth(a2) * (wx > 0.52 - 0.0) * 0.5 * (1 - 0.3 * k))
     elif holder == "crook":
         pts = [(0.0, 0.32), (0.0, -0.1), (0.04, -0.46), (0.3, -0.6), (0.52, -0.42), (0.46, -0.16)]
         img = orb_glass(img, 0.22, -0.3, r * 0.8, od, ol, oh, o.get("halo", 0.5), 0.7, seed + 7)
@@ -343,6 +388,22 @@ def focus(img, o):
             img = over(img, C("#4a6a2a") * (0.7 + 0.5 * nz(10, k))[..., None], smooth(ellipse(mx, 0.02 + 0.05 * (k % 2), 0.07, 0.05, wx, wy)) * 0.9)
     if o.get("runes"):
         img = add(img, C(oh), np.exp(-np.abs(ellipse(0, ocy, r * 1.4, r * 1.4)) / 0.02) * 0.25)
+    if o.get("notches"):                          # a tally-stick shaft
+        for k in range(9):
+            yy = 0.4 + k * 0.065
+            wet = o.get("notch_col", "#2a1a0a")
+            img = over(img, C(wet), smooth(box(0.0, yy, 0.05 + 0.02 * (k % 3), 0.011, wx, wy)) * 0.9)
+    if o.get("thorns"):                           # a briar grown round it
+        pts = [(-0.05, 0.9), (0.12, 0.62), (-0.14, 0.38), (0.2, 0.12), (-0.3, -0.05), (-0.44, -0.3), (-0.36, -0.56)]
+        img = part(img, polyline(pts, wx, wy) - 0.022, "darkleather", 0.025, shadow=0.35)
+        for (tx, ty) in [(0.12, 0.62), (-0.14, 0.38), (0.2, 0.12), (-0.3, -0.05), (-0.44, -0.3)]:
+            img = part(img, segment(tx, ty, tx + 0.09, ty - 0.08, wx, wy) - 0.012, "darkleather", 0.012, shadow=0.0)
+            img = part(img, segment(tx, ty, tx - 0.08, ty + 0.06, wx, wy) - 0.012, "darkleather", 0.012, shadow=0.0)
+    if o.get("armillary"):
+        for k, (ang, rxx, ryy) in enumerate([(0.0, 0.46, 0.14), (1.05, 0.46, 0.14), (-1.05, 0.46, 0.14)]):
+            uu, vv = rot(0, ocy, ang, wx, wy)
+            ring = np.abs(ellipse(0, 0, rxx, ryy, uu, vv)) - 0.014
+            img = part(img, ring, hm, 0.02, shadow=0.15)
     return img
 
 
@@ -356,12 +417,17 @@ def vestment(img, o):
     wx, wy = wx * 1.1, (wy - 0.04) * 1.1
     hem = 0.82
     notch = None
+    jag = 0.05 * np.abs(np.sin(wx * 26)) if o.get("jag") else 0.0
     if form == "stole":
         flare = 0.14 + 0.07 * np.clip((wy + 0.5) / 1.3, 0, 1)
         sway = 0.03 * np.sin(wy * 3 + seed)
         spread = 0.2 + 0.1 * np.clip((wy + 0.5) / 1.3, 0, 1)
-        left = np.maximum(np.abs(wx + spread - sway) - flare, np.maximum(-0.5 - wy, wy - hem))
-        right = np.maximum(np.abs(wx - spread - sway) - flare, np.maximum(-0.5 - wy, wy - hem))
+        pend = 0.1 if o.get("ends") == "pointed" else 0.0
+        left = np.maximum(np.abs(wx + spread - sway) - flare, np.maximum(-0.5 - wy, wy - hem - jag))
+        right = np.maximum(np.abs(wx - spread - sway) - flare, np.maximum(-0.5 - wy, wy - hem - jag))
+        if pend:
+            left = np.maximum(left, (wy - hem + 0.9 * np.abs(wx + spread - sway)) * 0.7 - 0.02)
+            right = np.maximum(right, (wy - hem + 0.9 * np.abs(wx - spread - sway)) * 0.7 - 0.02)
         arc = np.abs(ellipse(0, -0.5, 0.26, 0.3, wx, wy)) - 0.15
         arc = np.maximum(arc, wy - -0.45)
         sd = np.minimum(np.minimum(left, right), arc)
@@ -371,12 +437,18 @@ def vestment(img, o):
         panel = np.maximum(panel, (wy + 0.4 * np.abs(wx)) - (hem + 0.14))
         notch = (wy + 0.38 + 1.9 * np.abs(wx)) * 0.47
         sd = np.maximum(panel, -notch)
+    elif form == "shawl":
+        tw = np.clip((wy + 0.62) / 1.5, 0, 1)
+        sd = np.maximum(np.abs(wx) - 0.66 * (1 - tw) ** 0.9, -0.62 - wy + 0.07 * np.cos(wx * 5))
+        sd = np.maximum(sd, wy - 0.9)
     elif form in ("cloak", "veil"):
         tt = np.clip((wy + 0.7) / 1.55, 0, 1)
         wdt = 0.27 + (0.54 if form == "cloak" else 0.3) * tt ** 0.85
         scallop = 0.05 * np.sin(wx * 16 + seed) if form == "cloak" else 0.05 * np.sin(wx * 22) - 0.04 * np.abs(wx)
         body = np.maximum(np.abs(wx) - wdt, np.maximum(-0.6 - wy, wy - hem - scallop))
         sd = np.minimum(body, ellipse(0, -0.5, 0.36, 0.17, wx, wy))
+        if o.get("hood"):
+            sd = np.minimum(sd, ellipse(0, -0.74, 0.24, 0.26, wx, wy))
     else:  # apron
         bib = np.maximum(np.abs(wx) - 0.2, np.maximum(-0.62 - wy, wy - 0.1))
         skirt = np.maximum(np.abs(wx) - 0.43 - 0.1 * np.clip((wy - 0.1), 0, 1), np.maximum(-0.1 - wy, wy - hem))
@@ -399,7 +471,7 @@ def vestment(img, o):
     inside = (m > 0.5)
     # hem band and edge stitching
     bandk = o.get("band", True)
-    if bandk and form in ("stole", "scapular", "cloak", "veil", "apron"):
+    if bandk and form in ("stole", "scapular", "cloak", "veil", "apron") and not o.get("noband"):
         hy = hem - 0.12 if form != "cloak" else hem - 0.1
         band = (wy > hy) & inside
         if form == "scapular":
@@ -446,9 +518,12 @@ def vestment(img, o):
         opening = (np.abs(wx) < (0.012 + 0.05 * tt2)) & (wy > -0.5) & inside
         lining = C(trim) * 0.5 * (0.6 + 0.5 * folds)[..., None]
         img = over(img, lining * (0.6 + 0.5 * tt2)[..., None] if False else lining, opening * 0.9)
-        col_sd = ellipse(0, -0.56, 0.26, 0.085, wx, wy)
+        col_sd = ellipse(0, -0.56, 0.26, 0.085, wx, wy) if not o.get("hood") else ellipse(0, -0.5, 0.3, 0.07, wx, wy)
         img = part(img, col_sd, (C(base) * 0.6, C(light) * 0.85, C(light)) if False else (base, light, light), 0.08, shadow=0.35, relief=0.8, shine=8)
-        img = over(img, C("#050405"), smooth(ellipse(0, -0.55, 0.16, 0.045, wx, wy)) * 0.85)
+        if o.get("hood"):
+            img = over(img, C("#050405"), smooth(ellipse(0, -0.68, 0.11, 0.14, wx, wy)) * 0.95)
+        else:
+            img = over(img, C("#050405"), smooth(np.abs(ellipse(0, -0.52, 0.25, 0.07, wx, wy)) - 0.006) * (wy > -0.52) * 0.55)
     if form == "cloak":
         for sgn in (-1, 1):
             img = part(img, circle(sgn * 0.16, -0.46, 0.04, wx, wy), o.get("clasp", "gilt"), 0.04, shadow=0.3)
@@ -456,6 +531,36 @@ def vestment(img, o):
         img = part(img, polyline(chain, wx, wy) - 0.011, o.get("clasp", "gilt"), 0.012, shadow=0.15)
         img = part(img, circle(0.0, -0.37, 0.06, wx, wy), o.get("clasp", "gilt"), 0.06, shadow=0.4)
         img = over(img, C("#3a1a10"), smooth(circle(0, -0.37, 0.02, wx, wy)))
+    if form == "shawl":
+        for sgn in (-1, 1):
+            for k in range(18):
+                t = k / 17.0
+                ex_, ey_ = sgn * 0.66 * (1 - t) ** 0.9, -0.62 + 1.52 * t
+                img = over(img, C(trim) * (0.6 + 0.4 * ((k * 7) % 3) / 2.0), smooth(segment(ex_, ey_, ex_ + sgn * 0.07, ey_ + 0.06, wx, wy) - 0.007) * 0.95)
+    if o.get("script"):                          # written lines running down the lining
+        rng = np.random.default_rng(seed)
+        for k in range(14):
+            yy = -0.4 + k * 0.085
+            for bx in (-0.3, 0.3):
+                ln = rng.uniform(0.1, 0.24)
+                img = over(img, C("#2a1808"), smooth(box(bx + rng.uniform(-0.03, 0.03), yy, ln * 0.5, 0.008, wx, wy)) * inside * 0.55)
+    if o.get("stitchneck"):                      # the throat stitched shut
+        for k in range(7):
+            tx = -0.24 + k * 0.08
+            img = over(img, C("#e8e0cc"), smooth(segment(tx - 0.035, -0.9, tx + 0.035, -0.74, wx, wy) - 0.008) * 0.9)
+            img = over(img, C("#e8e0cc"), smooth(segment(tx - 0.035, -0.74, tx + 0.035, -0.9, wx, wy) - 0.008) * 0.9)
+    if o.get("crust"):
+        cr = cracks(seed, 6.0, 0.05)
+        img = add(img, C(o["crust"]), cr * inside * 0.9)
+        img = over(img, C("#140c08"), (1 - cr) * inside * (nz(14, seed + 2) > 0.55) * 0.5)
+    if o.get("rush"):
+        wv = np.sin((wx + wy) * 48) * np.sin((wx - wy) * 48)
+        img = over(img, C("#10180a"), np.clip(wv, 0, 1) * inside * 0.45)
+        img = add(img, C("#ff7a2a"), np.exp(-np.abs(sd) / 0.02) * inside * 0.0 + np.exp(-np.maximum(-sd, 0) / 0.012) * inside * 0.5)
+    if o.get("menhirs"):
+        for k, (mx, mh) in enumerate([(-0.2, 0.15), (0.02, 0.2), (0.22, 0.12)]):
+            mm = np.maximum(np.abs(wx - mx) - 0.045 + 0.025 * np.clip((0.48 - mh - wy) * -1, 0, 1), np.maximum(0.5 - mh - wy, wy - 0.5))
+            img = part(img, mm, "stone", 0.04, shadow=0.3)
     if form == "veil":
         img = part(img, stadium(0, -0.62, 0.17, 0.028, wx, wy), "gilt", 0.03, shadow=0.3)
         lace = (np.sin(wx * 38) * np.sin((wy - hem) * 38) > 0.2) & (wy > hem - 0.2) & inside
@@ -559,8 +664,26 @@ def lantern(img, o):
         img = add(img, C("#ff9a40"), np.exp(-k / 0.012) * gm * 0.9)
         img = over(img, C("#ffe0a0"), smooth(k - 0.005) * gm)
     if o.get("brine"):
-        img = over(img, C("#e8f0ee"), smooth(wy - 0.3 + 0.03 * np.sin(wx * 20)) * gm * 0.6)
-        img = add(img, C("#f4faf8"), (nz(90, seed, octaves=1) > 0.78) * gm * 0.35)
+        rim_in = ss(-0.05, -0.004, glass) * gm                                  # crust grown from the wall inwards
+        crust = np.clip(rim_in * (0.2 + 0.8 * nz(30, seed, octaves=3)) - 0.1, 0, 1)
+        img = over(img, C("#eef4f2"), crust * 0.9)
+        img = over(img, C("#d8e4e6"), smooth(0.36 - wy - 0.04 * np.sin(wx * 18)) * gm * 0.7)
+        for k in range(9):
+            kx_ = -0.2 + 0.05 * k
+            img = over(img, C("#ffffff"), smooth(segment(kx_, 0.34, kx_ + 0.01, 0.26 - 0.04 * (k % 3), wx, wy) - 0.008) * gm * 0.8)
+    if o.get("figure"):                          # a shape in the fog, walking
+        fg = np.minimum(circle(0.0, -0.06, 0.05, wx, wy), np.maximum(np.abs(wx) - 0.07 * (1 + (wy + 0.02) * 1.5), np.maximum(-0.02 - wy, wy - 0.3)))
+        img = over(img, C("#0a0a10"), smooth(fg) * gm * 0.85)
+    if o.get("dirt"):
+        img = over(img, C("#2a1c10"), np.clip(nz(16, seed + 8, px=wx, py=wy * 0.6 - 1.0) * 2.0 - 0.9, 0, 1) * gm * 0.8)
+        img = over(img, C("#3a2a18"), smooth(0.38 - wy - 0.05 * np.sin(wx * 17)) * gm * 0.9)
+    if o.get("thumb"):
+        tp = np.abs(ellipse(0.08, 0.08, 0.07, 0.1, wx, wy))
+        img = over(img, C("#1a1008"), smooth(tp - 0.007) * gm * np.sin(tp * 260) ** 2 * 0.6)
+    if o.get("note"):
+        img = over(img, C("#fff4ff"), smooth(circle(-0.03, 0.2, 0.05, wx, wy)) * gm * 0.9)
+        img = over(img, C("#fff4ff"), smooth(box(0.0, 0.04, 0.011, 0.16, wx, wy)) * gm * 0.9)
+        img = over(img, C("#fff4ff"), smooth(segment(0.01, -0.1, 0.1, -0.03, wx, wy) - 0.012) * gm * 0.9)
     if form == "horn":
         ridge = 0.5 + 0.5 * np.sin((wy - top) * 42 + nz(4, seed) * 3)
         img = over(img, C("#1a1008"), gm * ridge * 0.22)
@@ -598,6 +721,8 @@ def lantern(img, o):
         img = over(img, C("#050405"), smooth(np.abs(glass + 0.012) - 0.01) * 0.0)
     # caps
     capw = {"horn": 0.2, "bulb": 0.17, "gothic": 0.3, "censer": 0.12, "coin": 0.36, "cylinder": 0.3}[form]
+    if o.get("bail"):                            # a wire bail instead of the ring
+        img = part(img, np.abs(ellipse(0, ct - 0.1, 0.34, 0.3, wx, wy)) - 0.012, metal, 0.015, shadow=0.2) * 1.0 if False else img
     img = part(img, stadium(0, bot + 0.04 if form != "bulb" else 0.46, capw * 1.1 + 0.05, 0.075, wx, wy), metal, 0.075, shadow=0.45, tex=0.2)
     ct = top - 0.02 if form not in ("bulb", "censer") else (top - 0.04)
     if form == "gothic":
@@ -648,7 +773,7 @@ def Image_fire(img, cx, cy, h, w, seed, kind):
     return f
 
 
-from motifs import fire, flame_sd  # noqa: E402
+from motifs import fire, flame_sd, cracks  # noqa: E402
 
 
 def girdle(img, o):
@@ -728,6 +853,9 @@ def girdle(img, o):
             img = part(img, np.abs(circle(0.55, 0.0, 0.11, u, v)) - 0.026, "bronze", 0.03, shadow=0.4)
     elif form == "cord":
         cx, cy = 0.0, -0.08
+        if o.get("steps"):                       # the Stair: stone treads behind the roped coil
+            for k, (sx_, sy_, sw_) in enumerate([(0.16, 0.72, 0.62), (0.3, 0.52, 0.5), (0.44, 0.32, 0.38), (0.58, 0.12, 0.26)]):
+                img = part(img, box(sx_, sy_, sw_ * 0.5, 0.1, wx, wy), "stone", 0.08, shadow=0.4, tex=0.35)
         thick = o.get("thick", 0.055)
         rx, ry = o.get("rx", 0.62), o.get("ry", 0.5)
         img = twist_ring(img, cx, cy, rx, ry, thick, base, light, strands=o.get("strands", 36), seed=seed, shadow=0.5)
@@ -748,6 +876,13 @@ def girdle(img, o):
             pts = [(bx, by), (bx + sgn * 0.06, by + 0.14), (bx + sgn * 0.13, by + 0.26)]
             img = part(img, polyline(pts, wx, wy) - thick * 0.62, (base, light, "#fff0d0"), 0.04, shadow=0.4)
             img = tassel(img, bx + sgn * 0.13, by + 0.25, 0.1, 0.12, base, light, seed + int(sgn + 3))
+        if o.get("hook"):                        # an iron towing hook swung from the end
+            hp = [(bx, by + 0.28), (bx, by + 0.42), (bx + 0.1, by + 0.5), (bx + 0.2, by + 0.4)]
+            img = part(img, np.abs(circle(bx, by + 0.26, 0.04, wx, wy)) - 0.014, "iron", 0.02, shadow=0.2)
+            img = part(img, polyline(hp, wx, wy) - 0.026, "iron", 0.03, shadow=0.35)
+            img = part(img, segment(bx + 0.2, by + 0.4, bx + 0.17, by + 0.32, wx, wy) - 0.03, "iron", 0.03, shadow=0.2)
+        if o.get("sparks"):
+            img = add(img, C("#ff9a3a"), sparks(24, seed + 3, (-0.7, -0.6, 0.7, 0.8), (0.004, 0.009)) * 0.9)
         if o.get("bell"):
             bwid = 0.05 + 0.15 * np.clip((wy - (by + 0.26)) / 0.26, 0, 1) ** 1.4
             img = part(img, np.maximum(np.abs(wx - bx) - bwid, np.maximum((by + 0.2) - wy, wy - (by + 0.5))) if False else np.maximum(np.abs(wx - bx) - bwid, np.maximum(by + 0.22 - wy, wy - by - 0.46)), "bronze", 0.1, shadow=0.5)
@@ -786,10 +921,17 @@ def girdle(img, o):
                 img = part(img, bsd, "bronze", 0.12, shadow=0.5)
                 img = part(img, stadium(ex, ey + 0.34, 0.22, 0.018, wx, wy), "bronze", 0.03, shadow=0.1)
                 img = part(img, circle(ex, ey + 0.39, 0.04, wx, wy), "darkiron", 0.04, shadow=0.0)
+            elif o.get("latch") and sgn == 1:
+                img = part(img, box(ex - 0.02, ey + 0.12, 0.09, 0.13, wx, wy), "iron", 0.06, shadow=0.4)
+                img = part(img, segment(ex - 0.2, ey + 0.1, ex + 0.08, ey + 0.2, wx, wy) - 0.022, "darkiron", 0.025, shadow=0.3)
+                img = part(img, circle(ex - 0.02, ey + 0.12, 0.035, wx, wy), "bronze", 0.035, shadow=0.0)
+                img = part(img, np.abs(circle(ex - 0.2, ey + 0.1, 0.045, wx, wy)) - 0.014, "iron", 0.02, shadow=0.2)
             else:
                 img = tassel(img, ex, ey + 0.02, 0.16, 0.12, base, light, seed + int(sgn + 3))
+        if o.get("sparks"):
+            img = add(img, C("#ff9a3a"), sparks(26, seed + 3, (-0.8, -0.5, 0.8, 0.8), (0.004, 0.009)) * 0.9)
     elif form == "chain":
-        cx, cy, rx, ry = 0.0, -0.05, 0.6, 0.48
+        cx, cy, rx, ry = (0.0, -0.2, 0.55, 0.4) if o.get("anchor") else (0.0, -0.05, 0.6, 0.48)
         n = o.get("links", 18)
         cm = o.get("metal", "iron")
         for k in range(n):
@@ -803,8 +945,14 @@ def girdle(img, o):
                 ls = np.abs(ellipse(0, 0, 0.1, 0.034, uu, vv)) - 0.022
             img = part(img, ls, cm, 0.026, shadow=0.35, relief=1.0)
         if o.get("hang"):
-            for k in range(3):
+            for k in range(2 if o.get("anchor") else 3):
                 img = part(img, np.abs(stadium(0.0, cy + ry + 0.15 + k * 0.1, 0.05, 0.035, wx, wy)) - 0.016, cm, 0.02, shadow=0.3)
+        if o.get("anchor"):
+            img = part(img, polyline([(0, 0.52), (0, 0.9)], wx, wy) - 0.03, cm, 0.03, shadow=0.35)
+            img = part(img, segment(-0.12, 0.6, 0.12, 0.6, wx, wy) - 0.026, cm, 0.03, shadow=0.3)
+            img = part(img, polyline([(-0.26, 0.76), (-0.16, 0.9), (0, 0.94), (0.16, 0.9), (0.26, 0.76)], wx, wy) - 0.028, cm, 0.03, shadow=0.35)
+            for sg in (-1, 1):
+                img = part(img, segment(sg * 0.26, 0.76, sg * 0.2, 0.7, wx, wy) - 0.04, cm, 0.04, shadow=0.2)
     elif form == "beads":
         cx, cy, rx, ry = 0.0, -0.05, 0.6, 0.48
         n = o.get("links", 16)
@@ -814,6 +962,11 @@ def girdle(img, o):
             bx, by = cx + rx * np.cos(a), cy + ry * np.sin(a)
             r = 0.075 + 0.02 * ((k % 3) == 0)
             bd = circle(bx, by, r, wx, wy)
+            if o.get("bead_shape") == "bone":
+                tg = np.arctan2(ry * np.cos(a), -rx * np.sin(a))
+                uu, vv = rot(bx, by, tg, wx, wy)
+                bd = np.minimum(stadium(0, 0, 0.085, 0.042, uu, vv), np.minimum(np.minimum(circle(-0.085, 0.032, 0.036, uu, vv), circle(-0.085, -0.032, 0.036, uu, vv)), np.minimum(circle(0.085, 0.032, 0.036, uu, vv), circle(0.085, -0.032, 0.036, uu, vv))))
+                r = 0.07
             d, s, h = bevel(bd, r, relief=1.3, shine=30)
             sh = blur(np.roll(np.roll(smooth(bd), 4, axis=1), 5, axis=0), 3.0)
             img = img * (1 - 0.5 * sh * (1 - smooth(bd)))[..., None]

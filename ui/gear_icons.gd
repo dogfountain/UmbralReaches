@@ -45,11 +45,26 @@ static func ghost(slot: String) -> Texture2D:
 	return IconArt.art("gear", slot + "_0")
 
 
-## Paint a piece into `rect` on any CanvasItem: its art, else the slot glyph in its rarity colour.
+## One small gem along the bottom of `rect` for each affix line the piece rolled.
+static func draw_pips(ci: CanvasItem, p: Dictionary, rect: Rect2, alpha := 1.0) -> void:
+	var n := (p.get("aff", []) as Array).size()
+	if n <= 0:
+		return
+	var col := LootDB.quality_color(int(p.get("rarity", 0))).lightened(0.35)
+	var r := maxf(rect.size.x * 0.05, 2.5)
+	for i in n:
+		var c := Vector2(rect.get_center().x + (float(i) - float(n - 1) * 0.5) * r * 2.9, rect.end.y - r * 1.9)
+		ci.draw_circle(c, r + 1.3, Color(0, 0, 0, 0.85 * alpha))
+		ci.draw_circle(c, r, Color(col, alpha))
+		ci.draw_circle(c + Vector2(-r * 0.3, -r * 0.3), r * 0.35, Color(1, 1, 1, 0.7 * alpha))
+
+
+## Paint a piece into `rect` on any CanvasItem: its art and affix gems, else the slot glyph in its rarity colour.
 static func draw_piece(ci: CanvasItem, p: Dictionary, rect: Rect2, tint := Color.WHITE) -> void:
 	var t := painted(p)
 	if t != null:
 		IconArt.draw_square(ci, t, rect, tint)
+		draw_pips(ci, p, rect, tint.a)
 		return
 	var col := LootDB.quality_color(int(p.get("rarity", 0))).lightened(0.2)
 	Glyphs.draw(ci, String(GearDB.SLOT_GLYPH.get(String(p.get("slot", "")), "prism")), rect.get_center(), rect.size.x * 0.27, Color(col, tint.a))
