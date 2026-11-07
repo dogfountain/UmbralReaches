@@ -437,7 +437,7 @@ func _place_rider(dt: float, ph: float) -> void:
 	if _vis == null or not is_instance_valid(_vis):
 		return
 	var xf := _rig.global_transform
-	var yaw := atan2(-xf.basis.z.x, -xf.basis.z.z)
+	var yaw := atan2(xf.basis.z.x, xf.basis.z.z)        # Basis(UP, a).z = (sin a, 0, cos a): the negated form was a + PI (the rider faced the tail)
 	var fwd := Vector3(-sin(yaw), 0.0, -cos(yaw))
 	_vis.global_position = xf.origin + Vector3.UP * _seat_lift() + fwd * (0.04 * _scale())
 	_vis_yaw = lerp_angle(_vis_yaw, yaw, 1.0 - exp(-12.0 * dt))

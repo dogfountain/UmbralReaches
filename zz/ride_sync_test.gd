@@ -151,6 +151,8 @@ func _process(_dt: float) -> void:
 	_log.append({
 		"dt": get_process_delta_time(), "root": xf.origin, "pel": pel, "rel": xf.affine_inverse() * pel,
 		"pel_y_rel": pel.y - seat_top.y, "dy": float(hrig.get("last_dy")), "rsx": float(horse.get("_rs").x),
+		# both face -Z: the rider must face where the horse faces (a sign slip once sat the rider facing the tail)
+		"face": (-rig.global_basis.z).normalized().dot((-xf.basis.z).normalized()),
 	})
 
 
@@ -188,6 +190,10 @@ func _check(label: String, log: Array) -> void:
 	_ok(max_step <= MAX_REL_SPEED, "%s: the rider slides on the saddle at %.2f m/s" % [label, max_step])
 	_ok(max_jerk <= MAX_ACCEL, "%s: the rider stutters against the horse (%.0f m/s2 against the saddle)" % [label, max_jerk])
 	_ok(min_y >= seat_pel - 0.06, "%s: the pelvis sank %.1f cm below the saddle" % [label, min_y * 100.0])
+	var min_face := 1.0
+	for e: Dictionary in log:
+		min_face = minf(min_face, float(e.face))
+	_ok(min_face > 0.95, "%s: the rider does not face the horse's way (dot %.2f)" % [label, min_face])
 	_ok(dup_root == 0, "%s: %d rendered frames did not move the horse" % [label, dup_root])
 	_ok(dup_rider == 0, "%s: %d rendered frames did not move the rider" % [label, dup_rider])
 
