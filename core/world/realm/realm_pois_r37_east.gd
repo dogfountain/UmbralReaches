@@ -299,15 +299,16 @@ static func _spire(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary
 	Interiors.add("lamp_spire", xf * Vector3(0, 7.0, 0), xf.basis.get_euler().y, Vector3(2.5, 7.0, 2.5), false)       # a cold stair, its candles warm
 	for ly: float in [1.6, 5.4, 9.2]:
 		Interiors.light(host, "SpireCandles", xf * Vector3(0, ly, 1.6), Interiors.CANDLE, 1.3, 5.5, false, 0.1)
+	_plinth(host, space, xf)
 	# rock heaped at the foot, round the three sides the door is not on
 	for i in 7:
 		var a := float(i) / 7.0 * TAU + rng.randf() * 0.4
-		var q := Vector3(cos(a) * 6.4, 0.0, sin(a) * 6.4)
-		if q.z > 3.0 and absf(q.x) < 3.5:
+		var q := Vector3(cos(a) * 8.6, 0.0, sin(a) * 8.6)          # clear of the slab and its plinth (their edge is 5.2 m out, a rock 1.5 m wide)
+		if q.z > 0.0 and absf(q.x) < 7.0:
 			continue
 		var w := xf * q
-		w.y = _gy(space, w.x, w.z) - 0.3
-		P._rock(host, w, Vector3(2.2, 1.6, 2.0) * rng.randf_range(0.8, 1.3), "ash", 20 + i, rng.randf() * TAU)
+		w.y = _gy(space, w.x, w.z) - 0.45
+		P._rock(host, w, Vector3(2.2, 1.6, 2.0) * rng.randf_range(0.8, 1.3), "granite", 20 + i, rng.randf() * TAU)
 	# the great lamp: dark until the wanderer lights it
 	var lamp_at := xf * Vector3(0, LAMP_Y - 0.7, 0)
 	var state := {"lit": State.has("open", "spire_lamp")}
@@ -362,6 +363,53 @@ static func _spire(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary
 	host.set_meta("route", [xf * Vector3(0, 1.4, 6.0), xf * Vector3(0, 1.4, 3.2), xf * Vector3(-1.95, 1.4, 1.95), xf * Vector3(1.95, 27.0, -1.95), xf * Vector3(0.0, 27.4, 0.5)] as Array[Vector3])
 	host.set_meta("walk", [true, true, true, true, true])
 	host.set_meta("approach", xf * Vector3(0, 0.0, 7.5))
+
+
+const PLINTH_CELL := 1.04
+const PLINTH_BURY := 1.6
+
+## The tower's slab (10.4 m square) and its steps were modelled on a level top and the bluff falls away
+## under their edges: a column of dressed stone is built under each cell of the footprint down to its lowest
+## ground (and well below, into it), so the base meets the land on every side, however it falls.
+static func _plinth(host: Node3D, space: PhysicsDirectSpaceState3D, xf: Transform3D) -> void:
+	var k := OssKit.new()
+	k.keep_lanes = false
+	var cells: Array = []             # [centre x, centre z, size x, size z] in the tower's frame
+	var half := 5.2
+	var n := roundi(half * 2.0 / PLINTH_CELL)
+	for ix in n:
+		for iz in n:
+			cells.append([-half + (float(ix) + 0.5) * PLINTH_CELL, -half + (float(iz) + 0.5) * PLINTH_CELL, PLINTH_CELL, PLINTH_CELL])
+	for sx: float in [-1.2, 0.0, 1.2]:          # the steps in front of the door
+		cells.append([sx, half + 1.0, 1.2, 2.0])
+	for c: Array in cells:
+		var lo := INF
+		var cx: float = c[0]
+		var cz: float = c[1]
+		var hx: float = float(c[2]) * 0.5
+		var hz: float = float(c[3]) * 0.5
+		for dx: float in [-1.0, 0.0, 1.0]:
+			for dz: float in [-1.0, 0.0, 1.0]:
+				var w := xf * Vector3(cx + dx * hx, 0.0, cz + dz * hz)
+				lo = minf(lo, _gy(space, w.x, w.z))
+		var top := xf.origin.y + 0.06
+		if lo > xf.origin.y - 0.05:
+			continue
+		var bottom := lo - PLINTH_BURY
+		var mid := xf * Vector3(cx, 0.0, cz)
+		mid.y = (top + bottom) * 0.5
+		k.box("stone", mid, Vector3(float(c[2]) + 0.02, top - bottom, float(c[3]) + 0.02), xf.basis, true, 1.0)
+	var holder := Node3D.new()
+	holder.name = "SpirePlinth"
+	host.add_child(holder)
+	holder.global_transform = Transform3D.IDENTITY
+	k.commit(holder, "Body")
+	# the same stone as the tower above it, a shade paler: it stands in the tower's shadow
+	var lit := (OssKit.mat("stone") as StandardMaterial3D).duplicate() as StandardMaterial3D
+	lit.albedo_color = lit.albedo_color * 1.8
+	for c in holder.get_children():
+		if c is MeshInstance3D:
+			(c as MeshInstance3D).material_override = lit
 
 
 # --- The hamlet ---------------------------------------------------------------------------------------
