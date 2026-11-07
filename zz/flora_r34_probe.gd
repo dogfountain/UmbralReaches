@@ -19,7 +19,7 @@ func _process(_d: float) -> void:
 			at = Vector2(float(v[0]), float(v[1]))
 		elif a.begins_with("--r="):
 			r = float(a.trim_prefix("--r="))
-	for it: Array in Flora.instances:
+	for it: Array in Flora.instance_list():
 		var p: Vector3 = it[1]
 		if Vector2(p.x, p.z).distance_to(at) < r:
 			var sp := String(it[0])

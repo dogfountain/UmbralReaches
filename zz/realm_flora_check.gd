@@ -42,7 +42,7 @@ func _check(main: Node) -> void:
 	var in_site := 0
 	var wet := 0
 	var worst := ""
-	for e: Array in Flora.instances:
+	for e: Array in Flora.instance_list():
 		var id: String = e[0]
 		var p: Vector3 = e[1]
 		var sp := id.substr(0, id.rfind("_"))
@@ -77,7 +77,7 @@ func _check(main: Node) -> void:
 			floating += 1
 			if worst == "": worst = "%s floats %.2f at %s" % [tr[1], gap, b]
 	if floating > 0: bad.append("%d trunks float" % floating)
-	print("FLORA_CHECK trees %d, instances %d, max trunk gap %.2f, build %d ms" % [Flora.trees.size(), Flora.instances.size(), max_gap, Flora.build_ms])
+	print("FLORA_CHECK trees %d, instances %d, max trunk gap %.2f, build %d ms" % [Flora.trees.size(), Flora.instance_list().size(), max_gap, Flora.build_ms])
 	if Flora.build_ms > 4000: bad.append("build %d ms > 4000" % Flora.build_ms)
 	if worst != "": print("FLORA_CHECK first offender: ", worst)
 	print("FLORA_CHECK ", "PASS" if bad.is_empty() else "FAIL " + ", ".join(bad))

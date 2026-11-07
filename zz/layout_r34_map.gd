@@ -205,7 +205,7 @@ func _census() -> void:
 	var reg := func(p: Vector3) -> String:
 		return String(RealmLayout.region_at(p.x, p.z).get("id", "-"))
 	var flora_s: GDScript = load("res://core/world/realm/realm_flora.gd")
-	for it: Array in flora_s.get("instances"):
+	for it: Array in flora_s.instance_list():
 		add.call(reg.call(it[1]), "flora", 1)
 	for tr: Array in flora_s.get("trees"):
 		add.call(reg.call(tr[0]), "trees", 1)
