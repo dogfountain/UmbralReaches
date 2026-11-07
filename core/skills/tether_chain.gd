@@ -81,6 +81,7 @@ func _ready() -> void:
 	_mm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_mm.material_override = _link_mat
 	_mm.extra_cull_margin = 30.0
+	_mm.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # its links are rewritten every rendered frame
 	add_child(_mm)
 	_im = ImmediateMesh.new()
 	_ribbon = MeshInstance3D.new()

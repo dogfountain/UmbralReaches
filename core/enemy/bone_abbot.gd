@@ -574,7 +574,8 @@ func _tolling() -> void:
 	var ba := deg_to_rad(float(bells[bi]))
 	var away := Vector3(-cos(ba), 0.0, -sin(ba))
 	var hole := Vector3(c.x, c.y, c.z) + away * SHADOW_AT
-	_hall.call("toll", bi)
+	if _hall_ok():
+		_hall.call("toll", bi)
 	BossKit.cast(self, "The Tolling", TOLL_TIME)
 	BossKit.emote(self, "He raises his crozier to the %s bell." % ["east", "south", "west", "north"][bi])
 	BossKit.zone(get_parent(), Vector3(c.x, c.y, c.z), TOLL_TIME, TOLL_GLOOM, {"by": self, "radius": 27.5, "color": BossKit.BONE,
@@ -589,11 +590,12 @@ func _tolling() -> void:
 	if _state != DEAD:
 		_set_state(RECOVER)
 		_state_t = -(TOLL_TIME - recover_time)
-	var hall_id := _hall.get_instance_id()
-	get_tree().create_timer(TOLL_TIME, false).timeout.connect(func() -> void:
-		var h := instance_from_id(hall_id) as Node3D
-		if h and is_instance_valid(self) and is_alive():
-			Kit.play("bell_great", h.call("bell_at", bi), 8.0, 0.66))
+	if _hall_ok():
+		var hall_id := _hall.get_instance_id()
+		get_tree().create_timer(TOLL_TIME, false).timeout.connect(func() -> void:
+			var h := instance_from_id(hall_id) as Node3D
+			if h and is_instance_valid(self) and is_alive():
+				Kit.play("bell_great", h.call("bell_at", bi), 8.0, 0.66))
 	if phase == 1:
 		_sig += 1
 

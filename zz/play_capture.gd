@@ -30,7 +30,8 @@ const ENEMY_SETS := {
 	"enemies_c": ["bulwark", "chanter", "burrower", "mite"],
 	"enemies_d": ["quiller", "tollman", "pilgrim", "cinder_caster"],
 }
-const ARENA_BOSSES := {"thornwarden": ["thornwarden", "henge"], "ascended_warden": ["ascended_warden", "summit"]}
+const ARENA_BOSSES := {"thornwarden": ["thornwarden", "henge"], "ascended_warden": ["ascended_warden", "summit"],
+	"bone_abbot": ["bone_abbot", ""], "anchoress": ["r37_anchoress", ""], "hierarch_voice": ["r37_hierarch", ""]}
 const BOSS_SETS := {
 	"bosses_a": ["bone_abbot", "thornwarden"],
 	"bosses_b": ["ascended_warden", "brood_mother", "tally_reliquary"],
@@ -110,6 +111,8 @@ var perf_skip := 0
 var f_ms := PackedFloat32Array()
 var f_dc := PackedInt32Array()
 var f_pr := PackedInt64Array()
+var spikes: Array = []                 ## [marker, ms] for every frame over 20 ms
+var _mark := ""                        ## the step the harness is in (a still or a strip), named in the spike list
 var perf_segs: Array = []              ## [label, first frame index, last frame index]
 var _seg_label := ""
 var _seg_from := 0
@@ -148,6 +151,8 @@ func _ready() -> void:
 			time_limit = float(a.trim_prefix("--timeout="))
 		elif a == "--nolit":
 			nolit = true
+		elif a == "--lightlog":
+			get_tree().node_removed.connect(_on_node_removed)
 	if only.is_empty():
 		only = ["horse"]
 	# a new game would hold the spells back and the story's doors shut: stage the progress the panel should see
@@ -164,6 +169,13 @@ func _ready() -> void:
 	get_tree().root.add_child.call_deferred(main)
 	process_physics_priority = 100              # after the actors, so the follow camera sees this tick's positions
 	print("PLAYCAP start sections=", only, " out=", out_root, " headless=", headless)
+
+
+## --lightlog: every light that leaves the tree, with where it was (tracks down the engine's "did not unpair" BUG).
+func _on_node_removed(n: Node) -> void:
+	if n is Light3D and n.is_inside_tree():
+		var l := n as Light3D
+		print("LIGHTFREE ", l.get_path(), " class ", l.get_class(), " at ", l.global_position, " scale ", l.global_basis.get_scale(), " vis ", l.visible, " shadow ", l.shadow_enabled)
 
 
 func _process(delta: float) -> void:
@@ -184,6 +196,8 @@ func _process(delta: float) -> void:
 			perf_skip -= 1
 		else:
 			f_ms.append(delta * 1000.0)
+			if delta > 0.02:
+				spikes.append([_mark, snappedf(delta * 1000.0, 0.1)])
 			f_dc.append(int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)))
 			f_pr.append(int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME)))
 	if not started and is_instance_valid(main) and main.has_meta("realm_done"):
@@ -368,6 +382,15 @@ func _write_perf() -> void:
 	s.append("")
 	for seg: Array in perf_segs:
 		s.append("%-34s %s" % [seg[0], _stats(f_ms, f_dc, f_pr, int(seg[1]), int(seg[2]))])
+	s.append("")
+	s.append("frames over 20 ms (%d), by the last still or strip taken before them (a panel opened after a still shows under that still):" % spikes.size())
+	var by := {}
+	for sp: Array in spikes:
+		var arr: Array = by.get(sp[0], [])
+		arr.append(sp[1])
+		by[sp[0]] = arr
+	for k: String in by:
+		s.append("  %-40s %s" % [k, str(by[k])])
 	_write_text(sec_dir.path_join("perf.txt"), "\n".join(s) + "\n")
 
 
@@ -606,12 +629,27 @@ func _place_cams() -> void:
 	lit_lamp.global_position = c + Vector3(0.0, f_look + f_dist * 0.4, 0.0) + b * Vector3(f_dist * 0.8, 0.0, -f_dist * 0.3)
 
 
-## `to` pulled in front of any wall, trunk or standing stone between it and `from` (the look point).
+## A camera spot for `to` as seen from `from` (the look point): `to` itself if nothing stands between, else the same
+## spot swung round the look point (up to 80 degrees either way) to the first clear line; failing that, pulled in
+## front of the nearest wall, trunk or standing stone (walls and props both count).
 func _unblocked(from: Vector3, to: Vector3) -> Vector3:
-	var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(from, to, Layers.WORLD))
-	if hit.is_empty() or from.distance_to(hit.position) < 1.5:
-		return to
-	return (hit.position as Vector3) + (from - to).normalized() * 0.5
+	var best := to
+	var best_d := -1.0
+	for deg: float in [0.0, 22.0, -22.0, 45.0, -45.0, 70.0, -70.0]:
+		var q := from + (to - from).rotated(Vector3.UP, deg_to_rad(deg))
+		# the middle line and one 1.4 m either side of the camera, so a trunk or stone beside the lens counts too
+		var side := (q - from).cross(Vector3.UP).normalized() * 1.4
+		var d := 1.0e9
+		for off: Vector3 in [Vector3.ZERO, side, -side]:
+			var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(from, q + off, Layers.WORLD | Layers.PROPS))
+			if not hit.is_empty():
+				d = minf(d, from.distance_to(hit.position))
+		if d > 1.0e8:
+			return q
+		if d > best_d:
+			best_d = d
+			best = (from + (q - from).normalized() * (d - 0.5)) if d >= 2.0 else to
+	return best
 
 
 ## Both views at once. Returns [side, 3q] images (null images headless).
@@ -686,6 +724,7 @@ func _save_sheet(stem: String, frames: Array, times: Array, desc: String) -> voi
 ## N frames, `dt` apart, from now. `acts` is [[frame index, Callable], ...] run just before that frame is shot.
 ## Writes <stem>_side.png / <stem>_3q.png (the contact sheets) and one lit still of each view at mid strip.
 func _strip(stem: String, n: int, dt: float, desc: String, acts: Array = []) -> void:
+	_mark = stem
 	_perf_begin(stem)
 	var fs: Array = []
 	var fq: Array = []
@@ -732,6 +771,7 @@ func _strip(stem: String, n: int, dt: float, desc: String, acts: Array = []) -> 
 
 ## One still of the main view (HUD and all if the UI is showing).
 func _still(file: String, desc: String, settle := 8) -> void:
+	_mark = file
 	for i in settle:
 		await get_tree().process_frame
 	if headless:
@@ -1228,7 +1268,7 @@ func _boss_family(kind: String) -> void:
 		if b == null:
 			_fail("%s: the arena never started the fight; staged in the open instead" % kind)
 	if b == null:
-		var bpos0 := studio + fwd * 9.0
+		var bpos0 := studio + fwd * 6.5
 		var stub := Node3D.new()
 		main.add_child(stub)
 		stub.add_to_group(&"cap_extra")
@@ -1241,11 +1281,14 @@ func _boss_family(kind: String) -> void:
 			b.call("on_engaged", stub)
 	var stand_at := p.global_position
 	await _frames(20)
+	if not is_instance_valid(b):
+		_fail("%s: the boss was gone 20 frames after the pull (the arena reset it?)" % kind)
+		return
 	var h: float = maxf(b.hp_bar_y, 2.0)
 	print("PLAYCAP boss ", kind, " at ", b.global_position, " hp_bar_y ", snappedf(h, 0.1), " visible ", b.visible, " arena ", ARENA_BOSSES.has(kind))
-	var d := clampf(h * 3.0 + 14.0, 16.0, 55.0)
+	var d := clampf(h * 2.2 + (8.0 if ARENA_BOSSES.has(kind) else 3.0), 8.0, 40.0)
 	_f_on(b, _yaw_of(p.global_position - b.global_position), d, h * 0.55, h * 0.45, 0.0, p)
-	f_w = 0.28                                       # the boss fills the frame; the wanderer stays at its edge
+	f_w = 0.28 if ARENA_BOSSES.has(kind) else 0.12   # the boss fills the frame; the wanderer stays at its edge
 	# idle / intro
 	await _strip("%s_intro_idle" % kind, 16, 0.2, "%s: the intro (shelled, rising) and standing idle" % kind)
 	var moves: Array = BOSS_MOVES.get(kind, [])
@@ -1287,10 +1330,13 @@ func _boss_family(kind: String) -> void:
 ## The boss of arena `key` fought in its own arena: the seal guards go down, the wanderer walks in, the arena pulls
 ## the boss (null if it never does).
 func _arena_boss(key: String, seal: String) -> Enemy:
-	Travel.bosses_slain["bone_abbot"] = true
+	if key == "bone_abbot":
+		Travel.bosses_slain.erase("bone_abbot")
+	else:
+		Travel.bosses_slain["bone_abbot"] = true
 	if key == "ascended_warden":
 		Travel.bosses_slain["thornwarden"] = true
-	for sp in get_tree().root.find_children("EnemySpawner", "", true, false):
+	for sp in get_tree().root.find_children("EnemySpawner", "", true, false) if seal != "" else []:
 		for slot: Variant in sp._slots:
 			var pawn: Variant = slot.get("pawn")
 			if String(slot.get("seal", "")) == seal and is_instance_valid(pawn) and pawn is Enemy:
@@ -1310,6 +1356,8 @@ func _arena_boss(key: String, seal: String) -> Enemy:
 		gout.y = 0.0
 		gout = gout.normalized()
 	var at := c + gout * 12.0
+	if key == "bone_abbot":
+		at = Ossuary.abbot_pull_at()               # on the pit hall's floor, past the raid door
 	var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 4.0, at + Vector3.DOWN * 8.0, Layers.WORLD, [p.get_rid()]))
 	if not hit.is_empty():
 		at = hit.position
@@ -1317,7 +1365,7 @@ func _arena_boss(key: String, seal: String) -> Enemy:
 	var box: Array = []
 	await _wait_until(func() -> bool:
 		for e in get_tree().get_nodes_in_group(Groups.ENEMY):
-			if (e as Node).has_meta(&"boss_id") and (e as Enemy).is_alive():
+			if String((e as Node).get_meta(&"boss_id", "")) == arena.boss_id and (e as Enemy).is_alive() and not (e as Node).is_queued_for_deletion():
 				box.append(e)
 				return true
 		return false, 8.0)
