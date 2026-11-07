@@ -10,7 +10,7 @@ extends Control
 const SLOT := 78.0
 const GAP := 26.0
 const NAME_FADE := 14.0       ## names under the slots fade out after this many seconds
-const NAME_PT := 13           ## one line, body serif, on a dark plate
+const NAME_PT := 16          ## one line, body serif, on a dark plate
 const KEY_PT := 15
 const Med := preload("res://ui/medieval_style.gd")
 const UIType := preload("res://ui/type.gd")
@@ -107,7 +107,12 @@ func _draw() -> void:
 		var is_ready := _book.cooldown_left(i) <= 0.0
 		draw_style_box(Med.slot(Color(1.0, 0.82, 0.56)), r.grow(3.0))          # an iron-rimmed socket of leather
 		_bevel(r.grow(3.0))
-		_glyph(s.glyph, r.get_center(), SLOT * 0.3, s.color if is_ready else s.color.darkened(0.55))
+		var art := IconArt.art("spell", String(s.glyph))
+		if art != null:
+			IconArt.draw_square(self, art, r.grow(-1.0), Color.WHITE if is_ready else Color(0.5, 0.48, 0.56))
+			draw_rect(r.grow(-1.0), Color(0, 0, 0, 0.55), false, 1.5)      # a dark inner edge seats the picture in its socket
+		else:
+			_glyph(s.glyph, r.get_center(), SLOT * 0.3, s.color if is_ready else s.color.darkened(0.55))
 		# cooldown sweep, clockwise from 12 o'clock, plus seconds when > 1 s
 		var cr := _book.cooldown_ratio(i)
 		var gcd := _gcd_ratio() if (not _book.has_method("on_gcd") or bool(_book.call("on_gcd", i))) else 0.0
@@ -201,7 +206,8 @@ func _draw() -> void:
 		_rivet(kr.position + Vector2(kw - 4, 10), 1.3)
 		draw_string(_font, kr.position + Vector2(0, 15), key, HORIZONTAL_ALIGNMENT_CENTER, kw, KEY_PT, QUIET)
 		if s.gloom_cost > 0.0:
-			draw_string(_font, o + Vector2(0, 17), "+%d" % roundi(s.gloom_cost), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 14, COST)
+			draw_string_outline(_font, o + Vector2(0, 17), "+%d" % roundi(s.gloom_cost), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 14, 4, Color(0, 0, 0, 0.9))
+			draw_string(_font, o + Vector2(0, 17), "+%d" % roundi(s.gloom_cost), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 14, COST.lightened(0.35))
 		var act := s.active(_book)
 		if act > 0.0:
 			_anim = true
@@ -215,13 +221,15 @@ func _draw() -> void:
 			var nf := _font               # Cinzel: its lower case is small capitals, the engraved look
 			var pt := NAME_PT
 			var ww := nf.get_string_size(s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
-			if ww > SLOT + GAP - 12.0:
-				pt = maxi(11, floori(pt * (SLOT + GAP - 12.0) / ww))
+			if ww > SLOT + GAP - 8.0:
+				pt = maxi(12, floori(pt * (SLOT + GAP - 8.0) / ww))
 				ww = nf.get_string_size(s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
-			var plate := Rect2(o.x + SLOT * 0.5 - ww * 0.5 - 6.0, o.y + SLOT + 14.0, ww + 12.0, pt + 8.0)
-			draw_rect(plate, Color(0.02, 0.012, 0.01, 0.82 * name_a))
-			draw_rect(plate, Color(Med.BRONZE, 0.45 * name_a), false, 1.0)
-			draw_string(nf, Vector2(plate.position.x + 6.0, plate.position.y + pt + 2.0), s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt, Color(Med.BONE, name_a))
+			var plate := Rect2(o.x + SLOT * 0.5 - ww * 0.5 - 6.0, o.y + SLOT + 14.0, ww + 12.0, pt + 9.0)
+			draw_rect(plate, Color(0.015, 0.008, 0.006, 0.9 * name_a))
+			draw_rect(plate, Color(Med.BRONZE, 0.6 * name_a), false, 1.0)
+			var np := Vector2(plate.position.x + 6.0, plate.position.y + pt + 3.0)
+			draw_string_outline(nf, np, s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt, 5, Color(0, 0, 0, 0.9 * name_a))
+			draw_string(nf, np, s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt, Color(1.0, 0.95, 0.8, name_a))
 
 
 ## The worn-leather strip behind the row, bronze-rimmed, with a rivet in every gap and at the ends.
