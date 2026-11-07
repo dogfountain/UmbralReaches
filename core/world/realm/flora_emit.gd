@@ -171,7 +171,9 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 				meshes.append([fd.cards, "fc", NEAR_END, 0.0])
 		var per: Dictionary = items[id]
 		for key: Vector3i in per:
-			var buf: PackedFloat32Array = per[key]
+			# (packed arrays are shared on assignment: the editors rewrite this copy in place -- the
+			# clearings, the withering -- and the placement's own buffers stay as placed)
+			var buf: PackedFloat32Array = (per[key] as PackedFloat32Array).duplicate()
 			var ch := _chunk(host, chunks, key, csize, ground)
 			var n := buf.size() / 16
 			for m: Array in meshes:
