@@ -37,6 +37,11 @@ func interact_feel() -> StringName:
 	return &"talk" if get("life") != null or is_in_group("npc") else &"use"
 
 
+## True for someone who stands behind a counter: the sight test (a wall between you) does not apply to them.
+func ignores_sight() -> bool:
+	return false
+
+
 ## Override to use a wider reach than the player's default. <= 0 means use the player range.
 func interact_reach() -> float:
 	return -1.0
