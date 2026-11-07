@@ -338,7 +338,7 @@ func _s_horse_jump() -> void:
 	seat_rider(_hz, float(_hz._d.gallop))
 	gallop_toward(d.fwd_of(d.WEST))
 	d.use_free_cam()
-	d.cam.fov = 50.0
+	d.cam.fov = 56.0
 	d.aim_at(d.pp() + d.fwd_of(d.WEST) * 20.0)
 
 
@@ -418,30 +418,60 @@ func _e_horse_gallop_b() -> void:
 var _line: Array[HorseS] = []
 
 
+var _hb_base := Vector3.ZERO
+
+
+## Open flat ground for the line-up: the first spot on rings round `c` where a box 18 m along the line, 13 m deep
+## (the lens's side) holds no wall, house, lamp or stone and the ground is level.
+func _open_line(c: Vector3) -> Vector3:
+	var space: PhysicsDirectSpaceState3D = (d.main as Node3D).get_world_3d().direct_space_state
+	var box := BoxShape3D.new()
+	box.size = Vector3(18.0, 3.4, 17.0)
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = box
+	q.collision_mask = Layers.WORLD | Layers.PROPS
+	for r: float in [0.0, 12.0, 24.0, 36.0, 48.0, 64.0, 80.0]:
+		for k in 12:
+			var a := TAU * float(k) / 12.0
+			var p := c + Vector3(cos(a), 0.0, sin(a)) * r
+			var ys: Array[float] = []
+			for off: Vector2 in [Vector2(-2, -14), Vector2(14, -14), Vector2(-2, 2), Vector2(16, 2), Vector2(7, -4)]:
+				ys.append(d.gy(p.x + off.x, p.z + off.y))
+			if ys.max() - ys.min() > 0.7:
+				continue
+			var base := Vector3(p.x, ys[4], p.z)
+			q.transform = Transform3D(Basis(), base + Vector3(5.5, 2.2, -6.5))
+			if space.intersect_shape(q, 1).is_empty():
+				return d.on_ground(base)
+	print("TRAILER no open line-up spot")
+	return d.on_ground(c)
+
+
 func _s_horse_breeds() -> void:
 	_line.clear()
 	d.clear_spawned()
-	var base: Vector3 = d.ARENA + Vector3(-14.0, 0.0, 0.0)
+	_hb_base = _open_line(d.ARENA)
+	var base: Vector3 = _hb_base
 	var i := 0
 	for b in ["palfrey", "garron", "fenpony", "draught", "weir_cob"]:
 		var h := horse(b)
 		if h == null:
 			continue
 		# a hitching line along the road, each facing south, the lens passing along it
-		place_horse(h, base + Vector3(float(i) * 3.4, 0.0, 0.0), 0.0)
+		place_horse(h, base + Vector3(float(i) * 2.7, 0.0, 0.0), 0.0)
 		_line.append(h)
 		i += 1
-	d.put_player(base + Vector3(-6.0, 0.0, 6.0), Cam.yaw_dir(Vector3(1.0, 0.0, -1.0)))
+	d.put_player(base + Vector3(-14.0, 0.0, -18.0), Cam.yaw_dir(Vector3(1.0, 0.0, -1.0)))
 	d.use_free_cam()
-	d.cam.fov = 44.0
+	d.cam.fov = 56.0
 
 
 func _u_horse_breeds(tt: float) -> void:
 	var k: float = d.sm(clampf(tt / 2.0, 0.0, 1.0))
-	var base: Vector3 = d.ARENA + Vector3(-14.0, 0.0, 0.0)
-	var x := lerpf(-1.0, 4.0 * 3.4 + 1.0, k)
+	var base: Vector3 = _hb_base
+	var x := lerpf(4.0, 6.8, k)
 	var at := base + Vector3(x, 1.2, 0.0)
-	d.frame_cam(at + Vector3(0.6, 0.2, -7.2), at)
+	d.frame_cam(at + Vector3(0.0, 0.3, -10.0), at - Vector3(0.0, 0.1, 0.0))
 	d.light_at(base + Vector3(x, 0.0, -2.0), 3.5)
 	if d.once("hb_fill"):
 		fill(base + Vector3(6.8, 3.4, -3.0), 4.0, 16.0, Color(1.0, 0.78, 0.5))

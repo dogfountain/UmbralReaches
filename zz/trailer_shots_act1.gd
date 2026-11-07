@@ -10,6 +10,7 @@ var d
 var cam
 var _patrons: Array[Node] = []
 var _husk: Node3D
+var _sh_cam := Vector3.ZERO
 
 
 func _init(director: Object) -> void:
@@ -207,11 +208,17 @@ func _s_staff_heavy() -> void:
 	if _husk:
 		_husk.set("max_hp", 9999)
 		_husk.set("hp", 9999.0)
-	d.use_player_cam()
+	# side-on, a little in front of the pair, so the wretch and the swing both read (the game's lens sat behind the wanderer)
+	d.use_free_cam()
+	d.cam.fov = 48.0
+	var mid: Vector3 = d.ARENA + d.fwd_of(d.WEST) * 1.2
+	_sh_cam = d.solve_cam([mid + Vector3.UP * 1.0, mid + Vector3.UP * 1.9, d.ARENA + d.fwd_of(d.WEST) * 2.8 + Vector3.UP * 1.0], mid, Cam.yaw_dir(Vector3(0.0, 0.0, 1.0)), 5.0, 2.1)
+	d.hold_cam(_sh_cam, mid + Vector3.UP * 1.1)
 
 
 func _u_staff_heavy(tt: float) -> void:
-	d.light_at(d.pp(), 4.0)
+	d.light_at(d.pp() + d.fwd_of(d.WEST) * 1.2, 3.0)
+	d.hold_cam(_sh_cam, d.pp() + d.fwd_of(d.WEST) * 1.2 + Vector3.UP * 1.1)
 	if is_instance_valid(_husk):
 		d.aim_at(_husk.global_position)
 	if tt > 0.1 and d.once("sh_hold"):
@@ -221,6 +228,7 @@ func _u_staff_heavy(tt: float) -> void:
 
 
 func _e_staff_heavy() -> void:
+	d.cam.fov = 62.0
 	Input.action_release("staff_strike")
 	d.clear_spawned()
 
