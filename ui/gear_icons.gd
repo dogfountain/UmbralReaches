@@ -1,8 +1,10 @@
 extends Node
 ## Icons for the gear screen: one small picture per kind of piece (slot, rarity, set tint, legend), drawn
-## once in a SubViewport and kept, so no cell redraws a glyph per frame. A piece's icon is a lit disc in
-## its rarity colour with the slot's glyph on it; a set piece is tinted by its set, an Umbral or legend
-## piece gets a second ring. Add this node to the gear panel and ask `icon(piece)` or `glyph_icon(...)`.
+## once and kept, so no cell redraws a glyph per frame. A piece's icon is its painted art
+## (ui/icons/gear/, made by tools/icon_kit/gear.py: a base by slot and tier, a set piece, a legend, or a named
+## piece each have their own); when a piece has none it falls back to a lit disc in its rarity colour with
+## the slot's glyph on it. Add this node to the gear panel and ask `icon(piece)` or `glyph_icon(...)`.
+## `art_id` / `painted` / `draw_piece` / `ghost` are static: the shop and loot window draw with them directly.
 ##   const Icons := preload("res://ui/gear_icons.gd")
 ## When the loot models arrive (core/items), render the model into the same viewport in `_make` and the
 ## cache key stays the same: callers only ever see a Texture2D.
@@ -15,6 +17,42 @@ const SIZE := 128
 
 var _cache := {}                 ## key -> ViewportTexture
 var _made := 0
+
+
+## The painted icon's id (ui/icons/gear/<id>.png) for a piece: its legend, its named piece, its set's piece
+## for the slot, or the plain base for its slot and tier.
+static func art_id(p: Dictionary) -> String:
+	var slot := String(p.get("slot", "focus"))
+	var lg := String(p.get("legend", ""))
+	if lg != "" and GearDB.LEGENDS.has(lg):
+		return "legend_" + lg
+	var nm := String(p.get("named", ""))
+	if nm != "" and GearDB.NAMED.has(nm):
+		return nm
+	var sid := String(p.get("set", ""))
+	if GearDB.SETS.has(sid):
+		return "set_%s_%s" % [sid, slot]
+	return "%s_%d" % [slot, clampi(int(p.get("rarity", 0)), 0, 4)]
+
+
+## The piece's painted art, or null when it has none.
+static func painted(p: Dictionary) -> Texture2D:
+	return IconArt.art("gear", art_id(p))
+
+
+## A faint painted silhouette for an empty slot (the plainest base of that slot).
+static func ghost(slot: String) -> Texture2D:
+	return IconArt.art("gear", slot + "_0")
+
+
+## Paint a piece into `rect` on any CanvasItem: its art, else the slot glyph in its rarity colour.
+static func draw_piece(ci: CanvasItem, p: Dictionary, rect: Rect2, tint := Color.WHITE) -> void:
+	var t := painted(p)
+	if t != null:
+		IconArt.draw_square(ci, t, rect, tint)
+		return
+	var col := LootDB.quality_color(int(p.get("rarity", 0))).lightened(0.2)
+	Glyphs.draw(ci, String(GearDB.SLOT_GLYPH.get(String(p.get("slot", "")), "prism")), rect.get_center(), rect.size.x * 0.27, Color(col, tint.a))
 
 
 class Painter extends Control:
@@ -48,6 +86,9 @@ class Painter extends Control:
 
 ## The icon for a gear piece ({} gives the empty-slot ghost of nothing: use `ghost`).
 func icon(p: Dictionary) -> Texture2D:
+	var art := painted(p)
+	if art != null:
+		return art
 	var slot := String(p.get("slot", "focus"))
 	var r := clampi(int(p.get("rarity", 0)), 0, 4)
 	var set_id := String(p.get("set", ""))

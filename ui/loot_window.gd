@@ -12,6 +12,7 @@ const LootDB := preload("res://core/items/loot_db.gd")
 const LootBag := preload("res://core/items/loot_bag.gd")
 const Tip := preload("res://ui/item_tooltip.gd")
 const Icons := preload("res://core/life/progression/icons.gd")
+const GearIcons := preload("res://ui/gear_icons.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const UIType := preload("res://ui/type.gd")
 
@@ -193,7 +194,7 @@ func _draw_icon(ci: Control, e: Dictionary, q: int) -> void:
 	var c := ci.size * 0.5
 	if String(e.get("kind", "")) == "gear":
 		var p: Dictionary = e.get("piece", {})
-		Icons.draw(ci, String(GearDB.SLOT_GLYPH.get(String(p.get("slot", "")), "prism")), c, 14.0, col.lightened(0.2))
+		GearIcons.draw_piece(ci, p, Rect2(Vector2(3, 3), ci.size - Vector2(6, 6)))
 	else:
 		if not Icons.item(ci, String(e.get("id", "")), c, 14.0):
 			ci.draw_circle(c, 9.0, col)

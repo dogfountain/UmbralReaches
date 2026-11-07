@@ -17,6 +17,7 @@ const UIType := preload("res://ui/type.gd")
 const GearDB := preload("res://core/items/gear_db.gd")
 const LootDB := preload("res://core/items/loot_db.gd")
 const Glyphs := preload("res://core/life/progression/icons.gd")
+const GearIcons := preload("res://ui/gear_icons.gd")
 
 const CELL := 74.0
 const SOCKET := 96.0
@@ -94,9 +95,11 @@ func _draw() -> void:
 	if has and tex != null:
 		draw_texture_rect(tex, inner, false, Color(1, 1, 1, a))
 	elif has:
-		Glyphs.draw(self, String(GearDB.SLOT_GLYPH.get(String(piece.get("slot", "")), "prism")), box.get_center(), box.size.x * 0.27, Color(tint, a))
+		GearIcons.draw_piece(self, piece, inner, Color(1, 1, 1, a))
 	elif ref_id != "" and tex != null:
 		draw_texture_rect(tex, inner, false, Color(1, 1, 1, a))
+	elif kind == "socket" and GearIcons.ghost(slot_id) != null:
+		draw_texture_rect(GearIcons.ghost(slot_id), inner, false, Color(0.5, 0.46, 0.44, 0.2))
 	elif ghost != "":
 		Glyphs.draw(self, ghost, box.get_center(), box.size.x * 0.27, Color(Med.BONE_DIM, 0.5))
 	var f := UIType.body()
