@@ -54,19 +54,23 @@ static func loft(cm, keys: Array, s: float, n: int, sides: int, col: Color, colf
 static func coat_fn(coat: Color, dorsal: Color, belly: Color, rump: Color, rump_t := 2.0, throat_t := -1.0, throat: Color = Color.WHITE) -> Callable:
 	return func(t: float, up: float, _side: float) -> Color:
 		var c := coat
-		c = c.lerp(dorsal, smoothstep(0.45, 0.92, up))
-		c = c.lerp(belly, smoothstep(-0.2, -0.75, up))
+		# a warm flank, a darker saddle over the middle of the back, a belly that fades in over the whole underside
+		c = c.lerp(coat.lightened(0.08) * Color(1.1, 1.0, 0.9), (1.0 - absf(up)) * 0.5)
+		c = c.lerp(dorsal, smoothstep(0.15, 0.95, up) * (0.6 + 0.4 * sin(clampf(t * 1.25 - 0.1, 0.0, 1.0) * PI)))
+		c = c.lerp(belly, smoothstep(0.05, -0.95, up))
 		if rump_t < 1.5:
 			c = c.lerp(rump, smoothstep(rump_t, rump_t + 0.08, t) * (1.0 - smoothstep(0.2, 0.75, up)))
 		if throat_t > 0.0:
-			c = c.lerp(throat, smoothstep(throat_t, throat_t - 0.2, t) * smoothstep(-0.1, -0.7, up))
+			c = c.lerp(throat, smoothstep(throat_t + 0.05, throat_t - 0.35, t) * smoothstep(0.2, -0.9, up) * 0.75)
 		return c
 
 
 ## A leg whose colour runs coat -> dark stockings from section fraction `dark_t` on.
-static func leg_fn(coat: Color, dark: Color, dark_t: float) -> Callable:
-	return func(t: float, _up: float, _side: float) -> Color:
-		return coat.lerp(dark, smoothstep(dark_t, dark_t + 0.12, t))
+## `inner` = +1 / -1 (right / left leg) lightens the inside face.
+static func leg_fn(coat: Color, dark: Color, dark_t: float, inner := 0.0, blend := 0.4, inner_amt := 0.4) -> Callable:
+	return func(t: float, _up: float, side: float) -> Color:
+		var c := coat.lerp(dark, smoothstep(dark_t - blend * 0.25, dark_t + blend * 0.75, t))
+		return c.lerp(coat.lightened(0.2) * Color(1.15, 1.0, 0.85), smoothstep(0.2, 0.9, side * inner) * inner_amt * (1.0 - smoothstep(0.55, 0.9, t)))
 
 
 static func hoof(cm, x: float, z: float, s: float, part: float, col: Color, w := 0.026) -> void:
@@ -79,15 +83,22 @@ static func hoof(cm, x: float, z: float, s: float, part: float, col: Color, w :=
 ## antler: 0 doe, 1 red stag, 2 elk (palmate). `s` scales everything (elk = 1.75).
 static func deer(cm, s: float, antler: int) -> void:
 	var elk := antler == 2
-	var coat := Color(0.44, 0.24, 0.11) if not elk else Color(0.30, 0.18, 0.1)
-	var dorsal := coat.darkened(0.55)
-	var belly := Color(0.66, 0.5, 0.34) if not elk else Color(0.5, 0.4, 0.28)
+	var coat := Color(0.44, 0.24, 0.11) if not elk else Color(0.34, 0.19, 0.09)
+	var dorsal := coat.darkened(0.4)
+	var belly := Color(0.54, 0.38, 0.25) if not elk else Color(0.42, 0.32, 0.22)
 	var rump := Color(0.78, 0.66, 0.47)
-	var throat := Color(0.74, 0.62, 0.44)
+	var throat := Color(0.64, 0.48, 0.32)
 	var leg := Color(0.2, 0.11, 0.06)
 	var hoofc := Color(0.05, 0.04, 0.035)
 	var mane := Color(0.2, 0.11, 0.06)
 	var thick := 1.22 if antler > 0 else 1.0
+	# the neck reaches from the chest pivot; pulled in to a real deer's proportion (a doe's was long and rubbery)
+	var pull := 0.86 if antler == 0 else 0.9
+	var pv := Vector3(0, 1.0, -0.5)
+	var sh := func(v: Vector3) -> Vector3: return pv + (v - pv) * pull
+	var kh := func(x: float, y: float, z: float, rx: float, ry: float) -> Array:
+		var q: Vector3 = sh.call(Vector3(x, y, z))
+		return key(q.x, q.y, q.z, rx, ry)
 	# trunk: the barrel chest deepest behind the elbow, a tucked waist, a rising haunch
 	loft(cm, [key(0, 0.97, -0.52, 0.1, 0.17), key(0, 0.985, -0.43, 0.16, 0.26), key(0, 1.0, -0.26, 0.19, 0.295),
 		key(0, 1.0, -0.02, 0.195, 0.285), key(0, 1.015, 0.2, 0.17, 0.235), key(0, 1.03, 0.38, 0.19, 0.255),
@@ -104,38 +115,38 @@ static func deer(cm, s: float, antler: int) -> void:
 		var fl := [key(x * 0.85, 0.93, -0.36, 0.055, 0.09), key(x * 1.0, 0.82, -0.36, 0.07, 0.105), key(x, 0.6, -0.362, 0.05, 0.06),
 			key(x * 0.98, 0.47, -0.365, 0.042, 0.05), key(x * 0.97, 0.37, -0.365, 0.026, 0.03), key(x * 0.97, 0.17, -0.365, 0.023, 0.027),
 			key(x * 0.97, 0.12, -0.366, 0.028, 0.03), key(x * 0.97, 0.075, -0.372, 0.02, 0.022)]
-		loft(cm, fl, s, 14, 9, coat, leg_fn(coat.darkened(0.1), leg, 0.38), fp, Vector3.BACK)
+		loft(cm, fl, s, 14, 9, coat, leg_fn(coat.darkened(0.1), leg, 0.4, side), fp, Vector3.BACK)
 		hoof(cm, x * 0.97, -0.372, s, fp, hoofc)
 		# hind leg: thigh, stifle, gaskin to the hock (pointing back), cannon forward-down, fetlock
 		var hl := [key(x * 0.85, 0.97, 0.37, 0.07, 0.12), key(x * 1.08, 0.84, 0.4, 0.09, 0.16), key(x, 0.64, 0.46, 0.058, 0.08),
 			key(x * 0.97, 0.47, 0.52, 0.04, 0.05), key(x * 0.97, 0.36, 0.5, 0.027, 0.032), key(x * 0.97, 0.17, 0.46, 0.023, 0.027),
 			key(x * 0.97, 0.12, 0.452, 0.028, 0.03), key(x * 0.97, 0.075, 0.445, 0.02, 0.022)]
-		loft(cm, hl, s, 14, 9, coat, leg_fn(coat.darkened(0.1), leg, 0.42), bp, Vector3.BACK)
+		loft(cm, hl, s, 14, 9, coat, leg_fn(coat.darkened(0.1), leg, 0.44, side), bp, Vector3.BACK)
 		hoof(cm, x * 0.97, 0.445, s, bp, hoofc)
 		# the dark inner face of the lower legs
 		# head details: eye with a dark rim, cupped ear with a pale inner face
-		var ec := Vector3(0.066 * side, 1.5, -0.875) * s
+		var ec: Vector3 = (sh.call(Vector3(0.066 * side, 1.5, -0.875)) as Vector3) * s
 		cm.blob(ec, Vector3(0.027, 0.025, 0.022) * s, Basis.IDENTITY, hoofc, 0.0, 0.0, HEAD, 5, 7)
 		cm.blob(ec + Vector3(0.012 * side, 0.0, -0.004) * s, Vector3(0.018, 0.017, 0.015) * s, Basis.IDENTITY, hoofc, 0.0, 0.0, HEAD, 4, 6, 1.0)
 		var ear_b := Basis(Vector3.FORWARD, -side * (0.75 if antler == 0 else 0.95)) * Basis(Vector3.RIGHT, -0.35)
-		var ear_c := Vector3(0.095 * side, 1.585, -0.82) * s
+		var ear_c: Vector3 = (sh.call(Vector3(0.095 * side, 1.585, -0.82)) as Vector3) * s
 		var ear_r := Vector3(0.036, 0.09, 0.016) if antler == 0 else Vector3(0.03, 0.072, 0.014)
 		cm.blob(ear_c, ear_r * s, ear_b, coat, 0.0, 0.03, HEAD, 6, 10)
 		cm.blob(ear_c + ear_b * Vector3(0, 0, -0.008 * s), ear_r * Vector3(0.7, 0.8, 0.5) * s, ear_b, belly, 0.0, 0.0, HEAD, 4, 8)
 		if antler == 1:
-			antler_stag(cm, side, s)
+			antler_stag(cm, side, s, sh)
 		elif elk:
-			antler_elk(cm, side, s, mane)
+			antler_elk(cm, side, s, sh)
 	# neck (HEAD pivots at the chest so grazing lowers it all): thick at the shoulder, a pale throat
 	var neck := coat_fn(coat, dorsal, belly, rump, 2.0, 0.85, throat)
-	loft(cm, [key(0, 1.0, -0.48, 0.12 * thick, 0.19), key(0, 1.12, -0.55, 0.115 * thick, 0.17), key(0, 1.27, -0.64, 0.095 * thick, 0.135),
-		key(0, 1.39, -0.76, 0.075 * thick, 0.1), key(0, 1.48, -0.82, 0.062, 0.085)],
+	loft(cm, [kh.call(0, 1.0, -0.48, 0.12 * thick, 0.19), kh.call(0, 1.12, -0.55, 0.115 * thick, 0.17), kh.call(0, 1.27, -0.64, 0.095 * thick, 0.135),
+		kh.call(0, 1.39, -0.76, 0.075 * thick, 0.1), kh.call(0, 1.48, -0.82, 0.062, 0.085)],
 		s, 12, 14, coat, neck, HEAD)
 	if antler > 0:
 		# the rutting stag's shaggy throat: strands hanging from the underside of the neck
 		for k in 8:
 			var t := float(k) / 7.0
-			var root := Vector3(0.0, lerpf(1.0, 1.36, t) - lerpf(0.17, 0.07, t), lerpf(-0.45, -0.77, t)) * s
+			var root: Vector3 = (sh.call(Vector3(0.0, lerpf(1.0, 1.36, t) - lerpf(0.17, 0.07, t), lerpf(-0.45, -0.77, t))) as Vector3) * s
 			var tuft := Vector3(0.012 * sin(float(k) * 2.3), -0.12 + 0.04 * t, -0.03) * s
 			cm.tube(PackedVector3Array([root, root + tuft * 0.5, root + tuft]), PackedFloat32Array([0.028 * s, 0.022 * s, 0.0]), 5, mane, 0.0, 0.2, HEAD, Vector2(0.5, 1.0))
 	# head: a wedge from poll to muzzle, the pale lip and a dark nose pad
@@ -143,22 +154,22 @@ static func deer(cm, s: float, antler: int) -> void:
 		var c := coat.lerp(dorsal, smoothstep(0.6, 0.95, up) * 0.6)
 		c = c.lerp(belly, smoothstep(-0.2, -0.8, up) * 0.8)
 		return c.lerp(belly.lightened(0.1), smoothstep(0.72, 0.95, t))
-	loft(cm, [key(0, 1.505, -0.78, 0.056, 0.078), key(0, 1.5, -0.84, 0.07, 0.09), key(0, 1.465, -0.92, 0.056, 0.07),
-		key(0, 1.43, -0.99, 0.042, 0.05), key(0, 1.4, -1.05, 0.038, 0.042), key(0, 1.375, -1.082, 0.033, 0.033)],
+	loft(cm, [kh.call(0, 1.505, -0.78, 0.056, 0.078), kh.call(0, 1.5, -0.84, 0.07, 0.09), kh.call(0, 1.465, -0.92, 0.056, 0.07),
+		kh.call(0, 1.43, -0.99, 0.042, 0.05), kh.call(0, 1.4, -1.05, 0.038, 0.042), kh.call(0, 1.375, -1.082, 0.033, 0.033)],
 		s, 12, 12, coat, head, HEAD)
-	loft(cm, [key(0, 1.44, -0.88, 0.03, 0.025), key(0, 1.395, -0.97, 0.026, 0.02), key(0, 1.365, -1.05, 0.02, 0.016)],
+	loft(cm, [kh.call(0, 1.44, -0.88, 0.03, 0.025), kh.call(0, 1.395, -0.97, 0.026, 0.02), kh.call(0, 1.365, -1.05, 0.02, 0.016)],
 		s, 5, 8, belly, Callable(), HEAD)
-	cm.blob(Vector3(0, 1.38, -1.086) * s, Vector3(0.032, 0.024, 0.016) * s, Basis.IDENTITY, hoofc, 1.0, 0.0, HEAD, 4, 8)
+	cm.blob((sh.call(Vector3(0, 1.38, -1.086)) as Vector3) * s, Vector3(0.032, 0.024, 0.016) * s, Basis.IDENTITY, hoofc, 1.0, 0.0, HEAD, 4, 8)
 
 
 ## A red deer stag's antler: beaded beam sweeping up and back, brow, bez and trez tines, a crown.
-static func antler_stag(cm, side: float, s: float) -> void:
+static func antler_stag(cm, side: float, s: float, sh: Callable) -> void:
 	var horn := Color(0.46, 0.27, 0.12)
 	var tip := Color(0.8, 0.62, 0.38)
 	var beam: Array = [Vector3(0.05 * side, 1.575, -0.83), Vector3(0.09 * side, 1.65, -0.825), Vector3(0.16 * side, 1.78, -0.79),
 		Vector3(0.22 * side, 1.93, -0.72), Vector3(0.26 * side, 2.08, -0.64), Vector3(0.26 * side, 2.18, -0.59)]
 	for i in beam.size():
-		beam[i] = (beam[i] as Vector3) * s
+		beam[i] = (sh.call(beam[i]) as Vector3) * s
 	cm.blob(beam[0], Vector3(0.04, 0.025, 0.04) * s, Basis.IDENTITY, horn, 1.0, 0.3, HEAD, 4, 8)
 	cm.tube(PackedVector3Array(beam), PackedFloat32Array([0.042 * s, 0.038 * s, 0.033 * s, 0.029 * s, 0.025 * s, 0.021 * s]), 7, horn, 1.0, 0.1, HEAD)
 	var tines := [[1, Vector3(0.03, 0.06, -0.2), Vector3(0.02, 0.07, -0.05)], [2, Vector3(0.05, 0.05, -0.17), Vector3(0.0, 0.06, -0.04)],
@@ -178,18 +189,18 @@ static func antler_stag(cm, side: float, s: float) -> void:
 		cm.tube(PackedVector3Array([top.lerp(e, 0.55), e]), PackedFloat32Array([0.008 * s, 0.0]), 4, tip, 1.0, 0.0, HEAD)
 
 
-static func antler_elk(cm, side: float, s: float, _mane: Color) -> void:
+static func antler_elk(cm, side: float, s: float, sh: Callable) -> void:
 	var horn := Color(0.46, 0.28, 0.13)
 	var tip := Color(0.8, 0.62, 0.38)
 	var beam := PackedVector3Array([Vector3(0.05 * side, 1.575, -0.83), Vector3(0.16 * side, 1.65, -0.77), Vector3(0.32 * side, 1.75, -0.67), Vector3(0.46 * side, 1.89, -0.59)])
 	for i in beam.size():
-		beam[i] = beam[i] * s
+		beam[i] = (sh.call(beam[i]) as Vector3) * s
 	cm.tube(beam, PackedFloat32Array([0.042 * s, 0.036 * s, 0.03 * s, 0.025 * s]), 7, horn, 1.0, 0.08, HEAD)
-	cm.blob(Vector3(0.48 * side, 1.95, -0.56) * s, Vector3(0.2, 0.14, 0.03) * s, Basis(Vector3.FORWARD, side * 0.5) * Basis(Vector3.UP, side * 0.35), horn, 1.0, 0.1, HEAD, 6, 12)
+	cm.blob((sh.call(Vector3(0.48 * side, 1.95, -0.56)) as Vector3) * s, Vector3(0.2, 0.14, 0.03) * s, Basis(Vector3.FORWARD, side * 0.5) * Basis(Vector3.UP, side * 0.35), horn, 1.0, 0.1, HEAD, 6, 12)
 	for k in 7:
-		var t0 := Vector3((0.32 + 0.055 * k) * side, 1.98 + 0.05 * sin(float(k)), -0.6 + 0.012 * k) * s
+		var t0: Vector3 = (sh.call(Vector3((0.32 + 0.055 * k) * side, 1.98 + 0.05 * sin(float(k)), -0.6 + 0.012 * k)) as Vector3) * s
 		cm.tube(PackedVector3Array([t0, t0 + Vector3(0.03 * side, 0.15, 0.0) * s]), PackedFloat32Array([0.022 * s, 0.0]), 4, tip, 1.0, 0.0, HEAD)
-	cm.tube(PackedVector3Array([Vector3(0.1 * side, 1.63, -0.83) * s, Vector3(0.13 * side, 1.7, -0.99) * s]), PackedFloat32Array([0.022 * s, 0.0]), 4, horn, 1.0, 0.0, HEAD)
+	cm.tube(PackedVector3Array([(sh.call(Vector3(0.1 * side, 1.63, -0.83)) as Vector3) * s, (sh.call(Vector3(0.13 * side, 1.7, -0.99)) as Vector3) * s]), PackedFloat32Array([0.022 * s, 0.0]), 4, horn, 1.0, 0.0, HEAD)
 
 
 # --- fox -----------------------------------------------------------------------------------------
@@ -200,43 +211,48 @@ static func fox(cm) -> void:
 	var white := Color(0.9, 0.87, 0.8)
 	var cream := Color(0.82, 0.66, 0.46)
 	var black := Color(0.05, 0.04, 0.035)
-	loft(cm, [key(0, 0.34, -0.2, 0.05, 0.075), key(0, 0.345, -0.13, 0.072, 0.1), key(0, 0.34, 0.0, 0.078, 0.1), key(0, 0.335, 0.12, 0.062, 0.088),
-		key(0, 0.34, 0.22, 0.07, 0.092), key(0, 0.33, 0.29, 0.04, 0.055), key(0, 0.325, 0.32, 0.01, 0.02)],
-		1.0, 14, 12, red, coat_fn(red, dark, cream, red, 2.0, -1.0), BODY)
+	# one continuous trunk: deep chest, a lean waist, the haunch carried in the same skin (no separate thigh blob)
+	loft(cm, [key(0, 0.335, -0.2, 0.05, 0.075), key(0, 0.345, -0.13, 0.072, 0.1), key(0, 0.34, -0.02, 0.078, 0.1), key(0, 0.335, 0.08, 0.07, 0.092),
+		key(0, 0.34, 0.17, 0.082, 0.098), key(0, 0.335, 0.25, 0.07, 0.085), key(0, 0.325, 0.31, 0.035, 0.05), key(0, 0.32, 0.34, 0.008, 0.016)],
+		1.0, 18, 14, red, coat_fn(red, dark, cream, red, 2.0, 0.3, white), BODY)
 	for side: float in [1.0, -1.0]:
-		var x := 0.055 * side
+		var x := 0.052 * side
 		var fp := LEG_FR if side > 0.0 else LEG_FL
 		var bp := LEG_BR if side > 0.0 else LEG_BL
-		var fl := [key(x * 0.7, 0.31, -0.17, 0.034, 0.055), key(x * 1.05, 0.25, -0.172, 0.036, 0.05), key(x, 0.2, -0.178, 0.026, 0.034), key(x, 0.15, -0.185, 0.02, 0.022),
-			key(x, 0.07, -0.19, 0.016, 0.018), key(x, 0.025, -0.195, 0.017, 0.019)]
-		loft(cm, fl, 1.0, 12, 8, red, leg_fn(red, black, 0.4), fp, Vector3.BACK)
-		cm.blob(Vector3(x, 0.012, -0.212), Vector3(0.02, 0.012, 0.03), Basis.IDENTITY, black, 0.0, 0.0, fp, 4, 7)
-		var hl := [key(x * 0.7, 0.32, 0.17, 0.04, 0.07), key(x * 1.12, 0.26, 0.165, 0.05, 0.085), key(x * 1.0, 0.2, 0.155, 0.034, 0.055), key(x, 0.15, 0.2, 0.022, 0.03),
-			key(x, 0.07, 0.19, 0.016, 0.019), key(x, 0.025, 0.19, 0.017, 0.019)]
-		loft(cm, hl, 1.0, 12, 8, red, leg_fn(red, black, 0.45), bp, Vector3.BACK)
-		cm.blob(Vector3(x, 0.012, 0.172), Vector3(0.02, 0.012, 0.03), Basis.IDENTITY, black, 0.0, 0.0, bp, 4, 7)
-		# ears: pointed, black backs, cream insides; amber eyes; white cheeks
-		cm.tube(PackedVector3Array([Vector3(0.036 * side, 0.488, -0.318), Vector3(0.05 * side, 0.55, -0.31), Vector3(0.064 * side, 0.62, -0.3)]),
-			PackedFloat32Array([0.044, 0.03, 0.0]), 6, black, 0.0, 0.02, HEAD, Vector2(1.0, 0.4))
-		cm.tube(PackedVector3Array([Vector3(0.038 * side, 0.49, -0.327), Vector3(0.054 * side, 0.57, -0.32)]),
-			PackedFloat32Array([0.03, 0.0]), 4, cream, 0.0, 0.0, HEAD, Vector2(1.0, 0.3))
-		cm.blob(Vector3(0.05 * side, 0.43, -0.365), Vector3(0.03, 0.028, 0.045), Basis.IDENTITY, white, 0.0, 0.05, HEAD, 5, 8)
-		cm.blob(Vector3(0.036 * side, 0.466, -0.372), Vector3(0.012, 0.01, 0.009), Basis.IDENTITY, black, 0.0, 0.0, HEAD, 3, 5, 1.0)
-	# neck and the head: broad cheeks, a long tapering muzzle with a black nose
-	var neck := coat_fn(red, dark, white, red, 2.0, 0.9, white)
-	loft(cm, [key(0, 0.35, -0.16, 0.06, 0.085), key(0, 0.405, -0.23, 0.05, 0.07), key(0, 0.44, -0.29, 0.045, 0.055)], 1.0, 6, 10, red, neck, HEAD)
-	var head := func(t: float, up: float, side: float) -> Color:
+		# legs: the top tucked inside the trunk, a full forearm / gaskin, black stockings that fade up from the paw
+		var fl := [key(x * 0.6, 0.31, -0.17, 0.034, 0.055), key(x * 0.95, 0.25, -0.172, 0.036, 0.05), key(x, 0.19, -0.178, 0.028, 0.036),
+			key(x, 0.12, -0.184, 0.022, 0.026), key(x, 0.06, -0.19, 0.02, 0.023), key(x, 0.022, -0.196, 0.021, 0.025)]
+		loft(cm, fl, 1.0, 14, 9, red, leg_fn(red, black, 0.34, side, 0.16, 0.0), fp, Vector3.BACK)
+		cm.blob(Vector3(x, 0.012, -0.214), Vector3(0.021, 0.013, 0.032), Basis.IDENTITY, black, 0.0, 0.0, fp, 4, 7)
+		var hl := [key(x * 0.5, 0.325, 0.17, 0.03, 0.055), key(x * 0.85, 0.27, 0.17, 0.036, 0.065), key(x, 0.2, 0.16, 0.03, 0.05),
+			key(x, 0.145, 0.195, 0.02, 0.028), key(x, 0.07, 0.19, 0.02, 0.024), key(x, 0.022, 0.19, 0.021, 0.025)]
+		loft(cm, hl, 1.0, 14, 9, red, leg_fn(red, black, 0.38, side, 0.16, 0.0), bp, Vector3.BACK)
+		cm.blob(Vector3(x, 0.012, 0.172), Vector3(0.021, 0.013, 0.032), Basis.IDENTITY, black, 0.0, 0.0, bp, 4, 7)
+		# ears: real triangles, rufous in front, dark backs and tips, a cream hollow; amber eyes; white cheeks
+		var ear := func(t: float, up: float, _sd: float) -> Color:
+			var c := red.lerp(cream, smoothstep(0.0, -0.8, up) * 0.6)
+			c = c.lerp(black, smoothstep(0.1, 0.8, up))
+			return c.lerp(black, smoothstep(0.7, 0.95, t))
+		loft(cm, [key(0.04 * side, 0.472, -0.322, 0.04, 0.036), key(0.05 * side, 0.52, -0.316, 0.036, 0.028), key(0.06 * side, 0.572, -0.31, 0.022, 0.016),
+			key(0.07 * side, 0.64, -0.303, 0.004, 0.004)], 1.0, 10, 8, red, ear, HEAD, Vector3.BACK)
+		cm.blob(Vector3(0.036 * side, 0.466, -0.374), Vector3(0.012, 0.01, 0.009), Basis.IDENTITY, black, 0.0, 0.0, HEAD, 3, 5, 1.0)
+		cm.blob(Vector3(0.04 * side, 0.428, -0.365), Vector3(0.017, 0.02, 0.036), Basis.IDENTITY, white.darkened(0.08), 0.0, 0.05, HEAD, 5, 8)
+	# neck and head: a flowing neck, broad cheeks, a slim tapering muzzle ending in a black nose
+	loft(cm, [key(0, 0.35, -0.16, 0.06, 0.085), key(0, 0.405, -0.23, 0.052, 0.072), key(0, 0.44, -0.29, 0.046, 0.058)], 1.0, 6, 12, red,
+		coat_fn(red, dark, white, red, 2.0, 0.9, white), HEAD)
+	var head := func(t: float, up: float, _side: float) -> Color:
 		var c := red.lerp(dark, smoothstep(0.7, 1.0, up) * 0.4)
-		c = c.lerp(white, smoothstep(-0.15, -0.6, up))
-		c = c.lerp(white, smoothstep(0.4, 0.6, t) * smoothstep(0.2, -0.3, up))
-		return c.lerp(black, smoothstep(0.93, 1.0, t))
-	loft(cm, [key(0, 0.455, -0.29, 0.045, 0.05), key(0, 0.452, -0.335, 0.056, 0.054), key(0, 0.442, -0.385, 0.04, 0.04), key(0, 0.43, -0.44, 0.025, 0.026),
-		key(0, 0.42, -0.488, 0.013, 0.014), key(0, 0.418, -0.5, 0.009, 0.009)], 1.0, 10, 10, red, head, HEAD)
-	# the brush: thick, a white tip
+		c = c.lerp(white, smoothstep(-0.15, -0.7, up))
+		c = c.lerp(white, smoothstep(0.35, 0.55, t) * smoothstep(0.3, -0.4, up) * 0.8)
+		return c.lerp(black, smoothstep(0.88, 0.98, t))
+	loft(cm, [key(0, 0.455, -0.29, 0.046, 0.05), key(0, 0.452, -0.335, 0.056, 0.054), key(0, 0.442, -0.385, 0.038, 0.037), key(0, 0.432, -0.44, 0.021, 0.022),
+		key(0, 0.424, -0.485, 0.012, 0.013), key(0, 0.421, -0.502, 0.009, 0.009)], 1.0, 12, 12, red, head, HEAD)
+	cm.blob(Vector3(0, 0.422, -0.504), Vector3(0.014, 0.011, 0.01), Basis.IDENTITY, black, 1.0, 0.0, HEAD, 4, 7)
+	# the brush: thick, rufous over the top, a white tip
 	var tail := func(t: float, up: float, _side: float) -> Color:
-		return red.darkened(0.08).lerp(dark, smoothstep(0.5, 1.0, up) * 0.4).lerp(white, smoothstep(0.8, 0.92, t))
+		return red.darkened(0.08).lerp(dark, smoothstep(0.4, 1.0, up) * 0.45).lerp(cream, smoothstep(-0.1, -0.9, up) * 0.5).lerp(white, smoothstep(0.78, 0.9, t))
 	loft(cm, [key(0, 0.335, 0.26, 0.028, 0.03), key(0, 0.32, 0.34, 0.06, 0.06), key(0, 0.27, 0.46, 0.078, 0.075), key(0, 0.22, 0.56, 0.06, 0.06),
-		key(0, 0.195, 0.64, 0.028, 0.03), key(0, 0.185, 0.675, 0.004, 0.006)], 1.0, 10, 10, red, tail, TAIL, Vector3.UP, 0.0, 0.03)
+		key(0, 0.195, 0.64, 0.028, 0.03), key(0, 0.185, 0.675, 0.004, 0.006)], 1.0, 12, 12, red, tail, TAIL, Vector3.UP, 0.0, 0.03)
 
 
 # --- hare ------------------------------------------------------------------------------------------
@@ -247,16 +263,16 @@ static func hare(cm) -> void:
 	var belly := Color(0.74, 0.66, 0.54)
 	var black := Color(0.07, 0.055, 0.045)
 	var white := Color(0.9, 0.88, 0.84)
-	loft(cm, [key(0, 0.17, -0.1, 0.045, 0.07), key(0, 0.2, -0.03, 0.062, 0.085), key(0, 0.225, 0.07, 0.07, 0.095), key(0, 0.2, 0.15, 0.07, 0.09),
+	loft(cm, [key(0, 0.17, -0.1, 0.045, 0.07), key(0, 0.2, -0.03, 0.062, 0.085), key(0, 0.225, 0.07, 0.08, 0.098), key(0, 0.2, 0.15, 0.078, 0.092),
 		key(0, 0.17, 0.2, 0.04, 0.06), key(0, 0.155, 0.225, 0.01, 0.02)], 1.0, 12, 12, fur, coat_fn(fur, dark, belly, fur, 2.0), BODY, Vector3.UP, 0.0, 0.015)
 	for side: float in [1.0, -1.0]:
 		var x := 0.045 * side
 		var fp := LEG_FR if side > 0.0 else LEG_FL
 		var bp := LEG_BR if side > 0.0 else LEG_BL
-		loft(cm, [key(x * 0.8, 0.17, -0.1, 0.03, 0.045), key(x * 0.95, 0.12, -0.105, 0.022, 0.03), key(x * 0.95, 0.07, -0.11, 0.015, 0.018), key(x * 0.9, 0.025, -0.12, 0.012, 0.014)], 1.0, 8, 7, fur, leg_fn(fur, belly, 0.5), fp, Vector3.BACK)
+		loft(cm, [key(x * 0.8, 0.17, -0.1, 0.03, 0.045), key(x * 0.95, 0.12, -0.105, 0.022, 0.03), key(x * 0.95, 0.07, -0.11, 0.015, 0.018), key(x * 0.9, 0.025, -0.12, 0.012, 0.014)], 1.0, 8, 7, fur, leg_fn(fur, fur.darkened(0.1), 0.6, side, 0.3, 0.0), fp, Vector3.BACK)
 		# the haunch, a short stifle, a long flat foot (the hock back, the foot forward)
-		loft(cm, [key(x * 0.8, 0.2, 0.13, 0.035, 0.07), key(x * 1.2, 0.16, 0.14, 0.047, 0.09), key(x * 1.05, 0.1, 0.17, 0.034, 0.055), key(x, 0.065, 0.2, 0.02, 0.028),
-			key(x * 0.95, 0.03, 0.15, 0.014, 0.04), key(x * 0.95, 0.016, 0.1, 0.014, 0.05)], 1.0, 12, 8, fur, leg_fn(fur, belly, 0.5), bp, Vector3.BACK)
+		loft(cm, [key(x * 0.6, 0.2, 0.13, 0.03, 0.06), key(x * 0.95, 0.16, 0.14, 0.04, 0.08), key(x * 0.95, 0.1, 0.17, 0.03, 0.05), key(x, 0.065, 0.2, 0.02, 0.028),
+			key(x * 0.95, 0.03, 0.15, 0.02, 0.04), key(x * 0.95, 0.018, 0.1, 0.02, 0.05)], 1.0, 12, 8, fur, leg_fn(fur, fur.darkened(0.12), 0.6, side, 0.3, 0.0), bp, Vector3.BACK)
 		# head details: big side eyes and tall black-tipped ears laid half back
 		cm.blob(Vector3(0.037 * side, 0.285, -0.19), Vector3(0.016, 0.017, 0.014), Basis.IDENTITY, black, 0.0, 0.0, HEAD, 4, 6)
 		cm.blob(Vector3(0.042 * side, 0.285, -0.194), Vector3(0.011, 0.012, 0.01), Basis.IDENTITY, black, 0.0, 0.0, HEAD, 3, 5, 1.0)

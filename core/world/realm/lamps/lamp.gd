@@ -145,7 +145,7 @@ func _set_lit(on: bool, animate: bool) -> void:
 	lit = on
 	if _glow == null:
 		return
-	_glow.material_override = _mat("flame" if on else "cold")
+	_glow.material_override = _mat(("pane" if look == "pane" else "flame") if on else "cold")
 	if on:
 		_flare = 1.0 if animate else 0.0
 		if want_light and _light == null:
@@ -227,6 +227,13 @@ static func _mat(key: String) -> Material:
 			m.rim_enabled = true
 			m.rim = 0.15
 			m.rim_tint = 0.5
+		"pane":
+			# a lit lantern's glass and flame: added light, so the flame shows through the glass whichever draws first
+			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			m.vertex_color_use_as_albedo = true
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+			m.albedo_color = Color(FLAME_GLOW, FLAME_GLOW, FLAME_GLOW)
 		"flame":
 			# unshaded and vertex-coloured: a pale heart fading to red at the tip; the 1.3 lifts the heart to the
 			# bloom threshold and no further
@@ -328,9 +335,12 @@ static func _mesh_for(kind: String, free: bool, chain_len: float) -> Dictionary:
 			d.e = 1.0
 			d.range = 6.0
 		"pane":
-			# only the glass: the cold lantern already stands there (the Pilgrims' Road lamps)
-			# a six-sided belly of glass, warm at the heart and deeper toward the rim, inside the cage's four bars
-			glow.lathe(Vector3(0, -0.15, 0), [Vector2(0.0, 0.0), Vector2(0.07, 0.0), Vector2(0.1, 0.05), Vector2(0.105, 0.15), Vector2(0.09, 0.25), Vector2(0.05, 0.29), Vector2(0.0, 0.3)], 6, PANE, PANE * Color(1.0, 0.8, 0.7))
+			# only the glass and what burns in it (the cold lantern already stands there): a faceted belly of
+			# amber glass (each face a different brightness, a pale reflection down one) over a candle and its flame
+			glow.glass(Vector3(0, -0.15, 0), [Vector2(0.0, 0.0), Vector2(0.07, 0.0), Vector2(0.1, 0.05), Vector2(0.105, 0.15), Vector2(0.09, 0.25), Vector2(0.05, 0.29), Vector2(0.0, 0.3)],
+				6, PANE * Color(0.42, 0.34, 0.26), PANE * Color(0.2, 0.14, 0.1), PackedFloat32Array([1.0, 0.7, 1.6, 0.6, 1.0, 0.8]))
+			glow.lathe(Vector3(0, -0.14, 0), [Vector2(0.0, 0.0), Vector2(0.024, 0.0), Vector2(0.022, 0.07), Vector2(0.0, 0.07)], 7, Color(0.7, 0.6, 0.44))
+			glow.lathe(Vector3(0, -0.065, 0), [Vector2(0.0, 0.0), Vector2(0.04, 0.04), Vector2(0.034, 0.1), Vector2(0.016, 0.17), Vector2(0.0, 0.23)], 6, HEART, TIP, 0.02)
 			d.e = 1.0
 			d.range = 6.0
 		"camp":
@@ -506,6 +516,30 @@ class LampBuilder extends RefCounted:
 				else:
 					_tri(b0, b1, t1, n, col)
 					_tri(b0, t1, t0, n, col)
+
+	## A lathe of glass: like lathe() but each of the `sides` faces is scaled in brightness by facets[k] and the
+	## colour fades `col` -> `col_top` up the profile; the alpha channel is left at 1 (the material adds it).
+	func glass(at: Vector3, profile: Array, sides: int, col: Color, col_top: Color, facets: PackedFloat32Array) -> void:
+		var h_top := maxf((profile[profile.size() - 1] as Vector2).y, 0.001)
+		for i in profile.size() - 1:
+			var p0: Vector2 = profile[i]
+			var p1: Vector2 = profile[i + 1]
+			var c0 := col.lerp(col_top, p0.y / h_top)
+			var c1 := col.lerp(col_top, p1.y / h_top)
+			for k in sides:
+				var a0 := TAU * float(k) / float(sides)
+				var a1 := TAU * float(k + 1) / float(sides)
+				var f := facets[k % facets.size()]
+				var b0 := at + Vector3(cos(a0) * p0.x, p0.y, sin(a0) * p0.x)
+				var b1 := at + Vector3(cos(a1) * p0.x, p0.y, sin(a1) * p0.x)
+				var t0 := at + Vector3(cos(a0) * p1.x, p1.y, sin(a0) * p1.x)
+				var t1 := at + Vector3(cos(a1) * p1.x, p1.y, sin(a1) * p1.x)
+				var am := (a0 + a1) * 0.5
+				var n := Vector3(cos(am), 0.3, sin(am)).normalized()
+				var d0 := Color(c0.r * f, c0.g * f, c0.b * f, 1.0)
+				var d1 := Color(c1.r * f, c1.g * f, c1.b * f, 1.0)
+				_tri(b0, b1, t1, n, d0, d0, d0, d1)
+				_tri(b0, t1, t0, n, d0, d0, d1, d1)
 
 	func commit() -> ArrayMesh:
 		return st.commit() if n_tris > 0 else null
