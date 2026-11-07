@@ -59,7 +59,10 @@ var _preview := false
 var _provs: Array = []
 var _cur: Object
 var _lead := 0
+var hollow_ok := false                        ## a shot that shows the Gloom lets it run (cleared at each cut)
 var lead_black: ColorRect
+var keep_menus := false                        ## menu layers (58..64) are left alone this shot
+var keep_hud := false                          ## HUD layers (up to 12) are left alone this shot
 var keep_layers: Array[CanvasLayer] = []   ## UI the shot wants on screen (the rest is hidden every frame)
 # title layer
 var layer: CanvasLayer
@@ -93,10 +96,21 @@ func _ready() -> void:
 	Settings.monitor = -1
 	Settings.vsync = false
 	Settings.fps_limit = 0
+	_stage_state()
 	_build_titles()
 	_card("THE SKY TURNS INWARD", 1.0)
 	main = load("res://world/main.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(main)
+
+
+## The wanderer as the trailer shows them (in memory; Travel._busy holds the save): ranks and oaths sworn, ash in the
+## satchel, the Hearthfire raised so the tithe and the Kindling have something to show.
+func _stage_state() -> void:
+	Travel.story = {"flags": {"arrived": true, "met_keep": true}, "picked": {}}
+	Travel.items = {"grave_ash": 160, "relic_fragment": 2}
+	Travel.systems = {"progression": {"memory": 900, "ranks": {"bolt": 2, "lance": 2, "nova": 1, "ward": 1, "step": 1, "will": 2, "warmth": 2},
+			"oaths": {"1": "a", "2": "a"}, "known": ["tether", "well", "familiar"], "spent": 120},
+		"hearth": {"tier": 1, "works": {"baskets": true}, "rested": 300.0}}
 
 
 # --- titles ---------------------------------------------------------------------------------------
@@ -179,7 +193,8 @@ func _process(d: float) -> void:
 			print("CLIP %s start=%d drawn=%d dur=%.2f" % [SHOTS[si][0], frame + 1, Engine.get_frames_drawn() + 1, float(SHOTS[si][1])])
 		return
 	t += d
-	p.gloom = 0.0; p.wounds = 0.0                                      # the wanderer is the star: no hollowing
+	if not hollow_ok:
+		p.gloom = 0.0; p.wounds = 0.0                                      # the wanderer is the star: no hollowing
 	_keep_alive()
 	_cull_strays()
 	_steer(d)
@@ -244,7 +259,7 @@ func _setup_world() -> void:
 
 
 func _next_shot() -> void:
-	if si >= 0:
+	if si >= 0 and _cur != null:
 		var prev: String = SHOTS[si][0]
 		_motion_report(prev)
 		var ef := _fn("e", prev)
@@ -256,6 +271,8 @@ func _next_shot() -> void:
 		si += 1
 	t = 0.0
 	_snap = true
+	flags.clear()
+	hollow_ok = false
 	if si >= SHOTS.size():
 		print("TRAILER done frame %d" % frame)
 		phase = "done"
@@ -275,6 +292,8 @@ func _next_shot() -> void:
 	_release_inputs()
 	_clear_card()
 	keep_layers.clear()
+	keep_menus = false
+	keep_hud = false
 	var sf := _fn("s", id)
 	if sf.is_valid():
 		sf.call()
@@ -290,9 +309,26 @@ func _fn(k: String, id: String) -> Callable:
 	return Callable()
 
 
+func _kept(c: Node) -> bool:
+	var ly := (c as CanvasLayer).layer
+	if keep_menus and ly >= 58 and ly <= 64:
+		return true                                       # the character screen and the pages it hosts open themselves
+	if keep_hud and ly <= 12:
+		return true                                       # the HUD and its readouts (they show and hide themselves)
+	for k in keep_layers:
+		if k == c or k.is_ancestor_of(c):
+			return true
+	return false
+
+
 func _hide_overlays() -> void:
 	for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
-		if c != layer and String(c.name) != "Grade" and not (c in keep_layers):
+		if c == layer or String(c.name) == "Grade":
+			continue
+		if _kept(c):
+			if (keep_menus and String(c.name) in ["CharacterScreen", "Backdrop", "GearPanel", "Kindling", "Codex", "WorldMap"]) or keep_hud:
+				(c as CanvasLayer).visible = true      # an earlier cut hid it; it shows and hides its own contents
+		else:
 			(c as CanvasLayer).visible = false
 	for l in get_tree().root.find_children("*", "Label3D", true, false):
 		(l as Label3D).visible = false                  # floating combo words and damage numbers

@@ -132,7 +132,10 @@ static func states(tree: SceneTree = null) -> Dictionary:
 		if who == "" or not StoryDB.test(String(o.when), ws) or StoryDB.test(String(o.done), ws):
 			continue
 		var mk := String(o.get("mark", "available"))
-		if not out.has(who) or (mk == "turnin" and String(out[who][0]) != "turnin") or String(out[who][0]) == "progress":
+		# the story's own errand outranks a side offer at the same person: the keep's "!" at the start used to
+		# carry the Missing Ale's name (keg_thief), not "Find the keeper", and the map pin read as a side task
+		if not out.has(who) or (mk == "turnin" and String(out[who][0]) != "turnin") or String(out[who][0]) == "progress" \
+				or (mk == "available" and String(out[who][0]) == "available"):
 			out[who] = [mk, "main:" + String(o.id), false]
 	return out
 

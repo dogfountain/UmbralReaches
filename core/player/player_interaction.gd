@@ -76,7 +76,7 @@ func _seen(it: Interactable) -> bool:
 		return true
 	var a := player.global_position + Vector3.UP * 1.2
 	var b := it.global_position + Vector3.UP * 1.0
-	if a.distance_squared_to(b) < 0.64:
+	if a.distance_squared_to(b) < 0.64 or it.ignores_sight():
 		return true
 	var hit := player.locomotion._ray(a, b)
 	return hit.is_empty() or (hit.position as Vector3).distance_to(b) < 0.7
