@@ -15,16 +15,25 @@ const PLACES := {
 	"holds": [Vector2(-125, 15), Vector2(-139, 11), 2.5, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
 	"crowns": [Vector2(0, 66), Vector2(0, -110), 30.0, 5.0, 2.4, 60.0, 1.5, 1.2, 0.6],
 	"stillwater": [Vector2(220, 52), Vector2(242, 6), 14.0, 5.0, 2.2, 60.0, 1.5, 0.8, 0.5],
-	"anchorholds": [Vector2(204, -84), Vector2(214, -132), 18.0, 5.0, 2.4, 60.0, 1.5, 0.8, 0.5],
-	"hierarch": [Vector2(-196, -76), Vector2(-236, -84), 10.0, 5.0, 2.4, 60.0, 1.5, 0.8, 0.5],
+	"anchorholds": [Vector2(200, -62), Vector2(214, -132), 24.0, 8.0, 3.5, 62.0, 1.5, 1.0, 0.5],
+	"hierarch": [Vector2(-190, -56), Vector2(-214, -104), 18.0, 8.0, 3.5, 62.0, 1.5, 1.0, 0.5],
 	"siege": [Vector2(-214, 128), Vector2(-236, 170), 8.0, 5.0, 2.2, 60.0, 1.5, 0.8, 0.5],
 	"saltmarket": [Vector2(200, 90), Vector2(214, 95), 3.0, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
 	"pans": [Vector2(200, 150), Vector2(232, 168), 3.0, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
-	"oak": [Vector2(-44, 192), Vector2(-70, 206), 12.0, 5.0, 2.2, 60.0, 1.5, 0.8, 0.5],
-	"well": [Vector2(44, 192), Vector2(72, 204), 0.0, 5.0, 2.4, 60.0, 1.5, 0.8, 0.5],
+	"oak": [Vector2(-40, 186), Vector2(-70, 206), 20.0, 9.0, 4.5, 62.0, 1.5, 1.0, 0.4],
+	"well": [Vector2(36, 196), Vector2(72, 204), -4.0, 7.0, 6.0, 62.0, 1.5, 1.0, 0.0],
 	"weirford": [Vector2(-190, 66), Vector2(-226, 62), 5.0, 4.5, 2.2, 60.0, 1.5, 0.8, 0.5],
 	"downs": [Vector2(-10, 190), Vector2(0, 196), 3.0, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
 }
+
+## id -> [centre xz, radius 0, radius 1, angle 0, angle 1, height 0, height 1 (above ground), look up]: places the
+## trailing lens would end up inside a statue, a cliff or a pool are shot as a slow orbit from open ground instead.
+const ORBITS := {
+	"hierarch": [Vector2(-214, -104), 80.0, 70.0, 0.9, 0.5, 40.0, 44.0, 10.0],
+	"anchorholds": [Vector2(214, -132), 46.0, 40.0, -0.3, 0.2, 18.0, 22.0, 14.0],
+	"well": [Vector2(72, 204), 34.0, 28.0, -1.9, -1.5, 12.0, 10.0, -8.0],
+}
+
 
 func handles(id: String) -> bool:
 	return PLACES.has(id)
@@ -50,6 +59,11 @@ func _s_any(id: String) -> void:
 func _u_any(tt: float, id: String) -> void:
 	var pl: Array = PLACES[id]
 	var k: float = d.sm(clampf(tt / float(d.SHOTS[d.si][1]), 0.0, 1.0))
+	if ORBITS.has(id):
+		var o: Array = ORBITS[id]
+		var c2: Vector2 = o[0]
+		cam.orbit(Vector3(c2.x, maxf(d.gy(c2.x, c2.y), d.gy(c2.x - float(o[1]), c2.y)), c2.y), k, float(o[1]), float(o[2]), float(o[3]), float(o[4]), float(o[5]), float(o[6]), float(o[7]))
+		return
 	cam.vista(_look(id), k, float(pl[3]), float(pl[4]), float(pl[6]), float(pl[7]))
 	d.light_at(d.pp(), 3.0)
 
