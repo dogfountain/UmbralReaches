@@ -13,3 +13,4 @@ __pycache__/
 *.pyc
 # Procedural cache written by dev runs (core/world/realm/gen_cache.gd); regenerate before export.
 art/realm_cache/
+override.cfg

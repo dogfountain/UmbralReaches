@@ -32,16 +32,28 @@ cmd_list() {
 	HOME="$HOMEDIR" "$GODOT" --headless --path "$ROOT" res://zz/trailer.tscn -- --list 2>/dev/null | grep '^SHOT '
 }
 
+# A screen smaller than the frame clamps the window, and Movie Maker records the window's size (1080p came
+# out 1600x900). For a full-size render a temporary override.cfg renders the root viewport at $RES (viewport
+# stretch) in a 1280x720 window; it exists only while Godot runs and is removed on any exit.
+OVR="$ROOT/override.cfg"
+trap 'rm -f "$OVR"' EXIT INT TERM
 render_group() {   # name res fps shots-csv [extra flag]
 	local name="$1" res="$2" fps="$3" shots="$4" extra="${5:-}"
 	echo "== render $name: $shots ($res @ $fps)"
+	local wres="$res"
+	if [ -z "$extra" ]; then
+		[ -e "$OVR" ] && { echo "override.cfg already exists: not touching it"; return 1; }
+		printf '[display]\n\nwindow/size/viewport_width=%s\nwindow/size/viewport_height=%s\nwindow/size/window_width_override=1280\nwindow/size/window_height_override=720\nwindow/stretch/mode="viewport"\n' "${res%x*}" "${res#*x}" > "$OVR"
+		wres="1280x720"
+	fi
 	HOME="$HOMEDIR" UMBRAL_SAVE_DIR="$HOMEDIR/save" "$GODOT" --path "$ROOT" --write-movie "$OUT/clips/$name.avi" \
-		--fixed-fps "$fps" --resolution "$res" res://zz/trailer.tscn -- "--shots=$shots" $extra > "$OUT/clips/$name.log" 2>&1 &
+		--fixed-fps "$fps" --resolution "$wres" res://zz/trailer.tscn -- "--shots=$shots" $extra > "$OUT/clips/$name.log" 2>&1 &
 	local pid=$!
 	( sleep "$TIMEOUT"; kill -9 "$pid" 2>/dev/null ) >/dev/null 2>&1 &
 	local wd=$!
 	wait "$pid" 2>/dev/null
 	kill "$wd" 2>/dev/null
+	[ -z "$extra" ] && rm -f "$OVR"
 	grep -E "SCRIPT ERROR|Parse Error|TRAILER no |solve_cam: no" "$OUT/clips/$name.log" | sort | uniq -c | head -10
 }
 
