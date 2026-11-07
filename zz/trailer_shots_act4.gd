@@ -1,28 +1,235 @@
 extends RefCounted
-## Act IV shots (descend) and the finale: the bosses (reveal, a signature move, a phase change each) and the killing blow.
-## Pattern: `d` is the director (zz/trailer.gd). Write _s_<id>() setup, _u_<id>(t) every frame, _e_<id>() teardown;
-## the director finds the file by the method name. Cameras: d.frame_cam / d.hold_cam / d.top_down / d.solve_cam and the
-## helpers in trailer_cam.gd. Real systems only (spawn the real boss, call its real moves). Example: the summit dais.
+## Act IV shots (descend) and the finale: the five bosses in their real arenas (reveal, a signature move, a phase
+## change each), the killing blow, the last card. `d` is the director (zz/trailer.gd). The bosses are the game's own:
+## kit.begin() finds the BossArena, warms the boss (BossKit.warm / warm_rig) and holds its pull; kit.pull() is the
+## arena's own _begin (room, gate, intro, bar), and a move is a call to the boss's own method. Boss shots are data
+## (BOSS below) plus a short event script per shot (_events).
 
 const Cam := preload("res://zz/trailer_cam.gd")
-const SUMMIT_DAIS := Vector3(0.0, 27.35, -103.9)
+const Kit := preload("res://zz/trailer_act4_kit.gd")
+## id -> {boss, W: wanderer's distance from the boss (towards the arena's middle), pre: boss already up and ready,
+##        cam: [d0, d1, side0, side1, h0, h1, look height] relative to the boss on the wanderer's side,
+##        fov, lit: [energy, range] of the fill light, top: top-down height (TOP shots)}
+const BOSS := {
+	"thorn_reveal": {"boss": "thornwarden", "W": 11.0, "pre": false, "cam": [15.0, 11.5, 5.0, 3.5, 1.2, 1.8, 3.2], "fov": 55.0, "lit": [5.0, 40.0]},
+	"thorn_move": {"boss": "thornwarden", "W": 12.0, "pre": true, "cam": [10.0, 9.0, 9.0, 8.0, 5.5, 6.5, 0.8], "fov": 60.0, "lit": [5.0, 40.0]},
+	"thorn_knots": {"boss": "thornwarden", "W": 8.0, "pre": true, "top": 46.0, "fov": 62.0, "lit": [6.0, 60.0]},
+	"boss_reveal": {"boss": "bone_abbot", "W": 9.0, "pre": false, "cam": [10.0, 7.5, 3.0, 2.2, 0.8, 1.4, 3.0], "fov": 52.0, "lit": [4.0, 30.0]},
+	"boss_wide": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [12.0, 11.0, 7.0, 6.0, 5.5, 5.8, 1.2], "fov": 60.0, "lit": [5.0, 36.0]},
+	"abbot_phase": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [11.0, 8.5, -4.0, -3.0, 1.5, 2.2, 2.8], "fov": 55.0, "lit": [5.0, 36.0]},
+	"warden": {"boss": "ascended_warden", "W": 13.0, "pre": false, "cam": [19.0, 15.0, 4.0, 3.0, 0.9, 1.6, 6.0], "fov": 62.0, "lit": [6.0, 50.0]},
+	"warden_move": {"boss": "ascended_warden", "W": 13.0, "pre": true, "cam": [17.0, 15.0, 11.0, 10.0, 5.0, 6.0, 4.0], "fov": 62.0, "lit": [6.0, 50.0]},
+	"warden_phase": {"boss": "ascended_warden", "W": 12.0, "pre": true, "cam": [20.0, 17.0, 5.0, 3.0, 1.2, 2.2, 8.0], "fov": 64.0, "lit": [6.0, 50.0]},
+	"anchoress": {"boss": "r37_anchoress", "W": 9.0, "pre": false, "cam": [11.0, 8.0, 3.0, 2.0, 0.9, 1.5, 2.6], "fov": 52.0, "lit": [4.5, 32.0]},
+	"anchoress_move": {"boss": "r37_anchoress", "W": 10.0, "pre": true, "cam": [8.0, 7.0, 7.5, 6.5, 4.8, 5.5, 1.0], "fov": 58.0, "lit": [5.0, 32.0]},
+	"anchoress_phase": {"boss": "r37_anchoress", "W": 9.0, "pre": true, "cam": [11.0, 9.0, 4.0, 2.5, 1.2, 2.0, 2.8], "fov": 56.0, "lit": [5.0, 32.0]},
+	"hierarch_voice": {"boss": "r37_hierarch", "W": 11.0, "pre": true, "top": 40.0, "fov": 62.0, "lit": [6.0, 60.0]},
+	"hierarch_edict": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [13.0, 10.0, 4.0, 3.0, 1.0, 1.6, 4.5], "fov": 56.0, "lit": [5.0, 40.0]},
+	"hierarch_phase": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [14.0, 12.0, 5.0, 4.0, 1.5, 2.5, 4.0], "fov": 58.0, "lit": [5.0, 40.0]},
+	"final_blow": {"boss": "thornwarden", "W": 11.0, "pre": true, "cam": [17.0, 13.0, 6.0, 5.0, 1.4, 1.8, 2.8], "fov": 52.0, "lit": [5.0, 40.0]},
+}
 
 var d
 var cam
+var kit
+var _lit_was := Vector2(3.0, 24.0)
 
 
 func _init(director: Object) -> void:
 	d = director
 	cam = Cam.new(director)
+	kit = Kit.new(director)
 
 
-func _s_warden() -> void:
-	d.put_player(SUMMIT_DAIS + Vector3(0.0, 0.0, 9.0), 0.0, -0.05, false)
+func handles(id: String) -> bool:
+	return BOSS.has(id)
+
+
+# --- cards and the finale --------------------------------------------------------------------------
+
+func _s_card_depths() -> void:
+	d._card("DESCEND", 1.0)
+	d.clear_spawned()
+	kit.reset_arenas()
+	d.boom("lance_hit", -3.0)
+
+
+func _u_card_depths(tt: float) -> void:
+	d.title.modulate.a = clampf(tt / 0.2, 0.0, 1.0)
+
+
+func _s_finale() -> void:
+	kit.reset_arenas()
+	d.clear_spawned()
+	d.put_player(d.GREEN, 0.0, 0.05)
 	d.use_free_cam()
-	d.cam.fov = 55.0
+	d.cam.fov = 62.0
+	var ph: Node = d.life.get("phenomena") if d.life else null
+	if ph:
+		ph.call("trigger", "shower")
+		ph.call("trigger", "bolide")
 
 
-func _u_warden(tt: float) -> void:
-	var k: float = d.sm(clampf(tt / 2.0, 0.0, 1.0))
-	cam.orbit(SUMMIT_DAIS, k, 12.0, 9.0, -0.6, 0.4, 2.5, 3.5, 3.0)
-	d.light_at(SUMMIT_DAIS, 6.0)
+func _u_finale(tt: float) -> void:
+	# the wanderer small against the valley, the camera tilting up into the vortex; the title
+	var k: float = d.sm(clampf(tt / 2.2, 0.0, 1.0))
+	d.frame_cam(d.pp() + Vector3(1.5, 1.4, 5.0), d.pp() + Vector3(0.0, lerpf(1.6, 40.0, k), -lerpf(4.0, 60.0, k)))
+	d.light_at(d.pp(), 4.0)
+	if tt > 1.8 and d.once("title_in"):
+		d.boom("lance_hit", 0.0)
+		d._card("UMBRAL REACHES", 0.0)
+		d.title.modulate.a = 0.0
+	if tt > 1.8:
+		d.title.modulate.a = clampf((tt - 1.8) / 0.5, 0.0, 1.0)
+		d.black.color.a = clampf((tt - 3.8) / 0.7, 0.0, 1.0)
+
+
+# --- the Abbot on the game's own camera -------------------------------------------------------------
+
+func _s_boss_game() -> void:
+	var ar: BossArena = kit.begin("bone_abbot")
+	if ar == null:
+		return
+	var to_mid := Cam.flat(ar.global_position - ar.boss_at)
+	kit.stand(ar.boss_at + to_mid * 9.0, Cam.yaw_dir(-to_mid))
+	d.use_player_cam()
+	kit.pre_pull()
+
+
+func _u_boss_game(tt: float) -> void:
+	var b: Enemy = kit.boss()
+	if b:
+		d.aim_at(b.global_position)
+		# round him, out of his reach, pulled back toward the middle of the hall
+		var bp := b.global_position
+		var away: Vector3 = d.p.global_position - bp
+		away.y = 0.0
+		var dist := away.length()
+		away = away.normalized()
+		var wish := away.cross(Vector3.UP) * 0.45
+		if dist < 7.0:
+			wish += away * 0.35
+		var home: Vector3 = kit.ar.global_position - d.p.global_position
+		home.y = 0.0
+		if home.length() > 4.0:
+			wish += home.normalized() * 0.4
+		d.drive(wish.limit_length(0.7))
+	d.light_at(d.pp(), 5.0)
+	if tt > 0.15 and d.once("bg_bolts"):
+		d.press(d.slot_action(0))
+	if tt > 1.5 and d.once("bg_lance"):
+		d.release(d.slot_action(0))
+		d.press(d.slot_action(1))
+	if tt > 2.6 and d.once("bg_lance_go"):
+		d.release(d.slot_action(1))
+
+
+func _e_boss_game() -> void:
+	kit.finish()
+
+
+# --- the boss shots --------------------------------------------------------------------------------
+
+func _s_any(id: String) -> void:
+	var cf: Dictionary = BOSS[id]
+	var ar: BossArena = kit.begin(String(cf.boss))
+	if ar == null:
+		return
+	var bat := ar.boss_at
+	var to_mid := Cam.flat(ar.global_position - bat)
+	if (ar.global_position - bat).length() < 2.0:
+		to_mid = Vector3.BACK
+	var at := bat + to_mid * float(cf.W)
+	kit.stand(at, Cam.yaw_dir(-to_mid))
+	d.use_free_cam()
+	d.cam.fov = float(cf.fov)
+	_lit_was = Vector2(d.key.light_energy, d.key.omni_range)
+	var lit: Array = cf.lit
+	d.key.light_energy = float(lit[0])
+	d.key.omni_range = float(lit[1])
+	if bool(cf.pre):
+		var b: Enemy = kit.pre_pull()
+		if b == null:
+			print("TRAILER no boss for ", id)
+	d.flags.erase("a4_%s" % id)
+
+
+func _boss_cam(id: String, tt: float) -> void:
+	var cf: Dictionary = BOSS[id]
+	var k: float = d.sm(clampf(tt / float(d.SHOTS[d.si][1]), 0.0, 1.0))
+	var bp: Vector3 = kit.boss_pos()
+	var wp: Vector3 = d.pp()
+	var fw := Cam.flat(wp - bp)
+	var sd := fw.cross(Vector3.UP)
+	var c: Array = cf.cam
+	var from := bp + fw * lerpf(float(c[0]), float(c[1]), k) + sd * lerpf(float(c[2]), float(c[3]), k) + Vector3.UP * lerpf(float(c[4]), float(c[5]), k)
+	var at := bp + Vector3.UP * float(c[6])
+	d.frame_cam(from, at)
+	d.light_at((from + bp) * 0.5, 4.0)
+
+
+func _u_any(tt: float, id: String) -> void:
+	var cf: Dictionary = BOSS[id]
+	var b: Enemy = kit.boss()
+	if cf.has("top"):
+		var c: Vector3 = kit.ar.global_position
+		d.top_down(c, float(cf.top))
+		d.light_at(c, 12.0)
+	else:
+		_boss_cam(id, tt)
+	if b:
+		d.aim_at(b.global_position)
+		for l in d.get_tree().root.find_children("*", "Label3D", true, false):
+			if String((l as Label3D).text) == "Heart-Knot":
+				(l as Label3D).visible = true
+	_events(id, tt, b)
+
+
+## What each shot makes the boss do, and when (shot clock).
+func _events(id: String, tt: float, b: Enemy) -> void:
+	match id:
+		"thorn_reveal", "boss_reveal", "warden", "anchoress":
+			if tt > 0.1:
+				kit.pull()
+		"thorn_move":
+			if b and tt > 0.25 and d.once("a4_" + id):
+				(b as Thornwarden)._thorn_lanes()
+		"thorn_knots":
+			if b and tt > 0.1 and d.once("a4_" + id):
+				b.hp = float(b.max_hp) * 0.69
+		"boss_wide":
+			if b and tt > 0.15 and d.once("a4_" + id):
+				(b as BoneAbbot)._requiem()
+		"abbot_phase":
+			if b and tt > 0.15 and d.once("a4_" + id):
+				b.hp = float(b.max_hp) * 0.65
+		"warden_move":
+			if b and tt > 0.15 and d.once("a4_" + id):
+				(b as AscendedWarden)._aim_fan(false)
+		"warden_phase":
+			if b and tt > 0.2 and d.once("a4_" + id):
+				b.hp = float(b.max_hp) * 0.64
+		"anchoress_move":
+			if b and tt > 0.2 and d.once("a4_" + id):
+				b.call("_swing", 0.0)
+		"anchoress_phase":
+			if b and tt > 0.2 and d.once("a4_" + id):
+				b.hp = float(b.max_hp) * 0.69
+		"hierarch_voice", "hierarch_edict":
+			if b and tt > 0.2 and d.once("a4_" + id):
+				(b as HierarchVoice)._edict(1)
+		"hierarch_phase":
+			if b and tt > 0.2 and d.once("a4_" + id):
+				b.hp = float(b.max_hp) * 0.64
+		"final_blow":
+			if b and tt > 0.5 and d.once("a4_" + id):
+				d.boss = null
+				b.set_meta(&"test_no_floor", true)
+				b.hp = 1.0
+				b.take_hit(50.0, d.p)
+
+
+func _e_any(_id: String) -> void:
+	kit.finish()
+	d.key.light_energy = _lit_was.x
+	d.key.omni_range = _lit_was.y
