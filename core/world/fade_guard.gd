@@ -13,7 +13,7 @@ extends Node
 ## Load by path (no class_name).
 
 const MIN_BAND := 2.0                 ## metres: a fade over less reads as a pop at walking speed
-const RANGE_K := 1.0                  ## every range pushed out this far (Luke, 7 Nov: things should show sooner). A
+const RANGE_K := 1.5                  ## every range pushed out this far (Luke, 7 Nov: things should show sooner). A
                                       ## near mesh's end and its far stand-in's begin move together, so swaps line up
 const FAR_CAP := 400.0                ## no range past the camera's far plane (FarDetail.VIEW_FAR 420)
 const BAND_K := 0.15                  ## the band, as a share of the range
@@ -23,7 +23,7 @@ const BAND_MAX := 18.0
 
 var _tracked: Array[GeometryInstance3D] = []
 var _i := 0
-const CHECK_PER_FRAME := 400          ## tracked meshes re-checked a frame (~8k ranged: each about every 20 frames)
+const CHECK_PER_FRAME := 40           ## tracked meshes re-checked a frame (~8k ranged: each about every 3 s; 400 cost 0.37 ms)
 
 
 static func attach(root: Node) -> void:
@@ -45,7 +45,7 @@ func _ready() -> void:
 func _on_added(n: Node) -> void:
 	if n is GeometryInstance3D:
 		_tracked.append(n as GeometryInstance3D)
-		_fix.call_deferred(n)
+		_fix_later.call_deferred(weakref(n))
 
 
 ## A builder may set a range after the mesh entered (FarDetail.near_ends runs once the far stand-in exists): every
@@ -68,6 +68,12 @@ func _process(_dt: float) -> void:
 				_fix(g)
 			_i += 1
 		j += 1
+
+
+func _fix_later(w: WeakRef) -> void:
+	var n: Object = w.get_ref()
+	if n != null:
+		_fix(n as Node)                             # (a mesh freed in the frame it entered passes nothing)
 
 
 ## Every instance under `root` (the sweep after the Realm's build).
