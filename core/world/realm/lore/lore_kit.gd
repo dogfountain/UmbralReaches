@@ -99,6 +99,20 @@ static func ensure_mats() -> void:
 	OssKit._mats["lore_thatch"] = _tri_mat("bark", 0.9, Color(0.62, 0.52, 0.36))
 	OssKit._mats["lore_char"] = _tri_mat("bark", 0.8, Color(0.17, 0.15, 0.14))
 	OssKit._mats["lore_beam"] = _tri_mat("tavern_beam", 0.6, Color(1.5, 1.38, 1.25))
+	# lamp ironwork: the realm's blackened metal (metallic, no sky to reflect) went black against the night; this keeps
+	# its pitted grain and a cool rim so a cage, a band and a hat read as iron
+	var li := (OssKit.mat("iron") as StandardMaterial3D).duplicate() as StandardMaterial3D
+	li.albedo_color = Color(1.0, 0.97, 1.0)
+	li.metallic = 0.2
+	li.roughness = 0.55
+	li.rim = 0.35
+	OssKit._mats["lamp_iron"] = li
+	var lw := (OssKit.mat("lore_beam") as StandardMaterial3D).duplicate() as StandardMaterial3D
+	lw.albedo_color = Color(1.9, 1.75, 1.6)
+	lw.rim_enabled = true
+	lw.rim = 0.4
+	lw.rim_tint = 0.5
+	OssKit._mats["lamp_wood"] = lw
 	var bronze := StandardMaterial3D.new()
 	bronze.albedo_color = Color(0.5, 0.4, 0.26)
 	bronze.metallic = 0.35
@@ -912,25 +926,25 @@ func lamp_post(at: Vector3, yaw: float, lit := false) -> Vector3:
 	var b45 := Basis(Vector3.UP, PI * 0.25) * b
 	p.box("lore_tstone", at + Vector3.UP * 0.06, Vector3(0.46, 0.12, 0.46), b, true, 0.8)          # a stepped plinth
 	p.box("lore_tstone", at + Vector3.UP * 0.2, Vector3(0.32, 0.18, 0.32), b, true, 0.9)
-	p.box("lore_beam", at + Vector3.UP * 1.3, Vector3(0.13, 2.3, 0.13), b, true, 0.75)             # an octagonal post with iron bands
-	p.box("lore_beam", at + Vector3.UP * 1.3, Vector3(0.13, 2.3, 0.13), b45, false, 0.68)
+	p.box("lamp_wood", at + Vector3.UP * 1.3, Vector3(0.13, 2.3, 0.13), b, true, 0.75)             # an octagonal post with iron bands
+	p.box("lamp_wood", at + Vector3.UP * 1.3, Vector3(0.13, 2.3, 0.13), b45, false, 0.68)
 	for by: float in [0.7, 1.5]:
-		p.box("iron", at + Vector3.UP * by, Vector3(0.18, 0.045, 0.18), b, false)
-		p.box("iron", at + Vector3.UP * by, Vector3(0.18, 0.045, 0.18), b45, false)
-	p.box("lore_beam", at + Vector3.UP * 2.45, Vector3(0.19, 0.07, 0.19), b, false, 0.7)
-	p.box("lore_beam", at + b * Vector3(0, 2.3, -0.25), Vector3(0.08, 0.08, 0.6), b, false, 0.75)
+		p.box("lamp_iron", at + Vector3.UP * by, Vector3(0.18, 0.045, 0.18), b, false)
+		p.box("lamp_iron", at + Vector3.UP * by, Vector3(0.18, 0.045, 0.18), b45, false)
+	p.box("lamp_wood", at + Vector3.UP * 2.45, Vector3(0.19, 0.07, 0.19), b, false, 0.7)
+	p.box("lamp_wood", at + b * Vector3(0, 2.3, -0.25), Vector3(0.08, 0.08, 0.6), b, false, 0.75)
 	var br0 := at + Vector3.UP * 1.95                                                                # the brace under the arm
 	var br1 := at + b * Vector3(0, 2.28, -0.4)
-	p.box("iron", (br0 + br1) * 0.5, Vector3(0.03, 0.03, br0.distance_to(br1)), Basis.looking_at((br1 - br0).normalized(), Vector3.UP), false)
+	p.box("lamp_iron", (br0 + br1) * 0.5, Vector3(0.03, 0.03, br0.distance_to(br1)), Basis.looking_at((br1 - br0).normalized(), Vector3.UP), false)
 	var lc := at + b * Vector3(0, 1.95, -0.48)
-	p.box("iron", lc + Vector3.UP * 0.2, Vector3(0.26, 0.04, 0.26), b, false)
-	p.box("iron", lc + Vector3.UP * 0.245, Vector3(0.17, 0.03, 0.17), b45, false)                   # a stepped hat
-	p.box("iron", lc + Vector3.UP * 0.28, Vector3(0.08, 0.03, 0.08), b, false)
-	p.box("iron", lc - Vector3.UP * 0.16, Vector3(0.22, 0.04, 0.22), b, false)
+	p.box("lamp_iron", lc + Vector3.UP * 0.2, Vector3(0.26, 0.04, 0.26), b, false)
+	p.box("lamp_iron", lc + Vector3.UP * 0.245, Vector3(0.17, 0.03, 0.17), b45, false)                   # a stepped hat
+	p.box("lamp_iron", lc + Vector3.UP * 0.28, Vector3(0.08, 0.03, 0.08), b, false)
+	p.box("lamp_iron", lc - Vector3.UP * 0.16, Vector3(0.22, 0.04, 0.22), b, false)
 	for sx: float in [-0.1, 0.1]:
 		for sz: float in [-0.1, 0.1]:
-			p.box("iron", lc + b * Vector3(sx, 0.02, sz), Vector3(0.025, 0.36, 0.025), b, false)
-	p.box("glow" if lit else "dark", lc, Vector3(0.17, 0.28, 0.17), b, false, 0.6 if lit else 0.4)
+			p.box("lamp_iron", lc + b * Vector3(sx, 0.02, sz), Vector3(0.025, 0.36, 0.025), b, false)
+	p.box("glow" if lit else "dark", lc, Vector3(0.12, 0.27, 0.12), b, false, 0.6 if lit else 0.4)
 	return lc
 
 

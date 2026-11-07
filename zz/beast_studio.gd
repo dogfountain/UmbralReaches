@@ -95,7 +95,7 @@ func _set_view() -> void:
 	var graze: bool = int(v[2]) == 0
 	var gait := 1.2
 	# custom: x moving, y head yaw, z gait, w head pitch
-	mmi.multimesh.set_instance_custom_data(0, Color(0.0 if graze else 1.0, 0.0, gait, -1.0 if (graze and k != "hare") else 0.0))
+	mmi.multimesh.set_instance_custom_data(0, Color(0.0 if graze else 1.0, 0.0, gait, (-1.65 if k != "elk" else -1.2) if (graze and k != "hare") else 0.0))
 	var eye := Vector3(sin(yaw) * d, 1.4 if d < 8.0 else 1.6, cos(yaw) * d) * 1.0
 	cam.global_position = eye
 	cam.look_at(Vector3(0, 0.7 * minf(sc, 1.2) + (0.2 if k == "elk" else 0.0), 0))

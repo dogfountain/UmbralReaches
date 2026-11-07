@@ -22,6 +22,7 @@ var only: Array = []
 var w: Node3D
 var player: CharacterBody3D
 var off := false
+var only_n := 2
 
 
 func _ready() -> void:
@@ -29,6 +30,8 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--tag="):
 			tag = a.trim_prefix("--tag=")
+		elif a.begins_with("--n="):
+			only_n = int(a.trim_prefix("--n="))
 		elif a.begins_with("--only="):
 			only = Array(a.trim_prefix("--only=").split(","))
 	off = "--scape-off" in OS.get_cmdline_user_args()
@@ -167,7 +170,7 @@ func _herd_view(kinds: Array, dist: float, tagn: String, pref := 0.5) -> void:
 ## In-world lineup: the species placed by hand on open ground by a herd's meadow (nothing bolts or hides),
 ## the real creature shader, light and fog. `kinds` stand in a loose row; the camera sits `dist` m off at
 ## yaw `yawd` (90 = side-on, 140 = front three-quarter, 40 = rear three-quarter).
-func _lineup(kinds: Array, dist: float, yawd: float, walking: bool, tagn: String) -> void:
+func _lineup(kinds: Array, dist: float, yawd: float, walking: bool, tagn: String, fov := 0.0) -> void:
 	var meadow: Node3D = null
 	for g in w.groups:
 		if String(g.kind) == "deer":
@@ -197,14 +200,33 @@ func _lineup(kinds: Array, dist: float, yawd: float, walking: bool, tagn: String
 	mid /= float(kinds.size())
 	var small: bool = kinds.size() == 1 and (kinds[0] == "fox" or kinds[0] == "hare")
 	var yaw := deg_to_rad(yawd)
-	var eye := mid + Vector3(sin(yaw) * dist, (1.2 if small else 1.6) + (0.0 if dist < 8.0 else 0.6), cos(yaw) * dist)
+	var eye := mid + Vector3(sin(yaw) * dist, (0.8 if small else 1.3) + (0.0 if dist < 8.0 else 0.5), cos(yaw) * dist)
 	eye.y = maxf(eye.y, RealmLayout.ground(player.get_world_3d().direct_space_state, eye.x, eye.z) + 1.0)
+	var f0 := cam.fov
+	if fov > 0.0:
+		cam.fov = fov
 	cam.global_position = eye
-	cam.look_at(mid + Vector3(0, 0.4 if small else 0.9, 0))
+	cam.look_at(mid + Vector3(0, 0.3 if small else 0.9, 0))
 	await _frames(6)
 	_save(tagn)
+	cam.fov = f0
 	for m in made:
 		m.queue_free()
+
+
+## A lamp post shot at `dist` m: the post's foot `foot`, aimed `aim` m up it, from the clearest side.
+func _post_shot(foot: Vector3, dist: float, aim: float, tagn: String, pref := 0.4, fov := 0.0) -> void:
+	await _put(foot + Vector3(6, 0, 0))
+	var f0 := cam.fov
+	if fov > 0.0:
+		cam.fov = fov
+	_frame(foot, dist, 1.5, aim, pref)
+	# the wanderer stands behind the camera: the camera's own occlusion fade must not dither the post
+	var back := Vector3(cam.global_position.x - foot.x, 0, cam.global_position.z - foot.z).normalized()
+	await _put(cam.global_position + back * 2.5)
+	await _secs(0.9)
+	_save(tagn)
+	cam.fov = f0
 
 
 func _run() -> void:
@@ -226,14 +248,17 @@ func _run() -> void:
 		await _herd_view(["elk"], 12.0, "elk_12")
 	if _want("lineup"):
 		for d in [6.0, 12.0, 20.0]:
-			await _lineup(["stag", "deer", "deer"], d, 90.0, d > 8.0, "line_herd_%d_side" % int(d))
-			await _lineup(["stag", "deer", "deer"], d, 140.0 if d < 8 else 35.0, d < 8.0, "line_herd_%d_3q" % int(d))
-		await _lineup(["elk"], 12.0, 90.0, false, "line_elk_12")
-		await _lineup(["elk", "stag"], 6.0, 140.0, true, "line_elk_6")
-		for k: String in ["fox", "hare", "boar"]:
-			await _lineup([k], 3.0, 90.0, true, "line_%s_3" % k)
-			await _lineup([k], 6.0, 140.0, false, "line_%s_6" % k)
-			await _lineup([k], 12.0, 90.0, true, "line_%s_12" % k)
+			var fv := 55.0 if d < 8.0 else (42.0 if d < 15.0 else 34.0)
+			await _lineup(["stag", "deer", "deer"], d, 90.0, d > 8.0, "line_herd_%d_side" % int(d), fv)
+			await _lineup(["stag", "deer", "deer"], d, 140.0 if d < 8 else 35.0, d < 8.0, "line_herd_%d_3q" % int(d), fv)
+		await _lineup(["elk"], 12.0, 90.0, false, "line_elk_12", 42.0)
+		await _lineup(["elk", "stag"], 7.0, 140.0, true, "line_elk_6", 50.0)
+		await _lineup(["fox"], 2.6, 90.0, true, "line_fox_3", 40.0)
+		await _lineup(["fox"], 5.0, 140.0, false, "line_fox_6", 40.0)
+		await _lineup(["hare"], 2.4, 90.0, true, "line_hare_3", 40.0)
+		await _lineup(["hare"], 5.0, 140.0, false, "line_hare_6", 40.0)
+		await _lineup(["boar"], 3.8, 90.0, true, "line_boar_3", 45.0)
+		await _lineup(["boar"], 7.0, 140.0, false, "line_boar_6", 45.0)
 	if _want("beasts"):
 		for k: String in ["fox", "hare"]:
 			await _herd_view([k], 3.0, "beast_" + k)
@@ -274,6 +299,33 @@ func _run() -> void:
 				await _secs(0.4)
 				_save("charm_close")
 				break
+	if _want("posts"):
+		var VP := load("res://core/life/village/village_props.gd")
+		var glass := get_tree().root.find_children("Glass_*", "MeshInstance3D", true, false)
+		print("ART village glass ", glass.size())
+		for gi in mini(int(only_n), glass.size()):
+			var gnode := glass[gi] as MeshInstance3D
+			var gp := gnode.global_position
+			var halo := gnode.get_parent().find_child("Halo_" + String(gnode.name).trim_prefix("Glass_"), false, false) as GeometryInstance3D
+			gnode.set_instance_shader_parameter("lit", 1.0)
+			if halo != null:
+				halo.set_instance_shader_parameter("lit", 1.0)
+				halo.visible = true
+			var foot := Vector3(gp.x, gp.y - float(VP.LANTERN_H), gp.z)
+			await _post_shot(foot, 5.5, 1.5, "post_village%d_5" % gi, 0.4 + float(gi), 42.0)
+			await _post_shot(foot, 3.2, 2.2, "post_village%d_3" % gi, 2.2 + float(gi), 36.0)
+		var rd := get_tree().root.find_children("Lamp_rd_lantern_*", "Node3D", true, false)
+		print("ART road lanterns ", rd.size())
+		for ri in mini(2, rd.size()):
+			var lm := rd[ri] as Lamp
+			lm.light_from_leader(false)
+			var rf := lm.global_position - Vector3(0, 1.95, 0)
+			await _post_shot(rf, 5.0, 1.4, "post_road%d_5" % ri, 0.5 + float(ri), 42.0)
+			await _post_shot(rf, 3.0, 1.95, "post_road%d_3" % ri, 2.4 + float(ri), 36.0)
+		var fl2 := get_tree().root.find_child("Lamp_ferry_lamp", true, false) as Lamp
+		if fl2 != null:
+			await _post_shot(fl2.global_position, 5.0, 1.4, "post_ferry_5", 0.4, 42.0)
+			await _post_shot(fl2.global_position, 3.0, 2.1, "post_ferry_3", 2.0, 36.0)
 	if _want("lamps"):
 		var seen := {}
 		for n in get_tree().get_nodes_in_group(&"lamp"):

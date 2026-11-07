@@ -76,8 +76,8 @@ const LOOK := {
 	"branch": {"detail": 0.8, "streak": 4.0, "roughness": 0.95, "detail_scale": 3.0},
 	"mouse": {"detail": 0.45, "streak": 2.0, "roughness": 0.85, "eye_col": Color(0.9, 0.5, 0.3), "eye_energy": 0.6, "detail_scale": 22.0},
 	"plover": {"detail": 0.35, "streak": 3.0, "roughness": 0.55, "rim_amount": 0.4, "eye_energy": 0.0},
-	"boar": {"detail": 0.5, "detail_scale": 6.0, "streak": 2.0, "roughness": 0.92, "eye_col": Color(1.0, 0.55, 0.3), "eye_energy": 1.0, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
-		"body_tone": Vector4(0.34, 0.5, 0.74, 0.92), "tone_amt": Vector2(0.0, 0.0), "mottle": 0.5, "vary": 0.3, "fur_bump": 0.6, "rim_lit": 0.35},
+	"boar": {"detail": 0.4, "detail_scale": 6.0, "streak": 1.0, "roughness": 0.92, "eye_col": Color(1.0, 0.55, 0.3), "eye_energy": 1.0, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
+		"body_tone": Vector4(0.34, 0.5, 0.74, 0.92), "tone_amt": Vector2(0.0, 0.0), "mottle": 0.5, "vary": 0.3, "fur_bump": 0.6, "rim_lit": 0.2},
 	"hare": {"detail": 0.4, "detail_scale": 8.0, "streak": 2.5, "roughness": 0.9, "eye_col": Color(1.0, 0.7, 0.3), "eye_energy": 1.1, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
 		"body_tone": Vector4(0.16, 0.26, 0.3, 0.4), "tone_amt": Vector2(0.0, 0.0), "mottle": 0.4, "vary": 0.3, "fur_bump": 0.25, "rim_lit": 0.3},
 }

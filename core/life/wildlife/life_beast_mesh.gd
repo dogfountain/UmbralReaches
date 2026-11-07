@@ -128,7 +128,7 @@ static func deer(cm, s: float, antler: int) -> void:
 			antler_elk(cm, side, s, mane)
 	# neck (HEAD pivots at the chest so grazing lowers it all): thick at the shoulder, a pale throat
 	var neck := coat_fn(coat, dorsal, belly, rump, 2.0, 0.85, throat)
-	loft(cm, [key(0, 1.03, -0.36, 0.15 * thick, 0.22), key(0, 1.14, -0.5, 0.12 * thick, 0.18), key(0, 1.27, -0.64, 0.095 * thick, 0.135),
+	loft(cm, [key(0, 1.0, -0.48, 0.12 * thick, 0.19), key(0, 1.12, -0.55, 0.115 * thick, 0.17), key(0, 1.27, -0.64, 0.095 * thick, 0.135),
 		key(0, 1.39, -0.76, 0.075 * thick, 0.1), key(0, 1.48, -0.82, 0.062, 0.085)],
 		s, 12, 14, coat, neck, HEAD)
 	if antler > 0:
@@ -153,8 +153,8 @@ static func deer(cm, s: float, antler: int) -> void:
 
 ## A red deer stag's antler: beaded beam sweeping up and back, brow, bez and trez tines, a crown.
 static func antler_stag(cm, side: float, s: float) -> void:
-	var horn := Color(0.3, 0.22, 0.14)
-	var tip := Color(0.66, 0.58, 0.44)
+	var horn := Color(0.46, 0.27, 0.12)
+	var tip := Color(0.8, 0.62, 0.38)
 	var beam: Array = [Vector3(0.05 * side, 1.575, -0.83), Vector3(0.09 * side, 1.65, -0.825), Vector3(0.16 * side, 1.78, -0.79),
 		Vector3(0.22 * side, 1.93, -0.72), Vector3(0.26 * side, 2.08, -0.64), Vector3(0.26 * side, 2.18, -0.59)]
 	for i in beam.size():
@@ -179,8 +179,8 @@ static func antler_stag(cm, side: float, s: float) -> void:
 
 
 static func antler_elk(cm, side: float, s: float, _mane: Color) -> void:
-	var horn := Color(0.34, 0.27, 0.18)
-	var tip := Color(0.74, 0.68, 0.55)
+	var horn := Color(0.46, 0.28, 0.13)
+	var tip := Color(0.8, 0.62, 0.38)
 	var beam := PackedVector3Array([Vector3(0.05 * side, 1.575, -0.83), Vector3(0.16 * side, 1.65, -0.77), Vector3(0.32 * side, 1.75, -0.67), Vector3(0.46 * side, 1.89, -0.59)])
 	for i in beam.size():
 		beam[i] = beam[i] * s
@@ -277,8 +277,8 @@ static func hare(cm) -> void:
 # --- boar ------------------------------------------------------------------------------------------
 
 static func boar(cm) -> void:
-	var coat := Color(0.27, 0.17, 0.1)
-	var bristle := Color(0.46, 0.33, 0.19)
+	var coat := Color(0.2, 0.13, 0.08)
+	var bristle := Color(0.38, 0.27, 0.15)
 	var dark := Color(0.09, 0.07, 0.06)
 	var belly := Color(0.33, 0.24, 0.16)
 	var tusk := Color(0.86, 0.82, 0.7)

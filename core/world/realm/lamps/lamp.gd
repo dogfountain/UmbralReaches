@@ -214,8 +214,19 @@ static func _mat(key: String) -> Material:
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	match key:
 		"body":
+			# the vertex colours say wood, iron or stone; a triplanar grain (and its relief) keeps any of them from
+			# reading as a flat painted block
 			m.vertex_color_use_as_albedo = true
-			m.roughness = 0.82
+			m.roughness = 0.8
+			m.albedo_texture = _grain(false)
+			m.normal_enabled = true
+			m.normal_texture = _grain(true)
+			m.normal_scale = 0.9
+			m.uv1_triplanar = true
+			m.uv1_scale = Vector3.ONE * 3.2
+			m.rim_enabled = true
+			m.rim = 0.15
+			m.rim_tint = 0.5
 		"flame":
 			# unshaded and vertex-coloured: a pale heart fading to red at the tip; the 1.3 lifts the heart to the
 			# bloom threshold and no further
@@ -231,6 +242,44 @@ static func _mat(key: String) -> Material:
 			m.emission_energy_multiplier = 0.22
 	_mats[key] = m
 	return m
+
+
+static var _grain_tex: Array[Texture2D] = [null, null]
+
+
+## A seamless fine noise: grey 0.55..1 as albedo, or its bump as a normal map.
+static func _grain(normal: bool) -> Texture2D:
+	var i := 1 if normal else 0
+	if _grain_tex[i] != null:
+		return _grain_tex[i]
+	var n := FastNoiseLite.new()
+	n.seed = 31
+	n.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	n.frequency = 0.05
+	n.fractal_type = FastNoiseLite.FRACTAL_FBM
+	n.fractal_octaves = 4
+	var c := FastNoiseLite.new()
+	c.seed = 5
+	c.noise_type = FastNoiseLite.TYPE_CELLULAR
+	c.frequency = 0.07
+	c.cellular_return_type = FastNoiseLite.RETURN_DISTANCE2_DIV
+	var a := n.get_seamless_image(128, 128, false, false, 0.1, true)
+	var b := c.get_seamless_image(128, 128, false, false, 0.1, true)
+	var img := Image.create(128, 128, false, Image.FORMAT_L8)
+	for y in 128:
+		for x in 128:
+			var v := a.get_pixel(x, y).r * 0.65 + b.get_pixel(x, y).r * 0.35
+			img.set_pixel(x, y, Color(v, v, v))
+	if normal:
+		img.bump_map_to_normal_map(2.5)
+		_grain_tex[1] = ImageTexture.create_from_image(img)
+	else:
+		for y in 128:
+			for x in 128:
+				var g := 0.55 + 0.45 * img.get_pixel(x, y).r
+				img.set_pixel(x, y, Color(g, g, g))
+		_grain_tex[0] = ImageTexture.create_from_image(img)
+	return _grain_tex[i]
 
 
 static func _mesh_for(kind: String, free: bool, chain_len: float) -> Dictionary:
@@ -280,7 +329,8 @@ static func _mesh_for(kind: String, free: bool, chain_len: float) -> Dictionary:
 			d.range = 6.0
 		"pane":
 			# only the glass: the cold lantern already stands there (the Pilgrims' Road lamps)
-			glow.box(Vector3.ZERO, Vector3(0.19, 0.3, 0.19), Basis.IDENTITY, PANE)
+			# a six-sided belly of glass, warm at the heart and deeper toward the rim, inside the cage's four bars
+			glow.lathe(Vector3(0, -0.15, 0), [Vector2(0.0, 0.0), Vector2(0.07, 0.0), Vector2(0.1, 0.05), Vector2(0.105, 0.15), Vector2(0.09, 0.25), Vector2(0.05, 0.29), Vector2(0.0, 0.3)], 6, PANE, PANE * Color(1.0, 0.8, 0.7))
 			d.e = 1.0
 			d.range = 6.0
 		"camp":
