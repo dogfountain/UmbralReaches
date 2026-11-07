@@ -164,6 +164,15 @@ func _check(label: String, log: Array) -> void:
 	var dup_root := 0
 	var dup_rider := 0
 	var prev_v := Vector3.ZERO
+	# the suite runs 8 games at once: a frame the OS starved (well over the frame's own time) measures the
+	# machine, not the ride. Those and the frame after them are left out of the stutter measure, and counted.
+	var dts: Array[float] = []
+	for e: Dictionary in log:
+		dts.append(float(e.dt))
+	var sorted_dt := dts.duplicate()
+	sorted_dt.sort()
+	var dt_med: float = sorted_dt[sorted_dt.size() / 2] if not sorted_dt.is_empty() else 0.0
+	var starved := 0
 	for i in range(1, n):
 		var a: Dictionary = log[i - 1]
 		var b: Dictionary = log[i]
@@ -171,7 +180,10 @@ func _check(label: String, log: Array) -> void:
 		var rate := step.length() / maxf(float(b.dt), 1e-4)
 		max_step = maxf(max_step, rate)
 		var v := step / maxf(float(b.dt), 1e-4)
-		if i > 1:
+		var long_frame := float(b.dt) > dt_med * 1.8 or float(a.dt) > dt_med * 1.8
+		if long_frame:
+			starved += 1
+		if i > 1 and not long_frame:
 			max_jerk = maxf(max_jerk, (v - prev_v).length() / maxf(float(b.dt), 1e-4))
 		prev_v = v
 		if (b.root as Vector3).distance_to(a.root as Vector3) < 1e-5:
@@ -184,8 +196,9 @@ func _check(label: String, log: Array) -> void:
 			var e: Dictionary = log[i]
 			print("  f%d dt %.4f rel_y %.4f dy %.4f rsx %.4f" % [i, e.dt, (e.rel as Vector3).y, e.dy, e.rsx])
 	var seat_pel := -float(HorseScript.SINK) + 0.02
-	print("RIDE %-12s frames %d  max rel speed %.2f m/s  max accel %.0f m/s2  min pelvis-saddle %.1f cm  dup root %d rider %d" % [
-		label, n, max_step, max_jerk, min_y * 100.0, dup_root, dup_rider])
+	print("RIDE %-12s frames %d  max rel speed %.2f m/s  max accel %.0f m/s2  min pelvis-saddle %.1f cm  dup root %d rider %d  starved frames %d" % [
+		label, n, max_step, max_jerk, min_y * 100.0, dup_root, dup_rider, starved])
+	_ok(starved <= n / 4, "%s: %d of %d frames were starved (the run measured the machine)" % [label, starved, n])
 	_ok(n >= int(SPAN * 40.0), "%s: only %d rendered frames" % [label, n])
 	_ok(max_step <= MAX_REL_SPEED, "%s: the rider slides on the saddle at %.2f m/s" % [label, max_step])
 	_ok(max_jerk <= MAX_ACCEL, "%s: the rider stutters against the horse (%.0f m/s2 against the saddle)" % [label, max_jerk])

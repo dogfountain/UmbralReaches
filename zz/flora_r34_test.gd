@@ -36,7 +36,7 @@ const SIGN := {
 }
 # the Realm is twice the ground (520 x 390 m): ~4.2 s measured (ground rays 0.5, field 0.65, trees 0.5, undergrowth 1.4,
 # nodes 1.1 s), none of it waste found; the old limit was for 310 x 325 m
-const BUDGET_MS := 5000                ## without making meshes (a cold GenCache: a test's fresh HOME)
+const BUDGET_MS := 7500                ## without making meshes (a cold GenCache: a test's fresh HOME). Set for the suite's load (8 games booting at once): ~3.9 s alone, up to ~6 s under load
 const WARM_MS := 1000                  ## a build that adopts the stored placement
 
 var main: Node
