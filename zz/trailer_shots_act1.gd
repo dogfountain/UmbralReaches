@@ -3,6 +3,7 @@ extends RefCounted
 ## `d` is the director (zz/trailer.gd). The existing cold / tavern / run_game shots live there.
 
 const Cam := preload("res://zz/trailer_cam.gd")
+const GearDB := preload("res://core/items/gear_db.gd")
 const GREEN := Vector3(2.0, 0.0, 34.0)
 
 var d
@@ -179,6 +180,11 @@ func _e_kindling() -> void:
 
 
 func _s_gear() -> void:
+	var GearRuntime := load("res://core/items/gear_runtime.gd")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for r in [1, 2, 3, 2, 3, 4, 1, 2]:
+		GearRuntime.store(GearDB.make(rng, {"rarity": r, "uid": 98000 + int(rng.randi() % 900)}))
 	_home_fire()
 	d.use_free_cam()
 	_open_screen("wanderer", "gear", false)
@@ -197,7 +203,7 @@ func _e_gear() -> void:
 func _s_staff_heavy() -> void:
 	d.clear_spawned()
 	d.put_player(d.ARENA, d.WEST)
-	_husk = d.spawn(d.BULWARK_P, d.ARENA + d.fwd_of(d.WEST) * 2.6)
+	_husk = d.spawn(d.WRETCH_P, d.ARENA + d.fwd_of(d.WEST) * 2.4)
 	if _husk:
 		_husk.set("max_hp", 9999)
 		_husk.set("hp", 9999.0)
