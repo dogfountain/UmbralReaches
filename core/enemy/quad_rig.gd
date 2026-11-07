@@ -32,6 +32,8 @@ var _flinch := 0.0
 var _flinch_side := 0.0
 var _reel := 0.0          ## stagger: belly down, legs splayed, for the whole punish
 var _fold := 0.0          ## death: legs give, belly to the ground
+var _fall_base := Transform3D.IDENTITY
+var _fall_side := 1.0
 var _howl := 0.0          ## a pack call: rears on the hind legs, head thrown up
 var _howl_t := -1.0
 var _howl_dur := 0.8
@@ -120,7 +122,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	_flinch = move_toward(_flinch, 0.0, delta * 4.5)
 	_reel = move_toward(_reel, 0.0, delta * 0.9)
 	if _fold > 0.0:
-		_fold = minf(_fold + delta * 1.8, 1.0)
+		_fold = minf(_fold + delta * 1.5, 1.0)
 	# coil = the crouch before a pounce; Enemy squashes the whole visual too, this bends the legs
 	_coil = move_toward(_coil, _gesture, delta * 6.0)
 	if _howl_t >= 0.0:
@@ -145,7 +147,15 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 
 	if upright:
 		_animate_upright(st)
+		if _fold > 0.0:
+			_topple()
 		return
+	_animate_spider(st)
+	if _fold > 0.0:
+		_topple()
+
+
+func _animate_spider(st: float) -> void:
 	for leg in _legs:
 		var hip: Node3D = leg.hip
 		var knee: Node3D = leg.knee
@@ -221,8 +231,27 @@ func stagger() -> void:
 	_reel = 1.0
 
 
-func collapse() -> void:
-	_fold = 0.001
+## The legs give and the body rolls over: a spider onto its back with the legs curled, a hound
+## onto its side.
+func collapse(_back := false) -> void:
+	if _fold <= 0.0:
+		_fall_base = transform
+		_fall_side = -1.0 if _flinch_side < 0.0 else 1.0
+	_fold = maxf(_fold, 0.001)
+
+
+func _topple() -> void:
+	var u := clampf((_fold - 0.1) / 0.9, 0.0, 1.0)
+	var fall := u * u * (3.0 - 2.0 * u) * 0.4 + u * u * u * 0.6
+	var rebound := sin(clampf((_fold - 0.8) / 0.2, 0.0, 1.0) * PI) * 0.08
+	var roll := _fall_side * (1.45 if upright else 2.7) * (fall - rebound)
+	var rot := Basis.from_euler(Vector3(0.0, 0.0, roll))
+	var base := _fall_base.basis
+	var scl := base.get_scale()
+	var base_rot := base.orthonormalized()
+	var pivot := Vector3(0.0, body_height * 0.6, 0.0) * scl                # roll about the body, not the paws
+	var lift := 0.0 if upright else body_height * 0.35 * sin(minf(fall, 1.0) * PI * 0.5)
+	transform = Transform3D(base_rot * rot * Basis.from_scale(scl), _fall_base.origin + base_rot * (pivot - rot * pivot + Vector3(0.0, lift, 0.0)))
 
 
 func muzzle() -> Vector3:
