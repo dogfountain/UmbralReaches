@@ -78,6 +78,9 @@ func _ready() -> void:
 	_rig = HorseRig.new()
 	_rig.setup(breed, _d)
 	_rig.top_level = true            # placed every rendered frame from the interpolated transform (_process)
+	# and so off the physics interpolation: left on, Godot interpolated those per-frame placements again
+	# between ticks, and the horse stepped at the tick rate under a rider drawn every frame
+	_rig.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(_rig)
 	_yaw = global_basis.get_euler().y
 	_write(NAN, 0.0)
