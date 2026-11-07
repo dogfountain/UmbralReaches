@@ -29,5 +29,7 @@ func _process(_d: float) -> void:
 	var w := 1.0                           # the column's girth: a minor one narrows to nothing between reach and 1.25 x reach
 	if reach > 0.0:
 		w = 1.0 - smoothstep(reach, reach * 1.25, d)
+		# a far read, not a wall: beside its foot a minor column is a pale slab across the view, so it narrows to a thread
+		w *= lerpf(0.12, 1.0, smoothstep(10.0, 34.0, Vector2(rel.x, rel.z).length()))
 		visible = w > 0.01
 	global_transform = Transform3D(Basis.IDENTITY.scaled(Vector3(k * w, k, k * w)), eye + rel * k)
