@@ -243,6 +243,10 @@ static func _draw_mat(additive: bool, trails: bool) -> StandardMaterial3D:
 	m.vertex_color_use_as_albedo = true
 	m.disable_receive_shadows = true
 	m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	# a spark or ribbon that drifts across the lens is a fat white pill: fade it out inside ~1.4 m
+	m.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
+	m.distance_fade_min_distance = 0.35
+	m.distance_fade_max_distance = 1.5
 	if trails:
 		m.use_particle_trails = true
 		m.cull_mode = BaseMaterial3D.CULL_DISABLED

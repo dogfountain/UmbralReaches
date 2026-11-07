@@ -122,11 +122,23 @@ static func lamps(parent: Node, space: PhysicsDirectSpaceState3D, defs: Array, s
 		var to := (spot - p).normalized() if spot.distance_to(p) > 0.1 else Vector2(1, 0)
 		var b := Basis(Vector3.UP, atan2(-to.x, -to.y))
 		var base := Vector3(p.x, gy, p.y)
-		k.box("lore_tstone", base + Vector3.UP * 0.1, Vector3(0.36, 0.3, 0.36), b, true, 0.85)
-		k.box("lore_beam", base + Vector3.UP * 1.35, Vector3(0.14, 2.5, 0.14), b, true, 0.7)
-		k.box("lore_beam", base + Vector3.UP * 2.62, Vector3(0.18, 0.06, 0.18), b, false, 0.6)
+		var b45 := Basis(Vector3.UP, PI * 0.25) * b
+		k.box("lore_tstone", base + Vector3.UP * 0.06, Vector3(0.5, 0.12, 0.5), b, true, 0.8)           # a stepped plinth
+		k.box("lore_tstone", base + Vector3.UP * 0.2, Vector3(0.36, 0.2, 0.36), b, true, 0.9)
+		k.box("lore_tstone", base + Vector3.UP * 0.32, Vector3(0.42, 0.05, 0.42), b, false, 1.0)
+		k.box("lore_beam", base + Vector3.UP * 1.4, Vector3(0.13, 2.4, 0.13), b, true, 0.7)             # an octagonal post
+		k.box("lore_beam", base + Vector3.UP * 1.4, Vector3(0.13, 2.4, 0.13), b45, false, 0.62)
+		for by: float in [0.75, 1.6, 2.4]:
+			k.box("iron", base + Vector3.UP * by, Vector3(0.18, 0.045, 0.18), b, false, 0.65)           # iron bands
+			k.box("iron", base + Vector3.UP * by, Vector3(0.18, 0.045, 0.18), b45, false, 0.6)
+		k.box("lore_beam", base + Vector3.UP * 2.64, Vector3(0.2, 0.07, 0.2), b, false, 0.7)             # a cap, a finial
+		k.box("iron", base + Vector3.UP * 2.74, Vector3(0.07, 0.07, 0.07), b45, false, 0.75)
 		var arm := Vector3(to.x, 0, to.y) * 0.5
-		k.box("iron", base + Vector3.UP * 2.55 + arm * 0.5, Vector3(0.04, 0.04, 0.55), Basis.looking_at(Vector3(to.x, 0, to.y), Vector3.UP), false, 0.7)
+		var af := Basis.looking_at(Vector3(to.x, 0, to.y), Vector3.UP)
+		k.box("iron", base + Vector3.UP * 2.55 + arm * 0.5, Vector3(0.04, 0.04, 0.55), af, false, 0.7)
+		var br0 := base + Vector3.UP * 2.1                                                              # a diagonal brace under the arm
+		var br1 := base + Vector3.UP * 2.53 + arm * 0.8
+		k.box("iron", (br0 + br1) * 0.5, Vector3(0.028, 0.028, br0.distance_to(br1)), Basis.looking_at((br1 - br0).normalized(), Vector3.UP), false, 0.65)
 		var lc := base + Vector3.UP * LANTERN_H + arm
 		# r36: the lantern hangs from the arm's hook (0.25 above its centre) and swings in the wind
 		var hook := lc + Vector3.UP * 0.25
@@ -137,6 +149,9 @@ static func lamps(parent: Node, space: PhysicsDirectSpaceState3D, defs: Array, s
 		var lo := Vector3.DOWN * 0.25                        # the lantern's centre in the hook's space
 		kc.box("iron", lo + Vector3.UP * 0.15, Vector3(0.2, 0.05, 0.2), Basis.IDENTITY, false, 0.6)
 		kc.box("iron", lo + Vector3.UP * 0.2, Vector3(0.1, 0.06, 0.1), Basis.IDENTITY, false, 0.6)
+		kc.box("iron", lo + Vector3.UP * 0.245, Vector3(0.14, 0.03, 0.14), Basis(Vector3.UP, 0.78), false, 0.65)      # a stepped hat and finial
+		kc.box("iron", lo + Vector3.UP * 0.28, Vector3(0.07, 0.03, 0.07), Basis.IDENTITY, false, 0.65)
+		kc.box("iron", lo + Vector3.DOWN * 0.165, Vector3(0.1, 0.03, 0.1), Basis(Vector3.UP, 0.78), false, 0.6)
 		kc.box("iron", lo + Vector3.DOWN * 0.13, Vector3(0.19, 0.04, 0.19), Basis.IDENTITY, false, 0.6)
 		for c in 4:
 			var o := Vector3(0.085 * (1.0 if c % 2 == 0 else -1.0), 0, 0.085 * (1.0 if c < 2 else -1.0))

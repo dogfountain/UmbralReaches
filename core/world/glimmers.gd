@@ -17,6 +17,7 @@ var _pulses: Array[Dictionary] = []
 var _floaty = preload("res://core/world/floaty.gd")
 var _mush = preload("res://core/util/mushroom_mesh.gd")
 var _cap_shader: Shader
+var _wisp_shader: Shader = preload("res://world/glimmer_wisp.gdshader")
 
 
 func _ready() -> void:
@@ -122,59 +123,21 @@ func _scatter_wisps() -> void:
 		holder.set("period", _rng.randf_range(4.5, 9.0))
 		holder.set("spin", _rng.randf_range(-0.4, 0.4))
 		add_child(holder)
-		var orb := SphereMesh.new()
 		var r := _rng.randf_range(0.07, 0.13)
-		orb.radius = r
-		orb.height = r * 2.0
-		orb.radial_segments = 8
-		orb.rings = 5
-		var core := MeshInstance3D.new()
-		core.mesh = orb
-		var core_mat := StandardMaterial3D.new()
-		core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		core_mat.albedo_color = col / maxf(col.r, maxf(col.g, col.b)) * 1.1       # the candle's rule: body under 1.15
-		core_mat.disable_receive_shadows = true
-		core.material_override = core_mat
-		core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		core.visibility_range_end = 36.0
-		core.visibility_range_end_margin = 8.0
-		core.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		holder.add_child(core)
-		var hot := MeshInstance3D.new()                  # a small core over the threshold
-		var hs0 := SphereMesh.new()
-		hs0.radius = r * 0.4
-		hs0.height = r * 0.8
-		hs0.radial_segments = 6
-		hs0.rings = 3
-		hot.mesh = hs0
-		var hot_mat := StandardMaterial3D.new()
-		hot_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		hot_mat.albedo_color = col / maxf(col.r, maxf(col.g, col.b)) * 1.6
-		hot.material_override = hot_mat
-		hot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		hot.visibility_range_end = 36.0
-		hot.visibility_range_end_margin = 8.0
-		hot.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		holder.add_child(hot)
-		var halo := MeshInstance3D.new()
+		var glow := MeshInstance3D.new()                 # one soft billboard: bright core inside a radial halo
 		var q := QuadMesh.new()
-		var hs := r * 7.0
-		q.size = Vector2(hs, hs)
-		halo.mesh = q
-		var hmat := StandardMaterial3D.new()
-		hmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		hmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		hmat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		hmat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-		hmat.disable_receive_shadows = true
-		hmat.albedo_color = col / maxf(col.r, maxf(col.g, col.b)) * 0.8
-		hmat.albedo_texture = _radial()
-		halo.material_override = hmat
-		halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		halo.visibility_range_end = 36.0
-		halo.visibility_range_end_margin = 8.0
-		halo.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		holder.add_child(halo)
+		q.size = Vector2.ONE * r * 9.0
+		glow.mesh = q
+		var gmat := ShaderMaterial.new()
+		gmat.shader = _wisp_shader
+		gmat.set_shader_parameter("tint", Vector3(col.r, col.g, col.b) / maxf(col.r, maxf(col.g, col.b)))
+		gmat.set_shader_parameter("flicker_hz", _rng.randf_range(1.2, 2.2))
+		glow.material_override = gmat
+		glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		glow.visibility_range_end = 36.0
+		glow.visibility_range_end_margin = 8.0
+		glow.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		holder.add_child(glow)
 		_omni(Vector3.ZERO, col, _rng.randf_range(1.15, 1.85), _rng.randf_range(4.8, 7.0), holder)
 		made += 1
 

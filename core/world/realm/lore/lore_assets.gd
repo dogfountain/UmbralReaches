@@ -569,11 +569,11 @@ void fragment() {
 	// rain streaks down the sides, pale lichen crusts
 	float side = 1.0 - up;
 	float st = texture(noise_tex, vec2((wpos.x + wpos.z) * 1.7, wpos.y * 0.09)).r;
-	float lichen = smoothstep(0.74, 0.8, texture(noise_tex, wpos.xz * 1.9 + wpos.zy * 1.3).r) * side * streaks;
+	float lichen = smoothstep(0.66, 0.9, texture(noise_tex, wpos.xz * 1.9 + wpos.zy * 1.3).r) * side * streaks;
 	vec3 stone = alb * tint.rgb * COLOR.rgb;
 	stone *= 1.0 - streaks * side * smoothstep(0.55, 0.85, st) * 0.22;
 	stone *= 0.9 + 0.2 * big;
-	stone = mix(stone, vec3(0.55, 0.56, 0.44) * ao, lichen * 0.55);
+	stone = mix(stone, stone * vec3(0.88, 0.95, 0.8) + vec3(0.012, 0.018, 0.006), lichen * 0.5);      // a greener, darker crust, never paler than the stone
 	ALBEDO = mix(stone, moss_col * (0.6 + 0.4 * ao), moss);
 	ROUGHNESS = mix(clamp(rough, 0.5, 1.0), 0.98, moss);
 	nw = normalize(mix(nw, n, moss * 0.6));

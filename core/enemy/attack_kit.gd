@@ -14,9 +14,11 @@ extends RefCounted
 ##   lob(host, from, to, time, col)     a glob thrown on a visible arc (visual only)
 
 const Synth := preload("res://core/vfx/synth.gd")
+const BoneMesh := preload("res://core/enemy/bone_mesh.gd")
 const RED := Color(2.6, 0.55, 0.1)          ## SpellFx.DANGER_RED: a red the night grade keeps
 const ACID := Color(0.3, 1.6, 1.1)
 const UMBRAL := Color(1.5, 0.5, 2.8)
+const BONE := Color(2.2, 1.9, 1.4)            ## BossKit.BONE: the Abbot's rain falls as real bones
 const GLOAM := Color(0.75, 1.9, 0.45)          ## the Chanter's corpse-light (violet is the player's)
 
 static var _glob_mesh: SphereMesh
@@ -142,7 +144,11 @@ static func lob(from: Vector3, to: Vector3, time: float, col: Color) -> void:
 		_glob_mesh.material = ProcMesh.glow_mat(ACID)
 	var mi := MeshInstance3D.new()
 	mi.mesh = _glob_mesh
-	if not col.is_equal_approx(ACID):
+	var bone := col.is_equal_approx(BONE)
+	if bone:
+		mi.mesh = BoneMesh.mesh()
+		mi.material_override = BoneMesh.material()
+	elif not col.is_equal_approx(ACID):
 		var k := col.to_html()
 		if not _glob_tints.has(k):
 			var gm := _glob_mesh.duplicate() as SphereMesh
@@ -155,13 +161,14 @@ static func lob(from: Vector3, to: Vector3, time: float, col: Color) -> void:
 	Vfx.carry(mi, col, 0.9, 3.0)            # the glob lights the ground it crosses, in its own colour
 	var apex := maxf(from.y, to.y) + 1.6 + from.distance_to(to) * 0.12
 	var tw := mi.create_tween()
-	tw.tween_method(func(k: float) -> void:
+	var fly := func(k: float) -> void:
 		if not is_instance_valid(mi):
 			return
 		var p := from.lerp(to, k)
 		# a parabola through from, apex and to
 		var h := lerpf(from.y, to.y, k) + (apex - maxf(from.y, to.y)) * 4.0 * k * (1.0 - k)
 		mi.global_position = Vector3(p.x, h, p.z)
-		mi.rotation.y = k * 9.0, 0.0, 1.0, maxf(time, 0.1))
+		mi.rotation = Vector3(k * 7.0 + p.x, k * 4.0, k * 2.0) if bone else Vector3(0.0, k * 9.0, 0.0)
+	tw.tween_method(fly, 0.0, 1.0, maxf(time, 0.1))
 	tw.tween_callback(mi.queue_free)
 	Vfx.burst(from, col, {"count": 10, "life": 0.3, "speed": Vector2(1.0, 2.5), "size": 0.05, "gravity": -6.0})

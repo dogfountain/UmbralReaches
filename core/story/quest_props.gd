@@ -247,11 +247,24 @@ static func _chalk(k: OssKit, at: Vector3, r: float) -> void:
 
 
 static func _lantern(k: OssKit, at: Vector3, b: Basis, lit: bool) -> void:
-	k.box("iron", at + b * Vector3(0, -0.11, 0), Vector3(0.16, 0.02, 0.16), b, false, 0.55)
-	k.box("iron", at + b * Vector3(0, 0.11, 0), Vector3(0.17, 0.025, 0.17), b, false, 0.55)
-	k.box("iron", at + b * Vector3(0, 0.15, 0), Vector3(0.08, 0.05, 0.08), b, false, 0.55)
+	# an iron-caged lantern: foot, four posts, an eight-sided glass belly (a plain box read as an orange
+	# cube), a stepped hat, a ring and a bail handle
+	var b45 := b * Basis(Vector3.UP, PI * 0.25)
+	var glass := "glow" if lit else "slate"
+	var gs := 0.95 if lit else 0.4
+	k.box("iron", at + b * Vector3(0, -0.125, 0), Vector3(0.19, 0.025, 0.19), b, false, 0.55)
+	k.box("iron", at + b * Vector3(0, -0.147, 0), Vector3(0.13, 0.02, 0.13), b45, false, 0.5)
 	for sx: float in [-1.0, 1.0]:
 		for sz: float in [-1.0, 1.0]:
-			k.box("iron", at + b * Vector3(sx * 0.072, 0, sz * 0.072), Vector3(0.016, 0.22, 0.016), b, false, 0.5)
-	k.box("glow" if lit else "slate", at + b * Vector3(0, 0, 0), Vector3(0.12, 0.19, 0.12), b, false, 0.95 if lit else 0.35)
-	k.box("iron", at + b * Vector3(0, 0.21, 0), Vector3(0.11, 0.012, 0.012), b, false, 0.5)
+			k.box("iron", at + b * Vector3(sx * 0.07, 0.0, sz * 0.07), Vector3(0.016, 0.25, 0.016), b, false, 0.5)
+	k.box(glass, at + b * Vector3(0, 0.0, 0), Vector3(0.115, 0.13, 0.115), b, false, gs)
+	k.box(glass, at + b * Vector3(0, 0.0, 0), Vector3(0.115, 0.13, 0.115), b45, false, gs)
+	k.box(glass, at + b * Vector3(0, -0.085, 0), Vector3(0.08, 0.04, 0.08), b45, false, gs * 0.9)
+	k.box(glass, at + b * Vector3(0, 0.085, 0), Vector3(0.09, 0.04, 0.09), b45, false, gs * 0.9)
+	k.box("iron", at + b * Vector3(0, 0.0, 0), Vector3(0.145, 0.014, 0.145), b, false, 0.55)          # the mid band
+	k.box("iron", at + b * Vector3(0, 0.125, 0), Vector3(0.17, 0.025, 0.17), b, false, 0.55)
+	k.box("iron", at + b * Vector3(0, 0.15, 0), Vector3(0.115, 0.025, 0.115), b45, false, 0.55)
+	k.box("iron", at + b * Vector3(0, 0.172, 0), Vector3(0.055, 0.025, 0.055), b, false, 0.55)
+	for sg: float in [-1.0, 1.0]:
+		k.box("iron", at + b * Vector3(sg * 0.045, 0.235, 0), Vector3(0.012, 0.1, 0.012), b, false, 0.5)
+	k.box("iron", at + b * Vector3(0, 0.285, 0), Vector3(0.1, 0.014, 0.014), b, false, 0.5)

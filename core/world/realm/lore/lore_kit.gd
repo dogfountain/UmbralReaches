@@ -84,11 +84,11 @@ static func ensure_mats() -> void:
 	OssKit._mats["lore_moss"] = LA.stone("rockkit", 0.42, Color(1.0, 1.05, 0.92), 0.95, 0.7, 0.4)
 	OssKit._mats["lore_rock"] = LA.stone("rockkit", 0.36, Color(1.05, 1.02, 0.98), 0.3, 0.3, 0.4)
 	# hewn ruin stone (oss_hewn: strata, pits, cracks; oss_ruin for coursed rubble) - the old oss_statue read as smooth pale blocks
-	OssKit._mats["lore_tstone"] = LA.stone("oss_hewn", 0.5, Color(1.12, 1.07, 1.02), 0.45, 0.45, 0.6)
+	OssKit._mats["lore_tstone"] = LA.stone("oss_hewn", 0.5, Color(0.98, 0.95, 0.92), 0.45, 0.45, 0.6)
 	OssKit._mats["lore_rubble"] = LA.stone("oss_ruin", 0.4, Color(1.12, 1.06, 1.0), 0.45, 0.5, 0.6)
 	OssKit._mats["lore_tslate"] = LA.stone("oss_slate", 0.5, Color(1.7, 1.72, 1.8), 0.55, 0.0, 0.25)
-	OssKit._mats["lore_plaster"] = LA.stone("oss_plaster", 0.5, Color(0.92, 0.88, 0.8), 0.0, 0.55, 0.8)
-	OssKit._mats["lore_ashlar"] = LA.stone("oss_ashlar", 0.32, Color(1.12, 1.08, 1.04), 0.5, 0.5, 0.65)
+	OssKit._mats["lore_plaster"] = LA.stone("oss_plaster", 0.5, Color(0.8, 0.77, 0.7), 0.0, 0.55, 0.8)
+	OssKit._mats["lore_ashlar"] = LA.stone("oss_ashlar", 0.32, Color(0.96, 0.93, 0.9), 0.5, 0.5, 0.65)
 	OssKit._mats["lore_slates"] = LA.stone("oss_slate", 1.3, Color(1.6, 1.62, 1.7), 0.5, 0.0, 0.0)
 	OssKit._mats["lore_carve"] = LA.carve(false)
 	OssKit._mats["lore_carve_cold"] = LA.carve(true)
@@ -909,10 +909,23 @@ func bench(at: Vector3, yaw: float) -> void:
 ## A lantern on a post (unlit iron cage, cold glass) or lit (`lit` adds an ember glass pane).
 func lamp_post(at: Vector3, yaw: float, lit := false) -> Vector3:
 	var b := Basis(Vector3.UP, yaw)
-	p.box("lore_beam", at + Vector3.UP * 1.1, Vector3(0.13, 2.6, 0.13), b, true, 0.75)
+	var b45 := Basis(Vector3.UP, PI * 0.25) * b
+	p.box("lore_tstone", at + Vector3.UP * 0.06, Vector3(0.46, 0.12, 0.46), b, true, 0.8)          # a stepped plinth
+	p.box("lore_tstone", at + Vector3.UP * 0.2, Vector3(0.32, 0.18, 0.32), b, true, 0.9)
+	p.box("lore_beam", at + Vector3.UP * 1.3, Vector3(0.13, 2.3, 0.13), b, true, 0.75)             # an octagonal post with iron bands
+	p.box("lore_beam", at + Vector3.UP * 1.3, Vector3(0.13, 2.3, 0.13), b45, false, 0.68)
+	for by: float in [0.7, 1.5]:
+		p.box("iron", at + Vector3.UP * by, Vector3(0.18, 0.045, 0.18), b, false)
+		p.box("iron", at + Vector3.UP * by, Vector3(0.18, 0.045, 0.18), b45, false)
+	p.box("lore_beam", at + Vector3.UP * 2.45, Vector3(0.19, 0.07, 0.19), b, false, 0.7)
 	p.box("lore_beam", at + b * Vector3(0, 2.3, -0.25), Vector3(0.08, 0.08, 0.6), b, false, 0.75)
+	var br0 := at + Vector3.UP * 1.95                                                                # the brace under the arm
+	var br1 := at + b * Vector3(0, 2.28, -0.4)
+	p.box("iron", (br0 + br1) * 0.5, Vector3(0.03, 0.03, br0.distance_to(br1)), Basis.looking_at((br1 - br0).normalized(), Vector3.UP), false)
 	var lc := at + b * Vector3(0, 1.95, -0.48)
 	p.box("iron", lc + Vector3.UP * 0.2, Vector3(0.26, 0.04, 0.26), b, false)
+	p.box("iron", lc + Vector3.UP * 0.245, Vector3(0.17, 0.03, 0.17), b45, false)                   # a stepped hat
+	p.box("iron", lc + Vector3.UP * 0.28, Vector3(0.08, 0.03, 0.08), b, false)
 	p.box("iron", lc - Vector3.UP * 0.16, Vector3(0.22, 0.04, 0.22), b, false)
 	for sx: float in [-0.1, 0.1]:
 		for sz: float in [-0.1, 0.1]:
