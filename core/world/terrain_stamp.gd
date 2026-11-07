@@ -207,7 +207,12 @@ static func apply(root: Node) -> void:
 		if not out.has(idx) or float(out[idx]) < float(heaped[idx]):
 			out[idx] = heaped[idx]
 	if not heaped.is_empty():
-		print("TERRAIN_MOUND %d vertices heaped under roots and the like" % heaped.size())
+		var lo := 0.0
+		var hi := 0.0
+		for v: float in heaped.values():
+			lo = minf(lo, v)
+			hi = maxf(hi, v)
+		print("TERRAIN_MOUND %d vertices heaped under roots and the like (%.2f .. %.2f)" % [heaped.size(), lo, hi])
 	_write(terrain, body, grid, arrays, verts, out)
 	WorldLanes.clear_cache()
 	print("TERRAIN_STAMP %d vertices stamped, %d blended" % [delta.size(), out.size() - delta.size()])
@@ -389,7 +394,7 @@ static func _mound_y(m: Dictionary, d: float, ang: float) -> float:
 
 
 static func _mound_delta(grid: _Grid, m: Dictionary) -> Dictionary:
-	var out := {}
+	var raw := {}
 	var c: Vector2 = m.c
 	var core: float = m.core
 	var reach: float = m.out
@@ -400,10 +405,28 @@ static func _mound_delta(grid: _Grid, m: Dictionary) -> Dictionary:
 		if d > reach:
 			continue
 		var tgt := _mound_y(m, minf(d, core), atan2(off.x, off.y))
-		if is_nan(tgt):
-			continue
-		var dy := (tgt - w.y) * (1.0 - smoothstep(core, reach, d))
-		if dy > 0.02:
+		var dy := 0.0
+		if not is_nan(tgt):
+			dy = maxf(tgt - w.y, 0.0) * (1.0 - smoothstep(core, reach, d)) * smoothstep(2.0, 5.0, d)
+		raw[idx] = dy
+	# one vertex standing up alone is a spike on a 2 m grid: two passes of a 3 x 3 mean make the heap one swell
+	for pass_n in 2:
+		var soft := {}
+		for idx: int in raw:
+			var sum := 0.0
+			for dj in range(-1, 2):
+				for di in range(-1, 2):
+					sum += float(raw.get(idx + dj * grid.nx + di, 0.0))
+			soft[idx] = sum / 9.0
+		raw = soft
+	var out := {}
+	for idx: int in raw:
+		var dy := float(raw[idx])
+		if m.has("floor"):                       # inside the hollow the floor is level, whatever the land did there
+			var w := grid.world(idx)
+			var d := Vector2(w.x, w.z).distance_to(c)
+			dy = lerpf(dy, float(m.floor) - w.y, 1.0 - smoothstep(4.5, 6.5, d))
+		if absf(dy) > 0.02:
 			out[idx] = dy
 	return out
 

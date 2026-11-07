@@ -40,6 +40,12 @@ func _physics_process(_d: float) -> void:
 		return
 	done = true
 	var space := (main as Node3D).get_world_3d().direct_space_state
+	if verbose:
+		for z in range(194, 214, 2):
+			var row := ""
+			for x in range(-80, -58, 2):
+				row += " %.2f" % _ground(space, float(x), float(z))
+			print("GROUNDED row z=", z, row)
 	_oak(space)
 	_edge_rocks(space)
 	_trees(space)

@@ -4,7 +4,7 @@ extends RefCounted
 ## to the underside of the roots, metre by metre outwards and 15 degrees round (TerrainStamp.mounds), the
 ## gaps between the roots filled by what the roots either side stand on, and blends back to the downs beyond.
 const OUT := 10.0
-const SINK := 0.5               ## the earth stands this far up the roots' undersides (the ground is a 2 m grid: it cannot follow a root's flank)
+const SINK := 0.9               ## the earth stands this far up the roots' undersides (the ground is a 2 m grid: it cannot follow a root's flank)
 const BINS := 24
 const DOOR_HALF := 0.4          ## radians
 
@@ -64,4 +64,4 @@ static func queue(roots: Mesh, centre: Vector2, oy: float, door: float, ground: 
 	for d in far + 1:
 		for a in n:
 			ring[d * n + a] = rows[d][a] + SINK if d >= 3 and not is_nan(rows[d][a]) else NAN
-	TerrainStamp.mounds.append({"c": centre, "core": float(far), "out": float(far) + OUT, "bins": n, "ring": ring})
+	TerrainStamp.mounds.append({"c": centre, "core": float(far), "out": float(far) + OUT, "bins": n, "ring": ring, "floor": oy + 0.05})
