@@ -210,7 +210,7 @@ static func build(root: Node) -> void:
 	for k: String in keys:
 		print("REALM_PROF %7.1f ms  %s" % [float(prof[k]) / 1000.0, k])
 	progress = 1.0
-	print("FADE_GUARD %d ranged meshes given a fade after the build" % FadeGuard.sweep(root))
+	print("FADE_GUARD %d ranged meshes pushed out and faded after the build" % FadeGuard.sweep(root))
 	root.set_meta("realm_done", true)              # waiters (camps, tests) can key on this
 	print("REALM built in %d ms" % (Time.get_ticks_msec() - t0))
 
