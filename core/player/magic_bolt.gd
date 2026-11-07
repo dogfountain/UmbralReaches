@@ -239,6 +239,9 @@ func arm_with(cfg: Dictionary) -> void:
 	if pierce and _core:
 		if _glow_pierce == null:
 			_glow_pierce = ProcMesh.glow_mat(Color(3.2, 2.4, 1.6))
+			_glow_pierce.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_DITHER
+			_glow_pierce.distance_fade_min_distance = 0.5
+			_glow_pierce.distance_fade_max_distance = 1.8
 		_core.material_override = _glow_pierce   # white-hot
 
 
@@ -603,6 +606,12 @@ static func _ensure_shared() -> void:
 	_shell_h.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_shell_h.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	_shell_h.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	for bm: BaseMaterial3D in [_glow, _glow_h, _shell, _shell_h]:
+		# a bolt loosed from a first-person lens passes through it: it dissolves inside ~1.5 m instead of
+		# filling the view with a fat pill
+		bm.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_DITHER if bm.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED else BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
+		bm.distance_fade_min_distance = 0.5
+		bm.distance_fade_max_distance = 1.8
 	_trail_pm = _particle_mat(false)
 	_burst_pm = _particle_mat(true)
 	_trail_quad = QuadMesh.new()
@@ -736,6 +745,11 @@ static func _core_mat(c: String) -> Array:
 	shell.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	shell.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	shell.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	glow.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_DITHER
+	shell.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
+	for fm: BaseMaterial3D in [glow, shell]:
+		fm.distance_fade_min_distance = 0.5
+		fm.distance_fade_max_distance = 1.8
 	_core_mats[c] = [glow, shell]
 	return _core_mats[c]
 
