@@ -313,8 +313,8 @@ def build(DATA, PREVIEW, objs_out):
             th = math.pi / 2
         else:                                           # the crown
             th = -math.pi / 2 + math.pi * (k - NSIDE) / NCROWN
-            u = math.sin(th) * (1.0 + 0.05 * nz(th, 0) * math.cos(th)) + 0.06 * math.cos(th)         # a little lopsided
-            yy = SPRING + CROWN * math.cos(th) * (1.0 + 0.07 * nz(th, 1)) + 0.05 * nz(th, 2)
+            u = math.sin(th) * (1.0 + 0.02 * nz(th, 0) * math.cos(th)) + 0.03 * math.cos(th)         # a little lopsided
+            yy = SPRING + CROWN * math.cos(th) * (1.0 + 0.025 * nz(th, 1)) + 0.02 * nz(th, 2)
         arch_t.append(th)
         arch_p.append((a_l + (a_r - a_l) * (1.0 + u) / 2.0, max(yy, 0.0)))
     arch_t = [min(max(t, -math.pi / 2 + 0.0), math.pi / 2) for t in arch_t]
@@ -386,7 +386,8 @@ def build(DATA, PREVIEW, objs_out):
             A_i.append(vi[floor_i][ENT_J0 + 10])
         else:
             A_o.append(bm.verts.new(pos(aa, surf(aa, yy, False), yy)))
-            A_i.append(bm.verts.new(pos(aa, surf(aa, yy, True), yy)))
+            yi_ = yy * r_in(0.0) / r_out(0.0)
+            A_i.append(bm.verts.new(pos(aa, surf(aa, yi_, True), yi_)))
     strip(P_o, A_o, True)
     strip(P_i, A_i, False)
     arc_u = [0.0]
@@ -414,7 +415,7 @@ def build(DATA, PREVIEW, objs_out):
             d = d - rad * d.dot(rad)
             d = d.normalized() if d.length > 1e-6 else Vector((0, 1, 0))
             t_ = arch_t[k]
-            amp = (0.2 + 0.08 * nz(k * 0.2, 3)) * (0.35 + 0.65 * math.cos(t_)) * min(1.0, k / 3.0, (NA - k) / 3.0)
+            amp = (0.2 + 0.03 * nz(k * 0.2, 3)) * (0.35 + 0.65 * math.cos(t_)) * min(1.0, k / 3.0, (NA - k) / 3.0)
             q = q + d * amp * math.sin(math.pi * f_) ** 0.85
             ring.append(bm.verts.new(q))
         for k in range(NA):
@@ -814,11 +815,11 @@ def build(DATA, PREVIEW, objs_out):
             # a root arm from the wall, curving down and in under the tread's edge
             rw = r_in(y)
             sb.tube_path([pos(am, rw + 0.25, y - 0.2), pos(am, rw - 0.25, y - 0.62), pos(am, rm + 0.5, y - 0.52), pos(am, rm - 0.2, y - 0.3)],
-                         [0.3, 0.24, 0.16, 0.1], "bark", sides=6, jit=0.04, seed=s)
+                         [0.3, 0.24, 0.16, 0.1], "heart", sides=6, jit=0.04, seed=s)
         if s % 6 == 1:
             # a root stub standing at the inner edge
             pp = pos(stair_a(s) + DA * 0.5, ri_ + 0.06, stair_y(s) + RISE * 0.5)
-            sb.tube(pp - Vector((0, 0.1, 0)), pp + Vector((0.05, 0.85, 0.03)), 0.085, 0.05, "bark", sides=6, jit=0.02, seed=s)
+            sb.tube(pp - Vector((0, 0.1, 0)), pp + Vector((0.05, 0.85, 0.03)), 0.085, 0.05, "heart", sides=6, jit=0.02, seed=s)
         if s % 2 == 1:
             pp = pos(stair_a(s) + DA * 0.5, ri_ + 0.06, stair_y(s) + RISE * 0.5)
             rails.append(pp + Vector((0, 0.95, 0)))
@@ -828,17 +829,17 @@ def build(DATA, PREVIEW, objs_out):
         y_ = stair_y(s)
         rw_ = r_in(y_)
         string_pts.append(pos(stair_a(s), rw_ - 0.12 - STAIR_W * 0.5, y_ - 0.42))
-    sb.tube_path(string_pts, [0.34 + 0.05 * math.sin(i * 0.7) for i in range(len(string_pts))], "bark", sides=8, jit=0.03, seed=17)
+    sb.tube_path(string_pts, [0.34 + 0.05 * math.sin(i * 0.7) for i in range(len(string_pts))], "heart", sides=8, jit=0.03, seed=17)
     # the rail: one gnarled root laid along the helix in runs, broken where the landings are
     run = []
     for k in range(len(rails)):
         if run and (rails[k] - run[-1]).length >= 3.0:
             if len(run) > 2:
-                sb.tube_path(run, [0.07 + 0.025 * math.sin(i * 0.9) for i in range(len(run))], "bark", sides=6, jit=0.03, seed=len(run))
+                sb.tube_path(run, [0.07 + 0.025 * math.sin(i * 0.9) for i in range(len(run))], "heart", sides=6, jit=0.03, seed=len(run))
             run = []
         run.append(rails[k])
     if len(run) > 2:
-        sb.tube_path(run, [0.07 + 0.025 * math.sin(i * 0.9) for i in range(len(run))], "bark", sides=6, jit=0.03, seed=3)
+        sb.tube_path(run, [0.07 + 0.025 * math.sin(i * 0.9) for i in range(len(run))], "heart", sides=6, jit=0.03, seed=3)
     # landings at the limb doors: a heavy timber platform spanning the door's width
     for lm in limbs:
         a = lm["a_door"]
@@ -847,7 +848,7 @@ def build(DATA, PREVIEW, objs_out):
         ri_ = rw - 0.12 - STAIR_W
         rm = (rw + ri_) / 2 + 0.2
         sb.box(tuple(pos(a, rm, y - 0.3)), (rw - ri_ + 0.6, 0.55, 3.6), "plank", yaw=a + math.pi / 2, scale_uv=0.5)
-        sb.box(tuple(pos(a, rw + 0.6, y - 1.6)), (1.0, 3.0, 3.4), "bark", yaw=a + math.pi / 2, scale_uv=0.4)
+        sb.box(tuple(pos(a, rw + 0.6, y - 1.6)), (1.0, 3.0, 3.4), "heart", yaw=a + math.pi / 2, scale_uv=0.4)
     # the crown deck: an annulus of planks at the top of the flight
     y_top = stair_y(STAIR_N)
     a_end = stair_a(STAIR_N)
@@ -864,7 +865,7 @@ def build(DATA, PREVIEW, objs_out):
     cols2 = np_mod.empty(len(stair_ob.data.loops) * 4, dtype=np_mod.float32)
     ca2.data.foreach_get("color", cols2)
     cols2 = cols2.reshape(-1, 4)
-    cols2[:, :3] *= np_mod.array([0.62, 0.5, 0.38], dtype=np_mod.float32)
+    cols2[:, :3] *= np_mod.array([0.9, 0.8, 0.7], dtype=np_mod.float32)
     ca2.data.foreach_set("color", cols2.ravel())
     objs.append(stair_ob)
 
