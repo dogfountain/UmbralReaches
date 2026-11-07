@@ -166,6 +166,69 @@ func blob(center: Vector3, radii: Vector3, basis := Basis.IDENTITY, col := Color
 			_tri(a1, b0, b1)
 
 
+## A smooth lofted body: elliptical sections along `pts` (rx across, ry along `ref` projected into the
+## section plane), joined by one continuous skin with a seam-free UV, tapered normals and an optional
+## per-vertex colour `colfn(t, up, side)` (t along 0..1, up = -1 belly .. 1 back, side = -1 .. 1).
+## Torsos, necks, heads and tapering limbs of the wildlife: no ring gaps, no lumpy blobs.
+func loft(pts: PackedVector3Array, rx: PackedFloat32Array, ry: PackedFloat32Array, sides := 14, col := Color.WHITE,
+		colfn := Callable(), bone := 0.0, lumps := 0.012, glow := 0.0, ref := Vector3.UP, rag := 0.0) -> void:
+	var n := pts.size()
+	if n < 2 or rx.size() != n or ry.size() != n:
+		push_error("CreatureMesh.loft: need >= 2 points and one rx/ry per point")
+		return
+	var start := _pos.size()
+	var along := 0.0
+	var ring := sides + 1
+	var tans: Array[Vector3] = []
+	for i in n:
+		tans.append((pts[mini(i + 1, n - 1)] - pts[maxi(i - 1, 0)]).normalized())
+	for i in n:
+		if i > 0:
+			along += pts[i].distance_to(pts[i - 1])
+		var tn := tans[i]
+		var u := ref - tn * ref.dot(tn)
+		if u.length_squared() < 0.01:
+			u = Vector3.BACK - tn * Vector3.BACK.dot(tn)
+		u = u.normalized()
+		var w := tn.cross(u).normalized()
+		var span := maxf(pts[mini(i + 1, n - 1)].distance_to(pts[maxi(i - 1, 0)]), 0.0001)
+		var slope := ((rx[mini(i + 1, n - 1)] + ry[mini(i + 1, n - 1)]) - (rx[maxi(i - 1, 0)] + ry[maxi(i - 1, 0)])) * 0.5 / span
+		var t := float(i) / float(n - 1)
+		for s in ring:
+			var a := TAU * float(s) / float(sides)
+			var cs := cos(a)
+			var sn := sin(a)
+			var d := w * cs * rx[i] + u * sn * ry[i]
+			var nn := (w * cs / maxf(rx[i], 0.0005) + u * sn / maxf(ry[i], 0.0005)).normalized()
+			nn = (nn - tn * slope).normalized()
+			var bump := 1.0 + lumps * (fbm(pts[i] * 9.0 + nn * 1.7) - 0.5) * 2.0
+			var c := col
+			if colfn.is_valid():
+				c = colfn.call(t, sn, cs)
+			_vert(pts[i] + d * bump, nn, Vector2(float(s) / float(sides) * 3.0, along), c, bone, glow, rag)
+	for i in n - 1:
+		for s in sides:
+			var a0 := start + i * ring + s
+			var a1 := a0 + 1
+			var b0 := a0 + ring
+			var b1 := b0 + 1
+			_tri(a0, b0, a1)
+			_tri(a1, b0, b1)
+	for end: int in [0, n - 1]:
+		var rm := (rx[end] + ry[end]) * 0.5
+		if rm <= 0.002:
+			continue
+		var t2: Vector3 = tans[end] * (-1.0 if end == 0 else 1.0)
+		var c2 := col
+		if colfn.is_valid():
+			c2 = colfn.call(float(end) / float(n - 1), 0.0, 0.0)
+		var tip := _vert(pts[end] + t2 * rm * 0.6, t2, Vector2(0.5, along if end > 0 else 0.0), c2, bone, glow, rag)
+		var rs: int = start + end * ring
+		for s in sides:
+			_tri(tip, rs + s, rs + s + 1)
+
+
+
 # --- composites -------------------------------------------------------------------------------
 
 ## A curved claw/talon/spike: thick base to a sharp point, bent toward `bend`.

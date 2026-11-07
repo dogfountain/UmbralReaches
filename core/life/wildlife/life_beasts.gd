@@ -128,7 +128,7 @@ func setup(k: String, spots: Array[Vector3], seed_v: int) -> void:
 		idx[kk] = slot + 1
 		animals.append({"mesh": kk, "slot": slot, "pos": spots[i], "home": spots[i], "yaw": rng.randf_range(-PI, PI),
 			"state": GRAZE, "t": rng.randf_range(0.5, 4.0), "head": 0.0, "head_to": 0.0, "pitch": graze_pitch, "pitch_to": graze_pitch,
-			"gait": 0.0, "target": spots[i], "speed": 0.0, "ray_t": 0.0, "gy": spots[i].y, "hide_t": 0.0,
+			"gait": 0.0, "mv": 0.0, "target": spots[i], "speed": 0.0, "ray_t": 0.0, "gy": spots[i].y, "hide_t": 0.0,
 			"look_t": 0.0, "roar_t": rng.randf_range(30.0, 110.0), "k": 0.0, "from": spots[i], "step_d": 0.0, "foot": 0, "hunt_t": rng.randf_range(8.0, 25.0)})
 	_home0 = center
 	_sent_t = rng.randf_range(15.0, 35.0)
@@ -529,6 +529,8 @@ func _step(a: Dictionary, dt: float, _ctx: Dictionary) -> void:
 	if pt != ptt:
 		a.pitch = move_toward(pt, ptt, dt * 1.6)
 	var st2 := int(a.state)
+	# how much it is walking (the legs' knees fold only while it moves; eased so they never pop)
+	a.mv = move_toward(float(a.mv), 1.0 if (st2 == FLEE or st2 == WALK or st2 == STALK) else 0.0, dt * 3.0)
 	if st2 != FLEE and st2 != WALK and st2 != STALK:
 		# feet settle: ease the gait to a standing pose (legs straight at sin = 0)
 		var g := float(a.gait)
@@ -635,7 +637,7 @@ var _slots := {}                 ## mesh kind -> instance count
 ## slope or in a turn popped the deer up or round: the "jumping" the trailer caught (r30).
 var _pp := PackedVector3Array()  ## older tick: world position with the gallop's lift
 var _pc := PackedVector3Array()  ## newer tick
-var _ap := PackedFloat32Array()  ## older tick, 6 per animal: yaw, tilt, head, gait, pitch, scale
+var _ap := PackedFloat32Array()  ## older tick, 7 per animal: yaw, tilt, head, gait, pitch, scale, moving
 var _ac := PackedFloat32Array()  ## newer tick
 var _amk := PackedInt32Array()   ## per animal: index into _bl / _bmm
 var _tick_dt := 1.0 / 30.0       ## the span the last glide drew across (zz/herd_smooth_probe reads it)
@@ -669,11 +671,11 @@ func glide(ahead: float, span: float) -> void:
 
 ## One animal's row in its buffer, `al` of the way from the older tick to the newer.
 func _draw_row(buf: PackedFloat32Array, slot: int, i: int, al: float, o: Vector3) -> void:
-	var q := i * 6
+	var q := i * 7
 	var pos := (_pp[i].lerp(_pc[i], al) if al > 0.0 else _pp[i]) - o
 	var yw := lerp_angle(_ap[q], _ac[q], al)
 	var tilt := lerpf(_ap[q + 1], _ac[q + 1], al)
-	var cd := Color(0.0, lerp_angle(_ap[q + 2], _ac[q + 2], al), lerpf(_ap[q + 3], _ac[q + 3], al), lerpf(_ap[q + 4], _ac[q + 4], al))
+	var cd := Color(lerpf(_ap[q + 6], _ac[q + 6], al), lerp_angle(_ap[q + 2], _ac[q + 2], al), lerpf(_ap[q + 3], _ac[q + 3], al), lerpf(_ap[q + 4], _ac[q + 4], al))
 	if absf(tilt) > 0.0001:
 		put(buf, slot, Basis(Vector3.UP, yw) * Basis(Vector3.RIGHT, tilt), pos, cd)
 	else:
@@ -710,8 +712,8 @@ func _write(snap := false) -> void:
 	if _pc.size() != na:
 		_pp.resize(na)
 		_pc.resize(na)
-		_ap.resize(na * 6)
-		_ac.resize(na * 6)
+		_ap.resize(na * 7)
+		_ac.resize(na * 7)
 		_amk.resize(na)
 		snap = true
 	# our own boxes from the positions we know (the automatic box can go stale on Metal)
@@ -737,7 +739,7 @@ func _write(snap := false) -> void:
 		if st == FLEE or st == WALK or st == STALK:
 			vmax = maxf(vmax, float(a.speed))
 		var wp := p + Vector3(0.0, lift, 0.0)
-		var q := i * 6
+		var q := i * 7
 		# the older tick is the newer one we had; a long jump (back from hiding, a reset) is not crossed
 		if snap or _pc[i].distance_to(wp) > 3.0:
 			_pp[i] = wp
@@ -747,9 +749,10 @@ func _write(snap := false) -> void:
 			_ap[q + 3] = gait
 			_ap[q + 4] = float(a.pitch)
 			_ap[q + 5] = 0.001 if st == HIDE else 1.0
+			_ap[q + 6] = float(a.mv)
 		else:
 			_pp[i] = _pc[i]
-			for c in 6:
+			for c in 7:
 				_ap[q + c] = _ac[q + c]
 			if absf(gait - _ap[q + 3]) > PI * 8.0:
 				_ap[q + 3] = gait               # the stride counter wrapped: do not spin the legs back
@@ -760,6 +763,7 @@ func _write(snap := false) -> void:
 		_ac[q + 3] = gait
 		_ac[q + 4] = float(a.pitch)
 		_ac[q + 5] = 0.001 if st == HIDE else 1.0
+		_ac[q + 6] = float(a.mv)
 		var mk: String = a.mesh
 		var mi := _bkn.find(mk)
 		_amk[i] = mi

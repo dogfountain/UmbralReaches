@@ -10,7 +10,7 @@ extends Node
 const RL := preload("res://core/world/realm/realm_land.gd")
 const LifePlace := preload("res://core/life/wildlife/life_place.gd")
 const LifeGroup := preload("res://core/life/wildlife/life_group.gd")
-const OUT := "/private/tmp/claude-501/-Users-luke-UmbralReaches/968888c4-6238-49b1-a0f8-2ba292b49c0a/scratchpad/wave6/game/"
+const OUT := "/private/tmp/claude-501/-Users-luke-UmbralReaches/968888c4-6238-49b1-a0f8-2ba292b49c0a/scratchpad/wave6/beasts/"
 
 var t := 0.0
 var main: Node
