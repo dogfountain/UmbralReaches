@@ -87,7 +87,7 @@ func _census(root: Node) -> Dictionary:
 			out.bodies += 1
 		elif n is MultiMeshInstance3D:
 			out.multimesh += 1
-	out["flora"] = (load("res://core/world/realm/realm_flora.gd") as GDScript).get("instances").size()
+	out["flora"] = (load("res://core/world/realm/realm_flora.gd") as GDScript).instance_list().size()
 	out["sites"] = WorldLanes.sites.size()
 	out["secrets"] = (load("res://core/life/secrets/state.gd") as GDScript).get("sites").size()
 	out["camps"] = EnemySpawner._seal_camps.size()

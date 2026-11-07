@@ -144,7 +144,7 @@ func _check() -> void:
 	var kinds := {}
 	var on_raid := 0
 	var wet := 0
-	for it: Array in Flora.instances:
+	for it: Array in Flora.instance_list():
 		var p: Vector3 = it[1]
 		var id := _reg(p.x, p.z)
 		var sp := String(it[0])
