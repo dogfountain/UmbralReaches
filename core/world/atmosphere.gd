@@ -124,7 +124,7 @@ static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit
 	env.volumetric_fog_detail_spread = 1.15
 	env.volumetric_fog_sky_affect = 0.16
 	env.volumetric_fog_ambient_inject = 0.08
-	env.ambient_light_energy = 0.26
+	env.ambient_light_energy = 0.21              # with the moon, toned down a quarter; the ground lights are untouched
 	# ambient mostly a set azure, less from the violet vortex sky (it cast magenta on all stone)
 	env.ambient_light_sky_contribution = 0.55
 	env.ambient_light_color = Color(0.36, 0.52, 0.84)
@@ -157,8 +157,8 @@ static func _moon(moon: DirectionalLight3D, far_m: float) -> void:
 	# a strong azure key: the moonlit stone and ground read bright blue over cool shadow
 	# (it was 0.6 and lavender, so the flat ambient carried everything and the night read grey)
 	moon.light_color = Color(0.62, 0.78, 1.0)
-	moon.light_energy = maxf(moon.light_energy, 1.2)
-	moon.light_volumetric_fog_energy = 1.45
+	moon.light_energy = 0.9                     # 1.2 read too bright (Luke, 7 Nov): the fires, lamps and windows carry the night
+	moon.light_volumetric_fog_energy = 1.15
 	moon.light_angular_distance = 2.5
 	moon.shadow_opacity = maxf(moon.shadow_opacity, 0.84)
 	# the shadow map itself (atlas, splits, bias, range) is LightPolicy._moon's alone: it runs right
@@ -779,7 +779,7 @@ static func _sky_flare(root: Node, moon: DirectionalLight3D) -> void:
 		var q := QuadMesh.new()
 		var mat := ShaderMaterial.new()
 		mat.shader = load("res://world/sky_flare.gdshader")
-		mat.set_shader_parameter("color", Color(0.58, 0.78, 1.12, 1.0))
+		mat.set_shader_parameter("color", Color(0.41, 0.55, 0.78, 1.0))      # 30 % under its old 0.58, 0.78, 1.12: toned with the moon
 		q.material = mat
 		flare.mesh = q
 		root.add_child(flare)

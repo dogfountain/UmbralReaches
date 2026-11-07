@@ -455,7 +455,7 @@ func _bowls_and_lights() -> void:
 	_moon = SpotLight3D.new()
 	_moon.name = "MoonShaft"
 	_moon.light_color = Color(0.6, 0.7, 0.95)
-	_moon.light_energy = 1.6
+	_moon.light_energy = 1.2                # the raid's brighter moon, toned down with the night's (was 1.6)
 	_moon.spot_range = 80.0
 	_moon.spot_angle = 40.0
 	_moon.spot_attenuation = 0.4
