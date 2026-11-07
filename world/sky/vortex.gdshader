@@ -5,6 +5,8 @@ render_mode use_half_res_pass;
 // would GGX-filter the cubemap every frame. Cubemap pass does not read this.
 global uniform float sky_time;
 
+#include "res://world/sky/sky_stars.gdshaderinc"
+
 uniform vec3 col_deep  = vec3(0.024, 0.039, 0.153); // abyss  #060A27
 uniform vec3 col_rift  = vec3(0.357, 0.176, 0.839); // rift   #5B2DD6
 uniform vec3 col_lilac = vec3(0.663, 0.545, 1.000); // lilac  #A98BFF
@@ -70,29 +72,15 @@ void sky() {
         COLOR = col;
     } else if (AT_HALF_RES_PASS) {
         vec3 col = vortex(EYEDIR);
-        // Starburst spikes are wider than a pixel, so half resolution still holds them.
-        float burst = 0.0;
-        float scale = 220.0;
-        vec2 base_id = floor(EYEDIR.xy * scale);
-        float zid = floor(EYEDIR.z * scale);
-        for (int j = -1; j <= 1; j++) {
-            for (int i = -1; i <= 1; i++) {
-                vec2 id = base_id + vec2(float(i), float(j));
-                float key = step(0.998, hash(id + zid));
-                vec2 dlt = EYEDIR.xy - (id + 0.5) / scale;
-                float spike = exp(-abs(dlt.x) * 160.0) * exp(-abs(dlt.y) * 1400.0)
-                            + exp(-abs(dlt.y) * 160.0) * exp(-abs(dlt.x) * 1400.0);
-                burst += key * spike;
-            }
-        }
+        // Starburst spikes: wider than a pixel, so half resolution still holds them.
+        float burst = sky_bursts(EYEDIR, 220.0);
         col += burst * vec3(0.86, 0.93, 1.2) * 0.7;
         COLOR = col;
         ALPHA = 1.0;
     } else {
         vec3 col = HALF_RES_COLOR.rgb;
-        float sh = hash(floor(EYEDIR.xy * 780.0) + floor(EYEDIR.z * 780.0));
-        float star = step(0.9938, sh);
-        col += star * vec3(0.82, 0.88, 1.12) * 0.7;
+        float star = sky_stars(EYEDIR, 400.0, 0.022);
+        col += star * vec3(0.82, 0.88, 1.12) * 0.75;
         float dust = noise(EYEDIR.xy * 6.0 + EYEDIR.z * 3.0) * noise(EYEDIR.xz * 3.5);
         col += col_rift * dust * 0.12;
         vec3 md = normalize(moon_dir);

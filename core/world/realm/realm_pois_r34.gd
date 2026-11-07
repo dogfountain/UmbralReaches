@@ -345,7 +345,7 @@ static func _beacons(holder: Node3D) -> void:
 		if not spots.has(b[0]):
 			continue
 		var at: Vector3 = spots[b[0]].at
-		var n: Variant = wf.call("beacon", holder, at, "", b[1], 34.0, 0.3, float(b[2]))
+		var n: Variant = wf.call("beacon", holder, at, "", b[1], 34.0, 0.3, float(b[2]), false, 100.0)
 		if n is Node:
 			(n as Node).name = "Beacon_" + String(b[0])
 			(n as Node).set_meta("poi", b[0])

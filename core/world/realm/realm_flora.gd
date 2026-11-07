@@ -1524,7 +1524,7 @@ static func _emit(host: Node3D, items: Dictionary) -> Vector2i:
 				chunks[key] = ch
 			var list: Array = per[key]
 			if bool(d.tall) and float(d.h) > 4.0:
-				FarDetail.note_crowns(canopy, key, list, float(d.h), float(d.spread))
+				FarDetail.note_crowns(canopy, key, list, float(d.h), float(d.spread), sp in ["pine", "cypress", "yew"])
 			if not bool(d.tall):
 				# undergrowth in random order, so a lower visible_instance_count (world detail,
 				# apply_detail) thins the whole chunk evenly instead of dropping one corner

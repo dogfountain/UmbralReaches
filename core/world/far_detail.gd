@@ -17,9 +17,9 @@ const VIEW_FAR := 420.0                  ## camera far plane (m); the fog has sw
 const FAR_TREE_END := 150.0              ## the @far tree meshes end here (the canopy shell carries on)
 const FAR_CARD_END := 85.0               ## far leaf cards (overdraw) end here; trunks and the canopy shell carry on
 const CANOPY_BEGIN := 65.0              ## a forest chunk's canopy shell fades in from here
-const SHELL_CELL := 4.0
+const SHELL_CELL := 2.0
 
-static var _shell_mat: StandardMaterial3D
+static var _shell_mat: ShaderMaterial
 static var _far_mat: StandardMaterial3D
 
 
@@ -149,42 +149,102 @@ static func generic_range(gi: GeometryInstance3D, extent: float) -> bool:
 	return true
 
 
-## One forest chunk's canopy as a coarse heightfield shell: `trees` = [[base Vector3, height, crown radius]], the
-## chunk's centre `c` and half size. Cells without crown sit 0.8 m under the ground (buried). Dark, matte; drawn
-## from CANOPY_BEGIN to the horizon, fading in as the individual trees fade out.
+## One forest chunk's canopy as a coarse heightfield shell: `trees` = [[base Vector3, height, crown radius, conifer]],
+## the chunk's centre `c` and half size. Cells without crown sit 0.8 m under the ground (buried). Each tree stamps
+## only the cells under its own crown (a broadleaf is a lumpy ellipsoid with a ragged rim, a conifer a narrow cone
+## with a spire at the top), so the silhouette reads as individual crowns and the cost follows the tree count, not
+## the cell count. Dark, matte, a little moon on the crown tops and a shaded foot: the fog gives it depth.
+## Drawn from CANOPY_BEGIN to the horizon, fading in as the individual trees fade out.
 static func canopy_shell(host: Node3D, c: Vector3, half: float, trees: Array, ground: Callable, nm: String) -> MeshInstance3D:
 	var n := int(ceil(half * 2.0 / SHELL_CELL)) + 1
 	var verts := PackedVector3Array()
 	var cols := PackedColorArray()
 	verts.resize(n * n)
 	cols.resize(n * n)
-	var any := false
+	var gys := PackedFloat32Array()
+	gys.resize(n * n)
+	var tops := PackedFloat32Array()
+	tops.resize(n * n)
+	var shade := PackedFloat32Array()
+	shade.resize(n * n)
+	var spire := PackedFloat32Array()
+	spire.resize(n * n)
 	for j in n:
 		for i in n:
-			var x := c.x - half + float(i) * SHELL_CELL
-			var z := c.z - half + float(j) * SHELL_CELL
-			var gy: float = ground.call(x, z)
-			var top := gy - 0.8
-			var shade := 0.0
-			for t: Array in trees:
-				var b: Vector3 = t[0]
-				var r: float = t[2]
+			var k := j * n + i
+			var gy: float = ground.call(c.x - half + float(i) * SHELL_CELL, c.z - half + float(j) * SHELL_CELL)
+			gys[k] = gy
+			tops[k] = gy - 0.8
+	var any := false
+	var x0 := c.x - half
+	var z0 := c.z - half
+	for t: Array in trees:
+		var b: Vector3 = t[0]
+		var r: float = t[2]
+		var h: float = t[1]
+		var conifer: bool = t[3]
+		var reach := r * 1.35 if not conifer else r
+		var lobes: Array[Vector4] = []
+		if not conifer:
+			lobes = _lobes(b)
+		var i0 := maxi(int(floor((b.x - reach - x0) / SHELL_CELL)), 0)
+		var i1 := mini(int(ceil((b.x + reach - x0) / SHELL_CELL)), n - 1)
+		var j0 := maxi(int(floor((b.z - reach - z0) / SHELL_CELL)), 0)
+		var j1 := mini(int(ceil((b.z + reach - z0) / SHELL_CELL)), n - 1)
+		for j in range(j0, j1 + 1):
+			for i in range(i0, i1 + 1):
+				var x := x0 + float(i) * SHELL_CELL
+				var z := z0 + float(j) * SHELL_CELL
 				var dx := x - b.x
 				var dz := z - b.z
 				var d2 := (dx * dx + dz * dz) / (r * r)
-				if d2 < 1.0:
-					var h: float = t[1]
-					# a crown is an ellipsoid over the upper two thirds of the tree
-					var y := b.y + h * (0.42 + 0.56 * sqrt(1.0 - d2))
-					if y > top:
-						top = y
-						shade = 1.0 - d2
-						any = true
-			var k := j * n + i
-			verts[k] = Vector3(x - c.x, top - c.y, z - c.z)
-			cols[k] = Color(0.07, 0.1, 0.08).lerp(Color(0.1, 0.15, 0.11), shade)
+				var y: float
+				var sh := 0.0
+				var sp := 0.0
+				if conifer:
+					if d2 >= 1.0:
+						continue
+					var d := sqrt(d2)
+					y = b.y + h * (0.16 + 0.84 * (1.0 - d))      # a cone: the tip is the tree's top
+					sh = 1.0 - d
+					sp = 1.0 - d
+				else:
+					# a broadleaf crown is a cluster of lobes (a centre and four round it), each a lumpy ellipsoid
+					var lump := _vnoise(x * 0.37 + b.x * 0.11, z * 0.37 + b.z * 0.07)
+					var bump := _vnoise(x * 0.85, z * 0.85)
+					y = -INF
+					for lb: Vector4 in lobes:                  # (x, z offset in crown radii, radius, height)
+						var lx := dx - lb.x * r
+						var lz := dz - lb.y * r
+						var ld2 := (lx * lx + lz * lz) / (lb.z * lb.z * r * r)
+						ld2 *= 1.0 - 0.6 * (lump - 0.5) - 0.4 * (bump - 0.5)      # a ragged rim
+						if ld2 >= 1.0:
+							continue
+						var ly := b.y + h * lb.w * (0.42 + 0.56 * sqrt(1.0 - ld2)) * (0.93 + 0.08 * lump + 0.05 * bump)
+						if ly > y:
+							y = ly
+							sh = 1.0 - ld2
+					if y == -INF:
+						continue
+				var k := j * n + i
+				if y > tops[k]:
+					tops[k] = y
+					shade[k] = sh
+					spire[k] = sp
+					any = true
 	if not any:
 		return null
+	for j in n:
+		for i in n:
+			var k := j * n + i
+			verts[k] = Vector3(x0 + float(i) * SHELL_CELL - c.x, tops[k] - c.y, z0 + float(j) * SHELL_CELL - c.z)
+			var up := clampf((tops[k] - gys[k]) / 16.0, 0.0, 1.0)          # height over the ground: the foot sits in shade, the tops catch the moon
+			var gx := x0 + float(i) * SHELL_CELL
+			var gz := z0 + float(j) * SHELL_CELL
+			var mott := 0.72 + 0.56 * _vnoise(gx * 0.9, gz * 0.9)           # leaf masses: lighter and darker lumps a few metres across
+			var base := Color(0.03, 0.05, 0.05).lerp(Color(0.09, 0.15, 0.13), shade[k])
+			base = base.lerp(Color(0.15, 0.24, 0.21), up * up * 0.5 + spire[k] * 0.12)
+			cols[k] = Color(base.r * mott, base.g * mott, base.b * mott)
 	var idx := PackedInt32Array()
 	for j in n - 1:
 		for i in n - 1:
@@ -208,10 +268,8 @@ static func canopy_shell(host: Node3D, c: Vector3, half: float, trees: Array, gr
 	var m := ArrayMesh.new()
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	if _shell_mat == null:
-		_shell_mat = StandardMaterial3D.new()
-		_shell_mat.vertex_color_use_as_albedo = true
-		_shell_mat.roughness = 1.0
-		_shell_mat.metallic_specular = 0.0
+		_shell_mat = ShaderMaterial.new()
+		_shell_mat.shader = load("res://core/world/canopy_shell.gdshader") as Shader
 	m.surface_set_material(0, _shell_mat)
 	var mi := MeshInstance3D.new()
 	mi.name = nm
@@ -228,14 +286,45 @@ static func canopy_shell(host: Node3D, c: Vector3, half: float, trees: Array, gr
 	return mi
 
 
-## Collect one chunk's tall trees [[base, height, crown radius]] for its canopy shell (RealmFlora._emit).
-static func note_crowns(canopy: Dictionary, key: Vector3i, list: Array, h: float, spread: float) -> void:
+## The lobes of one broadleaf crown, deterministic from its base: a centre and four round it (offset and radius in
+## crown radii, height as a share of the tree's).
+static func _lobes(b: Vector3) -> Array[Vector4]:
+	var out: Array[Vector4] = [Vector4(0.0, 0.0, 0.78, 1.0)]
+	var a0 := _h2(b.x * 1.3, b.z * 0.7) * TAU
+	for q in 4:
+		var a := a0 + float(q) * TAU * 0.25 + (_h2(b.x + float(q), b.z) - 0.5) * 0.7
+		var off := 0.42 + 0.22 * _h2(b.z + float(q), b.x)
+		out.append(Vector4(cos(a) * off, sin(a) * off, 0.5 + 0.16 * _h2(b.x * 0.3 + float(q), b.z * 0.5), 0.82 + 0.2 * _h2(float(q) + b.z, b.x * 0.9)))
+	return out
+
+
+## Cheap value noise 0..1 (the shell's lumps): hashed lattice, smooth between.
+static func _vnoise(x: float, z: float) -> float:
+	var ix := floorf(x)
+	var iz := floorf(z)
+	var fx := x - ix
+	var fz := z - iz
+	fx = fx * fx * (3.0 - 2.0 * fx)
+	fz = fz * fz * (3.0 - 2.0 * fz)
+	var a := _h2(ix, iz)
+	var b := _h2(ix + 1.0, iz)
+	var c := _h2(ix, iz + 1.0)
+	var d := _h2(ix + 1.0, iz + 1.0)
+	return lerpf(lerpf(a, b, fx), lerpf(c, d, fx), fz)
+
+
+static func _h2(x: float, z: float) -> float:
+	return fposmod(sin(x * 127.1 + z * 311.7) * 43758.5453, 1.0)
+
+
+## Collect one chunk's tall trees [[base, height, crown radius, conifer]] for its canopy shell (RealmFlora._emit).
+static func note_crowns(canopy: Dictionary, key: Vector3i, list: Array, h: float, spread: float, conifer := false) -> void:
 	if not canopy.has(key):
 		canopy[key] = []
 	for e: Array in list:
 		var xf: Transform3D = e[0]
 		var sc := xf.basis.get_scale().x
-		(canopy[key] as Array).append([xf.origin, h * sc, maxf(spread * sc * 0.85, 1.0)])
+		(canopy[key] as Array).append([xf.origin, h * sc, maxf(spread * sc * (0.55 if conifer else 0.85), 1.0), conifer])
 
 
 ## A canopy shell for every collected chunk (key x, z in chunk units); returns how many were made.

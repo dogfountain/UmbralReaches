@@ -607,7 +607,7 @@ static func _statue(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	arena = ar
 	# a pale column out of the skull (the boss beacon, gone when he falls): the Thornwood's hills hide the
 	# statue's 30 m from Hearthward, so its top reads over them at night
-	var bn: Variant = Wayfinding.beacon(host, c, "r37_hierarch", Color(0.66, 0.76, 0.92), 78.0, 0.45, 20.0)
+	var bn: Variant = Wayfinding.beacon(host, c, "r37_hierarch", Color(0.66, 0.76, 0.92), 78.0, 0.45, 20.0, false, 280.0)
 	if bn is Node:
 		(bn as Node).name = "Beacon_r37_hierarch"
 	# cover on the floor: three fallen tines (stone slabs on edge), solid, so the Echo's feet and the
