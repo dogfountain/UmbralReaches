@@ -212,7 +212,7 @@ func _s_staff_heavy() -> void:
 	d.use_free_cam()
 	d.cam.fov = 48.0
 	var mid: Vector3 = d.ARENA + d.fwd_of(d.WEST) * 1.2
-	_sh_cam = d.solve_cam([mid + Vector3.UP * 1.0, mid + Vector3.UP * 1.9, d.ARENA + d.fwd_of(d.WEST) * 2.8 + Vector3.UP * 1.0], mid, Cam.yaw_dir(Vector3(0.0, 0.0, 1.0)) + PI + 0.0, 5.0, 1.6)
+	_sh_cam = d.solve_cam([mid + Vector3.UP * 1.0, mid + Vector3.UP * 1.9, d.ARENA + d.fwd_of(d.WEST) * 2.8 + Vector3.UP * 1.0], mid, Cam.yaw_dir(Vector3(0.0, 0.0, 1.0)), 5.0, 2.1)
 	d.hold_cam(_sh_cam, mid + Vector3.UP * 1.1)
 
 
