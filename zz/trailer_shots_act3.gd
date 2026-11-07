@@ -6,7 +6,7 @@ extends "res://zz/trailer_shots_act3c.gd"
 ## id -> [stand xz, look xz, look height above ground, lens back, lens height, fov, lateral drift, rise, walk pace]
 const PLACES := {
 	"thornwood": [Vector2(-60, 20), Vector2(-110, -20), 6.0, 4.5, 2.2, 62.0, 1.2, 0.8, 0.5],
-	"necropolis": [Vector2(-10, 108), Vector2(0, 147), 4.0, 8.0, 6.0, 58.0, 1.5, 1.0, 0.5],
+	"necropolis": [Vector2(-18, 112), Vector2(-8, 140), 4.0, 8.0, 6.0, 58.0, 1.5, 1.0, 0.5],
 	"mere": [Vector2(103, 98), Vector2(84, 112), 1.5, 4.5, 2.0, 60.0, 1.5, 0.6, 0.4],
 	"foundry": [Vector2(123, -76), Vector2(135, -105), 6.0, 4.5, 2.2, 60.0, 1.5, 0.8, 0.5],
 	"orchard": [Vector2(-99, 104), Vector2(-128, 132), 3.0, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
@@ -14,11 +14,11 @@ const PLACES := {
 	"moor": [Vector2(126, -8), Vector2(142, -24), 4.0, 8.0, 6.0, 58.0, 1.5, 1.0, 0.5],
 	"holds": [Vector2(-145, 12), Vector2(-124, 12), 3.0, 8.0, 6.0, 58.0, 0.5, 1.0, 0.5],
 	"crowns": [Vector2(0, 66), Vector2(0, -110), 30.0, 5.0, 2.4, 60.0, 1.5, 1.2, 0.6],
-	"stillwater": [Vector2(231, 30), Vector2(240, 8), 14.0, 12.0, 8.0, 62.0, 1.0, 1.4, 0.4, 0.42],
+	"stillwater": [Vector2(230, 30), Vector2(240, 8), 16.0, 16.0, 9.0, 66.0, 0.5, 1.0, 0.3, 0.6],
 	"anchorholds": [Vector2(200, -62), Vector2(214, -132), 24.0, 8.0, 3.5, 62.0, 1.5, 1.0, 0.5],
 	"hierarch": [Vector2(-190, -56), Vector2(-214, -104), 18.0, 8.0, 3.5, 62.0, 1.5, 1.0, 0.5],
 	"siege": [Vector2(-216, 132), Vector2(-236, 170), 8.0, 8.0, 6.0, 58.0, 1.5, 1.0, 0.5],
-	"saltmarket": [Vector2(200, 90), Vector2(214, 95), 3.0, 8.0, 6.0, 58.0, 1.5, 1.0, 0.5],
+	"saltmarket": [Vector2(214, 105), Vector2(220, 90), 3.0, 6.0, 6.0, 58.0, 1.0, 1.0, 0.5],
 	"pans": [Vector2(200, 150), Vector2(232, 168), 3.0, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
 	"oak": [Vector2(-40, 186), Vector2(-70, 206), 20.0, 9.0, 4.5, 62.0, 1.5, 1.0, 0.4],
 	"well": [Vector2(36, 196), Vector2(72, 204), -4.0, 7.0, 6.0, 62.0, 1.5, 1.0, 0.0],
