@@ -46,6 +46,8 @@ const ZONES := [["hearth", "Hearthward"], ["road", "The Pilgrims' Road"], ["thor
 	R37WQ.ZONES[0], R37WQ.ZONES[1], R37WQ.ZONES[2], R37WQ.ZONES[3],
 	["stillwater", "Stillwater"], ["anchorholds", "The Anchorholds"], ["saltmarket", "Saltmarket"], ["saltpans", "The White Pans"]]
 
+## Act II's signature tasks, one a country (quest_chains_signature.gd), listed after the east marches' in each table.
+const Sig := preload("res://core/story/quest_chains_signature.gd")
 const R37E := preload("res://core/story/quest_chains_r37_east.gd")   ## the east marches: its tasks and pickups are listed in the `# --- the east marches ---` blocks
 
 const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
@@ -68,7 +70,8 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"the_latch", "still_climbing", "names_under", "full_peal",
 	"shepherd_strays", "oak_song", "well_answer",
 	"wf_wheel", "wf_watch", "wf_lights", "wf_crown",
-	"salt_sweep", "salt_widow", "spire_coal", "anchor_names", "anchor_vow"]
+	"salt_sweep", "salt_widow", "spire_coal", "anchor_names", "anchor_vow",
+	"bounds_beaten", "quarry_stone", "moor_fires", "founder_pour", "orchard_stand", "field_round", "mere_ferry"]
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
 const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
@@ -142,6 +145,7 @@ const QUESTS := {
 			{"kind": "talk", "who": "harrow", "text": "Bring the lantern to Ostrin Harrow at the Kindled Keg"},
 		],
 		"reward": {"ash": 20, "items": {"relic_fragment": 1}},
+		"choose": [{"slot": "lantern", "rarity": 1}, {"slot": "vestment", "rarity": 1}, {"slot": "girdle", "rarity": 1}],
 		"outcome": {"truth": "Ostrin knows his father is at rest. The lantern burns on the Keg's counter.",
 			"mercy": "Ostrin thinks his father still walks the fen. The lantern sits cold on the Keg's counter, waiting."}},
 
@@ -858,6 +862,8 @@ const QUESTS := {
 	"wf_wheel": R37WQ.QUESTS["wf_wheel"], "wf_watch": R37WQ.QUESTS["wf_watch"], "wf_lights": R37WQ.QUESTS["wf_lights"],
 	"wf_crown": R37WQ.QUESTS["wf_crown"], "salt_sweep": R37E.SALT_SWEEP, "salt_widow": R37E.SALT_WIDOW,
 	"spire_coal": R37E.SPIRE_COAL, "anchor_names": R37E.ANCHOR_NAMES, "anchor_vow": R37E.ANCHOR_VOW,
+	"bounds_beaten": Sig.BOUNDS, "quarry_stone": Sig.QUARRY_STONE, "moor_fires": Sig.MOOR_FIRES, "founder_pour": Sig.FOUNDER_POUR,
+	"orchard_stand": Sig.ORCHARD_STAND, "field_round": Sig.FIELD_ROUND, "mere_ferry": Sig.MERE_FERRY,
 }
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
@@ -985,6 +991,10 @@ const PICKUPS := {
 	"wf_rub_hand": R37WQ.PICKUPS["wf_rub_hand"], "wf_rub_shoulder": R37WQ.PICKUPS["wf_rub_shoulder"], "wf_rub_lip": R37WQ.PICKUPS["wf_rub_lip"],
 	"coal_ardel": R37E.COAL_ARDEL, "anchor_page_a": R37E.PAGE_A, "anchor_page_b": R37E.PAGE_B,
 	"anchor_page_c": R37E.PAGE_C,
+	"foreman_stone": Sig.PICKUPS["foreman_stone"], "foreman_place": Sig.PICKUPS["foreman_place"],
+	"moor_flame_fire": Sig.PICKUPS["moor_flame_fire"], "moor_flame_mid": Sig.PICKUPS["moor_flame_mid"],
+	"pour_ladle": Sig.PICKUPS["pour_ladle"], "scion_linnet": Sig.PICKUPS["scion_linnet"],
+	"ferry_lamp_out": Sig.PICKUPS["ferry_lamp_out"], "ferry_lamp_back": Sig.PICKUPS["ferry_lamp_back"],
 }
 
 ## Oswin's walk: from wherever he is to the waystone. He keeps 2-3 m behind you and waits when you

@@ -438,7 +438,12 @@ static func run(actions: String) -> Dictionary:
 			"qt":
 				advance(p[1], int(p[2]))
 			"qc":
-				complete(p[1])
+				# qc:id:n -- complete, taking gear n of the task's `choose` (a talk that ends a task with a keepsake)
+				if p.size() > 2 and active(p[1]):
+					q(p[1])["rw"] = offered_gear(p[1])
+					complete(p[1], int(p[2]))
+				else:
+					complete(p[1])
 			"qx":
 				drop(p[1])
 			"qp":

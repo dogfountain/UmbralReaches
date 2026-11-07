@@ -344,7 +344,7 @@ static func salvage_value(p: Dictionary) -> int:
 
 
 ## A drop's rarity for a source: "kill" (a common foe), "tough" (a variant / tier foe), "elite",
-## "umbral" (a Deeper Night elite), "boss". A roll in [0,1) picks it.
+## "umbral" (a Deeper Night elite), "reliquary" (a reliquary chest), "boss". A roll in [0,1) picks it.
 static func drop_rarity(source: String, roll: float) -> int:
 	var w: Array
 	match source:
@@ -352,6 +352,8 @@ static func drop_rarity(source: String, roll: float) -> int:
 			w = [0.0, 0.0, 0.55, 0.35, 0.10]
 		"umbral":
 			w = [0.0, 0.1, 0.35, 0.4, 0.15]
+		"reliquary":
+			w = [0.0, 0.15, 0.4, 0.3, 0.15]       # a reliquary chest: Umbral at a Deeper Night elite's odds
 		"elite":
 			w = [0.0, 0.45, 0.4, 0.13, 0.02]
 		"tough":
@@ -369,7 +371,7 @@ static func drop_rarity(source: String, roll: float) -> int:
 ## Chance a foe drops anything at all (before the pity that builds between drops).
 static func drop_chance(source: String) -> float:
 	match source:
-		"boss", "umbral", "elite":
+		"boss", "umbral", "elite", "reliquary":
 			return 1.0
 		"tough":
 			return 0.08
@@ -499,4 +501,19 @@ const NAMED := {
 		"lore": "Seed-pockets sewn in the lining, every one full of ash and one of something that is not."},
 	"pilgrim_orb": {"name": "Last Pilgrim's Orb-Cup", "slot": "focus", "rarity": 3, "aff": ["power", "lance_charge", "peal_reach"],
 		"lore": "He never reached the top. He carried this the whole way up, empty, to have something to set down."},
+	# --- the bells' keepers: each gives its own piece on its first fall (LootDB.RARE_OWN)
+	"kin_bell_ring": {"name": "Kin-Bell Rope-Ring", "slot": "focus", "rarity": 3, "aff": ["peal_reach", "lash_power", "power"],
+		"lore": "The rope the Kin-Caller pulled until it called the wrong names. Knotted into a ring, it still hums the first of them."},
+	"hewer_apron": {"name": "Bell-Hewer's Dust Apron", "slot": "vestment", "rarity": 3, "aff": ["dark_mult", "gloom_add", "kill_relief"],
+		"lore": "Stone-dust to the hem, and under the dust a bell-founder's mark. He was hewing the bell's mould, not its stone, and nobody told him."},
+	"shepherd_strap": {"name": "Fog-Shepherd's Bell-Strap", "slot": "girdle", "rarity": 3, "aff": ["step_range", "tether_reach", "cd"],
+		"lore": "The wether's collar, cut down to a belt. The bell is gone from it. The sound is not."},
+	"slag_glass": {"name": "Slag-Born's Cooling Glass", "slot": "lantern", "rarity": 3, "aff": ["lit_mult", "ward_life", "kill_relief"],
+		"lore": "Cast in the pour that never stopped, and cracked when it did. The light comes through the crack, orange, and warms the hand."},
+	"sower_cloak": {"name": "Ash-Sower's Seed-Cloak", "slot": "vestment", "rarity": 3, "aff": ["ash_find", "gloom_add", "lit_mult"],
+		"lore": "Every pocket holds a pinch of grey seed. Plant one in ash and something comes up, slowly, that is not a tree."},
+	"ringer_clapper": {"name": "Passing-Ringer's Muffled Clapper", "slot": "focus", "rarity": 3, "aff": ["mark_dmg", "lance_charge", "power"],
+		"lore": "Wrapped in wool so it would strike once, softly, for each of the dead. It struck a great many times."},
+	"fare_lamp": {"name": "Fare-Caller's Coin-Lamp", "slot": "lantern", "rarity": 3, "aff": ["well_life", "shade_life", "mark_dmg"],
+		"lore": "A lamp with a slot cut in the lid for a coin, and a coin in it that has never once come out."},
 }

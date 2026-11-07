@@ -218,9 +218,14 @@ func _refresh_targets() -> void:
 			bell = _next_bell()                 # the peal's step wants bells, not a place: point at the nearest unanswered one
 			if bell != "":
 				at = Chains.step(bell, 0).get("at")
+		var seen: Array = []
+		if not (at is Vector2) and not (stp.get("rares", []) as Array).is_empty():
+			seen = _last_seen(stp.rares)          # a standing bounty on named rares: pin the nearest one still up
+			if not seen.is_empty():
+				at = seen[1]
 		if not (at is Vector2):
 			continue
-		var key := "%s:%d:%s" % [id, s, bell]
+		var key := "%s:%d:%s%s" % [id, s, bell, String(seen[0]) if not seen.is_empty() else ""]
 		want[key] = true
 		var tv: Variant = _targets.get(key)
 		var t: Node3D = tv as Node3D if is_instance_valid(tv) else null
@@ -236,6 +241,8 @@ func _refresh_targets() -> void:
 			t.set_meta("quest", id)
 			_targets[key] = t
 		var lbl := String(stp.get("label", Chains.step(bell, 0).get("label", "") if bell != "" else ""))
+		if not seen.is_empty():
+			lbl = "%s, last seen" % String(seen[2])
 		t.set_meta("map_label", String(Chains.QUESTS[id].name) + ((": " + lbl) if lbl != "" else ""))
 	for k: String in _targets.keys():
 		if not want.has(k):
@@ -243,6 +250,26 @@ func _refresh_targets() -> void:
 			if is_instance_valid(t2):
 				(t2 as Node).queue_free()
 			_targets.erase(k)
+
+
+## The nearest of the named rares `ids` still up, as [id, xz, title] ([] when none is): a rare's own map
+## marker (core/enemy/rares.gd) is on the map while it is alive and its haunt is dark, so the markers are the
+## "unslain" list, and the marker's place is where it was last seen.
+func _last_seen(ids: Array) -> Array:
+	var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	var from := Vector2.ZERO if pl == null else Vector2(pl.global_position.x, pl.global_position.z)
+	var best: Array = []
+	var best_d := INF
+	for n: Node in get_tree().get_nodes_in_group(&"map_marker"):
+		var nm := String(n.name)
+		if not (n is Node3D) or not nm.begins_with("RareMarker_") or not nm.trim_prefix("RareMarker_") in ids:
+			continue
+		var xz := Vector2((n as Node3D).global_position.x, (n as Node3D).global_position.z)
+		var d := from.distance_to(xz)
+		if d < best_d:
+			best_d = d
+			best = [nm.trim_prefix("RareMarker_"), xz, String(n.get_meta("map_label", "A named rare"))]
+	return best
 
 
 ## The nearest of the Founder's bells not yet answered for ("" when all are), by the bell keeper's beat.
