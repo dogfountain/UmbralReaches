@@ -39,8 +39,8 @@ const FRONTS := {
 const CYCLE := ["clear", "mist", "clear", "gusts", "drizzle", "storm", "clear", "mist", "drizzle", "clear", "gusts", "storm"]
 const EASE_S := 25.0
 ## Environment offsets at full strength (added on top of whatever the base is)
-const OFF_FOG_MIST := 0.0016
-const OFF_FOG_RAIN := 0.0012
+const OFF_BEGIN_MIST := -26.0      ## m: depth fog starts nearer in mist and rain
+const OFF_BEGIN_RAIN := -18.0
 const OFF_VOL_MIST := 0.004
 const OFF_VOL_RAIN := 0.002
 const OFF_AMBIENT_FLASH := 0.32
@@ -81,7 +81,7 @@ var _rng := RandomNumberGenerator.new()
 var _cycle_i := 0
 var _front_t := 80.0
 var _t := 0.0
-var _applied := {"fog_density": 0.0, "volumetric_fog_density": 0.0, "ambient_light_energy": 0.0}
+var _applied := {"fog_depth_begin": 0.0, "volumetric_fog_density": 0.0, "ambient_light_energy": 0.0}
 var _bank_acc := 0.0
 var _step_acc := 0.0
 var _bed_acc := 0.0
@@ -245,7 +245,7 @@ func _apply_env() -> void:
 		return
 	var mist := float(state.mist)
 	var rain := float(state.rain)
-	_env_offset("fog_density", mist * OFF_FOG_MIST + rain * OFF_FOG_RAIN, 0.000008)
+	_env_offset("fog_depth_begin", mist * OFF_BEGIN_MIST + rain * OFF_BEGIN_RAIN, 0.05)
 	_env_offset("volumetric_fog_density", mist * OFF_VOL_MIST + rain * OFF_VOL_RAIN, 0.00002)
 	_env_offset("ambient_light_energy", flash * OFF_AMBIENT_FLASH * _flash_gain + _pulse, 0.0)
 

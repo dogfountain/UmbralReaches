@@ -74,7 +74,9 @@ void sky() {
         vec2 mh = normalize(moon_dir.xz + vec2(1e-4));
         float toward = dot(hd, mh) * 0.5 + 0.5;
         vec3 band = mix(vec3(0.052, 0.098, 0.168), vec3(0.108, 0.122, 0.178), toward);
-        col += band * pow(1.0 - abs(EYEDIR.y), 5.0);
+        // haze is densest low and thins with height: peaks (higher in the sky than the valley floor) take a
+        // darker, cooler fog colour, so their tops stay crisp against the lit sky instead of greying out
+        col += band * pow(1.0 - abs(EYEDIR.y), 10.0);
         COLOR = col;
     } else if (AT_HALF_RES_PASS) {
         vec3 col = vortex(EYEDIR);

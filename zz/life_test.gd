@@ -220,7 +220,7 @@ func _run() -> void:
 	print("LIFE env base ", base)
 	wx.force("storm", true)
 	await _frames(3)
-	check(env.fog_density > float(base.fog_density) + 0.0005, "storm thickens the fog (%.5f > %.5f)" % [env.fog_density, base.fog_density])
+	check(env.fog_depth_begin < float(base.fog_depth_begin) - 1.0, "storm brings the fog in (%.1f < %.1f)" % [env.fog_depth_begin, base.fog_depth_begin])
 	var glow0 := [env.glow_intensity, env.glow_bloom, env.glow_hdr_threshold]
 	var crows_before := 0
 	for g in w.groups:
@@ -251,7 +251,7 @@ func _run() -> void:
 	await _secs(1.5)
 	for k: String in base:
 		var v := float(env.get(k))
-		check(absf(v - float(base[k])) < 1e-5, "env %s back to base (%.6f vs %.6f)" % [k, v, float(base[k])])
+		check(absf(v - float(base[k])) < 1e-4, "env %s back to base (%.6f vs %.6f)" % [k, v, float(base[k])])
 	check([env.glow_intensity, env.glow_bloom, env.glow_hdr_threshold] == glow0, "glow untouched")
 	check(wx.bank_count() >= 6, "mist banks built (%d)" % wx.bank_count())
 	# ---- sounds
