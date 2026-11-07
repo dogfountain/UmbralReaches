@@ -32,7 +32,9 @@ def flame_sd(cx, cy, h, w, lean=0.0, px=None, py=None):
     body = np.where(t >= 0, np.sqrt(np.clip(1 - np.clip(t, 0, 1) ** 1.5, 0, 1)),
                     np.sqrt(np.clip(1 - (t / 0.45) ** 2, 0, 1)))
     cxl = cx + lean * np.clip(t, 0, 1) ** 2
-    return (np.abs(px - cxl) - w * body) * 0.9
+    sd = (np.abs(px - cxl) - w * body) * 0.9
+    # capped at the tip and the belly: past them the body is zero-width and would trail a hairline
+    return np.maximum(sd, np.maximum((t - 1.0) * h, -(t + 0.45) * h))
 
 
 def fire(img, cx, cy, h, w, seed, lean=0.0, strength=1.0, cool=False):

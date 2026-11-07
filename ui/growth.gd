@@ -330,7 +330,7 @@ func _build() -> void:
 	arow.add_theme_constant_override("separation", 10)
 	abox.add_child(arow)
 	var mound := Glyph.new()
-	mound.glyph = "mound"
+	mound.glyph = Icons.item_glyph("grave_ash")
 	mound.tint = Color(0.78, 0.74, 0.7)
 	mound.custom_minimum_size = Vector2(46, 46)
 	arow.add_child(mound)
@@ -918,7 +918,7 @@ func _page_relics() -> void:
 		row.add_theme_constant_override("separation", 12)
 		_page_box.add_child(row)
 		var c := _card("relic", item, 384, 124)
-		c.glyph = String(d.shape)
+		c.glyph = Icons.item_glyph(item)
 		c.tint = d.tint
 		c.title = String(d.name) if have else "Unclaimed"
 		var rid := String(d.get("relic", ""))
@@ -962,7 +962,7 @@ func _page_charms() -> void:
 		var d := ItemDB.def(id)
 		var have := Travel.count(id) > 0
 		var c := _card("charm", id, 384, 104)
-		c.glyph = String(d.shape)
+		c.glyph = Icons.item_glyph(id)
 		c.tint = d.tint
 		if have:
 			c.title = String(d.name)
@@ -1105,7 +1105,7 @@ func _page_hearth() -> void:
 	for id: String in ["smith", "herbs", "bells", "beacon"]:
 		var sv: Dictionary = HearthDB.SERVICES[id]
 		var c := _card("service", id, 384, 112)
-		c.glyph = String(sv.glyph)
+		c.glyph = Icons.art_glyph("hearth", "svc_" + id, String(sv.glyph))
 		c.tint = Color(1.0, 0.78, 0.5)
 		c.title = String(sv.name)
 		var why := String(h.call("service_why", id))
@@ -1119,7 +1119,7 @@ func _page_hearth() -> void:
 	_heading("Rest and food", "Rested: come home from the dark to the green's fire or the Keg")
 	var r := float(hs.get("rested", 0.0))
 	var rc := _card("head", "rested", 784, 66)
-	rc.glyph = "candle"
+	rc.glyph = Icons.art_glyph("hearth", "rest", "candle")
 	rc.tint = Color(1.0, 0.85, 0.6)
 	rc.title = ("RESTED  ·  %s left" % HearthDB.fmt_secs(r)) if r > 0.0 else "NOT RESTED"
 	rc.line = "Comfort %d: a full rest lasts %s. Gloom gathers 12%% slower and spells recover 4%% sooner while it lasts." % [int(h.call("comfort")), HearthDB.fmt_secs(float(h.call("rest_full")))]
@@ -1127,7 +1127,7 @@ func _page_hearth() -> void:
 	_page_box.add_child(rc)
 	var meals := HearthDB.meals(hs)
 	var mc := _card("head", "meals", 784, 66)
-	mc.glyph = "heart"
+	mc.glyph = Icons.art_glyph("hearth", "bread", "heart")
 	mc.tint = Color(1.0, 0.7, 0.5)
 	var eaten: Array[String] = []
 	for kind: String in meals:
@@ -1146,7 +1146,7 @@ func _page_hearth() -> void:
 	var hrt := h as HearthRT
 	for td: Dictionary in HearthDB.TITHES:
 		var tc := _card("tithe", String(td.id), 384, 96)
-		tc.glyph = String(td.glyph)
+		tc.glyph = Icons.art_glyph("hearth", String(td.id), String(td.glyph))
 		tc.tint = Color(1.0, 0.78, 0.5)
 		tc.title = String(td.name)
 		var twhy := hrt.why_not_tithe(String(td.id), at_home_fire())
@@ -1166,7 +1166,7 @@ func _page_hearth() -> void:
 		for b: Node3D in h.call("walk_targets", _fire):
 			var wc := _card("walk", str(_walks.size()), 384, 80)
 			_walks.append(b)
-			wc.glyph = "bell"
+			wc.glyph = Icons.art_glyph("hearth", "svc_bells", "bell")
 			wc.tint = Color(0.95, 0.75, 0.45)
 			wc.title = HearthRT.fire_name(b)
 			wc.line = "%.0f m away" % b.global_position.distance_to(_fire.global_position)

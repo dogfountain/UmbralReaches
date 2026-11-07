@@ -1,13 +1,15 @@
 extends RefCounted
-## Progression icons, drawn in code (no textures), for the Kindling (ui/growth.gd) and the
-## Satchel's charm slots. `draw(ci, glyph, centre, unit, colour)` on any CanvasItem in _draw.
-## The five spell glyphs match ui/hotbar.gd's.
+## Progression icons for the Kindling (ui/growth.gd), the Satchel and the shop. `draw(ci, glyph, centre,
+## unit, colour)` on any CanvasItem in _draw. A glyph is painted art when ui/icons has it (a plain id
+## searches the spell and kindling sets; "category/id" names one exactly, e.g. "item/thorn_heart"),
+## else the old drawn shape below. The five spell glyphs match ui/hotbar.gd's.
 
 const DB := preload("res://core/life/progression/upgrade_db.gd")
+const HearthDB := preload("res://core/life/progression/hearth_db.gd")
 
 
 static func draw(ci: CanvasItem, g: String, c: Vector2, u: float, col: Color) -> bool:
-	var art := IconArt.find(g)
+	var art := IconArt.art(g.get_slice("/", 0), g.get_slice("/", 1)) if g.contains("/") else IconArt.find(g)
 	if art != null:
 		# painted art: a round picture filling the medallion; the caller's colour only says how lit it is
 		var lit := clampf(col.v * 1.15, 0.3, 1.0)
@@ -315,8 +317,40 @@ static func _heartlet(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
 	ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 0.92, 0), c + Vector2(r * 0.92, 0), c + Vector2(0, r * 0.95)]), col)
 
 
-## Satchel hook: the icon for an item id's shape (charms and anything else the Satchel lacks).
+## The "category/id" glyph for painted art that exists, else `fallback` (the old drawn glyph name).
+static func art_glyph(category: String, id: String, fallback: String) -> String:
+	return "%s/%s" % [category, id] if IconArt.art(category, id) != null else fallback
+
+
+## The glyph for an item id: its painted icon, else the shape its ItemDB entry names.
+static func item_glyph(id: String) -> String:
+	return art_glyph("item", id, String(ItemDB.def(id).get("shape", "mound")))
+
+
+## The glyph for a shop row (ui/shop.gd): goods by item, Hearth meals/works/trades, village wares.
+static func row_glyph(r: Dictionary) -> String:
+	var id := String(r.get("id", ""))
+	var g := String(r.get("glyph", ""))
+	if r.has("item"):
+		return item_glyph(String(r.item))
+	if id.begins_with("meal:") or id.begins_with("work:"):
+		return art_glyph("hearth", id.get_slice(":", 1), g)
+	if id == "smelt":
+		return item_glyph("ember_shard")
+	if id.begins_with("trade:"):
+		var gives: Dictionary = HearthDB.trade(id.get_slice(":", 1)).get("gives", {})
+		for k: String in gives:
+			return item_glyph(k)
+	return art_glyph("village", g, g)
+
+
+## Satchel hook: the icon for an item id (a painted square when there is one; charms and anything else
+## the Satchel lacks otherwise draw their shape).
 static func item(ci: CanvasItem, id: String, c: Vector2, u: float) -> bool:
+	var art := IconArt.art("item", id)
+	if art != null:
+		IconArt.draw_square(ci, art, Rect2(c - Vector2(u, u) * 1.55, Vector2(u, u) * 3.1))
+		return true
 	var d := ItemDB.def(id)
 	return draw(ci, String(d.get("shape", "")), c, u, d.get("tint", Color.WHITE))
 

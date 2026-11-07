@@ -68,7 +68,7 @@ class Slot extends Control:
 			draw_rect(r.grow(-3.0), Color(Med.GILT, 0.7), false, 1.0)
 		var c := size * 0.5
 		var t: Color = d.tint
-		match String(d.shape):
+		match "" if IconArt.art("item", id) != null else String(d.shape):   # painted art goes through _PROG.item below
 			"skull":
 				draw_circle(c + Vector2(0, -6), 20, t)
 				draw_rect(Rect2(c + Vector2(-12, 8), Vector2(24, 12)), t)
