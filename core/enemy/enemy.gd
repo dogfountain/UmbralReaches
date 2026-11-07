@@ -393,7 +393,6 @@ func take_hit(dmg: float, from: Node = null) -> void:
 	_flash = 0.08
 	_hit_fx = 1.0
 	var at := global_position + Vector3.UP * (hp_bar_y * 0.6)
-	# ENS art pass: a flash star + sparks thrown away from the blow (core/vfx/vfx.gd impact)
 	Vfx.impact(at, Color(1.6, 0.8, 2.4), _last_from if from is Node3D else Vector3.ZERO, dmg >= 3.0)
 	# three presets (the hitstop's tiers), not one per damage value: Vfx pools and caches by preset,
 	# and damage carries every multiplier. The count still follows the hit through amount_ratio (r30).
@@ -401,6 +400,7 @@ func take_hit(dmg: float, from: Node = null) -> void:
 	var cap: int = [16, 22, 40][tier]
 	Vfx.burst(at, _ichor(), {"count": cap, "life": 0.55, "speed": Vector2(1.5, [4.8, 6.05, 7.8][tier]), "size": 0.07, "gravity": -9.5, "additive": false, "ratio": clampf((10.0 + dmg * 4.0) / cap, 0.25, 1.0)})
 	var big := dmg >= 3.0
+	BossKit.hit_feel(self, dmg, weak)
 	HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.35), _dmg_text(dmg), HIT_BIG if big else HIT_COL, big)
 	_hitstop = 2 if dmg < 1.5 else (4 if dmg < 3.0 else 6)
 	if hp <= 0.001:
@@ -1710,6 +1710,7 @@ func _die() -> void:
 		_hp_bar.visible = false
 	for pip in _pips:
 		pip.visible = false
+	BossKit.fall(self)
 	Events.enemy_killed.emit(self)
 	var at := global_position + Vector3.UP * (hp_bar_y * 0.5)
 	EnemyAudio.hit(_hit_sound(), at, 4.0, -3.0)           # the last blow's weight; the fall is in the die take

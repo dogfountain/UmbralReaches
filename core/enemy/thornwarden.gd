@@ -239,11 +239,11 @@ func _tick_lash(delta: float) -> void:
 		_behind_t = 0.0
 		_lash_cd = 5.0
 		if _rig and _rig.has_method("telegraph"):
-			_rig.call("telegraph", 0.85)
+			_rig.call("telegraph", 1.0)
 		_glint = 1.0
 		say("windup", global_position + Vector3.UP, 1.0, _voice_pitch())
-		BossKit.cast(self, "Bramble Lash", 0.85)
-		BossKit.zone(get_parent(), global_position, 0.85, 24.0, {"by": self, "radius": LASH_R, "spikes": "thorn"})
+		BossKit.cast(self, "Bramble Lash", 1.0)
+		BossKit.zone(get_parent(), global_position, 1.0, 24.0, {"by": self, "radius": LASH_R, "spikes": "thorn"})
 
 
 ## The snare: a ring of thorn round you, its gap toward the Warden; then it pounces into the middle.
