@@ -40,10 +40,10 @@ const ORDER := [
 	["anchoress", 2.0, 0.0, "IV", "CIN"], ["anchoress_move", 2.0, 0.0, "IV", "CIN"], ["anchoress_phase", 2.0, 0.0, "IV", "CIN"],
 	["hierarch_voice", 2.2, 0.0, "IV", "CIN"], ["hierarch_edict", 2.0, 0.0, "IV", "CIN"], ["hierarch_phase", 2.0, 0.0, "IV", "CIN"],
 	["final_blow", 2.8, 0.0, "IV", "CIN"],
-	["finale", 4.5, 0.0, "V", "CIN"],
+	["realm_pan", 5.0, 0.0, "V", "CIN"], ["finale", 4.5, 0.0, "V", "CIN"],
 ]
 ## Shots whose subject is not the wanderer (no FRAME measurement of the wanderer).
-const NO_SUBJECT := ["cold", "card_dark", "card_realm", "card_depths", "fp_run", "fp_lance", "finale", "wildlife", "tavern", "boss_reveal",
+const NO_SUBJECT := ["realm_pan", "cold", "card_dark", "card_realm", "card_depths", "fp_run", "fp_lance", "finale", "wildlife", "tavern", "boss_reveal",
 	"village", "keg_song", "wildlife_herd", "familiar", "hearth_tithe", "kindling", "gear", "map", "thornwood", "necropolis", "mere", "foundry", "orchard", "quarry", "moor", "holds", "crowns",
 	"stillwater", "lamp_spire", "anchorholds", "hierarch", "saltmarket", "pans", "oak", "well", "bells", "roam", "rain_mist",
 	"thorn_reveal", "thorn_knots", "warden", "anchoress", "hierarch_voice", "final_blow", "boss_low", "horse_breeds", "weirford", "defend", "spell_arcana",
