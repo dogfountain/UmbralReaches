@@ -8,11 +8,12 @@ extends Control
 ## sits as a small gem on the Rift Bolt slot.
 
 const SLOT := 78.0
-const GAP := 14.0
+const GAP := 26.0
 const NAME_FADE := 14.0       ## names under the slots fade out after this many seconds
-const NAME_PT := 20           ## r29: was 14 on one line (about 7 px tall at 1280x720: unreadable)
+const NAME_PT := 19           ## one line, body serif, on a dark plate
 const KEY_PT := 18
 const Med := preload("res://ui/medieval_style.gd")
+const UIType := preload("res://ui/type.gd")
 const FRAME := Color(Med.BRONZE, 0.9)
 const BG := Color(0.02, 0.012, 0.006, 0.78)
 const SHADE := Color(0.01, 0.0, 0.03, 0.72)
@@ -46,7 +47,7 @@ func _process(delta: float) -> void:
 		_ready_pulse.resize(_book.slots.size())
 		_was_ready.fill(1)
 		offset_top = -(SLOT + 52.0 + 36.0)
-		offset_bottom = -36.0             # the two-line names run a few px under the box (not clipped)
+		offset_bottom = -36.0             # the name plates run a few px under the box (not clipped)
 	var sig := ""
 	var vis: Array[int] = []
 	for i in _book.slots.size():
@@ -199,17 +200,17 @@ func _draw() -> void:
 		if i == 0:
 			_core_gem(o + Vector2(SLOT - 9, 9))
 		if name_a > 0.0:
-			# one word a line ("Ember / Lance"): at a readable size a whole name is wider than a slot
-			var nc := Color(QUIET, QUIET.a * name_a)
-			var words := s.title.split(" ", false)
-			for w in words.size():
-				var at := o + Vector2(-GAP * 0.5 + 1.0, SLOT + 26.0 + float(w) * (NAME_PT + 2.0))
-				var pt := NAME_PT
-				var ww := _font.get_string_size(words[w], HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
-				if ww > SLOT + GAP - 4.0:
-					pt = maxi(13, floori(pt * (SLOT + GAP - 4.0) / ww))      # a long word (Lantern) shrinks to fit, never clips
-				draw_string_outline(_font, at, words[w], HORIZONTAL_ALIGNMENT_CENTER, SLOT + GAP - 2.0, pt, 4, Color(0.0, 0.0, 0.02, 0.9 * name_a))
-				draw_string(_font, at, words[w], HORIZONTAL_ALIGNMENT_CENTER, SLOT + GAP - 2.0, pt, nc)
+			# one line in the body serif (narrower than Cinzel) on a dark plate; the slot spacing leaves it room
+			var nf := UIType.body()
+			var pt := NAME_PT
+			var ww := nf.get_string_size(s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
+			if ww > SLOT + GAP - 8.0:
+				pt = maxi(14, floori(pt * (SLOT + GAP - 8.0) / ww))
+				ww = nf.get_string_size(s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
+			var plate := Rect2(o.x + SLOT * 0.5 - ww * 0.5 - 6.0, o.y + SLOT + 7.0, ww + 12.0, pt + 9.0)
+			draw_rect(plate, Color(0.02, 0.012, 0.01, 0.82 * name_a))
+			draw_rect(plate, Color(Med.BRONZE, 0.45 * name_a), false, 1.0)
+			draw_string(nf, Vector2(plate.position.x + 6.0, plate.position.y + pt + 2.0), s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt, Color(Med.BONE, name_a))
 
 
 ## The staff core in the orb, as a small faceted gem on the bolt slot (none for the Hollow Core).

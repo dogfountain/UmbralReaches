@@ -23,6 +23,7 @@ const QBook := preload("res://core/story/quest_book.gd")
 const QChains := preload("res://core/story/quest_chains.gd")
 const QWorld := preload("res://core/story/quest_world.gd")
 const UiSound := preload("res://ui/ui_sound.gd")   ## quiet menu sounds (F)
+const TextDirector := preload("res://ui/text_director.gd")
 const Banner := preload("res://core/world/realm/discovery_banner.gd")   ## r35: title_up, the title-card hold
 ## A finished story is worth something to a fire (once each, kept in the secrets' save as
 ## looted "series_<id>"): grave ash, and the Ninth Company's offering shows itself (site_company).
@@ -219,7 +220,7 @@ func enter_region(id: String) -> void:
 	if not fresh and _clock - last < 60.0:
 		return
 	_banner_last[id] = _clock
-	if _clock < _hold_until or Banner.title_up(self):
+	if _clock < _hold_until or Banner.title_up(self) or _in_combat():
 		# the zone's title card is up (arrival, the ending's card): name the place after it fades
 		_held = [String(info.name), String(info.line), fresh]
 		return
@@ -227,6 +228,12 @@ func enter_region(id: String) -> void:
 
 
 var _hold_until := 0.0
+
+
+## A fight is on: the place banner waits (it is held, then shown when the fight ends).
+func _in_combat() -> bool:
+	var td := TextDirector.of(self)
+	return td != null and td.in_combat()
 var _held: Array = []
 
 
@@ -288,7 +295,7 @@ func _satchel_open() -> bool:
 
 func _process(delta: float) -> void:
 	_clock += delta
-	if not _held.is_empty() and _clock >= _hold_until and not Banner.title_up(self):
+	if not _held.is_empty() and _clock >= _hold_until and not Banner.title_up(self) and not _in_combat():
 		var h := _held
 		_held = []
 		_show_banner(String(h[0]), String(h[1]), bool(h[2]))
