@@ -52,6 +52,7 @@ func call_shutter() -> void:
 
 var _bell_cam := Vector3.ZERO
 var _bell_aim := Vector3.ZERO
+var _keeper_at := Vector3.ZERO
 
 
 ## Locks a lens spot round the bell that sees the bell, the keeper and the wanderer with nothing in the way.
@@ -76,6 +77,7 @@ func _s_bells() -> void:
 	var me := b + Vector3(2.3, 0.0, 1.4)
 	d.put_player(me, Cam.yaw_dir(b - me), -0.05)
 	d.drive(Vector3.ZERO)
+	_keeper_at = keeper
 	if is_instance_valid(_shut):
 		_shut.global_position = keeper
 		_shut.home = keeper
@@ -87,6 +89,8 @@ func _s_bells() -> void:
 
 func _u_bells(tt: float) -> void:
 	var b := bell_at()
+	if is_instance_valid(_shut):
+		_shut.global_position = _keeper_at                  # the keeper stands its post by the bell
 	var k: float = d.sm(clampf(tt / 2.0, 0.0, 1.0))
 	var from := _bell_cam.lerp(_bell_aim + (_bell_cam - _bell_aim) * 0.82, k)
 	d.hold_cam(from, _bell_aim + Vector3.UP * 0.15)
@@ -465,7 +469,7 @@ func _s_defend_game() -> void:
 
 func _u_defend_game(tt: float) -> void:
 	def_fight(tt, "dg_bolts")
-	d.p.set_view(float(d.p.get("_yaw")), -0.5)
+	d.p.set_view(float(d.p.get("_yaw")), -0.32)
 	d.light_at(_def.global_position.lerp(d.pp(), 0.5), 5.0)
 
 
@@ -515,6 +519,9 @@ func end_roam() -> void:
 			pin.queue_free()
 
 
+var _roam_cam := Vector3.ZERO
+
+
 func _s_roam() -> void:
 	d.clear_spawned()
 	d.put_player(d.ARENA + Vector3(-30.0, 0.0, 0.0), d.WEST, -0.05)
@@ -525,8 +532,9 @@ func _s_roam() -> void:
 	print("TRAILER roam procession started: %s" % ok)
 	adopt_roam()
 	var fl: Array[Node3D] = d.foes()
+	var m: Vector3 = d.ARENA
 	if not fl.is_empty():
-		var m := Vector3.ZERO
+		m = Vector3.ZERO
 		for f in fl:
 			m += f.global_position
 		m /= float(fl.size())
@@ -534,9 +542,16 @@ func _s_roam() -> void:
 		var ahead := Cam.flat(Vector3(0.0, 0.0, -104.0) - m)
 		d.put_player(m + ahead * 12.0, Cam.yaw_dir(-ahead), -0.05)
 	d.use_free_cam()
-	d.cam.fov = 50.0
+	d.cam.fov = 56.0
 	d.key.light_energy = 6.0
 	d.key.omni_range = 30.0
+	# a lens spot off to the side of the line from the wanderer to the file, that sees both ends and every foe
+	var pts: Array = [d.pp() + Vector3.UP * 1.4, m + Vector3.UP * 1.2]
+	for f in fl:
+		pts.append(f.global_position + Vector3.UP * 1.0)
+	var mid: Vector3 = d.pp().lerp(m, 0.5)
+	var across := Cam.flat(m - d.pp()).cross(Vector3.UP)
+	_roam_cam = d.solve_cam(pts, mid, d.yaw_to(across), 11.0, 4.0)
 
 
 func _u_roam(tt: float) -> void:
@@ -548,9 +563,10 @@ func _u_roam(tt: float) -> void:
 		for f in foes:
 			mid += f.global_position
 		mid /= float(foes.size())
-		d.aim_at(mid)
 	var k: float = d.sm(clampf(tt / 1.6, 0.0, 1.0))
-	two_shot(d.pp(), mid, k, 10.0, 3.8, 1.0, 0.4, 1.2)
+	var between: Vector3 = d.pp().lerp(mid, 0.5)
+	d.hold_cam(_roam_cam.lerp(between + Vector3.UP * 3.0, k * 0.15), between + Vector3.UP * 1.2)
+	d.aim_at(mid)
 	d.light_at(mid.lerp(d.pp(), 0.4), 5.0)
 
 

@@ -11,10 +11,10 @@ const PLACES := {
 	"foundry": [Vector2(123, -76), Vector2(135, -105), 6.0, 4.5, 2.2, 60.0, 1.5, 0.8, 0.5],
 	"orchard": [Vector2(-99, 104), Vector2(-128, 132), 3.0, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
 	"quarry": [Vector2(-120, -83), Vector2(-128, -104), 4.0, 4.5, 2.4, 60.0, 1.5, 0.8, 0.5],
-	"moor": [Vector2(128, -12), Vector2(142, -24), 4.0, 8.0, 6.0, 58.0, 1.5, 1.0, 0.5],
+	"moor": [Vector2(125, -15), Vector2(142, -24), 4.0, 8.0, 6.0, 58.0, 1.5, 1.0, 0.5],
 	"holds": [Vector2(-141, 13), Vector2(-122, 12), 3.0, 5.5, 7.0, 58.0, 0.5, 1.0, 0.5],
 	"crowns": [Vector2(0, 66), Vector2(0, -110), 30.0, 5.0, 2.4, 60.0, 1.5, 1.2, 0.6],
-	"stillwater": [Vector2(230, 30), Vector2(240, 8), 16.0, 12.0, 7.0, 66.0, 0.5, 1.0, 0.3, 0.6],
+	"stillwater": [Vector2(230, 30), Vector2(240, 8), 16.0, 9.0, 6.0, 62.0, 0.5, 1.0, 0.3, 0.6],
 	"anchorholds": [Vector2(204, -112), Vector2(215, -135), 5.0, 7.0, 6.0, 62.0, 1.0, 1.0, 0.3, 0.3],
 	"hierarch": [Vector2(-190, -74), Vector2(-214, -103), 3.0, 14.0, 14.0, 62.0, 1.0, 1.0, 0.0, 0.3],
 	"siege": [Vector2(-216, 132), Vector2(-236, 170), 8.0, 8.0, 6.0, 58.0, 1.5, 1.0, 0.5],
@@ -270,7 +270,7 @@ func _u_lamp_spire(tt: float) -> void:
 	d.hold_cam(h + f * 0.25, h + f * 8.0 + Vector3.UP * (1.6 + sin(tt * 9.0) * 0.06))
 	d._snap = true
 	d.light_at(h, 1.5)
-	fill_follow(h + Vector3(0.0, 0.5, 0.0) + f * 0.6, 1.4, 6.0)     # the tower's own candles
+	fill_follow(h + Vector3(0.0, 0.5, 0.0) + f * 0.6, 0.8, 6.0)     # the tower's own candles
 
 
 func _e_lamp_spire() -> void:
