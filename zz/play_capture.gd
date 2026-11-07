@@ -1659,6 +1659,11 @@ func _s_warmth() -> void:
 				best = q
 		return best
 	await _view_still("w_tavern_a.png", "tavern interior from the west end looking at the hearth", Vector3(12.0, -0.7 + 1.7, 27.0), Vector3(24.0, -0.7 + 0.9, 30.4))
+	if OS.get_environment("WARMTH_DBG") != "":
+		for n in get_tree().root.find_children("*", "Light3D", true, false):
+			var lt := n as Light3D
+			if lt.is_visible_in_tree() and lt.global_position.distance_to(cam1.global_position) < 7.0:
+				print("WARMTH light: ", lt.get_path(), " e ", lt.light_energy, " vol ", lt.light_volumetric_fog_energy, " d ", lt.global_position.distance_to(cam1.global_position))
 	await _view_still("w_tavern_b.png", "tavern interior from the hearth looking at the door and the bar", Vector3(23.0, -0.7 + 1.7, 28.0), Vector3(14.0, -0.7 + 1.0, 31.0))
 	await _view_still("w_tavern_out.png", "the tavern from the porch, outside looking in", Vector3(17.6, g.call(17.6, 20.6) + 1.7, 20.6), Vector3(17.6, -0.7 + 1.3, 27.0))
 	var cy: float = g.call(-165.0, 59.0) + 0.66
@@ -1671,14 +1676,24 @@ func _s_warmth() -> void:
 		sanc.kindle_quiet()
 		var sp := sanc.global_position
 		await _view_still("w_hearth_fire.png", "the Hearth's fire at night", ring.call(sp), sp + Vector3(0, 0.8, 0))
+	var hearth_at := sanc.global_position if sanc != null else studio
+	var lamp_best: Lamp = null
+	var lamp_d := 1.0e9
 	for n in get_tree().get_nodes_in_group(&"lamp"):
 		var lq := n as Lamp
-		if lq != null and lq.look == "post":
-			lq.light_from_leader(false)
-			await _secs(0.5)
-			var lp := lq.global_position
-			await _view_still("w_lamp_post.png", "a lamp post at night", ring.call(lp), lp + Vector3(0, 1.0, 0))
-			break
+		if lq != null and lq.look == "post" and lq.global_position.distance_to(hearth_at) < lamp_d:
+			lamp_d = lq.global_position.distance_to(hearth_at)
+			lamp_best = lq
+	if lamp_best != null:
+		lamp_best.light_from_leader(false)
+		await _secs(0.5)
+		var lp := lamp_best.global_position
+		# a low eye 4.5 m out, looking at the ground a metre from the post's foot: the pool, the post and the wall
+		var lcam := ring.call(lp) as Vector3
+		var ldir := (lcam - lp) * Vector3(1, 0, 1)
+		lcam = lp + ldir.normalized() * 4.5
+		lcam.y = _gy(lcam.x, lcam.z) + 1.9
+		await _view_still("w_lamp_post.png", "a lamp post at night: its pool on the ground", lcam, Vector3(lp.x, _gy(lp.x, lp.z) + 0.5, lp.z))
 	var wild: Brazier = null
 	var bd := 1.0e9
 	for n in main.find_children("*", "Brazier", true, false):
