@@ -57,8 +57,8 @@ func _ready() -> void:
 	var d := _mesh_for(look, free_niche, chain)
 	_flame_at = d.flame
 	_light_at = d.light
-	_e = d.e
-	_range = d.range
+	_e = d.e * 4.0                       # a lamp warms the ground and the wall it stands by, not just its own glass
+	_range = d.range * 1.35
 	_body = MeshInstance3D.new()
 	_body.name = "Body"
 	_body.mesh = d.body

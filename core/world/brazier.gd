@@ -4,7 +4,7 @@ extends Interactable
 
 @export var start_lit := false
 @export var light_radius := 11.0
-@export var lit_energy := 4.6
+@export var lit_energy := 15.0       ## the ground is dark and grainy: 4.6 left no warm pool on it
 @export var lit_range := 14.5
 
 var lit := false
@@ -23,6 +23,7 @@ var _crackle: AudioStreamPlayer3D
 const FIRE_NAMES := {"Sanctuary": "Hearthward's fire", "StairFoot": "The Stair-foot fire", "Shrine": "The glade's fire",
 	"Landing": "The Barrow Field fire", "Threshold": "The fen fire", "HengeFire": "The henge-stair fire", "SummitFire": "The summit fire",
 	"OssuaryGate": "The Ossuary's gate fire"}
+const FIRE_LIGHT := Color(1.0, 0.52, 0.18)         ## a kindled fire throws a deep orange (about 1900 K) on the dark ground
 const MAP_LIT := Color(1.0, 0.62, 0.3)
 const MAP_COLD := Color(0.5, 0.48, 0.52)
 ## Emissive caps: lit coals peak at 1.6 (were 4.0), so they stay gold-orange under AgX, not a white blob
@@ -213,6 +214,7 @@ func _set_lit(on: bool, animate: bool) -> void:
 	LightPolicy.apply_fade(_light)
 	LightPolicy.apply_shadows(_light)
 	LightPolicy.apply_illumination(_light)
+	_light.light_color = FIRE_LIGHT if on else _light.light_color
 	if on:
 		LightGrid.register(self, light_radius)
 	else:

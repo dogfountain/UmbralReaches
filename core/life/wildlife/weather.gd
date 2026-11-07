@@ -42,6 +42,8 @@ const EASE_S := 25.0
 const OFF_BEGIN_MIST := -26.0      ## m: depth fog starts nearer in mist and rain
 const UNDER_BEGIN := 45.0           ## underground the depth fog starts past the pit hall's far wall
 const UNDER_VOL := 0.007            ## and the volumetric fog thins to a trace (candle shafts still read)
+const INDOOR_VOL := 0.0095           ## in a room the volumetric fog is almost gone (the candle shafts and the hearth smoke are lit by their own lights)
+const INDOOR_AMBIENT := 0.2          ## and a warm fill takes the place of the night's blue ambient (Interiors.FILL)
 const OFF_BEGIN_RAIN := -18.0
 const OFF_VOL_MIST := 0.004
 const OFF_VOL_RAIN := 0.002
@@ -87,6 +89,9 @@ var _applied := {"fog_depth_begin": 0.0, "volumetric_fog_density": 0.0, "ambient
 var _roof := false
 var _roof_t := 0.0
 var _under := 0.0                ## 0..1: the camera is underground (the crypt, the pit hall at y -32): no weather, no ground haze
+var _indoor := 0.0               ## 0..1: the camera is in a warm room (Interiors): warm low ambient, thin fog
+var _cold_room := 0.0            ## 0..1: in a cold one (a crypt): only the haze thins
+var _amb := {}                   ## the Environment's own ambient colour and sky share (Interiors.warm_ambient)
 var _bank_acc := 0.0
 var _step_acc := 0.0
 var _bed_acc := 0.0
@@ -138,6 +143,7 @@ func setup(root: Node, seed_v: int) -> void:
 	if we != null:
 		_env = we.environment
 	if _env != null:
+		Interiors.warm_ambient(_env, 0.0, _amb)
 		for k: String in _applied:
 			base[k] = float(_env.get(k))
 	_build_rain()
@@ -240,6 +246,9 @@ func _step(delta: float) -> void:
 	# under the Realm's ground (not the open Rift floor or the Well's sinkhole) the ground haze (it thickens with depth under Atmosphere.HAZE_TOP) filled
 	# the Abbot's pit hall 36 m down with a wall of mist; a crypt has still air and no weather
 	_under = move_toward(_under, 1.0 if _roofed(cam, delta) else 0.0, delta * 1.5)
+	var room := Interiors.at(cam.global_position) if cam != null else 0.0
+	_indoor = move_toward(_indoor, 1.0 if room >= 1.0 else 0.0, delta * 2.0)       # ~0.5 s at the door
+	_cold_room = move_toward(_cold_room, 1.0 if room > 0.0 and room < 1.0 else 0.0, delta * 2.0)
 	_apply_env()
 	_bed_acc += delta
 	if _bed_acc >= 1.0 / 15.0:
@@ -263,12 +272,14 @@ func _roofed(cam: Camera3D, delta: float) -> bool:
 func _apply_env() -> void:
 	if _env == null:
 		return
-	var mist := float(state.mist) * (1.0 - _under)
-	var rain := float(state.rain) * (1.0 - _under)
-	_env_offset("fog_depth_begin", mist * OFF_BEGIN_MIST + rain * OFF_BEGIN_RAIN + _under * UNDER_BEGIN, 0.05)
-	_env_offset("volumetric_fog_density", mist * OFF_VOL_MIST + rain * OFF_VOL_RAIN - _under * UNDER_VOL, 0.00002)
-	_env_offset("fog_height_density", -_under * Atmosphere.HAZE_DENSITY, 0.0002)
-	_env_offset("ambient_light_energy", flash * OFF_AMBIENT_FLASH * _flash_gain + _pulse, 0.0)
+	var shut := clampf(_under + _indoor + _cold_room, 0.0, 1.0)       # roofed or walled in: no weather, no ground haze
+	var mist := float(state.mist) * (1.0 - shut)
+	var rain := float(state.rain) * (1.0 - shut)
+	_env_offset("fog_depth_begin", mist * OFF_BEGIN_MIST + rain * OFF_BEGIN_RAIN + (_under + _cold_room) * UNDER_BEGIN + _indoor * UNDER_BEGIN, 0.05)
+	_env_offset("volumetric_fog_density", mist * OFF_VOL_MIST + rain * OFF_VOL_RAIN - _under * UNDER_VOL - _cold_room * UNDER_VOL - _indoor * INDOOR_VOL, 0.00002)
+	_env_offset("fog_height_density", -shut * Atmosphere.HAZE_DENSITY, 0.0002)
+	_env_offset("ambient_light_energy", flash * OFF_AMBIENT_FLASH * _flash_gain * (1.0 - _indoor) + _pulse + _indoor * INDOOR_AMBIENT, 0.0)
+	Interiors.warm_ambient(_env, _indoor, _amb)
 
 
 ## Move one Environment offset to `want` once it is more than `eps` away (exactly to 0 at the end).

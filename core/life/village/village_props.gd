@@ -65,8 +65,8 @@ static func light(parent: Node3D, n: String, at: Vector3, col: Color, e: float, 
 	var l := OmniLight3D.new()
 	l.name = n
 	l.light_color = col
-	l.light_energy = e
-	l.omni_range = r
+	l.light_energy = e * 2.0               # window and lamp light has to reach the ground and the walls
+	l.omni_range = r * 1.15
 	l.shadow_enabled = false
 	l.set_meta(&"light_class", &"realm")
 	l.distance_fade_enabled = true

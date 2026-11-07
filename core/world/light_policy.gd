@@ -6,7 +6,7 @@ extends RefCounted
 
 # [energy, range, atten] multiplied onto the authored `base` meta. Idempotent.
 const ILLUM := {
-	&"beacon": [1.0, 1.22, 1.05],
+	&"beacon": [1.0, 1.22, 0.85],
 	&"fill": [1.55, 1.35, 1.0],
 	&"lava": [1.18, 1.12, 1.0],
 	&"river": [1.08, 1.05, 1.15],
@@ -66,7 +66,7 @@ static func apply_fade(light: Light3D) -> void:
 			light.distance_fade_begin = 52.0
 			light.distance_fade_shadow = 22.0
 			light.distance_fade_length = 12.0
-			light.light_volumetric_fog_energy = 2.2
+			light.light_volumetric_fog_energy = 1.0
 		&"hero":
 			light.distance_fade_begin = 40.0
 			light.distance_fade_shadow = 22.0
