@@ -28,7 +28,27 @@ func _ready() -> void:
 var _post_done := false
 
 
+var _fps_log := "--fps-log" in OS.get_cmdline_user_args()
+var _fl_t := 0.0
+var _fl_n := 0
+var _fl_worst := 0.0
+
+
 func _process(delta: float) -> void:
+	if _fps_log:
+		# `--fps-log`: once a second, the frames drawn, the worst frame, draws and where the player is (release builds too)
+		_fl_t += delta
+		_fl_n += 1
+		_fl_worst = maxf(_fl_worst, delta)
+		if _fl_t >= 1.0:
+			var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+			print("FPS %.1f worst %.1f ms draws %d prims %dk at %s" % [_fl_n / _fl_t, _fl_worst * 1000.0,
+				RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
+				RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME) / 1000,
+				pl.global_position.snapped(Vector3.ONE * 0.1) if pl else Vector3.ZERO])
+			_fl_t = 0.0
+			_fl_n = 0
+			_fl_worst = 0.0
 	if not _post_done:
 		var zone := get_parent()
 		if zone == null or not Realm.enabled():

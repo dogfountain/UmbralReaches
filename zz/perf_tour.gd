@@ -47,6 +47,12 @@ var points := [
 ## Realm views (y = NAN: stand on the ground there). The first eight are the r19 set (compare runs).
 var realm_points := [
 	["r_spawn_west", Vector3(0.0, NAN, 30.0), PI * 0.5],
+	# the Southern Downs (Luke's 104 fps, 7 Nov: 2866 draws, 421 omni at -147.7, 195.7), four ways round
+	["r_orchard_save", Vector3(-100.8, NAN, 103.7), 0.0],            # Luke's save (88 fps in the release app, 7 Nov)
+	["r_downs_w_n", Vector3(-147.7, NAN, 195.7), 0.0],
+	["r_downs_w_e", Vector3(-147.7, NAN, 195.7), -PI * 0.5],
+	["r_downs_w_s", Vector3(-147.7, NAN, 195.7), PI],
+	["r_downs_w_w", Vector3(-147.7, NAN, 195.7), PI * 0.5],
 	["r_thorn_edge", Vector3(-28.0, NAN, 30.0), -2.0 + PI],
 	["r_thorn_deep", Vector3(-90.0, NAN, -40.0), 0.4 + PI],
 	["r_thorn_in", Vector3(-75.0, NAN, 20.0), -2.4 + PI],

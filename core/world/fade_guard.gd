@@ -13,7 +13,7 @@ extends Node
 ## Load by path (no class_name).
 
 const MIN_BAND := 2.0                 ## metres: a fade over less reads as a pop at walking speed
-const RANGE_K := 1.5                  ## every range pushed out this far (Luke, 7 Nov: things should show sooner). A
+const RANGE_K := 1.0                  ## every range pushed out this far (Luke, 7 Nov: things should show sooner). A
                                       ## near mesh's end and its far stand-in's begin move together, so swaps line up
 const FAR_CAP := 400.0                ## no range past the camera's far plane (FarDetail.VIEW_FAR 420)
 const BAND_K := 0.15                  ## the band, as a share of the range
@@ -31,6 +31,8 @@ static func attach(root: Node) -> void:
 	if tree == null or root.has_meta(&"fade_guard"):
 		return
 	root.set_meta(&"fade_guard", true)
+	if "--no-fade-guard" in OS.get_cmdline_user_args():
+		return                                         # A/B: perf tours
 	var guard := (load("res://core/world/fade_guard.gd") as GDScript).new() as Node
 	guard.name = "FadeGuard"
 	root.add_child(guard)
@@ -70,6 +72,8 @@ func _process(_dt: float) -> void:
 
 ## Every instance under `root` (the sweep after the Realm's build).
 static func sweep(root: Node) -> int:
+	if "--no-fade-guard" in OS.get_cmdline_user_args():
+		return 0
 	var fixed := 0
 	for n in root.find_children("*", "GeometryInstance3D", true, false):
 		if _fix(n):
@@ -96,11 +100,12 @@ static func _fix(n: Node) -> bool:
 		p.set_meta(&"fade_standin", true)
 	var applied: Variant = g.get_meta(&"range_k") if g.has_meta(&"range_k") else null   # (a null default errors)
 	if not (applied is Vector2 and is_equal_approx((applied as Vector2).x, begin) and is_equal_approx((applied as Vector2).y, end)):
+		var rk := _range_k()
 		if end > 0.0:
-			end = minf(end * RANGE_K, FAR_CAP)
+			end = minf(end * rk, FAR_CAP)
 			g.visibility_range_end = end
 		if begin > 0.0:
-			begin = minf(begin * RANGE_K, FAR_CAP - 20.0)
+			begin = minf(begin * rk, FAR_CAP - 20.0)
 			g.visibility_range_begin = begin
 		g.set_meta(&"range_k", Vector2(begin, end))
 	# the near half of a swap (its stand-in is a sibling that begins) keeps its own cut: two meshes dithering over the
@@ -140,3 +145,16 @@ static func _has_standin(p: Node) -> bool:
 			break
 	p.set_meta(&"fade_standin", has)
 	return has
+
+
+static var _rk := -1.0
+
+
+## RANGE_K, or `--range-k=` (A/B in perf tours).
+static func _range_k() -> float:
+	if _rk < 0.0:
+		_rk = RANGE_K
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("--range-k="):
+				_rk = float(a.trim_prefix("--range-k="))
+	return _rk
