@@ -45,7 +45,7 @@ const CONV := {
 			# --- the hub, every visit after ---------------------------------------------------
 			"hub": {"say_if": [
 				["flag:ending_told", "The kindled one. Your stool, your mug. The fire draws by itself now; I've nothing to do but pour."],
-				["boss:thornwarden,boss:bone_abbot,bells:4", "Heart and crown, and a peal behind you. I heard one of them from here. The door will hear the rest."],
+				["boss:thornwarden,boss:bone_abbot,peal:4", "Heart and crown, and a peal behind you. I heard one of them from here, and one from the Marches, which I did not expect. The door will hear the rest."],
 				["boss:thornwarden,boss:bone_abbot", "Heart and crown, both. The ward will know them. Brannoc says the door won't, not without his mother's bells. He's been saying it into his cup all night. Ask him."],
 				["boss:thornwarden", "Thorn Heart. Still beating? Then the wood will forget you soon enough."],
 				["boss:bone_abbot", "The Abbot's crown. Did he count you? He counts everyone."],
@@ -150,12 +150,13 @@ const CONV := {
 				["qp:keg_thief:told|qp:keg_thief:covered|qp:keg_thief:rats", "Nan's put a mug out by the green's fire again. I've stopped counting the barrels."],
 				["", "The village will want to tell you things. Let them."],
 			], "next": "end_4c"},
-			# r36 Act II: what the bells say about the night (all seven, then the ones left where they hung)
+			# r36 Act II: what the bells say about the night (all eight, then the ones left where they hung)
 			"end_4c": {"say_if": [
-				["bells:7", "Seven bells. Brannoc rang the chimney tongue till his arm gave out, then rang it with the other. Nobody asked him to stop."],
+				["bells:8", "Eight bells. Brannoc rang the chimney tongue till his arm gave out, then rang it with the other. Nobody asked him to stop."],
+				["qp:bell_spire:rung", "A lamp on the Spire and a bell at its foot, out in the Marches. Folk went toward it from the Lines. Toward it, mind. Not away."],
 				["qp:bell_moor:rung,qp:bell_mere:rung", "Cadoc's ferry bell and the moor's fog bell, both, ringing out there in the dark. Folk are coming down the road toward them. Coming down."],
 				["qp:bell_necropolis:rung", "Agathe sent word. The Waiting Field heard its one stroke and lay down. All of them. Facing any way they liked."],
-				["", "Not all seven. Brannoc says his mother would have wanted the set. He says it like he'll go and fetch the rest himself."],
+				["", "Not all eight. Brannoc says his mother would have wanted the set. He says it like he'll go and fetch the rest himself."],
 			], "next": "end_5"},
 			# r36 Act III: the epilogue, after the names are cut under the door
 			"epi_1": {"say_if": [
@@ -164,7 +165,7 @@ const CONV := {
 				["", "On the latch. Brannoc told me. The ones still up there can come home if they want to. Two came down the road last night. One of them asked for a room."],
 			], "next": "epi_2"},
 			"epi_2": {"say_if": [
-				["qd:full_peal", "And all seven of her bells. I heard the last of them from here. Brannoc's not been sober since. Neither have I."],
+				["qd:full_peal", "And all eight of her bells, the one for the Marches too. I heard the last of them from here. Brannoc's not been sober since. Neither have I."],
 				["", "Brannoc's still short of bells. He'll have them off you yet, if you stay."],
 			], "next": "epi_3"},
 			"epi_3": {"say": "The names are cut. Your stool's your stool. That's the whole of it. Stay as long as you like; the fire won't go out without you now.", "do": "flag:epilogue_told", "next": ""},
@@ -387,6 +388,21 @@ const CONV := {
 			"rung": {"say": "One stroke. For all of them. The ranks of the Waiting Field do not turn to face the mountain. For once.", "who": "", "do": "qp:bell_necropolis:rung,qa:bell_necropolis", "next": ""},
 			"carried": {"say": "You lift the tongue out of its loop. Names are scratched in the lip of the bell, hundreds, small and crooked, and your thumb finds them on the way out. The bell hangs dumb.", "who": "", "do": "qp:bell_necropolis:carried,qa:bell_necropolis", "next": ""},
 			"gone": {"say_if": [["qp:bell_necropolis:carried", "The bell hangs dumb and empty; the loop is bare where you took the tongue."], ["", "The bell hangs where you left it, tongue and all."]], "who": "", "next": ""},
+		},
+	},
+	# The Shut-Out Bell (quest bell_spire, step 1; the pickup opens this)
+	"bell_spire": {
+		"name": "The Shut-Out Bell",
+		"start": [["!qat:bell_spire:1", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "A bell hung low on a black oak post at the Spire's foot, the lamp-wick wrapped round its tongue cut through. Round the shoulder, in a small hand: FOR WHOEVER IS OUTSIDE.", "who": "", "choices": [
+				{"text": "Ring it here, for the Marches.", "to": "rung"},
+				{"text": "Lift the tongue out, for Hearthward.", "to": "carried"},
+				{"text": "Leave it for now.", "to": ""},
+			]},
+			"rung": {"say": "You ring it once, plainly, as you would knock. The note goes out over the lake and does not come back. Somewhere past the Lines a door is opened from inside.", "who": "", "do": "qp:bell_spire:rung,qa:bell_spire", "next": ""},
+			"carried": {"say": "You lift the tongue out of its loop. The wick comes away in your fingers, grey and soft with nine winters, and the iron under it is warm. The bell hangs dumb over the lake.", "who": "", "do": "qp:bell_spire:carried,qa:bell_spire", "next": ""},
+			"gone": {"say_if": [["qp:bell_spire:carried", "The bell hangs dumb and empty; the loop is bare where you took the tongue."], ["", "The bell hangs where you left it, tongue and all."]], "who": "", "next": ""},
 		},
 	},
 	# r36 Act II: The Ferry Bell (quest bell_mere, step 1; the pickup opens this)

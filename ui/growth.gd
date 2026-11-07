@@ -167,7 +167,7 @@ class Card extends Control:
 				pass                       # "On [F]" says it already; the tag would print over a wrapped line
 			elif look == "owned":
 				tag = {"charm": "WORN", "oath": "SWORN", "relic": "", "slot": "CHOSEN", "pick": "ON THE BAR", "core": "IN THE ORB", "spell": "",
-					"path": "REMEMBERED", "service": "OPEN", "hearth": "BURNING", "walk": ""}.get(kind, "KINDLED")
+					"path": "REMEMBERED", "service": "OPEN", "hearth": "BURNING", "walk": "", "tithe": "WARDED"}.get(kind, "KINDLED")
 				tc = Color(1.0, 0.7, 0.42, 0.95)
 			elif look == "forsworn":
 				tag = "FORSWORN"
@@ -985,6 +985,11 @@ func at_home_fire() -> bool:
 	return at_fire() and HearthRT.is_home_fire(_fire)
 
 
+## The rested XP the fire holds for the wanderer.
+func st_rested() -> int:
+	return int(_st().get("rested_xp", 0))
+
+
 ## PATHS: three columns, one per Path, read top to bottom; a step needs the one above it.
 func _page_paths() -> void:
 	var st := _st()
@@ -1132,6 +1137,24 @@ func _page_hearth() -> void:
 	mc.line = ", ".join(eaten) if not eaten.is_empty() else "Nothing eaten. The Keg's slate has bread, stew and mulled ale; Bet Reed's garden, better."
 	mc.look = "owned" if not eaten.is_empty() else "locked"
 	_page_box.add_child(mc)
+	_heading("The tithe", "ash the fire takes at the green, when the upgrades are bought")
+	var tg := GridContainer.new()
+	tg.columns = 2
+	tg.add_theme_constant_override("h_separation", 12)
+	tg.add_theme_constant_override("v_separation", 12)
+	_page_box.add_child(tg)
+	var hrt := h as HearthRT
+	for td: Dictionary in HearthDB.TITHES:
+		var tc := _card("tithe", String(td.id), 384, 96)
+		tc.glyph = String(td.glyph)
+		tc.tint = Color(1.0, 0.78, 0.5)
+		tc.title = String(td.name)
+		var twhy := hrt.why_not_tithe(String(td.id), at_home_fire())
+		var held := String(td.id) == "ward" and hrt.ward_active()
+		tc.line = "Held until the night ends." if held else ("Rested XP: %d held." % int(st_rested()) if String(td.id) == "rest" else "Until the night ends.")
+		tc.cost = int(td.price)
+		tc.look = "owned" if held else _look_for(twhy.replace("Only at Hearthward's fire, on the green.", "Only at a kindled fire."), false)
+		tg.add_child(tc)
 	_walks.clear()
 	if HearthDB.works(hs).has("bells") and at_fire():
 		_heading("Brannoc's bells", "ring here and walk to another kindled fire")
@@ -1415,6 +1438,14 @@ func _show() -> void:
 				why = "Open. Talk to %s in Hearthward." % ("Hild at the forge" if c.id == "smith" else "Bet Reed by her garden")
 			else:
 				why = sw
+		"tithe":
+			var td := HearthDB.tithe(c.id)
+			_d_name.text = String(td.name)
+			_d_kind.text = "THE TITHE  ·  %d ASH" % int(td.price)
+			_d_text.text = String(td.text)
+			_d_lore.text = String(td.say)
+			why = (_h() as HearthRT).why_not_tithe(c.id, at_home_fire())
+			verb = "GIVE TO THE FIRE  ·  %d ASH" % int(td.price)
 		"walk":
 			var hh := _h()
 			var i := int(c.id)
@@ -1574,6 +1605,9 @@ func act() -> void:
 			if c.id == "bells" and hh:
 				res = String(hh.call("hang_bells"))
 				bought = res == ""
+		"tithe":
+			res = (_h() as HearthRT).tithe(c.id, at_home_fire())
+			bought = res == ""
 		"walk":
 			var hh := _h()
 			var i := int(c.id)

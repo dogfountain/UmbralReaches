@@ -74,7 +74,7 @@ const RARE_OWN := {"drowned_reeve": "reeve_tally", "moss_mason": "mason_girdle",
 	"salt_widow": "widow_salt", "drowned_lamplighter": "lamplighter_wick",
 	# the Founder's bells' keepers: each its own piece
 	"kin_caller": "kin_bell_ring", "bell_hewer": "hewer_apron", "fog_shepherd": "shepherd_strap", "slag_born": "slag_glass",
-	"ash_sower": "sower_cloak", "passing_ringer": "ringer_clapper", "fare_caller": "fare_lamp"}
+	"ash_sower": "sower_cloak", "passing_ringer": "ringer_clapper", "fare_caller": "fare_lamp", "lamp_shutter": "shutter_hasp"}
 
 ## A chest's gear source (loot_chest.gd's tier) and what the bag adds on top of the chest's own loot.
 const CHEST_SRC := {"wood": "tough", "iron": "elite", "reliquary": "reliquary"}
