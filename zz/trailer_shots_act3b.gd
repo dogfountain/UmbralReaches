@@ -200,7 +200,7 @@ func _e_horse_gallop() -> void:
 func _s_horse_jump() -> void:
 	_hz = horse("palfrey")
 	d.clear_spawned()
-	var at: Vector3 = d.ARENA + Vector3(14.0, 0.0, 0.0)
+	var at: Vector3 = d.ARENA + Vector3(-10.0, 0.0, 0.0)
 	place_horse(_hz, at, d.WEST)
 	d.put_player(at, d.WEST, -0.12)
 	seat_rider(_hz, float(_hz._d.gallop))
@@ -216,7 +216,7 @@ func _u_horse_jump(tt: float) -> void:
 	var side := fwd.cross(Vector3.UP)            # the rider's left (south)
 	# square to the run, a little ahead, tracking: the leap in profile
 	var from := hp + side * -6.0 + fwd * (2.0 - tt * 0.6) + Vector3.UP * 1.3
-	d.frame_cam(from, hp + fwd * 0.6 + Vector3.UP * (1.3 + clampf(hp.y - d.gy(hp.x, hp.z), 0.0, 2.0) * 0.6))
+	d.hold_cam(from, hp + fwd * 0.6 + Vector3.UP * (1.3 + clampf(hp.y - d.gy(hp.x, hp.z), 0.0, 2.0) * 0.6))
 	d.light_at(hp, 4.0)
 	if tt > 0.35 and d.once("hj_jump"):
 		d.press("jump")
@@ -234,7 +234,7 @@ func _e_horse_jump() -> void:
 func _s_horse_fp() -> void:
 	_hz = horse("palfrey")
 	d.clear_spawned()
-	var at: Vector3 = d.ARENA + Vector3(8.0, 0.0, 0.0)
+	var at: Vector3 = d.ARENA + Vector3(-10.0, 0.0, 0.0)
 	place_horse(_hz, at, d.WEST)
 	d.put_player(at, d.WEST, -0.1)
 	seat_rider(_hz, 7.0)
@@ -263,8 +263,8 @@ func _e_horse_fp() -> void:
 func _s_horse_gallop_b() -> void:
 	_hz = horse("garron")
 	d.clear_spawned()
-	var at := Vector3(150.0, 0.0, -30.0)               # the moor, heading south-west along the open heather
-	var yaw := Cam.yaw_dir(Vector3(-0.6, 0.0, 1.0))
+	var at := Vector3(150.0, 0.0, 40.0)               # the moor's south, heading west along the heather
+	var yaw := Cam.yaw_dir(Vector3(-1.0, 0.0, 0.0))
 	place_horse(_hz, at, yaw)
 	d.put_player(at, yaw, -0.12)
 	seat_rider(_hz, 5.0)
@@ -273,7 +273,7 @@ func _s_horse_gallop_b() -> void:
 
 
 func _u_horse_gallop_b(tt: float) -> void:
-	var yaw := Cam.yaw_dir(Vector3(-0.6, 0.0, 1.0))
+	var yaw := Cam.yaw_dir(Vector3(-1.0, 0.0, 0.0))
 	d.light_at(d.pp() + d.fwd_of(yaw) * 4.0, 4.0)
 	d.p.set_view(yaw + sin(tt * 1.2) * 0.15, -0.12)
 
@@ -289,7 +289,7 @@ var _line: Array[HorseS] = []
 func _s_horse_breeds() -> void:
 	_line.clear()
 	d.clear_spawned()
-	var base: Vector3 = d.ARENA + Vector3(-10.0, 0.0, 6.0)
+	var base: Vector3 = d.ARENA + Vector3(-14.0, 0.0, 0.0)
 	var i := 0
 	for b in ["palfrey", "garron", "fenpony", "draught", "weir_cob"]:
 		var h := horse(b)
@@ -306,13 +306,13 @@ func _s_horse_breeds() -> void:
 
 func _u_horse_breeds(tt: float) -> void:
 	var k: float = d.sm(clampf(tt / 2.0, 0.0, 1.0))
-	var base: Vector3 = d.ARENA + Vector3(-10.0, 0.0, 6.0)
+	var base: Vector3 = d.ARENA + Vector3(-14.0, 0.0, 0.0)
 	var x := lerpf(-1.0, 4.0 * 3.4 + 1.0, k)
 	var at := base + Vector3(x, 1.2, 0.0)
-	d.frame_cam(at + Vector3(0.6, 0.2, 7.2), at)
-	d.light_at(base + Vector3(x, 0.0, 2.0), 3.5)
+	d.frame_cam(at + Vector3(0.6, 0.2, -7.2), at)
+	d.light_at(base + Vector3(x, 0.0, -2.0), 3.5)
 	if d.once("hb_fill"):
-		fill(base + Vector3(6.8, 3.4, 4.0), 4.0, 16.0, Color(1.0, 0.78, 0.5))
+		fill(base + Vector3(6.8, 3.4, -3.0), 4.0, 16.0, Color(1.0, 0.78, 0.5))
 
 
 func _e_horse_breeds() -> void:
