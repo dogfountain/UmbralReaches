@@ -16,8 +16,8 @@ static func build(host: Node3D, xf: Transform3D) -> void:
 	var spots: Array[Transform3D] = []
 	for k in 12:
 		var a := rng.randf() * TAU
-		var r := sqrt(rng.randf()) * 2.8 + 0.5
-		var s := rng.randf_range(2.6, 4.4)
+		var r := rng.randf_range(2.6, 4.2)
+		var s := rng.randf_range(3.0, 5.0)
 		var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s))
 		spots.append(Transform3D(b, xf * (SWAY0 + Vector3(sin(a) * r, -0.12, cos(a) * r))))
 	# and in the pockets of the wall low down, between the stair's turns

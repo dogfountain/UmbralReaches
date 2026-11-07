@@ -640,7 +640,7 @@ static func _oak(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var at: Vector3 = s.at
 	var h := _poi(host, "r37s_oak", at, 28.0)
 	var xf := Transform3D(Basis(Vector3.UP, float(s.yaw)), at)
-	for part: String in ["Trunk", "Roots", "Limbs", "Crown", "Stair"]:
+	for part: String in ["Trunk", "Roots", "Limbs", "Crown", "Stair", "Litter"]:
 		Kit.put(h, Kit.OAK, part, xf, Vector2.ZERO, true)
 	_far(h, Kit.OAK, "OakFar", xf, 120.0, true)
 	OakHollowGlow.build(h, xf)
