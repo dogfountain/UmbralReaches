@@ -207,7 +207,7 @@ func _warm_step(i: int) -> void:
 		return
 	var t0 := Time.get_ticks_usec()
 	if i < WARM_STAGES:
-		BossKit.warm(self, i)
+		BossKit.warm(self, i, StringName(boss_id))
 	elif boss_script != null:
 		BossKit.warm_rig(get_parent(), boss_script)
 	var ms := float(Time.get_ticks_usec() - t0) / 1000.0

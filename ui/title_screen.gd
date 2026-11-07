@@ -47,7 +47,7 @@ func _ready() -> void:
 	layer = 125
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var bg := ColorRect.new()
-	bg.color = Color(0.03, 0.02, 0.012, 1.0)
+	bg.color = bg_colour()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var glow := ColorRect.new()                       # a faint violet low light, nothing more
@@ -99,6 +99,28 @@ func _ready() -> void:
 	_title_col.add_child(_gap(10))
 	_title_col.add_child(_note)
 	_show_main()
+	_veil()
+
+
+## Everything is drawn once under an opaque veil (glyph atlases, the gilt outline, the theme's styleboxes),
+## then the veil lifts: the first visible frames are smooth instead of paying those one-time costs on screen.
+func _veil() -> void:
+	var veil := ColorRect.new()
+	veil.color = bg_colour()
+	veil.set_anchors_preset(Control.PRESET_FULL_RECT)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(veil)
+	for i in 3:
+		await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	var tw := create_tween()
+	tw.tween_property(veil, "color:a", 0.0, 0.4)
+	tw.tween_callback(veil.queue_free)
+
+
+static func bg_colour() -> Color:
+	return Color(0.03, 0.02, 0.012, 1.0)
 
 
 func _label(text: String, size: int, col: Color, font: Font, centred := false) -> Label:

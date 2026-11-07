@@ -1787,7 +1787,7 @@ func _s_ui() -> void:
 	var TitleScreen := preload("res://ui/title_screen.gd")
 	var ts := TitleScreen.new()
 	get_tree().root.add_child(ts)
-	await _still("title_screen.png", "title screen over the night", 14)
+	await _still("title_screen.png", "title screen over the night", 70)
 	ts.queue_free()
 	await _frames(4)
 	# settings
