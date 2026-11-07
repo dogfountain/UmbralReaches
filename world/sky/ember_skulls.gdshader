@@ -1,5 +1,7 @@
 shader_type sky;
 render_mode use_half_res_pass;
+
+#include "res://world/sky/sky_stars.gdshaderinc"
 // Violet night for the vale: bruised-purple clouds, a cold lilac moon,
 // and a handful of distant skulls drifting in the haze. Kept sparse.
 // (Uniform names col_blood/col_ember are historical: blood = body colour, ember = rift glow.)
@@ -87,8 +89,7 @@ void sky() {
 		ALPHA = skull_field(EYEDIR);
 	} else {
 		vec3 col = HALF_RES_COLOR.rgb;
-		float sh = hash(floor(EYEDIR.xy * 480.0) + floor(EYEDIR.z * 480.0));
-		col += step(0.9978, sh) * vec3(0.62, 0.58, 1.0) * 0.55;
+		col += sky_stars(EYEDIR, 300.0, 0.0085) * vec3(0.62, 0.58, 1.0) * 0.6;
 		vec3 mdv = normalize(moon_dir);
 		float mu = max(dot(EYEDIR, mdv), 0.0);
 		vec3 right = normalize(cross(mdv, vec3(0.0, 1.0, 0.0)));

@@ -673,7 +673,7 @@ static func _oak(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	oak = {"xf": xf, "crown": crown, "tips": tips, "door": xf * Vector3(sin(float(Data.OAK_DOOR.a)) * 6.4, 0.0, cos(float(Data.OAK_DOOR.a)) * 6.4)}
 	# the beacon: a faint column, so the oak reads from the downs' far side
 	var wf: Variant = load("res://core/world/realm/realm_wayfinding.gd")
-	var bn: Variant = wf.beacon(host, at, "", Color(0.42, 0.5, 0.34), 40.0, 0.3, 24.0)
+	var bn: Variant = wf.beacon(host, at, "", Color(0.42, 0.5, 0.34), 40.0, 0.3, 24.0, false, 90.0)
 	if bn is Node:
 		(bn as Node).name = "Beacon_r37s_oak"
 		(bn as Node).set_meta("poi", "r37s_oak")
@@ -800,7 +800,7 @@ static func _well(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	_echo_stone(h, space, wc, R)
 	_spillway_and_fall(h, space, wc, R, rim_y, floor_y, r_max, fall_th)
 	var wf: Variant = load("res://core/world/realm/realm_wayfinding.gd")
-	var bn: Variant = wf.beacon(host, Vector3(wc.x, rim_y, wc.y), "", Color(0.34, 0.5, 0.6), 30.0, 0.3, 12.0)
+	var bn: Variant = wf.beacon(host, Vector3(wc.x, rim_y, wc.y), "", Color(0.34, 0.5, 0.6), 30.0, 0.3, 12.0, false, 80.0)
 	if bn is Node:
 		(bn as Node).name = "Beacon_r37s_well"
 		(bn as Node).set_meta("poi", "r37s_well")

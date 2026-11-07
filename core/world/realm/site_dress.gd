@@ -17,7 +17,8 @@ const LANE_MARGIN := 0.9               ## clear of a walk lane's centreline by t
 const KEEP_OFF := 1.7                  ## from an interactable, a fire, a lamp, a stall
 const FOOT := {"crate": 0.45, "barrel": 0.36, "sack": 0.3, "firewood": 0.62, "bench": 0.85, "trough": 0.8, "bucket": 0.2,
 	"cart": 1.3, "log": 0.55, "hay": 0.5, "kindling": 0.25, "straw": 0.2, "leaf": 0.2, "flag": 0.55, "flag2": 0.45,
-	"rubble": 0.25, "rubble2": 0.25, "stone": 0.32, "stone2": 0.32, "bone": 0.3, "rib": 0.3, "skull": 0.15}
+	"rubble": 0.25, "rubble2": 0.25, "stone": 0.32, "stone2": 0.32, "bone": 0.3, "rib": 0.3, "skull": 0.15,
+	"stall": 1.5, "stall2": 1.5, "stall3": 1.5, "cross": 1.9, "saltheap": 0.9, "trestle": 0.95, "goods": 1.0, "loadcart": 1.3}
 const SMALL := ["straw", "leaf", "kindling", "bucket", "bone", "rib", "skull", "stone", "stone2", "rubble", "rubble2", "flag", "flag2"]
 const FLAT := ["straw", "leaf", "flag", "flag2", "kindling"]      ## lie on the ground: slopes do not matter
 
@@ -54,6 +55,8 @@ static func build(root: Node) -> void:
 	root.add_child(host)
 	for sq: Dictionary in Zones.SQUARES:
 		_begin(String(sq.id))
+		if int(sq.get("market", 0)) > 0:
+			_market(sq)
 		_square(sq)
 		_emit(host, String(sq.id), sq.c)
 	var fires: Array[Vector2] = Zones.fire_points()
@@ -266,9 +269,47 @@ static func _square(sq: Dictionary) -> void:
 	# the loose litter of a used place: straw where goods were handled, leaves in the corners, small stones
 	_scatter("straw", c, r * 1.05, 44 if yard else 32, 0.9, 1.7)
 	_scatter("leaf", c, r * 1.1, 44, 1.1, 1.9)
-	_scatter("stone", c, r * 1.05, 20, 0.9, 1.4)
-	_scatter("stone2", c, r * 1.05, 10, 0.9, 1.3)
+	var traded := int(sq.get("market", 0)) > 0
+	_scatter("stone", c, r * 1.05, 5 if traded else 20, 0.9, 1.4)      # a market's cobbles are swept: a few stones, not a field of eggs
+	_scatter("stone2", c, r * 1.05, 3 if traded else 10, 0.9, 1.3)
 	_scatter("kindling", c, r * 0.95, 6, 1.1, 1.5)
+
+
+## A trading square: a stepped cross near the middle, `market` awninged stalls ringed round it facing in, each with
+## a table or a stack of goods in front and salt or sacks beside, a loaded cart or two. Placed before the rest of
+## the dressing so the big pieces take their ground first; every one still keeps off lanes, fires and colliders.
+static func _market(sq: Dictionary) -> void:
+	var c: Vector2 = sq.c
+	var r: float = sq.r
+	var n := int(sq.market)
+	var kinds := ["stall", "stall2", "stall3"]
+	for i in 30:
+		var q := c + Vector2(_rng.randf_range(-3.5, 3.5), _rng.randf_range(-3.5, 3.5))
+		if _put("cross", q, _rng.randf() * TAU, 1.0, 0.0, 0.05):
+			break
+	var a0 := _rng.randf() * TAU
+	var placed := 0
+	for i in n * 60:
+		if placed >= n:
+			break
+		var ang := a0 + float(placed) * TAU / float(n) + _rng.randf_range(-0.6, 0.6)
+		var p := _ring(c, r * _rng.randf_range(0.5, 0.95), ang)
+		var inward := (c - p).normalized()
+		var yaw := atan2(inward.x, inward.y) + _rng.randf_range(-0.2, 0.2)
+		if not _put(kinds[placed % 3], p, yaw, 1.0, 0.0, 0.06):
+			continue
+		placed += 1
+		var side := Vector2(inward.y, -inward.x)
+		_put("trestle" if placed % 2 == 0 else "goods", p + inward * 2.7 + side * _rng.randf_range(-0.6, 0.6), yaw + _rng.randf_range(-0.4, 0.4))
+		_put("saltheap" if placed % 3 != 1 else "goods", p + side * (2.5 if placed % 2 == 0 else -2.5) + inward * 0.8, _rng.randf() * TAU)
+		_put("sack", p - inward * 1.7 + side * 0.9, _rng.randf() * TAU)
+	for i in 2:
+		for t in 30:
+			if _put("loadcart", _ring(c, r * _rng.randf_range(0.4, 0.8), _rng.randf() * TAU), _rng.randf() * TAU):
+				break
+	print("MARKET %s: %d of %d stalls stood" % [sq.id, placed, n])
+	if String(sq.id) == "saltmarket":
+		_scatter("saltheap", c, r * 0.95, 5, 0.8, 1.2)
 
 
 static func _stores(p: Vector2, yaw: float, yard: bool) -> bool:

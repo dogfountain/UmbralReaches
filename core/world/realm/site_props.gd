@@ -8,6 +8,7 @@ extends RefCounted
 ##   const Props := preload("res://core/world/realm/site_props.gd")
 
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
+const Market := preload("res://core/world/realm/market_props.gd")
 
 static var _meshes: Dictionary = {}
 static var _cloth: StandardMaterial3D
@@ -26,12 +27,14 @@ static func cloth() -> Material:
 		_cloth = StandardMaterial3D.new()
 		_cloth.vertex_color_use_as_albedo = true
 		_cloth.roughness = 0.95
+		_cloth.albedo_color = Color(0.62, 0.62, 0.62)      # vertex colours are linear: the sacks and salt read as white eggs under the moon
 		_cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
 	return _cloth
 
 
 ## A prop by key: "crate", "barrel", "sack", "firewood", "bench", "trough", "bucket", "cart", "log",
-## "kindling", "straw", "leaf", "flag", "rubble", "stone", "bone", "skull", "hay".
+## "kindling", "straw", "leaf", "flag", "rubble", "stone", "bone", "skull", "hay"; the market's (market_props.gd):
+## "stall", "stall2", "stall3", "cross", "saltheap", "trestle", "goods", "loadcart".
 static func get_prop(key: String) -> Dictionary:
 	if _meshes.has(key):
 		return _meshes[key]
@@ -46,6 +49,14 @@ static func get_prop(key: String) -> Dictionary:
 		"cart": d = _wood(_cart(), true)
 		"log": d = _wood(_log(), false)
 		"kindling": d = _wood(_kindling(), false)
+		"stall": d = {"mesh": Market.stall(0, wood(), cloth()), "mat": null, "shadow": true}
+		"stall2": d = {"mesh": Market.stall(1, wood(), cloth()), "mat": null, "shadow": true}
+		"stall3": d = {"mesh": Market.stall(2, wood(), cloth()), "mat": null, "shadow": true}
+		"cross": d = {"mesh": Market.cross(OssKit.mat("stone")), "mat": null, "shadow": true}
+		"saltheap": d = {"mesh": Market.saltheap(cloth()), "mat": null, "shadow": true}
+		"trestle": d = {"mesh": Market.trestle(wood(), cloth()), "mat": null, "shadow": true}
+		"goods": d = {"mesh": Market.goods(wood(), cloth()), "mat": null, "shadow": true}
+		"loadcart": d = {"mesh": Market.load_cart(_cart(), wood(), cloth()), "mat": null, "shadow": true}
 		"sack": d = {"mesh": _sack(), "mat": cloth(), "shadow": true}
 		"hay": d = {"mesh": _hay(), "mat": cloth(), "shadow": true}
 		"straw": d = {"mesh": _straw(), "mat": cloth(), "shadow": false}

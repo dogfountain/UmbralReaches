@@ -236,9 +236,9 @@ static func _mesh_for(kind: String, free: bool, chain_len: float) -> Dictionary:
 	var key := "%s|%s|%.1f" % [kind, free, chain_len]
 	if _meshes.has(key):
 		return _meshes[key]
-	var iron := Color(0.1, 0.095, 0.09)
-	var wood := Color(0.22, 0.16, 0.1)
-	var stone := Color(0.15, 0.145, 0.135)
+	var iron := Color(0.2, 0.2, 0.21)           # lifted: a dark post took the whole night grade as black
+	var wood := Color(0.34, 0.25, 0.17)
+	var stone := Color(0.26, 0.255, 0.25)
 	var body := LampBuilder.new()
 	var glow := LampBuilder.new()
 	var d := {"e": 0.9, "range": 5.5, "flame": Vector3.ZERO, "light": Vector3.ZERO}

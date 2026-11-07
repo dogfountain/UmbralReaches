@@ -41,7 +41,7 @@ static func build(root: Node) -> void:
 	var ng := cold_glows(root)
 	var tower := climb_tower(holder, space)
 	# the henge reads as "the boss is here" from west_way and the glade: an ember shaft over its hill
-	beacon(holder, ThornHenge.C, "thornwarden", Color(1.0, 0.52, 0.46), 46.0, 0.42)
+	beacon(holder, ThornHenge.C, "thornwarden", Color(1.0, 0.52, 0.46), 46.0, 0.42, 9.0, false, 260.0)
 	# r31: the places worth leaving the road for (ground reserved by RealmBosses before the flora)
 	var pois := load("res://core/world/realm/realm_pois.gd") as GDScript
 	if pois and pois.can_instantiate():
@@ -293,11 +293,14 @@ static func _spawn(parent: Node3D, mesh: ArrayMesh, xf: Transform3D, collide: bo
 ## when that boss falls.
 ## `soft` (the summit): an additive column with radial falloff to nothing at its edge and a fade at
 ## foot and top (world/beacon_column.gdshader), energy capped under the glow threshold.
-static func beacon(parent: Node3D, at: Vector3, boss_id: String, col: Color, height: float, radius: float, ceiling := 9.0, soft := false) -> Node3D:
+## `reach` > 0 (a minor column): it narrows away beyond that many metres, so only the boss and summit
+## columns stand across the whole land.
+static func beacon(parent: Node3D, at: Vector3, boss_id: String, col: Color, height: float, radius: float, ceiling := 9.0, soft := false, reach := 0.0) -> Node3D:
 	if boss_id != "" and Travel.bosses_slain.has(boss_id):
 		return null
 	var root: Node3D = Beacon.new()
 	root.name = "Beacon_" + boss_id
+	root.set("reach", reach)
 	root.set("anchor", at + Vector3.UP * ceiling)       # drawn inside the 82 m far plane (landmark_beacon.gd)
 	parent.add_child(root)
 	for layer: Array in [[radius, 0.5, 1.0], [radius * 2.6, 0.1, 0.85]]:

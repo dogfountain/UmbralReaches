@@ -13,11 +13,11 @@ const BOSSES := "res://core/world/realm/realm_bosses.gd"      # by path: realm_b
 const Cast := preload("res://core/life/village/village_cast.gd")
 
 ## Open ground the people use: {id, c, r, kind}. "square" = cobbled and dressed round its rim;
-## "yard" = the same on a working hamlet's ground (more stores).
+## "yard" = the same on a working hamlet's ground (more stores). "market" = how many stalls it stands (site_dress.gd).
 const SQUARES := [
 	{"id": "hearthward", "c": Vector2(0.0, 34.0), "r": 12.5, "kind": "square"},
-	{"id": "weirford", "c": Vector2(-193.0, 71.0), "r": 11.5, "kind": "square"},
-	{"id": "saltmarket", "c": Vector2(215.0, 97.0), "r": 14.5, "kind": "yard"},
+	{"id": "weirford", "c": Vector2(-193.0, 71.0), "r": 11.5, "kind": "square", "market": 3},
+	{"id": "saltmarket", "c": Vector2(215.0, 97.0), "r": 14.5, "kind": "yard", "market": 8},
 ]
 ## Wet ground: mud, a puddle's worth of dark earth. [centre, radius]
 const WET := [

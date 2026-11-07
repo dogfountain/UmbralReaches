@@ -52,7 +52,7 @@ void vertex() {
 		float travel = mix(0.12, 0.38, h1(s + 4.0));
 		head = normalize(start + away * travel * k);
 		tail = normalize(start + away * travel * max(k - 0.3, 0.0));
-		width = mix(0.05, 0.12, c.w);
+		width = mix(0.3, 0.52, c.w);        // wide enough that the gaussian core spans several pixels: a 1 px quad stair-steps (aliased dashes)
 		on = live * step(lt, dur) * smoothstep(0.0, 0.1, k) * (1.0 - smoothstep(0.75, 1.0, k)) * c.w;
 		on *= step(0.04, head.y);
 	}
@@ -72,8 +72,8 @@ void vertex() {
 
 void fragment() {
 	float across = abs(v_uv.y * 2.0 - 1.0);
-	float core = exp(-across * across * 6.0);
-	float trail = pow(v_uv.x, 2.2);
+	float core = exp(-across * across * 5.0) * smoothstep(1.0, 0.55, across);
+	float trail = pow(v_uv.x, 2.2) * smoothstep(0.0, 0.12, v_uv.x);
 	float head = exp(-(1.0 - v_uv.x) * 30.0);
 	vec3 col = mix(vec3(0.55, 0.75, 1.0), tint, trail) * (trail * 0.9 + head * 1.4) * core;
 	if (manual >= 0.0) {

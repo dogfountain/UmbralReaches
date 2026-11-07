@@ -8,6 +8,7 @@ extends Node3D
 const NEAR := 64.0
 
 var anchor := Vector3.ZERO              ## the column's true foot (world)
+var reach := 0.0                        ## minor columns (a lamp, the oak, the well) thin out past this many metres and are gone by 1.25 x; 0 = never
 
 
 func _ready() -> void:
@@ -25,4 +26,8 @@ func _process(_d: float) -> void:
 	var rel := anchor - eye
 	var d := rel.length()
 	var k := 1.0 if d <= NEAR else NEAR / d
-	global_transform = Transform3D(Basis.IDENTITY.scaled(Vector3(k, k, k)), eye + rel * k)
+	var w := 1.0                           # the column's girth: a minor one narrows to nothing between reach and 1.25 x reach
+	if reach > 0.0:
+		w = 1.0 - smoothstep(reach, reach * 1.25, d)
+		visible = w > 0.01
+	global_transform = Transform3D(Basis.IDENTITY.scaled(Vector3(k * w, k, k * w)), eye + rel * k)

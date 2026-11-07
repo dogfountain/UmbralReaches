@@ -331,7 +331,7 @@ static func _spire(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary
 				if sm != null and sm.resource_name == "lamp_glass":
 					lod0.set_surface_override_material(i, glass_mat if on else null)
 		if on and bh[0] == null:
-			var b: Variant = Wayfinding.beacon(host, xf * Vector3(0, 0, 0), "", Color(1.0, 0.74, 0.4), 70.0, 0.5, LAMP_Y + 6.0, true)
+			var b: Variant = Wayfinding.beacon(host, xf * Vector3(0, 0, 0), "", Color(1.0, 0.74, 0.4), 70.0, 0.5, LAMP_Y + 6.0, true, 110.0)
 			if b is Node:
 				bh[0] = b
 				(b as Node).name = "Beacon_spire_lamp"
@@ -568,7 +568,7 @@ static func _anchorholds(holder: Node3D, space: PhysicsDirectSpaceState3D) -> vo
 	arena.on_slain = func(fresh: bool) -> void:
 		if fresh:
 			Events.toast.emit("The chain goes slack. Somewhere in the rock a cell door swings open, and stays open.")
-	var bc: Variant = Wayfinding.beacon(host, C, "r37_anchoress", Color(1.0, 0.66, 0.36), 46.0, 0.4, 14.0)
+	var bc: Variant = Wayfinding.beacon(host, C, "r37_anchoress", Color(1.0, 0.66, 0.36), 46.0, 0.4, 14.0, false, 260.0)
 	if bc is Node:
 		(bc as Node).name = "Beacon_r37_anchoress"
 	# a chest in the first cell, a page at the gate

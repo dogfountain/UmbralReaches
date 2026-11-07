@@ -85,6 +85,7 @@ var out_root := OUT_ROOT
 var only: Array = []
 var time_limit := 170.0
 var nolit := false
+var still_filter: Array = []       ## --filter=a,b: only the _view_still shots whose file name has one of these
 var headless := false
 var main: Node
 var p: Player
@@ -150,6 +151,8 @@ func _ready() -> void:
 			only = Array(a.trim_prefix("--only=").split(",", false))
 		elif a.begins_with("--timeout="):
 			time_limit = float(a.trim_prefix("--timeout="))
+		elif a.begins_with("--filter="):
+			still_filter = Array(a.trim_prefix("--filter=").split(",", false))
 		elif a == "--nolit":
 			nolit = true
 		elif a == "--lightlog":
@@ -1529,9 +1532,16 @@ func _unpark() -> void:
 
 
 func _view_still(file: String, desc: String, cam_pos: Vector3, target: Vector3) -> void:
+	if not still_filter.is_empty() and not still_filter.any(func(f: Variant) -> bool: return file.contains(String(f))):
+		return
 	_park_at(cam_pos, target)
 	await _secs(1.3)
 	_park_at(cam_pos, target)
+	var beams := ""
+	for b in get_tree().get_nodes_in_group(&"landmark_beacon"):
+		if b is Node3D and (b as Node3D).visible:
+			beams += " %s@%.0f" % [b.name, cam_pos.distance_to(b.get("anchor"))]
+	print("PLAYCAP beams in %s:%s" % [file, beams if beams != "" else " none"])
 	await _still(file, desc, 4)
 
 
@@ -1644,6 +1654,11 @@ func _s_places() -> void:
 		_perf_begin("close_" + String(sp[0]))
 		await _view_still("close_%s.png" % String(sp[0]), "close-up of %s at night (11 m, eye height)" % String(sp[0]).replace("_", " "), best_pos, tg)
 		_perf_end()
+		if String(sp[0]) in ["hearth", "weirford", "saltmarket"]:
+			# the square as a whole, from a roof's height on the side opposite the close-up: is it a market or a plane
+			var back := Vector3(c2.x - (best_pos.x - c2.x), 0.0, c2.y - (best_pos.z - c2.y))
+			var hi := _gp(back.x, back.z, 7.5)
+			await _view_still("over_%s.png" % String(sp[0]), "the square of %s from 7 m up" % String(sp[0]), hi, tg)
 	# boss arenas as built: every BossArena from its edge
 	for a in get_tree().get_nodes_in_group(&"boss_arena"):
 		var ar := a as BossArena
