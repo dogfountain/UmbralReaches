@@ -82,10 +82,13 @@ def build(DATA, PREVIEW, objs_out):
     plank = L.pbr("R37_OakPlank", L.tex_planks(512, 3802), 2.4)
     dark = L.flat("R37_OakDark", (0.012, 0.01, 0.01), 1.0)
     rot = L.flat("R37_OakRot", (0.09, 0.065, 0.045), 1.0)
+    heart = L.pbr("R37_OakHeart", L.tex_heartwood(512, 3811), 1.6)
+    soil = L.pbr("R37_OakSoil", L.tex_soil(512, 3812), 2.4)
     iron = L.flat("R37_OakIron", (0.07, 0.065, 0.06), 0.55, 0.85)
     rope = L.flat("R37_OakRope", (0.19, 0.15, 0.1), 0.95)
     bark.use_backface_culling = False           # the jambs of the openings are single faces
-    mats = {"bark": bark, "plank": plank, "dark": dark, "iron": iron, "rope": rope, "rot": rot}
+    heart.use_backface_culling = False
+    mats = {"bark": bark, "plank": plank, "dark": dark, "iron": iron, "rope": rope, "rot": rot, "heart": heart, "soil": soil}
     objs = []
 
     # ------------------------------------------------------------------ the stair's landings
@@ -143,6 +146,8 @@ def build(DATA, PREVIEW, objs_out):
             return ENT_J0 <= j < ENT_J0 + 10
         return open_coarse(ci, cj)
 
+    HEART_I = list(mats.keys()).index("heart")
+    SOIL_I = list(mats.keys()).index("soil")
     NI = (KC - 1) * 2 + 1            # fine rings 0..NI-1  (NI = 59)
     ys = [Y0 + DYF * i for i in range(NI)]
     floor_i = int(round((0.0 - Y0) / DYF))       # y = 0
@@ -238,7 +243,7 @@ def build(DATA, PREVIEW, objs_out):
             if i >= floor_i:
                 # the inner face looks inward: reversed winding
                 g = bm.faces.new([vi[i][j2], vi[i][j], vi[i + 1][j], vi[i + 1][j2]])
-                g.material_index = 0
+                g.material_index = HEART_I
                 g.smooth = True
                 j2_ = (j + 1) % NF
                 g.loops[0][b.uv].uv = (tiles_in * (j + 1) / NF, inner[i][j2_].y / v_in)
@@ -254,7 +259,7 @@ def build(DATA, PREVIEW, objs_out):
             f = bm.faces.new(pts)
         except ValueError:
             return
-        f.material_index = 0
+        f.material_index = HEART_I
         f.smooth = False
         e_ = p1o.co - p0o.co
         vertical_ = abs(e_.y) > 0.6 * e_.length
@@ -342,7 +347,7 @@ def build(DATA, PREVIEW, objs_out):
             f = bm.faces.new([v0, v1, v2])
         except ValueError:
             return
-        f.material_index = 0
+        f.material_index = 0 if toward else HEART_I
         f.smooth = True
         facing(f, toward, c_ref)
         for l in f.loops:
@@ -441,7 +446,7 @@ def build(DATA, PREVIEW, objs_out):
         f.loops[2][b.uv].uv = ((j + 1) * 0.4, 1.2)
         f.loops[3][b.uv].uv = (j * 0.4, 1.2)
     # the floor: a dark mould of old leaf and rot, dished and humped, rising to the wall at y 0
-    dark_i = 0
+    dark_i = SOIL_I
     c0 = sway(0.0)
     prev = [vi[floor_i][j] for j in range(NF)]
     for (fr, dep) in ((0.72, 0.1), (0.45, 0.2), (0.18, 0.12)):
@@ -458,7 +463,7 @@ def build(DATA, PREVIEW, objs_out):
                 f.material_index = dark_i
                 f.smooth = True
                 for l in f.loops:
-                    l[b.uv].uv = (l.vert.co.x / 1.2, l.vert.co.z / 1.2)
+                    l[b.uv].uv = (l.vert.co.x / 1.0, l.vert.co.z / 1.0)
             except ValueError:
                 pass
         prev = cur
@@ -466,7 +471,7 @@ def build(DATA, PREVIEW, objs_out):
         f = bm.faces.new(list(reversed(prev)))
         f.material_index = dark_i
         for l in f.loops:
-            l[b.uv].uv = (l.vert.co.x / 1.2, l.vert.co.z / 1.2)
+            l[b.uv].uv = (l.vert.co.x / 1.0, l.vert.co.z / 1.0)
     except ValueError:
         pass
     # the root flare's skirt below ground: closed so no light shows through the terrain's seams
@@ -492,12 +497,12 @@ def build(DATA, PREVIEW, objs_out):
         rad_ = math.hypot(x_ - sw_.x, zg_ - sw_.z)
         mid_ = (r_in(yg_) + r_out(yg_)) * 0.5
         if rad_ < mid_ and yg_ < 38.0:
-            f_ = 1.0 - 0.72 * sm(yg_, 3.0, 26.0)
+            f_ = 1.0 - 0.4 * sm(yg_, 3.0, 26.0)
             f_ *= 0.75 + 0.25 * sm(yg_, 0.0, 1.0)       # darkest in the rotted bottom corner, then lighter, then falling off
             rot_ = 1.0 - sm(yg_, 0.5, 7.0)
             if yg_ < 0.05:
-                f_ *= 0.55
-            tint_ = np_.array([1.0 - 0.18 * rot_, 1.0 - 0.38 * rot_, 1.0 - 0.55 * rot_], dtype=np_.float32)
+                f_ *= 0.9
+            tint_ = np_.array([1.0 - 0.05 * rot_, 1.0 - 0.1 * rot_, 1.0 - 0.15 * rot_], dtype=np_.float32)
             rgba_[lv_ == v_i, :3] *= f_ * tint_
     ca_.data.foreach_set("color", rgba_.ravel())
     objs.append(trunk)
@@ -506,21 +511,37 @@ def build(DATA, PREVIEW, objs_out):
     lb_ = B("Litter", {"rot": rot})
     lr = random.Random(5150)
     c0_ = sway(0.0)
-    for k in range(260):
+    for k in range(520):
+        ang_ = lr.uniform(0.0, math.tau)
+        rr_ = math.sqrt(lr.uniform(0.0, 1.0)) * (r_in(0.0) - 0.35)
+        px_ = c0_.x + math.sin(ang_) * rr_
+        pz_ = c0_.z + math.cos(ang_) * rr_
+        yw_ = lr.uniform(0.0, math.tau)
+        ln_ = lr.uniform(0.045, 0.075)                     # half length: a leaf 9 to 15 cm long
+        base_y = -0.04 - 0.12 * (1.0 - min(rr_ / 3.5, 1.0)) + 0.03 * math.sin(px_ * 1.3 + pz_ * 0.9) + lr.uniform(0.0, 0.03)
+        tilt_x, tilt_z = lr.uniform(-0.25, 0.25), lr.uniform(-0.25, 0.25)
+        lobes = lr.choice((5, 6, 7))
+        poly = []
+        for m_ in range(16):
+            tt = m_ / 16.0 * math.tau
+            lx = math.cos(tt) * ln_
+            lz = math.sin(tt) * ln_ * 0.55 * (1.0 + 0.22 * math.sin(tt * lobes * 0.5 + 1.0))       # the lobed oak leaf
+            poly.append((lx, lz))
+        pts_ = []
+        for (qx, qz) in poly:
+            wx = qx * math.cos(yw_) - qz * math.sin(yw_)
+            wz = qx * math.sin(yw_) + qz * math.cos(yw_)
+            pts_.append((px_ + wx, base_y + 0.02 + tilt_x * qx + tilt_z * qz, pz_ + wz))
+        lb_.face(pts_, "rot")
+    for k in range(90):
         ang_ = lr.uniform(0.0, math.tau)
         rr_ = math.sqrt(lr.uniform(0.0, 1.0)) * (r_in(0.0) - 0.4)
         px_ = c0_.x + math.sin(ang_) * rr_
         pz_ = c0_.z + math.cos(ang_) * rr_
-        yw_ = lr.uniform(0.0, math.tau)
-        sx_, sz_ = lr.uniform(0.12, 0.34), lr.uniform(0.08, 0.2)
-        base_y = -0.05 - 0.12 * (1.0 - min(rr_ / 3.5, 1.0)) + 0.03 * math.sin(px_ * 1.3 + pz_ * 0.9)
-        tilt_ = lr.uniform(-0.15, 0.15)
-        pts_ = []
-        for (qx, qz) in ((-sx_, -sz_), (sx_, -sz_), (sx_, sz_), (-sx_, sz_)):
-            wx = qx * math.cos(yw_) - qz * math.sin(yw_)
-            wz = qx * math.sin(yw_) + qz * math.cos(yw_)
-            pts_.append((px_ + wx, base_y + 0.04 + tilt_ * qx, pz_ + wz))
-        lb_.face(pts_, "rot")
+        d_ = lr.uniform(0.0, math.tau)
+        L_ = lr.uniform(0.08, 0.28)
+        y_ = -0.06 - 0.1 * (1.0 - min(rr_ / 3.5, 1.0)) + 0.025
+        lb_.tube(Vector((px_, y_, pz_)), Vector((px_ + math.sin(d_) * L_, y_ + lr.uniform(0.0, 0.05), pz_ + math.cos(d_) * L_)), 0.012, 0.007, "rot", sides=4, jit=0.0, seed=k)
     # a few small roots crossing the floor
     for k in range(7):
         ang_ = lr.uniform(0.0, math.tau)
@@ -538,10 +559,12 @@ def build(DATA, PREVIEW, objs_out):
     c3 = np_mod.ones(n3 * 4, dtype=np_mod.float32).reshape(-1, 4)
     lv3 = np_mod.empty(n3, dtype=np_mod.int32)
     lit_ob.data.loops.foreach_get("vertex_index", lv3)
-    vr3 = np_mod.random.RandomState(9).uniform(0.55, 1.5, len(lit_ob.data.vertices)).astype(np_mod.float32)
-    c3[:, 0] = vr3[lv3] * 0.9
-    c3[:, 1] = vr3[lv3] * 0.8
-    c3[:, 2] = vr3[lv3] * 0.55
+    rs3 = np_mod.random.RandomState(9)
+    pal = np_mod.array([[0.9, 0.55, 0.25], [0.75, 0.4, 0.18], [0.55, 0.38, 0.2], [0.35, 0.25, 0.14], [0.5, 0.55, 0.22], [1.0, 0.75, 0.35]], dtype=np_mod.float32)
+    pick = rs3.randint(0, len(pal), len(lit_ob.data.polygons))
+    for pi_, poly_ in enumerate(lit_ob.data.polygons):
+        for li_ in poly_.loop_indices:
+            c3[li_, :3] = pal[pick[pi_]] * rs3.uniform(0.6, 1.2)
     ca3.data.foreach_set("color", c3.ravel())
     objs.append(lit_ob)
 
