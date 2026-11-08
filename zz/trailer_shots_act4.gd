@@ -17,6 +17,8 @@ const BOSS := {
 	"boss_reveal": {"boss": "bone_abbot", "W": 9.0, "pre": false, "cam": [11.0, 0, 3.0, 0, 2.4, 0, 3.0], "ring": [70.0, 13.0], "fov": 46.0, "lit": [1.6, 24.0, 1]},
 	"boss_wide": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [17.0, 0, 7.0, 0, 6.0, 0, 1.5], "ring": [70.0, 12.0], "push": 1.0, "fov": 60.0, "lit": [1.6, 30.0, 1]},
 	"abbot_phase": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [15.0, 0, -5.0, 0, 3.8, 0, 3.0], "ring": [-70.0, 12.0], "push": 1.5, "fov": 58.0, "lit": [1.6, 30.0, 1]},
+	"abbot_fall": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [16.0, 0, 6.0, 0, 5.0, 0, 1.5], "ring": [70.0, 12.0], "push": 1.2, "fov": 60.0, "lit": [1.6, 30.0, 1]},
+	"abbot_burn": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [13.0, 0, -4.0, 0, 3.2, 0, 3.0], "ring": [-70.0, 12.0], "push": 1.5, "fov": 56.0, "lit": [1.6, 30.0, 1]},
 	"warden": {"boss": "ascended_warden", "W": 13.0, "pre": false, "cam": [19.0, 0, 4.0, 0, 1.0, 0, 6.0], "push": 3.0, "fov": 62.0, "lit": [6.0, 50.0]},
 	"warden_move": {"boss": "ascended_warden", "W": 13.0, "pre": true, "cam": [21.0, 0, -8.0, 0, 9.0, 0, 5.0], "push": 2.0, "fov": 62.0, "lit": [6.0, 50.0]},
 	"warden_phase": {"boss": "ascended_warden", "W": 12.0, "pre": true, "cam": [20.0, 0, 5.0, 0, 1.2, 0, 8.0], "push": 2.0, "fov": 64.0, "lit": [6.0, 50.0]},
@@ -262,6 +264,16 @@ func _events(id: String, tt: float, b: Enemy) -> void:
 		"abbot_phase":
 			if b and tt > 0.15 and d.once("a4_" + id):
 				b.hp = float(b.max_hp) * 0.65
+		"abbot_fall":                       # phase III: the floor remembers its dead
+			if b and tt > 0.15 and d.once("a4_" + id):
+				b.set("_inter", 2)
+				b.set("phase", 2)
+				b.hp = float(b.max_hp) * 0.32
+		"abbot_burn":                       # phase IV: the burn, no ward
+			if b and tt > 0.15 and d.once("a4_" + id):
+				b.set("_inter", 2)
+				b.set("phase", 3)
+				b.hp = float(b.max_hp) * 0.11
 		"warden_move":
 			if b and tt > 0.15 and d.once("a4_" + id):
 				(b as AscendedWarden)._aim_fan(false)

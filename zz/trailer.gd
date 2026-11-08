@@ -88,6 +88,12 @@ func _ready() -> void:
 			_want = a.split("=")[1].split(",")
 		elif a == "--preview":
 			_preview = true
+	# a named shot outside the shipping cut still renders on its own (Order.FULL holds every shot)
+	for id: String in _want:
+		if not SHOTS.any(func(sh: Array) -> bool: return sh[0] == id):
+			for sh: Array in Order.FULL:
+				if sh[0] == id:
+					SHOTS.append(sh)
 	_provs = [Act4.new(self), Act3.new(self), Act2.new(self), Act1.new(self), self]   # acts first: a rebuilt shot outranks the old director's of the same name
 	Travel._busy = true
 	Settings.set_preset_fields(2)
