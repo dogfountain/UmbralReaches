@@ -1241,6 +1241,50 @@ func _e_tavern() -> void:
 	cam.fov = 62.0
 
 
+# --- a word with the keep: the game's own conversation (Luke, 8 Nov) ---------------------------------------
+## The wanderer at the Kindled Keg's bar; the keep is talked to (his own interact: the story's conversation) and the
+## dialogue box rises with his live portrait and types his line. The box's layer is kept on screen.
+var _keep: Node3D
+
+
+func _s_keep_talk() -> void:
+	_keep = get_tree().get_first_node_in_group("keep") as Node3D
+	if _keep == null:
+		print("TRAILER no keep")
+		return
+	var bz := float(_keep.get("bar_z"))
+	var kp := _keep.global_position
+	p.teleport(Vector3(kp.x + 0.3, -0.5, bz - 1.9))     # (no ground probe: it would find the roof)
+	p.set_view(PI, -0.05)                              # facing the bar (+z)
+	use_free_cam()
+	cam.fov = 48.0
+	var ui := get_tree().root.find_child("Dialogue", true, false) as CanvasLayer
+	if ui:
+		keep_layers.append(ui)
+
+
+func _u_keep_talk(tt: float) -> void:
+	if _keep == null:
+		return
+	var kp := _keep.global_position
+	var pp0 := pp()
+	# over the wanderer's left shoulder onto the keep behind his counter
+	frame_cam(pp0 + Vector3(-0.9, 1.65, -1.6), kp.lerp(pp0, 0.25) + Vector3.UP * 1.45)
+	light_at(kp.lerp(pp0, 0.5), 2.5)
+	if tt > 0.35 and once("keep_talk"):
+		_keep.call("interact", p)
+
+
+func _e_keep_talk() -> void:
+	var ui := get_tree().root.find_child("Dialogue", true, false)
+	if ui and ui.has_method("close") and bool(ui.call("is_open")):
+		ui.call("close")
+	get_tree().paused = false
+	if _keep and "attend" in _keep:
+		_keep.set("attend", null)
+	cam.fov = 62.0
+
+
 const LootChest := preload("res://core/world/realm/loot_chest.gd")
 var _chest: LootChest
 var _tr_cam := Vector3.ZERO

@@ -5,19 +5,19 @@ extends RefCounted
 ## UI = a menu over the paused world, CARD = a title card on black.
 ## FULL below keeps every shot the trailer can film; `--shot=<id>` renders any of them.
 ## The cut that ships (Luke, 8 Nov): the shorter one, ~44 s of polished shots only; the equipment drop and the
-## gear page, an ambush, and the Bone Abbot through all four of his phases.
+## gear page, an ambush, and the Bone Abbot's last phase played out in one shot (abbot_iv).
 const ORDER := [
 	# act I: the last fire
-	["cold", 1.4, 0.0, "I", "CIN"], ["village", 2.4, 0.0, "I", "CIN"], ["run_game", 1.8, 0.0, "I", "GAME"],
+	["cold", 1.4, 0.0, "I", "CIN"], ["village", 2.4, 0.0, "I", "CIN"], ["tavern", 1.4, 0.0, "I", "CIN"], ["keep_talk", 3.4, 0.0, "I", "UI"],
+	["run_game", 1.8, 0.0, "I", "GAME"],
 	# act II: what climbs comes down hollow
 	["card_dark", 0.8, 0.0, "II", "CARD"], ["fight_otc", 3.0, 0.0, "II", "GAME"], ["fight_side", 2.6, 0.0, "II", "CIN"], ["familiar", 2.2, 0.0, "II", "CIN"],
 	["loot", 2.2, 0.0, "II", "CIN"], ["gear", 1.8, 0.0, "II", "UI"],
 	# act III: the Realm widens
 	["card_realm", 0.8, 0.0, "III", "CARD"], ["horse_gallop", 2.4, 0.0, "III", "GAME"], ["weirford_life", 2.4, 0.0, "III", "CIN"], ["lamp_kindle", 2.0, 0.0, "III", "CIN"],
-	["escort_attack", 2.4, 0.0, "III", "GAME"], ["treasure", 1.6, 0.0, "III", "CIN"],
+	["escort_attack", 2.4, 0.0, "III", "GAME"],
 	# act IV: the Bone Abbot, all four phases
-	["card_depths", 0.8, 0.0, "IV", "CARD"], ["boss_reveal", 2.4, 0.0, "IV", "CIN"], ["boss_game", 2.4, 0.0, "IV", "GAME"], ["boss_wide", 2.4, 0.0, "IV", "CIN"],
-	["abbot_phase", 2.2, 0.0, "IV", "CIN"], ["abbot_fall", 2.4, 0.0, "IV", "CIN"], ["abbot_burn", 2.4, 0.0, "IV", "CIN"],
+	["card_depths", 0.8, 0.0, "IV", "CARD"], ["abbot_iv", 12.0, 0.0, "IV", "CIN"],
 	# the title
 	["finale", 4.5, 0.0, "V", "CIN"],
 ]
@@ -25,7 +25,7 @@ const ORDER := [
 const FULL := [
 	# act I: the last fire
 	["cold", 1.4, 0.0, "I", "CIN"], ["village", 2.4, 0.0, "I", "CIN"], ["tavern", 1.4, 0.0, "I", "CIN"],
-	["keg_song", 1.8, 0.0, "I", "CIN"], ["run_game", 1.8, 0.0, "I", "GAME"], ["staff_heavy", 2.0, 0.0, "I", "GAME"], ["staff_parry", 2.0, 0.0, "I", "CIN"], ["spellbar", 2.2, 0.0, "I", "GAME"], ["hearth_tithe", 1.8, 0.0, "I", "UI"],
+	["keg_song", 1.8, 0.0, "I", "CIN"], ["keep_talk", 3.4, 0.0, "I", "UI"], ["run_game", 1.8, 0.0, "I", "GAME"], ["staff_heavy", 2.0, 0.0, "I", "GAME"], ["staff_parry", 2.0, 0.0, "I", "CIN"], ["spellbar", 2.2, 0.0, "I", "GAME"], ["hearth_tithe", 1.8, 0.0, "I", "UI"],
 	["kindling", 2.0, 0.0, "I", "UI"], ["gear", 1.8, 0.0, "I", "UI"],
 	# act II: what climbs comes down hollow
 	["card_dark", 0.8, 0.0, "II", "CARD"], ["fight_otc", 3.0, 0.0, "II", "GAME"], ["fp_lance", 2.0, 0.0, "II", "FP"],
@@ -54,7 +54,7 @@ const FULL := [
 	["card_depths", 0.8, 0.0, "IV", "CARD"], ["thorn_reveal", 2.2, 0.0, "IV", "CIN"], ["thorn_move", 2.0, 0.0, "IV", "CIN"],
 	["thorn_knots", 2.2, 0.0, "IV", "CIN"],
 	["boss_reveal", 2.4, 0.0, "IV", "CIN"], ["boss_game", 2.4, 0.0, "IV", "GAME"], ["boss_wide", 2.4, 0.0, "IV", "CIN"],
-	["abbot_phase", 2.2, 0.0, "IV", "CIN"], ["abbot_fall", 2.4, 0.0, "IV", "CIN"], ["abbot_burn", 2.4, 0.0, "IV", "CIN"],
+	["abbot_phase", 2.2, 0.0, "IV", "CIN"], ["abbot_fall", 2.4, 0.0, "IV", "CIN"], ["abbot_burn", 2.4, 0.0, "IV", "CIN"], ["abbot_iv", 12.0, 0.0, "IV", "CIN"],
 	["warden", 2.0, 0.0, "IV", "CIN"], ["warden_move", 2.0, 0.0, "IV", "CIN"], ["warden_phase", 2.2, 0.0, "IV", "CIN"],
 	["anchoress", 2.0, 0.0, "IV", "CIN"], ["anchoress_move", 2.0, 0.0, "IV", "CIN"], ["anchoress_phase", 2.0, 0.0, "IV", "CIN"],
 	["hierarch_voice", 2.2, 0.0, "IV", "CIN"], ["hierarch_edict", 2.0, 0.0, "IV", "CIN"], ["hierarch_phase", 2.0, 0.0, "IV", "CIN"],
@@ -63,9 +63,9 @@ const FULL := [
 ]
 ## Shots whose subject is not the wanderer (no FRAME measurement of the wanderer).
 const NO_SUBJECT := ["cold", "card_dark", "card_realm", "card_depths", "fp_run", "fp_lance", "finale", "wildlife", "tavern", "boss_reveal",
-	"village", "keg_song", "wildlife_herd", "familiar", "hearth_tithe", "kindling", "gear", "map", "thornwood", "necropolis", "mere", "foundry", "orchard", "quarry", "moor", "holds", "crowns",
+	"village", "keg_song", "keep_talk", "wildlife_herd", "familiar", "hearth_tithe", "kindling", "gear", "map", "thornwood", "necropolis", "mere", "foundry", "orchard", "quarry", "moor", "holds", "crowns",
 	"stillwater", "lamp_spire", "anchorholds", "hierarch", "saltmarket", "pans", "oak", "well", "bells", "roam", "rain_mist",
 	"thorn_reveal", "thorn_knots", "warden", "anchoress", "hierarch_voice", "final_blow", "boss_low", "horse_breeds", "weirford", "defend", "spell_arcana",
 	"weirford_life", "saltmarket_life", "pans_wide", "downs", "bell_ring", "secret", "escort_top", "defend_top", "roam_incursion", "horse_fp",
-	"thorn_move", "abbot_phase", "abbot_fall", "abbot_burn", "warden_move", "warden_phase", "anchoress_move", "anchoress_phase", "hierarch_edict", "hierarch_phase",
+	"thorn_move", "abbot_phase", "abbot_fall", "abbot_burn", "abbot_iv", "warden_move", "warden_phase", "anchoress_move", "anchoress_phase", "hierarch_edict", "hierarch_phase",
 	"boss_game", "boss_wide"]
