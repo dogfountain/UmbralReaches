@@ -46,7 +46,8 @@ render_group() {   # name res fps shots-csv [extra flag]
 		printf '[display]\n\nwindow/size/viewport_width=%s\nwindow/size/viewport_height=%s\nwindow/size/window_width_override=1280\nwindow/size/window_height_override=720\nwindow/stretch/mode="viewport"\n' "${res%x*}" "${res#*x}" > "$OVR"
 		wres="1280x720"
 	fi
-	HOME="$HOMEDIR" UMBRAL_SAVE_DIR="$HOMEDIR/save" "$GODOT" --path "$ROOT" --write-movie "$OUT/clips/$name.avi" \
+	# always on top: macOS stops a covered window drawing, and Movie Maker then repeats the last frame (a stutter)
+	HOME="$HOMEDIR" UMBRAL_SAVE_DIR="$HOMEDIR/save" "$GODOT" --path "$ROOT" --always-on-top --write-movie "$OUT/clips/$name.avi" \
 		--fixed-fps "$fps" --resolution "$wres" res://zz/trailer.tscn -- "--shots=$shots" $extra > "$OUT/clips/$name.log" 2>&1 &
 	local pid=$!
 	( sleep "$TIMEOUT"; kill -9 "$pid" 2>/dev/null ) >/dev/null 2>&1 &
