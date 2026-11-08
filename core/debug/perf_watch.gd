@@ -31,6 +31,158 @@ var _post_done := false
 var _fps_log := "--fps-log" in OS.get_cmdline_user_args()
 var _no_particles_t := 20.0 if "--no-particles" in OS.get_cmdline_user_args() else -1.0   ## A/B (measurement only)
 var _census_t := 25.0 if "--census" in OS.get_cmdline_user_args() else -1.0
+var _pcensus_t := 30.0 if "--pcensus" in OS.get_cmdline_user_args() else -1.0
+
+
+## Brackets every node's _process / _physics_process in the frame (the first and last to run): the scripts' own
+## time, without the renderer's or the frame's jitter. `--pcensus` measures with it; --fps-log prints it.
+class Mark extends Node:
+	var cb: Callable
+	var phys := false
+	func _process(_d: float) -> void:
+		if not phys:
+			cb.call()
+	func _physics_process(_d: float) -> void:
+		if phys:
+			cb.call()
+
+
+var _sp0 := 0
+var _sp_acc := 0.0                ## idle scripts, usec this window
+var _pp0 := 0
+var _pp_acc := 0.0                ## physics scripts, usec this window
+var _sp_frames := 0
+var _pp_ticks := 0
+var _meters := false
+
+
+func _meter() -> void:
+	if _meters:
+		return
+	_meters = true
+	var marks := [[-2000000000, false, func() -> void: _sp0 = Time.get_ticks_usec()],
+		[2000000000, false, func() -> void: _sp_acc += Time.get_ticks_usec() - _sp0; _sp_frames += 1],
+		[-2000000000, true, func() -> void: _pp0 = Time.get_ticks_usec()],
+		[2000000000, true, func() -> void: _pp_acc += Time.get_ticks_usec() - _pp0; _pp_ticks += 1]]
+	for m: Array in marks:
+		var n := Mark.new()
+		n.cb = m[2]
+		n.phys = m[1]
+		n.process_mode = Node.PROCESS_MODE_ALWAYS
+		if m[1]:
+			n.process_physics_priority = m[0]
+		else:
+			n.process_priority = m[0]
+		get_tree().root.add_child.call_deferred(n)
+
+
+## (idle scripts ms a frame, physics scripts ms a frame) since the last call.
+func _script_ms() -> Vector2:
+	var v := Vector2(_sp_acc / 1000.0 / maxf(1.0, _sp_frames), _pp_acc / 1000.0 / maxf(1.0, _sp_frames))
+	_sp_acc = 0.0
+	_pp_acc = 0.0
+	_sp_frames = 0
+	_pp_ticks = 0
+	return v
+
+
+## `--pcensus` (measurement only): 30 s in, every processing node is grouped by its script (or its engine class for
+## animation players / trees and particles); each group's processing is switched off for a moment and the frame time
+## it was costing printed, heaviest first. Everything is switched back on after.
+var _pcensus_running := false
+
+
+func _pcensus() -> void:
+	_pcensus_running = true
+	_meter()
+	for _i in 10:
+		await get_tree().process_frame
+	# canvas items that redraw (their _draw runs outside any script's process): redraws in 2 s
+	var counts := {}
+	var conns := []
+	for n in get_tree().root.find_children("*", "CanvasItem", true, false):
+		var ci := n as CanvasItem
+		if ci.get_script() == null:
+			continue
+		var cb := func() -> void: counts[ci] = int(counts.get(ci, 0)) + 1
+		ci.draw.connect(cb)
+		conns.append([ci, cb])
+	var t0 := Time.get_ticks_msec()
+	for _i in 240:
+		await get_tree().process_frame
+	var secs := (Time.get_ticks_msec() - t0) / 1000.0
+	for c: Array in conns:
+		if is_instance_valid(c[0]):
+			(c[0] as CanvasItem).draw.disconnect(c[1])
+	var dr: Array = []
+	for ci: Variant in counts:
+		if is_instance_valid(ci):
+			dr.append([float(counts[ci]) / secs, String((ci as Node).get_path())])
+	dr.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) > float(b[0]))
+	for r: Array in dr.slice(0, 25):
+		print("PREDRAW %6.1f /s  %s" % [r[0], r[1]])
+	for uf in get_tree().root.find_children("UnitFrames", "", true, false):
+		if uf.has_method("debug_moving"):
+			print("PREDRAW unit frames moving: ", uf.call("debug_moving"))
+	var kinds := {}
+	for n in get_tree().root.find_children("*", "", true, false):
+		if n == self or n is Mark:
+			continue
+		var key := ""
+		if n is AnimationMixer:
+			key = "<%s>" % n.get_class()
+		elif n.get_script() != null and (n.is_processing() or n.is_physics_processing()):
+			key = String((n.get_script() as Script).resource_path).get_file()
+		if key == "":
+			continue
+		if not kinds.has(key):
+			kinds[key] = []
+		kinds[key].append(n)
+	var rows: Array = []
+	print("PCENSUS %d kinds" % kinds.size())
+	for key: String in kinds:
+		var nodes: Array = kinds[key]
+		var base := await _mean_frame(60)
+		var saved := []
+		for n: Node in nodes:
+			if not is_instance_valid(n):
+				saved.append(null)
+				continue
+			if n is AnimationMixer:
+				saved.append([(n as AnimationMixer).active])
+				(n as AnimationMixer).active = false
+			else:
+				saved.append([n.is_processing(), n.is_physics_processing()])
+				n.set_process(false)
+				n.set_physics_process(false)
+		await _mean_frame(5)
+		var off := await _mean_frame(60)
+		for i in nodes.size():
+			var n: Node = nodes[i]
+			if saved[i] == null or not is_instance_valid(n):
+				continue
+			if n is AnimationMixer:
+				(n as AnimationMixer).active = saved[i][0]
+			else:
+				n.set_process(saved[i][0])
+				n.set_physics_process(saved[i][1])
+		await _mean_frame(5)
+		var base2 := await _mean_frame(60)
+		var cost := (base + base2) * 0.5 - off
+		rows.append([cost, key, nodes.size()])
+		print("PCENSUS- %6.2f ms  %4d  %s  (base %.2f / %.2f, off %.2f)" % [cost, nodes.size(), key, base, base2, off])
+	rows.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) > float(b[0]))
+	for r: Array in rows:
+		print("PCENSUS %6.2f ms  %4d  %s" % [r[0], r[2], r[1]])
+	print("PCENSUS done")
+
+
+func _mean_frame(frames: int) -> float:
+	_script_ms()
+	for _i in frames:
+		await get_tree().process_frame
+	var v := _script_ms()
+	return v.x + v.y
 
 
 ## `--census` (with --fps-log): 25 s in, each top-level part of the world is hidden for a few frames and the draw calls
@@ -79,6 +231,10 @@ func _process(delta: float) -> void:
 				(g as GPUParticles3D).visible = false
 				n += 1
 			print("FPS particles off: %d" % n)
+	if _pcensus_t > 0.0:
+		_pcensus_t -= delta
+		if _pcensus_t <= 0.0:
+			_pcensus()
 	if _census_t > 0.0:
 		_census_t -= delta
 		if _census_t <= 0.0:
@@ -103,6 +259,9 @@ func _process(delta: float) -> void:
 				RenderingServer.viewport_get_measured_render_time_cpu(vp) + RenderingServer.get_frame_setup_time_cpu(),
 				RenderingServer.viewport_get_measured_render_time_gpu(vp),
 				pl.global_position.snapped(Vector3.ONE * 0.1) if pl else Vector3.ZERO])
+			_meter()
+			var sm := _script_ms() if not _pcensus_running else Vector2(-1, -1)
+			print("FPS3 scripts idle %.2f physics %.2f ms a frame" % [sm.x, sm.y])
 			print("FPS2 nav %.2f ms | physics active %d pairs %d islands %d | nodes %d objects %d" % [
 				Performance.get_monitor(Performance.TIME_NAVIGATION_PROCESS) * 1000.0,
 				Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS), Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS),

@@ -403,11 +403,22 @@ func socket(socket_name: String) -> Node3D:
 
 # --- animation --------------------------------------------------------------------------------
 
+## A grunt skin (grunt_skin.gd) that stopped processing while this rig sleeps: woken by the next
+## animate() or when the rig processes again.
+var skin_parked: Object = null
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_ENABLED and skin_parked != null:
+		skin_parked.call(&"unpark")
+
 ## Called by the player each physics frame with its velocity (world), floor state and facing yaw.
 func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	if _pelvis == null or delta <= 0.0:
 		return
 	_t += delta
+	if skin_parked != null:
+		skin_parked.call(&"unpark")              # a sleeping grunt's skin follows this pose again
 	var flat := Vector3(vel.x, 0.0, vel.z)
 	var speed := flat.length()
 	_vy = vel.y

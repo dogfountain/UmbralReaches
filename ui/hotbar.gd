@@ -36,6 +36,16 @@ var _ready_pulse := PackedFloat32Array()
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_font = load("res://ui/fonts/Cinzel.ttf")
+	# the staff core's gem pulses for as long as it is set: drawn on its own layer over the bar, so the pulse
+	# redraws one gem a frame instead of the whole bar (sockets, icons, plates, outlined text: ~1.7 ms a frame)
+	_gem_layer = Control.new()
+	_gem_layer.name = "CoreGem"
+	_gem_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_gem_layer.draw.connect(_draw_gem_layer)
+	add_child(_gem_layer)
+
+
+var _gem_layer: Control
 
 
 func _process(delta: float) -> void:
@@ -85,6 +95,8 @@ func _process(delta: float) -> void:
 		_shown_sig = shown
 		_idle = 0.1
 		queue_redraw()
+	if String(DB.get_mod("core", "")) != "" or _gem_drawn:
+		_gem_layer.queue_redraw()
 
 
 var _anim := true
@@ -214,8 +226,6 @@ func _draw() -> void:
 			var br := Rect2(o + Vector2(4, SLOT + 3), Vector2((SLOT - 8) * act, 4))
 			draw_rect(Rect2(o + Vector2(4, SLOT + 3), Vector2(SLOT - 8, 4)), Color(0.02, 0.01, 0.04, 0.8))
 			draw_rect(br, Color(s.color.lightened(0.2), 0.9))
-		if i == 0:
-			_core_gem(o + Vector2(SLOT - 9, 9))
 		if name_a > 0.0:
 			# one line in the body serif (narrower than Cinzel) on a dark plate; the slot spacing leaves it room
 			var nf := _font               # Cinzel: its lower case is small capitals, the engraved look
@@ -276,21 +286,36 @@ func _rivet(c: Vector2, rad: float) -> void:
 	draw_circle(c + Vector2(-rad * 0.3, -rad * 0.35), rad * 0.45, Color(Med.GILT, 0.85))
 
 
+var _gem_drawn := false
+
+
+## The gem layer: the bolt slot's gem where the bar draws that slot (its shake included), every frame.
+func _draw_gem_layer() -> void:
+	_gem_drawn = false
+	if not is_instance_valid(_book):
+		return
+	var vi := _vis.find(0)
+	if vi < 0:
+		return
+	var shake := sin(_t * 70.0) * 4.0 * _book.denied(0)
+	_gem_drawn = _core_gem(_gem_layer, Vector2(vi * (SLOT + GAP) + shake, 0.0) + Vector2(SLOT - 9, 9))
+
+
 ## The staff core in the orb, as a small faceted gem on the bolt slot (none for the Hollow Core).
-func _core_gem(c: Vector2) -> void:
+func _core_gem(ci: CanvasItem, c: Vector2) -> bool:
 	var core := String(DB.get_mod("core", ""))
 	if core == "":
-		return
-	_anim = true
+		return false
 	var col: Color = DB.core(core).get("tint", Color.WHITE)
 	var pulse := 0.8 + 0.2 * sin(_t * 3.0)
-	if IconArt.draw_mark(self, "hud", "core_gem", c, 17.0, Color(col * pulse, 1.0)):
-		return
+	if IconArt.draw_mark(ci, "hud", "core_gem", c, 17.0, Color(col * pulse, 1.0)):
+		return true
 	var d := PackedVector2Array([c + Vector2(0, -7), c + Vector2(6, 0), c + Vector2(0, 7), c + Vector2(-6, 0)])
-	draw_colored_polygon(d, Color(col * pulse, 1.0))
+	ci.draw_colored_polygon(d, Color(col * pulse, 1.0))
 	d.append(d[0])
-	draw_polyline(d, Color(0.02, 0.01, 0.04, 0.9), 1.5, false)
-	draw_line(c + Vector2(-3, -1), c + Vector2(0, -4), Color(1, 1, 1, 0.7), 1.0, false)
+	ci.draw_polyline(d, Color(0.02, 0.01, 0.04, 0.9), 1.5, false)
+	ci.draw_line(c + Vector2(-3, -1), c + Vector2(0, -4), Color(1, 1, 1, 0.7), 1.0, false)
+	return true
 
 
 ## r33: the shared global recovery as a 0..1 ratio left (0 when none, or too short to show).

@@ -213,7 +213,7 @@ static func _moon(moon: DirectionalLight3D) -> void:
 	moon.directional_shadow_fade_start = 0.8
 	moon.shadow_bias = MOON_BIAS
 	moon.shadow_normal_bias = MOON_NORMAL_BIAS
-	moon.directional_shadow_max_distance = MOON_FAR[q]
+	moon.directional_shadow_max_distance = _moon_far(q)
 	if q > 1:
 		moon.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 		moon.directional_shadow_split_1 = MOON_SPLIT_1
@@ -228,6 +228,14 @@ static func _moon(moon: DirectionalLight3D) -> void:
 
 ## The directional atlas and soft filter are global renderer state: set only when they change
 ## (a new atlas size reallocates it). Headless runs have no shadow maps to size.
+## MOON_FAR, or `--moon-far=` (A/B in perf runs).
+static func _moon_far(q: int) -> float:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--moon-far="):
+			return float(a.trim_prefix("--moon-far="))
+	return MOON_FAR[q]
+
+
 static func _moon_maps(q: int) -> void:
 	if DisplayServer.get_name() == "headless":
 		return

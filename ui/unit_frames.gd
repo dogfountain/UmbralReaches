@@ -179,11 +179,36 @@ var _sig: Array = []
 ## A settled plate waits: it redraws when a value on it changes (health, gloom, level, window, the eye's
 ## blink), and every frame while something on it is moving (a pulse, a target, a buff timer, a cast,
 ## a number rising, the fade).
+## What the buff row draws apart from its timers: an untimed buff (firelight, a ward's store) redraws only
+## when it changes (two of them redrew the whole plate every frame).
+func _aura_sig() -> Array:
+	var out: Array = []
+	for b: Dictionary in _buffs:
+		out.append([b.get("name", ""), b.get("glyph", ""), b.get("color", INK), b.get("stacks", 0), b.get("debuff", false),
+			float(b.get("left", -1.0)) > 0.0, float(b.get("dur", 0.0)) > 0.0])
+	return out
+
+
+func _auras_ticking() -> bool:
+	for b: Dictionary in _buffs:
+		if float(b.get("left", -1.0)) > 0.0:
+			return true
+	return false
+
+
+## Which of the moving terms hold (perf_watch --pcensus).
+func debug_moving() -> String:
+	var gr := float(_p("gloom", 0.0)) / maxf(float(_p("gloom_max", 100.0)), 0.001)
+	return "fight %s gloom %.2f buffs %d pops %d note %s target %s boss %s t_a %s b_a %s soft %s alpha %s cast %s" % [_fight, gr, _buffs.size(),
+		_portrait_pops.size(), _buff_note_t, _target, _boss, _t_alpha, _b_alpha, _soft_t, _alpha, _cast_state()]
+
+
 func _plate_dirty() -> bool:
 	var gr := float(_p("gloom", 0.0)) / maxf(float(_p("gloom_max", 100.0)), 0.001)
 	var sig: Array = [snappedf(_alpha, 0.001), _p("wounds", 0.0), _p("wounds_max", 0.0), _p("gloom", 0.0),
-		_p("gloom_max", 100.0), _player_level(), _vs(), fposmod(_t, 5.3) > 0.12, HudPrefs.gloom_known()]
-	var moving := _fight > 0.0 or gr > 0.75 or not _buffs.is_empty() or not _portrait_pops.is_empty() \
+		_p("gloom_max", 100.0), _player_level(), _vs(), fposmod(_t, 5.3) > 0.12, HudPrefs.gloom_known(), _aura_sig()]
+	# a buff with a timer moves (its sweep and seconds); one without is a still picture, in the signature
+	var moving := _fight > 0.0 or gr > 0.75 or _auras_ticking() or not _portrait_pops.is_empty() \
 		or _buff_note_t > 0.0 or _target != null or _boss != null or _t_alpha > 0.0 or _b_alpha > 0.0 \
 		or _soft_t > 0.0 or _alpha < 1.0 or not _cast_state().is_empty()
 	if moving or sig != _sig:

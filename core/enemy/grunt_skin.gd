@@ -19,6 +19,88 @@ var _rig: CharacterRig
 const REFRESH := 30
 var _posed_t := -1.0
 var _asleep_frames := 0
+var _out := false                      ## past the body's draw distance last frame
+
+
+static var _cam_frame := -1
+static var _cam_at := Vector3.ZERO
+
+
+## The camera's position, looked up once a frame for every grunt.
+func _cam_pos() -> Vector3:
+	var f := Engine.get_process_frames()
+	if f != _cam_frame:
+		_cam_frame = f
+		var cam := get_viewport().get_camera_3d()
+		_cam_at = cam.global_position if cam else Vector3(INF, INF, INF)
+	return _cam_at
+
+
+## Parked skins (asleep and settled) stop processing: ~195 grunts' per-frame checks cost ~0.47 ms. The
+## rig unparks its skin on animate() and when it processes again; one driver keeps the REFRESH pose of
+## the parked ones (anything that set a socket by hand), a share of them each frame.
+static var _driver: Node = null
+var _is_parked := false
+
+
+class Driver extends Node:
+	static var _parked: Array = []
+	static var _drive_i := 0
+	func _process(_d: float) -> void:
+		var list: Array = _parked
+		var n := list.size()
+		if n == 0:
+			return
+		var k := ceili(float(n) / REFRESH)
+		for _j in k:
+			if list.is_empty():
+				return
+			if _drive_i >= list.size():
+				_drive_i = 0
+			var sk: Variant = list[_drive_i]
+			if not is_instance_valid(sk) or not (sk as Node).is_inside_tree():
+				list.remove_at(_drive_i)
+				continue
+			sk.call(&"_refresh")
+			_drive_i += 1
+
+
+func _park() -> void:
+	if _is_parked or _rig == null:
+		return
+	_is_parked = true
+	set_process(false)
+	_rig.skin_parked = self
+	Driver._parked.append(self)
+	if _driver == null or not is_instance_valid(_driver):
+		_driver = Driver.new()
+		_driver.name = "GruntSkinDriver"
+		_driver.process_priority = 100
+		get_tree().root.add_child.call_deferred(_driver)
+
+
+func unpark() -> void:
+	if not _is_parked:
+		return
+	_is_parked = false
+	_asleep_frames = 0
+	if _rig != null and is_instance_valid(_rig):
+		_rig.skin_parked = null
+	Driver._parked.erase(self)
+	set_process(true)
+
+
+## The parked pose, looked at again (what _process did every REFRESH frames).
+func _refresh() -> void:
+	if body and not body.is_visible_in_tree():
+		return
+	_capture()
+	_blend()
+
+
+func _exit_tree() -> void:
+	if _is_parked:
+		unpark()
 
 
 func setup(s: Skeleton3D, rig: CharacterRig, mesh: MeshInstance3D) -> void:
@@ -42,11 +124,23 @@ func setup(s: Skeleton3D, rig: CharacterRig, mesh: MeshInstance3D) -> void:
 func _process(_delta: float) -> void:
 	if body and not body.is_visible_in_tree():
 		return
+	# past the body's draw distance nothing of the pose is seen: skip it, and pose afresh on the way back in
+	if body and body.visibility_range_end > 0.0:
+		var far := body.visibility_range_end + body.visibility_range_end_margin + 2.0
+		if _cam_pos().distance_squared_to(body.global_position) > far * far:
+			_out = true
+			return
+		if _out:
+			_out = false
+			_posed_t = -1.0
+			_cap_tick = -1
 	if _rig != null and not _rig.can_process():
 		_asleep_frames += 1
 		if _rig._t == _posed_t and _asleep_frames > 3 and (_asleep_frames + get_instance_id()) % REFRESH != 0:
 			if _shown < 0.999:
 				_blend()                 # posed by hand on the tick: still draw the in-between
+			else:
+				_park()                  # settled: stop processing until the rig wakes or is animated
 			return
 	else:
 		_asleep_frames = 0
