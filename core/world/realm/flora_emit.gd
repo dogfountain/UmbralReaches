@@ -12,6 +12,7 @@ const RockKit := preload("res://core/world/realm/rock_kit.gd")
 
 const CHUNK := 24.0                    ## undergrowth chunks
 const TREE_CHUNK := 32.0               ## tree chunks
+const FAR_UNDER := 8.0                 ## the far mesh begins this much nearer than the near tree's end (solid under its fade)
 const NEAR_END := 38.0                 ## chunk-origin distance where big trees swap to their @far meshes
 const STONE_RANGE := 44.0
 const STONE_SIZES := [Vector3(0.55, 0.34, 0.48), Vector3(0.9, 0.5, 0.75)]
@@ -274,14 +275,20 @@ static func _batch(ch: Node3D, buf: PackedFloat32Array, n: int, nm: String, mesh
 	if tag == "s" or tag == "fs":
 		mmi.lod_bias = 0.45                # trunks and branches simplify early; cards never do
 	if swap:
-		# far meshes dither in/out and end where the canopy shell (FarDetail) takes over
-		mmi.visibility_range_begin = rb
-		mmi.visibility_range_begin_margin = 6.0 if rb > 0.0 else 0.0
-		mmi.visibility_range_end = re if re > 0.0 else (FarDetail.FAR_CARD_END if tag == "fc" else FarDetail.FAR_TREE_END)
-		mmi.visibility_range_end_margin = 6.0 if re > 0.0 else 20.0
-		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED if rb <= 0.0 else GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		# Luke, 8 Nov: the near tree dissolves in over its far mesh (it switched in whole at NEAR_END while the far
+		# one dithered out). The far mesh stays solid under it from FAR_UNDER metres inside the near tree's fade and
+		# goes in one step where the near tree is already whole, so the dissolve never shows a hole (two dithers over
+		# one band punch the same holes); the far meshes still fade out at the horizon's end (canopy shell beyond)
+		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		if rb <= 0.0:
-			mmi.visibility_range_end_margin = 3.0
+			mmi.visibility_range_end = re
+			mmi.visibility_range_end_margin = 6.0
+		else:
+			mmi.visibility_range_begin = maxf(1.0, rb - FAR_UNDER)
+			mmi.visibility_range_begin_margin = 0.0
+			mmi.set_meta(&"cut_begin", true)             # fade_guard.gd leaves this edge a cut
+			mmi.visibility_range_end = re if re > 0.0 else (FarDetail.FAR_CARD_END if tag == "fc" else FarDetail.FAR_TREE_END)
+			mmi.visibility_range_end_margin = 6.0 if re > 0.0 else 20.0
 	elif re > 0.0:
 		_set_range(mmi, tag, re)
 	elif tall:

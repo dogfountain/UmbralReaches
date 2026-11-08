@@ -125,7 +125,7 @@ static func _fix(n: Node) -> bool:
 		return true
 	var fading := g.visibility_range_fade_mode != GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 	var pops_end := end > 0.0 and (not fading or g.visibility_range_end_margin < MIN_BAND)
-	var pops_begin := begin > 0.0 and (not fading or g.visibility_range_begin_margin < MIN_BAND)
+	var pops_begin := begin > 0.0 and (not fading or g.visibility_range_begin_margin < MIN_BAND) and not g.has_meta(&"cut_begin")
 	if not pops_end and not pops_begin:
 		return true
 	if not g.has_meta(&"fade_orig"):

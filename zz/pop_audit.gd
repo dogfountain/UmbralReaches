@@ -43,7 +43,7 @@ func _physics_process(_d: float) -> void:
 		var fade := g.visibility_range_fade_mode != GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 		if g.visibility_range_end > 0.0 and (not fade or g.visibility_range_end_margin < MIN_MARGIN):
 			why = "end %.0f m, margin %.1f, fade %s" % [g.visibility_range_end, g.visibility_range_end_margin, fade]
-		elif g.visibility_range_begin > 0.0 and (not fade or g.visibility_range_begin_margin < MIN_MARGIN):
+		elif g.visibility_range_begin > 0.0 and (not fade or g.visibility_range_begin_margin < MIN_MARGIN) and not g.has_meta(&"cut_begin"):
 			why = "begin %.0f m, margin %.1f, fade %s" % [g.visibility_range_begin, g.visibility_range_begin_margin, fade]
 		if why == "":
 			continue
