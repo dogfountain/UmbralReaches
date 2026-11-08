@@ -12,7 +12,8 @@ const XF := 2.5                       ## crossfade at each act cut, seconds
 ## per act: [theme id, base gain, high gain at the act's start, high gain at its end]
 const PLAN := [
 	["ascended_warden", 0.55, 0.0, 0.0],      # I     the cold open and the village: the lydian choir, quiet
-	["thornwarden", 0.8, 0.0, 0.9],           # II    the fight: the frame drum, the fiddle rising through it
+	["bone_abbot", 0.85, 0.0, 0.5],           # II    the fight: the organ and the tolls, held back for act IV (Luke, 8 Nov: the
+	                                          #       Thornwarden's plucked ostinato read as a guitar over the shots)
 	["ascended_warden", 0.85, 0.35, 1.0],     # III   the Realm widens: the full choir and its bells
 	["bone_abbot", 1.25, 0.6, 1.3],           # IV    the great ones: organ, tolls, the chant (lifted: the darker theme sat 4 dB under III)
 ]
