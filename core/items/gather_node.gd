@@ -9,6 +9,7 @@ const KINDS := {
 	"ash_bloom": {"label": "Ash-bloom", "verb": "Gather", "color": Color(0.86, 0.84, 0.96), "bonus": ["ember_shard", 0.08]},
 	"grave_iron": {"label": "Grave-iron", "verb": "Mine", "color": Color(0.85, 0.42, 0.3), "bonus": ["relic_fragment", 0.06]},
 }
+const MeshMerge := preload("res://core/util/mesh_merge.gd")
 const RESPAWN := 300.0
 const XP := 5
 
@@ -72,6 +73,7 @@ func _build() -> void:
 			ProcMesh.mesh(_vis, "Stem%d" % i, ProcMesh.cyl(0.008, 0.012, h, 4), stem, at + Vector3(0, h * 0.5, 0), Vector3(rng.randf_range(-0.2, 0.2), 0, rng.randf_range(-0.2, 0.2)), false)
 			var f := ProcMesh.mesh(_vis, "Bloom%d" % i, ProcMesh.sphere(0.07, 0.08, 6, 3), petal, at + Vector3(0, h, 0), Vector3.ZERO, false)
 			f.scale = Vector3(1.4, 0.6, 1.4)
+	MeshMerge.merge_children(_vis)          # 19 meshes -> 3 draws (same pixels): ~40 nodes in range cost ~750 draws
 	var col: Color = (KINDS.get(kind, KINDS.ash_bloom) as Dictionary).color
 	var motes := Vfx.emitter(Color(col.r * 1.6, col.g * 1.6, col.b * 1.6), {"count": 10, "life": 2.2, "speed": Vector2(0.1, 0.3), "size": 0.035, "gravity": -0.25, "radius": 0.45})
 	motes.position = Vector3(0, 0.6, 0)

@@ -39,44 +39,56 @@ func _cam_pos() -> Vector3:
 ## Parked skins (asleep and settled) stop processing: ~195 grunts' per-frame checks cost ~0.47 ms. The
 ## rig unparks its skin on animate() and when it processes again; one driver keeps the REFRESH pose of
 ## the parked ones (anything that set a socket by hand), a share of them each frame.
-static var _driver: Node = null
 var _is_parked := false
+var _drv: Node = null                   ## the scene's driver while parked
 
 
 class Driver extends Node:
-	static var _parked: Array = []
-	static var _drive_i := 0
+	var parked: Array = []
+	var i := 0
 	func _process(_d: float) -> void:
-		var list: Array = _parked
-		var n := list.size()
+		var n := parked.size()
 		if n == 0:
 			return
-		var k := ceili(float(n) / REFRESH)
-		for _j in k:
-			if list.is_empty():
+		for _j in ceili(float(n) / REFRESH):
+			if parked.is_empty():
 				return
-			if _drive_i >= list.size():
-				_drive_i = 0
-			var sk: Variant = list[_drive_i]
+			if i >= parked.size():
+				i = 0
+			var sk: Variant = parked[i]
 			if not is_instance_valid(sk) or not (sk as Node).is_inside_tree():
-				list.remove_at(_drive_i)
+				parked.remove_at(i)
 				continue
 			sk.call(&"_refresh")
-			_drive_i += 1
+			i += 1
+
+
+## One driver per night, under the scene (freed with it; no static holds it).
+func _driver() -> Node:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return null
+	var d: Variant = scene.get_meta(&"grunt_skin_driver") if scene.has_meta(&"grunt_skin_driver") else null
+	if d is Node and is_instance_valid(d):
+		return d
+	var nd := Driver.new()
+	nd.name = "GruntSkinDriver"
+	nd.process_priority = 100
+	scene.set_meta(&"grunt_skin_driver", nd)
+	scene.add_child.call_deferred(nd)
+	return nd
 
 
 func _park() -> void:
 	if _is_parked or _rig == null:
 		return
+	_drv = _driver()
+	if _drv == null:
+		return
 	_is_parked = true
 	set_process(false)
 	_rig.skin_parked = self
-	Driver._parked.append(self)
-	if _driver == null or not is_instance_valid(_driver):
-		_driver = Driver.new()
-		_driver.name = "GruntSkinDriver"
-		_driver.process_priority = 100
-		get_tree().root.add_child.call_deferred(_driver)
+	(_drv as Driver).parked.append(self)
 
 
 func unpark() -> void:
@@ -86,7 +98,9 @@ func unpark() -> void:
 	_asleep_frames = 0
 	if _rig != null and is_instance_valid(_rig):
 		_rig.skin_parked = null
-	Driver._parked.erase(self)
+	if is_instance_valid(_drv):
+		(_drv as Driver).parked.erase(self)
+	_drv = null
 	set_process(true)
 
 

@@ -3,6 +3,8 @@ extends RefCounted
 ## planked oak, two iron straps, a brass lock plate, a rounded lid. Local origin on the ground,
 ## front toward +z. About 0.6 m wide, 0.3 m tall closed; the open lid leans back behind it.
 
+const MeshMerge := preload("res://core/util/mesh_merge.gd")
+
 static var _wood: StandardMaterial3D
 static var _iron: StandardMaterial3D
 static var _brass: StandardMaterial3D
@@ -29,6 +31,9 @@ static func build(parent: Node3D) -> Node3D:
 	# lock plate and hasp on the front
 	_box(root, Vector3(0, 0.2, 0.196), Vector3(0.09, 0.1, 0.014), _brass_mat())
 	_box(root, Vector3(0, 0.2, 0.205), Vector3(0.016, 0.034, 0.006), _dark_mat())
+	# the boxes sharing a material become one mesh (10 draws -> 4, same pixels); before the hinge, which
+	# stays the last child (loot_chest.gd finds the lid there)
+	MeshMerge.merge_children(root)
 	# the lid: a half-barrel hinged at the back top edge, thrown back about 110 degrees
 	var hinge := Node3D.new()
 	hinge.position = Vector3(0, 0.26, -0.19)

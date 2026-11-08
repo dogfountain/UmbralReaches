@@ -299,6 +299,9 @@ func _apply_render_scale() -> void:
 	# frame (gradient energy 1.5-1.9x apart, zz/perf_lines --scaling=), which crawled as lines under
 	# the grade's sharpen whenever the camera moved. Above 1:1 (supersampling) bilinear is right.
 	var s := want * cap_scale
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--scale-k="):
+			s *= float(a.trim_prefix("--scale-k="))         # A/B in perf runs (measurement only)
 	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if s < 0.999 else Viewport.SCALING_3D_MODE_BILINEAR
 	vp.fsr_sharpness = 2.0
 	vp.scaling_3d_scale = s

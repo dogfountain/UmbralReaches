@@ -224,6 +224,9 @@ static func _detail(cam: Camera3D) -> void:
 		return
 	var d := clampi(Settings.detail, 0, 2)
 	vp.mesh_lod_threshold = LOD_THRESHOLD[d]
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--lod-k="):
+			vp.mesh_lod_threshold *= float(a.trim_prefix("--lod-k="))     # A/B in perf runs (measurement only)
 	vp.use_occlusion_culling = not ("--no-occlusion" in OS.get_cmdline_user_args())
 
 
@@ -536,9 +539,18 @@ static func post_build(root: Node) -> void:
 		return
 	print("ATMOS post-build: terrain occluder %d triangles (%.1f ms); %d spread meshes -> %d chunks; %d tiny shadow casters off; %d particle ranges; %.1f ms over %d frames" % [
 		tris, t_occ / 1000.0, st.x, st.y, st.z, st.w, (Time.get_ticks_usec() - t) / 1000.0, _pass_frames])
+	# static props merged into fewer draws, nothing seen changing (core/util/mesh_merge.gd): the frame is bound by
+	# the main thread's culling and draw encoding, ~1 us a draw in each pass
+	if not ("--no-merge" in OS.get_cmdline_user_args()):
+		var tm := Time.get_ticks_usec()
+		var mg: Vector2i = MeshMerge.merge_world(root, MERGE_ROOTS)
+		print("ATMOS merged %d static meshes into %d (%.1f ms)" % [mg.x, mg.y, (Time.get_ticks_usec() - tm) / 1000.0])
 	root.set_meta("post_done", true)                # the loading screen waits for this
 
 
+const MeshMerge := preload("res://core/util/mesh_merge.gd")
+const MERGE_ROOTS := ["RealmPois", "RealmRift", "RealmLore", "ThornHenge", "SummitAltar", "Area_ossuary", "Secrets",
+	"RealmWayfinding", "SiteDress", "Zone", "Lamps", "Gathering", "Progression", "LavaWorks", "HollowLantern"]
 static var _pass_frames := 0
 const PASS_BUDGET_US := 6000        ## per frame: the pass runs during the first second of play
 

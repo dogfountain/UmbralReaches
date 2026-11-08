@@ -54,16 +54,64 @@ var _pp_acc := 0.0                ## physics scripts, usec this window
 var _sp_frames := 0
 var _pp_ticks := 0
 var _meters := false
+var _it0 := -1                    ## this frame's first mark (physics or idle)
+var _busy: PackedFloat32Array = PackedFloat32Array()   ## frame start -> after draw, ms, this window
+
+
+var _sp1 := -1
+var _pe := -1
+var _seg := [0.0, 0.0]            ## usec: last physics script -> first idle script (physics step, nav); last idle script -> after draw
+var _seg_n := [0, 0]
+
+
+var _pre := -1
+var _flush := 0.0
+
+
+func _on_post_draw() -> void:
+	if _sp1 >= 0:
+		_seg[1] += Time.get_ticks_usec() - _sp1
+		_seg_n[1] += 1
+		if _pre > _sp1:
+			_flush += _pre - _sp1
+		_sp1 = -1
+	if _it0 >= 0:
+		_busy.append((Time.get_ticks_usec() - _it0) / 1000.0)
+	_it0 = -1
+
+
+## busy ms: mean, 95th percentile, share of frames over 8.33 ms (120 Hz), since the last call
+func _busy_stats() -> Vector3:
+	var a := _busy
+	_busy = PackedFloat32Array()
+	if a.is_empty():
+		return Vector3(-1, -1, -1)
+	a.sort()
+	var sum := 0.0
+	var over := 0
+	for v in a:
+		sum += v
+		if v > 8.33:
+			over += 1
+	return Vector3(sum / a.size(), a[int(a.size() * 0.95)], 100.0 * over / a.size())
 
 
 func _meter() -> void:
 	if _meters:
 		return
 	_meters = true
-	var marks := [[-2000000000, false, func() -> void: _sp0 = Time.get_ticks_usec()],
-		[2000000000, false, func() -> void: _sp_acc += Time.get_ticks_usec() - _sp0; _sp_frames += 1],
-		[-2000000000, true, func() -> void: _pp0 = Time.get_ticks_usec()],
-		[2000000000, true, func() -> void: _pp_acc += Time.get_ticks_usec() - _pp0; _pp_ticks += 1]]
+	RenderingServer.frame_post_draw.connect(_on_post_draw)
+	RenderingServer.frame_pre_draw.connect(func() -> void: _pre = Time.get_ticks_usec())
+	var marks := [[-2000000000, false, func() -> void:
+			_sp0 = Time.get_ticks_usec()
+			if _it0 < 0: _it0 = _sp0
+			if _pe >= 0: _seg[0] += _sp0 - _pe; _seg_n[0] += 1
+			_pe = -1],
+		[2000000000, false, func() -> void: _sp1 = Time.get_ticks_usec(); _sp_acc += _sp1 - _sp0; _sp_frames += 1],
+		[-2000000000, true, func() -> void:
+			_pp0 = Time.get_ticks_usec()
+			if _it0 < 0: _it0 = _pp0],
+		[2000000000, true, func() -> void: _pe = Time.get_ticks_usec(); _pp_acc += _pe - _pp0; _pp_ticks += 1]]
 	for m: Array in marks:
 		var n := Mark.new()
 		n.cb = m[2]
@@ -90,6 +138,147 @@ func _script_ms() -> Vector2:
 ## animation players / trees and particles); each group's processing is switched off for a moment and the frame time
 ## it was costing printed, heaviest first. Everything is switched back on after.
 var _pcensus_running := false
+var _drawlist_t := 25.0 if "--drawlist" in OS.get_cmdline_user_args() else -1.0
+
+
+## `--drawlist` (measurement only): every mesh instance in the camera's view (frustum, draw range, layers), by
+## top-level part and by host, with what merging each host's plain meshes by material / shadow / range would leave.
+func _drawlist() -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var planes := cam.get_frustum()
+	var at := cam.global_position
+	var parts := {}
+	var hosts := {}
+	var flora := {}
+	for n in get_tree().root.find_children("*", "GeometryInstance3D", true, false):
+		var g := n as GeometryInstance3D
+		if not g.is_visible_in_tree() or (g.layers & cam.cull_mask) == 0:
+			continue
+		var ab := g.global_transform * g.get_aabb()
+		var d := at.distance_to(ab.get_center())
+		if g.visibility_range_end > 0.0 and d > g.visibility_range_end + g.visibility_range_end_margin:
+			continue
+		if g.visibility_range_begin > 0.0 and d < g.visibility_range_begin - g.visibility_range_begin_margin:
+			continue
+		var inside := true
+		for pl in planes:
+			var c := ab.get_center()
+			var e := ab.size * 0.5
+			var r := absf(pl.normal.x) * e.x + absf(pl.normal.y) * e.y + absf(pl.normal.z) * e.z
+			if pl.distance_to(c) > r:
+				inside = false
+				break
+		if not inside:
+			continue
+		var top: Node = g
+		while top.get_parent() != null and top.get_parent() != get_parent() and top.get_parent() != get_tree().root:
+			top = top.get_parent()
+		var surf := 1
+		if g is MeshInstance3D and (g as MeshInstance3D).mesh:
+			surf = (g as MeshInstance3D).mesh.get_surface_count()
+		var pk := String(top.name)
+		parts[pk] = int(parts.get(pk, 0)) + surf
+		if pk == "RealmFlora":
+			var fk := String(g.name).rstrip("0123456789_")
+			var fl: Variant = g.get_meta(&"flora", null) if g.has_meta(&"flora") else null
+			if fl is Array and (fl as Array).size() > 1:
+				fk = "%s/%s shadow %d" % [fl[0], fl[1], int(g.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)]
+			flora[fk] = int(flora.get(fk, 0)) + 1
+		var host := g.get_parent()
+		var hk := "%s/%s#%d" % [pk, host.name, host.get_instance_id() % 10000]
+		if not hosts.has(hk):
+			hosts[hk] = {"n": 0, "keys": {}, "scripted": 0, "mm": 0}
+		var H: Dictionary = hosts[hk]
+		H.n += surf
+		if g is MultiMeshInstance3D:
+			H.mm += 1
+		elif g.get_script() != null:
+			H.scripted += 1
+		elif g is MeshInstance3D:
+			var mi := g as MeshInstance3D
+			var mat: Variant = mi.material_override if mi.material_override else (mi.get_active_material(0) if mi.mesh else null)
+			var key := "%s|%d|%d|%d|%d" % [mat.get_instance_id() if mat else 0, mi.cast_shadow, roundi(mi.visibility_range_end), roundi(mi.visibility_range_begin), mi.layers]
+			H.keys[key] = true
+	var fks := flora.keys()
+	fks.sort_custom(func(a: Variant, b: Variant) -> bool: return int(flora[a]) > int(flora[b]))
+	for k: Variant in fks.slice(0, 30):
+		print("DRAWLIST flora %4d  %s" % [flora[k], k])
+	var pks := parts.keys()
+	pks.sort_custom(func(a: Variant, b: Variant) -> bool: return int(parts[a]) > int(parts[b]))
+	for k: Variant in pks.slice(0, 20):
+		print("DRAWLIST part %5d  %s" % [parts[k], k])
+	var hks := hosts.keys()
+	hks.sort_custom(func(a: Variant, b: Variant) -> bool: return int(hosts[a].n) - (hosts[a].keys as Dictionary).size() > int(hosts[b].n) - (hosts[b].keys as Dictionary).size())
+	var save := 0
+	for k: Variant in hks:
+		var H2: Dictionary = hosts[k]
+		var plain := int(H2.n) - int(H2.mm) - int(H2.scripted)
+		save += maxi(0, plain - (H2.keys as Dictionary).size())
+	print("DRAWLIST merging every host's plain meshes would save %d surfaces in view" % save)
+	for k: Variant in hks.slice(0, 40):
+		var H: Dictionary = hosts[k]
+		print("DRAWLIST host %4d surfaces, %3d mergeable groups, %3d multimesh, %3d scripted  %s" % [H.n, (H.keys as Dictionary).size(), H.mm, H.scripted, k])
+var _rcensus_t := 30.0 if "--rcensus" in OS.get_cmdline_user_args() else -1.0
+
+
+## `--rcensus` (measurement only): each top-level part of the world hidden for a moment; the frame time
+## (wall clock, base / hidden / base) it was costing, heaviest first.
+func _rcensus() -> void:
+	var zone := get_parent()
+	var parts: Array[Node] = []
+	for c in zone.get_children():
+		if c is Node3D and (c as Node3D).visible:
+			parts.append(c)
+	for c in get_tree().root.get_children():
+		if c != zone and c is Node3D and (c as Node3D).visible:
+			parts.append(c)
+	var rows: Array = []
+	if "--rcensus-all" in OS.get_cmdline_user_args():
+		var hud: Array[Node] = []
+		for n in get_tree().root.find_children("*", "CanvasLayer", true, false):
+			if (n as CanvasLayer).visible:
+				hud.append(n)
+		for rep in 3:
+			var a0 := await _wall_frame(120)
+			for c in parts:
+				(c as Node3D).visible = false
+			await _wall_frame(6)
+			var w0 := await _wall_frame(120)
+			for c in parts:
+				(c as Node3D).visible = true
+			for h in hud:
+				(h as CanvasLayer).visible = false
+			await _wall_frame(6)
+			var h0 := await _wall_frame(120)
+			for h in hud:
+				(h as CanvasLayer).visible = true
+			await _wall_frame(6)
+			print("RCENSUS all: base %.2f | world hidden %.2f | HUD hidden %.2f ms" % [a0, w0, h0])
+		return
+	for c in parts:
+		var a := await _wall_frame(90)
+		(c as Node3D).visible = false
+		await _wall_frame(6)
+		var off := await _wall_frame(90)
+		(c as Node3D).visible = true
+		await _wall_frame(6)
+		var b := await _wall_frame(90)
+		rows.append([(a + b) * 0.5 - off, String(c.name)])
+		print("RCENSUS- %6.2f ms  %s  (%.2f / %.2f, off %.2f)" % [(a + b) * 0.5 - off, c.name, a, b, off])
+	rows.sort_custom(func(x: Array, y: Array) -> bool: return float(x[0]) > float(y[0]))
+	for r: Array in rows:
+		if absf(float(r[0])) > 0.08:
+			print("RCENSUS %6.2f ms  %s" % [r[0], r[1]])
+	print("RCENSUS done")
+
+
+func _wall_frame(frames: int) -> float:
+	var t0 := Time.get_ticks_usec()
+	for _i in frames:
+		await get_tree().process_frame
+	return float(Time.get_ticks_usec() - t0) / 1000.0 / frames
 
 
 func _pcensus() -> void:
@@ -121,9 +310,7 @@ func _pcensus() -> void:
 	dr.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) > float(b[0]))
 	for r: Array in dr.slice(0, 25):
 		print("PREDRAW %6.1f /s  %s" % [r[0], r[1]])
-	for uf in get_tree().root.find_children("UnitFrames", "", true, false):
-		if uf.has_method("debug_moving"):
-			print("PREDRAW unit frames moving: ", uf.call("debug_moving"))
+
 	var kinds := {}
 	for n in get_tree().root.find_children("*", "", true, false):
 		if n == self or n is Mark:
@@ -231,6 +418,14 @@ func _process(delta: float) -> void:
 				(g as GPUParticles3D).visible = false
 				n += 1
 			print("FPS particles off: %d" % n)
+	if _drawlist_t > 0.0:
+		_drawlist_t -= delta
+		if _drawlist_t <= 0.0:
+			_drawlist()
+	if _rcensus_t > 0.0:
+		_rcensus_t -= delta
+		if _rcensus_t <= 0.0:
+			_rcensus()
 	if _pcensus_t > 0.0:
 		_pcensus_t -= delta
 		if _pcensus_t <= 0.0:
@@ -261,7 +456,12 @@ func _process(delta: float) -> void:
 				pl.global_position.snapped(Vector3.ONE * 0.1) if pl else Vector3.ZERO])
 			_meter()
 			var sm := _script_ms() if not _pcensus_running else Vector2(-1, -1)
-			print("FPS3 scripts idle %.2f physics %.2f ms a frame" % [sm.x, sm.y])
+			var bs := _busy_stats()
+			print("FPS3 scripts idle %.2f physics %.2f ms a frame | busy mean %.2f p95 %.2f over-8.33 %.1f%% | step+nav %.2f ms a tick, flush+canvas+draw %.2f ms a frame (of it before the draw %.2f)" % [sm.x, sm.y, bs.x, bs.y, bs.z,
+				_seg[0] / 1000.0 / maxi(1, _seg_n[0]), _seg[1] / 1000.0 / maxi(1, _seg_n[1]), _flush / 1000.0 / maxi(1, _seg_n[1])])
+			_flush = 0.0
+			_seg = [0.0, 0.0]
+			_seg_n = [0, 0]
 			print("FPS2 nav %.2f ms | physics active %d pairs %d islands %d | nodes %d objects %d" % [
 				Performance.get_monitor(Performance.TIME_NAVIGATION_PROCESS) * 1000.0,
 				Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS), Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS),
