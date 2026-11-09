@@ -746,6 +746,20 @@ static func _tower(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var tw := Kit.place(host, "r37_siege_tower.glb", Transform3D(Basis(Vector3.UP, -PI * 0.5), at))
 	if tw:
 		FarDetail.register(tw, FarDetail.hull(AABB(Vector3(-3.4, 0.0, -3.4), Vector3(6.8, 16.0, 6.8)), 0.1, Color(0.14, 0.12, 0.1)), Transform3D.IDENTITY, 120.0)
+	# the drawbridge's foot (model y 15, z 0.2) is the lowest ground's height plus 0.2 and the ground falls away beyond the
+	# pad: a few low timber steps carry it down to the ground it meets, so the ramp can be walked onto
+	var foot := at + Vector3(15.0, 0.2, 0.0)
+	var sk := _kit()
+	var prev := foot.y
+	for i in 7:
+		var sx := foot.x + 0.5 + 0.55 * float(i)
+		var gi := _g(space, sx, foot.z)
+		var top := prev - 0.2
+		if top <= gi + 0.12:
+			break
+		sk.box("wood", Vector3(sx, (top + gi - 0.4) * 0.5, foot.z), Vector3(0.55, top - gi + 0.4, 4.4), Basis.IDENTITY, true, 0.8)
+		prev = top
+	sk.commit(host, "TowerFootSteps")
 	# its top: the platform (z 14.4 in the model) is 14.4 m over the wheels' foot
 	_chest(host, "siege_tower_top", at + Vector3(0.0, 14.6, 0.0), -PI * 0.5)
 	var fb := Basis(Vector3.UP, -PI * 0.5)                # the tower's open face (model +Y, Godot -Z) looks east, toward the Realm

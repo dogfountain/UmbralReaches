@@ -954,7 +954,20 @@ def asset_tower():
         t = (k + 0.5) / n
         box(P, "timber", (0.0, 3.0 + 12.0 * t, 7.0 - 6.8 * t), (4.4, 12.0 / n * 1.1, 0.16), pitch=-math.atan2(6.8, 12.0))
     outs = finish(P, "SiegeTower")
-    col = make_collision(outs, "SiegeTower", 1.0)
+    # collision only: a smooth ramp through each flight's treads (0.277 steps stopped the walker on every tread); the ramp rides 4 cm over the tread tops at their middles,
+    # so a tread front stands only a few cm over it
+    R = Parts()
+    for i, z0 in enumerate((0.0, 3.6, 7.2, 10.8)):
+        k = 1.0 - 0.14 * (z0 / H)
+        sgn = 1 if i % 2 == 0 else -1
+        up = 1 if i % 2 == 0 else -1
+        xc = sgn * (6.0 * k * 0.5 - 0.75)
+        dy, dz = 5.2 * k * 12.0 / 13.0, 0.277 * 12.0
+        theta = math.atan2(dz, dy)
+        L = math.hypot(dy, dz) + 0.9
+        box(R, "timber", (xc, up * (-0.2 * k + 0.2), z0 + 0.277 * 7 - 0.01 + 0.04 - 0.15), (1.3, L, 0.3), pitch=up * theta)
+    ramps = finish(R, "SiegeTowerRamps")
+    col = make_collision(outs + ramps, "SiegeTower", 1.0)
     export(outs + [col], os.path.join(MODELS, "r37_siege_tower.glb"), "siege tower")
     preview(outs, "tower", [((-16, 17, 9), (0, 0, 7), 34), ((16, 17, 18), (0, 0, 8), 36)])
 
