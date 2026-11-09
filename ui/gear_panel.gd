@@ -19,6 +19,7 @@ const GearStats := preload("res://core/items/gear_stats.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const UIType := preload("res://ui/type.gd")
 const Tip := preload("res://ui/item_tooltip.gd")
+const Card := preload("res://ui/item_card.gd")
 const LootDB := preload("res://core/items/loot_db.gd")
 const DB := preload("res://core/life/progression/upgrade_db.gd")
 const SlotView := preload("res://ui/gear_slot_view.gd")
@@ -65,8 +66,6 @@ var _count: Label
 var _sets_rich: RichTextLabel
 var _extras: HBoxContainer            ## charm and relic minis
 var _d_name: Label
-var _d_rich: RichTextLabel            ## the chosen piece's card
-var _d_cmp: RichTextLabel             ## what the slot holds now
 var _d_diff: RichTextLabel
 var _card_a: PanelContainer
 var _card_b: PanelContainer
@@ -271,12 +270,10 @@ func _build_detail(body: HBoxContainer) -> void:
 	var a := W.card("CHOSEN")
 	cards.add_child(a[0])
 	_card_a = a[1]
-	_d_rich = a[2]
 	_cap_a = a[3]
 	var b := W.card("WORN IN THIS SLOT")
 	cards.add_child(b[0])
 	_card_b = b[1]
-	_d_cmp = b[2]
 	_cap_b = b[3]
 	var diff_box := PanelContainer.new()
 	diff_box.add_theme_stylebox_override("panel", Med.inset(8))
@@ -296,8 +293,8 @@ func _build_detail(body: HBoxContainer) -> void:
 	_b_line = W.action("Line", "R", _next_line)
 	_b_salv = W.action("Salvage", "X", _salvage)
 	for bt: Button in [_b_wear, _b_up, _b_forge, _b_line, _b_salv]:
+		bt.size_flags_stretch_ratio = 1.0        # five equal plates
 		btns.add_child(bt)
-	_b_line.size_flags_stretch_ratio = 0.7
 
 
 # --- the doll stage -----------------------------------------------------------------------------
@@ -664,25 +661,20 @@ func _show() -> void:
 	_reforge_idx = clampi(_reforge_idx, 0, maxi(aff.size() - 1, 0))
 	var cur: Dictionary = GearStats.worn(st).get(String(p.slot), {})
 	var worn := _worn_uid(st, int(p.uid))
-	Tip.set_quality(_card_a, r)
 	_cap_a.text = "WORN" if worn else "CHOSEN"
-	# the card keeps the name's line first; _d_name holds the bare name for anything that reads it
-	_d_name.text = String(p.name)
-	_d_rich.text = Tip.piece(p, cur, st, {"full": true, "no_compare": true, "reforge_idx": _reforge_idx if Slice.full() else -1})
+	_d_name.text = String(p.name)                # the card's band carries the name; _d_name holds it bare for anything that reads it
+	Tip.set_text(_card_a, Tip.piece(p, cur, st, {"full": true, "no_compare": true, "head": false, "blocks": true, "reforge_idx": _reforge_idx if Slice.full() else -1}), r, String(p.name))
 	_card_b.get_parent().visible = true
 	if worn:
-		Tip.set_quality(_card_b, 0)
 		_cap_b.text = "COMPARE"
-		_d_cmp.text = "[center]\n\n%s[/center]" % Tip._c(DIM, "This is what you wear.\nChoose a carried piece to see it beside this one.")
+		Tip.set_text(_card_b, "[center]\n%s[/center]" % Tip._c(DIM, "This is what you wear.\nChoose a carried piece to see it beside this one."), 0)
 		_d_diff.get_parent().visible = false
 	elif cur.is_empty():
-		Tip.set_quality(_card_b, 0)
 		_cap_b.text = "WORN IN THIS SLOT"
-		_d_cmp.text = "[center]\n\n%s[/center]\n\n[center]%s[/center]" % [Tip._c(DIM, "Nothing worn in %s." % GearDB.SLOT_NAMES[String(p.slot)]), Tip._c(QUIET, GearDB.SLOT_WHERE[String(p.slot)])]
+		Tip.set_text(_card_b, "[center]%s[/center]\n%s\n[center]%s[/center]" % [Tip._c(DIM, "Nothing worn in %s." % GearDB.SLOT_NAMES[String(p.slot)]), Card.DIV, Tip._c(QUIET, GearDB.SLOT_WHERE[String(p.slot)])], 0, "Empty slot")
 	else:
-		Tip.set_quality(_card_b, int(cur.rarity))
 		_cap_b.text = "WORN IN THIS SLOT"
-		_d_cmp.text = Tip.piece(cur, cur, st, {"full": true, "no_compare": true})
+		Tip.set_text(_card_b, Tip.piece(cur, cur, st, {"full": true, "no_compare": true, "head": false, "blocks": true}), int(cur.rarity), String(cur.name))
 	if not worn:
 		_d_diff.text = _diff_line(p, cur, st)
 	_b_wear.disabled = false
@@ -724,23 +716,19 @@ func _show_other(st: Dictionary) -> void:
 		var cid := _sel_mini.trim_prefix("core:")
 		for c: Dictionary in DB.CORES:
 			if String(c.id) == cid:
-				Tip.set_quality(_card_a, 3)
-				_d_rich.text = "[center][font_size=26][b]%s[/b][/font_size]\n%s[/center]\n[hr]\n%s\n[hr]\n[center][i]%s[/i][/center]\n\n%s" % [
-					Tip._c((c.tint as Color).lerp(Tip.INK, 0.2), String(c.name)), Tip._c(Tip.QUIET, "Staff core, in the orb"),
-					Tip._c(Tip.INK, String(c.text)), Tip._c(Tip.GOLD, "\"%s\"" % String(c.get("lore", ""))),
-					Tip._c(Tip.QUIET, "Set at a kindled fire: Staff page.  [Enter] opens it.")]
+				Tip.set_text(_card_a, "[center]%s[/center]\n%s\n%s\n%s\n[center][i]%s[/i][/center]\n%s\n[center]%s[/center]" % [
+					Tip._c(Tip.QUIET, "Staff core, in the orb"), Card.DIV_STRONG, Tip._c(Tip.INK, String(c.text)), Card.DIV,
+					Tip._c(Tip.FLAVOUR, "\"%s\"" % String(c.get("lore", ""))), Card.DIV,
+					Tip._c(Tip.QUIET, "Set at a kindled fire: Staff page.  [Enter] opens it.")], 3, String(c.name))
 		return
 	if _sel_mini != "":
-		Tip.set_quality(_card_a, LootDB.item_quality(_sel_mini))
-		_d_rich.text = Tip.item(_sel_mini, Travel.count(_sel_mini)) + "\n\n" + Tip._c(Tip.QUIET, "Change it in the Charms or Relics page.  [Enter] opens it.")
+		Tip.set_text(_card_a, Tip.item(_sel_mini, Travel.count(_sel_mini), {"head": false, "blocks": true}) + "\n" + Card.DIV + "\n[center]" + Tip._c(Tip.QUIET, "Change it in the Charms or Relics page.  [Enter] opens it.") + "[/center]",
+			LootDB.item_quality(_sel_mini), String(ItemDB.def(_sel_mini).get("name", _sel_mini)))
 		return
-	Tip.set_quality(_card_a, 0)
 	if _sel_slot != "":
-		_d_rich.text = "[center][font_size=26][b]%s[/b][/font_size]\n%s\n[hr]\n%s[/center]" % [Tip._c(DIM, "Empty: " + String(GearDB.SLOT_NAMES[_sel_slot])),
-			Tip._c(QUIET, String(GearDB.SLOT_WHERE[_sel_slot])), Tip._c(QUIET, "Choose a piece from the pack, or drag one here.")]
+		Tip.set_text(_card_a, "[center]%s[/center]\n%s\n[center]%s[/center]" % [Tip._c(QUIET, String(GearDB.SLOT_WHERE[_sel_slot])), Card.DIV, Tip._c(QUIET, "Choose a piece from the pack, or drag one here.")], 0, "Empty: " + String(GearDB.SLOT_NAMES[_sel_slot]))
 	else:
-		_d_rich.text = "[center]\n%s[/center]" % Tip._c(QUIET, "Nothing carried" if _filter == "" else "No %s carried.\n\nCommon foes now and then leave a piece behind in a shaft of light; tougher ones more often. Elites always do, and the great ones leave set pieces and, rarely, an Umbral relic." % GearDB.SLOT_NAMES[_filter])
-	_d_cmp.text = ""
+		Tip.set_text(_card_a, "[center]\n%s[/center]" % Tip._c(QUIET, "Nothing carried" if _filter == "" else "No %s carried.\n\nCommon foes now and then leave a piece behind in a shaft of light; tougher ones more often. Elites always do, and the great ones leave set pieces and, rarely, an Umbral relic." % GearDB.SLOT_NAMES[_filter]), 0)
 
 
 # --- picking ------------------------------------------------------------------------------------

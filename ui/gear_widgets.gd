@@ -5,7 +5,7 @@ extends RefCounted
 
 const UIType := preload("res://ui/type.gd")
 const Med := preload("res://ui/medieval_style.gd")
-const LootDB := preload("res://core/items/loot_db.gd")
+const Card := preload("res://ui/item_card.gd")
 const INK := Med.BONE
 const QUIET := Med.BONE_DIM
 
@@ -53,6 +53,22 @@ static func chip(text: String, cb: Callable) -> Button:
 	return b
 
 
+## A key badge: the key in gilt Cinzel on a small steel-rimmed plate.
+static func badge(key: String, size := 14) -> PanelContainer:
+	var kc := PanelContainer.new()
+	var ksb := Med.slot(Med.BRONZE.lightened(0.2))
+	ksb.set_content_margin_all(2)
+	ksb.content_margin_left = 8
+	ksb.content_margin_right = 8
+	kc.add_theme_stylebox_override("panel", ksb)
+	kc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	kc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var kl := label(key, size, Med.GILT, UIType.title())
+	kl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	kc.add_child(kl)
+	return kc
+
+
 ## An action button: its name and its key chip on one line, the cost (or what it does) beneath.
 static func action(name: String, key: String, cb: Callable) -> Button:
 	var b := Button.new()
@@ -77,16 +93,8 @@ static func action(name: String, key: String, cb: Callable) -> Button:
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(nm)
-	var kc := PanelContainer.new()
-	var ksb := Med.slot(Med.BRONZE.lightened(0.2))
-	ksb.set_content_margin_all(2)
-	ksb.content_margin_left = 8
-	ksb.content_margin_right = 8
-	kc.add_theme_stylebox_override("panel", ksb)
-	kc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var kl := label(key, 13, Med.GILT, UIType.title())
-	kl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	kc.add_child(kl)
+	var kc := badge(key, 14)
+	kc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	top.add_child(kc)
 	var sub := label("", 15, QUIET)
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -109,16 +117,11 @@ static func card(caption: String) -> Array:
 	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wrap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	wrap.add_theme_constant_override("separation", 6)
-	var cap := label(caption, 15, QUIET, UIType.title())
+	var cap := label(caption, 16, QUIET, UIType.title())
+	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	wrap.add_child(cap)
-	var pc := PanelContainer.new()
+	var pc := Card.make(0.0, true)
 	pc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	pc.add_theme_stylebox_override("panel", Med.slip_dark(LootDB.quality_color(0)))
+	Card.set_quality(pc, 0)
 	wrap.add_child(pc)
-	var sc := ScrollContainer.new()
-	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	pc.add_child(sc)
-	var r := rich(19)
-	sc.add_child(r)
-	return [wrap, pc, r, cap]
+	return [wrap, pc, null, cap]

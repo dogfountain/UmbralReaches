@@ -18,6 +18,7 @@ const GearStats := preload("res://core/items/gear_stats.gd")
 const LootDB := preload("res://core/items/loot_db.gd")
 
 const Med := preload("res://ui/medieval_style.gd")
+const Card := preload("res://ui/item_card.gd")
 const INK := Med.BONE
 const QUIET := Med.BONE_DIM
 const GREY := Color(0.55, 0.5, 0.44)
@@ -25,6 +26,7 @@ const GOLD := Med.GILT
 const GOOD := Color(0.5, 0.9, 0.45)
 const BAD := Color(0.95, 0.42, 0.36)
 const STAT := Color(0.86, 0.95, 0.82)
+const FLAVOUR := Color(0.8, 0.66, 0.38)
 
 
 static func _c(col: Color, t: String) -> String:
@@ -39,11 +41,25 @@ static func _esc(t: String) -> String:
 static func pips(tier: int) -> String:
 	var n := GearDB.TIERS
 	var col := GOLD if tier >= n else QUIET
-	return "[font_size=16]%s[/font_size]" % (_c(col, "●".repeat(tier)) + _c(Color(GREY, 0.55), "○".repeat(n - tier)))
+	return "[font_size=17]%s[/font_size]" % (_c(col, "●".repeat(tier)) + _c(Color(GREY, 0.55), "○".repeat(n - tier)))
 
 
+## A divider between blocks: a marker the card splits on (ui/item_card.gd); `plain()` turns it into a BBCode rule.
 static func _hr(strong := false) -> String:
-	return "[hr color=#%s height=%d]" % [(Med.BRONZE if strong else Color(Med.BRONZE, 0.4)).to_html(true), 2 if strong else 1]
+	return Card.DIV_STRONG if strong else Card.DIV
+
+
+static func plain(bb: String) -> String:
+	var hr := "[hr color=#%s height=1]" % Color(Med.BRONZE, 0.6).to_html(true)
+	return bb.replace(Card.DIV_STRONG, hr).replace(Card.DIV, hr)
+
+
+## One affix line: its tier pips lead in a fixed column (every line has the same number of them), the text follows.
+static func _stat(text: String, col: Color, tp: String, size := 0) -> String:
+	var t := _c(col, text)
+	if size > 0:
+		t = "[font_size=%d]%s[/font_size]" % [size, t]
+	return tp + "  " + t
 
 
 ## A gear piece. `cur`: what the slot holds now ({} = nothing; the same piece = it is worn).
@@ -56,19 +72,20 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 	var q := int(p.get("rarity", 0))
 	var lines := PackedStringArray()
 	var qc := LootDB.quality_color(q)
-	lines.append("[center][font_size=%d][b]%s[/b][/font_size][/center]" % [int(opts.get("title_size", 26)), _c(qc, _esc(String(p.get("name", "?"))))])
+	if bool(opts.get("head", true)):          # the card draws the name on its band; plain callers keep it in the text
+		lines.append("[center][font_size=%d][b]%s[/b][/font_size][/center]" % [int(opts.get("title_size", 26)), _c(qc, _esc(String(p.get("name", "?"))))])
 	var worn := not cur.is_empty() and int(cur.get("uid", -1)) == int(p.get("uid", -2))
 	var slot := String(p.get("slot", ""))
-	lines.append("[center]%s[/center]" % _c(QUIET, "%s  ·  Item Level %d" % [LootDB.quality_name(q), GearDB.item_level(p)]))
+	lines.append("[center]%s%s[/center]" % [_c(qc.lightened(0.15), LootDB.quality_name(q)), _c(QUIET, "  ·  Item Level %d" % GearDB.item_level(p))])
 	lines.append("[center]%s%s[/center]" % [_c(INK, String(GearDB.SLOT_NAMES.get(slot, slot))), ("    " + _c(GOLD, "Worn")) if worn else ""])
 	lines.append(_hr(true))
 	# the implicit (the slot's own base stat) stands apart from the rolled lines
 	lines.append("[center]%s[/center]" % _c(INK, GearDB.base_line(p)))
 	lines.append(_hr())
-	# r36 slice: the trait is the line that changes how you play, so it comes first and reads biggest
+	# the trait is the line that changes how you play, so it comes first and reads biggest
 	if GearDB.trait_line(p) != "":
-		lines.append("[font_size=18][b]%s[/b][/font_size]" % _c(Med.GILT, GearDB.trait_line(p)))
-	# the sentence that changes a verb leads; the percents are the second look (small and quiet beneath it,
+		lines.append("[font_size=19][b]%s[/b][/font_size]" % _c(Med.GILT, GearDB.trait_line(p)))
+	# the sentence that changes a verb leads; the percents are the second look (smaller and quieter beneath it,
 	# full size on the gear page where they are reforged: opts "full")
 	var verb_led := GearDB.trait_line(p) != "" and not bool(opts.get("full", false))
 	var ri := int(opts.get("reforge_idx", -1))
@@ -78,8 +95,7 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 		if a is Array:
 			var mark := "> " if i == ri and aff.size() > 1 else "+ "
 			var al := mark + GearDB.affix_line(p, a)
-			var tp := "  " + pips(GearDB.affix_tier(a))
-			lines.append("[font_size=14]%s%s[/font_size]" % [_c(QUIET, al), tp] if verb_led else _c(GOLD if i == ri and aff.size() > 1 else STAT, al) + tp)
+			lines.append(_stat(al, QUIET if verb_led else (GOLD if i == ri and aff.size() > 1 else STAT), pips(GearDB.affix_tier(a)), 15 if verb_led else 0))
 	if ri >= 0 and ri < aff.size():
 		var pool := GearDB.reforge_pool(p, ri)
 		if not pool.is_empty():
@@ -99,11 +115,12 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 	var fl := GearDB.flavour(p)
 	if fl != "":
 		lines.append(_hr())
-		lines.append("[center][i]%s[/i][/center]" % _c(GOLD, "\"%s\"" % _esc(fl)))
+		lines.append("[center][i]%s[/i][/center]" % _c(FLAVOUR, "\"%s\"" % _esc(fl)))
 	if not worn and not bool(opts.get("no_compare", false)):
 		lines.append(_hr(true))
 		lines.append_array(compare_block(p, cur, st))
-	return "\n".join(lines)
+	var out := "\n".join(lines)
+	return out if bool(opts.get("blocks", false)) else plain(out)
 
 
 ## The set's pieces (worn: lit in the set's tint; carried: dimmed; missing: grey) and its two bonuses
@@ -155,60 +172,43 @@ static func compare_block(p: Dictionary, cur: Dictionary, st: Dictionary) -> Pac
 
 
 ## A satchel item: name in quality colour, quality and kind, what it does, gold italic lore.
-static func item(id: String, count := -1) -> String:
+static func item(id: String, count := -1, opts: Dictionary = {}) -> String:
 	var d := ItemDB.def(id)
 	var q := LootDB.item_quality(id)
 	var lines := PackedStringArray()
-	lines.append("[font_size=24][b]%s[/b][/font_size]" % _c(LootDB.quality_color(q), _esc(String(d.get("name", id)))))
+	if bool(opts.get("head", true)):
+		lines.append("[font_size=24][b]%s[/b][/font_size]" % _c(LootDB.quality_color(q), _esc(String(d.get("name", id)))))
 	var kind := String(d.get("kind", "material")).capitalize()
 	if String(d.get("kind", "")) == "core":
 		kind = "Staff Core"
-	var sub := "%s  ·  %s" % [LootDB.quality_name(q), kind]
+	var sub := "  ·  " + kind
 	if count > 1 or (count >= 0 and String(d.get("kind", "")) == "material"):
 		sub += "  ·  %d carried" % count
-	lines.append(_c(QUIET, sub))
-	if String(d.get("text", "")) != "":
-		lines.append(_c(INK, _esc(String(d.text))))
+	lines.append("[center]%s%s[/center]" % [_c(LootDB.quality_color(q).lightened(0.15), LootDB.quality_name(q)), _c(QUIET, sub)])
 	var sp := LootDB.sell_price_item(id)
+	if String(d.get("text", "")) != "":
+		lines.append(_hr(true))
+		lines.append(_c(INK, _esc(String(d.text))))
 	if sp > 0:
+		lines.append(_hr())
 		lines.append(_c(QUIET, "Sells for %d grave ash" % sp))
 	if String(d.get("desc", "")) != "":
-		lines.append("[i]%s[/i]" % _c(GOLD, "\"%s\"" % _esc(String(d.desc))))
-	return "\n".join(lines)
+		lines.append(_hr())
+		lines.append("[center][i]%s[/i][/center]" % _c(FLAVOUR, "\"%s\"" % _esc(String(d.desc))))
+	var out := "\n".join(lines)
+	return out if bool(opts.get("blocks", false)) else plain(out)
 
 
-## A PanelContainer with a RichTextLabel child named "Rich" (fit to content), dark plate, and a
-## border that set_quality() tints.
-static func panel(font: Font = null, width := 380.0) -> PanelContainer:
-	var pc := PanelContainer.new()
-	pc.add_theme_stylebox_override("panel", Med.slip_dark(LootDB.quality_color(0)))
-	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var r := RichTextLabel.new()
-	r.name = "Rich"
-	r.bbcode_enabled = true
-	r.fit_content = true
-	r.scroll_active = false
-	r.custom_minimum_size = Vector2(width, 0)
-	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if font:
-		r.add_theme_font_override("normal_font", font)
-		r.add_theme_font_override("bold_font", font)
-	r.add_theme_font_size_override("normal_font_size", 16)
-	r.add_theme_font_size_override("bold_font_size", 18)
-	r.add_theme_font_size_override("italics_font_size", 15)
-	r.add_theme_color_override("default_color", INK)
-	pc.add_child(r)
-	return pc
+## The card: a PanelContainer (ui/item_card.gd) with a name band and a body of blocks. `font` is unused (the
+## card carries the kit's fonts); kept so callers keep their shape.
+static func panel(_font: Font = null, width := 380.0) -> PanelContainer:
+	return Card.make(width)
 
 
 static func set_quality(pc: PanelContainer, q: int) -> void:
-	var sb := pc.get_theme_stylebox("panel") as StyleBoxTexture
-	if sb:
-		sb.modulate_color = Med.slip_dark(LootDB.quality_color(q)).modulate_color
+	Card.set_quality(pc, q)
 
 
-static func set_text(pc: PanelContainer, bb: String, q: int) -> void:
-	var r := pc.get_node_or_null("Rich") as RichTextLabel
-	if r:
-		r.text = bb
-	set_quality(pc, q)
+## Fill a card made by panel(): `bb` from piece() / item() with {"head": false, "blocks": true}, the name beside it.
+static func set_text(pc: PanelContainer, bb: String, q: int, nm := "") -> void:
+	Card.fill(pc, nm, q, bb)
