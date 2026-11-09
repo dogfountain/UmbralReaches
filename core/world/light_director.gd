@@ -25,6 +25,11 @@ const FIRE_SHADOW_R := 14.0                 ## m: the nearest lit brazier this c
 const FIRE_SHADOW_IN := 2.5                 ## shadow opacity per second (in and out)
 
 var _lights: Array[Light3D] = []            ## budgeted lights
+var _own := {}                              ## light -> its own fade start (what a kept light eases back to)
+var _prio := {}                             ## light -> PRIORITY multiplier
+var _cut := {}                              ## light -> true while the budget cuts it
+var _moving := {}                           ## light -> true while its fade start is easing (only these are touched a frame)
+var _best: Light3D = null                   ## the nearest lit brazier in reach (the budget pass finds it)
 var _t := 0.0
 var _fire: Light3D = null
 var _stats := Vector3i.ZERO                 ## governed, budgeted in range, cut
@@ -65,7 +70,8 @@ func _govern_later(w: WeakRef) -> void:
 	if not (kind == &"hero" and l.shadow_enabled):
 		LightPolicy.apply_shadows(l)            # one shadow policy for every light
 	if kind in BUDGETED and not _under_enemy(l):
-		l.set_meta(&"ld_begin", l.distance_fade_begin)
+		_own[l] = l.distance_fade_begin
+		_prio[l] = float(PRIORITY.get(kind, 1.0))
 		_lights.append(l)
 
 
@@ -88,71 +94,90 @@ func _process(dt: float) -> void:
 	if _t <= 0.0:
 		_t = TICK
 		_budget(at)
-	_ease(at, dt)
-	_fire_shadow(at, dt)
+	if not _moving.is_empty():
+		_ease(at, dt)
+	if _fire != null or _best != null:
+		_fire_shadow(dt)
 
 
-## Rank the lights in reach; mark the nearest BUDGET kept and the rest cut.
+## Rank the lights in reach; mark the nearest BUDGET kept and the rest cut; find the nearest lit brazier.
+## (Every 0.2 s: the per-frame work is only the lights still easing, Luke's PC being bound by the CPU.)
 func _budget(at: Vector3) -> void:
 	var cand: Array = []
 	var i := 0
+	var fire_on := Settings.shadow_quality > 1 and Settings.detail >= 2 and not _no_fire
+	var bd := FIRE_SHADOW_R
+	_best = null
 	while i < _lights.size():
 		var l := _lights[i]
 		if not is_instance_valid(l) or not l.is_inside_tree():
 			_lights.remove_at(i)
+			_own.erase(l)
+			_prio.erase(l)
+			_cut.erase(l)
+			_moving.erase(l)
 			continue
 		i += 1
-		var reach := float(l.get_meta(&"ld_begin")) + l.distance_fade_length
 		var d := at.distance_to(l.global_position)
-		if not l.visible or d > reach + 2.0:
-			l.set_meta(&"ld_cut", false)         # out of its own reach: nothing to decide
+		if not l.visible or d > float(_own[l]) + l.distance_fade_length + 2.0:
+			_set_cut(l, false)                       # out of its own reach: nothing to decide
 			continue
-		cand.append([d * float(PRIORITY.get(l.get_meta(&"light_class"), 1.0)), l])
+		cand.append([d * float(_prio[l]), l, d])
 	cand.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
 	var keep: int = BUDGET[clampi(Settings.detail, 0, 2)]
 	var cut := 0
 	for k in cand.size():
 		var l: Light3D = cand[k][1]
 		var c := k >= keep
-		l.set_meta(&"ld_cut", c)
+		_set_cut(l, c)
 		cut += 1 if c else 0
+		if fire_on and not c and float(cand[k][2]) < bd and float(_prio[l]) == float(PRIORITY[&"beacon"]):
+			bd = float(cand[k][2])
+			_best = l
 	_stats.y = cand.size()
 	_stats.z = cut
+	if bool(_cut.get(_best, false)):
+		_best = null
 
 
-## Move each light's fade start toward its target: its own (kept) or just inside the camera (cut), EASE m/s.
+func _set_cut(l: Light3D, c: bool) -> void:
+	if bool(_cut.get(l, false)) != c:
+		_cut[l] = c
+		_moving[l] = true                        # (a cut light stays in the set: it follows the camera's distance)
+	elif not c and l.distance_fade_begin != float(_own[l]):
+		_moving[l] = true                        # kept but not yet back at its own fade start
+
+
+## Move each easing light's fade start toward its target: its own (kept) or just inside the camera (cut), EASE m/s.
+## A cut light keeps following the camera's distance, so it stays in the moving set while cut.
 func _ease(at: Vector3, dt: float) -> void:
-	for l in _lights:
+	for l: Light3D in _moving.keys():
 		if not is_instance_valid(l):
+			_moving.erase(l)
 			continue
-		var own := float(l.get_meta(&"ld_begin"))
+		var own := float(_own[l])
+		var c := bool(_cut.get(l, false))
 		var want := own
-		if bool(l.get_meta(&"ld_cut", false)):
+		if c:
 			want = maxf(0.0, at.distance_to(l.global_position) - l.distance_fade_length - 1.0)
 		var cur := l.distance_fade_begin
 		if absf(cur - want) > 0.01:
 			l.distance_fade_begin = move_toward(cur, want, EASE * dt)
+		elif not c:
+			_moving.erase(l)                         # back at its own: done
 
 
 ## The nearest lit brazier on high settings casts; the last one's shadow eases out.
-func _fire_shadow(at: Vector3, dt: float) -> void:
-	var on := Settings.shadow_quality > 1 and Settings.detail >= 2 and not _no_fire
-
-	var best: Light3D = null
-	if on:
-		var bd := FIRE_SHADOW_R
-		for l in _lights:
-			if is_instance_valid(l) and l.visible and l.get_meta(&"light_class") == &"beacon" and not bool(l.get_meta(&"ld_cut", false)):
-				var d := at.distance_to(l.global_position)
-				if d < bd:
-					bd = d
-					best = l
+func _fire_shadow(dt: float) -> void:
+	var best := _best if is_instance_valid(_best) else null
 	if best != _fire and _fire != null and is_instance_valid(_fire):
 		_fire.shadow_opacity = move_toward(_fire.shadow_opacity, 0.0, FIRE_SHADOW_IN * dt)
 		if _fire.shadow_opacity <= 0.0:
 			_fire.shadow_enabled = false
 			_fire = null
 		return
+	if _fire != null and not is_instance_valid(_fire):
+		_fire = null
 	if best == null:
 		return
 	if _fire != best:
@@ -160,12 +185,13 @@ func _fire_shadow(at: Vector3, dt: float) -> void:
 		_fire.shadow_opacity = 0.0
 		if _fire is OmniLight3D:
 			(_fire as OmniLight3D).omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID
-		_fire.shadow_caster_mask = LightPolicy.FIRE_CASTERS    # no undergrowth in the fire's map (same look, far fewer draws)
+		_fire.shadow_caster_mask = LightPolicy.FIRE_CASTERS    # no terrain or undergrowth in the fire's map
 		_fire.shadow_bias = 0.08
 		_fire.shadow_normal_bias = 1.5
 		_fire.distance_fade_shadow = FIRE_SHADOW_R
 	_fire.shadow_enabled = true
-	_fire.shadow_opacity = move_toward(_fire.shadow_opacity, 0.85, FIRE_SHADOW_IN * dt)
+	if _fire.shadow_opacity < 0.85:
+		_fire.shadow_opacity = move_toward(_fire.shadow_opacity, 0.85, FIRE_SHADOW_IN * dt)
 
 
 ## (governed, local lights in reach, cut by the budget): perf_watch --fps-log prints it.
