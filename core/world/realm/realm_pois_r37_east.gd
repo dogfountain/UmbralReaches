@@ -418,6 +418,44 @@ static func _plinth(host: Node3D, space: PhysicsDirectSpaceState3D, xf: Transfor
 		var mid := xf * Vector3(cx, 0.0, cz)
 		mid.y = (top + bottom) * 0.5
 		k.box("stone", mid, Vector3(float(c[2]) + 0.02, top - bottom, float(c[3]) + 0.02), xf.basis, true, 1.0)
+	# where the footing stands tall over the falling ground: a string course under the slab's edge and stepped buttresses
+	# every third cell, so the base reads as built up to the tower and not as a bare block
+	var top_y := xf.origin.y + 0.06
+	for ix in n:
+		for iz in n:
+			var cx := -half + (float(ix) + 0.5) * PLINTH_CELL
+			var cz := -half + (float(iz) + 0.5) * PLINTH_CELL
+			var nrm := Vector2.ZERO
+			if cx > half - 0.6:
+				nrm = Vector2(1, 0)
+			elif cx < -half + 0.6:
+				nrm = Vector2(-1, 0)
+			elif cz > half - 0.6:
+				nrm = Vector2(0, 1)
+			elif cz < -half + 0.6:
+				nrm = Vector2(0, -1)
+			if nrm == Vector2.ZERO or (nrm.y > 0.0 and absf(cx) < 2.6):
+				continue                      # the door's side keeps its steps clear
+			var out_c := xf * Vector3(cx + nrm.x * 0.5, 0.0, cz + nrm.y * 0.5)
+			var lo2 := _gy(space, out_c.x, out_c.z)
+			var depth := top_y - lo2
+			if depth < 1.2:
+				continue
+			var along := Vector3(PLINTH_CELL + 0.02, 0.0, 0.0) if nrm.x == 0.0 else Vector3(0.0, 0.0, PLINTH_CELL + 0.02)
+			var thick := Vector3(0.0, 0.0, 0.3) if nrm.x == 0.0 else Vector3(0.3, 0.0, 0.0)
+			var course := xf * Vector3(cx + nrm.x * 0.62, 0.0, cz + nrm.y * 0.62)
+			course.y = top_y - 0.25
+			k.box("stone", course, Vector3(along.x + thick.x, 0.4, along.z + thick.z), xf.basis, true, 1.0)
+			if (ix + iz) % 3 != 0:
+				continue
+			for step in 2:
+				var proj := 0.95 - 0.45 * float(step)
+				var hgt := (top_y - 0.55 - float(step) * 1.1) - (lo2 - PLINTH_BURY)
+				var bc := xf * Vector3(cx + nrm.x * (0.5 * PLINTH_CELL + proj * 0.5 - 0.3), 0.0, cz + nrm.y * (0.5 * PLINTH_CELL + proj * 0.5 - 0.3))
+				bc.y = (lo2 - PLINTH_BURY) + hgt * 0.5
+				var bw := 1.1 - 0.2 * float(step)
+				var bs := Vector3(proj, hgt, bw) if nrm.x != 0.0 else Vector3(bw, hgt, proj)
+				k.box("stone", bc, bs, xf.basis, true, 1.0)
 	var holder := Node3D.new()
 	holder.name = "SpirePlinth"
 	host.add_child(holder)
