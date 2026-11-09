@@ -14,9 +14,9 @@ extends RefCounted
 ## the far mesh starts. Anything you register stays loaded to the horizon (group cull_skip: nothing re-ranges it).
 
 const VIEW_FAR := 420.0                  ## camera far plane (m); the fog has swallowed the world by then
-const FAR_TREE_END := 250.0              ## the @far tree meshes end here (the canopy shell carries on)
-const FAR_CARD_END := 160.0              ## was 85: crowns vanished mid-distance and left bare poles
-const CANOPY_BEGIN := 150.0              ## shell underlaps far trees so the forest never goes hollow
+const FAR_TREE_END := 230.0              ## the @far tree meshes end here (the canopy shell carries on)
+const FAR_CARD_END := 85.0               ## far leaf cards (overdraw) end here; trunks and the canopy shell carry on
+const CANOPY_BEGIN := 200.0             ## a forest chunk's canopy shell fades in from here
 const SHELL_CELL := 2.0
 
 static var _shell_mat: ShaderMaterial
@@ -133,20 +133,19 @@ static func generic_range(gi: GeometryInstance3D, extent: float) -> bool:
 	var end := 0.0
 	var margin := 0.0
 	if extent < 1.5:
-		end = 95.0
-		margin = 14.0
+		end = 70.0
+		margin = 10.0
 	elif extent < 5.0:
-		end = 160.0
-		margin = 22.0
+		end = 130.0
+		margin = 16.0
 	elif extent < 14.0:
-		end = 280.0
-		margin = 36.0
+		end = 240.0
+		margin = 30.0
 	else:
 		return false                                 # landmarks: loaded to the horizon
 	gi.visibility_range_end = end
 	gi.visibility_range_end_margin = margin
 	gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-	gi.extra_cull_margin = maxf(gi.extra_cull_margin, 3.0)
 	return true
 
 
@@ -278,10 +277,9 @@ static func canopy_shell(host: Node3D, c: Vector3, half: float, trees: Array, gr
 	mi.position = c
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visibility_range_begin = CANOPY_BEGIN
-	mi.visibility_range_begin_margin = 40.0
+	mi.visibility_range_begin_margin = 30.0
 	mi.visibility_range_end = 0.0
 	mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-	mi.extra_cull_margin = 8.0
 	mi.set_meta(&"far_detail", true)
 	mi.add_to_group(Groups.CULL_SKIP)
 	host.add_child(mi)

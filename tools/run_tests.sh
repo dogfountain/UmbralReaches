@@ -61,8 +61,10 @@ run_one() {
 	fi
 	# HOME isolates user:// on Mac/Linux. On Windows Godot still writes under AppData, so also set
 	# UMBRAL_SAVE_DIR (core/util/save_dir.gd) into this test's scratch home.
-	mkdir -p "$home/saves"
-	HOME="$home" UMBRAL_SAVE_DIR="$home/saves" "$GODOT" --headless --path "$ROOT" "res://$scene" > "$log" 2>&1 &
+	# Only there: Mac/Linux tests read user://savegame.cfg directly (slots_test), so the seam stays off.
+	local save_env=()
+	case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) mkdir -p "$home/saves"; save_env=(UMBRAL_SAVE_DIR="$home/saves") ;; esac
+	env HOME="$home" ${save_env[@]+"${save_env[@]}"} "$GODOT" --headless --path "$ROOT" "res://$scene" > "$log" 2>&1 &
 	pid=$!
 	while kill -0 "$pid" 2>/dev/null; do
 		if [ "$waited" -ge "$TEST_TIMEOUT" ]; then

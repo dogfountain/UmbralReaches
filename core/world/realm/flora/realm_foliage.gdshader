@@ -30,9 +30,9 @@ uniform vec3 rim_color = vec3(0.4, 0.68, 1.0);
 uniform float roughness = 0.82;
 uniform float near_fade = 1.6;         // metres from the camera inside which cards dither out (0 = off)
 // Distance thinning (realm_flora.gd sets it per undergrowth MultiMesh): while the chunk's origin
-// is fade_end .. fade_end + 10 m from the camera (matches flora_emit.FADE_BAND) its plants drop out
-// one by one, and at fade_end + 10 m the engine culls the chunk. Dropped plants collapse in vertex()
-// (no fragments). This replaced the engine's visibility-range fade, which drew a fading 24 m chunk
+// is fade_end .. fade_end + 6 m from the camera (the engine's old fade band) its plants drop out one
+// by one, and at fade_end + 6 m the engine culls the chunk. Dropped plants collapse in vertex() (no
+// fragments). This replaced the engine's visibility-range fade, which drew a fading 24 m chunk
 // alpha-blended (no depth prepass, every overlapping card shaded): up to ~6 ms at 4x pixels at the
 // hub. 0 = no thinning (tree crowns).
 instance uniform float fade_end = 0.0;
@@ -71,10 +71,11 @@ void vertex() {
 		vec3 org = MODEL_MATRIX[3].xyz;
 		float keep = fract(sin(dot(org.xz, vec2(12.9898, 78.233))) * 43758.5453);
 		float dchunk = distance(NODE_POSITION_WORLD, CAMERA_POSITION_WORLD);
-		// each plant shrinks away over ~4 m (Luke: foliage popped): edges stagger through the 10 m
-		// band by hash, all gone by the engine cull at fade_end + 10 m (flora_emit.FADE_BAND)
-		float edge = fade_end + 4.0 + keep * 6.0;
-		float shrink = 1.0 - smoothstep(edge - 4.0, edge, dchunk);
+		// each plant shrinks away over 3 m instead of vanishing in one frame (Luke, 7 Nov: foliage popped): its own edge
+		// is staggered through the 6 m band by its hash, and every edge falls inside the band, so all are gone by the
+		// engine's cull at fade_end + 6 m
+		float edge = fade_end + 3.0 + keep * 3.0;
+		float shrink = 1.0 - smoothstep(edge - 3.0, edge, dchunk);
 		float grow = 1.0;
 		if (ground && thin_from > 0.0) {
 			// density LOD: past thin_from (per plant) ground cover drops toward thin_keep of its

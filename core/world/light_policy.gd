@@ -202,13 +202,13 @@ static func apply_illumination(light: Light3D) -> void:
 ## Tried and left out for the frame budget (perf_tour --attrib --reps=6 and hub A/B, 4x pixels):
 ## 4096 (+1.1-2.3 ms more), soft filter Low 2 (+1.0-2.6 ms; it clears the fine penumbra grain), four
 ## splits (+355 shadow draws, +560k primitives), a 34 m reach (+34 shadow draws at the hub).
-## High quality uses a 2048 atlas (+0.22-0.31 ms). A 1024 map over 64 m smeared the gaps in a crown
-## into one blob, so the ground under a tree never showed moonlight between the leaves.
-const MOON_ATLAS := [1024, 1024, 2048]        ## by Settings.shadow_quality (0 = off)
+## a 2048 atlas (+0.22-0.31 ms, and more on Windows GPUs; crisper contacts: MOON_ATLAS[2] = 2048 if wanted),
+const MOON_ATLAS := [1024, 1024, 1024]        ## by Settings.shadow_quality (0 = off). Luke, 9 Nov: 2048 and an 86 m
+                                              ## reach (a Cursor look pass) took a Windows build from 144 to ~90 fps
 const MOON_FILTER := [1, 1, 1]                ## RenderingServer.ShadowQuality (1 very low; 2 low costs 1-2.6 ms)
 const MOON_BIAS := 0.06
 const MOON_NORMAL_BIAS := 2.5
-const MOON_FAR := [28.0, 48.0, 86.0]          ## was 22/34/64: tree shadows died mid-grove
+const MOON_FAR := [22.0, 34.0, 64.0]
 const MOON_SPLIT_1 := 0.16
 static var _atlas := 0
 static var _filter := -1

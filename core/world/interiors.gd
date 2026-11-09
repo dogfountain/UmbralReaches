@@ -119,46 +119,8 @@ static func shaft(host: Node3D, n: String, at_world: Vector3, out_dir: Vector3, 
 	LightPolicy.apply_fade(l)
 	LightPolicy.apply_shadows(l)
 	LightPolicy.apply_illumination(l)
-	var haze := FogVolume.new()
-	haze.name = "Shaft"
-	# Thin luminous wedge — dense fog volumes stacked at the tavern washed the yard orange.
-	haze.size = Vector3(r * 0.28, r * 0.32, r * 0.7)
-	haze.position = Vector3(0.0, -r * 0.03, -r * 0.32)
-	var fmat := FogMaterial.new()
-	fmat.density = 0.045
-	fmat.albedo = col
-	fmat.emission = Color(col.r, col.g, col.b, 1.0) * 0.18
-	fmat.edge_fade = 0.58
-	haze.material = fmat
-	l.add_child(haze)
-	# Rim on the sill/beams right outside the pane (Enshrouded window bleed), then a softer
-	# yard pool further down the cone. Modest so stacked tavern panes do not orange-wash.
-	var rim := OmniLight3D.new()
-	rim.name = "Rim"
-	rim.light_color = col
-	rim.light_energy = e * 0.28
-	rim.omni_range = 2.0
-	rim.omni_attenuation = 1.7
-	rim.light_specular = 0.2
-	rim.light_size = 0.25
-	rim.shadow_enabled = false
-	rim.light_volumetric_fog_energy = 0.08
-	rim.set_meta(&"light_class", &"lamp")
-	rim.position = Vector3(0.0, -0.15, -0.35)
-	l.add_child(rim)
-	var spill := OmniLight3D.new()
-	spill.name = "Spill"
-	spill.light_color = col
-	spill.light_energy = e * 0.2
-	spill.omni_range = r * 0.45
-	spill.omni_attenuation = 1.4
-	spill.light_specular = 0.14
-	spill.light_size = 0.4
-	spill.shadow_enabled = false
-	spill.light_volumetric_fog_energy = 0.12
-	spill.set_meta(&"light_class", &"lamp")
-	spill.position = Vector3(0.0, -r * 0.16, -r * 0.38)
-	l.add_child(spill)
+	# (Luke, 9 Nov: no fog volume and no rim / spill omnis per pane: four lights and a fog box on every
+	# window of the village cost the frame. The spot's own volumetric energy draws the cone.)
 	var f := Flicker.new()
 	f.light = l
 	f.base = l.light_energy          # after apply_illumination

@@ -223,8 +223,7 @@ static func apply_quality(env: Environment, cam: Camera3D) -> void:
 
 ## World detail (Settings.detail, set by the presets): how many pixels a mesh may lose before it
 ## drops a LOD level, and occlusion culling. Colours, fog and light values are untouched.
-## Higher = drop mesh LODs sooner (poppier). Softened: 4.0/1.6 made trunks and rocks snap at mid range.
-const LOD_THRESHOLD := [2.2, 1.05, 0.75]      ## pixels; Godot's default is 1.0
+const LOD_THRESHOLD := [4.0, 1.6, 1.0]        ## pixels; Godot's default is 1.0
 
 
 static func _detail(cam: Camera3D) -> void:
@@ -273,23 +272,23 @@ static func _cull_geometry(root: Node, far_m: float) -> void:
 		var cull := 0.0
 		if gi.is_in_group(Groups.CULL_FOLIAGE) or n.begins_with("spore") or n.begins_with("cap") or n.begins_with("night") or n.begins_with("pebble") or n.begins_with("fern") or n.begins_with("grass"):
 			gi.add_to_group(Groups.CULL_FOLIAGE)
-			end = 48.0
-			margin = 14.0
-			cull = 12.0
+			end = 32.0
+			margin = 10.0
+			cull = 8.0
 			if n.begins_with("spore"):
-				end = 36.0
+				end = 24.0
 			elif n.begins_with("pebble"):
-				end = 40.0
-				margin = 12.0
+				end = 28.0
+				margin = 8.0
 		elif gi is GPUParticles3D:
-			end = 36.0
-			margin = 12.0
+			end = 22.0
+			margin = 6.0
 		elif gi.visibility_range_end > 0.01:
-			end = minf(gi.visibility_range_end, far_m * 0.72)
-			margin = maxf(gi.visibility_range_end_margin, 10.0)
+			end = minf(gi.visibility_range_end, far_m * 0.62)
+			margin = maxf(gi.visibility_range_end_margin, 6.0)
 		else:
-			end = far_m * 0.65
-			margin = 12.0
+			end = far_m * 0.55
+			margin = 8.0
 		gi.visibility_range_end = end
 		gi.visibility_range_end_margin = margin
 		gi.visibility_range_fade_mode = (
@@ -312,8 +311,8 @@ static func _cell_floor(root: Node) -> void:
 		return
 	const CELL := 16.0
 	var vis := {
-		"grass": 96.0, "fern": 110.0, "cap": 120.0, "nightcap": 120.0,
-		"pebble": 88.0, "spore": 80.0,
+		"grass": 72.0, "fern": 88.0, "cap": 96.0, "nightcap": 96.0,
+		"pebble": 72.0, "spore": 64.0,
 	}
 	var buckets := {}
 	var old: Array[Node] = []
@@ -574,8 +573,7 @@ const PASS_BUDGET_US := 6000        ## per frame: the pass runs during the first
 ##    flames, lava, embers and the other always-seen kinds
 const SPREAD_M := 48.0
 const TINY_SHADOW_M := 0.45
-const PARTICLE_END := 72.0
-const PARTICLE_FADE := 14.0
+const PARTICLE_END := 48.0
 
 
 ## A heavy mesh spanning more than SPREAD_M with no LODs and no chunking yet.
@@ -624,8 +622,8 @@ static func _realm_render_pass(root: Node) -> Vector4i:
 			var gp := gi as GPUParticles3D
 			if gp.visibility_range_end <= 0.0 and not _skips_range(String(gp.name).to_lower()) and not _named_under(gp, "Lava"):
 				gp.visibility_range_end = PARTICLE_END
-				gp.visibility_range_end_margin = PARTICLE_FADE
-				gp.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+				gp.visibility_range_end_margin = 8.0
+				gp.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 				parts += 1
 			continue
 		var mesh: Mesh = null

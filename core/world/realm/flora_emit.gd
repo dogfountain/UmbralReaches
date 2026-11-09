@@ -12,27 +12,26 @@ const RockKit := preload("res://core/world/realm/rock_kit.gd")
 
 const CHUNK := 24.0                    ## undergrowth chunks
 const TREE_CHUNK := 32.0               ## tree chunks
-const FAR_UNDER := 12.0                ## far mesh begins this much nearer than the near tree's end (underlap for crossfade)
-const FAR_FADE := 12.0                 ## metres the far / near stand-in dissolves over
-const NEAR_END := 48.0                 ## keep near crowns longer before the @far swap (was 38)
-const STONE_RANGE := 56.0
+const FAR_UNDER := 8.0                 ## the far mesh begins this much nearer than the near tree's end (solid under its fade)
+const NEAR_END := 38.0                 ## chunk-origin distance where big trees swap to their @far meshes
+const STONE_RANGE := 44.0
 const STONE_SIZES := [Vector3(0.55, 0.34, 0.48), Vector3(0.9, 0.5, 0.75)]
 
-## species groups: visibility range end (0 = none: the camera far plane ends them),
+## species groups: visibility range end (0 = none: the camera far plane, 82 m, ends them),
 ## shadows, keep-off path distance (m from the path edge), clearance from sites
 const STYLE := {
-	"grass": [52.0, false, 1.0, 0.6], "tallgrass": [56.0, false, 3.0, 0.8], "flowers": [48.0, false, 3.0, 0.6],
-	"heather": [52.0, false, 3.0, 0.6], "fern": [60.0, false, 3.0, 1.0], "shrub": [72.0, false, 3.5, 1.5],
-	"bramble": [72.0, false, 3.5, 2.0], "litter": [44.0, false, 3.0, 0.8], "moss": [46.0, false, 3.0, 0.8],
-	"mushroom": [36.0, false, 3.0, 0.8], "glowcap": [58.0, false, 3.0, 0.8], "reeds": [64.0, false, 3.0, 0.8],
-	"cattail": [64.0, false, 3.0, 0.8], "log": [80.0, true, 3.5, 3.0], "stump": [70.0, false, 3.0, 1.5],
-	"roots": [62.0, false, 3.0, 1.5],
-	"stone": [56.0, false, 1.2, 1.0],                                  # stones in the turf (_place_stones)
+	"grass": [38.0, false, 1.0, 0.6], "tallgrass": [40.0, false, 3.0, 0.8], "flowers": [36.0, false, 3.0, 0.6],
+	"heather": [38.0, false, 3.0, 0.6], "fern": [44.0, false, 3.0, 1.0], "shrub": [58.0, false, 3.5, 1.5],
+	"bramble": [58.0, false, 3.5, 2.0], "litter": [32.0, false, 3.0, 0.8], "moss": [34.0, false, 3.0, 0.8],
+	"mushroom": [26.0, false, 3.0, 0.8], "glowcap": [46.0, false, 3.0, 0.8], "reeds": [52.0, false, 3.0, 0.8],
+	"cattail": [52.0, false, 3.0, 0.8], "log": [64.0, true, 3.5, 3.0], "stump": [56.0, false, 3.0, 1.5],
+	"roots": [50.0, false, 3.0, 1.5],
+	"stone": [44.0, false, 1.2, 1.0],                                  # stones in the turf (_place_stones)
 	"oak": [0.0, true, 3.5, 0.0], "birch": [0.0, true, 3.0, 0.0], "pine": [0.0, true, 3.0, 0.0],
-	"willow": [0.0, true, 3.0, 0.0], "snag": [0.0, true, 3.0, 0.0], "sapling": [72.0, false, 3.0, 1.5],
+	"willow": [0.0, true, 3.0, 0.0], "snag": [0.0, true, 3.0, 0.0], "sapling": [60.0, false, 3.0, 1.5],
 	"fruit": [0.0, true, 3.0, 0.0], "cypress": [0.0, true, 3.0, 0.0], "yew": [0.0, true, 3.5, 0.0], "windtree": [0.0, true, 3.0, 0.0],
-	"gorse": [64.0, false, 3.0, 1.2], "deadbush": [60.0, false, 3.0, 1.2], "ashdrift": [44.0, false, 2.0, 0.8],
-	"cinders": [40.0, false, 2.5, 0.8], "lily": [58.0, false, 1.0, 0.5], "scaffold": [64.0, false, 3.0, 2.0],
+	"gorse": [52.0, false, 3.0, 1.2], "deadbush": [50.0, false, 3.0, 1.2], "ashdrift": [34.0, false, 2.0, 0.8],
+	"cinders": [30.0, false, 2.5, 0.8], "lily": [48.0, false, 1.0, 0.5], "scaffold": [52.0, false, 3.0, 2.0],
 }
 
 ## The regions' own stone (LOOKS props), per m2 at full look weight. [mesh, size, style
@@ -45,12 +44,13 @@ const PROPS := {
 	"cairn": ["cairn", Vector3(0.95, 1.25, 0.9), "granite", 0.05, 72.0, true],
 }
 
-const FADE_BAND := 10.0                ## realm_foliage.gdshader thins over fade_end .. fade_end + band
+const FADE_BAND := 6.0                 ## realm_foliage.gdshader thins over fade_end .. fade_end + 6
 
 ## Undergrowth share kept and range scale per detail level (0 low, 1 medium, 2 high). Medium is the
-## look as built. Low keeps more cover than before (0.6 read as bald patches when turning).
-const DETAIL_DENSITY := [0.78, 1.0, 1.0]
-const DETAIL_RANGE := [0.88, 1.0, 1.12]
+## look as built. Low keeps 60 % of the undergrowth (evenly: instance order is shuffled per chunk)
+## and pulls its ranges in by a fifth; trees keep every instance, their leaf cards stop casting.
+const DETAIL_DENSITY := [0.6, 1.0, 1.0]
+const DETAIL_RANGE := [0.8, 1.0, 1.12]
 
 
 ## Which chunk size and tag a plant kind sits in: [chunk size, tag (1 = tall tree chunk)].
@@ -91,8 +91,7 @@ static func _prefetch_lods(pairs: Array) -> void:
 	if todo.is_empty():
 		return
 	var tl := Time.get_ticks_usec()
-	# Preserve shape in mid LODs (merge 20°): with lod_bias/threshold softened, switches stay late and look like the same tree.
-	var task := WorkerThreadPool.add_group_task(func(i: int) -> void: (todo[i][2] as ImporterMesh).generate_lods(20.0, 60.0, []), todo.size())
+	var task := WorkerThreadPool.add_group_task(func(i: int) -> void: (todo[i][2] as ImporterMesh).generate_lods(25.0, 60.0, []), todo.size())
 	WorkerThreadPool.wait_for_group_task_completion(task)
 	for t: Array in todo:
 		_lod_ready[t[0]] = _with_materials((t[2] as ImporterMesh).get_mesh(), t[1])
@@ -254,49 +253,47 @@ static func _batch(ch: Node3D, buf: PackedFloat32Array, n: int, nm: String, mesh
 	var tall: bool = info[2]
 	if tag == "stone":
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mmi.extra_cull_margin = 4.0
-		mmi.lod_bias = 1.0
+		mmi.extra_cull_margin = 1.0
+		mmi.lod_bias = 0.5
 		mmi.visibility_range_end = re
-		mmi.visibility_range_end_margin = FAR_FADE
+		mmi.visibility_range_end_margin = 6.0
 		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		mmi.add_to_group(Groups.CULL_SKIP)
 		mmi.set_meta(&"flora", info + [0])
 		ch.add_child(mmi)
 		return mmi
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bool(st[1]) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	if tag == "c" and bool(st[1]):
-		# Near crown cards must cast: trunks alone are thin poles; leaf gaps are what put moonlight
-		# on the ground between the shadows. Alpha-scissor in realm_foliage.gdshader keeps holes open.
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	if tag == "fc":
-		# far leaf cards are a solid stand-in past ~30 m. Their trunks (fs) still cast, so a
-		# grove keeps a shadow under each tree. The cards themselves are the expensive part
-		# of both shadow splits, and at that distance the gaps would not resolve.
+	if tag == "fs" or tag == "fc":
+		# far trees start 38 m from their chunk centre; moon shadows fade out from ~23 m
+		# and end at 30 m (LightPolicy), so a far tree's shadow is never seen, but it was
+		# drawn into both shadow splits every frame
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for h: PackedStringArray in hide_args:
 		if sp in h or tag in h:
 			mmi.visible = false
-	mmi.extra_cull_margin = 5.0            # was 1.5: turning the camera frustum-popped chunk edges
+	mmi.extra_cull_margin = 1.5
 	if tag == "s" or tag == "fs":
-		mmi.lod_bias = 1.15                # delay mesh LOD swaps until smaller on screen
-	elif tag == "c" or tag == "fc":
-		mmi.lod_bias = 2.0                 # cards must not simplify (collapse = vanish)
+		mmi.lod_bias = 0.45                # trunks and branches simplify early; cards never do
 	if swap:
-		# Near dissolves out; far dissolves in over FAR_FADE under the near band (FAR_UNDER).
+		# Luke, 8 Nov: the near tree dissolves in over its far mesh (it switched in whole at NEAR_END while the far
+		# one dithered out). The far mesh stays solid under it from FAR_UNDER metres inside the near tree's fade and
+		# goes in one step where the near tree is already whole, so the dissolve never shows a hole (two dithers over
+		# one band punch the same holes); the far meshes still fade out at the horizon's end (canopy shell beyond)
 		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		if rb <= 0.0:
 			mmi.visibility_range_end = re
-			mmi.visibility_range_end_margin = FAR_FADE
+			mmi.visibility_range_end_margin = 6.0
 		else:
 			mmi.visibility_range_begin = maxf(1.0, rb - FAR_UNDER)
-			mmi.visibility_range_begin_margin = FAR_FADE
+			mmi.visibility_range_begin_margin = 0.0
+			mmi.set_meta(&"cut_begin", true)             # fade_guard.gd leaves this edge a cut
 			mmi.visibility_range_end = re if re > 0.0 else (FarDetail.FAR_CARD_END if tag == "fc" else FarDetail.FAR_TREE_END)
-			mmi.visibility_range_end_margin = FAR_FADE if re > 0.0 else 28.0
+			mmi.visibility_range_end_margin = 6.0 if re > 0.0 else 20.0
 	elif re > 0.0:
 		_set_range(mmi, tag, re)
 	elif tall:
 		mmi.visibility_range_end = FarDetail.FAR_TREE_END       # dead trees, cypresses... fade out at the horizon's edge
-		mmi.visibility_range_end_margin = 36.0
+		mmi.visibility_range_end_margin = 30.0
 		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	mmi.add_to_group(Groups.CULL_SKIP)
 	mmi.set_meta(&"flora", info + [int(mmi.cast_shadow)])
@@ -321,7 +318,7 @@ static func _set_range(mmi: MultiMeshInstance3D, tag: String, re: float) -> void
 		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 	else:
 		mmi.visibility_range_end = re
-		mmi.visibility_range_end_margin = FAR_FADE
+		mmi.visibility_range_end_margin = 6.0
 		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 
 

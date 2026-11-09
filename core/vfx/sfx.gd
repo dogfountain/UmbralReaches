@@ -88,6 +88,7 @@ static func _rise(p: AudioStreamPlayer3D, db: float) -> void:
 	var old: Variant = p.get_meta(&"rise") if p.has_meta(&"rise") else null
 	if old is Tween and (old as Tween).is_valid():
 		(old as Tween).kill()
+	p.set_meta(&"rise_db", db)          # where the rise lands (tests read it)
 	p.volume_db = db - 8.0
 	var tw := p.create_tween()
 	tw.tween_property(p, "volume_db", db, 0.014).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

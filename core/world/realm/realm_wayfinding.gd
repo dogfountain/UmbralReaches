@@ -23,7 +23,8 @@ const LANTERN_PATHS := [
 	"west_way", "east_way", "fen_descent",
 	"west_track", "weir_track", "spire_track", "anchor_track", "salt_track", "downs_track",
 ]
-const LANTERN_STEP := 18.0              ## metres between lanterns along a path (was 26: roads felt empty)
+const LANTERN_STEP := 26.0              ## metres between lanterns along a path (Luke, 9 Nov: 18 m on nine roads put
+                                        ## a light and a solid plinth every few strides; 26 m on all nine)
 const EDGE_STEP := 10.0                 ## cliff spacing along an edge
 const EDGE_INSET := 1.4                 ## cliff centre this far inside BOUNDS (their backs touch the wall)
 const CLIFF_SIZES := [Vector3(12.0, 8.5, 4.5), Vector3(11.0, 6.5, 4.5)]

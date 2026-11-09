@@ -91,7 +91,7 @@ func _run() -> void:
 	var vols: Array = []
 	for v in Sfx._voices:
 		if is_instance_valid(v) and v.stream == s and v.playing:
-			vols.append(snappedf(v.volume_db, 0.1))
+			vols.append(snappedf(float(v.get_meta(&"rise_db")) if v.has_meta(&"rise_db") else v.volume_db, 0.1))   # (Sfx fades each in over 14 ms)
 	vols.sort()
 	check(vols.size() == 3 and float(vols[0]) <= -7.9 and float(vols[2]) >= -0.1, "a stream re-fired on the spot is turned down %s" % str(vols))
 	for i in 40:

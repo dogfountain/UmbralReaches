@@ -12,12 +12,13 @@ extends Node
 ## zz/pop_audit.tscn counts what still pops.
 ## Load by path (no class_name).
 
-const MIN_BAND := 3.0                 ## metres: a fade over less reads as a pop at walking speed
-const RANGE_K := 1.35                 ## push ranges out (was 1.5); still early, less mid-distance double-draw
+const MIN_BAND := 2.0                 ## metres: a fade over less reads as a pop at walking speed
+const RANGE_K := 1.5                  ## every range pushed out this far (Luke, 7 Nov: things should show sooner). A
+                                      ## near mesh's end and its far stand-in's begin move together, so swaps line up
 const FAR_CAP := 400.0                ## no range past the camera's far plane (FarDetail.VIEW_FAR 420)
-const BAND_K := 0.18                  ## the band, as a share of the range
-const BAND_MIN := 8.0
-const BAND_MAX := 24.0
+const BAND_K := 0.15                  ## the band, as a share of the range
+const BAND_MIN := 6.0
+const BAND_MAX := 18.0
 
 
 var _tracked: Array[GeometryInstance3D] = []
@@ -113,17 +114,18 @@ static func _fix(n: Node) -> bool:
 			begin = minf(begin * rk, FAR_CAP - 20.0)
 			g.visibility_range_begin = begin
 		g.set_meta(&"range_k", Vector2(begin, end))
-	# Near half of a near/far swap: still needs its end to dissolve (a hard cut here was a canopy pop).
-	# Do not strip an existing end fade just because a stand-in sibling exists.
+	# the near half of a swap (its stand-in is a sibling that begins) keeps its own cut: two meshes dithering over the
+	# same band punch the same holes, so the pair flickered out and back in as you walked through it
 	if begin <= 0.0 and p != null and _has_standin(p):
-		var fading_near := g.visibility_range_fade_mode != GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
-		if end > 0.0 and (not fading_near or g.visibility_range_end_margin < MIN_BAND):
-			g.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-			g.visibility_range_end_margin = maxf(g.visibility_range_end_margin, clampf(end * BAND_K, BAND_MIN, BAND_MAX))
+		var orig: Variant = g.get_meta(&"fade_orig") if g.has_meta(&"fade_orig") else null
+		if orig is Array:                             # faded here before its stand-in arrived: put the builder's cut back
+			g.visibility_range_fade_mode = int(orig[0])
+			g.visibility_range_end_margin = float(orig[1])
+			g.remove_meta(&"fade_orig")
 		return true
 	var fading := g.visibility_range_fade_mode != GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 	var pops_end := end > 0.0 and (not fading or g.visibility_range_end_margin < MIN_BAND)
-	var pops_begin := begin > 0.0 and (not fading or g.visibility_range_begin_margin < MIN_BAND)
+	var pops_begin := begin > 0.0 and (not fading or g.visibility_range_begin_margin < MIN_BAND) and not g.has_meta(&"cut_begin")
 	if not pops_end and not pops_begin:
 		return true
 	if not g.has_meta(&"fade_orig"):

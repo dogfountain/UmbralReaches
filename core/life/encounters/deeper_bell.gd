@@ -1,4 +1,5 @@
 extends Interactable
+const BossThemes := preload("res://core/life/wildlife/boss_themes.gd")
 ## Encounters: the Bell of the Deeper Night. It stands silent until the Ascended Warden falls (the
 ## sky stops turning; "somewhere above the Crowns, a bell rings once"). Then [E] reads what ringing
 ## it means; [E] again within a few seconds rings it: the Deeper Night (NG+) begins -- the three
@@ -97,7 +98,7 @@ func interact(_by: Node) -> void:
 		# its own strike (the ending's great bell, cracked and mouth-up): not the ward chime
 		var a := AudioStreamPlayer.new()
 		a.name = "DeeperBell"
-		a.stream = (load("res://core/life/wildlife/boss_themes.gd") as GDScript).call("great_bell")
+		a.stream = BossThemes.great_bell()
 		a.pitch_scale = 0.82
 		a.volume_db = -2.0
 		a.bus = &"Music" if AudioServer.get_bus_index("Music") >= 0 else &"Master"

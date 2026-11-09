@@ -77,15 +77,13 @@ static func light(parent: Node3D, n: String, at: Vector3, col: Color, e: float, 
 	return l
 
 
-static func _commit(k: OssKit, parent: Node3D, body := "Body", far := 95.0) -> void:
+static func _commit(k: OssKit, parent: Node3D, body := "Body", far := 70.0) -> void:
 	k.commit(parent, body)
 	for c in parent.get_children():
 		if c is GeometryInstance3D:
 			var g := c as GeometryInstance3D
 			g.visibility_range_end = far
-			g.visibility_range_end_margin = 14.0
-			g.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-			g.extra_cull_margin = maxf(g.extra_cull_margin, 3.0)
+			g.visibility_range_end_margin = 8.0
 
 
 static func holder(parent: Node, n: String) -> Node3D:
@@ -635,7 +633,6 @@ static func windows(parent: Node, id: String, smoke := true) -> Node3D:
 		var world_ctr: Vector3 = xf * ctr
 		var out: Vector3 = (xf.basis * nrm).normalized()
 		Interiors.shaft(h, "WindowTrail_%d" % pi, world_ctr - out * 0.05, out + Vector3(0.0, -0.55, 0.0), warm, 0.55, 8.0, 14.0)
-		light(h, "WindowSpill_%d" % pi, world_ctr - out * 0.7, warm, 0.32, 4.2)
 		pi += 1
 	_commit(k, h, "LitBody", 120.0)
 	if smoke:

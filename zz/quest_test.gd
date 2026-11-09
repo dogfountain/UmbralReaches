@@ -382,6 +382,9 @@ func _forty_first() -> void:
 	var lead := Node3D.new()
 	add_child(lead)
 	oswin.set("follow", lead)
+	# the wanderer waits where the old new-game start was, near the stone end of the walk (a new game now wakes out
+	# on the Pilgrims' Road, and the escort holds for a wanderer that far behind)
+	player.global_position = Vector3(0.0, 0.15, 26.5)
 	village.set("time_scale", 3.0)
 	var route := [Vector2(-8.0, 54.0), Vector2(-2.0, 46.0), Vector2(-5.0, 39.0), Vector2(-4.5, 27.0), Vector2(-1.0, 21.0), Vector2(-1.2, 16.0)]
 	var space := village.get_world_3d().direct_space_state
