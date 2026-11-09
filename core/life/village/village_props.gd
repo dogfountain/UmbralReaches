@@ -352,7 +352,10 @@ static func hermit(parent: Node, space: PhysicsDirectSpaceState3D, c: Vector2) -
 		h.add_child(smoke)
 		smoke.global_position = f + Vector3.UP * 0.7
 		smoke.emitting = true
-	var l := light(h, "CampFire", f + Vector3.UP * 0.55, Color(1.0, 0.52, 0.2), 0.72, 5.0)
+	# 0.9 m up, over the flames: at 0.55 m and 0.72 the light only grazed the dark ground (it lit the log, not the
+	# camp), so neither the camp's warmth nor the fire shadow (light_director.gd) showed. ~70 % of a lit brazier.
+	var l := light(h, "CampFire", f + Vector3.UP * 0.9, Color(1.0, 0.52, 0.2), 3.0, 9.0)
+	l.set_meta(&"fire", true)                    # (light_director.gd: the nearest fire casts a shadow)
 	return {"fire": f, "seat": seat, "grave": g, "light": l}
 
 
@@ -484,7 +487,8 @@ static func outpost(parent: Node, space: PhysicsDirectSpaceState3D, c: Vector2, 
 		smoke.global_position = f + Vector3.UP * 0.7
 		smoke.visibility_range_end = 70.0
 		smoke.emitting = true
-	var l := light(h, "OutpostFire", f + Vector3.UP * 0.55, Color(1.0, 0.52, 0.2), 0.7, 5.8)
+	var l := light(h, "OutpostFire", f + Vector3.UP * 0.9, Color(1.0, 0.52, 0.2), 3.0, 9.0)   # (as CampFire)
+	l.set_meta(&"fire", true)                    # (light_director.gd: the nearest fire casts a shadow)
 	# a camp fire is light the gloom will not cross: ordinary foes slink off it (not a rest, not a
 	# checkpoint: LightGrid's "mirror" kind), so the giver is not stood in the middle of a fight
 	LightGrid.register(l, 5.5, LightGrid.MIRROR)

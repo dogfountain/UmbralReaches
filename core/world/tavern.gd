@@ -608,7 +608,7 @@ func _lights(lamp: Vector3) -> void:
 	var cy := FY + H1 * 0.5
 	Interiors.add("tavern", Vector3((X0 + X1) * 0.5, cy, (Z0 + Z1) * 0.5), 0.0, Vector3((X1 - X0) * 0.5 - T, H1 * 0.5 + 0.1, (Z1 - Z0) * 0.5 - T))
 	# the hearth: the room's heart, a soft-shadowed fire (about 1900 K) that throws the tables' shadows across the floor
-	Interiors.light(self, "Hearth", Vector3(X1 - T - 0.8, FY + 0.9, hz), Color(1.0, 0.42, 0.12), 3.2, 11.0, true, 0.12)
+	Interiors.light(self, "Hearth", Vector3(X1 - T - 0.8, FY + 0.9, hz), Color(1.0, 0.42, 0.12), 3.2, 11.0, true, 0.12).set_meta(&"fire", true)
 	Interiors.light(self, "HearthRug", Vector3(X1 - T - 2.2, FY + 0.5, hz), Color(1.0, 0.5, 0.18), 1.0, 5.5, false, 0.12)
 	# two iron-ring chandeliers (a ring of wax: 2300 K) with shadows; the rest of the room is candle pools without
 	for cx: float in [14.2, 20.6]:

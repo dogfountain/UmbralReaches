@@ -11,7 +11,8 @@ extends Node
 ##     BUDGET[detail] stay lit. The rest fade out through their own distance fade (its start eased in over ~0.4 s, so
 ##     nothing pops) and, once fully faded, the renderer skips them. Braziers count as nearer than they are (they are
 ##     the gameplay lights). Four lights on every window of a village (a Cursor pass, 9 Nov) can't happen again.
-##   3 FIRE SHADOW: on high shadows and high detail, the nearest lit brazier within FIRE_SHADOW_R casts a shadow
+##   3 FIRE SHADOW: on high shadows (any detail), the nearest fire (a lit brazier, a camp, outpost or hearth fire)
+##     within FIRE_SHADOW_R casts a shadow
 ##     (one dual-paraboloid map at most), its opacity eased in and out as the nearest one changes.
 ## Attached by world/main.gd. Load by path (no class_name). `--no-light-director` to A/B.
 
@@ -105,7 +106,7 @@ func _process(dt: float) -> void:
 func _budget(at: Vector3) -> void:
 	var cand: Array = []
 	var i := 0
-	var fire_on := Settings.shadow_quality > 1 and Settings.detail >= 2 and not _no_fire
+	var fire_on := Settings.shadow_quality > 1 and not _no_fire   # (shadows High at any detail: one map, ~0.1 ms)
 	var bd := FIRE_SHADOW_R
 	_best = null
 	while i < _lights.size():
@@ -131,13 +132,19 @@ func _budget(at: Vector3) -> void:
 		var c := k >= keep
 		_set_cut(l, c)
 		cut += 1 if c else 0
-		if fire_on and not c and float(cand[k][2]) < bd and float(_prio[l]) == float(PRIORITY[&"beacon"]):
+		if fire_on and not c and float(cand[k][2]) < bd and _is_fire(l):
 			bd = float(cand[k][2])
 			_best = l
 	_stats.y = cand.size()
 	_stats.z = cut
 	if bool(_cut.get(_best, false)):
 		_best = null
+
+
+## A fire that may cast: a lit brazier (class beacon) or a light its builder marked `fire` (camp and outpost fires,
+## the Marches' hearths, the tavern's and the Rooted Holds' hearths, the First Hearth).
+static func _is_fire(l: Light3D) -> bool:
+	return l.has_meta(&"fire") or l.get_meta(&"light_class", &"") == &"beacon"
 
 
 func _set_cut(l: Light3D, c: bool) -> void:
@@ -192,6 +199,11 @@ func _fire_shadow(dt: float) -> void:
 	_fire.shadow_enabled = true
 	if _fire.shadow_opacity < 0.85:
 		_fire.shadow_opacity = move_toward(_fire.shadow_opacity, 0.85, FIRE_SHADOW_IN * dt)
+
+
+## The light casting the fire shadow now, or null (perf_watch --fps-log prints it).
+func fire_light() -> Light3D:
+	return _fire if _fire != null and is_instance_valid(_fire) and _fire.shadow_enabled else null
 
 
 ## (governed, local lights in reach, cut by the budget): perf_watch --fps-log prints it.

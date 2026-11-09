@@ -488,7 +488,10 @@ func _process(delta: float) -> void:
 			var ld := get_tree().root.find_child("LightDirector", true, false)
 			if ld and ld.get_script() == LightDirectorScript:
 				var st: Vector3i = (ld as LightDirectorScript).stats()
-				print("FPS4 lights governed %d, local in reach %d, cut by budget %d" % [st.x, st.y, st.z])
+				var fl: Light3D = (ld as LightDirectorScript).fire_light()
+				var fs := "none" if fl == null else "%s/%s at %s, energy %.2f range %.1f fade %.0f" % [fl.get_parent().name, fl.name, fl.global_position.snapped(Vector3.ONE * 0.1),
+					fl.light_energy, (fl as OmniLight3D).omni_range if fl is OmniLight3D else 0.0, fl.distance_fade_begin]
+				print("FPS4 lights governed %d, local in reach %d, cut by budget %d, fire shadow %s" % [st.x, st.y, st.z, fs])
 			print("FPS2 nav %.2f ms | physics active %d pairs %d islands %d | nodes %d objects %d" % [
 				Performance.get_monitor(Performance.TIME_NAVIGATION_PROCESS) * 1000.0,
 				Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS), Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS),

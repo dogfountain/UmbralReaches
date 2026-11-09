@@ -95,7 +95,9 @@ static func build(parent: Node) -> void:
 		k.candle_cluster(alt + o, 4, 0.16, rng)
 	L.letters(alt + Vector3(0.505, 0.65, 0), Vector3.RIGHT, 0.9, 3)
 	L.scrap("ch_hearth", alt + Vector3(1.1, 0.0, 0.0))
-	L.light("FirstHearth", alt + Vector3(0.6, 1.9, 0), Color(1.0, 0.5, 0.2), 1.6, 9.0)
+	var fh: OmniLight3D = L.light("FirstHearth", alt + Vector3(0.6, 1.9, 0), Color(1.0, 0.5, 0.2), 1.6, 9.0)
+	if fh:
+		fh.set_meta(&"fire", true)
 	var fire := Vfx.emitter(Color(1.0, 0.45, 0.12), {"count": 14, "life": 0.9, "speed": Vector2(0.2, 0.6), "size": 0.12, "gravity": -1.0, "radius": 0.18, "additive": true, "spread": 20.0})
 	if fire:
 		fire.name = "HearthEmbers"

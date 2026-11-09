@@ -135,7 +135,7 @@ static func fire(host: Node3D, base: Vector3, b: Basis, d: float, t: float, cx: 
 		em.position = Vector3(0, 0.45, 0)
 		em.emitting = true
 	# the light: in the firebox's mouth, so the walls and floor take it
-	Interiors.light(host, id + "Fire", root.global_position + b * Vector3(0, 0.55, 0.45), Interiors.FIRE, 1.05, 5.0, false, 0.14)
+	Interiors.light(host, id + "Fire", root.global_position + b * Vector3(0, 0.55, 0.45), Interiors.FIRE, 1.05, 5.0, false, 0.14).set_meta(&"fire", true)
 
 
 static func _box(size: Vector3) -> BoxMesh:
