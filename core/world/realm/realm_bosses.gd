@@ -14,7 +14,7 @@ const BRAZIERS := {
 	"StairFoot": [Vector2(-5.0, -2.0), Vector2(0.0, -2.0)],        # the Crossing's foot, by rift_rim
 	"Shrine": [Vector2(-31.0, 4.0), Vector2(-36.0, 8.6)],          # the Glimmer Glade, beside west_way
 	"Landing": [Vector2(84.0, -36.0), Vector2(78.0, -40.0)],       # the Barrow Field, where fen_descent starts
-	"Threshold": [Vector2(50.6, -57.5), Vector2(45.0, -60.5)],     # on the fen below the Ossuary's fen door, off fen_descent (r34: was (47, -55), half a metre off the Lay Brothers' Stair's foot: the climb glanced off it)
+	"Threshold": [Vector2(50.6, -57.5), Vector2(55.6, -56.6)],     # on the fen below the Ossuary's fen door, off fen_descent (r34: was (47, -55), half a metre off the Lay Brothers' Stair's foot: the climb glanced off it; it faces east so the ember post stands south of the brazier, off the path)
 }
 ## r34 places (docs/r34/places.md): one fire for each new region (RealmLayout.SLOTS "fire"), so the
 ## Ember Road and the checkpoints keep the same spacing over the doubled ground. Copies of a valley
@@ -30,8 +30,8 @@ const R34_FIRES := {
 	"FieldFire": [Vector2(8.0, 108.0), Vector2(1.0, 110.0)],            # the Waiting Field's gate, off necropolis_way
 	"MereFire": [Vector2(103.0, 98.0), Vector2(98.0, 96.0)],            # the mere's north bank, by mere_causeway
 	# --- south marches ---
-	"OakFire": [Vector2(-44.0, 192.0), Vector2(-52.0, 198.0)],          # beside downs_track, in the Grandmother Oak's shade (the door looks this way)
-	"WellFire": [Vector2(44.0, 192.0), Vector2(52.0, 198.0)],           # beside downs_track, on the way to the Well's rim and the descent gate
+	"OakFire": [Vector2(-44.0, 196.4), Vector2(-52.0, 199.0)],          # beside downs_track (4 m south of its bend: at z 192 the track ran through the fire), in the Grandmother Oak's shade (the door looks this way)
+	"WellFire": [Vector2(44.0, 196.4), Vector2(52.0, 199.0)],           # beside downs_track (4 m south of its bend), on the way to the Well's rim and the descent gate
 	# --- west marches ---
 	"WeirfordFire": [Vector2(-196.0, 74.0), Vector2(-199.0, 77.0)],     # the town square, east of the bridge
 	"SorrowFire": [Vector2(-190.0, -20.0), Vector2(-196.0, -22.0)],     # a ford on weir_track
