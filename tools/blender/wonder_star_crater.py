@@ -13,8 +13,8 @@
   tools/blender/run.sh wonder_star_crater.py -- [--only shards,heart,steps] [--renders DIR] [--no-export]
 
 Conventions (Blender Z up -> Godot Y up; 1 BU = 1 m). Each asset is upright with its root at the origin (Z = 0) and
-leans towards +X (Godot +X). Vertex colour: rgb the body colour, alpha 0 at a crystal's root and 1 at its tip, which the
-game's crystal shader turns into glow. Flat shading throughout (facets are the look). <name>-colonly meshes are the
+leans towards +X (Godot +X). The glow parameter (0 at a crystal's root, 1 at its tip; the cracks of the heart) rides in UV.x, which the
+game's shaders turn into light. Flat shading throughout (facets are the look). <name>-colonly meshes are the
 collision hulls. Renders are Cycles stills of each asset from four sides with the night's light.
 """
 import bpy
@@ -78,10 +78,13 @@ class Piece:
         if recalc:
             bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
         layer = bm.loops.layers.color.new("Col")
+        uvl = bm.loops.layers.uv.new("UVMap")
         for fc in bm.faces:
             fc.smooth = False
             for lp in fc.loops:
-                lp[layer] = self.col.get(lp.vert, (0.05, 0.1, 0.15, 0.0))
+                c = self.col.get(lp.vert, (0.05, 0.1, 0.15, 0.0))
+                lp[layer] = c
+                lp[uvl].uv = (c[3], 0.5)           # the glow parameter rides in the UVs (the glTF colour alpha does not survive)
         me = bpy.data.meshes.new(self.name)
         bm.to_mesh(me)
         bm.free()
@@ -391,22 +394,25 @@ def build_heart():
     out = []
     pc = Piece("heart_core")
     bm = pc.bm
-    ico = bmesh.ops.create_icosphere(bm, subdivisions=3, radius=1.0)
-    planes = crack_planes(rng, 7)
+    ico = bmesh.ops.create_icosphere(bm, subdivisions=5, radius=1.0)
+    planes = crack_planes(rng, 16)
     for v in ico["verts"]:
         u = v.co.normalized()
         r = 1.45 * (1.0 + 0.22 * noise.noise(u * 1.7 + Vector((3, 1, 2))) + 0.08 * noise.noise(u * 5.0))
         crack = 0.0
         for nrm, d in planes:
             dist = abs(u.dot(nrm) - d * 0.6)
-            crack = max(crack, 1.0 - smooth(0.0, 0.09, dist))
-        r -= 0.2 * crack
+            crack = max(crack, 1.0 - smooth(0.0, 0.035, dist))
+        r -= 0.12 * crack
         v.co = u * r
         pc.col[v] = (0.05, 0.07, 0.1, crack)
     spurs = []
     for i in range(7):
         d = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-0.9, 0.35))).normalized()
         crystal(pc, d * 1.05, d, rng.uniform(0.9, 1.7), rng.uniform(0.28, 0.42), rng, 0.58, sides=6, broken=(i % 3 == 0), steps=0, sink=0.35, cap=False)
+    for v, c in list(pc.col.items()):
+        if v not in ico["verts"]:
+            pc.col[v] = (c[0], c[1], c[2], c[3] * 0.45)           # spurs glow faintly at the tips; only the cracks burn
     out.append(pc.finish(recalc=False))
     # molten drips: strands of glass hanging below, thick at the shoulder, a bead at the end, glowing at the tip
     pd = Piece("heart_drips")
@@ -498,9 +504,9 @@ def build_ridge():
     for i, (R, seed) in enumerate(((2.1, 3), (2.3, 8), (1.9, 15), (2.2, 21))):
         nm = "ridge_plate_" + "abcd"[i]
         out.append(ridge_plate(nm, seed, R, 4.4))
-        out.append(colonly_hull(nm + "-colonly", lambda R=R: [Vector((math.cos(TAU * q / 8 + 0.2) * R * 0.88, math.sin(TAU * q / 8 + 0.2) * R * 0.88, z)) for q in range(8) for z in (0.0, -1.4)]))
+        out.append(colonly_hull(nm + "-colonly", lambda R=R: [Vector((math.cos(TAU * q / 8 + 0.2) * R * k, math.sin(TAU * q / 8 + 0.2) * R * k, z)) for q in range(8) for k, z in ((0.88, 0.0), (0.84, -1.8), (0.55, -4.4))]))
     out.append(ridge_plate("ridge_shelf", 33, 3.7, 5.0, top_pts=11, edge_crystals=6))
-    out.append(colonly_hull("ridge_shelf-colonly", lambda: [Vector((math.cos(TAU * q / 10 + 0.1) * 3.4, math.sin(TAU * q / 10 + 0.1) * 3.4, z)) for q in range(10) for z in (0.0, -1.6)]))
+    out.append(colonly_hull("ridge_shelf-colonly", lambda: [Vector((math.cos(TAU * q / 10 + 0.1) * 3.4 * k, math.sin(TAU * q / 10 + 0.1) * 3.4 * k, z)) for q in range(10) for k, z in ((1.0, 0.0), (0.9, -2.0), (0.6, -5.0))]))
     return out
 
 
@@ -631,7 +637,7 @@ def export(objs, filename):
         o.select_set(True)
     path = os.path.join(OUT, filename)
     kw = dict(filepath=path, export_format='GLB', use_selection=True, export_apply=True, export_yup=True,
-              export_materials='EXPORT', export_image_format='NONE', export_normals=True, export_texcoords=False)
+              export_materials='EXPORT', export_image_format='NONE', export_normals=True, export_texcoords=True)
     try:
         bpy.ops.export_scene.gltf(export_vertex_color='ACTIVE', **kw)
     except TypeError:

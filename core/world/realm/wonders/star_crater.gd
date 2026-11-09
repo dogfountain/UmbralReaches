@@ -4,18 +4,17 @@ extends RefCounted
 ## stayed, hanging a few fathoms over its own grave, turning as the sky turns. The Order's surveyors called it a
 ## Wound and measured it; the salt-workers call it the Lamp and keep their rakes out of its rays.
 ##   - the crater: a shallow bowl of black glass, cracked into plates that the star lights from beneath, a raised
-##     rim of fused crust, and a ragged skirt of glass giving out to salt (one heightfield, walkable)
-##   - the crystals: great shards rooted in the rim and leaning off it, rays of lesser shards thrown outward
-##     across the pans, a crown of small ones on the crest (solid; flat-shaded, glow rising to the tips)
-##   - the heart: the star itself, a faceted core with long spikes, turning and pulsing over the middle, a
-##     halo that makes it a point of light for miles, a ring of slow fragments in orbit, a hum, motes
-##   - the climb: stepping slabs of fused glass spiralling in from the crater floor to a platform under the heart
-##     (a secret: core/life/secrets/site_star_crater.gd)
-## Everything animated is in the shaders. Three lights at most. Placed clear of the salt-works, derricks and pans,
-## the camps and the salt track; every piece is tested against the physics world and the collision-less meshes.
+##     rim of fused crust, a ragged skirt of glass giving out to salt (one heightfield, walkable)
+##   - the crystals: three great clusters of dark clear glass rooted in the rim and thrown outward, long rays lying
+##     across the pans (Blender: art/models/wonders/star_crater_shards.glb, tools/blender/wonder_star_crater.py)
+##   - the star: a dense cracked core white-hot through its fractures, spurs, molten glass frozen in drips beneath,
+##     a halo, shell fragments drifting at different distances, a hum, motes
+##   - the climb: a ridge of fused glass plates heaved up from the crater floor, curving in toward a shelf under
+##     the star (a secret: core/life/secrets/site_star_crater.gd)
+## Everything animated is in the shaders. Two lights. Placed clear of the salt-works, derricks and pans, the camps and
+## the salt track; every piece is tested against the physics world and the collision-less meshes.
 
 const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
-const Soup := preload("res://core/world/realm/wonders/star_crater/shard_soup.gd")
 const Shaders := preload("res://core/world/realm/wonders/star_crater/crater_shaders.gd")
 
 const C := Vector2(178.0, 146.0)       ## the crater's centre (xz): flat salt between the hills and the salt track
@@ -23,9 +22,7 @@ const FLOOR_R := 8.0                   ## the glass floor
 const RIM_R := 12.5                    ## the crest (varies round the ring)
 const RIM_H := 2.1
 const MESH_R := 24.0
-const HEART_H := 13.0                  ## the heart over the floor
-const STEPS := 14                      ## stepping slabs before the platform
-const STEP_RISE := 0.52
+const HEART_H := 15.0                  ## the heart over the floor
 const PROBE_LAYER := 1 << 30           ## stand-in bodies (nothing else uses it; freed after)
 
 var space: PhysicsDirectSpaceState3D
@@ -37,7 +34,7 @@ var host: Node3D
 var _temp: Array[Node] = []
 var _audit: Array[String] = []
 var _last_hit := ""
-var _segs: Array = []                  ## placed shards as [a, b, radius, cluster]: they keep clear of each other
+var _scenes := {}
 var _gcache := {}
 var _stats := {}
 
@@ -65,12 +62,8 @@ func _run(root: Node) -> void:
 	_stand_ins(root)
 	await root.get_tree().physics_frame
 	var glass := _glass()
-	var solids := Soup.new()
-	_shards(solids)
-	var slabs := Soup.new()
-	var hulls := _stair(slabs)
-	_commit_shards(solids)
-	_commit_slabs(slabs, hulls)
+	_shards()
+	_ridge()
 	_heart()
 	_fragments()
 	_lights()
@@ -78,7 +71,7 @@ func _run(root: Node) -> void:
 	_hum()
 	var marker := Node3D.new()
 	marker.name = "HeartPlatform"
-	marker.set_meta("top", Vector3(C.x, g0 + 0.5 + STEP_RISE * float(STEPS), C.y))
+	marker.set_meta("top", Vector3(C.x, g0 + SHELF_TOP, C.y))
 	marker.set_meta("basis", Basis.IDENTITY)
 	marker.set_meta("heart", heart)
 	marker.set_meta("floor", g0)
@@ -90,8 +83,10 @@ func _run(root: Node) -> void:
 	var bn: Variant = Wayfinding.beacon(host, heart, "", Color(0.66, 0.86, 1.0), 0.0, 0.7, 0.0, false, 320.0)
 	if bn is Node:
 		(bn as Node).name = "Beacon_star_crater"
-	print("WONDER star_crater at %s (ground %.2f): glass %d tris, %d great, %d ray, %d crown shards, %d steps" % [
-		Vector2(C.x, C.y), g0, glass, int(_stats.get("great", 0)), int(_stats.get("ray", 0)), int(_stats.get("crown", 0)), STEPS])
+	for sc in _scenes.values():
+		if sc != null:
+			(sc as Node).free()
+	print("WONDER star_crater at %s (ground %.2f): glass %d tris; %s" % [Vector2(C.x, C.y), g0, glass, str(_stats)])
 	print("WONDER star_crater clearance: %s" % ("nothing touched" if _audit.is_empty() else "; ".join(_audit)))
 
 
@@ -208,21 +203,57 @@ func _glass() -> int:
 	return idx.size() / 3
 
 
-# --- the crystals -------------------------------------------------------------------------------------
+# --- the Blender pieces --------------------------------------------------------------------------------
 
-func _crystal_mat(strength := 1.0) -> ShaderMaterial:
+const MODELS := "res://art/models/wonders/"
+
+
+func _scene(file: String) -> Node:
+	if not _scenes.has(file):
+		var ps := load(MODELS + file) as PackedScene
+		_scenes[file] = ps.instantiate() if ps != null else null
+	return _scenes[file]
+
+
+func _mesh(file: String, node: String) -> Mesh:
+	var root := _scene(file)
+	var n := root.find_child(node, true, false) as MeshInstance3D if root != null else null
+	return n.mesh if n != null else null
+
+
+## The collision hull the asset ships for `node` (its `-colonly` mesh becomes the body that follows it), as a convex
+## shape with the points' y scaled below the top (z < 0 in Blender, y < 0 here) by `sy`.
+func _hull(file: String, node: String, sy := 1.0) -> ConvexPolygonShape3D:
+	var root := _scene(file)
+	var n := root.find_child(node, true, false) if root != null else null
+	if n == null:
+		return null
+	var body := root.get_child(n.get_index() + 1) as StaticBody3D
+	if body == null:
+		return null
+	var cs := body.get_child(0) as CollisionShape3D
+	var faces := (cs.shape as ConcavePolygonShape3D).get_faces()
+	var seen := {}
+	var pts := PackedVector3Array()
+	for f in faces:
+		var key := Vector3i(roundi(f.x * 100.0), roundi(f.y * 100.0), roundi(f.z * 100.0))
+		if seen.has(key):
+			continue
+		seen[key] = true
+		pts.append(Vector3(f.x, f.y * sy if f.y < 0.0 else f.y, f.z))
+	var sh := ConvexPolygonShape3D.new()
+	sh.points = pts
+	return sh
+
+
+func _glass_mat(shader_code: String, strength := 1.0) -> ShaderMaterial:
 	var sm := ShaderMaterial.new()
 	var sh := Shader.new()
-	sh.code = Shaders.CRYSTAL
+	sh.code = shader_code
 	sm.shader = sh
 	sm.set_shader_parameter("heart", heart)
 	sm.set_shader_parameter("strength", strength)
 	return sm
-
-
-func _hue() -> Array:
-	var h := rng.randf_range(0.5, 0.74)
-	return [Color.from_hsv(h + 0.04, rng.randf_range(0.7, 0.9), rng.randf_range(0.06, 0.14)), Color.from_hsv(h - 0.02, rng.randf_range(0.5, 0.72), rng.randf_range(0.26, 0.44))]
 
 
 func _gap(th: float) -> bool:
@@ -230,106 +261,101 @@ func _gap(th: float) -> bool:
 	return absf(angle_difference(th, home)) < 0.34 or absf(angle_difference(th, 0.0)) < 0.38
 
 
-## One crystal after its clearance checks: off the tracks and camps, clear of the world's collision and the
-## collision-less meshes, and of the shards already placed (except its own cluster). Returns whether it stands.
-func _shard(soup: Soup, root: Vector3, dir: Vector3, length: float, radius: float, cluster: int, label: String, sink := 0.8) -> bool:
-	dir = dir.normalized()
-	var tip := root + dir * length
-	for p: Vector3 in [root, tip, root + dir * length * 0.5]:
-		if RealmLayout.path_dist(Vector2(p.x, p.z)) < 5.0 + radius:
-			_stats["skipped"] = int(_stats.get("skipped", 0)) + 1
+## One placed model: mesh instance with the glass material, an optional solid body from its shipped hull. The piece
+## is refused (and logged) when it touches the world, a track or a camp, or an earlier piece. Returns whether it stands.
+func _put(file: String, node: String, xf: Transform3D, mat: Material, label: String, solid := true, sy := 1.0, foot := 0.0) -> bool:
+	var mesh := _mesh(file, node)
+	if mesh == null:
+		push_warning("WONDER star_crater: no mesh %s in %s" % [node, file])
+		return false
+	var bb := mesh.get_aabb()
+	var c := xf * (bb.get_center() * Vector3(1.0, sy, 1.0))
+	for p: Vector3 in [xf.origin, c, xf * (bb.position + bb.size)]:
+		if RealmLayout.path_dist(Vector2(p.x, p.z)) < 5.0:
+			_stats["kept off a track"] = int(_stats.get("kept off a track", 0)) + 1
 			return false
 		for cmp: Dictionary in EnemySpawner.REALM_CAMPS:
 			var a: Vector3 = cmp.at
-			if Vector2(a.x, a.z).distance_to(Vector2(p.x, p.z)) < 16.0:
-				_stats["skipped"] = int(_stats.get("skipped", 0)) + 1
+			if Vector2(a.x, a.z).distance_to(Vector2(p.x, p.z)) < 10.0:
+				_stats["kept off a camp"] = int(_stats.get("kept off a camp", 0)) + 1
 				return false
-	for s: Array in _segs:
-		if int(s[3]) == cluster:
-			continue
-		var cp := Geometry3D.get_closest_points_between_segments(root, tip, s[0], s[1])
-		if cp[0].distance_to(cp[1]) < radius + float(s[2]) + 0.25:
-			return false
-	var q := Quaternion(Vector3.UP, dir)
-	var span := maxf(length - 0.9, 0.2)
-	var xf := Transform3D(Basis(q), root + dir * (0.6 + span * 0.5))
-	if not _clear(xf, Vector3(radius * 1.9, span, radius * 1.9), 0.15, true):
+	var half := bb.size * Vector3(0.5, 0.5 * sy, 0.5) * 0.8
+	if foot > 0.0:
+		half = Vector3(foot, bb.size.y * 0.5 * sy, foot)
+	if not _clear(Transform3D(xf.basis.orthonormalized(), c), half * 2.0, 0.1, true):
 		_audit.append("%s left out (%s)" % [label, _last_hit])
 		return false
-	var cols := _hue()
-	var sides := 6 if radius > 0.45 else 5
-	var skew := Vector3(rng.randf_range(-0.05, 0.05), 0.0, rng.randf_range(-0.05, 0.05))
-	soup.crystal(root, dir, length, radius, sides, skew, rng.randf_range(-0.5, 0.5), cols[0], cols[1], rng, sink)
-	_segs.append([root, tip, radius, cluster])
+	var mi := MeshInstance3D.new()
+	mi.name = label.replace(" ", "_")
+	mi.mesh = mesh
+	mi.material_override = mat
+	mi.transform = Transform3D(xf.basis * Basis.from_scale(Vector3(1.0, sy, 1.0)), xf.origin)
+	mi.extra_cull_margin = 6.0
+	host.add_child(mi)
+	if solid:
+		var sh := _hull(file, node, sy)
+		if sh != null:
+			var body := StaticBody3D.new()
+			body.name = mi.name + "_Body"
+			body.collision_layer = Layers.WORLD
+			body.collision_mask = 0
+			var cs := CollisionShape3D.new()
+			cs.shape = sh
+			body.add_child(cs)
+			host.add_child(body)
+			body.transform = xf
 	return true
 
 
-func _shards(soup: Soup) -> void:
-	var cluster := 0
-	# the great shards: rooted on the rim's outer crest, leaning off it
-	var count := 11
-	var off := rng.randf() * TAU
-	for i in count:
-		var th := off + TAU * float(i) / float(count) + rng.randf_range(-0.12, 0.12)
-		if _gap(th):
-			continue
-		var rim := _rim(th)
-		var rr := rim.x + rng.randf_range(0.2, 1.4)
-		var x := C.x + cos(th) * rr
-		var z := C.y + sin(th) * rr
-		var y := _surface(x, z)
-		var radial := Vector3(cos(th), 0.0, sin(th))
-		var tang := Vector3(-sin(th), 0.0, cos(th))
-		var lean := deg_to_rad(rng.randf_range(14.0, 34.0))
-		var len: float = rng.randf_range(12.0, 25.0)
-		if i == 3 or i == 8:
-			len = rng.randf_range(34.0, 40.0)
-		var dir := (radial * sin(lean) + tang * rng.randf_range(-0.12, 0.12) + Vector3.UP * cos(lean))
-		cluster += 1
-		if _shard(soup, Vector3(x, y, z), dir, len, rng.randf_range(1.2, 1.9), cluster, "great shard %d" % i, 1.4):
+func _shards() -> void:
+	var glass := _glass_mat(Shaders.CRYSTAL)
+	# three great clusters thrown up and out of the rim (the model leans along +X: outward)
+	var great := [["shard_great_a", deg_to_rad(95.0), 13.0], ["shard_great_b", deg_to_rad(175.0), 13.5], ["shard_great_c", deg_to_rad(-62.0), 13.0]]
+	for g: Array in great:
+		var th: float = g[1]
+		var rr := _rim(th).x + 0.6
+		var p := Vector3(C.x + cos(th) * rr, 0.0, C.y + sin(th) * rr)
+		p.y = _surface(p.x, p.z) - 0.5
+		if _put("star_crater_shards.glb", String(g[0]), Transform3D(Basis(Vector3.UP, -th), p), glass, String(g[0]), true, 1.0, 5.0):
 			_stats["great"] = int(_stats.get("great", 0)) + 1
-			for j in rng.randi_range(2, 3):
-				var side := -1.0 if j % 2 == 0 else 1.0
-				var rp := Vector3(x, y, z) + tang * side * rng.randf_range(1.3, 2.2) + radial * rng.randf_range(-0.5, 0.9)
-				rp.y = _surface(rp.x, rp.z)
-				var d2 := (dir.normalized() + tang * side * rng.randf_range(0.18, 0.4) + radial * rng.randf_range(0.0, 0.3)).normalized()
-				if _shard(soup, rp, d2, len * rng.randf_range(0.28, 0.5), rng.randf_range(0.5, 0.9), cluster, "great shard %d companion" % i, 1.0):
-					_stats["great"] = int(_stats.get("great", 0)) + 1
-	# rays: lesser shards thrown outward across the pans, lying low, each smaller than the last
-	var rays := 6
-	var roff := rng.randf() * TAU
-	for i in rays:
-		var th := roff + TAU * float(i) / float(rays) + rng.randf_range(-0.1, 0.1)
+	# rays: a long crystal thrown low across the pans, lying along the line out from the impact
+	var rays := [[50.0, 26.0, "shard_ray_a"], [130.0, 27.0, "shard_ray_b"], [160.0, 30.0, "shard_ray_a"], [-100.0, 27.0, "shard_ray_b"], [-72.0, 30.0, "shard_ray_a"], [118.0, 36.0, "shard_ray_b"]]
+	for r: Array in rays:
+		var th := deg_to_rad(float(r[0]))
 		if _gap(th):
 			continue
-		var radial := Vector3(cos(th), 0.0, sin(th))
-		for k in 4:
-			var rr := 22.0 + 4.6 * float(k) + rng.randf_range(-0.8, 0.8)
-			var x := C.x + cos(th) * rr + rng.randf_range(-0.8, 0.8)
-			var z := C.y + sin(th) * rr + rng.randf_range(-0.8, 0.8)
-			var y := _ground(x, z, g0) + 0.0
-			var lean := deg_to_rad(rng.randf_range(58.0, 76.0))
-			var dir := radial * sin(lean) + Vector3.UP * cos(lean)
-			var len: float = float([8.5, 6.5, 4.8, 3.2][k]) * rng.randf_range(0.85, 1.15)
-			cluster += 1
-			if _shard(soup, Vector3(x, y, z), dir, len, [1.0, 0.8, 0.62, 0.48][k], cluster, "ray %d.%d" % [i, k], 0.9):
-				_stats["ray"] = int(_stats.get("ray", 0)) + 1
-	# the crown: small crystals along the crest between the great ones
-	for i in 34:
-		var th := rng.randf() * TAU
-		if _gap(th):
-			continue
-		var rim := _rim(th)
-		var rr := rim.x + rng.randf_range(-1.2, 2.0)
-		var x := C.x + cos(th) * rr
-		var z := C.y + sin(th) * rr
-		var y := _surface(x, z)
-		var az := th if rng.randf() < 0.7 else rng.randf() * TAU
-		var lean := deg_to_rad(rng.randf_range(8.0, 52.0))
-		var dir := Vector3(cos(az) * sin(lean), cos(lean), sin(az) * sin(lean))
-		cluster += 1
-		if _shard(soup, Vector3(x, y, z), dir, rng.randf_range(1.6, 4.6), rng.randf_range(0.28, 0.7), cluster, "crown %d" % i, 0.6):
-			_stats["crown"] = int(_stats.get("crown", 0)) + 1
+		var rr: float = r[1]
+		var p := Vector3(C.x + cos(th) * rr, 0.0, C.y + sin(th) * rr)
+		p.y = _ground(p.x, p.z, g0) - 0.4
+		if _put("star_crater_shards.glb", String(r[2]), Transform3D(Basis(Vector3.UP, -th), p), glass, "%s_%d" % [r[2], int(r[0])], true, 1.0, 3.0):
+			_stats["ray"] = int(_stats.get("ray", 0)) + 1
+
+
+# --- the climb: a ridge of upthrust glass, and the shelf under the heart ---------------------------------
+
+const SHELF_TOP := 7.78
+const RIDGE_N := 10
+
+
+func _ridge() -> void:
+	var glass := _glass_mat(Shaders.CRYSTAL, 1.0)
+	var names := ["ridge_plate_a", "ridge_plate_b", "ridge_plate_c", "ridge_plate_d"]
+	var rr := RandomNumberGenerator.new()
+	rr.seed = 12
+	var phi := atan2(-C.y, -C.x) + 0.3                # the ridge starts on the Hearthward side of the floor
+	for k in RIDGE_N:
+		var u := float(k) / float(RIDGE_N - 1)
+		var r := lerpf(7.3, 5.4, u)
+		var th := phi + 2.4 * u
+		var top := g0 + 0.6 + 0.74 * float(k)
+		var p := Vector3(C.x + cos(th) * r, top, C.y + sin(th) * r)
+		var sy := maxf(1.0, (top - g0 + 0.8) / 4.4)
+		var tilt := Basis(Vector3.RIGHT, rr.randf_range(-0.07, 0.07)) * Basis(Vector3.FORWARD, rr.randf_range(-0.07, 0.07))
+		var xf := Transform3D(Basis(Vector3.UP, rr.randf() * TAU) * tilt, p)
+		if not _put("star_crater_ridge.glb", names[k % 4], xf, glass, "ridge %d" % k, true, sy, 0.0):
+			_audit.append("ridge plate %d missing" % k)
+	var sy2 := (SHELF_TOP + 0.8) / 5.0
+	_put("star_crater_ridge.glb", "ridge_shelf", Transform3D(Basis(Vector3.UP, 0.4), Vector3(C.x, g0 + SHELF_TOP, C.y)), glass, "shelf", true, sy2, 0.0)
 
 
 func _solid(mesh: ArrayMesh) -> ConcavePolygonShape3D:
@@ -338,164 +364,67 @@ func _solid(mesh: ArrayMesh) -> ConcavePolygonShape3D:
 	return sh
 
 
-func _commit_shards(soup: Soup) -> void:
-	var mesh := soup.build()
-	var mi := MeshInstance3D.new()
-	mi.name = "Shards"
-	mi.mesh = mesh
-	mi.material_override = _crystal_mat()
-	mi.extra_cull_margin = 8.0
-	host.add_child(mi)
-	var body := StaticBody3D.new()
-	body.name = "ShardsBody"
-	body.collision_layer = Layers.WORLD
-	body.collision_mask = 0
-	var cs := CollisionShape3D.new()
-	cs.shape = _solid(mesh)
-	body.add_child(cs)
-	host.add_child(body)
-
-
-# --- the climb ----------------------------------------------------------------------------------------
-
-## Stepping slabs of fused glass spiralling in and up from the crater floor, a platform under the heart.
-## Returns each slab's convex hull (walkable), the platform's last.
-func _stair(soup: Soup) -> Array:
-	var hulls: Array = []
-	var phi := atan2(-C.y, -C.x) + 0.35         # the first slab on the Hearthward side of the floor
-	var kept := 0
-	for k in STEPS + 1:
-		var t := float(k) / float(STEPS)
-		var top_y := g0 + 0.5 + STEP_RISE * float(k)
-		var cols := [Color(0.03, 0.07, 0.12), Color(0.02, 0.05, 0.1), Color(0.3, 0.68, 0.95)]
-		if k == STEPS:
-			var hull := soup.slab(Vector3(C.x, top_y, C.y), 2.5, 0.6, 0.2, 2.8, cols[0], cols[1], cols[2], rng)
-			hulls.append(hull)
-			break
-		var r := lerpf(7.4, 3.9, t)
-		var at := Vector3(C.x + cos(phi) * r, top_y, C.y + sin(phi) * r)
-		if not _clear(Transform3D(Basis.IDENTITY, at - Vector3(0, 1.0, 0)), Vector3(2.5, 2.6, 2.5), 0.1, true):
-			_audit.append("step %d touches %s" % [k, _last_hit])
-		var hull2 := soup.slab(at, 1.2, 0.45, rng.randf() * TAU, rng.randf_range(1.0, 2.3), cols[0], cols[1], cols[2], rng)
-		hulls.append(hull2)
-		kept += 1
-		phi += 3.3 / r
-	return hulls
-
-
-func _commit_slabs(soup: Soup, hulls: Array) -> void:
-	var mi := MeshInstance3D.new()
-	mi.name = "Steps"
-	mi.mesh = soup.build()
-	mi.material_override = _crystal_mat(0.9)
-	host.add_child(mi)
-	var body := StaticBody3D.new()
-	body.name = "StepsBody"
-	body.collision_layer = Layers.WORLD
-	body.collision_mask = 0
-	for hp: PackedVector3Array in hulls:
-		var cs := CollisionShape3D.new()
-		var sh := ConvexPolygonShape3D.new()
-		sh.points = hp
-		cs.shape = sh
-		body.add_child(cs)
-	host.add_child(body)
-
-
-# --- the heart ----------------------------------------------------------------------------------------
+# --- the star -------------------------------------------------------------------------------------------
 
 func _heart() -> void:
-	var s := Soup.new()
-	var hr := RandomNumberGenerator.new()
-	hr.seed = 9
-	var phi := (1.0 + sqrt(5.0)) * 0.5
-	var iv: Array[Vector3] = []
-	for a: float in [-1.0, 1.0]:
-		for b: float in [-phi, phi]:
-			iv.append(Vector3(0.0, a, b))
-			iv.append(Vector3(a, b, 0.0))
-			iv.append(Vector3(b, 0.0, a))
-	var core := Color(0.5, 0.8, 1.0, 0.45)
-	s.centre = Vector3.ZERO
-	var r0 := 0.62
-	for i in iv.size():
-		for j in range(i + 1, iv.size()):
-			for k in range(j + 1, iv.size()):
-				var e := 2.0 + 0.01
-				if iv[i].distance_to(iv[j]) < e and iv[j].distance_to(iv[k]) < e and iv[i].distance_to(iv[k]) < e:
-					s.tri(iv[i].normalized() * r0, iv[j].normalized() * r0, iv[k].normalized() * r0, core, core, core)
-	# the spikes: twelve long ones on the icosahedron's points, eight short between
-	var tint_a := Color(0.5, 0.85, 1.1)
-	for v: Vector3 in iv:
-		s.crystal(v.normalized() * 0.4, v.normalized(), hr.randf_range(1.9, 3.1), hr.randf_range(0.24, 0.38), 6, Vector3.ZERO, 0.3, tint_a, Color(1.0, 1.1, 1.2), hr, 0.0)
-	for i in 8:
-		var d := Vector3(1.0 if i & 1 else -1.0, 1.0 if i & 2 else -1.0, 1.0 if i & 4 else -1.0).normalized()
-		s.crystal(d * 0.4, d, hr.randf_range(1.2, 1.6), 0.2, 5, Vector3.ZERO, 0.2, tint_a, Color(0.9, 1.05, 1.2), hr, 0.0)
-	var sm := ShaderMaterial.new()
-	var sh := Shader.new()
-	sh.code = Shaders.HEART
-	sm.shader = sh
-	var mi := MeshInstance3D.new()
-	mi.name = "Heart"
-	mi.mesh = s.build()
-	mi.material_override = sm
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	host.add_child(mi)
-	mi.global_position = heart
+	var hm := _glass_mat(Shaders.HEART)
+	for n: String in ["heart_core", "heart_drips"]:
+		var mesh := _mesh("star_crater_heart.glb", n)
+		if mesh == null:
+			continue
+		var mi := MeshInstance3D.new()
+		mi.name = n.capitalize().replace(" ", "")
+		mi.mesh = mesh
+		mi.material_override = hm
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		host.add_child(mi)
+		mi.global_position = heart
 	var halo := MeshInstance3D.new()
 	halo.name = "Halo"
 	var q := QuadMesh.new()
 	q.size = Vector2(64.0, 64.0)
 	halo.mesh = q
-	var hm := ShaderMaterial.new()
 	var hs := Shader.new()
 	hs.code = Shaders.HALO
-	hm.shader = hs
-	halo.material_override = hm
+	var hmat := ShaderMaterial.new()
+	hmat.shader = hs
+	halo.material_override = hmat
 	halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	halo.extra_cull_margin = 20.0
 	host.add_child(halo)
 	halo.global_position = heart
 
 
+## Pieces of the shell adrift at different distances, heights and rates: six shapes, a few of each.
 func _fragments() -> void:
-	var s := Soup.new()
 	var fr := RandomNumberGenerator.new()
 	fr.seed = 5
-	var c0 := Color(0.12, 0.2, 0.4)
-	var c1 := Color(0.6, 0.88, 1.0)
-	s.crystal(Vector3(0, -0.5, 0), Vector3.UP, 1.0, 0.26, 5, Vector3(0.08, 0.0, 0.0), 0.4, c0, c1, fr, 0.0)
-	s.crystal(Vector3(0.1, -0.2, 0), Vector3(0.5, -1.0, 0.2), 0.5, 0.18, 5, Vector3.ZERO, 0.2, c0, c1, fr, 0.0)
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_custom_data = true
-	mm.mesh = s.build()
-	var n := 20
-	mm.instance_count = n
-	for i in n:
-		mm.set_instance_transform(i, Transform3D.IDENTITY)
-		var ph := fr.randf()
-		var sign := 1.0 if i % 3 != 0 else -1.0
-		mm.set_instance_custom_data(i, Color(fr.randf_range(5.4, 9.0), ph, sign * fr.randf_range(0.05, 0.14), fr.randf_range(-1.4, 3.0)))
-	mm.custom_aabb = AABB(Vector3(-14, -6, -14), Vector3(28, 14, 28))
-	var mmi := MultiMeshInstance3D.new()
-	mmi.name = "Fragments"
-	mmi.multimesh = mm
-	mmi.material_override = _orbit_mat()
-	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mmi.extra_cull_margin = 14.0
-	host.add_child(mmi)
-	mmi.global_position = heart
-
-
-func _orbit_mat() -> ShaderMaterial:
-	var sm := ShaderMaterial.new()
-	var sh := Shader.new()
-	sh.code = Shaders.ORBIT
-	sm.shader = sh
-	sm.set_shader_parameter("heart", heart)
-	sm.set_shader_parameter("strength", 1.0)
-	return sm
+	var os := Shader.new()
+	os.code = Shaders.ORBIT
+	var om := ShaderMaterial.new()
+	om.shader = os
+	for n: String in ["frag_a", "frag_b", "frag_c", "frag_d", "frag_e", "frag_f"]:
+		var mesh := _mesh("star_crater_heart.glb", n)
+		if mesh == null:
+			continue
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_custom_data = true
+		mm.mesh = mesh
+		mm.instance_count = 3
+		for j in 3:
+			mm.set_instance_transform(j, Transform3D.IDENTITY)
+			var sign := 1.0 if fr.randf() < 0.65 else -1.0
+			mm.set_instance_custom_data(j, Color(fr.randf_range(4.8, 10.5), fr.randf(), sign * fr.randf_range(0.03, 0.1), fr.randf_range(-1.4, 4.5)))
+		mm.custom_aabb = AABB(Vector3(-14, -6, -14), Vector3(28, 16, 28))
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = "Drift_" + n
+		mmi.multimesh = mm
+		mmi.material_override = om
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.extra_cull_margin = 14.0
+		host.add_child(mmi)
+		mmi.global_position = heart
 
 
 # --- light, motes, hum --------------------------------------------------------------------------------
