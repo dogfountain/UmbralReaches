@@ -553,6 +553,22 @@ static func in_water(x: float, z: float) -> bool:
 
 # -------------------------------------------------------------------------------------- meshes
 
+## How much of the flagstone ground stays at (x, z): 1 outside the Siege Lines and on the pads round the siege tower
+## and the three trebuchets, falling to 0 over 8 m off them (their pads are levelled by realm_pois_r37_west.gd).
+const SIEGE_RECT := Rect2(-262.0, 100.0, 108.0, 150.0)
+const SIEGE_PADS := [[Vector2(-236.0, 170.0), 11.0], [Vector2(-204.0, 206.0), 10.0], [Vector2(-190.0, 210.0), 10.0], [Vector2(-176.0, 206.0), 10.0]]
+
+
+static func _siege_flags(x: float, z: float) -> float:
+	var p := Vector2(x, z)
+	if not SIEGE_RECT.has_point(p):
+		return 1.0
+	var best := 0.0
+	for pad: Array in SIEGE_PADS:
+		best = maxf(best, 1.0 - smoothstep(float(pad[1]), float(pad[1]) + 8.0, p.distance_to(pad[0])))
+	return best
+
+
 ## Vertex splat for one point: COLOR, UV, UV2.
 static func _splat(x: float, z: float, h: float, nrm_y: float, ring: bool) -> Array:
 	var bw: PackedFloat32Array
@@ -568,6 +584,13 @@ static func _splat(x: float, z: float, h: float, nrm_y: float, ring: bool) -> Ar
 		bw[6] = ruin * patch
 		bw[0] += ruin * (1.0 - patch) * 0.6
 		bw[4] += ruin * (1.0 - patch) * 0.4
+		# the Siege Lines are trampled earth and heath, not a paved court: flags only round the tower and the trebuchets
+		var keep := _siege_flags(x, z)
+		if keep < 1.0:
+			var drop := bw[6] * (1.0 - keep)
+			bw[6] -= drop
+			bw[1] += drop * 0.45
+			bw[4] += drop * 0.55
 	# high ground and rough slopes turn to scree
 	var crag := smoothstep(14.0, 26.0, h) * (1.0 - bw[3]) + (1.0 - smoothstep(0.78, 0.9, nrm_y)) * 0.5
 	if crag > 0.0:
