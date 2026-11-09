@@ -34,6 +34,9 @@ var _prog: VBoxContainer
 var hosted := false                 ## r35: a page of the character screen (it owns keys and pause)
 var _panel: PanelContainer
 var _list: VBoxContainer
+var _body: Control                  ## the list and the chosen task
+var _empty: Control                 ## the calm page when nothing has been asked
+var _tall := 860.0                  ## the window's height when it has tasks
 var _detail: VBoxContainer
 var _count: Label
 var _hint: Label
@@ -130,26 +133,33 @@ func _build_ledger() -> void:
 	var head := HBoxContainer.new()
 	col.add_child(head)
 	var t := _lbl(32, LANTERN)
+	Med.gilt(t, 34)
 	t.text = "Tasks"
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(t)
-	_count = _lbl(18, Color(QUIET, 0.7), false)
+	_count = _lbl(17, QUIET, false)
 	_count.size_flags_vertical = Control.SIZE_SHRINK_END
 	head.add_child(_count)
+	col.add_child(Med.rule())
 	var row := HBoxContainer.new()
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.custom_minimum_size = Vector2(0, 520)
 	row.add_theme_constant_override("separation", 24)
 	col.add_child(row)
+	_body = row
+	_empty = _build_empty()
+	col.add_child(_empty)
+	var left_well := PanelContainer.new()
+	left_well.add_theme_stylebox_override("panel", Med.inset(10))
+	row.add_child(left_well)
 	var left := ScrollContainer.new()
 	left.custom_minimum_size = Vector2(470, 0)
 	left.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	row.add_child(left)
+	left_well.add_child(left)
 	_list = VBoxContainer.new()
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list.add_theme_constant_override("separation", 2)
 	left.add_child(_list)
-	var rule := VSeparator.new()
-	row.add_child(rule)
 	var right := ScrollContainer.new()
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -158,9 +168,44 @@ func _build_ledger() -> void:
 	_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_detail.add_theme_constant_override("separation", 8)
 	right.add_child(_detail)
-	_hint = _lbl(17, Color(QUIET, 0.7), false)
-	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	col.add_child(Med.rule(Color(Med.BRONZE, 0.6), false))
+	_hint = _lbl(14, QUIET)
+	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(_hint)
+
+
+## Nothing asked yet: a faint emblem, a rule and two calm lines, centred, in a window that shrinks to fit.
+func _build_empty() -> Control:
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.custom_minimum_size = Vector2(0, 300)
+	box.add_theme_constant_override("separation", 14)
+	box.visible = false
+	var em := TextureRect.new()
+	em.texture = IconArt.art("lore", "ledger")
+	em.custom_minimum_size = Vector2(88, 88)
+	em.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	em.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	em.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	em.modulate = Color(1, 1, 1, 0.35)
+	em.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.add_child(em)
+	var rl := Med.rule()
+	rl.custom_minimum_size = Vector2(420, 14)
+	rl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.add_child(rl)
+	var a := _lbl(22, Med.BONE, false)
+	a.text = "Nobody has asked anything of you yet."
+	a.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(a)
+	var b := _lbl(18, QUIET, false)
+	b.text = "Talk to the people of Hearthward, and the regulars at the Kindled Keg. Look for the gold mark over their heads."
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.custom_minimum_size = Vector2(560, 0)
+	b.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.add_child(b)
+	return box
 
 
 # --- banner and progress -----------------------------------------------------------------------------
@@ -309,39 +354,66 @@ func _fill() -> void:
 		var z := "#done" if done else String(Chains.QUESTS[id].get("zone", ""))
 		if z != zone:
 			zone = z
-			var h := _lbl(16, Color(Med.GILT_DEEP, 0.95))
+			var h := _lbl(18, Med.GILT_DEEP)
 			h.text = "FINISHED" if done else Chains.zone_name(z).to_upper()
 			if _list.get_child_count() > 0:
 				var gap := Control.new()
 				gap.custom_minimum_size = Vector2(0, 8)
 				_list.add_child(gap)
 			_list.add_child(h)
-		var b := Button.new()
-		b.flat = true
-		b.focus_mode = Control.FOCUS_NONE
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.add_theme_font_override("font", UIType.body())
-		b.add_theme_font_size_override("font_size", 21)
-		var tag := ""
-		if Book.ready(id):
-			tag = "   ready"
-		elif String(Chains.QUESTS[id].get("repeat", "")) == "daily":
-			tag = "   (daily)"
-		var pin := QuestMarks.lore_art("done" if done else ("ready" if Book.ready(id) else ("tracked" if Book.tracked(id) else "")))
-		IconArt.on_button(b, pin)
-		var mark := "" if pin != null else ("·  " if not done else "◇  ")
-		b.text = mark + String(Chains.QUESTS[id].name) + tag
+		var b := _entry(id, done)
 		b.pressed.connect(func() -> void: select(id))
 		_list.add_child(b)
 		_rows.append([id, b])
 	_mark_rows()
 	_fill_detail()
-	if ids.is_empty():
-		var none := _lbl(21, QUIET, false)
-		none.text = "Nobody has asked anything of you yet. Talk to the people of Hearthward, and the regulars at the Kindled Keg. Look for the gold mark over their heads."
-		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_list.add_child(none)
-	_hint.text = "[↑↓]  choose      [T]  track      [X]  abandon      [L]  close" if Book.active(sel) else "[↑↓]  choose      [L]  close"
+	_body.visible = not ids.is_empty()
+	_empty.visible = ids.is_empty()
+	_panel.offset_bottom = _panel.offset_top + (_tall if not ids.is_empty() else 0.0)    # shrinks to its content
+	_hint.text = "[↑↓] choose      [T] track      [X] abandon      [L] close" if Book.active(sel) else ("[↑↓] choose      [L] close" if not ids.is_empty() else "[L] close")
+
+
+## One task in the list: its painted mark, the name, and who set it and where, in a button that takes a gilt frame
+## when chosen.
+func _entry(id: String, done: bool) -> Button:
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(0, 66)
+	var tag := ""
+	if Book.ready(id):
+		tag = "   ready"
+	elif String(Chains.QUESTS[id].get("repeat", "")) == "daily":
+		tag = "   (daily)"
+	var h := HBoxContainer.new()
+	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 12)
+	h.add_theme_constant_override("separation", 12)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(h)
+	var pin := QuestMarks.lore_art("done" if done else ("ready" if Book.ready(id) else ("tracked" if Book.tracked(id) else "")))
+	var ic := TextureRect.new()
+	ic.texture = pin
+	ic.custom_minimum_size = Vector2(30, 30)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(ic)
+	var v := VBoxContainer.new()
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", 0)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(v)
+	var nm := _lbl(21, INK, false)
+	nm.text = String(Chains.QUESTS[id].name) + tag
+	v.add_child(nm)
+	var wh := _lbl(15, QUIET, false)
+	wh.text = String(Chains.QUESTS[id].where)
+	wh.clip_text = true
+	v.add_child(wh)
+	b.set_meta("name_label", nm)
+	return b
 
 
 func _mark_rows() -> void:
@@ -349,9 +421,13 @@ func _mark_rows() -> void:
 		var b: Button = r[1]
 		var on := String(r[0]) == sel
 		var done := Book.done(String(r[0]))
-		var c := LANTERN if on else (Color(0.62, 0.6, 0.64) if done else INK)
-		b.add_theme_color_override("font_color", c)
-		b.add_theme_color_override("font_hover_color", LANTERN)
+		var empty := StyleBoxEmpty.new()
+		var frame := Med.slot(Color(1.1, 0.92, 0.6))
+		b.add_theme_stylebox_override("normal", frame if on else empty)
+		b.add_theme_stylebox_override("pressed", frame)
+		b.add_theme_stylebox_override("hover", frame if on else Med.slot(Color(0.8, 0.74, 0.62)))
+		b.add_theme_stylebox_override("focus", empty)
+		(b.get_meta("name_label") as Label).add_theme_color_override("font_color", LANTERN if on else (Color(0.7, 0.66, 0.6) if done else INK))
 
 
 func select(id: String) -> void:
@@ -369,10 +445,11 @@ func _fill_detail() -> void:
 		return
 	var qd: Dictionary = Chains.QUESTS[sel]
 	var n := _lbl(30, Med.BONE)
+	Med.gilt(n, 30)
 	n.text = String(qd.name)
 	n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail.add_child(n)
-	var w := _lbl(17, Color(QUIET, 0.75), false)
+	var w := _lbl(17, QUIET, false)
 	w.text = "%s   ·   %s" % [String(qd.where), Chains.zone_name(String(qd.get("zone", "")))]
 	_detail.add_child(w)
 	var tx := _lbl(20, Med.BONE, false)
@@ -380,7 +457,7 @@ func _fill_detail() -> void:
 	tx.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail.add_child(tx)
 	var done := Book.done(sel)
-	var h := _lbl(16, Color(Med.GILT_DEEP, 0.95))
+	var h := _lbl(18, Med.GILT_DEEP)
 	h.text = "HOW IT ENDED" if done else "WHAT IS WANTED"
 	_detail.add_child(h)
 	if done:
@@ -396,15 +473,15 @@ func _fill_detail() -> void:
 		var cur := Book.step(sel)
 		for si in cur + 1:
 			var stp := Chains.step(sel, si)
-			var st := _lbl(19, INK if si == cur else Color(0.55, 0.54, 0.58), false)
-			var ico := QuestMarks.task_art(String(stp.kind))
+			var st := _lbl(19, INK if si == cur else Color(0.62, 0.6, 0.56), false)
+			var ico := QuestMarks.lore_art("done") if si < cur else QuestMarks.task_art(String(stp.kind))
 			var lead := "" if ico != null else ("  ›  " if si == cur else "  ✓  ")
 			st.text = lead + Chains.step_text(sel, si, Book.q(sel) if si == cur else {})
 			if si < cur and String(stp.kind) in Chains.COUNTED:
 				st.text = lead + String(stp.text).replace(" ({n}/{of})", "")
 			st.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			QuestMarks.row(_detail, st, ico, 24.0, si < cur)
-		var ph := _lbl(16, Color(Med.GILT_DEEP, 0.95))
+		var ph := _lbl(18, Med.GILT_DEEP)
 		ph.text = "WHAT IT PAYS"
 		_detail.add_child(ph)
 		var pay := _lbl(19, INK, false)
@@ -519,5 +596,6 @@ func _cs() -> Node:
 ## its top under the band).
 func set_hosted(on: bool) -> void:
 	if _panel:
+		_tall = 800.0 if on else 860.0
 		_panel.offset_top = -330.0 if on else -430.0
-		_panel.offset_bottom = 470.0 if on else 430.0
+		_panel.offset_bottom = _panel.offset_top + (_tall if _body == null or _body.visible else 0.0)

@@ -84,6 +84,7 @@ var _d_now: Label
 var _d_lore: Label
 var _d_btn: Button
 var _d_why: Label
+var _d_now_well: Control
 var _confirm := ""                  ## a forswear waiting for a second press
 var _fx_layer: Control
 var _chime: AudioStreamPlayer
@@ -93,161 +94,8 @@ var _scroll: ScrollContainer
 var _walks: Array[Node3D] = []      ## Hearth: the fires the bells can walk to, by card id
 
 
-# --- the cards ----------------------------------------------------------------------------------
-
-class Card extends Control:
-	var menu: Node
-	var kind := ""                   ## ember | rank | oath | rite | relic | charm | head | spell | learn | core | slot | pick
-	var id := ""
-	var sub := 0                     ## spell rank (1-3), oath tier
-	var pick := ""                   ## oath side "a" | "b"
-	var glyph := ""
-	var tint := Color.WHITE
-	var title := ""
-	var line := ""
-	var pips := Vector2i.ZERO
-	var cost := 0
-	var look := "open"               ## owned | open | poor | locked | forsworn | lost
-	var selected := false
-	var flash := 0.0
-	var unit := "ASH"                ## what `cost` is counted in (a Path step costs Remembrances)
-	var compact := false             ## a spell rank: numeral and name, no medallion
-	var small := false               ## a narrow card (loadout, spell heads): small medallion, title may wrap
-	var font: Font
-
-	func _init() -> void:
-		mouse_filter = Control.MOUSE_FILTER_STOP
-
-	func _gui_input(e: InputEvent) -> void:
-		if kind == "head":
-			return
-		if e is InputEventMouseButton and (e as InputEventMouseButton).pressed and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
-			menu.call("click_card", self)
-
-	func _notification(what: int) -> void:
-		if what == NOTIFICATION_MOUSE_ENTER and kind != "head":
-			menu.call("hover_card", self)
-
-	func _draw() -> void:
-		var r := Rect2(Vector2(2, 2), size - Vector2(4, 4))
-		var rim := Color(0.86, 0.84, 0.8)
-		var icon_col := tint
-		var title_col := INK
-		match look:
-			"owned":
-				rim = Color(1.0, 0.7, 0.42)
-			"open":
-				rim = Color(1.1, 0.92, 0.6)
-			"poor":
-				rim = Color(0.8, 0.74, 0.7)
-			"locked", "lost":
-				rim = Color(0.5, 0.46, 0.44, 0.85)
-				icon_col = Color(tint.darkened(0.55), 0.7)
-				title_col = DIM
-			"forsworn":
-				rim = Color(0.38, 0.34, 0.34, 0.8)
-				icon_col = Color(tint.darkened(0.6), 0.5)
-				title_col = DIM
-		if selected:
-			rim = Color(minf(rim.r * 1.35, 1.6), minf(rim.g * 1.35, 1.6), minf(rim.b * 1.35, 1.6), rim.a)
-		if kind != "head":
-			draw_style_box(Med.slot(rim), r)
-		if look == "owned" and kind != "head":
-			draw_rect(Rect2(r.position + Vector2(6, 2), Vector2(r.size.x - 12, 2)), Color(1.0, 0.6, 0.3, 0.55))
-		var f := font if font else ThemeDB.fallback_font
-		if compact:
-			_draw_compact(r, f, icon_col, title_col)
-		else:
-			_draw_full(r, f, icon_col, title_col)
-		# the corner tag: what it costs, or what it is now
-		if kind != "head":
-			var tag := ""
-			var tc := DIM
-			if look == "owned" and kind == "pick":
-				pass                       # "On [F]" says it already; the tag would print over a wrapped line
-			elif look == "owned":
-				tag = {"charm": "WORN", "oath": "SWORN", "relic": "", "slot": "CHOSEN", "pick": "ON THE BAR", "core": "IN THE ORB", "spell": "",
-					"path": "REMEMBERED", "service": "OPEN", "hearth": "BURNING", "walk": "", "tithe": "WARDED"}.get(kind, "KINDLED")
-				tc = Color(1.0, 0.7, 0.42, 0.95)
-			elif look == "forsworn":
-				tag = "FORSWORN"
-			elif cost > 0:
-				tag = "%d %s" % [cost, unit]
-				tc = EMBER if look == "open" else (Color(WARN, 0.9) if look == "poor" else DIM)
-			if tag != "":
-				draw_string(f, Vector2(r.end.x - 150, r.end.y - 12), tag, HORIZONTAL_ALIGNMENT_RIGHT, 138, 13, tc)
-		if flash > 0.0:
-			var fl := StyleBoxFlat.new()
-			fl.bg_color = Color(1.0, 0.7, 0.35, 0.35 * flash)
-			fl.set_corner_radius_all(5)
-			draw_style_box(fl, r)
-
-	## Medallion on the left, title, up to three lines, rank pips along the bottom.
-	func _draw_full(r: Rect2, f: Font, icon_col: Color, title_col: Color) -> void:
-		var mr := minf(18.0 if small else 30.0, r.size.y * 0.28)
-		var mc := Vector2(r.position.x + 16 + mr, r.position.y + r.size.y * 0.5 - (8.0 if pips.y > 0 else 0.0))
-		if kind == "head":
-			mc = Vector2(r.position.x + 10 + mr, r.position.y + r.size.y * 0.5)
-		draw_circle(mc, mr, Color(0.02, 0.01, 0.03, 0.95))
-		if look == "owned":
-			draw_circle(mc, mr, Color(1.0, 0.5, 0.2, 0.12))
-		draw_arc(mc, mr, 0, TAU, 40, Color(icon_col, 0.75), 1.5, true)
-		Icons.draw(self, glyph, mc, mr * 0.55, icon_col)
-		if look == "locked":
-			_lock(mc + Vector2(mr * 0.7, mr * 0.7))
-		var tx := mc.x + mr + 14
-		var tw := r.end.x - tx - 10
-		var ty := r.position.y + 30
-		if small:
-			var tl := f.get_multiline_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, tw, 15, 2).y
-			draw_multiline_string(f, Vector2(tx, ty - 6), title, HORIZONTAL_ALIGNMENT_LEFT, tw, 15, 2, title_col)
-			ty += maxf(0.0, tl - 22.0) - 6.0
-		else:
-			draw_string(f, Vector2(tx, ty), title, HORIZONTAL_ALIGNMENT_LEFT, tw, 17 if kind != "head" else 16, title_col)
-		if line != "":
-			var lines := clampi(int((r.size.y - 52.0) / 18.0), 1, 3)
-			draw_multiline_string(ThemeDB.fallback_font, Vector2(tx, ty + 22), line, HORIZONTAL_ALIGNMENT_LEFT, tw, 14, lines, Color(QUIET, 0.95 if look != "locked" and look != "forsworn" and look != "lost" else 0.62))
-		if pips.y > 0:
-			for i in pips.y:
-				var pc := Vector2(tx + 6 + i * 22, r.end.y - 17)
-				var d := PackedVector2Array([pc + Vector2(0, -6), pc + Vector2(5, 0), pc + Vector2(0, 6), pc + Vector2(-5, 0)])
-				if i < pips.x:
-					draw_colored_polygon(d, EMBER)
-					draw_circle(pc, 2.0, EMBER_HOT)
-				else:
-					d.append(d[0])
-					draw_polyline(d, Color(QUIET, 0.6), 1.2, true)
-
-	## A spell rank: the numeral large, the rank's name under it, a flame on the rank that
-	## changes the spell, the cost or KINDLED in the corner.
-	func _draw_compact(r: Rect2, f: Font, icon_col: Color, title_col: Color) -> void:
-		var num_col := EMBER if look == "owned" else (INK if look == "open" else DIM)
-		draw_string(f, r.position + Vector2(14, 36), ROMAN[sub], HORIZONTAL_ALIGNMENT_LEFT, 60, 28, num_col)
-		draw_string(f, r.position + Vector2(14, 64), title, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24, 16, title_col)
-		if sub == 3:
-			Icons.draw(self, "will", r.position + Vector2(r.size.x - 22, 22), 9.0, Color(icon_col, 0.9))
-		if look == "locked":
-			_lock(r.position + Vector2(r.size.x - 22 - (24.0 if sub == 3 else 0.0), 22))
-
-	func _lock(c: Vector2) -> void:
-		draw_rect(Rect2(c + Vector2(-6, -2), Vector2(12, 9)), DIM)
-		draw_arc(c + Vector2(0, -2), 4.5, PI, TAU, 10, DIM, 1.8)
-
-
-class Glyph extends Control:
-	var glyph := ""
-	var tint := Color.WHITE
-	var lit := false
-
-	func _draw() -> void:
-		var c := size * 0.5
-		var r := minf(size.x, size.y) * 0.5 - 3.0
-		draw_circle(c, r, Color(0.02, 0.01, 0.03, 0.95))
-		if lit:
-			draw_circle(c, r, Color(1.0, 0.5, 0.2, 0.14))
-		draw_arc(c, r, 0, TAU, 56, Color(tint, 0.8), 2.0, true)
-		draw_arc(c, r - 6, 0, TAU, 56, Color(tint, 0.25), 1.0, true)
-		Icons.draw(self, glyph, c, r * 0.55, tint)
+const Card := preload("res://ui/growth_card.gd")
+const Glyph := Card.Glyph
 
 
 # --- building -----------------------------------------------------------------------------------
@@ -336,7 +184,7 @@ func _build() -> void:
 	arow.add_child(mound)
 	_ash_label = _label("0", 34, EMBER_HOT)
 	arow.add_child(_ash_label)
-	var al := _label("GRAVE ASH", 14, QUIET)
+	var al := _label("GRAVE ASH", 15, QUIET)
 	al.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	arow.add_child(al)
 	_fire_label = _label("", 15, QUIET)
@@ -389,44 +237,51 @@ func _build() -> void:
 	irow.add_theme_constant_override("separation", 16)
 	info.add_child(irow)
 	_d_icon = Glyph.new()
-	_d_icon.custom_minimum_size = Vector2(92, 92)
+	_d_icon.custom_minimum_size = Vector2(104, 104)
+	_d_icon.socket = true
 	irow.add_child(_d_icon)
 	var nbox := VBoxContainer.new()
 	nbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	nbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	irow.add_child(nbox)
-	_d_name = _label("", 24, INK)
+	_d_name = _label("", 26, Med.GILT)
+	Med.gilt(_d_name, 26)
 	_d_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_d_name.custom_minimum_size = Vector2(300, 0)
 	nbox.add_child(_d_name)
-	_d_kind = _label("", 13, QUIET)
+	_d_kind = _label("", 15, QUIET)
 	nbox.add_child(_d_kind)
 	info.add_child(Med.rule())
-	_d_text = _wrap(17, Med.BONE)
+	_d_text = _wrap(18, Med.BONE, _body_font)
 	info.add_child(_d_text)
-	_d_now = _wrap(15, EMBER)
-	info.add_child(_d_now)
+	_d_now = _wrap(16, Color(0.85, 0.77, 0.6), _body_font)
+	var now_well := PanelContainer.new()
+	now_well.add_theme_stylebox_override("panel", Med.inset(10))
+	now_well.add_child(_d_now)
+	_d_now_well = now_well
+	info.add_child(now_well)
 	_d_lore = _wrap(16, Med.BONE_DIM, _body_font)
+	_d_lore.add_theme_color_override("font_color", Color(0.78, 0.7, 0.56))
 	info.add_child(_d_lore)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	info.add_child(spacer)
-	_d_why = _wrap(15, WARN)
+	_d_why = _wrap(15, WARN, _body_font)
 	info.add_child(_d_why)
 	_d_btn = Button.new()
-	_d_btn.custom_minimum_size = Vector2(0, 50)
+	_d_btn.custom_minimum_size = Vector2(0, 58)
 	_d_btn.focus_mode = Control.FOCUS_NONE
 	_d_btn.add_theme_font_override("font", _title_font)
-	_d_btn.add_theme_font_size_override("font_size", 18)
+	_d_btn.add_theme_font_size_override("font_size", 20)
 	_d_btn.add_theme_color_override("font_color", EMBER_HOT)
 	_d_btn.add_theme_color_override("font_hover_color", Color(1, 0.95, 0.85))
-	_d_btn.add_theme_color_override("font_disabled_color", DIM)
-	Med.style_button(_d_btn, 18, 16, 8)
+	_d_btn.add_theme_color_override("font_disabled_color", QUIET)
+	Med.style_button(_d_btn, 20, 16, 10)
 	_d_btn.pressed.connect(act)
 	info.add_child(_d_btn)
 	# footer
 	col.add_child(Med.rule(Color(Med.BRONZE, 0.6), false))
-	_foot = _label("", 15, QUIET)
+	_foot = _label("", 14, QUIET)
 	_foot_refresh()
 	var foot := _foot
 	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -663,12 +518,15 @@ func _rebuild() -> void:
 
 func _heading(t: String, note := "") -> void:
 	var h := HBoxContainer.new()
-	var l := _label(t.to_upper(), 14, QUIET)
+	var l := _label(t.to_upper(), 19, Med.GILT_DEEP)
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(l)
 	if note != "":
-		h.add_child(_label(note, 13, DIM))
+		var n := _label(note, 15, QUIET, _body_font)
+		n.size_flags_vertical = Control.SIZE_SHRINK_END
+		h.add_child(n)
 	_page_box.add_child(h)
+	_page_box.add_child(Med.rule(Color(Med.BRONZE, 0.55), false))
 
 
 func _card(kind: String, id: String, w: float, h: float) -> Card:
@@ -708,7 +566,7 @@ func _page_embers() -> void:
 	var k := _k()
 	for e: Dictionary in DB.EMBERS:
 		var id := String(e.id)
-		var c := _card("ember", id, 384, 118)
+		var c := _card("ember", id, 384, 128)
 		var r := DB.rank(_st(), id)
 		var nx := DB.next_of(_st(), id)
 		c.glyph = String(e.glyph)
@@ -735,7 +593,7 @@ func _page_spells() -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
 		_page_box.add_child(row)
-		var head := _card("learn" if learnable and not known else "spell", id, 216, 92)
+		var head := _card("learn" if learnable and not known else "spell", id, 216, 104)
 		head.small = true
 		head.glyph = String(sp.glyph)
 		head.tint = sp.color
@@ -748,10 +606,10 @@ func _page_spells() -> void:
 		elif not known:
 			head.line = "Not yet taught"              # r35: the story teaches it (kindling.gd teach)
 		else:
-			head.line = "Rank %s" % (ROMAN[r] if r > 0 else "-")
+			head.line = "Rank %s" % ROMAN[r] if r > 0 else "Not kindled"
 		row.add_child(head)
 		for i in 3:
-			var c := _card("rank", id, 184, 92)
+			var c := _card("rank", id, 184, 104)
 			c.compact = true
 			c.sub = i + 1
 			c.glyph = String(sp.glyph)
@@ -782,7 +640,7 @@ func _page_staff() -> void:
 	for c: Dictionary in DB.CORES:
 		var id := String(c.id)
 		var have := id == "" or Travel.count(id) > 0
-		var card := _card("core", id, 384, 124)
+		var card := _card("core", id, 384, 140)
 		card.glyph = String(c.glyph)
 		card.tint = c.tint
 		card.title = String(c.name) if have or c.has("forge") else "A lost core"
@@ -813,7 +671,7 @@ func _page_loadout() -> void:
 	_page_box.add_child(row)
 	for i in 4:
 		var sp := DB.spell(String(lo[i]))
-		var c := _card("slot", String(lo[i]), 188, 110)
+		var c := _card("slot", String(lo[i]), 188, 104)
 		c.small = true
 		c.sub = i + 1
 		if sp.is_empty():
@@ -842,7 +700,7 @@ func _page_loadout() -> void:
 		if id == "bolt":
 			continue
 		var known := DB.knows(st, id)
-		var c := _card("pick", id, 188, 92)
+		var c := _card("pick", id, 188, 104)
 		c.small = true
 		c.glyph = String(sp.glyph)
 		c.tint = sp.color
@@ -853,7 +711,7 @@ func _page_loadout() -> void:
 		grid.add_child(c)
 	_heading("Combos", "spells that feed each other")
 	for cb: Array in COMBOS:
-		var h := _card("head", String(cb[0]), 784, 66)
+		var h := _card("head", String(cb[0]), 784, 84)
 		h.glyph = "will"
 		h.tint = Color(0.9, 0.6, 1.0)
 		h.title = "%s%s" % [cb[0], ("   x%d" % int(Combo.count[cb[0]])) if Combo.count.has(cb[0]) else ""]
@@ -890,7 +748,7 @@ func _page_oaths() -> void:
 				orl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 				row.add_child(orl)
 			var od: Dictionary = o[side]
-			var c := _card("oath", String(od.id), 336, 132)
+			var c := _card("oath", String(od.id), 336, 166)
 			c.sub = tier
 			c.pick = side
 			c.glyph = String(od.glyph)
@@ -917,7 +775,7 @@ func _page_relics() -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 12)
 		_page_box.add_child(row)
-		var c := _card("relic", item, 384, 124)
+		var c := _card("relic", item, 384, 140)
 		c.glyph = Icons.item_glyph(item)
 		c.tint = d.tint
 		c.title = String(d.name) if have else "Unclaimed"
@@ -938,7 +796,7 @@ func _page_relics() -> void:
 				rite = r
 		if rite.is_empty():
 			continue
-		var rc := _card("rite", String(rite.id), 384, 124)
+		var rc := _card("rite", String(rite.id), 384, 140)
 		rc.glyph = String(rite.glyph)
 		rc.tint = (d.tint as Color).lerp(EMBER, 0.3)
 		rc.title = String(rite.name)
@@ -961,7 +819,7 @@ func _page_charms() -> void:
 	for id: String in DB.CHARM_SPOTS.keys() + DB.ELITE_CHARMS.keys() + DB.QUEST_CHARMS.keys():
 		var d := ItemDB.def(id)
 		var have := Travel.count(id) > 0
-		var c := _card("charm", id, 384, 104)
+		var c := _card("charm", id, 384, 120)
 		c.glyph = Icons.item_glyph(id)
 		c.tint = d.tint
 		if have:
@@ -1025,7 +883,7 @@ func _page_paths() -> void:
 				grid.add_child(Control.new())
 				continue
 			var n: Dictionary = list[d]
-			var c := _card("path", String(n.id), 258, 100)
+			var c := _card("path", String(n.id), 258, 132)
 			c.small = true
 			c.glyph = String(n.glyph)
 			c.tint = (PathsDB.PATHS[ci].tint as Color)
@@ -1458,6 +1316,7 @@ func _show() -> void:
 	_d_why.text = why if why != "Only at a kindled fire." or verb == "" else "Only at a kindled fire. You can plan here; spend where it burns."
 	if _scroll and is_instance_valid(c):
 		_scroll.ensure_control_visible(c)
+	_d_now_well.visible = _d_now.text != ""
 	_d_btn.visible = verb != ""
 	_d_btn.text = verb
 	_d_btn.disabled = why != "" and not (c.kind == "oath" and DB.oath(st, c.sub) == c.pick and at_fire())
