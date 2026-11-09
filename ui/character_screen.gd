@@ -17,6 +17,7 @@ extends CanvasLayer
 
 const UIType := preload("res://ui/type.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
+const W := preload("res://ui/gear_widgets.gd")
 
 const Med := preload("res://ui/medieval_style.gd")
 const INK := Med.BONE
@@ -39,7 +40,8 @@ const TABS := [
 ## the old keys still work: each opens (or, on its own page, closes) the screen at its page
 const JUMPS := [["gear", "wanderer", "gear"], ["kindling", "kindling", ""], ["codex", "journal", ""], ["quest_log", "journal", "tasks"]]
 const PACK_GROUPS := ["trophy", "material"]
-const BAR_Y := 26.0
+const BAR_Y := 14.0
+const BAND_H := 134.0
 
 var _top := 0
 var _sub: Array[int] = [0, 0, 0, 0]
@@ -50,8 +52,9 @@ var _panel: Node = null                    ## the hosted panel showing now
 var _root: Control
 var _top_btns: Array[Button] = []
 var _sub_row: HBoxContainer
+var _sub_keys: Array[Control] = []         ## the Q / E badges at the strip's ends
 var _trig := [false, false]                ## pad LT / RT held (edge detect on the axes)
-var _hint: Label
+var _hint: HBoxContainer                  ## the key hints: a badge and a word each
 var _backdrop: CanvasLayer                 ## a dim under every page (layer 58): pages without their own dim
 
 
@@ -77,15 +80,26 @@ func is_open() -> bool:
 	return _open
 
 
-## The close word names every key bound to inventory (Tab and I by default); Q and E are the physical page keys.
+## The hints are key badges with a word each. The close word names every key bound to inventory (Tab and I by
+## default); Q and E are the physical page keys.
 func _hint_refresh() -> void:
 	if _hint == null:
 		return
+	for c in _hint.get_children():
+		c.queue_free()
 	var names := PackedStringArray()
 	for ev in InputMap.action_get_events("inventory"):
 		if InputSetup.slot_of(ev) == "key":
 			names.append(InputSetup.event_name(ev))
-	_hint.text = "[1-4] tabs   ·   [Q] [E] pages   ·   [%s] close" % " / ".join(names if not names.is_empty() else PackedStringArray(["Tab"]))
+	var close_keys := " / ".join(names if not names.is_empty() else PackedStringArray(["Tab"]))
+	for h: Array in [["1-4", "Tabs"], ["Q  E", "Pages"], [close_keys, "Close"]]:
+		var one := HBoxContainer.new()
+		one.add_theme_constant_override("separation", 6)
+		one.add_child(W.badge(String(h[0]), 15))
+		var l := W.label(String(h[1]), 15, DIM)
+		l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		one.add_child(l)
+		_hint.add_child(one)
 
 
 ## Open at `top` (a tab id) and `page` (a page id). A page you were not sent to is the tab's first, not a stale
@@ -331,6 +345,26 @@ func _page_index(ti: int, id: String) -> int:
 
 # --- the bar --------------------------------------------------------------------------------------
 
+## A gilt lower edge for the header: a bright line with a dark one under it, a lozenge at the centre.
+class Edge extends Control:
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		var cx := size.x * 0.5
+		for i in 40:
+			var f := absf(float(i) / 40.0 - 0.5) * 2.0
+			var x0 := size.x * float(i) / 40.0
+			var x1 := size.x * float(i + 1) / 40.0
+			draw_line(Vector2(x0, 2), Vector2(x1, 2), Color(Med.GILT, 0.9 - 0.55 * f), 2.0)
+			draw_line(Vector2(x0, 4.5), Vector2(x1, 4.5), Color(0, 0, 0, 0.6), 1.0)
+		var d := 6.0
+		var y := 2.0
+		draw_colored_polygon(PackedVector2Array([Vector2(cx - d - 3, y), Vector2(cx, y - d - 3), Vector2(cx + d + 3, y), Vector2(cx, y + d + 3)]), Color(0.05, 0.03, 0.02))
+		draw_colored_polygon(PackedVector2Array([Vector2(cx - d, y), Vector2(cx, y - d), Vector2(cx + d, y), Vector2(cx, y + d)]), Med.GILT)
+		draw_colored_polygon(PackedVector2Array([Vector2(cx - d, y), Vector2(cx, y - d), Vector2(cx, y)]), Med.GILT.lightened(0.4))
+
+
 func _build() -> void:
 	_root = Control.new()
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -343,52 +377,78 @@ func _build() -> void:
 	band.add_theme_stylebox_override("panel", sb)
 	band.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	band.offset_top = 0.0
-	band.offset_bottom = BAR_Y + 108.0
+	band.offset_bottom = BAND_H
 	band.mouse_filter = Control.MOUSE_FILTER_STOP
 	_root.add_child(band)
+	var edge := Edge.new()
+	edge.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	edge.offset_top = BAND_H - 9.0
+	edge.offset_bottom = BAND_H + 1.0
+	_root.add_child(edge)
 	var col := VBoxContainer.new()
 	col.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	col.offset_top = BAR_Y
 	col.add_theme_constant_override("separation", 8)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(col)
 	var top := HBoxContainer.new()
 	top.alignment = BoxContainer.ALIGNMENT_CENTER
 	top.add_theme_constant_override("separation", 10)
 	col.add_child(top)
 	for i in TABS.size():
-		var b := _button("%d  %s" % [i + 1, String(TABS[i][1]).to_upper()], 22, Vector2(230, 44))
+		var b := _button("%d  %s" % [i + 1, String(TABS[i][1]).to_upper()], 22, Vector2(230, 48))
 		var idx := i
 		b.pressed.connect(func() -> void: _go_top(idx))
 		top.add_child(b)
 		_top_btns.append(b)
+	# the second tier: a recessed strip under the tabs, centred, the page keys at its ends
+	var strip := HBoxContainer.new()
+	strip.alignment = BoxContainer.ALIGNMENT_CENTER
+	strip.add_theme_constant_override("separation", 10)
+	col.add_child(strip)
+	var well := PanelContainer.new()
+	well.add_theme_stylebox_override("panel", Med.inset(5))
+	strip.add_child(well)
+	var inner := HBoxContainer.new()
+	inner.add_theme_constant_override("separation", 10)
+	well.add_child(inner)
+	inner.add_child(W.badge("Q", 15))
 	_sub_row = HBoxContainer.new()
 	_sub_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_sub_row.add_theme_constant_override("separation", 6)
-	col.add_child(_sub_row)
-	var hint := Label.new()
-	_hint = hint
+	_sub_row.custom_minimum_size = Vector2(300, 0)
+	inner.add_child(_sub_row)
+	inner.add_child(W.badge("E", 15))
+	_sub_keys = [inner.get_child(0), inner.get_child(2)]
+	_hint = HBoxContainer.new()
+	_hint.add_theme_constant_override("separation", 18)
+	_hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_hint.offset_right = -30.0
+	_hint.offset_top = BAR_Y + 12.0
+	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_hint)
 	_hint_refresh()
-	hint.add_theme_font_override("font", UIType.body())
-	hint.add_theme_font_size_override("font_size", 15)
-	hint.add_theme_color_override("font_color", DIM)
-	hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	hint.offset_left = -470.0
-	hint.offset_right = -28.0
-	hint.offset_top = BAR_Y + 12.0
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_root.add_child(hint)
 
 
 func _refresh_bar() -> void:
 	for i in _top_btns.size():
 		_top_btns[i].button_pressed = i == _top
 	for c in _sub_row.get_children():
+		_sub_row.remove_child(c)
 		c.queue_free()
 	var pages: Array = TABS[_top][2]
-	if pages.size() <= 1:
+	for k: Control in _sub_keys:
+		k.visible = pages.size() > 1
+	if pages.size() <= 1:                       # one page: its name stands in the strip, so the tier is never empty
+		var only := W.label(String(pages[0][1]).to_upper(), 16, Med.GILT, UIType.title())
+		only.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		only.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		only.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_sub_row.add_child(only)
 		return
 	for i in pages.size():
-		var b := _button(String(pages[i][1]).to_upper(), 15, Vector2(0, 32))
+		var b := _button(String(pages[i][1]).to_upper(), 16, Vector2(0, 34))
 		b.button_pressed = i == _sub[_top]
 		var idx := i
 		b.pressed.connect(func() -> void:

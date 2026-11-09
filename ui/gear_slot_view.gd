@@ -126,11 +126,19 @@ func _draw() -> void:
 		draw_circle(c2, 10.0, Color(0.05, 0.03, 0.02, 0.85))
 		draw_arc(c2, 10.0, 0.0, TAU, 20, Med.GILT, 1.6)
 		draw_polyline(PackedVector2Array([c2 + Vector2(-4.5, 0.5), c2 + Vector2(-1.2, 4), c2 + Vector2(5, -3.5)]), Med.GILT, 2.0)
-	if selected or has_focus() or _hover:
-		var edge := Color(1.0, 0.92, 0.62) if (selected or has_focus()) else Color(Med.GILT, 0.55)
-		draw_rect(box.grow(1), edge, false, 2.5 if (selected or has_focus()) else 1.5)
-		if selected or has_focus():
-			draw_rect(box.grow(4), Color(Med.GILT, 0.28), false, 2.0)
+	if selected or has_focus():
+		# the lit socket: a warm wash over it, a bright gilt rim, and corner brackets standing off the frame
+		draw_rect(box, Color(Med.GILT, 0.1))
+		draw_rect(box.grow(1), Color(1.0, 0.92, 0.62), false, 2.5)
+		draw_rect(box.grow(4), Color(Med.GILT, 0.3), false, 2.0)
+		var L := 11.0
+		var g := box.grow(5)
+		for k: Array in [[g.position, Vector2(1, 1)], [Vector2(g.end.x, g.position.y), Vector2(-1, 1)], [Vector2(g.position.x, g.end.y), Vector2(1, -1)], [g.end, Vector2(-1, -1)]]:
+			var o: Vector2 = k[0]
+			var dv: Vector2 = k[1]
+			draw_polyline(PackedVector2Array([o + Vector2(dv.x * L, 0), o, o + Vector2(0, dv.y * L)]), Color(Med.GILT, 0.95), 2.5)
+	elif _hover:
+		draw_rect(box.grow(1), Color(Med.GILT, 0.55), false, 1.5)
 	if caption != "":
 		var fs3 := 14
 		var tf := UIType.title()

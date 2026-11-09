@@ -15,11 +15,14 @@ const Icons := preload("res://core/life/progression/icons.gd")
 const GearIcons := preload("res://ui/gear_icons.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const UIType := preload("res://ui/type.gd")
+const W := preload("res://ui/gear_widgets.gd")
 
 const Med := preload("res://ui/medieval_style.gd")
 const INK := Med.BONE
 const QUIET := Med.BONE_DIM
 const LEAVE_R := 5.0
+const PANEL_W := 500.0
+const ROW_H := 66.0
 
 var bag: Node3D
 var sel := 0
@@ -51,45 +54,61 @@ func _build() -> void:
 	add_child(_root)
 	_panel = PanelContainer.new()
 	_panel.theme = Med.theme()
-	_panel.add_theme_stylebox_override("panel", Med.panel("leather", 30))
-	_panel.position = Vector2(140, 220)
-	_panel.custom_minimum_size = Vector2(360, 0)
+	_panel.add_theme_stylebox_override("panel", Med.panel("leather", 32))
+	_panel.position = Vector2(110, 190)
+	_panel.custom_minimum_size = Vector2(PANEL_W, 0)
 	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_root.add_child(_panel)
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 10)
 	_panel.add_child(col)
 	_title = Label.new()
-	Med.gilt(_title, 22)
+	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	Med.gilt(_title, 28)
 	col.add_child(_title)
 	col.add_child(Med.rule())
+	var well := PanelContainer.new()
+	well.add_theme_stylebox_override("panel", Med.inset(8))
+	col.add_child(well)
 	_rows_box = VBoxContainer.new()
 	_rows_box.add_theme_constant_override("separation", 4)
-	col.add_child(_rows_box)
+	well.add_child(_rows_box)
 	var btns := HBoxContainer.new()
-	btns.add_theme_constant_override("separation", 8)
+	btns.add_theme_constant_override("separation", 12)
 	col.add_child(btns)
-	btns.add_child(_button("Take all [%s]" % Interactable.prompt_key(), take_all))
-	btns.add_child(_button("Close [Esc]", close))
+	btns.add_child(_button("Take all", Interactable.prompt_key(), take_all))
+	btns.add_child(_button("Close", "Esc", close))
 	_hint = Label.new()
 	_hint.add_theme_font_override("font", _font)
-	_hint.add_theme_font_size_override("font_size", 14)
+	_hint.add_theme_font_size_override("font_size", 15)
 	_hint.add_theme_color_override("font_color", QUIET)
-	_hint.text = "Click or press 1-9 to take one."
+	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint.text = "Click a row, or press 1-9, to take just that one."
 	col.add_child(_hint)
-	_tip = Tip.panel(_font, 340.0)
+	_tip = Tip.panel(_font, 400.0)
 	_tip.visible = false
 	_root.add_child(_tip)
 
 
-func _button(t: String, cb: Callable) -> Button:
+## A plaque with its name and its key badge, equal width beside its twin.
+func _button(t: String, key: String, cb: Callable) -> Button:
 	var b := Button.new()
-	b.text = t
 	b.focus_mode = Control.FOCUS_NONE
-	b.add_theme_font_override("font", _font)
-	b.add_theme_font_size_override("font_size", 16)
-	Med.style_button(b, 16, 12, 5)
+	b.custom_minimum_size = Vector2(0, 54)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	Med.style_button(b, 18, 12, 6)
 	b.pressed.connect(cb)
+	var row := HBoxContainer.new()
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var l := W.label(t, 20, INK, UIType.title())
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(l)
+	row.add_child(W.badge(key, 14))
+	b.add_child(row)
 	return b
 
 
@@ -147,35 +166,39 @@ func _rebuild() -> void:
 		var row := Button.new()
 		row.flat = true
 		row.focus_mode = Control.FOCUS_NONE
-		row.custom_minimum_size = Vector2(340, 50)
+		row.custom_minimum_size = Vector2(PANEL_W - 76.0, ROW_H)
 		row.mouse_entered.connect(func() -> void:
 			sel = i
 			_mark())
 		row.pressed.connect(func() -> void: take(i))
 		var ic := Control.new()
 		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ic.position = Vector2(4, 3)
-		ic.size = Vector2(44, 44)
+		ic.position = Vector2(6, 5)
+		ic.size = Vector2(56, 56)
 		ic.draw.connect(func() -> void: _draw_icon(ic, e, q))
 		row.add_child(ic)
 		var nm := Label.new()
 		nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		nm.add_theme_font_override("font", _font)
-		nm.add_theme_font_size_override("font_size", 17)
-		nm.add_theme_color_override("font_color", LootDB.quality_color(q).lightened(0.1))
+		nm.add_theme_font_size_override("font_size", 20)
+		nm.add_theme_color_override("font_color", LootDB.quality_color(q).lightened(0.2))
 		nm.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-		nm.position = Vector2(58, 4)
-		nm.size = Vector2(270, 24)
+		nm.position = Vector2(74, 6)
+		nm.size = Vector2(PANEL_W - 76.0 - 74.0 - 44.0, 28)
 		nm.clip_text = true
 		nm.text = LootBag.entry_name(e)
 		row.add_child(nm)
 		var sub := Label.new()
 		sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		sub.add_theme_font_size_override("font_size", 13)
+		sub.add_theme_font_override("font", _font)
+		sub.add_theme_font_size_override("font_size", 15)
 		sub.add_theme_color_override("font_color", QUIET)
-		sub.position = Vector2(58, 27)
-		sub.text = "%d  ·  %s" % [i + 1, _sub(e, q)]
+		sub.position = Vector2(74, 34)
+		sub.text = _sub(e, q)
 		row.add_child(sub)
+		var key := W.badge(str(i + 1), 14)       # the number that takes it
+		key.position = Vector2(PANEL_W - 76.0 - 40.0, (ROW_H - 28.0) * 0.5)
+		row.add_child(key)
 		_rows_box.add_child(row)
 		_rows.append(row)
 	_mark()
@@ -184,7 +207,7 @@ func _rebuild() -> void:
 func _sub(e: Dictionary, q: int) -> String:
 	if String(e.get("kind", "")) == "gear":
 		var p: Dictionary = e.get("piece", {})
-		return "%s %s  ·  ilvl %d" % [LootDB.quality_name(q), String(GearDB.SLOT_NAMES.get(String(p.get("slot", "")), "")), GearDB.item_level(p)]
+		return "%s %s  ·  Item Level %d" % [LootDB.quality_name(q), String(GearDB.SLOT_NAMES.get(String(p.get("slot", "")), "")), GearDB.item_level(p)]
 	return "%s %s" % [LootDB.quality_name(q), String(ItemDB.def(String(e.get("id", ""))).get("kind", "")).capitalize()]
 
 
@@ -196,7 +219,7 @@ func _draw_icon(ci: Control, e: Dictionary, q: int) -> void:
 		var p: Dictionary = e.get("piece", {})
 		GearIcons.draw_piece(ci, p, Rect2(Vector2(3, 3), ci.size - Vector2(6, 6)))
 	else:
-		if not Icons.item(ci, String(e.get("id", "")), c, 14.0):
+		if not Icons.item(ci, String(e.get("id", "")), c, ci.size.x * 0.34):
 			ci.draw_circle(c, 9.0, col)
 
 
@@ -205,9 +228,10 @@ func _mark() -> void:
 	for i in _rows.size():
 		var on := i == sel
 		var s := StyleBoxFlat.new()
-		s.bg_color = Color(0.36, 0.22, 0.09, 0.55) if on else Color(0, 0, 0, 0)
-		s.border_color = Color(Med.GILT, 0.6) if on else Color(0, 0, 0, 0)
-		s.set_border_width_all(1)
+		s.bg_color = Color(0.42, 0.26, 0.1, 0.55) if on else Color(0, 0, 0, 0)
+		s.border_color = Color(Med.GILT, 0.85) if on else Color(0, 0, 0, 0)
+		s.set_border_width_all(2)
+		s.set_corner_radius_all(3)
 		_rows[i].add_theme_stylebox_override("normal", s)
 		_rows[i].add_theme_stylebox_override("hover", s)
 	if sel < 0 or sel >= es.size():
@@ -219,9 +243,9 @@ func _mark() -> void:
 		var p: Dictionary = e.get("piece", {})
 		var st := GearStats.state()
 		var cur: Dictionary = GearStats.worn(st).get(String(p.get("slot", "")), {})
-		Tip.set_text(_tip, Tip.piece(p, cur, st), q)
+		Tip.set_text(_tip, Tip.piece(p, cur, st, {"head": false, "blocks": true}), q, String(p.get("name", "?")))
 	else:
-		Tip.set_text(_tip, Tip.item(String(e.get("id", "")), int(e.get("n", 1))), q)
+		Tip.set_text(_tip, Tip.item(String(e.get("id", "")), int(e.get("n", 1)), {"head": false, "blocks": true}), q, LootBag.entry_name(e))
 	_tip.visible = true
 	_tip.reset_size()
 	_tip.position = _panel.position + Vector2(maxf(_panel.size.x, _panel.get_combined_minimum_size().x) + 16.0, 0)
@@ -266,6 +290,8 @@ func _after() -> void:
 func _process(_delta: float) -> void:
 	if not _root.visible:
 		return
+	if _tip.visible and _tip.size.y > _tip.get_combined_minimum_size().y + 1.0:
+		_tip.reset_size()                        # the card's wrapped text settles a frame after it is filled: shrink to it
 	if bag == null or not is_instance_valid(bag) or bag.is_queued_for_deletion():
 		close()
 		return

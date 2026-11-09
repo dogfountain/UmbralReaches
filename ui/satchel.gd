@@ -9,10 +9,15 @@ extends CanvasLayer
 
 const UiSound := preload("res://ui/ui_sound.gd")
 const GearRuntime := preload("res://core/items/gear_runtime.gd")
-const SLOT := 92.0
+const SLOT := 84.0
+const COLS := 6
+const MIN_CELLS := 12                  ## every group shows at least this many sockets, the empty ones too
 const GROUPS := [["relic", "Relics"], ["trophy", "Trophies"], ["core", "Staff Cores"], ["charm", "Charms"], ["material", "Materials"]]
 const _PROG := preload("res://core/life/progression/icons.gd")   # progression: charm icons, worn notes
 const Med := preload("res://ui/medieval_style.gd")
+const Tip := preload("res://ui/item_tooltip.gd")
+const Card := preload("res://ui/item_card.gd")
+const UIType := preload("res://ui/type.gd")
 const INK := Med.BONE
 const QUIET := Med.BONE_DIM
 const EDGE := Med.BRONZE
@@ -25,9 +30,7 @@ var only_groups: Array = []         ## r35: show only these GROUPS kinds (the Pa
 var _links: Array[Control] = []
 var _title_lbl: Label     ## the header's Journal / Gear / Kindling / Close links
 var _grid_box: VBoxContainer
-var _name: Label
-var _kind: Label
-var _text: Label
+var _card: PanelContainer           ## the selected item's card (ui/item_card.gd)
 var _empty: Label
 var _slots: Array[Slot] = []
 var _sel := 0
@@ -35,8 +38,17 @@ var _was_captured := false
 var _font: Font
 var _feed: VBoxContainer
 var _attune := false
-var _hint: Label
-var _flav: RichTextLabel
+var _count: Label
+
+
+## A socket with nothing in it: the same rim as a full one, dimmer, so a group reads as a shelf with room left.
+class Hollow extends Control:
+	func _init() -> void:
+		custom_minimum_size = Vector2(SLOT, SLOT)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		draw_style_box(Med.slot(Color(0.62, 0.58, 0.55)), Rect2(Vector2.ZERO, size))
 
 
 class Slot extends Control:
@@ -65,7 +77,9 @@ class Slot extends Control:
 		var qc := _LOOT.quality_color(_LOOT.item_quality(id))
 		draw_style_box(Med.slot(qc.lightened(0.45) if selected else qc), Rect2(Vector2.ZERO, size))
 		if selected:
-			draw_rect(r.grow(-3.0), Color(Med.GILT, 0.7), false, 1.0)
+			draw_rect(Rect2(Vector2.ZERO, size), Color(Med.GILT, 0.12))
+			draw_rect(Rect2(Vector2.ZERO, size).grow(1), Color(1.0, 0.92, 0.62), false, 2.5)
+			draw_rect(Rect2(Vector2.ZERO, size).grow(4), Color(Med.GILT, 0.3), false, 2.0)
 		var c := size * 0.5
 		var t: Color = d.tint
 		match "" if IconArt.art("item", id) != null else String(d.shape):   # painted art goes through _PROG.item below
@@ -104,7 +118,8 @@ class Slot extends Control:
 					draw_circle(c + Vector2(7, 6), 2, t.lightened(0.3))
 		if String(d.kind) == "material":
 			var f := ThemeDB.fallback_font
-			draw_string(f, Vector2(8, size.y - 11), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, size.x - 18, 15, INK)
+			draw_string(f, Vector2(10, size.y - 9), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, size.x - 18, 16, Color(0, 0, 0, 0.9))
+			draw_string(f, Vector2(9, size.y - 10), "x%d" % count, HORIZONTAL_ALIGNMENT_RIGHT, size.x - 18, 16, INK)
 
 
 func _ready() -> void:
@@ -134,108 +149,89 @@ func _build() -> void:
 	dim.color = Med.BACKDROP
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(dim)
-	var panel := PanelContainer.new()
+	var margin := MarginContainer.new()          # centred in the space under the character screen's header
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_top", 134)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(margin)
+	var centre := CenterContainer.new()
+	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(centre)
+	var panel := PanelContainer.new()            # the window shrinks to its content
 	panel.theme = Med.theme()
-	panel.add_theme_stylebox_override("panel", Med.panel("leather", 36))
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.custom_minimum_size = Vector2(1000, 600)
-	panel.position = Vector2(-500, -300)
-	_root.add_child(panel)
+	panel.add_theme_stylebox_override("panel", Med.panel("leather", 34))
+	centre.add_child(panel)
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 16)
+	col.add_theme_constant_override("separation", 14)
 	panel.add_child(col)
 	var head := HBoxContainer.new()
 	col.add_child(head)
-	var title := _label("SATCHEL", 30, INK)
+	var title := _label("SATCHEL", 32, INK)
 	_title_lbl = title
-	Med.gilt(title, 30)
+	Med.gilt(title, 32)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
+	_count = _label("", 17, QUIET)
+	_count.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	head.add_child(_count)
 	# lore hook: the Journal (ui/codex.gd, group "codex") opens from here too
-	var journal := Button.new()
-	journal.text = "Journal  [J]"
-	journal.flat = true
-	journal.add_theme_color_override("font_color", QUIET)
-	journal.pressed.connect(func() -> void:
+	var journal := _link("Journal  [J]", func() -> void:
 		var cx := get_tree().get_first_node_in_group("codex")
 		if cx:
 			close_menu()
 			cx.call("open_book"))
 	head.add_child(journal)
-	_links.append(journal)
 	# r33 loot: the gear panel (action "gear"; its key read from the InputMap)
-	var gear_b := Button.new()
-	gear_b.text = "Gear  [%s]" % GearRuntime._gear_key()
-	gear_b.flat = true
-	gear_b.add_theme_color_override("font_color", QUIET)
-	gear_b.pressed.connect(func() -> void:
+	var gear_b := _link("Gear  [%s]" % GearRuntime._gear_key(), func() -> void:
 		var gp := get_tree().get_first_node_in_group("gear_panel")
 		if gp:
 			close_menu()
 			gp.call("open_menu"))
 	head.add_child(gear_b)
-	_links.append(gear_b)
 	# progression hook: the Kindling ([K]; ash is spent at a lit fire)
-	var kindling := Button.new()
-	kindling.text = "Kindling  [K]"
-	kindling.flat = true
-	kindling.add_theme_color_override("font_color", QUIET)
-	kindling.pressed.connect(func() -> void:
+	var kindling := _link("Kindling  [K]", func() -> void:
 		var g := get_tree().get_first_node_in_group("growth")
 		if g:
 			close_menu()
 			g.call("open_menu"))
 	head.add_child(kindling)
-	_links.append(kindling)
-	var close := Button.new()
-	close.text = "Close  [Tab]"
-	close.flat = true
-	close.add_theme_color_override("font_color", QUIET)
-	close.pressed.connect(close_menu)
-	head.add_child(close)
-	_links.append(close)
+	head.add_child(_link("Close  [Tab]", close_menu))
+	col.add_child(Med.rule())
 	var body := HBoxContainer.new()
-	body.add_theme_constant_override("separation", 28)
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 22)
 	col.add_child(body)
+	var well := PanelContainer.new()             # the shelves: a recessed well holding the groups
+	well.add_theme_stylebox_override("panel", Med.inset(14))
+	body.add_child(well)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(560, 480)
+	scroll.custom_minimum_size = Vector2(COLS * SLOT + (COLS - 1) * 10.0 + 14.0, 430)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	body.add_child(scroll)
+	well.add_child(scroll)
 	_grid_box = VBoxContainer.new()
 	_grid_box.add_theme_constant_override("separation", 12)
 	_grid_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_grid_box)
-	var info := VBoxContainer.new()
-	info.add_theme_constant_override("separation", 10)
-	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_child(info)
-	_name = _label("", 26, INK)
-	info.add_child(_name)
-	_kind = _label("", 15, QUIET)
-	info.add_child(_kind)
-	info.add_child(Med.rule())
-	_text = Label.new()
-	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_text.custom_minimum_size = Vector2(340, 0)
-	_text.add_theme_font_size_override("font_size", 17)
-	_text.add_theme_color_override("font_color", Med.BONE)
-	info.add_child(_text)
-	_flav = RichTextLabel.new()
-	_flav.bbcode_enabled = true
-	_flav.fit_content = true
-	_flav.scroll_active = false
-	_flav.custom_minimum_size = Vector2(340, 0)
-	_flav.add_theme_font_size_override("italics_font_size", 16)
-	_flav.add_theme_font_size_override("normal_font_size", 16)
-	info.add_child(_flav)
-	_hint = _label("", 16, Med.GILT)
-	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_hint.custom_minimum_size = Vector2(340, 0)
-	info.add_child(_hint)
-	_empty = _label("Empty. Put to rest what hunts you; the great ones leave more than ash.", 17, QUIET)
+	_card = Card.make(400.0, true)
+	_card.custom_minimum_size.y = 430
+	Card.fill(_card, "", 0, "")
+	body.add_child(_card)
+	_empty = _label("Empty. Put to rest what hunts you; the great ones leave more than ash.", 18, QUIET)
 	_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_grid_box.add_child(_empty)
+
+
+## A header link: quiet text that lights on hover (these only show when the satchel stands alone).
+func _link(text: String, cb: Callable) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.flat = true
+	b.add_theme_font_override("font", UIType.body())
+	b.add_theme_font_size_override("font_size", 16)
+	b.add_theme_color_override("font_color", QUIET)
+	b.add_theme_color_override("font_hover_color", Med.GILT)
+	b.pressed.connect(cb)
+	_links.append(b)
+	return b
 
 
 func _label(t: String, size: int, c: Color) -> Label:
@@ -254,6 +250,7 @@ func _rebuild() -> void:
 			c.queue_free()
 	_slots.clear()
 	var any := false
+	var kinds := 0
 	for g: Array in GROUPS:
 		if not only_groups.is_empty() and not only_groups.has(g[0]):
 			continue
@@ -264,12 +261,14 @@ func _rebuild() -> void:
 		for id in Travel.items:
 			if not ItemDB.ORDER.has(id) and String(ItemDB.def(id).kind) == g[0] and Travel.count(id) > 0:
 				ids.append(String(id))
-		if ids.is_empty():
-			continue
+		if ids.is_empty() and only_groups.is_empty():
+			continue                              # the standalone satchel lists what you carry; the Pack page shows every shelf
 		any = true
-		_grid_box.add_child(_label(String(g[1]).to_upper(), 15, QUIET))
+		kinds += ids.size()
+		_grid_box.add_child(_label(String(g[1]).to_upper(), 18, Med.GILT_DEEP.lerp(Med.GILT, 0.35)))
+		_grid_box.add_child(Med.rule(Color(Med.BRONZE, 0.8), false))
 		var grid := GridContainer.new()
-		grid.columns = 5
+		grid.columns = COLS
 		grid.add_theme_constant_override("h_separation", 10)
 		grid.add_theme_constant_override("v_separation", 10)
 		_grid_box.add_child(grid)
@@ -280,7 +279,11 @@ func _rebuild() -> void:
 			s.owner_menu = self
 			grid.add_child(s)
 			_slots.append(s)
+		var cells := maxi(MIN_CELLS if not ids.is_empty() else COLS, int(ceil(float(ids.size()) / COLS)) * COLS)
+		for _k in cells - ids.size():
+			grid.add_child(Hollow.new())
 	_empty.visible = not any
+	_count.text = "%d kinds carried" % kinds if kinds != 1 else "1 kind carried"
 	_sel = clampi(_sel, 0, maxi(_slots.size() - 1, 0))
 	_show()
 
@@ -299,38 +302,29 @@ func _show() -> void:
 		_slots[i].selected = i == _sel
 		_slots[i].queue_redraw()
 	if _slots.is_empty():
-		_name.text = ""
-		_kind.text = ""
-		_text.text = ""
-		_flav.text = ""
+		Card.fill(_card, "", 0, "[center]\n\n%s[/center]" % Tip._c(QUIET, "Nothing carried yet.\nWhat you pick up is laid out here."))
 		return
 	var id := _slots[_sel].id
 	var d := ItemDB.def(id)
-	_name.text = String(d.name)
 	var q := _LOOT.item_quality(id)
-	_name.add_theme_color_override("font_color", _LOOT.quality_color(q).lightened(0.1))
-	var kind := _LOOT.quality_name(q) + "  ·  " + String(d.kind).capitalize()
-	var sp := _LOOT.sell_price_item(id)
-	if sp > 0:
-		kind += "  ·  sells for %d ash" % sp
-	var desc := String(d.get("desc", ""))
-	_flav.text = ("[i][color=#%s]\"%s\"[/color][/i]" % [_GOLD.to_html(false), desc.replace("[", "[lb]")]) if desc != "" else ""
-	if String(d.kind) == "material":
-		kind += "  ·  %d carried" % Travel.count(id)
-	_kind.text = kind.to_upper()
-	var txt := String(d.text) + _PROG.note(id)   # progression: a charm says whether it is worn
+	var extra := PackedStringArray()
+	var note := _PROG.note(id).strip_edges()    # progression: a charm says whether it is worn
+	if note != "":
+		extra.append(Tip._c(INK, note))
 	var rid := String(d.get("relic", ""))
-	_hint.text = ""
 	if rid != "" and Travel.relics.has(rid):
-		txt += "\n\nAttuned: %s." % String(Travel.relics[rid]).capitalize()
+		extra.append(Tip._c(INK, "Attuned: %s." % String(Travel.relics[rid]).capitalize()))
 		if _attune:
 			var opts: Array = Reliquary.VARIANTS.get(rid, [])
 			var cur: StringName = Travel.relics[rid]
 			var nxt: StringName = opts[(opts.find(cur) + 1) % opts.size()] if not opts.is_empty() else cur
-			_hint.text = "[%s] or click: attune to %s" % [Interactable.prompt_key(), String(nxt).capitalize()]
+			extra.append(Tip._c(_GOLD, "[%s] or click: attune to %s" % [Interactable.prompt_key(), String(nxt).capitalize()]))
 	elif _attune and rid == "":
-		_hint.text = "Only relics can be attuned."
-	_text.text = txt
+		extra.append(Tip._c(_GOLD, "Only relics can be attuned."))
+	var bb := Tip.item(id, Travel.count(id), {"head": false, "blocks": true})
+	if not extra.is_empty():
+		bb += "\n" + Card.DIV + "\n" + "\n".join(extra)
+	Card.fill(_card, String(d.name), q, bb)
 
 
 func _input(event: InputEvent) -> void:
@@ -358,9 +352,9 @@ func _input(event: InputEvent) -> void:
 	elif event.is_action_pressed("move_left") or event.is_action_pressed("ui_left"):
 		step = -1
 	elif event.is_action_pressed("move_back") or event.is_action_pressed("ui_down"):
-		step = 5
+		step = COLS
 	elif event.is_action_pressed("move_forward") or event.is_action_pressed("ui_up"):
-		step = -5
+		step = -COLS
 	if _attune and event.is_action_pressed("interact"):
 		try_attune()
 		get_viewport().set_input_as_handled()
