@@ -3,8 +3,9 @@ extends RefCounted
 ## the foot of the rift's west wall where the starfall pours (RealmRift.STARFALLS, z -37). Lore: the pilgrims who went
 ## down to the starwater cut a chapel where the light falls, and left their offerings in it; the Order never counted
 ## it among its own. The fall pours over its roof and across its doorway like a curtain (LavaWorks drapes the sheet
-## over whatever collision it finds, so the facade carries it); you walk down the west terraces to the lowest walk
-## (y -12), cross a jetty along the chapel's north side to the forecourt and step through the falling light.
+## over whatever collision it finds, so the facade carries it); you come down the Pilgrims' Stair
+## (tower_stair.gd: the outside of the crossing's third tower), cross its quay to the forecourt (y -12) and step through the
+## falling light.
 ## Inside: a pointed vault on ribs, six niches with carved pilgrims and candle stubs, the kneeling stone with the page
 ## cut into it and the pilgrims' reliquary (the secret: core/life/secrets/site_threshold.gd, which reads `ChapelMarker`).
 ## Model: tools/blender/wonder_threshold_chapel.py -> art/models/threshold_chapel.glb (origin: the doorway's threshold,
@@ -31,8 +32,7 @@ static func basis() -> Basis:
 func build(p_threshold, host: Node3D) -> bool:
 	t = p_threshold
 	# nothing may touch it but the rock it is keyed into and the water it stands in
-	var checks := [["chapel", Vector3(0.0, 4.1, 0.4), Vector3(4.3, 8.9, 10.4)], ["forecourt", Vector3(1.1, -1.3, 0.4), Vector3(6.7, 2.6, 1.6)],
-		["jetty", Vector3(3.3, 2.15, 0.4), Vector3(2.6, 4.3, 1.6)]]
+	var checks := [["chapel", Vector3(0.0, 4.1, 0.4), Vector3(4.3, 8.9, 10.4)], ["forecourt", Vector3(1.1, -1.3, 0.4), Vector3(6.7, 2.6, 1.6)]]
 	var ok := true
 	for c: Array in checks:
 		var wc := to_world(c[1])
@@ -47,7 +47,8 @@ func build(p_threshold, host: Node3D) -> bool:
 	node = R37Kit.place(root, "threshold_chapel.glb", Transform3D(basis(), ORIGIN), {"range_end": 260.0})
 	if node == null:
 		return false
-	var stone := _mat("stone", Color(1.04, 1.0, 1.06), 0.05)
+	# (the "stone" set of the West Marches kit is a lichened granite for colossal statues: on small dressed blocks it read as camouflage, so every block uses the coursed ashlar set)
+	var stone := _mat("ashlar", Color(1.08, 1.04, 1.1), 0.05)
 	var ashlar := _mat("ashlar", Color(1.0, 0.97, 1.02), 0.04)
 	for b in node.find_children("*", "StaticBody3D", true, false):
 		(b as StaticBody3D).collision_layer = Layers.WORLD

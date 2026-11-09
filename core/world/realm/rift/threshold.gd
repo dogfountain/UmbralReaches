@@ -11,14 +11,16 @@ extends RefCounted
 ##     in the pool either side of the threshold's mouth, facing the village, open hands over the gate, orbs lit
 ##     violet above the rim
 ##   - the Pilgrims' Chapel (rift/chapel.gd): a small chapel built against the west wall's foot at the starfall,
-##     the fall pouring over its roof and across its doorway; a jetty from the lowest terrace walk reaches it
+##     the fall pouring over its roof and across its doorway; the Pilgrims' Stair down the third tower and a quay reach it
 ##     (a secret: core/life/secrets/site_threshold.gd)
 ##   - motes rising off the pool
 ## The east wall above y -6 from z -22 north is the Ossuary's: there the terraces stop below it.
 ## Collision: the terraces (walkable, reachable down the rock's slope from the rim) and the chapel's walls, floor and pier.
 
-const STONE := "stone"
+const Starlit := preload("res://core/world/realm/rift/starlit_stone.gd")
+const STONE := Starlit.STONE          ## the rift's stone: paler, with a little starlight in it
 const Chapel := preload("res://core/world/realm/rift/chapel.gd")
+const TowerStair := preload("res://core/world/realm/rift/tower_stair.gd")
 const LAVA := -15.5
 const TOPS := [-12.0, -8.0, -4.0]      ## each terrace's walk height; the lowest stands in the pool
 const BAY := 4.0                       ## metres per terrace bay along the wall
@@ -49,6 +51,7 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 	star_z = p_star_z
 	falls = p_falls
 	space = (root as Node3D).get_world_3d().direct_space_state
+	Starlit.ensure()
 	k = OssKit.new()
 	k.keep_lanes = false
 	k.candle_lights = false             # the wax glows; no new lights (the pool and the violet glow light it)
@@ -65,6 +68,9 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 		while z - BAY >= star_z + 1.0:
 			bays += _bay(side, z - BAY * 0.5)
 			z -= BAY
+	var tstair := TowerStair.new()
+	var stair_ok := tstair.build(self)
+	report.append("tower stair: %d steps (%d narrowed, %d as spans past the fallen column's pier)" % [tstair.steps_built, tstair.narrow_steps, tstair.spans])
 	var chapel_ok := _chapel(host)
 	for b in _temp:
 		b.queue_free()
@@ -78,7 +84,7 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 	host.add_child(mi)
 	_motes(host)
 	_pool_lights(host)
-	report.append("terraces: %d bay tiers, chapel: %s, skipped %s" % [bays, "built" if chapel_ok else "NOT BUILT", str(_skips)])
+	report.append("terraces: %d bay tiers, chapel: %s, tower stair: %s, skipped %s" % [bays, "built" if chapel_ok else "NOT BUILT", "built" if stair_ok else "INCOMPLETE", str(_skips)])
 	report.append("clearance: %s" % ("nothing touched" if _audit.is_empty() else "; ".join(_audit)))
 	for s in report:
 		print("THRESHOLD ", s)
@@ -172,19 +178,14 @@ func _bay(side: float, zc: float) -> int:
 			_audit.append("tier %s z%.0f y%.0f dropped (%s)" % ["W" if side < 0.0 else "E", zc, yt, _last_hit])
 			continue                            # the tiers above may still clear it (they stand back on the slope)
 		k.block(STONE, lo, hi)
-		# the chapel's jetty leaves this bay's lowest walk (chapel.gd): the edge is left open where it joins
-		var jetty := side < 0.0 and i == 0 and absf(zc + 41.0) < 0.1
 		var along := Vector3(0, 0, 1)
 		var inward := Vector3(-side, 0, 0)      # from the wall towards the pool
 		# coping: a moulded lip along the walk's edge, a hand proud of the face
-		var ze := zc + BAY * 0.5 - (2.7 if jetty else 0.0)           # the jetty bay: the 2.7 m of the edge by the chapel stay open
-		k.box(STONE, Vector3(front - side * 0.08, yt + 0.11, (zc - BAY * 0.5 + ze) * 0.5), Vector3(0.75, 0.22, ze - (zc - BAY * 0.5)), Basis.IDENTITY)
+		k.box(STONE, Vector3(front - side * 0.08, yt + 0.11, zc), Vector3(0.75, 0.22, BAY), Basis.IDENTITY)
 		# balustrade on the edge (posts at the pilasters)
-		k.parapet(STONE, Vector3(front + side * 0.25, yt + 0.22, ze), Vector3(front + side * 0.25, yt + 0.22, zc - BAY * 0.5), 0.85, 0.26)
+		k.parapet(STONE, Vector3(front + side * 0.25, yt + 0.22, zc + BAY * 0.5), Vector3(front + side * 0.25, yt + 0.22, zc - BAY * 0.5), 0.85, 0.26)
 		# pilasters at the bay's ends, each with a rune slit down its face
 		for e: float in [-1.0, 1.0]:
-			if jetty and e > 0.0:
-				continue
 			var pz := zc + e * (BAY * 0.5 - 0.35)
 			var ph := yt - yb
 			k.box(STONE, Vector3(front - side * 0.26, yb + ph * 0.5, pz), Vector3(0.52, ph, 0.74), Basis.IDENTITY)
@@ -193,11 +194,10 @@ func _bay(side: float, zc: float) -> int:
 			_glyphs(Vector3(front - side * 0.53, 0.0, pz), yb + 0.9, yt - 0.7)
 		# a blind lancet arch on the face (the face shows through it: a shallow niche)
 		var arch_base := Vector3(front - side * 0.3, yb + (0.0 if i > 0 else 1.2), zc)
-		if not jetty:
-			k.arch_panel(STONE, arch_base, along, 1.8, maxf(yt - yb - 2.6 - (0.0 if i > 0 else 1.2), 0.6), yt - arch_base.y - 0.05, 0.56, 0.36, 0.9, 0.0, STONE)
+		k.arch_panel(STONE, arch_base, along, 1.8, maxf(yt - yb - 2.6 - (0.0 if i > 0 else 1.2), 0.6), yt - arch_base.y - 0.05, 0.56, 0.36, 0.9, 0.0, STONE)
 		# a rune glowing at the back of the niche: a pilgrim's mark, a stroke and a bar
-			_slab(Vector3(front - side * 0.04, arch_base.y + 1.15, zc), Vector3(0.02, 0.8, 0.06))
-			_slab(Vector3(front - side * 0.04, arch_base.y + 1.42, zc), Vector3(0.02, 0.05, 0.36))
+		_slab(Vector3(front - side * 0.04, arch_base.y + 1.15, zc), Vector3(0.02, 0.8, 0.06))
+		_slab(Vector3(front - side * 0.04, arch_base.y + 1.42, zc), Vector3(0.02, 0.05, 0.36))
 		# candle offerings on the walk below this tier, at the niche's foot
 		if i > 0 and not is_nan(walk_x):
 			k.candle_cluster(Vector3(front + inward.x * 0.55, yb + 0.02, zc + rng.randf_range(-0.6, 0.6)), rng.randi_range(4, 8), 0.32, rng)
@@ -431,16 +431,16 @@ static func _rune_mat() -> StandardMaterial3D:
 	m.albedo_color = Color(0.32, 0.22, 0.7)
 	m.emission_enabled = true
 	m.emission = Color(0.55, 0.4, 1.0)
-	m.emission_energy_multiplier = 4.0
+	m.emission_energy_multiplier = 3.4
 	m.roughness = 0.6
 	return m
 
 
 ## The pool lights the place from below (the moon never reaches the floor): two low violet lights over the
-## water, with LavaWorks' Glow0 between them, and one higher in the middle of the reach that lights the terraces'
-## faces (and the chapel's facade) on both walls. Unshadowed, budgeted like the Realm's own lights.
+## water, with LavaWorks' Glow0 between them, and one higher in front of the chapel that lights the west terraces' faces and the
+## chapel's facade. Unshadowed, budgeted like the Realm's own lights.
 func _pool_lights(host: Node3D) -> void:
-	for spec: Array in [[Vector3(0.0, LAVA + 1.6, -18.5), 4.0, 24.0], [Vector3(4.0, LAVA + 1.6, -38.0), 4.0, 24.0], [Vector3(-2.0, LAVA + 9.0, -30.0), 2.4, 22.0]]:
+	for spec: Array in [[Vector3(0.0, LAVA + 1.6, -18.5), 4.0, 24.0], [Vector3(4.0, LAVA + 1.6, -38.0), 4.0, 24.0], [Vector3(-11.0, LAVA + 6.5, -37.0), 3.2, 13.0]]:
 		var at: Vector3 = spec[0]
 		var l := OmniLight3D.new()
 		l.name = "PoolLight"

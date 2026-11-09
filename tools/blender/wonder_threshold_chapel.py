@@ -34,7 +34,7 @@ RISE = 0.3308        # the stair's own rise per step
 RADIUS = 6.3
 WID = 2.3            # tread width
 TREAD_D = 0.98       # tread slab depth (the nosing overhangs the riser)
-TILE = {"stone": 5.0, "ashlar": 3.0, "rune": 1.0}
+TILE = {"stone": 3.0, "ashlar": 3.0, "rune": 1.0}
 
 
 class Build:
@@ -576,9 +576,8 @@ def chapel_build(seed=41):
         B.colbox(Vector(((x0 + x1) * 0.5, (y0 + y1) * 0.5, -0.14)), (x1 - x0, y1 - y0, 0.28), X_, Y_, Z_)
     JX0 = 4.5                # the jetty's outer edge (the terrace side of the chapel is +x)
     slab(-HALF - 0.25, JX0, -2.6, 0.0)                # the forecourt
-    slab(HALF + 0.05, JX0, 0.0, 5.7)                  # the jetty along the side wall (towards +y, the rock) to the terrace walk
     # piers under it
-    for (px, py) in ((-HALF - 0.1, -2.4), (0.6, -2.4), (3.4, -2.4), (4.2, 0.2), (4.2, 3.9), (-HALF - 0.1, 0.0)):
+    for (px, py) in ((-HALF - 0.1, -2.4), (0.6, -2.4), (3.4, -2.4), (-HALF - 0.1, 0.0), (4.2, -0.2)):
         B.blk("ashlar", Vector((px, py, -2.7)), (0.8, 0.8, 5.0), X_, Y_, Z_, bevel=0.05, jit=0.01, sub=1, tone=0.8)
     # a plinth course of the facade
     for sx in (-1, 1):
@@ -611,8 +610,9 @@ def chapel_build(seed=41):
                 B.blk("stone", bp + Vector((0, 0, 0.68)), (0.13, 0.13, 0.32), u, ey, ez, bevel=0.0, jit=0.001, tone=1.0)
             B.colbox(m + Vector((0, 0, 0.55)), (ln + 0.3, 0.3, 1.1), u, ey, ez)
     bal(Vector((-HALF - 0.05, -2.45, 0.0)), Vector((-HALF - 0.05, -0.2, 0.0)))
-    bal(Vector((-HALF - 0.05, -2.45, 0.0)), Vector((JX0 - 0.2, -2.45, 0.0)))
-    bal(Vector((JX0 - 0.2, -2.45, 0.0)), Vector((JX0 - 0.2, 5.0, 0.0)))
+    bal(Vector((-HALF - 0.05, -2.45, 0.0)), Vector((1.85, -2.45, 0.0)))          # the east edge, open where the quay joins (x 1.85 to 4.1)
+    bal(Vector((4.1, -2.45, 0.0)), Vector((JX0 - 0.2, -2.45, 0.0)))
+    bal(Vector((JX0 - 0.2, -2.45, 0.0)), Vector((JX0 - 0.2, -0.2, 0.0)))
     # candles' sills: the facade's two bracket stones either side of the door
     # a worn crack of starlight through the forecourt flags and across the threshold
     B.crack([Vector((1.3, -2.1, 0.0)), Vector((0.8, -1.3, 0.0)), Vector((0.9, -0.5, 0.0)), Vector((0.3, 0.2, 0.0)), Vector((0.45, 0.9, 0.0))], (0, 0, 1), 0.024, 0.0)
