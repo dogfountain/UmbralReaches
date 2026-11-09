@@ -79,7 +79,27 @@ func _load(e: Dictionary, force := false) -> void:
 	var t0 := Time.get_ticks_usec()
 	get_parent().add_child(a)
 	_live[e.id] = a
-	print("AREA load %s %.1f ms" % [e.id, (Time.get_ticks_usec() - t0) * 0.001])
+	var cells := _cell_split(a)
+	print("AREA load %s %.1f ms (%d batches split into height cells)" % [e.id, (Time.get_ticks_usec() - t0) * 0.001, cells])
+
+
+## An underground area's candles and bones are batched across the whole place, so one batch's box runs from the
+## surface gate down to the pit, and the terrain could never hide it: the Ossuary drew ~165 times from Hearthward.
+## Each batch that spans more than a cell is re-bucketed into 12 m x 6 m (tall) cells: one wholly under the ground is
+## culled by the terrain occluder; inside, each room draws only its own. Nothing seen changes.
+static func _cell_split(a: Node) -> int:
+	var n := 0
+	for m in a.find_children("*", "MultiMeshInstance3D", true, false):
+		var mmi := m as MultiMeshInstance3D
+		# (16+: the bridge plates and the wheel studs are small batches their scripts animate instance by instance)
+		if mmi.multimesh == null or mmi.multimesh.instance_count < 16 or not mmi.visible:
+			continue
+		var box := mmi.multimesh.get_aabb()
+		if box.size.y < 6.0 and maxf(box.size.x, box.size.z) < 12.0:
+			continue
+		if MeshChunks.split_multimesh(mmi, 12.0, 6.0) > 0:
+			n += 1
+	return n
 
 
 func _player() -> Node3D:

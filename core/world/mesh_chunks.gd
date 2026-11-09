@@ -144,6 +144,7 @@ static func _add_chunk(mi: MeshInstance3D, xf: Transform3D, key: Vector2i, mesh:
 	chunk.visibility_range_end_margin = mi.visibility_range_end_margin
 	chunk.visibility_range_fade_mode = mi.visibility_range_fade_mode
 	chunk.extra_cull_margin = 2.0
+	_carry_metas(mi, chunk)
 	mi.get_parent().add_child(chunk)
 	chunk.global_transform = xf
 
@@ -188,7 +189,7 @@ static func _pick(data: Variant, order: PackedInt32Array, stride: int) -> Varian
 ## split_multimesh() re-buckets the instances into `cell` cells, each its own node at the cell
 ## centre with the original's look and ranges, and hides the original (kept for anything that reads
 ## it). Needs a renderer: headless MultiMesh buffers read back empty. Returns the chunks made.
-static func split_multimesh(mmi: MultiMeshInstance3D, cell := CELL) -> int:
+static func split_multimesh(mmi: MultiMeshInstance3D, cell := CELL, cell_y := 0.0) -> int:
 	if mmi == null or mmi.multimesh == null or mmi.has_meta("chunked") or DisplayServer.get_name() == "headless":
 		return 0
 	var mm := mmi.multimesh
@@ -200,10 +201,12 @@ static func split_multimesh(mmi: MultiMeshInstance3D, cell := CELL) -> int:
 	if buf.size() < count * stride:
 		return 0
 	mmi.set_meta("chunked", true)
-	var cells := {}                       # Vector2i -> PackedInt32Array of instance indices
+	var cells := {}                       # Vector3i -> PackedInt32Array of instance indices
 	for i in count:
 		var o := i * stride
-		var key := Vector2i(floori(buf[o + 3] / cell), floori(buf[o + 11] / cell))
+		# cell_y > 0 also splits by height (an underground area's bones and candles, surface to pit: a cell that sits
+		# wholly below the ground is then culled by the terrain occluder)
+		var key := Vector3i(floori(buf[o + 3] / cell), floori(buf[o + 7] / cell_y) if cell_y > 0.0 else 0, floori(buf[o + 11] / cell))
 		if not cells.has(key):
 			cells[key] = PackedInt32Array()
 		var l: PackedInt32Array = cells[key]
@@ -212,7 +215,7 @@ static func split_multimesh(mmi: MultiMeshInstance3D, cell := CELL) -> int:
 	if cells.size() < 2:
 		mmi.remove_meta("chunked")
 		return 0
-	for key: Vector2i in cells:
+	for key: Vector3i in cells:
 		var list: PackedInt32Array = cells[key]
 		var centre := Vector3.ZERO
 		for i in list:
@@ -236,7 +239,7 @@ static func split_multimesh(mmi: MultiMeshInstance3D, cell := CELL) -> int:
 		cm.buffer = out
 		cm.set_meta("cpu_buffer", out)
 		var c := MultiMeshInstance3D.new()
-		c.name = "%s_cell_%d_%d" % [mmi.name, key.x, key.y]
+		c.name = "%s_cell_%d_%d_%d" % [mmi.name, key.x, key.y, key.z]
 		c.multimesh = cm
 		c.material_override = mmi.material_override
 		c.material_overlay = mmi.material_overlay
@@ -255,7 +258,16 @@ static func split_multimesh(mmi: MultiMeshInstance3D, cell := CELL) -> int:
 		for g in mmi.get_groups():
 			if not String(g).begins_with("_"):
 				c.add_to_group(g)
+		_carry_metas(mmi, c)
 		mmi.get_parent().add_child(c)
 		c.transform = mmi.transform * Transform3D(Basis.IDENTITY, centre)
 	mmi.visible = false
 	return cells.size()
+
+
+## A chunk takes its source's ranges already scaled: the fade guard's record of that (range_k, fade_orig) and the
+## flora / site metas go with them, or the guard took the copied range for a builder's and pushed it out 1.5x again.
+static func _carry_metas(src: Node, dst: Node) -> void:
+	for m in [&"range_k", &"fade_orig", &"site_owned", &"far_detail"]:
+		if src.has_meta(m):
+			dst.set_meta(m, src.get_meta(m))
