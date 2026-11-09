@@ -59,6 +59,7 @@ class Piece:
         self.name = name
         self.bm = bmesh.new()
         self.col = {}
+        self.warm = 0.0          # UV.y: 1 for molten glass (the engine tints it orange-white)
 
     def v(self, co, rgba):
         vv = self.bm.verts.new(co)
@@ -84,7 +85,7 @@ class Piece:
             for lp in fc.loops:
                 c = self.col.get(lp.vert, (0.05, 0.1, 0.15, 0.0))
                 lp[layer] = c
-                lp[uvl].uv = (c[3], 0.5)           # the glow parameter rides in the UVs (the glTF colour alpha does not survive)
+                lp[uvl].uv = (c[3], self.warm)           # the glow parameter rides in the UVs (the glTF colour alpha does not survive)
         me = bpy.data.meshes.new(self.name)
         bm.to_mesh(me)
         bm.free()
@@ -395,15 +396,14 @@ def build_heart():
     pc = Piece("heart_core")
     bm = pc.bm
     ico = bmesh.ops.create_icosphere(bm, subdivisions=5, radius=1.0)
-    planes = crack_planes(rng, 16)
+    planes = crack_planes(rng, 11)
     for v in ico["verts"]:
         u = v.co.normalized()
         r = 1.45 * (1.0 + 0.22 * noise.noise(u * 1.7 + Vector((3, 1, 2))) + 0.08 * noise.noise(u * 5.0))
         crack = 0.0
         for nrm, d in planes:
             dist = abs(u.dot(nrm) - d * 0.6)
-            crack = max(crack, 1.0 - smooth(0.0, 0.035, dist))
-        r -= 0.12 * crack
+            crack = max(crack, 1.0 - smooth(0.0, 0.05, dist))
         v.co = u * r
         pc.col[v] = (0.05, 0.07, 0.1, crack)
     spurs = []
@@ -411,11 +411,11 @@ def build_heart():
         d = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-0.9, 0.35))).normalized()
         crystal(pc, d * 1.05, d, rng.uniform(0.9, 1.7), rng.uniform(0.28, 0.42), rng, 0.58, sides=6, broken=(i % 3 == 0), steps=0, sink=0.35, cap=False)
     for v, c in list(pc.col.items()):
-        if v not in ico["verts"]:
-            pc.col[v] = (c[0], c[1], c[2], c[3] * 0.45)           # spurs glow faintly at the tips; only the cracks burn
+        pc.col[v] = (c[0], c[1], c[2], 0.0)
     out.append(pc.finish(recalc=False))
     # molten drips: strands of glass hanging below, thick at the shoulder, a bead at the end, glowing at the tip
     pd = Piece("heart_drips")
+    pd.warm = 1.0
     for i in range(9):
         th = TAU * (i + rng.uniform(-0.3, 0.3)) / 9
         rad = rng.uniform(0.2, 1.1)
@@ -427,7 +427,7 @@ def build_heart():
             ring = []
             for q in range(5):
                 qa = TAU * q / 5 + th
-                ring.append(pd.v(base + Vector((math.cos(qa) * w * rng.uniform(0.9, 1.1) + 0.12 * math.sin(t * 3 + i), math.sin(qa) * w, -L * t)), (0.05, 0.07, 0.1, 0.25 + 0.75 * t)))
+                ring.append(pd.v(base + Vector((math.cos(qa) * w * rng.uniform(0.9, 1.1) + 0.12 * math.sin(t * 3 + i), math.sin(qa) * w, -L * t)), (0.05, 0.07, 0.1, 1.0 - 0.92 * t)))
             if prev:
                 for q in range(5):
                     k = (q + 1) % 5

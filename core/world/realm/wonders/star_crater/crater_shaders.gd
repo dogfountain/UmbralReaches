@@ -63,47 +63,75 @@ void fragment() {
 	EMISSION = em;
 }"""
 
-const _NOISE3 := """
+const _GLASS_LIB := """
+float h11(float x) { return fract(sin(x * 127.1 + 311.7) * 43758.5453); }
 float h31(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
-float n3(vec3 p) {
-	vec3 i = floor(p); vec3 f = fract(p); f = f * f * (3.0 - 2.0 * f);
-	return mix(mix(mix(h31(i), h31(i + vec3(1, 0, 0)), f.x), mix(h31(i + vec3(0, 1, 0)), h31(i + vec3(1, 1, 0)), f.x), f.y),
-		mix(mix(h31(i + vec3(0, 0, 1)), h31(i + vec3(1, 0, 1)), f.x), mix(h31(i + vec3(0, 1, 1)), h31(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+// a few straight fracture sheets: three families of parallel planes, a third of them cracked, thin, flashing when the
+// eye runs along them
+float sheets(vec3 p, vec3 vw) {
+	float acc = 0.0;
+	vec3 n0 = normalize(vec3(0.62, 0.31, -0.72));
+	vec3 n1 = normalize(vec3(-0.35, 0.81, 0.47));
+	vec3 n2 = normalize(vec3(0.21, -0.55, 0.81));
+	for (int i = 0; i < 3; i++) {
+		vec3 n = i == 0 ? n0 : (i == 1 ? n1 : n2);
+		float per = i == 0 ? 5.5 : (i == 1 ? 7.5 : 6.5);
+		float t = dot(p, n) / per;
+		float id = floor(t);
+		float f = abs(fract(t) - 0.5);
+		float keep = step(0.66, h11(id + float(i) * 17.0));
+		float line = 1.0 - smoothstep(0.0, 0.012, abs(f - 0.0));
+		float flash = 0.1 + 0.9 * pow(1.0 - abs(dot(vw, n)), 6.0);
+		acc += keep * line * flash;
+	}
+	return acc;
 }
-float sheet(vec3 p) { return 1.0 - smoothstep(0.0, 0.04, abs(n3(p) - 0.5)); }
 """
 
-## Dark clear glass: a near-black body, light rising from the root, fracture sheets seen at three depths (parallax),
-## bright sharp edges, a cold white cast with a faint teal or violet. UV.x: 0 at a root, 1 at a tip.
+## Dark clear glass. Flat facets each a different value, strong fresnel and a bright reflection of the sky on the
+## ones that face it, light rising from the root and fading to the tip, a few straight fracture sheets seen at two
+## depths, sharp bright edges, a cold white cast with a faint violet. UV.x: 0 at a root, 1 at a tip.
 const _CRYSTAL_FRAG := """
 void fragment() {
 	float up = UV.x;
 	vec3 N = normalize(NORMAL);
 	vec3 V = normalize(VIEW);
-	float fres = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 3.0);
+	float ndv = clamp(dot(N, V), 0.0, 1.0);
+	float fres = pow(1.0 - ndv, 3.0);
+	vec3 wn = normalize((INV_VIEW_MATRIX * vec4(N, 0.0)).xyz);
 	vec3 vw = normalize((INV_VIEW_MATRIX * vec4(V, 0.0)).xyz);
-	float d = distance(wp, heart);
-	float pulse = 0.85 + 0.15 * sin(TIME * 1.1 - d * 0.15);
 	vec3 q = wp - heart;
-	float v = sheet((q - vw * 0.5) * 0.55) * 0.9 + sheet((q - vw * 1.3) * 0.38 + 7.0) * 0.6 + sheet((q - vw * 2.6) * 0.25 + 13.0) * 0.4;
-	float rise = pow(1.0 - up, 1.6) * 0.6 + 0.22;
+	float d = length(q);
+	float pulse = 0.88 + 0.12 * sin(TIME * 1.0 - d * 0.15);
+	// each flat facet a slightly different value
+	float fk = h31(floor(wn * 7.0 + 0.5));
+	// tops are fused and rippled: a soft bump on the near-horizontal faces
+	if (wn.y > 0.8 && ripple > 0.5) {
+		vec3 bump = vec3(cos(wp.x * 4.1 + sin(wp.z * 2.3) * 1.5) * 0.09, 0.0, cos(wp.z * 3.7 + sin(wp.x * 1.9) * 1.5) * 0.09);
+		N = normalize(N + (VIEW_MATRIX * vec4(bump, 0.0)).xyz);
+	}
+	float s = sheets(q - vw * 0.4, vw) + 0.55 * sheets(q * 0.93 - vw * 1.5 + 3.0, vw);
+	float low = exp(-max(wp.y - base_y, 0.0) * 0.12);
+	float rise = (pow(1.0 - up, 1.8) * 0.8 + 0.1) * mix(1.0, 0.5 + low, ripple);
 	float near = clamp(3.0 / (1.0 + d * 0.05), 0.35, 1.0);
 	float lit = rise * pulse * near;
-	vec3 cold = mix(vec3(0.55, 0.86, 0.95), vec3(0.78, 0.72, 1.0), n3(q * 0.15));
+	vec3 cold = mix(vec3(0.7, 0.88, 1.0), vec3(0.8, 0.72, 1.0), fk * 0.6);
 	float edge = smoothstep(0.05, 0.4, length(fwidth(N)) * 6.0);
-	ALBEDO = vec3(0.012, 0.016, 0.026);
-	ROUGHNESS = 0.22;
-	SPECULAR = 0.14;
+	ALBEDO = vec3(0.01, 0.014, 0.024) * (0.5 + 1.2 * fk);
+	ROUGHNESS = 0.05 + 0.1 * fk + 0.14 * ripple;
+	SPECULAR = 0.75 - 0.4 * ripple;
 	METALLIC = 0.0;
-	EMISSION = (cold * v * lit * 0.8 + cold * fres * 0.1 * lit + cold * edge * 0.2 * (0.2 + lit) + cold * smoothstep(0.9, 1.0, up) * 0.12 + cold * pow(1.0 - up, 2.5) * 0.06) * strength;
+	EMISSION = (cold * s * lit * 0.9 + cold * fres * 0.35 * (0.3 + lit) + cold * edge * 0.3 * (0.25 + lit) + cold * lit * 0.1 * (1.0 - fres) + cold * smoothstep(0.9, 1.0, up) * 0.1) * strength;
 }"""
 
 const _CRYSTAL_HEAD := """shader_type spatial;
 render_mode cull_back;
 uniform vec3 heart = vec3(0.0);
 uniform float strength = 1.0;
+uniform float base_y = 0.0;
+uniform float ripple = 0.0;
 varying vec3 wp;
-""" + _NOISE3
+""" + _GLASS_LIB
 
 const CRYSTAL := _CRYSTAL_HEAD + """
 void vertex() { wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
@@ -138,26 +166,52 @@ void fragment() {
 	EMISSION = vec3(1.1, 1.0, 0.92) * smoothstep(0.4, 0.9, k) * 1.4 + vec3(0.4, 0.6, 0.75) * fres * 0.45;
 }"""
 
-## The star's core, its spurs and the frozen drips: dark glass, white-hot through the fractures (alpha), turning slowly.
-## The only thing here that goes well over the bloom threshold.
+## The star: a dark shell cracked along planes (thin white-hot lines and a soft bloom round them, drawn here in object
+## space), molten drips below (UV.y = 1), hottest at the root, orange-white fading through red to dark.
+## The only thing here well over the bloom threshold.
 const HEART := """shader_type spatial;
 render_mode cull_back;
 varying float k;
+varying float warm;
+varying vec3 op;
+float crack(vec3 p, vec3 n, float d, float w) { return 1.0 - smoothstep(0.0, w, abs(dot(p, normalize(n)) - d)); }
 void vertex() {
+	op = VERTEX;
 	float t = TIME * 0.12;
 	float c = cos(t); float s = sin(t);
 	VERTEX = vec3(VERTEX.x * c - VERTEX.z * s, VERTEX.y, VERTEX.x * s + VERTEX.z * c);
 	NORMAL = vec3(NORMAL.x * c - NORMAL.z * s, NORMAL.y, NORMAL.x * s + NORMAL.z * c);
 	k = UV.x;
+	warm = UV.y;
 }
 void fragment() {
 	float pulse = 0.5 + 0.5 * sin(TIME * 0.9);
-	float fres = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 2.5);
-	ALBEDO = vec3(0.03, 0.035, 0.05);
-	ROUGHNESS = 0.12;
-	SPECULAR = 0.8;
-	vec3 hot = vec3(1.25, 1.1, 0.95) * (1.25 + 0.35 * pulse);
-	EMISSION = hot * smoothstep(0.45, 0.85, k) + vec3(0.3, 0.42, 0.6) * k * k * 0.25 + vec3(0.3, 0.5, 0.75) * fres * 0.35;
+	vec3 N = normalize(NORMAL);
+	float fres = pow(1.0 - clamp(dot(N, normalize(VIEW)), 0.0, 1.0), 2.5);
+	ALBEDO = vec3(0.012, 0.014, 0.02);
+	ROUGHNESS = 0.2;
+	SPECULAR = 0.5;
+	vec3 em = vec3(0.25, 0.4, 0.6) * fres * 0.18;
+	if (warm > 0.5) {
+		vec3 hot = mix(vec3(1.2, 0.3, 0.06), vec3(1.5, 0.95, 0.5), k * k);
+		em += hot * smoothstep(0.05, 0.8, k) * (2.2 + 0.4 * pulse);
+	} else if (length(op) < 1.75) {
+		vec3 p = normalize(op);
+		float line = 0.0;
+		float glow = 0.0;
+		for (int i = 0; i < 12; i++) {
+			float fi = float(i);
+			vec3 n = normalize(vec3(sin(fi * 2.399 + 0.7), cos(fi * 1.913 + 2.1), sin(fi * 3.17 + 1.3)));
+			float d = 0.55 * sin(fi * 5.31 + 0.4);
+			float dist = abs(dot(p, n) - d);
+			line = max(line, 1.0 - smoothstep(0.0, 0.03, dist));
+			glow = max(glow, 1.0 - smoothstep(0.0, 0.4, dist));
+		}
+		em += vec3(1.3, 1.2, 1.05) * line * (3.2 + 0.8 * pulse) + vec3(1.0, 0.8, 0.6) * glow * glow * 0.75 + vec3(0.7, 0.45, 0.3) * 0.3;
+	}
+	float far = smoothstep(14.0, 45.0, length(VERTEX));
+	em += vec3(1.25, 1.05, 0.85) * far * 1.3;               // from afar the whole star burns: a body of light, not a black lump
+	EMISSION = em;
 }"""
 
 ## A soft additive disc that always faces the eye and thins out when you are close: the star as a point of light.

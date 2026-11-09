@@ -253,6 +253,7 @@ func _glass_mat(shader_code: String, strength := 1.0) -> ShaderMaterial:
 	sm.shader = sh
 	sm.set_shader_parameter("heart", heart)
 	sm.set_shader_parameter("strength", strength)
+	sm.set_shader_parameter("base_y", g0)
 	return sm
 
 
@@ -339,6 +340,7 @@ const RIDGE_N := 10
 
 func _ridge() -> void:
 	var glass := _glass_mat(Shaders.CRYSTAL, 1.0)
+	glass.set_shader_parameter("ripple", 1.0)
 	var names := ["ridge_plate_a", "ridge_plate_b", "ridge_plate_c", "ridge_plate_d"]
 	var rr := RandomNumberGenerator.new()
 	rr.seed = 12
@@ -430,7 +432,7 @@ func _fragments() -> void:
 # --- light, motes, hum --------------------------------------------------------------------------------
 
 func _lights() -> void:
-	var specs := [[heart, Color(0.62, 0.82, 1.0), 2.4, 46.0], [Vector3(C.x, g0 + 1.8, C.y), Color(0.45, 0.6, 1.0), 1.2, 15.0]]
+	var specs := [[heart, Color(0.95, 0.92, 1.0), 4.0, 55.0], [Vector3(C.x, g0 + 1.8, C.y), Color(0.45, 0.6, 1.0), 1.2, 15.0]]
 	for sp: Array in specs:
 		var l := OmniLight3D.new()
 		l.name = "StarLight"
