@@ -24,6 +24,7 @@ extends CanvasLayer
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
 const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
+const Rift := preload("res://core/world/realm/realm_rift.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const Frame := preload("res://ui/world_map_frame.gd")
 const Inker := preload("res://ui/world_map_ink.gd")
@@ -666,10 +667,11 @@ func _compute() -> void:
 			var x := SHEET.position.x + (i + 0.5) * FEAT
 			if x < b.position.x or x > b.end.x:
 				continue
-			if Land.in_water(x, z):
-				water[j * fw + i] = 1.0
+			var h := Land.height_at(x, z)
+			if Land.in_water(x, z) or (h < -13.0 and z > Rift.STAR_Z and absf(x) < 30.0):
+				water[j * fw + i] = 1.0                 # (the Threshold's starwater reads as water, not the rift's pit)
 				block[j * fw + i] = 1
-			elif Land.height_at(x, z) < -4.0:
+			elif h < -4.0:
 				pit[j * fw + i] = 1.0
 				block[j * fw + i] = 1
 	for path: Dictionary in RealmLayout.PATHS:
