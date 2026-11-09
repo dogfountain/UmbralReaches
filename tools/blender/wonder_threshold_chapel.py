@@ -368,6 +368,10 @@ def chapel_build(seed=41):
     def core_hole(u, z):
         return pointed(DOOR_A, DOOR_ZS, u - HALF, z, 0.0)
     course_wall(B, Vector((-HALF, 0.62, 0.0)), X_, 0.46, 1, 2 * HALF, 0.0, WALL_TOP, core_hole, hrow=(0.6, 0.9), blen=(1.0, 1.6), bevel=0.0)
+    # the facade's collision: a block either side of the doorway and the lintel over it
+    for sx in (-1, 1):
+        B.colbox(Vector((sx * (DOOR_A + HALF) * 0.5, 0.45, 2.5)), (HALF - DOOR_A, 0.9, 5.0), X_, Y_, Z_)
+    B.colbox(Vector((0, 0.45, 4.1)), (2 * DOOR_A, 0.9, 1.8), X_, Y_, Z_)
     # the doorway's reveal: jambs and a ring of voussoirs, a roll moulding, a hood-mould with carved stops
     a, zs = DOOR_A, DOOR_ZS
     R = 2.0 * a
@@ -570,11 +574,11 @@ def chapel_build(seed=41):
                 ys += ly
             xs += ln
         B.colbox(Vector(((x0 + x1) * 0.5, (y0 + y1) * 0.5, -0.14)), (x1 - x0, y1 - y0, 0.28), X_, Y_, Z_)
-    JX0 = -4.5               # the jetty's outer edge (the terrace side of the chapel is -x)
-    slab(JX0 + 0.0, HALF + 0.25, -2.6, 0.0)           # the forecourt
-    slab(JX0, -HALF - 0.05, 0.0, 4.3)                  # the jetty along the side wall (towards +y, the rock)
+    JX0 = 4.5                # the jetty's outer edge (the terrace side of the chapel is +x)
+    slab(-HALF - 0.25, JX0, -2.6, 0.0)                # the forecourt
+    slab(HALF + 0.05, JX0, 0.0, 5.7)                  # the jetty along the side wall (towards +y, the rock) to the terrace walk
     # piers under it
-    for (px, py) in ((HALF, -2.4), (-0.6, -2.4), (-3.4, -2.4), (-4.2, 0.2), (-4.2, 3.9), (HALF, 0.0)):
+    for (px, py) in ((-HALF - 0.1, -2.4), (0.6, -2.4), (3.4, -2.4), (4.2, 0.2), (4.2, 3.9), (-HALF - 0.1, 0.0)):
         B.blk("ashlar", Vector((px, py, -2.7)), (0.8, 0.8, 5.0), X_, Y_, Z_, bevel=0.05, jit=0.01, sub=1, tone=0.8)
     # a plinth course of the facade
     for sx in (-1, 1):
@@ -606,12 +610,12 @@ def chapel_build(seed=41):
                 B.blk("stone", bp + Vector((0, 0, 0.42)), (0.2, 0.2, 0.2), u, ey, ez, bevel=0.05, jit=0.001, tone=1.02)
                 B.blk("stone", bp + Vector((0, 0, 0.68)), (0.13, 0.13, 0.32), u, ey, ez, bevel=0.0, jit=0.001, tone=1.0)
             B.colbox(m + Vector((0, 0, 0.55)), (ln + 0.3, 0.3, 1.1), u, ey, ez)
-    bal(Vector((HALF + 0.05, -2.45, 0.0)), Vector((HALF + 0.05, 0.0, 0.0)) if False else Vector((HALF + 0.05, -0.2, 0.0)))
-    bal(Vector((HALF + 0.05, -2.45, 0.0)), Vector((JX0 + 0.2, -2.45, 0.0)))
-    bal(Vector((JX0 + 0.2, -2.45, 0.0)), Vector((JX0 + 0.2, 4.2, 0.0)))
+    bal(Vector((-HALF - 0.05, -2.45, 0.0)), Vector((-HALF - 0.05, -0.2, 0.0)))
+    bal(Vector((-HALF - 0.05, -2.45, 0.0)), Vector((JX0 - 0.2, -2.45, 0.0)))
+    bal(Vector((JX0 - 0.2, -2.45, 0.0)), Vector((JX0 - 0.2, 5.0, 0.0)))
     # candles' sills: the facade's two bracket stones either side of the door
     # a worn crack of starlight through the forecourt flags and across the threshold
-    B.crack([Vector((-1.3, -2.1, 0.0)), Vector((-0.8, -1.3, 0.0)), Vector((-0.9, -0.5, 0.0)), Vector((-0.3, 0.2, 0.0)), Vector((-0.45, 0.9, 0.0))], (0, 0, 1), 0.024, 0.0)
+    B.crack([Vector((1.3, -2.1, 0.0)), Vector((0.8, -1.3, 0.0)), Vector((0.9, -0.5, 0.0)), Vector((0.3, 0.2, 0.0)), Vector((0.45, 0.9, 0.0))], (0, 0, 1), 0.024, 0.0)
     return B
 
 

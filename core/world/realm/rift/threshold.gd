@@ -34,7 +34,7 @@ var space: PhysicsDirectSpaceState3D
 var star_z := -46.0
 var falls: Array = []
 var rng := RandomNumberGenerator.new()
-var rune: SurfaceTool                  ## violet rune slits and the stair's under-light (one emissive mesh)
+var rune: SurfaceTool                  ## violet rune slits (one emissive mesh)
 var report: Array[String] = []
 var _skips := {}                       ## why a bay's tier was not built (printed)
 var _cols: Array[AABB] = []            ## boxes of collision-less instanced pieces here (the crossing's colonnade)
@@ -173,17 +173,17 @@ func _bay(side: float, zc: float) -> int:
 			continue                            # the tiers above may still clear it (they stand back on the slope)
 		k.block(STONE, lo, hi)
 		# the chapel's jetty leaves this bay's lowest walk (chapel.gd): the edge is left open where it joins
-		var jetty := side < 0.0 and i == 0 and absf(zc + 33.0) < 0.1
+		var jetty := side < 0.0 and i == 0 and absf(zc + 41.0) < 0.1
 		var along := Vector3(0, 0, 1)
 		var inward := Vector3(-side, 0, 0)      # from the wall towards the pool
 		# coping: a moulded lip along the walk's edge, a hand proud of the face
-		var zs := zc - BAY * 0.5 + (2.7 if jetty else 0.0)           # the jetty bay: the south 2.7 m of the edge stay open
-		k.box(STONE, Vector3(front - side * 0.08, yt + 0.11, (zc + BAY * 0.5 + zs) * 0.5), Vector3(0.75, 0.22, zc + BAY * 0.5 - zs), Basis.IDENTITY)
+		var ze := zc + BAY * 0.5 - (2.7 if jetty else 0.0)           # the jetty bay: the 2.7 m of the edge by the chapel stay open
+		k.box(STONE, Vector3(front - side * 0.08, yt + 0.11, (zc - BAY * 0.5 + ze) * 0.5), Vector3(0.75, 0.22, ze - (zc - BAY * 0.5)), Basis.IDENTITY)
 		# balustrade on the edge (posts at the pilasters)
-		k.parapet(STONE, Vector3(front + side * 0.25, yt + 0.22, zc + BAY * 0.5), Vector3(front + side * 0.25, yt + 0.22, zs), 0.85, 0.26)
+		k.parapet(STONE, Vector3(front + side * 0.25, yt + 0.22, ze), Vector3(front + side * 0.25, yt + 0.22, zc - BAY * 0.5), 0.85, 0.26)
 		# pilasters at the bay's ends, each with a rune slit down its face
 		for e: float in [-1.0, 1.0]:
-			if jetty and e < 0.0:
+			if jetty and e > 0.0:
 				continue
 			var pz := zc + e * (BAY * 0.5 - 0.35)
 			var ph := yt - yb
@@ -431,20 +431,22 @@ static func _rune_mat() -> StandardMaterial3D:
 	m.albedo_color = Color(0.32, 0.22, 0.7)
 	m.emission_enabled = true
 	m.emission = Color(0.55, 0.4, 1.0)
-	m.emission_energy_multiplier = 3.2
+	m.emission_energy_multiplier = 4.0
 	m.roughness = 0.6
 	return m
 
 
 ## The pool lights the place from below (the moon never reaches the floor): two low violet lights over the
-## water, with LavaWorks' Glow0 between them. Unshadowed, budgeted like the Realm's own lights.
+## water, with LavaWorks' Glow0 between them, and one higher in the middle of the reach that lights the terraces'
+## faces (and the chapel's facade) on both walls. Unshadowed, budgeted like the Realm's own lights.
 func _pool_lights(host: Node3D) -> void:
-	for at: Vector3 in [Vector3(0.0, LAVA + 1.6, -18.5), Vector3(4.0, LAVA + 1.6, -38.0)]:
+	for spec: Array in [[Vector3(0.0, LAVA + 1.6, -18.5), 4.0, 24.0], [Vector3(4.0, LAVA + 1.6, -38.0), 4.0, 24.0], [Vector3(-2.0, LAVA + 9.0, -30.0), 2.4, 22.0]]:
+		var at: Vector3 = spec[0]
 		var l := OmniLight3D.new()
 		l.name = "PoolLight"
 		l.light_color = Color(0.5, 0.38, 1.0)
-		l.light_energy = 2.6
-		l.omni_range = 18.0
+		l.light_energy = float(spec[1])
+		l.omni_range = float(spec[2])
 		l.omni_attenuation = 0.8
 		l.shadow_enabled = false
 		l.light_volumetric_fog_energy = 0.5
