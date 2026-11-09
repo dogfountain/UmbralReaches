@@ -39,7 +39,7 @@ const R34_FIRES := {
 	"SiegeFire": [Vector2(-214.0, 128.0), Vector2(-220.0, 131.0)],      # beside siege_track at the outer earthwork
 	# --- the east marches ---
 	"StillwaterFire": [Vector2(220.0, 52.0), Vector2(214.0, 40.0)],    # the lake's south shore, off spire_track
-	"AnchorFire": [Vector2(204.0, -84.0), Vector2(206.0, -100.0)],     # the foot of the cliff, anchor_track's end
+	"AnchorFire": [Vector2(209.0, -83.0), Vector2(206.0, -100.0)],     # the foot of the cliff, beside the bend of anchor_track (it stood on the track itself)
 	"SaltFire": [Vector2(218.0, 98.0), Vector2(214.0, 96.0)],          # Saltmarket's yard
 }
 
