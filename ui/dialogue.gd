@@ -94,10 +94,10 @@ func _build_box() -> void:
 	_panel.add_child(row)
 	# portrait: the speaker's own rig, lit by a candle, in a framed square
 	var frame := PanelContainer.new()
-	var fsb := Med.slot(Med.BRONZE.lightened(0.3))
-	fsb.set_content_margin_all(5)
+	var fsb := Med.slot(Med.GILT_DEEP)
+	fsb.set_content_margin_all(8)
 	frame.add_theme_stylebox_override("panel", fsb)
-	frame.custom_minimum_size = Vector2(250, 250)
+	frame.custom_minimum_size = Vector2(262, 262)
 	frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	row.add_child(frame)
 	_vp = SubViewport.new()
@@ -110,6 +110,7 @@ func _build_box() -> void:
 	_portrait = TextureRect.new()
 	_portrait.texture = _vp.get_texture()
 	_portrait.custom_minimum_size = Vector2(246, 246)
+	_portrait.self_modulate = Color(1.06, 1.03, 1.0)
 	_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	frame.add_child(_portrait)
@@ -141,18 +142,18 @@ func _build_box() -> void:
 	_text.scroll_active = false
 	_text.custom_minimum_size = Vector2(0, 96)
 	_text.add_theme_font_override("normal_font", UIType.body())
-	_text.add_theme_font_size_override("normal_font_size", 27)
+	_text.add_theme_font_size_override("normal_font_size", 26)
 	_text.add_theme_color_override("default_color", Med.BONE)
 	_text.add_theme_constant_override("line_separation", 6)
 	_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_text)
 	_choices = VBoxContainer.new()
-	_choices.add_theme_constant_override("separation", 4)
+	_choices.add_theme_constant_override("separation", 6)
 	col.add_child(_choices)
 	_hint = Label.new()
 	_hint.add_theme_font_override("font", UIType.body())
-	_hint.add_theme_font_size_override("font_size", 17)
-	_hint.add_theme_color_override("font_color", Color(QUIET, 0.7))
+	_hint.add_theme_font_size_override("font_size", 15)
+	_hint.add_theme_color_override("font_color", Color(QUIET, 0.9))
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_hint.size_flags_vertical = Control.SIZE_SHRINK_END
 	col.add_child(_hint)
@@ -175,9 +176,32 @@ func _build_subtitles() -> void:
 	_sub.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.95))
 	_sub.add_theme_constant_override("shadow_offset_x", 2)
 	_sub.add_theme_constant_override("shadow_offset_y", 2)
+	_sub.add_theme_stylebox_override("normal", TextDirector.backing(28, 12))
 	_sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_sub.modulate.a = 0.0
 	_root.add_child(_sub)
+
+
+## A choice row: a keycap with its number on the left, a gilt lozenge when it is the marked one.
+class _Choice extends Button:
+	var num := 1
+	var lit := false
+
+	func _draw() -> void:
+		var cy := size.y * 0.5
+		var cap := Rect2(16.0, cy - 15.0, 34.0, 30.0)
+		var hot := lit or is_hovered()
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.16, 0.1, 0.05, 0.95) if not hot else Color(0.45, 0.28, 0.1, 0.95)
+		sb.border_color = Color(0.95, 0.78, 0.4) if hot else Color(0.62, 0.45, 0.2, 0.8)
+		sb.set_border_width_all(2)
+		sb.set_corner_radius_all(5)
+		draw_style_box(sb, cap)
+		var f := load("res://ui/fonts/Cinzel.ttf") as Font
+		var t := str(num)
+		var ts := f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 19)
+		draw_string(f, Vector2(cap.position.x + (cap.size.x - ts.x) * 0.5, cy + ts.y * 0.3), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 19,
+			Color(1.0, 0.9, 0.6) if hot else Color(0.8, 0.7, 0.5))
 
 
 # --- portrait ---------------------------------------------------------------------------------
@@ -323,14 +347,15 @@ func line(speaker: String, text: String, choices: Array[String] = []) -> void:
 	_buttons.clear()
 	_sel = 0
 	for i in choices.size():
-		var b := Button.new()
-		b.text = "%d.  %s" % [i + 1, choices[i]]
+		var b := _Choice.new()
+		b.num = i + 1
+		b.text = String(choices[i])
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.flat = true
 		b.focus_mode = Control.FOCUS_NONE
+		b.custom_minimum_size = Vector2(0, 42)
 		b.add_theme_font_override("font", UIType.body())
-		b.add_theme_font_size_override("font_size", 25)
-		b.add_theme_color_override("font_color", QUIET)
+		b.add_theme_font_size_override("font_size", 23)
+		b.add_theme_color_override("font_color", Med.BONE_DIM)
 		b.add_theme_color_override("font_hover_color", LANTERN)
 		b.mouse_entered.connect(func() -> void:
 			_sel = i
@@ -373,10 +398,23 @@ func _refresh_hint() -> void:
 
 func _mark() -> void:
 	for i in _buttons.size():
-		var b := _buttons[i]
+		var b := _buttons[i] as _Choice
 		var task := b.text.contains("◆")
-		b.add_theme_color_override("font_color", LANTERN if i == _sel else (Color(0.95, 0.82, 0.6) if task else QUIET))
-		b.text = ("›  " if i == _sel else "    ") + b.text.trim_prefix("›  ").trim_prefix("    ")
+		var lit := i == _sel
+		b.lit = lit
+		b.add_theme_color_override("font_color", Color(1.0, 0.92, 0.66) if lit else (Color(0.95, 0.82, 0.6) if task else Med.BONE_DIM))
+		var sb: StyleBoxTexture
+		if lit:
+			sb = Med.plaque("hover", 66, 4)
+			sb.modulate_color = Color(1.15, 1.08, 1.0)
+		else:
+			sb = Med.inset(4)
+			sb.modulate_color = Color(1, 1, 1, 0.55)
+			sb.content_margin_left = 66
+		sb.content_margin_right = 16
+		for st: String in ["normal", "hover", "pressed", "focus"]:
+			b.add_theme_stylebox_override(st, sb)
+		b.queue_redraw()
 
 
 func _pick(i: int) -> void:
@@ -590,6 +628,7 @@ func _subtitles(delta: float) -> void:
 	if td and not td.begin(&"narration", life + 1.0, td.lane_rect(&"sub")):
 		return                                 # the lane is not ours yet (a boss's emote): wait
 	_sub.text = _sub_queue.pop_front()
+	TextDirector.plate(_sub, _sub.text, 960.0, -270.0)
 	_sub.visible_characters = 0
 	_sub_t = life
 	if _sub_tw:

@@ -85,15 +85,6 @@ func _label(size: int, col: Color, font := false) -> Label:
 	return l
 
 
-func _box(bg: Color, border: Color, w := 2) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.border_color = border
-	sb.set_border_width_all(w)
-	sb.set_corner_radius_all(4)
-	return sb
-
-
 func _build() -> void:
 	_panel = PanelContainer.new()
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
@@ -111,10 +102,11 @@ func _build() -> void:
 	col.add_theme_constant_override("separation", 10)
 	_panel.add_child(col)
 	_title = _label(32, LANTERN, true)
+	Med.gilt(_title, 32)
 	col.add_child(_title)
-	_line = _label(23, Med.BONE)
+	_line = _label(21, Med.BONE)
 	_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_line.custom_minimum_size = Vector2(0, 62)
+	_line.custom_minimum_size = Vector2(0, 56)
 	col.add_child(_line)
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 6)
@@ -122,9 +114,11 @@ func _build() -> void:
 		var tb := Button.new()
 		tb.text = String(TABS[i])
 		tb.focus_mode = Control.FOCUS_NONE
+		tb.toggle_mode = true
 		tb.add_theme_font_override("font", _font)
-		tb.add_theme_font_size_override("font_size", 19)
-		tb.custom_minimum_size = Vector2(150, 38)
+		tb.add_theme_font_size_override("font_size", 20)
+		tb.custom_minimum_size = Vector2(160, 40)
+		Med.style_tab(tb)
 		tb.pressed.connect(func() -> void: set_tab(i))
 		tabs.add_child(tb)
 		_tab_btns.append(tb)
@@ -135,10 +129,13 @@ func _build() -> void:
 	row.add_theme_constant_override("separation", 26)
 	col.add_child(row)
 	# the wares
+	var well := PanelContainer.new()
+	well.add_theme_stylebox_override("panel", Med.inset(8))
+	row.add_child(well)
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(620, 0)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	row.add_child(scroll)
+	well.add_child(scroll)
 	_list = VBoxContainer.new()
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list.add_theme_constant_override("separation", 4)
@@ -147,64 +144,83 @@ func _build() -> void:
 	var det := PanelContainer.new()
 	det.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var dsb := Med.inset(18)
+	dsb.content_margin_top = 14
 	det.add_theme_stylebox_override("panel", dsb)
 	row.add_child(det)
 	var dc := VBoxContainer.new()
 	dc.add_theme_constant_override("separation", 10)
 	det.add_child(dc)
 	_icon_big = Control.new()
-	_icon_big.custom_minimum_size = Vector2(0, 120)
+	_icon_big.custom_minimum_size = Vector2(0, 88)
 	_icon_big.draw.connect(func() -> void:
 		if sel >= 0 and sel < rows.size():
-			_draw_icon(_icon_big, rows[sel], Vector2(_icon_big.size.x * 0.5, 60), 44.0, true))
+			_draw_icon(_icon_big, rows[sel], Vector2(_icon_big.size.x * 0.5, 44), 32.0, true))
 	dc.add_child(_icon_big)
-	_d_name = _label(27, LANTERN, true)
+	var band := PanelContainer.new()                     # the name on its band, like the item cards
+	band.add_theme_stylebox_override("panel", Med.banner())
+	dc.add_child(band)
+	_d_name = _label(24, LANTERN, true)
 	_d_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_d_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dc.add_child(_d_name)
-	_d_text = _label(21, Med.BONE)
+	band.add_child(_d_name)
+	dc.add_child(Med.rule())
+	_d_text = _label(20, Med.BONE)
 	_d_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_d_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	dc.add_child(_d_text)
 	_d_rich = RichTextLabel.new()
 	_d_rich.bbcode_enabled = true
 	_d_rich.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_d_rich.custom_minimum_size = Vector2(0, 200)
+	_d_rich.custom_minimum_size = Vector2(0, 150)
 	_d_rich.add_theme_font_size_override("normal_font_size", 17)
 	_d_rich.add_theme_font_size_override("bold_font_size", 19)
 	_d_rich.add_theme_color_override("default_color", Med.BONE)
 	_d_rich.visible = false
 	dc.add_child(_d_rich)
-	_d_price = _label(24, Med.BONE, true)
-	_d_price.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dc.add_child(_d_price)
-	_d_why = _label(19, Color(0.95, 0.55, 0.45))
+	dc.add_child(Med.rule(Med.BRONZE, false))
+	var prow := HBoxContainer.new()
+	prow.alignment = BoxContainer.ALIGNMENT_CENTER
+	prow.add_theme_constant_override("separation", 10)
+	dc.add_child(prow)
+	prow.add_child(_ash_ctl(34.0))
+	_d_price = _label(24, Med.GILT, true)
+	prow.add_child(_d_price)
+	_d_why = _label(18, Color(0.95, 0.55, 0.45))
+	_d_why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_d_why.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dc.add_child(_d_why)
 	_buy = Button.new()
 	_buy.text = "Buy"
 	_buy.focus_mode = Control.FOCUS_NONE
 	_buy.add_theme_font_override("font", _font)
-	_buy.add_theme_font_size_override("font_size", 24)
-	Med.style_button(_buy, 24, 16, 8)
-	_buy.custom_minimum_size = Vector2(0, 50)
+	_buy.add_theme_font_size_override("font_size", 26)
+	Med.style_button(_buy, 26, 16, 10)
+	_buy.add_theme_color_override("font_color", Color(1.0, 0.9, 0.62))
+	_buy.custom_minimum_size = Vector2(0, 54)
 	_buy.pressed.connect(func() -> void: buy_marked())
 	dc.add_child(_buy)
 	# your ash, the keys
 	var foot := HBoxContainer.new()
 	foot.add_theme_constant_override("separation", 10)
 	col.add_child(foot)
-	_ash_icon = Control.new()
-	_ash_icon.custom_minimum_size = Vector2(34, 34)
-	_ash_icon.draw.connect(func() -> void: Icons.draw(_ash_icon, Icons.item_glyph("grave_ash"), Vector2(17, 17), 10.0, Color.WHITE if IconArt.art("item", "grave_ash") != null else ASH_TINT))
+	_ash_icon = _ash_ctl(36.0)
 	foot.add_child(_ash_icon)
-	_ash = _label(23, Med.BONE, true)
+	_ash = _label(22, Med.GILT, true)
 	foot.add_child(_ash)
 	var fill := Control.new()
 	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	foot.add_child(fill)
-	_hint = _label(18, Color(QUIET, 0.75))
+	_hint = _label(15, Color(QUIET, 0.9))
 	foot.add_child(_hint)
+
+
+## The painted grave-ash icon as a small control `px` square.
+func _ash_ctl(px: float) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(px, px)
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.draw.connect(func() -> void: Icons.draw(c, Icons.item_glyph("grave_ash"), Vector2(px, px) * 0.5, px * 0.3, Color.WHITE if IconArt.art("item", "grave_ash") != null else ASH_TINT))
+	return c
 
 
 # --- open / close --------------------------------------------------------------------------------
@@ -265,13 +281,7 @@ func _refresh() -> void:
 		_:
 			rows = Shop.stock(who, get_tree())
 	for i in _tab_btns.size():
-		var on := i == tab
-		var tbx := Med.tab(on)
-		_tab_btns[i].add_theme_stylebox_override("normal", tbx)
-		_tab_btns[i].add_theme_stylebox_override("hover", tbx)
-		_tab_btns[i].add_theme_stylebox_override("pressed", tbx)
-		_tab_btns[i].add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-		_tab_btns[i].add_theme_color_override("font_color", LANTERN if on else Med.BONE_DIM)
+		_tab_btns[i].set_pressed_no_signal(i == tab)
 	for c in _items:
 		c.queue_free()
 	_items.clear()
@@ -280,14 +290,22 @@ func _refresh() -> void:
 		var r: Dictionary = rows[i]
 		if String(r.get("group", "")) != group:
 			group = String(r.get("group", ""))
-			var h := _label(17, Color(Med.GILT, 0.75), true)
+			if not _items.is_empty():
+				var gap := Control.new()
+				gap.custom_minimum_size = Vector2(0, 10)
+				_list.add_child(gap)
+				_items.append(gap)
+			var h := _label(18, Med.GILT, true)
 			h.text = group.to_upper()
+			h.add_theme_constant_override("outline_size", 0)
 			_list.add_child(h)
 			_items.append(h)
+			var hr := Med.rule(Color(Med.BRONZE, 0.8), false)
+			_list.add_child(hr)
+			_items.append(hr)
 		var b := Button.new()
-		b.flat = true
 		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(600, 58)
+		b.custom_minimum_size = Vector2(600, 60)
 		b.mouse_entered.connect(func() -> void:
 			sel = i
 			_mark())
@@ -296,7 +314,7 @@ func _refresh() -> void:
 			_mark())
 		var ic := Control.new()
 		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ic.position = Vector2(8, 4)
+		ic.position = Vector2(8, 5)
 		ic.size = Vector2(50, 50)
 		ic.draw.connect(func() -> void: _draw_icon(ic, r, Vector2(25, 25), 17.0, bool(r.ok)))
 		b.add_child(ic)
@@ -305,28 +323,37 @@ func _refresh() -> void:
 			nm_col = LootDB.quality_color(int(r.get("quality", LootDB.item_quality(String(r.get("item", "")))))).lightened(0.1)
 			if not bool(r.ok):
 				nm_col = nm_col.darkened(0.35)
-		var nm := _label(22, nm_col)
-		nm.position = Vector2(70, 6)
+		var nm := _label(21, nm_col)
+		nm.position = Vector2(70, 5)
 		nm.size = Vector2(380, 30)
 		nm.text = String(r.name)
 		nm.clip_text = true
 		b.add_child(nm)
-		var sub := _label(15, Color(0.7, 0.68, 0.74, 0.8))
-		sub.position = Vector2(70, 33)
+		var sub := _label(16, Color(0.78, 0.72, 0.62, 0.9))
+		sub.position = Vector2(70, 34)
 		sub.text = String(r.get("sub", "")) if r.has("sub") else (("%d left" % int(r.left)) if int(r.left) > 0 else ("sold out" if int(r.left) == 0 else "once"))
 		b.add_child(sub)
-		var pr := _label(22, Color(0.88, 0.85, 0.94) if bool(r.ok) else Color(0.62, 0.5, 0.5), true)
-		pr.position = Vector2(470, 12)
-		pr.size = Vector2(120, 30)
+		var pr := _label(22, Med.GILT if bool(r.ok) else Color(0.62, 0.5, 0.5), true)
+		pr.position = Vector2(420, 14)
+		pr.size = Vector2(124, 30)
 		pr.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		pr.text = "%d ash" % int(r.price)
+		pr.text = "%d" % int(r.price)
 		b.add_child(pr)
+		var pic := _ash_ctl(30.0)
+		pic.position = Vector2(552, 14)
+		if not bool(r.ok):
+			pic.modulate = Color(1, 1, 1, 0.5)
+		b.add_child(pic)
 		b.set_meta("row", i)
 		_list.add_child(b)
 		_items.append(b)
 	if rows.is_empty():
-		var none := _label(21, QUIET)
+		var none := _label(20, QUIET)
 		none.text = ["Nothing left to sell you tonight.", "Nothing you carry is worth their ash. (Worn gear stays on.)", "You have sold them nothing tonight."][tab]
+		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		none.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		none.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		none.custom_minimum_size = Vector2(580, 220)
 		_list.add_child(none)
 		_items.append(none)
 	sel = clampi(sel, 0, maxi(rows.size() - 1, 0))
@@ -339,13 +366,15 @@ func _mark() -> void:
 		if c is Button:
 			var i := int(c.get_meta("row"))
 			var on := i == sel
-			(c as Button).add_theme_stylebox_override("normal", _box(Color(0.36, 0.22, 0.09, 0.55) if on else Color(0, 0, 0, 0), Color(Med.GILT, 0.6) if on else Color(0, 0, 0, 0), 1))
-			(c as Button).add_theme_stylebox_override("hover", _box(Color(0.36, 0.22, 0.09, 0.55), Color(Med.GILT, 0.6), 1))
+			var plate: StyleBox = Med.plaque("hover", 8, 8) if on else StyleBoxEmpty.new()
+			(c as Button).add_theme_stylebox_override("normal", plate)
+			(c as Button).add_theme_stylebox_override("hover", plate)
+			(c as Button).add_theme_stylebox_override("pressed", plate)
 	if sel < rows.size():
 		var r: Dictionary = rows[sel]
 		_d_name.text = String(r.name)
 		_d_text.text = String(r.text)
-		_d_price.text = ("Sells for %d grave ash" if tab == 1 else "%d grave ash") % int(r.price)
+		_d_price.text = ("sells for %d grave ash" if tab == 1 else "%d grave ash") % int(r.price)
 		_d_why.text = String(r.why)
 		_buy.disabled = not bool(r.ok)
 		_buy.visible = true

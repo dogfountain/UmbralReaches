@@ -9,6 +9,7 @@ const LILAC := Med.GILT
 const QUIET := Med.BONE
 const DIM := Med.BONE_DIM
 const TABS := ["Display", "Graphics", "Audio", "Controls"]
+const UIType := preload("res://ui/type.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 
@@ -60,6 +61,8 @@ var _listen_ms := 0
 var on_title := false                ## opened from the title screen: no erase (no run to end), no way back to the title
 var _tscale_slider: HSlider
 var _tscale_label: Label
+var _holder: Control
+var _page_h := 440.0
 
 
 func _ready() -> void:
@@ -86,8 +89,8 @@ func _ready() -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 14)
 	_panel.add_child(col)
-	var ttl := _title("SETTINGS", 32, Med.GILT)
-	Med.gilt(ttl, 32)
+	var ttl := _title("SETTINGS", 34, Med.GILT)
+	Med.gilt(ttl, 34)
 	col.add_child(ttl)
 	# tab bar
 	var bar := HBoxContainer.new()
@@ -99,18 +102,22 @@ func _ready() -> void:
 		b.text = TABS[i].to_upper()
 		b.toggle_mode = true
 		b.focus_mode = Control.FOCUS_NONE        # Q / E and the bumpers switch tabs; focus stays on the page
-		b.custom_minimum_size = Vector2(130, 34)
-		_style_small(b, 16)
+		b.custom_minimum_size = Vector2(150, 40)
+		_style_small(b, 18)
 		Med.style_tab(b)
 		var idx := i
 		b.pressed.connect(func() -> void: _show_tab(idx))
 		bar.add_child(b)
 		_tab_btns.append(b)
 	col.add_child(Med.rule())
+	var well := PanelContainer.new()                      # the pages sit in a recessed well
+	well.add_theme_stylebox_override("panel", Med.inset(14))
+	col.add_child(well)
 	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(640, 420)
+	_holder = holder
+	holder.custom_minimum_size = Vector2(700, 400)
 	holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	col.add_child(holder)
+	well.add_child(holder)
 	for i in TABS.size():
 		var scroll := ScrollContainer.new()
 		scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -119,7 +126,7 @@ func _ready() -> void:
 		holder.add_child(scroll)
 		var page := VBoxContainer.new()
 		page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		page.add_theme_constant_override("separation", 8)
+		page.add_theme_constant_override("separation", 10)
 		scroll.add_child(page)
 		_pages.append(scroll)
 		match i:
@@ -128,13 +135,13 @@ func _ready() -> void:
 			2: _build_audio(page)
 			3: _build_controls(page)
 	# what the focused (or hovered) option does: the tooltips, readable with a pad and at a glance
-	_hint_line = _label("", DIM, 15)
+	_hint_line = _label("", DIM, 16)
 	_hint_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_hint_line.custom_minimum_size = Vector2(0, 40)
+	_hint_line.custom_minimum_size = Vector2(0, 54)
 	_hint_line.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	col.add_child(_hint_line)
 	get_viewport().gui_focus_changed.connect(_on_focus)
-	col.add_child(HSeparator.new())
+	col.add_child(Med.rule(Med.BRONZE, false))
 	col.add_child(_footer())
 	get_viewport().size_changed.connect(_fit)
 	_fit()
@@ -145,6 +152,7 @@ func _ready() -> void:
 # --- pages ---------------------------------------------------------------------
 
 func _build_display(p: VBoxContainer) -> void:
+	_head(p, "WINDOW")
 	_fullscreen_btn = _check(p, "Fullscreen", "F11 toggles it in play", func(v: bool) -> void:
 		Settings.fullscreen = v
 		_res_option.disabled = v
@@ -152,14 +160,15 @@ func _build_display(p: VBoxContainer) -> void:
 	_res_option = _option(p, "Window Size", ["1280 x 720", "1600 x 900", "1920 x 1080"], "", func(i: int) -> void:
 		Settings.window_size_index = i
 		Settings.apply())
-	_vsync_btn = _check(p, "V-Sync", "Locks to the display's refresh rate; no tearing", func(v: bool) -> void:
-		Settings.vsync = v
-		Settings.apply()
-		_pace_note.text = _pace_text())
 	_monitor_option = _option(p, "Monitor", [], "Which display the game is shown on", func(i: int) -> void:
 		Settings.monitor = i - 1          # item 0 is "Automatic"
 		Settings.apply()
 		_later_refresh())
+	_head(p, "FRAME PACING")
+	_vsync_btn = _check(p, "V-Sync", "Locks to the display's refresh rate; no tearing", func(v: bool) -> void:
+		Settings.vsync = v
+		Settings.apply()
+		_pace_note.text = _pace_text())
 	_fps_option = _option(p, "Frame Rate Limit", [], "Match Display follows the refresh rate of whichever monitor the game is on. macOS never shows more frames than the display's refresh rate, even with V-Sync off.", func(i: int) -> void:
 		Settings.fps_limit = Settings.FPS_CHOICES[i]
 		Settings.apply()
@@ -168,12 +177,13 @@ func _build_display(p: VBoxContainer) -> void:
 		Settings.native_output = v
 		Settings.apply()
 		_later_refresh())
-	_pace_note = _label("", QUIET, 15)
+	_pace_note = _label("", DIM, 16)
 	_pace_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	p.add_child(_pace_note)
 
 
 func _build_graphics(p: VBoxContainer) -> void:
+	_head(p, "QUALITY")
 	_preset_option = _option(p, "Quality Preset", Settings.PRESET_NAMES + ["Custom"], "Sets everything below at once. Cinematic turns on reflections and a heavier blur.", func(i: int) -> void:
 		if i < Settings.PRESET_NAMES.size():
 			Settings.apply_preset(i)
@@ -182,7 +192,7 @@ func _build_graphics(p: VBoxContainer) -> void:
 	var row := _row(p, "Render Scale", "Below 100% renders fewer pixels: faster, softer")
 	_scale_auto_btn = CheckButton.new()
 	_scale_auto_btn.text = "Auto"
-	_style_small(_scale_auto_btn)
+	_style_small(_scale_auto_btn, 17)
 	row.add_child(_scale_auto_btn)
 	_scale_slider = _slider(row, 0.5, 1.0, 0.05)
 	_scale_label = _value_label(row)
@@ -202,6 +212,10 @@ func _build_graphics(p: VBoxContainer) -> void:
 	_shadow_option = _option(p, "Shadows", Settings.SHADOW_NAMES, "", func(i: int) -> void:
 		Settings.shadow_quality = i
 		_custom())
+	_aa_option = _option(p, "Anti-Aliasing", Settings.AA_NAMES, "Smooths jagged edges. FXAA and SMAA are cheap; TAA is smoothest but can ghost in motion; MSAA smooths only geometry edges and costs the most.", func(i: int) -> void:
+		Settings.aa_mode = i
+		Settings.apply())
+	_head(p, "EFFECTS")
 	_fog_btn = _check(p, "Volumetric Fog", "Off removes the shafts and depth of the air; the distance fog and height haze stay", func(v: bool) -> void:
 		Settings.fog_enabled = v
 		_custom())
@@ -214,9 +228,6 @@ func _build_graphics(p: VBoxContainer) -> void:
 	_grade_btn = _check(p, "Colour Grade", "The night's tint and the gloom vignette (F1)", func(v: bool) -> void:
 		Settings.grade_enabled = v
 		_custom())
-	_aa_option = _option(p, "Anti-Aliasing", Settings.AA_NAMES, "Smooths jagged edges. FXAA and SMAA are cheap; TAA is smoothest but can ghost in motion; MSAA smooths only geometry edges and costs the most.", func(i: int) -> void:
-		Settings.aa_mode = i
-		Settings.apply())
 	_ssr_btn = _check(p, "Screen Reflections", "Reflections on wet stone and lava; costly", func(v: bool) -> void:
 		Settings.ssr_enabled = v
 		_custom())
@@ -232,6 +243,7 @@ func _build_graphics(p: VBoxContainer) -> void:
 
 
 func _build_audio(p: VBoxContainer) -> void:
+	_head(p, "VOLUME")
 	for spec: Array in [["Master", "master_volume", "Everything at once"], ["Effects", "sfx_volume", "Spells, blows, footsteps, voices"],
 			["Ambience", "ambience_volume", "Wind, rain, wildlife, fires"], ["Music", "music_volume", "The night's quiet music, which rises with danger"]]:
 		var row := _row(p, spec[0], spec[2])
@@ -248,6 +260,7 @@ func _build_audio(p: VBoxContainer) -> void:
 
 
 func _build_controls(p: VBoxContainer) -> void:
+	_head(p, "VIEW")
 	var frow := _row(p, "Field of View", "")
 	_fov_slider = _slider(frow, 50.0, 90.0, 1.0)
 	_fov_label = _value_label(frow)
@@ -280,10 +293,10 @@ func _build_controls(p: VBoxContainer) -> void:
 		Settings.apply())
 	_build_hud(p)
 	p.add_child(_spacer(6))
-	p.add_child(_section("KEYS  ·  CONTROLLER"))
+	_head(p, "KEYS  ·  CONTROLLER")
 	_build_bindings(p)
 	p.add_child(_spacer(4))
-	p.add_child(_label("Fixed: Look  mouse / right stick   ·   Settings  Esc / F2 / Menu   ·   Character tabs  1 - 4, Q E", DIM, 15))
+	p.add_child(_label("Fixed: Look  mouse / right stick   ·   Settings  Esc / F2 / Menu   ·   Character tabs  1 - 4, Q E", DIM, 16))
 
 
 ## r33: the HUD's own choices (ui/hud_prefs.gd, saved in hud.cfg): the unit frames, the floating combat
@@ -291,7 +304,7 @@ func _build_controls(p: VBoxContainer) -> void:
 func _build_hud(p: VBoxContainer) -> void:
 	HudPrefs.ensure()
 	p.add_child(_spacer(6))
-	p.add_child(_section("HEADS-UP DISPLAY"))
+	_head(p, "HEADS-UP DISPLAY")
 	var uf := _check(p, "Unit Frames", "Your frame, your target's and a boss's (off: the plain Gloom bar)", func(v: bool) -> void:
 		HudPrefs.unit_frames = v
 		HudPrefs.save())
@@ -316,13 +329,15 @@ func _build_hud(p: VBoxContainer) -> void:
 	var row := _row(p, "Control Prompts", "The one-line hints that appear the first time a control matters (a ledge, a foe in range...), shown again")
 	var again := Button.new()
 	again.text = "Show Again"
-	_style_small(again, 16)
+	_style_small(again, 17)
+	Med.style_button(again, 17, 16, 5)
 	again.pressed.connect(func() -> void:
 		UiSound.play(self, "confirm")
 		HudPrefs.card_request += 1
 		close())
 	row.add_child(again)
-	p.add_child(_label("MINIMAP TRACKING", DIM, 15))
+	p.add_child(_spacer(4))
+	_head(p, "MINIMAP TRACKING")
 	for k: String in HudPrefs.TRACK:
 		var key := k
 		var cb := _check(p, String(HudPrefs.TRACK_NAMES.get(k, k.capitalize())), "Shown on the minimap", func(v: bool) -> void:
@@ -351,39 +366,40 @@ const KEY_ROWS := [
 ## pad column); Esc cancels. A key or button that already does something else is refused, with the message below.
 ## Saved in settings.cfg (Settings.bindings) and applied by InputSetup on boot.
 func _build_bindings(p: VBoxContainer) -> void:
-	_bind_msg = _label("Click a button, then press the new key.", DIM, 15)
+	_bind_msg = _label("Click a button, then press the new key.", DIM, 16)
 	_bind_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	p.add_child(_bind_msg)
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 12)
 	p.add_child(head)
-	var h0 := _label("", DIM, 15)
-	h0.custom_minimum_size = Vector2(190, 0)
+	var h0 := _label("", DIM, 16)
+	h0.custom_minimum_size = Vector2(240, 0)
 	head.add_child(h0)
 	for t: String in ["Keyboard / mouse", "Controller"]:
-		var hl := _label(t, DIM, 15)
-		hl.custom_minimum_size = Vector2(158, 0)
+		var hl := _label(t, DIM, 16)
+		hl.custom_minimum_size = Vector2(190, 0)
 		head.add_child(hl)
 	for r: Array in InputSetup.REBINDABLE:
 		var action: String = r[1]
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 12)
 		p.add_child(row)
-		var a := _label(String(r[0]), QUIET, 16)
-		a.custom_minimum_size = Vector2(190, 0)
+		var a := _label(String(r[0]), QUIET, 18)
+		a.custom_minimum_size = Vector2(240, 0)
 		row.add_child(a)
 		for slot: String in ["key", "pad"]:
 			var b := Button.new()
-			b.custom_minimum_size = Vector2(158, 30)
+			b.custom_minimum_size = Vector2(190, 34)
 			b.clip_text = true
-			_style_small(b, 15)
+			_style_small(b, 16)
 			var sl := slot
 			b.pressed.connect(func() -> void: _begin_listen(action, sl))
 			row.add_child(b)
 			_bind_btns["%s|%s" % [action, slot]] = b
 	var reset := Button.new()
 	reset.text = "Reset Keys to Defaults"
-	_style_small(reset, 16)
+	_style_small(reset, 17)
+	Med.style_button(reset, 17, 16, 5)
 	reset.pressed.connect(func() -> void:
 		InputSetup.reset_bindings()
 		_listen = ""
@@ -526,27 +542,22 @@ func _on_focus(c: Control) -> void:
 
 func _footer() -> HBoxContainer:
 	var f := HBoxContainer.new()
-	f.alignment = BoxContainer.ALIGNMENT_CENTER
-	f.add_theme_constant_override("separation", 20)
-	var reset := Button.new()
-	reset.text = "Reset to Defaults"
-	_style_small(reset, 16)
+	f.add_theme_constant_override("separation", 14)
+	var reset := _foot_btn("Reset to Defaults", false)
 	reset.pressed.connect(func() -> void:
 		Settings.reset_defaults()
 		_refresh()
 		Events.toast.emit("Settings reset to defaults"))
 	f.add_child(reset)
-	var erase := Button.new()
+	var erase := _foot_btn("Erase Saved Progress", false)
 	_erase_btn = erase
-	erase.text = "Erase Saved Progress"
 	erase.tooltip_text = "Deletes the save and the Journal, and returns you to the title. Settings are kept."
-	_style_small(erase, 16)
 	erase.pressed.connect(func() -> void:           # two-step so a stray click cannot wipe a run
 		if erase.text.begins_with("Confirm"):
 			Travel.erase_save()
 			erase.text = "Erased"
 			erase.disabled = true
-			# r35 B10: the session used to go on, silently never saving again. The run is over: back to the title.
+			# the session used to go on, silently never saving again. The run is over: back to the title.
 			Events.toast.emit("Progress erased. Returning to the title.")
 			get_tree().create_timer(0.8, true).timeout.connect(Travel.to_title)
 		else:
@@ -555,10 +566,8 @@ func _footer() -> HBoxContainer:
 			get_tree().create_timer(4.0, true).timeout.connect(_erase_lapse))   # a method: no lambda capture to outlive the button
 	f.add_child(erase)
 	erase.visible = not on_title
-	var quit_btn := Button.new()
-	quit_btn.text = "Quit Game"
+	var quit_btn := _foot_btn("Quit Game", false)
 	quit_btn.tooltip_text = "Saves and closes the game."
-	_style_small(quit_btn, 16)
 	quit_btn.pressed.connect(func() -> void:
 		if quit_btn.text.begins_with("Really"):
 			Settings.flush()
@@ -571,33 +580,53 @@ func _footer() -> HBoxContainer:
 				if is_instance_valid(quit_btn):
 					quit_btn.text = "Quit Game"))
 	f.add_child(quit_btn)
-	var close_btn := Button.new()
-	close_btn.text = "Close  (Esc)"
-	_style_small(close_btn, 16)
+	var fill := Control.new()
+	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	f.add_child(fill)
+	var close_btn := _foot_btn("Close  (Esc)", true)
 	close_btn.pressed.connect(close)
 	f.add_child(close_btn)
 	return f
 
 
+## One footer button: every plate the same height; the primary one (Close) is the lit, wider plate.
+func _foot_btn(text: String, primary: bool) -> Button:
+	var b := Button.new()
+	b.text = text
+	_style_small(b, 19 if primary else 17)
+	Med.style_button(b, 19 if primary else 17, 18, 8)
+	b.custom_minimum_size = Vector2(210 if primary else 0, 48)
+	if primary:
+		b.add_theme_color_override("font_color", Color(1.0, 0.9, 0.62))
+	return b
+
+
 # --- builders -----------------------------------------------------------------
 
-func _label(text: String, color: Color, size: int) -> Label:
+func _label(text: String, color: Color, size: int, caps := false) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_override("font", _font)
+	l.add_theme_font_override("font", _font if caps else UIType.body())
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
 	return l
 
 
 func _title(text: String, size: int, color: Color) -> Label:
-	var l := _label(text, color, size)
+	var l := _label(text, color, size, true)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return l
 
 
-func _section(text: String) -> Label:
-	return _label(text, LILAC, 17)
+## A section head: Cinzel in gilt with an engraved rule under it.
+func _head(p: VBoxContainer, text: String) -> void:
+	if p.get_child_count() > 0:
+		p.add_child(_spacer(8))
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 0)
+	box.add_child(_label(text, LILAC, 18, true))
+	box.add_child(Med.rule(Color(Med.BRONZE, 0.8), false))
+	p.add_child(box)
 
 
 func _spacer(h: int) -> Control:
@@ -618,8 +647,8 @@ func _row(p: VBoxContainer, label: String, hint: String) -> HBoxContainer:
 	row.tooltip_text = hint
 	row.mouse_entered.connect(func() -> void: _hint_line.text = hint)   # captures only a String
 	p.add_child(row)
-	var l := _label(label, QUIET, 18)
-	l.custom_minimum_size = Vector2(220, 32)
+	var l := _label(label, QUIET, 19)
+	l.custom_minimum_size = Vector2(250, 34)
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.tooltip_text = hint
 	l.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -641,8 +670,9 @@ func _check(p: VBoxContainer, label: String, hint: String, on_toggle: Callable) 
 func _option(p: VBoxContainer, label: String, items: Array, hint: String, on_pick: Callable) -> OptionButton:
 	var ob := OptionButton.new()
 	ob.tooltip_text = hint
-	ob.custom_minimum_size = Vector2(220, 0)
-	_style_small(ob)
+	ob.custom_minimum_size = Vector2(240, 36)
+	ob.add_theme_font_override("font", UIType.body())
+	ob.add_theme_font_size_override("font_size", 18)
 	for it in items:
 		ob.add_item(String(it))
 	_row(p, label, hint).add_child(ob)
@@ -658,7 +688,7 @@ func _slider(row: HBoxContainer, lo: float, hi: float, step: float) -> HSlider:
 	s.min_value = lo
 	s.max_value = hi
 	s.step = step
-	s.custom_minimum_size = Vector2(240, 24)
+	s.custom_minimum_size = Vector2(260, 26)
 	s.value_changed.connect(func(_v: float) -> void:
 		var now := Time.get_ticks_msec()
 		if not _refreshing and now - _tick_ms > 45:      # a soft tick per step, not a buzz on a drag
@@ -671,8 +701,11 @@ func _slider(row: HBoxContainer, lo: float, hi: float, step: float) -> HSlider:
 
 
 func _value_label(row: HBoxContainer) -> Label:
-	var l := _label("", QUIET, 16)
-	l.custom_minimum_size = Vector2(64, 0)
+	var l := _label("", Med.GILT, 18)
+	var pad := StyleBoxEmpty.new()
+	pad.content_margin_right = 16
+	l.add_theme_stylebox_override("normal", pad)
+	l.custom_minimum_size = Vector2(88, 0)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(l)
 	return l
@@ -781,6 +814,7 @@ func _show_tab(i: int) -> void:
 		_tab_btns[k].set_pressed_no_signal(k == i)
 	if _root.visible:
 		_focus_first(_pages[i])
+	_shrink.call_deferred()
 
 
 ## Keyboard / pad: focus the page's first control so arrows and A work straight away.
@@ -794,11 +828,23 @@ func _focus_first(n: Node) -> bool:
 	return false
 
 
-## Panel fits the window: 720 x up to 640 of tab content, smaller on small windows.
+## The window takes the height of the page showing (at least a short page, at most what the screen leaves).
+func _shrink() -> void:
+	if _pages.is_empty():
+		return
+	await get_tree().process_frame              # the pages lay out at their real width first
+	await get_tree().process_frame
+	var page := _pages[_tab].get_child(0) as Control
+	var want := page.get_combined_minimum_size().y + 8.0
+	_holder.custom_minimum_size.y = clampf(want, minf(380.0, _page_h), _page_h)
+
+
+## Panel fits the window: 720 x up to 560 of tab content, smaller on small windows.
 func _fit() -> void:
 	var vs := get_viewport().get_visible_rect().size
-	var h := clampf(vs.y - 330.0, 240.0, 440.0)          # title, tabs, hint line and footer take ~330
-	(_pages[0].get_parent() as Control).custom_minimum_size = Vector2(minf(680.0, vs.x - 120.0), h)
+	_page_h = clampf(vs.y - 400.0, 240.0, 560.0)          # title, tabs, hint line and footer take ~400
+	_holder.custom_minimum_size = Vector2(minf(720.0, vs.x - 120.0), _page_h)
+	_shrink.call_deferred()
 
 
 # --- open / close ------------------------------------------------------------

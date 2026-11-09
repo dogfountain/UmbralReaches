@@ -88,6 +88,41 @@ static func scaled(l: Label, base: int) -> Label:
 	return l
 
 
+## A soft dark plate behind a line of text that sits on the open world: a translucent ink pill with a faint bronze edge.
+static func backing(pad_x := 20, pad_y := 9) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.03, 0.02, 0.012, 0.66)
+	sb.border_color = Color(0.62, 0.45, 0.2, 0.4)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = pad_x
+	sb.content_margin_right = pad_x
+	sb.content_margin_top = pad_y
+	sb.content_margin_bottom = pad_y
+	sb.shadow_color = Color(0, 0, 0, 0.35)
+	sb.shadow_size = 8
+	return sb
+
+
+## Put the plate behind `l` and size the label to hug `text` (wrapped at `max_w`), centred on its anchor and sitting
+## on `bottom` (an offset from the screen's bottom edge): the plate never spans the whole lane for a short line.
+static func plate(l: Label, text: String, max_w: float, bottom: float) -> void:
+	var sb := l.get_theme_stylebox("normal") as StyleBox
+	if not sb is StyleBoxFlat:
+		sb = backing()
+		l.add_theme_stylebox_override("normal", sb)
+	var padx := sb.get_margin(SIDE_LEFT) + sb.get_margin(SIDE_RIGHT)
+	var pady := sb.get_margin(SIDE_TOP) + sb.get_margin(SIDE_BOTTOM)
+	var font := l.get_theme_font("font")
+	var fs := l.get_theme_font_size("font_size")
+	var inner := font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, max_w - padx, fs)
+	var w := minf(inner.x + 6.0, max_w - padx) + padx
+	l.offset_left = -w * 0.5
+	l.offset_right = w * 0.5
+	l.offset_bottom = bottom
+	l.offset_top = bottom - (inner.y + pady + 4.0)
+
+
 ## Re-apply the Text Scale to every Label under `root` that was made with scaled().
 static func rescale(root: Node) -> void:
 	for n in root.find_children("*", "Label", true, false):
@@ -254,7 +289,7 @@ func build(root: Control, title_font: Font) -> void:
 	_toast_box.alignment = BoxContainer.ALIGNMENT_END
 	_toast_box.add_theme_constant_override("separation", 8)
 	root.add_child(_toast_box)
-	_tip = _make_label(22, Color(0.88, 0.86, 1.0), UIType.body())
+	_tip = _make_label(24, Color(0.95, 0.91, 0.82), UIType.body())
 	_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_tip.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_tip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -264,6 +299,7 @@ func build(root: Control, title_font: Font) -> void:
 	_tip.offset_bottom = -TIP_UP + 36
 	_tip.modulate.a = 0.0
 	_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_tip.add_theme_stylebox_override("normal", backing(24, 10))
 	root.add_child(_tip)
 
 
@@ -387,7 +423,8 @@ func _toast_tick(delta: float) -> void:
 		return
 	var item: Dictionary = _toast_q.pop_front()
 	var quiet_line: bool = item.kind == &"quiet"
-	var l := _make_label(17 if quiet_line else 22, Color(0.7, 0.72, 0.82, 0.72) if quiet_line else Color(0.9, 0.9, 1.0), UIType.body())
+	var l := _make_label(17 if quiet_line else 22, Color(0.78, 0.74, 0.66, 0.85) if quiet_line else Color(0.96, 0.92, 0.82), UIType.body())
+	l.add_theme_stylebox_override("normal", backing(16, 8))
 	l.text = String(item.text)
 	l.set_meta(&"life", TOAST_HOLD * (0.8 if quiet_line else 1.0) + (0.0 if _toast_q.is_empty() else -1.0))
 	l.custom_minimum_size = Vector2(280, 0)
@@ -413,6 +450,7 @@ func _lesson_tick(delta: float) -> void:
 	if _lesson_q.is_empty() or not can_begin(&"lesson"):
 		return
 	_tip.text = _lesson_q.pop_front()
+	plate(_tip, _tip.text, 960.0, -TIP_UP + 36.0)
 	_tip_t = 5.6
 	begin(&"lesson", 8.0, _tip_rect())
 	create_tween().tween_property(_tip, "modulate:a", 1.0, 0.35)
