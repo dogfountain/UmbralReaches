@@ -7,9 +7,9 @@ extends RefCounted
 ##     front of the rock's slope, flat walks between them, a balustrade on every edge, pilasters
 ##     carrying violet rune slits, a blind lancet arch on every bay, candle offerings on the walks;
 ##     left open where a starfall pours down its channel (RealmRift.STARFALLS)
-##   - the Watchers: two colossal hooded mages (MageStatue at 4.2x, about 26 m) standing in the pool either
-##     side of the threshold's mouth, facing the village, orbs lit violet above the rim; a starfall
-##     pours down the wall behind each
+##   - the Watchers: two colossal hooded mages (MageStatue at 4.2x, about 26 m, the east one mirrored) standing
+##     in the pool either side of the threshold's mouth, facing the village, open hands over the gate, orbs lit
+##     violet above the rim
 ##   - the Broken Stair: the pilgrims' stair (the old stair's own steps, stair_step.glb) lifted out of the
 ##     pool and held in the air where it broke, climbing in a long curve, light in every joint
 ##   - motes rising off the pool, and light dripping from the stair
@@ -21,7 +21,9 @@ const LAVA := -15.5
 const TOPS := [-12.0, -8.0, -4.0]      ## each terrace's walk height; the lowest stands in the pool
 const BAY := 4.0                       ## metres per terrace bay along the wall
 const Z0 := -15.0                      ## the first bay's south edge (the forecourt's rocks are south of it)
-const WATCHERS := [Vector3(-14.5, -17.2, -19.5), Vector3(14.5, -17.2, -19.5)]   ## pedestal feet, in the pool
+## Pedestal feet, in the pool. z -15.6: the pedestal (r 6.7 m at this scale) ends short of the Ossuary's stone
+## footings (z -22.5) and the figure well short of its south wall inside the east rock.
+const WATCHERS := [Vector3(-14.5, -17.2, -15.6), Vector3(14.5, -17.2, -15.6)]
 const WATCHER_SCALE := 4.2             ## about 26 m: the hood and the orb stand over the forecourt's walls
 const WATCHER_R := 6.4                 ## the pedestal's reach at that scale (1.6 m x 4.2) and a little
 const STEP_GLB := "res://art/models/stair_step.glb"
@@ -34,6 +36,11 @@ var rng := RandomNumberGenerator.new()
 var rune: SurfaceTool                  ## violet rune slits and the stair's under-light (one emissive mesh)
 var report: Array[String] = []
 var _skips := {}                       ## why a bay's tier was not built (printed)
+var _cols: Array[AABB] = []            ## boxes of collision-less instanced pieces here (the crossing's colonnade)
+var _audit: Array[String] = []         ## every piece that was moved or dropped for touching something (printed)
+var _last_hit := ""                    ## what the last failed _clear touched
+var _temp: Array[Node] = []            ## stand-in bodies for collision-less meshes, while the Threshold is placed
+const PROBE_LAYER := 1 << 30           ## their physics layer (nothing else uses it; they are freed after)
 
 
 func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
@@ -46,7 +53,11 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 	k.candle_lights = false             # the wax glows; no new lights (the pool and the violet glow light it)
 	rune = SurfaceTool.new()
 	rune.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_collect_instances(host.get_parent())
+	_stand_ins(root, host)
 	_watchers(host)
+	await root.get_tree().physics_frame            # the stand-ins and the Watchers' bodies are in the space first
+	_audit_watchers(host)
 	var bays := 0
 	for side: float in [-1.0, 1.0]:
 		var z := Z0
@@ -54,6 +65,9 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 			bays += _bay(side, z - BAY * 0.5)
 			z -= BAY
 	var steps := _broken_stair(host)
+	for b in _temp:
+		b.queue_free()
+	_temp.clear()
 	k.commit(host, "ThresholdBody")
 	var mi := MeshInstance3D.new()
 	mi.name = "Runes"
@@ -64,6 +78,7 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 	_motes(host)
 	_pool_lights(host)
 	report.append("terraces: %d bay tiers, broken stair: %d steps, skipped %s" % [bays, steps, str(_skips)])
+	report.append("clearance: %s" % ("nothing touched" if _audit.is_empty() else "; ".join(_audit)))
 	for s in report:
 		print("THRESHOLD ", s)
 	await root.get_tree().physics_frame          # the terraces' collision exists before LavaWorks maps the banks
@@ -144,9 +159,17 @@ func _bay(side: float, zc: float) -> int:
 		if why != "":
 			var key := "%s %s z%.0f" % [why, "W" if side < 0.0 else "E", zc]
 			_skips[key] = int(_skips.get(key, 0)) + 1
-			break
+			if why == "wide" or why == "fall" or why == "watcher":
+				break
+			continue                            # a tower's pier at the foot: the tiers above still stand on the rock
 		var lo := Vector3(minf(front, back), yb, zc - BAY * 0.5)
 		var hi := Vector3(maxf(front, back), yt, zc + BAY * 0.5)
+		# the tier with everything it carries (arch, pilasters, coping, balustrade reach 0.7 m towards the pool)
+		var olo := lo - Vector3(0.7 if side > 0.0 else 0.0, 0.0, 0.0)
+		var ohi := hi + Vector3(0.7 if side < 0.0 else 0.0, 1.2, 0.0)
+		if not _clear(Transform3D(Basis.IDENTITY, (olo + ohi) * 0.5), ohi - olo, 0.1, true):
+			_audit.append("tier %s z%.0f y%.0f dropped (%s)" % ["W" if side < 0.0 else "E", zc, yt, _last_hit])
+			continue                            # the tiers above may still clear it (they stand back on the slope)
 		k.block(STONE, lo, hi)
 		var along := Vector3(0, 0, 1)
 		var inward := Vector3(-side, 0, 0)      # from the wall towards the pool
@@ -188,8 +211,10 @@ func _broken_stair(host: Node3D) -> int:
 	var prev := Vector3.ZERO
 	for i in n:
 		var t := float(i) / float(n - 1)
-		var p := Vector3(7.4 + 3.4 * sin(t * PI * 0.9), LAVA + 0.8 + t * 22.0 + t * t * 4.0, -27.5 - 17.0 * t)
-		p.x += rng.randf_range(-0.3, 0.3) * t * 3.0
+		# x 5 through the narrows between the third tower (x < 1.7) and the Ossuary's bone colonnade (x > 8.4,
+		# z -36..-32), then out east towards the rim as it climbs
+		var p := Vector3(5.0 + 3.6 * smoothstep(0.55, 1.0, t), LAVA + 0.8 + t * 22.0 + t * t * 4.0, -24.5 - 20.0 * t)
+		p.x += rng.randf_range(-0.2, 0.2) * t * 2.0
 		p.z += rng.randf_range(-0.3, 0.3) * t * 2.0
 		var dir := (p - prev).normalized() if i > 0 else Vector3(0.15, 0.0, -1.0)
 		var flat := Vector3(dir.x, 0.0, dir.z).normalized()
@@ -200,6 +225,17 @@ func _broken_stair(host: Node3D) -> int:
 		prev = p
 		if _blocked(p.x, p.z, 1.0):
 			continue
+		var at := Vector3.INF
+		for nudge: Vector3 in [Vector3.ZERO, Vector3(0.9, 0, 0), Vector3(-0.9, 0, 0), Vector3(0, 0.8, 0), Vector3(1.8, 0, 0), Vector3(0, -0.8, 0), Vector3(1.8, 0.8, 0)]:
+			if _clear(Transform3D(bas, p + nudge), size, 0.35):
+				at = p + nudge
+				break
+		if at == Vector3.INF:
+			_audit.append("step %d dropped at %s (%s)" % [i, p.snapped(Vector3.ONE * 0.1), _last_hit])
+			continue
+		if at != p:
+			_audit.append("step %d moved %.1f m" % [i, at.distance_to(p)])
+		p = at
 		if scene:
 			_fit(host, scene, p, bas, size)
 		else:
@@ -211,7 +247,11 @@ func _broken_stair(host: Node3D) -> int:
 		if t > 0.45 and rng.randf() < 0.7:
 			var sp := p + bas.x * rng.randf_range(-2.4, 2.4) + Vector3(0.0, rng.randf_range(-1.2, 1.4), rng.randf_range(-1.0, 1.0))
 			var sb := Basis(Vector3(rng.randf(), rng.randf(), rng.randf()).normalized(), rng.randf() * TAU)
-			k.box("hub", sp, Vector3(rng.randf_range(0.4, 0.9), rng.randf_range(0.25, 0.4), rng.randf_range(0.4, 0.8)), sb, false)
+			var ss := Vector3(rng.randf_range(0.4, 0.9), rng.randf_range(0.25, 0.4), rng.randf_range(0.4, 0.8))
+			if _clear(Transform3D(sb, sp), ss, 0.3) and not _near_steps(sp, p, bas, size):
+				k.box("hub", sp, ss, sb, false)
+			else:
+				_audit.append("shard by step %d dropped" % i)
 		placed += 1
 	return placed
 
@@ -249,6 +289,11 @@ func _watchers(host: Node3D) -> void:
 		m.rotation.y = PI + (0.22 if w.x < 0.0 else -0.22)     # facing the village, turned a little to the mouth
 		m.scale = Vector3.ONE * WATCHER_SCALE
 		m.set_process(false)
+		if w.x > 0.0:
+			# mirrored, so both reach their open hand over the gate (the body is symmetric: it stays as built)
+			for c in m.get_children():
+				if c is Node3D and not (c is CollisionObject3D):
+					(c as Node3D).transform = Transform3D(Basis.from_scale(Vector3(-1.0, 1.0, 1.0)), Vector3.ZERO) * (c as Node3D).transform
 		var ol := m.find_child("OrbLight", true, false) as OmniLight3D
 		if ol:
 			ol.light_color = Color(0.6, 0.45, 1.0)
@@ -274,6 +319,136 @@ func _watchers(host: Node3D) -> void:
 		host.add_child(up)
 		var foot := Vector3(w.x * 0.45, LAVA + 0.6, w.z + 4.0)
 		up.look_at_from_position(foot, Vector3(w.x, LAVA + 22.0, w.z), Vector3.UP)
+
+
+# --- clearance ---------------------------------------------------------------------------------------
+
+## The rift's MultiMesh pieces carry no collision (the crossing's colonnade columns, the ash drifts): keep
+## each instance's world box near the Threshold so nothing is placed through one.
+func _collect_instances(rift: Node) -> void:
+	if rift == null:
+		return
+	var area := AABB(Vector3(-34.0, -24.0, star_z - 14.0), Vector3(68.0, 60.0, -star_z + 6.0))
+	for n in rift.find_children("*", "MultiMeshInstance3D", true, false):
+		var mmi := n as MultiMeshInstance3D
+		if mmi.multimesh == null or mmi.multimesh.mesh == null:
+			continue
+		var mb := mmi.multimesh.mesh.get_aabb()
+		for i in mmi.multimesh.instance_count:
+			var bb: AABB = mmi.global_transform * mmi.multimesh.get_instance_transform(i) * mb
+			if bb.intersects(area):
+				_cols.append(bb)
+
+
+## Visual meshes with no collision (the Ossuary's bone colonnade, ornament) are obstacles too: each one
+## in the Threshold's reach gets a temporary trimesh body on PROBE_LAYER while pieces are placed. The
+## ground, the water, the flora and the lava are left out (the ground has its own collision).
+func _stand_ins(root: Node, host: Node3D) -> void:
+	var area := AABB(Vector3(-34.0, -24.0, star_z - 6.0), Vector3(68.0, 60.0, -star_z - 2.0))
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		if mi.mesh == null or not mi.is_visible_in_tree() or host.is_ancestor_of(mi):
+			continue
+		var bb: AABB = mi.global_transform * mi.get_aabb()
+		if not bb.intersects(area) or bb.size.x * bb.size.z > 6000.0:
+			continue
+		var path := String(mi.get_path())
+		if path.contains("Terrain") or path.contains("Lava") or path.contains("Flora") or path.contains("FenWater") or path.contains("Fall"):
+			continue
+		var shape := mi.mesh.create_trimesh_shape()
+		if shape == null:
+			continue
+		var body := StaticBody3D.new()
+		body.name = "StandIn"
+		body.collision_layer = PROBE_LAYER
+		body.collision_mask = 0
+		body.set_meta(&"stands_for", path.trim_prefix("/root/Main/"))
+		var cs := CollisionShape3D.new()
+		cs.shape = shape
+		body.add_child(cs)
+		host.add_child(body)
+		body.global_transform = mi.global_transform
+		_temp.append(body)
+
+
+## True when a box `size` at `xf` touches nothing already built: no collision (the ground excepted when
+## `ground_ok`: a terrace keys into the rock) and no collision-less instance; `grow` pads it all round.
+func _clear(xf: Transform3D, size: Vector3, grow := 0.3, ground_ok := false) -> bool:
+	var sh := BoxShape3D.new()
+	sh.size = size + Vector3.ONE * grow * 2.0
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = sh
+	q.transform = xf
+	q.collision_mask = Layers.WORLD | PROBE_LAYER
+	for hit: Dictionary in space.intersect_shape(q, 24):
+		var c := hit.get("collider") as Node
+		if ground_ok and c != null and String(c.name).begins_with("Terrain"):
+			continue
+		_last_hit = String(c.get_meta(&"stands_for", c.get_path())) if c else "?"
+		return false
+	var bb: AABB = xf * AABB(-size * 0.5 - Vector3.ONE * grow, size + Vector3.ONE * grow * 2.0)
+	for cb: AABB in _cols:
+		if cb.intersects(bb):
+			_last_hit = "an instanced piece at %s" % cb.get_center().snapped(Vector3.ONE * 0.1)
+			return false
+	return true
+
+
+## A shard keeps clear of its own step.
+static func _near_steps(sp: Vector3, p: Vector3, b: Basis, size: Vector3) -> bool:
+	var local := b.inverse() * (sp - p)
+	return absf(local.x) < size.x * 0.5 + 0.6 and absf(local.y) < size.y * 0.5 + 0.6 and absf(local.z) < size.z * 0.5 + 0.6
+
+
+## Each Watcher as its parts (MageStatue's own proportions, at full scale): the pedestal, the body, the staff
+## and the outstretched arm with its sleeve, tested against everything built and drawn (and the rock, but for
+## the pedestal, which stands on the floor). Anything touched is printed in the clearance line.
+func _audit_watchers(host: Node3D) -> void:
+	var fs := MageStatue.FIG_SCALE
+	var ph := MageStatue.PEDESTAL_H
+	for w in host.get_children():
+		if not (w is MageStatue):
+			continue
+		var m := w as Node3D
+		var mx := -1.0 if m.global_position.x > 0.0 else 1.0            # the east one is mirrored
+		var fig := func(v: Vector3) -> Vector3: return Vector3(v.x * fs * mx, v.y * fs + ph, v.z * fs)
+		var parts: Array = []
+		var cyl := CylinderShape3D.new()
+		cyl.radius = 1.6 * WATCHER_SCALE
+		cyl.height = ph * WATCHER_SCALE
+		parts.append(["pedestal", cyl, Vector3(0, ph * 0.5, 0), Basis.IDENTITY, true])
+		var cap := CapsuleShape3D.new()
+		cap.radius = 0.55 * fs * WATCHER_SCALE
+		cap.height = 2.9 * fs * WATCHER_SCALE
+		parts.append(["body", cap, Vector3(0, ph + 1.45 * fs, 0), Basis.IDENTITY, false])
+		parts.append(_bar("staff", fig.call(Vector3(0.62, 0.0, -0.38)), fig.call(Vector3(0.62, 4.0, -0.38)), 0.12 * fs))
+		parts.append(_bar("arm", fig.call(Vector3(-0.4, 2.56, 0.0)), fig.call(Vector3(-0.63, 2.55, -1.0)), 0.36 * fs))
+		parts.append(_bar("sleeve", fig.call(Vector3(-0.66, 2.44, -0.62)), fig.call(Vector3(-0.64, 1.78, -0.5)), 0.3 * fs))
+		var own := m.find_child("StatueBody", true, false)
+		for part: Array in parts:
+			var q := PhysicsShapeQueryParameters3D.new()
+			q.shape = part[1]
+			var rot := m.global_transform.basis.orthonormalized()
+			q.transform = Transform3D(rot * (part[3] as Basis), m.global_transform * (part[2] as Vector3))
+			q.collision_mask = Layers.WORLD | PROBE_LAYER
+			var touched := {}
+			for hit: Dictionary in space.intersect_shape(q, 24):
+				var c := hit.get("collider") as Node
+				if c == null or c == own or (bool(part[4]) and String(c.name).begins_with("Terrain")):
+					continue
+				touched[String(c.get_meta(&"stands_for", c.name))] = true
+			if not touched.is_empty():
+				_audit.append("%s %s touches %s" % [m.name, part[0], ", ".join(touched.keys())])
+
+
+## A thin box from a to b (node-local, before the node's scale), `t` thick, as an audit part.
+func _bar(n: String, a: Vector3, b: Vector3, t: float) -> Array:
+	var d := b - a
+	var y := d.normalized()
+	var x := y.cross(Vector3.FORWARD if absf(y.z) < 0.9 else Vector3.RIGHT).normalized()
+	var box := BoxShape3D.new()
+	box.size = Vector3(t, d.length(), t) * WATCHER_SCALE
+	return [n, box, (a + b) * 0.5, Basis(x, y, x.cross(y)), false]
 
 
 # --- light ---------------------------------------------------------------------------------------------

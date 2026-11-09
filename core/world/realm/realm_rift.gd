@@ -23,7 +23,7 @@ const STAR_BAND := 5.0
 ## lip on the real rock along that z (east side only south of the Ossuary). Lava north of STAR_Z;
 ## the STARFALLS south of it pour light into the pool down channels left in the terraces.
 const FALLS := [[-60.0, -1.0], [-82.0, -1.0], [-104.0, -1.0], [-114.0, 1.0]]
-const STARFALLS := [[-21.0, -1.0], [-37.0, -1.0], [-17.0, 1.0]]   ## on terrace bay centres (rift/threshold.gd leaves that bay open)
+const STARFALLS := [[-37.0, -1.0]]   ## on a terrace bay centre (rift/threshold.gd leaves that bay open); none by the Watchers, whose pedestals fill the mouth
 
 
 static func build(root: Node) -> void:
