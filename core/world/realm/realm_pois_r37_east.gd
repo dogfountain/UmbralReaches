@@ -108,6 +108,18 @@ static func reserve(root: Node, _skip: PackedStringArray) -> void:
 		else:
 			WorldLanes.register_site("poi_" + id, rect, lo + 0.05, lo)
 		spots[id] = {"at": Vector3(q.x, base, q.y), "yaw": yaw, "rect": rect, "lo": lo, "hi": hi}
+	if spots.has("saltworks"):
+		for f: Dictionary in PAN_FIELDS:
+			var fr: Rect2 = f.rect
+			var fy := RealmLayout.ground(space, fr.get_center().x, fr.get_center().y)
+			WorldLanes.register_site("poi_" + String(f.id), fr, fy + 0.05, fy + 60.0)       # flora and camps keep out; the land is not cut
+		var pi := 0
+		for sp: Dictionary in _pan_spots():
+			var pq: Vector2 = sp.at
+			if RealmLayout.path_dist(pq) < 5.0:
+				continue
+			pi += 1
+			WorldLanes.register_terrace("poi_pan_%d" % pi, pq, 4.2, RealmLayout.ground(space, pq.x, pq.y))       # a level bed under each pan
 	if spots.has("lamp_spire"):
 		Flora.tree_clear.append([Vector2((spots.lamp_spire.at as Vector3).x, (spots.lamp_spire.at as Vector3).z), 20.0])
 	# the Anchoress's cairns and the walk are built on the raid floor (reserved by RealmBosses)
@@ -549,6 +561,163 @@ static func hamlet(v: Node3D, space: PhysicsDirectSpaceState3D, node_xz: Diction
 	return true
 
 
+# --- The pan fields (the White Pans, east of the works) -------------------------------------------------
+
+const R34 := preload("res://core/world/realm/realm_pois_r34.gd")
+## Two fields of evaporation pans, north and south of the works (east of x 219: the star-fall wonder owns the west flat).
+const PAN_FIELDS := [
+	{"id": "pans_a", "rect": Rect2(219.5, 120.4, 31.0, 13.4), "rows": [123.6, 130.6]},
+	{"id": "pans_b", "rect": Rect2(219.5, 191.4, 31.0, 12.4), "rows": [194.6, 200.8]},
+]
+const PAN_XS := [222.5, 230.8, 239.1, 247.4]
+const PAN_CART := Vector2(226.0, 139.5)
+
+const BRINE_SHADER := """
+shader_type spatial;
+uniform float seed = 0.0;
+varying vec3 wp;
+float h(vec2 p) { return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p) {
+	vec2 i = floor(p); vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y);
+}
+void vertex() { wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+void fragment() {
+	vec2 p = wp.xz;
+	float f = n(p * 0.9) * 0.6 + n(p * 2.3) * 0.3 + n(p * 7.0) * 0.1;
+	float crust = smoothstep(0.46 + seed * 0.01, 0.6 + seed * 0.01, f);
+	float grain = n(p * 11.0) * 0.5 + n(p * 29.0) * 0.5;
+	vec3 salt = mix(vec3(0.62, 0.66, 0.7), vec3(0.93, 0.95, 0.96), grain);
+	vec3 brine = vec3(0.07, 0.2, 0.23);
+	ALBEDO = mix(brine, salt, crust);
+	ROUGHNESS = mix(0.05, 0.8, crust);
+	SPECULAR = mix(0.9, 0.25, crust);
+	vec2 g = vec2(n(p * 4.0 + TIME * 0.08) - 0.5, n(p * 4.0 + 9.0 - TIME * 0.06) - 0.5) * (1.0 - crust);
+	NORMAL_MAP = vec3(0.5 + g.x * 0.25, 0.5 + g.y * 0.25, 1.0);
+}
+"""
+static var _brine_mat: ShaderMaterial = null
+
+
+## A pan's surface: pale crust broken by open brine, over the model's flat white slab.
+static func _brine(host: Node3D, at: Vector3, yaw: float, seed_v: float) -> void:
+	if _brine_mat == null:
+		var sh := Shader.new()
+		sh.code = BRINE_SHADER
+		_brine_mat = ShaderMaterial.new()
+		_brine_mat.shader = sh
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(6.3, 4.4)
+	var mi := MeshInstance3D.new()
+	mi.name = "Brine"
+	mi.mesh = pm
+	var m := _brine_mat.duplicate() as ShaderMaterial
+	m.set_shader_parameter("seed", seed_v)
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visibility_range_end = 200.0
+	host.add_child(mi)
+	mi.global_transform = Transform3D(Basis(Vector3.UP, yaw), at + Vector3(0, 0.165, 0))
+
+
+## The new pans' places (deterministic, with a little disorder: nothing laid on a grid).
+static func _pan_spots() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 37311
+	for f: Dictionary in PAN_FIELDS:
+		var ri := 0
+		for rz: float in f.rows:
+			for i in PAN_XS.size():
+				var jx := rng.randf_range(-0.5, 0.5)
+				var jz := rng.randf_range(-0.4, 0.4)
+				var yaw := rng.randf_range(-0.16, 0.16) + (0.04 if ri == 1 else -0.03)
+				if rng.randf() < 0.18:
+					continue                  # a pan not laid, a gap in the row
+				out.append({"at": Vector2(float(PAN_XS[i]) + jx + float(ri) * 0.7, rz + jz), "yaw": yaw, "field": String(f.id)})
+			ri += 1
+	return out
+
+
+static func _pan_fields(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 37321
+	var n_pans := 0
+	for sp: Dictionary in _pan_spots():
+		var q: Vector2 = sp.at
+		if RealmLayout.path_dist(q) < 5.0:
+			continue
+		var p := Vector3(q.x, _gy(space, q.x, q.y) - 0.04, q.y)
+		var px := Transform3D(Basis(Vector3.UP, float(sp.yaw)), p)
+		piece(host, WORKS, "Pan_Unit", px, Vector2(0, 150), false)
+		cols(host, "PanBody", _tbl("PAN_BOXES"), px)
+		_brine(host, p, float(sp.yaw), rng.randf_range(0.0, 6.0))
+		n_pans += 1
+		# a rake left in some of them, leant on the rim
+		if rng.randf() < 0.45:
+			_rake(host, space, p, float(sp.yaw), rng)
+	# the cart the salt is carried off in, loaded
+	_cart(host, Vector3(PAN_CART.x, _gy(space, PAN_CART.x, PAN_CART.y), PAN_CART.y), 0.55)
+	print("REALM_POI r37e pans: %d new pans" % n_pans)
+
+
+## A rake leant on the pan's near rim: a pole and a toothed head.
+static func _rake(host: Node3D, space: PhysicsDirectSpaceState3D, pan: Vector3, yaw: float, rng: RandomNumberGenerator) -> void:
+	var k := OssKit.new()
+	k.keep_lanes = false
+	var b := Basis(Vector3.UP, yaw + rng.randf_range(-0.5, 0.5))
+	var base := pan + Basis(Vector3.UP, yaw) * Vector3(rng.randf_range(-2.0, 2.0), 0.0, 2.75)
+	base.y = _gy(space, base.x, base.z)
+	var lean := 0.42
+	var top := base + b * Vector3(0.0, cos(lean) * 1.9, -sin(lean) * 1.9)
+	R34._cyl(k, "wood", base + Vector3(0, 0.02, 0), top, 0.035, 0.03)
+	var head := base + b * Vector3(0.0, 0.14, 0.0)
+	k.box("wood", head, Vector3(0.62, 0.05, 0.07), b, false, 0.8)
+	for i in 5:
+		k.box("iron", head + b * Vector3(-0.24 + 0.12 * float(i), -0.1, 0.0), Vector3(0.025, 0.2, 0.025), b, false, 0.8)
+	k.commit(host, "Rake")
+
+
+## A hand-cart: a plank bed, two wheels, shafts and a heap of salt on it.
+static func _cart(host: Node3D, at: Vector3, yaw: float) -> void:
+	var k := OssKit.new()
+	k.keep_lanes = false
+	var b := Basis(Vector3.UP, yaw)
+	k.box("wood", at + b * Vector3(0, 0.78, 0), Vector3(1.5, 0.12, 1.0), b, true, 0.8)
+	for sz: float in [-0.5, 0.5]:
+		k.box("wood", at + b * Vector3(0, 1.05, sz), Vector3(1.5, 0.42, 0.06), b, true, 0.75)
+	for sx: float in [-0.75, 0.75]:
+		k.box("wood", at + b * Vector3(sx, 1.05, 0), Vector3(0.06, 0.42, 1.0), b, true, 0.75)
+	for sz: float in [-0.62, 0.62]:
+		R34._cyl(k, "wood", at + b * Vector3(0.1, 0.42, sz), at + b * Vector3(0.1, 0.42, sz + signf(sz) * 0.07), 0.42, 0.42, true, 12)
+	R34._cyl(k, "wood", at + b * Vector3(0.1, 0.42, -0.62), at + b * Vector3(0.1, 0.42, 0.62), 0.05, 0.05)
+	for sz: float in [-0.4, 0.4]:
+		R34._cyl(k, "wood", at + b * Vector3(0.7, 0.85, sz), at + b * Vector3(2.5, 0.2, sz * 1.1), 0.045, 0.04)
+	k.commit(host, "SaltCart")
+	piece(host, WORKS, "Salt_Heap", Transform3D(b.scaled(Vector3(0.42, 0.34, 0.34)), at + b * Vector3(-0.1, 0.85, 0)), Vector2(0, 100))
+
+
+## Salt drifted against the March Wall's east foot: low wide heaps along its length (the Pans' wind piles it there).
+static func _drifts(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 37331
+	var z := 194.0
+	var n := 0
+	while z < 237.0:
+		var wx := RealmMarch.wall_x(1, z)
+		var q := Vector2(wx + rng.randf_range(4.0, 6.0), z + rng.randf_range(-2.0, 2.0))
+		z += rng.randf_range(4.2, 6.5)
+		if RealmLayout.path_dist(q) < 3.0 or not WorldLanes.site_at(q, 2.0).is_empty():
+			continue
+		var gq := _gy(space, q.x, q.y)
+		var sx := rng.randf_range(1.6, 2.6)
+		var xf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sx, rng.randf_range(0.45, 0.7), sx * rng.randf_range(0.7, 1.1))), Vector3(q.x, gq - 0.05, q.y))
+		piece(host, WORKS, "Salt_Heap", xf, Vector2(0, 180))
+		n += 1
+	print("REALM_POI r37e pans: %d wall drifts" % n)
+
+
 # --- The salt-works -----------------------------------------------------------------------------------
 
 static func _saltworks(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary) -> void:
@@ -575,6 +744,7 @@ static func _saltworks(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictio
 			piece(host, WORKS, "Pan_Unit", px, Vector2(0, 150), false)
 			cols(host, "PanBody", _tbl("PAN_BOXES"), px)
 			pans.append(p)
+			_brine(host, p, 0.0, float(pans.size()) * 1.7)
 	# three derricks reaching over the pans (their booms swing out over the brine)
 	var derricks: Array[Vector3] = []
 	for dd: Vector2 in [Vector2(-1.0, 6.0), Vector2(-1.0, -4.0), Vector2(17.0, 6.0)]:
@@ -596,6 +766,8 @@ static func _saltworks(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictio
 	spots["saltworks"] = s
 	host.set_meta("derricks", derricks)
 	host.set_meta("approach", at.call(-4.0, -6.0))
+	_pan_fields(host, space)
+	_drifts(host, space)
 
 
 static func _crust(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary) -> void:
