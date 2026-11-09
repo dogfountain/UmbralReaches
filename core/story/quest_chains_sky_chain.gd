@@ -22,6 +22,6 @@ const CHAIN_COUNT := {"name": "The Count of Links", "giver": "elspeth", "where":
 	"outcome": {"": "Elspeth said the number over twice, the way you test a coin. \"One short,\" she said. \"He used to say the sky would take one back. I thought it was a joke.\""}}
 
 const PICKUPS := {
-	"chain_tally": {"quest": "chain_count", "step": 1, "near": Vector2(92.6, -129.5), "kind": "slate", "name": "the wardens' tally", "verb": "Read",
+	"chain_tally": {"quest": "chain_count", "step": 1, "near": Vector2(86.6, -129.6), "kind": "slate", "name": "the wardens' tally", "verb": "Read",
 		"say": "A stone at the bitter end, cut in tallies of five, row on row. ONE THOUSAND AND NINE, and under it in a newer hand: counted again, one short. Counted again. One short."},
 }

@@ -3,7 +3,7 @@ render_mode cull_back, depth_draw_opaque;
 // The Sky Chain's high links, seen from the village against the vortex: dark iron that takes the sky's violet at its
 // edges, drifts a little in the turning air, and thins out into the sky above fade_end (no cut, no pop).
 // Every link carries its own height in its model matrix, so the fade is in world space.
-uniform vec3 iron : source_color = vec3(0.2, 0.2, 0.25);
+uniform vec3 iron : source_color = vec3(0.3, 0.3, 0.36);
 uniform vec3 sky_tint : source_color = vec3(0.34, 0.24, 0.62);
 uniform float fade_start = 150.0;
 uniform float fade_end = 470.0;
@@ -31,6 +31,7 @@ void fragment() {
 	ROUGHNESS = 0.42;
 	RIM = 0.75;
 	RIM_TINT = 0.5;
-	EMISSION = sky_tint * (0.05 + 0.12 * max(v_up, 0.0)) * (0.5 + sky);
+	float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.2);
+	EMISSION = sky_tint * ((0.08 + 0.15 * max(v_up, 0.0)) * (0.5 + sky) + rim * 1.6);
 	ALPHA = f;
 }

@@ -13,6 +13,7 @@ extends RefCounted
 
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
+const WestKit := preload("res://core/world/realm/r37_west_kit.gd")
 
 const NAME := "The Wardens' Tally"
 const PAGE := {"title": "Cut into the tally stone", "kind": "carved stone",
@@ -31,16 +32,25 @@ static func build(root: Node, host: Node3D) -> void:
 	node.name = "WardensTally"
 	node.set_meta("site", "secrets_sky_chain")
 	host.add_child(node)
-	# the wardens' box: an iron-bound chest east of the tally stone, on the walk
+	# the wardens' box: the modelled iron-bound chest (tools/blender/wonder_sky_chain.py), beside the lodge door; its lid is
+	# its own node, hinged at the back
 	var at := top + b.x * 2.4 + b.z * 0.2
-	var chest := BoxMesh.new()
-	chest.size = Vector3(0.9, 0.55, 0.55)
-	var lid := BoxMesh.new()
-	lid.size = Vector3(0.96, 0.14, 0.6)
-	var box := Kit.mi(node, chest, OssKit.mat("iron"), Transform3D(b, at + Vector3.UP * 0.28), 90.0)
-	var cap := Kit.mi(node, lid, OssKit.mat("iron"), Transform3D(b, at + Vector3.UP * 0.62), 90.0)
+	var ps := load("res://art/models/wonders/sky_chain_chest.glb") as PackedScene
+	var chest := ps.instantiate() as Node3D if ps != null else Node3D.new()
+	node.add_child(chest)
+	chest.global_transform = Transform3D(b, at)
+	var lid: Node3D = null
+	for n in chest.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		var set_name := String(mi.name).get_slice("__", 1).get_slice("_", 0).get_slice(".", 0)
+		if set_name in ["timber", "iron"]:
+			mi.material_override = WestKit.mat(set_name)
+		if String(mi.name).contains("Lid"):
+			lid = mi
+	var lid_rest := lid.transform if lid != null else Transform3D.IDENTITY
 	var opened := func(_animate: bool) -> void:
-		cap.transform = Transform3D(b * Basis(Vector3.RIGHT, -1.1), at + Vector3.UP * 0.7 + b.z * 0.28)
+		if lid != null:
+			lid.transform = Transform3D(lid_rest.basis * Basis(Vector3.RIGHT, -1.15), lid_rest.origin)
 	State.cache(node, "sky_chain", at + Vector3.UP * 0.5, "the wardens' box", opened)
 	State.reading(node, "sc_sky_chain", top + Vector3(0.0, 1.0, 0.55), "Read the tally stone")
 	Kit.glint(node, at + Vector3.UP * 0.9, Color(0.75, 0.62, 1.0), 0.3, 40.0)
