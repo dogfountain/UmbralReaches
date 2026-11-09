@@ -51,7 +51,7 @@ static func panel(kind := "leather", pad := 26) -> StyleBoxTexture:
 			return _nine("parchment_panel", 26, pad)
 		"slip":
 			return _nine("parchment_slip", 12, 8)
-	return _nine("leather_panel", 28, pad)
+	return _nine("leather_panel", 48, pad)        # the forged frame (192 px, 48 px corners)
 
 
 ## A tea-stained, darkened slip for tooltips that carry light text in rarity colours; `rim` leans the stain towards a colour.
@@ -63,16 +63,16 @@ static func slip_dark(rim := Color(0.5, 0.42, 0.32)) -> StyleBoxTexture:
 
 ## A flat inset recess of leather (a list well, a text block), thin lit rim underneath.
 static func inset(pad := 10) -> StyleBoxTexture:
-	return _nine("inset", 8, pad)
+	return _nine("inset", 10, pad)
 
 
 ## An item or ability socket: leather inset, metal rim. The tint colours the rim (rarity); white leaves bare iron.
 static func slot(tint := Color.WHITE) -> StyleBoxTexture:
-	return _nine("slot", 10, 4, tint)
+	return _nine("slot", 12, 4, tint)
 
 
 static func frame(pad := 8) -> StyleBoxTexture:
-	return _nine("iron_frame", 14, pad)
+	return _nine("iron_frame", 10, pad)
 
 
 static func banner() -> StyleBoxTexture:
@@ -85,7 +85,7 @@ static func banner() -> StyleBoxTexture:
 
 ## state: normal, hover, pressed, disabled, focus
 static func plaque(state := "normal", pad_x := 14, pad_y := 6) -> StyleBoxTexture:
-	var sb := _nine("plaque_" + state, 16, 6)
+	var sb := _nine("plaque_" + state, 12, 6)
 	sb.content_margin_left = pad_x
 	sb.content_margin_right = pad_x
 	sb.content_margin_top = pad_y
@@ -169,17 +169,31 @@ class InkRule extends Control:
 	func _draw() -> void:
 		var y := size.y * 0.5
 		var cx := size.x * 0.5
-		var gap := 14.0 if flourish else 0.0
-		draw_line(Vector2(0, y), Vector2(cx - gap, y), col, 1.0)
-		draw_line(Vector2(cx + gap, y), Vector2(size.x, y), col, 1.0)
-		draw_line(Vector2(0, y + 3), Vector2(cx - gap - 20, y + 3), Color(col, col.a * 0.4), 1.0)
-		draw_line(Vector2(cx + gap + 20, y + 3), Vector2(size.x, y + 3), Color(col, col.a * 0.4), 1.0)
-		if flourish:
-			draw_colored_polygon(PackedVector2Array([Vector2(cx - 6, y), Vector2(cx, y - 5), Vector2(cx + 6, y), Vector2(cx, y + 5)]), col)
-			draw_circle(Vector2(cx - 11, y), 1.6, col)
-			draw_circle(Vector2(cx + 11, y), 1.6, col)
-			draw_circle(Vector2(0, y), 2.0, col)
-			draw_circle(Vector2(size.x, y), 2.0, col)
+		var gap := 21.0 if flourish else 0.0
+		# an engraved rule, full near the middle and fading out to the ends, with its shadow cut below
+		var n := 20
+		for side: float in [-1.0, 1.0]:
+			var x0 := cx + side * gap
+			var x1 := 0.0 if side < 0.0 else size.x
+			for i in n:
+				var pa := Vector2(lerpf(x0, x1, float(i) / n), y)
+				var pb := Vector2(lerpf(x0, x1, float(i + 1) / n), y)
+				var fade := 1.0 - pow(float(i) / n, 1.6)
+				draw_line(pa, pb, Color(col, col.a * fade), 1.0)
+				draw_line(pa + Vector2(0, 1), pb + Vector2(0, 1), Color(0, 0, 0, 0.5 * fade), 1.0)
+		if not flourish:
+			return
+		# a faceted lozenge between two small curls, a dot beyond each
+		var d := 5.5
+		var dark := Color(0, 0, 0, 0.75)
+		draw_colored_polygon(PackedVector2Array([Vector2(cx - d - 1.6, y), Vector2(cx, y - d - 1.6), Vector2(cx + d + 1.6, y), Vector2(cx, y + d + 1.6)]), dark)
+		draw_colored_polygon(PackedVector2Array([Vector2(cx - d, y), Vector2(cx, y - d), Vector2(cx + d, y), Vector2(cx, y + d)]), col)
+		draw_colored_polygon(PackedVector2Array([Vector2(cx - d, y), Vector2(cx, y - d), Vector2(cx, y)]), col.lightened(0.4))
+		draw_colored_polygon(PackedVector2Array([Vector2(cx, y), Vector2(cx + d, y), Vector2(cx, y + d)]), col.darkened(0.35))
+		draw_arc(Vector2(cx - 11.0, y), 4.5, PI * 0.38, PI * 1.62, 10, col, 1.4, true)
+		draw_arc(Vector2(cx + 11.0, y), 4.5, -PI * 0.62, PI * 0.62, 10, col, 1.4, true)
+		draw_circle(Vector2(cx - 18.5, y), 1.5, col)
+		draw_circle(Vector2(cx + 18.5, y), 1.5, col)
 
 
 static func rule(col := BRONZE, flourish := true) -> Control:

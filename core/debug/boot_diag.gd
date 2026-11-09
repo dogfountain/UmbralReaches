@@ -64,8 +64,7 @@ static func run(root: Node) -> void:
 		push_error("BOOT_DIAG %s" % summary)
 		Events.toast.emit("DIAG: %d error(s). F3 · umbral_diag.log" % fail_count)
 	else:
-		print("BOOT_DIAG %s" % summary)
-		Events.toast.emit("DIAG: meshes ok · grass tint logged. F3")
+		print("BOOT_DIAG %s" % summary)          # (no toast on a clean boot: it was developer noise on every player's HUD)
 
 
 static func _glbs(lines: PackedStringArray) -> void:
