@@ -8,8 +8,8 @@ const RISE := preload("res://core/world/realm/wonders/upward_falls/rise.gdshader
 const FLOW := preload("res://core/world/realm/wonders/upward_falls/flow.gdshader")
 const POOL := preload("res://core/world/realm/wonders/upward_falls/pool.gdshader")
 
-const HEIGHT := 66.0                         ## the sheet's height over the basin
-const LEAN := Vector3(5.0, 0.0, 15.0)        ## where its top has drifted to (the spray is carried south, over the pool)
+const HEIGHT := 90.0                         ## the sheet's height over the basin
+const LEAN := Vector3(7.0, 0.0, 20.0)        ## where its top has drifted to (the spray is carried south, over the pool)
 const COLD := Color(0.52, 0.76, 1.0)
 
 static var _soft: Texture2D = null
@@ -89,7 +89,7 @@ static func channel(host: Node3D, pts: Array, widths: Array, basin: Vector3, bas
 	var mi := MeshInstance3D.new()
 	mi.name = "Climb"
 	mi.mesh = strip(pts, widths)
-	mi.material_override = _mat(FLOW, {"disc": 0.0})
+	mi.material_override = _mat(FLOW, {"disc": 0.0, "period": 1.95})
 	mi.extra_cull_margin = 6.0
 	_no_shadow(mi)
 	host.add_child(mi)
@@ -165,6 +165,9 @@ static func _pmat(col: Color, soft: bool) -> StandardMaterial3D:
 	m.particles_anim_v_frames = 1
 	m.vertex_color_use_as_albedo = true
 	m.albedo_color = col
+	m.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
+	m.distance_fade_min_distance = 1.5
+	m.distance_fade_max_distance = 4.5
 	if soft:
 		m.albedo_texture = _soft_tex()
 	return m
@@ -216,7 +219,7 @@ static func particles(host: Node3D, basin: Vector3, rain_c: Vector3, pool_c: Vec
 	up.direction = Vector3.UP
 	up.spread = 9.0
 	up.initial_velocity_min = 6.0
-	up.initial_velocity_max = 16.0
+	up.initial_velocity_max = 19.0
 	up.gravity = Vector3(0.5, 3.4, 1.5)
 	up.scale_min = 0.5
 	up.scale_max = 1.5
@@ -261,12 +264,12 @@ static func particles(host: Node3D, basin: Vector3, rain_c: Vector3, pool_c: Vec
 	mist.gravity = Vector3(0.1, 0.05, 0.25)
 	mist.scale_min = 0.8
 	mist.scale_max = 1.8
-	mist.color_ramp = _ramp(0.8, 0.12)
+	mist.color_ramp = _ramp(0.8, 0.045)
 	_emitter("Mist", host, pool_c, 46, 7.0, mist, _quad(Vector2(3.6, 3.6), Color(0.6, 0.78, 0.95, 1.0)), AABB(Vector3(-10, -2, -10), Vector3(20, 10, 20)), 170.0)
 
 
 static func lights(host: Node3D, deck: Vector3, pool_c: Vector3) -> void:
-	for spec: Array in [[deck + Vector3(0.0, 4.5, 1.2), 2.2, 26.0], [pool_c + Vector3(0.0, 3.0, 0.0), 1.5, 15.0]]:
+	for spec: Array in [[deck + Vector3(0.0, 4.5, 1.2), 3.4, 30.0], [pool_c + Vector3(0.0, 3.0, 0.0), 3.2, 19.0]]:
 		var l := OmniLight3D.new()
 		l.name = "CoolLight"
 		l.light_color = COLD
@@ -278,6 +281,6 @@ static func lights(host: Node3D, deck: Vector3, pool_c: Vector3) -> void:
 		l.distance_fade_enabled = true
 		l.distance_fade_begin = 110.0
 		l.distance_fade_length = 25.0
-		l.set_meta(&"light_class", &"realm")
+		l.set_meta(&"light_class", &"fill")
 		host.add_child(l)
 		l.global_position = spec[0]

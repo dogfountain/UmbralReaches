@@ -5,6 +5,7 @@ render_mode unshaded, cull_disabled, depth_draw_never, blend_mix;
 
 uniform float disc = 0.0;
 uniform float speed = 3.6;
+uniform float period = 0.0;                 // the length of one step along the strip (0: none)
 uniform vec3 deep : source_color = vec3(0.07, 0.22, 0.36);
 uniform vec3 pale : source_color = vec3(0.62, 0.84, 0.98);
 
@@ -44,11 +45,17 @@ void fragment() {
 		float rim = smoothstep(0.7, 1.0, side);
 		float footz = 1.0 - smoothstep(0.0, 3.4, s);
 		float churn = ns(vec2(u * 7.0, s * 2.2 - TIME * 2.5)) * footz;
+		float lipb = 0.0;
+		if (period > 0.0) {
+			float ph = fract((s - 0.4) / period);
+			lipb = smoothstep(0.62, 0.95, ph) * (0.6 + 0.4 * ns(vec2(u * 12.0, s * 3.0 - TIME * 3.0)));
+		}
 		col = mix(deep, pale, streak * 0.75 + band * 0.35);
+		col = mix(col, vec3(0.95, 0.99, 1.0), clamp(lipb, 0.0, 1.0));
 		col = mix(col, vec3(0.93, 0.98, 1.0), clamp(rim * 0.5 + churn * 0.9, 0.0, 1.0));
-		a = 0.72 + 0.2 * streak + 0.12 * rim;
+		a = 0.5 + 0.22 * streak + 0.12 * rim;
 		a *= smoothstep(0.0, 0.5, s) * (1.0 - smoothstep(0.93, 1.0, side) * 0.7);
 	}
-	ALBEDO = col;
+	ALBEDO = col * 0.82;
 	ALPHA = clamp(a, 0.0, 0.95);
 }

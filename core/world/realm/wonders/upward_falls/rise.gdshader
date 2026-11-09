@@ -68,9 +68,11 @@ void fragment() {
 	float zone = 1.0 - smoothstep(0.0, 6.0, h);
 	float foam = ns(vec2(u * 9.0 + seed, h * 1.8 - TIME * 3.2)) * zone;
 	// sparks on the climbing drops
-	vec2 cell = floor(vec2(u * 24.0 + seed * 11.0, (h - up * 1.4) * 1.1));
+	vec2 g = vec2(u * 18.0 + seed * 11.0, (h - up * 1.4) * 2.6);
+	vec2 cell = floor(g);
 	float r = hs(cell);
-	float spark = step(0.972, r) * (0.55 + 0.45 * sin(TIME * 13.0 + r * 80.0));
+	float dotm = smoothstep(0.42, 0.08, length(fract(g) - 0.5));
+	float spark = step(0.965, r) * dotm * (0.55 + 0.45 * sin(TIME * 13.0 + r * 80.0));
 	vec3 col = mix(deep, pale, streak * 0.85 + 0.1);
 	col = mix(col, vec3(0.92, 0.98, 1.0), clamp(foam * 0.85, 0.0, 1.0));
 	col *= 0.85 + spark * 2.4;

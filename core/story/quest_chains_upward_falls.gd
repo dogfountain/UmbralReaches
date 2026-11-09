@@ -4,18 +4,18 @@ extends RefCounted
 ##   QUESTS    "wf_upward": R37UF.QUESTS.wf_upward     ORDER   after "wf_wheel" (Osk's second task)
 ##   PICKUPS   "wf_gauge": R37UF.PICKUPS.wf_gauge
 ##   wf_upward The Water Goes Up (Osk the miller): the mill's head is falling because the river is leaving upstream.
-##             Find the hydrographers' gauge at the weir's foot, climb the broken stair and stand in the spray.
+##             Find the hydrographers' gauge at the weir's foot, climb the weir's steps and stand in the spray.
 ## House style (docs/LORE.md): terse, concrete, dark.
 
 const QUESTS := {
 	"wf_upward": {"name": "The Water Goes Up", "giver": "osk", "where": "Osk the miller, at the weir mill", "zone": "sorrow",
 		"offer": true, "avail": "qd:wf_wheel",
-		"text": "The wheel turns, but the head's dropping a finger a week. The river isn't going dry. It's going somewhere. Below the drowned shrine the Order built a weir that taught the water to climb, and it climbs yet. The hydrographers left a gauge at its foot. Bring it down, and then go up their stair and see where my river goes.",
+		"text": "The wheel turns, but the head's dropping a finger a week. The river isn't going dry. It's going somewhere. Below the drowned shrine the Order built a weir that taught the water to climb, and it climbs yet. The hydrographers left a gauge at its foot. Bring it down, and then go up their steps and see where my river goes.",
 		"steps": [
 			{"kind": "visit", "at": Vector2(-207.0, -8.0), "r": 12.0, "label": "The Upward Falls", "text": "Follow the Sorrow upstream to the Order's weir"},
 			{"kind": "find", "text": "Find the hydrographers' gauge at the weir's foot"},
-			{"kind": "cond", "cond": "secret:found:upward_falls", "at": Vector2(-207.0, -18.0), "label": "The weir's deck", "past": "You have already stood in the spray.",
-				"text": "Climb the hydrographers' stair, three torn flights on the west face, and stand in the spray"},
+			{"kind": "cond", "cond": "secret:found:upward_falls", "at": Vector2(-203.3, -17.4), "label": "The weir's crest", "past": "You have already stood in the spray.",
+				"text": "Jump up the weir's seven steps, against the water, and stand in the spray on the crest"},
 			{"kind": "turnin", "who": "osk", "text": "Tell Osk where the river goes"},
 		],
 		"reward": {"ash": 26, "items": {"relic_fragment": 1}},

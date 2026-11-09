@@ -1,9 +1,9 @@
 extends RefCounted
-## THE UPWARD FALLS' DECK (core/world/realm/wonders/upward_falls.gd): the roof of the Order's weir over the Sorrow,
-## where the river stands up out of its basin. Reached by the hydrographers' stair on the weir's west face: three
-## torn flights, a one-jump break between each (up 0.6 m, across 1.5 m), the last onto the abutment's top. The
-## hydrographers' cache (their survey, the Order's last unread report) sits by the plinth of the basin's gate, and
-## a plaque is set in the pier's foot. Stand in the spray (within 3 m of the basin) and the place is found.
+## THE UPWARD FALLS' CREST (core/world/realm/wonders/upward_falls.gd): the top of the Order's weir over the Sorrow,
+## where the river stands up out of its bowl. Reached by jumping up the weir's seven broad steps (each 0.55 m, the
+## river running up them with you), from the pond on the north. The hydrographers' cache (their survey, the
+## Order's last unread report) sits at the crest's east end and a plaque is cut into the coping at the west.
+## Stand in the spray (within 4 m of the crest's middle) and the place is found.
 ## State: secrets' own (looted.upward_falls, found.upward_falls, pages.sc_upward_falls).
 ##
 ## For the lead (wiring, after merging):
@@ -15,9 +15,9 @@ extends RefCounted
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 
-const NAME := {"name": "The Upward Falls' Deck", "region": "sorrow"}
-const PAGE := {"title": "Cut into the basin's plinth", "kind": "carved stone",
-	"text": "SURVEY OF THE SORROW, ninth year of the lift. The water climbs the glacis at four paces a breath and does not tire. We were to carry it to the abbey. It does not want the abbey. Last night I stood where the sheet leaves the basin and put my hand in it, and it did not wet me. It went up through my fingers like a held note. The Order will want this written as a success. I have written it as a staircase."}
+const NAME := {"name": "The Upward Falls' Crest", "region": "sorrow"}
+const PAGE := {"title": "Cut into the crest's coping", "kind": "carved stone",
+	"text": "SURVEY OF THE SORROW, ninth year of the lift. The water climbs the steps at four paces a breath and does not tire. We were to carry it to the abbey. It does not want the abbey. Last night I stood where the sheet leaves the bowl and put my hand in it, and it did not wet me. It went up through my fingers like a held note. The Order will want this written as a success. I have written it as a staircase."}
 const REWARD := {"relic_fragment": 2, "grave_ash": 36, "ember_shard": 1}
 
 
@@ -39,7 +39,7 @@ static func build(root: Node, host: Node3D) -> void:
 	node.name = "UpwardFallsDeck"
 	node.set_meta("site", "secrets_upward_falls")
 	host.add_child(node)
-	# the hydrographers' cache: a small iron-bound survey case at the roof's east end
+	# the hydrographers' cache: a small iron-bound survey case at the crest's east end
 	var case_mesh := BoxMesh.new()
 	case_mesh.size = Vector3(0.7, 0.36, 0.46)
 	var lid_mesh := BoxMesh.new()
@@ -50,10 +50,10 @@ static func build(root: Node, host: Node3D) -> void:
 	var opened := func(_animate: bool) -> void:
 		cap.transform = Transform3D(Basis(Vector3.UP, -0.2) * Basis(Vector3.RIGHT, -1.1), at + Vector3.UP * 0.44 + Vector3(0.0, 0.0, 0.2))
 	State.cache(node, "upward_falls", at + Vector3.UP * 0.4, "the hydrographers' cache", opened)
-	State.reading(node, "sc_upward_falls", plaque_at + Vector3.UP * 0.8, "Read the plinth")
+	State.reading(node, "sc_upward_falls", plaque_at + Vector3.UP * 0.8, "Read the coping")
 	Kit.glint(node, at + Vector3.UP * 0.75, Color(0.62, 0.84, 1.0), 0.3, 40.0)
 	box.name = "SurveyCase"
-	State.register({"id": "upward_falls", "name": "The Upward Falls' Deck", "at": top + Vector3.UP * 0.5, "r": 3.2, "node": node,
+	State.register({"id": "upward_falls", "name": "The Upward Falls' Crest", "at": top + Vector3.UP * 0.5, "r": 4.2, "node": node,
 		"climb_only": true, "foot": foot,
 		"sync": func(animate: bool) -> void:
 			if State.has("looted", "upward_falls"):
