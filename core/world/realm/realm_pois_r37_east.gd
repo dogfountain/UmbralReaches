@@ -101,6 +101,10 @@ static func reserve(root: Node, _skip: PackedStringArray) -> void:
 			yaw = 0.0
 			# a level pad (the hamlet's yard, the works' floor): cut and filled to the centre's height
 			WorldLanes.register_terrace("poi_" + id, q, maxf(half.x, half.y), cy)
+		elif id == "lamp_spire":
+			# the tower stands on the bluff's crown (base = cy): the site cuts only what is above that, never down to
+			# the pad's lowest corner (that dug a pit in the crown and left the door on a plinth over a ring of ridge)
+			WorldLanes.register_site("poi_" + id, rect, cy + 0.05, cy)
 		else:
 			WorldLanes.register_site("poi_" + id, rect, lo + 0.05, lo)
 		spots[id] = {"at": Vector3(q.x, base, q.y), "yaw": yaw, "rect": rect, "lo": lo, "hi": hi}
