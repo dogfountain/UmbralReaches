@@ -33,8 +33,6 @@ const INK := Med.BONE
 const PAPER := Med.BONE
 const QUIET := Med.BONE_DIM
 const EMBER := Color(1.0, 0.62, 0.3)
-const EDGE := Med.BRONZE
-const BG := Color(0.05, 0.035, 0.04, 0.97)
 const READ_CLOSE_DIST := 4.5
 const ROMAN := ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii"]
 
@@ -454,8 +452,8 @@ func _build_book() -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 18)
 	col.add_child(head)
-	_label(head, "JOURNAL", 32, INK, _title_font)
-	_counts = _label(head, "", 15, QUIET, _title_font)
+	Med.gilt(_label(head, "JOURNAL", 34, INK, _title_font), 34)
+	_counts = _label(head, "", 16, QUIET, _body_font)
 	_counts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_counts.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var close := Button.new()
@@ -496,10 +494,13 @@ func _build_book() -> void:
 	body.add_theme_constant_override("separation", 30)
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(body)
+	var well := PanelContainer.new()                   # the list sits in a recess of the leather
+	well.add_theme_stylebox_override("panel", Med.inset(10))
+	body.add_child(well)
 	_list_scroll = ScrollContainer.new()
-	_list_scroll.custom_minimum_size = Vector2(420, 560)
+	_list_scroll.custom_minimum_size = Vector2(420, 540)
 	_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	body.add_child(_list_scroll)
+	well.add_child(_list_scroll)
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 2)
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -570,10 +571,8 @@ func _fill_series(s: String, header: bool) -> void:
 	var sd: Dictionary = LoreIndex.series().get(s, {})
 	var ids := LoreIndex.series_ids(s)
 	var have := _found_in_series(s)
-	if header:
-		_head("%s   %d / %d" % [String(sd.title), have, ids.size()])
-	elif have == 0:
-		_head("No pages found yet")
+	_head("%s   %d / %d" % [String(sd.title) if header else "Wenna's pages", have, ids.size()])
+	var gone: Array[String] = []
 	for id in ids:
 		var e := LoreIndex.entry(id)
 		var part := int(e.part)
@@ -581,9 +580,10 @@ func _fill_series(s: String, header: bool) -> void:
 		if CodexStore.has_read(id):
 			_entry("%s.  %s" % [num, String(e.title)], func() -> void: _show_lore(id))
 		else:
-			var where := LoreDB.place_name(String(e.region))
-			_entry("%s.  ...a part not yet found" % num, func() -> void:
-				_page(String(sd.title).to_upper(), "Not yet found", "", "Somewhere in %s, perhaps. %s" % [where, String(sd.blurb)]), true)
+			gone.append(id)
+	if not gone.is_empty():              # parts not yet found: one calm line, not a row each
+		_entry("%d %s%s still to find" % [gone.size(), "page" if s == "wenna" else "part", "" if gone.size() == 1 else "s"], func() -> void:
+			_page(String(sd.title).to_upper(), "Not yet found", "", "Somewhere in %s, perhaps. %s" % [LoreDB.place_name(String(LoreIndex.entry(gone[0]).region)), String(sd.blurb)]), true)
 
 
 func _fill_writings() -> void:
@@ -606,12 +606,15 @@ func _fill_writings() -> void:
 
 
 func _fill_places() -> void:
+	var unknown := 0
 	for region: String in LoreDB.REGION_ORDER:
 		var info: Dictionary = LoreDB.PLACE_INFO[region]
 		if CodexStore.discovered(region):
 			_entry(String(info.name), func() -> void: _show_place(region))
 		else:
-			_entry("Unknown", func() -> void: _page("", "Unknown", "", "A place you have not yet walked."), true)
+			unknown += 1
+	if unknown > 0:
+		_entry("%d places still unwalked" % unknown, func() -> void: _page("", "Unknown", "", "Places you have not yet walked."), true)
 
 
 func _fill_relics() -> void:
@@ -947,8 +950,8 @@ func _page(meta: String, title: String, body: String, foot: String) -> void:
 
 
 func _head(t: String) -> void:
-	var l := _label(_list, t.to_upper(), 14, EMBER.darkened(0.15), _title_font)
-	l.custom_minimum_size = Vector2(0, 34)
+	var l := _label(_list, t.to_upper(), 17, Med.GILT_DEEP, _title_font)
+	l.custom_minimum_size = Vector2(0, 40)
 	l.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 
 
@@ -959,10 +962,10 @@ func _entry(t: String, on_pick: Callable, missing := false, icon: Texture2D = nu
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.flat = false
 	b.clip_text = true
-	b.custom_minimum_size = Vector2(400, 34)
+	b.custom_minimum_size = Vector2(400, 40)
 	b.add_theme_font_override("font", _body_font)
 	b.add_theme_font_size_override("font_size", 19)
-	b.add_theme_color_override("font_color", QUIET.darkened(0.25) if missing else PAPER)
+	b.add_theme_color_override("font_color", QUIET.darkened(0.1) if missing else PAPER)
 	b.add_theme_color_override("font_focus_color", EMBER)
 	b.add_theme_color_override("font_hover_color", INK)
 	b.add_theme_stylebox_override("normal", _row_box(false))

@@ -118,17 +118,21 @@ func _process(d: float) -> void:
 		for c in list.get_children():
 			if c is Button and not c.is_queued_for_deletion():
 				buttons += 1
-				if (c as Button).text.contains("not yet found"):
+				if (c as Button).text.contains("still to find"):
 					missing += 1
 		counts.append([buttons, missing])
 	print("CODEX tabs (entries, missing): ", counts)
-	if counts[0][0] != 9 or counts[0][1] != 6:
-		fail("Wenna's tab: %s, want 9 entries with 6 missing" % [counts[0]])
-	if counts[1][0] < 20:
+	if counts[0][0] != 4 or counts[0][1] != 1:
+		fail("Wenna's tab: %s, want 3 pages found and one line for the 6 still to find" % [counts[0]])
+	if counts[1][0] < 8:
 		fail("stories tab lists %d" % counts[1][0])
 	if counts[2][0] < 3:
 		fail("writings tab lists %d" % counts[2][0])
-	if counts[3][0] != LoreDB.REGION_ORDER.size():
+	var walked := 0
+	for r: String in LoreDB.REGION_ORDER:
+		if CodexStore.discovered(r):
+			walked += 1
+	if counts[3][0] != walked + (1 if walked < LoreDB.REGION_ORDER.size() else 0):      # the unwalked are one line
 		fail("places tab lists %d" % counts[3][0])
 	var page_title := String((codex.get("_p_title") as Label).text)
 	print("CODEX page shown: ", page_title, "  counts: ", (codex.get("_counts") as Label).text)
