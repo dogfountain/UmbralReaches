@@ -9,14 +9,18 @@ extends Control
 
 const SLOT := 78.0
 const GAP := 26.0
-const NAME_FADE := 14.0       ## names under the slots fade out after this many seconds
-const NAME_PT := 16          ## one line, body serif, on a dark plate
+const NAME_FADE := 14.0       ## the names under the slots are bright for this long after a new loadout, then settle quieter
+const NAME_PT := 17          ## one row, body serif, the same size for every name
+const NAME_REST := 0.62      ## how bright a name rests at
 const KEY_PT := 15
 const Med := preload("res://ui/medieval_style.gd")
 const UIType := preload("res://ui/type.gd")
 const FRAME := Color(Med.BRONZE, 0.9)
 const EMBER := Color(1.0, 0.58, 0.22)
-const STRIP_PAD := 11.0       ## the worn-leather backing strip runs this far past the slots
+const STRIP_PAD := 14.0       ## the forged backing plate runs this far past the slots
+const PLATE_TOP := 12.0
+const NAME_ROW := 26.0        ## the name row sits in a trough under the slots, inside the plate
+const Forge := preload("res://ui/hud_forge.gd")
 const BG := Color(0.02, 0.012, 0.006, 0.78)
 const SHADE := Color(0.01, 0.0, 0.03, 0.72)
 const QUIET := Color(Med.BONE, 0.95)
@@ -26,6 +30,7 @@ const DB := preload("res://core/life/progression/upgrade_db.gd")
 
 var _book: SkillBook
 var _font: Font
+var _body: Font
 var _t := 0.0
 var _was_ready := PackedByteArray()
 var _vis: Array[int] = []      ## slots drawn: a slot still sealed (nothing taught for it yet) is not drawn at all
@@ -36,6 +41,7 @@ var _ready_pulse := PackedFloat32Array()
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_font = load("res://ui/fonts/Cinzel.ttf")
+	_body = UIType.body()
 	# the staff core's gem pulses for as long as it is set: drawn on its own layer over the bar, so the pulse
 	# redraws one gem a frame instead of the whole bar (sockets, icons, plates, outlined text: ~1.7 ms a frame)
 	_gem_layer = Control.new()
@@ -58,8 +64,8 @@ func _process(delta: float) -> void:
 		_was_ready.resize(_book.slots.size())
 		_ready_pulse.resize(_book.slots.size())
 		_was_ready.fill(1)
-		offset_top = -(SLOT + 56.0 + 36.0)
-		offset_bottom = -36.0             # the name plates run a few px under the box (not clipped)
+		offset_top = -(SLOT + NAME_ROW + 24.0 + 40.0)
+		offset_bottom = -40.0             # the plate's foot; the XP bar sits just under it
 	var sig := ""
 	var vis: Array[int] = []
 	for i in _book.slots.size():
@@ -72,6 +78,7 @@ func _process(delta: float) -> void:
 		var w := _vis.size() * SLOT + maxf(0.0, _vis.size() - 1.0) * GAP
 		offset_left = -w * 0.5
 		offset_right = w * 0.5
+		_span = w + STRIP_PAD * 2.0
 	if sig != _sig:
 		if _sig != "":
 			_t = 0.0                     # swapped at a fire: say what is where again
@@ -99,6 +106,7 @@ func _process(delta: float) -> void:
 		_gem_layer.queue_redraw()
 
 
+var _span := 0.0
 var _anim := true
 var _idle := 0.0
 var _shown_sig := ""
@@ -108,8 +116,9 @@ func _draw() -> void:
 	if not is_instance_valid(_book):
 		return
 	_anim = false
-	var name_a := clampf((NAME_FADE - _t) / 2.0, 0.0, 1.0)
+	var name_a := lerpf(NAME_REST, 1.0, clampf((NAME_FADE - _t) / 2.0, 0.0, 1.0))
 	_strip()
+	var name_pt := _name_pt()
 	for vi in _vis.size():
 		var i: int = _vis[vi]
 		var s := _book.slots[i]
@@ -226,46 +235,49 @@ func _draw() -> void:
 			var br := Rect2(o + Vector2(4, SLOT + 3), Vector2((SLOT - 8) * act, 4))
 			draw_rect(Rect2(o + Vector2(4, SLOT + 3), Vector2(SLOT - 8, 4)), Color(0.02, 0.01, 0.04, 0.8))
 			draw_rect(br, Color(s.color.lightened(0.2), 0.9))
-		if name_a > 0.0:
-			# one line in the body serif (narrower than Cinzel) on a dark plate; the slot spacing leaves it room
-			var nf := _font               # Cinzel: its lower case is small capitals, the engraved look
-			var pt := NAME_PT
-			var ww := nf.get_string_size(s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
-			if ww > SLOT + GAP - 8.0:
-				pt = maxi(12, floori(pt * (SLOT + GAP - 8.0) / ww))
-				ww = nf.get_string_size(s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
-			var plate := Rect2(o.x + SLOT * 0.5 - ww * 0.5 - 6.0, o.y + SLOT + 14.0, ww + 12.0, pt + 9.0)
-			draw_rect(plate, Color(0.015, 0.008, 0.006, 0.9 * name_a))
-			draw_rect(plate, Color(Med.BRONZE, 0.6 * name_a), false, 1.0)
-			var np := Vector2(plate.position.x + 6.0, plate.position.y + pt + 3.0)
-			draw_string_outline(nf, np, s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt, 5, Color(0, 0, 0, 0.9 * name_a))
-			draw_string(nf, np, s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, pt, Color(1.0, 0.95, 0.8, name_a))
+		var nw := _body.get_string_size(s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, name_pt).x
+		var np := o + Vector2(SLOT * 0.5 - nw * 0.5, SLOT + 15.0 + NAME_ROW * 0.5 + name_pt * 0.32)
+		Forge.label(self, _body, np, s.title, name_pt, Color(Med.BONE, name_a), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
 
 
-## The worn-leather strip behind the row, bronze-rimmed, with a rivet in every gap and at the ends.
+## One size for every spell name, so the row reads as a row: the largest that lets the longest name keep its column.
+func _name_pt() -> int:
+	var widest := 1.0
+	for i: int in _vis:
+		widest = maxf(widest, _body.get_string_size(_book.slots[i].title, HORIZONTAL_ALIGNMENT_LEFT, -1, NAME_PT).x)
+	var room := SLOT + GAP - 12.0
+	return clampi(floori(NAME_PT * room / widest), 14, NAME_PT) if widest > room else NAME_PT
+
+
+## The bar's width, the plate included (the XP bar under it matches it).
+func span() -> float:
+	return _span
+
+
+## One forged backing plate behind the row: bronze bevel, a finial at each end, a rivet in every gap, and a
+## recessed trough under the sockets that holds the spell names.
 func _strip() -> void:
 	if _vis.is_empty():
 		return
 	var n := _vis.size()
 	var w := n * SLOT + maxf(0.0, n - 1.0) * GAP
-	var sr := Rect2(-STRIP_PAD, -STRIP_PAD, w + STRIP_PAD * 2.0, SLOT + STRIP_PAD * 2.0 + 2.0)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(Med.LEATHER_DEEP, 0.84)
-	sb.border_color = Color(Med.BRONZE, 0.75)
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(7)
-	sb.shadow_color = Color(0, 0, 0, 0.5)
-	sb.shadow_size = 6
-	draw_style_box(sb, sr)
-	draw_rect(sr.grow(-4.0), Color(Med.GILT, 0.1), false, 1.0)       # a stitched inner line
+	var pr := Rect2(-STRIP_PAD, -PLATE_TOP, w + STRIP_PAD * 2.0, SLOT + PLATE_TOP + NAME_ROW + 24.0)
+	Forge.plate(self, pr, 1.0)
+	var trough := Rect2(0.0, SLOT + 15.0, w, NAME_ROW)
+	Forge.trough(self, trough)
 	for k in n + 1:
 		var x := (SLOT + GAP) * float(k) - GAP * 0.5
 		if k == 0:
 			x = -STRIP_PAD * 0.5
 		elif k == n:
 			x = w + STRIP_PAD * 0.5
-		_rivet(Vector2(x, -STRIP_PAD * 0.5 + 1.0), 2.0)
-		_rivet(Vector2(x, SLOT + STRIP_PAD * 0.5 + 1.0), 2.0)
+		_rivet(Vector2(x, -PLATE_TOP * 0.5 + 0.5), 1.8)
+		if k > 0 and k < n:
+			var dx := trough.position.x + x
+			draw_line(Vector2(dx, trough.position.y + 5.0), Vector2(dx, trough.end.y - 5.0), Color(Med.BRONZE, 0.28), 1.0)
+	var ym := pr.position.y + pr.size.y * 0.5
+	Forge.finial(self, Vector2(pr.position.x - 1.0, ym), -1.0, 15.0)
+	Forge.finial(self, Vector2(pr.end.x + 1.0, ym), 1.0, 15.0)
 
 
 ## A bevelled rim over a socket: lit top and left edges, shadowed bottom and right, and a rivet in each corner.

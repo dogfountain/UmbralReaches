@@ -37,18 +37,18 @@ const Guardians := preload("res://core/life/encounters/guardians.gd")
 const UIType := preload("res://ui/type.gd")
 const Med := preload("res://ui/medieval_style.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
+const Forge := preload("res://ui/hud_forge.gd")
 
 const LANTERN := Color("#FFB347")
 const EMBER := Color("#FF6A2A")
 const LILAC := Med.GILT
 const INK := Color(0.93, 0.88, 0.8)
 const QUIET := Color(0.78, 0.74, 0.7, 0.9)
-const PLATE := Color(0.06, 0.04, 0.028, 0.9)
 const RIM := Color(0.5, 0.4, 0.28)
 const GOLD := Color(0.95, 0.74, 0.36)
 const MOON := Color(0.78, 0.86, 1.0)
 const BLOOD := Color(0.78, 0.2, 0.14)
-const HEALTH := Color(0.72, 0.16, 0.12)
+const HEALTH := Color(0.6, 0.09, 0.09)
 const BREATH := Color(0.74, 0.7, 0.98)
 const BUFF_RIM := Color(0.95, 0.76, 0.4)
 const DEBUFF_RIM := Color(0.95, 0.3, 0.22)
@@ -87,6 +87,7 @@ var _buff_note_t := 0.0
 var _portrait_pops: Array = []     ## {text, col, t}
 var _last_gloom := -1.0
 var _fight := 0.0
+var _p_trail := -1.0               ## the strip of health just lost, which drains away behind the bar
 var _tide := false
 
 # target
@@ -155,6 +156,7 @@ func _process(delta: float) -> void:
 	if _player == null:
 		return
 	_track_gloom()
+	_tick_trail(delta)
 	_scan -= delta
 	if _scan <= 0.0:
 		_scan = 0.25
@@ -187,7 +189,7 @@ func _plate_dirty() -> bool:
 	# only a timed buff moves (its sweep, its seconds); an untimed one is a still picture in the signature
 	var moving := _fight > 0.0 or gr > 0.75 or _buffs.any(func(b: Dictionary) -> bool: return float(b.get("left", -1.0)) > 0.0) or not _portrait_pops.is_empty() \
 		or _buff_note_t > 0.0 or _target != null or _boss != null or _t_alpha > 0.0 or _b_alpha > 0.0 \
-		or _soft_t > 0.0 or _alpha < 1.0 or not _cast_state().is_empty()
+		or _soft_t > 0.0 or _alpha < 1.0 or not _cast_state().is_empty() or (_p_trail > _health().x / maxf(_health().y, 0.001) + 0.0005)
 	if moving or sig != _sig:
 		_sig = sig
 		return true
@@ -249,7 +251,15 @@ func _stamina() -> Node:
 	return _player.call("stamina") if _player.has_method("stamina") else null
 
 
-## r35: a sudden mend (a kill, spent Resonance, a fire's first breath) rises off the portrait in gold;
+func _tick_trail(delta: float) -> void:
+	var hp := _health()
+	if hp.x < 0.0:
+		return
+	var r := hp.x / hp.y
+	_p_trail = r if (_p_trail < 0.0 or r >= _p_trail) else move_toward(_p_trail, r, delta * 0.45)
+
+
+## A sudden mend (a kill, spent Resonance, a fire's first breath) rises off the portrait in gold;
 ## a blow is shown by _on_hurt with its own amount.
 func _track_gloom() -> void:
 	var w := float(_p("wounds", 0.0))
@@ -730,7 +740,7 @@ func _vs() -> Vector2:
 
 
 func _buff_row_y() -> float:
-	return PF_POS.y + PORTRAIT_R * 2.0 + 10.0
+	return PF_POS.y + PORTRAIT_R * 2.0 + 18.0
 
 
 # --- drawing ---------------------------------------------------------------------------------------
@@ -754,31 +764,11 @@ func _text(at: Vector2, t: String, pt: int, col: Color, font: Font = null, align
 
 
 func _plate(r: Rect2, a: float, rim := RIM) -> void:
-	draw_rect(r, Color(PLATE, PLATE.a * a))
-	draw_rect(r.grow(-3.0), Color(rim, 0.3 * a), false, 1.0)
-	draw_rect(r.grow(1.0), Color(0.03, 0.02, 0.015, 0.95 * a), false, 2.0)                  # forged iron rim: dark outline, iron bar
-	draw_rect(r, Color(Med.IRON.lightened(0.1), 0.95 * a), false, 2.0)
-	draw_line(r.position + Vector2(1, 1), Vector2(r.end.x - 1, r.position.y + 1), Color(1, 1, 1, 0.22 * a), 1.0)
-	for c: Vector2 in [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]:
-		draw_circle(c, 3.6, Color(0.04, 0.025, 0.015, a))                                      # bronze rivets
-		draw_circle(c, 2.6, Color(Med.BRONZE.lightened(0.25), a))
+	Forge.plate(self, r, a, Color.WHITE if rim == RIM else Color.WHITE.lerp(rim.lightened(0.2), 0.5))
 
 
 func _bar(r: Rect2, ratio: float, col: Color, a: float, trail := -1.0, notches: Array = []) -> void:
-	draw_rect(r, Color(0.02, 0.015, 0.02, 0.85 * a))
-	var inner := r.grow(-2.0)
-	if trail > ratio:
-		draw_rect(Rect2(inner.position, Vector2(inner.size.x * clampf(trail, 0.0, 1.0), inner.size.y)), Color(1.0, 0.92, 0.8, 0.55 * a))
-	var fw := inner.size.x * clampf(ratio, 0.0, 1.0)
-	if fw > 0.5:
-		var fr := Rect2(inner.position, Vector2(fw, inner.size.y))
-		draw_rect(fr, Color(col, a))
-		draw_rect(Rect2(fr.position, Vector2(fw, maxf(1.0, inner.size.y * 0.35))), Color(1, 1, 1, 0.14 * a))
-	for n: float in notches:
-		var x := inner.position.x + inner.size.x * n
-		draw_line(Vector2(x, r.position.y), Vector2(x, r.end.y), Color(0.02, 0.01, 0.02, 0.9 * a), 2.0)
-		draw_line(Vector2(x + 1, r.position.y), Vector2(x + 1, r.end.y), Color(GOLD, 0.5 * a), 1.0)
-	draw_rect(r, Color(RIM, 0.9 * a), false, 1.0)
+	Forge.bar(self, r, ratio, col, a, trail, notches, col.darkened(0.55).lerp(Color(0.3, 0.05, 0.05), 0.4))
 
 
 func _diamond(p: Vector2, d: float, col: Color) -> void:
@@ -787,17 +777,18 @@ func _diamond(p: Vector2, d: float, col: Color) -> void:
 
 func _draw_player() -> void:
 	var c := PF_POS + Vector2(PORTRAIT_R, PORTRAIT_R)
-	var plate := Rect2(PF_POS + Vector2(PORTRAIT_R * 1.55, 10.0), Vector2(PF_W, PORTRAIT_R * 2.0 - 4.0))
+	var plate := Rect2(PF_POS + Vector2(PORTRAIT_R * 1.55, -4.0), Vector2(PF_W, 96.0))
 	_plate(plate, 1.0)
 	_portrait(c)
 	var x := PF_POS.x + PORTRAIT_R * 2.0 + 12.0
-	var w := plate.end.x - x - 10.0
-	var y := plate.position.y + 21.0
-	_text(Vector2(x, y), "THE WANDERER", 20, INK)
+	var w := plate.end.x - x - 12.0
+	var y := plate.position.y + 28.0
+	Forge.label(self, _font, Vector2(x, y), "THE WANDERER", 20, INK)
 	if _fight > 0.0:
 		var fa := 0.8 + 0.2 * sin(_t * 6.0)
-		_text(Vector2(x, y), "IN COMBAT", 15, Color(EMBER.lightened(0.25), fa), null, HORIZONTAL_ALIGNMENT_RIGHT, w)
-	y += 7.0
+		Forge.label(self, _font, Vector2(x, y), "IN COMBAT", 14, Color(EMBER.lightened(0.25), fa), HORIZONTAL_ALIGNMENT_RIGHT, w)
+	draw_line(Vector2(x, y + 5.0), Vector2(x + w, y + 5.0), Color(Med.BRONZE, 0.55), 1.0)
+	y += 11.0
 	var hp := _health()
 	var g := float(_p("gloom", 0.0))
 	var gmax := maxf(float(_p("gloom_max", 100.0)), 0.001)
@@ -805,35 +796,38 @@ func _draw_player() -> void:
 	# the Gloom bar is not drawn until Gloom first rises above 0 (a new game opens without it)
 	HudPrefs.note_gloom(gr)
 	var gloom_known := HudPrefs.gloom_known()
-	var gcol := LILAC.lerp(EMBER, smoothstep(0.5, 1.0, gr))
+	var gcol := LILAC.lerp(EMBER, smoothstep(0.5, 1.0, gr)).darkened(0.12)
 	if gr > 0.75:
 		gcol = gcol.lightened(0.25 * (0.5 + 0.5 * sin(_t * 9.0)))
 	if hp.x >= 0.0:
-		var hr := Rect2(Vector2(x, y), Vector2(w, 21))
-		_bar(hr, hp.x / hp.y, HEALTH, 1.0)
-		_text(hr.position + Vector2(0, 17), "%s / %s" % [_num(hp.x), _num(hp.y)], 15, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
-		y += 24.0
+		var hr := Rect2(Vector2(x, y), Vector2(w, 24))
+		_bar(hr, hp.x / hp.y, HEALTH, 1.0, _p_trail)
+		Forge.label(self, _font, hr.position + Vector2(0, 18), "%s / %s" % [_num(hp.x), _num(hp.y)], 16, INK, HORIZONTAL_ALIGNMENT_CENTER, w)
+		y += 28.0
 		if gloom_known:
-			var gb := Rect2(Vector2(x, y), Vector2(w, 15))
-			_bar(gb, gr, gcol, 1.0, -1.0, [0.25, 0.5, 0.75])
-			_text(gb.position + Vector2(5, 12), "GLOOM", 12, Color(INK, 0.92))
-			y += 18.0
+			_gloom_bar(Rect2(Vector2(x, y), Vector2(w, 20)), gr, g, gmax, gcol)
+			y += 24.0
 	elif gloom_known:
-		var gb := Rect2(Vector2(x, y), Vector2(w, 20))
-		_bar(gb, gr, gcol, 1.0, -1.0, [0.25, 0.5, 0.75])
-		_text(gb.position + Vector2(6, 16), "GLOOM", 14, Color(INK, 0.95))
-		_text(gb.position + Vector2(0, 16), "%d / %d" % [roundi(g), roundi(gmax)], 14, INK, null, HORIZONTAL_ALIGNMENT_RIGHT, w - 6.0)
-		y += 23.0
+		_gloom_bar(Rect2(Vector2(x, y), Vector2(w, 22)), gr, g, gmax, gcol)
+		y += 26.0
 	var st := _stamina()
 	if st and st.has_method("ratio"):
-		var br := Rect2(Vector2(x, y), Vector2(w, 8))
+		var br := Rect2(Vector2(x, y), Vector2(w, 7))
 		var winded := bool(st.get("winded")) if "winded" in st else false
 		_bar(br, float(st.call("ratio")), Color(0.55, 0.62, 0.95) if winded else BREATH, 1.0)
 	_draw_auras(_buffs, Vector2(PF_POS.x + 4.0, _buff_row_y()), 1.0, 9)
 	if _buff_note_t > 0.0 and _buff_note != "":
 		var na := clampf(_buff_note_t, 0.0, 1.0)
 		var n := mini(_buffs.size(), 9)
-		_text(Vector2(PF_POS.x + 8.0 + n * (ICON + 6.0), _buff_row_y() + 20.0), _buff_note, 14, Color(INK, 0.85 * na), _body)
+		Forge.label(self, _body, Vector2(PF_POS.x + 8.0 + n * (ICON + 6.0), _buff_row_y() + 20.0), _buff_note, 16, Color(INK, 0.9 * na))
+
+
+## The Gloom bar: segmented in quarters, its name and its number set on the bar in two corners that never meet.
+func _gloom_bar(gb: Rect2, gr: float, g: float, gmax: float, gcol: Color) -> void:
+	Forge.label(self, _font, gb.position + Vector2(2, gb.size.y - 5.0), "GLOOM", 14, Color(LILAC, 0.95), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 2)
+	var bar := Rect2(gb.position + Vector2(62.0, 0.0), gb.size - Vector2(62.0, 0.0))
+	_bar(bar, gr, gcol, 1.0, -1.0, [0.25, 0.5, 0.75])
+	Forge.label(self, _font, bar.position + Vector2(0, bar.size.y - 5.0), "%d / %d" % [roundi(g), roundi(gmax)], 14, Color(INK, 0.96), HORIZONTAL_ALIGNMENT_RIGHT, bar.size.x - 8.0, 2)
 
 
 ## The hooded wanderer in a medallion: void face, two lit eyes, the lantern ring (ember in a fight).
@@ -878,17 +872,22 @@ func _portrait(c: Vector2) -> void:
 	draw_arc(c, r + 1.0, 0.0, TAU, 64, Color(0.02, 0.015, 0.01), 5.0, true)
 	draw_arc(c, r + 1.0, 0.0, TAU, 64, Color(ring, 0.95), 2.0, true)
 	draw_arc(c, r + 6.5, 0.0, TAU, 64, Color(0.03, 0.02, 0.015, 0.95), 6.0, true)           # forged iron collar with eight rivets
-	draw_arc(c, r + 6.5, 0.0, TAU, 64, Color(Med.IRON, 0.95), 4.0, true)
+	draw_arc(c, r + 6.5, 0.0, TAU, 64, Color(Forge.BEVEL_MID, 0.98), 4.0, true)
+	draw_arc(c, r + 6.5, PI * 1.05, PI * 1.7, 24, Color(Forge.BEVEL_LIT, 0.85), 1.5, true)
+	draw_arc(c, r + 6.5, PI * 0.1, PI * 0.6, 24, Color(Forge.BEVEL_DARK, 0.9), 1.5, true)
 	for k in 8:
 		var ka := TAU * float(k) / 8.0 + 0.4
 		draw_circle(c + Vector2(cos(ka), sin(ka)) * (r + 6.5), 1.7, Color(Med.BRONZE.lightened(0.3), 0.95))
-	# level badge
+	# level badge: a bronze-rimmed boss on the ring's lower left, the number large enough to read at a glance
 	var lv := _player_level().x
 	if lv >= 0:
-		var b := c + Vector2(-r * 0.74, r * 0.74)
-		draw_circle(b, 13.0, Color(0.05, 0.035, 0.03))
-		draw_arc(b, 13.0, 0.0, TAU, 32, GOLD, 1.5, true)
-		_text(b + Vector2(-13, 5), str(lv), 14, LANTERN, null, HORIZONTAL_ALIGNMENT_CENTER, 26.0)
+		var b := c + Vector2(-r * 0.74, r * 0.78)
+		draw_circle(b + Vector2(0.5, 1.5), 17.5, Color(0, 0, 0, 0.5))
+		draw_circle(b, 17.0, Color(0.03, 0.02, 0.014))
+		draw_arc(b, 15.0, 0.0, TAU, 32, Forge.BEVEL_MID, 3.0, true)
+		draw_arc(b, 15.0, PI * 0.95, PI * 1.75, 16, Forge.BEVEL_LIT, 1.5, true)
+		draw_arc(b, 11.0, 0.0, TAU, 32, Color(GOLD, 0.5), 1.0, true)
+		Forge.label(self, _font, b + Vector2(-17, 7), str(lv), 20, LANTERN.lightened(0.15), HORIZONTAL_ALIGNMENT_CENTER, 34.0, 2)
 	# Gloom gained / shed, rising off the portrait
 	for pi in _portrait_pops.size():
 		var p: Dictionary = _portrait_pops[pi]
@@ -912,20 +911,21 @@ func _draw_auras(list: Array, at: Vector2, a: float, most: int, sz := ICON) -> v
 		gap_done = gap_done or deb
 		var r := Rect2(Vector2(x, at.y), Vector2(sz, sz))
 		var col: Color = b.get("color", INK)
-		draw_rect(r, Color(0.03, 0.025, 0.03, 0.9 * a))
+		draw_rect(r.grow(1.0), Color(0.03, 0.025, 0.03, 0.92 * a))
 		_aura_glyph(String(b.get("glyph", "")), r.get_center(), sz * 0.34, Color(col, a), String(b.get("name", "?")))
 		var left := float(b.get("left", -1.0))
 		var dur := float(b.get("dur", 0.0))
 		if left > 0.0 and dur > 0.0:
 			var gone := clampf(1.0 - left / dur, 0.0, 1.0)
 			draw_rect(Rect2(r.position, Vector2(sz, sz * gone)), Color(0.0, 0.0, 0.0, 0.45 * a))
-		draw_rect(r, Color(DEBUFF_RIM if deb else BUFF_RIM, 0.85 * a), false, 1.5)
+		draw_rect(r.grow(-1.0), Color(DEBUFF_RIM if deb else BUFF_RIM, 0.8 * a), false, 1.0)
+		Forge.bevel(self, r.grow(1.0), a, 2.0, Color(1.0, 0.7, 0.62) if deb else Color.WHITE)
 		var stacks := int(b.get("stacks", 0))
 		if stacks > 1 or (stacks == 1 and String(b.get("glyph", "")) in ["mark", "rime", "hollow"]):
-			_text(r.position + Vector2(0, sz - 2.0), str(stacks), 13, Color(1, 1, 1, a), null, HORIZONTAL_ALIGNMENT_RIGHT, sz - 1.0)
+			Forge.label(self, _font, r.position + Vector2(0, sz - 3.0), str(stacks), 14, Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_RIGHT, sz - 2.0, 3)
 		if left > 0.0:
 			var tt := ("%.1f" % left) if left < 3.0 else (str(ceili(left)) if left < 60.0 else "%dm" % ceili(left / 60.0))
-			_text(Vector2(r.position.x - 4.0, r.end.y + 13.0), tt, 12, Color(INK, 0.9 * a), null, HORIZONTAL_ALIGNMENT_CENTER, sz + 8.0)
+			Forge.label(self, _font, Vector2(r.position.x - 5.0, r.end.y + 15.0), tt, 14, Color(INK, 0.95 * a), HORIZONTAL_ALIGNMENT_CENTER, sz + 10.0, 3)
 		x += sz + 6.0
 
 
@@ -1022,7 +1022,7 @@ func _draw_unit(e: Node3D, at: Vector2, w: float, a: float, is_boss: bool) -> vo
 	var umbral := e.has_meta(&"enc_umbral")
 	var ncol: Color = RANK_COL.get("umbral" if umbral and rank != "normal" else rank, RANK_COL.normal)
 	var dead := not _alive(e)
-	var h := 64.0 if not is_boss else 70.0
+	var h := 72.0 if not is_boss else 78.0
 	var plate := Rect2(at, Vector2(w, h))
 	var trim := GOLD if rank in ["elite", "boss"] else (MOON if rank.begins_with("rare") else RIM)
 	_plate(plate, a, trim if rank != "normal" else RIM)
@@ -1047,10 +1047,10 @@ func _draw_unit(e: Node3D, at: Vector2, w: float, a: float, is_boss: bool) -> vo
 				if ph >= k:
 					ph_name = String(pts[k])
 		sub = "Phase %s%s" % [["", "I", "II", "III", "IV", "V"][clampi(ph, 0, 5)], ("  ·  " + ph_name) if ph_name != "" else ""]
-	_text(Vector2(x, plate.position.y + 20.0), sub, 12, Color(QUIET, a * 0.9), _body, HORIZONTAL_ALIGNMENT_RIGHT, iw)
+	Forge.label(self, _body, Vector2(x, plate.position.y + 21.0), sub, 14, Color(QUIET, a * 0.95), HORIZONTAL_ALIGNMENT_RIGHT, iw)
 	# health
 	var r := _ratio(e)
-	var hb := Rect2(Vector2(x, plate.position.y + 28.0), Vector2(iw, 18.0 if is_boss else 16.0))
+	var hb := Rect2(Vector2(x, plate.position.y + 28.0), Vector2(iw, 20.0 if is_boss else 18.0))
 	var marks: Array = []
 	if is_boss and e.has_method("phase_marks"):
 		var pm: Variant = e.call("phase_marks")
@@ -1062,13 +1062,13 @@ func _draw_unit(e: Node3D, at: Vector2, w: float, a: float, is_boss: bool) -> vo
 	var hpn := ""
 	if "hp" in e and "max_hp" in e and not dead and int(e.get("max_hp")) >= 10:
 		hpn = "%s / %d" % [_num(float(e.get("hp"))), int(e.get("max_hp"))]
-	_text(hb.position + Vector2(6, hb.size.y - 3.0), hpn, 12, Color(INK, a))
-	_text(hb.position + Vector2(0, hb.size.y - 3.0), pct, 13, Color(INK, a), null, HORIZONTAL_ALIGNMENT_RIGHT, iw - 6.0)
+	Forge.label(self, _font, hb.position + Vector2(6, hb.size.y - 4.0), hpn, 14, Color(INK, a), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 2)
+	Forge.label(self, _font, hb.position + Vector2(0, hb.size.y - 4.0), pct, 14, Color(INK, a), HORIZONTAL_ALIGNMENT_RIGHT, iw - 6.0, 2)
 	# cast bar under the health
 	var cast := _cast_of(e) if not dead else {}
 	var cy := hb.end.y + 4.0
 	if not cast.is_empty():
-		var cb := Rect2(Vector2(x, cy), Vector2(iw, 12))
+		var cb := Rect2(Vector2(x, cy), Vector2(iw, 17))
 		var intr := bool(cast.get("interruptible", true))
 		var cc := Color(1.0, 0.72, 0.3) if intr else Color(0.62, 0.6, 0.66)
 		draw_rect(cb, Color(0.02, 0.015, 0.02, 0.9 * a))
@@ -1077,9 +1077,9 @@ func _draw_unit(e: Node3D, at: Vector2, w: float, a: float, is_boss: bool) -> vo
 		draw_rect(cb, Color(LANTERN if intr else Color(0.5, 0.5, 0.55), a), false, 1.5 if intr else 1.0)
 		if not intr:
 			_shield(cb.position + Vector2(-8, 6), a)
-		_text(cb.position + Vector2(0, 11), String(cast.get("name", "")), 12, Color(1, 0.97, 0.9, a), _body, HORIZONTAL_ALIGNMENT_CENTER, iw)
+		Forge.label(self, _body, cb.position + Vector2(0, 14), String(cast.get("name", "")), 14, Color(1, 0.97, 0.9, a), HORIZONTAL_ALIGNMENT_CENTER, iw, 2)
 		if intr and t > 0.15:
-			_text(cb.position + Vector2(0, 11), "BREAK", 10, Color(LANTERN, a * (0.6 + 0.4 * sin(_t * 12.0))), null, HORIZONTAL_ALIGNMENT_RIGHT, iw - 4.0)
+			Forge.label(self, _font, cb.position + Vector2(0, 14), "BREAK", 14, Color(LANTERN, a * (0.6 + 0.4 * sin(_t * 12.0))), HORIZONTAL_ALIGNMENT_RIGHT, iw - 4.0, 2)
 	# your afflictions on it, under the frame
 	var deb := _debuffs_of(e) if not dead else []
 	if not deb.is_empty():
@@ -1151,13 +1151,11 @@ func _draw_player_cast() -> void:
 	var col: Color = cs.col
 	var full := bool(cs.full)
 	var w := 300.0
-	var r := Rect2(Vector2(_vs().x * 0.5 - w * 0.5, _vs().y - 200.0), Vector2(w, 16))
-	draw_rect(r.grow(3.0), Color(PLATE, 0.9))
-	draw_rect(r, Color(0.02, 0.015, 0.02, 0.9))
-	var c := Color(minf(col.r, 1.0), minf(col.g, 1.0), minf(col.b, 1.0))
-	draw_rect(Rect2(r.position, Vector2(r.size.x * clampf(t, 0.0, 1.0), r.size.y)), c.lerp(Color(1, 0.95, 0.85), 0.5 if full else 0.0))
-	draw_rect(r.grow(3.0), Color(GOLD if full else RIM, 0.95), false, 1.5)
-	_text(r.position + Vector2(0, 13), name_t + ("  ·  READY" if full else ""), 13, INK, null, HORIZONTAL_ALIGNMENT_CENTER, w)
+	var r := Rect2(Vector2(_vs().x * 0.5 - w * 0.5, _vs().y - 210.0), Vector2(w, 20))
+	var c := Color(minf(col.r, 1.0), minf(col.g, 1.0), minf(col.b, 1.0)).lerp(Color(1, 0.95, 0.85), 0.5 if full else 0.0)
+	Forge.plate(self, r.grow(5.0), 1.0, Color.WHITE if not full else Color(1.2, 1.1, 0.8), false)
+	Forge.bar(self, r, clampf(t, 0.0, 1.0), c, 1.0)
+	Forge.label(self, _font, r.position + Vector2(0, 16), name_t + ("  ·  READY" if full else ""), 14, INK, HORIZONTAL_ALIGNMENT_CENTER, w, 2)
 
 
 ## What the wanderer's own cast bar shows right now: {name, t, col, full}, or {} when there is no cast.

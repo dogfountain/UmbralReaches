@@ -35,6 +35,10 @@ const CHEST_NEAR := 45.0
 const ACTION := "minimap"                ## N (M is the whole map: ui/world_map.gd)
 const Land := preload("res://core/world/realm/realm_land.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
+const Forge := preload("res://ui/hud_forge.gd")
+const UIType := preload("res://ui/type.gd")
+const LABEL_PT := 14
+const MAX_LABELS := 2
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const QUEST := Color(1.0, 0.82, 0.3)
 const MARK_NEAR := 70.0                  ## non-quest map markers beyond this are not even listed
@@ -62,6 +66,7 @@ void fragment() {
 """
 
 var _font: Font
+var _body: Font
 var _ground: ColorRect
 var _mat: ShaderMaterial
 var _tex: ImageTexture
@@ -97,6 +102,7 @@ func _ready() -> void:
 	offset_top = -DIAM - MARGIN - 26.0
 	offset_bottom = -MARGIN - 26.0
 	_font = load("res://ui/fonts/Cinzel.ttf")
+	_body = UIType.body()
 	Events.brazier_kindled.connect(_mark_changed)
 	Events.seal_broken.connect(_mark_changed)
 	Events.boss_slain.connect(_mark_changed)
@@ -308,28 +314,32 @@ func _draw() -> void:
 	var c := size * 0.5
 	var r := DIAM * 0.5
 	# the frame: a brass astrolabe bezel, engraved with degree ticks, a lit edge and four studs
-	draw_arc(c, r + 4.5, 0.0, TAU, 96, Color(0.04, 0.028, 0.015, 0.95), 11.0, true)
-	draw_arc(c, r + 4.5, 0.0, TAU, 96, Color(0.55, 0.39, 0.17), 9.0, true)
-	draw_arc(c, r + 2.2, PI * 0.95, PI * 1.9, 40, Color(0.9, 0.72, 0.38, 0.9), 1.6, true)
-	draw_arc(c, r + 7.0, PI * 0.1, PI * 0.9, 40, Color(0.28, 0.18, 0.07, 0.9), 1.6, true)
+	draw_arc(c, r + 6.0, 0.0, TAU, 96, Color(0, 0, 0, 0.35), 17.0, true)
+	draw_arc(c, r + 5.5, 0.0, TAU, 96, Color(0.03, 0.02, 0.012, 0.98), 15.0, true)
+	draw_arc(c, r + 5.5, 0.0, TAU, 96, Color(0.5, 0.35, 0.16), 12.0, true)
+	draw_arc(c, r + 3.0, 0.0, TAU, 96, Color(0.36, 0.25, 0.11), 3.0, true)
+	draw_arc(c, r + 1.2, PI * 0.95, PI * 1.9, 40, Color(0.95, 0.76, 0.42, 0.95), 1.8, true)
+	draw_arc(c, r + 10.0, PI * 0.95, PI * 1.9, 40, Color(0.86, 0.66, 0.34, 0.7), 1.2, true)
+	draw_arc(c, r + 10.0, PI * 0.1, PI * 0.9, 40, Color(0.2, 0.12, 0.05, 0.9), 1.4, true)
 	for k in 72:
 		var ta := TAU * float(k) / 72.0
 		var td := Vector2(cos(ta), sin(ta))
 		var tl := 5.0 if k % 6 == 0 else 2.5
-		draw_line(c + td * (r + 8.0 - tl), c + td * (r + 8.0), Color(0.12, 0.07, 0.03, 0.9), 1.0)
+		draw_line(c + td * (r + 9.0 - tl), c + td * (r + 9.0), Color(0.12, 0.07, 0.03, 0.9), 1.0)
 	draw_arc(c, r - 0.5, 0.0, TAU, 96, Color(0.03, 0.02, 0.01, 0.95), 2.0, true)
 	for k in 4:
 		var sa := TAU * float(k) / 4.0 + PI * 0.25
-		var sp := c + Vector2(cos(sa), sin(sa)) * (r + 4.5)
-		draw_circle(sp, 3.0, Color(0.04, 0.028, 0.015))
-		draw_circle(sp, 2.0, Color(0.95, 0.78, 0.45))
+		var sp := c + Vector2(cos(sa), sin(sa)) * (r + 5.5)
+		draw_circle(sp, 3.6, Color(0.04, 0.028, 0.015))
+		draw_circle(sp, 2.5, Color(0.95, 0.78, 0.45))
 	# north on the rim
 	var n := _place(_you + Vector3(0, 0, -100000.0), r + 1.0)
 	var np := c + Vector2(n.x, n.y)
-	draw_circle(np, 10.0, Color(0.06, 0.045, 0.04, 0.95))
-	draw_arc(np, 10.0, 0.0, TAU, 24, Color(RIM, 0.9), 1.0, true)
+	draw_circle(np, 13.0, Color(0.05, 0.035, 0.025, 0.98))
+	draw_arc(np, 11.5, 0.0, TAU, 28, Forge.BEVEL_MID, 3.0, true)
+	draw_arc(np, 11.5, PI * 0.95, PI * 1.75, 12, Forge.BEVEL_LIT, 1.4, true)
 	if _font:
-		draw_string(_font, np + Vector2(-5.5, 5.5), "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, LANTERN)
+		draw_string(_font, np + Vector2(-6.5, 6.5), "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, LANTERN)
 	# marks: quiet ones first, guards last so nothing hides them
 	for m: Dictionary in _marks:
 		var kind := String(m.kind)
@@ -385,13 +395,14 @@ func _draw() -> void:
 	draw_colored_polygon(arrow, Color(0.06, 0.045, 0.04))
 	var inner := PackedVector2Array([c + f * 7.0, c - f * 4.5 + s * 4.8, c - f * 2.0, c - f * 4.5 - s * 4.8])
 	draw_colored_polygon(inner, Color(0.95, 0.9, 0.78))
-	# range under the dial (and the clock, when the night keeps one)
+	# range under the dial (and the clock, when the night keeps one), on a small tab
 	if _font:
 		var t := "%d m" % int(RANGES[_range_i])
 		if _clock != "":
 			t = _clock + "   ·   " + t
-		var w := _font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-		draw_string(_font, Vector2(c.x - w * 0.5, size.y + 22.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(INK, 0.6))
+		var w := _font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+		Forge.tab(self, Rect2(c.x - w * 0.5 - 8.0, size.y + 14.0, w + 16.0, 22.0))
+		draw_string(_font, Vector2(c.x - w * 0.5, size.y + 30.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(INK, 0.85))
 	_draw_moon(c, r)
 	_draw_place(c, r)
 
@@ -400,23 +411,18 @@ func _draw() -> void:
 func _draw_place(c: Vector2, r: float) -> void:
 	if _region == "" or _font == null:
 		return
-	var pt := 16
+	var pt := 19
 	var w := _font.get_string_size(_region, HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
-	var sw := maxf(w + 34.0, 150.0)
-	var top := c.y - r - 64.0
-	var plate := Rect2(Vector2(c.x - sw * 0.5, top), Vector2(sw, 24))
-	draw_rect(plate, Color(0.1, 0.06, 0.03, 0.92))
-	draw_rect(plate, Color(RIM, 0.95), false, 1.5)
-	for sx: float in [-1.0, 1.0]:
-		var e := Vector2(c.x + sx * sw * 0.5, top + 12.0)
-		draw_colored_polygon(PackedVector2Array([e + Vector2(0, -12), e + Vector2(sx * 9.0, 0), e + Vector2(0, 12)]), Color(0.1, 0.06, 0.03, 0.92))
-		draw_polyline(PackedVector2Array([e + Vector2(0, -12), e + Vector2(sx * 9.0, 0), e + Vector2(0, 12)]), Color(RIM, 0.9), 1.5, true)
+	var sw := maxf(w + 64.0, 190.0)
+	var top := c.y - r - 72.0
+	var plate := Rect2(Vector2(c.x - sw * 0.5, top), Vector2(sw, 32))
+	Forge.strip(self, plate, 1.0, 16.0, 0.92)
 	var col: Color = TIER_COL[clampi(_tier_i, 0, TIER_COL.size() - 1)]
-	draw_string_outline(_font, Vector2(plate.position.x, top + 18.0), _region, HORIZONTAL_ALIGNMENT_CENTER, sw, pt, 4, Color(0, 0, 0, 0.7))
-	draw_string(_font, Vector2(plate.position.x, top + 18.0), _region, HORIZONTAL_ALIGNMENT_CENTER, sw, pt, col)
+	Forge.label(self, _font, Vector2(plate.position.x, top + 23.0), _region, pt, col, HORIZONTAL_ALIGNMENT_CENTER, sw, 3)
 	if _tier != "":
-		draw_string_outline(_font, Vector2(plate.position.x, top + 38.0), _tier, HORIZONTAL_ALIGNMENT_CENTER, sw, 12, 4, Color(0, 0, 0, 0.75))
-		draw_string(_font, Vector2(plate.position.x, top + 38.0), _tier, HORIZONTAL_ALIGNMENT_CENTER, sw, 12, Color(col, 0.75))
+		var tw := _font.get_string_size(_tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+		Forge.tab(self, Rect2(c.x - tw * 0.5 - 10.0, top + 34.0, tw + 20.0, 22.0))
+		draw_string(_font, Vector2(c.x - tw * 0.5, top + 50.0), _tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(col, 0.9))
 
 
 ## r33: the moon on the rim, toward where it hangs (the zone's Moon light), a pale disc and crescent.
@@ -436,8 +442,7 @@ func _draw_moon(c: Vector2, r: float) -> void:
 
 ## r33: the map_marker glyphs. Quest kinds pin to the rim with a pointer; a new one pings.
 func _draw_markers(c: Vector2, r: float, pulse: float) -> void:
-	var labelled := 0
-	var placed: Array[Rect2] = []                   # the name boxes already drawn this frame
+	var cands: Array = []                           # names to place after the glyphs
 	for m: Dictionary in _marks:
 		var kind := String(m.kind)
 		if not kind.begins_with("m:"):
@@ -471,21 +476,51 @@ func _draw_markers(c: Vector2, r: float, pulse: float) -> void:
 			continue
 		_glyph(kind, p, col, 1.0 if kind != "quest_target" else pulse)
 		var label := String(m.get("label", ""))
-		if label != "" and labelled < 2 and Vector2(q.x, q.y).length() < r * 0.4 and _font:
-			var w := _font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
-			# r35: two pins a few metres apart wrote their names over each other ("OLD ZOOK" across
-			# "THE HEARTHWARD FIRE"); the first keeps its name, a label that would touch it is dropped
-			var box := Rect2(p + Vector2(-w * 0.5, 9.0), Vector2(w, 14.0)).grow(3.0)
-			var free := true
-			for b: Rect2 in placed:
-				if b.intersects(box):
-					free = false
-					break
-			if free:
-				placed.append(box)
-				labelled += 1
-				draw_string_outline(_font, p + Vector2(-w * 0.5, 20.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 4, Color(0, 0, 0, 0.8))
-				draw_string(_font, p + Vector2(-w * 0.5, 20.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, INK)
+		if label != "" and Vector2(q.x, q.y).length() < r * 0.62:
+			var rank := 0 if kind in QUEST_KINDS else 1
+			cands.append({"p": p, "label": label, "rank": rank, "d": Vector2(q.x, q.y).length()})
+	_place_labels(cands, c, r)
+
+
+## At most two names, the most pressing first (a task, then the nearest), each on a dark pill that stays inside
+## the dial: a name too long for the room is cut short, and one that would touch a placed name is dropped.
+func _place_labels(cands: Array, c: Vector2, r: float) -> void:
+	if _body == null or cands.is_empty():
+		return
+	cands.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a.rank) < int(b.rank) or (int(a.rank) == int(b.rank) and float(a.d) < float(b.d)))
+	var placed: Array[Rect2] = []
+	var count := 0
+	for cd: Dictionary in cands:
+		if count >= MAX_LABELS:
+			break
+		var p: Vector2 = cd.p
+		var below := p.y < c.y + r * 0.3
+		var y := p.y + 25.0 if below else p.y - 14.0                  # the baseline
+		var chord := sqrt(maxf(0.0, pow(r - 8.0, 2.0) - pow(y - c.y, 2.0)))
+		var room := chord * 2.0 - 18.0
+		if room < 40.0:
+			continue
+		var text := String(cd.label)
+		var w := _body.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_PT).x
+		while w > room and text.length() > 3:
+			text = text.substr(0, text.length() - 2)
+			w = _body.get_string_size(text + "…", HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_PT).x
+		if text != String(cd.label):
+			text += "…"
+		var x := clampf(p.x - w * 0.5, c.x - chord + 9.0, c.x + chord - 9.0 - w)
+		var box := Rect2(x - 6.0, y - LABEL_PT - 1.0, w + 12.0, LABEL_PT + 7.0)
+		var free := true
+		for b: Rect2 in placed:
+			if b.grow(2.0).intersects(box):
+				free = false
+				break
+		if not free:
+			continue
+		placed.append(box)
+		count += 1
+		draw_rect(box, Color(0.03, 0.02, 0.012, 0.62))
+		Forge.label(self, _body, Vector2(x, y), text, LABEL_PT, INK, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
 
 
 func _glyph(kind: String, p: Vector2, col: Color, s: float) -> void:
