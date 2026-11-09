@@ -10,7 +10,7 @@ const O := Vector2(-310.0, -214.0)
 const INK := Color(0.19, 0.12, 0.075)
 const PAPER := Color(0.88, 0.8, 0.62)
 const LEAF := Color(0.40, 0.50, 0.26, 0.85)
-const HALO := Color(0.88, 0.8, 0.62, 0.8)
+const HALO := Color(0.93, 0.86, 0.68, 0.95)
 
 func _w(p: Vector2) -> Vector2:
 	return (p - O) * K
@@ -303,7 +303,7 @@ func _letter(font: Font, s: String, c: Vector2, size: int, col: Color, spacing: 
 	var x := c.x - _width(font, s, size, spacing) * 0.5
 	for ch in s:
 		var p := Vector2(x, c.y + size * 0.35)
-		draw_string_outline(font, p, ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 5, HALO)
+		draw_string_outline(font, p, ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 9, HALO)
 		draw_string(font, p, ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
 		draw_string(font, p + Vector2(0.9, 0.0), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
 		x += font.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + spacing
@@ -322,5 +322,5 @@ func _along(a: Vector2, b: Vector2, text: String) -> void:
 		ang += PI
 	var ctr := _w((a + b) * 0.5)
 	draw_set_transform(ctr, ang, Vector2.ONE)
-	_letter(serif, text, Vector2.ZERO, 24, Color(INK, 0.9), 2.0)
+	_letter(serif, text, Vector2.ZERO, 34, Color(0.1, 0.055, 0.03), 1.5)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
