@@ -8,18 +8,16 @@ extends RefCounted
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
 const INK := Color(0.1, 0.055, 0.03)
 const HALO := Color(0.93, 0.86, 0.68, 0.96)
-const PLATE := Color(0.92, 0.84, 0.64, 0.62)         ## a faint parchment plate under every name: legible over woods, hatching and the dark rift
 const MIN_PX := [18.0, 16.0, 15.0, 14.0]             ## smallest on-screen size by tier
 const MAX_PX := 32.0
 const INKED := [[Vector2(-231.0, 97.0), Vector2(-224.0, 87.0)], [Vector2(-155.0, 170.0), Vector2(-155.0, 120.0)], [Vector2(155.0, 190.0), Vector2(155.0, 140.0)]]
-const PAD := Vector2(9.0, 4.0)                       ## the plate's margin round the letters
+const PAD := Vector2(9.0, 4.0)                       ## the margin round the letters (their halo) for placement
 
 var cinzel: Font
 var _items: Array[Dictionary] = []
 var _placed: Array[Dictionary] = []
 var _key := -1
 var _marks := PackedVector2Array()
-var _plate := StyleBoxFlat.new()
 var _cands: Array[Vector2] = [Vector2.ZERO]          ## where a name may sit, in its own widths and heights from home, nearest first
 
 
@@ -31,10 +29,6 @@ func _init(font: Font) -> void:
 				for sx in ([1.0] if dx == 0.0 else [-1.0, 1.0]):
 					if dx != 0.0 or dy != 0.0:
 						_cands.append(Vector2(dx * sx, dy * sy))
-	_plate.bg_color = PLATE
-	_plate.set_corner_radius_all(7)
-	_plate.shadow_color = Color(PLATE.r, PLATE.g, PLATE.b, 0.4)
-	_plate.shadow_size = 7
 	var regs: Array = RealmLayout.REGIONS.duplicate()
 	regs.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _area(a) > _area(b))
 	for r: Dictionary in regs:
@@ -188,12 +182,6 @@ func draw(c: Control, zoom: float, to_screen: Callable, view: Rect2) -> void:
 			c.draw_circle(h, 2.2, Color(INK, 0.55 * a))
 		var lines: PackedStringArray = p.lines
 		var size: int = p.size
-		if p.tall:
-			c.draw_set_transform(s, -PI * 0.5, Vector2.ONE)
-			c.draw_style_box(_plate_box(a), Rect2(-dims.y * 0.5, -dims.x * 0.5, dims.y, dims.x))
-			c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		else:
-			c.draw_style_box(_plate_box(a), Rect2(s - dims * 0.5, dims))
 		for li in lines.size():
 			var off := Vector2(0.0, (li - (lines.size() - 1) * 0.5) * float(p.lh))
 			if p.tall:
@@ -204,12 +192,6 @@ func draw(c: Control, zoom: float, to_screen: Callable, view: Rect2) -> void:
 				_letter(c, lines[li], s + off, size, float(p.sp), a)
 
 
-func _plate_box(a: float) -> StyleBoxFlat:
-	_plate.bg_color.a = PLATE.a * a
-	_plate.shadow_color.a = 0.4 * a
-	return _plate
-
-
 func _letter(c: Control, s: String, at: Vector2, size: int, sp: float, a: float) -> void:
 	var x0 := at.x - _width(s, size, sp) * 0.5
 	var y := at.y + size * 0.35
@@ -217,6 +199,8 @@ func _letter(c: Control, s: String, at: Vector2, size: int, sp: float, a: float)
 		var x := x0
 		for ch in s:
 			if pass_i == 0:
+				# no plate (Luke, 9 Nov: no box round the text): a wide soft parchment halo, then a firm one
+				c.draw_string_outline(cinzel, Vector2(x, y), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 16, Color(HALO, HALO.a * a * 0.4))
 				c.draw_string_outline(cinzel, Vector2(x, y), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 8, Color(HALO, HALO.a * a))
 			else:
 				c.draw_string(cinzel, Vector2(x, y), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(INK, a))
