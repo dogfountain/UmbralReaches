@@ -10,11 +10,11 @@ extends RefCounted
 ##   - the Watchers: two colossal hooded mages (MageStatue at 4.2x, about 26 m, the east one mirrored) standing
 ##     in the pool either side of the threshold's mouth, facing the village, open hands over the gate, orbs lit
 ##     violet above the rim
-##   - the Broken Stair: the pilgrims' stair (the old stair's own steps, stair_step.glb) lifted out of the
-##     pool and held in the air where it broke, climbing in a long curve, light in every joint
+##   - the Broken Stair: five flights of the pilgrims' stair torn out and held in the air by sigils, climbing
+##     from the third tower to the Last Landing (a secret: core/life/secrets/site_threshold.gd)
 ##   - motes rising off the pool, and light dripping from the stair
 ## The east wall above y -6 from z -22 north is the Ossuary's: there the terraces stop below it.
-## Collision: the terraces (walkable, reachable down the rock's slope from the rim); the stair is a vista.
+## Collision: the terraces (walkable, reachable down the rock's slope from the rim) and the stair's steps.
 
 const STONE := "stone"
 const LAVA := -15.5
@@ -26,7 +26,6 @@ const Z0 := -15.0                      ## the first bay's south edge (the foreco
 const WATCHERS := [Vector3(-14.5, -17.2, -15.6), Vector3(14.5, -17.2, -15.6)]
 const WATCHER_SCALE := 4.2             ## about 26 m: the hood and the orb stand over the forecourt's walls
 const WATCHER_R := 6.4                 ## the pedestal's reach at that scale (1.6 m x 4.2) and a little
-const STEP_GLB := "res://art/models/stair_step.glb"
 
 var k: OssKit
 var space: PhysicsDirectSpaceState3D
@@ -201,79 +200,172 @@ func _bay(side: float, zc: float) -> int:
 
 # --- the Broken Stair -------------------------------------------------------------------------------
 
-## The old stair's own steps rising out of the pool on a long curve east of the crossing, past the rim:
-## whole and close at the foot, drifting apart and turning as they climb, as if the stair broke and was
-## held. Every joint leaks light (a seam under the front and back edge), shards drift by the upper ones.
+## THE BROKEN STAIR: five flights of the old pilgrims' stair, torn out and held in the air by sigils of the
+## starlight, climbing a half turn from the third tower's east parapet to a broken landing above the meeting
+## of the starwater and the fire (the Last Landing, core/life/secrets/site_threshold.gd: a reliquary and a page).
+## Each flight is four carved steps on a solid mass with stringers either side and torn masonry at its broken
+## ends; between flights one step is missing (two below the last flight, the landing one more): a jump, the
+## last a double jump. Steps and stringers are solid (walkable); the mass, the rubble and the sigils are not.
+const STAIR_C := Vector2(5.0, -45.0)   ## the half turn's centre (xz)
+const STAIR_R := 6.3                   ## its radius (the walk line)
+const STAIR_A0 := 112.0                ## degrees: the first step, just off the third tower's east parapet
+const STAIR_SWEEP := 180.0             ## degrees turned to the landing
+const STAIR_Y0 := 6.65                 ## the first tread (the tower's deck 5.6 + its parapet)
+const STAIR_Y1 := 16.0                 ## the landing's top
+const FLIGHTS := [[0, 1, 2, 3], [5, 6, 7, 8], [10, 11, 12, 13], [15, 16, 17, 18], [21, 22, 23, 24]]
+const STAIR_N := 26                    ## positions to the landing (the landing is position 26)
+const TREAD := Vector3(2.3, 0.46, 0.92)   ## a step's block: across, tall, deep
+const SIGIL_SHADER := """shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, blend_add;
+// The sigil that holds a flight up: two rings, a band of glyph ticks between them, three spokes, turning.
+uniform vec3 col : source_color = vec3(0.5, 0.36, 1.0);
+uniform float spin = 0.1;
+float line(float d, float w) { return 1.0 - smoothstep(w, w + fwidth(d) * 1.5, abs(d)); }
+void fragment() {
+	vec2 p = UV * 2.0 - 1.0;
+	float r = length(p);
+	float a = atan(p.y, p.x) + TIME * spin;
+	float t = fract(a * 24.0 / 6.2832);
+	float v = line(r - 0.86, 0.012) + line(r - 0.7, 0.008) * 0.8 + line(r - 0.28, 0.01) * 0.6;
+	v += line(r - 0.78, 0.035) * step(0.3, t) * step(t, 0.62) * 0.7;
+	v += line(sin(a * 1.5) * r, 0.01) * step(0.3, r) * step(r, 0.68) * 0.35;
+	v *= 0.7 + 0.3 * sin(TIME * 1.1 + r * 5.0);
+	ALBEDO = col * v * 1.5;
+	ALPHA = clamp(v, 0.0, 1.0) * (1.0 - smoothstep(0.88, 0.95, r));
+}"""
+
+var _sigil_mat: ShaderMaterial
+
+
+## Where position i of the stair is: centre of its tread top, and its basis (x across, y up, z back down the stair).
+func _stair_at(i: float) -> Transform3D:
+	var t := i / float(STAIR_N)
+	var a := deg_to_rad(STAIR_A0 - STAIR_SWEEP * t)
+	var radial := Vector3(cos(a), 0.0, sin(a))
+	var fwd := Vector3(sin(a), 0.0, -cos(a))                 # the way up (the angle falls as it climbs)
+	var c := Vector3(STAIR_C.x + radial.x * STAIR_R, lerpf(STAIR_Y0, STAIR_Y1, t), STAIR_C.y + radial.z * STAIR_R)
+	return Transform3D(Basis(radial, Vector3.UP, -fwd), c)
+
+
 func _broken_stair(host: Node3D) -> int:
-	var scene := load(STEP_GLB) as PackedScene if ResourceLoader.exists(STEP_GLB) else null
-	var n := 15
-	var placed := 0
-	var prev := Vector3.ZERO
-	for i in n:
-		var t := float(i) / float(n - 1)
-		# x 5 through the narrows between the third tower (x < 1.7) and the Ossuary's bone colonnade (x > 8.4,
-		# z -36..-32), then out east towards the rim as it climbs
-		var p := Vector3(5.0 + 3.6 * smoothstep(0.55, 1.0, t), LAVA + 0.8 + t * 22.0 + t * t * 4.0, -24.5 - 20.0 * t)
-		p.x += rng.randf_range(-0.2, 0.2) * t * 2.0
-		p.z += rng.randf_range(-0.3, 0.3) * t * 2.0
-		var dir := (p - prev).normalized() if i > 0 else Vector3(0.15, 0.0, -1.0)
-		var flat := Vector3(dir.x, 0.0, dir.z).normalized()
-		var bas := Basis(flat.cross(Vector3.UP).normalized(), Vector3.UP, -flat)
-		var tilt := t * t * 0.5
-		bas = bas * Basis(Vector3.FORWARD, rng.randf_range(-tilt, tilt)) * Basis(Vector3.RIGHT, rng.randf_range(-tilt, tilt) * 0.6) * Basis(Vector3.UP, rng.randf_range(-tilt, tilt))
-		var size := Vector3(rng.randf_range(2.8, 3.3) * (1.0 - t * 0.2), 0.52, rng.randf_range(1.2, 1.45))
-		prev = p
-		if _blocked(p.x, p.z, 1.0):
-			continue
-		var at := Vector3.INF
-		for nudge: Vector3 in [Vector3.ZERO, Vector3(0.9, 0, 0), Vector3(-0.9, 0, 0), Vector3(0, 0.8, 0), Vector3(1.8, 0, 0), Vector3(0, -0.8, 0), Vector3(1.8, 0.8, 0)]:
-			if _clear(Transform3D(bas, p + nudge), size, 0.35):
-				at = p + nudge
-				break
-		if at == Vector3.INF:
-			_audit.append("step %d dropped at %s (%s)" % [i, p.snapped(Vector3.ONE * 0.1), _last_hit])
-			continue
-		if at != p:
-			_audit.append("step %d moved %.1f m" % [i, at.distance_to(p)])
-		p = at
-		if scene:
-			_fit(host, scene, p, bas, size)
-		else:
-			k.box("hub", p, size, bas, false)
-		# light in the joints: thin seams along the step's lower front and back edges
-		for e: float in [-1.0, 1.0]:
-			_slab(p - bas.y * (size.y * 0.5 - 0.02) + bas.z * (e * size.z * 0.46), Vector3(size.x * 0.86, 0.035, 0.05), bas)
-		# shards broken off the upper steps, drifting beside them
-		if t > 0.45 and rng.randf() < 0.7:
-			var sp := p + bas.x * rng.randf_range(-2.4, 2.4) + Vector3(0.0, rng.randf_range(-1.2, 1.4), rng.randf_range(-1.0, 1.0))
-			var sb := Basis(Vector3(rng.randf(), rng.randf(), rng.randf()).normalized(), rng.randf() * TAU)
-			var ss := Vector3(rng.randf_range(0.4, 0.9), rng.randf_range(0.25, 0.4), rng.randf_range(0.4, 0.8))
-			if _clear(Transform3D(sb, sp), ss, 0.3) and not _near_steps(sp, p, bas, size):
-				k.box("hub", sp, ss, sb, false)
-			else:
-				_audit.append("shard by step %d dropped" % i)
-		placed += 1
-	return placed
+	var steps := 0
+	for fl: Array in FLIGHTS:
+		var first := int(fl[0])
+		var last := int(fl[fl.size() - 1])
+		for i: int in fl:
+			var xf := _stair_at(float(i))
+			var b := xf.basis
+			var top := xf.origin
+			# the step: a block whose top is the tread, a nosing lip, a cheek either side (the stringers)
+			_place(top - b.y * TREAD.y * 0.5, TREAD, b, true, "step %d" % i)
+			_place(top + b.z * (-TREAD.z * 0.5 + 0.02) + b.y * 0.01, Vector3(TREAD.x, 0.07, 0.07), b, false, "")
+			for side: float in [-1.0, 1.0]:
+				_place(top + b.x * side * (TREAD.x * 0.5 + 0.12) - b.y * 0.32, Vector3(0.24, 0.9, TREAD.z + 0.04), b, true, "stringer %d" % i)
+			# the mass beneath: the stair was built on solid masonry, and it came away with it
+			_place(top - b.y * 1.05, Vector3(TREAD.x - 0.3, 1.1, TREAD.z), b, false, "")
+			steps += 1
+		_torn_end(_stair_at(float(first)), -1.0, first > 0)
+		_torn_end(_stair_at(float(last)), 1.0, true)
+		var mid := _stair_at((float(first) + float(last)) * 0.5)
+		_sigil(host, mid.origin - Vector3.UP * 2.6, 4.6, mid.basis)
+	_landing(host)
+	_jump_audit()
+	return steps
 
 
-## One step model fitted to `size` (x across, y up, z run) at `c` with basis `b`, in the hub stair's stone.
-func _fit(host: Node3D, scene: PackedScene, c: Vector3, b: Basis, size: Vector3) -> void:
-	var model := scene.instantiate() as Node3D
-	model.name = "FloatingStep%d" % host.get_child_count()
-	host.add_child(model)
-	var box := AABB()
-	var first := true
-	for node in model.find_children("*", "MeshInstance3D", true, false):
-		var mi := node as MeshInstance3D
-		var bb: AABB = model.global_transform.affine_inverse() * mi.global_transform * mi.get_aabb()
-		box = bb if first else box.merge(bb)
-		first = false
-		mi.material_override = OssKit.mat("hub")
-	if first:
+## Torn masonry at a flight's broken end (`dir` -1 the lower end, +1 the upper): ragged blocks hanging off it
+## and a couple of pieces adrift in the gap. The very first step keeps a clean end (it meets the tower).
+func _torn_end(xf: Transform3D, dir: float, ragged: bool) -> void:
+	if not ragged:
 		return
-	var s := Vector3(size.x / maxf(box.size.x, 0.01), size.y / maxf(box.size.y, 0.01), size.z / maxf(box.size.z, 0.01))
-	var bs := b * Basis.from_scale(s)
-	model.global_transform = Transform3D(bs, c - bs * box.get_center())
+	var b := xf.basis
+	var edge := xf.origin - b.z * dir * (TREAD.z * 0.5)
+	for j in 4:
+		var c := edge - b.y * rng.randf_range(0.6, 1.6) + b.x * rng.randf_range(-0.9, 0.9) - b.z * dir * rng.randf_range(0.0, 0.35)
+		var sb := b * Basis(Vector3(rng.randf(), rng.randf(), rng.randf()).normalized(), rng.randf_range(0.2, 0.7))
+		_place(c, Vector3(rng.randf_range(0.35, 0.8), rng.randf_range(0.3, 0.6), rng.randf_range(0.3, 0.55)), sb, false, "")
+	for j in 2:
+		var c2 := edge - b.z * dir * rng.randf_range(0.5, 0.9) - b.y * rng.randf_range(0.8, 2.2) + b.x * rng.randf_range(-1.4, 1.4)
+		var sb2 := Basis(Vector3(rng.randf(), rng.randf(), rng.randf()).normalized(), rng.randf() * TAU)
+		_place(c2, Vector3(rng.randf_range(0.2, 0.4), rng.randf_range(0.15, 0.3), rng.randf_range(0.2, 0.35)), sb2, false, "")
+
+
+## The broken landing at the top: a paved slab on its own mass, a balustrade broken on the open side, a
+## kneeling stone, torn masonry under its edge, a wide sigil. The secret is set on it by the secrets module.
+func _landing(host: Node3D) -> void:
+	var xf := _stair_at(float(STAIR_N) + 0.9)
+	var b := xf.basis
+	var top := Vector3(xf.origin.x, STAIR_Y1, xf.origin.z)
+	var size := Vector3(3.8, 0.5, 3.2)
+	_place(top - b.y * size.y * 0.5, size, b, true, "landing")
+	_place(top - b.y * 1.4, Vector3(3.3, 1.8, 2.7), b, false, "")
+	for side: float in [-1.0, 1.0]:
+		var a := top + b.x * side * (size.x * 0.5 - 0.15) + b.z * (size.z * 0.5 - 0.2)
+		var e := top + b.x * side * (size.x * 0.5 - 0.15) - b.z * (size.z * 0.5 - (1.4 if side < 0.0 else 0.2))
+		if _clear(Transform3D(b, (a + e) * 0.5 + Vector3.UP * 0.45), Vector3(0.3, 0.9, a.distance_to(e)), 0.1):
+			k.parapet(STONE, a, e, 0.75, 0.26)
+	_place(top - b.z * (size.z * 0.5 - 0.45) + b.y * 0.3, Vector3(1.4, 0.6, 0.5), b, true, "kneeler")
+	for j in 3:
+		k.candle_cluster(top - b.z * (size.z * 0.5 - 0.5) + b.x * (-0.9 + 0.9 * float(j)) + b.y * 0.62, rng.randi_range(3, 5), 0.18, rng)
+	_torn_end(Transform3D(b, top + b.z * 0.4), 1.0, true)
+	_sigil(host, top - Vector3.UP * 3.4, 7.0, b)
+	var mark := Node3D.new()
+	mark.name = "StairLanding"
+	mark.set_meta("top", top)
+	mark.set_meta("basis", b)
+	host.add_child(mark)
+	mark.global_position = top
+
+
+## One stone box after a clearance check; a failure is logged (named pieces) and the piece is left out.
+func _place(c: Vector3, size: Vector3, b: Basis, solid: bool, label: String) -> void:
+	if not _clear(Transform3D(b, c), size, 0.05):
+		if label != "":
+			_audit.append("%s left out (%s)" % [label, _last_hit])
+		return
+	k.box(STONE, c, size, b, solid)
+
+
+func _sigil(host: Node3D, at: Vector3, size: float, b: Basis) -> void:
+	if _sigil_mat == null:
+		var sh := Shader.new()
+		sh.code = SIGIL_SHADER
+		_sigil_mat = ShaderMaterial.new()
+		_sigil_mat.shader = sh
+	var mi := MeshInstance3D.new()
+	mi.name = "Sigil"
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(size, size)
+	mi.mesh = pm
+	mi.material_override = _sigil_mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	host.add_child(mi)
+	mi.global_transform = Transform3D(Basis(Vector3.UP, atan2(b.z.x, b.z.z)), at)
+
+
+## Every move on the stair as the wanderer makes it: from the tower's deck onto the first step, step to step,
+## each break and onto the landing: the rise and the clear gap between edges. Walk: rise <= 0.45, no gap.
+## Jump: rise <= 0.8 over <= 2.2 m. Double jump: rise <= 1.6. Printed; anything beyond is called out.
+func _jump_audit() -> void:
+	var stops: Array = [[Vector3(-1.8 + 2.9, 5.6, -40.0), 0.0, "tower deck"]]
+	for fl: Array in FLIGHTS:
+		for i: int in fl:
+			stops.append([_stair_at(float(i)).origin, TREAD.z, "step %d" % i])
+	var lx := _stair_at(float(STAIR_N) + 0.9)
+	stops.append([Vector3(lx.origin.x, STAIR_Y1, lx.origin.z), 3.2, "landing"])
+	var worst := ""
+	var moves := PackedStringArray()
+	for j in range(1, stops.size()):
+		var a: Vector3 = stops[j - 1][0]
+		var e: Vector3 = stops[j][0]
+		var rise := e.y - a.y
+		var gap := maxf(0.0, Vector2(e.x - a.x, e.z - a.z).length() - (float(stops[j - 1][1]) + float(stops[j][1])) * 0.5)
+		var kind := "walk" if rise <= 0.45 and gap < 0.25 else ("jump" if rise <= 0.8 and gap <= 2.2 else ("double jump" if rise <= 1.6 and gap <= 2.6 else "TOO FAR"))
+		if kind != "walk":
+			moves.append("%s>%s %s (rise %.2f, gap %.2f)" % [stops[j - 1][2], stops[j][2], kind, rise, gap])
+		if kind == "TOO FAR":
+			worst = String(stops[j][2])
+	report.append("stair moves: %s%s" % ["; ".join(moves), "" if worst == "" else "  -- UNREACHABLE at " + worst])
 
 
 # --- the Watchers ---------------------------------------------------------------------------------
@@ -545,10 +637,10 @@ func _motes(host: Node3D) -> void:
 		drip.name = "StairLight"
 		var dm := (drip.process_material as ParticleProcessMaterial).duplicate() as ParticleProcessMaterial
 		dm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-		dm.emission_box_extents = Vector3(2.5, 9.0, 11.0)
+		dm.emission_box_extents = Vector3(6.5, 4.0, 6.5)
 		drip.process_material = dm
 		drip.visibility_aabb = AABB(Vector3(-8, -22, -16), Vector3(16, 40, 32))
 		drip.preprocess = 5.0
 		host.add_child(drip)
-		drip.global_position = Vector3(9.5, -1.0, -36.0)
+		drip.global_position = Vector3(STAIR_C.x, (STAIR_Y0 + STAIR_Y1) * 0.5 - 2.0, STAIR_C.y)
 		drip.emitting = true

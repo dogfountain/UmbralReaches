@@ -26,6 +26,8 @@ const SECRETS := {
 	"cutters_nook": {"name": "The Cutters' Nook", "region": "quarry"},
 	"ninth_rank": {"name": "The Ninth Rank", "region": "necropolis"},
 	"corvin_sluice": {"name": "Corvin's Sluice", "region": "mere"},
+	# the Pilgrims' Threshold (site_threshold.gd)
+	"last_landing": {"name": "The Last Landing", "region": "rift"},
 	# --- south marches ---
 	"oak_crown": {"name": "The Crown of the Oak", "region": "oak"},
 	"well_listener": {"name": "The Listener's Cairn", "region": "well"},
@@ -93,6 +95,8 @@ const TEXTS := {
 	"sc_breath_top": {"title": "The hermit's last word", "kind": "slate",
 		"text": "From up here you can watch the Crossing and nobody can watch you. I watched the pilgrims go up. I watched them come down hollow. I stayed up here where the air is warm and I did not go."},
 	# --- r34 places (site_r34.gd) -------------------------------------------------------------
+	"sc_landing": {"title": "Cut into the kneeling stone", "kind": "carved stone",
+		"text": "The Stair broke the night the sky began to turn. The light below caught what it could: four flights, this landing, and me. Every night I count the steps down to the water. There are not enough. The box was the ascension's offering. Nobody is coming up to take it."},
 	"sc_nook": {"title": "Pinned under a chisel", "kind": "page",
 		"text": "Cutters' rule: what we cut for the Stair, the Order owns. What we cut for ourselves we keep up here, where the Order's men will not climb. Take your share. Leave the chisels."},
 	"sc_rank_slate": {"title": "The warden's slate", "kind": "slate",
@@ -149,6 +153,7 @@ const REWARDS := {
 	"cutters_nook": {"relic_fragment": 1, "grave_ash": 25, "grave_iron": 2},
 	"ninth_rank": {"relic_fragment": 1, "grave_ash": 30},
 	"corvin_sluice": {"relic_fragment": 1, "grave_ash": 25},
+	"last_landing": {"relic_fragment": 2, "grave_ash": 40, "ember_shard": 1},
 	# --- south marches ---
 	"oak_crown": {"relic_fragment": 2, "grave_ash": 35},
 	"well_listener": {"relic_fragment": 1, "grave_ash": 30, "grave_iron": 1},

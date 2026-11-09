@@ -20,6 +20,7 @@ const MODULES := {
 	"rift": "res://core/world/realm/realm_rift.gd",
 	"bosses": "res://core/world/realm/realm_bosses.gd",
 	"lore": "res://core/world/realm/realm_lore.gd",
+	"wonders": "res://core/world/realm/realm_wonders.gd",      # landmarks seen from far off (realm_wonders.gd)
 	"flora": "res://core/world/realm/realm_flora.gd",
 	"assets": "res://core/world/realm/realm_assets.gd",
 	# living-world systems (docs/LIFE_PLAN.md), built last, each owns its own folder
@@ -72,10 +73,10 @@ static var prof := {}
 ## Build progress for the loading screen (ui/loading_screen.gd): 0..1 and the step now running.
 static var progress := 0.0
 static var stage := ""
-const STEPS := 17
+const STEPS := 18
 const STAGE_NAMES := {
 	"land": "Raising the land", "rift": "Opening the rift", "bosses": "Waking the wardens",
-	"tavern": "Lighting the Keg", "lore": "Carving the stones", "stamp": "Settling the ground",
+	"tavern": "Lighting the Keg", "lore": "Carving the stones", "wonders": "Raising the wonders", "stamp": "Settling the ground",
 	"flora": "Growing the wood", "summit": "Dressing the summit", "assets": "Placing the relics",
 	"progression": "Kindling the fires", "village": "Waking the village", "life": "Stirring the wild",
 	"secrets": "Hiding what is hidden", "encounters": "Gathering the dark", "dress": "Setting out the yards", "lamps": "Hanging the lamps", "nav": "Marking the ways",
@@ -180,6 +181,7 @@ static func build(root: Node) -> void:
 	Tavern.build(root)
 	prof_add("stage: tavern", t)
 	await _run("lore", root)
+	await _run("wonders", root)
 	t = Time.get_ticks_usec()
 	_mark("stamp")
 	await root.get_tree().process_frame     # let the loading screen draw this step

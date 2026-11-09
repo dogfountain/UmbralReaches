@@ -432,6 +432,14 @@ func _process(delta: float) -> void:
 		_tp_t -= delta
 		if _tp_t <= 0.0:
 			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--tp3="):
+					# exact: x,y,z[,yaw] with no ground snap (a tower top, a ledge, a floating step)
+					var v3 := a.trim_prefix("--tp3=").split(",")
+					var pl3 := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+					if pl3 and v3.size() >= 3:
+						pl3.teleport(Vector3(float(v3[0]), float(v3[1]), float(v3[2])))
+						if v3.size() >= 4:
+							pl3.set_view(float(v3[3]), -0.08)
 				if a.begins_with("--tp="):
 					var v := a.trim_prefix("--tp=").split(",")
 					var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
