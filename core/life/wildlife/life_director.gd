@@ -885,8 +885,29 @@ func _scan_groups(cp: Vector3) -> void:
 			g.visible = on
 			if not on:
 				g.rest()
+		if on and not g.has_meta(&"fade_set"):
+			_fade_group(g, _gr[k] - FADE_PAD)
 		if on:
 			_act.append(k)
+
+
+## A group switches on and off whole at its radius (a herd of deer appeared in one frame at 80-110 m, Luke 9 Nov:
+## "objects pop in"). Its creatures now fade out over the last FADE_BAND metres before their old `active_r` (seen as
+## far as before), and the group switches FADE_PAD further out: past the fade even for a herd ~25 m off its centre,
+## so the switch happens unseen. The fade guard is told these ranges are final (range_k).
+const FADE_PAD := 30.0
+const FADE_BAND := 10.0
+static func _fade_group(g: Node3D, active_r: float) -> void:
+	g.set_meta(&"fade_set", true)
+	var end := maxf(12.0, active_r - 5.0)
+	for n in g.find_children("*", "GeometryInstance3D", true, false):
+		var gi := n as GeometryInstance3D
+		if gi.visibility_range_end > 0.0 and gi.visibility_range_end + gi.visibility_range_end_margin <= active_r:
+			continue                                 # (its own range already ends inside: the mice, the far birds)
+		gi.visibility_range_end = end
+		gi.visibility_range_end_margin = FADE_BAND
+		gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		gi.set_meta(&"range_k", Vector2(gi.visibility_range_begin, end))
 
 
 func _cache_groups() -> void:
@@ -910,7 +931,7 @@ func _cache_groups() -> void:
 	_acc.resize(n)
 	for k in n:
 		_gc[k] = groups[k].get("center")
-		_gr[k] = float(groups[k].get("active_r"))
+		_gr[k] = float(groups[k].get("active_r")) + FADE_PAD     # (switch past the fade: _fade_group)
 		# r30: groups already ticking keep their phase; a new group starts up to 0.1 s late, by the
 		# golden ratio of its index, so groups on the same interval do not all tick on one frame
 		if k >= had:

@@ -411,10 +411,20 @@ func _respawn(slot: Dictionary) -> void:
 		return                                    # refilled meanwhile (a rest): no second pawn
 	var player := _player()
 	var near_player := player != null and player.global_position.distance_to(slot.at) < KEEP_CLEAR
-	if near_player or LightGrid.is_lit(slot.at):
+	if near_player or LightGrid.is_lit(slot.at) or _in_sight(slot.at):
 		_schedule(slot, RETRY)
 		return
 	_spawn(slot)
+
+
+## A refill never appears in plain view (Luke, 9 Nov: things pop in): within UNSEEN_R of the camera and inside its
+## view, the slot waits and tries again (RETRY) until you have turned away or walked off.
+const UNSEEN_R := 55.0
+func _in_sight(at: Vector3) -> bool:
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam == null:
+		return false
+	return cam.global_position.distance_to(at) < UNSEEN_R and cam.is_position_in_frustum(at + Vector3.UP)
 
 
 func _spawn(slot: Dictionary) -> void:
