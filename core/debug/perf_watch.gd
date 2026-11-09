@@ -140,8 +140,8 @@ func _script_ms() -> Vector2:
 ## it was costing printed, heaviest first. Everything is switched back on after.
 var _pcensus_running := false
 var _drawlist_t := 25.0 if "--drawlist" in OS.get_cmdline_user_args() else -1.0
-var _snap_t := 22.0                    ## `--snap=/abs/file.png` (measurement only): the screen saved 22 s in
-var _tp_t := 8.0                       ## `--tp=x,z[,yaw]` (measurement only): the wanderer is put there 8 s in
+var _snap_t := 22.0                    ## `--snap=/abs/file.png` (measurement only): the screen saved 22 s after the Realm is built
+var _tp_t := 8.0                       ## `--tp=x,z[,yaw]` (measurement only): the wanderer is put there 8 s after the Realm is built
 
 
 ## `--drawlist` (measurement only): every mesh instance in the camera's view (frustum, draw range, layers), by
@@ -421,14 +421,15 @@ func _process(delta: float) -> void:
 				(g as GPUParticles3D).visible = false
 				n += 1
 			print("FPS particles off: %d" % n)
-	if _snap_t > 0.0:
+	var built := _realm_built()
+	if _snap_t > 0.0 and built:
 		_snap_t -= delta
 		if _snap_t <= 0.0:
 			for a in OS.get_cmdline_user_args():
 				if a.begins_with("--snap="):
 					get_viewport().get_texture().get_image().save_png(a.trim_prefix("--snap="))
 					print("SNAP saved ", a.trim_prefix("--snap="))
-	if _tp_t > 0.0:
+	if _tp_t > 0.0 and built:
 		_tp_t -= delta
 		if _tp_t <= 0.0:
 			for a in OS.get_cmdline_user_args():
@@ -575,3 +576,10 @@ func _count(root: Node, type: String) -> int:
 	if not _counts.has(type):
 		_counts[type] = root.find_children("*", type, true, false).size()
 	return _counts[type]
+
+
+## The teleport and snapshot timers count from the end of the Realm's build (a cold flora cache can take a
+## minute), so --tp/--tp3/--snap always land in the built night.
+func _realm_built() -> bool:
+	var m := get_tree().root.get_node_or_null("Main")
+	return m == null or m.has_meta("realm_done")

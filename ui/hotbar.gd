@@ -64,8 +64,8 @@ func _process(delta: float) -> void:
 		_was_ready.resize(_book.slots.size())
 		_ready_pulse.resize(_book.slots.size())
 		_was_ready.fill(1)
-		offset_top = -(SLOT + NAME_ROW + 24.0 + 40.0)
-		offset_bottom = -40.0             # the plate's foot; the XP bar sits just under it
+		offset_top = -(SLOT + NAME_ROW + 24.0 + 36.0)
+		offset_bottom = -36.0             # the plate's foot
 	var sig := ""
 	var vis: Array[int] = []
 	for i in _book.slots.size():

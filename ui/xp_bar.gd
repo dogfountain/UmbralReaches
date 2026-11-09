@@ -1,7 +1,7 @@
 extends Control
-## The experience bar: a forged bar seated under the hotbar and as wide as its plate, shown only once the
-## game keeps experience. Ten notches, the fill in lantern gold, a pale rested stretch past it when one
-## exists, and the numbers set inside it for a few seconds after a gain.
+## The experience bar: a thin forged line along the very bottom edge of the screen, shown only once the
+## game keeps experience. Ten faint ticks, a warm gradient fill, a pale rested stretch past it when one
+## exists, and the level on a slim plate above its left end (the numbers join it for a few seconds after a gain).
 ##
 ## Reads (first found, all optional; re-looked for twice a second):
 ##   the Hearth (group "hearth", core/life/progression/hearth.gd): xp_info() -> {level, into, need,
@@ -11,12 +11,15 @@ extends Control
 ## Added by ui/hud.gd. Hidden while paused and under the loading screen.
 
 const LANTERN := Color("#FFB347")
-const RIM := Color(0.62, 0.45, 0.2)
 const INK := Color(0.93, 0.88, 0.8)
-const H := 26.0
-const BOTTOM := 8.0
+const BAR_H := 9.0             ## the line itself, at the 1920x1080 canvas
+const TEXT_H := 30.0           ## room above it for the level plate
+const H := BAR_H + TEXT_H
+const MARGIN := 28.0           ## the plate's distance from the left edge
+const PT := 14
 const Forge := preload("res://ui/hud_forge.gd")
 const Med := preload("res://ui/medieval_style.gd")
+const UIType := preload("res://ui/type.gd")
 
 var _font: Font
 var _info := {}
@@ -29,35 +32,20 @@ var _gain := 0.0
 var _dirty := true
 var _num_was := false          ## the number was up last frame: one more redraw clears it
 var _alpha_drawn := -1.0
-var _span := 0.0
-var _hotbar: Hotbar
 
 
 func _ready() -> void:
 	name = "XpBar"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	offset_top = -H - BOTTOM
-	offset_bottom = -BOTTOM
-	_fit(560.0)
-	_font = load("res://ui/fonts/Cinzel.ttf")
-
-
-## As wide as the hotbar's plate (its finials stand outside), centred like it.
-func _fit(w: float) -> void:
-	if is_equal_approx(w, _span):
-		return
-	_span = w
-	offset_left = -w * 0.5
-	offset_right = w * 0.5
-	_dirty = true
+	set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	offset_top = -H
+	offset_bottom = 0.0
+	offset_left = 0.0
+	offset_right = 0.0
+	_font = UIType.body()
 
 
 func _process(delta: float) -> void:
-	if not is_instance_valid(_hotbar):
-		_hotbar = get_parent().get_node_or_null("Hotbar") as Hotbar if get_parent() else null
-	if _hotbar != null and _hotbar.span() > 0.0:
-		_fit(_hotbar.span())
 	_scan -= delta
 	if _scan <= 0.0:
 		_scan = 0.5
@@ -125,26 +113,30 @@ func _read() -> Dictionary:
 func _draw() -> void:
 	if _info.is_empty():
 		return
-	var r := Rect2(Vector2.ZERO, size)
-	Forge.plate(self, r, 1.0, Color.WHITE, false)
-	for sx: float in [0.0, 1.0]:
-		Forge.rivet(self, Vector2(lerpf(7.0, size.x - 7.0, sx), size.y * 0.5), 2.2)
-	var well := Rect2(Vector2(16.0, 4.0), size - Vector2(32.0, 8.0))
-	Forge.trough(self, well)
-	var inner := well.grow(-2.0)
+	var bar := Rect2(0.0, size.y - BAR_H, size.x, BAR_H)
+	draw_rect(bar, Color(0.055, 0.036, 0.026, 0.96))
+	var inner := Rect2(bar.position + Vector2(0.0, 2.0), bar.size - Vector2(0.0, 2.0))
 	var rest := float(_info.get("rested", 0.0)) / maxf(float(_info.next), 0.001)
 	if rest > 0.0:
 		var rr := Rect2(inner.position + Vector2(inner.size.x * _shown, 0.0), Vector2(inner.size.x * minf(rest, 1.0 - _shown), inner.size.y))
 		Forge.fill(self, rr, Color(0.5, 0.46, 0.9, 0.55), 1.0)
-	Forge.fill(self, Rect2(inner.position, Vector2(inner.size.x * _shown, inner.size.y)), LANTERN.darkened(0.38), 1.0)
+	Forge.fill(self, Rect2(inner.position, Vector2(inner.size.x * _shown, inner.size.y)), LANTERN.darkened(0.3), 1.0)
 	for i in range(1, 10):
 		var x := inner.position.x + inner.size.x * float(i) / 10.0
-		draw_line(Vector2(x, inner.position.y), Vector2(x, inner.end.y), Color(0.02, 0.012, 0.01, 0.8), 1.5)
-	if _num_t > 0.0 and _font:
-		var a := clampf(_num_t, 0.0, 1.0)
-		var lv := int(_info.get("level", -1))
+		draw_line(Vector2(x, inner.position.y), Vector2(x, inner.end.y), Color(0.0, 0.0, 0.0, 0.45), 1.0)
+	draw_line(Vector2(0.0, bar.position.y + 0.5), Vector2(size.x, bar.position.y + 0.5), Color(Med.BRONZE, 0.95), 1.0)
+	draw_line(Vector2(0.0, bar.position.y + 1.5), Vector2(size.x, bar.position.y + 1.5), Color(0, 0, 0, 0.8), 1.0)
+	if not _font:
+		return
+	var lv := int(_info.get("level", -1))
+	var t := "Level %d" % lv if lv >= 0 else ""
+	var a := 1.0
+	if _num_t > 0.0:
 		var why := String(_info.get("why", ""))
-		var t := "%s%d / %d   +%d%s" % ["Level %d   ·   " % lv if lv >= 0 else "", roundi(float(_info.xp)), roundi(float(_info.next)), roundi(_gain), ("  " + why) if why != "" else ""]
-		var tw := _font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-		Forge.tab(self, Rect2(size.x * 0.5 - tw * 0.5 - 12.0, well.position.y + 1.0, tw + 24.0, well.size.y - 2.0), a)
-		Forge.label(self, _font, Vector2(0, well.position.y + well.size.y * 0.5 + 5.5), t, 14, Color(INK, a), HORIZONTAL_ALIGNMENT_CENTER, size.x, 3)
+		t += ("   ·   " if t != "" else "") + "%d / %d   +%d%s" % [roundi(float(_info.xp)), roundi(float(_info.next)), roundi(_gain), ("  " + why) if why != "" else ""]
+	if t == "":
+		return
+	var tw := _font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, PT).x
+	var pr := Rect2(MARGIN, bar.position.y - 24.0, tw + 24.0, 22.0)
+	Forge.tab(self, pr, a)
+	Forge.label(self, _font, Vector2(pr.position.x + 12.0, pr.position.y + 16.0), t, PT, Color(INK, a), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
