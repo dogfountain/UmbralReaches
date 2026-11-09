@@ -141,6 +141,11 @@ static func reserve(root: Node) -> void:
 	var hand := _hand_xz()
 	var arm := _bx((HEAD_C + dir * 40.0 + hand) * 0.5, Vector2(18.0, 18.0))
 	WorldLanes.register_site("r37w_arm", arm, _hi(space, arm), _hi(space, arm) + 1.0)
+	# the palm lies in the Crowns' west shoulder, where the land stands 6 to 11 m over it: the shoulder is cut back to the
+	# palm's base so the hand shows, can be walked round, and its steps have ground to start on. It stops 5 m short of the
+	# terrain's edge (x -272): a cut running out to the edge would leave a drop to the horizon ring behind it.
+	var pad := Rect2(-267.0, hand.y - 12.0, 31.0, 24.0)
+	WorldLanes.register_site("r37w_hand_pad", pad, FLOOR_Y, FLOOR_Y - 0.1)
 	Flora.tree_clear.append([HEAD_C + dir * 30.0, 34.0])
 	# the siege tower and the trebuchets: levelled pads
 	var tw := _bx(Vector2(-236.0, 170.0), Vector2(7.5, 7.5))
