@@ -282,6 +282,9 @@ static func _wall(L: RefCounted, xf: Transform3D, key: String, a: Vector3, b: Ve
 						k.quad("glow", xf * (c2 - pw - ph), xf * (c2 + pw - ph), xf * (c2 + pw + ph), xf * (c2 - pw + ph), xf.basis * -inward, false, 0.22)
 				var mouth: Vector3 = xf * (pc - inward * 0.2)
 				Interiors.shaft(L.holder, "CotTrail_%d_%d" % [int(mouth.x * 4.0), int(mouth.z * 4.0)], mouth, xf.basis * (-inward) + Vector3(0.0, -0.55, 0.0), Color(1.0, 0.58, 0.24), 0.85, 9.5, 20.0)
+				# the window's own warmth on the wall round it: the shaft only lights the ground, and the gable and
+				# back walls (off the moon and the lamps) stood as flat black silhouettes round a lit pane
+				L.light("CotGlow_%d_%d" % [int(mouth.x * 4.0), int(mouth.z * 4.0)], xf * (pc - inward * 0.6), Color(1.0, 0.58, 0.26), 0.42, 3.6)
 				k.box("iron", xf * (pc + inward * 0.04), Vector3(0.04, oh, 0.04), wb, false, 0.5)
 				k.box("iron", xf * (pc + inward * 0.04), Vector3(float(o.w), 0.04, 0.04), wb, false, 0.45)
 				k.box("iron", xf * (pc + inward * 0.04 + Vector3.UP * (oh * 0.1)), Vector3(float(o.w), 0.04, 0.04), wb, false, 0.5)
