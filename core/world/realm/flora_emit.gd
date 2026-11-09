@@ -315,6 +315,7 @@ static func _batch(ch: Node3D, buf: PackedFloat32Array, n: int, nm: String, mesh
 static func _set_range(mmi: MultiMeshInstance3D, tag: String, re: float) -> void:
 	if tag == "c":
 		mmi.set_instance_shader_parameter(&"fade_end", re)
+		mmi.set_meta(&"fade_end", true)          # (read by the fade guard: asking the renderer for the parameter syncs it)
 		mmi.visibility_range_end = re + FADE_BAND
 		mmi.visibility_range_end_margin = 0.0
 		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED

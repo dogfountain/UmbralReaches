@@ -95,7 +95,10 @@ static func _fix(n: Node) -> bool:
 	var begin := g.visibility_range_begin
 	if end <= 0.0 and begin <= 0.0:
 		return false
-	if g.get_instance_shader_parameter(&"fade_end") != null:
+	# thinned plant by plant in its shader (instance uniform fade_end): the builder marks it with a meta. Never ask the
+	# renderer for the parameter here: each such call waits on the render thread (217k syncs in a run with
+	# --render-thread separate, Luke's Windows A/B, 9 Nov) and this runs for 40 meshes every frame
+	if g.has_meta(&"fade_end"):
 		return false
 	var p := g.get_parent()
 	if p != null and String(p.name) == "ForestFloor":

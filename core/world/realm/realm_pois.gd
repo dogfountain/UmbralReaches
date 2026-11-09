@@ -434,6 +434,7 @@ static func _plants(host: Node3D, items: Dictionary, vis := 46.0) -> void:
 			mmi.visibility_range_end_margin = 4.0
 			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 			mmi.set_instance_shader_parameter(&"fade_end", vis - 6.0)
+			mmi.set_meta(&"fade_end", true)
 			mmi.add_to_group(Groups.CULL_SKIP)
 			mmi.set_meta("site_owned", true)
 			host.add_child(mmi)

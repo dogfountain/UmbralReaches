@@ -268,6 +268,6 @@ static func split_multimesh(mmi: MultiMeshInstance3D, cell := CELL, cell_y := 0.
 ## A chunk takes its source's ranges already scaled: the fade guard's record of that (range_k, fade_orig) and the
 ## flora / site metas go with them, or the guard took the copied range for a builder's and pushed it out 1.5x again.
 static func _carry_metas(src: Node, dst: Node) -> void:
-	for m in [&"range_k", &"fade_orig", &"site_owned", &"far_detail"]:
+	for m in [&"range_k", &"fade_orig", &"site_owned", &"far_detail", &"fade_end"]:
 		if src.has_meta(m):
 			dst.set_meta(m, src.get_meta(m))

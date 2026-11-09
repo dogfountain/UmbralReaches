@@ -71,7 +71,7 @@ static func _eligible(mi: MeshInstance3D) -> bool:
 		var sc := mi.global_basis.get_scale()
 		if not (is_equal_approx(sc.x, sc.y) and is_equal_approx(sc.y, sc.z)):
 			return false
-	if not mi.get_instance_shader_parameter(&"fade_end") == null:
+	if mi.has_meta(&"fade_end"):
 		return false
 	return true
 

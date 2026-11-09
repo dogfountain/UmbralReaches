@@ -36,7 +36,7 @@ func _physics_process(_d: float) -> void:
 			continue
 		if g.visibility_range_begin <= 0.0 and g.get_parent() != null and bool(g.get_parent().get_meta(&"fade_standin", false)):
 			continue                  # the near half of a swap: cut where its stand-in has faded in
-		if g.get_instance_shader_parameter(&"fade_end") != null or (g.get_parent() != null and String(g.get_parent().name) == "ForestFloor"):
+		if g.has_meta(&"fade_end") or (g.get_parent() != null and String(g.get_parent().name) == "ForestFloor"):
 			continue                  # thinned plant by plant in the shader (fade_guard.gd leaves these too)
 		total += 1
 		var why := ""
