@@ -8,9 +8,9 @@
   star_crater_heart.glb    heart_core         the star: a faceted core with long and short spikes
                            heart_ring_a/b/c   three broken bands (turned at different rates in the engine)
                            frag_a/b/c/d       the fragments that orbit it
-  star_crater_steps.glb    step_a/b/c, platform  fused-glass slabs hung on a crystal point, with colonly hulls
+  star_crater_ridge.glb    ridge_plate_a-d, ridge_shelf  upthrust plates of fused glass (walk faces at z=0, bodies below), colonly hulls
 
-  tools/blender/run.sh wonder_star_crater.py -- [--only shards,rim,heart,steps] [--renders DIR] [--no-export]
+  tools/blender/run.sh wonder_star_crater.py -- [--only shards,heart,steps] [--renders DIR] [--no-export]
 
 Conventions (Blender Z up -> Godot Y up; 1 BU = 1 m). Each asset is upright with its root at the origin (Z = 0) and
 leans towards +X (Godot +X). Vertex colour: rgb the body colour, alpha 0 at a crystal's root and 1 at its tip, which the
@@ -28,7 +28,7 @@ from mathutils import Vector, Matrix, noise
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUT = os.path.join(ROOT, "art", "models", "wonders")
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-ONLY = args[args.index("--only") + 1].split(",") if "--only" in args else ["shards", "rim", "heart", "steps"]
+ONLY = args[args.index("--only") + 1].split(",") if "--only" in args else ["shards", "heart", "steps"]
 RENDERS = args[args.index("--renders") + 1] if "--renders" in args else ""
 EXPORT = "--no-export" not in args
 TAU = math.tau
@@ -100,10 +100,10 @@ def basis_for(a):
 
 
 def palette(hue, glassy=1.0):
-    """root, mid, tip colours of a crystal of this hue (rgba, linear)."""
-    root = hsv(hue + 0.04, 0.85, 0.05 * glassy + 0.02)
-    mid = hsv(hue, 0.78, 0.13)
-    tip = hsv(hue - 0.03, 0.55, 0.40)
+    """root, mid, tip colours: nearly black glass that goes cold white at the tip, a faint teal or violet cast."""
+    root = hsv(hue - 0.04, 0.30, 0.035)
+    mid = hsv(hue, 0.24, 0.12)
+    tip = hsv(hue + 0.05, 0.10, 0.62)
     return root, mid, tip
 
 
@@ -292,22 +292,22 @@ def column_colonly(name, L, R, lean_deg, az_deg=0.0, sink=0.9):
 # ============================================================================================================
 def build_shards():
     out = []
-    out.append(cluster("shard_great_a", 11, 0.60, [(23.0, 2.7, 11, 0, {"steps": 3, "bend": 0.04, "wedge": True}), (15.0, 1.9, 28, 150, {"steps": 2, "wedge": True}),
-                                                   (11.0, 1.5, 34, 255, {"steps": 1, "broken": True}), (7.0, 1.1, 40, 60, {"steps": 1})], 6, 10, 2.6))
-    out.append(column_colonly("shard_great_a-colonly", 23.0, 2.7, 11))
-    out.append(cluster("shard_great_b", 23, 0.66,
-                       [(17.0, 2.2, 9, 20, {"steps": 3, "bend": -0.04}), (13.0, 1.7, 30, 200, {"wedge": True, "steps": 2, "bend": 0.05}),
-                                  (8.5, 1.2, 38, 300, {"steps": 1})], 5, 9, 2.4))
-    out.append(column_colonly("shard_great_b-colonly", 17.0, 2.2, 9, 20))
-    out.append(cluster("shard_great_c", 37, 0.55, [(13.5, 2.1, 6, 0, {"broken": True, "steps": 3}), (10.0, 1.4, 38, 160, {"wedge": True, "steps": 2}),
-                                                  (8.0, 1.2, 34, 275, {"steps": 1}), (5.0, 0.9, 44, 60, {"steps": 1})], 6, 9, 2.6))
-    out.append(column_colonly("shard_great_c-colonly", 13.5, 2.1, 6))
-    # a ray shard: lies low, pointing along +X, its tongue of glass dragged behind
-    for nm, seed, L, R, lean in (("shard_ray_a", 51, 9.5, 1.5, 66), ("shard_ray_b", 64, 6.5, 1.1, 72)):
-        out.append(cluster(nm, seed, 0.58, [(L, R, lean, 0, {"steps": 1, "bend": 0.03})], 2, 3, 2.2))
+    # three great clusters, each a family of crystals thrown up and out from one root (lean towards +X, outward)
+    out.append(cluster("shard_great_a", 11, 0.56, [(30.0, 3.5, 14, 0, {"steps": 3, "bend": 0.04, "wedge": True}), (20.0, 2.5, 33, 160, {"steps": 2}),
+                                                   (14.0, 1.9, 40, 250, {"steps": 1, "broken": True}), (9.0, 1.4, 46, 70, {"steps": 1})], 6, 10, 3.4))
+    out.append(column_colonly("shard_great_a-colonly", 30.0, 3.5, 14))
+    out.append(cluster("shard_great_b", 23, 0.62, [(22.0, 3.0, 22, 20, {"steps": 3, "bend": -0.05}), (16.0, 2.2, 8, 200, {"wedge": True, "steps": 2, "bend": 0.05}),
+                                                   (10.0, 1.5, 40, 300, {"steps": 1})], 5, 9, 3.0))
+    out.append(column_colonly("shard_great_b-colonly", 22.0, 3.0, 22, 20))
+    out.append(cluster("shard_great_c", 37, 0.52, [(17.0, 2.8, 28, 0, {"broken": True, "steps": 3}), (13.0, 2.0, 44, 160, {"wedge": True, "steps": 2}),
+                                                   (9.0, 1.5, 38, 275, {"steps": 1}), (6.0, 1.1, 50, 60, {"steps": 1})], 6, 9, 3.2))
+    out.append(column_colonly("shard_great_c-colonly", 17.0, 2.8, 28))
+    # rays: one long crystal thrown across the pans, dragging a tongue of glass
+    for nm, seed, L, R, lean in (("shard_ray_a", 51, 11.0, 1.7, 68), ("shard_ray_b", 64, 7.5, 1.2, 74)):
+        out.append(cluster(nm, seed, 0.58, [(L, R, lean, 0, {"steps": 2, "bend": 0.03})], 2, 3, 2.4))
         out.append(column_colonly(nm + "-colonly", L, R, lean))
-    out.append(cluster("shard_crown_a", 71, 0.63, [(4.2, 0.7, 10, 0, {"steps": 1}), (3.1, 0.55, 28, 140, {"steps": 0}), (2.4, 0.45, 24, 250, {"wedge": True, "steps": 0})], 3, 4, 1.1))
-    out.append(cluster("shard_crown_b", 83, 0.5, [(3.2, 0.6, 18, 30, {"steps": 1, "wedge": True}), (2.2, 0.45, 36, 210, {"steps": 0})], 3, 5, 0.9))
+    out.append(cluster("shard_crown_a", 71, 0.6, [(4.6, 0.8, 12, 0, {"steps": 1}), (3.3, 0.6, 30, 140, {"steps": 0}), (2.6, 0.5, 26, 250, {"wedge": True, "steps": 0})], 3, 4, 1.2))
+    out.append(cluster("shard_crown_b", 83, 0.5, [(3.4, 0.65, 18, 30, {"steps": 1, "wedge": True}), (2.3, 0.5, 36, 210, {"steps": 0})], 3, 5, 1.0))
     return out
 
 
@@ -376,101 +376,80 @@ def heart_colours(t):
     return (lerp(deep[0], white[0], t), lerp(deep[1], white[1], t), lerp(deep[2], white[2], t), t)
 
 
+def crack_planes(rng, n):
+    out = []
+    for _ in range(n):
+        nrm = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-1, 1))).normalized()
+        out.append((nrm, rng.uniform(-0.5, 0.5)))
+    return out
+
+
 def build_heart():
+    """THE FALLEN STAR: a dense, faceted core cracked by planes (the cracks are the glow: alpha 1 in the grooves),
+    a few stubby broken spurs, molten glass frozen in drips beneath it, and drifting fragments of its shell."""
     rng = random.Random(7)
     out = []
     pc = Piece("heart_core")
-    # the faceted body: an icosphere pushed about so no two facets agree
     bm = pc.bm
-    ico = bmesh.ops.create_icosphere(bm, subdivisions=2, radius=1.05)
+    ico = bmesh.ops.create_icosphere(bm, subdivisions=3, radius=1.0)
+    planes = crack_planes(rng, 7)
     for v in ico["verts"]:
-        v.co *= 1.0 + 0.16 * noise.noise(v.co * 2.3 + Vector((3, 1, 2)))
-        pc.col[v] = heart_colours(0.45)
-    longs = fib_dirs(13, rng)
-    for i, d in enumerate(longs):
-        L = rng.uniform(2.6, 3.7) * (1.15 if i in (0, 6) else 1.0)
-        crystal(pc, d * 0.7, d, L - 0.7, rng.uniform(0.34, 0.5), rng, 0.55, sides=6, wedge=(i % 4 == 0), steps=1, sink=0.3, cap=False)
-    for i, d in enumerate(fib_dirs(14, random.Random(8))):
-        d2 = (d + longs[i % len(longs)] * 0.6).normalized()
-        crystal(pc, d2 * 0.75, d2, rng.uniform(1.1, 1.9), rng.uniform(0.16, 0.26), rng, 0.6, sides=5, steps=0, sink=0.3, cap=False)
-    # recolour: everything on the heart is lit from within: rgb rises with alpha
-    for v, c in list(pc.col.items()):
-        pc.col[v] = heart_colours(min(1.0, c[3] * 0.9 + 0.1))
+        u = v.co.normalized()
+        r = 1.45 * (1.0 + 0.22 * noise.noise(u * 1.7 + Vector((3, 1, 2))) + 0.08 * noise.noise(u * 5.0))
+        crack = 0.0
+        for nrm, d in planes:
+            dist = abs(u.dot(nrm) - d * 0.6)
+            crack = max(crack, 1.0 - smooth(0.0, 0.09, dist))
+        r -= 0.2 * crack
+        v.co = u * r
+        pc.col[v] = (0.05, 0.07, 0.1, crack)
+    spurs = []
+    for i in range(7):
+        d = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-0.9, 0.35))).normalized()
+        crystal(pc, d * 1.05, d, rng.uniform(0.9, 1.7), rng.uniform(0.28, 0.42), rng, 0.58, sides=6, broken=(i % 3 == 0), steps=0, sink=0.35, cap=False)
     out.append(pc.finish(recalc=False))
-    bm2 = None
-    # the bands: faceted hexagonal-section rings, each broken in two places, beads at the breaks
-    for nm, R, tilt, spin, seed in (("heart_ring_a", 3.6, 25, 0, 1), ("heart_ring_b", 4.3, -40, 70, 2), ("heart_ring_c", 5.0, 35, 140, 3)):
-        r = random.Random(seed)
-        pr = Piece(nm)
-        segs = 56
-        breaks = [r.uniform(0, TAU), r.uniform(0, TAU)]
-        gap = 0.34
-
-        def inside(th):
-            for b in breaks:
-                if abs(((th - b + math.pi) % TAU) - math.pi) < gap:
-                    return False
-            return True
+    # molten drips: strands of glass hanging below, thick at the shoulder, a bead at the end, glowing at the tip
+    pd = Piece("heart_drips")
+    for i in range(9):
+        th = TAU * (i + rng.uniform(-0.3, 0.3)) / 9
+        rad = rng.uniform(0.2, 1.1)
+        L = rng.uniform(1.0, 3.4) * (1.0 - 0.45 * rad)
+        base = Vector((math.cos(th) * rad, math.sin(th) * rad, -1.1 + 0.3 * rad))
+        rings = [(0.0, 0.30), (0.35, 0.17), (0.7, 0.11), (0.92, 0.2), (1.0, 0.04)]
         prev = None
-        sec = []
-        for s in range(segs + 1):
-            th = TAU * s / segs
-            if not inside(th):
-                prev = None
-                continue
-            w = 0.09 + 0.05 * (0.5 + 0.5 * math.sin(th * 3 + seed))
+        for t, w in rings:
             ring = []
-            for q in range(6):
-                qa = TAU * q / 6 + 0.5
-                rr = R + math.cos(qa) * w * 1.5
-                zz = math.sin(qa) * w
-                c = heart_colours(0.35 + 0.4 * (0.5 + 0.5 * math.cos(qa)))
-                ring.append(pr.v(Vector((math.cos(th) * rr, math.sin(th) * rr, zz)), c))
-            if prev is not None:
-                for q in range(6):
-                    k = (q + 1) % 6
-                    pr.f([prev[q], prev[k], ring[k], ring[q]])
+            for q in range(5):
+                qa = TAU * q / 5 + th
+                ring.append(pd.v(base + Vector((math.cos(qa) * w * rng.uniform(0.9, 1.1) + 0.12 * math.sin(t * 3 + i), math.sin(qa) * w, -L * t)), (0.05, 0.07, 0.1, 0.25 + 0.75 * t)))
+            if prev:
+                for q in range(5):
+                    k = (q + 1) % 5
+                    pd.f([prev[q], prev[k], ring[k], ring[q]])
             prev = ring
-        # beads (small octahedra) every 40 degrees and a spike at each break
-        for s in range(0, 9):
-            th = TAU * s / 9
-            if inside(th):
-                crystal(pr, Vector((math.cos(th) * R, math.sin(th) * R, 0)), Vector((0, 0, 1 if s % 2 else -1)), 0.5, 0.09, r, 0.55, sides=4, steps=0, cap=True)
-        for b in breaks:
-            for sgn in (-1, 1):
-                th = b + sgn * gap
-                tdir = Vector((-math.sin(th), math.cos(th), 0)) * (-sgn)
-                crystal(pr, Vector((math.cos(th) * R, math.sin(th) * R, 0)), (tdir + Vector((0, 0, 0.0))).normalized(), 0.9, 0.12, r, 0.55, sides=5, steps=0, cap=True)
-        ob = pr.finish(recalc=False)
-        ob.rotation_euler = (math.radians(tilt), math.radians(spin * 0.2), math.radians(spin))
-        out.append(ob)
-    # the fragments: snapped crystal, a thin rhomb flake, a twisted shard, a chunk
-    for i, nm in enumerate(("frag_a", "frag_b", "frag_c", "frag_d")):
-        r = random.Random(100 + i)
-        pf = Piece(nm)
-        if i == 0:
-            crystal(pf, Vector((0, 0, -0.5)), Vector((0.1, 0.0, 1)), 1.1, 0.27, r, 0.58, broken=True, steps=1, sink=0.0)
-        elif i == 1:
-            # a flake: two shallow pyramids on a hexagon
-            ring = []
-            for q in range(6):
-                th = TAU * q / 6 + 0.3
-                rr = 0.62 * (1 + r.uniform(-0.25, 0.2))
-                ring.append(pf.v(Vector((math.cos(th) * rr, math.sin(th) * rr * 0.7, 0.0)), heart_colours(0.3)))
-            top = pf.v(Vector((0.05, 0.0, 0.14)), heart_colours(0.9))
-            bot = pf.v(Vector((-0.05, 0.0, -0.12)), heart_colours(0.9))
-            for q in range(6):
-                k = (q + 1) % 6
-                pf.f([ring[q], ring[k], top])
-                pf.f([ring[k], ring[q], bot])
-        elif i == 2:
-            crystal(pf, Vector((0, 0, -0.45)), Vector((0.0, 0.2, 1)), 0.95, 0.19, r, 0.6, wedge=True, steps=0, sink=0.0, bend=0.15)
-            crystal(pf, Vector((0.08, 0, -0.2)), Vector((0.7, 0.0, 0.7)), 0.55, 0.1, r, 0.6, steps=0, sink=0.0)
-        else:
-            crystal(pf, Vector((0, 0, -0.35)), Vector((0.2, 0.1, 1)), 0.7, 0.3, r, 0.56, broken=True, sink=0.0, steps=0)
-            crystal(pf, Vector((0, 0, -0.35)), Vector((-0.6, 0.3, 0.7)), 0.55, 0.22, r, 0.6, wedge=True, sink=0.0, steps=0)
-        for v, c in list(pf.col.items()):
-            pf.col[v] = heart_colours(min(1.0, 0.25 + c[3] * 0.75))
+    out.append(pd.finish())
+    # six pieces of the shell: curved plates with a broken edge and a thick, bright fracture face
+    for i in range(6):
+        r = random.Random(200 + i)
+        pf = Piece("frag_" + "abcdef"[i])
+        n = 7
+        sz = r.uniform(0.55, 1.2)
+        outer = []
+        inner = []
+        for j in range(n):
+            th = TAU * j / n + r.uniform(-0.2, 0.2)
+            rr = sz * (1.0 if j % 2 else r.uniform(0.55, 0.8))
+            x, y = math.cos(th) * rr, math.sin(th) * rr * 0.75
+            z = 0.28 * (x * x + y * y) / (sz * sz) * sz * 0.6
+            outer.append(pf.v(Vector((x, y, z)), (0.05, 0.07, 0.1, 0.0)))
+            inner.append(pf.v(Vector((x * 0.9, y * 0.9, z - 0.18 * sz * r.uniform(0.6, 1.2))), (0.05, 0.07, 0.1, 0.9)))
+        topc = pf.v(Vector((0, 0, -0.03 * sz)), (0.05, 0.07, 0.1, 0.0))
+        botc = pf.v(Vector((0, 0, -0.2 * sz)), (0.05, 0.07, 0.1, 0.8))
+        for j in range(n):
+            k = (j + 1) % n
+            pf.f([topc, outer[j], outer[k]])
+            pf.f([outer[j], inner[j], inner[k], outer[k]])
+            pf.f([botc, inner[k], inner[j]])
         out.append(pf.finish())
     return out
 
@@ -478,72 +457,50 @@ def build_heart():
 # ============================================================================================================
 # STEPS
 # ============================================================================================================
-def glass_step(name, seed, R, T, hang, hue=0.6, n_edge=3, rim_crystals=True):
-    """A slab of fused glass: an irregular polygon top (domed a little, with a ridge of ripples), chamfered lip,
-    a thick lower edge that runs down into a crystal point hanging beneath, and edge crystals thrown outward."""
+def ridge_plate(name, seed, R, depth, top_pts=9, edge_crystals=3, hue=0.56):
+    """A plate of fused glass heaved up from the crater floor: a faceted, slightly tilted top at z = 0 (the walking
+    face, cracked into facets that each catch light differently), a jagged lip, and a thick body tapering down
+    `depth` metres into the floor like an upthrust slab; crystals grown out of its edge, away from the top."""
     rng = random.Random(seed)
     pc = Piece(name)
-    n = 9
-    dark = hsv(hue + 0.05, 0.9, 0.04)
-    mid = hsv(hue, 0.75, 0.11)
-    ang = [TAU * j / n + rng.uniform(-0.1, 0.1) for j in range(n)]
-    rad = [1.0 + rng.uniform(-0.14, 0.12) for _ in range(n)]
-    rings = 3
-    grid = []
-    for ri in range(rings + 1):
-        u = ri / rings
-        row = []
-        for j in range(n):
-            rr = R * rad[j] * u * (0.94 if ri == rings else 1.0)
-            x = math.cos(ang[j]) * rr
-            y = math.sin(ang[j]) * rr
-            z = 0.06 * (1 - u * u) + 0.03 * math.sin(u * 14 + seed) + 0.025 * math.sin(ang[j] * 3 + seed) * u + (-0.09 if ri == rings else 0.0)
-            c = mixc(mid, dark, smooth(0.2, 1.0, u), 0.15 * (1 - u))
-            row.append(pc.v(Vector((x, y, z)), c))
-        grid.append(row)
-    lip = []
+    n = top_pts
+    ang = [TAU * j / n + rng.uniform(-0.14, 0.14) for j in range(n)]
+    rad = [R * (1.0 + rng.uniform(-0.2, 0.18)) for _ in range(n)]
+    dark = (0.03, 0.05, 0.08)
+    centre = pc.v(Vector((rng.uniform(-0.2, 0.2), rng.uniform(-0.2, 0.2), 0.05)), (*dark, 0.0))
+    mid = []
+    outer = []
     for j in range(n):
-        x0, y0, _ = grid[-1][j].co
-        lip.append(pc.v(Vector((x0 * 0.9, y0 * 0.9, -T * rng.uniform(0.85, 1.1))), (*dark, 0.0)))
-    under = []
-    for j in range(n):
-        x0, y0, _ = grid[-1][j].co
-        under.append(pc.v(Vector((x0 * 0.5, y0 * 0.5, -T * 1.5 + rng.uniform(-0.1, 0.05))), (*dark, 0.0)))
-    for ri in range(rings):
-        for j in range(n):
-            k = (j + 1) % n
-            if ri == 0:
-                pc.f([grid[0][0], grid[1][j], grid[1][k]] if j else [grid[0][0], grid[1][0], grid[1][1]])
-            else:
-                pc.f([grid[ri][j], grid[ri + 1][j], grid[ri + 1][k], grid[ri][k]])
+        th = ang[j]
+        mid.append(pc.v(Vector((math.cos(th) * rad[j] * 0.55, math.sin(th) * rad[j] * 0.55, rng.uniform(-0.06, 0.1))), (*dark, 0.15 + 0.5 * (j % 3 == 0))))
+        outer.append(pc.v(Vector((math.cos(th) * rad[j], math.sin(th) * rad[j], rng.uniform(-0.1, 0.0))), (0.08, 0.1, 0.14, 0.6 * (j % 2))))
+    lip = [pc.v(Vector((v.co.x * 0.97, v.co.y * 0.97, -0.55 - rng.uniform(0, 0.35))), (*dark, 0.0)) for v in outer]
+    body1 = [pc.v(Vector((v.co.x * 0.86, v.co.y * 0.86, -depth * 0.4 + rng.uniform(-0.3, 0.3))), (*dark, 0.0)) for v in outer]
+    body2 = [pc.v(Vector((v.co.x * 0.62, v.co.y * 0.62, -depth + rng.uniform(-0.2, 0.2))), (*dark, 0.0)) for v in outer]
     for j in range(n):
         k = (j + 1) % n
-        pc.f([grid[-1][j], lip[j], lip[k], grid[-1][k]])
-        pc.f([lip[j], under[j], under[k], lip[k]])
-    pc.f(under[::-1])
-    # the hanging point and two lesser ones
-    crystal(pc, Vector((0, 0, -T * 1.4)), Vector((0.05, 0.02, -1)), hang, R * 0.36, rng, hue, steps=1, sink=0.0, cap=False)
-    for i in range(2):
-        az = rng.uniform(0, TAU)
-        crystal(pc, Vector((math.cos(az) * R * 0.45, math.sin(az) * R * 0.45, -T * 1.3)), Vector((math.cos(az) * 0.35, math.sin(az) * 0.35, -1)), hang * rng.uniform(0.3, 0.5), R * 0.15, rng, hue, sides=5, steps=0, sink=0.0, cap=False)
-    if rim_crystals:
-        for i in range(n_edge):
-            th = TAU * (i + rng.uniform(0.1, 0.6)) / n_edge + 0.4
-            rr = R * 0.97
-            a = Vector((math.cos(th) * 0.95, math.sin(th) * 0.95, 0.38)).normalized()
-            crystal(pc, Vector((math.cos(th) * rr, math.sin(th) * rr, -0.1)), a, rng.uniform(0.5, 0.9) * R * 0.7, R * 0.075, rng, hue, sides=5, steps=0, sink=0.0)
-    ob = pc.finish()
-    return ob
+        pc.f([centre, mid[j], mid[k]])
+        pc.f([mid[j], outer[j], outer[k], mid[k]])
+        pc.f([outer[j], lip[j], lip[k], outer[k]])
+        pc.f([lip[j], body1[j], body1[k], lip[k]])
+        pc.f([body1[j], body2[j], body2[k], body1[k]])
+    pc.f(body2[::-1])
+    for i in range(edge_crystals):
+        th = TAU * (i + rng.uniform(0.1, 0.7)) / edge_crystals + rng.uniform(0, 1)
+        rr = R * 0.9
+        a = Vector((math.cos(th) * 0.9, math.sin(th) * 0.9, -0.25)).normalized()
+        crystal(pc, Vector((math.cos(th) * rr, math.sin(th) * rr, -0.35)), a, rng.uniform(0.9, 1.9), R * rng.uniform(0.09, 0.15), rng, hue, sides=5, steps=0, sink=0.3, cap=False)
+    return pc.finish()
 
 
-def build_steps():
+def build_ridge():
     out = []
-    for i, (R, T, hang, seed) in enumerate(((1.25, 0.5, 2.2, 3), (1.15, 0.45, 1.8, 8), (1.3, 0.55, 2.6, 15))):
-        nm = "step_" + "abc"[i]
-        out.append(glass_step(nm, seed, R, T, hang))
-        out.append(colonly_hull(nm + "-colonly", lambda R=R, T=T: [Vector((math.cos(TAU * q / 8 + 0.2) * R * 0.92, math.sin(TAU * q / 8 + 0.2) * R * 0.92, z)) for q in range(8) for z in (0.0, -T)]))
-    out.append(glass_step("platform", 21, 2.55, 0.7, 3.8, n_edge=6))
-    out.append(colonly_hull("platform-colonly", lambda: [Vector((math.cos(TAU * q / 10 + 0.1) * 2.4, math.sin(TAU * q / 10 + 0.1) * 2.4, z)) for q in range(10) for z in (0.0, -0.7)]))
+    for i, (R, seed) in enumerate(((2.1, 3), (2.3, 8), (1.9, 15), (2.2, 21))):
+        nm = "ridge_plate_" + "abcd"[i]
+        out.append(ridge_plate(nm, seed, R, 4.4))
+        out.append(colonly_hull(nm + "-colonly", lambda R=R: [Vector((math.cos(TAU * q / 8 + 0.2) * R * 0.88, math.sin(TAU * q / 8 + 0.2) * R * 0.88, z)) for q in range(8) for z in (0.0, -1.4)]))
+    out.append(ridge_plate("ridge_shelf", 33, 3.7, 5.0, top_pts=11, edge_crystals=6))
+    out.append(colonly_hull("ridge_shelf-colonly", lambda: [Vector((math.cos(TAU * q / 10 + 0.1) * 3.4, math.sin(TAU * q / 10 + 0.1) * 3.4, z)) for q in range(10) for z in (0.0, -1.6)]))
     return out
 
 
@@ -565,17 +522,17 @@ def preview_material():
     att.attribute_name = "Col"
     mul = nt.nodes.new("ShaderNodeMath")
     mul.operation = 'POWER'
-    mul.inputs[1].default_value = 2.0
+    mul.inputs[1].default_value = 1.2
     em = nt.nodes.new("ShaderNodeMix")
     em.data_type = 'RGBA'
-    em.inputs[6].default_value = (0.05, 0.2, 0.45, 1)
-    em.inputs[7].default_value = (0.5, 0.85, 1.1, 1)
+    em.inputs[6].default_value = (0.04, 0.06, 0.1, 1)
+    em.inputs[7].default_value = (1.0, 0.95, 0.9, 1)
     nt.links.new(att.outputs["Alpha"], mul.inputs[0])
     nt.links.new(mul.outputs[0], em.inputs[0])
     nt.links.new(att.outputs["Color"], bsdf.inputs["Base Color"])
     nt.links.new(em.outputs[2], bsdf.inputs["Emission Color"])
-    bsdf.inputs["Emission Strength"].default_value = 0.35
-    bsdf.inputs["Roughness"].default_value = 0.22
+    bsdf.inputs["Emission Strength"].default_value = 0.6
+    bsdf.inputs["Roughness"].default_value = 0.08
     nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
     return m
 
@@ -694,8 +651,8 @@ def main():
         "shards": (build_shards, "star_crater_shards.glb", [("great_a", ("shard_great_a",), 24, 46), ("great_b", ("shard_great_b",), 18, 34), ("great_c", ("shard_great_c",), 14, 27),
                                                            ("ray", ("shard_ray_a", "shard_ray_b"), 6, 24), ("crown", ("shard_crown_a", "shard_crown_b"), 4, 11)]),
         "rim": (build_rim, "star_crater_rim.glb", [("slab_a", ("rim_slab_a",), 1.0, 11), ("slab_c", ("rim_slab_c",), 1.0, 13)]),
-        "heart": (build_heart, "star_crater_heart.glb", [("heart", None, 0.0, 16), ("frags", ("frag_a", "frag_b", "frag_c", "frag_d"), 0.0, 5)]),
-        "steps": (build_steps, "star_crater_steps.glb", [("step_a", ("step_a",), -1.4, 9), ("platform", ("platform",), -2.0, 17)]),
+        "heart": (build_heart, "star_crater_heart.glb", [("heart", ("heart_core", "heart_drips"), 0.0, 9), ("frags", ("frag_a", "frag_b", "frag_c", "frag_d", "frag_e", "frag_f"), 0.0, 6)]),
+        "steps": (build_ridge, "star_crater_ridge.glb", [("ridge", ("ridge_plate_a", "ridge_plate_b"), -2.0, 14), ("shelf", ("ridge_shelf",), -2.5, 16)]),
     }
     for key in ONLY:
         build, fname, sheets = jobs[key]
@@ -714,7 +671,7 @@ def main():
             if key == "heart":
                 if label == "frags":
                     for i, o in enumerate(shown):
-                        o.location.x = (i - 1.5) * 1.3
+                        o.location.x = (i - 2.5) * 1.5
                 else:
                     for o in shown:
                         o.location = Vector((0, 0, 0))
