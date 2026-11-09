@@ -14,8 +14,13 @@ const INK := Color(0.9, 0.84, 0.7)
 const SPAN := deg_to_rad(180.0)          ## heading shown across the full width
 const WIDTH := 500.0                     ## kept clear of the objective lines at the top right (1600 px wide and up)
 const HEIGHT := 46.0
+const STRIP_Y := 4.0                     ## the strip's top in the control
+const STRIP_H := 38.0
+const Forge := preload("res://ui/hud_forge.gd")
 const BRAZIER_R := 110.0                 ## braziers farther than this are not shown
 const MAX_BRAZIERS := 4
+const DIST_PT := 15
+const OUTLINE_TRI := Color(0.02, 0.012, 0.006)
 const LABEL_GAP := 4.0                   ## px kept clear between two distance numbers
 
 var _font: Font
@@ -33,7 +38,7 @@ func _ready() -> void:
 	offset_left = -WIDTH * 0.5
 	offset_right = WIDTH * 0.5
 	offset_top = 18.0
-	offset_bottom = 18.0 + HEIGHT + 18.0
+	offset_bottom = 18.0 + STRIP_Y + STRIP_H + 36.0
 	_font = load("res://ui/fonts/Cinzel.ttf")
 
 
@@ -97,76 +102,95 @@ func _draw() -> void:
 	var fwd := -cam.global_basis.z
 	var yaw := atan2(fwd.x, -fwd.z)                 # 0 = north (-Z), clockwise
 	var cx := WIDTH * 0.5
-	var band_y := 14.0
-	# backing: a dark band that fades out at both ends, hairlines above and below
-	var steps := 24
-	for i in steps:
-		var t0 := float(i) / steps
-		var t1 := float(i + 1) / steps
-		var a := _edge(lerpf(t0, t1, 0.5)) * 0.42 * _alpha
-		draw_rect(Rect2(t0 * WIDTH, band_y - 12.0, (t1 - t0) * WIDTH + 0.5, 26.0), Color(0.035, 0.022, 0.012, a))
-		var la := _edge(lerpf(t0, t1, 0.5)) * 0.55 * _alpha
-		draw_line(Vector2(t0 * WIDTH, band_y - 12.0), Vector2(t1 * WIDTH, band_y - 12.0), Color(0.62, 0.45, 0.2, la * 0.8), 1.5)
-		draw_line(Vector2(t0 * WIDTH, band_y + 14.0), Vector2(t1 * WIDTH, band_y + 14.0), Color(0.62, 0.45, 0.2, la * 0.8), 1.5)
-	# ticks and winds
+	var sr := Rect2(0.0, STRIP_Y, WIDTH, STRIP_H)
+	var band_y := sr.position.y + sr.size.y * 0.5
+	Forge.strip(self, sr, _alpha, 24.0)
+	# ticks along the foot of the strip and the four winds
 	var winds := {0: "N", 90: "E", 180: "S", 270: "W"}
 	for deg in range(0, 360, 15):
 		var x := _x_for(deg_to_rad(float(deg)), yaw)
 		if x < 0.0:
 			continue
 		var a := _edge(x / WIDTH) * _alpha
-		if winds.has(deg):
-			var s: String = winds[deg]
-			var col := LANTERN if deg == 0 else INK
-			col.a = a
-			var w := _font.get_string_size(s, HORIZONTAL_ALIGNMENT_CENTER, -1, 17).x
-			draw_string(_font, Vector2(x - w * 0.5, band_y + 6.0), s, HORIZONTAL_ALIGNMENT_CENTER, -1, 17, col)
-		else:
-			var h := 7.0 if deg % 45 == 0 else 4.0
-			draw_line(Vector2(x, band_y - h * 0.5 + 1.0), Vector2(x, band_y + h * 0.5 + 1.0), Color(INK.r, INK.g, INK.b, a * 0.55), 1.0)
-	# centre notch
-	draw_colored_polygon(PackedVector2Array([Vector2(cx - 5.0, band_y - 13.0), Vector2(cx + 5.0, band_y - 13.0), Vector2(cx, band_y - 7.0)]), Color(LANTERN.r, LANTERN.g, LANTERN.b, 0.9 * _alpha))
-	# markers
+		if not winds.has(deg):
+			var h := 9.0 if deg % 45 == 0 else 5.0
+			draw_line(Vector2(x, sr.end.y - 4.0), Vector2(x, sr.end.y - 4.0 - h), Color(INK.r, INK.g, INK.b, a * 0.6), 1.0)
+	# the notch: a gilt pointer over the heading
+	var tip := Vector2(cx, sr.position.y + 12.0)
+	draw_colored_polygon(PackedVector2Array([Vector2(cx - 7.0, sr.position.y - 1.0), Vector2(cx + 7.0, sr.position.y - 1.0), tip]), Color(OUTLINE_TRI, _alpha))
+	draw_colored_polygon(PackedVector2Array([Vector2(cx - 5.0, sr.position.y + 0.5), Vector2(cx + 5.0, sr.position.y + 0.5), tip + Vector2(0, -2.0)]), Color(LANTERN, 0.95 * _alpha))
+	# markers: nearest beacons first; one that would sit on a placed marker gives way (a beacon behind you pins to the end, so the rest of them are the same spot)
 	var eye := cam.global_position
-	var labels: Array = []                          # [distance, x, text, alpha]: placed after, nearest first
+	var shown: Array[Dictionary] = []
 	for m: Dictionary in _marks:
 		var p: Vector3 = m.pos
 		var rel := p - eye
 		if Vector2(rel.x, rel.z).length() < 0.5:
 			continue
-		var bearing := atan2(rel.x, -rel.z)
-		var x := _x_for(bearing, yaw, true)
-		# a beacon behind you stays pinned to the band's end, dimmed, so the way back is never lost
-		var a := maxf(_edge(x / WIDTH), 0.5 if String(m.kind) == "beacon" else 0.0) * _alpha
-		x = clampf(x, 10.0, WIDTH - 10.0)
+		var x := _x_for(atan2(rel.x, -rel.z), yaw, true)
+		var kind := String(m.kind)
+		var a := maxf(_edge(x / WIDTH), 0.5 if kind == "beacon" else 0.0) * _alpha
+		shown.append({"x": clampf(x, 14.0, WIDTH - 14.0), "a": a, "kind": kind, "col": m.col, "d": rel.length()})
+	shown.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var ka := 0 if a.kind == "beacon" else 1
+		var kb := 0 if b.kind == "beacon" else 1
+		return ka < kb or (ka == kb and float(a.d) < float(b.d)))
+	var taken: Array[Vector2] = []                  # x spans already holding a marker
+	var labels: Array = []                          # [distance, x, text, alpha]
+	for m: Dictionary in shown:
+		var x: float = m.x
+		var a: float = m.a
+		var half := 13.0 if m.kind == "beacon" else 8.0
+		var clash := false
+		for t: Vector2 in taken:
+			if x - half < t.y and t.x < x + half:
+				clash = true
+				break
+		if clash:
+			continue
+		taken.append(Vector2(x - half, x + half))
 		var col: Color = m.col
 		col.a = a
 		var y := band_y + 1.0
 		match String(m.kind):
 			"beacon":
-				if not IconArt.draw_mark(self, "mark", "beacon", Vector2(x, y), 22.0, Color(1, 1, 1, a)):
+				if not IconArt.draw_mark(self, "mark", "beacon", Vector2(x, y), 26.0, Color(1, 1, 1, a)):
 					_diamond(Vector2(x, y), 7.0, col, true)
 					_diamond(Vector2(x, y), 9.5, Color(0.02, 0.02, 0.04, a * 0.6), false)
-				labels.append([rel.length(), x, "%d m" % int(round(rel.length())), a])
+				labels.append([float(m.d), x, "%d m" % int(round(float(m.d))), a])
 			"cold":
-				if not IconArt.draw_mark(self, "mark", "cold", Vector2(x, y), 14.0, Color(1, 1, 1, a)):
+				if not IconArt.draw_mark(self, "mark", "cold", Vector2(x, y), 16.0, Color(1, 1, 1, a)):
 					_diamond(Vector2(x, y), 4.5, col, false)
 			_:
-				if not IconArt.draw_mark(self, "mark", "lamp", Vector2(x, y), 13.0, Color(1, 1, 1, a)):
+				if not IconArt.draw_mark(self, "mark", "lamp", Vector2(x, y), 15.0, Color(1, 1, 1, a)):
 					draw_circle(Vector2(x, y), 2.6, col)
-	_draw_distances(labels, band_y + 33.0)
+	# the winds go over the strip last, and give way (fade) to a marker standing on them
+	for deg: int in winds:
+		var x := _x_for(deg_to_rad(float(deg)), yaw)
+		if x < 0.0:
+			continue
+		var wa := _edge(x / WIDTH) * _alpha
+		for t: Vector2 in taken:
+			if x > t.x - 6.0 and x < t.y + 6.0:
+				wa *= 0.2
+		var col := LANTERN if deg == 0 else INK
+		col.a = wa
+		var ws: String = winds[deg]
+		var w := _font.get_string_size(ws, HORIZONTAL_ALIGNMENT_CENTER, -1, 20).x
+		Forge.label(self, _font, Vector2(x - w * 0.5, band_y + 3.0), ws, 20, col, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
+	_draw_distances(labels, sr.end.y + 4.0)
 
 
-## r35: beacons a few degrees apart printed their distances over each other ("179283 M"). The nearest
-## beacon keeps its number; any other whose number would touch a placed one goes without.
+## Each beacon's distance on a small tab hung under the strip. The nearest keeps its number; any other
+## whose tab would touch a placed one goes without.
 func _draw_distances(labels: Array, y: float) -> void:
 	labels.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
 	var taken: Array[Vector2] = []                  # placed spans: x = left, y = right
 	for l: Array in labels:
-		var x: float = l[1]
 		var text: String = l[2]
-		var dw := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15).x
-		var span := Vector2(x - dw * 0.5 - LABEL_GAP, x + dw * 0.5 + LABEL_GAP)
+		var dw := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, DIST_PT).x
+		var x := clampf(float(l[1]), dw * 0.5 + 8.0, WIDTH - dw * 0.5 - 8.0)
+		var span := Vector2(x - dw * 0.5 - 8.0 - LABEL_GAP, x + dw * 0.5 + 8.0 + LABEL_GAP)
 		var free := true
 		for t: Vector2 in taken:
 			if span.x < t.y and t.x < span.y:
@@ -175,9 +199,9 @@ func _draw_distances(labels: Array, y: float) -> void:
 		if not free:
 			continue
 		taken.append(span)
-		var pos := Vector2(x - dw * 0.5, y)
-		draw_string_outline(_font, pos, text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, 4, Color(0.0, 0.0, 0.0, float(l[3]) * 0.8))
-		draw_string(_font, pos, text, HORIZONTAL_ALIGNMENT_CENTER, -1, 15, Color(INK.r, INK.g, INK.b, float(l[3]) * 0.95))
+		var al: float = l[3]
+		Forge.tab(self, Rect2(x - dw * 0.5 - 8.0, y, dw + 16.0, DIST_PT + 8.0), al)
+		draw_string(_font, Vector2(x - dw * 0.5, y + DIST_PT + 2.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, DIST_PT, Color(INK.r, INK.g, INK.b, al * 0.98))
 
 
 ## Screen x for a world bearing; off-band bearings return -1 (or are pinned to the edge for markers).

@@ -25,8 +25,8 @@ const KINDS := {
 	"parry": {"col": Color(1.0, 0.86, 0.5), "pt": 22, "drift": Vector2(0, -56), "punch": true},
 	"dodge": {"col": Color(0.7, 0.82, 1.0), "pt": 22, "drift": Vector2(0, -56)},
 	"immune": {"col": Color(0.85, 0.78, 1.0), "pt": 20, "drift": Vector2(0, -50)},
-	"miss": {"col": Color(0.8, 0.8, 0.85), "pt": 18, "drift": Vector2(0, -50)},
-	"info": {"col": Color(0.9, 0.88, 1.0), "pt": 18, "drift": Vector2(0, -50)},
+	"miss": {"col": Color(0.8, 0.8, 0.85), "pt": 20, "drift": Vector2(0, -50)},
+	"info": {"col": Color(0.9, 0.88, 1.0), "pt": 20, "drift": Vector2(0, -50)},
 }
 
 var _font: Font
@@ -127,5 +127,5 @@ func _draw() -> void:
 		var txt := String(p.text)
 		var w := _font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
 		var o := pos - Vector2(w * 0.5, 0.0)
-		draw_string_outline(_font, o, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, pt, 6, Color(0.02, 0.01, 0.03, 0.85 * a))
+		draw_string_outline(_font, o, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, pt, 8, Color(0.02, 0.01, 0.03, 0.9 * a))
 		draw_string(_font, o, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, pt, Color(col, a))
