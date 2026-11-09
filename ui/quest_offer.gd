@@ -88,8 +88,8 @@ func _build() -> void:
 	_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_panel.theme = Med.theme()
 	var sb := Med.panel("parchment", 44)
-	sb.content_margin_top = 36
-	sb.content_margin_bottom = 34
+	sb.content_margin_top = 32
+	sb.content_margin_bottom = 30
 	_panel.add_theme_stylebox_override("panel", sb)
 	_panel.visible = false
 	add_child(_panel)
@@ -109,7 +109,7 @@ func _build() -> void:
 	var body := VBoxContainer.new()
 	_body = body
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 10)
+	body.add_theme_constant_override("separation", 8)
 	scroll.add_child(body)
 	_text = RichTextLabel.new()
 	_text.fit_content = true
@@ -124,12 +124,14 @@ func _build() -> void:
 	var oh := _lbl(UIType.title(), 19, Med.INK_RED)
 	oh.text = "WHAT IS WANTED"
 	oh.name = "ObjHead"
+	body.add_child(_gap(6))
 	body.add_child(oh)
 	_obj = VBoxContainer.new()
 	_obj.add_theme_constant_override("separation", 4)
 	body.add_child(_obj)
 	var rh := _lbl(UIType.title(), 19, Med.INK_RED)
 	rh.text = "WHAT IT PAYS"
+	body.add_child(_gap(6))
 	body.add_child(rh)
 	_pay = _lbl(UIType.body(), 21, INK)
 	_pay_icon = QuestMarks.row(body, _pay, null, 32.0)
@@ -141,12 +143,12 @@ func _build() -> void:
 	col.add_child(_rule())
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_END
-	row.add_theme_constant_override("separation", 18)
+	row.add_theme_constant_override("separation", 16)
 	col.add_child(row)
-	_no = _button("Decline")
+	_no = _button("Decline", false)
 	_no.pressed.connect(_back)
 	row.add_child(_no)
-	_ok = _button("Accept")
+	_ok = _button("Accept", true)
 	_ok.pressed.connect(_confirm)
 	row.add_child(_ok)
 
@@ -155,13 +157,26 @@ func _rule() -> Control:
 	return Med.rule(Color(Med.INK_RED, 0.7))
 
 
-func _button(t: String) -> Button:
+func _gap(h: float) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(0, h)
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return c
+
+
+## The main button is the lit one (larger, gilt type); the other is a smaller, quieter plate beside it.
+func _button(t: String, primary: bool) -> Button:
 	var b := Button.new()
 	b.text = t
 	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(190, 48)
+	b.custom_minimum_size = Vector2(230, 54) if primary else Vector2(150, 46)
 	b.add_theme_font_override("font", UIType.title())
-	Med.style_button(b, 22, 18, 8)
+	Med.style_button(b, 26 if primary else 19, 20, 8)
+	if primary:
+		b.add_theme_color_override("font_color", Color(1.0, 0.9, 0.62))
+	else:
+		b.add_theme_color_override("font_color", Med.BONE_DIM)
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return b
 
 
