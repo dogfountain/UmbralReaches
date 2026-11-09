@@ -12,6 +12,10 @@ const NIGHT := "res://world/main.tscn"
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# between the title being freed and the night's loading screen drawing, nothing covers the window: the clear
+	# colour is what shows. Godot's default is mid grey (a grey flash after Continue, Luke 9 Nov): the loading
+	# screen's own near-black instead (ui/loading_screen.gd BG)
+	RenderingServer.set_default_clear_color(Color(0.03, 0.02, 0.012))
 	if not Travel.forced_title and not TitleScreen.wanted():
 		_go.call_deferred()
 		return
