@@ -207,6 +207,7 @@ static func piece(host: Node3D, path: String, nm: String, xf: Transform3D, lod :
 			var sm2 := m.surface_get_material(i)
 			if sm2 != null and sm2.resource_name == "window_glass":
 				mi.set_surface_override_material(i, _window_mat())
+				Interiors.pane_lights(mi, i, Color(1.0, 0.58, 0.24))        # the warm cone out of each pane
 	return mi
 
 

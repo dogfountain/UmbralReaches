@@ -57,8 +57,9 @@ func _ready() -> void:
 	var d := _mesh_for(look, free_niche, chain)
 	_flame_at = d.flame
 	_light_at = d.light
-	_e = float(d.e) * 0.48               # soft ground pool; *6 washed yards orange under AgX
-	_range = float(d.range) * 0.9
+	var lf := LightPolicy.illum(&"kept_lamp")  # the one brightness table (LightPolicy.ILLUM)
+	_e = float(d.e) * lf.x
+	_range = float(d.range) * lf.y
 	_body = MeshInstance3D.new()
 	_body.name = "Body"
 	_body.mesh = d.body

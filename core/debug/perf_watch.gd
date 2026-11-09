@@ -8,6 +8,7 @@ extends Node
 ## detail) once the Realm reports `realm_done`, so no builder has to call it.
 
 const PATH := "user://perf_spikes.log"
+const LightDirectorScript := preload("res://core/world/light_director.gd")
 const HIST := 600
 var _hist := PackedFloat32Array()                ## ring of the last HIST frame times
 var _hist_i := 0
@@ -139,6 +140,7 @@ func _script_ms() -> Vector2:
 ## it was costing printed, heaviest first. Everything is switched back on after.
 var _pcensus_running := false
 var _drawlist_t := 25.0 if "--drawlist" in OS.get_cmdline_user_args() else -1.0
+var _tp_t := 8.0                       ## `--tp=x,z[,yaw]` (measurement only): the wanderer is put there 8 s in
 
 
 ## `--drawlist` (measurement only): every mesh instance in the camera's view (frustum, draw range, layers), by
@@ -418,6 +420,19 @@ func _process(delta: float) -> void:
 				(g as GPUParticles3D).visible = false
 				n += 1
 			print("FPS particles off: %d" % n)
+	if _tp_t > 0.0:
+		_tp_t -= delta
+		if _tp_t <= 0.0:
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--tp="):
+					var v := a.trim_prefix("--tp=").split(",")
+					var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
+					if pl and v.size() >= 2:
+						var x := float(v[0])
+						var z := float(v[1])
+						pl.teleport(Vector3(x, RealmLayout.ground(pl.get_world_3d().direct_space_state, x, z) + 0.2, z))
+						if v.size() >= 3:
+							pl.set_view(float(v[2]), -0.08)
 	if _drawlist_t > 0.0:
 		_drawlist_t -= delta
 		if _drawlist_t <= 0.0:
@@ -462,6 +477,10 @@ func _process(delta: float) -> void:
 			_flush = 0.0
 			_seg = [0.0, 0.0]
 			_seg_n = [0, 0]
+			var ld := get_tree().root.find_child("LightDirector", true, false)
+			if ld and ld.get_script() == LightDirectorScript:
+				var st: Vector3i = (ld as LightDirectorScript).stats()
+				print("FPS4 lights governed %d, local in reach %d, cut by budget %d" % [st.x, st.y, st.z])
 			print("FPS2 nav %.2f ms | physics active %d pairs %d islands %d | nodes %d objects %d" % [
 				Performance.get_monitor(Performance.TIME_NAVIGATION_PROCESS) * 1000.0,
 				Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS), Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS),

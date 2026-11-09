@@ -16,7 +16,16 @@ const ILLUM := {
 	&"lamp": [0.62, 1.0, 1.0],                   # tavern/hearth/candles
 	&"glimmer": [1.05, 1.05, 1.4],
 	&"player_lantern": [0.55, 1.05, 1.0],        # soft personal pool, no robe wash
+	# the table is the one place a light's brightness is scaled (Luke, 9 Nov: multipliers had stacked in builders)
+	&"kept_lamp": [0.48, 0.9, 1.0],              # a lamp the wanderer kindles on the roads (lamp.gd: was * 0.48 / * 0.9 there)
+	&"village": [1.0, 1.05, 1.0],                # cottage, camp and window lights in the villages (village_props.gd)
 }
+
+
+## [energy, range] factors for `kind` from the table (for builders that drive a light's energy themselves: flicker).
+static func illum(kind: StringName) -> Vector2:
+	var m: Array = ILLUM.get(kind, [1.0, 1.0, 1.0])
+	return Vector2(float(m[0]), float(m[1]))
 
 
 static func classify(light: Light3D) -> StringName:

@@ -129,6 +129,48 @@ static func shaft(host: Node3D, n: String, at_world: Vector3, out_dir: Vector3, 
 	return l
 
 
+## The window light for a lit pane inside a model (a glTF house whose `window_glass` surface is lit): every
+## separate pane in surface `surf` (its triangles grouped within PANE_GAP) gets the same warm cone as the kit-built
+## windows (shaft), pointing away from the building's middle. The one window light every builder uses: kit
+## windows call shaft() per pane, model windows call this. Returns the panes lit.
+const PANE_GAP := 0.9
+static func pane_lights(mi: MeshInstance3D, surf: int, col: Color, e := 0.55, r := 8.0, angle := 14.0) -> int:
+	if mi == null or mi.mesh == null or surf >= mi.mesh.get_surface_count() or not mi.is_inside_tree():
+		return 0
+	var a: Array = mi.mesh.surface_get_arrays(surf)
+	var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+	var ix: PackedInt32Array = a[Mesh.ARRAY_INDEX] if a[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+	var tri := ix.size() / 3 if not ix.is_empty() else v.size() / 3
+	var groups: Array = []                       # [sum of centres, count]
+	for t in tri:
+		var c := Vector3.ZERO
+		for j in 3:
+			c += v[ix[t * 3 + j] if not ix.is_empty() else t * 3 + j]
+		c /= 3.0
+		var found := false
+		for g: Array in groups:
+			if ((g[0] as Vector3) / float(g[1])).distance_to(c) < PANE_GAP:
+				g[0] = (g[0] as Vector3) + c
+				g[1] = int(g[1]) + 1
+				found = true
+				break
+		if not found:
+			groups.append([c, 1])
+	var mid := mi.global_transform * mi.mesh.get_aabb().get_center()
+	var n := 0
+	for g: Array in groups:
+		var at: Vector3 = mi.global_transform * ((g[0] as Vector3) / float(g[1]))
+		var out := at - mid
+		out.y = 0.0
+		if out.length() < 0.1:
+			continue
+		var l := shaft(mi.get_parent() as Node3D, "%s_Pane%d" % [mi.name, n], at + out.normalized() * 0.05,
+			out.normalized() + Vector3(0.0, -0.55, 0.0), col, e, r, angle)
+		if l:
+			n += 1
+	return n
+
+
 static func _shaft_snap(l: SpotLight3D) -> void:
 	if l == null or not is_instance_valid(l) or not l.has_meta(&"shaft_world"):
 		return

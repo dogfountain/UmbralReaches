@@ -10,6 +10,7 @@ var _args: PackedStringArray
 const BENCH_SECONDS := 10.0
 const SessionState := preload("res://core/world/session_state.gd")
 const FadeGuard := preload("res://core/world/fade_guard.gd")
+const LightDirector := preload("res://core/world/light_director.gd")
 var _bench_t := -1.0
 var _bench_frames := PackedFloat32Array()
 var _bench_gpu := PackedFloat32Array()
@@ -34,6 +35,7 @@ const AREAS: Array[Dictionary] = [
 
 func _ready() -> void:
 	FadeGuard.attach(self)              # every ranged mesh dissolves in and out instead of popping (fade_guard.gd)
+	LightDirector.attach(self)          # every light governed by LightPolicy, a budget of local lights, one fire shadow
 	super._ready()
 	# r30: there is no stair under the Realm any more; the card names the land
 	if Realm.enabled():

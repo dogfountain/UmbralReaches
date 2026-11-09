@@ -65,8 +65,9 @@ static func light(parent: Node3D, n: String, at: Vector3, col: Color, e: float, 
 	var l := OmniLight3D.new()
 	l.name = n
 	l.light_color = col
-	l.light_energy = e                     # authored energies stand; *2 washed cottages orange
-	l.omni_range = r * 1.05
+	var f := LightPolicy.illum(&"village")      # the one brightness table (LightPolicy.ILLUM)
+	l.light_energy = e * f.x
+	l.omni_range = r * f.y
 	l.shadow_enabled = false
 	l.set_meta(&"light_class", &"realm")
 	l.distance_fade_enabled = true

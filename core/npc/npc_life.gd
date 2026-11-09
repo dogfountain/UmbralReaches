@@ -8,8 +8,8 @@ extends RefCounted
 ##   gaze()      head yaw/pitch toward a target with a lag, small saccades while it holds
 ##   talk()      a speaking rhythm: syllables grouped into words and phrases with pauses; gives the
 ##               jaw opening and a gesture "beat" (0..1) that peaks on stressed words, for nods/hands
-## And the update-rate policy (`interval`): every frame within 20 m while walking (a 30 Hz stride
-## steps at 120 Hz), 30 Hz while standing to 20 m, 20 Hz walking and 12 Hz standing out to 35 m, 2 Hz off
+## And the update-rate policy (`interval`): every frame within 4 m (conversation range), 30 Hz to 11 m
+## (every frame while walking), 20 Hz to 20 m (30 while walking), 12 Hz to 35 m, 2 Hz off
 ## screen, frozen past FREEZE_R (the pose holds; the mesh is range-culled further out anyway).
 ## Load by path: const Life := preload("res://core/npc/npc_life.gd")
 
@@ -159,10 +159,12 @@ static func interval(cam: Camera3D, pos: Vector3, moving := false) -> float:
 		return 0.5
 	if d < 4.0:
 		return 0.0
-	if d < 20.0:
-		# a walker poses every rendered frame: at 120 Hz a 30 Hz stride steps
+	if d < 11.0:
+		# a walker this close poses every rendered frame: at 120-144 Hz a 60 Hz stride steps visibly
 		return 0.0 if moving else 1.0 / 30.0
-	return 1.0 / 20.0 if moving else 1.0 / 12.0
+	if d < 20.0:
+		return 1.0 / 30.0 if moving else 1.0 / 20.0       # (Luke, 9 Nov: every frame to 20 m cost the frame)
+	return 1.0 / 12.0
 
 
 ## Legs and pelvis for a walk at gait phase `p` (0..1 a stride; the right heel strikes at 0),
