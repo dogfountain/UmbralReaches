@@ -27,11 +27,11 @@ void fragment() {
 	// the higher, the more of the vortex's colour: it is lit from behind by the sky
 	float sky = smoothstep(40.0, 420.0, v_h);
 	ALBEDO = mix(base, sky_tint * 0.5, sky * 0.5);
-	METALLIC = 0.55;
+	METALLIC = 0.3;
 	ROUGHNESS = 0.42;
 	RIM = 0.75;
 	RIM_TINT = 0.5;
 	float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.2);
-	EMISSION = sky_tint * ((0.08 + 0.15 * max(v_up, 0.0)) * (0.5 + sky) + rim * 1.6);
+	EMISSION = sky_tint * ((0.2 + 0.2 * max(v_up, 0.0)) * (0.6 + sky) + rim * 2.2);
 	ALPHA = f;
 }

@@ -202,6 +202,8 @@ func _model() -> void:
 	for set_name: String in ["ashlar", "stone", "iron"]:
 		var m := WestKit.mat(set_name).duplicate() as StandardMaterial3D
 		m.albedo_color = Color(1.9, 1.9, 1.95) if set_name != "iron" else Color(1.5, 1.5, 1.55)
+		if set_name == "iron":
+			m.metallic = 0.3                 # full metal is black in a night with nothing to reflect
 		bright[set_name] = m
 	_bright = bright
 	var dark := StandardMaterial3D.new()
@@ -346,7 +348,15 @@ func _link_meshes() -> void:
 
 func _chain() -> void:
 	_link_meshes()
-	var iron: Material = _bright.get("iron", WestKit.mat("iron"))
+	# the links are lit by vertex colour (rust, patina, bright where they bear): no tiling set, a little rim for the moon
+	var iron := StandardMaterial3D.new()
+	iron.vertex_color_use_as_albedo = true
+	iron.albedo_color = Color(1.3, 1.3, 1.4)
+	iron.roughness = 0.6
+	iron.metallic = 0.2
+	iron.rim_enabled = true
+	iron.rim = 0.8
+	iron.rim_tint = 0.5
 	var groups: Dictionary = {}
 	var coll_faces := PackedVector3Array()
 	for k in frames.size():
@@ -375,27 +385,45 @@ func _chain() -> void:
 	var far := ShaderMaterial.new()
 	far.shader = FAR_SHADER
 	var counts: Array[String] = []
-	for key: String in groups:
-		if not _meshes.has(key):
+	# the first links are merged into one mesh each (a multimesh this small keeps an empty box in the engine and is culled
+	# for good); the high links, many and far apart, stay a multimesh (the Realm's pass splits it into cells)
+	for part: Array in [["SkyChainNear", "SkyChainLinkHi", true], ["SkyChainMid", "SkyChainLinkMid", false]]:
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var n := 0
+		for key: String in groups:
+			if key.begins_with(String(part[1])) and _meshes.has(key):
+				for xf: Transform3D in groups[key]:
+					st.append_from(_meshes[key] as Mesh, 0, xf)
+					n += 1
+		if n == 0:
 			continue
-		var list: Array = groups[key]
+		var mi := MeshInstance3D.new()
+		mi.name = part[0]
+		mi.mesh = st.commit()
+		mi.material_override = iron
+		if not bool(part[2]):
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.add_to_group(Groups.CULL_SKIP)
+		host.add_child(mi)
+		counts.append("%s %d" % [String(part[0]).trim_prefix("SkyChain"), n])
+	if groups.has("SkyChainLinkLo") and _meshes.has("SkyChainLinkLo"):
+		var list: Array = groups["SkyChainLinkLo"]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = _meshes[key]
+		mm.mesh = _meshes["SkyChainLinkLo"]
 		mm.instance_count = list.size()
 		for i in list.size():
 			mm.set_instance_transform(i, list[i])
 		var mmi := MultiMeshInstance3D.new()
-		mmi.name = key
+		mmi.name = "SkyChainFar"
 		mmi.multimesh = mm
-		mmi.material_override = far if (key == "SkyChainLinkLo" or key.begins_with("SkyChainLinkMid")) else iron
-		if key != "SkyChainLinkLo" and not key.begins_with("SkyChainLinkHi"):
-			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		if key == "SkyChainLinkLo":
-			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.material_override = far
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mmi.add_to_group(Groups.CULL_SKIP)
+		mmi.ignore_occlusion_culling = true
 		host.add_child(mmi)
-		counts.append("%s %d" % [key.trim_prefix("SkyChainLink"), list.size()])
+		counts.append("Far %d" % list.size())
 	if coll_faces.size() >= 3:
 		var body := StaticBody3D.new()
 		body.name = "ChainBody"

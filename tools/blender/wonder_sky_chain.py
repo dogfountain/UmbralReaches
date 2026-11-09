@@ -481,8 +481,8 @@ def annulus(P, key, cx, cz, r0, r1, y0, y1, seg=48):
 # the mooring
 # --------------------------------------------------------------------------------------------
 DC = (76.0, -135.6)                 # the capstan's axis (x, z)
-Y_A, Y_B = 20.6, 25.4               # the chain's first turn and where it leaves the drum's head
-TURNS = 1.6
+Y_A, Y_B = 20.6, 24.6               # the chain's first turn and where it leaves the drum's head
+TURNS = 1.25
 HEAD_Y = 26.4
 RING_Z = -142.6                     # the ring hangs from a pin out of the north wall
 RING_CY = 22.8
