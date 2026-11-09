@@ -109,6 +109,7 @@ static func build(root: Node) -> void:
 	var t1 := Time.get_ticks_msec()
 	var terrain := _terrain_mesh()
 	terrain.name = "Terrain"
+	terrain.layers = LightPolicy.NO_FIRE_LAYER       # seen, lit and moon-shadowed as before; not in the fire shadow
 	zone.add_child(terrain)
 	var body := StaticBody3D.new()
 	body.name = "TerrainBody"

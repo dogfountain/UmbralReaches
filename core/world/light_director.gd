@@ -160,6 +160,7 @@ func _fire_shadow(at: Vector3, dt: float) -> void:
 		_fire.shadow_opacity = 0.0
 		if _fire is OmniLight3D:
 			(_fire as OmniLight3D).omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID
+		_fire.shadow_caster_mask = LightPolicy.FIRE_CASTERS    # no undergrowth in the fire's map (same look, far fewer draws)
 		_fire.shadow_bias = 0.08
 		_fire.shadow_normal_bias = 1.5
 		_fire.distance_fade_shadow = FIRE_SHADOW_R

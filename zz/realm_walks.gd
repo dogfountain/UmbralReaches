@@ -18,6 +18,11 @@ var fails := 0
 var started := false
 
 
+## The routes start at the Hearthward green, where they were laid out (a new game now wakes on the Pilgrims' Road,
+## RealmLayout.PLAYER_START, and the first leg crossed the whole village through its people).
+const SPAWN_WALK := Vector3(0.0, 0.15, 26.5)
+
+
 func _ready() -> void:
 	# a ground walk, not a fight: in memory only (saves held), every boss slain and seal broken, so the
 	# henge's arena gate does not drop behind the walker on a fresh save
@@ -61,9 +66,9 @@ func _build_routes() -> void:
 	var crypt: Array[Vector3] = [Vector3(Ossuary.FEN_X + 1.0, 0, Ossuary.FEN_GATE.z), Vector3(Ossuary.FEN_X, 0, Ossuary.FEN_FOOT_Z + 0.4),
 		Vector3(Ossuary.FEN_X, 0, Ossuary.FEN_HEAD_Z + 0.6), Vector3(28.6, 0, Ossuary.FEN_DOOR_Z), Vector3(24.6, 0, Ossuary.FEN_DOOR_Z), Vector3(23.4, 0, -62.0)]
 	routes = [
-		{"name": "henge", "from": RealmLayout.PLAYER_START, "pts": henge, "end_y": ThornHenge.C.y},
+		{"name": "henge", "from": SPAWN_WALK, "pts": henge, "end_y": ThornHenge.C.y},
 		{"name": "henge_stair", "from": f3 + away * 2.5 + Vector3.UP * 1.5, "pts": stair, "end_y": ThornHenge.C.y},
-		{"name": "barrows", "from": RealmLayout.PLAYER_START, "pts": barrows, "end_y": Ossuary.FEN_GATE.y},
+		{"name": "barrows", "from": SPAWN_WALK, "pts": barrows, "end_y": Ossuary.FEN_GATE.y},
 		{"name": "crypt", "from": Vector3(Ossuary.fen_out - 0.8, Ossuary.FEN_GATE.y + 0.3, Ossuary.FEN_GATE.z), "pts": crypt, "end_y": Ossuary.GAL_Y},
 	]
 

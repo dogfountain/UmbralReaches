@@ -295,6 +295,8 @@ static func _batch(ch: Node3D, buf: PackedFloat32Array, n: int, nm: String, mesh
 		mmi.visibility_range_end = FarDetail.FAR_TREE_END       # dead trees, cypresses... fade out at the horizon's edge
 		mmi.visibility_range_end_margin = 30.0
 		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+	if not tall:
+		mmi.layers = LightPolicy.NO_FIRE_LAYER     # undergrowth: seen and lit as before, left out of the fire shadow
 	mmi.add_to_group(Groups.CULL_SKIP)
 	mmi.set_meta(&"flora", info + [int(mmi.cast_shadow)])
 	ch.add_child(mmi)

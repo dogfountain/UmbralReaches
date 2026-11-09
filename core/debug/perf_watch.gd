@@ -140,6 +140,7 @@ func _script_ms() -> Vector2:
 ## it was costing printed, heaviest first. Everything is switched back on after.
 var _pcensus_running := false
 var _drawlist_t := 25.0 if "--drawlist" in OS.get_cmdline_user_args() else -1.0
+var _snap_t := 22.0                    ## `--snap=/abs/file.png` (measurement only): the screen saved 22 s in
 var _tp_t := 8.0                       ## `--tp=x,z[,yaw]` (measurement only): the wanderer is put there 8 s in
 
 
@@ -420,6 +421,13 @@ func _process(delta: float) -> void:
 				(g as GPUParticles3D).visible = false
 				n += 1
 			print("FPS particles off: %d" % n)
+	if _snap_t > 0.0:
+		_snap_t -= delta
+		if _snap_t <= 0.0:
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--snap="):
+					get_viewport().get_texture().get_image().save_png(a.trim_prefix("--snap="))
+					print("SNAP saved ", a.trim_prefix("--snap="))
 	if _tp_t > 0.0:
 		_tp_t -= delta
 		if _tp_t <= 0.0:

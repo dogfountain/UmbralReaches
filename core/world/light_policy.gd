@@ -4,6 +4,13 @@ extends RefCounted
 ## Classes: beacon (lit brazier), hero (window spot), hero_fill (window omni),
 ## fill (crystals, lava, unlit bowl), glimmer, player_lantern, player_orb, moon.
 
+## Render layer 20: what the fire shadow leaves out (light_director.gd): the terrain (one 142k-triangle mesh: drawn
+## twice into a brazier's two shadow hemispheres it was most of that map's cost, and near-flat ground casts nothing
+## from a light a metre above it) and the undergrowth. Cameras and every light see the layer as before (default
+## masks) and the moon still takes its shadows: only the fire's caster mask skips it.
+const NO_FIRE_LAYER := 1 << 19
+const FIRE_CASTERS := 0xFFFFF & ~NO_FIRE_LAYER
+
 # [energy, range, atten] multiplied onto the authored `base` meta. Idempotent.
 const ILLUM := {
 	&"beacon": [0.55, 1.05, 0.9],                # braziers: warm pool, not orange flood
