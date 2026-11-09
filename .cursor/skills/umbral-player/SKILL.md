@@ -35,7 +35,7 @@ Crosshair: `ui/hud.gd`, 48×48 center, plus + dot, lilac/cream.
 ## Move / gloom
 
 - Walk 4.5, sprint 7.5, jump 5.2, air (double) jump 5.8. Hold Space to keep jumping on landing (`is_action_pressed` + `velocity.y <= 0`). Step-up walks ledges up to `STEP_MAX` 0.45 m; mantle to 1.1 m (about 2.4 m with a jump); plus slide, hang, climb, vault, roll. Floor snap 0.5, floor max angle 46°.
-- Gloom `gloom_rate_dark` 0.75/s away from light (about 2 min 13 s to a full bar), `gloom_rate_rift` 1.25/s in the Ashen Rift; sprinting in the dark ×1.5; each kill drains 6. Drain 12/s in LightGrid zones. 100 spawns a shade; touch Hollows to last kindled brazier. Lava Hollows on contact (`Area` mask **must** be `Layers.PLAYER`).
+- Gloom `gloom_rate_dark` 0.75/s away from light (about 2 min 13 s to a full bar), `gloom_rate_rift` 1.25/s in the Ashen Rift; sprinting in the dark ×1.5; each kill drains 6. Drain 12/s in LightGrid zones. A live boss arena keeps `Player.FIGHT_GATHER` (0.28) of that place's rate, and sprint still multiplies; the clock does not pause. 100 spawns a shade; touch Hollows to last kindled brazier. Lava Hollows on contact (`Area` mask **must** be `Layers.PLAYER`).
 - `push_pos` is a project shader global, written every physics frame from `player.gd`. Declare new globals in `project.godot` or shaders fail to compile.
 
 ## Composition

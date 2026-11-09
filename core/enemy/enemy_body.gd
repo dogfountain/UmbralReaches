@@ -160,6 +160,22 @@ static func _model_mat(kind: StringName) -> ShaderMaterial:
 	m.set_shader_parameter("normal_tex", load("res://art/textures/%s_normal.png" % base))
 	m.set_shader_parameter("orm_tex", load("res://art/textures/%s_orm.png" % base))
 	m.set_shader_parameter("emit_tex", load("res://art/textures/%s_emit.png" % base))
+	m.set_shader_parameter("normal_depth", 1.25)
+	m.set_shader_parameter("rim_amount", 0.2)
+	# family finish: Ossuary dust, hollowed wet sheen, bark/heat on the living thorn
+	match kind:
+		&"bone_abbot":
+			m.set_shader_parameter("dust", 0.72)
+			m.set_shader_parameter("dust_col", Color(0.48, 0.44, 0.38))
+		&"ascended_warden":
+			m.set_shader_parameter("wet", 0.55)
+		&"thornwarden":
+			m.set_shader_parameter("heat", 0.55)
+			m.set_shader_parameter("dust", 0.28)
+			m.set_shader_parameter("dust_col", Color(0.32, 0.26, 0.18))
+		&"hierarch":
+			m.set_shader_parameter("wet", 0.7)
+			m.set_shader_parameter("heat", 0.35)
 	_model_mats[kind] = m
 	return m
 

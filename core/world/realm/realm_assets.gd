@@ -278,14 +278,14 @@ static func _mat(key: String) -> Material:
 			m.roughness = 0.15
 			m.emission_enabled = true
 			m.emission = Color(1.0, 0.62, 0.32)
-			m.emission_energy_multiplier = 0.7
+			m.emission_energy_multiplier = 0.32
 		"ember":
 			# the flame core of a lantern: over the glow threshold, but not a blowout (was x6)
 			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			m.albedo_color = Color(1.0, 0.66, 0.36)
 			m.emission_enabled = true
 			m.emission = Color(1.0, 0.6, 0.28)
-			m.emission_energy_multiplier = 1.1
+			m.emission_energy_multiplier = 0.55
 		"rune":
 			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			m.albedo_color = Color(0.5, 0.68, 1.0) * 0.9

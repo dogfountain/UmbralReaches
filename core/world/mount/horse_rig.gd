@@ -145,6 +145,7 @@ static func material(b: String) -> StandardMaterial3D:
 	m.rim_enabled = true
 	m.rim = 0.2
 	m.rim_tint = 0.4
+	# no clearcoat: surface_detail.gd notes it doubles lighting samples on coats
 	if b == "weir_cob":                                    # --- west marches --- a warm dun over the garron's coat
 		m.albedo_color = Color(1.14, 0.98, 0.8)
 	_mats[b] = m

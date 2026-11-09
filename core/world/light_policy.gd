@@ -6,14 +6,16 @@ extends RefCounted
 
 # [energy, range, atten] multiplied onto the authored `base` meta. Idempotent.
 const ILLUM := {
-	&"beacon": [1.0, 1.22, 0.85],
-	&"fill": [1.55, 1.35, 1.0],
+	&"beacon": [0.55, 1.05, 0.9],                # braziers: warm pool, not orange flood
+	&"fill": [1.35, 1.2, 1.0],
 	&"lava": [1.18, 1.12, 1.0],
 	&"river": [1.08, 1.05, 1.15],
-	&"hero": [1.18, 1.0, 1.0],
-	&"hero_fill": [1.4, 1.25, 1.0],
-	&"glimmer": [1.15, 1.08, 1.4],
-	&"player_lantern": [1.12, 1.4, 1.05],        # ENS pass: a wider warm pool at your feet (no shadow, so cheap)
+	&"hero": [0.82, 1.0, 1.0],
+	&"hero_fill": [0.72, 1.05, 1.0],
+	&"shaft": [0.68, 1.0, 1.0],                  # window/door trail; keep soft, not yard-wash
+	&"lamp": [0.62, 1.0, 1.0],                   # tavern/hearth/candles
+	&"glimmer": [1.05, 1.05, 1.4],
+	&"player_lantern": [0.55, 1.05, 1.0],        # soft personal pool, no robe wash
 }
 
 
@@ -66,23 +68,29 @@ static func apply_fade(light: Light3D) -> void:
 			light.distance_fade_begin = 52.0
 			light.distance_fade_shadow = 22.0
 			light.distance_fade_length = 12.0
-			light.light_volumetric_fog_energy = 1.0
+			light.light_volumetric_fog_energy = 0.45
 		&"hero":
 			light.distance_fade_begin = 40.0
 			light.distance_fade_shadow = 22.0
 			light.distance_fade_length = 10.0
-			light.light_volumetric_fog_energy = 2.8
+			light.light_volumetric_fog_energy = 1.2
+		&"shaft":
+			# a cone out of a window or a door. An omni here is a glow sphere; the spot is the trail on the ground.
+			light.distance_fade_begin = 40.0
+			light.distance_fade_shadow = 0.0
+			light.distance_fade_length = 12.0
+			light.light_volumetric_fog_energy = 1.05
 		&"hero_fill":
 			light.distance_fade_begin = 32.0
 			light.distance_fade_shadow = 12.0
 			light.distance_fade_length = 8.0
-			light.light_volumetric_fog_energy = 0.8
+			light.light_volumetric_fog_energy = 0.45
 		&"lamp":
 			# a kindled lamp: comfort light, short range, never a shadow
 			light.distance_fade_begin = 26.0
 			light.distance_fade_shadow = 0.0
 			light.distance_fade_length = 8.0
-			light.light_volumetric_fog_energy = 0.5
+			light.light_volumetric_fog_energy = 0.22
 		&"glimmer":
 			light.distance_fade_begin = 16.0
 			light.distance_fade_shadow = 8.0
@@ -123,6 +131,9 @@ static func apply_shadows(light: Light3D) -> void:
 		&"player_lantern":
 			# The lantern follows the camera, so its shadow map is redrawn every frame.
 			# Moon, windows and braziers still cast. This one does not.
+			light.shadow_enabled = false
+		&"shaft":
+			# The trail is the fog cone. A shadow map on every window would re-render that cone.
 			light.shadow_enabled = false
 		_:
 			light.shadow_enabled = false
@@ -175,6 +186,9 @@ static func apply_illumination(light: Light3D) -> void:
 	if o:
 		o.omni_range = float(b.r) * float(m[1])
 		o.omni_attenuation = float(m[2])
+	var s := light as SpotLight3D
+	if s and float(b.r) > 0.0:
+		s.spot_range = float(b.r) * float(m[1])
 
 
 ## The moon's shadow (r29, the "weird shadow lines"). Under the 34 deg moon the open ground was
@@ -185,15 +199,16 @@ static func apply_illumination(light: Light3D) -> void:
 ##   bias 0.06, normal bias 2.5 (normal bias is in texels): the stripes are gone at every view tried
 ##   High: the near split is 0.25 x 30 m = 7.5 m, so the wanderer and the ground round him sit in one
 ##     split (the old 3 m boundary ran right under his feet with its blend band)
-## Tried and left out for the frame budget (perf_tour --attrib --reps=6 and hub A/B, 4x pixels): a
-## 2048 atlas (+0.22-0.31 ms, -1.5..2 % hub fps; crisper contacts: MOON_ATLAS[2] = 2048 if wanted),
+## Tried and left out for the frame budget (perf_tour --attrib --reps=6 and hub A/B, 4x pixels):
 ## 4096 (+1.1-2.3 ms more), soft filter Low 2 (+1.0-2.6 ms; it clears the fine penumbra grain), four
 ## splits (+355 shadow draws, +560k primitives), a 34 m reach (+34 shadow draws at the hub).
-const MOON_ATLAS := [1024, 1024, 1024]        ## by Settings.shadow_quality (0 = off)
+## High quality uses a 2048 atlas (+0.22-0.31 ms). A 1024 map over 64 m smeared the gaps in a crown
+## into one blob, so the ground under a tree never showed moonlight between the leaves.
+const MOON_ATLAS := [1024, 1024, 2048]        ## by Settings.shadow_quality (0 = off)
 const MOON_FILTER := [1, 1, 1]                ## RenderingServer.ShadowQuality (1 very low; 2 low costs 1-2.6 ms)
 const MOON_BIAS := 0.06
 const MOON_NORMAL_BIAS := 2.5
-const MOON_FAR := [22.0, 34.0, 64.0]
+const MOON_FAR := [28.0, 48.0, 86.0]          ## was 22/34/64: tree shadows died mid-grove
 const MOON_SPLIT_1 := 0.16
 static var _atlas := 0
 static var _filter := -1
@@ -220,9 +235,13 @@ static func _moon(moon: DirectionalLight3D) -> void:
 	else:
 		moon.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	# soft moon shadows (angular distance) cost a blocker search per shadowed pixel: low world
-	# detail draws them hard; the authored softness comes back on medium/high
-	if not moon.has_meta(&"angular"):
-		moon.set_meta(&"angular", moon.light_angular_distance)
+	# detail draws them hard; the authored softness comes back on medium/high. Atmosphere
+	# authors the soft value each apply; keep the last non-zero so a detail-0 pass cannot stick 0.
+	var ang := moon.light_angular_distance
+	if ang > 0.01:
+		moon.set_meta(&"angular", ang)
+	elif not moon.has_meta(&"angular"):
+		moon.set_meta(&"angular", 0.55)
 	moon.light_angular_distance = 0.0 if Settings.detail <= 0 else float(moon.get_meta(&"angular"))
 
 

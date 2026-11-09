@@ -1294,16 +1294,14 @@ func _at_rest() -> bool:
 		and get_real_velocity().length_squared() < 1e-8
 
 
-## The rig's pose (r30): every tick within `full` metres; further out, to 46 m (sleep range), every
-## other tick on the enemy's own phase, with the time it skipped. It used to stop past 16 m, so a
-## pack running in from 16-46 m slid along as statues. The joints are plain Node3Ds under physics
-## interpolation, so 30 Hz there reads as a slightly coarser stride, never a frozen one.
+## The rig's pose, every physics tick out to the sleep range. Joints are Node3Ds under physics
+## interpolation, so the display draws the in-betweens. Past 46 m the body is asleep and unposed.
 var _anim_dt := 0.0
 
 
-func _animate_rig(on_floor: bool, delta: float, full := 28.0) -> void:
+func _animate_rig(on_floor: bool, delta: float, _full := 46.0) -> void:
 	_anim_dt = minf(_anim_dt + delta, 0.1)
-	if _dist >= full and (_dist > 46.0 or (Engine.get_physics_frames() + get_instance_id()) % 2 != 0):
+	if _dist > 46.0:
 		return
 	_rig.animate(velocity, on_floor, _anim_dt)
 	_anim_dt = 0.0
@@ -1785,7 +1783,9 @@ func _shudder() -> void:
 	if _visual == null:
 		return
 	var k := maxf(_rig.scale.x, 1.0) if _rig != null else 1.0
-	var v := Vector3(randf_range(-1.0, 1.0), randf_range(-0.4, 0.4), randf_range(-1.0, 1.0)) * 0.035 * float(_hitstop)
+	# a decaying sway, not a new random offset every tick (that read as a flicker)
+	var w := float(_hitstop) * 0.55
+	var v := Vector3(sin(w * 2.4), absf(sin(w * 3.1)) * 0.35, cos(w * 2.1)) * 0.028 * w
 	_visual.position = v.limit_length(0.08) * k if _hitstop > 0 else Vector3.ZERO
 
 

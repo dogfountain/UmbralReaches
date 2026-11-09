@@ -32,7 +32,7 @@ static func with_lods(m: Mesh) -> Mesh:
 			arrays[Mesh.ARRAY_INDEX] = idx
 		im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, m.surface_get_material(s))
 	var tl := Time.get_ticks_usec()
-	im.generate_lods(25.0, 60.0, [])
+	im.generate_lods(20.0, 60.0, [])      ## tighter merge: mid LODs keep silhouette (was 25)
 	var out: Mesh = im.get_mesh()
 	Realm.prof_add("gen: with_lods", tl)
 	_lod_cache[m] = out
@@ -120,7 +120,7 @@ static func split(mi: MeshInstance3D, lods := true) -> int:
 			arrays[Mesh.ARRAY_INDEX] = new_idx
 			im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, mi.mesh.surface_get_material(s))
 		if lods:
-			im.generate_lods(25.0, 60.0, [])
+			im.generate_lods(20.0, 60.0, [])      ## tighter merge: mid LODs keep silhouette (was 25)
 		var cm: ArrayMesh = im.get_mesh()
 		_add_chunk(mi, xf, key, cm)
 		GenCache.save_mesh(ck + "|" + str(key), SELF, cm)

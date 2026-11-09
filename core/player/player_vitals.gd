@@ -133,8 +133,8 @@ func _update_gloom(delta: float) -> void:
 		_in_fight = player.boss_fight_active(player.get_tree())
 		_in_rift = _rift_here()
 	# r30: a fire drains at the player's rate; a Lantern Ward at its own (4/s, at most 25 a cast);
-	# inside a live boss arena the dark does not gather on its own (the boss is the pressure);
-	# the rift rate is the Ashen Rift itself, not everything north of z -40.
+	# a live boss arena keeps a thin gather (Player.FIGHT_GATHER), so a long fight still belongs
+	# to the night; the rift rate is the Ashen Rift itself, not everything north of z -40.
 	var drain := LightGrid.drain_at(player.global_position)
 	var lit := drain != 0.0
 	var rate := player.gloom_rate_rift if _in_rift else player.gloom_rate_dark
@@ -144,10 +144,9 @@ func _update_gloom(delta: float) -> void:
 		var want := drain * player.gloom_drain_lit / 12.0
 		rate = -want if player.ward_drain_left > 0.0 and player.gloom > 0.0 else 0.0
 		player.ward_drain_left = maxf(0.0, player.ward_drain_left + rate * delta)
-	elif _in_fight:
-		rate = 0.0
-	elif player._sprint_held and player._run_blend > 0.6 and player._grounded:
-		rate *= Player.SPRINT_DARK_MULT
+	else:
+		var sprinting := player._sprint_held and player._run_blend > 0.6 and player._grounded
+		rate = Player.place_gather(rate, _in_fight, sprinting)
 	var prev := player.gloom
 	player.gloom = clampf(player.gloom + rate * delta, 0.0, player.gloom_max)
 	if not is_equal_approx(prev, player.gloom):

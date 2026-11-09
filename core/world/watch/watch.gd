@@ -82,7 +82,11 @@ func _build_post() -> void:
 	Sway.flag(self, global_position - face * 1.5 + Vector3.UP * 2.75, atan2(-right.z, right.x), "plaster", Vector2(0.7, 0.85))
 	for c in get_children():
 		if c is GeometryInstance3D:
-			(c as GeometryInstance3D).visibility_range_end = 110.0
+			var g := c as GeometryInstance3D
+			g.visibility_range_end = 140.0
+			g.visibility_range_end_margin = 18.0
+			g.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			g.extra_cull_margin = maxf(g.extra_cull_margin, 4.0)
 	_light = OmniLight3D.new()
 	_light.light_color = Color(1.0, 0.66, 0.34)
 	_light.light_energy = 1.1

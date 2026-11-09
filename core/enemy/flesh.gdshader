@@ -29,9 +29,9 @@ uniform vec3 burn_col : source_color = vec3(1.2, 0.45, 2.2);
 // detail_tile metres. Height darkens the creases and roughens the raised skin.
 uniform sampler2D detail_normal : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D detail_height : hint_default_white, filter_linear_mipmap, repeat_enable;
-uniform float detail_tile = 0.18;
-uniform float detail_depth = 0.85;
-uniform float crease = 0.55;
+uniform float detail_tile = 0.14;
+uniform float detail_depth = 1.15;
+uniform float crease = 0.72;
 
 instance uniform float hit_flash = 0.0;
 instance uniform float glint = 0.0;
@@ -61,14 +61,17 @@ void fragment() {
 
 	albedo = mix(albedo, albedo * (0.7 + 0.45 * hgt), (1.0 - flesh) * 0.6);   // pitted bone
 	// models pass: dead skin is not one tone (sallow, bruised), and it creases; rags hang in folds
-	albedo = mix(albedo, cl_skin_albedo(albedo, opos, 0.65), flesh * (1.0 - rag));
-	NORMAL = cl_bump(NORMAL, VERTEX, mix(cl_skin_height(opos, 0.8), cl_cloth_height(opos), rag), mix(0.0007, 0.01, rag));
+	albedo = mix(albedo, cl_skin_albedo(albedo, opos, 0.65), flesh * (1.0 - rag) * 0.7);
+	// detail maps already bump; one cheap crease only on rag cloth (skin uses the height map)
+	if (rag > 0.5) {
+		NORMAL = cl_bump(NORMAL, VERTEX, cl_cloth_height(opos), 0.01);
+	}
 	vec2 wear = cl_wear_mask(NORMAL, VERTEX, mix(0.5, 1.0, hgt));   // r36: edges worn, creases matte
 	ALBEDO = cl_wear_albedo(cl_albedo(albedo, mix(0.5, 1.0, hgt), opos), wear);
 	NORMAL_MAP = texture(detail_normal, duv).rgb;
-	NORMAL_MAP_DEPTH = detail_depth * (1.0 - rag * 0.6);
-	ROUGHNESS = cl_wear_rough(cl_rough(clamp(mix(mix(0.32, 0.48, flesh) + matte * 0.9, 0.95, rag) - veins * 0.15 + (hgt - 0.5) * 0.25, 0.05, 1.0), opos), wear);
-	SPECULAR = cl_wear_spec(mix(0.55, 0.42, flesh) * (1.0 - rag) * (1.0 - matte * 1.2), wear);
+	NORMAL_MAP_DEPTH = detail_depth * (1.0 - rag * 0.55);
+	ROUGHNESS = cl_wear_rough(cl_skin_rough(clamp(mix(mix(0.28, 0.46, flesh) + matte * 0.9, 0.95, rag) - veins * 0.18 + (hgt - 0.5) * 0.28, 0.05, 1.0), opos), wear);
+	SPECULAR = cl_wear_spec(mix(0.62, 0.48, flesh) * (1.0 - rag) * (1.0 - matte * 1.2), wear);
 	float ndv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 
 	// death: burn away from the noise field, with a hot violet edge

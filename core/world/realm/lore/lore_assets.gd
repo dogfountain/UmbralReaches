@@ -510,7 +510,7 @@ static func carve(cold := false) -> StandardMaterial3D:
 	m.emission_texture = t.emit
 	m.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY     # ember only in the cuts
 	m.emission = Color(1.0, 0.42, 0.14) if not cold else Color(0.35, 0.8, 1.0)
-	m.emission_energy_multiplier = 0.85 if not cold else 0.7
+	m.emission_energy_multiplier = 0.4 if not cold else 0.55
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	_mats[key] = m
 	return m

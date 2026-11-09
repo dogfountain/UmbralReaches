@@ -23,25 +23,26 @@ const CONV := {
 		"portrait": KEEP_PORTRAIT,
 		"start": [["boss:ascended_warden,!flag:ending_told", "end_1"], ["qd:names_under,!flag:epilogue_told", "epi_1"], ["flag:deeper,!flag:deeper_met", "ng_1"], ["!flag:met_keep", "meet_1"], ["qat:keg_thief:3", "thief_report"], ["", "hub"]],
 		"nodes": {
-			# --- first meeting --------------------------------------------------------------
+			# --- first meeting (the night's only errand until this is done) ------------------
 			"meet_1": {"say": "Shut the door. No, leave it. The fire's done arguing with the dark tonight.", "next": "meet_2"},
-			"meet_2": {"say": "You walked in off the road with a lit lantern. That makes you kindled, or mad. Either way, you drink.", "next": "meet_hub"},
-			"meet_hub": {"say": "Ask, then. Questions are free. Beds cost ash.", "choices": [
+			"meet_2": {"say": "You walked in off the road with a lit lantern. That makes you kindled, or mad. Either way, you drink — and you listen.", "next": "meet_hub"},
+			"meet_hub": {"say": "This night has a shape. Ask me for it, or leave and learn it the hard way.", "choices": [
+				{"text": "Where do I start?", "to": "start_1"},
 				{"text": "What happened to this valley?", "to": "lore_1", "once": true},
 				{"text": "Who holds it?", "to": "three_1", "once": true},
-				{"text": "Where do I start?", "to": "start_1"},
-				{"text": "I'll find my own way.", "to": "meet_end"},
+				{"text": "I'll find my own way.", "to": "meet_brief"},
 			]},
 			"lore_1": {"say": "Somebody opened the sky at the top of the Stair. It opened inward. It's been drinking ever since: the light first, then the warm, then the people.", "next": "lore_2"},
 			"lore_2": {"say": "Edda put coals from her forge on a bare altar and the dark stopped at the door. Every fire since is hers. Yours too, now.", "next": "meet_hub"},
 			"three_1": {"say": "Three. Something in the Ring on the western hill that keeps the oaks; the Rooted call it the Thornwarden. The Abbot under the abbey, still counting his dead.", "next": "three_2"},
 			"three_2": {"say": "And whatever stands at the top of the Stair with the door open. The ward on the Crossing won't let you near it till the other two are down: a heart out of the Ring, a crown out of the crypt.", "next": "meet_hub"},
-			"start_1": {"say": "The braziers. Four of them: the Stair's foot, the shrine in the glade, the Barrow Field, the fen under the Ossuary. Light them and you've somewhere to stand when the dark leans on you.", "next": "start_2"},
-			"start_2": {"say": "Then pick a door. The thorn seal on the Thornwood edge, west. Or the gallery seal down in the crypt, through the fen door. Both, before you're done.", "do": "flag:met_keep,teach:ward", "choices": [
+			"start_1": {"say": "First: the braziers. Four of them — Stair foot, glade shrine, Barrow Field, fen under the Ossuary. Kindle them. Light is somewhere to stand when the dark leans on you.", "next": "start_2"},
+			"start_2": {"say": "Then pick a door. Thorn seal on the Thornwood edge, west. Or the gallery seal in the crypt, through the fen. Both, before the Crossing will take you up to shut the sky's door.", "do": "flag:met_keep,teach:ward", "choices": [
 				{"text": "Another question.", "to": "meet_hub"},
 				{"text": "I'll go.", "to": "meet_end"},
 			]},
-			"meet_end": {"say": "Fire stays. Hollows do not. Come back with news; we pay in ale.", "do": "flag:met_keep,teach:ward", "next": ""},
+			"meet_brief": {"say": "Then hear it once. Kindle the four braziers. Break the thorn seal west, or the gallery seal through the fen — both, then the Crossing, then the door at the top. The rest of Hearthward can wait until you've heard that.", "do": "flag:met_keep,teach:ward", "next": "meet_end"},
+			"meet_end": {"say": "Fire stays. Hollows do not. Come back with news; we pay in ale. The village will have work for you once you've stepped out.", "do": "flag:met_keep,teach:ward", "next": ""},
 			# --- the hub, every visit after ---------------------------------------------------
 			"hub": {"say_if": [
 				["flag:ending_told", "The kindled one. Your stool, your mug. The fire draws by itself now; I've nothing to do but pour."],
@@ -57,7 +58,7 @@ const CONV := {
 			], "choices": [
 				{"text": "What now?", "to": "next"},
 				{"text": "What's on the slate?", "to": "slate"},
-				{"text": "You look troubled, keep.", "to": "thief_ask", "if": "!q:keg_thief"},
+				{"text": "You look troubled, keep.", "to": "thief_ask", "if": "!q:keg_thief,flag:met_keep"},
 				{"text": "About your ale thief...", "to": "thief_where", "if": "qat:keg_thief:0|qat:keg_thief:1|qat:keg_thief:2"},
 				{"text": "Any news?", "to": "news"},
 				{"text": "Tell me again about the three.", "to": "three_again"},
@@ -213,7 +214,7 @@ const CONV := {
 				["", "Drinking, or asking?"],
 			], "choices": [
 				{"text": "The fen?", "to": "fen"},
-				{"text": "Your father went down the fen?", "to": "father", "if": "!q:slow_way"},
+				{"text": "Your father went down the fen?", "to": "father", "if": "!q:slow_way,flag:met_keep"},
 				{"text": "About your father...", "to": "father_where", "if": "q:slow_way,!qd:slow_way"},
 				{"text": "How do I reach the Ossuary?", "to": "oss"},
 				{"text": "Neither.", "to": ""},
@@ -426,7 +427,7 @@ const CONV := {
 const OPENING := [
 	"The road ends here. Past the last village there is only the Stair, and the sky it opened.",
 	"Over the Crowns the sky turns inward. The cold comes down the mountain to meet you.",
-	"There is light in the Kindled Keg.",
+	"There is light in the Kindled Keg. Find the keep. He will tell you what this night is for.",
 ]
 const ENDING := [
 	"The sky stops turning.",

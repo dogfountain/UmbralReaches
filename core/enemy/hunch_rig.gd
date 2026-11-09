@@ -132,20 +132,21 @@ func _tick_poses(delta: float) -> void:
 	if _wind_t >= 0.0:
 		_wind_t += delta
 		# rise fast, then hold and tremble: most of the windup is spent fully raised
-		_wind = clampf(_wind_t / (_wind_dur * 0.55), 0.0, 1.0)
+		var wu := clampf(_wind_t / (_wind_dur * 0.55), 0.0, 1.0)
+		_wind = smoothstep(0.0, 1.0, wu)
 		if _wind_t > _wind_dur + 0.25:
 			_wind_t = -1.0
 	else:
-		_wind = move_toward(_wind, 0.0, delta * (7.0 if _rake_t >= 0.0 else 3.0))
+		_wind = move_toward(_wind, 0.0, delta * (5.0 if _rake_t >= 0.0 else 2.4))
 	if _rake_t >= 0.0:
 		_rake_t += delta
 		var k := _rake_t / RAKE_TIME
-		_rake = sin(clampf(k, 0.0, 1.0) * PI * 0.5) if k < 1.0 else maxf(0.0, 1.0 - (k - 1.0) * 1.6)
+		_rake = sin(smoothstep(0.0, 1.0, clampf(k, 0.0, 1.0)) * PI * 0.5) if k < 1.0 else maxf(0.0, 1.0 - (k - 1.0) * 1.35)
 		if _rake <= 0.0 and k >= 1.0:
 			_rake_t = -1.0
 	_breath_pitch = sin(_t * 1.9) * 0.025 * sway
-	_flinch = move_toward(_flinch, 0.0, delta * 2.2)
-	_reel = move_toward(_reel, 0.0, delta * 0.75)
+	_flinch = move_toward(_flinch, 0.0, delta * 1.8)
+	_reel = move_toward(_reel, 0.0, delta * 0.65)
 	if _howl_t >= 0.0:
 		_howl_t += delta
 		var hk := clampf(_howl_t / _howl_dur, 0.0, 1.0)
@@ -159,7 +160,7 @@ func _tick_poses(delta: float) -> void:
 	if _twitch_t <= 0.0:
 		_twitch_t = randf_range(0.6, 2.6) / maxf(twitch, 0.05)
 		_twitch_to = Vector2(randf_range(-0.35, 0.35), randf_range(-0.6, 0.6)) * twitch
-	_twitch_at = _twitch_at.lerp(_twitch_to, 1.0 - exp(-18.0 * delta))
+	_twitch_at = _twitch_at.lerp(_twitch_to, 1.0 - exp(-7.0 * delta))
 	_twitch_to = _twitch_to.lerp(Vector2.ZERO, 1.0 - exp(-2.0 * delta))
 
 

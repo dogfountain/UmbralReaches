@@ -91,15 +91,16 @@ static func set_fog(env: Environment, on: bool) -> void:
 
 const HAZE_TOP := 4.0            ## world y below which the ground haze thickens (Realm ground sits about 0)
 const HAZE_DENSITY := 0.03
-const FOG_BEGIN := 36.0          ## m; the clear foreground (weather.gd OFF_BEGIN_* pulls it in for mist and rain)
+const FOG_BEGIN := 30.0          ## m; clear foreground, then layered depth (weather.gd OFF_BEGIN_* pulls mist/rain in)
 const FOG_END := 1000.0
 
 
 static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit: Color) -> void:
 	env.fog_enabled = true
-	env.fog_light_color = fog_light.lerp(Color(0.34, 0.46, 0.68), 0.55)    # silvered blue haze: the distance lightens into layers
+	# Soft dusk ink in the distance — was 55% silvered blue and read as grey-navy over the land.
+	env.fog_light_color = fog_light.lerp(Color(0.28, 0.34, 0.52), 0.28)
 	env.fog_light_energy = 0.74
-	env.fog_sun_scatter = 0.2                  # the moon side of the haze is the brighter
+	env.fog_sun_scatter = 0.22                 # the moon side of the haze is the brighter
 	# Depth fog, not exponential: the near ~40 m stays clear (roofs, trunks and the player read dark and
 	# crisp), then haze builds with distance into near / mid / far layers. fog_density is the ceiling.
 	# The weather's mist pulls fog_depth_begin in (weather.gd), as it used to add to the density.
@@ -107,38 +108,44 @@ static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit
 	env.fog_density = 0.9
 	env.fog_depth_begin = FOG_BEGIN
 	env.fog_depth_end = FOG_END
-	env.fog_depth_curve = 0.52
-	env.fog_aerial_perspective = 0.72         # far land takes the sky's horizon colour, which falls off with height (vortex.gdshader)
-	env.fog_sky_affect = 0.2
+	env.fog_depth_curve = 0.48
+	env.fog_aerial_perspective = 0.78         # far land takes the sky's horizon colour, which falls off with height (vortex.gdshader)
+	env.fog_sky_affect = 0.18
 	# ENS art pass (docs/enshrouded/art.md): low ground haze that pools in hollows (the fen, the
 	# rift floor) and thins on high ground. Plain depth fog, so it costs nothing per froxel.
 	env.fog_height = HAZE_TOP
 	env.fog_height_density = HAZE_DENSITY
 	env.volumetric_fog_enabled = true
-	env.volumetric_fog_density = 0.012
+	# ENS night: froxels catch moon shafts and window cones without orange soup at the tavern.
+	env.volumetric_fog_density = 0.011
 	env.volumetric_fog_albedo = vol_albedo
 	env.volumetric_fog_emission = vol_emit
-	env.volumetric_fog_emission_energy = 0.16
-	env.volumetric_fog_anisotropy = 0.5           # forward scatter: the moon side of the sky glows through the fog, shafts read
-	env.volumetric_fog_length = 40.0
+	env.volumetric_fog_emission_energy = 0.11
+	env.volumetric_fog_anisotropy = 0.55
+	env.volumetric_fog_length = 50.0
 	env.volumetric_fog_detail_spread = 1.15
-	env.volumetric_fog_sky_affect = 0.16
-	env.volumetric_fog_ambient_inject = 0.08
-	env.ambient_light_energy = 0.21              # with the moon, toned down a quarter; the ground lights are untouched
-	# ambient mostly a set azure, less from the violet vortex sky (it cast magenta on all stone)
-	env.ambient_light_sky_contribution = 0.55
-	env.ambient_light_color = Color(0.36, 0.52, 0.84)
-	env.tonemap_exposure = 1.0           # ENS pass: the calmer grade (sat 1.36) turned blue chroma into luma; keep the night as dark
-	env.ssao_radius = 1.2
-	env.ssao_intensity = 1.25
-	env.ssao_light_affect = 0.32
+	env.volumetric_fog_sky_affect = 0.15
+	env.volumetric_fog_ambient_inject = 0.06
+	# COLOR ambient, not SKY: the vortex cubemap is lilac-navy and was greying every midtone.
+	# Slightly lifted so moonlit ground still reads after warm lights were dialed down.
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_energy = 0.125
+	env.ambient_light_sky_contribution = 0.0
+	env.ambient_light_color = Color(0.24, 0.22, 0.34)
+	env.tonemap_exposure = 1.0
+	env.ssao_radius = 1.45
+	env.ssao_intensity = 1.7
+	env.ssao_power = 1.45
+	env.ssao_light_affect = 0.48
+	env.ssao_ao_channel_affect = 0.18
 	# (r35) no tonemap_white here: the night is AgX (environment.tres), which ignores it (white 1.0
 	# against 6.5 moved nothing, exposure 2.0 moved YAVG 42 -> 70; zz/lane_a_bench env:). AgX has
 	# its own tonemap_agx_white / _contrast, left at Godot's defaults: contrast 1.5 darkened the
 	# frame 10-15 % and lowered saturation (duller), white 10 changed nothing that read.
-	env.glow_intensity = 0.7
+	# Binding budget. A wider intensity or a lower threshold turns every flame into a fog bank.
+	env.glow_intensity = 0.62
 	env.glow_bloom = 0.06
-	env.glow_hdr_threshold = 1.05
+	env.glow_hdr_threshold = 1.15
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SCREEN
 	_glow_budget(env)
 
@@ -156,11 +163,12 @@ static func _moon(moon: DirectionalLight3D, far_m: float) -> void:
 		moon.global_basis = Basis.looking_at(heading, Vector3.UP)
 	# a strong azure key: the moonlit stone and ground read bright blue over cool shadow
 	# (it was 0.6 and lavender, so the flat ambient carried everything and the night read grey)
-	moon.light_color = Color(0.62, 0.78, 1.0)
-	moon.light_energy = 0.275                   # 1.2 -> 0.9 -> 0.55 -> 0.275 (Luke, 7 Nov): the moon lit the open ground far too light; the fires carry the night
-	moon.light_volumetric_fog_energy = 0.3     # (0.6 before the last halving) the moonlit haze laid a pale veil over the unlit ground (was 1.45, then 1.15)
-	moon.light_angular_distance = 2.5
-	moon.shadow_opacity = maxf(moon.shadow_opacity, 0.84)
+	# Soft moonlight, not cyan key light — cyan + azure ambient was the grey-navy wash.
+	moon.light_color = Color(0.8, 0.84, 0.96)
+	moon.light_energy = 0.4
+	moon.light_volumetric_fog_energy = 0.62
+	moon.light_angular_distance = 0.42
+	moon.shadow_opacity = maxf(moon.shadow_opacity, 0.97)
 	# the shadow map itself (atlas, splits, bias, range) is LightPolicy._moon's alone: it runs right
 	# after this and again on every settings change (two copies here had drifted: fade 0.82 vs 0.78)
 	moon.directional_shadow_max_distance = minf(moon.directional_shadow_max_distance, far_m * 0.5)
@@ -215,7 +223,8 @@ static func apply_quality(env: Environment, cam: Camera3D) -> void:
 
 ## World detail (Settings.detail, set by the presets): how many pixels a mesh may lose before it
 ## drops a LOD level, and occlusion culling. Colours, fog and light values are untouched.
-const LOD_THRESHOLD := [4.0, 1.6, 1.0]        ## pixels; Godot's default is 1.0
+## Higher = drop mesh LODs sooner (poppier). Softened: 4.0/1.6 made trunks and rocks snap at mid range.
+const LOD_THRESHOLD := [2.2, 1.05, 0.75]      ## pixels; Godot's default is 1.0
 
 
 static func _detail(cam: Camera3D) -> void:
@@ -264,23 +273,23 @@ static func _cull_geometry(root: Node, far_m: float) -> void:
 		var cull := 0.0
 		if gi.is_in_group(Groups.CULL_FOLIAGE) or n.begins_with("spore") or n.begins_with("cap") or n.begins_with("night") or n.begins_with("pebble") or n.begins_with("fern") or n.begins_with("grass"):
 			gi.add_to_group(Groups.CULL_FOLIAGE)
-			end = 32.0
-			margin = 10.0
-			cull = 8.0
+			end = 48.0
+			margin = 14.0
+			cull = 12.0
 			if n.begins_with("spore"):
-				end = 24.0
+				end = 36.0
 			elif n.begins_with("pebble"):
-				end = 28.0
-				margin = 8.0
+				end = 40.0
+				margin = 12.0
 		elif gi is GPUParticles3D:
-			end = 22.0
-			margin = 6.0
+			end = 36.0
+			margin = 12.0
 		elif gi.visibility_range_end > 0.01:
-			end = minf(gi.visibility_range_end, far_m * 0.62)
-			margin = maxf(gi.visibility_range_end_margin, 6.0)
+			end = minf(gi.visibility_range_end, far_m * 0.72)
+			margin = maxf(gi.visibility_range_end_margin, 10.0)
 		else:
-			end = far_m * 0.55
-			margin = 8.0
+			end = far_m * 0.65
+			margin = 12.0
 		gi.visibility_range_end = end
 		gi.visibility_range_end_margin = margin
 		gi.visibility_range_fade_mode = (
@@ -303,8 +312,8 @@ static func _cell_floor(root: Node) -> void:
 		return
 	const CELL := 16.0
 	var vis := {
-		"grass": 72.0, "fern": 88.0, "cap": 96.0, "nightcap": 96.0,
-		"pebble": 72.0, "spore": 64.0,
+		"grass": 96.0, "fern": 110.0, "cap": 120.0, "nightcap": 120.0,
+		"pebble": 88.0, "spore": 80.0,
 	}
 	var buckets := {}
 	var old: Array[Node] = []
@@ -565,7 +574,8 @@ const PASS_BUDGET_US := 6000        ## per frame: the pass runs during the first
 ##    flames, lava, embers and the other always-seen kinds
 const SPREAD_M := 48.0
 const TINY_SHADOW_M := 0.45
-const PARTICLE_END := 48.0
+const PARTICLE_END := 72.0
+const PARTICLE_FADE := 14.0
 
 
 ## A heavy mesh spanning more than SPREAD_M with no LODs and no chunking yet.
@@ -614,8 +624,8 @@ static func _realm_render_pass(root: Node) -> Vector4i:
 			var gp := gi as GPUParticles3D
 			if gp.visibility_range_end <= 0.0 and not _skips_range(String(gp.name).to_lower()) and not _named_under(gp, "Lava"):
 				gp.visibility_range_end = PARTICLE_END
-				gp.visibility_range_end_margin = 8.0
-				gp.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+				gp.visibility_range_end_margin = PARTICLE_FADE
+				gp.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 				parts += 1
 			continue
 		var mesh: Mesh = null

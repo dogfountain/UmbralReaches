@@ -71,8 +71,9 @@ void fragment() {
     float h = hsv.x * 360.0;
     // warm survives only where it is BRIGHT (fire, candles, lit windows, gold): dim warm-brown
     // stone under blue moonlight goes blue instead of reading magenta
+    // Dim wood/earth keep hue too (was sat>0.25 only): otherwise brown stone went navy under the moon.
     float warm = smoothstep(8.0, 16.0, h) * (1.0 - smoothstep(58.0, 66.0, h))
-               * smoothstep(0.25, 0.5, hsv.y) * smoothstep(warm_min_v, warm_min_v + 0.35, hsv.z);
+               * smoothstep(0.12, 0.35, hsv.y) * smoothstep(warm_min_v, warm_min_v + 0.28, hsv.z);
     // a fire's core clips toward white: too pale for the band test above, so the hue pull and the
     // azure split tone turned every brazier and hearth flame icy blue-white (r29). Bright pixels that
     // still lean warm (red over blue, not green) keep their colour.
@@ -123,10 +124,14 @@ void fragment() {
     col *= lt / lc;
 
     col *= 1.0 - smoothstep(0.32, 0.88, distance(SCREEN_UV, vec2(0.5))) * vignette;
-    // Gloom: violet dark creeps in from the frame edges as the meter fills
-    float gv = smoothstep(0.2, 0.95, distance(SCREEN_UV, vec2(0.5)) * (0.6 + gloom * 0.8)) * gloom;
-    col = mix(col, col * vec3(0.35, 0.22, 0.65), gv);
-    col *= 1.0 - gv * 0.55;
+    // Gloom: a violet fringe from the frame. The centre stays clear, so a boss you are reading
+    // does not disappear into the clock. Past half a bar the fringe breathes, once a second.
+    float edge = smoothstep(0.42, 1.02, length(SCREEN_UV - vec2(0.5)) * (1.05 + gloom * 0.45));
+    float gv = edge * gloom;
+    float breath = 0.82 + 0.18 * sin(TIME * 1.7) * smoothstep(0.45, 0.7, gloom);
+    vec3 fringe = col * vec3(0.62, 0.4, 1.05);
+    col = mix(col, fringe, gv * 0.85 * breath);
+    col *= 1.0 - gv * 0.18;
     // Hurt: a blood-violet bite from the frame edge, biased toward the attacker
     vec2 hd = SCREEN_UV - vec2(0.5);
     float side = length(hurt_dir) > 0.01 ? clamp(dot(normalize(hd + 1e-4), normalize(hurt_dir)) * 0.5 + 0.5, 0.0, 1.0) : 1.0;

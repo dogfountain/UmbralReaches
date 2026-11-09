@@ -302,7 +302,7 @@ func _facing(delta: float, horiz: Vector3, sprint_held: bool) -> void:
 		player._visual.twist = _twist
 		return
 	if player._arts != null and player._arts.phase() >= 0:
-		player._visual.rotation.y = lerp_angle(player._visual.rotation.y, player._face_yaw, 1.0 - exp(-24.0 * delta))   # r31: squared to the strike
+		player._visual.rotation.y = lerp_angle(player._visual.rotation.y, player._face_yaw, 1.0 - exp(-16.0 * delta))   # strike face: firm, not a snap
 		_twist = lerpf(_twist, 0.0, 1.0 - exp(-10.0 * delta))
 		player._visual.twist = _twist
 		return

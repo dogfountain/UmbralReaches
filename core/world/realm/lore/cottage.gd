@@ -273,9 +273,18 @@ static func _wall(L: RefCounted, xf: Transform3D, key: String, a: Vector3, b: Ve
 				var hwv := along * (float(o.w) * 0.5)
 				var hh := Vector3.UP * (oh * 0.5)
 				var pg := pc + inward * 0.08
-				k.quad("glow", xf * (pg - hwv - hh), xf * (pg + hwv - hh), xf * (pg + hwv + hh), xf * (pg - hwv + hh), xf.basis * -inward, false, 0.34)
-				k.box("iron", xf * (pc + inward * 0.04), Vector3(0.05, oh, 0.05), wb, false, 0.5)
-				k.box("iron", xf * (pc + inward * 0.04 + Vector3.UP * (oh * 0.1)), Vector3(float(o.w), 0.05, 0.05), wb, false, 0.5)
+				# four mullioned panes (was one flat glow card)
+				for sx: float in [-0.5, 0.5]:
+					for sy: float in [-0.5, 0.5]:
+						var c2 := pg + along * (float(o.w) * 0.25 * sx) + Vector3.UP * (oh * 0.25 * sy)
+						var pw := hwv * 0.46
+						var ph := hh * 0.46
+						k.quad("glow", xf * (c2 - pw - ph), xf * (c2 + pw - ph), xf * (c2 + pw + ph), xf * (c2 - pw + ph), xf.basis * -inward, false, 0.22)
+				var mouth: Vector3 = xf * (pc - inward * 0.2)
+				Interiors.shaft(L.holder, "CotTrail_%d_%d" % [int(mouth.x * 4.0), int(mouth.z * 4.0)], mouth, xf.basis * (-inward) + Vector3(0.0, -0.55, 0.0), Color(1.0, 0.58, 0.24), 0.85, 9.5, 20.0)
+				k.box("iron", xf * (pc + inward * 0.04), Vector3(0.04, oh, 0.04), wb, false, 0.5)
+				k.box("iron", xf * (pc + inward * 0.04), Vector3(float(o.w), 0.04, 0.04), wb, false, 0.45)
+				k.box("iron", xf * (pc + inward * 0.04 + Vector3.UP * (oh * 0.1)), Vector3(float(o.w), 0.04, 0.04), wb, false, 0.5)
 				# one shutter open, one hanging
 				k.box("lore_beam", xf * (pc - inward * 0.05 + along * (-float(o.w) * 0.5 - 0.22)), Vector3(0.42, oh, 0.05), wb * Basis(Vector3.UP, 0.5), false, 0.6)
 

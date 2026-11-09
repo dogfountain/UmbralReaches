@@ -27,8 +27,8 @@ func build(socket: Node3D) -> Node3D:
 	var light := OmniLight3D.new()
 	light.name = "LanternLight"
 	light.light_color = light_color
-	light.light_energy = 1.85
-	light.omni_range = 8.0
+	light.light_energy = 1.15
+	light.omni_range = 5.5
 	light.shadow_enabled = false
 	light.shadow_bias = 0.15
 	light.omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID

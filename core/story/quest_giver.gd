@@ -31,6 +31,8 @@ static func npc_id(n: Node) -> String:
 
 ## Would `id` be offered now (giver's mark): not under way, not done (unless a daily from an
 ## earlier day), and its `avail` condition holds.
+## Until the keep has spoken (`flag:met_keep`), nothing is offered: the first night opens on one
+## tutorial errand (find the Kindled Keg), not a forest of gold marks.
 static func available(id: String, tree: SceneTree = null, ws := {}) -> bool:
 	var qd: Dictionary = Chains.QUESTS.get(id, {})
 	if qd.is_empty() or Book.active(id):
@@ -39,10 +41,13 @@ static func available(id: String, tree: SceneTree = null, ws := {}) -> bool:
 		return false
 	if Book.started(id) and not Book.repeatable(id):
 		return false
+	var state: Dictionary = ws if not ws.is_empty() else (VState.world(tree) if tree else _ws())
+	if not StoryDB.test("flag:met_keep", state):
+		return false
 	var cond := Chains.avail_cond(id)
 	if cond == "":
 		return true
-	return VState.test(cond, ws if not ws.is_empty() else (VState.world(tree) if tree else _ws()), tree)
+	return VState.test(cond, state, tree)
 
 
 static func _ws() -> Dictionary:

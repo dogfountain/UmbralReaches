@@ -12,10 +12,10 @@ uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, r
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform sampler2D orm_tex : hint_default_white, filter_linear_mipmap, repeat_disable;
 uniform sampler2D emit_tex : source_color, hint_default_black, filter_linear_mipmap, repeat_disable;
-uniform float emit_energy = 1.3;
-uniform float normal_depth = 1.0;
+uniform float emit_energy = 1.35;
+uniform float normal_depth = 1.35;
 uniform vec3 rim_col : source_color = vec3(0.55, 0.36, 0.22);
-uniform float rim_amount = 0.12;
+uniform float rim_amount = 0.18;
 uniform vec3 burn_col : source_color = vec3(2.6, 1.3, 0.3);
 // glands, sacs and seams breathe: emission swells and sinks, out of phase from one body to the next
 // (pulse_phase is set once per body, so a swarm never pulses in step)
@@ -53,11 +53,11 @@ void fragment() {
 	ROUGHNESS = cl_wear_rough(cl_rough(orm.g, opos), wear);
 	SPECULAR = cl_wear_spec(0.5, wear);
 	METALLIC = orm.b;
-	// models pass: fine creases over the baked normals, and the baked colour broken up a little more
-	NORMAL = cl_bump(NORMAL, VERTEX, cl_skin_height(opos, 0.7), 0.0007);
-	ALBEDO = mix(ALBEDO, cl_skin_albedo(ALBEDO, opos, 0.7), 0.85 * (1.0 - orm.b));
+	// baked atlas carries normals: skip procedural cl_bump (was a multi-noise hit on every grunt)
+	ALBEDO = mix(ALBEDO, cl_skin_albedo(ALBEDO, opos, 0.7), 0.55 * (1.0 - orm.b));
 	NORMAL_MAP = texture(normal_tex, UV).rgb;
 	NORMAL_MAP_DEPTH = normal_depth;
+	ROUGHNESS = cl_skin_rough(ROUGHNESS, opos);
 	float ndv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 	// family finish: wet sheen on the smooth parts, dust on the up-facing ones
 	float smooth_part = (1.0 - smoothstep(0.35, 0.7, ROUGHNESS)) * (1.0 - METALLIC);

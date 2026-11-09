@@ -121,13 +121,13 @@ static func say(voice_set: String, act: String, at: Vector3, owner_id: int, db :
 		return false
 	var p := _voices[slot]
 	p.stream = s
-	p.volume_db = db + TRIM_DB + randf_range(-1.2, 1.0)
-	p.pitch_scale = maxf(pitch * randf_range(0.95, 1.05), 0.2)
-	p.unit_size = 9.0 if boss else 4.5
+	p.pitch_scale = maxf(pitch * randf_range(0.9, 1.1), 0.2)
+	p.unit_size = 10.0 if boss else 5.5
 	p.max_distance = reach
-	p.attenuation_filter_cutoff_hz = 5200.0 if boss else 3400.0
+	p.attenuation_filter_cutoff_hz = 6800.0 if boss else 4800.0
 	p.global_position = at
 	_meta[slot] = [now, score, act]
+	_rise(p, db + TRIM_DB + randf_range(-1.2, 0.6))
 	p.play()
 	voices_played += 1
 	return true
@@ -208,7 +208,7 @@ static func step(body: String, surface: StringName, at: Vector3, db := 0.0, pitc
 		p.max_distance = STEP_RANGE
 		p.max_db = 3.0
 		p.panning_strength = 1.2
-		p.attenuation_filter_cutoff_hz = 2600.0
+		p.attenuation_filter_cutoff_hz = 3600.0
 		p.attenuation_filter_db = -22.0
 		p.doppler_tracking = AudioStreamPlayer3D.DOPPLER_TRACKING_DISABLED
 		host.add_child(p)
@@ -232,10 +232,10 @@ static func step(body: String, surface: StringName, at: Vector3, db := 0.0, pitc
 		return
 	var pl := _steps[slot]
 	pl.stream = s
-	pl.volume_db = db + randf_range(-1.5, 1.0)
-	pl.pitch_scale = pitch * randf_range(0.93, 1.07)
+	pl.pitch_scale = pitch * randf_range(0.9, 1.1)
 	pl.global_position = at
 	_step_started[slot] = now
+	_rise(pl, db + randf_range(-1.2, 0.6))
 	pl.play()
 
 
@@ -338,6 +338,16 @@ class Voicebox extends RefCounted:
 
 
 ## The scene is leaving the tree: let the streams and players go before the audio server does.
+static func _rise(p: AudioStreamPlayer3D, db: float) -> void:
+	var old: Variant = p.get_meta(&"rise") if p.has_meta(&"rise") else null
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()
+	p.volume_db = db - 7.0
+	var tw := p.create_tween()
+	tw.tween_property(p, "volume_db", db, 0.016).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	p.set_meta(&"rise", tw)
+
+
 static func release() -> void:
 	for v in _voices:
 		if is_instance_valid(v):

@@ -100,6 +100,13 @@ static func _crate() -> ArrayMesh:
 	k.box("wood", Vector3(0, 0.3, 0), Vector3(0.62, 0.6, 0.62), Basis.IDENTITY, false, 0.85)
 	k.box("wood", Vector3(0, 0.3, 0), Vector3(0.66, 0.08, 0.66), Basis.IDENTITY, false, 0.6)      # the band round the middle
 	k.box("wood", Vector3(0, 0.58, 0), Vector3(0.66, 0.06, 0.66), Basis.IDENTITY, false, 0.7)
+	# corner posts + lid gap + plank seams so it stops reading as one cube
+	for sx: float in [-0.29, 0.29]:
+		for sz: float in [-0.29, 0.29]:
+			k.box("wood", Vector3(sx, 0.3, sz), Vector3(0.05, 0.62, 0.05), Basis.IDENTITY, false, 0.75)
+	k.box("wood", Vector3(0, 0.62, 0), Vector3(0.58, 0.03, 0.58), Basis.IDENTITY, false, 0.8)   # lid
+	k.box("wood", Vector3(0, 0.3, 0), Vector3(0.04, 0.58, 0.64), Basis.IDENTITY, false, 0.55)  # vertical seam
+	k.box("wood", Vector3(0, 0.3, 0), Vector3(0.64, 0.58, 0.04), Basis.IDENTITY, false, 0.55)
 	return _kit_mesh(k)
 
 
@@ -155,6 +162,7 @@ static func _kindling() -> ArrayMesh:
 static func _bench() -> ArrayMesh:
 	var k := OssKit.new()
 	k.box("wood", Vector3(0, 0.44, 0), Vector3(1.5, 0.07, 0.34), Basis.IDENTITY, false, 0.9)
+	k.box("wood", Vector3(0, 0.455, 0), Vector3(1.46, 0.02, 0.12), Basis.IDENTITY, false, 0.7)  # seat plank seam
 	for sx: float in [-0.6, 0.6]:
 		k.box("wood", Vector3(sx, 0.2, 0), Vector3(0.08, 0.4, 0.3), Basis.IDENTITY, false, 0.8)
 	return _kit_mesh(k)

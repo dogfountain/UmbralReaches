@@ -94,7 +94,17 @@ func interact(_by: Node) -> void:
 	var now := Time.get_ticks_msec() * 0.001
 	if now < _armed_until:
 		_armed_until = 0.0
-		Sfx.play("res://art/audio/ward_chime.wav", global_position + Vector3.UP * 2.0, 3.0, 0.45)   # 3D players cap at max_db 3
+		# its own strike (the ending's great bell, cracked and mouth-up): not the ward chime
+		var a := AudioStreamPlayer.new()
+		a.name = "DeeperBell"
+		a.stream = (load("res://core/life/wildlife/boss_themes.gd") as GDScript).call("great_bell")
+		a.pitch_scale = 0.82
+		a.volume_db = -2.0
+		a.bus = &"Music" if AudioServer.get_bus_index("Music") >= 0 else &"Master"
+		a.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(a)
+		a.finished.connect(a.queue_free)
+		a.play()
 		director.call("begin_deeper_night", true)
 		return
 	_armed_until = now + 8.0

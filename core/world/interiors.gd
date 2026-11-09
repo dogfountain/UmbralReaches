@@ -65,6 +65,7 @@ static func light(host: Node3D, n: String, at_world: Vector3, col: Color, e: flo
 	host.add_child(l)
 	l.global_position = at_world
 	LightPolicy.apply_fade(l)
+	LightPolicy.apply_illumination(l)
 	l.light_volumetric_fog_energy = 0.0       # a near-camera omni lights a froxel into a floating glow sphere
 	l.shadow_enabled = shadow and Settings.shadow_quality > 0
 	if shadow:
@@ -72,10 +73,108 @@ static func light(host: Node3D, n: String, at_world: Vector3, col: Color, e: flo
 	if flick > 0.0:
 		var f := Flicker.new()
 		f.light = l
-		f.base = e
+		f.base = l.light_energy
 		f.amount = flick
 		l.add_child(f)
 	return l
+
+
+## A warm cone out of an opening: the trail on the ground and in the fog. `out_dir` points out of the
+## room, slightly downward so the cone meets the yard. Not an omni (that reads as a floating sphere).
+## Enshrouded read: soft ground pool + volumetric cone + bright-pane gobo (a dark-field gobo killed the trail).
+static func shaft(host: Node3D, n: String, at_world: Vector3, out_dir: Vector3, col: Color, e: float, r: float, angle := 26.0, gobo: bool = true) -> SpotLight3D:
+	if host == null:
+		return null
+	var dir := out_dir
+	dir.y = minf(dir.y, -0.05)
+	if dir.length() < 0.05:
+		return null
+	dir = dir.normalized()
+	var l := SpotLight3D.new()
+	l.name = n
+	l.light_color = col
+	l.light_energy = e
+	l.spot_range = r
+	l.spot_angle = angle
+	l.spot_attenuation = 0.45
+	l.spot_angle_attenuation = 0.75
+	l.light_specular = 0.3
+	l.light_size = 0.28
+	l.shadow_enabled = false
+	if gobo:
+		l.light_projector = preload("res://art/textures/window_gobo.png")
+	l.set_meta(&"light_class", &"shaft")
+	l.set_meta(&"base", {"e": e, "r": r, "a": 1.0})
+	host.add_child(l)
+	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.98 else Vector3.FORWARD
+	if host.is_inside_tree():
+		l.global_position = at_world
+		l.look_at(at_world + dir, up)
+	else:
+		l.set_meta(&"shaft_world", at_world)
+		l.set_meta(&"shaft_dir", dir)
+		l.position = Vector3.ZERO
+		l.basis = Basis.looking_at(dir, up)
+		l.ready.connect(_shaft_snap.bind(l), CONNECT_ONE_SHOT)
+	LightPolicy.apply_fade(l)
+	LightPolicy.apply_shadows(l)
+	LightPolicy.apply_illumination(l)
+	var haze := FogVolume.new()
+	haze.name = "Shaft"
+	# Thin luminous wedge — dense fog volumes stacked at the tavern washed the yard orange.
+	haze.size = Vector3(r * 0.28, r * 0.32, r * 0.7)
+	haze.position = Vector3(0.0, -r * 0.03, -r * 0.32)
+	var fmat := FogMaterial.new()
+	fmat.density = 0.045
+	fmat.albedo = col
+	fmat.emission = Color(col.r, col.g, col.b, 1.0) * 0.18
+	fmat.edge_fade = 0.58
+	haze.material = fmat
+	l.add_child(haze)
+	# Rim on the sill/beams right outside the pane (Enshrouded window bleed), then a softer
+	# yard pool further down the cone. Modest so stacked tavern panes do not orange-wash.
+	var rim := OmniLight3D.new()
+	rim.name = "Rim"
+	rim.light_color = col
+	rim.light_energy = e * 0.28
+	rim.omni_range = 2.0
+	rim.omni_attenuation = 1.7
+	rim.light_specular = 0.2
+	rim.light_size = 0.25
+	rim.shadow_enabled = false
+	rim.light_volumetric_fog_energy = 0.08
+	rim.set_meta(&"light_class", &"lamp")
+	rim.position = Vector3(0.0, -0.15, -0.35)
+	l.add_child(rim)
+	var spill := OmniLight3D.new()
+	spill.name = "Spill"
+	spill.light_color = col
+	spill.light_energy = e * 0.2
+	spill.omni_range = r * 0.45
+	spill.omni_attenuation = 1.4
+	spill.light_specular = 0.14
+	spill.light_size = 0.4
+	spill.shadow_enabled = false
+	spill.light_volumetric_fog_energy = 0.12
+	spill.set_meta(&"light_class", &"lamp")
+	spill.position = Vector3(0.0, -r * 0.16, -r * 0.38)
+	l.add_child(spill)
+	var f := Flicker.new()
+	f.light = l
+	f.base = l.light_energy          # after apply_illumination
+	f.amount = 0.06
+	l.add_child(f)
+	return l
+
+
+static func _shaft_snap(l: SpotLight3D) -> void:
+	if l == null or not is_instance_valid(l) or not l.has_meta(&"shaft_world"):
+		return
+	var at_world: Vector3 = l.get_meta(&"shaft_world")
+	var dir: Vector3 = l.get_meta(&"shaft_dir")
+	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.98 else Vector3.FORWARD
+	l.global_position = at_world
+	l.look_at(at_world + dir, up)
 
 
 ## A room's warm fill: a long soft pool and, in a big room lit by its people, two more along its length.
@@ -96,7 +195,7 @@ static func room_lights(host: Node3D, id: String, centre: Vector3, yaw: float, h
 
 ## Eases a light's energy about its authored value: the shimmer of a flame.
 class Flicker extends Node:
-	var light: OmniLight3D
+	var light: Light3D
 	var base := 1.0
 	var amount := 0.08
 	var _t := randf() * 40.0

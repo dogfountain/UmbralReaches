@@ -19,8 +19,11 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Footing := preload("res://core/world/footing.gd")
 
-const LANTERN_PATHS := ["west_way", "east_way", "fen_descent"]
-const LANTERN_STEP := 26.0              ## metres between lanterns along a path
+const LANTERN_PATHS := [
+	"west_way", "east_way", "fen_descent",
+	"west_track", "weir_track", "spire_track", "anchor_track", "salt_track", "downs_track",
+]
+const LANTERN_STEP := 18.0              ## metres between lanterns along a path (was 26: roads felt empty)
 const EDGE_STEP := 10.0                 ## cliff spacing along an edge
 const EDGE_INSET := 1.4                 ## cliff centre this far inside BOUNDS (their backs touch the wall)
 const CLIFF_SIZES := [Vector3(12.0, 8.5, 4.5), Vector3(11.0, 6.5, 4.5)]
@@ -110,11 +113,22 @@ static func _lantern_ok(holder: Node3D, q: Vector2) -> bool:
 static func _lantern(k: OssKit, holder: Node3D, p: Vector3) -> void:
 	var yaw := fposmod(p.x * 1.7 + p.z * 0.9, 0.6) - 0.3     # deterministic, per spot
 	var b := Basis(Vector3.UP, yaw)
+	var b45 := Basis(Vector3.UP, yaw + PI * 0.25)
 	k.box("stone", p + Vector3.UP * 0.2, Vector3(0.55, 0.6, 0.55), b, true, 0.85)       # plinth, set in the ground
 	k.box("stone", p + Vector3.UP * 1.1, Vector3(0.3, 1.4, 0.3), b, true, 0.95)         # the waystone shaft
 	k.box("iron", p + Vector3.UP * 1.84, Vector3(0.36, 0.06, 0.36), b, false)
-	k.box("glow", p + Vector3.UP * 2.02, Vector3(0.2, 0.28, 0.2), b, false, 0.55)      # the lamp
+	k.box("iron", p + Vector3.UP * 1.9, Vector3(0.28, 0.04, 0.28), b45, false)           # stepped hat
+	# iron cage + hexagonal glass belly (was a glow cube)
+	var lc := p + Vector3.UP * 2.02
+	for sx: float in [-0.09, 0.09]:
+		for sz: float in [-0.09, 0.09]:
+			k.box("iron", lc + b * Vector3(sx, 0.0, sz), Vector3(0.025, 0.3, 0.025), b, false)
+	k.box("iron", lc + Vector3.UP * 0.02, Vector3(0.2, 0.02, 0.02), b, false)
+	k.box("iron", lc + Vector3.UP * 0.02, Vector3(0.02, 0.02, 0.2), b, false)
+	k.box("glow", lc, Vector3(0.14, 0.22, 0.14), b, false, 0.4)
+	k.box("glow", lc, Vector3(0.14, 0.22, 0.14), b45, false, 0.35)
 	k.box("iron", p + Vector3.UP * 2.2, Vector3(0.32, 0.06, 0.32), b, false)
+	k.box("iron", p + Vector3.UP * 2.24, Vector3(0.18, 0.04, 0.18), b45, false)
 	var l := OmniLight3D.new()
 	l.name = "WayLamp"
 	l.light_color = Color(1.0, 0.6, 0.3)

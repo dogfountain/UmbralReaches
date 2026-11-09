@@ -17,7 +17,7 @@ const QuestBook := preload("res://core/story/quest_book.gd")
 ## head while the objective is open (quest_giver.gd states(); the keep at the start and the end).
 const OBJECTIVES := [
 	{"id": "arrive", "main": true, "when": "", "done": "flag:met_keep", "who": "keep", "mark": "available",
-		"text": "Find the keeper of the Kindled Keg in Hearthward"},
+		"text": "Find the keep of the Kindled Keg — he will tell you what this night is for"},
 	# Two doors, one line: his sentence while both seals are shut. Breaking one swaps it for that fight,
 	# and the other door is the next line. Either door first still counts.
 	{"id": "doors", "main": true, "when": "flag:met_keep", "done": "seal:henge|boss:thornwarden|seal:oss_gallery|boss:bone_abbot",

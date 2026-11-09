@@ -953,7 +953,7 @@ func _glow_part() -> void:
 	glow_mat.albedo_color = Color(1.0, 0.66, 0.32) if kind != "tongs" else Color(1.0, 0.45, 0.12)
 	glow_mat.emission_enabled = true
 	glow_mat.emission = Color(1.0, 0.55, 0.2) if kind != "tongs" else Color(1.0, 0.36, 0.06)
-	glow_mat.emission_energy_multiplier = 1.25
+	glow_mat.emission_energy_multiplier = 0.55
 	glow = MeshInstance3D.new()
 	glow.name = "Glow"
 	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

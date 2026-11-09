@@ -37,10 +37,10 @@ static func _strength(kind: StringName) -> float:
 		&"husk", &"leaper", &"thorn":
 			return 6.0
 		&"crawler", &"ossuant":
-			return 5.0
+			return 5.2
 		&"spitter":
-			return 2.5
-	return 4.0
+			return 2.8
+	return 4.2
 
 
 static func _height(kind: StringName) -> Image:

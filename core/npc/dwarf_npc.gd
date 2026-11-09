@@ -48,6 +48,7 @@ var away := false                ## out of his seat (the partner talks to no one
 var note := 0.0                  ## a sung note just began (1, decays): the jaw opens on it
 var slam_hit := false            ## an argument's fist came down this pose (the scenes play the thump)
 var dice_out := false            ## the dice left his hand this pose
+var _dice_fired := false         ## one throw per cue (edge-detect misses on skipped frames)
 
 var rig: DwarfRig
 var life: Life
@@ -140,6 +141,7 @@ func interact(by: Node) -> void:
 
 ## A joint beat from the partner: start `act` now for `length` seconds.
 func cue(act: String, length: float) -> void:
+	_dice_fired = false
 	_act = act
 	_act_t = 0.0
 	_act_len = length
@@ -381,7 +383,8 @@ func animate(delta: float) -> void:
 			# shake them by the ear, throw across the board, watch them roll
 			var shake := 1.0 - smoothstep(0.5, 0.58, k)
 			var thrown := smoothstep(0.52, 0.62, k)
-			if k >= 0.58 and (k - delta / maxf(_act_len, 0.01)) < 0.58:
+			if k >= 0.58 and not _dice_fired:
+				_dice_fired = true
 				dice_out = true
 			var cup := Vector3(-0.16, rig.H + 0.52 + 0.035 * sin(_act_t * 31.0) * shake, -0.3)
 			var throw_to := Vector3(-0.04, table_top + 0.08, table_edge - 0.3)

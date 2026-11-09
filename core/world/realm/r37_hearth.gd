@@ -112,7 +112,7 @@ static func fire(host: Node3D, base: Vector3, b: Basis, d: float, t: float, cx: 
 	coal.emission_enabled = true
 	coal.emission = Color(1.0, 0.32, 0.07)
 	coal.emission_texture = ImageTexture.create_from_image(timg)
-	coal.emission_energy_multiplier = 2.2
+	coal.emission_energy_multiplier = 1.05
 	root.add_child(_mesh(_box(Vector3(0.86, 0.05, 0.5)), coal, Vector3(0, 0.03, -0.02)))
 	# the flame: two crossed cards on the brazier's own shader
 	var shader := load("res://world/brazier_flame.gdshader") as Shader
@@ -135,7 +135,7 @@ static func fire(host: Node3D, base: Vector3, b: Basis, d: float, t: float, cx: 
 		em.position = Vector3(0, 0.45, 0)
 		em.emitting = true
 	# the light: in the firebox's mouth, so the walls and floor take it
-	Interiors.light(host, id + "Fire", root.global_position + b * Vector3(0, 0.55, 0.45), Interiors.FIRE, 1.7, 5.5, false, 0.14)
+	Interiors.light(host, id + "Fire", root.global_position + b * Vector3(0, 0.55, 0.45), Interiors.FIRE, 1.05, 5.0, false, 0.14)
 
 
 static func _box(size: Vector3) -> BoxMesh:
@@ -167,7 +167,7 @@ static func lantern() -> Node3D:
 	glass.albedo_color = Color(1.0, 0.62, 0.28)
 	glass.emission_enabled = true
 	glass.emission = Color(1.0, 0.68, 0.32)
-	glass.emission_energy_multiplier = 0.8
+	glass.emission_energy_multiplier = 0.38
 	var body := CylinderMesh.new()
 	body.top_radius = 0.06
 	body.bottom_radius = 0.05

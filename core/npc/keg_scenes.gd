@@ -268,9 +268,14 @@ func _dice_step(delta: float) -> void:
 			d.queue_free()
 		_dice.clear()
 		_dice_v.clear()
+		# throw on a timer too: dice_out is a one-frame flag and misses when the dwarf poses at 12 Hz
+		get_tree().create_timer(1.55, false).timeout.connect(func() -> void:
+			if is_inside_tree() and scene == "dice" and _dice.is_empty() and is_instance_valid(thrower):
+				_throw(thrower, watcher))
 	if bool(thrower.get("dice_out")):
 		thrower.set("dice_out", false)
-		_throw(thrower, watcher)
+		if _dice.is_empty():
+			_throw(thrower, watcher)
 	# tumble
 	for i in _dice.size():
 		var m := _dice[i]

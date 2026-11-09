@@ -405,7 +405,30 @@ static func _building(host: Node3D, space: PhysicsDirectSpaceState3D, id: String
 		Interiors.room_lights(host, "bld_" + id, at + Basis(Vector3.UP, float(d.yaw)) * Vector3(0, 0.66 + hh, 0), float(d.yaw), Vector3(d.size.x * 0.5 - t, hh, d.size.y * 0.5 - t), int(d.get("glow", 0)) > 0, 1.8)
 		if int(d.get("glow", 0)) > 0:
 			Hearth.fire(host, at, Basis(Vector3.UP, float(d.yaw)), float(d.size.y), t, float(d.size.x) * 0.3, "bld_" + id)
+			_window_trails(host, id, at, float(d.yaw), d)
+	elif int(d.get("glow", 0)) > 0:
+		var b := Basis(Vector3.UP, float(d.yaw))
+		var mouth := at + b * Vector3(0.0, 1.2, float(d.size.y) * 0.5 + 0.5)
+		Interiors.shaft(host, "OpenTrail_%s" % id, mouth, b * Vector3(0.0, -0.2, 1.0), Color(1.0, 0.42, 0.14), 1.5, 11.0, 38.0)
 	return at
+
+
+## Cones out of the lit panes and the door, aimed down the front face (local +z). Same openings as _house.
+static func _window_trails(host: Node3D, id: String, at: Vector3, yaw: float, d: Dictionary) -> void:
+	var b := Basis(Vector3.UP, yaw)
+	var w := float(d.size.x)
+	var depth := float(d.size.y)
+	var dw := float(d.get("door_w", 1.4))
+	var nglow := int(d.get("glow", 0))
+	var span := w * 0.5 - dw * 0.5 - 1.0
+	if span > 0.9:
+		var xs: Array[float] = [-(dw * 0.5 + span * 0.55), dw * 0.5 + span * 0.55]
+		for i in xs.size():
+			if i < nglow or nglow >= 2:
+				var pos := at + b * Vector3(xs[i], 1.9, depth * 0.5 + 0.35)
+				Interiors.shaft(host, "WinTrail_%s_%d" % [id, i], pos, b * Vector3(0.0, -0.45, 1.0), Color(1.0, 0.58, 0.26), 1.15, 10.0, 24.0)
+	var door := at + b * Vector3(0.0, 1.35, depth * 0.5 + 0.45)
+	Interiors.shaft(host, "DoorTrail_%s" % id, door, b * Vector3(0.0, -0.32, 1.0), Color(1.0, 0.52, 0.2), 1.3, 11.0, 32.0)
 
 
 ## Barrels and crates in a corner: small boxes, no fuss.
@@ -469,6 +492,8 @@ static func _mill(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var k := _kit()
 	k.box("glow", Vector3(-221.5, y + 5.0, 61.95), Vector3(0.9, 0.7, 0.05), Basis.IDENTITY, false, 1.0)
 	k.box("glow", Vector3(-218.0, y + 5.0, 61.95), Vector3(0.9, 0.7, 0.05), Basis.IDENTITY, false, 1.0)
+	for mx: float in [-221.5, -218.0]:
+		Interiors.shaft(host, "MillTrail_%d" % int(mx), Vector3(mx, y + 4.9, 62.15), Vector3(0.0, -0.55, 1.0), Color(1.0, 0.58, 0.26), 1.1, 12.0, 18.0)
 	k.commit(host, "MillGlow")
 	_chest(host, "weirford_loft", Vector3(-224.5, y + 3.6, 56.0), 0.4)
 	_lore(host, "r37w_mill", Vector3(-217.0, y + 1.0, 63.0), Vector3(-217.0, y + 1.0, 63.0))

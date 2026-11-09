@@ -4,8 +4,8 @@ extends Interactable
 
 @export var start_lit := false
 @export var light_radius := 11.0
-@export var lit_energy := 20.0       ## the ground is dark and grainy: 4.6 left no warm pool on it
-@export var lit_range := 14.5
+@export var lit_energy := 8.5        ## warm pool on dark ground; 20 washed yards orange
+@export var lit_range := 11.5
 
 var lit := false
 var _spawn_at := Vector3(INF, 0.0, 0.0)           ## spawn_point(), found once for the 'already resting here' test
@@ -27,7 +27,7 @@ const FIRE_LIGHT := Color(1.0, 0.52, 0.18)         ## a kindled fire throws a de
 const MAP_LIT := Color(1.0, 0.62, 0.3)
 const MAP_COLD := Color(0.5, 0.48, 0.52)
 ## Emissive caps: lit coals peak at 1.6 (were 4.0), so they stay gold-orange under AgX, not a white blob
-const COAL_GLOW := 1.6
+const COAL_GLOW := 0.85
 
 
 func _ready() -> void:

@@ -363,7 +363,7 @@ const CAST := {
 			"count": [{"go": "dunstan_w1"}, {"act": "idle", "at": "dunstan_w2", "face": "@out_dunstan", "t": [10.0, 16.0]}, {"go": "dunstan_w3"}, {"go": "dunstan_fire"}],
 		}},
 	# --- the east marches ---
-	"marl": R37E.MARL, "teasel": R37E.TEASEL, "orrin": R37E.ORRIN, "ardel": R37E.ARDEL, "pip": R37E.PIP,
+	"marl": R37E.MARL, "teasel": R37E.TEASEL, "orrin": R37E.ORRIN, "ardel": R37E.ARDEL, "pip": R37E.PIP, "nella": R37E.NELLA,
 }
 
 ## r34: the outposts of the doubled world (docs/r34/layout.md SLOTS): where each new giver camps.

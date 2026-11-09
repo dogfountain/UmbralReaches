@@ -65,8 +65,8 @@ static func light(parent: Node3D, n: String, at: Vector3, col: Color, e: float, 
 	var l := OmniLight3D.new()
 	l.name = n
 	l.light_color = col
-	l.light_energy = e * 2.0               # window and lamp light has to reach the ground and the walls
-	l.omni_range = r * 1.15
+	l.light_energy = e                     # authored energies stand; *2 washed cottages orange
+	l.omni_range = r * 1.05
 	l.shadow_enabled = false
 	l.set_meta(&"light_class", &"realm")
 	l.distance_fade_enabled = true
@@ -77,12 +77,15 @@ static func light(parent: Node3D, n: String, at: Vector3, col: Color, e: float, 
 	return l
 
 
-static func _commit(k: OssKit, parent: Node3D, body := "Body", far := 70.0) -> void:
+static func _commit(k: OssKit, parent: Node3D, body := "Body", far := 95.0) -> void:
 	k.commit(parent, body)
 	for c in parent.get_children():
 		if c is GeometryInstance3D:
-			(c as GeometryInstance3D).visibility_range_end = far
-			(c as GeometryInstance3D).visibility_range_end_margin = 8.0
+			var g := c as GeometryInstance3D
+			g.visibility_range_end = far
+			g.visibility_range_end_margin = 14.0
+			g.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			g.extra_cull_margin = maxf(g.extra_cull_margin, 3.0)
 
 
 static func holder(parent: Node, n: String) -> Node3D:
@@ -350,7 +353,7 @@ static func hermit(parent: Node, space: PhysicsDirectSpaceState3D, c: Vector2) -
 		h.add_child(smoke)
 		smoke.global_position = f + Vector3.UP * 0.7
 		smoke.emitting = true
-	var l := light(h, "CampFire", f + Vector3.UP * 0.55, Color(1.0, 0.52, 0.2), 1.1, 5.5)
+	var l := light(h, "CampFire", f + Vector3.UP * 0.55, Color(1.0, 0.52, 0.2), 0.72, 5.0)
 	return {"fire": f, "seat": seat, "grave": g, "light": l}
 
 
@@ -482,7 +485,7 @@ static func outpost(parent: Node, space: PhysicsDirectSpaceState3D, c: Vector2, 
 		smoke.global_position = f + Vector3.UP * 0.7
 		smoke.visibility_range_end = 70.0
 		smoke.emitting = true
-	var l := light(h, "OutpostFire", f + Vector3.UP * 0.55, Color(1.0, 0.52, 0.2), 1.05, 6.5)
+	var l := light(h, "OutpostFire", f + Vector3.UP * 0.55, Color(1.0, 0.52, 0.2), 0.7, 5.8)
 	# a camp fire is light the gloom will not cross: ordinary foes slink off it (not a rest, not a
 	# checkpoint: LightGrid's "mirror" kind), so the giver is not stood in the middle of a fight
 	LightGrid.register(l, 5.5, LightGrid.MIRROR)
@@ -520,7 +523,7 @@ static func sexton(parent: Node, space: PhysicsDirectSpaceState3D, pit: Vector2,
 	k.box("glow", st + Vector3(0.0, 1.1, 0.0), Vector3(0.1, 0.16, 0.1), b, false, 0.8)
 	k.box("iron", st + Vector3(0.0, 1.0, 0.0), Vector3(0.14, 0.03, 0.14), b, false, 0.6)
 	_commit(k, h, "DigBody")
-	var l := light(h, "GraveLantern", st + Vector3(0, 1.15, 0), Color(1.0, 0.58, 0.28), 0.7, 5.0)
+	var l := light(h, "GraveLantern", st + Vector3(0, 1.15, 0), Color(1.0, 0.58, 0.28), 0.45, 4.4)
 	return {"pit": o, "heap": heap_at + Vector3.UP * 0.3, "light": l}
 
 
@@ -579,6 +582,8 @@ static func cottage_xf(id: String) -> Transform3D:
 
 
 ## Lit panes over the shutters of a dark cottage, with an iron cross in front, and chimney smoke.
+## Each pane also throws a warm gobo shaft and a short spill omni onto the yard (the glass alone
+## was a flat card; the trail is what reads as light leaving the house).
 static func windows(parent: Node, id: String, smoke := true) -> Node3D:
 	LK.ensure_mats()
 	var h := holder(parent, "Lit_" + id)
@@ -597,18 +602,41 @@ static func windows(parent: Node, id: String, smoke := true) -> Node3D:
 		[Vector3(hw - w * 0.7, 0, hd), Vector3(0, 0, 1), Vector3(-1, 0, 0)],
 		[Vector3(-hw, 0, 0), Vector3(-1, 0, 0), Vector3(0, 0, -1)],
 	]
+	var warm := Color(1.0, 0.58, 0.24)
+	var pi := 0
 	for p: Array in panes:
 		var nrm: Vector3 = p[1]
 		var along: Vector3 = p[2]
 		var ctr: Vector3 = (p[0] as Vector3) + Vector3.UP * 1.4 - nrm * 0.08
-		var a := xf * (ctr - along * 0.4 - Vector3.UP * 0.45)
-		var b := xf * (ctr + along * 0.4 - Vector3.UP * 0.45)
-		var cc := xf * (ctr + along * 0.4 + Vector3.UP * 0.45)
-		var dd := xf * (ctr - along * 0.4 + Vector3.UP * 0.45)
-		k.quad("glow", a, b, cc, dd, xf.basis * nrm, false, 0.42)
+		# four mullioned panes instead of one flat glow card
+		var half_a := along * 0.4
+		var half_h := Vector3.UP * 0.45
+		var mid_a := along * 0.02
+		var mid_h := Vector3.UP * 0.02
+		var panes4: Array = [
+			[ctr - half_a * 0.5 - half_h * 0.5 - mid_a - mid_h, 0.38, 0.42],
+			[ctr + half_a * 0.5 - half_h * 0.5 + mid_a - mid_h, 0.38, 0.42],
+			[ctr - half_a * 0.5 + half_h * 0.5 - mid_a + mid_h, 0.38, 0.42],
+			[ctr + half_a * 0.5 + half_h * 0.5 + mid_a + mid_h, 0.38, 0.42],
+		]
+		for pane: Array in panes4:
+			var pc: Vector3 = pane[0]
+			var pw: float = pane[1]
+			var ph: float = pane[2]
+			var a := xf * (pc - along * pw * 0.5 - Vector3.UP * ph * 0.5)
+			var b := xf * (pc + along * pw * 0.5 - Vector3.UP * ph * 0.5)
+			var cc := xf * (pc + along * pw * 0.5 + Vector3.UP * ph * 0.5)
+			var dd := xf * (pc - along * pw * 0.5 + Vector3.UP * ph * 0.5)
+			k.quad("glow", a, b, cc, dd, xf.basis * nrm, false, 0.11)
 		var wb := xf.basis * Basis(along, Vector3.UP, along.cross(Vector3.UP))
-		k.box("iron", xf * (ctr + nrm * 0.03), Vector3(0.05, 0.9, 0.05), wb, false, 0.5)
-		k.box("iron", xf * (ctr + nrm * 0.03 + Vector3.UP * 0.1), Vector3(0.8, 0.05, 0.05), wb, false, 0.5)
+		k.box("iron", xf * (ctr + nrm * 0.03), Vector3(0.04, 0.92, 0.04), wb, false, 0.5)
+		k.box("iron", xf * (ctr + nrm * 0.03 + Vector3.UP * 0.05), Vector3(0.82, 0.04, 0.04), wb, false, 0.5)
+		k.box("iron", xf * (ctr + nrm * 0.03), Vector3(0.82, 0.04, 0.04), wb, false, 0.45)   # crossbar
+		var world_ctr: Vector3 = xf * ctr
+		var out: Vector3 = (xf.basis * nrm).normalized()
+		Interiors.shaft(h, "WindowTrail_%d" % pi, world_ctr - out * 0.05, out + Vector3(0.0, -0.55, 0.0), warm, 0.55, 8.0, 14.0)
+		light(h, "WindowSpill_%d" % pi, world_ctr - out * 0.7, warm, 0.32, 4.2)
+		pi += 1
 	_commit(k, h, "LitBody", 120.0)
 	if smoke:
 		var gable_h := H + d * 0.5 * 0.95

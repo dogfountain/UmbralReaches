@@ -65,7 +65,7 @@ static func variants(kind: String) -> Array:
 	if _bank.has(kind):
 		return _bank[kind]
 	var out: Array = []
-	var cached: Variant = GenCache.load_var("staff_sfx_" + kind, SELF)
+	var cached: Variant = GenCache.load_var("staff_sfx_v2_" + kind, SELF)
 	if cached is Array and not (cached as Array).is_empty():
 		for b: Variant in cached:
 			out.append(_wav(b as PackedByteArray, kind == "lance_charge"))
@@ -81,7 +81,7 @@ static func variants(kind: String) -> Array:
 			var bytes := _bytes(pcm)
 			raw.append(bytes)
 			out.append(_wav(bytes, kind == "lance_charge"))
-		GenCache.save_var("staff_sfx_" + kind, SELF, raw)
+		GenCache.save_var("staff_sfx_v2_" + kind, SELF, raw)
 	_bank[kind] = out
 	return out
 
@@ -114,18 +114,45 @@ static func _bytes(pcm: PackedFloat32Array) -> PackedByteArray:
 # --- the recipes -----------------------------------------------------------------------------------
 
 static func _make(kind: String, r: RandomNumberGenerator) -> PackedFloat32Array:
+	var out := _raw(kind, r)
+	if out.is_empty() or kind == "lance_charge":
+		return out
+	return _polish(out)
+
+
+## A short rise, a short close, and a dull slapback, so a cast sits in the night instead of clicking dry.
+static func _polish(x: PackedFloat32Array) -> PackedFloat32Array:
+	var n := x.size()
+	if n < 16:
+		return x
+	var a := mini(n / 4, int(0.005 * RATE))
+	var z := mini(n / 4, int(0.02 * RATE))
+	for i in a:
+		x[i] *= float(i) / float(maxi(a, 1))
+	for i in z:
+		x[n - 1 - i] *= float(i) / float(maxi(z, 1))
+	var d := int(0.024 * RATE)
+	var acc := 0.0
+	for i in range(d, n):
+		acc = acc * 0.7 + x[i - d] * 0.3
+		x[i] += acc * 0.2
+	return x
+
+
+static func _raw(kind: String, r: RandomNumberGenerator) -> PackedFloat32Array:
 	match kind:
 		"bolt":
-			var n := _n(0.36)
+			var n := _n(0.5)
 			var out := _zeros(n)
-			_add(out, _fm_chirp(n, r.randf_range(1900, 2400), r.randf_range(520, 700), r.randf_range(1.4, 2.1), 3.5, 0.0, 0.14), 0.55)
-			_add(out, _swept_noise(n, r.randf_range(2600, 3400), 800.0, 0.6, 0.004, 0.22, r), 0.5)
-			_add(out, _click(n, 3200.0, r), 0.35)
-			_add(out, _thump(n, 120.0, 60.0, 0.07), 0.45)
+			_add(out, _fm_chirp(n, r.randf_range(1680, 2100), r.randf_range(480, 640), r.randf_range(1.3, 1.8), 2.4, 0.0, 0.24), 0.62)
+			_add(out, _swept_noise(n, r.randf_range(1800, 2400), 500.0, 0.7, 0.008, 0.32, r), 0.38)
+			_add(out, _ring(n, [r.randf_range(720, 860), r.randf_range(1100, 1280)], 0.32, 0.012), 0.28)
+			_add(out, _click(n, 2400.0, r), 0.16)
+			_add(out, _thump(n, 96.0, 48.0, 0.14), 0.62)
 			return out
 		"lash":
 			var n := _n(0.62)
-			var out := _make("bolt", r)
+			var out := _raw("bolt", r)
 			out.resize(n)
 			_add(out, _thump(n, 90.0, 38.0, 0.22), 0.9)
 			_add(out, _ring(n, [r.randf_range(1300, 1500), r.randf_range(2050, 2300), 3400.0], 0.42, 0.01), 0.35)
@@ -140,26 +167,28 @@ static func _make(kind: String, r: RandomNumberGenerator) -> PackedFloat32Array:
 			_add(out, _ring(n, [r.randf_range(1250, 1500), r.randf_range(1900, 2200)], 0.18, 0.003), 0.25)
 			return out
 		"lance_fire":
-			var n := _n(0.95)
+			var n := _n(1.05)
 			var out := _zeros(n)
-			_add(out, _swept_noise(n, 350.0, 2600.0, 0.5, 0.03, 0.75, r, 900.0), 0.8)
-			_add(out, _saw_grit(n, r.randf_range(95, 120), 0.6, r), 0.35)
-			_add(out, _crackle(n, 0.7, 120.0, 2600.0, r), 0.35)
-			_add(out, _thump(n, 70.0, 40.0, 0.18), 0.6)
+			_add(out, _swept_noise(n, 280.0, 1600.0, 0.55, 0.04, 0.85, r, 700.0), 0.72)
+			_add(out, _saw_grit(n, r.randf_range(82, 98), 0.7, r), 0.22)
+			_add(out, _crackle(n, 0.75, 70.0, 1600.0, r), 0.22)
+			_add(out, _thump(n, 64.0, 34.0, 0.26), 0.7)
 			return out
 		"lance_hit":
-			var n := _n(1.25)
+			var n := _n(1.35)
 			var out := _zeros(n)
-			_add(out, _swept_noise(n, 2200.0, 180.0, 1.0, 0.001, 0.9, r), 0.9)
-			_add(out, _thump(n, 75.0, 30.0, 0.45), 1.0)
-			_add(out, _crackle(n, 1.1, 90.0, 2200.0, r, 0.15), 0.45)
+			_add(out, _swept_noise(n, 1400.0, 140.0, 0.85, 0.004, 1.0, r), 0.62)
+			_add(out, _thump(n, 62.0, 26.0, 0.55), 1.0)
+			_add(out, _ring(n, [r.randf_range(180, 210), r.randf_range(360, 410)], 0.7, 0.02), 0.28)
+			_add(out, _crackle(n, 1.0, 55.0, 1400.0, r, 0.12), 0.28)
 			return out
 		"nova":
-			var n := _n(1.4)
+			var n := _n(1.55)
 			var out := _zeros(n)
-			_add(out, _thump(n, 85.0, 28.0, 0.7), 1.0)
-			_add(out, _swept_noise(n, 3000.0, 200.0, 1.1, 0.002, 0.8, r), 0.6)
-			_add(out, _ring(n, [r.randf_range(620, 700), r.randf_range(930, 1050), r.randf_range(1480, 1650), 2350.0], 1.1, 0.02), 0.3)
+			_add(out, _thump(n, 72.0, 26.0, 0.85), 1.0)
+			_add(out, _thump(n, 48.0, 22.0, 1.1), 0.45)
+			_add(out, _swept_noise(n, 1800.0, 160.0, 0.9, 0.006, 0.9, r), 0.42)
+			_add(out, _ring(n, [r.randf_range(220, 260), r.randf_range(440, 490), r.randf_range(660, 740), r.randf_range(980, 1100)], 1.25, 0.03), 0.34)
 			return out
 		"tap":
 			var n := _n(0.26)
@@ -385,7 +414,7 @@ static func _click(n: int, f: float, r: RandomNumberGenerator) -> PackedFloat32A
 		var y := c.z * x + c.x * y1 - c.y * y2
 		y2 = y1
 		y1 = y
-		out[i] = y * 6.0
+		out[i] = y * 2.8
 	return out
 
 

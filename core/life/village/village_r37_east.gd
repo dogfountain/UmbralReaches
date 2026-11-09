@@ -1,5 +1,5 @@
 extends RefCounted
-## East Marches: the people of Saltmarket (docs/r37_expansion.md). Five of them live round the
+## East Marches: the people of Saltmarket (docs/r37_expansion.md). Six of them live round the
 ## hamlet's fire, its stall, doors and drying shed; the nodes they walk are laid by
 ## realm_pois_r37_east.gd hamlet() (called from village.gd); this file is their data in the village's
 ## own shapes, listed in the shared tables' `# --- east ---` blocks:
@@ -73,6 +73,24 @@ const PIP := {"name": "Pip", "title": "Pip, who hauls", "when": "", "camp": "out
 	"routines": {
 		"haul": [{"go": "sm_door_c"}, {"act": "idle", "at": "sm_door_c", "face": "@sm_fire", "t": [6.0, 10.0]}, {"go": "sm_door_b"}, {"act": "idle", "at": "sm_door_b", "face": "@out_sm", "t": [6.0, 10.0]}],
 		"camp": [{"act": "sit", "at": "sm_seat", "face": "@sm_fire", "t": [14.0, 22.0], "seat": 0.36}, {"act": "chat", "at": "sm_fire", "face": "@sm_fire", "t": [6.0, 9.0]}],
+	}}
+
+const NELLA := {"name": "Nella", "title": "Nella Crake, who rakes the pans", "when": "", "camp": "outpost",
+	"rig": {"seed": 6606, "sex": "f", "age": "adult", "garment": "shirt", "apron": "linen", "hat": "kerchief", "hair": "braids",
+		"r": "scoop", "girth": 1.02, "cloth": Color(0.38, 0.36, 0.32), "cloth2": Color(0.44, 0.4, 0.34),
+		"hair_c": Color(0.28, 0.18, 0.1), "skin": Color(0.8, 0.6, 0.46), "leather": Color(0.36, 0.24, 0.12)},
+	"home": "sm_door_a", "speed": 1.0,
+	"schedule": {"dusk": "rake", "work": "rake", "midnight": "warm", "late": "rake"},
+	"routines": {
+		"rake": [
+			{"act": "sift", "at": "sm_shed", "face": "@out_sm", "t": [10.0, 16.0]},
+			{"go": "sm_w1"}, {"act": "idle", "at": "sm_w1", "face": "@out_sm", "t": [5.0, 8.0]},
+			{"go": "sm_door_a"}, {"act": "lean", "at": "sm_door_a", "face": "@sm_fire", "t": [6.0, 10.0]},
+		],
+		"warm": [
+			{"act": "warm", "at": "sm_fire", "face": "@sm_fire", "t": [10.0, 14.0]},
+			{"act": "sit", "at": "sm_seat", "face": "@sm_fire", "t": [12.0, 18.0], "seat": 0.36},
+		],
 	}}
 
 # --- what they say --------------------------------------------------------------------------------
@@ -153,10 +171,26 @@ const CONV_PIP := {"name": "Pip", "start": [["!met:pip", "meet"], ["", "hub"]], 
 	"pans": {"say": "White stuff that crunches. And tall shiny stones where the salt grew up wrong. Don't lick them. I did. Once.", "next": "hub"},
 }}
 
+const CONV_NELLA := {"name": "Nella Crake", "start": [["!met:nella", "meet"], ["", "hub"]], "nodes": {
+	"meet": {"say": "Boots off the white, if you please. Fresh crust breaks under a heel and you've ruined a week's work.", "next": "meet2"},
+	"meet2": {"say": "Nella. I rake. I stack. I sleep with salt in my hair and I don't mind it anymore.", "do": "met:nella", "next": "hub"},
+	"hub": {"say_if": [
+		["qd:salt_widow", "I used to leave a dish of brine at Corra's door. Don't now. There's nowhere for it to go."],
+		["qd:salt_sweep", "Quiet pans are a strange thing. You hear the wind again. I'd forgotten it had a voice."],
+		["", "The pans teach you patience or they teach you nothing. Most people leave. I stayed. That's the whole story."],
+	], "choices": [
+		{"text": "How long have you raked?", "to": "years", "once": true},
+		{"text": "Goodbye.", "to": ""},
+	]},
+	"years": {"say": "Fourteen winters. The Order paid for twelve of them. The last two I paid myself, in sleep I didn't get.", "next": "hub"},
+}}
+
 # --- Orrin's stall (village_shop.gd) ----------------------------------------------------------------
 
 const MERCHANT_ORRIN := {"name": "Orrin Vail's stall", "greet": "Salt, rope, off-the-road oddities. Ash, no haggling. Take your time; I have all night and no one else is awake."}
 const GOODS_ORRIN := [
-	{"id": "relic_fragment", "item": "relic_fragment", "price": 14, "stock": 2, "say": "Bell-bronze, or a saint. I didn't ask which."},
-	{"id": "ember_shard", "item": "ember_shard", "price": 9, "stock": 3, "say": "Off a slag heap, they say. Still warm in the right hands."},
+	{"id": "relic_fragment", "item": "relic_fragment", "price": 14, "stock": 3, "say": "Bell-bronze, or a saint. I didn't ask which."},
+	{"id": "ember_shard", "item": "ember_shard", "price": 9, "stock": 4, "say": "Off a slag heap, they say. Still warm in the right hands."},
+	{"id": "grave_iron", "item": "grave_iron", "price": 11, "stock": 2, "say": "Pulled out of a pan bund. Still tastes of the flats."},
+	{"id": "ash_bloom", "item": "ash_bloom", "price": 6, "stock": 3, "say": "Grew in a bund crack. White as the pans, soft as flour."},
 ]

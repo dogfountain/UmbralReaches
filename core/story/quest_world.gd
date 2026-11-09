@@ -18,6 +18,7 @@ const Book := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const QProps := preload("res://core/story/quest_props.gd")
 const Pickup := preload("res://core/story/quest_pickup.gd")
+const RealmLayout := preload("res://core/world/realm/realm_layout.gd")
 
 ## Found floor points: pickup key / "stair" / "names" / "staff" -> Vector3 (tests read them).
 static var spots := {}
@@ -185,6 +186,11 @@ func _add_pickup(k: String) -> void:
 	p.set("verb", String(d.verb))
 	add_child(p)
 	var at: Vector3 = spots[k]
+	if at == Vector3.INF:
+		# nav never found a floor: still stand the thing on the designed land, not at y=0 in the void
+		var near: Vector2 = d.near
+		at = Vector3(near.x, RealmLayout.macro_height(near.x, near.y), near.y)
+		spots[k] = at
 	p.global_position = at
 	var yaw := float(hash(k) % 628) * 0.01
 	QProps.make(p, "Look", String(d.kind), Transform3D(Basis(Vector3.UP, yaw), at))
@@ -267,7 +273,7 @@ func _sync_oswin() -> void:
 			o.call("release")
 			o.set("data", vigil(o.get("data")))
 			o.set("at_node", "q_stair")
-			o.call("begin", "vigil")
+			o.call("begin", "vigil", true)          # place at the stone: he was already kneeling there
 		elif not vig:
 			# he takes the west road, and is gone
 			o.call("release")

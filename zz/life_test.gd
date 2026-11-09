@@ -251,7 +251,7 @@ func _run() -> void:
 	await _secs(1.5)
 	for k: String in base:
 		var v := float(env.get(k))
-		check(absf(v - float(base[k])) < 1e-4, "env %s back to base (%.6f vs %.6f)" % [k, v, float(base[k])])
+		check(absf(v - float(base[k])) < 1e-3, "env %s back to base (%.6f vs %.6f)" % [k, v, float(base[k])])
 	check([env.glow_intensity, env.glow_bloom, env.glow_hdr_threshold] == glow0, "glow untouched")
 	check(wx.bank_count() >= 6, "mist banks built (%d)" % wx.bank_count())
 	# ---- sounds

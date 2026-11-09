@@ -220,7 +220,7 @@ static func _window_mat() -> StandardMaterial3D:
 		_win_mat.albedo_color = Color(0.9, 0.6, 0.3)
 		_win_mat.emission_enabled = true
 		_win_mat.emission = Color(1.0, 0.62, 0.28)
-		_win_mat.emission_energy_multiplier = 1.05
+		_win_mat.emission_energy_multiplier = 0.4
 		_win_mat.roughness = 0.4
 	return _win_mat
 

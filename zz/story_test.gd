@@ -182,11 +182,11 @@ func _flow() -> void:
 	ui.press()              # meet_2 -> meet_hub (choices)
 	ui.press()
 	ok(ui.choice_count() == 4, "first-meeting menu has 4 choices (%d)" % ui.choice_count())
-	ui.chosen.emit(0)       # what happened -> lore_1 -> lore_2 -> back to the hub
+	ui.chosen.emit(1)       # what happened (2nd: start is first now) -> lore_1 -> lore_2 -> hub
 	for i in 4:
 		ui.press()
 	ok(ui.choice_count() == 3, "picked 'once' choice is gone (%d)" % ui.choice_count())
-	ui.chosen.emit(1)       # "Where do I start?" (index shifted after the once-choice)
+	ui.chosen.emit(0)       # "Where do I start?" (still first among the remaining)
 	ui.press()
 	ui.press()              # start_1 -> start_2 (sets met_keep; choices)
 	ui.press()

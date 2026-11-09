@@ -42,7 +42,13 @@ var space: PhysicsDirectSpaceState3D
 
 func _ready() -> void:
 	Travel._busy = true
+	# Windows Godot ignores HOME for user://, so the owner's save can load mid-test; wipe progress.
 	Travel.bosses_slain.clear()
+	Travel.seals_broken.clear()
+	Travel.lit_by_path.clear()
+	Travel.area_lit.clear()
+	Travel.story.clear()
+	Travel.systems.clear()
 	main = load("res://world/main.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(main)
 

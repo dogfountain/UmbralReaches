@@ -59,9 +59,10 @@ run_one() {
 	if [ ! -f "$ROOT/$scene" ]; then
 		echo "missing scene $scene" > "$log"; echo "MISSING" > "$OUT_DIR/$name.status"; return
 	fi
-	# HOME isolates user:// (savegame/settings/codex.cfg and the caches). The --save-dir seam
-	# (core/util/save_dir.gd) is NOT passed: some tests read user://savegame.cfg directly.
-	HOME="$home" "$GODOT" --headless --path "$ROOT" "res://$scene" > "$log" 2>&1 &
+	# HOME isolates user:// on Mac/Linux. On Windows Godot still writes under AppData, so also set
+	# UMBRAL_SAVE_DIR (core/util/save_dir.gd) into this test's scratch home.
+	mkdir -p "$home/saves"
+	HOME="$home" UMBRAL_SAVE_DIR="$home/saves" "$GODOT" --headless --path "$ROOT" "res://$scene" > "$log" 2>&1 &
 	pid=$!
 	while kill -0 "$pid" 2>/dev/null; do
 		if [ "$waited" -ge "$TEST_TIMEOUT" ]; then

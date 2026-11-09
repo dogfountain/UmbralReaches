@@ -234,7 +234,11 @@ func _script_for(id: StringName, owned: bool) -> Script:
 
 
 func _on_killed(e: Node) -> void:
-	teach("lance")                                    # r35: the first kill
+	# only a kill near the wanderer teaches: far warm-up / camp deaths during the build must not
+	# hand Ember Lance before the first real fight (zz/spell_staging_test)
+	if _player != null and is_instance_valid(_player) and e is Node3D \
+			and (e as Node3D).global_position.distance_to(_player.global_position) <= 40.0:
+		teach("lance")                                # r35: the first kill
 	_kill_traits(e)
 	var relief := float(DB.live.get("kill_relief", 0.0))
 	if relief <= 0.0 or _player == null or not is_instance_valid(_player) or not (e is Node3D):

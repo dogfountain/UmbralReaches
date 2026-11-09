@@ -17,12 +17,16 @@ func build(socket: Node3D) -> Node3D:
 	var light := OmniLight3D.new()
 	light.name = "LanternLight"
 	light.light_color = light_color
-	light.light_energy = 1.85
+	light.light_energy = 1.2
 	light.omni_range = 4.5
+	light.omni_attenuation = 1.25
+	light.light_size = 0.35
+	light.light_specular = 0.28
 	light.shadow_enabled = false
 	light.shadow_bias = 0.15
 	light.omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID
 	light.set_meta("light_class", "player_lantern")
+	light.set_meta("base", {"e": 1.2, "r": 4.5, "a": 1.25})
 	light.position = Vector3(0, -0.22, 0)
 	root.add_child(light)
 	return root

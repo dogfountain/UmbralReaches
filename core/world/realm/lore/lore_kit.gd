@@ -161,7 +161,7 @@ static func ensure_mats() -> void:
 	ember.vertex_color_use_as_albedo = true
 	ember.emission_enabled = true
 	ember.emission = Color(1.0, 0.35, 0.08)
-	ember.emission_energy_multiplier = 0.9
+	ember.emission_energy_multiplier = 0.42
 	OssKit._mats["lore_ember"] = ember
 
 
@@ -945,7 +945,15 @@ func lamp_post(at: Vector3, yaw: float, lit := false) -> Vector3:
 	for sx: float in [-0.1, 0.1]:
 		for sz: float in [-0.1, 0.1]:
 			p.box("lamp_iron", lc + b * Vector3(sx, 0.02, sz), Vector3(0.025, 0.36, 0.025), b, false)
-	p.box("glow" if lit else "dark", lc, Vector3(0.12, 0.27, 0.12), b, false, 0.6 if lit else 0.4)
+	for sg: float in [-1.0, 1.0]:
+		p.box("lamp_iron", lc + b * Vector3(sg * 0.1, 0.02, 0), Vector3(0.02, 0.02, 0.2), b, false)
+		p.box("lamp_iron", lc + b * Vector3(0, 0.02, sg * 0.1), Vector3(0.2, 0.02, 0.02), b, false)
+	# six-sided glass belly: two rotated boxes read as a lathe without a new mesh path
+	var glass := "glow" if lit else "dark"
+	var ge := 0.45 if lit else 0.35
+	p.box(glass, lc, Vector3(0.11, 0.24, 0.11), b, false, ge)
+	p.box(glass, lc, Vector3(0.11, 0.24, 0.11), b45, false, ge * 0.9)
+	p.box(glass, lc + Vector3.UP * 0.02, Vector3(0.13, 0.1, 0.13), b, false, ge * 0.75)
 	return lc
 
 

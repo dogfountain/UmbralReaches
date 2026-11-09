@@ -434,7 +434,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		var turning := on_floor and speed < 0.6 and absf(_turn) > 0.9 and slide < 0.1
 		_shuffle = move_toward(_shuffle, 1.0 if turning else 0.0, delta * (7.0 if turning else 3.0))
 		target_stride = maxf(target_stride, 0.22 * _shuffle)
-	_stride = lerpf(_stride, target_stride, 1.0 - exp(-8.0 * delta))
+	_stride = lerpf(_stride, target_stride, 1.0 - exp(-6.4 * delta))
 	if gait:
 		_gait_advance(speed, flat, on_floor, delta)     # cycle, feet, _phase and footsteps
 	else:
@@ -442,13 +442,13 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		if on_floor:
 			_phase += speed * delta / step_len * PI + absf(_turn) * delta * 1.3 * _shuffle
 		elif _stride < 0.05:
-			_phase = lerp_angle(_phase, 0.0, 1.0 - exp(-4.0 * delta))
+			_phase = lerp_angle(_phase, 0.0, 1.0 - exp(-3.2 * delta))
 		if on_floor and _stride > 0.25 and sin(_prev_phase) * sin(_phase) <= 0.0:
 			_footstep(speed)
 	_prev_phase = _phase
 
 	# Air and landing
-	_air = move_toward(_air, 0.0 if on_floor else 1.0, delta * 6.0)
+	_air = move_toward(_air, 0.0 if on_floor else 1.0, delta * 4.2)
 	if on_floor and not _was_floor:
 		_land = clampf(-_prev_vel.y / 9.0, 0.25, 1.0)
 		if _land > 0.3:
@@ -456,25 +456,26 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		if hero and -_prev_vel.y > HARD_LAND and move_playing() != &"roll":
 			_land_hard = clampf((-_prev_vel.y - HARD_LAND) / 5.0 + 0.6, 0.6, 1.0)
 	_was_floor = on_floor
-	_land = move_toward(_land, 0.0, delta * 3.5)
+	_land = move_toward(_land, 0.0, delta * 2.4)
 
 	# Turning rate (rad/s) for lean and lateral cloth swing
 	var yaw := rotation.y
-	_turn = lerpf(_turn, wrapf(yaw - _prev_yaw, -PI, PI) / maxf(delta, 0.0001), 1.0 - exp(-6.0 * delta))
+	_turn = lerpf(_turn, wrapf(yaw - _prev_yaw, -PI, PI) / maxf(delta, 0.0001), 1.0 - exp(-4.8 * delta))
 	_prev_yaw = yaw
 
-	# Gesture (staff cast)
+	# Gesture (staff cast): eased envelope so the raise/release does not click
 	if _gesture_t >= 0.0:
 		_gesture_t += delta
-		_gesture = sin(clampf(_gesture_t / 0.95, 0.0, 1.0) * PI)
-		if _gesture_t > 0.95:
+		var gu := clampf(_gesture_t / 1.05, 0.0, 1.0)
+		_gesture = sin(smoothstep(0.0, 1.0, gu) * PI)
+		if _gesture_t > 1.05:
 			_gesture_t = -1.0
 			_gesture = 0.0
 
 	var s := sin(_phase)
 	var c := cos(_phase)
 	var st := _stride
-	var breathe := sin(_t * 1.7)
+	var breathe := sin(_t * 1.55) + 0.35 * sin(_t * 0.62)
 	var idle := clampf(1.0 - st * 2.0, 0.0, 1.0)
 
 	var body := global_basis.orthonormalized()
@@ -526,7 +527,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 			_trail.amount_ratio = lerpf(1.0, 0.16, run)
 			_trail.lifetime = lerpf(1.15, 0.38, run)
 	if _lantern_light:
-		_lantern_light.light_energy = 1.85 + sin(_t * 13.0) * 0.07 + sin(_t * 7.3) * 0.05
+		_lantern_light.light_energy = 1.15 + sin(_t * 13.0) * 0.05 + sin(_t * 7.3) * 0.035
 	if hero:
 		_swing("lantern", _lantern, 0.26, Vector3.ZERO, body, delta)
 		_swing("satchel", _equipped.get("satchel"), 0.3, Vector3.ZERO, body, delta)
@@ -637,10 +638,10 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 
 func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) -> void:
 	# Procedural stride. Phase advances with distance travelled, so the feet match the ground.
-	_pelvis.position.y = 0.94 + 0.035 * st * (absf(c) - 0.6) - _land * 0.13 + _air * 0.04 + breathe * 0.004 * idle
-	_pelvis.position.x = -s * 0.025 * st
-	_pelvis.rotation.y = s * 0.09 * st
-	_pelvis.rotation.z = -_turn * 0.015
+	_pelvis.position.y = 0.94 + 0.04 * st * (absf(c) - 0.6) - _land * 0.13 + _air * 0.04 + breathe * 0.006 * idle
+	_pelvis.position.x = -s * 0.028 * st
+	_pelvis.rotation.y = s * 0.1 * st
+	_pelvis.rotation.z = -_turn * 0.018
 	for i in 2:
 		var ps := s if i == 0 else -s
 		var pc := c if i == 0 else -c
@@ -652,9 +653,9 @@ func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) ->
 		_knee[i].rotation.x = -knee
 		_foot[i].rotation.x = -(hip - knee) * 0.55
 	_torso.rotation.y = -s * 0.16 * st
-	_torso.rotation.x = -0.05 - 0.13 * maxf(0.0, st - 0.6) - _land * 0.25 + _air * 0.08 - _gesture * 0.08
-	_torso.rotation.z = -_turn * 0.04 + sin(_t * 0.7) * 0.015 * idle
-	_chest.scale = Vector3(1.0 + breathe * 0.012 * idle, 1.0 + breathe * 0.018 * idle, 1.0 + breathe * 0.012 * idle)
+	_torso.rotation.x = -0.05 - 0.14 * maxf(0.0, st - 0.6) - _land * 0.25 + _air * 0.08 - _gesture * 0.08
+	_torso.rotation.z = -_turn * 0.045 + sin(_t * 0.55) * 0.02 * idle
+	_chest.scale = Vector3(1.0 + breathe * 0.016 * idle, 1.0 + breathe * 0.024 * idle, 1.0 + breathe * 0.016 * idle)
 	_head.rotation.y = s * 0.1 * st + sin(_t * 0.45) * 0.12 * idle
 	_head.rotation.x = 0.05 * st - breathe * 0.02 * idle - _gesture * 0.12
 	if melee:
@@ -716,9 +717,11 @@ func _dress_cloth(root: Node, anchor_y: float, cloth_len: float, leg_push: float
 		mat.shader = ROBE_WAVE
 		var dye := Vector3(0.055, 0.062, 0.12)
 		mat.set_shader_parameter("base_color", dye)
-		mat.set_shader_parameter("rim_color", Vector3(0.46, 0.34, 0.27))
-		mat.set_shader_parameter("roughness_amt", 0.82)
+		mat.set_shader_parameter("rim_color", Vector3(0.5, 0.36, 0.28))
+		mat.set_shader_parameter("roughness_amt", 0.78)
 		mat.set_shader_parameter("glow_energy", 0.08)
+		mat.set_shader_parameter("hem_grime", 0.28)
+		mat.set_shader_parameter("rim_amt", 0.62)
 		var albedo := Check.res(ROBE_ALBEDO, Texture2D) as Texture2D
 		var magic := Check.res(ROBE_MAGIC, Texture2D) as Texture2D
 		var nrm := Check.res(ROBE_NORMAL, Texture2D) as Texture2D
@@ -850,29 +853,29 @@ func _hero_pose(speed: float, on_floor: bool, idle: float, breathe: float, delta
 	var dt := minf(delta, 0.05)
 	# roll into the turn like a runner (yaw rate x speed), the hips lead and the chest follows
 	# (about a third of the physical bank atan(v w / g): enough to read, not a motorbike)
-	var roll_target := clampf(_turn * speed * 0.035, -0.3, 0.3) if on_floor else _turn * 0.02
-	_lean = lerpf(_lean, roll_target, 1.0 - exp(-7.0 * dt))
+	var roll_target := clampf(_turn * speed * 0.032, -0.26, 0.26) if on_floor else _turn * 0.018
+	_lean = lerpf(_lean, roll_target, 1.0 - exp(-5.2 * dt))
 	_pelvis.rotation.z += _lean * 0.75
 	_pelvis.position.x -= sin(_lean) * 0.35          # the hips swing out, the body leans in over the feet
 	_torso.rotation.z += _lean * 0.35
 	_head.rotation.z = -_lean * 0.6                    # the head stays level-ish
 	# pitch: forward when speeding up, back when braking -- a spring, so stops rock a little
-	var pitch_target := clampf(_local_acc.z * 0.014, -0.2, 0.24) if on_floor else 0.0
-	_pitch_lean_v += (pitch_target - _pitch_lean) * 90.0 * dt
-	_pitch_lean_v *= exp(-11.0 * dt)
+	var pitch_target := clampf(_local_acc.z * 0.012, -0.18, 0.2) if on_floor else 0.0
+	_pitch_lean_v += (pitch_target - _pitch_lean) * 70.0 * dt
+	_pitch_lean_v *= exp(-9.5 * dt)
 	_pitch_lean += _pitch_lean_v * dt
 	_torso.rotation.x += _pitch_lean
 	_head.rotation.x -= _pitch_lean * 0.5
 	# nod: head and hood dip on landings and hard stops, then settle
-	var nod_force := -_local_acc.y * 0.002 + _local_acc.z * 0.0015
-	_nod_v += (clampf(nod_force, -0.3, 0.3) * 40.0 - _nod * 120.0) * dt
-	_nod_v *= exp(-9.0 * dt)
-	_nod = clampf(_nod + _nod_v * dt, -0.25, 0.25)
+	var nod_force := -_local_acc.y * 0.0017 + _local_acc.z * 0.0012
+	_nod_v += (clampf(nod_force, -0.26, 0.26) * 32.0 - _nod * 100.0) * dt
+	_nod_v *= exp(-8.0 * dt)
+	_nod = clampf(_nod + _nod_v * dt, -0.22, 0.22)
 	_head.rotation.x += _nod
 	# staff: the head lags a start and swings past on a stop
-	var sw_target := Vector2(clampf(_local_acc.z * 0.012, -0.25, 0.25), clampf(-_local_acc.x * 0.01, -0.2, 0.2))
-	_staff_sw_v += (sw_target - _staff_sw) * 70.0 * dt
-	_staff_sw_v *= exp(-6.0 * dt)
+	var sw_target := Vector2(clampf(_local_acc.z * 0.01, -0.22, 0.22), clampf(-_local_acc.x * 0.008, -0.18, 0.18))
+	_staff_sw_v += (sw_target - _staff_sw) * 55.0 * dt
+	_staff_sw_v *= exp(-5.2 * dt)
 	_staff_sw += _staff_sw_v * dt
 	# idle: a slow weight shift from foot to foot, the free hand settles
 	var shift := sin(_t * 0.43) * idle
@@ -934,7 +937,7 @@ func _idle_life(idle: float, breathe: float) -> void:
 ## pumps. Blends by speed.
 func _carry_pose(speed: float, _idle: float, dt: float) -> void:
 	var r := clampf((speed - walk_speed * 0.9) / maxf(sprint_speed - walk_speed * 0.9, 0.1), 0.0, 1.0)
-	_run = lerpf(_run, r, 1.0 - exp(-6.0 * dt))
+	_run = lerpf(_run, r, 1.0 - exp(-4.5 * dt))
 	var st := _stride
 	var mid := sin(_run * PI) * st
 	var spr := smoothstep(0.55, 1.0, _run) * st
@@ -1320,9 +1323,9 @@ func _swing(key: String, n: Node3D, length: float, rest: Vector3, body: Basis, d
 	var th: Vector2 = st["th"]
 	var w: Vector2 = st["w"]
 	var g := 9.8 / length
-	var ang_acc := Vector2(-g * th.x + acc.z / length, -g * th.y - acc.x / length) - w * 3.2
+	var ang_acc := Vector2(-g * th.x + acc.z / length, -g * th.y - acc.x / length) - w * 4.4
 	w += ang_acc * dt
-	th = (th + w * dt).clamp(Vector2(-0.8, -0.8), Vector2(0.8, 0.8))
+	th = (th + w * dt).clamp(Vector2(-0.65, -0.65), Vector2(0.65, 0.65))
 	st["p"] = pos
 	st["v"] = v
 	st["th"] = th
@@ -1768,7 +1771,7 @@ func _gait_advance(speed: float, flat: Vector3, on_floor: bool, dt: float) -> vo
 	_g_lo = minf(_g_W * (1.0 - ff), _robe_reach(-_g_dir.y))
 	_g_D = clampf((_g_td + _g_lo) / maxf(2.0 * L, 0.05), 0.2, 0.66)
 	var plant := on_floor and slide < 0.05 and _legs_free()
-	_plant_k = move_toward(_plant_k, 1.0 if plant else 0.0, dt * (9.0 if plant else 14.0))
+	_plant_k = move_toward(_plant_k, 1.0 if plant else 0.0, dt * (7.0 if plant else 10.0))
 	if slide > 0.2 or not on_floor:
 		_plant_k = 0.0                               # a slide or a jump has already decided the legs
 	if not plant:
@@ -1952,7 +1955,7 @@ func _gait_body(_speed: float, on_floor: bool, idle: float, breathe: float, dt: 
 	bob += _flight * 0.024 * _g_run
 	_land_hard = move_toward(_land_hard, 0.0, dt * 1.5)
 	var hard := sin(clampf(_land_hard, 0.0, 1.0) * PI * 0.5)
-	_pelvis.position.y = _g_hip + 0.19 + bob * _plant_k - _land * 0.15 - hard * 0.26 + _air * 0.04 + breathe * 0.004 * idle
+	_pelvis.position.y = _g_hip + 0.165 + bob * _plant_k - _land * 0.15 - hard * 0.26 + _air * 0.03 + breathe * 0.004 * idle
 	# side-steps: the hips turn toward the step, the chest stays on the aim
 	var ang := atan2(-_g_dir.x, -_g_dir.y)
 	var hy := ang * 0.5 if absf(ang) <= PI * 0.5 else (ang - signf(ang) * PI) * 0.4

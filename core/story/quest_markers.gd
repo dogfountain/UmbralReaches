@@ -16,6 +16,7 @@ const Book := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const Giver := preload("res://core/story/quest_giver.gd")
 const StoryDB := preload("res://core/story/quest_db.gd")
+const RealmLayout := preload("res://core/world/realm/realm_layout.gd")
 
 const GOLD := Color(1.0, 0.74, 0.32)
 const DAILY := Color(0.7, 0.84, 1.0)
@@ -242,7 +243,14 @@ func _refresh_targets() -> void:
 			t.name = "Target_%s_%d" % [id, s]
 			add_child(t)
 			var xz: Vector2 = at
-			t.global_position = Vector3(xz.x, 0.0, xz.y)
+			# pin on the land, not at y=0 (bells in the Marches sat 10 m under the Spire's bluff)
+			var y := RealmLayout.macro_height(xz.x, xz.y)
+			var space := get_world_3d().direct_space_state if is_inside_tree() and get_world_3d() else null
+			if space != null:
+				var g := RealmLayout.ground(space, xz.x, xz.y)
+				if not is_nan(g):
+					y = g
+			t.global_position = Vector3(xz.x, y, xz.y)
 			t.add_to_group("map_marker")
 			t.set_meta("map_kind", "quest_target")
 			t.set_meta("map_color", GOLD)

@@ -89,9 +89,10 @@ func load_settings() -> void:
 		return
 	# every value is type- and range-checked: a hand-edited or damaged file falls back per field
 	# instead of a script error (a String in a float field) or an out-of-range index into a table
-	fullscreen = _v(cfg, "display", "fullscreen", fullscreen)
-	window_size_index = clampi(_v(cfg, "display", "window_size_index", window_size_index), 0, WINDOW_SIZES.size() - 1)
-	vsync = _v(cfg, "display", "vsync", vsync)
+	# literal defaults on type failure: never keep a prior bad value as the fallback (robust_test)
+	fullscreen = _v(cfg, "display", "fullscreen", false)
+	window_size_index = clampi(_v(cfg, "display", "window_size_index", 1), 0, WINDOW_SIZES.size() - 1)
+	vsync = _v(cfg, "display", "vsync", true)
 	render_scale = _v(cfg, "graphics", "render_scale", render_scale)
 	render_scale = 0.0 if render_scale <= 0.0 else clampf(render_scale, 0.5, 1.0)
 	shadow_quality = clampi(_v(cfg, "graphics", "shadow_quality", shadow_quality), 0, SHADOW_NAMES.size() - 1)

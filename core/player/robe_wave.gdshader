@@ -147,11 +147,14 @@ void fragment() {
 	float rim = pow(1.0 - ndv, 2.6);
 	float pulse = 0.82 + 0.18 * sin(TIME * 1.45 + mag * 10.0);
 	vec3 g = mix(glow_color, glow_hot, sparks);
+	// one nap sample (was three): baked normal map does the weave
+	float nap = fine;
+	wool *= 0.92 + 0.12 * nap;
 	ALBEDO = wool * (0.85 + 0.15 * base_color / vec3(0.055, 0.062, 0.12));
 	NORMAL_MAP = ntex;
-	NORMAL_MAP_DEPTH = 1.55;
-	ROUGHNESS = alpha_rough > 0.5 ? clamp(roughness_amt * mix(0.75, 1.08, a4.a), 0.0, 1.0) : roughness_amt * 0.92;
-	SPECULAR = 0.28;
+	NORMAL_MAP_DEPTH = 1.35;
+	ROUGHNESS = alpha_rough > 0.5 ? clamp(roughness_amt * mix(0.75, 1.08, a4.a), 0.0, 1.0) : roughness_amt * (0.9 + 0.1 * nap);
+	SPECULAR = 0.32 - grime * 0.12;
 	METALLIC = 0.0;
 	float glyph = alpha_rough > 0.5 ? 0.0 : a4.a;
 	EMISSION = g * (mag * 1.35 + sparks * 1.6) * glow_energy * pulse * magic_amt

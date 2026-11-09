@@ -59,6 +59,7 @@ var invert_y := false
 ## r35 (docs/critique/r35_full.md "Decisions"): one rule per bar.
 ##   Gloom  = the dark's clock only: it gathers away from light (and as spells' cost), a fire drains
 ##            it, and at gloom_max a Shade takes shape and hunts you. The Shade's touch hollows you.
+##            A live boss arena keeps FIGHT_GATHER of the place's rate, so the clock still runs.
 ##   Wounds = what blows do: foes, bosses, their hazards, long falls, lava. A fire mends them, kills
 ##            and spent Resonance mend a little. At wounds_max you are hollowed.
 var gloom := 0.0
@@ -69,6 +70,7 @@ var checkpoint := Vector3.ZERO
 var ward_drain_left := 0.0              ## Gloom the current Lantern Ward may still drain (LanternWard sets it)
 
 const SPRINT_DARK_MULT := 1.5           ## sprinting in the dark gathers Gloom this much faster (noise)
+const FIGHT_GATHER := 0.28              ## a live boss arena keeps this share of the place's gather (about 8 min from empty to a Shade; open dark is 2 min 13 s)
 const SLIDE_EVADE := 0.22               ## a slide's first moments pass under strikes, like a roll
 var _ash_banked := -1                   ## grave ash held at the last fire; above it is "carried"
 var autopilot := false
@@ -242,6 +244,12 @@ func _ready() -> void:
 		var saved := Travel.checkpoint_for(owner.scene_file_path if owner else "")
 		if saved != Vector3.INF:
 			global_position = saved
+		elif not Travel.from_save:
+			# new game: wake on the Pilgrims' Road at waystone III, facing Hearthward
+			var RL := preload("res://core/world/realm/realm_layout.gd")
+			global_position = RL.PLAYER_START
+			var face := Vector2(RL.SPAWN.x - RL.PLAYER_START.x, RL.SPAWN.z - RL.PLAYER_START.z)
+			_yaw = atan2(-face.x, -face.y)
 	checkpoint = global_position
 	_ash_banked = Travel.count("grave_ash")
 	vitals.restore_mound.call_deferred()
@@ -655,6 +663,17 @@ var _look_foe: Enemy
 var _sprint_held := false
 
 
+## Gather per second in the dark. `place_rate` is the open rate for where you stand (dark or rift).
+## A live fight keeps a thin share of it; sprinting still multiplies. Light is applied by the caller.
+static func place_gather(place_rate: float, in_fight: bool, sprinting: bool) -> float:
+	var rate := place_rate
+	if in_fight:
+		rate *= FIGHT_GATHER
+	if sprinting:
+		rate *= SPRINT_DARK_MULT
+	return rate
+
+
 ## True while any BossArena (or arena-like node in the "boss_arena" group) has a live fight.
 static func boss_fight_active(tree: SceneTree) -> bool:
 	if tree == null:
@@ -731,7 +750,7 @@ func _face_now(dir: Vector3) -> void:
 	if dir.length_squared() < 0.0001:
 		return
 	_face_yaw = atan2(-dir.x, -dir.z)
-	_visual.rotation.y = lerp_angle(_visual.rotation.y, _face_yaw, 1.0 - exp(-18.0 * get_physics_process_delta_time()))
+	_visual.rotation.y = lerp_angle(_visual.rotation.y, _face_yaw, 1.0 - exp(-12.0 * get_physics_process_delta_time()))
 
 
 # --- traversal (r28): ledge hang + climb, vault, wall kick, steep slopes, beams, dodge roll ---------

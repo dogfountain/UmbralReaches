@@ -17,7 +17,7 @@ const ORBIT_SH := preload("res://core/life/wildlife/orbit.gdshader")
 const FIREFLY_SH := preload("res://core/life/wildlife/firefly.gdshader")
 const RIPPLE_SH := preload("res://core/life/wildlife/ripple.gdshader")
 const GHOST_SH := preload("res://core/life/wildlife/ghost.gdshader")
-const VERSION := 10
+const VERSION := 12
 
 ## part ids (UV2.x)
 const BODY := 0.0
@@ -59,27 +59,28 @@ const RIG := {
 }
 
 ## Look per kind: detail strength, streak (feather/fur lie), roughness, eyeshine.
+## Perf: keep fur_bump/mottle/rim_lit modest — MultiMeshes draw whole flocks with this shader.
 const LOOK := {
-	"crow": {"detail": 0.3, "streak": 3.0, "roughness": 0.5, "rim_amount": 0.5, "eye_energy": 0.0},
-	"owl": {"detail": 0.75, "streak": 2.5, "roughness": 0.9, "eye_col": Color(1.0, 0.62, 0.18), "eye_energy": 0.9},
+	"crow": {"detail": 0.35, "streak": 3.0, "roughness": 0.5, "rim_amount": 0.45, "eye_energy": 0.0},
+	"owl": {"detail": 0.7, "streak": 2.5, "roughness": 0.9, "eye_col": Color(1.0, 0.62, 0.18), "eye_energy": 0.9},
 	"heron": {"detail": 0.45, "streak": 3.5, "roughness": 0.85, "eye_col": Color(1.0, 0.85, 0.3), "eye_energy": 0.35},
-	"frog": {"detail": 0.7, "streak": 1.0, "roughness": 0.35, "eye_col": Color(1.0, 0.8, 0.3), "eye_energy": 0.5, "detail_scale": 18.0, "throat_auto": 1.0},
-	"deer": {"detail": 0.8, "detail_scale": 5.0, "streak": 3.0, "roughness": 0.9, "eye_col": Color(0.8, 0.75, 0.55), "eye_energy": 0.14, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
-		"body_tone": Vector4(0.74, 0.93, 1.05, 1.2), "tone_amt": Vector2(0.0, 0.0), "mottle": 0.8, "vary": 0.35, "fur_bump": 1.0, "rim_lit": 0.45},
-	"stag": {"detail": 0.8, "detail_scale": 5.0, "streak": 3.0, "roughness": 0.9, "eye_col": Color(0.8, 0.75, 0.55), "eye_energy": 0.14, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
-		"body_tone": Vector4(0.74, 0.93, 1.05, 1.2), "tone_amt": Vector2(0.0, 0.0), "mottle": 0.8, "vary": 0.35, "fur_bump": 1.0, "rim_lit": 0.45},
-	"elk": {"detail": 0.8, "detail_scale": 5.0, "streak": 3.0, "roughness": 0.95, "eye_col": Color(0.8, 0.75, 0.55), "eye_energy": 0.12, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
-		"body_tone": Vector4(0.74, 0.93, 1.05, 1.2) * ELK_S, "tone_amt": Vector2(0.0, 0.0), "mottle": 0.8, "vary": 0.3, "fur_bump": 1.0, "rim_lit": 0.3},
-	"fox": {"detail": 0.35, "detail_scale": 5.0, "streak": 3.0, "roughness": 0.88, "eye_col": Color(1.0, 0.8, 0.4), "eye_energy": 0.3, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
-		"body_tone": Vector4(0.2, 0.3, 0.36, 0.46), "tone_amt": Vector2(0.0, 0.0), "mottle": 0.35, "vary": 0.25, "fur_bump": 0.25, "rim_lit": 0.3},
-	"rat": {"detail": 0.5, "streak": 2.0, "roughness": 0.8, "eye_col": Color(1.0, 0.3, 0.2), "eye_energy": 1.0, "detail_scale": 20.0},
+	"frog": {"detail": 0.65, "streak": 1.0, "roughness": 0.35, "eye_col": Color(1.0, 0.8, 0.3), "eye_energy": 0.5, "detail_scale": 18.0, "throat_auto": 1.0},
+	"deer": {"detail": 0.75, "detail_scale": 6.0, "streak": 3.2, "roughness": 0.88, "eye_col": Color(0.8, 0.75, 0.55), "eye_energy": 0.16, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
+		"body_tone": Vector4(0.74, 0.93, 1.05, 1.2), "tone_amt": Vector2(0.45, 0.35), "mottle": 0.55, "vary": 0.28, "fur_bump": 0.7, "rim_lit": 0.28},
+	"stag": {"detail": 0.75, "detail_scale": 6.0, "streak": 3.2, "roughness": 0.88, "eye_col": Color(0.8, 0.75, 0.55), "eye_energy": 0.16, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
+		"body_tone": Vector4(0.74, 0.93, 1.05, 1.2), "tone_amt": Vector2(0.45, 0.35), "mottle": 0.55, "vary": 0.28, "fur_bump": 0.7, "rim_lit": 0.28},
+	"elk": {"detail": 0.75, "detail_scale": 6.0, "streak": 3.2, "roughness": 0.92, "eye_col": Color(0.8, 0.75, 0.55), "eye_energy": 0.14, "rim_amount": 0.28, "rim_col": Color(0.55, 0.62, 0.9),
+		"body_tone": Vector4(0.74, 0.93, 1.05, 1.2) * ELK_S, "tone_amt": Vector2(0.4, 0.32), "mottle": 0.5, "vary": 0.25, "fur_bump": 0.6, "rim_lit": 0.22},
+	"fox": {"detail": 0.5, "detail_scale": 6.5, "streak": 3.4, "roughness": 0.84, "eye_col": Color(1.0, 0.8, 0.4), "eye_energy": 0.35, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
+		"body_tone": Vector4(0.2, 0.3, 0.36, 0.46), "tone_amt": Vector2(0.4, 0.28), "mottle": 0.4, "vary": 0.25, "fur_bump": 0.55, "rim_lit": 0.25},
+	"rat": {"detail": 0.55, "streak": 2.4, "roughness": 0.78, "eye_col": Color(1.0, 0.3, 0.2), "eye_energy": 1.1, "detail_scale": 24.0},
 	"branch": {"detail": 0.8, "streak": 4.0, "roughness": 0.95, "detail_scale": 3.0},
-	"mouse": {"detail": 0.45, "streak": 2.0, "roughness": 0.85, "eye_col": Color(0.9, 0.5, 0.3), "eye_energy": 0.6, "detail_scale": 22.0},
-	"plover": {"detail": 0.35, "streak": 3.0, "roughness": 0.55, "rim_amount": 0.4, "eye_energy": 0.0},
-	"boar": {"detail": 0.4, "detail_scale": 6.0, "streak": 1.0, "roughness": 0.92, "eye_col": Color(1.0, 0.55, 0.3), "eye_energy": 0.2, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
-		"body_tone": Vector4(0.34, 0.5, 0.74, 0.92), "tone_amt": Vector2(0.0, 0.0), "mottle": 0.5, "vary": 0.3, "fur_bump": 0.6, "rim_lit": 0.2},
-	"hare": {"detail": 0.4, "detail_scale": 8.0, "streak": 2.5, "roughness": 0.9, "eye_col": Color(1.0, 0.7, 0.3), "eye_energy": 0.22, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
-		"body_tone": Vector4(0.16, 0.26, 0.3, 0.4), "tone_amt": Vector2(0.0, 0.0), "mottle": 0.4, "vary": 0.3, "fur_bump": 0.25, "rim_lit": 0.3},
+	"mouse": {"detail": 0.5, "streak": 2.4, "roughness": 0.82, "eye_col": Color(0.9, 0.5, 0.3), "eye_energy": 0.7, "detail_scale": 26.0},
+	"plover": {"detail": 0.4, "streak": 3.2, "roughness": 0.52, "rim_amount": 0.4, "eye_energy": 0.0},
+	"boar": {"detail": 0.5, "detail_scale": 6.5, "streak": 1.2, "roughness": 0.9, "eye_col": Color(1.0, 0.55, 0.3), "eye_energy": 0.24, "rim_amount": 0.28, "rim_col": Color(0.55, 0.62, 0.9),
+		"body_tone": Vector4(0.34, 0.5, 0.74, 0.92), "tone_amt": Vector2(0.35, 0.28), "mottle": 0.45, "vary": 0.25, "fur_bump": 0.55, "rim_lit": 0.2},
+	"hare": {"detail": 0.5, "detail_scale": 8.5, "streak": 2.8, "roughness": 0.86, "eye_col": Color(1.0, 0.7, 0.3), "eye_energy": 0.25, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
+		"body_tone": Vector4(0.16, 0.26, 0.3, 0.4), "tone_amt": Vector2(0.38, 0.28), "mottle": 0.4, "vary": 0.28, "fur_bump": 0.5, "rim_lit": 0.25},
 }
 
 static var _meshes := {}
@@ -177,9 +178,10 @@ static func detail_tex() -> Texture2D:
 		return _tex
 	var key := "life_detail_tex_v%d" % VERSION
 	var data: Variant = GenCache.load_var(key, SELF)
+	const SZ := 128
 	var img: Image
-	if data is PackedByteArray and (data as PackedByteArray).size() == 128 * 128:
-		img = Image.create_from_data(128, 128, false, Image.FORMAT_L8, data)
+	if data is PackedByteArray and (data as PackedByteArray).size() == SZ * SZ:
+		img = Image.create_from_data(SZ, SZ, false, Image.FORMAT_L8, data)
 	else:
 		var n := FastNoiseLite.new()
 		n.seed = 77
@@ -188,16 +190,16 @@ static func detail_tex() -> Texture2D:
 		n.fractal_type = FastNoiseLite.FRACTAL_FBM
 		n.fractal_octaves = 4
 		n.fractal_gain = 0.55
-		var a := n.get_seamless_image(128, 128, false, false, 0.1, true)
+		var a := n.get_seamless_image(SZ, SZ, false, false, 0.1, true)
 		var c := FastNoiseLite.new()
 		c.seed = 9
 		c.noise_type = FastNoiseLite.TYPE_CELLULAR
 		c.frequency = 0.09
 		c.cellular_return_type = FastNoiseLite.RETURN_DISTANCE2_DIV
-		var b := c.get_seamless_image(128, 128, false, false, 0.1, true)
-		img = Image.create(128, 128, false, Image.FORMAT_L8)
-		for y in 128:
-			for x in 128:
+		var b := c.get_seamless_image(SZ, SZ, false, false, 0.1, true)
+		img = Image.create(SZ, SZ, false, Image.FORMAT_L8)
+		for y in SZ:
+			for x in SZ:
 				var v := a.get_pixel(x, y).r * 0.6 + b.get_pixel(x, y).r * 0.4
 				img.set_pixel(x, y, Color(v, v, v))
 		GenCache.save_var(key, SELF, img.get_data())

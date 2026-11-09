@@ -20,6 +20,12 @@ var _ran := false
 func _ready() -> void:
 	Engine.set_meta(&"staged_spells", true)
 	Travel._busy = true
+	# Windows user:// is not HOME-isolated: wipe the slot so a real save cannot hand every spell
+	Travel.use_slot(1, true)
+	# drop any taught list a prior Kindling wrote into systems before this scene ran
+	var st: Dictionary = Travel.system_state("progression")
+	st["taught"] = []
+	st.erase("known")
 	main = load("res://world/main.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(main)
 

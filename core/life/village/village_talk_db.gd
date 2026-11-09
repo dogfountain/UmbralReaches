@@ -28,7 +28,7 @@ const CONV := {
 		], "choices": [
 			{"text": "What are you making?", "to": "make"},
 			{"text": "Tell me about Edda.", "to": "edda", "once": true},
-			{"text": "You look like you want something.", "to": "ask", "if": "!q:edda_tongs,met:hild"},
+			{"text": "You look like you want something.", "to": "ask", "if": "!q:edda_tongs,met:hild,flag:met_keep"},
 			{"text": "About Edda's tongs...", "to": "tongs_where", "if": "qat:edda_tongs:0|qat:edda_tongs:2"},
 			{"text": "Can you make something for me?", "to": "", "do": "shop:hild", "if": "v:svc_smith"},
 			{"text": "Could you forge for me?", "to": "forge_later", "if": "!v:svc_smith,met:hild"},
@@ -106,8 +106,8 @@ const CONV := {
 			["bosses:1", "You've been up there. Is anyone at the top? Are they waiting for us?"],
 			["", "I count the waystones in my sleep. Forty-one to the Stair. Then four thousand steps. Then the door."],
 		], "choices": [
-			{"text": "You count the waystones?", "to": "count", "if": "!q:forty_first"},
-			{"text": "The Stair is gone.", "to": "gone", "once": true, "if": "!q:forty_first"},
+			{"text": "You count the waystones?", "to": "count", "if": "!q:forty_first,flag:met_keep"},
+			{"text": "The Stair is gone.", "to": "gone", "once": true, "if": "!q:forty_first,flag:met_keep"},
 			{"text": "Where are you from?", "to": "from", "once": true},
 			{"text": "Rest well.", "to": ""},
 		]},
@@ -249,7 +249,7 @@ const CONV := {
 			["", "The Order wanted the dead stacked and counted. I lay them flat and leave them be. That's the difference."],
 		], "choices": [
 			{"text": "Whose grave is that?", "to": "whose"},
-			{"text": "Is there anything I can do?", "to": "ask", "if": "!q:names_yard"},
+			{"text": "Is there anything I can do?", "to": "ask", "if": "!q:names_yard,flag:met_keep"},
 			{"text": "About the name-slates...", "to": "slates", "if": "qat:names_yard:0"},
 			{"text": "Goodbye.", "to": ""},
 		]},
@@ -448,5 +448,5 @@ const CONV := {
 	"tolliver": R37WT.CONV["tolliver"],
 	"gwyn": R37WT.CONV["gwyn"],
 	# --- the east marches ---
-	"marl": R37E.CONV_MARL, "teasel": R37E.CONV_TEASEL, "orrin": R37E.CONV_ORRIN, "ardel": R37E.CONV_ARDEL, "pip": R37E.CONV_PIP,
+	"marl": R37E.CONV_MARL, "teasel": R37E.CONV_TEASEL, "orrin": R37E.CONV_ORRIN, "ardel": R37E.CONV_ARDEL, "pip": R37E.CONV_PIP, "nella": R37E.CONV_NELLA,
 }

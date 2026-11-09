@@ -409,13 +409,18 @@ static func _drop_held(top: Node, cands: Dictionary) -> void:
 
 
 static func _drop_in(v: Variant, cands: Dictionary, depth: int) -> void:
-	if v is Object:
-		if is_instance_valid(v):
-			cands.erase((v as Object).get_instance_id())
-	elif v is Array and depth < 2:
-		for e: Variant in v:
-			_drop_in(e, cands, depth + 1)
-	elif v is Dictionary and depth < 2:
-		for k: Variant in v:
-			_drop_in(k, cands, depth + 1)
-			_drop_in(v[k], cands, depth + 1)
+	# typeof + is_instance_valid(Variant): `v is Object` / cast on a freed instance errors
+	match typeof(v):
+		TYPE_OBJECT:
+			if is_instance_valid(v):
+				cands.erase((v as Object).get_instance_id())
+		TYPE_ARRAY:
+			if depth < 2:
+				for e: Variant in (v as Array):
+					_drop_in(e, cands, depth + 1)
+		TYPE_DICTIONARY:
+			if depth < 2:
+				var d: Dictionary = v
+				for k: Variant in d:
+					_drop_in(k, cands, depth + 1)
+					_drop_in(d[k], cands, depth + 1)

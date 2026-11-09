@@ -69,11 +69,11 @@ static func _fire(s: AudioStream, at: Vector3, volume_db: float, pitch: float, j
 	if p == null:
 		return
 	p.stream = s
-	p.volume_db = db
 	if s.resource_path.begins_with("res://art/audio/kit/"):
 		pitch = pow(maxf(pitch, 0.1), 0.4)        # the kit's takes are rendered with their weight: a call site's 0.5 only darkens them a little
 	p.pitch_scale = maxf(pitch * randf_range(1.0 - jitter, 1.0 + jitter), 0.05)
 	p.global_position = at
+	_rise(p, db)
 	p.play()
 	if _trace < 0:
 		_trace = 1 if "--sfx-trace" in OS.get_cmdline_user_args() else 0
@@ -81,6 +81,17 @@ static func _fire(s: AudioStream, at: Vector3, volume_db: float, pitch: float, j
 		var d := cam.global_position.distance_to(at) if cam != null else -1.0
 		var nm := label if label != "" else _name_of(s)
 		print("SFX %d %s %.1f d=%.1f%s" % [now, nm, db, d, " (stacked x%d)" % reps if reps > 0 else ""])
+
+
+## A few milliseconds of rise, so a stolen voice and a hard attack do not click.
+static func _rise(p: AudioStreamPlayer3D, db: float) -> void:
+	var old: Variant = p.get_meta(&"rise") if p.has_meta(&"rise") else null
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()
+	p.volume_db = db - 8.0
+	var tw := p.create_tween()
+	tw.tween_property(p, "volume_db", db, 0.014).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	p.set_meta(&"rise", tw)
 
 
 static func _voice(host: Node, now: int) -> AudioStreamPlayer3D:

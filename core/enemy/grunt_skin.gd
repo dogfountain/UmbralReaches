@@ -164,7 +164,7 @@ func _process(_delta: float) -> void:
 	_blend()
 
 
-## r36 smooth: the rig poses on the physics tick (every other tick past 16 m), but the screen
+## The rig poses on the physics tick, but the screen
 ## draws at its own rate. Keep the last two posed ticks in skeleton space and draw the blend
 ## for the moment the renderer is showing (the same time the interpolated body is at), so a
 ## grunt's limbs move at the display's rate instead of stepping at 60 (or 30) Hz.

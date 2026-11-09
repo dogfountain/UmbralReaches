@@ -93,41 +93,43 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	var target_stride := clampf(speed / maxf(walk_speed, 0.1), 0.0, 1.4)
 	if not on_floor:
 		target_stride = 0.0
-	_stride = lerpf(_stride, target_stride, 1.0 - exp(-10.0 * delta))
+	_stride = lerpf(_stride, target_stride, 1.0 - exp(-6.2 * delta))
 	if on_floor:
 		_phase += speed * delta / stride_len * PI
-	_air = move_toward(_air, 0.0 if on_floor else 1.0, delta * 7.0)
+	_air = move_toward(_air, 0.0 if on_floor else 1.0, delta * 4.6)
 	if on_floor and not _was_floor:
 		_land = clampf(-_prev_vel.y / 8.0, 0.3, 1.0)
 	_was_floor = on_floor
-	_land = move_toward(_land, 0.0, delta * 3.0)
+	_land = move_toward(_land, 0.0, delta * 2.2)
 	_prev_vel = vel
 	var yaw := rotation.y
-	_turn = lerpf(_turn, wrapf(yaw - _prev_yaw, -PI, PI) / maxf(delta, 0.0001), 1.0 - exp(-6.0 * delta))
+	_turn = lerpf(_turn, wrapf(yaw - _prev_yaw, -PI, PI) / maxf(delta, 0.0001), 1.0 - exp(-4.6 * delta))
 	_prev_yaw = yaw
 	if _gesture_t >= 0.0:
 		_gesture_t += delta
 		# coil fast, hold it trembling for the rest of the telegraph, then let go
 		var k := _gesture_t / _coil_dur
-		_gesture = clampf(k * 2.2, 0.0, 1.0) * (1.0 + sin(_t * 40.0) * 0.06)
-		if k > 1.15:
+		var ease := smoothstep(0.0, 0.35, k) * (1.0 - smoothstep(1.0, 1.2, k))
+		_gesture = ease * (1.0 + sin(_t * 12.0) * 0.03)
+		if k > 1.2:
 			_gesture_t = -1.0
-			_gesture = 0.0
+	else:
+		_gesture = move_toward(_gesture, 0.0, delta * 2.6)
 	if _snap_t >= 0.0:
 		_snap_t += delta
-		_snap = sin(clampf(_snap_t / 0.3, 0.0, 1.0) * PI)
-		if _snap_t > 0.3:
+		_snap = sin(smoothstep(0.0, 1.0, clampf(_snap_t / 0.34, 0.0, 1.0)) * PI)
+		if _snap_t > 0.34:
 			_snap_t = -1.0
 			_snap = 0.0
-	_flinch = move_toward(_flinch, 0.0, delta * 4.5)
-	_reel = move_toward(_reel, 0.0, delta * 0.9)
+	_flinch = move_toward(_flinch, 0.0, delta * 3.4)
+	_reel = move_toward(_reel, 0.0, delta * 0.75)
 	if _fold > 0.0:
-		_fold = minf(_fold + delta * 1.5, 1.0)
+		_fold = minf(_fold + delta * 1.2, 1.0)
 	# coil = the crouch before a pounce; Enemy squashes the whole visual too, this bends the legs
-	_coil = move_toward(_coil, _gesture, delta * 6.0)
+	_coil = move_toward(_coil, _gesture, delta * 4.4)
 	if _howl_t >= 0.0:
 		_howl_t += delta
-		_howl = sin(clampf(_howl_t / _howl_dur, 0.0, 1.0) * PI)
+		_howl = sin(smoothstep(0.0, 1.0, clampf(_howl_t / _howl_dur, 0.0, 1.0)) * PI)
 		if _howl_t > _howl_dur:
 			_howl_t = -1.0
 			_howl = 0.0

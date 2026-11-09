@@ -108,12 +108,15 @@ static func _place(s: Sway, parent: Node, at: Vector3, yaw: float) -> Sway:
 
 
 ## Builds `k` (an OssKit filled around (0, 0, 0)) as meshes under this pivot, so they swing with it.
-func take(k: OssKit, far := 70.0) -> void:
+func take(k: OssKit, far := 95.0) -> void:
 	k.commit(self, "SwayBody")
 	for c in get_children():
 		if c is GeometryInstance3D:
-			(c as GeometryInstance3D).visibility_range_end = far
-			(c as GeometryInstance3D).visibility_range_end_margin = 8.0
+			var g := c as GeometryInstance3D
+			g.visibility_range_end = far
+			g.visibility_range_end_margin = 14.0
+			g.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			g.extra_cull_margin = maxf(g.extra_cull_margin, 3.0)
 		elif c is StaticBody3D:
 			c.queue_free()                       # nothing that moves keeps a static collider
 

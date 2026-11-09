@@ -293,8 +293,16 @@ func _apply_env() -> void:
 ## Move one Environment offset to `want` once it is more than `eps` away (exactly to 0 at the end).
 func _env_offset(k: String, want: float, eps: float) -> void:
 	var cur := float(_applied[k])
+	# clear weather: subtract the exact applied offset so floating haze never leaves a 1e-4 residue
+	if want == 0.0:
+		if absf(cur) < 1e-9:
+			_applied[k] = 0.0
+			return
+		_env.set(k, float(_env.get(k)) - cur)
+		_applied[k] = 0.0
+		return
 	var d := want - cur
-	if d == 0.0 or (absf(d) <= eps and want != 0.0):
+	if d == 0.0 or absf(d) <= eps:
 		return
 	_env.set(k, float(_env.get(k)) + d)
 	_applied[k] = want

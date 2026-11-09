@@ -80,13 +80,13 @@ static func mat(key: String) -> Material:
 			_mats[key] = hm
 			return hm
 		"glow":
-			# lit window glass: warm, emissive, just over the glow threshold at its brightest
+			# lit window glass: warm, under bloom — 0.5 read as solid orange plates
 			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			m.vertex_color_use_as_albedo = true
-			m.albedo_color = Color(1.0, 0.62, 0.3)
+			m.albedo_color = Color(1.0, 0.58, 0.28)
 			m.emission_enabled = true
 			m.emission = Color(1.0, 0.5, 0.18)
-			m.emission_energy_multiplier = 0.5
+			m.emission_energy_multiplier = 0.2
 			m.cull_mode = BaseMaterial3D.CULL_DISABLED
 		"flame":
 			var sm := ShaderMaterial.new()
@@ -432,7 +432,7 @@ func glow_pane(base: Vector3, along: Vector3, w: float, sill: float, spring: flo
 	var nrm := along.cross(Vector3.UP).normalized()
 	var p := func(x: float, y: float) -> Vector3: return base + along * x + Vector3.UP * y
 	var hw := w * 0.5
-	quad("glow", p.call(-hw, sill), p.call(hw, sill), p.call(hw, spring), p.call(-hw, spring), nrm, false, 0.75)
+	quad("glow", p.call(-hw, sill), p.call(hw, sill), p.call(hw, spring), p.call(-hw, spring), nrm, false, 0.38)
 	var curve := arch_curve(w, k, 7)
 	var mid: Vector3 = p.call(0.0, spring)
 	for i in curve.size() - 1:

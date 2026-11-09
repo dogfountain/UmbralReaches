@@ -568,6 +568,6 @@ static func _flash_star(h: Node, at: Vector3, color: Color, size: float) -> void
 	mi.global_position = at
 	mi.scale = Vector3.ONE * size * 0.35
 	var tw := mi.create_tween()
-	tw.tween_property(mi, "scale", Vector3.ONE * size, 0.07).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_property(mi, "scale", Vector3.ONE * size * 0.2, 0.08).set_ease(Tween.EASE_IN)
+	tw.tween_property(mi, "scale", Vector3.ONE * size, 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mi, "scale", Vector3.ONE * size * 0.2, 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	tw.tween_callback(mi.queue_free)

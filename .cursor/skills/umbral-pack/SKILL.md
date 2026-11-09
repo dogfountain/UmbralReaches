@@ -1,11 +1,27 @@
 ---
 name: umbral-pack
-description: Pack script, shader, and player changes into the playable Mac app without rebaking scenes. Use when the user says deploy, pack, ship, play, relaunch, or after visual/gameplay edits they will test in Umbral Reaches.app.
+description: Pack script, shader, and player changes into the playable app without rebaking scenes. Use when the user says deploy, pack, ship, play, relaunch, or after visual/gameplay edits they will test.
 ---
 
-# Pack the Mac app
+# Pack
 
-The owner plays `/Users/luke/Downloads/UmbralReaches/Umbral Reaches.app`. That bundle loads a **Linux** `.pck`, not a macOS export. After visual or gameplay changes, pack — do not ask them to run from the editor.
+**Always put the playable build on the Desktop** when done (Windows or Mac). Do not leave it only under `build/`.
+
+## Windows (this machine)
+
+```powershell
+godot --headless --path . --import --quit
+godot --headless --path . --export-release "Windows" "build/windows/UmbralReaches.exe"
+$desk = [Environment]::GetFolderPath("Desktop")
+New-Item -ItemType Directory -Force -Path "$desk\Umbral Reaches" | Out-Null
+Copy-Item "build\windows\UmbralReaches.exe" "$desk\Umbral Reaches\UmbralReaches.exe" -Force
+```
+
+Play from `Desktop\Umbral Reaches\UmbralReaches.exe`. Quote the Desktop copy time.
+
+## Mac app
+
+The owner plays `/Users/luke/Downloads/UmbralReaches/Umbral Reaches.app`. That bundle loads a **Linux** `.pck`, not a macOS export. After visual or gameplay changes, pack — do not ask them to run from the editor. Also copy/symlink the playable onto the Desktop when packing on Mac.
 
 ## Do not
 

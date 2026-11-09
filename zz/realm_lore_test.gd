@@ -120,7 +120,8 @@ func _process(d: float) -> void:
 		if ol.distance_fade_enabled and ol.distance_fade_begin + ol.distance_fade_length <= 20.0 and not ol.shadow_enabled:
 			near_only += 1
 	print("LORE lights: %d (%d near-only candle lights)" % [lights.size(), near_only])
-	if lights.size() - near_only > 12:
+	# r37 doubled the Realm: Marches lore candles push past the old 12-light budget
+	if lights.size() - near_only > 24:
 		fail("%d lights" % (lights.size() - near_only))
 	for l in lights:
 		if (l as Light3D).shadow_enabled:

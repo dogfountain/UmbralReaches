@@ -239,7 +239,7 @@ static func _square(sq: Dictionary) -> void:
 	var c: Vector2 = sq.c
 	var r: float = sq.r
 	var yard: bool = sq.kind == "yard"
-	var clusters := 16 if yard else 12
+	var clusters := 22 if yard else 16
 	var cart_done := String(sq.id) == "hearthward"            # the ash-wife's cart stands there already
 	for i in clusters * 3:
 		if clusters <= 0:
@@ -267,12 +267,12 @@ static func _square(sq: Dictionary) -> void:
 		if ok:
 			clusters -= 1
 	# the loose litter of a used place: straw where goods were handled, leaves in the corners, small stones
-	_scatter("straw", c, r * 1.05, 44 if yard else 32, 0.9, 1.7)
-	_scatter("leaf", c, r * 1.1, 44, 1.1, 1.9)
+	_scatter("straw", c, r * 1.05, 58 if yard else 42, 0.9, 1.7)
+	_scatter("leaf", c, r * 1.1, 58, 1.1, 1.9)
 	var traded := int(sq.get("market", 0)) > 0
-	_scatter("stone", c, r * 1.05, 5 if traded else 20, 0.9, 1.4)      # a market's cobbles are swept: a few stones, not a field of eggs
-	_scatter("stone2", c, r * 1.05, 3 if traded else 10, 0.9, 1.3)
-	_scatter("kindling", c, r * 0.95, 6, 1.1, 1.5)
+	_scatter("stone", c, r * 1.05, 7 if traded else 28, 0.9, 1.4)      # a market's cobbles are swept: a few stones, not a field of eggs
+	_scatter("stone2", c, r * 1.05, 4 if traded else 14, 0.9, 1.3)
+	_scatter("kindling", c, r * 0.95, 9, 1.1, 1.5)
 
 
 ## A trading square: a stepped cross near the middle, `market` awninged stalls ringed round it facing in, each with
@@ -309,7 +309,7 @@ static func _market(sq: Dictionary) -> void:
 				break
 	print("MARKET %s: %d of %d stalls stood" % [sq.id, placed, n])
 	if String(sq.id) == "saltmarket":
-		_scatter("saltheap", c, r * 0.95, 5, 0.8, 1.2)
+		_scatter("saltheap", c, r * 0.95, 9, 0.8, 1.2)
 
 
 static func _stores(p: Vector2, yaw: float, yard: bool) -> bool:
@@ -341,16 +341,21 @@ static func _scatter(kind: String, c: Vector2, r: float, n: int, rmin: float, rm
 ## A fire pad: a broken ring of stones, kindling and ash-dark leaves, a log to sit on.
 static func _fire_pad(f: Vector2) -> void:
 	var a0 := _rng.randf() * TAU
-	for i in 8:
-		var a := a0 + float(i) * TAU / 8.0 + _rng.randf_range(-0.2, 0.2)
-		if _rng.randf() < 0.2:
+	for i in 11:
+		var a := a0 + float(i) * TAU / 11.0 + _rng.randf_range(-0.18, 0.18)
+		if _rng.randf() < 0.14:
 			continue                                     # a gap: the ring is a camp's, not a wall's
-		_put("stone" if i % 3 else "stone2", _ring(f, _rng.randf_range(2.1, 2.9), a), _rng.randf() * TAU, _rng.randf_range(1.3, 2.0))
+		_put("stone" if i % 3 else "stone2", _ring(f, _rng.randf_range(2.0, 3.0), a), _rng.randf() * TAU, _rng.randf_range(1.3, 2.0))
 	_put("log", _ring(f, 2.6, a0 + 1.0), a0 + 1.0 + PI * 0.5, 1.0)
+	_put("log", _ring(f, 2.9, a0 + 2.6), a0 + 2.6 + PI * 0.5, 0.85)
 	_put("kindling", _ring(f, 1.8, a0 + 3.0), a0)
 	_put("kindling", _ring(f, 2.0, a0 + 4.4), a0 + 1.0)
-	_scatter("leaf", f, 4.8, 9, 0.5, 1.1)
-	_scatter("straw", f, 4.0, 3, 0.5, 1.0)
+	_put("kindling", _ring(f, 1.6, a0 + 5.2), a0 + 0.4)
+	_put("bucket", _ring(f, 3.1, a0 + 0.4), a0)
+	_put("firewood", _ring(f, 3.4, a0 + 1.8), a0 + 1.8)
+	_scatter("leaf", f, 5.2, 16, 0.5, 1.1)
+	_scatter("straw", f, 4.4, 7, 0.5, 1.0)
+	_scatter("kindling", f, 3.6, 4, 0.6, 1.0)
 
 
 ## A boss floor's rim: rubble, cracked flagstones, bones and dead leaves in a band along the wall; the
@@ -360,7 +365,7 @@ static func _raid(rd: Dictionary) -> void:
 	var r: float = rd.r
 	var gate: Vector2 = rd.gate
 	var gate_ang := (gate - c).angle()
-	var n := int(r * 1.8)
+	var n := int(r * 2.4)
 	var placed := 0
 	for i in n * 4:
 		if placed >= n:
@@ -391,7 +396,7 @@ static func _raid(rd: Dictionary) -> void:
 
 ## The wall's breach: fallen stones and leaves heaped to either side of the way through.
 static func _breach(b: Vector2) -> void:
-	for i in 40:
+	for i in 56:
 		var p := b + Vector2(_rng.randf_range(-6.0, 6.0), _rng.randf_range(-7.0, 7.0))
 		var pick := _rng.randf()
 		if pick < 0.45:

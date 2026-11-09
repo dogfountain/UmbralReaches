@@ -599,7 +599,7 @@ func _warm_materials() -> void:
 		var gl := get_node_or_null(gn) as MeshInstance3D
 		if gl != null and gl.material_override is StandardMaterial3D:
 			var gm := (gl.material_override as StandardMaterial3D).duplicate() as StandardMaterial3D
-			gm.emission_energy_multiplier = 1.2
+			gm.emission_energy_multiplier = 0.16
 			gl.material_override = gm
 
 
@@ -608,21 +608,29 @@ func _lights(lamp: Vector3) -> void:
 	var cy := FY + H1 * 0.5
 	Interiors.add("tavern", Vector3((X0 + X1) * 0.5, cy, (Z0 + Z1) * 0.5), 0.0, Vector3((X1 - X0) * 0.5 - T, H1 * 0.5 + 0.1, (Z1 - Z0) * 0.5 - T))
 	# the hearth: the room's heart, a soft-shadowed fire (about 1900 K) that throws the tables' shadows across the floor
-	Interiors.light(self, "Hearth", Vector3(X1 - T - 0.8, FY + 0.9, hz), Color(1.0, 0.42, 0.12), 5.5, 13.0, true, 0.12)
-	Interiors.light(self, "HearthRug", Vector3(X1 - T - 2.2, FY + 0.5, hz), Color(1.0, 0.5, 0.18), 1.6, 6.5, false, 0.12)
+	Interiors.light(self, "Hearth", Vector3(X1 - T - 0.8, FY + 0.9, hz), Color(1.0, 0.42, 0.12), 3.2, 11.0, true, 0.12)
+	Interiors.light(self, "HearthRug", Vector3(X1 - T - 2.2, FY + 0.5, hz), Color(1.0, 0.5, 0.18), 1.0, 5.5, false, 0.12)
 	# two iron-ring chandeliers (a ring of wax: 2300 K) with shadows; the rest of the room is candle pools without
 	for cx: float in [14.2, 20.6]:
-		Interiors.light(self, "Chandelier", Vector3(cx, FY + H1 - 0.55, 30.2), Color(1.0, 0.7, 0.36), 2.4, 8.0, true, 0.06)
+		Interiors.light(self, "Chandelier", Vector3(cx, FY + H1 - 0.55, 30.2), Color(1.0, 0.7, 0.36), 1.55, 7.0, true, 0.06)
 	# a table's candles light the faces round it
 	for tc: Vector2 in [Vector2(12.6, 28.9), Vector2(15.2, 29.6), Vector2(20.4, 28.9), Vector2(21.8, 31.8)]:
-		Interiors.light(self, "Candles", Vector3(tc.x, FY + 1.05, tc.y), Color(1.0, 0.72, 0.38), 1.35, 4.2, false, 0.1)
+		Interiors.light(self, "Candles", Vector3(tc.x, FY + 1.05, tc.y), Color(1.0, 0.72, 0.38), 0.9, 3.8, false, 0.1)
 	for bx: float in [13.0, 16.8]:
-		Interiors.light(self, "BarCandles", Vector3(bx, FY + 1.5, Z1 - T - 1.3), Color(1.0, 0.7, 0.36), 1.4, 5.0, false, 0.09)
+		Interiors.light(self, "BarCandles", Vector3(bx, FY + 1.5, Z1 - T - 1.3), Color(1.0, 0.7, 0.36), 0.95, 4.4, false, 0.09)
 	# out of the door and the front windows the room spills warm onto the porch and the yard
-	Interiors.light(self, "DoorLamp", lamp, Color(1.0, 0.6, 0.28), 2.2, 9.0, false, 0.1)
-	Interiors.light(self, "DoorSpill", Vector3(DOOR_X, FY + 1.4, Z0 - 0.8), Color(1.0, 0.62, 0.3), 2.0, 8.0, false, 0.08)
-	for wx: float in [X0 + 4.8, X0 + 10.6]:
-		Interiors.light(self, "WindowSpill", Vector3(wx, FY + 1.6, Z0 - 0.7), Color(1.0, 0.6, 0.28), 1.3, 5.5, false, 0.08)
+	Interiors.light(self, "DoorLamp", lamp, Color(1.0, 0.6, 0.28), 1.25, 7.5, false, 0.1)
+	Interiors.light(self, "DoorSpill", Vector3(DOOR_X, FY + 1.4, Z0 - 0.8), Color(1.0, 0.62, 0.3), 1.35, 7.5, false, 0.08)
+	Interiors.shaft(self, "DoorTrail", Vector3(DOOR_X, FY + 1.55, Z0 - 0.15), Vector3(0.0, -0.35, -1.0), Color(1.0, 0.55, 0.22), 1.05, 12.0, 28.0)
+	var warm := Color(1.0, 0.58, 0.24)
+	for at: float in [1.8, 4.8, 10.6, 13.6]:
+		var wx := X0 + at
+		Interiors.light(self, "WindowSpill_%d" % int(wx * 10.0), Vector3(wx, FY + 1.5, Z0 - 0.75), warm, 0.55, 4.2, false, 0.08)
+		Interiors.shaft(self, "WindowTrail_%d" % int(wx * 10.0), Vector3(wx, FY + 1.55, Z0 - 0.2), Vector3(0.0, -0.5, -1.0), warm, 0.75, 9.0, 18.0)
+	var uy := FY + H1
+	for at2: float in [2.4, 5.6, 8.8, 12.0, 14.8]:
+		var ux := X0 - JET + at2
+		Interiors.shaft(self, "UpperTrail_%d" % int(ux * 10.0), Vector3(ux, uy + 1.67, Z0 - JET - 0.12), Vector3(0.0, -0.65, -1.0), warm, 0.65, 9.5, 16.0)
 	var fire := Vfx.emitter(Color(1.0, 0.45, 0.12), {"count": 26, "life": 0.7, "speed": Vector2(0.4, 1.1), "size": 0.2, "gravity": -1.4, "radius": 0.3, "additive": true, "spread": 25.0})
 	if fire:
 		fire.name = "HearthFire"

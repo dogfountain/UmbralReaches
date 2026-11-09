@@ -21,8 +21,8 @@ const GROUP := &"lamp"                   ## every lamp a wanderer can light (the
 const WARM := Color(1.0, 0.62, 0.28)
 const HEART := Color(1.0, 0.74, 0.34)         ## a flame's pale root
 const TIP := Color(0.88, 0.28, 0.07)           ## and its red tip
-const PANE := Color(0.95, 0.62, 0.28)         ## lit glass
-const FLAME_GLOW := 1.25                 ## flame brightness multiplier: the heart just reaches the glow threshold (1.15), the rest stays under
+const PANE := Color(0.62, 0.38, 0.16)         ## lit glass (vertex): kept under bloom
+const FLAME_GLOW := 0.10                 ## well under bloom: glass reads warm, never a solid orange plate
 const ASH := 2                           ## grave ash for the first light of each (a small gift)
 
 static var _meshes: Dictionary = {}
@@ -43,8 +43,8 @@ var _glow: MeshInstance3D
 var _light: OmniLight3D
 var _flame_at := Vector3.ZERO
 var _light_at := Vector3.ZERO
-var _e := 0.9
-var _range := 5.5
+var _e := 0.4
+var _range := 4.2
 var _t := 0.0
 var _near := true
 var _poll := 0.0
@@ -57,8 +57,8 @@ func _ready() -> void:
 	var d := _mesh_for(look, free_niche, chain)
 	_flame_at = d.flame
 	_light_at = d.light
-	_e = d.e * 6.0                       # a lamp warms the ground and the wall it stands by, not just its own glass
-	_range = d.range * 1.5
+	_e = float(d.e) * 0.48               # soft ground pool; *6 washed yards orange under AgX
+	_range = float(d.range) * 0.9
 	_body = MeshInstance3D.new()
 	_body.name = "Body"
 	_body.mesh = d.body
@@ -181,11 +181,11 @@ func _process(delta: float) -> void:
 	if not _near:
 		return
 	_t += delta
-	_flare = maxf(_flare - delta * 1.4, 0.0)
-	var k := 1.0 + 0.07 * sin(_t * 8.3 + _phase) + 0.05 * sin(_t * 21.0 + _phase * 2.0)
-	_glow.scale = Vector3(1.0, 0.9 + 0.2 * k, 1.0) * (1.0 + _flare * 0.5)
+	_flare = maxf(_flare - delta * 1.8, 0.0)
+	var k := 1.0 + 0.025 * sin(_t * 7.1 + _phase) + 0.018 * sin(_t * 17.0 + _phase * 2.0)
+	_glow.scale = Vector3(1.0, 0.94 + 0.06 * k, 1.0) * (1.0 + _flare * 0.16)
 	if _light:
-		_light.light_energy = _e * k * (1.0 + _flare * 1.6)
+		_light.light_energy = _e * k * (1.0 + _flare * 0.4)
 
 
 ## (lit, total) of the lamps the wanderer can kindle.
@@ -228,25 +228,32 @@ static func _mat(key: String) -> Material:
 			m.rim = 0.15
 			m.rim_tint = 0.5
 		"pane":
-			# a lit lantern's glass and flame: added light, so the flame shows through the glass whichever draws first
+			# lit glass: soft emission, not additive — ADD + AgX turned every lamp into an orange plate
 			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			m.vertex_color_use_as_albedo = true
 			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-			m.albedo_color = Color(FLAME_GLOW, FLAME_GLOW, FLAME_GLOW)
+			m.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+			m.albedo_color = Color(0.78, 0.44, 0.18, 0.36)
+			m.emission_enabled = true
+			m.emission = Color(0.95, 0.46, 0.16)
+			m.emission_energy_multiplier = FLAME_GLOW
 		"flame":
-			# unshaded and vertex-coloured: a pale heart fading to red at the tip; the 1.3 lifts the heart to the
-			# bloom threshold and no further
+			# unshaded heart: pale core, soft tip — stays under the bloom threshold
 			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			m.vertex_color_use_as_albedo = true
-			m.albedo_color = Color(FLAME_GLOW, FLAME_GLOW, FLAME_GLOW)
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			m.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+			m.albedo_color = Color(0.86, 0.52, 0.22, 0.58)
+			m.emission_enabled = true
+			m.emission = Color(0.95, 0.44, 0.14)
+			m.emission_energy_multiplier = FLAME_GLOW
 		_:
 			# cold: dark glass with a pale pinprick of ember inside; under the glow threshold, no light
 			m.albedo_color = Color(0.08, 0.09, 0.11)
 			m.roughness = 0.25
 			m.emission_enabled = true
 			m.emission = Color(0.5, 0.64, 0.95)
-			m.emission_energy_multiplier = 0.22
+			m.emission_energy_multiplier = 0.14
 	_mats[key] = m
 	return m
 

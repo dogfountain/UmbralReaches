@@ -149,6 +149,7 @@ const CAST := {
 				{"act": "tend", "at": "wf_stable", "face": Vector2(-189.0, 92.0), "t": [8.0, 12.0]},
 				{"act": "idle", "at": "wf_stable_in", "face": Vector2(-198.0, 96.0), "t": [6.0, 9.0]},
 				{"act": "lean", "at": "wf_stable", "face": Vector2(-186.0, 92.0), "t": [6.0, 9.0]},
+				{"go": "wf_stable_road"}, {"act": "look_up", "at": "wf_stable_road", "face": Vector2(-196.0, 74.0), "t": [5.0, 8.0]}, {"go": "wf_stable"},
 			],
 		}},
 }

@@ -42,8 +42,8 @@ const REALM_CAMPS: Array[Dictionary] = [
 	# guardians of the summit ward (it also needs the Thornwarden and the Bone Abbot): they hold the
 	# Crossing itself, its west tower (Crossing.T2, parapeted) and its head in front of the ward
 	# (r32: the first pack stood 12-16 m east of the Crossing's foot, off the way, beside a roaming pack)
-	{"at": Vector3(-13.0, 6.0, -30.0), "kinds": ["husk", "wretch"], "probe": 3.0, "r": 1.4, "strict": true, "seal": "summit"},
-	{"at": Vector3(0.0, 25.4, -68.0), "kinds": ["spitter", "wretch"], "probe": 1.5, "r": 1.4, "strict": true, "seal": "summit"},
+	{"at": Vector3(-13.0, 12.0, -30.0), "kinds": ["husk", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
+	{"at": Vector3(0.0, 28.0, -68.0), "kinds": ["spitter", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
 	# roaming packs (they come back)
 	# r28 war bands: a guard (Bulwark) before a caster (Chanter), flankers on the sides
 	# r31: a Tollman rides with it (kill it before it rings, or the Thornwood comes) and a Gaunt darts
@@ -117,6 +117,10 @@ const REALM_CAMPS: Array[Dictionary] = [
 		"patrol": [Vector2(-120, 214), Vector2(-112, 204), Vector2(-126, 205)]},                  # the west downs
 	{"at": Vector3(126.0, 60.0, 214.0), "kinds": ["gaunt", "leaper", "crawler"], "probe": 0.0,
 		"patrol": [Vector2(126, 214), Vector2(134, 206), Vector2(118, 207)]},                     # the east downs
+	{"at": Vector3(18.0, 60.0, 226.0), "kinds": ["gaunt", "wretch", "crawler"], "probe": 0.0,
+		"patrol": [Vector2(18, 226), Vector2(28, 220), Vector2(8, 222)]},                          # the middle downs, south of downs_track
+	{"at": Vector3(-92.0, 60.0, 222.0), "kinds": ["burrower", "mite", "crawler"], "probe": 0.0, "r": 1.8},  # west of the Grandmother Oak, clear of downs_track
+	{"at": Vector3(96.0, 60.0, 222.0), "kinds": ["spitter", "husk", "ossuant"], "probe": 0.0},   # the Well's south-east rim, clear of the fire
 	# --- west marches (docs/r37_expansion.md): the Sorrow's Banks (tier 2: the drowned and what hunts the fords),
 	# the Fallen Hierarch's valley (tier 3: stone-bound husks and bulwarks round the skull), the Siege Lines
 	# (tier 2: the Marches' war-bands that never went home). Weirford itself has no camp: its watch holds it.
@@ -133,6 +137,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(172.0, 60.0, -36.0), "kinds": ["husk", "spitter", "husk"], "probe": 0.0},      # the north shore
 	{"at": Vector3(246.0, 60.0, -28.0), "kinds": ["gaunt", "wretch", "gaunt"], "probe": 0.0},     # the lake's east bank, under the bluff
 	{"at": Vector3(188.0, 60.0, 44.0), "kinds": ["spitter", "husk"], "probe": 0.0},               # the south shore, off the fire
+	{"at": Vector3(228.0, 60.0, -18.0), "kinds": ["gaunt", "spitter", "wretch"], "probe": 0.0},   # Stillwater's east bank under the Spire, clear of spire_track
 	{"at": Vector3(180.0, 60.0, -82.0), "kinds": ["bulwark", "chanter", "leaper"], "probe": 0.0},  # the scree
 	{"at": Vector3(232.0, 60.0, -94.0), "kinds": ["bulwark", "quiller", "wretch"], "probe": 0.0},  # the east cells
 	{"at": Vector3(184.0, 60.0, -60.0), "kinds": ["leaper", "gaunt", "gaunt"], "probe": 0.0},      # anchor_track's lower bend
@@ -530,8 +535,8 @@ func _ground(space: PhysicsDirectSpaceState3D, from: Vector3, up := 24.0, strict
 		if n.y < 0.55:
 			continue
 		var at: Vector3 = hit.position
-		if strict and absf(at.y - from.y) > 4.0:
-			continue
+		if strict and absf(at.y - from.y) > 14.0:
+			continue                                          # was 4: summit camps sat just off the band and never spawned
 		fallback = at
 		_last_hit_y = at.y
 		var sq := PhysicsShapeQueryParameters3D.new()

@@ -18,7 +18,9 @@ const LAVA_Y := -15.5                                       ## the rift's lava s
 
 ## Fixed points (do not move: the kept brazier, tavern, Ossuary and summit depend on them).
 const SPAWN := Vector3(0.0, 0.0, 33.0)                     ## the spawn brazier (Zone/Braziers/Sanctuary)
-const PLAYER_START := Vector3(0.0, 0.15, 26.5)
+## New game: on the Pilgrims' Road at waystone III, facing Hearthward (docs/STORY.md known gap).
+## The Sanctuary fire stays SPAWN; Continue / kindle still wake at the last checkpoint.
+const PLAYER_START := Vector3(-16.0, 0.15, 55.5)
 const TAVERN := Rect2(10.0, 25.6, 16.0, 9.2)               ## Tavern.X0..X1, Z0..Z1 (+ yard east to x 29)
 const OSSUARY := AABB(Vector3(2.0, -6.0, -110.0), Vector3(30.0, 32.0, 88.0))   ## streamed crypt (keep)
 ## r34 layout: room reserved for the Bone Abbot's pit hall (~50 m), wholly underground east of the

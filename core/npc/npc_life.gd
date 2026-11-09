@@ -8,8 +8,8 @@ extends RefCounted
 ##   gaze()      head yaw/pitch toward a target with a lag, small saccades while it holds
 ##   talk()      a speaking rhythm: syllables grouped into words and phrases with pauses; gives the
 ##               jaw opening and a gesture "beat" (0..1) that peaks on stressed words, for nods/hands
-## And the update-rate policy (`interval`): every frame within 4 m (conversation range), 30 Hz to 11 m
-## (60 Hz while walking), 20 Hz to 20 m, 12 Hz to 35 m, 2 Hz off
+## And the update-rate policy (`interval`): every frame within 20 m while walking (a 30 Hz stride
+## steps at 120 Hz), 30 Hz while standing to 20 m, 20 Hz walking and 12 Hz standing out to 35 m, 2 Hz off
 ## screen, frozen past FREEZE_R (the pose holds; the mesh is range-culled further out anyway).
 ## Load by path: const Life := preload("res://core/npc/npc_life.gd")
 
@@ -64,12 +64,12 @@ func step(dt: float, talking := false) -> void:
 	if _sway_t <= 0.0:
 		_sway_t = rng.randf_range(3.0, 8.0)
 		_sway_to = rng.randf_range(0.5, 1.0) * (-1.0 if _sway_to > 0.0 else 1.0)
-	_sway = lerpf(_sway, _sway_to, 1.0 - exp(-dt * 1.2))
+	_sway = lerpf(_sway, _sway_to, 1.0 - exp(-dt * 1.55))
 	# saccades: small jumps of the gaze while it holds a target
 	_sacc_t -= dt
 	if _sacc_t <= 0.0:
-		_sacc_t = rng.randf_range(0.4, 1.6)
-		_sacc = Vector2(rng.randf_range(-0.05, 0.05), rng.randf_range(-0.03, 0.03))
+		_sacc_t = rng.randf_range(0.35, 1.35)
+		_sacc = Vector2(rng.randf_range(-0.06, 0.06), rng.randf_range(-0.04, 0.04))
 	# speech: words of 2-4 syllables, short gaps between words, longer between phrases
 	if talking:
 		_word_t += dt
@@ -159,12 +159,10 @@ static func interval(cam: Camera3D, pos: Vector3, moving := false) -> float:
 		return 0.5
 	if d < 4.0:
 		return 0.0
-	if d < 11.0:
-		# a walker this close poses every rendered frame: at 120-144 Hz a 60 Hz stride steps visibly
-		return 0.0 if moving else 1.0 / 30.0
 	if d < 20.0:
-		return 1.0 / 30.0 if moving else 1.0 / 20.0
-	return 1.0 / 12.0
+		# a walker poses every rendered frame: at 120 Hz a 30 Hz stride steps
+		return 0.0 if moving else 1.0 / 30.0
+	return 1.0 / 20.0 if moving else 1.0 / 12.0
 
 
 ## Legs and pelvis for a walk at gait phase `p` (0..1 a stride; the right heel strikes at 0),
@@ -181,8 +179,10 @@ static func walk_legs(rig: DwarfRig, p: float, amt: float, swing: float, knee: f
 	for side in 2:
 		var c := fposmod(p + 0.5 * float(side), 1.0)
 		var w := c / 0.6 * 0.5 if c < 0.6 else 0.5 + (c - 0.6) / 0.4 * 0.5
+		# ease the stance→swing handoff so the thigh does not kink at 0.6
+		w = w * w * (3.0 - 2.0 * w)
 		var th := swing * cos(TAU * w)
-		var flex := 0.14 * exp(-pow((c - 0.09) / 0.06, 2.0)) + knee * exp(-pow((c - 0.74) / 0.12, 2.0)) + 0.05
+		var flex := 0.12 * exp(-pow((c - 0.1) / 0.08, 2.0)) + knee * exp(-pow((c - 0.74) / 0.14, 2.0)) + 0.045
 		var bt := 11 if side == 0 else 13
 		rig.q(bt, Quaternion(Vector3.RIGHT, th * amt))
 		rig.q(bt + 1, Quaternion(Vector3.RIGHT, -flex * amt))
@@ -233,6 +233,8 @@ func blend_step(rig: DwarfRig, acc: float) -> void:
 	if al >= 1.0:
 		al = 1.0
 		_bspan = 0.0                    # arrived: hold the pose until the next update
+	# smoothstep ease so low-rate NPC poses do not click between updates
+	al = al * al * (3.0 - 2.0 * al)
 	var sk := rig.skeleton
 	for i in _bf.size():
 		sk.set_bone_pose_rotation(i, _bf[i].slerp(_bt[i], al))
