@@ -3,14 +3,15 @@ extends RefCounted
 ## star came down on the salt. It did not burst. It struck once, fused the pans to glass for sixty paces and
 ## stayed, hanging a few fathoms over its own grave, turning as the sky turns. The Order's surveyors called it a
 ## Wound and measured it; the salt-workers call it the Lamp and keep their rakes out of its rays.
-##   - the crater: a shallow bowl of black glass, cracked into plates that the star lights from beneath, a raised
-##     rim of fused crust, a ragged skirt of glass giving out to salt (one heightfield, walkable)
-##   - the crystals: three great clusters of dark clear glass rooted in the rim and thrown outward, long rays lying
-##     across the pans (Blender: art/models/wonders/star_crater_shards.glb, tools/blender/wonder_star_crater.py)
-##   - the star: a dense cracked core white-hot through its fractures, spurs, molten glass frozen in drips beneath,
-##     a halo, shell fragments drifting at different distances, a hum, motes
-##   - the climb: a ridge of fused glass plates heaved up from the crater floor, curving in toward a shelf under
-##     the star (a secret: core/life/secrets/site_star_crater.gd)
+##   - the crater: a shallow bowl of dark glass, cracked into plates that the star lights from beneath and mirrors
+##     itself in, a raised rim of fused crust, a ragged skirt of glass giving out to salt (one heightfield, walkable)
+##   - the crystals: three great quartz druses rooted in the rim and thrown outward, long points lying across the
+##     pans: milky and lit from within at the root, clear to the point (Blender: art/models/wonders/star_crater_shards.glb,
+##     tools/blender/wonder_star_crater.py)
+##   - the star: a white-gold faceted gem with short points of light, molten glass frozen in drips beneath, plates
+##     of its dark shell drifting round it, chips further out, a halo, a hum, motes
+##   - the climb: a ridge of snapped quartz columns heaved up from the crater floor, curving in toward a shelf
+##     under the star crowned with points (a secret: core/life/secrets/site_star_crater.gd)
 ## Everything animated is in the shaders. Two lights. Placed clear of the salt-works, derricks and pans, the camps and
 ## the salt track; every piece is tested against the physics world and the collision-less meshes.
 
@@ -22,7 +23,7 @@ const FLOOR_R := 8.0                   ## the glass floor
 const RIM_R := 12.5                    ## the crest (varies round the ring)
 const RIM_H := 2.1
 const MESH_R := 24.0
-const HEART_H := 15.0                  ## the heart over the floor
+const HEART_H := 16.5                  ## the heart over the floor (8.7 m over the shelf: looked up at, not into)
 const PROBE_LAYER := 1 << 30           ## stand-in bodies (nothing else uses it; freed after)
 
 var space: PhysicsDirectSpaceState3D
@@ -30,11 +31,13 @@ var rng := RandomNumberGenerator.new()
 var noise := FastNoiseLite.new()
 var g0 := 0.0
 var heart := Vector3.ZERO
+var moon := Vector3(0.3, 0.75, 0.4)       ## towards the moon (the facets' glints)
 var host: Node3D
 var _temp: Array[Node] = []
 var _audit: Array[String] = []
 var _last_hit := ""
 var _scenes := {}
+var _meshes := {}
 var _gcache := {}
 var _stats := {}
 
@@ -54,6 +57,9 @@ func _run(root: Node) -> void:
 		push_warning("WONDER star_crater: no ground at %s" % C)
 		return
 	heart = Vector3(C.x, g0 + HEART_H, C.y)
+	var moon_light := root.get_node_or_null("Moon") as DirectionalLight3D
+	if moon_light != null:
+		moon = moon_light.global_transform.basis.z.normalized()
 	host = Node3D.new()
 	host.name = "StarCrater"
 	root.add_child(host)
@@ -186,6 +192,7 @@ func _glass() -> int:
 	sh.code = Shaders.GLASS
 	sm.shader = sh
 	sm.set_shader_parameter("centre", Vector3(C.x, g0, C.y))
+	sm.set_shader_parameter("heart", heart)
 	var mi := MeshInstance3D.new()
 	mi.name = "Glass"
 	mi.mesh = mesh
@@ -215,10 +222,23 @@ func _scene(file: String) -> Node:
 	return _scenes[file]
 
 
+## The piece's mesh, rebuilt without the importer's LODs: every face is fanned round points inside it that carry
+## the shader's edge field (UV2.y), and a LOD folds those coplanar fans away, which turned whole faces into "edge"
+## (pale slabs) from ten metres off. The pieces are a few thousand triangles each; the full mesh is cheap.
 func _mesh(file: String, node: String) -> Mesh:
+	var key := file + ":" + node
+	if _meshes.has(key):
+		return _meshes[key]
 	var root := _scene(file)
 	var n := root.find_child(node, true, false) as MeshInstance3D if root != null else null
-	return n.mesh if n != null else null
+	if n == null or n.mesh == null:
+		return null
+	var src := n.mesh
+	var out := ArrayMesh.new()
+	for s in src.get_surface_count():
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, src.surface_get_arrays(s))
+	_meshes[key] = out
+	return out
 
 
 ## The collision hull the asset ships for `node` (its `-colonly` mesh becomes the body that follows it), as a convex
@@ -253,7 +273,7 @@ func _glass_mat(shader_code: String, strength := 1.0) -> ShaderMaterial:
 	sm.shader = sh
 	sm.set_shader_parameter("heart", heart)
 	sm.set_shader_parameter("strength", strength)
-	sm.set_shader_parameter("base_y", g0)
+	sm.set_shader_parameter("moon", moon)
 	return sm
 
 
@@ -353,11 +373,12 @@ func _ridge() -> void:
 		var p := Vector3(C.x + cos(th) * r, top, C.y + sin(th) * r)
 		var sy := maxf(1.0, (top - g0 + 0.8) / 4.4)
 		var tilt := Basis(Vector3.RIGHT, rr.randf_range(-0.07, 0.07)) * Basis(Vector3.FORWARD, rr.randf_range(-0.07, 0.07))
-		var xf := Transform3D(Basis(Vector3.UP, rr.randf() * TAU) * tilt, p)
+		var xf := Transform3D(Basis(Vector3.UP, -th + rr.randf_range(-0.35, 0.35)) * tilt, p)       # points outward
 		if not _put("star_crater_ridge.glb", names[k % 4], xf, glass, "ridge %d" % k, true, sy, 0.0):
 			_audit.append("ridge plate %d missing" % k)
 	var sy2 := (SHELF_TOP + 0.8) / 5.0
-	_put("star_crater_ridge.glb", "ridge_shelf", Transform3D(Basis(Vector3.UP, 0.4), Vector3(C.x, g0 + SHELF_TOP, C.y)), glass, "shelf", true, sy2, 0.0)
+	var away := phi + 2.4 + PI                        # the shelf's crown of points stands away from where the ridge arrives
+	_put("star_crater_ridge.glb", "ridge_shelf", Transform3D(Basis(Vector3.UP, -away), Vector3(C.x, g0 + SHELF_TOP, C.y)), glass, "shelf", true, sy2, 0.0)
 
 
 func _solid(mesh: ArrayMesh) -> ConcavePolygonShape3D:
@@ -379,8 +400,28 @@ func _heart() -> void:
 		mi.mesh = mesh
 		mi.material_override = hm
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.extra_cull_margin = 2.0
 		host.add_child(mi)
 		mi.global_position = heart
+	# the plates of its shell, each drifting round it at its own rate (instance uniforms: one material)
+	var shell := _glass_mat(Shaders.SHELL)
+	var rates := [0.045, -0.035, 0.06, -0.05, 0.03]
+	var i := 0
+	for n: String in ["shell_a", "shell_b", "shell_c", "shell_d", "shell_e"]:
+		var mesh := _mesh("star_crater_heart.glb", n)
+		if mesh == null:
+			continue
+		var mi := MeshInstance3D.new()
+		mi.name = "Shell_" + n.right(1)
+		mi.mesh = mesh
+		mi.material_override = shell
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.extra_cull_margin = 6.0
+		host.add_child(mi)
+		mi.global_position = heart
+		mi.set_instance_shader_parameter(&"rate", rates[i])
+		mi.set_instance_shader_parameter(&"phase", float(i) * 1.7)
+		i += 1
 	var halo := MeshInstance3D.new()
 	halo.name = "Halo"
 	var q := QuadMesh.new()
@@ -397,7 +438,7 @@ func _heart() -> void:
 	halo.global_position = heart
 
 
-## Pieces of the shell adrift at different distances, heights and rates: six shapes, a few of each.
+## Chips of the shell further out, at different distances, heights and rates: six shapes, two of each.
 func _fragments() -> void:
 	var fr := RandomNumberGenerator.new()
 	fr.seed = 5
@@ -413,18 +454,18 @@ func _fragments() -> void:
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_custom_data = true
 		mm.mesh = mesh
-		mm.instance_count = 3
-		for j in 3:
+		mm.instance_count = 2
+		for j in 2:
 			mm.set_instance_transform(j, Transform3D.IDENTITY)
 			var sign := 1.0 if fr.randf() < 0.65 else -1.0
-			mm.set_instance_custom_data(j, Color(fr.randf_range(4.8, 10.5), fr.randf(), sign * fr.randf_range(0.03, 0.1), fr.randf_range(-1.4, 4.5)))
-		mm.custom_aabb = AABB(Vector3(-14, -6, -14), Vector3(28, 16, 28))
+			mm.set_instance_custom_data(j, Color(fr.randf_range(5.6, 8.0), fr.randf(), sign * fr.randf_range(0.03, 0.08), fr.randf_range(-0.5, 3.5)))
+		mm.custom_aabb = AABB(Vector3(-10, -2, -10), Vector3(20, 8, 20))
 		var mmi := MultiMeshInstance3D.new()
 		mmi.name = "Drift_" + n
 		mmi.multimesh = mm
 		mmi.material_override = om
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mmi.extra_cull_margin = 14.0
+		mmi.extra_cull_margin = 10.0
 		host.add_child(mmi)
 		mmi.global_position = heart
 
@@ -432,7 +473,9 @@ func _fragments() -> void:
 # --- light, motes, hum --------------------------------------------------------------------------------
 
 func _lights() -> void:
-	var specs := [[heart, Color(0.95, 0.92, 1.0), 4.0, 55.0], [Vector3(C.x, g0 + 1.8, C.y), Color(0.45, 0.6, 1.0), 1.2, 15.0]]
+	# [where, colour, energy, range, fog]: a realm light keeps its own settings, and at full fog energy the star lit the
+	# froxels round it into a white fog ball that washed out everything seen near it (the halo is the glow from afar)
+	var specs := [[heart, Color(1.0, 0.86, 0.66), 3.2, 52.0, 0.12], [Vector3(C.x, g0 + 1.8, C.y), Color(0.45, 0.62, 1.0), 1.1, 15.0, 0.05]]
 	for sp: Array in specs:
 		var l := OmniLight3D.new()
 		l.name = "StarLight"
@@ -444,6 +487,7 @@ func _lights() -> void:
 		l.distance_fade_enabled = true
 		l.distance_fade_begin = 120.0
 		l.distance_fade_length = 30.0
+		l.light_volumetric_fog_energy = sp[4]
 		l.set_meta(&"light_class", &"realm")
 		host.add_child(l)
 		l.global_position = sp[0]
