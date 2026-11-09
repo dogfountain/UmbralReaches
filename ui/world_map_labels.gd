@@ -6,20 +6,35 @@ extends RefCounted
 ## had to move off its region carries a hairline leader back to it. The map draws the marks over this.
 
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
-const INK := Color(0.19, 0.12, 0.075)
-const HALO := Color(0.88, 0.8, 0.62, 0.85)
-const MIN_PX := 13.0
+const INK := Color(0.1, 0.055, 0.03)
+const HALO := Color(0.93, 0.86, 0.68, 0.96)
+const PLATE := Color(0.92, 0.84, 0.64, 0.62)         ## a faint parchment plate under every name: legible over woods, hatching and the dark rift
+const MIN_PX := [18.0, 16.0, 15.0, 14.0]             ## smallest on-screen size by tier
 const MAX_PX := 32.0
+const INKED := [[Vector2(-231.0, 97.0), Vector2(-224.0, 87.0)], [Vector2(-155.0, 170.0), Vector2(-155.0, 120.0)], [Vector2(155.0, 190.0), Vector2(155.0, 140.0)]]
+const PAD := Vector2(9.0, 4.0)                       ## the plate's margin round the letters
 
 var cinzel: Font
 var _items: Array[Dictionary] = []
 var _placed: Array[Dictionary] = []
 var _key := -1
 var _marks := PackedVector2Array()
+var _plate := StyleBoxFlat.new()
+var _cands: Array[Vector2] = [Vector2.ZERO]          ## where a name may sit, in its own widths and heights from home, nearest first
 
 
 func _init(font: Font) -> void:
 	cinzel = font
+	for dy: float in [0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0]:
+		for dx: float in [0.0, 0.35, 0.7, 1.05, 1.4]:
+			for sy in ([1.0] if dy == 0.0 else [-1.0, 1.0]):
+				for sx in ([1.0] if dx == 0.0 else [-1.0, 1.0]):
+					if dx != 0.0 or dy != 0.0:
+						_cands.append(Vector2(dx * sx, dy * sy))
+	_plate.bg_color = PLATE
+	_plate.set_corner_radius_all(7)
+	_plate.shadow_color = Color(PLATE.r, PLATE.g, PLATE.b, 0.4)
+	_plate.shadow_size = 7
 	var regs: Array = RealmLayout.REGIONS.duplicate()
 	regs.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _area(a) > _area(b))
 	for r: Dictionary in regs:
@@ -42,12 +57,17 @@ func reset() -> void:
 
 
 func set_marks(at: PackedVector2Array) -> void:
-	_marks = at
+	_marks = at.duplicate()
+	for ln: Array in INKED:                            # lettering baked into the sheet (ui/world_map_ink.gd) is something to keep clear of too
+		var a: Vector2 = ln[0]
+		var b: Vector2 = ln[1]
+		for i in range(int(a.distance_to(b) / 7.0) + 1):
+			_marks.append(a.lerp(b, i * 7.0 / a.distance_to(b)))
 	_key = -1
 
 
 func _px(it: Dictionary, zoom: float) -> int:
-	return int(clampf(float(it.base) * zoom, MIN_PX, MAX_PX))
+	return int(clampf(float(it.base) * zoom, float(MIN_PX[int(it.tier)]), MAX_PX))
 
 
 ## 0 until the zoom has room for this tier, 1 once it has; the greatest names recede when close.
@@ -86,7 +106,7 @@ func layout(zoom: float, zmin: float, seen: Array[String]) -> void:
 	_key = key
 	_placed.clear()
 	var taken: Array[Rect2] = []
-	var bounds := Rect2(RealmLayout.BOUNDS.position * zoom, RealmLayout.BOUNDS.size * zoom).grow(-6.0)
+	var bounds := Rect2(RealmLayout.BOUNDS.position * zoom, RealmLayout.BOUNDS.size * zoom).grow(-18.0)
 	var cap := 260.0 if zoom < 1.3 * zmin else 170.0         # a name strays only so far from its region
 	for it in _items:
 		if not seen.has(String(it.id)):
@@ -95,22 +115,21 @@ func layout(zoom: float, zmin: float, seen: Array[String]) -> void:
 		if fade <= 0.02:
 			continue
 		var size := _px(it, zoom)
-		var sp := size * (0.2 if size >= 24 else 0.1)
+		var sp := size * (0.12 if size >= 24 else 0.05)
 		var lines := _lines(it, size)
 		var w := 0.0
 		for ln in lines:
 			w = maxf(w, _width(ln, size, sp))
 		var lh := size * 1.2
-		var dims := Vector2(w, lh * lines.size())
+		var dims := Vector2(w, lh * lines.size()) + PAD * 2.0
 		if it.tall:
 			dims = Vector2(dims.y, dims.x)
 		var home: Vector2 = (it.at as Vector2) * zoom
 		var best := -1
 		var best_pos := home
 		var best_hits := 99
-		var cands: Array[Vector2] = [Vector2.ZERO, Vector2(0, -1), Vector2(0, 1), Vector2(0, -2), Vector2(0, 2),
-			Vector2(-0.7, 0), Vector2(0.7, 0), Vector2(-0.7, -1), Vector2(0.7, -1), Vector2(-0.7, 1), Vector2(0.7, 1), Vector2(0, -3), Vector2(0, 3), Vector2(-1.05, 0), Vector2(1.05, 0), Vector2(-1.05, -1), Vector2(1.05, -1), Vector2(-1.05, 1), Vector2(1.05, 1),
-			Vector2(0, -4), Vector2(0, 4), Vector2(-1.4, 0), Vector2(1.4, 0), Vector2(-1.4, -1.5), Vector2(1.4, -1.5), Vector2(-1.4, 1.5), Vector2(1.4, 1.5), Vector2(-0.7, -2.5), Vector2(0.7, -2.5), Vector2(-0.7, 2.5), Vector2(0.7, 2.5)]
+		var best_score := INF
+		var cands := _cands
 		for k in cands.size():
 			var cd := cands[k]
 			var ctr := home + Vector2(cd.x * dims.x, cd.y * (dims.y + 4.0))
@@ -130,15 +149,17 @@ func layout(zoom: float, zmin: float, seen: Array[String]) -> void:
 				continue
 			var hits := 0
 			for m in _marks:
-				if box.grow(11.0).has_point(m * zoom):
+				if box.grow(10.0).has_point(m * zoom):
 					hits += 1
-			if hits < best_hits:
+			var score := hits * 200.0 + ctr.distance_to(home)      # clear of the marks first, then as near its region as it can sit
+			if score < best_score:
+				best_score = score
 				best_hits = hits
 				best = k
 				best_pos = ctr
-			if hits == 0:
+			if hits == 0 and k == 0:
 				break
-		if best < 0 or (best_hits > 5 and int(it.tier) >= 3):
+		if best < 0 or (best_hits > 0 and int(it.tier) >= 2) or best_hits > 2:      # the lesser names wait rather than sit on a mark
 			continue
 		taken.append(Rect2(best_pos - dims * 0.5, dims))
 		_placed.append({"lines": lines, "size": size, "sp": sp, "lh": lh, "tall": it.tall, "pos": best_pos, "home": home,
@@ -167,6 +188,12 @@ func draw(c: Control, zoom: float, to_screen: Callable, view: Rect2) -> void:
 			c.draw_circle(h, 2.2, Color(INK, 0.55 * a))
 		var lines: PackedStringArray = p.lines
 		var size: int = p.size
+		if p.tall:
+			c.draw_set_transform(s, -PI * 0.5, Vector2.ONE)
+			c.draw_style_box(_plate_box(a), Rect2(-dims.y * 0.5, -dims.x * 0.5, dims.y, dims.x))
+			c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		else:
+			c.draw_style_box(_plate_box(a), Rect2(s - dims * 0.5, dims))
 		for li in lines.size():
 			var off := Vector2(0.0, (li - (lines.size() - 1) * 0.5) * float(p.lh))
 			if p.tall:
@@ -177,6 +204,12 @@ func draw(c: Control, zoom: float, to_screen: Callable, view: Rect2) -> void:
 				_letter(c, lines[li], s + off, size, float(p.sp), a)
 
 
+func _plate_box(a: float) -> StyleBoxFlat:
+	_plate.bg_color.a = PLATE.a * a
+	_plate.shadow_color.a = 0.4 * a
+	return _plate
+
+
 func _letter(c: Control, s: String, at: Vector2, size: int, sp: float, a: float) -> void:
 	var x0 := at.x - _width(s, size, sp) * 0.5
 	var y := at.y + size * 0.35
@@ -184,8 +217,8 @@ func _letter(c: Control, s: String, at: Vector2, size: int, sp: float, a: float)
 		var x := x0
 		for ch in s:
 			if pass_i == 0:
-				c.draw_string_outline(cinzel, Vector2(x, y), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 5, Color(HALO, HALO.a * a))
+				c.draw_string_outline(cinzel, Vector2(x, y), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 8, Color(HALO, HALO.a * a))
 			else:
 				c.draw_string(cinzel, Vector2(x, y), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(INK, a))
-				c.draw_string(cinzel, Vector2(x + 0.8, y), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(INK, a))
+				c.draw_string(cinzel, Vector2(x + 0.7, y), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(INK, a))
 			x += cinzel.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + sp

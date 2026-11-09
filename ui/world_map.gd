@@ -30,6 +30,7 @@ const Inker := preload("res://ui/world_map_ink.gd")
 const Shaders := preload("res://ui/world_map_shaders.gd")
 const Labels := preload("res://ui/world_map_labels.gd")
 const Glyphs := preload("res://ui/world_map_glyphs.gd")
+const Med := preload("res://ui/medieval_style.gd")
 
 const ACTION := "world_map"
 const SHEET := Rect2(-310.0, -214.0, 620.0, 524.0)   ## world xz the parchment covers: the Realm and its margins
@@ -39,7 +40,7 @@ const WASH := 4.0                                     ## biome wash grid (m)
 const FOG := 5.0                                      ## fog-of-war grid (m)
 const ZOOM_MAX := 4.6
 const PAN_SPEED := 640.0                              ## screen px per second at full stick
-const BAR_H := 78.0
+const BAR_H := 84.0
 const PICK_R := 17.0
 const INK := Color(0.19, 0.12, 0.075)
 const GOLD := Color(1.0, 0.76, 0.28)
@@ -524,26 +525,32 @@ func paint(c: Control) -> void:
 	_bar(c, vs)
 
 
-## The legend and the controls, on the dark strip at the foot.
+## A forged strip: dark leather in the kit's iron frame, bronze rule on top.
+func _forge(c: Control, r: Rect2) -> void:
+	c.draw_rect(r, Color(0.075, 0.048, 0.03, 0.985))
+	c.draw_style_box(Med.frame(), r)
+	c.draw_rect(Rect2(r.position + Vector2(8.0, 8.0), r.size - Vector2(16.0, 16.0)), Color(Med.BRONZE, 0.28), false, 1.0)
+
+
+## The legend and the controls, on the forged strip at the foot.
 func _bar(c: Control, vs: Vector2) -> void:
 	var by := vs.y - BAR_H
-	c.draw_rect(Rect2(0.0, by, vs.x, BAR_H), Color(0.05, 0.036, 0.03, 0.97))
-	c.draw_line(Vector2(0.0, by), Vector2(vs.x, by), Color(0.46, 0.34, 0.26), 1.5)
+	_forge(c, Rect2(0.0, by, vs.x, BAR_H))
 	var pad := Input.get_connected_joypads().size() > 0 and not _use_mouse
 	var close_k := InputSetup.live_label(ACTION, pad, "M")
 	var txt := "Drag or stick: pan     Wheel or triggers: zoom     Space or A: find yourself     %s or Esc: close" % close_k
-	c.draw_string(_serif, Vector2(28.0, by + 65.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color(0.68, 0.61, 0.5))
+	c.draw_string(_serif, Vector2(34.0, by + 66.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Med.BONE_DIM)
 	var lamps := Lamp.tally(get_tree())
-	var x := 28.0
+	var x := 34.0
 	for it: Array in [["you", "You"], ["quest_target", "Your task"], ["quest_available", "Task offered"], ["fire", "Lit fire"],
 			["lamp", "Lamps %d of %d" % [lamps.x, lamps.y]], ["boss", "Boss"], ["watch", "Outpost"], ["rare", "Rare"], ["horse", "Horse"]]:
-		var p := Vector2(x + 12.0, by + 24.0)
+		var p := Vector2(x + 12.0, by + 31.0)
 		if String(it[0]) == "you":
 			_art.arrow(c, p, false, 0.7)
 		else:
 			_art.glyph(c, String(it[0]), p, false, 0.85)
-		c.draw_string(_serif, Vector2(x + 30.0, by + 31.0), String(it[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(0.9, 0.84, 0.7))
-		x += 30.0 + _serif.get_string_size(String(it[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x + 26.0
+		c.draw_string(_serif, Vector2(x + 30.0, by + 37.0), String(it[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Med.BONE)
+		x += 30.0 + _serif.get_string_size(String(it[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 30.0
 
 
 ## A gilt dotted course from the wanderer to her nearest task, under the marks.
@@ -590,21 +597,19 @@ func _plate(c: Control) -> void:
 	var w := 0.0
 	for r in rows:
 		w = maxf(w, (_cinzel if r[2] else _serif).get_string_size(String(r[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x)
-	w += 62.0
-	var h := 14.0 + rows.size() * 30.0
+	w += 76.0
+	var h := 24.0 + rows.size() * 32.0
 	var o := Vector2(16.0, 16.0)
-	c.draw_rect(Rect2(o + Vector2(3, 4), Vector2(w, h)), Color(0, 0, 0, 0.35))
-	c.draw_rect(Rect2(o, Vector2(w, h)), Color(0.9, 0.82, 0.62, 0.95))
-	c.draw_rect(Rect2(o, Vector2(w, h)), INK, false, 2.0)
-	c.draw_rect(Rect2(o + Vector2(4, 4), Vector2(w - 8, h - 8)), Color(INK, 0.5), false, 1.0)
+	c.draw_rect(Rect2(o + Vector2(3, 5), Vector2(w, h)), Color(0, 0, 0, 0.4))
+	_forge(c, Rect2(o, Vector2(w, h)))
 	for i in rows.size():
 		var r := rows[i]
-		var y := o.y + 7.0 + i * 30.0
+		var y := o.y + 12.0 + i * 32.0
 		if String(r[0]) == "you":
-			_art.arrow(c, Vector2(o.x + 24.0, y + 15.0), false, 0.62)
+			_art.arrow(c, Vector2(o.x + 28.0, y + 16.0), false, 0.62)
 		else:
-			_art.glyph(c, String(r[0]), Vector2(o.x + 24.0, y + 15.0), false, 0.8)
-		c.draw_string(_cinzel if r[2] else _serif, Vector2(o.x + 46.0, y + 22.0), String(r[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 19, INK)
+			_art.glyph(c, String(r[0]), Vector2(o.x + 28.0, y + 16.0), false, 0.8)
+		c.draw_string(_cinzel if r[2] else _serif, Vector2(o.x + 52.0, y + 23.0), String(r[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Med.GILT if r[2] else Med.BONE)
 
 
 func _tip(c: Control, at: Vector2, m: Dictionary) -> void:
