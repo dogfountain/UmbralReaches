@@ -923,6 +923,53 @@ static func _foundry_furnace(host: Node3D, space: PhysicsDirectSpaceState3D, s: 
 
 # --- The Casting Pits (Founder's Pits) ---------------------------------------------------------
 
+const MOLTEN_SHADER := """
+shader_type spatial;
+render_mode unshaded, cull_disabled;
+uniform float seed = 0.0;
+float h(vec2 p) { return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p) {
+	vec2 i = floor(p); vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y);
+}
+void fragment() {
+	vec2 p = UV * 2.0 - 1.0;
+	float d = length(p);
+	float t = TIME * 0.12;
+	float f = n(p * 3.0 + vec2(t, -t)) * 0.55 + n(p * 7.0 - vec2(t * 1.7, t)) * 0.3 + n(p * 15.0 + t) * 0.15;
+	float crust = smoothstep(0.52, 0.7, f + d * 0.4);
+	float vein = 1.0 - smoothstep(0.0, 0.07, abs(n(p * 5.0 + vec2(t * 0.5, t)) - 0.5));
+	float heat = clamp(1.2 - d * 0.75 - crust * 0.7, 0.0, 1.0);
+	vec3 melt = mix(vec3(1.5, 0.26, 0.03), vec3(2.6, 1.25, 0.3), pow(heat, 1.3));
+	vec3 slag = vec3(0.03, 0.02, 0.018) + vec3(1.4, 0.3, 0.02) * vein * (1.0 - d * 0.5) + vec3(0.2, 0.04, 0.0) * heat;
+	ALBEDO = mix(melt, slag, crust);
+}
+"""
+
+
+## A pit of molten metal: a round surface, a drifting crust of slag over a bright melt (thickest at the kerb).
+static func _molten(host: Node3D, at: Vector3, radius: float, seed_v: float) -> void:
+	var cm := CylinderMesh.new()
+	cm.top_radius = radius
+	cm.bottom_radius = radius
+	cm.height = 0.04
+	cm.radial_segments = 28
+	cm.rings = 1
+	var sh := Shader.new()
+	sh.code = MOLTEN_SHADER
+	var sm := ShaderMaterial.new()
+	sm.shader = sh
+	sm.set_shader_parameter("seed", seed_v)
+	var mi := MeshInstance3D.new()
+	mi.name = "Molten"
+	mi.mesh = cm
+	mi.material_override = sm
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	host.add_child(mi)
+	mi.global_position = at
+
+
 static func _foundry_pits(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary) -> void:
 	var xf := _xf(s)
 	var b := xf.basis
@@ -943,16 +990,17 @@ static func _foundry_pits(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 			k.box("stone", pc + Vector3(cos(a) * r, 0.35, sin(a) * r), Vector3(TAU * r / float(n) + 0.05, 0.9, 0.5), Basis(Vector3.UP, -a + PI * 0.5), true, rng.randf_range(0.7, 0.85))
 		k.box("dark", pc + Vector3(0, 0.08, 0), Vector3(r * 1.6, 0.06, r * 1.6), Basis(Vector3.UP, 0.4), false, 0.3)
 		if i != 1:
-			k.box("glow", pc + Vector3(0, 0.12, 0), Vector3(r * 0.8, 0.03, r * 0.6), Basis(Vector3.UP, rng.randf() * TAU), false, 0.2)
+			_molten(host, pc + Vector3(0, 0.12, 0), r - 0.34, rng.randf() * 10.0)
 			P._updraft(host, pc + Vector3.UP * 0.3, r * 0.8, 11.0, 5.0)
 			_smoke(host, pc + Vector3.UP * 0.6, Color(0.36, 0.33, 0.32), 5)
 		else:
 			mould_c = pc
 	# the fourth bell's mould, cracked open in the big pit: a cope of clay, the core half out of it
 	var bell := P._bell_mesh()
-	k.append_mesh("plaster", bell, Transform3D(Basis(Vector3.RIGHT, 0.5).scaled(Vector3(2.2, 2.2, 2.2)), mould_c + Vector3(0.0, 0.2, 0.3)))
-	k.box("plaster", mould_c + Vector3(0.9, 0.5, -0.8), Vector3(1.3, 0.9, 0.4), Basis(Vector3.UP, 0.7) * Basis(Vector3.FORWARD, 0.4), true, 0.8)
-	LK.col_box(k, mould_c + Vector3(0.0, 1.0, 0.3), Vector3(2.4, 2.0, 2.4), Basis(Vector3.RIGHT, 0.5))
+	k.append_mesh("plaster", bell, Transform3D(Basis(Vector3.RIGHT, 0.38).scaled(Vector3(1.9, 1.9, 1.9)), mould_c + Vector3(0.0, 0.2, 0.15)))
+	# the cope slab lies inside the pit, leant on the kerb's inner face (it used to cross the kerb)
+	k.box("plaster", mould_c + Vector3(0.75, 0.42, -0.95), Vector3(1.0, 0.8, 0.3), Basis(Vector3.UP, 0.6) * Basis(Vector3.FORWARD, 0.3), true, 0.8)
+	LK.col_box(k, mould_c + Vector3(0.0, 1.0, 0.15), Vector3(1.8, 2.0, 1.8), Basis(Vector3.RIGHT, 0.38))
 	# the gantry: two A-frames and a beam over the pits, a chain and a hook
 	for sx: float in [-7.6, 7.6]:
 		var f := _gl(space, xf, Vector3(sx, 0, -1.4))
