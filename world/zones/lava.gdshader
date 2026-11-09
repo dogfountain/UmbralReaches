@@ -38,6 +38,15 @@ uniform vec2 bank_size = vec2(92.0, 130.0);
 uniform vec2 flow_dir = vec2(0.15, -1.0);   // the river's current (world xz)
 uniform float flow_rate = 0.9;               // m/s of crust drift
 uniform float swell = 0.11;
+// Starwater (Luke, 9 Nov: no lava by the village): south of star_z (world z greater, towards Hearthward)
+// the river is a still pool of violet starlight, not fire; the lava cools into it over star_band metres.
+// LavaWorks sets star_z under the Realm; the default keeps the whole sheet molten.
+uniform float star_z = 1000.0;
+uniform float star_band = 5.0;
+uniform vec3 star_deep : source_color = vec3(0.01, 0.008, 0.03);
+uniform vec3 star_violet : source_color = vec3(0.4, 0.24, 0.92);
+uniform vec3 star_teal : source_color = vec3(0.2, 0.42, 0.9);
+uniform float star_energy = 1.45;
 
 // VERTEX is view-space inside fragment(), which would make the crust swim as the camera moves.
 // Carry the world position across explicitly so the pattern stays welded to the world.
@@ -110,8 +119,9 @@ void vertex() {
 	float bank_v = bank_at(world_pos.xz);
 	// slow swells, damped to nothing at the banks so the sheet never lifts off the rock
 	float s = sin(world_pos.x * 0.21 + TIME * 0.6) * sin(world_pos.z * 0.17 - TIME * 0.45);
-	VERTEX.y += s * swell * smoothstep(0.0, 0.6, bank_v);
-	world_pos.y += s * swell * smoothstep(0.0, 0.6, bank_v);
+	float still = 1.0 - smoothstep(star_z - star_band, star_z + star_band, world_pos.z);   // starwater lies flat
+	VERTEX.y += s * swell * smoothstep(0.0, 0.6, bank_v) * still;
+	world_pos.y += s * swell * smoothstep(0.0, 0.6, bank_v) * still;
 }
 
 void fragment() {
@@ -168,4 +178,32 @@ void fragment() {
 	EMISSION += core_color * speck * heat * emission_energy * 0.8;
 	ROUGHNESS = mix(0.96, 0.32, heat);
 	METALLIC = 0.0;
+
+	// --- starwater: slow luminous veils drifting under a dark glassy skin, star specks that
+	// twinkle, rings spreading from where a mote touches down, a cold bright line at the stone
+	float sw = smoothstep(star_z - star_band, star_z + star_band, world_pos.z);
+	if (sw > 0.001) {
+		vec2 su = world_pos.xz * 0.075;
+		float c1 = fbm3(su + vec2(TIME * 0.018, -TIME * 0.011));
+		float c2 = fbm3(su * 2.2 + q * 1.5 - vec2(TIME * 0.026, TIME * 0.009));
+		float veil = smoothstep(0.56, 0.9, c1) * 0.6 + smoothstep(0.64, 0.95, c2) * 0.4;
+		vec2 sc2 = world_pos.xz * 1.35;
+		vec2 si = floor(sc2);
+		vec2 sf = fract(sc2) - 0.5 - (hash2(si + 4.1) - 0.5) * 0.7;
+		float tw = 0.5 + 0.5 * sin(TIME * (1.3 + 2.5 * hash(si + 9.7)) + hash(si) * 30.0);
+		float star = step(0.93, hash(si)) * (1.0 - smoothstep(0.02, 0.09, length(sf))) * tw;
+		vec2 rc = floor(world_pos.xz / 9.0);
+		vec2 rp = (rc + 0.25 + 0.5 * hash2(rc + 2.3)) * 9.0;
+		float ph = fract(TIME * 0.13 + hash(rc + 7.1));
+		float rr = length(world_pos.xz - rp) - ph * 7.0;
+		float ring = (1.0 - smoothstep(0.0, 0.18 + fwidth(rr), abs(rr))) * (1.0 - ph) * (1.0 - ph);
+		float shore = smoothstep(0.0, 0.03, bank) * (1.0 - smoothstep(0.05, 0.2, bank));
+		vec3 glow = mix(star_violet, star_teal, smoothstep(0.55, 0.95, c2));
+		vec3 sem = glow * (0.05 + veil * 0.85 + ring * 0.45) + vec3(0.82, 0.86, 1.0) * star * 1.6 + mix(star_violet, star_teal, 0.5) * shore * 0.55;
+		// where the two waters meet the lava's last heat goes out in a dull ember band
+		float meet = sw * (1.0 - sw) * 4.0;
+		ALBEDO = mix(ALBEDO, star_deep, sw);
+		EMISSION = mix(EMISSION * (1.0 - meet * 0.6), sem * star_energy, sw);
+		ROUGHNESS = mix(ROUGHNESS, 0.06, sw);
+	}
 }

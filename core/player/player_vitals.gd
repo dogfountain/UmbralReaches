@@ -29,9 +29,9 @@ func _init(p: Player) -> void:
 	player = p
 
 
-## Lava: a heavy Gloom burn and a throw back to the last solid ground (see Lava).
-
-func lava_burn(amount: float) -> void:
+## Lava: a heavy Gloom burn and a throw back to the last solid ground (see Lava). `star`: the
+## Threshold's starwater (RealmRift.STAR_Z), which gives you back with a lighter wound and no fire.
+func lava_burn(amount: float, star := false) -> void:
 	if player._burn_cd > 0.0 or player._hollowing:
 		return
 	player._burn_cd = 1.0
@@ -39,13 +39,13 @@ func lava_burn(amount: float) -> void:
 	add_wounds(amount)                        # r35: lava wounds (it filled the Gloom before the split)
 	Events.player_hurt.emit(amount, from)
 	player.traversal._end_traverse()
-	Vfx.burst(from + Vector3.UP * 0.6, SpellFx.EMBER_HOT, {"count": 50, "life": 0.7, "speed": Vector2(3.0, 8.0), "size": 0.05, "gravity": -8.0, "trail": 0.08, "dir": Vector3.UP, "spread": 50.0})
+	Vfx.burst(from + Vector3.UP * 0.6, Color(0.75, 0.62, 1.7) if star else SpellFx.EMBER_HOT, {"count": 50, "life": 0.7, "speed": Vector2(3.0, 8.0), "size": 0.05, "gravity": -8.0, "trail": 0.08, "dir": Vector3.UP, "spread": 50.0})
 	player.locomotion._end_slide()
 	var to := player._safe_ground if player._safe_ground != Vector3.INF else player.checkpoint
 	player.locomotion.teleport(to + Vector3.UP * 0.1)
 	SpellFx.rift_in(to)
 	player.camera_ctl.kick(0.8)
-	Events.toast.emit("The molten dark spits you back out.")
+	Events.toast.emit("The starwater gives you back." if star else "The molten dark spits you back out.")
 
 
 ## A strike or pounce passed through you during a Rift Step: slow time, stagger and mark the

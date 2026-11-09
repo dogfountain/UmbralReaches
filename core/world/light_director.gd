@@ -110,14 +110,15 @@ func _budget(at: Vector3) -> void:
 	var bd := FIRE_SHADOW_R
 	_best = null
 	while i < _lights.size():
-		var l := _lights[i]
-		if not is_instance_valid(l) or not l.is_inside_tree():
+		var lv: Variant = _lights[i]             # (untyped: a freed light may not be assigned to a Light3D)
+		if not is_instance_valid(lv) or not (lv as Light3D).is_inside_tree():
 			_lights.remove_at(i)
-			_own.erase(l)
-			_prio.erase(l)
-			_cut.erase(l)
-			_moving.erase(l)
+			_own.erase(lv)
+			_prio.erase(lv)
+			_cut.erase(lv)
+			_moving.erase(lv)
 			continue
+		var l := lv as Light3D
 		i += 1
 		var d := at.distance_to(l.global_position)
 		if not l.visible or d > float(_own[l]) + l.distance_fade_length + 2.0:
@@ -158,10 +159,11 @@ func _set_cut(l: Light3D, c: bool) -> void:
 ## Move each easing light's fade start toward its target: its own (kept) or just inside the camera (cut), EASE m/s.
 ## A cut light keeps following the camera's distance, so it stays in the moving set while cut.
 func _ease(at: Vector3, dt: float) -> void:
-	for l: Light3D in _moving.keys():
-		if not is_instance_valid(l):
-			_moving.erase(l)
+	for key: Variant in _moving.keys():
+		if not is_instance_valid(key):
+			_moving.erase(key)                       # (a freed light: never assigned to a typed Light3D)
 			continue
+		var l := key as Light3D
 		var own := float(_own[l])
 		var c := bool(_cut.get(l, false))
 		var want := own

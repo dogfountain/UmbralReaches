@@ -14,6 +14,7 @@ const LAVA := -15.5
 const BED := -19.5
 
 var vents: Array[Vector3] = []
+var star_z := INF                       ## RealmRift.STAR_Z: south of it (z greater) the Threshold, no volcanic dressing
 var rng := RandomNumberGenerator.new()
 var space: PhysicsDirectSpaceState3D
 var report: Array[String] = []
@@ -107,7 +108,7 @@ func _bank_pipes(host: Node3D) -> void:
 			var hi := rng.randf_range(-9.0, -2.0) if not east_low else rng.randf_range(-12.5, -8.0)
 			if side < 0.0 and rng.randf() < 0.3:
 				hi = rng.randf_range(1.0, 5.0)                 # a few tall ones against the west wall
-			if _blocked(Vector2(x, z), hi, 2.0):
+			if z > star_z - 2.0 or _blocked(Vector2(x, z), hi, 2.0):
 				continue
 			var wall := side
 			var top := func(d: float) -> float:
@@ -121,7 +122,7 @@ func _bank_pipes(host: Node3D) -> void:
 			[Vector2(8.0, -86.0), 2.2, -12.5], [Vector2(-11.0, -16.0), 1.8, -10.0], [Vector2(7.5, -40.5), 2.0, -9.0], [Vector2(-14.0, -88.0), 2.8, -6.0]]:
 		var p: Vector2 = c[0]
 		var hi: float = c[2]
-		if _blocked(p, hi, 1.0):
+		if p.y > star_z - 2.0 or _blocked(p, hi, 1.0):
 			continue
 		n += Basalt.bundle(st, rng, Vector3(p.x, BED, p.y), float(c[1]), 0.48, func(d: float) -> float: return lerpf(hi, LAVA + 0.4, d * d) + rng.randf_range(-1.5, 0.5), 0.8)
 		bundles += 1
@@ -152,7 +153,7 @@ func _cliffs(host: Node3D) -> void:
 			if east_low and base + h > -7.2:
 				h = -7.2 - base
 			var x := side * 18.6
-			if _blocked(Vector2(x - side * 2.0, zc), base + h, 1.0):
+			if zc > star_z - 2.0 or _blocked(Vector2(x - side * 2.0, zc), base + h, 1.0):
 				continue
 			var mesh: Mesh = rk.call("cliff", rng.randi(), Vector3(len, h, 3.2), "basalt")
 			var xf := Transform3D(Basis(Vector3.UP, -side * PI * 0.5 + rng.randf_range(-0.12, 0.12)), Vector3(x, base, zc))
@@ -173,7 +174,7 @@ func _islands(host: Node3D) -> void:
 	while placed < 16 and tries < 200:
 		tries += 1
 		var p := Vector2(rng.randf_range(-15.0, 15.0), rng.randf_range(-112.0, -14.0))
-		if _blocked(p, LAVA + 1.0, 2.5):
+		if p.y > star_z - 4.0 or _blocked(p, LAVA + 1.0, 2.5):
 			continue
 		if p.y < -88.0 and absf(p.x) < 15.0:
 			continue                                     # under the summit dais: never seen
@@ -210,6 +211,8 @@ func _ash_fields(host: Node3D) -> void:
 		var y := _ground(p.x, p.y)
 		if is_nan(y) or y < LAVA + 1.5 or _blocked(p, y, 0.5):
 			continue
+		if p.y > star_z and y < -2.0:
+			continue                                     # the Threshold's terraces stand on that slope
 		var kind := rng.randi_range(0, 4)
 		var s := rng.randf_range(0.35, 1.3) * (1.0 if kind < 3 else 0.7)
 		var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.6, 1.0), s))
@@ -267,6 +270,8 @@ func _fissures(host: Node3D) -> void:
 		if pts.size() < 6:
 			continue
 		var w := rng.randf_range(0.25, 0.7)
+		if s.y > star_z:
+			continue                                     # the Threshold: no seams by the forecourt (a lit line read as a beam)
 		var m := 0.0
 		for i in pts.size() - 1:
 			var a := pts[i]
@@ -310,9 +315,11 @@ func _vents(host: Node3D) -> void:
 		if i % 2 == 0:
 			spots.append(vents[i])
 	for p: Vector2 in [Vector2(6.0, -20.0), Vector2(-9.0, -66.0), Vector2(10.0, -72.0), Vector2(-4.0, -30.0)]:
-		spots.append(Vector3(p.x, LAVA + 0.1, p.y))
+		if p.y < star_z:
+			spots.append(Vector3(p.x, LAVA + 0.1, p.y))
 	for p in spots:
-		var smoke := Vfx.emitter(Color(0.16, 0.13, 0.13, 0.35), {"count": 14, "life": 7.0, "speed": Vector2(0.6, 1.3), "size": 2.4, "gravity": 0.25, "radius": 0.5, "spread": 12.0, "additive": false, "turbulence": true, "damping": 0.2, "grow": 0.5})
+		var star := p.z > star_z                       # a star seam's mouth breathes a pale mist, no fire
+		var smoke := Vfx.emitter(Color(0.36, 0.32, 0.52, 0.22) if star else Color(0.16, 0.13, 0.13, 0.35), {"count": 14, "life": 7.0, "speed": Vector2(0.6, 1.3), "size": 2.4, "gravity": 0.25, "radius": 0.5, "spread": 12.0, "additive": false, "turbulence": true, "damping": 0.2, "grow": 0.5})
 		if smoke:
 			smoke.name = "VentSmoke"
 			smoke.visibility_aabb = AABB(Vector3(-6, -1, -6), Vector3(12, 18, 12))
@@ -328,7 +335,7 @@ func _vents(host: Node3D) -> void:
 			host.add_child(smoke)
 			smoke.global_position = p + Vector3.UP * 0.3
 			smoke.emitting = true
-		if p.y > LAVA + 1.0 and spots.find(p) % 2 == 1:
+		if star or (p.y > LAVA + 1.0 and spots.find(p) % 2 == 1):
 			continue                                     # every other rim vent only smokes
 		var spit := Vfx.emitter(Color(1.8, 0.6, 0.12), {"count": 18, "life": 2.4, "speed": Vector2(0.8, 2.6), "size": 0.05, "gravity": -1.2, "radius": 0.3, "spread": 25.0, "turbulence": true})
 		if spit:

@@ -10,10 +10,20 @@ extends RefCounted
 
 const Crossing := preload("res://core/world/realm/rift/crossing.gd")
 const Features := preload("res://core/world/realm/rift/features.gd")
+const Threshold := preload("res://core/world/realm/rift/threshold.gd")
+
+## The Pilgrims' Threshold (Luke, 9 Nov: "I don't think the lava place should be so close to the village",
+## then "make it architectural, explore, make it magical"): south of STAR_Z the rift holds starwater, a
+## still pool of violet light, between terraced walls (rift/threshold.gd); the lava starts past the
+## third tower, by the Spindle. The lava cools into the starwater over STAR_BAND metres either side.
+const STAR_Z := -46.0
+const STAR_BAND := 5.0
 
 ## Falls poured from the rim walls: [z, side (-1 west wall, +1 east wall)]. LavaWorks finds each
-## lip on the real rock along that z (east side only south of the Ossuary).
-const FALLS := [[-19.0, -1.0], [-38.0, -1.0], [-60.0, -1.0], [-82.0, -1.0], [-104.0, -1.0], [-16.0, 1.0], [-114.0, 1.0]]
+## lip on the real rock along that z (east side only south of the Ossuary). Lava north of STAR_Z;
+## the STARFALLS south of it pour light into the pool down channels left in the terraces.
+const FALLS := [[-60.0, -1.0], [-82.0, -1.0], [-104.0, -1.0], [-114.0, 1.0]]
+const STARFALLS := [[-21.0, -1.0], [-37.0, -1.0], [-17.0, 1.0]]   ## on terrace bay centres (rift/threshold.gd leaves that bay open)
 
 
 static func build(root: Node) -> void:
@@ -38,7 +48,12 @@ static func build(root: Node) -> void:
 	features.name = "Features"
 	host.add_child(features)
 	var fb = Features.new()
+	fb.star_z = STAR_Z
 	await fb.build(root, features)
+	var threshold := Node3D.new()
+	threshold.name = "Threshold"
+	host.add_child(threshold)
+	await Threshold.new().build(root, threshold, STAR_Z, STARFALLS)
 	# LavaWorks (attached by main.gd before the Realm builds) waits for this to lay out the lava
-	root.set_meta("rift_lava", {"falls": FALLS, "vents": fb.vents})
+	root.set_meta("rift_lava", {"falls": FALLS, "starfalls": STARFALLS, "star_z": STAR_Z, "star_band": STAR_BAND, "vents": fb.vents})
 	print("RIFT crossing %d ms, features %d ms" % [t1 - t0, Time.get_ticks_msec() - t1])

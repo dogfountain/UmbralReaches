@@ -856,7 +856,7 @@ func cast_impulse() -> void: camera_ctl.cast_impulse()
 ## Camera punch, 0..1. Rides the existing land-dip pitch channel.
 func kick(amount: float) -> void: camera_ctl.kick(amount)
 ## Lava: a heavy Gloom burn and a throw back to the last solid ground (see Lava).
-func lava_burn(amount: float) -> void: vitals.lava_burn(amount)
+func lava_burn(amount: float, star := false) -> void: vitals.lava_burn(amount, star)
 ## A strike or pounce passed through you during a Rift Step: slow time, stagger and mark the
 ## attacker, and arm a free Rift Lash on your next bolt.
 func on_evaded(attacker: Node) -> void: vitals.on_evaded(attacker)
