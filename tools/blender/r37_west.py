@@ -166,9 +166,20 @@ def finish(P, name, flat=True, smooth_keys=(), col_from=None, col_decimate=0.0, 
             f.smooth = sm
             n = f.normal
             ax = max(range(3), key=lambda i: abs(n[i]))
+            grain = None
+            if key == "timber":
+                # boards and beams: the grain runs along the face's longest edge, so a beam's planks follow the beam
+                # (box UVs by the dominant axis laid vertical grain across every horizontal and sloping member)
+                le = max(f.edges, key=lambda e: e.calc_length())
+                d = (le.verts[1].co - le.verts[0].co).normalized()
+                t1 = n.cross(d)
+                if t1.length > 1e-6:
+                    grain = (t1.normalized(), d)
             for l in f.loops:
                 co = l.vert.co
-                if ax == 0:
+                if grain is not None:
+                    l[uv].uv = (co.dot(grain[0]) / tile, co.dot(grain[1]) / tile)
+                elif ax == 0:
                     l[uv].uv = (co.y / tile, co.z / tile)
                 elif ax == 1:
                     l[uv].uv = (co.x / tile, co.z / tile)
