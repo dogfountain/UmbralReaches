@@ -134,6 +134,7 @@ func _start_hang(pos: Vector3, nf: Vector3, top: float) -> void:
 
 
 func _tick_hang(delta: float, wish: Vector3) -> void:
+	player._tick_always(delta)
 	_hang_t += delta
 	player.velocity = Vector3.ZERO
 	var along := _hang_n.cross(Vector3.UP).normalized()
@@ -168,7 +169,6 @@ func _tick_hang(delta: float, wish: Vector3) -> void:
 	player._visual.hang_shimmy = lerpf(player._visual.hang_shimmy, -shimmy, 1.0 - exp(-10.0 * delta))
 	player.locomotion._ease_tick(delta)
 	player.casting._animate(delta, Vector3.ZERO)
-	player._tick_always(delta)
 	player._cam_air_prev = player._cam_air
 	player._cam_air = lerpf(player._cam_air, 0.0, 1.0 - exp(-8.0 * delta))
 	player._air_base = player.global_position.y
