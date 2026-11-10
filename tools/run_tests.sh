@@ -20,6 +20,10 @@
 #     `tools/lint.sh --update`. It runs once per invocation, however many tests are named.
 # Exit status is the number of failing tests (0 = all green). Logs are kept in $OUT_DIR.
 #
+# Run folders (SCRATCH/umbral_tests.*): a passing run deletes its own run folder; a failing run
+# keeps it so its logs can be read (the summary prints the path). KEEP_LOGS=1 keeps a passing
+# run's folder too. Run folders older than a day are removed when a run starts.
+#
 # Run it before every pack (see .cursor/skills/umbral-pack).
 set -u
 
@@ -29,6 +33,7 @@ TEST_TIMEOUT="${TEST_TIMEOUT:-300}"   # the doubled Realm builds in ~20 s more
 JOBS="${JOBS:-$(( $(sysctl -n hw.perflevel0.physicalcpu 2>/dev/null || nproc 2>/dev/null || echo 4) ))}"   # one per performance core
 SCRATCH="${SCRATCH:-${TMPDIR:-/tmp}}"
 mkdir -p "$SCRATCH"
+find "${SCRATCH%/}" -maxdepth 1 -type d -name 'umbral_tests.*' -mtime +1 -exec rm -rf {} + 2>/dev/null
 RUN_DIR="$(mktemp -d "${SCRATCH%/}/umbral_tests.XXXXXX")" || { echo "cannot make a run dir under $SCRATCH" >&2; exit 99; }
 OUT_DIR="$RUN_DIR/logs"
 mkdir -p "$OUT_DIR"
@@ -170,4 +175,7 @@ if [ "$lint_fail" -ne 0 ]; then echo "static lint                  FAIL"; failed
 if [ "$ratchet_fail" -ne 0 ]; then echo "ratchet lint                 FAIL (tools/lint.sh; --update only when counts fell)"; failed=$((failed + 1)); fi
 echo "----"
 if [ "$failed" -eq 0 ]; then echo "ALL ${#tests[@]} PASS"; else echo "$failed of ${#tests[@]} FAILED (logs: $OUT_DIR)"; fi
+if [ "$failed" -eq 0 ]; then
+	if [ -z "${KEEP_LOGS:-}" ]; then rm -rf "$RUN_DIR"; else echo "logs kept in $OUT_DIR"; fi
+fi
 exit "$failed"
