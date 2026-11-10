@@ -17,6 +17,7 @@ const Glow := preload("res://core/world/realm/unkindled_glow.gd")
 const Beacon := preload("res://core/world/realm/landmark_beacon.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
+const Starlit := preload("res://core/world/realm/rift/starlit_stone.gd")
 const Footing := preload("res://core/world/footing.gd")
 
 const LANTERN_PATHS := [
@@ -370,14 +371,15 @@ static func climb_tower(holder: Node3D, space: PhysicsDirectSpaceState3D) -> Vec
 	var b := Basis(Vector3.UP, yaw)
 	var o3 := Vector3(c.x, g, c.y)
 	var at := func(v: Vector3) -> Vector3: return o3 + b * v
+	Starlit.ensure()                     # the rift's paler stone with a little starlight: the plain kit stone stood as a black block against the sky from the green
 	var k := OssKit.new()
 	k.keep_lanes = false
 	var foot := -0.6
-	k.box("stone", at.call(Vector3(0, (TOWER_TOP + foot) * 0.5, 0)), Vector3(TOWER_HALF * 2.0, TOWER_TOP - foot, TOWER_HALF * 2.0), b, true, 0.86)
-	k.box("stone", at.call(Vector3(0, 0.3, 0)), Vector3(TOWER_HALF * 2.0 + 0.6, 1.2, TOWER_HALF * 2.0 + 0.6), b, true, 0.78)    # battered plinth
+	k.box(Starlit.STONE, at.call(Vector3(0, (TOWER_TOP + foot) * 0.5, 0)), Vector3(TOWER_HALF * 2.0, TOWER_TOP - foot, TOWER_HALF * 2.0), b, true, 0.86)
+	k.box(Starlit.STONE, at.call(Vector3(0, 0.3, 0)), Vector3(TOWER_HALF * 2.0 + 0.6, 1.2, TOWER_HALF * 2.0 + 0.6), b, true, 0.78)    # battered plinth
 	# string courses and slit windows (dark), for scale
 	for y: float in [3.2, 6.4]:
-		k.box("stone", at.call(Vector3(0, y, 0)), Vector3(TOWER_HALF * 2.0 + 0.16, 0.22, TOWER_HALF * 2.0 + 0.16), b, false, 0.95)
+		k.box(Starlit.STONE, at.call(Vector3(0, y, 0)), Vector3(TOWER_HALF * 2.0 + 0.16, 0.22, TOWER_HALF * 2.0 + 0.16), b, false, 0.95)
 	for f: Vector3 in [Vector3(0, 0, -1), Vector3(-1, 0, 0)]:
 		for y: float in [4.2, 6.6]:
 			var wp: Vector3 = f * (TOWER_HALF + 0.01) + Vector3(0, y, 0)
@@ -390,10 +392,10 @@ static func climb_tower(holder: Node3D, space: PhysicsDirectSpaceState3D) -> Vec
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7711
 	for bb in blocks:
-		k.box("stone", at.call(bb.get_center()), bb.size, b, true, rng.randf_range(0.8, 0.95))
+		k.box(Starlit.STONE, at.call(bb.get_center()), bb.size, b, true, rng.randf_range(0.8, 0.95))
 		# a chipped, sloping cap on each (visual only; the collision top stays flat to stand on)
 		var top := bb.get_center() + Vector3(0, bb.size.y * 0.5 + 0.05, 0)
-		k.box("stone", at.call(top), Vector3(bb.size.x + 0.08, 0.12, bb.size.z + 0.08), b, false, 0.98)
+		k.box(Starlit.STONE, at.call(top), Vector3(bb.size.x + 0.08, 0.12, bb.size.z + 0.08), b, false, 0.98)
 	# parapet round the top (local frame boxes: centre, size), open over the last block (+z face,
 	# x 0.9 .. 2.5: 1.25 m clear inside the +x run)
 	var t := TOWER_TOP
@@ -406,19 +408,19 @@ static func climb_tower(holder: Node3D, space: PhysicsDirectSpaceState3D) -> Vec
 		[Vector3(w - 0.175, t + ph * 0.5, 0), Vector3(0.35, ph, w * 2.0)],
 	]
 	for wl: Array in walls:
-		k.box("stone", at.call(wl[0]), wl[1], b, true, 0.9)
+		k.box(Starlit.STONE, at.call(wl[0]), wl[1], b, true, 0.9)
 	# broken merlons on the two far walls
 	for i in 4:
 		if rng.randf() < 0.3:
 			continue
 		var u := -w + 0.6 + 1.25 * float(i)
 		var mh := rng.randf_range(0.35, 0.6)
-		k.box("stone", at.call(Vector3(u, t + ph + mh * 0.5, -w + 0.175)), Vector3(0.6, mh, 0.4), b, true, 0.92)
-		k.box("stone", at.call(Vector3(-w + 0.175, t + ph + mh * 0.5, u)), Vector3(0.4, mh, 0.6), b, true, 0.92)
+		k.box(Starlit.STONE, at.call(Vector3(u, t + ph + mh * 0.5, -w + 0.175)), Vector3(0.6, mh, 0.4), b, true, 0.92)
+		k.box(Starlit.STONE, at.call(Vector3(-w + 0.175, t + ph + mh * 0.5, u)), Vector3(0.4, mh, 0.6), b, true, 0.92)
 	# fallen masonry at the foot (the tower's missing crown)
 	for i in 5:
 		var q := Vector3(rng.randf_range(-w - 2.0, -w - 0.6), 0.2, rng.randf_range(-w, w))      # the far (-x) side, off the climb
-		k.box("stone", at.call(q), Vector3(rng.randf_range(0.5, 1.1), rng.randf_range(0.3, 0.6), rng.randf_range(0.5, 1.0)), b * Basis(Vector3.UP, rng.randf() * TAU), true, 0.8)
+		k.box(Starlit.STONE, at.call(q), Vector3(rng.randf_range(0.5, 1.1), rng.randf_range(0.3, 0.6), rng.randf_range(0.5, 1.0)), b * Basis(Vector3.UP, rng.randf() * TAU), true, 0.8)
 	var host := Node3D.new()
 	host.name = "Watchtower"
 	host.set_meta("site", "wb_watchtower")
