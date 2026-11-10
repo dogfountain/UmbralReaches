@@ -25,6 +25,7 @@ const Hud := preload("res://core/life/encounters/encounter_hud.gd")
 const Post := preload("res://core/life/encounters/bounty_post.gd")
 const Bell := preload("res://core/life/encounters/deeper_bell.gd")
 const Guardians := preload("res://core/life/encounters/guardians.gd")
+const Pilgrim := preload("res://core/enemy/pilgrim.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const Synth := preload("res://core/vfx/synth.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
@@ -59,8 +60,8 @@ const BOARD := Vector2(3.5, 10.5)  ## the bounty board, beside rift_rim on the w
 const BRAZIER_NAMES := ["StairFoot", "Shrine", "Landing", "Threshold"]
 
 var root: Node3D
-var spawner: Node
-var hud: CanvasLayer
+var spawner: EnemySpawner
+var hud: Hud
 var state: Dictionary
 var ready_done := false
 
@@ -88,7 +89,7 @@ var bells: Array[Node3D] = []
 var _acc := 0.0
 var _player: Player
 var _space: PhysicsDirectSpaceState3D
-var guardians: Node                ## r31: the mini-bosses at points of interest (guardians.gd)
+var guardians: Guardians                ## r31: the mini-bosses at points of interest (guardians.gd)
 var _cap: CapsuleShape3D
 
 
@@ -109,7 +110,7 @@ func _ready() -> void:
 		state["ng"] = 0
 	hud = Hud.new()
 	add_child(hud)
-	hud.call("set_deeper", ng())
+	hud.set_deeper(ng())
 	Events.enemy_killed.connect(_on_killed)
 	Events.brazier_kindled.connect(func(_b: Node3D) -> void: rest("kindled"))
 	Events.respawned.connect(func(_at: Vector3) -> void: rest("hollowed"))
@@ -124,7 +125,7 @@ func ng() -> int:
 func setup(world: Node3D) -> void:
 	root = world
 	_space = get_world_3d().direct_space_state
-	spawner = root.get_node_or_null("EnemySpawner")
+	spawner = root.get_node_or_null("EnemySpawner") as EnemySpawner
 	EnemySpawner.kind_hook = _kind_hook
 	EnemySpawner.dress_hook = _dress_hook
 	EnemySpawner.hold_for_rest = true
@@ -133,16 +134,16 @@ func setup(world: Node3D) -> void:
 	_place_posts()
 	_place_bells()
 	guardians = Guardians.new()
-	guardians.set("director", self)
+	guardians.director = self
 	add_child(guardians)
 	_motes = _make_motes()
 	add_child(_motes)
 	ready_done = true
 	if spawner:
-		if bool(spawner.get("planted_done")):
+		if spawner.planted_done:
 			_after_planted()
 		else:
-			spawner.connect("planted", _after_planted, CONNECT_ONE_SHOT)
+			spawner.planted.connect(_after_planted, CONNECT_ONE_SHOT)
 	print("ENCOUNTERS ready: ng %d, depth %d, %d ambush sites, %d elites (%s), %d posts" % [ng(), Tiers.night_depth(),
 		ambushes.size(), haunts.size(), ", ".join(haunts.keys()), posts.size()])
 
@@ -185,7 +186,7 @@ func _dress_hook(pawn: Node, slot: Dictionary) -> void:
 func _after_planted() -> void:
 	if spawner == null or not is_instance_valid(spawner):
 		return
-	var slots: Array = spawner.call("slots")
+	var slots: Array = spawner.slots()
 	var camps := {}
 	for slot: Dictionary in slots:
 		var pawn: Variant = slot.pawn
@@ -197,9 +198,9 @@ func _after_planted() -> void:
 			if v != "":
 				Variants.pre(pawn, v)
 				Variants.dress(pawn, v)
-				var bar: Variant = (pawn as Node).get("_hp_bar")
-				if bar is MeshInstance3D:
-					(bar as MeshInstance3D).set_instance_shader_parameter(&"segments", Enemy.hp_segments(int((pawn as Node).get("max_hp"))))
+				var hp_bar: MeshInstance3D = (pawn as Enemy)._hp_bar
+				if hp_bar != null:
+					hp_bar.set_instance_shader_parameter(&"segments", Enemy.hp_segments((pawn as Enemy).max_hp))
 			slot["enc_n"] = 1
 		var ck := String(slot.key).get_slice("#", 0)
 		if String(slot.get("seal", "")) == "" and not ck.begins_with("enc") and not camps.has(ck):
@@ -216,7 +217,7 @@ func _after_planted() -> void:
 		if spot == Vector3.INF:
 			continue
 		var kind := Tiers.extra_kind(at, ck)
-		spawner.call("add_slot", spot, Tiers.script_for(kind), "enc_mix_%s#0" % ck)
+		spawner.add_slot(spot, Tiers.script_for(kind), "enc_mix_%s#0" % ck)
 		added += 1
 	print("ENCOUNTERS camps: %d slots in %d roaming camps; %d drew a mixed member, %d placed" % [slots.size(), camps.size(), rolled, added])
 
@@ -244,7 +245,7 @@ func step(dt: float) -> void:
 	_tide_tick(dt, pos, lit)
 	_ambush_tick(dt, pos, lit)
 	if guardians:
-		guardians.call("tick", pos)
+		guardians.tick(pos)
 	_elite_tick(pos)
 	_prune(pos)
 	if _motes:
@@ -255,7 +256,7 @@ func step(dt: float) -> void:
 
 func _busy_fight() -> bool:
 	for a in get_tree().get_nodes_in_group(&"boss_arena"):
-		if bool(a.get("_active")):
+		if (a as BossArena)._active:
 			return true
 	return false
 
@@ -295,7 +296,7 @@ func rest(why: String) -> int:
 		end_tide(true)
 	var n := 0
 	if spawner and is_instance_valid(spawner):
-		n = int(spawner.call("refill", 24.0))
+		n = spawner.refill(24.0)
 	if n > 0 and why != "hollowed":
 		Events.toast.emit("You rest by the fire. Out in the dark, the hollowed gather again.")
 	return n
@@ -310,7 +311,7 @@ func tide_period() -> float:
 func _tide_tick(dt: float, pos: Vector3, lit: bool) -> void:
 	if tide_on:
 		tide_age += dt
-		hud.call("status", "THE GLOOM TIDE  ·  reach a lit fire")
+		hud.status("THE GLOOM TIDE  ·  reach a lit fire")
 		for h in hunters:
 			if is_instance_valid(h) and h.is_alive():
 				h.home = pos                     # they track you: their leash is wherever you are
@@ -326,7 +327,7 @@ func _tide_tick(dt: float, pos: Vector3, lit: bool) -> void:
 	if left <= TIDE_WARN and not _warned:
 		_warned = true
 		Events.toast.emit("The dark thickens. A Gloom tide is coming: find a fire.")
-		hud.call("set_tide", 0.25)
+		hud.set_tide(0.25)
 	if left <= 0.0:
 		start_tide()
 
@@ -338,8 +339,8 @@ func start_tide() -> void:
 	tide_age = 0.0
 	_waves = 0
 	state["tides"] = int(state.get("tides", 0)) + 1
-	hud.call("set_tide", 1.0)
-	hud.call("banner", "THE GLOOM TIDE RISES", "They are hunting you. Reach a lit fire.")
+	hud.set_tide(1.0)
+	hud.banner("THE GLOOM TIDE RISES", "They are hunting you. Reach a lit fire.")
 	if _player:
 		Sfx.play_stream(Synth.get_stream("roar"), _player.global_position + Vector3(0, 6, -18), 2.0, 0.42)
 		Sfx.play_stream(Synth.get_stream("roar"), _player.global_position + Vector3(14, 6, 12), -2.0, 0.36)
@@ -353,9 +354,9 @@ func end_tide(safe: bool) -> void:
 	tide_on = false
 	tide_clock = 0.0
 	_warned = false
-	hud.call("set_tide", 0.0)
-	hud.call("status", "")
-	hud.call("banner", "THE TIDE BREAKS ON THE FIRE" if safe else "THE TIDE RECEDES", "" if safe else "For now.")
+	hud.set_tide(0.0)
+	hud.status("")
+	hud.banner("THE TIDE BREAKS ON THE FIRE" if safe else "THE TIDE RECEDES", "" if safe else "For now.")
 	for h in hunters:
 		if is_instance_valid(h) and h.is_alive():
 			_unmake(h)
@@ -512,7 +513,7 @@ func trigger_ambush(s: Dictionary) -> int:
 		made += 1
 	if made > 0:
 		state["ambushes"] = int(state.get("ambushes", 0)) + 1
-		hud.call("banner", "AMBUSH", _ambush_line(String(s.path)), Color(1.0, 0.55, 0.4))
+		hud.banner("AMBUSH", _ambush_line(String(s.path)), Color(1.0, 0.55, 0.4))
 		Sfx.play_stream(Synth.get_stream("growl"), pos + fwd * 8.0, 2.0, 0.6)
 	return made
 
@@ -585,16 +586,16 @@ func _elite_tick(pos: Vector3) -> void:
 			e.sleep()
 		else:
 			e.wake()
-		if e.is_alive() and de < near_d and (e.get("_state") != Enemy.IDLE or e.hp < float(e.max_hp)):
+		if e.is_alive() and de < near_d and (e._state != Enemy.IDLE or e.hp < float(e.max_hp)):
 			near = e
 			near_d = de
-	var guard: Enemy = guardians.call("shown", pos) if guardians and near == null else null
+	var guard: Enemy = guardians.shown(pos) if guardians and near == null else null
 	if near:
-		hud.call("show_elite", Elites.title(String(near.get_meta(&"elite_id")), near.has_meta(&"enc_umbral")), near.hp, float(near.max_hp))
+		hud.show_elite(Elites.title(String(near.get_meta(&"elite_id")), near.has_meta(&"enc_umbral")), near.hp, float(near.max_hp))
 	elif guard:
-		hud.call("show_elite", Guardians.title(guard), guard.hp, float(guard.max_hp))
-	elif bool(hud.call("elite_shown")):
-		hud.call("hide_elite")
+		hud.show_elite(Guardians.title(guard), guard.hp, float(guard.max_hp))
+	elif hud.elite_shown():
+		hud.hide_elite()
 
 
 func spawn_elite(id: String) -> Enemy:
@@ -630,9 +631,9 @@ func _on_killed(e: Node) -> void:
 		else:
 			(state.trophies as Dictionary)[loot] = true      # kept until ItemDB knows it (see elites.gd LOOT)
 		got = String(Elites.LOOT.get(loot, {}).get("name", loot))
-	hud.call("banner", "BOUNTY: " + Elites.title(id, e.has_meta(&"enc_umbral")).to_upper(),
+	hud.banner("BOUNTY: " + Elites.title(id, e.has_meta(&"enc_umbral")).to_upper(),
 		"%d grave ash%s" % [ash, ("  ·  " + got) if got != "" else ""], Color(1.0, 0.75, 0.45))
-	hud.call("hide_elite")
+	hud.hide_elite()
 	for m in get_tree().get_nodes_in_group(Groups.ENEMY):
 		if (m as Node).get_meta(&"summoned_by", "") == "elite_" + id:
 			_unmake(m as Enemy)
@@ -696,8 +697,8 @@ func _post(id: String, at: Vector3) -> Node3D:
 	if spot == Vector3.INF:
 		return null
 	var p := Post.new()
-	p.set("director", self)
-	p.set("elite_id", id)
+	p.director = self
+	p.elite_id = id
 	p.name = "Bounty_" + (id if id != "" else "board")
 	root.add_child(p)
 	p.global_position = spot - Vector3.UP * 0.08
@@ -728,7 +729,7 @@ func _place_bells() -> void:
 			PlacementLog.skip("encounters", "bell_%d" % BELLS.find(cands), cands[0], "no clear spot for a bell")
 			continue
 		var b := Bell.new()
-		b.set("director", self)
+		b.director = self
 		b.name = "DeeperBell"
 		root.add_child(b)
 		b.global_position = spot - Vector3.UP * 0.05
@@ -737,7 +738,7 @@ func _place_bells() -> void:
 
 ## [E] on a post: returns the next page (the board turns pages; a stake shows its one notice).
 func read_post(post: Node3D, page: int) -> int:
-	var id := String(post.get("elite_id"))
+	var id := (post as Post).elite_id if post is Post else ""
 	if id != "":
 		_show_notice(id, post, "")
 		return 0
@@ -754,10 +755,10 @@ func read_post(post: Node3D, page: int) -> int:
 			for c in claimed:
 				names.append(String(Elites.LOOT.get(c, {}).get("name", c)))
 			foot = "Kept for you at the Keg: " + ", ".join(names) + "\n" + foot
-		hud.call("show_note", "Bounties of the Kindled Keg" + ("  ·  the Deeper Night" if ng() > 0 else ""), "\n".join(lines), foot, post)
+		hud.show_note("Bounties of the Kindled Keg" + ("  ·  the Deeper Night" if ng() > 0 else ""), "\n".join(lines), foot, post)
 		return 1
 	if page > ids.size():
-		hud.call("close_note")
+		hud.close_note()
 		return 0
 	_show_notice(ids[page - 1], post, "notice %d of %d  ·  [%s] next" % [page, ids.size(), Interactable.prompt_key()])
 	return page + 1
@@ -767,16 +768,16 @@ func _show_notice(id: String, post: Node3D, foot: String) -> void:
 	var d: Dictionary = Elites.ELITES[id]
 	var status := "ENDED" if slain(id) else "AT LARGE"
 	var f := "%s  ·  %s  ·  %d grave ash%s" % [status, String(d.trait), int(d.ash) * (2 if ng() > 0 else 1), ("\n" + foot) if foot != "" else ""]
-	hud.call("show_note", Elites.title(id, ng() > 0), String(d.note), f, post)
+	hud.show_note(Elites.title(id, ng() > 0), String(d.note), f, post)
 
 
 func bell_note(bell: Node3D, awake: bool) -> void:
 	if not awake:
-		hud.call("show_note", "A silent bell", "Cracked iron on a black frame. It will not move. Above the Crowns the sky is still turning.", "", bell)
+		hud.show_note("A silent bell", "Cracked iron on a black frame. It will not move. Above the Crowns the sky is still turning.", "", bell)
 		return
 	var fl: Variant = Travel.story.get("flags", {})
 	var told: bool = fl is Dictionary and bool((fl as Dictionary).get("ending_told", false))
-	hud.call("show_note", "The Bell of the Deeper Night",
+	hud.show_note("The Bell of the Deeper Night",
 		"Cracked iron, hung mouth up. The sky has stopped turning, but the dark it pulled down is still here. "
 		+ ("Ring this top first, the way the Stair's bells stopped, and something below pulls the door ajar: the three who hold the valley rise, their seals close, and every hollowed thing comes back harder. What you carry, you keep." if told
 		else "Not yet: the keeper is pouring at the keg, and the last mug is his to give first. Then ring it."),
@@ -804,9 +805,9 @@ func begin_deeper_night(reload: bool) -> void:
 			fl.erase(k)
 	fl["deeper"] = true
 	Travel.save_game()
-	hud.call("set_deeper", ng())
-	hud.call("close_note")
-	hud.call("banner", "THE DEEPER NIGHT", "The cracked bell rings top first. Something holds the door again.", Hud.COLD)
+	hud.set_deeper(ng())
+	hud.close_note()
+	hud.banner("THE DEEPER NIGHT", "The cracked bell rings top first. Something holds the door again.", Hud.COLD)
 	if reload and _player and is_inside_tree():
 		var path := get_tree().current_scene.scene_file_path if get_tree().current_scene else ""
 		if path != "":
@@ -824,11 +825,12 @@ func _on_boss(boss: Node, _title: String) -> void:
 	e.hp = float(e.max_hp)
 	e.strike_gloom *= 1.0 + 0.15 * float(ng())
 	for a in get_tree().get_nodes_in_group(&"boss_arena"):
-		if a.get("_boss") == e:
-			var bar: Variant = a.get("_bar")
-			if bar is Control:
-				(bar as Control).set("max_value", float(e.max_hp))
-				(bar as Control).set("value", e.hp)
+		var arena := a as BossArena
+		if arena._boss == e:
+			var bar := arena._bar
+			if bar != null:
+				bar.max_value = float(e.max_hp)
+				bar.value = e.hp
 
 
 # --- spawning helpers ---------------------------------------------------------------------------
@@ -866,7 +868,7 @@ func spot_ok(p: Vector3, ignore_light := false) -> bool:
 	if RealmLand.in_water(p.x, p.z) and p.y < -0.4:
 		return false
 	for a in get_tree().get_nodes_in_group(&"boss_arena"):
-		var r := float(a.get("radius")) + 4.0
+		var r := (a as BossArena).radius + 4.0
 		var c := (a as Node3D).global_position
 		if Vector2(p.x - c.x, p.z - c.z).length() < r and absf(p.y - c.y) < 12.0:
 			return false
@@ -933,8 +935,8 @@ func _make(kind: String, at: Vector3, tier: int, variant: String) -> Enemy:
 	var e := Tiers.script_for(kind).new() as Enemy
 	if e == null:
 		return null
-	if "dormant" in e:
-		e.set("dormant", false)                  # r34: a Pilgrim the night sends is already up
+	if e is Pilgrim:
+		(e as Pilgrim).dormant = false                 # r34: a Pilgrim the night sends is already up
 	Tiers.scale_stats(e, tier)
 	if variant != "":
 		Variants.pre(e, variant)

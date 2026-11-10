@@ -44,7 +44,7 @@ core/items/loot_db.gd 0 0 0 1 0
 core/items/vendor.gd 2 1 0 1 0
 core/life/encounters/bounty_post.gd 1 0 0 0 0
 core/life/encounters/deeper_bell.gd 3 0 0 0 0
-core/life/encounters/director.gd 28 0 5 11 0
+core/life/encounters/director.gd 0 0 0 11 0
 core/life/encounters/elite_cinder_cantor.gd 0 0 0 1 0
 core/life/encounters/elite_old_sunk.gd 1 1 0 1 0
 core/life/encounters/elites.gd 0 0 0 1 0
@@ -235,7 +235,7 @@ ui/combo_readout.gd 0 0 0 1 0
 ui/compass.gd 0 0 0 1 0
 ui/dialogue.gd 4 1 0 1 0
 ui/gear_panel.gd 8 1 0 4 0
-ui/growth.gd 55 0 0 9 1687
+ui/growth.gd 0 0 0 9 1558
 ui/hints.gd 1 1 0 1 0
 ui/hotbar.gd 8 8 1 12 0
 ui/hud.gd 4 4 0 11 0
@@ -252,7 +252,7 @@ ui/shop.gd 0 0 0 5 0
 ui/text_director.gd 2 2 0 0 0
 ui/title_screen.gd 1 0 1 0 0
 ui/type.gd 0 0 0 1 0
-ui/unit_frames.gd 29 28 13 5 1159
+ui/unit_frames.gd 20 22 4 4 1159
 ui/xp_bar.gd 1 1 0 1 0
 world/areas/ossuary/oss_deep.gd 39 0 0 2 1293
 world/areas/ossuary/oss_hall.gd 7 0 1 3 1146
