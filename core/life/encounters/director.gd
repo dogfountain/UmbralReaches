@@ -666,13 +666,20 @@ func _place_posts() -> void:
 		if bd > 40.0:
 			best = Vector2(at.x, at.z) + (Vector2(0, 0) - Vector2(at.x, at.z)).normalized() * 12.0
 		var post := _post(id, Vector3(best.x, 0, best.y))
+		var f := 0.25
+		while post == null and f < 0.8:                # the path's spot is built over or lit (a works, a market): further along the way in
+			var q2 := best.lerp(Vector2(at.x, at.z), f)
+			post = _post(id, Vector3(q2.x, 0, q2.y))
+			f += 0.25
+		if post == null:
+			push_warning("Encounters: no clear spot for the %s post near %s" % [id, Vector3(best.x, 0, best.y).snapped(Vector3.ONE * 0.1)])
 		if post and Vector2(post.global_position.x - at.x, post.global_position.z - at.z).length() > 0.2:
 			post.look_at(Vector3(at.x, post.global_position.y, at.z), Vector3.UP)     # notice (+Z) faces the path
 
 
 func _post(id: String, at: Vector3) -> Node3D:
 	var spot := Vector3.INF
-	for k in 8:
+	for k in 20:                                  # rings out to about 9 m: a new site (a pan field, a wonder) may sit on the first spot
 		var a := float(k) * 0.9
 		var r := 0.0 if k == 0 else 1.2 + 0.4 * float(k)
 		var g := _ground_at(at + Vector3(cos(a) * r, 0, sin(a) * r), 90.0)
@@ -702,6 +709,16 @@ func _place_bells() -> void:
 			if g != Vector3.INF and WorldLanes.site_at(Vector2(g.x, g.z), 1.4).is_empty() and _clear_box(g, Vector3(2.6, 2.6, 0.8)):
 				spot = g
 				break
+		if spot == Vector3.INF:                   # every listed spot is taken (the gate's landing grew): look round the first one
+			var c0: Vector3 = cands[0]
+			for k in 36:
+				var a := float(k) * 0.7
+				var r := 3.0 + 0.25 * float(k)
+				var at2 := Vector3(c0.x + cos(a) * r, c0.y, c0.z + sin(a) * r)
+				var g2 := _ground_at(at2, 90.0) if at2.y == 0.0 else _ground_at(at2, at2.y + 6.0)
+				if g2 != Vector3.INF and WorldLanes.site_at(Vector2(g2.x, g2.z), 1.4).is_empty() and _clear_box(g2, Vector3(2.6, 2.6, 0.8)):
+					spot = g2
+					break
 		if spot == Vector3.INF:
 			push_warning("Encounters: no clear spot for a bell near %s" % cands[0])
 			continue

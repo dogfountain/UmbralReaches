@@ -267,7 +267,11 @@ func _world() -> void:
 		await get_tree().process_frame
 		ok(bool(lw.call("is_open")), "the loot window opens on it")
 		var rt_tip := lw.get("_tip") as PanelContainer
-		ok(rt_tip != null and rt_tip.visible and String((rt_tip.get_node("Rich") as RichTextLabel).text).contains("Item Level"), "with the first thing's tooltip")
+		var tip_text := ""
+		if rt_tip != null:
+			for n in rt_tip.find_children("*", "RichTextLabel", true, false):     # the item card (ui/item_card.gd) lays its text out in blocks
+				tip_text += (n as RichTextLabel).get_parsed_text() + "\n"
+		ok(rt_tip != null and rt_tip.visible and tip_text.contains("Item Level"), "with the first thing's tooltip")
 		var before := es.size()
 		lw.call("take", 0)
 		ok((bag.get("entries") as Array).size() == before - 1 and (GearStats.state().bag as Array).size() == n_bag + 1, "take one")
@@ -372,17 +376,24 @@ func _world() -> void:
 	var panel := get_tree().get_first_node_in_group("gear_panel")
 	panel.call("open_menu")
 	await get_tree().process_frame
-	var pr := panel.get("_d_rich") as RichTextLabel
-	ok(pr != null and pr.text.contains("Item Level"), "the gear panel shows the tooltip")
+	ok(_card_text(panel.get("_card_a") as Control).contains("Item Level"), "the gear panel shows the tooltip")
 	panel.call("close_menu")
 	var sat := main.get_node_or_null("Satchel")
 	if sat:
 		Travel.items["relic_fragment"] = 1
 		sat.call("open_menu")
 		sat.call("select_id", "relic_fragment")
-		var fl := sat.get("_flav") as RichTextLabel
-		ok(fl != null and fl.text.contains("[i]"), "the satchel shows gold italic flavour")
+		ok(_card_text(sat.get("_card") as Control).contains("[i]"), "the satchel shows gold italic flavour")
 		sat.call("close_menu")
 	ok(not get_tree().paused, "nothing left paused")
 	main.queue_free()
 	await get_tree().process_frame
+
+
+## Every text block of an item card (ui/item_card.gd), as bbcode: the cards lay a tooltip out in blocks.
+func _card_text(card: Control) -> String:
+	var out := ""
+	if card != null:
+		for n in card.find_children("*", "RichTextLabel", true, false):
+			out += (n as RichTextLabel).text + "\n"
+	return out
