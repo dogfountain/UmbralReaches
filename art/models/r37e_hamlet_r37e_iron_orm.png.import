@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://br02q61iqoora"
-path="res://.godot/imported/r37e_hamlet_r37e_iron_orm.png-6281d483330a142350cd7ef88f3b9a26.ctex"
+path.s3tc="res://.godot/imported/r37e_hamlet_r37e_iron_orm.png-6281d483330a142350cd7ef88f3b9a26.s3tc.ctex"
+path.etc2="res://.godot/imported/r37e_hamlet_r37e_iron_orm.png-6281d483330a142350cd7ef88f3b9a26.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "139c5a09d64b6b135b580afab02c6810"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37e_hamlet_r37e_iron_orm.png"
-dest_files=["res://.godot/imported/r37e_hamlet_r37e_iron_orm.png-6281d483330a142350cd7ef88f3b9a26.ctex"]
+dest_files=["res://.godot/imported/r37e_hamlet_r37e_iron_orm.png-6281d483330a142350cd7ef88f3b9a26.s3tc.ctex", "res://.godot/imported/r37e_hamlet_r37e_iron_orm.png-6281d483330a142350cd7ef88f3b9a26.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

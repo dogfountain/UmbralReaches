@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b10odruvntkve"
-path="res://.godot/imported/loot_props_LP_Thread_orm.png-be6a42b381752fd010521736a6a12d08.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_Thread_orm.png-be6a42b381752fd010521736a6a12d08.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_Thread_orm.png-be6a42b381752fd010521736a6a12d08.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "e20a68e326c0c6539ad9200ff707d732"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_Thread_orm.png"
-dest_files=["res://.godot/imported/loot_props_LP_Thread_orm.png-be6a42b381752fd010521736a6a12d08.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_Thread_orm.png-be6a42b381752fd010521736a6a12d08.s3tc.ctex", "res://.godot/imported/loot_props_LP_Thread_orm.png-be6a42b381752fd010521736a6a12d08.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

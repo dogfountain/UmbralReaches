@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c80b31qb0q6g3"
-path="res://.godot/imported/loot_props_LP_TintMetal_orm.png-6609bd53af5de563c4172e1e1b4279ce.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_TintMetal_orm.png-6609bd53af5de563c4172e1e1b4279ce.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_TintMetal_orm.png-6609bd53af5de563c4172e1e1b4279ce.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "17851707ebb94ee0f4b6cc108687ba2d"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_TintMetal_orm.png"
-dest_files=["res://.godot/imported/loot_props_LP_TintMetal_orm.png-6609bd53af5de563c4172e1e1b4279ce.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_TintMetal_orm.png-6609bd53af5de563c4172e1e1b4279ce.s3tc.ctex", "res://.godot/imported/loot_props_LP_TintMetal_orm.png-6609bd53af5de563c4172e1e1b4279ce.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

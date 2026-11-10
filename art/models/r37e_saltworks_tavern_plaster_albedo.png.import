@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cdo4l08lislcg"
-path="res://.godot/imported/r37e_saltworks_tavern_plaster_albedo.png-b28a57251210a852a5ca5473df2bd158.ctex"
+path.s3tc="res://.godot/imported/r37e_saltworks_tavern_plaster_albedo.png-b28a57251210a852a5ca5473df2bd158.s3tc.ctex"
+path.etc2="res://.godot/imported/r37e_saltworks_tavern_plaster_albedo.png-b28a57251210a852a5ca5473df2bd158.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "f90b2dd02d4599d92adf6106331f5f2b"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37e_saltworks_tavern_plaster_albedo.png"
-dest_files=["res://.godot/imported/r37e_saltworks_tavern_plaster_albedo.png-b28a57251210a852a5ca5473df2bd158.ctex"]
+dest_files=["res://.godot/imported/r37e_saltworks_tavern_plaster_albedo.png-b28a57251210a852a5ca5473df2bd158.s3tc.ctex", "res://.godot/imported/r37e_saltworks_tavern_plaster_albedo.png-b28a57251210a852a5ca5473df2bd158.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

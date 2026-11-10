@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cwecj35xxdq54"
-path="res://.godot/imported/r37_south_well_R37_Chalk_albedo.png-d01fc98b9e95ad66ae86bf135dcc6b23.ctex"
+path.s3tc="res://.godot/imported/r37_south_well_R37_Chalk_albedo.png-d01fc98b9e95ad66ae86bf135dcc6b23.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_well_R37_Chalk_albedo.png-d01fc98b9e95ad66ae86bf135dcc6b23.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "7ddf32660ca97752cac3fceef59acab6"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_well_R37_Chalk_albedo.png"
-dest_files=["res://.godot/imported/r37_south_well_R37_Chalk_albedo.png-d01fc98b9e95ad66ae86bf135dcc6b23.ctex"]
+dest_files=["res://.godot/imported/r37_south_well_R37_Chalk_albedo.png-d01fc98b9e95ad66ae86bf135dcc6b23.s3tc.ctex", "res://.godot/imported/r37_south_well_R37_Chalk_albedo.png-d01fc98b9e95ad66ae86bf135dcc6b23.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

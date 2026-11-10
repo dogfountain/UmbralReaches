@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://chk11jnyqtlj"
-path="res://.godot/imported/r37e_cells_r37e_iron_orm_13.png-8a398287cc20f6dcc5c02509c859b771.ctex"
+path.s3tc="res://.godot/imported/r37e_cells_r37e_iron_orm_13.png-8a398287cc20f6dcc5c02509c859b771.s3tc.ctex"
+path.etc2="res://.godot/imported/r37e_cells_r37e_iron_orm_13.png-8a398287cc20f6dcc5c02509c859b771.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "7b8917445154acbaa22232641b0d7b09"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37e_cells_r37e_iron_orm_13.png"
-dest_files=["res://.godot/imported/r37e_cells_r37e_iron_orm_13.png-8a398287cc20f6dcc5c02509c859b771.ctex"]
+dest_files=["res://.godot/imported/r37e_cells_r37e_iron_orm_13.png-8a398287cc20f6dcc5c02509c859b771.s3tc.ctex", "res://.godot/imported/r37e_cells_r37e_iron_orm_13.png-8a398287cc20f6dcc5c02509c859b771.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

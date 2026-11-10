@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cxi5hlncube38"
-path="res://.godot/imported/dwarf_patron_b_tavern_iron_albedo.png-f39c3def58cb4a6487b9fe6d77b1d47b.ctex"
+path.s3tc="res://.godot/imported/dwarf_patron_b_tavern_iron_albedo.png-f39c3def58cb4a6487b9fe6d77b1d47b.s3tc.ctex"
+path.etc2="res://.godot/imported/dwarf_patron_b_tavern_iron_albedo.png-f39c3def58cb4a6487b9fe6d77b1d47b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "c8e1ccff10b2f31ce92389e45a5e010e"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/dwarf_patron_b_tavern_iron_albedo.png"
-dest_files=["res://.godot/imported/dwarf_patron_b_tavern_iron_albedo.png-f39c3def58cb4a6487b9fe6d77b1d47b.ctex"]
+dest_files=["res://.godot/imported/dwarf_patron_b_tavern_iron_albedo.png-f39c3def58cb4a6487b9fe6d77b1d47b.s3tc.ctex", "res://.godot/imported/dwarf_patron_b_tavern_iron_albedo.png-f39c3def58cb4a6487b9fe6d77b1d47b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7w7p2fahwam4"
-path="res://.godot/imported/dwarf_patron_c_dwarf_skin_rough.png-0096696fa6d25020bf05c40faf4e8931.ctex"
+path.s3tc="res://.godot/imported/dwarf_patron_c_dwarf_skin_rough.png-0096696fa6d25020bf05c40faf4e8931.s3tc.ctex"
+path.etc2="res://.godot/imported/dwarf_patron_c_dwarf_skin_rough.png-0096696fa6d25020bf05c40faf4e8931.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "84a94f3703a17a9035d52178a2ab87be"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/dwarf_patron_c_dwarf_skin_rough.png"
-dest_files=["res://.godot/imported/dwarf_patron_c_dwarf_skin_rough.png-0096696fa6d25020bf05c40faf4e8931.ctex"]
+dest_files=["res://.godot/imported/dwarf_patron_c_dwarf_skin_rough.png-0096696fa6d25020bf05c40faf4e8931.s3tc.ctex", "res://.godot/imported/dwarf_patron_c_dwarf_skin_rough.png-0096696fa6d25020bf05c40faf4e8931.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

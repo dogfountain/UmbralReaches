@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://di63fc3j4a4ns"
-path="res://.godot/imported/r37_south_well_R37_Ashlar_albedo.png-3d3867ed7aae46140c2e9b39785c9f31.ctex"
+path.s3tc="res://.godot/imported/r37_south_well_R37_Ashlar_albedo.png-3d3867ed7aae46140c2e9b39785c9f31.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_well_R37_Ashlar_albedo.png-3d3867ed7aae46140c2e9b39785c9f31.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "9a3b1429b940fe8fff1a91ee61b558fa"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_well_R37_Ashlar_albedo.png"
-dest_files=["res://.godot/imported/r37_south_well_R37_Ashlar_albedo.png-3d3867ed7aae46140c2e9b39785c9f31.ctex"]
+dest_files=["res://.godot/imported/r37_south_well_R37_Ashlar_albedo.png-3d3867ed7aae46140c2e9b39785c9f31.s3tc.ctex", "res://.godot/imported/r37_south_well_R37_Ashlar_albedo.png-3d3867ed7aae46140c2e9b39785c9f31.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

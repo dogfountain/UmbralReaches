@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bus7ju4di2lou"
-path="res://.godot/imported/r37e_cells_oss_ruin_albedo.png-ce195cd0b8a1bb9b519685b0fdd294bf.ctex"
+path.s3tc="res://.godot/imported/r37e_cells_oss_ruin_albedo.png-ce195cd0b8a1bb9b519685b0fdd294bf.s3tc.ctex"
+path.etc2="res://.godot/imported/r37e_cells_oss_ruin_albedo.png-ce195cd0b8a1bb9b519685b0fdd294bf.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1c7fedd3f612b9e419bc5c5db577d788"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37e_cells_oss_ruin_albedo.png"
-dest_files=["res://.godot/imported/r37e_cells_oss_ruin_albedo.png-ce195cd0b8a1bb9b519685b0fdd294bf.ctex"]
+dest_files=["res://.godot/imported/r37e_cells_oss_ruin_albedo.png-ce195cd0b8a1bb9b519685b0fdd294bf.s3tc.ctex", "res://.godot/imported/r37e_cells_oss_ruin_albedo.png-ce195cd0b8a1bb9b519685b0fdd294bf.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

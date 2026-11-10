@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d4nr3feqgevia"
-path="res://.godot/imported/dwarf_patron_a_dwarf_skin_albedo.png-e959b680e866ce022a87f1cff5e68a6e.ctex"
+path.s3tc="res://.godot/imported/dwarf_patron_a_dwarf_skin_albedo.png-e959b680e866ce022a87f1cff5e68a6e.s3tc.ctex"
+path.etc2="res://.godot/imported/dwarf_patron_a_dwarf_skin_albedo.png-e959b680e866ce022a87f1cff5e68a6e.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d252da06c18f587a9e5597c49ad10849"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/dwarf_patron_a_dwarf_skin_albedo.png"
-dest_files=["res://.godot/imported/dwarf_patron_a_dwarf_skin_albedo.png-e959b680e866ce022a87f1cff5e68a6e.ctex"]
+dest_files=["res://.godot/imported/dwarf_patron_a_dwarf_skin_albedo.png-e959b680e866ce022a87f1cff5e68a6e.s3tc.ctex", "res://.godot/imported/dwarf_patron_a_dwarf_skin_albedo.png-e959b680e866ce022a87f1cff5e68a6e.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

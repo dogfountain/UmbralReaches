@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b2wcuho2nl6ao"
-path="res://.godot/imported/dwarf_patron_c_dwarf_leather_normal.png-cc418bc864cac8f6e09b0cc0abea4d13.ctex"
+path.s3tc="res://.godot/imported/dwarf_patron_c_dwarf_leather_normal.png-cc418bc864cac8f6e09b0cc0abea4d13.s3tc.ctex"
+path.etc2="res://.godot/imported/dwarf_patron_c_dwarf_leather_normal.png-cc418bc864cac8f6e09b0cc0abea4d13.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "0e41affd844549f27962926f09224719"
@@ -14,17 +16,17 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/dwarf_patron_c_dwarf_leather_normal.png"
-dest_files=["res://.godot/imported/dwarf_patron_c_dwarf_leather_normal.png-cc418bc864cac8f6e09b0cc0abea4d13.ctex"]
+dest_files=["res://.godot/imported/dwarf_patron_c_dwarf_leather_normal.png-cc418bc864cac8f6e09b0cc0abea4d13.s3tc.ctex", "res://.godot/imported/dwarf_patron_c_dwarf_leather_normal.png-cc418bc864cac8f6e09b0cc0abea4d13.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
