@@ -696,7 +696,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 				s = basis.get_scale().x
 			# a vista round a place (tree_clear): tested last, after every draw this candidate makes,
 			# so the rest of the wood keeps the exact layout it had without it
-			var cleared := false
+			var cleared := Tables.on_edge_wall(at, float(d.spread))
 			for tc: Array in tree_clear:
 				if at.distance_to(tc[0]) < float(tc[1]) + float(d.spread) * 0.6:
 					cleared = true
@@ -832,6 +832,7 @@ static func _plant_tree(space: PhysicsDirectSpaceState3D, rng: RandomNumberGener
 	if _clash(space, id, Transform3D(basis, pos), true):
 		rejects[sp + " clash"] = int(rejects.get(sp + " clash", 0)) + 1
 		return false
+	if Tables.on_edge_wall(at, float(d.spread)): return false   # the world-edge cliff band
 	for tc: Array in tree_clear:
 		if at.distance_to(tc[0]) < float(tc[1]) + float(d.spread) * 0.6:
 			return false

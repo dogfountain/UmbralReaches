@@ -482,7 +482,7 @@ func _draw_markers(c: Vector2, r: float, pulse: float) -> void:
 	_place_labels(cands, c, r)
 
 
-## At most two names, the most pressing first (a task, then the nearest), each on a dark pill that stays inside
+## At most two names, the most pressing first (a task, then the nearest), each haloed (no box), staying inside
 ## the dial: a name too long for the room is cut short, and one that would touch a placed name is dropped.
 func _place_labels(cands: Array, c: Vector2, r: float) -> void:
 	if _body == null or cands.is_empty():
@@ -519,8 +519,9 @@ func _place_labels(cands: Array, c: Vector2, r: float) -> void:
 			continue
 		placed.append(box)
 		count += 1
-		draw_rect(box, Color(0.03, 0.02, 0.012, 0.62))
-		Forge.label(self, _body, Vector2(x, y), text, LABEL_PT, INK, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
+		# no box (Luke, 9 Nov: "I don't like the black box around the text"): a wide soft halo, then a tight one
+		_body.draw_string_outline(get_canvas_item(), Vector2(x, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, LABEL_PT, 7, Color(0.02, 0.015, 0.01, 0.35))
+		Forge.label(self, _body, Vector2(x, y), text, LABEL_PT, INK, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 4)
 
 
 func _glyph(kind: String, p: Vector2, col: Color, s: float) -> void:

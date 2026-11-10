@@ -41,7 +41,7 @@ const ZONES := [["hearth", "Hearthward"], ["road", "The Pilgrims' Road"], ["thor
 	["fen", "The Hollow Fen"], ["holds", "The Rooted Holds"], ["quarry", "The Saints' Quarry"],
 	["moor", "The Lanternless Moor"], ["foundry", "The Founder's Pits"], ["orchard", "The Cinder Orchard"],
 	["necropolis", "The Waiting Field"], ["mere", "Corvin's Mere"],
-	["ossuary", "The Ossuary"], ["summit", "The Summit of Ascension"],
+	["ossuary", "The Ossuary"], ["rift", "The Ashen Rift"], ["summit", "The Summit of Ascension"],
 	["downs", "The Southern Downs"], ["oak", "The Grandmother Oak"], ["well", "The Well of Echoes"],
 	R37WQ.ZONES[0], R37WQ.ZONES[1], R37WQ.ZONES[2], R37WQ.ZONES[3],
 	["stillwater", "Stillwater"], ["anchorholds", "The Anchorholds"], ["saltmarket", "Saltmarket"], ["saltpans", "The White Pans"]]
@@ -51,11 +51,13 @@ const Sig := preload("res://core/story/quest_chains_signature.gd")
 const Bells := preload("res://core/story/quest_chains_bells.gd")   ## the eight bells (the seven far countries' and the Marches'): quests and pickups
 const LiveSteps := preload("res://core/story/encounter_kit.gd")
 const R37E := preload("res://core/story/quest_chains_r37_east.gd")   ## the east marches: its tasks and pickups are listed in the `# --- the east marches ---` blocks
+const ThrQ := preload("res://core/story/quest_chains_threshold.gd")   ## the Pilgrims' Threshold: the chapel under the starfall
+const R37UF := preload("res://core/story/quest_chains_upward_falls.gd")   ## the Upward Falls: Osk's task at the Order's weir
 
 const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
 	"hearth_ash", "road_clear", "coal_shrine", "spire_lamps", "alms_loaf",
 	"thorn_door", "smoke_oaks", "ring_heart", "unpaid_toll",
-	"bead_count", "drowned_bell", "count_below", "crossing_ward",
+	"bead_count", "drowned_bell", "count_below", "crossing_ward", "threshold_chapel",
 	# r34: the doubled world's hubs (a giver per new region) and the raids' attunements
 	"holds_turf", "keeper_wards", "keeper_heart", "keeper_leave",
 	"quarry_marks", "quarry_picks", "quarry_last", "quarry_chisel", "quarry_due",
@@ -71,7 +73,7 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	# r36 Act III: the door
 	"the_latch", "still_climbing", "names_under", "full_peal",
 	"shepherd_strays", "oak_song", "well_answer",
-	"wf_wheel", "wf_watch", "wf_lights", "wf_crown",
+	"wf_wheel", "wf_upward", "wf_watch", "wf_lights", "wf_crown",
 	"salt_sweep", "salt_widow", "spire_coal", "anchor_names", "anchor_vow",
 	"bounds_beaten", "quarry_stone", "moor_fires", "founder_pour", "orchard_stand", "field_round", "mere_ferry"]
 
@@ -770,6 +772,7 @@ const QUESTS := {
 	"spire_coal": R37E.SPIRE_COAL, "anchor_names": R37E.ANCHOR_NAMES, "anchor_vow": R37E.ANCHOR_VOW,
 	"bounds_beaten": Sig.BOUNDS, "quarry_stone": Sig.QUARRY_STONE, "moor_fires": Sig.MOOR_FIRES, "founder_pour": Sig.FOUNDER_POUR,
 	"orchard_stand": Sig.ORCHARD_STAND, "field_round": Sig.FIELD_ROUND, "mere_ferry": Sig.MERE_FERRY,
+	"threshold_chapel": ThrQ.THRESHOLD_CHAPEL, "wf_upward": R37UF.QUESTS["wf_upward"],
 }
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
@@ -884,6 +887,7 @@ const PICKUPS := {
 	"wf_sluice_key": R37WQ.PICKUPS["wf_sluice_key"], "wf_signal_lamp": R37WQ.PICKUPS["wf_signal_lamp"], "wf_votive_a": R37WQ.PICKUPS["wf_votive_a"],
 	"wf_votive_b": R37WQ.PICKUPS["wf_votive_b"], "wf_votive_c": R37WQ.PICKUPS["wf_votive_c"], "wf_votive_place": R37WQ.PICKUPS["wf_votive_place"],
 	"wf_rub_hand": R37WQ.PICKUPS["wf_rub_hand"], "wf_rub_shoulder": R37WQ.PICKUPS["wf_rub_shoulder"], "wf_rub_lip": R37WQ.PICKUPS["wf_rub_lip"],
+	"wf_gauge": R37UF.PICKUPS["wf_gauge"],
 	"coal_ardel": R37E.COAL_ARDEL, "anchor_page_a": R37E.PAGE_A, "anchor_page_b": R37E.PAGE_B,
 	"anchor_page_c": R37E.PAGE_C,
 	"foreman_stone": Sig.PICKUPS["foreman_stone"], "foreman_place": Sig.PICKUPS["foreman_place"],

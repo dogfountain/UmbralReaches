@@ -31,7 +31,8 @@ const SiteBreath := preload("res://core/life/secrets/site_breath.gd")
 const SiteCompany := preload("res://core/life/secrets/site_company.gd")
 const SiteR37W := preload("res://core/life/secrets/site_r37_west.gd")      # --- west marches --- the Sorrow's hidden walk
 const SiteR34 := preload("res://core/life/secrets/site_r34.gd")      # r34 places: the new ground's secrets
-const SiteThreshold := preload("res://core/life/secrets/site_threshold.gd")   # the Last Landing, atop the Broken Stair
+const SiteThreshold := preload("res://core/life/secrets/site_threshold.gd")   # the Pilgrims' Chapel under the starfall
+const SiteUpwardFalls := preload("res://core/life/secrets/site_upward_falls.gd")   # the Upward Falls' crest (a wonder)
 # --- south marches ---
 const SiteSouth := preload("res://core/life/secrets/site_r37_south.gd")
 const Reactivity := preload("res://core/life/secrets/reactivity.gd")
@@ -74,6 +75,7 @@ static func build(root: Node) -> void:
 		SiteR34.build(root, host)
 	build_ms["r34"] = (Time.get_ticks_usec() - t) / 1000
 	SiteThreshold.build(root, host)
+	SiteUpwardFalls.build(root, host)
 	# --- south marches ---
 	SiteSouth.build(root, host)
 	# --- west marches ---

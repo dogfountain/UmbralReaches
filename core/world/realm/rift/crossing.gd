@@ -18,14 +18,16 @@ const RAIL_H := 1.0
 const BED := -17.5              ## pier feet, sunk in the lava
 const LAVA := -15.5
 const DECK := 0.55
-const KEY := "stone"            ## dressed ashlar (OssKit); the hub stair's stone.tres reads blue-veined here
+const Starlit := preload("res://core/world/realm/rift/starlit_stone.gd")
+const KEY := Starlit.STONE     ## dressed ashlar (OssKit "stone", lifted: starlit_stone.gd); the hub stair's stone.tres reads blue-veined here
 const HUB := "hub"              ## the hub stair's own stone: the stair_column.glb columns
-const PAVE := "floor"
-const TRIM := "stone"
+const PAVE := Starlit.FLOOR
+const TRIM := Starlit.STONE
 const COLUMN_GLB := "res://art/models/stair_column.glb"
 const Basalt := preload("res://core/world/realm/rift/basalt.gd")
 
 const FORE := Rect2(-4.5, -14.0, 9.0, 7.0)          ## the forecourt on the rim: x -4.5..4.5, z -14..-7
+const APRON := 2.4                                   ## the landing carried on from the forecourt towards the rim
 const FORE_Y := 0.6                                  ## RealmLayout.CROSSING_FOOT.y
 ## round towers: centre x, centre z, radius, top y
 const T1 := Vector4(0.0, -21.0, 3.5, 1.8)
@@ -55,6 +57,7 @@ var spin_st: SurfaceTool
 func build(root: Node, host: Node3D) -> void:
 	rng.seed = 51
 	space = (root as Node3D).get_world_3d().direct_space_state
+	Starlit.ensure()
 	k = OssKit.new()
 	k.keep_lanes = false
 	spin_st = Basalt.new_tool()
@@ -81,7 +84,7 @@ func build(root: Node, host: Node3D) -> void:
 	_leg(a4, spin0, "stairs", 1.1, 0.0, "L4 flight")
 	_tower(T1, [_ang(c1, Vector2(0, FORE.position.y)), _ang(c1, c2)], [0.66, 0.66])
 	_tower(T2, [_ang(c2, c1), _ang(c2, c3)], [0.66, 0.5])
-	_tower(T3, [_ang(c3, c2), _ang(c3, Vector2(spin0.x, spin0.z))], [0.5, 0.66])
+	_tower(T3, [_ang(c3, c2), _ang(c3, Vector2(spin0.x, spin0.z)), deg_to_rad(-35.0)], [0.5, 0.66, 0.3])   # (the third: the Pilgrims' Stair down the tower's east side, rift/tower_stair.gd)
 	# --- the turn round the Spindle -------------------------------------------------------------
 	_spiral()
 	# --- flying arch and the last flights to the ward landing -----------------------------------
@@ -217,6 +220,11 @@ func _forecourt() -> void:
 	k.block(PAVE, Vector3(lo.x, FORE_Y - 0.35, lo.y), Vector3(hi.x, FORE_Y, hi.y), true, 1.0)
 	k.block(KEY, Vector3(lo.x + 0.15, foot, lo.y + 0.15), Vector3(hi.x - 0.15, FORE_Y - 0.35, hi.y - 0.15), true, 0.88)
 	k.block(TRIM, Vector3(lo.x - 0.1, FORE_Y - 0.55, lo.y - 0.1), Vector3(hi.x + 0.1, FORE_Y - 0.35, hi.y + 0.1), false, 0.9)
+	# the landing: the forecourt's paving carried on 2.4 m towards the rim, so the way up to the gate arrives on a broad
+	# stone landing (kerbed, lit by the lanterns) and not straight on the rim's slope
+	k.block(PAVE, Vector3(lo.x, FORE_Y - 0.35, hi.y), Vector3(hi.x, FORE_Y, hi.y + APRON), true, 1.0)
+	k.block(KEY, Vector3(lo.x + 0.15, foot, hi.y), Vector3(hi.x - 0.15, FORE_Y - 0.35, hi.y + APRON - 0.15), true, 0.88)
+	k.block(TRIM, Vector3(lo.x - 0.1, FORE_Y - 0.55, hi.y), Vector3(hi.x + 0.1, FORE_Y - 0.35, hi.y + APRON + 0.1), false, 0.9)
 	# buttresses on the chasm side
 	for x: float in [lo.x + 0.6, -2.9, 2.9, hi.x - 0.6]:
 		var f := maxf(BED, _ground(x, lo.y - 1.0) - 0.6)
@@ -225,16 +233,16 @@ func _forecourt() -> void:
 			k.box(KEY, Vector3(x, FORE_Y - 1.1, lo.y - 0.75), Vector3(1.0, 0.3, 1.5), Basis(Vector3.RIGHT, 0.35), false, 0.85)
 	# parapets: east and west, the north edge either side of the gate; the south edge is the way in
 	var y := FORE_Y
-	_rail([Vector3(lo.x + 0.21, y, hi.y - 0.4), Vector3(lo.x + 0.21, y, lo.y + 0.21), Vector3(-3.25, y, lo.y + 0.21)])
-	_rail([Vector3(hi.x - 0.21, y, hi.y - 0.4), Vector3(hi.x - 0.21, y, lo.y + 0.21), Vector3(3.25, y, lo.y + 0.21)])
+	_rail([Vector3(lo.x + 0.21, y, hi.y + APRON - 0.4), Vector3(lo.x + 0.21, y, lo.y + 0.21), Vector3(-3.25, y, lo.y + 0.21)])
+	_rail([Vector3(hi.x - 0.21, y, hi.y + APRON - 0.4), Vector3(hi.x - 0.21, y, lo.y + 0.21), Vector3(3.25, y, lo.y + 0.21)])
 	# the gate: a pointed arch over the first flight, newels on the south corners
 	k.arch_panel(KEY, Vector3(0, y, lo.y + 0.45), Vector3.RIGHT, 4.5, 3.6, 6.4, 1.0, 0.85, 0.85, 0.0, TRIM)
-	k.pinnacle(KEY, Vector3(lo.x + 0.4, y, hi.y - 0.4), 0.7, 1.9, 0.6)
-	k.pinnacle(KEY, Vector3(hi.x - 0.4, y, hi.y - 0.4), 0.7, 1.9, 0.6)
+	k.pinnacle(KEY, Vector3(lo.x + 0.4, y, hi.y + APRON - 0.4), 0.7, 1.9, 0.6)
+	k.pinnacle(KEY, Vector3(hi.x - 0.4, y, hi.y + APRON - 0.4), 0.7, 1.9, 0.6)
 	_lantern(Vector3(lo.x + 1.0, y, lo.y + 1.6), true)
 	_lantern(Vector3(hi.x - 1.0, y, lo.y + 1.6), false)
 	# the approach: if the rim path arrives lower than the forecourt, a broad flight down to it
-	var z0 := hi.y
+	var z0 := hi.y + APRON
 	var g0 := _ground(0.0, z0 + 0.3, FORE_Y + 3.0)
 	var drop := FORE_Y - g0
 	if drop > 0.35 and drop < 8.0:
@@ -255,7 +263,7 @@ func _forecourt() -> void:
 		legs.append("approach flight %d steps from y %.2f over %.1f m" % [steps, gy, run])
 	else:
 		legs.append("approach: rim ground at the forecourt %.2f (forecourt %.2f), no flight" % [g0, FORE_Y])
-	WorldLanes.register_site("rift_forecourt", Rect2(lo, hi - lo).grow(0.4), FORE_Y, FORE_Y - 0.3, true)
+	WorldLanes.register_site("rift_forecourt", Rect2(lo, hi - lo + Vector2(0.0, APRON)).grow(0.4), FORE_Y, FORE_Y - 0.3, true)
 
 
 # --- towers ---------------------------------------------------------------------------------------

@@ -191,6 +191,12 @@ func _add_pickup(k: String) -> void:
 		var near: Vector2 = d.near
 		at = Vector3(near.x, RealmLayout.macro_height(near.x, near.y), near.y)
 		spots[k] = at
+	# the summit's dais stands on a deck built after the nav took its floors: the floor found for a stone
+	# on the dais is the cleared chasm's, 11 m under it
+	var dd := Vector2(at.x - RealmLayout.SUMMIT_DAIS.x, at.z - RealmLayout.SUMMIT_DAIS.z)
+	if dd.length() < 13.0 and at.y < RealmLayout.SUMMIT_DAIS.y - 1.0:
+		at.y = RealmLayout.SUMMIT_DAIS.y
+		spots[k] = at
 	p.global_position = at
 	var yaw := float(hash(k) % 628) * 0.01
 	QProps.make(p, "Look", String(d.kind), Transform3D(Basis(Vector3.UP, yaw), at))

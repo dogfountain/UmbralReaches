@@ -15,7 +15,7 @@ const WALL_EAST := [Vector2(157, -112), Vector2(163, -92), Vector2(171, -70), Ve
 	Vector2(163, 8), Vector2(166, 30), Vector2(158, 44), Vector2(155, 56), Vector2(155, 84), Vector2(152, 106),
 	Vector2(158, 128), Vector2(153, 150), Vector2(162, 172), Vector2(166, 196), Vector2(166, 214), Vector2(160, 230), Vector2(157, 242)]
 ## Short spurs: the wall runs out from its line to a tower on a knoll (the land lifts under the tip).
-const SPURS := [{"side": -1, "base": Vector2(-160, 10), "tip": Vector2(-176, 24)}, {"side": 1, "base": Vector2(158, 44), "tip": Vector2(174, 52)}]
+const SPURS := [{"side": -1, "base": Vector2(-160, 10), "tip": Vector2(-176, 24)}, {"side": 1, "base": Vector2(158, 44), "tip": Vector2(170, 50)}]
 ## The long fall: [side, z0, z1] where the wall has come down (stubs and rubble, nothing to bar the way).
 const RUINS := [[-1, 112.0, 184.0]]
 ## Extra openings besides the gates and the track crossings: [side, z].

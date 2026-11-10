@@ -141,6 +141,11 @@ static func reserve(root: Node) -> void:
 	var hand := _hand_xz()
 	var arm := _bx((HEAD_C + dir * 40.0 + hand) * 0.5, Vector2(18.0, 18.0))
 	WorldLanes.register_site("r37w_arm", arm, _hi(space, arm), _hi(space, arm) + 1.0)
+	# the palm lies in the Crowns' west shoulder, where the land stands 6 to 11 m over it: the shoulder is cut back to the
+	# palm's base so the hand shows, can be walked round, and its steps have ground to start on. It stops 5 m short of the
+	# terrain's edge (x -272): a cut running out to the edge would leave a drop to the horizon ring behind it.
+	var pad := Rect2(-267.0, hand.y - 12.0, 31.0, 24.0)
+	WorldLanes.register_site("r37w_hand_pad", pad, FLOOR_Y, FLOOR_Y - 0.1)
 	Flora.tree_clear.append([HEAD_C + dir * 30.0, 34.0])
 	# the siege tower and the trebuchets: levelled pads
 	var tw := _bx(Vector2(-236.0, 170.0), Vector2(7.5, 7.5))
@@ -655,7 +660,7 @@ static func _statue(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 		var p := c + Vector3(cos(a), 0.0, sin(a)) * 12.0
 		var pg := _g(space, p.x, p.z)
 		var bb := Basis(Vector3.UP, a + 0.4) * Basis(Vector3.FORWARD, 0.18)
-		k.box("lore_tstone", Vector3(p.x, pg + 2.4, p.z), Vector3(1.8, 4.8, 1.2), bb, true, 0.9)
+		k.box("ruin", Vector3(p.x, pg + 2.4, p.z), Vector3(1.8, 4.8, 1.2), bb, true, 0.9)
 	k.commit(host, "CrownTines")
 	_lore(host, "r37w_statue", Vector3(HEAD_C.x + out.x * 24.5, _g(space, HEAD_C.x + out.x * 24.5, HEAD_C.y + out.y * 24.5) + 1.1, HEAD_C.y + out.y * 24.5 + 2.5), Vector3(HEAD_C.x + out.x * 24.5, FLOOR_Y + 1.1, HEAD_C.y + out.y * 24.5))
 	host.set_meta("approach", mouth)
@@ -741,6 +746,20 @@ static func _tower(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var tw := Kit.place(host, "r37_siege_tower.glb", Transform3D(Basis(Vector3.UP, -PI * 0.5), at))
 	if tw:
 		FarDetail.register(tw, FarDetail.hull(AABB(Vector3(-3.4, 0.0, -3.4), Vector3(6.8, 16.0, 6.8)), 0.1, Color(0.14, 0.12, 0.1)), Transform3D.IDENTITY, 120.0)
+	# the drawbridge's foot (model y 15, z 0.2) is the lowest ground's height plus 0.2 and the ground falls away beyond the
+	# pad: a few low timber steps carry it down to the ground it meets, so the ramp can be walked onto
+	var foot := at + Vector3(15.0, 0.2, 0.0)
+	var sk := _kit()
+	var prev := foot.y
+	for i in 7:
+		var sx := foot.x + 0.5 + 0.55 * float(i)
+		var gi := _g(space, sx, foot.z)
+		var top := prev - 0.2
+		if top <= gi + 0.12:
+			break
+		sk.box("wood", Vector3(sx, (top + gi - 0.4) * 0.5, foot.z), Vector3(0.55, top - gi + 0.4, 4.4), Basis.IDENTITY, true, 0.8)
+		prev = top
+	sk.commit(host, "TowerFootSteps")
 	# its top: the platform (z 14.4 in the model) is 14.4 m over the wheels' foot
 	_chest(host, "siege_tower_top", at + Vector3(0.0, 14.6, 0.0), -PI * 0.5)
 	var fb := Basis(Vector3.UP, -PI * 0.5)                # the tower's open face (model +Y, Godot -Z) looks east, toward the Realm
