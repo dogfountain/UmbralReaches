@@ -4,10 +4,7 @@ extends RefCounted
 ## leads there but the slabs). On the platform the Order's surveyors left their survey case (iron-bound oak, a
 ## star-glass in its lid: art/models/wonders/star_crater_case.glb, tools/blender/wonder_star_crater.py) and a slate;
 ## the last of them climbed, and did not come down.
-## State: secrets' own (looted.star_crater, pages.sc_star). The lead wires this file into secrets.gd and pages.gd:
-##   SECRETS     "star_crater": {"name": STAR_NAME, "region": "saltpans"}
-##   TEXTS       "sc_star": STAR_PAGE
-##   REWARDS     "star_crater": STAR_REWARD
+## State: secrets' own (looted.star_crater, pages.sc_star); its name, page and reward live in pages.gd.
 
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
@@ -17,9 +14,6 @@ const CASE_D := 0.42                  ## the case's depth and height (the lid hi
 const CASE_H := 0.30
 
 const STAR_NAME := "The Fallen Star"
-const STAR_REWARD := {"relic_fragment": 1, "grave_ash": 35, "ember_shard": 1}
-const STAR_PAGE := {"title": "The surveyors' slate", "kind": "slate",
-	"text": "Fall at the first turning. Glass to a depth of eleven spans; the heart keeps its height as the sky keeps its. Warm on the north face. We leaned a ladder to it and the ladder came down glass. Brother Ostric says it is a Wound. Under it, scratched later: I climbed. It is not a wound. It is a window, and whatever is on the other side is not angry. Leave the case. Take it."}
 
 
 static func build(root: Node, host: Node3D) -> void:

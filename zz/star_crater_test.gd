@@ -12,6 +12,7 @@ const State := preload("res://core/life/secrets/state.gd")
 const Site := preload("res://core/life/secrets/site_star_crater.gd")
 const Quest := preload("res://core/story/quest_chains_star_crater.gd")
 const Cast := preload("res://core/life/village/village_cast.gd")
+const Pages := preload("res://core/life/secrets/pages.gd")
 
 var main: Node
 var fails := 0
@@ -78,7 +79,7 @@ func _run() -> void:
 		_check(not State.has("looted", "star_crater"), "the case starts shut")
 		(cache.get("action") as Callable).call(null)
 		_check(State.has("looted", "star_crater"), "opening the case is remembered")
-	_check(Site.STAR_REWARD.size() > 0 and String(Site.STAR_PAGE.text).length() > 40, "the secret's reward and page are written")
+	_check(Dictionary(Pages.REWARDS.get("star_crater", {})).size() > 0 and String(Dictionary(Pages.TEXTS.get("sc_star", {})).get("text", "")).length() > 40 and Pages.SECRETS.has("star_crater"), "the secret's name, reward and page are in the tables")
 	# the quest
 	var q: Dictionary = Quest.STAR_LAMP
 	_check(Cast.CAST.has(String(q.giver)) or Cast.OUTPOSTS.has(String(q.giver)), "the giver %s exists" % q.giver)

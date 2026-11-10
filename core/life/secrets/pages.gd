@@ -29,6 +29,7 @@ const SECRETS := {
 	# the Pilgrims' Threshold (site_threshold.gd): the ids are the old landing's, the place is the chapel
 	"last_landing": {"name": "The Pilgrims' Chapel", "region": "rift"},
 	"upward_falls": {"name": "The Upward Falls' Crest", "region": "sorrow"},   # the Upward Falls' crest (site_upward_falls.gd)
+	"star_crater": {"name": "The Fallen Star", "region": "saltpans"},   # the Star-Fall Crater's platform (site_star_crater.gd)
 	# --- south marches ---
 	"oak_crown": {"name": "The Crown of the Oak", "region": "oak"},
 	"well_listener": {"name": "The Listener's Cairn", "region": "well"},
@@ -43,6 +44,8 @@ const SECRETS := {
 const ORIGINAL := ["bells", "spill", "bridge", "barrow", "cist", "crypt", "oak", "postern", "pell", "cairn"]
 
 const TEXTS := {
+	"sc_star": {"title": "The surveyors' slate", "kind": "slate",
+	"text": "Fall at the first turning. Glass to a depth of eleven spans; the heart keeps its height as the sky keeps its. Warm on the north face. We leaned a ladder to it and the ladder came down glass. Brother Ostric says it is a Wound. Under it, scratched later: I climbed. It is not a wound. It is a window, and whatever is on the other side is not angry. Leave the case. Take it."},
 	"sc_upward_falls": {"title": "Cut into the crest's coping", "kind": "carved stone",
 	"text": "SURVEY OF THE SORROW, ninth year of the lift. The water climbs the steps at four paces a breath and does not tire. We were to carry it to the abbey. It does not want the abbey. Last night I stood where the sheet leaves the bowl and put my hand in it, and it did not wet me. It went up through my fingers like a held note. The Order will want this written as a success. I have written it as a staircase."},
 	"sc_bells": {"title": "The bell-frame", "kind": "carved beam",
@@ -138,6 +141,7 @@ const ITEM_SUGGEST := {
 }
 
 const REWARDS := {
+	"star_crater": {"relic_fragment": 1, "grave_ash": 35, "ember_shard": 1},
 	"upward_falls": {"relic_fragment": 2, "grave_ash": 36, "ember_shard": 1},
 	"bells": {"grave_ash": 30},
 	"barrow": {"relic_fragment": 1, "grave_ash": 20},
