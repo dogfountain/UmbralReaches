@@ -28,12 +28,17 @@ extends Control
 ##            CombatState.statuses_of(enemy); older fallbacks: elite / guardian tables, enc_tier,
 ##            Afflict records, the wind-up states
 ##   events   target_changed, enemy_cast_ended (an "INTERRUPTED" flash), cast_stopped (yours)
+## Typed where the target is always one script; the wanderer, foes and Breath stay dynamic (test stand-ins).
 ## Added by ui/hud.gd. Hidden while paused and under the loading screen.
 
 const Afflict := preload("res://core/skills/afflict.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Elites := preload("res://core/life/encounters/elites.gd")
 const Guardians := preload("res://core/life/encounters/guardians.gd")
+const EncHud := preload("res://core/life/encounters/encounter_hud.gd")
+const Hearth := preload("res://core/life/progression/hearth.gd")
+const CombatState := preload("res://core/skills/combat_state.gd")
+const StaffArts := preload("res://core/player/staff_arts.gd")
 const UIType := preload("res://ui/type.gd")
 const Med := preload("res://ui/medieval_style.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
@@ -103,13 +108,13 @@ var _titles := {}                  ## boss instance id -> title (from boss_engag
 var _broke := {}                   ## enemy instance id -> [cast name, time] of a cast just interrupted
 var _dur_seen := {}                ## "enemy id:status" -> the longest time_left seen (a sweep needs a whole)
 var _my_stop := ["", 0.0, ""]      ## your last cast that stopped: [name, time, reason]
-var _hearth: Node
+var _hearth: Hearth
 var _deb_cache := {}               ## enemy instance id -> [time read, Array]
 
 # boss
 var _boss: Node3D
 var _boss_title := ""
-var _boss_arena: Node
+var _boss_arena: BossArena
 var _b_trail := 1.0
 var _b_alpha := 0.0
 
@@ -235,18 +240,18 @@ func _level_of(n: Node) -> int:
 ## anything the player itself reports. Vector2i(level, rested) or (-1, 0).
 func _player_level() -> Vector2i:
 	if not is_instance_valid(_hearth):
-		_hearth = get_tree().get_first_node_in_group(&"hearth")
-	if _hearth and _hearth.has_method("xp_info"):
-		var d: Variant = _hearth.call("xp_info")
-		if d is Dictionary:
-			return Vector2i(int((d as Dictionary).get("level", -1)), int((d as Dictionary).get("rested", 0)))
+		_hearth = get_tree().get_first_node_in_group(&"hearth") as Hearth
+	if _hearth:
+		var d := _hearth.xp_info()
+		return Vector2i(int(d.get("level", -1)), int(d.get("rested", 0)))
 	return Vector2i(_level_of(_player), 0)
 
 
-func _combat() -> Node:
-	return _player.call("combat") as Node if _player.has_method("combat") else null
+func _combat() -> CombatState:
+	return _player.call("combat") as CombatState if _player.has_method("combat") else null
 
 
+## A Node: a stand-in's stamina is not a Stamina script, so its reads stay dynamic.
 func _stamina() -> Node:
 	return _player.call("stamina") if _player.has_method("stamina") else null
 
@@ -324,8 +329,8 @@ func _sync_bars() -> void:
 func _collect_buffs() -> Array:
 	var out: Array = []
 	var cs := _combat()
-	if cs and cs.has_method("statuses_of"):
-		for st: Variant in cs.call("statuses_of", _player):
+	if cs:
+		for st: Variant in cs.statuses_of(_player):
 			if st is Dictionary:
 				out.append(_from_status(st as Dictionary, "me"))
 	if _player.has_method("buffs"):
@@ -342,9 +347,9 @@ func _collect_buffs() -> Array:
 	var ward := float(_p("ward_drain_left", 0.0))
 	if ward > 0.0:
 		out.append({"name": "Lantern Ward", "glyph": "ward", "color": Color(1.0, 0.85, 0.5), "left": -1.0, "stacks": roundi(ward)})
-	var book: Node = _player.call("skills") if _player.has_method("skills") else null
-	if book and "boost_until" in book:
-		var left := float(book.get("boost_until")) - _now
+	var book := _player.call("skills") as SkillBook if _player.has_method("skills") else null
+	if book:
+		var left := book.boost_until - _now
 		if left > 0.0:
 			out.append({"name": "Quickened", "glyph": "quick", "color": Color(1.0, 0.9, 0.55), "left": left, "dur": 6.0, "stacks": 0})
 	if bool(_p("_riposte_ready", false)):
@@ -633,8 +638,8 @@ func _read_debuffs(e: Node) -> Array:
 					ids[a.id] = true
 					out.append(a)
 	var cs := _combat()
-	if cs and cs.has_method("statuses_of"):
-		for d: Variant in cs.call("statuses_of", e):
+	if cs:
+		for d: Variant in cs.statuses_of(e):
 			if d is Dictionary:
 				var a := _from_status(d as Dictionary, key)
 				if not ids.has(a.id) and not (a.id == "mark" and ids.has("umbral_mark")):
@@ -643,9 +648,9 @@ func _read_debuffs(e: Node) -> Array:
 	if e.has_method("debuffs"):
 		out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return int(bool(x.debuff)) > int(bool(y.debuff)))
 		return out                                   # the foe reports its own afflictions: done
-	var mgr: Node = Afflict._inst
-	if mgr != null and is_instance_valid(mgr) and "_rec" in mgr:
-		var r: Dictionary = (mgr.get("_rec") as Dictionary).get(e.get_instance_id(), {})
+	var mgr: Afflict = Afflict._inst as Afflict
+	if mgr != null and is_instance_valid(mgr):
+		var r: Dictionary = mgr._rec.get(e.get_instance_id(), {})
 		if not r.is_empty():
 			if float(r.get("burn", 0.0)) > 0.0:
 				out.append({"name": "Burning", "glyph": "flame", "color": Color(1.0, 0.5, 0.2), "left": float(r.burn), "dur": 4.0, "stacks": 0})
@@ -674,8 +679,9 @@ func _on_boss_engaged(boss: Node, title: String) -> void:
 	_b_trail = 1.0
 	_boss_arena = null
 	for a in get_tree().get_nodes_in_group(&"boss_arena"):
-		if "_boss" in a and a.get("_boss") == boss:
-			_boss_arena = a
+		var arena := a as BossArena
+		if arena != null and arena._boss == boss:
+			_boss_arena = arena
 	if _target == boss:
 		_target = null
 
@@ -697,14 +703,12 @@ func _tick_boss(delta: float) -> void:
 		_b_trail = r if r > _b_trail else move_toward(_b_trail, r, delta * 0.6)
 		# the arena's own plain bar steps aside (core/world/boss_arena.gd builds it; r33 hud: reads
 		# its `_bar_layer` defensively, no edit there)
-		if HudPrefs.unit_frames and is_instance_valid(_boss_arena) and "_bar_layer" in _boss_arena:
-			var lay: Variant = _boss_arena.get("_bar_layer")
-			if lay is CanvasLayer and is_instance_valid(lay):
-				(lay as CanvasLayer).visible = false
+		if HudPrefs.unit_frames and is_instance_valid(_boss_arena) and is_instance_valid(_boss_arena._bar_layer):
+			_boss_arena._bar_layer.visible = false
 	_b_alpha = move_toward(_b_alpha, 1.0 if _boss != null else 0.0, delta * 4.0)
 
 
-var _enc_hud: Node
+var _enc_hud: EncHud
 var _enc_t := 0.0
 
 
@@ -719,19 +723,18 @@ func _tick_encounter_layout() -> void:
 		for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
 			var s: Script = c.get_script()
 			if s and String(s.resource_path).ends_with("encounter_hud.gd"):
-				_enc_hud = c
+				_enc_hud = c as EncHud
 				break
 	if not is_instance_valid(_enc_hud):
 		return
 	# the tide line and the nightmare line move to our plate only while the frames are on
-	if HudPrefs.unit_frames and "_status" in _enc_hud and _enc_hud.get("_status") is Control:
-		(_enc_hud.get("_status") as Control).position = Vector2(PF_POS.x + 6, _buff_row_y() + ICON + 26.0)
-	if HudPrefs.unit_frames and "_ng" in _enc_hud and _enc_hud.get("_ng") is Control:
-		(_enc_hud.get("_ng") as Control).position = Vector2(PF_POS.x + PORTRAIT_R * 2.0 + 16.0, PF_POS.y + 96.0)
-	if "_elite_box" in _enc_hud and _enc_hud.get("_elite_box") is Control:
-		var box := _enc_hud.get("_elite_box") as Control
+	if HudPrefs.unit_frames and _enc_hud._status != null:
+		_enc_hud._status.position = Vector2(PF_POS.x + 6, _buff_row_y() + ICON + 26.0)
+	if HudPrefs.unit_frames and _enc_hud._ng != null:
+		_enc_hud._ng.position = Vector2(PF_POS.x + PORTRAIT_R * 2.0 + 16.0, PF_POS.y + 96.0)
+	if _enc_hud._elite_box != null:
 		var ours := HudPrefs.unit_frames and _target != null and _rank(_target) != "normal"
-		box.modulate.a = 0.0 if ours else 1.0
+		_enc_hud._elite_box.modulate.a = 0.0 if ours else 1.0
 
 
 ## The canvas size (the Control's own size is not trusted: it is added before its parent is laid out).
@@ -1041,8 +1044,8 @@ func _draw_unit(e: Node3D, at: Vector2, w: float, a: float, is_boss: bool) -> vo
 	if is_boss and "phase" in e:
 		var ph := int(e.get("phase"))
 		var ph_name := ""
-		if is_instance_valid(_boss_arena) and "phase_titles" in _boss_arena:
-			var pts: Dictionary = _boss_arena.get("phase_titles")
+		if is_instance_valid(_boss_arena):
+			var pts := _boss_arena.phase_titles
 			for k: int in pts:
 				if ph >= k:
 					ph_name = String(pts[k])
@@ -1170,11 +1173,10 @@ func _cast_state() -> Dictionary:
 			name_t = String(ci.get("name", ""))
 			t = float(ci.get("t", 0.0))
 			col = ci.get("color", LILAC)
-	var book: Node = _player.call("skills") if _player.has_method("skills") else null
-	if t < 0.0 and book and book.has_method("cast_info"):
-		var bi: Variant = book.call("cast_info")
-		if bi is Dictionary and not (bi as Dictionary).is_empty():
-			var d := bi as Dictionary
+	var book := _player.call("skills") as SkillBook if _player.has_method("skills") else null
+	if t < 0.0 and book:
+		var d := book.cast_info()
+		if not d.is_empty():
 			name_t = String(d.get("name", ""))
 			var tot := float(d.get("total", 0.0))
 			t = float(d.get("t", 0.0)) / tot if tot > 0.0 else float(d.get("t", 0.0))
@@ -1183,19 +1185,19 @@ func _cast_state() -> Dictionary:
 			if String(d.get("kind", "")) == "cast" and tot > 0.0:
 				name_t += "   %.1f" % maxf(tot - float(d.get("t", 0.0)), 0.0)
 	if t < 0.0:
-		if book and book.has_method("charging_slot") and int(book.call("charging_slot")) >= 0:
-			var i := int(book.call("charging_slot"))
-			var slots: Array = book.get("slots")
+		if book and book.charging_slot() >= 0:
+			var i := book.charging_slot()
+			var slots := book.slots
 			if i < slots.size() and slots[i] != null:
 				name_t = String(slots[i].title)
 				col = slots[i].color
-			t = float(book.call("charge_ratio"))
+			t = book.charge_ratio()
 			full = t >= 1.0
 	if t < 0.0:
-		var arts: Node = _player.call("arts") if _player.has_method("arts") else null
-		if arts and arts.has_method("heavy_charge") and float(arts.call("heavy_charge")) > 0.0:
+		var arts := _player.call("arts") as StaffArts if _player.has_method("arts") else null
+		if arts and arts.heavy_charge() > 0.0:
 			name_t = "Heavy Strike"
-			t = float(arts.call("heavy_charge"))
+			t = arts.heavy_charge()
 			col = Color(1.0, 0.6, 0.3)
 			full = t >= 0.99
 	if t < 0.0 and _now - float(_my_stop[1]) < 0.8 and String(_my_stop[0]) != "":

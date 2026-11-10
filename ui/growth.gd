@@ -21,6 +21,8 @@ const DB := preload("res://core/life/progression/upgrade_db.gd")
 const PathsDB := preload("res://core/life/progression/paths_db.gd")
 const HearthDB := preload("res://core/life/progression/hearth_db.gd")
 const HearthRT := preload("res://core/life/progression/hearth.gd")
+const Kindling := preload("res://core/life/progression/kindling.gd")
+const CharScreen := preload("res://ui/character_screen.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const Icons := preload("res://core/life/progression/icons.gd")
 
@@ -321,8 +323,8 @@ func is_open() -> bool:
 	return _root.visible
 
 
-func _k() -> Node:
-	return get_tree().get_first_node_in_group("progression")
+func _k() -> Kindling:
+	return get_tree().get_first_node_in_group("progression") as Kindling
 
 
 ## Open the Kindling (`tab` = "embers" | "spells" | "oaths" | "relics" | "charms" | "staff" |
@@ -345,10 +347,10 @@ func open_menu(_from_fire := false, tab := "") -> void:
 		return
 	if not hosted and _cs() != null:
 		var wanderer := tab in ["charms", "relics", "staff"]
-		_cs().call("open_at", "wanderer" if wanderer else "kindling", tab if tab != "" else ("" if not _from_fire else "embers"), _from_fire)
+		_cs().open_at("wanderer" if wanderer else "kindling", tab if tab != "" else ("" if not _from_fire else "embers"), _from_fire)
 		return
 	var k := _k()
-	_fire = k.call("at_fire") if k else null
+	_fire = k.at_fire() if k else null
 	for i in TABS.size():
 		if TABS[i][0] == tab:
 			_tab = i
@@ -378,7 +380,7 @@ func close_menu() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	var k := _k()
 	if k:
-		k.call("celebrate")
+		k.celebrate()
 
 
 func at_fire() -> bool:
@@ -575,7 +577,7 @@ func _page_embers() -> void:
 		c.line = String(e.per)
 		c.pips = Vector2i(r, int(e.max))
 		c.cost = int(nx.get("cost", 0))
-		c.look = _look_for(String(k.call("why_not", id, true)) if k else "", nx.is_empty())
+		c.look = _look_for(String(k.why_not(id, true)) if k else "", nx.is_empty())
 		if nx.is_empty():
 			c.look = "owned"
 		grid.add_child(c)
@@ -599,7 +601,7 @@ func _page_spells() -> void:
 		head.tint = sp.color
 		head.title = String(sp.name)
 		if learnable and not known:
-			var lw := String(k.call("why_not_learn", id, true)) if k else ""
+			var lw := String(k.why_not_learn(id, true)) if k else ""
 			head.line = "Not yet learned"
 			head.cost = int((sp.learn as Dictionary).cost)
 			head.look = _look_for(lw, false)
@@ -620,7 +622,7 @@ func _page_spells() -> void:
 			if r > i:
 				c.look = "owned"
 			elif r == i and known:
-				c.look = _look_for(String(k.call("why_not", id, true)) if k else "", false)
+				c.look = _look_for(String(k.why_not(id, true)) if k else "", false)
 			else:
 				c.look = "locked"
 			row.add_child(c)
@@ -651,7 +653,7 @@ func _page_staff() -> void:
 			card.look = "open"
 		elif c.has("forge"):
 			card.cost = int((c.forge as Dictionary).ash)
-			card.look = _look_for(String(k.call("why_not_forge", id, true)) if k else "", false)
+			card.look = _look_for(String(k.why_not_forge(id, true)) if k else "", false)
 			if card.look == "locked" and Travel.count("relic_fragment") < int((c.forge as Dictionary).frag):
 				card.look = "poor"
 		else:
@@ -733,7 +735,7 @@ func _page_oaths() -> void:
 	for o: Dictionary in DB.OATHS:
 		var tier := int(o.tier)
 		var sworn := DB.oath(_st(), tier)
-		var why := String(k.call("why_not_oath", tier, true)) if k else ""
+		var why := String(k.why_not_oath(tier, true)) if k else ""
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
 		_page_box.add_child(row)
@@ -803,7 +805,7 @@ func _page_relics() -> void:
 		rc.line = String(rite.text)
 		rc.cost = int(rite.cost)
 		var owned := DB.rank(_st(), String(rite.id)) > 0
-		rc.look = _look_for(String(k.call("why_not", String(rite.id), true)) if k else "", owned)
+		rc.look = _look_for(String(k.why_not(String(rite.id), true)) if k else "", owned)
 		row.add_child(rc)
 
 
@@ -835,8 +837,8 @@ func _page_charms() -> void:
 
 # --- the Paths and the Hearthfire (paths_db.gd, hearth_db.gd, hearth.gd) --------------------------
 
-func _h() -> Node:
-	return get_tree().get_first_node_in_group("hearth")
+func _h() -> HearthRT:
+	return get_tree().get_first_node_in_group("hearth") as HearthRT
 
 
 func at_home_fire() -> bool:
@@ -891,7 +893,7 @@ func _page_paths() -> void:
 			c.line = String(n.text)
 			c.cost = int(n.cost)
 			c.unit = "PT" if int(n.cost) == 1 else "PTS"
-			var why := String(h.call("why_not_path", String(n.id))) if h else "?"
+			var why := String(h.why_not_path(String(n.id))) if h else "?"
 			if PathsDB.has(st, String(n.id)):
 				c.look = "owned"
 			elif why == "":
@@ -907,8 +909,8 @@ func _page_paths() -> void:
 	u.tint = QUIET
 	u.title = "Unremember"
 	u.line = "Every Path step comes back to be spent again. The ash does not (%d a step)." % HearthDB.UNREMEMBER_PER
-	u.cost = int(h.call("unremember_cost")) if h else 0
-	u.look = _look_for(String(h.call("why_not_unremember", at_home_fire())) if h else "?", false)
+	u.cost = int(h.unremember_cost()) if h else 0
+	u.look = _look_for(String(h.why_not_unremember(at_home_fire())) if h else "?", false)
 	_page_box.add_child(u)
 
 
@@ -926,7 +928,7 @@ func _page_hearth() -> void:
 	if h == null:
 		_heading("The Hearthfire", "no fire here")
 		return
-	var hs: Dictionary = h.call("hs")
+	var hs: Dictionary = h.hs()
 	var t := HearthDB.tier(hs)
 	_heading("The Hearthfire  ·  %s" % String(HearthDB.TIERS[t].name), "Hearthward's own fire, on the green")
 	_cols = 2
@@ -937,7 +939,7 @@ func _page_hearth() -> void:
 	now.glyph = "hearth"
 	now.tint = EMBER
 	now.title = "%s  ·  %s" % [["BANKED", "I", "II", "III", "IV"][t], String(HearthDB.TIERS[t].name)] if t > 0 else "BANKED"
-	now.line = "Fires reach +%.1f m  ·  +%d Gloom held  ·  comfort %d" % [HearthDB.reach(hs, float(DB.live.get("reach_add", 0.0))), roundi(float(DB.live.get("gloom_add", 0.0))), int(h.call("comfort"))]
+	now.line = "Fires reach +%.1f m  ·  +%d Gloom held  ·  comfort %d" % [HearthDB.reach(hs, float(DB.live.get("reach_add", 0.0))), roundi(float(DB.live.get("gloom_add", 0.0))), int(h.comfort())]
 	now.look = "owned"
 	row.add_child(now)
 	var up := _card("hearth", "raise", 384, 124)
@@ -952,7 +954,7 @@ func _page_hearth() -> void:
 		up.title = "Raise it: %s" % String(nx.name)
 		up.line = "Needs %s%s." % [String(nx.need_text), (", %d relic fragment%s" % [int(nx.frag), "" if int(nx.frag) == 1 else "s"]) if int(nx.frag) > 0 else ""]
 		up.cost = int(nx.ash)
-		up.look = _look_for(String(h.call("why_not_raise", at_home_fire())).replace("Only at Hearthward's fire, on the green.", "Only at a kindled fire."), false)
+		up.look = _look_for(String(h.why_not_raise(at_home_fire())).replace("Only at Hearthward's fire, on the green.", "Only at a kindled fire."), false)
 	row.add_child(up)
 	_heading("Hearthward's trades", "they open as the fire grows")
 	var grid := GridContainer.new()
@@ -966,11 +968,11 @@ func _page_hearth() -> void:
 		c.glyph = Icons.art_glyph("hearth", "svc_" + id, String(sv.glyph))
 		c.tint = Color(1.0, 0.78, 0.5)
 		c.title = String(sv.name)
-		var why := String(h.call("service_why", id))
+		var why := String(h.service_why(id))
 		c.line = String(sv.text) if why == "" else why
 		if id == "bells" and why == "" and not HearthDB.works(hs).has("bells"):
 			c.cost = HearthRT.BELLS_PRICE
-			c.look = _look_for(String(h.call("why_not_bells")), false)
+			c.look = _look_for(String(h.why_not_bells()), false)
 		else:
 			c.look = "owned" if why == "" else "locked"
 		grid.add_child(c)
@@ -980,7 +982,7 @@ func _page_hearth() -> void:
 	rc.glyph = Icons.art_glyph("hearth", "rest", "candle")
 	rc.tint = Color(1.0, 0.85, 0.6)
 	rc.title = ("RESTED  ·  %s left" % HearthDB.fmt_secs(r)) if r > 0.0 else "NOT RESTED"
-	rc.line = "Comfort %d: a full rest lasts %s. Gloom gathers 12%% slower and spells recover 4%% sooner while it lasts." % [int(h.call("comfort")), HearthDB.fmt_secs(float(h.call("rest_full")))]
+	rc.line = "Comfort %d: a full rest lasts %s. Gloom gathers 12%% slower and spells recover 4%% sooner while it lasts." % [int(h.comfort()), HearthDB.fmt_secs(float(h.rest_full()))]
 	rc.look = "owned" if r > 0.0 else "locked"
 	_page_box.add_child(rc)
 	var meals := HearthDB.meals(hs)
@@ -991,7 +993,7 @@ func _page_hearth() -> void:
 	for kind: String in meals:
 		var e: Dictionary = meals[kind]
 		eaten.append("%s (%s)" % [String(HearthDB.meal(String(e.id)).get("name", "?")), HearthDB.fmt_secs(float(e.left))])
-	mc.title = "MEALS  ·  %d OF %d" % [meals.size(), int(h.call("belly"))]
+	mc.title = "MEALS  ·  %d OF %d" % [meals.size(), int(h.belly())]
 	mc.line = ", ".join(eaten) if not eaten.is_empty() else "Nothing eaten. The Keg's slate has bread, stew and mulled ale; Bet Reed's garden, better."
 	mc.look = "owned" if not eaten.is_empty() else "locked"
 	_page_box.add_child(mc)
@@ -1021,7 +1023,7 @@ func _page_hearth() -> void:
 		wg.add_theme_constant_override("h_separation", 12)
 		wg.add_theme_constant_override("v_separation", 12)
 		_page_box.add_child(wg)
-		for b: Node3D in h.call("walk_targets", _fire):
+		for b: Node3D in h.walk_targets(_fire):
 			var wc := _card("walk", str(_walks.size()), 384, 80)
 			_walks.append(b)
 			wc.glyph = Icons.art_glyph("hearth", "svc_bells", "bell")
@@ -1080,7 +1082,7 @@ func _show() -> void:
 			_d_text.text = "Each rank: %s" % e.per
 			_d_now.text = "Now: %s%s" % [_ember_value(c.id, r), ("" if r >= int(e.max) else "      Next: %s" % _ember_value(c.id, r + 1))]
 			_d_lore.text = String(e.lore)
-			why = String(k.call("why_not", c.id, at_fire()))
+			why = String(k.why_not(c.id, at_fire()))
 			verb = "KINDLE  ·  %d ASH" % c.cost
 		"rank":
 			var s := DB.spell(c.id)
@@ -1101,7 +1103,7 @@ func _show() -> void:
 			elif r < c.sub - 1:
 				why = "Kindle rank %s first." % ROMAN[c.sub - 1]
 			else:
-				why = String(k.call("why_not", c.id, at_fire()))
+				why = String(k.why_not(c.id, at_fire()))
 			verb = "KINDLE  ·  %d ASH" % c.cost
 		"spell", "learn":
 			var sp := DB.spell(c.id)
@@ -1113,10 +1115,10 @@ func _show() -> void:
 			_d_now.text = "Now: %s" % _stats(c.id, r) if known else "Learned: %s" % _stats(c.id, 0)
 			_d_lore.text = String(sp.get("lore", ""))
 			if not known:
-				why = String(k.call("why_not_learn", c.id, at_fire()))
+				why = String(k.why_not_learn(c.id, at_fire()))
 				verb = "LEARN  ·  %d ASH" % int((sp.learn as Dictionary).cost)
 			elif r < 3:
-				why = String(k.call("why_not", c.id, at_fire()))
+				why = String(k.why_not(c.id, at_fire()))
 				verb = "KINDLE %s  ·  %d ASH" % [ROMAN[r + 1], int(DB.SPELL_COST[r])]
 			else:
 				why = "Every rank kindled."
@@ -1129,7 +1131,7 @@ func _show() -> void:
 			_d_lore.text = String(co.lore)
 			if co.has("forge") and not have:
 				_d_now.text = "Forging takes %d relic fragments (you carry %d) and %d grave ash." % [int(co.forge.frag), Travel.count("relic_fragment"), int(co.forge.ash)]
-				why = String(k.call("why_not_forge", c.id, at_fire()))
+				why = String(k.why_not_forge(c.id, at_fire()))
 				verb = "FORGE  ·  %d FRAGMENTS, %d ASH" % [int(co.forge.frag), int(co.forge.ash)]
 			elif not have:
 				_d_now.text = "It lies in %s." % String(DB.CORE_SPOTS.get(c.id, {}).get("where", "the valley"))
@@ -1190,7 +1192,7 @@ func _show() -> void:
 			elif sworn != "":
 				why = "Forsworn: you swore %s. Break that vow at a fire to choose again." % (o[sworn] as Dictionary).name
 			else:
-				why = String(k.call("why_not_oath", c.sub, at_fire()))
+				why = String(k.why_not_oath(c.sub, at_fire()))
 				verb = "SWEAR  ·  %d ASH" % c.cost
 		"rite":
 			var ri := DB.rite(c.id)
@@ -1198,7 +1200,7 @@ func _show() -> void:
 			_d_kind.text = "RITE OF THE %s" % String(ItemDB.def(String(ri.needs)).name).to_upper()
 			_d_text.text = String(ri.text)
 			_d_lore.text = String(ri.lore)
-			why = "Kindled." if DB.rank(st, c.id) > 0 else String(k.call("why_not", c.id, at_fire()))
+			why = "Kindled." if DB.rank(st, c.id) > 0 else String(k.why_not(c.id, at_fire()))
 			verb = "KINDLE  ·  %d ASH" % c.cost
 		"relic":
 			var d := ItemDB.def(c.id)
@@ -1249,7 +1251,7 @@ func _show() -> void:
 			_d_lore.text = String(n.lore)
 			_d_now.text = "%d Remembrance%s to spend." % [maxi(0, PathsDB.free_pts(st, Travel.bosses_slain.size())), "" if PathsDB.free_pts(st, Travel.bosses_slain.size()) == 1 else "s"]
 			var hh := _h()
-			why = String(hh.call("why_not_path", c.id)) if hh else "?"
+			why = String(hh.why_not_path(c.id)) if hh else "?"
 			verb = "REMEMBER" if not PathsDB.has(st, c.id) else ""
 		"unremember":
 			var hh := _h()
@@ -1257,11 +1259,11 @@ func _show() -> void:
 			_d_kind.text = "THE PATHS  ·  AT HEARTHWARD'S FIRE"
 			_d_text.text = "Give every Path step back. The Remembrances return to be spent again; the ash is gone."
 			_d_lore.text = "Some things you would rather carry differently. The fire on the green does not judge."
-			why = String(hh.call("why_not_unremember", at_home_fire())) if hh else "?"
+			why = String(hh.why_not_unremember(at_home_fire())) if hh else "?"
 			verb = "UNREMEMBER  ·  %d ASH" % c.cost
 		"hearth":
 			var hh := _h()
-			var t := int(hh.call("tier")) if hh else 0
+			var t := int(hh.tier()) if hh else 0
 			_d_name.text = "The Hearthfire"
 			if t >= HearthDB.TIERS.size() - 1:
 				_d_kind.text = "TIER IV  ·  BEACON"
@@ -1276,7 +1278,7 @@ func _show() -> void:
 				var live_gloom := float(DB.live.get("gloom_add", 0.0))
 				_d_now.text = "Kindled fires reach +%.1f m (now +%.1f); Gloom held +%d (now +%d). Needs %s." % [live_reach + float(nx.reach) - float(HearthDB.TIERS[t].reach), live_reach, roundi(live_gloom + float(nx.gloom) - float(HearthDB.TIERS[t].gloom)), roundi(live_gloom), String(nx.need_text)]
 				_d_lore.text = String(nx.lore)
-				why = String(hh.call("why_not_raise", at_home_fire())) if hh else "?"
+				why = String(hh.why_not_raise(at_home_fire())) if hh else "?"
 				verb = "FEED THE HEARTHFIRE  ·  %d ASH%s" % [int(nx.ash), (", %d FRAGMENT%s" % [int(nx.frag), "" if int(nx.frag) == 1 else "S"]) if int(nx.frag) > 0 else ""]
 		"service":
 			var hh := _h()
@@ -1284,13 +1286,13 @@ func _show() -> void:
 			_d_name.text = String(sv.name)
 			_d_kind.text = "HEARTHWARD  ·  OPENS AT THE HEARTHFIRE %s" % ["", "I", "II", "III", "IV"][int(sv.tier)]
 			_d_text.text = String(sv.text)
-			var sw := String(hh.call("service_why", c.id)) if hh else "?"
+			var sw := String(hh.service_why(c.id)) if hh else "?"
 			if c.id == "bells" and sw == "":
-				if HearthDB.works(hh.call("hs")).has("bells"):
+				if HearthDB.works(hh.hs()).has("bells"):
 					why = "Hung. Ring them from this page at any kindled fire."
 				else:
 					_d_lore.text = "\"I cast forty for the Stair. I can cast four for the fires.\""
-					why = String(hh.call("why_not_bells"))
+					why = String(hh.why_not_bells())
 					verb = "HANG THE BELLS  ·  %d ASH" % HearthRT.BELLS_PRICE
 			elif sw == "" and String(sv.who) != "":
 				why = "Open. Talk to %s in Hearthward." % ("Hild at the forge" if c.id == "smith" else "Bet Reed by her garden")
@@ -1311,7 +1313,7 @@ func _show() -> void:
 			_d_name.text = HearthRT.fire_name(b)
 			_d_kind.text = "BRANNOC'S BELLS  ·  WALK THERE"
 			_d_text.text = "Ring the bell here; the one there answers, and you are standing by it. The fire there remembers you."
-			why = String(hh.call("why_not_walk", _fire, b)) if hh else "?"
+			why = String(hh.why_not_walk(_fire, b)) if hh else "?"
 			verb = "RING AND WALK"
 	_d_why.text = why if why != "Only at a kindled fire." or verb == "" else "Only at a kindled fire. You can plan here; spend where it burns."
 	if _scroll and is_instance_valid(c):
@@ -1402,11 +1404,11 @@ func act() -> void:
 	var bought := false
 	match c.kind:
 		"ember", "rite":
-			res = String(k.call("buy", c.id, at_fire()))
+			res = String(k.buy(c.id, at_fire()))
 			bought = res == ""
 		"rank":
 			if DB.rank(_st(), c.id) == c.sub - 1:
-				res = String(k.call("buy", c.id, at_fire()))
+				res = String(k.buy(c.id, at_fire()))
 				bought = res == ""
 		"oath":
 			var sworn := DB.oath(_st(), c.sub)
@@ -1415,9 +1417,9 @@ func act() -> void:
 					_confirm = c.id
 					_show()
 					return
-				res = String(k.call("forswear", c.sub, at_fire()))
+				res = String(k.forswear(c.sub, at_fire()))
 			elif sworn == "":
-				res = String(k.call("swear", c.sub, c.pick, at_fire()))
+				res = String(k.swear(c.sub, c.pick, at_fire()))
 				bought = res == ""
 		"relic":
 			var rid := String(ItemDB.def(c.id).get("relic", ""))
@@ -1426,43 +1428,43 @@ func act() -> void:
 				res = ""
 				bought = true
 		"charm":
-			res = String(k.call("toggle_charm", c.id))
+			res = String(k.toggle_charm(c.id))
 		"learn":
-			res = String(k.call("learn", c.id, at_fire()))
+			res = String(k.learn(c.id, at_fire()))
 			bought = res == ""
 		"spell":
-			res = String(k.call("buy", c.id, at_fire()))
+			res = String(k.buy(c.id, at_fire()))
 			bought = res == ""
 		"core":
 			var have := c.id == "" or Travel.count(c.id) > 0
 			if not have:
-				res = String(k.call("forge", c.id, at_fire()))
+				res = String(k.forge(c.id, at_fire()))
 			else:
-				res = String(k.call("set_core", c.id, at_fire()))
+				res = String(k.set_core(c.id, at_fire()))
 			bought = res == ""
 		"slot":
 			if _slot_pick != c.sub:
 				_slot_pick = c.sub
 				res = ""
 			else:
-				res = String(k.call("cycle_slot", c.sub, at_fire()))
+				res = String(k.cycle_slot(c.sub, at_fire()))
 		"pick":
-			res = String(k.call("set_loadout", _slot_pick, c.id, at_fire()))
+			res = String(k.set_loadout(_slot_pick, c.id, at_fire()))
 		"path":
 			var hh := _h()
-			res = String(hh.call("take_path", c.id)) if hh else "?"
+			res = String(hh.take_path(c.id)) if hh else "?"
 			bought = res == ""
 		"unremember":
 			var hh := _h()
-			res = String(hh.call("unremember", at_home_fire())) if hh else "?"
+			res = String(hh.unremember(at_home_fire())) if hh else "?"
 		"hearth":
 			var hh := _h()
-			res = String(hh.call("raise", at_home_fire())) if hh else "?"
+			res = String(hh.raise(at_home_fire())) if hh else "?"
 			bought = res == ""
 		"service":
 			var hh := _h()
 			if c.id == "bells" and hh:
-				res = String(hh.call("hang_bells"))
+				res = String(hh.hang_bells())
 				bought = res == ""
 		"tithe":
 			res = (_h() as HearthRT).tithe(c.id, at_home_fire())
@@ -1471,10 +1473,10 @@ func act() -> void:
 			var hh := _h()
 			var i := int(c.id)
 			var b: Node3D = _walks[i] if i < _walks.size() else null
-			res = String(hh.call("why_not_walk", _fire, b)) if hh else "?"
+			res = String(hh.why_not_walk(_fire, b)) if hh else "?"
 			if res == "":
 				close_menu()
-				hh.call("walk", _fire, b)
+				hh.walk(_fire, b)
 				return
 	_confirm = ""
 	if res != "":
@@ -1552,5 +1554,5 @@ func _burst(c: Card) -> void:
 
 
 ## r35: the one character screen (ui/character_screen.gd), when the night has one.
-func _cs() -> Node:
-	return get_tree().get_first_node_in_group(&"character_screen") if is_inside_tree() else null
+func _cs() -> CharScreen:
+	return get_tree().get_first_node_in_group(&"character_screen") as CharScreen if is_inside_tree() else null
