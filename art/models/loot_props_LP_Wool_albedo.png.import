@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cqliuu2ad84p7"
-path="res://.godot/imported/loot_props_LP_Wool_albedo.png-74b242efcc6f1727b28372aab6376b60.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_Wool_albedo.png-74b242efcc6f1727b28372aab6376b60.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_Wool_albedo.png-74b242efcc6f1727b28372aab6376b60.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "ecf2025caa44b67f99c243ba514b5e1c"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_Wool_albedo.png"
-dest_files=["res://.godot/imported/loot_props_LP_Wool_albedo.png-74b242efcc6f1727b28372aab6376b60.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_Wool_albedo.png-74b242efcc6f1727b28372aab6376b60.s3tc.ctex", "res://.godot/imported/loot_props_LP_Wool_albedo.png-74b242efcc6f1727b28372aab6376b60.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

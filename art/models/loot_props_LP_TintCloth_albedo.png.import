@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ickf3cjbdtnb"
-path="res://.godot/imported/loot_props_LP_TintCloth_albedo.png-f67a94f65bedd373ba8d0b2181b36f42.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_TintCloth_albedo.png-f67a94f65bedd373ba8d0b2181b36f42.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_TintCloth_albedo.png-f67a94f65bedd373ba8d0b2181b36f42.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "8c0740ed1dbb59c679523cb4392cb52f"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_TintCloth_albedo.png"
-dest_files=["res://.godot/imported/loot_props_LP_TintCloth_albedo.png-f67a94f65bedd373ba8d0b2181b36f42.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_TintCloth_albedo.png-f67a94f65bedd373ba8d0b2181b36f42.s3tc.ctex", "res://.godot/imported/loot_props_LP_TintCloth_albedo.png-f67a94f65bedd373ba8d0b2181b36f42.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

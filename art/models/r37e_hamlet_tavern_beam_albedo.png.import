@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://xuhn100cpk2q"
-path="res://.godot/imported/r37e_hamlet_tavern_beam_albedo.png-b4e095a12060c2391e55f1b3fe03e531.ctex"
+path.s3tc="res://.godot/imported/r37e_hamlet_tavern_beam_albedo.png-b4e095a12060c2391e55f1b3fe03e531.s3tc.ctex"
+path.etc2="res://.godot/imported/r37e_hamlet_tavern_beam_albedo.png-b4e095a12060c2391e55f1b3fe03e531.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "b87b1ec221753c999f080d06abfa52d9"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37e_hamlet_tavern_beam_albedo.png"
-dest_files=["res://.godot/imported/r37e_hamlet_tavern_beam_albedo.png-b4e095a12060c2391e55f1b3fe03e531.ctex"]
+dest_files=["res://.godot/imported/r37e_hamlet_tavern_beam_albedo.png-b4e095a12060c2391e55f1b3fe03e531.s3tc.ctex", "res://.godot/imported/r37e_hamlet_tavern_beam_albedo.png-b4e095a12060c2391e55f1b3fe03e531.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

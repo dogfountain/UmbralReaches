@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://co5ws2ysorjpp"
-path="res://.godot/imported/loot_props_LP_Iron_albedo.png-04400b58c2e44468ea76bc53fc0eb1ba.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_Iron_albedo.png-04400b58c2e44468ea76bc53fc0eb1ba.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_Iron_albedo.png-04400b58c2e44468ea76bc53fc0eb1ba.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "19fd8fab5671cefc27e5d221846a9017"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_Iron_albedo.png"
-dest_files=["res://.godot/imported/loot_props_LP_Iron_albedo.png-04400b58c2e44468ea76bc53fc0eb1ba.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_Iron_albedo.png-04400b58c2e44468ea76bc53fc0eb1ba.s3tc.ctex", "res://.godot/imported/loot_props_LP_Iron_albedo.png-04400b58c2e44468ea76bc53fc0eb1ba.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

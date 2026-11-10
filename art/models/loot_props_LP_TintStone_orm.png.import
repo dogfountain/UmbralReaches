@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ihc428okp6mv"
-path="res://.godot/imported/loot_props_LP_TintStone_orm.png-33e3caf065813fdfd9cd0a379c273020.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_TintStone_orm.png-33e3caf065813fdfd9cd0a379c273020.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_TintStone_orm.png-33e3caf065813fdfd9cd0a379c273020.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "a682d9090439901db106ab994d6b4795"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_TintStone_orm.png"
-dest_files=["res://.godot/imported/loot_props_LP_TintStone_orm.png-33e3caf065813fdfd9cd0a379c273020.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_TintStone_orm.png-33e3caf065813fdfd9cd0a379c273020.s3tc.ctex", "res://.godot/imported/loot_props_LP_TintStone_orm.png-33e3caf065813fdfd9cd0a379c273020.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

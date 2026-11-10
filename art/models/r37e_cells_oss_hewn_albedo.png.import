@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cxkxkrlw7o5ln"
-path="res://.godot/imported/r37e_cells_oss_hewn_albedo.png-a3eed2d34da22a32f468b25e76b5c38a.ctex"
+path.s3tc="res://.godot/imported/r37e_cells_oss_hewn_albedo.png-a3eed2d34da22a32f468b25e76b5c38a.s3tc.ctex"
+path.etc2="res://.godot/imported/r37e_cells_oss_hewn_albedo.png-a3eed2d34da22a32f468b25e76b5c38a.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "a9f95c6ddcfbc7600031335b6a021203"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37e_cells_oss_hewn_albedo.png"
-dest_files=["res://.godot/imported/r37e_cells_oss_hewn_albedo.png-a3eed2d34da22a32f468b25e76b5c38a.ctex"]
+dest_files=["res://.godot/imported/r37e_cells_oss_hewn_albedo.png-a3eed2d34da22a32f468b25e76b5c38a.s3tc.ctex", "res://.godot/imported/r37e_cells_oss_hewn_albedo.png-a3eed2d34da22a32f468b25e76b5c38a.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

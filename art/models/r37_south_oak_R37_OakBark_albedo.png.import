@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cf2egucy7vbsc"
-path="res://.godot/imported/r37_south_oak_R37_OakBark_albedo.png-c63091b1ea528b4c2db84352bfef1da9.ctex"
+path.s3tc="res://.godot/imported/r37_south_oak_R37_OakBark_albedo.png-c63091b1ea528b4c2db84352bfef1da9.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_oak_R37_OakBark_albedo.png-c63091b1ea528b4c2db84352bfef1da9.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "4cdb616e990182f1982f13bf2e6558ee"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_oak_R37_OakBark_albedo.png"
-dest_files=["res://.godot/imported/r37_south_oak_R37_OakBark_albedo.png-c63091b1ea528b4c2db84352bfef1da9.ctex"]
+dest_files=["res://.godot/imported/r37_south_oak_R37_OakBark_albedo.png-c63091b1ea528b4c2db84352bfef1da9.s3tc.ctex", "res://.godot/imported/r37_south_oak_R37_OakBark_albedo.png-c63091b1ea528b4c2db84352bfef1da9.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
