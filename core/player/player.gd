@@ -384,6 +384,23 @@ func _process(delta: float) -> void:
 	casting._frame_fx()
 
 
+## What every physics frame owes, whatever the wanderer is doing: the Gloom's clock. Every branch of
+## _physics_process that returns early calls this first (see the list above it).
+func _tick_always(delta: float) -> void:
+	vitals._update_gloom(delta)
+
+
+## One physics frame. States that take the frame over and return early, in the order they are checked:
+##   1. mantle (_mantle_t >= 0)            traversal._tick_mantle
+##   2. step (_step_t > 0)                 evasion._tick_step
+##   3. grapple pull                       _grapple.tick, inline
+##   4. riding                             mount.ride_tick
+##   5. climb (_climb_t >= 0)              traversal._tick_climb
+##   6. hang (_hang)                       traversal._tick_hang
+##   7. vault (_vault_t >= 0)              traversal._tick_vault
+## Later in the frame, after move_and_slide, a started vault, mantle or grab also returns early (the state
+## ticks from the next frame).
+## The rule: a branch that returns early calls `_tick_always(delta)` first.
 func _physics_process(delta: float) -> void:
 	_t += delta
 	if _last_pos != Vector3.INF and global_position.distance_squared_to(_last_pos) > 4.0:
@@ -404,7 +421,7 @@ func _physics_process(delta: float) -> void:
 		_grapple.tick(delta)
 		_grounded = false
 		casting._animate(delta, Vector3(velocity.x, 0.0, velocity.z))
-		vitals._update_gloom(delta)
+		_tick_always(delta)
 		return
 	if _gliding and (_hang or _climb_t >= 0.0 or _vault_t >= 0.0):
 		evasion._end_glide()
@@ -615,7 +632,7 @@ func _physics_process(delta: float) -> void:
 	camera_ctl._update_camera(delta, horiz, sprint, vy_before)
 	_sprint_held = sprint
 	casting._animate(delta, horiz)
-	vitals._update_gloom(delta)
+	_tick_always(delta)
 	interaction._scan_interactables()
 	_fall_t = _fall_t + delta if not _grounded and velocity.y < -1.0 and _steep_t <= 0.0 and not _gliding else 0.0
 	if _gliding and (_grounded or is_on_ceiling()):

@@ -36,5 +36,5 @@ func ride_tick(wish: Vector3, sprint: bool, delta: float) -> bool:
 	if player._visual.ride > 0.995:
 		player._visual.ride = 1.0
 	player._visual.animate(Vector3.ZERO, true, delta)
-	player.vitals._update_gloom(delta)
+	player._tick_always(delta)
 	return true

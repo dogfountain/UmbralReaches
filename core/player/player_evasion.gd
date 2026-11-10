@@ -219,7 +219,7 @@ func _tick_step(delta: float) -> void:
 	if player._step_t <= 0.0:
 		player._step_t = 0.0
 		_tick_unseen()
-	player.vitals._update_gloom(delta)
+	player._tick_always(delta)
 
 
 ## The body re-forms when the grace (step_evade) ends, not before: it is not hittable-looking while

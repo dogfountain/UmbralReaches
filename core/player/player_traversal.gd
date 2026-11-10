@@ -168,7 +168,7 @@ func _tick_hang(delta: float, wish: Vector3) -> void:
 	player._visual.hang_shimmy = lerpf(player._visual.hang_shimmy, -shimmy, 1.0 - exp(-10.0 * delta))
 	player.locomotion._ease_tick(delta)
 	player.casting._animate(delta, Vector3.ZERO)
-	player.vitals._update_gloom(delta)
+	player._tick_always(delta)
 	player._cam_air_prev = player._cam_air
 	player._cam_air = lerpf(player._cam_air, 0.0, 1.0 - exp(-8.0 * delta))
 	player._air_base = player.global_position.y
@@ -249,7 +249,7 @@ func _tick_climb(delta: float) -> void:
 	player._visual.rotation.y = lerp_angle(player._visual.rotation.y, atan2(_hang_n.x, _hang_n.z), 1.0 - exp(-12.0 * delta))
 	player.locomotion._ease_tick(delta)
 	player.casting._animate(delta, Vector3.ZERO)
-	player.vitals._update_gloom(delta)
+	player._tick_always(delta)
 	player._cam_air_prev = player._cam_air
 	player._air_base = player.global_position.y
 	if u >= 1.0:
@@ -344,7 +344,7 @@ func _tick_vault(delta: float) -> void:
 	player.velocity = _vault_v
 	player.locomotion._ease_tick(delta)
 	player.casting._animate(delta, _vault_v)
-	player.vitals._update_gloom(delta)
+	player._tick_always(delta)
 	# the view rises only part of the hop over the wall, like a jump's (r29: it rode the whole arc,
 	# the bumpiest camera on the movement course)
 	player._cam_air_prev = player._cam_air
@@ -559,7 +559,7 @@ func _tick_mantle(delta: float) -> void:
 	player.global_position = p
 	player.locomotion._ease_tick(delta)
 	player.casting._animate(delta, Vector3.ZERO)
-	player.vitals._update_gloom(delta)
+	player._tick_always(delta)
 	if u >= 1.0:
 		player._mantle_t = -1.0
 		var dir := Vector3(_mantle_to.x - _mantle_from.x, 0.0, _mantle_to.z - _mantle_from.z).normalized()
