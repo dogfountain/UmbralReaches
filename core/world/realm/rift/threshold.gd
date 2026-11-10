@@ -28,7 +28,7 @@ const Z0 := -15.0                      ## the first bay's south edge (the foreco
 ## Pedestal feet, in the pool. z -15.6: the pedestal (r 6.7 m at this scale) ends short of the Ossuary's stone
 ## footings (z -22.5) and the figure well short of its south wall inside the east rock.
 const WATCHERS := [Vector3(-13.8, -17.2, -15.6), Vector3(13.8, -17.2, -15.6)]
-const WATCHER_LIFT := 1.0              ## the plinth stands this far over the pool's floor, so its treads and candles clear the starwater
+const WATCHER_LIFT := 1.3              ## the plinth stands this far over the pool's floor, so its lower tread and candles stand 0.3 m clear of the starwater
 const WATCHER_R := 7.0                 ## the plinth's reach (a 7 x 7 m foot, about 5 m to its corners, and the rubble) and a little
 const Kit := preload("res://core/world/realm/r37_west_kit.gd")
 
@@ -63,6 +63,7 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 	_watchers(host)
 	await root.get_tree().physics_frame            # the stand-ins and the Watchers' bodies are in the space first
 	_audit_watchers(host)
+	_watcher_candles(host)
 	var bays := 0
 	for side: float in [-1.0, 1.0]:
 		var z := Z0
@@ -77,6 +78,9 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 		b.queue_free()
 	_temp.clear()
 	k.commit(host, "ThresholdBody")
+	for n in host.get_children():
+		if n is MultiMeshInstance3D:
+			n.set_meta(&"site_owned", true)      # placed on purpose (the pillars' candles stand inside their sites): WorldLanes.cull_scatter keeps them
 	var mi := MeshInstance3D.new()
 	mi.name = "Runes"
 	mi.mesh = rune.commit()
@@ -297,16 +301,6 @@ func _dress_watcher(m: Node3D) -> void:
 		s.roughness = 1.0
 		_watcher_mats["stone"] = s
 		_watcher_mats["iron"] = load("res://core/world/realm/r37_west_kit.gd").mat("iron")
-		var wax := StandardMaterial3D.new()
-		wax.vertex_color_use_as_albedo = true
-		wax.roughness = 0.75
-		_watcher_mats["cand"] = wax
-		var flame := StandardMaterial3D.new()
-		flame.albedo_color = Color(1.0, 0.7, 0.35)
-		flame.emission_enabled = true
-		flame.emission = Color(1.0, 0.6, 0.25)
-		flame.emission_energy_multiplier = 4.0
-		_watcher_mats["flame"] = flame
 		var halo := _orb_mat()
 		halo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		halo.albedo_color = Color(0.5, 0.3, 1.0, 0.55)
@@ -325,17 +319,57 @@ func _dress_watcher(m: Node3D) -> void:
 		glass.metallic_specular = 0.9
 		glass.cull_mode = BaseMaterial3D.CULL_DISABLED
 		_watcher_mats["glass"] = glass
-	var key := {"Pillar_fig": "fig", "Pillar_iron": "iron", "Pillar_rubble": "stone", "Pillar_cand": "cand", "Pillar_flame": "flame", "Pillar_orb": "orb",
+	var key := {"Pillar_fig": "fig", "Pillar_iron": "iron", "Pillar_rubble": "stone", "Pillar_orb": "orb",
 			"Pillar_core": "core", "Pillar_glass": "glass"}
 	for n in m.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
 		var nm := String(mi.name)
+		if nm.begins_with("Pillar_cand") or nm.begins_with("Pillar_flame"):
+			mi.queue_free()             # the model's stub candles: the kit's dripping wax and layered flames stand in (_watcher_candles)
+			continue
 		for k: String in key:
 			if nm.begins_with(k):
 				mi.material_override = _watcher_mats[key[k]]
-				if key[k] in ["flame", "orb", "core", "glass"]:
+				if key[k] in ["orb", "core", "glass"]:
 					mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				break
+
+
+## Pilgrims' candles on the pillars' lower tread, in the kit's wax (the chapel's and the terraces' own). The plinth
+## (tools/blender/wonder_watchers.py PLINTH) has two square treads; the upper is under the moulded torus's overhang,
+## so the candles keep to the lower, 0.7 m up and 0.48 m deep (half 2.97 m to the lip at 3.45 m), clear of the
+## starwater by WATCHER_LIFT. Each cluster is seated by a ray on that tier's collision and dropped if it misses it.
+const TREAD_Y := 0.7
+const TREAD_MID := 3.2
+func _watcher_candles(host: Node3D) -> void:
+	var placed := 0
+	var cr := RandomNumberGenerator.new()      # its own: the terraces after it keep their exact draws
+	cr.seed = 7717
+	for w: Vector3 in WATCHERS:
+		var m := host.get_node_or_null("Watcher%s" % ("West" if w.x < 0.0 else "East")) as Node3D
+		if m == null:
+			continue
+		var xf := m.global_transform
+		for side in 4:
+			for t: float in [-2.6, -1.3, 0.0, 1.3, 2.6]:
+				if cr.randf() < 0.35:
+					continue
+				var lp := Vector3(t + cr.randf_range(-0.3, 0.3), TREAD_Y, TREAD_MID + cr.randf_range(-0.06, 0.06)).rotated(Vector3.UP, side * PI * 0.5)
+				var c := xf * lp
+				var y0 := _tread_y(m, c + Vector3.UP * 0.5)
+				if is_nan(y0) or absf(y0 - c.y) > 0.08:
+					continue
+				k.candle_cluster(Vector3(c.x, y0 + 0.01, c.z), cr.randi_range(3, 5), 0.14, cr)
+				placed += 1
+	report.append("pillar candles: %d clusters on the lower treads" % placed)
+
+
+## The height of the pillar's own top surface under `c` (a ray down; NAN when it meets anything else first or a slope).
+func _tread_y(m: Node3D, c: Vector3) -> float:
+	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(c, c + Vector3.DOWN * 16.0, Layers.WORLD))
+	if hit.is_empty() or not m.is_ancestor_of(hit.collider as Node) or (hit.normal as Vector3).y < 0.9:
+		return NAN
+	return (hit.position as Vector3).y
 
 
 static func _far_stone_mat() -> StandardMaterial3D:
