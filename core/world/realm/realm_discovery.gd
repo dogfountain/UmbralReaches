@@ -140,13 +140,6 @@ func subzone_for(at: Vector3) -> String:
 	return best
 
 
-func is_found(id: String, kind := "region") -> bool:
-	if kind == "region":
-		return CodexStore.discovered(id)
-	var st := Travel.system_state(SID)
-	return st.get("sub") is Dictionary and (st.sub as Dictionary).has(id)
-
-
 func spot_ids() -> Array[String]:
 	var out: Array[String] = []
 	for s in _all_spots():

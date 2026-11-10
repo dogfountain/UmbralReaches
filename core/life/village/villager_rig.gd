@@ -230,11 +230,6 @@ func hold(side: int, G: Vector3, D: Vector3, U: Vector3, pole_dir := Vector3.ZER
 	arm_to(sd, wrist, pole_dir if pole_dir != Vector3.ZERO else Vector3(s * 0.8, -0.4, 0.5), hq)
 
 
-## Model-space position of a rest-pose point carried by the right hand (tool tips) after fk.
-func tool_point(rest_point: Vector3, side := 0) -> Vector3:
-	return carry(B_HAND_R if side == 0 else B_HAND_L, rest_point)
-
-
 func head_top() -> float:
 	return (hc.y + 0.112 * hs) * SCALE
 

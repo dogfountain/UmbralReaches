@@ -187,10 +187,6 @@ func force(id: String, instant := false) -> void:
 		_veil_k = clampf(float(state.rain) * 0.85 + float(state.thunder) * 0.25 + float(state.mist) * 0.15, 0.0, 1.0)
 
 
-func env_offsets() -> Dictionary:
-	return _applied.duplicate()
-
-
 ## Another system's temporary ambient-light offset (the rift surge): 0 .. ~0.15, set every frame
 ## it changes and back to 0 when done. Added to the flash offset; removed exactly like the others.
 func pulse(v: float) -> void:

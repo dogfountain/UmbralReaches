@@ -188,10 +188,6 @@ func set_tide(level: float) -> void:
 	_target = clampf(level, 0.0, 1.0)
 
 
-func tide_amount() -> float:
-	return _amount
-
-
 func set_deeper(level: int) -> void:
 	deeper = level > 0
 	_ng.visible = deeper

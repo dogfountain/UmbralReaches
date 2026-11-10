@@ -333,18 +333,6 @@ func posture(p: Dictionary) -> void:
 		_rig.set(k, p[k])
 
 
-## Bare mannequin on the shared sockets. Types pass a skin; they do not walk bone paths.
-func dress_dummy(skin: Material) -> void:
-	if _rig == null:
-		return
-	_limb("chest", "Torso", ProcMesh.capsule(0.16, 0.58), Vector3(0.0, 0.02, 0.0), skin)
-	_limb("head", "Head", ProcMesh.sphere(0.11, 0.18, 10, 6), Vector3(0.0, 0.04, 0.0), skin)
-	_limb("shoulder_l", "ArmL", ProcMesh.cyl(0.045, 0.05, 0.58, 8, 1), Vector3(0.0, -0.28, 0.0), skin)
-	_limb("shoulder_r", "ArmR", ProcMesh.cyl(0.045, 0.05, 0.58, 8, 1), Vector3(0.0, -0.28, 0.0), skin)
-	_limb("hip_l", "LegL", ProcMesh.cyl(0.055, 0.048, 0.78, 8, 1), Vector3(0.0, -0.40, 0.0), skin)
-	_limb("hip_r", "LegR", ProcMesh.cyl(0.055, 0.048, 0.78, 8, 1), Vector3(0.0, -0.40, 0.0), skin)
-
-
 func _limb(socket_name: String, n_name: String, mesh: Mesh, at: Vector3, skin: Material) -> void:
 	var joint := _rig.socket(socket_name)
 	if joint == null:

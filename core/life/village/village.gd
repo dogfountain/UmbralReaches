@@ -418,10 +418,6 @@ func _phase_name() -> String:
 	return name_now
 
 
-func phase_frac() -> float:
-	return clock / CYCLE
-
-
 func _process(delta: float) -> void:
 	if not _ready_done:
 		return

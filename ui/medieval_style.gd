@@ -54,13 +54,6 @@ static func panel(kind := "leather", pad := 26) -> StyleBoxTexture:
 	return _nine("leather_panel", 48, pad)        # the forged frame (192 px, 48 px corners)
 
 
-## A tea-stained, darkened slip for tooltips that carry light text in rarity colours; `rim` leans the stain towards a colour.
-static func slip_dark(rim := Color(0.5, 0.42, 0.32)) -> StyleBoxTexture:
-	var sb := _nine("parchment_slip", 12, 12)
-	sb.modulate_color = Color(0.3, 0.22, 0.15).lerp(rim.darkened(0.45), 0.4)
-	return sb
-
-
 ## A flat inset recess of leather (a list well, a text block), thin lit rim underneath.
 static func inset(pad := 10) -> StyleBoxTexture:
 	return _nine("inset", 10, pad)

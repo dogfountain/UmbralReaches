@@ -262,10 +262,6 @@ const TAKES := {"tell": 3, "hurt": 3, "die": 2, "call": 2, "flee": 2}
 static var _last_take := {}
 
 
-static func _takes(act: String) -> Array:
-	return range(int(TAKES.get(act, 1)))
-
-
 ## One of the family's takes for this act, never the one played last (pitch jitter on top keeps
 ## a pack from sounding like one voice). Unknown family/act -> the old shared growl.
 static func voice(family: String, act: String) -> AudioStreamWAV:

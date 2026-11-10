@@ -210,32 +210,6 @@ func _stone_frame() -> bool:
 	return true
 
 
-func _flame_frame() -> bool:
-	if not ResourceLoader.exists("res://art/models/mirror_frame.glb"):
-		return false
-	var frame := (load("res://art/models/mirror_frame.glb") as PackedScene).instantiate()
-	frame.name = "FlameFrame"
-	add_child(frame)
-	var mat := ShaderMaterial.new()
-	mat.shader = load("res://world/mirror_flame.gdshader")
-	mat.set_shader_parameter("fire_hot", _hot())
-	mat.set_shader_parameter("fire_mid", _mid())
-	mat.set_shader_parameter("fire_cool", _cool())
-	mat.set_shader_parameter("intensity", 1.05)
-	var meshes: Array = []
-	if frame is MeshInstance3D:
-		meshes.append(frame)
-	meshes.append_array(frame.find_children("*", "MeshInstance3D", true, false))
-	if meshes.is_empty():
-		frame.queue_free()
-		return false
-	for node in meshes:
-		var mi := node as MeshInstance3D
-		mi.material_override = mat
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return true
-
-
 func _iron_tube() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)

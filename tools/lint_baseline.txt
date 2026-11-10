@@ -14,7 +14,7 @@ core/enemy/burrower.gd 2 2 0 0 0
 core/enemy/chanter.gd 4 4 0 4 0
 core/enemy/cinder_caster.gd 1 1 0 1 0
 core/enemy/creature_mesh.gd 0 0 0 1 0
-core/enemy/enemy.gd 9 9 2 26 2314
+core/enemy/enemy.gd 9 9 2 26 2302
 core/enemy/enemy_body.gd 0 0 0 6 0
 core/enemy/enemy_spawner.gd 3 1 0 25 0
 core/enemy/gaunt.gd 2 2 0 1 0
@@ -102,7 +102,7 @@ core/life/wildlife/phenomena.gd 3 3 0 2 0
 core/life/wildlife/scape_music.gd 0 0 0 6 0
 core/life/wildlife/scape_synth.gd 0 0 0 1 0
 core/life/wildlife/tracks.gd 0 0 0 1 0
-core/life/wildlife/weather.gd 0 0 0 11 1065
+core/life/wildlife/weather.gd 0 0 0 11 1061
 core/npc/bartender.gd 0 1 0 1 0
 core/npc/dwarf_npc.gd 1 2 0 1 0
 core/npc/keg_scenes.gd 4 0 1 0 0
@@ -158,7 +158,6 @@ core/story/quest_props.gd 1 0 0 8 0
 core/story/quest_runner.gd 1 1 0 3 0
 core/story/quest_world.gd 17 5 1 3 0
 core/story/story.gd 11 2 2 9 0
-core/vfx/element_trail.gd 0 1 0 0 0
 core/vfx/sfx.gd 0 0 0 1 0
 core/vfx/spell_fx.gd 0 0 0 1 0
 core/vfx/staff_sfx.gd 0 0 0 2 0

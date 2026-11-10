@@ -486,10 +486,6 @@ func _process(dt: float) -> void:
 		_write(NAN, dt)
 
 
-func _bob(_ph := NAN) -> float:
-	return _rig.last_dy if _rig else 0.0
-
-
 ## Posed only when the camera could see it (the rig is a skeleton, 30 bones a frame).
 func _near_camera() -> bool:
 	var cam := get_viewport().get_camera_3d()

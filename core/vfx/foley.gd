@@ -117,18 +117,6 @@ static func bed(kind: String) -> AudioStreamWAV:
 	return stream("bed_" + kind, 0)
 
 
-## Build every kind a surface needs now (a horse is mounted: no hitch on the first hoof).
-static func prewarm_horse(surface: StringName) -> void:
-	for v in VARIANTS:
-		stream("hoof_" + String(surface), v)
-
-
-static func prewarm_horse_extras() -> void:
-	for k: String in ["jingle", "snort", "breath", "grunt", "thump", "creak"]:
-		for v in VARIANTS:
-			stream("horse_" + k, v)
-
-
 ## The PCM of one kind and take (floats, -1..1, unnormalised): what `stream` wraps. Public for tools.
 static func render(kind: String, v: int) -> PackedFloat32Array:
 	var seed_v := 7000 + v * 131 + kind.hash() % 997

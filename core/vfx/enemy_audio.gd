@@ -56,11 +56,6 @@ static var voices_played := 0              ## tests and --sfx-trace
 static var voices_dropped := 0
 
 
-## Does this voice set have rendered takes? (Callers fall back to the old synth when not.)
-static func has_set(voice_set: String) -> bool:
-	return Bank.SETS.has(voice_set)
-
-
 static func _load(path: String) -> AudioStream:
 	if not _streams.has(path):
 		_streams[path] = load(path) if ResourceLoader.exists(path) else null

@@ -67,11 +67,6 @@ static func objective(id: String) -> Dictionary:
 	return {}
 
 
-static func is_done(id: String, ws: Dictionary) -> bool:
-	var o := objective(id)
-	return not o.is_empty() and test(String(o.done), ws)
-
-
 ## Condition language: terms joined by "," (AND) or "|" (OR, binds looser than ","); "!" negates
 ## a term. Terms: flag:x, seal:x, boss:x, item:x, kindled:n (at least n), bosses:n (at least n
 ## slain), "" = always; and the task terms of quest_book.gd (q:, qat:, qd:, qp:, att:, ash:, secret:,

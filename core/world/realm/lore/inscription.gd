@@ -84,10 +84,6 @@ func wrapped() -> String:
 	return "\n".join(lines)
 
 
-func is_read() -> bool:
-	return _read
-
-
 func _add_glint() -> void:
 	if _glint_mesh == null:
 		_glint_mesh = QuadMesh.new()

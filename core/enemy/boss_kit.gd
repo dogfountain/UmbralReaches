@@ -351,11 +351,6 @@ static func _build_thorn() -> ArrayMesh:
 	return cm.commit()
 
 
-## Kept for callers outside the bosses: a disc that fills for `delay`, then hurts within `r`.
-static func shock_ring(host: Node, at: Vector3, r: float, delay: float, gloom: float, col := THORN) -> void:
-	zone(host, at, delay, gloom, {"radius": r, "color": col})
-
-
 ## Raise minions around `at` (they join the fight at once).
 static func summon(host: Node, script: GDScript, at: Vector3, n: int, ring := 3.0, owner_id := "") -> Array[Enemy]:
 	var out: Array[Enemy] = []
@@ -633,8 +628,6 @@ static func add_wave(e: Enemy, script: GDScript, at: Vector3, n: int, cap: int, 
 		a._rally_t = 4.0
 		a._set_state(Enemy.CHASE)
 	return out
-
-
 
 
 # --- r34 raids (docs/r34/raids_overworld.md): the boss emote line, the room, pushes ---------------

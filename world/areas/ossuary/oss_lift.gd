@@ -45,14 +45,6 @@ func send(to_top: bool) -> void:
 	Kit.play("clank", deck.global_position, -6.0, 0.9)
 
 
-## Jump straight to a stop (load, tests).
-func snap_to(to_top: bool) -> void:
-	_target = 1.0 if to_top else 0.0
-	_u = _target
-	at_top = to_top
-	_place()
-
-
 func _physics_process(delta: float) -> void:
 	if moving():
 		var span := maxf(top_y - bottom.y, 0.1)

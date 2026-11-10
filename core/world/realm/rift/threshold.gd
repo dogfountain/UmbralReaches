@@ -507,22 +507,6 @@ func _slab(c: Vector3, size: Vector3, b := Basis.IDENTITY) -> void:
 				rune.add_vertex(q[idx])
 
 
-## A column of carved glyphs down a pilaster's face: short strokes and bars of rune-light, never a line.
-func _glyphs(at: Vector3, y0: float, y1: float) -> void:
-	var y := y1
-	while y > y0 + 0.2:
-		var h := rng.randf_range(0.12, 0.34)
-		var kind := rng.randi_range(0, 2)
-		if kind == 0:
-			_slab(Vector3(at.x, y - h * 0.5, at.z), Vector3(0.02, h, 0.05))                    # a stroke
-		elif kind == 1:
-			_slab(Vector3(at.x, y - 0.03, at.z), Vector3(0.02, 0.05, rng.randf_range(0.18, 0.3)))   # a bar
-		else:
-			_slab(Vector3(at.x, y - h * 0.5, at.z), Vector3(0.02, h, 0.05))
-			_slab(Vector3(at.x, y - h * 0.3, at.z), Vector3(0.02, 0.05, 0.2))                 # a cross
-		y -= h + rng.randf_range(0.14, 0.3)
-
-
 static func _orb_mat() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = Color(0.7, 0.6, 1.0)
