@@ -352,7 +352,7 @@ def stone_color(P, N, crack_mask, z_foot_damp=True, seed=1, curv=None):
     cool = np.array([0.40, 0.46, 0.55])
     hue = fbm_np(P, 0.14, 3, seed + 60)
     hue = sstep_np(0.3, 0.7, hue)
-    base = 0.62 + 0.2 * fbm_np(P, 0.33, 4, seed + 20) + 0.08 * (fbm_np(P, 1.6, 3, seed + 21) - 0.5)
+    base = 0.37 + 0.12 * fbm_np(P, 0.33, 4, seed + 20) + 0.06 * (fbm_np(P, 1.6, 3, seed + 21) - 0.5)
     col = (warm[None, :] * (1 - hue)[:, None] + cool[None, :] * hue[:, None]) * base[:, None] / 0.7
     dh = (SH1 - SH0) / NDRUM
     di = np.floor((z - SH0) / dh)

@@ -28,6 +28,7 @@ const Z0 := -15.0                      ## the first bay's south edge (the foreco
 ## Pedestal feet, in the pool. z -15.6: the pedestal (r 6.7 m at this scale) ends short of the Ossuary's stone
 ## footings (z -22.5) and the figure well short of its south wall inside the east rock.
 const WATCHERS := [Vector3(-13.8, -17.2, -15.6), Vector3(13.8, -17.2, -15.6)]
+const WATCHER_LIFT := 1.0              ## the plinth stands this far over the pool's floor, so its treads and candles clear the starwater
 const WATCHER_R := 7.0                 ## the plinth's reach (a 7 x 7 m foot, about 5 m to its corners, and the rubble) and a little
 const Kit := preload("res://core/world/realm/r37_west_kit.gd")
 
@@ -219,14 +220,16 @@ func _chapel(host: Node3D) -> bool:
 ## The east one is the mirrored model. Near mesh with baked maps, a far mesh from 160 m, convex hulls for collision.
 ## One unshadowed orb light each is the only new light here.
 func _watchers(host: Node3D) -> void:
+	if OS.get_cmdline_user_args().has("--no-watchers"):      # measurement only: the Threshold without them
+		return
 	for w: Vector3 in WATCHERS:
 		var west := w.x < 0.0
-		var m := Kit.place(host, "wonders/watchers_%s.glb" % ("west" if west else "east"), Transform3D(Basis(Vector3.UP, PI + (0.22 if west else -0.22)), w))
+		var m := Kit.place(host, "wonders/watchers_%s.glb" % ("west" if west else "east"), Transform3D(Basis(Vector3.UP, PI + (0.22 if west else -0.22)), w + Vector3.UP * WATCHER_LIFT))
 		if m == null:
 			continue
 		m.name = "Watcher%s" % ("West" if west else "East")
 		# the plinth's footprint (and the rubble round it) is a site: the flora and the dress keep off it
-		WorldLanes.register_site("watcher_%s" % ("west" if west else "east"), Rect2(w.x - 7.8, w.z - 7.8, 15.6, 15.6), w.y)
+		WorldLanes.register_site("watcher_%s" % ("west" if west else "east"), Rect2(w.x - 6.2, w.z - 6.2, 12.4, 12.4), w.y)
 		_dress_watcher(m)
 		var core := m.find_child("Pillar_core*", true, false) as MeshInstance3D
 		var oc := Vector3(0.0, 27.0, 0.0)
@@ -236,8 +239,8 @@ func _watchers(host: Node3D) -> void:
 		ol.name = "OrbLight"
 		ol.position = oc
 		ol.light_color = Color(0.6, 0.45, 1.0)
-		ol.light_energy = 4.5
-		ol.omni_range = 30.0
+		ol.light_energy = 3.0
+		ol.omni_range = 26.0
 		ol.shadow_enabled = false
 		ol.distance_fade_enabled = true
 		ol.distance_fade_begin = 120.0
@@ -267,6 +270,7 @@ func _dress_watcher(m: Node3D) -> void:
 		var W := "res://art/models/wonders/"
 		var fig := StandardMaterial3D.new()
 		fig.albedo_texture = load(W + "watchers_pillar_albedo.png")
+		fig.albedo_color = Color(0.92, 0.92, 0.94)
 		fig.normal_enabled = true
 		fig.normal_texture = load(W + "watchers_pillar_normal.png")
 		var orm: Texture2D = load(W + "watchers_pillar_orm.png")
@@ -279,6 +283,7 @@ func _dress_watcher(m: Node3D) -> void:
 		fig.emission_enabled = true
 		fig.emission_texture = load(W + "watchers_pillar_emit.png")
 		fig.emission = Color.WHITE
+		fig.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY       # the texture alone (ADD would add white everywhere)
 		fig.emission_energy_multiplier = 1.0
 		_watcher_mats["fig"] = fig
 		var s := StandardMaterial3D.new()
