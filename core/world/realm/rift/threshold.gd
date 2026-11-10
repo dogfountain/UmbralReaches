@@ -7,9 +7,9 @@ extends RefCounted
 ##     front of the rock's slope, flat walks between them, a balustrade on every edge, pilasters
 ##     carrying violet rune slits, a blind lancet arch on every bay, candle offerings on the walks;
 ##     left open where a starfall pours down its channel (RealmRift.STARFALLS)
-##   - the Watchers: two colossal hooded mages (MageStatue at 4.2x, about 26 m, the east one mirrored) standing
-##     in the pool either side of the threshold's mouth, facing the village, open hands over the gate, orbs lit
-##     violet above the rim
+##   - the Watchers: two great lantern pillars carved in stone (art/models/wonders/watchers_*.glb, about 30 m, the east
+##     one mirrored) standing in the pool either side of the threshold's mouth, facing the village: a sunk spiral stair
+##     up the shaft, a band of Order glyphs, festoons of chain, a forged iron lantern burning violet
 ##   - the Pilgrims' Chapel (rift/chapel.gd): a small chapel built against the west wall's foot at the starfall,
 ##     the fall pouring over its roof and across its doorway; the Pilgrims' Stair down the third tower and a quay reach it
 ##     (a secret: core/life/secrets/site_threshold.gd)
@@ -27,9 +27,10 @@ const BAY := 4.0                       ## metres per terrace bay along the wall
 const Z0 := -15.0                      ## the first bay's south edge (the forecourt's rocks are south of it)
 ## Pedestal feet, in the pool. z -15.6: the pedestal (r 6.7 m at this scale) ends short of the Ossuary's stone
 ## footings (z -22.5) and the figure well short of its south wall inside the east rock.
-const WATCHERS := [Vector3(-14.5, -17.2, -15.6), Vector3(14.5, -17.2, -15.6)]
-const WATCHER_SCALE := 4.2             ## about 26 m: the hood and the orb stand over the forecourt's walls
-const WATCHER_R := 6.4                 ## the pedestal's reach at that scale (1.6 m x 4.2) and a little
+const WATCHERS := [Vector3(-13.8, -17.2, -15.6), Vector3(13.8, -17.2, -15.6)]
+const WATCHER_LIFT := 1.0              ## the plinth stands this far over the pool's floor, so its treads and candles clear the starwater
+const WATCHER_R := 7.0                 ## the plinth's reach (a 7 x 7 m foot, about 5 m to its corners, and the rubble) and a little
+const Kit := preload("res://core/world/realm/r37_west_kit.gd")
 
 var k: OssKit
 var space: PhysicsDirectSpaceState3D
@@ -213,47 +214,135 @@ func _chapel(host: Node3D) -> bool:
 
 # --- the Watchers ---------------------------------------------------------------------------------
 
-## Two colossal hooded mages (the summit's MageStatue at 4.2x) in the pool either side of the mouth, facing
-## the village; their orbs burn violet above the rim. Their orb lights are the only new lights here.
+## Two great lantern pillars carved in stone (tools/blender/wonder_watchers.py: art/models/wonders/watchers_*.glb) standing
+## in the pool either side of the mouth, facing the village: a sunk spiral stair up the shaft, niches, a band of incised
+## Order glyphs glowing faintly in the grooves, festoons of chain, a forged iron lantern burning violet on a short drum.
+## The east one is the mirrored model. Near mesh with baked maps, a far mesh from 160 m, convex hulls for collision.
+## One unshadowed orb light each is the only new light here.
 func _watchers(host: Node3D) -> void:
+	if OS.get_cmdline_user_args().has("--no-watchers"):      # measurement only: the Threshold without them
+		return
 	for w: Vector3 in WATCHERS:
-		var m := MageStatue.new()
-		m.name = "Watcher%s" % ("West" if w.x < 0.0 else "East")
-		host.add_child(m)
-		m.global_position = w
-		m.rotation.y = PI + (0.22 if w.x < 0.0 else -0.22)     # facing the village, turned a little to the mouth
-		m.scale = Vector3.ONE * WATCHER_SCALE
-		m.set_process(false)
-		if w.x > 0.0:
-			# mirrored, so both reach their open hand over the gate (the body is symmetric: it stays as built)
-			for c in m.get_children():
-				if c is Node3D and not (c is CollisionObject3D):
-					(c as Node3D).transform = Transform3D(Basis.from_scale(Vector3(-1.0, 1.0, 1.0)), Vector3.ZERO) * (c as Node3D).transform
-		var ol := m.find_child("OrbLight", true, false) as OmniLight3D
-		if ol:
-			ol.light_color = Color(0.6, 0.45, 1.0)
-			ol.light_energy = 4.0
-			ol.omni_range = 22.0
-		var orb := m.find_child("Orb", true, false) as MeshInstance3D
-		if orb:
-			orb.material_override = _orb_mat()
-		# floodlit from the pool: a violet spot at the water in front of the figure, up its robe to the hood
-		var up := SpotLight3D.new()
-		up.name = "WatcherUplight"
-		up.light_color = Color(0.56, 0.42, 1.0)
-		up.light_energy = 7.0
-		up.spot_range = 34.0
-		up.spot_angle = 24.0
-		up.spot_attenuation = 0.6
-		up.shadow_enabled = false
-		up.light_volumetric_fog_energy = 0.4
-		up.distance_fade_enabled = true                    # seen from the village: an authored fade, kept by the director
-		up.distance_fade_begin = 110.0
-		up.distance_fade_length = 20.0
-		up.set_meta(&"light_class", &"shaft")
-		host.add_child(up)
-		var foot := Vector3(w.x * 0.45, LAVA + 0.6, w.z + 4.0)
-		up.look_at_from_position(foot, Vector3(w.x, LAVA + 22.0, w.z), Vector3.UP)
+		var west := w.x < 0.0
+		var m := Kit.place(host, "wonders/watchers_%s.glb" % ("west" if west else "east"), Transform3D(Basis(Vector3.UP, PI + (0.22 if west else -0.22)), w + Vector3.UP * WATCHER_LIFT))
+		if m == null:
+			continue
+		m.name = "Watcher%s" % ("West" if west else "East")
+		# the plinth's footprint (and the rubble round it) is a site: the flora and the dress keep off it
+		WorldLanes.register_site("watcher_%s" % ("west" if west else "east"), Rect2(w.x - 6.2, w.z - 6.2, 12.4, 12.4), w.y)
+		_dress_watcher(m)
+		var core := m.find_child("Pillar_core*", true, false) as MeshInstance3D
+		var oc := Vector3(0.0, 27.0, 0.0)
+		if core:
+			oc = core.get_aabb().get_center()
+		var ol := OmniLight3D.new()
+		ol.name = "OrbLight"
+		ol.position = oc
+		ol.light_color = Color(0.6, 0.45, 1.0)
+		ol.light_energy = 3.0
+		ol.omni_range = 26.0
+		ol.shadow_enabled = false
+		ol.distance_fade_enabled = true
+		ol.distance_fade_begin = 120.0
+		ol.distance_fade_length = 25.0
+		ol.set_meta(&"light_class", &"realm")
+		m.add_child(ol)
+		# the far mesh from 160 m out to the horizon; the near model fades out where it takes over
+		var far_ps := Kit.scene("wonders/watchers_%s_far.glb" % ("west" if west else "east"))
+		if far_ps:
+			var far_root := far_ps.instantiate() as Node3D
+			for mi in far_root.find_children("*", "MeshInstance3D", true, false):
+				var fm := mi as MeshInstance3D
+				if fm.mesh != null:
+					FarDetail.register(m, fm.mesh, Transform3D.IDENTITY, 160.0, _orb_mat() if String(fm.name).contains("orb") else _far_stone_mat(), false)
+			far_root.free()
+		FarDetail.near_ends(m, 160.0, 30.0)
+
+
+static var _watcher_mats: Dictionary = {}
+
+
+## The baked column maps (with the glyph grooves' faint ember as the emission map); the staff, chains and cage in the iron
+## set over their rust vertex colours; the flame in layers (a hot core, a violet halo, a smoked cracked glass shell).
+func _dress_watcher(m: Node3D) -> void:
+	if _watcher_mats.is_empty():
+		var T := "res://art/textures/"
+		var W := "res://art/models/wonders/"
+		var fig := StandardMaterial3D.new()
+		fig.albedo_texture = load(W + "watchers_pillar_albedo.png")
+		fig.albedo_color = Color(0.92, 0.92, 0.94)
+		fig.normal_enabled = true
+		fig.normal_texture = load(W + "watchers_pillar_normal.png")
+		var orm: Texture2D = load(W + "watchers_pillar_orm.png")
+		fig.ao_enabled = true
+		fig.ao_texture = orm
+		fig.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+		fig.roughness_texture = orm
+		fig.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
+		fig.roughness = 1.0
+		fig.emission_enabled = true
+		fig.emission_texture = load(W + "watchers_pillar_emit.png")
+		fig.emission = Color.WHITE
+		fig.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY       # the texture alone (ADD would add white everywhere)
+		fig.emission_energy_multiplier = 1.0
+		_watcher_mats["fig"] = fig
+		var s := StandardMaterial3D.new()
+		s.vertex_color_use_as_albedo = true
+		s.normal_enabled = true
+		s.normal_texture = load(T + "r37_stone_normal.png")
+		s.normal_scale = 0.8
+		var so: Texture2D = load(T + "r37_stone_orm.png")
+		s.roughness_texture = so
+		s.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
+		s.roughness = 1.0
+		_watcher_mats["stone"] = s
+		_watcher_mats["iron"] = load("res://core/world/realm/r37_west_kit.gd").mat("iron")
+		var wax := StandardMaterial3D.new()
+		wax.vertex_color_use_as_albedo = true
+		wax.roughness = 0.75
+		_watcher_mats["cand"] = wax
+		var flame := StandardMaterial3D.new()
+		flame.albedo_color = Color(1.0, 0.7, 0.35)
+		flame.emission_enabled = true
+		flame.emission = Color(1.0, 0.6, 0.25)
+		flame.emission_energy_multiplier = 4.0
+		_watcher_mats["flame"] = flame
+		var halo := _orb_mat()
+		halo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		halo.albedo_color = Color(0.5, 0.3, 1.0, 0.55)
+		halo.emission_energy_multiplier = 2.6
+		_watcher_mats["orb"] = halo
+		var core := StandardMaterial3D.new()
+		core.albedo_color = Color(0.95, 0.9, 1.0)
+		core.emission_enabled = true
+		core.emission = Color(0.92, 0.85, 1.0)
+		core.emission_energy_multiplier = 6.0
+		_watcher_mats["core"] = core
+		var glass := StandardMaterial3D.new()
+		glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		glass.albedo_color = Color(0.1, 0.08, 0.14, 0.42)
+		glass.roughness = 0.12
+		glass.metallic_specular = 0.9
+		glass.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_watcher_mats["glass"] = glass
+	var key := {"Pillar_fig": "fig", "Pillar_iron": "iron", "Pillar_rubble": "stone", "Pillar_cand": "cand", "Pillar_flame": "flame", "Pillar_orb": "orb",
+			"Pillar_core": "core", "Pillar_glass": "glass"}
+	for n in m.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		var nm := String(mi.name)
+		for k: String in key:
+			if nm.begins_with(k):
+				mi.material_override = _watcher_mats[key[k]]
+				if key[k] in ["flame", "orb", "core", "glass"]:
+					mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				break
+
+
+static func _far_stone_mat() -> StandardMaterial3D:
+	var f := StandardMaterial3D.new()
+	f.albedo_color = Color(0.32, 0.33, 0.37)
+	f.roughness = 1.0
+	return f
 
 
 # --- clearance ---------------------------------------------------------------------------------------
@@ -329,55 +418,33 @@ func _clear(xf: Transform3D, size: Vector3, grow := 0.3, ground_ok := false) -> 
 	return true
 
 
-## Each Watcher as its parts (MageStatue's own proportions, at full scale): the pedestal, the body, the staff
-## and the outstretched arm with its sleeve, tested against everything built and drawn (and the rock, but for
-## the pedestal, which stands on the floor). Anything touched is printed in the clearance line.
+## Each Watcher's own convex hulls (the plinth's tiers, the base, the shaft, the capital, the lantern) against the world:
+## nothing may touch but the pool floor under the plinth.
 func _audit_watchers(host: Node3D) -> void:
-	var fs := MageStatue.FIG_SCALE
-	var ph := MageStatue.PEDESTAL_H
 	for w in host.get_children():
-		if not (w is MageStatue):
+		if not (w is Node3D) or w is Light3D or not String(w.name).begins_with("Watcher"):
 			continue
 		var m := w as Node3D
-		var mx := -1.0 if m.global_position.x > 0.0 else 1.0            # the east one is mirrored
-		var fig := func(v: Vector3) -> Vector3: return Vector3(v.x * fs * mx, v.y * fs + ph, v.z * fs)
-		var parts: Array = []
-		var cyl := CylinderShape3D.new()
-		cyl.radius = 1.6 * WATCHER_SCALE
-		cyl.height = ph * WATCHER_SCALE
-		parts.append(["pedestal", cyl, Vector3(0, ph * 0.5, 0), Basis.IDENTITY, true])
-		var cap := CapsuleShape3D.new()
-		cap.radius = 0.55 * fs * WATCHER_SCALE
-		cap.height = 2.9 * fs * WATCHER_SCALE
-		parts.append(["body", cap, Vector3(0, ph + 1.45 * fs, 0), Basis.IDENTITY, false])
-		parts.append(_bar("staff", fig.call(Vector3(0.62, 0.0, -0.38)), fig.call(Vector3(0.62, 4.0, -0.38)), 0.12 * fs))
-		parts.append(_bar("arm", fig.call(Vector3(-0.4, 2.56, 0.0)), fig.call(Vector3(-0.63, 2.55, -1.0)), 0.36 * fs))
-		parts.append(_bar("sleeve", fig.call(Vector3(-0.66, 2.44, -0.62)), fig.call(Vector3(-0.64, 1.78, -0.5)), 0.3 * fs))
-		var own := m.find_child("StatueBody", true, false)
-		for part: Array in parts:
-			var q := PhysicsShapeQueryParameters3D.new()
-			q.shape = part[1]
-			var rot := m.global_transform.basis.orthonormalized()
-			q.transform = Transform3D(rot * (part[3] as Basis), m.global_transform * (part[2] as Vector3))
-			q.collision_mask = Layers.WORLD | PROBE_LAYER
-			var touched := {}
-			for hit: Dictionary in space.intersect_shape(q, 24):
-				var c := hit.get("collider") as Node
-				if c == null or c == own or (bool(part[4]) and String(c.name).begins_with("Terrain")):
+		var own := {}
+		for b in m.find_children("*", "CollisionObject3D", true, false):
+			own[b] = true
+		for b in m.find_children("*", "StaticBody3D", true, false):
+			var tier := String(b.name).begins_with("Pillar_tier")
+			for cs in b.get_children():
+				if not (cs is CollisionShape3D) or (cs as CollisionShape3D).shape == null:
 					continue
-				touched[String(c.get_meta(&"stands_for", c.name))] = true
-			if not touched.is_empty():
-				_audit.append("%s %s touches %s" % [m.name, part[0], ", ".join(touched.keys())])
-
-
-## A thin box from a to b (node-local, before the node's scale), `t` thick, as an audit part.
-func _bar(n: String, a: Vector3, b: Vector3, t: float) -> Array:
-	var d := b - a
-	var y := d.normalized()
-	var x := y.cross(Vector3.FORWARD if absf(y.z) < 0.9 else Vector3.RIGHT).normalized()
-	var box := BoxShape3D.new()
-	box.size = Vector3(t, d.length(), t) * WATCHER_SCALE
-	return [n, box, (a + b) * 0.5, Basis(x, y, x.cross(y)), false]
+				var q := PhysicsShapeQueryParameters3D.new()
+				q.shape = (cs as CollisionShape3D).shape
+				q.transform = (cs as CollisionShape3D).global_transform
+				q.collision_mask = Layers.WORLD | PROBE_LAYER
+				var touched := {}
+				for hit: Dictionary in space.intersect_shape(q, 24):
+					var c := hit.get("collider") as Node
+					if c == null or own.has(c) or (tier and String(c.name).begins_with("Terrain")):
+						continue
+					touched[String(c.get_meta(&"stands_for", c.name))] = true
+				if not touched.is_empty():
+					_audit.append("%s %s touches %s" % [m.name, b.name, ", ".join(touched.keys())])
 
 
 # --- light ---------------------------------------------------------------------------------------------
@@ -420,7 +487,7 @@ static func _orb_mat() -> StandardMaterial3D:
 	m.albedo_color = Color(0.7, 0.6, 1.0)
 	m.emission_enabled = true
 	m.emission = Color(0.66, 0.52, 1.0)
-	m.emission_energy_multiplier = 9.0
+	m.emission_energy_multiplier = 5.0
 	return m
 
 
