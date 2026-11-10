@@ -4,21 +4,13 @@ extends RefCounted
 ## pilgrims left. Reached by the anchor's stair (a long climb up the south wall to the deck). A page cut in the tally
 ## stone, and the wardens' box. State: secrets' own (looted.sky_chain, found.sky_chain).
 ##
-## For the lead (secrets.gd / pages.gd are not edited here):
-##   secrets.gd   const SiteSkyChain := preload("res://core/life/secrets/site_sky_chain.gd") and call SiteSkyChain.build(root, host)
-##                where SiteThreshold.build is called
-##   pages.gd     SITES["sky_chain"] = {"name": SiteSkyChain.NAME, "region": "crags"}
-##                TEXTS["sc_sky_chain"] = SiteSkyChain.PAGE
-##                REWARDS["sky_chain"] = SiteSkyChain.REWARD
+## Its page and reward live in pages.gd (sc_sky_chain / sky_chain).
 
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const WestKit := preload("res://core/world/realm/r37_west_kit.gd")
 
 const NAME := "The Wardens' Tally"
-const PAGE := {"title": "Cut into the tally stone", "kind": "carved stone",
-	"text": "One thousand and nine links, forged in the Pits and hauled up hand over hand. We count them every dusk from the ring to the sky, and every dusk it comes out one short. The Hierarch says the sky is taking one back. I say the sky is not taking. I say the chain is getting longer. Pilgrims leave their names in the box. Take what helps."}
-const REWARD := {"relic_fragment": 1, "grave_ash": 35, "grave_iron": 1}
 
 
 static func build(root: Node, host: Node3D) -> void:

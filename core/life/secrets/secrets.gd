@@ -34,6 +34,7 @@ const SiteR34 := preload("res://core/life/secrets/site_r34.gd")      # r34 place
 const SiteThreshold := preload("res://core/life/secrets/site_threshold.gd")   # the Pilgrims' Chapel under the starfall
 const SiteUpwardFalls := preload("res://core/life/secrets/site_upward_falls.gd")   # the Upward Falls' crest (a wonder)
 const SiteStarCrater := preload("res://core/life/secrets/site_star_crater.gd")   # the Fallen Star's platform (a wonder)
+const SiteSkyChain := preload("res://core/life/secrets/site_sky_chain.gd")   # the Wardens' Tally at the Sky Chain's bitter end (a wonder)
 # --- south marches ---
 const SiteSouth := preload("res://core/life/secrets/site_r37_south.gd")
 const Reactivity := preload("res://core/life/secrets/reactivity.gd")
@@ -78,6 +79,7 @@ static func build(root: Node) -> void:
 	SiteThreshold.build(root, host)
 	SiteUpwardFalls.build(root, host)
 	SiteStarCrater.build(root, host)
+	SiteSkyChain.build(root, host)
 	# --- south marches ---
 	SiteSouth.build(root, host)
 	# --- west marches ---
