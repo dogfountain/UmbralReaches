@@ -384,10 +384,13 @@ func _process(delta: float) -> void:
 	casting._frame_fx()
 
 
-## What every physics frame owes, whatever the wanderer is doing: the Gloom's clock. Every branch of
-## _physics_process that returns early calls this first (see the list above it).
+## What every physics frame owes, whatever the wanderer is doing: the Gloom's clock, and the catch for
+## a wanderer who has fallen through the world. Every branch of _physics_process that returns early
+## calls this first (see the list above it).
 func _tick_always(delta: float) -> void:
 	vitals._update_gloom(delta)
+	if global_position.y < -40.0:
+		vitals._fell_out()
 
 
 ## One physics frame. States that take the frame over and return early, in the order they are checked:
@@ -527,6 +530,7 @@ func _physics_process(delta: float) -> void:
 		if not autopilot and not _hollowing:
 			locomotion._slide_input(horiz, wish)
 			if traversal._try_vault(horiz, wish):
+				_tick_always(delta)
 				return
 	_run_blend = lerpf(_run_blend, clampf((horiz.length() - walk_speed) / maxf(sprint_speed - walk_speed, 0.1), 0.0, 1.0), 1.0 - exp(-5.0 * delta))   # in the air too: the gait follows the speed you carry
 
@@ -601,8 +605,10 @@ func _physics_process(delta: float) -> void:
 				velocity.x = pre_h.x             # a riser doesn't eat the stride
 				velocity.z = pre_h.z
 		elif wish.length_squared() > 0.1 and traversal._try_mantle(wish):
+			_tick_always(delta)
 			return
 		elif not _grounded and traversal._try_grab(wish):
+			_tick_always(delta)
 			return
 	if not _grounded and was_grounded and velocity.y <= 0.0 and not _jump_rising and global_position.y <= y0 + 0.002:
 		locomotion._step_down()
@@ -639,8 +645,8 @@ func _physics_process(delta: float) -> void:
 		evasion._end_glide()
 	_glide_k = move_toward(_glide_k, 1.0 if _gliding else 0.0, delta * (5.0 if _gliding else 7.0))
 	_visual.set("glide", _glide_k)
-	if global_position.y < -40.0 or _fall_t > FALL_RESCUE_T:
-		vitals._fell_out()      # fell into the chasm, or through the world
+	if _fall_t > FALL_RESCUE_T:
+		vitals._fell_out()      # fell into the chasm (below -40 m is caught by _tick_always)
 	vitals._stuck_tick(delta, wish)
 
 
