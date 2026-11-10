@@ -61,9 +61,9 @@ func _process(d: float) -> void:
 				for v: Vector3 in PROBES:
 					var q := PhysicsRayQueryParameters3D.create(v + Vector3.UP * 80.0, v + Vector3.DOWN * 60.0, Layers.WORLD)
 					_ok(not space.intersect_ray(q).is_empty(), "ground at %s after the rebuild" % v)
-				for nm: String in _names[1]:
-					if int(_names[1][nm]) != int(_names[0].get(nm, 0)):
-						print("REBUILD top-level %s: %d then %d" % [nm, int(_names[0].get(nm, 0)), int(_names[1][nm])])
+				for nm: String in _names[0]:
+					if int(_names[1].get(nm, 0)) != int(_names[0][nm]):
+						print("REBUILD top-level %s: %d then %d" % [nm, int(_names[0][nm]), int(_names[1].get(nm, 0))])
 				var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 				_ok(p != null and p.global_position.distance_to(RealmLayout.PLAYER_START) < 4.0, "the wanderer is at the start (%s)" % (p.global_position if p else Vector3.ZERO))
 				_ok(get_tree().get_nodes_in_group(Groups.PLAYER).size() == 1, "one player")
@@ -97,7 +97,7 @@ func _census(root: Node) -> Dictionary:
 	# timing (first census 3 s after the build, the second 1 s). They are not part of the built world.
 	var kept: Array[Node] = []
 	for c in root.get_children():
-		if not (c is GPUParticles3D and c.has_meta(&"burst_token")):
+		if not (c is GPUParticles3D and c.has_meta(&"burst_token")) and not String(c.name).begins_with("EnemyVoice"):
 			kept.append(c)
 	out["nodes"] = kept.size()
 	var names := {}

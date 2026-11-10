@@ -14,6 +14,9 @@ const OFFSET := Vector3(-2.3, 0.0, 0.4)  ## brazier-local: to its side, off the 
 ## diagonal, 2.4 m clear of the respawn spot and every walking node and edge.
 const SEAT_OFFSETS := {"Sanctuary": Vector3(-2.3, 0.0, 2.6)}
 
+const Kit37 := preload("res://core/world/realm/west_marches_kit.gd")
+static var _kit_cache := {}
+
 var brazier: Brazier
 var _coal_mat: StandardMaterial3D
 var _sparks: GPUParticles3D
@@ -87,46 +90,24 @@ func _apply(on: bool) -> void:
 
 
 func _build() -> void:
-	# the game's own timber and ironwork (the tavern's beam and iron grain, as the other props use), not flat grey colours:
-	# the post and arm are stained wood, the collars, brace and cage are iron, the footing is hewn stone
-	var wood := OssKit.mat("wood")
-	var iron := OssKit.mat("iron")
-	var stone := OssKit.mat("ruin")
-	# footing
-	_mesh(_box(Vector3(0.6, 0.3, 0.6)), stone, Vector3(0, 0.1, 0))
-	_mesh(_box(Vector3(0.42, 0.14, 0.42)), stone, Vector3(0, 0.3, 0))
-	# the post, its collar, the arm and the hook
-	_mesh(_cyl(0.055, 0.07, 2.3, 8), wood, Vector3(0, 1.45, 0))
-	_mesh(_cyl(0.09, 0.09, 0.08, 8), iron, Vector3(0, 0.45, 0))
-	_mesh(_cyl(0.08, 0.08, 0.06, 8), iron, Vector3(0, 2.2, 0))
-	var arm := _mesh(_box(Vector3(0.72, 0.05, 0.05)), wood, Vector3(0.32, 2.5, 0))
-	arm.rotation.z = 0.0
-	var brace := _mesh(_box(Vector3(0.5, 0.04, 0.04)), iron, Vector3(0.2, 2.33, 0))
-	brace.rotation.z = 0.62
-	_mesh(_cyl(0.012, 0.012, 0.26, 4), iron, Vector3(0.62, 2.36, 0))
-	# the cage: four bars between two rings, a coal in it
-	var cage_y := 2.05
-	_mesh(_cyl(0.13, 0.13, 0.03, 10), iron, Vector3(0.62, cage_y + 0.19, 0))
-	_mesh(_cyl(0.1, 0.13, 0.04, 10), iron, Vector3(0.62, cage_y - 0.19, 0))
-	for i in 4:
-		var a := TAU * float(i) / 4.0 + 0.4
-		_mesh(_cyl(0.012, 0.012, 0.38, 4), iron, Vector3(0.62 + cos(a) * 0.12, cage_y, sin(a) * 0.12))
-	var cap := _mesh(_cyl(0.0, 0.15, 0.12, 10), iron, Vector3(0.62, cage_y + 0.27, 0))
-	cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# the in-house model (tools/blender/props_lamps.py, ember_post.glb): footing, post, arm and cage (parts dressed with the tiling
+	# PBR sets) and the coal as its own mesh "Flame", which keeps this post's own emissive material
+	var kit := _kit()
+	for part: Dictionary in kit.parts:
+		var mi := _mesh(part.mesh, Kit37.mat(String(part.set)), Vector3.ZERO)
+		mi.name = String(part.name)
 	_coal_mat = StandardMaterial3D.new()
 	_coal_mat.emission_enabled = true
 	_coal_mat.emission = Color(1.0, 0.45, 0.15)
 	_coal_mat.roughness = 0.9
-	var coal := SphereMesh.new()
-	coal.radius = 0.075
-	coal.height = 0.13
-	coal.radial_segments = 8
-	coal.rings = 4
-	var ci := _mesh(coal, _coal_mat, Vector3(0.62, cage_y - 0.08, 0))
-	ci.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_coal_mat.vertex_color_use_as_albedo = true
+	if kit.coal != null:
+		var ci := _mesh(kit.coal, _coal_mat, Vector3.ZERO)
+		ci.name = "Coal"
+		ci.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_sparks = Vfx.emitter(Color(3.0, 1.3, 0.4), {"count": 10, "life": 1.6, "speed": Vector2(0.15, 0.5), "size": 0.035,
 		"gravity": 0.7, "spread": 25.0, "dir": Vector3.UP, "radius": 0.05, "turbulence": true})
-	_sparks.position = Vector3(0.62, cage_y + 0.3, 0)
+	_sparks.position = Vector3(0.62, 2.35, 0)
 	add_child(_sparks)
 	# a thin collider so the wanderer walks round it, not through
 	var body := StaticBody3D.new()
@@ -153,17 +134,20 @@ func _mesh(m: Mesh, mat: Material, at: Vector3) -> MeshInstance3D:
 	return mi
 
 
-static func _box(sz: Vector3) -> BoxMesh:
-	var b := BoxMesh.new()
-	b.size = sz
-	return b
-
-
-static func _cyl(top: float, bottom: float, h: float, seg: int) -> CylinderMesh:
-	var c := CylinderMesh.new()
-	c.top_radius = top
-	c.bottom_radius = bottom
-	c.height = h
-	c.radial_segments = seg
-	c.rings = 1
-	return c
+## The shared meshes of ember_post.glb, read once: {parts: [{mesh, set, name}], coal: Mesh}.
+static func _kit() -> Dictionary:
+	if _kit_cache.is_empty():
+		var out := {"parts": [], "coal": null}
+		var ps := load("res://art/models/props/ember_post.glb") as PackedScene
+		if ps != null:
+			var root := ps.instantiate()
+			for n in root.find_children("*", "MeshInstance3D", true, false):
+				var mi := n as MeshInstance3D
+				var nm := String(mi.name)
+				if nm == "Flame":
+					out.coal = mi.mesh
+				elif nm.contains("__"):
+					(out.parts as Array).append({"mesh": mi.mesh, "set": nm.get_slice("__", 1).get_slice(".", 0).get_slice("_", 0), "name": nm})
+			root.free()
+		_kit_cache = out
+	return _kit_cache

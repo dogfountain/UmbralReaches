@@ -29,6 +29,16 @@ const VIEWS := [
 	["hide", "node:HuntersHide", Vector3(1.6, 1.0, 3.2), Vector3(0.5, 0.45, 0), []],
 	["window", "node:Lamp_press_window", Vector3(0, -0.8, 9.0), Vector3(0, 0.0, 0), []],
 	["window_wide", "node:Lamp_press_window", Vector3(5, -0.5, 16.0), Vector3(0, 0.5, 0), []],
+	["k_hang_unlit", "node:Studio", Vector3(-3.1, 2.2, 0.4), Vector3(-3.6, 2.1, -3), []],
+	["k_hang_lit", "node:Studio", Vector3(-3.1, 2.2, 0.4), Vector3(-3.6, 2.1, -3), ["studio_hang"]],
+	["k_niche_unlit", "node:Studio", Vector3(-0.7, 1.1, 0.4), Vector3(-1.2, 0.6, -3), []],
+	["k_niche_lit", "node:Studio", Vector3(-0.7, 1.1, 0.4), Vector3(-1.2, 0.6, -3), ["studio_niche"]],
+	["k_post_unlit", "node:Studio", Vector3(1.7, 1.9, 0.4), Vector3(1.2, 1.7, -3), []],
+	["k_post_lit", "node:Studio", Vector3(1.7, 1.9, 0.4), Vector3(1.2, 1.7, -3), ["studio_post"]],
+	["k_cresset_unlit", "node:Studio", Vector3(4.1, 1.4, 0.4), Vector3(3.6, 0.9, -3), []],
+	["k_cresset_lit", "node:Studio", Vector3(4.1, 1.4, 0.4), Vector3(3.6, 0.9, -3), ["studio_cresset"]],
+	["k_ember_unlit", "node:EmberPost", Vector3(1.9, 1.9, 0.5), Vector3(0.6, 1.8, -3), ["ember_off"]],
+	["k_ember_lit", "node:EmberPost", Vector3(1.9, 1.9, 0.5), Vector3(0.6, 1.8, -3), ["ember"]],
 	["looks_unlit", "node:Studio", Vector3(0, 0.0, 6.0), Vector3(0, 1.0, 0), []],
 	["looks_lit", "node:Studio", Vector3(0, 0.0, 6.0), Vector3(0, 1.0, 0), ["studio"]],
 ]
@@ -111,6 +121,11 @@ func _cam(v: Array) -> Array:
 
 
 func _relight(prefixes: Array) -> void:
+	if "ember" in prefixes or "ember_off" in prefixes:                    # the ember post follows its fire
+		for e in main.find_children("EmberPost", "", true, false):
+			var br = e.get("brazier")
+			if br != null:
+				br._set_lit("ember" in prefixes, false)
 	for n in get_tree().get_nodes_in_group(&"lamp"):
 		var l := n as Lamp
 		var want := false

@@ -1,6 +1,6 @@
 extends RefCounted
 ## West Marches: placing the in-house landmark models (tools/blender/r37_west.py) in the world.
-## Each glb is a set of mesh nodes named `<part>__<set>` (set = stone / ashlar / timber / iron), a
+## Each glb is a set of mesh nodes named `<part>__<set>` (set = stone / ashlar / timber / iron / wax), a
 ## `<asset>-colonly` collision node (Godot makes it a StaticBody3D with trimesh shape), and sometimes a
 ## node that moves (the mill's wheel). The meshes carry metric box UVs and baked vertex tone; the
 ## tiling PBR sets art/textures/r37_<set>_{albedo,normal,orm}.png (tools/blender/r37_west_textures.py)
@@ -19,7 +19,7 @@ static func release() -> void:
 	_scenes.clear()
 
 
-## The tiling PBR material of a set ("stone", "ashlar", "timber", "iron").
+## The tiling PBR material of a set ("stone", "ashlar", "timber", "iron", "wax").
 static func mat(set_name: String) -> StandardMaterial3D:
 	if _mats.has(set_name):
 		return _mats[set_name]
@@ -79,7 +79,7 @@ static func place(parent: Node3D, file: String, xf: Transform3D, opts := {}) -> 
 		var parts := nm.split("__")
 		if parts.size() >= 2:
 			var set_name := parts[parts.size() - 1].get_slice(".", 0).get_slice("_", 0)
-			if set_name in ["stone", "ashlar", "timber", "iron"]:
+			if set_name in ["stone", "ashlar", "timber", "iron", "wax"]:
 				mi.material_override = mat(set_name)
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bool(opts.get("shadow", true)) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				meshes.append(mi)
