@@ -1,22 +1,8 @@
 class_name StoneBodies
 extends RefCounted
-## Runtime: every stone prop uses the updated stone albedo/normal and blocks the wanderer.
-## No rebake. Walkable slabs (path, stair, ramps) already have bodies and stay walkable.
+## The stone material and the collision a standing stone gets.
 
 const STONE := "res://art/materials/stone.tres"
-
-const SKIP_MESH := [
-	"Terrain", "River", "Water", "Canopy", "Leaves", "Heart", "Glass",
-	"Fire", "IronArch", "Flame", "Coals", "Bowl", "Deck", "Boards",
-	"Path", "Walk", "Keel", "RampS", "RampN",
-	"StoneAbut", "WoodDeck", "WoodRails", "BeamFrame",
-]
-const SKIP_WALK := ["Stair", "Sanctuary", "Path", "Walk", "RampS", "RampN"]
-const SKIP_ANCESTOR := [
-	"Player", "Visual", "Lanterns", "DressedLantern",
-	"Mirror", "MirrorGate", "Gate", "Portal", "StoneFrame",
-	"DressedBridge", "Bridge",
-]
 
 
 static func material_for(_node: Node) -> Material:
@@ -80,17 +66,6 @@ static func _enabled_shape(body: StaticBody3D) -> bool:
 		var col := s as CollisionShape3D
 		if col != null and not col.disabled and col.shape != null:
 			return true
-	return false
-
-
-static func _skip(mi: MeshInstance3D) -> bool:
-	if String(mi.name) in SKIP_MESH:
-		return true
-	var p: Node = mi
-	while p:
-		if p is CharacterBody3D or String(p.name) in SKIP_ANCESTOR or p.has_meta("site"):
-			return true                          # registered builders bring their own collision
-		p = p.get_parent()
 	return false
 
 

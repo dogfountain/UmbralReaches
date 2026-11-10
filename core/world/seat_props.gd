@@ -130,14 +130,6 @@ static func pieces(verts: PackedVector3Array, idx: PackedInt32Array, xf: Transfo
 	return [piece, info, box, island_piece]
 
 
-static func _sample_ground(outer: _HeightField, heart: _HeightField, has_heart: bool, x: float, z: float) -> float:
-	if has_heart and maxf(absf(x), absf(z)) <= 96.0:
-		var hy: float = heart.sample(x, z)
-		if hy < 1.0e8:
-			return hy
-	return outer.sample(x, z)
-
-
 class _HeightField:
 	var verts: PackedVector3Array
 	var nx := 1

@@ -1,9 +1,7 @@
 class_name DressedProps
 extends RefCounted
-## Swaps the baked cylinders and boxes for the Blender lantern, brazier, and menhir.
-## Runs on the already-seated scene so main.tscn does not have to be rebaked.
+## Dresses the braziers with the Blender brazier model and stands menhirs for the henge.
 
-const LANTERN := "res://art/models/lantern.glb"
 const BRAZIER := "res://art/models/brazier.glb"
 const MENHIR := "res://art/models/menhir.glb"
 const MENHIR_H := 3.2
@@ -131,80 +129,6 @@ static func _paint(model: Node, prefix: String, mat: Material) -> void:
 			n += 1
 	if n == 0:
 		push_error("DRESS %s: no mesh begins with '%s'" % [model.name, prefix])
-
-
-static func _triangles(mesh: Mesh) -> Array:
-	var arrays: Array = mesh.surface_get_arrays(0)
-	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
-	var tris: Array = []
-	if idx.is_empty():
-		for i in range(0, verts.size() - 2, 3):
-			tris.append([verts[i], verts[i + 1], verts[i + 2]])
-	else:
-		for i in range(0, idx.size() - 2, 3):
-			tris.append([verts[idx[i]], verts[idx[i + 1]], verts[idx[i + 2]]])
-	return tris
-
-
-static func _islands(tris: Array, cell := 50.0) -> Array:
-	var parent: Array = []
-	parent.resize(tris.size())
-	for i in tris.size():
-		parent[i] = i
-	var buckets := {}
-	for i in tris.size():
-		for v in tris[i]:
-			var key := Vector3i(roundi(v.x * cell), roundi(v.y * cell), roundi(v.z * cell))
-			if not buckets.has(key):
-				buckets[key] = []
-			(buckets[key] as Array).append(i)
-	for key in buckets:
-		var ids: Array = buckets[key]
-		for j in range(1, ids.size()):
-			_union(parent, ids[0], ids[j])
-	var groups := {}
-	for i in tris.size():
-		var root := _find(parent, i)
-		if not groups.has(root):
-			groups[root] = []
-		(groups[root] as Array).append(tris[i])
-	return groups.values()
-
-
-static func _find(parent: Array, i: int) -> int:
-	while int(parent[i]) != i:
-		parent[i] = parent[int(parent[i])]
-		i = int(parent[i])
-	return i
-
-
-static func _union(parent: Array, a: int, b: int) -> void:
-	a = _find(parent, a)
-	b = _find(parent, b)
-	if a != b:
-		parent[b] = a
-
-
-static func _span(tris: Array) -> Dictionary:
-	var mn := Vector3(1.0e9, 1.0e9, 1.0e9)
-	var mx := Vector3(-1.0e9, -1.0e9, -1.0e9)
-	for t in tris:
-		for v in t:
-			mn = mn.min(v)
-			mx = mx.max(v)
-	return {"mn": mn, "mx": mx}
-
-
-static func _rebuild(tris: Array) -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for t in tris:
-		st.add_vertex(t[0])
-		st.add_vertex(t[1])
-		st.add_vertex(t[2])
-	st.generate_normals()
-	return st.commit()
 
 
 ## The braziers were ghosts: you walked straight through plinth and bowl. A cylinder on the PROPS
