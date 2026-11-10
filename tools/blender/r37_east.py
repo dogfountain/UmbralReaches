@@ -5,7 +5,7 @@ downloaded: the stone, timber, salt crust, plaster, slate and iron are generated
   tools/blender/run.sh r37_east.py            (writes the GLBs, the box tables, a preview if asked)
   tools/blender/run.sh r37_east.py -- --preview /tmp/r37e   (also renders stills)
 
-Writes art/models/r37e_{spire,cells,saltworks,hamlet}.glb and core/world/realm/r37_east_boxes.gd
+Writes art/models/r37e_{spire,cells,saltworks,hamlet}.glb and core/world/realm/east_marches_boxes.gd
 (collision boxes and ramps taken from the same numbers as the meshes, so they cannot drift).
 Units: 1 BU = 1 m, +Z is the front of every piece (the way it faces), origin on the ground.
 """
@@ -1115,7 +1115,7 @@ def write_boxes():
             lines.append("\t" + fmt(r) + ",")
         lines.append("]")
     lines.append("")
-    open(os.path.join(ROOT, "core/world/realm/r37_east_boxes.gd"), "w").write("\n".join(lines))
+    open(os.path.join(ROOT, "core/world/realm/east_marches_boxes.gd"), "w").write("\n".join(lines))
 
 
 def main():

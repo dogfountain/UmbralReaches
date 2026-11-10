@@ -1,5 +1,5 @@
 extends Node
-## r34 places (core/world/realm/realm_pois_r34.gd, docs/r34/places.md), in memory only (saves held,
+## r34 places (core/world/realm/realm_pois_doubled_realm.gd, docs/r34/places.md), in memory only (saves held,
 ## the satchel and system state restored):
 ##   - the fourteen new places built, named, with a chest, lore stones and a region; each first visit
 ##     raises its subzone banner, and the named open spots (EXTRA) are subzones too
@@ -15,11 +15,11 @@ extends Node
 ##   - every climb route is grabbable step by step, and the real wanderer climbs each to its top
 ## Run: HOME=<scratch> godot --headless --path . res://zz/places_r34_test.tscn [-- --no-climb] [-- --only=quarry_crane]
 const Pois := preload("res://core/world/realm/realm_pois.gd")
-const R34 := preload("res://core/world/realm/realm_pois_r34.gd")
+const R34 := preload("res://core/world/realm/realm_pois_doubled_realm.gd")
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
 const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
 const State := preload("res://core/life/secrets/state.gd")
-const SiteR34 := preload("res://core/life/secrets/site_r34.gd")
+const SiteR34 := preload("res://core/life/secrets/site_doubled_realm.gd")
 const NEW_REGIONS := ["quarry", "holds", "foundry", "moor", "orchard", "necropolis", "mere"]
 
 var p: Player

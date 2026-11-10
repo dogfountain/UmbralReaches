@@ -30,7 +30,7 @@ const Z0 := -15.0                      ## the first bay's south edge (the foreco
 const WATCHERS := [Vector3(-13.8, -17.2, -15.6), Vector3(13.8, -17.2, -15.6)]
 const WATCHER_LIFT := 1.3              ## the plinth stands this far over the pool's floor, so its lower tread and candles stand 0.3 m clear of the starwater
 const WATCHER_R := 7.0                 ## the plinth's reach (a 7 x 7 m foot, about 5 m to its corners, and the rubble) and a little
-const Kit := preload("res://core/world/realm/r37_west_kit.gd")
+const Kit := preload("res://core/world/realm/west_marches_kit.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
 var k: OssKit
@@ -307,7 +307,7 @@ func _dress_watcher(m: Node3D) -> void:
 		s.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
 		s.roughness = 1.0
 		_watcher_mats["stone"] = s
-		_watcher_mats["iron"] = load("res://core/world/realm/r37_west_kit.gd").mat("iron")
+		_watcher_mats["iron"] = load("res://core/world/realm/west_marches_kit.gd").mat("iron")
 		var halo := _orb_mat()
 		halo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		halo.albedo_color = Color(0.5, 0.3, 1.0, 0.55)

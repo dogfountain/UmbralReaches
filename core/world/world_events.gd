@@ -77,9 +77,9 @@ func sites() -> Array[Dictionary]:
 	for id: String in EXTRA_SITES:
 		var xz: Vector2 = EXTRA_SITES[id][0]
 		out.append({"id": id, "name": String(EXTRA_SITES[id][1]), "at": Vector3(xz.x, RealmLayout.ground(space, xz.x, xz.y), xz.y)})
-	# r34 places: open grounds in the new regions (realm_pois_r34.gd EXTRA), the black rows, the cairns...
+	# r34 places: open grounds in the new regions (realm_pois_doubled_realm.gd EXTRA), the black rows, the cairns...
 	if get_parent() and get_parent().get_node_or_null("RealmPois") != null:
-		var extra: Dictionary = (load("res://core/world/realm/realm_pois_r34.gd") as GDScript).get("EXTRA")
+		var extra: Dictionary = (load("res://core/world/realm/realm_pois_doubled_realm.gd") as GDScript).get("EXTRA")
 		for id: String in extra:
 			var e: Array = extra[id]
 			var q: Vector2 = e[0]
