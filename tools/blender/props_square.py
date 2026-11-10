@@ -75,7 +75,10 @@ def fbm(p, octaves=3):
 WOOD, IRON, CLOTH, GRAIN, DARK, WATER = 0, 1, 2, 3, 4, 5      # face kinds: drive the finishing pass
 KEY = {WOOD: 'timber', IRON: 'iron', CLOTH: 'cloth', GRAIN: 'timber', DARK: 'timber', WATER: 'water'}
 MERGE = {}      # per model: sets folded into another so the game draws fewer surfaces (crate nails -> timber)
-TILE = {'timber': 2.0, 'iron': 2.0, 'cloth': 2.0, 'water': 2.0}
+TILE = {'timber': 2.0, 'iron': 2.0, 'cloth': 2.0, 'water': 2.0, 'daub': 2.0}
+CLAY = 6                     # glazed crocks and jugs on the tavern shelves: the pale daub set
+KEY[CLAY] = 'daub'
+INDOOR = False               # the tavern's furniture: no moss at the foot (set per model in main)
 
 CUBE = {
     '+x': [(1, 0, 0), (1, 1, 0), (1, 1, 1), (1, 0, 1)],
@@ -239,7 +242,7 @@ def tone(kind, co, n, c):
     r, g, b = c[0] * mott * ao, c[1] * mott * ao, c[2] * mott * ao
     streak = smooth(0.0, 0.5, fbm(Vector((co.x * 10.0, 0.0, co.z * 10.0)) + Vector((4, 0, 8)), 2)) * (1.0 - smooth(0.0, 0.7, y)) * (1.0 - abs(n.y)) * 0.35
     r, g, b = r * (1 - streak), g * (1 - streak), b * (1 - streak)
-    if kind in (WOOD, CLOTH, GRAIN):
+    if kind in (WOOD, CLOTH, GRAIN) and not INDOOR:
         moss = (1.0 - smooth(0.015, 0.13, y)) * smooth(-0.2, 0.45, fbm(co * 11.0 + Vector((9, 2, 4)), 3)) * 0.8
         r, g, b = r * (1 - moss) + 0.45 * moss, g * (1 - moss) + 0.62 * moss, b * (1 - moss) + 0.3 * moss
     elif kind == IRON:
@@ -960,6 +963,185 @@ def render_set(ob, label, focus):
             bpy.ops.render.render(write_still=True)
 
 
+# --- the Hollow Lantern's furniture (core/world/tavern.gd) ---------------------------------------------
+# Sizes are the old code builders', so each swap is drop-in: the front is -z, the sitter / drinker side.
+def build_tavern_table():
+    """Trestle table: plank top 1.8 x 0.9 at 0.72..0.80, trestle ends at x +-0.7, a wedged stretcher."""
+    p = P(51)
+    rng = p.rng
+    n = 4
+    w = 0.9 / n
+    for i in range(n):
+        z = -0.45 + w * (i + 0.5)
+        poly = [(-w / 2 + 0.004, 0), (w / 2 - 0.004, 0), (w / 2 - 0.004, 0.068), (w / 2 - 0.016, 0.08), (-w / 2 + 0.016, 0.08), (-w / 2 + 0.004, 0.068)]
+        ext(p, poly, 1.8 + rng.uniform(-0.02, 0.02), V(rng.uniform(-0.01, 0.01), 0.72, z), axis='x', jit=0.002,
+            tone=rng.choice(["mid", "pale", "mid", "grey"]))
+    for sx in (-0.55, 0.55):
+        box(p, V(sx, 0.695, 0), (0.07, 0.05, 0.84), jit=0.002, tone="dark")                  # cleats under the top
+    for sx in (-0.7, 0.7):
+        box(p, V(sx, 0.05, 0), (0.1, 0.1, 0.78), taper=(1.0, 0.9), jit=0.003, tone="dark")     # foot
+        box(p, V(sx, 0.385, 0), (0.1, 0.6, 0.15), jit=0.002, tone="mid")                       # post
+        box(p, V(sx, 0.67, 0), (0.09, 0.05, 0.7), jit=0.002, tone="dark")                      # bearer
+        for sz in (-1, 1):                                                                       # braces: foot to post
+            a0, a1 = V(sx, 0.1, sz * 0.3), V(sx, 0.36, sz * 0.075)
+            d = a1 - a0
+            box(p, (a0 + a1) / 2, (0.05, d.length, 0.045), rotm(0, math.atan2(d.z, d.y)), jit=0.002, tone="grey")
+    box(p, V(0, 0.27, 0), (1.56, 0.07, 0.06), jit=0.003, tone="grey")                         # stretcher
+    for sx in (-1, 1):
+        box(p, V(sx * 0.79, 0.27, 0), (0.025, 0.11, 0.02), tone="pale")                        # wedges
+    return finish(p, "tavern_table", (V(0, 0.4, 0), (1.8, 0.8, 0.9)))
+
+
+def build_tavern_chair():
+    """A stout chair, seat top 0.47 (the benches'), back posts at +z raked a little, three slats."""
+    p = P(52)
+    for sx in (-0.2, 0.2):
+        for sz in (-0.19, 0.19):
+            box(p, V(sx, 0.21, sz), (0.05, 0.42, 0.05), taper=(1.15, 1.15), jit=0.002, tone="mid")
+    for y in (0.12, 0.26):                                                                       # rungs
+        box(p, V(0, y, -0.19), (0.38, 0.03, 0.03), tone="grey")
+        box(p, V(0, y + 0.04, 0.19), (0.38, 0.03, 0.03), tone="grey")
+        for sx in (-0.2, 0.2):
+            box(p, V(sx, y + 0.02, 0), (0.03, 0.03, 0.36), tone="grey")
+    poly = [(-0.25, 0.0), (0.25, 0.0), (0.25, 0.04), (0.235, 0.05), (-0.235, 0.05), (-0.25, 0.04)]
+    ext(p, poly, 0.48, V(0, 0.42, 0), axis='z', jit=0.002, tone="pale")                           # seat
+    rk = rotm(0, 0.12)                                  # the back leans back (+z) as it rises
+    base = V(0, 0.44, 0.215)
+
+    def up(t):                                          # a point t metres up the raked back posts
+        return base + rk @ V(0, t, 0)
+    for sx in (-0.2, 0.2):
+        box(p, up(0.34) + V(sx, 0, 0), (0.055, 0.68, 0.055), rk, jit=0.002, tone="mid")
+        box(p, up(0.70) + V(sx, 0, 0), (0.065, 0.05, 0.065), rk, tone="dark")                   # finials
+    for t, h in ((0.24, 0.06), (0.42, 0.07), (0.6, 0.09)):
+        box(p, up(t), (0.36, h, 0.025), rk, jit=0.002, tone="pale")
+    return finish(p, "tavern_chair", (V(0, 0.235, 0), (0.5, 0.47, 0.48)))
+
+
+def build_bar_counter():
+    """One 1.2 m bay of the bar: a plinth, a framed front of raised panels, a thick top with a rounded lip."""
+    p = P(53)
+    rng = p.rng
+    D = 0.55
+    box(p, V(0, 0.05, 0.01), (1.2, 0.1, D - 0.02), omit=('-y',), tone="dark")                   # plinth
+    box(p, V(0, 0.55, 0.02), (1.2, 0.9, D - 0.06), omit=('-y', '-z'), tone="dark")              # carcass (front panels cover -z)
+    zf = -D / 2 + 0.02
+    for x in (-0.57, 0.0, 0.57):                                                                   # stiles
+        box(p, V(x, 0.55, zf - 0.015), (0.08, 0.9, 0.04), jit=0.002, tone="mid")
+    for y in (0.14, 0.96):                                                                        # rails
+        box(p, V(0, y, zf - 0.015), (1.2, 0.08, 0.04), jit=0.002, tone="mid")
+    for x in (-0.285, 0.285):                                                                     # raised panels
+        box(p, V(x, 0.55, zf - 0.01), (0.46, 0.74, 0.02), tone="pale")
+        box(p, V(x, 0.55, zf - 0.03), (0.38, 0.64, 0.02), taper=(1.0, 1.0), jit=0.0015, tone=rng.choice(["mid", "pale"]))
+    poly = [(-0.365, 0.0), (0.365, 0.0), (0.365, 0.07), (0.35, 0.08), (-0.345, 0.08), (-0.362, 0.06)]
+    ext(p, poly, 1.2, V(0, 1.0, -0.005), axis='x', jit=0.0015, tone="pale")                      # the top
+    box(p, V(0, 0.18, -D / 2 - 0.09), (1.2, 0.035, 0.035), kind=IRON)                             # foot rail
+    for x in (-0.45, 0.45):
+        box(p, V(x, 0.11, -D / 2 - 0.05), (0.03, 0.14, 0.09), kind=IRON)
+    return finish(p, "bar_counter", (V(0, 0.54, 0), (1.2, 1.08, 0.73)))
+
+
+def bottle(p, at, kind, h, r, neck, col):
+    """A lathe-turned vessel: profile radii up its height (bottle: long neck; crock: squat, a lip)."""
+    seg = 8
+    prof = ([(0.0, 0.85), (0.04, 1.0), (0.55, 1.0), (0.68, 0.7), (0.74, neck), (0.97, neck), (1.0, neck * 1.25)] if kind == IRON else
+            [(0.0, 0.8), (0.08, 1.0), (0.6, 1.05), (0.82, 0.8), (0.9, 0.72), (1.0, 0.82)])
+    rings = []
+    for t, rr in prof:
+        rings.append([at + V(math.cos(a) * r * rr, t * h, math.sin(a) * r * rr) for a in [math.tau * i / seg for i in range(seg)]])
+    loft(p, rings, col, kind)
+
+
+def build_bar_shelf(seed=54, name="bar_shelf"):
+    """One 1.2 m bay of the shelves behind the bar: two boards on iron brackets at 1.3 and 1.85, bottles and crocks
+    (two bays with different stock, alternated, so the wall does not repeat)."""
+    p = P(seed)
+    rng = p.rng
+    for y in (1.3, 1.85):
+        box(p, V(0, y + 0.025, 0), (1.2, 0.05, 0.34), jit=0.002, tone="mid")
+        for x in (-0.45, 0.45):
+            box(p, V(x, y - 0.09, 0.12), (0.03, 0.18, 0.03), kind=IRON)
+            box(p, V(x, y - 0.01, 0.02), (0.03, 0.03, 0.26), kind=IRON)
+            box(p, V(x, y - 0.06, 0.06), (0.025, 0.025, 0.2), rotm(0, -0.75), kind=IRON)
+        x = -0.54
+        while x < 0.52:
+            if rng.random() < 0.62:
+                h = rng.uniform(0.24, 0.31)
+                r = rng.uniform(0.03, 0.04)
+                g = rng.uniform(0.5, 0.8)
+                bottle(p, V(x, y + 0.05, rng.uniform(-0.08, 0.06)), IRON, h, r, 0.32, (0.55 * g, 0.75 * g, 0.6 * g))
+                x += 2 * r + rng.uniform(0.02, 0.05)
+            else:
+                h = rng.uniform(0.14, 0.22)
+                r = rng.uniform(0.055, 0.075)
+                g = rng.uniform(0.75, 1.0)
+                bottle(p, V(x + r - 0.035, y + 0.05, rng.uniform(-0.05, 0.03)), CLAY, h, r, 0.7, (0.5 * g, 0.36 * g, 0.24 * g))   # brown-glazed
+                x += 2 * r + rng.uniform(0.02, 0.05)
+    return finish(p, name, (V(0, 1.6, 0), (1.2, 0.65, 0.34)))
+
+
+def build_chandelier():
+    """An iron ring chandelier, r 0.55 at y 0 (the candles stand on its eight cups), four rods up to a hook at 0.75."""
+    p = P(55)
+    seg, R, tr = 32, 0.55, 0.018
+    rings = []
+    for i in range(seg + 1):
+        a = math.tau * i / seg
+        c = V(math.cos(a) * R, 0, math.sin(a) * R)
+        rad = V(math.cos(a), 0, math.sin(a))
+        rings.append([c + rad * math.cos(b) * tr + V(0, math.sin(b) * tr, 0) for b in [math.tau * j / 6 for j in range(6)]])
+    loft(p, rings, p.iron(), IRON, cap0=False, cap1=False)
+    for i in range(8):
+        a = math.tau * i / 8
+        c = V(math.cos(a) * R, 0.0, math.sin(a) * R)
+        loft(p, [[c + V(math.cos(b) * rr, y, math.sin(b) * rr) for b in [math.tau * j / 8 for j in range(8)]]
+                 for y, rr in ((-0.035, 0.012), (-0.01, 0.03), (0.025, 0.04), (0.03, 0.036))], p.iron(), IRON)
+        box(p, c * 0.5 + V(0, -0.005, 0), (R, 0.018, 0.018), rotm(-a), kind=IRON)          # spokes to the hub
+    loft(p, [[V(math.cos(b) * rr, y, math.sin(b) * rr) for b in [math.tau * j / 8 for j in range(8)]]
+             for y, rr in ((-0.12, 0.0), (-0.09, 0.045), (0.02, 0.05), (0.05, 0.02))], p.iron(), IRON)      # the hub boss
+    for i in range(4):
+        a = math.tau * (i + 0.5) / 4
+        c = V(math.cos(a) * R * 0.98, 0.0, math.sin(a) * R * 0.98)
+        top = V(0, 0.72, 0)
+        mid = (c + top) / 2
+        d = (top - c)
+        L = d.length
+        d.normalize()
+        pitch = math.acos(max(-1.0, min(1.0, d.y)))
+        yaw = math.atan2(d.x, d.z)
+        box(p, mid, (0.012, L, 0.012), rotm(yaw, pitch), kind=IRON)
+    box(p, V(0, 0.75, 0), (0.015, 0.08, 0.015), kind=IRON)                                       # the hook stem
+    return finish(p, "chandelier", (V(0, 0.3, 0), (1.15, 0.9, 1.15)))
+
+
+def build_inn_sign():
+    """The Hollow Lantern's sign: a wrought bracket off the wall (+z is the wall, the arm runs to -z) with a scroll
+    brace, a framed plank board hanging from two rings, its face toward +-x."""
+    p = P(56)
+    box(p, V(0, 0.0, -0.55), (0.045, 0.045, 1.1), kind=IRON)                                     # arm
+    box(p, V(0, -0.02, -0.015), (0.08, 0.16, 0.03), kind=IRON)                                    # wall plate
+    seg = 10
+    pts = [V(0, -0.42 + 0.42 * (i / seg) ** 0.8, -0.03 - 0.62 * (i / seg)) for i in range(seg + 1)]  # the brace, curving up
+    for a, b in zip(pts, pts[1:]):
+        d = b - a
+        box(p, (a + b) / 2, (0.03, d.length + 0.006, 0.03), rotm(0, -math.atan2(d.z, d.y)), kind=IRON)
+    sc = [V(0, -0.2 + 0.07 * math.sin(t), -0.3 + 0.07 * math.cos(t)) for t in [math.tau * i / 9 for i in range(10)]]
+    for a, b in zip(sc, sc[1:]):                                                                   # a scroll in the brace
+        d = b - a
+        box(p, (a + b) / 2, (0.022, d.length + 0.004, 0.022), rotm(0, -math.atan2(d.z, d.y)), kind=IRON)
+    for zz in (-0.62, -1.05):
+        box(p, V(0, -0.085, zz), (0.015, 0.16, 0.015), kind=IRON)                                 # hanging rings
+        box(p, V(0, -0.012, zz), (0.03, 0.03, 0.05), kind=IRON)                                   # their eyes on the arm
+    bz, by = -0.95, -0.5
+    for i in range(3):                                                                              # planks
+        box(p, V(0, by - 0.2 + 0.2 * i, bz), (0.05, 0.19, 0.84), jit=0.002, tone=["mid", "pale", "mid"][i])
+    for dz in (-0.43, 0.43):                                                                        # frame
+        box(p, V(0, by, bz + dz), (0.07, 0.66, 0.05), tone="dark")
+    for dy in (-0.32, 0.32):
+        box(p, V(0, by + dy, bz), (0.07, 0.05, 0.9), tone="dark")
+    return finish(p, "inn_sign", (V(0, -0.4, -0.6), (0.1, 0.85, 1.2)))
+
+
 MODELS = [
     ("crate", lambda: build_crate(False), V(0, 0.5, 0.3)),
     ("crate_broken", lambda: build_crate(True), V(0, 0.55, 0.0)),
@@ -971,6 +1153,13 @@ MODELS = [
     ("sack", lambda: build_sack(False), V(0.25, 0.2, 0)),
     ("sack_open", lambda: build_sack(True), V(0.05, 0.4, 0)),
     ("handcart", lambda: build_cart(), V(-0.1, 0.4, 0.5)),
+    ("tavern_table", lambda: build_tavern_table(), V(0.5, 0.7, 0.2)),
+    ("tavern_chair", lambda: build_tavern_chair(), V(0, 0.7, 0.1)),
+    ("bar_counter", lambda: build_bar_counter(), V(0.2, 0.8, -0.3)),
+    ("bar_shelf", lambda: build_bar_shelf(), V(0, 1.4, 0)),
+    ("bar_shelf_b", lambda: build_bar_shelf(57, "bar_shelf_b"), V(0, 1.4, 0)),
+    ("chandelier", lambda: build_chandelier(), V(0.5, 0.05, 0)),
+    ("inn_sign", lambda: build_inn_sign(), V(0, -0.4, -0.9)),
 ]
 
 
@@ -980,6 +1169,8 @@ def main():
             continue
         reset()
         MERGE.clear()
+        global INDOOR
+        INDOOR = name.startswith(("tavern_", "bar_", "chandelier"))
         if name in ("crate", "crate_broken", "bench"):
             MERGE["iron"] = "timber"            # nails only: not worth a draw call
         if name.startswith("sack"):

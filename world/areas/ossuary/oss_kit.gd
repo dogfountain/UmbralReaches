@@ -264,6 +264,13 @@ func _box_col(c: Vector3, hx: Vector3, hy: Vector3, hz: Vector3) -> void:
 			col_faces.append_array(t)
 
 
+## Collision only (no mesh): a solid box for a modelled prop drawn elsewhere (the tavern's furniture).
+func collider(c: Vector3, size: Vector3, b := Basis.IDENTITY) -> void:
+	var h := size.abs() * 0.5
+	solids.append([c, b.orthonormalized(), h])
+	_box_col(c, b.x.normalized() * h.x, b.y.normalized() * h.y, b.z.normalized() * h.z)
+
+
 ## Axis-aligned box from min corner to max corner.
 func block(key: String, lo: Vector3, hi: Vector3, solid := true, shade := 1.0) -> void:
 	box(key, (lo + hi) * 0.5, (hi - lo).abs(), Basis.IDENTITY, solid, shade)

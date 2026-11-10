@@ -21,6 +21,10 @@ const DOOR_X := 17.6                  ## south door centre (east of the giant tr
 const CHIM := Rect2(26.0, 29.4, 1.1, 1.6)
 
 var _rng := RandomNumberGenerator.new()
+const Props := preload("res://core/world/realm/site_props.gd")
+## Modelled furniture (tools/blender/props_square.py, art/models/props/): glb file -> [Transform3D], drawn as one
+## MultiMesh per (file, material set) when the build is done (_place_props). Colliders stay in the kit.
+var _props := {}
 
 
 ## Start making every rig mesh the Keg will ask for on worker threads (cache misses only); the Realm
@@ -202,6 +206,7 @@ func _build() -> void:
 	k.box("glow", post + Vector3(0, 2.25, -0.5), Vector3(0.22, 0.3, 0.22), Basis.IDENTITY, false)
 	k.box("iron", post + Vector3(0, 2.43, -0.5), Vector3(0.3, 0.05, 0.3), Basis.IDENTITY, false)
 	k.commit(self, "TavernBody")
+	_place_props()
 	_panes_one_sided()
 	_warm_materials()
 	print("SITES Tavern owns %d scatter nodes" % WorldLanes.own(self))   # its candles stand inside its sites
@@ -347,12 +352,12 @@ func _interior(k: OssKit) -> void:
 	k.candle_cluster(Vector3(hx - 0.35, y + 1.75, hz + 1.3), 3, 0.12, _rng)
 	# bar counter along the north wall, shelves behind
 	var bz := Z1 - T
-	k.block("wood", Vector3(11.4, y, bz - 1.55), Vector3(18.6, y + 1.0, bz - 1.0), true, 0.75)
-	k.block("wood", Vector3(11.3, y + 1.0, bz - 1.65), Vector3(18.7, y + 1.08, bz - 0.92), true, 0.9)
-	for sy: float in [1.3, 1.85]:
-		k.block("wood", Vector3(11.6, y + sy, bz - 0.35), Vector3(18.4, y + sy + 0.05, bz), false, 0.8)
-		for i in 12:
-			k.box("glow" if i % 4 == 1 else "iron", Vector3(11.9 + 0.55 * float(i), y + sy + 0.16, bz - 0.17), Vector3(0.09, 0.22, 0.09), Basis.IDENTITY, false, 0.45)
+	k.collider(Vector3(15.0, y + 0.5, bz - 1.275), Vector3(7.2, 1.0, 0.55))
+	k.collider(Vector3(15.0, y + 1.04, bz - 1.285), Vector3(7.4, 0.08, 0.73))
+	for i in 6:                                     # the counter and the shelves behind it: six 1.2 m bays
+		var bx := 12.0 + 1.2 * float(i)
+		_prop("bar_counter", Transform3D(Basis.IDENTITY, Vector3(bx, y, bz - 1.285)))
+		_prop("bar_shelf" if i % 2 == 0 else "bar_shelf_b", Transform3D(Basis.IDENTITY, Vector3(bx, y, bz - 0.175)))
 	for c: float in [12.2, 15.2, 17.9]:
 		k.candle_cluster(Vector3(c, y + 1.08, bz - 1.3), 3, 0.12, _rng)
 	_barrel(k, Vector3(19.6, y, bz - 0.5), 1.0)
@@ -366,23 +371,23 @@ func _interior(k: OssKit) -> void:
 	k.block("wood", Vector3(11.6, y, bz - 2.05), Vector3(18.4, y + 0.22, bz - 1.66), true, 0.7)
 	# two trestle tables with benches
 	for tc: Vector2 in [Vector2(12.6, 28.9), Vector2(15.2, 29.6), Vector2(20.4, 28.9), Vector2(21.8, 31.8)]:
-		k.block("wood", Vector3(tc.x - 0.9, y + 0.72, tc.y - 0.45), Vector3(tc.x + 0.9, y + 0.8, tc.y + 0.45), true, 0.85)
+		_prop("tavern_table", Transform3D(Basis.IDENTITY, Vector3(tc.x, y, tc.y)))
+		k.collider(Vector3(tc.x, y + 0.76, tc.y), Vector3(1.8, 0.08, 0.9))
 		for s: float in [-1.0, 1.0]:
-			k.block("wood", Vector3(tc.x + s * 0.7 - 0.06, y, tc.y - 0.3), Vector3(tc.x + s * 0.7 + 0.06, y + 0.72, tc.y + 0.3), true, 0.7)
-			k.block("wood", Vector3(tc.x - 0.85, y + 0.42, tc.y + s * 0.85 - 0.14), Vector3(tc.x + 0.85, y + 0.47, tc.y + s * 0.85 + 0.14), true, 0.8)
-			for e: float in [-0.7, 0.7]:
-				k.block("wood", Vector3(tc.x + e - 0.05, y, tc.y + s * 0.85 - 0.1), Vector3(tc.x + e + 0.05, y + 0.42, tc.y + s * 0.85 + 0.1), false, 0.7)
+			k.collider(Vector3(tc.x + s * 0.7, y + 0.36, tc.y), Vector3(0.12, 0.72, 0.6))
+			# the benches (1.5 m bench.glb drawn out to the table's 1.7 m)
+			_prop("bench", Transform3D(Basis.IDENTITY.scaled(Vector3(1.13, 1.0, 0.85)), Vector3(tc.x, y, tc.y + s * 0.85)))
+			k.collider(Vector3(tc.x, y + 0.445, tc.y + s * 0.85), Vector3(1.7, 0.05, 0.28))
 		k.candle_cluster(Vector3(tc.x, y + 0.8, tc.y), 4, 0.18, _rng)
 	for ch: Array in CHAIRS:
 		_chair(k, Vector3(ch[0], y, ch[1]), float(ch[2]))
 	# iron ring chandelier over the room
 	for cx: float in [14.2, 20.6]:
 		var cc := Vector3(cx, y + H1 - 0.75, 30.2)
-		k.box("iron", cc + Vector3.UP * 0.38, Vector3(0.04, 0.75, 0.04), Basis.IDENTITY, false)
-		for i in 8:
+		_prop("chandelier", Transform3D(Basis.IDENTITY, cc))
+		for i in 8:                                  # a candle in each of its eight cups
 			var a := TAU * float(i) / 8.0
 			var p := cc + Vector3(cos(a) * 0.55, 0.0, sin(a) * 0.55)
-			k.box("iron", p, Vector3(0.45, 0.04, 0.05), Basis(Vector3.UP, -a + PI * 0.5), false)
 			(k.candles[1] as Array).append(Transform3D(Basis.IDENTITY, p + Vector3.UP * 0.03))
 	# rushes / scattered straw on the floor near the door
 	k.block("wood", Vector3(DOOR_X - 1.0, y + 0.001, Z0 + T + 0.1), Vector3(DOOR_X + 1.0, y + 0.02, Z0 + T + 1.4), false, 0.55)
@@ -391,15 +396,8 @@ func _interior(k: OssKit) -> void:
 ## A stout chair facing `yaw` (0 = the sitter faces -z), seat top at 0.47 like the benches.
 func _chair(k: OssKit, at: Vector3, yaw: float) -> void:
 	var b := Basis(Vector3.UP, yaw)
-	var c := at + Vector3.UP * 0.445
-	k.box("wood", c, Vector3(0.5, 0.05, 0.48), b, true, 0.82)                       # seat
-	for sx: float in [-0.2, 0.2]:
-		for sz: float in [-0.19, 0.19]:
-			k.box("wood", at + b * Vector3(sx, 0.21, sz), Vector3(0.06, 0.42, 0.06), b, false, 0.68)
-	for sx2: float in [-0.2, 0.2]:
-		k.box("wood", at + b * Vector3(sx2, 0.78, 0.22), Vector3(0.06, 0.66, 0.06), b, false, 0.7)   # back posts
-	k.box("wood", at + b * Vector3(0.0, 0.98, 0.22), Vector3(0.46, 0.14, 0.04), b, false, 0.78)   # top rail
-	k.box("wood", at + b * Vector3(0.0, 0.72, 0.22), Vector3(0.4, 0.06, 0.03), b, false, 0.74)
+	_prop("tavern_chair", Transform3D(b, at))
+	k.collider(at + Vector3.UP * 0.445, Vector3(0.5, 0.05, 0.48), b)
 
 
 ## The room's regulars and the keep (core/npc), and the story director (core/story/story.gd).
@@ -543,28 +541,34 @@ func _gate_outings() -> void:
 			d.set("_trip_wait", 3.0 + randf() * 3.0)
 
 
-func _barrel(k: OssKit, at: Vector3, s := 1.0, lying := false) -> void:
-	var cm := CreatureMesh.new(int(at.x * 13.0 + at.z * 7.0))
-	var h := 0.85 * s
-	var pts := PackedVector3Array([Vector3(0, 0, 0), Vector3(0, h * 0.5, 0), Vector3(0, h, 0)])
-	cm.tube(pts, PackedFloat32Array([0.27 * s, 0.32 * s, 0.27 * s]), 12, Color(0.85, 0.72, 0.6), 0.0, 0.0)
-	cm.blob(Vector3(0, h, 0), Vector3(0.26 * s, 0.015, 0.26 * s), Basis.IDENTITY, Color(0.7, 0.58, 0.48), 0.0, 0.0, 0.0, 2, 12)
-	var xf := Transform3D(Basis.IDENTITY, at)
-	if lying:
-		xf = Transform3D(Basis(Vector3.RIGHT, PI * 0.5), at + Vector3(0, 0.3 * s, h * 0.5))
-	k.append_mesh("wood", cm.commit(), xf)
-	for hy: float in [0.15, 0.5, 0.85]:
-		var hoop := CreatureMesh.new(3)
-		var r := lerpf(0.275, 0.325, 1.0 - absf(hy - 0.5) * 2.0) * s + 0.008
-		hoop.tube(PackedVector3Array([Vector3(0, h * hy - 0.025, 0), Vector3(0, h * hy + 0.025, 0)]), PackedFloat32Array([r, r]), 12, Color(0.5, 0.5, 0.52), 0.0, 0.0)
-		k.append_mesh("iron", hoop.commit(), xf)
+func _barrel(_k: OssKit, at: Vector3, s := 1.0, lying := false) -> void:
+	if lying:                                       # on the rack: barrel_tipped.glb lies along x, turned along z
+		_prop("barrel_tipped", Transform3D(Basis(Vector3.UP, PI * 0.5).scaled(Vector3.ONE * s), at))
+	else:
+		_prop("barrel", Transform3D(Basis(Vector3.UP, at.x * 1.7).scaled(Vector3.ONE * s), at))
+
+
+func _prop(file: String, xf: Transform3D) -> void:
+	if not _props.has(file):
+		_props[file] = []
+	(_props[file] as Array).append(xf)
+
+
+## One MultiMesh per (model, material set): the whole Keg's furniture is a dozen draws.
+func _place_props() -> void:
+	for file: String in _props:
+		var xfs: Array = _props[file]
+		var i := 0
+		for part: Dictionary in Props.parts(file):
+			var mmi := OssKit.multimesh(part.mesh, xfs, part.mat, not file.begins_with("bar_shelf"))
+			mmi.name = "Prop_%s_%d" % [file, i]
+			add_child(mmi)
+			i += 1
 
 
 func _sign(k: OssKit) -> void:
 	var at := Vector3(DOOR_X - 1.5, FY + H1 + 0.1, Z0 - JET)
-	k.box("iron", at + Vector3(0, 0, -0.55), Vector3(0.05, 0.05, 1.1), Basis.IDENTITY, false)
-	k.box("iron", at + Vector3(0, -0.25, -0.35), Vector3(0.04, 0.55, 0.04), Basis(Vector3.RIGHT, 0.75), false)
-	k.box("wood", at + Vector3(0, -0.5, -0.95), Vector3(0.9, 0.6, 0.06), Basis(Vector3.UP, PI * 0.5), false, 0.8)
+	_prop("inn_sign", Transform3D(Basis.IDENTITY, at))
 	k.box("glow", at + Vector3(0, -0.5, -0.95), Vector3(0.2, 0.26, 0.08), Basis(Vector3.UP, PI * 0.5), false, 0.7)   # painted lantern
 
 

@@ -91,6 +91,15 @@ static func variant(kind: String, i: int, n: int) -> int:
 	return i % n
 
 
+## [{mesh, mat}] of a glb under art/models/props/ (cached): for builders that place a modelled prop themselves
+## (the tavern's furniture) and draw it as one MultiMesh per entry.
+static func parts(file: String) -> Array:
+	var key := "glb:" + file
+	if not _meshes.has(key):
+		_meshes[key] = {"parts": _glb_parts(file)}
+	return _meshes[key].parts
+
+
 ## [{mesh, mat}] of a glb under art/models/props/: one per `<part>__<set>` mesh (the -colonly node is no mesh).
 static func _glb_parts(file: String) -> Array:
 	var out: Array = []
