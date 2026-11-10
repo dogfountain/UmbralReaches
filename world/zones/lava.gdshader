@@ -46,7 +46,7 @@ uniform float star_band = 5.0;
 uniform vec3 star_deep : source_color = vec3(0.01, 0.008, 0.03);
 uniform vec3 star_violet : source_color = vec3(0.4, 0.24, 0.92);
 uniform vec3 star_teal : source_color = vec3(0.2, 0.42, 0.9);
-uniform float star_energy = 1.45;
+uniform float star_energy = 2.1;
 
 // VERTEX is view-space inside fragment(), which would make the crust swim as the camera moves.
 // Carry the world position across explicitly so the pattern stays welded to the world.

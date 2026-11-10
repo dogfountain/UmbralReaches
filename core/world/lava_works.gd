@@ -142,6 +142,8 @@ func _falls_at(list: Array, star := false) -> void:
 				open_x = x
 				continue
 			if not String((hit.collider as Node).name).begins_with("Terrain"):
+				if _is_chapel(hit.collider as Node):
+					open_x = x                         # the Pilgrims' Chapel stands in the fall's way: the river's edge is its far side
 				continue                               # basalt, cliffs, piers: look past them
 			var hy: float = (hit.position as Vector3).y
 			if absf(x - open_x) <= 6.0 and hy > _y + 7.0:
@@ -153,6 +155,17 @@ func _falls_at(list: Array, star := false) -> void:
 		_fall(best[0], best[1], float(best[2]), star)
 		n += 1
 	print("LAVA %d %s poured for the rift" % [n, "starfalls" if star else "falls"])
+
+
+## True for a collider under the Pilgrims' Chapel's node (rift/chapel.gd names it "StarwaterChapel").
+func _is_chapel(n: Node) -> bool:
+	for i in 4:
+		if n == null:
+			return false
+		if n.name == &"StarwaterChapel":
+			return true
+		n = n.get_parent()
+	return false
 
 
 ## A second, denser ember field low over the river near both banks (the rift reads hotter).
@@ -330,7 +343,8 @@ void fragment(){
 	float edge = smoothstep(0.0, 0.3, u) * smoothstep(1.0, 0.7, u) * step(abs(UV.x - 0.5), 0.5 * taper);
 	float threads = n(vec2(UV.x * 18.0, m * 0.25 - TIME * sp * 0.3));
 	float streak = smoothstep(0.55, 0.95, n(vec2(UV.x * 26.0, m * 0.6 - TIME * sp)));
-	float spark = step(0.988, h(floor(vec2(UV.x * 40.0, m * 6.0 - TIME * sp * 6.0))));
+	vec2 sc = vec2(UV.x * 40.0, m * 6.0 - TIME * sp * 6.0);
+	float spark = step(0.995, h(floor(sc))) * (1.0 - smoothstep(0.08, 0.34, length((fract(sc) - 0.5) * vec2(1.0, 2.1)))) * (0.5 + 0.5 * sin(TIME * 2.0 + h(floor(sc)) * 40.0)) * smoothstep(0.2, 0.32, abs(UV.x - 0.5));   // a soft round mote that fades, never down the middle of the fall (where the doorway is)
 	float body = falling ? (0.22 + 0.45 * threads + 0.55 * streak) : (0.4 + 0.4 * threads);
 	float src = smoothstep(0.0, 0.8, m);
 	float foot = 1.0 - smoothstep(total - 3.0, total, m) * 0.6;
@@ -418,9 +432,10 @@ func _fall(top: Vector3, out: Vector3, _height: float, star := false) -> void:
 				(edge_pts[e] as Array).append(Vector3(px, float(ground.call(px, ze)) + lift, ze))
 				continue
 			var h: float = r[1]
-			var from := Vector3(x0 - into.x * 3.0, h, ze)
-			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + into * 30.0, Layers.WORLD))
-			if hit and absf((hit.position as Vector3).x - lip_x) < 18.0:
+			# (the ray starts well out over the river: a building stood against the wall, the Pilgrims' Chapel, is hit from outside)
+			var from := Vector3(x0 - into.x * 10.0, h, ze)
+			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + into * 37.0, Layers.WORLD))
+			if hit and absf((hit.position as Vector3).x - lip_x) < 30.0:        # (a building stood out from the wall is further off than rock)
 				last = (hit.position as Vector3).x
 			# never deeper into the rock than the lip: the sheet would fold back on itself
 			if (last - lip_x) * into.x > 0.0:
