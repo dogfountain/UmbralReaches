@@ -92,7 +92,7 @@ static func place(parent: Node3D, file: String, xf: Transform3D, opts := {}) -> 
 		var parts := nm.split("__")
 		if parts.size() >= 2:
 			var set_name := parts[parts.size() - 1].get_slice(".", 0).get_slice("_", 0)
-			if set_name in ["stone", "ashlar", "timber", "iron", "wax"]:
+			if set_name in ["stone", "ashlar", "timber", "iron", "wax", "cloth", "thatch", "daub", "slate"]:
 				mi.material_override = mat(set_name)
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bool(opts.get("shadow", true)) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				meshes.append(mi)
