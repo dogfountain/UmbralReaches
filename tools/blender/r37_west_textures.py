@@ -210,8 +210,28 @@ def make_iron():
     finish("iron", base, h, rough, ao, 2.0, metal)
 
 
+def make_wax():
+    """wax (lamps kit): tallow candle wax, warm cream, soft mottling, faint vertical drip streaks, soot specks, gentle sheen."""
+    mid = tnoise(N, 2.0, 51)
+    fine = tnoise(N, 1.0, 52)
+    streak = tnoise(N, 1.6, 53, aniso=(0.5, 12.0))
+    soot = smooth(tnoise(N, 1.2, 54), 0.68, 0.82)
+    base = mix(np.broadcast_to(col(0.80, 0.74, 0.56), (N, N, 3)), np.broadcast_to(col(0.66, 0.58, 0.40), (N, N, 3)), np.clip(mid * 1.2 - 0.1, 0, 1))
+    base = base * (0.9 + 0.2 * streak)[..., None]
+    base = mix(base, np.broadcast_to(col(0.18, 0.15, 0.11), (N, N, 3)), soot * 0.5)
+    h = 0.5 + 0.1 * (streak - 0.5) + 0.04 * (fine - 0.5)
+    rough = np.clip(0.5 + 0.15 * fine, 0.35, 0.8)
+    ao = np.clip(1.0 - 0.25 * soot, 0.5, 1.0)
+    finish("wax", base, h, rough, ao, 1.0)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
+    import sys
+    if "--only" in sys.argv:
+        for nm in sys.argv[sys.argv.index("--only") + 1].split(","):
+            globals()["make_" + nm]()
+        raise SystemExit
     make_stone()
     make_ashlar()
     make_timber()
