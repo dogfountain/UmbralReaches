@@ -353,19 +353,15 @@ func _link_meshes() -> void:
 
 func _chain() -> void:
 	_link_meshes()
-	# the links: one shader for all (vertex colour: rust, patina, bright where they bear; metal, a violet rim from the vortex);
-	# the near ones do not sway or fade
-	var iron := ShaderMaterial.new()
-	iron.shader = FAR_SHADER
-	iron.set_shader_parameter("fade_start", 5000.0)
-	iron.set_shader_parameter("fade_end", 9000.0)
-	iron.set_shader_parameter("sway", 0.0)
-	iron.set_shader_parameter("iron", Color(0.95, 0.88, 0.82))
-	iron.set_shader_parameter("metal", 0.2)
-	iron.set_shader_parameter("rough", 0.7)
-	iron.set_shader_parameter("rim_gain", 0.35)
-	iron.set_shader_parameter("glow", 0.0)
-	iron.set_shader_parameter("lift", 0.08)
+	# the near links: the house iron (the cages' and lanterns' set) over the rust vertex colours, a little less metal so the night
+	# has something to light, a thin rim; the far ones keep the vortex-lit shader
+	var iron := WestKit.mat("iron").duplicate() as StandardMaterial3D
+	iron.albedo_color = Color(2.3, 2.3, 2.3)
+	iron.metallic = 0.2
+	iron.roughness = 0.75
+	iron.rim_enabled = true
+	iron.rim = 0.7
+	iron.rim_tint = 0.5
 	var groups: Dictionary = {}
 	var coll_faces := PackedVector3Array()
 	for k in frames.size():
