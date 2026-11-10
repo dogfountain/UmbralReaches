@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bll8omfhj7mqf"
-path="res://.godot/imported/loot_props_LP_Bone_albedo.png-4f505d38726542b1ce53fc3eb0dc3590.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_Bone_albedo.png-4f505d38726542b1ce53fc3eb0dc3590.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_Bone_albedo.png-4f505d38726542b1ce53fc3eb0dc3590.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "84943dc93eca4dab7e13569a622ec1f2"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_Bone_albedo.png"
-dest_files=["res://.godot/imported/loot_props_LP_Bone_albedo.png-4f505d38726542b1ce53fc3eb0dc3590.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_Bone_albedo.png-4f505d38726542b1ce53fc3eb0dc3590.s3tc.ctex", "res://.godot/imported/loot_props_LP_Bone_albedo.png-4f505d38726542b1ce53fc3eb0dc3590.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

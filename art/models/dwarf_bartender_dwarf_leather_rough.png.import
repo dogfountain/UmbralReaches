@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://4llnvx3co4pq"
-path="res://.godot/imported/dwarf_bartender_dwarf_leather_rough.png-731e26eaf7ab136712ef2808fbdfa577.ctex"
+path.s3tc="res://.godot/imported/dwarf_bartender_dwarf_leather_rough.png-731e26eaf7ab136712ef2808fbdfa577.s3tc.ctex"
+path.etc2="res://.godot/imported/dwarf_bartender_dwarf_leather_rough.png-731e26eaf7ab136712ef2808fbdfa577.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "ce24231194f17a39dea7e2a8f0d82138"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/dwarf_bartender_dwarf_leather_rough.png"
-dest_files=["res://.godot/imported/dwarf_bartender_dwarf_leather_rough.png-731e26eaf7ab136712ef2808fbdfa577.ctex"]
+dest_files=["res://.godot/imported/dwarf_bartender_dwarf_leather_rough.png-731e26eaf7ab136712ef2808fbdfa577.s3tc.ctex", "res://.godot/imported/dwarf_bartender_dwarf_leather_rough.png-731e26eaf7ab136712ef2808fbdfa577.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

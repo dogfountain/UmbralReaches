@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bex4wab6grnsx"
-path="res://.godot/imported/r37_south_oak_R37_OakPlank_albedo.png-403d56757d9bc042a5c1d4eb1475e3c7.ctex"
+path.s3tc="res://.godot/imported/r37_south_oak_R37_OakPlank_albedo.png-403d56757d9bc042a5c1d4eb1475e3c7.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_oak_R37_OakPlank_albedo.png-403d56757d9bc042a5c1d4eb1475e3c7.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "848e8e8cd49f08b64541bdf2c79b48b4"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_oak_R37_OakPlank_albedo.png"
-dest_files=["res://.godot/imported/r37_south_oak_R37_OakPlank_albedo.png-403d56757d9bc042a5c1d4eb1475e3c7.ctex"]
+dest_files=["res://.godot/imported/r37_south_oak_R37_OakPlank_albedo.png-403d56757d9bc042a5c1d4eb1475e3c7.s3tc.ctex", "res://.godot/imported/r37_south_oak_R37_OakPlank_albedo.png-403d56757d9bc042a5c1d4eb1475e3c7.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

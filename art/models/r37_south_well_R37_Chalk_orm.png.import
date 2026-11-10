@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bjdl48hrqpwbo"
-path="res://.godot/imported/r37_south_well_R37_Chalk_orm.png-c6bd2b69234d866f6ae497fab5d9e359.ctex"
+path.s3tc="res://.godot/imported/r37_south_well_R37_Chalk_orm.png-c6bd2b69234d866f6ae497fab5d9e359.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_well_R37_Chalk_orm.png-c6bd2b69234d866f6ae497fab5d9e359.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "419f95bc3154c60d0fa17d337b49edfe"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_well_R37_Chalk_orm.png"
-dest_files=["res://.godot/imported/r37_south_well_R37_Chalk_orm.png-c6bd2b69234d866f6ae497fab5d9e359.ctex"]
+dest_files=["res://.godot/imported/r37_south_well_R37_Chalk_orm.png-c6bd2b69234d866f6ae497fab5d9e359.s3tc.ctex", "res://.godot/imported/r37_south_well_R37_Chalk_orm.png-c6bd2b69234d866f6ae497fab5d9e359.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

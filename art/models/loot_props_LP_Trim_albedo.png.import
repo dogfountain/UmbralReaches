@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dwrl3j71y1rfc"
-path="res://.godot/imported/loot_props_LP_Trim_albedo.png-8e268a53b6d94ccc9a5353a4a5bfc45b.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_Trim_albedo.png-8e268a53b6d94ccc9a5353a4a5bfc45b.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_Trim_albedo.png-8e268a53b6d94ccc9a5353a4a5bfc45b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1e78dd5223597ddff7f0c3ae1143ce84"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_Trim_albedo.png"
-dest_files=["res://.godot/imported/loot_props_LP_Trim_albedo.png-8e268a53b6d94ccc9a5353a4a5bfc45b.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_Trim_albedo.png-8e268a53b6d94ccc9a5353a4a5bfc45b.s3tc.ctex", "res://.godot/imported/loot_props_LP_Trim_albedo.png-8e268a53b6d94ccc9a5353a4a5bfc45b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

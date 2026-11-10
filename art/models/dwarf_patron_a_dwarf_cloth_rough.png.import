@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bekag5ogtebdk"
-path="res://.godot/imported/dwarf_patron_a_dwarf_cloth_rough.png-53b2d87af41edef918f1b412e7d3bac9.ctex"
+path.s3tc="res://.godot/imported/dwarf_patron_a_dwarf_cloth_rough.png-53b2d87af41edef918f1b412e7d3bac9.s3tc.ctex"
+path.etc2="res://.godot/imported/dwarf_patron_a_dwarf_cloth_rough.png-53b2d87af41edef918f1b412e7d3bac9.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "cf31479a935cf039d02d95168eaf08d6"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/dwarf_patron_a_dwarf_cloth_rough.png"
-dest_files=["res://.godot/imported/dwarf_patron_a_dwarf_cloth_rough.png-53b2d87af41edef918f1b412e7d3bac9.ctex"]
+dest_files=["res://.godot/imported/dwarf_patron_a_dwarf_cloth_rough.png-53b2d87af41edef918f1b412e7d3bac9.s3tc.ctex", "res://.godot/imported/dwarf_patron_a_dwarf_cloth_rough.png-53b2d87af41edef918f1b412e7d3bac9.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c65nwbtp2g3s6"
-path="res://.godot/imported/r37_south_hut_R37_Thatch_normal.png-6d731f8713d220871e3ac4a3b16433aa.ctex"
+path.s3tc="res://.godot/imported/r37_south_hut_R37_Thatch_normal.png-6d731f8713d220871e3ac4a3b16433aa.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_hut_R37_Thatch_normal.png-6d731f8713d220871e3ac4a3b16433aa.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "8ce713c52a4b2e0dc7a8e6f6c895066d"
@@ -14,17 +16,17 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_hut_R37_Thatch_normal.png"
-dest_files=["res://.godot/imported/r37_south_hut_R37_Thatch_normal.png-6d731f8713d220871e3ac4a3b16433aa.ctex"]
+dest_files=["res://.godot/imported/r37_south_hut_R37_Thatch_normal.png-6d731f8713d220871e3ac4a3b16433aa.s3tc.ctex", "res://.godot/imported/r37_south_hut_R37_Thatch_normal.png-6d731f8713d220871e3ac4a3b16433aa.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

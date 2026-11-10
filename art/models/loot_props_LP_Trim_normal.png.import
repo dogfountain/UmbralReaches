@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bt4kjb8oxjyhi"
-path="res://.godot/imported/loot_props_LP_Trim_normal.png-6fef5f756c45885b64b33d2c7515e950.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_Trim_normal.png-6fef5f756c45885b64b33d2c7515e950.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_Trim_normal.png-6fef5f756c45885b64b33d2c7515e950.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "3ffdfc09008626c9ad8a921e2a571e86"
@@ -14,17 +16,17 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_Trim_normal.png"
-dest_files=["res://.godot/imported/loot_props_LP_Trim_normal.png-6fef5f756c45885b64b33d2c7515e950.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_Trim_normal.png-6fef5f756c45885b64b33d2c7515e950.s3tc.ctex", "res://.godot/imported/loot_props_LP_Trim_normal.png-6fef5f756c45885b64b33d2c7515e950.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dmwr5q7l34rp4"
-path="res://.godot/imported/loot_props_LP_Thread_albedo.png-cdfa4405affe7fe7cfe473525a8e2727.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_Thread_albedo.png-cdfa4405affe7fe7cfe473525a8e2727.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_Thread_albedo.png-cdfa4405affe7fe7cfe473525a8e2727.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "e43cbfe8857fc79bf9681669b7120772"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_Thread_albedo.png"
-dest_files=["res://.godot/imported/loot_props_LP_Thread_albedo.png-cdfa4405affe7fe7cfe473525a8e2727.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_Thread_albedo.png-cdfa4405affe7fe7cfe473525a8e2727.s3tc.ctex", "res://.godot/imported/loot_props_LP_Thread_albedo.png-cdfa4405affe7fe7cfe473525a8e2727.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

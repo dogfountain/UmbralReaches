@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://hxcey7ntmwu1"
-path="res://.godot/imported/dwarf_patron_b_dwarf_leather_albedo.png-8d1502a50d46517f421c73a936a68227.ctex"
+path.s3tc="res://.godot/imported/dwarf_patron_b_dwarf_leather_albedo.png-8d1502a50d46517f421c73a936a68227.s3tc.ctex"
+path.etc2="res://.godot/imported/dwarf_patron_b_dwarf_leather_albedo.png-8d1502a50d46517f421c73a936a68227.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "e0cab39f75593b8db336c76e5885fee8"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/dwarf_patron_b_dwarf_leather_albedo.png"
-dest_files=["res://.godot/imported/dwarf_patron_b_dwarf_leather_albedo.png-8d1502a50d46517f421c73a936a68227.ctex"]
+dest_files=["res://.godot/imported/dwarf_patron_b_dwarf_leather_albedo.png-8d1502a50d46517f421c73a936a68227.s3tc.ctex", "res://.godot/imported/dwarf_patron_b_dwarf_leather_albedo.png-8d1502a50d46517f421c73a936a68227.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
