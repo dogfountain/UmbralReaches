@@ -21,6 +21,8 @@ import boss_kit as K
 from boss_kit import G
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+# GRUNT_OUT=<dir> redirects every written file (glb, atlas maps, .blend) away from art/ for review builds
+OUT = os.environ.get("GRUNT_OUT", "")
 
 # a lone metaball of size s and stiffness k draws its surface at about s * f(k)
 _KF = ((1.0, 0.394), (2.0, 0.574), (4.0, 0.684), (8.0, 0.76))
@@ -369,17 +371,38 @@ def earth(name="Earth", base=(0.2, 0.14, 0.09)):
     return m.finish(col, 0.95, 0.0, h, 0.9, 0.004)
 
 
+def stone(name="Stone", base=(0.2, 0.2, 0.19), moss=(0.07, 0.1, 0.05)):
+    """Weathered grave stone: pale grit, lichen in the hollows, cracks that run in a net, soot."""
+    m = K.Mat(name)
+    n1 = m.noise(5.0, 8.0, 0.6)
+    cr = m.voronoi(14.0, 'DISTANCE_TO_EDGE')
+    crack = m.math('MULTIPLY', m.math('LESS_THAN', cr, 0.02), m.math('GREATER_THAN', m.noise(4.0, 3.0, 0.5), 0.42))
+    col = m.ramp(n1, [(0.3, tuple(c * 0.6 for c in base)), (0.7, base)])
+    lich = m.math('MULTIPLY', m.math('GREATER_THAN', m.noise(7.0, 5.0, 0.55), 0.58), 0.8)
+    col = m.mix(lich, col, moss)
+    col = m.mix(m.math('MULTIPLY', crack, 0.9), col, (0.02, 0.02, 0.02))
+    col = mulc(m, col, cavity(m, 0.45, 0.56, 0.4, 1.1))
+    grit = m.noise(150.0, 3.0, 0.5)
+    h = m.math('ADD', m.math('MULTIPLY', n1, 0.9), m.math('MULTIPLY', crack, -1.0))
+    h = m.math('ADD', h, m.math('MULTIPLY', grit, 0.35))
+    return m.finish(col, 0.92, 0.0, h, 0.7, 0.003)
+
+
 def glow(name, col, strength=8.0, body=(0.04, 0.03, 0.02)):
     m = K.Mat(name)
     return m.finish(body, 0.5, 0.0, None, emit=col, emit_strength=strength)
 
 
-def membrane(name, col, strength, skin_col):
+def membrane(name, col, strength, skin_col, cells=22.0, cell_glow=1.0, vein_glow=0.25, vein_w=0.04):
     """A glowing sac under skin: veined, lit from within."""
     m = K.Mat(name)
-    v = m.voronoi(22.0, 'DISTANCE_TO_EDGE')
-    veins = m.math('LESS_THAN', v, 0.04)
-    em = m.mix(veins, col, tuple(c * 0.25 for c in col))
+    if cells < 0:
+        # branching veins instead of cells: thin ridged lines under skin
+        v = m.math('ABSOLUTE', m.math('SUBTRACT', m.noise(-cells, 4.0, 0.5, dist=0.7), 0.5))
+    else:
+        v = m.voronoi(cells, 'DISTANCE_TO_EDGE')
+    veins = m.math('LESS_THAN', v, vein_w)
+    em = m.mix(veins, tuple(c * cell_glow for c in col), tuple(c * vein_glow for c in col))
     alb = m.mix(veins, skin_col, (0.08, 0.05, 0.05))
     return m.finish(alb, 0.3, 0.0, m.math('MULTIPLY', veins, -1.0), 0.6, 0.002, emit=em, emit_strength=strength)
 
@@ -442,6 +465,35 @@ def plate(name, center, size, normal, sock, mat, segs=20, bend=0.0):
     for v in ob.data.vertices:
         v.co = q @ v.co + Vector(center)
     return ob
+
+
+def slab(name, center, half, quat, sock, mat, arch=0.0, lump=0.0, seed=0.0, segs=28, rings=16, power=0.35):
+    """A thick squarish slab (headstone, coffin board, armour plate): a superellipsoid, optionally arched
+    at the top and lumped, rotated by `quat` and moved to `center`. half = (width, depth, height)/2 in
+    Blender axes (y is the front/back axis, z up)."""
+    def deform(c):
+        p = Vector(c)
+        q = Vector((math.copysign(abs(p.x) ** power, p.x), math.copysign(abs(p.y) ** power, p.y), math.copysign(abs(p.z) ** power, p.z)))
+        if arch > 0.0 and q.z > 0.0:
+            q.x *= 1.0 - arch * q.z * q.z
+        if lump > 0.0:
+            q += q.normalized() * lump * noise.noise(q * 2.7 + Vector((seed, seed * 0.7, 1.3)))
+        return q
+    ob = K.blob(name, Vector((0, 0, 0)), half, sock, mat, segs, rings, deform)
+    for v in ob.data.vertices:
+        v.co = quat @ v.co + Vector(center)
+    return ob
+
+
+def chain_links(name, pts, r, sock, mat, step=0.02):
+    """A hanging chain along the polyline `pts`: a tube that swells and pinches every `step`."""
+    dense = []
+    for a, b in zip(pts, pts[1:]):
+        n = max(1, int((b - a).length / step))
+        for k in range(n):
+            dense.append(Vector(a).lerp(Vector(b), k / n))
+    dense.append(Vector(pts[-1]))
+    return K.loft(name, dense, [(r if i % 2 == 0 else r * 0.5) for i in range(len(dense))], sock, mat, 6)
 
 
 # --- skinning ------------------------------------------------------------------------------------
@@ -514,12 +566,22 @@ def budget(objs, target):
     total = sum(tri(o) for o in objs)
     if total <= target:
         return
-    big = [o for o in objs if tri(o) > 300]
+    big = [o for o in objs if tri(o) > 300 and not o.get("fixed")]
     fixed = total - sum(tri(o) for o in big)
-    ratio = max(0.05, (target - fixed) / max(1, total - fixed))
+    # r38: the head and the weight-bearing skin keep more of their triangles than straps and spikes do (a
+    # faceted skull read worse than any dropped rag): a part named for the head takes a heavier weight
+    wt = lambda o: 2.2 if ("head" in o.name.lower() or "face" in o.name.lower()) else 1.0
+    lo, hi = 0.01, 1.0
+    for _ in range(30):
+        mid = (lo + hi) * 0.5
+        if fixed + sum(tri(o) * min(1.0, mid * wt(o)) for o in big) > target:
+            hi = mid
+        else:
+            lo = mid
+    ratio = max(0.03, lo)
     for o in big:
         d = o.modifiers.new("Budget", 'DECIMATE')
-        d.ratio = ratio
+        d.ratio = min(1.0, ratio * wt(o))
         d.use_collapse_triangulate = True
         K.apply_mods(o)
     print("BUDGET", total, "->", sum(tri(o) for o in objs), "ratio", round(ratio, 3))
@@ -532,9 +594,11 @@ def export_skinned(objs, mats, name, sockets, weights, rigid=None, size=2048, ta
     rigid = rigid or {}
     if target > 0:
         budget(objs, target)
-    K.bake_atlas(objs, mats, name, os.path.join(ROOT, "art", "textures"), size)
-    os.makedirs(os.path.join(ROOT, "art", "blender"), exist_ok=True)
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT, "art", "blender", name + ".blend"))
+    tex_dir = OUT or os.path.join(ROOT, "art", "textures")
+    blend_dir = OUT or os.path.join(ROOT, "art", "blender")
+    K.bake_atlas(objs, mats, name, tex_dir, size)
+    os.makedirs(blend_dir, exist_ok=True)
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(blend_dir, name + ".blend"))
     arm = armature(sockets)
     skinned, solo = [], {}
     for o in objs:
@@ -574,7 +638,7 @@ def export_skinned(objs, mats, name, sockets, weights, rigid=None, size=2048, ta
     for o in out:
         o.select_set(True)
     tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in out if o.type == 'MESH')
-    path = os.path.join(ROOT, "art", "models", name + ".glb")
+    path = os.path.join(OUT, name + ".glb") if OUT else os.path.join(ROOT, "art", "models", name + ".glb")
     bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', use_selection=True, export_apply=True,
                               export_yup=True, export_materials='NONE', export_normals=True, export_texcoords=True,
                               export_skins=True, export_animations=False, export_all_influences=False)
