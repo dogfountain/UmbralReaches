@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode diffuse_burley, specular_schlick_ggx, depth_draw_opaque;
+#define CL_LIFT 1.4
 #include "res://core/vfx/char_look.gdshaderinc"
 // Modelled grunts (r30, tools/blender/grunt_*.py; a copy of boss_pbr.gdshader, which stays the
 // bosses'). One baked atlas per kind -- albedo, tangent-space
@@ -69,6 +70,7 @@ void fragment() {
 	ROUGHNESS = mix(ROUGHNESS, 0.92, dust_m);
 	SPECULAR *= 1.0 - dust_m * 0.6;
 
+	ALBEDO = cl_lift(ALBEDO);   // r38: skin, bone and cloth read under moonlight
 	float d = cl_noise(opos * 9.0) * 0.7 + cl_noise(opos * 23.0) * 0.3;
 	ALPHA = 1.0;
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
@@ -80,7 +82,7 @@ void fragment() {
 	float breathe = 1.0 + emit_pulse * sin(TIME * pulse_rate + pulse_phase + opos.y * 3.0);
 	float skin_t = mix(1.0, 0.35 + 0.9 * pow(1.0 - ndv, 1.5), membrane);
 	EMISSION = texture(emit_tex, UV).rgb * emit_energy * breathe * (1.0 + heat * (cl_noise(opos * 7.0 + vec3(0.0, TIME * 0.8, 0.0)) - 0.5)) * skin_t * (1.0 + glint * 2.5)
-		+ cl_rim(NORMAL, VIEW, VIEW_MATRIX)
+		+ cl_rim(NORMAL, VIEW, VIEW_MATRIX) + cl_moon_rim(NORMAL, VIEW, VIEW_MATRIX)
 		+ vec3(1.4, 1.25, 1.2) * hit_flash * (0.35 + 0.65 * pow(1.0 - ndv, 1.5))
 		+ burn_col * edge * 3.0;
 }

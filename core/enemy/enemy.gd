@@ -198,7 +198,8 @@ var _regroup_t := 0.0
 var _regroup_at := Vector3.ZERO
 var _regrouped := false
 var _hunt_t := 0.0
-static var _weak_mat: StandardMaterial3D
+static var _weak_mat: ShaderMaterial
+const WEAK_GLOW := preload("res://core/enemy/weak_glow.gdshader")
 static var _weak_mesh: SphereMesh
 static var _alarms: Array = []   ## [Vector3, msec] of recent pack calls
 const ALARM_R := 18.0
@@ -1888,12 +1889,15 @@ func _make_weak() -> void:
 		_weak_mesh.height = 2.0
 		_weak_mesh.radial_segments = 14
 		_weak_mesh.rings = 7
-		_weak_mat = ProcMesh.glow_mat(WEAK_COL)
+		_weak_mat = ShaderMaterial.new()    # a glow from inside (falloff, flicker), not a flat disc
+		_weak_mat.shader = WEAK_GLOW
+		_weak_mat.set_shader_parameter("glow_col", WEAK_COL)
 	var mi := MeshInstance3D.new()
 	mi.name = "WeakPoint"
 	mi.mesh = _weak_mesh
 	mi.material_override = _weak_mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.set_instance_shader_parameter(&"phase", float(get_instance_id() % 97))
 	mi.position = weak_offset
 	mi.scale = Vector3.ONE * weak_r
 	mi.visible = weak_open

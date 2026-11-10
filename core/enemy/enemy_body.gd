@@ -261,7 +261,14 @@ static func _glow_mat(kind: StringName) -> Material:
 	if not _glow_mats.has(kind):
 		# white-gold, candle-gold, ember: hues the grade keeps (violet went to the world's blue)
 		var c: Color = {&"ascended_warden": Color(3.0, 2.5, 1.5), &"bone_abbot": Color(3.0, 1.75, 0.5), &"thornwarden": Color(2.6, 0.6, 0.15)}.get(kind, Color(2.6, 1.6, 0.6))
-		_glow_mats[kind] = ProcMesh.glow_mat(c)
+		if kind == &"bone_abbot":    # the reliquary lantern glows from inside (falloff, flicker)
+			var sm := ShaderMaterial.new()
+			sm.shader = preload("res://core/enemy/weak_glow.gdshader")
+			sm.set_shader_parameter("glow_col", c)
+			sm.set_shader_parameter("flicker_rate", 3.5)
+			_glow_mats[kind] = sm
+		else:
+			_glow_mats[kind] = ProcMesh.glow_mat(c)
 	return _glow_mats[kind]
 
 

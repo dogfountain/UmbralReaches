@@ -16,6 +16,12 @@
 #ifndef CL_BREAKUP
 #define CL_BREAKUP 0.16
 #endif
+#ifndef CL_MOON
+#define CL_MOON 0.75
+#endif
+#ifndef CL_LIFT
+#define CL_LIFT 1.0
+#endif
 #ifndef CL_RIM
 #define CL_RIM 0.34
 #endif
@@ -81,6 +87,20 @@ vec3 cl_rim(vec3 normal, vec3 view, mat4 view_matrix) {
 	float ndv = clamp(dot(normal, view), 0.0, 1.0);
 	float up = clamp(dot(normal, (view_matrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz) * 0.5 + 0.5, 0.0, 1.0);
 	return vec3(0.55, 0.36, 0.22) * pow(1.0 - ndv, 3.0) * CL_RIM * up;
+}
+
+// r38 night read (enemies only): a faint cool moonlit rim, stronger on the up-facing side, so a creature's
+// outline separates from dark foliage at 7-15 m. Emission-only (no light cost); one pow and a dot.
+vec3 cl_moon_rim(vec3 normal, vec3 view, mat4 view_matrix) {
+	float ndv = clamp(dot(normal, view), 0.0, 1.0);
+	float up = clamp(dot(normal, (view_matrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz) * 0.5 + 0.5, 0.0, 1.0);
+	return vec3(0.28, 0.38, 0.62) * pow(1.0 - ndv, 8.0) * (0.3 + 0.7 * up) * CL_MOON;
+}
+
+// r38: lift the body so skin, bone and cloth read as materials in moonlight (a small gain, hue kept: no
+// added black-point; the night stays dark, the grade still does its work).
+vec3 cl_lift(vec3 a) {
+	return a * CL_LIFT;
 }
 
 // --- models pass: cheap object-space finish (one noise + optional bump) -------------------------
