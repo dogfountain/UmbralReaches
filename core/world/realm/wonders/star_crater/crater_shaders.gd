@@ -91,6 +91,7 @@ uniform vec3 heart = vec3(0.0);
 uniform vec3 moon = vec3(0.3, 0.75, 0.4);
 uniform float strength = 1.0;
 uniform float ripple = 0.0;
+uniform float edge_field = 1.0;           // 0 on the far meshes (their LODs fold the fan points away)
 varying vec3 wp;
 varying float cr;
 float h31(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
@@ -101,7 +102,7 @@ void vertex() {
 void fragment() {
 	float up = clamp(UV.x, 0.0, 1.0);
 	float kind = UV.y;
-	float e = UV2.y;
+	float e = mix(0.55, UV2.y, edge_field);
 	vec3 wn = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
 	vec3 vw = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
 	float fk = h31(floor(wn * 6.0 + 0.5) + cr * 13.0);
@@ -203,9 +204,10 @@ void fragment() {
 	EMISSION = em;
 }"""
 
-## The star: a white-gold gem, every facet its own brightness, short points of light cooling to gold at their tips,
-## a slow pulse; molten drips beneath (UV.y 1; UV.x 1 at the root), white-gold at the shoulder, through orange and
-## red to dark glass at the bead. The whole thing turns slowly. The only thing here well over the bloom threshold.
+## The star: a dense core of many small facets (UV2.y: 1 in the middle of a facet, 0 at its edges), hot white-gold in
+## the middle of each and violet-blue where they meet, hottest at the middle of the disc, violet at the limb, a slow
+## pulse; thin threads of molten glass beneath (UV.y 1; UV.x 1 at the root), hot at the root, cooling to an ember.
+## The whole thing turns slowly. Close to, it is dimmed so the facets read; from afar the halo carries the glow.
 const HEART := """shader_type spatial;
 render_mode cull_back, specular_disabled;
 varying float k;
@@ -223,75 +225,64 @@ void vertex() {
 void fragment() {
 	float pulse = 0.5 + 0.5 * sin(TIME * 0.8);
 	float ndv = clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0);
-	float fk = fract(sin(dot(floor(normalize(on) * 5.0 + 0.5), vec3(127.1, 311.7, 74.7))) * 43758.5453);
+	float fk = fract(sin(dot(floor(normalize(on) * 14.0 + 0.5), vec3(127.1, 311.7, 74.7))) * 43758.5453);
+	float near = mix(0.6, 1.0, smoothstep(8.0, 40.0, length(VERTEX)));
 	ALBEDO = vec3(0.02, 0.018, 0.016);
 	ROUGHNESS = 0.4;
 	SPECULAR = 0.2;
 	vec3 em;
 	if (kind > 0.75) {
-		vec3 hot = mix(vec3(0.07, 0.012, 0.006), vec3(0.5, 0.08, 0.02), smoothstep(0.08, 0.5, k));
-		hot = mix(hot, vec3(1.5, 0.62, 0.18), smoothstep(0.45, 0.85, k));
-		hot = mix(hot, vec3(2.6, 2.0, 1.3), smoothstep(0.88, 1.0, k));
-		em = hot * (0.85 + 0.15 * pulse) + vec3(0.25, 0.06, 0.02) * pow(1.0 - ndv, 2.0) * 0.5;
+		vec3 hot = mix(vec3(0.05, 0.012, 0.006), vec3(0.9, 0.36, 0.1), smoothstep(0.25, 0.8, k));
+		hot = mix(hot, vec3(2.4, 1.7, 0.9), smoothstep(0.88, 1.0, k));
+		em = hot * (0.85 + 0.15 * pulse) * mix(0.7, 1.0, near);
 	} else {
-		// close to, the gem is read facet by facet; from afar it burns
-		float near = mix(0.62, 1.0, smoothstep(8.0, 32.0, length(VERTEX)));
-		vec3 c = mix(vec3(1.7, 1.0, 0.36), vec3(5.2, 4.5, 3.3), fk * fk) * near;
-		c = mix(c, vec3(2.2, 1.25, 0.45), pow(1.0 - ndv, 2.0) * 0.8);
-		c = mix(c, vec3(1.7, 1.05, 0.45), smoothstep(0.25, 1.0, k));
-		em = c * (0.82 + 0.28 * pulse);
+		// each facet white-gold in its middle, cooling to a pale violet-blue at its rim (a tint, not a wire)
+		float mid = smoothstep(0.0, 0.14, UV2.y);
+		vec3 white = mix(vec3(2.3, 1.75, 1.0), vec3(4.6, 4.2, 3.5), fk * fk);
+		vec3 c = mix(white * vec3(0.45, 0.42, 0.95) + vec3(0.1, 0.05, 0.35), white, mid);
+		c *= mix(0.55, 1.0, pow(ndv, 0.8));
+		c = mix(c, vec3(0.5, 0.36, 1.7), pow(1.0 - ndv, 1.6) * 0.85);
+		em = c * near * (0.85 + 0.2 * pulse);
 	}
 	EMISSION = em;
 }"""
 
-## A plate of the star's shell drifting round it (each plate turns at its own rate and bobs on its own beat: instance
-## uniforms). The outer face dark glass with a few cracks of light, the inner face lit gold by the core, the broken
-## edge burning.
+## The star's crust: jagged plates of black glass laid close over the core, turning with it (rate 0.1, the core's).
+## The outer face black glass (the sky in it, a cold violet rim), the inner face dark with the core's glow on it,
+## the broken edges glowing seams.
 const SHELL := """shader_type spatial;
 render_mode cull_back, specular_disabled;
-instance uniform float rate = 0.05;
+instance uniform float rate = 0.1;
 instance uniform float phase = 0.0;
 varying float kind;
-varying vec3 op;
 void vertex() {
-	op = VERTEX;
 	float a = phase + TIME * rate;
 	float c = cos(a); float s = sin(a);
-	float br = 1.0 + 0.035 * sin(TIME * 0.45 + phase * 3.0);
-	VERTEX = vec3(VERTEX.x * c - VERTEX.z * s, VERTEX.y, VERTEX.x * s + VERTEX.z * c) * br;
-	VERTEX.y += 0.3 * sin(TIME * 0.3 + phase * 2.0);
+	VERTEX = vec3(VERTEX.x * c - VERTEX.z * s, VERTEX.y, VERTEX.x * s + VERTEX.z * c);
 	NORMAL = vec3(NORMAL.x * c - NORMAL.z * s, NORMAL.y, NORMAL.x * s + NORMAL.z * c);
 	kind = UV.y;
 }
 void fragment() {
 	float pulse = 0.5 + 0.5 * sin(TIME * 0.8);
 	float ndv = clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0);
-	ALBEDO = vec3(0.05, 0.04, 0.045);
-	ROUGHNESS = 0.3;
-	SPECULAR = 0.2;
+	float near = mix(0.55, 1.0, smoothstep(8.0, 40.0, length(VERTEX)));
+	ALBEDO = vec3(0.006, 0.006, 0.01);
+	ROUGHNESS = 0.07;
+	SPECULAR = 0.5;
 	vec3 em;
 	if (kind > 0.75) {
-		em = vec3(1.5, 0.85, 0.32) * (0.8 + 0.2 * pulse);
+		em = vec3(2.8, 1.6, 0.55) * (0.8 + 0.2 * pulse) * near;
 	} else if (kind > 0.25) {
-		float l2 = 0.0;
-		for (int i = 0; i < 5; i++) {
-			float fi = float(i);
-			vec3 n = normalize(vec3(sin(fi * 2.399 + 0.7), cos(fi * 1.913 + 2.1), sin(fi * 3.17 + 1.3)));
-			l2 = max(l2, 1.0 - smoothstep(0.02, 0.08, abs(dot(op, n) - 2.2 * sin(fi * 5.31 + 0.4))));
-		}
-		em = (vec3(0.05, 0.016, 0.004) + vec3(1.6, 0.8, 0.28) * l2) * (0.75 + 0.25 * pulse);
+		em = vec3(0.07, 0.03, 0.05) + vec3(0.1, 0.05, 0.16) * pow(1.0 - ndv, 2.0);
 	} else {
-		float line = 0.0;
-		float glow = 0.0;
-		for (int i = 0; i < 5; i++) {
-			float fi = float(i);
-			vec3 n = normalize(vec3(sin(fi * 2.399 + 0.7), cos(fi * 1.913 + 2.1), sin(fi * 3.17 + 1.3)));
-			float dist = abs(dot(op, n) - 2.2 * sin(fi * 5.31 + 0.4));
-			line = max(line, 1.0 - smoothstep(0.015, 0.06, dist));
-			glow = max(glow, 1.0 - smoothstep(0.0, 0.14, dist));
-		}
-		em = vec3(1.9, 1.3, 0.6) * line + vec3(0.5, 0.3, 0.12) * glow * glow * 0.3 + vec3(0.025, 0.012, 0.016);
-		em += vec3(0.95, 0.5, 0.18) * pow(1.0 - ndv, 4.0) * 0.25;
+		// black glass: the core's light caught along the shard's own facets (each its own value), a violet rim
+		float fk = fract(sin(dot(floor(normalize(NORMAL) * 9.0 + 0.5), vec3(127.1, 311.7, 74.7))) * 43758.5453);
+		em = vec3(0.14, 0.1, 0.42) * pow(1.0 - ndv, 2.5) + vec3(0.012, 0.01, 0.03) + vec3(0.06, 0.04, 0.14) * fk * fk;
+		// from afar the shards melt into the star's own light (dark patches on a bright ball read as a patterned
+		// ball): the crust is a close-up thing
+	}
+	if (kind < 0.75) {
+		em = mix(em, vec3(2.3, 1.75, 1.2), smoothstep(14.0, 42.0, length(VERTEX)));
 	}
 	EMISSION = em;
 }"""
@@ -300,7 +291,7 @@ void fragment() {
 const HALO := """shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, fog_disabled;
 uniform vec3 tint = vec3(1.0, 0.9, 0.74);
-uniform float amount = 0.7;
+uniform float amount = 0.85;
 void vertex() {
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
 	MODELVIEW_NORMAL_MATRIX = mat3(MODELVIEW_MATRIX);

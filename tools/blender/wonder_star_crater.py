@@ -6,8 +6,8 @@
                            shard_crown_a/b    small druses
   star_crater_rim.glb      rim_slab_a/b/c     heaved plates of fused crust (not exported by default)
   star_crater_heart.glb    heart_core         the star: a faceted gem with short points of light
-                           heart_drips        molten glass frozen beneath it
-                           shell_a-e          broken plates of its shell (drifted round it in the engine)
+                           heart_drips        thin threads of molten glass hanging beneath it
+                           heart_shell        jagged plates of black glass crust laid close over it
                            frag_a-f           small chips that orbit further out
   star_crater_ridge.glb    ridge_plate_a-d, ridge_shelf  snapped quartz columns (walk faces at z=0, bodies below), colonly hulls
 
@@ -426,18 +426,13 @@ def fib_dirs(n, rng):
     return out
 
 
-def shell_plate(name, rng, dirc, ang_r, r_in, thick):
-    """A broken piece of the star's shell: a curved plate on a sphere round the heart, a jagged outline; the outer
-    face dark (kind 0), the inner face lit by the core (0.5), the broken edge burning (1)."""
-    pc = Piece(name)
+def shell_plate(pc, rng, dirc, outline, r_in, thick):
+    """A broken piece of the star's crust laid close over the core: a curved plate on a sphere, a jagged outline of
+    sharp teeth; the outer face black glass (kind 0), the inner face lit by the core (0.5), the broken edge a glowing
+    seam (1). Added to `pc` (all the plates are one mesh: they turn with the core)."""
     dirc = dirc.normalized()
     e1, e2 = basis_for(dirc)
-    n = 11
-    outline = []
-    for j in range(n):
-        phi = TAU * j / n + rng.uniform(-0.16, 0.16)
-        rho = ang_r * (rng.uniform(0.74, 0.9) if j % 3 == 1 else rng.uniform(0.9, 1.1))
-        outline.append((phi, rho))
+    n = len(outline)
 
     def sph(phi, rho, radius):
         d = dirc * math.cos(rho) + (e1 * math.cos(phi) + e2 * math.sin(phi)) * math.sin(rho)
@@ -445,12 +440,12 @@ def shell_plate(name, rng, dirc, ang_r, r_in, thick):
 
     ro = r_in + thick
     rnd = rng.random()
-    c_o = pc.v(sph(0.0, 0.0, ro * 1.01), (rnd, 0.0, 0.0, 0.0))
+    c_o = pc.v(sph(0.0, 0.0, ro), (rnd, 0.0, 0.0, 0.0))
     c_i = pc.v(sph(0.0, 0.0, r_in), (rnd, 0.0, 0.0, 0.0))
-    mid_o = [pc.v(sph(p, r * 0.5, ro * rng.uniform(0.985, 1.02)), (rnd, 0.0, 0.0, 0.5)) for p, r in outline]
-    mid_i = [pc.v(sph(p, r * 0.5, r_in), (rnd, 0.0, 0.0, 0.5)) for p, r in outline]
-    out_o = [pc.v(sph(p, r, ro * rng.uniform(0.97, 1.0)), (rnd, 0.0, 0.0, 1.0)) for p, r in outline]
-    out_i = [pc.v(sph(p, r * rng.uniform(0.9, 0.97), r_in + thick * rng.uniform(0.0, 0.3)), (rnd, 0.0, 0.0, 1.0)) for p, r in outline]
+    mid_o = [pc.v(sph(p, r * 0.55, ro * rng.uniform(0.995, 1.01)), (rnd, 0.0, 0.0, 0.5)) for p, r in outline]
+    mid_i = [pc.v(sph(p, r * 0.55, r_in), (rnd, 0.0, 0.0, 0.5)) for p, r in outline]
+    out_o = [pc.v(sph(p, r, ro * rng.uniform(0.99, 1.0)), (rnd, 0.0, 0.0, 1.0)) for p, r in outline]
+    out_i = [pc.v(sph(p, r * 0.97, r_in), (rnd, 0.0, 0.0, 1.0)) for p, r in outline]
     for j in range(n):
         k = (j + 1) % n
         pc.f([c_o, mid_o[j], mid_o[k]], 0.0)
@@ -458,65 +453,97 @@ def shell_plate(name, rng, dirc, ang_r, r_in, thick):
         pc.f([c_i, mid_i[k], mid_i[j]], 0.5)
         pc.f([mid_i[j], mid_i[k], out_i[k], out_i[j]], 0.5)
         pc.f([out_o[j], out_i[j], out_i[k], out_o[k]], 1.0)
-    return pc.finish()
 
 
 def build_heart():
-    """THE FALLEN STAR: a faceted white-gold core (an irregular gem, every facet its own plane) with short points of
-    light standing out of it; molten glass frozen in drips beneath; five broken plates of its dark shell drifting
-    round it; small chips further out."""
+    """THE FALLEN STAR: a dense core of many small facets (hot white at the heart of each, violet-blue at its edges
+    in the game), broken plates of black glass crust laid close over it with glowing seams between them, thin
+    threads of molten glass hanging beneath, small chips of crust further out."""
     rng = random.Random(7)
     out = []
     pc = Piece("heart_core")
-    ico = bmesh.ops.create_icosphere(pc.bm, subdivisions=2, radius=1.0)
-    for v in ico["verts"]:
-        u = v.co.normalized()
-        r = 2.2 * (1.0 + 0.12 * noise.noise(u * 1.9 + Vector((3, 1, 2))) + rng.uniform(-0.06, 0.06))
-        v.co = u * r
-        pc.col[v] = (0.5, 1.0, 0.0, 0.0)
+    # an irregular gem: the hull of scattered points on a lumpy sphere (facets of every size and shape, no geodesic
+    # pattern)
+    for d in fib_dirs(1100, rng):
+        d = (d + Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-1, 1))) * 0.05).normalized()
+        r = 2.2 * (1.0 + 0.06 * noise.noise(d * 2.3 + Vector((3, 1, 2))) + rng.uniform(-0.035, 0.035))
+        pc.v(d * r, (0.5, 1.0, 0.0, 0.0))
+    bmesh.ops.convex_hull(pc.bm, input=pc.bm.verts[:])
+    for v in [v for v in pc.bm.verts if not v.link_faces]:
+        pc.bm.verts.remove(v)
+    bmesh.ops.recalc_face_normals(pc.bm, faces=pc.bm.faces[:])
     for fc in pc.bm.faces:
+        fc.smooth = False
         pc.kind[fc] = 0.0
-    for d in fib_dirs(8, rng):
-        if d.z < -0.4:
-            continue
-        d = (d + Vector((rng.uniform(-0.2, 0.2), rng.uniform(-0.2, 0.2), rng.uniform(-0.2, 0.2)))).normalized()
-        Ls = rng.uniform(0.6, 1.2)
-        crystal(pc, d * 1.95, d, Ls, Ls / rng.uniform(3.2, 4.5), rng, broken=rng.random() < 0.25, sink=0.3, cap=False, rnd=0.5)
     out.append(pc.finish())
-    # molten drips: strands of glass hanging below, thick at the shoulder, a bead at the end, glowing at the root
+    # threads of molten glass: thin, long, slightly swaying strands from the underside, hot at the root
     pd = Piece("heart_drips")
     pd.cur = 1.0
-    for i in range(16):
-        th = TAU * (i + rng.uniform(-0.3, 0.3)) / 16
-        s = rng.uniform(0.15, 0.75)
+    for i in range(11):
+        th = TAU * (i + rng.uniform(-0.35, 0.35)) / 11
+        s = rng.uniform(0.1, 0.8)
         d = Vector((math.cos(th) * s, math.sin(th) * s, -1.0)).normalized()
-        base = d * 1.95
-        L = rng.uniform(0.8, 2.4) * (1.0 - 0.3 * s)
-        rings = [(0.0, 0.22), (0.2, 0.13), (0.5, 0.075), (0.8, 0.05), (0.9, 0.075), (0.97, 0.04)]
-        sw = rng.uniform(-0.25, 0.25)
+        base = d * 2.15
+        L = rng.uniform(0.9, 3.2) * (1.0 - 0.35 * s)
+        w0 = rng.uniform(0.018, 0.032)
+        sw = Vector((rng.uniform(-0.3, 0.3), rng.uniform(-0.3, 0.3), 0.0))
         prev = None
-        for t, w in rings:
+        steps = 8
+        for si in range(steps + 1):
+            t = si / steps
+            w = w0 * (1.0 - 0.7 * t) + 0.006
             ring = []
-            w *= rng.uniform(0.85, 1.15)
-            for q in range(6):
-                qa = TAU * q / 6 + th
-                co = base + Vector((math.cos(qa) * w + sw * t * t, math.sin(qa) * w, -L * t))
+            for q in range(5):
+                qa = TAU * q / 5 + th
+                co = base + sw * (t * t) + Vector((math.cos(qa) * w, math.sin(qa) * w, -L * t))
                 ring.append(pd.v(co, (0.5, 0.0, 0.0, 1.0 - t)))
             if prev:
-                for q in range(6):
-                    k = (q + 1) % 6
+                for q in range(5):
+                    k = (q + 1) % 5
                     pd.f([prev[q], ring[q], ring[k], prev[k]])
             prev = ring
-        tip = pd.v(base + Vector((sw, 0.0, -L * 1.03)), (0.5, 0.0, 0.0, 0.0))
-        for q in range(6):
-            k = (q + 1) % 6
+        tip = pd.v(base + sw + Vector((0.0, 0.0, -L * 1.02)), (0.5, 0.0, 0.0, 0.0))
+        for q in range(5):
+            k = (q + 1) % 5
             pd.f([prev[k], prev[q], tip])
     out.append(pd.finish())
-    # five plates of the shell, clear of the points of light (their inner faces start past 3.3 m)
-    plates = ((Vector((1.0, 0.2, 0.3)), 0.36, 3.6), (Vector((-0.6, 0.9, 0.05)), 0.3, 3.9), (Vector((-0.5, -0.8, 0.5)), 0.34, 3.5),
-              (Vector((0.4, -0.9, 0.12)), 0.28, 4.1), (Vector((-0.3, 0.1, 1.0)), 0.3, 3.7))
-    for i, (d, ang, r_in) in enumerate(plates):
-        out.append(shell_plate("shell_" + "abcde"[i], random.Random(300 + i), d, ang, r_in, rng.uniform(0.3, 0.42)))
+    # the crust: the upper two thirds of a shell of black glass a hand's breadth over the core, broken into
+    # shards along the cells round scattered seeds (thin glowing seams between them), its lower edge torn ragged
+    # where the shell broke open and the light comes out
+    ps = Piece("heart_shell")
+    seeds = []
+    for d in fib_dirs(80, rng):
+        d = (d + Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-1, 1))) * 0.1).normalized()
+        if d.z > -0.2 - 0.25 * rng.random():
+            seeds.append(d)
+
+    def owner(v):
+        return max(range(len(seeds)), key=lambda i: v.dot(seeds[i]))
+
+    for si, sd in enumerate(seeds):
+        sr = random.Random(300 + si)
+        if sr.random() < 0.3:
+            continue                                   # a shard fallen away: a window onto the core
+        e1, e2 = basis_for(sd)
+        outline = []
+        n = 22
+        for j in range(n):
+            phi = TAU * j / n
+            dirp = e1 * math.cos(phi) + e2 * math.sin(phi)
+            lo, hi = 0.0, 1.2
+            for _ in range(18):
+                m = (lo + hi) * 0.5
+                v = sd * math.cos(m) + dirp * math.sin(m)
+                if owner(v) == si and v.z > -0.62:
+                    lo = m
+                else:
+                    hi = m
+            rho = lo * sr.uniform(0.8, 0.9) - 0.015
+            if j % 2 == 1:
+                rho *= sr.uniform(0.86, 1.0)          # teeth along the broken edge
+            outline.append((phi, max(rho, 0.05)))
+        shell_plate(ps, sr, sd, outline, 2.46 + sr.uniform(0.0, 0.16), sr.uniform(0.05, 0.08))
+    out.append(ps.finish())
     # six small chips of the shell for further out: a curved plate, a broken edge (kind 1), a lit underside (0.5)
     for i in range(6):
         r = random.Random(200 + i)
@@ -759,7 +786,7 @@ def main():
         "shards": (build_shards, "star_crater_shards.glb", [("great_a", ("shard_great_a",), 24, 46), ("great_b", ("shard_great_b",), 18, 34), ("great_c", ("shard_great_c",), 14, 27),
                                                            ("ray", ("shard_ray_a", "shard_ray_b"), 6, 24), ("crown", ("shard_crown_a", "shard_crown_b"), 4, 11)]),
         "rim": (build_rim, "star_crater_rim.glb", [("slab_a", ("rim_slab_a",), 1.0, 11), ("slab_c", ("rim_slab_c",), 1.0, 13)]),
-        "heart": (build_heart, "star_crater_heart.glb", [("heart", ("heart_core", "heart_drips", "shell_a", "shell_b", "shell_c", "shell_d", "shell_e"), 0.0, 16), ("frags", ("frag_a", "frag_b", "frag_c", "frag_d", "frag_e", "frag_f"), 0.0, 6)]),
+        "heart": (build_heart, "star_crater_heart.glb", [("heart", ("heart_core", "heart_drips", "heart_shell"), 0.0, 14), ("frags", ("frag_a", "frag_b", "frag_c", "frag_d", "frag_e", "frag_f"), 0.0, 6)]),
         "steps": (build_ridge, "star_crater_ridge.glb", [("ridge", ("ridge_plate_a", "ridge_plate_b"), -2.0, 14), ("shelf", ("ridge_shelf",), -2.5, 16)]),
     }
     for key in ONLY:

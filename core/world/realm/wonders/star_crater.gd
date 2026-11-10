@@ -8,8 +8,8 @@ extends RefCounted
 ##   - the crystals: three great quartz druses rooted in the rim and thrown outward, long points lying across the
 ##     pans: milky and lit from within at the root, clear to the point (Blender: art/models/wonders/star_crater_shards.glb,
 ##     tools/blender/wonder_star_crater.py)
-##   - the star: a white-gold faceted gem with short points of light, molten glass frozen in drips beneath, plates
-##     of its dark shell drifting round it, chips further out, a halo, a hum, motes
+##   - the star: a dense many-faceted core, hot white-gold within and violet at its facet edges, black glass crust
+##     laid close over it with glowing seams, molten threads and a slow rain of motes beneath, chips, a halo, a hum
 ##   - the climb: a ridge of snapped quartz columns heaved up from the crater floor, curving in toward a shelf
 ##     under the star crowned with points (a secret: core/life/secrets/site_star_crater.gd)
 ## Everything animated is in the shaders. Two lights. Placed clear of the salt-works, derricks and pans, the camps and
@@ -38,6 +38,7 @@ var _audit: Array[String] = []
 var _last_hit := ""
 var _scenes := {}
 var _meshes := {}
+var _far_mats := {}
 var _gcache := {}
 var _stats := {}
 
@@ -241,6 +242,34 @@ func _mesh(file: String, node: String) -> Mesh:
 	return out
 
 
+## Past FAR_M the piece swaps to the importer's mesh with its LODs (the inner fan points folded away) and a copy of
+## its material that ignores the edge field, which those LODs no longer carry (it would read every face as edge).
+const FAR_M := 150.0
+
+
+func _far(file: String, node: String, near: MeshInstance3D, mat: Material) -> void:
+	var root := _scene(file)
+	var n := root.find_child(node, true, false) as MeshInstance3D if root != null else null
+	if n == null or n.mesh == null or not mat is ShaderMaterial:
+		return
+	if not _far_mats.has(mat):
+		var fm := (mat as ShaderMaterial).duplicate() as ShaderMaterial
+		fm.set_shader_parameter("edge_field", 0.0)
+		_far_mats[mat] = fm
+	near.visibility_range_end = FAR_M
+	near.visibility_range_end_margin = 8.0
+	var far := MeshInstance3D.new()
+	far.name = near.name + "_Far"
+	far.mesh = n.mesh
+	far.material_override = _far_mats[mat]
+	far.transform = near.transform
+	far.extra_cull_margin = near.extra_cull_margin
+	far.cast_shadow = near.cast_shadow
+	far.visibility_range_begin = FAR_M
+	far.visibility_range_begin_margin = 8.0
+	host.add_child(far)
+
+
 ## The collision hull the asset ships for `node` (its `-colonly` mesh becomes the body that follows it), as a convex
 ## shape with the points' y scaled below the top (z < 0 in Blender, y < 0 here) by `sy`.
 func _hull(file: String, node: String, sy := 1.0) -> ConvexPolygonShape3D:
@@ -313,6 +342,7 @@ func _put(file: String, node: String, xf: Transform3D, mat: Material, label: Str
 	mi.transform = Transform3D(xf.basis * Basis.from_scale(Vector3(1.0, sy, 1.0)), xf.origin)
 	mi.extra_cull_margin = 6.0
 	host.add_child(mi)
+	_far(file, node, mi, mat)
 	if solid:
 		var sh := _hull(file, node, sy)
 		if sh != null:
@@ -403,25 +433,20 @@ func _heart() -> void:
 		mi.extra_cull_margin = 2.0
 		host.add_child(mi)
 		mi.global_position = heart
-	# the plates of its shell, each drifting round it at its own rate (instance uniforms: one material)
-	var shell := _glass_mat(Shaders.SHELL)
-	var rates := [0.045, -0.035, 0.06, -0.05, 0.03]
-	var i := 0
-	for n: String in ["shell_a", "shell_b", "shell_c", "shell_d", "shell_e"]:
-		var mesh := _mesh("star_crater_heart.glb", n)
-		if mesh == null:
-			continue
+		_far("star_crater_heart.glb", n, mi, hm)
+	# its crust: jagged plates of black glass laid close over the core, turning with it (the shell shader's rate is the
+	# core's)
+	var crust := _mesh("star_crater_heart.glb", "heart_shell")
+	if crust != null:
 		var mi := MeshInstance3D.new()
-		mi.name = "Shell_" + n.right(1)
-		mi.mesh = mesh
-		mi.material_override = shell
+		mi.name = "HeartShell"
+		mi.mesh = crust
+		mi.material_override = _glass_mat(Shaders.SHELL)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mi.extra_cull_margin = 6.0
+		mi.extra_cull_margin = 2.0
 		host.add_child(mi)
 		mi.global_position = heart
-		mi.set_instance_shader_parameter(&"rate", rates[i])
-		mi.set_instance_shader_parameter(&"phase", float(i) * 1.7)
-		i += 1
+		_far("star_crater_heart.glb", "heart_shell", mi, mi.material_override)
 	var halo := MeshInstance3D.new()
 	halo.name = "Halo"
 	var q := QuadMesh.new()
@@ -506,18 +531,19 @@ func _motes() -> void:
 		host.add_child(dust)
 		dust.global_position = Vector3(C.x, g0 + 0.4, C.y)
 		dust.emitting = true
-	var spark := Vfx.emitter(Color(0.9, 1.1, 1.7), {"count": 60, "life": 6.0, "speed": Vector2(0.05, 0.2), "size": 0.06, "gravity": 0.05, "radius": 1.0, "turbulence": true, "explosive": 0.0})
-	if spark:
-		spark.name = "HeartSparks"
-		var sm := (spark.process_material as ParticleProcessMaterial).duplicate() as ParticleProcessMaterial
+	# a slow rain of hot motes off the star, falling into the crater and going out on the way down
+	var rain := Vfx.emitter(Color(1.6, 1.05, 0.5), {"count": 90, "life": 10.0, "speed": Vector2(0.0, 0.15), "size": 0.05, "gravity": -0.32, "damping": 0.0, "radius": 1.0, "turbulence": true, "explosive": 0.0})
+	if rain:
+		rain.name = "StarRain"
+		var sm := (rain.process_material as ParticleProcessMaterial).duplicate() as ParticleProcessMaterial
 		sm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-		sm.emission_sphere_radius = 3.2
-		spark.process_material = sm
-		spark.visibility_aabb = AABB(Vector3(-10, -10, -10), Vector3(20, 20, 20))
-		spark.preprocess = 4.0
-		host.add_child(spark)
-		spark.global_position = heart
-		spark.emitting = true
+		sm.emission_sphere_radius = 2.0
+		rain.process_material = sm
+		rain.visibility_aabb = AABB(Vector3(-8, -20, -8), Vector3(16, 24, 16))
+		rain.preprocess = 10.0
+		host.add_child(rain)
+		rain.global_position = heart + Vector3.DOWN * 1.6
+		rain.emitting = true
 
 
 func _hum() -> void:
