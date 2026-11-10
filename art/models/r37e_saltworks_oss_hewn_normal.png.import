@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c8kiqts40vtsu"
-path="res://.godot/imported/r37e_saltworks_oss_hewn_normal.png-2f9f93b41bff623646120798dad86815.ctex"
+path.s3tc="res://.godot/imported/r37e_saltworks_oss_hewn_normal.png-2f9f93b41bff623646120798dad86815.s3tc.ctex"
+path.etc2="res://.godot/imported/r37e_saltworks_oss_hewn_normal.png-2f9f93b41bff623646120798dad86815.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "175007c6078b0aabbb40e18ab7b9d5b9"
@@ -14,17 +16,17 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37e_saltworks_oss_hewn_normal.png"
-dest_files=["res://.godot/imported/r37e_saltworks_oss_hewn_normal.png-2f9f93b41bff623646120798dad86815.ctex"]
+dest_files=["res://.godot/imported/r37e_saltworks_oss_hewn_normal.png-2f9f93b41bff623646120798dad86815.s3tc.ctex", "res://.godot/imported/r37e_saltworks_oss_hewn_normal.png-2f9f93b41bff623646120798dad86815.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

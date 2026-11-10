@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dqkqect1mrhfq"
-path="res://.godot/imported/loot_props_LP_TintWood_orm.png-c6c2bf0abe0650eec0ce3a067a0216ea.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_TintWood_orm.png-c6c2bf0abe0650eec0ce3a067a0216ea.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_TintWood_orm.png-c6c2bf0abe0650eec0ce3a067a0216ea.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "e1137a2ddcd3a1d5b0fac9d6ef8f943a"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_TintWood_orm.png"
-dest_files=["res://.godot/imported/loot_props_LP_TintWood_orm.png-c6c2bf0abe0650eec0ce3a067a0216ea.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_TintWood_orm.png-c6c2bf0abe0650eec0ce3a067a0216ea.s3tc.ctex", "res://.godot/imported/loot_props_LP_TintWood_orm.png-c6c2bf0abe0650eec0ce3a067a0216ea.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

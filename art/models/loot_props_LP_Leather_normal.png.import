@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://durlht2fmt1tt"
-path="res://.godot/imported/loot_props_LP_Leather_normal.png-38174b7b8657e3eb8e89805902b5d828.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_Leather_normal.png-38174b7b8657e3eb8e89805902b5d828.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_Leather_normal.png-38174b7b8657e3eb8e89805902b5d828.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "4f730b8d4532b42bf6674636c12dd4ca"
@@ -14,17 +16,17 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_Leather_normal.png"
-dest_files=["res://.godot/imported/loot_props_LP_Leather_normal.png-38174b7b8657e3eb8e89805902b5d828.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_Leather_normal.png-38174b7b8657e3eb8e89805902b5d828.s3tc.ctex", "res://.godot/imported/loot_props_LP_Leather_normal.png-38174b7b8657e3eb8e89805902b5d828.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

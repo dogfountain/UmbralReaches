@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c0gh4rfhwrsx4"
-path="res://.godot/imported/r37_south_hut_R37_Thatch_albedo.png-64b4f29edaac3a1f1a935f49c96fd715.ctex"
+path.s3tc="res://.godot/imported/r37_south_hut_R37_Thatch_albedo.png-64b4f29edaac3a1f1a935f49c96fd715.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_hut_R37_Thatch_albedo.png-64b4f29edaac3a1f1a935f49c96fd715.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "67213a7768c6ae22334d39ea5f3e129a"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_hut_R37_Thatch_albedo.png"
-dest_files=["res://.godot/imported/r37_south_hut_R37_Thatch_albedo.png-64b4f29edaac3a1f1a935f49c96fd715.ctex"]
+dest_files=["res://.godot/imported/r37_south_hut_R37_Thatch_albedo.png-64b4f29edaac3a1f1a935f49c96fd715.s3tc.ctex", "res://.godot/imported/r37_south_hut_R37_Thatch_albedo.png-64b4f29edaac3a1f1a935f49c96fd715.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bmym0u5t74x07"
-path="res://.godot/imported/r37_south_hut_R37_HutWood_albedo.png-216a17c837c4954ce139adb097356a04.ctex"
+path.s3tc="res://.godot/imported/r37_south_hut_R37_HutWood_albedo.png-216a17c837c4954ce139adb097356a04.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_hut_R37_HutWood_albedo.png-216a17c837c4954ce139adb097356a04.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "5d066ec11c3e6ed948ade247b634c035"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_hut_R37_HutWood_albedo.png"
-dest_files=["res://.godot/imported/r37_south_hut_R37_HutWood_albedo.png-216a17c837c4954ce139adb097356a04.ctex"]
+dest_files=["res://.godot/imported/r37_south_hut_R37_HutWood_albedo.png-216a17c837c4954ce139adb097356a04.s3tc.ctex", "res://.godot/imported/r37_south_hut_R37_HutWood_albedo.png-216a17c837c4954ce139adb097356a04.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

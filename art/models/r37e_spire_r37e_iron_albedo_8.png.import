@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7mwo0e1cuwg2"
-path="res://.godot/imported/r37e_spire_r37e_iron_albedo_8.png-2619f51ae6ddcbd4ef05afae01ce06c8.ctex"
+path.s3tc="res://.godot/imported/r37e_spire_r37e_iron_albedo_8.png-2619f51ae6ddcbd4ef05afae01ce06c8.s3tc.ctex"
+path.etc2="res://.godot/imported/r37e_spire_r37e_iron_albedo_8.png-2619f51ae6ddcbd4ef05afae01ce06c8.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "7b1b6d979f1b84b0c09ebac31be6dfec"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37e_spire_r37e_iron_albedo_8.png"
-dest_files=["res://.godot/imported/r37e_spire_r37e_iron_albedo_8.png-2619f51ae6ddcbd4ef05afae01ce06c8.ctex"]
+dest_files=["res://.godot/imported/r37e_spire_r37e_iron_albedo_8.png-2619f51ae6ddcbd4ef05afae01ce06c8.s3tc.ctex", "res://.godot/imported/r37e_spire_r37e_iron_albedo_8.png-2619f51ae6ddcbd4ef05afae01ce06c8.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
