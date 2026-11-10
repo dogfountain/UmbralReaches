@@ -9,9 +9,14 @@ Sets
   ashlar   coursed dressed masonry (the mill, the bridge piers, the hold walls): mortar, per-block tone, moss in the joints
   timber   weathered boards: grain, silvering, nail heads, gaps
   iron     rusted iron: pitting, scale, orange bloom
+  cloth    burlap: a visible over-under weave, uneven threads, a few darns, dust (sacks; used on props at 3x)
+
+  run.sh r37_west_textures.py -- --only cloth   writes just the named sets
 """
 import bpy
+import math
 import os
+import sys
 import numpy as np
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -210,9 +215,49 @@ def make_iron():
     finish("iron", base, h, rough, ao, 2.0, metal)
 
 
+def make_cloth():
+    """Burlap: a plain weave (64 threads a tile), thread-thickness noise, darned patches, dust."""
+    rng = np.random.default_rng(51)
+    th = 64
+    ys, xs = np.mgrid[0:N, 0:N]
+    u = xs / N * th
+    v = ys / N * th
+    # the threads wobble a little off true
+    u = u + 0.35 * (tnoise(N, 2.0, 52) - 0.5)
+    v = v + 0.35 * (tnoise(N, 2.0, 53) - 0.5)
+    fu, fv = u - np.floor(u), v - np.floor(v)
+    warp = 0.5 + 0.5 * np.sin(fu * math.pi)          # a thread running up, bulging mid-cell
+    weft = 0.5 + 0.5 * np.sin(fv * math.pi)
+    over = ((np.floor(u) + np.floor(v)) % 2) == 0
+    h = np.where(over, warp, weft)
+    gapw = 1.0 - np.maximum(warp, weft) * 0 - np.minimum(warp, weft) * 0
+    thick = 0.8 + 0.4 * tnoise(N, 1.2, 54)
+    h = h * thick
+    # darns: tighter diagonal stitching in three patches
+    darn = np.zeros((N, N))
+    for (cx, cy, w, hh) in ((200, 250, 150, 110), (700, 640, 120, 160), (420, 880, 170, 90)):
+        m = (xs > cx) & (xs < cx + w) & (ys > cy) & (ys < cy + hh)
+        darn = np.where(m, 1.0, darn)
+        st = 0.5 + 0.5 * np.sin((xs + ys) * 0.55)
+        h = np.where(m, 0.45 + 0.4 * st * thick, h)
+    dust = smooth(tnoise(N, 1.6, 55), 0.5, 0.8)
+    soil = smooth(tnoise(N, 1.3, 56), 0.6, 0.8)
+    lo = col(0.34, 0.25, 0.15)
+    hi = col(0.62, 0.5, 0.31)
+    base = mix(np.broadcast_to(lo, (N, N, 3)), np.broadcast_to(hi, (N, N, 3)), np.clip(h * 1.05, 0, 1))
+    base = base * (0.85 + 0.3 * tnoise(N, 1.8, 57))[..., None]
+    base = mix(base, np.broadcast_to(col(0.43, 0.37, 0.3), (N, N, 3)), darn * 0.7)
+    base = mix(base, np.broadcast_to(col(0.66, 0.6, 0.48), (N, N, 3)), dust * 0.35)
+    base = mix(base, np.broadcast_to(col(0.2, 0.15, 0.1), (N, N, 3)), soil * 0.35)
+    rough = np.clip(0.93 + 0.05 * (h - 0.5), 0.8, 1.0)
+    ao = np.clip(0.55 + 0.5 * h, 0.4, 1.0)
+    finish("cloth", base, h, rough, ao, 2.2)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    make_stone()
-    make_ashlar()
-    make_timber()
-    make_iron()
+    argv = sys.argv
+    only = argv[argv.index("--only") + 1].split(",") if "--only" in argv else []
+    for nm, fn in (("stone", make_stone), ("ashlar", make_ashlar), ("timber", make_timber), ("iron", make_iron), ("cloth", make_cloth)):
+        if not only or nm in only:
+            fn()

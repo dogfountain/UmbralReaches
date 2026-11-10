@@ -5,7 +5,7 @@
 Revision 2: every prop is split into <part>__<set> meshes (timber / iron, plus a plain `water` for the trough) with metric
 UVs (1 UV unit = tile metres, grain along each face's longest edge, exactly as r37_west.py), and the game dresses
 the sets with art/textures/r37_<set>_{albedo,normal,orm}.png. Vertex colour is a TONE multiplier only (grime, moss at
-the foot, rust). Burlap uses the timber set for now (a `cloth` set would be better: ask the lead).
+the foot, rust). Burlap uses the new `cloth` set (r37_west_textures.py).
 
 One glb per prop in art/models/props/, in GODOT metres, pivot at the base centre, y up, same size as the old box
 builders so the swap is drop-in:
@@ -73,8 +73,8 @@ def fbm(p, octaves=3):
 
 
 WOOD, IRON, CLOTH, GRAIN, DARK, WATER = 0, 1, 2, 3, 4, 5      # face kinds: drive the finishing pass
-KEY = {WOOD: 'timber', IRON: 'iron', CLOTH: 'timber', GRAIN: 'timber', DARK: 'timber', WATER: 'water'}
-TILE = {'timber': 2.0, 'iron': 2.0, 'water': 2.0}
+KEY = {WOOD: 'timber', IRON: 'iron', CLOTH: 'cloth', GRAIN: 'timber', DARK: 'timber', WATER: 'water'}
+TILE = {'timber': 2.0, 'iron': 2.0, 'cloth': 2.0, 'water': 2.0}
 
 CUBE = {
     '+x': [(1, 0, 0), (1, 1, 0), (1, 1, 1), (1, 0, 1)],
@@ -350,8 +350,11 @@ def textured_material(key):
     uvn = nodes.new("ShaderNodeUVMap")
     uvn.uv_map = "UVMap"
     al, nr, orm = img("albedo", "sRGB"), img("normal", "Non-Color"), img("orm", "Non-Color")
+    mp = nodes.new("ShaderNodeMapping")        # props use the game's prop_mat: uv scale 3
+    mp.inputs["Scale"].default_value = (3.0, 3.0, 3.0)
+    links.new(uvn.outputs[0], mp.inputs[0])
     for t in (al, nr, orm):
-        links.new(uvn.outputs[0], t.inputs[0])
+        links.new(mp.outputs[0], t.inputs[0])
     vc = nodes.new("ShaderNodeVertexColor")
     vc.layer_name = "Col"
     mul = nodes.new("ShaderNodeMix")
@@ -373,6 +376,7 @@ def textured_material(key):
     if key == "iron":
         links.new(sep.outputs[2], bsdf.inputs["Metallic"])
     nm = nodes.new("ShaderNodeNormalMap")
+    nm.inputs["Strength"].default_value = 0.35      # prop_mat: normal_scale 0.35 of the set's
     links.new(nr.outputs[0], nm.inputs["Color"])
     links.new(nm.outputs[0], bsdf.inputs["Normal"])
     return m
