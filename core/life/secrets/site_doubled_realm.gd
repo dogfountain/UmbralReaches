@@ -1,7 +1,7 @@
 extends RefCounted
 ## r34 places (docs/r34/places.md): three hidden things in the doubled Realm's new ground, in the
 ## r23/r28 manner (a climb-only nook, a puzzle, a lever and a door), each beside a place the player
-## already has a reason to visit (realm_pois_r34.gd), so the discovery is "there was more here":
+## already has a reason to visit (realm_pois_doubled_realm.gd), so the discovery is "there was more here":
 ##   cutters_nook   THE CUTTERS' NOOK (Saints' Quarry): a shelter on a bench above the Unfinished
 ##                  Stair's crane deck. The benches are cut 3 m high (no grab reaches): only the Tether
 ##                  from the deck (or a long glide) gets you up. The cutters' strongbox and a page.
@@ -173,7 +173,7 @@ static func _ninth(root: Node, host: Node3D, ranks: Node3D) -> void:
 		return
 	var sp := Kit.space(root)
 	var c0: Vector3 = ranks.get_meta("centre")
-	var R34 := load("res://core/world/realm/realm_pois_r34.gd") as GDScript
+	var R34 := load("res://core/world/realm/realm_pois_doubled_realm.gd") as GDScript
 	var spot: Dictionary = (R34.get("spots") as Dictionary).get("necro_ranks", {})
 	var yaw := float(spot.get("yaw", 0.0))
 	var b := Basis(Vector3.UP, yaw)
@@ -286,7 +286,7 @@ static func _sluice(root: Node, host: Node3D, landing: Node3D) -> void:
 		print("SECRETS corvin's sluice: no landing")
 		return
 	var sp := Kit.space(root)
-	var R34 := load("res://core/world/realm/realm_pois_r34.gd") as GDScript
+	var R34 := load("res://core/world/realm/realm_pois_doubled_realm.gd") as GDScript
 	var jetty: Array = (R34.get("causeways") as Dictionary).get("mere_landing", [])
 	if jetty.size() < 2:
 		print("SECRETS corvin's sluice: no jetty")

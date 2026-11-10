@@ -18,18 +18,18 @@ extends RefCounted
 ##                (Elites "well_answer") keeps the landing
 ## Everything is placed by ground raycast at build time (the terrain, wherever the Foundation put it).
 ## Built by realm_pois.gd: reserve() from its reserve (before the stamp and the flora), build() from its
-## build (after the flora). Meshes come from the Blender kits (r37_south_kit.gd); the numbers they were
-## made with, from r37_south_data.gd (written by tools/blender/r37_south.py). No class_name.
+## build (after the flora). Meshes come from the Blender kits (south_marches_kit.gd); the numbers they were
+## made with, from south_marches_kit_data.gd (written by tools/blender/r37_south.py). No class_name.
 
 const P := preload("res://core/world/realm/realm_pois.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
-const Kit := preload("res://core/world/realm/r37_south_kit.gd")
+const Kit := preload("res://core/world/realm/south_marches_kit.gd")
 const OakMound := preload("res://core/world/realm/oak_mound.gd")
 const OakHollowGlow := preload("res://core/world/realm/oak_hollow_glow.gd")
-const Data := preload("res://core/world/realm/r37_south_data.gd")
-const FALL_SHADER := preload("res://core/world/realm/r37_south_fall.gdshader")
+const Data := preload("res://core/world/realm/south_marches_kit_data.gd")
+const FALL_SHADER := preload("res://core/world/realm/well_waterfall.gdshader")
 
 const OAK_C := Vector2(-70.0, 206.0)
 const WALL_Z0 := -112.0
@@ -664,7 +664,7 @@ static func _oak(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var lw: Array = (limbs[limbs.size() - 1] as Dictionary).walk
 	var cw: Array = lw[maxi(lw.size() - 3, 0)]
 	_chest(h, "r37s_oak_limb", xf * Vector3(float(cw[0]), float(cw[1]) + 0.02, float(cw[2])), float(s.yaw))
-	# the crown deck: the top of the stair, where the secret is (site_r37_south.gd)
+	# the crown deck: the top of the stair, where the secret is (site_south_marches.gd)
 	var st: Dictionary = Data.OAK_STAIR
 	var a_end: float = float(st.a_end)
 	var top_y: float = float(st.top)

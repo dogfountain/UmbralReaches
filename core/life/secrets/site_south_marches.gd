@@ -12,7 +12,7 @@ extends RefCounted
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
-const South := preload("res://core/world/realm/realm_pois_r37_south.gd")
+const South := preload("res://core/world/realm/realm_pois_south_marches.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
 

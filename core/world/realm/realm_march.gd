@@ -1,7 +1,7 @@
 class_name RealmMarch
 extends RefCounted
 ## The March Wall's line and the Marches' cross-ridges (the numbers; RealmLayout shapes the land from them,
-## realm_pois_r37_south.gd builds the wall on them). The wall follows the land: one polyline (x, z; z
+## realm_pois_south_marches.gd builds the wall on them). The wall follows the land: one polyline (x, z; z
 ## ascending) per side that swings out onto knolls and ridges and back, straight only where the road crosses
 ## (the gates, x +-155; RealmLayout.MARCH_GATES). Spurs run out to a tower on a knoll (the land lifts under
 ## the tip). RUINS is the long fall: [side, z0, z1], stubs and rubble, nothing to bar the way. OPENINGS are

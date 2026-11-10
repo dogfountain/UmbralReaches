@@ -1,6 +1,6 @@
 extends RefCounted
 ## A cottage's fireplace and its lime-washed lining (no class_name: preload by path). Built for the West
-## Marches' gabled houses (realm_pois_r37_west.gd), all in the house's local frame (+z the front, `b` its yaw):
+## Marches' gabled houses (realm_pois_west_marches.gd), all in the house's local frame (+z the front, `b` its yaw):
 ##  - surround(): the chimney breast on the back wall with a lintel, piers, a hearth slab and a mantel, and the
 ##    plaster that lines the inside of the walls (a warm neutral, so firelight reads amber, not terracotta);
 ##  - fire(): logs on iron dogs, a bed of coals, crossed flame cards (the brazier's shader), a few rising

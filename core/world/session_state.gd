@@ -39,8 +39,8 @@ const NODE_REFS := [
 	"core/skills/afflict.gd: _inst",
 	"core/enemy/enemy_spawner.gd: kind_hook",
 	"core/enemy/enemy_spawner.gd: dress_hook",
-	"core/world/realm/realm_pois_r37_west.gd: arena",
-	"core/world/realm/realm_pois_r37_east.gd: lamp_node",
+	"core/world/realm/realm_pois_west_marches.gd: arena",
+	"core/world/realm/realm_pois_east_marches.gd: lamp_node",
 ]
 
 
@@ -56,7 +56,7 @@ static func reset_night() -> void:
 	SecretsState.release()
 	Reactivity.release()
 	# the Marches' places keep their boss arena and the Spire's lamp for tests and quests
-	for path: String in ["res://core/world/realm/realm_pois_r37_west.gd", "res://core/world/realm/realm_pois_r37_east.gd"]:
+	for path: String in ["res://core/world/realm/realm_pois_west_marches.gd", "res://core/world/realm/realm_pois_east_marches.gd"]:
 		var marches: Variant = load(path)
 		marches.release()
 	# the Encounters director installs these spawner hooks on _ready and only clears hold_for_rest

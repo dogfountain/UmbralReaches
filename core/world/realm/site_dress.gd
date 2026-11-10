@@ -418,7 +418,7 @@ static func _breach(b: Vector2) -> void:
 
 # --- things that move ----------------------------------------------------------------------------
 
-const WEST := "res://core/world/realm/realm_pois_r37_west.gd"
+const WEST := "res://core/world/realm/realm_pois_west_marches.gd"
 
 ## Washing lines and banners stirring in the wind (Sway), chimney smoke over Weirford's lived-in houses,
 ## embers off the forges' hearths. Every one placed where nobody walks, like the clutter.
@@ -435,7 +435,7 @@ static func _settle_life(host: Node3D) -> void:
 			n_line += 1
 		if String(sq.id) != "hearthward" and _banner(life, sq.c, sq.r):
 			n_banner += 1
-	# Weirford's chimneys: the inn, the smithy, the two cottages (the shape of realm_pois_r37_west.gd _house)
+	# Weirford's chimneys: the inn, the smithy, the two cottages (the shape of realm_pois_west_marches.gd _house)
 	var west: Dictionary = (load(WEST) as GDScript).get_script_constant_map()
 	var blds: Dictionary = west.get("BLD", {})
 	var n_smoke := 0
