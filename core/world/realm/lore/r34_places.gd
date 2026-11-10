@@ -10,6 +10,7 @@ extends RefCounted
 ## others. Texts: lore_db.gd (regions quarry, holds, foundry, moor, orchard, necropolis, mere).
 
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
 
 static func build(parent: Node) -> void:
@@ -243,6 +244,7 @@ static func _field_gate(L: RefCounted) -> void:
 			L.drystone(L.gv(w0.x, w0.y), L.gv(w1.x, w1.y), 0.85, 0.45, "lore_tstone")
 		else:
 			print("REALM_LORE r34 skip field gate wall %d (%s) at %s" % [int(side), LK.blocker(span, 0.5), str(c)])
+			PlacementLog.skip("lore", "r34_wf_wall_%d" % int(side), Vector3(c.x, 0, c.y), "blocked by " + LK.blocker(span, 0.5))
 		# a lit grave-lamp on the road side, off the wall's line
 		var lq := c + nrm * side * 4.6 - t * 1.6
 		var lat: Vector3 = L.gv(lq.x, lq.y)
@@ -338,6 +340,7 @@ static func _field(L: RefCounted) -> void:
 			r = Rect2(r.position + Vector2(3, -3), r.size)
 			if not _free_rect(r) or not LK.clear_of(r, 0.8):
 				print("REALM_LORE r34 skip field block %d (%s)" % [bi, LK.blocker(r, 0.8)])
+				PlacementLog.skip("lore", name, Vector3(r.get_center().x, 0, r.get_center().y), "blocked by " + LK.blocker(r, 0.8))
 				continue
 		var gr: Vector2 = L.g_range(r)
 		if gr.y - gr.x > 2.5 or gr.x < -0.6:

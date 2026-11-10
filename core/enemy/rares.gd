@@ -13,6 +13,7 @@ extends Node3D
 const EliteKit := preload("res://core/life/encounters/elite_kit.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const TICK := 0.5
 const NEAR := 95.0              ## the rare walks its beat while you are within this (and it is not dead)
 const FAR := 130.0              ## further than this it goes back into the dark, healed
@@ -160,6 +161,7 @@ func setup(scripts: Dictionary) -> void:
 			haunts[id] = fallback
 		if not haunts.has(id):
 			push_warning("Rares: no clear haunt for %s" % id)
+			PlacementLog.skip("rares", id, Vector3.ZERO, "no clear haunt")
 			continue
 		_markers[id] = _make_marker(id, haunts[id])
 

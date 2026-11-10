@@ -54,6 +54,7 @@ const GROUP_GUARDIAN := "guardian_site"           ## core/life/encounters/guardi
 const GROUP_UPDRAFT := "updraft"                  ## the cloak-glide's lift (Player._updraft)
 const SID := "world_pois"
 const R37West := preload("res://core/world/realm/realm_pois_r37_west.gd")      # --- west marches ---
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const R34_PATH := "res://core/world/realm/realm_pois_r34.gd"   ## r34 places (docs/r34/places.md)
 # --- south marches ---
 const SOUTH_PATH := "res://core/world/realm/realm_pois_r37_south.gd"     ## the South pass (the wall, the fold, the oak, the well)
@@ -138,6 +139,7 @@ static func reserve(root: Node) -> void:
 		var q := LK.search_spot(space, pref, d[1], half, 1.5, d[3], [], 2.0, ok)
 		if q == Vector2.INF:
 			print("REALM_POI skip %s: no clear ground near %s" % [id, d[0]])
+			PlacementLog.skip("pois", id, Vector3((d[0] as Vector2).x, 0, (d[0] as Vector2).y), "no clear ground")
 			continue
 		var rect := Rect2(q - half, half * 2.0)
 		var lo := INF

@@ -10,6 +10,7 @@ const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Vent := preload("res://core/life/secrets/breath_vent.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
 const RIM_NEAR := Vector2(-36.0, -50.0)       ## the west rim, north of the Fallen Bells
 const TR := 2.0                  ## tower radius (outer)
@@ -29,6 +30,7 @@ static func build(root: Node, host: Node3D) -> void:
 		t2 = LK.search_spot(sp, RIM_NEAR, 44.0, Vector2(4.6, 3.0), 1.2, 1.4, ["secrets_breath"], 2.5, ok)
 	if t2 == Vector2.INF:
 		print("SECRETS hermit's perch: no clear spot")
+		PlacementLog.skip("secrets", "hermits_perch", Vector3(RIM_NEAR.x, 0, RIM_NEAR.y), "no clear spot")
 		return
 	var vent2 := t2 + Vector2(TR + 1.25, 0.0)
 	var node := Node3D.new()

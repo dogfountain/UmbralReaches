@@ -12,6 +12,7 @@ extends RefCounted
 
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const SELF := "res://core/world/realm/lore/scenes.gd"
 
 ## Where each place would like to be (the nearest clear, level ground is searched from there): the
@@ -55,6 +56,7 @@ static func _spot(L: RefCounted, n: String, prefer: Vector2, half: float, margin
 	var q := LK.search_spot(L.space, prefer, 40.0, Vector2(half, half), margin, max_rise, [n], 3.0, keep)
 	if q == Vector2.INF:
 		print("REALM_LORE %s: no clear spot near %s" % [n, prefer])
+		PlacementLog.skip("lore", n, Vector3(prefer.x, 0, prefer.y), "no clear spot")
 		return Vector3.INF
 	L.site(n, Rect2(q.x - half, q.y - half, half * 2.0, half * 2.0), L.g(q.x, q.y))
 	return L.gv(q.x, q.y)

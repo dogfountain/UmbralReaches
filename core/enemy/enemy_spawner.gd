@@ -262,6 +262,7 @@ func _plant() -> void:
 			if skip != "" and _seal_camps.has(skip):
 				(_seal_camps[skip] as Dictionary).erase(str(camp.at))   # a camp that never spawns guards nothing
 			push_warning("EnemySpawner: camp at %s skipped (%s)" % [camp.at, why])
+			PlacementLog.skip("camps", "camp_%d_%d" % [int((camp.at as Vector3).x), int((camp.at as Vector3).z)], camp.at, why)
 			continue
 		var kinds: Array = camp.kinds
 		var n := kinds.size()
@@ -471,6 +472,7 @@ func _respawn_delay(slot: Dictionary) -> float:
 
 
 const ReachState := preload("res://core/world/night/reach_state.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
 
 ## A rest at a fire: every dead roaming camp pawn comes back now (not seal guards, not within

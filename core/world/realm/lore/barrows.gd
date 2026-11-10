@@ -9,6 +9,7 @@ extends RefCounted
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const LA := preload("res://core/world/realm/lore/lore_assets.gd")
 const Cottage := preload("res://core/world/realm/lore/cottage.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const RealmLand_WATER := -0.9           ## RealmLand.WATER_Y (fen pool surface)
 
 ## [centre, length (along yaw), width, height, yaw (mouth faces local -z), lore id or ""]
@@ -114,6 +115,7 @@ static func _barrow(L: RefCounted, c: Vector2, ln: float, wd: float, ht: float, 
 			break
 	if not found:
 		print("REALM_LORE skip barrow at ", c)
+		PlacementLog.skip("lore", lore_id, Vector3(c.x, 0, c.y), "no dry clear ground")
 		return Vector3.INF
 	var gr: Vector2 = L.g_range(r.grow(-1.6))
 	L.site("barrow_%d_%d" % [int(c.x), int(c.y)], r, gr.x)
@@ -208,6 +210,7 @@ static func _fen(parent: Node) -> void:
 			r = Rect2(c - Vector2(3.5, 3.5), Vector2(7.0, 7.0))
 			if not LK.clear_of(r, 0.5):
 				print("REALM_LORE skip fen cluster ", c, " (", LK.blocker(r, 0.5), ")")
+				PlacementLog.skip("lore", "fen_cluster_" + String((cl[2] as Array)[0]), Vector3(c.x, 0, c.y), "not clear")
 				continue
 		var gr: Vector2 = L.g_range(r)
 		L.site("fen_graves_%d_%d" % [int(c.x), int(c.y)], r, gr.x)
@@ -305,6 +308,7 @@ static func _lodge(L: RefCounted) -> void:
 			var w := LK.blocker(Rect2(q2 - Vector2(3.6, 3.6), Vector2(7.2, 7.2)), 0.8)
 			why[w] = int(why.get(w, 0)) + 1
 		print("REALM_LORE skip the lay brothers' lodge ", why)
+		PlacementLog.skip("lore", "lay_brothers_lodge", Vector3(RealmLayout.BARROWS_C.x, 0, RealmLayout.BARROWS_C.y), "no clear spot")
 		return
 	var to := RealmLayout.BARROWS_C - c
 	var hut: Dictionary = Cottage.build(L, "br_lodge", c, 4.6, 3.6, atan2(-to.x, -to.y), "ruin", "slate")

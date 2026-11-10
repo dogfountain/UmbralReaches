@@ -27,6 +27,7 @@ const Bell := preload("res://core/life/encounters/deeper_bell.gd")
 const Guardians := preload("res://core/life/encounters/guardians.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const Synth := preload("res://core/vfx/synth.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
 const TICK := 0.25
 const CAP := 12                    ## most enemies near the player that tides/ambushes/elites add to
@@ -551,6 +552,8 @@ func _place_elites() -> void:
 				haunts[id] = g
 		if not haunts.has(id):
 			push_warning("Encounters: no clear haunt for elite %s" % id)
+			var hc: Vector2 = Elites.ELITES[id].haunt[0]
+			PlacementLog.skip("encounters", "haunt_" + id, Vector3(hc.x, 0, hc.y), "no clear haunt")
 
 
 func slain(id: String) -> bool:
@@ -673,6 +676,7 @@ func _place_posts() -> void:
 			f += 0.25
 		if post == null:
 			push_warning("Encounters: no clear spot for the %s post near %s" % [id, Vector3(best.x, 0, best.y).snapped(Vector3.ONE * 0.1)])
+			PlacementLog.skip("encounters", "post_" + (id if id != "" else "board"), Vector3(best.x, 0, best.y), "no clear spot for the post")
 		if post and Vector2(post.global_position.x - at.x, post.global_position.z - at.z).length() > 0.2:
 			post.look_at(Vector3(at.x, post.global_position.y, at.z), Vector3.UP)     # notice (+Z) faces the path
 
@@ -721,6 +725,7 @@ func _place_bells() -> void:
 					break
 		if spot == Vector3.INF:
 			push_warning("Encounters: no clear spot for a bell near %s" % cands[0])
+			PlacementLog.skip("encounters", "bell_%d" % BELLS.find(cands), cands[0], "no clear spot for a bell")
 			continue
 		var b := Bell.new()
 		b.set("director", self)

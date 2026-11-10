@@ -80,6 +80,7 @@ static func reserve(root: Node, _skip: PackedStringArray) -> void:
 			q = LK.search_spot(space, pref, float(d.search), half, 1.2, float(d.rise), [], 2.0)
 		if q == Vector2.INF:
 			print("REALM_POI r37e skip %s: no clear ground near %s (%s)" % [id, pref, LK.blocker(Rect2(pref - half, half * 2.0), 1.2)])
+			PlacementLog.skip("pois", id, Vector3(pref.x, 0, pref.y), "no clear ground")
 			continue
 		var rect := Rect2(q - half, half * 2.0)
 		var lo := INF
@@ -564,6 +565,7 @@ static func hamlet(v: Node3D, space: PhysicsDirectSpaceState3D, node_xz: Diction
 # --- The pan fields (the White Pans, east of the works) -------------------------------------------------
 
 const R34 := preload("res://core/world/realm/realm_pois_r34.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 ## Two fields of evaporation pans, north and south of the works (east of x 219: the star-fall wonder owns the west flat).
 const PAN_FIELDS := [
 	{"id": "pans_a", "rect": Rect2(219.5, 120.4, 31.0, 13.4), "rows": [123.6, 130.6]},

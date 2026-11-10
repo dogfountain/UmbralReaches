@@ -9,6 +9,7 @@ const Inscription := preload("res://core/world/realm/lore/inscription.gd")
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
 const LoreIndex := preload("res://core/world/realm/lore/lore_index.gd")
 const LA := preload("res://core/world/realm/lore/lore_assets.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const T := "res://art/textures/"
 const KIT_PATH := "res://core/world/realm/lore/lore_kit.gd"
 const UNIT_BOULDER := Vector3(1.0, 0.8, 0.9)     ## shared RockKit boulders, scaled per stone
@@ -272,6 +273,7 @@ func spot(n: String, at: Vector3, half := 0.8, margin := 0.6) -> bool:
 	var r := Rect2(at.x - half, at.z - half, half * 2.0, half * 2.0)
 	if not clear_of(r, margin):
 		print("REALM_LORE skip %s at %s (not clear)" % [n, at.snapped(Vector3.ONE * 0.1)])
+		PlacementLog.skip("lore", n, at, "not clear")
 		return false
 	site(n, r, at.y)
 	return true
@@ -345,6 +347,8 @@ func spot_any(n: String, candidates: Array, half := 0.9, margin := 0.6, max_rise
 			site(n, r, at.y)
 			return at
 	print("REALM_LORE skip %s (no clear spot of %d)" % [n, candidates.size()])
+	var first: Vector2 = candidates[0] if not candidates.is_empty() else Vector2.ZERO
+	PlacementLog.skip("lore", n, Vector3(first.x, 0, first.y), "no clear spot of %d" % candidates.size())
 	return Vector3.INF
 
 

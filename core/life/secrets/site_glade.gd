@@ -10,6 +10,7 @@ extends RefCounted
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const SELF := "res://core/life/secrets/site_glade.gd"
 
 const GLADE_NEAR := Vector2(-36.0, 24.0)      ## searched outward from here for clear, level ground
@@ -36,6 +37,7 @@ static func build(root: Node, host: Node3D) -> void:
 	var c2 := LK.search_spot(sp, GLADE_NEAR, 36.0, Vector2(4.8, 4.8), 1.0, 1.7, ["secrets_singing"], 3.0, func(q: Vector2) -> bool: return Kit.gy(sp, q.x, q.y) > -0.5)
 	if c2 == Vector2.INF:
 		print("SECRETS singing stones: no clear spot")
+		PlacementLog.skip("secrets", "singing_stones", Vector3(GLADE_NEAR.x, 0, GLADE_NEAR.y), "no clear spot")
 		return
 	var node := Node3D.new()
 	node.name = "SingingStones"

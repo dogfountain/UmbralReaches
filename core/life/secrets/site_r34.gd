@@ -16,6 +16,7 @@ const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const VillageScript := preload("res://core/life/village/village.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const WATER := -0.9
 
 ## The Ninth Rank: the graves in the row (left to right), and the order the slate gives (indices).
@@ -113,6 +114,7 @@ static func _nook(root: Node, host: Node3D, crane: Node3D) -> void:
 			r += 1.0
 	if best == Vector3.INF:
 		print("SECRETS cutters' nook: no clear pit floor by the crane")
+		PlacementLog.skip("secrets", "cutters_nook", deck, "no clear pit floor")
 		return
 	var top_h := 6.6
 	var node := Node3D.new()
@@ -181,6 +183,7 @@ static func _ninth(root: Node, host: Node3D, ranks: Node3D) -> void:
 	var q := LK.search_spot(sp, want, 26.0, half, 1.0, 1.8, [], 2.0, ok)
 	if q == Vector2.INF:
 		print("SECRETS ninth rank: no clear ground")
+		PlacementLog.skip("secrets", "ninth_rank", c0, "no clear ground")
 		return
 	var node := Node3D.new()
 	node.name = "NinthRank"

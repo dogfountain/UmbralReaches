@@ -14,6 +14,7 @@ extends RefCounted
 ## Modules own their own files; this file and the hooks in glimmers.gd / main.gd belong to the lead.
 
 const FadeGuard := preload("res://core/world/fade_guard.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
 const MODULES := {
 	"land": "res://core/world/realm/realm_land.gd",
@@ -151,6 +152,7 @@ static func build(root: Node) -> void:
 	if root.has_meta("realm_built"):
 		return
 	root.set_meta("realm_built", true)
+	PlacementLog.reset()
 	prof.clear()
 	_step = 0
 	progress = 0.0
@@ -213,6 +215,7 @@ static func build(root: Node) -> void:
 		print("REALM_PROF %7.1f ms  %s" % [float(prof[k]) / 1000.0, k])
 	progress = 1.0
 	print("FADE_GUARD %d ranged meshes pushed out and faded after the build" % FadeGuard.sweep(root))
+	print("PLACEMENT %d skipped" % PlacementLog.entries.size())
 	root.set_meta("realm_done", true)              # waiters (camps, tests) can key on this
 	print("REALM built in %d ms" % (Time.get_ticks_msec() - t0))
 
