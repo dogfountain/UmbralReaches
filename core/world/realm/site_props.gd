@@ -9,6 +9,12 @@ extends RefCounted
 
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const Market := preload("res://core/world/realm/market_props.gd")
+const Kit := preload("res://core/world/realm/west_marches_kit.gd")
+
+## Props modelled in Blender (tools/blender/props_square.py, art/models/props/): key -> glb variants. Each glb is
+## `<part>__<set>` meshes dressed with the prop-size PBR sets; site_dress draws one MultiMesh per (variant, set).
+const GLB := {"crate": ["crate", "crate_broken"], "barrel": ["barrel"], "firewood": ["firewood"], "bench": ["bench"],
+	"trough": ["trough"], "cart": ["handcart"], "sack": ["sack", "sack_open"]}
 
 static var _meshes: Dictionary = {}
 static var _cloth: StandardMaterial3D
@@ -19,6 +25,7 @@ static func release() -> void:
 	_meshes.clear()
 	_cloth = null
 	_wood_m = null
+	_water_m = null
 
 
 ## Plain vertex-coloured cloth / straw / leaf material (two-sided: cards).
@@ -39,14 +46,15 @@ static func get_prop(key: String) -> Dictionary:
 	if _meshes.has(key):
 		return _meshes[key]
 	var d: Dictionary
+	if GLB.has(key):
+		var vs: Array = []
+		for file: String in GLB[key]:
+			vs.append(_glb_parts(file))
+		d = {"variants": vs, "shadow": true}
+		_meshes[key] = d
+		return d
 	match key:
-		"crate": d = _wood(_crate(), true)
-		"barrel": d = _wood(_barrel(), true)
-		"firewood": d = _wood(_firewood(), true)
-		"bench": d = _wood(_bench(), true)
-		"trough": d = _wood(_trough(), true)
 		"bucket": d = _wood(_bucket(), false)
-		"cart": d = _wood(_cart(), true)
 		"log": d = _wood(_log(), false)
 		"kindling": d = _wood(_kindling(), false)
 		"stall": d = {"mesh": Market.stall(0, wood(), cloth()), "mat": null, "shadow": true}
@@ -57,7 +65,6 @@ static func get_prop(key: String) -> Dictionary:
 		"trestle": d = {"mesh": Market.trestle(wood(), cloth()), "mat": null, "shadow": true}
 		"goods": d = {"mesh": Market.goods(wood(), cloth()), "mat": null, "shadow": true}
 		"loadcart": d = {"mesh": Market.load_cart(_cart(), wood(), cloth()), "mat": null, "shadow": true}
-		"sack": d = {"mesh": _sack(), "mat": cloth(), "shadow": true}
 		"hay": d = {"mesh": _hay(), "mat": cloth(), "shadow": true}
 		"straw": d = {"mesh": _straw(), "mat": cloth(), "shadow": false}
 		"leaf": d = {"mesh": _leaves(), "mat": cloth(), "shadow": false}
@@ -73,6 +80,47 @@ static func get_prop(key: String) -> Dictionary:
 		_: d = {}
 	_meshes[key] = d
 	return d
+
+
+## Which variant of a glb prop the i-th instance of `kind` is (a broken crate now and then, a slumped sack in two).
+static func variant(kind: String, i: int, n: int) -> int:
+	if n < 2:
+		return 0
+	if kind == "crate":
+		return 1 if i % 4 == 3 else 0
+	return i % n
+
+
+## [{mesh, mat}] of a glb under art/models/props/: one per `<part>__<set>` mesh (the -colonly node is no mesh).
+static func _glb_parts(file: String) -> Array:
+	var out: Array = []
+	var ps := Kit.scene("props/%s.glb" % file)
+	if ps == null:
+		return out
+	var root := ps.instantiate()
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		var parts := String(mi.name).split("__")
+		if parts.size() < 2:
+			continue
+		var set_name := parts[parts.size() - 1].get_slice(".", 0).get_slice("_", 0)
+		out.append({"mesh": mi.mesh, "mat": _water() if set_name == "water" else Kit.prop_mat(set_name)})
+	root.free()
+	return out
+
+
+static var _water_m: StandardMaterial3D
+
+
+## The trough's water: dark and glossy (the game has no still-water material that fits a trough-sized pool).
+static func _water() -> Material:
+	if _water_m == null:
+		_water_m = StandardMaterial3D.new()
+		_water_m.vertex_color_use_as_albedo = true
+		_water_m.albedo_color = Color(0.5, 0.6, 0.65)
+		_water_m.roughness = 0.08
+		_water_m.metallic_specular = 0.9
+	return _water_m
 
 
 ## The Keg's weathered wood, lifted: out in the open under the night grade the kit's own tint reads black.
@@ -95,53 +143,11 @@ static func _kit_mesh(k: OssKit) -> ArrayMesh:
 	return am
 
 
-static func _crate() -> ArrayMesh:
-	var k := OssKit.new()
-	k.box("wood", Vector3(0, 0.3, 0), Vector3(0.62, 0.6, 0.62), Basis.IDENTITY, false, 0.85)
-	k.box("wood", Vector3(0, 0.3, 0), Vector3(0.66, 0.08, 0.66), Basis.IDENTITY, false, 0.6)      # the band round the middle
-	k.box("wood", Vector3(0, 0.58, 0), Vector3(0.66, 0.06, 0.66), Basis.IDENTITY, false, 0.7)
-	# corner posts + lid gap + plank seams so it stops reading as one cube
-	for sx: float in [-0.29, 0.29]:
-		for sz: float in [-0.29, 0.29]:
-			k.box("wood", Vector3(sx, 0.3, sz), Vector3(0.05, 0.62, 0.05), Basis.IDENTITY, false, 0.75)
-	k.box("wood", Vector3(0, 0.62, 0), Vector3(0.58, 0.03, 0.58), Basis.IDENTITY, false, 0.8)   # lid
-	k.box("wood", Vector3(0, 0.3, 0), Vector3(0.04, 0.58, 0.64), Basis.IDENTITY, false, 0.55)  # vertical seam
-	k.box("wood", Vector3(0, 0.3, 0), Vector3(0.64, 0.58, 0.04), Basis.IDENTITY, false, 0.55)
-	return _kit_mesh(k)
-
-
-static func _barrel() -> ArrayMesh:
-	var cm := CreatureMesh.new(11)
-	var h := 0.85
-	cm.tube(PackedVector3Array([Vector3(0, 0, 0), Vector3(0, h * 0.5, 0), Vector3(0, h, 0)]), PackedFloat32Array([0.26, 0.31, 0.26]), 10, Color(0.8, 0.66, 0.54), 0.0, 0.0)
-	cm.blob(Vector3(0, h, 0), Vector3(0.25, 0.015, 0.25), Basis.IDENTITY, Color(0.66, 0.54, 0.44), 0.0, 0.0, 0.0, 2, 10)
-	for hy: float in [0.16, 0.5, 0.84]:
-		var r := lerpf(0.27, 0.32, 1.0 - absf(hy - 0.5) * 2.0) + 0.01
-		cm.tube(PackedVector3Array([Vector3(0, h * hy - 0.025, 0), Vector3(0, h * hy + 0.025, 0)]), PackedFloat32Array([r, r]), 10, Color(0.3, 0.3, 0.32), 0.0, 0.0)
-	return cm.commit()
-
-
-static func _sack() -> ArrayMesh:
-	var cm := CreatureMesh.new(23)
-	cm.blob(Vector3(0, 0.15, 0), Vector3(0.3, 0.16, 0.21), Basis(Vector3.UP, 0.3), Color(0.46, 0.37, 0.25), 0.0, 0.2, 0.0, 6, 9)
-	cm.blob(Vector3(0.1, 0.3, 0.02), Vector3(0.12, 0.08, 0.1), Basis(Vector3.BACK, -0.4), Color(0.4, 0.32, 0.21), 0.0, 0.25, 0.0, 4, 7)    # the slumped, tied neck
-	return cm.commit()
-
-
 static func _hay() -> ArrayMesh:
 	var cm := CreatureMesh.new(31)
 	cm.tube(PackedVector3Array([Vector3(-0.4, 0.28, 0), Vector3(0.0, 0.3, 0), Vector3(0.4, 0.28, 0)]), PackedFloat32Array([0.28, 0.3, 0.28]), 8, Color(0.5, 0.4, 0.22), 0.0, 0.1)
 	cm.tube(PackedVector3Array([Vector3(-0.34, 0.28, 0), Vector3(-0.3, 0.28, 0)]), PackedFloat32Array([0.305, 0.305]), 8, Color(0.4, 0.32, 0.2), 0.0, 0.0)
 	cm.tube(PackedVector3Array([Vector3(0.3, 0.28, 0), Vector3(0.34, 0.28, 0)]), PackedFloat32Array([0.305, 0.305]), 8, Color(0.4, 0.32, 0.2), 0.0, 0.0)
-	return cm.commit()
-
-
-static func _firewood() -> ArrayMesh:
-	var cm := CreatureMesh.new(41)
-	var rows := [[-0.27, 0.0, 0.0], [0.0, 0.0, 0.0], [0.27, 0.0, 0.0], [-0.135, 0.23, 0.0], [0.135, 0.23, 0.0], [0.0, 0.45, 0.0]]
-	for r: Array in rows:
-		var col := Color(0.6, 0.46, 0.32).lerp(Color(0.46, 0.34, 0.24), absf(sin(float(r[0]) * 9.0)))
-		cm.tube(PackedVector3Array([Vector3(float(r[0]), float(r[1]) + 0.13, -0.42), Vector3(float(r[0]), float(r[1]) + 0.13, 0.42)]), PackedFloat32Array([0.125, 0.125]), 6, col, 0.0, 0.06)
 	return cm.commit()
 
 
@@ -156,26 +162,6 @@ static func _kindling() -> ArrayMesh:
 	for i in 5:
 		var a := float(i) * 1.1
 		k.box("wood", Vector3(cos(a) * 0.05, 0.02 + 0.025 * (i % 3), sin(a) * 0.05), Vector3(0.45, 0.035, 0.035), Basis(Vector3.UP, a * 2.3), false, 0.8)
-	return _kit_mesh(k)
-
-
-static func _bench() -> ArrayMesh:
-	var k := OssKit.new()
-	k.box("wood", Vector3(0, 0.44, 0), Vector3(1.5, 0.07, 0.34), Basis.IDENTITY, false, 0.9)
-	k.box("wood", Vector3(0, 0.455, 0), Vector3(1.46, 0.02, 0.12), Basis.IDENTITY, false, 0.7)  # seat plank seam
-	for sx: float in [-0.6, 0.6]:
-		k.box("wood", Vector3(sx, 0.2, 0), Vector3(0.08, 0.4, 0.3), Basis.IDENTITY, false, 0.8)
-	return _kit_mesh(k)
-
-
-static func _trough() -> ArrayMesh:
-	var k := OssKit.new()
-	k.box("wood", Vector3(0, 0.12, 0), Vector3(1.3, 0.05, 0.45), Basis.IDENTITY, false, 0.8)
-	for sz: float in [-0.2, 0.2]:
-		k.box("wood", Vector3(0, 0.3, sz), Vector3(1.3, 0.32, 0.05), Basis.IDENTITY, false, 0.85)
-	for sx: float in [-0.63, 0.63]:
-		k.box("wood", Vector3(sx, 0.3, 0), Vector3(0.05, 0.32, 0.45), Basis.IDENTITY, false, 0.85)
-		k.box("wood", Vector3(sx * 0.9, 0.1, 0), Vector3(0.1, 0.2, 0.5), Basis.IDENTITY, false, 0.7)
 	return _kit_mesh(k)
 
 

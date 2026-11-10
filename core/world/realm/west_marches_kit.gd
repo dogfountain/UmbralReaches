@@ -19,7 +19,7 @@ static func release() -> void:
 	_scenes.clear()
 
 
-## The tiling PBR material of a set ("stone", "ashlar", "timber", "iron", "wax").
+## The tiling PBR material of a set ("stone", "ashlar", "timber", "iron", "wax", "cloth", "thatch", "daub", "slate").
 static func mat(set_name: String) -> StandardMaterial3D:
 	if _mats.has(set_name):
 		return _mats[set_name]
@@ -42,6 +42,19 @@ static func mat(set_name: String) -> StandardMaterial3D:
 		m.metallic = 1.0
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	_mats[set_name] = m
+	return m
+
+
+## The same set at prop size: a finer tile (uv 3x) and a gentler normal (0.35), so a barrel's staves read as planks, not crust.
+static func prop_mat(set_name: String) -> StandardMaterial3D:
+	var key := "prop_" + set_name
+	if _mats.has(key):
+		return _mats[key]
+	var base := mat(set_name)
+	var m := base.duplicate() as StandardMaterial3D
+	m.uv1_scale = Vector3(3, 3, 3)
+	m.normal_scale = base.normal_scale * 0.35
+	_mats[key] = m
 	return m
 
 
