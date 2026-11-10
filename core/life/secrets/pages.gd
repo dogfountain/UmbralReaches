@@ -28,6 +28,7 @@ const SECRETS := {
 	"corvin_sluice": {"name": "Corvin's Sluice", "region": "mere"},
 	# the Pilgrims' Threshold (site_threshold.gd): the ids are the old landing's, the place is the chapel
 	"last_landing": {"name": "The Pilgrims' Chapel", "region": "rift"},
+	"upward_falls": {"name": "The Upward Falls' Crest", "region": "sorrow"},   # the Upward Falls' crest (site_upward_falls.gd)
 	# --- south marches ---
 	"oak_crown": {"name": "The Crown of the Oak", "region": "oak"},
 	"well_listener": {"name": "The Listener's Cairn", "region": "well"},
@@ -42,6 +43,8 @@ const SECRETS := {
 const ORIGINAL := ["bells", "spill", "bridge", "barrow", "cist", "crypt", "oak", "postern", "pell", "cairn"]
 
 const TEXTS := {
+	"sc_upward_falls": {"title": "Cut into the crest's coping", "kind": "carved stone",
+	"text": "SURVEY OF THE SORROW, ninth year of the lift. The water climbs the steps at four paces a breath and does not tire. We were to carry it to the abbey. It does not want the abbey. Last night I stood where the sheet leaves the bowl and put my hand in it, and it did not wet me. It went up through my fingers like a held note. The Order will want this written as a success. I have written it as a staircase."},
 	"sc_bells": {"title": "The bell-frame", "kind": "carved beam",
 		"text": "Hope, Patience, Homecoming: the Stair's three bells, carried up on the backs of the faithful. On the Night they stopped from the top down. The Founder swore they would ring again when the pilgrims came home. From the bottom up."},
 	"sc_founder": {"title": "The Founder's ledger", "kind": "ledger leaf",
@@ -135,6 +138,7 @@ const ITEM_SUGGEST := {
 }
 
 const REWARDS := {
+	"upward_falls": {"relic_fragment": 2, "grave_ash": 36, "ember_shard": 1},
 	"bells": {"grave_ash": 30},
 	"barrow": {"relic_fragment": 1, "grave_ash": 20},
 	"cist": {"relic_fragment": 1, "grave_ash": 15},

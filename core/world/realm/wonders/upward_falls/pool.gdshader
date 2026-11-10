@@ -26,7 +26,7 @@ float rain_rings(vec2 p, float scale, float rate, float off) {
 	vec2 o = (vec2(hs(id + 3.1), hs(id + 7.7)) - 0.5) * 0.5;
 	float d = length(f - o);
 	float r = ph * 0.62;
-	return smoothstep(0.07, 0.0, abs(d - r)) * (1.0 - ph) * step(0.35, hs(id + 11.0));
+	return smoothstep(mix(0.035, 0.012, ph), 0.0, abs(d - r)) * (1.0 - ph) * (1.0 - ph) * step(0.35, hs(id + 11.0));   // fine lines that thin and fade as they spread
 }
 
 void vertex() {
@@ -44,7 +44,7 @@ void fragment() {
 	float fn = ns(vec2(p.x * 1.3 + TIME * 0.3, p.y * 1.7 - TIME * 0.9));
 	float fn2 = ns(vec2(p.x * 3.1 - TIME * 0.5, p.y * 3.3 + TIME * 0.7));
 	float foam = smoothstep(0.38, 0.85, fn * 0.65 + fn2 * 0.45) * foot;
-	float a = rings * mask * 0.75 + foam * 0.85 * (0.4 + 0.6 * mask);
-	ALBEDO = mix(pale * 0.9, vec3(1.0), foam);
+	float a = rings * mask * 0.32 + foam * 0.85 * (0.4 + 0.6 * mask);
+	ALBEDO = mix(pale * 0.55, vec3(1.0), foam);   // the rings are a faint catch of the column's light, the foam stays white
 	ALPHA = clamp(a, 0.0, 0.9);
 }

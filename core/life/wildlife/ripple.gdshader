@@ -5,8 +5,8 @@ render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabl
 // within `spread` of its origin. INSTANCE_CUSTOM: x period (s), y phase, z ring size (m),
 // w = 1 for drizzle rings (shown only while it rains, scaled by `rain`), 0 for fish.
 
-uniform vec3 ring_col : source_color = vec3(0.55, 0.72, 1.0);
-uniform float strength = 0.5;
+uniform vec3 ring_col : source_color = vec3(0.32, 0.4, 0.58);   // unshaded at night: a faint catch of sky, not a lit marker
+uniform float strength = 0.22;
 uniform float rain = 0.0;
 uniform float spread = 1.6;
 uniform float fish = 1.0;                // director: fish go deep when something wades in
@@ -14,6 +14,7 @@ instance uniform float splash_age = -1.0; // a one-off ring (a frog going in) on
 
 varying float v_t;
 varying float v_on;
+varying float v_grow;   // 0 as the ring fires, 1 at its widest: it thins and fades as it spreads
 
 float h1(float n) { return fract(sin(n * 91.345) * 47453.5453); }
 
@@ -34,6 +35,7 @@ void vertex() {
 		v_on = 1.0 - smoothstep(life * 0.5, life, v_t);
 		c.z = 0.9;
 	}
+	v_grow = clamp(v_t / life, 0.0, 1.0);
 	float sz = c.z * (0.35 + v_t / life);
 	VERTEX = vec3(jit.x, 0.0, jit.y) + VERTEX * sz;
 }
@@ -41,8 +43,9 @@ void vertex() {
 void fragment() {
 	vec2 q = UV * 2.0 - 1.0;
 	float r = length(q);
-	float ring = smoothstep(0.78, 0.9, r) * (1.0 - smoothstep(0.9, 1.0, r));
-	float inner = smoothstep(0.45, 0.55, r) * (1.0 - smoothstep(0.55, 0.62, r)) * 0.5;
+	float w = mix(0.07, 0.025, v_grow);           // a fine line that thins as it spreads
+	float ring = smoothstep(0.92 - w, 0.92, r) * (1.0 - smoothstep(0.92, 0.92 + w, r));
+	float inner = smoothstep(0.55 - w, 0.55, r) * (1.0 - smoothstep(0.55, 0.55 + w, r)) * 0.35 * (1.0 - v_grow);
 	ALBEDO = ring_col;
-	ALPHA = (ring + inner) * strength * v_on;
+	ALPHA = (ring + inner) * strength * v_on * (1.0 - v_grow * 0.7);
 }

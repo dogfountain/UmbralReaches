@@ -8,17 +8,11 @@ extends RefCounted
 ##
 ## For the lead (wiring, after merging):
 ##   secrets.gd   call this file's build(root, host) from the site list (like site_threshold.gd)
-##   pages.gd     NAME / PAGE / REWARD below: SITES["upward_falls"] = NAME, TEXTS["sc_upward_falls"] = PAGE,
-##                REWARDS["upward_falls"] = REWARD
+##   pages.gd     its name, page and reward live there (SECRETS / TEXTS / REWARDS under upward_falls)
 ##   quest        quest_chains_upward_falls.gd reads `secret:found:upward_falls`
 
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
-
-const NAME := {"name": "The Upward Falls' Crest", "region": "sorrow"}
-const PAGE := {"title": "Cut into the crest's coping", "kind": "carved stone",
-	"text": "SURVEY OF THE SORROW, ninth year of the lift. The water climbs the steps at four paces a breath and does not tire. We were to carry it to the abbey. It does not want the abbey. Last night I stood where the sheet leaves the bowl and put my hand in it, and it did not wet me. It went up through my fingers like a held note. The Order will want this written as a success. I have written it as a staircase."}
-const REWARD := {"relic_fragment": 2, "grave_ash": 36, "ember_shard": 1}
 
 
 static func release() -> void:
