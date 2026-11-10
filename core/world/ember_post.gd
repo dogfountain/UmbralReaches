@@ -14,7 +14,7 @@ const OFFSET := Vector3(-2.3, 0.0, 0.4)  ## brazier-local: to its side, off the 
 ## diagonal, 2.4 m clear of the respawn spot and every walking node and edge.
 const SEAT_OFFSETS := {"Sanctuary": Vector3(-2.3, 0.0, 2.6)}
 
-const Kit37 := preload("res://core/world/realm/r37_west_kit.gd")
+const Kit37 := preload("res://core/world/realm/west_marches_kit.gd")
 static var _kit_cache := {}
 
 var brazier: Brazier
@@ -107,7 +107,7 @@ func _build() -> void:
 		ci.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_sparks = Vfx.emitter(Color(3.0, 1.3, 0.4), {"count": 10, "life": 1.6, "speed": Vector2(0.15, 0.5), "size": 0.035,
 		"gravity": 0.7, "spread": 25.0, "dir": Vector3.UP, "radius": 0.05, "turbulence": true})
-	_sparks.position = Vector3(0.62, cage_y + 0.3, 0)
+	_sparks.position = Vector3(0.62, 2.35, 0)
 	add_child(_sparks)
 	# a thin collider so the wanderer walks round it, not through
 	var body := StaticBody3D.new()

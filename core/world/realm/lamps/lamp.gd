@@ -23,8 +23,8 @@ const HEART := Color(1.0, 0.74, 0.34)         ## a flame's pale root
 const TIP := Color(0.88, 0.28, 0.07)           ## and its red tip
 const PANE := Color(0.62, 0.38, 0.16)         ## lit glass (vertex): kept under bloom
 const FLAME_GLOW := 0.10                 ## well under bloom: glass reads warm, never a solid orange plate
-const Kit37 := preload("res://core/world/realm/r37_west_kit.gd")
-## r37 in-house models (tools/blender/props_lamps.py): the looks that have one. The pane look is glass only (it lights a lantern
+const Kit37 := preload("res://core/world/realm/west_marches_kit.gd")
+## In-house models (tools/blender/props_lamps.py): the looks that have one. The pane look is glass only (it lights a lantern
 ## that is already built), so it keeps its code glass; a hanging lamp on a chain keeps its code chain and lantern.
 const MODELS := {"hang": "lamp_hang.glb", "niche": "lamp_niche.glb", "post": "lamp_post.glb", "cresset": "lamp_cresset.glb"}
 const PLINTH_OFF := Vector3(0, 0.66, -0.14)    ## a free niche is lifted onto its plinth
