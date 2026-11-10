@@ -397,7 +397,7 @@ def stone(name="Stone", base=(0.2, 0.2, 0.19), moss=(0.07, 0.1, 0.05)):
     return m.finish(col, 0.92, 0.0, h, 0.7, 0.003)
 
 
-def mangy_hide(name="Hide", base=(0.075, 0.062, 0.05), pale=(0.17, 0.145, 0.115), sore=(0.2, 0.05, 0.04)):
+def mangy_hide(name="Hide", base=(0.085, 0.06, 0.042), pale=(0.15, 0.12, 0.09), sore=(0.2, 0.05, 0.04)):
     """A starved hound's hide: dark brown mottle, moth-eaten pale mange patches, cracked and bald, a few
     weeping sores, long scars, tight over the bone (dull, rough)."""
     m = K.Mat(name)
@@ -414,29 +414,31 @@ def mangy_hide(name="Hide", base=(0.075, 0.062, 0.05), pale=(0.17, 0.145, 0.115)
     col = m.mix(sores, col, sore)
     sc = m.noise(3.0, 2.0, 0.5, dist=1.4)
     scar = m.math('LESS_THAN', m.math('ABSOLUTE', m.math('SUBTRACT', sc, 0.5)), 0.0025)
-    col = m.mix(m.math('MULTIPLY', scar, 0.8), col, (0.26, 0.2, 0.17))
+    col = m.mix(m.math('MULTIPLY', scar, 0.35), col, (0.09, 0.05, 0.04))     # healed scars: faint dark seams, not drawn lines
     col = mulc(m, col, cavity(m, 0.45, 0.56, 0.4, 1.1))
     h = m.math('ADD', m.math('MULTIPLY', fur, 0.5), m.math('MULTIPLY', m.noise(14.0, 5.0, 0.6), 1.0))
-    h = m.math('ADD', h, m.math('MULTIPLY', scar, 1.2))
+    h = m.math('ADD', h, m.math('MULTIPLY', scar, 0.4))
     h = m.math('ADD', h, m.math('MULTIPLY', cr, -0.8))
     rough = m.math('ADD', 0.78, m.math('MULTIPLY', sores, -0.3))
     return m.finish(col, rough, 0.0, h, 0.7, 0.003)
 
 
-def sac_skin(name, base=(0.22, 0.25, 0.12), vein=(0.2, 0.05, 0.04), glow_col=(0.62, 0.78, 0.12), strength=2.2):
-    """Throat-sac skin: stretched pale olive membrane with dark branching veins; a sickly yellow-green
-    light shows through from inside, brighter in the thin patches between veins. Dull, not glossy."""
+def sac_skin(name, base=(0.1, 0.085, 0.04), vein=(0.04, 0.03, 0.015), glow_col=(0.7, 0.85, 0.1), strength=2.6):
+    """Throat-sac skin: dark olive-brown stretched membrane, wrinkled; the light is only in the veins, which
+    glow yellow-green (a faint wash round them). Dull, not glossy."""
     m = K.Mat(name)
     v = m.math('ABSOLUTE', m.math('SUBTRACT', m.noise(9.0, 4.0, 0.5, dist=0.8), 0.5))
-    veins = m.math('LESS_THAN', v, 0.011)
+    veins = m.math('LESS_THAN', v, 0.013)
+    halo = m.math('MULTIPLY', m.math('LESS_THAN', v, 0.04), 0.25)
     thin = m.noise(5.0, 4.0, 0.55)
-    col = m.ramp(thin, [(0.3, tuple(c * 0.7 for c in base)), (0.7, tuple(c * 1.25 for c in base))])
+    col = m.ramp(thin, [(0.3, tuple(c * 0.7 for c in base)), (0.7, tuple(c * 1.3 for c in base))])
     col = m.mix(m.math('MULTIPLY', veins, 0.9), col, vein)
     col = mulc(m, col, cavity(m, 0.45, 0.56, 0.45, 1.05))
-    lit = m.math('MULTIPLY', m.mono(m.ramp(thin, [(0.3, (0.25, 0.25, 0.25)), (0.7, (1, 1, 1))])), m.math('SUBTRACT', 1.0, veins))
+    lit = m.math('ADD', veins, halo, True)
     em = m.mix(lit, (0.0, 0.0, 0.0), glow_col)
-    h = m.math('ADD', m.math('MULTIPLY', veins, 0.7), m.math('MULTIPLY', m.noise(30.0, 4.0, 0.5), 0.5))
-    return m.finish(col, 0.55, 0.0, h, 0.5, 0.003, emit=em, emit_strength=strength)
+    h = m.math('ADD', m.math('MULTIPLY', veins, -0.4), m.math('MULTIPLY', m.noise(34.0, 5.0, 0.55), 0.8))
+    h = m.math('ADD', h, m.math('MULTIPLY', m.noise(8.0, 3.0, 0.5), 1.2))
+    return m.finish(col, 0.7, 0.0, h, 0.7, 0.003, emit=em, emit_strength=strength)
 
 
 def glow(name, col, strength=8.0, body=(0.04, 0.03, 0.02)):
@@ -650,7 +652,7 @@ def budget(objs, target):
     print("BUDGET", total, "->", sum(tri(o) for o in objs), "ratio", round(ratio, 3))
 
 
-def export_skinned(objs, mats, name, sockets, weights, rigid=None, size=2048, target=0):
+def export_skinned(objs, mats, name, sockets, weights, rigid=None, size=2048, target=0, pairs=None):
     """Bake the atlas, weight every part (weights[o["sock"]] is fn(point) -> {bone: w}), join them
     into one skinned "body" on a flat armature, keep `rigid` parts ({sock: (export name, joint)}) as
     separate meshes with their origin on the joint, export art/models/<name>.glb."""
@@ -659,7 +661,10 @@ def export_skinned(objs, mats, name, sockets, weights, rigid=None, size=2048, ta
         budget(objs, target)
     tex_dir = OUT or os.path.join(ROOT, "art", "textures")
     blend_dir = OUT or os.path.join(ROOT, "art", "blender")
-    K.bake_atlas(objs, mats, name, tex_dir, size)
+    if pairs:
+        bake_atlas_hl(objs, mats, name, tex_dir, size, pairs)
+    else:
+        K.bake_atlas(objs, mats, name, tex_dir, size)
     os.makedirs(blend_dir, exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(blend_dir, name + ".blend"))
     arm = armature(sockets)
@@ -670,6 +675,26 @@ def export_skinned(objs, mats, name, sockets, weights, rigid=None, size=2048, ta
         else:
             weigh(o, weights[o["sock"]])
             skinned.append(o)
+    # review build: the same skinned body without accessories, for the anatomy still
+    bo = [o for o in skinned if o.get("bodyonly")]
+    if bo:
+        dups = []
+        for o in bo:
+            d = o.copy()
+            d.data = o.data.copy()
+            bpy.context.scene.collection.objects.link(d)
+            d.parent = arm
+            md0 = d.modifiers.new("Armature", 'ARMATURE')
+            md0.object = arm
+            dups.append(d)
+        bpy.ops.object.select_all(action='DESELECT')
+        for d in dups + [arm]:
+            d.select_set(True)
+        bpy.ops.export_scene.gltf(filepath=os.path.join(OUT or os.path.join(ROOT, "art", "models"), name + "_bodyonly.glb"), export_format='GLB',
+                                  use_selection=True, export_apply=True, export_yup=True, export_materials='NONE', export_normals=True,
+                                  export_texcoords=True, export_skins=True, export_animations=False, export_all_influences=False)
+        for d in dups:
+            bpy.data.objects.remove(d)
     bpy.ops.object.select_all(action='DESELECT')
     for o in skinned:
         o.select_set(True)
@@ -706,6 +731,99 @@ def export_skinned(objs, mats, name, sockets, weights, rigid=None, size=2048, ta
                               export_yup=True, export_materials='NONE', export_normals=True, export_texcoords=True,
                               export_skins=True, export_animations=False, export_all_influences=False)
     print("EXPORTED", path, "tris", tris, "verts", len(body.data.vertices))
+
+
+def bake_atlas_hl(objs, mats, prefix, tex_dir, size, pairs):
+    """boss_kit.bake_atlas, plus a HIGH TO LOW bake: for each (low, high) pair the normal map and the AO
+    are baked from the high-poly onto the low's atlas islands (selected-to-active). The accessories keep
+    their procedural bump normals. The high-polys are hidden from every other pass."""
+    import numpy as np
+    sc = bpy.context.scene
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in objs:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = objs[0]
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.004)
+    bpy.ops.uv.pack_islands(margin=0.004)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    images = {}
+    for key, cs in (("albedo", 'sRGB'), ("normal", 'Non-Color'), ("rough", 'Non-Color'), ("metal", 'Non-Color'), ("ao", 'Non-Color'), ("emit", 'sRGB')):
+        img = bpy.data.images.new(prefix + "_" + key, size, size, alpha=False, float_buffer=False)
+        img.colorspace_settings.name = cs
+        images[key] = img
+    tex_nodes = []
+    for m in mats:
+        t = m.nodes.new('ShaderNodeTexImage')
+        t.name = "__target"
+        m.nodes.active = t
+        tex_nodes.append((m, t))
+    sc.cycles.samples = 1
+    sc.render.bake.margin = 6
+    highs = [h for _, h in pairs]
+    for h in highs:
+        h.hide_viewport = False          # selectable for the selected-to-active bakes; hide_render keeps them out of the other passes
+    passes = [("albedo", 'EMIT', "color"), ("rough", 'EMIT', "rough"), ("metal", 'EMIT', "metal"), ("emit", 'EMIT', "emit"),
+              ("normal", 'NORMAL', None), ("ao", 'AO', None)]
+    for key, kind, route in passes:
+        for h in highs:
+            h.hide_render = True
+        for m, t in tex_nodes:
+            t.image = images[key]
+            m.nodes.active = t
+            if route:
+                _route_ = K._route
+                _route_(m, route)
+        sc.cycles.samples = 48 if kind == 'AO' else 1
+        sc.render.bake.use_selected_to_active = False
+        sc.render.bake.use_clear = True
+        bpy.ops.object.select_all(action='DESELECT')
+        for o in objs:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = objs[0]
+        bpy.ops.object.bake(type=kind, use_clear=True, margin=6)
+        for m, t in tex_nodes:
+            if route:
+                K._unroute(m)
+        if kind in ('NORMAL', 'AO'):
+            for low, high in pairs:
+                for h in highs:
+                    h.hide_render = (h is not high)
+                bpy.ops.object.select_all(action='DESELECT')
+                high.select_set(True)
+                low.select_set(True)
+                bpy.context.view_layer.objects.active = low
+                sc.render.bake.use_selected_to_active = True
+                sc.render.bake.use_clear = False
+                sc.render.bake.cage_extrusion = 0.02
+                sc.render.bake.max_ray_distance = 0.06
+                bpy.ops.object.bake(type=kind, use_selected_to_active=True, cage_extrusion=0.02, max_ray_distance=0.06, use_clear=False, margin=6)
+                sc.render.bake.use_selected_to_active = False
+                sc.render.bake.use_clear = True
+        print("BAKED", key)
+    os.makedirs(tex_dir, exist_ok=True)
+
+    def px(img):
+        a = np.empty(size * size * 4, dtype=np.float32)
+        img.pixels.foreach_get(a)
+        return a.reshape(size, size, 4)
+    orm = np.ones((size, size, 4), dtype=np.float32)
+    orm[:, :, 0] = px(images["ao"])[:, :, 0]
+    orm[:, :, 1] = px(images["rough"])[:, :, 0]
+    orm[:, :, 2] = px(images["metal"])[:, :, 0]
+    out = bpy.data.images.new(prefix + "_orm", size, size, alpha=False)
+    out.colorspace_settings.name = 'Non-Color'
+    out.pixels.foreach_set(orm.ravel())
+    for key, img in (("albedo", images["albedo"]), ("normal", images["normal"]), ("orm", out), ("emit", images["emit"])):
+        img.filepath_raw = os.path.join(tex_dir, "%s_%s.png" % (prefix, key))
+        img.file_format = 'PNG'
+        img.save()
+        print("SAVED", img.filepath_raw)
+    for m, t in tex_nodes:
+        m.nodes.remove(t)
+    for h in highs:
+        h.hide_render = True
 
 
 # --- export -----------------------------------------------------------------------------------------

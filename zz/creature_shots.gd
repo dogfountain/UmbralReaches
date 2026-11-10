@@ -170,6 +170,13 @@ func _run() -> void:
 		main.add_child(ol)
 		ol.global_position = base + Vector3(3.0, 1.4, dist * 0.45)
 		await _shot(cam, id, "lit", eye, chest)
+		# near views from both sides (the rest pose faces -Z), a lantern-ish light beside the camera
+		var mid := base + Vector3(0, h * 0.55, 0)
+		var nd := 2.2 + h * 0.9
+		ol.global_position = base + Vector3(1.2, 1.6, -nd * 0.7)
+		await _shot(cam, id, "near_front", base + Vector3(nd * 0.35, h * 0.7 + 0.3, -nd), mid)
+		ol.global_position = base + Vector3(-1.2, 1.6, nd * 0.7)
+		await _shot(cam, id, "near_back", base + Vector3(-nd * 0.35, h * 0.7 + 0.3, nd), mid)
 		ol.queue_free()
 		if is_instance_valid(e):
 			e.process_mode = Node.PROCESS_MODE_INHERIT

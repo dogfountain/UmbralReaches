@@ -51,7 +51,8 @@ sc.render.resolution_x = RES
 sc.render.resolution_y = RES
 sc.view_settings.view_transform = 'AgX'
 
-bpy.ops.import_scene.gltf(filepath=os.path.join(DIR, "grunt_%s.glb" % KIND))
+BODYONLY = "--bodyonly" in args
+bpy.ops.import_scene.gltf(filepath=os.path.join(DIR, "grunt_%s%s.glb" % (KIND, "_bodyonly" if BODYONLY else "")))
 meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH' and not o.name.startswith(('Icosphere', 'Sphere'))]
 
 
@@ -190,6 +191,9 @@ def rig_for(az, mode):
 head_z = float(arg("--head", "0")) or (hi.z - (hi.z - lo.z) * 0.12)
 quad = (hi.z - lo.z) < 1.4
 views = [("front", 90, 0.3, 1.45, 0.5, 50), ("three", 50, 0.34, 1.45, 0.5, 50), ("side", 0, 0.3, 1.45, 0.5, 50), ("head", 62, 0.1, 0.8, None, 70)]
+if BODYONLY:
+    quad_ = (hi.z - lo.z) < 1.4
+    views = [("anatomy", 62, 0.2, 1.1 if quad_ else 0.62, 0.5 if quad_ else 0.74, 50)]
 for mode in ("neutral", "night"):
     for name, az, el, dist, tz, lens in views:
         cd.lens = lens
@@ -201,7 +205,7 @@ for mode in ("neutral", "night"):
             D = (0.95 if quad else size * dist * 0.55)
             sc.cycles.samples = SAMPLES
         else:
-            tgt.location = ctr
+            tgt.location = Vector((ctr.x, ctr.y, lo.z + (hi.z - lo.z) * tz)) if BODYONLY else ctr
             D = size * dist * 1.12
         a = math.radians(az)
         cam.location = Vector((tgt.location.x + math.cos(a) * D, tgt.location.y + math.sin(a) * D, tgt.location.z + D * el))
@@ -210,6 +214,8 @@ for mode in ("neutral", "night"):
         bpy.ops.render.render(write_still=True)
         print("RENDERED", sc.render.filepath)
 
+if BODYONLY:
+    sys.exit(0)
 # contact sheet: neutral on top, night below (images scaled with Blender's own scaler; no PIL needed)
 import numpy as np
 T = 480

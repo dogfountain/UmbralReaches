@@ -97,6 +97,9 @@ EYE = GK.glow("Eye", EYE_COL, 8.0)
 CLAW = GK.chitin("Claw", (0.045, 0.036, 0.032), (0.32, 0.25, 0.18), 14.0, 0.42)
 MATS = [EYE, CLAW]
 KEEP = {"Eye", "Claw", "Glow", "Sac"}
+NEWQ = KIND in ("leaper", "crawler")      # r38c: continuous sculpted body (grunt_body.py)
+PAIRS = []
+BODY_SEGS = []
 
 
 def mat(m):
@@ -106,8 +109,236 @@ def mat(m):
 
 
 # =====================================================================================================
-if KIND == "leaper":
-    # r38b: a lean, starved hound of the gloom: mangy dark hide pulled tight over ribs, hip bones and
+if NEWQ:
+    # r38c: leaper and crawler as continuous sculpted bodies (grunt_body.py): a vertex skeleton + body masses
+    # fused by a voxel remesh, anatomy sculpted into the high-poly, a decimated low baked from it.
+    import grunt_body as GB
+    from mathutils import Vector
+
+    def Rg(v):
+        return (v.x, v.z, -v.y)
+
+    def at(base, dx, dy, dz):
+        return (base[0] + dx, base[1] + dy, base[2] + dz)
+    Br, Fr, Hr, Tr = Rg(B), Rg(F), Rg(H), Rg(T)
+
+    def finish_part(sk, root, name, mat_, sculpt_fn, tris, voxel=0.005, sock="bodyskin"):
+        hi = GB.build_skin(sk, name + "High", root, voxel)
+        sc_ = GB.Sculpt(hi)
+        sculpt_fn(sc_)
+        sc_.apply()
+        hi.data.materials.append(mat_.m)
+        hi.hide_render = True
+        hi.hide_viewport = True
+        lo = GB.make_low(hi, tris, name + "Low")
+        lo["sock"] = sock
+        lo["fixed"] = True
+        lo["bodyonly"] = True
+        PAIRS.append((lo, hi))
+        objs.append(lo)
+        return lo
+
+    if KIND == "leaper":
+        # a lean starved hound of the gloom: deep ribcage tapering to a tucked waist, heavy thigh over a thin
+        # cannon bone with the hock standing out, a wolf skull with a short muzzle, a brow and ears, a short tail
+        SKIN = mat(GK.mangy_hide("Skin"))
+        BONE = mat(GK.grave_bone("Bone", (0.5, 0.42, 0.3), (0.16, 0.12, 0.08), 9.0))
+        HACK = mat(GK.mangy_hide("Hackle", (0.04, 0.034, 0.028), (0.08, 0.07, 0.055)))
+        KEEP.update({"Bone", "Hackle"})
+        sk = GB.Skel()
+        sk.v("b0", at(Br, 0, 0.02, 0.3), 0.04)
+        sk.v("b1", at(Br, 0, 0.04, 0.0), 0.04, "b0")
+        sk.v("b2", at(Br, 0, 0.06, -0.3), 0.04, "b1")
+        # the trunk: one loft along the spine (z, cx, cy, half-width, below, above, squareness): a deep keel
+        # of a chest, the waist tucked up under the loins, the haunches
+        trunk = [(-0.45, 0.06, 0.06, 0.08, 0.08), (-0.38, 0.02, 0.098, 0.15, 0.15), (-0.25, 0.0, 0.11, 0.18, 0.155),
+                 (-0.1, 0.02, 0.1, 0.17, 0.14), (0.05, 0.05, 0.08, 0.1, 0.115), (0.16, 0.06, 0.078, 0.085, 0.105),
+                 (0.28, 0.06, 0.092, 0.1, 0.11), (0.4, 0.06, 0.085, 0.09, 0.1), (0.47, 0.06, 0.05, 0.05, 0.06)]
+        sk.loft([(Br[2] + z, Br[0], Br[1] + cy, a, lo_, up, 2.05) for z, cy, a, lo_, up in trunk], axis="z")
+        for sx in (-1, 1):            # haunch and shoulder muscle: long flat masses lying along the trunk, no balls
+            sk.mass(at(Br, sx * 0.07, 0.0, 0.3), (0.045, 0.1, 0.14))
+            sk.mass(at(Br, sx * 0.075, 0.03, -0.33), (0.035, 0.11, 0.09))
+        sk.v("n0", at(Br, 0, 0.09, -0.42), 0.075, "b2")
+        sk.v("n1", at(Fr, 0, 0.05, 0.02), 0.058, "n0")
+        sk.v("n2", at(Hr, 0, 0.02, 0.08), 0.047, "n1")
+        sk.mass(at(Hr, 0, 0.03, 0.0), (0.05, 0.055, 0.07))                       # cranium
+        sk.mass(at(Hr, 0, 0.012, -0.1), (0.036, 0.034, 0.055))                    # the muzzle: short, a wolf's
+        sk.mass(at(Hr, 0, 0.0, -0.165), (0.027, 0.026, 0.04))
+        sk.mass(at(Hr, 0, -0.05, -0.11), (0.024, 0.016, 0.07))                    # lower jaw, slung a little open
+        for sx in (-1, 1):
+            sk.chain("n2", "ear%d" % (sx > 0), [(at(Hr, sx * 0.04, 0.08, 0.05), 0.02), (at(Hr, sx * 0.055, 0.16, 0.07), 0.008)])
+        sk.v("t0", at(Br, 0, 0.06, 0.44), 0.05, "b0")
+        sk.v("t1", at(Br, 0, 0.05, 0.64), 0.032, "t0")
+        sk.v("t2", at(Br, 0, 0.0, 0.84), 0.016, "t1")
+        segs = [("tail", at(Br, 0, 0.04, 0.5), at(Br, 0, 0.0, 0.9)), ("body", at(Br, 0, 0.0, 0.32), at(Br, 0, 0.04, -0.2)),
+                ("front", at(Br, 0, 0.04, -0.2), Hr), ("head", Hr, at(Hr, 0, -0.02, -0.25))]
+        for tag in ("fl", "fr", "bl", "br"):
+            sx = -1 if tag.endswith("l") else 1
+            front = tag.startswith("f")
+            hp, kn, ft = Rg(S["leg_%s_hip" % tag]), Rg(S["leg_%s_knee" % tag]), Rg(S["leg_%s_foot" % tag])
+            p0 = "b2" if front else "b0"
+            if front:
+                sk.v("h" + tag, hp, 0.058, p0)
+                sk.v("u" + tag, at(hp, 0, (kn[1] - hp[1]) * 0.5, (kn[2] - hp[2]) * 0.5), 0.052, "h" + tag)
+                sk.mass(at(hp, 0, (kn[1] - hp[1]) * 0.45, (kn[2] - hp[2]) * 0.45 - 0.01), (0.04, abs(kn[1] - hp[1]) * 0.55 + 0.04, 0.07))   # the forearm / shoulder muscle, flat
+                sk.v("k" + tag, kn, 0.036, "u" + tag)
+                sk.v("f" + tag, at(kn, 0, (ft[1] - kn[1]) * 0.45, 0), (0.036, 0.04), "k" + tag)
+                sk.v("w" + tag, at(ft, 0, 0.04, 0), 0.021, "f" + tag)                # a thin wrist
+                hock = None
+            else:
+                sk.v("h" + tag, hp, 0.068, p0)
+                sk.v("u" + tag, at(hp, 0, (kn[1] - hp[1]) * 0.5, (kn[2] - hp[2]) * 0.5), 0.07, "h" + tag)
+                sk.v("k" + tag, kn, 0.046, "u" + tag)
+                sk.mass(at(hp, 0, (kn[1] - hp[1]) * 0.5, (kn[2] - hp[2]) * 0.5 + 0.015), (0.045, abs(kn[1] - hp[1]) * 0.55 + 0.05, 0.09))   # the thigh: a long flat muscle down the femur
+                hock = at(kn, 0, -0.16, 0.14)
+                sk.v("g" + tag, at(kn, 0, -0.06, 0.06), (0.042, 0.055), "k" + tag)             # gaskin
+                sk.v("o" + tag, hock, 0.03, "g" + tag)                                # the hock stands out
+                sk.v("w" + tag, at(ft, 0, 0.04, 0), 0.019, "o" + tag)                # long thin cannon bone
+            sk.v("pw" + tag, at(ft, 0, -0.01, -0.02), (0.03, 0.02), "w" + tag)
+            for k in range(4):
+                tx = (k - 1.5) * 0.018
+                sk.chain("pw" + tag, "to%d%s" % (k, tag), [(at(ft, tx, -0.012, -0.06), 0.011), (at(ft, tx * 1.1, -0.02, -0.1), 0.0075)])
+            segs += [("leg_%s_hip" % tag, hp, kn), ("leg_%s_knee" % tag, kn, ft), ("leg_%s_foot" % tag, ft, at(ft, 0, -0.02, -0.1))]
+
+        def sculpt_leaper(S_):
+            fr = (0, 0, -1)
+            for sx in (-1, 1):
+                for k in range(9):          # every rib counted under the hide
+                    z = Br[2] - 0.4 + 0.06 * k
+                    S_.ridge((sx * 0.03, Br[1] + 0.17, z), (sx * 0.12, Br[1] - 0.06, z + 0.03), 0.009, 0.009 - 0.0004 * k, facing=(sx, 0.2, 0))
+                S_.bump(at(Br, sx * 0.115, 0.1, 0.27), 0.03, 0.016, facing=(sx, 1, 0))            # point of the hip
+                S_.bump(at(Br, sx * 0.07, 0.16, -0.3), 0.04, 0.012, facing=(sx, 1, 0))            # shoulder blade
+                S_.bump(at(Br, sx * 0.1, -0.0, 0.06), 0.09, -0.016, facing=(sx, 0, 0))            # hollow flank
+            for k in range(14):                                                                     # knuckled spine
+                zk = Br[2] - 0.42 + 0.06 * k
+                S_.bump((0, Br[1] + 0.17 - 0.05 * (k / 13.0) + 0.02 * math.sin(k * 0.4), zk), 0.015, 0.008, facing=(0, 1, 0))
+            for sx in (-1, 1):
+                kk = Rg(S["leg_b%s_knee" % ("l" if sx < 0 else "r")])
+                oo = at(kk, 0, -0.16, 0.14)
+                S_.bump(at(oo, 0, 0.0, 0.02), 0.026, 0.012, facing=(0, 0, 1))                     # the hock
+                S_.ridge(at(oo, 0, 0.1, 0.03), at(oo, 0, -0.02, 0.02), 0.009, 0.01, facing=(0, 0, 1))   # the Achilles cord
+                S_.ridge(at(oo, 0, -0.02, -0.01), at(oo, 0, -0.2, -0.03), 0.006, 0.006, facing=(0, 0, -1))   # tendons down the cannon
+                S_.bump(at(kk, 0, 0.0, -0.034), 0.022, 0.011, facing=(0, 0, -1))                  # stifle
+                fk = Rg(S["leg_f%s_knee" % ("l" if sx < 0 else "r")])
+                S_.bump(at(fk, 0, 0.0, 0.035), 0.02, 0.012, facing=(0, 0, 1))                     # point of the elbow
+                S_.ridge(at(fk, 0, -0.02, 0.012), at(fk, 0, -0.2, 0.01), 0.006, 0.006, facing=(0, 0, 1))
+            # the skull: brow, sockets, lip line, nose, cheek, ears' bases
+            hy, hz = Hr[1], Hr[2]
+            for sx in (-1, 1):
+                S_.bump((sx * 0.037, hy + 0.04, hz - 0.06), 0.018, -0.016, facing=(sx * 0.5, 0.3, -1))
+                S_.ridge((sx * 0.01, hy + 0.058, hz - 0.045), (sx * 0.044, hy + 0.05, hz - 0.075), 0.011, 0.012, facing=(0, 1, -0.3))
+                S_.ridge((sx * 0.026, hy - 0.002, hz - 0.1), (sx * 0.024, hy - 0.008, hz - 0.2), 0.006, -0.012, facing=(sx, 0, -0.2))   # the lip line
+                S_.bump((sx * 0.04, hy + 0.0, hz - 0.05), 0.02, -0.01, facing=(sx, 0, 0))                                                 # sunken cheek
+            S_.bump((0, hy + 0.012, hz - 0.2), 0.014, 0.008, facing=(0, 0, -1))
+            S_.noise(24.0, 0.0022)
+            S_.noise(61.0, 0.0008)
+            S_.folds(47.0, 0.0005)
+        finish_part(sk, "b0", "Body", SKIN, sculpt_leaper, 9200)
+        BODY_SEGS = segs
+        for tag in ("fl", "fr", "bl", "br"):
+            for k in range(4):
+                tip = Vector(sk.p[sk.idx["to%d%s1" % (k, tag)]])
+                objs.append(GK.claw("Claw", tip, Vector(G(0, -0.5, -1.0)), 0.06, 0.0075, "leg_" + tag, CLAW, 0.7))
+        for sx in (-1, 1):                         # teeth bared along both jaws, long canines
+            for k in range(7):
+                z = -0.07 - 0.02 * k
+                Lt = 0.04 if k != 2 else 0.062
+                objs.append(K.loft("Tooth", [H + G(sx * (0.02 - 0.0012 * k), 0.0, z), H + G(sx * (0.021 - 0.0012 * k), -Lt, z)], [0.0055, 0.0], "head", CLAW, 5))
+                objs.append(K.loft("Tooth", [H + G(sx * (0.018 - 0.001 * k), -0.05, z + 0.01), H + G(sx * (0.018 - 0.001 * k), -0.05 + Lt * 0.7, z + 0.01)], [0.0045, 0.0], "head", CLAW, 5))
+            objs.append(K.blob("Eye", H + G(sx * 0.037, 0.034, -0.06), (0.009, 0.008, 0.007), "head", EYE, 10, 6))
+        for k in range(12):                        # hackle: cheap dark hair cards standing along the spine
+            t = k / 11.0
+            z = -0.38 + 0.74 * t
+            y = 0.13 - 0.04 * t
+            objs.append(GK.strip("Hackle", [B + G(0, y, z), B + G(0, y + 0.07 * (1 - 0.5 * t), z + 0.025), B + G(0, y + 0.115 * (1 - 0.5 * t), z + 0.06)], 0.03, 0.004, "spine", HACK, taper=0.9))
+
+    else:
+        # crawler: a bone spider. The bone parts (spine, skull, eight knuckled legs) are one fused surface; the
+        # thorax and abdomen are another (ember-cracked skin); a cage of ribs arches over the glowing abdomen.
+        SKIN = mat(GK.ember_chitin("Skin", (0.05, 0.042, 0.045), (0.2, 0.15, 0.13), plates=15.0, rough=0.55))
+        BONE = mat(GK.grave_bone("Bone", (0.46, 0.4, 0.3), (0.14, 0.1, 0.07), 8.0))
+        SAC = mat(GK.membrane("Sac", (1.0, 0.38, 0.08), 6.0, (0.2, 0.09, 0.06)))
+        KEEP.update({"Bone", "Sac"})
+        # (1) thorax, abdomen, neck: skin
+        ks = GB.Skel()
+        ks.v("a", at(Br, 0, 0.0, -0.26), 0.05)
+        ks.v("b", at(Br, 0, 0.0, 0.3), 0.05, "a")
+        ks.mass(at(Br, 0, 0.0, -0.17), (0.125, 0.09, 0.16))
+        ks.mass(at(Br, 0, -0.02, 0.18), (0.115, 0.08, 0.2))
+        ks.mass(at(Br, 0, -0.04, 0.02), (0.1, 0.06, 0.13))
+        ks.v("nk", at(Fr, 0, 0.0, 0.0), 0.07, "a")
+        ks.v("nk2", at(Hr, 0, -0.01, 0.06), 0.052, "nk")
+
+        def sculpt_skin(S_):
+            S_.noise(26.0, 0.002)
+            S_.folds(70.0, 0.0012)
+        finish_part(ks, "a", "Gut", SKIN, sculpt_skin, 3300, 0.006, "bodyskin")
+        # (2) bone: spine, skull, legs
+        bs = GB.Skel()
+        bs.v("s0", at(Br, 0, 0.09, 0.3), 0.012)
+        prev = "s0"
+        for k in range(1, 12):                          # the spine: knuckled vertebrae the length of the back
+            z = 0.3 - 0.056 * k * 1.0
+            y = 0.11 + 0.025 * math.sin(math.pi * k / 11.0)
+            prev = bs.v("s%d" % k, at(Br, 0, y, z), 0.013 + 0.006 * (k % 2), prev)
+        spine_head = prev
+        bs.v("sk", at(Hr, 0, 0.0, 0.0), 0.03, spine_head)
+        bs.mass(at(Hr, 0, 0.015, -0.03), (0.07, 0.07, 0.07))                      # the skull
+        bs.mass(at(Hr, 0, -0.03, -0.075), (0.045, 0.04, 0.05))
+        bs.mass(at(Hr, 0, -0.06, -0.09), (0.035, 0.012, 0.045))                   # the lower jaw
+        segs = [("tail", at(Br, 0, 0.0, 0.3), at(Br, 0, 0.0, 0.4)), ("body", at(Br, 0, 0.0, 0.3), at(Br, 0, 0.0, -0.2)),
+                ("front", at(Br, 0, 0.0, -0.2), Hr), ("head", Hr, at(Hr, 0, -0.03, -0.14))]
+        for tag in ("fl", "fr", "bl", "br"):
+            sx = -1 if tag.endswith("l") else 1
+            hp, kn, ft = Rg(S["leg_%s_hip" % tag]), Rg(S["leg_%s_knee" % tag]), Rg(S["leg_%s_foot" % tag])
+            front = tag.startswith("f")
+            for ex, sc2 in ((0.0, 1.0), (0.17 if front else -0.17, 0.85)):
+                nm = "%s%d" % (tag, 1 if ex else 0)
+                h2 = at(hp, 0, 0, ex)
+                k2 = at(kn, sx * -0.03 if ex else 0, -0.03 if ex else 0, ex)
+                f2 = at(ft, sx * -0.06 if ex else 0, 0.0, ex)
+                root = "s%d" % (3 if front else 8)
+                bs.v("c" + nm, at(hp, 0, 0.0, ex), 0.03 * sc2, root) if False else None
+                bs.v("c" + nm, h2, 0.032 * sc2, root)
+                bs.v("fe" + nm, at(h2, (k2[0] - h2[0]) * 0.5, (k2[1] - h2[1]) * 0.5 + 0.055, 0), 0.027 * sc2, "c" + nm)
+                bs.v("kn" + nm, k2, 0.032 * sc2, "fe" + nm)                          # the knuckle
+                bs.v("ti" + nm, at(k2, (f2[0] - k2[0]) * 0.3 + sx * 0.04, (f2[1] - k2[1]) * 0.3, 0), 0.02 * sc2, "kn" + nm)
+                bs.v("tj" + nm, at(k2, (f2[0] - k2[0]) * 0.7 + sx * 0.02, (f2[1] - k2[1]) * 0.7, 0), 0.0155 * sc2, "ti" + nm)
+                bs.v("tp" + nm, f2, 0.006, "tj" + nm)
+                if not ex:
+                    segs += [("leg_%s_hip" % tag, hp, kn), ("leg_%s_knee" % tag, kn, ft), ("leg_%s_foot" % tag, ft, at(ft, 0, -0.03, 0))]
+
+        def sculpt_bone(S_):
+            hy, hz = Hr[1], Hr[2]
+            for sx in (-1, 1):
+                S_.bump((sx * 0.034, hy + 0.01, hz - 0.1), 0.021, -0.03, facing=(sx * 0.4, 0, -1))     # eye pits, four of them
+                S_.bump((sx * 0.047, hy + 0.04, hz - 0.082), 0.014, -0.02, facing=(sx * 0.5, 0.3, -1))
+                S_.ridge((sx * 0.01, hy + 0.05, hz - 0.1), (sx * 0.06, hy + 0.045, hz - 0.06), 0.012, 0.011, facing=(0, 1, -0.4))
+            S_.bump((0, hy - 0.01, hz - 0.115), 0.012, -0.02, facing=(0, 0, -1))
+            S_.noise(40.0, 0.0016)
+            S_.folds(90.0, 0.0008)
+        finish_part(bs, "s0", "Bones", BONE, sculpt_bone, 6600, 0.0045, "bodybone")
+        # the swollen glowing abdomen inside the cage of ribs; the rib arches; mandibles; eyes; claws at the tips
+        objs.append(K.blob("Sac", B + G(0, 0.03, 0.19), (0.125, 0.2, 0.11), "spine", SAC, 28, 16))
+        for k in range(9):
+            z = -0.01 + 0.048 * k
+            s_ = 0.55 + 0.45 * math.sin(math.pi * (k + 0.8) / 9.8)
+            w, hh = 0.19 * s_, 0.17 * s_
+            pts = [B + G(math.sin(a) * w, -0.005 + math.cos(a) * hh * 1.05, z + 0.012 * math.sin(a * 2.0)) for a in [-1.85 + 3.7 * j / 12.0 for j in range(13)]]
+            objs.append(K.loft("Bone", pts, [(0.0125 * (0.6 + 0.4 * s_), 0.009)] * 13, "spine", BONE, 6))
+        for sx in (-1, 1):
+            objs.append(GK.claw("Bone", H + G(sx * 0.038, -0.04, -0.105), G(-sx * 0.3, -0.35, -1.0), 0.2, 0.017, "head", BONE, 0.5))
+            objs.append(GK.claw("Bone", H + G(sx * 0.02, -0.04, -0.115), G(-sx * 0.1, -0.25, -1.0), 0.09, 0.009, "head", BONE, 0.3))
+            objs.append(K.blob("Eye", H + G(sx * 0.034, 0.012, -0.112), (0.011, 0.008, 0.011), "head", EYE, 10, 6))
+            objs.append(K.blob("Eye", H + G(sx * 0.047, 0.042, -0.092), (0.007, 0.006, 0.007), "head", EYE, 8, 6))
+        for tag in ("fl", "fr", "bl", "br"):
+            sx = -1 if tag.endswith("l") else 1
+            for ex in ("0", "1"):
+                tp_ = Vector(bs.p[bs.idx["tp%s%s" % (tag, ex)]])
+                objs.append(GK.claw("Claw", tp_, G(sx * 0.15, -1.0, -0.35), 0.09, 0.012, "leg_" + tag, CLAW, 0.35))
+        BODY_SEGS = segs
+elif KIND == "leaper":
+    # r38b (old method, kept for reference): a lean, starved hound of the gloom: mangy dark hide pulled tight over ribs, hip bones and
     # spine, sinew and tendon in the legs, scars and sores, a long narrow skull with the teeth bared.
     SKIN = mat(GK.mangy_hide("Skin"))
     BONE = mat(GK.grave_bone("Bone", (0.5, 0.42, 0.3), (0.16, 0.12, 0.08), 9.0))
@@ -429,11 +660,17 @@ else:
         for k in range(5):
             add(GK.claw("Claw", B + G(0, 0.09, -0.06 - 0.05 * k), G(0, 1.0, 0.5), 0.06, 0.012, "spine", CLAW, -0.3))
 
+_bl = [o for o in objs if o.get("bodyonly")]
+objs[:] = [o for o in objs if not o.get("bodyonly")]
 dec = {"mite": 0.05, "leaper": 0.06, "crawler": 0.08, "burrower": 0.08}[KIND]
 objs[:] = K.fuse(objs, 0.0034, keep=KEEP | {"Tooth"}, sculpt=0.0012, sculpt_scale=0.018, decimate=dec, folds=0.0016 if KIND in ("leaper", "crawler") else 0.0, fold_mats={"Skin"})
+objs.extend(_bl)
 print("GRUNT", KIND, "parts", len(objs), "tris", sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in objs))
 if PREVIEW:
     K.preview(PREVIEW, BH * 0.8, 2.6 if KIND != "leaper" else 3.4, views=((35, BH + 0.5), (95, BH + 0.3)))
 if EXPORT:
+    if NEWQ:
+        WEIGHTS["bodyskin"] = GB.envelope_weights(BODY_SEGS)
+        WEIGHTS["bodybone"] = WEIGHTS["bodyskin"]
     GK.export_skinned(objs, MATS, "grunt_" + KIND, S, WEIGHTS, {}, 1024 if KIND == "mite" else 2048,
-                      {"mite": 5000, "crawler": 9000, "burrower": 10000, "leaper": 11000}[KIND])
+                      {"mite": 5000, "crawler": 14500, "burrower": 10000, "leaper": 10800}[KIND], pairs=PAIRS or None)

@@ -23,6 +23,7 @@ args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 KIND = args[args.index("--kind") + 1] if "--kind" in args else "wretch"
 PREVIEW = args[args.index("--preview") + 1] if "--preview" in args else ""
 EXPORT = "--no-export" not in args
+NEW = KIND in ("wretch", "husk", "spitter", "ossuant")     # r38c: continuous sculpted body (grunt_body.py); bulwark / chanter keep the old method
 
 K.reset()
 S = dict(K.SOCKETS)
@@ -32,11 +33,11 @@ S = dict(K.SOCKETS)
 #  hs     head scale         claw  claw length   neck   forward reach of the neck
 P = {
     "wretch":  dict(w=0.9, lr=0.82, belly=0.0, hs=1.0, claw=0.15, neck=0.1, ribs=True,
-                    skin=((0.3, 0.27, 0.2), (0.08, 0.07, 0.05)), face=(0.34, 0.31, 0.24), eye=(1.0, 0.36, 0.08)),
+                    skin=((0.22, 0.19, 0.14), (0.06, 0.05, 0.035)), face=(0.25, 0.22, 0.16), eye=(1.0, 0.36, 0.08)),
     "husk":    dict(w=1.25, lr=1.4, belly=1.0, hs=0.82, claw=0.05, neck=0.0, ribs=False,
-                    skin=((0.3, 0.265, 0.22), (0.08, 0.07, 0.055)), face=None, eye=(1.0, 0.5, 0.12)),
+                    skin=((0.24, 0.2, 0.16), (0.065, 0.055, 0.04)), face=None, eye=(1.0, 0.5, 0.12)),
     "spitter": dict(w=1.12, lr=1.0, belly=0.5, hs=1.05, claw=0.07, neck=0.12, ribs=True,
-                    skin=((0.27, 0.3, 0.16), (0.07, 0.09, 0.04)), face=None, eye=(0.75, 0.95, 0.2)),
+                    skin=((0.17, 0.2, 0.1), (0.04, 0.05, 0.025)), face=None, eye=(0.75, 0.95, 0.2)),
     "ossuant": dict(w=1.08, lr=1.15, belly=0.25, hs=0.95, claw=0.06, neck=0.0, ribs=False,
                     skin=((0.23, 0.2, 0.18), (0.055, 0.045, 0.04)), face=None, eye=(1.0, 0.7, 0.22)),
     "bulwark": dict(w=1.3, lr=1.45, belly=0.55, hs=0.9, claw=0.04, neck=0.0, ribs=False,
@@ -65,7 +66,8 @@ KEEP = {"Eye", "Glow", "Hair", "Cloth", "Robe", "Linen", "Iron", "Wood", "Leathe
 
 
 def add(o):
-    objs.append(o)
+    if o is not None:
+        objs.append(o)
     return o
 
 
@@ -138,6 +140,8 @@ for bn in S:
 
 
 def build(fl, name, m, res=0.0065, rough=0.0015, seed=0.0):
+    if NEW:
+        return None
     ob = fl.build(name, m, res, rough, SEED + seed)
     print("FLESH", name, len(ob.data.vertices))
     return add(ob)
@@ -320,6 +324,68 @@ for tag, sx in (("l", -1), ("r", 1)):
             add(GK.claw("Claw", a1, G(tx * 3.0, -0.3, -1.0), 0.032, 0.005, pc, CLAW, 0.8))
 
 
+# --- r38c: the body as ONE continuous sculpted surface (tools/blender/grunt_body.py) -----------------
+PAIRS = []
+BODY_SEGS = []
+if NEW:
+    import grunt_body as GB
+    for _o in list(objs):                     # the primitive flesh of the old method: dropped
+        bpy.data.objects.remove(_o)
+    objs.clear()
+    OPT = {
+        "wretch": dict(W=0.88, L=1.0, nk=0.1, finger=0.26, wrist=0.6, ribs=0.0075, belly=-1.0, collar=1.5, tendon=1.6, hc=(0, 1.7, -0.135),
+                       jaw_w=0.04, brow=0.014, waist=0.9, head_w=0.072, neck_r=0.044, hump=0.055),
+        "husk": dict(W=1.15, L=1.3, nk=0.0, finger=0.1, hand_r=1.3, wrist=0.74, ribs=0.0, belly=1.0, collar=0.5, tendon=0.6, hc=(0, 1.665, -0.035),
+                     jaw_w=0.055, brow=0.012, waist=1.25, head_w=0.072, neck_r=0.058, depth=1.2),
+        "spitter": dict(W=1.3, L=1.3, nk=0.05, squat=0.0, finger=0.17, hand_r=1.35, wrist=0.66, ribs=0.0, belly=0.9, collar=0.6, tendon=0.8,
+                        hc=(0, 1.62, -0.1), jaw_w=0.1, jaw_out=0.045, brow=0.012, waist=1.2, head_w=0.13, head_h=0.68, neck_r=0.075, depth=1.15, warts=70),
+        "ossuant": dict(W=1.0, L=0.7, nk=0.0, finger=0.14, wrist=0.74, ribs=0.0, belly=-0.8, collar=1.2, tendon=1.4, hc=(0, 1.665, -0.035),
+                        head_w=0.07, neck_r=0.035, skull=True, nohead=True, cavity=0.045),
+    }[KIND]
+    sk, BODY_SEGS, _Y = GB.humanoid(OPT)
+
+    def SP(nm):
+        return sk.p[sk.idx[nm]] if nm in sk.idx else sk.arms.p[sk.arms.idx[nm]]
+    for _skx, _nm, _root, _tr in ((sk, "Body", "pel", OPT.get("tris", 4600)), (sk.arms, "Arms", ["trpl", "trpr"], 1800)):
+        _hi = GB.build_skin(_skx, _nm + "High", _root, 0.005)
+        _sc = GB.Sculpt(_hi)
+        GB.humanoid_sculpt(_sc, OPT, _Y)
+        _sc.apply()
+        _hi.data.materials.append(SKIN.m)
+        _hi.hide_render = True
+        _hi.hide_viewport = True
+        _lo = GB.make_low(_hi, _tr, _nm + "Low")
+        _lo["sock"] = "bodyskin" if _nm == "Body" else "armskin"
+        _lo["fixed"] = True
+        _lo["bodyonly"] = True
+        PAIRS.append((_lo, _hi))
+        objs.append(_lo)
+    # nails and the rest of the hands / feet that cannot be skin: long hooked nails on every finger and toe
+    for tag, sx in (("l", -1), ("r", 1)):
+        for k in range(4):
+            tip = Vector(SP("f%d%s3" % (k, tag)))
+            prev = Vector(SP("f%d%s2" % (k, tag)))
+            d = (tip - prev).normalized() + Vector(G(0, -0.25, -0.3))
+            objs.append(GK.claw("Claw", tip - (tip - prev).normalized() * 0.005, d, P["claw"] * 1.1 + 0.02, 0.0042, "arm_" + tag, CLAW, 0.5))
+        tt = Vector(SP("th%s2" % tag))
+        tp = Vector(SP("th%s1" % tag))
+        objs.append(GK.claw("Claw", tt, (tt - tp).normalized() + Vector(G(0, -0.2, -0.3)), P["claw"] * 0.9 + 0.015, 0.0045, "arm_" + tag, CLAW, 0.5))
+        for k in range(4):
+            tt = Vector(SP("t%d%s1" % (k, tag)))
+            objs.append(GK.claw("Claw", tt, Vector(G(0, -0.3, -1.0)), 0.025, 0.0045, "leg_" + tag, CLAW, 0.7))
+    # teeth in the lipless mouth, eyes in the sockets (the head is a sculpted skull-like surface)
+    _hy = _Y(OPT["hc"][1])
+    _hz = OPT["hc"][2]
+    _hw = OPT["head_w"] / 0.078
+    if not OPT.get("nohead"):
+        for row, (dy, sgn) in enumerate(((-0.058, -1), (-0.07, 1))):
+            for k in range(9):
+                a = math.pi * (0.18 + 0.64 * k / 8.0)
+                base = Vector(G(math.cos(a) * 0.034 * _hw, _hy + dy, _hz - 0.058 - math.sin(a) * 0.026))
+                objs.append(K.loft("Tooth", [base, base + Vector(G(0, -sgn * 0.016, 0))], [0.0045, 0.0], "head", CLAW, 5, cap0=False))
+        for sx in (-1, 1):
+            objs.append(K.blob("Eye", Vector(G(sx * 0.034 * _hw, _hy + 0.012, _hz - 0.075)), (0.0115, 0.007, 0.0115), "head", EYE, 12, 8))
+
 # --- per-kind dress ---------------------------------------------------------------------------------
 def collide_body():
     """Collider stand-ins for the cloth sim (removed after)."""
@@ -400,14 +466,12 @@ if KIND == "wretch":
     BONE = mat(GK.grave_bone("Bone", (0.6, 0.55, 0.44), (0.2, 0.15, 0.1)))
     WOODM = mat(GK.wood("Wood", (0.16, 0.1, 0.06), 0.7))
     KEEP.update({"Sack", "Bone", "Iron", "Wood"})
-    for k in range(7):
-        add(K.blob("Vert", g(0, 1.4 + 0.03 * k, 0.1 + 0.012 * k), (0.024 - 0.002 * k, 0.02, 0.019), "torso", SKIN, 12, 8))
 
     def lumpy(c):
         p = Vector(c)
         return p + p.normalized() * 0.28 * noise.noise(p * 2.1 + Vector((3.0, 1.0, 2.0)))
-    add(K.blob("Sack", g(0.05, 1.1, 0.27), (0.2, 0.17, 0.27), "r:chest", SACK, 36, 20, lumpy))
-    add(K.blob("Sack", g(-0.09, 0.93, 0.3), (0.12, 0.1, 0.13), "r:chest", SACK, 24, 12, lumpy))
+    add(K.blob("Sack", g(0.05, 1.12, 0.24), (0.15, 0.13, 0.2), "r:chest", SACK, 36, 20, lumpy))
+    add(K.blob("Sack", g(-0.07, 0.97, 0.26), (0.09, 0.08, 0.1), "r:chest", SACK, 24, 12, lumpy))
     add(K.loft("Sack", [g(0.05, 1.3, 0.26), g(0.04, 1.43, 0.24), g(0.03, 1.5, 0.22)], [0.11, 0.06, 0.05], "r:chest", SACK, 14))
     add(K.loft("Leather", [g(0.03 + 0.04 * math.cos(a), 1.45, 0.22 + 0.04 * math.sin(a)) for a in [math.tau * i / 14 for i in range(15)]], [(0.012, 0.006)] * 15, "r:chest", LEATHER, 5))
     for k, (dx, h, lean) in enumerate(((0.0, 0.52, -0.25), (0.05, 0.4, 0.3), (-0.04, 0.3, -0.7))):
@@ -465,9 +529,21 @@ elif KIND == "husk":
         i = int(t * 14)
         p = seam[i]
         add(K.loft("Stitch", [p + G(-0.03, 0.006, 0.012), p + G(0, 0, -0.006), p + G(0.03, -0.006, 0.012)], [0.0035, 0.004, 0.0035], "torso", STITCH, 5))
-    # a belt sunk under the overhang of the gut
-    add(K.loft("Belt", [S["pelvis"] + G(math.cos(a) * 0.17 * W, 0.0 - 0.02 * max(0.0, -math.sin(a)), math.sin(a) * 0.15 * W - 0.05 * max(0.0, -math.sin(a)))
-                        for a in [math.tau * i / 32 for i in range(33)]], [(0.022, 0.008)] * 33, "r:pelvis", LEATHER, 6))
+    # a tight wrap of linen round the hips and gut (three turns, no slack), a few ragged tails below it
+    wrap = []
+    for q in range(76):
+        t = q / 75.0
+        ang = t * 3.0 * math.tau
+        yy = 0.86 + 0.2 * t
+        rx = 0.165 + 0.04 * math.sin(t * math.pi)
+        rz = 0.105 + 0.04 * math.sin(t * math.pi)
+        wrap.append(g(math.cos(ang) * rx * 0.98, yy, math.sin(ang) * rz * 1.04 - 0.01))
+    add(K.loft("Linen", wrap, [(0.036, 0.007)] * 76, "r:pelvis", LINEN, 6))
+    add(K.loft("Leather", [S["pelvis"] + G(math.cos(a) * 0.17, 0.01, math.sin(a) * 0.115 - 0.01) for a in [math.tau * i / 32 for i in range(33)]], [(0.016, 0.008)] * 33, "r:pelvis", LEATHER, 5))
+    for k in range(7):
+        ang = math.tau * (k + 0.5) / 7.0
+        rt = S["pelvis"] + G(math.cos(ang) * 0.17, 0.0, math.sin(ang) * 0.115 - 0.01)
+        add(GK.strip("Rag", [rt + G(math.cos(ang) * 0.02 * t, -0.2 * t - 0.05 * (k % 2), math.sin(ang) * 0.02 * t) for t in [i / 5.0 for i in range(6)]], 0.05, 0.005, "pelcloth", LINEN, taper=0.6))
     # bandages: forearms, shins, one across the chest
     for tag, sx in (("l", -1), ("r", 1)):
         add(GK.bandage("Linen", S["elbow_" + tag] + G(0, -0.05, 0), S["hand_" + tag] + G(0, 0.03, 0), 0.032 * LR, 3.0, 0.014, "arm_" + tag, LINEN, sx))
@@ -480,14 +556,6 @@ elif KIND == "husk":
     for k in range(5):
         p = sp[1 + k * 1 + k // 2]
         add(K.loft("Stitch", [p + Vector((-0.016, 0, -0.006)), p + Vector((0, 0, 0.003)), p + Vector((0.016, 0, -0.006))], [0.003] * 3, "r:head", STITCH, 5))
-    # a rag apron below the gut
-    coll = collide_body()
-    apron = add(K.hanging_cone("Apron", S["pelvis"] + G(0, -0.04, -0.05), 0.2 * W, 0.17 * W, 0.3, 0.3, "pelcloth", LINEN, 40, 12, open_front=0.0))
-    torn(apron, 0.3, 0.16, 4.0)
-    K.simulate([apron], 50, 10.0, 0.3)
-    K.solidify(apron, 0.006)
-    for o in coll:
-        bpy.data.objects.remove(o)
 
     # --- r38: a gravedigger's corpse that carries its own grave. A headstone shoulder, a bundle of fence
     # pickets on the other, a coffin lid on its back standing proud of the head, chains round the chest
@@ -572,9 +640,7 @@ elif KIND == "husk":
     for tag, sx in (("l", -1), ("r", 1)):
         Ft, Kn = S["foot_" + tag], S["knee_" + tag]
         add(K.loft("Iron", [Ft + G(math.cos(a) * 0.062, 0.17, math.sin(a) * 0.062) for a in [math.tau * i / 14 for i in range(15)]], [(0.015, 0.022)] * 15, "leg_" + tag, IRON, 5))
-        add(GK.plate("Iron", Kn + G(0, 0.03, -0.055 * LR), (0.055, 0.065, 0.022), G(0, 0.15, -1.0), "r:knee_" + tag, IRON, 22, 1.4))
-        for j in range(1):
-            add(GK.claw("Iron", Kn + G((j - 1) * 0.04, 0.03, -0.085 * LR), G((j - 1) * 0.3, 0.2, -1.0), 0.06, 0.012, "r:knee_" + tag, IRON, 0.0))
+        add(K.loft("Leather", [Kn + G(math.cos(q) * 0.062, 0.05, math.sin(q) * 0.06) for q in [math.tau * i / 16 for i in range(17)]], [(0.016, 0.006)] * 17, "r:knee_" + tag, LEATHER, 5))   # a strap round the knee, no guard
     Ftl = S["foot_l"]
     add(GK.chain_links("Iron", [Ftl + G(-0.06, 0.15, 0.03), Ftl + G(-0.1, 0.02, 0.12), Ftl + G(-0.06, 0.1, 0.3), Ftl + G(0.0, 0.07, 0.5)], 0.012, "r:foot_l", IRON, 0.024))
     add(K.blob("Iron", Ftl + G(0.0, 0.1, 0.52), (0.05, 0.05, 0.045), "r:foot_l", IRON, 14, 8))
@@ -583,55 +649,42 @@ elif KIND == "spitter":
     # r38b: a squat, heavy swamp toad of the gloom. Wide flat head with a huge lipless mouth and bulging
     # eyes, thick knuckled forearms that rest on the ground, a throat sac of stretched veined skin that
     # glows sickly from inside (spitter.gd swells its weak-point orb inside it), warty dorsal glands.
-    SACM = mat(GK.sac_skin("Sac", (0.11, 0.13, 0.065), (0.16, 0.04, 0.03), (0.6, 0.75, 0.1), 1.6))
-    GLAND = mat(GK.sac_skin("Gland", (0.17, 0.19, 0.09), (0.18, 0.05, 0.03), (0.65, 0.78, 0.1), 0.9))
+    SACM = mat(GK.sac_skin("Sac"))
     RAG = mat(GK.cloth("Cloth", (0.12, 0.11, 0.07), "rough_linen", 8.0))
     BONE = mat(GK.grave_bone("Bone", (0.5, 0.45, 0.32), (0.16, 0.13, 0.08)))
-    KEEP.update({"Bone", "Gland", "Sac"})
+    KEEP.update({"Bone", "Sac"})
 
     def sacform(c):
         p = Vector(c)
         return p + p.normalized() * 0.1 * noise.noise(p * 2.6 + Vector((1.0, 4.0, 2.0)))
     # the throat sac: a heavy bag slung from the jaw to the breastbone, a second lobe below it
-    sac1 = add(K.blob("Sac", g(0.0, 1.42, -0.2), (0.15, 0.125, 0.15), "torso", SACM, 36, 22, sacform))
-    sac2 = add(K.blob("Sac", g(-0.03, 1.27, -0.2), (0.09, 0.08, 0.1), "torso", SACM, 22, 12, sacform))
+    sac1 = add(K.blob("Sac", g(0.0, 1.42, -0.2), (0.13, 0.12, 0.13), "torso", SACM, 44, 26, sacform))
+    sac2 = add(K.blob("Sac", g(-0.03, 1.29, -0.19), (0.08, 0.07, 0.09), "torso", SACM, 24, 14, sacform))
     sac1["fixed"] = sac2["fixed"] = True
-    for sx in (-1, 1):   # the skin straps and folds that hold it to the jaw and collarbones
-        add(K.loft("Throat", [g(sx * 0.09, 1.6, -0.1), g(sx * 0.15, 1.5, -0.17), g(sx * 0.14, 1.4, -0.22), g(sx * 0.07, 1.3, -0.2)],
-                   [(0.018, 0.012), (0.028, 0.014), (0.026, 0.014), (0.012, 0.01)], "torso", SKIN, 8))
-    # warty dorsal glands: big blisters up the hump, a scatter of warts over shoulders, back and flanks
-    for k in range(6):
-        t = k / 5.0
-        for sx in (-1, 1):
-            r = 0.05 + 0.035 * math.sin(t * math.pi * 0.9) * (1.0 - 0.3 * (k % 2))
-            add(K.blob("Gland", g(sx * (0.06 + 0.04 * (k % 2)), 1.12 + 0.4 * t, 0.12 + 0.05 * math.sin(t * math.pi) + 0.05 * t), (r * 0.85, r * 0.8, r), "torso", GLAND, 18, 10))
-    for k in range(44):
-        a = noise.noise(Vector((k * 0.9, 1.0, 0.0))) * 3.5
-        y = 0.95 + 0.62 * (0.5 + 0.5 * noise.noise(Vector((k * 1.3, 2.0, 0.0))))
-        add(K.blob("Wart", g(math.sin(a) * 0.15 * W, y, math.cos(a) * 0.11 + 0.03), (0.014 + 0.007 * (k % 3), 0.013, 0.013 + 0.005 * (k % 2)), "torso", SKIN, 8, 6))
     # spine ridge and a barbed collar of fused ribs round the throat
     for k in range(7):
         t = k / 6.0
         add(GK.claw("Bone", g(0, 1.55 - 0.45 * t, 0.1 + 0.05 * math.sin(t * 3.0)), G(0, 0.5, 1.0), 0.1 * (1.0 - 0.5 * t) + 0.03, 0.014, "r:chest", BONE, -0.3))
-    for k in range(9):
-        a = -2.3 + 4.6 * k / 8.0
-        base = NECK + G(math.sin(a) * 0.09, -0.04, math.cos(a) * 0.07 + 0.02)
-        add(GK.claw("Bone", base, G(math.sin(a) * 1.0, 0.45, math.cos(a) * 0.7), 0.1 + 0.05 * (1.0 - abs(a) / 2.4), 0.013, "r:head", BONE, -0.2))
-    # heavy knuckled fists that rest on the ground: a fist of skin and three thick hooked claws per hand
+    WEBM = mat(GK.hollow_skin("Web", P["skin"][0], P["skin"][1], wet=0.3, wrinkle=90.0, liv=_LIV, extremities=0.0))
+    KEEP.add("Web")
+    for tag, sx in (("l", -1), ("r", 1)):     # webbed hands: a membrane between neighbouring fingers
+        for k in range(3):
+            q = []
+            for nm in ("f%d%s0", "f%d%s1", "f%d%s2"):
+                q.append(Vector(SP(nm % (k, tag))))
+            for nm in ("f%d%s2", "f%d%s1", "f%d%s0"):
+                q.append(Vector(SP(nm % (k + 1, tag))))
+            bm = bmesh.new()
+            vs = [bm.verts.new(v) for v in q]
+            bm.faces.new(vs)
+            bmesh.ops.triangulate(bm, faces=bm.faces)
+            wo = K.mesh_from_bm("Web", bm, "arm_" + tag, WEBM, smooth=True)
+            K.solidify(wo, 0.0025)
+            add(wo)
     for tag, sx in (("l", -1), ("r", 1)):
-        Hd, El = S["hand_" + tag], S["elbow_" + tag]
-        add(K.blob("Skin", Hd + G(0, -0.1, -0.02), (0.07, 0.065, 0.06), "arm_" + tag, SKIN, 14, 8))
-        for j in range(3):
-            add(GK.claw("Bone", Hd + G((j - 1) * 0.04, -0.15, -0.03), G((j - 1) * 0.3, -0.7, -0.8), 0.1, 0.017, "arm_" + tag, BONE, 0.4))
+        El = S["elbow_" + tag]
         for j in range(3):
             add(GK.claw("Bone", El + G(sx * 0.03, -0.05 - 0.07 * j, 0.02), G(sx * 0.9, 0.2, 0.25), 0.07 - 0.014 * j, 0.01, "arm_" + tag, BONE, -0.1))
-    coll = collide_body()
-    loin = add(K.hanging_cone("Loin", S["pelvis"] + G(0, 0.0, 0), 0.15, 0.13, 0.24, 0.5, "pelcloth", RAG, 36, 10))
-    torn(loin, 0.24, 0.14, 5.0)
-    K.simulate([loin], 50, 8.0, 0.2)
-    K.solidify(loin, 0.005)
-    for o in coll:
-        bpy.data.objects.remove(o)
 
 elif KIND == "ossuant":
     BONE = mat(GK.grave_bone("Bone", (0.56, 0.45, 0.26), (0.2, 0.13, 0.07)))     # r38b: yellowed
@@ -654,7 +707,34 @@ elif KIND == "ossuant":
         if p.z < -0.2 and p.y > 0.0:
             p.x *= 0.82
         return p + n * push
-    add(K.blob("Mask", HC + Vector((0, 0.022, 0.012)), (0.094, 0.112, 0.112), "r:head", BONE, 40, 20, skull_shape))
+    # the skull: its own sculpted surface (deep sockets, nasal cavity, cheekbones), baked like the body
+    _shi = GB.build_skin(GB.skull_part(OPT, _Y), "SkullHigh", "a", 0.004)
+    _ss = GB.Sculpt(_shi)
+    GB.head_sculpt(_ss, OPT, _Y)
+    _ss.noise(45.0, 0.0015)
+    _ss.folds(95.0, 0.0006)
+    _ss.apply()
+    _shi.data.materials.append(BONE.m)
+    _shi.hide_render = True
+    _shi.hide_viewport = True
+    _slo = GB.make_low(_shi, 2400, "SkullLow")
+    _slo["sock"] = "skull"
+    _slo["fixed"] = True
+    _slo["bodyonly"] = True
+    PAIRS.append((_slo, _shi))
+    add(_slo)
+    for row, (dy, sgn) in enumerate(((-0.062, -1), (-0.074, 1))):       # teeth, both rows
+        for k in range(11):
+            a = math.pi * (0.14 + 0.72 * k / 10.0)
+            base = Vector(G(math.cos(a) * 0.036, _Y(OPT["hc"][1]) + dy, OPT["hc"][2] - 0.052 - math.sin(a) * 0.03))
+            add(K.loft("Tooth", [base, base + Vector(G(0, -sgn * 0.02, 0))], [0.0052, 0.0], "head", CLAW, 5, cap0=False))
+    for sx in (-1, 1):
+        add(K.blob("Eye", Vector(G(sx * 0.034, _Y(OPT["hc"][1]) + 0.012, OPT["hc"][2] - 0.052)), (0.008, 0.005, 0.008), "head", EYE, 10, 6))
+    for tag, sx in (("l", -1), ("r", 1)):    # bones bound with sinew: strips wound round arms and legs
+        add(GK.bandage("Leather", S["shoulder_" + tag] + G(0, -0.08, 0), S["elbow_" + tag] + G(0, 0.02, 0), 0.035, 3.0, 0.016, "arm_" + tag, LEATHER, sx))
+        add(GK.bandage("Leather", S["elbow_" + tag] + G(0, -0.06, 0), S["hand_" + tag] + G(0, 0.02, 0), 0.03, 3.5, 0.014, "arm_" + tag, LEATHER, sx + 3))
+        add(GK.bandage("Leather", S["hip_" + tag] + G(0, -0.12, 0), S["knee_" + tag] + G(0, 0.04, 0), 0.056, 3.0, 0.018, "leg_" + tag, LEATHER, sx))
+        add(GK.bandage("Leather", S["knee_" + tag] + G(0, -0.05, 0), S["foot_" + tag] + G(0, 0.14, 0), 0.04, 3.5, 0.016, "leg_" + tag, LEATHER, sx + 2))
     for k in range(5):
         t = k / 4.0
         base = HC + Vector((0, 0.06 - 0.12 * t, 0.1 - 0.02 * t))
@@ -897,13 +977,23 @@ elif KIND == "chanter":
         add(K.blob("Bone", tip + G(0.08 * math.cos(k * 2.1), -0.32, 0.08 * math.sin(k * 2.1)), (0.012, 0.02, 0.012), "staff", BONE, 10, 6))
 
 # fuse each piece's flesh into one continuous sculpted surface (no primitives meeting), decimate
+_bl = [o for o in objs if o.get("bodyonly")]
+objs[:] = [o for o in objs if not o.get("bodyonly")]
 objs[:] = K.fuse(objs, 0.0034, keep=KEEP | {"Claw", "Hair", "Stitch", "Seam", "Slit"}, sculpt=0.0009, sculpt_scale=0.018, decimate=0.07, folds=0.0018, fold_mats={"Skin", "Face"}, decimate_sock={"head": 0.15})
 for o in objs:
     if o.name.split(".")[0] in ("Mask", "Sack", "Stone", "Gland", "Skull"):
         o["fixed"] = True          # sculpted key forms keep their triangles (budget() decimates the rest)
+objs.extend(_bl)
 print("GRUNT", KIND, "parts", len(objs), "tris", sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in objs))
 if PREVIEW:
     K.preview(PREVIEW, 0.95, 3.0)
 if EXPORT:
     WEIGHTS["staff"] = _rigid("hand_r")
-    GK.export_skinned(objs, MATS, "grunt_" + KIND, S, WEIGHTS, {"shield": ("shield_chest", S["chest"])}, 2048, 12000 if KIND in ("bulwark", "chanter") else 14800 if KIND == "ossuant" else 14500)   # r37: LOD0 budget (Godot generates the lower LODs on import)
+    if NEW:
+        # the torso never follows the arm bones (its flanks lie beside them and tore into webs when the
+        # arm swung out); the arms take only the arm bones and the chest at the shoulder
+        _ARMB = ("shoulder_", "elbow_", "hand_")
+        WEIGHTS["bodyskin"] = GB.envelope_weights([sg for sg in BODY_SEGS if not sg[0].startswith(_ARMB)])
+        WEIGHTS["armskin"] = GB.envelope_weights([sg for sg in BODY_SEGS if sg[0].startswith(_ARMB) or sg[0] == "chest"])
+        WEIGHTS["skull"] = lambda p: {"head": 1.0}
+    GK.export_skinned(objs, MATS, "grunt_" + KIND, S, WEIGHTS, {"shield": ("shield_chest", S["chest"])}, 2048, 12000 if KIND in ("bulwark", "chanter") else 14800 if KIND == "ossuant" else 14500, pairs=PAIRS or None)   # r37: LOD0 budget (Godot generates the lower LODs on import)

@@ -56,7 +56,7 @@ func _on_nova_near() -> void:
 func _build() -> void:
 	name = "Spitter"
 	attach_rig()
-	posture({"hunch": 0.35, "crouch": 0.3, "arm_reach": 0.25, "head_jut": 1.0, "sway": 0.7, "twitch": 0.6, "splay": 0.12})
+	posture({"hunch": 0.5, "crouch": 0.6, "arm_reach": 0.5, "head_jut": 1.0, "sway": 0.7, "twitch": 0.6, "splay": 0.45})
 	if _rig:
 		_rig.scale = Vector3(0.86, 0.94, 0.86)
 	set_flesh(EnemyBody.dress(_rig, _kind(&"spitter")))
