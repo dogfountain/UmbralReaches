@@ -558,27 +558,44 @@ static func _emit(host: Node3D, id: String, c: Vector2) -> void:
 		var d := Props.get_prop(kind)
 		if d.is_empty():
 			continue
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.use_colors = true
-		mm.mesh = d.mesh
-		mm.instance_count = list.size()
-		for i in list.size():
-			var xf: Transform3D = list[i][0]
-			mm.set_instance_transform(i, Transform3D(xf.basis, xf.origin - zone.position))
-			mm.set_instance_color(i, list[i][1])
-		var mmi := MultiMeshInstance3D.new()
-		mmi.name = "Dress_" + kind
-		mmi.multimesh = mm
-		if d.mat:
-			mmi.material_override = d.mat
-		var small := kind in SMALL
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bool(d.shadow) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mmi.extra_cull_margin = 2.0
-		mmi.visibility_range_end = 46.0 if small else 80.0
-		mmi.visibility_range_end_margin = 5.0
-		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		mmi.set_meta("site_owned", true)
-		mmi.add_to_group(Groups.CULL_SKIP)
-		zone.add_child(mmi)
+		# one MultiMesh per (variant, set): a glb prop has a mesh per material set
+		var groups: Array = []
+		if d.has("variants"):
+			var vs: Array = d.variants
+			var by_v := {}
+			for i in list.size():
+				var v := Props.variant(kind, i, vs.size())
+				if not by_v.has(v):
+					by_v[v] = []
+				(by_v[v] as Array).append(i)
+			for v: int in by_v:
+				for part: Dictionary in vs[v]:
+					groups.append({"mesh": part.mesh, "mat": part.mat, "idx": by_v[v]})
+		else:
+			groups.append({"mesh": d.mesh, "mat": d.mat, "idx": range(list.size())})
+		for g: Dictionary in groups:
+			var idx: Array = g.idx
+			var mm := MultiMesh.new()
+			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.use_colors = true
+			mm.mesh = g.mesh
+			mm.instance_count = idx.size()
+			for k in idx.size():
+				var xf: Transform3D = list[idx[k]][0]
+				mm.set_instance_transform(k, Transform3D(xf.basis, xf.origin - zone.position))
+				mm.set_instance_color(k, list[idx[k]][1])
+			var mmi := MultiMeshInstance3D.new()
+			mmi.name = "Dress_" + kind
+			mmi.multimesh = mm
+			if g.mat:
+				mmi.material_override = g.mat
+			var small := kind in SMALL
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bool(d.shadow) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mmi.extra_cull_margin = 2.0
+			mmi.visibility_range_end = 46.0 if small else 80.0
+			mmi.visibility_range_end_margin = 5.0
+			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			mmi.set_meta("site_owned", true)
+			mmi.add_to_group(Groups.CULL_SKIP)
+			zone.add_child(mmi)
 		stats[id][kind] = list.size()

@@ -218,7 +218,7 @@ def make_iron():
 def make_cloth():
     """Burlap: a plain weave (64 threads a tile), thread-thickness noise, darned patches, dust."""
     rng = np.random.default_rng(51)
-    th = 64
+    th = 112
     ys, xs = np.mgrid[0:N, 0:N]
     u = xs / N * th
     v = ys / N * th
@@ -242,8 +242,8 @@ def make_cloth():
         h = np.where(m, 0.45 + 0.4 * st * thick, h)
     dust = smooth(tnoise(N, 1.6, 55), 0.5, 0.8)
     soil = smooth(tnoise(N, 1.3, 56), 0.6, 0.8)
-    lo = col(0.34, 0.25, 0.15)
-    hi = col(0.62, 0.5, 0.31)
+    lo = col(0.29, 0.23, 0.16)
+    hi = col(0.54, 0.46, 0.33)
     base = mix(np.broadcast_to(lo, (N, N, 3)), np.broadcast_to(hi, (N, N, 3)), np.clip(h * 1.05, 0, 1))
     base = base * (0.85 + 0.3 * tnoise(N, 1.8, 57))[..., None]
     base = mix(base, np.broadcast_to(col(0.43, 0.37, 0.3), (N, N, 3)), darn * 0.7)

@@ -74,6 +74,7 @@ def fbm(p, octaves=3):
 
 WOOD, IRON, CLOTH, GRAIN, DARK, WATER = 0, 1, 2, 3, 4, 5      # face kinds: drive the finishing pass
 KEY = {WOOD: 'timber', IRON: 'iron', CLOTH: 'cloth', GRAIN: 'timber', DARK: 'timber', WATER: 'water'}
+MERGE = {}      # per model: sets folded into another so the game draws fewer surfaces (crate nails -> timber)
 TILE = {'timber': 2.0, 'iron': 2.0, 'cloth': 2.0, 'water': 2.0}
 
 CUBE = {
@@ -275,7 +276,7 @@ def finish(p, name, col_box):
     out = {}
     for f in bm.faces:
         kind = f[p.kl]
-        key = KEY[kind]
+        key = MERGE.get(KEY[kind], KEY[kind])
         if key not in out:
             nb = bmesh.new()
             out[key] = (nb, nb.loops.layers.uv.new("UVMap"), nb.loops.layers.color.new("Col"), {})
@@ -978,6 +979,11 @@ def main():
         if ONLY and name not in ONLY:
             continue
         reset()
+        MERGE.clear()
+        if name in ("crate", "crate_broken", "bench"):
+            MERGE["iron"] = "timber"            # nails only: not worth a draw call
+        if name.startswith("sack"):
+            MERGE["timber"] = "cloth"           # grain and the dark inside use the burlap set too
         vis, col = fn()
         near = tri_count(vis)
         export(vis + [col], os.path.join(OUT, name + ".glb"))
