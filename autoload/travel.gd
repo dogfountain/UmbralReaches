@@ -51,6 +51,7 @@ var SAVE_PATH: String = SaveDir.path("savegame.cfg")
 const SAVE_VERSION := 1
 const LAZY_S := 10.0                 ## kill ash: rides the next save, or this long at most
 var _save_queued := false
+var _save_missed := false            ## a save was asked for during a scene change: written when it ends
 var _lazy_queued := false
 var _saves := 0                      ## save_game() count; a lazy timer skips if one ran since it was set
 var _loaded_cfg: ConfigFile = null   ## the save as read at boot (unknown keys ride along); updated in place
@@ -163,6 +164,7 @@ func go(path: String, at: Vector3, facing: float, player: Node) -> void:
 	await out.finished
 	_awaiting_path = ""
 	_busy = false
+	_flush_missed()
 	call_deferred("restore_kindles", get_tree().current_scene)
 	print("Travel arrived ", path)
 
@@ -199,6 +201,7 @@ func _fail_open(why: String) -> void:
 	out.tween_property(_fade, "color:a", 0.0, 0.5)
 	await out.finished
 	_busy = false
+	_flush_missed()
 
 
 func _remember_kindles() -> void:
@@ -372,7 +375,10 @@ func checkpoint_for(scene_path: String) -> Vector3:
 
 
 func save_game() -> void:
-	if _busy or erased:
+	if erased:
+		return
+	if _busy:
+		_save_missed = true
 		return
 	_saves += 1
 	var t_save := Time.get_ticks_usec()
@@ -475,6 +481,13 @@ func erase_save() -> void:
 	CodexStore.reset(true)
 
 
+## Writes the save that was asked for while a scene change held the door.
+func _flush_missed() -> void:
+	if _save_missed:
+		_save_missed = false
+		save_game()
+
+
 ## Forget everything held in memory (not the files).
 func _reset_progress() -> void:
 	lit_by_path.clear()
@@ -493,6 +506,7 @@ func _reset_progress() -> void:
 	from_save = false
 	_main_ok = null
 	_save_queued = false
+	_save_missed = false
 	_lazy_queued = false
 
 
@@ -528,7 +542,7 @@ func use_slot(n: int, fresh := false) -> void:
 func slot_summary(n: int) -> Dictionary:
 	var out := {"exists": false, "text": "", "fires": 0, "bosses": 0, "hollows": 0}
 	var path := SaveDir.slot_path(n, "savegame.cfg")
-	for p: String in [path, path + ".bak"]:
+	for p: String in [path, path + ".tmp", path + ".bak"]:
 		var from_bak := p.ends_with(".bak")
 		if not FileAccess.file_exists(p):
 			continue
@@ -640,17 +654,21 @@ func _base_cfg() -> ConfigFile:
 	return _loaded_cfg
 
 
-## The newest readable save: the main file, else the backup. null if there is none.
+## The newest readable save: the main file, else the unfinished one beside it, else the backup. null if there is none.
 func _read_save() -> ConfigFile:
-	for path: String in [SAVE_PATH, SAVE_PATH + ".bak"]:
+	for path: String in [SAVE_PATH, SAVE_PATH + ".tmp", SAVE_PATH + ".bak"]:
 		if not FileAccess.file_exists(path):
 			continue
 		var cfg := ConfigFile.new()
 		if cfg.load(path) == OK and cfg.has_section("progress"):
 			_main_ok = path == SAVE_PATH
-			if path != SAVE_PATH:
+			if path.ends_with(".tmp"):
+				push_warning("Travel: %s was unreadable; loaded the unfinished save beside it" % SAVE_PATH)
+			elif path != SAVE_PATH:
 				push_warning("Travel: %s was unreadable; loaded the backup" % SAVE_PATH)
 			return cfg
+		if path.ends_with(".tmp"):
+			continue                    # half-written: skipped quietly
 		if path == SAVE_PATH:
 			_main_ok = false
 		push_warning("Travel: %s is unreadable" % path)
