@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://hxjvxp5ri7n6"
-path="res://.godot/imported/r37_south_oak_R37_OakHeart_albedo.png-579c4dfe2018b365105e9de1dc164fb3.ctex"
+path.s3tc="res://.godot/imported/r37_south_oak_R37_OakHeart_albedo.png-579c4dfe2018b365105e9de1dc164fb3.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_oak_R37_OakHeart_albedo.png-579c4dfe2018b365105e9de1dc164fb3.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "9eb31346283bf451d060e0382620eade"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_oak_R37_OakHeart_albedo.png"
-dest_files=["res://.godot/imported/r37_south_oak_R37_OakHeart_albedo.png-579c4dfe2018b365105e9de1dc164fb3.ctex"]
+dest_files=["res://.godot/imported/r37_south_oak_R37_OakHeart_albedo.png-579c4dfe2018b365105e9de1dc164fb3.s3tc.ctex", "res://.godot/imported/r37_south_oak_R37_OakHeart_albedo.png-579c4dfe2018b365105e9de1dc164fb3.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

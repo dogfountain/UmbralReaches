@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://440t8ocqo7my"
-path="res://.godot/imported/r37_south_hut_R37_HutWood_orm.png-14036f3d4e355c3854f02816f0c0213d.ctex"
+path.s3tc="res://.godot/imported/r37_south_hut_R37_HutWood_orm.png-14036f3d4e355c3854f02816f0c0213d.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_hut_R37_HutWood_orm.png-14036f3d4e355c3854f02816f0c0213d.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d01371a7f66845e661171a4ce8a2ea4b"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_hut_R37_HutWood_orm.png"
-dest_files=["res://.godot/imported/r37_south_hut_R37_HutWood_orm.png-14036f3d4e355c3854f02816f0c0213d.ctex"]
+dest_files=["res://.godot/imported/r37_south_hut_R37_HutWood_orm.png-14036f3d4e355c3854f02816f0c0213d.s3tc.ctex", "res://.godot/imported/r37_south_hut_R37_HutWood_orm.png-14036f3d4e355c3854f02816f0c0213d.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

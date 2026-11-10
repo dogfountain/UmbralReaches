@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bablvitl6ghkt"
-path="res://.godot/imported/toad_0.png-0826275be9c39acb77c5df9545edbca2.ctex"
+path.s3tc="res://.godot/imported/toad_0.png-0826275be9c39acb77c5df9545edbca2.s3tc.ctex"
+path.etc2="res://.godot/imported/toad_0.png-0826275be9c39acb77c5df9545edbca2.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "2eae95d6232312aeddbe6a08737b93f1"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/toad_0.png"
-dest_files=["res://.godot/imported/toad_0.png-0826275be9c39acb77c5df9545edbca2.ctex"]
+dest_files=["res://.godot/imported/toad_0.png-0826275be9c39acb77c5df9545edbca2.s3tc.ctex", "res://.godot/imported/toad_0.png-0826275be9c39acb77c5df9545edbca2.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

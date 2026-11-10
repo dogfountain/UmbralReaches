@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://l5273110l2qw"
-path="res://.godot/imported/dwarf_bartender_dwarf_leather_albedo.png-613ef0853db892eeedaa2b2c244dc288.ctex"
+path.s3tc="res://.godot/imported/dwarf_bartender_dwarf_leather_albedo.png-613ef0853db892eeedaa2b2c244dc288.s3tc.ctex"
+path.etc2="res://.godot/imported/dwarf_bartender_dwarf_leather_albedo.png-613ef0853db892eeedaa2b2c244dc288.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "e0cab39f75593b8db336c76e5885fee8"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/dwarf_bartender_dwarf_leather_albedo.png"
-dest_files=["res://.godot/imported/dwarf_bartender_dwarf_leather_albedo.png-613ef0853db892eeedaa2b2c244dc288.ctex"]
+dest_files=["res://.godot/imported/dwarf_bartender_dwarf_leather_albedo.png-613ef0853db892eeedaa2b2c244dc288.s3tc.ctex", "res://.godot/imported/dwarf_bartender_dwarf_leather_albedo.png-613ef0853db892eeedaa2b2c244dc288.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

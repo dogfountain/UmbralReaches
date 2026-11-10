@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://2eahdjnlis57"
-path="res://.godot/imported/r37_south_well_R37_Ashlar_orm.png-dc80636f2e7350065c330d83767050da.ctex"
+path.s3tc="res://.godot/imported/r37_south_well_R37_Ashlar_orm.png-dc80636f2e7350065c330d83767050da.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_well_R37_Ashlar_orm.png-dc80636f2e7350065c330d83767050da.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "fd5099641f545b57ab7e0b9c0404f701"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_well_R37_Ashlar_orm.png"
-dest_files=["res://.godot/imported/r37_south_well_R37_Ashlar_orm.png-dc80636f2e7350065c330d83767050da.ctex"]
+dest_files=["res://.godot/imported/r37_south_well_R37_Ashlar_orm.png-dc80636f2e7350065c330d83767050da.s3tc.ctex", "res://.godot/imported/r37_south_well_R37_Ashlar_orm.png-dc80636f2e7350065c330d83767050da.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

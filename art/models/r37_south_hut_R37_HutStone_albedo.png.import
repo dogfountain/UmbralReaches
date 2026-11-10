@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cqet1juh1tqii"
-path="res://.godot/imported/r37_south_hut_R37_HutStone_albedo.png-8257ea1809c84ed8087e21d1db808d7d.ctex"
+path.s3tc="res://.godot/imported/r37_south_hut_R37_HutStone_albedo.png-8257ea1809c84ed8087e21d1db808d7d.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_hut_R37_HutStone_albedo.png-8257ea1809c84ed8087e21d1db808d7d.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "8e11b466c205dcfd8bb74a74822f0fab"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_hut_R37_HutStone_albedo.png"
-dest_files=["res://.godot/imported/r37_south_hut_R37_HutStone_albedo.png-8257ea1809c84ed8087e21d1db808d7d.ctex"]
+dest_files=["res://.godot/imported/r37_south_hut_R37_HutStone_albedo.png-8257ea1809c84ed8087e21d1db808d7d.s3tc.ctex", "res://.godot/imported/r37_south_hut_R37_HutStone_albedo.png-8257ea1809c84ed8087e21d1db808d7d.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

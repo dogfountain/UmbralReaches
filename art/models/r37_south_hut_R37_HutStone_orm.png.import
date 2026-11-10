@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7jcgt2tm1ojb"
-path="res://.godot/imported/r37_south_hut_R37_HutStone_orm.png-1441816e3db2be53f4b6a19edf625e43.ctex"
+path.s3tc="res://.godot/imported/r37_south_hut_R37_HutStone_orm.png-1441816e3db2be53f4b6a19edf625e43.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_hut_R37_HutStone_orm.png-1441816e3db2be53f4b6a19edf625e43.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "18abfe68181546564a25a0b6749e6073"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_hut_R37_HutStone_orm.png"
-dest_files=["res://.godot/imported/r37_south_hut_R37_HutStone_orm.png-1441816e3db2be53f4b6a19edf625e43.ctex"]
+dest_files=["res://.godot/imported/r37_south_hut_R37_HutStone_orm.png-1441816e3db2be53f4b6a19edf625e43.s3tc.ctex", "res://.godot/imported/r37_south_hut_R37_HutStone_orm.png-1441816e3db2be53f4b6a19edf625e43.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
