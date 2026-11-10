@@ -22,7 +22,7 @@ const SECRETS := {
 	"singing": {"name": "The Singing Stones", "region": "glade"},
 	"breath": {"name": "The Ash-Hermit's Perch", "region": "rift"},
 	"company": {"name": "The Ninth Company's Ring", "region": "thornwood"},
-	# r34 places (site_r34.gd): the new ground's hidden things
+	# r34 places (site_doubled_realm.gd): the new ground's hidden things
 	"cutters_nook": {"name": "The Cutters' Nook", "region": "quarry"},
 	"ninth_rank": {"name": "The Ninth Rank", "region": "necropolis"},
 	"corvin_sluice": {"name": "Corvin's Sluice", "region": "mere"},
@@ -103,7 +103,7 @@ const TEXTS := {
 		"text": "The rift breathes. Count nine and it breathes out, hot enough to lift a man who jumps into it. I have been up and down this way for nine winters. Nobody has followed. Good."},
 	"sc_breath_top": {"title": "The hermit's last word", "kind": "slate",
 		"text": "From up here you can watch the Crossing and nobody can watch you. I watched the pilgrims go up. I watched them come down hollow. I stayed up here where the air is warm and I did not go."},
-	# --- r34 places (site_r34.gd) -------------------------------------------------------------
+	# --- r34 places (site_doubled_realm.gd) -------------------------------------------------------------
 	"sc_landing": {"title": "Cut into the kneeling stone", "kind": "carved stone",
 		"text": "We cut this where the light comes down, because the Order would not have us in the abbey. Forty-one of us went up the night the sky turned. Eleven came back down the tower stair. We put what they carried in the box and our names on the wall. Whoever kneels here: the light is not theirs. It is only falling."},
 	"sc_nook": {"title": "Pinned under a chisel", "kind": "page",
@@ -119,7 +119,7 @@ const TEXTS := {
 		"text": "Nine springs we sang up the stair and the oak sang back, a note under the note. The Order's axes bit it on the tenth and it stopped, not dead: listening. We hid the knot where the sky sees it and the Order will not climb. Whoever climbs: sing it one line. It will know the tune."},
 	"sc_well_listener": {"title": "Scratched on the cairn", "kind": "carved stone",
 		"text": "I sat here nine nights with the falls at my back and listened to it answer. It does not repeat you. It tells you what you will say next. On the ninth night I said nothing, and it said my name, and I said nothing again, and it said it again. Go up. Do not answer."},
-	# --- west marches (site_r37_west.gd) ---
+	# --- west marches (site_west_marches.gd) ---
 	"sc_aldith": {"title": "Scratched on the lamp-post", "kind": "carved post",
 		"text": "Aldith's lamp. The river took her roof and then the saint. I cut a road under the water to the last lamp and let it down behind me, because the ford is for the living and this is for what they paid. A."},
 	"sc_aldith_ring": {"title": "A plate on the ring", "kind": "plaque",

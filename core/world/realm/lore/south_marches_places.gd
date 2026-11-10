@@ -1,12 +1,12 @@
 extends RefCounted
 ## The South pass's written lore: waystones, graves, cairns and notices on the southern downs, in the
-## oak's shade and by the Well. The carriers are the Waiting Field's builders' (r34_places.gd: a stone, a
+## oak's shade and by the Well. The carriers are the Waiting Field's builders' (doubled_realm_places.gd: a stone, a
 ## grave, a notice board, a page under a stone), the texts are in lore_db.gd (poi_r37s_* are the
-## places' own, built in realm_pois_r37_south.gd). Built by RealmLore after the places reserved their
+## places' own, built in realm_pois_south_marches.gd). Built by RealmLore after the places reserved their
 ## ground, so every piece registers a site and keeps clear of the others.
 
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
-const Places := preload("res://core/world/realm/lore/r34_places.gd")
+const Places := preload("res://core/world/realm/lore/doubled_realm_places.gd")
 
 
 static func build(parent: Node) -> void:

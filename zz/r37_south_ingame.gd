@@ -43,7 +43,7 @@ static func _look(from: Vector3, to: Vector3) -> float:
 
 
 func _views() -> void:
-	var South := load("res://core/world/realm/realm_pois_r37_south.gd")
+	var South := load("res://core/world/realm/realm_pois_south_marches.gd")
 	var oak: Dictionary = South.oak
 	var well: Dictionary = South.well
 	var c: Vector3 = (oak.xf as Transform3D).origin

@@ -1,13 +1,13 @@
 extends RefCounted
 ## West Marches (docs/r37_expansion.md): the places of Weirford, the Sorrow's Banks, the Fallen Hierarch
-## and the Siege Lines, in the manner of realm_pois_r34.gd: ground reserved before the stamp and the flora
+## and the Siege Lines, in the manner of realm_pois_doubled_realm.gd: ground reserved before the stamp and the flora
 ## (reserve), the places built after them (build), everything placed by ground ray, never fixed heights.
 ##
 ##   weirford_bridge   the stone bridge on the Pilgrims' Road over the Sorrow (r37_bridge.glb)
 ##   weirford_mill     the mill on the weir, its wheel turning (r37_mill.glb)
 ##   weirford_town     the inn (The Grey Heron), the smithy, two cottages, the stables, the square's well and
-##                     stall, the watch hut: lit windows (no lights), people (village_cast_r37_west.gd)
-##   sorrow_shrine     the drowned shrine in the river (a secret: site_r37_west.gd), a chest, fords and posts
+##                     stall, the watch hut: lit windows (no lights), people (village_cast_west_marches.gd)
+##   sorrow_shrine     the drowned shrine in the river (a secret: site_west_marches.gd), a chest, fords and posts
 ##   hierarch_statue   the Fallen Hierarch (r37_statue.glb): the skull's floor is the Speaking Crown's room
 ##   hierarch_hand     the open hand, palm up: steps up to it, a chest on the palm
 ##   siege_line        the outer earthwork's palisade and gate, a chest-high stair to the rampart
@@ -21,8 +21,8 @@ const Inscription := preload("res://core/world/realm/lore/inscription.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
-const Kit := preload("res://core/world/realm/r37_west_kit.gd")
-const Hearth := preload("res://core/world/realm/r37_hearth.gd")
+const Kit := preload("res://core/world/realm/west_marches_kit.gd")
+const Hearth := preload("res://core/world/realm/cottage_hearth.gd")
 const Raid := preload("res://core/world/hierarch_raid.gd")
 
 const WATER := -0.9

@@ -1,7 +1,7 @@
 extends RefCounted
 ## East Marches: the people of Saltmarket (docs/r37_expansion.md). Six of them live round the
 ## hamlet's fire, its stall, doors and drying shed; the nodes they walk are laid by
-## realm_pois_r37_east.gd hamlet() (called from village.gd); this file is their data in the village's
+## realm_pois_east_marches.gd hamlet() (called from village.gd); this file is their data in the village's
 ## own shapes, listed in the shared tables' `# --- east ---` blocks:
 ##   CAST        village_cast.gd CAST (rig, schedule, routines; "camp": they do not flee)
 ##   CONV        village_talk_db.gd CONV (what they say; NPC voices stay babble)

@@ -1,7 +1,7 @@
 extends RefCounted
 ## West Marches: the written lore of Weirford, the Sorrow's Banks, the Fallen Hierarch and the Siege Lines
 ## (entry shape: lore_db.gd; the shared tables take these in their west-marches blocks). The poi_*-style
-## ids (r37w_*) stand in realm_pois_r37_west.gd's places; the rest are placed by r37_west_places.gd.
+## ids (r37w_*) stand in realm_pois_west_marches.gd's places; the rest are placed by west_marches_places.gd.
 ## House style (docs/LORE.md): terse, concrete, dark; warm but wary at Weirford.
 
 const TEXTS := {

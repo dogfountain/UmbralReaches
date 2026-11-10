@@ -7,7 +7,7 @@ extends RefCounted
 ## A cold room (`warm` false: a crypt, a cellar) keeps its cold ambient and only loses the haze.
 ## Also builds a room's lights, so every interior is lit the same way (a hearth glow, candle pools, a soft fill).
 
-const Hearth := preload("res://core/world/realm/r37_hearth.gd")
+const Hearth := preload("res://core/world/realm/cottage_hearth.gd")
 
 const FILL := Color(0.80, 0.72, 0.64)       ## the indoor ambient: a soft warm-neutral bounce; the fire and lamps carry the colour (a hot fill turned plaster flat orange)
 const FIRE := Color(1.0, 0.7, 0.4)

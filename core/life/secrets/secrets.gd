@@ -10,7 +10,7 @@ extends RefCounted
 ##   site_glade.gd    (r28) the Singing Stones: sing back the small stone's phrase; wisps wake
 ##   site_breath.gd   (r28) the Ash-Hermit's Perch: jump into the rift's breath (breath_vent.gd)
 ##   site_company.gd  (r28) the Ninth Company's offering: shows once its three letters are read
-##   site_r34.gd      (r34) the Cutters' Nook (climb-only), the Ninth Rank (lamp order), Corvin's
+##   site_doubled_realm.gd      (r34) the Cutters' Nook (climb-only), the Ninth Rank (lamp order), Corvin's
 ##                    Sluice (lever raises a sunk walk) in the new ground
 ##   site_threshold.gd the Pilgrims' Chapel: under the west starfall, down the stair round the crossing's third tower
 ##   (r28) the Lower Count under the Ossuary lives in world/areas/ossuary/oss_deep.gd and registers
@@ -29,14 +29,14 @@ const SiteWood := preload("res://core/life/secrets/site_wood.gd")
 const SiteGlade := preload("res://core/life/secrets/site_glade.gd")
 const SiteBreath := preload("res://core/life/secrets/site_breath.gd")
 const SiteCompany := preload("res://core/life/secrets/site_company.gd")
-const SiteR37W := preload("res://core/life/secrets/site_r37_west.gd")      # --- west marches --- the Sorrow's hidden walk
-const SiteR34 := preload("res://core/life/secrets/site_r34.gd")      # r34 places: the new ground's secrets
+const SiteWest := preload("res://core/life/secrets/site_west_marches.gd")      # --- west marches --- the Sorrow's hidden walk
+const SiteDoubled := preload("res://core/life/secrets/site_doubled_realm.gd")      # r34 places: the new ground's secrets
 const SiteThreshold := preload("res://core/life/secrets/site_threshold.gd")   # the Pilgrims' Chapel under the starfall
 const SiteUpwardFalls := preload("res://core/life/secrets/site_upward_falls.gd")   # the Upward Falls' crest (a wonder)
 const SiteStarCrater := preload("res://core/life/secrets/site_star_crater.gd")   # the Fallen Star's platform (a wonder)
 const SiteSkyChain := preload("res://core/life/secrets/site_sky_chain.gd")   # the Wardens' Tally at the Sky Chain's bitter end (a wonder)
 # --- south marches ---
-const SiteSouth := preload("res://core/life/secrets/site_r37_south.gd")
+const SiteSouth := preload("res://core/life/secrets/site_south_marches.gd")
 const Reactivity := preload("res://core/life/secrets/reactivity.gd")
 const Director := preload("res://core/life/secrets/director.gd")
 const SecretsPanel := preload("res://core/life/secrets/panel.gd")
@@ -74,7 +74,7 @@ static func build(root: Node) -> void:
 	build_ms["r28"] = (Time.get_ticks_usec() - t) / 1000
 	t = Time.get_ticks_usec()
 	if not "--no-r34-secrets" in OS.get_cmdline_user_args():
-		SiteR34.build(root, host)
+		SiteDoubled.build(root, host)
 	build_ms["r34"] = (Time.get_ticks_usec() - t) / 1000
 	SiteThreshold.build(root, host)
 	SiteUpwardFalls.build(root, host)
@@ -84,10 +84,10 @@ static func build(root: Node) -> void:
 	SiteSouth.build(root, host)
 	# --- west marches ---
 	if not "--no-r37-west" in OS.get_cmdline_user_args():
-		SiteR37W.build(root, host)
+		SiteWest.build(root, host)
 	# --- the east marches ---
 	if not "--no-r37-east" in OS.get_cmdline_user_args():
-		var east_site: Variant = load("res://core/life/secrets/site_r37_east.gd")    # no preload: it reads this file
+		var east_site: Variant = load("res://core/life/secrets/site_east_marches.gd")    # no preload: it reads this file
 		east_site.build(root, host)
 	t = Time.get_ticks_usec()
 	Kit.prewarm()

@@ -1,6 +1,6 @@
 extends RefCounted
 ## West Marches: the Sorrow's hidden thing, beside the place the player already has a reason to wade
-## to (realm_pois_r37_west.gd's drowned shrine), in the manner of site_r34.gd:
+## to (realm_pois_west_marches.gd's drowned shrine), in the manner of site_doubled_realm.gd:
 ##   aldith_walk   ALDITH'S WALK (the Sorrow's Banks): an iron ring set in the shrine's plinth. Pulled, a stone
 ##                 walk of stepping slabs comes up through the river from the shrine's step to a round islet in
 ##                 the deeper water upstream, where Saint Aldith kept her last lamp and a box of what the

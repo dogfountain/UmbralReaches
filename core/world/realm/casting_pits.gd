@@ -1,5 +1,5 @@
 extends RefCounted
-## The Casting Pits at the Founder's Pits (realm_pois_r34.gd `_foundry_pits`): the molten surface in the pits and the
+## The Casting Pits at the Founder's Pits (realm_pois_doubled_realm.gd `_foundry_pits`): the molten surface in the pits and the
 ## bell's clay mould lying on its side in the big pit. Self-contained mesh and shader builders.
 
 const MOLTEN_SHADER := """

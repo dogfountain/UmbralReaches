@@ -162,8 +162,8 @@ fixed order with eleven early `return`s.
 
 ### F9. History is baked into names and comments
 
-26 shipping files are named after a development round (`realm_pois_r34.gd`, `site_r37_east.gd`,
-`quest_chains_r37_west.gd`), and 907 comments carry a round tag ("r36:"). A reader has to know the project's
+26 shipping files are named after a development round (`realm_pois_doubled_realm.gd`, `site_east_marches.gd`,
+`quest_chains_west_marches.gd`), and 907 comments carry a round tag ("r36:"). A reader has to know the project's
 history to find the Saltmarket's code. The lint already forbids new round tags; the old ones remain.
 
 ### F10. Performance risks to watch on the Windows PC

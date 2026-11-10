@@ -1,6 +1,6 @@
 extends Node3D
 ## The Speaking Crown's room, the floor inside the Fallen Hierarch's split skull (RealmLayout RAIDS
-## "hierarch"; built by realm_pois_r37_west.gd, BossArena.room points here). The skull itself is the
+## "hierarch"; built by realm_pois_west_marches.gd, BossArena.room points here). The skull itself is the
 ## statue model; this node is what the fight changes in it:
 ##   room_begin(boss) / room_reset() / room_won()   BossArena's hooks
 ##   set_mood(m)         "fall" (phase II) and "sky" (phase III): the crown sheds, dust hangs in the horn
@@ -8,7 +8,7 @@ extends Node3D
 ##                       the damage is the boss's BossKit.zone)
 ## Load by path (no class_name).
 
-const Kit := preload("res://core/world/realm/r37_west_kit.gd")
+const Kit := preload("res://core/world/realm/west_marches_kit.gd")
 
 var mood := ""
 var centre := Vector3.ZERO

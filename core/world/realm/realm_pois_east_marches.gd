@@ -2,7 +2,7 @@ extends RefCounted
 ## East Marches (docs/r37_expansion.md): the places of Stillwater, the Anchorholds, Saltmarket and the
 ## White Pans, built from the in-house GLBs of tools/blender/r37_east.py (art/models/r37e_*.glb: textured
 ## stone, timber, salt, plaster, slate and iron, with LODs where the thing is big) and their collision
-## boxes (r37_east_boxes.gd, generated from the same numbers).
+## boxes (east_marches_boxes.gd, generated from the same numbers).
 ##
 ##   spire        The Lamplighters' Spire (Stillwater): a ~33 m beacon tower on the bluff at
 ##                RealmLayout.SPIRE_C. A stair inside climbs to the lamp room; the great lamp is DARK
@@ -20,7 +20,7 @@ extends RefCounted
 
 const P := preload("res://core/world/realm/realm_pois.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
-const Boxes := preload("res://core/world/realm/r37_east_boxes.gd")
+const Boxes := preload("res://core/world/realm/east_marches_boxes.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
@@ -564,7 +564,7 @@ static func hamlet(v: Node3D, space: PhysicsDirectSpaceState3D, node_xz: Diction
 
 # --- The pan fields (the White Pans, east of the works) -------------------------------------------------
 
-const R34 := preload("res://core/world/realm/realm_pois_r34.gd")
+const DoubledPois := preload("res://core/world/realm/realm_pois_doubled_realm.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 ## Two fields of evaporation pans, north and south of the works (east of x 219: the star-fall wonder owns the west flat).
 const PAN_FIELDS := [
@@ -695,7 +695,7 @@ static func _rake(host: Node3D, space: PhysicsDirectSpaceState3D, pan: Vector3, 
 	base.y = _gy(space, base.x, base.z)
 	var lean := 0.42
 	var top := base + b * Vector3(0.0, cos(lean) * 1.9, -sin(lean) * 1.9)
-	R34._cyl(k, "wood", base + Vector3(0, 0.02, 0), top, 0.035, 0.03)
+	DoubledPois._cyl(k, "wood", base + Vector3(0, 0.02, 0), top, 0.035, 0.03)
 	var head := base + b * Vector3(0.0, 0.14, 0.0)
 	k.box("wood", head, Vector3(0.62, 0.05, 0.07), b, false, 0.8)
 	for i in 5:
