@@ -18,8 +18,8 @@ const LILAC := Med.BONE_DIM
 const INK := Med.BONE
 const DIM := Color(Med.BONE_DIM, 0.9)
 ## Launch flags that mean "a harness is running this": the title would only stand in its way.
-const SKIP_FLAGS := ["--demo", "--bench", "--perf-baseline", "--test-shade", "--walk-rec", "--deepdive", "--shots-dir",
-	"--save-dir", "--fresh", "--no-title", "--quit-after-demo", "--loading", "--dev-start"]
+const SKIP_FLAGS := ["--bench", "--perf-baseline", "--test-shade", "--walk-rec",
+	"--save-dir", "--fresh", "--no-title", "--loading", "--dev-start"]
 
 var _menu: VBoxContainer
 var _slots: VBoxContainer

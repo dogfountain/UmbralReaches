@@ -9,7 +9,7 @@ the code as it is, not a wish list; `docs/THE_NIGHT.md` is the current critique.
 ```
 ui/title_boot.tscn (the project's main scene): ui/title_screen.gd -- Continue / New Game / Settings / Quit,
                          picks a save slot, then loads world/main.tscn. Skipped headless and under any
-                         harness flag (--demo, --shots-dir, --no-title, ...).
+                         harness flag (--bench, --perf-baseline, --no-title, ...).
 world/main.tscn (baked: Zone, Player, HUD, SettingsMenu, WorldEnvironment, Moon, Grade)
   Zone._ready            core/world/zone.gd   opens ui/loading_screen.gd, wires Settings + Events
   main.gd _ready         world/main.gd        Gothic, Atmosphere, Glimmers, EnemySpawner.seed_realm,

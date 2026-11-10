@@ -82,146 +82,6 @@ static func dress_brazier(node: Node3D) -> void:
 		shape.position.y = 0.75
 
 
-static func dress_zone(root: Node) -> void:
-	if root == null:
-		push_error("DRESS zone root null")
-		return
-	if Check.res(LANTERN, PackedScene) == null:
-		return
-	if Check.res(MENHIR, PackedScene) == null:
-		return
-	var lamps := 0
-	var stones := 0
-	var lanterns := root.find_child("Lanterns", true, false)
-	if lanterns != null and not lanterns.has_meta("dressed"):
-		lanterns.set_meta("dressed", true)
-		for lamp in lanterns.get_children():
-			if lamp.get_node_or_null("Pole") != null:
-				_dress_lamp(lamp)
-				lamps += 1
-	var dock := root.find_child("Dock", true, false)
-	if dock != null and dock.get_node_or_null("LampPost") != null and not dock.has_meta("dressed_lamp"):
-		dock.set_meta("dressed_lamp", true)
-		_dress_dock(dock)
-		lamps += 1
-	var circle := root.find_child("StandingStones", true, false)
-	if circle != null:
-		stones += _dress_standing(circle.get_node_or_null("Ring") as MeshInstance3D, true)
-	var shrine_ring := root.get_node_or_null("Zone/Shrine/Ring") as MeshInstance3D
-	if shrine_ring != null:
-		shrine_ring.visible = false
-	var ruins := root.find_child("Ruins", true, false) as MeshInstance3D
-	if ruins != null:
-		stones += _dress_standing(ruins, false)
-	if lamps > 0 or stones > 0:
-		print("DRESS lanterns=%d stones=%d" % [lamps, stones])
-	DemoDress.dress(root)
-	StoneBodies.harden(root)
-	NightDress.dress(root)
-	SummitDress.dress(root)
-
-
-static func _dress_lamp(lamp: Node) -> void:
-	if lamp == null:
-		push_error("DRESS lamp null")
-		return
-	var pole := lamp.get_node_or_null("Pole") as MeshInstance3D
-	var cage := lamp.get_node_or_null("Cage") as MeshInstance3D
-	var model := Check.attach_glb(lamp, LANTERN, "DressedLantern")
-	if model == null:
-		return
-	_paint(model, "Post", pole.material_override if pole != null else null)
-	_paint(model, "Iron", cage.material_override if cage != null else null)
-	_quiet_glass(model)
-	for child in lamp.get_children():
-		if child == model:
-			continue
-		if child is MeshInstance3D:
-			(child as MeshInstance3D).visible = false
-	_move_light(model, lamp.get_node_or_null("Light") as OmniLight3D)
-
-
-static func _dress_dock(dock: Node) -> void:
-	if dock == null:
-		push_error("DRESS dock null")
-		return
-	var post := dock.get_node_or_null("LampPost") as MeshInstance3D
-	if post == null:
-		push_error("DRESS dock LampPost missing")
-		return
-	var model := Check.attach_glb(dock, LANTERN, "DressedLantern")
-	if model == null:
-		return
-	var foot := post.position
-	foot.y += post.get_aabb().position.y
-	model.position = foot
-	_paint(model, "Post", post.material_override)
-	var cage := dock.get_node_or_null("Cage") as MeshInstance3D
-	if cage != null:
-		_paint(model, "Iron", cage.material_override)
-		cage.visible = false
-	post.visible = false
-	var glow := dock.get_node_or_null("Lamp") as MeshInstance3D
-	if glow != null:
-		glow.visible = false
-	_quiet_glass(model)
-	_move_light(model, dock.get_node_or_null("Light") as OmniLight3D)
-
-
-static func _dress_standing(mesh_node: MeshInstance3D, face_center: bool) -> int:
-	if mesh_node == null or mesh_node.has_meta("dressed") or mesh_node.mesh == null:
-		return 0
-	mesh_node.set_meta("dressed", true)
-	var tris: Array = _triangles(mesh_node.mesh)
-	if tris.is_empty():
-		return 0
-	var islands: Array = _islands(tris)
-	var keep: Array = []
-	var replaced: Array = []
-	for island in islands:
-		var span: Dictionary = _span(island)
-		var size: Vector3 = span.mx - span.mn
-		# Columns lean a little, so their footprint is wider than the mesh radius.
-		# Wall slabs are at least 2.5 m long and stay in the ruin mesh.
-		var narrow := maxf(size.x, size.z) < 2.15
-		if size.y > 1.1 and narrow:
-			replaced.append(span)
-		else:
-			keep.append_array(island)
-	if replaced.is_empty():
-		return 0
-	var center := Vector3.ZERO
-	if not keep.is_empty():
-		var acc := Vector3.ZERO
-		var n := 0
-		for t in keep:
-			acc += _centroid(t)
-			n += 1
-		center = acc / float(n)
-	if keep.is_empty():
-		mesh_node.visible = false
-	else:
-		mesh_node.mesh = _rebuild(keep)
-	var body := mesh_node.get_parent().get_node_or_null(String(mesh_node.name) + "Body/Shape") as CollisionShape3D
-	if body != null:
-		if keep.is_empty():
-			body.disabled = true
-		else:
-			body.shape = mesh_node.mesh.create_trimesh_shape()
-	var mat := mesh_node.material_override
-	var placed := 0
-	for span in replaced:
-		var mn: Vector3 = span.mn
-		var mx: Vector3 = span.mx
-		var foot := Vector3((mn.x + mx.x) * 0.5, mn.y, (mn.z + mx.z) * 0.5)
-		foot = mesh_node.global_transform * foot
-		var height: float = (span.mx as Vector3).y - (span.mn as Vector3).y
-		var yaw := fposmod(foot.x * 1.7 + foot.z * 0.37, TAU)
-		_place_menhir(mesh_node.get_parent(), foot, yaw, height, mat, center if face_center else Vector3.ZERO, face_center)
-		placed += 1
-	return placed
-
-
 static func _place_menhir(parent: Node, foot: Vector3, yaw: float, height: float, mat: Material, face: Vector3, face_center: bool) -> void:
 	if parent == null:
 		push_error("DRESS menhir parent null")
@@ -271,23 +131,6 @@ static func _paint(model: Node, prefix: String, mat: Material) -> void:
 			n += 1
 	if n == 0:
 		push_error("DRESS %s: no mesh begins with '%s'" % [model.name, prefix])
-
-
-static func _quiet_glass(model: Node) -> void:
-	for node in model.find_children("*", "MeshInstance3D", true, false):
-		var name := String(node.name)
-		if name.begins_with("Glass") or name.begins_with("Ember"):
-			(node as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-
-
-static func _move_light(model: Node, light: OmniLight3D) -> void:
-	if light == null:
-		return
-	for node in model.find_children("*", "MeshInstance3D", true, false):
-		if String(node.name).begins_with("Ember"):
-			var mi := node as MeshInstance3D
-			light.global_position = mi.global_transform * mi.get_aabb().get_center()
-			return
 
 
 static func _triangles(mesh: Mesh) -> Array:
@@ -351,10 +194,6 @@ static func _span(tris: Array) -> Dictionary:
 			mn = mn.min(v)
 			mx = mx.max(v)
 	return {"mn": mn, "mx": mx}
-
-
-static func _centroid(tri: Array) -> Vector3:
-	return (tri[0] + tri[1] + tri[2]) / 3.0
 
 
 static func _rebuild(tris: Array) -> ArrayMesh:

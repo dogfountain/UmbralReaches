@@ -23,24 +23,6 @@ static func material_for(_node: Node) -> Material:
 	return load(STONE)
 
 
-static func harden(root: Node) -> void:
-	var stone := material_for(root)
-	var painted := 0
-	for node in root.find_children("*", "MeshInstance3D", true, false):
-		var mi := node as MeshInstance3D
-		if _skip(mi) or not _is_stone(mi):
-			continue
-		mi.material_override = stone
-		_ensure_collision(mi)
-		painted += 1
-	for node in root.find_children("*", "Node3D", true, false):
-		if String(node.name).begins_with("Menhir"):
-			_paint_tree(node, stone)
-			solidify(node as Node3D)
-	if painted > 0:
-		print("STONE painted=%d" % painted)
-
-
 static func solidify(node: Node3D) -> void:
 	if node == null or node.has_meta("stone_solid"):
 		return
@@ -73,44 +55,6 @@ static func solidify(node: Node3D) -> void:
 	node.set_meta("stone_solid", true)
 
 
-static func _ensure_collision(mi: MeshInstance3D) -> void:
-	if _already_solid(mi):
-		return
-	var n := String(mi.name)
-	if n in SKIP_WALK:
-		return
-	if not mi.visible or mi.mesh == null or mi.mesh.get_surface_count() < 1:
-		return
-	if n in ["Ring", "Ruins"]:
-		_add_trimesh(mi)
-		return
-	var aabb := mi.get_aabb()
-	if aabb.size.y < 0.35 and not n.begins_with("Pile") and not n.begins_with("Menhir"):
-		return
-	if aabb.size.y < maxf(aabb.size.x, aabb.size.z) * 0.7 and n in ["Ring", "Ruins"]:
-		_add_trimesh(mi)
-		return
-	solidify(mi)
-
-
-static func _add_trimesh(mi: MeshInstance3D) -> void:
-	if mi.has_meta("stone_solid"):
-		return
-	var shape := mi.mesh.create_trimesh_shape()
-	if shape == null:
-		return
-	var body := StaticBody3D.new()
-	body.name = "StoneBody"
-	body.collision_layer = Layers.WORLD
-	body.collision_mask = 0
-	mi.add_child(body)
-	var col := CollisionShape3D.new()
-	col.name = "Shape"
-	col.shape = shape
-	body.add_child(col)
-	mi.set_meta("stone_solid", true)
-
-
 static func _already_solid(node: Node) -> bool:
 	if node.has_meta("stone_solid"):
 		return true
@@ -139,24 +83,6 @@ static func _enabled_shape(body: StaticBody3D) -> bool:
 	return false
 
 
-static func _is_stone(mi: MeshInstance3D) -> bool:
-	var n := String(mi.name)
-	if n.begins_with("Menhir") or n.begins_with("Pile") or n.begins_with("Stone"):
-		return true
-	if n in ["Ruins", "Sanctuary", "Stair", "Plinth"]:
-		return true
-	if n == "Ring":
-		var p := mi.get_parent()
-		if p != null and String(p.name) == "Shrine":
-			return false
-		return true
-	var mat := mi.material_override
-	if mat == null:
-		return false
-	var path := mat.resource_path
-	return path.ends_with("stone.tres") and not path.contains("path")
-
-
 static func _skip(mi: MeshInstance3D) -> bool:
 	if String(mi.name) in SKIP_MESH:
 		return true
@@ -166,16 +92,6 @@ static func _skip(mi: MeshInstance3D) -> bool:
 			return true                          # registered builders bring their own collision
 		p = p.get_parent()
 	return false
-
-
-static func _paint_tree(node: Node, stone: Material) -> void:
-	if node is MeshInstance3D:
-		(node as MeshInstance3D).material_override = stone
-	for child in node.find_children("*", "MeshInstance3D", true, false):
-		var n := String(child.name)
-		if n.begins_with("Glass") or n.begins_with("Ember") or n.begins_with("Heart"):
-			continue
-		(child as MeshInstance3D).material_override = stone
 
 
 static func _local_aabb(node: Node3D) -> AABB:

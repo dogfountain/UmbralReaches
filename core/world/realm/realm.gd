@@ -5,11 +5,11 @@ extends RefCounted
 ##   godot --path . -- --realm --realm-modules=land,flora   only those modules (for working on one)
 ## Each module is a script with `static func build(root: Node) -> void` (it may await), loaded by
 ## path, so a module that does not exist yet (or fails to parse) is skipped, not fatal. Order:
-##   1 retire the old world layers (this file)   2 land (terrain, paths, water)
-##   3 rift (lava, the crossing)  4 bosses (henge, ward, Ossuary access, camps)  5 tavern (kept)
-##   6 lore (landmarks, villages, inscriptions)  7 TerrainStamp.apply (site floors)
-##   8 flora (trees, undergrowth, ground cover)  9 summit dress, braziers, kept systems
-##   10 assets (quality pass hooks)  11 cull_scatter / chunks
+##   1 land (terrain, paths, water)
+##   2 rift (lava, the crossing)  3 bosses (henge, ward, Ossuary access, camps)  4 tavern (kept)
+##   5 lore (landmarks, villages, inscriptions)  6 TerrainStamp.apply (site floors)
+##   7 flora (trees, undergrowth, ground cover)  8 summit dress, braziers, kept systems
+##   9 assets (quality pass hooks)  10 cull_scatter / chunks
 ## Modules own their own files; this file and the hooks in glimmers.gd / main.gd belong to the lead.
 
 const FadeGuard := preload("res://core/world/fade_guard.gd")
@@ -41,15 +41,6 @@ const PRELOAD := [
 	"res://art/models/r37e_spire.glb", "res://art/models/r37e_saltworks.glb", "res://art/models/r37e_hamlet.glb", "res://art/models/r37e_cells.glb",
 	"res://art/models/r37_south_hut.glb", "res://art/models/r37_south_oak.glb", "res://art/models/r37_south_wall.glb", "res://art/models/r37_south_well.glb",
 ]
-
-## Baked stair-era layers the Realm replaces (hidden, collision off). The spawn brazier
-## (Zone/Braziers/Sanctuary) and everything the Tavern builds stay.
-const RETIRED := [
-	"Zone/Stair", "Zone/StairBody", "Zone/Sanctuary", "Zone/SanctuaryBody", "Zone/Ruins", "Zone/RuinsBody",
-	"Zone/Boulders", "Zone/BouldersBody", "Zone/Forest", "Zone/ForestBody", "Zone/DeadTrees", "Zone/TreesBody",
-	"Zone/ForestFloor", "Zone/RiftCrystals", "Zone/RiftDebris", "Zone/CrystalLights",
-]
-
 
 static func module_on(id: String) -> bool:
 	for a in OS.get_cmdline_user_args():
@@ -152,7 +143,6 @@ static func build(root: Node) -> void:
 	for path: String in PRELOAD:
 		if ResourceLoader.exists(path):
 			ResourceLoader.load_threaded_request(path, "", true)
-	retire(root)
 	root.tree_exiting.connect(DwarfRig.warm_abandon_all, CONNECT_ONE_SHOT)
 	await _run("land", root)
 	# the Keg's people are the longest cache misses (a mesh each, 0.6 s of GDScript): they build on
@@ -230,17 +220,3 @@ static func _run(id: String, root: Node) -> void:
 	prof_add("module: " + id, tu)
 	print("REALM %s in %d ms" % [id, Time.get_ticks_msec() - t])
 
-
-## Hide the replaced layers and switch their collision off (the scene is never rebaked).
-static func retire(root: Node) -> void:
-	for path: String in RETIRED:
-		var n := root.get_node_or_null(path)
-		if n == null:
-			continue
-		if n is Node3D:
-			(n as Node3D).visible = false
-		for cs in n.find_children("*", "CollisionShape3D", true, false):
-			(cs as CollisionShape3D).disabled = true
-		if n is CollisionObject3D:
-			(n as CollisionObject3D).collision_layer = 0
-		n.process_mode = Node.PROCESS_MODE_DISABLED

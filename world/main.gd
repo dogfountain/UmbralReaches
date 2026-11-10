@@ -67,13 +67,11 @@ func _exit_tree() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	super._unhandled_input(event)
-	# r36 hardening (r35 critique, #7): the autopilot (F9) and the benchmark (F8) are for development;
-	# the shipped game (an export template) ignores them unless started with -- --dev
+	# r36 hardening (r35 critique, #7): the benchmark (F8) is for development;
+	# the shipped game (an export template) ignores it unless started with -- --dev
 	if not _dev_keys():
 		return
-	if event.is_action_pressed("demo") and not _player.autopilot:
-		_harness().start_demo()
-	elif event.is_action_pressed("benchmark"):
+	if event.is_action_pressed("benchmark"):
 		_harness().start_benchmark()
 
 

@@ -26,26 +26,10 @@ static func apply(root: Node, env: Environment, cam: Camera3D, moon: Directional
 	_aim_sky_moon(env, moon)
 	_swirl_vortex(env)
 	_sky_flare(root, moon)
-	if not _realm_retires(root, "Zone/Forest"):
-		_thicken_canopy(root)                     # the Realm hides the old forest: no copy to make
 	_thin_particles(root)
 	SurfaceDetail.apply()
 	apply_quality(env, cam)
 	print("ATMOS apply %.1f ms" % ((Time.get_ticks_usec() - t0) / 1000.0))
-
-
-## True when the Realm is on and `path` (or an ancestor of `n`) is one of the old layers it hides:
-## the legacy floor rebucketing, canopy copy and trunk occluders would be work (and, for
-## occluders, invisible walls) for geometry that is never shown.
-static func _realm_retires(root: Node, path: String) -> bool:
-	for r: String in Realm.RETIRED:
-		if path == r or path.begins_with(r + "/"):
-			return true
-	return false
-
-
-static func _retired_node(root: Node, n: Node) -> bool:
-	return _realm_retires(root, str(root.get_path_to(n)))
 
 
 static func _thin_particles(root: Node) -> void:
@@ -245,14 +229,12 @@ static func _cull_geometry(root: Node, far_m: float) -> void:
 	for gi in root.find_children("*", "GeometryInstance3D", true, false):
 		if _under_player(gi) or _under_enemy(gi):
 			continue
-		if _retired_node(root, gi):
-			continue
 		var n := String(gi.name).to_lower()
 		# Visibility range is distance to the *node origin*, not the mesh. The
 		# stair is one ArrayMesh at (0,0,0) that runs 75 m to the summit — a
 		# 57 m fade hid the treads underfoot, then one step toward origin
 		# brought the whole flight back. Same trap as ForestFloor / lava.
-		if gi.is_in_group(Groups.CULL_SKIP) or _named_under(gi, "Lava") or _named_under(gi, "ForestFloor"):
+		if gi.is_in_group(Groups.CULL_SKIP) or _named_under(gi, "Lava"):
 			continue
 		if gi.is_in_group(Groups.CULL_SPAN) or _is_span_mesh(gi, n):
 			if not gi.is_in_group(Groups.CULL_SPAN):
@@ -292,93 +274,7 @@ static func _cull_geometry(root: Node, far_m: float) -> void:
 		)
 		if cull > 0.0:
 			gi.extra_cull_margin = maxf(gi.extra_cull_margin, cull)
-	if not _realm_retires(root, "Zone/ForestFloor"):
-		_cell_floor(root)
 	_pin_named_spans(root)
-
-
-## Visibility range is distance to the *node origin*. Baked floor chunks sat at (0,0,0)
-## with world-space instance transforms, so they could not cull. Rebucket into 16 m cells
-## with the node at the cell centre and instances relative — no main.tscn rebake.
-static func _cell_floor(root: Node) -> void:
-	var floor := root.find_child("ForestFloor", true, false) as Node3D
-	if floor == null:
-		return
-	const CELL := 16.0
-	var vis := {
-		"grass": 72.0, "fern": 88.0, "cap": 96.0, "nightcap": 96.0,
-		"pebble": 72.0, "spore": 64.0,
-	}
-	var buckets := {}
-	var old: Array[Node] = []
-	for node in floor.find_children("*", "MultiMeshInstance3D", true, false):
-		var mmi := node as MultiMeshInstance3D
-		var mm: MultiMesh = mmi.multimesh
-		if mm == null or mm.instance_count < 1:
-			continue
-		var kind := "grass"
-		var nm := String(mmi.name).to_lower()
-		for k in vis.keys():
-			if nm.begins_with(String(k)):
-				kind = String(k)
-				break
-		old.append(mmi)
-		for i in mm.instance_count:
-			var world: Transform3D = mmi.global_transform * mm.get_instance_transform(i)
-			var key := Vector2i(floori(world.origin.x / CELL), floori(world.origin.z / CELL))
-			var cell_key := "%s_%d_%d" % [kind, key.x, key.y]
-			if not buckets.has(cell_key):
-				buckets[cell_key] = {
-					"kind": kind, "key": key, "mesh": mm.mesh, "mat": mmi.material_override,
-					"colors": mm.use_colors, "xfs": [], "cols": [],
-				}
-			var b: Dictionary = buckets[cell_key]
-			b.xfs.append(world)
-			if mm.use_colors:
-				b.cols.append(mm.get_instance_color(i))
-	for n in old:
-		floor.remove_child(n)
-		n.free()
-	for cell_key in buckets:
-		var b: Dictionary = buckets[cell_key]
-		var xfs: Array = b.xfs
-		var y_sum := 0.0
-		for xf in xfs:
-			y_sum += xf.origin.y
-		var centre := Vector3(
-			(float(b.key.x) + 0.5) * CELL,
-			y_sum / float(xfs.size()),
-			(float(b.key.y) + 0.5) * CELL)
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.use_colors = b.colors
-		mm.mesh = MeshChunks.with_lods(b.mesh)      # caps and spheres are 48-300 tris each, thousands of them
-		mm.instance_count = xfs.size()
-		var box := AABB()
-		for i in xfs.size():
-			var local := Transform3D(xfs[i].basis, xfs[i].origin - centre)
-			mm.set_instance_transform(i, local)
-			if i == 0:
-				box = AABB(local.origin, Vector3.ZERO)
-			else:
-				box = box.expand(local.origin)
-			if mm.use_colors:
-				mm.set_instance_color(i, b.cols[i])
-		mm.custom_aabb = box.grow(8.0)
-		var mmi := MultiMeshInstance3D.new()
-		mmi.name = cell_key
-		mmi.multimesh = mm
-		mmi.material_override = b.mat
-		mmi.position = centre
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		# Vis-range is camera-to-cell-centre. Keep it well past one 16 m cell so the next
-		# patch is already drawn; FADE_SELF on alpha-scissor grass reads as a pop.
-		mmi.visibility_range_end = float(vis.get(b.kind, 72.0))
-		mmi.visibility_range_end_margin = 24.0
-		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
-		mmi.extra_cull_margin = 16.0
-		mmi.ignore_occlusion_culling = true
-		floor.add_child(mmi)
 
 
 static func _skips_range(n: String) -> bool:
@@ -424,7 +320,7 @@ static func _pin_span(gi: GeometryInstance3D) -> void:
 
 
 static func _pin_named_spans(root: Node) -> void:
-	for mesh_name in ["Stair", "Sanctuary", "Ruins", "DeadTrees", "GiantTrunks", "Boulders", "Terrain", "TerrainHeart"]:
+	for mesh_name in ["Terrain", "TerrainHeart"]:
 		var mi := root.find_child(mesh_name, true, false) as MeshInstance3D
 		if mi == null:
 			continue
@@ -444,7 +340,7 @@ static func _occluders(root: Node) -> void:
 			continue
 		if not col.is_in_group(Groups.OCCLUDER_TRUNK):
 			col.add_to_group(Groups.OCCLUDER_TRUNK)
-		if _under_player(col) or _skip_occluder(col) or _retired_node(root, col):
+		if _under_player(col) or _skip_occluder(col):
 			continue
 		var shape: Shape3D = (col as CollisionShape3D).shape
 		if shape == null:
@@ -610,8 +506,6 @@ static func _realm_render_pass(root: Node) -> Vector4i:
 			continue
 		var gi := n as GeometryInstance3D
 		if _under_player(gi) or _under_enemy(gi) or (skip_flora and skip_flora.is_ancestor_of(gi)):
-			continue
-		if _retired_node(root, gi):
 			continue
 		if gi is GPUParticles3D:
 			var gp := gi as GPUParticles3D
@@ -802,61 +696,4 @@ static func _sky_flare(root: Node, moon: DirectionalLight3D) -> void:
 		flare.set("moon", moon)
 	if flare.mesh is QuadMesh:
 		(flare.mesh as QuadMesh).size = Vector2(8.0, 8.0)
-
-
-static func _thicken_canopy(root: Node) -> void:
-	var canopy := root.find_child("Canopy", true, false) as MeshInstance3D
-	if canopy == null or canopy.has_meta("thickened") or canopy.mesh == null:
-		return
-	canopy.set_meta("thickened", true)
-	_canopy_fill(canopy, "CanopyFill", Vector3(1.16, 1.12, 1.16), 0.55, 0.37)
-
-
-## A second, slightly larger and turned copy of every crown, about that crown's own centre, so
-## the canopy reads dense. (It used to scale and rotate the whole Canopy node about the world
-## origin, which threw every copy 5-15 m off its tree: a second forest of crowns with no trunks.)
-static func _canopy_fill(canopy: MeshInstance3D, fill_name: String, sc: Vector3, lift: float, yaw: float) -> void:
-	var old := canopy.get_parent().get_node_or_null(fill_name)
-	if old:
-		old.get_parent().remove_child(old)
-		old.free()
-	var fill := canopy.duplicate() as MeshInstance3D
-	fill.name = fill_name
-	fill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var src := canopy.mesh
-	var out := ArrayMesh.new()
-	var turn := Basis(Vector3.UP, yaw).scaled(sc)
-	for si in src.get_surface_count():
-		var arrays := src.surface_get_arrays(si)
-		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
-		if idx.is_empty():
-			idx.resize(verts.size())
-			for i in verts.size():
-				idx[i] = i
-		var comp := SeatProps.island_of(verts, idx)
-		var sum := {}
-		for vi in verts.size():
-			if comp[vi] >= 0:
-				var acc: Array = sum.get(comp[vi], [Vector3.ZERO, 0])
-				sum[comp[vi]] = [acc[0] + verts[vi], int(acc[1]) + 1]
-		var rot := Basis(Vector3.UP, yaw)
-		for vi in verts.size():
-			if comp[vi] < 0:
-				continue
-			var acc: Array = sum[comp[vi]]
-			var c: Vector3 = acc[0] / float(acc[1])
-			verts[vi] = c + turn * (verts[vi] - c) + Vector3.UP * lift
-		arrays[Mesh.ARRAY_VERTEX] = verts
-		if arrays[Mesh.ARRAY_NORMAL] != null:
-			var nrm: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
-			for vi in nrm.size():
-				nrm[vi] = rot * nrm[vi]
-			arrays[Mesh.ARRAY_NORMAL] = nrm
-		arrays[Mesh.ARRAY_TANGENT] = null
-		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		out.surface_set_material(si, src.surface_get_material(si))
-	fill.mesh = out
-	fill.custom_aabb = AABB()
-	canopy.get_parent().add_child(fill)
 

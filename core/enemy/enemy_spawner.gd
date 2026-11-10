@@ -490,15 +490,15 @@ func slots() -> Array[Dictionary]:
 	return _slots
 
 
-## The Realm's tree colliders (RealmFlora's chunks, the old Forest and Trees bodies).
+## The Realm's tree colliders (RealmFlora's chunks).
 static func _is_flora_body(n: Node) -> bool:
 	if n == null:
 		return false
 	var nm := String(n.name)
-	if nm == "FloraBody" or nm == "TreesBody" or nm == "ForestBody":
+	if nm == "FloraBody":
 		return true
 	var par := n.get_parent()
-	return par != null and (String(par.name).begins_with("Trees_") or String(par.name) == "Forest")
+	return par != null and String(par.name).begins_with("Trees_")
 
 
 var _last_hit_y := NAN     ## y of the last `_ground` hit (NAN when the probe found no floor)
