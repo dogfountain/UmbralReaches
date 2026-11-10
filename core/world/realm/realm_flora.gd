@@ -59,6 +59,17 @@ static var r30 := false                ## --no-r31-flora (A/B)
 static var tree_clear: Array = []
 
 
+## The world's edge on the west, east and south is a wall of cliff faces (RealmWayfinding.edges): a tree
+## whose trunk or crown stands in that band grows through the rock.
+static func _on_edge_wall(at: Vector2, spread: float) -> bool:
+	var bd := RealmLayout.BOUNDS
+	var reach := 5.5 + spread * 0.3
+	if at.y > bd.position.y + 32.0 and at.y < bd.end.y + 3.0:
+		if absf(at.x - bd.position.x) < reach or absf(at.x - bd.end.x) < reach:
+			return true
+	return at.y > bd.end.y - reach and at.y < bd.end.y + 3.0
+
+
 static func _under_table(sp: String) -> Dictionary:
 	return R30.UNDER[sp] if r30 and R30.UNDER.has(sp) else UNDER[sp]
 
@@ -696,7 +707,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 				s = basis.get_scale().x
 			# a vista round a place (tree_clear): tested last, after every draw this candidate makes,
 			# so the rest of the wood keeps the exact layout it had without it
-			var cleared := false
+			var cleared := _on_edge_wall(at, float(d.spread))
 			for tc: Array in tree_clear:
 				if at.distance_to(tc[0]) < float(tc[1]) + float(d.spread) * 0.6:
 					cleared = true
@@ -831,6 +842,8 @@ static func _plant_tree(space: PhysicsDirectSpaceState3D, rng: RandomNumberGener
 	var pos := Vector3(at.x, gy, at.y)
 	if _clash(space, id, Transform3D(basis, pos), true):
 		rejects[sp + " clash"] = int(rejects.get(sp + " clash", 0)) + 1
+		return false
+	if _on_edge_wall(at, float(d.spread)):
 		return false
 	for tc: Array in tree_clear:
 		if at.distance_to(tc[0]) < float(tc[1]) + float(d.spread) * 0.6:

@@ -181,7 +181,7 @@ static func _put(kind: String, p: Vector2, yaw: float, scale := 1.0, lift := 0.0
 		return false
 	if y < -0.7:
 		return false                                   # the fen's water line
-	if lift == 0.0 and kind not in FLAT and _blocked(Vector3(p.x, y, p.y), rad):
+	if lift == 0.0 and kind not in FLAT and _blocked(Vector3(p.x, y, p.y), rad, kind.begins_with("stall")):
 		return false
 	var bas := Basis(Vector3.UP, yaw)
 	if kind in FLAT or kind in SMALL:
@@ -218,9 +218,15 @@ static func _ground(p: Vector2) -> Dictionary:
 	return {"y": (h.position as Vector3).y, "normal": h.normal}
 
 
-static func _blocked(p: Vector3, rad: float) -> bool:
-	_box.size = Vector3(rad * 2.0 + 0.2, 1.1, rad * 2.0 + 0.2)
-	_q.transform = Transform3D(Basis.IDENTITY, p + Vector3.UP * 0.95)
+## `awning`: a stall's cloth and posts stand to 2.6 m and reach out beyond its footprint, so its test box is tall and wide
+## (an awning ran into a house's eave and left a 1.5 m lane between a post and the wall).
+static func _blocked(p: Vector3, rad: float, awning := false) -> bool:
+	if awning:
+		_box.size = Vector3(rad * 2.0 + 0.9, 3.0, rad * 2.0 + 0.9)
+		_q.transform = Transform3D(Basis.IDENTITY, p + Vector3.UP * 2.1)
+	else:
+		_box.size = Vector3(rad * 2.0 + 0.2, 1.1, rad * 2.0 + 0.2)
+		_q.transform = Transform3D(Basis.IDENTITY, p + Vector3.UP * 0.95)
 	for h in _space.intersect_shape(_q, 4):
 		var c := h.collider as Node
 		if c and not String(c.name).begins_with("Terrain"):

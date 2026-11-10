@@ -206,7 +206,7 @@ const SLOTS := {
 		{"kind": "poi_wet", "at": Vector2(196, -14), "note": "a sunken boat-house"},
 		{"kind": "camp", "at": Vector2(172, -36), "note": "the north shore"}],
 	"anchorholds": [
-		{"kind": "fire", "at": Vector2(204, -84), "note": "the foot of the cliff, anchor_track's end"},
+		{"kind": "fire", "at": Vector2(209, -83), "note": "the foot of the cliff, a few metres off anchor_track's bend"},
 		{"kind": "poi", "at": Vector2(214, -132), "note": "the cliff terrace: the lower cells, the timber walk, the chapel and the Anchoress's room"},
 		{"kind": "camp", "at": Vector2(180, -82), "note": "the scree at the cliff's foot"}],
 	"saltmarket": [

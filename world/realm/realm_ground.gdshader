@@ -116,7 +116,10 @@ void fragment() {
 	vec2 sq = wpos.xz;
 	sq += vec2(sin(sq.y * 0.09 + 1.3) + 0.6 * sin(sq.y * 0.21 + sq.x * 0.05), sin(sq.x * 0.08 + 0.4) + 0.6 * sin(sq.x * 0.19 - sq.y * 0.06)) * 4.4;
 	vec2 sd = max(max(salt_rect.xy - sq, vec2(0.0)), sq - salt_rect.zw);
-	float salt_t = clamp(1.0 - length(sd) / 18.0, 0.0, 1.0);
+	// the pans' edge is a stain, not a line: salt creeps out over the bank in patches (a wider, noise-broken falloff)
+	float sdl = length(sd);
+	float sn = texture(alb, vec3(sq * 0.045, 3.0)).a;
+	float salt_t = clamp(1.0 - sdl / 26.0 + (sn - 0.5) * 0.8 * min(sdl / 5.0, 1.0), 0.0, 1.0);
 	float w_salt = salt_t * salt_t * (3.0 - 2.0 * salt_t);
 	float w_rest = w_a.r + w_b.x + w_a.g + w_a.b + w_a.a + w_b.y + w_b.z;
 	float w_k = (1.0 - w_salt) / max(w_rest, 0.001);
