@@ -2,6 +2,11 @@
 
   tools/blender/run.sh props_square.py -- [--only crate,barrel,...] [--preview DIR]
 
+Revision 2: every prop is split into <part>__<set> meshes (timber / iron, plus a plain `water` for the trough) with metric
+UVs (1 UV unit = tile metres, grain along each face's longest edge, exactly as r37_west.py), and the game dresses
+the sets with art/textures/r37_<set>_{albedo,normal,orm}.png. Vertex colour is a TONE multiplier only (grime, moss at
+the foot, rust). Burlap uses the timber set for now (a `cloth` set would be better: ask the lead).
+
 One glb per prop in art/models/props/, in GODOT metres, pivot at the base centre, y up, same size as the old box
 builders so the swap is drop-in:
   crate.glb  crate_broken.glb     0.66 x 0.67 x 0.66
@@ -67,7 +72,9 @@ def fbm(p, octaves=3):
     return s / n
 
 
-WOOD, IRON, CLOTH, GRAIN, DARK = 0, 1, 2, 3, 4      # face kinds: drive the finishing pass
+WOOD, IRON, CLOTH, GRAIN, DARK, WATER = 0, 1, 2, 3, 4, 5      # face kinds: drive the finishing pass
+KEY = {WOOD: 'timber', IRON: 'iron', CLOTH: 'timber', GRAIN: 'timber', DARK: 'timber', WATER: 'water'}
+TILE = {'timber': 2.0, 'iron': 2.0, 'water': 2.0}
 
 CUBE = {
     '+x': [(1, 0, 0), (1, 1, 0), (1, 1, 1), (1, 0, 1)],
@@ -89,15 +96,15 @@ class P:
         self.rng = random.Random(seed)
 
     def wood(self, tone="mid"):
-        base = {"mid": (0.40, 0.29, 0.19), "pale": (0.50, 0.38, 0.25), "grey": (0.37, 0.32, 0.27),
-                "dark": (0.29, 0.21, 0.14), "fresh": (0.58, 0.43, 0.27)}[tone]
-        v = self.rng.uniform(0.78, 1.16)
-        w = self.rng.uniform(-0.018, 0.018)
+        base = {"mid": (0.95, 0.88, 0.80), "pale": (1.0, 0.95, 0.86), "grey": (0.82, 0.82, 0.80),
+                "dark": (0.62, 0.57, 0.52), "fresh": (1.0, 0.92, 0.78)}[tone]
+        v = self.rng.uniform(0.84, 1.0)
+        w = self.rng.uniform(-0.02, 0.02)
         return (base[0] * v + w, base[1] * v, base[2] * v - w)
 
     def iron(self):
-        v = self.rng.uniform(0.85, 1.2)
-        return (0.15 * v, 0.15 * v, 0.17 * v)
+        v = self.rng.uniform(0.8, 1.0)
+        return (0.95 * v, 0.9 * v, 0.88 * v)
 
     def fc(self, vs, cols, kind, smooth_=False, out=None):
         """A face from bmesh verts; cols is one colour or one per vert. `out` is a point inside a convex piece:
@@ -190,7 +197,6 @@ def nail(p, pos, nrm, r=0.011, h=0.009):
     bv = [p.vt(b) for b in base]
     ap = p.vt(Vector(pos) + nrm * h)
     c = p.iron()
-    c = (c[0] * 1.5, c[1] * 1.5, c[2] * 1.5)
     for i in range(3):
         p.fc([bv[i], bv[(i + 1) % 3], ap], c, IRON, out=Vector(pos) - nrm * 0.02)
 
@@ -221,25 +227,23 @@ def loft(p, rings, col, kind, smooth_=True, cap0=True, cap1=True, cap_cols=(None
 
 # --- tone: the finishing pass over every baked colour ----------------------------------------------------
 def tone(kind, co, n, c):
+    """The macro tone multiplied on the tiling albedo: foot AO, damp, moss, dirt streaks, rust."""
     y = co.y
-    up = n.y * 0.5 + 0.5
-    lit = 0.80 + 0.22 * up
-    mott = 1.0 + 0.55 * fbm(co * 6.0 + Vector((3, 1, 5)), 3)
     if kind == DARK:
-        return tuple(min(1.0, x * 0.9 * (0.85 + 0.3 * fbm(co * 9.0, 2))) for x in c)
-    ao = 0.55 + 0.45 * smooth(0.0, 0.17, y)
-    r, g, b = c[0] * lit * mott * ao, c[1] * lit * mott * ao, c[2] * lit * mott * ao
-    streak = smooth(0.0, 0.5, fbm(Vector((co.x * 10.0, 0.0, co.z * 10.0)) + Vector((4, 0, 8)), 2)) * (1.0 - smooth(0.0, 0.7, y)) * (1.0 - abs(n.y)) * 0.38
+        return tuple(min(1.0, x * (0.8 + 0.3 * fbm(co * 9.0, 2))) for x in c)
+    if kind == WATER:
+        return c
+    mott = 1.0 + 0.30 * fbm(co * 5.0 + Vector((3, 1, 5)), 3)
+    ao = 0.5 + 0.5 * smooth(0.0, 0.17, y)
+    r, g, b = c[0] * mott * ao, c[1] * mott * ao, c[2] * mott * ao
+    streak = smooth(0.0, 0.5, fbm(Vector((co.x * 10.0, 0.0, co.z * 10.0)) + Vector((4, 0, 8)), 2)) * (1.0 - smooth(0.0, 0.7, y)) * (1.0 - abs(n.y)) * 0.35
     r, g, b = r * (1 - streak), g * (1 - streak), b * (1 - streak)
-    if kind == WOOD or kind == CLOTH:
-        grain = 1.0 + 0.10 * math.sin(co.y * 63.0 + 5.0 * fbm(co * 3.0, 2)) * (1.0 if kind == CLOTH else 0.4)
-        r, g, b = r * grain, g * grain, b * grain
-        moss = (1.0 - smooth(0.015, 0.12, y)) * smooth(-0.2, 0.45, fbm(co * 11.0 + Vector((9, 2, 4)), 3)) * (0.35 + 0.65 * max(n.y, 0.0) * 0.4 + 0.3)
-        moss *= 0.9
-        r, g, b = r * (1 - moss) + 0.15 * moss, g * (1 - moss) + 0.22 * moss, b * (1 - moss) + 0.07 * moss
+    if kind in (WOOD, CLOTH, GRAIN):
+        moss = (1.0 - smooth(0.015, 0.13, y)) * smooth(-0.2, 0.45, fbm(co * 11.0 + Vector((9, 2, 4)), 3)) * 0.8
+        r, g, b = r * (1 - moss) + 0.45 * moss, g * (1 - moss) + 0.62 * moss, b * (1 - moss) + 0.3 * moss
     elif kind == IRON:
-        rs = smooth(0.0, 0.45, fbm(co * 14.0, 3) + 0.15)
-        r, g, b = r * (1 - 0.6 * rs) + 0.44 * 0.6 * rs, g * (1 - 0.6 * rs) + 0.22 * 0.6 * rs, b * (1 - 0.6 * rs) + 0.11 * 0.6 * rs
+        rs = smooth(0.0, 0.45, fbm(co * 12.0, 3) + 0.1)
+        r, g, b = r * (1 - 0.4 * rs) + 0.95 * 0.4 * rs, g * (1 - 0.4 * rs) + 0.62 * 0.4 * rs, b * (1 - 0.4 * rs) + 0.4 * 0.4 * rs
     return (min(1.0, r), min(1.0, g), min(1.0, b))
 
 
@@ -247,47 +251,71 @@ def tri_count(objs):
     return sum(sum(len(q.vertices) - 2 for q in o.data.polygons) for o in objs)
 
 
-_MAT = None
-
-
-def prop_material():
-    global _MAT
-    m = bpy.data.materials.new("Prop")
-    m.use_nodes = True
-    nt = m.node_tree
-    bsdf = nt.nodes["Principled BSDF"]
-    vc = nt.nodes.new("ShaderNodeVertexColor")
-    vc.layer_name = "Col"
-    nt.links.new(vc.outputs[0], bsdf.inputs["Base Color"])
-    bsdf.inputs["Roughness"].default_value = 0.88
-    bsdf.inputs["Metallic"].default_value = 0.0
+def set_material(key):
+    """Bare material (exported); the preview swaps in the textured one."""
+    m = bpy.data.materials.get(key)
+    if m is None:
+        m = bpy.data.materials.new(key)
+        m.use_nodes = True
+        if key == "water":
+            b = m.node_tree.nodes["Principled BSDF"]
+            b.inputs["Base Color"].default_value = (0.02, 0.05, 0.06, 1)
+            b.inputs["Roughness"].default_value = 0.08
     return m
 
 
 def finish(p, name, col_box):
-    """Bake the tone into the loops, drop loose verts, make the mesh + the -colonly box. col_box = (centre, size)."""
+    """Split by set, write grain-aligned metric UVs and tone colours, make the -colonly box. -> (objs, col)."""
     bm = p.bm
     loose = [v for v in bm.verts if not v.link_faces]
     if loose:
         bmesh.ops.delete(bm, geom=loose, context='VERTS')
+    bm.verts.index_update()
     bm.normal_update()
+    out = {}
     for f in bm.faces:
         kind = f[p.kl]
+        key = KEY[kind]
+        if key not in out:
+            nb = bmesh.new()
+            out[key] = (nb, nb.loops.layers.uv.new("UVMap"), nb.loops.layers.color.new("Col"), {})
+        nbm, uvl, cl, vmap = out[key]
+        n = f.normal
+        le = max(f.edges, key=lambda e: e.calc_length())
+        d = (le.verts[1].co - le.verts[0].co).normalized()
+        t1 = n.cross(d)
+        grain = (t1.normalized(), d) if t1.length > 1e-6 else None
+        vs = []
         for l in f.loops:
-            co = G(l.vert.co)
-            nb = l.vert.normal if f.smooth else f.normal
-            n = G(nb)
+            if l.vert.index not in vmap:
+                vmap[l.vert.index] = nbm.verts.new(l.vert.co)
+            vs.append(vmap[l.vert.index])
+        try:
+            nf = nbm.faces.new(vs)
+        except ValueError:
+            continue
+        nf.smooth = f.smooth
+        tile = TILE[key]
+        for l, nl in zip(f.loops, nf.loops):
+            co = l.vert.co
+            if grain is not None:
+                nl[uvl].uv = (co.dot(grain[0]) / tile, co.dot(grain[1]) / tile)
+            nn = l.vert.normal if f.smooth else n
             c = l[p.cl]
-            t = tone(kind, co, n, (c[0], c[1], c[2]))
-            l[p.cl] = (t[0], t[1], t[2], 1.0)
-    me = bpy.data.meshes.new(name)
-    bm.to_mesh(me)
+            t = tone(kind, G(co), G(nn), (c[0], c[1], c[2]))
+            nl[cl] = (t[0], t[1], t[2], 1.0)
     bm.free()
-    me.color_attributes.active_color = me.color_attributes["Col"]
-    me.materials.append(prop_material())
-    ob = bpy.data.objects.new(name, me)
-    bpy.context.scene.collection.objects.link(ob)
-    # collision: a plain box the size of the footprint
+    objs = []
+    for key, (nbm, uvl, cl, vmap) in out.items():
+        me = bpy.data.meshes.new("%s__%s" % (name, key))
+        nbm.to_mesh(me)
+        nbm.free()
+        me.color_attributes.active_color = me.color_attributes["Col"]
+        me.color_attributes.render_color_index = list(me.color_attributes.keys()).index("Col")
+        me.materials.append(set_material(key))
+        ob = bpy.data.objects.new("%s__%s" % (name, key), me)
+        bpy.context.scene.collection.objects.link(ob)
+        objs.append(ob)
     c, s = col_box
     cm = bpy.data.meshes.new(name + "-colonly")
     cb = bmesh.new()
@@ -300,7 +328,54 @@ def finish(p, name, col_box):
     cb.free()
     co_ = bpy.data.objects.new(name + "-colonly", cm)
     bpy.context.scene.collection.objects.link(co_)
-    return ob, co_
+    return objs, co_
+
+
+def textured_material(key):
+    """The game's tiling set from the PNGs: albedo x tone, normal, ORM (AO, roughness, metal)."""
+    if key == "water":
+        return set_material("water")
+    m = bpy.data.materials.new("pv_" + key)
+    m.use_nodes = True
+    nt = m.node_tree
+    nodes, links = nt.nodes, nt.links
+    bsdf = nodes["Principled BSDF"]
+    base = os.path.join(ROOT, "art", "textures", "r37_%s_" % key)
+
+    def img(suffix, cs):
+        n = nodes.new("ShaderNodeTexImage")
+        n.image = bpy.data.images.load(base + suffix + ".png", check_existing=True)
+        n.image.colorspace_settings.name = cs
+        return n
+    uvn = nodes.new("ShaderNodeUVMap")
+    uvn.uv_map = "UVMap"
+    al, nr, orm = img("albedo", "sRGB"), img("normal", "Non-Color"), img("orm", "Non-Color")
+    for t in (al, nr, orm):
+        links.new(uvn.outputs[0], t.inputs[0])
+    vc = nodes.new("ShaderNodeVertexColor")
+    vc.layer_name = "Col"
+    mul = nodes.new("ShaderNodeMix")
+    mul.data_type = 'RGBA'
+    mul.blend_type = 'MULTIPLY'
+    mul.inputs[0].default_value = 1.0
+    links.new(al.outputs[0], mul.inputs[6])
+    links.new(vc.outputs[0], mul.inputs[7])
+    ao = nodes.new("ShaderNodeMix")
+    ao.data_type = 'RGBA'
+    ao.blend_type = 'MULTIPLY'
+    ao.inputs[0].default_value = 1.0
+    links.new(mul.outputs[2], ao.inputs[6])
+    links.new(orm.outputs[0], ao.inputs[7])
+    links.new(ao.outputs[2], bsdf.inputs["Base Color"])
+    sep = nodes.new("ShaderNodeSeparateColor")
+    links.new(orm.outputs[0], sep.inputs[0])
+    links.new(sep.outputs[1], bsdf.inputs["Roughness"])
+    if key == "iron":
+        links.new(sep.outputs[2], bsdf.inputs["Metallic"])
+    nm = nodes.new("ShaderNodeNormalMap")
+    links.new(nr.outputs[0], nm.inputs["Color"])
+    links.new(nm.outputs[0], bsdf.inputs["Normal"])
+    return m
 
 
 # =========================================================================================================
@@ -386,77 +461,75 @@ def barrel_r(t):
 def build_barrel(tipped=False):
     p = P(21 if not tipped else 22)
     rng = p.rng
-    seg = 10
+    seg = 16
     h = BARREL_H
-    ts = [0.0, 0.045, 0.25, 0.5, 0.75, 0.955, 1.0]
+    ts = [0.0, 0.06, 0.27, 0.5, 0.73, 0.94, 1.0]
     if tipped:
-        M_ = Matrix.Rotation(-math.pi / 2, 3, 'Z')
-        M_ = rotm(0.5) @ M_
-        shift = V(0, 0.0, 0)
-
         def X(q):
             q = Vector(q) - V(0, h / 2, 0)
             return rotm(0.5) @ (Matrix.Rotation(-math.pi / 2, 3, 'Z') @ q) + V(0, 0.317, 0)
     else:
         def X(q):
             return Vector(q)
-    th = [2 * math.pi * i / seg + rng.uniform(-0.09, 0.09) for i in range(seg)]
-    jr = [rng.uniform(-0.007, 0.007) for _ in range(seg)]
+    th = [2 * math.pi * i / seg + rng.uniform(-0.02, 0.02) for i in range(seg)]
+    jr = [rng.uniform(-0.003, 0.003) for _ in range(seg)]
 
     def pt(i, t, off=0.0, y=None):
         r = barrel_r(t) + jr[i] + off
         return X(V(r * math.cos(th[i]), t * h if y is None else y, r * math.sin(th[i])))
     stave = [p.wood("pale" if rng.random() < 0.2 else "mid") for _ in range(seg)]
     center = X(V(0, h / 2, 0))
-    # --- the staves, one flat quad per band
     rings = [[p.vt(pt(i, t)) for i in range(seg)] for t in ts]
     for k in range(len(ts) - 1):
         for i in range(seg):
             j = (i + 1) % seg
-            m = 1.0 + 0.04 * ((k * 7 + i * 3) % 5 - 2)
+            m = 1.0 + 0.03 * ((k * 7 + i * 3) % 5 - 2)
             c = stave[i]
-            p.fc([rings[k][i], rings[k][j], rings[k + 1][j], rings[k + 1][i]], (c[0] * m, c[1] * m, c[2] * m), WOOD, out=center)
-    # --- the head: a lip, the inner wall, the lid (or the dark inside when it has been knocked out)
-    depth = 0.035 if not tipped else 0.12
+            p.fc([rings[k][i], rings[k][j], rings[k + 1][j], rings[k + 1][i]], (c[0] * m, c[1] * m, c[2] * m), WOOD, True, out=center)
+    # the head: a lip, then the lid (or, knocked out, the inner wall and the dark inside)
     lipin = 0.025
-    lip = [p.vt(pt(i, 1.0, off=-lipin)) for i in range(seg)]
+    lo = [p.vt(pt(i, 1.0)) for i in range(seg)]
+    li = [p.vt(pt(i, 1.0, off=-lipin)) for i in range(seg)]
     for i in range(seg):
         j = (i + 1) % seg
-        p.fc([rings[-1][i], rings[-1][j], lip[j], lip[i]], p.wood("pale"), WOOD, out=center)
-    inner = [p.vt(pt(i, 1.0, off=-lipin, y=h - depth)) for i in range(seg)]
-    wall_c = (0.12, 0.085, 0.055) if tipped else (0.22, 0.16, 0.1)
-    hc = X(V(0, h - depth, 0))
-    ax_mid = X(V(0, h - depth * 0.5, 0))
-    for i in range(seg):
-        j = (i + 1) % seg
-        quad = [lip[i], inner[i], inner[j], lip[j]]
-        cen = sum((G(v.co) for v in quad), Vector()) / 4
-        p.fc(quad, wall_c, DARK if tipped else WOOD, out=cen + (cen - ax_mid))
-    for i in range(seg):
-        j = (i + 1) % seg
-        tcol = (0.07, 0.05, 0.035) if tipped else p.wood("grey")
-        shade = 0.85 + 0.25 * math.sin(th[i] * 2.0)
-        c0 = (tcol[0] * shade, tcol[1] * shade, tcol[2] * shade)
-        p.fc([inner[i], inner[j], p.vt(hc)], c0, DARK if tipped else WOOD, out=X(V(0, h - 2 * depth - 0.1, 0)))
-    if tipped:                                                # the bottom disc is on view when it lies down
-        bot = rings[0]
+        p.fc([lo[i], lo[j], li[j], li[i]], p.wood("pale"), WOOD, out=center)
+    if tipped:
+        depth = 0.12
+        wl = [p.vt(pt(i, 1.0, off=-lipin)) for i in range(seg)]
+        wi = [p.vt(pt(i, 1.0, off=-lipin, y=h - depth)) for i in range(seg)]
+        ax_mid = X(V(0, h - depth * 0.5, 0))
+        for i in range(seg):
+            j = (i + 1) % seg
+            quad = [wl[i], wi[i], wi[j], wl[j]]
+            cen = sum((G(v.co) for v in quad), Vector()) / 4
+            p.fc(quad, (0.14, 0.1, 0.07), DARK, False, out=cen + (cen - ax_mid))
+        hc = p.vt(X(V(0, h - depth, 0)))
+        for i in range(seg):
+            j = (i + 1) % seg
+            p.fc([wi[i], wi[j], hc], (0.07, 0.05, 0.04), DARK, out=X(V(0, h - 2 * depth - 0.1, 0)))
+        bo = [p.vt(pt(i, 0.0)) for i in range(seg)]
         cv = p.vt(X(V(0, 0.0, 0)))
         for i in range(seg):
             j = (i + 1) % seg
+            p.fc([bo[i], bo[j], cv], p.wood("grey"), WOOD, out=X(V(0, h * 0.5, 0)))
+    else:
+        cv = p.vt(X(V(0, h - 0.02, 0)))
+        for i in range(seg):
+            j = (i + 1) % seg
+            shade = 0.9 + 0.12 * math.sin(th[i] * 3.0)
             c = p.wood("grey")
-            p.fc([bot[i], bot[j], cv], c, WOOD, out=X(V(0, h * 0.5, 0)))
-    # --- iron hoops: a band standing 14 mm off the staves, with its upper lip
-    off = 0.014
-    for (ta, tb) in ((0.045, 0.11), (0.215, 0.285), (0.715, 0.785), (0.89, 0.955)):
+            p.fc([li[i], li[j], cv], (c[0] * shade, c[1] * shade, c[2] * shade), WOOD, out=X(V(0, h - 0.2, 0)))
+    # iron hoops: a band standing 12 mm off the staves, smooth round
+    off = 0.012
+    spans = ((0.07, 0.15), (0.85, 0.93), (0.27, 0.34)) if tipped else ((0.06, 0.14), (0.24, 0.31), (0.69, 0.76), (0.86, 0.94))
+    for (ta, tb) in spans:
         ra = [p.vt(pt(i, ta, off=off)) for i in range(seg)]
         rb = [p.vt(pt(i, tb, off=off)) for i in range(seg)]
-        rbs = [p.vt(pt(i, tb, off=0.0)) for i in range(seg)]
-        ra0 = [p.vt(pt(i, ta, off=0.0)) for i in range(seg)]
         c = p.iron()
         for i in range(seg):
             j = (i + 1) % seg
-            p.fc([ra[i], ra[j], rb[j], rb[i]], c, IRON, out=center)
-            p.fc([rb[i], rb[j], rbs[j], rbs[i]], c, IRON, out=center)
+            m = 1.0 + 0.06 * ((i * 5) % 3 - 1)
+            p.fc([ra[i], ra[j], rb[j], rb[i]], (c[0] * m, c[1] * m, c[2] * m), IRON, True, out=center)
     if tipped:
         return finish(p, "barrel_tipped", (V(0, 0.317, 0), (0.86, 0.64, 0.66)))
     return finish(p, "barrel", (V(0, h / 2, 0), (0.63, h, 0.63)))
@@ -518,6 +591,10 @@ def build_trough():
             box(p, V(sx, 0.31, side * 0.225), (0.05, 0.35, 0.014), rotm(0, lean, 0), kind=IRON, jit=0.001)
             nail(p, V(sx, 0.40, side * 0.235), V(0, 0.1 * side, side), r=0.012)
             nail(p, V(sx, 0.22, side * 0.222), V(0, 0.1 * side, side), r=0.012)
+    # dark water, a hand below the rim
+    wy = 0.385
+    wv = [p.vt(V(x, wy, z)) for x, z in ((-0.6, -0.15), (0.6, -0.15), (0.6, 0.15), (-0.6, 0.15))]
+    p.fc(wv, (0.02, 0.05, 0.06), WATER, out=V(0, wy - 0.1, 0))
     return finish(p, "trough", (V(0, 0.23, 0), (1.3, 0.46, 0.46)))
 
 
@@ -525,97 +602,95 @@ def build_firewood():
     p = P(51)
     rng = p.rng
     segs = 7
-    pos = [(-0.27, 0.125), (0.0, 0.125), (0.27, 0.125), (-0.135, 0.355), (0.135, 0.355), (0.0, 0.585)]
-    pos += [(0.0, 0.0)]                                     # filled below: the leaning top log
-    logs = pos[:6]
-    logs.append((-0.30, 0.355))                             # a loose log on the left shoulder
+    logs = [(-0.375, 0.118), (-0.125, 0.118), (0.125, 0.118), (0.375, 0.118),
+            (-0.25, 0.323), (0.0, 0.323), (0.25, 0.323), (0.125, 0.528)]
     for (x, y) in logs:
-        r = rng.uniform(0.108, 0.128)
-        ln = rng.uniform(0.80, 0.88)
-        yaw = rng.uniform(-0.04, 0.04)
-        pitch = rng.uniform(-0.02, 0.02)
-        zo = rng.uniform(-0.03, 0.03)
-        if (x, y) == (-0.30, 0.355):
-            continue
-        R = rotm(yaw, pitch, 0)
+        r = rng.uniform(0.105, 0.122)
+        ln = rng.uniform(0.78, 0.88)
+        R = rotm(rng.uniform(-0.04, 0.04), rng.uniform(-0.02, 0.02), 0)
         bark = p.wood("dark" if rng.random() < 0.5 else "grey")
-        cen = V(x, y, zo)
+        cen = V(x + rng.uniform(-0.01, 0.01), y, rng.uniform(-0.03, 0.03))
         rot0 = rng.uniform(0, 6.28)
-        ends = []
-        for sgn in (-1, 1):
-            ring = []
-            for i in range(segs):
-                a = rot0 + 2 * math.pi * i / segs
-                rr = r * rng.uniform(0.9, 1.06)
-                ring.append(p.vt(cen + R @ V(rr * math.cos(a), rr * math.sin(a), sgn * ln / 2)))
-            ends.append(ring)
+        ang = [rot0 + 2 * math.pi * i / segs for i in range(segs)]
+        rr = [r * rng.uniform(0.9, 1.06) for _ in range(segs)]
+
+        def at(i, z, k=1.0):
+            return cen + R @ V(rr[i] * k * math.cos(ang[i]), rr[i] * k * math.sin(ang[i]), z)
+        e0 = [p.vt(at(i, -ln / 2)) for i in range(segs)]
+        e1 = [p.vt(at(i, ln / 2)) for i in range(segs)]
         for i in range(segs):
             j = (i + 1) % segs
-            c = bark
-            m = rng.uniform(0.88, 1.08)
-            p.fc([ends[0][i], ends[0][j], ends[1][j], ends[1][i]], (c[0] * m, c[1] * m, c[2] * m), WOOD, out=cen)
-        for sgn, ring in ((-1, ends[0]), (1, ends[1])):
-            cv = p.vt(cen + R @ V(rng.uniform(-0.01, 0.01), rng.uniform(-0.01, 0.01), sgn * (ln / 2 + 0.004)))
-            for i in range(segs):
-                j = (i + 1) % segs
-                rim, mid = (0.34, 0.24, 0.15), (0.70, 0.55, 0.36)
-                p.fc([ring[i], ring[j], cv], [rim, rim, mid], GRAIN, out=cen)
-    # stakes at the corners hold the pile
+            m = rng.uniform(0.85, 1.05)
+            p.fc([e0[i], e0[j], e1[j], e1[i]], (bark[0] * m, bark[1] * m, bark[2] * m), WOOD, True, out=cen)
+        # the sawn ends: a dark heart inside a pale sap ring, the front one ringed
+        zf = ln / 2 + 0.003
+        outer = [p.vt(at(i, zf)) for i in range(segs)]
+        inner = [p.vt(at(i, zf + 0.002, 0.52)) for i in range(segs)]
+        for i in range(segs):
+            j = (i + 1) % segs
+            p.fc([outer[i], outer[j], inner[j], inner[i]], (1.0, 0.84, 0.6), GRAIN, out=cen)
+        hv = p.vt(cen + R @ V(rng.uniform(-0.01, 0.01), rng.uniform(-0.01, 0.01), zf + 0.004))
+        for i in range(segs):
+            j = (i + 1) % segs
+            p.fc([inner[i], inner[j], hv], (0.72, 0.5, 0.32), GRAIN, out=cen)
+        bo = [p.vt(at(i, -ln / 2 - 0.003)) for i in range(segs)]
+        bc = p.vt(cen + R @ V(0, 0, -ln / 2 - 0.006))
+        for i in range(segs):
+            j = (i + 1) % segs
+            p.fc([bo[i], bo[j], bc], (0.88, 0.72, 0.52), GRAIN, out=cen)
     for sx, sz in product((-1, 1), (-1, 1)):
-        box(p, V(sx * 0.415, 0.31, sz * 0.31), (0.065, 0.64, 0.06), omit=('-y',), tone="dark", jit=0.004,
+        box(p, V(sx * 0.545, 0.31, sz * 0.31), (0.065, 0.62, 0.06), omit=('-y',), tone="dark", jit=0.004,
             R=rotm(0, 0.0, -sx * 0.025))
-    return finish(p, "firewood", (V(0, 0.31, 0), (0.92, 0.62, 0.9)))
+    return finish(p, "firewood", (V(0, 0.33, 0), (1.14, 0.66, 0.92)))
 
 
 def build_sack(open_=False):
     p = P(61 if not open_ else 62)
     rng = p.rng
-    cloth = (0.50, 0.40, 0.26)
-    patch = (0.36, 0.28, 0.19)
-    cord = (0.30, 0.22, 0.13)
+    cloth = (1.0, 0.88, 0.66)
+    patch = (0.62, 0.5, 0.36)
+    cord = (0.5, 0.38, 0.25)
 
     def wob(q, c, amp, fr):
         """crumple a point about its ring centre: burlap never holds a clean curve"""
-        d = q - c
-        k = 1.0 + amp * fbm(q * fr + Vector((5, 2, 7)), 2)
-        return c + d * k
+        return c + (q - c) * (1.0 + amp * fbm(q * fr + Vector((5, 2, 7)), 2))
     if not open_:
-        # lying on its side, neck tied, slumped. along x.
-        seg = 9
-        spec = [(-0.30, 0.42), (-0.27, 0.80), (-0.19, 0.96), (-0.07, 1.0), (0.05, 0.97), (0.16, 0.9), (0.245, 0.7), (0.30, 0.42),
-                (0.345, 0.22), (0.385, 0.15), (0.42, 0.25), (0.455, 0.27)]
+        # standing, slumped, the neck gathered in pleats and bound with cord, a frill above
+        seg = 10
+        spec = [(0.0, 0.20, 0.17), (0.04, 0.245, 0.205), (0.14, 0.255, 0.215), (0.25, 0.215, 0.18), (0.33, 0.13, 0.11),
+                (0.385, 0.062, 0.055), (0.425, 0.058, 0.052), (0.47, 0.12, 0.105), (0.52, 0.145, 0.125)]
         rings = []
-        ryb, rzb = 0.155, 0.215
-        for ki, (u, sc) in enumerate(spec):
-            sag = 1.0 + 0.06 * math.sin(u * 17.0 + 1.0)
-            ry, rz = ryb * sc * sag, rzb * sc * (2.0 - sag)
-            cy = ry * 0.93 + 0.075 * smooth(0.28, 0.45, u)
-            cz = 0.035 * smooth(0.2, 0.45, u) - 0.025 * (u < -0.1)
+        for ki, (y, rx, rz) in enumerate(spec):
+            lean = 0.09 * (y / 0.5) ** 2
             ring = []
-            cc = V(u, cy, cz)
+            pl = 0.0 if ki < 4 else (0.18 if ki < 7 else 0.3)
             for i in range(seg):
-                a = 2 * math.pi * i / seg + 0.25 + 0.15 * math.sin(u * 9)
-                q = V(u, cy + ry * math.sin(a), cz + rz * math.cos(a))
-                q = wob(q, cc, 0.28 if sc > 0.5 else 0.1, 11.0)
-                q.y = max(q.y, 0.003)
+                a = 2 * math.pi * i / seg + 0.2
+                m = 1.0 + pl * math.sin(5 * a + ki * 0.3)
+                q = V(lean + rx * m * math.cos(a), y, rz * m * math.sin(a))
+                q = wob(q, V(lean, y, 0), 0.22 if ki < 4 else 0.08, 9.0)
+                if ki == 0:
+                    q.y = 0.0
                 ring.append(q)
             rings.append(ring)
 
         def fcol(k, i):
-            m = rng.uniform(0.9, 1.07)
-            base = patch if (k in (3, 4) and i in (1, 2)) else cloth
-            if k >= 8:
-                base = (0.45, 0.36, 0.23)
+            m = rng.uniform(0.88, 1.0)
+            base = patch if (k in (1, 2) and i in (6, 7)) else cloth
+            if k >= 4:
+                base = (0.92, 0.8, 0.6)
             return (base[0] * m, base[1] * m, base[2] * m)
-        loft(p, rings, cloth, CLOTH, True, True, True, facecol=fcol)
-        cen = sum(rings[9], Vector()) / seg
-        cr = [cen + (q - cen) * 1.35 + V(0.014, 0, 0) for q in rings[9]]
-        cr2 = [cen + (q - cen) * 1.35 - V(0.014, 0, 0) for q in rings[9]]
-        loft(p, [cr2, cr], cord, CLOTH, False, False, False)
-        # the loose tail of the cord
-        t0 = cen + V(0.0, 0.02, 0.17)
-        loft(p, [[t0 + V(-0.006, 0, d) for d in (-0.01, 0.01, 0.0)], [t0 + V(0.05, -0.04, 0.07) + V(-0.006, 0, d) for d in (-0.01, 0.01, 0.0)]], cord, CLOTH, False, False, False) if False else None
-        return finish(p, "sack", (V(0.07, 0.17, 0.0), (0.78, 0.34, 0.46)))
+        loft(p, rings, cloth, CLOTH, True, False, False, facecol=fcol)
+        top = [p.vt(q) for q in rings[-1]]
+        tc = p.vt(sum(rings[-1], Vector()) / seg + V(0, -0.025, 0))
+        for i in range(seg):
+            j = (i + 1) % seg
+            p.fc([top[i], top[j], tc], (0.55, 0.45, 0.32), CLOTH, True, out=V(0.1, 0.1, 0))
+        cen = sum(rings[5], Vector()) / seg
+        cr = [cen + (q - cen) * 1.3 + V(0, 0.016, 0) for q in rings[5]]
+        cr2 = [cen + (q - cen) * 1.3 - V(0, 0.016, 0) for q in rings[5]]
+        loft(p, [cr2, cr], cord, CLOTH, True, False, False)
+        return finish(p, "sack", (V(0.04, 0.26, 0.0), (0.52, 0.52, 0.44)))
     # standing, slumped, the mouth rolled down, grain showing
     seg = 9
     spec = [(0.0, 0.17, 0.15), (0.03, 0.235, 0.20), (0.12, 0.245, 0.215), (0.24, 0.215, 0.19), (0.34, 0.185, 0.165),
@@ -629,17 +704,17 @@ def build_sack(open_=False):
             ex = 1.0 + 0.1 * math.sin(3 * a + y * 9)
             q = V(lean + rx * ex * math.cos(a), y, rz * ex * math.sin(a))
             if ki == len(spec) - 1:
-                q.y += 0.035 * math.sin(a * 1.0 + 0.7) + rng.uniform(-0.008, 0.008)      # a wavy mouth
+                q.y += 0.035 * math.sin(a * 1.0 + 0.7) + rng.uniform(-0.008, 0.008)
             q = wob(q, V(lean, y, 0), 0.22, 9.0)
             q.y = max(q.y, 0.0) if ki > 0 else 0.0
             ring.append(q)
         rings.append(ring)
 
     def fcol(k, i):
-        m = rng.uniform(0.9, 1.07)
+        m = rng.uniform(0.88, 1.0)
         base = patch if (k in (2, 3) and i in (5, 6)) else cloth
         if k >= 4:
-            base = (0.46, 0.37, 0.24)
+            base = (0.92, 0.8, 0.6)
         return (base[0] * m, base[1] * m, base[2] * m)
     loft(p, rings, cloth, CLOTH, True, False, False, facecol=fcol)
     top = rings[-1]
@@ -652,8 +727,7 @@ def build_sack(open_=False):
     vt_in = [p.vt(q) for q in inner]
     for i in range(seg):
         j = (i + 1) % seg
-        c = (0.42, 0.33, 0.21)
-        p.fc([vt_top[i], vt_top[j], vt_in[j], vt_in[i]], c, CLOTH, True, out=V(lean, 0.2, 0))
+        p.fc([vt_top[i], vt_top[j], vt_in[j], vt_in[i]], (0.8, 0.68, 0.5), CLOTH, True, out=V(lean, 0.2, 0))
     gv = [p.vt(V(q.x, q.y - 0.02, q.z)) for q in inner]
     for i in range(seg):
         j = (i + 1) % seg
@@ -661,9 +735,7 @@ def build_sack(open_=False):
     peak = p.vt(V(lean + 0.01, 0.46, 0.0))
     for i in range(seg):
         j = (i + 1) % seg
-        g = (0.66, 0.52, 0.27)
-        p.fc([gv[i], gv[j], peak], [g, g, (0.8, 0.65, 0.35)], GRAIN, False, out=V(lean, 0.2, 0))
-    # a little grain spilt at the foot
+        p.fc([gv[i], gv[j], peak], [(1.0, 0.85, 0.45), (1.0, 0.85, 0.45), (1.0, 0.92, 0.6)], GRAIN, False, out=V(lean, 0.2, 0))
     sp = []
     for i in range(7):
         a = 2 * math.pi * i / 7
@@ -671,8 +743,7 @@ def build_sack(open_=False):
     top_ = p.vt(V(0.2, 0.03, 0.17))
     for i in range(7):
         j = (i + 1) % 7
-        g = (0.66, 0.52, 0.27)
-        p.fc([sp[i], sp[j], top_], [(0.38, 0.3, 0.17), (0.38, 0.3, 0.17), g], GRAIN, False, out=V(0.2, -0.1, 0.17))
+        p.fc([sp[i], sp[j], top_], [(0.8, 0.65, 0.35), (0.8, 0.65, 0.35), (1.0, 0.85, 0.45)], GRAIN, False, out=V(0.2, -0.1, 0.17))
     return finish(p, "sack_open", (V(0.07, 0.24, 0.0), (0.58, 0.5, 0.46)))
 
 
@@ -688,13 +759,14 @@ def wheel(p, cx, cy, cz, flipz, N=10, nsp=8):
     t_out_a, t_out_b = ringv(0.362, -0.04, ang0), ringv(0.362, 0.04, ang0)
     t_in_a, t_in_b = ringv(0.318, -0.04, ang0), ringv(0.318, 0.04, ang0)
     ic = p.iron()
+    s_out_a, s_out_b = ringv(0.362, -0.04, ang0), ringv(0.362, 0.04, ang0)
     for i in range(N):
         j = (i + 1) % N
         m = p.rng.uniform(0.9, 1.1)
         c = (ic[0] * m, ic[1] * m, ic[2] * m)
-        p.fc([t_out_a[i], t_out_a[j], t_out_b[j], t_out_b[i]], c, IRON, out=cen)
-        p.fc([t_out_a[i], t_in_a[i], t_in_a[j], t_out_a[j]], c, IRON, out=cen)
-        p.fc([t_out_b[i], t_out_b[j], t_in_b[j], t_in_b[i]], c, IRON, out=cen)
+        p.fc([t_out_a[i], t_out_a[j], t_out_b[j], t_out_b[i]], c, IRON, True, out=cen)
+        p.fc([s_out_a[i], t_in_a[i], t_in_a[j], s_out_a[j]], c, IRON, out=cen)
+        p.fc([s_out_b[i], s_out_b[j], t_in_b[j], t_in_b[i]], c, IRON, out=cen)
     # felloes (wood): the inner face and both sides, set back of the tyre
     f_a, f_b = ringv(0.268, -0.032, ang0 + 0.02), ringv(0.268, 0.032, ang0 + 0.02)
     t_a2, t_b2 = ringv(0.318, -0.032, ang0 + 0.02), ringv(0.318, 0.032, ang0 + 0.02)
@@ -803,14 +875,16 @@ def export(objs, path):
             bpy.ops.export_scene.gltf(**kw)
 
 
-def bounds(ob):
-    pts = [G(ob.matrix_world @ Vector(c)) for c in ob.bound_box]
+def bounds(objs):
+    pts = [G(o.matrix_world @ Vector(c)) for o in objs for c in o.bound_box]
     lo = Vector((min(q.x for q in pts), min(q.y for q in pts), min(q.z for q in pts)))
     hi = Vector((max(q.x for q in pts), max(q.y for q in pts), max(q.z for q in pts)))
     return lo, hi
 
 
 def render_set(ob, label, focus):
+    for o in ob:
+        o.data.materials[0] = textured_material(o.name.split('__')[-1])
     """Eight renders: 4 views x (neutral, night)."""
     sc = bpy.context.scene
     os.makedirs(PREVIEW, exist_ok=True)
@@ -901,8 +975,8 @@ def main():
             continue
         reset()
         vis, col = fn()
-        near = tri_count([vis])
-        export([vis, col], os.path.join(OUT, name + ".glb"))
+        near = tri_count(vis)
+        export(vis + [col], os.path.join(OUT, name + ".glb"))
         lo, hi = bounds(vis)
         print("PROP %-14s tris %4d  size x %.2f..%.2f  y %.2f..%.2f  z %.2f..%.2f" % (
             name, near, lo.x, hi.x, lo.y, hi.y, lo.z, hi.z))
