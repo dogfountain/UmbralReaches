@@ -15,8 +15,14 @@ Umbral Reaches is a short, dark, solo action game about carrying light into a va
 
 ## Kept by decision
 
-Item level, gear sets and rested XP stay, by Luke's decision of 5 November. They are not up for cutting in the consolidation pass; fit them to the pillars instead. See `docs/DECISIONS.md`.
+Item level, gear sets and rested XP stay, by Luke's decision of 5 November. Fit them to the pillars. See `docs/DECISIONS.md`.
 
 ## How to use this
 
-Before adding anything, ask which pillar it serves. If the answer is none, or only "more", leave it out. In this phase (consolidation) the work is to fix, cut, polish and playtest.
+Before adding anything, ask which pillar it serves. If the answer is none, or only "more", leave it out.
+## Where the game stands against these (10 Nov 2026)
+
+- The consolidation phase ended on 6 November 2026 (`docs/DECISIONS.md`: "Consolidation ends").
+- The Realm is 520 x 390 m, the same DECISIONS row. The full night is the default (6 November); the 30-minute slice is behind `-- --slice`.
+- Item level, gear sets and rested XP are kept by decision (5 November).
+- Pillar 4 and the "not an open world" line are in tension with these decisions; the decisions stand, and this file records the tension rather than hiding it.

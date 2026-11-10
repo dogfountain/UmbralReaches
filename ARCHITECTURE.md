@@ -1,4 +1,4 @@
-# Architecture — last verified 2026-11-05 (r36)
+# Architecture — last verified 2026-11-10
 
 Godot **4.7.2** Forward+ / Jolt, typed GDScript. One playable night: the **Realm** (the redesigned
 Stair of Ascension zone), booted from `world/main.tscn` + `world/main.gd`. This file is a map of
@@ -42,6 +42,9 @@ fit). `-- --realm-modules=land,flora` builds only those modules.
 | `core/world/roam/` | r36 `RoamEvents`: processions, incursions, rift tears and kneeling pilgrims near the wanderer, one at a time, each with a map pin. |
 | `core/world/night/` | r36 `ReachState`: the act (1 to 5), pressure, bells rung or carried, quiet countries, the three factions (`FACTIONS` is the single source for their zones, regions and bells). |
 | `core/world/realm/` | The procedural world: `Realm` (module runner), `realm_land/rift/bosses/lore/flora/assets`, `RealmLayout`, `RockKit`, `TreeGen`, `GenCache` (disk cache; `flora_cache` keeps the flora's whole placement in it, keyed on the registered keep-outs and a sparse ground re-sample, so a warm launch skips the scatter; `flora_emit` makes the nodes, `flora_tables` holds the rates), `lore/` (landmarks, inscriptions, `CodexStore`), `realm_wayfinding` (r30 lanterns, edges, watchtower), `realm_pois` + `loot_chest` (r31 places: Drowned Belfry, Charcoal Hollow, Almonry, Watchers' Spire; chests, guardian sites, Tether anchors, updrafts, glide perches). |
+| `core/world/realm/wonders/` | The "wonders" Realm module (`realm_wonders.gd`, run after the lore and before the terrain stamp): landmarks seen from far off. `sky_chain.gd` is the Order's chain on the Crowns' foot, wound round a capstan; `upward_falls.gd` is the Sorrow's river climbing seven steps above Weirford; `star_crater.gd` is a star's crater of fused glass in the White Pans. Each file has `static func build(root)`. `-- --no-wonders` turns them all off. |
+| `core/world/realm/rift/` | The Ashen Rift's built pieces (`RealmRift`). `crossing.gd` is the ruined pilgrims' viaduct from the south rim to the summit ward. `threshold.gd` is the terraced pilgrims' threshold down to the starwater, with the two lantern pillars called the Watchers. `chapel.gd` is the small Pilgrims' Chapel at the foot of the west wall, where the starfall pours. `tower_stair.gd` is the Pilgrims' Stair down the crossing's third tower to the chapel. `starlit_stone.gd` is the rift's paler stone, with a little starlight in it. `features.gd` is the rift's set dressing: basalt organ pipes, cooled islands, ash fields and fissures. |
+| `core/world/realm/lamps/` | The Realm's lamps, placed by `lamp_places.gd` after the settlements are dressed. A kindled lamp (`lamp.gd`) is a light the wanderer lights with the staff gesture (E); it burns for the rest of the night and the save remembers it. A kept light (`lamps_kept.gd`) is a light others keep, already lit: a pilgrim's camp on the Downs, a ferryman's lamp on the Sorrow, a hunter's lantern in the Thornwood, a window lit in a ruin. Neither is gameplay light. `-- --no-lamps` turns them off. |
 | `core/life/wildlife/boss_themes.gd` | r35 composed (synthesised) themes for the three bosses and the ending bell, rendered on a worker thread and cached through `GenCache`. |
 | `core/life/` | Living-world systems, each started as a Realm module: `progression/` (Kindling: ash -> upgrades, `UpgradeDB`), `village/`, `wildlife/` (beasts, birds, weather, soundscape), `secrets/`, `encounters/` (tiers, elites, Gloom tide, its own HUD). |
 | `core/story/` | Story director (`story.gd`, group `story`, added by Tavern), quests (`quest_db`, `quest_book`, `quest_world`), `dialogue_db`, objective line. |
@@ -91,7 +94,7 @@ Who creates UI today (there is no single UI root): `main.tscn` (HUD, SettingsMen
 | `slot_N/savegame.cfg` (N = 1..3; + `.bak`, atomic `.tmp` rename; an old root `savegame.cfg` migrates into slot 1) | `Travel` | progress, kindles, checkpoints, items, bosses, seals, `story`, `systems` (per-system sections: progression, village, secrets, …) |
 | `settings.cfg` | `Settings` | graphics, display, audio, camera |
 | `codex.cfg` | `CodexStore` (static) | Journal read state |
-| `user://realm_cache/`, `res://art/realm_cache/` | `GenCache` | procedural meshes/shapes; only `-- --bake-cache` writes `res://` |
+| `user://realm_cache/`, `res://art/realm_cache/` | `GenCache` | procedural meshes/shapes; only `-- --bake-cache` writes `res://`. The shipped cache is baked with `godot --headless --path . res://zz/bake_cache.tscn -- --bake-cache`, which loads the night, waits for the Realm and quits (`zz/bake_cache.gd`). `art/realm_cache/` is gitignored. |
 
 All three cfg files live in `core/util/save_dir.gd`'s folder: `user://` unless `-- --save-dir=` or
 `UMBRAL_SAVE_DIR` is given. `tools/run_tests.sh` runs every test with an isolated HOME (some tests read `user://savegame.cfg` directly).
@@ -115,6 +118,8 @@ otherwise). It also runs the static lint and `tools/lint.sh`, a ratchet: per fil
 `.get("_private")` and round-tag comments may not rise above `tools/lint_baseline.txt`, and a file over
 1,000 lines may not grow by more than 50. Run `tools/lint.sh --update` only after counts went down.
 Run it before every pack.
+
+Quest data is checked by the `audit()` function in `core/story/quest_chains.gd`.
 
 ## Navigation
 
