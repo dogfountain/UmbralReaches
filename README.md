@@ -54,7 +54,7 @@ godot --headless --path . --export-pack "Linux" "/tmp/Umbral Reaches.pck"
 tools/pack_mac.sh "/path/to/Umbral Reaches.app"      # tests, export, copy into the app, sign ad hoc, touch
 ```
 
-User args go after `--`: `--demo --quit-after-demo --shots-dir=/tmp/shots` (autopilot walk with screenshots), `--no-realm` (the legacy baked stair), `--realm-modules=land,flora`, `--save-dir=PATH`.
+User args go after `--`: `--realm-modules=land,flora`, `--save-dir=PATH`.
 
 Do not headless-rebake `world/main.tscn` (it drops MultiMesh data). Bake and export traps are in `.cursor/skills/umbral-pipeline`.
 

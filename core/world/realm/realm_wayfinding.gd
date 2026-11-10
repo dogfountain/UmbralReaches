@@ -174,8 +174,6 @@ static func _glow_later(ref: WeakRef) -> void:
 static func _glow_on(b: Node) -> bool:
 	if b == null or not (b is Brazier) or b.get_node_or_null("UnkindledGlow") != null:
 		return false
-	if not Realm.enabled():
-		return false
 	var g: Node3D = Glow.new()
 	g.name = "UnkindledGlow"
 	b.add_child(g)

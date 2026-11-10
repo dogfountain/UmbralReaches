@@ -111,7 +111,7 @@ func build() -> void:
 		deep.name = "LowerCount"
 		add_child(deep)
 		await deep.call("build", self)
-	if Realm.enabled() and Realm.module_on("bosses"):
+	if Realm.module_on("bosses"):
 		_fen_gate()                             # not awaited: waits for the Realm's ground
 		_count_cut()                            # r34 crypt: the Counting Door's walled cut (same wait)
 	perf_points = [
@@ -336,8 +336,6 @@ func _bridge(k: OssKit) -> void:
 	# under the Realm the hub stair's landing is gone (the way in is the fen gate): the west half
 	# would hang over the rift from nothing, so only the gate hall's broken balcony stays
 	var segs: Array[Vector2] = [Vector2(13.0, 18.0)]
-	if not Realm.enabled():
-		segs.push_front(Vector2(2.5, 8.0))
 	for seg: Vector2 in segs:
 		var x0 := seg.x
 		var x1 := seg.y
@@ -372,7 +370,7 @@ func _bridge(k: OssKit) -> void:
 	# the great ribs, snapped well below the deck (scenery, not stepping stones)
 	for s: float in [-1.0, 1.0]:
 		k.append_mesh("bone_cm", _great_rib_mesh(y - 6.0 - LAVA_Y), Transform3D(Basis(Vector3.UP, PI if s < 0.0 else 0.0), Vector3(10.5 - s * 1.6, LAVA_Y, z + s * 1.2)))
-	for x: float in ([15.5] if Realm.enabled() else [5.0, 15.5]):
+	for x: float in [15.5]:
 		_pier(k, x, z, y - 0.75, 1.8)
 
 
@@ -482,7 +480,7 @@ func _gallery(k: OssKit) -> void:
 	_wall(k, "stone", Vector3(x0, y, z1), Vector3(x0, y, z0), h, t, arcade)
 	# east: two rows of skull niches against the cliff
 	var low: Array = []
-	var fen := Realm.enabled() and Realm.module_on("bosses")
+	var fen := Realm.module_on("bosses")
 	for i in 8:
 		var at := 1.1 + 1.95 * float(i)
 		if fen and absf(z0 + at - FEN_DOOR_Z) < 0.55 + 1.0 + 0.1:

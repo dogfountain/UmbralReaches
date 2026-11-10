@@ -36,7 +36,7 @@ func _process(d: float) -> void:
 		return
 	match phase:
 		"load":
-			if Realm.enabled() and not p.get_parent().has_meta("realm_done"):
+			if not p.get_parent().has_meta("realm_done"):
 				return
 			for e in get_tree().get_nodes_in_group(Groups.ENEMY):
 				(e as Node).queue_free()

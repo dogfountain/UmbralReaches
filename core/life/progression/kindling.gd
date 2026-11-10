@@ -550,12 +550,10 @@ func _place_spots() -> void:
 
 func _realm_ready() -> bool:
 	var root := get_parent()
-	return root != null and (root.has_meta("realm_done") or not Realm.enabled())
+	return root != null and root.has_meta("realm_done")
 
 
 func _lay_charms() -> void:
-	if not Realm.enabled():
-		return
 	var space := get_viewport().world_3d.direct_space_state if get_viewport() else null
 	if space == null:
 		return

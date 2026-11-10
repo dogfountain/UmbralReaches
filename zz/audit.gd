@@ -92,11 +92,11 @@ func _physics_process(_d: float) -> void:
 	var cap := CapsuleShape3D.new(); cap.radius = 0.3; cap.height = 1.5
 	# 1. lanes (hub lanes ray-measured, fixed lanes at their floor, runtime lanes)
 	var lanes: Array = []
-	for l: Array in (WorldLanes.LANES + WorldLanes.extra_lanes if WorldLanes.legacy else WorldLanes.extra_lanes):
+	for l: Array in WorldLanes.extra_lanes:
 		var pts: Array = []
 		for v: Vector2 in l[1]: pts.append(Vector3(v.x, NAN, v.y))
 		lanes.append([l[0], pts])
-	for l: Array in (WorldLanes.FIXED_LANES if WorldLanes.legacy else []):
+	for l: Array in []:
 		lanes.append([l[0], l[1]])
 	for l: Array in lanes:
 		var pts: Array = l[1]

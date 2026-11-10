@@ -77,9 +77,6 @@ static func dress(root: Node) -> void:
 	_approach_stairs(holder, platform)
 	Realm.prof_add("summit: paint + approach", tp)
 	tp = Time.get_ticks_usec()
-	_clear_landing(root)
-	Realm.prof_add("summit: clear landing", tp)
-	tp = Time.get_ticks_usec()
 	_extended_dais(holder, platform)
 	Realm.prof_add("summit: dais", tp)
 	tp = Time.get_ticks_usec()
@@ -156,42 +153,6 @@ static func dress(root: Node) -> void:
 	_summit_fire.call_deferred(holder)
 	Realm.prof_add("summit: ward + arena", tp)
 	print("SUMMIT_DRESS cathedral platform r=%.1f at %s, fighting dais r=%.1f at %s" % [PLATFORM_RADIUS, SUMMIT, DAIS_R, dais])
-
-
-## A 1.3 m broken column stub baked into the hub stair mesh stood dead centre on the top landing,
-## right in front of the summit flight, with no collision (you walked through it). Drop exactly the
-## triangles that lie wholly inside its box; nothing else in the stair mesh is touched.
-const LANDING_STUB := AABB(Vector3(0.2, 25.3, -69.36), Vector3(0.95, 1.3, 0.92))
-
-
-static func _clear_landing(root: Node) -> void:
-	var st := root.find_child("Stair", true, false) as MeshInstance3D
-	if st == null or st.mesh == null:
-		return
-	var xf := st.global_transform
-	var src := st.mesh
-	var out := ArrayMesh.new()
-	var removed := 0
-	for si in src.get_surface_count():
-		var arrays := src.surface_get_arrays(si)
-		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
-		if idx.is_empty():
-			idx.resize(verts.size())
-			for i in verts.size():
-				idx[i] = i
-		var keep := PackedInt32Array()
-		for t in range(0, idx.size(), 3):
-			if LANDING_STUB.has_point(xf * verts[idx[t]]) and LANDING_STUB.has_point(xf * verts[idx[t + 1]]) and LANDING_STUB.has_point(xf * verts[idx[t + 2]]):
-				removed += 1
-				continue
-			keep.append_array(PackedInt32Array([idx[t], idx[t + 1], idx[t + 2]]))
-		arrays[Mesh.ARRAY_INDEX] = keep
-		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		out.surface_set_material(si, src.surface_get_material(si))
-	if removed > 0:
-		st.mesh = out
-		print("SUMMIT_DRESS landing stub removed: %d tris" % removed)
 
 
 ## The approach used to be an invisible ramp through solid tier faces: you walked up through
@@ -382,39 +343,7 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 			if e.x < lo.x: lo = e
 			if e.x > hi.x: hi = e
 		mouth = [lo, hi]
-	var moved := _clear_airspace(holder.get_parent(), holder)
-	print("SUMMIT_DRESS raid deck r=%.1f, %d piers, %d rift rocks moved off it, mouth %s" % [DAIS_R, piers, moved, mouth])
-
-
-## Rift debris hung over the new floor at head height (one rock 2.7 m above the paving, in the
-## Warden's way). Push any that cross the dais airspace (slab to arena ceiling) out past the
-## parapet; their bob is about `_base`, so that moves with them.
-static func _clear_airspace(root: Node, holder: Node3D) -> int:
-	var debris := root.get_node_or_null("Zone/RiftDebris")
-	if debris == null:
-		return 0
-	var inv := holder.global_transform.affine_inverse()
-	var moved := 0
-	for node in debris.get_children():
-		var rock := node as MeshInstance3D
-		if rock == null or rock.mesh == null:
-			continue
-		var bb := inv * rock.global_transform * rock.get_aabb()
-		var amp := float(rock.get("amplitude")) if rock.get("amplitude") != null else 0.0
-		if bb.end.y + amp < TOP_DECK_Y - DAIS_THICK or bb.position.y - amp > TOP_DECK_Y + 9.0:
-			continue
-		var c := bb.get_center()
-		var flat := Vector2(c.x, c.z) - DAIS_C
-		var spread := maxf(bb.size.x, bb.size.z) * 0.5
-		if flat.length() - spread > DAIS_R + 1.5:
-			continue
-		var dir := flat.normalized() if flat.length() > 0.01 else Vector2(-1, 0)
-		var to := DAIS_C + dir * (DAIS_R + 1.5 + spread)
-		rock.global_position += holder.global_transform.basis * Vector3(to.x - c.x, 0.0, to.y - c.z)
-		if rock.get("_base") != null:
-			rock.set("_base", rock.position)
-		moved += 1
-	return moved
+	print("SUMMIT_DRESS raid deck r=%.1f, %d piers, mouth %s" % [DAIS_R, piers, mouth])
 
 
 ## Drop the back rail's triangles that the dais covers (and those across the deck -> dais step).

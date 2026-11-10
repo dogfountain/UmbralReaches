@@ -18,10 +18,8 @@ var bones: Array = [[], [], []]         # femur, rib, vertebra
 var solids: Array = []                  # [centre, basis, half extents] of every solid box (prop clipping test)
 var rejected := 0
 var keep_lanes := true                  ## reject floor clutter on WorldLanes.FIXED_LANES
-## r34 crypt: test the Ossuary's own walkways (FIXED_LANES are its gate hall, gallery, pit stair and
-## chapel) whatever WorldLanes.legacy says. The Realm turns legacy off as it starts building, so the
-## crypt's clutter used to depend on whether the Ossuary was built before that (first night: lanes kept
-## clear) or after (a Deeper Night: candles on the walkways): rebuild_test's Area_ossuary drift.
+## Test the Ossuary's own walkways (FIXED_LANES are its gate hall, gallery, pit stair and chapel):
+## only a kit with this on rejects clutter on them, so every night gets the same crypt.
 var always_lanes := false
 ## r34 crypt: prop cell size (a big room like the pit hall draws far fewer, larger cells)
 var chunk := CHUNK
@@ -471,7 +469,7 @@ func blocked(p: Vector3, margin := 0.02) -> bool:
 
 func _on_fixed_lane(b: AABB) -> bool:
 	if not always_lanes:
-		return WorldLanes.intrudes_fixed(b) != ""
+		return false
 	for lane: Array in WorldLanes.FIXED_LANES:
 		var pts: Array = lane[1]
 		var w: float = float(lane[2])

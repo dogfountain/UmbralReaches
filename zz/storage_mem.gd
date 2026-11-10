@@ -72,7 +72,7 @@ func _process(_d: float) -> void:
 	if p == null:
 		p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		return
-	if not p.get_parent().has_meta("realm_done") and Realm.enabled():
+	if not p.get_parent().has_meta("realm_done"):
 		return
 	for n in get_tree().get_nodes_in_group(Groups.ENEMY):
 		(n as Node).queue_free()

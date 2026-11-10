@@ -9,25 +9,6 @@ const KEEP_CLEAR := 7.0
 const HAVEN := Vector3(-3.4, 0.0, -8.5)
 const HAVEN_R := 12.0
 
-## Camps are spread along the route instead of stacked at the stair foot. Every camp sits at least
-## 13 m from every brazier (light radius 11 + margin): the old four camps were all inside the
-## StairFoot brazier's light, so once it was lit they spawned, got pushed out, and piled up in a
-## wall at the edge of the light right in front of the stair.
-const STAIR_CAMPS: Array[Dictionary] = [
-	# guardians of the thorn seal (the henge on the western hill)
-	{"at": Vector3(-6.0, 4.0, 18.0), "kinds": ["wretch", "crawler"], "seal": "henge"},                 # west corridor
-	{"at": Vector3(8.5, 4.0, 18.0), "kinds": ["spitter", "wretch"], "seal": "henge"},                  # east corridor
-	{"at": Vector3(-24.0, 4.0, 18.0), "kinds": ["leaper", "crawler"], "seal": "henge"},                # the pilgrim stair's foot
-	# guardians of the summit ward (it also needs the Thornwarden and the Bone Abbot)
-	{"at": Vector3(0.0, 10.0, -22.0), "kinds": ["husk"], "probe": 3.0, "strict": true, "seal": "summit"},          # mid-stair blocker
-	{"at": Vector3(0.0, 21.0, -50.0), "kinds": ["wretch", "spitter"], "probe": 3.0, "r": 0.9, "strict": true, "seal": "summit"},   # upper stair
-]
-
-
-static func seed_stair(root: Node) -> void:
-	_seed(root, STAIR_CAMPS.duplicate(true))
-
-
 ## Camps of the redesigned zone (docs/REALM_PLAN.md, RealmLayout). r28: five camps that the sites
 ## had swallowed (skipped at plant: "inside site barrow_92_-65", "fen_graves_55_22", "barrow_89_-50",
 ## "rd_wall_-62_70", "rd_wall_54_74") moved 5-11 m onto clear ground off the paths.
@@ -509,15 +490,15 @@ func slots() -> Array[Dictionary]:
 	return _slots
 
 
-## The Realm's tree colliders (RealmFlora's chunks, the old Forest and Trees bodies).
+## The Realm's tree colliders (RealmFlora's chunks).
 static func _is_flora_body(n: Node) -> bool:
 	if n == null:
 		return false
 	var nm := String(n.name)
-	if nm == "FloraBody" or nm == "TreesBody" or nm == "ForestBody":
+	if nm == "FloraBody":
 		return true
 	var par := n.get_parent()
-	return par != null and (String(par.name).begins_with("Trees_") or String(par.name) == "Forest")
+	return par != null and String(par.name).begins_with("Trees_")
 
 
 var _last_hit_y := NAN     ## y of the last `_ground` hit (NAN when the probe found no floor)

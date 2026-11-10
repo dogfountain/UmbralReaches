@@ -985,7 +985,7 @@ static func _index_sites() -> void:
 	_portal_grid.clear()
 	_lane_rects.clear()
 	_lane_bounds.clear()
-	for lane: Array in (WorldLanes.LANES + WorldLanes.extra_lanes if WorldLanes.legacy else WorldLanes.extra_lanes):
+	for lane: Array in WorldLanes.extra_lanes:
 		var pl := Rect2((lane[1] as Array)[0], Vector2.ZERO)
 		for v: Vector2 in lane[1]:
 			pl = pl.expand(v)

@@ -36,14 +36,7 @@ extends Node
 ## frame - scripts - render-cpu: on Metal (no GPU timings) that is the GPU wait plus engine overhead.
 const SECONDS := 4.0
 const SETTLE := 1.2
-var points := [
-	["spawn", Vector3(0.0, 0.2, 26.5), PI],
-	["sanctuary_out", Vector3(0.0, 0.2, 14.0), 0.0],
-	["tavern_in", Vector3(11.4, -0.6, 27.0), -0.9],
-	["henge", Vector3(-34.0, 8.0, 8.0), 0.9],
-	["mid_stair", Vector3(0.0, 12.0, -30.0), 0.0],
-	["summit_dais", Vector3(0.0, 27.9, -92.0), 0.0],
-]
+var points := []
 ## Realm views (y = NAN: stand on the ground there). The first eight are the r19 set (compare runs).
 var realm_points := [
 	["r_spawn_west", Vector3(0.0, NAN, 30.0), PI * 0.5],
@@ -156,9 +149,8 @@ func _ready() -> void:
 	blame = "--blame" in args
 	do_points = not ("--path-only" in args)
 	do_path = not ("--points-only" in args) and not blame
-	if Realm.enabled():
-		points = realm_points
-		_spindle_route()
+	points = realm_points
+	_spindle_route()
 	var preset := 1
 	var fov := 90.0
 	var stress := 0.0
@@ -345,7 +337,7 @@ func _process(d: float) -> void:
 		if p:
 			Settings.changed.emit()
 		return
-	if Realm.enabled() and not main.has_meta("realm_done"):
+	if not main.has_meta("realm_done"):
 		return
 	if load_ms == 0 and main.get_node_or_null("LoadingScreen") != null:
 		return                                   # --loading: measure from the moment the cover lifts
@@ -676,7 +668,7 @@ func _start_attrib() -> void:
 		sorted.sort_custom(func(a: Array, b: Array) -> bool: return a[1] < b[1])
 		for e: Array in sorted.slice(0, 2):
 			attrib_at.append(e[0])
-	for e: Array in realm_points if Realm.enabled() else points:
+	for e: Array in realm_points:
 		if e[0] in attrib_at:
 			a_points.append(e)
 	points = a_points

@@ -53,7 +53,7 @@ func _ready() -> void:
 	_mat.set_shader_parameter("bank_origin", _origin)
 	_mat.set_shader_parameter("bank_size", _size)
 	_embers()
-	if Realm.enabled() and Realm.module_on("rift") and ResourceLoader.exists(RIFT):
+	if Realm.module_on("rift") and ResourceLoader.exists(RIFT):
 		_realm_setup()
 		return
 	# streamed areas (the Ossuary's piers) build over the first seconds: map the banks twice

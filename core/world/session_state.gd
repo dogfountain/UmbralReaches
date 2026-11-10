@@ -49,8 +49,7 @@ const NODE_REFS := [
 static func reset_night() -> void:
 	PlacementLog.reset()
 	# the Realm's site / lane / portal registries and its build profile (only a Realm build fills them)
-	if Realm.enabled():
-		Realm.reset_registries()
+	Realm.reset_registries()
 	# engine resources the world builders cache in statics (meshes, materials, shapes)
 	Realm.release_caches()
 	# Node refs: the secrets director releases these itself; again here so no night can leak them

@@ -100,7 +100,7 @@ func _physics_process(delta: float) -> void:
 		p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		return
 	if not started:
-		if Realm.enabled() and not p.get_parent().has_meta("realm_done"):
+		if not p.get_parent().has_meta("realm_done"):
 			return
 		t += delta
 		if t < 1.5:

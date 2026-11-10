@@ -5,7 +5,7 @@ extends RefCounted
 ## WORLD, taken at the agent's think rate) or it has made no progress for ~STALL_T, it asks the baked
 ## navigation mesh (core/world/realm/realm_nav.gd) for a path ONCE, follows its corners, and asks again
 ## at most every REQUERY seconds. Not a NavigationAgent3D: those tick every physics frame.
-## With no mesh (still baking, or --no-realm) every call answers "no help" and flat steering carries on.
+## With no mesh (still baking) every call answers "no help" and flat steering carries on.
 
 const REQUERY := 0.5
 const STALL_T := 0.45

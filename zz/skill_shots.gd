@@ -63,7 +63,7 @@ func _process(d: float) -> void:
 		return
 	match phase:
 		"load":
-			if Realm.enabled() and not main.has_meta("realm_done"):
+			if not main.has_meta("realm_done"):
 				return
 			phase = "settle"
 			t = 0.0

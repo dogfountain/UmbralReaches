@@ -2,17 +2,15 @@ extends Node
 ## Test, demo and benchmark harness for the night (world/main.gd). Created by the night only when a
 ## harness flag is on the command line (or a dev key asks for it); it lives under core/ so packed
 ## builds can use the flags too.
-## User args (after "--"):  --demo  --quit-after-demo  --shots-dir=<path>  --test-shade  --bench
+## User args (after "--"):  --test-shade  --bench
 ##   --walk-rec=<dir>  --walk-frames=N  in-game OTS walk dump (player cam, not debug rig)
-##   --deepdive-rec=<dir>  --deepdive-hz=12  continuous JPEG dump during demo
-##   --perf-baseline  fullscreen vsync-off benches at sanctuary / mid-stair / summit
+##   --perf-baseline  fullscreen vsync-off benches at three fixed views (spawn, the rift's far side, the summit)
 
 const BENCH_SECONDS := 10.0
-const FLAGS: PackedStringArray = ["--shots-dir=", "--walk-rec=", "--deepdive-rec=", "--demo", "--bench", "--perf-baseline", "--test-shade"]
+const FLAGS: PackedStringArray = ["--walk-rec=", "--bench", "--perf-baseline", "--test-shade"]
 
 var night: Node3D
 var _player: Player
-var _shots_dir := ""
 var _args: PackedStringArray
 var _bench_t := -1.0
 var _bench_frames := PackedFloat32Array()
@@ -26,7 +24,6 @@ var _bench_vsync := DisplayServer.VSYNC_ENABLED
 var _bench_last := ""
 var _walk_rec := ""
 var _walk_frames := 36
-var _deepdive = null
 
 
 ## True when any harness flag is among the user args.
@@ -42,19 +39,12 @@ func start(args: PackedStringArray) -> void:
 	_args = args
 	_player = night._player
 	for a in _args:
-		if a.begins_with("--shots-dir="):
-			_shots_dir = a.trim_prefix("--shots-dir=")
-		elif a.begins_with("--walk-rec="):
+		if a.begins_with("--walk-rec="):
 			_walk_rec = a.trim_prefix("--walk-rec=")
 		elif a.begins_with("--walk-frames="):
 			_walk_frames = maxi(8, int(a.trim_prefix("--walk-frames=")))
-	_deepdive = DeepdiveRec.from_args(_args)
 	if _walk_rec != "":
 		_record_walk()
-	elif "--demo" in _args:
-		if _deepdive:
-			_deepdive.start(night)
-		start_demo()
 	elif "--bench" in _args:
 		_bench_quit = true
 		_arm_benchmark()
@@ -84,8 +74,6 @@ func _record_walk() -> void:
 
 
 func _process(delta: float) -> void:
-	if _deepdive:
-		_deepdive.tick(delta)
 	if _bench_t >= 0.0:
 		_player.velocity = Vector3.ZERO
 		_bench_t += delta
@@ -217,13 +205,19 @@ func _run_perf_baseline() -> void:
 		str(DisplayServer.screen_get_size()),
 		str(get_viewport().get_visible_rect().size)])
 	await get_tree().create_timer(1.0).timeout
+	# the three views the baseline has always stood at: [name, position, pitch]
 	var points: Array = [
-		["sanctuary", night.get_node("Demo/WP01_Sanctuary")],
-		["mid-stair", night.get_node("Demo/WP05_Climb")],
-		["summit", night.get_node("Demo/WP11_Gaze")],
+		["sanctuary", Vector3(0.0, -0.06582695, 19.0), -0.02],
+		["mid-stair", Vector3(0.0, 6.3, -15.4), 0.06],
+		["summit", Vector3(2.8, 25.2, -76.1), 0.34],
 	]
 	for p in points:
-		await _stand_at(p[1] as Marker3D)
+		var marker := Marker3D.new()
+		night.add_child(marker)
+		marker.global_position = p[1]
+		marker.set_meta("pitch", p[2])
+		await _stand_at(marker)
+		marker.queue_free()
 		await get_tree().create_timer(0.6).timeout
 		start_benchmark()
 		while _bench_t >= 0.0:
@@ -233,39 +227,6 @@ func _run_perf_baseline() -> void:
 
 
 # --- Demo: walks the Demo/WP* markers, kindles braziers, optionally captures shots
-
-func start_demo() -> void:
-	var markers: Array[Marker3D] = []
-	for c in night.get_node("Demo").get_children():
-		if c is Marker3D:
-			markers.append(c)
-	if not Events.autopilot_reached.is_connected(_on_marker):
-		Events.autopilot_reached.connect(_on_marker)
-		Events.autopilot_finished.connect(_on_demo_done)
-	_player.start_autopilot(markers)
-
-
-func _on_marker(marker_name: String) -> void:
-	var m := night.get_node("Demo").get_node(marker_name) as Marker3D
-	if _shots_dir != "" and m.get_meta("shot", false):
-		await get_tree().create_timer(float(m.get_meta("shot_delay", 0.6))).timeout
-		var img := get_viewport().get_texture().get_image()
-		img.save_png(_shots_dir.path_join("%s.png" % marker_name))
-		print("SHOT ", marker_name)
-
-
-func _on_demo_done() -> void:
-	var lit := 0
-	for b in get_tree().get_nodes_in_group(Groups.INTERACTABLE):
-		if b is Brazier and (b as Brazier).lit:
-			lit += 1
-	print("SMOKE demo_done braziers_lit=%d light_zones=%d gloom=%.1f pos=%s hollowed=%d" % [
-		lit, LightGrid.count(), _player.gloom, _player.global_position, _player.hollow_count])
-	if _deepdive:
-		_deepdive.stop()
-	if "--quit-after-demo" in _args:
-		await get_tree().create_timer(0.5).timeout
-		get_tree().quit()
 
 
 # --- Shade test: stand in the dark at full Gloom; expect spawn, chase, Hollowed, respawn

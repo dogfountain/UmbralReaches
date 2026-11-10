@@ -20,23 +20,15 @@ func _ready() -> void:
 	LightDirector.attach(self)          # every light governed by LightPolicy, a budget of local lights, one fire shadow
 	super._ready()
 	# r30: there is no stair under the Realm any more; the card names the land
-	if Realm.enabled():
-		Events.zone_entered.emit("THE UMBRAL REACHES", "where the sky turns inward")
-	else:
-		Events.zone_entered.emit("STAIR OF ASCENSION", "where the sky turns inward")
+	Events.zone_entered.emit("THE UMBRAL REACHES", "where the sky turns inward")
 	# Summit glass removed with the Crimson Vale — next night TBD.
 	var dress_path := "res://world/zones/ascension/dress.tscn"
 	if ResourceLoader.exists(dress_path):
 		add_child((load(dress_path) as PackedScene).instantiate())
-	elif not Realm.enabled():
-		Gothic.raise(self)            # the stair's window gobos (r30: under the Realm they lit windows that no longer exist)
 	Atmosphere.apply(self, _env, _cam, _moon, 82.0, Color("#12183A"), Color("#060A1C"), Color("#1E4AA0"))   # fog glows azure, not violet
 	_cam.far = FarDetail.VIEW_FAR       # the world is loaded to the horizon (far detail); the culling above is still sized to 82 m
 	_spawn_glimmers()
-	if not Realm.enabled():
-		EnemySpawner.seed_stair(self)
-	else:
-		EnemySpawner.seed_realm(self)     # camps of the redesigned zone (RealmBosses)
+	EnemySpawner.seed_realm(self)     # camps of the redesigned zone (RealmBosses)
 	AreaStreamer.attach(self, AREAS)
 	var pw := PerfWatch.new()
 	pw.name = "PerfWatch"
@@ -55,11 +47,6 @@ func _ready() -> void:
 	var amb := Ambience.new()
 	amb.name = "Ambience"
 	add_child(amb)
-	# The Landing brazier stood at x 1.9, in the mouth of the Ossuary bone bridge; move it to the
-	# landing's west side (runtime, so main.tscn stays untouched; kindle memory is by name).
-	var landing := get_node_or_null("Zone/Braziers/Landing") as Node3D
-	if landing and not Realm.enabled():          # under the Realm, RealmBosses places it
-		landing.position = Vector3(-1.6, landing.position.y, landing.position.z)
 	finish_zone_setup()
 	if _player.get_node_or_null("CameraRig/Pitch/SpringArm") is SpringArm3D:
 		(_player.get_node("CameraRig/Pitch/SpringArm") as SpringArm3D).spring_length = 3.7
@@ -80,13 +67,11 @@ func _exit_tree() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	super._unhandled_input(event)
-	# r36 hardening (r35 critique, #7): the autopilot (F9) and the benchmark (F8) are for development;
-	# the shipped game (an export template) ignores them unless started with -- --dev
+	# r36 hardening (r35 critique, #7): the benchmark (F8) is for development;
+	# the shipped game (an export template) ignores it unless started with -- --dev
 	if not _dev_keys():
 		return
-	if event.is_action_pressed("demo") and not _player.autopilot:
-		_harness().start_demo()
-	elif event.is_action_pressed("benchmark"):
+	if event.is_action_pressed("benchmark"):
 		_harness().start_benchmark()
 
 

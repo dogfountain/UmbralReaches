@@ -101,8 +101,6 @@ static func _fix(n: Node) -> bool:
 	if g.has_meta(&"fade_end"):
 		return false
 	var p := g.get_parent()
-	if p != null and String(p.name) == "ForestFloor":
-		return false
 	# scale from the builder's value: the range this guard last applied is remembered, so a range still equal to it is
 	# already scaled, and any other value is the builder's (new or changed) and is scaled now
 	if begin > 0.0 and p != null:

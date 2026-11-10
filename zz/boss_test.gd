@@ -83,10 +83,10 @@ func _physics_process(_d: float) -> void:
 	match step:
 		0:
 			if t < 60: return
-			if Realm.enabled() and not _realm_ready():
+			if not _realm_ready():
 				if t % 600 == 0: print("BOSSTEST waiting for the realm (", t, ")")
 				return
-			if Realm.enabled(): print("BOSSTEST realm ready at frame ", t, " henge at ", ThornHenge.C)
+			print("BOSSTEST realm ready at frame ", t, " henge at ", ThornHenge.C)
 			p.set_physics_process(true)
 			print("BOSSTEST henge guards killed ", _kill_seal("henge")); step = 1; wait = 30
 		1:
@@ -97,7 +97,7 @@ func _physics_process(_d: float) -> void:
 			var b := _boss()
 			check("thornwarden rose", b is Thornwarden)
 			check("thorn gate closed behind", _seal("henge") != null and _seal("henge")._body.collision_layer != 0)
-			if Realm.enabled(): _tp_ground(ThornHenge.C.x + 30.0, ThornHenge.C.z + 30.0)
+			_tp_ground(ThornHenge.C.x + 30.0, ThornHenge.C.z + 30.0)
 			else: _tp(ThornHenge.C + Vector3(30, 0, 30))
 			step = 20; wait = 20      # run away: r35, the fight is held (it used to reset)
 		20:
@@ -144,7 +144,7 @@ func _physics_process(_d: float) -> void:
 			check("relic taken and saved", Travel.relics.has("bone"))
 			check("reliquary + crown in satchel", Travel.count("bone_reliquary") == 1 and Travel.count("abbot_crown") == 1)
 			check("reliquary left the world", get_tree().root.find_child("BoneReliquary", true, false) == null)
-			if Realm.enabled(): _tp_ground(RealmLayout.CROSSING_FOOT.x + 4.0, RealmLayout.CROSSING_FOOT.z + 6.0)   # the stair is gone: the Crossing's foot
+			_tp_ground(RealmLayout.CROSSING_FOOT.x + 4.0, RealmLayout.CROSSING_FOOT.z + 6.0)   # the stair is gone: the Crossing's foot
 			else: _tp(Vector3(0.0, 12.0, -30.0))
 			step = 9; wait = 30
 		9:
