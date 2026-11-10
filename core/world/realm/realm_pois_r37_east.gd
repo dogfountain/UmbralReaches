@@ -570,7 +570,6 @@ const PAN_FIELDS := [
 	{"id": "pans_b", "rect": Rect2(219.5, 191.4, 31.0, 12.4), "rows": [194.6, 200.8]},
 ]
 const PAN_XS := [222.5, 230.8, 239.1, 247.4]
-const PAN_CART := Vector2(226.0, 139.5)
 
 const BRINE_SHADER := """
 shader_type spatial;
@@ -657,8 +656,6 @@ static func _pan_fields(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 		# a rake left in some of them, leant on the rim
 		if rng.randf() < 0.45:
 			_rake(host, space, p, float(sp.yaw), rng)
-	# the cart the salt is carried off in, loaded
-	_cart(host, Vector3(PAN_CART.x, _gy(space, PAN_CART.x, PAN_CART.y), PAN_CART.y), 0.55)
 	print("REALM_POI r37e pans: %d new pans" % n_pans)
 
 
@@ -677,25 +674,6 @@ static func _rake(host: Node3D, space: PhysicsDirectSpaceState3D, pan: Vector3, 
 	for i in 5:
 		k.box("iron", head + b * Vector3(-0.24 + 0.12 * float(i), -0.1, 0.0), Vector3(0.025, 0.2, 0.025), b, false, 0.8)
 	k.commit(host, "Rake")
-
-
-## A hand-cart: a plank bed, two wheels, shafts and a heap of salt on it.
-static func _cart(host: Node3D, at: Vector3, yaw: float) -> void:
-	var k := OssKit.new()
-	k.keep_lanes = false
-	var b := Basis(Vector3.UP, yaw)
-	k.box("wood", at + b * Vector3(0, 0.78, 0), Vector3(1.5, 0.12, 1.0), b, true, 0.8)
-	for sz: float in [-0.5, 0.5]:
-		k.box("wood", at + b * Vector3(0, 1.05, sz), Vector3(1.5, 0.42, 0.06), b, true, 0.75)
-	for sx: float in [-0.75, 0.75]:
-		k.box("wood", at + b * Vector3(sx, 1.05, 0), Vector3(0.06, 0.42, 1.0), b, true, 0.75)
-	for sz: float in [-0.62, 0.62]:
-		R34._cyl(k, "wood", at + b * Vector3(0.1, 0.42, sz), at + b * Vector3(0.1, 0.42, sz + signf(sz) * 0.07), 0.42, 0.42, true, 12)
-	R34._cyl(k, "wood", at + b * Vector3(0.1, 0.42, -0.62), at + b * Vector3(0.1, 0.42, 0.62), 0.05, 0.05)
-	for sz: float in [-0.4, 0.4]:
-		R34._cyl(k, "wood", at + b * Vector3(0.7, 0.85, sz), at + b * Vector3(2.5, 0.2, sz * 1.1), 0.045, 0.04)
-	k.commit(host, "SaltCart")
-	piece(host, WORKS, "Salt_Heap", Transform3D(b.scaled(Vector3(0.42, 0.34, 0.34)), at + b * Vector3(-0.1, 0.85, 0)), Vector2(0, 100))
 
 
 ## Salt drifted against the March Wall's east foot: low wide heaps along its length (the Pans' wind piles it there).
