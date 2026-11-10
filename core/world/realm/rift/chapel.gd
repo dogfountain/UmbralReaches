@@ -11,7 +11,7 @@ extends RefCounted
 ## Model: tools/blender/wonder_threshold_chapel.py -> art/models/threshold_chapel.glb (origin: the doorway's threshold,
 ## +Y into the chapel, which the placement turns to face west). Collision: the model's own -colonly boxes.
 
-const R37Kit := preload("res://core/world/realm/r37_west_kit.gd")
+const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
 const ORIGIN := Vector3(-14.4, -11.97, -36.85)     ## the doorway's threshold, 3 cm over the lowest walk (the facade's face; no coplanar tops)
 const NICHES := [1.9, 3.15, 4.4]                   ## where the six niches stand along the side walls (model y)
 const INNER := 1.2
@@ -44,7 +44,7 @@ func build(p_threshold, host: Node3D) -> bool:
 	var root := Node3D.new()
 	root.name = "StarwaterChapel"
 	host.add_child(root)
-	node = R37Kit.place(root, "threshold_chapel.glb", Transform3D(basis(), ORIGIN), {"range_end": 260.0})
+	node = WestKit.place(root, "threshold_chapel.glb", Transform3D(basis(), ORIGIN), {"range_end": 260.0})
 	if node == null:
 		return false
 	# (the "stone" set of the West Marches kit is a lichened granite for colossal statues: on small dressed blocks it read as camouflage, so every block uses the coursed ashlar set)
@@ -68,7 +68,7 @@ func build(p_threshold, host: Node3D) -> bool:
 
 
 func _mat(set_name: String, tint: Color, glow: float) -> StandardMaterial3D:
-	var m := (R37Kit.mat(set_name) as StandardMaterial3D).duplicate() as StandardMaterial3D
+	var m := (WestKit.mat(set_name) as StandardMaterial3D).duplicate() as StandardMaterial3D
 	m.albedo_color = tint
 	m.normal_scale = 0.45
 	m.emission_enabled = true

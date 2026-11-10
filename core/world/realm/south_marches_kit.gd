@@ -9,7 +9,7 @@ extends RefCounted
 ##          EchoStone, RimPost, Rubble
 ##   HUT    Hut, FoldWall, FoldWallB, Hurdle, Trough, Rack, BellPost, Bench
 
-const Data := preload("res://core/world/realm/r37_south_data.gd")
+const Data := preload("res://core/world/realm/south_marches_kit_data.gd")
 const WALL := "res://art/models/r37_south_wall.glb"
 const OAK := "res://art/models/r37_south_oak.glb"
 const WELL := "res://art/models/r37_south_well.glb"

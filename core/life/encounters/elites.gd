@@ -12,7 +12,7 @@ extends RefCounted
 const Variants := preload("res://core/life/encounters/variants.gd")
 const SELF_PATH := "res://core/life/encounters/elites.gd"
 # --- south marches ---
-const SouthParts := preload("res://core/life/encounters/elite_r37_south.gd")
+const SouthParts := preload("res://core/life/encounters/elite_south_marches.gd")
 
 ## r29: health x1.5 (zz/critA_probe: held Rift Bolt killed the old 8-20 hp in 2-4 s).
 const ELITES := {

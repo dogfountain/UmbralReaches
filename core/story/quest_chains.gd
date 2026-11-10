@@ -32,9 +32,9 @@ extends RefCounted
 ## House style (docs/LORE.md): terse, concrete, dark. Load by path.
 
 # --- south marches ---
-const South := preload("res://core/story/quest_chains_r37_south.gd")
-## West marches: Weirford's four chains (quest_chains_r37_west.gd), listed in the blocks marked `# --- west marches ---`.
-const R37WQ := preload("res://core/story/quest_chains_r37_west.gd")
+const South := preload("res://core/story/quest_chains_south_marches.gd")
+## West marches: Weirford's four chains (quest_chains_west_marches.gd), listed in the blocks marked `# --- west marches ---`.
+const R37WQ := preload("res://core/story/quest_chains_west_marches.gd")
 
 ## The ledger's chapters (ui/quest_log.gd), in order: [id, name].
 const ZONES := [["hearth", "Hearthward"], ["road", "The Pilgrims' Road"], ["thornwood", "The Thornwood"],
@@ -50,7 +50,7 @@ const ZONES := [["hearth", "Hearthward"], ["road", "The Pilgrims' Road"], ["thor
 const Sig := preload("res://core/story/quest_chains_signature.gd")
 const Bells := preload("res://core/story/quest_chains_bells.gd")   ## the eight bells (the seven far countries' and the Marches'): quests and pickups
 const LiveSteps := preload("res://core/story/encounter_kit.gd")
-const R37E := preload("res://core/story/quest_chains_r37_east.gd")   ## the east marches: its tasks and pickups are listed in the `# --- the east marches ---` blocks
+const EastChains := preload("res://core/story/quest_chains_east_marches.gd")   ## the east marches: its tasks and pickups are listed in the `# --- the east marches ---` blocks
 const ThrQ := preload("res://core/story/quest_chains_threshold.gd")   ## the Pilgrims' Threshold: the chapel under the starfall
 const ChainQ := preload("res://core/story/quest_chains_sky_chain.gd")   ## the Sky Chain: Elspeth's count of the links
 const StarQ := preload("res://core/story/quest_chains_star_crater.gd")   ## the Star-Fall Crater: Marl's task at the Lamp
@@ -770,8 +770,8 @@ const QUESTS := {
 		"outcome": {"": "Brannoc rang the chimney tongue eight times, slowly, and the Keg went quiet for each one. Then he put his head down on the bar and laughed."}},
 	"shepherd_strays": South.QUESTS["shepherd_strays"], "oak_song": South.QUESTS["oak_song"], "well_answer": South.QUESTS["well_answer"],
 	"wf_wheel": R37WQ.QUESTS["wf_wheel"], "wf_watch": R37WQ.QUESTS["wf_watch"], "wf_lights": R37WQ.QUESTS["wf_lights"],
-	"wf_crown": R37WQ.QUESTS["wf_crown"], "salt_sweep": R37E.SALT_SWEEP, "salt_widow": R37E.SALT_WIDOW,
-	"spire_coal": R37E.SPIRE_COAL, "anchor_names": R37E.ANCHOR_NAMES, "anchor_vow": R37E.ANCHOR_VOW,
+	"wf_crown": R37WQ.QUESTS["wf_crown"], "salt_sweep": EastChains.SALT_SWEEP, "salt_widow": EastChains.SALT_WIDOW,
+	"spire_coal": EastChains.SPIRE_COAL, "anchor_names": EastChains.ANCHOR_NAMES, "anchor_vow": EastChains.ANCHOR_VOW,
 	"bounds_beaten": Sig.BOUNDS, "quarry_stone": Sig.QUARRY_STONE, "moor_fires": Sig.MOOR_FIRES, "founder_pour": Sig.FOUNDER_POUR,
 	"orchard_stand": Sig.ORCHARD_STAND, "field_round": Sig.FIELD_ROUND, "mere_ferry": Sig.MERE_FERRY,
 	"threshold_chapel": ThrQ.THRESHOLD_CHAPEL, "wf_upward": R37UF.QUESTS["wf_upward"], "star_lamp": StarQ.STAR_LAMP,
@@ -891,8 +891,8 @@ const PICKUPS := {
 	"wf_votive_b": R37WQ.PICKUPS["wf_votive_b"], "wf_votive_c": R37WQ.PICKUPS["wf_votive_c"], "wf_votive_place": R37WQ.PICKUPS["wf_votive_place"],
 	"wf_rub_hand": R37WQ.PICKUPS["wf_rub_hand"], "wf_rub_shoulder": R37WQ.PICKUPS["wf_rub_shoulder"], "wf_rub_lip": R37WQ.PICKUPS["wf_rub_lip"],
 	"wf_gauge": R37UF.PICKUPS["wf_gauge"], "star_book": StarQ.STAR_BOOK, "chain_tally": ChainQ.PICKUPS["chain_tally"],
-	"coal_ardel": R37E.COAL_ARDEL, "anchor_page_a": R37E.PAGE_A, "anchor_page_b": R37E.PAGE_B,
-	"anchor_page_c": R37E.PAGE_C,
+	"coal_ardel": EastChains.COAL_ARDEL, "anchor_page_a": EastChains.PAGE_A, "anchor_page_b": EastChains.PAGE_B,
+	"anchor_page_c": EastChains.PAGE_C,
 	"foreman_stone": Sig.PICKUPS["foreman_stone"], "foreman_place": Sig.PICKUPS["foreman_place"],
 	"moor_flame_fire": Sig.PICKUPS["moor_flame_fire"], "moor_flame_mid": Sig.PICKUPS["moor_flame_mid"],
 	"pour_ladle": Sig.PICKUPS["pour_ladle"], "scion_linnet": Sig.PICKUPS["scion_linnet"], "ferry_lamp_out": Sig.PICKUPS["ferry_lamp_out"],

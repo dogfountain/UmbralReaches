@@ -1,6 +1,6 @@
 extends RefCounted
 ## East Marches (docs/r37_expansion.md): two hidden things, each beside a place the wanderer has a
-## reason to visit (realm_pois_r37_east.gd), in the earlier-round manner:
+## reason to visit (realm_pois_east_marches.gd), in the earlier-round manner:
 ##   boathouse    THE SUNKEN BOAT-HOUSE (Stillwater): a timber boat-house the lake took to its roof, on the
 ##                lake's west shore (the sunken boat-house slot of RealmLayout.SLOTS). Wade in under the
 ##                roof: the lamplighters' oil-chest and the boat-keeper's tin. (Reading the log, the
@@ -119,8 +119,8 @@ static func _vault(root: Node, host: Node3D, works: Node3D, crust: Node3D) -> vo
 	if works == null or crust == null:
 		print("SECRETS salt vault: no pans")
 		return
-	var R37E := load("res://core/world/realm/realm_pois_r37_east.gd") as GDScript
-	var spots: Dictionary = R37E.get("spots")
+	var EastPois := load("res://core/world/realm/realm_pois_east_marches.gd") as GDScript
+	var spots: Dictionary = EastPois.get("spots")
 	if not spots.has("saltworks") or not spots.has("crust"):
 		print("SECRETS salt vault: no spots")
 		return

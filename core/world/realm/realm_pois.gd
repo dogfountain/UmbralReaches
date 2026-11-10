@@ -53,13 +53,13 @@ const GROUP_GLIDE := "glide_perch"
 const GROUP_GUARDIAN := "guardian_site"           ## core/life/encounters/guardians.gd (the enemies pass)
 const GROUP_UPDRAFT := "updraft"                  ## the cloak-glide's lift (Player._updraft)
 const SID := "world_pois"
-const R37West := preload("res://core/world/realm/realm_pois_r37_west.gd")      # --- west marches ---
+const WestPois := preload("res://core/world/realm/realm_pois_west_marches.gd")      # --- west marches ---
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
-const R34_PATH := "res://core/world/realm/realm_pois_r34.gd"   ## r34 places (docs/r34/places.md)
+const R34_PATH := "res://core/world/realm/realm_pois_doubled_realm.gd"   ## r34 places (docs/r34/places.md)
 # --- south marches ---
-const SOUTH_PATH := "res://core/world/realm/realm_pois_r37_south.gd"     ## the South pass (the wall, the fold, the oak, the well)
+const SOUTH_PATH := "res://core/world/realm/realm_pois_south_marches.gd"     ## the South pass (the wall, the fold, the oak, the well)
 # --- the east marches ---
-const R37E_PATH := "res://core/world/realm/realm_pois_r37_east.gd"   ## East Marches (Stillwater, Anchorholds, Saltmarket, White Pans)
+const R37E_PATH := "res://core/world/realm/realm_pois_east_marches.gd"   ## East Marches (Stillwater, Anchorholds, Saltmarket, White Pans)
 
 ## [prefer xz, search radius, half extents, max ground rise, title, banner line, region]
 const POIS := {
@@ -154,13 +154,13 @@ static func reserve(root: Node) -> void:
 	if spots.has("belfry"):
 		_reserve_causeway(space)
 	print("REALM_POI reserved %s" % [spots.keys()])
-	# r34 places: the new ground's places (realm_pois_r34.gd, docs/r34/places.md)
+	# r34 places: the new ground's places (realm_pois_doubled_realm.gd, docs/r34/places.md)
 	(load(R34_PATH) as GDScript).call("reserve", root, skip)
 	# --- south marches ---
 	var south_pois: Variant = load(SOUTH_PATH)     # no preload: a cycle
 	south_pois.reserve(root)
 	# --- west marches ---
-	R37West.reserve(root)
+	WestPois.reserve(root)
 	# --- the east marches ---
 	var east_pois: Variant = load(R37E_PATH)
 	east_pois.reserve(root, skip)
@@ -253,7 +253,7 @@ static func build(root: Node) -> void:
 	var south_build: Variant = load(SOUTH_PATH)
 	south_build.build(holder)
 	# --- west marches ---
-	R37West.build(holder)
+	WestPois.build(holder)
 	# --- the east marches ---
 	var east_pois: Variant = load(R37E_PATH)
 	east_pois.build(holder)
