@@ -16,6 +16,7 @@ uniform vec3 pale : source_color = vec3(0.68, 0.88, 1.0);
 
 varying vec2 v_uv;
 varying float v_dist;
+varying float v_far;
 
 float hs(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float ns(vec2 p) {
@@ -30,7 +31,9 @@ void vertex() {
 	float t = clamp(h / height, 0.0, 1.0);
 	vec3 axis = (MODEL_MATRIX * vec4(0.0, h, 0.0, 1.0)).xyz + lean * t * t;
 	axis += vec3(sin(TIME * 0.5 + h * 0.09 + seed), 0.0, cos(TIME * 0.4 + h * 0.07 + seed)) * 1.1 * t;
-	float w = base_w * (1.0 + 0.7 * smoothstep(0.0, 16.0, h)) * (1.0 - 0.6 * smoothstep(0.4, 1.0, t));
+	float dd = length(CAMERA_POSITION_WORLD - axis);
+	v_far = smoothstep(70.0, 260.0, length(CAMERA_POSITION_WORLD - (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz));
+	float w = base_w * (1.0 + 0.7 * smoothstep(0.0, 16.0, h)) * (1.0 - 0.6 * smoothstep(0.4, 1.0, t)) * (1.0 + 0.9 * v_far);
 	vec3 right;
 	if (billboard > 0.5) {
 		vec3 to_cam = CAMERA_POSITION_WORLD - axis;
@@ -61,7 +64,7 @@ void fragment() {
 	float edge = 1.0 - smoothstep(0.50 + 0.28 * en, 1.0, side);
 	// the sheet comes apart into spray as it climbs
 	float dis = ns(vec2(u * 8.0 + seed, (h - up * 1.1) * 0.55));
-	float thr = smoothstep(0.28, 1.0, t) * 0.92;
+	float thr = smoothstep(0.28, 1.0, t) * 0.92 * (1.0 - 0.7 * v_far);
 	float keep = smoothstep(thr, thr + 0.16, dis);
 	float fade = smoothstep(0.0, 1.2, h) * (1.0 - smoothstep(0.86, 1.0, t));
 	// foam churning at the foot
@@ -80,7 +83,7 @@ void fragment() {
 	a += spark * edge * fade * 0.8;
 	a *= smoothstep(1.2, 5.0, v_dist);                         // never a wall across the eyes
 	a *= 1.0 - smoothstep(370.0, 430.0, v_dist);
-	a *= mix(1.0, 0.8, smoothstep(120.0, 380.0, v_dist));
-	ALBEDO = col * mix(1.0, 0.8, smoothstep(100.0, 340.0, v_dist));
+	a *= 1.0 + 1.4 * v_far;
+	ALBEDO = col * (1.0 + 0.25 * v_far);
 	ALPHA = clamp(a * strength, 0.0, 0.92);
 }

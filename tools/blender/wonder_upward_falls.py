@@ -468,8 +468,16 @@ def build_house(P):
     block(P, "stone", (cx - 1.2, cy + d / 2 + 0.28, 1.9), (0.6, 0.1, 0.9), ch=0.02, jit=0.0, tint=0.3)
     block(P, "stone", (cx - w / 2 + 0.6, cy + 0.6, h + 1.4), (0.8, 0.8, 3.2), ch=0.04, jit=0.012)
     block(P, "stone", (cx - w / 2 + 0.6, cy + 0.6, h + 3.1), (1.0, 1.0, 0.2), ch=0.04, jit=0.006, tint=1.0)
-    # the roof: courses of slates, a ridge, eaves proud; each slope tilted about the ridge
+    # the gable ends: stepped courses narrowing to the ridge, so the roof closes on both ends
     rise = 2.2
+    zg = h
+    while zg < h + rise - 0.1:
+        gw = d * (1.0 - (zg + 0.3 - h) / rise) - 0.15
+        if gw > 0.3:
+            for sx in (-1, 1):
+                block(P, "stone", (cx + sx * (w / 2 - 0.1), cy, zg + 0.27), (0.5, gw, 0.52), ch=0.03, jit=0.01)
+        zg += 0.5
+    # the roof: courses of slates, a ridge, eaves proud; each slope tilted about the ridge
     half = d / 2 + 0.5
     ang = math.atan2(rise, d / 2)
     rows = 9

@@ -74,6 +74,7 @@ func _run(root: Node) -> void:
 	else:
 		push_error("WONDER upward_falls: the weir model is missing")
 	_water(host)
+	_votive(host)
 	_marker(host)
 	report.append("clearance: %s" % ("nothing touched" if _audit.is_empty() else "; ".join(_audit)))
 	for s in report:
@@ -98,8 +99,8 @@ func _dress(near: Node3D) -> void:
 			elif key == "timber":
 				d.albedo_color = Color(1.5, 1.5, 1.6)
 			d.rim_enabled = true
-			d.rim = 0.35
-			d.rim_tint = 0.6
+			d.rim = 0.85
+			d.rim_tint = 0.9
 			lit[key] = d
 		mi.material_override = lit[key]
 
@@ -112,10 +113,10 @@ func _site() -> void:
 	# nothing is cut from the ground (cut_y far above it): the site keeps the flora and the dress off. The house
 	# at the west end, the weir, the pond's steps to the north, the pool to the south.
 	WorldLanes.register_site(NAME, Rect2(-216.0, -33.0, 18.0, 12.6), 0.6, 60.0)             # the steps and the cutwaters
-	WorldLanes.register_site(NAME + "_weir", Rect2(-226.4, -20.6, 34.8, 8.6), 0.6, 60.0)    # the crest, the wings, the pool's head
+	WorldLanes.register_site(NAME + "_weir", Rect2(-226.4, -20.6, 34.0, 8.6), 0.6, 60.0)    # the crest, the wings, the pool's head
 	WorldLanes.register_site(NAME + "_house", Rect2(-233.6, -18.4, 7.4, 6.6), 0.6, 60.0)    # the keeper's house
 	var who := PackedStringArray()
-	for p: Vector2 in [Vector2(-233.0, -14.0), Vector2(-191.0, ZC), Vector2(CX, -32.0), Vector2(CX, -11.0), Vector2(-192.5, -14.0)]:
+	for p: Vector2 in [Vector2(-233.0, -14.0), Vector2(-192.4, ZC), Vector2(CX, -32.0), Vector2(CX, -11.0), Vector2(-192.5, -14.0)]:
 		who.append("%s path %.1f" % [p, RealmLayout.path_dist(p)])
 	report.append("paths: " + "; ".join(who))
 
@@ -158,6 +159,35 @@ func _water(host: Node3D) -> void:
 	var bn: Variant = Wayfinding.beacon(host, Vector3(CX, CREST, ZC), "", Color(0.62, 0.82, 1.0), 90.0, 0.7, 44.0, false, 360.0)
 	if bn is Node:
 		(bn as Node).name = "Beacon_upward_falls"
+
+
+## A pilgrim's votive in the Order's niche: a candle in the offering bowl and the little warm light it throws on the
+## arches either side. The one warm thing at the weir (the niche is the model's: south wall, bowl at 2.4 m).
+func _votive(host: Node3D) -> void:
+	var at := Vector3(CX, 2.55, ZC - Y_S + 0.38)
+	var q := QuadMesh.new()
+	q.size = Vector2(0.11, 0.26)
+	var fl := MeshInstance3D.new()
+	fl.name = "VotiveFlame"
+	fl.mesh = q
+	fl.material_override = OssKit.mat("flame")
+	fl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	fl.visibility_range_end = 60.0
+	host.add_child(fl)
+	fl.global_position = at
+	var l := OmniLight3D.new()
+	l.name = "VotiveLight"
+	l.light_color = Color(1.0, 0.62, 0.3)
+	l.light_energy = 2.2
+	l.omni_range = 6.0
+	l.omni_attenuation = 1.1
+	l.shadow_enabled = false
+	l.distance_fade_enabled = true
+	l.distance_fade_begin = 50.0
+	l.distance_fade_length = 14.0
+	l.set_meta(&"light_class", &"lamp")
+	host.add_child(l)
+	l.global_position = at + Vector3(0.0, 0.35, 0.5)
 
 
 func _marker(host: Node3D) -> void:

@@ -5,7 +5,8 @@ render_mode unshaded, cull_disabled, depth_draw_never, blend_mix;
 
 uniform float disc = 0.0;
 uniform float speed = 3.6;
-uniform float period = 0.0;                 // the length of one step along the strip (0: none)
+uniform float period = 0.0;
+uniform float lip_end = 1000.0;                // the strip's length where the steps end (no lip foam on the crest)                 // the length of one step along the strip (0: none)
 uniform vec3 deep : source_color = vec3(0.07, 0.22, 0.36);
 uniform vec3 pale : source_color = vec3(0.62, 0.84, 0.98);
 
@@ -36,26 +37,23 @@ void fragment() {
 		float s = UV.y;
 		float side = abs(u - 0.5) * 2.0;
 		float flow = s - TIME * speed;
-		float st1 = ns(vec2(u * 8.0, flow * 0.5));
-		float st2 = ns(vec2(u * 21.0, flow * 0.95));
-		float streak = smoothstep(0.35, 0.9, st1 * 0.55 + st2 * 0.55);
-		// V-shaped ripples pointing up the slope
-		float chev = 0.5 + 0.5 * sin((flow + side * 2.4) * 2.3);
-		float band = smoothstep(0.86, 1.0, chev);
-		float rim = smoothstep(0.7, 1.0, side);
-		float footz = 1.0 - smoothstep(0.0, 3.4, s);
-		float churn = ns(vec2(u * 7.0, s * 2.2 - TIME * 2.5)) * footz;
+		// thin glassy sheeting: long fine streaks along the run, mostly clear so the tread shows through
+		float st1 = ns(vec2(u * 34.0, flow * 0.2));
+		float st2 = ns(vec2(u * 71.0 + 3.0, flow * 0.38));
+		float streak = smoothstep(0.5, 0.95, st1 * 0.6 + st2 * 0.5);
+		float ripple = ns(vec2(u * 12.0, flow * 0.9));
 		float lipb = 0.0;
-		if (period > 0.0) {
+		if (period > 0.0 && s < lip_end) {
 			float ph = fract((s - 0.4) / period);
-			lipb = smoothstep(0.62, 0.95, ph) * (0.6 + 0.4 * ns(vec2(u * 12.0, s * 3.0 - TIME * 3.0)));
+			lipb = smoothstep(0.8, 0.97, ph) * (0.35 + 0.65 * ns(vec2(u * 20.0, s * 4.0 - TIME * 3.5)));
 		}
-		col = mix(deep, pale, streak * 0.75 + band * 0.35);
-		col = mix(col, vec3(0.95, 0.99, 1.0), clamp(lipb, 0.0, 1.0));
-		col = mix(col, vec3(0.93, 0.98, 1.0), clamp(rim * 0.5 + churn * 0.9, 0.0, 1.0));
-		a = 0.5 + 0.22 * streak + 0.12 * rim;
-		a *= smoothstep(0.0, 0.5, s) * (1.0 - smoothstep(0.93, 1.0, side) * 0.7);
+		float footz = 1.0 - smoothstep(0.0, 2.6, s);
+		float churn = ns(vec2(u * 14.0, s * 3.0 - TIME * 2.5)) * footz;
+		col = mix(deep, pale * 0.55, streak * 0.55 + ripple * 0.15);
+		col = mix(col, vec3(0.92, 0.98, 1.0), clamp(lipb * 0.8 + churn * 0.6, 0.0, 1.0));
+		a = 0.14 + 0.2 * streak + 0.1 * ripple + lipb * 0.55 + churn * 0.4;
+		a *= smoothstep(1.0, 0.62, side) * smoothstep(0.0, 0.8, s);
 	}
-	ALBEDO = col * 0.82;
+	ALBEDO = col * 0.75;
 	ALPHA = clamp(a, 0.0, 0.95);
 }

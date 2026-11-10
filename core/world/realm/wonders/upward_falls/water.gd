@@ -8,7 +8,7 @@ const RISE := preload("res://core/world/realm/wonders/upward_falls/rise.gdshader
 const FLOW := preload("res://core/world/realm/wonders/upward_falls/flow.gdshader")
 const POOL := preload("res://core/world/realm/wonders/upward_falls/pool.gdshader")
 
-const HEIGHT := 90.0                         ## the sheet's height over the basin
+const HEIGHT := 100.0                         ## the sheet's height over the basin
 const LEAN := Vector3(7.0, 0.0, 20.0)        ## where its top has drifted to (the spray is carried south, over the pool)
 const COLD := Color(0.52, 0.76, 1.0)
 
@@ -89,7 +89,7 @@ static func channel(host: Node3D, pts: Array, widths: Array, basin: Vector3, bas
 	var mi := MeshInstance3D.new()
 	mi.name = "Climb"
 	mi.mesh = strip(pts, widths)
-	mi.material_override = _mat(FLOW, {"disc": 0.0, "period": 1.95})
+	mi.material_override = _mat(FLOW, {"disc": 0.0, "period": 1.95, "lip_end": 14.2})
 	mi.extra_cull_margin = 6.0
 	_no_shadow(mi)
 	host.add_child(mi)
