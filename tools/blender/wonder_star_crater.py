@@ -7,8 +7,8 @@
   star_crater_rim.glb      rim_slab_a/b/c     heaved plates of fused crust (not exported by default)
   star_crater_heart.glb    heart_core         the star: a faceted gem with short points of light
                            heart_drips        thin threads of molten glass hanging beneath it
-                           heart_shell        jagged plates of black glass crust laid close over it
-                           frag_a-f           small chips that orbit further out
+  star_crater_case.glb     case_body, case_lid  the surveyors' case: iron-bound oak, a domed lid on its hinge (the lid's
+                           origin is the hinge line), a hasp, a star-glass inlay; case_slate  their slate
   star_crater_ridge.glb    ridge_plate_a-d, ridge_shelf  snapped quartz columns (walk faces at z=0, bodies below), colonly hulls
 
   tools/blender/run.sh wonder_star_crater.py -- [--only shards,heart,steps] [--renders DIR] [--no-export]
@@ -30,7 +30,7 @@ from mathutils import Vector, Matrix, noise
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUT = os.path.join(ROOT, "art", "models", "wonders")
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-ONLY = args[args.index("--only") + 1].split(",") if "--only" in args else ["shards", "heart", "steps"]
+ONLY = args[args.index("--only") + 1].split(",") if "--only" in args else ["shards", "heart", "steps", "case"]
 RENDERS = args[args.index("--renders") + 1] if "--renders" in args else ""
 EXPORT = "--no-export" not in args
 TAU = math.tau
@@ -68,6 +68,8 @@ class Piece:
         self.col = {}
         self.kind = {}
         self.cur = 0.0
+        self.face_rnd = False          # UV2.x: a random number per original face (the star's facets shimmer apart)
+        self.frnd = {}
 
     def v(self, co, rgba):
         vv = self.bm.verts.new(co)
@@ -140,9 +142,11 @@ class Piece:
                 cv = bm.verts.new(sum((v.co for v in vs), Vector()) / len(vs))
                 self.col[cv] = tuple(sum(c[i] for c in cols) / len(cols) for i in range(4))
                 centres.add(cv)
+                fr = random.random()
                 for i in range(len(vs)):
                     nf = bm.faces.new([vs[i], vs[(i + 1) % len(vs)], cv])
                     self.kind[nf] = k
+                    self.frnd[nf] = fr
                 bmesh.ops.delete(bm, geom=[fc], context='FACES_ONLY')
         layer = bm.loops.layers.color.new("Col")
         uvl = bm.loops.layers.uv.new("UVMap")
@@ -155,7 +159,8 @@ class Piece:
                 lp[layer] = (c[0], c[1], c[2], 1.0)
                 # glTF flips V on the way out and Godot reads it as stored: write 1 - v so the game reads v
                 lp[uvl].uv = (c[3], 1.0 - k)
-                lp[uv2].uv = (c[0], 1.0 - (1.0 if lp.vert in centres else 0.0))
+                u2 = self.frnd.get(fc, c[0]) if self.face_rnd else c[0]
+                lp[uv2].uv = (u2, 1.0 - (1.0 if lp.vert in centres else 0.0))
         me = bpy.data.meshes.new(self.name)
         bm.to_mesh(me)
         bm.free()
@@ -426,42 +431,15 @@ def fib_dirs(n, rng):
     return out
 
 
-def shell_plate(pc, rng, dirc, outline, r_in, thick):
-    """A broken piece of the star's crust laid close over the core: a curved plate on a sphere, a jagged outline of
-    sharp teeth; the outer face black glass (kind 0), the inner face lit by the core (0.5), the broken edge a glowing
-    seam (1). Added to `pc` (all the plates are one mesh: they turn with the core)."""
-    dirc = dirc.normalized()
-    e1, e2 = basis_for(dirc)
-    n = len(outline)
-
-    def sph(phi, rho, radius):
-        d = dirc * math.cos(rho) + (e1 * math.cos(phi) + e2 * math.sin(phi)) * math.sin(rho)
-        return d * radius
-
-    ro = r_in + thick
-    rnd = rng.random()
-    c_o = pc.v(sph(0.0, 0.0, ro), (rnd, 0.0, 0.0, 0.0))
-    c_i = pc.v(sph(0.0, 0.0, r_in), (rnd, 0.0, 0.0, 0.0))
-    mid_o = [pc.v(sph(p, r * 0.55, ro * rng.uniform(0.995, 1.01)), (rnd, 0.0, 0.0, 0.5)) for p, r in outline]
-    mid_i = [pc.v(sph(p, r * 0.55, r_in), (rnd, 0.0, 0.0, 0.5)) for p, r in outline]
-    out_o = [pc.v(sph(p, r, ro * rng.uniform(0.99, 1.0)), (rnd, 0.0, 0.0, 1.0)) for p, r in outline]
-    out_i = [pc.v(sph(p, r * 0.97, r_in), (rnd, 0.0, 0.0, 1.0)) for p, r in outline]
-    for j in range(n):
-        k = (j + 1) % n
-        pc.f([c_o, mid_o[j], mid_o[k]], 0.0)
-        pc.f([mid_o[j], out_o[j], out_o[k], mid_o[k]], 0.0)
-        pc.f([c_i, mid_i[k], mid_i[j]], 0.5)
-        pc.f([mid_i[j], mid_i[k], out_i[k], out_i[j]], 0.5)
-        pc.f([out_o[j], out_i[j], out_i[k], out_o[k]], 1.0)
-
-
 def build_heart():
-    """THE FALLEN STAR: a dense core of many small facets (hot white at the heart of each, violet-blue at its edges
-    in the game), broken plates of black glass crust laid close over it with glowing seams between them, thin
-    threads of molten glass hanging beneath, small chips of crust further out."""
+    """THE FALLEN STAR: a dense core of many small facets (hot white at the heart of each, violet-blue at its edges,
+    each shimmering on its own beat in the game) and thin threads of molten glass hanging beneath. Its corona and
+    rays are drawn in the engine."""
+    random.seed(70)
     rng = random.Random(7)
     out = []
     pc = Piece("heart_core")
+    pc.face_rnd = True
     # an irregular gem: the hull of scattered points on a lumpy sphere (facets of every size and shape, no geodesic
     # pattern)
     for d in fib_dirs(1100, rng):
@@ -485,13 +463,13 @@ def build_heart():
         d = Vector((math.cos(th) * s, math.sin(th) * s, -1.0)).normalized()
         base = d * 2.15
         L = rng.uniform(0.9, 3.2) * (1.0 - 0.35 * s)
-        w0 = rng.uniform(0.018, 0.032)
+        w0 = rng.uniform(0.008, 0.014)
         sw = Vector((rng.uniform(-0.3, 0.3), rng.uniform(-0.3, 0.3), 0.0))
         prev = None
         steps = 8
         for si in range(steps + 1):
             t = si / steps
-            w = w0 * (1.0 - 0.7 * t) + 0.006
+            w = w0 * (1.0 - 0.7 * t) + 0.003
             ring = []
             for q in range(5):
                 qa = TAU * q / 5 + th
@@ -507,66 +485,237 @@ def build_heart():
             k = (q + 1) % 5
             pd.f([prev[k], prev[q], tip])
     out.append(pd.finish())
-    # the crust: the upper two thirds of a shell of black glass a hand's breadth over the core, broken into
-    # shards along the cells round scattered seeds (thin glowing seams between them), its lower edge torn ragged
-    # where the shell broke open and the light comes out
-    ps = Piece("heart_shell")
-    seeds = []
-    for d in fib_dirs(80, rng):
-        d = (d + Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-1, 1))) * 0.1).normalized()
-        if d.z > -0.2 - 0.25 * rng.random():
-            seeds.append(d)
+    return out
 
-    def owner(v):
-        return max(range(len(seeds)), key=lambda i: v.dot(seeds[i]))
 
-    for si, sd in enumerate(seeds):
-        sr = random.Random(300 + si)
-        if sr.random() < 0.3:
-            continue                                   # a shard fallen away: a window onto the core
-        e1, e2 = basis_for(sd)
-        outline = []
-        n = 22
-        for j in range(n):
-            phi = TAU * j / n
-            dirp = e1 * math.cos(phi) + e2 * math.sin(phi)
-            lo, hi = 0.0, 1.2
-            for _ in range(18):
-                m = (lo + hi) * 0.5
-                v = sd * math.cos(m) + dirp * math.sin(m)
-                if owner(v) == si and v.z > -0.62:
-                    lo = m
-                else:
-                    hi = m
-            rho = lo * sr.uniform(0.8, 0.9) - 0.015
-            if j % 2 == 1:
-                rho *= sr.uniform(0.86, 1.0)          # teeth along the broken edge
-            outline.append((phi, max(rho, 0.05)))
-        shell_plate(ps, sr, sd, outline, 2.46 + sr.uniform(0.0, 0.16), sr.uniform(0.05, 0.08))
-    out.append(ps.finish())
-    # six small chips of the shell for further out: a curved plate, a broken edge (kind 1), a lit underside (0.5)
-    for i in range(6):
-        r = random.Random(200 + i)
-        pf = Piece("frag_" + "abcdef"[i])
-        n = 7
-        sz = r.uniform(0.45, 0.9)
-        outer = []
-        inner = []
-        for j in range(n):
-            th = TAU * j / n + r.uniform(-0.2, 0.2)
-            rr = sz * (1.0 if j % 2 else r.uniform(0.55, 0.8))
-            x, y = math.cos(th) * rr, math.sin(th) * rr * 0.75
-            z = 0.28 * (x * x + y * y) / (sz * sz) * sz * 0.6
-            outer.append(pf.v(Vector((x, y, z)), (0.5, 0.0, 0.0, 0.0)))
-            inner.append(pf.v(Vector((x * 0.9, y * 0.9, z - 0.18 * sz * r.uniform(0.6, 1.2))), (0.5, 0.0, 0.0, 0.0)))
-        topc = pf.v(Vector((0, 0, -0.03 * sz)), (0.5, 0.0, 0.0, 0.0))
-        botc = pf.v(Vector((0, 0, -0.2 * sz)), (0.5, 0.0, 0.0, 0.0))
-        for j in range(n):
-            k = (j + 1) % n
-            pf.f([topc, outer[j], outer[k]], 0.0)
-            pf.f([outer[j], inner[j], inner[k], outer[k]], 1.0)
-            pf.f([botc, inner[k], inner[j]], 0.5)
-        out.append(pf.finish(recalc=True))
+
+# ============================================================================================================
+# THE SURVEYORS' CASE
+# ============================================================================================================
+def pbr(name, col, rough, metal=0.0, emit=None, strength=0.0):
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    b = m.node_tree.nodes["Principled BSDF"]
+    b.inputs["Base Color"].default_value = (*col, 1.0)
+    b.inputs["Roughness"].default_value = rough
+    b.inputs["Metallic"].default_value = metal
+    if emit:
+        b.inputs["Emission Color"].default_value = (*emit, 1.0)
+        b.inputs["Emission Strength"].default_value = strength
+    return m
+
+
+class Kitbash:
+    """Bevelled boxes and swept strips into one mesh, a material slot per part."""
+
+    def __init__(self, name, mats):
+        self.name = name
+        self.bm = bmesh.new()
+        self.mats = mats
+
+    def box(self, c, size, mat, bevel=0.006, rot=None):
+        before = set(self.bm.faces)
+        r = bmesh.ops.create_cube(self.bm, size=1.0)
+        vs = r["verts"]
+        for v in vs:
+            v.co = Vector((v.co.x * size[0], v.co.y * size[1], v.co.z * size[2]))
+            if rot is not None:
+                v.co = rot @ v.co
+            v.co += Vector(c)
+        if bevel > 0.0:
+            edges = list({e for v in vs for e in v.link_edges})
+            bmesh.ops.bevel(self.bm, geom=vs + edges, offset=bevel, segments=1, affect='EDGES', profile=0.5)
+        for f in set(self.bm.faces) - before:
+            f.material_index = mat
+            f.smooth = False
+
+    def strip(self, pts, width, thick, axis, mat):
+        """A flat strip swept along `pts` (a polyline in the plane normal to `axis`), `width` along `axis`,
+        `thick` outward (away from the polyline's centre of curvature, given as the normal at each point)."""
+        rings = []
+        for p, n in pts:
+            ring = []
+            for dx, dn in ((-0.5, 0.0), (0.5, 0.0), (0.5, 1.0), (-0.5, 1.0)):
+                ring.append(self.bm.verts.new(Vector(p) + axis * (dx * width) + Vector(n) * (dn * thick)))
+            rings.append(ring)
+        faces = []
+        for r0, r1 in zip(rings[:-1], rings[1:]):
+            for j in range(4):
+                k = (j + 1) % 4
+                faces.append(self.bm.faces.new([r0[j], r0[k], r1[k], r1[j]]))
+        faces.append(self.bm.faces.new(rings[0][::-1]))
+        faces.append(self.bm.faces.new(rings[-1]))
+        for f in faces:
+            f.material_index = mat
+            f.smooth = False
+
+    def cyl(self, c, r, length, axis_rot, mat, segs=8):
+        res = bmesh.ops.create_cone(self.bm, cap_ends=True, segments=segs, radius1=r, radius2=r, depth=length)
+        for v in res["verts"]:
+            v.co = axis_rot @ v.co + Vector(c)
+            for f in v.link_faces:
+                f.material_index = mat
+                f.smooth = True
+
+    def finish(self):
+        bmesh.ops.remove_doubles(self.bm, verts=self.bm.verts[:], dist=0.0001)
+        bmesh.ops.recalc_face_normals(self.bm, faces=self.bm.faces[:])
+        me = bpy.data.meshes.new(self.name)
+        self.bm.to_mesh(me)
+        self.bm.free()
+        for m in self.mats:
+            me.materials.append(m)
+        ob = bpy.data.objects.new(self.name, me)
+        ob["own_materials"] = True
+        bpy.context.scene.collection.objects.link(ob)
+        return ob
+
+
+def build_case():
+    """The Order's survey case, as the last surveyor left it on the shelf: a chest of dark oak planks bound in
+    blackened iron (corner angles, two straps round body and lid, rivets), a domed lid of staves on two hinge
+    knuckles at the back, a hasp hanging over a staple at the front, and a star-glass set in an iron bezel on the
+    crown of the lid that still holds a little of the light. 0.7 m long. Origin: the body at its foot, the lid at
+    its hinge line (Blender +Y is the back). And the slate: a split tablet of blue-grey stone, chipped."""
+    oak_a = pbr("oak_a", (0.20, 0.11, 0.055), 0.72)
+    oak_b = pbr("oak_b", (0.15, 0.08, 0.04), 0.78)
+    iron = pbr("iron_black", (0.16, 0.16, 0.17), 0.42, 0.75)
+    glass = pbr("star_glass", (0.5, 0.7, 1.0), 0.1, 0.0, (0.55, 0.78, 1.0), 2.5)
+    slate_m = pbr("slate", (0.17, 0.19, 0.23), 0.85)
+    vellum = pbr("vellum", (0.55, 0.47, 0.34), 0.8)
+    brass = pbr("brass", (0.55, 0.4, 0.16), 0.35, 0.85)
+    L, D, H, R = 0.70, 0.42, 0.30, 0.13
+    out = []
+    body = Kitbash("case_body", [oak_a, oak_b, iron, vellum, brass])
+    # the carcass: three planks a side (a hairline gap between them), lined inside, a floor
+    for (cx, cy, sx, sy) in ((0, -D / 2 + 0.027, L - 0.06, 0.006), (0, D / 2 - 0.027, L - 0.06, 0.006),
+                             (-L / 2 + 0.027, 0, 0.006, D - 0.06), (L / 2 - 0.027, 0, 0.006, D - 0.06)):
+        body.box((cx, cy, H * 0.5), (sx, sy, H - 0.012), 1, 0.0)
+    body.box((0, 0, 0.035), (L - 0.05, D - 0.05, 0.02), 1, 0.0)
+    # what the surveyors left in it: two rolled charts and a brass ring-dial
+    rot_x = Matrix.Rotation(math.radians(90), 3, 'Y')
+    body.cyl((-0.08, -0.06, 0.075), 0.03, 0.5, rot_x, 3, 10)
+    body.cyl((-0.06, 0.02, 0.07), 0.026, 0.44, Matrix.Rotation(math.radians(84), 3, 'Y') @ Matrix.Rotation(math.radians(12), 3, 'X'), 3, 10)
+    ring = bmesh.ops.create_cone(body.bm, cap_ends=True, segments=16, radius1=0.07, radius2=0.07, depth=0.012)
+    for v in ring["verts"]:
+        v.co += Vector((0.18, 0.06, 0.052))
+        for f in v.link_faces:
+            f.material_index = 4
+    ph = H / 3.0
+    for i in range(3):
+        z = ph * (i + 0.5)
+        for (cx, cy, sx, sy) in ((0, -D / 2 + 0.012, L - 0.03, 0.024), (0, D / 2 - 0.012, L - 0.03, 0.024),
+                                 (-L / 2 + 0.012, 0, 0.024, D - 0.03), (L / 2 - 0.012, 0, 0.024, D - 0.03)):
+            body.box((cx, cy, z), (sx, sy, ph - 0.006), (i + int(cx * 10)) % 2, 0.004)
+    body.box((0, 0, 0.012), (L - 0.03, D - 0.03, 0.024), 1, 0.004)
+    # corner angles, top and bottom caps
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            x, y = sx * (L / 2 - 0.004), sy * (D / 2 - 0.004)
+            body.box((x - sx * 0.026, y, H / 2), (0.06, 0.012, H + 0.006), 2, 0.003)
+            body.box((x, y - sy * 0.026, H / 2), (0.012, 0.06, H + 0.006), 2, 0.003)
+            for z in (0.012, H - 0.012):
+                body.box((x - sx * 0.02, y - sy * 0.02, z), (0.05, 0.05, 0.03), 2, 0.004)
+    # two straps round the body, rivets on them
+    for x in (-0.2, 0.2):
+        body.box((x, 0, H / 2 - 0.003), (0.045, D + 0.014, H + 0.004), 2, 0.004)
+        for y in (-1, 1):
+            for z in (0.07, H - 0.07):
+                body.box((x, y * (D / 2 + 0.009), z), (0.014, 0.012, 0.014), 2, 0.003)
+    # the staple at the front, the hinge knuckles at the back
+    body.box((0, -D / 2 - 0.006, H - 0.05), (0.07, 0.012, 0.06), 2, 0.003)
+    body.box((0, -D / 2 - 0.022, H - 0.04), (0.03, 0.02, 0.012), 2, 0.002)
+    for x in (-0.2, 0.2):
+        body.cyl((x - 0.03, D / 2 + 0.012, H), 0.016, 0.04, rot_x, 2)
+    out.append(body.finish())
+    # the lid, about its hinge line (y = 0 is the back edge, the front at y = -D), a dome of six staves
+    lid = Kitbash("case_lid", [oak_a, oak_b, iron, glass])
+    n = 6
+    cy = -D / 2
+
+    def arc(t, rad):
+        a = math.pi * t
+        return Vector((0.0, cy - math.cos(a) * (D / 2) * rad / R * (R / R), math.sin(a) * rad))
+
+    for i in range(n):
+        t0, t1 = i / n, (i + 1) / n
+        tm = (t0 + t1) * 0.5
+        a = math.pi * tm
+        nrm = Vector((0.0, -math.cos(a), math.sin(a)))
+        c = Vector((0.0, cy - math.cos(a) * (D / 2 - 0.012), math.sin(a) * (R - 0.012)))
+        chord = math.pi * ((D / 2 + R) / 2) / n
+        rot = Matrix.Rotation(-(a - math.pi / 2), 3, 'X')
+        lid.box(tuple(c), (L - 0.03, chord - 0.004, 0.024), i % 2, 0.004, rot)
+    # end panels (half-ellipse fans)
+    for sx in (-1, 1):
+        x = sx * (L / 2 - 0.016)
+        rim = []
+        for i in range(13):
+            a = math.pi * i / 12
+            rim.append(lid.bm.verts.new((x, cy - math.cos(a) * (D / 2 - 0.004), math.sin(a) * (R - 0.004))))
+        f = lid.bm.faces.new(rim if sx > 0 else rim[::-1])
+        f.material_index = 1
+        inner = [lid.bm.verts.new((x - sx * 0.02, v.co.y, v.co.z)) for v in rim]
+        f2 = lid.bm.faces.new(inner[::-1] if sx > 0 else inner)
+        f2.material_index = 1
+    # straps over the dome and the lid's rim band
+    for x in (-0.2, 0.2):
+        pts = []
+        for i in range(13):
+            a = math.pi * i / 12
+            pts.append(((x, cy - math.cos(a) * (D / 2 + 0.002), math.sin(a) * (R + 0.002)), (0.0, -math.cos(a), math.sin(a))))
+        lid.strip(pts, 0.045, 0.008, Vector((1, 0, 0)), 2)
+        for i in (2, 6, 10):
+            a = math.pi * i / 12
+            lid.box((x, cy - math.cos(a) * (D / 2 + 0.01), math.sin(a) * (R + 0.01)), (0.014, 0.014, 0.014), 2, 0.003)
+    for sx in (-1, 1):
+        lid.box((sx * (L / 2 - 0.004), cy, 0.012), (0.012, D + 0.004, 0.024), 2, 0.003)
+    lid.box((0, -D - 0.004, 0.012), (L + 0.004, 0.012, 0.024), 2, 0.003)
+    lid.box((0, 0.004, 0.012), (L + 0.004, 0.012, 0.024), 2, 0.003)
+    # the hasp: a hinged iron tongue over the front, slotted for the staple
+    lid.box((0, -D - 0.012, -0.03), (0.05, 0.008, 0.1), 2, 0.003)
+    lid.box((0, -D - 0.017, -0.06), (0.02, 0.006, 0.026), 3, 0.0)
+    # hinge leaves at the back
+    rot_x = Matrix.Rotation(math.radians(90), 3, 'Y')
+    for x in (-0.2, 0.2):
+        lid.cyl((x + 0.02, 0.012, 0.0), 0.016, 0.04, rot_x, 2)
+        lid.box((x + 0.02, -0.01, 0.03), (0.04, 0.008, 0.06), 2, 0.002, Matrix.Rotation(math.radians(-25), 3, 'X'))
+    # the star-glass on the crown: an iron bezel, a six-pointed star of glass standing proud
+    top = Vector((0.0, cy, R))
+    lid.cyl(tuple(top + Vector((0, 0, 0.004))), 0.05, 0.016, Matrix.Identity(3), 2, 12)
+    star = []
+    c0 = lid.bm.verts.new(top + Vector((0, 0, 0.024)))
+    for i in range(12):
+        a = math.pi * 2 * i / 12
+        r = 0.04 if i % 2 == 0 else 0.018
+        star.append(lid.bm.verts.new(top + Vector((math.cos(a) * r, math.sin(a) * r, 0.013))))
+    for i in range(12):
+        f = lid.bm.faces.new([star[i], star[(i + 1) % 12], c0])
+        f.material_index = 3
+        f.smooth = False
+    out.append(lid.finish())
+    # the slate: a split tablet, chipped round its edge (origin at its foot, face toward -Y)
+    sl = Kitbash("case_slate", [slate_m, iron])
+    rng = random.Random(41)
+    W, T, Hs = 0.46, 0.05, 0.62
+    outline = []
+    for i in range(14):
+        a = math.pi * 2 * i / 14
+        rr = 1.0 - rng.uniform(0.0, 0.1) - (0.06 if i % 4 == 1 else 0.0)
+        outline.append((math.cos(a) * W / 2 * rr, (math.sin(a) * 0.5 + 0.5) * Hs * rr + 0.01))
+    for y0, y1, mi in ((-T / 2, T / 2, 0),):
+        front = [sl.bm.verts.new((x, y0, z)) for x, z in outline]
+        back = [sl.bm.verts.new((x * 0.97, y1, z * 0.98)) for x, z in outline]
+        fa = sl.bm.faces.new(front[::-1])
+        fb = sl.bm.faces.new(back)
+        for f in (fa, fb):
+            f.material_index = mi
+        for i in range(len(outline)):
+            k = (i + 1) % len(outline)
+            sl.bm.faces.new([front[i], front[k], back[k], back[i]]).material_index = mi
+    # an iron foot clamp that props it
+    sl.box((0, 0, 0.02), (W * 0.7, T + 0.03, 0.04), 1, 0.004)
+    out.append(sl.finish())
     return out
 
 
@@ -675,7 +824,7 @@ def preview_material():
 def set_materials(objs):
     pm = preview_material()
     for o in objs:
-        if o.name.endswith("-colonly"):
+        if o.name.endswith("-colonly") or o.get("own_materials"):
             continue
         o.data.materials.clear()
         o.data.materials.append(pm)
@@ -786,7 +935,8 @@ def main():
         "shards": (build_shards, "star_crater_shards.glb", [("great_a", ("shard_great_a",), 24, 46), ("great_b", ("shard_great_b",), 18, 34), ("great_c", ("shard_great_c",), 14, 27),
                                                            ("ray", ("shard_ray_a", "shard_ray_b"), 6, 24), ("crown", ("shard_crown_a", "shard_crown_b"), 4, 11)]),
         "rim": (build_rim, "star_crater_rim.glb", [("slab_a", ("rim_slab_a",), 1.0, 11), ("slab_c", ("rim_slab_c",), 1.0, 13)]),
-        "heart": (build_heart, "star_crater_heart.glb", [("heart", ("heart_core", "heart_drips", "heart_shell"), 0.0, 14), ("frags", ("frag_a", "frag_b", "frag_c", "frag_d", "frag_e", "frag_f"), 0.0, 6)]),
+        "heart": (build_heart, "star_crater_heart.glb", [("heart", ("heart_core", "heart_drips"), 0.0, 14)]),
+        "case": (build_case, "star_crater_case.glb", [("case", ("case_body", "case_lid", "case_slate"), 0.25, 1.9)]),
         "steps": (build_ridge, "star_crater_ridge.glb", [("ridge", ("ridge_plate_a", "ridge_plate_b"), -2.0, 14), ("shelf", ("ridge_shelf",), -2.5, 16)]),
     }
     for key in ONLY:

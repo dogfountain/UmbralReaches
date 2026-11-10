@@ -8,8 +8,8 @@ extends RefCounted
 ##   - the crystals: three great quartz druses rooted in the rim and thrown outward, long points lying across the
 ##     pans: milky and lit from within at the root, clear to the point (Blender: art/models/wonders/star_crater_shards.glb,
 ##     tools/blender/wonder_star_crater.py)
-##   - the star: a dense many-faceted core, hot white-gold within and violet at its facet edges, black glass crust
-##     laid close over it with glowing seams, molten threads and a slow rain of motes beneath, chips, a halo, a hum
+##   - the star: pure light: a dense many-faceted core, hot white-gold within and violet at its facet edges, each
+##     facet shimmering, a violet corona, slow-turning rays, thin molten threads and a rain of motes, a halo, a hum
 ##   - the climb: a ridge of snapped quartz columns heaved up from the crater floor, curving in toward a shelf
 ##     under the star crowned with points (a secret: core/life/secrets/site_star_crater.gd)
 ## Everything animated is in the shaders. Two lights. Placed clear of the salt-works, derricks and pans, the camps and
@@ -72,7 +72,6 @@ func _run(root: Node) -> void:
 	_shards()
 	_ridge()
 	_heart()
-	_fragments()
 	_lights()
 	_motes()
 	_hum()
@@ -420,33 +419,36 @@ func _solid(mesh: ArrayMesh) -> ConcavePolygonShape3D:
 # --- the star -------------------------------------------------------------------------------------------
 
 func _heart() -> void:
-	var hm := _glass_mat(Shaders.HEART)
+	var core := _glass_mat(Shaders.HEART)
+	var thread := _glass_mat(Shaders.THREAD)
 	for n: String in ["heart_core", "heart_drips"]:
 		var mesh := _mesh("star_crater_heart.glb", n)
 		if mesh == null:
 			continue
+		var mat := core if n == "heart_core" else thread
 		var mi := MeshInstance3D.new()
 		mi.name = n.capitalize().replace(" ", "")
 		mi.mesh = mesh
-		mi.material_override = hm
+		mi.material_override = mat
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.extra_cull_margin = 2.0
 		host.add_child(mi)
 		mi.global_position = heart
-		_far("star_crater_heart.glb", n, mi, hm)
-	# its crust: jagged plates of black glass laid close over the core, turning with it (the shell shader's rate is the
-	# core's)
-	var crust := _mesh("star_crater_heart.glb", "heart_shell")
-	if crust != null:
-		var mi := MeshInstance3D.new()
-		mi.name = "HeartShell"
-		mi.mesh = crust
-		mi.material_override = _glass_mat(Shaders.SHELL)
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mi.extra_cull_margin = 2.0
-		host.add_child(mi)
-		mi.global_position = heart
-		_far("star_crater_heart.glb", "heart_shell", mi, mi.material_override)
+		_far("star_crater_heart.glb", n, mi, mat)
+	# the corona: a rim of violet-blue light just outside the star
+	var corona := MeshInstance3D.new()
+	corona.name = "Corona"
+	var sph := SphereMesh.new()
+	sph.radius = 2.75
+	sph.height = 5.5
+	sph.radial_segments = 32
+	sph.rings = 16
+	corona.mesh = sph
+	corona.material_override = _glass_mat(Shaders.CORONA)
+	corona.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	host.add_child(corona)
+	corona.global_position = heart
+	_rays()
 	var halo := MeshInstance3D.new()
 	halo.name = "Halo"
 	var q := QuadMesh.new()
@@ -463,36 +465,38 @@ func _heart() -> void:
 	halo.global_position = heart
 
 
-## Chips of the shell further out, at different distances, heights and rates: six shapes, two of each.
-func _fragments() -> void:
-	var fr := RandomNumberGenerator.new()
-	fr.seed = 5
-	var os := Shader.new()
-	os.code = Shaders.ORBIT
-	var om := ShaderMaterial.new()
-	om.shader = os
-	for n: String in ["frag_a", "frag_b", "frag_c", "frag_d", "frag_e", "frag_f"]:
-		var mesh := _mesh("star_crater_heart.glb", n)
-		if mesh == null:
-			continue
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.use_custom_data = true
-		mm.mesh = mesh
-		mm.instance_count = 2
-		for j in 2:
-			mm.set_instance_transform(j, Transform3D.IDENTITY)
-			var sign := 1.0 if fr.randf() < 0.65 else -1.0
-			mm.set_instance_custom_data(j, Color(fr.randf_range(5.6, 8.0), fr.randf(), sign * fr.randf_range(0.03, 0.08), fr.randf_range(-0.5, 3.5)))
-		mm.custom_aabb = AABB(Vector3(-10, -2, -10), Vector3(20, 8, 20))
-		var mmi := MultiMeshInstance3D.new()
-		mmi.name = "Drift_" + n
-		mmi.multimesh = mm
-		mmi.material_override = om
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mmi.extra_cull_margin = 10.0
-		host.add_child(mmi)
-		mmi.global_position = heart
+## Eight rays of light round the star in one mesh: long thin quads from just inside its rim, of different lengths
+## and widths, turning slowly each at its own rate (the RAYS shader turns them to face the eye).
+func _rays() -> void:
+	var rr := RandomNumberGenerator.new()
+	rr.seed = 88
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in 8:
+		var a := TAU * (float(i) + rr.randf_range(-0.3, 0.3)) / 8.0
+		var d := Vector2(cos(a), sin(a))
+		var n := Vector2(-d.y, d.x)
+		var r0 := 1.4
+		var r1 := rr.randf_range(6.5, 12.0) * (1.0 if i % 2 == 0 else 0.62)
+		var w := rr.randf_range(0.18, 0.34)
+		var rate := rr.randf_range(0.012, 0.03) * (1.0 if rr.randf() < 0.6 else -1.0)
+		var ph := rr.randf()
+		var quad := [[d * r0 - n * w, Vector2(0.0, -1.0)], [d * r0 + n * w, Vector2(0.0, 1.0)],
+			[d * r1 + n * w * 0.35, Vector2(1.0, 1.0)], [d * r1 - n * w * 0.35, Vector2(1.0, -1.0)]]
+		for k: int in [0, 1, 2, 0, 2, 3]:
+			var v: Array = quad[k]
+			st.set_uv(v[1])
+			st.set_uv2(Vector2(rate, ph))
+			var p2: Vector2 = v[0]
+			st.add_vertex(Vector3(p2.x, p2.y, 0.0))
+	var mi := MeshInstance3D.new()
+	mi.name = "Rays"
+	mi.mesh = st.commit()
+	mi.material_override = _glass_mat(Shaders.RAYS)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.extra_cull_margin = 14.0
+	host.add_child(mi)
+	mi.global_position = heart
 
 
 # --- light, motes, hum --------------------------------------------------------------------------------
