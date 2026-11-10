@@ -565,7 +565,9 @@ def door_fit(M, W, o, st, wall_h):
     wbox(M, "body", wood, W, at - w * 0.5 - 0.32, at + w * 0.5 + 0.32, o["v1"] + 0.04, o["v1"] + 0.3, -0.1, 0.2, jit=0.015)
     # threshold + step
     wbox(M, "body", "stone", W, at - w * 0.5 - 0.1, at + w * 0.5 + 0.1, 0.0, 0.07, -0.55, 0.4, jit=0.015, ao=None)
-    wbox(M, "body", "stone", W, at - 0.75, at + 0.75, -0.15, 0.06, -0.95, -0.4, jit=0.02)
+    for i in range(6):          # the doorstep and five steps down (the village ground falls away from the floor)
+        top = 0.06 - 0.24 * i
+        wbox(M, "body", "stone", W, at - 0.75 + 0.04 * i, at + 0.75 - 0.04 * i, -1.6, top, -0.4 - 0.45 * (i + 1), -0.4 - 0.45 * i, jit=0.015, skip=("+y", "-z"))
     if st in ("lived", "shuttered"):
         # plank door in the reveal, iron straps and hinges, a latch
         pw = (w - 0.02) / 5.0
@@ -872,7 +874,7 @@ def slate_roof(M, w, d, st):
     ext = 0.34
     L = w + 2 * ext
     rows = 10
-    sw = 0.52
+    sw = 0.56
     miss = 0.08 if st == "shuttered" else 0.0
     for side in (1, -1):
         R, dv, N, ln = slope_frame(hd, ov, side)
@@ -1048,7 +1050,7 @@ def ruin_extras(M, spec, walls_by_name, st):
             p = Vector((rng.uniform(-hw + 0.6, hw - 0.6), rng.uniform(-hd + 0.6, hd - 0.6), 0.1))
             M.box("body", "slate", p, (rng.uniform(0.22, 0.32), rng.uniform(0.3, 0.4), 0.025), rotz=rng.random() * 6.28, skip=("-z",), jit=0.01)
         # fallen wall blocks
-        for _ in range(8):
+        for _ in range(6):
             p = Vector((rng.uniform(-hw + 0.5, hw - 0.5), rng.uniform(-hd + 0.5, hd - 0.5), 0.12))
             M.box("body", "stone", p, (rng.uniform(0.4, 0.7), rng.uniform(0.25, 0.4), 0.28), rotz=rng.random() * 6.28, jit=0.02)
         # the collapsed gable's spill, out across the yard
@@ -1148,7 +1150,7 @@ def build_near(name, spec):
                 sb = bounds
             core(M, W, W.topf, ruined, "stone", "inner", sides=ruined)
             blocks(M, W, [0.0, plinth_h], None, 0.1, (0.7, 1.1))
-            blocks(M, W, sb, W.topf, 0.045, (0.62, 1.15) if ruined else (0.5, 0.95), miss=0.09 if ruined else 0.0, clip=(gable and not ruined))
+            blocks(M, W, sb, W.topf, 0.045, (0.62, 1.15) if ruined else (0.5, 0.95), miss=0.12 if ruined else 0.0, clip=(gable and not ruined))
             if ruined:
                 Wi = W.inner()
                 blocks(M, Wi, [0.0] + (sb if sb[0] > 0 else sb[1:]), W.topf, 0.04, (1.0, 1.6), miss=0.0, ops=[dict(o) for o in W.ops])
@@ -1244,6 +1246,14 @@ def build_col(spec, frames, M2):
                 continue
             wbox(M2, "body", "dark", W, a, b, v0, min(va, vb) if not ruined else min(va, vb), 0.0, T)
     M2.box("body", "dark", (0, 0, -0.35), (w + 0.3, d + 0.3, 0.7))
+    o = frames["front"].ops[0]
+    Wf = frames["front"]      # a walkable ramp under the doorstep and steps (collision only)
+    ra, rb = o["at"] - 0.75, o["at"] + 0.75
+    M2.hexa("body", "dark", [Wf.P(ra, -1.9, -0.4), Wf.P(rb, -1.9, -0.4), Wf.P(ra, -1.9, -3.6), Wf.P(rb, -1.9, -3.6),
+                             Wf.P(ra, 0.06, -0.4), Wf.P(rb, 0.06, -0.4), Wf.P(ra, -1.7, -3.6), Wf.P(rb, -1.7, -3.6)])
+    if spec["state"] in ("lived", "shuttered"):
+        o = frames["front"].ops[0]          # the shut door is solid (cottage.gd's was)
+        wbox(M2, "body", "dark", frames["front"], o["u0"], o["u1"], 0.0, o["v1"], 0.1, 0.25)
     if not ruined:
         ov = 0.45
         for side in (1, -1):

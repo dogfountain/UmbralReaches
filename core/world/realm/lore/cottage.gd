@@ -7,6 +7,11 @@ extends RefCounted
 
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const LA := preload("res://core/world/realm/lore/lore_assets.gd")
+const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
+## Hearthward's five cottages are modelled (tools/blender/cottage_kit.py -> art/models/cottages/cottage_<name>.glb, same
+## footprint, door, windows and chimney as the code below); the code-built cottage stays for the wilds and barrows huts.
+const MODELLED := {"hw_maud": "maud", "hw_harrow": "harrow", "hw_reed": "reed", "hw_cobb": "cobb", "hw_south": "south"}
+const FAR_FROM := 60.0
 const T := 0.5          ## wall thickness
 const H := 2.6          ## eaves height above the floor
 
@@ -33,6 +38,8 @@ static func build(L: RefCounted, site_name: String, c: Vector2, w: float, d: flo
 	var xf := Transform3D(bas, Vector3(c.x, fy, c.y))
 	var ruined := state == "ruin" or state == "burned"
 	var stone := "lore_rubble" if walls == "lore_rubble" else "lore_tstone"
+	if MODELLED.has(site_name):
+		return _build_modelled(L, site_name, MODELLED[site_name], w, d, state, roof, bas, xf, gr, fy, rect, stone)
 	var face_key := walls
 	var shade := 0.55 if state == "burned" else 1.0
 	# foundation (local footprint, world rotated): one block per footprint, below grade
@@ -156,6 +163,74 @@ static func build(L: RefCounted, site_name: String, c: Vector2, w: float, d: flo
 		LK.col_box(L.p, xf * Vector3(-hw - 0.35, 0.25, -hd + 1.4), Vector3(0.5, 0.5, 1.2), bas)
 	var door_out := xf * Vector3(-hw + w * 0.36, 0.0, -hd - 0.9)
 	return {"floor": fy, "door": door_out, "xf": xf, "site": site_name, "rect": rect, "ground": gr}
+
+
+## One modelled cottage: the glb (near, far beyond FAR_FROM, collision from its -colonly), the lit-window lights and
+## shafts where the code put them, the chimney smoke, and the lived-in traces (water butt, log pile) that stay code-built.
+static func _build_modelled(L: RefCounted, site_name: String, key: String, w: float, d: float, state: String, roof: String, bas: Basis, xf: Transform3D, gr: Vector2, fy: float, rect: Rect2, stone: String) -> Dictionary:
+	var k: OssKit = L.k
+	var rng: RandomNumberGenerator = L.rng
+	var hw := w * 0.5
+	var hd := d * 0.5
+	var ruined := state == "ruin" or state == "burned"
+	# the footing below grade (its top sits just under the model's floor)
+	var fh := fy - gr.x + 0.5
+	k.box(stone, xf * Vector3(0, -0.12 - fh * 0.5, 0), Vector3(w + 0.24, fh, d + 0.24), bas, false, 0.8 * (0.55 if state == "burned" else 1.0))
+	var root := WestKit.place(L.holder, "cottages/cottage_%s.glb" % key, xf)
+	if root == null:
+		return {"floor": fy, "door": xf * Vector3(-hw + w * 0.36, 0.0, -hd - 0.9), "xf": xf, "site": site_name, "rect": rect, "ground": gr}
+	root.name = "Cottage_%s" % key
+	for b in root.find_children("*", "StaticBody3D", true, false):
+		(b as StaticBody3D).collision_layer = Layers.WORLD
+		(b as StaticBody3D).collision_mask = 0
+	for mi in root.find_children("WindowGlow", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).material_override = OssKit.mat("glow")
+		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var far_ps := WestKit.scene("cottages/cottage_%s_far.glb" % key)
+	if far_ps:
+		var far_root := far_ps.instantiate() as Node3D
+		for n in far_root.find_children("*", "MeshInstance3D", true, false):
+			var fm := n as MeshInstance3D
+			if fm.mesh == null:
+				continue
+			var parts := String(fm.name).split("__")
+			var fmat: Material = null
+			if parts.size() >= 2:
+				fmat = WestKit.mat(parts[parts.size() - 1].get_slice(".", 0).get_slice("_", 0))
+			elif String(fm.name).begins_with("FarGlow"):
+				fmat = OssKit.mat("glow")
+			FarDetail.register(root, fm.mesh, Transform3D.IDENTITY, FAR_FROM, fmat, false)
+		far_root.free()
+		FarDetail.near_ends(root, FAR_FROM, 8.0)
+	if state == "lit":
+		# every window of a lit cottage: its warm shaft on the ground and its glow on the wall round it
+		var wins: Array = [[Vector3(-hw + w * 0.72, 1.4, -hd + 0.25), Vector3.BACK], [Vector3(hw - w * 0.3, 1.4, hd - 0.25), Vector3.FORWARD],
+			[Vector3(hw - w * 0.7, 1.4, hd - 0.25), Vector3.FORWARD], [Vector3(-hw + 0.25, 1.4, 0.0), Vector3.RIGHT]]
+		for wn: Array in wins:
+			var pc: Vector3 = wn[0]
+			var inward: Vector3 = wn[1]
+			var mouth: Vector3 = xf * (pc - inward * 0.2)
+			Interiors.shaft(L.holder, "CotTrail_%d_%d" % [int(mouth.x * 4.0), int(mouth.z * 4.0)], mouth, xf.basis * (-inward) + Vector3(0.0, -0.55, 0.0), Color(1.0, 0.58, 0.24), 0.85, 9.5, 20.0)
+			L.light("CotGlow_%d_%d" % [int(mouth.x * 4.0), int(mouth.z * 4.0)], xf * (pc - inward * 0.6), Color(1.0, 0.58, 0.26), 0.42, 3.6)
+		var top := 2.6 + d * 0.5 * 0.95 + (1.55 if roof != "slate" else 1.05)
+		var smoke := Vfx.emitter(Color(0.32, 0.32, 0.36, 0.35), {"count": 10, "life": 4.5, "speed": Vector2(0.25, 0.5), "size": 0.55, "gravity": -0.12, "radius": 0.1, "additive": false, "spread": 12.0})
+		if smoke:
+			smoke.name = "ChimneySmoke"
+			L.holder.add_child(smoke)
+			smoke.global_position = xf * Vector3(hw - 0.1, top + 0.9, hd * 0.25)
+			smoke.emitting = true
+	if not ruined:
+		var wb := xf * Vector3(hw - 0.45, 0, -hd - 0.5)
+		wb.y = L.g(wb.x, wb.z)
+		L.barrel(L.p, wb, 1.0, false, rng.randf() * TAU)
+		for row in 2:
+			for i in 5 - row:
+				var lq := xf * Vector3(-hw - 0.35, 0.12 + 0.2 * float(row), -hd + 0.9 + 0.22 * float(i) + 0.11 * float(row))
+				var cm := CreatureMesh.new(rng.randi())
+				cm.tube(PackedVector3Array([Vector3(-0.5, 0, 0), Vector3(0.5, 0, 0)]), PackedFloat32Array([0.1, 0.1]), 7, Color(0.75, 0.65, 0.55), 0.0, 0.12)
+				LK.organic(L.p, "lore_beam", cm.commit(), Transform3D(bas * Basis(Vector3.UP, PI * 0.5) * Basis(Vector3.RIGHT, rng.randf() * TAU), lq))
+		LK.col_box(L.p, xf * Vector3(-hw - 0.35, 0.25, -hd + 1.4), Vector3(0.5, 0.5, 1.2), bas)
+	return {"floor": fy, "door": xf * Vector3(-hw + w * 0.36, 0.0, -hd - 0.9), "xf": xf, "site": site_name, "rect": rect, "ground": gr}
 
 
 static func _o(base: Dictionary, at: float) -> Dictionary:
