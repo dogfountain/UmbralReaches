@@ -675,7 +675,7 @@ def meta_body(name, elements, sock, mat, res=0.018, rough=0.0, seed=0.0):
     return ob
 
 
-def fuse(objs, voxel=0.0035, keep=None, sculpt=0.0, sculpt_scale=0.05, decimate=0.0):
+def fuse(objs, voxel=0.0035, keep=None, sculpt=0.0, sculpt_scale=0.05, decimate=0.0, folds=0.0, fold_mats=(), decimate_sock=None):
     """Fuse each (socket, material) group of solid parts into one continuous surface: join, voxel
     remesh (no seams, no intersecting primitives), then sculpt it -- a real displacement of the
     surface by two noise layers (`sculpt` metres) -- and optionally decimate. Parts whose material
@@ -717,13 +717,25 @@ def fuse(objs, voxel=0.0035, keep=None, sculpt=0.0, sculpt_scale=0.05, decimate=
                 d.texture_coords = 'GLOBAL'
                 d.strength = st
                 d.mid_level = 0.5
+            if folds > 0.0 and m in fold_mats:
+                # r38: skin folds: banded marble displacement (creases the length of a limb, round a joint)
+                tex = bpy.data.textures.new(ob.name + "Folds", 'MARBLE')
+                tex.noise_scale = sculpt_scale * 3.2
+                tex.marble_type = 'SHARP'
+                tex.noise_depth = 2
+                tex.turbulence = 6.0
+                d = ob.modifiers.new("Folds", 'DISPLACE')
+                d.texture = tex
+                d.texture_coords = 'GLOBAL'
+                d.strength = folds
+                d.mid_level = 0.5
             sm = ob.modifiers.new("Smooth", 'CORRECTIVE_SMOOTH')
             sm.factor = 0.3
             sm.iterations = 2
             apply_mods(ob)
         if decimate > 0.0:
             dm = ob.modifiers.new("Dec", 'DECIMATE')
-            dm.ratio = decimate
+            dm.ratio = (decimate_sock or {}).get(sock, decimate)
             apply_mods(ob)
         ob.data.materials.clear()
         ob.data.materials.append(mat)
