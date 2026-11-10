@@ -191,11 +191,11 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(-240, -10), "note": "the west bank"},
 		{"kind": "camp", "at": Vector2(-178, -50), "note": "the east bank"}],
 	"hierarch": [
-		{"kind": "fire", "at": Vector2(-196, -76), "note": "where weir_track reaches the valley"},
+		{"kind": "fire", "at": Vector2(-193, -80), "note": "where weir_track reaches the valley, 4 m off its line"},
 		{"kind": "poi", "at": Vector2(-236, -84), "note": "the statue's hand, palm up"},
 		{"kind": "camp", "at": Vector2(-186, -118), "note": "under the Crowns"}],
 	"siege": [
-		{"kind": "fire", "at": Vector2(-214, 128), "note": "beside siege_track at the outer earthwork"},
+		{"kind": "fire", "at": Vector2(-219, 127), "note": "beside siege_track at the outer earthwork"},
 		{"kind": "poi", "at": Vector2(-236, 170), "note": "the siege tower"},
 		{"kind": "poi", "at": Vector2(-196, 210), "note": "the trebuchet line"},
 		{"kind": "camp", "at": Vector2(-180, 150), "note": "the palisade"},
@@ -222,10 +222,10 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(-120, 214), "note": "the west downs"},
 		{"kind": "camp", "at": Vector2(126, 214), "note": "the east downs"}],
 	"oak": [
-		{"kind": "fire", "at": Vector2(-44, 192), "note": "beside downs_track, in the oak's shade"},
+		{"kind": "fire", "at": Vector2(-44, 196.4), "note": "beside downs_track, in the oak's shade"},
 		{"kind": "poi", "at": Vector2(-70, 206), "note": "the Grandmother Oak"}],
 	"well": [
-		{"kind": "fire", "at": Vector2(44, 192), "note": "beside downs_track, east of the hut"},
+		{"kind": "fire", "at": Vector2(44, 196.4), "note": "beside downs_track, east of the hut"},
 		{"kind": "poi_wet", "at": Vector2(72, 204), "note": "the Well of Echoes (its pool is in the pit)"}],
 	"quarry": [
 		{"kind": "fire", "at": Vector2(-120, -83), "note": "the pit's mouth, beside west_track's end"},

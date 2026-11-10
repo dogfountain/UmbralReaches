@@ -704,16 +704,31 @@ static func _stele_local(host: Node3D, id: String, at: Vector3, y: float, yaw: f
 
 ## The pit wall's radius at height y along angle a: where the ground (rising with radius) reaches y.
 static func _wall_r(space: PhysicsDirectSpaceState3D, c: Vector2, a: float, y: float, r_max: float) -> float:
-	var lo := 0.5
-	var hi := r_max
-	for i in 14:
-		var m := (lo + hi) * 0.5
-		var g := RealmLayout.ground(space, c.x + sin(a) * m, c.y + cos(a) * m)
-		if g < y:
-			lo = m
-		else:
-			hi = m
-	return (lo + hi) * 0.5
+	# Walk out from the pit to the first radius where the ground reaches y, then bisect inside that
+	# step. (A bisection over the whole run slid out to r_max wherever the rim was lower than the
+	# ring's mean height: the descent gate and the ledge's first slabs hung 4 m over the downs.)
+	# Where the rim never reaches y on this bearing, the crest of the rim is the wall.
+	var step := 0.5
+	var crest_r := 0.5
+	var crest_g := -INF
+	var r := 4.0
+	while r <= r_max:
+		var g := RealmLayout.ground(space, c.x + sin(a) * r, c.y + cos(a) * r)
+		if g >= y:
+			var lo := r - step
+			var hi := r
+			for i in 8:
+				var m := (lo + hi) * 0.5
+				if RealmLayout.ground(space, c.x + sin(a) * m, c.y + cos(a) * m) < y:
+					lo = m
+				else:
+					hi = m
+			return (lo + hi) * 0.5
+		if r <= RealmLayout.WELL_R + 6.0 and g > crest_g:
+			crest_g = g
+			crest_r = r
+		r += step
+	return crest_r
 
 
 static func _well(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:

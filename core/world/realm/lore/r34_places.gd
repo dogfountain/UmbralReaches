@@ -42,6 +42,8 @@ static func build(parent: Node) -> void:
 	_gate(L, "co_gate", "r34_co_gate", "orchard_lane", 30.0)
 	_row_stones(L, Rect2(-146, 94, 72, 52), 12)
 	# --- the Waiting Field -----------------------------------------------------------------------
+	_field_gate(L)
+	_field_kerb(L)
 	_notice(L, "wf_gate", "r34_wf_gate", [Vector2(-5, 104), Vector2(5, 102), Vector2(-8, 100)])
 	_grave(L, "wf_ada", "r34_wf_ada", [Vector2(14, 120), Vector2(18, 124), Vector2(10, 118)], true, 2)
 	_grave(L, "wf_twins", "r34_wf_twins", [Vector2(-12, 132), Vector2(-16, 128), Vector2(-10, 138)], true, 0)
@@ -206,6 +208,68 @@ static func _gate(L: RefCounted, id: String, site: String, path: String, s: floa
 		var face := last + Vector3.UP * 1.3
 		var out := Vector3(c.x - last.x, 0, c.y - last.z).normalized()
 		L.scrap(id, face + out * 0.9, face)
+
+
+## The Waiting Field's gate: two tomb-stone posts across necropolis_way where the paving begins, a low
+## dry-stone boundary running out from each (broken, the way the field's own walls are), and a lit
+## grave-lamp on the road side of each wall. Without them the paved apron read as an empty yard.
+static func _field_gate(L: RefCounted) -> void:
+	var k: OssKit = L.k
+	var a := LK.along(LK.path_pts("necropolis_way"), 44.0)
+	var c: Vector2 = a[0]
+	var t: Vector2 = a[1]
+	var nrm := Vector2(-t.y, t.x)
+	var yaw := atan2(t.x, t.y)
+	var b := Basis(Vector3.UP, yaw)
+	for side: float in [1.0, -1.0]:
+		var q := c + nrm * side * 2.9
+		var at: Vector3 = L.gv(q.x, q.y)
+		if not L.spot("r34_wf_post_%d" % int(side), at, 0.6, 0.3):
+			continue
+		k.box("lore_tstone", at + Vector3.UP * 1.05, Vector3(0.62, 2.4, 0.62), b, true, 0.86)
+		k.box("lore_tstone", at + Vector3.UP * 2.3, Vector3(0.8, 0.2, 0.8), b, false, 0.9)
+		k.box("lore_char", at + Vector3.UP * 1.4, Vector3(0.66, 0.45, 0.66), b, false, 0.55)
+		# the boundary: out from the post, away from the way
+		var w0 := c + nrm * side * 3.6
+		var w1 := c + nrm * side * 12.0
+		var span := Rect2(minf(w0.x, w1.x), minf(w0.y, w1.y), absf(w1.x - w0.x), absf(w1.y - w0.y)).grow(0.5)
+		var wlen := 12.0
+		while wlen > 6.0 and not LK.clear_of(span, 0.5, ["r34_wf_post_%d" % int(side)]):
+			wlen -= 1.5
+			w1 = c + nrm * side * wlen
+			span = Rect2(minf(w0.x, w1.x), minf(w0.y, w1.y), absf(w1.x - w0.x), absf(w1.y - w0.y)).grow(0.5)
+		if LK.clear_of(span, 0.5, ["r34_wf_post_%d" % int(side)]):
+			L.site("r34_wf_wall_%d" % int(side), span, minf(L.g(w0.x, w0.y), L.g(w1.x, w1.y)))
+			L.drystone(L.gv(w0.x, w0.y), L.gv(w1.x, w1.y), 0.85, 0.45, "lore_tstone")
+		else:
+			print("REALM_LORE r34 skip field gate wall %d (%s) at %s" % [int(side), LK.blocker(span, 0.5), str(c)])
+		# a lit grave-lamp on the road side, off the wall's line
+		var lq := c + nrm * side * 4.6 - t * 1.6
+		var lat: Vector3 = L.gv(lq.x, lq.y)
+		if L.spot("r34_wf_lamp_%d" % int(side), lat, 0.5, 0.3):
+			var lc: Vector3 = L.lamp_post(lat, yaw, true)
+			L.light("r34_wf_lamp_light_%d" % int(side), lc + Vector3.UP * 0.1, Color(1.0, 0.62, 0.34), 0.9, 6.5)
+
+
+## Worn kerb stones along necropolis_way across the paved apron: low, set a little off the way's edge,
+## sunk and tilted, so the paving reads as laid for processions and not as a bare yard.
+static func _field_kerb(L: RefCounted) -> void:
+	var k: OssKit = L.k
+	var rng: RandomNumberGenerator = L.rng
+	var pts: Array = LK.path_pts("necropolis_way")
+	var s := 30.0
+	while s < 60.0:
+		var a := LK.along(pts, s)
+		var c: Vector2 = a[0]
+		var t: Vector2 = a[1]
+		var nrm := Vector2(-t.y, t.x)
+		for side: float in [1.0, -1.0]:
+			var q := c + nrm * side * 2.75
+			var at: Vector3 = L.gv(q.x, q.y)
+			var b := Basis(Vector3.UP, atan2(t.x, t.y) + rng.randf_range(-0.06, 0.06)) * Basis(Vector3.BACK, rng.randf_range(-0.05, 0.05))
+			k.box("lore_tstone", at + Vector3.UP * 0.08, Vector3(0.38, 0.3, 0.95), b, false, rng.randf_range(0.7, 0.95))
+		s += 1.9
+	# the paving's own boundary is the kerb: nothing is registered, the stones stand off the way's edge
 
 
 ## A lamp-post standing knee-deep in the mere: an iron hook on a post, a rag on the hook.

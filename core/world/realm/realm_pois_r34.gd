@@ -33,6 +33,7 @@ extends RefCounted
 ## build() from its build (after the flora). No class_name: preload by path.
 
 const P := preload("res://core/world/realm/realm_pois.gd")
+const Stair := preload("res://core/world/realm/timber_stair.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
@@ -561,7 +562,12 @@ static func _quarry_crane(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 	var k := OssKit.new()
 	k.keep_lanes = false
 	# the giant stair: squared blocks the cutters set as steps up to the crane's pier (each 1.6 m)
-	var stand := _steps(k, xf, [[2.6, 5.0, 1.6, Vector2(2.4, 1.5)], [2.3, 3.5, 3.2, Vector2(2.4, 1.5)], [2.7, 2.0, 4.8, Vector2(2.4, 1.5)], [2.4, 0.5, 6.4, Vector2(2.4, 1.5)]], "stone", 0.05, rng)
+	# the timber stair the cutters' scaffolders left, up the pier's east side to the deck (the squared blocks they never
+	# stepped are the pier itself)
+	var stair_foot := _gl(space, xf, Vector3(6.0, 0.12, 9.0))
+	var stair_top := xf * Vector3(6.0, CRANE_DECK + 0.12, -2.6)
+	var stand := Stair.build(k, space, stair_foot, stair_top, 1.4)
+	k.box("wood", xf * Vector3(5.0, CRANE_DECK + 0.06, -2.6), Vector3(1.4, 0.12, 1.2), b, true, 0.85)   # the plank from the stair's head to the deck
 	# the pier: courses of squared stone, a timber deck on top
 	var pc := Vector3(2.5, 0, -2.6)
 	for i in 4:
@@ -612,8 +618,8 @@ static func _quarry_crane(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 	var deck := xf * (pc + Vector3(-0.2, CRANE_DECK, 1.3))
 	stand.append(deck)
 	host.set_meta("route", stand)
-	host.set_meta("walk", [false, false, false, false, false])
-	host.set_meta("approach", xf * Vector3(2.6, 0, 7.6))
+	host.set_meta("walk", [true, true, true, true, true, true, true, true, true, true])
+	host.set_meta("approach", stair_foot + xf.basis * Vector3(0, 0, 1.5))
 	_chest(host, "quarry_jib", xf * (pc + Vector3(1.4, CRANE_DECK + 0.12, 1.3)), float(s.yaw) + PI)
 	P._lore(host, "poi_quarry_stair", xf * Vector3(2.6, 1.0, 5.0 + 0.78))
 	P._lore(host, "poi_quarry_crane", xf * (pc + Vector3(-0.6, CRANE_DECK + 1.0, -0.4)), xf * (mast + Vector3(0, 1.2, 0)))
@@ -671,15 +677,18 @@ static func _quarry_winch(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 	# the rope down to the pit floor, frayed
 	_cyl(k, "iron", xf * (wc + Vector3(0.0, -0.4, 2.1)), xf * Vector3(wc.x, -3.0, 13.0), 0.04, 0.04)
 	# a stack of stone to climb onto the roof (west side)
-	var stand := _steps(k, xf, [[-hx - 0.72, 0.9, 2.2, Vector2(1.4, 1.4)]], "stone", 0.0, rng)
+	var stair_foot := _gl(space, xf, Vector3(-hx - 1.5, 0.12, 8.0))
+	var stair_top := xf * Vector3(-hx - 1.5, wh + 0.3, 1.0)
+	var stand := Stair.build(k, space, stair_foot, stair_top, 1.2)
+	k.box("wood", xf * Vector3(-hx - 0.3, wh + 0.26, 1.0), Vector3(2.0, 0.12, 1.2), b, true, 0.85)     # the plank from the stair's head onto the roof
 	# a post on the roof the Tether can catch
 	k.box("wood", xf * Vector3(1.6, wh + 1.0, -1.2), Vector3(0.22, 1.7, 0.22), b, true, 0.75)
 	k.commit(host, "WinchBody")
 	var roof := xf * Vector3(-2.3, wh + 0.3, 0.9)
 	stand.append(roof)
 	host.set_meta("route", stand)
-	host.set_meta("walk", [false, false])
-	host.set_meta("approach", xf * Vector3(-hx - 1.0, 0, 3.4))
+	host.set_meta("walk", [true, true, true, true, true, true, true, true])
+	host.set_meta("approach", stair_foot + xf.basis * Vector3(0, 0, 1.5))
 	_chest(host, "quarry_winch", xf * Vector3(1.5, 0.12, 0.7), float(s.yaw) - PI * 0.5)
 	P._lore(host, "poi_quarry_tally", xf * Vector3(-hx + t + 0.6, 1.3, 0.0), xf * Vector3(-hx + t + 0.02, 1.6, 0.0))
 	P._lore(host, "poi_quarry_winch", xf * Vector3(1.2, 1.2, hz + 0.9), xf * Vector3(1.2, 1.6, hz + 0.02))
