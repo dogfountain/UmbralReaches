@@ -1,8 +1,7 @@
 # Code review, 10 November 2026
 
 A critique of the shipping code (`autoload/`, `core/`, `ui/`, `world/`: 465 scripts, about 142,000 lines) and the
-test tooling (`zz/`, `tools/`). Part 1 is the critique. Part 2 turns each finding into a task an agent can do
-without guessing: the files, the change, and the check that proves it is done.
+test tooling (`zz/`, `tools/`). Part 1 is the critique. Part 2 lists the work still open.
 
 ## How far this review goes
 
@@ -198,131 +197,14 @@ None of these is measured as a problem today. Each grows with content.
 
 ---
 
-# Part 2. Tasks for agents
+# Part 2. Open work
 
-Rules for every task: work in a worktree, follow `AGENTS.md` and both `.cursor/rules` files, never headless-save
-`world/main.tscn`, no round tags in comments, never wait with a `pgrep` loop, run `tools/lint.sh` and the named
-tests, commit on the branch, do not push or merge. Report the commit, the test output, and anything not done.
-Do one task per agent. T1 comes first; T2 to T5 do not depend on each other.
+Tasks T1 to T6 and the fall-rescue fix, the tests-on-push Action, the harness move out of `world/main.gd`, the
+LightGrid grid, the first typing pass and the unused-asset sweep are done and merged (10 Nov); their handoffs are
+removed. Still open:
 
-## T1. Make skipped placements loud (fixes F1)
-
-**Goal:** one place records every skipped placement, and a test fails when a skip appears that was not there
-before.
-
-1. Create `core/world/realm/placement_log.gd` (`extends RefCounted`, no `class_name`):
-   - `static var entries: Array[Dictionary] = []`
-   - `static func skip(system: String, id: String, at: Vector3, why: String) -> void` appends
-     `{"system", "id", "at", "why"}` and prints `PLACEMENT skip <system> <id> at <x,z> (<why>)`.
-   - `static func reset() -> void` clears `entries`.
-   - `static func keys() -> Array[String]` returns sorted `"<system>/<id>"` strings.
-2. Call `PlacementLog.reset()` at the top of `Realm.build` (`core/world/realm/realm.gd:150`), and add
-   `PlacementLog.reset()` to `SessionState.reset_night()` (`core/world/session_state.gd`).
-3. Find every skip site: `grep -rnE 'print\(.*(skip|dropped|not clear|no clear|NOT BUILT|INCOMPLETE)' core world`
-   (30 sites in 16 files) and `grep -rnE 'push_warning\(.*(no clear|no spot)' core world` (5 sites). At each one,
-   keep the existing line and add a `PlacementLog.skip(...)` call with a stable id (the thing's own id or name,
-   never a counter that changes between runs). Do not change what is placed.
-4. At the end of `Realm.build`, just before `root.set_meta("realm_done", true)`, print
-   `PLACEMENT %d skipped` with the count.
-5. Create `tools/placement_baseline.txt`: the output of `PlacementLog.keys()` from one clean boot, one key a line.
-6. Create `zz/placement_test.gd` and `.tscn` (copy the boot pattern from `zz/layout_r34_test.gd`): boot, wait for
-   `realm_done`, read the baseline, and print `PLACEMENT FAIL new skip <key>` for every key not in the baseline,
-   then `PLACEMENT TEST PASS` or `PLACEMENT TEST FAIL n`. A key in the baseline that no longer skips prints an
-   info line only.
-
-**Done when:** `tools/run_tests.sh placement layout_r34 realm_lore encounters` all pass; temporarily registering
-a `WorldLanes` site over a lamp's spot makes `placement_test` fail; that temporary change is removed.
-
-## T2. Stop the test runner leaking disk (fixes part of F6)
-
-In `tools/run_tests.sh`:
-1. After the final summary loop and before `exit "$failed"`: if `failed` is 0 and `KEEP_LOGS` is unset, run
-   `rm -rf "$RUN_DIR"`. If any test failed, keep the folder (its logs are needed).
-2. Before creating `RUN_DIR` (line 32), delete run folders older than one day:
-   `find "${SCRATCH%/}" -maxdepth 1 -name 'umbral_tests.*' -mtime +1 -exec rm -rf {} +`.
-3. Add both behaviours and `KEEP_LOGS=1` to the header comment.
-
-**Done when:** a passing run leaves no `umbral_tests.*` folder; a run with a failing test keeps its folder and
-prints its path; `KEEP_LOGS=1` keeps a passing run's folder.
-
-## T3. Harden the save (fixes F4's two save risks)
-
-In `autoload/travel.gd` only.
-1. **Dropped saves.** Add `var _save_missed := false`. In `save_game()` (line 374), when `_busy` is true, set
-   `_save_missed = true` before returning (leave the `erased` case as it is). At the end of `go()`, right after
-   `_busy = false` (line 165), and at the end of `_fail_open()` after its `_busy = false`: if `_save_missed`, clear
-   it and call `save_game()`.
-2. **Recover from the temp file.** In `_read_save()` (line 644), change the list of paths tried to
-   `[SAVE_PATH, SAVE_PATH + ".tmp", SAVE_PATH + ".bak"]`. A `.tmp` that loads and has a `[progress]` section is
-   newer than the backup. Keep the existing warnings; `_main_ok` is true only when the path is `SAVE_PATH`.
-3. Add to `zz/slots_test.gd` (or a new `zz/save_recover_test.gd` in the same style): write a save, move
-   `savegame.cfg` to `savegame.cfg.tmp`, call `Travel.load_game()`, and check the items come back. Second case:
-   set `Travel._busy = true`, call `save_game()`, set it false, run the same code path `go()` ends with, and
-   check the file was written.
-
-**Done when:** the new checks pass with `tools/run_tests.sh slots save` (and the new test if added), and
-`progression`, `quest`, `story` still pass.
-
-## T4. One place for the player's per-frame duties (fixes F5's main risk)
-
-In `core/player/player.gd` and the component files. No behaviour change is intended.
-1. Add to `Player`: `func _tick_always(delta: float) -> void` containing exactly `vitals._update_gloom(delta)`.
-2. Replace each of the eight direct calls with `player._tick_always(delta)` (or `_tick_always(delta)` inside
-   `player.gd`): `player.gd:407` and `:618`, `player_traversal.gd:171`, `:252`, `:347`, `:562`,
-   `player_evasion.gd:222`, `player_mount.gd:39`. Find them with
-   `grep -n "_update_gloom" core/player/*.gd`; after the change that grep must show only the definition in
-   `player_vitals.gd` and the one call inside `_tick_always`.
-3. Add a comment above `_physics_process` listing the early-return states in order and stating the rule: every
-   branch that returns early calls `_tick_always` first.
-4. Do not move the interact scan, fall rescue or stuck check; list in the report which early-return states skip
-   them, so Luke can decide.
-
-**Done when:** `tools/run_tests.sh` passes for `grounded`, `progression`, `hearth`, `ride_sync`, `threshold_walk`,
-`nav`; Gloom still rises while hanging from a ledge (add one check to an existing player test: hold a hang for
-2 s away from light and assert `gloom` increased).
-
-## T5. Bring the docs back in line (fixes F8)
-
-Docs only; no code.
-1. `ARCHITECTURE.md`: set the "last verified" date; add rows for `core/world/realm/wonders/` (three wonders, the
-   `wonders` module, `--no-wonders`), `core/world/realm/lamps/`, `core/world/realm/rift/` (crossing, threshold,
-   chapel, tower stair, starlit stone), `core/world/realm/placement_log.gd` if T1 has landed, and
-   `zz/bake_cache.tscn` under Persistence. Read each folder's file headers for the wording; do not invent.
-2. **Do not** change the pack recipe. In the report, quote the three places that say "Linux" and note that the
-   macOS preset was used on 9 and 10 November, so Luke can settle it.
-3. `docs/PILLARS.md`: do not rewrite the pillars. Add one section, "Where the game stands against these
-   (10 Nov)", stating plainly: the phase is no longer consolidation (see DECISIONS, 6 Nov); the Realm is
-   520 x 390 m; daily bounties, item level and gear sets exist by decision. Remove the two sentences that say
-   "in this phase (consolidation)".
-4. Leave `docs/THE_NIGHT.md` alone and say in the report that it is untracked.
-
-**Done when:** every path named in `ARCHITECTURE.md` exists (`grep -oE '[a-z_/]+\.gd' ARCHITECTURE.md` and test
-each), and the report lists the open questions for Luke.
-
-## T6. Give sites owners (fixes the candle class of bug from F2)
-
-Do this after T1.
-1. In `core/world/world_lanes.gd`, add `static func own(node: Node) -> void` that sets `site_owned` meta on
-   `node` and on every `MultiMeshInstance3D` under it.
-2. `cull_scatter` (line 402) already skips nodes with that meta. Change nothing else there.
-3. Call `WorldLanes.own(host)` at the end of every builder that registers a site and places MultiMesh props
-   inside it. Find them: files that call both `register_site` and `OssKit` `commit(` or `multimesh(`. The
-   Threshold already does this by hand (`core/world/realm/rift/threshold.gd`, the loop after `k.commit`): replace
-   that loop with the call.
-4. Print one line per builder: `SITES <name> owns N scatter nodes`.
-
-**Done when:** `tools/run_tests.sh layout_r34 flora_r34 grounded places_r34 threshold_walk` pass; the flora count
-printed by `rebuild_test` (`flora:`) is unchanged from before the change (the flora itself must never be owned).
-
-## Later, larger, and Luke's call first
-
-These need a decision before anyone starts, so they are not specified as tasks.
-
-- **Typed boundaries (F3):** pick the three worst files and replace dynamic calls with typed references, then
-  run `tools/lint.sh --update` to lock the gain.
-- **CI and a fast test tier (F6):** a GitHub Action that runs the tests that need no world on every push.
-- **Strip harness code from the shipped game (F7):** move demo, bench and recorder code out of `world/main.gd`
-  into `zz/`, and retire the legacy stair.
-- **Rename the round-named files (F9):** mechanical, but it touches 26 files and every preload of them.
-- **Split `Travel` (F4):** inventory and boss rewards out of the autoload.
-- **Measure `LightGrid` (F10):** print `LightGrid.count()` at boot and decide on the spatial hash.
+- **Dead code, sweeps 2 and 3:** the legacy stair (code and `world/main.tscn`), unreferenced scripts and scenes,
+  then unused functions in live scripts.
+- **Split `Travel` (F4):** boss rewards and relic rules out of the autoload.
+- **Rename the round-named files (F9).**
+- **Typing (F3), second pass:** the files after the first three; `ui/unit_frames.gd` stays partly dynamic for its test fakes.
