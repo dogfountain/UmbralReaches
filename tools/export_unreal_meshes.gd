@@ -1,6 +1,6 @@
 extends SceneTree
 ## Dump baked night meshes to the Unreal sibling project as GLB.
-## Does not save main.tscn. Do not run bake_main.
+## Does not save main.tscn.
 
 const OUT := "/Users/luke/UmbralReachesUE/Content/Imported/"
 const NAMES := [

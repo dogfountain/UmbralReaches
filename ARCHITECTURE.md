@@ -131,5 +131,5 @@ maze) are not in the mesh.
 ## Pack
 
 Linux `.pck` into `Umbral Reaches.app/Contents/Resources` (`.cursor/skills/umbral-pack`). Never
-headless-save `world/main.tscn` (`tools/bake_main.gd` refuses to). Binding do-not-undo:
+headless-save `world/main.tscn` (to remove nodes, edit it as text). Binding do-not-undo:
 `.cursor/rules/umbral-constraints.mdc`, `.cursor/skills/umbral-donts`.

@@ -8,4 +8,4 @@ art/textures/rock_normal.png,tools/gen_textures.py (procedural),project-owned,no
 art/textures/bark_albedo.png,tools/gen_textures.py (procedural),project-owned,no,
 art/textures/bark_normal.png,tools/gen_textures.py (procedural),project-owned,no,
 ui/fonts/Cinzel.ttf,The Cinzel Project Authors,SIL OFL 1.1 (ui/fonts/OFL.txt),no,Display font for HUD
-world/zones/ascension/*.res,tools/bake_main.gd (procedural),project-owned,no,Meshes and collision baked from code
+world/zones/ascension/*.res,baked by tools/bake_main.gd (procedural; tool removed 2026-11-10),project-owned,no,Meshes and collision baked from code

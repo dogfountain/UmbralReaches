@@ -12,7 +12,7 @@ extends RefCounted
 ##   UV         x = around the tube, y = metres along it (veins flow along limbs)
 ##
 ## Winding: Godot front faces are clockwise, i.e. cross(v1 - v0, v2 - v0) points INTO the surface
-## (same convention bake_main.gd asserts for the terrain). _tri() enforces it against the known
+##. _tri() enforces it against the known
 ## outward direction, so no part of a body can come out inside-out.
 
 var _st := SurfaceTool.new()
