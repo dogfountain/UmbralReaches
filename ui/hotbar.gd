@@ -44,6 +44,11 @@ func _ready() -> void:
 	_body = UIType.body()
 	# the staff core's gem pulses for as long as it is set: drawn on its own layer over the bar, so the pulse
 	# redraws one gem a frame instead of the whole bar (sockets, icons, plates, outlined text: ~1.7 ms a frame)
+	_live = Control.new()
+	_live.name = "Live"
+	_live.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_live.draw.connect(_draw_live)
+	add_child(_live)
 	_gem_layer = Control.new()
 	_gem_layer.name = "CoreGem"
 	_gem_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -52,6 +57,7 @@ func _ready() -> void:
 
 
 var _gem_layer: Control
+var _live: Control             ## the moving parts over the bar (_draw_live)
 
 
 func _process(delta: float) -> void:
@@ -89,19 +95,38 @@ func _process(delta: float) -> void:
 			_ready_pulse[i] = 1.0
 		_was_ready[i] = 1 if is_ready else 0
 		_ready_pulse[i] = maxf(0.0, _ready_pulse[i] - delta * 2.2)
-	# redraw while something on the bar moves (a cooldown, a pulse, a glow, a charge, the name fade: _anim is what
-	# the last draw saw), when the slots or the keys change, and otherwise only to look again ten times a second
+	# the live layer redraws while something on it moves (_anim is what its last draw saw: a sweep, a charge, a
+	# flash, a glow) or a pulse or a refusal's shake runs, and otherwise looks again ten times a second (a slot
+	# going cold). A slot's still picture redraws when its spell, key or ready state changes and while the names
+	# fade (a shake only moves it); the plate when the slots shown or the screen change.
 	_idle -= delta
-	var keys := ""
+	_static_idle -= delta
 	var pulsing := false
+	var shaking := false
 	for i in _book.slots.size():
-		keys += _book.key_label(i) + ","
 		pulsing = pulsing or _ready_pulse[i] > 0.0
-	var shown := "%s|%s|%s" % [sig, get_viewport_rect().size, keys]
-	if _anim or pulsing or _t < NAME_FADE or shown != _shown_sig or _idle <= 0.0:
-		_shown_sig = shown
+		shaking = shaking or _book.denied(i) > 0.0
+	if _anim or pulsing or shaking or _idle <= 0.0:
 		_idle = 0.1
+		_live.queue_redraw()
+	var plate := "%s|%s" % [sig, get_viewport_rect().size]
+	if plate != _shown_sig:
+		_shown_sig = plate
+		if _slot_ci.size() != _vis.size() or _slot_ci.any(func(c: Control) -> bool: return not _vis.has(int(c.get_meta(&"slot")))):
+			_sync_slot_items()
 		queue_redraw()
+	var fading := _t > NAME_FADE - 2.1 and _t < NAME_FADE + 0.1
+	var refresh := _static_idle <= 0.0
+	if refresh:
+		_static_idle = 0.5
+	for vi in _slot_ci.size():
+		var c := _slot_ci[vi]
+		var i := int(c.get_meta(&"slot"))
+		c.position = _slot_origin(vi, i)
+		var ss := "%s|%s|%s" % [sig, _book.key_label(i), _book.cooldown_left(i) <= 0.0]
+		if fading or refresh or ss != String(c.get_meta(&"sig", "")):
+			c.set_meta(&"sig", ss)
+			c.queue_redraw()
 	if String(DB.get_mod("core", "")) != "" or _gem_drawn:
 		_gem_layer.queue_redraw()
 
@@ -109,69 +134,146 @@ func _process(delta: float) -> void:
 var _span := 0.0
 var _anim := true
 var _idle := 0.0
+var _static_idle := 0.0
 var _shown_sig := ""
 
 
+## The bar in two layers. This one is the forged bar itself -- plate, sockets, bevels, rivets, the spell pictures,
+## key plates, costs and names -- and redraws only when the slots, the keys, a slot going cold or ready, the names'
+## fade or a refusal's shake change it. Everything that moves in a fight (cooldown sweeps and seconds, the global recovery, a slot gone
+## cold, charges, the charge ring, rim flashes and glows, the queued press, pips, a spell at work) is on the live
+## layer above it (_draw_live), which redraws every frame while something moves.
+## (Rebuilding the whole bar each frame cost ~1.5 ms of script a frame in every fight.)
 func _draw() -> void:
+	if is_instance_valid(_book):
+		_strip()
+
+
+## One slot's still picture -- socket, bevel, the spell's picture (dimmed while it cools), key plate, cost and
+## name -- on its own canvas item, in its own frame: a refusal's shake moves the item, it does not redraw it.
+func _draw_slot(ci: Control) -> void:
+	if not is_instance_valid(_book) or not ci.has_meta(&"slot"):
+		return
+	var i := int(ci.get_meta(&"slot"))
+	if i >= _book.slots.size() or _book.slots[i] == null:
+		return
+	var s := _book.slots[i]
+	var name_a := lerpf(NAME_REST, 1.0, clampf((NAME_FADE - _t) / 2.0, 0.0, 1.0))
+	var name_pt := _name_pt()
+	var o := Vector2.ZERO
+	var r := Rect2(o, Vector2(SLOT, SLOT))
+	ci.draw_style_box(Med.slot(Color(1.0, 0.82, 0.56)), r.grow(3.0))          # an iron-rimmed socket of leather
+	_bevel(ci, r.grow(3.0))
+	var is_ready := _book.cooldown_left(i) <= 0.0
+	var art := IconArt.art("spell", String(s.glyph))
+	if art != null:
+		IconArt.draw_square(ci, art, r.grow(-1.0), Color.WHITE if is_ready else Color(0.5, 0.48, 0.56))
+		ci.draw_rect(r.grow(-1.0), Color(0, 0, 0, 0.55), false, 1.5)      # a dark inner edge seats the picture in its socket
+	else:
+		_glyph(ci, s.glyph, r.get_center(), SLOT * 0.3, s.color if is_ready else s.color.darkened(0.55))
+	# key on a small engraved plate riveted across the bottom rim
+	var key := _book.key_label(i)
+	var kw := maxf(30.0, _font.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, KEY_PT).x + 16.0)
+	var kr := Rect2(o + Vector2(SLOT * 0.5 - kw * 0.5, SLOT - 9.0), Vector2(kw, 20))
+	ci.draw_style_box(_key_box(), kr)
+	ci.draw_line(kr.position + Vector2(3, 1.5), kr.position + Vector2(kw - 3, 1.5), Color(Med.GILT, 0.25), 1.0)
+	_rivet(ci, kr.position + Vector2(4, 10), 1.3)
+	_rivet(ci, kr.position + Vector2(kw - 4, 10), 1.3)
+	ci.draw_string(_font, kr.position + Vector2(0, 15), key, HORIZONTAL_ALIGNMENT_CENTER, kw, KEY_PT, QUIET)
+	if s.gloom_cost > 0.0:
+		ci.draw_string_outline(_font, o + Vector2(0, 17), "+%d" % roundi(s.gloom_cost), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 14, 4, Color(0, 0, 0, 0.9))
+		ci.draw_string(_font, o + Vector2(0, 17), "+%d" % roundi(s.gloom_cost), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 14, COST.lightened(0.35))
+	var nw := _body.get_string_size(s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, name_pt).x
+	var np := o + Vector2(SLOT * 0.5 - nw * 0.5, SLOT + 15.0 + NAME_ROW * 0.5 + name_pt * 0.32)
+	Forge.label(ci, _body, np, s.title, name_pt, Color(Med.BONE, name_a), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
+
+
+## The slots' canvas items, one per slot shown, under the live layer (made again when the shown slots change).
+var _slot_ci: Array[Control] = []
+
+
+func _sync_slot_items() -> void:
+	for c in _slot_ci:
+		c.queue_free()
+	_slot_ci.clear()
+	for vi in _vis.size():
+		var c := Control.new()
+		c.name = "Slot%d" % vi
+		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		c.set_meta(&"slot", _vis[vi])
+		c.draw.connect(_draw_slot.bind(c))
+		add_child(c)
+		move_child(c, _live.get_index())          # under the live layer and the gem
+		_slot_ci.append(c)
+
+
+## Where slot i (the vi-th shown) is drawn this frame: a refusal shakes it.
+func _slot_origin(vi: int, i: int) -> Vector2:
+	return Vector2(vi * (SLOT + GAP) + sin(_t * 70.0) * 4.0 * _book.denied(i), 0.0)
+
+
+var _key_sb: StyleBoxFlat
+
+
+func _key_box() -> StyleBoxFlat:
+	if _key_sb == null:
+		_key_sb = StyleBoxFlat.new()
+		_key_sb.bg_color = Color(0.06, 0.038, 0.024, 0.98)
+		_key_sb.border_color = Color(Med.BRONZE, 0.95)
+		_key_sb.set_border_width_all(1)
+		_key_sb.set_corner_radius_all(3)
+	return _key_sb
+
+
+## The live layer (see _draw): what moves over the forged bar. Sets _anim while anything on it is moving.
+func _draw_live() -> void:
 	if not is_instance_valid(_book):
 		return
 	_anim = false
-	var name_a := lerpf(NAME_REST, 1.0, clampf((NAME_FADE - _t) / 2.0, 0.0, 1.0))
-	_strip()
-	var name_pt := _name_pt()
 	for vi in _vis.size():
 		var i: int = _vis[vi]
 		var s := _book.slots[i]
-		var shake := sin(_t * 70.0) * 4.0 * _book.denied(i)
-		var o := Vector2(vi * (SLOT + GAP) + shake, 0.0)
+		var o := _slot_origin(vi, i)
 		var r := Rect2(o, Vector2(SLOT, SLOT))
-		var is_ready := _book.cooldown_left(i) <= 0.0
-		draw_style_box(Med.slot(Color(1.0, 0.82, 0.56)), r.grow(3.0))          # an iron-rimmed socket of leather
-		_bevel(r.grow(3.0))
-		var art := IconArt.art("spell", String(s.glyph))
-		if art != null:
-			IconArt.draw_square(self, art, r.grow(-1.0), Color.WHITE if is_ready else Color(0.5, 0.48, 0.56))
-			draw_rect(r.grow(-1.0), Color(0, 0, 0, 0.55), false, 1.5)      # a dark inner edge seats the picture in its socket
-		else:
-			_glyph(s.glyph, r.get_center(), SLOT * 0.3, s.color if is_ready else s.color.darkened(0.55))
 		# cooldown sweep, clockwise from 12 o'clock, plus seconds when > 1 s
 		var cr := _book.cooldown_ratio(i)
 		var gcd := _gcd_ratio() if (not _book.has_method("on_gcd") or bool(_book.call("on_gcd", i))) else 0.0
 		if cr > 0.0:
 			_anim = true
-			_pie(r, cr, SHADE)
-			_sweep_edge(r, cr)
+			_pie(_live, r, cr, SHADE)
+			_sweep_edge(_live, r, cr)
 			var left := _book.cooldown_left(i)
 			# r33 (WoW): whole seconds, tenths in the last three (when the wait is long enough to read)
 			var total := float(_book.call("cooldown_total", i)) if _book.has_method("cooldown_total") else _book.slots[i].cooldown
 			if left >= 3.0 or (left >= 0.3 and total >= 2.0):
 				var txt := str(ceili(left)) if left >= 3.0 else "%.1f" % left
 				var pt := 26 if left >= 3.0 else 22
-				draw_string_outline(_font, r.position + Vector2(0, SLOT * 0.6), txt, HORIZONTAL_ALIGNMENT_CENTER, SLOT, pt, 5, Color(0, 0, 0, 0.8))
-				draw_string(_font, r.position + Vector2(0, SLOT * 0.6), txt, HORIZONTAL_ALIGNMENT_CENTER, SLOT, pt, Color(0.95, 0.92, 1.0) if left >= 3.0 else Color(1.0, 0.85, 0.5))
+				_live.draw_string_outline(_font, r.position + Vector2(0, SLOT * 0.6), txt, HORIZONTAL_ALIGNMENT_CENTER, SLOT, pt, 5, Color(0, 0, 0, 0.8))
+				_live.draw_string(_font, r.position + Vector2(0, SLOT * 0.6), txt, HORIZONTAL_ALIGNMENT_CENTER, SLOT, pt, Color(0.95, 0.92, 1.0) if left >= 3.0 else Color(1.0, 0.85, 0.5))
 		elif gcd > 0.0:
 			# r33: the shared recovery after any cast sweeps every ready slot (only drawn when it is
 			# long enough to see; SkillBook's is a tenth of a second today)
-			_pie(r, gcd, Color(SHADE, 0.5))
+			_anim = true
+			_pie(_live, r, gcd, Color(SHADE, 0.5))
 		# r33: can't be cast right now (no room, no target, busy): the slot goes cold blue-grey
 		var why := s.can_cast(_book) if cr <= 0.0 else ""
 		if why != "":
-			draw_rect(r, Color(0.12, 0.16, 0.42, 0.45))
+			_live.draw_rect(r, Color(0.12, 0.16, 0.42, 0.45))
 		var ch := _charges(s)
 		if ch.y > 1:
-			draw_string_outline(_font, r.position + Vector2(0, SLOT - 26), str(ch.x), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 20, 5, Color(0, 0, 0, 0.85))
-			draw_string(_font, r.position + Vector2(0, SLOT - 26), str(ch.x), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 20, Color(1.0, 0.95, 0.85) if ch.x > 0 else Color(0.7, 0.55, 0.5))
+			_live.draw_string_outline(_font, r.position + Vector2(0, SLOT - 26), str(ch.x), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 20, 5, Color(0, 0, 0, 0.85))
+			_live.draw_string(_font, r.position + Vector2(0, SLOT - 26), str(ch.x), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 20, Color(1.0, 0.95, 0.85) if ch.x > 0 else Color(0.7, 0.55, 0.5))
 		# charge ring (Ember Lance)
 		if _book.charging_slot() == i:
 			_anim = true
 			var c := _book.charge_ratio()
 			var col := s.color.lerp(Color(1.6, 1.4, 1.0), c) if c < 1.0 else Color(1.8, 1.6, 1.2)
-			draw_arc(r.get_center(), SLOT * 0.47, -PI * 0.5, -PI * 0.5 + TAU * c, 48, col, 4.0, false)
+			_live.draw_arc(r.get_center(), SLOT * 0.47, -PI * 0.5, -PI * 0.5 + TAU * c, 48, col, 4.0, false)
 			# Ember Lance I: the Perfect window right after the full snap burns white
 			var oc := _book.overcharge()
 			if c >= 1.0 and oc >= 0.0 and oc <= 0.2 and int(DB.get_mod("lance", 0)) >= 1 and s.id == &"lance":
-				draw_arc(r.get_center(), SLOT * 0.47, 0, TAU, 48, Color(2.0, 1.9, 1.7), 7.0, false)
-				draw_rect(r.grow(4.0), Color(1.0, 0.95, 0.8, 0.5 * (1.0 - oc / 0.2)), false, 3.0)
+				_live.draw_arc(r.get_center(), SLOT * 0.47, 0, TAU, 48, Color(2.0, 1.9, 1.7), 7.0, false)
+				_live.draw_rect(r.grow(4.0), Color(1.0, 0.95, 0.8, 0.5 * (1.0 - oc / 0.2)), false, 3.0)
 		# frame: cast flash > ready pulse > idle
 		var frame := FRAME
 		var f := _book.flash(i)
@@ -190,17 +292,17 @@ func _draw() -> void:
 			_anim = true
 			var glow := 0.6 + 0.4 * sin(_t * 12.0)
 			frame = frame.lerp(Color(1.5, 0.9, 2.6), glow)
-			draw_rect(r.grow(3.0), Color(1.2, 0.6, 2.4, 0.35 * glow), false, 3.0)
-			_proc_sparks(r, s.color)
+			_live.draw_rect(r.grow(3.0), Color(1.2, 0.6, 2.4, 0.35 * glow), false, 3.0)
+			_proc_sparks(_live, r, s.color)
 		if not frame.is_equal_approx(FRAME):
-			draw_rect(r.grow(-1.5), frame, false, 2.0 + f * 2.0)        # a cast, a ready pulse or a denial lights the rim
+			_live.draw_rect(r.grow(-1.5), frame, false, 2.0 + f * 2.0)        # a cast, a ready pulse or a denial lights the rim
 		# r33: the press held in the spell queue fires next: a gold inner line and a notch over the slot
 		if _book.has_method("queued_slot") and int(_book.call("queued_slot")) == i:
 			_anim = true
 			var qa := 0.6 + 0.4 * sin(_t * 18.0)
-			draw_rect(r.grow(-4.0), Color(1.0, 0.82, 0.4, qa), false, 2.0)
+			_live.draw_rect(r.grow(-4.0), Color(1.0, 0.82, 0.4, qa), false, 2.0)
 			var qc := o + Vector2(SLOT * 0.5, -18.0)
-			draw_colored_polygon(PackedVector2Array([qc + Vector2(-6, -4), qc + Vector2(6, -4), qc + Vector2(0, 3)]), Color(1.0, 0.82, 0.4, qa))
+			_live.draw_colored_polygon(PackedVector2Array([qc + Vector2(-6, -4), qc + Vector2(6, -4), qc + Vector2(0, 3)]), Color(1.0, 0.82, 0.4, qa))
 		var pip := s.pips(_book)
 		if pip.y > 0:
 			for k in pip.y:
@@ -208,36 +310,16 @@ func _draw() -> void:
 				var lit := k < pip.x or (primed and k == pip.y - 1)
 				var d := PackedVector2Array([pc + Vector2(0, -5), pc + Vector2(4, 0), pc + Vector2(0, 5), pc + Vector2(-4, 0)])
 				if lit:
-					draw_colored_polygon(d, s.color.lightened(0.35) if k < pip.y - 1 else Color(1.6, 1.0, 2.6))
+					_live.draw_colored_polygon(d, s.color.lightened(0.35) if k < pip.y - 1 else Color(1.6, 1.0, 2.6))
 				else:
 					d.append(d[0])
-					draw_polyline(d, Color(s.color, 0.45), 1.5, false)
-		# key on a small engraved plate riveted across the bottom rim
-		var key := _book.key_label(i)
-		var kw := maxf(30.0, _font.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, KEY_PT).x + 16.0)
-		var kr := Rect2(o + Vector2(SLOT * 0.5 - kw * 0.5, SLOT - 9.0), Vector2(kw, 20))
-		var kb := StyleBoxFlat.new()
-		kb.bg_color = Color(0.06, 0.038, 0.024, 0.98)
-		kb.border_color = Color(Med.BRONZE, 0.95)
-		kb.set_border_width_all(1)
-		kb.set_corner_radius_all(3)
-		draw_style_box(kb, kr)
-		draw_line(kr.position + Vector2(3, 1.5), kr.position + Vector2(kw - 3, 1.5), Color(Med.GILT, 0.25), 1.0)
-		_rivet(kr.position + Vector2(4, 10), 1.3)
-		_rivet(kr.position + Vector2(kw - 4, 10), 1.3)
-		draw_string(_font, kr.position + Vector2(0, 15), key, HORIZONTAL_ALIGNMENT_CENTER, kw, KEY_PT, QUIET)
-		if s.gloom_cost > 0.0:
-			draw_string_outline(_font, o + Vector2(0, 17), "+%d" % roundi(s.gloom_cost), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 14, 4, Color(0, 0, 0, 0.9))
-			draw_string(_font, o + Vector2(0, 17), "+%d" % roundi(s.gloom_cost), HORIZONTAL_ALIGNMENT_RIGHT, SLOT - 5, 14, COST.lightened(0.35))
+					_live.draw_polyline(d, Color(s.color, 0.45), 1.5, false)
 		var act := s.active(_book)
 		if act > 0.0:
 			_anim = true
 			var br := Rect2(o + Vector2(4, SLOT + 3), Vector2((SLOT - 8) * act, 4))
-			draw_rect(Rect2(o + Vector2(4, SLOT + 3), Vector2(SLOT - 8, 4)), Color(0.02, 0.01, 0.04, 0.8))
-			draw_rect(br, Color(s.color.lightened(0.2), 0.9))
-		var nw := _body.get_string_size(s.title, HORIZONTAL_ALIGNMENT_LEFT, -1, name_pt).x
-		var np := o + Vector2(SLOT * 0.5 - nw * 0.5, SLOT + 15.0 + NAME_ROW * 0.5 + name_pt * 0.32)
-		Forge.label(self, _body, np, s.title, name_pt, Color(Med.BONE, name_a), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
+			_live.draw_rect(Rect2(o + Vector2(4, SLOT + 3), Vector2(SLOT - 8, 4)), Color(0.02, 0.01, 0.04, 0.8))
+			_live.draw_rect(br, Color(s.color.lightened(0.2), 0.9))
 
 
 ## One size for every spell name, so the row reads as a row: the largest that lets the longest name keep its column.
@@ -271,7 +353,7 @@ func _strip() -> void:
 			x = -STRIP_PAD * 0.5
 		elif k == n:
 			x = w + STRIP_PAD * 0.5
-		_rivet(Vector2(x, -PLATE_TOP * 0.5 + 0.5), 1.8)
+		_rivet(self, Vector2(x, -PLATE_TOP * 0.5 + 0.5), 1.8)
 		if k > 0 and k < n:
 			var dx := trough.position.x + x
 			draw_line(Vector2(dx, trough.position.y + 5.0), Vector2(dx, trough.end.y - 5.0), Color(Med.BRONZE, 0.28), 1.0)
@@ -281,21 +363,21 @@ func _strip() -> void:
 
 
 ## A bevelled rim over a socket: lit top and left edges, shadowed bottom and right, and a rivet in each corner.
-func _bevel(r: Rect2) -> void:
+func _bevel(ci: CanvasItem, r: Rect2) -> void:
 	var a := r.position
 	var b := r.end
-	draw_line(a + Vector2(2, 0.5), Vector2(b.x - 2, a.y + 0.5), Color(1.0, 0.9, 0.68, 0.3), 1.0)
-	draw_line(a + Vector2(0.5, 2), Vector2(a.x + 0.5, b.y - 2), Color(1.0, 0.9, 0.68, 0.18), 1.0)
-	draw_line(Vector2(a.x + 2, b.y - 0.5), b - Vector2(2, 0.5), Color(0, 0, 0, 0.6), 1.0)
-	draw_line(Vector2(b.x - 0.5, a.y + 2), b - Vector2(0.5, 2), Color(0, 0, 0, 0.5), 1.0)
+	ci.draw_line(a + Vector2(2, 0.5), Vector2(b.x - 2, a.y + 0.5), Color(1.0, 0.9, 0.68, 0.3), 1.0)
+	ci.draw_line(a + Vector2(0.5, 2), Vector2(a.x + 0.5, b.y - 2), Color(1.0, 0.9, 0.68, 0.18), 1.0)
+	ci.draw_line(Vector2(a.x + 2, b.y - 0.5), b - Vector2(2, 0.5), Color(0, 0, 0, 0.6), 1.0)
+	ci.draw_line(Vector2(b.x - 0.5, a.y + 2), b - Vector2(0.5, 2), Color(0, 0, 0, 0.5), 1.0)
 	for c in [a + Vector2(3, 3), Vector2(b.x - 3, a.y + 3), Vector2(a.x + 3, b.y - 3), b - Vector2(3, 3)]:
-		_rivet(c, 1.5)
+		_rivet(ci, c, 1.5)
 
 
-func _rivet(c: Vector2, rad: float) -> void:
-	draw_circle(c + Vector2(0.5, 0.7), rad, Color(0, 0, 0, 0.55))
-	draw_circle(c, rad, Color(Med.BRONZE.darkened(0.15), 1.0))
-	draw_circle(c + Vector2(-rad * 0.3, -rad * 0.35), rad * 0.45, Color(Med.GILT, 0.85))
+func _rivet(ci: CanvasItem, c: Vector2, rad: float) -> void:
+	ci.draw_circle(c + Vector2(0.5, 0.7), rad, Color(0, 0, 0, 0.55))
+	ci.draw_circle(c, rad, Color(Med.BRONZE.darkened(0.15), 1.0))
+	ci.draw_circle(c + Vector2(-rad * 0.3, -rad * 0.35), rad * 0.45, Color(Med.GILT, 0.85))
 
 
 var _gem_drawn := false
@@ -365,14 +447,14 @@ func _proc(s: Skill) -> bool:
 
 
 ## r33 (WoW's proc glow, our own): two ember sparks chase round the slot's edge.
-func _proc_sparks(r: Rect2, col: Color) -> void:
+func _proc_sparks(ci: CanvasItem, r: Rect2, col: Color) -> void:
 	var per := (r.size.x + r.size.y) * 2.0
 	for k in 2:
 		var d := fposmod(_t * 160.0 + per * 0.5 * float(k), per)
 		var p := _edge_point(r.grow(2.0), d)
 		var c := Color(minf(col.r * 1.4 + 0.3, 1.6), minf(col.g * 1.2 + 0.25, 1.4), minf(col.b + 0.2, 1.6))
-		draw_circle(p, 5.0, Color(c, 0.3))
-		draw_circle(p, 2.4, Color(1.6, 1.3, 1.0))
+		ci.draw_circle(p, 5.0, Color(c, 0.3))
+		ci.draw_circle(p, 2.4, Color(1.6, 1.3, 1.0))
 
 
 func _edge_point(r: Rect2, d: float) -> Vector2:
@@ -390,7 +472,7 @@ func _edge_point(r: Rect2, d: float) -> Vector2:
 
 
 ## r33: the bright leading edge of a cooldown sweep.
-func _sweep_edge(r: Rect2, ratio: float) -> void:
+func _sweep_edge(ci: CanvasItem, r: Rect2, ratio: float) -> void:
 	var c := r.get_center()
 	var a := -PI * 0.5 + TAU * (1.0 - ratio)
 	var dir := Vector2(cos(a), sin(a))
@@ -402,11 +484,11 @@ func _sweep_edge(r: Rect2, ratio: float) -> void:
 	if absf(dir.y) > 0.001:
 		ty = (SLOT * 0.5) / absf(dir.y)
 	far = c + dir * minf(tx, ty)
-	draw_line(c, far, Color(EMBER, 0.28), 3.0, true)
-	draw_line(c, far, Color(1.0, 0.8, 0.5, 0.85), 1.2, true)
+	ci.draw_line(c, far, Color(EMBER, 0.28), 3.0, true)
+	ci.draw_line(c, far, Color(1.0, 0.8, 0.5, 0.85), 1.2, true)
 
 
-func _pie(r: Rect2, ratio: float, col: Color) -> void:
+func _pie(ci: CanvasItem, r: Rect2, ratio: float, col: Color) -> void:
 	var c := r.get_center()
 	var rad := SLOT * 0.75                 # past the corners; clipped to the slot below
 	var pts := PackedVector2Array([c])
@@ -415,57 +497,57 @@ func _pie(r: Rect2, ratio: float, col: Color) -> void:
 		var a := -PI * 0.5 + TAU * (1.0 - ratio) + TAU * ratio * float(k) / float(steps)
 		var p := c + Vector2(cos(a), sin(a)) * rad
 		pts.append(Vector2(clampf(p.x, r.position.x, r.end.x), clampf(p.y, r.position.y, r.end.y)))
-	draw_colored_polygon(pts, col)
+	ci.draw_colored_polygon(pts, col)
 
 
 ## Icons in code so the bar has no texture dependency. Simple line glyphs on a 1-unit scale.
-func _glyph(g: StringName, c: Vector2, u: float, col: Color) -> void:
+func _glyph(ci: CanvasItem, g: StringName, c: Vector2, u: float, col: Color) -> void:
 	match g:
 		&"bolt":
 			var d := PackedVector2Array([c + Vector2(0, -u), c + Vector2(u * 0.55, 0), c + Vector2(0, u), c + Vector2(-u * 0.55, 0), c + Vector2(0, -u)])
-			draw_polyline(d, col, 3.0, false)
-			draw_circle(c, u * 0.18, col)
+			ci.draw_polyline(d, col, 3.0, false)
+			ci.draw_circle(c, u * 0.18, col)
 			for k in 3:
 				var y := (float(k) - 1.0) * u * 0.35
-				draw_line(c + Vector2(-u * 1.25, y), c + Vector2(-u * 0.75, y), Color(col, 0.6), 2.0, false)
+				ci.draw_line(c + Vector2(-u * 1.25, y), c + Vector2(-u * 0.75, y), Color(col, 0.6), 2.0, false)
 		&"lance":
 			var a := c + Vector2(-u, u)
 			var b := c + Vector2(u, -u)
-			draw_line(a, b, col, 3.5, false)
-			draw_colored_polygon(PackedVector2Array([b + Vector2(0.2, -0.2) * u, b + Vector2(-0.55, -0.05) * u, b + Vector2(0.05, 0.55) * u]), col)
-			draw_line(a, a + Vector2(-0.2, 0.45) * u, col, 2.0, false)
-			draw_line(a, a + Vector2(-0.45, 0.2) * u, col, 2.0, false)
+			ci.draw_line(a, b, col, 3.5, false)
+			ci.draw_colored_polygon(PackedVector2Array([b + Vector2(0.2, -0.2) * u, b + Vector2(-0.55, -0.05) * u, b + Vector2(0.05, 0.55) * u]), col)
+			ci.draw_line(a, a + Vector2(-0.2, 0.45) * u, col, 2.0, false)
+			ci.draw_line(a, a + Vector2(-0.45, 0.2) * u, col, 2.0, false)
 		&"nova":
-			draw_arc(c, u * 0.35, 0, TAU, 24, col, 3.0, false)
-			draw_arc(c, u * 0.85, 0, TAU, 32, Color(col, 0.7), 2.0, false)
+			ci.draw_arc(c, u * 0.35, 0, TAU, 24, col, 3.0, false)
+			ci.draw_arc(c, u * 0.85, 0, TAU, 32, Color(col, 0.7), 2.0, false)
 			for k in 8:
 				var ang := TAU * float(k) / 8.0
 				var v := Vector2(cos(ang), sin(ang))
-				draw_line(c + v * u * 0.5, c + v * u * 0.72, col, 2.0, false)
+				ci.draw_line(c + v * u * 0.5, c + v * u * 0.72, col, 2.0, false)
 		&"ward":
-			draw_rect(Rect2(c + Vector2(-0.45, -0.25) * u, Vector2(0.9, 1.05) * u), col, false, 2.5)
-			draw_line(c + Vector2(-0.25, -0.25) * u, c + Vector2(0, -0.6) * u, col, 2.0, false)
-			draw_line(c + Vector2(0.25, -0.25) * u, c + Vector2(0, -0.6) * u, col, 2.0, false)
+			ci.draw_rect(Rect2(c + Vector2(-0.45, -0.25) * u, Vector2(0.9, 1.05) * u), col, false, 2.5)
+			ci.draw_line(c + Vector2(-0.25, -0.25) * u, c + Vector2(0, -0.6) * u, col, 2.0, false)
+			ci.draw_line(c + Vector2(0.25, -0.25) * u, c + Vector2(0, -0.6) * u, col, 2.0, false)
 			var fl := c + Vector2(0, 0.3) * u
-			draw_colored_polygon(PackedVector2Array([fl + Vector2(0, -0.42) * u, fl + Vector2(0.2, 0.05) * u, fl + Vector2(0, 0.2) * u, fl + Vector2(-0.2, 0.05) * u]), col.lightened(0.2))
-			draw_arc(c + Vector2(0, 0.95) * u, u * 1.0, PI * 1.15, PI * 1.85, 16, Color(col, 0.55), 2.0, false)
+			ci.draw_colored_polygon(PackedVector2Array([fl + Vector2(0, -0.42) * u, fl + Vector2(0.2, 0.05) * u, fl + Vector2(0, 0.2) * u, fl + Vector2(-0.2, 0.05) * u]), col.lightened(0.2))
+			ci.draw_arc(c + Vector2(0, 0.95) * u, u * 1.0, PI * 1.15, PI * 1.85, 16, Color(col, 0.55), 2.0, false)
 		&"peal":
 			# r36 the Founder's Peal: a bell, its tongue, and the stroke going out
 			var bell := PackedVector2Array([c + Vector2(-0.18, -0.7) * u, c + Vector2(0.18, -0.7) * u, c + Vector2(0.32, -0.2) * u,
 				c + Vector2(0.38, 0.35) * u, c + Vector2(0.55, 0.5) * u, c + Vector2(-0.55, 0.5) * u, c + Vector2(-0.38, 0.35) * u,
 				c + Vector2(-0.32, -0.2) * u, c + Vector2(-0.18, -0.7) * u])
-			draw_polyline(bell, col, 2.5, false)
-			draw_circle(c + Vector2(0, 0.66) * u, u * 0.12, col)
+			ci.draw_polyline(bell, col, 2.5, false)
+			ci.draw_circle(c + Vector2(0, 0.66) * u, u * 0.12, col)
 			for k in 2:
 				var rr := u * (0.95 + 0.3 * float(k))
-				draw_arc(c + Vector2(0, -0.05) * u, rr, -0.5, 0.5, 8, Color(col, 0.7 - 0.25 * float(k)), 2.0, false)
-				draw_arc(c + Vector2(0, -0.05) * u, rr, PI - 0.5, PI + 0.5, 8, Color(col, 0.7 - 0.25 * float(k)), 2.0, false)
+				ci.draw_arc(c + Vector2(0, -0.05) * u, rr, -0.5, 0.5, 8, Color(col, 0.7 - 0.25 * float(k)), 2.0, false)
+				ci.draw_arc(c + Vector2(0, -0.05) * u, rr, PI - 0.5, PI + 0.5, 8, Color(col, 0.7 - 0.25 * float(k)), 2.0, false)
 		&"step":
 			for k in 2:
 				var x := (float(k) * 0.55 - 0.15) * u
-				draw_polyline(PackedVector2Array([c + Vector2(x - 0.35 * u, -0.6 * u), c + Vector2(x + 0.25 * u, 0), c + Vector2(x - 0.35 * u, 0.6 * u)]), col, 3.0, false)
+				ci.draw_polyline(PackedVector2Array([c + Vector2(x - 0.35 * u, -0.6 * u), c + Vector2(x + 0.25 * u, 0), c + Vector2(x - 0.35 * u, 0.6 * u)]), col, 3.0, false)
 			for k in 3:
-				draw_circle(c + Vector2(-u * (0.7 + 0.28 * float(k)), 0), u * (0.09 - 0.02 * float(k)), Color(col, 0.7 - 0.2 * float(k)))
+				ci.draw_circle(c + Vector2(-u * (0.7 + 0.28 * float(k)), 0), u * (0.09 - 0.02 * float(k)), Color(col, 0.7 - 0.2 * float(k)))
 		_:
 			if not Icons.draw(self, String(g), c, u, col):
-				draw_circle(c, u * 0.4, col)
+				ci.draw_circle(c, u * 0.4, col)

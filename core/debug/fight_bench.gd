@@ -4,7 +4,8 @@ extends Node
 ## The night is built, the wanderer stands on open ground, a boss and N grunts are spawned round him and come at
 ## him, and every spell slot is pressed over and over (cooldowns reset). He cannot die (his wounds are cleared).
 ## At the end "FIGHT" prints the frame times and the engine monitors averaged over the fight; --ab-enemies then
-## measures the foes' thinking (far, near) and the spells by switching each off for a few seconds.
+## measures the foes' thinking (far, near), the spells, drawing the foes and the HUD by switching each off for a
+## few seconds; --hud-ab measures the HUD in alternating windows and each of its widgets taken away in turn.
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const SPOT := Vector2(62.0, 60.0)
 const BOSSES := {"thornwarden": "res://core/enemy/thornwarden.gd", "bone_abbot": "res://core/enemy/bone_abbot.gd",
@@ -90,6 +91,10 @@ func _run() -> void:
 		_sample()
 		await get_tree().create_timer(0.12).timeout
 	_report()
+	if "--hud-ab" in OS.get_cmdline_user_args():
+		await _hud_ab()
+		get_tree().quit()
+		return
 	if "--ab-enemies" in OS.get_cmdline_user_args():
 		# the same fight with every foe's logic and physics frozen (still drawn): what the foes' thinking costs
 		var fr: float = await _avg_frame(4.0)
@@ -116,7 +121,43 @@ func _run() -> void:
 		cast = false
 		var quiet: float = await _avg_frame(4.0)
 		print("FIGHT A/B casting %.2f ms, not casting %.2f ms -> spells %.2f ms a frame" % [none, quiet, none - quiet])
-	get_tree().quit()
+		# what drawing them costs: every foe hidden (frozen too), then the HUD hidden as well
+		for e in get_tree().get_nodes_in_group(Groups.ENEMY):
+			(e as Node).process_mode = Node.PROCESS_MODE_DISABLED
+		var shown: float = await _avg_frame(4.0)
+		for e in get_tree().get_nodes_in_group(Groups.ENEMY):
+			(e as Node3D).visible = false
+		var hidden: float = await _avg_frame(4.0)
+		var near_shown := 0
+		for e in get_tree().get_nodes_in_group(Groups.ENEMY):
+			near_shown += 1 if (e as Node3D).global_position.distance_to(p.global_position) < 60.0 else 0
+		print("FIGHT A/B foes drawn %.2f ms, hidden %.2f ms -> drawing foes %.2f ms (%d within 60 m)" % [shown, hidden, shown - hidden, near_shown])
+		for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
+			(c as CanvasLayer).visible = false
+		var no_ui: float = await _avg_frame(4.0)
+		print("FIGHT A/B HUD shown %.2f ms, hidden %.2f ms -> HUD %.2f ms" % [hidden, no_ui, hidden - no_ui])
+		# the HUD's own pieces: each shown alone over the bare frame (the rest of the HUD hidden)
+		var hud := get_tree().root.find_child("HUD", true, false) as CanvasLayer
+		if hud:
+			hud.visible = true
+			var top: Node = hud                  # the HUD's widget root: the node with the most children
+			for c in hud.find_children("*", "Control", true, false):
+				if (c as Node).get_child_count() > top.get_child_count():
+					top = c
+			for k in hud.get_children():
+				if k is CanvasItem:
+					(k as CanvasItem).visible = true
+			var kids: Array = []
+			for k in top.get_children():
+				if k is CanvasItem and (k as CanvasItem).visible:
+					kids.append(k)
+					(k as CanvasItem).visible = false
+			var bare: float = await _avg_frame(3.0)
+			for k: CanvasItem in kids:
+				k.visible = true
+				var w: float = await _avg_frame(2.5)
+				k.visible = false
+				print("FIGHT HUD part %-28s %+.2f ms  (%s, %d nodes)" % [k.name, w - bare, k.get_script().resource_path.get_file() if k.get_script() else k.get_class(), k.find_children("*", "", true, false).size()])
 
 
 func _avg_frame(s: float) -> float:
@@ -173,3 +214,37 @@ func _report() -> void:
 			s += x
 			mx = maxf(mx, x)
 		print("FIGHT %-15s avg %8.2f  max %8.2f" % [k, s / maxf(float(arr.size()), 1.0), mx])
+
+
+## The HUD's cost, alternating (on / off windows, so drift cancels), then each widget taken away from the full
+## HUD in turn (on / without it / on ...): what removing it would save in play.
+func _hud_ab() -> void:
+	var hud := get_tree().root.find_child("HUD", true, false) as CanvasLayer
+	if hud == null:
+		return
+	var on := 0.0
+	var off := 0.0
+	for i in 3:
+		hud.visible = true
+		on += await _avg_frame(4.0)
+		hud.visible = false
+		off += await _avg_frame(4.0)
+	hud.visible = true
+	print("FIGHT HUDAB whole HUD %.2f ms (on %.2f, off %.2f)" % [(on - off) / 3.0, on / 3.0, off / 3.0])
+	var top: Node = hud
+	for c in hud.find_children("*", "Control", true, false):
+		if (c as Node).get_child_count() > top.get_child_count():
+			top = c
+	for k in top.get_children():
+		if not (k is CanvasItem) or not (k as CanvasItem).visible:
+			continue
+		var ci := k as CanvasItem
+		var with := 0.0
+		var without := 0.0
+		for i in 2:
+			ci.visible = true
+			with += await _avg_frame(3.0)
+			ci.visible = false
+			without += await _avg_frame(3.0)
+		ci.visible = true
+		print("FIGHT HUDAB %-24s %+.2f ms" % [ci.name, (with - without) / 2.0])
