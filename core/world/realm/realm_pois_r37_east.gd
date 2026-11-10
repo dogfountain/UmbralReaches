@@ -573,34 +573,58 @@ const PAN_XS := [222.5, 230.8, 239.1, 247.4]
 
 const BRINE_SHADER := """
 shader_type spatial;
+uniform float dry = 0.0;
 uniform float seed = 0.0;
-varying vec3 wp;
+vec2 h2(vec2 p) {
+	p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+	return fract(sin(p + seed) * 43758.5453);
+}
 float h(vec2 p) { return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453); }
 float n(vec2 p) {
 	vec2 i = floor(p); vec2 f = fract(p);
 	f = f * f * (3.0 - 2.0 * f);
 	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y);
 }
-void vertex() { wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+vec2 vor(vec2 p) {
+	vec2 i = floor(p); vec2 f = fract(p);
+	float d1 = 8.0; float d2 = 8.0;
+	for (int y = -1; y <= 1; y++) {
+		for (int x = -1; x <= 1; x++) {
+			vec2 g = vec2(float(x), float(y));
+			vec2 r = g + h2(i + g) - f;
+			float d = dot(r, r);
+			if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) { d2 = d; }
+		}
+	}
+	return vec2(sqrt(d1), sqrt(d2));
+}
 void fragment() {
-	vec2 p = wp.xz;
-	float f = n(p * 0.9) * 0.6 + n(p * 2.3) * 0.3 + n(p * 7.0) * 0.1;
-	float crust = smoothstep(0.46 + seed * 0.01, 0.6 + seed * 0.01, f);
-	float grain = n(p * 11.0) * 0.5 + n(p * 29.0) * 0.5;
-	vec3 salt = mix(vec3(0.62, 0.66, 0.7), vec3(0.93, 0.95, 0.96), grain);
-	vec3 brine = vec3(0.07, 0.2, 0.23);
+	vec2 p = UV * vec2(6.3, 4.4);
+	vec2 q = p - vec2(3.15, 2.2);
+	float edge = min(3.15 - abs(q.x), 2.2 - abs(q.y));
+	float rag = (n(p * 2.2) - 0.5) * 1.1 + (n(p * 7.0) - 0.5) * 0.3;
+	float reach = 0.22 + dry * dry * 3.9;
+	float crust = 1.0 - smoothstep(reach - 0.07, reach + 0.07, edge - rag * (0.35 + dry * 0.5));
+	float raft = step(0.82, n(p * 1.6 + seed)) * (1.0 - dry) * smoothstep(0.5, 0.9, edge);
+	crust = max(crust, raft);
+	vec2 v = vor(p * 1.15);
+	float crack = 1.0 - smoothstep(0.0, 0.06, v.y - v.x);
+	float grain = n(p * 13.0);
+	vec3 salt = mix(vec3(0.66, 0.68, 0.7), vec3(0.95, 0.96, 0.97), grain) * (1.0 - 0.45 * crack * smoothstep(0.0, 0.5, dry + 0.35));
+	vec3 brine = vec3(0.012, 0.03, 0.036);
 	ALBEDO = mix(brine, salt, crust);
-	ROUGHNESS = mix(0.05, 0.8, crust);
-	SPECULAR = mix(0.9, 0.25, crust);
-	vec2 g = vec2(n(p * 4.0 + TIME * 0.08) - 0.5, n(p * 4.0 + 9.0 - TIME * 0.06) - 0.5) * (1.0 - crust);
-	NORMAL_MAP = vec3(0.5 + g.x * 0.25, 0.5 + g.y * 0.25, 1.0);
+	ROUGHNESS = mix(0.02, 0.85, crust);
+	SPECULAR = mix(1.0, 0.2, crust);
 }
 """
 static var _brine_mat: ShaderMaterial = null
 
 
 ## A pan's surface: pale crust broken by open brine, over the model's flat white slab.
-static func _brine(host: Node3D, at: Vector3, yaw: float, seed_v: float) -> void:
+const PAN_DRY := [0.0, 0.55, 0.0, 1.0, 0.3, 0.0, 0.85, 0.5]       ## pan to pan: wet and dark, half-crusted, dry and white
+
+
+static func _brine(host: Node3D, at: Vector3, yaw: float, idx: int) -> void:
 	if _brine_mat == null:
 		var sh := Shader.new()
 		sh.code = BRINE_SHADER
@@ -612,7 +636,8 @@ static func _brine(host: Node3D, at: Vector3, yaw: float, seed_v: float) -> void
 	mi.name = "Brine"
 	mi.mesh = pm
 	var m := _brine_mat.duplicate() as ShaderMaterial
-	m.set_shader_parameter("seed", seed_v)
+	m.set_shader_parameter("seed", float(idx) * 3.7)
+	m.set_shader_parameter("dry", float(PAN_DRY[idx % PAN_DRY.size()]))
 	mi.material_override = m
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visibility_range_end = 200.0
@@ -651,7 +676,7 @@ static func _pan_fields(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 		var px := Transform3D(Basis(Vector3.UP, float(sp.yaw)), p)
 		piece(host, WORKS, "Pan_Unit", px, Vector2(0, 150), false)
 		cols(host, "PanBody", _tbl("PAN_BOXES"), px)
-		_brine(host, p, float(sp.yaw), rng.randf_range(0.0, 6.0))
+		_brine(host, p, float(sp.yaw), 4 + n_pans)
 		n_pans += 1
 		# a rake left in some of them, leant on the rim
 		if rng.randf() < 0.45:
@@ -722,7 +747,7 @@ static func _saltworks(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictio
 			piece(host, WORKS, "Pan_Unit", px, Vector2(0, 150), false)
 			cols(host, "PanBody", _tbl("PAN_BOXES"), px)
 			pans.append(p)
-			_brine(host, p, 0.0, float(pans.size()) * 1.7)
+			_brine(host, p, 0.0, pans.size())
 	# three derricks reaching over the pans (their booms swing out over the brine)
 	var derricks: Array[Vector3] = []
 	for dd: Vector2 in [Vector2(-1.0, 6.0), Vector2(-1.0, -4.0), Vector2(17.0, 6.0)]:

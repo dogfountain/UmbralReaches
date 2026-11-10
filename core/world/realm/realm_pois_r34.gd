@@ -979,6 +979,97 @@ static func _molten(host: Node3D, at: Vector3, radius: float, seed_v: float) -> 
 	mi.global_position = at
 
 
+## The profile of a founder's bell, radius over height (lip at 0): flared lip, waist, rounded crown.
+const BELL_PROFILE := [Vector2(1.0, 0.0), Vector2(0.95, 0.14), Vector2(0.8, 0.42), Vector2(0.64, 0.85), Vector2(0.55, 1.3),
+	Vector2(0.52, 1.65), Vector2(0.44, 1.93), Vector2(0.26, 2.12), Vector2(0.0, 2.2)]
+
+
+static func _bell_radius(y: float) -> float:
+	for i in BELL_PROFILE.size() - 1:
+		var a: Vector2 = BELL_PROFILE[i]
+		var c: Vector2 = BELL_PROFILE[i + 1]
+		if y <= c.y:
+			return lerpf(a.x, c.x, (y - a.y) / maxf(c.y - a.y, 0.001))
+	return 0.0
+
+
+## A bell's clay mould, local +Y up from the lip: a dark loam cope (outer face and hollow inside), three banded iron straps,
+## a lifting eye on the crown. `xf` places its lip centre.
+static func _bell_mould(host: Node3D, xf: Transform3D) -> void:
+	var root := Node3D.new()
+	root.name = "BellMould"
+	host.add_child(root)
+	root.global_transform = xf
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var seg := 20
+	var prof: Array = BELL_PROFILE
+	for pass_i in 2:
+		var inner := pass_i == 1
+		for i in prof.size() - 1:
+			var p0: Vector2 = prof[i]
+			var p1: Vector2 = prof[i + 1]
+			var o0 := 0.0 if not inner else 0.16
+			for j in seg:
+				var a0 := TAU * float(j) / float(seg)
+				var a1 := TAU * float(j + 1) / float(seg)
+				var r0 := maxf(p0.x - o0, 0.0) if not inner else maxf(p0.x - 0.16, 0.0)
+				var r1 := maxf(p1.x - o0, 0.0) if not inner else maxf(p1.x - 0.16, 0.0)
+				var y0 := p0.y if not inner else minf(p0.y, 2.0) * 0.92
+				var y1 := p1.y if not inner else minf(p1.y, 2.0) * 0.92
+				var v00 := Vector3(cos(a0) * r0, y0, sin(a0) * r0)
+				var v01 := Vector3(cos(a1) * r0, y0, sin(a1) * r0)
+				var v10 := Vector3(cos(a0) * r1, y1, sin(a0) * r1)
+				var v11 := Vector3(cos(a1) * r1, y1, sin(a1) * r1)
+				for v: Vector3 in [v00, v10, v11, v00, v11, v01]:
+					st.set_uv(Vector2(v.x + v.z, v.y))
+					st.add_vertex(v)
+	# the lip's thickness: a ring joining the outer face to the hollow
+	for j in seg:
+		var a0 := TAU * float(j) / float(seg)
+		var a1 := TAU * float(j + 1) / float(seg)
+		for v: Vector3 in [Vector3(cos(a0) * 1.0, 0, sin(a0) * 1.0), Vector3(cos(a0) * 0.84, 0, sin(a0) * 0.84), Vector3(cos(a1) * 0.84, 0, sin(a1) * 0.84),
+				Vector3(cos(a0) * 1.0, 0, sin(a0) * 1.0), Vector3(cos(a1) * 0.84, 0, sin(a1) * 0.84), Vector3(cos(a1) * 1.0, 0, sin(a1) * 1.0)]:
+			st.set_uv(Vector2(v.x + v.z, 0.0))
+			st.add_vertex(v)
+	st.generate_normals()
+	var clay := StandardMaterial3D.new()
+	clay.albedo_color = Color(0.2, 0.125, 0.085)
+	clay.roughness = 0.95
+	clay.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var cope := MeshInstance3D.new()
+	cope.name = "Cope"
+	cope.mesh = st.commit()
+	cope.material_override = clay
+	root.add_child(cope)
+	var iron := StandardMaterial3D.new()
+	iron.albedo_color = Color(0.1, 0.095, 0.09)
+	iron.metallic = 0.7
+	iron.roughness = 0.5
+	for by: float in [0.22, 0.9, 1.55]:
+		var r := _bell_radius(by) + 0.02
+		var tm := TorusMesh.new()
+		tm.inner_radius = r - 0.045
+		tm.outer_radius = r + 0.045
+		tm.rings = 20
+		tm.ring_segments = 8
+		var band := MeshInstance3D.new()
+		band.mesh = tm
+		band.material_override = iron
+		band.position = Vector3(0, by, 0)
+		band.scale = Vector3(1.0, 2.2, 1.0)
+		root.add_child(band)
+	var eye := TorusMesh.new()
+	eye.inner_radius = 0.16
+	eye.outer_radius = 0.27
+	var eye_mi := MeshInstance3D.new()
+	eye_mi.mesh = eye
+	eye_mi.material_override = iron
+	eye_mi.position = Vector3(0, 2.3, 0)
+	eye_mi.rotation = Vector3(PI * 0.5, 0, 0)
+	root.add_child(eye_mi)
+
+
 static func _foundry_pits(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary) -> void:
 	var xf := _xf(s)
 	var b := xf.basis
@@ -1004,12 +1095,12 @@ static func _foundry_pits(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 			_smoke(host, pc + Vector3.UP * 0.6, Color(0.36, 0.33, 0.32), 5)
 		else:
 			mould_c = pc
-	# the fourth bell's mould, cracked open in the big pit: a cope of clay, the core half out of it
-	var bell := P._bell_mesh()
-	k.append_mesh("plaster", bell, Transform3D(Basis(Vector3.RIGHT, 0.38).scaled(Vector3(1.9, 1.9, 1.9)), mould_c + Vector3(0.0, 0.2, 0.15)))
-	# the cope slab lies inside the pit, leant on the kerb's inner face (it used to cross the kerb)
-	k.box("plaster", mould_c + Vector3(0.75, 0.42, -0.95), Vector3(1.0, 0.8, 0.3), Basis(Vector3.UP, 0.6) * Basis(Vector3.FORWARD, 0.3), true, 0.8)
-	LK.col_box(k, mould_c + Vector3(0.0, 1.0, 0.15), Vector3(1.8, 2.0, 1.8), Basis(Vector3.RIGHT, 0.38))
+	# the fourth bell's mould: a dark clay cope bound in iron straps, laid on its side in the big pit with its mouth to the chest
+	var tilt := 0.2
+	var axis := b * Vector3(cos(tilt), sin(tilt), 0.0)
+	var mc := mould_c + b * Vector3(0.0, 0.95, 0.0)
+	_bell_mould(host, Transform3D(b * Basis(Vector3.BACK, -PI * 0.5 + tilt), mc - axis * 1.1))
+	LK.col_box(k, mc, Vector3(2.3, 1.9, 1.9), b * Basis(Vector3.BACK, tilt))
 	# the gantry: two A-frames and a beam over the pits, a chain and a hook
 	for sx: float in [-7.6, 7.6]:
 		var f := _gl(space, xf, Vector3(sx, 0, -1.4))
@@ -1031,7 +1122,7 @@ static func _foundry_pits(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 	_cyl(k, "iron", bench + b * Vector3(0.6, 0.96, 0), bench + b * Vector3(0.6, 1.36, 0), 0.24, 0.3)
 	k.box("iron", bench + b * Vector3(-0.5, 0.99, 0.1), Vector3(0.9, 0.04, 0.08), b * Basis(Vector3.UP, 0.3), false, 0.8)
 	k.commit(host, "PitsBody")
-	_chest(host, "foundry_mould", mould_c + b * Vector3(-1.5, 0.12, 0.9), float(s.yaw) + 0.6)
+	_chest(host, "foundry_mould", mould_c + b * Vector3(-1.75, 0.12, 0.1), float(s.yaw) + 0.6)
 	P._lore(host, "poi_foundry_mould", mould_c + b * Vector3(-1.4, 1.0, 2.2), mould_c + Vector3(0, 1.2, 0))
 	P._lore(host, "poi_foundry_ledger", bench + b * Vector3(-0.4, 1.3, 0.7), bench + b * Vector3(-0.6, 1.0, 0))
 	P._light(host, _gl(space, xf, Vector3(0, 1.2, -0.6)), Color(1.0, 0.42, 0.18), 1.0, 9.0)
