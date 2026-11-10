@@ -45,6 +45,19 @@ static func mat(set_name: String) -> StandardMaterial3D:
 	return m
 
 
+## The same sets for small props (a headstone, a cairn, a lectern): the texture tiles 3x finer and the normal map
+## is quieter, so a 0.5 m stone is not covered in a building's coarse grain.
+static func prop_mat(set_name: String) -> StandardMaterial3D:
+	var key := "prop_" + set_name
+	if _mats.has(key):
+		return _mats[key]
+	var m := mat(set_name).duplicate() as StandardMaterial3D
+	m.uv1_scale = Vector3(3, 3, 3)
+	m.normal_scale = 0.35
+	_mats[key] = m
+	return m
+
+
 static func scene(file: String) -> PackedScene:
 	if not _scenes.has(file):
 		_scenes[file] = load(M + file) as PackedScene

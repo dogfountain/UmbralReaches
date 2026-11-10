@@ -519,6 +519,7 @@ def waystone():
             (1.43, 0.61, 0.49, 0.03), (1.54, 0.61, 0.49, 0.03), (1.56, 0.52, 0.40, 0.025), (1.84, 0.05, 0.40, 0.01)]
     rings = [oct_ring(r, 0, 0, z, w, d, ch, j, r.uniform(-0.04, 0.04), None, 0.03 if z > 0.3 else 0.0) for z, w, d, ch in spec]
     faces, vs = mk.loft(rings)
+    mk.hullv = [v for v in mk.hullv if v.co.z < 1.6]      # solid to the cap: the gable is not part of the collider
     floor = mk.panel(faces[(5, 2)], 0.05, 0.016)
     fr0 = mk.frame(floor)
     arrow = [(-0.13, -0.026), (0.03, -0.026), (0.03, -0.075), (0.14, 0.0), (0.03, 0.075), (0.03, 0.026), (-0.13, 0.026)]
@@ -851,6 +852,12 @@ def preview_material(st):
     orm.image = tx("orm", "Non-Color")
     nor = nt.nodes.new("ShaderNodeTexImage")
     nor.image = tx("normal", "Non-Color")
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    mp = nt.nodes.new("ShaderNodeMapping")        # the game's prop_mat: uv1_scale 3, normal_scale 0.35
+    mp.inputs["Scale"].default_value = (3.0, 3.0, 3.0)
+    nt.links.new(tc.outputs["UV"], mp.inputs["Vector"])
+    for im in (alb, orm, nor):
+        nt.links.new(mp.outputs[0], im.inputs["Vector"])
     mul = nt.nodes.new("ShaderNodeMix")
     mul.data_type = 'RGBA'
     mul.blend_type = 'MULTIPLY'
@@ -869,6 +876,7 @@ def preview_material(st):
     nt.links.new(sep.outputs[1], b.inputs["Roughness"])
     nt.links.new(sep.outputs[2], b.inputs["Metallic"])
     nm = nt.nodes.new("ShaderNodeNormalMap")
+    nm.inputs["Strength"].default_value = 0.35
     nt.links.new(nor.outputs[0], nm.inputs["Color"])
     nt.links.new(nm.outputs[0], b.inputs["Normal"])
     return m

@@ -3,6 +3,8 @@ extends Interactable
 ## A short inscription. One toast. E to read.
 
 
+const StoneProps := preload("res://core/world/realm/lore/stone_props.gd")
+
 var body := ""
 var _read := false
 
@@ -29,20 +31,14 @@ func interact(_by: Node) -> void:
 
 
 func _build() -> void:
-	var stone := StandardMaterial3D.new()
-	stone.albedo_color = Color(0.22, 0.16, 0.18)
-	stone.roughness = 0.92
-	stone.rim_enabled = true
-	stone.rim = 0.28
-	var slab := BoxMesh.new()
-	slab.size = Vector3(0.42, 0.62, 0.08)
-	ProcMesh.mesh(self, "Tablet", slab, stone, Vector3(0.0, 0.34, 0.0), Vector3(-0.18, 0.0, 0.0), true)
-	var mark := StandardMaterial3D.new()
-	mark.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mark.albedo_color = Color(0.95, 0.42, 0.38)
-	var line := BoxMesh.new()
-	line.size = Vector3(0.22, 0.012, 0.02)
-	ProcMesh.mesh(self, "Mark", line, mark, Vector3(0.0, 0.48, 0.05), Vector3.ZERO, false)
+	# the in-house tablet model (tools/blender/props_stones.py), dressed with the tiling stone set
+	var ps := load("res://art/models/props/lore_tablet_weathered.glb") as PackedScene
+	if ps != null:
+		var m := ps.instantiate() as Node3D
+		m.name = "Tablet"
+		add_child(m)
+		StoneProps.dress(m)
+		return
 	var body_col := StaticBody3D.new()
 	body_col.name = "Body"
 	body_col.collision_layer = Layers.WORLD

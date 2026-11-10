@@ -9,6 +9,7 @@ const Inscription := preload("res://core/world/realm/lore/inscription.gd")
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
 const LoreIndex := preload("res://core/world/realm/lore/lore_index.gd")
 const LA := preload("res://core/world/realm/lore/lore_assets.gd")
+const StoneProps := preload("res://core/world/realm/lore/stone_props.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const T := "res://art/textures/"
 const KIT_PATH := "res://core/world/realm/lore/lore_kit.gd"
@@ -16,6 +17,8 @@ const UNIT_BOULDER := Vector3(1.0, 0.8, 0.9)     ## shared RockKit boulders, sca
 const UNIT_SLAB := Vector3(0.6, 1.2, 0.25)
 const MAX_LIGHTS := 12
 const PROP_RANGE := 70.0           ## small props fade out past this
+const PROP_CELL := 64.0            ## stone models are batched into one MultiMesh per (model, set) per cell this wide
+const TALL_RANGE := 120.0          ## waystones and steles read from far
 
 static var lights_used := 0
 static var draws_total := 0                     ## mesh + multimesh instances added (all landmarks)
@@ -35,6 +38,7 @@ static var _pool: Dictionary = {}                ## small organic meshes shared 
 static func release() -> void:
 	_statues.clear()
 	_pool.clear()
+	StoneProps.release()
 
 var holder: Node3D
 var k := OssKit.new()
@@ -46,6 +50,7 @@ var _rocks: Dictionary = {}        ## RockKit mesh -> [[Transform3D, collide], .
 var _mb: Dictionary = {}           ## material key -> LA.MB (UV-mapped quads: carved panels)
 var _uvm: Dictionary = {}          ## material key -> SurfaceTool (appended UV meshes: thatch, slates)
 var _uv_props: Dictionary = {}     ## material keys drawn as props (visibility-ranged)
+var _props: Array = []             ## [glb file, Transform3D] stone models, drawn as MultiMeshes at finish
 var _plain: Array = []             ## [centre, normal, w, h, cell]: unlit carvings, unless letters() claims the face
 
 
@@ -356,16 +361,10 @@ func spot_any(n: String, candidates: Array, half := 0.9, margin := 0.6, max_rise
 ## panel. Faces `yaw` (its text looks along local -z). Returns the panel centre.
 func stele(at: Vector3, yaw: float, h := 2.1, key := "lore_tstone") -> Vector3:
 	var b := Basis(Vector3.UP, yaw) * Basis(Vector3.BACK, rng.randf_range(-0.03, 0.03))
-	var base := at + Vector3.DOWN * 0.3
-	k.box(key, base + b * Vector3(0, 0.25, 0), Vector3(1.25, 0.5, 0.7), b, true, 0.82)
-	k.box(key, base + b * Vector3(0, 0.3 + h * 0.5, 0), Vector3(0.9, h, 0.32), b, true)
-	half_disc(k, key, Transform3D(b, base + b * Vector3(0, 0.3 + h, 0)), 0.48, 0.0, 0.36, 2, true, 0.9)
-	k.box(key, base + b * Vector3(0, 0.3 + h - 0.02, 0), Vector3(1.0, 0.08, 0.4), b, false, 0.85)
-	var face := base + b * Vector3(0, 0.3 + h * 0.48, -0.165)
-	panel(face, -b.z, 0.7, 0.8, LA.C_TEXT2)
-	panel(base + b * Vector3(0, 0.3 + h * 0.86, -0.165), -b.z, 0.42, 0.42, LA.C_DOOR)
+	var fp := prop("lore_stele.glb", Transform3D(b.scaled(Vector3.ONE * (h / 2.1)), at))
+	panel(fp, -b.z, 0.68 * h / 2.1, 0.66 * h / 2.1, LA.C_TEXT2)       # the lettering on the recess floor; the Open Door is cut into the model
 	cairn(p, at + b * Vector3(0.62, 0, -0.42), 0.35)
-	return face
+	return fp
 
 
 func note(n: String, at: Vector3) -> void:
@@ -418,7 +417,7 @@ func finish() -> int:
 	for pl: Array in _plain:
 		panel(pl[0], pl[1], pl[2], pl[3], pl[4], false, Vector3.ZERO, true)
 	_plain.clear()
-	var draws := k.commit(holder, "Body") + _commit_rocks()
+	var draws := k.commit(holder, "Body") + _commit_rocks() + _commit_props()
 	var props := Node3D.new()
 	props.name = "Props"
 	holder.add_child(props)
@@ -448,6 +447,71 @@ func finish() -> int:
 		mmi.set_meta("site_owned", true)
 	draws_total += draws
 	return draws
+
+
+# --- stone models (art/models/props/lore_*.glb) ----------------------------------------------
+
+## Place a stone model at `xf` (world; scale included). Drawn as MultiMeshes at finish() (one per model and
+## set per PROP_CELL cell); solid models get a convex collider from the glb's hull. Returns the model's
+## TextPoint in world space (the inscription's floor), or `xf.origin` for a model without one.
+func prop(file: String, xf: Transform3D, collide := true) -> Vector3:
+	var d := StoneProps.info(file)
+	_props.append([file, xf])
+	if collide and not (d.points as PackedVector3Array).is_empty():
+		var pts := PackedVector3Array()
+		for q: Vector3 in d.points:
+			pts.append(xf * q)
+		var cs := CollisionShape3D.new()
+		var sh := ConvexPolygonShape3D.new()
+		sh.points = pts
+		cs.shape = sh
+		cs.name = "StoneCol"
+		_prop_body().add_child(cs)
+	return xf * (d.text as Vector3)
+
+
+var _pbody: StaticBody3D
+
+
+func _prop_body() -> StaticBody3D:
+	if _pbody == null:
+		_pbody = StaticBody3D.new()
+		_pbody.name = "StoneBody"
+		_pbody.collision_layer = Layers.WORLD
+		_pbody.collision_mask = 0
+		holder.add_child(_pbody)
+	return _pbody
+
+
+func _commit_props() -> int:
+	if _props.is_empty():
+		return 0
+	var node := Node3D.new()
+	node.name = "StoneProps"
+	holder.add_child(node)
+	var groups := {}                  # "file|set|cx|cz" -> [mesh, set, tall, [xf...]]
+	for it: Array in _props:
+		var file: String = it[0]
+		var xf: Transform3D = it[1]
+		var cell := Vector2i(floori(xf.origin.x / PROP_CELL), floori(xf.origin.z / PROP_CELL))
+		for part: Dictionary in (StoneProps.info(file).parts as Array):
+			var key := "%s|%s|%d|%d" % [file, part.set, cell.x, cell.y]
+			if not groups.has(key):
+				groups[key] = [part.mesh, part.set, file.contains("waystone") or file.contains("stele"), []]
+			(groups[key][3] as Array).append(xf)
+	var n := 0
+	for key: String in groups:
+		var gp: Array = groups[key]
+		var mmi := OssKit.multimesh(gp[0] as Mesh, gp[3] as Array, StoneProps.mat(gp[1] as String), false)
+		mmi.name = "S%d_%s" % [n, key.get_slice("|", 0).get_basename().trim_prefix("lore_")]
+		var far := TALL_RANGE if gp[2] else PROP_RANGE
+		mmi.visibility_range_end = far
+		mmi.visibility_range_end_margin = far * 0.1
+		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		mmi.set_meta("site_owned", true)
+		node.add_child(mmi)
+		n += 1
+	return n
 
 
 # --- RockKit (assets module) ----------------------------------------------------------------
@@ -630,28 +694,21 @@ func stone(kit: OssKit, at: Vector3, size: Vector3, key := "lore_moss", solid :=
 
 
 ## Pebble cairn (pilgrims' stones) at the foot of something.
-func cairn(kit: OssKit, at: Vector3, h := 0.6, key := "lore_rock") -> void:
-	var y := at.y
+func cairn(_kit: OssKit, at: Vector3, h := 0.6, _key := "lore_rock") -> void:
+	# draw the random numbers the old pebble-by-pebble cairn drew, so every placement after it in this landmark's
+	# stream (and the sites they claim) stays where it was
 	var r := h * 0.55
 	var layer := 0
 	while r > 0.06 and layer < 6:
-		var n := maxi(1, int(r * 9.0))
-		for i in n:
-			var a := TAU * float(i) / float(n) + rng.randf() * 0.5
-			var s := clampf(r * 0.7, 0.07, 0.24) * rng.randf_range(0.8, 1.2)
-			var q := at + Vector3(cos(a) * r * 0.7, 0.0, sin(a) * r * 0.7)
-			q.y = y + s * 0.35
-			if n == 1:
-				q = Vector3(at.x, y + s * 0.4, at.z)
-			var pv := rng.randi() % 8
-			var peb := pooled("pebble%d" % pv, func() -> ArrayMesh:
-				var cm := CreatureMesh.new(700 + pv)
-				cm.blob(Vector3.ZERO, Vector3(0.6, 0.38, 0.5), Basis.IDENTITY, Color(1, 1, 1).darkened(0.035 * float(pv)), 0.0, 0.15, 0.0, 4, 7)
-				return cm.commit())
-			organic(kit, key, peb, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * s), q))
-		y += clampf(r * 0.7, 0.07, 0.24) * 0.62
+		for i in maxi(1, int(r * 9.0)):
+			rng.randf()
+			rng.randf_range(0.8, 1.2)
+			rng.randi()
+			rng.randf()
 		r *= 0.62
 		layer += 1
+	var yaw := fposmod(at.x * 12.9898 + at.z * 78.233, 1.0) * TAU
+	prop("lore_cairn_stack.glb", Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * (h / 0.6)), at), false)
 
 
 # --- grave markers, waystones, tablets ------------------------------------------------------
@@ -666,29 +723,14 @@ func headstone(at: Vector3, yaw: float, style: int, h := 1.0, tilt := Vector2.ZE
 	var xf := Transform3D(lean, base)
 	var w := h * 0.55
 	var t := 0.12 + h * 0.04
+	var face_pt := Vector3.INF
+	var out_n := lean * Vector3(0, 0, -1)
 	match style:
-		0:
-			var body := h + bury - w * 0.5
-			k.box(key, xf * Vector3(0, body * 0.5, 0), Vector3(w, body, t), lean, true)
-			half_disc(k, key, xf, w * 0.5, body, t, 9, true)
-			# a sunk panel border on the face
-			k.box(key, xf * Vector3(0, body * 0.62, -t * 0.5), Vector3(w * 0.72, body * 0.42, 0.03), lean, false, 0.82)
-		1:
-			k.box(key, xf * Vector3(0, (h + bury) * 0.5, 0), Vector3(w * 0.32, h + bury, t), lean, true)
-			k.box(key, xf * Vector3(0, bury + h * 0.68, 0), Vector3(w * 1.05, w * 0.3, t), lean, true)
-			k.box(key, xf * Vector3(0, bury * 0.6, 0), Vector3(w * 0.8, 0.22, t + 0.14), lean, false, 0.85)
-		2:
-			var body2 := h + bury - w * 0.32
-			k.box(key, xf * Vector3(0, body2 * 0.5, 0), Vector3(w, body2, t), lean, true)
-			half_disc(k, key, xf, w * 0.5, body2, t, 2, true)
-			k.box(key, xf * Vector3(0, body2 + 0.02, 0), Vector3(w * 1.12, 0.06, t + 0.06), lean, false, 0.85)
-		3:
-			# broken: a slab sheared off at an angle, the top piece lying in front
-			var hh := h * 0.6 + bury
-			k.box(key, xf * Vector3(0, hh * 0.5, 0), Vector3(w, hh, t), lean, true)
-			k.box(key, xf * Vector3(w * 0.18, hh, 0), Vector3(w * 0.6, 0.14, t), lean * Basis(Vector3.BACK, 0.35), false)
-			var lay := at + Basis(Vector3.UP, yaw) * Vector3(0.1, 0.06, -0.55)
-			k.box(key, lay, Vector3(w, t, h * 0.45), Basis(Vector3.UP, yaw + rng.randf_range(-0.4, 0.4)), false, 0.9)
+		0, 1, 2, 3:
+			var files := ["lore_headstone_round.glb", "lore_headstone_cross.glb", "lore_headstone_slab.glb", "lore_headstone_broken.glb"]
+			face_pt = prop(files[style], Transform3D(lean.scaled(Vector3.ONE * h), at))
+			if style == 3:
+				rng.randf_range(-0.4, 0.4)         # the old fallen head's yaw: keeps this landmark's random stream unchanged
 		_:
 			if rk():
 				var m: Mesh = rk().call("slab", rng.randi() % 6, UNIT_SLAB, style_of(key), 0.35, true)
@@ -699,10 +741,11 @@ func headstone(at: Vector3, yaw: float, style: int, h := 1.0, tilt := Vector2.ZE
 				var cm := CreatureMesh.new(rng.randi())
 				cm.tube(PackedVector3Array([Vector3(0, 0, 0), Vector3(0, (h + bury) * 0.55, 0), Vector3(0.02, h + bury, 0)]), PackedFloat32Array([w * 0.42, w * 0.38, w * 0.22]), 7, Color(1, 1, 1), 0.0, 0.25, 0.0, Vector2(1.0, 0.45))
 				organic(k, "lore_moss", cm.commit(), xf, true)
-	if style == 0 or style == 2 or style == 3:
-		var ph := h * (0.3 if style == 3 else 0.42)
-		var py := bury + h * (0.3 if style == 3 else 0.5)
-		_plain.append([xf * Vector3(0, py, -t * 0.5), lean * Vector3(0, 0, -1), w * 0.66, ph, LA.C_TEXT if rng.randf() < 0.5 else LA.C_TEXT2])
+	if style <= 3:
+		# the lettered panel lies on the recess floor at the model's TextPoint
+		var pw: float = [0.36, 0.28, 0.36, 0.34][style] * h
+		var ph: float = [0.32, 0.1, 0.32, 0.2][style] * h
+		_plain.append([face_pt, out_n, pw, ph, LA.C_TEXT if (style == 1 or rng.randf() < 0.5) else LA.C_TEXT2])
 	if mound:
 		# a grave kerb: a low stone curb round the plot (one side sometimes sunk or missing), the
 		# plot itself a slight earth swell inside it
@@ -729,6 +772,8 @@ func headstone(at: Vector3, yaw: float, style: int, h := 1.0, tilt := Vector2.ZE
 				cm3.tube(PackedVector3Array([Vector3(cos(ba) * 0.04, 0.0, sin(ba) * 0.04), Vector3(cos(ba) * 0.09, 0.12 + 0.03 * float(bl % 2), sin(ba) * 0.09)]), PackedFloat32Array([0.012, 0.002]), 3, Color(0.75, 0.88, 0.55), 0.0, 0.0)
 			return cm3.commit())
 		organic(p, "lore_leaf", tuft, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.8, 1.4)), at + Vector3(cos(a) * w * 0.5, 0.0, sin(a) * 0.14)))
+	if style <= 3:
+		return face_pt + out_n * 0.05
 	return xf * Vector3(0, bury + h * 0.55, -t * 0.5 - 0.05)
 
 
@@ -758,31 +803,18 @@ func letters(c: Vector3, n: Vector3, w: float, rows := 3, key := "lore_rune", ce
 
 ## Waystone: a tapering milestone with a capstone, a sunk inscription panel facing `face_yaw`
 ## (the road), a pilgrims' cairn at its foot. Returns the panel centre.
-func waystone(at: Vector3, face_yaw: float, h := 1.55, key := "lore_tstone") -> Vector3:
+func waystone(at: Vector3, face_yaw: float, h := 1.55, _key := "lore_tstone") -> Vector3:
 	var b := Basis(Vector3.UP, face_yaw) * Basis(Vector3.RIGHT, rng.randf_range(-0.04, 0.04)) * Basis(Vector3.BACK, rng.randf_range(-0.05, 0.05))
-	var base := at + Vector3.DOWN * 0.35
-	var xf := Transform3D(b, base)
-	k.box(key, xf * Vector3(0, 0.2, 0), Vector3(0.78, 0.4, 0.62), b, true, 0.85)            # footing
-	k.box(key, xf * Vector3(0, 0.35 + h * 0.3, 0), Vector3(0.58, h * 0.6, 0.44), b, true)
-	k.box(key, xf * Vector3(0, 0.35 + h * 0.75, 0), Vector3(0.5, h * 0.32, 0.38), b, true, 0.95)
-	k.box(key, xf * Vector3(0, 0.35 + h * 0.93, 0), Vector3(0.6, 0.1, 0.48), b, true, 0.88)    # cap
-	half_disc(k, key, Transform3D(b, xf * Vector3(0, 0.35 + h * 0.98, 0)), 0.26, 0.0, 0.4, 2, false, 0.9)
-	var panel := xf * Vector3(0, 0.35 + h * 0.62, -0.23)
-	k.box(key, panel + b.z * 0.012, Vector3(0.4, 0.48, 0.04), b, false, 0.7)
-	panel(panel - b.z * 0.012, -b.z, 0.34, 0.42, LA.C_MILE)
-	# iron bell hook on the road side
-	p.box("iron", xf * Vector3(0.3, 0.35 + h * 0.85, -0.05), Vector3(0.18, 0.03, 0.03), b, false)
+	var fp := prop("lore_waystone.glb", Transform3D(b.scaled(Vector3.ONE * (h / 1.55)), at))     # the arrow and tally are cut into the model
 	cairn(p, at + b * Vector3(0.55, 0.0, -0.35), 0.45)
-	return panel - b.z * 0.25
+	return fp - b.z * 0.25
 
 
 ## A lectern with a book/page (the journal pages, the Litany). Returns the reading point.
-func lectern(at: Vector3, yaw: float, key := "lore_tstone", page := true) -> Vector3:
+func lectern(at: Vector3, yaw: float, _key := "lore_tstone", page := true) -> Vector3:
 	var b := Basis(Vector3.UP, yaw)
-	k.box(key, at + b * Vector3(0, 0.05, 0), Vector3(0.6, 0.12, 0.5), b, true, 0.85)
-	k.box(key, at + b * Vector3(0, 0.55, 0), Vector3(0.26, 0.95, 0.24), b, true)
+	prop("lore_lectern.glb", Transform3D(b, at))
 	var top := b * Basis(Vector3.RIGHT, -0.45)
-	k.box(key, at + b * Vector3(0, 1.08, 0.02), Vector3(0.62, 0.08, 0.46), top, true, 0.92)
 	if page:
 		p.box("lore_paper", at + b * Vector3(-0.13, 1.13, 0.0), Vector3(0.24, 0.012, 0.32), top * Basis(Vector3.BACK, -0.06), false)
 		p.box("lore_paper", at + b * Vector3(0.13, 1.13, 0.0), Vector3(0.24, 0.012, 0.32), top * Basis(Vector3.BACK, 0.06), false, 0.92)

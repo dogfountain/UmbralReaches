@@ -10,6 +10,7 @@ extends RefCounted
 ## RockKit (core/world/realm/rock_kit.gd) is the procedural rock library this builds on.
 
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
+const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
 const T := "res://art/textures/"
 const M := "res://art/models/"
 
@@ -124,13 +125,10 @@ static func _menhir(model: Node, seed_v: int, at: Vector3) -> void:
 
 
 ## Cairn: the stacked boxes become a pile of rounded, chipped field stones.
-static func _cairn(model: Node, seed_v: int, at: Vector3) -> void:
-	var mi := _mi(model, "Stone_001")
-	if mi == null:
-		return
-	var style := _style_at(at, "mossy", "granite")
-	mi.mesh = cairn_mesh(seed_v, style)
-	mi.material_override = null
+static func _cairn(model: Node, _seed_v: int, _at: Vector3) -> void:
+	# the remodelled glb (tools/blender/props_stones.py: chunky stacked stones, tone in the vertex colour) is dressed
+	# with the tiling stone set; it no longer swaps in RockKit stones
+	_dress_stone(model)
 
 
 static func cairn_mesh(seed_v: int, style: String) -> ArrayMesh:
@@ -170,19 +168,21 @@ static func cairn_mesh(seed_v: int, style: String) -> ArrayMesh:
 
 
 ## Rune slab: a dressed slab with a clean face for the glowing mark (kept; its glow tamed).
-static func _rune_slab(model: Node, seed_v: int, at: Vector3) -> void:
-	var stone := _mi(model, "Stone")
-	if stone == null:
-		return
-	var style := _style_at(at, "mossy", "granite")
-	# the mark sits on the -Z face: build with the flat face at +Z and turn the stone round
-	stone.mesh = RockKit.slab(seed_v, Vector3(0.47, 0.74, 0.13), style, 0.18, true)
-	stone.rotation.y = PI
-	stone.material_override = null
+static func _rune_slab(model: Node, _seed_v: int, _at: Vector3) -> void:
+	# the remodelled slab has its rune cut into a sunk panel (Stone) and an inlay of glow (Mark): dress Stone, keep the glow
+	_dress_stone(model)
 	var mark := _mi(model, "Mark")
 	if mark != null:
 		mark.material_override = _mat("rune")
 		mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## Every mesh of a remodelled stone glb gets the finer tiling stone set (node names are kept).
+static func _dress_stone(model: Node) -> void:
+	for mi in model.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		if String(m.name) != "Mark":
+			m.material_override = WestKit.prop_mat("stone")
 
 
 ## Roots and fallen branches: same meshes, now textured bark with LODs.
@@ -215,12 +215,8 @@ static func _stone_frame(model: Node) -> void:
 		m.material_override = _mat("frame")
 
 
-static func _rock(model: Node, seed_v: int, at: Vector3) -> void:
-	for mi in model.find_children("*", "MeshInstance3D", true, false):
-		var m := mi as MeshInstance3D
-		var size := m.mesh.get_aabb().size
-		m.mesh = RockKit.boulder(seed_v, size, _style_at(at, "mossy", "granite"))
-		m.material_override = null
+static func _rock(model: Node, _seed_v: int, _at: Vector3) -> void:
+	_dress_stone(model)                    # the remodelled glb: chiselled, smooth-shaded, moss and cracks in the tone
 
 
 static func _lod(mesh: Mesh) -> Mesh:
