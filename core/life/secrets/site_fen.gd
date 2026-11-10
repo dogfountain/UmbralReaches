@@ -99,6 +99,7 @@ static func _barrow(root: Node, parent: Node3D, sp: PhysicsDirectSpaceState3D) -
 			k.box("stone", Vector3(x0 + 0.1 + 0.3 * float(j), g + hh * 0.5, zz), Vector3(0.6, hh, 0.85), Basis(Vector3.UP, s * 0.25 * float(j)), true, rng.randf_range(0.72, 0.9))
 	k.box("stone", Vector3(x0 - 0.1, g + 2.45, z), Vector3(0.7, 0.45, 3.0), Basis.IDENTITY, true, 0.9)
 	k.commit(node, "BarrowBody")
+	print("SITES Barrow owns %d scatter nodes" % WorldLanes.own(node))    # the bier's bones and candles stand inside the site
 	for c in node.get_children():
 		if c is GeometryInstance3D and (c as GeometryInstance3D).visibility_range_end == 0.0:
 			(c as GeometryInstance3D).visibility_range_end = 110.0
@@ -215,6 +216,7 @@ static func _crypt(root: Node, parent: Node3D, sp: PhysicsDirectSpaceState3D) ->
 	ck.candle_cluster(Vector3(c.x - 0.6, fy, c.z + 1.8), 4, 0.25, rng)
 	ck.candle_cluster(Vector3(c.x - 0.6, fy, c.z - 1.8), 3, 0.25, rng)
 	ck.commit(cn, "CandleBody")
+	print("SITES Crypt owns %d scatter nodes" % WorldLanes.own(cn))
 	var light := Kit.omni(node, Vector3(c.x + 0.6, fy + 1.6, c.z), Color(1.0, 0.62, 0.3), 1.3, 7.0)
 	# the grate (iron bars) in the doorway
 	var grate := Node3D.new()

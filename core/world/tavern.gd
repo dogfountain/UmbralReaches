@@ -204,8 +204,7 @@ func _build() -> void:
 	k.commit(self, "TavernBody")
 	_panes_one_sided()
 	_warm_materials()
-	for mmi in find_children("*", "MultiMeshInstance3D", true, false):
-		mmi.set_meta("site_owned", true)
+	print("SITES Tavern owns %d scatter nodes" % WorldLanes.own(self))   # its candles stand inside its sites
 	_lights(post + Vector3(0, 2.2, -0.5))
 	_patrons()
 	print("TAVERN built: floor %.2f, ground %.2f..%.2f, rejected props %d" % [FY, g.x, g.y, k.rejected])

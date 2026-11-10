@@ -397,6 +397,17 @@ static func _on_runtime_lane(p: Vector2, reach: float) -> bool:
 	return false
 
 
+## Mark `node` and every MultiMesh under it as placed on purpose: cull_scatter keeps them even inside a site.
+## Returns how many MultiMeshes were marked. Never call it on the flora: the flora is what the cull is for.
+static func own(node: Node) -> int:
+	node.set_meta(&"site_owned", true)
+	var n := 1 if node is MultiMeshInstance3D else 0
+	for mmi in node.find_children("*", "MultiMeshInstance3D", true, false):
+		mmi.set_meta(&"site_owned", true)
+		n += 1
+	return n
+
+
 ## Drop scattered MultiMesh instances (grass, ferns, pebbles, caps, twigs) that stand inside a
 ## registered site: nothing grows through a floor or a wall.
 static func cull_scatter(root: Node, margin := 0.35) -> int:

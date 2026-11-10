@@ -672,6 +672,7 @@ static func _drape_moss_cards(holder: Node3D) -> void:
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mmi.ignore_occlusion_culling = true
 	holder.add_child(mmi)
+	print("SITES SummitMoss owns %d scatter nodes" % WorldLanes.own(mmi))    # hung on the monument inside the dais site
 
 
 static func _paint_mage(model: Node) -> void:

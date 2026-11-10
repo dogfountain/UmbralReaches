@@ -147,6 +147,7 @@ static func build(root: Node, host: Node3D) -> void:
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mmi.visibility_range_end = 90.0
 	wisps.add_child(mmi)
+	print("SITES SingingStones owns %d scatter nodes" % WorldLanes.own(wisps))   # the motes circle inside the site
 	var spin := wisps.create_tween().set_loops()
 	spin.tween_property(wisps, "rotation:y", TAU, 38.0).from(0.0)
 	var wl := Kit.omni(wisps, wisps.global_position, Color(0.55, 0.85, 1.0), 0.8, 9.0)

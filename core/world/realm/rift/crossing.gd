@@ -112,6 +112,7 @@ func build(root: Node, host: Node3D) -> void:
 	_commit_columns(host)
 	_commit_spindle(host)
 	_commit_fires(host)
+	print("SITES Crossing owns %d scatter nodes" % WorldLanes.own(host))    # its columns carry the stair: the cull must not thin them
 	for s in legs:
 		print("RIFT ", s)
 

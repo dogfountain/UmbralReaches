@@ -71,6 +71,7 @@ func _build(root: Node) -> void:
 	_offerings()
 	_lights()
 	_marker()
+	print("SITES SkyChain owns %d scatter nodes" % WorldLanes.own(host))   # the chain, candles and cloths stand inside its sites on purpose
 	for b in _temp:
 		b.queue_free()
 	_temp.clear()

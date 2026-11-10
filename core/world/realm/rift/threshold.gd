@@ -79,9 +79,8 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 		b.queue_free()
 	_temp.clear()
 	k.commit(host, "ThresholdBody")
-	for n in host.get_children():
-		if n is MultiMeshInstance3D:
-			n.set_meta(&"site_owned", true)      # placed on purpose (the pillars' candles stand inside their sites): WorldLanes.cull_scatter keeps them
+	# placed on purpose (the pillars' candles stand inside their sites): WorldLanes.cull_scatter keeps them
+	print("SITES Threshold owns %d scatter nodes" % WorldLanes.own(host))
 	var mi := MeshInstance3D.new()
 	mi.name = "Runes"
 	mi.mesh = rune.commit()
