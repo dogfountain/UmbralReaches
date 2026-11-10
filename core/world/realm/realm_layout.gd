@@ -222,10 +222,10 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(-120, 214), "note": "the west downs"},
 		{"kind": "camp", "at": Vector2(126, 214), "note": "the east downs"}],
 	"oak": [
-		{"kind": "fire", "at": Vector2(-44, 192), "note": "beside downs_track, in the oak's shade"},
+		{"kind": "fire", "at": Vector2(-44, 196.4), "note": "beside downs_track, in the oak's shade"},
 		{"kind": "poi", "at": Vector2(-70, 206), "note": "the Grandmother Oak"}],
 	"well": [
-		{"kind": "fire", "at": Vector2(44, 192), "note": "beside downs_track, east of the hut"},
+		{"kind": "fire", "at": Vector2(44, 196.4), "note": "beside downs_track, east of the hut"},
 		{"kind": "poi_wet", "at": Vector2(72, 204), "note": "the Well of Echoes (its pool is in the pit)"}],
 	"quarry": [
 		{"kind": "fire", "at": Vector2(-120, -83), "note": "the pit's mouth, beside west_track's end"},

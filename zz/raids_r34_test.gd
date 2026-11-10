@@ -194,6 +194,12 @@ func _henge() -> void:
 	await _secs(2.6)
 	# r35: its own theme (boss_themes.gd), rendered on a thread on the first pull
 	var themes := get_tree().get_first_node_in_group(&"boss_themes")
+	# the render runs on a worker thread: on a loaded machine it takes longer than the 2.6 s above, so
+	# wait for the fade (up to 12 s more) instead of reading it at one fixed moment
+	var waited := 0.0
+	while themes != null and waited < 12.0 and not (String(themes.get("playing_id")) == "thornwarden" and float(themes.get("theme_k")) > 0.3):
+		await _secs(0.5)
+		waited += 0.5
 	check("henge: the Thornwarden's theme plays (not the shared danger pad)", themes != null and String(themes.get("playing_id")) == "thornwarden" and float(themes.get("theme_k")) > 0.3,
 		"%s %.2f" % [themes.get("playing_id") if themes else "-", float(themes.get("theme_k")) if themes else 0.0])
 	# phase I: the Thornstorm, line of sight
