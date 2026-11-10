@@ -8,7 +8,7 @@ extends RefCounted
 
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
-const WestKit := preload("res://core/world/realm/r37_west_kit.gd")
+const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
 
 const NAME := "The Wardens' Tally"
 

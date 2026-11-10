@@ -24,7 +24,7 @@ const WET := [
 	[Vector2(-10.0, 48.5), 2.6], [Vector2(-191.0, 76.2), 2.4], [Vector2(11.5, 60.5), 1.8],
 ]
 ## Walk lanes outside Hearthward's own network (Weirford's square, Saltmarket's yard): polylines of
-## the nodes their people walk (realm_pois_r37_west.gd, realm_pois_r37_east.gd)
+## the nodes their people walk (realm_pois_west_marches.gd, realm_pois_east_marches.gd)
 const LANES := [
 	[Vector2(-186.0, 62.6), Vector2(-186.0, 64.8), Vector2(-186.0, 70.6), Vector2(-185.0, 70.6)],
 	[Vector2(-194.4, 65.6), Vector2(-194.8, 69.8), Vector2(-196.0, 71.4), Vector2(-199.6, 74.6), Vector2(-201.8, 77.6)],

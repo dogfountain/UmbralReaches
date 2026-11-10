@@ -5,7 +5,7 @@ extends Node
 
 const Chains := preload("res://core/story/quest_chains_upward_falls.gd")
 const Cast := preload("res://core/life/village/village_cast.gd")
-const CastW := preload("res://core/life/village/village_cast_r37_west.gd")
+const CastW := preload("res://core/life/village/village_cast_west_marches.gd")
 
 var main: Node
 var fails := 0

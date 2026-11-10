@@ -8,7 +8,7 @@ extends RefCounted
 
 const T := "res://art/textures/"
 const M := "res://art/models/"
-const WheelSpin := preload("res://core/world/realm/r37_wheel_spin.gd")
+const WheelSpin := preload("res://core/world/realm/mill_wheel_spin.gd")
 
 static var _mats := {}
 static var _scenes := {}

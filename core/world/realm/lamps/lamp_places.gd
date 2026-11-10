@@ -24,7 +24,7 @@ const Road := preload("res://core/world/realm/lore/road.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const Kept := preload("res://core/world/realm/lamps/lamps_kept.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
-const West := "res://core/world/realm/realm_pois_r37_west.gd"
+const West := "res://core/world/realm/realm_pois_west_marches.gd"
 const WALL_REACH := 3.2
 const KEEP_OFF := 1.7                  ## from another interactable (ground lamps)
 
@@ -309,7 +309,7 @@ static func _road_lanterns(host: Node3D) -> void:
 		stats["pane"] = int(stats.get("pane", 0)) + 1
 
 
-## Weirford's five street lanterns (realm_pois_r37_west.gd LANTERNS): the cage was always there, the flame
+## Weirford's five street lanterns (realm_pois_west_marches.gd LANTERNS): the cage was always there, the flame
 ## was painted on; now the wanderer lights it.
 static func _weirford_lanterns(host: Node3D) -> void:
 	var west: Dictionary = (load(West) as GDScript).get_script_constant_map()
@@ -428,7 +428,7 @@ static func _oak(host: Node3D, root: Node) -> void:
 		_skip("oak", "no oak stair built")
 		return
 	var xf: Transform3D = poi.get_meta("oak_xf")
-	var data := (load("res://core/world/realm/r37_south_data.gd") as GDScript).get_script_constant_map()
+	var data := (load("res://core/world/realm/south_marches_kit_data.gd") as GDScript).get_script_constant_map()
 	var st: Dictionary = data.OAK_STAIR
 	var a0 := float(st.a0)
 	var a1 := float(st.a_end)

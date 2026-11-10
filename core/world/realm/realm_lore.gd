@@ -17,11 +17,11 @@ const PARTS := [
 	"res://core/world/realm/lore/barrows.gd",
 	"res://core/world/realm/lore/wilds.gd",
 	"res://core/world/realm/lore/rim.gd",
-	"res://core/world/realm/lore/r34_places.gd",     # r34 places: the new ground's writings (docs/r34/places.md)
+	"res://core/world/realm/lore/doubled_realm_places.gd",     # r34 places: the new ground's writings (docs/r34/places.md)
 	# --- south marches ---
-	"res://core/world/realm/lore/r37_south_places.gd",
+	"res://core/world/realm/lore/south_marches_places.gd",
 	# --- west marches ---
-	"res://core/world/realm/lore/r37_west_places.gd",
+	"res://core/world/realm/lore/west_marches_places.gd",
 ]
 
 

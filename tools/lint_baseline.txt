@@ -2,7 +2,7 @@ autoload/events.gd 0 0 0 4 0
 autoload/input_setup.gd 0 0 0 5 0
 autoload/light_grid.gd 0 0 0 1 0
 autoload/settings.gd 0 0 0 1 0
-autoload/travel.gd 0 0 0 4 0
+autoload/travel.gd 0 0 0 3 0
 core/debug/boot_diag.gd 0 1 0 0 0
 core/enemy/ascended_warden.gd 24 8 0 10 0
 core/enemy/attack_kit.gd 0 0 0 1 0
@@ -76,8 +76,8 @@ core/life/secrets/reactivity.gd 1 1 0 2 0
 core/life/secrets/secrets.gd 0 0 0 8 0
 core/life/secrets/site_breath.gd 0 0 0 2 0
 core/life/secrets/site_company.gd 0 0 0 1 0
+core/life/secrets/site_doubled_realm.gd 0 0 0 2 0
 core/life/secrets/site_glade.gd 0 0 0 1 0
-core/life/secrets/site_r34.gd 0 0 0 2 0
 core/life/secrets/site_wood.gd 0 0 0 2 0
 core/life/secrets/state.gd 2 0 0 0 0
 core/life/village/village.gd 18 0 0 12 0
@@ -184,11 +184,11 @@ core/world/realm/discovery_banner.gd 0 0 0 2 0
 core/world/realm/gen_cache.gd 0 0 0 1 0
 core/world/realm/loot_chest.gd 3 3 0 1 0
 core/world/realm/lore/barrows.gd 1 0 0 0 0
+core/world/realm/lore/doubled_realm_places.gd 0 0 0 2 0
 core/world/realm/lore/inscription.gd 1 1 0 0 0
 core/world/realm/lore/lore_index.gd 0 0 0 2 0
 core/world/realm/lore/lore_kit.gd 4 0 0 1 1163
 core/world/realm/lore/lore_more.gd 1 0 0 2 0
-core/world/realm/lore/r34_places.gd 0 0 0 2 0
 core/world/realm/lore/road.gd 0 0 0 1 0
 core/world/realm/lore/scenes.gd 0 0 0 2 0
 core/world/realm/lore/wilds.gd 2 0 0 7 0
@@ -202,7 +202,7 @@ core/world/realm/realm_land.gd 0 0 0 6 0
 core/world/realm/realm_layout.gd 0 0 0 30 0
 core/world/realm/realm_lore.gd 1 0 0 1 0
 core/world/realm/realm_pois.gd 4 0 0 9 0
-core/world/realm/realm_pois_r34.gd 1 0 0 10 1557
+core/world/realm/realm_pois_doubled_realm.gd 1 0 0 10 1557
 core/world/realm/realm_wayfinding.gd 1 0 0 3 0
 core/world/realm/rift/basalt.gd 1 0 0 0 0
 core/world/realm/rift/features.gd 6 0 0 0 0

@@ -5,7 +5,7 @@ extends Node3D
 ##   godot --path . res://zz/r37_south_shots.tscn -- --what=wall,gate,oak,oak_in,well,hut --out=/some/dir
 ## Output: <out>/south_<what>_<view>.png (default shots/)
 
-const Kit := preload("res://core/world/realm/r37_south_kit.gd")
+const Kit := preload("res://core/world/realm/south_marches_kit.gd")
 
 var cam: Camera3D
 var out_dir := "res://shots"

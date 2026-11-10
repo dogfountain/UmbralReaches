@@ -1,7 +1,7 @@
 extends RefCounted
 ## r34 places (docs/r34/places.md): the written lore of the doubled Realm's new ground, at the r33
 ## density (the dressed regions held 9-19 inscriptions each; each new region gets its places' own
-## stones from realm_pois_r34.gd plus these): graves, waystones, notices, rune stones and pages in
+## stones from realm_pois_doubled_realm.gd plus these): graves, waystones, notices, rune stones and pages in
 ## the Saints' Quarry, the Rooted Holds, the Founder's Pits, the Lanternless Moor, the Cinder Orchard,
 ## the Waiting Field and Corvin's Mere. And the dressing that makes the places read from the ways: the
 ## Waiting Field's ranks of graves, the moor's guide-cairns along moor_track, the orchard's row-stones,

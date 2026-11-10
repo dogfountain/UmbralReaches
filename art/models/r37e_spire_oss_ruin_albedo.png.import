@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dykl1d3xfiyp0"
-path="res://.godot/imported/r37e_spire_oss_ruin_albedo.png-55870b2b7c06b7edd24adec8adf8ad49.ctex"
+path.s3tc="res://.godot/imported/r37e_spire_oss_ruin_albedo.png-55870b2b7c06b7edd24adec8adf8ad49.s3tc.ctex"
+path.etc2="res://.godot/imported/r37e_spire_oss_ruin_albedo.png-55870b2b7c06b7edd24adec8adf8ad49.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1c7fedd3f612b9e419bc5c5db577d788"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37e_spire_oss_ruin_albedo.png"
-dest_files=["res://.godot/imported/r37e_spire_oss_ruin_albedo.png-55870b2b7c06b7edd24adec8adf8ad49.ctex"]
+dest_files=["res://.godot/imported/r37e_spire_oss_ruin_albedo.png-55870b2b7c06b7edd24adec8adf8ad49.s3tc.ctex", "res://.godot/imported/r37e_spire_oss_ruin_albedo.png-55870b2b7c06b7edd24adec8adf8ad49.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

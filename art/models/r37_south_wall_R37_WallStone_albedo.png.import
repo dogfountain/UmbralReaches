@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b5vggnct17t41"
-path="res://.godot/imported/r37_south_wall_R37_WallStone_albedo.png-5ad4fbf5bd0c99c3582e9ac5830bb9ca.ctex"
+path.s3tc="res://.godot/imported/r37_south_wall_R37_WallStone_albedo.png-5ad4fbf5bd0c99c3582e9ac5830bb9ca.s3tc.ctex"
+path.etc2="res://.godot/imported/r37_south_wall_R37_WallStone_albedo.png-5ad4fbf5bd0c99c3582e9ac5830bb9ca.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d30d218a0d4a1985dc93e59ec4feede4"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37_south_wall_R37_WallStone_albedo.png"
-dest_files=["res://.godot/imported/r37_south_wall_R37_WallStone_albedo.png-5ad4fbf5bd0c99c3582e9ac5830bb9ca.ctex"]
+dest_files=["res://.godot/imported/r37_south_wall_R37_WallStone_albedo.png-5ad4fbf5bd0c99c3582e9ac5830bb9ca.s3tc.ctex", "res://.godot/imported/r37_south_wall_R37_WallStone_albedo.png-5ad4fbf5bd0c99c3582e9ac5830bb9ca.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

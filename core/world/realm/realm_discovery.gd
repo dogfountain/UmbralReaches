@@ -246,9 +246,9 @@ func _collect_spots() -> void:
 		var c: Vector3 = n.get_meta("centre")
 		_spots.append({"id": "poi_" + String(n.get_meta("poi")), "poi": String(n.get_meta("poi")), "name": String(n.get_meta("title")),
 			"line": String(n.get_meta("line")), "c": Vector2(c.x, c.z), "r": float(n.get_meta("radius")) * 0.75})
-	# r34 places: named spots of the new ground that are not buildings (realm_pois_r34.gd EXTRA)
+	# r34 places: named spots of the new ground that are not buildings (realm_pois_doubled_realm.gd EXTRA)
 	if get_parent() and get_parent().get_node_or_null("RealmPois") != null:
-		var extra: Dictionary = (load("res://core/world/realm/realm_pois_r34.gd") as GDScript).get("EXTRA")
+		var extra: Dictionary = (load("res://core/world/realm/realm_pois_doubled_realm.gd") as GDScript).get("EXTRA")
 		for id: String in extra:
 			var e: Array = extra[id]
 			_spots.append({"id": id, "name": String(e[1]), "line": String(e[2]), "c": e[0], "r": float(e[3])})

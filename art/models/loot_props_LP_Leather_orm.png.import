@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://biwptjl26p04t"
-path="res://.godot/imported/loot_props_LP_Leather_orm.png-61889d820333b3cacd29c3d7edf04b0c.ctex"
+path.s3tc="res://.godot/imported/loot_props_LP_Leather_orm.png-61889d820333b3cacd29c3d7edf04b0c.s3tc.ctex"
+path.etc2="res://.godot/imported/loot_props_LP_Leather_orm.png-61889d820333b3cacd29c3d7edf04b0c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d151869d1bb8d083fa1a16588ba73886"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/loot_props_LP_Leather_orm.png"
-dest_files=["res://.godot/imported/loot_props_LP_Leather_orm.png-61889d820333b3cacd29c3d7edf04b0c.ctex"]
+dest_files=["res://.godot/imported/loot_props_LP_Leather_orm.png-61889d820333b3cacd29c3d7edf04b0c.s3tc.ctex", "res://.godot/imported/loot_props_LP_Leather_orm.png-61889d820333b3cacd29c3d7edf04b0c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

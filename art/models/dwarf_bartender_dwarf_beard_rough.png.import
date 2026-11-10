@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://wmtxqm2wtvln"
-path="res://.godot/imported/dwarf_bartender_dwarf_beard_rough.png-491eabfa53ddcd68227b50767eb7dcab.ctex"
+path.s3tc="res://.godot/imported/dwarf_bartender_dwarf_beard_rough.png-491eabfa53ddcd68227b50767eb7dcab.s3tc.ctex"
+path.etc2="res://.godot/imported/dwarf_bartender_dwarf_beard_rough.png-491eabfa53ddcd68227b50767eb7dcab.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "eb11a3ca75996330d63d5fbf487d9ef2"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/dwarf_bartender_dwarf_beard_rough.png"
-dest_files=["res://.godot/imported/dwarf_bartender_dwarf_beard_rough.png-491eabfa53ddcd68227b50767eb7dcab.ctex"]
+dest_files=["res://.godot/imported/dwarf_bartender_dwarf_beard_rough.png-491eabfa53ddcd68227b50767eb7dcab.s3tc.ctex", "res://.godot/imported/dwarf_bartender_dwarf_beard_rough.png-491eabfa53ddcd68227b50767eb7dcab.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

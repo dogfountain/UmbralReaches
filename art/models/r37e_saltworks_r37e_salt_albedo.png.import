@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://2b2wauwgii25"
-path="res://.godot/imported/r37e_saltworks_r37e_salt_albedo.png-219b885fc8785ae3213e707b0bc78c02.ctex"
+path.s3tc="res://.godot/imported/r37e_saltworks_r37e_salt_albedo.png-219b885fc8785ae3213e707b0bc78c02.s3tc.ctex"
+path.etc2="res://.godot/imported/r37e_saltworks_r37e_salt_albedo.png-219b885fc8785ae3213e707b0bc78c02.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "07c7bc2f52bd2c3f363c58e668db08c9"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37e_saltworks_r37e_salt_albedo.png"
-dest_files=["res://.godot/imported/r37e_saltworks_r37e_salt_albedo.png-219b885fc8785ae3213e707b0bc78c02.ctex"]
+dest_files=["res://.godot/imported/r37e_saltworks_r37e_salt_albedo.png-219b885fc8785ae3213e707b0bc78c02.s3tc.ctex", "res://.godot/imported/r37e_saltworks_r37e_salt_albedo.png-219b885fc8785ae3213e707b0bc78c02.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -108,7 +108,7 @@ const _STATIC_CACHES := {
 	"res://world/areas/ossuary/oss_kit.gd": ["_mats", "_skulls", "_bones", "_candles", "_puddle", "_flame_mesh", "_halo_mesh"],
 	"res://world/areas/ossuary/ossuary.gd": ["_plate", "_ribs", "_great_rib"],
 	# --- south marches ---
-	"res://core/world/realm/r37_south_kit.gd": ["_cache"],
+	"res://core/world/realm/south_marches_kit.gd": ["_cache"],
 	"res://core/world/realm/site_props.gd": ["_meshes", "_cloth"],
 	"res://core/world/realm/lamps/lamp.gd": ["_meshes", "_mats"],
 }

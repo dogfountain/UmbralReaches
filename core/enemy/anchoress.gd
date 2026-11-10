@@ -3,7 +3,7 @@ extends "res://core/enemy/wretch.gd"
 ## herself walled into the Crowns' face to pray the sky still, and would not come out when the wall was
 ## opened: a gaunt woman at 2.3x, in grey wool and the chain she bound herself with, a cairn-stone
 ## anchor swinging from her right hand, a caged lantern in her left. 560 HP, three phases on a cliff
-## terrace with four hermits' cairns standing in it (the room: core/world/realm/realm_pois_r37_east.gd).
+## terrace with four hermits' cairns standing in it (the room: core/world/realm/realm_pois_east_marches.gd).
 ##
 ## Phase I    "The Vow" (100-70 %)
 ##   Anchor Swing     the anchor flung down a lane (a long red strip, 1.3 s). Step out of the lane.

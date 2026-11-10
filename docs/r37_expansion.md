@@ -48,8 +48,8 @@ Totals: 2 bosses, 4 named mini-bosses (elite_kit), ~14 camps, rares per region, 
   by the player, never for free), the world teaches.
 - Binding don'ts stay (.cursor/rules, the umbral-donts skill): glow levels, four stair fires, no
   Engine.time_scale = 0, never headless-rebake world/main.tscn, NPC voices stay babble, and so on.
-- Put new content in new files named for your area (e.g. `realm_pois_r37_west.gd`,
-  `quest_chains_r37_west.gd`, `site_r37_west.gd`). Where a shared registry must list it (quest chains,
+- Put new content in new files named for your area (e.g. `realm_pois_west_marches.gd`,
+  `quest_chains_west_marches.gd`, `site_west_marches.gd`). Where a shared registry must list it (quest chains,
   lore_db, elites, guardians, realm_bosses, codex), add ONE block marked `# --- r37 <area> ---` at the
   end of the list, so the lead can merge four branches cleanly.
 
@@ -94,19 +94,19 @@ heights. What each place stands on:
 
 ## West Marches (the West agent)
 
-Built in `core/world/realm/realm_pois_r37_west.gd` (reserve before the stamp and flora, build after), hooked by
+Built in `core/world/realm/realm_pois_west_marches.gd` (reserve before the stamp and flora, build after), hooked by
 the `# --- west marches ---` blocks in the shared registries. Assets are made by script in `tools/blender`
 (`r37_west_textures.py`: seamless procedural PBR sets; `r37_west.py`: statue, mill, bridge, palisade, trebuchets,
-siege tower; `boss_hierarch.py`: the boss) and placed through `r37_west_kit.gd` (tiling `art/textures/r37_*`
+siege tower; `boss_hierarch.py`: the boss) and placed through `west_marches_kit.gd` (tiling `art/textures/r37_*`
 sets over `<part>__<set>` meshes, `<asset>-colonly` collision, vertex-colour macro tone).
 
 - **Weirford** (road x -205): the stone bridge over the Sorrow, the weir and a working mill (the wheel turns:
-  `r37_wheel_spin.gd`), the Grey Heron inn, the smithy, two cottages, stables (the Weir Cob, `horse_db.gd`), the watch
+  `mill_wheel_spin.gd`), the Grey Heron inn, the smithy, two cottages, stables (the Weir Cob, `horse_db.gd`), the watch
   post (`watch_posts.gd` "weirford", three sword watchmen), a covered well, a stall, lit windows without lights, an
-  Ember Road fire (`WeirfordFire`). Eight people with routines and babble talk: `village_cast_r37_west.gd`
-  (merged by `village.gd` `cast_all()` and the nodes/edges), `village_talk_r37_west.gd`.
+  Ember Road fire (`WeirfordFire`). Eight people with routines and babble talk: `village_cast_west_marches.gd`
+  (merged by `village.gd` `cast_all()` and the nodes/edges), `village_talk_west_marches.gd`.
 - **The Sorrow's Banks**: the drowned shrine in the river (a chest and the secret *Aldith's Walk*,
-  `core/life/secrets/site_r37_west.gd`: an iron ring raises a sunk walk to a lamp-islet and a box), ford posts,
+  `core/life/secrets/site_west_marches.gd`: an iron ring raises a sunk walk to a lamp-islet and a box), ford posts,
   two camps, a rare (the Drowned Reeve), a fire (`SorrowFire`).
 - **The Fallen Hierarch**: `r37_statue.glb` (head shell ~28 k tris, torso and arm ~10 k, debris; the engine
   generates mesh LODs on import) plus a separate ~1.6 k-tri far mesh node `StatueFar` (meta `far_mesh`, fades in from
@@ -117,9 +117,9 @@ sets over `<part>__<set>` meshes, `<asset>-colonly` collision, vertex-colour mac
 - **The Siege Lines**: the outer earthwork's palisade and gate, rotted trebuchets (`r37_trebuchet.glb`), a four-storey
   siege tower with its stairs built in (a chest on top), two more camps, a rare (the Gate-Breaker), the mini-boss
   **Captain Varr, the Wall-Breaker** (`elite_siege_captain.gd`, `Elites.ELITES["siege_captain"]`), a fire (`SiegeFire`).
-- **Quests** (`quest_chains_r37_west.gd`): The Stopped Wheel, The Lamp on the Lines, Lights for the Sunk, and
-  The Voice in the Head (after the Wheel; ends in the boss). Lore: `lore/r37_west_texts.gd` (22 texts, a series,
-  four codex places), placed by `lore/r37_west_places.gd` and the POIs.
+- **Quests** (`quest_chains_west_marches.gd`): The Stopped Wheel, The Lamp on the Lines, Lights for the Sunk, and
+  The Voice in the Head (after the Wheel; ends in the boss). Lore: `lore/west_marches_texts.gd` (22 texts, a series,
+  four codex places), placed by `lore/west_marches_places.gd` and the POIs.
 
 Tuning notes: the statue's head is oversized so the raid floor (r 24) fits inside it; the whole figure is about
 100 m long rather than 60. Switches: `--no-r37-west` (places, writings, secret).
