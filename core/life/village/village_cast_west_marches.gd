@@ -1,10 +1,10 @@
 extends RefCounted
 ## Weirford's people (West Marches; data only, no class_name). The living outpost at the river crossing
-## (realm_pois_r37_west.gd builds the town): eight people with routines on their own walking network, merged
+## (realm_pois_west_marches.gd builds the town): eight people with routines on their own walking network, merged
 ## into Hearthward's village system by village.gd (cast_all, extra_nodes). They are "camped out" in the
 ## village's terms (Weirford has its own watch; they do not flee into a Keg three hundred metres away) and are
 ## only spawned when their home node came through the nav's floor check. Voices stay babble (NPC voices).
-## Load by path: const R37W := preload("res://core/life/village/village_cast_r37_west.gd")
+## Load by path: const R37W := preload("res://core/life/village/village_cast_west_marches.gd")
 
 ## xz of every walk node (world metres). The nav drops or nudges what the built town stands on.
 const NODES := {

@@ -9,8 +9,8 @@ extends RefCounted
 ##   kind: grave | waystone | tablet | rune | page | notice | plaque | lectern | letter | ledger
 ##   series/part: a multi-part story (SERIES), shown in the journal in part order, gaps kept.
 
-## West marches: Weirford, the Sorrow, the Hierarch, the Siege Lines (lore/r37_west_texts.gd), in the blocks marked `# --- west marches ---`.
-const R37WL := preload("res://core/world/realm/lore/r37_west_texts.gd")
+## West marches: Weirford, the Sorrow, the Hierarch, the Siege Lines (lore/west_marches_texts.gd), in the blocks marked `# --- west marches ---`.
+const R37WL := preload("res://core/world/realm/lore/west_marches_texts.gd")
 ## The lights others keep (lamps/lamps_kept.gd): the pilgrim's page and the press-house notice.
 const R37LL := preload("res://core/world/realm/lore/lamp_texts.gd")
 
@@ -217,8 +217,8 @@ const TEXTS := {
 		"text": "THE ORDER'S WATCH ON THE OPEN SKY. Light the cage when the sky turns. It turned. The cage was lit for nine nights. On the tenth there was nobody left to carry oil up."},
 	"poi_watch_log": {"region": "crags", "kind": "page", "title": "A watcher's slate",
 		"text": "From here you can see every fire in the valley. I count them before I sleep. Fewer each night. Tonight, one, and the one I am sitting beside."},
-	# --- r34 places: the new ground (docs/r34/places.md). poi_* stones stand in realm_pois_r34.gd's
-	# places; the rest in core/world/realm/lore/r34_places.gd --------------------------------------
+	# --- r34 places: the new ground (docs/r34/places.md). poi_* stones stand in realm_pois_doubled_realm.gd's
+	# places; the rest in core/world/realm/lore/doubled_realm_places.gd --------------------------------------
 	# The Saints' Quarry
 	"poi_quarry_stair": {"region": "quarry", "kind": "plaque", "title": "The Unfinished Stair",
 		"text": "Cut on the lowest block, in the Order's square hand: STEP FOUR THOUSAND AND ONE. The Hierarch asked for one more step than the mountain needed. These were squared for it and never carried up."},

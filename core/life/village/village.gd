@@ -22,7 +22,7 @@ extends Node3D
 
 const SELF := "res://core/life/village/village.gd"
 const Cast := preload("res://core/life/village/village_cast.gd")
-const R37W := preload("res://core/life/village/village_cast_r37_west.gd")      # --- west marches --- Weirford's people
+const WestCast := preload("res://core/life/village/village_cast_west_marches.gd")      # --- west marches --- Weirford's people
 const VState := preload("res://core/life/village/village_state.gd")
 const VNav := preload("res://core/life/village/village_nav.gd")
 const Props := preload("res://core/life/village/village_props.gd")
@@ -88,7 +88,7 @@ func _build() -> void:
 	# --- props first (the walking network then avoids the solid ones) ---------------------------
 	nav = VNav.new()
 	nav.call("use_space", space)
-	var west_pois: Variant = load("res://core/world/realm/realm_pois_r37_west.gd")      # no preload: a cycle
+	var west_pois: Variant = load("res://core/world/realm/realm_pois_west_marches.gd")      # no preload: a cycle
 	nav.set("decks", west_pois.decks())
 	var node_xz: Dictionary = Cast.NODES.duplicate()
 	var edges: Array = Cast.EDGES.duplicate()
@@ -151,10 +151,10 @@ func _build() -> void:
 	# r34: the outposts of the doubled world, one giver camped in each new region
 	_outposts(space, node_xz, edges)
 	# --- west marches --- Weirford's walks (its own island of the network; the nav drops what the town stands on)
-	node_xz.merge(R37W.NODES)
-	edges.append_array(R37W.EDGES)
+	node_xz.merge(WestCast.NODES)
+	edges.append_array(WestCast.EDGES)
 	# --- the east marches ---
-	var east_pois: Variant = load("res://core/world/realm/realm_pois_r37_east.gd")    # no preload: a cycle
+	var east_pois: Variant = load("res://core/world/realm/realm_pois_east_marches.gd")    # no preload: a cycle
 	east_pois.hamlet(self, space, node_xz, edges)
 	await get_tree().process_frame
 	# --- the walking network ------------------------------------------------------------------
@@ -347,14 +347,14 @@ func _near_camp(p: Vector2, r: float) -> bool:
 
 # --- people -------------------------------------------------------------------------------------
 
-## Hearthward's cast and the outposts' and Weirford's (west marches: village_cast_r37_west.gd), as one table.
+## Hearthward's cast and the outposts' and Weirford's (west marches: village_cast_west_marches.gd), as one table.
 static var _cast_all: Dictionary = {}
 
 
 static func cast_all() -> Dictionary:
 	if _cast_all.is_empty():
 		_cast_all = Cast.CAST.duplicate()
-		_cast_all.merge(R37W.CAST)
+		_cast_all.merge(WestCast.CAST)
 	return _cast_all
 
 

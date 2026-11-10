@@ -18,7 +18,7 @@ extends RefCounted
 ## Clearance: stand-in bodies for the collision-less meshes near and a box query for each solid piece (the Threshold's
 ## way); the line "WONDER sky_chain clearance:" is printed at build.
 
-const WestKit := preload("res://core/world/realm/r37_west_kit.gd")
+const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
 const FAR_SHADER := preload("res://core/world/realm/wonders/sky_chain/far_links.gdshader")
 const CLOTH_SHADER := preload("res://core/world/realm/wonders/sky_chain/cloth.gdshader")
 const ANCHOR := "wonders/sky_chain_anchor.glb"

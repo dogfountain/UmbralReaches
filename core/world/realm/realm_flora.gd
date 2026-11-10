@@ -21,7 +21,7 @@ const Land := preload("res://core/world/realm/realm_land.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const MarchesLooks := preload("res://core/world/realm/flora_looks_marches.gd")
 const Zones := preload("res://core/world/realm/dress_zones.gd")
-const R30 := preload("res://core/world/realm/flora_r30.gd")
+const OldUnder := preload("res://core/world/realm/flora_old_undergrowth.gd")
 const Emit := preload("res://core/world/realm/flora_emit.gd")
 const Cache := preload("res://core/world/realm/flora_cache.gd")
 
@@ -60,7 +60,7 @@ static var tree_clear: Array = []
 
 
 static func _under_table(sp: String) -> Dictionary:
-	return R30.UNDER[sp] if r30 and R30.UNDER.has(sp) else UNDER[sp]
+	return OldUnder.UNDER[sp] if r30 and OldUnder.UNDER.has(sp) else UNDER[sp]
 
 const STYLE := Emit.STYLE         ## species groups: visibility range end, shadows, keep-off path distance, site clearance
 

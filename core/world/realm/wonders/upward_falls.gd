@@ -17,7 +17,7 @@ extends RefCounted
 ## Collision: the model's own (the body, each step, the wings, the house, the bowl's lip stones).
 
 const Water := preload("res://core/world/realm/wonders/upward_falls/water.gd")
-const Kit := preload("res://core/world/realm/r37_west_kit.gd")
+const Kit := preload("res://core/world/realm/west_marches_kit.gd")
 const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
 const NAME := "upward_falls"
 const CX := -207.0                  ## the river's line at the weir

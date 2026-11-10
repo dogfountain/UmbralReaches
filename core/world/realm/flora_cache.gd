@@ -21,7 +21,7 @@ const KEY := "flora|placement|v1"
 const STRIDE := 3                                            ## the verifying ray grid
 ## generators read by the placement beyond realm_flora.gd itself
 const READS := [
-	"res://core/world/realm/tree_gen.gd", "res://core/world/realm/flora_looks_marches.gd", "res://core/world/realm/flora_r30.gd",
+	"res://core/world/realm/tree_gen.gd", "res://core/world/realm/flora_looks_marches.gd", "res://core/world/realm/flora_old_undergrowth.gd",
 	"res://core/world/realm/dress_zones.gd", "res://core/world/realm/realm_layout.gd", "res://core/world/realm/realm_land.gd",
 	"res://core/world/world_lanes.gd", "res://core/life/village/village_cast.gd", "res://core/world/realm/flora_emit.gd", "res://core/world/realm/flora_tables.gd",
 ]
