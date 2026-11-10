@@ -422,6 +422,10 @@ func _process(delta: float) -> void:
 				n += 1
 			print("FPS particles off: %d" % n)
 	var built := _realm_built()
+	if "--calm" in OS.get_cmdline_user_args() and built and _snap_t < 20.0 and _snap_t > -1.0:
+		# `--calm` (stills only): no foe stands in the shot, so the wanderer is not killed while the camera waits
+		for n in get_tree().get_nodes_in_group(Groups.ENEMY):
+			(n as Node).queue_free()
 	if _snap_t > 0.0 and built:
 		_snap_t -= delta
 		if _snap_t <= 0.0:
