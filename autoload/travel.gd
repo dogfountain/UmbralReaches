@@ -81,16 +81,7 @@ func _ready() -> void:
 		save_game())
 	Events.boss_slain.connect(func(id: String) -> void:
 		bosses_slain[id] = true
-		if ItemDB.BOSS_TROPHY.has(id):
-			give(ItemDB.BOSS_TROPHY[id], 1, false)
-		if id == "thornwarden" and not relics.has("thorn"):
-			relics["thorn"] = &"splinter"          # the Thorn Heart arrives attuned to Splinter
-		give("grave_ash", ItemDB.ASH_PER_BOSS, false)
 		save_game())
-	Events.enemy_killed.connect(func(e: Node) -> void:
-		if not e.has_meta(&"boss_id"):
-			give("grave_ash", ItemDB.ASH_PER_KILL, false, false)
-			save_lazy())
 	_fade_layer = CanvasLayer.new()
 	_fade_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	_fade_layer.layer = 80
@@ -260,10 +251,6 @@ func give(id: String, amount := 1, save := true, soon := true) -> void:
 	if total == have:
 		return
 	items[id] = total
-	# r36: a bell keeper's relic arrives attuned to its first variant (the Thorn Heart's way)
-	var rk := String(ItemDB.def(id).get("relic", ""))
-	if rk != "" and not rk in ["bone", "thorn"] and not relics.has(rk) and Reliquary.VARIANTS.has(rk):
-		relics[rk] = (Reliquary.VARIANTS[rk] as Array)[0]
 	Events.item_gained.emit(id, total - have, total)
 	if save:
 		save_game()
