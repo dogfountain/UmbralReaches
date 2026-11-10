@@ -28,7 +28,6 @@ func _ready() -> void:
 	_keys("toggle_debug", [KEY_F3])
 	_keys("fullscreen", [KEY_F11])
 	_keys("render_scale", [KEY_F4])
-	_keys("demo", [KEY_F9])
 	_keys("toggle_settings", [KEY_F2, KEY_ESCAPE])
 	_keys("benchmark", [KEY_F8])
 	# "release_mouse" was checked by the player, settings, satchel and journal but never defined, so
@@ -203,7 +202,7 @@ func refusal(action: String, ev: InputEvent) -> String:
 		for e in InputMap.action_get_events(other):
 			if _same(e, ev):
 				return "%s is already %s." % [event_name(ev), String(r[0])]
-	for fixed: String in ["toggle_settings", "demo", "benchmark"]:
+	for fixed: String in ["toggle_settings", "benchmark"]:
 		for e in InputMap.action_get_events(fixed):
 			if _same(e, ev):
 				return "%s is reserved." % event_name(ev)

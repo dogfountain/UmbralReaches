@@ -202,7 +202,7 @@ func _physics_process(delta: float) -> void:
 	_gap = maxf(0.0, _gap - delta)
 	if _gap <= 0.0 and _phase < 0:
 		_next = 0
-	var live := not player.autopilot and _input_ok() and not player.skills_locked_for_arts()
+	var live := _input_ok() and not player.skills_locked_for_arts()
 	if live:
 		_read_input(delta)
 	else:

@@ -70,7 +70,7 @@ func _end_traverse() -> void:
 ## In the air, against a wall whose top is above mantle height but within the hands' reach: catch it.
 
 func _try_grab(wish: Vector3) -> bool:
-	if player._regrab > 0.0 or player.velocity.y > 1.5 or player._sliding or player._hollowing or player.autopilot or player._roll_t >= 0.0:
+	if player._regrab > 0.0 or player.velocity.y > 1.5 or player._sliding or player._hollowing or player._roll_t >= 0.0:
 		return false
 	var flat := Vector3(player.velocity.x, 0.0, player.velocity.z)
 	var dir := Vector3.ZERO
@@ -140,7 +140,7 @@ func _tick_hang(delta: float, wish: Vector3) -> void:
 	var along := _hang_n.cross(Vector3.UP).normalized()
 	var lat := wish.dot(along) if wish.length_squared() > 0.04 else 0.0
 	var into := wish.dot(-_hang_n) if wish.length_squared() > 0.04 else 0.0
-	var ready := _hang_t > 0.18 and not player.autopilot
+	var ready := _hang_t > 0.18
 	if not ready and Input.is_action_just_pressed("jump"):
 		_hang_jump_buf = true                        # pressed during the catch: it is not lost
 	if ready and (Input.is_action_just_pressed("jump") or _hang_jump_buf):
@@ -267,7 +267,7 @@ func _tick_climb(delta: float) -> void:
 
 func _try_vault(horiz: Vector3, wish: Vector3) -> bool:
 	var spd := horiz.length()
-	if spd < Player.VAULT_SPEED or wish.length_squared() < 0.25 or not player._grounded or player._hollowing or player.autopilot:
+	if spd < Player.VAULT_SPEED or wish.length_squared() < 0.25 or not player._grounded or player._hollowing:
 		return false
 	var dir := horiz / spd
 	if Vector3(wish.x, 0.0, wish.z).normalized().dot(dir) < 0.7:

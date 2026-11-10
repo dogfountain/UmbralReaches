@@ -1,9 +1,8 @@
 class_name Player
 extends CharacterBody3D
-## Third-person wanderer: movement, orbit camera, lantern, Gloom, interaction, autopilot (demo/tests).
+## Third-person wanderer: movement, orbit camera, lantern, Gloom, interaction.
 
 ## Components (core/player/player_*.gd): the state stays on Player, the logic lives here.
-var autopilot_ctl: PlayerAutopilot = null
 var targeting: PlayerTargeting = PlayerTargeting.new(self)
 var camera_ctl: PlayerCamera = PlayerCamera.new(self)
 var vitals: PlayerVitals = PlayerVitals.new(self)
@@ -73,7 +72,6 @@ const SPRINT_DARK_MULT := 1.5           ## sprinting in the dark gathers Gloom t
 const FIGHT_GATHER := 0.28              ## a live boss arena keeps this share of the place's gather (about 8 min from empty to a Shade; open dark is 2 min 13 s)
 const SLIDE_EVADE := 0.22               ## a slide's first moments pass under strikes, like a roll
 var _ash_banked := -1                   ## grave ash held at the last fire; above it is "carried"
-var autopilot := false
 var hollow_count := 0
 var _wait := 0.0
 var _waiting := false
@@ -302,8 +300,6 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if autopilot:
-		return
 	if event is InputEventJoypadButton and event.is_action_pressed("sprint"):
 		_sprint_latch = not _sprint_latch      # pad: L3 latches the sprint until you stop (holding a stick click hurts)
 		return
@@ -335,28 +331,27 @@ func _process(delta: float) -> void:
 		# the night just showed (the loading screen held this node until now): take the mouse, so the
 		# first move of it turns the view instead of moving a cursor until some click (r29). Only in
 		# the real game, never under a zz/ harness, and never from a window in the background.
-		if not autopilot and owner != null and get_tree().current_scene == owner and DisplayServer.window_is_focused():
+		if owner != null and get_tree().current_scene == owner and DisplayServer.window_is_focused():
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	if not autopilot:
-		var look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
-		if is_instance_valid(_lock):
-			if absf(look.x) < 0.4:
-				_stick_armed = true                      # back to the middle before the next swap
-			if absf(look.x) > 0.75 and _lock_flick_t <= 0.0 and _stick_armed:
-				_stick_armed = false
-				_lock_flick = signf(look.x) * 100.0      # stick flick: next target that side
-				_lock_flick_t = 0.4
-			look = Vector2.ZERO
-		var mag := look.length()
-		_look_hold = _look_hold + delta if absf(look.x) > 0.9 else 0.0
-		if mag > 0.15:
-			_recentre = false
-			# r29: a response curve (fine aim near the centre, full speed at the rim) and, held hard
-			# over, a turn that speeds up so a 180 doesn't take 1.2 s
-			look = look / mag * pow(clampf((mag - 0.15) / 0.85, 0.0, 1.0), 1.25)     # the deadzone eases in: no step up to the curve
-			var boost := 1.0 + 0.6 * smoothstep(0.05, 0.6, _look_hold)
-			_yaw -= look.x * stick_sensitivity * boost * delta
-			_pitch = clampf(_pitch - look.y * stick_sensitivity * 0.8 * delta * (-1.0 if invert_y else 1.0), pitch_min, pitch_max)
+	var look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
+	if is_instance_valid(_lock):
+		if absf(look.x) < 0.4:
+			_stick_armed = true                      # back to the middle before the next swap
+		if absf(look.x) > 0.75 and _lock_flick_t <= 0.0 and _stick_armed:
+			_stick_armed = false
+			_lock_flick = signf(look.x) * 100.0      # stick flick: next target that side
+			_lock_flick_t = 0.4
+		look = Vector2.ZERO
+	var mag := look.length()
+	_look_hold = _look_hold + delta if absf(look.x) > 0.9 else 0.0
+	if mag > 0.15:
+		_recentre = false
+		# r29: a response curve (fine aim near the centre, full speed at the rim) and, held hard
+		# over, a turn that speeds up so a 180 doesn't take 1.2 s
+		look = look / mag * pow(clampf((mag - 0.15) / 0.85, 0.0, 1.0), 1.25)     # the deadzone eases in: no step up to the curve
+		var boost := 1.0 + 0.6 * smoothstep(0.05, 0.6, _look_hold)
+		_yaw -= look.x * stick_sensitivity * boost * delta
+		_pitch = clampf(_pitch - look.y * stick_sensitivity * 0.8 * delta * (-1.0 if invert_y else 1.0), pitch_min, pitch_max)
 	var body_xf := get_global_transform_interpolated()
 	# grass parts around the body where it is DRAWN (r29: set on the tick, the parting stepped at 60 Hz)
 	RenderingServer.global_shader_parameter_set("push_pos", body_xf.origin)
@@ -435,10 +430,6 @@ func _physics_process(delta: float) -> void:
 		if _debug_drive:
 			wish = _debug_wish
 			sprint = _debug_sprint
-		elif autopilot:
-			var cmd := _ap()._autopilot(delta)
-			wish = cmd[0]
-			sprint = cmd[1]
 		else:
 			var v := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 			wish = Basis(Vector3.UP, _yaw) * Vector3(v.x, 0.0, v.y)
@@ -458,7 +449,7 @@ func _physics_process(delta: float) -> void:
 		# r31 Breath: winded, no sprint; hunted (a foe awake near), the sprint spends it
 		if _stam.winded or (_arts != null and (_arts.guarding() or _arts.busy())):
 			sprint = false
-		elif _stam.in_fight() and _grounded and wish.length_squared() > 0.04 and not autopilot:
+		elif _stam.in_fight() and _grounded and wish.length_squared() > 0.04:
 			_stam.drain(Stamina.SPRINT_COST * delta)
 	targeting._lock_tick(delta)
 	if _climb_t >= 0.0:
@@ -471,7 +462,7 @@ func _physics_process(delta: float) -> void:
 		traversal._tick_vault(delta)
 		return
 	_dodge_buf = maxf(0.0, _dodge_buf - delta)
-	if not autopilot and not _hollowing:
+	if not _hollowing:
 		if Input.is_action_just_pressed("dodge"):
 			_dodge_buf = DODGE_BUFFER
 		if _dodge_buf > 0.0 and evasion._try_dodge(wish):
@@ -527,7 +518,7 @@ func _physics_process(delta: float) -> void:
 			horiz = cur * exp(-air_drag * delta)
 		velocity.x = horiz.x
 		velocity.z = horiz.z
-		if not autopilot and not _hollowing:
+		if not _hollowing:
 			locomotion._slide_input(horiz, wish)
 			if traversal._try_vault(horiz, wish):
 				_tick_always(delta)
@@ -538,7 +529,7 @@ func _physics_process(delta: float) -> void:
 	# late is silently dropped, which is most of what made the movement feel unresponsive.
 	_coyote = coyote_time if _grounded else maxf(0.0, _coyote - delta)
 	_buffered_jump = maxf(0.0, _buffered_jump - delta)
-	if not autopilot and not _hollowing:
+	if not _hollowing:
 		if Input.is_action_just_pressed("jump"):
 			if traversal._can_wallkick(wish):
 				traversal._wall_kick(wish)
@@ -599,7 +590,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_grounded = is_on_floor()
 	_glued = false
-	if not autopilot and not _hollowing:
+	if not _hollowing:
 		if _grounded:
 			if locomotion._try_step_up(pre_h, delta):
 				velocity.x = pre_h.x             # a riser doesn't eat the stride
@@ -725,13 +716,13 @@ func move_intent() -> float:
 
 
 func skills_locked() -> bool:
-	return _hollowing or autopilot or _step_t > 0.0 or _mantle_t >= 0.0 or traversal._trav_busy() \
+	return _hollowing or _step_t > 0.0 or _mantle_t >= 0.0 or traversal._trav_busy() \
 			or (_arts != null and (_arts.busy() or _arts.guarding())) or (_grapple != null and _grapple.pulling())
 
 
 ## r31: what stops the staff arts and the Tether line (spells being busy does not).
 func skills_locked_for_arts() -> bool:
-	return _hollowing or autopilot or _step_t > 0.0 or _mantle_t >= 0.0 or traversal._trav_busy() or (_grapple != null and _grapple.pulling())
+	return _hollowing or _step_t > 0.0 or _mantle_t >= 0.0 or traversal._trav_busy() or (_grapple != null and _grapple.pulling())
 
 
 func note_combat() -> void:
@@ -850,13 +841,6 @@ var _stuck_t := 0.0
 
 # --- component forwarding (public surface kept on Player) -----------------------------------
 
-func _ap() -> PlayerAutopilot:
-	if autopilot_ctl == null:
-		autopilot_ctl = PlayerAutopilot.new(self)
-		add_child(autopilot_ctl)
-	return autopilot_ctl
-
-func start_autopilot(markers: Array[Marker3D]) -> void: _ap().start_autopilot(markers)
 func _toggle_lock() -> void: targeting._toggle_lock()
 func _set_lock(t: Enemy) -> void: targeting._set_lock(t)
 func _release_lock() -> void: targeting._release_lock()

@@ -98,7 +98,6 @@ func _physics_process(_d: float) -> void:
 			check("thornwarden rose", b is Thornwarden)
 			check("thorn gate closed behind", _seal("henge") != null and _seal("henge")._body.collision_layer != 0)
 			_tp_ground(ThornHenge.C.x + 30.0, ThornHenge.C.z + 30.0)
-			else: _tp(ThornHenge.C + Vector3(30, 0, 30))
 			step = 20; wait = 20      # run away: r35, the fight is held (it used to reset)
 		20:
 			check("leaving holds the fight (r35) and opens the gate", _held_arena("thornwarden") and _seal("henge")._body.collision_layer == 0)
@@ -145,7 +144,6 @@ func _physics_process(_d: float) -> void:
 			check("reliquary + crown in satchel", Travel.count("bone_reliquary") == 1 and Travel.count("abbot_crown") == 1)
 			check("reliquary left the world", get_tree().root.find_child("BoneReliquary", true, false) == null)
 			_tp_ground(RealmLayout.CROSSING_FOOT.x + 4.0, RealmLayout.CROSSING_FOOT.z + 6.0)   # the stair is gone: the Crossing's foot
-			else: _tp(Vector3(0.0, 12.0, -30.0))
 			step = 9; wait = 30
 		9:
 			print("BOSSTEST summit guards killed ", _kill_seal("summit")); step = 10; wait = 30

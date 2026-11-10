@@ -11,8 +11,6 @@ signal hollowed()
 signal respawned(at: Vector3)
 signal toast(text: String)
 signal zone_entered(title: String, subtitle: String)
-signal autopilot_reached(marker_name: String)
-signal autopilot_finished()
 signal benchmark_done(summary: String)
 signal skill_cast(id: StringName)
 signal player_hurt(amount: float, from_pos: Vector3)   ## from_pos = Vector3.INF when unknown

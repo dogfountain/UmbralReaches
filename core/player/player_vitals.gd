@@ -405,7 +405,7 @@ func _fell_out() -> void:
 ## put it back on the last safe ground.
 
 func _stuck_tick(delta: float, wish: Vector3) -> void:
-	if player._hollowing or player.autopilot or player.traversal._trav_busy() or player._mantle_t >= 0.0 or wish.length_squared() < 0.25:
+	if player._hollowing or player.traversal._trav_busy() or player._mantle_t >= 0.0 or wish.length_squared() < 0.25:
 		player._stuck_t = 0.0
 		_stuck_from = player.global_position
 		return
@@ -455,7 +455,7 @@ func _fall_hurt(impact: float) -> void:
 	var rolled := player._rolled_landing
 	player._rolled_landing = false
 	player.falls_hurt = 0.0
-	if impact <= Player.FALL_HURT_V or player.autopilot or player._hollowing:
+	if impact <= Player.FALL_HURT_V or player._hollowing:
 		return
 	var g := minf((impact - Player.FALL_HURT_V) * Player.FALL_GLOOM, 30.0) * (0.5 if rolled else 1.0)
 	g = minf(g, maxf(0.0, player.wounds_max - 1.0 - player.wounds))     # a fall wounds; it never hollows on its own
