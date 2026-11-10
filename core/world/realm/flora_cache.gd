@@ -34,8 +34,8 @@ static func fingerprint(root: Node) -> String:
 		arenas.append([ar.global_position, float(ar.get("radius"))])
 	var flags: Array = []
 	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--no-"):
-			flags.append(a)                         # (the A/B switches; the rest are a harness's own)
+		if a.begins_with("--no-") and a != "--no-title":
+			flags.append(a)                         # (the A/B switches; the rest, and --no-title, are a harness's own)
 	var parts: Array = [GenCache.salt(SELF), flags, WorldLanes.sites, WorldLanes.portals, WorldLanes.extra_lanes,
 		Zones.lanes(), arenas, RealmLayout.PATHS, RealmLayout.REGIONS, RealmLayout.BOUNDS, RealmLayout.OLD_BOUNDS]
 	for p: String in READS:
