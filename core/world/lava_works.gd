@@ -20,7 +20,9 @@ const SLICE_US := 2500          ## bank mapping work per frame (perf: the second
 
 ## Waits a frame once this frame's slice of mapping work is spent; true if it waited.
 func _yield_if_spent() -> bool:
-	if Time.get_ticks_usec() - _slice < SLICE_US:
+	# under the loading screen nothing is played: the map may take 15 ms a frame
+	var covered := get_tree().get_first_node_in_group(&"loading_screen") != null
+	if Time.get_ticks_usec() - _slice < (SLICE_US * 6 if covered else SLICE_US):
 		return false
 	await get_tree().process_frame
 	_slice = Time.get_ticks_usec()
@@ -39,6 +41,7 @@ static func attach(root: Node) -> LavaWorks:
 
 
 func _ready() -> void:
+	add_to_group(&"lava_works")
 	_mat = (_surface.material_override as ShaderMaterial).duplicate() as ShaderMaterial
 	_surface.material_override = _mat
 	var pm := _surface.mesh as PlaneMesh
@@ -190,7 +193,18 @@ func _bank_embers() -> void:
 		e.emitting = true
 
 
+## Bank maps in flight: the loading screen holds its cover until the first one has landed (ui/loading_screen.gd
+## finds this node in the "lava_works" group).
+var mapping := 0
+
+
 func _map_banks() -> void:
+	mapping += 1
+	await _map_banks_run()
+	mapping -= 1
+
+
+func _map_banks_run() -> void:
 	var t0 := Time.get_ticks_usec()
 	_slice = Time.get_ticks_usec()
 	var space := get_world_3d().direct_space_state

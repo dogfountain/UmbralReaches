@@ -5,9 +5,11 @@ extends Node
 ## User args (after "--"):  --test-shade  --bench
 ##   --walk-rec=<dir>  --walk-frames=N  in-game OTS walk dump (player cam, not debug rig)
 ##   --perf-baseline  fullscreen vsync-off benches at three fixed views (spawn, the rift's far side, the summit)
+##   --fight-bench    a boss, ten grunts and every spell spammed, measured (core/debug/fight_bench.gd)
 
+const FightBench := preload("res://core/debug/fight_bench.gd")
 const BENCH_SECONDS := 10.0
-const FLAGS: PackedStringArray = ["--walk-rec=", "--bench", "--perf-baseline", "--test-shade"]
+const FLAGS: PackedStringArray = ["--walk-rec=", "--bench", "--perf-baseline", "--test-shade", "--fight-bench"]
 
 var night: Node3D
 var _player: Player
@@ -52,6 +54,10 @@ func start(args: PackedStringArray) -> void:
 		_run_perf_baseline()
 	elif "--test-shade" in _args:
 		_test_shade()
+	elif "--fight-bench" in _args:
+		var fb := FightBench.new()
+		add_child(fb)
+		fb.begin(night)
 
 
 ## Drive the real Player + OTS camera forward; dump JPEGs then quit.

@@ -183,7 +183,7 @@ func arm(is_heavy: bool) -> void:
 	if _trail:
 		_trail.emitting = true
 	if _light:
-		_light.visible = true
+		_light.visible = heavy or _light_slot()
 		_light.light_color = Color("#FF7A4A") if heavy else Color("#A98BFF")
 		_light.light_energy = 2.2 if heavy else 1.6
 		_light.omni_range = 6.0 if heavy else 4.6
@@ -548,6 +548,25 @@ func _build_visual() -> void:
 
 ## Drop the shared meshes and materials (night teardown: BoltPool._exit_tree). Statics outlive the
 ## renderer at quit. Rebuilt by _ensure_shared on the next bolt.
+## At most LIT_MAX plain bolts carry a light at once (a spell spam put 15-18 omni lights in the clustered pass,
+## ~1 ms a frame); the rest fly dark and are lit only by their glowing core. A heavy bolt always lights.
+const LIT_MAX := 6
+
+
+func _light_slot() -> bool:
+	var n := 0
+	for b in get_tree().get_nodes_in_group(&"bolt_lit"):
+		var mb := b as MagicBolt
+		if mb != self and mb.visible and mb._light != null and mb._light.visible:
+			n += 1
+		elif mb != self:
+			mb.remove_from_group(&"bolt_lit")
+	if n >= LIT_MAX:
+		return false
+	add_to_group(&"bolt_lit")
+	return true
+
+
 static func release_shared() -> void:
 	_core_mats.clear()
 	_shock_mats.clear()

@@ -785,10 +785,31 @@ func _tick_hp_trail(delta: float) -> void:
 
 # --- behaviour ----------------------------------------------------------------------------------
 
+## An idle foe standing still far from the wanderer thinks on one tick in FAR_EVERY, with the time it skipped
+## (197 of them round a fight cost up to ~1.8 ms a frame thinking every tick). One that walks (a wander, a
+## patrol) ticks every frame: move_and_slide steps by the engine's tick, so a skipped tick is lost ground.
+const FAR_IDLE_R := 70.0
+const FAR_EVERY := 4
+var _far_acc := 0.0
+
+
+func _far_skip(delta: float) -> bool:
+	if boss or _state != IDLE or _hitstop > 0 or _dist < FAR_IDLE_R or _on_threat or not _at_rest():
+		_far_acc = 0.0
+		return false
+	_far_acc += delta
+	return (Engine.get_physics_frames() + get_instance_id()) % FAR_EVERY != 0
+
+
 func _physics_process(delta: float) -> void:
 	if _state == DEAD:
 		_tick_dying(delta)
 		return
+	if _far_skip(delta):
+		return
+	if _far_acc > 0.0:
+		delta = minf(_far_acc, 0.1)              # the ticks it skipped, at most the rig's own clamp
+		_far_acc = 0.0
 	_tick_cast(delta)                            # r33: in hitstop too (a boss's cast keeps time with its zones)
 	_silence_t = maxf(0.0, _silence_t - delta)
 	if _hitstop > 0:

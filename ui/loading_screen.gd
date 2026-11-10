@@ -88,6 +88,16 @@ var _fx_frames := -1
 var _combat_shown := false
 var _sounds_done := false
 var _steady := 0
+var _paces: Array[float] = []      ## the last frame times in "steady"
+
+
+static func _median(a: Array[float]) -> float:
+	if a.is_empty():
+		return 0.0
+	var b := a.duplicate()
+	b.sort()
+	return b[b.size() >> 1]
+
 var _fade := 1.0
 var _root: Control
 var _fill: ColorRect
@@ -110,6 +120,7 @@ static func open(z: Node3D) -> CanvasLayer:
 
 
 func _ready() -> void:
+	add_to_group(&"loading_screen")
 	name = "LoadingScreen"
 	layer = 120
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -214,9 +225,17 @@ func _process(delta: float) -> void:
 		"steady":
 			_stage.text = "Almost there"
 			_target = 1.0
-			# a run of even frames (or 3 s): the last compiles have landed
-			_steady = _steady + 1 if delta < 0.03 else 0
-			if _steady >= 20 or _phase_t > 3.0:
+			# the cover lifts on a run of even frames once the work that follows the build is done (the lava's bank
+			# map): "even" is near this machine's own pace, not a fixed 33 fps (a slower PC timed out after 3 s
+			# into a world still busy, ~20 fps for its first seconds). 12 s at most.
+			_paces.append(delta)
+			if _paces.size() > 30:
+				_paces.remove_at(0)
+			var pace := _median(_paces)
+			var lw := get_tree().get_first_node_in_group(&"lava_works") as LavaWorks
+			var busy := lw != null and lw.mapping > 0
+			_steady = _steady + 1 if not busy and _paces.size() >= 10 and delta < maxf(pace * 1.35, 0.012) and delta < 0.05 else 0
+			if _steady >= 20 or _phase_t > 12.0:
 				_next("fade")
 		"fade":
 			_fade = maxf(0.0, _fade - delta / 0.4)
@@ -543,6 +562,7 @@ func _end_tour() -> void:
 
 
 func _finish() -> void:
+	remove_from_group(&"loading_screen")
 	_phase = "done"
 	if is_instance_valid(_player):
 		_player.process_mode = Node.PROCESS_MODE_INHERIT
@@ -550,3 +570,4 @@ func _finish() -> void:
 			_player.reset_physics_interpolation()
 	print("LOADING done at %.2f s" % _t)
 	queue_free()
+
