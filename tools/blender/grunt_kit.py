@@ -168,7 +168,7 @@ def skin(name, base, deep, vein=(0.1, 0.04, 0.05), wrinkle=55.0, rough=0.66, wet
     return m.finish(col, r, 0.0, h, 0.55, 0.0035)
 
 
-def hollow_skin(name, base, deep, scale=1.0, wet=0.5, vein_amt=0.55, wrinkle=62.0, face_fade=None, gain=0.6):
+def hollow_skin(name, base, deep, scale=1.0, wet=0.5, vein_amt=0.55, wrinkle=62.0, face_fade=None, gain=0.6, extremities=0.6, liv=(0.78, 0.62, 0.95)):
     """Family 1 (the hollowed people): wet dead skin. Grey-blue base, livid purple pooled in the low
     places (lividity from the cavity), blue-green veins under the surface, a cold waxy sheen
     (roughness 0.34..0.6, wetter in the creases and over the veins), pores and cracked dry patches."""
@@ -180,7 +180,7 @@ def hollow_skin(name, base, deep, scale=1.0, wet=0.5, vein_amt=0.55, wrinkle=62.
     mott = m.noise(3.5 * scale, 6.0, 0.62)
     col = m.ramp(mott, [(0.28, deep), (0.7, base)])
     livid = m.noise(7.0 * scale, 4.0, 0.55)
-    purple = (base[0] * 0.78, base[1] * 0.62, base[2] * 0.95)
+    purple = (base[0] * liv[0], base[1] * liv[1], base[2] * liv[2])
     col = m.mix(m.math('MULTIPLY', m.math('SUBTRACT', livid, 0.52, True), 1.6, True), col, purple)
     # blue-green subcutaneous veins: fine ridged branching
     vn = m.noise(8.0 * scale, 4.0, 0.45, dist=0.7)
@@ -198,6 +198,15 @@ def hollow_skin(name, base, deep, scale=1.0, wet=0.5, vein_amt=0.55, wrinkle=62.
         m.links.new(m.coord.outputs['Object'], sep.inputs[0])
         f = m.math('MULTIPLY', m.math('SUBTRACT', sep.outputs['Z'], face_fade[1]), 1.0 / max(face_fade[2] - face_fade[1], 1e-4), True)
         col = m.mix(f, face_fade[0], col)
+    if extremities > 0.0:
+        # bruise-dark hands, feet and shins: dead blood pooled in the extremities (object space, Z up)
+        sepx = m.n('ShaderNodeSeparateXYZ')
+        m.links.new(m.coord.outputs['Object'], sepx.inputs[0])
+        low = m.math('MULTIPLY', m.math('SUBTRACT', 0.42, sepx.outputs['Z']), 3.0, True)
+        hand = m.math('MULTIPLY', m.math('MULTIPLY', m.math('SUBTRACT', m.math('ABSOLUTE', sepx.outputs['X']), 0.17), 8.0, True),
+                      m.math('MULTIPLY', m.math('SUBTRACT', 0.9, sepx.outputs['Z']), 6.0, True), True)
+        ext = m.math('MULTIPLY', m.math('MAXIMUM', low, hand), extremities)
+        col = m.mix(ext, col, (deep[0] * 0.8, deep[1] * 0.7, deep[2] * 0.85))
     col = mulc(m, col, cavity(m, 0.45, 0.56, 0.42, 1.08))
     pores = m.noise(300.0 * scale, 2.0, 0.5)
     h = m.math('ADD', m.math('MULTIPLY', wr, 0.8), m.math('MULTIPLY', pores, 0.8))
@@ -386,6 +395,48 @@ def stone(name="Stone", base=(0.2, 0.2, 0.19), moss=(0.07, 0.1, 0.05)):
     h = m.math('ADD', m.math('MULTIPLY', n1, 0.9), m.math('MULTIPLY', crack, -1.0))
     h = m.math('ADD', h, m.math('MULTIPLY', grit, 0.35))
     return m.finish(col, 0.92, 0.0, h, 0.7, 0.003)
+
+
+def mangy_hide(name="Hide", base=(0.075, 0.062, 0.05), pale=(0.17, 0.145, 0.115), sore=(0.2, 0.05, 0.04)):
+    """A starved hound's hide: dark brown mottle, moth-eaten pale mange patches, cracked and bald, a few
+    weeping sores, long scars, tight over the bone (dull, rough)."""
+    m = K.Mat(name)
+    mott = m.noise(5.0, 7.0, 0.6)
+    col = m.ramp(mott, [(0.3, tuple(c * 0.55 for c in base)), (0.7, base)])
+    fur = m.noise(220.0, 2.0, 0.5)
+    col = mulc(m, col, m.ramp(fur, [(0.3, (0.75, 0.75, 0.75)), (0.7, (1.1, 1.1, 1.1))]))
+    mange = m.math('GREATER_THAN', m.noise(4.2, 4.0, 0.55), 0.66)
+    crack = m.voronoi(48.0, 'DISTANCE_TO_EDGE')
+    col = m.mix(m.math('MULTIPLY', mange, 0.85), col, pale)
+    cr = m.math('MULTIPLY', m.math('LESS_THAN', crack, 0.06), mange)
+    col = m.mix(m.math('MULTIPLY', cr, 0.8), col, (0.05, 0.03, 0.03))
+    sores = m.math('MULTIPLY', m.math('GREATER_THAN', m.noise(7.0, 3.0, 0.5), 0.7), 0.9)
+    col = m.mix(sores, col, sore)
+    sc = m.noise(3.0, 2.0, 0.5, dist=1.4)
+    scar = m.math('LESS_THAN', m.math('ABSOLUTE', m.math('SUBTRACT', sc, 0.5)), 0.0025)
+    col = m.mix(m.math('MULTIPLY', scar, 0.8), col, (0.26, 0.2, 0.17))
+    col = mulc(m, col, cavity(m, 0.45, 0.56, 0.4, 1.1))
+    h = m.math('ADD', m.math('MULTIPLY', fur, 0.5), m.math('MULTIPLY', m.noise(14.0, 5.0, 0.6), 1.0))
+    h = m.math('ADD', h, m.math('MULTIPLY', scar, 1.2))
+    h = m.math('ADD', h, m.math('MULTIPLY', cr, -0.8))
+    rough = m.math('ADD', 0.78, m.math('MULTIPLY', sores, -0.3))
+    return m.finish(col, rough, 0.0, h, 0.7, 0.003)
+
+
+def sac_skin(name, base=(0.22, 0.25, 0.12), vein=(0.2, 0.05, 0.04), glow_col=(0.62, 0.78, 0.12), strength=2.2):
+    """Throat-sac skin: stretched pale olive membrane with dark branching veins; a sickly yellow-green
+    light shows through from inside, brighter in the thin patches between veins. Dull, not glossy."""
+    m = K.Mat(name)
+    v = m.math('ABSOLUTE', m.math('SUBTRACT', m.noise(9.0, 4.0, 0.5, dist=0.8), 0.5))
+    veins = m.math('LESS_THAN', v, 0.011)
+    thin = m.noise(5.0, 4.0, 0.55)
+    col = m.ramp(thin, [(0.3, tuple(c * 0.7 for c in base)), (0.7, tuple(c * 1.25 for c in base))])
+    col = m.mix(m.math('MULTIPLY', veins, 0.9), col, vein)
+    col = mulc(m, col, cavity(m, 0.45, 0.56, 0.45, 1.05))
+    lit = m.math('MULTIPLY', m.mono(m.ramp(thin, [(0.3, (0.25, 0.25, 0.25)), (0.7, (1, 1, 1))])), m.math('SUBTRACT', 1.0, veins))
+    em = m.mix(lit, (0.0, 0.0, 0.0), glow_col)
+    h = m.math('ADD', m.math('MULTIPLY', veins, 0.7), m.math('MULTIPLY', m.noise(30.0, 4.0, 0.5), 0.5))
+    return m.finish(col, 0.55, 0.0, h, 0.5, 0.003, emit=em, emit_strength=strength)
 
 
 def glow(name, col, strength=8.0, body=(0.04, 0.03, 0.02)):
@@ -584,6 +635,18 @@ def budget(objs, target):
         d.ratio = min(1.0, ratio * wt(o))
         d.use_collapse_triangulate = True
         K.apply_mods(o)
+    now = sum(tri(o) for o in objs)
+    if now > target * 1.02:
+        # a second pass: the many small parts (claws, bones, links) thin out together
+        small = [o for o in objs if 60 < tri(o) <= 300 and not o.get("fixed")]
+        st = sum(tri(o) for o in small)
+        if st > 0:
+            r2 = max(0.3, 1.0 - (now - target) / st)
+            for o in small:
+                d = o.modifiers.new("Budget2", 'DECIMATE')
+                d.ratio = r2
+                d.use_collapse_triangulate = True
+                K.apply_mods(o)
     print("BUDGET", total, "->", sum(tri(o) for o in objs), "ratio", round(ratio, 3))
 
 

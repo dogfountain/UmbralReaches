@@ -107,115 +107,102 @@ def mat(m):
 
 # =====================================================================================================
 if KIND == "leaper":
-    SKIN = mat(GK.ember_chitin("Skin", (0.055, 0.045, 0.045), (0.22, 0.16, 0.13), plates=13.0, rough=0.52, strength=2.0))
-    BONE = mat(GK.chitin("Bone", (0.09, 0.075, 0.065), (0.38, 0.3, 0.22), 9.0, 0.46))
-    EMBER = mat(GK.glow("Glow", (1.0, 0.42, 0.08), 4.0, (0.05, 0.015, 0.01)))
-    # body: a deep chest, a tucked waist, heavy haunches; the shoulder hump at the withers
+    # r38b: a lean, starved hound of the gloom: mangy dark hide pulled tight over ribs, hip bones and
+    # spine, sinew and tendon in the legs, scars and sores, a long narrow skull with the teeth bared.
+    SKIN = mat(GK.mangy_hide("Skin"))
+    BONE = mat(GK.grave_bone("Bone", (0.5, 0.42, 0.3), (0.16, 0.12, 0.08), 9.0))
+    KEEP.add("Bone")
     bd = Flesh("spine")
-    bd.ball(B + G(0, 0.0, -0.3), (0.13, 0.22, 0.19))                       # deep, narrow chest
-    bd.ball(B + G(0, -0.08, -0.28), (0.11, 0.12, 0.15))                    # brisket, keel low
-    bd.ball(B + G(0, 0.2, -0.26), (0.11, 0.1, 0.15))                     # withers: a hump
-    bd.ball(B + G(0, 0.16, -0.1), (0.1, 0.08, 0.14))
-    bd.chain([B + G(0, 0.02, -0.15), B + G(0, 0.04, 0.05), B + G(0, 0.03, 0.22)], [0.115, 0.08, 0.11])   # waist, tucked
-    bd.ball(B + G(0, -0.03, 0.04), (0.08, 0.06, 0.12))                     # the tuck under the loin
+    bd.ball(B + G(0, 0.0, -0.3), (0.105, 0.2, 0.17))                        # deep, narrow ribcage
+    bd.ball(B + G(0, -0.07, -0.28), (0.075, 0.1, 0.13))                     # brisket
+    bd.ball(B + G(0, 0.15, -0.27), (0.08, 0.07, 0.12))                      # the withers
+    bd.chain([B + G(0, 0.02, -0.15), B + G(0, 0.03, 0.05), B + G(0, 0.03, 0.22)], [0.09, 0.06, 0.085])   # starved waist
     for sx in (-1, 1):
-        bd.ball(B + G(sx * 0.1, 0.03, 0.3), (0.1, 0.17, 0.16), 1.5)    # haunches
-        bd.ball(B + G(sx * 0.1, 0.03, -0.35), (0.06, 0.12, 0.09), 1.5)     # shoulders
-    bd.ball(B + G(0, 0.07, 0.36), (0.12, 0.09, 0.14))                      # croup
-    bd.chain([B + G(0, 0.09, -0.4), F + G(0, 0.05, 0.02), H + G(0, 0.0, 0.07)], [0.11, 0.085, 0.065])   # neck, rising
-    bd.chain([B + G(0, 0.06, 0.44), T + G(0, 0.0, 0.08)], [0.075, 0.05])   # tail root
+        bd.ball(B + G(sx * 0.09, 0.03, 0.3), (0.07, 0.12, 0.11), 1.5)       # haunch muscle
+        bd.ball(B + G(sx * 0.115, 0.1, 0.26), (0.03, 0.045, 0.05), 4.0)     # the point of the hip, a bone under skin
+        bd.ball(B + G(sx * 0.08, 0.03, -0.35), (0.05, 0.1, 0.08), 1.5)      # shoulder
+        bd.ball(B + G(sx * 0.07, 0.17, -0.31), (0.03, 0.05, 0.07), 4.0)     # shoulder blade ridge
+    bd.ball(B + G(0, 0.07, 0.36), (0.085, 0.07, 0.11))                      # croup
+    bd.chain([B + G(0, 0.09, -0.4), F + G(0, 0.05, 0.02), H + G(0, 0.0, 0.07)], [0.085, 0.065, 0.05])   # neck, wired with sinew
+    bd.chain([B + G(0, 0.06, 0.44), T + G(0, 0.0, 0.08)], [0.055, 0.035])   # tail root
     build(bd, "Body", SKIN, 0.0075, 0.002, 1)
-    # ribs showing through the flanks
+    # every rib counted under the hide, and the knuckled spine
     for sx in (-1, 1):
-        for k in range(6):
-            z = -0.36 + 0.07 * k
-            r = 0.15 - 0.012 * k
-            pts = [B + G(sx * math.sin(a) * r * 1.07, 0.1 * math.cos(a) * 1.3 + 0.02, z + 0.02 * a) for a in [0.3 + 1.9 * j / 8.0 for j in range(9)]]
-            add(K.loft("Rib", pts, [0.0125] * 9, "spine", SKIN, 6))
-    # dorsal spines graded big at the shoulders to small at the tail (it was an even comb)
-    for k in range(13):
-        t = k / 12.0
-        z = lerp = -0.42 + 0.84 * t
-        y = 0.2 - 0.07 * t + 0.03 * math.sin(t * math.pi)
-        L = 0.3 * (1.0 - t) ** 1.2 + 0.04
-        add(GK.claw("Bone", B + G(0, y, z), G(0, 1.0, 0.75), L, 0.024 * (1.0 - 0.6 * t) + 0.007, "spine", BONE, -0.35))
-    # the ember line along the belly
-    belly = [B + G(0, -0.185 + 0.13 * t ** 0.55, -0.33 + 0.5 * t) for t in [i / 14.0 for i in range(15)]]
-    add(K.loft("Glow", belly, [(0.008, 0.006)] * 15, "spine", EMBER, 6))
-    # head: a long lean sight-hound skull, the jaw open, ember eyes deep in the sockets
+        for k in range(8):
+            z = -0.4 + 0.058 * k
+            r = 0.135 - 0.008 * k
+            pts = [B + G(sx * math.sin(a) * r * 1.06, 0.09 * math.cos(a) * 1.3 + 0.02, z + 0.02 * a) for a in [0.3 + 1.9 * j / 8.0 for j in range(9)]]
+            add(K.loft("Rib", pts, [0.0105] * 9, "spine", SKIN, 6))
+    for k in range(15):
+        t = k / 14.0
+        z = -0.42 + 0.86 * t
+        y = 0.19 - 0.07 * t + 0.03 * math.sin(t * math.pi)
+        add(K.blob("Vert", B + G(0, y - 0.045, z), (0.02, 0.022, 0.016), "spine", SKIN, 10, 6))
+    for k in range(5):      # a few broken spurs of bone through the hide at the withers
+        add(GK.claw("Bone", B + G(0, 0.2 - 0.008 * k, -0.34 + 0.05 * k), G(0, 1.0, 0.6), 0.09 - 0.012 * k, 0.014, "spine", BONE, -0.3))
+    # head: a long narrow skull, hide drawn back from the teeth, deep hollow sockets
     hd = Flesh("head")
-    hd.ball(H + G(0, 0.03, 0.0), (0.06, 0.06, 0.08))                       # cranium
-    hd.chain([H + G(0, 0.02, -0.05), H + G(0, 0.0, -0.17), H + G(0, -0.02, -0.25)], [0.05, 0.035, 0.025], 3.0)   # muzzle
-    hd.chain([H + G(-0.04, -0.03, 0.0), H + G(0, -0.06, -0.2), H + G(0.04, -0.03, 0.0)], [0.022, 0.018, 0.022])   # lower jaw, slung open
+    hd.ball(H + G(0, 0.03, 0.0), (0.045, 0.05, 0.07))                       # cranium
+    hd.chain([H + G(0, 0.02, -0.05), H + G(0, 0.0, -0.2), H + G(0, -0.02, -0.32)], [0.034, 0.026, 0.018], 3.0)   # long muzzle
+    hd.chain([H + G(-0.032, -0.03, 0.0), H + G(0, -0.065, -0.24), H + G(0.032, -0.03, 0.0)], [0.016, 0.014, 0.016])   # lower jaw, slung open
     for sx in (-1, 1):
-        hd.ball(H + G(sx * 0.045, 0.04, -0.06), (0.02, 0.016, 0.02), 2.0, None, True)          # sockets
-        hd.ball(H + G(sx * 0.055, 0.0, -0.01), (0.025, 0.03, 0.035), 3.0)                      # masseter
-        hd.ball(H + G(sx * 0.035, 0.07, 0.04), (0.018, 0.045, 0.03), 4.0)                      # ears laid back
-    hd.ball(H + G(0, 0.03, 0.1), (0.04, 0.04, 0.04))                       # into the neck
+        hd.ball(H + G(sx * 0.04, 0.035, -0.06), (0.019, 0.016, 0.02), 2.0, None, True)          # hollow sockets
+        hd.ball(H + G(sx * 0.045, 0.0, -0.01), (0.02, 0.026, 0.03), 3.0)                       # masseter, wasted
+        hd.ball(H + G(sx * 0.03, 0.065, 0.04), (0.016, 0.04, 0.026), 4.0)                      # torn ears laid back
+        hd.ball(H + G(sx * 0.03, 0.04, -0.12), (0.012, 0.012, 0.03), 4.0)                      # cheekbone
+    hd.ball(H + G(0, 0.03, 0.1), (0.035, 0.035, 0.035))
     build(hd, "Head", SKIN, 0.004, 0.001, 2)
-    # r38: swept horns, and plates of bone armour over the shoulder blades, a hide flap hanging off the belly
     for sx in (-1, 1):
-        add(GK.claw("Bone", H + G(sx * 0.04, 0.07, 0.04), G(sx * 0.45, 0.45, 1.0), 0.26, 0.02, "head", BONE, -0.6))
-        for j in range(4):
-            add(GK.claw("Bone", B + G(sx * (0.1 + 0.01 * j), 0.16 - 0.03 * j, -0.38 + 0.07 * j), G(sx * (0.8 - 0.1 * j), 0.7, 0.1 + 0.25 * j), 0.17 - 0.015 * j, 0.022, "spine", BONE, -0.4))   # swept pauldron spikes
-    for k in range(5):
-        t = k / 4.0
-        add(GK.strip("Hide", [B + G((t - 0.5) * 0.14, -0.15, -0.3 + 0.55 * t), B + G((t - 0.5) * 0.17, -0.25 - 0.05 * (k % 2), -0.3 + 0.55 * t + 0.03), B + G((t - 0.5) * 0.19, -0.32 - 0.05 * (k % 2), -0.3 + 0.55 * t + 0.06)], 0.05, 0.006, "spine", SKIN, taper=0.7))
-    for sx in (-1, 1):
-        add(K.blob("Eye", H + G(sx * 0.042, 0.04, -0.07), (0.012, 0.011, 0.008), "head", EYE, 12, 8))
-        for k in range(7):
-            z = -0.05 - 0.028 * k
-            add(K.loft("Tooth", [H + G(sx * (0.028 - 0.002 * k), -0.015, z), H + G(sx * (0.028 - 0.002 * k), -0.07 - 0.02 * (k % 2), z)], [0.007, 0.0], "head", CLAW, 6))
-            add(K.loft("Tooth", [H + G(sx * (0.024 - 0.002 * k), -0.05, z + 0.01), H + G(sx * (0.024 - 0.002 * k), -0.03, z + 0.01)], [0.004, 0.0], "head", CLAW, 6))
-    # tail: long, tapering, a double row of spikes
+        add(K.blob("Eye", H + G(sx * 0.038, 0.036, -0.07), (0.01, 0.01, 0.007), "head", EYE, 12, 8))
+        for k in range(8):      # teeth bared along both jaws, long canines at the front
+            z = -0.05 - 0.03 * k
+            L = 0.075 if k == 5 else 0.045 + 0.012 * (k % 2)
+            add(K.loft("Tooth", [H + G(sx * (0.022 - 0.0015 * k), -0.005, z), H + G(sx * (0.024 - 0.0015 * k), -0.005 - L, z)], [0.006, 0.0], "head", CLAW, 6))
+            add(K.loft("Tooth", [H + G(sx * (0.02 - 0.0015 * k), -0.055, z + 0.012), H + G(sx * (0.02 - 0.0015 * k), -0.055 + L * 0.8, z + 0.012)], [0.005, 0.0], "head", CLAW, 6))
+    # tail: a long whip, thin, ribbed with vertebrae
     tl = Flesh("r:tail")
     tp = [T + G(0, -0.08 * t * t + 0.02 * math.sin(t * 3), 0.9 * t) for t in [i / 8.0 for i in range(9)]]
-    tl.chain(tp, [0.06 * (1.0 - t * 0.85) for t in [i / 8.0 for i in range(9)]])
+    tl.chain(tp, [0.045 * (1.0 - t * 0.8) for t in [i / 8.0 for i in range(9)]])
     build(tl, "Tail", SKIN, 0.005, 0.0015, 3)
-    # r38: a bone scythe at the end of the tail, the rig's whip lash made a blade
-    add(GK.claw("Bone", T + G(0, -0.075, 0.88), G(0, 0.25, 1.0), 0.3, 0.034, "r:tail", BONE, -0.9))
-    add(GK.claw("Bone", T + G(0, -0.07, 0.82), G(0, -0.2, 1.0), 0.16, 0.02, "r:tail", BONE, 0.7))
-    for k in range(9):
-        t = 0.12 + 0.1 * k
+    for k in range(7):
+        t = 0.1 + 0.12 * k
         p = T + G(0, -0.08 * t * t + 0.02 * math.sin(t * 3), 0.9 * t)
-        add(GK.claw("Bone", p + G(0, 0.04 * (1 - t), 0), G(0, 1.0, 0.6), 0.07 * (1.0 - 0.5 * t), 0.01, "r:tail", BONE, -0.3))
-        for sx in (-1, 1):
-            add(GK.claw("Bone", p + G(sx * 0.04 * (1 - t), 0, 0), G(sx, 0.2, 0.5), 0.045 * (1.0 - 0.5 * t), 0.007, "r:tail", BONE, -0.2))
-    # legs: forelegs (shoulder, elbow back, a long forearm onto the paw), hind legs (thigh, stifle
-    # forward, a hock, a long metatarsal): hound legs, not stilts
+        add(K.blob("Vert", p + G(0, 0.03 * (1 - t), 0), (0.016 * (1 - 0.5 * t), 0.02, 0.014), "r:tail", SKIN, 8, 6))
+    # legs: forelegs (shoulder, elbow back, a long forearm onto the paw), hind legs (thigh, stifle, hock,
+    # a long metatarsal): lean muscle bellies, a bony knuckled joint with the tendon strung over it
     for tag in ("fl", "fr", "bl", "br"):
         sx = -1 if tag.endswith("l") else 1
         front = tag.startswith("f")
         hip, kn, ft = S["leg_%s_hip" % tag], S["leg_%s_knee" % tag], S["leg_%s_foot" % tag]
         lg = Flesh("leg_" + tag)
         if front:
-            lg.ball(hip + G(sx * 0.0, 0.01, 0.0), (0.08, 0.1, 0.09), 1.5)
-            lg.along(hip + G(0, -0.02, 0.0), kn + G(0, 0.04, 0.0), (0.078, 0.07), None)
-            lg.ball(kn, (0.04, 0.045, 0.045))
-            lg.ball(kn + G(0, 0.0, 0.035), (0.025, 0.03, 0.02), 4.0)                     # point of the elbow
-            lg.along(kn + G(0, -0.02, -0.01), kn + G(0, -0.14, -0.015), (0.04, 0.036), None)
-            lg.chain([kn + G(0, -0.02, 0), ft + G(0, 0.04, 0.0)], [0.035, 0.022])
-            lg.ball(ft + G(0, 0.02, 0.0), (0.025, 0.03, 0.03))                           # wrist
+            lg.ball(hip + G(0, 0.01, 0.0), (0.06, 0.09, 0.075), 1.5)
+            lg.along(hip + G(0, -0.02, 0.0), kn + G(0, 0.04, 0.0), (0.06, 0.055), None)         # triceps belly
+            lg.ball(kn, (0.034, 0.04, 0.038))
+            lg.ball(kn + G(0, 0.0, 0.035), (0.022, 0.028, 0.02), 4.0)                          # point of the elbow
+            lg.along(kn + G(0, -0.02, -0.01), kn + G(0, -0.15, -0.015), (0.04, 0.034), None)     # forearm muscle
+            lg.chain([kn + G(0, -0.02, 0), ft + G(0, 0.04, 0.0)], [0.03, 0.02])
+            lg.along(kn + G(0, -0.14, 0.012), ft + G(0, 0.05, 0.01), 0.008, None, 4.0)          # flexor tendon
+            lg.ball(ft + G(0, 0.03, 0.0), (0.026, 0.03, 0.03), 3.0)                            # wrist, knobbed
         else:
-            lg.ball(hip + G(sx * 0.0, 0.02, 0.02), (0.09, 0.125, 0.125), 1.5)                # the haunch into the thigh
-            lg.along(hip + G(0, -0.02, 0.0), kn + G(0, 0.05, 0.02), (0.088, 0.08), None)
-            lg.ball(kn, (0.04, 0.045, 0.045))
+            lg.ball(hip + G(0, 0.02, 0.02), (0.075, 0.11, 0.11), 1.5)
+            lg.along(hip + G(0, -0.02, 0.0), kn + G(0, 0.05, 0.02), (0.075, 0.07), None)         # thigh belly
+            lg.ball(kn, (0.034, 0.04, 0.04))
+            lg.ball(kn + G(0, 0.0, -0.032), (0.024, 0.03, 0.016), 4.0)                         # kneecap
             hock = kn + G(0, -0.16, 0.14)
-            lg.along(kn + G(0, -0.02, 0.02), hock + G(0, 0.06, -0.04), (0.045, 0.04), None)   # gaskin
-            lg.chain([kn, hock, ft + G(0, 0.03, 0.0)], [0.035, 0.024, 0.022])
-            lg.ball(hock + G(0, 0.0, 0.015), (0.022, 0.03, 0.028), 4.0)                  # point of the hock
-            lg.ball(ft + G(0, 0.02, 0.0), (0.024, 0.028, 0.028))
-        # the paw: a pad, four toes, hooked claws
-        lg.ball(ft + G(0, -0.01, -0.02), (0.046, 0.026, 0.05))
+            lg.along(kn + G(0, -0.02, 0.02), hock + G(0, 0.06, -0.04), (0.04, 0.036), None)      # gaskin
+            lg.chain([kn, hock, ft + G(0, 0.03, 0.0)], [0.03, 0.021, 0.019])
+            lg.along(hock + G(0, 0.12, 0.03), hock + G(0, -0.01, 0.025), 0.01, None, 4.0)       # the Achilles cord
+            lg.ball(hock + G(0, 0.0, 0.02), (0.024, 0.032, 0.03), 4.0)                         # point of the hock
+            lg.ball(ft + G(0, 0.02, 0.0), (0.022, 0.026, 0.026), 3.0)
+        lg.ball(ft + G(0, -0.01, -0.02), (0.042, 0.024, 0.048))
         for k in range(4):
             tx = (k - 1.5) * 0.018
-            lg.ball(ft + G(tx, -0.012, -0.055 - 0.01 * (1.5 - abs(k - 1.5))), (0.012, 0.014, 0.016))
+            lg.ball(ft + G(tx, -0.012, -0.055 - 0.01 * (1.5 - abs(k - 1.5))), (0.011, 0.013, 0.015))
         build(lg, "Leg_" + tag, SKIN, 0.005, 0.0012, 4)
         for k in range(4):
             tx = (k - 1.5) * 0.018
-            add(GK.claw("Claw", ft + G(tx, -0.01, -0.07 - 0.01 * (1.5 - abs(k - 1.5))), G(tx * 2, -0.6, -1.0), 0.09, 0.0085, "leg_" + tag, CLAW, 0.7))
-        if not front:
-            add(GK.claw("Bone", hip + G(sx * 0.06, 0.06, 0.04), G(sx * 0.7, 0.6, 0.4), 0.08, 0.012, "leg_" + tag, BONE, -0.2))   # a spur off the haunch
+            add(GK.claw("Claw", ft + G(tx, -0.01, -0.07 - 0.01 * (1.5 - abs(k - 1.5))), G(tx * 2, -0.6, -1.0), 0.07, 0.008, "leg_" + tag, CLAW, 0.7))
 
 # =====================================================================================================
 elif KIND == "crawler":
