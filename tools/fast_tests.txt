@@ -16,3 +16,4 @@ story
 text_director
 threshold_quest
 ui_r33
+rewards

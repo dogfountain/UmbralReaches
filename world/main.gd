@@ -37,6 +37,9 @@ func _ready() -> void:
 	var satchel := Satchel.new()
 	satchel.name = "Satchel"
 	add_child(satchel)
+	var rewards: Node = (load("res://core/items/rewards.gd") as GDScript).new()
+	rewards.name = "Rewards"
+	add_child(rewards)
 	# r35: the one character screen (Wanderer, Kindling, Pack, Journal) over the old panels
 	var cscreen: CanvasLayer = (load("res://ui/character_screen.gd") as GDScript).new()
 	cscreen.name = "CharacterScreen"
