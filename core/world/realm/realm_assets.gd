@@ -17,15 +17,8 @@ const M := "res://art/models/"
 ## scene_file_path -> upgrade kind
 const KINDS := {
 	"res://art/models/menhir.glb": "menhir",
-	"res://art/models/cairn.glb": "cairn",
-	"res://art/models/rune_slab.glb": "rune_slab",
-	"res://art/models/twisted_root.glb": "root",
-	"res://art/models/fallen_branch.glb": "branch",
 	"res://art/models/lantern.glb": "lantern",
 	"res://art/models/stone_frame.glb": "stone_frame",
-	"res://art/models/mirror_frame.glb": "mirror_frame",
-	"res://art/models/rock_a.glb": "rock",
-	"res://art/models/rock_b.glb": "rock",
 }
 
 static var _mats := {}
@@ -80,13 +73,8 @@ static func upgrade(model: Node) -> bool:
 	var seed_v := int(absf(at.x * 7.13 + at.z * 3.71 + at.y)) + model.name.hash()
 	match kind:
 		"menhir": _menhir(model, seed_v, at)
-		"cairn": _cairn(model, seed_v, at)
-		"rune_slab": _rune_slab(model, seed_v, at)
-		"root", "branch": _wood(model)
 		"lantern": _lantern(model)
 		"stone_frame": _stone_frame(model)
-		"mirror_frame": pass                 # the flame shader frame (mirror.gd) already reads well
-		"rock": _rock(model, seed_v, at)
 	_counts[kind] = int(_counts.get(kind, 0)) + 1
 	return true
 
@@ -124,73 +112,11 @@ static func _menhir(model: Node, seed_v: int, at: Vector3) -> void:
 	_hide(model, ["StoneBite", "StoneCarve", "StoneFootChip", "StoneShoulder", "MossSkirt", "Lichen"])
 
 
-## Cairn: the stacked boxes become a pile of rounded, chipped field stones.
-static func _cairn(model: Node, _seed_v: int, _at: Vector3) -> void:
-	# the remodelled glb (tools/blender/props_stones.py: chunky stacked stones, tone in the vertex colour) is dressed
-	# with the tiling stone set; it no longer swaps in RockKit stones
-	_dress_stone(model)
-
-
-static func cairn_mesh(seed_v: int, style: String) -> ArrayMesh:
-	var key := "cairn|%d|%s" % [posmod(seed_v, 6), style]
-	if _meshes.has(key):
-		return _meshes[key]
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(key)
-	RockKit._seed_noise(rng.randi())
-	var g := RockKit.Geo.new()
-	var y := 0.0
-	var n := rng.randi_range(5, 7)
-	var w := 0.4
-	for i in n:
-		var f := float(i) / float(n - 1)
-		var sw := lerpf(w, w * 0.38, f) * rng.randf_range(0.88, 1.08)
-		var sh := sw * rng.randf_range(0.3, 0.42)
-		var sz := Vector3(sw, sh, sw * rng.randf_range(0.7, 0.9))
-		var sg: RockKit.Geo = RockKit._boulder_geo(rng, sz, "mossy" if style == "mossy" and i < n - 1 else "granite", 260)
-		var off := Vector3(rng.randf_range(-0.03, 0.03), y, rng.randf_range(-0.025, 0.025))
-		var xf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(-0.08, 0.08)), off)
-		var tone := rng.randf_range(0.75, 1.0)
-		for k in sg.col.size():
-			sg.col[k].r *= tone
-		g.add(sg, xf)
-		y += sh * 0.92
-		if i == 0:
-			# a few loose stones round the foot
-			for k in 3:
-				var a := rng.randf() * TAU
-				var ls := Vector3(0.12, 0.07, 0.1) * rng.randf_range(0.7, 1.2)
-				var lg: RockKit.Geo = RockKit._boulder_geo(rng, ls, "granite", 90)
-				g.add(lg, Transform3D(Basis(Vector3.UP, a), Vector3(cos(a), 0.0, sin(a)) * w * 0.62))
-	var mesh: ArrayMesh = RockKit._finish(g, style, key)
-	_meshes[key] = mesh
-	return mesh
-
-
-## Rune slab: a dressed slab with a clean face for the glowing mark (kept; its glow tamed).
-static func _rune_slab(model: Node, _seed_v: int, _at: Vector3) -> void:
-	# the remodelled slab has its rune cut into a sunk panel (Stone) and an inlay of glow (Mark): dress Stone, keep the glow
-	_dress_stone(model)
-	var mark := _mi(model, "Mark")
-	if mark != null:
-		mark.material_override = _mat("rune")
-		mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-
-
-## Every mesh of a remodelled stone glb gets the finer tiling stone set (node names are kept).
 static func _dress_stone(model: Node) -> void:
 	for mi in model.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
 		if String(m.name) != "Mark":
 			m.material_override = WestKit.prop_mat("stone")
-
-
-## Roots and fallen branches: same meshes, now textured bark with LODs.
-static func _wood(model: Node) -> void:
-	for mi in model.find_children("*", "MeshInstance3D", true, false):
-		var m := mi as MeshInstance3D
-		m.mesh = _lod(m.mesh)
-		m.material_override = _mat("bark")
 
 
 static func _lantern(model: Node) -> void:
@@ -213,10 +139,6 @@ static func _stone_frame(model: Node) -> void:
 		var m := mi as MeshInstance3D
 		m.mesh = _lod(m.mesh)
 		m.material_override = _mat("frame")
-
-
-static func _rock(model: Node, _seed_v: int, _at: Vector3) -> void:
-	_dress_stone(model)                    # the remodelled glb: chiselled, smooth-shaded, moss and cracks in the tone
 
 
 static func _lod(mesh: Mesh) -> Mesh:

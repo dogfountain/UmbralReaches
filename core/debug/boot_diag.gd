@@ -18,7 +18,6 @@ const GLBS := [
 	"res://art/models/wretch_head.glb",
 	"res://art/models/husk_torso.glb",
 	"res://art/models/husk_head.glb",
-	"res://art/models/rock_a.glb",
 	"res://art/models/stair_step.glb",
 	"res://art/models/robe_torso.glb",
 	"res://art/models/robe_hood.glb",
