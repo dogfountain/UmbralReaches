@@ -38,15 +38,21 @@ Z = Vector((0, 0, 1))
 
 SPECS = {
     "maud":   dict(w=6.6, d=5.0, walls="daub",  roof="thatch", state="lived",     seed=11),
-    "harrow": dict(w=6.2, d=4.8, walls="stone", roof="slate",  state="ruined",    seed=23),
+    "harrow": dict(w=6.2, d=4.8, walls="stone", roof="slate",  state="ruined",    seed=23, collapse="east"),
     "reed":   dict(w=6.4, d=5.0, walls="stone", roof="slate",  state="shuttered", seed=37),
-    "cobb":   dict(w=7.0, d=5.4, walls="stone", roof="thatch", state="burned",    seed=41),
+    "cobb":   dict(w=7.0, d=5.4, walls="stone", roof="thatch", state="burned",    seed=41, collapse="east"),
     "south":  dict(w=6.0, d=4.8, walls="daub",  roof="thatch", state="shuttered", seed=53),
 }
 
 TONES = ["stone", "daub", "wood", "iron", "thatch", "slate", "char", "dark", "floor", "glow", "rubble", "inner", "deck", "sootstone"]
 TID = {n: i for i, n in enumerate(TONES)}
-MATKEY = {"body": "CotBody", "roof": "CotRoof", "glow": "CotGlow"}
+SETOF = {"stone": "stone", "rubble": "stone", "sootstone": "stone", "daub": "daub", "inner": "daub", "wood": "timber", "char": "timber",
+         "deck": "timber", "dark": "timber", "floor": "timber", "iron": "iron", "thatch": "thatch", "slate": "slate", "glow": "glow"}
+TILE = {"stone": 6.0, "timber": 2.0, "iron": 2.0, "daub": 2.0, "thatch": 2.0, "slate": 1.5, "glow": 1.0}
+# the set albedo's mean colour, so the vertex colour (which the game multiplies on the set) is a tone, not an albedo
+REF = {"stone": (0.5, 0.47, 0.42), "daub": (0.72, 0.66, 0.54), "timber": (0.32, 0.23, 0.16), "iron": (0.2, 0.17, 0.15),
+       "thatch": (0.46, 0.36, 0.2), "slate": (0.2, 0.21, 0.25), "glow": (1.0, 1.0, 1.0)}
+SETS_ALL = ["stone", "daub", "timber", "iron", "thatch", "slate", "glow"]
 
 
 def clamp(x, a=0.0, b=1.0):
@@ -90,6 +96,7 @@ class Mesh:
         return self.bm[key]
 
     def face(self, key, pts, tone, normal=None, away=None, ao=None, tint=None):
+        key = SETOF[tone]
         bm = self.get(key)
         pts = [Vector(p) for p in pts]
         # drop degenerate faces
@@ -180,7 +187,7 @@ class Mesh:
 # =====================================================================================================================
 # colour
 # =====================================================================================================================
-def tone_color(M, name, co, nrm, ao, tint):
+def tone_albedo(M, name, co, nrm, ao, tint):
     p = co + M.off
     burned = M.state == "burned"
     low = 1.0 - smooth(0.0, 1.4, co.z)
@@ -197,7 +204,7 @@ def tone_color(M, name, co, nrm, ao, tint):
         c = c.lerp(Vector((0.16, 0.22, 0.085)), 0.75 * moss)
         # soot: a stain above the chimney side and over lit windows, everything when burned
         if burned or name == "sootstone":
-            c = (c + Vector((0.04, 0.012, 0.0))) * (0.32 + 0.5 * smooth(-0.25, 0.5, fbm(p * 0.7, 2)) * (0.55 + 0.45 * (1.0 - smooth(0.3, 2.6, co.z))))
+            c = (c + Vector((0.05, 0.02, 0.0))) * (0.62 + 0.5 * smooth(-0.25, 0.5, fbm(p * 0.7, 2)) * (0.55 + 0.45 * (1.0 - smooth(0.3, 2.6, co.z))))
         else:
             soot = smooth(3.6, 6.0, co.z) * smooth(M.chim_x - 1.0, M.chim_x, co.x) * 0.4 if hasattr(M, "chim_x") else 0.0
             c *= 1.0 - soot
@@ -251,8 +258,20 @@ def tone_color(M, name, co, nrm, ao, tint):
     return (clamp(c.x), clamp(c.y), clamp(c.z))
 
 
-def finish(M, prefix, matmap, smooth_tones=("thatch", "daub")):
-    """-> {objname: obj}. matmap: key -> object name."""
+def tone_color(M, name, co, nrm, ao, tint):
+    c = tone_albedo(M, name, co, nrm, ao, tint)
+    if name == "glow":
+        return c
+    ref = REF[SETOF[name]]
+    return tuple(min(1.0, c[i] / ref[i] * 0.92) for i in range(3))
+
+
+SLOPE_N = math.sqrt(1 + SLOPE * SLOPE)
+
+
+def finish(M, prefix, names, smooth_tones=("thatch", "daub"), rz=0.0):
+    """One object per set, named `<prefix>__<set>` (glow: names['glow']); box UVs in metres (timber grain along each
+    board's longest edge, roof sets laid down the slope); vertex colour = tone multiplier. Returns {set: obj}."""
     out = {}
     for key, bm in M.bm.items():
         bm.normal_update()
@@ -261,51 +280,105 @@ def finish(M, prefix, matmap, smooth_tones=("thatch", "daub")):
         al = bm.verts.layers.float["ao"]
         uv = bm.loops.layers.uv.new("UVMap")
         col = bm.loops.layers.color.new("Col")
+        tile = TILE[key]
         for f in bm.faces:
             name = TONES[f[tl]]
             f.smooth = name in smooth_tones
             nrm = f.normal
             ax = max(range(3), key=lambda i: abs(nrm[i]))
+            grain = None
+            if key == "timber":
+                le = max(f.edges, key=lambda e: e.calc_length())
+                d = (le.verts[1].co - le.verts[0].co).normalized()
+                t1 = nrm.cross(d)
+                if t1.length > 1e-6:
+                    grain = (t1.normalized(), d)
+            slope_face = key in ("thatch", "slate") and abs(nrm.y) > 0.3 and nrm.z > 0.2
             for l in f.loops:
                 co = l.vert.co
-                if ax == 0:
-                    l[uv].uv = (co.y / 2.0, co.z / 2.0)
+                if slope_face:
+                    ds = (abs(co.y) + (rz - co.z) * SLOPE) / SLOPE_N
+                    l[uv].uv = (co.x / tile, ds / tile)
+                elif grain is not None:
+                    l[uv].uv = (co.dot(grain[0]) / tile, co.dot(grain[1]) / tile)
+                elif ax == 0:
+                    l[uv].uv = (co.y / tile, co.z / tile)
                 elif ax == 1:
-                    l[uv].uv = (co.x / 2.0, co.z / 2.0)
+                    l[uv].uv = (co.x / tile, co.z / tile)
                 else:
-                    l[uv].uv = (co.x / 2.0, co.y / 2.0)
+                    l[uv].uv = (co.x / tile, co.y / tile)
                 n = l.vert.normal if f.smooth else nrm
-                a = l.vert[al]
-                c = tone_color(M, name, co, n, a, f[tn])
+                c = tone_color(M, name, co, n, l.vert[al], f[tn])
                 l[col] = (c[0], c[1], c[2], 1.0)
-        me = bpy.data.meshes.new(matmap[key])
+        nm = names["glow"] if key == "glow" else "%s__%s" % (prefix, key)
+        me = bpy.data.meshes.new(nm)
         bm.to_mesh(me)
         bm.free()
         me.color_attributes.active_color = me.color_attributes["Col"]
         me.color_attributes.render_color_index = me.color_attributes.find("Col")
-        ob = bpy.data.objects.new(matmap[key], me)
+        me.materials.append(plain_mat(key))
+        ob = bpy.data.objects.new(nm, me)
         bpy.context.scene.collection.objects.link(ob)
-        out[matmap[key]] = ob
+        out[key] = ob
     return out
 
 
-def make_materials():
-    mats = {}
-    for key, nm in MATKEY.items():
-        m = bpy.data.materials.new(nm)
-        m.use_nodes = True
+def plain_mat(key):
+    m = bpy.data.materials.get(key)
+    if m:
+        return m
+    m = bpy.data.materials.new(key)
+    m.use_nodes = True
+    return m
+
+
+def texture_mats():
+    """Preview only: each set's material built from the game's r37_<set> PBR PNGs (albedo x vertex tone, normal, ORM)."""
+    tex = os.path.join(ROOT, "art", "textures")
+    for key in SETS_ALL:
+        m = plain_mat(key)
         nt = m.node_tree
-        bsdf = nt.nodes["Principled BSDF"]
+        for n in list(nt.nodes):
+            if n.type != 'OUTPUT_MATERIAL':
+                nt.nodes.remove(n)
+        out = [n for n in nt.nodes if n.type == 'OUTPUT_MATERIAL'][0]
+        bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
+        nt.links.new(bsdf.outputs[0], out.inputs[0])
         vc = nt.nodes.new("ShaderNodeVertexColor")
         vc.layer_name = "Col"
-        nt.links.new(vc.outputs[0], bsdf.inputs["Base Color"])
-        bsdf.inputs["Roughness"].default_value = 0.92
-        bsdf.inputs["Metallic"].default_value = 0.0
         if key == "glow":
+            nt.links.new(vc.outputs[0], bsdf.inputs["Base Color"])
             nt.links.new(vc.outputs[0], bsdf.inputs["Emission Color"])
             bsdf.inputs["Emission Strength"].default_value = 3.0
-        mats[key] = m
-    return mats
+            continue
+
+        def img(suffix, cs):
+            n = nt.nodes.new("ShaderNodeTexImage")
+            im = bpy.data.images.load(os.path.join(tex, "r37_%s_%s.png" % (key, suffix)), check_existing=True)
+            im.colorspace_settings.name = cs
+            n.image = im
+            return n
+        a, nm, orm = img("albedo", "sRGB"), img("normal", "Non-Color"), img("orm", "Non-Color")
+        mul = nt.nodes.new("ShaderNodeMix")
+        mul.data_type = 'RGBA'
+        mul.blend_type = 'MULTIPLY'
+        mul.inputs[0].default_value = 1.0
+        nt.links.new(a.outputs[0], mul.inputs[6])
+        nt.links.new(vc.outputs[0], mul.inputs[7])
+        sep = nt.nodes.new("ShaderNodeSeparateColor")
+        nt.links.new(orm.outputs[0], sep.inputs[0])
+        ao = nt.nodes.new("ShaderNodeMix")
+        ao.data_type = 'RGBA'
+        ao.blend_type = 'MULTIPLY'
+        ao.inputs[0].default_value = 1.0
+        nt.links.new(mul.outputs[2], ao.inputs[6])
+        nt.links.new(sep.outputs[0], ao.inputs[7])
+        nt.links.new(ao.outputs[2], bsdf.inputs["Base Color"])
+        nt.links.new(sep.outputs[1], bsdf.inputs["Roughness"])
+        nt.links.new(sep.outputs[2], bsdf.inputs["Metallic"])
+        nmn = nt.nodes.new("ShaderNodeNormalMap")
+        nt.links.new(nm.outputs[0], nmn.inputs[1])
+        nt.links.new(nmn.outputs[0], bsdf.inputs["Normal"])
 
 
 # =====================================================================================================================
@@ -798,8 +871,8 @@ def slate_roof(M, w, d, st):
     ov = 0.45
     ext = 0.34
     L = w + 2 * ext
-    rows = 11
-    sw = 0.46
+    rows = 10
+    sw = 0.52
     miss = 0.08 if st == "shuttered" else 0.0
     for side in (1, -1):
         R, dv, N, ln = slope_frame(hd, ov, side)
@@ -853,41 +926,50 @@ def slate_roof(M, w, d, st):
         pass
 
 
-def chimney(M, w, d, roof, st):
+def chimney(M, w, d, roof, st, ruin_top=None):
+    """External breast on the +x gable: three tapering sections, each a rubble core faced with coursed blocks on all
+    four sides (the -x face above the roof only), set-off ledges, a drip cap and a clay pot. `ruin_top` breaks it off."""
     hw, hd = w * 0.5, d * 0.5
     cy = -hd * 0.25
     ridge = H + SLOPE * hd
-    top = ridge + (1.55 if roof == "thatch" else 1.05)
-    x_out = hw + 0.2
     rng = M.rng
-    z = 0.4
+    top = ridge + (1.55 if roof == "thatch" else 1.05) if ruin_top is None else ruin_top
+    x_out = hw + 0.2
     secs = [(0.4, 2.35, 0.7, 0.9), (2.35, 3.55, 0.62, 0.8), (3.55, top - 0.12, 0.54, 0.7)]
     for (z0, z1, wx, wy) in secs:
-        zc = z0
-        i = 0
-        while zc < z1 - 0.02:
-            ch = min(rng.uniform(0.24, 0.34), z1 - zc)
-            jx, jy = rng.uniform(-0.025, 0.025), rng.uniform(-0.025, 0.025)
-            sx, sy = wx + (0.04 if i % 2 else 0.0), wy + (0.0 if i % 2 else 0.04)
-            M.box("body", "stone", (x_out - sx * 0.5 + jx, cy + jy, zc + ch * 0.5), (sx, sy, ch), jit=0.012, skip=("-z",), ao=[0.7, 0.7, 0.7, 0.7, 1.0, 1.0, 1.0, 1.0] if False else None)
-            zc += ch
-            i += 1
-        # shoulder weathering ledge at each step
-        M.box("body", "stone", (x_out - wx * 0.5 - 0.01, cy, z1 + 0.02), (wx + 0.14, wy + 0.14, 0.08), jit=0.01, skip=("-z",))
-    # cap slab, flue, pot
+        z1 = min(z1, top)
+        if z1 - z0 < 0.2:
+            continue
+        cx = x_out - wx * 0.5
+        M.box("body", "stone", (cx, cy, (z0 + z1) * 0.5), (wx - 0.03, wy - 0.03, z1 - z0), skip=("-z",), jit=0.008)
+        faces = [
+            (Wall((cx + wx * 0.5, cy - wy * 0.5, 0), (0, 1, 0), (1, 0, 0), wy, "px"), z0),
+            (Wall((cx - wx * 0.5, cy + wy * 0.5, 0), (0, -1, 0), (-1, 0, 0), wy, "nx"), max(z0, ridge - 0.25)),
+            (Wall((cx + wx * 0.5, cy + wy * 0.5, 0), (-1, 0, 0), (0, 1, 0), wx, "py"), z0),
+            (Wall((cx - wx * 0.5, cy - wy * 0.5, 0), (1, 0, 0), (0, -1, 0), wx, "ny"), z0),
+        ]
+        for Wf, zs in faces:
+            if z1 - zs < 0.2:
+                continue
+            blocks(M, Wf, course_bounds(rng, zs, z1, 0.36), None, 0.035, (0.42, 0.8), tone="stone", ops=[], rounding=0.025)
+        if z1 < top - 0.2:
+            # set-off ledge where the stack steps in
+            M.box("body", "stone", (x_out - wx * 0.5 - 0.01, cy, z1 + 0.02), (wx + 0.14, wy + 0.14, 0.08), jit=0.01, skip=("-z",))
+    cx, cyy = x_out - 0.3, cy
+    if ruin_top is not None:
+        # broken off: a ragged top and the stack's blocks in the rubble
+        for _ in range(3):
+            M.box("body", "stone", (x_out - 0.3 + rng.uniform(-0.15, 0.15), cy + rng.uniform(-0.25, 0.25), top + 0.06), (rng.uniform(0.2, 0.35), rng.uniform(0.2, 0.3), 0.14), rotz=rng.random() * 6.28, jit=0.012)
+        return top
     M.box("body", "stone", (x_out - 0.3, cy, top + 0.06), (0.68, 0.84, 0.14), jit=0.012)
     M.box("body", "sootstone", (x_out - 0.3, cy, top + 0.17), (0.42, 0.58, 0.08), jit=0.01)
-    for (px, py) in ((x_out - 0.3, cy - 0.1), (x_out - 0.3, cy + 0.12)):
-        M.rock("body", "rubble", (px, py, top + 0.2), 0.0, 0.1) if False else None
-    # chimney pot: a six-sided clay pot
-    cx, cyy = x_out - 0.3, cy
     for a in range(6):
         a0, a1 = a * math.pi / 3, (a + 1) * math.pi / 3
         r = 0.15
         zb, zt = top + 0.2, top + 0.58
-        p = [Vector((cx + math.cos(a0) * r, cyy + math.sin(a0) * r, zb)), Vector((cx + math.cos(a1) * r, cyy + math.sin(a1) * r, zb)),
-             Vector((cx + math.cos(a1) * r * 0.82, cyy + math.sin(a1) * r * 0.82, zt)), Vector((cx + math.cos(a0) * r * 0.82, cyy + math.sin(a0) * r * 0.82, zt))]
-        M.face("body", p, "sootstone" if a % 2 else "stone", away=Vector((cx, cyy, zb)), tint=1.1)
+        pp = [Vector((cx + math.cos(a0) * r, cyy + math.sin(a0) * r, zb)), Vector((cx + math.cos(a1) * r, cyy + math.sin(a1) * r, zb)),
+              Vector((cx + math.cos(a1) * r * 0.82, cyy + math.sin(a1) * r * 0.82, zt)), Vector((cx + math.cos(a0) * r * 0.82, cyy + math.sin(a0) * r * 0.82, zt))]
+        M.face("body", pp, "sootstone" if a % 2 else "stone", away=Vector((cx, cyy, zb)), tint=1.1)
     M.face("body", [Vector((cx + math.cos(a * math.pi / 3) * 0.12, cyy + math.sin(a * math.pi / 3) * 0.12, top + 0.57)) for a in range(6)], "dark", normal=Z)
     return top
 
@@ -911,7 +993,6 @@ def hearth(M, w, d, ruined_state):
     x1 = hw - T
     M.box("body", "stone", (x1 - 0.3, cy, 0.5), (0.6, 1.3, 1.0), jit=0.015)
     M.box("body", "dark", (x1 - 0.605, cy, 0.38), (0.02, 0.8, 0.56), jit=0.0)
-    M.box("body", "stone", (x1 - 0.45, cy, 1.02), (0.9, 1.5, 0.14), jit=0.012)       # mantel
     M.box("body", "wood", (x1 - 0.62, cy, 1.55), (0.14, 1.5, 0.16), jit=0.01)
     if ruined_state == "burned":
         M.box("body", "char", (x1 - 0.8, cy, 0.05), (0.7, 0.9, 0.1), jit=0.01)
@@ -951,8 +1032,9 @@ def ruin_extras(M, spec, walls_by_name, st):
     hw, hd = w * 0.5, d * 0.5
     wood = "char" if st == "burned" else "wood"
     # fallen rafters and a tie beam
-    for i in range(4):
-        x = -hw + 0.9 + i * (w - 1.8) / 3 + rng.uniform(-0.3, 0.3)
+    nraf = 8 if (spec.get('collapse') and st == 'ruined') else 4
+    for i in range(nraf):
+        x = -hw + 0.9 + i * (w - 1.8) / max(1, nraf - 1) + rng.uniform(-0.3, 0.3)
         y0 = rng.uniform(-hd * 0.45, hd * 0.3)
         ang = rng.uniform(0.2, 0.7)
         yaw = rng.uniform(-0.35, 0.35) + (math.pi / 2)
@@ -964,7 +1046,17 @@ def ruin_extras(M, spec, walls_by_name, st):
         # slates and a few roof bones scattered over the floor and out the broken door
         for _ in range(26):
             p = Vector((rng.uniform(-hw + 0.6, hw - 0.6), rng.uniform(-hd + 0.6, hd - 0.6), 0.1))
-            M.box("body", "rubble", p, (rng.uniform(0.22, 0.32), rng.uniform(0.3, 0.4), 0.025), rotz=rng.random() * 6.28, skip=("-z",), jit=0.01) if False else None
+            M.box("body", "slate", p, (rng.uniform(0.22, 0.32), rng.uniform(0.3, 0.4), 0.025), rotz=rng.random() * 6.28, skip=("-z",), jit=0.01)
+        # fallen wall blocks
+        for _ in range(8):
+            p = Vector((rng.uniform(-hw + 0.5, hw - 0.5), rng.uniform(-hd + 0.5, hd - 0.5), 0.12))
+            M.box("body", "stone", p, (rng.uniform(0.4, 0.7), rng.uniform(0.25, 0.4), 0.28), rotz=rng.random() * 6.28, jit=0.02)
+        # the collapsed gable's spill, out across the yard
+        rubble(M, (hw + 0.9, 0.2, 0.0), 1.7, 11, spread=1.0)
+        rubble(M, (hw - 1.2, -hd * 0.3, 0.0), 1.1, 7)
+        for _ in range(6):
+            p = Vector((hw + rng.uniform(0.2, 2.2), rng.uniform(-1.8, 1.8), 0.14))
+            M.box("body", "stone", p, (rng.uniform(0.4, 0.7), rng.uniform(0.25, 0.4), 0.28), rotz=rng.random() * 6.28, jit=0.02)
     if st == "burned":
         for _ in range(6):
             p = Vector((rng.uniform(-hw + 0.7, hw - 0.7), rng.uniform(-hd + 0.7, hd - 0.7), 0.06))
@@ -1034,6 +1126,13 @@ def build_near(name, spec):
             base = ruin_topf(rng, L, st, bounds)
             if gable:
                 tf = (lambda b, g: (lambda u: min(b(u), H + SLOPE * min(u, L - u))))(base, gable)
+                if spec.get("collapse") == W.name:
+                    def snap(h, bounds=bounds):
+                        return max(b_ for b_ in bounds if b_ <= h + 1e-6)
+
+                    def tf(u, base=base, L=L, snap=snap):
+                        lift = 3.2 * (1.0 - smooth(0.0, 0.42, abs(u / L - 0.62)))
+                        return snap(min(H + SLOPE * min(u, L - u), base(u) + lift))
             else:
                 tf = base
             W.topf = tf
@@ -1049,10 +1148,10 @@ def build_near(name, spec):
                 sb = bounds
             core(M, W, W.topf, ruined, "stone", "inner", sides=ruined)
             blocks(M, W, [0.0, plinth_h], None, 0.1, (0.7, 1.1))
-            blocks(M, W, sb, W.topf, 0.045, (0.5, 0.95), miss=0.04 if ruined else 0.0, clip=(gable and not ruined))
+            blocks(M, W, sb, W.topf, 0.045, (0.62, 1.15) if ruined else (0.5, 0.95), miss=0.09 if ruined else 0.0, clip=(gable and not ruined))
             if ruined:
                 Wi = W.inner()
-                blocks(M, Wi, [0.0] + (sb if sb[0] > 0 else sb[1:]), W.topf, 0.04, (0.7, 1.2), miss=0.0, ops=[dict(o) for o in W.ops])
+                blocks(M, Wi, [0.0] + (sb if sb[0] > 0 else sb[1:]), W.topf, 0.04, (1.0, 1.6), miss=0.0, ops=[dict(o) for o in W.ops])
         else:
             core(M, W, W.topf, False, "daub", "inner")
             blocks(M, W, [0.0, plinth_h], None, 0.1, (0.6, 1.0), ops=W.ops)
@@ -1096,6 +1195,8 @@ def build_near(name, spec):
         chimney(M, w, d, roof, st)
     else:
         hearth(M, w, d, st)
+        if spec.get("collapse"):
+            chimney(M, w, d, roof, st, ruin_top=4.3 if st == "ruined" else 5.0)
         ruin_extras(M, spec, {x.name: x for x in allw}, st)
         trusses(M, spec, {x.name: x for x in allw}, st)
     # --- per-cottage dressing ---------------------------------------------------------------------------------
@@ -1117,8 +1218,8 @@ def build_near(name, spec):
                 M.face("body", [p0 + Vector((0.025, 0, 0)), p0 - Vector((0.025, 0, 0)), tip], "inner", normal=Vector((0, 1, 0)) if False else None, away=p0 - Vector((0, 0, 1)), tint=1.0) if False else None
         # a hanging iron lantern bracket by the door
         o = front.ops[0]
-        wbox(M, "body", "iron", W, o["at"] + o["w"] * 0.5 + 0.34, o["at"] + o["w"] * 0.5 + 0.4, 2.05, 2.12, -0.5, -0.05)
-        wbox(M, "body", "iron", W, o["at"] + o["w"] * 0.5 + 0.34, o["at"] + o["w"] * 0.5 + 0.4, 1.95, 2.12, -0.5, -0.45)
+        wbox(M, "body", "iron", W, o["at"] - o["w"] * 0.5 - 0.4, o["at"] - o["w"] * 0.5 - 0.34, 2.05, 2.12, -0.5, -0.05)
+        wbox(M, "body", "iron", W, o["at"] - o["w"] * 0.5 - 0.4, o["at"] - o["w"] * 0.5 - 0.34, 1.95, 2.12, -0.5, -0.45)
     if st == "shuttered" and walls == "stone":
         # slumped, mossy lean-to firewood stack against the west gable
         for row in range(2):
@@ -1256,43 +1357,45 @@ def reset():
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
-def assign(objs, mats, names):
-    for nm, o in objs.items():
-        o.data.materials.clear()
-        o.data.materials.append(mats[names[nm]])
-
-
 def build_one(name):
     spec = SPECS[name]
     reset()
-    mats = make_materials()
     M, frames = build_near(name, spec)
+    rz = H + SLOPE * spec["d"] * 0.5
     Mc = Mesh(1, spec["state"], spec["walls"])
     build_col(spec, frames, Mc)
-    near = finish(M, name, {"body": "Body", "roof": "Roof", "glow": "WindowGlow"})
-    col = finish(Mc, name, {"body": name + "-colonly"})
-    assign(near, mats, {"Body": "body", "Roof": "roof", "WindowGlow": "glow"})
-    assign(col, mats, {name + "-colonly": "body"})
-    for o in col.values():
+    near = finish(M, name, {"glow": "WindowGlow"}, rz=rz)
+    col = finish(Mc, name + "-colonly", {})
+    colobjs = list(col.values())
+    for o in colobjs:
         o.data.materials.clear()
-        o.data.color_attributes.remove(o.data.color_attributes["Col"]) if False else None
+        o.data.color_attributes.remove(o.data.color_attributes["Col"])
+        o.data.uv_layers.remove(o.data.uv_layers[0])
+    if len(colobjs) > 1:
+        bpy.ops.object.select_all(action='DESELECT')
+        for o in colobjs:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = colobjs[0]
+        bpy.ops.object.join()
+        colobjs = [bpy.context.view_layer.objects.active]
+    colobjs[0].name = colobjs[0].data.name = name + "-colonly"
     nobjs = list(near.values())
-    print(name, "near tris", {k: tri_count([v]) for k, v in near.items()}, "total", tri_count(nobjs), "col", tri_count(list(col.values())))
+    print(name, "near tris", {k: tri_count([v]) for k, v in near.items()}, "total", tri_count(nobjs), "col", tri_count(colobjs))
     far_M = build_far(name, spec, frames)
-    far = finish(far_M, name + "_far", {"body": "FarBody", "roof": "FarRoof", "glow": "FarGlow"})
-    assign(far, mats, {"FarBody": "body", "FarRoof": "roof", "FarGlow": "glow"})
+    far = finish(far_M, name + "_far", {"glow": "FarGlow"}, rz=rz)
     print(name, "far tris", tri_count(list(far.values())))
     if not NOEXPORT:
-        export(nobjs + list(col.values()), os.path.join(OUT, "cottage_%s.glb" % name))
+        export(nobjs + colobjs, os.path.join(OUT, "cottage_%s.glb" % name))
         export(list(far.values()), os.path.join(OUT, "cottage_%s_far.glb" % name))
     if PREVIEW:
         for o in far.values():
             o.hide_render = True
             o.hide_viewport = True
-        for o in col.values():
+        for o in colobjs:
             o.hide_render = True
+        texture_mats()
         preview(name, spec, frames)
-    return near, far, col
+    return near, far, colobjs
 
 
 # ---------------------------------------------------------------------------------------------------------------------

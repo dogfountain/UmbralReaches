@@ -9,9 +9,13 @@ Sets
   ashlar   coursed dressed masonry (the mill, the bridge piers, the hold walls): mortar, per-block tone, moss in the joints
   timber   weathered boards: grain, silvering, nail heads, gaps
   iron     rusted iron: pitting, scale, orange bloom
+  thatch   (cottages) weathered reed thatch: strands running down the image (v), bundle bands, silvering, moss
+  daub     (cottages) limewashed wattle-and-daub: lumpy plaster, hairline cracks, straw flecks, damp and rain streaks
+  slate    (cottages) riven roof slate: laminated grain, plate-to-plate tone, chips, lichen
 """
 import bpy
 import os
+import sys
 import numpy as np
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -210,9 +214,86 @@ def make_iron():
     finish("iron", base, h, rough, ao, 2.0, metal)
 
 
+def make_thatch():
+    rng = np.random.default_rng(51)
+    strand = tnoise(N, 1.2, 52, aniso=(0.35, 16.0))              # long strands running down v
+    strand2 = tnoise(N, 1.6, 53, aniso=(0.6, 9.0))
+    mid = tnoise(N, 2.0, 54)
+    fine = tnoise(N, 0.9, 55)
+    bands = 0.5 + 0.5 * np.sin(np.arange(N)[:, None] / N * 2 * np.pi * 6 + 3.0 * tnoise(N, 2.2, 56))   # bundle courses
+    gold = col(0.62, 0.47, 0.22)
+    grey = col(0.42, 0.37, 0.28)
+    dark = col(0.17, 0.12, 0.07)
+    base = mix(np.broadcast_to(gold, (N, N, 3)), np.broadcast_to(grey, (N, N, 3)), np.clip(mid * 1.1 + 0.25 * strand2 - 0.2, 0, 1))
+    base = base * (0.62 + 0.7 * strand)[..., None]
+    gaps = smooth(strand2, 0.18, 0.05)
+    base = mix(base, np.broadcast_to(dark, (N, N, 3)), np.clip(gaps * 0.8 + 0.35 * smooth(bands, 0.85, 1.0), 0, 1))
+    moss = smooth(tnoise(N, 1.5, 57), 0.6, 0.76) * (0.5 + 0.5 * mid)
+    base = mix(base, np.broadcast_to(col(0.22, 0.27, 0.1), (N, N, 3)), moss * 0.6)
+    h = 0.5 + 0.35 * (strand - 0.5) + 0.15 * (strand2 - 0.5) - 0.25 * gaps - 0.1 * smooth(bands, 0.85, 1.0) + 0.04 * (fine - 0.5)
+    rough = np.clip(0.9 + 0.1 * fine - 0.1 * strand, 0.5, 1.0)
+    ao = np.clip(1.0 - 0.7 * gaps - 0.3 * smooth(bands, 0.85, 1.0), 0.15, 1.0)
+    finish("thatch", base, h, rough, ao, 2.6)
+
+
+def make_daub():
+    big = tnoise(N, 2.4, 61)
+    mid = tnoise(N, 1.6, 62)
+    fine = tnoise(N, 0.9, 63)
+    lump = tnoise(N, 2.0, 64)
+    f1, f2, ids = voronoi(N, 40, 65)
+    edge = 1.0 - smooth(f2 - f1, 0.0, 0.004)
+    crack = edge * smooth(tnoise(N, 2.0, 66), 0.6, 0.72)
+    streak = tnoise(N, 2.2, 67, aniso=(0.4, 3.5))
+    wash = col(0.76, 0.71, 0.6)
+    base = np.broadcast_to(wash, (N, N, 3)) * (0.86 + 0.22 * mid)[..., None]
+    base = mix(base, np.broadcast_to(col(0.45, 0.4, 0.31), (N, N, 3)), np.clip(smooth(streak, 0.55, 0.85) * 0.45, 0, 1))
+    # bare daub showing through the limewash where it has flaked
+    flake = smooth(tnoise(N, 1.5, 68), 0.68, 0.78) * smooth(fine, 0.4, 0.6)
+    base = mix(base, np.broadcast_to(col(0.46, 0.34, 0.22), (N, N, 3)), flake * 0.8)
+    rng = np.random.default_rng(69)
+    fl = np.zeros((N, N))
+    for _ in range(220):          # chopped straw flecks
+        x, y = rng.integers(0, N - 20), rng.integers(0, N - 4)
+        ln = rng.integers(6, 18)
+        fl[y:y + 2, x:x + ln] = 1.0
+    base = mix(base, np.broadcast_to(col(0.5, 0.4, 0.2), (N, N, 3)), fl * 0.5)
+    base = mix(base, np.broadcast_to(col(0.14, 0.12, 0.1), (N, N, 3)), crack * 0.55)
+    mold = smooth(tnoise(N, 1.4, 70), 0.68, 0.8) * 0.4
+    base = mix(base, np.broadcast_to(col(0.3, 0.34, 0.2), (N, N, 3)), mold)
+    h = 0.5 + 0.3 * (lump - 0.5) + 0.1 * (fine - 0.5) - 0.4 * crack - 0.15 * flake - 0.1 * fl
+    rough = np.clip(0.85 + 0.12 * fine, 0.4, 1.0)
+    ao = np.clip(1.0 - 0.6 * crack - 0.2 * fl, 0.25, 1.0)
+    finish("daub", base, h, rough, ao, 2.2)
+
+
+def make_slate():
+    lam = tnoise(N, 1.4, 81, aniso=(10.0, 0.6))                # laminated grain across the slab
+    mid = tnoise(N, 1.8, 82)
+    fine = tnoise(N, 0.9, 83)
+    f1, f2, ids = voronoi(N, 36, 84)
+    rng = np.random.default_rng(85)
+    tone = rng.random(36)[ids]
+    edge = 1.0 - smooth(f2 - f1, 0.0, 0.008)
+    base = mix(np.broadcast_to(col(0.17, 0.185, 0.23), (N, N, 3)), np.broadcast_to(col(0.3, 0.31, 0.35), (N, N, 3)), tone * 0.8)
+    base = base * (0.72 + 0.5 * lam + 0.2 * mid)[..., None]
+    chips = smooth(fine, 0.66, 0.8)
+    base = mix(base, np.broadcast_to(col(0.45, 0.45, 0.46), (N, N, 3)), chips * 0.35)
+    lichen = smooth(tnoise(N, 1.4, 86), 0.62, 0.76) * smooth(tnoise(N, 0.8, 87), 0.45, 0.6)
+    base = mix(base, np.broadcast_to(col(0.5, 0.55, 0.3), (N, N, 3)), lichen * 0.55)
+    base = mix(base, np.broadcast_to(col(0.05, 0.05, 0.06), (N, N, 3)), edge * 0.5)
+    h = 0.5 + 0.2 * (lam - 0.5) + 0.1 * (mid - 0.5) - 0.3 * edge - 0.12 * chips + 0.06 * tone
+    rough = np.clip(0.6 + 0.3 * fine + 0.15 * lichen, 0.35, 1.0)
+    ao = np.clip(1.0 - 0.6 * edge, 0.25, 1.0)
+    finish("slate", base, h, rough, ao, 2.4)
+
+
+SETS = {"stone": make_stone, "ashlar": make_ashlar, "timber": make_timber, "iron": make_iron,
+        "thatch": make_thatch, "daub": make_daub, "slate": make_slate}
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    make_stone()
-    make_ashlar()
-    make_timber()
-    make_iron()
+    _a = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    _only = _a[_a.index("--only") + 1].split(",") if "--only" in _a else list(SETS)
+    for _n in _only:
+        SETS[_n]()
