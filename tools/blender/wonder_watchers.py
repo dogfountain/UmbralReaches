@@ -1,20 +1,20 @@
-"""THE WATCHERS: two colossal hooded pilgrim-mages carved in weathered stone, standing in the starwater either side
-of the Threshold's gate, facing the village. One hand is raised open over the gate (blessing or warning), the other
-grips a tall staff whose head is an iron cage round a burning violet orb. Modelled by script (no scans, no downloads).
+"""THE WATCHERS: two great lantern pillars either side of the Threshold's gate, facing the village. Each is a carved stone
+column on a stepped plinth: coursed drums with chamfered joints (one cracked and shifted), a spiral road of climbing
+pilgrims modelled in relief up the shaft, a deep-cut capital ringed with lit Order glyphs, a forged iron lantern-cage
+burning violet on top, chains hung from the capital to rings in the plinth with pilgrims' cloths tied to them, votive
+candles on the steps. Modelled by script (no scans, no downloads).
 
-  tools/blender/run.sh wonder_watchers.py -- [--preview DIR] [--no-bake] [--parts figure,base] [--hi 0.07]
+  tools/blender/run.sh wonder_watchers.py -- [--preview DIR] [--tex 2048] [--reuse]
 
 Exports (art/models/wonders/):
-  watchers_west.glb / watchers_east.glb   near mesh: objects Watcher_fig (stone figure, baked UVs), Watcher_base (the
-                                          stepped pedestal with pilgrim reliefs), Watcher_iron (staff, cage, belt
-                                          fittings), Watcher_orb (the emissive orb), Watcher_rubble (tiled stone set),
-                                          Watcher_* -convcolonly hulls (collision)
-  watchers_west_far.glb / ..._east_far    ~1.5k triangle far mesh
-  watchers_{fig,base}_{albedo,normal,orm}.png   baked maps (shared by west and east: east is the mirrored mesh)
+  watchers_west.glb / watchers_east.glb   near mesh: Pillar_fig (the stone: shaft, relief, capital; baked UVs), Pillar_base (the
+                                          plinth's laid blocks, vertex colour), Pillar_iron (lantern, chains, rings), Pillar_orb
+                                          (emissive), Pillar_glow (the glyphs, emissive), Pillar_cloth, Pillar_cand (wax),
+                                          Pillar_flame (emissive), Pillar_rubble, Pillar_*-convcolonly hulls
+  watchers_west_far.glb / ..._east_far    ~1.3k triangle far mesh (stone, base, iron, orb)
+  watchers_pillar_{albedo,normal,orm}.png baked maps (shared: the east pillar is the mirrored mesh)
 
-Frame: Blender Z up -> Godot Y up, Blender +Y -> Godot -Z (the figure faces Blender +Y, Godot -Z). 1 BU = 1 m. The
-origin is the centre of the pedestal's bottom face; the figure's feet stand on the plinth at z = PED_H.
-The west watcher (x < 0 in the world) raises its LEFT hand (model -X) over the gate; its staff is in the right.
+Frame: Blender Z up -> Godot Y up, Blender +Y -> Godot -Z. 1 BU = 1 m. Origin = the centre of the plinth's bottom face.
 """
 import bpy
 import bmesh
@@ -22,6 +22,7 @@ import math
 import os
 import sys
 import random
+import numpy as np
 from mathutils import Vector, Matrix, noise
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -35,15 +36,12 @@ def arg(name, default=""):
 
 PREVIEW = arg("--preview")
 NOBAKE = "--no-bake" in args
-PARTS = arg("--parts", "figure,base").split(",")
-HI_STEP = float(arg("--hi", "0.07"))
+HI_STEP = 0.07
 TEX = int(arg("--tex", "2048"))
+FS = 1.0                          # the final scale (metres in Godot)
+WATER_Z = 1.7                     # the pool's surface above the plinth's foot (-15.5 vs -17.2)
 
-PED_H = 5.6                       # top of the cornice: the figure's feet
-STAFF = Vector((5.2, 2.7, 0.0))   # the staff's axis (x, y) in the figure frame; z unused
 
-
-# --- small maths ----------------------------------------------------------------------------------
 def lerp(a, b, t):
     return a + (b - a) * t
 
@@ -225,183 +223,6 @@ def gauss(x, w):
     return math.exp(-((x / w) ** 2))
 
 
-# ============================================================================================
-# THE FIGURE: a man under the robe (broad shoulders, the weight on one leg), a deep rounded cowl bowed a little,
-# a heavy mantle with depth, both hands resting one over the other on a tall staff held upright before him.
-# Cloth is built in raw heights, then stretched by STR; hands and the staff are not.
-# ============================================================================================
-STR = 1.45
-WID = 1.0
-SX, SY = 3.7, 4.4                                  # the staff's axis
-STAFF = Vector((SX, SY, 0.0))
-ROBE = [(0.0, 3.5, 3.4), (0.8, 3.1, 3.0), (2.5, 2.7, 2.6), (4.5, 2.4, 2.3), (6.5, 2.3, 2.1), (8.5, 2.7, 2.1),
-        (10.5, 3.2, 2.3), (12.4, 3.0, 2.2)]
-ROBE_SEEDS = ((9, 0.3, 1.0), (14, 1.7, 0.5), (5, 2.2, 0.9), (23, 0.9, 0.2), (3, 0.5, 0.7))
-BACK = -math.pi / 2                                  # the seam of every loft runs down the back
-
-
-def robe_xy(z, phi, seed=0.0):
-    rx, ry = prof(ROBE, z)
-    amp = lerp(0.85, 0.26, sstep(0.0, 9.0, z))
-    d = fd(phi, z, amp, 0.14, ROBE_SEEDS, seed)
-    sway = 0.45 * sstep(0.0, 9.0, z) * (1.0 - 0.6 * sstep(9.0, 12.0, z))
-    # the weight on the right leg: the left knee comes forward under the cloth, the hip drops on the other side
-    leg = 0.6 * gauss(phi - 1.95, 0.5) * gauss(z - 3.6, 2.3) - 0.28 * gauss(phi - 1.15, 0.5) * gauss(z - 3.6, 2.3)
-    # the cloth pools and breaks at the feet
-    pool = 0.45 * gauss(z - 0.2, 0.7) * (0.5 + 0.5 * math.sin(7 * phi + 1.0))
-    c, s = math.cos(phi), math.sin(phi)
-    return Vector((c * (rx * WID + d + leg + pool) - sway, s * (ry * WID + d + leg + pool), z))
-
-
-def build_robe(P):
-    bm = P.of("fig")
-    N = 120
-    zs = [0.0, 0.2, 0.55, 1.1, 1.8, 2.6, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.6]
-    rings = []
-    for i, z in enumerate(zs):
-        ring = []
-        for j in range(N):
-            phi = BACK + math.tau * j / N
-            p = robe_xy(z, phi)
-            if i < 4:                                     # the hem: lower on the ridges, lifting between
-                w = 1.0 - i / 4.0
-                p.z = -0.15 + (z + 0.15) * 1.0 + 0.55 * w * (0.5 - abs(math.sin(9 * phi + 0.3 + 0.9 * fbm(Vector((phi, 0, 0)), 2)))) + 0.25 * w * noise.noise(Vector((phi * 2, 4, 0)))
-            ring.append(p)
-        rings.append(ring)
-    loft(bm, rings, True, True)
-
-
-def mantle_hem(phi):
-    back = max(0.0, -math.sin(phi))
-    return 10.9 - 5.3 * back ** 1.1 - 1.2 * max(0.0, math.cos(phi)) ** 2 * 0 + 0.35 * math.sin(3 * phi + 1.0) + 0.6 * math.sin(5 * phi) * back
-
-
-MANTLE = [(0.0, 2.5, 2.2), (0.12, 3.8, 2.8), (0.3, 4.7, 3.3), (0.6, 5.0, 3.6), (1.0, 5.1, 3.7)]
-MSEEDS = ((7, 0.6, 1.0), (11, 2.0, 0.6), (4, 0.2, 0.95), (17, 1.1, 0.25), (2, 1.0, 0.6))
-# shoulder, elbow, wrist (raw heights): the right hand lower on the staff, the left over it
-ZC_LOW, ZC_UP = 12.6, 14.7                          # the hands' heights on the staff (stretched space)
-RF = 0.23                                           # a finger's radius
-RFC = 0.54 + RF * 0.9                               # the fingers' circle round the shaft
-ARM_R = [Vector((2.7, 0.1, 10.6)), Vector((4.9, 0.0, 7.7)), Vector((SX, SY - RFC - 2.1, ZC_LOW / STR - 0.2))]
-ARM_L = [Vector((-2.7, 0.1, 10.6)), Vector((-3.1, 1.0, 9.0)), Vector((SX - RFC - 2.1, SY - 0.2, ZC_UP / STR - 0.2))]
-
-
-def build_mantle(P):
-    bm = P.of("fig")
-    N, T = 120, 36
-    rings = []
-    zt = 13.1
-    for i in range(T + 1):
-        t = i / T
-        ring = []
-        for j in range(N):
-            phi = BACK + math.tau * j / N
-            zh = mantle_hem(phi)
-            rx, ry = prof(MANTLE, t)
-            back = max(0.0, -math.sin(phi))
-            z = lerp(zt, zh, t ** 0.85)
-            amp = lerp(0.1, 1.1, sstep(0.12, 0.7, t)) * (1.0 + 1.3 * back)
-            d = fd(phi, z, amp, -0.1, MSEEDS, 5.0)
-            d += 0.35 * back * math.sin(z * 1.1 + 3 * phi) * sstep(0.3, 0.8, t)
-            if t > 0.88:                                 # the heavy rolled hem lifts and falls with the folds
-                z += 0.4 * (0.5 - math.sin(3.5 * phi + 1.0 + 0.8 * fbm(Vector((phi, 1, 0)), 2)) ** 2) * sstep(0.88, 1.0, t)
-            ryk = ry * (1.0 + 0.1 * back) + 0.5 * back * t * t               # depth in profile: the cloak falls fuller behind
-            p = Vector((math.cos(phi) * (rx * WID + d), math.sin(phi) * (ryk * WID + d) + 0.0 - 0.3 * back, z))
-            for arm, rr in ((ARM_L, 1.15), (ARM_R, 1.15)):
-                a = arm[0]
-                b = arm[0] + (arm[1] - arm[0]) * 0.45
-                ab = b - a
-                s = max(0.0, min(1.0, (p - a).dot(ab) / ab.length_squared))
-                q = a + ab * s
-                dd = p - q
-                if dd.length < rr * 1.7 and dd.length > 1e-4:
-                    f = sstep(rr * 1.7, rr * 0.9, dd.length)       # a smooth swell: the cloth rides over the arm
-                    p = p + (dd.normalized() * rr * 1.15 - dd) * f
-            ring.append(p)
-        rings.append(ring)
-    last = rings[-1]
-    for dz, dr in ((-0.32, 0.0), (-0.45, -0.25), (-0.2, -0.6)):
-        ring = []
-        for p in last:
-            r = Vector((p.x, p.y, 0.0)).normalized()
-            ring.append(Vector((p.x + r.x * dr, p.y + r.y * dr, p.z + dz)))
-        rings.append(ring)
-    loft(bm, rings[::-1], True, True)
-
-
-# the cowl: a rounded dome following the skull, falling onto the shoulders in heavy folds
-HOOD = [(0.0, 11.6, 3.6, 3.2, 0.0), (0.1, 12.5, 2.9, 2.9, 0.1), (0.25, 13.8, 2.55, 2.75, 0.3), (0.45, 15.3, 2.5, 2.8, 0.5),
-        (0.65, 16.7, 2.35, 2.65, 0.5), (0.82, 17.8, 1.9, 2.2, 0.4), (0.93, 18.55, 1.3, 1.5, 0.3), (0.985, 18.95, 0.6, 0.7, 0.2),
-        (1.0, 19.05, 0.35, 0.4, 0.2)]
-FACE_Z, FACE_HZ, FACE_HP = 14.2, 0.8, 0.6
-HSEEDS = ((6, 0.4, 1.0), (10, 1.3, 0.6), (3, 2.0, 0.9), (15, 0.7, 0.25))
-BOW = -0.32
-PIVOT = Vector((0.0, 0.3, 12.0))
-
-
-def hood_point(t, phi):
-    z, rx, ry, cy = prof(HOOD, t)
-    amp = lerp(0.25, 0.6, sstep(0.0, 0.4, t)) * (1.0 - 0.8 * sstep(0.8, 1.0, t))
-    d = fd(phi, z, amp, 0.15, HSEEDS, 9.0)
-    dphi = phi - math.pi / 2
-    y = (z - FACE_Z) / FACE_HZ
-    inside = max(0.0, 1.0 - y * y) ** 0.5 if abs(y) < 1.0 else 0.0
-    hw = FACE_HP * inside ** 0.7
-    edge = abs(dphi) - hw
-    pocket = (1.0 - sstep(-0.35, 0.06, edge)) * (1.0 if abs(y) < 1.0 else 0.0)
-    d *= 1.0 - 0.85 * gauss(dphi, 0.9) * sstep(12.8, 13.6, z) * (1.0 - sstep(16.8, 17.6, z))
-    k = 1.0
-    # the cowl's lip: a thick roll of cloth round the opening, overhanging above (the face is lost under it)
-    lip = math.exp(-(((edge - 0.1) / 0.12) ** 2)) * (1.0 if -1.15 < y < 1.2 else 0.0)
-    brow = gauss(z - (FACE_Z + FACE_HZ * 1.15), 0.7) * gauss(dphi, 1.0)
-    k *= 1.0 + 0.12 * lip + 0.42 * brow
-    bowl = pocket * (1.0 - 0.3 * (dphi / max(hw, 0.2)) ** 2) * (1.0 - 0.3 * y * y)
-    p = Vector((math.cos(phi) * (rx * WID * k + d * k), math.sin(phi) * (ry * WID * k + d * k) + cy + 0.12 - 3.2 * bowl, z))
-    q = p - PIVOT
-    c, s = math.cos(BOW), math.sin(BOW)                  # the head bowed: the cowl tips forward over the chest
-    return PIVOT + Vector((q.x, q.y * c - q.z * s, q.y * s + q.z * c))
-
-
-def build_hood(P):
-    bm = P.of("fig")
-    N, T = 108, 60
-    rings = []
-    for i in range(T + 1):
-        t = i / T
-        rings.append([hood_point(t, BACK + math.tau * j / N) for j in range(N)])
-    loft(bm, rings, False, True)
-
-
-def sleeve(P, arm, wrist_r, sag, flare, seed):
-    bm = P.of("fig")
-    pts = [catmull(arm, i / 28.0) for i in range(29)]
-    rings = []
-    u = None
-    for k, c in enumerate(pts):
-        t = k / 28.0
-        u, v, T = frame_at(pts, k, u)
-        r = lerp(1.05, 1.15, sstep(0.0, 0.4, t))
-        r = lerp(r, wrist_r + flare, sstep(0.5, 1.0, t) ** 1.3) if t > 0.5 else r
-        sg = sag * sstep(0.2, 1.0, t) ** 1.4
-        ring = []
-        for j in range(24):
-            phi = math.tau * j / 24
-            d = u * math.cos(phi) + v * math.sin(phi)
-            rr = r + 0.5 * (1.0 - sstep(0.6, 0.95, t)) * fd(phi + seed, t * 6.0, 0.7, 0.0, ((5, 0.2, 1.0), (8, 1.0, 0.5), (3, 2.0, 0.6)), seed)
-            p = c + d * rr
-            down = max(0.0, -d.z)
-            p.z -= sg * down ** 1.3
-            ring.append(p)
-        rings.append(ring)
-    last = rings[-1]
-    cen = sum(last, Vector()) / len(last)
-    T = (pts[-1] - pts[-2]).normalized()
-    cuff = [[cen + (p - cen) * 1.07 + T * 0.04 for p in last], [cen + (p - cen) * 1.02 + T * 0.14 for p in last],
-            [cen + (p - cen) * 0.88 + T * 0.14 for p in last], [cen + (p - cen) * 0.8 - T * 0.8 for p in last]]
-    loft(bm, rings + cuff, True, True)
-    return pts
-
-
 def ring3(bm, c, axis, R, r, seg=14, tseg=5):
     """A torus about an arbitrary axis."""
     axis = Vector(axis).normalized()
@@ -424,60 +245,6 @@ def ring3(bm, c, axis, R, r, seg=14, tseg=5):
             bm.faces.new((vr[i][j], vr[i][(j + 1) % tseg], vr[i2][(j + 1) % tseg], vr[i2][j]))
 
 
-def fist(P, side, zc, ring=False):
-    """A hand closed on the staff: a wedge of back-of-hand with its tendons, four fingers laid side by side round the
-    shaft with knuckles and joints, a thumb over them, a ring. side 'R' knuckles on the body side of the shaft, 'L' on its
-    inner side. Returns the wrist end."""
-    bm = P.of("fig")
-    sp = RF * 2.0
-    Z = Vector((0, 0, 1))
-    ang0, ang1 = (-180.0, 60.0) if side == 'R' else (-100.0, 150.0)
-    D = Vector((0, 1, 0)) if side == 'R' else Vector((1, 0, 0))
-    W = Z.cross(D).normalized()
-    kc = Vector((SX + math.sin(math.radians(ang0)) * RFC, SY + math.cos(math.radians(ang0)) * RFC, zc))
-    wc = kc - D * 2.2
-    rings = []
-    for t, hw, hh in ((0.0, 0.5, 0.62), (0.3, 0.7, 0.85), (0.7, 0.84, 0.98), (1.0, 0.86, 1.0)):
-        c = wc + (kc - wc) * t
-        ring = []
-        for j in range(14):
-            a = math.tau * j / 14
-            cx, cy = math.cos(a), math.sin(a)
-            ring.append(c + W * (math.copysign(abs(cx) ** 0.9, cx) * hw) + Z * (math.copysign(abs(cy) ** 0.9, cy) * hh))
-        rings.append(ring)
-    loft(bm, rings, True, True)
-    back = W * (-1.0 if side == 'R' else 1.0)
-    for k in range(4):
-        zk = (1.5 - k) * sp * 0.82
-        a0 = wc + D * 0.25 + Z * zk * 0.7 + back * 0.55
-        a1 = kc - D * 0.1 + Z * zk + back * 0.82
-        tube(bm, [a0, (a0 + a1) * 0.5 + back * 0.06, a1], [0.07, 0.085, 0.075], 5, True, True)
-    for k in range(4):
-        zk = (1.5 - k) * sp
-        pts, rad = [], []
-        for s_ in range(14):
-            ang = math.radians(lerp(ang0, ang1, s_ / 13.0))
-            pts.append(Vector((SX + math.sin(ang) * RFC, SY + math.cos(ang) * RFC, zc + zk - 0.04 * s_)))
-            t = s_ / 13.0
-            rad.append(RF * (1.0 - 0.3 * t) * (1.0 + 0.09 * math.cos(t * 3 * math.tau)) * (0.9 if k == 3 else 1.0))
-        tube(bm, pts, rad, 8, True, True)
-        sphere(bm, pts[0], RF * 1.28, 8, 6)
-        sphere(bm, pts[-1], rad[-1] * 1.05, 8, 5, (1, 1, 1.1))
-        if ring and k == 2:
-            ring3(bm, pts[3], (pts[4] - pts[2]), rad[3] * 1.12, 0.06)
-    tz = zc + 2.0 * sp + 0.05
-    ts = [kc - D * 1.1 + Z * (1.5 * sp * 0.6) - back * 0.1]
-    for s_ in range(1, 9):
-        ang = math.radians(lerp(ang0 + 6, ang0 + 110, s_ / 8.0))
-        ts.append(Vector((SX + math.sin(ang) * (RFC + 0.02), SY + math.cos(ang) * (RFC + 0.02), tz - 0.05 * s_)))
-    tube(bm, [catmull(ts, i / 11.0) for i in range(12)], [0.26 * (1 - 0.3 * i / 11.0) for i in range(12)], 8, True, True)
-    return wc
-
-
-def stretched(v):
-    return Vector((v.x, v.y, v.z * STR))
-
-
 def append_bm(dst, src):
     mp = {}
     for v in src.verts:
@@ -491,378 +258,8 @@ def append_bm(dst, src):
                 de.seam = True
 
 
-def build_figure(P):
-    C = Parts()
-    build_robe(C)
-    build_mantle(C)
-    build_hood(C)
-    pr = sleeve(C, ARM_R, 0.6, 0.5, 0.35, 1.7)
-    pl = sleeve(C, ARM_L, 0.6, 0.5, 0.35, 0.4)
-    build_trim(C)
-    bmesh.ops.scale(C.of("fig"), vec=Vector((1, 1, STR)), verts=C.of("fig").verts)
-    append_bm(P.of("fig"), C.of("fig"))
-    bm = P.of("fig")
-    # the wrists run from the cuffs into the hands on the staff
-    for pts, sd, zc, rg in ((pr, 'R', ZC_LOW, False), (pl, 'L', ZC_UP, True)):
-        w = stretched(pts[-1])
-        d = stretched(pts[-1] - pts[-3]).normalized()
-        wc = fist(P, sd, zc, rg)
-        tube(bm, [w - d * 0.7, w + d * 0.3, (w + wc) * 0.5, wc], [0.62, 0.58, 0.55, 0.6], 10)
-    # shoes under the hem: the forward foot and the one set back
-    for sx, sy in ((-1.0, 3.3), (1.0, 2.4)):
-        c = Vector((sx - 0.2, sy, 0.38))
-        tube(bm, [c + Vector((0, -0.9, 0.1)), c, c + Vector((0, 1.0, -0.12))], [0.6, 0.72, 0.42], 10)
-        sphere(bm, c + Vector((0, 0.95, -0.05)), 0.5, 8, 6, (1.0, 1.1, 0.8))
-
-
-def build_trim(P):
-    """The rope belt with its tassels and a string of stone beads (raw heights)."""
-    bm = P.of("fig")
-    pts = [robe_xy(7.55, BACK + math.tau * j / 72) for j in range(73)]
-    rings = []
-    for k, c in enumerate(pts[:-1]):
-        radial = Vector((c.x + 0.45, c.y, 0)).normalized()
-        ring = []
-        for j in range(7):
-            a = math.tau * j / 7 + k * 0.5
-            ring.append(c + radial * (0.14 + math.cos(a) * 0.19) + Vector((0, 0, 1)) * (math.sin(a) * 0.19))
-        rings.append(ring)
-    vr = [[bm.verts.new(p) for p in ring] for ring in rings]
-    for i in range(len(vr)):
-        i2 = (i + 1) % len(vr)
-        for j in range(7):
-            bm.faces.new((vr[i][j], vr[i][(j + 1) % 7], vr[i2][(j + 1) % 7], vr[i2][j]))
-    kc = robe_xy(7.55, math.pi / 2 + 0.3)
-    sphere(bm, kc + Vector((0, 0.3, 0)), 0.42, 8, 6)
-    for sgn, ln in ((1, 3.4), (-1, 2.6)):
-        a = kc + Vector((0.1 * sgn, 0.4, -0.1))
-        path = [a, a + Vector((0.12 * sgn, 0.1, -ln * 0.35)), a + Vector((0.3 * sgn, 0.08, -ln * 0.7)), a + Vector((0.35 * sgn, 0.08, -ln))]
-        out = []
-        for p in path:
-            r = robe_xy(p.z, math.atan2(p.y, p.x + 0.45))
-            out.append(Vector((p.x, max(p.y, r.y + 0.22), p.z)))
-        tube(bm, out, [0.17, 0.16, 0.15, 0.14], 6)
-        sphere(bm, out[-1] + Vector((0, 0, -0.35)), 0.3, 7, 5, (1, 1, 1.5))
-    n = 15
-    for i in range(n):
-        t = i / (n - 1)
-        ang = math.pi / 2 + 1.0 + 0.9 * t
-        zz = 7.55 - 4.2 * math.sin(t * math.pi * 0.5)
-        p = robe_xy(zz, ang)
-        radial = Vector((p.x + 0.45, p.y, 0)).normalized()
-        sphere(bm, p + radial * 0.3, 0.2 + 0.05 * (i % 3 == 0), 6, 4)
-
-
-# --- the staff ------------------------------------------------------------------------------------
-LANT0, LANT1 = 28.0, 33.4         # the lantern's floor and its cap's rim
-ORB_Z = 30.6
-
-
-def link(bm, c, axis, n=0):
-    ring3(bm, c, axis, 0.22, 0.06, 10, 4)
-
-
-def build_staff(P):
-    """A heavy iron-shod shaft, collars, a socket, and a forged lantern: eight square bars, three rings, a cap with a
-    finial, swags of chain round the rim, the burning orb inside; one bar snapped. Returns the orb centre."""
-    st = P.of("iron")
-    sx, sy = SX, SY
-    top = LANT0 + 0.2
-    pts = [Vector((sx + 0.03 * math.sin(z * 0.4), sy, z)) for z in [x * 1.1 for x in range(0, 27)]]
-    pts = [p for p in pts if p.z < top]
-    tube(st, pts, [0.6 - 0.1 * (c.z / 28.0) for c in pts], 10, True, True)
-    # the iron shoe: a stepped cone with straps and a blunt spike
-    tube(st, [Vector((sx, sy, -0.3)), Vector((sx, sy, 0.1)), Vector((sx, sy, 1.4)), Vector((sx, sy, 2.4))], [0.35, 0.95, 0.85, 0.72], 10, True, True)
-    for k in range(6):
-        a = math.tau * k / 6
-        seg_tube(st, Vector((sx + math.cos(a) * 0.62, sy + math.sin(a) * 0.62, 0.8)), Vector((sx + math.cos(a) * 0.7, sy + math.sin(a) * 0.7, 3.6)), 0.12, 0.1, 4)
-    for z, rr in ((2.5, 0.78), (3.7, 0.7), (8.3, 0.66), (16.5, 0.62), (22.5, 0.6), (27.2, 0.66)):
-        ring3(st, (sx, sy, z), (0, 0, 1), rr, 0.17, 16, 5)
-    # a wound band of iron wire up the upper shaft
-    hp = []
-    for k in range(70):
-        t = k / 69.0
-        z = lerp(17.2, 27.0, t)
-        a = t * math.tau * 6.0
-        r0 = 0.6 - 0.1 * z / 28 + 0.08
-        hp.append(Vector((sx + math.cos(a) * r0, sy + math.sin(a) * r0, z)))
-    tube(st, hp, [0.07] * 70, 4, True, True)
-    # the socket under the lantern
-    tube(st, [Vector((sx, sy, LANT0 - 1.2)), Vector((sx, sy, LANT0 - 0.4)), Vector((sx, sy, LANT0 + 0.1))], [0.6, 0.95, 1.5], 12, True, True)
-    # the floor plate and its spikes
-    tube(st, [Vector((sx, sy, LANT0)), Vector((sx, sy, LANT0 + 0.2)), Vector((sx, sy, LANT0 + 0.5))], [2.3, 2.35, 2.05], 16, True, True)
-    for k in range(8):
-        a = math.tau * k / 8
-        seg_tube(st, Vector((sx + math.cos(a) * 2.2, sy + math.sin(a) * 2.2, LANT0 + 0.1)), Vector((sx + math.cos(a) * 2.5, sy + math.sin(a) * 2.5, LANT0 - 0.9)), 0.17, 0.02, 4)
-    # eight forged square bars, bellying out round the orb; one has snapped
-    n = 8
-    for i in range(n):
-        a = math.tau * i / n + 0.2
-        pp, rr = [], []
-        for k in range(14):
-            t = k / 13.0
-            r = 2.0 + 0.45 * math.sin(math.pi * t) - 0.3 * t
-            pp.append(Vector((sx + math.cos(a) * r, sy + math.sin(a) * r, lerp(LANT0 + 0.5, LANT1, t))))
-        cut = 9 if i == 5 else 14
-        tube(st, pp[:cut], [0.27] * cut, 4, True, True, twist=0.0)
-    for z, r in ((LANT0 + 0.6, 2.15), (ORB_Z, 2.5), (LANT1 - 0.2, 2.0)):
-        ring3(st, (sx, sy, z), (0, 0, 1), r, 0.17, 32, 5)
-    # the cap: a pitched roof with a rim, an upturned finial and a loop
-    tube(st, [Vector((sx, sy, LANT1 - 0.3)), Vector((sx, sy, LANT1 + 0.1)), Vector((sx, sy, LANT1 + 0.55))], [2.6, 2.75, 2.2], 16, True, True)
-    tube(st, [Vector((sx, sy, LANT1 + 0.5)), Vector((sx, sy, LANT1 + 1.4)), Vector((sx, sy, LANT1 + 2.2))], [2.1, 1.2, 0.5], 16, True, False)
-    sphere(st, (sx, sy, LANT1 + 2.5), 0.45, 10, 7)
-    tube(st, [Vector((sx, sy, LANT1 + 2.7)), Vector((sx, sy, LANT1 + 3.4)), Vector((sx, sy, LANT1 + 4.2))], [0.2, 0.14, 0.02], 6, True, True)
-    ring3(st, (sx, sy + 0.0, LANT1 + 3.0), (1, 0, 0), 0.5, 0.09, 12, 4)
-    # four chains hanging from the cap's rim down the outside of the cage to the floor plate
-    for k in range(4):
-        a = math.tau * (k + 0.5) / 4
-        zz = LANT1 - 0.1
-        i = 0
-        while zz > LANT0 + 1.0:
-            c = Vector((sx + math.cos(a) * 3.0, sy + math.sin(a) * 3.0, zz))
-            tang = Vector((-math.sin(a), math.cos(a), 0.0))
-            rad = Vector((math.cos(a), math.sin(a), 0.0))
-            ring3(st, c, tang if i % 2 == 0 else rad, 0.3, 0.075, 10, 4)
-            zz -= 0.5
-            i += 1
-        seg_tube(st, Vector((sx + math.cos(a) * 3.0, sy + math.sin(a) * 3.0, LANT1 + 0.1)), Vector((sx + math.cos(a) * 2.4, sy + math.sin(a) * 2.4, LANT1 + 0.45)), 0.14, 0.14, 5)
-    ob = P.of("orb")
-    sphere(ob, (sx, sy, ORB_Z), 1.55, 20, 12)
-    return Vector((sx, sy, ORB_Z))
-
-
-def build_pennant(P):
-    """Two stone streamers tied under the lantern, falling and curling down the shaft."""
-    sx, sy = SX, SY
-    for sgn, ph, ln in ((1, 0.3, 8.0), (-1, 1.7, 6.0)):
-        tmp = bmesh.new()
-        path = []
-        for i in range(26):
-            t = i / 25.0
-            path.append(Vector((sx + sgn * (0.75 + 1.3 * math.sin(t * 3.2 + ph) * t), sy + 0.8 * math.sin(t * 2.6 + ph * 2) * t + 0.4, LANT0 - 0.4 - ln * t)))
-        rings = []
-        for i, c in enumerate(path):
-            t = i / 25.0
-            w = 0.34 * (1 - 0.5 * t)
-            ang = 0.9 * math.sin(t * 5 + ph)
-            ux = Vector((math.cos(ang), math.sin(ang) * 0.6, 0.0))
-            rings.append([c + ux * w + Vector((0, 0.06, 0)), c - ux * w + Vector((0, 0.06, 0)), c - ux * w - Vector((0, 0.06, 0)), c + ux * w - Vector((0, 0.06, 0))])
-        loft(tmp, rings, True, True)
-        bmesh.ops.recalc_face_normals(tmp, faces=tmp.faces)
-        append_bm(P.of("iron"), tmp)
-        tmp.free()
-
-
-# ============================================================================================
-# THE PEDESTAL
-# ============================================================================================
-TIERS = [  # (name, half x, half y, z0, z1)
-    ("foot", 7.4, 7.2, 0.0, 0.9),
-    ("step", 6.6, 6.3, 0.9, 1.8),
-    ("plinth", 5.6, 5.3, 1.8, 5.0),
-    ("cornice", 6.1, 5.8, 5.0, 5.6),
-]
-FACES = {"+y": (Vector((0, 1, 0)), Vector((1, 0, 0))), "-y": (Vector((0, -1, 0)), Vector((-1, 0, 0))),
-         "+x": (Vector((1, 0, 0)), Vector((0, -1, 0))), "-x": (Vector((-1, 0, 0)), Vector((0, 1, 0)))}
-
-
-def pilgrim(bm, org, uax, nax, h=1.5, depth=0.9, lean=0.12, pack=False, rnd=None, raised=False):
-    """A relief pilgrim climbing toward +uax: a sloped robe, a mantle's shoulders, a pointed hood, a staff, a pack."""
-    rnd = rnd or random
-    up = Vector((0, 0, 1))
-    rows = [(0.0, 0.42), (0.1, 0.4), (0.4, 0.27), (0.6, 0.3), (0.7, 0.46), (0.76, 0.3), (0.8, 0.12), (0.85, 0.2), (0.95, 0.3), (1.05, 0.22), (1.2, 0.0)]
-    rings = []
-    for k, (f, rr) in enumerate(rows):
-        zz = f * h
-        sh = lean * zz + (0.06 * h if f > 0.84 else 0.0)
-        ring = []
-        for j in range(12):
-            a = math.tau * j / 12
-            out = math.sin(a) * rr * depth * (1.0 + 0.06 * math.sin(5 * a + k))
-            ring.append(org + uax * (sh + math.cos(a) * rr * (0.8 if f > 0.8 else 1.0)) + nax * max(0.0, out) + up * zz)
-        rings.append(ring)
-    loft(bm, rings, True, True)
-    sx = org + uax * (0.52 + lean * 1.2 * h) + nax * 0.09
-    seg_tube(bm, sx, sx + up * (h * 1.45), 0.055, 0.05, 5)
-    sphere(bm, sx + up * (h * 1.45), 0.1, 5, 4)
-    if pack:
-        box(bm, org + uax * (-0.3) + nax * 0.16 + up * (0.6 * h), (0.36, 0.26, 0.55))
-    seg_tube(bm, org + uax * 0.18 + nax * 0.2 + up * (0.66 * h), sx + nax * 0.05 + up * (0.8 * h - 0.4 * h * (0.0 if raised else 0.4)), 0.1, 0.08, 5)
-
-
-def panel(bm, face, half_u, v0, v1, count, seed, climb=0.6):
-    """A relief panel on a plinth face: a frame, a long stair, and a procession of pilgrims climbing it left to right."""
-    n, u = FACES[face]
-    rnd = random.Random(seed)
-    t = [x for x in TIERS if x[0] == "plinth"][0]
-    off = (t[2] if face[1] == 'y' else t[1])
-    up = Vector((0, 0, 1))
-    c = n * off
-    W = 2 * half_u
-    ph = v1 - v0
-    pc = (v0 + v1) * 0.5
-
-    def B(uc, vc, w, h, d, extra=0.0):
-        ctr = c + u * uc + up * vc + n * (d * 0.5 + extra)
-        box(bm, ctr, (d, w, h) if abs(n.x) > 0.5 else (w, d, h))
-    B(0, v1 - 0.09, W, 0.18, 0.24)
-    B(0, v0 + 0.09, W, 0.18, 0.24)
-    B(-half_u + 0.09, pc, 0.18, ph, 0.24)
-    B(half_u - 0.09, pc, 0.18, ph, 0.24)
-    B(0, pc, W - 0.3, ph - 0.3, 0.05)                         # the set-back field
-    run = W - 1.4
-    steps = count
-    sw = run / steps
-    for i in range(steps):
-        uu = -run / 2 + sw * (i + 0.5)
-        hh = 0.12 + climb * (i / max(1, steps - 1))
-        B(uu, v0 + 0.18 + hh * 0.5, sw * 0.99, hh, 0.2)
-        org = c + u * (uu - sw * 0.1) + up * (v0 + 0.18 + hh) + n * 0.2
-        pilgrim(bm, org, u, n, h=1.45 + 0.08 * rnd.random(), depth=0.85, lean=0.08 + 0.05 * rnd.random(), pack=(i % 3 == 1), rnd=rnd, raised=(i == count - 1))
-    top = c + u * (run / 2 + 0.4) + up * (v0 + 0.18 + 0.12 + climb + 0.95) + n * 0.12
-    for k in range(4):
-        a = math.pi / 4 * k
-        d = u * math.cos(a) + up * math.sin(a)
-        seg_tube(bm, top - d * 0.34, top + d * 0.34, 0.05, 0.02, 4)
-
-
-BOXES = []
-
-
-def build_base(P):
-    """Low pedestal: plain boxes (the baked normal map carries the masonry), cornice, corner posts, reliefs, runes."""
-    bm = P.of("base")
-    tb = P.of("tier")
-    BOXES.clear()
-
-    def tbox(c, size):
-        BOXES.append((Vector(c), tuple(size)))
-        box(tb, c, size)
-    for name, hx, hy, z0, z1 in TIERS:
-        tbox((0, 0, (z0 + z1) / 2), (2 * hx, 2 * hy, z1 - z0))
-    # a stepped cornice: a second, lower moulding under the top slab, and the corner posts
-    tbox((0, 0, 4.85), (2 * 5.9, 2 * 5.6, 0.3))
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            tbox((sx * 5.4, sy * 5.1, 3.4), (0.7, 0.7, 3.2))
-            tbox((sx * 5.4, sy * 5.1, 5.15), (0.95, 0.95, 0.3))
-    panel(bm, "+y", 4.3, 2.1, 4.7, 8, 1)
-    panel(bm, "-y", 4.3, 2.1, 4.7, 8, 2)
-    panel(bm, "+x", 3.5, 2.1, 4.7, 6, 3)
-    panel(bm, "-x", 3.5, 2.1, 4.7, 6, 4)
-    # runes round the step tier
-    rnd = random.Random(9)
-    for face, (n, u) in FACES.items():
-        t = [x for x in TIERS if x[0] == "step"][0]
-        off = t[2] if face[1] == 'y' else t[1]
-        span = (t[1] if face[1] == 'y' else t[2]) - 0.8
-        for i in range(34):
-            uu = -span + 2 * span * i / 33
-            w, h = 0.1, rnd.uniform(0.18, 0.36)
-            ctr = n * (off + 0.03) + u * uu + Vector((0, 0, 1.5))
-            if abs(n.x) > 0.5:
-                box(bm, ctr, (0.07, w, h))
-            else:
-                box(bm, ctr, (w, 0.07, h))
-            if rnd.random() < 0.4:
-                ctr2 = ctr + Vector((0, 0, rnd.choice((-1, 1)) * 0.24))
-                if abs(n.x) > 0.5:
-                    box(bm, ctr2, (0.07, 0.2, 0.06))
-                else:
-                    box(bm, ctr2, (0.2, 0.07, 0.06))
-    # the foot tier is a ring of laid blocks: skirts
-    return bm
-
-
-# ============================================================================================
-# DRIVER (geometry stage)
-# ============================================================================================
 def reset():
     bpy.ops.wm.read_factory_settings(use_empty=True)
-
-
-def preview(objs, tag="g", views=None, size=(1280, 960)):
-    """Workbench renders (flat material colours, studio light) to PREVIEW/<tag>_<view>.png."""
-    os.makedirs(PREVIEW, exist_ok=True)
-    cols = {"stone": (0.62, 0.6, 0.57, 1), "iron": (0.12, 0.12, 0.14, 1), "orb": (0.7, 0.5, 1.0, 1)}
-    for m in bpy.data.materials:
-        m.diffuse_color = cols.get(m.name, (0.6, 0.6, 0.6, 1))
-    sc = bpy.context.scene
-    sc.render.engine = 'BLENDER_WORKBENCH'
-    sc.render.resolution_x, sc.render.resolution_y = size
-    sh = sc.display.shading
-    sh.color_type = 'MATERIAL'
-    sh.light = 'STUDIO'
-    sh.show_cavity = True
-    sh.cavity_type = 'BOTH'
-    sh.show_shadows = True
-    sc.world = bpy.data.worlds.new("pv")
-    sc.world.color = (0.2, 0.22, 0.28)
-    cd = bpy.data.cameras.new("cam")
-    cam = bpy.data.objects.new("cam", cd)
-    sc.collection.objects.link(cam)
-    sc.camera = cam
-    cd.clip_end = 800
-    views = views or [("front", (0, 105, 20), (0, 0, 17), 70), ("q3", (74, 70, 28), (0, 0, 16), 65), ("side", (105, 0, 20), (0, 0, 17), 70),
-                      ("head", (-6, 40, 27), (-1.5, 1.5, 24), 45), ("hand", (-16, 26, 22), (-7, 2.6, 21), 45), ("base", (0, 30, 6), (0, 0, 4), 40)]
-    for name, loc, tgt, lens in views:
-        cam.location = Vector(loc)
-        cam.rotation_euler = (Vector(tgt) - Vector(loc)).to_track_quat('-Z', 'Y').to_euler()
-        cd.lens = lens
-        sc.render.filepath = os.path.join(PREVIEW, "%s_%s.png" % (tag, name))
-        bpy.ops.render.render(write_still=True)
-
-
-
-def masonry(P, rnd):
-    """Laid courses of dressed blocks on the tiers (real geometry: the joints, the chips, a few cracked and shifted)."""
-    bm = P.of("mason")
-    thick = 0.09
-    bands = {"foot": [(0.0, 0.9)], "step": [(0.9, 1.8)], "plinth": [(1.8, 2.1), (4.7, 5.0)], "cornice": [(5.0, 5.6)]}
-    for name, hx, hy, z0, z1 in TIERS:
-        for face, (n, u) in FACES.items():
-            half = hy if face[1] == 'y' else hx
-            span = (hx if face[1] == 'y' else hy - thick)
-            for za, zb in bands[name]:
-                x = -span
-                while x < span - 0.1:
-                    w = rnd.uniform(1.9, 2.8)
-                    if span - (x + w) < 1.1:
-                        w = span - x
-                    h = zb - za
-                    ctr = n * (half + thick / 2 - 0.02) + u * (x + w / 2) + Vector((0, 0, (za + zb) / 2))
-                    sz = (w - 0.07, thick, h - 0.07)
-                    sz = (thick, w - 0.07, h - 0.07) if abs(n.x) > 0.5 else sz
-                    yaw = rnd.uniform(-0.006, 0.006)
-                    if rnd.random() < 0.13:                  # cracked through and shifted
-                        f = rnd.uniform(0.35, 0.65)
-                        for part, (a0, a1) in enumerate(((0.0, f), (f, 1.0))):
-                            c2 = ctr + u * ((a0 + a1) / 2 - 0.5) * w + Vector((0, 0, -0.03 * part)) + n * (0.015 * part)
-                            ww = (a1 - a0) * w - 0.07
-                            sz2 = (ww, thick, h - 0.07) if abs(n.x) < 0.5 else (thick, ww, h - 0.07)
-                            box(bm, c2, sz2, yaw=yaw + 0.01 * part)
-                    else:
-                        box(bm, ctr, sz, yaw=yaw)
-                    x += w
-    # the treads: paving on the foot and step tops, and on the cornice's top
-    for name, ho, hi_, z in (("foot", (7.4, 7.2), (6.6, 6.3), 0.9), ("step", (6.6, 6.3), (5.6, 5.3), 1.8), ("cornice", (6.1, 5.8), (0.0, 0.0), 5.6)):
-        rects = []
-        if name == "cornice":
-            rects.append((-ho[0], ho[0], -ho[1], ho[1]))
-        else:
-            rects += [(-ho[0], ho[0], hi_[1], ho[1]), (-ho[0], ho[0], -ho[1], -hi_[1]), (hi_[0], ho[0], -hi_[1], hi_[1]), (-ho[0], -hi_[0], -hi_[1], hi_[1])]
-        for x0, x1, y0, y1 in rects:
-            xs = [x0]
-            while xs[-1] < x1 - 0.05:
-                xs.append(min(x1, xs[-1] + rnd.uniform(2.0, 3.0)))
-            ys = [y0]
-            while ys[-1] < y1 - 0.05:
-                ys.append(min(y1, ys[-1] + rnd.uniform(1.6, 2.4)))
-            for i in range(len(xs) - 1):
-                for j in range(len(ys) - 1):
-                    if xs[i + 1] - xs[i] < 0.2 or ys[j + 1] - ys[j] < 0.2:
-                        continue
-                    box(bm, ((xs[i] + xs[i + 1]) / 2, (ys[j] + ys[j + 1]) / 2, z + 0.03), (xs[i + 1] - xs[i] - 0.07, ys[j + 1] - ys[j] - 0.07, 0.09), yaw=rnd.uniform(-0.005, 0.005))
 
 
 def box_uv_and_paint(bm, seed, tile=4.0, smooth=False, paint=True):
@@ -888,10 +285,6 @@ def box_uv_and_paint(bm, seed, tile=4.0, smooth=False, paint=True):
 # DRIVER: scene, high-res detail, bake, collision, far mesh, export
 # ============================================================================================
 import numpy as np
-
-FS = 0.72                         # the final scale of the whole monument (metres in Godot)
-WATER_Z = 1.7                     # the pool's surface above the pedestal's foot (-15.5 vs -17.2)
-
 
 def vnoise(P, f, seed):
     q = P * f + seed * 17.123
@@ -951,32 +344,54 @@ def stone_detail(P, kind, seed=1):
     return crack, d, c
 
 
-def stone_color(P, N, crack_mask, z_foot_damp=True, seed=1):
-    """Albedo for the high mesh: weathered grey stone, hairline cracks, lichen, moss, the waterline and its crust."""
+def stone_color(P, N, crack_mask, z_foot_damp=True, seed=1, curv=None):
+    """Albedo: warm and cool strata of weathered stone, drum-to-drum tone, grime and moss creeping up from the base,
+    lichen on the ledges, pale wear on the arrises, rain streaks under the capital, the waterline and its crust."""
     z = P[:, 2]
-    base = 0.28 + 0.14 * fbm_np(P, 0.33, 4, seed + 20) + 0.07 * (fbm_np(P, 1.6, 3, seed + 21) - 0.5)
-    col = np.stack([base * 1.02, base * 1.0, base * 0.97], axis=1)
+    warm = np.array([0.60, 0.52, 0.42])
+    cool = np.array([0.40, 0.46, 0.55])
+    hue = fbm_np(P, 0.14, 3, seed + 60)
+    hue = sstep_np(0.3, 0.7, hue)
+    base = 0.62 + 0.2 * fbm_np(P, 0.33, 4, seed + 20) + 0.08 * (fbm_np(P, 1.6, 3, seed + 21) - 0.5)
+    col = (warm[None, :] * (1 - hue)[:, None] + cool[None, :] * hue[:, None]) * base[:, None] / 0.7
+    dh = (SH1 - SH0) / NDRUM
+    di = np.floor((z - SH0) / dh)
+    tone = 0.88 + 0.2 * (((di * 7919) % 13) / 13.0)
+    col *= np.where((z > SH0) & (z < SH1), tone, 1.0)[:, None]
     col *= (1.0 - 0.5 * np.clip(1 - crack_mask / 0.012, 0, 1))[:, None]
     nz = np.clip(N[:, 2], 0, 1)
-    low = 1.0 - sstep_np(1.8, 9.0, z) * 0.75
-    lich = sstep_np(0.55, 0.66, fbm_np(P, 0.62, 3, seed + 30)) * (0.2 + 0.8 * nz) * (0.25 + 0.75 * low)
-    moss = sstep_np(0.6, 0.72, fbm_np(P, 1.7, 3, seed + 32)) * (0.1 + 0.9 * nz) * low
-    col = col * (1 - 0.7 * lich[:, None]) + 0.7 * lich[:, None] * np.array([0.28, 0.35, 0.14])
-    col = col * (1 - 0.6 * moss[:, None]) + 0.6 * moss[:, None] * np.array([0.34, 0.4, 0.16])
-    # the waterline: damp and dark below it, a pale mineral crust band just above
+    # grime and moss creeping up from the foot, with a ragged edge
+    edge = 7.5 + 5.0 * (fbm_np(P, 0.5, 3, seed + 70) - 0.5)
+    grime = 1.0 - sstep_np(1.2, edge, z)
+    col *= (1.0 - 0.4 * grime)[:, None] * np.array([0.95, 1.0, 0.92])[None, :]
+    moss = sstep_np(0.5, 0.64, fbm_np(P, 1.3, 3, seed + 32) + 0.35 * grime - 0.15) * (0.35 + 0.65 * nz) * (1.0 - sstep_np(2.0, 11.0, z))
+    col = col * (1 - 0.75 * moss[:, None]) + 0.75 * moss[:, None] * np.array([0.26, 0.38, 0.13])
+    # lichen on the ledges: the up-facing surfaces, in pale grey-green and ochre patches
+    up = sstep_np(0.3, 0.75, N[:, 2])
+    lich = sstep_np(0.56, 0.66, fbm_np(P, 3.2, 3, seed + 33)) * up
+    col = col * (1 - 0.75 * lich[:, None]) + 0.75 * lich[:, None] * np.array([0.66, 0.68, 0.45])
+    lich2 = sstep_np(0.64, 0.72, fbm_np(P, 5.0, 3, seed + 35)) * np.clip(0.3 + up, 0, 1)
+    col = col * (1 - 0.6 * lich2[:, None]) + 0.6 * lich2[:, None] * np.array([0.72, 0.58, 0.28])
+    # pale wear on the arrises
+    if curv is not None:
+        w = sstep_np(0.004, 0.02, curv) * (0.5 + 0.5 * fbm_np(P, 8.0, 2, seed + 36))
+        col = col * (1 - 0.35 * w[:, None]) + 0.35 * w[:, None] * np.array([0.82, 0.78, 0.7])
+    # the waterline: damp and dark below it, a pale mineral crust just above
     wl = WATER_Z + 0.25 * (fbm_np(P, 1.2, 3, seed + 40) - 0.5)
     damp = 1.0 - sstep_np(wl - 0.1, wl + 0.1, z)
     col *= (1.0 - 0.45 * damp)[:, None]
     crust = np.exp(-(((z - (wl + 0.35)) / 0.3) ** 2)) * sstep_np(0.4, 0.6, fbm_np(P, 2.0, 3, seed + 41))
-    col = col * (1 - 0.55 * crust[:, None]) + 0.55 * crust[:, None] * np.array([0.58, 0.58, 0.66])
-    # rain streaks running down the faces
-    q = P * np.array([2.0, 2.0, 0.18])
-    st = sstep_np(0.6, 0.8, fbm_np(q, 1.0, 3, seed + 50)) * (1 - nz)
-    col *= (1.0 - 0.3 * st)[:, None]
-    return np.clip(col, 0.02, 1.0)
+    col = col * (1 - 0.55 * crust[:, None]) + 0.55 * crust[:, None] * np.array([0.7, 0.7, 0.76])
+    # rain streaks running down from under the capital (and from every ledge)
+    q = P * np.array([5.0, 5.0, 0.22])
+    st = sstep_np(0.55, 0.75, fbm_np(q, 1.0, 3, seed + 50)) * (1 - nz)
+    below = sstep_np(SH1 - 10.0, SH1 + 0.2, z) * (1.0 - sstep_np(SH1 + 0.3, SH1 + 1.0, z))
+    col *= (1.0 - (0.18 + 0.4 * below) * st)[:, None]
+    col = col * (1 - 0.25 * (st * below)[:, None]) + 0.25 * (st * below)[:, None] * np.array([0.3, 0.36, 0.2])
+    return np.clip(col, 0.03, 1.0)
 
 
-def vertex_ao(P, N, polys, nrays=14, dist=6.0):
+def vertex_ao(P, N, polys, nrays=10, dist=6.0):
     """Ambient occlusion per vertex by ray casting against the mesh itself (BVH): cosine-weighted hemisphere."""
     from mathutils.bvhtree import BVHTree
     bvh = BVHTree.FromPolygons([tuple(v) for v in P.tolist()], polys)
@@ -997,7 +412,7 @@ def vertex_ao(P, N, polys, nrays=14, dist=6.0):
         b = n.cross(t)
         sp = rnd.random() * 6.283
         cs, sn = math.cos(sp), math.sin(sp)
-        o = Vector(P[i]) + n * 0.03
+        o = Vector(P[i]) + n * 0.06
         hit = 0.0
         for lx, ly, lz in dirs:
             x, y = lx * cs - ly * sn, lx * sn + ly * cs
@@ -1047,51 +462,58 @@ def grid_boxes(boxes, step):
     return me, np.array(edge)
 
 
-def detailed(low_me, name, kind, mat_key, seed, boxes=None, extra_me=None):
-    """The high-poly twin of a low mesh: subdivided, chiselled, cracked, coloured (vertex colour 'Col')."""
-    if kind == "tier":
-        me, edge_d = grid_boxes(boxes, HI_STEP)
-        # pilgrims, frames, runes at their own resolution
-        if extra_me is not None:
-            tmp = bmesh.new()
-            tmp.from_mesh(me)
-            tmp.from_mesh(extra_me)
-            tmp.to_mesh(me)
-            tmp.free()
-    else:
-        ob0 = bpy.data.objects.new("tmp_low", low_me)
-        bpy.context.scene.collection.objects.link(ob0)
-        md = ob0.modifiers.new("sub", 'SUBSURF')
-        md.levels = 2
-        md.render_levels = 2
-        dg = bpy.context.evaluated_depsgraph_get()
-        me = bpy.data.meshes.new_from_object(ob0.evaluated_get(dg))
-        bpy.data.objects.remove(ob0)
+def detailed(low_me, name, kind, mat_key, seed, boxes=None, extra_me=None, extra=None):
+    """The high-poly twin of a low mesh: subdivided, chiselled, cracked, coloured (Col), occluded (AO), glowing (Glow)."""
+    ob0 = bpy.data.objects.new("tmp_low", low_me)
+    bpy.context.scene.collection.objects.link(ob0)
+    md = ob0.modifiers.new("sub", 'SUBSURF')
+    md.levels = 2
+    md.render_levels = 2
+    dg = bpy.context.evaluated_depsgraph_get()
+    me = bpy.data.meshes.new_from_object(ob0.evaluated_get(dg))
+    bpy.data.objects.remove(ob0)
     P, N = mesh_np(me)
     n_t = len(P)
-    if kind == "tier":
-        # the extra (relief) vertices are kept unmodified: displace only the gridded boxes
-        ng = len(P) - (len(extra_me.vertices) if extra_me is not None else 0)
-    else:
-        ng = n_t
-    crack, d, craw = stone_detail(P[:ng], kind if kind == "tier" else "fig", seed)
-    P2 = P.copy()
-    if kind == "tier":
-        d = d * sstep_np(0.0, 0.12, edge_d)
-    P2[:ng] += N[:ng] * d[:, None]
-    col = np.ones((n_t, 4))
-    col[:, :3] = stone_color(P2, N, craw if True else crack, seed=seed) if kind != "tier" else stone_color(P2, N, np.concatenate([craw, np.ones(n_t - ng)]), seed=seed)
+    crack, d, craw = stone_detail(P, "fig", seed)
+    glow = np.zeros(n_t)
+    if extra is not None:
+        ed, glow = extra(P, N)
+        d = d + ed
+    P2 = P + N * d[:, None]
     me.vertices.foreach_set("co", P2.astype(np.float32).ravel())
     me.update()
+    P2, N2 = mesh_np(me)
+    ev = np.empty(len(me.edges) * 2, dtype=np.int32)
+    me.edges.foreach_get("vertices", ev)
+    ev = ev.reshape(-1, 2)
+    nb = np.zeros_like(P2)
+    cnt = np.zeros(n_t)
+    np.add.at(nb, ev[:, 0], P2[ev[:, 1]])
+    np.add.at(nb, ev[:, 1], P2[ev[:, 0]])
+    np.add.at(cnt, ev[:, 0], 1)
+    np.add.at(cnt, ev[:, 1], 1)
+    nbm = nb / np.maximum(cnt, 1)[:, None]
+    curv = -np.einsum('ij,ij->i', nbm - P2, N2)                # > 0 where the surface is convex (an arris)
+    polys = [tuple(p_.vertices) for p_ in me.polygons]
+    ao = vertex_ao(P2, N2, polys)
+    for _ in range(2):                                         # no specks: average each vertex with its neighbours
+        sm = np.zeros(n_t)
+        np.add.at(sm, ev[:, 0], ao[ev[:, 1]])
+        np.add.at(sm, ev[:, 1], ao[ev[:, 0]])
+        ao = 0.5 * ao + 0.5 * sm / np.maximum(cnt, 1)
+    col = np.ones((n_t, 4))
+    col[:, :3] = stone_color(P2, N2, craw, seed=seed, curv=curv)
     ca = me.color_attributes.new("Col", 'FLOAT_COLOR', 'POINT')
     ca.data.foreach_set("color", col.astype(np.float32).ravel())
-    if kind != "tier":
-        polys = [tuple(p_.vertices) for p_ in me.polygons]
-        ao = vertex_ao(P2, N, polys)
-        aoc = np.ones((n_t, 4))
-        aoc[:, 0] = aoc[:, 1] = aoc[:, 2] = np.clip(ao ** 1.2, 0.22, 1.0)
-        a2 = me.color_attributes.new("AO", 'FLOAT_COLOR', 'POINT')
-        a2.data.foreach_set("color", aoc.astype(np.float32).ravel())
+    aoc = np.ones((n_t, 4))
+    aoc[:, 0] = aoc[:, 1] = aoc[:, 2] = np.clip(ao ** 1.2, 0.28, 1.0)
+    a2 = me.color_attributes.new("AO", 'FLOAT_COLOR', 'POINT')
+    a2.data.foreach_set("color", aoc.astype(np.float32).ravel())
+    gc = np.zeros((n_t, 4))
+    gc[:, :3] = glow[:, None] * np.array([0.17, 0.06, 0.4])[None, :]
+    gc[:, 3] = 1.0
+    a3 = me.color_attributes.new("Glow", 'FLOAT_COLOR', 'POINT')
+    a3.data.foreach_set("color", gc.astype(np.float32).ravel())
     ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
     for p_ in me.polygons:
@@ -1158,10 +580,10 @@ def bake_pair(low, high, tag, size):
     img_node = nt.nodes.new('ShaderNodeTexImage')
     hmat = high.data.materials[0]
     himg = hmat.node_tree.nodes.new('ShaderNodeTexImage')
-    for kind, btype, samples in (("normal", 'NORMAL', 8), ("ao", 'AO', 48), ("albedo", 'EMIT', 1)):
+    for kind, btype, samples in (("normal", 'NORMAL', 8), ("ao", 'AO', 48), ("albedo", 'EMIT', 1), ("emit", 'EMIT', 1)):
         img = bpy.data.images.new("%s_%s" % (tag, kind), size, size, alpha=False, float_buffer=False)
-        img.generated_color = {"normal": (0.5, 0.5, 1.0, 1.0), "ao": (1, 1, 1, 1), "albedo": (0.3, 0.3, 0.3, 1)}[kind]
-        img.colorspace_settings.name = 'sRGB' if kind == "albedo" else 'Non-Color'
+        img.generated_color = {"normal": (0.5, 0.5, 1.0, 1.0), "ao": (1, 1, 1, 1), "albedo": (0.3, 0.3, 0.3, 1), "emit": (0, 0, 0, 1)}[kind]
+        img.colorspace_settings.name = 'sRGB' if kind in ("albedo", "emit") else 'Non-Color'
         sc.cycles.samples = samples
         bpy.ops.object.select_all(action='DESELECT')
         if kind == "normal":
@@ -1182,7 +604,7 @@ def bake_pair(low, high, tag, size):
             bpy.context.view_layer.objects.active = high
             for nd in hmat.node_tree.nodes:
                 if nd.bl_idname == 'ShaderNodeAttribute':
-                    nd.attribute_name = "AO" if kind == "ao" else "Col"
+                    nd.attribute_name = {"ao": "AO", "emit": "Glow"}.get(kind, "Col")
             bpy.ops.object.bake(type='EMIT')
             low.hide_render = False
         if kind == "ao":
@@ -1240,23 +662,11 @@ def tris(o):
     return sum(len(p.vertices) - 2 for p in o.data.polygons)
 
 
-def build_all():
-    P = Parts()
-    build_figure(P)
-    build_staff(P)
-    build_pennant(P)
-    for key in ("fig", "iron", "orb"):
-        translate(P.of(key), (0, 0, PED_H))
-    build_base(P)
-    return P
-
-
 def rubble(seed, mirror):
     """Fallen pieces in the pool: worn blocks, a snapped hood tip, a broken finger: one tiled-stone mesh."""
     rnd = random.Random(seed)
     bm = bmesh.new()
-    spots = [(-9.8, 4.0, 0.8), (-8.6, -6.9, 0.6), (9.4, 6.2, 0.7), (8.9, -7.4, 0.9), (0.5, 8.9, 0.6), (-4.2, 8.6, 0.5), (5.6, 9.5, 0.7), (-10.4, -1.2, 0.5), (10.6, -1.5, 0.6),
-             (2.0, -9.0, 0.7), (-6.5, 9.7, 0.4), (7.5, -9.6, 0.5)]
+    spots = [(-4.7, 3.0, 0.7), (4.5, -3.4, 0.6), (-4.3, -4.2, 0.7), (4.8, 4.0, 0.5), (0.4, -4.8, 0.5), (-5.0, 0.2, 0.45), (5.1, -0.6, 0.5), (2.4, 4.9, 0.45), (-2.6, -5.0, 0.45)]
     for (x, y, r) in spots:
         r *= rnd.uniform(0.9, 1.6)
         sub = bmesh.new()
@@ -1274,12 +684,6 @@ def rubble(seed, mirror):
         for f in sub.faces:
             bm.faces.new([mp[v] for v in f.verts])
         sub.free()
-    # the snapped hood tip: a cone lying on its side
-    tip = Vector((-7.5, -3.5, 0.9))
-    tube(bm, [tip, tip + Vector((2.4, 1.2, 0.2)), tip + Vector((4.6, 2.2, 0.5))], [0.1, 0.9, 1.25], 9)
-    # the broken finger: a stone cylinder
-    fp = Vector((8.2, 3.6, 0.55))
-    tube(bm, [fp, fp + Vector((-1.1, 0.5, 0.0)), fp + Vector((-2.2, 0.9, 0.05))], [0.4, 0.42, 0.4], 8)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     if mirror:
         for v in bm.verts:
@@ -1300,69 +704,6 @@ def hull_obj(name, verts):
     ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
     return ob
-
-
-def collision_hulls(fig_low, boxes):
-    """A few convex hulls: the masonry's tiers, the robe and mantle, the hood, the raised arm, the staff hand's arm, the staff."""
-    objs = []
-    for i, (c, size) in enumerate(boxes[:4]):
-        hx, hy, hz = size[0] / 2, size[1] / 2, size[2] / 2
-        objs.append(hull_obj("Watcher_tier%d-convcolonly" % i, [Vector((c.x + sx * hx, c.y + sy * hy, c.z + sz * hz)) for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)]))
-    vs = [v.co.copy() for v in fig_low.data.vertices]
-    body = [v for v in vs if v.z < PED_H + 13.2 * STR and v.z > PED_H - 0.2 and abs(v.x) < 5.3 and v.y < 4.2]
-    objs.append(hull_obj("Watcher_robe-convcolonly", body[::3]))
-    hood = [v for v in vs if v.z > PED_H + 12.3 * STR and abs(v.x) < 3.8 and -3.6 < v.y < 4.4 and v.z < PED_H + 20.2 * STR]
-    objs.append(hull_obj("Watcher_hood-convcolonly", hood[::2]))
-    hands = [v for v in vs if abs(v.x) < 3.4 and v.y > 3.0 and PED_H + 9.0 < v.z < PED_H + 17.5]
-    objs.append(hull_obj("Watcher_hands-convcolonly", hands[::2]))
-    # the staff
-    st = []
-    for z in (0.0, 28.0):
-        for k in range(8):
-            a = math.tau * k / 8
-            st.append(Vector((STAFF.x + math.cos(a) * 0.62, STAFF.y + math.sin(a) * 0.62, PED_H + z)))
-    objs.append(hull_obj("Watcher_staff-convcolonly", st))
-    lan = []
-    for z in (LANT0, LANT1 + 2.4):
-        for k in range(10):
-            a = math.tau * k / 10
-            lan.append(Vector((STAFF.x + math.cos(a) * 2.2, STAFF.y + math.sin(a) * 2.2, PED_H + z)))
-    objs.append(hull_obj("Watcher_lantern-convcolonly", lan))
-    return objs
-
-
-def far_set(fig, base_boxes):
-    """The far mesh (>150 m): the figure decimated, a low masonry stack, a thin staff, the cage as a rhombus."""
-    f = fig.copy()
-    f.data = fig.data.copy()
-    f.name = "Watcher_fig_far"
-    bpy.context.scene.collection.objects.link(f)
-    bpy.context.view_layer.objects.active = f
-    md = f.modifiers.new("d", 'DECIMATE')
-    md.ratio = 1100.0 / max(1, tris(f))
-    bpy.ops.object.modifier_apply(modifier=md.name)
-    bm = bmesh.new()
-    for c, size in base_boxes[:3]:
-        box(bm, c, size)
-    me = bpy.data.meshes.new("Watcher_base_far")
-    bm.to_mesh(me)
-    b = bpy.data.objects.new("Watcher_base_far", me)
-    bpy.context.scene.collection.objects.link(b)
-    bm2 = bmesh.new()
-    sx, sy = STAFF.x, STAFF.y
-    tube(bm2, [Vector((sx, sy, PED_H)), Vector((sx, sy, PED_H + LANT0)), Vector((sx, sy, PED_H + LANT1)), Vector((sx, sy, PED_H + LANT1 + 4.2))], [0.6, 0.5, 2.0, 0.05], 6, True, True)
-    ring3(bm2, (sx, sy, PED_H + ORB_Z), (0, 0, 1), 1.9, 0.2, 12, 4)
-    ring3(bm2, (sx, sy, PED_H + ORB_Z), (1, 0, 0), 1.9, 0.2, 12, 4)
-    ring3(bm2, (sx, sy, PED_H + ORB_Z), (0, 1, 0), 1.9, 0.2, 12, 4)
-    me2 = bpy.data.meshes.new("Watcher_iron_far")
-    bm2.to_mesh(me2)
-    i = bpy.data.objects.new("Watcher_iron_far", me2)
-    bpy.context.scene.collection.objects.link(i)
-    for ob, k in ((b, "stone"), (i, "iron")):
-        ob.data.materials.append(bpy.data.materials.get(k) or bpy.data.materials.new(k))
-    f.data.materials.clear()
-    f.data.materials.append(bpy.data.materials.get("stone"))
-    return [f, b, i]
 
 
 def scale_objs(objs, s):
@@ -1464,6 +805,10 @@ def textured_materials(tag_by_obj):
         nt.links.new(sep.outputs[0], mul.inputs[7])
         nt.links.new(mul.outputs[2], bs.inputs['Base Color'])
         nt.links.new(sep.outputs[1], bs.inputs['Roughness'])
+        em = nt.nodes.new('ShaderNodeTexImage')
+        em.image = bpy.data.images.load(os.path.join(OUT, "watchers_%s_emit.png" % tag))
+        nt.links.new(em.outputs['Color'], bs.inputs['Emission Color'])
+        bs.inputs['Emission Strength'].default_value = 1.0
         nt.links.new(nm.outputs['Color'], nmap.inputs['Color'])
         if arg('--dbg') != 'nonormal':
             nt.links.new(nmap.outputs['Normal'], bs.inputs['Normal'])
@@ -1471,94 +816,720 @@ def textured_materials(tag_by_obj):
         ob.data.materials.append(m)
 
 
+# ============================================================================================
+# THE PILLAR: a slender carved column (about 1:9) on a stepped base with a moulded torus, a sunk spiral frieze of
+# pilgrims in high relief, a deep-cut capital whose band is incised with Order glyphs (a faint violet glow in the
+# grooves), and a forged iron lantern-cage with an iron-leaf crown. Origin = the centre of the foot's bottom face;
+# +Y faces the village.
+# ============================================================================================
+TIERS = [  # (name, half, z0, z1)
+    ("foot", 3.5, 0.0, 0.7),
+    ("step", 2.9, 0.7, 1.4),
+]
+SH0, SH1 = 2.9, 20.9                  # the shaft's foot and its top (18 m)
+NDRUM = 12
+BACK = -math.pi / 2
+CAP_H = 2.5
+ABACUS_Z = SH1 + CAP_H
+TOP = ABACUS_Z + 0.75
+DRUM_H = 1.2
+LBASE = TOP + DRUM_H                   # the lantern's floor
+PITCH = 2.5                           # the frieze climbs this much a turn
+Z0S = SH0 + 0.9                       # the frieze's lowest edge
+BAND_H = 1.4
+RECESS = 0.28
+
+
+def shaft_r(z):
+    t = max(0.0, min(1.0, (z - SH0) / (SH1 - SH0)))
+    return lerp(1.4, 1.2, t) + 0.06 * math.sin(math.pi * t ** 0.8)
+
+
+def recess(z, phi):
+    """How deep the spiral frieze is sunk into the shaft at (z, angle)."""
+    th = (phi - BACK) % math.tau
+    ph = (z - Z0S - PITCH * th / math.tau) % PITCH
+    inb = sstep(0.0, 0.05, ph) * (1.0 - sstep(BAND_H - 0.05, BAND_H, ph))
+    inb *= sstep(Z0S - 0.15, Z0S + 0.25, z) * (1.0 - sstep(SH1 - 1.9, SH1 - 1.3, z))
+    return RECESS * inb
+
+
+def build_shaft(P, rnd):
+    """Coursed drums with chamfered joints, a gentle taper and entasis; the frieze sunk into them; one drum cracked
+    and shifted a few cm."""
+    bm = P.of("fig")
+    N = 72
+    zb = [SH0 + (SH1 - SH0) * i / NDRUM for i in range(NDRUM + 1)]
+    for i in range(NDRUM):
+        z0, z1 = zb[i], zb[i + 1]
+        sh = Vector((0.045, 0.03, 0.0)) if i == 7 else Vector((rnd.uniform(-0.012, 0.012), rnd.uniform(-0.012, 0.012), 0.0))
+        nint = max(2, int((z1 - z0 - 0.14) / 0.09))
+        rows = [(z0, -0.07), (z0 + 0.07, 0.0)] + [(lerp(z0 + 0.07, z1 - 0.07, (k + 1) / (nint + 1)), 0.0) for k in range(nint)] + [(z1 - 0.07, 0.0), (z1, -0.07)]
+        rings = []
+        for z, ins in rows:
+            ring = []
+            for j in range(N):
+                ph = BACK + math.tau * j / N
+                R = shaft_r(z) + ins - recess(z, ph)
+                ring.append(Vector((math.cos(ph) * R, math.sin(ph) * R, z)) + sh)
+            rings.append(ring)
+        loft(bm, rings, False, False)
+
+
+def sq_ring(z, h, n, N=96):
+    """A rounded square (a superellipse of exponent n; n = 2 is a circle) of half-width h at height z."""
+    e = 2.0 / n
+    pts = []
+    for j in range(N):
+        a = BACK + math.tau * j / N
+        c, s_ = math.cos(a), math.sin(a)
+        pts.append(Vector((h * math.copysign(abs(c) ** e, c), h * math.copysign(abs(s_) ** e, s_), z)))
+    return pts
+
+
+PLINTH = [(0.0, 3.42, 14), (0.05, 3.5, 14), (0.35, 3.5, 14), (0.62, 3.5, 14), (0.7, 3.45, 14), (0.7, 3.3, 14), (0.7, 3.12, 14), (0.7, 2.97, 12),
+          (0.73, 2.93, 12), (0.8, 2.9, 12), (1.1, 2.9, 12), (1.32, 2.9, 12), (1.4, 2.86, 10), (1.4, 2.72, 8), (1.4, 2.58, 5), (1.4, 2.45, 3), (1.4, 2.4, 2),
+          (1.46, 2.52, 2), (1.62, 2.74, 2), (1.8, 2.64, 2), (1.98, 2.38, 2), (2.12, 2.08, 2), (2.3, 1.92, 2), (2.5, 1.7, 2), (2.7, 1.55, 2), (SH0 + 0.02, 1.42, 2)]
+
+
+def build_base_drum(P):
+    """The stepped plinth and the moulded base (a torus, a scotia, a fillet) as one baked loft."""
+    bm = P.of("fig")
+    loft(bm, [sq_ring(z, h, n) for (z, h, n) in PLINTH], True, False)
+
+
+def slab_between(bm, a, b, w, d, n):
+    """A flat bar from a to b (w wide, d thick, d along n): a staff carved flat against the stone."""
+    dirv = (b - a)
+    L = dirv.length
+    if L < 1e-5:
+        return
+    dirv = dirv / L
+    x = n.cross(dirv).normalized()
+    nn = dirv.cross(x).normalized()
+    M = Matrix.Translation((a + b) * 0.5) @ Matrix((x, nn, dirv)).transposed().to_4x4() @ Matrix.Diagonal((w, d, L, 1.0))
+    res = bmesh.ops.create_cube(bm, size=1.0, matrix=M)
+    for v in res["verts"]:
+        for e in v.link_edges:
+            e.seam = True
+
+
+def pilgrim(bm, org, t, n, rnd, k, kind="walk", other=None):
+    """A pilgrim in high relief on the frieze floor: half a figure bent into the climb, a cloak dragging behind, a pack,
+    an arm to a staff carved flat against the stone (every bar follows the shaft's curve). kind: walk, kneel, fall."""
+    up = Vector((0, 0, 1))
+    H = 1.1 + 0.1 * rnd.random()
+    PR = 0.7
+    th0 = math.atan2(n.y, n.x)
+    R0 = math.hypot(org.x, org.y)
+    zb0 = org.z
+
+    def pos(sv, zz, nn):
+        a = th0 + sv / R0
+        r = R0 + nn
+        return Vector((math.cos(a) * r, math.sin(a) * r, zb0 + zz)), Vector((math.cos(a), math.sin(a), 0.0))
+
+    def hug(s0, z0_, s1, z1_, w, d, nn, steps=3):
+        for i in range(steps):
+            sa, sb = lerp(s0, s1, i / steps), lerp(s0, s1, (i + 1) / steps)
+            za, zb_ = lerp(z0_, z1_, i / steps), lerp(z0_, z1_, (i + 1) / steps)
+            pa, na = pos(sa, za, nn)
+            pb, nb = pos(sb, zb_, nn)
+            slab_between(bm, pa, pb, w, d, (na + nb).normalized())
+    if kind == "fall":
+        a = org + t * (-0.46) + n * 0.02 + up * 0.15
+        b = org + t * 0.38 + n * 0.02 + up * 0.17
+        tube(bm, [a, (a + b) * 0.5 + up * 0.03, b], [0.11, 0.15, 0.1], 8, True, True)
+        sphere(bm, b + t * 0.14 + up * 0.04, 0.12, 8, 5)
+        hug(0.45, 0.06, 0.95, 0.12, 0.07, 0.06, 0.02)
+        hug(-0.3, 0.03, 0.55, 0.45, 0.05, 0.04, 0.03)
+        return
+    kneel = kind == "kneel"
+    h = H * (0.66 if kneel else 1.0)
+    lean = (0.4 if kneel else 0.3) + 0.08 * rnd.random()
+    rows = [(0.0, 0.34, 0.3), (0.1, 0.33, 0.29), (0.4, 0.24, 0.22), (0.62, 0.27, 0.24), (0.72, 0.33, 0.27), (0.78, 0.25, 0.23), (0.82, 0.13, 0.13),
+            (0.86, 0.18, 0.18), (0.95, 0.23, 0.22), (1.04, 0.19, 0.19), (1.13, 0.09, 0.09), (1.18, 0.0, 0.0)]
+    rings = []
+    for f, rt, rn in rows:
+        zz = f * h
+        sh = lean * zz * (0.5 + 0.9 * f) + (0.1 if f > 0.82 else 0.0)
+        ring = []
+        for j in range(10):
+            ang = math.tau * j / 10
+            out = math.sin(ang) * rn * PR * 1.4 * (1.0 + 0.06 * math.sin(5 * ang + k))
+            ring.append(org + t * (sh + math.cos(ang) * rt) + n * max(0.0, out) + up * zz)
+        rings.append(ring)
+    loft(bm, rings[::-1], True, True)
+    # the cloak dragging behind, flat on the stone
+    hug(lean * 0.5 * h, 0.55 * h, -0.3, 0.08, 0.2, 0.05, 0.07, 3)
+    # the arm and the staff, carved flat
+    s_sh = 0.1 + lean * 0.7 * h
+    s_hand = 0.5 if not kneel else 0.35
+    hug(s_sh, 0.72 * h, s_hand, 0.5 * h, 0.12, 0.08, 0.1, 2)
+    hug(0.42, 0.0 if not kneel else 0.05, 0.9, 1.3 * H, 0.05, 0.045, 0.045, 3)
+
+
+NICHES = []
+
+
+def niche_list():
+    """Arched niches between the turns: (angle, height, kind); even ones hold a votive cup, odd ones a carved pilgrim's mark."""
+    if NICHES:
+        return NICHES
+    for k in range(12):
+        m = k // 2
+        th = (2.3 * m + 0.8 + (k % 2) * math.pi) % math.tau
+        z = Z0S + PITCH * (th / math.tau + m) + BAND_H + 0.5
+        if z < SH1 - 2.9 and z > Z0S + 1.0:
+            NICHES.append((BACK + th, z, "cup" if k % 2 == 0 else "mark"))
+    return NICHES
+
+
+def build_niches(P):
+    """The votive cups (and their flames) standing in the cup niches."""
+    bm = P.of("fig")
+    fl = P.of("flame")
+    for (phi, zc, kind) in niche_list():
+        if kind != "cup":
+            continue
+        R = shaft_r(zc) - 0.07
+        n = Vector((math.cos(phi), math.sin(phi), 0.0))
+        c = Vector((n.x * R, n.y * R, zc - 0.27))
+        rows = [(0.0, 0.03), (0.03, 0.085), (0.09, 0.12), (0.15, 0.13), (0.17, 0.11)]
+        rings = []
+        for dz, r in rows:
+            rings.append([c + Vector((0, 0, dz)) + Vector((math.cos(math.tau * j / 12) * r, math.sin(math.tau * j / 12) * r, 0)) for j in range(12)])
+        loft(bm, rings, True, True)
+        sphere(fl, c + Vector((0, 0, 0.27)), 0.06, 6, 4, (1, 1, 1.7))
+
+
+def cap_r(z_rel, phi):
+    rows = [(0.0, 0.0), (0.12, 0.1), (0.25, 0.04), (0.65, 0.5), (1.1, 1.0), (1.5, 1.45), (1.8, 1.75)]
+    d = prof(rows, min(z_rel, 1.8))[0]
+    r = shaft_r(SH1) + d
+    if 0.55 < z_rel < 1.85:
+        r += (0.5 - abs(math.sin(8 * phi))) * 0.25 * sstep(0.55, 0.8, z_rel) - 0.1 * sstep(0.55, 0.8, z_rel)
+    return r
+
+
+GLYPH_Z = SH1 + 2.17
+GLYPH_CELLS = 36
+BAND_R = 3.0
+
+
+ABACUS = [(0.0, 3.05, 10), (0.04, 3.15, 10), (0.12, 3.32, 10), (0.22, 3.5, 10), (0.3, 3.56, 10), (0.4, 3.56, 10), (0.43, 3.25, 10), (0.47, 3.18, 10),
+          (0.58, 3.3, 10), (0.7, 3.34, 10), (0.75, 3.28, 10), (0.75, 3.0, 10), (0.75, 2.5, 8), (0.75, 1.9, 4), (0.75, 1.2, 2), (0.75, 0.5, 2)]
+
+
+def build_capital(P, rnd):
+    bm = P.of("fig")
+    N = 120
+    zs = [0.0, 0.1, 0.2, 0.3, 0.45, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 1.86, 1.94, 2.02, 2.1, 2.18, 2.26, 2.34, 2.42, 2.5]
+    rings = []
+    for zr in zs:
+        ring = []
+        for j in range(N):
+            ph = BACK + math.tau * j / N
+            R = cap_r(zr, ph) if zr <= 1.8 else cap_r(1.8, 0.0) + 0.04
+            ring.append(Vector((math.cos(ph) * R, math.sin(ph) * R, SH1 + zr)))
+        rings.append(ring)
+    loft(bm, rings, False, False)
+    # the abacus: ovolo and cavetto mouldings, a rounded square, topped
+    loft(bm, [sq_ring(ABACUS_Z + z, h, n) for (z, h, n) in ABACUS], True, True)
+    # the short moulded drum the lantern stands on
+    drum = [(0.0, 2.1), (0.08, 2.2), (0.2, 2.05), (0.32, 1.85), (0.9, 1.82), (1.0, 1.95), (1.12, 2.08), (1.2, 2.0)]
+    loft(bm, [sq_ring(TOP + z, r, 2, 72) for (z, r) in drum] + [sq_ring(TOP + 1.2, 1.4, 2, 72), sq_ring(TOP + 1.2, 0.5, 2, 72)], True, True)
+
+
+# the Order's glyphs: irregular strokes per cell, drawn once
+_GLYPHS = []
+
+
+def glyph_strokes():
+    """An inscription: every cell a vertical stave with ticks at a steady rhythm; every third cell a lozenge."""
+    if _GLYPHS:
+        return _GLYPHS
+    rnd = random.Random(77)
+    for c in range(GLYPH_CELLS):
+        segs = []
+        if c % 3 == 2:
+            segs += [(0, -0.2, 0.13, 0.0), (0.13, 0.0, 0, 0.2), (0, 0.2, -0.13, 0.0), (-0.13, 0.0, 0, -0.2)]
+            segs.append((0, -0.06, 0, 0.06))
+        else:
+            x0 = rnd.uniform(-0.02, 0.02)
+            segs.append((x0, -0.21, x0, 0.21))
+            for i in range(3):
+                y = -0.13 + 0.13 * i
+                side = 1 if (c + i) % 2 == 0 else -1
+                segs.append((x0, y, x0 + side * 0.13, y + 0.07 + rnd.uniform(-0.015, 0.015)))
+        _GLYPHS.append(segs)
+    return _GLYPHS
+
+
+def seg_dist(px, py, x0, y0, x1, y1):
+    dx, dy = x1 - x0, y1 - y0
+    L2 = dx * dx + dy * dy + 1e-9
+    t = np.clip(((px - x0) * dx + (py - y0) * dy) / L2, 0, 1)
+    return np.hypot(px - (x0 + t * dx), py - (y0 + t * dy))
+
+
+def pillar_extra(P, N):
+    """High-poly detail only the pillar needs: chipped arrises at the joints, the cracked drum's split, worn figures,
+    and the glyphs cut into the capital's band (returns the displacement and the faint glow in the grooves)."""
+    zb = [SH0 + (SH1 - SH0) * i / NDRUM for i in range(NDRUM + 1)]
+    z = P[:, 2]
+    rad = np.hypot(P[:, 0], P[:, 1])
+    d = np.zeros(len(P))
+    glow = np.zeros(len(P))
+    on_shaft = (z > SH0 - 0.1) & (z < SH1 + 0.1) & (rad < 1.6) & (np.abs(N[:, 2]) < 0.5)
+    chip = sstep_np(0.55, 0.8, fbm_np(P, 2.2, 3, 21))
+    for zj in zb[1:-1]:
+        d -= 0.045 * chip * np.exp(-(((z - zj) / 0.1) ** 2)) * on_shaft
+    z0, z1 = zb[8], zb[9]
+    ang = np.arctan2(P[:, 1], P[:, 0])
+    cr = np.abs(((ang - 0.9 - 0.5 * (z - z0) + math.pi) % math.tau) - math.pi)
+    d -= 0.06 * np.exp(-((cr / 0.022) ** 2)) * ((z > z0) & (z < z1)) * on_shaft
+    # worn relief: weather eats the figures
+    d += 0.012 * (fbm_np(P, 7.0, 3, 41) - 0.5) * on_shaft
+    # the sunk stair: small steps rising along the band's floor
+    a_ = (np.arctan2(P[:, 1], P[:, 0]) - BACK) % math.tau
+    ph_ = (z - Z0S - PITCH * a_ / math.tau) % PITCH
+    in_band = on_shaft & (z > Z0S) & (z < SH1 - 1.6)
+    floor_m = sstep_np(0.12, 0.2, ph_) * (1.0 - sstep_np(BAND_H - 0.2, BAND_H - 0.12, ph_)) * in_band
+    w_ = math.tau * (z - ph_ - Z0S) / PITCH + a_
+    Rm = np.maximum(rad, 0.5)
+    stepf = (w_ * Rm / 0.6) % 1.0
+    d += floor_m * 0.14 * sstep_np(0.0, 0.8, stepf)
+    d -= floor_m * 0.03 * sstep_np(0.9, 1.0, stepf)
+    # the arched niches between the turns: a votive cup in some, a pilgrim's mark (staff and cloak) incised in the rest
+    ang0 = np.arctan2(P[:, 1], P[:, 0])
+    for (phi, zc, kind) in niche_list():
+        du = ((ang0 - phi + math.pi) % math.tau - math.pi) * Rm
+        dv = z - zc
+        near = on_shaft & (np.abs(du) < 0.4) & (np.abs(dv) < 0.5)
+        if not near.any():
+            continue
+        ii = np.nonzero(near)[0]
+        u, v = du[ii], dv[ii]
+        arch = (np.abs(u) < 0.26) & (v > -0.34) & ((v < 0.1) | (u * u + (v - 0.1) ** 2 < 0.26 ** 2))
+        edge_ = np.minimum(0.26 - np.abs(u), v + 0.34)
+        mk = np.where(arch, sstep_np(0.0, 0.05, edge_), 0.0)
+        d[ii] -= 0.11 * mk
+        if kind == "mark":
+            dist = np.minimum.reduce([seg_dist(u, v, 0.07, -0.3, 0.09, 0.26), seg_dist(u, v, -0.03, 0.1, -0.15, -0.28), seg_dist(u, v, -0.03, 0.1, 0.08, -0.28), seg_dist(u, v, -0.15, -0.28, 0.08, -0.28)])
+            d[ii] -= 0.022 * mk * (1.0 - sstep_np(0.012, 0.026, dist))
+    # the masonry of the plinth: course joints, paving joints on the treads, chips
+    pl = (z < 1.45) & (rad > 2.3)
+    row = np.floor(z / 0.7)
+    along = P[:, 0] + P[:, 1] + row * 1.37
+    fr = np.abs(((along / 1.7) % 1.0) - 0.5) * 2.0
+    wall = (np.abs(N[:, 2]) < 0.6) & pl
+    joint = sstep_np(0.955, 1.0, fr) * wall
+    d -= 0.04 * joint
+    tread = (N[:, 2] > 0.8) & pl
+    gx = np.abs(((P[:, 0] / 1.8) % 1.0) - 0.5) * 2.0
+    gy = np.abs(((P[:, 1] / 1.5) % 1.0) - 0.5) * 2.0
+    d -= 0.03 * np.maximum(sstep_np(0.95, 1.0, gx), sstep_np(0.95, 1.0, gy)) * tread
+    d -= 0.05 * sstep_np(0.65, 0.82, fbm_np(P, 1.8, 3, 55)) * (joint * 0.7 + 0.3 * tread) * pl
+    # the glyph band
+    band = (z > SH1 + 1.9) & (z < SH1 + 2.46) & (rad > 2.4)
+    if band.any():
+        idx = np.nonzero(band)[0]
+        a = (np.arctan2(P[idx, 1], P[idx, 0]) - BACK) % math.tau
+        cell = np.minimum((a / (math.tau / GLYPH_CELLS)).astype(int), GLYPH_CELLS - 1)
+        u = ((a / (math.tau / GLYPH_CELLS)) - cell - 0.5) * (math.tau * BAND_R / GLYPH_CELLS)
+        v = z[idx] - GLYPH_Z
+        gl = glyph_strokes()
+        dist = np.full(len(idx), 9.0)
+        for c in range(GLYPH_CELLS):
+            m = cell == c
+            if not m.any():
+                continue
+            for (x0, y0, x1, y1) in gl[c]:
+                dist[m] = np.minimum(dist[m], seg_dist(u[m], v[m], x0, y0, x1, y1))
+        d[idx] -= 0.055 * (1.0 - sstep_np(0.02, 0.042, dist))
+        glow[idx] = np.exp(-((dist / 0.013) ** 2)) * 0.9
+    return d, glow
+
+
+# --- the lantern --------------------------------------------------------------------------------
+LANT_R = 1.0
+
+
+def blade(bm, pts, wmax, thick):
+    """An iron leaf or spike: a flat lozenge section along a path, widest about a third up."""
+    tmp = bmesh.new()
+    rings = []
+    for i, c in enumerate(pts):
+        t = i / (len(pts) - 1)
+        w = wmax * math.sin(math.pi * min(1.0, t * 1.1 + 0.08)) ** 0.8 * (1.0 - 0.6 * t) + 0.012
+        T = (pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)]).normalized()
+        side = T.cross(Vector((c.x, c.y, 0.0)).normalized()).normalized()
+        rad = side.cross(T).normalized()
+        rings.append([c + side * w, c + rad * thick, c - side * w, c - rad * thick])
+    loft(tmp, rings, True, True)
+    bmesh.ops.recalc_face_normals(tmp, faces=tmp.faces)
+    append_bm(bm, tmp)
+    tmp.free()
+
+
+def lantern(P, rnd):
+    """A forged cage about 2.4 m across: eight hammered square bars, three strapped rings, an X of strapwork in every
+    panel, rivets, a floor plate with spikes, an iron-leaf crown; a violet-white flame inside a cracked smoked glass shell."""
+    st = P.of("iron")
+    z0 = LBASE + 0.05
+    H = 1.9
+    tube(st, [Vector((0, 0, z0)), Vector((0, 0, z0 + 0.15)), Vector((0, 0, z0 + 0.4))], [1.55, 1.6, 1.4], 18, True, True)
+    ring3(st, (0, 0, z0 + 0.2), (0, 0, 1), 1.55, 0.1, 24, 5)
+    for k in range(10):
+        a = math.tau * k / 10
+        seg_tube(st, Vector((math.cos(a) * 1.5, math.sin(a) * 1.5, z0 + 0.1)), Vector((math.cos(a) * 1.78, math.sin(a) * 1.78, z0 - 0.4)), 0.12, 0.02, 4)
+    nb = 8
+    zb = z0 + 0.4
+    zt = zb + H
+    bars = []
+    for i in range(nb):
+        a = math.tau * (i + 0.5) / nb
+        pts, rad = [], []
+        for k in range(12):
+            t = k / 11.0
+            r = LANT_R + 0.16 * math.sin(math.pi * t)
+            j = rnd.uniform(-0.018, 0.018)
+            pts.append(Vector((math.cos(a) * (r + j), math.sin(a) * (r + j), lerp(zb, zt, t))))
+            rad.append(0.095 * rnd.uniform(0.85, 1.2))
+        bars.append((a, pts))
+        cut = 8 if i == 5 else 12
+        tube(st, pts[:cut], rad[:cut], 4, True, True)
+        for t in (0.04, 0.5, 0.96):
+            sphere(st, pts[min(int(t * 11), 11)], 0.085, 6, 4)
+    for t in (0.04, 0.5, 0.96):
+        z = lerp(zb, zt, t)
+        ring3(st, (0, 0, z), (0, 0, 1), LANT_R + 0.16 * math.sin(math.pi * t) + 0.02, 0.07, 32, 4)
+    for i in range(nb):
+        a0, p0 = bars[i]
+        a1, p1 = bars[(i + 1) % nb]
+        if i in (5, 4):
+            continue
+        for (pa, pb) in ((p0[1], p1[10]), (p0[10], p1[1])):
+            tube(st, [pa, (pa + pb) * 0.5, pb], [0.03, 0.036, 0.03], 4, True, True)
+        sphere(st, (p0[5] + p1[5]) * 0.5, 0.07, 6, 4)
+    # the crown: a rim, twelve iron leaves curving in, shorter spikes between, a finial and a loop
+    ring3(st, (0, 0, zt + 0.08), (0, 0, 1), 1.22, 0.1, 32, 5)
+    for k in range(8):
+        a = math.tau * k / 8
+        pts = []
+        for s_ in range(7):
+            t = s_ / 6.0
+            r = 1.22 - 0.72 * t ** 1.4
+            pts.append(Vector((math.cos(a) * r, math.sin(a) * r, zt + 0.08 + 1.05 * t)))
+        blade(st, pts, 0.17, 0.04)
+    for k in range(8):
+        a = math.tau * (k + 0.5) / 8
+        pts = [Vector((math.cos(a) * (1.18 + 0.4 * (s_ / 4.0) ** 1.5), math.sin(a) * (1.18 + 0.4 * (s_ / 4.0) ** 1.5), zt + 0.08 + 0.5 * (s_ / 4.0) ** 0.9)) for s_ in range(5)]
+        blade(st, pts, 0.07, 0.035)
+    sphere(st, (0, 0, zt + 1.22), 0.2, 8, 6)
+    tube(st, [Vector((0, 0, zt + 1.3)), Vector((0, 0, zt + 1.65)), Vector((0, 0, zt + 2.0))], [0.1, 0.07, 0.015], 6, True, True)
+    ring3(st, (0, 0, zt + 1.45), (1, 0, 0), 0.3, 0.05, 12, 4)
+    # the flame: a hot core, a violet halo, a cracked smoked-glass shell with holes
+    c = Vector((0, 0, zb + H * 0.5))
+    sphere(P.of("core"), c, 0.34, 14, 9)
+    sphere(P.of("orb"), c, 0.68, 18, 11)
+    gl = P.of("glass")
+    res = bmesh.ops.create_uvsphere(gl, u_segments=20, v_segments=12, radius=0.86, matrix=Matrix.Translation(c))
+    dirs = [Vector((1, 0.3, 0.2)), Vector((-0.4, -1, 0.5)), Vector((0.2, 0.9, -0.5)), Vector((-1, 0.2, -0.3))]
+    kill = []
+    for f in gl.faces:
+        fc = (f.calc_center_median() - c).normalized()
+        if any(fc.dot(d.normalized()) > 0.93 for d in dirs[:3]):
+            kill.append(f)
+    bmesh.ops.delete(gl, geom=kill, context='FACES')
+    return c, zt + 2.0
+
+
+def oval_link(bm, c, ax, side, a, b, r, seg=12, tseg=5):
+    """A forged oval link: an ellipse of a x b round a tube of radius r."""
+    nrm = ax.cross(side).normalized()
+    rings = []
+    for k in range(seg):
+        ph = math.tau * k / seg
+        pos = c + ax * (a * math.cos(ph)) + side * (b * math.sin(ph))
+        rad = (ax * (math.cos(ph) / a) + side * (math.sin(ph) / b)).normalized()
+        ring = []
+        for q in range(tseg):
+            qq = math.tau * q / tseg
+            ring.append(pos + rad * (math.cos(qq) * r) + nrm * (math.sin(qq) * r))
+        rings.append(ring)
+    vr = [[bm.verts.new(p) for p in ring] for ring in rings]
+    for i in range(seg):
+        i2 = (i + 1) % seg
+        for j in range(tseg):
+            bm.faces.new((vr[i][j], vr[i][(j + 1) % tseg], vr[i2][(j + 1) % tseg], vr[i2][j]))
+
+
+def chain_path(st, pts, rnd, a=0.36, b=0.2, r=0.12, spacing=0.52):
+    """Forged oval links along a polyline (a list of points), alternately turned."""
+    total = 0.0
+    seglen = []
+    for i in range(len(pts) - 1):
+        seglen.append((pts[i + 1] - pts[i]).length)
+        total += seglen[-1]
+    n = max(2, int(total / spacing))
+    for k in range(n):
+        f = (k + 0.5) / n * total
+        acc = 0.0
+        for i, L in enumerate(seglen):
+            if acc + L >= f:
+                t = (f - acc) / L
+                p = pts[i].lerp(pts[i + 1], t)
+                Tl = (pts[i + 1] - pts[i]).normalized()
+                break
+            acc += L
+        ref = Vector((0, 0, 1)) if abs(Tl.z) < 0.9 else Vector((1, 0, 0))
+        s1 = Tl.cross(ref).normalized()
+        s2 = Tl.cross(s1).normalized()
+        j = 1.0 + rnd.uniform(-0.08, 0.08)
+        oval_link(st, p, Tl, s1 if k % 2 == 0 else s2, a * j, b * j, r * rnd.uniform(0.92, 1.1))
+
+
+def chains_and_rings(P, cloth, rnd, zt):
+    """Heavy festoons between the four corners of the abacus, pilgrims' cloths knotted at the corner eyes, and one chain
+    from the cage's crown to a ring on the abacus."""
+    st = P.of("iron")
+    h = 3.32
+    zc = ABACUS_Z + 0.12
+    corners = [Vector((sx * h, sy * h, zc)) for sx, sy in ((1, 1), (-1, 1), (-1, -1), (1, -1))]
+    for i, c in enumerate(corners):
+        out = Vector((c.x, c.y, 0)).normalized()
+        tube(st, [c - out * 0.02, c + out * 0.1], [0.2, 0.2], 12, True, True)          # a round bolted plate
+        ring3(st, c + out * 0.3, Vector((-out.y, out.x, 0)), 0.34, 0.085, 14, 5)
+    for i in range(4):
+        A, B = corners[i] + Vector((corners[i].x, corners[i].y, 0)).normalized() * 0.3, corners[(i + 1) % 4] + Vector((corners[(i + 1) % 4].x, corners[(i + 1) % 4].y, 0)).normalized() * 0.3
+        pts = []
+        for k in range(13):
+            t = k / 12.0
+            p = A.lerp(B, t)
+            out = Vector((p.x, p.y, 0)).normalized()
+            p = p + out * (0.25 * math.sin(math.pi * t)) - Vector((0, 0, 2.1 * math.sin(math.pi * t)))
+            pts.append(p)
+        chain_path(st, pts, rnd)
+    # the single chain from the crown's rim to a ring on the abacus
+    A = Vector((1.25, 0.0, zt + 0.1))
+    B = Vector((2.7, 0.0, TOP + 0.1))
+    box(st, B + Vector((0, 0, -0.02)), (0.5, 0.5, 0.06))
+    ring3(st, B + Vector((0, 0, 0.1)), Vector((0, 1, 0)), 0.26, 0.075, 12, 4)
+    pts = []
+    for k in range(10):
+        t = k / 9.0
+        p = A.lerp(B, t) + Vector((0.5 * math.sin(math.pi * t), 0, -0.9 * math.sin(math.pi * t)))
+        pts.append(p)
+    chain_path(st, pts, rnd, 0.3, 0.17, 0.1, 0.46)
+
+
+def plinth(P, rnd):
+    """Votive candles in clusters of three to five on the treads, a third as big again."""
+    cand = P.of("cand")
+    flame = P.of("flame")
+    centres = [(x, 3.2, 0.7) for x in (-2.5, -0.9, 0.8, 2.4)] + [(3.2, y, 0.7) for y in (-1.6, 1.4)] + [(-3.2, y, 0.7) for y in (-1.4, 1.6)] + [(x, 2.55, 1.4) for x in (-1.6, 0.2, 1.7)]
+    for (cx, cy, z) in centres:
+        for k in range(rnd.randint(3, 5)):
+            a = rnd.uniform(0, math.tau)
+            r = rnd.uniform(0.0, 0.34) if k else 0.0
+            x, y = cx + math.cos(a) * r, cy + math.sin(a) * r
+            hh = rnd.uniform(0.3, 0.75)
+            tube(cand, [Vector((x, y, z + 0.05)), Vector((x, y, z + hh * 0.5)), Vector((x, y, z + hh))], [0.17, 0.15, 0.135], 8, True, True)
+            sphere(cand, (x, y, z + 0.05), 0.21, 8, 3, (1, 1, 0.3))
+            sphere(flame, (x, y, z + hh + 0.17), 0.11, 6, 4, (1, 1, 1.7))
+
+
+def build_all():
+    rnd = random.Random(11)
+    P = Parts()
+    cloth = bmesh.new()
+    build_base_drum(P)
+    build_shaft(P, rnd)
+    build_capital(P, rnd)
+    plinth(P, rnd)
+    build_niches(P)
+    orb_c, top = lantern(P, rnd)
+    chains_and_rings(P, cloth, rnd, top - 2.0)
+    return P, orb_c, top
+
+
+def tier_hulls():
+    objs = []
+    for i, (name, h, z0, z1) in enumerate(TIERS):
+        objs.append(hull_obj("Pillar_tier%d-convcolonly" % i, [Vector((sx * h, sy * h, z)) for sx in (-1, 1) for sy in (-1, 1) for z in (z0, z1)]))
+    return objs
+
+
+def collision_hulls(top):
+    objs = tier_hulls()
+    N = 14
+    objs.append(hull_obj("Pillar_base-convcolonly", [Vector((math.cos(math.tau * j / N) * r, math.sin(math.tau * j / N) * r, z)) for j in range(N) for (z, r) in ((1.4, 2.3), (1.7, 2.7), (SH0, 1.3))]))
+    objs.append(hull_obj("Pillar_shaft-convcolonly", [Vector((math.cos(math.tau * j / N) * shaft_r(z) * 1.04, math.sin(math.tau * j / N) * shaft_r(z) * 1.04, z)) for j in range(N) for z in (SH0, (SH0 + SH1) / 2, SH1)]))
+    objs.append(hull_obj("Pillar_capital-convcolonly", [Vector((math.cos(math.tau * j / N) * 3.0, math.sin(math.tau * j / N) * 3.0, z)) for j in range(N) for z in (SH1 + 1.0, ABACUS_Z)]
+                         + [Vector((sx * 3.5, sy * 3.5, z)) for sx in (-1, 1) for sy in (-1, 1) for z in (ABACUS_Z, TOP)]))
+    objs.append(hull_obj("Pillar_lantern-convcolonly", [Vector((math.cos(math.tau * j / 10) * 1.75, math.sin(math.tau * j / 10) * 1.75, z)) for j in range(10) for z in (LBASE, LBASE + 3.6)]))
+    return objs
+
+
+def far_set(stone, orb_c, top):
+    """>150 m: the stone decimated, a thin lantern and the flame."""
+    f = stone.copy()
+    f.data = stone.data.copy()
+    f.name = "Pillar_stone_far"
+    bpy.context.scene.collection.objects.link(f)
+    bpy.context.view_layer.objects.active = f
+    md = f.modifiers.new("d", 'DECIMATE')
+    md.ratio = 1000.0 / max(1, tris(f))
+    bpy.ops.object.modifier_apply(modifier=md.name)
+    f.data.materials.clear()
+    f.data.materials.append(bpy.data.materials.get("stone"))
+    bm = bmesh.new()
+    for name, h, z0, z1 in TIERS:
+        box(bm, (0, 0, (z0 + z1) / 2), (2 * h, 2 * h, z1 - z0))
+    me = bpy.data.meshes.new("Pillar_base_far")
+    bm.to_mesh(me)
+    b = bpy.data.objects.new("Pillar_base_far", me)
+    bpy.context.scene.collection.objects.link(b)
+    b.data.materials.append(bpy.data.materials.get("stone"))
+    bm2 = bmesh.new()
+    tube(bm2, [Vector((0, 0, LBASE)), Vector((0, 0, LBASE + 0.5)), Vector((0, 0, LBASE + 2.1)), Vector((0, 0, LBASE + 3.6))], [1.6, 1.3, 1.3, 0.05], 8, True, True)
+    me2 = bpy.data.meshes.new("Pillar_iron_far")
+    bm2.to_mesh(me2)
+    i = bpy.data.objects.new("Pillar_iron_far", me2)
+    bpy.context.scene.collection.objects.link(i)
+    i.data.materials.append(bpy.data.materials.get("iron") or bpy.data.materials.new("iron"))
+    bm3 = bmesh.new()
+    sphere(bm3, orb_c, 0.8, 10, 6)
+    me3 = bpy.data.meshes.new("Pillar_orb_far")
+    bm3.to_mesh(me3)
+    o = bpy.data.objects.new("Pillar_orb_far", me3)
+    bpy.context.scene.collection.objects.link(o)
+    o.data.materials.append(bpy.data.materials.get("orb") or bpy.data.materials.new("orb"))
+    return [f, b, i, o]
+
+
+def tint(bm, fn):
+    """Vertex colours from fn(position) -> (r, g, b) for meshes painted by hand (cloth, wax, iron)."""
+    col = bm.loops.layers.color.get("Col") or bm.loops.layers.color.new("Col")
+    for f in bm.faces:
+        for l in f.loops:
+            c = fn(l.vert.co)
+            l[col] = (c[0], c[1], c[2], 1.0)
+
+
+def rust(p):
+    """Hammered iron with rust creeping from the joints and the lower bars."""
+    n = noise.noise(p * 1.1) + 0.6 * noise.noise(p * 3.7 + Vector((4, 1, 2)))
+    k = max(0.0, min(1.0, (n + 0.05) * 1.5))
+    base = (0.3, 0.3, 0.34)
+    rs = (0.62, 0.3, 0.12)
+    return tuple(base[i] * (1 - k) + rs[i] * k for i in range(3))
+
+
+def emissive(name, color, strength):
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    nt.nodes.clear()
+    e = nt.nodes.new('ShaderNodeEmission')
+    e.inputs['Color'].default_value = color
+    e.inputs['Strength'].default_value = strength
+    o = nt.nodes.new('ShaderNodeOutputMaterial')
+    nt.links.new(e.outputs['Emission'], o.inputs['Surface'])
+    return m
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     reset()
-    P = build_all()
-    bm_fig, bm_base, bm_tier = P.bm["fig"], P.bm["base"], P.bm["tier"]
-    boxes = list(BOXES)
-    fig = mk_object(bm_fig, "Watcher_fig", True, "stone")
-    # the pedestal: the masonry core, the laid blocks (one subdivision, for the colour) and the reliefs, one mesh
-    masonry(P, random.Random(5))
-    bm_m = P.of("mason")
-    bmesh.ops.subdivide_edges(bm_m, edges=bm_m.edges[:], cuts=1, use_grid_fill=True)
-    bm_low_base = bmesh.new()
-    for src in (bm_tier, bm_m, bm_base):
-        tmp = bpy.data.meshes.new("tmp")
-        src.to_mesh(tmp)
-        bm_low_base.from_mesh(tmp)
-    box_uv_and_paint(bm_low_base, 2)
-    base = mk_object(bm_low_base, "Watcher_base", False, "stone")
+    P, orb_c, top = build_all()
     box_uv_and_paint(P.bm["iron"], 3, 2.0, paint=False)
-    iron = mk_object(P.bm["iron"], "Watcher_iron", True, "iron")
-    orb = mk_object(P.bm["orb"], "Watcher_orb", True, "orb")
-    print("TRIS fig %d base %d iron %d orb %d" % (tris(fig), tris(base), tris(iron), tris(orb)))
-    if "nobake" in args or NOBAKE:
-        if PREVIEW:
-            preview([fig, base, iron, orb])
-        return
-    do_fig = "figure" in PARTS
-    do_base = False
-    reuse = "--reuse" in args
-    if do_fig:
-        unwrap(fig)
-        if not reuse:
-            hi_fig = detailed(fig.data, "hi_fig", "fig", "stone", 1)
-            print("HI fig verts", len(hi_fig.data.vertices))
-    if do_base:
-        unwrap(base)
-        hi_base = detailed(None, "hi_base", "tier", "stone", 2, boxes=boxes, extra_me=mp_extra)
-        print("HI base verts", len(hi_base.data.vertices))
-    if do_fig and not reuse:
-        bake_pair(fig, hi_fig, "fig", TEX)
-        bpy.data.objects.remove(hi_fig)
-    if do_base:
-        bake_pair(base, hi_base, "base", TEX)
-        make_orm("base")
-        bpy.data.objects.remove(hi_base)
-    # export west and east
-    objs = [fig, base, iron, orb]
-    collisions = collision_hulls(fig, boxes)
-    far = far_set(fig, boxes)
-    rub_w = mk_object(rubble(3, False), "Watcher_rubble", False, "stone")
-    for o in objs + collisions + far + [rub_w]:
+    tint(P.bm["iron"], rust)
+    tint(P.bm["cand"], lambda p: (0.8, 0.74, 0.58))
+    stone = mk_object(P.bm["fig"], "Pillar_fig", True, "stone")
+    iron = mk_object(P.bm["iron"], "Pillar_iron", True, "iron")
+    orb = mk_object(P.bm["orb"], "Pillar_orb", True, "orb")
+    core = mk_object(P.bm["core"], "Pillar_core", True, "core")
+    glass = mk_object(P.bm["glass"], "Pillar_glass", True, "glass")
+    cand = mk_object(P.bm["cand"], "Pillar_cand", True, "cand")
+    flame = mk_object(P.bm["flame"], "Pillar_flame", True, "flame")
+    print("TRIS stone %d iron %d cand %d glass %d" % (tris(stone), tris(iron), tris(cand), tris(glass)))
+    unwrap(stone)
+    if "--reuse" not in args:
+        hi = detailed(stone.data, "hi_fig", "fig", "stone", 1, extra=pillar_extra)
+        print("HI verts", len(hi.data.vertices))
+        bake_pair(stone, hi, "pillar", TEX)
+        bpy.data.objects.remove(hi)
+    objs = [stone, iron, orb, core, glass, cand, flame]
+    collisions = collision_hulls(top)
+    far = far_set(stone, orb_c, top)
+    rub = mk_object(rubble(3, False), "Pillar_rubble", False, "stone")
+    for o in objs + collisions + far + [rub]:
         for v in o.data.vertices:
             v.co *= FS
         o.data.update()
-    orb.data.materials.clear()
-    orb.data.materials.append(bpy.data.materials.get("orb") or bpy.data.materials.new("orb"))
-    near_w = objs + [rub_w] + collisions
-    export_glb(near_w, os.path.join(OUT, "watchers_west.glb"))
+    export_glb(objs + [rub] + collisions, os.path.join(OUT, "watchers_west.glb"))
     export_glb(far, os.path.join(OUT, "watchers_west_far.glb"))
     if PREVIEW:
-        textured_materials([(fig, "fig")])
+        textured_materials([(stone, "pillar")])
         vc = bpy.data.materials.new("pv_base")
         vc.use_nodes = True
         an = vc.node_tree.nodes.new('ShaderNodeAttribute')
         an.attribute_name = "Col"
         vc.node_tree.links.new(an.outputs['Color'], vc.node_tree.nodes['Principled BSDF'].inputs['Base Color'])
         vc.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.85
-        base.data.materials.clear()
-        base.data.materials.append(vc)
-        hide = collisions + far
-        s = FS
-        lit_render(hide, "lit", [
-            ("front", (0, 130 * s, 24 * s), (0, 0, 20 * s), 65),
-            ("q3", (92 * s, 88 * s, 34 * s), (0, 0, 20 * s), 62),
-            ("side", (130 * s, 0, 24 * s), (0, 0, 20 * s), 65),
-            ("head", (-8 * s, 52 * s, 34 * s), (0, 3 * s, 30 * s), 48),
-            ("hands", (-10 * s, 40 * s, 26 * s), (0, 4.5 * s, 22 * s), 52),
-            ("base", (0, 34 * s, 6 * s), (0, 0, 4 * s), 40)])
-    # east: the mirrored mesh (the same maps), its own rubble
+        for o in (cand, rub):
+            o.data.materials.clear()
+            o.data.materials.append(vc)
+        ib = bpy.data.materials.new("pv_iron")
+        ib.use_nodes = True
+        an2 = ib.node_tree.nodes.new('ShaderNodeAttribute')
+        an2.attribute_name = "Col"
+        ib.node_tree.links.new(an2.outputs['Color'], ib.node_tree.nodes['Principled BSDF'].inputs['Base Color'])
+        ib.node_tree.nodes['Principled BSDF'].inputs['Metallic'].default_value = 0.6
+        ib.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.55
+        iron.data.materials.clear()
+        iron.data.materials.append(ib)
+        orb.data.materials.clear()
+        orb.data.materials.append(emissive("pv_orb", (0.5, 0.3, 1.0, 1), 5.0))
+        core.data.materials.clear()
+        core.data.materials.append(emissive("pv_core", (0.95, 0.88, 1.0, 1), 30.0))
+        gm = bpy.data.materials.new("pv_glass")
+        gm.use_nodes = True
+        gb = gm.node_tree.nodes['Principled BSDF']
+        gb.inputs['Base Color'].default_value = (0.08, 0.06, 0.1, 1)
+        gb.inputs['Roughness'].default_value = 0.15
+        gb.inputs['Alpha'].default_value = 0.45
+        glass.data.materials.clear()
+        glass.data.materials.append(gm)
+        flame.data.materials.clear()
+        flame.data.materials.append(emissive("pv_flame", (1.0, 0.6, 0.25, 1), 10.0))
+        ld = bpy.data.lights.new("orbl", 'POINT')
+        ld.energy = 12000.0
+        ld.color = (0.6, 0.45, 1.0)
+        ld.shadow_soft_size = 0.6
+        lo = bpy.data.objects.new("orbl", ld)
+        lo.location = orb_c
+        bpy.context.scene.collection.objects.link(lo)
+        zc = SH1 + 3.4
+        lit_render(collisions + far, "lit", [
+            ("front", (0, 92, 14), (0, 0, 14), 45),
+            ("q3", (66, 66, 15), (0, 0, 14), 45),
+            ("side", (92, 0, 14), (0, 0, 14), 45),
+            ("relief", (-6.5, 9.0, 11.5), (0, 0.4, 11.0), 50),
+            ("cage", (7.0, 8.5, TOP + 4.0), (0, 0, TOP + 2.0), 50),
+            ("capital", (7.5, 8.5, zc), (0, 0, SH1 + 2.0), 50),
+            ("below", (0, 42, 1.0), (0, 0, TOP + 1.5), 34)], samples=64)
     mirror_objs(objs + collisions + far)
-    rub_e = mk_object(rubble(7, True), "Watcher_rubble_e", False, "stone")
+    rub_e = mk_object(rubble(7, True), "Pillar_rubble_e", False, "stone")
     for v in rub_e.data.vertices:
         v.co *= FS
-    rub_w.name = "old_rubble"
-    rub_e.name = "Watcher_rubble"
+    rub.name = "old_rubble"
+    rub_e.name = "Pillar_rubble"
     rub_e.data.update()
-    rub_w.hide_viewport = True
-    export_glb([o for o in objs + collisions] + [rub_e], os.path.join(OUT, "watchers_east.glb"))
+    export_glb(objs + [rub_e] + collisions, os.path.join(OUT, "watchers_east.glb"))
     export_glb(far, os.path.join(OUT, "watchers_east_far.glb"))
 
 
