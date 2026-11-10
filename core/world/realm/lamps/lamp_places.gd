@@ -23,6 +23,7 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Road := preload("res://core/world/realm/lore/road.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const Kept := preload("res://core/world/realm/lamps/lamps_kept.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const West := "res://core/world/realm/realm_pois_r37_west.gd"
 const WALL_REACH := 3.2
 const KEEP_OFF := 1.7                  ## from another interactable (ground lamps)
@@ -148,8 +149,9 @@ static func _toward_path(p: Vector2) -> float:
 	return yaw
 
 
-static func _skip(id: String, why: String) -> void:
+static func _skip(id: String, why: String, at := Vector2.ZERO) -> void:
 	skipped.append("%s: %s" % [id, why])
+	PlacementLog.skip("lamps", id, Vector3(at.x, 0, at.y), why.split(" at ")[0])
 
 
 static func _open(p: Vector2, wall := false) -> bool:
@@ -199,7 +201,7 @@ static func place(host: Node3D, s: Dictionary) -> Lamp:
 					best = hit
 			if best.is_empty():
 				lamp.free()
-				_skip(id, "no wall near %s at y %.1f" % [p, y0])
+				_skip(id, "no wall near %s at y %.1f" % [p, y0], p)
 				return null
 			var n2: Vector3 = best.normal
 			n2.y = 0.0
@@ -212,14 +214,14 @@ static func place(host: Node3D, s: Dictionary) -> Lamp:
 			xf = Transform3D(Basis(Vector3.UP, atan2(n2.x, n2.z)), pos)
 			if not _open(Vector2(pos.x, pos.z), true):
 				lamp.free()
-				_skip(id, "on an interactable at %s" % [p])
+				_skip(id, "on an interactable at %s" % [p], p)
 				return null
 		"ceil":
 			var y1 := float(s.get("y", gy))
 			var up := _ray(Vector3(p.x, y1 + 0.5, p.y), Vector3(p.x, y1 + 12.0, p.y))
 			if up.is_empty():
 				lamp.free()
-				_skip(id, "nothing overhead at %s" % [p])
+				_skip(id, "nothing overhead at %s" % [p], p)
 				return null
 			var cy: float = (up.position as Vector3).y - 0.02
 			lamp.chain = clampf(cy - 0.44 - (y1 + 2.3), 0.25, 3.0)
@@ -240,15 +242,15 @@ static func place(host: Node3D, s: Dictionary) -> Lamp:
 					y = RealmLayout.ground(_space, p.x, p.y)
 			if not s.has("y") and Land.in_water(p.x, p.y) and not bool(s.get("wet", false)):
 				lamp.free()
-				_skip(id, "in the water at %s" % [p])
+				_skip(id, "in the water at %s" % [p], p)
 				return null
 			if not bool(s.get("on_path", false)) and (RealmLayout.path_dist(p) < 0.8 or Zones.lane_dist(p) < 0.8):
 				lamp.free()
-				_skip(id, "on a way at %s" % [p])
+				_skip(id, "on a way at %s" % [p], p)
 				return null
 			if not _open(p):
 				lamp.free()
-				_skip(id, "within reach of an interactable at %s" % [p])
+				_skip(id, "within reach of an interactable at %s" % [p], p)
 				return null
 			xf = Transform3D(Basis(Vector3.UP, yaw), Vector3(p.x, y, p.y))
 	lamp.name = "Lamp_" + id

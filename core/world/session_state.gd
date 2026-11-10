@@ -29,6 +29,7 @@ extends RefCounted
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 const SecretsState := preload("res://core/life/secrets/state.gd")
 const Reactivity := preload("res://core/life/secrets/reactivity.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
 ## "file: var" for every static that holds a Node or a Callable. tools/run_tests.sh fails when a
 ## Node- or Callable-typed static appears that is not in this list.
@@ -46,6 +47,7 @@ const NODE_REFS := [
 ## Drop everything the night that is leaving registered. Idempotent; children have already run
 ## their own `_exit_tree` by the time the night root calls this.
 static func reset_night() -> void:
+	PlacementLog.reset()
 	# the Realm's site / lane / portal registries and its build profile (only a Realm build fills them)
 	if Realm.enabled():
 		Realm.reset_registries()

@@ -5,6 +5,7 @@ extends RefCounted
 ## field walls across the heath. Everything stands off the carved road (path_dist) and its sites.
 
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const OFF := 3.7          ## waystone offset from the road's centreline (road half width 2.2)
 
 
@@ -123,6 +124,7 @@ static func build(parent: Node) -> void:
 		var r := Rect2(a, Vector2.ZERO).expand(b2).grow(0.6)
 		if not LK.clear_of(r, 0.8):
 			print("REALM_LORE skip field wall ", a, b2)
+			PlacementLog.skip("lore", "rd_wall_%d_%d" % [int(a.x), int(a.y)], Vector3(a.x, 0, a.y), "not clear")
 			continue
 		L.site("rd_wall_%d_%d" % [int(a.x), int(a.y)], r, L.g(r.get_center().x, r.get_center().y))
 		L.drystone(Vector3(a.x, 0, a.y), Vector3(b2.x, 0, b2.y), 1.0, 0.45, "lore_moss", L.p)
@@ -194,6 +196,7 @@ static func _graves_west(L: RefCounted) -> void:
 	var r := Rect2(c - Vector2(4.0, 2.5), Vector2(8.0, 5.0))
 	if not LK.clear_of(r, 0.8):
 		print("REALM_LORE skip west graves")
+		PlacementLog.skip("lore", "rd_graves_west", Vector3(c.x, 0, c.y), "not clear")
 		return
 	var gr: Vector2 = L.g_range(r)
 	L.site("rd_graves_w", r, gr.x)
@@ -218,6 +221,7 @@ static func _cobb(L: RefCounted) -> void:
 	var r := Rect2(c - Vector2(2.2, 2.0), Vector2(4.4, 4.0))
 	if not LK.clear_of(r, 0.8):
 		print("REALM_LORE skip cobb graves")
+		PlacementLog.skip("lore", "rd_graves_cobb", Vector3(c.x, 0, c.y), "not clear")
 		return
 	var gr: Vector2 = L.g_range(r)
 	L.site("rd_graves_cobb", r, gr.x)
@@ -235,6 +239,7 @@ static func _shrine(L: RefCounted, c: Vector2) -> void:
 	var r := Rect2(c - Vector2(1.8, 1.8), Vector2(3.6, 3.6))
 	if not LK.clear_of(r, 0.6):
 		print("REALM_LORE skip road shrine")
+		PlacementLog.skip("lore", "rd_road_shrine_%d_%d" % [int(c.x), int(c.y)], Vector3(c.x, 0, c.y), "not clear")
 		return
 	var gr: Vector2 = L.g_range(r)
 	var at := Vector3(c.x, gr.x, c.y)
@@ -266,6 +271,7 @@ static func _cart(L: RefCounted, c: Vector2) -> void:
 	var r := Rect2(c - Vector2(2.6, 2.6), Vector2(5.2, 5.2))
 	if not LK.clear_of(r, 0.6):
 		print("REALM_LORE skip cart")
+		PlacementLog.skip("lore", "rd_cart_%d_%d" % [int(c.x), int(c.y)], Vector3(c.x, 0, c.y), "not clear")
 		return
 	var at: Vector3 = L.gv(c.x, c.y)
 	L.site("rd_cart", r, at.y)

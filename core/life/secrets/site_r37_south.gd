@@ -13,6 +13,7 @@ const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const South := preload("res://core/world/realm/realm_pois_r37_south.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
 
 static func build(root: Node, host: Node3D) -> void:
@@ -23,6 +24,7 @@ static func build(root: Node, host: Node3D) -> void:
 	var south := pois.get_node_or_null("R37South")
 	if south == null:
 		print("SECRETS south: the South pass is not built")
+		PlacementLog.skip("secrets", "south_pass", Vector3.ZERO, "the South pass is not built")
 		return
 	_crown(root, host, south.get_node_or_null("Poi_r37s_oak") as Node3D)
 	_listener(root, host, south.get_node_or_null("Poi_r37s_well") as Node3D)

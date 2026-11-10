@@ -18,6 +18,7 @@ extends Node
 
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const GROUP := &"guardian_site"
 const NEAR := 55.0                 ## the guardian rises when you come this close to its site
 const FAR := 95.0                  ## ...and goes back to it, healed, past this
@@ -180,6 +181,7 @@ func refresh_sites() -> void:
 		var g: Vector3 = director.call("_search", c, 18.0, false)
 		if g == Vector3.INF:
 			push_warning("Guardians: no clear ground for fallback site %s" % f.key)
+			PlacementLog.skip("guardians", String(f.key), Vector3(c.x, 0, c.y), "no clear ground for fallback site")
 			continue
 		add.call(g, String(f.id), String(f.key), "fallback")
 

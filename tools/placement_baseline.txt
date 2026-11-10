@@ -1,0 +1,44 @@
+lamps/cell_0
+lamps/cell_8
+lamps/ledge_0
+lamps/wf_bank_e
+lore/br_stone_64
+lore/r34_field_1
+lore/r34_field_11
+lore/r34_field_12
+lore/r34_field_13
+lore/r34_field_14
+lore/r34_field_2
+lore/r34_field_3
+lore/r34_field_6
+lore/r34_field_7
+lore/r34_field_8
+lore/r34_field_9
+lore/r34_row_5
+lore/r34_row_7
+lore/r34_row_8
+lore/r34_row_9
+lore/r34_wf_lamp_-1
+lore/r34_wf_lamp_1
+lore/rd_cairn_-68
+lore/rd_cairn_22
+lore/rd_wall_-98_77
+lore/tw_menhir_-43
+lore/tw_wall_-54_-50
+lore/tw_wall_-84_40
+threshold/fall W z-37
+threshold/no wall E z-41
+threshold/tier E z-25 y-12
+threshold/tier E z-25 y-8
+threshold/tier E z-29 y-12
+threshold/tier E z-29 y-8
+threshold/tier E z-33 y-12
+threshold/tier E z-33 y-8
+threshold/tier E z-37 y-12
+threshold/tier E z-37 y-8
+threshold/tier W z-29 y-12
+threshold/tier W z-33 y-12
+threshold/watcher E z-17
+threshold/watcher E z-21
+threshold/watcher W z-17
+threshold/watcher W z-21

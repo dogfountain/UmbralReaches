@@ -39,6 +39,7 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
 const WATER := -0.9                     ## RealmFlora.WATER_Y
 const CAMP_CLEAR := 9.0
@@ -156,6 +157,7 @@ static func reserve(root: Node, skip: PackedStringArray) -> void:
 		if q == Vector2.INF:
 			var pref: Vector2 = d.at
 			print("REALM_POI r34 skip %s: no clear ground near %s (there: %s)" % [id, pref, LK.blocker(Rect2(pref - half, half * 2.0), 1.2)])
+			PlacementLog.skip("pois", id, Vector3(pref.x, 0, pref.y), "no clear ground")
 			continue
 		var rect := Rect2(q - half, half * 2.0)
 		var lo := INF

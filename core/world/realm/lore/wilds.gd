@@ -8,6 +8,7 @@ extends RefCounted
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Cottage := preload("res://core/world/realm/lore/cottage.gd")
 const LA := preload("res://core/world/realm/lore/lore_assets.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 ## The Song of the Ring: four verses on stones round the henge hill, one per quarter.
 const SONG := [
 	["tw_song_1", [Vector2(-56.0, 10.0), Vector2(-64.0, 12.0), Vector2(-84.0, 9.0), Vector2(-68.0, 12.0), Vector2(-90.0, 6.0), Vector2(-60.0, 14.0)]],
@@ -65,6 +66,7 @@ static func build(parent: Node) -> void:
 		L.scrap("tw_boundary", bfp, bfp + Vector3.UP * 0.25)
 	else:
 		print("REALM_LORE skip abbey bounds")
+		PlacementLog.skip("lore", "tw_bounds", Vector3(wa.x, 0, wa.y), "not clear")
 	# --- the abbey woodsmen's camp: felled oaks, stumps, a cold fire, the foreman's notice ---------
 	# (r34: placed before the tablets and the songs, which the moved henge pushed out onto its ground)
 	_woodsmen(L)
@@ -132,6 +134,7 @@ static func build(parent: Node) -> void:
 		L.scrap("tw_cutter", hx * Vector3(-1.2, 0.3, -2.8))
 	else:
 		print("REALM_LORE skip woodcutter's hut")
+		PlacementLog.skip("lore", "woodcutters_hut", Vector3.ZERO, "not clear")
 	# --- the Song of the Ring -----------------------------------------------------------------------
 	for sv: Array in SONG:
 		var cands: Array = []
@@ -160,6 +163,7 @@ static func build(parent: Node) -> void:
 		var rr := Rect2(a, Vector2.ZERO).expand(b).grow(0.7)
 		if not LK.clear_of(rr, 0.6):
 			print("REALM_LORE skip thornwood wall ", a)
+			PlacementLog.skip("lore", "tw_wall_%d_%d" % [int(a.x), int(a.y)], Vector3(a.x, 0, a.y), "not clear")
 			continue
 		L.site("tw_wall_%d_%d" % [int(a.x), int(a.y)], rr, L.g(rr.get_center().x, rr.get_center().y))
 		L.drystone(Vector3(a.x, 0, a.y), Vector3(b.x, 0, b.y), 1.1, 0.6, "lore_moss", L.p)
@@ -182,6 +186,7 @@ static func _woodsmen(L: RefCounted) -> void:
 			break
 	if c == Vector2.INF:
 		print("REALM_LORE skip the woodsmen's camp")
+		PlacementLog.skip("lore", "woodsmens_camp", Vector3(-76, 0, 22), "no clear spot")
 		return
 	var rr := Rect2(c - Vector2(4.5, 4.5), Vector2(9.0, 9.0))
 	var gr: Vector2 = L.g_range(rr)

@@ -31,6 +31,7 @@ const WATCHERS := [Vector3(-13.8, -17.2, -15.6), Vector3(13.8, -17.2, -15.6)]
 const WATCHER_LIFT := 1.3              ## the plinth stands this far over the pool's floor, so its lower tread and candles stand 0.3 m clear of the starwater
 const WATCHER_R := 7.0                 ## the plinth's reach (a 7 x 7 m foot, about 5 m to its corners, and the rubble) and a little
 const Kit := preload("res://core/world/realm/r37_west_kit.gd")
+const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
 var k: OssKit
 var space: PhysicsDirectSpaceState3D
@@ -89,6 +90,10 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 	host.add_child(mi)
 	_motes(host)
 	_pool_lights(host)
+	if not chapel_ok:
+		PlacementLog.skip("threshold", "chapel", Vector3(0, 0, Z0), "NOT BUILT")
+	if not stair_ok:
+		PlacementLog.skip("threshold", "tower_stair", Vector3(0, 0, Z0), "INCOMPLETE")
 	report.append("terraces: %d bay tiers, chapel: %s, tower stair: %s, skipped %s" % [bays, "built" if chapel_ok else "NOT BUILT", "built" if stair_ok else "INCOMPLETE", str(_skips)])
 	report.append("clearance: %s" % ("nothing touched" if _audit.is_empty() else "; ".join(_audit)))
 	for s in report:
@@ -164,6 +169,7 @@ func _bay(side: float, zc: float) -> int:
 		var back := _wall_x(side, yt - 0.1, zc)
 		if is_nan(front) or is_nan(back) or absf(front) < 11.0:
 			_skips["no wall %s z%.0f" % ["W" if side < 0.0 else "E", zc]] = 1
+			PlacementLog.skip("threshold", "no wall %s z%.0f" % ["W" if side < 0.0 else "E", zc], Vector3(side * 11.0, yt, zc), "no clean wall for the tier")
 			break                               # no clean wall here (a tower, the forecourt's rocks)
 		front -= side * 0.3                     # stood just proud of the rock
 		back += side * 1.6                      # and keyed into it
@@ -171,6 +177,7 @@ func _bay(side: float, zc: float) -> int:
 		if why != "":
 			var key := "%s %s z%.0f" % [why, "W" if side < 0.0 else "E", zc]
 			_skips[key] = int(_skips.get(key, 0)) + 1
+			PlacementLog.skip("threshold", key, Vector3(front, yt, zc), "tier blocked by " + why)
 			if why == "wide" or why == "fall" or why == "watcher":
 				break
 			continue                            # a tower's pier at the foot: the tiers above still stand on the rock
@@ -181,6 +188,7 @@ func _bay(side: float, zc: float) -> int:
 		var ohi := hi + Vector3(0.7 if side < 0.0 else 0.0, 1.2, 0.0)
 		if not _clear(Transform3D(Basis.IDENTITY, (olo + ohi) * 0.5), ohi - olo, 0.1, true):
 			_audit.append("tier %s z%.0f y%.0f dropped (%s)" % ["W" if side < 0.0 else "E", zc, yt, _last_hit])
+			PlacementLog.skip("threshold", "tier %s z%.0f y%.0f" % ["W" if side < 0.0 else "E", zc, yt], Vector3(front, yt, zc), "dropped, touches " + _last_hit)
 			continue                            # the tiers above may still clear it (they stand back on the slope)
 		k.block(STONE, lo, hi)
 		var along := Vector3(0, 0, 1)
