@@ -30,7 +30,7 @@ PREVIEW = args[args.index("--preview") + 1] if "--preview" in args else ""
 EXPORT = "--export" in args
 
 
-TILE = {"stone": 6.0, "ashlar": 4.0, "timber": 2.0, "iron": 2.0, "wax": 0.4}     # metres per texture tile (r37_west.py; wax is ours)
+TILE = {"stone": 2.0, "ashlar": 1.3333, "timber": 2.0, "iron": 0.6667, "wax": 0.1333}     # metres per texture tile: the sets at 3x density on small props (timber unchanged)
 SETOF = {"wood": "timber", "iron": "iron", "stone": "stone", "dark": "stone", "moss": "stone", "ashlar": "ashlar", "wax": "wax"}
 
 

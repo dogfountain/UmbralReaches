@@ -23,9 +23,15 @@ const HEART := Color(1.0, 0.74, 0.34)         ## a flame's pale root
 const TIP := Color(0.88, 0.28, 0.07)           ## and its red tip
 const PANE := Color(0.62, 0.38, 0.16)         ## lit glass (vertex): kept under bloom
 const FLAME_GLOW := 0.10                 ## well under bloom: glass reads warm, never a solid orange plate
+const Kit37 := preload("res://core/world/realm/r37_west_kit.gd")
+## r37 in-house models (tools/blender/props_lamps.py): the looks that have one. The pane look is glass only (it lights a lantern
+## that is already built), so it keeps its code glass; a hanging lamp on a chain keeps its code chain and lantern.
+const MODELS := {"hang": "lamp_hang.glb", "niche": "lamp_niche.glb", "post": "lamp_post.glb", "cresset": "lamp_cresset.glb"}
+const PLINTH_OFF := Vector3(0, 0.66, -0.14)    ## a free niche is lifted onto its plinth
 const ASH := 2                           ## grave ash for the first light of each (a small gift)
 
 static var _meshes: Dictionary = {}
+static var _kits: Dictionary = {}
 static var _mats: Dictionary = {}
 
 var lamp_id := ""
@@ -38,8 +44,9 @@ var free_niche := false                  ## a niche standing on its own plinth
 var chain := 0.0                         ## a hung lamp's chain (metres) from a ceiling
 var lit := false
 
-var _body: MeshInstance3D
-var _glow: MeshInstance3D
+var _body: Node3D
+var _glow: Node3D
+var _glow_parts: Array[MeshInstance3D] = []
 var _light: OmniLight3D
 var _flame_at := Vector3.ZERO
 var _light_at := Vector3.ZERO
@@ -60,20 +67,51 @@ func _ready() -> void:
 	var lf := LightPolicy.illum(&"kept_lamp")  # the one brightness table (LightPolicy.ILLUM)
 	_e = float(d.e) * lf.x
 	_range = float(d.range) * lf.y
-	_body = MeshInstance3D.new()
+	var kit: Dictionary = d.get("kit", {})
+	if kit.is_empty():
+		var bm := MeshInstance3D.new()
+		bm.mesh = d.body
+		bm.material_override = _mat("body")
+		bm.visibility_range_end = 110.0
+		bm.visibility_range_end_margin = 10.0
+		bm.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		_body = bm
+		var gm := MeshInstance3D.new()
+		gm.mesh = d.glow
+		gm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		gm.visibility_range_end = 260.0
+		_glow = gm
+		_glow_parts.append(gm)
+	else:
+		_body = Node3D.new()
+		if free_niche and look == "niche":
+			_body.position = PLINTH_OFF
+		for part: Dictionary in kit.parts:
+			if part.plinth and not (free_niche and look == "niche"):
+				continue
+			var pm := MeshInstance3D.new()
+			pm.mesh = part.mesh
+			pm.material_override = Kit37.mat(String(part.set))
+			pm.visibility_range_end = 110.0
+			pm.visibility_range_end_margin = 10.0
+			pm.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			_body.add_child(pm)
+		_glow = Node3D.new()
+		for gk: String in ["glass", "flame"]:
+			if kit.get(gk) == null:
+				continue
+			var gp := MeshInstance3D.new()
+			gp.mesh = kit[gk]
+			gp.position = -(kit.flame_pt as Vector3)           # the models hold the flame at FlamePoint; Glow pivots there
+			gp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			gp.visibility_range_end = 260.0
+			gp.set_meta(&"gk", gk)
+			_glow.add_child(gp)
+			_glow_parts.append(gp)
 	_body.name = "Body"
-	_body.mesh = d.body
-	_body.material_override = _mat("body")
-	_body.visibility_range_end = 110.0
-	_body.visibility_range_end_margin = 10.0
-	_body.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	add_child(_body)
-	_glow = MeshInstance3D.new()
 	_glow.name = "Glow"
-	_glow.mesh = d.glow
 	_glow.position = _flame_at
-	_glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_glow.visibility_range_end = 260.0
 	add_child(_glow)
 	_phase = randf() * TAU
 	var sense := get_node_or_null("InteractSense") as Node3D
@@ -146,7 +184,10 @@ func _set_lit(on: bool, animate: bool) -> void:
 	lit = on
 	if _glow == null:
 		return
-	_glow.material_override = _mat(("pane" if look == "pane" else "flame") if on else "cold")
+	for gp in _glow_parts:
+		if gp.get_meta(&"gk", "") == "flame":
+			gp.visible = on
+		gp.material_override = _mat(("pane" if look == "pane" else "flame") if on else "cold")
 	if on:
 		_flare = 1.0 if animate else 0.0
 		if want_light and _light == null:
@@ -202,6 +243,7 @@ static func tally(tree: SceneTree) -> Vector2i:
 
 
 static func release() -> void:
+	_kits.clear()
 	_meshes.clear()
 	_mats.clear()
 
@@ -422,10 +464,45 @@ static func _mesh_for(kind: String, free: bool, chain_len: float) -> Dictionary:
 			d.light = Vector3(0, 1.45, 0)
 			d.e = 1.5
 			d.range = 8.0
-	d.body = body.commit()
-	d.glow = glow.commit()
+	var model: String = MODELS.get(kind, "")
+	if model != "" and not (kind == "hang" and chain_len > 0.05):
+		d.kit = _kit(model)
+	if d.has("kit") and not (d.kit as Dictionary).is_empty():
+		d.body = null
+		d.glow = null
+	else:
+		d.erase("kit")
+		d.body = body.commit()
+		d.glow = glow.commit()
 	_meshes[key] = d
 	return d
+
+
+## The shared meshes of one model: its textured parts (`<part>__<set>`), the Glass and Flame meshes the game dresses with its own
+## emissive materials, and FlamePoint. Built once per file, shared by every lamp of the look; {} when the file is missing.
+static func _kit(file: String) -> Dictionary:
+	if _kits.has(file):
+		return _kits[file]
+	var out := {}
+	var ps := load("res://art/models/props/" + file) as PackedScene
+	if ps != null:
+		var root := ps.instantiate()
+		var parts: Array[Dictionary] = []
+		for n in root.find_children("*", "MeshInstance3D", true, false):
+			var mi := n as MeshInstance3D
+			var nm := String(mi.name)
+			if nm == "Glass":
+				out["glass"] = mi.mesh
+			elif nm == "Flame":
+				out["flame"] = mi.mesh
+			elif nm.contains("__"):
+				parts.append({"mesh": mi.mesh, "set": nm.get_slice("__", 1).get_slice(".", 0).get_slice("_", 0), "plinth": nm.begins_with("Plinth")})
+		var fpn := root.get_node_or_null("FlamePoint") as Node3D
+		out["flame_pt"] = fpn.position if fpn != null else Vector3.ZERO
+		out["parts"] = parts
+		root.free()
+	_kits[file] = out
+	return out
 
 
 ## An iron lantern whose ring is at `ring`; its glass goes to the glow mesh (centred on the flame).
