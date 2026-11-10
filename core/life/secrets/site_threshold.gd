@@ -1,7 +1,7 @@
 extends RefCounted
 ## THE PILGRIMS' CHAPEL (the Pilgrims' Threshold, core/world/realm/rift/chapel.gd): a small chapel built against the
-## rift's west wall at the starfall, its doorway under the falling light. Reached by the west terraces and the jetty
-## off the lowest walk. The pilgrims' reliquary (the ascension's offering) and a page cut into the kneeling stone.
+## rift's west wall at the starfall, its doorway under the falling light. Reached by the Pilgrims' Stair round the
+## crossing's third tower and the quay along the wall. The pilgrims' reliquary (the ascension's offering) and a page cut into the kneeling stone.
 ## The ids stay `last_landing` / `sc_landing` (the texts and the reward live in pages.gd under them); only the
 ## display name is the chapel's. State: secrets' own (looted.last_landing, found.last_landing).
 

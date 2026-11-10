@@ -41,7 +41,7 @@ const ZONES := [["hearth", "Hearthward"], ["road", "The Pilgrims' Road"], ["thor
 	["fen", "The Hollow Fen"], ["holds", "The Rooted Holds"], ["quarry", "The Saints' Quarry"],
 	["moor", "The Lanternless Moor"], ["foundry", "The Founder's Pits"], ["orchard", "The Cinder Orchard"],
 	["necropolis", "The Waiting Field"], ["mere", "Corvin's Mere"],
-	["ossuary", "The Ossuary"], ["summit", "The Summit of Ascension"],
+	["ossuary", "The Ossuary"], ["rift", "The Ashen Rift"], ["summit", "The Summit of Ascension"],
 	["downs", "The Southern Downs"], ["oak", "The Grandmother Oak"], ["well", "The Well of Echoes"],
 	R37WQ.ZONES[0], R37WQ.ZONES[1], R37WQ.ZONES[2], R37WQ.ZONES[3],
 	["stillwater", "Stillwater"], ["anchorholds", "The Anchorholds"], ["saltmarket", "Saltmarket"], ["saltpans", "The White Pans"]]
@@ -51,11 +51,12 @@ const Sig := preload("res://core/story/quest_chains_signature.gd")
 const Bells := preload("res://core/story/quest_chains_bells.gd")   ## the eight bells (the seven far countries' and the Marches'): quests and pickups
 const LiveSteps := preload("res://core/story/encounter_kit.gd")
 const R37E := preload("res://core/story/quest_chains_r37_east.gd")   ## the east marches: its tasks and pickups are listed in the `# --- the east marches ---` blocks
+const ThrQ := preload("res://core/story/quest_chains_threshold.gd")   ## the Pilgrims' Threshold: the chapel under the starfall
 
 const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
 	"hearth_ash", "road_clear", "coal_shrine", "spire_lamps", "alms_loaf",
 	"thorn_door", "smoke_oaks", "ring_heart", "unpaid_toll",
-	"bead_count", "drowned_bell", "count_below", "crossing_ward",
+	"bead_count", "drowned_bell", "count_below", "crossing_ward", "threshold_chapel",
 	# r34: the doubled world's hubs (a giver per new region) and the raids' attunements
 	"holds_turf", "keeper_wards", "keeper_heart", "keeper_leave",
 	"quarry_marks", "quarry_picks", "quarry_last", "quarry_chisel", "quarry_due",
@@ -770,6 +771,7 @@ const QUESTS := {
 	"spire_coal": R37E.SPIRE_COAL, "anchor_names": R37E.ANCHOR_NAMES, "anchor_vow": R37E.ANCHOR_VOW,
 	"bounds_beaten": Sig.BOUNDS, "quarry_stone": Sig.QUARRY_STONE, "moor_fires": Sig.MOOR_FIRES, "founder_pour": Sig.FOUNDER_POUR,
 	"orchard_stand": Sig.ORCHARD_STAND, "field_round": Sig.FIELD_ROUND, "mere_ferry": Sig.MERE_FERRY,
+	"threshold_chapel": ThrQ.THRESHOLD_CHAPEL,
 }
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
