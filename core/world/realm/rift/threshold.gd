@@ -184,21 +184,17 @@ func _bay(side: float, zc: float) -> int:
 		k.box(STONE, Vector3(front - side * 0.08, yt + 0.11, zc), Vector3(0.75, 0.22, BAY), Basis.IDENTITY)
 		# balustrade on the edge (posts at the pilasters)
 		k.parapet(STONE, Vector3(front + side * 0.25, yt + 0.22, zc + BAY * 0.5), Vector3(front + side * 0.25, yt + 0.22, zc - BAY * 0.5), 0.85, 0.26)
-		# pilasters at the bay's ends, each with a rune slit down its face
+		# pilasters at the bay's ends
 		for e: float in [-1.0, 1.0]:
 			var pz := zc + e * (BAY * 0.5 - 0.35)
 			var ph := yt - yb
 			k.box(STONE, Vector3(front - side * 0.26, yb + ph * 0.5, pz), Vector3(0.52, ph, 0.74), Basis.IDENTITY)
 			k.box(STONE, Vector3(front - side * 0.34, yt - 0.2, pz), Vector3(0.68, 0.4, 0.92), Basis.IDENTITY)   # capital
 			k.box(STONE, Vector3(front - side * 0.34, yb + 0.25, pz), Vector3(0.68, 0.5, 0.92), Basis.IDENTITY)  # base
-			_glyphs(Vector3(front - side * 0.53, 0.0, pz), yb + 0.9, yt - 0.7)
 		# a blind lancet arch on the face (the face shows through it: a shallow niche)
 		var arch_base := Vector3(front - side * 0.3, yb + (0.0 if i > 0 else 1.2), zc)
 		k.arch_panel(STONE, arch_base, along, 1.8, maxf(yt - yb - 2.6 - (0.0 if i > 0 else 1.2), 0.6), yt - arch_base.y - 0.05, 0.56, 0.36, 0.9, 0.0, STONE)
-		# a rune glowing at the back of the niche: a pilgrim's mark, a stroke and a bar
-		_slab(Vector3(front - side * 0.04, arch_base.y + 1.15, zc), Vector3(0.02, 0.8, 0.06))
-		_slab(Vector3(front - side * 0.04, arch_base.y + 1.42, zc), Vector3(0.02, 0.05, 0.36))
-		# candle offerings on the walk below this tier, at the niche's foot
+				# candle offerings on the walk below this tier, at the niche's foot
 		if i > 0 and not is_nan(walk_x):
 			k.candle_cluster(Vector3(front + inward.x * 0.55, yb + 0.02, zc + rng.randf_range(-0.6, 0.6)), rng.randi_range(4, 8), 0.32, rng)
 		walk_x = front
@@ -210,6 +206,8 @@ func _bay(side: float, zc: float) -> int:
 
 ## The chapel and its pier (chapel.gd): where the starfall pours, the terraces leave the bay open.
 func _chapel(host: Node3D) -> bool:
+	if "--no-chapel" in OS.get_cmdline_user_args():
+		return false                       # (a measuring switch: the Threshold without the chapel)
 	return Chapel.new().build(self, host)
 
 

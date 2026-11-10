@@ -344,7 +344,7 @@ void fragment(){
 	float threads = n(vec2(UV.x * 18.0, m * 0.25 - TIME * sp * 0.3));
 	float streak = smoothstep(0.55, 0.95, n(vec2(UV.x * 26.0, m * 0.6 - TIME * sp)));
 	vec2 sc = vec2(UV.x * 40.0, m * 6.0 - TIME * sp * 6.0);
-	float spark = step(0.988, h(floor(sc))) * (1.0 - smoothstep(0.1, 0.5, length((fract(sc) - 0.5) * vec2(1.0, 0.5))));   // a soft mote, not a block
+	float spark = step(0.995, h(floor(sc))) * (1.0 - smoothstep(0.08, 0.34, length((fract(sc) - 0.5) * vec2(1.0, 2.1)))) * (0.5 + 0.5 * sin(TIME * 2.0 + h(floor(sc)) * 40.0)) * smoothstep(0.2, 0.32, abs(UV.x - 0.5));   // a soft round mote that fades, never down the middle of the fall (where the doorway is)
 	float body = falling ? (0.22 + 0.45 * threads + 0.55 * streak) : (0.4 + 0.4 * threads);
 	float src = smoothstep(0.0, 0.8, m);
 	float foot = 1.0 - smoothstep(total - 3.0, total, m) * 0.6;

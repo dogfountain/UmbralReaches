@@ -68,7 +68,16 @@ func build(p_threshold) -> bool:
 				if not t._clear(Transform3D(b, cc), sz, 0.02, true):
 					continue
 				slab = true
-			k.box("rift_stone", cc, sz, b, true, 0.92 if i % 2 == 0 else 1.0)
+			# collision: the whole column (plain boxes, solid underneath); what is drawn is a built stair: a worn tread slab on a
+			# carved string course, the arched undercrofts open between piers every sixth step
+			k._box_col(cc, b.x * sz.x * 0.5, b.y * sz.y * 0.5, b.z * sz.z * 0.5)
+			var wsl := r_out - R_IN
+			var mid := Vector3(C.x, 0.0, C.y) + radial * ((R_IN + r_out) * 0.5)
+			k.box("rift_stone", mid + Vector3.UP * (top - 0.35), Vector3(tread, 0.7, wsl), b, false, 0.92 if i % 2 == 0 else 1.0)
+			k.box("rift_stone", mid + Vector3.UP * (top - 0.76), Vector3(tread, 0.12, wsl + 0.16), b, false, 1.04)       # the string course
+			if not slab and i % 6 == 0:
+				k.box("rift_stone", mid + Vector3.UP * ((top - 0.82 + BASE) * 0.5), Vector3(tread * 2.4, top - 0.82 - BASE, wsl - 0.3), b, false, 0.86)   # a pier
+				k.box("rift_stone", mid + Vector3.UP * (top - 1.0), Vector3(tread * 3.0, 0.3, wsl), b, false, 0.95)                                        # its corbel
 			if slab:
 				spans += 1
 			# walls both sides (the outer one only where the flight is wide), a post every fourth step; the foot's outer side is open for the quay
