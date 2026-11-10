@@ -44,7 +44,7 @@ func _physics_process(_d: float) -> void:
 	match step:
 		0:
 			if t < 60: return
-			if Realm.enabled() and not _ready_world(): return
+			if not _ready_world(): return
 			var dlg := get_tree().get_first_node_in_group(&"dialogue")
 			get_tree().paused = false
 			dlg.call("open", "Test")

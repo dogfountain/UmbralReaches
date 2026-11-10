@@ -86,7 +86,7 @@ func _process(d: float) -> void:
 		if p:
 			Settings.changed.emit()
 		return
-	if Realm.enabled() and not main.has_meta("realm_done"):
+	if not main.has_meta("realm_done"):
 		return
 	Travel._busy = true
 	for n in get_tree().get_nodes_in_group(Groups.ENEMY):

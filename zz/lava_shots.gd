@@ -28,7 +28,7 @@ func _ready() -> void:
 	get_tree().root.add_child.call_deferred(main)
 func _process(d: float) -> void:
 	t += d
-	if not _waited and Realm.enabled():
+	if not _waited:
 		var lw0 := get_tree().root.find_child("LavaWorks", true, false)
 		var poured := lw0 != null and lw0.get_children().any(func(c: Node) -> bool: return String(c.name).begins_with("LavaFall"))
 		if poured or t > 60.0:

@@ -97,7 +97,7 @@ func _process(_d: float) -> void:
 			Settings.changed.emit()
 			get_window().size = Vector2i(1600, 1000)        # the zone applies Luke's window size
 		return
-	if Realm.enabled() and not main.has_meta("realm_done"):
+	if not main.has_meta("realm_done"):
 		return
 	if started == 0 and "blend" in off:
 		var moon := main.get_node_or_null("Moon") as DirectionalLight3D

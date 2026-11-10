@@ -25,36 +25,8 @@ func _ready() -> void:
 	_rng.seed = seed_n
 	_cap_shader = load("res://world/cap.gdshader")
 	var root := get_parent()
-	if root != null and Realm.enabled():
+	if root != null:
 		await Realm.build(root)                  # the redesigned zone (docs/REALM_PLAN.md)
-	elif root != null:
-		if root.get_node_or_null("Zone/Sanctuary") != null:
-			TerrainStamp.shape(root)            # the hills become terraces before anything is placed
-			await get_tree().physics_frame
-			Tavern.build(root)                  # landmarks first: they register their sites
-			ThornHenge.build(root)
-			StairWorks.build(root)
-			WorldLanes.clear_fragments(root, "Zone/Ruins", "Zone/RuinsBody", 12.0, [], true)
-			var crowns: Array[String] = ["Zone/Forest/Canopy"]
-			WorldLanes.clear_fragments(root, "Zone/Forest/GiantTrunks", "Zone/ForestBody", 60.0, crowns)
-			WorldLanes.clear_fragments(root, "Zone/Boulders", "Zone/BouldersBody", 20.0, [], true)
-			WorldLanes.clear_fragments(root, "Zone/DeadTrees", "Zone/TreesBody", 60.0)
-			WorldLanes.clear_fragments(root, "Zone/RiftCrystals", "", 12.0)
-		await TerrainStamp.apply(root)          # ground meets the architecture before anything is seated on it
-		SeatProps.follow_terrain(root)          # trees, rocks and ruins come down with the terraces
-		Atmosphere.refresh_canopy_fill(root)    # the denser crown copy follows the crowns that stayed
-		var seated: int = SeatProps.seat(root, true)
-		SeatProps.sink_river_crystals(root)
-		SeatProps.plant_solid(root)
-		print("SEAT props ", seated, " culled from sites ", WorldLanes.cull_scatter(root), " stones moved aside ", WorldLanes.line_lanes(root, "Menhir"))
-		# zone-wide prop meshes into culled, LOD'd chunks (last: nothing edits them after this)
-		var chunks := 0
-		var t0 := Time.get_ticks_msec()
-		for path: String in ["Zone/Forest/GiantTrunks", "Zone/DeadTrees", "Zone/Boulders"]:
-			chunks += MeshChunks.split(root.get_node_or_null(path) as MeshInstance3D)
-		for path: String in ["Zone/Forest/Canopy", "Zone/Forest/CanopyFill"]:
-			chunks += MeshChunks.split(root.get_node_or_null(path) as MeshInstance3D, false)   # leaf cards: no LODs
-		print("CHUNKS %d in %d ms" % [chunks, Time.get_ticks_msec() - t0])
 	_light_existing_caps()
 	_scatter_wisps()
 	_scatter_buds()

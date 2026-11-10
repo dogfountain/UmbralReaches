@@ -24,8 +24,7 @@ const YAWS := [0.0, -PI * 0.5, PI, PI * 0.5]
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	if Realm.enabled():
-		area = RealmLayout.BOUNDS                 # the redesigned zone (unless --only narrows it)
+	area = RealmLayout.BOUNDS                 # the redesigned zone (unless --only narrows it)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--step="):
 			step = float(a.trim_prefix("--step="))
@@ -48,7 +47,7 @@ func _process(_d: float) -> void:
 		return
 	if f < 400:                   # world assembly, bank maps, falls, Ossuary streaming
 		return
-	if Realm.enabled() and not p.get_parent().has_meta("realm_done"):
+	if not p.get_parent().has_meta("realm_done"):
 		return                    # the Realm builds over many frames; survey once it is done
 	if points.is_empty():
 		_plan()

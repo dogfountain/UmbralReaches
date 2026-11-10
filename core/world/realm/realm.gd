@@ -1,7 +1,6 @@
 class_name Realm
 extends RefCounted
-## Entry point for the redesigned zone (docs/REALM_PLAN.md). On by default (`-- --no-realm` for
-## the old world); `--realm` is still accepted:
+## Entry point for the redesigned zone (docs/REALM_PLAN.md). Always on; `--realm` is still accepted:
 ##   godot --path . -- --realm                          everything
 ##   godot --path . -- --realm --realm-modules=land,flora   only those modules (for working on one)
 ## Each module is a script with `static func build(root: Node) -> void` (it may await), loaded by
@@ -50,15 +49,6 @@ const RETIRED := [
 	"Zone/Boulders", "Zone/BouldersBody", "Zone/Forest", "Zone/ForestBody", "Zone/DeadTrees", "Zone/TreesBody",
 	"Zone/ForestFloor", "Zone/RiftCrystals", "Zone/RiftDebris", "Zone/CrystalLights",
 ]
-
-
-## The Realm is the zone now. `-- --no-realm` builds the old stair-era world (kept for
-## comparison and its legacy tests: henge_walk, summit_probe, lanewalk, fit).
-static func enabled() -> bool:
-	var args := OS.get_cmdline_user_args()
-	if "--no-realm" in args:
-		return false
-	return true
 
 
 static func module_on(id: String) -> bool:
@@ -162,7 +152,6 @@ static func build(root: Node) -> void:
 	for path: String in PRELOAD:
 		if ResourceLoader.exists(path):
 			ResourceLoader.load_threaded_request(path, "", true)
-	WorldLanes.legacy = false
 	retire(root)
 	root.tree_exiting.connect(DwarfRig.warm_abandon_all, CONNECT_ONE_SHOT)
 	await _run("land", root)

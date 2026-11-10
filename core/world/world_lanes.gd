@@ -5,15 +5,6 @@ extends RefCounted
 ## `intrudes()` before it keeps a prop, so set dressing can never again end up across a stair,
 ## a bridge or a doorway. zz/lanes.gd sweeps a capsule along the same table to audit the result.
 
-## [name, [Vector2(x, z) ...], half width]
-const LANES := [
-	["sanctuary", [Vector2(0, 30), Vector2(0, 4)], 1.8],
-	["stair", [Vector2(0, 2), Vector2(0, -31.5), Vector2(0, -36.5), Vector2(0, -68.5)], 3.6],
-	["landing_bridge", [Vector2(0, -34), Vector2(13.4, -34)], 1.6],
-	["hall", [Vector2(13.4, -34), Vector2(19.5, -34), Vector2(23, -36.5), Vector2(23, -39.5)], 1.3],
-	["summit", [Vector2(0, -66), Vector2(0, -77.6)], 2.9],
-	["jetty", [Vector2(2, -89), Vector2(12.8, -89)], 1.4],
-]
 ## Lanes inside streamed areas, whose floors do not exist yet when their props are placed: points
 ## carry the floor height. [name, [Vector3(x, floor y, z) ...], half width]
 const FIXED_LANES := [
@@ -22,13 +13,6 @@ const FIXED_LANES := [
 	["oss_gallery", [Vector3(23, 8.4, -52.5), Vector3(20, 8.4, -58), Vector3(20, 8.4, -65.5), Vector3(21, 8.4, -67.5)], 0.8],
 	["oss_stair2", [Vector3(21, 8.4, -68.5), Vector3(21, 4.2, -78), Vector3(20.5, 4.2, -80), Vector3(17.5, 4.2, -84)], 0.9],
 	["oss_chapel", [Vector3(17.5, 4.2, -84), Vector3(16, 4.2, -95.5), Vector3(16, 4.2, -104)], 0.8],
-]
-## Structures the terrain must meet: [node path under the zone root, clip box (zero = whole mesh),
-## max adjustment in metres]. TerrainStamp raises ground to their undersides and drops it under
-## buried walk surfaces. The cap keeps lintels, arches and high flights from pulling the ground up.
-const FOOTPRINTS := [
-	["Zone/Ruins", AABB(), 0.8],
-	["Zone/Stair", AABB(Vector3(-6, -3, -7), Vector3(12, 6, 9)), 1.6],
 ]
 const HEADROOM := 2.2        ## a prop intrudes when it occupies [floor + 0.06, floor + HEADROOM]
 const STEP := 0.5
@@ -39,9 +23,6 @@ static var _floor: Dictionary = {}      # Vector2i(sample * 2) -> floor y (only 
 ## site = {name, rect (Rect2 in XZ), floor_y, cut_y}
 static var sites: Array[Dictionary] = []
 static var extra_lanes: Array = []      # same shape as LANES
-## false under the Realm (docs/REALM_PLAN.md): the old stair-era LANES / FIXED_LANES / FOOTPRINTS
-## describe a world that is no longer built, so they must not keep props or ground away from it
-static var legacy := true
 ## Doorways that must stay clear: {name, at (threshold centre, floor), out (unit, horizontal), w, h}
 static var portals: Array[Dictionary] = []
 
@@ -153,235 +134,6 @@ static func site_at(p: Vector2, margin := 0.0) -> Dictionary:
 		if not is_nan(site_floor(s, p, margin)):
 			return s
 	return {}
-
-
-## Site clearance: loose fragments of a merged mesh (ruin stones, rubble) that stand inside a
-## registered site or a portal's approach are taken away whole, visual and collision together, so a
-## building never goes up around a stone. Fragments = connected triangle islands of the mesh.
-static func clear_fragments(root: Node, mesh_path: String, body_path: String, max_size := 12.0, crowns: Array[String] = [], on_lanes := false) -> int:
-	var mi := root.get_node_or_null(mesh_path) as MeshInstance3D
-	if mi == null or mi.mesh == null or (sites.is_empty() and portals.is_empty()):
-		return 0
-	var keep_out: Array[AABB] = []
-	for st in sites:
-		var r: Rect2 = (st.rect as Rect2).grow(0.3)
-		keep_out.append(AABB(Vector3(r.position.x, float(st.floor_y) - 1.0, r.position.y), Vector3(r.size.x, 7.0, r.size.y)))
-	for pt in portals:
-		var pb: Array = portal_box(pt)
-		var xf: Transform3D = pb[0]
-		var he: Vector3 = pb[1]
-		keep_out.append(xf * AABB(-he, he * 2.0))
-	if on_lanes:
-		for l: Array in extra_lanes:
-			var pts: Array = l[1]
-			var w: float = float(l[2])
-			for k in pts.size() - 1:
-				var a: Vector2 = pts[k]
-				var b: Vector2 = pts[k + 1]
-				var n := maxi(1, ceili(a.distance_to(b) / 1.0))
-				for i in n + 1:
-					var c := a.lerp(b, float(i) / float(n))
-					keep_out.append(AABB(Vector3(c.x - w, -60.0, c.y - w), Vector3(w * 2.0, 120.0, w * 2.0)))
-	var xf := mi.global_transform
-	var out := ArrayMesh.new()
-	var gone: Array[AABB] = []
-	var gone_pieces: Array[AABB] = []         # whole removed trees (for the log)
-	var gone_holders: Array[AABB] = []        # whole trees removed / kept (crowns sit on them)
-	var kept_holders: Array[AABB] = []
-	var removed := 0
-	for si in mi.mesh.get_surface_count():
-		var arrays := mi.mesh.surface_get_arrays(si)
-		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
-		if idx.is_empty():
-			idx.resize(verts.size())
-			for i in verts.size():
-				idx[i] = i
-		# whole pieces (SeatProps.pieces: a tree's trunk, branches and twigs together), so clearing
-		# a trunk off a site does not leave its upper branches hanging above the keep-out box
-		var pc: Array = SeatProps.pieces(verts, idx, xf)
-		var piece: PackedInt32Array = pc[0]
-		var info: Dictionary = pc[1]
-		var ibox: Dictionary = pc[2]
-		var ipiece: Dictionary = pc[3]
-		var drop := {}
-		for c: int in ibox:
-			var r: int = ipiece[c]
-			if drop.has(r):
-				continue
-			var bb: AABB = ibox[c]
-			if bb.size.length() > max_size:
-				continue                    # not a loose fragment (a wall run, the ground)
-			# judged where it will stand: baked props still hang at the pre-terrace height here and
-			# come down with the terraces later (SeatProps.follow_terrain)
-			var base: Vector3 = info[r][1]
-			bb.position.y += TerrainStamp.shape_delta_at(base.x, base.z)
-			if bb.position.y > (info[r][0] as AABB).position.y + 1.5:
-				continue                    # a branch overhanging the site: the tree may stay
-			for ko in keep_out:
-				if ko.intersects(bb):
-					drop[r] = true
-					break
-		for c: int in ibox:
-			if drop.has(ipiece[c]):
-				gone.append(ibox[c])        # per island, so collision of what stays is untouched
-		for r: int in drop:
-			gone_pieces.append(info[r][0])
-		for r: int in info:
-			if (info[r][0] as AABB).size.y < 3.0:
-				continue                    # stumps, logs, rocks hold no crown
-			if drop.has(r):
-				gone_holders.append(info[r][0])
-			else:
-				kept_holders.append(info[r][0])
-		var keep := PackedInt32Array()
-		for t in range(0, idx.size(), 3):
-			if drop.has(piece[idx[t]]):
-				removed += 1
-				continue
-			keep.append_array(PackedInt32Array([idx[t], idx[t + 1], idx[t + 2]]))
-		arrays[Mesh.ARRAY_INDEX] = keep
-		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		out.surface_set_material(si, mi.mesh.surface_get_material(si))
-	if removed == 0:
-		return 0
-	mi.mesh = out
-	var body := root.get_node_or_null(body_path) as Node3D
-	if body:
-		for c in body.get_children():
-			var cs := c as CollisionShape3D
-			if cs == null:
-				continue
-			if not (cs.shape is ConcavePolygonShape3D):
-				# one primitive per fragment (tree trunks): drop the one standing in a removed fragment
-				var o := cs.global_position
-				for g in gone:
-					if Rect2(g.position.x - 0.3, g.position.z - 0.3, g.size.x + 0.6, g.size.z + 0.6).has_point(Vector2(o.x, o.z)):
-						cs.disabled = true
-						cs.queue_free()
-						break
-				continue
-			var cx := cs.global_transform
-			var faces := (cs.shape as ConcavePolygonShape3D).get_faces()
-			var kept := PackedVector3Array()
-			for i in range(0, faces.size(), 3):
-				var m := cx * ((faces[i] + faces[i + 1] + faces[i + 2]) / 3.0)
-				var hit := false
-				for g in gone:
-					if g.grow(0.05).has_point(m):
-						hit = true
-						break
-				if not hit:
-					kept.append_array(PackedVector3Array([faces[i], faces[i + 1], faces[i + 2]]))
-			var sh := ConcavePolygonShape3D.new()
-			sh.backface_collision = (cs.shape as ConcavePolygonShape3D).backface_collision
-			sh.set_faces(kept)
-			cs.shape = sh
-	# what grew from a removed fragment goes with it: canopy islands centred over it, occluders in it
-	for cp in crowns:
-		var cm := root.get_node_or_null(cp) as MeshInstance3D
-		if cm == null or cm.mesh == null:
-			continue
-		_drop_crowns(cm, gone_holders, kept_holders)
-	for oc in root.find_children("*", "OccluderInstance3D", true, false):
-		var o := (oc as Node3D).global_position
-		for g in gone:
-			if g.grow(1.0).has_point(o):
-				oc.queue_free()
-				break
-	print("SITE clearance: %d piece(s), %d tris from %s" % [gone_pieces.size(), removed, mesh_path])
-	return gone_pieces.size()
-
-
-## A crown goes only with its own tree: it is dropped when a removed trunk/branch held it and no
-## remaining one does ("held" = its centre over that tree's bounds, grown 1 m, reaching to within
-## 3 m of the crown's underside -- the same test zz/prop_audit uses), or when it hangs over a
-## building site with no tree left to hold it. It used to drop every crown
-## inside a removed tree's whole footprint (15-40 m across), leaving spawn's other trees bare.
-static func _drop_crowns(mi: MeshInstance3D, gone_holders: Array[AABB], kept_holders: Array[AABB]) -> void:
-	if gone_holders.is_empty():
-		return
-	var xf := mi.global_transform
-	var out := ArrayMesh.new()
-	var dropped := 0
-	var holds := func(t: AABB, cb: AABB) -> bool:
-		var c := cb.get_center()
-		return t.grow(1.0).has_point(Vector3(c.x, t.get_center().y, c.z)) and t.end.y > cb.position.y - 3.0
-	for si in mi.mesh.get_surface_count():
-		var arrays := mi.mesh.surface_get_arrays(si)
-		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
-		if idx.is_empty():
-			idx.resize(verts.size())
-			for i in verts.size():
-				idx[i] = i
-		var comp := SeatProps.island_of(verts, idx)
-		var box := {}
-		for vi in verts.size():
-			if comp[vi] >= 0:
-				var w := xf * verts[vi]
-				box[comp[vi]] = (box[comp[vi]] as AABB).expand(w) if box.has(comp[vi]) else AABB(w, Vector3.ZERO)
-		var drop := {}
-		for c: int in box:
-			var cb: AABB = box[c]
-			var lost := site_at(Vector2(cb.get_center().x, cb.get_center().z), 0.0).size() > 0   # over a building
-			for g in gone_holders:
-				if holds.call(g, cb):
-					lost = true
-					break
-			if not lost:
-				continue
-			for k in kept_holders:
-				if holds.call(k, cb):
-					lost = false
-					break
-			if lost:
-				drop[c] = true
-		var keep := PackedInt32Array()
-		for t in range(0, idx.size(), 3):
-			if drop.has(comp[idx[t]]):
-				dropped += 1
-				continue
-			keep.append_array(PackedInt32Array([idx[t], idx[t + 1], idx[t + 2]]))
-		arrays[Mesh.ARRAY_INDEX] = keep
-		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		out.surface_set_material(si, mi.mesh.surface_get_material(si))
-	if dropped > 0:
-		mi.mesh = out
-
-
-## Props (separate nodes, e.g. menhirs) standing on a runtime lane are moved aside to line it,
-## as stones line a processional way, then dropped back onto the ground.
-static func line_lanes(root: Node, prefix: String) -> int:
-	var space := (root as Node3D).get_world_3d().direct_space_state
-	var moved := 0
-	for zn in root.find_children(prefix + "*", "Node3D", true, false):
-		var n := zn as Node3D
-		var p := Vector2(n.global_position.x, n.global_position.z)
-		for l: Array in extra_lanes:
-			var pts: Array = l[1]
-			var w: float = float(l[2]) + 1.0
-			for k in pts.size() - 1:
-				var a: Vector2 = pts[k]
-				var b: Vector2 = pts[k + 1]
-				var ab := b - a
-				var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
-				var near := a + ab * t
-				var d := p.distance_to(near)
-				if d < w:
-					var away := (p - near).normalized() if d > 0.01 else Vector2(-ab.y, ab.x).normalized()
-					p = near + away * (w + 0.4)
-					if not site_at(p, 1.2).is_empty():
-						p = near - away * (w + 0.4)            # the other side of the way
-					if not site_at(p, 1.2).is_empty():
-						n.visible = false                      # nowhere to stand: take it away
-						for co in n.find_children("*", "CollisionObject3D", true, false):
-							(co as CollisionObject3D).collision_layer = 0
-						break
-					var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, 40, p.y), Vector3(p.x, -30, p.y), Layers.WORLD))
-					n.global_position = Vector3(p.x, (hit.position as Vector3).y if hit else n.global_position.y, p.y)
-					moved += 1
-	return moved
 
 
 static func _on_runtime_lane(p: Vector2, reach: float) -> bool:
@@ -563,7 +315,7 @@ static func intrudes(space: PhysicsDirectSpaceState3D, b: AABB, pad := 0.0) -> S
 	for st in sites:
 		if site_hits_rect(st, Rect2(lo, hi - lo), pad + 0.3) and b.end.y > float(st.floor_y) - 1.0:
 			return String(st.name)
-	for lane: Array in (LANES + extra_lanes if legacy else extra_lanes):
+	for lane: Array in extra_lanes:
 		var pts: Array = lane[1]
 		var w: float = float(lane[2]) + pad
 		# cheap reject: lane bounding rect grown by w
@@ -587,29 +339,6 @@ static func intrudes(space: PhysicsDirectSpaceState3D, b: AABB, pad := 0.0) -> S
 				if is_nan(fy):
 					continue
 				if b.position.y < fy + HEADROOM and b.end.y > fy + 0.06:
-					return String(lane[0])
-	return ""
-
-
-## Fixed-floor lanes only (no physics needed): for scatterers that run before their floors exist.
-static func intrudes_fixed(b: AABB, pad := 0.0) -> String:
-	if not legacy:
-		return ""
-	for lane: Array in FIXED_LANES:
-		var pts: Array = lane[1]
-		var w: float = float(lane[2]) + pad
-		var lo := Vector2(b.position.x, b.position.z)
-		var hi := Vector2(b.end.x, b.end.z)
-		for k in pts.size() - 1:
-			var a: Vector3 = pts[k]
-			var c: Vector3 = pts[k + 1]
-			var n := maxi(1, ceili(Vector2(a.x, a.z).distance_to(Vector2(c.x, c.z)) / STEP))
-			for i in n + 1:
-				var s3 := a.lerp(c, float(i) / float(n))
-				var s := Vector2(s3.x, s3.z)
-				if s.clamp(lo, hi).distance_to(s) > w:
-					continue
-				if b.position.y < s3.y + HEADROOM and b.end.y > s3.y - 0.3:
 					return String(lane[0])
 	return ""
 

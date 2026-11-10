@@ -515,7 +515,7 @@ func _process(delta: float) -> void:
 			_fl_worst = 0.0
 	if not _post_done:
 		var zone := get_parent()
-		if zone == null or not Realm.enabled():
+		if zone == null:
 			_post_done = true
 		elif zone.has_meta("realm_done"):
 			_post_done = true

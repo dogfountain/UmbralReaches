@@ -1,37 +1,18 @@
 class_name TerrainStamp
 extends RefCounted
 ## Terrain yields to architecture. Before any prop is seated, the hub terrain (a 2 m grid mesh +
-## a matching trimesh) is adjusted under every footprint in WorldLanes.FOOTPRINTS:
+## a matching trimesh) is adjusted under every registered site:
 ##   - where a structure's underside floats above the ground, the ground rises to meet it;
 ##   - where the ground covers a structure's walk surface, it drops just below it;
 ## then the change fades out over FALLOFF metres so no ridge or pit is left at the edge.
-## Measured against the structure's visible mesh (temporary trimesh proxies on a private layer),
-## so it fixes what you see, not what the collision happens to be.
 
-const PROXY := 1 << 18
 const CONTACT := Metrics.CONTACT
 const FALLOFF := 4.0         ## metres over which a stamp blends back into the original ground
 
 
-## Terraced hills. The valley's hills rose 20 m at 40 degrees: unusable ground. Here every hill
-## (ground above SHAPE_BASE) is compressed to SHAPE_K of its height and cut into terraces the way
-## a hillside is laid out for building -- level platforms joined by walkable banks -- with step
-## heights that change across the land (2.4-4.4 m) and terrace edges that wander, so the result
-## follows the old contours and is never symmetrical. Sanctuary, stair foot and Ossuary keep their
-## ground (weighted out with a falloff); the chasm (below SHAPE_BASE) is untouched.
-const SHAPE_BASE := 0.6
-const SHAPE_K := 0.45
-const SHAPE_FLAT := 0.52               ## share of each band that is level platform
-const KEEP := [                         ## [rect xz, falloff m]
-	[Rect2(-11.0, 12.0, 22.0, 29.0), 8.0],      # sanctuary
-	[Rect2(-7.0, -14.0, 14.0, 26.0), 8.0],      # stair foot and lower flight
-	[Rect2(2.0, -106.0, 30.0, 84.0), 6.0],      # the Ossuary over the chasm
-]
-
-## How far the ground moved (shape + stamps), per grid vertex of the current terrain. Baked scatter
+## How far the ground moved (site stamps), per grid vertex of the current terrain. Baked scatter
 ## was planted on the old ground; SeatProps adds delta_at() before it snaps to the new one.
 static var _dh := {}
-static var _dh_shape := {}               ## the terracing alone (no site stamps)
 static var _dh_grid: _Grid
 static var _dh_owner := 0
 
@@ -43,77 +24,11 @@ static func delta_at(x: float, z: float) -> float:
 	return _dh_grid.field(_dh, x, z)
 
 
-## Ground change from the terracing alone. Baked props follow this, not the site stamps: a site
-## clears its own footprint, and its fill would otherwise lift the props round its edge into it.
-static func shape_delta_at(x: float, z: float) -> float:
-	if _dh_grid == null or _dh_shape.is_empty() or not is_instance_valid(instance_from_id(_dh_owner)):
-		return 0.0
-	return _dh_grid.field(_dh_shape, x, z)
-
-
 static func _own(body: StaticBody3D, grid: _Grid) -> void:
 	if _dh_owner != body.get_instance_id():
 		_dh = {}
-		_dh_shape = {}
 		_dh_grid = grid
 		_dh_owner = body.get_instance_id()
-
-
-static func shape(root: Node) -> void:
-	var terrain := root.find_child("Terrain", true, false) as MeshInstance3D
-	var body := root.find_child("TerrainBody", true, false) as StaticBody3D
-	if terrain == null or terrain.mesh == null or body == null or root.has_meta("terrain_shaped"):
-		return
-	root.set_meta("terrain_shaped", true)
-	var arrays := terrain.mesh.surface_get_arrays(0)
-	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	var grid := _Grid.new()
-	if not grid.build(verts, terrain.global_transform):
-		return
-	_own(body, grid)
-	var steps := FastNoiseLite.new()
-	steps.seed = 1201
-	steps.frequency = 0.018
-	var warp := FastNoiseLite.new()
-	warp.seed = 77
-	warp.frequency = 0.045
-	var out := {}
-	for idx in grid.nx * grid.nz:
-		if grid.vert_of[idx] < 0:
-			continue
-		var w := grid.world(idx)
-		var u := w.y - SHAPE_BASE
-		if u <= 0.05:
-			continue
-		var keep := 0.0
-		for kz: Array in KEEP:
-			var r: Rect2 = kz[0]
-			var fall: float = kz[1]
-			var d := _rect_dist(r, Vector2(w.x, w.z))
-			keep = maxf(keep, 1.0 - clampf(d / fall, 0.0, 1.0))
-		if keep >= 0.999:
-			continue
-		var step := lerpf(2.4, 4.4, steps.get_noise_2d(w.x, w.z) * 0.5 + 0.5)
-		var t := (u * SHAPE_K) / step + warp.get_noise_2d(w.x, w.z) * 0.22
-		var lvl := floorf(t)
-		var fr := t - lvl
-		var r2 := smoothstep(SHAPE_FLAT, 1.0, fr)
-		var shaped := SHAPE_BASE + maxf(0.0, (lvl + r2) * step)
-		var target := lerpf(shaped, w.y, keep * keep * (3.0 - 2.0 * keep))
-		if absf(target - w.y) > 0.02:
-			out[idx] = target - w.y
-	if out.is_empty():
-		return
-	_write(terrain, body, grid, arrays, verts, out)
-	_dh_shape = out.duplicate()
-	WorldLanes.clear_cache()
-	print("TERRAIN_SHAPE %d of %d vertices terraced" % [out.size(), grid.nx * grid.nz])
-
-
-static func _rect_dist(r: Rect2, p: Vector2) -> float:
-	var dx := maxf(maxf(r.position.x - p.x, 0.0), p.x - r.end.x)
-	var dz := maxf(maxf(r.position.y - p.y, 0.0), p.y - r.end.y)
-	return Vector2(dx, dz).length()
 
 
 static func apply(root: Node) -> void:
@@ -129,51 +44,11 @@ static func apply(root: Node) -> void:
 		push_warning("TerrainStamp: terrain is not a regular grid; skipped")
 		return
 	_own(body, grid)
-	# temporary proxies of the registered structures
-	var proxies: Array[StaticBody3D] = []
-	var zones: Array = []
-	for fp: Array in (WorldLanes.FOOTPRINTS if WorldLanes.legacy else []):
-		var mi := root.get_node_or_null(String(fp[0])) as MeshInstance3D
-		if mi == null or mi.mesh == null:
-			continue
-		var sh := mi.mesh.create_trimesh_shape() as ConcavePolygonShape3D
-		if sh == null:
-			continue
-		sh.backface_collision = true
-		var pb := StaticBody3D.new()
-		pb.collision_layer = PROXY
-		pb.collision_mask = 0
-		var cs := CollisionShape3D.new()
-		cs.shape = sh
-		pb.add_child(cs)
-		root.add_child(pb)
-		pb.global_transform = mi.global_transform
-		proxies.append(pb)
-		var bb := mi.global_transform * mi.get_aabb()
-		var clip: AABB = fp[1]
-		zones.append([bb.intersection(clip) if clip.size != Vector3.ZERO else bb, float(fp[2])])
-	if proxies.is_empty() and WorldLanes.sites.is_empty():
+	if WorldLanes.sites.is_empty():
 		return
 	await root.get_tree().physics_frame
-	var space := (root as Node3D).get_world_3d().direct_space_state
 	var delta := {}          # grid index -> dy
 	var hard := {}           # grid indices whose cut ends at a wall: no falloff from them
-	for z: Array in zones:
-		var box: AABB = z[0]
-		var max_adj: float = z[1]
-		for idx in grid.indices_in(box.position.x, box.position.z, box.end.x, box.end.z):
-			var w := grid.world(idx)
-			var th := w.y
-			var up := space.intersect_ray(PhysicsRayQueryParameters3D.create(w + Vector3.UP * 0.02, w + Vector3.UP * max_adj, PROXY))
-			var dy := 0.0
-			if up and (up.normal as Vector3).y < -0.3:
-				dy = (up.position as Vector3).y - CONTACT - th        # rise to the underside
-			else:
-				var dn := space.intersect_ray(PhysicsRayQueryParameters3D.create(w + Vector3.UP * 0.02, w + Vector3.DOWN * max_adj, PROXY))
-				if dn and (dn.normal as Vector3).y > 0.6:
-					dy = (dn.position as Vector3).y - CONTACT - 0.02 - th   # drop under a buried walk surface
-			if absf(dy) > 0.02 and (not delta.has(idx) or absf(dy) > absf(float(delta[idx]))):
-				delta[idx] = dy
 	# registered building sites: cut the ground down to the site's cut height inside the footprint
 	# (never fill: a building's foundation goes below grade, so a downhill gap is just more plinth)
 	for st in WorldLanes.sites:
@@ -193,8 +68,6 @@ static func apply(root: Node) -> void:
 				delta[idx] = dy
 				if st.get("hard", false):
 					hard[idx] = true
-	for pb in proxies:
-		pb.queue_free()
 	var heaped := {}
 	for m: Dictionary in mounds:
 		heaped.merge(_mound_delta(grid, m))

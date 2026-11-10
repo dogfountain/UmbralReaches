@@ -181,7 +181,7 @@ func _process(d: float) -> void:
 			Settings.changed.emit()
 		return
 	if phase == "load":
-		if Realm.enabled() and not main.has_meta("realm_done"):
+		if not main.has_meta("realm_done"):
 			return
 		phase = "settle"
 		wait = 0.0

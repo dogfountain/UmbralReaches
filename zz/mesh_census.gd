@@ -17,7 +17,7 @@ func _ready() -> void:
 func _physics_process(_d: float) -> void:
 	f += 1
 	var root: Node = get_tree().root.get_child(get_tree().root.get_child_count() - 1)
-	if f < 220 or (Realm.enabled() and not root.has_meta("realm_done")):
+	if f < 220 or (not root.has_meta("realm_done")):
 		return
 	if f > 100000:
 		return

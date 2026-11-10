@@ -50,7 +50,7 @@ func _process(_d: float) -> void:
 			Settings.changed.emit()
 			get_window().size = Vector2i(1280, 800)
 		return
-	if Realm.enabled() and not main.has_meta("realm_done"):
+	if not main.has_meta("realm_done"):
 		return
 	started += 1
 	if started < 240:

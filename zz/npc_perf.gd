@@ -73,7 +73,7 @@ func _process(d: float) -> void:
 	if p == null:
 		p = get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 		return
-	if Realm.enabled() and not main.has_meta("realm_done"):
+	if not main.has_meta("realm_done"):
 		return
 	var v := get_tree().root.find_child("Village", true, false)
 	if v == null or not v.has_meta("village_done") or t < 8.0:

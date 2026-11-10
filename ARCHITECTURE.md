@@ -24,8 +24,7 @@ teardown (quit, or the Deeper Night rebuilding in-process)
   main.gd _exit_tree     SessionState.reset_night()  (core/world/session_state.gd)
 ```
 
-`-- --no-realm` still boots the legacy baked stair (kept for henge_walk, summit_probe, lanewalk,
-fit). `-- --realm-modules=land,flora` builds only those modules.
+`-- --realm-modules=land,flora` builds only those modules.
 
 ## Folders (owner, entry point, state)
 

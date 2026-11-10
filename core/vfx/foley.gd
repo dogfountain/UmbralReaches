@@ -81,10 +81,10 @@ static func surface_at(space: PhysicsDirectSpaceState3D, pos: Vector3) -> String
 	if on_terrain:
 		if RealmLand.in_water(pos.x, pos.z):
 			return &"water"
-		var biome := RealmLayout.biome_at(pos.x, pos.z) if Realm.enabled() else "meadow"
+		var biome := RealmLayout.biome_at(pos.x, pos.z)
 		if biome == "fen":
 			return &"mud"
-		if Realm.enabled() and RealmLayout.path_dist(Vector2(pos.x, pos.z)) < 0.4:
+		if RealmLayout.path_dist(Vector2(pos.x, pos.z)) < 0.4:
 			return &"road"
 		return &"grass"
 	var nm := String((hit.collider as Node).name).to_lower() if hit.collider is Node else ""

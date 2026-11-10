@@ -185,10 +185,10 @@ func _process(delta: float) -> void:
 	_hold_player()
 	match _phase:
 		"build":
-			_stage.text = Realm.stage if Realm.enabled() and Realm.stage != "" else "Gathering the night"
+			_stage.text = Realm.stage if Realm.stage != "" else "Gathering the night"
 			_hint.text = ""
-			_target = (Realm.progress if Realm.enabled() else 1.0) * BUILD_SHARE
-			if not Realm.enabled() or zone.has_meta("realm_done"):
+			_target = Realm.progress * BUILD_SHARE
+			if zone.has_meta("realm_done"):
 				_next("settle")
 		"settle":
 			if _phase_t == 0.0 or not _sounds_done:

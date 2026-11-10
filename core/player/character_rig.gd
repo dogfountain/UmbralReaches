@@ -1438,10 +1438,10 @@ func _surface() -> StringName:
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 1.2, Layers.WORLD | Layers.PROPS)) if space else {}
 	var gp := global_position
 	var on_terrain := hit.is_empty() or (hit.collider is Node and String((hit.collider as Node).name).begins_with("Terrain"))
-	if on_terrain and Realm.enabled() and _land_script().call("in_water", gp.x, gp.z):
+	if on_terrain and _land_script().call("in_water", gp.x, gp.z):
 		_surf = &"water"
 	elif on_terrain:
-		var biome := RealmLayout.biome_at(gp.x, gp.z) if Realm.enabled() else "meadow"
+		var biome := RealmLayout.biome_at(gp.x, gp.z)
 		_surf = &"fen" if biome == "fen" else (&"ash" if biome == "ash" else (&"salt" if biome == "salt" else &"grass"))
 	else:
 		var nm := String((hit.collider as Node).name).to_lower() if hit.collider is Node else ""

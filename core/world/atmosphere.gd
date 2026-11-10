@@ -38,8 +38,6 @@ static func apply(root: Node, env: Environment, cam: Camera3D, moon: Directional
 ## the legacy floor rebucketing, canopy copy and trunk occluders would be work (and, for
 ## occluders, invisible walls) for geometry that is never shown.
 static func _realm_retires(root: Node, path: String) -> bool:
-	if not Realm.enabled():
-		return false
 	for r: String in Realm.RETIRED:
 		if path == r or path.begins_with(r + "/"):
 			return true
@@ -47,8 +45,6 @@ static func _realm_retires(root: Node, path: String) -> bool:
 
 
 static func _retired_node(root: Node, n: Node) -> bool:
-	if not Realm.enabled():
-		return false
 	return _realm_retires(root, str(root.get_path_to(n)))
 
 
@@ -246,11 +242,10 @@ static func _flora_detail(root: Node) -> void:
 
 
 static func _cull_geometry(root: Node, far_m: float) -> void:
-	var realm := Realm.enabled()
 	for gi in root.find_children("*", "GeometryInstance3D", true, false):
 		if _under_player(gi) or _under_enemy(gi):
 			continue
-		if realm and _retired_node(root, gi):
+		if _retired_node(root, gi):
 			continue
 		var n := String(gi.name).to_lower()
 		# Visibility range is distance to the *node origin*, not the mesh. The
@@ -865,11 +860,3 @@ static func _canopy_fill(canopy: MeshInstance3D, fill_name: String, sc: Vector3,
 	fill.custom_aabb = AABB()
 	canopy.get_parent().add_child(fill)
 
-
-## Rebuild the fill from the canopy as it is now: after site clearance removed crowns and the
-## terraces moved them (SeatProps.follow_terrain), the old copy would hang where they used to be.
-static func refresh_canopy_fill(root: Node) -> void:
-	var canopy := root.find_child("Canopy", true, false) as MeshInstance3D
-	if canopy == null or canopy.mesh == null or not canopy.has_meta("thickened"):
-		return
-	_canopy_fill(canopy, "CanopyFill", Vector3(1.16, 1.12, 1.16), 0.55, 0.37)

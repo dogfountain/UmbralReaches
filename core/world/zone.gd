@@ -138,7 +138,7 @@ func _unstandable(at: Vector3) -> String:
 
 
 func _process(delta: float) -> void:
-	if not _spawn_checked and (has_meta("realm_done") or (not Realm.enabled() and Engine.get_process_frames() > 30)):
+	if not _spawn_checked and has_meta("realm_done"):
 		_check_saved_spawn()
 	RenderingServer.global_shader_parameter_set("sky_time", Time.get_ticks_msec() * 0.001)
 	if _hurt > 0.0:
