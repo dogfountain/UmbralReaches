@@ -7,32 +7,37 @@ extends RefCounted
 ##     front of the rock's slope, flat walks between them, a balustrade on every edge, pilasters
 ##     carrying violet rune slits, a blind lancet arch on every bay, candle offerings on the walks;
 ##     left open where a starfall pours down its channel (RealmRift.STARFALLS)
-##   - the Watchers: two colossal hooded mages (MageStatue at 4.2x, about 26 m, the east one mirrored) standing
-##     in the pool either side of the threshold's mouth, facing the village, open hands over the gate, orbs lit
-##     violet above the rim
-##   - the Broken Stair: five flights of the pilgrims' stair torn out and held in the air by sigils, climbing
-##     from the third tower to the Last Landing (a secret: core/life/secrets/site_threshold.gd)
-##   - motes rising off the pool, and light dripping from the stair
+##   - the Watchers: two great lantern pillars carved in stone (art/models/wonders/watchers_*.glb, about 30 m, the east
+##     one mirrored) standing in the pool either side of the threshold's mouth, facing the village: a sunk spiral stair
+##     up the shaft, a band of Order glyphs, festoons of chain, a forged iron lantern burning violet
+##   - the Pilgrims' Chapel (rift/chapel.gd): a small chapel built against the west wall's foot at the starfall,
+##     the fall pouring over its roof and across its doorway; the Pilgrims' Stair down the third tower and a quay reach it
+##     (a secret: core/life/secrets/site_threshold.gd)
+##   - motes rising off the pool
 ## The east wall above y -6 from z -22 north is the Ossuary's: there the terraces stop below it.
-## Collision: the terraces (walkable, reachable down the rock's slope from the rim) and the stair's steps.
+## Collision: the terraces (walkable, reachable down the rock's slope from the rim) and the chapel's walls, floor and pier.
 
-const STONE := "stone"
+const Starlit := preload("res://core/world/realm/rift/starlit_stone.gd")
+const STONE := Starlit.STONE          ## the rift's stone: paler, with a little starlight in it
+const Chapel := preload("res://core/world/realm/rift/chapel.gd")
+const TowerStair := preload("res://core/world/realm/rift/tower_stair.gd")
 const LAVA := -15.5
 const TOPS := [-12.0, -8.0, -4.0]      ## each terrace's walk height; the lowest stands in the pool
 const BAY := 4.0                       ## metres per terrace bay along the wall
 const Z0 := -15.0                      ## the first bay's south edge (the forecourt's rocks are south of it)
 ## Pedestal feet, in the pool. z -15.6: the pedestal (r 6.7 m at this scale) ends short of the Ossuary's stone
 ## footings (z -22.5) and the figure well short of its south wall inside the east rock.
-const WATCHERS := [Vector3(-14.5, -17.2, -15.6), Vector3(14.5, -17.2, -15.6)]
-const WATCHER_SCALE := 4.2             ## about 26 m: the hood and the orb stand over the forecourt's walls
-const WATCHER_R := 6.4                 ## the pedestal's reach at that scale (1.6 m x 4.2) and a little
+const WATCHERS := [Vector3(-13.8, -17.2, -15.6), Vector3(13.8, -17.2, -15.6)]
+const WATCHER_LIFT := 1.3              ## the plinth stands this far over the pool's floor, so its lower tread and candles stand 0.3 m clear of the starwater
+const WATCHER_R := 7.0                 ## the plinth's reach (a 7 x 7 m foot, about 5 m to its corners, and the rubble) and a little
+const Kit := preload("res://core/world/realm/r37_west_kit.gd")
 
 var k: OssKit
 var space: PhysicsDirectSpaceState3D
 var star_z := -46.0
 var falls: Array = []
 var rng := RandomNumberGenerator.new()
-var rune: SurfaceTool                  ## violet rune slits and the stair's under-light (one emissive mesh)
+var rune: SurfaceTool                  ## violet rune slits (one emissive mesh)
 var report: Array[String] = []
 var _skips := {}                       ## why a bay's tier was not built (printed)
 var _cols: Array[AABB] = []            ## boxes of collision-less instanced pieces here (the crossing's colonnade)
@@ -47,6 +52,7 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 	star_z = p_star_z
 	falls = p_falls
 	space = (root as Node3D).get_world_3d().direct_space_state
+	Starlit.ensure()
 	k = OssKit.new()
 	k.keep_lanes = false
 	k.candle_lights = false             # the wax glows; no new lights (the pool and the violet glow light it)
@@ -57,17 +63,24 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 	_watchers(host)
 	await root.get_tree().physics_frame            # the stand-ins and the Watchers' bodies are in the space first
 	_audit_watchers(host)
+	_watcher_candles(host)
 	var bays := 0
 	for side: float in [-1.0, 1.0]:
 		var z := Z0
 		while z - BAY >= star_z + 1.0:
 			bays += _bay(side, z - BAY * 0.5)
 			z -= BAY
-	var steps := _broken_stair(host)
+	var tstair := TowerStair.new()
+	var stair_ok := tstair.build(self)
+	report.append("tower stair: %d steps (%d narrowed, %d as spans past the fallen column's pier)" % [tstair.steps_built, tstair.narrow_steps, tstair.spans])
+	var chapel_ok := _chapel(host)
 	for b in _temp:
 		b.queue_free()
 	_temp.clear()
 	k.commit(host, "ThresholdBody")
+	for n in host.get_children():
+		if n is MultiMeshInstance3D:
+			n.set_meta(&"site_owned", true)      # placed on purpose (the pillars' candles stand inside their sites): WorldLanes.cull_scatter keeps them
 	var mi := MeshInstance3D.new()
 	mi.name = "Runes"
 	mi.mesh = rune.commit()
@@ -76,7 +89,7 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 	host.add_child(mi)
 	_motes(host)
 	_pool_lights(host)
-	report.append("terraces: %d bay tiers, broken stair: %d steps, skipped %s" % [bays, steps, str(_skips)])
+	report.append("terraces: %d bay tiers, chapel: %s, tower stair: %s, skipped %s" % [bays, "built" if chapel_ok else "NOT BUILT", "built" if stair_ok else "INCOMPLETE", str(_skips)])
 	report.append("clearance: %s" % ("nothing touched" if _audit.is_empty() else "; ".join(_audit)))
 	for s in report:
 		print("THRESHOLD ", s)
@@ -176,21 +189,17 @@ func _bay(side: float, zc: float) -> int:
 		k.box(STONE, Vector3(front - side * 0.08, yt + 0.11, zc), Vector3(0.75, 0.22, BAY), Basis.IDENTITY)
 		# balustrade on the edge (posts at the pilasters)
 		k.parapet(STONE, Vector3(front + side * 0.25, yt + 0.22, zc + BAY * 0.5), Vector3(front + side * 0.25, yt + 0.22, zc - BAY * 0.5), 0.85, 0.26)
-		# pilasters at the bay's ends, each with a rune slit down its face
+		# pilasters at the bay's ends
 		for e: float in [-1.0, 1.0]:
 			var pz := zc + e * (BAY * 0.5 - 0.35)
 			var ph := yt - yb
 			k.box(STONE, Vector3(front - side * 0.26, yb + ph * 0.5, pz), Vector3(0.52, ph, 0.74), Basis.IDENTITY)
 			k.box(STONE, Vector3(front - side * 0.34, yt - 0.2, pz), Vector3(0.68, 0.4, 0.92), Basis.IDENTITY)   # capital
 			k.box(STONE, Vector3(front - side * 0.34, yb + 0.25, pz), Vector3(0.68, 0.5, 0.92), Basis.IDENTITY)  # base
-			_glyphs(Vector3(front - side * 0.53, 0.0, pz), yb + 0.9, yt - 0.7)
 		# a blind lancet arch on the face (the face shows through it: a shallow niche)
 		var arch_base := Vector3(front - side * 0.3, yb + (0.0 if i > 0 else 1.2), zc)
 		k.arch_panel(STONE, arch_base, along, 1.8, maxf(yt - yb - 2.6 - (0.0 if i > 0 else 1.2), 0.6), yt - arch_base.y - 0.05, 0.56, 0.36, 0.9, 0.0, STONE)
-		# a rune glowing at the back of the niche: a pilgrim's mark, a stroke and a bar
-		_slab(Vector3(front - side * 0.04, arch_base.y + 1.15, zc), Vector3(0.02, 0.8, 0.06))
-		_slab(Vector3(front - side * 0.04, arch_base.y + 1.42, zc), Vector3(0.02, 0.05, 0.36))
-		# candle offerings on the walk below this tier, at the niche's foot
+				# candle offerings on the walk below this tier, at the niche's foot
 		if i > 0 and not is_nan(walk_x):
 			k.candle_cluster(Vector3(front + inward.x * 0.55, yb + 0.02, zc + rng.randf_range(-0.6, 0.6)), rng.randi_range(4, 8), 0.32, rng)
 		walk_x = front
@@ -198,219 +207,176 @@ func _bay(side: float, zc: float) -> int:
 	return built
 
 
-# --- the Broken Stair -------------------------------------------------------------------------------
+# --- the Pilgrims' Chapel ---------------------------------------------------------------------------
 
-## THE BROKEN STAIR: five flights of the old pilgrims' stair, torn out and held in the air by sigils of the
-## starlight, climbing a half turn from the third tower's east parapet to a broken landing above the meeting
-## of the starwater and the fire (the Last Landing, core/life/secrets/site_threshold.gd: a reliquary and a page).
-## Each flight is four carved steps on a solid mass with stringers either side and torn masonry at its broken
-## ends; between flights one step is missing (two below the last flight, the landing one more): a jump, the
-## last a double jump. Steps and stringers are solid (walkable); the mass, the rubble and the sigils are not.
-const STAIR_C := Vector2(5.0, -45.0)   ## the half turn's centre (xz)
-const STAIR_R := 6.3                   ## its radius (the walk line)
-const STAIR_A0 := 112.0                ## degrees: the first step, just off the third tower's east parapet
-const STAIR_SWEEP := 180.0             ## degrees turned to the landing
-const STAIR_Y0 := 6.65                 ## the first tread (the tower's deck 5.6 + its parapet)
-const STAIR_Y1 := 16.0                 ## the landing's top
-const FLIGHTS := [[0, 1, 2, 3], [5, 6, 7, 8], [10, 11, 12, 13], [15, 16, 17, 18], [21, 22, 23, 24]]
-const STAIR_N := 26                    ## positions to the landing (the landing is position 26)
-const TREAD := Vector3(2.3, 0.46, 0.92)   ## a step's block: across, tall, deep
-const SIGIL_SHADER := """shader_type spatial;
-render_mode unshaded, cull_disabled, depth_draw_never, blend_add;
-// The sigil that holds a flight up: two rings, a band of glyph ticks between them, three spokes, turning.
-uniform vec3 col : source_color = vec3(0.5, 0.36, 1.0);
-uniform float spin = 0.1;
-float line(float d, float w) { return 1.0 - smoothstep(w, w + fwidth(d) * 1.5, abs(d)); }
-void fragment() {
-	vec2 p = UV * 2.0 - 1.0;
-	float r = length(p);
-	float a = atan(p.y, p.x) + TIME * spin;
-	float t = fract(a * 24.0 / 6.2832);
-	float v = line(r - 0.86, 0.012) + line(r - 0.7, 0.008) * 0.8 + line(r - 0.28, 0.01) * 0.6;
-	v += line(r - 0.78, 0.035) * step(0.3, t) * step(t, 0.62) * 0.7;
-	v += line(sin(a * 1.5) * r, 0.01) * step(0.3, r) * step(r, 0.68) * 0.35;
-	v *= 0.7 + 0.3 * sin(TIME * 1.1 + r * 5.0);
-	ALBEDO = col * v * 1.5;
-	ALPHA = clamp(v, 0.0, 1.0) * (1.0 - smoothstep(0.88, 0.95, r));
-}"""
-
-var _sigil_mat: ShaderMaterial
-
-
-## Where position i of the stair is: centre of its tread top, and its basis (x across, y up, z back down the stair).
-func _stair_at(i: float) -> Transform3D:
-	var t := i / float(STAIR_N)
-	var a := deg_to_rad(STAIR_A0 - STAIR_SWEEP * t)
-	var radial := Vector3(cos(a), 0.0, sin(a))
-	var fwd := Vector3(sin(a), 0.0, -cos(a))                 # the way up (the angle falls as it climbs)
-	var c := Vector3(STAIR_C.x + radial.x * STAIR_R, lerpf(STAIR_Y0, STAIR_Y1, t), STAIR_C.y + radial.z * STAIR_R)
-	return Transform3D(Basis(radial, Vector3.UP, -fwd), c)
-
-
-func _broken_stair(host: Node3D) -> int:
-	var steps := 0
-	for fl: Array in FLIGHTS:
-		var first := int(fl[0])
-		var last := int(fl[fl.size() - 1])
-		for i: int in fl:
-			var xf := _stair_at(float(i))
-			var b := xf.basis
-			var top := xf.origin
-			# the step: a block whose top is the tread, a nosing lip, a cheek either side (the stringers)
-			_place(top - b.y * TREAD.y * 0.5, TREAD, b, true, "step %d" % i)
-			_place(top + b.z * (-TREAD.z * 0.5 + 0.02) + b.y * 0.01, Vector3(TREAD.x, 0.07, 0.07), b, false, "")
-			for side: float in [-1.0, 1.0]:
-				_place(top + b.x * side * (TREAD.x * 0.5 + 0.12) - b.y * 0.32, Vector3(0.24, 0.9, TREAD.z + 0.04), b, true, "stringer %d" % i)
-			# the mass beneath: the stair was built on solid masonry, and it came away with it
-			_place(top - b.y * 1.05, Vector3(TREAD.x - 0.3, 1.1, TREAD.z), b, false, "")
-			steps += 1
-		_torn_end(_stair_at(float(first)), -1.0, first > 0)
-		_torn_end(_stair_at(float(last)), 1.0, true)
-		var mid := _stair_at((float(first) + float(last)) * 0.5)
-		_sigil(host, mid.origin - Vector3.UP * 2.6, 4.6, mid.basis)
-	_landing(host)
-	_jump_audit()
-	return steps
-
-
-## Torn masonry at a flight's broken end (`dir` -1 the lower end, +1 the upper): ragged blocks hanging off it
-## and a couple of pieces adrift in the gap. The very first step keeps a clean end (it meets the tower).
-func _torn_end(xf: Transform3D, dir: float, ragged: bool) -> void:
-	if not ragged:
-		return
-	var b := xf.basis
-	var edge := xf.origin - b.z * dir * (TREAD.z * 0.5)
-	for j in 4:
-		var c := edge - b.y * rng.randf_range(0.6, 1.6) + b.x * rng.randf_range(-0.9, 0.9) - b.z * dir * rng.randf_range(0.0, 0.35)
-		var sb := b * Basis(Vector3(rng.randf(), rng.randf(), rng.randf()).normalized(), rng.randf_range(0.2, 0.7))
-		_place(c, Vector3(rng.randf_range(0.35, 0.8), rng.randf_range(0.3, 0.6), rng.randf_range(0.3, 0.55)), sb, false, "")
-	for j in 2:
-		var c2 := edge - b.z * dir * rng.randf_range(0.5, 0.9) - b.y * rng.randf_range(0.8, 2.2) + b.x * rng.randf_range(-1.4, 1.4)
-		var sb2 := Basis(Vector3(rng.randf(), rng.randf(), rng.randf()).normalized(), rng.randf() * TAU)
-		_place(c2, Vector3(rng.randf_range(0.2, 0.4), rng.randf_range(0.15, 0.3), rng.randf_range(0.2, 0.35)), sb2, false, "")
-
-
-## The broken landing at the top: a paved slab on its own mass, a balustrade broken on the open side, a
-## kneeling stone, torn masonry under its edge, a wide sigil. The secret is set on it by the secrets module.
-func _landing(host: Node3D) -> void:
-	var xf := _stair_at(float(STAIR_N) + 0.9)
-	var b := xf.basis
-	var top := Vector3(xf.origin.x, STAIR_Y1, xf.origin.z)
-	var size := Vector3(3.8, 0.5, 3.2)
-	_place(top - b.y * size.y * 0.5, size, b, true, "landing")
-	_place(top - b.y * 1.4, Vector3(3.3, 1.8, 2.7), b, false, "")
-	for side: float in [-1.0, 1.0]:
-		var a := top + b.x * side * (size.x * 0.5 - 0.15) + b.z * (size.z * 0.5 - 0.2)
-		var e := top + b.x * side * (size.x * 0.5 - 0.15) - b.z * (size.z * 0.5 - (1.4 if side < 0.0 else 0.2))
-		if _clear(Transform3D(b, (a + e) * 0.5 + Vector3.UP * 0.45), Vector3(0.3, 0.9, a.distance_to(e)), 0.1):
-			k.parapet(STONE, a, e, 0.75, 0.26)
-	_place(top - b.z * (size.z * 0.5 - 0.45) + b.y * 0.3, Vector3(1.4, 0.6, 0.5), b, true, "kneeler")
-	for j in 3:
-		k.candle_cluster(top - b.z * (size.z * 0.5 - 0.5) + b.x * (-0.9 + 0.9 * float(j)) + b.y * 0.62, rng.randi_range(3, 5), 0.18, rng)
-	_torn_end(Transform3D(b, top + b.z * 0.4), 1.0, true)
-	_sigil(host, top - Vector3.UP * 3.4, 7.0, b)
-	var mark := Node3D.new()
-	mark.name = "StairLanding"
-	mark.set_meta("top", top)
-	mark.set_meta("basis", b)
-	host.add_child(mark)
-	mark.global_position = top
-
-
-## One stone box after a clearance check; a failure is logged (named pieces) and the piece is left out.
-func _place(c: Vector3, size: Vector3, b: Basis, solid: bool, label: String) -> void:
-	if not _clear(Transform3D(b, c), size, 0.05):
-		if label != "":
-			_audit.append("%s left out (%s)" % [label, _last_hit])
-		return
-	k.box(STONE, c, size, b, solid)
-
-
-func _sigil(host: Node3D, at: Vector3, size: float, b: Basis) -> void:
-	if _sigil_mat == null:
-		var sh := Shader.new()
-		sh.code = SIGIL_SHADER
-		_sigil_mat = ShaderMaterial.new()
-		_sigil_mat.shader = sh
-	var mi := MeshInstance3D.new()
-	mi.name = "Sigil"
-	var pm := PlaneMesh.new()
-	pm.size = Vector2(size, size)
-	mi.mesh = pm
-	mi.material_override = _sigil_mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	host.add_child(mi)
-	mi.global_transform = Transform3D(Basis(Vector3.UP, atan2(b.z.x, b.z.z)), at)
-
-
-## Every move on the stair as the wanderer makes it: from the tower's deck onto the first step, step to step,
-## each break and onto the landing: the rise and the clear gap between edges. Walk: rise <= 0.45, no gap.
-## Jump: rise <= 0.8 over <= 2.2 m. Double jump: rise <= 1.6. Printed; anything beyond is called out.
-func _jump_audit() -> void:
-	var stops: Array = [[Vector3(-1.8 + 2.9, 5.6, -40.0), 0.0, "tower deck"]]
-	for fl: Array in FLIGHTS:
-		for i: int in fl:
-			stops.append([_stair_at(float(i)).origin, TREAD.z, "step %d" % i])
-	var lx := _stair_at(float(STAIR_N) + 0.9)
-	stops.append([Vector3(lx.origin.x, STAIR_Y1, lx.origin.z), 3.2, "landing"])
-	var worst := ""
-	var moves := PackedStringArray()
-	for j in range(1, stops.size()):
-		var a: Vector3 = stops[j - 1][0]
-		var e: Vector3 = stops[j][0]
-		var rise := e.y - a.y
-		var gap := maxf(0.0, Vector2(e.x - a.x, e.z - a.z).length() - (float(stops[j - 1][1]) + float(stops[j][1])) * 0.5)
-		var kind := "walk" if rise <= 0.45 and gap < 0.25 else ("jump" if rise <= 0.8 and gap <= 2.2 else ("double jump" if rise <= 1.6 and gap <= 2.6 else "TOO FAR"))
-		if kind != "walk":
-			moves.append("%s>%s %s (rise %.2f, gap %.2f)" % [stops[j - 1][2], stops[j][2], kind, rise, gap])
-		if kind == "TOO FAR":
-			worst = String(stops[j][2])
-	report.append("stair moves: %s%s" % ["; ".join(moves), "" if worst == "" else "  -- UNREACHABLE at " + worst])
+## The chapel and its pier (chapel.gd): where the starfall pours, the terraces leave the bay open.
+func _chapel(host: Node3D) -> bool:
+	if "--no-chapel" in OS.get_cmdline_user_args():
+		return false                       # (a measuring switch: the Threshold without the chapel)
+	return Chapel.new().build(self, host)
 
 
 # --- the Watchers ---------------------------------------------------------------------------------
 
-## Two colossal hooded mages (the summit's MageStatue at 4.2x) in the pool either side of the mouth, facing
-## the village; their orbs burn violet above the rim. Their orb lights are the only new lights here.
+## Two great lantern pillars carved in stone (tools/blender/wonder_watchers.py: art/models/wonders/watchers_*.glb) standing
+## in the pool either side of the mouth, facing the village: a sunk spiral stair up the shaft, niches, a band of incised
+## Order glyphs glowing faintly in the grooves, festoons of chain, a forged iron lantern burning violet on a short drum.
+## The east one is the mirrored model. Near mesh with baked maps, a far mesh from 160 m, convex hulls for collision.
+## One unshadowed orb light each is the only new light here.
 func _watchers(host: Node3D) -> void:
+	if OS.get_cmdline_user_args().has("--no-watchers"):      # measurement only: the Threshold without them
+		return
 	for w: Vector3 in WATCHERS:
-		var m := MageStatue.new()
-		m.name = "Watcher%s" % ("West" if w.x < 0.0 else "East")
-		host.add_child(m)
-		m.global_position = w
-		m.rotation.y = PI + (0.22 if w.x < 0.0 else -0.22)     # facing the village, turned a little to the mouth
-		m.scale = Vector3.ONE * WATCHER_SCALE
-		m.set_process(false)
-		if w.x > 0.0:
-			# mirrored, so both reach their open hand over the gate (the body is symmetric: it stays as built)
-			for c in m.get_children():
-				if c is Node3D and not (c is CollisionObject3D):
-					(c as Node3D).transform = Transform3D(Basis.from_scale(Vector3(-1.0, 1.0, 1.0)), Vector3.ZERO) * (c as Node3D).transform
-		var ol := m.find_child("OrbLight", true, false) as OmniLight3D
-		if ol:
-			ol.light_color = Color(0.6, 0.45, 1.0)
-			ol.light_energy = 4.0
-			ol.omni_range = 22.0
-		var orb := m.find_child("Orb", true, false) as MeshInstance3D
-		if orb:
-			orb.material_override = _orb_mat()
-		# floodlit from the pool: a violet spot at the water in front of the figure, up its robe to the hood
-		var up := SpotLight3D.new()
-		up.name = "WatcherUplight"
-		up.light_color = Color(0.56, 0.42, 1.0)
-		up.light_energy = 7.0
-		up.spot_range = 34.0
-		up.spot_angle = 24.0
-		up.spot_attenuation = 0.6
-		up.shadow_enabled = false
-		up.light_volumetric_fog_energy = 0.4
-		up.distance_fade_enabled = true                    # seen from the village: an authored fade, kept by the director
-		up.distance_fade_begin = 110.0
-		up.distance_fade_length = 20.0
-		up.set_meta(&"light_class", &"shaft")
-		host.add_child(up)
-		var foot := Vector3(w.x * 0.45, LAVA + 0.6, w.z + 4.0)
-		up.look_at_from_position(foot, Vector3(w.x, LAVA + 22.0, w.z), Vector3.UP)
+		var west := w.x < 0.0
+		var m := Kit.place(host, "wonders/watchers_%s.glb" % ("west" if west else "east"), Transform3D(Basis(Vector3.UP, PI + (0.22 if west else -0.22)), w + Vector3.UP * WATCHER_LIFT))
+		if m == null:
+			continue
+		m.name = "Watcher%s" % ("West" if west else "East")
+		# the plinth's footprint (and the rubble round it) is a site: the flora and the dress keep off it
+		WorldLanes.register_site("watcher_%s" % ("west" if west else "east"), Rect2(w.x - 6.2, w.z - 6.2, 12.4, 12.4), w.y)
+		_dress_watcher(m)
+		var core := m.find_child("Pillar_core*", true, false) as MeshInstance3D
+		var oc := Vector3(0.0, 27.0, 0.0)
+		if core:
+			oc = core.get_aabb().get_center()
+		var ol := OmniLight3D.new()
+		ol.name = "OrbLight"
+		ol.position = oc
+		ol.light_color = Color(0.6, 0.45, 1.0)
+		ol.light_energy = 3.0
+		ol.omni_range = 26.0
+		ol.shadow_enabled = false
+		ol.distance_fade_enabled = true
+		ol.distance_fade_begin = 120.0
+		ol.distance_fade_length = 25.0
+		ol.set_meta(&"light_class", &"realm")
+		m.add_child(ol)
+		# the far mesh from 160 m out to the horizon; the near model fades out where it takes over
+		var far_ps := Kit.scene("wonders/watchers_%s_far.glb" % ("west" if west else "east"))
+		if far_ps:
+			var far_root := far_ps.instantiate() as Node3D
+			for mi in far_root.find_children("*", "MeshInstance3D", true, false):
+				var fm := mi as MeshInstance3D
+				if fm.mesh != null:
+					FarDetail.register(m, fm.mesh, Transform3D.IDENTITY, 160.0, _orb_mat() if String(fm.name).contains("orb") else _far_stone_mat(), false)
+			far_root.free()
+		FarDetail.near_ends(m, 160.0, 30.0)
+
+
+static var _watcher_mats: Dictionary = {}
+
+
+## The baked column maps (with the glyph grooves' faint ember as the emission map); the staff, chains and cage in the iron
+## set over their rust vertex colours; the flame in layers (a hot core, a violet halo, a smoked cracked glass shell).
+func _dress_watcher(m: Node3D) -> void:
+	if _watcher_mats.is_empty():
+		var T := "res://art/textures/"
+		var W := "res://art/models/wonders/"
+		var fig := StandardMaterial3D.new()
+		fig.albedo_texture = load(W + "watchers_pillar_albedo.png")
+		fig.albedo_color = Color(0.92, 0.92, 0.94)
+		fig.normal_enabled = true
+		fig.normal_texture = load(W + "watchers_pillar_normal.png")
+		var orm: Texture2D = load(W + "watchers_pillar_orm.png")
+		fig.ao_enabled = true
+		fig.ao_texture = orm
+		fig.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+		fig.roughness_texture = orm
+		fig.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
+		fig.roughness = 1.0
+		fig.emission_enabled = true
+		fig.emission_texture = load(W + "watchers_pillar_emit.png")
+		fig.emission = Color.WHITE
+		fig.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY       # the texture alone (ADD would add white everywhere)
+		fig.emission_energy_multiplier = 1.0
+		_watcher_mats["fig"] = fig
+		var s := StandardMaterial3D.new()
+		s.vertex_color_use_as_albedo = true
+		s.normal_enabled = true
+		s.normal_texture = load(T + "r37_stone_normal.png")
+		s.normal_scale = 0.8
+		var so: Texture2D = load(T + "r37_stone_orm.png")
+		s.roughness_texture = so
+		s.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
+		s.roughness = 1.0
+		_watcher_mats["stone"] = s
+		_watcher_mats["iron"] = load("res://core/world/realm/r37_west_kit.gd").mat("iron")
+		var halo := _orb_mat()
+		halo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		halo.albedo_color = Color(0.5, 0.3, 1.0, 0.55)
+		halo.emission_energy_multiplier = 2.6
+		_watcher_mats["orb"] = halo
+		var core := StandardMaterial3D.new()
+		core.albedo_color = Color(0.95, 0.9, 1.0)
+		core.emission_enabled = true
+		core.emission = Color(0.92, 0.85, 1.0)
+		core.emission_energy_multiplier = 6.0
+		_watcher_mats["core"] = core
+		var glass := StandardMaterial3D.new()
+		glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		glass.albedo_color = Color(0.1, 0.08, 0.14, 0.42)
+		glass.roughness = 0.12
+		glass.metallic_specular = 0.9
+		glass.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_watcher_mats["glass"] = glass
+	var key := {"Pillar_fig": "fig", "Pillar_iron": "iron", "Pillar_rubble": "stone", "Pillar_orb": "orb",
+			"Pillar_core": "core", "Pillar_glass": "glass"}
+	for n in m.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		var nm := String(mi.name)
+		if nm.begins_with("Pillar_cand") or nm.begins_with("Pillar_flame"):
+			mi.queue_free()             # the model's stub candles: the kit's dripping wax and layered flames stand in (_watcher_candles)
+			continue
+		for k: String in key:
+			if nm.begins_with(k):
+				mi.material_override = _watcher_mats[key[k]]
+				if key[k] in ["orb", "core", "glass"]:
+					mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				break
+
+
+## Pilgrims' candles on the pillars' lower tread, in the kit's wax (the chapel's and the terraces' own). The plinth
+## (tools/blender/wonder_watchers.py PLINTH) has two square treads; the upper is under the moulded torus's overhang,
+## so the candles keep to the lower, 0.7 m up and 0.48 m deep (half 2.97 m to the lip at 3.45 m), clear of the
+## starwater by WATCHER_LIFT. Each cluster is seated by a ray on that tier's collision and dropped if it misses it.
+const TREAD_Y := 0.7
+const TREAD_MID := 3.2
+func _watcher_candles(host: Node3D) -> void:
+	var placed := 0
+	var cr := RandomNumberGenerator.new()      # its own: the terraces after it keep their exact draws
+	cr.seed = 7717
+	for w: Vector3 in WATCHERS:
+		var m := host.get_node_or_null("Watcher%s" % ("West" if w.x < 0.0 else "East")) as Node3D
+		if m == null:
+			continue
+		var xf := m.global_transform
+		for side in 4:
+			for t: float in [-2.6, -1.3, 0.0, 1.3, 2.6]:
+				if cr.randf() < 0.35:
+					continue
+				var lp := Vector3(t + cr.randf_range(-0.3, 0.3), TREAD_Y, TREAD_MID + cr.randf_range(-0.06, 0.06)).rotated(Vector3.UP, side * PI * 0.5)
+				var c := xf * lp
+				var y0 := _tread_y(m, c + Vector3.UP * 0.5)
+				if is_nan(y0) or absf(y0 - c.y) > 0.08:
+					continue
+				k.candle_cluster(Vector3(c.x, y0 + 0.01, c.z), cr.randi_range(3, 5), 0.14, cr)
+				placed += 1
+	report.append("pillar candles: %d clusters on the lower treads" % placed)
+
+
+## The height of the pillar's own top surface under `c` (a ray down; NAN when it meets anything else first or a slope).
+func _tread_y(m: Node3D, c: Vector3) -> float:
+	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(c, c + Vector3.DOWN * 16.0, Layers.WORLD))
+	if hit.is_empty() or not m.is_ancestor_of(hit.collider as Node) or (hit.normal as Vector3).y < 0.9:
+		return NAN
+	return (hit.position as Vector3).y
+
+
+static func _far_stone_mat() -> StandardMaterial3D:
+	var f := StandardMaterial3D.new()
+	f.albedo_color = Color(0.32, 0.33, 0.37)
+	f.roughness = 1.0
+	return f
 
 
 # --- clearance ---------------------------------------------------------------------------------------
@@ -486,61 +452,33 @@ func _clear(xf: Transform3D, size: Vector3, grow := 0.3, ground_ok := false) -> 
 	return true
 
 
-## A shard keeps clear of its own step.
-static func _near_steps(sp: Vector3, p: Vector3, b: Basis, size: Vector3) -> bool:
-	var local := b.inverse() * (sp - p)
-	return absf(local.x) < size.x * 0.5 + 0.6 and absf(local.y) < size.y * 0.5 + 0.6 and absf(local.z) < size.z * 0.5 + 0.6
-
-
-## Each Watcher as its parts (MageStatue's own proportions, at full scale): the pedestal, the body, the staff
-## and the outstretched arm with its sleeve, tested against everything built and drawn (and the rock, but for
-## the pedestal, which stands on the floor). Anything touched is printed in the clearance line.
+## Each Watcher's own convex hulls (the plinth's tiers, the base, the shaft, the capital, the lantern) against the world:
+## nothing may touch but the pool floor under the plinth.
 func _audit_watchers(host: Node3D) -> void:
-	var fs := MageStatue.FIG_SCALE
-	var ph := MageStatue.PEDESTAL_H
 	for w in host.get_children():
-		if not (w is MageStatue):
+		if not (w is Node3D) or w is Light3D or not String(w.name).begins_with("Watcher"):
 			continue
 		var m := w as Node3D
-		var mx := -1.0 if m.global_position.x > 0.0 else 1.0            # the east one is mirrored
-		var fig := func(v: Vector3) -> Vector3: return Vector3(v.x * fs * mx, v.y * fs + ph, v.z * fs)
-		var parts: Array = []
-		var cyl := CylinderShape3D.new()
-		cyl.radius = 1.6 * WATCHER_SCALE
-		cyl.height = ph * WATCHER_SCALE
-		parts.append(["pedestal", cyl, Vector3(0, ph * 0.5, 0), Basis.IDENTITY, true])
-		var cap := CapsuleShape3D.new()
-		cap.radius = 0.55 * fs * WATCHER_SCALE
-		cap.height = 2.9 * fs * WATCHER_SCALE
-		parts.append(["body", cap, Vector3(0, ph + 1.45 * fs, 0), Basis.IDENTITY, false])
-		parts.append(_bar("staff", fig.call(Vector3(0.62, 0.0, -0.38)), fig.call(Vector3(0.62, 4.0, -0.38)), 0.12 * fs))
-		parts.append(_bar("arm", fig.call(Vector3(-0.4, 2.56, 0.0)), fig.call(Vector3(-0.63, 2.55, -1.0)), 0.36 * fs))
-		parts.append(_bar("sleeve", fig.call(Vector3(-0.66, 2.44, -0.62)), fig.call(Vector3(-0.64, 1.78, -0.5)), 0.3 * fs))
-		var own := m.find_child("StatueBody", true, false)
-		for part: Array in parts:
-			var q := PhysicsShapeQueryParameters3D.new()
-			q.shape = part[1]
-			var rot := m.global_transform.basis.orthonormalized()
-			q.transform = Transform3D(rot * (part[3] as Basis), m.global_transform * (part[2] as Vector3))
-			q.collision_mask = Layers.WORLD | PROBE_LAYER
-			var touched := {}
-			for hit: Dictionary in space.intersect_shape(q, 24):
-				var c := hit.get("collider") as Node
-				if c == null or c == own or (bool(part[4]) and String(c.name).begins_with("Terrain")):
+		var own := {}
+		for b in m.find_children("*", "CollisionObject3D", true, false):
+			own[b] = true
+		for b in m.find_children("*", "StaticBody3D", true, false):
+			var tier := String(b.name).begins_with("Pillar_tier")
+			for cs in b.get_children():
+				if not (cs is CollisionShape3D) or (cs as CollisionShape3D).shape == null:
 					continue
-				touched[String(c.get_meta(&"stands_for", c.name))] = true
-			if not touched.is_empty():
-				_audit.append("%s %s touches %s" % [m.name, part[0], ", ".join(touched.keys())])
-
-
-## A thin box from a to b (node-local, before the node's scale), `t` thick, as an audit part.
-func _bar(n: String, a: Vector3, b: Vector3, t: float) -> Array:
-	var d := b - a
-	var y := d.normalized()
-	var x := y.cross(Vector3.FORWARD if absf(y.z) < 0.9 else Vector3.RIGHT).normalized()
-	var box := BoxShape3D.new()
-	box.size = Vector3(t, d.length(), t) * WATCHER_SCALE
-	return [n, box, (a + b) * 0.5, Basis(x, y, x.cross(y)), false]
+				var q := PhysicsShapeQueryParameters3D.new()
+				q.shape = (cs as CollisionShape3D).shape
+				q.transform = (cs as CollisionShape3D).global_transform
+				q.collision_mask = Layers.WORLD | PROBE_LAYER
+				var touched := {}
+				for hit: Dictionary in space.intersect_shape(q, 24):
+					var c := hit.get("collider") as Node
+					if c == null or own.has(c) or (tier and String(c.name).begins_with("Terrain")):
+						continue
+					touched[String(c.get_meta(&"stands_for", c.name))] = true
+				if not touched.is_empty():
+					_audit.append("%s %s touches %s" % [m.name, b.name, ", ".join(touched.keys())])
 
 
 # --- light ---------------------------------------------------------------------------------------------
@@ -583,7 +521,7 @@ static func _orb_mat() -> StandardMaterial3D:
 	m.albedo_color = Color(0.7, 0.6, 1.0)
 	m.emission_enabled = true
 	m.emission = Color(0.66, 0.52, 1.0)
-	m.emission_energy_multiplier = 9.0
+	m.emission_energy_multiplier = 5.0
 	return m
 
 
@@ -592,20 +530,22 @@ static func _rune_mat() -> StandardMaterial3D:
 	m.albedo_color = Color(0.32, 0.22, 0.7)
 	m.emission_enabled = true
 	m.emission = Color(0.55, 0.4, 1.0)
-	m.emission_energy_multiplier = 3.2
+	m.emission_energy_multiplier = 3.4
 	m.roughness = 0.6
 	return m
 
 
 ## The pool lights the place from below (the moon never reaches the floor): two low violet lights over the
-## water, with LavaWorks' Glow0 between them. Unshadowed, budgeted like the Realm's own lights.
+## water, with LavaWorks' Glow0 between them, and one higher in front of the chapel that lights the west terraces' faces and the
+## chapel's facade. Unshadowed, budgeted like the Realm's own lights.
 func _pool_lights(host: Node3D) -> void:
-	for at: Vector3 in [Vector3(0.0, LAVA + 1.6, -18.5), Vector3(4.0, LAVA + 1.6, -38.0)]:
+	for spec: Array in [[Vector3(0.0, LAVA + 1.6, -18.5), 4.0, 24.0], [Vector3(4.0, LAVA + 1.6, -38.0), 4.0, 24.0], [Vector3(-11.0, LAVA + 6.5, -37.0), 3.2, 13.0]]:
+		var at: Vector3 = spec[0]
 		var l := OmniLight3D.new()
 		l.name = "PoolLight"
 		l.light_color = Color(0.5, 0.38, 1.0)
-		l.light_energy = 2.6
-		l.omni_range = 18.0
+		l.light_energy = float(spec[1])
+		l.omni_range = float(spec[2])
 		l.omni_attenuation = 0.8
 		l.shadow_enabled = false
 		l.light_volumetric_fog_energy = 0.5
@@ -617,7 +557,7 @@ func _pool_lights(host: Node3D) -> void:
 		l.global_position = at
 
 
-## Motes rising off the pool, and light dripping from the stair.
+## Motes rising off the pool.
 func _motes(host: Node3D) -> void:
 	var mid := (Z0 + star_z) * 0.5
 	var rise := Vfx.emitter(Color(0.75, 0.66, 1.6), {"count": 220, "life": 9.0, "speed": Vector2(0.15, 0.5), "size": 0.05, "gravity": -0.12, "radius": 1.0, "turbulence": true, "explosive": 0.0})
@@ -632,15 +572,3 @@ func _motes(host: Node3D) -> void:
 		host.add_child(rise)
 		rise.global_position = Vector3(0.0, LAVA + 0.4, mid)
 		rise.emitting = true
-	var drip := Vfx.emitter(Color(0.8, 0.72, 1.7), {"count": 70, "life": 5.0, "speed": Vector2(0.05, 0.2), "size": 0.04, "gravity": 0.35, "radius": 1.0, "turbulence": true, "explosive": 0.0})
-	if drip:
-		drip.name = "StairLight"
-		var dm := (drip.process_material as ParticleProcessMaterial).duplicate() as ParticleProcessMaterial
-		dm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-		dm.emission_box_extents = Vector3(6.5, 4.0, 6.5)
-		drip.process_material = dm
-		drip.visibility_aabb = AABB(Vector3(-8, -22, -16), Vector3(16, 40, 32))
-		drip.preprocess = 5.0
-		host.add_child(drip)
-		drip.global_position = Vector3(STAIR_C.x, (STAIR_Y0 + STAIR_Y1) * 0.5 - 2.0, STAIR_C.y)
-		drip.emitting = true

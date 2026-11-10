@@ -191,11 +191,11 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(-240, -10), "note": "the west bank"},
 		{"kind": "camp", "at": Vector2(-178, -50), "note": "the east bank"}],
 	"hierarch": [
-		{"kind": "fire", "at": Vector2(-196, -76), "note": "where weir_track reaches the valley"},
+		{"kind": "fire", "at": Vector2(-193, -80), "note": "where weir_track reaches the valley, 4 m off its line"},
 		{"kind": "poi", "at": Vector2(-236, -84), "note": "the statue's hand, palm up"},
 		{"kind": "camp", "at": Vector2(-186, -118), "note": "under the Crowns"}],
 	"siege": [
-		{"kind": "fire", "at": Vector2(-214, 128), "note": "beside siege_track at the outer earthwork"},
+		{"kind": "fire", "at": Vector2(-219, 127), "note": "beside siege_track at the outer earthwork"},
 		{"kind": "poi", "at": Vector2(-236, 170), "note": "the siege tower"},
 		{"kind": "poi", "at": Vector2(-196, 210), "note": "the trebuchet line"},
 		{"kind": "camp", "at": Vector2(-180, 150), "note": "the palisade"},
@@ -206,7 +206,7 @@ const SLOTS := {
 		{"kind": "poi_wet", "at": Vector2(196, -14), "note": "a sunken boat-house"},
 		{"kind": "camp", "at": Vector2(172, -36), "note": "the north shore"}],
 	"anchorholds": [
-		{"kind": "fire", "at": Vector2(204, -84), "note": "the foot of the cliff, anchor_track's end"},
+		{"kind": "fire", "at": Vector2(209, -83), "note": "the foot of the cliff, a few metres off anchor_track's bend"},
 		{"kind": "poi", "at": Vector2(214, -132), "note": "the cliff terrace: the lower cells, the timber walk, the chapel and the Anchoress's room"},
 		{"kind": "camp", "at": Vector2(180, -82), "note": "the scree at the cliff's foot"}],
 	"saltmarket": [
@@ -222,10 +222,10 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(-120, 214), "note": "the west downs"},
 		{"kind": "camp", "at": Vector2(126, 214), "note": "the east downs"}],
 	"oak": [
-		{"kind": "fire", "at": Vector2(-44, 192), "note": "beside downs_track, in the oak's shade"},
+		{"kind": "fire", "at": Vector2(-44, 196.4), "note": "beside downs_track, in the oak's shade"},
 		{"kind": "poi", "at": Vector2(-70, 206), "note": "the Grandmother Oak"}],
 	"well": [
-		{"kind": "fire", "at": Vector2(44, 192), "note": "beside downs_track, east of the hut"},
+		{"kind": "fire", "at": Vector2(44, 196.4), "note": "beside downs_track, east of the hut"},
 		{"kind": "poi_wet", "at": Vector2(72, 204), "note": "the Well of Echoes (its pool is in the pit)"}],
 	"quarry": [
 		{"kind": "fire", "at": Vector2(-120, -83), "note": "the pit's mouth, beside west_track's end"},
@@ -287,7 +287,7 @@ const BASE_PATHS := [
 	{"id": "fen_descent", "w": 1.6, "pts": [Vector2(78, -42), Vector2(62, -56), Vector2(44, -62), Vector2(34, -66)]},
 	{"id": "road", "w": 2.2, "pts": [Vector2(-255, 62), Vector2(-232, 64), Vector2(-205, 66), Vector2(-180, 66), Vector2(-150, 67), Vector2(-104, 64), Vector2(-72, 60), Vector2(-40, 58), Vector2(-6, 54), Vector2(2, 44), Vector2(40, 60), Vector2(104, 66), Vector2(150, 68), Vector2(180, 70), Vector2(212, 74), Vector2(240, 72), Vector2(255, 70)]},
 	{"id": "chapel_lane", "w": 1.4, "pts": [Vector2(-60, 58), Vector2(-68, 52)]},
-	{"id": "rift_rim", "w": 2.0, "pts": [Vector2(0, 22), Vector2(0, 4), Vector2(0, -8)]},
+	{"id": "rift_rim", "w": 2.0, "pts": [Vector2(0, 22), Vector2(0, 4), Vector2(0, -3)]},   # ends where the approach flight begins (it ran on into the forecourt's body)
 	# r34
 	{"id": "west_track", "w": 1.4, "pts": [Vector2(-118, 65), Vector2(-124, 44), Vector2(-132, 22), Vector2(-138, -6), Vector2(-138, -40), Vector2(-132, -66), Vector2(-126, -84)]},
 	{"id": "moor_track", "w": 1.4, "pts": [Vector2(124, 67), Vector2(130, 44), Vector2(134, 18), Vector2(132, -18), Vector2(130, -46), Vector2(128, -72), Vector2(130, -86)]},

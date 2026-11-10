@@ -12,7 +12,7 @@ extends RefCounted
 ##   site_company.gd  (r28) the Ninth Company's offering: shows once its three letters are read
 ##   site_r34.gd      (r34) the Cutters' Nook (climb-only), the Ninth Rank (lamp order), Corvin's
 ##                    Sluice (lever raises a sunk walk) in the new ground
-##   site_threshold.gd the Last Landing: atop the Broken Stair over the rift's starwater (climb-only)
+##   site_threshold.gd the Pilgrims' Chapel: under the west starfall, down the stair round the crossing's third tower
 ##   (r28) the Lower Count under the Ossuary lives in world/areas/ossuary/oss_deep.gd and registers
 ##         its places here when it is built; beam.gd is its caught light
 ##   reactivity.gd    after each boss: brambles wither + moonlight (Thornwarden), the fen clears and
@@ -31,7 +31,9 @@ const SiteBreath := preload("res://core/life/secrets/site_breath.gd")
 const SiteCompany := preload("res://core/life/secrets/site_company.gd")
 const SiteR37W := preload("res://core/life/secrets/site_r37_west.gd")      # --- west marches --- the Sorrow's hidden walk
 const SiteR34 := preload("res://core/life/secrets/site_r34.gd")      # r34 places: the new ground's secrets
-const SiteThreshold := preload("res://core/life/secrets/site_threshold.gd")   # the Last Landing, atop the Broken Stair
+const SiteThreshold := preload("res://core/life/secrets/site_threshold.gd")   # the Pilgrims' Chapel under the starfall
+const SiteUpwardFalls := preload("res://core/life/secrets/site_upward_falls.gd")   # the Upward Falls' crest (a wonder)
+const SiteStarCrater := preload("res://core/life/secrets/site_star_crater.gd")   # the Fallen Star's platform (a wonder)
 # --- south marches ---
 const SiteSouth := preload("res://core/life/secrets/site_r37_south.gd")
 const Reactivity := preload("res://core/life/secrets/reactivity.gd")
@@ -74,6 +76,8 @@ static func build(root: Node) -> void:
 		SiteR34.build(root, host)
 	build_ms["r34"] = (Time.get_ticks_usec() - t) / 1000
 	SiteThreshold.build(root, host)
+	SiteUpwardFalls.build(root, host)
+	SiteStarCrater.build(root, host)
 	# --- south marches ---
 	SiteSouth.build(root, host)
 	# --- west marches ---

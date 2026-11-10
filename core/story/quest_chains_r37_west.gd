@@ -79,7 +79,7 @@ const PICKUPS := {
 		"say": "A boat of bark the length of a hand, a stub of tallow in it, beached in the reeds on the west bank. A name has been scratched in the keel, and then scratched out, and then written again."},
 	"wf_votive_b": {"quest": "wf_lights", "step": 0, "near": Vector2(-184.0, -30.0), "kind": "lantern", "name": "a votive boat", "verb": "Take",
 		"say": "A votive boat on the east bank, snagged in an alder root. It is dry. The tallow is whole. It never lit, and it was never going to be taken by anyone but a river."},
-	"wf_votive_c": {"quest": "wf_lights", "step": 0, "near": Vector2(-200.0, 20.0), "kind": "lantern", "name": "a votive boat", "verb": "Take",
+	"wf_votive_c": {"quest": "wf_lights", "step": 0, "near": Vector2(-210.0, 20.0), "kind": "lantern", "name": "a votive boat", "verb": "Take",
 		"say": "The last of the three, upside down in the shallows below the ford. Under it the tallow has gone grey and the bark has gone black. Someone small made it."},
 	"wf_votive_place": {"quest": "wf_lights", "step": 1, "near": Vector2(-205.0, -40.0), "kind": "place", "name": "the drowned shrine's altar", "verb": "Set the boats on",
 		"say": "You set them in a row on the shrine's altar, with the water to your knees. The wicks catch from nothing. For a moment the whole shallows is lit from underneath, and it is not a pleasant light, and it is not a cruel one."},

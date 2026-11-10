@@ -507,7 +507,18 @@ func slots() -> Array[Dictionary]:
 	return _slots
 
 
-var _last_hit_y := NAN      ## y of the last `_ground` hit (NAN when the probe found no floor)
+## The Realm's tree colliders (RealmFlora's chunks, the old Forest and Trees bodies).
+static func _is_flora_body(n: Node) -> bool:
+	if n == null:
+		return false
+	var nm := String(n.name)
+	if nm == "FloraBody" or nm == "TreesBody" or nm == "ForestBody":
+		return true
+	var par := n.get_parent()
+	return par != null and (String(par.name).begins_with("Trees_") or String(par.name) == "Forest")
+
+
+var _last_hit_y := NAN     ## y of the last `_ground` hit (NAN when the probe found no floor)
 
 
 ## `up`: how far above `from` the probe starts (indoor camps pass ~1.5 so roofs aren't floors).
@@ -539,6 +550,12 @@ func _ground(space: PhysicsDirectSpaceState3D, from: Vector3, up := 24.0, strict
 		)
 		q.collision_mask = Layers.WORLD
 		var hit := space.intersect_ray(q)
+		# a tree's trunk or the top of a rock face is no floor: a pawn set on one stood metres up in the wood
+		var skipped: Array[RID] = []
+		while not hit.is_empty() and skipped.size() < 6 and _is_flora_body(hit.collider as Node):
+			skipped.append(hit.rid)
+			q.exclude = skipped
+			hit = space.intersect_ray(q)
 		if hit.is_empty():
 			continue
 		var n: Vector3 = hit.get("normal", Vector3.UP)

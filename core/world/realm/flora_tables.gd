@@ -63,3 +63,14 @@ const LOOKS := {
 		"under_add": {"lily": 0.35},
 		"tint": Color(0.86, 0.94, 0.88)},
 }
+
+
+## The world's edge on the west, east and south is a wall of cliff faces (RealmWayfinding.edges): a tree
+## whose trunk or crown stands in that band grows through the rock.
+static func on_edge_wall(at: Vector2, spread: float) -> bool:
+	var bd := RealmLayout.BOUNDS
+	var reach := 5.5 + spread * 0.3
+	if at.y > bd.position.y + 32.0 and at.y < bd.end.y + 3.0:
+		if absf(at.x - bd.position.x) < reach or absf(at.x - bd.end.x) < reach:
+			return true
+	return at.y > bd.end.y - reach and at.y < bd.end.y + 3.0

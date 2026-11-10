@@ -16,6 +16,21 @@ var radius := 20.0
 var _stone_mesh: BoxMesh
 
 
+## The horn's embers: four low warm lights round the inside of the skull, unshadowed, so its walls read as
+## stone against the dark instead of one black mass (the floor's only other light is the fight's own).
+func _ready() -> void:
+	for i in 4:
+		var a := TAU * (float(i) + 0.5) / 4.0
+		var l := OmniLight3D.new()
+		l.name = "Ember%d" % i
+		l.light_color = Color(1.0, 0.56, 0.3)
+		l.light_energy = 2.4
+		l.omni_range = 22.0
+		l.shadow_enabled = false
+		add_child(l)
+		l.position = Vector3(cos(a), 0.0, sin(a)) * 15.5 + Vector3.UP * 4.5
+
+
 func room_begin(_boss: Node) -> void:
 	mood = "fight"
 

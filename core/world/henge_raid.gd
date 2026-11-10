@@ -321,6 +321,11 @@ func _brambles(cm: CreatureMesh, rng: RandomNumberGenerator, xf: Transform3D, le
 				pts.append(xf * (o + Vector3(sin(t * 6.0 + float(j) * 1.7) * 0.4, t * tall, cos(t * 5.0 + float(c)) * 0.35)))
 				rad.append(lerpf(0.11, 0.025, t))
 			cm.tube(pts, rad, 5, Color(0.15, 0.085, 0.06), 0.0, 0.25, 0.0, Vector2.ONE, 0.4)
+			# barbs along the stem: smooth bare pipes read as pipes, not as thorn
+			for q in [1, 2, 3, 4]:
+				var ang := rng.randf() * TAU
+				var out: Vector3 = (xf.basis * Vector3(cos(ang), rng.randf_range(0.0, 0.8), sin(ang))).normalized()
+				cm.tube(PackedVector3Array([pts[q], pts[q] + out * rng.randf_range(0.3, 0.55)]), PackedFloat32Array([rad[q] * 0.7, 0.0]), 3, Color(0.2, 0.1, 0.07), 0.0, 0.0)
 
 
 ## The outer bramble wall, solid and above a double jump's reach, open only at the raid door.
