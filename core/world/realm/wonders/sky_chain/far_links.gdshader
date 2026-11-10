@@ -8,6 +8,11 @@ uniform vec3 sky_tint : source_color = vec3(0.34, 0.24, 0.62);
 uniform float fade_start = 150.0;
 uniform float fade_end = 470.0;
 uniform float sway = 1.6;
+uniform float metal = 0.5;
+uniform float rough = 0.62;
+uniform float rim_gain = 2.2;
+uniform float glow = 1.0;
+uniform float lift = 0.0;
 varying float v_h;
 varying float v_up;
 
@@ -27,11 +32,11 @@ void fragment() {
 	// the higher, the more of the vortex's colour: it is lit from behind by the sky
 	float sky = smoothstep(40.0, 420.0, v_h);
 	ALBEDO = mix(base, sky_tint * 0.5, sky * 0.5);
-	METALLIC = 0.3;
-	ROUGHNESS = 0.42;
+	METALLIC = metal;
+	ROUGHNESS = rough;
 	RIM = 0.75;
 	RIM_TINT = 0.5;
 	float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.2);
-	EMISSION = sky_tint * ((0.2 + 0.2 * max(v_up, 0.0)) * (0.6 + sky) + rim * 2.2);
+	EMISSION = sky_tint * ((0.2 + 0.2 * max(v_up, 0.0)) * (0.6 + sky) * glow + rim * rim_gain) + ALBEDO * lift;
 	ALPHA = f;
 }

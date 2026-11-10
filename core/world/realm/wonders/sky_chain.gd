@@ -198,13 +198,18 @@ func _model() -> void:
 		push_error("WONDER sky_chain: no anchor model")
 		return
 	root3d.name = "Anchor"
+	# the house stone of the Crossing and the Ossuary (OssKit's triplanar ashlar), lifted a little; the rock a shade browner
 	var bright := {}
-	for set_name: String in ["ashlar", "stone", "iron"]:
-		var m := WestKit.mat(set_name).duplicate() as StandardMaterial3D
-		m.albedo_color = Color(1.9, 1.9, 1.95) if set_name != "iron" else Color(1.5, 1.5, 1.55)
-		if set_name == "iron":
-			m.metallic = 0.3                 # full metal is black in a night with nothing to reflect
+	for set_name: String in ["ashlar", "stone"]:
+		var m := OssKit.mat("stone").duplicate() as StandardMaterial3D
+		m.albedo_color = Color(1.5, 1.5, 1.55) if set_name == "ashlar" else Color(1.4, 1.34, 1.25)
+		m.rim_enabled = false
+		m.emission_enabled = false
 		bright[set_name] = m
+	var im := WestKit.mat("iron").duplicate() as StandardMaterial3D
+	im.albedo_color = Color(1.5, 1.5, 1.55)
+	im.metallic = 0.4
+	bright["iron"] = im
 	_bright = bright
 	var dark := StandardMaterial3D.new()
 	dark.albedo_color = Color(0.025, 0.025, 0.03)
@@ -323,7 +328,7 @@ func _collision() -> void:
 	host.add_child(body)
 	# the drum
 	var dr: Array = geo.drum
-	for part: Array in [[6.6, 1.4, 0.0], [5.9, 9.4, 1.0]]:
+	for part: Array in [[6.6, 1.4, 0.0], [5.9, float(dr[2]) - deck - 1.0, 1.0]]:
 		var cyl := CylinderShape3D.new()
 		cyl.radius = float(part[0])
 		cyl.height = float(part[1])
@@ -348,15 +353,19 @@ func _link_meshes() -> void:
 
 func _chain() -> void:
 	_link_meshes()
-	# the links are lit by vertex colour (rust, patina, bright where they bear): no tiling set, a little rim for the moon
-	var iron := StandardMaterial3D.new()
-	iron.vertex_color_use_as_albedo = true
-	iron.albedo_color = Color(1.3, 1.3, 1.4)
-	iron.roughness = 0.6
-	iron.metallic = 0.2
-	iron.rim_enabled = true
-	iron.rim = 0.8
-	iron.rim_tint = 0.5
+	# the links: one shader for all (vertex colour: rust, patina, bright where they bear; metal, a violet rim from the vortex);
+	# the near ones do not sway or fade
+	var iron := ShaderMaterial.new()
+	iron.shader = FAR_SHADER
+	iron.set_shader_parameter("fade_start", 5000.0)
+	iron.set_shader_parameter("fade_end", 9000.0)
+	iron.set_shader_parameter("sway", 0.0)
+	iron.set_shader_parameter("iron", Color(0.95, 0.88, 0.82))
+	iron.set_shader_parameter("metal", 0.2)
+	iron.set_shader_parameter("rough", 0.7)
+	iron.set_shader_parameter("rim_gain", 0.35)
+	iron.set_shader_parameter("glow", 0.0)
+	iron.set_shader_parameter("lift", 0.08)
 	var groups: Dictionary = {}
 	var coll_faces := PackedVector3Array()
 	for k in frames.size():
@@ -384,6 +393,8 @@ func _chain() -> void:
 			_check("link %d" % k, xf.origin - Vector3.ONE * 2.2, xf.origin + Vector3.ONE * 2.2, 0.0)
 	var far := ShaderMaterial.new()
 	far.shader = FAR_SHADER
+	far.set_shader_parameter("rim_gain", 4.0)
+	far.set_shader_parameter("iron", Color(0.34, 0.33, 0.37))
 	var counts: Array[String] = []
 	# the first links are merged into one mesh each (a multimesh this small keeps an empty box in the engine and is culled
 	# for good); the high links, many and far apart, stay a multimesh (the Realm's pass splits it into cells)
@@ -537,8 +548,8 @@ func _lights() -> void:
 	var dc: Array = geo.drum
 	var spec := [
 		[Vector3(float(dr[0]), float(dr[1]) + 1.6, float(geo.zw) + 2.2), Color(1.0, 0.62, 0.32), 1.0, 12.0, "DoorCandles"],
-		[Vector3(float(dc[0]), float(dc[2]) + 3.0, float(dc[1])), Color(0.56, 0.44, 1.0), 2.4, 40.0, "ChainGlow"],
-		[Vector3(float(dc[0]), 9.0, float(geo.zs) + 9.0), Color(0.5, 0.52, 1.0), 2.2, 44.0, "FaceFill"],
+		[Vector3(float(dc[0]) - 2.0, float(dc[2]) - 1.0, float(dc[1]) - 1.0), Color(0.68, 0.64, 0.92), 2.6, 46.0, "ChainGlow"],
+		[Vector3(float(dc[0]), float(geo.deck) - 1.0, float(geo.zs) + 3.0), Color(0.7, 0.74, 0.95), 3.0, 46.0, "FaceFill"],
 	]
 	for s: Array in spec:
 		var l := OmniLight3D.new()

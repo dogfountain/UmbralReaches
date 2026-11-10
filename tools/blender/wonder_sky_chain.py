@@ -481,9 +481,10 @@ def annulus(P, key, cx, cz, r0, r1, y0, y1, seg=48):
 # the mooring
 # --------------------------------------------------------------------------------------------
 DC = (76.0, -135.6)                 # the capstan's axis (x, z)
-Y_A, Y_B = 20.6, 24.6               # the chain's first turn and where it leaves the drum's head
+Y_A, Y_B = 20.6, 26.9               # the chain's first turn and where it leaves the drum's head
 TURNS = 1.25
-HEAD_Y = 26.4
+HEAD_Y = 30.0
+LIP_Y = HEAD_Y - 1.4
 RING_Z = -142.6                     # the ring hangs from a pin out of the north wall
 RING_CY = 22.8
 
@@ -492,10 +493,10 @@ def drum_r(y):
     """The capstan drum's surface radius at height y: a flared foot, a waisted body, a lipped head."""
     if y < DECK + 1.3:
         return 6.5 - 0.7 * (y - DECK) / 1.3
-    if y < 25.0:
-        t = (y - (DECK + 1.3)) / (25.0 - (DECK + 1.3))
+    if y < LIP_Y:
+        t = (y - (DECK + 1.3)) / (LIP_Y - (DECK + 1.3))
         return 5.8 - 0.55 * math.sin(math.pi * t)
-    t = min(1.0, (y - 25.0) / (HEAD_Y - 25.0))
+    t = min(1.0, (y - LIP_Y) / (HEAD_Y - LIP_Y))
     return 5.8 + 0.5 * smooth(0.0, 0.6, t)
 
 
@@ -522,15 +523,13 @@ def drum_disp(th, y):
     ph = (y * 0.9) % 1.0                       # courses: shallow joints between the drum's built-up rings
     d -= 0.05 * (1.0 - smooth(0.0, 0.07, min(ph, 1.0 - ph)))
     d -= 0.34 * helix_depth(th, y)
-    if y > 25.0 and y < 26.3:
-        d -= 0.0
     return d
 
 
 def build_drum(P):
-    ys = [DECK - 1.2 + i * 0.28 for i in range(int((HEAD_Y - DECK + 1.2) / 0.28) + 1)]
+    ys = [DECK - 1.2 + i * 0.4 for i in range(int((HEAD_Y - DECK + 1.2) / 0.4) + 1)]
     ys.append(HEAD_Y)
-    lathe(P, "stone", DC[0], DC[1], ys, drum_r, 72, drum_disp, True, lambda th, y: helix_depth(th, y))
+    lathe(P, "stone", DC[0], DC[1], ys, drum_r, 52, drum_disp, True, lambda th, y: helix_depth(th, y))
     # a rim of socket-holes' stubs: eight capstan bars' sockets (stone lugs) on the head
     for k in range(8):
         a = math.tau * k / 8
@@ -539,9 +538,9 @@ def build_drum(P):
     bev_box(P, "iron", (DC[0], HEAD_Y + 0.3, DC[1]), (1.6, 0.25, 1.6), bevel=0.05, seg=2, yaw=0.4)
     # iron: the foot band, the head band (with a bright worn lip), straps up the body, rivets
     annulus(P, "iron", DC[0], DC[1], drum_r(DECK + 1.9) - 0.5, drum_r(DECK + 1.9) + 0.16, DECK + 1.6, DECK + 2.3)
-    annulus(P, "iron", DC[0], DC[1], drum_r(25.5) - 0.5, drum_r(25.5) + 0.2, 25.25, 25.95)
-    annulus(P, "iron", DC[0], DC[1], drum_r(25.0) - 0.5, drum_r(25.0) + 0.16, 24.95, 25.2)
-    for band_y in (DECK + 1.95, 25.6):
+    annulus(P, "iron", DC[0], DC[1], drum_r(LIP_Y + 0.5) - 0.5, drum_r(LIP_Y + 0.5) + 0.2, LIP_Y + 0.25, LIP_Y + 0.95)
+    annulus(P, "iron", DC[0], DC[1], drum_r(LIP_Y) - 0.5, drum_r(LIP_Y) + 0.16, LIP_Y - 0.05, LIP_Y + 0.2)
+    for band_y in (DECK + 1.95, LIP_Y + 0.6):
         for k in range(32):
             a = math.tau * k / 32 + 0.05
             r = drum_r(band_y) + 0.22
@@ -549,7 +548,7 @@ def build_drum(P):
     for k in range(10):
         a = math.tau * (k + 0.5) / 10
         # leave the chain's side clear: straps only where the helix is shallow? straps run under the chain, bound over it
-        for (y0, y1) in ((DECK + 2.3, 20.1), (25.0, 25.3)):
+        for (y0, y1) in ((DECK + 2.3, 20.1), (LIP_Y, LIP_Y + 0.3)):
             ym = (y0 + y1) / 2
             r = drum_r(ym) + 0.1
             bev_box(P, "iron", (DC[0] + r * math.cos(a), ym, DC[1] + r * math.sin(a)), (0.34, y1 - y0, 0.1), bevel=0.02, seg=1, yaw=-a + math.pi / 2)
@@ -558,7 +557,7 @@ def build_drum(P):
 def build_mooring_wall(P):
     """The living rock behind the capstan: the cut face of the bay, hewn, with the ring's boss, pin and wedges."""
     wall(P, "stone", Vector((0, 0, ZN - 0.2)), Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1)),
-         XS, X1, DECK - 0.4, lambda U: DECK + 14.0 + 3.0 * fbm(Vector((U * 0.12, 3, 1)), 2), None, cell=0.28, rough=1.4)
+         XS, X1, DECK - 0.4, lambda U: DECK + 14.0 + 3.0 * fbm(Vector((U * 0.12, 3, 1)), 2), None, cell=0.45, rough=1.4)
     xr = DC[0] + drum_r(Y_A) + 0.12
     # the boss: a huge hewn block the ring's pin is driven through
     bev_box(P, "stone", (xr, RING_CY + 0.4, ZN + 0.9), (6.4, 6.2, 2.6), bevel=0.0, rough=0.35, cuts=7)
@@ -618,13 +617,13 @@ def build_lodge(P):
     rise = math.tan(ROOF_A) * (hz + 0.5)
     cour = Coursing(51, x0 - 2, x1 + 2, y0 - 1, y1 + 8, hmin=0.8, hmax=1.4, wmin=1.2, wmax=3.0)
     # the south face (the door) and the west gable face; the east and north are against the cliff and the neighbour
-    wall(P, "ashlar", Vector((0, 0, z1)), Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1)), x0, x1, y0, y1, cour, cell=0.23)
+    wall(P, "ashlar", Vector((0, 0, z1)), Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1)), x0, x1, y0, y1, cour, cell=0.34)
     czw = Coursing(53, z0 - 2, z1 + 2, y0 - 1, y1 + 8, hmin=0.8, hmax=1.4, wmin=1.2, wmax=3.0)
     wall(P, "ashlar", Vector((x0, 0, 0)), Vector((0, 0, 1)), Vector((0, 1, 0)), Vector((-1, 0, 0)), z0, z1, y0,
-         lambda U: y1 + max(0.0, (1.0 - abs(U - zm) / (hz + 0.05))) * rise, czw, cell=0.23)
+         lambda U: y1 + max(0.0, (1.0 - abs(U - zm) / (hz + 0.05))) * rise, czw, cell=0.34)
     cze = Coursing(54, -z1 - 2, -z0 + 2, y0 - 1, y1 + 8, hmin=0.8, hmax=1.4, wmin=1.2, wmax=3.0)
     wall(P, "ashlar", Vector((x1, 0, 0)), Vector((0, 0, -1)), Vector((0, 1, 0)), Vector((1, 0, 0)), -z1, -z0, y0,
-         lambda U: y1 + max(0.0, (1.0 - abs(-U - zm) / (hz + 0.05))) * rise, cze, cell=0.23)
+         lambda U: y1 + max(0.0, (1.0 - abs(-U - zm) / (hz + 0.05))) * rise, cze, cell=0.34)
     # the gable's south end: the south wall carries on up to the ridge as a gable too
     # the roof: slate courses on two planes, overhanging
     global JW, JD
@@ -638,7 +637,7 @@ def build_lodge(P):
         rl = (hz + 0.5) / math.cos(ROOF_A)
         cs = Coursing(61 + side, x0 - 2, x1 + 2, -1, rl + 2, hmin=0.34, hmax=0.46, wmin=0.45, wmax=0.8)
         o = Vector((0, y1 - math.sin(ROOF_A) * 0.5 - 0.1, zedge))
-        wall(P, "ashlar", o, Vector((1, 0, 0)), v, n, x0 - 0.5, x1 + 0.5, 0.0, rl, cs, cell=0.2, rough=0.5)
+        wall(P, "ashlar", o, Vector((1, 0, 0)), v, n, x0 - 0.5, x1 + 0.5, 0.0, rl, cs, cell=0.3, rough=0.5)
     JW, JD = jw, jd
     bbeam(P, "ashlar", (x0 - 0.5, y1 + rise + 0.22 - 0.1, zm), (x1 + 0.5, y1 + rise + 0.22 - 0.1, zm), 0.55, 0.4, 0.07, 2)
     # the chimney on the west gable and its pots
@@ -750,7 +749,7 @@ def rib(P, x, seed, top_s):
             bw = w / nb
             cx = x - w / 2 + bw * (j + 0.5) + rg.uniform(-0.12, 0.12)
             bev_box(P, "stone", (cx, y + hh / 2, ZS + proj / 2 + 0.3 + rg.uniform(-0.1, 0.1)), (bw - 0.08, hh - 0.06, proj),
-                    bevel=0.0, tilt=(rg.uniform(-0.03, 0.03), rg.uniform(-0.03, 0.03)), rough=0.16, cuts=3)
+                    bevel=0.0, tilt=(rg.uniform(-0.03, 0.03), rg.uniform(-0.03, 0.03)), rough=0.16, cuts=2)
         y += hh
         i += 1
     bev_box(P, "stone", (x, top + 0.1, ZS + 0.7), (1.7, 0.3, 1.5), bevel=0.0, rough=0.08, cuts=3)
@@ -774,7 +773,7 @@ def build_anchor():
     jw, jd = JW, JD
     JW, JD = 0.16, 0.14
     wall(P, "ashlar", Vector((0, 0, ZS)), Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1)),
-         XS, X1, lo_s, top_s, cour_s, cell=0.23, rough=1.6)
+         XS, X1, lo_s, top_s, cour_s, cell=0.34, rough=1.6)
     JW, JD = jw, jd
     pts = [(XS, top_s(XS))]
     for sg in SEGS:
@@ -793,7 +792,7 @@ def build_anchor():
     cour_n = Coursing(5, XS - 2, XT + 2, 0.0, DECK + 2, hmin=0.9, hmax=1.6, wmin=1.4, wmax=3.6)
     JW, JD = 0.14, 0.12
     wall(P, "ashlar", Vector((0, 0, ZW + 0.4)), Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1)),
-         XS, XT, lambda U: stair_line(U) - 0.3, DECK - 0.45, cour_n, cell=0.23, rough=1.3)
+         XS, XT, lambda U: stair_line(U) - 0.3, DECK - 0.45, cour_n, cell=0.34, rough=1.3)
     JW, JD = jw, jd
     bbeam(P, "ashlar", (XS - 0.1, DECK - 0.22, ZW + 0.5), (XT + 0.2, DECK - 0.22, ZW + 0.5), 0.9, 0.46, 0.06, 2)
     frieze(P, XS + 3.4, XT - 6.0, DECK - 1.2, ZW + 0.5)
@@ -802,9 +801,9 @@ def build_anchor():
     xr = DC[0] + drum_r(Y_A) + 0.12
     cour_d = Coursing(7, XS - 2, X1 + 2, ZN - 2, ZS + 2, hmin=2.6, hmax=3.6, wmin=2.8, wmax=4.4)
     wall(P, "ashlar", Vector((0, DECK, 0)), Vector((1, 0, 0)), Vector((0, 0, 1)), Vector((0, 1, 0)),
-         XS, X1, ZN, ZW, cour_d, cell=0.28, rough=0.7, skew=deck_extra(xr))
+         XS, X1, ZN, ZW, cour_d, cell=0.45, rough=0.7, skew=deck_extra(xr))
     wall(P, "ashlar", Vector((0, DECK, 0)), Vector((1, 0, 0)), Vector((0, 0, 1)), Vector((0, 1, 0)),
-         XT, X1, ZW, ZS - 0.9, cour_d, cell=0.28, rough=0.7)
+         XT, X1, ZW, ZS - 0.9, cour_d, cell=0.45, rough=0.7)
     bev_box(P, "ashlar", ((XS + XT) / 2, DECK + 0.5, ZW - 0.3), (XT - XS, 1.0, 0.5), bevel=0.05, seg=2)
     bbeam(P, "ashlar", (XS - 0.05, DECK + 1.07, ZW - 0.3), (XT + 0.05, DECK + 1.07, ZW - 0.3), 0.75, 0.16, 0.05, 2)
     bev_box(P, "ashlar", (X1 - 0.25, DECK + 0.5, (ZS - 0.9 + ZW) / 2), (0.5, 1.0, ZS - 0.9 - ZW), bevel=0.05, seg=2)
@@ -824,9 +823,9 @@ def build_anchor():
         bev_box(P, "ashlar", (XS - k * RUN + RUN / 2, top - 0.35, (zin + zout) / 2), (RUN + 0.02, 0.7, zout - zin), bevel=0.03, seg=1)
     # --- the cheeks: the bay's west and east sides, hewn rock ---------------------------------------------------------
     wall(P, "stone", Vector((XS, 0, 0)), Vector((0, 0, 1)), Vector((0, 1, 0)), Vector((-1, 0, 0)),
-         ZN, ZW, lambda U: ground(XS, U) - 0.8, DECK + 0.1, None, cell=0.32, rough=1.2)
+         ZN, ZW, lambda U: ground(XS, U) - 0.8, DECK + 0.1, None, cell=0.45, rough=1.2)
     wall(P, "stone", Vector((X1, 0, 0)), Vector((0, 0, -1)), Vector((0, 1, 0)), Vector((1, 0, 0)),
-         -ZS, -ZN, lambda U: ground(X1, -U) - 0.8, DECK + 0.1, None, cell=0.32, rough=1.2)
+         -ZS, -ZN, lambda U: ground(X1, -U) - 0.8, DECK + 0.1, None, cell=0.45, rough=1.2)
     build_mooring_wall(P)
     build_drum(P)
     build_lodge(P)
@@ -974,7 +973,7 @@ def chain_frames():
     s_head = nh * 0.5
     while sv < total - 8.0:
         h_above = max(0.0, sv - s_head)
-        sc = 1.0 + 3.2 * smooth(10.0, 280.0, h_above)
+        sc = 1.0 + 6.0 * smooth(10.0, 260.0, h_above)
         pos = at(sv)
         t = (at(sv + pitch0 * sc * 0.5) - at(max(sv - pitch0 * sc * 0.5, 0.0))).normalized()
         on_helix = ns * 0.5 - 1.0 <= sv <= s_head + 1.0
@@ -1003,7 +1002,7 @@ def link_mats(frames):
 def build_links(bm, frames, hi_count=16):
     for k, M in enumerate(link_mats(frames)):
         if k < hi_count:
-            sweep_link(bm, LINK_LO, LINK_W, LINK_D, 18, 4, 14, 11 + k, M=M, hammer=0.07, weld=0.2, variant=k % 4)
+            sweep_link(bm, LINK_LO, LINK_W, LINK_D, 12, 3, 10, 11 + k, M=M, hammer=0.07, weld=0.2, variant=k % 4)
         elif k < 36:
             sweep_link(bm, LINK_LO, LINK_W, LINK_D, 8, 2, 8, 11 + k, M=M)
         else:
@@ -1087,7 +1086,8 @@ def tone(key, co, n, wear=0.0, rust=None):
         damp = 1.0 - 0.3 * (1.0 - smooth(-1.0, 6.0, z))
         moss = smooth(-0.1, 0.4, fbm(co * 0.23 + Vector((7, 3, 1)), 3)) * (0.2 + 0.8 * nz) * (0.5 + 0.5 * (1.0 - smooth(0.0, 9.0, z)))
         soot = smooth(0.1, 0.6, fbm(Vector((co.x * 0.7, co.y * 0.7, co.z * 0.06)), 2)) * (1.0 - nz) * 0.25
-        r, g, b = v * damp * (1 - moss) + 0.42 * moss, v * damp * (1 - moss) + 0.62 * moss, v * damp * (1 - moss) + 0.32 * moss
+        m = v * damp
+        r, g, b = m * (1 - 0.5 * moss) + 0.3 * moss, m * (1 - 0.5 * moss) + 0.34 * moss, m * (1 - 0.5 * moss) + 0.28 * moss
         if key == "stone":
             r, g, b = r * 1.04, g * 0.98, b * 0.92
         return (min(1.0, r * (1 - soot)), min(1.0, g * (1 - soot)), min(1.0, b * (1 - soot * 0.8)))
@@ -1110,6 +1110,8 @@ def tone(key, co, n, wear=0.0, rust=None):
 def finish(P, name, flat_keys=()):
     objs = []
     for key, bm in P.bm.items():
+        if key == "iron":
+            bmesh.ops.recalc_face_normals(bm, faces=bm.faces)      # the swept links are closed tubes: make them face out
         bm.normal_update()
         for f in bm.faces:
             f.smooth = key not in flat_keys
@@ -1217,9 +1219,12 @@ def export(objs, path):
     kw = dict(filepath=path, export_format='GLB', use_selection=True, export_apply=True, export_yup=True,
               export_materials='EXPORT', export_image_format='NONE', export_normals=True, export_texcoords=True)
     try:
-        bpy.ops.export_scene.gltf(export_vertex_color='ACTIVE', **kw)
+        bpy.ops.export_scene.gltf(export_vertex_color='ACTIVE', export_active_vertex_color_when_no_material=True, **kw)
     except TypeError:
-        bpy.ops.export_scene.gltf(**kw)
+        try:
+            bpy.ops.export_scene.gltf(export_vertex_color='ACTIVE', **kw)
+        except TypeError:
+            bpy.ops.export_scene.gltf(**kw)
     print("EXPORTED", path, tri_count(objs), "tris")
 
 
@@ -1270,7 +1275,7 @@ def asset_link():
     objs = []
     for v in range(VAR_HI):
         P = Parts()
-        sweep_link(P.of("iron"), LINK_LO, LINK_W, LINK_D, 18, 4, 14, 3 + v * 7, hammer=0.07, weld=0.2, variant=v)
+        sweep_link(P.of("iron"), LINK_LO, LINK_W, LINK_D, 12, 3, 10, 3 + v * 7, hammer=0.07, weld=0.2, variant=v)
         objs += finish(P, "SkyChainLinkHi%d" % v)
     for v in range(VAR_MID):
         P = Parts()
