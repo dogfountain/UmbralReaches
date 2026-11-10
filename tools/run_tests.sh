@@ -50,6 +50,14 @@ if [ "$#" -gt 0 ]; then
 		n="${n%.tscn}"; n="${n#zz/}"; n="${n%_test}"
 		tests+=("zz/${n}_test.tscn")
 	done
+elif [ -n "${TESTS_FILE:-}" ]; then
+	# TESTS_FILE=tools/fast_tests.txt: one test name per line (CI's world-free tier)
+	while IFS= read -r n || [ -n "$n" ]; do
+		n="${n%$'\r'}"; [ -z "$n" ] && continue
+		case "$n" in \#*) continue ;; esac
+		n="${n%.tscn}"; n="${n#zz/}"; n="${n%_test}"
+		tests+=("zz/${n}_test.tscn")
+	done < "$TESTS_FILE"
 else
 	for f in "$ROOT"/zz/*_test.tscn; do tests+=("zz/$(basename "$f")"); done
 fi

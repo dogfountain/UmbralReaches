@@ -1,0 +1,66 @@
+name: tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  fast-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GODOT_VERSION: 4.7.2-stable
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Godot download
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: godot_dl
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+
+      - name: Download Godot
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p godot_dl
+          curl -fsSL -o godot_dl/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+
+      - name: Install Godot
+        run: |
+          mkdir -p "$HOME/godot_bin"
+          unzip -o -q godot_dl/godot.zip -d "$HOME/godot_bin"
+          mv "$HOME/godot_bin/Godot_v${GODOT_VERSION}_linux.x86_64" "$HOME/godot_bin/godot"
+          chmod +x "$HOME/godot_bin/godot"
+          echo "$HOME/godot_bin" >> "$GITHUB_PATH"
+
+      - name: Import project
+        run: |
+          godot --version
+          godot --headless --path . --import --quit > "$RUNNER_TEMP/import.log" 2>&1 || true
+          tail -n 40 "$RUNNER_TEMP/import.log"
+          if grep -E 'SCRIPT ERROR|Parse Error' "$RUNNER_TEMP/import.log"; then
+            echo "::error::script errors during import"
+            exit 1
+          fi
+
+      - name: Lint and fast tests
+        env:
+          GODOT: godot
+          JOBS: "2"
+          TESTS_FILE: tools/fast_tests.txt
+          SCRATCH: ${{ runner.temp }}
+        run: tools/run_tests.sh
+
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: ${{ runner.temp }}/umbral_tests.*/logs
+          if-no-files-found: ignore
