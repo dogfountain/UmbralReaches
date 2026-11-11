@@ -108,6 +108,10 @@ func _run() -> void:
 		_sample()
 		await get_tree().create_timer(0.12).timeout
 	_report()
+	if "--world-ab" in OS.get_cmdline_user_args():
+		await _world_ab()
+		get_tree().quit()
+		return
 	if "--hud-ab" in OS.get_cmdline_user_args():
 		await _hud_ab()
 		get_tree().quit()
@@ -279,3 +283,116 @@ func _hud_ab() -> void:
 			without += await _avg_frame(3.0)
 		ci.visible = true
 		print("FIGHT HUDAB %-24s %+.2f ms" % [ci.name, (with - without) / 2.0])
+
+
+## What the world costs to draw (measurement only; everything is set back): each thing switched off for a few
+## seconds, alternating with the normal frame. Half the 3D resolution says how much is pixels (GPU fill).
+func _world_ab() -> void:
+	var vp := get_viewport()
+	var env: Environment = vp.get_camera_3d().get_world_3d().environment if vp.get_camera_3d() and vp.get_camera_3d().get_world_3d() else null
+	var sun: DirectionalLight3D = null
+	for l in get_tree().root.find_children("*", "DirectionalLight3D", true, false):
+		if (l as DirectionalLight3D).visible and (l as DirectionalLight3D).shadow_enabled:
+			sun = l
+	var tests: Array = [
+		["half 3D resolution", func(on: bool) -> void: vp.scaling_3d_scale = (0.5 if on else 1.0) * _scale0],
+		["sun shadows off", func(on: bool) -> void: if sun: sun.shadow_enabled = not on],
+		["omni/spot lights hidden", func(on: bool) -> void: _toggle_class("Light3D", on, [sun])],
+		["particles hidden", func(on: bool) -> void: _toggle_class("GPUParticles3D", on, [])],
+		["multimeshes hidden", func(on: bool) -> void: _toggle_class("MultiMeshInstance3D", on, [])],
+		["volumetric fog off", func(on: bool) -> void: if env: env.volumetric_fog_enabled = _vf0 and not on],
+		["SSAO/SSIL off", func(on: bool) -> void: if env: env.ssao_enabled = _ao0 and not on; env.ssil_enabled = _il0 and not on],
+		["glow off", func(on: bool) -> void: if env: env.glow_enabled = _gl0 and not on],
+		["foes frozen", func(on: bool) -> void: _freeze(get_tree().get_nodes_in_group(Groups.ENEMY), on)],
+		["other bodies frozen", func(on: bool) -> void: _freeze(get_tree().root.find_children("*", "CharacterBody3D", true, false).filter(func(n: Node) -> bool: return not n.is_in_group(Groups.ENEMY) and not n.is_in_group(Groups.PLAYER)), on)],
+		["animation players off", func(on: bool) -> void: _freeze(get_tree().root.find_children("*", "AnimationPlayer", true, false) + get_tree().root.find_children("*", "AnimationTree", true, false), on)],
+	]
+	_scale0 = vp.scaling_3d_scale
+	if env:
+		_vf0 = env.volumetric_fog_enabled
+		_ao0 = env.ssao_enabled
+		_il0 = env.ssil_enabled
+		_gl0 = env.glow_enabled
+	print("FIGHT WORLD env fog %s ssao %s ssil %s glow %s sdfgi %s, 3D scale %.2f, sun shadows %s" % [_vf0, _ao0, _il0, _gl0, env.sdfgi_enabled if env else false, _scale0, sun != null])
+	if "--mm-list" in OS.get_cmdline_user_args():
+		_mm_list()
+		return
+	if "--world-cpu" in OS.get_cmdline_user_args():
+		tests = tests.slice(8)
+	for tst: Array in tests:
+		var f: Callable = tst[1]
+		var base := 0.0
+		var off := 0.0
+		for i in 2:
+			base += await _avg_frame(3.0)
+			f.call(true)
+			off += await _avg_frame(3.0)
+			f.call(false)
+		print("FIGHT WORLD %-24s saves %+.2f ms (%.2f -> %.2f)" % [tst[0], (base - off) / 2.0, base / 2.0, off / 2.0])
+
+
+var _scale0 := 1.0
+var _vf0 := false
+var _ao0 := false
+var _il0 := false
+var _gl0 := false
+var _hidden: Array = []
+
+
+func _freeze(nodes: Array, on: bool) -> void:
+	for n in nodes:
+		if is_instance_valid(n):
+			(n as Node).process_mode = Node.PROCESS_MODE_DISABLED if on else Node.PROCESS_MODE_INHERIT
+	if on:
+		print("FIGHT WORLD   (%d frozen)" % nodes.size())
+
+
+func _toggle_class(cls: String, hide: bool, skip: Array) -> void:
+	if hide:
+		_hidden.clear()
+		for n in get_tree().root.find_children("*", cls, true, false):
+			if n in skip or not (n as Node3D).visible:
+				continue
+			(n as Node3D).visible = false
+			_hidden.append(n)
+	else:
+		for n in _hidden:
+			if is_instance_valid(n):
+				(n as Node3D).visible = true
+		_hidden.clear()
+
+
+## The MultiMeshes the camera can see: instances drawn x triangles of the mesh (LOD 0), heaviest first.
+func _mm_list() -> void:
+	var cam := get_viewport().get_camera_3d()
+	var planes := cam.get_frustum()
+	var rows: Array = []
+	for n in get_tree().root.find_children("*", "MultiMeshInstance3D", true, false):
+		var mmi := n as MultiMeshInstance3D
+		if not mmi.is_visible_in_tree() or mmi.multimesh == null or mmi.multimesh.mesh == null:
+			continue
+		var box := mmi.global_transform * mmi.get_aabb()
+		var inside := true
+		for pl: Plane in planes:
+			if pl.distance_to(box.get_center()) > box.size.length() * 0.5:
+				inside = false
+				break
+		var d := cam.global_position.distance_to(box.get_center())
+		if not inside or (mmi.visibility_range_end > 0.0 and d > mmi.visibility_range_end + box.size.length() * 0.5):
+			continue
+		var m := mmi.multimesh.mesh
+		var tris := 0
+		for si in m.get_surface_count():
+			var arr := m.surface_get_arrays(si)
+			tris += ((arr[Mesh.ARRAY_INDEX] as PackedInt32Array).size() if arr[Mesh.ARRAY_INDEX] != null else (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()) / 3
+		var cnt := mmi.multimesh.visible_instance_count if mmi.multimesh.visible_instance_count >= 0 else mmi.multimesh.instance_count
+		var path := String(get_tree().root.get_path_to(mmi))
+		rows.append([cnt * tris, cnt, tris, path.right(70), mmi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, d, m.get_surface_count()])
+	rows.sort_custom(func(a: Array, b: Array) -> bool: return int(a[0]) > int(b[0]))
+	var tot := 0
+	for r: Array in rows:
+		tot += int(r[0])
+	print("FIGHT MM %d multimeshes in view, %dk triangles at LOD 0" % [rows.size(), tot / 1000])
+	for r: Array in rows.slice(0, 30):
+		print("FIGHT MM %7dk  %6d x %5d tris  %d surf  shadow %s  %4.0f m  %s" % [int(r[0]) / 1000, r[1], r[2], r[6], r[4], r[5], r[3]])
+
