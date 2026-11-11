@@ -131,6 +131,9 @@ func _ready() -> void:
 	ok(uf != null and ct != null and xb != null and mm != null, "the HUD builds its frames, combat text, XP strip and minimap")
 	ok(ct != null and ct.is_in_group(&"combat_text"), "combat text answers to the combat_text group")
 	_count(uf, "uf")
+	for layer in uf.get_children():                  # the frames draw on their layers (unit_frames.gd LAYERS)
+		if layer is CanvasItem:
+			(layer as CanvasItem).draw.connect(func() -> void: draws["uf"] = int(draws["uf"]) + 1)
 	_count(xb, "xb")
 	_count(mm, "mm")
 	_count(hud.find_child("Hotbar", true, false) as CanvasItem, "hotbar")

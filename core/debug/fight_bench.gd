@@ -53,8 +53,9 @@ func _process(delta: float) -> void:
 			started = true
 			_run()
 		return
-	p.wounds = 0.0
-	p.gloom = 0.0
+	if t % 240 == 0:                         # topped up now and then (every frame kept the HUD's numbers moving)
+		p.wounds = 0.0
+		p.gloom = 0.0
 	if _frames_ms.size() < 100000:
 		_frames_ms.append(delta * 1000.0)
 		if _frames_ms.size() > 60 and delta * 1000.0 > 22.0:
@@ -74,6 +75,7 @@ func _run() -> void:
 		main.add_child(b)
 		b.global_position = base + Vector3(0, 0.2, -16.0)
 		b.home = b.global_position
+		Events.boss_engaged.emit(b, boss.capitalize())        # its frame, as the arena would show it
 	for i in n:
 		var e := (load(Tiers.KIND_PATHS[KINDS[i % KINDS.size()]]) as GDScript).new() as Enemy
 		main.add_child(e)
