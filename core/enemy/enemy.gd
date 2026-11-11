@@ -1724,6 +1724,15 @@ func hauled() -> void:
 		_state_t = recover_time - 0.45           # 0.45 s off balance once it lands
 
 
+## The death's three bursts (smoke, embers in its glow, ichor). The loading screen's warm-up fires each kind's
+## under its cover, so the effect pool holds them: a nova killing three foes at once built ~30 particle systems
+## in one frame (a 25 ms hitch) when the pool had none of that kind's colours.
+func death_bursts(at: Vector3) -> void:
+	Vfx.burst(at, Color(0.03, 0.02, 0.05, 0.8), {"count": 26, "life": 1.4, "speed": Vector2(0.3, 1.4), "size": 0.32, "gravity": 0.9, "radius": 0.45, "additive": false, "turbulence": true})
+	Vfx.burst(at, glow_col, {"count": 30, "life": 1.1, "speed": Vector2(0.5, 2.2), "size": 0.05, "gravity": 1.4, "radius": 0.5, "turbulence": true})
+	Vfx.burst(at, _ichor(), {"count": 24, "life": 0.8, "speed": Vector2(2.0, 5.0), "size": 0.09, "gravity": -9.5, "additive": false})
+
+
 func _die() -> void:
 	_finish_cast(true, false)
 	_evading = false
@@ -1760,10 +1769,8 @@ func _die() -> void:
 	Events.enemy_killed.emit(self)
 	var at := global_position + Vector3.UP * (hp_bar_y * 0.5)
 	EnemyAudio.hit(_hit_sound(), at, 4.0, -3.0)           # the last blow's weight; the fall is in the die take
-	Vfx.burst(at, Color(0.03, 0.02, 0.05, 0.8), {"count": 26, "life": 1.4, "speed": Vector2(0.3, 1.4), "size": 0.32, "gravity": 0.9, "radius": 0.45, "additive": false, "turbulence": true})
-	Vfx.burst(at, glow_col, {"count": 30, "life": 1.1, "speed": Vector2(0.5, 2.2), "size": 0.05, "gravity": 1.4, "radius": 0.5, "turbulence": true})
+	death_bursts(at)
 	Vfx.light(at, glow_col, 2.2, 4.0, 0.6, 2 if boss else 1)
-	Vfx.burst(at, _ichor(), {"count": 24, "life": 0.8, "speed": Vector2(2.0, 5.0), "size": 0.09, "gravity": -9.5, "additive": false})
 	Vfx.scorch(global_position, 0.6 + hp_bar_y * 0.35, glow_col * Color(0.42, 0.45, 0.4), 4.0)    # the stain it leaves
 	# the body folds first (HunchRig/QuadRig collapse), then burns away
 	var tw := create_tween()

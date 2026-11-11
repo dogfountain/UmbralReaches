@@ -23,6 +23,9 @@ var cast := true
 var _frames_ms := PackedFloat32Array()
 var _mon := {}
 var _book: SkillBook
+var _ev: Array = []            ## [usec, text]: what happened in the fight, to set beside the slow frames
+var _slow: Array = []          ## [usec, ms]
+var _fight_t0 := 0
 
 
 func begin(night: Node) -> void:
@@ -54,6 +57,8 @@ func _process(delta: float) -> void:
 	p.gloom = 0.0
 	if _frames_ms.size() < 100000:
 		_frames_ms.append(delta * 1000.0)
+		if _frames_ms.size() > 60 and delta * 1000.0 > 22.0:
+			_slow.append([Time.get_ticks_usec(), delta * 1000.0])
 
 
 func _run() -> void:
@@ -80,6 +85,16 @@ func _run() -> void:
 			_book = c
 			break
 	print("FIGHT start: boss %s, %d grunts, casting %s" % [boss, n, cast])
+	_fight_t0 = Time.get_ticks_usec()
+	Events.enemy_killed.connect(func(e: Node) -> void: _note("killed " + String(e.name)))
+	Events.skill_cast.connect(func(id: StringName) -> void: _note("cast " + String(id)))
+	Events.enemy_cast_started.connect(func(e: Node, c: String, _t: float, _i: bool) -> void: _note("foe cast " + c))
+	Events.status_changed.connect(func(_t: Node, id: StringName, st: int, _l: float) -> void: _note("status %s %d" % [id, st]))
+	Events.item_gained.connect(func(id: String, _a: int, _tt: int) -> void: _note("item " + id))
+	get_tree().node_added.connect(func(nd: Node) -> void:
+		if nd is GPUParticles3D or nd is Enemy or nd is OmniLight3D or nd is RigidBody3D:
+			var par := nd.get_parent()
+			_note("added %s %s" % [nd.get_class(), String(par.name) + "/" + (String(par.get_parent().name) if par and par.get_parent() else "")]))
 	_frames_ms.clear()
 	var t0 := Time.get_ticks_msec()
 	var slot := 0
@@ -171,6 +186,10 @@ func _avg_frame(s: float) -> float:
 	return float(Time.get_ticks_usec() - t0) / 1000.0 / maxf(float(Engine.get_process_frames() - n0), 1.0)
 
 
+func _note(t: String) -> void:
+	_ev.append([Time.get_ticks_usec(), t])
+
+
 func _wait(s: float) -> void:
 	await get_tree().create_timer(s).timeout
 
@@ -197,6 +216,16 @@ func _sample() -> void:
 
 
 func _report() -> void:
+	# each slow frame (> 22 ms) with what happened in the 100 ms before it
+	print("FIGHT slow frames: %d" % _slow.size())
+	for sl: Array in _slow.slice(0, 25):
+		var t: int = sl[0]
+		var near: Dictionary = {}
+		for ev: Array in _ev:
+			if int(ev[0]) > t - 100000 and int(ev[0]) <= t:
+				var k := String(ev[1]).left(60)
+				near[k] = int(near.get(k, 0)) + 1
+		print("FIGHT slow %6.2f s  %5.1f ms  %s" % [float(t - _fight_t0) / 1.0e6, sl[1], str(near)])
 	var f := Array(_frames_ms)
 	f.sort()
 	var avg := 0.0

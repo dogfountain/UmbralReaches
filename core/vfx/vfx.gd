@@ -60,8 +60,8 @@ static func host() -> Node:
 ## timer at lifetime + trail + margin.
 static var _pool: Dictionary = {}          # preset key -> Array of idle GPUParticles3D
 static var _idle_total := 0
-const POOL_CAP := 6                        # per preset
-const POOL_TOTAL := 96                     # across presets (effects vary radius etc. -> many presets)
+const POOL_CAP := 16                       # per preset (a nova killing three foes fires a dozen of one preset at once)
+const POOL_TOTAL := 160                    # across presets (effects vary radius etc. -> many presets; each kind's death bursts are warmed)
 
 
 ## opts "ratio" (0..1) emits that share of `count` (amount_ratio) without making a new preset: vary
@@ -76,6 +76,8 @@ static func burst(at: Vector3, color: Color, opts := {}) -> GPUParticles3D:
 		ratio = clampf(float(opts.ratio), 0.0, 1.0)
 		opts = opts.duplicate()
 		opts.erase("ratio")
+	opts = _round_opts(opts)
+	color = Color(_sig2(color.r), _sig2(color.g), _sig2(color.b), _sig2(color.a))
 	var key := "%s|%s" % [color, opts]
 	var p: GPUParticles3D = null
 	var idle: Array = _pool.get(key, [])
@@ -90,6 +92,7 @@ static func burst(at: Vector3, color: Color, opts := {}) -> GPUParticles3D:
 	p.visible = true
 	p.global_position = at
 	p.amount_ratio = ratio
+	p.process_material.set_meta(&"vfx_used", Time.get_ticks_msec())     # the preset's last use (_evict_stale)
 	p.restart()
 	p.emitting = true
 	var life := p.lifetime + (p.trail_lifetime if p.trail_enabled else 0.0) + 0.4
@@ -107,12 +110,63 @@ static func _reclaim(p: GPUParticles3D, key: String, token: int) -> void:
 	p.emitting = false
 	p.visible = false
 	var idle: Array = _pool.get(key, [])
-	if idle.size() >= POOL_CAP or _idle_total >= POOL_TOTAL:
+	if idle.size() >= POOL_CAP:
+		p.queue_free()
+		return
+	if _idle_total >= POOL_TOTAL and not _evict_stale(key):
 		p.queue_free()
 		return
 	idle.append(p)
 	_idle_total += 1
 	_pool[key] = idle
+
+
+## A full pool makes room by freeing an idle emitter of the preset used longest ago (not this one): before, a
+## full pool freed every returning emitter, so after the first one-off presets filled it nothing was pooled and
+## every burst in a fight built a new particle system. A preset's last use is stamped on its shared material.
+
+static func _evict_stale(keep: String) -> bool:
+	var oldest := ""
+	var t := 1 << 62
+	for k: String in _pool:
+		var idle: Array = _pool[k]
+		if k == keep or idle.is_empty() or not is_instance_valid(idle[0]):
+			continue
+		var used := int((idle[0] as GPUParticles3D).process_material.get_meta(&"vfx_used", 0))
+		if used < t:
+			t = used
+			oldest = k
+	if oldest == "":
+		return false
+	var c: Variant = (_pool[oldest] as Array).pop_back()
+	_idle_total = maxi(0, _idle_total - 1)
+	if is_instance_valid(c):
+		(c as Node).queue_free()
+	return true
+
+
+## Effect numbers to two significant figures (5.135 m -> 5.1, a 0.894 direction -> 0.89): a radius or a
+## direction worked out per hit made a new preset (a material and its emitters) every time, never reused.
+static func _sig2(v: float) -> float:
+	if v == 0.0:
+		return 0.0
+	var m := pow(10.0, floorf(log(absf(v)) / log(10.0)) - 1.0)
+	return roundf(v / m) * m
+
+
+static func _round_opts(o: Dictionary) -> Dictionary:
+	var q := {}
+	for k: Variant in o:
+		var v: Variant = o[k]
+		if v is float:
+			q[k] = _sig2(v)
+		elif v is Vector2:
+			q[k] = Vector2(_sig2((v as Vector2).x), _sig2((v as Vector2).y))
+		elif v is Vector3:
+			q[k] = Vector3(_sig2((v as Vector3).x), _sig2((v as Vector3).y), _sig2((v as Vector3).z))
+		else:
+			q[k] = v
+	return q
 
 
 ## Same presets, but looping and owned by the caller (charge swirl, slide dust, ward embers).

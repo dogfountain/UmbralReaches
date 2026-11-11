@@ -358,6 +358,9 @@ func _show_combat() -> void:
 		e.remove_from_group(Groups.ENEMY)               # nothing counts or targets these
 		e.global_position = c + right * (float(k) - 5.0) * 1.1 + fwd * 1.5
 		_warm_nodes.append(e)
+		if e is Enemy:
+			for _i in 3:                                # three of each kind's death bursts into the pool
+				(e as Enemy).death_bursts(e.global_position + Vector3.UP * 0.8)
 	var col := Color(0.55, 0.65, 1.0)
 	var hot := Color(1.0, 0.75, 0.4)
 	var at := c + Vector3.UP * 0.6
