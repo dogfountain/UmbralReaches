@@ -93,7 +93,7 @@ func _bounds() -> void:
 		var v: Vector3 = (load("res://core/world/realm/realm_layout.gd") as GDScript).get_script_constant_map()[n]
 		check("%s inside BOUNDS" % n, b.has_point(Vector2(v.x, v.z)))
 	check("fixed points kept (spawn, start, tavern, ossuary, summit)", RealmLayout.SPAWN == Vector3(0, 0, 33) and RealmLayout.PLAYER_START == Vector3(-16.0, 0.15, 55.5)
-		and RealmLayout.TAVERN == Rect2(10, 25.6, 16, 9.2) and RealmLayout.OSSUARY == AABB(Vector3(2, -6, -110), Vector3(30, 32, 88)) and RealmLayout.SUMMIT == Vector3(0, 24.5, -83.5))
+		and RealmLayout.TAVERN == Rect2(10, 25.6, 16, 9.2) and RealmLayout.OSSUARY_OLD == AABB(Vector3(2, -6, -110), Vector3(30, 32, 88)) and RealmLayout.SUMMIT == Vector3(0, 24.5, -83.5))
 	var grid := Rect2(Land.GX0, Land.GZ0, (Land.GNX - 1) * Land.STEP, (Land.GNZ - 1) * Land.STEP)
 	check("terrain grid %s covers BOUNDS + 8 m" % grid, grid.encloses(b.grow(8.0)))
 	var ring := Rect2(Land.RX0, Land.RZ0, (Land.RNX - 1) * Land.RSTEP, (Land.RNZ - 1) * Land.RSTEP)
@@ -389,7 +389,7 @@ func _raids() -> void:
 					foreign.append(nm)
 			check("raid henge: no foreign site on it %s" % [foreign], foreign.is_empty())
 	check("Ossuary hall reserve is underground (top %.1f) and clear of the crypt's box" % RealmLayout.OSSUARY_HALL.end.y,
-		RealmLayout.OSSUARY_HALL.end.y <= RealmLayout.OSSUARY.position.y + 0.01 and RealmLayout.OSSUARY_HALL.size.x >= 50.0 and RealmLayout.OSSUARY_HALL.size.z >= 50.0)
+		RealmLayout.OSSUARY_HALL.end.y <= -10.0 and RealmLayout.OSSUARY_HALL.size.x >= 50.0 and RealmLayout.OSSUARY_HALL.size.z >= 50.0)
 	var hall := RealmLayout.OSSUARY_HALL
 	var low := INF
 	var hx := hall.position.x + 1.0
@@ -397,7 +397,7 @@ func _raids() -> void:
 		var hz := hall.position.z + 1.0
 		while hz < hall.end.z:
 			var g := _terrain(hx, hz)
-			if not is_nan(g):
+			if not is_nan(g) and OssFrame.pit_d(Vector2(hx, hz)) > 8.0:       # (the box's corner reaches under the quarry; the hall itself starts 8 m back)
 				low = minf(low, g)
 			hz += 2.0
 		hx += 2.0

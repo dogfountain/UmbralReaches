@@ -391,7 +391,7 @@ func _fell_out() -> void:
 	player._fall_t = 0.0
 	player.mount.get_down()
 	var to := player._safe_ground if player._safe_ground != Vector3.INF else player.checkpoint
-	if to.y < -38.0:
+	if to.y < -58.0:
 		to = player.checkpoint
 	player.locomotion.teleport(to + Vector3.UP * 0.1)
 	add_gloom(8.0)

@@ -310,7 +310,7 @@ const BASE_PATHS := [
 	{"id": "crowns_west", "w": 1.4, "pts": [Vector2(-196, -76), Vector2(-178, -72), Vector2(-164, -76), Vector2(-150, -74), Vector2(-140, -70), Vector2(-132, -66)]},
 	{"id": "crowns_east", "w": 1.4, "pts": [Vector2(196, -70), Vector2(182, -74), Vector2(168, -72), Vector2(156, -68), Vector2(146, -67), Vector2(138, -66), Vector2(131, -69), Vector2(128, -72)]},
 	{"id": "oss_lane", "w": 1.4, "pts": [Vector2(-40, 134), Vector2(-41.5, 141), Vector2(-40, 147.5)]},          # from south_track to the Ossuary's Pilgrims' Landing
-	{"id": "downs_link", "w": 1.4, "pts": [Vector2(40, 134), Vector2(50, 158), Vector2(48, 176), Vector2(44, 192)]},     # the Waiting Field to the downs, east of the mausoleum
+	{"id": "downs_link", "w": 1.4, "pts": [Vector2(40, 134), Vector2(56, 158), Vector2(54, 176), Vector2(44, 192)]},     # the Waiting Field to the downs, east of the mausoleum
 ]
 
 ## r35 (docs/critique/r35_full.md: "the south half is a grid of rectangles and straight roads"): the
