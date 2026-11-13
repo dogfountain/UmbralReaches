@@ -109,7 +109,7 @@ static func tree(x: float, z: float) -> Vector2:
 
 ## Undergrowth that grows with the woods (shrubs, ferns, gorse, dead bushes): this much bigger. Grass,
 ## flowers, moss and litter keep their size (they are the ground's texture, not things beside the wanderer).
-const UNDER := {"shrub": 1.45, "fern": 1.4, "gorse": 1.35, "deadbush": 1.35}      # brambles stay low: bigger ones buried the camera
+const UNDER := {"shrub": 1.15, "fern": 1.3, "gorse": 1.25, "deadbush": 1.3}      # brambles stay low: bigger ones buried the camera
 
 
 static func under(sp: String) -> float:

@@ -135,7 +135,10 @@ void fragment() {
 	// cards seen edge-on smear into streaks: thin them out by the true face angle
 	vec3 fn = normalize(cross(dFdx(VERTEX), dFdy(VERTEX)));
 	float edge = smoothstep(0.06, 0.32, abs(dot(fn, VIEW)));
-	ALPHA = clamp(t.a * (1.0 + lod * mip_boost), 0.0, 1.0) * edge;
+	// the willow's and the hanging moss's strands (atlas cells 3 and 15, column 4): the boost filled the gaps between
+	// strands at range and a curtain read as a solid green slab; theirs is a fifth as strong
+	float boost = (UV.x > 0.75 && (UV.y < 0.25 || UV.y > 0.75)) ? mip_boost * 0.2 : mip_boost;
+	ALPHA = clamp(t.a * (1.0 + lod * boost), 0.0, 1.0) * edge;
 	ALPHA_SCISSOR_THRESHOLD = alpha_cut;
 	// a crown or willow curtain the camera has backed into filled half the frame with leaves (the
 	// camera collides with the world only): cards dither away inside ~1.6 m of the camera. In a

@@ -131,7 +131,7 @@ static func apply_fade(light: Light3D) -> void:
 
 static func apply_shadows(light: Light3D) -> void:
 	if light is DirectionalLight3D:
-		light.shadow_enabled = Settings.shadow_quality > 0
+		light.shadow_enabled = Settings.shadow_quality > 0 and not light.has_meta(&"no_shadow")     # the night's fill casts none
 		return
 	var kind := classify(light)
 	var shadows := Settings.shadow_quality > 0

@@ -138,6 +138,8 @@ static func pane_lights(mi: MeshInstance3D, surf: int, col: Color, e := 0.55, r 
 	if mi == null or mi.mesh == null or surf >= mi.mesh.get_surface_count() or not mi.is_inside_tree():
 		return 0
 	var a: Array = mi.mesh.surface_get_arrays(surf)
+	if a.size() <= Mesh.ARRAY_INDEX or a[Mesh.ARRAY_VERTEX] == null:
+		return 0                                 # no CPU copy of the surface (seen once under a loaded test run)
 	var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
 	var ix: PackedInt32Array = a[Mesh.ARRAY_INDEX] if a[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
 	var tri := ix.size() / 3 if not ix.is_empty() else v.size() / 3

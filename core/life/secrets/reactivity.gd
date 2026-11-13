@@ -131,6 +131,8 @@ static func _moonlight(root: Node, host: Node3D, animate: bool) -> void:
 	var sp := Kit.space(root)
 	var moon_dir := Vector3(0.35, -0.85, 0.4).normalized()
 	for l in root.find_children("*", "DirectionalLight3D", true, false):
+		if l.has_meta(&"no_shadow"):
+			continue                                   # the night's fill (atmosphere.gd), not the moon
 		moon_dir = -(l as DirectionalLight3D).global_basis.z
 		break
 	var mesh := QuadMesh.new()

@@ -159,6 +159,38 @@ static func _moon(moon: DirectionalLight3D, far_m: float) -> void:
 	# the shadow map itself (atlas, splits, bias, range) is LightPolicy._moon's alone: it runs right
 	# after this and again on every settings change (two copies here had drifted: fade 0.82 vs 0.78)
 	moon.directional_shadow_max_distance = minf(moon.directional_shadow_max_distance, far_m * 0.5)
+	_fill(moon)
+
+
+## The night's fill (14 Nov, the visual pass): a weak, shadowless light from the moon's far side, low over the north-west.
+## Looking south toward the moon every wall and trunk was a flat black cut-out (only the 0.125 ambient on it); this
+## gives their faces form without lifting the shadows the moon casts (it casts none itself) or drawing a second moon.
+const FILL_ENERGY := 0.6
+const FILL_COLOR := Color(0.58, 0.64, 0.86)
+const FILL_ELEVATION := 24.0
+
+
+static func _fill(moon: DirectionalLight3D) -> void:
+	var host := moon.get_parent()
+	if host == null:
+		return
+	var f := host.get_node_or_null(^"NightFill") as DirectionalLight3D
+	if f == null:
+		f = DirectionalLight3D.new()
+		f.name = "NightFill"
+		f.set_meta(&"no_shadow", true)
+		host.add_child(f)
+	var el := deg_to_rad(FILL_ELEVATION)
+	var b := deg_to_rad(MOON_BEARING + 180.0)
+	var to_fill := Vector3(sin(b) * cos(el), sin(el), -cos(b) * cos(el))
+	f.global_basis = Basis.looking_at(-to_fill, Vector3.UP)
+	f.light_color = FILL_COLOR
+	f.light_energy = FILL_ENERGY
+	f.light_specular = 0.15
+	f.light_volumetric_fog_energy = 0.0
+	f.shadow_enabled = false
+	f.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
+	f.light_cull_mask = moon.light_cull_mask
 
 
 static func _fog_volumes(root: Node) -> void:
