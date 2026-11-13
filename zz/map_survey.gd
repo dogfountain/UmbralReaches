@@ -10,6 +10,8 @@ extends Node
 ##   stills  a close-up of each finding (survey light on), and over a grid of the rect an aerial view (survey
 ##           light on) and two eye-level views in the game's own night look.
 ##   --views / --views-file=<path> add free views; --spots-file=<path> (name x,y,z size) two close-ups of each spot
+##   --find=a,b: two close-ups of every mesh node whose name (or its parent's) contains a or b, and a spots-file
+##   line for each in the report (the same views again after a change).
 ##   --who="x,z,r;..." lists the mesh nodes near a point (path, mesh, size, triangles).
 ##   (survey light on unless --dark). A y of "g1.7" in a view or spot is 1.7 m above the terrain there.
 ## Writes shots/survey/<name>/report.txt and *.jpg. Never writes the save (Travel._busy; exits by OS.kill).
@@ -35,6 +37,7 @@ var dark := false
 var views: Array = []
 var spots: Array = []              ## [name, centre, size]
 var who: Array[Vector3] = []       ## (x, radius, z)
+var finds := PackedStringArray()
 var main: Node
 var t := 0.0
 var done_t := -1.0
@@ -67,6 +70,8 @@ func _ready() -> void:
 			continue
 		match kv[0]:
 			"--name": nm = kv[1]
+			"--find":                        # a,b: two close-ups of every mesh node whose name (or parent's) contains a or b
+				finds = kv[1].split(",", false)
 			"--who":                         # x,z,r;...: name every mesh node whose box centre is within r of (x, z)
 				for w in kv[1].split(";", false):
 					var q := w.split(",")
@@ -180,6 +185,20 @@ func _begin() -> void:
 		var half := Vector3.ONE * float(sp[2]) * 0.5
 		_closeup("spot_%s_a" % sp[0], AABB(c - half, half * 2.0), 0)
 		_closeup("spot_%s_b" % sp[0], AABB(c - half, half * 2.0), 1)
+	var nfound := 0
+	for n in main.find_children("*", "MeshInstance3D", true, false) if not finds.is_empty() else []:
+		var mi := n as MeshInstance3D
+		var nm2 := String(mi.name) + "|" + String(mi.get_parent().name)
+		for f in finds:
+			if nm2.contains(f) and mi.mesh != null and nfound < 40:
+				var bx := mi.global_transform * mi.mesh.get_aabb()
+				var c2 := bx.get_center()
+				var tag2 := "%s_%d" % [f.to_lower().replace("_", ""), nfound]
+				report.append("FOUND %s  %s  spot: %s %.1f,%.1f,%.1f %.1f" % [_path(mi), bx.size.snapped(Vector3.ONE * 0.1), tag2, c2.x, c2.y, c2.z, maxf(bx.get_longest_axis_size(), 1.0)])
+				_closeup("spot_%s_a" % tag2, bx, 0)
+				_closeup("spot_%s_b" % tag2, bx, 1)
+				nfound += 1
+				break
 	if do_grid:
 		var z := rect.position.y + step * 0.5
 		while z < rect.end.y:

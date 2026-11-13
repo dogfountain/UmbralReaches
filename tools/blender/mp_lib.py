@@ -174,6 +174,33 @@ def tone_scale(objs, st, k):
             d.color = (c[0] * k[0], c[1] * k[1], c[2] * k[2], 1.0)
 
 
+def island(seed_verts):
+    """Every vertex connected to the given ones (a piece after insets and cuts added vertices to it)."""
+    seen = {v for v in seed_verts if v.is_valid}
+    todo = list(seen)
+    while todo:
+        v = todo.pop()
+        for e in v.link_edges:
+            o = e.other_vert(v)
+            if o not in seen:
+                seen.add(o)
+                todo.append(o)
+    return list(seen)
+
+
+def prism(mk, quad, y0, y1, st=None, j=0.0):
+    """A stone whose section is a quad in the xz plane [(x, z) x 4, counter-clockwise seen from -y], from y0 to y1
+    (a voussoir, a wedge). 12 triangles. Returns verts."""
+    r = mk.r
+    rings = [[Vector((x + r.uniform(-j, j), y, z + r.uniform(-j, j))) for x, z in quad] for y in (y1, y0)]
+    old = mk.cur
+    if st:
+        mk.cur = st
+    _, vs = mk.loft(rings, top=True, bot=True, hull=False)
+    mk.cur = old
+    return flat(vs)
+
+
 def circle(rad, z, n, phase=0.0, cx=0.0, cy=0.0, sy=1.0):
     return [Vector((cx + math.cos(phase + math.tau * i / n) * rad, cy + math.sin(phase + math.tau * i / n) * rad * sy, z)) for i in range(n)]
 

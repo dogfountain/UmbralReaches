@@ -167,7 +167,115 @@ def winch_wheel():
     return dict(path=None, parts=d["parts"], budget=9999, show=["Wheel"])
 
 
-ASSETS = {"works_winch": works_winch, "winch_wheel": winch_wheel}
+# --- iron lanterns -----------------------------------------------------------------------------------------
+def lantern_head(mk, c, half=0.125, h=0.34):
+    """A square lantern's cage about centre c (Blender coords): a foot plate, four bars, glazing rails, a hood with a
+    ring. The glass and flame are the game's (a Lamp's pane look fits inside: radius 0.105, 0.3 tall)."""
+    c = Vector(c)
+    z0, z1 = c.z - h * 0.5, c.z + h * 0.5
+    for vs in (crate(mk, (half * 2 + 0.03, half * 2 + 0.03, 0.02), st="iron"),):
+        move(mk, vs, trs((c.x, c.y, z0 - 0.02)))
+    drip = L.turned(mk, [(0.05, z0 - 0.06), (0.03, z0 - 0.02)], n=4, st="iron")
+    move(mk, drip, trs((c.x, c.y, 0.0)))
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            bar(mk, (c.x + sx * half, c.y + sy * half, z0), (c.x + sx * half, c.y + sy * half, z1), 0.018)
+    for k in range(4):
+        a = math.pi * 0.5 * k
+        cs, sn = math.cos(a), math.sin(a)
+        for z in (z0 + 0.012, z1 - 0.012):
+            bar(mk, (c.x + (cs - sn) * half, c.y + (sn + cs) * half, z), (c.x + (cs + sn) * half, c.y + (sn - cs) * half, z), 0.014)
+    hood = L.turned(mk, [(half * 1.62, 0.0), (half * 1.5, 0.02), (half * 0.75, 0.075), (0.03, 0.12), (0.022, 0.14)], n=4, st="iron", phase=math.pi / 4)
+    move(mk, hood, trs((c.x, c.y, z1)))
+    return z1 + 0.14
+
+
+def street_lantern():
+    """Weirford's street lantern: a cast foot, a round post with a collar, a scrolled bracket to the front (Blender -Y
+    = Godot +Z) and the cage hung from it. The cage's centre is at Godot (0, 2.8, 0.6): where the game puts the glass."""
+    mk = Mk(3470, "iron")
+    L.turned(mk, [(0.17, -0.25), (0.17, 0.05), (0.13, 0.1), (0.09, 0.3), (0.075, 0.34), (0.06, 0.36)], n=8, st="iron")
+    L.turned(mk, [(0.05, 0.36), (0.044, 1.0), (0.062, 1.02), (0.062, 1.07), (0.042, 1.09), (0.036, 3.3), (0.06, 3.33), (0.06, 3.37), (0.02, 3.46)], n=6, st="iron")
+    arc = [G(0, 3.0 + 0.24 * math.sin(t), 0.04 + 0.6 * (1 - math.cos(t)) / 1.0) for t in [math.pi * 0.5 * q / 5 for q in range(6)]]
+    L.tube(mk, arc + [G(0, 3.24, 0.72)], 0.02, n=4)
+    scroll = [G(0, 2.55 + 0.42 * q / 5 + 0.05 * math.sin(q * 1.2), 0.04 + 0.36 * (q / 5) ** 1.6) for q in range(6)]
+    L.tube(mk, scroll, 0.014, n=4)
+    top = lantern_head(mk, G(0, 2.8, 0.6))
+    L.tube(mk, [G(0, top + 0.045 + math.sin(t) * 0.035, 0.6 + math.cos(t) * 0.035) for t in [math.tau * q / 6 for q in range(6)]], 0.008, n=4, closed=True)
+    bar(mk, G(0, top + 0.08, 0.6), G(0, 3.24, 0.6), 0.012)
+    return mk
+
+
+def post_lantern():
+    """A lantern on a short iron post (Aldith's last lamp): a spiked foot, a post with a knop, the cage on its head.
+    The cage's centre is 1.7 m up: the game's lit glass goes there."""
+    mk = Mk(3471, "iron")
+    L.turned(mk, [(0.02, -0.3), (0.05, -0.02), (0.07, 0.0), (0.07, 0.03), (0.035, 0.06), (0.03, 0.8), (0.05, 0.82), (0.05, 0.86), (0.028, 0.88), (0.026, 1.46), (0.07, 1.5)], n=6, st="iron")
+    lantern_head(mk, (0, 0, 1.7), half=0.1, h=0.32)
+    return mk
+
+
+def lamp_street():
+    parts = [("Street", L.finish(street_lantern(), "Street", sharp=50.0)), ("PostLantern", L.finish(post_lantern(), "PostLantern", sharp=50.0))]
+    for _, objs in parts:
+        L.tone_scale(objs, "iron", (0.55, 0.6, 0.66))
+    return dict(path=os.path.join(PROPS, "lamp_street.glb"), parts=parts, budget=1100, focus=Vector((0.0, -0.5, 2.8)))
+
+
+# --- the smithy --------------------------------------------------------------------------------------------
+def smith_anvil():
+    """An anvil on an oak stump: face 0.8 m up (the old box's top), 0.9 long along x, the horn to +x."""
+    mk = Mk(3472, "iron")
+    L.turned(mk, [(0.31, -0.05), (0.32, 0.03), (0.29, 0.46), (0.27, 0.5)], n=9, st="timber")
+    for size, c in (((0.5, 0.3, 0.07), (0, 0, 0.5)), ((0.4, 0.24, 0.05), (0, 0, 0.57)), ((0.26, 0.17, 0.1), (0, 0, 0.62))):
+        vs, _ = block(mk, size, ch=0.02, j=0.0, ease=0.012, st="iron")
+        move(mk, vs, trs(c))
+    vs, _ = block(mk, (0.54, 0.2, 0.09), ch=0.012, j=0.0, ease=0.008, st="iron")
+    move(mk, vs, trs((-0.04, 0, 0.71)))
+    horn = L.turned(mk, [(0.085, 0.0), (0.075, 0.08), (0.045, 0.18), (0.012, 0.25)], n=7, st="iron")
+    move(mk, horn, Matrix.Translation((0.22, 0, 0.745)) @ Matrix.Rotation(math.pi / 2 - 0.08, 4, 'Y'))
+    vs = crate(mk, (0.12, 0.2, 0.06), st="iron")
+    move(mk, vs, trs((-0.36, 0, 0.74)))
+    bar(mk, (-0.2, 0.33, 0.52), (0.16, 0.24, 0.53), 0.03, 0.03, st="timber")           # a hammer left across the stump
+    vs, _ = block(mk, (0.1, 0.05, 0.05), ch=0.01, j=0.0, ease=0.006, st="iron")
+    move(mk, vs, trs((0.17, 0.24, 0.505), 0.25))
+    return mk
+
+
+def smith_hearth():
+    """The forge's hearth: two courses of blocks under a rim of stones round a sunk fire bed (the game's coals glow in
+    it), an ash arch in the front (Blender -Y). 1.4 x 1.1, 1.0 high (the old box)."""
+    mk = Mk(3473, "hewn")
+    r = mk.r
+    for z, h, cuts in ((-0.2, 0.68, (0.0,)), (0.48, 0.42, (-0.22, 0.26))):
+        xs = [-0.7] + list(cuts) + [0.7]
+        for i in range(len(xs) - 1):
+            w = xs[i + 1] - xs[i]
+            vs, faces = block(mk, (w - 0.012, 1.09, h - 0.01), ch=0.03, j=0.006, ease=0.02, chip=0.015)
+            move(mk, vs, trs(((xs[i] + xs[i + 1]) * 0.5, 0, z)))
+            if z < 0 and i == 0:
+                arch = [(0.15, -0.2), (0.15, 0.02)] + [(math.cos(a) * 0.15, 0.02 + math.sin(a) * 0.15) for a in (math.pi / 4, math.pi / 2, 3 * math.pi / 4)] + [(-0.15, 0.02), (-0.15, -0.2)]
+                mk.cut(faces[(1, 6)], [[(u + 0.05, v + 0.12) for u, v in arch]], 0.3, floor_tag=L.TAG_DARK)
+    for c, size in (((0, -0.44, 0.9), (1.4, 0.22, 0.1)), ((0, 0.44, 0.9), (1.4, 0.22, 0.1)), ((-0.57, 0, 0.9), (0.26, 0.64, 0.1)), ((0.57, 0, 0.9), (0.26, 0.64, 0.1))):
+        vs, _ = block(mk, (size[0] - 0.01, size[1] - 0.01, size[2] + r.uniform(0.0, 0.02)), ch=0.025, j=0.006, ease=0.02, chip=0.015)
+        move(mk, vs, trs(c))
+    bed = crate(mk, (0.9, 0.68, 0.04), st="hewn")
+    move(mk, bed, trs((0, 0, 0.895)))
+    for f in {f for v in bed for f in v.link_faces}:
+        f[mk.tag] = L.TAG_DARK
+    return mk
+
+
+def works_smithy():
+    parts = [("Anvil", L.finish(smith_anvil(), "Anvil", sharp=50.0)), ("Hearth", L.finish(smith_hearth(), "Hearth", sharp=50.0, moss_k=0.0))]
+    for _, objs in parts:
+        L.tone_scale(objs, "iron", (0.5, 0.54, 0.6))
+        L.tone_scale(objs, "timber", (0.72, 0.7, 0.68))
+        L.tone_scale(objs, "hewn", (0.7, 0.66, 0.64))          # soot
+    return dict(path=os.path.join(PROPS, "works_smithy.glb"), parts=parts, budget=1100)
+
+
+ASSETS = {"works_winch": works_winch, "winch_wheel": winch_wheel, "lamp_street": lamp_street, "works_smithy": works_smithy}
 
 if __name__ == "__main__":
     L.run(ASSETS)

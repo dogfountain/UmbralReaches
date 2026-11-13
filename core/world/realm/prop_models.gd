@@ -14,6 +14,17 @@ var big := false                 ## building-size texel density (WestKit.mat) in
 var _st := {}                    ## set -> SurfaceTool
 
 
+## The box of a whole model (every part): a builder scales a crate or a barrel to the size it wants.
+static func size_of(file: String) -> Vector3:
+	var box := AABB()
+	var first := true
+	for p: Dictionary in (StoneProps.info(file).parts as Array):
+		var a := (p.mesh as Mesh).get_aabb()
+		box = a if first else box.merge(a)
+		first = false
+	return box.size
+
+
 ## Add `part` of `file` (every part when "") at `xf` (world; the host stands at the origin like a kit's).
 func add(file: String, xf: Transform3D, part := "") -> void:
 	var found := false

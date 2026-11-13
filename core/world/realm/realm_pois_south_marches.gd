@@ -23,6 +23,7 @@ extends RefCounted
 
 const P := preload("res://core/world/realm/realm_pois.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
+const PropModels := preload("res://core/world/realm/prop_models.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Kit := preload("res://core/world/realm/south_marches_kit.gd")
@@ -184,6 +185,17 @@ static func _chest(host: Node3D, id: String, at: Vector3, yaw: float) -> Node3D:
 	return c
 
 
+## A child of `host` that stands at the world's origin whatever the host's own place. These places' nodes stand AT
+## their place, and a kit's geometry is in world space: committed straight under one it was drawn (and collided) at
+## twice the place's position -- the steles stood out past the Realm's edge, their readings alone where they belonged.
+static func _world_node(host: Node3D, n: String) -> Node3D:
+	var hold := Node3D.new()
+	hold.name = n
+	host.add_child(hold)
+	hold.global_transform = Transform3D.IDENTITY
+	return hold
+
+
 ## A little carved stone with a reading: a slab on a footing, text in LoreDB (poi_r37s_*).
 static func _stele(host: Node3D, space: PhysicsDirectSpaceState3D, id: String, at: Vector2, yaw: float, h := 1.3) -> void:
 	LK.ensure_mats()
@@ -192,10 +204,13 @@ static func _stele(host: Node3D, space: PhysicsDirectSpaceState3D, id: String, a
 	var b := Basis(Vector3.UP, yaw)
 	var k := OssKit.new()
 	k.keep_lanes = false
-	k.box("lore_tstone", o + b * Vector3(0, 0.12, 0), Vector3(0.9, 0.3, 0.6), b, true, 0.85)
-	k.box("lore_tstone", o + b * Vector3(0, 0.3 + h * 0.5, 0), Vector3(0.62, h, 0.2), b, true, 0.92)
-	k.box("lore_tstone", o + b * Vector3(0, 0.3 + h + 0.04, 0), Vector3(0.7, 0.1, 0.26), b, false, 0.8)
-	k.commit(host, "Stele_" + id)
+	k.collider(o + b * Vector3(0, 0.12, 0), Vector3(0.9, 0.3, 0.6), b)
+	k.collider(o + b * Vector3(0, 0.3 + h * 0.5, 0), Vector3(0.62, h, 0.2), b)
+	var hold := _world_node(host, "Stele_" + id)
+	k.commit(hold, "SteleBody")
+	var pm := PropModels.new()            # a round-headed or a gabled slab in a rough footing, the Open Door over its lettered field
+	pm.add("ruin_marker.glb", Transform3D(b.scaled(Vector3(1.0, (0.34 + h) / 1.64, 1.0)), o), "SteleB" if hash(id) % 2 == 1 else "SteleA")
+	pm.commit(hold, "Stele")
 	var face := o + b * Vector3(0, 0.3 + h * 0.55, -0.12)
 	P._lore(host, id, o + b * Vector3(0.0, 0.9, -0.55), face)
 
@@ -692,9 +707,12 @@ static func _stele_local(host: Node3D, id: String, at: Vector3, y: float, yaw: f
 	var o := Vector3(at.x, y, at.z)
 	var k := OssKit.new()
 	k.keep_lanes = false
-	k.box("lore_tstone", o + b * Vector3(0, 0.1, 0), Vector3(0.9, 0.2, 0.55), b, false, 0.8)
-	k.box("lore_tstone", o + b * Vector3(0, 0.75, 0), Vector3(0.55, 1.3, 0.18), b, true, 0.92)
-	k.commit(host, "Stele_" + id)
+	k.collider(o + b * Vector3(0, 0.75, 0), Vector3(0.55, 1.3, 0.18), b)
+	var hold := _world_node(host, "Stele_" + id)
+	k.commit(hold, "SteleBody")
+	var pm := PropModels.new()
+	pm.add("ruin_marker.glb", Transform3D(b.scaled(Vector3(0.9, 0.86, 0.9)), o), "SteleB" if hash(id) % 2 == 1 else "SteleA")
+	pm.commit(hold, "Stele")
 	P._lore(host, id, o + b * Vector3(0.0, 0.95, -0.5), o + b * Vector3(0, 0.95, -0.1))
 
 

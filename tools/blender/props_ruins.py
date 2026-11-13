@@ -199,13 +199,172 @@ def ruin_shrine():
     return dict(path=os.path.join(PROPS, "ruin_shrine.glb"), parts=parts, budget=3200, focus=Vector((0.0, -0.4, 1.4)), show=["Obelisk"])
 
 
+# --- reading stones (the south marches' steles) -----------------------------------------------------------
+def stele_stone(kind):
+    """A carved stone with a reading: a slab in a rough footing, a sunk lettered field with the Open Door cut over
+    it. A = round-headed, B = gabled with a shoulder broken away. Front = Blender +Y (Godot -Z: the builders' reading
+    side). The old boxes: footing 0.9 x 0.3 x 0.6, slab 0.62 x 1.3 x 0.2 from 0.3 up."""
+    mk = Mk(3450 + "AB".index(kind), "hewn")
+    r = mk.r
+    vs, _ = block(mk, (0.95, 0.62, 0.55), ch=0.08, j=0.012, ease=0.05, chip=0.03, taper=0.07)
+    move(mk, vs, trs((0, 0, -0.27), r.uniform(-0.06, 0.06)))
+    W, D = 0.62, 0.2
+    head = [(1.4, 0.6), (1.52, 0.52), (1.6, 0.38), (1.65, 0.16)] if kind == "A" else [(1.36, 0.6), (1.52, 0.34), (1.66, 0.05)]
+    zs = [(0.2, W + 0.02), (0.34, W), (0.5, W - 0.01), (1.3, W - 0.04)] + head
+    rings = [oct_ring(r, 0, 0, z, w, D * (0.9 if z > 1.0 else 1.0), 0.022, 0.006, r.uniform(-0.01, 0.01), None, 0.02 if z > 0.6 else 0.0) for z, w in zs]
+    faces, vs = mk.loft(rings, top=True, bot=True)
+    floor = mk.panel(faces[(2, 2)], 0.055, 0.016)
+    fr = mk.frame(floor)
+    arch = [(0.065, -0.03), (0.065, 0.06)] + [(math.cos(a) * 0.065, 0.06 + math.sin(a) * 0.065) for a in (math.pi / 4, math.pi / 2, 3 * math.pi / 4)] + [(-0.065, 0.06), (-0.065, -0.03)]
+    mk.cut(floor, [[(u, v + fr["hh"] - 0.17) for u, v in arch]], 0.02, floor_tag=L.TAG_DARK)
+    slab = L.island(flat(vs))
+    if kind == "B":
+        slab = chop(mk, slab, (0.2, 0.0, 1.4), (0.75, 0.1, 0.65), rough=0.02)
+    move(mk, slab, trs((0, 0, 0), 0.0, 0.035 if kind == "A" else -0.02, 0.025 if kind == "A" else -0.05))
+    return mk
+
+
+def ruin_marker():
+    parts = [("Stele" + k, L.finish(stele_stone(k), "Stele" + k, sharp=50.0, moss_k=1.2)) for k in "AB"]
+    return dict(path=os.path.join(PROPS, "ruin_marker.glb"), parts=parts, budget=700)
+
+
+# --- the Drowned Shrine (the Sorrow's Banks) ---------------------------------------------------------------
+def drowned_plinth():
+    """The island the shrine stands on: battered masonry out of the river bed, a paving of nine great flags. Top at
+    z = 0 (the builder's plinth top), 6.6 m square."""
+    mk = Mk(3460, "ashlar")
+    r = mk.r
+    vs, _ = block(mk, (6.78, 6.78, 3.1), ch=0.06, j=0.012, ease=0.05, taper=0.04, chip=0.02)
+    move(mk, vs, trs((0, 0, -3.22)))
+    for ix in range(3):
+        for iy in range(3):
+            h = 0.15 + r.uniform(-0.01, 0.012)
+            vs, _ = block(mk, (2.22, 2.22, h), ch=0.035, j=0.008, ease=0.025, chip=0.02, st="hewn")
+            move(mk, vs, trs(((ix - 1) * 2.235, (iy - 1) * 2.235, -0.15), r.uniform(-0.006, 0.006), r.uniform(-0.006, 0.006), r.uniform(-0.006, 0.006)))
+            if (ix, iy) == (2, 0):
+                chop(mk, vs, (2.7, -3.0, -0.05), (0.6, -0.75, 0.2), rough=0.04)
+            if (ix, iy) == (0, 2):
+                chop(mk, vs, (-3.1, 2.5, -0.05), (-0.8, 0.5, 0.25), rough=0.04)
+    return mk
+
+
+def drowned_pier(kind):
+    """A pier of the shrine: a base, four drums that have turned on their beds, an impost. z 0 .. 3.6, 0.8 square (the
+    old box). B has lost a corner of its head."""
+    mk = Mk(3462 + "AB".index(kind), "hewn")
+    r = mk.r
+    vs, _ = block(mk, (1.02, 1.02, 0.34), ch=0.06, j=0.006, ease=0.03, taper=0.1, chip=0.02)
+    z = 0.33
+    top = []
+    for i in range(4):
+        h = 0.725
+        vs, _ = block(mk, (0.8, 0.8, h - 0.012), ch=0.07, j=0.006, ease=0.025, chip=0.025)
+        move(mk, vs, trs((r.uniform(-0.015, 0.015), r.uniform(-0.015, 0.015), z), r.uniform(-0.05, 0.05)))
+        z += h
+        top = vs
+    cap, _ = block(mk, (1.04, 1.04, 0.36), ch=0.06, j=0.006, ease=0.035, chip=0.03)
+    move(mk, cap, trs((0, 0, 3.23), r.uniform(-0.03, 0.03)))
+    if kind == "B":
+        chop(mk, cap, (0.3, 0.3, 3.4), (0.7, 0.6, 0.35), rough=0.05)
+        chop(mk, top, (0.36, 0.3, 3.2), (0.8, 0.5, 0.4), rough=0.03)
+    return mk
+
+
+ARCH_A, ARCH_RISE, ARCH_D = 2.3, 1.25, 0.5          # intrados half-span, rise, ring depth; springing at z 3.56
+
+
+def drowned_arch(stub):
+    """The arch between two piers 5.2 m apart (centres at x +-2.6), springing from their heads at z 3.56: nine
+    voussoirs, the keystone a little proud. `stub` = the broken front arch: its first three stones, the last snapped."""
+    mk = Mk(3464 + int(stub), "hewn")
+    r = mk.r
+    rin = (ARCH_A ** 2 + ARCH_RISE ** 2) / (2 * ARCH_RISE)
+    z0 = 3.56 + ARCH_RISE - rin
+    half = math.asin(ARCH_A / rin)
+    n = 9
+    da = 2 * half / n
+    last = []
+    for i in range(3 if stub else n):
+        a0 = -half + i * da + 0.004
+        a1 = -half + (i + 1) * da - 0.004
+        key = (i == n // 2)
+        ri = rin - (0.03 if key else 0.0)
+        ro = rin + ARCH_D + (0.07 if key else r.uniform(-0.02, 0.03))
+        quad = [(math.sin(a0) * ri, z0 + math.cos(a0) * ri), (math.sin(a1) * ri, z0 + math.cos(a1) * ri),
+                (math.sin(a1) * ro, z0 + math.cos(a1) * ro), (math.sin(a0) * ro, z0 + math.cos(a0) * ro)]
+        t = 0.39 + (0.03 if key else r.uniform(-0.012, 0.012))
+        last = L.prism(mk, quad, -t, t, j=0.008)
+    if stub:
+        a = -half + 2.55 * da
+        chop(mk, last, (math.sin(a) * (rin + 0.25), 0.0, z0 + math.cos(a) * (rin + 0.25)), (math.cos(a), 0.25, -math.sin(a) * 0.6), rough=0.06)
+    else:                                       # what is left of the wall over one haunch
+        for x, z, w, h in [(-2.25, 4.42, 0.9, 0.42), (-1.5, 4.86, 0.8, 0.36), (-2.3, 4.84, 0.7, 0.4)]:
+            vs = L.crate(mk, (w, 0.74, h), j=0.012)
+            move(mk, vs, trs((x, r.uniform(-0.02, 0.02), z), 0.0, 0.0, r.uniform(-0.03, 0.03)))
+    return mk
+
+
+def drowned_altar():
+    """The altar: a step, a body with the Open Door cut in a sunk panel on its front (Blender -Y = Godot +Z, toward
+    the shrine's open side), a mensa with a corner gone. 2.0 x 1.0, top at z 1.35 (the old box's top)."""
+    mk = Mk(3466, "hewn")
+    vs, _ = block(mk, (2.36, 1.36, 0.18), ch=0.04, j=0.006, ease=0.03, chip=0.02)
+    body, faces = block(mk, (1.84, 0.86, 0.98), ch=0.045, j=0.005, ease=0.03)
+    move(mk, body, trs((0, 0, 0.17)))
+    floor = mk.panel(faces[(1, 6)], 0.13, 0.035)
+    arch = [(0.16, -0.24), (0.16, 0.04)] + [(math.cos(a) * 0.16, 0.04 + math.sin(a) * 0.16) for a in (math.pi / 6, math.pi / 3, math.pi / 2, 2 * math.pi / 3, 5 * math.pi / 6)] + [(-0.16, 0.04), (-0.16, -0.24)]
+    mk.cut(floor, [arch], 0.05, floor_tag=L.TAG_DARK)
+    top, _ = block(mk, (2.08, 1.08, 0.21), ch=0.035, j=0.006, ease=0.03, chip=0.02)
+    move(mk, top, trs((0, 0, 1.14)))
+    chop(mk, top, (0.8, -0.54, 1.3), (0.7, -0.6, 0.3), rough=0.04)
+    return mk
+
+
+def drowned_saint(part):
+    """The saint that stood on the altar: a robed figure with its hands together, the head struck off (part "Head"
+    lies apart). Pivot under its feet; ~1.2 tall, 0.7 wide, 0.5 deep (the old box). Front = Blender -Y."""
+    mk = Mk(3467 + (part == "Head"), "hewn")
+    r = mk.r
+    if part == "Head":
+        prof = [(0.03, 0.0), (0.1, 0.03), (0.14, 0.12), (0.13, 0.22), (0.07, 0.29), (0.02, 0.31)]
+        _, vs = mk.loft([L.circle(rad, z, 7, 0.3, sy=1.1) for rad, z in prof], top=True, bot=True, hull=False)
+        move(mk, flat(vs), trs((0, 0, 0.1), 0.4, 1.35, 0.0))
+        return mk
+    prof = [(0.33, 0.0), (0.34, 0.06), (0.3, 0.3), (0.25, 0.62), (0.27, 0.84), (0.33, 0.97), (0.3, 1.05), (0.16, 1.12), (0.12, 1.17)]
+    rings = [[Vector((p.x * (1.0 + 0.05 * math.sin(i * 2.4 + k)), p.y, p.z)) for i, p in enumerate(L.circle(rad, z, 10, 0.0, sy=0.68))] for k, (rad, z) in enumerate(prof)]
+    _, vs = mk.loft(rings, top=True, bot=True, hull=False)
+    body = chop(mk, flat(vs), (0.0, 0.0, 1.14), (0.35, 0.1, 1.0), rough=0.02)
+    for sx in (-1, 1):                                   # the arms, brought to the breast
+        bar(mk, (sx * 0.27, -0.04, 0.96), (sx * 0.2, -0.17, 0.74), 0.11, 0.1, st="hewn", ch=0.03)
+        bar(mk, (sx * 0.2, -0.17, 0.74), (sx * 0.03, -0.25, 0.86), 0.09, 0.085, st="hewn", ch=0.025)
+    hands, _ = block(mk, (0.12, 0.09, 0.14), ch=0.03, j=0.004, ease=0.02)
+    move(mk, hands, trs((0, -0.26, 0.82), 0.0, 0.3))
+    for x in (-0.14, 0.0, 0.15):                         # the robe's folds down the front
+        bar(mk, (x, -0.2 - 0.02 * abs(x) * 0, 0.02), (x * 0.8, -0.185, 0.6), 0.05, 0.035, st="hewn", ch=0.012)
+    _ = body, r
+    return mk
+
+
+def ruin_drowned():
+    parts = [("Plinth", L.finish(drowned_plinth(), "Plinth", tiles={"ashlar": 12.0}, sharp=50.0, moss_k=1.5))]
+    for k in "AB":
+        parts.append(("Pier" + k, L.finish(drowned_pier(k), "Pier" + k, sharp=50.0, moss_k=1.3)))
+    parts.append(("Arch", L.finish(drowned_arch(False), "Arch", sharp=50.0, moss_k=1.3)))
+    parts.append(("ArchStub", L.finish(drowned_arch(True), "ArchStub", sharp=50.0, moss_k=1.3)))
+    parts.append(("Altar", L.finish(drowned_altar(), "Altar", sharp=50.0, moss_k=1.2)))
+    parts.append(("Saint", L.finish(drowned_saint("Body"), "Saint", sharp=62.0, moss_k=1.2)))
+    parts.append(("SaintHead", L.finish(drowned_saint("Head"), "SaintHead", sharp=62.0, moss_k=1.2)))
+    return dict(path=os.path.join(PROPS, "ruin_drowned.glb"), parts=parts, budget=4200, show=["PierA", "PierB", "Arch", "ArchStub", "Altar", "Saint", "SaintHead"])
+
+
 def shrine_small():
     """Preview only: the shrine's small parts without the obelisk, so the renders show them close."""
     d = ruin_shrine()
     return dict(path=None, parts=d["parts"], budget=9999, show=[lb for lb, _ in d["parts"][1:]])
 
 
-ASSETS = {"ruin_shrine": ruin_shrine, "shrine_small": shrine_small}
+ASSETS = {"ruin_shrine": ruin_shrine, "shrine_small": shrine_small, "ruin_marker": ruin_marker, "ruin_drowned": ruin_drowned}
 
 if __name__ == "__main__":
     L.run(ASSETS)
