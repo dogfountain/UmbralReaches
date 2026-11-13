@@ -24,6 +24,7 @@ const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Kit := preload("res://core/world/realm/west_marches_kit.gd")
 const Hearth := preload("res://core/world/realm/cottage_hearth.gd")
 const Raid := preload("res://core/world/hierarch_raid.gd")
+const Pilot := preload("res://core/world/realm/scale_pilot.gd")
 
 const WATER := -0.9
 
@@ -99,8 +100,13 @@ static func _bx(ctr: Vector2, half: Vector2) -> Rect2:
 	return Rect2(ctr - half, half * 2.0)
 
 
+## A building as built: BLD's design, with the scale pilot's plot and proportions over it ("s": its scale about its foot).
+static func bld(id: String) -> Dictionary:
+	return Pilot.bld(id, BLD[id])
+
+
 static func _footprint(d: Dictionary) -> Rect2:
-	var s: Vector2 = d.size
+	var s: Vector2 = (d.size as Vector2) * float(d.get("s", 1.0))
 	var half := s * 0.5 + Vector2(1.6, 1.6)
 	if absf(sin(float(d.yaw))) > 0.7:
 		half = Vector2(half.y, half.x)
@@ -116,7 +122,7 @@ static func reserve(root: Node) -> void:
 			return
 	var space := (root as Node3D).get_world_3d().direct_space_state
 	for id: String in BLD:
-		var d: Dictionary = BLD[id]
+		var d: Dictionary = bld(id)
 		var rc := _footprint(d)
 		var lo := INF
 		var hi := -INF
@@ -127,7 +133,8 @@ static func reserve(root: Node) -> void:
 				hi = maxf(hi, gy)
 		spots["bld_" + id] = {"at": Vector3(d.at.x, lo, d.at.y), "yaw": float(d.yaw), "rect": rc}
 		WorldLanes.register_site("r37w_" + id, rc, lo + 0.05, lo)
-	WorldLanes.register_lane("r37w_bridge", [Vector2(-224.0, 65.6), Vector2(-190.0, 65.6)], 3.4)
+	var bk := Pilot.BRIDGE if Pilot.on() else Vector3.ONE
+	WorldLanes.register_lane("r37w_bridge", [Vector2(-208.0 - 16.0 * bk.x, 65.6), Vector2(-208.0 + 18.0 * bk.x, 65.6)], 3.4 * bk.z)
 	WorldLanes.register_lane("r37w_weir", [Vector2(-215.0, 58.0), Vector2(-199.0, 58.0)], 3.0)
 	Flora.tree_clear.append([Vector2(-200.0, 66.0), 30.0])
 	# the statue's body and arm lie on the land as it is: no cut, nothing grows on them
@@ -231,6 +238,7 @@ static func _chest(host: Node3D, id: String, at: Vector3, yaw: float) -> Node3D:
 	var l: Array = LOOT.get(id, ["wood", {"grave_ash": 6}])
 	c.set("tier", l[0])
 	c.set("loot", (l[1] as Dictionary).duplicate())
+	c.set("big", lerpf(1.0, Pilot.PROP, Pilot.weight(at.x, at.z)))
 	host.add_child(c)
 	c.global_transform = Transform3D(Basis(Vector3.UP, yaw), at)
 	return c
@@ -244,9 +252,9 @@ static func _lore(host: Node3D, id: String, at: Vector3, mark := Vector3.INF) ->
 	s.set("mark", mark if mark != Vector3.INF else at)
 
 
-static func _kit() -> OssKit:
+static func _kit() -> Pilot.SKit:
 	LK.ensure_mats()
-	var k := OssKit.new()
+	var k := Pilot.SKit.new()
 	k.keep_lanes = false
 	return k
 
@@ -264,6 +272,7 @@ static func _mats() -> void:
 		m.uv1_triplanar_sharpness = 6.0
 		m.uv1_scale = Vector3.ONE * float(pair[2])
 		OssKit._mats[String(pair[0])] = m
+	Pilot.ensure_mats()
 
 
 ## A window in the front wall (local +z face): stone sill and lintel, timber frame, a mullion and a transom, four small
@@ -286,12 +295,17 @@ static func _window(k: OssKit, base: Vector3, b: Basis, x: float, y: float, z: f
 		k.box("r37_board", base + b * Vector3(x + sx * 0.82, y, z + 0.08), Vector3(0.5, 1.0, 0.06), b * Basis(Vector3.UP, sx * 0.9), false, 0.7)
 
 
-## The street lanterns: (x, z, facing).
+## The street lanterns: (x, z, facing). lanterns() is the list as built (the scale pilot stands them at the wider bridge's ends).
 const LANTERNS := [Vector3(-195.0, 63.7, PI), Vector3(-195.0, 67.5, 0.0), Vector3(-199.5, 71.0, 0.0), Vector3(-221.0, 63.7, PI), Vector3(-221.0, 67.5, 0.0)]
 
 
+static func lanterns() -> Array:
+	return Pilot.LANTERNS if Pilot.on() else LANTERNS
+
+
 ## An iron lantern on a post with a bracket: cage bars, cold glass inside, a cap and a ring.
-static func _lantern(k: OssKit, at: Vector3, face: float) -> void:
+static func _lantern(k: Pilot.SKit, at: Vector3, face: float) -> void:
+	k.at(at, Pilot.prop(), false)
 	var b := Basis(Vector3.UP, face)
 	k.box("iron", at + Vector3(0, 0.12, 0), Vector3(0.28, 0.24, 0.28), Basis.IDENTITY, false, 0.7)
 	k.box("iron", at + Vector3(0, 1.6, 0), Vector3(0.09, 3.2, 0.09), Basis.IDENTITY, false, 0.7)
@@ -320,15 +334,20 @@ static func _house(k: OssKit, base: Vector3, yaw: float, size: Vector2, h: float
 	var wall := "r37_wall"
 	var roof: String = o.get("roof", "slate")
 	var dw := float(o.get("door_w", 1.4))
+	var dh := float(o.get("door_h", 2.4))            # the door's head (design metres over the foot)
+	var big := float(o.get("s", 1.0)) > 1.01         # the scale pilot: the floor slab is the floor, and steps reach it
 	var open := bool(o.get("open", false))
 	k.box("stone", base + b * Vector3(0, -0.5, 0), Vector3(w + 0.7, 1.4, d + 0.7), b, true, 0.78)
-	var y0 := 0.9
+	var y0 := 0.66 if big else 0.9                   # scaled, the slot between the floor and the wall's foot would show: the wall stands on the floor
 	var wh := h - y0 + 0.2
 	k.box(wall, base + b * Vector3(0, y0 + wh * 0.5, -d * 0.5 + t * 0.5), Vector3(w, wh, t), b, true, 0.9)
 	k.box(wall, base + b * Vector3(-w * 0.5 + t * 0.5, y0 + wh * 0.5, 0), Vector3(t, wh, d), b, true, 0.9)
 	k.box(wall, base + b * Vector3(w * 0.5 - t * 0.5, y0 + wh * 0.5, 0), Vector3(t, wh, d), b, true, 0.9)
-	k.box("stone", base + b * Vector3(0, 0.6, 0), Vector3(w + 0.3, 0.12, d + 0.3), b, false, 0.8)
+	k.box("stone", base + b * Vector3(0, 0.6, 0), Vector3(w + 0.3, 0.12, d + 0.3), b, big, 0.8)
 	if open:
+		if big:                                       # three full-width steps up to the floor (each under the nav's 0.32 m)
+			for i in 3:
+				k.box("stone", base + b * Vector3(0, 0.165 * float(i + 1) - 0.4, d * 0.5 + 0.325 + 0.45 * float(2 - i)), Vector3(w + 0.3, 0.8, 0.45), b, true, 0.85)
 		for sx: float in [-1.0, 1.0]:
 			k.box("r37_board", base + b * Vector3(sx * (w * 0.5 - 0.2), h * 0.5 + 0.5, d * 0.5 - 0.2), Vector3(0.36, h, 0.36), b, true, 0.8)
 		k.box("r37_board", base + b * Vector3(0, h - 0.1, d * 0.5 - 0.2), Vector3(w, 0.34, 0.34), b, false, 0.8)
@@ -338,25 +357,27 @@ static func _house(k: OssKit, base: Vector3, yaw: float, size: Vector2, h: float
 		var seg := (w - dw) * 0.5
 		for sx: float in [-1.0, 1.0]:
 			k.box(wall, base + b * Vector3(sx * (dw * 0.5 + seg * 0.5), y0 + wh * 0.5, d * 0.5 - t * 0.5), Vector3(seg, wh, t), b, true, 0.9)
-		k.box(wall, base + b * Vector3(0, 2.4 + (h + 0.2 - 2.4) * 0.5 + 0.1, d * 0.5 - t * 0.5), Vector3(dw + 0.3, h - 2.4 + 0.2, t), b, true, 0.9)
+		k.box(wall, base + b * Vector3(0, dh + (h + 0.2 - dh) * 0.5 + 0.1, d * 0.5 - t * 0.5), Vector3(dw + 0.3, h - dh + 0.2, t), b, true, 0.9)
 		for sx: float in [-1.0, 1.0]:
-			k.box("r37_board", base + b * Vector3(sx * (dw * 0.5 + 0.08), 1.6, d * 0.5 + 0.03), Vector3(0.16, 2.3, 0.14), b, false, 0.85)
-		k.box("r37_board", base + b * Vector3(0, 2.4, d * 0.5 + 0.03), Vector3(dw + 0.4, 0.18, 0.16), b, false, 0.85)
-		k.box("stone", base + b * Vector3(0, 2.55, d * 0.5 + 0.04), Vector3(dw + 0.7, 0.16, 0.26), b, false, 0.85)
-		k.box("r37_board", base + b * Vector3(-dw * 0.25, 1.15, d * 0.5 - 0.18), Vector3(dw * 0.5, 2.3, 0.08), b * Basis(Vector3.UP, -1.0), false, 0.65)
-		k.box("iron", base + b * Vector3(-dw * 0.25, 1.9, d * 0.5 - 0.12), Vector3(dw * 0.46, 0.08, 0.04), b * Basis(Vector3.UP, -1.0), false, 0.7)
+			k.box("r37_board", base + b * Vector3(sx * (dw * 0.5 + 0.08), (dh + 0.8) * 0.5, d * 0.5 + 0.03), Vector3(0.16, dh - 0.1, 0.14), b, false, 0.85)
+		k.box("r37_board", base + b * Vector3(0, dh, d * 0.5 + 0.03), Vector3(dw + 0.4, 0.18, 0.16), b, false, 0.85)
+		k.box("stone", base + b * Vector3(0, dh + 0.15, d * 0.5 + 0.04), Vector3(dw + 0.7, 0.16, 0.26), b, false, 0.85)
+		k.box("r37_board", base + b * Vector3(-dw * 0.25, (dh - 0.1) * 0.5, d * 0.5 - 0.18), Vector3(dw * 0.5, dh - 0.1, 0.08), b * Basis(Vector3.UP, -1.0), false, 0.65)
+		k.box("iron", base + b * Vector3(-dw * 0.25, dh - 0.5, d * 0.5 - 0.12), Vector3(dw * 0.46, 0.08, 0.04), b * Basis(Vector3.UP, -1.0), false, 0.7)
 		# two low risers up to the door (each a body's step high: the people's nav climbs 0.32 m at most)
 		k.box("stone", base + b * Vector3(0, 0.33, d * 0.5 + 0.35), Vector3(dw + 0.5, 0.28, 0.7), b, true, 0.85)
 		k.box("stone", base + b * Vector3(0, -0.06, d * 0.5 + 1.0), Vector3(dw + 0.9, 0.68, 0.6), b, true, 0.85)
+		if big:                                   # scaled, the lowest riser is too tall for a body's step: one more under it
+			k.box("stone", base + b * Vector3(0, -0.2, d * 0.5 + 1.6), Vector3(dw + 1.3, 0.68, 0.6), b, true, 0.85)
 	for x: float in [-w * 0.5, w * 0.5]:
 		for z: float in [-d * 0.5, d * 0.5]:
 			k.box("r37_board", base + b * Vector3(x, h * 0.5 + 0.3, z), Vector3(0.3, h + 0.2, 0.3), b, false, 0.8)
 	for z: float in [-d * 0.5 - 0.02, d * 0.5 + 0.02]:
 		k.box("r37_board", base + b * Vector3(0, h + 0.05, z), Vector3(w + 0.3, 0.26, 0.2), b, false, 0.8)
-		k.box("r37_board", base + b * Vector3(0, 2.2, z), Vector3(w, 0.16, 0.14), b, false, 0.75)
+		k.box("r37_board", base + b * Vector3(0, dh - 0.2, z), Vector3(w, 0.16, 0.14), b, false, 0.75)
 	for x: float in [-w * 0.5 - 0.02, w * 0.5 + 0.02]:
 		k.box("r37_board", base + b * Vector3(x, h + 0.05, 0), Vector3(0.2, 0.26, d + 0.3), b, false, 0.8)
-		k.box("r37_board", base + b * Vector3(x, 2.2, 0), Vector3(0.14, 0.16, d), b, false, 0.75)
+		k.box("r37_board", base + b * Vector3(x, dh - 0.2, 0), Vector3(0.14, 0.16, d), b, false, 0.75)
 		for s: float in [-1.0, 1.0]:
 			k.box("r37_board", base + b * Vector3(x, 1.9, s * d * 0.28), Vector3(0.12, 0.14, 2.0), b * Basis(Vector3.RIGHT, s * 0.7), false, 0.75)
 	var nglow := int(o.get("glow", 0))
@@ -365,7 +386,7 @@ static func _house(k: OssKit, base: Vector3, yaw: float, size: Vector2, h: float
 		if span > 0.9:
 			var xs: Array[float] = [-(dw * 0.5 + span * 0.55), dw * 0.5 + span * 0.55]
 			for i in xs.size():
-				_window(k, base, b, xs[i], 1.9, d * 0.5 + 0.02, i < nglow or nglow >= 2)
+				_window(k, base, b, xs[i], 1.9 + (dh - 2.4) * 0.4, d * 0.5 + 0.02, i < nglow or nglow >= 2)
 	var pitch := deg_to_rad(38.0)
 	var run := d * 0.5 + 0.7
 	var slope_len := run / cos(pitch)
@@ -378,15 +399,15 @@ static func _house(k: OssKit, base: Vector3, yaw: float, size: Vector2, h: float
 		k.box("r37_board", base + c + rb * Vector3(0, 0.0, slope_len * 0.5), Vector3(w + 1.3, 0.22, 0.14), rb, false, 0.8)
 	for i in int(w / 0.8):
 		k.box("stone", base + b * Vector3(-w * 0.5 + 0.4 + 0.8 * float(i), h + rise + 0.16, 0), Vector3(0.7, 0.26, 0.5), b, false, 0.85)
-	for j in 4:
-		var hw := (d - 0.6) * (1.0 - float(j) / 4.2)
+	for j in (int(rise / 0.5) if big else 4):                # scaled, the gable is stepped all the way up under the roof (the four courses left its top open)
+		var hw := (d - 0.6) * (1.0 - float(j) / 4.2) if not big else maxf(2.0 * (run - 0.5 * float(j + 1) / tan(pitch)) - 0.5, 0.4)
 		for sx: float in [-1.0, 1.0]:
 			k.box(wall, base + b * Vector3(sx * (w * 0.5 - t * 0.5), h + 0.3 + 0.5 * float(j), 0), Vector3(t, 0.5, hw), b, false, 0.9)
 	var cx := w * 0.3
 	var cz := -d * 0.18
 	if not open:
 		cz = -d * 0.5 + t + 0.35             # the stack stands on the back wall, over the hearth
-		Hearth.surround(k, base, b, w, d, h, t, dw, cx)
+		Hearth.surround(k, base, b, w, d, h, t, dw, cx, dh)
 	k.box("stone", base + b * Vector3(cx, h + rise * 0.6, cz), Vector3(1.1, rise * 1.5 + 1.4, 1.1 if open else 0.7), b, true, 0.8)
 	k.box("stone", base + b * Vector3(cx, h + rise * 1.35 + 0.6, cz), Vector3(1.4, 0.2, 1.4), b, false, 0.85)
 	for sx: float in [-0.25, 0.25]:
@@ -394,7 +415,8 @@ static func _house(k: OssKit, base: Vector3, yaw: float, size: Vector2, h: float
 
 
 static func _building(host: Node3D, space: PhysicsDirectSpaceState3D, id: String) -> Vector3:
-	var d: Dictionary = BLD[id]
+	var d: Dictionary = bld(id)
+	var s := float(d.get("s", 1.0))
 	var rc := _footprint(d)
 	var lo := INF
 	for ix in 5:
@@ -402,19 +424,21 @@ static func _building(host: Node3D, space: PhysicsDirectSpaceState3D, id: String
 			lo = minf(lo, _g(space, rc.position.x + rc.size.x * ix * 0.25, rc.position.y + rc.size.y * iz * 0.25))
 	var at := Vector3(d.at.x, lo, d.at.y)
 	var k := _kit()
+	k.at(at, s)
 	_house(k, at, float(d.yaw), d.size, float(d.h), d)
+	k.at(at, 1.0)
 	k.commit(host, "Bld_" + id)
 	if not bool(d.get("open", false)) and float(d.h) > 0.0:
 		var t := 0.34
 		var hh := (float(d.h) - 0.66) * 0.5
-		Interiors.room_lights(host, "bld_" + id, at + Basis(Vector3.UP, float(d.yaw)) * Vector3(0, 0.66 + hh, 0), float(d.yaw), Vector3(d.size.x * 0.5 - t, hh, d.size.y * 0.5 - t), int(d.get("glow", 0)) > 0, 1.8)
+		Interiors.room_lights(host, "bld_" + id, at + Basis(Vector3.UP, float(d.yaw)) * Vector3(0, (0.66 + hh) * s, 0), float(d.yaw), Vector3(d.size.x * 0.5 - t, hh, d.size.y * 0.5 - t) * s, int(d.get("glow", 0)) > 0, 1.8 * s)
 		if int(d.get("glow", 0)) > 0:
-			Hearth.fire(host, at, Basis(Vector3.UP, float(d.yaw)), float(d.size.y), t, float(d.size.x) * 0.3, "bld_" + id)
+			Hearth.fire(host, at, Basis(Vector3.UP, float(d.yaw)), float(d.size.y), t, float(d.size.x) * 0.3, "bld_" + id, s)
 			_window_trails(host, id, at, float(d.yaw), d)
 	elif int(d.get("glow", 0)) > 0:
 		var b := Basis(Vector3.UP, float(d.yaw))
-		var mouth := at + b * Vector3(0.0, 1.2, float(d.size.y) * 0.5 + 0.5)
-		Interiors.shaft(host, "OpenTrail_%s" % id, mouth, b * Vector3(0.0, -0.2, 1.0), Color(1.0, 0.42, 0.14), 1.5, 11.0, 38.0)
+		var mouth := at + b * (Vector3(0.0, 1.2, float(d.size.y) * 0.5 + 0.5) * s)
+		Interiors.shaft(host, "OpenTrail_%s" % id, mouth, b * Vector3(0.0, -0.2, 1.0), Color(1.0, 0.42, 0.14), 1.5 * s, 11.0, 38.0)
 	return at
 
 
@@ -424,20 +448,23 @@ static func _window_trails(host: Node3D, id: String, at: Vector3, yaw: float, d:
 	var w := float(d.size.x)
 	var depth := float(d.size.y)
 	var dw := float(d.get("door_w", 1.4))
+	var dh := float(d.get("door_h", 2.4))
+	var s := float(d.get("s", 1.0))
 	var nglow := int(d.get("glow", 0))
 	var span := w * 0.5 - dw * 0.5 - 1.0
 	if span > 0.9:
 		var xs: Array[float] = [-(dw * 0.5 + span * 0.55), dw * 0.5 + span * 0.55]
 		for i in xs.size():
 			if i < nglow or nglow >= 2:
-				var pos := at + b * Vector3(xs[i], 1.9, depth * 0.5 + 0.35)
-				Interiors.shaft(host, "WinTrail_%s_%d" % [id, i], pos, b * Vector3(0.0, -0.45, 1.0), Color(1.0, 0.58, 0.26), 1.15, 10.0, 24.0)
-	var door := at + b * Vector3(0.0, 1.35, depth * 0.5 + 0.45)
-	Interiors.shaft(host, "DoorTrail_%s" % id, door, b * Vector3(0.0, -0.32, 1.0), Color(1.0, 0.52, 0.2), 1.3, 11.0, 32.0)
+				var pos := at + b * (Vector3(xs[i], 1.9 + (dh - 2.4) * 0.4, depth * 0.5 + 0.35) * s)
+				Interiors.shaft(host, "WinTrail_%s_%d" % [id, i], pos, b * Vector3(0.0, -0.45, 1.0), Color(1.0, 0.58, 0.26), 1.15 * s, 10.0, 24.0)
+	var door := at + b * (Vector3(0.0, 1.35 + (dh - 2.4) * 0.4, depth * 0.5 + 0.45) * s)
+	Interiors.shaft(host, "DoorTrail_%s" % id, door, b * Vector3(0.0, -0.32, 1.0), Color(1.0, 0.52, 0.2), 1.3 * s, 11.0, 32.0)
 
 
 ## Barrels and crates in a corner: small boxes, no fuss.
-static func _clutter(k: OssKit, base: Vector3, yaw: float, rng: RandomNumberGenerator, n: int, spread: float) -> void:
+static func _clutter(k: Pilot.SKit, base: Vector3, yaw: float, rng: RandomNumberGenerator, n: int, spread: float) -> void:
+	k.at(base, Pilot.prop(), false)
 	var b := Basis(Vector3.UP, yaw)
 	for i in n:
 		var p := b * Vector3(rng.randf_range(-spread, spread), 0.0, rng.randf_range(-spread, spread))
@@ -452,24 +479,28 @@ static func _clutter(k: OssKit, base: Vector3, yaw: float, rng: RandomNumberGene
 # --- Weirford -------------------------------------------------------------------------------------
 
 static func _bridge(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
-	var ge := _g(space, -194.0, 65.6)
-	var gw := _g(space, -222.0, 65.6)
+	var bk := Pilot.BRIDGE if Pilot.on() else Vector3.ONE        # the scale pilot: a longer, much wider deck
+	var xe := -208.0 + 14.0 * bk.x
+	var xw := -208.0 - 14.0 * bk.x
+	var ge := _g(space, xe, 65.6)
+	var gw := _g(space, xw, 65.6)
 	var y := maxf(ge, gw) - 0.05
-	var br := Kit.place(host, "r37_bridge.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(-208.0, y, 65.6)))
+	var br := Kit.place(host, "r37_bridge.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(-208.0, y, 65.6)), {"scale": bk})
 	if br:
-		FarDetail.register(br, FarDetail.hull(AABB(Vector3(-14.0, -2.0, -2.2), Vector3(28.0, 3.0, 4.4)), 0.0, Color(0.16, 0.15, 0.14)), Transform3D.IDENTITY, 110.0)
-	deck_rect = Rect2(Vector2(-222.0, 64.3), Vector2(28.0, 2.6))
+		FarDetail.register(br, FarDetail.hull(AABB(Vector3(-14.0, -2.0, -2.2), Vector3(28.0, 3.0, 4.4)), 0.0, Color(0.16, 0.15, 0.14)), Transform3D.IDENTITY, 110.0 * bk.z)
+	deck_rect = Rect2(Vector2(xw, 65.6 - 1.3 * bk.z), Vector2(28.0 * bk.x, 2.6 * bk.z))
 	deck_y = y
-	_abutment(host, space, y)
-	host.set_meta("approach", Vector3(-194.0, ge, 65.6))
-	_lore(host, "r37w_bridge", Vector3(-195.5, y + 1.0, 63.6), Vector3(-195.5, y + 1.0, 63.6))
+	_abutment(host, space, y, bk)
+	host.set_meta("approach", Vector3(xe, ge, 65.6))
+	var lp := Vector3(xe - 1.5, y + 1.0, 65.6 - 2.0 * bk.z)
+	_lore(host, "r37w_bridge", lp, lp)
 
 
 ## The deck stands half a metre over the west bank: a stone approach ramp from its end down to the ground
 ## (a tilted slab, its far end buried), so the Watch's road does not drop off the bridge.
-static func _abutment(host: Node3D, space: PhysicsDirectSpaceState3D, y: float) -> void:
-	var xa := -221.8
-	var xb := -226.4
+static func _abutment(host: Node3D, space: PhysicsDirectSpaceState3D, y: float, bk := Vector3.ONE) -> void:
+	var xa := -208.0 - 13.8 * bk.x
+	var xb := xa - 4.6 * bk.x
 	var yb := _g(space, xb, 65.6)
 	var dir := Vector2(xb - xa, yb - y)
 	var len := dir.length()
@@ -480,57 +511,92 @@ static func _abutment(host: Node3D, space: PhysicsDirectSpaceState3D, y: float) 
 	var run := len + 1.0
 	var c2 := Vector2(xa, y) + u * (run * 0.5 - 0.3) - up * (thick * 0.5)
 	var k := _kit()
-	k.box("stone", Vector3(c2.x, c2.y, 65.6), Vector3(run, thick, 2.2), Basis(Vector3.BACK, ang), true, 0.85)
+	k.box("stone", Vector3(c2.x, c2.y, 65.6), Vector3(run, thick, 2.2 * bk.z), Basis(Vector3.BACK, ang), true, 0.85)
 	k.commit(host, "BridgeApproach")
 
 
 static func _mill(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
-	var y := _g(space, -221.5, 58.0)
-	var root := Kit.place(host, "r37_mill.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(-207.0, y, 58.0)), {"spin": "Wheel", "spin_rate": 0.55})
+	# the scale pilot: the mill is `ms` times its size about a new origin `mo` (its wheel's water side where it was,
+	# the house clear of the wider bridge); everything below is written in the old frame and carried over by `mp`
+	var ms := Pilot.MILL if Pilot.on() else 1.0
+	var mo := Pilot.MILL_AT if Pilot.on() else Pilot.MILL_OLD
+	var y := _g(space, mo.x - 14.5 * ms, mo.y)
+	var o_old := Vector3(-207.0, y, 58.0)
+	var o_new := Vector3(mo.x, y, mo.y)
+	var mp := func(v: Vector3) -> Vector3: return o_new + (v - o_old) * ms
+	var root := Kit.place(host, "r37_mill.glb", Transform3D(Basis(Vector3.UP, 0.0), o_new), {"spin": "Wheel", "spin_rate": 0.55 / ms, "scale": Vector3.ONE * ms})
 	if root:
 		host.set_meta("walk", [false])
-		FarDetail.register(root, FarDetail.hull(AABB(Vector3(-20.0, 0.0, -4.0), Vector3(12.0, 10.0, 8.0)), 0.5, Color(0.14, 0.12, 0.1)), Transform3D.IDENTITY, 110.0)
+		FarDetail.register(root, FarDetail.hull(AABB(Vector3(-20.0, 0.0, -4.0), Vector3(12.0, 10.0, 8.0)), 0.5, Color(0.14, 0.12, 0.1)), Transform3D.IDENTITY, 110.0 * ms)
 	# the weir itself stands at the water: its crest (model z 0.25) just over the reach's surface
 	var wl := RealmLayout.river_level(58.0)
-	Kit.place(host, "r37_weir.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(-207.0, wl - 0.15, 58.0)))
+	var wk := Vector3(1.0, 1.3, 1.2) if Pilot.on() else Vector3.ONE          # the weir keeps the river's width: taller posts, a deeper apron
+	Kit.place(host, "r37_weir.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(-207.0, wl - 0.15 - 0.25 * (wk.y - 1.0), 58.0)), {"scale": wk})
 	# the mill's door faces the road: a lit window pane on the south wall and a sack-hoist's landing
 	var k := _kit()
+	k.origin = o_old
+	k.to = o_new
+	k.s = ms
 	k.box("glow", Vector3(-221.5, y + 5.0, 61.95), Vector3(0.9, 0.7, 0.05), Basis.IDENTITY, false, 1.0)
 	k.box("glow", Vector3(-218.0, y + 5.0, 61.95), Vector3(0.9, 0.7, 0.05), Basis.IDENTITY, false, 1.0)
 	for mx: float in [-221.5, -218.0]:
-		Interiors.shaft(host, "MillTrail_%d" % int(mx), Vector3(mx, y + 4.9, 62.15), Vector3(0.0, -0.55, 1.0), Color(1.0, 0.58, 0.26), 1.1, 12.0, 18.0)
+		Interiors.shaft(host, "MillTrail_%d" % int(mx), mp.call(Vector3(mx, y + 4.9, 62.15)), Vector3(0.0, -0.55, 1.0), Color(1.0, 0.58, 0.26), 1.1 * ms, 12.0, 18.0)
 	k.commit(host, "MillGlow")
-	_chest(host, "weirford_loft", Vector3(-224.5, y + 3.6, 56.0), 0.4)
-	_lore(host, "r37w_mill", Vector3(-217.0, y + 1.0, 63.0), Vector3(-217.0, y + 1.0, 63.0))
+	_chest(host, "weirford_loft", mp.call(Vector3(-224.5, y + 3.6, 56.0)), 0.4)
+	var lq: Vector3 = mp.call(Vector3(-217.0, y, 63.0)) + Vector3(0.0, 1.0, 0.0)
+	_lore(host, "r37w_mill", lq, lq)
 
 
 static func _town(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 37001
 	var ats := {}
+	var sc := {}                        # id -> the building's scale about its foot (1, or the scale pilot's)
+	var fl := {}                        # id -> its floor over its foot where the slab is the floor (the pilot), else 0
 	for id: String in BLD:
 		if id == "mill_house":
 			continue
 		ats[id] = _building(host, space, id)
+		sc[id] = float(bld(id).get("s", 1.0))
+		fl[id] = 0.66 * float(sc[id]) if float(sc[id]) > 1.01 else 0.0
+	var pk := Pilot.on()
 	# the inn's sign and the smithy's anvil are in the people's routines; here the dressing
 	var k := _kit()
 	var inn: Vector3 = ats.inn
+	var si: float = sc.inn
+	k.at(inn, si)
 	k.box("wood", inn + Vector3(-3.4, 2.6, 4.9), Vector3(0.1, 1.9, 0.1), Basis.IDENTITY, false, 0.7)      # the sign's post
 	k.box("wood", inn + Vector3(-2.7, 3.2, 4.9), Vector3(1.5, 0.12, 0.1), Basis.IDENTITY, false, 0.7)
 	k.box("wood", inn + Vector3(-2.7, 2.6, 4.9), Vector3(0.9, 0.8, 0.07), Basis.IDENTITY, false, 0.6)
-	_clutter(k, inn + Vector3(5.6, 0, 3.6), 0.0, rng, 6, 1.1)
+	_clutter(k, inn + Vector3(5.6 * si, fl.inn, 3.6 * si), 0.0, rng, 6, 1.1)
 	var sm: Vector3 = ats.smithy
-	k.box("iron", sm + Vector3(0.6, 0.55, -1.2), Vector3(0.9, 0.5, 0.45), Basis.IDENTITY, true, 0.7)      # the anvil
-	k.box("stone", sm + Vector3(-2.2, 0.5, -1.8), Vector3(1.4, 1.0, 1.1), Basis.IDENTITY, true, 0.8)      # the forge's hearth
-	k.box("glow", sm + Vector3(-2.2, 1.02, -1.78), Vector3(0.8, 0.04, 0.6), Basis.IDENTITY, false, 1.0)   # coals
-	_clutter(k, sm + Vector3(3.2, 0, 1.5), PI, rng, 4, 0.7)
+	var ss: float = sc.smithy
+	var an := sm + Vector3(0.6 * ss, fl.smithy, -1.2 * ss)                # the anvil's foot
+	var fg := sm + Vector3(-2.2 * ss, fl.smithy, -1.8 * ss)               # the forge's
+	k.at(an, Pilot.prop(), false)
+	if pk:                                                               # on the floor now: a block under the anvil
+		k.box("wood", an + Vector3(0, 0.22, 0), Vector3(0.5, 0.44, 0.42), Basis.IDENTITY, true, 0.7)
+		k.box("iron", an + Vector3(0, 0.6, 0), Vector3(0.9, 0.32, 0.4), Basis.IDENTITY, true, 0.7)
+	else:
+		k.box("iron", an + Vector3(0, 0.55, 0), Vector3(0.9, 0.5, 0.45), Basis.IDENTITY, true, 0.7)      # the anvil
+	k.at(fg, Pilot.prop(), false)
+	k.box("stone", fg + Vector3(0, 0.5, 0), Vector3(1.4, 1.0, 1.1), Basis.IDENTITY, true, 0.8)           # the forge's hearth
+	k.box("glow", fg + Vector3(0, 1.02, 0.02), Vector3(0.8, 0.04, 0.6), Basis.IDENTITY, false, 1.0)      # coals
+	_clutter(k, sm + Vector3(3.2 * ss, fl.smithy, 1.5 * ss), PI, rng, 4, 0.7)
 	var st: Vector3 = ats.stables
+	var sst: float = sc.stables
+	k.at(st, sst)
+	var stb := Basis(Vector3.UP, float(bld("stables").yaw))
 	for i in 3:
-		k.box("wood", st + Basis(Vector3.UP, PI * 0.5) * Vector3(-3.6 + 3.6 * float(i), 0.9, -0.2), Vector3(0.18, 1.8, 3.2), Basis(Vector3.UP, PI * 0.5), true, 0.75)   # stall partitions
-	k.box("wood", st + Vector3(3.1, 0.35, 0.0), Vector3(1.0, 0.7, 2.2), Basis.IDENTITY, true, 0.8)       # a hay bale stack outside
-	# the square: a covered well, a stall, benches, a notice post
+		k.box("wood", st + stb * Vector3(-3.6 + 3.6 * float(i), 0.9, -0.2), Vector3(0.18, 1.8, 3.2), stb, true, 0.75)   # stall partitions
+	var hay := st + stb * Vector3(0.0, fl.stables, 3.1 * sst)
+	k.at(hay, Pilot.prop(), false)
+	k.box("wood", hay + Vector3(0, 0.35, 0), Vector3(1.0, 0.7, 2.2), stb * Basis(Vector3.UP, -PI * 0.5), true, 0.8)          # a hay bale stack by the open side
+	# the square: a covered well, a stall, benches, a notice post (the scale pilot's square is wider: Pilot.xz)
 	var sq := Vector3(-196.0, _g(space, -192.0, 74.0), 74.0)
-	var well := Vector3(-191.0, _g(space, -191.0, 78.0), 78.0)
+	var wq := Pilot.xz(Vector2(-191.0, 78.0))
+	var well := Vector3(wq.x, _g(space, wq.x, wq.y), wq.y)
+	k.at(well, Pilot.prop(), false)
 	for i in 8:
 		var a := TAU * float(i) / 8.0
 		k.box("stone", well + Vector3(cos(a) * 0.9, 0.5, sin(a) * 0.9), Vector3(0.7, 1.0, 0.45), Basis(Vector3.UP, -a), true, 0.85)
@@ -538,24 +604,34 @@ static func _town(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 		k.box("wood", well + Vector3(sx * 0.95, 1.6, 0), Vector3(0.14, 2.2, 0.14), Basis.IDENTITY, false, 0.7)
 	k.box("wood", well + Vector3(0, 2.7, 0), Vector3(2.2, 0.12, 0.2), Basis.IDENTITY, false, 0.7)
 	k.box("slate", well + Vector3(0, 2.95, 0), Vector3(2.4, 0.1, 1.5), Basis(Vector3.RIGHT, 0.0), false, 0.8)
-	var stall := Vector3(-184.0, _g(space, -184.0, 72.5), 72.5)
+	var tq := Pilot.STALL if pk else Vector2(-184.0, 72.5)
+	var stall := Vector3(tq.x, _g(space, tq.x, tq.y), tq.y)
+	k.at(stall, Pilot.prop(), false)
 	k.box("wood", stall + Vector3(0, 0.55, 0), Vector3(2.6, 1.1, 0.9), Basis.IDENTITY, true, 0.8)
 	for sx: float in [-1.0, 1.0]:
 		k.box("wood", stall + Vector3(sx * 1.4, 1.2, -0.5), Vector3(0.12, 2.4, 0.12), Basis.IDENTITY, false, 0.7)
 	k.box("plaster", stall + Vector3(0, 2.5, -0.1), Vector3(3.1, 0.07, 1.6), Basis(Vector3.RIGHT, -0.18), false, 0.75)
+	var bq := Pilot.xz(Vector2(sq.x - 3.0, sq.z + 2.4))
+	var bench := Vector3(bq.x, sq.y if not pk else _g(space, bq.x, bq.y), bq.y)
+	k.at(bench, Pilot.prop(), false)
 	for sx: float in [-1.0, 1.0]:
-		k.box("wood", sq + Vector3(sx * 1.6 - 3.0, 0.3, 2.4), Vector3(0.1, 0.6, 0.5), Basis.IDENTITY, false, 0.7)
-	k.box("wood", sq + Vector3(-3.0, 0.62, 2.4), Vector3(3.4, 0.1, 0.5), Basis.IDENTITY, true, 0.75)
+		k.box("wood", bench + Vector3(sx * 1.6, 0.3, 0), Vector3(0.1, 0.6, 0.5), Basis.IDENTITY, false, 0.7)
+	k.box("wood", bench + Vector3(0, 0.62, 0), Vector3(3.4, 0.1, 0.5), Basis.IDENTITY, true, 0.75)
 	# iron lanterns on the bridge's ends and in the square (cold glass in a cage: the wanderer lights them, lamps/lamp_places.gd)
-	for lp: Vector3 in LANTERNS:
+	for lp: Vector3 in lanterns():
 		_lantern(k, Vector3(lp.x, _g(space, lp.x, lp.y), lp.y), lp.z)
+	k.at(Vector3.ZERO, 1.0)
 	k.commit(host, "TownDressing")
-	_lore(host, "r37w_inn", inn + Vector3(-5.5, 1.1, 5.3), inn + Vector3(-5.5, 1.1, 5.3))
-	_lore(host, "r37w_notice", sq + Vector3(-5.5, 1.1, -5.0), sq + Vector3(-5.5, 1.1, -5.0))
-	_lore(host, "r37w_smith", sm + Vector3(-4.4, 1.1, 3.4), sm + Vector3(-4.4, 1.1, 3.4))
-	host.set_meta("route", [Vector3(-186.0, inn.y, 61.0)])
+	var l_inn := inn + Vector3(-5.5 * si, 1.1, 5.3 * si)
+	_lore(host, "r37w_inn", l_inn, l_inn)
+	var nq := Pilot.xz(Vector2(sq.x - 5.5, sq.z - 5.0))
+	var l_not := Vector3(nq.x, (sq.y if not pk else _g(space, nq.x, nq.y)) + 1.1, nq.y)
+	_lore(host, "r37w_notice", l_not, l_not)
+	var l_sm := sm + Vector3(-4.4 * ss, 1.1, 3.4 * ss)
+	_lore(host, "r37w_smith", l_sm, l_sm)
+	host.set_meta("route", [inn + Vector3(0.0, 0.0, 5.0 * si + (1.2 if pk else 0.0))])
 	host.set_meta("walk", [true])
-	host.set_meta("approach", Vector3(-186.0, _g(space, -186.0, 64.0), 64.0))     # the street in front of the inn
+	host.set_meta("approach", Vector3(inn.x, _g(space, inn.x, inn.z + 8.0 * si), inn.z + 8.0 * si))     # the street in front of the inn
 
 
 # --- the Sorrow's Banks ---------------------------------------------------------------------------------

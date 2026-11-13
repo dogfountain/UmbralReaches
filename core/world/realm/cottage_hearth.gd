@@ -33,7 +33,7 @@ static func plaster() -> StandardMaterial3D:
 
 
 ## Chimney breast with its firebox, plus the plaster lining. `cx` is the chimney's x in the house frame.
-static func surround(k: OssKit, base: Vector3, b: Basis, w: float, d: float, h: float, t: float, dw: float, cx: float) -> void:
+static func surround(k: OssKit, base: Vector3, b: Basis, w: float, d: float, h: float, t: float, dw: float, cx: float, dh := 2.4) -> void:
 	var zb := -d * 0.5 + t + 0.35                 # breast centre: flush with the back wall's inner face
 	var top := h + 0.2
 	var hi := top - FLOOR
@@ -61,16 +61,17 @@ static func surround(k: OssKit, base: Vector3, b: Basis, w: float, d: float, h: 
 		for j in 4:                                       # the stepped gable inside
 			var hw := (d - 0.6) * (1.0 - float(j) / 4.2)
 			k.box(p, base + b * Vector3(sx * (w * 0.5 - t - e), h + 0.3 + 0.5 * float(j), 0), Vector3(0.03, 0.5, hw), b, false, 1.0)
-	k.box(p, base + b * Vector3(0, 2.4 + (h - 2.4) * 0.5 + 0.1, d * 0.5 - t - e), Vector3(dw + 0.3, h - 2.4, 0.03), b, false, 1.0)
+	k.box(p, base + b * Vector3(0, dh + (h - dh) * 0.5 + 0.1, d * 0.5 - t - e), Vector3(dw + 0.3, h - dh, 0.03), b, false, 1.0)
 
 
-## The fire itself. `host` owns every node; the fire sits in the breast's firebox.
-static func fire(host: Node3D, base: Vector3, b: Basis, d: float, t: float, cx: float, id: String) -> void:
+## The fire itself. `host` owns every node; the fire sits in the breast's firebox. `s`: the house's scale about
+## `base` (scale_pilot.gd): the firebox is that much bigger and further from the foot, and so is the fire.
+static func fire(host: Node3D, base: Vector3, b: Basis, d: float, t: float, cx: float, id: String, s := 1.0) -> void:
 	var zb := -d * 0.5 + t + 0.35
 	var root := Node3D.new()
 	root.name = id + "Hearth"
 	host.add_child(root)
-	root.global_transform = Transform3D(b, base + b * Vector3(cx, FLOOR, zb))
+	root.global_transform = Transform3D(b.scaled(Vector3.ONE * s), base + b * (Vector3(cx, FLOOR, zb) * s))
 	var iron := StandardMaterial3D.new()
 	iron.albedo_color = Color(0.1, 0.1, 0.11)
 	iron.roughness = 0.6
@@ -135,7 +136,7 @@ static func fire(host: Node3D, base: Vector3, b: Basis, d: float, t: float, cx: 
 		em.position = Vector3(0, 0.45, 0)
 		em.emitting = true
 	# the light: in the firebox's mouth, so the walls and floor take it
-	Interiors.light(host, id + "Fire", root.global_position + b * Vector3(0, 0.55, 0.45), Interiors.FIRE, 1.05, 5.0, false, 0.14).set_meta(&"fire", true)
+	Interiors.light(host, id + "Fire", root.global_position + b * (Vector3(0, 0.55, 0.45) * s), Interiors.FIRE, 1.05, 5.0 * s, false, 0.14).set_meta(&"fire", true)
 
 
 static func _box(size: Vector3) -> BoxMesh:

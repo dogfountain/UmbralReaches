@@ -8,6 +8,8 @@ extends RefCounted
 ##   - camps: EnemySpawner.seed_realm (world/main.gd), planted once the Realm is built
 ## The summit ward stays where SummitDress makes it (RealmLayout.SUMMIT_WARD, the Crossing's head).
 
+const ScalePilot := preload("res://core/world/realm/scale_pilot.gd")
+
 ## Checkpoint braziers: Zone/Braziers/<name> (kindle memory is by node name, so names are kept).
 ## [xz, the point the fire faces (the respawn spot is 1.8 m that way)]
 const BRAZIERS := {
@@ -86,7 +88,8 @@ static func fire_names() -> Array[String]:
 
 
 static func _fire(n: String) -> Array:
-	return BRAZIERS[n] if BRAZIERS.has(n) else R34_FIRES[n]
+	var f: Array = BRAZIERS[n] if BRAZIERS.has(n) else R34_FIRES[n]
+	return [ScalePilot.xz(f[0]), ScalePilot.xz(f[1])]            # Weirford's fire moves with its square (scale_pilot.gd)
 
 
 ## r34 places: the new regions' fires, copied from a valley fire and left cold (kindles restored).

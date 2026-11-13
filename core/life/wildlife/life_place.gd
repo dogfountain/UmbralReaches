@@ -210,7 +210,7 @@ static func crow_roosts(root: Node, space: PhysicsDirectSpaceState3D, rng: Rando
 ## least five perches (the director seats three or four crows on them).
 static func settlement_roosts(space: PhysicsDirectSpaceState3D, rng: RandomNumberGenerator) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	for sq: Dictionary in Zones.SQUARES:
+	for sq: Dictionary in Zones.squares():
 		var c: Vector2 = sq.c
 		var r: float = sq.r
 		var gy := ground(space, c.x, c.y)

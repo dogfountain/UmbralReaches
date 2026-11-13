@@ -10,6 +10,7 @@ extends RefCounted
 ##   godot --path . -- --realm-modules=...,dress   (it needs the village for the lanes)
 
 const Props := preload("res://core/world/realm/site_props.gd")
+const ScalePilot := preload("res://core/world/realm/scale_pilot.gd")
 const Zones := preload("res://core/world/realm/dress_zones.gd")
 const VillageScript := preload("res://core/life/village/village.gd")
 
@@ -53,7 +54,7 @@ static func build(root: Node) -> void:
 	var host := Node3D.new()
 	host.name = "SiteDress"
 	root.add_child(host)
-	for sq: Dictionary in Zones.SQUARES:
+	for sq: Dictionary in Zones.squares():
 		_begin(String(sq.id))
 		if int(sq.get("market", 0)) > 0:
 			_market(sq)
@@ -62,7 +63,7 @@ static func build(root: Node) -> void:
 	var fires: Array[Vector2] = Zones.fire_points()
 	for i in fires.size():
 		var inside := false
-		for sq: Dictionary in Zones.SQUARES:
+		for sq: Dictionary in Zones.squares():
 			if fires[i].distance_to(sq.c) < float(sq.r) + 2.0:
 				inside = true
 		if inside:
@@ -159,6 +160,9 @@ static func _begin(id: String) -> void:
 ## Put one prop at xz if the spot is bare terrain, clear of lanes, interactables, colliders and the other
 ## props. `lift` stands it on something (a second crate). Returns whether it was placed.
 static func _put(kind: String, p: Vector2, yaw: float, scale := 1.0, lift := 0.0, tint := 0.1) -> bool:
+	var pk := lerpf(1.0, ScalePilot.PROP, ScalePilot.weight(p.x, p.y))       # on the scale pilot's ground a prop is bigger (and what stands on it higher)
+	scale *= pk
+	lift *= pk
 	var rad: float = float(FOOT.get(kind, 0.4)) * scale
 	if lift == 0.0:
 		if _lane_d(p) < LANE_MARGIN + rad:
@@ -428,7 +432,7 @@ static func _settle_life(host: Node3D) -> void:
 	host.add_child(life)
 	var n_line := 0
 	var n_banner := 0
-	for sq: Dictionary in Zones.SQUARES:
+	for sq: Dictionary in Zones.squares():
 		_made.clear()
 		_rng.seed = hash(String(sq.id)) + 77
 		if _line(life, sq.c, sq.r):
@@ -442,7 +446,8 @@ static func _settle_life(host: Node3D) -> void:
 	for id: String in ["inn", "smithy", "cot_a", "cot_b"]:
 		if not blds.has(id):
 			continue
-		var d: Dictionary = blds[id]
+		var d: Dictionary = ScalePilot.bld(id, blds[id])
+		var ps := float(d.get("s", 1.0))
 		var floor_y := NAN
 		for st: Dictionary in WorldLanes.sites:
 			if st.name == "r37w_" + id:
@@ -454,13 +459,14 @@ static func _settle_life(host: Node3D) -> void:
 		var rise := (size.y * 0.5 + 0.7) * tan(deg_to_rad(38.0))
 		var b := Basis(Vector3.UP, float(d.yaw))
 		var at: Vector2 = d.at
-		var top := Vector3(at.x, floor_y, at.y) + b * Vector3(size.x * 0.3, h + rise * 1.35 + 1.5, -size.y * 0.18)
+		var top := Vector3(at.x, floor_y, at.y) + b * (Vector3(size.x * 0.3, h + rise * 1.35 + 1.5, -size.y * 0.18 if bool(d.get("open", false)) or ps < 1.01 else -size.y * 0.5 + 0.69) * ps)
 		_emitter(life, "Smoke_" + id, top, Color(0.34, 0.33, 0.34, 0.5), {"count": 7, "life": 4.2, "speed": Vector2(0.2, 0.45), "size": 0.8, "gravity": 0.12, "radius": 0.2, "additive": false, "damping": 0.2})
 		n_smoke += 1
 	# embers rising from the forges' hearths (Hearthward's, Weirford's smithy)
 	var n_ember := 0
-	for hp: Vector2 in [Vector2(9.6, 61.3), Vector2(-176.2, 72.6)]:
-		var gy := RealmLayout.ground(_space, hp.x, hp.y)
+	for hp0: Vector2 in [Vector2(9.6, 61.3), Vector2(-176.2, 72.6)]:
+		var hp := ScalePilot.xz(hp0)
+		var gy := RealmLayout.ground(_space, hp.x, hp.y) + (1.2 if hp != hp0 else 0.0)        # the pilot's forge stands on the smithy's floor
 		_emitter(life, "Embers", Vector3(hp.x, gy + 1.0, hp.y), Color(1.0, 0.5, 0.16), {"count": 6, "life": 1.8, "speed": Vector2(0.3, 0.8), "size": 0.035, "gravity": -0.5, "radius": 0.18, "additive": true, "spread": 35.0})
 		n_ember += 1
 	stats["settle_life"] = {"washing_line": n_line, "banner": n_banner, "chimney_smoke": n_smoke, "forge_embers": n_ember}

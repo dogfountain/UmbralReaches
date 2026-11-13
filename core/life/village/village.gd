@@ -151,8 +151,8 @@ func _build() -> void:
 	# r34: the outposts of the doubled world, one giver camped in each new region
 	_outposts(space, node_xz, edges)
 	# --- west marches --- Weirford's walks (its own island of the network; the nav drops what the town stands on)
-	node_xz.merge(WestCast.NODES)
-	edges.append_array(WestCast.EDGES)
+	node_xz.merge(WestCast.nodes())
+	edges.append_array(WestCast.edges())
 	# --- the east marches ---
 	var east_pois: Variant = load("res://core/world/realm/realm_pois_east_marches.gd")    # no preload: a cycle
 	east_pois.hamlet(self, space, node_xz, edges)
@@ -354,7 +354,7 @@ static var _cast_all: Dictionary = {}
 static func cast_all() -> Dictionary:
 	if _cast_all.is_empty():
 		_cast_all = Cast.CAST.duplicate()
-		_cast_all.merge(WestCast.CAST)
+		_cast_all.merge(WestCast.cast())
 	return _cast_all
 
 

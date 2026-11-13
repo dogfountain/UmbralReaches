@@ -24,6 +24,7 @@ const Zones := preload("res://core/world/realm/dress_zones.gd")
 const OldUnder := preload("res://core/world/realm/flora_old_undergrowth.gd")
 const Emit := preload("res://core/world/realm/flora_emit.gd")
 const Cache := preload("res://core/world/realm/flora_cache.gd")
+const Pilot := preload("res://core/world/realm/scale_pilot.gd")
 
 const CHUNK := Emit.CHUNK              ## undergrowth chunks
 const TREE_CHUNK := Emit.TREE_CHUNK    ## tree chunks
@@ -707,10 +708,24 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 			if not grid.has(key):
 				grid[key] = []
 			(grid[key] as Array).append([at, spacing])
+			# the scale pilot (scale_pilot.gd): fewer, bigger, stouter trees on its ground. Decided here, after every draw and
+			# test and from a hash of the spot, so the rest of the wood keeps the layout it had (a thinned tree still holds its
+			# spacing); a tree too big for its spot stays the size it was.
+			var tint := _tint(rng, 0.1)
+			if not Pilot.keeps(at.x, at.y):
+				continue
+			var pk := Pilot.tree(at.x, at.y)
+			var hs := s
+			if pk.x > 1.01:
+				var big := basis.scaled(Vector3(pk.x, pk.y, pk.x))
+				if not _clash(space, id, Transform3D(big, pos), true):
+					basis = big
+					s *= pk.x
+					hs *= pk.y
 			pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02)      # after every draw and test: the layout is the one it was
-			_add(items, id, Transform3D(basis, pos), _tint(rng, 0.1))
+			_add(items, id, Transform3D(basis, pos), tint)
 			if bool(d.tall):
-				trees.append([pos, id, float(d.r) * s, float(d.h) * s])
+				trees.append([pos, id, float(d.r) * s, float(d.h) * hs])
 			# canopy cover for the undergrowth
 			var cr := spread * s
 			var n := int(cr / UCELL) + 1
@@ -1603,12 +1618,16 @@ static func _stone_pass(rng: RandomNumberGenerator, out: Dictionary, old: bool) 
 				# one rock variant per chunk and style (each variant is a draw call per chunk)
 				var key := "stone%d|%s|%d" % [si, style, absi(hash(Vector2i(floori(px / CHUNK), floori(pz / CHUNK)))) % 4]
 				var sz: Vector3 = STONE_SIZES[si]
-				var sc := rng.randf_range(0.7, 1.3)
+				var sc := rng.randf_range(0.7, 1.3) * Pilot.stone(px, pz)       # the scale pilot: boulders on its ground, and fewer
 				var nrm := Vector3(_gnx[k], _gn[k], _gnz[k]).normalized()
 				var bas := Basis(Vector3.UP, rng.randf() * TAU)
 				bas = Basis(Quaternion(Vector3.UP, nrm.lerp(Vector3.UP, 0.4).normalized())) * bas
 				var pos := Vector3(px, gy - sz.y * sc * rng.randf_range(0.35, 0.55), pz)
-				_push(out, key, CHUNK, 0, Transform3D(bas.scaled(Vector3(sc, sc * rng.randf_range(0.8, 1.1), sc)), pos), _tint(rng, 0.12))
+				var sxf := Transform3D(bas.scaled(Vector3(sc, sc * rng.randf_range(0.8, 1.1), sc)), pos)
+				var stint := _tint(rng, 0.12)
+				if not Pilot.keeps(px, pz):
+					continue
+				_push(out, key, CHUNK, 0, sxf, stint)
 				placed["stone"] = int(placed.get("stone", 0)) + 1
 			for e: Array in lk:
 				var props: Dictionary = (e[0] as Dictionary).get("props", {})

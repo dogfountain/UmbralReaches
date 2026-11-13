@@ -10,6 +10,7 @@ extends RefCounted
 ##   const Zones := preload("res://core/world/realm/dress_zones.gd")
 
 const BOSSES := "res://core/world/realm/realm_bosses.gd"      # by path: realm_bosses reaches the places that reach the land
+const Pilot := preload("res://core/world/realm/scale_pilot.gd")
 const Cast := preload("res://core/life/village/village_cast.gd")
 
 ## Open ground the people use: {id, c, r, kind}. "square" = cobbled and dressed round its rim;
@@ -38,6 +39,22 @@ const LANES := [
 ]
 const LANE_W := 0.9                    ## half width kept bare along a lane
 
+static var _sq: Array = []             ## squares(): SQUARES as built
+
+
+## SQUARES as built: the scale pilot's Weirford has a wider square, a little south of the old one.
+static func squares() -> Array:
+	if _sq.is_empty():
+		var out: Array = []
+		for s: Dictionary in SQUARES:
+			var d := s.duplicate()
+			if Pilot.on() and String(s.id) == "weirford":
+				d["c"] = Pilot.SQUARE[0]
+				d["r"] = Pilot.SQUARE[1]
+			out.append(d)
+		_sq = out                        # set whole: the land's splat rows read this from worker threads
+	return _sq
+
 static var _off := -1                  ## --no-site-dress: the world as it was (before / after shots, perf A/B)
 
 static var _lanes: Array = []          ## [[a, b, bbox Rect2]] every lane segment
@@ -63,6 +80,7 @@ static func _init_once() -> void:
 		return
 	off()
 	_inited = true
+	squares()                              # built here, on the caller's thread, before any worker reads it
 	fire_points()
 	var hw: Dictionary = SQUARES[0]
 	var hc: Vector2 = hw.c
@@ -74,7 +92,7 @@ static func _init_once() -> void:
 			_add_lane(a, b)
 	for pl: Array in LANES:
 		for i in pl.size() - 1:
-			_add_lane(pl[i], pl[i + 1])
+			_add_lane(Pilot.xz(pl[i]), Pilot.xz(pl[i + 1]))
 
 
 static func _add_lane(a: Vector2, b: Vector2) -> void:
@@ -113,7 +131,7 @@ static func pave_w(x: float, z: float, patch: float) -> float:
 		return 0.0
 	var p := Vector2(x, z)
 	var best := 0.0
-	for s: Dictionary in SQUARES:
+	for s: Dictionary in squares():
 		var c: Vector2 = s.c
 		var r: float = s.r
 		var d := p.distance_to(c)
@@ -134,7 +152,7 @@ static func wet_w(x: float, z: float) -> float:
 	var p := Vector2(x, z)
 	var best := 0.0
 	for w: Array in WET:
-		var d := p.distance_to(w[0] as Vector2)
+		var d := p.distance_to(Pilot.xz(w[0] as Vector2))
 		var r: float = w[1]
 		if d < r + 1.5:
 			best = maxf(best, 1.0 - smoothstep(r * 0.4, r + 1.5, d))
@@ -164,7 +182,7 @@ static func fire_points() -> Array[Vector2]:
 		for key: String in ["BRAZIERS", "R34_FIRES"]:
 			var tbl: Dictionary = consts[key]
 			for n: String in tbl:
-				_fires.append((tbl[n] as Array)[0])
+				_fires.append(Pilot.xz((tbl[n] as Array)[0]))
 	return _fires
 
 
@@ -220,7 +238,7 @@ static func soft_field(x0: float, z0: float, nx: int, nz: int, cell: float) -> P
 	if off():
 		return f
 	var grid := Rect2(x0, z0, nx * cell, nz * cell)
-	for sq: Dictionary in SQUARES:
+	for sq: Dictionary in squares():
 		var c: Vector2 = sq.c
 		var r: float = sq.r
 		_stamp(f, grid, nx, cell, c, r, func(p: Vector2) -> float:
