@@ -71,7 +71,7 @@ static func std_mat(color: Color, rough := 0.85, metal := 0.0) -> StandardMateri
 	m.roughness = rough
 	m.metallic = metal
 	m.rim_enabled = true
-	m.rim = 0.4
+	m.rim = 0.14 # x0.35: tuned at the old 0.4 moon (1.5 since 13 Nov)
 	m.rim_tint = 0.8
 	return m
 

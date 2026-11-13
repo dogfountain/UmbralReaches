@@ -428,7 +428,7 @@ static func _moss_material() -> StandardMaterial3D:
 		m.normal_texture = nor
 	m.roughness = 0.9
 	m.rim_enabled = true
-	m.rim = 0.4
+	m.rim = 0.14 # x0.35: tuned at the old 0.4 moon (1.5 since 13 Nov)
 	m.rim_tint = 0.35
 	m.uv1_triplanar = true
 	m.uv1_world_triplanar = true
@@ -452,7 +452,7 @@ static func _stone_material() -> Material:
 	s.uv1_triplanar_sharpness = 4.0
 	s.uv1_scale = Vector3.ONE * 0.3
 	s.rim_enabled = true
-	s.rim = 0.25
+	s.rim = 0.09 # x0.35: tuned at the old 0.4 moon (1.5 since 13 Nov)
 	s.rim_tint = 0.4
 	return s
 
@@ -501,7 +501,7 @@ static func _paint_platform(model: Node) -> void:
 			cobble.normal_scale = 1.2
 			cobble.albedo_color = Color(0.62, 0.66, 0.72)
 			cobble.rim_enabled = true
-			cobble.rim = 0.2
+			cobble.rim = 0.07 # x0.35: tuned at the old 0.4 moon (1.5 since 13 Nov)
 			cobble.rim_tint = 0.3
 			cobble.uv1_triplanar = true
 			cobble.uv1_world_triplanar = true

@@ -438,19 +438,20 @@ class Gen:
 		var ai := -1
 		for a: Array in anchors:
 			ai += 1
-			if far and ai % 2 == 1:
+			if far and ai % 2 == 1 and not hang:
 				continue
 			var p: Vector3 = a[0]
 			var d: Vector3 = a[1]
-			var s := rng.randf_range(sz.x, sz.y) * (1.4 if far else 1.0)
+			# a hanging curtain keeps its count and size at range: halved and 1.4x, its cards read as green slabs
+			var s := rng.randf_range(sz.x, sz.y) * (1.4 if far and not hang else 1.0)
 			var outw := Vector3(p.x - c.x, 0, p.z - c.z).normalized()
 			if hang:
 				for k in per:
 					var ra := rng.randf() * TAU
-					var rt := Vector3(cos(ra), 0, sin(ra)) * s * 0.17
-					rng.randf()
-					var l := s * rng.randf_range(0.8, 1.3)
-					card(leaf, p - Vector3.UP * l + outw * 0.2, rt, Vector3.UP * l, cell, nfn, cfn, 1.0, 0.25, rng.randf() < 0.5)
+					var rt := Vector3(cos(ra), 0, sin(ra)) * s * 0.12
+					var tuck := s * rng.randf_range(0.05, 0.35)      # each card's top tucked into the crown by its own amount: no level top edge
+					var l := s * rng.randf_range(0.7, 1.4)
+					card(leaf, p - Vector3.UP * (l - tuck) + outw * 0.2, rt, Vector3.UP * l, cell, nfn, cfn, 1.0, 0.25, rng.randf() < 0.5)
 				continue
 			var up := (d * out_bias + outw * 0.3 + Vector3.UP * up_bias + rvec() * 0.35).normalized()
 			var side := up.cross(Vector3.UP if absf(up.y) < 0.95 else Vector3.RIGHT).normalized()

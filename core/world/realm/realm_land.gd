@@ -461,6 +461,9 @@ static func _pre_row(j: int) -> Array:
 			if not pr.over:
 				h = lerpf(h, near.y, _carve_w(near.x, pr.w) * free * (1.0 - rmask))
 		wear = maxf(wear, maxf(Zones.lane_wear(Vector2(x, z)) * 0.85, Zones.fire_wear(x, z) * 0.7))     # the walk lanes of the squares, the fire pads
+		# a road that reaches a square becomes its paving (its earth had worn the flagstones down to two strips in
+		# Hearthward): inside a square the wear is a faint trace across the stones
+		wear *= 1.0 - 0.8 * Zones.pave_w(x, z, 0.0)
 		wr[i] = wear
 		hr[i] = h
 	return [hr, wr]

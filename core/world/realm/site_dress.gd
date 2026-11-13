@@ -277,7 +277,7 @@ static func _square(sq: Dictionary) -> void:
 		if ok:
 			clusters -= 1
 	# the loose litter of a used place: straw where goods were handled, leaves in the corners, small stones
-	_scatter("straw", c, r * 1.05, 58 if yard else 42, 0.9, 1.7)
+	_scatter("straw", c, r * 1.05, 16 if yard else 10, 0.9, 1.7)      # a few wisps: 42-58 lay across the paving like map marks
 	_scatter("leaf", c, r * 1.1, 58, 1.1, 1.9)
 	var traded := int(sq.get("market", 0)) > 0
 	_scatter("stone", c, r * 1.05, 7 if traded else 28, 0.9, 1.4)      # a market's cobbles are swept: a few stones, not a field of eggs

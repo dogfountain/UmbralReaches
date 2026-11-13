@@ -101,10 +101,16 @@ static func flora_w(_x: float, _z: float) -> float:
 	return 1.0 if on() else 0.0
 
 
+## Species whose height grows less than the rest (wide, tall): a willow 1.8x as tall was a curtain wall with no crown,
+## a green hedge; wide and only somewhat taller it keeps its dome and the fall of its strands.
+const SPECIES := {"willow": Vector2(2.0, 1.3)}
+
+
 ## A tree's extra scale at (x, z): (wide, tall).
-static func tree(x: float, z: float) -> Vector2:
+static func tree(x: float, z: float, sp := "") -> Vector2:
 	var w := flora_w(x, z)
-	return Vector2(lerpf(1.0, FLORA, w), lerpf(1.0, FLORA_Y, w))
+	var k: Vector2 = SPECIES.get(sp, Vector2(FLORA, FLORA_Y))
+	return Vector2(lerpf(1.0, k.x, w), lerpf(1.0, k.y, w))
 
 
 ## Undergrowth that grows with the woods (shrubs, ferns, gorse, dead bushes): this much bigger. Grass,

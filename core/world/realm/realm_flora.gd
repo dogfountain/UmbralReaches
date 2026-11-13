@@ -46,7 +46,7 @@ const TREE_P := {
 	"sapling": {"oldforest": 0.3, "glade": 0.08, "meadow": 0.012, "fen": 0.04, "ruin": 0.06, "heath": 0.015, "crag": 0.04},
 	"windtree": {}, "yew": {},                     # r34: only where a LOOK adds them
 }
-const TREE_SPACING := {"oak": 6.2, "birch": 3.2, "pine": 3.6, "willow": 5.5, "snag": 3.0, "sapling": 1.6,
+const TREE_SPACING := {"oak": 6.2, "birch": 3.2, "pine": 3.6, "willow": 6.5, "snag": 3.0, "sapling": 1.6,
 	"windtree": 4.5, "yew": 5.0, "fruit": 4.0, "cypress": 2.6}
 
 const Tables := preload("res://core/world/realm/flora_tables.gd")
@@ -714,7 +714,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 			var tint := _tint(rng, 0.1)
 			if not Pilot.keeps(at.x, at.y):
 				continue
-			var pk := Pilot.tree(at.x, at.y)
+			var pk := Pilot.tree(at.x, at.y, sp)
 			var hs := s
 			# the full size first, then halfway: a tree too big for its spot stays the size it was
 			for f: float in ([1.0, 0.5] if pk.x > 1.01 else []):
@@ -725,6 +725,8 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 					s *= kk.x
 					hs *= kk.y
 					break
+			if _hangs(space, id, basis, at, gy) > 0.6:
+				continue                                  # even at its own size its roots stand out over a bank: no tree here
 			pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02)      # after every draw and test: the layout is the one it was
 			_add(items, id, Transform3D(basis, pos), tint)
 			if bool(d.tall):

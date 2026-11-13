@@ -224,8 +224,9 @@ static func edge_f(sd: float, inside: float, pd: float, keep_s: float, keep_p: f
 	var es := maxf(keep_s + wob * EDGE_S, 0.35)
 	var ep := maxf(keep_p + wob * EDGE_P, 0.25)
 	return maxf(smoothstep(es - EDGE_W, es + EDGE_W, sd), inside) * smoothstep(ep - EDGE_W, ep + EDGE_W, pd)
-const SOFT_IN_SQUARE := 0.08           ## low plants' share of full density in the paving where nobody walks ...
-const SOFT_IN_RIM := 0.3               ## ... along a square's rim and a pad's margin
+const SOFT_IN_SQUARE := 0.02           ## low plants' share of full density in the paving where nobody walks (a square in use is kept: 0.08 grew tall clumps mid-square) ...
+const SOFT_IN_SQ_RIM := 0.2            ## ... along a square's rim
+const SOFT_IN_RIM := 0.3               ## ... and a pad's margin
 
 
 ## Where low plants may grow inside the keep-outs, 0..1 of full density, on the flora's ground grid
@@ -243,7 +244,7 @@ static func soft_field(x0: float, z0: float, nx: int, nz: int, cell: float) -> P
 		var r: float = sq.r
 		_stamp(f, grid, nx, cell, c, r, func(p: Vector2) -> float:
 			var d := p.distance_to(c)
-			return lerpf(SOFT_IN_SQUARE, SOFT_IN_RIM, smoothstep(r - 5.0, r, d)) if d < r else 0.0)
+			return lerpf(SOFT_IN_SQUARE, SOFT_IN_SQ_RIM, smoothstep(r - 5.0, r, d)) if d < r else 0.0)
 	for st: Dictionary in WorldLanes.sites:
 		var nm := String(st.name)
 		if st.get("hard", false) or st.has("seg") or nm.begins_with("rift_") or nm.begins_with("henge") or nm.begins_with("brazier_") \

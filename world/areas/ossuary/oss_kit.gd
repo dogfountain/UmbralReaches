@@ -48,7 +48,7 @@ static func mat(key: String) -> Material:
 	var m := StandardMaterial3D.new()
 	match key:
 		"stone":      _tri(m, "oss_ashlar", 0.32, Color(0.92, 0.9, 0.88))
-		"plaster":    _tri(m, "oss_plaster", 0.5, Color(0.95, 0.92, 0.88))       # 2 m tile: brick 0.25 x 0.083 m
+		"plaster":    _tri(m, "oss_plaster", 0.3, Color(0.95, 0.92, 0.88))       # 3.3 m tile: brick 0.42 x 0.14 m (at 2 m the bare-brick patches repeated into spots across a facade)
 		"brick":      _tri(m, "oss_brick", 0.5, Color(0.95, 0.92, 0.9))
 		"ruin":       _tri(m, "oss_ruin", 0.4, Color(0.95, 0.93, 0.9))
 		"floor":      _tri(m, "oss_floor", 0.22, Color(0.9, 0.88, 0.86))

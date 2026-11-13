@@ -160,7 +160,7 @@ static func _mat(key: String) -> Material:
 			m.normal_scale = 1.6
 			m.roughness = 0.9
 			m.rim_enabled = true
-			m.rim = 0.3
+			m.rim = 0.1 # x0.35: tuned at the old 0.4 moon (1.5 since 13 Nov)
 			m.rim_tint = 0.4
 		"wood":
 			# weathered post: the bark maps, warm-tinted and finer (tavern textures are Luke's)
@@ -180,7 +180,7 @@ static func _mat(key: String) -> Material:
 			m.uv1_triplanar_sharpness = 4.0
 			m.uv1_scale = Vector3.ONE * 3.0
 			m.rim_enabled = true
-			m.rim = 0.2
+			m.rim = 0.07 # x0.35: tuned at the old 0.4 moon (1.5 since 13 Nov)
 			m.rim_tint = 0.5
 		"frame":
 			# same dressed ashlar as the Ossuary / Crossing masonry
@@ -245,13 +245,24 @@ static func material_pass() -> void:
 		m.normal_scale = 1.35 if key in ["stone", "floor", "slate", "dark"] else 1.15
 		if key != "iron":
 			m.rim_enabled = true
-			m.rim = 0.18
+			m.rim = 0.05          # 0.18 at the old 0.4 moon; at 1.5 (13 Nov) a roof seen edge-on went white
 			m.rim_tint = 0.45
 		if key == "iron":
 			m.metallic = 0.65
 			m.roughness = 0.6
+		if key == "slate":
+			m.metallic_specular = 0.15     # a roof facing between the eye and the 1.5 moon caught a broad highlight and went white
 		if m.ao_enabled:
 			m.ao_light_affect = 0.3
+	# the scale pilot's coarser copies (scale_pilot.ensure_mats) made before this pass take the same changes
+	for key: String in ["r37p_slate", "r37p_stone"]:
+		var c := OssKit._mats.get(key) as StandardMaterial3D
+		var src := OssKit.mat("slate" if key == "r37p_slate" else "stone") as StandardMaterial3D
+		if c != null and src != null:
+			c.metallic_specular = src.metallic_specular
+			c.rim_enabled = src.rim_enabled
+			c.rim = src.rim
+			c.rim_tint = src.rim_tint
 	var bone := OssKit.mat("bone") as StandardMaterial3D
 	if bone != null:
 		bone.normal_scale = 1.2
