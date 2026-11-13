@@ -22,6 +22,8 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Kit := preload("res://core/world/realm/west_marches_kit.gd")
+const PropModels := preload("res://core/world/realm/prop_models.gd")
+const DROWNED := "ruin_drowned.glb"
 const Hearth := preload("res://core/world/realm/cottage_hearth.gd")
 const Raid := preload("res://core/world/hierarch_raid.gd")
 const Pilot := preload("res://core/world/realm/scale_pilot.gd")
@@ -303,22 +305,10 @@ static func lanterns() -> Array:
 	return Pilot.LANTERNS if Pilot.on() else LANTERNS
 
 
-## An iron lantern on a post with a bracket: cage bars, cold glass inside, a cap and a ring.
-static func _lantern(k: Pilot.SKit, at: Vector3, face: float) -> void:
-	k.at(at, Pilot.prop(), false)
-	var b := Basis(Vector3.UP, face)
-	k.box("iron", at + Vector3(0, 0.12, 0), Vector3(0.28, 0.24, 0.28), Basis.IDENTITY, false, 0.7)
-	k.box("iron", at + Vector3(0, 1.6, 0), Vector3(0.09, 3.2, 0.09), Basis.IDENTITY, false, 0.7)
-	k.box("iron", at + b * Vector3(0, 3.1, 0.3), Vector3(0.06, 0.06, 0.6), b, false, 0.7)
-	k.box("iron", at + b * Vector3(0, 3.35, 0.14), Vector3(0.05, 0.4, 0.05), b, false, 0.7)
-	var lp := at + b * Vector3(0, 2.8, 0.6)
-	k.box("dark", lp, Vector3(0.22, 0.36, 0.22), Basis.IDENTITY, false, 0.5)
-	for sx: float in [-1.0, 1.0]:
-		for sz: float in [-1.0, 1.0]:
-			k.box("iron", lp + Vector3(sx * 0.13, 0, sz * 0.13), Vector3(0.035, 0.42, 0.035), Basis.IDENTITY, false, 0.7)
-	k.box("iron", lp + Vector3(0, -0.24, 0), Vector3(0.32, 0.04, 0.32), Basis.IDENTITY, false, 0.7)
-	k.box("iron", lp + Vector3(0, 0.26, 0), Vector3(0.3, 0.08, 0.3), Basis(Vector3.UP, 0.78), false, 0.7)
-	k.box("iron", lp + Vector3(0, 0.38, 0), Vector3(0.12, 0.1, 0.12), Basis.IDENTITY, false, 0.7)
+## An iron lantern on a post with a scrolled bracket, its cage hung from it (lamp_street.glb), at the town's prop scale;
+## the glass and the flame are the Lamp's that lights it (lamps/lamp_places.gd: at (0, 2.8, 0.6) x the same scale).
+static func _lantern(pm: PropModels, at: Vector3, face: float) -> void:
+	pm.add("lamp_street.glb", Transform3D(Basis(Vector3.UP, face).scaled(Vector3.ONE * Pilot.prop()), at), "Street")
 
 
 ## A gabled building in local space (+z the front, rotated by yaw) on a level stone plinth: coursed walls, a framed
@@ -462,18 +452,19 @@ static func _window_trails(host: Node3D, id: String, at: Vector3, yaw: float, d:
 	Interiors.shaft(host, "DoorTrail_%s" % id, door, b * Vector3(0.0, -0.32, 1.0), Color(1.0, 0.52, 0.2), 1.3 * s, 11.0, 32.0)
 
 
-## Barrels and crates in a corner: small boxes, no fuss.
-static func _clutter(k: Pilot.SKit, base: Vector3, yaw: float, rng: RandomNumberGenerator, n: int, spread: float) -> void:
-	k.at(base, Pilot.prop(), false)
+## Barrels and crates in a corner (the square's own models at the town's prop scale; the colliders are the boxes they were).
+static func _clutter(k: OssKit, pm: PropModels, base: Vector3, yaw: float, rng: RandomNumberGenerator, n: int, spread: float) -> void:
+	var pk := Pilot.prop()
 	var b := Basis(Vector3.UP, yaw)
 	for i in n:
 		var p := b * Vector3(rng.randf_range(-spread, spread), 0.0, rng.randf_range(-spread, spread))
-		var s := rng.randf_range(0.5, 0.85)
-		if rng.randf() < 0.5:
-			k.box("wood", base + p + Vector3(0, s * 0.5, 0), Vector3(s * 0.8, s, s * 0.8), Basis(Vector3.UP, rng.randf() * TAU), true, 0.8)
-			k.box("iron", base + p + Vector3(0, s * 0.3, 0), Vector3(s * 0.86, 0.05, s * 0.86), Basis(Vector3.UP, 0.0), false, 0.7)
-		else:
-			k.box("wood", base + p + Vector3(0, s * 0.45, 0), Vector3(s, s * 0.9, s), Basis(Vector3.UP, rng.randf() * TAU), true, 0.75)
+		var s := rng.randf_range(0.5, 0.85) * pk
+		var barrel := rng.randf() < 0.5
+		var rb := Basis(Vector3.UP, rng.randf() * TAU)
+		var file := "barrel.glb" if barrel else "crate.glb"
+		var tall := s if barrel else s * 0.9
+		pm.add(file, Transform3D(rb.scaled(Vector3.ONE * (tall / PropModels.size_of(file).y)), base + p))
+		k.collider(base + p + Vector3(0, tall * 0.5, 0), Vector3(s * 0.8, s, s * 0.8) if barrel else Vector3(s, tall, s), rb)
 
 
 # --- Weirford -------------------------------------------------------------------------------------
@@ -563,26 +554,23 @@ static func _town(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	# the inn's sign and the smithy's anvil are in the people's routines; here the dressing
 	var k := _kit()
 	var inn: Vector3 = ats.inn
+	var pm := PropModels.new()
 	var si: float = sc.inn
-	k.at(inn, si)
-	k.box("wood", inn + Vector3(-3.4, 2.6, 4.9), Vector3(0.1, 1.9, 0.1), Basis.IDENTITY, false, 0.7)      # the sign's post
-	k.box("wood", inn + Vector3(-2.7, 3.2, 4.9), Vector3(1.5, 0.12, 0.1), Basis.IDENTITY, false, 0.7)
-	k.box("wood", inn + Vector3(-2.7, 2.6, 4.9), Vector3(0.9, 0.8, 0.07), Basis.IDENTITY, false, 0.6)
-	_clutter(k, inn + Vector3(5.6 * si, fl.inn, 3.6 * si), 0.0, rng, 6, 1.1)
+	var pf := Pilot.prop()
+	pm.add("inn_sign.glb", Transform3D(Basis(Vector3.UP, PI).scaled(Vector3.ONE * pf), inn + Vector3(-2.7, 3.3, 4.52) * si))       # the Grey Heron's sign, on a bracket off the wall
+	_clutter(k, pm, inn + Vector3(5.6 * si, fl.inn, 3.6 * si), 0.0, rng, 6, 1.1)
 	var sm: Vector3 = ats.smithy
 	var ss: float = sc.smithy
-	var an := sm + Vector3(0.6 * ss, fl.smithy, -1.2 * ss)                # the anvil's foot
+	var an := sm + Vector3(0.6 * ss, fl.smithy, -1.2 * ss)                # the anvil's foot, on the floor
 	var fg := sm + Vector3(-2.2 * ss, fl.smithy, -1.8 * ss)               # the forge's
-	k.at(an, Pilot.prop(), false)
-	if pk:                                                               # on the floor now: a block under the anvil
-		k.box("wood", an + Vector3(0, 0.22, 0), Vector3(0.5, 0.44, 0.42), Basis.IDENTITY, true, 0.7)
-		k.box("iron", an + Vector3(0, 0.6, 0), Vector3(0.9, 0.32, 0.4), Basis.IDENTITY, true, 0.7)
-	else:
-		k.box("iron", an + Vector3(0, 0.55, 0), Vector3(0.9, 0.5, 0.45), Basis.IDENTITY, true, 0.7)      # the anvil
-	k.at(fg, Pilot.prop(), false)
-	k.box("stone", fg + Vector3(0, 0.5, 0), Vector3(1.4, 1.0, 1.1), Basis.IDENTITY, true, 0.8)           # the forge's hearth
-	k.box("glow", fg + Vector3(0, 1.02, 0.02), Vector3(0.8, 0.04, 0.6), Basis.IDENTITY, false, 1.0)      # coals
-	_clutter(k, sm + Vector3(3.2 * ss, fl.smithy, 1.5 * ss), PI, rng, 4, 0.7)
+	# the smithy: an anvil on its stump and the forge's hearth (works_smithy.glb); they block to their tops
+	pm.add("works_smithy.glb", Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * pf), an), "Anvil")
+	k.collider(an + Vector3(0, 0.22, 0) * pf, Vector3(0.9, 1.16, 0.45) * pf)
+	pm.add("works_smithy.glb", Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * pf), fg), "Hearth")
+	k.collider(fg + Vector3(0, 0.17, 0) * pf, Vector3(1.4, 1.66, 1.1) * pf)
+	k.at(fg, pf, false)
+	k.box("glow", fg + Vector3(0, 0.955, 0), Vector3(0.8, 0.04, 0.6), Basis.IDENTITY, false, 1.0)   # coals
+	_clutter(k, pm, sm + Vector3(3.2 * ss, fl.smithy, 1.5 * ss), PI, rng, 4, 0.7)
 	var st: Vector3 = ats.stables
 	var sst: float = sc.stables
 	k.at(st, sst)
@@ -596,40 +584,39 @@ static func _town(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var sq := Vector3(-196.0, _g(space, -192.0, 74.0), 74.0)
 	var wq := Pilot.xz(Vector2(-191.0, 78.0))
 	var well := Vector3(wq.x, _g(space, wq.x, wq.y), wq.y)
-	k.at(well, Pilot.prop(), false)
+	pm.add("works_well.glb", Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * pf), well))      # a curb of dressed stones, a windlass and bucket under a boarded roof
 	for i in 8:
 		var a := TAU * float(i) / 8.0
-		k.box("stone", well + Vector3(cos(a) * 0.9, 0.5, sin(a) * 0.9), Vector3(0.7, 1.0, 0.45), Basis(Vector3.UP, -a), true, 0.85)
-	for sx: float in [-1.0, 1.0]:
-		k.box("wood", well + Vector3(sx * 0.95, 1.6, 0), Vector3(0.14, 2.2, 0.14), Basis.IDENTITY, false, 0.7)
-	k.box("wood", well + Vector3(0, 2.7, 0), Vector3(2.2, 0.12, 0.2), Basis.IDENTITY, false, 0.7)
-	k.box("slate", well + Vector3(0, 2.95, 0), Vector3(2.4, 0.1, 1.5), Basis(Vector3.RIGHT, 0.0), false, 0.8)
-	var tq := Pilot.STALL if pk else Vector2(-184.0, 72.5)
+		k.collider(well + Vector3(cos(a) * 0.9, 0.5, sin(a) * 0.9) * pf, Vector3(0.7, 1.0, 0.45) * pf, Basis(Vector3.UP, -a))
+	var tq := Pilot.STALL if pf > 1.01 else Vector2(-184.0, 72.5)
 	var stall := Vector3(tq.x, _g(space, tq.x, tq.y), tq.y)
-	k.at(stall, Pilot.prop(), false)
+	k.at(stall, pf, false)
 	k.box("wood", stall + Vector3(0, 0.55, 0), Vector3(2.6, 1.1, 0.9), Basis.IDENTITY, true, 0.8)
 	for sx: float in [-1.0, 1.0]:
 		k.box("wood", stall + Vector3(sx * 1.4, 1.2, -0.5), Vector3(0.12, 2.4, 0.12), Basis.IDENTITY, false, 0.7)
 	k.box("plaster", stall + Vector3(0, 2.5, -0.1), Vector3(3.1, 0.07, 1.6), Basis(Vector3.RIGHT, -0.18), false, 0.75)
 	var bq := Pilot.xz(Vector2(sq.x - 3.0, sq.z + 2.4))
-	var bench := Vector3(bq.x, sq.y if not pk else _g(space, bq.x, bq.y), bq.y)
-	k.at(bench, Pilot.prop(), false)
-	for sx: float in [-1.0, 1.0]:
-		k.box("wood", bench + Vector3(sx * 1.6, 0.3, 0), Vector3(0.1, 0.6, 0.5), Basis.IDENTITY, false, 0.7)
-	k.box("wood", bench + Vector3(0, 0.62, 0), Vector3(3.4, 0.1, 0.5), Basis.IDENTITY, true, 0.75)
+	var bench := Vector3(bq.x, sq.y if not Pilot.on() else _g(space, bq.x, bq.y), bq.y)
+	for sx: float in [-1.0, 1.0]:                   # two of the square's benches end to end (the collider is the long plank it was)
+		pm.add("bench.glb", Transform3D(Basis(Vector3.UP, 0.04 * sx).scaled(Vector3(1.08, 1.3, 1.25) * pf), bench + Vector3(sx * 0.86 * pf, 0.0, 0.0)))
+	k.collider(bench + Vector3(0, 0.62, 0) * pf, Vector3(3.4, 0.1, 0.5) * pf)
 	# iron lanterns on the bridge's ends and in the square (cold glass in a cage: the wanderer lights them, lamps/lamp_places.gd)
 	for lp: Vector3 in lanterns():
-		_lantern(k, Vector3(lp.x, _g(space, lp.x, lp.y), lp.y), lp.z)
+		_lantern(pm, Vector3(lp.x, _g(space, lp.x, lp.y), lp.y), lp.z)
 	k.at(Vector3.ZERO, 1.0)
 	k.commit(host, "TownDressing")
+	for mi in pm.commit(host, "TownProps"):
+		mi.visibility_range_end = 130.0
+		mi.visibility_range_end_margin = 12.0
+		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	var l_inn := inn + Vector3(-5.5 * si, 1.1, 5.3 * si)
 	_lore(host, "r37w_inn", l_inn, l_inn)
 	var nq := Pilot.xz(Vector2(sq.x - 5.5, sq.z - 5.0))
-	var l_not := Vector3(nq.x, (sq.y if not pk else _g(space, nq.x, nq.y)) + 1.1, nq.y)
+	var l_not := Vector3(nq.x, (sq.y if not Pilot.on() else _g(space, nq.x, nq.y)) + 1.1, nq.y)
 	_lore(host, "r37w_notice", l_not, l_not)
 	var l_sm := sm + Vector3(-4.4 * ss, 1.1, 3.4 * ss)
 	_lore(host, "r37w_smith", l_sm, l_sm)
-	host.set_meta("route", [inn + Vector3(0.0, 0.0, 5.0 * si + (1.2 if pk else 0.0))])
+	host.set_meta("route", [inn + Vector3(0.0, 0.0, 5.0 * si + (1.2 if Pilot.on() else 0.0))])
 	host.set_meta("walk", [true])
 	host.set_meta("approach", Vector3(inn.x, _g(space, inn.x, inn.z + 8.0 * si), inn.z + 8.0 * si))     # the street in front of the inn
 
@@ -645,30 +632,50 @@ static func _shrine(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var wl := RealmLayout.river_level(-40.0)
 	var top := wl + 0.35                                  # the plinth stands just over the reach's surface
 	var base := Vector3(at.x, top, at.z)
-	k.box("ruin", Vector3(at.x, (at.y + top) * 0.5 - 0.1, at.z), Vector3(6.6, top - at.y + 0.2, 6.6), Basis.IDENTITY, true, 0.8)
+	# modelled (ruin_drowned.glb): a battered plinth paved with great flags, piers of drums, the back arch whole and
+	# the front one a stub, the altar with the Open Door cut in it, the saint headless. The colliders are the old boxes
+	# (the altar's and the lintel's as they were; nothing new blocks or carries).
+	var pm := PropModels.new()
+	pm.add(DROWNED, Transform3D(Basis.IDENTITY, base), "Plinth")
+	k.collider(Vector3(at.x, (at.y + top) * 0.5 - 0.1, at.z), Vector3(6.6, top - at.y + 0.2, 6.6))
+	var pi := 0
 	for sx: float in [-1.0, 1.0]:
 		for sz: float in [-1.0, 1.0]:
-			k.box("stone", base + Vector3(sx * 2.6, 1.9, sz * 2.6), Vector3(0.8, 3.4, 0.8), Basis(Vector3.UP, rng.randf_range(-0.05, 0.05)), true, 0.85)
-	k.box("stone", base + Vector3(0, 3.6, -2.6), Vector3(5.4, 0.7, 0.8), Basis.IDENTITY, true, 0.82)       # the lintel over the back, the front's gone
-	k.box("stone", base + Vector3(-1.6, 3.6, 2.6), Vector3(1.9, 0.7, 0.8), Basis(Vector3.UP, 0.0), true, 0.8)
-	k.box("stone", base + Vector3(0, 0.9, -1.4), Vector3(2.0, 0.9, 1.0), Basis.IDENTITY, true, 0.9)      # the altar
-	k.box("stone", base + Vector3(0.0, 1.9, -1.4), Vector3(0.7, 1.2, 0.5), Basis(Vector3.RIGHT, 0.2), true, 0.85)   # the saint, toppled forward
+			var pyaw := rng.randf_range(-0.05, 0.05)
+			pm.add(DROWNED, Transform3D(Basis(Vector3.UP, pyaw + PI * 0.5 * float(pi)), base + Vector3(sx * 2.6, 0.0, sz * 2.6)), "PierB" if pi == 3 else "PierA")
+			k.collider(base + Vector3(sx * 2.6, 1.9, sz * 2.6), Vector3(0.8, 3.4, 0.8), Basis(Vector3.UP, pyaw))
+			pi += 1
+	pm.add(DROWNED, Transform3D(Basis.IDENTITY, base + Vector3(0, 0, -2.6)), "Arch")          # the arch over the back; the front's gone but its springing
+	k.collider(base + Vector3(0, 3.6, -2.6), Vector3(5.4, 0.7, 0.8))
+	pm.add(DROWNED, Transform3D(Basis.IDENTITY, base + Vector3(0, 0, 2.6)), "ArchStub")
+	k.collider(base + Vector3(-1.6, 3.6, 2.6), Vector3(1.9, 0.7, 0.8))
+	pm.add(DROWNED, Transform3D(Basis.IDENTITY, base + Vector3(0, 0, -1.4)), "Altar")
+	k.collider(base + Vector3(0, 0.9, -1.4), Vector3(2.0, 0.9, 1.0))
+	pm.add(DROWNED, Transform3D(Basis(Vector3.RIGHT, 0.2), base + Vector3(0.0, 1.33, -1.5)), "Saint")      # toppled forward, the head on the paving
+	k.collider(base + Vector3(0.0, 1.9, -1.4), Vector3(0.7, 1.2, 0.5), Basis(Vector3.RIGHT, 0.2))
+	pm.add(DROWNED, Transform3D(Basis(Vector3.UP, 0.9), base + Vector3(0.7, 0.0, 0.5)), "SaintHead")
+	var fallen := ["BlockB", "BlockD", "BlockC", "Cap", "BlockB"]
 	for i in 5:
 		var s := rng.randf_range(0.5, 1.0)
-		k.box("ruin", base + Vector3(rng.randf_range(-4.5, 4.5), 0.2, rng.randf_range(-4.5, 4.5)), Vector3(s, s * 0.6, s), Basis(Vector3.UP, rng.randf() * TAU), false, 0.8)
+		var q := base + Vector3(rng.randf_range(-4.5, 4.5), 0.0, rng.randf_range(-4.5, 4.5))
+		if absf(q.x - at.x) > 3.25 or absf(q.z - at.z) > 3.25:
+			q.y = _g(space, q.x, q.z)                   # off the plinth: on the river's bed, not in the air over it
+		pm.add("ruin_shrine.glb", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * (s / 0.7)), q), fallen[i])
 	var sb := Node3D.new()
 	sb.name = "Shrine"
 	host.add_child(sb)
 	k.commit(sb, "ShrineBody")
+	pm.commit(sb, "Drowned", true, true)
 	FarDetail.register(sb, FarDetail.hull(AABB(Vector3(at.x - 3.6, top - 0.5, at.z - 3.6), Vector3(7.2, 5.0, 7.2)), 0.0, Color(0.16, 0.15, 0.14)), Transform3D.IDENTITY, 110.0)
+	var kf := _kit()                     # their own kit: the shrine's, committed a second time here, drew and collided twice
 	# fords: pairs of marker posts with a rope hook, on weir_track where it crosses and at two more banks
 	for fp: Vector2 in [Vector2(-196.0, -66.0), Vector2(-190.0, -22.0), Vector2(-206.0, 20.0)]:
 		for sx: float in [-1.0, 1.0]:
 			var gx := fp.x + sx * 5.2
 			var gy := _g(space, gx, fp.y)
-			k.box("wood", Vector3(gx, gy + 1.1, fp.y), Vector3(0.16, 2.4, 0.16), Basis.IDENTITY, false, 0.7)
-			k.box("iron", Vector3(gx, gy + 2.2, fp.y), Vector3(0.3, 0.05, 0.05), Basis.IDENTITY, false, 0.7)
-	k.commit(host, "FordPosts")
+			kf.box("wood", Vector3(gx, gy + 1.1, fp.y), Vector3(0.16, 2.4, 0.16), Basis.IDENTITY, false, 0.7)
+			kf.box("iron", Vector3(gx, gy + 2.2, fp.y), Vector3(0.3, 0.05, 0.05), Basis.IDENTITY, false, 0.7)
+	kf.commit(host, "FordPosts")
 	_chest(host, "sorrow_shrine", base + Vector3(1.6, 0.0, 0.4), 0.0)                 # on the plinth's paving, beside the altar
 	_lore(host, "r37w_shrine", base + Vector3(-2.2, 1.2, 3.4), base + Vector3(-2.2, 1.2, 3.4))
 	host.set_meta("wet", true)

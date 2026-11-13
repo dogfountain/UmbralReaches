@@ -39,6 +39,11 @@ const MOTHER := "res://art/models/orchard_mother_tree.glb"
 const MOTHER_FAR := 90.0                 ## the Mother Tree's far silhouette takes over here
 const Stair := preload("res://core/world/realm/timber_stair.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
+const PropModels := preload("res://core/world/realm/prop_models.gd")
+const SHRINE := "ruin_shrine.glb"
+const WINCH := "works_winch.glb"
+const HOLDS := "works_holds.glb"
+const QUARRY := "works_quarry.glb"
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
@@ -506,12 +511,13 @@ static func _cyl_mesh(r0: float, r1: float, h: float, sides := 10) -> ArrayMesh:
 
 
 ## A post / trunk / barrel from `a` to `b` (radius r0 at a, r1 at b), with a box of collision.
-static func _cyl(k: OssKit, key: String, a: Vector3, b: Vector3, r0: float, r1: float, solid := false, sides := 10) -> void:
+static func _cyl(k: OssKit, key: String, a: Vector3, b: Vector3, r0: float, r1: float, solid := false, sides := 10, draw := true) -> void:
 	var d := b - a
 	var up := d.normalized()
 	var side := up.cross(Vector3.FORWARD if absf(up.z) < 0.9 else Vector3.RIGHT).normalized()
 	var bas := Basis(side, up, side.cross(up))
-	k.append_mesh(key, _cyl_mesh(r0, r1, d.length(), sides), Transform3D(bas, a))
+	if draw:                                    # false: the collider alone (the thing is a model drawn elsewhere)
+		k.append_mesh(key, _cyl_mesh(r0, r1, d.length(), sides), Transform3D(bas, a))
 	if solid:
 		LK.col_box(k, (a + b) * 0.5, Vector3(maxf(r0, r1) * 1.7, d.length(), maxf(r0, r1) * 1.7), bas)
 
@@ -596,13 +602,18 @@ static func _quarry_crane(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 	var kh := OssKit.new()
 	kh.keep_lanes = false
 	_cyl(kh, "iron", Vector3.ZERO, Vector3(0, 3.4 - sheave.y, 0), 0.035, 0.035)    # the rope
-	kh.box("stone", Vector3(0, 2.5 - sheave.y, 0), Vector3(1.4, 1.0, 1.0), Basis(Vector3.UP, 0.4), false, 0.84)
 	sw.take(kh, 120.0)
+	var load := PropModels.new()          # the block still on the hook
+	load.add(QUARRY, Transform3D(Basis(Vector3.UP, 0.4).scaled(Vector3(0.82, 1.1, 1.0)), Vector3(0, 2.0 - sheave.y, 0)), "BlockB")
+	for mi in load.commit(sw, "Load"):
+		mi.visibility_range_end = 120.0
+		mi.visibility_range_end_margin = 8.0
 	# the windlass on the deck
 	_cyl(k, "wood", xf * (pc + Vector3(0.6, CRANE_DECK + 0.7, -1.6)), xf * (pc + Vector3(0.6, CRANE_DECK + 0.7, 1.0)), 0.32, 0.32)
 	for z: float in [-1.7, 1.1]:
 		k.box("wood", xf * (pc + Vector3(0.6, CRANE_DECK + 0.45, z)), Vector3(0.16, 0.9, 0.16), b, true, 0.8)
-	# squared blocks waiting for a cart that never came, rollers and a sledge
+	# squared blocks waiting for a cart that never came (modelled: dressed, rough-faced, cracked), rollers and a sledge
+	var qm := PropModels.new()
 	for i in 11:
 		var row := i % 4
 		var col := i / 4
@@ -610,17 +621,24 @@ static func _quarry_crane(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 		var y := RealmLayout.ground(space, (xf * v).x, (xf * v).z)
 		var p := xf * v
 		p.y = y + 0.42
-		k.box("stone", p, Vector3(1.7, 0.9, 1.0), b * Basis(Vector3.UP, rng.randf_range(-0.12, 0.12)), true, rng.randf_range(0.78, 0.92))
+		var qb := b * Basis(Vector3.UP, rng.randf_range(-0.12, 0.12) + (PI if i % 2 == 1 else 0.0))
+		qm.add(QUARRY, Transform3D(qb, p + Vector3.DOWN * 0.45), ["BlockA", "BlockB", "BlockA", "BlockC"][i % 4])
+		k.collider(p, Vector3(1.7, 0.9, 1.0), qb)
+		rng.randf()
 		if i % 3 == 0:
-			k.box("stone", p + Vector3(0, 0.88, 0), Vector3(1.6, 0.86, 0.95), b * Basis(Vector3.UP, rng.randf_range(-0.2, 0.2)), true, 0.88)
+			var qb2 := b * Basis(Vector3.UP, rng.randf_range(-0.2, 0.2))
+			qm.add(QUARRY, Transform3D(qb2.scaled(Vector3(0.94, 0.955, 0.95)), p + Vector3(0, 0.43, 0)), "BlockB" if i % 2 == 0 else "BlockA")
+			k.collider(p + Vector3(0, 0.88, 0), Vector3(1.6, 0.86, 0.95), qb2)
 	for i in 3:
 		var r := _gl(space, xf, Vector3(-1.2 + 0.7 * float(i), 0.12, 7.2))
 		_cyl(k, "wood", r + b * Vector3(0, 0, -0.9), r + b * Vector3(0, 0, 0.9), 0.12, 0.12)
 	var sl := _gl(space, xf, Vector3(-0.3, 0.3, 7.4))
-	k.box("stone", sl + Vector3.UP * 0.1, Vector3(1.6, 0.8, 1.0), b * Basis(Vector3.UP, 0.1), true, 0.86)
+	qm.add(QUARRY, Transform3D((b * Basis(Vector3.UP, 0.1)).scaled(Vector3(0.94, 0.89, 1.0)), sl + Vector3.DOWN * 0.3), "BlockA")
+	k.collider(sl + Vector3.UP * 0.1, Vector3(1.6, 0.8, 1.0), b * Basis(Vector3.UP, 0.1))
 	for side: float in [-0.45, 0.45]:
 		k.box("wood", sl + b * Vector3(0, -0.28, side), Vector3(2.4, 0.16, 0.14), b, false, 0.7)
 	k.commit(host, "CraneBody")
+	qm.commit(host, "QuarryBlocks", true, true)
 	var deck := xf * (pc + Vector3(-0.2, CRANE_DECK, 1.3))
 	stand.append(deck)
 	host.set_meta("route", stand)
@@ -651,44 +669,44 @@ static func _quarry_winch(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 	var hz := 2.3
 	var t := 0.5
 	var wh := 3.4
-	k.box("floor", xf * Vector3(0, 0.02, 0), Vector3(hx * 2.0 - 0.2, 0.2, hz * 2.0 - 0.2), b, true, 0.85)
-	k.box("stone", xf * Vector3(0, -0.4, 0), Vector3(hx * 2.0 + 0.3, 1.0, hz * 2.0 + 0.3), b, true, 0.72)
+	# the hut, its drum and the wheel's bearing frame are modelled (works_winch.glb); every collider is the box it was
+	var pm := PropModels.new()
+	pm.add(WINCH, xf, "Hut")
+	k.collider(xf * Vector3(0, 0.02 + OssKit.FLOOR_LIFT, 0), Vector3(hx * 2.0 - 0.2, 0.2, hz * 2.0 - 0.2), b)
+	k.collider(xf * Vector3(0, -0.4, 0), Vector3(hx * 2.0 + 0.3, 1.0, hz * 2.0 + 0.3), b)
 	# walls: the front (+z, toward the pit) has the door; the east (+x) wall has the wheel's axle-hole
 	for wl: Array in [[Vector3(0, wh * 0.5, -hz + t * 0.5), Vector3(hx * 2.0, wh, t)], [Vector3(-hx + t * 0.5, wh * 0.5, 0), Vector3(t, wh, hz * 2.0)],
 			[Vector3(hx - t * 0.5, wh * 0.5, 0), Vector3(t, wh, hz * 2.0)], [Vector3(-1.85, wh * 0.5, hz - t * 0.5), Vector3(2.3, wh, t)], [Vector3(1.85, wh * 0.5, hz - t * 0.5), Vector3(2.3, wh, t)],
 			[Vector3(0, wh - 0.5, hz - t * 0.5), Vector3(1.4, 1.0, t)]]:
-		k.box("stone", xf * (wl[0] as Vector3), wl[1], b, true, rng.randf_range(0.8, 0.9))
-	k.box("slate", xf * Vector3(0, wh + 0.15, 0), Vector3(hx * 2.0, 0.3, hz * 2.0), b, true, 0.85)
+		k.collider(xf * (wl[0] as Vector3), wl[1], b)
+	k.collider(xf * Vector3(0, wh + 0.15, 0), Vector3(hx * 2.0, 0.3, hz * 2.0), b)
 	# inside: the winding drum on two trestles, coils of rope
-	_cyl(k, "wood", xf * Vector3(-1.6, 1.1, -1.2), xf * Vector3(2.2, 1.1, -1.2), 0.45, 0.45, true)
+	_cyl(k, "wood", xf * Vector3(-1.6, 1.1, -1.2), xf * Vector3(2.2, 1.1, -1.2), 0.45, 0.45, true, 10, false)
 	for x: float in [-1.4, 1.9]:
-		k.box("wood", xf * Vector3(x, 0.55, -1.2), Vector3(0.18, 1.1, 0.9), b, true, 0.75)
-	# the tread-wheel outside the east wall, its axle through to the drum
+		k.collider(xf * Vector3(x, 0.55, -1.2), Vector3(0.18, 1.1, 0.9), b)
+	# the tread-wheel outside the east wall, its axle through to the drum; it creaks round (something in the pit
+	# still hauls on the rope)
 	var wc := Vector3(hx + 0.9, 2.3, -0.2)
-	# r36: the wheel creaks round on its axle (something in the pit still hauls on the rope)
 	var wheel := Sway.turner(host, xf * wc, b.get_euler().y, Vector3.RIGHT, -0.16)
-	var kw := OssKit.new()
-	kw.keep_lanes = false
-	for i in 16:
-		var a := TAU * float(i) / 16.0
-		var p := Vector3(0, sin(a) * 2.0, cos(a) * 2.0)
-		kw.box("wood", p, Vector3(1.3, 0.16, 0.82), Basis(Vector3.RIGHT, -a), false, rng.randf_range(0.7, 0.9))
-	for i in 4:
-		var a := PI * float(i) / 4.0
-		kw.box("wood", Vector3.ZERO, Vector3(0.12, 4.0, 0.14), Basis(Vector3.RIGHT, a), false, 0.75)
-	wheel.take(kw, 120.0)
-	_cyl(k, "wood", xf * (wc + Vector3(-1.2, 0, 0)), xf * (wc + Vector3(0.8, 0, 0)), 0.16, 0.16)
+	var wm := PropModels.new()
+	wm.add(WINCH, Transform3D.IDENTITY, "Wheel")
+	for mi in wm.commit(wheel, "Wheel"):
+		mi.visibility_range_end = 120.0
+		mi.visibility_range_end_margin = 8.0
 	for z: float in [-2.1, 1.7]:
-		k.box("wood", xf * (wc + Vector3(0.75, -1.2, z)), Vector3(0.2, 2.6, 0.2), b, true, 0.75)
+		k.collider(xf * (wc + Vector3(0.75, -1.2, z)), Vector3(0.2, 2.6, 0.2), b)
+	for i in 22:                                  # the numbers the kit walls and treads drew: the overgrowth stays where it was
+		rng.randf()
 	# the rope down to the pit floor, frayed
 	_cyl(k, "iron", xf * (wc + Vector3(0.0, -0.4, 2.1)), xf * Vector3(wc.x, -3.0, 13.0), 0.04, 0.04)
 	# a stack of stone to climb onto the roof (west side)
 	var stair_foot := _gl(space, xf, Vector3(-hx - 1.5, 0.12, 8.0))
 	var stair_top := xf * Vector3(-hx - 1.5, wh + 0.3, 1.0)
 	var stand := Stair.build(k, space, stair_foot, stair_top, 1.2)
-	k.box("wood", xf * Vector3(-hx - 0.3, wh + 0.26, 1.0), Vector3(2.0, 0.12, 1.2), b, true, 0.85)     # the plank from the stair's head onto the roof
+	k.collider(xf * Vector3(-hx - 0.3, wh + 0.26, 1.0), Vector3(2.0, 0.12, 1.2), b)     # the plank from the stair's head onto the roof
 	# a post on the roof the Tether can catch
-	k.box("wood", xf * Vector3(1.6, wh + 1.0, -1.2), Vector3(0.22, 1.7, 0.22), b, true, 0.75)
+	k.collider(xf * Vector3(1.6, wh + 1.0, -1.2), Vector3(0.22, 1.7, 0.22), b)
+	pm.commit(host, "Winch", true, true)
 	k.commit(host, "WinchBody")
 	var roof := xf * Vector3(-2.3, wh + 0.3, 0.9)
 	stand.append(roof)
@@ -802,6 +820,7 @@ static func _holds_houses(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 	var ring := Vector3(0, 0, 3.0)
 	var houses := [Vector3(-3.6, 0, 0.4), Vector3(3.6, 0, 0.4), Vector3(0, 0, -3.4)]
 	var open_c := Vector3.ZERO
+	var pm := PropModels.new()
 	for hi in houses.size():
 		var hc: Vector3 = houses[hi]
 		var to := (ring - hc).normalized()
@@ -811,6 +830,9 @@ static func _holds_houses(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 		var hb := b * Basis(Vector3.UP, door_a)
 		# five courses of turf, each stepping in, a gap for the door facing the fire-ring (headroom
 		# under the fifth course: 2.17 m)
+		var hx := Transform3D(hb, Vector3(base.x, hy, base.z))
+		PropModels.kit_add(k, "lore_earth", HOLDS, hx, "Dome")        # the turf wall, modelled; the rings of boxes below are its collider
+		pm.add(HOLDS, hx, "Door")
 		for tier in 5:
 			var r := 2.6 - 0.25 * float(tier)
 			var n := 12
@@ -819,34 +841,35 @@ static func _holds_houses(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 				if tier < 4 and absf(angle_difference(a, 0.0)) < 0.4:
 					continue                         # the door (local +z of the house)
 				var q := Vector3(sin(a) * r, 0.25 + 0.55 * float(tier), cos(a) * r)
-				k.box("lore_earth", Vector3(base.x, hy, base.z) + hb * q, Vector3(TAU * r / float(n) + 0.12, 0.58, 0.62), hb * Basis(Vector3.UP, a), true, rng.randf_range(0.74, 0.86))
-		k.box("lore_earth", Vector3(base.x, hy + 2.86, base.z), Vector3(2.2, 0.36, 2.2), hb * Basis(Vector3.UP, 0.4), true, 0.8)
-		k.box("lore_earth", Vector3(base.x, hy + 3.1, base.z), Vector3(1.6, 0.3, 1.6), hb, true, 0.82)
+				k.collider(hx * q, Vector3(TAU * r / float(n) + 0.12, 0.58, 0.62), hb * Basis(Vector3.UP, a))
+				rng.randf()
+		k.collider(Vector3(base.x, hy + 2.86, base.z), Vector3(2.2, 0.36, 2.2), hb * Basis(Vector3.UP, 0.4))
+		k.collider(Vector3(base.x, hy + 3.1, base.z), Vector3(1.6, 0.3, 1.6), hb)
 		# door-stones: two uprights and a lintel
 		for sx: float in [-1.0, 1.0]:
-			k.box("lore_tstone", Vector3(base.x, hy, base.z) + hb * Vector3(sx * 0.78, 1.0, 2.55), Vector3(0.3, 2.0, 0.4), hb, true, 0.9)
-		k.box("lore_tstone", Vector3(base.x, hy, base.z) + hb * Vector3(0, 2.12, 2.55), Vector3(1.9, 0.28, 0.5), hb, true, 0.9)
+			k.collider(hx * Vector3(sx * 0.78, 1.0, 2.55), Vector3(0.3, 2.0, 0.4), hb)
+		k.collider(hx * Vector3(0, 2.12, 2.55), Vector3(1.9, 0.28, 0.5), hb)
 		k.box("lore_soil", Vector3(base.x, hy + 0.03, base.z), Vector3(3.6, 0.06, 3.6), hb, false, 0.8)
 		if hi == 0:
 			open_c = Vector3(base.x, hy, base.z) + hb * Vector3(0, 0.06, -0.7)
 		else:
-			k.box("lore_beam", Vector3(base.x, hy, base.z) + hb * Vector3(0, 1.0, 2.6), Vector3(1.3, 1.95, 0.1), hb, true, 0.6)   # a shut door
+			pm.add(HOLDS, hx, "Leaf")                                   # a shut door
+			k.collider(hx * Vector3(0, 1.0, 2.6), Vector3(1.3, 1.95, 0.1), hb)
 	# the fire-ring, cold, a drying rack and a quern
 	var rc := _gl(space, xf, ring)
 	for i in 9:
 		var a := TAU * float(i) / 9.0
-		k.box("lore_rock", rc + Vector3(cos(a) * 1.0, 0.12, sin(a) * 1.0), Vector3(0.4, 0.26, 0.34), Basis(Vector3.UP, a), false, 0.8)
+		pm.add(SHRINE, Transform3D(Basis(Vector3.UP, -a + 0.4 * float(i)).scaled(Vector3.ONE * (0.5 + 0.06 * float(i % 3))), rc + Vector3(cos(a) * 1.0, -0.03, sin(a) * 1.0)), "BlockD" if i % 2 == 0 else "BlockB")
 	k.box("dark", rc + Vector3(0, 0.03, 0), Vector3(1.4, 0.04, 1.4), Basis.IDENTITY, false, 0.3)
 	var rack := _gl(space, xf, Vector3(4.4, 0, 4.8))
+	pm.add(HOLDS, Transform3D(b, rack), "Rack")
 	for sx: float in [-1.0, 1.0]:
-		k.box("wood", rack + b * Vector3(sx * 1.2, 0.9, 0), Vector3(0.12, 1.8, 0.12), b, true, 0.7)
-	k.box("wood", rack + b * Vector3(0, 1.75, 0), Vector3(2.6, 0.08, 0.08), b, false, 0.7)
-	for j in 4:
-		k.box("lore_beam", rack + b * Vector3(-0.9 + 0.6 * j, 1.35, 0), Vector3(0.12, 0.7, 0.04), b, false, 0.5)
+		k.collider(rack + b * Vector3(sx * 1.2, 0.9, 0), Vector3(0.12, 1.8, 0.12), b)
 	var qn := _gl(space, xf, Vector3(-3.8, 0, 4.8))
 	_cyl(k, "lore_tstone", qn, qn + Vector3.UP * 0.35, 0.45, 0.45, true, 12)
 	_cyl(k, "lore_tstone", qn + Vector3.UP * 0.37, qn + Vector3.UP * 0.55, 0.42, 0.4, false, 12)
 	k.commit(host, "HousesBody")
+	pm.commit(host, "Houses", true, true)
 	_chest(host, "holds_house", open_c, float(s.yaw))
 	P._lore(host, "poi_holds_door", _gl(space, xf, Vector3(-1.4, 1.3, 3.6)), _gl(space, xf, Vector3(-2.6, 2.1, 2.4)))
 	P._lore(host, "poi_holds_quern", qn + b * Vector3(0.6, 0.9, 0.6), qn + Vector3.UP * 0.6)
@@ -1057,31 +1080,35 @@ static func _moor_shrine(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dict
 	var k := OssKit.new()
 	k.keep_lanes = false
 	LK.ensure_mats()
-	# a stepped base, a tall pillar with four iron arms -- each lantern hook struck off at the root
-	k.box("lore_tstone", xf * Vector3(0, 0.1, 0), Vector3(3.2, 0.6, 3.2), b, true, 0.8)
-	k.box("lore_tstone", xf * Vector3(0, 0.5, 0), Vector3(2.2, 0.3, 2.2), b, true, 0.86)
-	k.box("lore_tstone", xf * Vector3(0, 2.6, 0), Vector3(0.8, 4.0, 0.8), b, true, 0.92)
-	LK.half_disc(k, "lore_tstone", Transform3D(b, xf * Vector3(0, 4.6, 0)), 0.42, 0.0, 0.8, 2, true, 0.9)
-	for i in 4:
-		var a := PI * 0.5 * float(i)
-		var f := Vector3(sin(a), 0, cos(a))
-		k.box("iron", xf * (f * 0.75 + Vector3(0, 3.9, 0)), Vector3(0.7, 0.08, 0.08) if absf(f.x) > 0.5 else Vector3(0.08, 0.08, 0.7), b, false, 0.8)
-		k.box("iron", xf * (f * 1.1 + Vector3(0, 3.82, 0)), Vector3(0.06, 0.18, 0.06), b, false, 0.6)    # the stub where the hook was
-	# the offering niche in the front of the pillar, the box set in it
-	k.box("dark", xf * Vector3(0, 1.2, 0.41), Vector3(0.6, 0.7, 0.04), b, false, 0.3)
-	# a ring of eight low stones: the faithful knelt here in the dark and went on
+	# a stepped base of nine stones, a tall jointed pillar with four iron arms -- each lantern hook struck off at the
+	# root -- and the offering niche in its front (modelled: ruin_shrine.glb); the colliders are the old boxes
+	var pm := PropModels.new()
+	pm.add(SHRINE, xf, "Obelisk")
+	k.collider(xf * Vector3(0, 0.1, 0), Vector3(3.2, 0.6, 3.2), b)
+	k.collider(xf * Vector3(0, 0.5, 0), Vector3(2.2, 0.3, 2.2), b)
+	k.collider(xf * Vector3(0, 2.6, 0), Vector3(0.8, 4.0, 0.8), b)
+	# a ring of eight low stones: the faithful knelt here in the dark and went on. Worn, broken, split, sunk; the
+	# capstone the Edict threw down lies among them
+	var ring_parts := ["BlockA", "BlockC", "BlockB", "Cap", "BlockD", "BlockA", "BlockB", "BlockC"]
 	for i in 8:
 		var a := TAU * float(i) / 8.0 + 0.2
 		var q := Vector3(cos(a) * 3.6, 0, sin(a) * 3.6)
 		if q.z > 2.4 and absf(q.x) < 1.5:
 			continue
 		var g := _gl(space, xf, q)
-		k.box("lore_rock", g + Vector3.UP * 0.2, Vector3(0.7, 0.6, 0.5), Basis(Vector3.UP, -a), true, rng.randf_range(0.78, 0.9))
+		var rb := Basis(Vector3.UP, -a + (PI if i % 3 == 1 else 0.0))
+		var low := g.y                                  # the stone stands in the lowest ground under it (the moor slopes)
+		for c: Vector3 in [Vector3(0.3, 0, 0.2), Vector3(-0.3, 0, 0.2), Vector3(0.3, 0, -0.2), Vector3(-0.3, 0, -0.2)]:
+			low = minf(low, _gl(space, xf, q + xf.basis.inverse() * (rb * c)).y)
+		pm.add(SHRINE, Transform3D(rb.scaled(Vector3.ONE * rng.randf_range(0.94, 1.06)), Vector3(g.x, lerpf(g.y, low, 0.7), g.z)), ring_parts[i])
+		k.collider(g + Vector3.UP * 0.2, Vector3(0.7, 0.6, 0.5), Basis(Vector3.UP, -a))
 	# lanterns left on the ground, glass broken, every one cold
 	for i in 5:
 		var a := rng.randf_range(-1.2, 1.2)
 		var g := _gl(space, xf, Vector3(sin(a) * 2.1, 0, cos(a) * 2.1))
-		k.box("iron", g + Vector3.UP * 0.15, Vector3(0.22, 0.3, 0.22), Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.FORWARD, 0.0 if i % 2 == 0 else 1.4), false, 0.7)
+		var lying := i % 2 == 1
+		pm.add(SHRINE, Transform3D(Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.FORWARD, 1.5 if lying else 0.0), g + Vector3.UP * (0.105 if lying else 0.15)), "LanternB" if i % 3 == 2 else "LanternA")
+	pm.commit(host, "Shrine")
 	k.commit(host, "ShrineBody")
 	_chest(host, "moor_shrine", xf * Vector3(0, 0.65, 1.15), float(s.yaw))
 	P._lore(host, "poi_moor_shrine", xf * Vector3(0.9, 1.3, 1.4), xf * Vector3(0, 2.4, 0.41))

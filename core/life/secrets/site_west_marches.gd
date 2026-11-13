@@ -11,6 +11,7 @@ extends RefCounted
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
+const PropModels := preload("res://core/world/realm/prop_models.gd")
 const WATER := 0.6        ## the Sorrow's head reach (RealmLayout.river_level at the shrine)
 
 
@@ -77,11 +78,15 @@ static func _walk(root: Node, host: Node3D, shrine: Node3D) -> void:
 	k.keep_lanes = false
 	LK.ensure_mats()
 	var ic := Vector3(isle.x, top, isle.y)
-	k.box("stone", Vector3(isle.x, (top + bottom) * 0.5 - 0.3, isle.y), Vector3(3.4, top - bottom + 0.6, 3.4), Basis(Vector3.UP, 0.2), true, 0.78)
-	k.box("stone", ic + Vector3.UP * 0.05, Vector3(3.6, 0.12, 3.6), Basis(Vector3.UP, 0.2), false, 0.9)
-	# Aldith's last lamp on an iron post, still burning (a lit pane, no light), and her box
-	k.box("iron", ic + Vector3(-0.9, 0.9, -0.9), Vector3(0.08, 1.8, 0.08), Basis.IDENTITY, true, 0.8)
-	k.box("glow", ic + Vector3(-0.9, 1.7, -0.9), Vector3(0.18, 0.24, 0.18), Basis.IDENTITY, false, 0.55)
+	# the islet is the Drowned Shrine's masonry at half its width (a battered pier paved with flags); the collider is the box it was
+	var pm := PropModels.new()
+	pm.add("ruin_drowned.glb", Transform3D(Basis(Vector3.UP, 0.2).scaled(Vector3(0.53, maxf(1.0, (top - bottom + 0.7) / 3.1), 0.53)), ic + Vector3.UP * 0.11), "Plinth")
+	k.collider(Vector3(isle.x, (top + bottom) * 0.5 - 0.3, isle.y), Vector3(3.4, top - bottom + 0.6, 3.4), Basis(Vector3.UP, 0.2))
+	# Aldith's last lamp on an iron post, still burning (lit glass in a cage, no light), and her box
+	pm.add("lamp_street.glb", Transform3D(Basis(Vector3.UP, 0.5), ic + Vector3(-0.9, 0.1, -0.9)), "PostLantern")
+	k.collider(ic + Vector3(-0.9, 0.9, -0.9), Vector3(0.08, 1.8, 0.08))
+	k.box("glow", ic + Vector3(-0.9, 1.8, -0.9), Vector3(0.1, 0.2, 0.1), Basis(Vector3.UP, 0.5), false, 0.55)
+	pm.commit(node, "Aldith")
 	# the ring: set in the shrine's plinth, a post with an iron ring on a hook
 	var lv := Vector3(sc.x + 3.3, sy + 0.5, sc.z + 1.6)
 	k.box("stone", lv + Vector3.UP * 0.0, Vector3(0.5, 0.5, 0.5), Basis.IDENTITY, true, 0.8)
