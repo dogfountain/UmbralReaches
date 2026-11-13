@@ -130,23 +130,30 @@ static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit
 	_glow_budget(env)
 
 
-const MOON_ELEVATION := 29.0          ## degrees above the horizon
+## The moon as the night's key light (13 Nov, the lighting pass). Luke preferred the survey stills, which had a second,
+## steep white light over the moon: form, colour and a cast shadow on everything. The moon now does that work itself:
+## it stands higher (46 deg, was 29: the ground and the roofs take the light, a shadow is about as long as the thing
+## is tall), in the south-east (bearing 135 deg, was 55: on the way north to the rift the walls that face the camera
+## are lit, where they were backlit silhouettes; looking back south-east the moon hangs over the land), and it is
+## 3.75 times as strong (1.5, was 0.4) and bluer (it stays a cool light: warm on screen is still fire). The ambient,
+## the grade and the glow are untouched, so shadow and unlit ground are as dark as they were, and a brazier's or the
+## lantern's pool still reads warm against the blue. zz/light_pass: every value here A/B'd from fourteen views.
+const MOON_ELEVATION := 46.0          ## degrees above the horizon
+const MOON_BEARING := 135.0           ## where it stands: degrees east of north (north is -z)
+const MOON_ENERGY := 1.5
+const MOON_COLOR := Color(0.66, 0.78, 1.0)
+const MOON_FOG := 0.35                ## its share in the volumetric fog (0.62 at the old energy: the haze takes about twice the moonlight, not 3.75 times)
 
 
 static func _moon(moon: DirectionalLight3D, far_m: float) -> void:
-	# a lower moon (29 deg, was 34): shadows run long across the ground and the relief reads. The
-	# azimuth is the scene's own (the sky moon and the shafts follow it).
-	var heading := -moon.global_basis.z
-	heading.y = 0.0
-	if heading.length() > 0.01:
-		heading = heading.normalized() * cos(deg_to_rad(MOON_ELEVATION)) + Vector3.DOWN * sin(deg_to_rad(MOON_ELEVATION))
-		moon.global_basis = Basis.looking_at(heading, Vector3.UP)
-	# a strong azure key: the moonlit stone and ground read bright blue over cool shadow
-	# (it was 0.6 and lavender, so the flat ambient carried everything and the night read grey)
-	# Soft moonlight, not cyan key light — cyan + azure ambient was the grey-navy wash.
-	moon.light_color = Color(0.8, 0.84, 0.96)
-	moon.light_energy = 0.4
-	moon.light_volumetric_fog_energy = 0.62
+	# the sky's moon, the flare, the Star Crater's glints and the Thornwood's shafts all read this light's direction
+	var el := deg_to_rad(MOON_ELEVATION)
+	var b := deg_to_rad(MOON_BEARING)
+	var to_moon := Vector3(sin(b) * cos(el), sin(el), -cos(b) * cos(el))
+	moon.global_basis = Basis.looking_at(-to_moon, Vector3.UP)
+	moon.light_color = MOON_COLOR
+	moon.light_energy = MOON_ENERGY
+	moon.light_volumetric_fog_energy = MOON_FOG
 	moon.light_angular_distance = 0.42
 	moon.shadow_opacity = maxf(moon.shadow_opacity, 0.97)
 	# the shadow map itself (atlas, splits, bias, range) is LightPolicy._moon's alone: it runs right

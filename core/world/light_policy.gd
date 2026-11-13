@@ -207,7 +207,7 @@ static func apply_illumination(light: Light3D) -> void:
 		s.spot_range = float(b.r) * float(m[1])
 
 
-## The moon's shadow (r29, the "weird shadow lines"). Under the 34 deg moon the open ground was
+## The moon's shadow (r29, the "weird shadow lines"). Under the 34 deg moon of the time (46 deg now) the open ground was
 ## striped with acne: curved bands along every shadow-map texel row, crawling as the camera moved
 ## (zz/perf_lines --debug=2 shows them plainly; shots/critE_shadowlines_*). Cause: too little bias for
 ## the soft (angular 2.5 deg) blocker search on 1024-atlas texels (two splits over 30 m at fov 90, the
