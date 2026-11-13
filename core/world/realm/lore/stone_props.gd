@@ -20,7 +20,7 @@ static func mat(set_name: String) -> StandardMaterial3D:
 	return WestKit.prop_mat(set_name)
 
 
-## {parts: [{set, mesh}], points: PackedVector3Array (convex hull), text: Vector3, door: Vector3 (INF if none)}
+## {parts: [{set, mesh, name}], points: PackedVector3Array (convex hull), text: Vector3, door: Vector3 (INF if none)}
 static func info(file: String) -> Dictionary:
 	if _info.has(file):
 		return _info[file]
@@ -35,7 +35,7 @@ static func info(file: String) -> Dictionary:
 		var mi := n as MeshInstance3D
 		var bits := String(mi.name).split("__")
 		if bits.size() >= 2 and mi.mesh != null:
-			(d.parts as Array).append({"set": bits[bits.size() - 1], "mesh": mi.mesh})
+			(d.parts as Array).append({"set": bits[bits.size() - 1], "mesh": mi.mesh, "name": bits[0]})
 	for n in root.find_children("*", "CollisionShape3D", true, false):
 		var cs := n as CollisionShape3D
 		if cs.shape is ConvexPolygonShape3D:

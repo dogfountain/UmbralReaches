@@ -10,7 +10,8 @@ extends Node
 ##   stills  a close-up of each finding (survey light on), and over a grid of the rect an aerial view (survey
 ##           light on) and two eye-level views in the game's own night look.
 ##   --views / --views-file=<path> add free views; --spots-file=<path> (name x,y,z size) two close-ups of each spot
-##   (survey light on unless --dark).
+##   --who="x,z,r;..." lists the mesh nodes near a point (path, mesh, size, triangles).
+##   (survey light on unless --dark). A y of "g1.7" in a view or spot is 1.7 m above the terrain there.
 ## Writes shots/survey/<name>/report.txt and *.jpg. Never writes the save (Travel._busy; exits by OS.kill).
 const Footing := preload("res://core/world/footing.gd")
 const SETTLE := 10.0
@@ -33,6 +34,7 @@ var do_probe := true
 var dark := false
 var views: Array = []
 var spots: Array = []              ## [name, centre, size]
+var who: Array[Vector3] = []       ## (x, radius, z)
 var main: Node
 var t := 0.0
 var done_t := -1.0
@@ -65,6 +67,10 @@ func _ready() -> void:
 			continue
 		match kv[0]:
 			"--name": nm = kv[1]
+			"--who":                         # x,z,r;...: name every mesh node whose box centre is within r of (x, z)
+				for w in kv[1].split(";", false):
+					var q := w.split(",")
+					who.append(Vector3(float(q[0]), float(q[2]), float(q[1])))
 			"--touch": touch = float(kv[1])
 			"--step": step = float(kv[1])
 			"--closeups": max_close = int(kv[1])
@@ -94,7 +100,13 @@ func _ready() -> void:
 
 func _v3(s: String) -> Vector3:
 	var p := s.split(",")
+	if p[1].begins_with("g"):                # "g1.7": that far above the terrain there (resolved by _gy once the world is built)
+		return Vector3(float(p[0]), 10000.0 + float(p[1].substr(1)), float(p[2]))
 	return Vector3(float(p[0]), float(p[1]), float(p[2]))
+
+
+func _gy(v: Vector3) -> Vector3:
+	return Vector3(v.x, _terrain(v.x, v.z) + v.y - 10000.0, v.z) if v.y > 5000.0 else v
 
 
 func _process(d: float) -> void:
@@ -140,6 +152,8 @@ func _begin() -> void:
 	report.append("SURVEY %s rect x %.0f..%.0f z %.0f..%.0f" % [nm, rect.position.x, rect.end.x, rect.position.y, rect.end.y])
 	if do_probe:
 		_probe()
+	for w in who:
+		_who(Vector2(w.x, w.z), w.y)
 	if probe_only:
 		cam = Camera3D.new()
 		add_child(cam)
@@ -160,9 +174,9 @@ func _begin() -> void:
 	lamp.directional_shadow_max_distance = 90.0
 	get_tree().root.add_child(lamp)
 	for v: Array in views:
-		shots.append(["view_" + String(v[0]), v[1], v[2], not dark])
+		shots.append(["view_" + String(v[0]), _gy(v[1]), _gy(v[2]), not dark])
 	for sp: Array in spots:
-		var c: Vector3 = sp[1]
+		var c: Vector3 = _gy(sp[1])
 		var half := Vector3.ONE * float(sp[2]) * 0.5
 		_closeup("spot_%s_a" % sp[0], AABB(c - half, half * 2.0), 0)
 		_closeup("spot_%s_b" % sp[0], AABB(c - half, half * 2.0), 1)
@@ -191,6 +205,36 @@ func _finish() -> void:
 	print("\n".join(report))
 	print("SURVEY DONE %s -> %s (%d stills, %d stale)" % [nm, dir, shots.size(), stale])
 	OS.kill(OS.get_process_id())
+
+
+## What stands near a point: the node path, mesh and size of every visible mesh within `r` (which builder made the box?).
+func _who(at: Vector2, r: float) -> void:
+	report.append("WHO %.0f,%.0f r %.0f" % [at.x, at.y, r])
+	for n in main.find_children("*", "GeometryInstance3D", true, false):
+		var g := n as GeometryInstance3D
+		if not g.is_visible_in_tree() or _fx(g):
+			continue
+		var m: Mesh = (g as MeshInstance3D).mesh if g is MeshInstance3D else ((g as MultiMeshInstance3D).multimesh.mesh if g is MultiMeshInstance3D and (g as MultiMeshInstance3D).multimesh != null else null)
+		if m == null:
+			continue
+		var xfs: Array[Transform3D] = [g.global_transform]
+		if g is MultiMeshInstance3D:
+			xfs.clear()
+			var mm := (g as MultiMeshInstance3D).multimesh
+			for i in mm.instance_count:
+				xfs.append(g.global_transform * mm.get_instance_transform(i))
+		var hits := 0
+		var first := AABB()
+		for xf in xfs:
+			var b := xf * m.get_aabb()
+			var c := b.get_center()
+			if Vector2(c.x, c.z).distance_to(at) <= r and b.get_longest_axis_size() < 60.0:
+				if hits == 0:
+					first = b
+				hits += 1
+		if hits > 0:
+			var tris := m.get_faces().size() / 3
+			report.append("  %s  x%d  %s  at %s size %s  %d tris" % [_path(g), hits, _mesh_name(m), first.get_center().snapped(Vector3.ONE * 0.1), first.size.snapped(Vector3.ONE * 0.1), tris])
 
 
 # --- the probe ---------------------------------------------------------------------------------

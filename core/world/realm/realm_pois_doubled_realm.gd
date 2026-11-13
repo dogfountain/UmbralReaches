@@ -36,6 +36,8 @@ const CastingPits := preload("res://core/world/realm/casting_pits.gd")   ## the 
 const P := preload("res://core/world/realm/realm_pois.gd")
 const Stair := preload("res://core/world/realm/timber_stair.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
+const PropModels := preload("res://core/world/realm/prop_models.gd")
+const SHRINE := "ruin_shrine.glb"
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
@@ -1054,31 +1056,35 @@ static func _moor_shrine(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dict
 	var k := OssKit.new()
 	k.keep_lanes = false
 	LK.ensure_mats()
-	# a stepped base, a tall pillar with four iron arms -- each lantern hook struck off at the root
-	k.box("lore_tstone", xf * Vector3(0, 0.1, 0), Vector3(3.2, 0.6, 3.2), b, true, 0.8)
-	k.box("lore_tstone", xf * Vector3(0, 0.5, 0), Vector3(2.2, 0.3, 2.2), b, true, 0.86)
-	k.box("lore_tstone", xf * Vector3(0, 2.6, 0), Vector3(0.8, 4.0, 0.8), b, true, 0.92)
-	LK.half_disc(k, "lore_tstone", Transform3D(b, xf * Vector3(0, 4.6, 0)), 0.42, 0.0, 0.8, 2, true, 0.9)
-	for i in 4:
-		var a := PI * 0.5 * float(i)
-		var f := Vector3(sin(a), 0, cos(a))
-		k.box("iron", xf * (f * 0.75 + Vector3(0, 3.9, 0)), Vector3(0.7, 0.08, 0.08) if absf(f.x) > 0.5 else Vector3(0.08, 0.08, 0.7), b, false, 0.8)
-		k.box("iron", xf * (f * 1.1 + Vector3(0, 3.82, 0)), Vector3(0.06, 0.18, 0.06), b, false, 0.6)    # the stub where the hook was
-	# the offering niche in the front of the pillar, the box set in it
-	k.box("dark", xf * Vector3(0, 1.2, 0.41), Vector3(0.6, 0.7, 0.04), b, false, 0.3)
-	# a ring of eight low stones: the faithful knelt here in the dark and went on
+	# a stepped base of nine stones, a tall jointed pillar with four iron arms -- each lantern hook struck off at the
+	# root -- and the offering niche in its front (modelled: ruin_shrine.glb); the colliders are the old boxes
+	var pm := PropModels.new()
+	pm.add(SHRINE, xf, "Obelisk")
+	k.collider(xf * Vector3(0, 0.1, 0), Vector3(3.2, 0.6, 3.2), b)
+	k.collider(xf * Vector3(0, 0.5, 0), Vector3(2.2, 0.3, 2.2), b)
+	k.collider(xf * Vector3(0, 2.6, 0), Vector3(0.8, 4.0, 0.8), b)
+	# a ring of eight low stones: the faithful knelt here in the dark and went on. Worn, broken, split, sunk; the
+	# capstone the Edict threw down lies among them
+	var ring_parts := ["BlockA", "BlockC", "BlockB", "Cap", "BlockD", "BlockA", "BlockB", "BlockC"]
 	for i in 8:
 		var a := TAU * float(i) / 8.0 + 0.2
 		var q := Vector3(cos(a) * 3.6, 0, sin(a) * 3.6)
 		if q.z > 2.4 and absf(q.x) < 1.5:
 			continue
 		var g := _gl(space, xf, q)
-		k.box("lore_rock", g + Vector3.UP * 0.2, Vector3(0.7, 0.6, 0.5), Basis(Vector3.UP, -a), true, rng.randf_range(0.78, 0.9))
+		var rb := Basis(Vector3.UP, -a + (PI if i % 3 == 1 else 0.0))
+		var low := g.y                                  # the stone stands in the lowest ground under it (the moor slopes)
+		for c: Vector3 in [Vector3(0.3, 0, 0.2), Vector3(-0.3, 0, 0.2), Vector3(0.3, 0, -0.2), Vector3(-0.3, 0, -0.2)]:
+			low = minf(low, _gl(space, xf, q + xf.basis.inverse() * (rb * c)).y)
+		pm.add(SHRINE, Transform3D(rb.scaled(Vector3.ONE * rng.randf_range(0.94, 1.06)), Vector3(g.x, lerpf(g.y, low, 0.7), g.z)), ring_parts[i])
+		k.collider(g + Vector3.UP * 0.2, Vector3(0.7, 0.6, 0.5), Basis(Vector3.UP, -a))
 	# lanterns left on the ground, glass broken, every one cold
 	for i in 5:
 		var a := rng.randf_range(-1.2, 1.2)
 		var g := _gl(space, xf, Vector3(sin(a) * 2.1, 0, cos(a) * 2.1))
-		k.box("iron", g + Vector3.UP * 0.15, Vector3(0.22, 0.3, 0.22), Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.FORWARD, 0.0 if i % 2 == 0 else 1.4), false, 0.7)
+		var lying := i % 2 == 1
+		pm.add(SHRINE, Transform3D(Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.FORWARD, 1.5 if lying else 0.0), g + Vector3.UP * (0.105 if lying else 0.15)), "LanternB" if i % 3 == 2 else "LanternA")
+	pm.commit(host, "Shrine")
 	k.commit(host, "ShrineBody")
 	_chest(host, "moor_shrine", xf * Vector3(0, 0.65, 1.15), float(s.yaw))
 	P._lore(host, "poi_moor_shrine", xf * Vector3(0.9, 1.3, 1.4), xf * Vector3(0, 2.4, 0.41))

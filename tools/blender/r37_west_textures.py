@@ -14,6 +14,8 @@ Sets
   slate    (cottages) riven roof slate: laminated grain, plate-to-plate tone, chips, lichen
   cloth    burlap: a visible over-under weave, uneven threads, a few darns, dust (sacks; used on props at 3x)
   wax      (lamps) tallow candle wax
+  hewn     (props) one hand-dressed block seen close: punched tooling in diagonal runs, a drafted grain, pits, quartz
+           flecks, lichen rosettes. No joints and no cracks (a prop's joints and breaks are modelled); 1 tile = 1 m on props
 
   run.sh r37_west_textures.py -- --only cloth   writes just the named sets
 """
@@ -41,6 +43,23 @@ def tnoise(n, beta, seed, aniso=(1.0, 1.0)):
     a = np.real(np.fft.ifft2(f))
     a = (a - a.min()) / (a.max() - a.min() + 1e-9)
     return a
+
+
+def rnoise(n, beta, seed, angle, stretch):
+    """Seamless 1/f^beta noise whose features run long along `angle` (stretch times longer than wide)."""
+    rng = np.random.default_rng(seed)
+    f = np.fft.fft2(rng.standard_normal((n, n)))
+    fy = np.fft.fftfreq(n)[:, None]
+    fx = np.fft.fftfreq(n)[None, :]
+    ca, sa = math.cos(angle), math.sin(angle)
+    along = fx * ca + fy * sa
+    across = -fx * sa + fy * ca
+    r = np.sqrt((along * stretch) ** 2 + across ** 2)
+    r[0, 0] = 1.0
+    f = f / (r ** beta) * np.exp(-(r * 9.0) ** 2) * (1.0 - np.exp(-(r * 55.0) ** 2))     # band-passed: short strokes a few pixels wide, no fizz and no long drifts
+    f[0, 0] = 0.0
+    a = np.real(np.fft.ifft2(f))
+    return (a - a.min()) / (a.max() - a.min() + 1e-9)
 
 
 def voronoi(n, count, seed):
@@ -347,12 +366,43 @@ def make_slate():
     finish("slate", base, h, rough, ao, 2.4)
 
 
+def make_hewn():
+    big = tnoise(N, 2.6, 71)
+    mid = tnoise(N, 1.7, 72)
+    fine = tnoise(N, 0.7, 73)
+    grit = tnoise(N, 0.25, 74)
+    # the mason's punch: short, uneven strokes lying mostly one way (a second, fainter pass across them), gone where the face wore
+    worn = smooth(big, 0.35, 0.7)
+    pa = rnoise(N, 0.4, 76, math.radians(34.0), 4.0)
+    pb = rnoise(N, 0.4, 77, math.radians(-52.0), 3.5)
+    tool = (smooth(pa, 0.6, 0.72) * 0.8 + smooth(pb, 0.64, 0.76) * 0.5) * (1.0 - 0.7 * worn) * smooth(mid, 0.2, 0.55)
+    pits = smooth(fine, 0.66, 0.8) * smooth(mid, 0.35, 0.7)
+    f1, f2, ids = voronoi(N, 46, 78)
+    spall = smooth(tnoise(N, 1.3, 79), 0.66, 0.72) * smooth(0.05 - f1, 0.0, 0.03)       # a few shallow flaked scars
+    strata = tnoise(N, 2.0, 80, aniso=(0.25, 2.6))
+    tone = 0.55 + 0.5 * big
+    base = mix(np.broadcast_to(col(0.44, 0.42, 0.39), (N, N, 3)), np.broadcast_to(col(0.63, 0.6, 0.55), (N, N, 3)), np.clip(tone - 0.3, 0, 1))
+    base = base * (0.78 + 0.34 * mid + 0.14 * (strata - 0.5))[..., None]
+    base = base * (0.86 + 0.28 * grit)[..., None] * (0.9 + 0.2 * fine)[..., None]
+    base = mix(base, np.broadcast_to(col(0.82, 0.8, 0.76), (N, N, 3)), smooth(grit, 0.8, 0.9) * 0.35)      # quartz flecks
+    base = mix(base, np.broadcast_to(col(0.25, 0.23, 0.21), (N, N, 3)), np.clip(tool * 0.16 + pits * 0.6, 0, 1))
+    base = mix(base, np.broadcast_to(col(0.7, 0.67, 0.61), (N, N, 3)), spall * 0.5)                         # a fresh scar is paler
+    lich = smooth(0.035 - f1, 0.0, 0.02) * smooth(tnoise(N, 0.9, 81), 0.4, 0.6) * smooth(tnoise(N, 1.6, 82), 0.55, 0.7)
+    ring = lich * (0.6 + 0.4 * np.sin(f1 * 900.0))
+    base = mix(base, np.broadcast_to(col(0.58, 0.6, 0.4), (N, N, 3)), ring * 0.7)
+    base = mix(base, np.broadcast_to(col(0.72, 0.6, 0.3), (N, N, 3)), lich * smooth(tnoise(N, 1.0, 83), 0.6, 0.75) * 0.6)
+    h = 0.5 + 0.16 * (mid - 0.5) + 0.1 * (fine - 0.5) + 0.05 * (grit - 0.5) - 0.24 * tool - 0.3 * pits - 0.16 * spall + 0.08 * lich
+    rough = np.clip(0.8 + 0.15 * fine - 0.12 * spall - 0.06 * lich, 0.35, 1.0)
+    ao = np.clip(1.0 - 0.3 * tool - 0.5 * pits, 0.25, 1.0)
+    finish("hewn", base, h, rough, ao, 3.0)
+
+
 if __name__ == "__main__":
     import sys
     os.makedirs(OUT, exist_ok=True)
     argv = sys.argv
     only = argv[argv.index("--only") + 1].split(",") if "--only" in argv else []
-    for nm in ("stone", "ashlar", "timber", "iron", "wax", "cloth", "thatch", "daub", "slate"):
+    for nm in ("stone", "ashlar", "timber", "iron", "wax", "cloth", "thatch", "daub", "slate", "hewn"):
         fn = globals().get("make_" + nm)
         if fn is not None and (not only or nm in only):
             fn()
