@@ -17,7 +17,7 @@ const VIEWS := [
 	["03_road_into_town", "eye", Vector2(-168.0, 66.3), PI * 0.5, 0.0],
 	["04_street_inn", "eye", Vector2(-179.5, 66.0), PI * 0.5 - 0.95, 0.04],
 	["05_smithy", "eye", Vector2(-177.0, 66.2), -2.5, 0.02],
-	["06_square_north", "eye", Vector2(-190.8, 86.8), 0.5, 0.03],
+	["06_square", "eye", Vector2(-203.5, 82.5), -0.75, 0.03],
 	["07_square_south", "eye", Vector2(-190.0, 67.5), PI - 0.15, 0.0],
 	["08_bridge_east_end", "eye", Vector2(-191.0, 65.6), PI * 0.5 + 0.05, 0.02],
 	["09_bridge_mid_mill", "eye", Vector2(-207.0, 65.6), PI * 0.5 - 0.75, 0.08],
@@ -33,6 +33,7 @@ const VIEWS := [
 	["19_gate_arch", "eye", Vector2(-167.0, 66.6), -PI * 0.5, 0.16],
 	["20_inn_inside", "eye", Vector2(-184.0, 55.0), -PI * 0.5, 0.0],
 	["21_mill_door", "eye", Vector2(-228.5, 65.0), 0.5, 0.12],
+	["22_wheel_weir", "air", Vector3(-204.0, 7.0, 44.0), Vector3(-216.0, 3.0, 56.5), Vector2(-208.0, 65.6)],
 ]
 
 var tag := "after"
@@ -44,6 +45,7 @@ var done_t := -1.0
 var cam: Camera3D
 var game_cam: Camera3D
 var lamp: DirectionalLight3D
+var fill: DirectionalLight3D          ## a weaker light from the other shoulder: a street's two sides both read
 var shots: Array = []               ## [file, view, lit]
 var si := -1
 var wait := 0
@@ -114,6 +116,10 @@ func _begin() -> void:
 	lamp.directional_shadow_max_distance = 140.0
 	lamp.visible = false
 	get_tree().root.add_child(lamp)
+	fill = DirectionalLight3D.new()
+	fill.light_energy = 0.4
+	fill.visible = false
+	get_tree().root.add_child(fill)
 	var dir := ProjectSettings.globalize_path("res://shots/scale_pilot")
 	DirAccess.make_dir_recursive_absolute(dir)
 	for v: Array in VIEWS:
@@ -133,7 +139,10 @@ func _pose(v: Array, lit: bool) -> void:
 	var eye := String(v[1]) == "eye"
 	# the survey light falls over the camera's shoulder, so what the view looks at is lit
 	var fwd: Vector3 = Vector3.ZERO if eye else ((v[3] as Vector3) - (v[2] as Vector3))
-	lamp.rotation = Vector3(deg_to_rad(-48.0), (float(v[3]) if eye else atan2(-fwd.x, -fwd.z)) + 0.55, 0.0)
+	var vy := float(v[3]) if eye else atan2(-fwd.x, -fwd.z)
+	lamp.rotation = Vector3(deg_to_rad(-48.0), vy + 0.55, 0.0)
+	fill.rotation = Vector3(deg_to_rad(-30.0), vy - 0.95, 0.0)
+	fill.visible = lit
 	var xz: Vector2 = v[2] if eye else v[4]
 	var space := p.get_world_3d().direct_space_state
 	var q := PhysicsRayQueryParameters3D.create(Vector3(xz.x, 60.0, xz.y), Vector3(xz.x, -40.0, xz.y), Layers.WORLD)
