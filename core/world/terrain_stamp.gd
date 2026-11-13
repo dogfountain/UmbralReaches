@@ -13,6 +13,7 @@ const FALLOFF := 4.0         ## metres over which a stamp blends back into the o
 ## How far the ground moved (site stamps), per grid vertex of the current terrain. Baked scatter
 ## was planted on the old ground; SeatProps adds delta_at() before it snaps to the new one.
 static var _dh := {}
+static var _settled := {}          ## the same, for settle()'s lowering alone
 static var _dh_grid: _Grid
 static var _dh_owner := 0
 
@@ -24,9 +25,18 @@ static func delta_at(x: float, z: float) -> float:
 	return _dh_grid.field(_dh, x, z)
 
 
+## The part of delta_at() that settle() added: what the ground dropped after the buildings stood, when things
+## were already seated on it (GroundFollow lowers those by this).
+static func settle_delta_at(x: float, z: float) -> float:
+	if _dh_grid == null or _settled.is_empty() or not is_instance_valid(instance_from_id(_dh_owner)):
+		return 0.0
+	return _dh_grid.field(_settled, x, z)
+
+
 static func _own(body: StaticBody3D, grid: _Grid) -> void:
 	if _dh_owner != body.get_instance_id():
 		_dh = {}
+		_settled = {}
 		_dh_grid = grid
 		_dh_owner = body.get_instance_id()
 
@@ -237,6 +247,8 @@ static func _settle_pass(root: Node, terrain: MeshInstance3D, body: StaticBody3D
 		return false
 	var out := _spread(delta, {}, grid)
 	_write(terrain, body, grid, arrays, verts, out)
+	for idx: int in out:
+		_settled[idx] = float(_settled.get(idx, 0.0)) + float(out[idx])
 	WorldLanes.clear_cache()
 	print("TERRAIN_SETTLE %d floor samples met the ground; %d vertices lowered, %d blended" % [fixed, delta.size(), out.size() - delta.size()])
 	return true

@@ -23,6 +23,8 @@ const FLOOR_R := 8.0                   ## the glass floor
 const RIM_R := 12.5                    ## the crest (varies round the ring)
 const RIM_H := 2.1
 const MESH_R := 24.0
+const WALL_KEEP := 4.5                 ## metres a crystal keeps from the March Wall's line (the wall is 3 m through)
+const RAYS := 4                        ## long crystals lying out across the pans
 const HEART_H := 16.5                  ## the heart over the floor (8.7 m over the shelf: looked up at, not into)
 const PROBE_LAYER := 1 << 30           ## stand-in bodies (nothing else uses it; freed after)
 
@@ -319,6 +321,14 @@ func _put(file: String, node: String, xf: Transform3D, mat: Material, label: Str
 		return false
 	var bb := mesh.get_aabb()
 	var c := xf * (bb.get_center() * Vector3(1.0, sy, 1.0))
+	# the March Wall is built after the wonders (its line is known now): no piece reaches it or lies across it
+	var side := 1 if C.x > 0.0 else -1
+	for kx: float in [0.0, 0.5, 1.0]:
+		for kz: float in [0.0, 0.5, 1.0]:
+			var w := xf * (bb.position + bb.size * Vector3(kx, 0.5, kz))
+			if (w.x - RealmMarch.wall_x(side, w.z)) * float(side) < WALL_KEEP:
+				_stats["kept off the March Wall"] = int(_stats.get("kept off the March Wall", 0)) + 1
+				return false
 	for p: Vector3 in [xf.origin, c, xf * (bb.position + bb.size)]:
 		if RealmLayout.path_dist(Vector2(p.x, p.z)) < 5.0:
 			_stats["kept off a track"] = int(_stats.get("kept off a track", 0)) + 1
@@ -360,7 +370,8 @@ func _put(file: String, node: String, xf: Transform3D, mat: Material, label: Str
 func _shards() -> void:
 	var glass := _glass_mat(Shaders.CRYSTAL)
 	# three great clusters thrown up and out of the rim (the model leans along +X: outward)
-	var great := [["shard_great_a", deg_to_rad(95.0), 13.0], ["shard_great_b", deg_to_rad(175.0), 13.5], ["shard_great_c", deg_to_rad(-62.0), 13.0]]
+	# (none faces west: the March Wall stands 24 m that way, and a great cluster reaches 25 m from the centre)
+	var great := [["shard_great_a", deg_to_rad(95.0), 13.0], ["shard_great_b", deg_to_rad(32.0), 13.5], ["shard_great_c", deg_to_rad(-62.0), 13.0]]
 	for g: Array in great:
 		var th: float = g[1]
 		var rr := _rim(th).x + 0.6
@@ -369,10 +380,13 @@ func _shards() -> void:
 		if _put("star_crater_shards.glb", String(g[0]), Transform3D(Basis(Vector3.UP, -th), p), glass, String(g[0]), true, 1.0, 5.0):
 			_stats["great"] = int(_stats.get("great", 0)) + 1
 	# rays: a long crystal thrown low across the pans, lying along the line out from the impact
-	var rays := [[50.0, 26.0, "shard_ray_a"], [130.0, 27.0, "shard_ray_b"], [160.0, 30.0, "shard_ray_a"], [-100.0, 27.0, "shard_ray_b"], [-72.0, 30.0, "shard_ray_a"], [118.0, 36.0, "shard_ray_b"]]
+	# (in order of choice, RAYS of them. The wall takes the west of the ring, the salt track the east and a camp the
+	# north-east: the rays lie north and south, where the pans are open)
+	var rays := [[64.0, 28.0, "shard_ray_b"], [-102.0, 28.0, "shard_ray_a"], [84.0, 34.0, "shard_ray_a"], [-112.0, 37.0, "shard_ray_b"],
+		[74.0, 41.0, "shard_ray_b"], [-94.0, 40.0, "shard_ray_b"]]
 	for r: Array in rays:
 		var th := deg_to_rad(float(r[0]))
-		if _gap(th):
+		if _gap(th) or int(_stats.get("ray", 0)) >= RAYS:
 			continue
 		var rr: float = r[1]
 		var p := Vector3(C.x + cos(th) * rr, 0.0, C.y + sin(th) * rr)
