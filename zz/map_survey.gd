@@ -9,7 +9,8 @@ extends Node
 ##           thing mostly under the terrain. BODY = a rig (person, creature) whose origin is off the ground.
 ##   stills  a close-up of each finding (survey light on), and over a grid of the rect an aerial view (survey
 ##           light on) and two eye-level views in the game's own night look.
-##   --views adds free views (survey light on unless --dark).
+##   --views / --views-file=<path> add free views; --spots-file=<path> (name x,y,z size) two close-ups of each spot
+##   (survey light on unless --dark).
 ## Writes shots/survey/<name>/report.txt and *.jpg. Never writes the save (Travel._busy; exits by OS.kill).
 const Footing := preload("res://core/world/footing.gd")
 const SETTLE := 10.0
@@ -31,6 +32,7 @@ var do_grid := true
 var do_probe := true
 var dark := false
 var views: Array = []
+var spots: Array = []              ## [name, centre, size]
 var main: Node
 var t := 0.0
 var done_t := -1.0
@@ -69,6 +71,16 @@ func _ready() -> void:
 			"--rect":
 				var v := kv[1].split(",")
 				rect = Rect2(float(v[0]), float(v[1]), float(v[2]) - float(v[0]), float(v[3]) - float(v[1]))
+			"--views-file":                  # one view a line: name ax,ay,az lx,ly,lz  (# comments)
+				for ln in FileAccess.get_file_as_string(kv[1]).split("\n", false):
+					var w := ln.strip_edges().split(" ", false)
+					if w.size() >= 3 and not ln.begins_with("#"):
+						views.append([w[0], _v3(w[1]), _v3(w[2])])
+			"--spots-file":                  # one spot a line: name x,y,z size  -> two close-ups from clear sides
+				for ln in FileAccess.get_file_as_string(kv[1]).split("\n", false):
+					var w := ln.strip_edges().split(" ", false)
+					if w.size() >= 3 and not ln.begins_with("#"):
+						spots.append([w[0], _v3(w[1]), float(w[2])])
 			"--views":
 				for s in kv[1].split(";", false):
 					var p := s.split("@")
@@ -149,6 +161,11 @@ func _begin() -> void:
 	get_tree().root.add_child(lamp)
 	for v: Array in views:
 		shots.append(["view_" + String(v[0]), v[1], v[2], not dark])
+	for sp: Array in spots:
+		var c: Vector3 = sp[1]
+		var half := Vector3.ONE * float(sp[2]) * 0.5
+		_closeup("spot_%s_a" % sp[0], AABB(c - half, half * 2.0), 0)
+		_closeup("spot_%s_b" % sp[0], AABB(c - half, half * 2.0), 1)
 	if do_grid:
 		var z := rect.position.y + step * 0.5
 		while z < rect.end.y:
@@ -392,17 +409,22 @@ func _emit(kind: String, list: Array) -> void:
 			report.append(line)
 
 
-func _closeup(file: String, b: AABB) -> void:
+func _closeup(file: String, b: AABB, rank := 0) -> void:
 	var c := b.get_center()
 	var dist := clampf(b.get_longest_axis_size() * 2.4, 3.5, 34.0)
-	var best := Vector3.ZERO
-	var best_free := -1.0
+	var cands: Array = []                    # [free share, camera]
 	for k in 8:
 		var ang := TAU * float(k) / 8.0 + 0.4
 		var from := c + Vector3(cos(ang), 0.42, sin(ang)).normalized() * dist
+		from.y = maxf(from.y, _terrain(from.x, from.z) + 1.0)       # never from under the ground (the land has no underside)
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, c, 1))
-		var free := from.distance_to(hit.position as Vector3) / dist if hit else 1.0
-		if free > best_free:
-			best_free = free
-			best = from
-	shots.append([file, best, c, true])
+		cands.append([from.distance_to(hit.position as Vector3) / dist if hit else 1.0, from])
+	cands.sort_custom(func(a: Array, bb: Array) -> bool: return float(a[0]) > float(bb[0]))
+	var best: Vector3 = cands[0][1]
+	if rank > 0:                             # the clearest view from another side (a quarter turn or more away)
+		for cd: Array in cands:
+			var v: Vector3 = cd[1]
+			if Vector2(v.x - c.x, v.z - c.z).normalized().dot(Vector2(best.x - c.x, best.z - c.z).normalized()) < 0.1:
+				best = v
+				break
+	shots.append([file, best, c, not dark])

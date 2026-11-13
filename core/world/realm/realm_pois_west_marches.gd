@@ -593,7 +593,7 @@ static func _shrine(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 			k.box("wood", Vector3(gx, gy + 1.1, fp.y), Vector3(0.16, 2.4, 0.16), Basis.IDENTITY, false, 0.7)
 			k.box("iron", Vector3(gx, gy + 2.2, fp.y), Vector3(0.3, 0.05, 0.05), Basis.IDENTITY, false, 0.7)
 	k.commit(host, "FordPosts")
-	_chest(host, "sorrow_shrine", base + Vector3(1.6, 1.4, 0.4), 0.0)
+	_chest(host, "sorrow_shrine", base + Vector3(1.6, 0.0, 0.4), 0.0)                 # on the plinth's paving, beside the altar
 	_lore(host, "r37w_shrine", base + Vector3(-2.2, 1.2, 3.4), base + Vector3(-2.2, 1.2, 3.4))
 	host.set_meta("wet", true)
 	host.set_meta("plinth_y", top)

@@ -12,6 +12,7 @@ extends RefCounted
 ##   9 assets (quality pass hooks)  10 cull_scatter / chunks
 ## Modules own their own files; this file and the hooks in glimmers.gd / main.gd belong to the lead.
 
+const GroundFollow := preload("res://core/world/realm/ground_follow.gd")
 const FadeGuard := preload("res://core/world/fade_guard.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
@@ -183,6 +184,7 @@ static func build(root: Node) -> void:
 	await _run("lamps", root)
 	t = Time.get_ticks_usec()
 	await TerrainStamp.settle(root)              # the ground yields to the floors as built (after every building and its dress, before the nav)
+	GroundFollow.settle(root)                    # chests stand on the floors as built and the ground as settled
 	prof_add("stage: terrain settle", t)
 	await _run("nav", root)                      # after every collider is in; waits a bounded time for the bake
 	t = Time.get_ticks_usec()

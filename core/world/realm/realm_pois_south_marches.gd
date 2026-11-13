@@ -809,7 +809,7 @@ static func _well(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var cave_pos := Vector3(wc.x + lr.x * (rl + 0.7), land_y - 0.05, wc.y + lr.z * (rl + 0.7))
 	var cb := Basis(Vector3(-cos(th_cave), 0.0, sin(th_cave)), Vector3.UP, -lr).orthonormalized()
 	Kit.put(h, Kit.WELL, "CaveMouth", Transform3D(cb, cave_pos), Vector2(0.0, 150.0), true, "CaveMouth")
-	_chest(h, "r37s_well_landing", land_pos + lb * Vector3(0.0, 0.37, 1.8), th_cave)
+	_chest(h, "r37s_well_landing", land_pos + lb * Vector3(0.0, 0.05, 1.8), th_cave)       # the landing's top is 0.05 over its origin
 	Kit.body(h, "LedgeBody", shapes)
 	well["landing"] = land_pos
 	well["cave"] = cave_pos

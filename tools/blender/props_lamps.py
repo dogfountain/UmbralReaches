@@ -73,13 +73,19 @@ def box(P, key, c, size, yaw=0.0, taper=1.0, jitter=0.0, cuts=0, tilt=0.0, bevel
     """A chunky block: centre c, size (x, y, z), `taper` scales the top face, `jitter` shoves the verts about (hand-hewn),
     `cuts` subdivides each face so the jitter has something to bend."""
     bm = P.of(key)
-    before = set(bm.verts)
+    # the verts already in the mesh are tagged, so this box's own are the untagged ones (a set of the earlier verts
+    # went stale across the subdivide: an earlier box was then shaped again as this one, and the free niche's
+    # plinth block folded into its cap slab)
+    for v in bm.verts:
+        v.tag = True
     res = bmesh.ops.create_cube(bm, size=1.0)
     verts = res["verts"]
+    for v in verts:
+        v.tag = False
     if cuts > 0:
         edges = list({e for v in verts for e in v.link_edges})
         bmesh.ops.subdivide_edges(bm, edges=edges, cuts=cuts, use_grid_fill=True)
-    verts = [v for v in bm.verts if v not in before]
+    verts = [v for v in bm.verts if not v.tag]
     rg = P.rng
     M = Matrix.Translation(B(c)) @ Matrix.Rotation(-yaw, 4, 'Z') @ Matrix.Rotation(tilt, 4, 'X')
     for v in verts:
