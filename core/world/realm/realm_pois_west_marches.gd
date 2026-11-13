@@ -292,21 +292,10 @@ static func _window(k: OssKit, base: Vector3, b: Basis, x: float, y: float, z: f
 const LANTERNS := [Vector3(-195.0, 63.7, PI), Vector3(-195.0, 67.5, 0.0), Vector3(-199.5, 71.0, 0.0), Vector3(-221.0, 63.7, PI), Vector3(-221.0, 67.5, 0.0)]
 
 
-## An iron lantern on a post with a bracket: cage bars, cold glass inside, a cap and a ring.
-static func _lantern(k: OssKit, at: Vector3, face: float) -> void:
-	var b := Basis(Vector3.UP, face)
-	k.box("iron", at + Vector3(0, 0.12, 0), Vector3(0.28, 0.24, 0.28), Basis.IDENTITY, false, 0.7)
-	k.box("iron", at + Vector3(0, 1.6, 0), Vector3(0.09, 3.2, 0.09), Basis.IDENTITY, false, 0.7)
-	k.box("iron", at + b * Vector3(0, 3.1, 0.3), Vector3(0.06, 0.06, 0.6), b, false, 0.7)
-	k.box("iron", at + b * Vector3(0, 3.35, 0.14), Vector3(0.05, 0.4, 0.05), b, false, 0.7)
-	var lp := at + b * Vector3(0, 2.8, 0.6)
-	k.box("dark", lp, Vector3(0.22, 0.36, 0.22), Basis.IDENTITY, false, 0.5)
-	for sx: float in [-1.0, 1.0]:
-		for sz: float in [-1.0, 1.0]:
-			k.box("iron", lp + Vector3(sx * 0.13, 0, sz * 0.13), Vector3(0.035, 0.42, 0.035), Basis.IDENTITY, false, 0.7)
-	k.box("iron", lp + Vector3(0, -0.24, 0), Vector3(0.32, 0.04, 0.32), Basis.IDENTITY, false, 0.7)
-	k.box("iron", lp + Vector3(0, 0.26, 0), Vector3(0.3, 0.08, 0.3), Basis(Vector3.UP, 0.78), false, 0.7)
-	k.box("iron", lp + Vector3(0, 0.38, 0), Vector3(0.12, 0.1, 0.12), Basis.IDENTITY, false, 0.7)
+## An iron lantern on a post with a scrolled bracket, its cage hung from it (lamp_street.glb); the glass and the flame
+## are the Lamp's that lights it (lamps/lamp_places.gd).
+static func _lantern(pm: PropModels, at: Vector3, face: float) -> void:
+	pm.add("lamp_street.glb", Transform3D(Basis(Vector3.UP, face), at), "Street")
 
 
 ## A gabled building in local space (+z the front, rotated by yaw) on a level stone plinth: coursed walls, a framed
@@ -438,17 +427,18 @@ static func _window_trails(host: Node3D, id: String, at: Vector3, yaw: float, d:
 	Interiors.shaft(host, "DoorTrail_%s" % id, door, b * Vector3(0.0, -0.32, 1.0), Color(1.0, 0.52, 0.2), 1.3, 11.0, 32.0)
 
 
-## Barrels and crates in a corner: small boxes, no fuss.
-static func _clutter(k: OssKit, base: Vector3, yaw: float, rng: RandomNumberGenerator, n: int, spread: float) -> void:
+## Barrels and crates in a corner (the square's own models, scaled; the colliders are the boxes they were).
+static func _clutter(k: OssKit, pm: PropModels, base: Vector3, yaw: float, rng: RandomNumberGenerator, n: int, spread: float) -> void:
 	var b := Basis(Vector3.UP, yaw)
 	for i in n:
 		var p := b * Vector3(rng.randf_range(-spread, spread), 0.0, rng.randf_range(-spread, spread))
 		var s := rng.randf_range(0.5, 0.85)
-		if rng.randf() < 0.5:
-			k.box("wood", base + p + Vector3(0, s * 0.5, 0), Vector3(s * 0.8, s, s * 0.8), Basis(Vector3.UP, rng.randf() * TAU), true, 0.8)
-			k.box("iron", base + p + Vector3(0, s * 0.3, 0), Vector3(s * 0.86, 0.05, s * 0.86), Basis(Vector3.UP, 0.0), false, 0.7)
-		else:
-			k.box("wood", base + p + Vector3(0, s * 0.45, 0), Vector3(s, s * 0.9, s), Basis(Vector3.UP, rng.randf() * TAU), true, 0.75)
+		var barrel := rng.randf() < 0.5
+		var rb := Basis(Vector3.UP, rng.randf() * TAU)
+		var file := "barrel.glb" if barrel else "crate.glb"
+		var tall := s if barrel else s * 0.9
+		pm.add(file, Transform3D(rb.scaled(Vector3.ONE * (tall / PropModels.size_of(file).y)), base + p))
+		k.collider(base + p + Vector3(0, tall * 0.5, 0), Vector3(s * 0.8, s, s * 0.8) if barrel else Vector3(s, tall, s), rb)
 
 
 # --- Weirford -------------------------------------------------------------------------------------
@@ -517,15 +507,17 @@ static func _town(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	# the inn's sign and the smithy's anvil are in the people's routines; here the dressing
 	var k := _kit()
 	var inn: Vector3 = ats.inn
-	k.box("wood", inn + Vector3(-3.4, 2.6, 4.9), Vector3(0.1, 1.9, 0.1), Basis.IDENTITY, false, 0.7)      # the sign's post
-	k.box("wood", inn + Vector3(-2.7, 3.2, 4.9), Vector3(1.5, 0.12, 0.1), Basis.IDENTITY, false, 0.7)
-	k.box("wood", inn + Vector3(-2.7, 2.6, 4.9), Vector3(0.9, 0.8, 0.07), Basis.IDENTITY, false, 0.6)
-	_clutter(k, inn + Vector3(5.6, 0, 3.6), 0.0, rng, 6, 1.1)
+	var pm := PropModels.new()
+	pm.add("inn_sign.glb", Transform3D(Basis(Vector3.UP, PI), inn + Vector3(-2.7, 3.3, 4.52)))       # the Grey Heron's sign, on a bracket off the wall
+	_clutter(k, pm, inn + Vector3(5.6, 0, 3.6), 0.0, rng, 6, 1.1)
+	# the smithy: an anvil on its stump and the forge's hearth, on the floor (0.66 over the footing); they block to their tops
 	var sm: Vector3 = ats.smithy
-	k.box("iron", sm + Vector3(0.6, 0.55, -1.2), Vector3(0.9, 0.5, 0.45), Basis.IDENTITY, true, 0.7)      # the anvil
-	k.box("stone", sm + Vector3(-2.2, 0.5, -1.8), Vector3(1.4, 1.0, 1.1), Basis.IDENTITY, true, 0.8)      # the forge's hearth
-	k.box("glow", sm + Vector3(-2.2, 1.02, -1.78), Vector3(0.8, 0.04, 0.6), Basis.IDENTITY, false, 1.0)   # coals
-	_clutter(k, sm + Vector3(3.2, 0, 1.5), PI, rng, 4, 0.7)
+	pm.add("works_smithy.glb", Transform3D(Basis.IDENTITY, sm + Vector3(0.6, 0.66, -1.2)), "Anvil")
+	k.collider(sm + Vector3(0.6, 0.88, -1.2), Vector3(0.9, 1.16, 0.45))
+	pm.add("works_smithy.glb", Transform3D(Basis.IDENTITY, sm + Vector3(-2.2, 0.66, -1.8)), "Hearth")
+	k.collider(sm + Vector3(-2.2, 0.83, -1.8), Vector3(1.4, 1.66, 1.1))
+	k.box("glow", sm + Vector3(-2.2, 1.615, -1.8), Vector3(0.8, 0.04, 0.6), Basis.IDENTITY, false, 1.0)   # coals
+	_clutter(k, pm, sm + Vector3(3.2, 0, 1.5), PI, rng, 4, 0.7)
 	var st: Vector3 = ats.stables
 	for i in 3:
 		k.box("wood", st + Basis(Vector3.UP, PI * 0.5) * Vector3(-3.6 + 3.6 * float(i), 0.9, -0.2), Vector3(0.18, 1.8, 3.2), Basis(Vector3.UP, PI * 0.5), true, 0.75)   # stall partitions
@@ -550,8 +542,12 @@ static func _town(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	k.box("wood", sq + Vector3(-3.0, 0.62, 2.4), Vector3(3.4, 0.1, 0.5), Basis.IDENTITY, true, 0.75)
 	# iron lanterns on the bridge's ends and in the square (cold glass in a cage: the wanderer lights them, lamps/lamp_places.gd)
 	for lp: Vector3 in LANTERNS:
-		_lantern(k, Vector3(lp.x, _g(space, lp.x, lp.y), lp.y), lp.z)
+		_lantern(pm, Vector3(lp.x, _g(space, lp.x, lp.y), lp.y), lp.z)
 	k.commit(host, "TownDressing")
+	for mi in pm.commit(host, "TownProps"):
+		mi.visibility_range_end = 130.0
+		mi.visibility_range_end_margin = 12.0
+		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	_lore(host, "r37w_inn", inn + Vector3(-5.5, 1.1, 5.3), inn + Vector3(-5.5, 1.1, 5.3))
 	_lore(host, "r37w_notice", sq + Vector3(-5.5, 1.1, -5.0), sq + Vector3(-5.5, 1.1, -5.0))
 	_lore(host, "r37w_smith", sm + Vector3(-4.4, 1.1, 3.4), sm + Vector3(-4.4, 1.1, 3.4))
