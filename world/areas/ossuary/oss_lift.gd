@@ -6,7 +6,7 @@ extends Node3D
 ## opened from the depths, once. Rails stand on the west and south sides; it is left open east
 ## (the gallery door at the top) and north (the Weighing Floor at the bottom).
 ##   var lift := OssLift.new(); lift.bottom = ...; lift.top_y = ...; lift.unlocked = func() -> bool
-## Built in world space (top_level).
+## Built in the Ossuary's own (local) coordinates: it is a child of the Ossuary's frame (OssFrame).
 
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
@@ -28,8 +28,6 @@ var _creak_t := 0.0
 
 
 func _ready() -> void:
-	top_level = true
-	global_position = Vector3.ZERO
 	_build()
 	_place()
 
@@ -60,9 +58,9 @@ func _physics_process(delta: float) -> void:
 
 func _place() -> void:
 	var y := lerpf(bottom.y, top_y, smoothstep(0.0, 1.0, _u))
-	deck.global_position = Vector3(bottom.x, y, bottom.z)
+	deck.position = Vector3(bottom.x, y, bottom.z)
 	if _weight:
-		_weight.global_position = Vector3(bottom.x - 1.75, lerpf(top_y + 1.0, bottom.y + 1.2, smoothstep(0.0, 1.0, _u)), bottom.z - 0.7)
+		_weight.position = Vector3(bottom.x - 1.75, lerpf(top_y + 1.0, bottom.y + 1.2, smoothstep(0.0, 1.0, _u)), bottom.z - 0.7)
 	var top := top_y + 3.4
 	for i in _chains.size():
 		var ch := _chains[i]
@@ -74,9 +72,9 @@ func _place() -> void:
 			b = Vector3(bottom.x + s, y + 1.9, bottom.z)
 		else:
 			a = Vector3(bottom.x - 1.75, top, bottom.z - 0.7)
-			b = _weight.global_position + Vector3.UP * 0.6
-		ch.global_position = (a + b) * 0.5
-		ch.global_basis = Basis.IDENTITY.scaled(Vector3(1.0, maxf(a.distance_to(b), 0.05), 1.0))
+			b = _weight.position + Vector3.UP * 0.6
+		ch.position = (a + b) * 0.5
+		ch.basis = Basis.IDENTITY.scaled(Vector3(1.0, maxf(a.distance_to(b), 0.05), 1.0))
 
 
 func _build() -> void:
@@ -159,10 +157,10 @@ func _build() -> void:
 		ch.visibility_range_end = 60.0
 		add_child(ch)
 		_chains.append(ch)
-	var l := Kit.omni(deck, deck.global_position + Vector3(-0.9, 1.6, 0.9), Color(1.0, 0.6, 0.3), 0.9, 6.0)
+	var l := Kit.omni(deck, deck.global_position + OssFrame.wd(Vector3(-0.9, 1.6, 0.9)), Color(1.0, 0.6, 0.3), 0.9, 6.0)
 	l.name = "CageLamp"
 	# the haul chain on the deck
-	var t := Kit.touch(deck, deck.global_position + Vector3(-0.8, 1.1, 0.8), "", func(_by: Node) -> void:
+	var t := Kit.touch(deck, deck.global_position + OssFrame.wd(Vector3(-0.8, 1.1, 0.8)), "", func(_by: Node) -> void:
 		if moving():
 			return
 		if not _is_unlocked():
@@ -182,12 +180,12 @@ func _build() -> void:
 ## A landing's bell-rope: brings the cage to that stop. The bottom one also releases the
 ## counterweight the first time (when `unlock_ready` allows).
 func rope(parent: Node, at: Vector3, is_top: bool) -> Node3D:
-	var t := Kit.touch(parent, at, "", func(_by: Node) -> void:
+	var t := OssWorld.touch(parent, at, "", func(_by: Node) -> void:
 		if moving():
 			return
 		if not _is_unlocked():
 			if is_top:
-				Kit.play("clank", at, -8.0)
+				OssWorld.play("clank", at, -8.0)
 				State.toast("The rope is cut through below. Something has to be loosed from the bottom.")
 				return
 			if unlock_ready.is_valid() and not bool(unlock_ready.call()):
@@ -216,27 +214,21 @@ func _is_unlocked() -> bool:
 	return unlocked.is_valid() and bool(unlocked.call())
 
 
-func _mi(parent: Node3D, at: Vector3, size: Vector3, m: Material, world := false) -> MeshInstance3D:
+func _mi(parent: Node3D, at: Vector3, size: Vector3, m: Material, _world := false) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var b := BoxMesh.new()
 	b.size = size
 	mi.mesh = b
 	mi.material_override = m
 	parent.add_child(mi)
-	if world:
-		mi.global_position = at
-	else:
-		mi.position = at
+	mi.position = at                                  # (the parent stands in the Ossuary's frame: local is the frame's)
 	return mi
 
 
-func _col(body: CollisionObject3D, at: Vector3, size: Vector3, world := false) -> void:
+func _col(body: CollisionObject3D, at: Vector3, size: Vector3, _world := false) -> void:
 	var cs := CollisionShape3D.new()
 	var bs := BoxShape3D.new()
 	bs.size = size
 	cs.shape = bs
 	body.add_child(cs)
-	if world:
-		cs.global_position = at
-	else:
-		cs.position = at
+	cs.position = at

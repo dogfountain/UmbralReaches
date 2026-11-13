@@ -22,13 +22,16 @@ const SPAWN := Vector3(0.0, 0.0, 33.0)                     ## the spawn brazier 
 ## The Sanctuary fire stays SPAWN; Continue / kindle still wake at the last checkpoint.
 const PLAYER_START := Vector3(-16.0, 0.15, 55.5)
 const TAVERN := Rect2(10.0, 25.6, 16.0, 9.2)               ## Tavern.X0..X1, Z0..Z1 (+ yard east to x 29)
-const OSSUARY := AABB(Vector3(2.0, -6.0, -110.0), Vector3(30.0, 32.0, 88.0))   ## streamed crypt (keep)
-## r34 layout: room reserved for the Bone Abbot's pit hall (~50 m), wholly underground east of the
-## crypt, under the rift's east shelf, the Crowns' foot and the north fen (the ground above it stays
-## higher than -2; its top is 4 m below that). The Ossuary agent builds it and joins it to the crypt;
-## "inside the Ossuary" checks should use in_ossuary() (OSSUARY or this box), never one AABB round
-## both (that would take in the fen's surface). See docs/r34/layout.md.
-const OSSUARY_HALL := AABB(Vector3(26.0, -38.0, -124.0), Vector3(56.0, 32.0, 56.0))   ## x 26..82, y -38..-6, z -124..-68
+## relocation (Luke, 14 Nov: "the ossuary is in a terrible place ... all bosses are on the top of the map"):
+## the Ossuary no longer hangs on the rift's east wall. It stands under the Waiting Field: a quarried bone
+## pit cut into the field's south slope (the Pilgrims' Landing at its north lip, the bank to the south),
+## the Counting Stair and the Bone Abbot's pit hall under the bank. Its builders keep their own (local)
+## coordinates and the Ossuary node carries the frame (world/areas/ossuary/oss_frame.gd); these are the
+## world volumes. The old site on the rift's east wall is left bare (OSSUARY_OLD: RealmLand's kept core).
+## "Inside the Ossuary" checks use in_ossuary() (the pit or the hall), never one AABB round both.
+const OSSUARY_OLD := AABB(Vector3(2.0, -6.0, -110.0), Vector3(30.0, 32.0, 88.0))   ## the old site (the rift's kept east wall)
+const OSSUARY := AABB(Vector3(-63.0, -33.4, 146.0), Vector3(108.0, 56.0, 46.0))   ## the pit and its tiers: x -63..45, y -33..23, z 146..192
+const OSSUARY_HALL := AABB(Vector3(-6.0, -45.4, 177.0), Vector3(56.0, 32.0, 56.0))   ## x -6..50, y -45..-13, z 177..233: the pit hall, under the downs
 const SUMMIT := Vector3(0.0, 24.5, -83.5)                  ## summit platform holder (keep)
 const SUMMIT_DAIS := Vector3(0.0, 27.35, -103.9)           ## Ascended Warden's fighting dais (r 14)
 const SUMMIT_WARD := Vector3(0.0, 25.2, -70.9)             ## where the crossing arrives; the summit seal
@@ -76,8 +79,9 @@ const REGIONS := [
 		"lore": "Grave mounds of the abbey's lay brothers; the path down to the Ossuary starts here."},
 	{"id": "rift", "name": "The Ashen Rift", "rect": Rect2(-30, -118, 60, 106), "biome": "ash", "tier": 2,
 		"lore": "The wound the ascension tore in the land; lava where the pilgrims' stair once stood."},
-	{"id": "ossuary", "name": "The Ossuary", "rect": Rect2(2, -110, 30, 88), "biome": "ash", "tier": 2,
-		"lore": "Boss: the Bone Abbot. Seal 'oss_gallery'. Streamed area (world/areas/ossuary)."},
+	{"id": "ossuary", "name": "The Ossuary", "rect": Rect2(-62, 148, 106, 38), "biome": "ruin", "tier": 2,
+		"purpose": "the necropolis's charnel house: a quarried bone pit under the Waiting Field's slope, the monastery stepping down its wall over a still pool, the Counting Stair and the Abbot's hall beneath",
+		"lore": "Boss: the Bone Abbot. Seal 'oss_gallery'. Streamed area (world/areas/ossuary): the Pilgrims' Landing at the Waiting Field's west end, the bone bridge, the tiers."},
 	{"id": "summit", "name": "The Summit of Ascension", "c": Vector2(0, -104), "r": 42.0, "biome": "crag", "tier": 3,
 		"lore": "Boss: the Ascended Warden, last priest of the ascension. Seal 'summit'."},
 	{"id": "crags", "name": "The Crowns", "rect": Rect2(-260, -150, 520, 40), "biome": "crag", "tier": 2,
@@ -101,7 +105,7 @@ const REGIONS := [
 		"purpose": "rows of burned fruit trees on ash: foraging, a press-house ruin, a night event ground",
 		"lore": "The abbey's orchard, fired on the Order's word the winter the Kindlers were named heretics."},
 	{"id": "necropolis", "name": "The Waiting Field", "rect": Rect2(-44, 98, 86, 58), "biome": "ruin", "tier": 1,
-		"purpose": "the pilgrims' necropolis: ranks of graves and tombs on a slope facing the mountain, a crypt door",
+		"purpose": "the pilgrims' necropolis: ranks of graves and tombs on a slope facing the mountain; the tomb at its head, and below the slope's brow the quarry of the Ossuary",
 		"lore": "Those who died on the road before the Stair lie here in ranks, all facing the mountain, waiting."},
 	{"id": "mere", "name": "Corvin's Mere", "rect": Rect2(64, 90, 86, 62), "biome": "fen", "tier": 1,
 		"purpose": "a drowned water-meadow: causeways, islets, floating lamps, a half-sunk chapel",
@@ -258,9 +262,9 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(-80, 142), "note": "the south rows"}],
 	"necropolis": [
 		{"kind": "fire", "at": Vector2(8, 108), "note": "at the field's gate, off necropolis_way"},
-		{"kind": "poi", "at": Vector2(0, 147), "note": "the mausoleum at the top of the field: a crypt door"},
+		{"kind": "poi", "at": Vector2(0, 141), "note": "the mausoleum at the head of the way, on the brow above the Ossuary's quarry"},
 		{"kind": "poi", "at": Vector2(-26, 118), "note": "the pilgrims' ranks"},
-		{"kind": "camp", "at": Vector2(-30, 146), "note": "the west tombs"},
+		{"kind": "camp", "at": Vector2(-30, 140), "note": "the west tombs"},
 		{"kind": "camp", "at": Vector2(28, 114), "note": "the east tombs"}],
 	"mere": [
 		{"kind": "fire", "at": Vector2(103, 98), "note": "the mere's north bank, near mere_causeway"},
@@ -284,7 +288,7 @@ const BASE_PATHS := [
 	# foot passed 0.3 m from the north pinnacle and walked into it
 	{"id": "west_way", "w": 1.8, "pts": [Vector2(-4, 30), Vector2(-20, 24), Vector2(-38, 10), Vector2(-46, -2), Vector2(-47.6, -10.8), Vector2(-50, -10)]},
 	{"id": "east_way", "w": 1.8, "pts": [Vector2(26, 22), Vector2(42, 10), Vector2(58, -12), Vector2(72, -34), Vector2(78, -42)]},
-	{"id": "fen_descent", "w": 1.6, "pts": [Vector2(78, -42), Vector2(62, -56), Vector2(44, -62), Vector2(34, -66)]},
+	{"id": "fen_descent", "w": 1.6, "pts": [Vector2(78, -42), Vector2(62, -56), Vector2(54, -59.5)]},   # ends at the fen's fire (the Threshold); the Ossuary no longer waits at its end
 	{"id": "road", "w": 2.2, "pts": [Vector2(-255, 62), Vector2(-232, 64), Vector2(-205, 66), Vector2(-180, 66), Vector2(-150, 67), Vector2(-104, 64), Vector2(-72, 60), Vector2(-40, 58), Vector2(-6, 54), Vector2(2, 44), Vector2(40, 60), Vector2(104, 66), Vector2(150, 68), Vector2(180, 70), Vector2(212, 74), Vector2(240, 72), Vector2(255, 70)]},
 	{"id": "chapel_lane", "w": 1.4, "pts": [Vector2(-60, 58), Vector2(-68, 52)]},
 	{"id": "rift_rim", "w": 2.0, "pts": [Vector2(0, 22), Vector2(0, 4), Vector2(0, -3)]},   # ends where the approach flight begins (it ran on into the forecourt's body)
@@ -301,10 +305,11 @@ const BASE_PATHS := [
 	{"id": "spire_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 52), Vector2(226, 30), Vector2(236, 14)]},
 	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(204, -84), Vector2(205, -102), Vector2(206, -108)]},
 	{"id": "salt_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 104), Vector2(206, 140), Vector2(202, 180), Vector2(196, 212)]},
-	{"id": "downs_track", "w": 1.4, "pts": [Vector2(-196, 190), Vector2(-150, 196), Vector2(-110, 190), Vector2(-44, 192), Vector2(0, 186), Vector2(44, 192), Vector2(110, 186), Vector2(160, 200), Vector2(196, 212)]},
+	{"id": "downs_track", "w": 1.4, "pts": [Vector2(-196, 190), Vector2(-150, 196), Vector2(-110, 190), Vector2(-44, 192), Vector2(0, 190), Vector2(44, 192), Vector2(110, 186), Vector2(160, 200), Vector2(196, 212)]},
 	# the Crowns' foot, east-west: the two boss corners are joined to the old north (through the wall's breaches)
 	{"id": "crowns_west", "w": 1.4, "pts": [Vector2(-196, -76), Vector2(-178, -72), Vector2(-164, -76), Vector2(-150, -74), Vector2(-140, -70), Vector2(-132, -66)]},
 	{"id": "crowns_east", "w": 1.4, "pts": [Vector2(196, -70), Vector2(182, -74), Vector2(168, -72), Vector2(156, -68), Vector2(146, -67), Vector2(138, -66), Vector2(131, -69), Vector2(128, -72)]},
+	{"id": "oss_lane", "w": 1.4, "pts": [Vector2(-40, 134), Vector2(-41.5, 141), Vector2(-40, 147.5)]},          # from south_track to the Ossuary's Pilgrims' Landing
 	{"id": "downs_link", "w": 1.4, "pts": [Vector2(40, 134), Vector2(50, 158), Vector2(48, 176), Vector2(44, 192)]},     # the Waiting Field to the downs, east of the mausoleum
 ]
 
@@ -365,7 +370,7 @@ const HENGE_STAIR_FOOT := Vector2(-50.0, -10.0)            ## end of west_way
 const CHAPEL_C := Vector2(-72.0, 52.0)
 const GLADE_C := Vector2(-38.0, 8.0)
 const BARROWS_C := Vector2(78.0, -42.0)
-const OSSUARY_GATE := Vector3(34.0, 4.0, -66.0)            ## where fen_descent meets the crypt (RealmBosses)
+const OSSUARY_GATE := Vector3(-40.0, 5.2, 147.5)          ## the Pilgrims' Landing: where the lane ends and the bone bridge begins (OssFrame.LANDING)
 
 
 ## r34: inside the streamed crypt or its reserved pit hall.
@@ -591,6 +596,8 @@ static func final_shape(x: float, z: float, h: float, river := true) -> float:
 		h = lake_shape(p, h)
 	elif x > 50.0 and x < 95.0 and z > 180.0:
 		h = well_shape(p, h)
+	if x > -70.0 and x < 52.0 and z > 128.0 and z < 196.0:
+		h = OssFrame.pit_shape(p, h)
 	return h
 
 
@@ -736,6 +743,9 @@ static func water_level_at(x: float, z: float) -> float:
 	elif x > 50.0 and x < 95.0 and z > 180.0:
 		if Vector2(x, z).distance_to(WELL_C) < WELL_R + 5.0:
 			return WELL_POOL_Y
+	if x > -70.0 and x < 52.0 and z > 136.0 and z < 196.0:
+		if OssFrame.pit_d(Vector2(x, z)) < 4.0:
+			return OssFrame.ORIGIN.y + OssFrame.POOL_Y
 	return NAN
 
 

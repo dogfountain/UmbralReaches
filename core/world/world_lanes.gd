@@ -5,15 +5,6 @@ extends RefCounted
 ## `intrudes()` before it keeps a prop, so set dressing can never again end up across a stair,
 ## a bridge or a doorway. zz/lanes.gd sweeps a capsule along the same table to audit the result.
 
-## Lanes inside streamed areas, whose floors do not exist yet when their props are placed: points
-## carry the floor height. [name, [Vector3(x, floor y, z) ...], half width]
-const FIXED_LANES := [
-	["oss_hall", [Vector3(13.4, 12.6, -34), Vector3(19.6, 12.6, -34), Vector3(20.2, 12.6, -36.6), Vector3(23, 12.6, -36.6), Vector3(23, 12.6, -39.5)], 0.8],
-	["oss_stair1", [Vector3(23, 12.6, -39.5), Vector3(23, 8.4, -49.5), Vector3(23, 8.4, -52.5)], 1.0],
-	["oss_gallery", [Vector3(23, 8.4, -52.5), Vector3(20, 8.4, -58), Vector3(20, 8.4, -65.5), Vector3(21, 8.4, -67.5)], 0.8],
-	["oss_stair2", [Vector3(21, 8.4, -68.5), Vector3(21, 4.2, -78), Vector3(20.5, 4.2, -80), Vector3(17.5, 4.2, -84)], 0.9],
-	["oss_chapel", [Vector3(17.5, 4.2, -84), Vector3(16, 4.2, -95.5), Vector3(16, 4.2, -104)], 0.8],
-]
 const HEADROOM := 2.2        ## a prop intrudes when it occupies [floor + 0.06, floor + HEADROOM]
 const STEP := 0.5
 

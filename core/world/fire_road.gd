@@ -199,7 +199,7 @@ func _rebuild() -> void:
 		_warn.add_theme_color_override("font_color", WARN)
 
 
-## The place a fire stands in, by name (the summit's fire stands over the Ossuary's rect: its own).
+## The place a fire stands in, by name (the summit's fire stands high over the rift: its own).
 static func region_name(b: Brazier) -> String:
 	if String(b.name) == "SummitFire" or b.global_position.y > 20.0:
 		return "Summit of Ascension"

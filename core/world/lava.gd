@@ -51,8 +51,6 @@ func _reveal() -> void:
 func _on_body_entered(body: Node3D) -> void:
 	if not body.is_in_group(Groups.PLAYER):
 		return
-	if RealmLayout.OSSUARY_HALL.has_point(body.global_position):
-		return       # r34 crypt: the kill box's east corner reaches under the bank, where the pit hall is (no lava there)
 	var star := body.global_position.z > Rift.STAR_Z
 	if body.has_method("lava_burn"):
 		body.lava_burn(LAVA_GLOOM * (0.5 if star else 1.0), star)

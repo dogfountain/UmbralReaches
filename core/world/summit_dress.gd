@@ -16,10 +16,6 @@ const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
 const PLATFORM_RADIUS := 12.0
 const SUMMIT := Vector3(0.0, 24.5, -83.5)
 const TOP_DECK_Y := 2.85
-## Holder-space box cut out of the rails where the Ossuary lift jetty meets the mid tier
-## (jetty: world x 6.4..11.7, z -89 +-1.25 -> holder x 6.4..11.7, z -5.5 +-1.25).
-const LIFT_LANE := AABB(Vector3(2.6, 0.8, -7.3), Vector3(10.0, 3.6, 3.6))   ## no rocks on the jetty route
-const LIFT_GATE := AABB(Vector3(4.6, 1.2, -7.1), Vector3(8.0, 3.2, 3.2))
 
 
 ## Remove the triangles of `mi` whose centre falls inside `box` (holder space): a real gap in the
@@ -276,10 +272,9 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 	for s in segs:
 		var am := TAU * (float(s) + 0.5) / float(segs)
 		var mid: Vector3 = at.call(am)
-		opening.append((absf(mid.x) < DAIS_GAP + 0.6 and mid.z > DAIS_C.y) or LIFT_LANE.grow(0.4).has_point(Vector3(mid.x, LIFT_LANE.get_center().y, mid.z)))
+		opening.append(absf(mid.x) < DAIS_GAP + 0.6 and mid.z > DAIS_C.y)       # (the Ossuary's lift jetty left the rail is whole)
 		broken.append(_edge_gap(am))
 	var piers := 0
-	var oss := RealmLayout.OSSUARY
 	for s in segs:
 		var a0 := TAU * float(s) / float(segs)
 		var a1 := TAU * float(s + 1) / float(segs)
@@ -302,7 +297,7 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 			k.box("stone", mid + Vector3.UP * (wh * 0.5), Vector3(len, wh, 0.45), bas, true, 0.88)
 			k.box("stone", mid + Vector3.UP * (wh + 0.07), Vector3(len + 0.04, 0.14, 0.62), bas, true, 0.97)
 		# piers down to the ground: under every fourth rim segment and on an inner ring, clear of the
-		# platform and the Ossuary (anything the ray meets that is not the terrain): none on a roof
+		# platform (anything the ray meets that is not the terrain): none on a roof
 		for ring: float in [DAIS_R - 1.4, 15.0]:
 			if (ring > 20.0 and s % 4 != 1) or (ring < 20.0 and s % 9 != 4):
 				continue
@@ -311,8 +306,6 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 			if Vector2(foot.x, foot.z).length() < PLATFORM_RADIUS + 1.0:
 				continue
 			var w := holder.global_transform * foot
-			if Rect2(oss.position.x - 3.0, oss.position.z - 3.0, oss.size.x + 6.0, oss.size.z + 6.0).has_point(Vector2(w.x, w.z)):
-				continue
 			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(w + Vector3.DOWN * 0.2, w + Vector3.DOWN * 120.0, Layers.WORLD))
 			if hit.is_empty() or not String((hit.collider as Node).name).contains("Terrain"):
 				continue
@@ -332,10 +325,10 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 	k.commit(host, "DaisBody")
 	var wc := holder.global_transform * Vector3(DAIS_C.x, 0, DAIS_C.y)
 	# sites are rects: register the square inside the disc (the square round it would take in the
-	# lift jetty, the rails, the Ossuary's tower)
+	# rails)
 	var half := DAIS_R * 0.7
 	WorldLanes.register_site("summit_dais", Rect2(wc.x - half, wc.z - half, half * 2.0, half * 2.0), holder.global_position.y + top, NAN, true)
-	# the mouth: the chord across the opening onto the deck (and the lift lane beside it)
+	# the mouth: the chord across the opening onto the deck
 	if mouth_ends.size() >= 2:
 		var lo := mouth_ends[0]
 		var hi := mouth_ends[0]
@@ -397,12 +390,9 @@ static func _solidify_from_meshes(holder: Node3D, platform: Node) -> void:
 			# 0.16 m proud of the stone, and you used to sink into it)
 			shape = mi.mesh.create_trimesh_shape()
 		elif n.begins_with("StoneRail") or n == "StoneDaisRail":
-			_cut_gate(mi, holder, LIFT_GATE)          # opening where the Ossuary lift jetty arrives
 			shape = mi.mesh.create_trimesh_shape()
 		elif n.begins_with("MossRock"):
-			var centre := inv * mi.global_transform * mi.get_aabb().get_center()
-			if LIFT_LANE.has_point(centre) or not mi.visible:
-				mi.visible = false                     # a rock sat in the lift jetty's mouth
+			if not mi.visible:
 				continue
 			shape = GenCache.convex_shape(mi.mesh, PLATFORM)   # 120 simplified hulls were 1.3 s a load
 			rocks += 1

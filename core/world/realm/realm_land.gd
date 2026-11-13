@@ -10,7 +10,7 @@ extends RefCounted
 ##   3 flat at the spawn brazier (r 9) and round the tavern site
 ##   4 the kept core (rift rect, Ossuary AABB, summit circle) takes the OLD baked heights exactly,
 ##     blended over KEEP_FALL metres outside them
-##   5 fen_descent is cut down to the Ossuary gate's level (it may override the blend band)
+##   5 (fen_descent no longer ends at the Ossuary's door; its pin went with the old site)
 ## Ground material: art/materials/realm_ground.tres (world/realm/realm_ground.gdshader), biome
 ## weights in vertex COLOR / UV / UV2 (see the shader header). Pools: one "FenWater" mesh at WATER_Y.
 ##
@@ -51,7 +51,7 @@ const SUMMIT_R := 30.0
 const MAT := "res://art/materials/realm_ground.tres"
 const WATER_MAT := "res://art/materials/realm_ground_water.tres"
 ## Paths whose profile is pinned at their last point (and may cut into the keep blend band).
-const PATH_PIN := {"fen_descent": [4.0, true], "rift_rim": [0.4, false]}
+const PATH_PIN := {"rift_rim": [0.4, false]}
 const BIOMES := ["meadow", "loam", "mud", "ash", "heath", "crag", "ruin", "salt"]
 const NB := 8                          ## biome weights ("salt", the White Pans, is analytic in the ground shader: salt_rect)
 const BIOME_OF := {"meadow": 0, "oldforest": 1, "fen": 2, "ash": 3, "heath": 4, "crag": 5, "ruin": 6, "salt": 7, "glade": 0}
@@ -101,7 +101,7 @@ static func build(root: Node) -> void:
 	for r: Dictionary in RealmLayout.REGIONS:
 		if r.id == "rift":
 			_rift_r = r.rect
-	var ob := RealmLayout.OSSUARY
+	var ob := RealmLayout.OSSUARY_OLD         # the old site on the rift's east wall (its baked heights stay); the Ossuary now stands under the Waiting Field
 	_oss_r = Rect2(ob.position.x, ob.position.z, ob.size.x, ob.size.z)
 	RealmLayout.prepare()
 	_make_profiles()
