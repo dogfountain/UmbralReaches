@@ -734,9 +734,10 @@ static func _statue(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	for i in 3:
 		var a := TAU * (float(i) + 0.4) / 3.0
 		var p := c + Vector3(cos(a), 0.0, sin(a)) * 12.0
-		var pg := _g(space, p.x, p.z)
+		# on the room's own floor, sunk 0.3 m so the tilt lifts no corner (a ground ray met the shell above it: they hung
+		# about a metre up)
 		var bb := Basis(Vector3.UP, a + 0.4) * Basis(Vector3.FORWARD, 0.18)
-		k.box("ruin", Vector3(p.x, pg + 2.4, p.z), Vector3(1.8, 4.8, 1.2), bb, true, 0.9)
+		k.box("ruin", Vector3(p.x, FLOOR_Y + 2.4 - 0.3, p.z), Vector3(1.8, 4.8, 1.2), bb, true, 0.9)
 	k.commit(host, "CrownTines")
 	_lore(host, "r37w_statue", Vector3(HEAD_C.x + out.x * 24.5, _g(space, HEAD_C.x + out.x * 24.5, HEAD_C.y + out.y * 24.5) + 1.1, HEAD_C.y + out.y * 24.5 + 2.5), Vector3(HEAD_C.x + out.x * 24.5, FLOOR_Y + 1.1, HEAD_C.y + out.y * 24.5))
 	host.set_meta("approach", mouth)

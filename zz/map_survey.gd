@@ -11,7 +11,7 @@ extends Node
 ##           light on) and two eye-level views in the game's own night look.
 ##   --views / --views-file=<path> add free views; --spots-file=<path> (name x,y,z size) two close-ups of each spot
 ##   (survey light on unless --dark).
-## Writes shots/survey/<name>/report.txt and *.jpg. Never writes the save (Travel._busy; exits by OS.kill).
+## Writes shots/survey/<name>/report.txt and *.jpg (*.png with --png). Never writes the save (Travel._busy; exits by OS.kill).
 const Footing := preload("res://core/world/footing.gd")
 const SETTLE := 10.0
 var touch := 0.3                   ## a base vertex this near a surface stands on it (--touch=)
@@ -31,6 +31,7 @@ var max_close := 30
 var do_grid := true
 var do_probe := true
 var dark := false
+var png := false                   ## --png: lossless stills (*.png) instead of jpg
 var views: Array = []
 var spots: Array = []              ## [name, centre, size]
 var main: Node
@@ -59,6 +60,7 @@ func _ready() -> void:
 			"--no-grid": do_grid = false
 			"--no-probe": do_probe = false
 			"--dark": dark = true
+			"--png": png = true
 			"--settled-only": settled_only = true
 			"--probe-only": probe_only = true
 		if kv.size() < 2:
@@ -131,7 +133,10 @@ func _process(d: float) -> void:
 			stale += 1
 			print("SURVEY STALE %s: the same frame as the still before it" % s[0])
 		_last_hash = h
-		img.save_jpg("%s/%s.jpg" % [dir, s[0]], 0.9)
+		if png:
+			img.save_png("%s/%s.png" % [dir, s[0]])
+		else:
+			img.save_jpg("%s/%s.jpg" % [dir, s[0]], 0.9)
 		si += 1
 
 
@@ -405,7 +410,7 @@ func _emit(kind: String, list: Array) -> void:
 				var file := "%s_%02d" % [kind.to_lower(), closeups]
 				closeups += 1
 				_closeup(file, b)
-				line += "  still " + file + ".jpg"
+				line += "  still " + file + (".png" if png else ".jpg")
 			report.append(line)
 
 

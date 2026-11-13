@@ -21,6 +21,7 @@ extends RefCounted
 const P := preload("res://core/world/realm/realm_pois.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Boxes := preload("res://core/world/realm/east_marches_boxes.gd")
+const SiteProps := preload("res://core/world/realm/site_props.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
@@ -510,14 +511,23 @@ static func _saltmarket(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dicti
 	var k := OssKit.new()
 	k.keep_lanes = false
 	var spots_xz: Array[Vector2] = [Vector2(-17, -9), Vector2(-17, -3.5), Vector2(-17, 13), Vector2(19, -14), Vector2(19, -7), Vector2(19, 15), Vector2(12, 15), Vector2(4, 16)]
+	# the modelled crate and barrel (art/models/props; they were bare wood boxes, black at night), each a box collider
+	var yard := {"crate": [], "barrel": []}
 	for i in spots_xz.size():
 		var q := Vector3(c.x + spots_xz[i].x, 0, c.z + spots_xz[i].y)
 		q.y = _gy(space, q.x, q.z)
 		var a := rng.randf() * TAU
-		if i % 2 == 0:
-			k.box("wood", q + Vector3.UP * 0.4, Vector3(0.7, 0.8, 0.7), Basis(Vector3.UP, a), true, 0.7)
-		else:
-			k.box("wood", q + Vector3.UP * 0.3, Vector3(0.9, 0.6, 0.7), Basis(Vector3.UP, a), true, 0.72)
+		(yard["crate" if i % 2 == 0 else "barrel"] as Array).append(Transform3D(Basis(Vector3.UP, a), q))
+	for file: String in yard:
+		var xfs: Array = yard[file]
+		var bb := AABB()
+		for part: Dictionary in SiteProps.parts(file):
+			bb = (part.mesh as Mesh).get_aabb() if bb.size == Vector3.ZERO else bb.merge((part.mesh as Mesh).get_aabb())
+			var mmi := OssKit.multimesh(part.mesh, xfs, part.mat, true)
+			mmi.name = "Yard_" + file
+			host.add_child(mmi)
+		for xf: Transform3D in xfs:
+			LK.col_box(k, xf * bb.get_center(), bb.size * 0.95, xf.basis)
 	var seat := Vector3(HAMLET_FIRE.x + 1.6, 0, HAMLET_FIRE.y + 0.8)
 	seat.y = _gy(space, seat.x, seat.z)
 	k.box("wood", seat + Vector3.UP * 0.2, Vector3(1.4, 0.4, 0.4), Basis(Vector3.UP, 0.3), false, 0.7)
