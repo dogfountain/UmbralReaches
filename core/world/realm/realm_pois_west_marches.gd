@@ -22,6 +22,8 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Kit := preload("res://core/world/realm/west_marches_kit.gd")
+const PropModels := preload("res://core/world/realm/prop_models.gd")
+const DROWNED := "ruin_drowned.glb"
 const Hearth := preload("res://core/world/realm/cottage_hearth.gd")
 const Raid := preload("res://core/world/hierarch_raid.gd")
 
@@ -569,30 +571,50 @@ static func _shrine(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var wl := RealmLayout.river_level(-40.0)
 	var top := wl + 0.35                                  # the plinth stands just over the reach's surface
 	var base := Vector3(at.x, top, at.z)
-	k.box("ruin", Vector3(at.x, (at.y + top) * 0.5 - 0.1, at.z), Vector3(6.6, top - at.y + 0.2, 6.6), Basis.IDENTITY, true, 0.8)
+	# modelled (ruin_drowned.glb): a battered plinth paved with great flags, piers of drums, the back arch whole and
+	# the front one a stub, the altar with the Open Door cut in it, the saint headless. The colliders are the old boxes
+	# (the altar's and the lintel's as they were; nothing new blocks or carries).
+	var pm := PropModels.new()
+	pm.add(DROWNED, Transform3D(Basis.IDENTITY, base), "Plinth")
+	k.collider(Vector3(at.x, (at.y + top) * 0.5 - 0.1, at.z), Vector3(6.6, top - at.y + 0.2, 6.6))
+	var pi := 0
 	for sx: float in [-1.0, 1.0]:
 		for sz: float in [-1.0, 1.0]:
-			k.box("stone", base + Vector3(sx * 2.6, 1.9, sz * 2.6), Vector3(0.8, 3.4, 0.8), Basis(Vector3.UP, rng.randf_range(-0.05, 0.05)), true, 0.85)
-	k.box("stone", base + Vector3(0, 3.6, -2.6), Vector3(5.4, 0.7, 0.8), Basis.IDENTITY, true, 0.82)       # the lintel over the back, the front's gone
-	k.box("stone", base + Vector3(-1.6, 3.6, 2.6), Vector3(1.9, 0.7, 0.8), Basis(Vector3.UP, 0.0), true, 0.8)
-	k.box("stone", base + Vector3(0, 0.9, -1.4), Vector3(2.0, 0.9, 1.0), Basis.IDENTITY, true, 0.9)      # the altar
-	k.box("stone", base + Vector3(0.0, 1.9, -1.4), Vector3(0.7, 1.2, 0.5), Basis(Vector3.RIGHT, 0.2), true, 0.85)   # the saint, toppled forward
+			var pyaw := rng.randf_range(-0.05, 0.05)
+			pm.add(DROWNED, Transform3D(Basis(Vector3.UP, pyaw + PI * 0.5 * float(pi)), base + Vector3(sx * 2.6, 0.0, sz * 2.6)), "PierB" if pi == 3 else "PierA")
+			k.collider(base + Vector3(sx * 2.6, 1.9, sz * 2.6), Vector3(0.8, 3.4, 0.8), Basis(Vector3.UP, pyaw))
+			pi += 1
+	pm.add(DROWNED, Transform3D(Basis.IDENTITY, base + Vector3(0, 0, -2.6)), "Arch")          # the arch over the back; the front's gone but its springing
+	k.collider(base + Vector3(0, 3.6, -2.6), Vector3(5.4, 0.7, 0.8))
+	pm.add(DROWNED, Transform3D(Basis.IDENTITY, base + Vector3(0, 0, 2.6)), "ArchStub")
+	k.collider(base + Vector3(-1.6, 3.6, 2.6), Vector3(1.9, 0.7, 0.8))
+	pm.add(DROWNED, Transform3D(Basis.IDENTITY, base + Vector3(0, 0, -1.4)), "Altar")
+	k.collider(base + Vector3(0, 0.9, -1.4), Vector3(2.0, 0.9, 1.0))
+	pm.add(DROWNED, Transform3D(Basis(Vector3.RIGHT, 0.2), base + Vector3(0.0, 1.33, -1.5)), "Saint")      # toppled forward, the head on the paving
+	k.collider(base + Vector3(0.0, 1.9, -1.4), Vector3(0.7, 1.2, 0.5), Basis(Vector3.RIGHT, 0.2))
+	pm.add(DROWNED, Transform3D(Basis(Vector3.UP, 0.9), base + Vector3(0.7, 0.0, 0.5)), "SaintHead")
+	var fallen := ["BlockB", "BlockD", "BlockC", "Cap", "BlockB"]
 	for i in 5:
 		var s := rng.randf_range(0.5, 1.0)
-		k.box("ruin", base + Vector3(rng.randf_range(-4.5, 4.5), 0.2, rng.randf_range(-4.5, 4.5)), Vector3(s, s * 0.6, s), Basis(Vector3.UP, rng.randf() * TAU), false, 0.8)
+		var q := base + Vector3(rng.randf_range(-4.5, 4.5), 0.0, rng.randf_range(-4.5, 4.5))
+		if absf(q.x - at.x) > 3.25 or absf(q.z - at.z) > 3.25:
+			q.y = _g(space, q.x, q.z)                   # off the plinth: on the river's bed, not in the air over it
+		pm.add("ruin_shrine.glb", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * (s / 0.7)), q), fallen[i])
 	var sb := Node3D.new()
 	sb.name = "Shrine"
 	host.add_child(sb)
 	k.commit(sb, "ShrineBody")
+	pm.commit(sb, "Drowned", true, true)
 	FarDetail.register(sb, FarDetail.hull(AABB(Vector3(at.x - 3.6, top - 0.5, at.z - 3.6), Vector3(7.2, 5.0, 7.2)), 0.0, Color(0.16, 0.15, 0.14)), Transform3D.IDENTITY, 110.0)
+	var kf := _kit()                     # their own kit: the shrine's, committed a second time here, drew and collided twice
 	# fords: pairs of marker posts with a rope hook, on weir_track where it crosses and at two more banks
 	for fp: Vector2 in [Vector2(-196.0, -66.0), Vector2(-190.0, -22.0), Vector2(-206.0, 20.0)]:
 		for sx: float in [-1.0, 1.0]:
 			var gx := fp.x + sx * 5.2
 			var gy := _g(space, gx, fp.y)
-			k.box("wood", Vector3(gx, gy + 1.1, fp.y), Vector3(0.16, 2.4, 0.16), Basis.IDENTITY, false, 0.7)
-			k.box("iron", Vector3(gx, gy + 2.2, fp.y), Vector3(0.3, 0.05, 0.05), Basis.IDENTITY, false, 0.7)
-	k.commit(host, "FordPosts")
+			kf.box("wood", Vector3(gx, gy + 1.1, fp.y), Vector3(0.16, 2.4, 0.16), Basis.IDENTITY, false, 0.7)
+			kf.box("iron", Vector3(gx, gy + 2.2, fp.y), Vector3(0.3, 0.05, 0.05), Basis.IDENTITY, false, 0.7)
+	kf.commit(host, "FordPosts")
 	_chest(host, "sorrow_shrine", base + Vector3(1.6, 0.0, 0.4), 0.0)                 # on the plinth's paving, beside the altar
 	_lore(host, "r37w_shrine", base + Vector3(-2.2, 1.2, 3.4), base + Vector3(-2.2, 1.2, 3.4))
 	host.set_meta("wet", true)
