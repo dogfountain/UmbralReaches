@@ -34,6 +34,9 @@ extends RefCounted
 const CastingPits := preload("res://core/world/realm/casting_pits.gd")   ## the pits' melt and the bell mould
 
 const P := preload("res://core/world/realm/realm_pois.gd")
+const SouthKit := preload("res://core/world/realm/south_marches_kit.gd")   ## put / trimesh / body for a Blender kit's parts
+const MOTHER := "res://art/models/orchard_mother_tree.glb"
+const MOTHER_FAR := 90.0                 ## the Mother Tree's far silhouette takes over here
 const Stair := preload("res://core/world/realm/timber_stair.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
@@ -1173,31 +1176,17 @@ static func _orchard_heart(host: Node3D, space: PhysicsDirectSpaceState3D, s: Di
 	var k := OssKit.new()
 	k.keep_lanes = false
 	LK.ensure_mats()
-	# the trunk: a ring of charred staves round a hollow you can step into (open toward +z)
-	var n := 11
-	for i in n:
-		var a := TAU * (float(i) + 0.5) / float(n)
-		if absf(angle_difference(a, 0.0)) < 0.45:
-			continue
-		var q := Vector3(sin(a) * 1.25, 0, cos(a) * 1.25)
-		var hh := 4.6 + rng.randf_range(-0.8, 1.2)
-		var bb := b * Basis(Vector3.UP, a) * Basis(Vector3.RIGHT, -0.06)
-		k.box("lore_char", xf * (q + Vector3(0, hh * 0.5 - 0.4, 0)), Vector3(0.95, hh + 0.8, 0.55), bb, true, rng.randf_range(0.7, 0.9))
-	k.box("lore_char", xf * Vector3(0, 4.9, 0), Vector3(2.6, 0.9, 2.6), b * Basis(Vector3.UP, 0.3), true, 0.7)
-	# the great limbs, black and split, reaching over the ring
-	for i in 5:
-		var a := TAU * float(i) / 5.0 + 0.6
-		var root := xf * Vector3(sin(a) * 0.8, 4.6 + 0.3 * float(i % 2), cos(a) * 0.8)
-		var tip := xf * Vector3(sin(a) * 6.5, 6.4 + rng.randf_range(-0.6, 1.4), cos(a) * 6.5)
-		_cyl(k, "lore_char", root, tip, 0.42, 0.12, false, 8)
-		var fork := root.lerp(tip, 0.6)
-		_cyl(k, "lore_char", fork, fork + (tip - root).normalized().rotated(Vector3.UP, 0.7) * 2.4 + Vector3.UP * 1.2, 0.14, 0.05, false, 6)
-	# roots over the ground
-	for i in 6:
-		var a := TAU * float(i) / 6.0 + 0.25
-		if absf(angle_difference(a, 0.0)) < 0.5:
-			continue
-		_cyl(k, "lore_char", _gl(space, xf, Vector3(sin(a) * 1.2, 0.3, cos(a) * 1.2)), _gl(space, xf, Vector3(sin(a) * 3.4, -0.1, cos(a) * 3.4)), 0.3, 0.1, false, 6)
+	# the Mother herself: a burned giant, hollow, split open from the ground to the broken crown toward +z; flared
+	# roots, five great limbs (two broken short). Modelled in Blender (tools/blender/orchard_mother_tree.py); it was a
+	# ring of box staves under a box cap. The hollow is 1.15 m in radius at the foot, the way in 1.4 m wide.
+	for part: String in ["Trunk", "Roots", "Limbs"]:
+		SouthKit.put(host, MOTHER, part, xf, Vector2(0.0, MOTHER_FAR))
+	var shell := SouthKit.trimesh(MOTHER, "MotherCol")
+	if shell != null:
+		SouthKit.body(host, "MotherShell", [[shell, xf]])
+	var far := SouthKit.mesh(MOTHER, "MotherFar")
+	if far != null:
+		FarDetail.register(host, far, host.global_transform.affine_inverse() * xf, MOTHER_FAR, null, false)
 	# inside the hollow: the Kindlers' cache, a cinder-stone, a ring of stubs of candle
 	k.candle_cluster(xf * Vector3(0.4, 0.05, -0.5), 5, 0.25, rng)
 	k.box("lore_rock", xf * Vector3(-0.5, 0.15, -0.5), Vector3(0.5, 0.3, 0.45), b, false, 0.8)
@@ -1218,7 +1207,7 @@ static func _orchard_heart(host: Node3D, space: PhysicsDirectSpaceState3D, s: Di
 	P._plants(host, items, 90.0)
 	k.commit(host, "MotherBody")
 	_chest(host, "orchard_hollow", xf * Vector3(0, 0.0, -0.2), float(s.yaw))
-	P._lore(host, "poi_orchard_tree", xf * Vector3(1.6, 1.2, 1.8), xf * Vector3(0.9, 1.6, 1.0))
+	P._lore(host, "poi_orchard_tree", xf * Vector3(1.9, 1.2, 2.1), xf * Vector3(1.25, 1.6, 1.25))
 	P._lore(host, "poi_orchard_kindlers", xf * Vector3(-0.4, 0.9, 0.4), xf * Vector3(-0.5, 0.35, -0.5))
 	P._light(host, xf * Vector3(0, 1.2, -0.2), Color(1.0, 0.55, 0.28), 0.7, 5.0)
 	_floor(host, "orchard_ring")
