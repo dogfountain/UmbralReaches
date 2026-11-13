@@ -84,6 +84,8 @@ func _try_grab(wish: Vector3) -> bool:
 	var hit := player.locomotion._ray(chest, chest + dir * 0.8)
 	if hit.is_empty():
 		return false
+	if hit.collider is Node and (hit.collider as Node).is_in_group(Groups.NO_LEDGE):
+		return false                                   # a tree is not a ledge
 	var n: Vector3 = hit.normal
 	var nf := Vector3(n.x, 0.0, n.z)
 	if absf(n.y) > 0.35 or nf.length() < 0.3 or nf.normalized().dot(-dir) < 0.5:

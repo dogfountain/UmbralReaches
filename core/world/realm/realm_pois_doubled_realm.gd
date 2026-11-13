@@ -1203,7 +1203,7 @@ static func _orchard_heart(host: Node3D, space: PhysicsDirectSpaceState3D, s: Di
 			items[id] = []
 		var sc := rng.randf_range(0.85, 1.15)
 		(items[id] as Array).append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), q + Vector3.DOWN * 0.1))
-		LK.col_box(k, q + Vector3.UP * 1.5, Vector3(0.5, 3.0, 0.5), Basis.IDENTITY)
+		LK.col_box(k, q + Vector3.UP * 4.0, Vector3(0.5, 8.0, 0.5), Basis.IDENTITY)      # up into the snag: no rim to hang on
 	P._plants(host, items, 90.0)
 	k.commit(host, "MotherBody")
 	_chest(host, "orchard_hollow", xf * Vector3(0, 0.0, -0.2), float(s.yaw))

@@ -160,7 +160,7 @@ static func _begin(id: String) -> void:
 ## Put one prop at xz if the spot is bare terrain, clear of lanes, interactables, colliders and the other
 ## props. `lift` stands it on something (a second crate). Returns whether it was placed.
 static func _put(kind: String, p: Vector2, yaw: float, scale := 1.0, lift := 0.0, tint := 0.1) -> bool:
-	var pk := lerpf(1.0, ScalePilot.PROP, ScalePilot.weight(p.x, p.y))       # on the scale pilot's ground a prop is bigger (and what stands on it higher)
+	var pk := lerpf(1.0, ScalePilot.PROP, ScalePilot.flora_w(p.x, p.y))      # the Realm's scale: a yard's props are bigger (and what stands on them higher); each still passes every test below
 	scale *= pk
 	lift *= pk
 	var rad: float = float(FOOT.get(kind, 0.4)) * scale

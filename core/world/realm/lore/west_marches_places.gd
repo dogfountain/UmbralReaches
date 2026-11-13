@@ -13,7 +13,7 @@ static func build(parent: Node) -> void:
 			return
 	var L: RefCounted = LK.begin(parent, "R37WestPlaces", 37037)
 	# --- Weirford ------------------------------------------------------------------------------
-	DoubledPlaces._grave(L, "wf_grave", "r37w_wf_grave", [Vector2(-222.0, 70.0), Vector2(-216.0, 72.0), Vector2(-226.0, 74.0)], false, 4)
+	DoubledPlaces._grave(L, "wf_grave", "r37w_wf_grave", [Vector2(-226.0, 74.0), Vector2(-228.0, 77.5), Vector2(-224.0, 78.5)], false, 4)
 	# --- the Sorrow's Banks --------------------------------------------------------------------
 	DoubledPlaces._notice(L, "sr_ford", "r37w_sr_ford", [Vector2(-194.0, -26.0), Vector2(-186.0, -18.0), Vector2(-192.0, -34.0)])
 	DoubledPlaces._grave(L, "sr_reeve", "r37w_sr_reeve", [Vector2(-228.0, -22.0), Vector2(-224.0, -34.0), Vector2(-232.0, -12.0)], true)

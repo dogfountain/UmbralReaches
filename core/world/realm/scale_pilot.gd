@@ -15,9 +15,9 @@ extends RefCounted
 
 const RECT := Rect2(-246.0, 26.0, 102.0, 80.0)      ## the pilot's ground: x -246..-144, z 26..106
 const EDGE := 14.0                                  ## flora eases back to its own size over this margin
-const FLORA := 1.5
-const FLORA_Y := 1.32
-const FLORA_KEEP := 0.62
+const FLORA := 2.0
+const FLORA_Y := 1.8
+const FLORA_KEEP := 0.5
 const STONE := 1.45
 const PROP := 1.25
 const CHUNK := 1.4                                  ## masonry, boards and slates are this much coarser on scaled buildings
@@ -94,19 +94,35 @@ static func weight(x: float, z: float) -> float:
 	return smoothstep(0.0, EDGE, minf(dx, dz))
 
 
+## The flora's weight at (x, z): 1 over the whole Realm (Luke, 13 Nov 2026: "the world should feel like wow, you should
+## feel very small in it ... making massive trees is needed"): every wood grows fewer, bigger trees and boulders, and
+## the crowns stand well over the wanderer's head. 0 under `-- --no-scale-pilot`.
+static func flora_w(_x: float, _z: float) -> float:
+	return 1.0 if on() else 0.0
+
+
 ## A tree's extra scale at (x, z): (wide, tall).
 static func tree(x: float, z: float) -> Vector2:
-	var w := weight(x, z)
+	var w := flora_w(x, z)
 	return Vector2(lerpf(1.0, FLORA, w), lerpf(1.0, FLORA_Y, w))
 
 
+## Undergrowth that grows with the woods (shrubs, ferns, gorse, dead bushes): this much bigger. Grass,
+## flowers, moss and litter keep their size (they are the ground's texture, not things beside the wanderer).
+const UNDER := {"shrub": 1.45, "fern": 1.4, "gorse": 1.35, "deadbush": 1.35}      # brambles stay low: bigger ones buried the camera
+
+
+static func under(sp: String) -> float:
+	return float(UNDER.get(sp, 1.0)) if on() else 1.0
+
+
 static func stone(x: float, z: float) -> float:
-	return lerpf(1.0, STONE, weight(x, z))
+	return lerpf(1.0, STONE, flora_w(x, z))
 
 
 ## Fewer but bigger: is the plant at (x, z) kept? A hash of the spot, so no random stream is drawn from.
 static func keeps(x: float, z: float) -> bool:
-	var w := weight(x, z)
+	var w := flora_w(x, z)
 	if w <= 0.0:
 		return true
 	var h := float(absi(hash(Vector2i(roundi(x * 16.0), roundi(z * 16.0)))) % 10000) / 10000.0

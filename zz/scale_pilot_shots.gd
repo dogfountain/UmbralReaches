@@ -27,6 +27,12 @@ const VIEWS := [
 	["13_air_gate", "air", Vector3(-186.0, 30.0, 70.0), Vector3(-157.0, 7.0, 67.0), Vector2(-166.0, 66.4)],
 	["14_air_river", "air", Vector3(-236.0, 26.0, 96.0), Vector3(-210.0, 3.0, 62.0), Vector2(-208.0, 65.6)],
 	["15_far_150m", "air", Vector3(-205.0, 30.0, 215.0), Vector3(-196.0, 4.0, 66.0), Vector2(-190.0, 68.0)],
+	# the Realm's woods (the flora scale is realm-wide): under the crowns, and from above with the wanderer for scale
+	["20_thornwood", "eye", Vector2(-100.0, -10.0), 0.4, 0.12],
+	["21_sorrow", "eye", Vector2(-205.0, -20.0), -0.6, 0.12],
+	["22_fen", "eye", Vector2(72.0, 5.0), 0.2, 0.08],
+	["23_mere", "eye", Vector2(95.0, 120.0), 0.9, 0.08],
+	["24_air_thornwood", "air", Vector3(-82.0, 14.0, 6.0), Vector3(-100.0, 2.0, -10.0), Vector2(-100.0, -10.0)],
 	["16_plan", "air", Vector3(-192.0, 150.0, 68.5), Vector3(-192.0, 0.0, 68.0), Vector2(-190.0, 68.0)],
 	["17_inn_door", "eye", Vector2(-183.0, 66.4), 0.1, 0.1],
 	["18_smith_at_work", "eye", Vector2(-175.5, 67.6), PI, 0.02],

@@ -716,12 +716,15 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 				continue
 			var pk := Pilot.tree(at.x, at.y)
 			var hs := s
-			if pk.x > 1.01:
-				var big := basis.scaled(Vector3(pk.x, pk.y, pk.x))
-				if not _clash(space, id, Transform3D(big, pos), true):
+			# the full size first, then halfway: a tree too big for its spot stays the size it was
+			for f: float in ([1.0, 0.5] if pk.x > 1.01 else []):
+				var kk := Vector2.ONE.lerp(pk, f)
+				var big := basis.scaled(Vector3(kk.x, kk.y, kk.x))
+				if not _clash(space, id, Transform3D(big, pos), true) and _hangs(space, id, big, at, gy) < 0.3:
 					basis = big
-					s *= pk.x
-					hs *= pk.y
+					s *= kk.x
+					hs *= kk.y
+					break
 			pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02)      # after every draw and test: the layout is the one it was
 			_add(items, id, Transform3D(basis, pos), tint)
 			if bool(d.tall):
@@ -1071,6 +1074,17 @@ static func _foot_y(space: PhysicsDirectSpaceState3D, id: String, basis: Basis, 
 	return Footing.seat_y(gf, Footing.base_points((TreeGen.kind(id).solid) as Mesh), basis, at, gy, FOOT_SINK)
 
 
+## How far the worst root of `id` (basis, seated at `at`) stands over the ground: a bigger flare reaches over a
+## bank's edge or into a ditch where the tree's own size fitted.
+static func _hangs(space: PhysicsDirectSpaceState3D, id: String, basis: Basis, at: Vector2, gy: float) -> float:
+	var y := _foot_y(space, id, basis, at, gy)
+	var worst := 0.0
+	for v: Vector3 in Footing.base_points((TreeGen.kind(id).solid) as Mesh):
+		var w := basis * v
+		worst = maxf(worst, y + w.y - _ray_y(space, at.x + w.x, at.y + w.z, gy))
+	return worst
+
+
 static func _ray_y(space: PhysicsDirectSpaceState3D, x: float, z: float, fallback: float) -> float:
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(x, fallback + 30.0, z), Vector3(x, fallback - 30.0, z), Layers.WORLD))
 	return (hit.position as Vector3).y if not hit.is_empty() else fallback
@@ -1299,6 +1313,9 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 			var nrm := Vector3(_gnx[kk], gnv[kk], _gnz[kk]).normalized() if code != 17 else Vector3.UP
 			var id: String = _variant(list, px, pz, CHUNK, 1, rng, lh)
 			var xf := _plant_xf(rng, code, Vector3(px, gy, pz), nrm)
+			var gk := Pilot.under(sp)
+			if gk > 1.0:
+				xf.basis = xf.basis.scaled(Vector3(gk, gk, gk))     # bushes and ferns grow with the woods; grass stays grass
 			var near_way := pdk < 4.0
 			if (sdk < 8.0 or near_way) and _clash(null, id, xf, false, AABB(), 0.6 if near_way else 0.4):
 				continue

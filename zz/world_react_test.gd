@@ -307,7 +307,12 @@ func _run() -> void:
 			await _secs(0.5)
 		check(flock.state == 0, "the flock is down feeding (state %d)" % flock.state)
 		var patch0: Vector3 = flock.patch
-		await _put(patch0 + Vector3(4, 0, 0))
+		# walk up to the birds themselves: a flock that landed spreads round its patch on its slots (and over
+		# ground that is not open it may stand well off it), so the patch's middle can be clear of every bird
+		var mid := Vector3.ZERO
+		for bp: Vector3 in flock.positions():
+			mid += bp / float(flock.positions().size())
+		await _put(mid + Vector3(4, 0, 0))
 		await _secs(1.0)
 		check(flock.lifts > 0 and flock.state != 0, "the flock lifts as one (state %d)" % flock.state)
 		var hi := 0.0

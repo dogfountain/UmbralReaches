@@ -184,6 +184,8 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 						cs.transform = Transform3D(bas.orthonormalized(), org + bas.y.normalized() * solid_r * 0.55 * sc)
 					else:
 						var cy := CylinderShape3D.new()
+						# (its flat top is in the hands' reach from a jump: the body is in Groups.NO_LEDGE, so it is never
+						# caught as a ledge. Kept short: the wildlife's ground rays would land birds on a taller one.)
 						var hh := 3.5 if sp != "stump" else float(d.h) * sc
 						cy.radius = solid_r * sc * (0.95 if sp != "stump" else 1.0)
 						cy.height = hh
@@ -229,6 +231,7 @@ static func _body(ch: Node3D, bodies: Dictionary, key: Vector3i) -> StaticBody3D
 		body.name = "FloraBody"
 		body.collision_layer = Layers.WORLD
 		body.collision_mask = 0
+		body.add_to_group(Groups.NO_LEDGE)
 		ch.add_child(body)
 		bodies[key] = body
 	return body

@@ -63,6 +63,8 @@ func _ready() -> void:
 		["beam", 104.0], ["roll", 112.0], ["lock", 120.0],
 		# r29 (critique B): hardening
 		["rollwall", 208.0], ["crawl", 216.0], ["mantle_tp", 40.0], ["fallout", 232.0], ["unstuck", 240.0],
+		# a tree is not a ledge (Groups.NO_LEDGE): the wanderer caught and hung on trunks
+		["treegrab", 248.0],
 	]
 
 
@@ -151,6 +153,10 @@ func _build_course() -> void:
 	_box(Vector3(224, -0.5, 0), Vector3(6, 1, 6))
 	# lane 232: a 6 m platform ending in nothing
 	_box(Vector3(232, -0.5, 0), Vector3(6, 1, 6))
+	# lane 248: the grab lane's 2.0 m block, but a tree's (Groups.NO_LEDGE)
+	_box(Vector3(248, -0.5, -10), Vector3(6, 1, 40))
+	_box(Vector3(248, 1.0, -12), Vector3(6, 2.0, 8))
+	(get_child(get_child_count() - 1) as Node).add_to_group(Groups.NO_LEDGE)
 	# lane 240: floor and a 1 m block the body gets pushed into
 	_box(Vector3(240, -0.5, -5), Vector3(6, 1, 20))
 	_box(Vector3(240, 0.5, -6.0), Vector3(6, 1.0, 3.0))
@@ -622,6 +628,19 @@ func _trav(delta: float) -> void:
 					state["fell"] = true
 				if t > 8.0:
 					_report(false, "not rescued y %.2f" % p.global_position.y)
+		"treegrab":
+			_drive(fwd)
+			if not state.has("jumped") and p.global_position.z < -6.9:
+				_press("jump", true)
+				state["jumped"] = t
+			elif state.has("jumped") and t - float(state["jumped"]) > 0.25:
+				_press("jump", false)
+			if p.is_hanging():
+				_report(false, "hung on a tree")
+			elif state.has("jumped") and t - float(state["jumped"]) > 2.0 and p.is_grounded():
+				_report(true, "no hang")
+			elif t > 6.0:
+				_report(false, "never landed y=%.2f" % p.global_position.y)
 		"unstuck":
 			if not state.has("in"):
 				p.global_position = Vector3(240.0, 0.35, -6.0)   # pushed into the block (a moving platform...)
