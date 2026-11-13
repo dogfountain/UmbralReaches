@@ -22,6 +22,7 @@ const TIER_NAME := {"wood": "the box", "iron": "the chest", "reliquary": "the re
 var chest_id := ""
 var tier := "wood"
 var loot := {}                          ## ItemDB id -> amount
+var big := 1.0                          ## its size over the tier's own (scale_pilot.gd: a chest on the pilot's ground is a bigger prop)
 
 var _lid: Node3D
 var _motes: GPUParticles3D
@@ -63,10 +64,11 @@ func _build() -> void:
 			body_key = "stone"
 			band_key = "bone"
 			size = Vector3(1.2, 0.6, 0.7)
+	size *= big
 	var vis := Node3D.new()
 	vis.name = "Vis"
 	add_child(vis)
-	var lh := 0.16
+	var lh := 0.16 * big
 	if tier != "reliquary":
 		# the iron-bound oak chest of the charm pickups (straps, studs, brass lock plate, rounded lid), scaled up
 		var oak := CharmChest.build(vis)
@@ -88,7 +90,7 @@ func _build() -> void:
 		_lid.name = "Lid"
 		_lid.position = Vector3(0, size.y, -size.z * 0.5)
 		vis.add_child(_lid)
-		lh = 0.24
+		lh = 0.24 * big
 		_box(_lid, Vector3(0, lh * 0.5, size.z * 0.5), Vector3(size.x + 0.04, lh, size.z + 0.04), body_key)
 		for x: float in [-size.x * 0.32, size.x * 0.32]:
 			_box(_lid, Vector3(x, lh * 0.5, size.z * 0.5), Vector3(0.08, lh + 0.02, size.z + 0.07), band_key)

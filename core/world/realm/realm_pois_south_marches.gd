@@ -29,6 +29,7 @@ const Kit := preload("res://core/world/realm/south_marches_kit.gd")
 const OakMound := preload("res://core/world/realm/oak_mound.gd")
 const OakHollowGlow := preload("res://core/world/realm/oak_hollow_glow.gd")
 const Data := preload("res://core/world/realm/south_marches_kit_data.gd")
+const Pilot := preload("res://core/world/realm/scale_pilot.gd")
 const FALL_SHADER := preload("res://core/world/realm/well_waterfall.gdshader")
 
 const OAK_C := Vector2(-70.0, 206.0)
@@ -179,6 +180,7 @@ static func _chest(host: Node3D, id: String, at: Vector3, yaw: float) -> Node3D:
 	var l: Array = LOOT.get(id, ["wood", {"grave_ash": 6}])
 	c.set("tier", l[0])
 	c.set("loot", (l[1] as Dictionary).duplicate())
+	c.set("big", lerpf(1.0, Pilot.PROP, Pilot.weight(at.x, at.z)))
 	host.add_child(c)
 	c.global_transform = Transform3D(Basis(Vector3.UP, yaw), at)
 	return c
@@ -335,7 +337,7 @@ static func _wall_side(wh: Node3D, space: PhysicsDirectSpaceState3D, side: int, 
 	var sv: PackedFloat64Array = line.s
 	var feats: Array[Dictionary] = []
 	gate_z[side] = gz
-	feats.append({"u": _u_of_z(line, gz), "half": 10.4, "kind": "gate"})
+	feats.append({"u": _u_of_z(line, gz), "half": 10.4 * Pilot.wall_k(side, gz), "kind": "gate"})
 	for rn: Array in RealmMarch.RUINS:
 		if int(rn[0]) == side:
 			var u0 := _u_of_z(line, float(rn[1]))
@@ -434,10 +436,11 @@ static func _put_seg(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array
 	var by := _base_y(space, a, b)
 	var r := rng.randf()
 	var part := "WallSeg_A" if r < 0.6 else ("WallSeg_B" if r < 0.85 else "WallSeg_C")
-	var xf := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3(sl / float(Data.WALL_LEN), 1.0, 1.0)), Vector3(mid.x, by, mid.y))
+	var k := Pilot.wall_k(-1 if mid.x < 0.0 else 1, mid.y)       # the scale pilot: taller and thicker towards the west gate
+	var xf := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3(sl / float(Data.WALL_LEN), k, k)), Vector3(mid.x, by, mid.y))
 	Kit.put(wh, Kit.WALL, part, xf, WALL_VIS, true, "Seg_%d_%d" % [int(mid.x), int(mid.y)])
 	_far(wh, Kit.WALL, "WallFar", xf)
-	shapes.append([Kit.box(Vector3(sl + 0.3, 10.4, 2.7)), Transform3D(Basis(Vector3.UP, yaw), Vector3(mid.x, by + 2.1, mid.y))])
+	shapes.append([Kit.box(Vector3(sl + 0.3, 7.3 * k + 3.1, 2.7 * k)), Transform3D(Basis(Vector3.UP, yaw), Vector3(mid.x, by + (7.3 * k - 3.1) * 0.5, mid.y))])
 
 
 ## Plain segments along the line between arc lengths a and b, split at its bends, each scaled to fit. Returns how many.
@@ -467,31 +470,34 @@ static func _fill(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, l
 
 static func _tower(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, c: Vector2, yaw: float, ruin: bool) -> void:
 	var by := _base_y(space, c + Vector2(0.0, -3.6), c + Vector2(0.0, 3.6))
-	var xf := Transform3D(Basis(Vector3.UP, yaw), Vector3(c.x, by, c.y))
+	var k := Pilot.wall_k(-1 if c.x < 0.0 else 1, c.y)
+	var xf := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3.ONE * k), Vector3(c.x, by, c.y))
 	Kit.put(wh, Kit.WALL, "TowerRuin" if ruin else "Tower", xf, WALL_VIS, true, "Tower_%d_%d" % [int(c.x), int(c.y)])
 	_far(wh, Kit.WALL, "TowerFar", xf)
-	var h := 9.2 if ruin else float(Data.TOWER_H) + 0.6
-	shapes.append([Kit.box(Vector3(float(Data.TOWER_S) * 0.98, h + 3.0, float(Data.TOWER_S) * 0.98)), Transform3D(Basis(Vector3.UP, yaw), Vector3(c.x, by + (h - 3.0) * 0.5, c.y))])
+	var h := (9.2 if ruin else float(Data.TOWER_H) + 0.6) * k
+	var ts := float(Data.TOWER_S) * 0.98 * k
+	shapes.append([Kit.box(Vector3(ts, h + 3.0, ts)), Transform3D(Basis(Vector3.UP, yaw), Vector3(c.x, by + (h - 3.0) * 0.5, c.y))])
 
 
 static func _gatehouse(wh: Node3D, space: PhysicsDirectSpaceState3D, shapes: Array, c: Vector2, yaw: float, side: int) -> void:
 	var x := c.x
 	var z := c.y
 	var by := RealmLayout.ground(space, x, z) - 0.1
-	var xf := Transform3D(Basis(Vector3.UP, yaw), Vector3(x, by, z))
+	var k := Pilot.wall_k(side, z)                # the scale pilot's west gate: the model, its colliders and what stands by it
+	var xf := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3.ONE * k), Vector3(x, by, z))
 	var id := "r37s_gate_w" if side < 0 else "r37s_gate_e"
 	var h := _poi(wh, id, Vector3(x, by, z))
 	Kit.put(h, Kit.WALL, "Gatehouse", xf, WALL_VIS, true, "Gatehouse")
 	_far(h, Kit.WALL, "GateFar", xf, FAR_END, true)
-	var px := float(Data.GATE_PX)
-	var tw := float(Data.GATE_TW)
-	var td := float(Data.GATE_TD)
-	var gh := float(Data.GATE_H)
+	var px := float(Data.GATE_PX) * k
+	var tw := float(Data.GATE_TW) * k
+	var td := float(Data.GATE_TD) * k
+	var gh := float(Data.GATE_H) * k
 	var b := Basis(Vector3.UP, yaw)
 	for sx: float in [-1.0, 1.0]:
-		shapes.append([Kit.box(Vector3(tw * 0.98, gh + 3.0, td * 0.98)), Transform3D(b, xf * Vector3(sx * px, (gh - 3.0) * 0.5, 0.0))])
+		shapes.append([Kit.box(Vector3(tw * 0.98, gh + 3.0, td * 0.98)), Transform3D(b, Vector3(x, by, z) + b * Vector3(sx * px, (gh - 3.0) * 0.5, 0.0))])
 	# the room over the arch (the passage is clear to 7.8 m: the arch's crown)
-	shapes.append([Kit.box(Vector3(float(Data.GATE_PW) + 1.0, 5.0, td * 0.9)), Transform3D(b, xf * Vector3(0.0, 10.4, 0.0))])
+	shapes.append([Kit.box(Vector3((float(Data.GATE_PW) + 1.0) * k, 5.0 * k, td * 0.9)), Transform3D(b, Vector3(x, by + 10.4 * k, z))])
 	# a plaque on the old Realm's side of the passage, beside the south tower, and a box at the north tower's foot
 	var inside := -(b * Vector3(0, 0, 1))          # towards the old Realm (local -Z)
 	var pq := Vector2(x + inside.x * (td * 0.5 + 1.8), z + px + 1.2)

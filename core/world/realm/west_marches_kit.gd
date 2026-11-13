@@ -66,7 +66,8 @@ static func scene(file: String) -> PackedScene:
 
 ## Instance `file` under `parent` at `xf` (world), dressed. `opts`: pick (a child node name to keep, the
 ## rest dropped: palisade / trebuchet variants), shadow (bool, default true), range_end (visibility range
-## for the visual meshes, fades), shift (local offset of the picked variant in the file), spin (name prefix of the node that turns: the wheel), spin_rate (rad/s).
+## for the visual meshes, fades), shift (local offset of the picked variant in the file), spin (name prefix of the node that turns: the wheel), spin_rate (rad/s),
+## scale (Vector3, about the model's origin: the scale pilot's bigger mill and wider bridge; the colliders are rebuilt at that size).
 static func place(parent: Node3D, file: String, xf: Transform3D, opts := {}) -> Node3D:
 	var ps := scene(file)
 	if ps == null:
@@ -75,6 +76,10 @@ static func place(parent: Node3D, file: String, xf: Transform3D, opts := {}) -> 
 	var root := ps.instantiate() as Node3D
 	parent.add_child(root)
 	root.global_transform = xf
+	var sc: Vector3 = opts.get("scale", Vector3.ONE)
+	if not sc.is_equal_approx(Vector3.ONE):
+		root.global_transform = Transform3D(xf.basis * Basis.from_scale(sc), xf.origin)
+		_bake_bodies(root, xf)
 	if opts.has("shift"):                       # a variant modelled apart in the file: bring it to the root
 		root.global_position -= root.global_basis * (opts.shift as Vector3)
 	var keep := String(opts.get("pick", ""))
@@ -114,3 +119,35 @@ static func place(parent: Node3D, file: String, xf: Transform3D, opts := {}) -> 
 			w.set("rate", float(opts.get("spin_rate", 0.5)))
 			root.add_child(w)
 	return root
+
+
+## A scaled model's colliders, rebuilt at the scaled size in unscaled bodies (a physics body is never left scaled:
+## a trimesh under a stretched body is the engine's guess, and a walk surface must be where it is drawn).
+static func _bake_bodies(root: Node3D, unscaled: Transform3D) -> void:
+	for n in root.find_children("*", "StaticBody3D", true, false):
+		var body := n as StaticBody3D
+		var shapes: Array = []
+		for c in body.get_children():
+			var cs := c as CollisionShape3D
+			if cs == null or not (cs.shape is ConcavePolygonShape3D):
+				continue
+			var src := cs.shape as ConcavePolygonShape3D
+			var gx := cs.global_transform
+			var faces := src.get_faces()
+			var flip := gx.basis.determinant() < 0.0
+			for i in faces.size():
+				faces[i] = unscaled.affine_inverse() * (gx * faces[i])
+			if flip:
+				for i in range(0, faces.size() - 2, 3):
+					var t := faces[i + 1]
+					faces[i + 1] = faces[i + 2]
+					faces[i + 2] = t
+			var sh := ConcavePolygonShape3D.new()
+			sh.backface_collision = src.backface_collision
+			sh.set_faces(faces)
+			shapes.append([cs, sh])
+		body.global_transform = unscaled
+		for pair: Array in shapes:
+			(pair[0] as CollisionShape3D).shape = pair[1]
+			(pair[0] as CollisionShape3D).transform = Transform3D.IDENTITY
+

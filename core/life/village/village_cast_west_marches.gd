@@ -6,6 +6,53 @@ extends RefCounted
 ## only spawned when their home node came through the nav's floor check. Voices stay babble (NPC voices).
 ## Load by path: const R37W := preload("res://core/life/village/village_cast_west_marches.gd")
 
+const Pilot := preload("res://core/world/realm/scale_pilot.gd")
+
+## The scale pilot (scale_pilot.gd) re-plans the town: nodes(), edges() and cast() are the tables as walked. A node
+## moves with what it stands at (Pilot.xz); PILOT_NODES are the ones set by hand (doorsteps clear of the longer
+## flights of steps, the smith at his anvil, the lanes to the two cottages, which stand behind the street now).
+const PILOT_NODES := {
+	"wf_cot_a": Vector2(-199.0, 85.6), "wf_br_ee": Vector2(-191.0, 66.2),
+	"wf_mill_foot": Vector2(-229.5, 64.4), "wf_stall": Vector2(-185.5, 69.6), "wf_stable_road": Vector2(-191.5, 89.5),
+	"wf_anvil": Vector2(-174.1, 73.35), "wf_hearth": Vector2(-178.3, 72.5),
+	"wf_cot_b_pre": Vector2(-166.0, 70.2), "wf_cot_b_lane": Vector2(-166.3, 83.0), "wf_cot_b": Vector2(-169.5, 83.2),
+}
+
+
+static func nodes() -> Dictionary:
+	if not Pilot.on():
+		return NODES
+	var out := {}
+	for id: String in NODES:
+		out[id] = Pilot.xz(NODES[id])
+	out.merge(PILOT_NODES, true)
+	return out
+
+
+static func edges() -> Array:
+	if not Pilot.on():
+		return EDGES
+	var out := EDGES.duplicate()
+	out.erase(["wf_cot_b_pre", "wf_cot_b"])
+	out.erase(["wf_road_b", "wf_cot_a"])
+	out.append_array([["wf_cot_b_pre", "wf_cot_b_lane"], ["wf_cot_b_lane", "wf_cot_b"], ["wf_fire_s", "wf_cot_a"]])
+	return out
+
+
+## CAST with every routine's "face" carried to the pilot's plan (the smith still faces his anvil).
+static func cast() -> Dictionary:
+	if not Pilot.on():
+		return CAST
+	var out := CAST.duplicate(true)
+	for id: String in out:
+		var rts: Dictionary = out[id].routines
+		for rn: String in rts:
+			for step: Dictionary in rts[rn]:
+				if step.has("face"):
+					step["face"] = Pilot.xz(step.face)
+	return out
+
+
 ## xz of every walk node (world metres). The nav drops or nudges what the built town stands on.
 const NODES := {
 	"wf_inn_door": Vector2(-186.0, 62.6), "wf_inn_in": Vector2(-186.0, 58.8), "wf_inn_hearth": Vector2(-181.5, 55.6),

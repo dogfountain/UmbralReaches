@@ -25,6 +25,7 @@ const Land := preload("res://core/world/realm/realm_land.gd")
 const Kept := preload("res://core/world/realm/lamps/lamps_kept.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const West := "res://core/world/realm/realm_pois_west_marches.gd"
+const Pilot := preload("res://core/world/realm/scale_pilot.gd")
 const WALL_REACH := 3.2
 const KEEP_OFF := 1.7                  ## from another interactable (ground lamps)
 
@@ -96,10 +97,14 @@ static func _specs() -> Array[Dictionary]:
 	# --- Weirford: candles at the water on the bridge's flanks, lamps on the banks ---------------------------------
 	# the deck is a slab sitting on the river (its underside is a hand over the water): the arches' flanks
 	# are where a light can burn, reflected in the Sorrow and found from the deck above
+	# (the scale pilot's bridge is wider: Pilot.xz carries each point out to its flank; the west bank's post stands clear of the bigger mill)
 	for xs: float in [-213.0, -203.0]:
-		out.append(_s("wf_arch_n_%d" % int(-xs), "niche", xs, 62.0, {"mode": "wall", "y": 0.1, "dir": Vector2(0, 1), "light": false}))
-		out.append(_s("wf_arch_s_%d" % int(-xs), "niche", xs, 69.6, {"mode": "wall", "y": 0.1, "dir": Vector2(0, -1), "light": false}))
-	out.append(_s("wf_bank_w", "post", -219.4, 61.2, {"face": 0.0}))
+		var an := Pilot.xz(Vector2(xs, 62.0))
+		var as2 := Pilot.xz(Vector2(xs, 69.6))
+		out.append(_s("wf_arch_n_%d" % int(-xs), "niche", an.x, an.y, {"mode": "wall", "y": 0.1, "dir": Vector2(0, 1), "light": false}))
+		out.append(_s("wf_arch_s_%d" % int(-xs), "niche", as2.x, as2.y, {"mode": "wall", "y": 0.1, "dir": Vector2(0, -1), "light": false}))
+	var bw := Vector2(-212.4, 60.2) if Pilot.on() else Vector2(-219.4, 61.2)
+	out.append(_s("wf_bank_w", "post", bw.x, bw.y, {"face": 0.0}))
 	out.append(_s("wf_bank_e", "post", -196.6, 59.0, {"face": PI}))
 	# --- the Sorrow's ford and the Siege Lines' palisade gate -------------------------------------------------------
 	out.append(_s("sr_ford_post", "post", -197.6, -24.0, {"face": "road"}))
@@ -255,6 +260,8 @@ static func place(host: Node3D, s: Dictionary) -> Lamp:
 			xf = Transform3D(Basis(Vector3.UP, yaw), Vector3(p.x, y, p.y))
 	lamp.name = "Lamp_" + id
 	host.add_child(lamp)
+	if mode == "ground" and look in ["post", "cresset"]:      # the scale pilot's ground: a standing lamp is a prop there (taller, stouter)
+		xf.basis = xf.basis.scaled(Vector3.ONE * lerpf(1.0, Pilot.PROP, Pilot.weight(xf.origin.x, xf.origin.z)))
 	lamp.global_transform = xf
 	if mode == "ground" and look in ["post", "cresset"] and not lamp.kept:
 		_pillar(lamp, 0.16 if look == "post" else 0.3, 2.2 if look == "post" else 1.0)
@@ -279,6 +286,9 @@ static func _yaw_of(s: Dictionary, p: Vector2) -> float:
 
 ## A thin solid so the wanderer does not walk through a post (layer PROPS, nothing on the lamp's own sense).
 static func _pillar(lamp: Node3D, r: float, h: float) -> void:
+	var k := lamp.global_basis.get_scale().x          # a scaled lamp (the scale pilot): the shape takes the size, the body stays unscaled
+	r *= k
+	h *= k
 	var body := StaticBody3D.new()
 	body.name = "Solid"
 	body.collision_layer = Layers.PROPS
@@ -291,6 +301,7 @@ static func _pillar(lamp: Node3D, r: float, h: float) -> void:
 	cs.position = Vector3(0, h * 0.5, 0)
 	body.add_child(cs)
 	lamp.add_child(body)
+	body.scale = Vector3.ONE / k
 
 
 # --- lamps found on what is already built ------------------------------------------------------------------------
@@ -313,7 +324,8 @@ static func _road_lanterns(host: Node3D) -> void:
 ## was painted on; now the wanderer lights it.
 static func _weirford_lanterns(host: Node3D) -> void:
 	var west: Dictionary = (load(West) as GDScript).get_script_constant_map()
-	var lans: Array = west.get("LANTERNS", [])
+	var lans: Array = Pilot.LANTERNS if Pilot.on() else west.get("LANTERNS", [])
+	var pk := Pilot.prop()                # the scale pilot's lantern posts are taller: the flame is where the cage is
 	for i in lans.size():
 		var lp: Vector3 = lans[i]
 		var g := RealmLayout.ground(_space, lp.x, lp.y)
@@ -323,8 +335,9 @@ static func _weirford_lanterns(host: Node3D) -> void:
 		lamp.lamp_id = "wf_lantern_%d" % i
 		lamp.look = "pane"
 		host.add_child(lamp)
-		lamp.global_position = Vector3(lp.x, g, lp.y) + b * Vector3(0, 2.8, 0.6)
+		lamp.global_position = Vector3(lp.x, g, lp.y) + b * (Vector3(0, 2.8, 0.6) * pk)
 		lamp.rotation.y = lp.z
+		lamp.scale = Vector3.ONE * pk
 		placed += 1
 		stats["pane"] = int(stats.get("pane", 0)) + 1
 

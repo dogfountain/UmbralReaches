@@ -4,6 +4,7 @@ extends Node
 ## fight, not underground). Built with the watch once the Realm's camps are planted.
 
 const DB := preload("res://core/world/mount/horse_db.gd")
+const ScalePilot := preload("res://core/world/realm/scale_pilot.gd")
 const Horse := preload("res://core/world/mount/horse.gd")
 
 var horses := {}                 ## breed -> horse node
@@ -25,10 +26,10 @@ func _ready() -> void:
 	var space := host.get_world_3d().direct_space_state
 	for b: String in DB.ORDER:
 		var d: Dictionary = DB.BREEDS[b]
-		var at: Vector2 = d.at
+		var at: Vector2 = ScalePilot.xz(d.at)            # Weirford's stables stand on a new plot under the scale pilot
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(at.x, 90.0, at.y), Vector3(at.x, -40.0, at.y), Layers.WORLD))
 		var g: Vector3 = (hit.position as Vector3) if not hit.is_empty() else Vector3(at.x, 0.0, at.y)
-		var f: Vector2 = d.face
+		var f: Vector2 = ScalePilot.dir(d.at, d.face)
 		var yaw := atan2(-f.x, -f.y)
 		_post(host, g, yaw, String(d.name))
 		var h: Node3D = Horse.new()
