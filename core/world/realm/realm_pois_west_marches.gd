@@ -525,21 +525,18 @@ static func _town(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	# the square: a covered well, a stall, benches, a notice post
 	var sq := Vector3(-196.0, _g(space, -192.0, 74.0), 74.0)
 	var well := Vector3(-191.0, _g(space, -191.0, 78.0), 78.0)
+	pm.add("works_well.glb", Transform3D(Basis.IDENTITY, well))      # a curb of dressed stones, a windlass and bucket under a boarded roof
 	for i in 8:
 		var a := TAU * float(i) / 8.0
-		k.box("stone", well + Vector3(cos(a) * 0.9, 0.5, sin(a) * 0.9), Vector3(0.7, 1.0, 0.45), Basis(Vector3.UP, -a), true, 0.85)
-	for sx: float in [-1.0, 1.0]:
-		k.box("wood", well + Vector3(sx * 0.95, 1.6, 0), Vector3(0.14, 2.2, 0.14), Basis.IDENTITY, false, 0.7)
-	k.box("wood", well + Vector3(0, 2.7, 0), Vector3(2.2, 0.12, 0.2), Basis.IDENTITY, false, 0.7)
-	k.box("slate", well + Vector3(0, 2.95, 0), Vector3(2.4, 0.1, 1.5), Basis(Vector3.RIGHT, 0.0), false, 0.8)
+		k.collider(well + Vector3(cos(a) * 0.9, 0.5, sin(a) * 0.9), Vector3(0.7, 1.0, 0.45), Basis(Vector3.UP, -a))
 	var stall := Vector3(-184.0, _g(space, -184.0, 72.5), 72.5)
 	k.box("wood", stall + Vector3(0, 0.55, 0), Vector3(2.6, 1.1, 0.9), Basis.IDENTITY, true, 0.8)
 	for sx: float in [-1.0, 1.0]:
 		k.box("wood", stall + Vector3(sx * 1.4, 1.2, -0.5), Vector3(0.12, 2.4, 0.12), Basis.IDENTITY, false, 0.7)
 	k.box("plaster", stall + Vector3(0, 2.5, -0.1), Vector3(3.1, 0.07, 1.6), Basis(Vector3.RIGHT, -0.18), false, 0.75)
-	for sx: float in [-1.0, 1.0]:
-		k.box("wood", sq + Vector3(sx * 1.6 - 3.0, 0.3, 2.4), Vector3(0.1, 0.6, 0.5), Basis.IDENTITY, false, 0.7)
-	k.box("wood", sq + Vector3(-3.0, 0.62, 2.4), Vector3(3.4, 0.1, 0.5), Basis.IDENTITY, true, 0.75)
+	for sx: float in [-1.0, 1.0]:                   # two of the square's benches end to end (the collider is the long plank it was)
+		pm.add("bench.glb", Transform3D(Basis(Vector3.UP, 0.04 * sx).scaled(Vector3(1.08, 1.3, 1.25)), sq + Vector3(-3.0 + sx * 0.86, 0.0, 2.4)))
+	k.collider(sq + Vector3(-3.0, 0.62, 2.4), Vector3(3.4, 0.1, 0.5))
 	# iron lanterns on the bridge's ends and in the square (cold glass in a cage: the wanderer lights them, lamps/lamp_places.gd)
 	for lp: Vector3 in LANTERNS:
 		_lantern(pm, Vector3(lp.x, _g(space, lp.x, lp.y), lp.y), lp.z)

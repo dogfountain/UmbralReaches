@@ -275,7 +275,169 @@ def works_smithy():
     return dict(path=os.path.join(PROPS, "works_smithy.glb"), parts=parts, budget=1100)
 
 
-ASSETS = {"works_winch": works_winch, "winch_wheel": winch_wheel, "lamp_street": lamp_street, "works_smithy": works_smithy}
+# --- the Rooted Holds' houses ------------------------------------------------------------------------------
+def _sweep(mk, section, angles, closed):
+    """Revolve a closed cross-section [(radius, z)] about z through `angles` (the door is at angle 0 = Blender -Y)."""
+    rings = [[Vector((math.sin(a) * max(r, 0.02), -math.cos(a) * max(r, 0.02), z)) for r, z in section] for a in angles]
+    _, vs = mk.loft(rings, top=not closed, bot=not closed, hull=False)
+    return L.flat(vs)
+
+
+def holds_house(part):
+    """A turf house of the Holds: a ring wall of five sod courses leaning in to a low crown, a gap for the door under
+    the fifth course (headroom 2.17). Hollow: the wanderer goes in. The old kit's rings of boxes are still its collider,
+    and the wall keeps inside them. Parts: Dome (turf: the builder dresses it with the kit's earth), Door (two upright
+    stones and a lintel), Leaf (a shut plank door), Rack (the drying rack by the fire-ring)."""
+    mk = Mk(3480 + ["Dome", "Door", "Leaf", "Rack"].index(part), "daub")
+    r = mk.r
+    if part == "Dome":
+        outer = [(3.0, -0.5), (2.97, 0.02)]
+        for t in range(4):
+            rt = 2.91 - 0.25 * t
+            outer += [(rt + 0.04, 0.55 * t + 0.08), (rt + 0.03, 0.55 * t + 0.32), (rt - 0.08, 0.55 * t + 0.53)]
+        inner = [(1.37, 2.17), (1.6, 1.67), (1.85, 1.12), (2.1, 0.57), (2.35, 0.03), (2.35, -0.5)]
+        half = 0.42
+        angs = [half + (math.tau - 2 * half) * i / 15 for i in range(16)]
+        low = _sweep(mk, outer + inner, angs, False)
+        up_out = [(2.12, 2.17), (1.95, 2.26), (1.94, 2.5), (1.84, 2.72), (1.58, 2.86), (1.18, 3.05), (0.68, 3.2), (0.03, 3.26)]
+        up_in = [(0.03, 2.7), (0.9, 2.68), (1.3, 2.6), (1.37, 2.17)]
+        top = _sweep(mk, up_out + up_in, [math.tau * i / 16 for i in range(17)], True)
+        import bmesh as _bm
+        _bm.ops.remove_doubles(mk.bm, verts=top, dist=1e-4)
+        for v in [v for v in low + top if v.is_valid]:            # lumpy sods: out a little here and there, never in past the collider
+            rad = math.hypot(v.co.x, v.co.y)
+            if rad < 0.1:
+                continue
+            n = PS.fbm(v.co * 1.4 + Vector((7.0, 3.0, 1.0)), 3)
+            v.co.x += v.co.x / rad * 0.07 * abs(n)
+            v.co.y += v.co.y / rad * 0.07 * abs(n)
+            v.co.z += 0.03 * n
+        _bm.ops.recalc_face_normals(mk.bm, faces=mk.bm.faces[:])
+    elif part == "Door":
+        for sx in (-1, 1):
+            vs, _ = block(mk, (0.32, 0.44, 2.3), ch=0.05, j=0.01, ease=0.04, chip=0.03, taper=0.08, st="hewn")
+            move(mk, vs, trs((sx * 0.78, -2.55, -0.3), r.uniform(-0.06, 0.06), 0.0, sx * 0.02))
+        vs, _ = block(mk, (1.98, 0.54, 0.31), ch=0.05, j=0.012, ease=0.04, chip=0.03, st="hewn")
+        move(mk, vs, trs((0, -2.55, 1.97), 0.02, 0.0, 0.012))
+    elif part == "Leaf":
+        x = -0.65
+        for i in range(5):
+            w = 0.26 + r.uniform(-0.03, 0.03) if i < 4 else 0.65 - x
+            vs = crate(mk, (w - 0.012, 0.055, 1.93 + r.uniform(-0.03, 0.0)), st="timber", j=0.004)
+            move(mk, vs, trs((x + w * 0.5, -2.6, 0.02)))
+            x += w
+        for z in (0.45, 1.5):
+            vs = crate(mk, (1.24, 0.045, 0.14), st="timber", j=0.004)
+            move(mk, vs, trs((0, -2.655, z)))
+        L.tube(mk, [Vector((0.42 + math.cos(t) * 0.06, -2.69, 1.02 + math.sin(t) * 0.06)) for t in [math.tau * q / 6 for q in range(6)]], 0.012, n=4, closed=True)
+    else:
+        for sx in (-1, 1):
+            L.tube(mk, [(sx * 1.2, 0, -0.3), (sx * 1.21, 0.01, 0.9), (sx * 1.19, 0, 1.72)], 0.05, n=5, st="timber")
+            L.tube(mk, [(sx * 1.19, 0, 1.6), (sx * 1.19, 0.1, 1.9)], 0.03, n=4, st="timber")
+            L.tube(mk, [(sx * 1.19, 0, 1.6), (sx * 1.19, -0.1, 1.9)], 0.03, n=4, st="timber")
+        L.tube(mk, [(-1.38, 0, 1.76), (0, 0.01, 1.74), (1.38, 0, 1.77)], 0.032, n=5, st="timber")
+        for j in range(4):                                   # what was left drying: stiff strips on thongs
+            cx = -0.9 + 0.6 * j
+            vs = crate(mk, (0.2 + r.uniform(-0.03, 0.05), 0.02, 0.62 + r.uniform(-0.1, 0.05)), st="timber", j=0.01, taper=0.35)
+            move(mk, vs, trs((cx, 0, 1.72), r.uniform(-0.3, 0.3), math.pi + r.uniform(-0.06, 0.06)))
+    return mk
+
+
+def works_holds():
+    parts = []
+    for nm in ("Dome", "Door", "Leaf", "Rack"):
+        parts.append((nm, L.finish(holds_house(nm), nm, tiles={"daub": 6.0}, sharp=62.0 if nm == "Dome" else 50.0, moss_k=1.3,
+                               smooth_sets=("daub",) if nm == "Dome" else ())))
+    for _, objs in parts:
+        L.tone_scale(objs, "timber", (0.7, 0.68, 0.66))
+        L.tone_scale(objs, "iron", (0.5, 0.55, 0.6))
+    return dict(path=os.path.join(PROPS, "works_holds.glb"), parts=parts, budget=1800)
+
+
+# --- Weirford's well ---------------------------------------------------------------------------------------
+def well_head():
+    """The covered well in the square: a curb of ten dressed stones (the old ring of boxes: 1.0 high, out to 1.25), two
+    posts in it carrying a windlass with its crank and rope, a bucket on the curb, and a little boarded roof on a
+    tie beam (ridge along x)."""
+    mk = Mk(3490, "hewn")
+    r = mk.r
+    n = 10
+    for i in range(n):
+        a0 = math.tau * i / n + 0.012
+        a1 = math.tau * (i + 1) / n - 0.012
+        h = 0.98 + r.uniform(-0.03, 0.04)
+        ri, ro = 0.66 + r.uniform(-0.01, 0.01), 1.14 + r.uniform(-0.03, 0.03)
+        rings = []
+        for z, k in ((-0.3, 1.0), (h - 0.03, 1.0), (h, 0.985)):
+            rings.append([Vector((math.cos(a) * rad, math.sin(a) * rad, z)) for a, rad in ((a0, ro * k), (a1, ro * k), (a1, ri / k), (a0, ri / k))])       # counter-clockwise from above: faces look out
+        mk.loft(rings, top=True, bot=True, hull=False)
+    water = L.turned(mk, [(0.7, 0.28), (0.02, 0.28)], n=10, st="hewn", top=False, bot=False)
+    for f in {f for v in water for f in v.link_faces}:
+        f[mk.tag] = L.TAG_DARK
+    for sx in (-1, 1):
+        vs, _ = block(mk, (0.15, 0.15, 2.5), ch=0.03, j=0.004, ease=0.015, st="timber")
+        move(mk, vs, trs((sx * 0.98, 0, 0.35)))
+        bar(mk, (sx * 0.98, 0, 2.1), (sx * 0.55, 0, 2.72), 0.08, 0.07, st="timber")
+    roller = L.turned(mk, [(0.05, -1.12), (0.05, -0.9), (0.085, -0.88), (0.085, -0.4), (0.11, -0.38), (0.11, 0.3), (0.085, 0.32), (0.085, 0.88), (0.05, 0.9), (0.05, 1.12)], n=8, st="timber")
+    move(mk, roller, Matrix.Translation((0, 0, 1.72)) @ Matrix.Rotation(math.pi / 2, 4, 'Y'))
+    L.tube(mk, [(1.1, 0, 1.72), (1.22, 0, 1.72), (1.22, 0.0, 1.44), (1.42, 0.0, 1.44)], 0.016, n=4, st="iron")      # the crank
+    L.tube(mk, [(0.15, -0.105, 1.72), (0.16, -0.5, 1.2), (0.1, -0.86, 1.02)], 0.014, n=4, st="timber")              # the rope to the bucket
+    bucket = L.turned(mk, [(0.13, 0.0), (0.17, 0.3), (0.15, 0.3), (0.115, 0.03)], n=8, st="timber")
+    move(mk, bucket, trs((0.1, -0.88, 0.98), 0.3, 0.05))
+    L.tube(mk, [(0.1 + math.cos(t) * 0.16, -0.88 + math.sin(t) * 0.16, 1.2) for t in [math.tau * q / 8 for q in range(8)]], 0.012, n=4, st="iron", closed=True)
+    vs, _ = block(mk, (2.3, 0.2, 0.13), ch=0.02, j=0.004, ease=0.012, st="timber")              # the tie beam
+    move(mk, vs, trs((0, 0, 2.74)))
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            bar(mk, (sx * 1.05, sy * 0.8, 2.8), (sx * 1.05, 0, 3.24), 0.07, 0.09, st="timber")
+    vs = crate(mk, (2.6, 0.08, 0.08), st="timber", j=0.004)
+    move(mk, vs, trs((0, 0, 3.22)))
+    for sy in (-1, 1):                                        # the roof: boards down each slope, lapped
+        for k in range(6):
+            w = 2.5 / 6
+            vs = crate(mk, (w - 0.01, 0.95 + r.uniform(-0.04, 0.03), 0.035), st="timber", j=0.006)
+            move(mk, vs, Matrix.Translation((-1.25 + w * (k + 0.5), sy * 0.44, 3.03 + (0.012 if k % 2 else 0.0))) @ Matrix.Rotation(-sy * 0.5, 4, 'X'))
+    return mk
+
+
+def works_well():
+    parts = [("Well", L.finish(well_head(), "Well", sharp=50.0, moss_k=1.3))]
+    for _, objs in parts:
+        L.tone_scale(objs, "timber", (0.68, 0.66, 0.64))
+        L.tone_scale(objs, "iron", (0.5, 0.55, 0.6))
+    return dict(path=os.path.join(PROPS, "works_well.glb"), parts=parts, budget=900)
+
+
+# --- the Quarry's squared blocks ---------------------------------------------------------------------------
+def quarry_block(kind):
+    """A squared block waiting for a cart: 1.7 x 1.0, 0.9 high (the old box), pivot under its middle. A = dressed, a row
+    of wedge slots along one edge where it was split off; B = one face left rough and a corner gone; C = cracked through."""
+    mk = Mk(3495 + "ABC".index(kind), "hewn")
+    if kind == "C":
+        a, _ = block(mk, (0.98, 1.0, 0.9), ch=0.03, j=0.008, ease=0.025, chip=0.02)
+        a = L.chop(mk, a, (0.38, 0, 0.45), (1.0, 0.25, 0.12), rough=0.05)
+        move(mk, a, trs((-0.4, 0, -0.03), 0.0, 0.0, -0.012))
+        b, _ = block(mk, (0.98, 1.0, 0.9), ch=0.03, j=0.008, ease=0.025, chip=0.02)
+        b = L.chop(mk, b, (-0.3, 0, 0.45), (-1.0, -0.25, -0.12), rough=0.05)
+        move(mk, b, trs((0.43, 0.02, -0.05), 0.03, 0.0, 0.035))
+        return mk
+    vs, faces = block(mk, (1.7, 1.0, 0.93), ch=0.03, j=0.008, ease=0.025, chip=0.02)
+    if kind == "A":
+        mk.cut(faces[(1, 2)], [PS.rect(0.045, 0.06, -0.6 + 0.3 * i, 0.36) for i in range(5)], 0.07, floor_tag=L.TAG_DARK)
+    else:
+        vs = L.chop(mk, vs, (0.0, -0.44, 0.45), (0.06, -1.0, 0.1), rough=0.07)
+        vs = L.chop(mk, vs, (0.62, 0.3, 0.75), (0.7, 0.45, 0.6), rough=0.05)
+    move(mk, L.island(vs), trs((0, 0, -0.03)))
+    return mk
+
+
+def works_quarry():
+    parts = [("Block" + k, L.finish(quarry_block(k), "Block" + k, sharp=50.0, moss_k=0.9)) for k in "ABC"]
+    return dict(path=os.path.join(PROPS, "works_quarry.glb"), parts=parts, budget=500)
+
+
+ASSETS = {"works_winch": works_winch, "winch_wheel": winch_wheel, "lamp_street": lamp_street, "works_smithy": works_smithy,
+          "works_holds": works_holds, "works_well": works_well, "works_quarry": works_quarry}
 
 if __name__ == "__main__":
     L.run(ASSETS)

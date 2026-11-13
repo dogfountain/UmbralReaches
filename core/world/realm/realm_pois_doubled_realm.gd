@@ -39,6 +39,8 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const PropModels := preload("res://core/world/realm/prop_models.gd")
 const SHRINE := "ruin_shrine.glb"
 const WINCH := "works_winch.glb"
+const HOLDS := "works_holds.glb"
+const QUARRY := "works_quarry.glb"
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
@@ -597,13 +599,18 @@ static func _quarry_crane(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 	var kh := OssKit.new()
 	kh.keep_lanes = false
 	_cyl(kh, "iron", Vector3.ZERO, Vector3(0, 3.4 - sheave.y, 0), 0.035, 0.035)    # the rope
-	kh.box("stone", Vector3(0, 2.5 - sheave.y, 0), Vector3(1.4, 1.0, 1.0), Basis(Vector3.UP, 0.4), false, 0.84)
 	sw.take(kh, 120.0)
+	var load := PropModels.new()          # the block still on the hook
+	load.add(QUARRY, Transform3D(Basis(Vector3.UP, 0.4).scaled(Vector3(0.82, 1.1, 1.0)), Vector3(0, 2.0 - sheave.y, 0)), "BlockB")
+	for mi in load.commit(sw, "Load"):
+		mi.visibility_range_end = 120.0
+		mi.visibility_range_end_margin = 8.0
 	# the windlass on the deck
 	_cyl(k, "wood", xf * (pc + Vector3(0.6, CRANE_DECK + 0.7, -1.6)), xf * (pc + Vector3(0.6, CRANE_DECK + 0.7, 1.0)), 0.32, 0.32)
 	for z: float in [-1.7, 1.1]:
 		k.box("wood", xf * (pc + Vector3(0.6, CRANE_DECK + 0.45, z)), Vector3(0.16, 0.9, 0.16), b, true, 0.8)
-	# squared blocks waiting for a cart that never came, rollers and a sledge
+	# squared blocks waiting for a cart that never came (modelled: dressed, rough-faced, cracked), rollers and a sledge
+	var qm := PropModels.new()
 	for i in 11:
 		var row := i % 4
 		var col := i / 4
@@ -611,17 +618,24 @@ static func _quarry_crane(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 		var y := RealmLayout.ground(space, (xf * v).x, (xf * v).z)
 		var p := xf * v
 		p.y = y + 0.42
-		k.box("stone", p, Vector3(1.7, 0.9, 1.0), b * Basis(Vector3.UP, rng.randf_range(-0.12, 0.12)), true, rng.randf_range(0.78, 0.92))
+		var qb := b * Basis(Vector3.UP, rng.randf_range(-0.12, 0.12) + (PI if i % 2 == 1 else 0.0))
+		qm.add(QUARRY, Transform3D(qb, p + Vector3.DOWN * 0.45), ["BlockA", "BlockB", "BlockA", "BlockC"][i % 4])
+		k.collider(p, Vector3(1.7, 0.9, 1.0), qb)
+		rng.randf()
 		if i % 3 == 0:
-			k.box("stone", p + Vector3(0, 0.88, 0), Vector3(1.6, 0.86, 0.95), b * Basis(Vector3.UP, rng.randf_range(-0.2, 0.2)), true, 0.88)
+			var qb2 := b * Basis(Vector3.UP, rng.randf_range(-0.2, 0.2))
+			qm.add(QUARRY, Transform3D(qb2.scaled(Vector3(0.94, 0.955, 0.95)), p + Vector3(0, 0.43, 0)), "BlockB" if i % 2 == 0 else "BlockA")
+			k.collider(p + Vector3(0, 0.88, 0), Vector3(1.6, 0.86, 0.95), qb2)
 	for i in 3:
 		var r := _gl(space, xf, Vector3(-1.2 + 0.7 * float(i), 0.12, 7.2))
 		_cyl(k, "wood", r + b * Vector3(0, 0, -0.9), r + b * Vector3(0, 0, 0.9), 0.12, 0.12)
 	var sl := _gl(space, xf, Vector3(-0.3, 0.3, 7.4))
-	k.box("stone", sl + Vector3.UP * 0.1, Vector3(1.6, 0.8, 1.0), b * Basis(Vector3.UP, 0.1), true, 0.86)
+	qm.add(QUARRY, Transform3D((b * Basis(Vector3.UP, 0.1)).scaled(Vector3(0.94, 0.89, 1.0)), sl + Vector3.DOWN * 0.3), "BlockA")
+	k.collider(sl + Vector3.UP * 0.1, Vector3(1.6, 0.8, 1.0), b * Basis(Vector3.UP, 0.1))
 	for side: float in [-0.45, 0.45]:
 		k.box("wood", sl + b * Vector3(0, -0.28, side), Vector3(2.4, 0.16, 0.14), b, false, 0.7)
 	k.commit(host, "CraneBody")
+	qm.commit(host, "QuarryBlocks", true, true)
 	var deck := xf * (pc + Vector3(-0.2, CRANE_DECK, 1.3))
 	stand.append(deck)
 	host.set_meta("route", stand)
@@ -803,6 +817,7 @@ static func _holds_houses(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 	var ring := Vector3(0, 0, 3.0)
 	var houses := [Vector3(-3.6, 0, 0.4), Vector3(3.6, 0, 0.4), Vector3(0, 0, -3.4)]
 	var open_c := Vector3.ZERO
+	var pm := PropModels.new()
 	for hi in houses.size():
 		var hc: Vector3 = houses[hi]
 		var to := (ring - hc).normalized()
@@ -812,6 +827,9 @@ static func _holds_houses(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 		var hb := b * Basis(Vector3.UP, door_a)
 		# five courses of turf, each stepping in, a gap for the door facing the fire-ring (headroom
 		# under the fifth course: 2.17 m)
+		var hx := Transform3D(hb, Vector3(base.x, hy, base.z))
+		PropModels.kit_add(k, "lore_earth", HOLDS, hx, "Dome")        # the turf wall, modelled; the rings of boxes below are its collider
+		pm.add(HOLDS, hx, "Door")
 		for tier in 5:
 			var r := 2.6 - 0.25 * float(tier)
 			var n := 12
@@ -820,34 +838,35 @@ static func _holds_houses(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 				if tier < 4 and absf(angle_difference(a, 0.0)) < 0.4:
 					continue                         # the door (local +z of the house)
 				var q := Vector3(sin(a) * r, 0.25 + 0.55 * float(tier), cos(a) * r)
-				k.box("lore_earth", Vector3(base.x, hy, base.z) + hb * q, Vector3(TAU * r / float(n) + 0.12, 0.58, 0.62), hb * Basis(Vector3.UP, a), true, rng.randf_range(0.74, 0.86))
-		k.box("lore_earth", Vector3(base.x, hy + 2.86, base.z), Vector3(2.2, 0.36, 2.2), hb * Basis(Vector3.UP, 0.4), true, 0.8)
-		k.box("lore_earth", Vector3(base.x, hy + 3.1, base.z), Vector3(1.6, 0.3, 1.6), hb, true, 0.82)
+				k.collider(hx * q, Vector3(TAU * r / float(n) + 0.12, 0.58, 0.62), hb * Basis(Vector3.UP, a))
+				rng.randf()
+		k.collider(Vector3(base.x, hy + 2.86, base.z), Vector3(2.2, 0.36, 2.2), hb * Basis(Vector3.UP, 0.4))
+		k.collider(Vector3(base.x, hy + 3.1, base.z), Vector3(1.6, 0.3, 1.6), hb)
 		# door-stones: two uprights and a lintel
 		for sx: float in [-1.0, 1.0]:
-			k.box("lore_tstone", Vector3(base.x, hy, base.z) + hb * Vector3(sx * 0.78, 1.0, 2.55), Vector3(0.3, 2.0, 0.4), hb, true, 0.9)
-		k.box("lore_tstone", Vector3(base.x, hy, base.z) + hb * Vector3(0, 2.12, 2.55), Vector3(1.9, 0.28, 0.5), hb, true, 0.9)
+			k.collider(hx * Vector3(sx * 0.78, 1.0, 2.55), Vector3(0.3, 2.0, 0.4), hb)
+		k.collider(hx * Vector3(0, 2.12, 2.55), Vector3(1.9, 0.28, 0.5), hb)
 		k.box("lore_soil", Vector3(base.x, hy + 0.03, base.z), Vector3(3.6, 0.06, 3.6), hb, false, 0.8)
 		if hi == 0:
 			open_c = Vector3(base.x, hy, base.z) + hb * Vector3(0, 0.06, -0.7)
 		else:
-			k.box("lore_beam", Vector3(base.x, hy, base.z) + hb * Vector3(0, 1.0, 2.6), Vector3(1.3, 1.95, 0.1), hb, true, 0.6)   # a shut door
+			pm.add(HOLDS, hx, "Leaf")                                   # a shut door
+			k.collider(hx * Vector3(0, 1.0, 2.6), Vector3(1.3, 1.95, 0.1), hb)
 	# the fire-ring, cold, a drying rack and a quern
 	var rc := _gl(space, xf, ring)
 	for i in 9:
 		var a := TAU * float(i) / 9.0
-		k.box("lore_rock", rc + Vector3(cos(a) * 1.0, 0.12, sin(a) * 1.0), Vector3(0.4, 0.26, 0.34), Basis(Vector3.UP, a), false, 0.8)
+		pm.add(SHRINE, Transform3D(Basis(Vector3.UP, -a + 0.4 * float(i)).scaled(Vector3.ONE * (0.5 + 0.06 * float(i % 3))), rc + Vector3(cos(a) * 1.0, -0.03, sin(a) * 1.0)), "BlockD" if i % 2 == 0 else "BlockB")
 	k.box("dark", rc + Vector3(0, 0.03, 0), Vector3(1.4, 0.04, 1.4), Basis.IDENTITY, false, 0.3)
 	var rack := _gl(space, xf, Vector3(4.4, 0, 4.8))
+	pm.add(HOLDS, Transform3D(b, rack), "Rack")
 	for sx: float in [-1.0, 1.0]:
-		k.box("wood", rack + b * Vector3(sx * 1.2, 0.9, 0), Vector3(0.12, 1.8, 0.12), b, true, 0.7)
-	k.box("wood", rack + b * Vector3(0, 1.75, 0), Vector3(2.6, 0.08, 0.08), b, false, 0.7)
-	for j in 4:
-		k.box("lore_beam", rack + b * Vector3(-0.9 + 0.6 * j, 1.35, 0), Vector3(0.12, 0.7, 0.04), b, false, 0.5)
+		k.collider(rack + b * Vector3(sx * 1.2, 0.9, 0), Vector3(0.12, 1.8, 0.12), b)
 	var qn := _gl(space, xf, Vector3(-3.8, 0, 4.8))
 	_cyl(k, "lore_tstone", qn, qn + Vector3.UP * 0.35, 0.45, 0.45, true, 12)
 	_cyl(k, "lore_tstone", qn + Vector3.UP * 0.37, qn + Vector3.UP * 0.55, 0.42, 0.4, false, 12)
 	k.commit(host, "HousesBody")
+	pm.commit(host, "Houses", true, true)
 	_chest(host, "holds_house", open_c, float(s.yaw))
 	P._lore(host, "poi_holds_door", _gl(space, xf, Vector3(-1.4, 1.3, 3.6)), _gl(space, xf, Vector3(-2.6, 2.1, 2.4)))
 	P._lore(host, "poi_holds_quern", qn + b * Vector3(0.6, 0.9, 0.6), qn + Vector3.UP * 0.6)

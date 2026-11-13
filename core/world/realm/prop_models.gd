@@ -25,6 +25,13 @@ static func size_of(file: String) -> Vector3:
 	return box.size
 
 
+## A part into a kit's own surface `key` instead (turf walls in the kit's world-triplanar earth: no seams with the ground).
+static func kit_add(k: OssKit, key: String, file: String, xf: Transform3D, part: String) -> void:
+	for p: Dictionary in (StoneProps.info(file).parts as Array):
+		if String(p.name) == part:
+			k.append_mesh(key, p.mesh as ArrayMesh, xf)
+
+
 ## Add `part` of `file` (every part when "") at `xf` (world; the host stands at the origin like a kit's).
 func add(file: String, xf: Transform3D, part := "") -> void:
 	var found := false
