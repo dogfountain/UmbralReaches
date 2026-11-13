@@ -38,6 +38,7 @@ static func release() -> void:
 	_ring_mesh = null
 	_fade = null
 	_pool.clear()
+	_keys.clear()
 	_idle_total = 0
 	_star_tex = null
 	_flash_mats.clear()
@@ -60,6 +61,7 @@ static func host() -> Node:
 ## timer at lifetime + trail + margin.
 static var _pool: Dictionary = {}          # preset key -> Array of idle GPUParticles3D
 static var _idle_total := 0
+static var _keys := {}                     # hash of (colour, opts as given) -> [colour, opts, key, rounded colour, rounded opts]
 const POOL_CAP := 16                       # per preset (a nova killing three foes fires a dozen of one preset at once)
 const POOL_TOTAL := 160                    # across presets (effects vary radius etc. -> many presets; each kind's death bursts are warmed)
 
@@ -72,13 +74,36 @@ static func burst(at: Vector3, color: Color, opts := {}) -> GPUParticles3D:
 	if h == null:
 		return null
 	var ratio := 1.0
-	if opts.has("ratio"):
-		ratio = clampf(float(opts.ratio), 0.0, 1.0)
+	var dir := Vector3.UP
+	# the direction is the emitter's own turn, not part of the preset: a hit's normal or a blow's line made a
+	# preset (a material and up to POOL_CAP emitters) for every direction, the pool filled with one-offs, and a
+	# fight built some 25 new particle systems a second. (A ring's axis stays the preset's: it is not turned.)
+	var turned := opts.has("dir") and not opts.has("ring")
+	if opts.has("ratio") or turned:
 		opts = opts.duplicate()
-		opts.erase("ratio")
-	opts = _round_opts(opts)
-	color = Color(_sig2(color.r), _sig2(color.g), _sig2(color.b), _sig2(color.a))
-	var key := "%s|%s" % [color, opts]
+		if opts.has("ratio"):
+			ratio = clampf(float(opts.ratio), 0.0, 1.0)
+			opts.erase("ratio")
+		if turned:
+			var d: Vector3 = opts.dir
+			if d.length_squared() > 0.0001:
+				dir = d.normalized()
+			opts.erase("dir")
+	# the preset's key (the rounded values as text) is remembered for the values as given: working it out was
+	# most of a pooled burst's cost
+	var memo: Array = _keys.get([color, opts].hash(), [])
+	if memo.is_empty() or memo[0] != color or memo[1] != opts:
+		var given := opts
+		var given_col := color
+		opts = _round_opts(opts)
+		color = Color(_sig2(color.r), _sig2(color.g), _sig2(color.b), _sig2(color.a))
+		if _keys.size() > 512:
+			_keys.clear()
+		memo = [given_col, given.duplicate(), "%s|%s" % [color, opts], color, opts]
+		_keys[[given_col, given].hash()] = memo
+	var key: String = memo[2]
+	color = memo[3]
+	opts = memo[4]
 	var p: GPUParticles3D = null
 	var idle: Array = _pool.get(key, [])
 	while not idle.is_empty() and p == null:
@@ -90,7 +115,7 @@ static func burst(at: Vector3, color: Color, opts := {}) -> GPUParticles3D:
 		p = _make(color, opts, true)
 		h.add_child(p)
 	p.visible = true
-	p.global_position = at
+	p.global_transform = Transform3D(_turn(dir), at)
 	p.amount_ratio = ratio
 	p.process_material.set_meta(&"vfx_used", Time.get_ticks_msec())     # the preset's last use (_evict_stale)
 	p.restart()
@@ -102,6 +127,16 @@ static func burst(at: Vector3, color: Color, opts := {}) -> GPUParticles3D:
 	var pid := p.get_instance_id()          # an id, not the node: a scene change frees it first
 	tree.create_timer(life, false).timeout.connect(func() -> void: _reclaim(instance_from_id(pid) as GPUParticles3D, key, token))
 	return p
+
+
+## The turn that takes up (a preset's direction when the burst gives one) to `dir`.
+static func _turn(dir: Vector3) -> Basis:
+	var c := Vector3.UP.dot(dir)
+	if c > 0.9999:
+		return Basis.IDENTITY
+	if c < -0.9999:
+		return Basis(Vector3.RIGHT, PI)
+	return Basis(Quaternion(Vector3.UP, dir))
 
 
 static func _reclaim(p: GPUParticles3D, key: String, token: int) -> void:

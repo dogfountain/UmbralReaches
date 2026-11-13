@@ -121,6 +121,7 @@ static func _voice(host: Node, now: int) -> AudioStreamPlayer3D:
 		p.attenuation_filter_db = -18.0
 		p.panning_strength = 1.15                   # a little wider than flat, so a side reads in headphones
 		p.doppler_tracking = AudioStreamPlayer3D.DOPPLER_TRACKING_DISABLED
+		p.area_mask = 0                             # no Area3D in the game overrides a bus or adds reverb: no area lookup each tick it plays
 		host.add_child(p)
 		_voices.append(p)
 		_started.append(now)

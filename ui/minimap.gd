@@ -174,10 +174,10 @@ func _process(delta: float) -> void:
 	# came or went, a ping or a pulse is running, or the disc is fading
 	var sig: Array = [snappedf(_you.x, 0.1), snappedf(_you.z, 0.1), snappedf(_fwd.x, 0.002), snappedf(_fwd.y, 0.002),
 		snappedf(_facing.x, 0.02), snappedf(_facing.y, 0.02), _range_i, get_viewport_rect().size]
-	# (and at most REDRAW_HZ times a second: turning in a fight redrew the whole disc every other frame)
-	var now := Time.get_ticks_msec()
-	if (_dirty or young or _pulsing or _alpha < 1.0 or sig != _sig) and now - _drawn_at >= int(1000.0 / REDRAW_HZ):
-		_drawn_at = now
+	# (and 30 to 40 times a second, on a frame between physics ticks (FramePace): turning in a fight redrew the
+	# whole disc every other frame)
+	if (_dirty or young or _pulsing or _alpha < 1.0 or sig != _sig) and FramePace.due(_drawn_at, 1):
+		_drawn_at = Time.get_ticks_msec()
 		_sig = sig
 		_dirty = false
 		queue_redraw()
@@ -186,7 +186,7 @@ func _process(delta: float) -> void:
 # --- markers ----------------------------------------------------------------------------------
 
 var _sig: Array = []
-const REDRAW_HZ := 40.0
+const FramePace := preload("res://core/util/frame_pace.gd")
 var _drawn_at := 0               ## msec of the last redraw
 var _dirty := true
 var _moving_marks := false              ## foes are marked: they walk, so the scan keeps its half second

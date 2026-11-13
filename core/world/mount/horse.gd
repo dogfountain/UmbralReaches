@@ -482,8 +482,22 @@ func _process(dt: float) -> void:
 	_head = lerpf(_head, 0.7 if down else 0.0, 1.0 - exp(-1.5 * dt))
 	if speed > 0.0:
 		speed = move_toward(speed, 0.0, 9.0 * dt)
-	if _near_camera():
-		_write(NAN, dt)
+	# off screen it is posed twice a second (as the villagers are: NpcLife.interval), with the time since
+	_pose_acc += dt
+	if _near_camera() and _pose_acc >= _pose_gap():
+		_write(NAN, _pose_acc)
+		_pose_acc = 0.0
+
+
+var _pose_acc := 0.0
+
+
+func _pose_gap() -> float:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null or speed > 0.0 or _air or _land > 0.0:
+		return 0.0
+	var at := global_position + Vector3.UP * 1.2
+	return 0.5 if cam.global_position.distance_squared_to(at) > 36.0 and not cam.is_position_in_frustum(at) else 0.0
 
 
 ## Posed only when the camera could see it (the rig is a skeleton, 30 bones a frame).

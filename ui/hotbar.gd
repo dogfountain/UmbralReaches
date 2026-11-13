@@ -106,11 +106,10 @@ func _process(delta: float) -> void:
 	for i in _book.slots.size():
 		pulsing = pulsing or _ready_pulse[i] > 0.0
 		shaking = shaking or _book.denied(i) > 0.0
-	# (at most LIVE_HZ times a second: a sweep or a glow reads the same at 40 steps a second as at 120, and the
-	# live layer and the gem were two of the HUD's every-frame redraws in a fight)
+	# (30 to 40 times a second, on a frame between physics ticks (FramePace): a sweep or a glow reads the same at
+	# that rate as at 120, and the live layer and the gem were two of the HUD's every-frame redraws in a fight)
 	var now := Time.get_ticks_msec()
-	var due := now - _live_at >= int(1000.0 / LIVE_HZ)
-	if (_anim or pulsing or shaking or _idle <= 0.0) and due:
+	if (_anim or pulsing or shaking or _idle <= 0.0) and FramePace.due(_live_at, 0):
 		_idle = 0.1
 		_live_at = now
 		_live.queue_redraw()
@@ -132,14 +131,14 @@ func _process(delta: float) -> void:
 		if fading or refresh or ss != String(c.get_meta(&"sig", "")):
 			c.set_meta(&"sig", ss)
 			c.queue_redraw()
-	if (String(DB.get_mod("core", "")) != "" or _gem_drawn) and now - _gem_at >= int(1000.0 / LIVE_HZ):
+	if (String(DB.get_mod("core", "")) != "" or _gem_drawn) and FramePace.due(_gem_at, 1):
 		_gem_at = now
 		_gem_layer.queue_redraw()
 
 
 var _span := 0.0
 var _anim := true
-const LIVE_HZ := 40.0
+const FramePace := preload("res://core/util/frame_pace.gd")
 var _live_at := 0                ## msec of the live layer's last redraw
 var _gem_at := 0
 var _idle := 0.0

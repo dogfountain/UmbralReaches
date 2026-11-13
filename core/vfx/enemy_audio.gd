@@ -144,6 +144,7 @@ static func _slot(host: Node, now: int, score: float, act: String) -> int:
 		p.panning_strength = 1.2
 		p.attenuation_filter_db = -20.0
 		p.doppler_tracking = AudioStreamPlayer3D.DOPPLER_TRACKING_DISABLED
+		p.area_mask = 0                             # no Area3D in the game overrides a bus or adds reverb: no area lookup each tick it plays
 		host.add_child(p)
 		_voices.append(p)
 		_meta.append([0, -1000.0, ""])
@@ -206,6 +207,7 @@ static func step(body: String, surface: StringName, at: Vector3, db := 0.0, pitc
 		p.attenuation_filter_cutoff_hz = 3600.0
 		p.attenuation_filter_db = -22.0
 		p.doppler_tracking = AudioStreamPlayer3D.DOPPLER_TRACKING_DISABLED
+		p.area_mask = 0                             # no Area3D in the game overrides a bus or adds reverb: no area lookup each tick it plays
 		host.add_child(p)
 		_steps.append(p)
 		_step_started.append(0)

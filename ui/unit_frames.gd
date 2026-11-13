@@ -177,7 +177,7 @@ func _process(delta: float) -> void:
 	_pick_target(delta)
 	_tick_boss(delta)
 	_tick_encounter_layout()
-	if _alpha > 0.0:
+	if _alpha > 0.0 and _any_due():
 		_redraw_layers()
 
 
@@ -204,23 +204,32 @@ func _redraw_layers() -> void:
 	_mark("cast", [_cast_state().hash(), _vs()], not _cast_state().is_empty())
 
 
-## A layer that moves (a sweep, a pulse, a bar easing, the Gloom's number climbing) redraws at most REDRAW_HZ times
-## a second: at 120 fps five of the seven redrew every frame of a fight, and the HUD was 2.15 ms of an 11 ms frame
-## (fight_bench --hud-ab, --hud-draws). A change still shows within one such step (25 ms): the signature is kept
-## only when the layer is redrawn, so a skipped change is drawn on the next due frame.
-const REDRAW_HZ := 40.0
+## A layer that moves (a sweep, a pulse, a bar easing, the Gloom's number climbing) redraws 30 to 40 times a second,
+## not every frame: at 120 fps five of the seven redrew every frame of a fight, and the HUD was 2.15 ms of an 11 ms
+## frame (fight_bench --hud-ab, --hud-draws). A change still shows within one such step: the signature is kept only
+## when the layer is redrawn, so a skipped change is drawn on the next due frame. Which frame is due is FramePace's:
+## a frame between physics ticks, the layers in two halves on alternate ones (they had all come due together).
+const FramePace := preload("res://core/util/frame_pace.gd")
+const SLOT := {"player": 1, "bars": 0, "auras": 1, "combat": 0, "boss": 1, "target": 0, "cast": 1}
 var _ldraw := {}                 ## name -> msec of its last redraw
 
 
 func _mark(nm: String, sig: Array, moving: bool) -> void:
 	if not moving and sig == _lsig.get(nm):
 		return
-	var now := Time.get_ticks_msec()
-	if now - int(_ldraw.get(nm, -1000)) < int(1000.0 / REDRAW_HZ):
+	if not FramePace.due(int(_ldraw.get(nm, -1000)), int(SLOT[nm])):
 		return
-	_ldraw[nm] = now
+	_ldraw[nm] = Time.get_ticks_msec()
 	_lsig[nm] = sig
 	(_layers[nm] as Control).queue_redraw()
+
+
+## Is any layer's frame due? (When none is, what they would show is not even worked out.)
+func _any_due() -> bool:
+	for nm: String in LAYERS:
+		if FramePace.due(int(_ldraw.get(nm, -1000)), int(SLOT[nm])):
+			return true
+	return false
 
 
 func _casting(e: Variant, a: float) -> bool:      ## a shown foe mid-cast: its bar fills and BREAK pulses every frame

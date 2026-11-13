@@ -16,6 +16,7 @@ const CombatState := preload("res://core/skills/combat_state.gd")   # r33 combat
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 const Afflict := preload("res://core/skills/afflict.gd")
 const Combo := preload("res://core/skills/combo.gd")
+const BoltStreak := preload("res://core/player/bolt_streak.gd")
 const STREAK_POINTS := 12
 const SPLIT_AT := 0.1             ## Prism Core: seconds of flight before the bolt splits (~3.4 m)
 const SPLIT_ANGLE := 0.2          ## rad either side (~11 deg)
@@ -73,8 +74,7 @@ var _hit_ids: Dictionary = {}
 var _pooled := false
 var _sfx: AudioStreamPlayer3D
 var _excepted: Array[PhysicsBody3D] = []
-var _streak: MeshInstance3D
-var _streak_mesh: ImmediateMesh
+var _streak: BoltStreak
 var _hist := PackedVector3Array()
 var _heat: MeshInstance3D
 var _hit_normal := Vector3.UP
@@ -253,8 +253,8 @@ func drop_materials() -> void:
 
 
 func reset_idle() -> void:
-	if _streak_mesh:
-		_streak_mesh.clear_surfaces()
+	if _streak:
+		_streak.clear()
 	_hist.clear()
 	_spent = true
 	_age = 0.0
@@ -418,8 +418,8 @@ func _process(_d: float) -> void:
 
 
 func _update_streak() -> void:
-	_streak_mesh.clear_surfaces()
 	if _hist.size() < 2:
+		_streak.clear()
 		return
 	var head := get_global_transform_interpolated().origin
 	var pts := PackedVector3Array([head])
@@ -435,22 +435,7 @@ func _update_streak() -> void:
 	if seek > 0.0 and not heavy:
 		w_in *= 1.35                                  # Keen bolts: a hotter, longer core
 		inner = Color(inner.r * 1.15, inner.g * 1.15, inner.b * 1.1, 1.0)
-	for layer in 2:
-		var w := w_out if layer == 0 else w_in
-		var col := outer if layer == 0 else inner
-		var reach := 1.0 if layer == 0 else 0.6          # the core is shorter than the glow
-		_streak_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP, _streak_mat)
-		var last := maxi(1, int(round(float(pts.size() - 1) * reach)))
-		for i in last + 1:
-			var t := float(i) / float(last)
-			var fwd := (pts[maxi(i - 1, 0)] - pts[mini(i + 1, pts.size() - 1)]).normalized()
-			var side := fwd.cross(eye - pts[i]).normalized() * w * (1.0 - t * 0.85) * 0.5
-			var c := Color(col.r, col.g, col.b, col.a * pow(1.0 - t, 1.4))
-			_streak_mesh.surface_set_color(c)
-			_streak_mesh.surface_add_vertex(pts[i] + side)
-			_streak_mesh.surface_set_color(c)
-			_streak_mesh.surface_add_vertex(pts[i] - side)
-		_streak_mesh.surface_end()
+	_streak.draw(pts, eye, outer, inner, w_out, w_in)
 
 
 func _hurt_near() -> bool:
@@ -523,13 +508,8 @@ func _build_visual() -> void:
 	add_child(_light)
 	_trail = make_particles(false)
 	add_child(_trail)
-	_streak_mesh = ImmediateMesh.new()
-	_streak = MeshInstance3D.new()
-	_streak.name = "Streak"
-	_streak.mesh = _streak_mesh
-	_streak.top_level = true                 # world-space ribbon behind the bolt
-	_streak.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_streak.extra_cull_margin = 16.0
+	_streak = BoltStreak.new()
+	_streak.material_override = _streak_mat
 	add_child(_streak)
 	_heat = MeshInstance3D.new()
 	_heat.name = "Heat"
