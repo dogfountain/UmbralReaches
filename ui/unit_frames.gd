@@ -204,10 +204,23 @@ func _redraw_layers() -> void:
 	_mark("cast", [_cast_state().hash(), _vs()], not _cast_state().is_empty())
 
 
+## A layer that moves (a sweep, a pulse, a bar easing, the Gloom's number climbing) redraws at most REDRAW_HZ times
+## a second: at 120 fps five of the seven redrew every frame of a fight, and the HUD was 2.15 ms of an 11 ms frame
+## (fight_bench --hud-ab, --hud-draws). A change still shows within one such step (25 ms): the signature is kept
+## only when the layer is redrawn, so a skipped change is drawn on the next due frame.
+const REDRAW_HZ := 40.0
+var _ldraw := {}                 ## name -> msec of its last redraw
+
+
 func _mark(nm: String, sig: Array, moving: bool) -> void:
-	if moving or sig != _lsig.get(nm):
-		_lsig[nm] = sig
-		(_layers[nm] as Control).queue_redraw()
+	if not moving and sig == _lsig.get(nm):
+		return
+	var now := Time.get_ticks_msec()
+	if now - int(_ldraw.get(nm, -1000)) < int(1000.0 / REDRAW_HZ):
+		return
+	_ldraw[nm] = now
+	_lsig[nm] = sig
+	(_layers[nm] as Control).queue_redraw()
 
 
 func _casting(e: Variant, a: float) -> bool:      ## a shown foe mid-cast: its bar fills and BREAK pulses every frame

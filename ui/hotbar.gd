@@ -106,8 +106,13 @@ func _process(delta: float) -> void:
 	for i in _book.slots.size():
 		pulsing = pulsing or _ready_pulse[i] > 0.0
 		shaking = shaking or _book.denied(i) > 0.0
-	if _anim or pulsing or shaking or _idle <= 0.0:
+	# (at most LIVE_HZ times a second: a sweep or a glow reads the same at 40 steps a second as at 120, and the
+	# live layer and the gem were two of the HUD's every-frame redraws in a fight)
+	var now := Time.get_ticks_msec()
+	var due := now - _live_at >= int(1000.0 / LIVE_HZ)
+	if (_anim or pulsing or shaking or _idle <= 0.0) and due:
 		_idle = 0.1
+		_live_at = now
 		_live.queue_redraw()
 	var plate := "%s|%s" % [sig, get_viewport_rect().size]
 	if plate != _shown_sig:
@@ -127,12 +132,16 @@ func _process(delta: float) -> void:
 		if fading or refresh or ss != String(c.get_meta(&"sig", "")):
 			c.set_meta(&"sig", ss)
 			c.queue_redraw()
-	if String(DB.get_mod("core", "")) != "" or _gem_drawn:
+	if (String(DB.get_mod("core", "")) != "" or _gem_drawn) and now - _gem_at >= int(1000.0 / LIVE_HZ):
+		_gem_at = now
 		_gem_layer.queue_redraw()
 
 
 var _span := 0.0
 var _anim := true
+const LIVE_HZ := 40.0
+var _live_at := 0                ## msec of the live layer's last redraw
+var _gem_at := 0
 var _idle := 0.0
 var _static_idle := 0.0
 var _shown_sig := ""

@@ -32,6 +32,7 @@ var _gain := 0.0
 var _dirty := true
 var _num_was := false          ## the number was up last frame: one more redraw clears it
 var _alpha_drawn := -1.0
+var _drawn_at := 0               ## msec of the last redraw
 
 
 func _ready() -> void:
@@ -72,10 +73,15 @@ func _process(delta: float) -> void:
 	var before := _shown
 	_shown = want if want < _shown else lerpf(_shown, want, 1.0 - exp(-6.0 * delta))
 	# a settled strip waits for the next gain: redraw while the fill moves, the number is up, or it fades
+	# (at most 40 times a second while it moves: the fill's ease and the number's fade read the same)
+	var now := Time.get_ticks_msec()
 	if _dirty or absf(_shown - before) > 0.000001 or _num_t > 0.0 or _num_was or _alpha < 1.0 or _alpha != _alpha_drawn:
-		_dirty = false
-		_alpha_drawn = _alpha
-		queue_redraw()
+		_dirty = true                            # kept until the due frame draws it
+		if now - _drawn_at >= 25:
+			_drawn_at = now
+			_dirty = false
+			_alpha_drawn = _alpha
+			queue_redraw()
 	_num_was = _num_t > 0.0
 
 

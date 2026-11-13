@@ -5,7 +5,8 @@ extends Node
 ## him, and every spell slot is pressed over and over (cooldowns reset). He cannot die (his wounds are cleared).
 ## At the end "FIGHT" prints the frame times and the engine monitors averaged over the fight; --ab-enemies then
 ## measures the foes' thinking (far, near), the spells, drawing the foes and the HUD by switching each off for a
-## few seconds; --hud-ab measures the HUD in alternating windows and each of its widgets taken away in turn.
+## few seconds; --hud-ab measures the HUD in alternating windows and each of its widgets taken away in turn;
+## --hud-draws counts which HUD canvas items redraw during the fight.
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const SPOT := Vector2(62.0, 60.0)
 const BOSSES := {"thornwarden": "res://core/enemy/thornwarden.gd", "bone_abbot": "res://core/enemy/bone_abbot.gd",
@@ -97,6 +98,14 @@ func _run() -> void:
 		if nd is GPUParticles3D or nd is Enemy or nd is OmniLight3D or nd is RigidBody3D:
 			var par := nd.get_parent()
 			_note("added %s %s" % [nd.get_class(), String(par.name) + "/" + (String(par.get_parent().name) if par and par.get_parent() else "")]))
+	# --hud-draws: which HUD canvas items redraw during the fight, and how often (a redraw is what a HUD costs)
+	var draws := {}
+	if "--hud-draws" in OS.get_cmdline_user_args():
+		var hud := get_tree().root.find_child("HUD", true, false)
+		if hud != null:
+			for ci in hud.find_children("*", "CanvasItem", true, false):
+				var key := String(hud.get_path_to(ci))
+				(ci as CanvasItem).draw.connect(func() -> void: draws[key] = int(draws.get(key, 0)) + 1)
 	_frames_ms.clear()
 	var t0 := Time.get_ticks_msec()
 	var slot := 0
@@ -108,6 +117,15 @@ func _run() -> void:
 		_sample()
 		await get_tree().create_timer(0.12).timeout
 	_report()
+	if not draws.is_empty():
+		var keys := draws.keys()
+		keys.sort_custom(func(a: String, b: String) -> bool: return int(draws[a]) > int(draws[b]))
+		var total := 0
+		for k: String in keys:
+			total += int(draws[k])
+		print("FIGHT HUD redraws: %d over %d frames (%.1f a frame), %d items drew at all" % [total, _frames_ms.size(), float(total) / maxf(float(_frames_ms.size()), 1.0), keys.size()])
+		for k: String in keys.slice(0, 24):
+			print("FIGHT HUD redraw %5.2f a frame  %s" % [float(draws[k]) / maxf(float(_frames_ms.size()), 1.0), k])
 	if "--world-ab" in OS.get_cmdline_user_args():
 		await _world_ab()
 		get_tree().quit()
@@ -241,6 +259,17 @@ func _report() -> void:
 	var p95: float = f[int(f.size() * 0.95)] if f.size() > 0 else 0.0
 	var p99: float = f[int(f.size() * 0.99)] if f.size() > 0 else 0.0
 	print("FIGHT frames %d  avg %.2f ms (%.0f fps)  p95 %.2f  p99 %.2f  worst %.2f" % [f.size(), avg, 1000.0 / maxf(avg, 0.01), p95, p99, f.back() if f.size() > 0 else 0.0])
+	# the spread: with V-Sync a frame that misses one refresh waits for the next, so the fps halves in steps
+	if f.size() > 20:
+		var qs := PackedStringArray()
+		for q: float in [0.05, 0.25, 0.5, 0.75, 0.9]:
+			qs.append("p%d %.2f" % [roundi(q * 100.0), f[int(f.size() * q)]])
+		var hz := maxf(DisplayServer.screen_get_refresh_rate(DisplayServer.window_get_current_screen()), 30.0)
+		var late := 0
+		for x: float in f:
+			if x > 1500.0 / hz:
+				late += 1
+		print("FIGHT spread %s | %d%% of frames took over 1.5 refreshes (%.0f Hz, vsync mode %d, max_fps %d)" % [", ".join(qs), roundi(100.0 * float(late) / float(f.size())), hz, DisplayServer.window_get_vsync_mode(), Engine.max_fps])
 	for k: String in _mon:
 		var arr: Array = _mon[k]
 		var s := 0.0

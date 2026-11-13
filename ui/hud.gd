@@ -208,8 +208,7 @@ func _ready() -> void:
 	Events.hollowed.connect(_on_hollowed)
 	Events.respawned.connect(_on_respawned)
 	Events.benchmark_done.connect(func(summary: String) -> void: _bench_line = "BENCH  " + summary)
-	_measure_rid = get_viewport().get_viewport_rid()
-	RenderingServer.viewport_set_measure_render_time(_measure_rid, true)
+	_measure_rid = get_viewport().get_viewport_rid()          # (timed only while the readout is up: see the toggle)
 
 
 func _label(parent: Control, text: String, size: int, color: Color, align := HORIZONTAL_ALIGNMENT_LEFT) -> Label:
@@ -250,6 +249,7 @@ func _input(event: InputEvent) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_debug"):
 		_debug.visible = not _debug.visible
+		RenderingServer.viewport_set_measure_render_time(_measure_rid, _debug.visible)   # render timing costs a little every frame: only while it is read
 		_debug_t = 1.0
 		get_viewport().set_input_as_handled()
 
