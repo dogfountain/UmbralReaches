@@ -38,6 +38,7 @@ const Stair := preload("res://core/world/realm/timber_stair.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const PropModels := preload("res://core/world/realm/prop_models.gd")
 const SHRINE := "ruin_shrine.glb"
+const WINCH := "works_winch.glb"
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
@@ -505,12 +506,13 @@ static func _cyl_mesh(r0: float, r1: float, h: float, sides := 10) -> ArrayMesh:
 
 
 ## A post / trunk / barrel from `a` to `b` (radius r0 at a, r1 at b), with a box of collision.
-static func _cyl(k: OssKit, key: String, a: Vector3, b: Vector3, r0: float, r1: float, solid := false, sides := 10) -> void:
+static func _cyl(k: OssKit, key: String, a: Vector3, b: Vector3, r0: float, r1: float, solid := false, sides := 10, draw := true) -> void:
 	var d := b - a
 	var up := d.normalized()
 	var side := up.cross(Vector3.FORWARD if absf(up.z) < 0.9 else Vector3.RIGHT).normalized()
 	var bas := Basis(side, up, side.cross(up))
-	k.append_mesh(key, _cyl_mesh(r0, r1, d.length(), sides), Transform3D(bas, a))
+	if draw:                                    # false: the collider alone (the thing is a model drawn elsewhere)
+		k.append_mesh(key, _cyl_mesh(r0, r1, d.length(), sides), Transform3D(bas, a))
 	if solid:
 		LK.col_box(k, (a + b) * 0.5, Vector3(maxf(r0, r1) * 1.7, d.length(), maxf(r0, r1) * 1.7), bas)
 
@@ -650,44 +652,44 @@ static func _quarry_winch(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dic
 	var hz := 2.3
 	var t := 0.5
 	var wh := 3.4
-	k.box("floor", xf * Vector3(0, 0.02, 0), Vector3(hx * 2.0 - 0.2, 0.2, hz * 2.0 - 0.2), b, true, 0.85)
-	k.box("stone", xf * Vector3(0, -0.4, 0), Vector3(hx * 2.0 + 0.3, 1.0, hz * 2.0 + 0.3), b, true, 0.72)
+	# the hut, its drum and the wheel's bearing frame are modelled (works_winch.glb); every collider is the box it was
+	var pm := PropModels.new()
+	pm.add(WINCH, xf, "Hut")
+	k.collider(xf * Vector3(0, 0.02 + OssKit.FLOOR_LIFT, 0), Vector3(hx * 2.0 - 0.2, 0.2, hz * 2.0 - 0.2), b)
+	k.collider(xf * Vector3(0, -0.4, 0), Vector3(hx * 2.0 + 0.3, 1.0, hz * 2.0 + 0.3), b)
 	# walls: the front (+z, toward the pit) has the door; the east (+x) wall has the wheel's axle-hole
 	for wl: Array in [[Vector3(0, wh * 0.5, -hz + t * 0.5), Vector3(hx * 2.0, wh, t)], [Vector3(-hx + t * 0.5, wh * 0.5, 0), Vector3(t, wh, hz * 2.0)],
 			[Vector3(hx - t * 0.5, wh * 0.5, 0), Vector3(t, wh, hz * 2.0)], [Vector3(-1.85, wh * 0.5, hz - t * 0.5), Vector3(2.3, wh, t)], [Vector3(1.85, wh * 0.5, hz - t * 0.5), Vector3(2.3, wh, t)],
 			[Vector3(0, wh - 0.5, hz - t * 0.5), Vector3(1.4, 1.0, t)]]:
-		k.box("stone", xf * (wl[0] as Vector3), wl[1], b, true, rng.randf_range(0.8, 0.9))
-	k.box("slate", xf * Vector3(0, wh + 0.15, 0), Vector3(hx * 2.0, 0.3, hz * 2.0), b, true, 0.85)
+		k.collider(xf * (wl[0] as Vector3), wl[1], b)
+	k.collider(xf * Vector3(0, wh + 0.15, 0), Vector3(hx * 2.0, 0.3, hz * 2.0), b)
 	# inside: the winding drum on two trestles, coils of rope
-	_cyl(k, "wood", xf * Vector3(-1.6, 1.1, -1.2), xf * Vector3(2.2, 1.1, -1.2), 0.45, 0.45, true)
+	_cyl(k, "wood", xf * Vector3(-1.6, 1.1, -1.2), xf * Vector3(2.2, 1.1, -1.2), 0.45, 0.45, true, 10, false)
 	for x: float in [-1.4, 1.9]:
-		k.box("wood", xf * Vector3(x, 0.55, -1.2), Vector3(0.18, 1.1, 0.9), b, true, 0.75)
-	# the tread-wheel outside the east wall, its axle through to the drum
+		k.collider(xf * Vector3(x, 0.55, -1.2), Vector3(0.18, 1.1, 0.9), b)
+	# the tread-wheel outside the east wall, its axle through to the drum; it creaks round (something in the pit
+	# still hauls on the rope)
 	var wc := Vector3(hx + 0.9, 2.3, -0.2)
-	# r36: the wheel creaks round on its axle (something in the pit still hauls on the rope)
 	var wheel := Sway.turner(host, xf * wc, b.get_euler().y, Vector3.RIGHT, -0.16)
-	var kw := OssKit.new()
-	kw.keep_lanes = false
-	for i in 16:
-		var a := TAU * float(i) / 16.0
-		var p := Vector3(0, sin(a) * 2.0, cos(a) * 2.0)
-		kw.box("wood", p, Vector3(1.3, 0.16, 0.82), Basis(Vector3.RIGHT, -a), false, rng.randf_range(0.7, 0.9))
-	for i in 4:
-		var a := PI * float(i) / 4.0
-		kw.box("wood", Vector3.ZERO, Vector3(0.12, 4.0, 0.14), Basis(Vector3.RIGHT, a), false, 0.75)
-	wheel.take(kw, 120.0)
-	_cyl(k, "wood", xf * (wc + Vector3(-1.2, 0, 0)), xf * (wc + Vector3(0.8, 0, 0)), 0.16, 0.16)
+	var wm := PropModels.new()
+	wm.add(WINCH, Transform3D.IDENTITY, "Wheel")
+	for mi in wm.commit(wheel, "Wheel"):
+		mi.visibility_range_end = 120.0
+		mi.visibility_range_end_margin = 8.0
 	for z: float in [-2.1, 1.7]:
-		k.box("wood", xf * (wc + Vector3(0.75, -1.2, z)), Vector3(0.2, 2.6, 0.2), b, true, 0.75)
+		k.collider(xf * (wc + Vector3(0.75, -1.2, z)), Vector3(0.2, 2.6, 0.2), b)
+	for i in 22:                                  # the numbers the kit walls and treads drew: the overgrowth stays where it was
+		rng.randf()
 	# the rope down to the pit floor, frayed
 	_cyl(k, "iron", xf * (wc + Vector3(0.0, -0.4, 2.1)), xf * Vector3(wc.x, -3.0, 13.0), 0.04, 0.04)
 	# a stack of stone to climb onto the roof (west side)
 	var stair_foot := _gl(space, xf, Vector3(-hx - 1.5, 0.12, 8.0))
 	var stair_top := xf * Vector3(-hx - 1.5, wh + 0.3, 1.0)
 	var stand := Stair.build(k, space, stair_foot, stair_top, 1.2)
-	k.box("wood", xf * Vector3(-hx - 0.3, wh + 0.26, 1.0), Vector3(2.0, 0.12, 1.2), b, true, 0.85)     # the plank from the stair's head onto the roof
+	k.collider(xf * Vector3(-hx - 0.3, wh + 0.26, 1.0), Vector3(2.0, 0.12, 1.2), b)     # the plank from the stair's head onto the roof
 	# a post on the roof the Tether can catch
-	k.box("wood", xf * Vector3(1.6, wh + 1.0, -1.2), Vector3(0.22, 1.7, 0.22), b, true, 0.75)
+	k.collider(xf * Vector3(1.6, wh + 1.0, -1.2), Vector3(0.22, 1.7, 0.22), b)
+	pm.commit(host, "Winch", true, true)
 	k.commit(host, "WinchBody")
 	var roof := xf * Vector3(-2.3, wh + 0.3, 0.9)
 	stand.append(roof)
