@@ -380,6 +380,7 @@ const TEXTS := {
 	"sr_boats": R37WL.TEXTS["sr_boats"],
 	"r37w_statue": R37WL.TEXTS["r37w_statue"],
 	"r37w_hand": R37WL.TEXTS["r37w_hand"],
+	"r37w_plinth": R37WL.TEXTS["r37w_plinth"],
 	"hr_warning": R37WL.TEXTS["hr_warning"],
 	"hr_mason": R37WL.TEXTS["hr_mason"],
 	"hr_boy": R37WL.TEXTS["hr_boy"],
@@ -456,7 +457,7 @@ const REGION_ORDER := ["hearth", "road", "chapel", "glade", "thornwood", "henge"
 	# --- south marches ---
 	"downs", "oak", "well",
 	# --- west marches ---
-	"weirford", "sorrow", "hierarch", "siege",
+	"weirford", "sorrow", "plinth", "siege",
 	# --- the east marches ---
 	"stillwater", "anchorholds", "saltmarket", "saltpans"]
 const PLACE_INFO := {
@@ -509,7 +510,7 @@ const PLACE_INFO := {
 	# --- west marches ---
 	"weirford": R37WL.PLACE_INFO["weirford"],
 	"sorrow": R37WL.PLACE_INFO["sorrow"],
-	"hierarch": R37WL.PLACE_INFO["hierarch"],
+	"plinth": R37WL.PLACE_INFO["plinth"],
 	"siege": R37WL.PLACE_INFO["siege"],
 	# --- the east marches ---
 	"stillwater": {"name": "Stillwater", "line": "the lamp that waits",

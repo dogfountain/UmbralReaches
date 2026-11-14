@@ -180,8 +180,8 @@ const CAST := {
 		"routines": {
 			"tinker": [
 				{"act": "read", "at": "wf_stall", "face": Vector2(-185.0, 72.8), "t": [8.0, 12.0]},
-				{"act": "look_up", "at": "wf_stall", "face": Vector2(-236.0, 170.0), "t": [8.0, 12.0]},
-				{"act": "mourn", "at": "wf_stall", "face": Vector2(-214.0, -104.0), "t": [6.0, 9.0]},
+				{"act": "look_up", "at": "wf_stall", "face": Vector2(-172.0, 128.0), "t": [8.0, 12.0]},
+				{"act": "mourn", "at": "wf_stall", "face": Vector2(-206.0, 148.0), "t": [6.0, 9.0]},
 			],
 			"fire": [{"go": "wf_fire_n"}, {"act": "warm", "at": "wf_fire_n", "face": Vector2(-196.0, 74.0), "t": [20.0, 30.0]}, {"go": "wf_stall"}],
 		}},

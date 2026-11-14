@@ -10,7 +10,7 @@ const LOOKS := {
 	"sorrow": {"tree_mul": {"oak": 0.3, "pine": 0.2}, "tree_add": {"willow": 0.05, "birch": 0.06},
 		"under_mul": {"grass": 0.6, "fern": 0.55}, "under_add": {"reeds": 0.012, "cattail": 0.004, "moss": 0.04},
 		"tint": Color(0.84, 0.94, 0.9)},
-	"hierarch": {"tree_mul": {"oak": 0.0, "birch": 0.25, "pine": 0.3, "sapling": 0.4, "snag": 0.6}, "tree_add": {"yew": 0.012},
+	"plinth": {"tree_mul": {"oak": 0.0, "birch": 0.25, "pine": 0.3, "sapling": 0.4, "snag": 0.6}, "tree_add": {"yew": 0.012},
 		"under_mul": {"grass": 1.2, "heather": 0.4, "fern": 0.5},
 		"under_add": {"moss": 0.5, "fern": 0.12, "mushroom": 0.02, "glowcap": 0.003},
 		"tint": Color(0.78, 0.93, 0.82), "props": {"rubble": 0.03, "block": 0.004}, "stone_mul": 1.5, "style": "mossy"},

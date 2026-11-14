@@ -252,21 +252,36 @@ func _places() -> void:
 	var qc := _w(Vector2(-128.0, -84.0))
 	for k in 4:
 		draw_arc(qc, (7.0 + k * 5.0) * K, PI * 0.12, PI * 0.88, 16, Color(INK, 0.85), 1.5, true)
-	# the Fallen Hierarch, face up in his valley
+	# the empty plinth in the old valley: a stepped block, his two feet still on it
+	var pl := Vector2(-214.0, -104.0)
+	for sz: float in [15.0, 10.0]:
+		var pr := Rect2(_w(pl - Vector2(sz, sz)), Vector2(sz, sz) * 2.0 * K)
+		draw_rect(pr, Color(0.78, 0.7, 0.54, 0.9))
+		draw_rect(pr, INK, false, 1.8)
+	for fx: float in [-3.5, 3.5]:
+		var foot := Rect2(_w(pl + Vector2(fx - 2.0, -4.0)), Vector2(4.0, 8.0) * K)
+		draw_rect(foot, Color(0.62, 0.55, 0.42))
+		draw_rect(foot, INK, false, 1.4)
+	# the siege lines: two rings of earthwork round the fallen Hierarch, face up, the engines and the tower on the north
+	var hdc := Vector2(-206.0, 148.0)
+	var sc := _w(hdc)
+	for rr: float in [30.0, 42.0]:
+		_dashed_arc(sc, rr * K, 4.0, 4.0)
+	var bd := Vector2(0.2, 0.98).normalized()
+	var br := Vector2(-bd.y, bd.x)
 	var hp := PackedVector2Array()
-	for q: Vector2 in [Vector2(-249, -100), Vector2(-236, -108), Vector2(-212, -106), Vector2(-190, -112), Vector2(-184, -104),
-			Vector2(-206, -97), Vector2(-232, -92), Vector2(-246, -92)]:
-		hp.append(_w(q))
+	for q: Vector2 in [Vector2(24, -10), Vector2(34, -15), Vector2(50, -13), Vector2(58, -9), Vector2(58, 8), Vector2(50, 13), Vector2(36, 15), Vector2(24, 10)]:
+		hp.append(_w(hdc + bd * q.x + br * q.y))
 	draw_colored_polygon(hp, Color(0.78, 0.7, 0.54, 0.9))
 	hp.append(hp[0])
 	draw_polyline(hp, INK, 1.8, true)
-	draw_circle(_w(Vector2(-251, -96)), 5.5 * K * 0.6, Color(0.78, 0.7, 0.54))
-	draw_arc(_w(Vector2(-251, -96)), 5.5 * K * 0.6, 0.0, TAU, 14, INK, 1.6, true)
-	# the siege lines: two rings of earthwork, a tower
-	var sc := _w(Vector2(-218.0, 160.0))
-	for rr: float in [16.0, 25.0]:
-		_dashed_arc(sc, rr * K, 4.0, 4.0)
-	_tower(_w(Vector2(-236.0, 170.0)), 1.0)
+	var arm := PackedVector2Array()
+	for q: Vector2 in [Vector2(36, 11), Vector2(47, 22), Vector2(40, 33)]:
+		arm.append(_w(hdc + bd * q.x + br * q.y))
+	draw_polyline(arm, INK, 3.2, true)
+	draw_circle(sc, 20.0 * K * 0.6, Color(0.78, 0.7, 0.54))
+	draw_arc(sc, 20.0 * K * 0.6, 0.0, TAU, 14, INK, 1.6, true)
+	_tower(_w(Vector2(-172.0, 128.0)), 1.0)
 	# the salt pans (evaporation beds: a pale wash, ruled) and a derrick beside them
 	for ix in 3:
 		for iz in 2:

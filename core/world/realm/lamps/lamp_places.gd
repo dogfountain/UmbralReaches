@@ -477,11 +477,11 @@ static func _ledge(host: Node3D, root: Node) -> void:
 
 ## The Siege Lines' tower: lanterns at its foot, a cresset on its roof.
 static func _siege_tower(host: Node3D, root: Node) -> void:
-	var c := Vector2(-236.5, 169.5)
+	var c := Vector2(-172.0, 128.0)
 	var roof := _top_y(c, -100.0)
 	var lead: Lamp = null
-	for off: Vector2 in [Vector2(-9.6, 0.0), Vector2(9.6, 0.0)]:
-		var l := place(host, _s("siege_tower_%d" % int(off.x), "post", c.x + off.x, c.y + off.y, {"face": "road"}))
+	for off: Vector2 in [Vector2(0.0, -9.6), Vector2(0.0, 9.6)]:
+		var l := place(host, _s("siege_tower_%d" % int(off.y), "post", c.x + off.x, c.y + off.y, {"face": "road"}))
 		if lead == null:
 			lead = l
 		elif l != null and lead != null:

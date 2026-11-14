@@ -6,8 +6,10 @@
   Weirford              r37_mill.glb (the mill, its wheel as its own node, the weir) and r37_bridge.glb
   the Siege Lines       r37_palisade.glb (three variants), r37_trebuchet.glb (standing / fallen),
                         r37_siege_tower.glb (a four-storey tower with its flights)
+  the empty plinth      r37_plinth.glb: the Hierarch's plinth in his old valley, his two stone feet still on it,
+                        chains, a hauling ramp and a line of rollers
 
-  tools/blender/run.sh r37_west.py -- [--only statue,mill,bridge,palisade,trebuchet,tower] [--preview DIR]
+  tools/blender/run.sh r37_west.py -- [--only statue,mill,bridge,palisade,trebuchet,tower,plinth] [--preview DIR]
 
 Conventions (Blender Z up -> Godot Y up, Blender +Y -> Godot -Z; 1 BU = 1 m). Every asset: one mesh object per
 material, named <part>__<set> (the set is stone / ashlar / timber / iron: Godot dresses them with the tiling
@@ -972,8 +974,269 @@ def asset_tower():
     preview(outs, "tower", [((-16, 17, 9), (0, 0, 7), 34), ((16, 17, 18), (0, 0, 8), 36)])
 
 
+# ============================================================================================
+# THE EMPTY PLINTH
+# ============================================================================================
+# Frame: the plinth's centre is the origin, the ground at z = 0 (the plinth's foot is sunk 1.5 m), the front (the way
+# he was hauled, Godot +Z = Blender -Y) toward -Y. A stepped base of coursed ashlar, a die with a band of cut
+# letters, a cornice; on it the Hierarch's two stone feet in the hem of his robe, each cut through the shin, chains
+# still round the ankles; a timber ramp up the front and a line of rollers, left from the hauling.
+PL_TOP = 7.2
+
+
+def course_ring(P, key, hx, hy, z0, h, rnd, depth=1.8, miss=0.04, drift=0.0):
+    """One course of coursed ashlar round a rectangle (half sizes hx, hy), blocks 2.6-5.4 m long, a few shifted or gone."""
+    def row(fixed, lo, hi, axis, sgn):
+        t = lo
+        while t < hi - 0.2:
+            ln = min(rnd.uniform(2.6, 5.4), hi - t)
+            if hi - (t + ln) < 1.6:
+                ln = hi - t
+            c = t + ln * 0.5
+            skip = rnd.random() < miss
+            out = rnd.uniform(0.0, 0.4) if rnd.random() < 0.12 else 0.0       # a block worked loose and standing proud
+            hh = h * rnd.uniform(0.97, 1.0)
+            if not skip:
+                if axis == 'x':
+                    box(P, key, (c, sgn * (fixed - depth * 0.5 + out), z0 + hh * 0.5), (ln - 0.07, depth, hh - 0.04),
+                        yaw=rnd.uniform(-0.006, 0.006) + drift)
+                else:
+                    box(P, key, (sgn * (fixed - depth * 0.5 + out), c, z0 + hh * 0.5), (depth, ln - 0.07, hh - 0.04),
+                        yaw=rnd.uniform(-0.006, 0.006) + drift)
+            t += ln
+    for sgn in (-1, 1):
+        row(hy, -hx, hx, 'x', sgn)
+        row(hx, -hy + depth, hy - depth, 'y', sgn)
+    # the core, set in from the faces: the top and the inside
+    box(P, key, (0, 0, z0 + h * 0.5), (2 * (hx - depth) + 0.3, 2 * (hy - depth) + 0.3, h - 0.02))
+
+
+def build_foot(P, side, rnd, broken_z):
+    """One stone foot in the hem of the robe, cut through the shin at `broken_z`; side -1 left (x < 0), +1 right."""
+    cx = 5.8 * side
+    yaw = 0.14 * side                                                      # the toes turned out
+    rot = Matrix.Rotation(yaw, 4, 'Z')
+
+    def at(p):
+        return Vector((cx, 0.0, PL_TOP)) + (rot @ Vector(p))
+    # the foot: a loft from the heel (y +7) to the toe (y -7): flat sole, a high instep, toes rounding off
+    rings = []
+    n_seg, n_ring = 40, 36
+    for i in range(n_seg + 1):
+        t = i / n_seg
+        y = 7.0 - 14.0 * t
+        w = 2.8 * (1.0 - max(0.0, (t - 0.80) / 0.2) ** 2.2) * (0.62 + 0.38 * math.sin(math.pi * min(1.0, t * 0.9 + 0.08)))
+        w = max(w, 0.18)
+        top = 0.9 + 2.0 * math.exp(-(((t - 0.30) / 0.2) ** 2)) + 0.55 * (1.0 - smoothstep(0.55, 1.0, t))
+        top *= (1.0 - 0.7 * max(0.0, (t - 0.9) / 0.1) ** 2)
+        pts = superellipse(w, top, 0.0, n_ring, 3.2)
+        ring = []
+        for (u, v) in pts:
+            f = 1.0 + 0.012 * noise.noise(Vector((u * 0.4, y * 0.3, v * 0.5)))
+            ring.append(at((u * f, y, max(v, 0.0) + 0.05)))
+        rings.append(ring)
+    ring_loft(P, "stone", rings, close_ends=True)
+    # five toes, each a rounded lobe of stone, the big toe longer, nails cut as flat plates on top
+    for k in range(5):
+        tx = (-1.9 + 0.95 * k) if side > 0 else (1.9 - 0.95 * k)
+        ln = (2.3, 1.8, 1.7, 1.45, 1.2)[k]
+        c = at((tx * 0.92, -6.9 - ln * 0.3 + 0.16 * abs(k - 1), 0.62 + 0.04 * k))
+        sph = Matrix.Translation(c) @ rot @ Matrix.Diagonal((0.52 + 0.03 * (4 - k), ln * 0.55, 0.6 - 0.03 * k, 1.0))
+        bmesh.ops.create_uvsphere(P.of("stone"), u_segments=14, v_segments=9, radius=1.0, matrix=sph)
+        box(P, "stone", at((tx * 0.92, -6.9 - ln * 0.62, 1.0 - 0.03 * k)), (0.5, 0.55, 0.12), yaw=yaw)
+    # the ball of the foot and the heel: two soft masses so the sole does not end in a straight cut
+    for (hy, hz, sx, sy) in ((5.9, 0.9, 1.9, 1.3), (-5.6, 0.8, 2.2, 1.0)):
+        c = at((0.0, hy, hz))
+        sph = Matrix.Translation(c) @ rot @ Matrix.Diagonal((sx, sy, 0.9, 1.0))
+        bmesh.ops.create_uvsphere(P.of("stone"), u_segments=16, v_segments=10, radius=1.0, matrix=sph)
+    # armature: rusted iron rods standing out of the break, bent where the stone gave
+    for j in range(7):
+        a = math.tau * (j + 0.3) / 7.0
+        rx, ry = math.cos(a) * 2.0, 1.6 + math.sin(a) * 2.0
+        zt = broken_z + 2.2 * math.cos(a - 1.1 * side) - 0.4
+        zt = max(zt, broken_z - 1.5)
+        p0 = at((rx, ry, zt - 0.4))
+        p1 = p0 + Vector((0.25 * math.cos(a), 0.25 * math.sin(a), 0.0)) + Vector((0, 0, 1.2 + 0.5 * (j % 3)))
+        p2 = p1 + Vector((0.5 * math.cos(a + 0.8), 0.5 * math.sin(a + 0.8), 0.5))
+        beam(P, "iron", p0, p1, 0.16, 0.16)
+        beam(P, "iron", p1, p2, 0.14, 0.14)
+    # the robe's hem: a fluted flare from the plinth up the shin, cut through at broken_z (an oblique, ragged fracture)
+    n_r = 64
+    top_max = broken_z + 3.4
+    tops = []
+    for k in range(n_r):
+        a = math.tau * k / n_r
+        tops.append(broken_z + 2.2 * math.cos(a - 1.1 * side) + 1.1 * noise.noise(Vector((math.cos(a) * 2.0, math.sin(a) * 2.0, 4.0 + side))))
+    rr = []
+    zs = [0.0, 0.5, 1.1, 2.0, 3.2, 4.6, 6.2, 7.8, 9.4, 11.0, 12.6, 14.0]
+    for zi in zs:
+        if zi > top_max:
+            zi = top_max
+        base = 4.2 - 1.15 * smoothstep(0.0, 4.2, zi) + 0.45 * smoothstep(5.0, 9.0, zi) + 0.7 * math.exp(-((zi / 0.7) ** 2))
+        ring = []
+        for k in range(n_r):
+            a = math.tau * k / n_r
+            pleat = 0.2 * math.sin(a * 13 + zi * 0.55) * (0.4 + 0.6 * smoothstep(0.0, 2.0, zi))
+            pleat += 0.12 * noise.noise(Vector((math.cos(a) * 1.3, math.sin(a) * 1.3, zi * 0.35)))
+            r = base * (1.0 + 0.05 * pleat) + pleat * 0.4
+            ring.append(at((math.cos(a) * r * 0.9, 1.6 + math.sin(a) * r, min(zi, tops[k]))))
+        rr.append(ring)
+        if zi >= top_max:
+            break
+    ring_loft(P, "stone", rr, close_ends=True)
+
+
+def build_chains(P, rnd, rope_to):
+    """Iron hauling chains: wound round each ankle, then run over the plinth's front edge down to the ground."""
+    for side, z0, rad in ((-1, 4.1, 3.55), (1, 3.4, 3.7)):
+        cx, cy = 5.8 * side, 1.6
+        for w in range(2):                                                  # two turns
+            for k in range(26):
+                a = math.tau * (k / 26.0 + 0.5 * w)
+                zc = PL_TOP + z0 + 0.45 * w + 0.5 * a / math.tau
+                box(P, "iron", (cx + math.cos(a) * rad, cy + math.sin(a) * rad, zc), (0.62, 0.34, 0.14),
+                    yaw=a + math.pi / 2.0, roll=(0.9 if k % 2 else 0.0))
+        # from the ankle, across the top and over the edge, then along the ground toward the rollers
+        p = Vector((cx + (0.4 * side), cy - rad, PL_TOP + z0 + 0.15))
+        end_top = Vector((cx * 0.8, -11.3, PL_TOP + 0.12))
+        n = 24
+        for k in range(n):
+            q = p.lerp(end_top, k / (n - 1.0))
+            box(P, "iron", (q.x, q.y, q.z + 0.2 - 0.18 * math.sin(math.pi * k / n)), (0.34, 0.62, 0.14), yaw=0.0, roll=(0.9 if k % 2 else 0.0))
+        for k in range(14):                                                 # down the cornice and the die, to the step
+            zq = PL_TOP - 0.5 * k
+            box(P, "iron", (cx * 0.8 + 0.03 * k * side, -12.2 - 0.12 * (k % 2), zq), (0.34, 0.14, 0.58), roll=(0.9 if k % 2 else 0.0))
+        for k in range(8):                                                  # along the step's tread, slack, to a ringbolt
+            box(P, "iron", (cx * 0.8 + 0.4 * side * math.sin(k * 0.5), -12.6 - 0.62 * k - 1.2, 2.95), (0.34, 0.62, 0.14), yaw=0.08 * math.sin(k * 0.5),
+                roll=(0.9 if k % 2 else 0.0))
+
+
+def build_ramp(P, S, rnd):
+    """The Marches' hauling ramp up the plinth's front: a timber deck on trestles, planks missing here and there."""
+    y_top, z_top = -12.55, PL_TOP - 0.05
+    y_bot, z_bot = -36.5, 2.8
+    L = math.hypot(y_top - y_bot, z_top - z_bot)
+    pitch = math.atan2(z_top - z_bot, y_top - y_bot)
+    # two side beams and the deck, as one tilted frame
+    def pt(s, x, lift=0.0):
+        y = y_bot + (y_top - y_bot) * s
+        z = z_bot + (z_top - z_bot) * s
+        return (x, y, z + lift)
+    for x in (-3.4, 0.0, 3.4):
+        beam(P, "timber", pt(0.0, x, -0.2), pt(1.0, x, -0.2), 0.5, 0.7)
+    n = int(L / 0.62)
+    for i in range(n):
+        s = (i + 0.5) / n
+        if rnd.random() < 0.05 and 0.1 < s < 0.7:
+            continue                                                       # a plank gone: the stringers below still take a foot
+        wl = 8.0 + rnd.uniform(-0.15, 0.15)
+        c = pt(s, rnd.uniform(-0.1, 0.1), 0.22)
+        box(P, "timber", c, (wl, 0.58, 0.16), yaw=rnd.uniform(-0.01, 0.01), pitch=pitch)
+    # trestles every 5 m
+    for j in range(6):
+        s = (j + 0.5) / 6.4
+        for x in (-3.6, 3.6):
+            top = pt(s, x, -0.4)
+            beam(P, "timber", (x, top[1], -2.5), (x, top[1], top[2]), 0.45, 0.45)
+        beam(P, "timber", pt(s, -3.6, -1.0), pt(s, 3.6, -1.0), 0.3, 0.4)
+    # side rails: a post every 4 m and a rail, snapped halfway down on one side
+    for x in (-4.05, 4.05):
+        for j in range(7):
+            s = j / 6.0
+            if x > 0 and 0.3 < s < 0.55:
+                continue
+            a = pt(s, x, 0.3)
+            beam(P, "timber", a, (a[0], a[1], a[2] + 1.15), 0.2, 0.2)
+        for j in range(6):
+            s0, s1 = j / 6.0, (j + 1) / 6.0
+            if x > 0 and 0.3 < s0 < 0.5:
+                continue
+            a, b = pt(s0, x, 1.35), pt(s1, x, 1.35)
+            beam(P, "timber", a, b, 0.14, 0.12)
+
+
+def asset_plinth():
+    import random
+    reset()
+    rnd = random.Random(14)
+    Pa, Pf, Pt = Parts(), Parts(), Parts()
+    # the base: a foundation tier (mostly sunk), a step, the die in three courses, the cornice
+    course_ring(Pa, "ashlar", 19.0, 17.0, -1.5, 2.9, rnd, depth=2.4, miss=0.0)
+    course_ring(Pa, "ashlar", 16.5, 14.5, 1.4, 1.4, rnd, depth=2.2, miss=0.03)
+    for z0 in (2.8, 4.0, 5.2):
+        course_ring(Pa, "ashlar", 13.0, 11.3, z0, 1.2, rnd, depth=2.0, miss=0.02)
+    box(Pa, "ashlar", (0, 0, PL_TOP - 0.4), (28.0, 24.4, 0.8))
+    box(Pa, "ashlar", (0, -12.4, PL_TOP - 0.25), (28.2, 0.45, 0.5))
+    # quoins: tall blocks at the die's corners, long and short by turns, standing a hand proud of the courses
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            for c in range(3):
+                long = (c % 2 == 0) == (sx * sy > 0)
+                box(Pa, "ashlar", (sx * (13.0 - (1.7 if long else 1.0)), sy * (11.3 + 0.08), 2.8 + 1.2 * c + 0.6), (3.4 if long else 2.0, 0.34, 1.16))
+                box(Pa, "ashlar", (sx * (13.0 + 0.08), sy * (11.3 - (1.0 if long else 1.7)), 2.8 + 1.2 * c + 0.6), (0.34, 2.0 if long else 3.4, 1.16))
+    # a dentil course under the cornice: a row of small blocks, a few knocked out
+    for i in range(30):
+        if rnd.random() < 0.12:
+            continue
+        box(Pa, "ashlar", (-13.5 + 0.93 * i, -11.5, PL_TOP - 1.05), (0.5, 0.7, 0.5))
+    for sx in (-1, 1):
+        for i in range(24):
+            if rnd.random() < 0.12:
+                continue
+            box(Pa, "ashlar", (sx * 13.2, -11.2 + 0.93 * i, PL_TOP - 1.05), (0.7, 0.5, 0.5))
+    # a raised frame round the inscription panel on the die's front
+    for (fx, fz, fw, fh) in ((0.0, 6.0, 20.2, 0.3), (0.0, 3.7, 20.2, 0.3), (-10.0, 4.85, 0.3, 2.6), (10.0, 4.85, 0.3, 2.6)):
+        box(Pa, "ashlar", (fx, -11.38, fz), (fw, 0.18, fh))
+    # the band of cut letters on the die's front: a row of small raised bars at two heights
+    for row, zc in enumerate((5.3, 4.45)):
+        x = -9.4
+        while x < 9.4:
+            ln = rnd.uniform(0.25, 0.9)
+            if rnd.random() < 0.18:
+                x += 0.8
+                continue
+            hgt = rnd.uniform(0.3, 0.55)
+            box(Pa, "ashlar", (x, -11.4, zc), (ln, 0.1, hgt))
+            x += ln + rnd.uniform(0.22, 0.45)
+    # the feet and the robe
+    build_foot(Pf, -1, rnd, 10.5)
+    build_foot(Pf, 1, rnd, 8.2)
+    # fallen: cornice stones, robe-lumps and broken blocks round the foot of the plinth, mostly on the front
+    for k in range(16):
+        a = rnd.uniform(0.0, math.tau)
+        d = rnd.uniform(19.5, 30.0)
+        x, y = math.cos(a) * d * 1.1, math.sin(a) * d * 0.9
+        if abs(x) < 5.0 and y < -12.0 and y > -40.0:
+            continue                                                       # keep the ramp's line clear
+        s = rnd.uniform(1.4, 3.6)
+        box(Pf, "ashlar" if k % 2 else "stone", (x, y, s * 0.25), (s * rnd.uniform(0.9, 1.6), s * rnd.uniform(0.7, 1.3), s * rnd.uniform(0.5, 0.9)),
+            yaw=rnd.random() * 6.28, pitch=rnd.uniform(-0.25, 0.25), roll=rnd.uniform(-0.25, 0.25))
+    build_chains(Pt, rnd, None)
+    build_ramp(Pt, Pt, rnd)
+    base = finish(Pa, "PlinthBase", smooth_keys=())
+    feet = finish(Pf, "PlinthFeet", smooth_keys=("stone",))
+    timber = finish(Pt, "PlinthHaul", smooth_keys=())
+    allo = base + feet + timber
+    col = make_collision(allo, "Plinth", 0.5)
+    export(allo + [col], os.path.join(MODELS, "r37_plinth.glb"), "plinth")
+    preview(allo, "plinth", [((-52, -62, 26), (0, -6, 6), 34), ((52, -40, 20), (0, 0, 8), 36), ((0, -64, 4), (0, -10, 8), 34),
+                             ((-30, -22, 12), (-5, 0, 12), 40), ((0, 0, 90), (0, -8, 0), 36)])
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(BLEND, "r37_plinth.blend"))
+    # one roller, 7.4 m long, bound in iron at both ends, a flat worn along it where the load rode; placed on the
+    # ground by the game, one by one, along the line of the haul
+    reset()
+    Pr = Parts()
+    cyl(Pr, "timber", (-3.7, 0.0, 0.0), (3.7, 0.0, 0.0), 0.5, seg=14)
+    for ex in (-3.55, 3.55):
+        cyl(Pr, "iron", (ex - 0.12, 0.0, 0.0), (ex + 0.12, 0.0, 0.0), 0.56, seg=14)
+    box(Pr, "timber", (0.0, 0.0, 0.46), (6.4, 0.5, 0.08))
+    roll = finish(Pr, "Roller")
+    rcol = make_collision(roll, "Roller", 1.0)
+    export(roll + [rcol], os.path.join(MODELS, "r37_roller.glb"), "roller")
+
+
 ASSETS = {"statue": asset_statue, "mill": asset_mill, "bridge": asset_bridge, "palisade": asset_palisade,
-          "trebuchet": asset_trebuchet, "tower": asset_tower}
+          "trebuchet": asset_trebuchet, "tower": asset_tower, "plinth": asset_plinth}
 
 if __name__ == "__main__":
     os.makedirs(MODELS, exist_ok=True)

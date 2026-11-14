@@ -559,7 +559,7 @@ static func in_water(x: float, z: float) -> bool:
 ## How much of the flagstone ground stays at (x, z): 1 outside the Siege Lines and on the pads round the siege tower
 ## and the three trebuchets, falling to 0 over 8 m off them (their pads are levelled by realm_pois_west_marches.gd).
 const SIEGE_RECT := Rect2(-262.0, 100.0, 108.0, 150.0)
-const SIEGE_PADS := [[Vector2(-236.0, 170.0), 11.0], [Vector2(-204.0, 206.0), 10.0], [Vector2(-190.0, 210.0), 10.0], [Vector2(-176.0, 206.0), 10.0]]
+const SIEGE_PADS := [[Vector2(-172.0, 128.0), 11.0], [Vector2(-230.0, 118.0), 10.0], [Vector2(-196.0, 113.0), 10.0], [Vector2(-185.0, 116.0), 10.0]]
 
 
 static func _siege_flags(x: float, z: float) -> float:

@@ -37,8 +37,8 @@ const R34_FIRES := {
 	# --- west marches ---
 	"WeirfordFire": [Vector2(-196.0, 74.0), Vector2(-199.0, 77.0)],     # the town square, east of the bridge
 	"SorrowFire": [Vector2(-190.0, -20.0), Vector2(-196.0, -22.0)],     # a ford on weir_track
-	"HierarchFire": [Vector2(-193.0, -80.0), Vector2(-203.0, -80.0)],   # where weir_track reaches the valley (4 m off the line, where it meets crowns_west)
-	"SiegeFire": [Vector2(-219.0, 127.0), Vector2(-224.0, 131.0)],      # beside siege_track at the outer earthwork (5 m off the line)
+	"HierarchFire": [Vector2(-193.0, -80.0), Vector2(-203.0, -80.0)],   # where weir_track reaches the old valley, by the empty plinth (4 m off the line, where it meets crowns_west)
+	"SiegeFire": [Vector2(-219.0, 94.0), Vector2(-213.0, 97.0)],        # beside siege_track outside the palisade's north gate (6 m off the line)
 	# --- the east marches ---
 	"StillwaterFire": [Vector2(220.0, 52.0), Vector2(214.0, 40.0)],    # the lake's south shore, off spire_track
 	"AnchorFire": [Vector2(209.0, -83.0), Vector2(206.0, -100.0)],     # the foot of the cliff, beside the bend of anchor_track (it stood on the track itself)

@@ -47,10 +47,10 @@ const RAIDS := [
 		"gate": Vector2(-56.0, -16.0), "boss": "thornwarden"},
 	{"id": "summit", "c": Vector2(0.0, -118.0), "r": 28.0, "y": 27.35, "fall": 10.0, "mode": "clear",
 		"gate": Vector2(0.0, -90.0), "boss": "ascended_warden"},
-	# the two Marches bosses (docs/r37_expansion.md). The West agent builds the Hierarch's fight in
-	# the toppled statue's broken crown; the East agent the Anchoress's on the cliff terrace.
-	{"id": "hierarch", "c": Vector2(-214.0, -104.0), "r": 24.0, "y": 4.0, "fall": 12.0, "mode": "level",
-		"gate": Vector2(-200.0, -82.0), "boss": "r37_hierarch"},
+	# the two Marches bosses (docs/r37_expansion.md). The Hierarch's fight is in the toppled statue's broken
+	# crown, in the middle of the Siege Lines (the Marches hauled him there); the Anchoress's on the cliff terrace.
+	{"id": "hierarch", "c": Vector2(-206.0, 148.0), "r": 24.0, "y": 0.8, "fall": 12.0, "mode": "level",
+		"gate": Vector2(-182.5, 159.06), "boss": "r37_hierarch"},
 	{"id": "anchorhold", "c": Vector2(214.0, -132.0), "r": 18.0, "y": 16.0, "fall": 20.0, "mode": "level",
 		"gate": Vector2(206.0, -114.0), "boss": "r37_anchoress"},
 ]
@@ -114,12 +114,12 @@ const REGIONS := [
 	{"id": "sorrow", "name": "The Sorrow's Banks", "rect": Rect2(-258, -62, 100, 104), "blobs": [{"c": Vector2(-232, 52), "r": 18.0}], "biome": "oldforest", "tier": 2,
 		"purpose": "wooded river valley north of Weirford: alder banks, fords, a drowned shrine, rares",
 		"lore": "The river comes down off the Crowns grey with ash and does not clear until the weir."},
-	{"id": "hierarch", "name": "The Fallen Hierarch", "rect": Rect2(-258, -140, 92, 78), "biome": "heath", "tier": 3,
-		"purpose": "a colossal toppled statue (about 60 m) in a moss valley at the Crowns' foot; the boss in its broken crown",
-		"lore": "The Order raised him taller than the Stair. The night he fell, the sky began to turn."},
-	{"id": "siege", "name": "The Siege Lines", "rect": Rect2(-258, 110, 100, 130), "blobs": [{"c": Vector2(-172, 232), "r": 22.0}], "biome": "ruin", "tier": 2,
-		"purpose": "earthwork rings, palisades, rotted trebuchets and a siege tower where the Marches fought the Order",
-		"lore": "The Marches came against the gates with timber and fire. The gates held; the Marches did not."},
+	{"id": "plinth", "name": "The Empty Plinth", "rect": Rect2(-258, -140, 92, 78), "biome": "heath", "tier": 2,
+		"purpose": "a moss valley at the Crowns' foot where the Hierarch's colossus stood: his plinth, his two stone feet still on it",
+		"lore": "The Order raised him taller than the Stair. The Marches pulled him down, and left the feet."},
+	{"id": "siege", "name": "The Siege Lines", "rect": Rect2(-258, 110, 100, 130), "blobs": [{"c": Vector2(-172, 232), "r": 22.0}], "biome": "ruin", "tier": 3,
+		"purpose": "earthwork rings, palisades, rotted trebuchets and a siege tower drawn round the fallen colossus of the Hierarch; the boss in its broken crown",
+		"lore": "The Marches could not take the Order's gates, so they pulled down its Hierarch and dug in round him. He is still speaking."},
 	# East Marches (the East agent)
 	{"id": "stillwater", "name": "Stillwater", "rect": Rect2(160, -50, 98, 116), "biome": "fen", "tier": 2,
 		"purpose": "a cold lake under a bluff; the Lamplighters' Spire, a climbable beacon tower whose lamp you relight",
@@ -190,15 +190,17 @@ const SLOTS := {
 		{"kind": "poi_wet", "at": Vector2(-208, -40), "note": "the drowned shrine in the river"},
 		{"kind": "camp", "at": Vector2(-240, -10), "note": "the west bank"},
 		{"kind": "camp", "at": Vector2(-178, -50), "note": "the east bank"}],
-	"hierarch": [
+	"plinth": [
 		{"kind": "fire", "at": Vector2(-193, -80), "note": "where weir_track reaches the valley, 4 m off its line"},
-		{"kind": "poi", "at": Vector2(-236, -84), "note": "the statue's hand, palm up"},
-		{"kind": "camp", "at": Vector2(-186, -118), "note": "under the Crowns"}],
+		{"kind": "poi", "at": Vector2(-214, -104), "note": "the empty plinth, his feet still on it"},
+		{"kind": "camp", "at": Vector2(-187, -102), "note": "the valley floor, east of the plinth"}],
 	"siege": [
-		{"kind": "fire", "at": Vector2(-219, 127), "note": "beside siege_track at the outer earthwork"},
-		{"kind": "poi", "at": Vector2(-236, 170), "note": "the siege tower"},
-		{"kind": "poi", "at": Vector2(-196, 210), "note": "the trebuchet line"},
-		{"kind": "camp", "at": Vector2(-180, 150), "note": "the palisade"},
+		{"kind": "fire", "at": Vector2(-219, 94), "note": "beside siege_track outside the palisade gate"},
+		{"kind": "poi", "at": Vector2(-206, 148), "note": "the fallen Hierarch: the skull, the Speaking Crown's room"},
+		{"kind": "poi", "at": Vector2(-232, 194), "note": "the statue's hand, palm up"},
+		{"kind": "poi", "at": Vector2(-172, 128), "note": "the siege tower"},
+		{"kind": "poi", "at": Vector2(-196, 112), "note": "the trebuchet line behind the palisade"},
+		{"kind": "camp", "at": Vector2(-240, 168), "note": "the west strip between the river and the skull"},
 		{"kind": "camp", "at": Vector2(-240, 218), "note": "the south rings"}],
 	"stillwater": [
 		{"kind": "fire", "at": Vector2(220, 52), "note": "the lake's south shore, off spire_track"},
@@ -297,11 +299,11 @@ const BASE_PATHS := [
 	{"id": "south_track", "w": 1.4, "pts": [Vector2(-112, 122), Vector2(-80, 132), Vector2(-40, 134), Vector2(0, 128), Vector2(40, 134), Vector2(76, 128), Vector2(104, 120)]},
 	# the Marches (docs/r37_expansion.md)
 	{"id": "weir_track", "w": 1.4, "pts": [Vector2(-196, 66), Vector2(-192, 36), Vector2(-188, 0), Vector2(-188, -40), Vector2(-196, -76), Vector2(-200, -82)]},
-	{"id": "siege_track", "w": 1.4, "pts": [Vector2(-214, 65), Vector2(-216, 100), Vector2(-214, 128), Vector2(-206, 160), Vector2(-196, 190)]},
+	{"id": "siege_track", "w": 1.4, "pts": [Vector2(-214, 65), Vector2(-216, 86), Vector2(-210, 102), Vector2(-204, 118), Vector2(-192, 132), Vector2(-181, 146), Vector2(-182.5, 159.06), Vector2(-177, 175), Vector2(-179, 190)]},
 	{"id": "spire_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 52), Vector2(226, 30), Vector2(236, 14)]},
 	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(204, -84), Vector2(205, -102), Vector2(206, -108)]},
 	{"id": "salt_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 104), Vector2(206, 140), Vector2(202, 180), Vector2(196, 212)]},
-	{"id": "downs_track", "w": 1.4, "pts": [Vector2(-196, 190), Vector2(-150, 196), Vector2(-110, 190), Vector2(-44, 192), Vector2(0, 186), Vector2(44, 192), Vector2(110, 186), Vector2(160, 200), Vector2(196, 212)]},
+	{"id": "downs_track", "w": 1.4, "pts": [Vector2(-179, 190), Vector2(-150, 196), Vector2(-110, 190), Vector2(-44, 192), Vector2(0, 186), Vector2(44, 192), Vector2(110, 186), Vector2(160, 200), Vector2(196, 212)]},
 	# the Crowns' foot, east-west: the two boss corners are joined to the old north (through the wall's breaches)
 	{"id": "crowns_west", "w": 1.4, "pts": [Vector2(-196, -76), Vector2(-178, -72), Vector2(-164, -76), Vector2(-150, -74), Vector2(-140, -70), Vector2(-132, -66)]},
 	{"id": "crowns_east", "w": 1.4, "pts": [Vector2(196, -70), Vector2(182, -74), Vector2(168, -72), Vector2(156, -68), Vector2(146, -67), Vector2(138, -66), Vector2(131, -69), Vector2(128, -72)]},
@@ -502,7 +504,10 @@ const SPIRE_Y := LAKE_Y + 12.0                             ## the Spire's bluff 
 const WELL_FLOOR_Y := -17.0                                ## the sinkhole's floor; its pool stands 0.8 m above it
 const WELL_POOL_Y := -16.2
 const WELL_POOL_R := 9.0                                   ## the floor's flat, with the pool, radius
-const SIEGE_RINGS := [{"c": Vector2(-218.0, 168.0), "r": 29.0}, {"c": Vector2(-218.0, 168.0), "r": 64.0}]   ## low banks, ditches outside
+## Low banks, ditches outside, ringing the fallen Hierarch (centre: his skull); "breaches" are the bearings (degrees,
+## 0 = east, 90 = south) where the ring is open: the palisade gate in the north, the track's way out in the south-east.
+const SIEGE_RINGS := [{"c": Vector2(-206.0, 148.0), "r": 46.0, "breaches": [-90.0, -35.0, 48.0, 135.0]},
+	{"c": Vector2(-206.0, 148.0), "r": 64.0, "breaches": [-96.0, 45.0, -150.0, 110.0]}]
 const SIEGE_RECT := Rect2(-258.0, 110.0, 100.0, 130.0)
 
 
@@ -572,10 +577,12 @@ static func marches_detail(x: float, z: float, h: float) -> float:
 			var r: float = ring.r
 			if absf(d - r) > 14.0:
 				continue
-			var a := atan2(z - c.y, x - c.x)
-			var gap := 1.0 - smoothstep(0.55, 0.85, sin(a * 3.0 + r))         # breaches in the rings
-			var bank := 1.9 * exp(-pow((d - r) / 2.4, 2.0))
-			var ditch := 1.3 * exp(-pow((d - r - 4.8) / 2.1, 2.0))
+			var bearing := rad_to_deg(atan2(z - c.y, x - c.x))
+			var gap := smoothstep(-248.0, -238.0, x) * (1.0 - smoothstep(-184.0, -172.0, x))       # the rings run out at the river and at the March Wall's foot
+			for br: float in ring.breaches:
+				gap *= smoothstep(8.0, 15.0, absf(wrapf(bearing - br + 180.0, 0.0, 360.0) - 180.0))
+			var bank := 2.6 * exp(-pow((d - r) / 2.8, 2.0))
+			var ditch := 1.8 * exp(-pow((d - r - 5.4) / 2.4, 2.0))
 			h += m * sg * gap * (bank - ditch)
 	return h
 
@@ -826,7 +833,7 @@ static func region_weight(r: Dictionary, x: float, z: float) -> float:
 
 
 ## The regions added beyond OLD_BOUNDS (the Outer Marches and the Southern Downs).
-const MARCHES_IDS := ["weirford", "sorrow", "hierarch", "siege", "stillwater", "anchorholds", "saltmarket", "saltpans", "downs", "oak", "well"]
+const MARCHES_IDS := ["weirford", "sorrow", "plinth", "siege", "stillwater", "anchorholds", "saltmarket", "saltpans", "downs", "oak", "well"]
 
 
 ## 0 inside OLD_BOUNDS, easing to 1 over 12 m outside it.
