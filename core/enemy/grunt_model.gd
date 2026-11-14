@@ -32,10 +32,10 @@ const KINDS := {
 	&"tollman": ["res://art/models/grunt_tollman.glb", {"rim_col": Color(0.9, 0.62, 0.3), "rim_amount": 0.16, "wet": 0.15, "normal_depth": 1.2}],
 	&"pilgrim": ["res://art/models/grunt_pilgrim.glb", {"rim_col": Color(1.0, 0.78, 0.42), "rim_amount": 0.2, "emit_pulse": 0.3, "pulse_rate": 1.3, "wet": 0.15, "normal_depth": 1.2}],
 	&"crawler": ["res://art/models/grunt_crawler.glb", {"rim_col": Color(1.0, 0.26, 0.16), "rim_amount": 0.5, "heat": 0.72, "normal_depth": 1.3}],
-	&"leaper": ["res://art/models/grunt_leaper.glb", {"rim_col": Color(1.0, 0.6, 0.14), "rim_amount": 0.1, "emit_pulse": 0.3, "pulse_rate": 1.8, "heat": 0.72, "normal_depth": 1.5}],
+	&"leaper": ["res://art/models/grunt_leaper.glb", {"rim_col": Color(1.0, 0.6, 0.14), "rim_amount": 0.04, "rim_scale": 0.0, "emit_pulse": 0.3, "pulse_rate": 1.8, "heat": 0.72, "normal_depth": 1.5}],
 	&"burrower": ["res://art/models/grunt_burrower.glb", {"rim_col": Color(1.0, 0.62, 0.22), "rim_amount": 0.2, "emit_pulse": 0.35, "pulse_rate": 1.2, "heat": 0.62, "normal_depth": 1.6}],
 	# the Thornwarden (a boss, r38d): bark and ember, one skinned body like the grunts'
-	&"thornwarden": ["res://art/models/boss_thornwarden.glb", {"rim_col": Color(1.0, 0.42, 0.1), "rim_amount": 0.18, "heat": 0.55, "dust": 0.28, "dust_col": Color(0.32, 0.26, 0.18), "normal_depth": 1.25}],
+	&"thornwarden": ["res://art/models/boss_thornwarden.glb", {"rim_col": Color(1.0, 0.42, 0.1), "rim_amount": 0.05, "rim_scale": 0.0, "heat": 0.55, "dust": 0.28, "dust_col": Color(0.32, 0.26, 0.18), "normal_depth": 1.25}],
 	# the modelled bosses (tools/blender/boss_*.py): one skinned mesh each, a bone per rig socket
 	&"bone_abbot": ["res://art/models/boss_bone_abbot.glb", {"rim_col": Color(1.0, 0.7, 0.32), "rim_amount": 0.16, "emit_energy": 2.0, "emit_pulse": 0.22, "pulse_rate": 3.2, "dust": 0.35, "dust_col": Color(0.48, 0.44, 0.38), "normal_depth": 1.25}],
 	&"ascended_warden": ["res://art/models/boss_ascended_warden.glb", {"rim_col": Color(1.0, 0.88, 0.55), "rim_amount": 0.18, "emit_pulse": 0.12, "pulse_rate": 1.2, "wet": 0.15, "normal_depth": 1.2}],

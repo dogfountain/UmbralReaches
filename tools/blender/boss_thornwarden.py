@@ -123,8 +123,8 @@ def field():
         # the orbit: BIG, round, set high on the side of the head, a raised round rim, a deep socket, the ember well inside
         F.add(Q.Ell(sp(sx * 0.112, 0.725, hz - 0.1), sr(0.034, 0.075, 0.075)), 0.03, "bone")
         F.add(Q.Ell(sp(sx * 0.088, 0.79, hz - 0.1), sr(0.05, 0.018, 0.07), (0.15, 0, 0)), 0.03, "bone")             # the brow arch
-        F.sub(Q.Ell(sp(sx * 0.134, 0.725, hz - 0.1), sr(0.04, 0.056, 0.056)), 0.012)
-        F.add(Q.Ell(sp(sx * 0.126, 0.725, hz - 0.1), sr(0.03, 0.043, 0.043)), 0.004, "ember")
+        F.sub(Q.Ell(sp(sx * 0.14, 0.725, hz - 0.1), sr(0.068, 0.054, 0.054)), 0.012)                       # a DEEP dark socket (about a quarter of the skull's depth)
+        # (the ember is painted on the socket floor in detail(): a prim inside the cut cavity is removed with it)
         # the zygomatic arch: a slender bridge from the cheek back under the orbit to the ear
         Pt.chain(F, [sp(sx * 0.1, 0.65, hz - 0.14), sp(sx * 0.128, 0.628, hz - 0.04), sp(sx * 0.095, 0.612, hz + 0.05)], [0.012 * HS, 0.012 * HS, 0.015 * HS], 0.01, "bone")
         # the mandible: SLENDER and short, slung well under the maxilla, curving down to a small chin (not a crocodile's long jaw)
@@ -302,6 +302,9 @@ def detail(ctx):
     P, N = ctx.P, ctx.N
     tags = ["bark", "hide", "bone", "ember"]
     idx = ctx.region(tags, {"bone": 0.004, "ember": 0.006, "hide": 0.0})
+    for sx_ in (-1, 1):                                                       # the small ember on each socket's floor, deep inside the cavity
+        c_ = np.array([sx_ * 0.126, 0.751, H[2] - 0.16])
+        idx = np.where((np.linalg.norm(P - c_, axis=1) < 0.046) & (N[:, 0] * sx_ > 0.2), 3, idx)
     barkish = (idx == 0) | (idx == 1)
     # bark zone: the upper and outer surfaces; hide under the belly, the throat, the lower legs
     zone = np.clip((N[:, 1] + 1.2) * 1.0, 0.0, 1.0) * barkish

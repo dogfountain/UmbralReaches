@@ -203,13 +203,13 @@ def cr(vals, t):
     return 0.5 * ((2 * p1) + (-p0 + p2) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f * f + (-p0 + 3 * p1 - 3 * p2 + p3) * f ** 3)
 
 
-axis = [Vector(G(0, 1.645, -0.13)), Vector(G(0, 1.652, -0.27)), Vector(G(0, 1.628, -0.44)), Vector(G(0, 1.57, -0.6)), Vector(G(0, 1.48, -0.73))]
+axis = [Vector(G(0, 1.645, -0.13)), Vector(G(0, 1.64, -0.27)), Vector(G(0, 1.57, -0.44)), Vector(G(0, 1.45, -0.6)), Vector(G(0, 1.30, -0.75))]   # the horn droops from the jaw, so its mouth hangs BELOW the face and the visage shows above it
 
 
 def rad_at(s):
     """A trumpet's profile, not a bell's: a narrow throat that stays narrow, then a flare that accelerates, a rolled lip at the end."""
     lip = 0.026 * max(0.0, (s - 0.93) / 0.07) ** 0.7
-    return 0.066 + 0.042 * s + 0.205 * s ** 3.1 + lip
+    return 0.066 + 0.042 * s + 0.18 * s ** 3.1 + lip
 
 
 NU, NS = 44, 40
@@ -225,9 +225,9 @@ for i in range(NS + 1):
         a = math.tau * j / NU
         # flutes that deepen toward the lip, and a lip that is cracked, chipped and split: a wedge broken out low-left; the
         # horn mouth is a little wider than tall, and the throat stays narrow, so from the side it reads as a horn, not a cone
-        fl = (abs(math.cos(0.5 * 12 * a + 0.4)) - 0.64) * 0.04 * s ** 1.4 + (abs(math.cos(0.5 * 26 * a + 1.3)) - 0.64) * 0.005 * s
-        chip = 0.035 * s ** 5 * max(0.0, math.sin(a * 3.0 + 0.7) + math.sin(a * 7.0 + 2.0) - 0.5)
-        wedge = 0.07 * s ** 7 * max(0.0, 1.0 - abs(math.atan2(math.sin(a - 4.0), math.cos(a - 4.0))) / 0.33)
+        fl = (abs(math.cos(0.5 * 12 * a + 0.4)) - 0.64) * 0.025 * s ** 1.4 + (abs(math.cos(0.5 * 26 * a + 1.3)) - 0.64) * 0.005 * s
+        chip = 0.02 * s ** 5 * max(0.0, math.sin(a * 3.0 + 0.7) + math.sin(a * 7.0 + 2.0) - 0.5)
+        wedge = 0.04 * s ** 7 * max(0.0, 1.0 - abs(math.atan2(math.sin(a - 4.0), math.cos(a - 4.0))) / 0.33)
         rr = r + fl - chip - wedge + 0.004 * math.sin(a * 5 + s * 7)
         p = c + ux * math.cos(a) * rr * (1.0 + 0.1 * s) + vx * math.sin(a) * rr * (1.0 - 0.05 * s)
         Pr[i, j] = (p.x, p.z, -p.y)

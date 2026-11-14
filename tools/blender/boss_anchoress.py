@@ -35,7 +35,7 @@ S = dict(K.SOCKETS)
 P0, C0, H0 = S["pelvis"], S["chest"], S["head"]
 
 # --- materials -----------------------------------------------------------------------------------
-SKIN = GK.hollow_skin("Skin", (0.66, 0.62, 0.55), (0.2, 0.17, 0.14), wet=0.0, wrinkle=70.0, liv=(0.78, 0.74, 0.82), extremities=0.5, vein_amt=0.4)
+SKIN = GK.hollow_skin("Skin", (0.5, 0.4, 0.33), (0.17, 0.12, 0.1), wet=0.0, wrinkle=70.0, liv=(0.78, 0.74, 0.82), extremities=0.5, vein_amt=0.4)
 WOOL = GK.cloth("Wool", (0.3, 0.28, 0.25), "caban", 8.0, (0.05, 0.045, 0.04), 0.9)
 WOOL2 = GK.cloth("WoolDark", (0.19, 0.18, 0.17), "caban", 9.0, (0.03, 0.028, 0.026), 0.92)
 def salt_wool(name, tint, grime, rough=0.9):
@@ -59,16 +59,16 @@ WOOLS = salt_wool("WoolSalt", (0.19, 0.18, 0.17), (0.03, 0.028, 0.026), 0.92)
 IRON = GK.iron("Iron", (0.12, 0.115, 0.12), (0.2, 0.1, 0.05))
 STONE = GK.stone("Cairn", (0.3, 0.31, 0.3), (0.09, 0.11, 0.07))
 # her face is lit from within, faintly: a lamp-coloured warmth in the skin (the night grade would otherwise drown it)
-FACE = GK.hollow_skin("Face", (0.52, 0.42, 0.34), (0.2, 0.14, 0.11), wet=0.0, wrinkle=70.0, liv=(0.78, 0.74, 0.82), extremities=0.0, vein_amt=0.4)
+FACE = GK.hollow_skin("Face", (0.48, 0.36, 0.29), (0.14, 0.09, 0.07), wet=0.0, wrinkle=70.0, liv=(0.78, 0.74, 0.82), extremities=0.0, vein_amt=0.4)
 FACE.emit = (1.0, 0.62, 0.3)
 FACE.emit_strength = 0.35
 FACE.bsdf.inputs['Emission Color'].default_value = (1.0, 0.62, 0.3, 1.0)
-FACE.bsdf.inputs['Emission Strength'].default_value = 0.05
+FACE.bsdf.inputs['Emission Strength'].default_value = 0.14
 SALT = GK.stone("Salt", (0.78, 0.8, 0.78), (0.5, 0.55, 0.5))
 ROPE = GK.cloth("Rope", (0.42, 0.33, 0.2), "caban", 20.0, (0.1, 0.08, 0.05), 0.85)
 GLOW = GK.glow("Lamp", (1.0, 0.55, 0.16), 8.0)
 EYE = GK.glow("EyeGlow", (1.0, 0.6, 0.2), 6.0)
-MATS = [SKIN, FACE, WOOL, WOOL2, IRON, STONE, SALT, ROPE, GLOW, EYE, WOOLS]
+MATS = [SKIN, FACE, WOOL, WOOL2, IRON, STONE, SALT, ROPE, GLOW, EYE, WOOLS]  # HAIRM is appended below
 objs = []
 PAIRS = []
 WEIGHTS = {}
@@ -89,8 +89,8 @@ HEAD1 = lambda p: {"head": 1.0}
 CHEST1 = lambda p: {"chest": 1.0}
 
 # --- the body: torso and neck, thin arms and long hands --------------------------------------------------------
-OPT = dict(W=0.78, L=0.66, nk=0.04, finger=0.2, wrist=0.72, ribs=0.0, belly=-1.0, collar=1.5, tendon=1.7, hc=(0, 1.68, -0.06),
-           head_w=0.068, neck_r=0.034, nohead=False, jaw_w=0.036, brow=0.014, hand_r=0.9)
+OPT = dict(W=0.78, L=0.66, nk=0.04, finger=0.38, wrist=0.72, ribs=0.0, belly=-1.0, collar=1.5, tendon=1.7, hc=(0, 1.68, -0.06),
+           head_w=0.068, neck_r=0.034, nohead=False, jaw_w=0.036, brow=0.014, hand_r=2.3)
 sk_full, SEGS, _Y = GB.humanoid(OPT)
 
 
@@ -170,7 +170,7 @@ def head_sculpt(s):
         s.ridge((sx * 0.006, hc[1] + 0.018, hz - 0.088), (sx * 0.056, hc[1] + 0.02, hz - 0.07), 0.007, 0.011, facing=(0, 0.2, -1))   # the upper lids, closed
         s.ridge((sx * 0.01, hc[1] + 0.003, hz - 0.088), (sx * 0.05, hc[1] + 0.005, hz - 0.074), 0.005, 0.007, facing=(0, 0, -1))     # the lower lids
         s.ridge((sx * 0.014, hc[1] + 0.036, hz - 0.082), (sx * 0.064, hc[1] + 0.04, hz - 0.066), 0.011, 0.018, facing=(0, 0.3, -1))   # the hard brow
-        s.bump((sx * 0.05, hc[1] - 0.04, hz - 0.058), 0.04, -0.034, facing=(sx * 0.4, 0, -1))           # cheeks sunk to the bone
+        s.bump((sx * 0.05, hc[1] - 0.04, hz - 0.058), 0.04, -0.045, facing=(sx * 0.4, 0, -1))           # cheeks sunk to the bone
         s.bump((sx * 0.06, hc[1] - 0.012, hz - 0.064), 0.024, 0.016, facing=(sx * 0.6, 0, -1))          # cheekbones standing out over them
         s.bump((sx * 0.066, hc[1] - 0.062, hz - 0.044), 0.02, -0.02, facing=(sx, 0, -1))                # the hollow where the rope bites
         s.ridge((sx * 0.012, hc[1] - 0.05, hz - 0.087), (sx * 0.05, hc[1] - 0.046, hz - 0.066), 0.006, 0.009, facing=(0, 0, -1))      # lips, drawn tight round the gag
@@ -192,8 +192,18 @@ add(L.thorn("GagEnd", G(0.055, hc[1] - 0.06, FZ + 0.008), Vector(G(0.3, -1.0, 0.
 for sx in (-1, 1):                      # a coal of light under each lid: she is praying, not sleeping
     add(K.blob("Ember", G(sx * 0.032, hc[1] + 0.009, hc[2] - 0.067), (0.009, 0.005, 0.005), "head", EYE, 8, 6), HEAD1)
 
+HAIRM = GK.cloth("Hair", (0.2, 0.19, 0.19), "rough_linen", 30.0, (0.05, 0.05, 0.05), 0.85)
+MATS.append(HAIRM)
+rngh = np.random.RandomState(8)
+for sx in (-1, 1):                      # lank grey hair framing the face and falling past the jaw: a woman's face, not a skull
+    for k in range(7):
+        a = 0.2 + 0.1 * k
+        root = G(sx * (0.045 + 0.012 * k * 0.3), hc[1] + 0.085 - 0.012 * k, hz - 0.03 + 0.012 * k)
+        pts = [Vector(root) + Vector(G(sx * (0.032 + 0.004 * k) * t + 0.01 * math.sin(t * 5 + k), -0.2 * t - 0.01 * k * t, -0.02 * t)) for t in [i / 6.0 for i in range(7)]]
+        add(GK.strip("Hair", pts, 0.012, 0.004, "head", HAIRM, taper=0.7), HEAD1)
+
 HCB = Vector(G(hc[0], hc[1], hc[2]))
-L.scale_about([o for o in objs if o["sock"] == "head"] + [hhi], HCB, 1.35)
+L.scale_about([o for o in objs if o["sock"] == "head"] + [hhi], HCB, 1.55)
 
 # --- the wool -------------------------------------------------------------------------------------------------------
 def hood_w(p):
