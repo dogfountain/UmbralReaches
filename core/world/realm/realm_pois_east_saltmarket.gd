@@ -36,6 +36,11 @@ static func release() -> void:
 static func reserve() -> void:
 	var sq := Pilot.sm_square()
 	Flora.tree_clear.append([sq[0] as Vector2, float(sq[1]) - 1.0])
+	# and none inside or against a house: they stand 4-6 m outside the yard's disc, where a crown twice a house's height
+	# came up through a roof or leaned over a door
+	for id: String in Pilot.SM_HOUSES:
+		var h := Pilot.sm_house(id)
+		Flora.tree_clear.append([h.at as Vector2, Vector2(float(h.w), float(h.d)).length() * 0.5 * float(h.s) + 2.5])
 
 
 static func _g(space: PhysicsDirectSpaceState3D, x: float, z: float) -> float:

@@ -30,7 +30,7 @@ exec(compile(head, os.path.join(HERE, "props_square.py"), "exec"), ns)
 bpy = ns["bpy"]
 P, box, ext, nail, finish, export, reset, bounds, tri_count = (ns[k] for k in ("P", "box", "ext", "nail", "finish", "export", "reset", "bounds", "tri_count"))
 V, B, G, rotm, render_set = ns["V"], ns["B"], ns["G"], ns["rotm"], ns["render_set"]
-WOOD, IRON, CLOTH, GRAIN, DARK = ns["WOOD"], ns["IRON"], ns["CLOTH"], ns["GRAIN"], ns["DARK"]
+WOOD, IRON, CLOTH, GRAIN, DARK, CLAY = ns["WOOD"], ns["IRON"], ns["CLOTH"], ns["GRAIN"], ns["DARK"], ns["CLAY"]
 Vector, Matrix = ns["Vector"], ns["Matrix"]
 OUT, PREVIEW, ONLY = ns["OUT"], ns["PREVIEW"], ns["ONLY"]
 
@@ -506,16 +506,16 @@ def build_line():
     pts = [(-2.4 + 4.8 * i / n, line_y(-2.4 + 4.8 * i / n)) for i in range(n + 1)]
     for i in range(n):
         beam_between(p, V(pts[i][0], pts[i][1], 0), V(pts[i + 1][0], pts[i + 1][1], 0), 0.018, kind=IRON, col=(0.72, 0.62, 0.5))
-    # laundry (cream sheet, madder shirt, indigo trousers, ochre sheet, a small cloth)
-    cloth_hang(p, -2.05, -0.82, 1.28, (1.0, 0.95, 0.86), folds=3.0, phase=0.4, amp=0.08, sway=-0.03)
+    # laundry (a pale linen sheet on the pale daub set (the tiled cloth set is mustard: a cream tone on it read mustard in the night, since the grade warms a cream); madder shirt, indigo trousers, a faded sage sheet, a small linen cloth)
+    cloth_hang(p, -2.05, -0.82, 1.28, (0.8, 0.84, 0.9), kind=CLAY, folds=3.0, phase=0.4, amp=0.08, sway=-0.03)
     cloth_hang(p, -0.64, -0.06, 0.82, (0.82, 0.36, 0.32), folds=2.0, phase=1.7, amp=0.06, narrow=0.10, z0=0.01)
     for sg in (-1.0, 1.0):                           # the shirt's sleeves: hung from its shoulders, cuffs out
         xs = -0.35 + sg * 0.36
         cloth_hang(p, xs - 0.08, xs + 0.08, 0.5, (0.8, 0.34, 0.3), folds=1.0, phase=0.6 + sg, amp=0.02, sway=sg * 0.07, narrow=0.05, z0=0.02, shade=0.14)
     for xs in (0.18, 0.40):                          # trousers: two legs on one peg
         cloth_hang(p, xs - 0.09, xs + 0.09, 0.95, (0.42, 0.5, 0.68), folds=1.0, phase=0.3 + xs * 3, amp=0.025, narrow=0.18, z0=0.0, shade=0.14)
-    cloth_hang(p, 0.78, 2.0, 1.05, (0.9, 0.78, 0.55), folds=3.0, phase=2.4, amp=0.085, sway=0.05, narrow=0.06, z0=-0.01)
-    cloth_hang(p, 2.12, 2.36, 0.42, (0.95, 0.9, 0.78), folds=1.0, phase=0.2, amp=0.025, narrow=0.1, z0=0.0)
+    cloth_hang(p, 0.78, 2.0, 1.05, (0.6, 0.72, 0.62), folds=3.0, phase=2.4, amp=0.085, sway=0.05, narrow=0.06, z0=-0.01)
+    cloth_hang(p, 2.12, 2.36, 0.42, (0.78, 0.82, 0.88), kind=CLAY, folds=1.0, phase=0.2, amp=0.025, narrow=0.1, z0=0.0)
     for x in (-2.05, -0.82, -0.64, -0.06, 0.09, 0.27, 0.78, 2.0, 2.12, 2.36):
         peg(p, x)
     # a basket under the line, with folded laundry piled in it

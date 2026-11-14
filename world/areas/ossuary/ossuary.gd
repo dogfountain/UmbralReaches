@@ -756,8 +756,9 @@ func _crypt(hall: Node3D) -> void:
 	WardSeal.make(self, "oss_gallery", OssFrame.w(Vector3(21.0, GAL_Y, -66.7)), OssFrame.wd(Vector3.FORWARD), 3.6, 3.0, "bone", "The bone portcullis")
 	var da := OssHall.door_ang()
 	var inward := OssFrame.wd(Vector3(-cos(deg_to_rad(da)), 0.0, -sin(deg_to_rad(da))))
-	# he rises on the door side of the mound, in the lantern light on the entry axis (he was 26 m off beyond the mound, a speck)
-	var spawn := OssHall.wat(da, 11.0, OssHall.FLOOR_Y + 0.1)
+	# he rises on the inner disc, off the entry axis (about 9 m from the pull, clear of the mound):
+	# at 4.6 m, on the entry axis, his 5 m of robe filled the frame and showed the camera only a hem
+	var spawn := OssHall.wat(da + 30.0, 9.0, OssHall.FLOOR_Y + 0.1)
 	var arena := BossArena.make(self, "bone_abbot", "The Bone Abbot", OssHall.WC, 23.0, BoneAbbot, spawn)
 	arena.ceiling = 4.0                          # the stair's slit and the galleries never pull him
 	arena.max_rise = 6.0                         # the mound stands in the middle of the floor

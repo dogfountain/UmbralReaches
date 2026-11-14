@@ -3,12 +3,12 @@ extends Node
 ## it, group "text_director"), not an autoload. Every transient line of text asks it before it draws.
 ##
 ## Lanes (each a fixed rectangle of the screen, see lane_rect()):
-##   banner     top centre, one at a time:      boss emote (the arena draws it at y 168), title card, discovery banner, quest banner
+##   banner     top centre, one at a time:      boss title (core/enemy/boss_title.gd), boss emote (the arena draws it at y 168), title card, discovery banner, quest banner
 ##   sub        lower centre, one at a time:    narration subtitle, lesson
 ##   toast      bottom left corner, two at most: toasts, and the quiet line a rate-limited discovery leaves
 ##   objective  top right (objective_line.gd): not a queue; it stands aside while the banner lane is up
 ## Priority (higher wins a lane; a lower post queues while a higher one is up, in any lane):
-##   narration 6 > boss emote 5 > title card 4 > lesson 3 > discovery / quest 2 > toast 1 > quiet line 0
+##   boss title 7 > narration 6 > boss emote 5 > title card 4 > lesson 3 > discovery / quest 2 > toast 1 > quiet line 0
 ## Busy rule: while narration or a dialogue box is up, banners and toasts (and lessons) queue.
 ##   While locked on to a foe, only boss emotes and lessons (and narration) draw.
 ## Discovery banners are limited to one per DISCOVERY_GAP seconds; a discovery past the limit leaves a
@@ -29,6 +29,7 @@ const MAX_TOASTS := 2
 const TOAST_HOLD := 3.4
 const KINDS := {
 	&"narration": {"lane": &"sub", "pri": 6},
+	&"boss_title": {"lane": &"banner", "pri": 7},          # the great one's name: wins the banner lane, and cuts a card or banner already up
 	&"boss_emote": {"lane": &"banner", "pri": 5},
 	&"title": {"lane": &"banner", "pri": 4},
 	&"lesson": {"lane": &"sub", "pri": 3},

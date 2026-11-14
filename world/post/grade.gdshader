@@ -26,6 +26,7 @@ uniform float vignette = 0.42;
 uniform float grain = 0.038;
 uniform float chroma = 0.0018;
 uniform float gloom : hint_range(0.0, 1.0) = 0.0;   // driven by the player's Gloom meter
+uniform float gloom_world : hint_range(0.0, 1.0) = 0.0;   // GloomWorld's eased severity: the night cools, drains and closes in; fire keeps its colour
 uniform float hurt : hint_range(0.0, 1.0) = 0.0;    // flash when an enemy fills the dark (Zone)
 uniform vec2 hurt_dir = vec2(0.0);                    // screen-space direction of the attacker, 0 = all round
 
@@ -123,7 +124,24 @@ void fragment() {
     lt += highlight_gain * smoothstep(0.35, 0.9, lc) * (1.0 - lc);
     col *= lt / lc;
 
-    col *= 1.0 - smoothstep(0.32, 0.88, distance(SCREEN_UV, vec2(0.5))) * vignette;
+    // Gloom, the world's share (core/world/gloom_world.gd): colour drains, the night goes cold and dark, the frame
+    // closes in. Light that is plainly warm (red over blue: fires, lamps, lit windows) is spared and pushed a
+    // little warmer, so a kindled flame reads brighter against the grey.
+    float gw = gloom_world;
+    float vig_k = vignette;
+    float vig_in = 0.32;
+    if (gw > 0.001) {
+        float gl = dot(col, vec3(0.2126, 0.7152, 0.0722));
+        float fire = smoothstep(1.12, 1.7, col.r / max(col.b, 1e-3)) * smoothstep(0.04, 0.16, gl);
+        float spare = 1.0 - fire;
+        col = mix(col, vec3(gl), gw * 0.7 * spare);
+        col *= mix(vec3(1.0), vec3(0.78, 0.92, 1.12), gw * spare);
+        col *= 1.0 - 0.3 * gw * spare;
+        col = mix(col, col * vec3(1.18, 1.0, 0.86), fire * gw * 0.6);
+        vig_k = vignette * (1.0 + gw * 1.1);
+        vig_in = 0.32 - 0.14 * gw;
+    }
+    col *= 1.0 - smoothstep(vig_in, 0.88 - 0.1 * gw, distance(SCREEN_UV, vec2(0.5))) * vig_k;
     // Gloom: a violet fringe from the frame. The centre stays clear, so a boss you are reading
     // does not disappear into the clock. Past half a bar the fringe breathes, once a second.
     float edge = smoothstep(0.42, 1.02, length(SCREEN_UV - vec2(0.5)) * (1.05 + gloom * 0.45));

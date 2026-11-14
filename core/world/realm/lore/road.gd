@@ -90,6 +90,8 @@ static func build(parent: Node) -> void:
 	for x3: float in [-80.0, -64.0, -48.0, 58.0, 82.0]:
 		var side3 := -1.0 if int(x3) % 3 == 0 else 1.0
 		var q3 := beside(x3, side3, 3.3)
+		if q3.x > -71.0 and q3.x < -55.0 and absf(q3.y - 51.4) < 3.6:
+			q3.y = 51.4 + (-5.2 if q3.y < 51.4 else 5.2)      # not on the chapel's axis: its door (x -70.2, z 51.4) looks along it
 		var at3: Vector3 = L.gv(q3.x, q3.y)
 		if not L.spot("rd_lamp_%d" % int(x3), at3, 0.7, 0.2):
 			continue

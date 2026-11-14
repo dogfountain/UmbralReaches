@@ -24,6 +24,11 @@ const ScapeSynth := preload("res://core/life/wildlife/scape_synth.gd")
 const LifeSynth := preload("res://core/life/wildlife/life_synth.gd")
 const Music := preload("res://core/life/wildlife/scape_music.gd")
 const Foley := preload("res://core/vfx/foley.gd")
+const GloomDrone := preload("res://core/world/gloom_drone.gd")
+
+## dB each bed gives up at full Gloom (core/world/gloom_world.gd): the small living sounds go first
+const GLOOM_THIN := {"crickets": 17.0, "meadow": 13.0, "leaves": 8.0, "murmur": 14.0, "fen": 6.0, "night": 2.5}
+const GLOOM_DRONE_DB := [-52.0, -19.0]    ## the drone's level at the first sign of Gloom and at full
 
 const FADE := 2.5                 ## seconds for a bed to come fully in or out
 const BASE_DB := -6.0
@@ -137,6 +142,7 @@ const ROOM_KEYS := ["room_size", "damping", "spread", "predelay_msec", "hipass"]
 const MUFFLE := {"": [20000.0, 0.0], "tavern": [700.0, -4.0], "ossuary": [320.0, -16.0], "rift": [20000.0, 0.0]}
 
 var scape := "village"            ## the dominant soundscape at the listener
+var gloom := 0.0                  ## 0..1, set by GloomWorld: thins the small sounds, brings the drone in
 var bed_gain := {}                ## bed -> current linear gain (0..1, before its top dB)
 var bed_want := {}                ## bed -> target gain
 var reverb_zone := ""             ## "", tavern, ossuary, rift
@@ -163,6 +169,7 @@ var _muffle_to := ""
 var _limiter: AudioEffectHardLimiter
 var _master_comp: AudioEffectCompressor
 var _music_v := -1.0
+var _drone: AudioStreamPlayer
 
 
 ## The Music bus level: Settings.music_volume when it exists (the Music slider), else the Ambience
@@ -382,7 +389,7 @@ func _process(delta: float) -> void:
 			if p.playing:
 				p.stop()
 			continue
-		p.volume_db = float(BEDS[key][1]) + linear_to_db(sin(g * PI * 0.5)) + _duck      # equal-power
+		p.volume_db = float(BEDS[key][1]) + linear_to_db(sin(g * PI * 0.5)) + _duck - float(GLOOM_THIN.get(key, 0.0)) * gloom      # equal-power
 		if not p.playing:
 			p.play(_rng.randf() * p.stream.get_length())
 		var tw := _twins.get(key) as AudioStreamPlayer
@@ -398,8 +405,29 @@ func _process(delta: float) -> void:
 		if tw.playing and float(bed_gain[key]) <= 0.001:
 			tw.stop()
 	_rooms(delta)
+	_gloom_drone()
 	if not off:
 		_spots(delta)
+
+
+## The drone under the night: silent until the Gloom is real, then a level that climbs with it. It rides the
+## outdoor bus, so a roof muffles it with the rest.
+func _gloom_drone() -> void:
+	if gloom < 0.04:
+		if _drone != null and _drone.playing:
+			_drone.stop()
+		return
+	if _drone == null:
+		if off or AudioServer.get_bus_index(OUT_BUS) < 0:
+			return
+		_drone = AudioStreamPlayer.new()
+		_drone.name = "GloomDrone"
+		_drone.stream = GloomDrone.make()
+		_drone.bus = OUT_BUS
+		add_child(_drone)
+	_drone.volume_db = lerpf(GLOOM_DRONE_DB[0], GLOOM_DRONE_DB[1], sqrt(gloom)) + _duck
+	if not _drone.playing:
+		_drone.play()
 
 
 # --- where the listener is ---------------------------------------------------------------------------
@@ -581,7 +609,7 @@ func _spots(dt: float) -> void:
 	var wx := _weather_state()
 	var rain := float(wx.get("rain", 0.0))
 	var danger := float(music.get("intensity")) if music != null else 0.0
-	var k := (1.0 + rain * 1.5) * (1.0 + danger * 1.5)
+	var k := (1.0 + rain * 1.5) * (1.0 + danger * 1.5) * (1.0 + gloom * 3.0)
 	_spot_t = _rng.randf_range(float(spec[0]), float(spec[1])) * k
 	if quiet or (spec[4] as Array).is_empty():
 		return

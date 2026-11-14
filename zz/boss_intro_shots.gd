@@ -49,7 +49,9 @@ func _process(delta: float) -> void:
 			return
 		for e in get_tree().get_nodes_in_group(Groups.ENEMY):
 			(e as Node).queue_free()
-		var g: Vector3 = arena.gate.global_position if arena.gate != null else arena.global_position + Vector3(0, 0, 20)
+		arena.requires_bells = 0                                   # the Ascended Warden's door wants the bells: the harness opens it
+		arena.requires_bosses = []
+		var g: Vector3 = arena.gate.global_position if arena.gate != null else arena.global_position + Vector3(0, 0, arena.radius + 1.2)
 		if id == "r37_anchoress":                                  # no gate node: the raid's own gate point
 			var rg: Vector2 = RealmLayout.raid("anchorhold").gate
 			g = Vector3(rg.x, arena.global_position.y, rg.y)

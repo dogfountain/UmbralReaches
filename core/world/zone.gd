@@ -34,6 +34,11 @@ func finish_zone_setup() -> void:
 		var pool := BoltPool.new()
 		pool.name = "BoltPool"
 		add_child(pool)
+	if get_node_or_null("GloomWorld") == null:
+		var gw := GloomWorld.new()
+		gw.name = "GloomWorld"
+		add_child(gw)
+		gw.setup(self, _grade_mat, _env)
 	refresh_lights()
 	_apply_settings()
 	call_deferred("_restore_kindles")
