@@ -750,7 +750,7 @@ static func _anchorholds(holder: Node3D, space: PhysicsDirectSpaceState3D) -> vo
 	_cells(host, space, C, float(raid.r))
 	# the boss: the arena on the floor, its beacon, the room, what it leaves
 	var script := load(ANCHORESS) as GDScript
-	var arena := BossArena.make(host, "r37_anchoress", "The Anchoress", C, float(raid.r) - 1.0, script, C + Vector3(0, 0.1, -5.5))
+	var arena := BossArena.make(host, "r37_anchoress", "The Anchoress", C, float(raid.r) - 1.0, script, C + _toward(C, raid.gate) * 7.0 + Vector3(0, 0.1, 0))   # rises on the entry axis
 	arena.room = room
 	arena.ceiling = 10.0
 	arena.max_rise = 2.6
@@ -772,6 +772,12 @@ static func _anchorholds(holder: Node3D, space: PhysicsDirectSpaceState3D) -> vo
 		ch.set("loot", {"grave_ash": 16, "relic_fragment": 1, "ember_shard": 1})
 	built.append("anchorholds")
 	print("REALM_POI r37e anchorholds arena at %s r %.1f cairns %s" % [C.snapped(Vector3.ONE * 0.1), float(raid.r) - 1.0, cairns.size()])
+
+
+## Unit vector on the ground from the arena's centre toward its gate (the way the wanderer walks in).
+static func _toward(c: Vector3, gate: Vector2) -> Vector3:
+	var d := Vector3(gate.x - c.x, 0.0, gate.y - c.z)
+	return d.normalized() if d.length() > 0.5 else Vector3(0, 0, 1)
 
 
 ## Raycast the face at `y` from inside the floor outward along `ang` (radians, xz): [point, outward normal] or [].

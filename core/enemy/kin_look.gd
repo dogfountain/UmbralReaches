@@ -53,7 +53,10 @@ static func material(kind: String) -> ShaderMaterial:
 	m.set_shader_parameter("skin", p.skin)
 	m.set_shader_parameter("skin_deep", p.deep)
 	m.set_shader_parameter("eye_col", p.eye)
-	m.set_shader_parameter("rim_amount", p.rim)
+	var ec: Color = p.eye
+	var em := maxf(ec.r, maxf(ec.g, ec.b))
+	m.set_shader_parameter("rim_col", Color(ec.r / em, ec.g / em, ec.b / em))   # the kin's own eye-colour accent edge
+	m.set_shader_parameter("rim_amount", float(p.rim) * 0.7)
 	if p.has("bone"):
 		m.set_shader_parameter("bone_col", p.bone)
 	if p.has("linen"):
