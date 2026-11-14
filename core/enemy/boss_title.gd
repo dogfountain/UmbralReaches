@@ -9,9 +9,14 @@ extends CanvasLayer
 const TITLE_FONT := "res://ui/fonts/Cinzel.ttf"
 const GOLD := Color(1.0, 0.82, 0.5)
 const HOLD := 3.0
+const TextDirector := preload("res://ui/text_director.gd")
 
 
 static func show_for(host: Node, title: String, subtitle: String, col := GOLD) -> BossTitle:
+	# one large card at a time, and this one wins: the text director clears a zone card or a discovery banner
+	var td := TextDirector.of(host)
+	if td != null:
+		td.begin(&"boss_title", HOLD + 0.4, Rect2(host.get_viewport().get_visible_rect().size.x * 0.5 - 700.0, 206.0, 1400.0, 150.0), true)
 	var t := BossTitle.new()
 	t.layer = 41
 	t.name = "BossTitle"

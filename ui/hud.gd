@@ -114,6 +114,7 @@ func _ready() -> void:
 	_td.name = "TextDirector"
 	add_child(_td)
 	_td.build(outer, _font)
+	_td.bumped.connect(_on_text_bumped)
 	HudPrefs.ensure()
 	_card_req = HudPrefs.card_request
 	var gl := _label(root, "GLOOM", 22, QUIET)
@@ -398,6 +399,17 @@ func _on_zone(title: String, subtitle: String, opening := false) -> void:
 	tt.tween_interval(3.2)
 	tt.tween_property(_title, "modulate:a", 0.0, 1.0)
 	tt.parallel().tween_property(_subtitle, "modulate:a", 0.0, 1.0)
+
+
+## A higher post took the banner lane (a boss's title): the zone card on screen fades out at once.
+func _on_text_bumped(kind: StringName) -> void:
+	if kind != &"title" or _title_tw == null or not _title_tw.is_valid():
+		return
+	_title_tw.kill()
+	var tw := create_tween()
+	_title_tw = tw
+	tw.tween_property(_title, "modulate:a", 0.0, 0.3)
+	tw.parallel().tween_property(_subtitle, "modulate:a", 0.0, 0.3)
 
 
 var _title_pending := 0            ## title cards waiting for the loading screen to lift
