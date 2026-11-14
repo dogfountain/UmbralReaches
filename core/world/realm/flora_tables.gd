@@ -59,7 +59,7 @@ const LOOKS := {
 		"under_add": {"glowcap": 0.003},
 		"tint": Color(0.8, 0.86, 0.8), "props": {"headstone": 0.006}, "stone_mul": 1.3, "style": "granite"},
 	"mere": {"tree_mul": {"oak": 0.2, "birch": 0.6, "pine": 0.0, "sapling": 0.5}, "dead_willow": 0.85,
-		"under_mul": {"grass": 0.2, "tallgrass": 0.45, "flowers": 0.5, "reeds": 1.8, "cattail": 1.8, "moss": 1.3},
+		"under_mul": {"grass": 0.34, "tallgrass": 0.7, "flowers": 0.5, "reeds": 2.2, "cattail": 2.2, "moss": 1.6},
 		"under_add": {"lily": 0.35},
 		"tint": Color(0.86, 0.94, 0.88)},
 }

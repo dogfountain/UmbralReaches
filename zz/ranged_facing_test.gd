@@ -3,7 +3,7 @@ extends Node
 ## of the body (the mouth, sac or staff on your side), travels at you (dot > 0.9), and the rig
 ## faces you when it lets go (its head and its forward are on your side of the body).
 ## Run: SCRATCH=<dir> tools/run_tests.sh ranged_facing
-const AT := Vector3(-24.0, 0.0, 60.0)     ## open ground outside every sanctuary light
+const AT := Vector3(-50.0, 0.0, 62.0)     ## open ground outside every sanctuary light (clear 12 m all round; Maud's bigger cottage stood in the old spot's line)
 const KINDS := {
 	"spitter": "res://core/enemy/spitter.gd",
 	"cinder": "res://core/enemy/cinder_caster.gd",
