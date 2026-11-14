@@ -19,9 +19,8 @@ const STRIP_H := 38.0
 const Forge := preload("res://ui/hud_forge.gd")
 const BRAZIER_R := 110.0                 ## braziers farther than this are not shown
 const MAX_BRAZIERS := 4
-const DIST_PT := 15
+const DIST_PT := 19
 const OUTLINE_TRI := Color(0.02, 0.012, 0.006)
-const LABEL_GAP := 4.0                   ## px kept clear between two distance numbers
 
 var _font: Font
 var _scan := 0.0
@@ -181,27 +180,21 @@ func _draw() -> void:
 	_draw_distances(labels, sr.end.y + 4.0)
 
 
-## Each beacon's distance on a small tab hung under the strip. The nearest keeps its number; any other
-## whose tab would touch a placed one goes without.
+## The distance of the one beacon nearest the centre of the strip (the one you are facing), on a small tab hung
+## under it at full strength. The others carry no number: four tags at once, half of them faded to nothing at the
+## strip's ends, read as noise (docs/CRITIQUE_r38.md, 12).
 func _draw_distances(labels: Array, y: float) -> void:
-	labels.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
-	var taken: Array[Vector2] = []                  # placed spans: x = left, y = right
+	if labels.is_empty():
+		return
+	var best: Array = labels[0]
 	for l: Array in labels:
-		var text: String = l[2]
-		var dw := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, DIST_PT).x
-		var x := clampf(float(l[1]), dw * 0.5 + 8.0, WIDTH - dw * 0.5 - 8.0)
-		var span := Vector2(x - dw * 0.5 - 8.0 - LABEL_GAP, x + dw * 0.5 + 8.0 + LABEL_GAP)
-		var free := true
-		for t: Vector2 in taken:
-			if span.x < t.y and t.x < span.y:
-				free = false
-				break
-		if not free:
-			continue
-		taken.append(span)
-		var al: float = l[3]
-		Forge.tab(self, Rect2(x - dw * 0.5 - 8.0, y, dw + 16.0, DIST_PT + 8.0), al)
-		draw_string(_font, Vector2(x - dw * 0.5, y + DIST_PT + 2.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, DIST_PT, Color(INK.r, INK.g, INK.b, al * 0.98))
+		if absf(float(l[1]) - WIDTH * 0.5) < absf(float(best[1]) - WIDTH * 0.5):
+			best = l
+	var text: String = best[2]
+	var dw := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, DIST_PT).x
+	var x := clampf(float(best[1]), dw * 0.5 + 8.0, WIDTH - dw * 0.5 - 8.0)
+	Forge.tab(self, Rect2(x - dw * 0.5 - 8.0, y, dw + 16.0, DIST_PT + 9.0), _alpha)
+	Forge.label(self, _font, Vector2(x - dw * 0.5, y + DIST_PT + 3.0), text, DIST_PT, Color(INK.r, INK.g, INK.b, _alpha), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 2)
 
 
 ## Screen x for a world bearing; off-band bearings return -1 (or are pinned to the edge for markers).

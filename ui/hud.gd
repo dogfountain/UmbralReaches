@@ -50,6 +50,7 @@ var _air_t := 0.0
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 const Hints := preload("res://ui/hints.gd")
 const TextDirector := preload("res://ui/text_director.gd")
+const LootWindow := preload("res://ui/loot_window.gd")
 
 
 class Crosshair extends Control:
@@ -269,6 +270,7 @@ func _process(delta: float) -> void:
 	if HudPrefs.card_request != _card_req:
 		_card_req = HudPrefs.card_request
 		show_card()
+	_prompt.visible = not _loot_open()          # the world prompt belongs to the world: under the loot window it was a ghost behind the hotbar
 	_bar.pulse += delta
 	if _bar.value > 0.75 or not is_equal_approx(_bar.value, _bar.get_meta("drawn", -1.0)):
 		_bar.set_meta("drawn", _bar.value)
@@ -408,6 +410,11 @@ func title_busy() -> bool:
 func _loading_cover() -> Node:
 	var zone := get_parent()
 	return zone.get_node_or_null("LoadingScreen") if zone else null
+
+
+func _loot_open() -> bool:
+	var w := get_tree().get_first_node_in_group(&"loot_window") as LootWindow
+	return w != null and w.is_open()
 
 
 ## A menu, the dialogue or the Satchel is open: the card and the tips step aside.

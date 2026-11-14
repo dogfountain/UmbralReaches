@@ -11,6 +11,7 @@ extends CanvasLayer
 ##            move. The world pauses while it is open.
 ## Data: core/story/quest_chains.gd; state: core/story/quest_book.gd.
 
+const PageGrid := preload("res://ui/page_grid.gd")
 const Book := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const Offer := preload("res://ui/quest_offer.gd")
@@ -118,11 +119,7 @@ func _frame(bg: Color, border: Color, top := 3) -> StyleBoxFlat:
 
 func _build_ledger() -> void:
 	_panel = PanelContainer.new()
-	_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	_panel.offset_left = -720
-	_panel.offset_right = 720
-	_panel.offset_top = -430
-	_panel.offset_bottom = 430
+	PageGrid.place(_panel)                      # the character screen's one grid cell: the ledger fills it
 	_panel.theme = Med.theme()
 	_panel.add_theme_stylebox_override("panel", Med.panel("leather", 36))
 	_panel.visible = false
@@ -148,6 +145,7 @@ func _build_ledger() -> void:
 	col.add_child(row)
 	_body = row
 	_empty = _build_empty()
+	_empty.size_flags_vertical = Control.SIZE_EXPAND_FILL      # the calm page is centred in the whole cell
 	col.add_child(_empty)
 	var left_well := PanelContainer.new()
 	left_well.add_theme_stylebox_override("panel", Med.inset(10))
@@ -369,7 +367,8 @@ func _fill() -> void:
 	_fill_detail()
 	_body.visible = not ids.is_empty()
 	_empty.visible = ids.is_empty()
-	_panel.offset_bottom = _panel.offset_top + (_tall if not ids.is_empty() else 0.0)    # shrinks to its content
+	if not hosted:
+		_panel.offset_bottom = _panel.offset_top + (_tall if not ids.is_empty() else 0.0)    # shrinks to its content
 	_hint.text = "[↑↓] choose      [T] track      [X] abandon      [L] close" if Book.active(sel) else ("[↑↓] choose      [L] close" if not ids.is_empty() else "[L] close")
 
 
@@ -595,7 +594,14 @@ func _cs() -> Node:
 ## r35: hosted on the character screen, the ledger sits below its tab band (it was centred 860 tall,
 ## its top under the band).
 func set_hosted(on: bool) -> void:
-	if _panel:
-		_tall = 800.0 if on else 860.0
-		_panel.offset_top = -330.0 if on else -430.0
-		_panel.offset_bottom = _panel.offset_top + (_tall if _body == null or _body.visible else 0.0)
+	if _panel == null:
+		return
+	if on:
+		PageGrid.place(_panel)                  # the screen's one grid cell: the ledger fills it
+		return
+	_tall = 860.0
+	_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_panel.offset_left = -720.0
+	_panel.offset_right = 720.0
+	_panel.offset_top = -430.0
+	_panel.offset_bottom = _panel.offset_top + (_tall if _body == null or _body.visible else 0.0)

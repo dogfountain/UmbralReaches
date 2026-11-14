@@ -9,15 +9,16 @@ extends CanvasLayer
 
 const UiSound := preload("res://ui/ui_sound.gd")
 const GearRuntime := preload("res://core/items/gear_runtime.gd")
-const SLOT := 84.0
-const COLS := 6
-const MIN_CELLS := 12                  ## every group shows at least this many sockets, the empty ones too
+const SLOT := 96.0
+const COLS := 8
+const MIN_CELLS := 16                 ## every group shows at least this many sockets, the empty ones too
 const GROUPS := [["relic", "Relics"], ["trophy", "Trophies"], ["core", "Staff Cores"], ["charm", "Charms"], ["material", "Materials"]]
 const _PROG := preload("res://core/life/progression/icons.gd")   # progression: charm icons, worn notes
 const Med := preload("res://ui/medieval_style.gd")
 const Tip := preload("res://ui/item_tooltip.gd")
 const Card := preload("res://ui/item_card.gd")
 const UIType := preload("res://ui/type.gd")
+const PageGrid := preload("res://ui/page_grid.gd")
 const INK := Med.BONE
 const QUIET := Med.BONE_DIM
 const EDGE := Med.BRONZE
@@ -149,18 +150,11 @@ func _build() -> void:
 	dim.color = Med.BACKDROP
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(dim)
-	var margin := MarginContainer.new()          # centred in the space under the character screen's header
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_top", 134)
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root.add_child(margin)
-	var centre := CenterContainer.new()
-	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	margin.add_child(centre)
-	var panel := PanelContainer.new()            # the window shrinks to its content
+	var margin := PageGrid.cell(_root)           # the character screen's one grid cell: the window fills it
+	var panel := PanelContainer.new()
 	panel.theme = Med.theme()
 	panel.add_theme_stylebox_override("panel", Med.panel("leather", 34))
-	centre.add_child(panel)
+	margin.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 14)
 	panel.add_child(col)
@@ -199,6 +193,7 @@ func _build() -> void:
 	col.add_child(Med.rule())
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 22)
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(body)
 	var well := PanelContainer.new()             # the shelves: a recessed well holding the groups
 	well.add_theme_stylebox_override("panel", Med.inset(14))
@@ -213,6 +208,7 @@ func _build() -> void:
 	scroll.add_child(_grid_box)
 	_card = Card.make(400.0, true)
 	_card.custom_minimum_size.y = 430
+	_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL      # the item's card takes what the shelves leave of the cell
 	Card.fill(_card, "", 0, "")
 	body.add_child(_card)
 	_empty = _label("Empty. Put to rest what hunts you; the great ones leave more than ash.", 18, QUIET)
