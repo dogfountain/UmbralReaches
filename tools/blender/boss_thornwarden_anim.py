@@ -579,7 +579,8 @@ def export(arm, body):
         tr.is_solo = False
     path = os.path.join(os.environ.get("BOSS_OUT", os.path.join(ROOT, "art", "models")), "boss_thornwarden.glb")
     bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', use_selection=True, export_apply=False, export_yup=True,
-                              export_materials='NONE', export_normals=True, export_tangents=True, export_texcoords=True,
+                              export_materials='EXPORT' if "--built" in ARGS else 'NONE', export_vertex_color='ACTIVE' if "--built" in ARGS else 'NONE',
+                              export_active_vertex_color_when_no_material=True, export_normals=True, export_tangents=True, export_texcoords=True,
                               export_skins=True, export_def_bones=True, export_animations=True,
                               export_animation_mode='NLA_TRACKS', export_force_sampling=True, export_frame_step=1,
                               export_all_influences=False, export_optimize_animation_size=False)
@@ -587,10 +588,18 @@ def export(arm, body):
 
 
 def main():
-    bpy.ops.wm.open_mainfile(filepath=os.path.join(ROOT, "art", "blender", "boss_thornwarden.blend"))
+    if "--built" in ARGS:
+        # a body BUILT for tiling materials (grunt_build.thornwarden), labelled with his old socket names
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import grunt_build
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        body = grunt_build.thornwarden()[0]
+        old = None
+    else:
+        bpy.ops.wm.open_mainfile(filepath=os.path.join(ROOT, "art", "blender", "boss_thornwarden.blend"))
+        body = bpy.data.objects["body"]
+        old = body.parent
     bpy.context.scene.render.fps = FPS
-    body = bpy.data.objects["body"]
-    old = body.parent
     body.parent = None
     arm = build_armature()
     skin(body, arm)

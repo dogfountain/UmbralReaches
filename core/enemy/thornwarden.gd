@@ -119,6 +119,7 @@ func _build() -> void:
 	# his motion is authored (tools/blender/boss_thornwarden_anim.py): a real skeleton and keyed clips, played by
 	# ClipRig, in place of the Leaper's sixteen joints posed by formula
 	var rig: CharacterRig = ClipRig.new()
+	rig.built = true                        # built in tiling materials (tools/blender/grunt_build.py thornwarden)
 	rig.scene_path = "res://art/models/boss_thornwarden.glb"
 	rig.socket_bones = {"pelvis": "hips", "body": "spine1", "chest": "chest", "front": "neck", "head": "head", "tail": "tail1"}
 	rig.walk_stride = 0.765

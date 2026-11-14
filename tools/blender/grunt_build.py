@@ -539,6 +539,61 @@ def leaper():
     return g.to_object("body"), [], S
 
 
+def thornwarden():
+    """The Thornwarden, a walking thicket: a long body plated in bark with ember in the cracks, thorns down the spine,
+    a deer's skull with coals deep in the sockets under a crown of branching antlers, root-gripped hooves, a heavy
+    bramble tail. Labelled with his old socket names so boss_thornwarden_anim.py's skeleton and clips carry it."""
+    S = quad_sockets(0.56, 1.15, 0.2, 0.32, True)
+    g = Geo()
+    BARK, DARKB, BONE, EMBER, DARK = (0.24, 0.17, 0.11), (0.14, 0.1, 0.07), (0.78, 0.72, 0.6), (1.0, 0.42, 0.1, 0.0), (0.02, 0.015, 0.012)
+    lab = quad_part_label(S, ["front", "body", "tail"])
+    spine = [S["tail"] + V(0, -0.02, 0.06), S["body"] + V(0, 0.06, 0.22), S["body"] + V(0, 0.12, -0.12), S["front"] + V(0, 0.14, 0.04), S["front"] + V(0, 0.12, -0.1)]
+    g.tube(spine, [0.15, 0.2, 0.23, 0.22, 0.15], DARKB, "wood", lab, n=16, flat=1.1)
+    g.tube([S["front"] + V(0, 0.0, 0.05), S["front"] + V(0, 0.01, -0.12)], [0.03, 0.025], EMBER, "glow", "front", n=6)   # the heart, through the breast
+    for k in range(13):                                                  # bark plates in rows down both flanks and the back
+        t = k / 12
+        p = spine[0] * (1 - t) + spine[-1] * t
+        rr = 0.2 + 0.04 * math.sin(t * math.pi)
+        for sx, ang in ((-1, 0.55), (0, 0.0), (1, 0.55)):
+            c = p + V(sx * math.sin(ang) * rr, math.cos(ang) * rr * 0.98, 0.0)
+            def pl(u, v, c=c, sx=sx, ang=ang):
+                th = (u - 0.5) * 0.9 + sx * ang
+                return c + V(math.sin(th) * 0.05 - sx * math.sin(ang) * 0.02, (math.cos(th) - 1.0) * 0.05 - v * 0.09, (v - 0.5) * 0.11 + 0.02 * u)
+            g.plate(pl, 4, 3, BARK, "wood", lab(c))
+    for k in range(11):                                                  # thorns down the spine
+        t = 0.08 + k / 12
+        p = spine[0] * (1 - t) + spine[-1] * t + V(0, 0.22, 0)
+        h = 0.14 + 0.08 * math.sin(t * math.pi)
+        g.tube([p, p + V(0.0, h * 0.6, 0.04), p + V(0.0, h, 0.1)], [0.022, 0.012, 0.001], DARKB, "wood", lab(p), n=5)
+    H = S["head"]
+    g.lathe([(0.0, -0.14), (0.09, -0.12), (0.11, -0.02), (0.085, 0.1), (0.06, 0.22), (0.04, 0.32), (0.0, 0.34)], H + V(0, 0.03, 0.0), BONE, "bone", "head", n=14, axis="z", squash=0.82)
+    for sx in (-1, 1):
+        g.lathe([(0.04, 0.0), (0.042, 0.02), (0.03, 0.04)], H + V(sx * 0.075, 0.07, 0.0), BONE, "bone", "head", n=10, axis="z")
+        g.ball(H + V(sx * 0.072, 0.07, -0.01), 0.032, DARK, "iron", "head", n=6)
+        g.ball(H + V(sx * 0.07, 0.07, -0.025), 0.012, EMBER, "glow", "head", n=5)
+        base = H + V(sx * 0.05, 0.12, 0.06)
+        beam = [base, base + V(sx * 0.08, 0.16, 0.04), base + V(sx * 0.16, 0.34, 0.0), base + V(sx * 0.2, 0.5, 0.06), base + V(sx * 0.18, 0.66, 0.14)]
+        g.tube(beam, [0.03, 0.026, 0.02, 0.014, 0.004], BONE, "bone", "head", n=8)
+        for k, (i, d) in enumerate(((1, V(sx * 0.1, 0.08, -0.08)), (2, V(sx * 0.02, 0.14, -0.1)), (3, V(sx * 0.1, 0.1, 0.06)), (2, V(sx * 0.12, -0.02, 0.1)))):
+            b = beam[i]
+            g.tube([b, b + d * 0.5, b + d], [0.016, 0.01, 0.002], BONE, "bone", "head", n=6)
+    for k in range(5):
+        g.tube([H + V((k - 2) * 0.022, -0.06, -0.22 + 0.02 * abs(k - 2)), H + V((k - 2) * 0.022, -0.09, -0.22 + 0.02 * abs(k - 2))], [0.008, 0.001], BONE, "bone", "head", n=4)
+    for tag in ("fl", "fr", "bl", "br"):
+        quad_leg(g, S, tag, BARK, "wood", r=(0.08, 0.06, 0.04), claw_col=DARKB)
+        foot = S["leg_%s_foot" % tag]
+        for k in range(4):                                               # roots gripping the ground
+            a = TAU * k / 4 + 0.4
+            g.tube([foot + V(0, 0.04, 0), foot + V(math.cos(a) * 0.08, 0.0, math.sin(a) * 0.08), foot + V(math.cos(a) * 0.14, -0.01, math.sin(a) * 0.14)], [0.022, 0.014, 0.002], DARKB, "wood", "leg_%s_foot" % tag, n=5)
+    tail = [S["tail"] + V(0, -0.02 - 0.05 * k * k * 0.1, 0.13 * k) for k in range(6)]
+    g.tube(tail, [0.11, 0.09, 0.07, 0.05, 0.035, 0.02], DARKB, "wood", "tail", n=10)
+    for k in range(8):
+        a = TAU * k / 8
+        p = tail[-1]
+        g.tube([p, p + V(math.cos(a) * 0.1, math.sin(a) * 0.1, 0.06)], [0.012, 0.001], DARKB, "wood", "tail", n=4)
+    return g.to_object("body"), [], S
+
+
 KINDS = {"wretch": wretch, "husk": husk, "chanter": chanter, "tollman": tollman, "pilgrim": pilgrim, "gaunt": gaunt, "quiller": quiller,
          "ossuant": ossuant, "bulwark": bulwark, "spitter": spitter, "cinder_caster": cinder_caster,
          "crawler": crawler, "mite": mite, "burrower": burrower, "leaper": leaper}
@@ -649,4 +704,5 @@ def main():
         build_kind(k)
 
 
-main()
+if __name__ == "__main__":
+    main()
