@@ -20,6 +20,7 @@ var frames := 0
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	Travel._busy = true
+	Travel.story = {"flags": {"arrived": true, "met_keep": true}, "picked": {}}      # a player in a boss arena is long past the opening narration
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--size="):
 			var p := a.trim_prefix("--size=").split("x")

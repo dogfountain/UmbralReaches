@@ -7,7 +7,7 @@ extends Node
 ## if the wanderer locks a target, mounts, or throws the view himself with the stick or mouse.
 ## Costs one small node for about three seconds per fight, no allocations per frame.
 
-const HOLD := 3.1               ## seconds the frame is held (rise, title, roar)
+const HOLD := 4.2               ## seconds the frame is held (rise, title, roar)
 const EASE_IN := 4.2            ## 1/s: how fast the view comes round
 const SIDE := 0.17              ## radians: the boss sits right of the wanderer in frame
 const PITCH :=-0.06            ## a touch below the default -0.18: lower camera, taller boss
@@ -15,6 +15,9 @@ const LOOK_HEIGHT := 0.7        ## aim at this fraction of his height (head and 
 const PITCH_MAX := 0.42         ## the view never tips further up than this to find a tall boss's face
 const LIGHT_E := 7.0            ## the rise light: the boss stands in his own pool for the beat, whatever the hall is
 const LIGHT_COL := Color(1.0, 0.8, 0.58)
+const MIN_FILL := 0.40          ## he must fill this much of the frame's height; a boss that would not is zoomed in on
+const FILL_TO := 0.47           ## ... to this much (the field of view narrows; it widens again when the frame lets go)
+const TOP_LIMIT := 0.345        ## the top of his head stays below this much of the screen: the name card (title and epithet) is above it
 
 var _boss: Enemy
 var _look := LOOK_HEIGHT        ## where in his height the view aims (a higher value seats him lower in the frame, under the title)
@@ -24,6 +27,7 @@ var _p: Player
 var _t := 0.0
 var _last_yaw := 0.0
 var _last_pitch := 0.0
+var _lift := 0.0                ## extra pitch (rad) that seats his head under the name card
 
 
 static func start(host: Node, boss: Enemy, look := LOOK_HEIGHT) -> void:
@@ -49,6 +53,11 @@ static func _measure(boss: Node3D) -> float:
 		var box := mi.global_transform * mi.get_aabb()
 		top = maxf(top, box.end.y)
 	return top - boss.global_position.y
+
+
+func _exit_tree() -> void:
+	if is_instance_valid(_p):
+		_p.fov_zoom_want = 1.0
 
 
 func _ready() -> void:
@@ -92,7 +101,21 @@ func _process(delta: float) -> void:
 	# aimed a little to the left of him, so he stands to the right of the wanderer instead of behind his hood
 	var yaw := lerp_angle(_p._yaw, atan2(-to.x, -to.z) + SIDE, k * fade)
 	var rise := atan2(_boss.global_position.y + _height * _look - (_p.global_position.y + 1.7), to.length() + _p.ARM_LEN * 0.8)
-	var pitch := lerpf(_p._pitch, clampf(rise, PITCH, PITCH_MAX), k * fade)
+	# the zoom: framed at the player's own field of view he would fill less than MIN_FILL of the height: narrow it
+	var cam := _p._cam
+	var d := maxf(cam.global_position.distance_to(_boss.global_position + Vector3.UP * _height * 0.5), 1.0)
+	var fill := _height / (2.0 * d * tan(deg_to_rad(Settings.fov) * 0.5))
+	_p.fov_zoom_want = clampf(2.0 * atan(_height / (2.0 * d * FILL_TO)) / deg_to_rad(Settings.fov), 0.3, 1.0) if fill < MIN_FILL else 1.0
+	# the head clear of the name card: look a little higher until the top of him sits under it
+	var vp := cam.get_viewport().get_visible_rect().size
+	var top := _boss.global_position + Vector3.UP * _height
+	if not cam.is_position_behind(top):
+		var ty := cam.unproject_position(top).y / vp.y
+		if ty < TOP_LIMIT:
+			_lift = minf(_lift + (TOP_LIMIT - ty) * deg_to_rad(cam.fov) * 0.6, 0.55)
+		elif ty > TOP_LIMIT + 0.08:
+			_lift = maxf(_lift - 0.01, 0.0)
+	var pitch := lerpf(_p._pitch, clampf(rise + _lift, PITCH, PITCH_MAX + 0.55), k * fade)
 	_p.set_view(yaw, pitch)
 	_last_yaw = yaw
 	_last_pitch = pitch

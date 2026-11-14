@@ -240,6 +240,89 @@ static func walk_legs(rig: DwarfRig, p: float, amt: float, swing: float, knee: f
 	return h - d0
 
 
+## Turning on the spot, on steps. A body that yaws over planted feet drags them round (30 cm of skate for a half turn), so the
+## feet are kept where they stand in the WORLD: each one's fore-aft offset in the body's frame moves with the yaw (the right foot
+## goes back as the body turns left, the left forward), and when one has gone 11 cm off, it is lifted and set down on the
+## other side of the hip: a shuffle step, on the same two-bone IK as the walk. At rest the feet are brought back under the body
+## the same way. Call once per pose while standing (walk blend ~0), `yaw` = the body's world yaw; returns the pelvis drop (<= 0),
+## or INF when the feet are home and not turning (the caller poses its own standing legs).
+var _ty := INF                          ## the yaw at the last call
+var _tf: Array[float] = [0.0, 0.0]      ## each planted foot's offset ahead of the hip (m): right, left
+var _tsw: Array[float] = [-1.0, -1.0]   ## a foot's swing progress 0..1, -1 = planted
+var _tfrom: Array[float] = [0.0, 0.0]
+var _tto: Array[float] = [0.0, 0.0]
+var _tquiet := 0.0
+const TURN_STEP := 0.11                 ## m a planted foot may be carried off before it steps
+const TURN_SWING := 0.24                ## s a shuffle step takes
+
+
+func turn_reset(yaw: float) -> void:
+	_ty = yaw
+	_tf = [0.0, 0.0]
+	_tsw = [-1.0, -1.0]
+	_tquiet = 0.0
+
+
+func turn_legs(rig: DwarfRig, yaw: float, dt: float) -> float:
+	if _ty == INF:
+		_ty = yaw
+	var dth := angle_difference(_ty, yaw)
+	_ty = yaw
+	var hip: Vector3 = rig.rests[11]
+	var r := absf(hip.x)
+	var moving := absf(dth) > 0.0008
+	_tquiet = 0.0 if moving else _tquiet + dt
+	for i in 2:
+		if _tsw[i] < 0.0:
+			_tf[i] += (-1.0 if i == 0 else 1.0) * r * dth        # planted: fixed in the world, so it slides round the body's frame
+	var swinging := _tsw[0] >= 0.0 or _tsw[1] >= 0.0
+	if not swinging:
+		var worst := 0 if absf(_tf[0]) >= absf(_tf[1]) else 1
+		if absf(_tf[worst]) > TURN_STEP:
+			_tsw[worst] = 0.0
+			_tfrom[worst] = _tf[worst]
+			_tto[worst] = -signf(_tf[worst]) * TURN_STEP * 0.6
+		elif _tquiet > 0.5 and maxf(absf(_tf[0]), absf(_tf[1])) > 0.015:
+			_tsw[worst] = 0.0
+			_tfrom[worst] = _tf[worst]
+			_tto[worst] = 0.0
+	var lift := [0.0, 0.0]
+	for i in 2:
+		if _tsw[i] >= 0.0:
+			_tsw[i] += dt / TURN_SWING
+			var u := minf(_tsw[i], 1.0)
+			_tf[i] = lerpf(_tfrom[i], _tto[i], u * u * (3.0 - 2.0 * u))
+			lift[i] = 0.035 * sin(PI * u)
+			if _tsw[i] >= 1.0:
+				_tsw[i] = -1.0
+	if maxf(absf(_tf[0]), absf(_tf[1])) < 0.004 and not (_tsw[0] >= 0.0 or _tsw[1] >= 0.0) and not moving:
+		_tf = [0.0, 0.0]
+		return INF
+	var kn: Vector3 = rig.rests[12]
+	var ank: Vector3 = rig.ankle(1.0)
+	var av := Vector2(kn.y - hip.y, kn.z - hip.z)
+	var bv := Vector2(ank.y - kn.y, ank.z - kn.z)
+	var l1 := av.length()
+	var l2 := bv.length()
+	var z0 := ank.z - hip.z
+	var d0 := hip.y - ank.y
+	var h := d0 * 0.985 - 0.5 * maxf(lift[0], lift[1])
+	for side in 2:
+		var dy: float = lift[side] - h
+		var dz: float = z0 - _tf[side]
+		var dist := clampf(sqrt(dy * dy + dz * dz), absf(l1 - l2) + 0.02, (l1 + l2) * 0.999)
+		var cd := clampf((dist * dist - l1 * l1 - l2 * l2) / (2.0 * l1 * l2), -1.0, 1.0)
+		var d_rest := angle_difference(atan2(av.y, av.x), atan2(bv.y, bv.x))
+		var aa := atan2(av.y, av.x)
+		var flex := maxf(d_rest + acos(cd), 0.0)
+		var f0 := Vector2(cos(aa), sin(aa)) * l1 + Vector2(cos(aa + d_rest - flex), sin(aa + d_rest - flex)) * l2
+		var th := atan2(dz, dy) - atan2(f0.y, f0.x)
+		var bt := 11 if side == 0 else 13
+		rig.q(bt, Quaternion(Vector3.RIGHT, th))
+		rig.q(bt + 1, Quaternion(Vector3.RIGHT, -flex))
+	return h - d0
+
+
 ## Pose blending between low-rate updates (r30). Past 11 m a villager poses at 30/20/12 Hz (see
 ## interval) while its root moves every frame, so its legs stepped at 12 Hz. Now each new pose is
 ## eased in over the interval until the next one, from what was on screen: one update behind, like

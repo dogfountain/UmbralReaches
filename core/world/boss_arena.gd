@@ -492,7 +492,7 @@ func _show_bar() -> void:
 	add_child(_emote_layer)
 	_emote_lbl = Label.new()
 	_emote_lbl.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_emote_lbl.position = Vector2(-450, 168)
+	_emote_lbl.position = Vector2(-450, 190)   # its own band: under the bar, over the name card's row (the card has faded by then), above where his head may rise (BossFrame.TOP_LIMIT)
 	_emote_lbl.size = Vector2(900, 60)
 	_emote_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_emote_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

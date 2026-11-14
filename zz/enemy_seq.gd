@@ -105,7 +105,7 @@ func _bounds(n: Node3D) -> AABB:
 	return box
 
 
-const ROWS := [["walk", 0.12], ["attack", 0.1], ["stagger", 0.16], ["collapse", 0.12]]
+const ROWS := [["walk", 0.12], ["attack", 0.1], ["air", 0.08], ["stagger", 0.16], ["collapse", 0.12]]     ## "air": a leap in flight (the rig told it is off the floor, moving forward)
 
 
 var acc := 0.0
@@ -127,8 +127,10 @@ func _process(d: float) -> void:
 	# real time: the rig is driven every rendered frame (as in play), and a still is kept each `step` seconds
 	var step: float = ROWS[row][1]
 	var v := (-cur.global_basis.z * cur.walk_speed * speed_k) if row == 0 else Vector3.ZERO
+	if ROWS[row][0] == "air":
+		v = -cur.global_basis.z * cur.walk_speed * 1.8
 	if cur._rig:
-		cur._rig.animate(v, true, d)
+		cur._rig.animate(v, ROWS[row][0] != "air", d)
 	acc += d
 	if ROWS[row][0] == "attack" and not struck and t_row + d >= tel and cur._rig and cur._rig.has_method("strike"):
 		struck = true

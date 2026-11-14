@@ -394,7 +394,7 @@ func _go(skip: Array[RID], fwd: Vector3, w: Vector3, want: float, sc: float, dt:
 		var gb := _ground(global_position + dir * (da + 0.5)).y
 		var rise := gb - global_position.y
 		if gb - ga >= 0.18 and rise >= 0.18 and rise <= float(_d.climb) + 0.1:
-			_vy = sqrt(2.0 * GRAVITY * (rise + 0.28))
+			_vy = sqrt(2.0 * GRAVITY * (rise * 1.3 + 0.22))          # the arc grows with the obstacle: the hooves clear its top by 0.3 m or more
 			_air = true
 			_air_t = 0.0
 			_air_y0 = global_position.y

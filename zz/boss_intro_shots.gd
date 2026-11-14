@@ -18,6 +18,7 @@ var placed := false
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	Travel._busy = true
+	Travel.story = {"flags": {"arrived": true, "met_keep": true}, "picked": {}}      # a player in a boss arena is long past the opening narration
 	Travel.bosses_slain.clear()
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--id="):

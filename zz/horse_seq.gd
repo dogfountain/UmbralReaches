@@ -7,7 +7,7 @@ extends Node3D
 const HorseScript := preload("res://core/world/mount/horse.gd")
 const WORLD := 1
 ## [name, start s, frames, every n rendered frames]
-const ROWS := [["mount", 0.0, 10, 7], ["walk", 3.1, 10, 6], ["trot", 6.2, 10, 3], ["gallop", 10.5, 10, 3], ["hop_trot", 13.2, 10, 4],
+const ROWS := [["mount", 0.0, 10, 7], ["walk", 3.1, 10, 6], ["trot", 6.2, 10, 3], ["gallop", 10.5, 10, 3], ["hop_trot", 14.15, 10, 3],
 	["leap_gallop", 17.6, 10, 4], ["halt", 21.8, 10, 5], ["dismount", 24.8, 8, 6]]
 var p: Player
 var horse: Node3D
@@ -25,6 +25,7 @@ var sheets: Array = []
 var dismounted := false
 var mounted := false
 var _was_air := false
+var _air_top := -1.0e9
 
 
 func _ready() -> void:
@@ -168,7 +169,12 @@ func _physics_process(delta: float) -> void:
 		sprint = true
 	p.debug_drive(w, sprint)
 	var air := bool(horse.get("_air"))
+	if air:
+		_air_top = maxf(_air_top, horse.global_position.y)
 	if air != _was_air:
+		if not air:
+			print("HSEQ apex %.2f m (the ground there %.2f)" % [_air_top, horse.global_position.y])
+		_air_top = -1.0e9
 		_was_air = air
 		print("HSEQ air=%s t=%.2f z=%.2f y=%.2f speed=%.1f" % [air, t, horse.global_position.z, horse.global_position.y, float(horse.get("speed"))])
 	if t > 24.0 and not dismounted:

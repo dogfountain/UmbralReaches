@@ -33,6 +33,9 @@ class StubDir extends Node:
 	func anchor(_k: String) -> Vector3:
 		return at
 
+	func lamp_pos(_id: String) -> Vector3:
+		return at + Vector3(0.0, 2.2, 0.0)
+
 	func strike(_v: Node3D) -> void:
 		pass
 
@@ -55,6 +58,8 @@ class StubDir extends Node:
 var tag := "x"
 var view := "side"
 var only: Array = []
+var acts_mode := false      ## --acts: every distinct act of the villager's routines as a row, at play distance (--dist=7.5), instead of the gait rows
+var dist := 3.4
 var dir_node: StubDir
 var cam: Camera3D
 var v: Node3D
@@ -77,6 +82,10 @@ func _ready() -> void:
 			tag = a.trim_prefix("--tag=")
 		elif a.begins_with("--cam="):
 			view = a.trim_prefix("--cam=")
+		elif a == "--acts":
+			acts_mode = true
+		elif a.begins_with("--dist="):
+			dist = float(a.trim_prefix("--dist="))
 		elif a.begins_with("--only="):
 			only = Array(a.trim_prefix("--only=").split(","))
 	if only.is_empty():
@@ -196,7 +205,7 @@ func _cam() -> void:
 			d = Vector3(0.7, 0, -0.7).normalized()
 		"front":
 			d = Vector3(0, 0, -1)
-	cam.global_position = at + d * 3.4 + Vector3.UP * 0.25
+	cam.global_position = at + d * dist + Vector3.UP * 0.25
 	cam.look_at(at)
 
 
@@ -259,6 +268,28 @@ func _run() -> void:
 	for id: String in only:
 		_spawn(id)
 		await _wait(0.6)
+		if acts_mode:
+			var seen := {}
+			for rl: Variant in (Cast.CAST[id].routines as Dictionary).values():
+				for st: Variant in rl:
+					var an := String((st as Dictionary).get("act", ""))
+					if an != "" and not seen.has(an) and an not in ["sit", "doze", "chat"]:
+						seen[an] = true
+			if (Cast.CAST[id].routines as Dictionary).values().any(func(rl: Array) -> bool: return rl.any(func(st: Dictionary) -> bool: return st.has("lamps"))):
+				seen["light"] = true
+			for an: String in seen:
+				v.pinned = true
+				v.global_position = Vector3.ZERO
+				v.yaw = 0.0
+				v.rotation.y = 0.0
+				v.face_yaw = 0.0
+				dir_node.at = Vector3(0.0, 0.85 if an in ["hammer", "heat", "quench", "grind", "sell", "sift", "tend"] else 0.0, -0.8)
+				v.hold(an, Vector3.INF, 5.0 if an in ["light", "quench"] else 1.0e6)       # a shaped act runs its whole length in the row
+				await _wait(0.1 if an in ["light", "quench"] else 1.2)
+				print("ACT ", an, " state=", v.state, " act=", v.act, " t=", v.act_t, " pos=", v.global_position)
+				await _row(an, 8, 0.4)
+			_sheet(id)
+			continue
 		await _row("idle", 8, 1.0)
 		# walking: along -z off the network
 		v.pinned = false

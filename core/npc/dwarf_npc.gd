@@ -562,9 +562,9 @@ func _walk_path(delta: float) -> void:
 	_yaw = lerp_angle(_yaw, want, 1.0 - exp(-delta * 6.0))
 	rotation.y = _yaw
 	# turn on the spot before setting off
-	var facing_ok := absf(angle_difference(_yaw, want)) < 0.6
-	_walk = move_toward(_walk, 1.0 if facing_ok else 0.3, delta * 3.0)
-	var step := WALK_SPEED * _walk * delta
+	var facing_ok := absf(angle_difference(_yaw, want)) < 0.15       # he sets off facing the way he goes (the feet are not dragged round)
+	_walk = move_toward(_walk, 1.0 if facing_ok else 0.0, delta * 3.0)
+	var step := WALK_SPEED * _walk * delta if _walk >= 0.3 else 0.0
 	_gait = fposmod(_gait + step / (Life.calib_stride(rig, SWING, 0.95, 0.022) * maxf(_walk, 0.35)), 1.0)
 	if step >= d:
 		global_position = Vector3(target.x, target.y, target.z)

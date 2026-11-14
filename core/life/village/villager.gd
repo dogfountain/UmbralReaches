@@ -20,6 +20,7 @@ const Rig := preload("res://core/life/village/villager_rig.gd")
 const VState := preload("res://core/life/village/village_state.gd")
 const VAudio := preload("res://core/life/village/village_audio.gd")
 const Life := preload("res://core/npc/npc_life.gd")
+const Forge := preload("res://core/life/village/villager_forge.gd")
 const Voice := preload("res://core/npc/npc_voice.gd")
 ## Acts that carry speech outside a conversation: [cycle s, talking s per cycle, volume dB]
 ## (the seller calls her wares, people at a fire murmur, the mourner mutters, idlers talk to themselves)
@@ -113,6 +114,8 @@ var _pose_acc := 0.0
 var _dip := 0.0                       ## knee give on a blow (hammer, axe), set by the work poses
 var _foot_push := 0.0                 ## the digger's boot on the spade (0..1)
 var _gait := [0.36, 0.88, 0.02, 0.3]
+var _pdt := 0.0
+var _turn_on := false                 ## the feet are shuffling round a turn on the spot (npc_life.gd turn_legs)
 var _gest := 0.0                      ## which hand has the word: +1 right, -1 left, eased
 var _pass_t := 0.0
 var _pass := Vector3.INF              ## a villager walking by, whom the eye follows
@@ -539,7 +542,7 @@ func _walk(dt: float) -> void:
 		looked_at = Vector3.INF
 	var v := speed * hurry * (0.55 if walk_amt < 0.5 else 1.0)
 	walk_amt = move_toward(walk_amt, 1.0, dt * 2.5)
-	var step_len := v * dt
+	var step_len := v * dt if walk_amt >= 0.3 else 0.0         # not before the stride is under him
 	walked += step_len
 	var stride := Life.calib_stride(rig, float(_gait[0]), float(_gait[1]), float(_gait[2]) * rig.k)
 	gait = fposmod(gait + step_len / (stride * maxf(walk_amt, 0.35)), 1.0)
@@ -766,6 +769,7 @@ func _chatting() -> bool:
 
 func _pose(dt: float) -> void:
 	var r := rig
+	_pdt = dt
 	var k: float = r.k
 	r.reset()
 	var off := 0.0
@@ -881,15 +885,15 @@ func _pose(dt: float) -> void:
 			arms_free = [false, false]
 			head_pitch += 0.35
 		"heat":
-			_pose_heat(k)
+			Forge.heat(self, k)
 			arms_free = [false, true]
 			head_pitch += 0.3
 		"quench":
-			_pose_quench(k)
+			Forge.quench(self, k)
 			arms_free = [false, true]
 			head_pitch += 0.35
 		"grind":
-			_pose_grind(k)
+			Forge.grind(self, k)
 			arms_free = [false, false]
 			head_pitch += 0.35
 		"chop":
@@ -910,17 +914,30 @@ func _pose(dt: float) -> void:
 			head_pitch -= 0.45
 		"sift", "sell":
 			if cur == "sift":
-				var a3 := _t * 2.0
-				r.hold(0, Vector3(0.12 + 0.06 * cos(a3), 0.92, -0.4 + 0.05 * sin(a3)) * k, Vector3(0, -0.4, -1), Vector3(0, -1, 0.3))
+				var a3 := _t * 2.6
+				r.hold(0, Vector3(0.12 + 0.1 * cos(a3), 0.9 + 0.03 * sin(a3 * 2.0), -0.4 + 0.08 * sin(a3)) * k, Vector3(0, -0.4, -1), Vector3(0, -1, 0.3))
+				r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.22 - 0.06 * sin(a3)))
 				arms_free[0] = false
 				head_pitch += 0.35
 			else:
+				# the stall: arranging the wares (bent to the board, a hand moving goods from one side to the other, the other
+				# straightening them) for a while, then straightened up and calling the wanderer over with the whole arm
 				var pp := _player_pos()
-				if pp != Vector3.INF and pp.distance_to(global_position) < 6.0:
+				var near_p := pp != Vector3.INF and pp.distance_to(global_position) < 6.0
+				var ph2 := fposmod(act_t, 7.0)
+				if near_p and ph2 > 3.6:
 					look_target = pp + Vector3.UP * 1.5
-					var beck := 0.5 + 0.5 * sin(_t * 1.7)
-					r.hold(0, Vector3(0.2, 1.0 + 0.1 * beck, -0.32) * k, Vector3(0, 0.3, -1), Vector3(0, -1, 0))
-					arms_free[0] = false
+					var beck := 0.5 + 0.5 * sin(_t * 3.4)
+					r.hold(0, Vector3(0.22 + 0.08 * beck, 1.12 + 0.14 * beck, -0.3) * k, Vector3(0, 0.3, -1), Vector3(0, -1, 0))
+					r.q(B_CHEST, Quaternion(Vector3.RIGHT, 0.06))
+				else:
+					var sw := sin(_t * 1.1)
+					r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.3 * (0.6 + 0.4 * sin(_t * 0.8))))
+					r.hold(0, Vector3(0.15 + 0.2 * sw, 0.86 + 0.06 * maxf(0.0, sin(_t * 2.2)), -0.44) * k, Vector3(0, -0.6, -1), Vector3(0, -1, 0))
+					r.arm_to("l", Vector3(-0.15 - 0.12 * sw, 0.86, -0.4) * k, Vector3(-0.9, -0.5, 0.3), null)
+					arms_free[1] = false
+					head_pitch += 0.3
+				arms_free[0] = false
 	# walking legs (and arms that carry nothing in particular)
 	if cur in ["walk", "idle", "attend", "watch", "warm", "look_up", "mourn", "read", "knock", "chat", "draw_water", "light", "sell", "sift", "hammer", "heat", "quench", "grind", "chop", "dig", "lean"]:
 		off += _legs_walk(k, walk_amt)
@@ -942,23 +959,24 @@ func _pose(dt: float) -> void:
 			r.arm_to("r", Vector3(0.16, 0.98 + 0.1 * bt + (0.06 * gs if free_l else 0.0), -0.3 - 0.08 * bt - (0.04 * gs if free_l else 0.0)) * k, Vector3(0.9, -0.6, 0.2), Quaternion(Vector3.FORWARD, 0.6 + 0.5 * bt) * Quaternion(Vector3.RIGHT, -0.4))
 		if free_l:
 			r.arm_to("l", Vector3(-0.16, 0.98 + 0.1 * bt - (0.06 * gs if free_r else 0.0), -0.3 - 0.08 * bt + (0.04 * gs if free_r else 0.0)) * k, Vector3(-0.9, -0.6, 0.2), Quaternion(Vector3.FORWARD, -0.6 - 0.5 * bt) * Quaternion(Vector3.RIGHT, -0.4))
-	if cur in ["idle", "watch", "attend", "warm", "look_up", "read", "knock", "chat", "sell"] and walk_amt < 0.1:
+	if cur in ["idle", "watch", "attend", "warm", "look_up", "read", "knock", "chat", "sell"] and walk_amt < 0.1 and not _turn_on:
 		# standing is never still: the weight rolls from one foot to the other, the free knee softens
 		var ph := float(hash(id) % 628) * 0.01
 		var ws := sin(_t * 0.4 + ph)
-		r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.FORWARD, 0.04 * ws))
+		r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, 0.06 * sin(_t * 0.37 + ph * 1.3)))     # rocking fore and aft as well
+		r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.FORWARD, 0.07 * ws))
 		if not speaking and attend == null:
 			# a slow turn of the chest against the head's wander, the shoulders lifting with the breath, and every so often
 			# one hand coming up (to the chin, to the belt) and going down again
-			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.UP, 0.07 * sin(_t * 0.23 + ph * 1.7)) * Quaternion(Vector3.BACK, 0.02 * ws))
-			var fid := pow(maxf(0.0, sin(_t * 0.31 + ph * 2.3)), 6.0)
+			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.UP, 0.12 * sin(_t * 0.23 + ph * 1.7)) * Quaternion(Vector3.BACK, 0.02 * ws))
+			var fid := pow(maxf(0.0, sin(_t * 0.5 + ph * 2.3)), 4.0)
 			if arms_free[0] and tool_r == "":
-				r.q(B_ARM_R, (r.get_q(B_ARM_R) as Quaternion) * Quaternion(Vector3.RIGHT, -0.55 * fid) * Quaternion(Vector3.BACK, 0.02 + 0.05 * breath * 12.0))
-				r.q(B_FORE_R, (r.get_q(B_FORE_R) as Quaternion) * Quaternion(Vector3.RIGHT, 1.0 * fid))
+				r.q(B_ARM_R, (r.get_q(B_ARM_R) as Quaternion) * Quaternion(Vector3.RIGHT, -0.9 * fid) * Quaternion(Vector3.BACK, 0.02 + 0.05 * breath * 12.0))
+				r.q(B_FORE_R, (r.get_q(B_FORE_R) as Quaternion) * Quaternion(Vector3.RIGHT, 1.4 * fid))
 			if arms_free[1] and tool_l == "":
 				r.q(B_ARM_L, (r.get_q(B_ARM_L) as Quaternion) * Quaternion(Vector3.BACK, -0.02 - 0.05 * breath * 12.0))
-		var rest_r := 0.05 * maxf(0.0, ws)
-		var rest_l := 0.05 * maxf(0.0, -ws)
+		var rest_r := 0.09 * maxf(0.0, ws)
+		var rest_l := 0.09 * maxf(0.0, -ws)
 		r.q(B_THIGH_R, (r.get_q(B_THIGH_R) as Quaternion) * Quaternion(Vector3.RIGHT, rest_r))
 		r.q(B_SHIN_R, (r.get_q(B_SHIN_R) as Quaternion) * Quaternion(Vector3.RIGHT, -2.0 * rest_r))
 		r.q(B_THIGH_L, (r.get_q(B_THIGH_L) as Quaternion) * Quaternion(Vector3.RIGHT, rest_l))
@@ -1014,6 +1032,14 @@ func _act_blend(cur: String) -> float:
 func _legs_walk(k: float, amt: float) -> float:
 	var r := rig
 	var sw: float = life.sway() if life else 0.0
+	_turn_on = false
+	if amt > 0.001 and life:
+		life.turn_reset(global_rotation.y)
+	if amt <= 0.001 and life:
+		var td: float = life.turn_legs(r, global_rotation.y, _pdt)
+		if td != INF:
+			_turn_on = true
+			return td
 	if amt <= 0.001:
 		# standing: the weight on one leg (that knee locked, the other soft), the hip dropped to it
 		r.q(B_THIGH_R, Quaternion(Vector3.BACK, sw * 0.012) * Quaternion(Vector3.RIGHT, 0.04 * maxf(sw, 0.0)))
@@ -1257,48 +1283,6 @@ func _pose_hammer(k: float) -> void:
 	var td := (to_a + Vector3(-0.35, -0.25, 0)).normalized()
 	var tl: Vector3 = (tips[1] as Vector3) - (grips[1] as Vector3)
 	r.hold(1, tong_tip - td * tl.length(), td, Vector3.DOWN, Vector3(-0.9, -0.4, 0.3))
-
-
-func _pose_heat(k: float) -> void:
-	var r := rig
-	var coals := _m(village.call("anchor", "@coals"))
-	var tips: Array = r.tips
-	var grips: Array = r.grip
-	var tl: Vector3 = (tips[1] as Vector3) - (grips[1] as Vector3)
-	var stir := Vector3(0.03 * sin(_t * 1.3), 0, 0.03 * cos(_t * 1.1))
-	var d := (coals - Vector3(-0.1, 1.0, -0.2) * k).normalized()
-	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.18))
-	r.hold(1, coals + stir - d * tl.length(), d, Vector3.DOWN, Vector3(-0.9, -0.4, 0.3))
-	r.q(B_ARM_R, Quaternion(Vector3.RIGHT, 0.1) * Quaternion(Vector3.BACK, 0.12))
-	r.q(B_FORE_R, Quaternion(Vector3.RIGHT, 0.5))
-
-
-func _pose_quench(k: float) -> void:
-	var r := rig
-	var water := _m(village.call("anchor", "@water"))
-	var tips: Array = r.tips
-	var grips: Array = r.grip
-	var tl: Vector3 = (tips[1] as Vector3) - (grips[1] as Vector3)
-	var e := smoothstep(0.15, 0.35, act_t / act_len) * (1.0 - smoothstep(0.75, 0.95, act_t / act_len))
-	var above := water + Vector3.UP * 0.45
-	var tip := above.lerp(water + Vector3.DOWN * 0.08, e)
-	var d := (tip - Vector3(-0.15, 1.0, -0.2) * k).normalized()
-	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.15 - 0.15 * e))
-	r.hold(1, tip - d * tl.length(), d, Vector3.DOWN, Vector3(-0.9, -0.4, 0.3))
-
-
-func _pose_grind(k: float) -> void:
-	var r := rig
-	var wheel := _m(village.call("anchor", "@wheel"))
-	var tips: Array = r.tips
-	var grips: Array = r.grip
-	var tl: Vector3 = (tips[1] as Vector3) - (grips[1] as Vector3)
-	var rub := 0.04 * sin(_t * 4.0)
-	var tip := wheel + Vector3(rub, 0.05, 0.0)
-	var d := (tip - Vector3(-0.05, 0.95, -0.15) * k).normalized()
-	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.2))
-	r.hold(1, tip - d * tl.length(), d, Vector3.DOWN, Vector3(-0.9, -0.4, 0.3))
-	r.arm_to("r", tip + Vector3(0.12, 0.02, 0.12) * k - d * tl.length() * 0.6, Vector3(0.9, -0.4, 0.3), null)
 
 
 # --- chopping, digging, the lamps -----------------------------------------------------------------
