@@ -9,6 +9,7 @@ const KINDS := {
 	"leaper": "res://core/enemy/leaper.gd", "ossuant": "res://core/enemy/ossuant.gd",
 	"thornwarden": "res://core/enemy/thornwarden.gd", "bone_abbot": "res://core/enemy/bone_abbot.gd",
 	"ascended_warden": "res://core/enemy/ascended_warden.gd",
+	"hierarch": "res://core/enemy/hierarch_voice.gd", "anchoress": "res://core/enemy/anchoress.gd",
 	"bulwark": "res://core/enemy/bulwark.gd", "chanter": "res://core/enemy/chanter.gd",
 	"burrower": "res://core/enemy/burrower.gd", "mite": "res://core/enemy/mite.gd",
 	# r31 (docs/enshrouded/enemies.md)
