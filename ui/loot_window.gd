@@ -36,6 +36,7 @@ var _rows: Array[Control] = []
 var _was_captured := false
 var _paused_it := false
 var _font: Font
+var _hidden_labels: Array[Label3D] = []      ## the open bag's floating name, hidden while the window is up
 
 
 func _ready() -> void:
@@ -121,8 +122,13 @@ func is_open() -> bool:
 func open_bag(b: Node3D) -> void:
 	if b == null or not is_instance_valid(b):
 		return
+	_unhide_labels()
 	bag = b
 	sel = 0
+	for l in b.find_children("*", "Label3D", true, false):    # the bag's floating item name would draw under this window: the window names it
+		if (l as Label3D).visible:
+			(l as Label3D).visible = false
+			_hidden_labels.append(l as Label3D)
 	_title.text = String(b.get("title")).capitalize()
 	_rebuild()
 	if not _root.visible:
@@ -135,11 +141,19 @@ func open_bag(b: Node3D) -> void:
 		UiSound.play(self, "tab")
 
 
+func _unhide_labels() -> void:
+	for l in _hidden_labels:
+		if is_instance_valid(l):
+			l.visible = true
+	_hidden_labels.clear()
+
+
 func close() -> void:
 	if not _root.visible:
 		return
 	_root.visible = false
 	_tip.visible = false
+	_unhide_labels()
 	bag = null
 	UiSound.play(self, "back")
 	if _paused_it:
