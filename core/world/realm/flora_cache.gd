@@ -41,6 +41,8 @@ static func fingerprint(root: Node) -> String:
 		Zones.lanes(), arenas, RealmLayout.PATHS, RealmLayout.REGIONS, RealmLayout.BOUNDS, RealmLayout.OLD_BOUNDS]
 	for p: String in READS:
 		parts.append(GenCache.salt(p))
+	# the tree-free rounds the places asked for (a new one left a cached layout's oaks standing in Saltmarket's yard)
+	parts.append((load(SELF) as GDScript).get("tree_clear"))
 	var ctx := HashingContext.new()
 	ctx.start(HashingContext.HASH_SHA256)
 	for part: Variant in parts:
