@@ -37,7 +37,7 @@ sm = L.smooth
 # --- per-kind design ---------------------------------------------------------------------------------------
 D = {
     "chanter": dict(W=0.82, Lm=0.72, nk=0.07, finger=0.24, wrist=0.62, hc=(0, 1.7, -0.1), head_w=0.07, neck_r=0.04, hump=0.04, waist=0.9,
-                    skin=((0.22, 0.27, 0.35), (0.045, 0.06, 0.09)), face=(0.32, 0.38, 0.46), eye=(0.45, 1.0, 0.3),
+                    skin=((0.3, 0.36, 0.44), (0.06, 0.08, 0.12)), face=(0.4, 0.46, 0.54), eye=(0.45, 1.0, 0.3),
                     robe=(0.085, 0.09, 0.07), patch=(0.17, 0.15, 0.1), hem=0.06, tears=0.14, claw=0.08, hem_y=0.045, peak=0.15),
     "tollman": dict(W=0.9, Lm=0.8, nk=0.12, finger=0.2, wrist=0.64, hc=(0, 1.69, -0.13), head_w=0.07, neck_r=0.042, hump=0.07, waist=1.0,
                     skin=((0.32, 0.3, 0.3), (0.06, 0.055, 0.055)), face=(0.36, 0.34, 0.33), eye=(1.0, 0.72, 0.25),
@@ -73,7 +73,30 @@ for _m in (ROBE, MANTLE, PATCH, ROPE):
 # --- the body ---------------------------------------------------------------------------------------------------
 OPT = dict(W=Wd, L=D["Lm"], nk=nk, finger=D["finger"], wrist=D["wrist"], ribs=0.006, belly=-1.0, collar=1.3, tendon=1.4, hc=HC,
            jaw_w=0.04, brow=0.013, waist=wa, head_w=D["head_w"], neck_r=nkr, hump=hump)
-ctx = BB.body(OPT, SKIN, CLAW, EYE, claw=D["claw"], body_tris=2500, arm_tris=1300, toe_claws=False)
+
+
+def face_extra(sc, Y, nm):
+    """The Chanter's face (a pale blank oval in shadow under the hood): brow ridge, deep sockets with lids, a nose with a flat
+    bridge, hollow cheeks over standing cheekbones, a thin lipless mouth, a hard chin; strong enough to read at 8 cm of face."""
+    if nm != "Body" or KIND != "chanter":
+        return
+    hy, hz = Y(HC[1]), HC[2]
+    fz = hz - 0.086
+    fr = (0, 0, -1)
+    for sx_ in (-1, 1):
+        sc.bump((sx_ * 0.032, hy + 0.012, fz + 0.004), 0.03, -0.05, facing=fr)                         # deep sockets
+        sc.ridge((sx_ * 0.01, hy + 0.036, fz), (sx_ * 0.06, hy + 0.04, fz + 0.012), 0.012, 0.024, facing=(sx_ * 0.3, 0.2, -1))   # a heavy brow, drawn down
+        sc.ridge((sx_ * 0.016, hy + 0.0, fz + 0.004), (sx_ * 0.052, hy - 0.004, fz + 0.01), 0.006, 0.01, facing=fr)               # the lower lids
+        sc.bump((sx_ * 0.052, hy - 0.032, hz - 0.066), 0.034, -0.034, facing=(sx_ * 0.4, 0, -1))        # cheeks hollowed
+        sc.bump((sx_ * 0.058, hy - 0.006, hz - 0.07), 0.02, 0.017, facing=(sx_ * 0.5, 0, -1))           # cheekbones standing over them
+        sc.ridge((sx_ * 0.012, hy - 0.05, fz - 0.002), (sx_ * 0.04, hy - 0.056, fz + 0.008), 0.006, -0.011, facing=fr)               # the line of the mouth, drawn back
+    sc.ridge((0, hy + 0.022, fz - 0.002), (0, hy - 0.026, fz - 0.016), 0.011, 0.022, facing=fr)           # the nose
+    sc.bump((0, hy - 0.026, fz - 0.012), 0.014, -0.018, facing=fr)                                         # its nostrils
+    sc.ridge((-0.025, hy - 0.052, fz - 0.004), (0.025, hy - 0.052, fz - 0.004), 0.006, -0.014, facing=fr)   # the lipless mouth
+    sc.bump((0, hy - 0.082, hz - 0.082), 0.02, 0.014, facing=fr)                                           # a hard chin
+
+
+ctx = BB.body(OPT, SKIN, CLAW, EYE, claw=D["claw"], body_tris=2500, arm_tris=1300, toe_claws=False, extra=face_extra)
 objs, PAIRS = ctx.objs, ctx.pairs
 WTS = BW.base_weights(ctx, S, neck=nk)
 
@@ -153,9 +176,9 @@ for tag, sx in (("l", -1), ("r", 1)):
     WTS["sleeve_" + tag] = WTS["armskin"]
 
 # --- the cowl ------------------------------------------------------------------------------------------------------------
-hd = L.hood("HoodHigh", (HC[0], 1.7 + (0.012 if KIND != "tollman" else 0.004), HC[2] + 0.02), ROBE, "hood", size=(0.122, 0.14, 0.126), face_r=(0.07, 0.092),
-            face_dy=-0.022, peak=D["peak"], back_drop=0.2, lip=0.014, seed=4.0, amp=0.007)
-L.hi_lo(hd, 1000, "HoodLow", "hood", PAIRS, objs)
+hd = L.hood("HoodHigh", (HC[0], 1.7 + (0.012 if KIND != "tollman" else 0.004), HC[2] + 0.02), ROBE, "hood", size=(0.122, 0.14, 0.126), face_r=(0.07, 0.092) if KIND != "chanter" else (0.082, 0.106),
+            face_dy=-0.022 if KIND != "chanter" else -0.012, peak=D["peak"], back_drop=0.2, lip=0.014, seed=4.0, amp=0.007)
+L.hi_lo(hd, 1000 if KIND != "chanter" else 2200, "HoodLow", "hood", PAIRS, objs)
 WTS["hood"] = lambda p: {"head": float(sm(1.5, 1.62, p.z)), "chest": float(1.0 - sm(1.5, 1.62, p.z))}
 
 # --- a mantle (chanter: poncho; tollman: scapular; pilgrim: a long cloak open in front) -------------------------------------

@@ -94,7 +94,7 @@ SKIN = GK.hollow_skin("Skin", SK[0], SK[1], wet=0.05, wrinkle=70.0, vein_amt=0.8
 CLAW = GK.grave_bone("Claw", (0.34, 0.3, 0.24), (0.1, 0.07, 0.05), 12.0)
 EYE = GK.glow("Eye", EYEC, 8.0)
 TUNIC = GK.cloth("Tunic", (0.14, 0.105, 0.075), "rough_linen", 7.0, (0.04, 0.03, 0.02), 0.9)
-RAG = GK.cloth("Cloth", (0.09, 0.075, 0.065) if not GA else (0.04, 0.04, 0.046), "rough_linen", 7.0, (0.09, 0.075, 0.065) if not GA else (0.04, 0.04, 0.046))
+RAG = GK.cloth("Cloth", (0.09, 0.075, 0.065) if not GA else (0.07, 0.07, 0.082), "rough_linen", 7.0, (0.09, 0.075, 0.065) if not GA else (0.07, 0.07, 0.082))
 LINEN = GK.cloth("Linen", (0.36, 0.32, 0.25), "rough_linen", 14.0, (0.12, 0.09, 0.05), 0.9)
 WRAP = GK.cloth("Wrap", (0.3, 0.26, 0.19), "rough_linen", 18.0, (0.1, 0.08, 0.05), 0.9)
 SACK = GK.cloth("Sack", (0.1, 0.075, 0.05), "rough_linen", 6.0, (0.02, 0.015, 0.01), 0.92)
@@ -410,11 +410,14 @@ else:
     for i, pts in enumerate([[(-0.15, 1.46, -0.04), (-0.13, 1.3, -0.12), (0.0, 1.16, -0.2), (0.14, 1.0, -0.2)], [(0.15, 1.46, -0.04), (0.13, 1.3, -0.12), (0.0, 1.16, -0.2), (-0.14, 1.0, -0.2)]]):
         strap_shell(HB, "Harness", pts, 0.022, 0.026, LEATHER, "r:chest", 300)
     strap_shell(HB, "Belt", [(-0.22, 0.96, -0.17), (0.0, 0.96, -0.27), (0.22, 0.96, -0.17), (0.22, 0.96, 0.1), (-0.22, 0.96, 0.1), (-0.22, 0.96, -0.17)], 0.025, 0.04, LEATHER, "r:pelvis", 400, thick=0.006)
-    for k in range(5):                                                                              # glass phials of bile hung on the harness
+    for k in range(5):                                                                              # glass phials of bile hung from the belt in leather loops
         x = -0.16 + 0.08 * k
-        y = 1.0 + 0.02 * (k % 2)
-        add(K.loft("Phial", [Vector(G(x, y, -0.255)), Vector(G(x, y - 0.07, -0.26))], [(0.016, 0.016), (0.013, 0.013)], "r:pelvis", IRON, 6), "r:pelvis")
-        add(K.blob("Bile", Vector(G(x, y - 0.045, -0.265)), (0.011, 0.022, 0.011), "r:pelvis", GLAND, 10, 8), "r:pelvis")
+        zb = -0.27 + 0.1 * (x / 0.22) ** 2                                                          # the belt's own curve (strap_shell points above)
+        zp = zb - 0.022                                                                             # hung just outside it, resting on the belly
+        y = 0.955 - 0.012 * (k % 2)
+        add(K.loft("PhialLoop", [Vector(G(x, y + 0.03, zb - 0.004)), Vector(G(x, y + 0.01, zp)), Vector(G(x, y - 0.012, zp))], [(0.014, 0.006), (0.012, 0.006), (0.012, 0.006)], "r:pelvis", LEATHER, 6), "r:pelvis")
+        add(K.loft("Phial", [Vector(G(x, y - 0.0, zp)), Vector(G(x, y - 0.085, zp))], [(0.018, 0.018), (0.015, 0.015)], "r:pelvis", IRON, 8), "r:pelvis")
+        add(K.blob("Bile", Vector(G(x, y - 0.05, zp - 0.002)), (0.0135, 0.03, 0.0135), "r:pelvis", GLAND, 10, 8), "r:pelvis")
     for k in range(7):                                                                              # a bank of glands on the back and shoulders
         a = Vector(G(-0.14 + 0.047 * k, 1.38 + 0.05 * math.sin(k * 1.7), 0.15 + 0.03 * (k % 2)))
         add(fx(K.blob("Gland", a, (0.05 + 0.012 * (k % 3), 0.05, 0.045), "r:chest", GLAND, 18, 12)), "r:chest")

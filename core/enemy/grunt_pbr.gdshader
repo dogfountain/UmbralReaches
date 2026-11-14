@@ -33,6 +33,9 @@ uniform float wet = 0.0;
 uniform float dust = 0.0;
 uniform vec3 dust_col : source_color = vec3(0.42, 0.4, 0.36);
 uniform float heat = 0.0;
+// Dark cloth (a shroud albedo of ~0.04) cannot carry the shared rim terms: they are emission, so they do not scale with albedo and a
+// grazing flank of black cloth reads as a pale blown-out sheet. A kind with dark cloth scales both rims down here (1 = unchanged).
+uniform float rim_scale = 1.0;
 
 instance uniform float hit_flash = 0.0;
 instance uniform float glint = 0.0;
@@ -82,7 +85,7 @@ void fragment() {
 	float breathe = 1.0 + emit_pulse * sin(TIME * pulse_rate + pulse_phase + opos.y * 3.0);
 	float skin_t = mix(1.0, 0.35 + 0.9 * pow(1.0 - ndv, 1.5), membrane);
 	EMISSION = texture(emit_tex, UV).rgb * emit_energy * breathe * (1.0 + heat * (cl_noise(opos * 7.0 + vec3(0.0, TIME * 0.8, 0.0)) - 0.5)) * skin_t * (1.0 + glint * 2.5)
-		+ cl_accent(NORMAL, VIEW, rim_col, rim_amount) * (1.0 - glint * 0.6) + cl_rim(NORMAL, VIEW, VIEW_MATRIX) + cl_moon_rim(NORMAL, VIEW, VIEW_MATRIX)
+		+ cl_accent(NORMAL, VIEW, rim_col, rim_amount) * (1.0 - glint * 0.6) + (cl_rim(NORMAL, VIEW, VIEW_MATRIX) + cl_moon_rim(NORMAL, VIEW, VIEW_MATRIX)) * rim_scale
 		+ vec3(1.4, 1.25, 1.2) * hit_flash * (0.35 + 0.65 * pow(1.0 - ndv, 1.5))
 		+ burn_col * edge * 3.0;
 }
