@@ -71,7 +71,7 @@ func _run() -> void:
 	# ---- counts and biomes
 	var c: Dictionary = w.counts
 	print("LIFE counts ", c)
-	var need := {"moth": 30, "firefly": 120, "bat": 40, "crow": 12, "owl": 4, "heron": 2, "frog": 15, "deer": 6, "fox": 2, "elk": 1, "pond": 0}
+	var need := {"moth": 30, "firefly": 120, "bat": 40, "crow": 12, "owl": 4, "heron": 2, "frog": 15, "fox": 2, "elk": 1, "pond": 0}
 	for k: String in need:
 		check(int(c.get(k, 0)) >= int(need[k]), "%s placed %d (>= %d)" % [k, int(c.get(k, 0)), int(need[k])])
 	var by_biome := {}
@@ -105,9 +105,8 @@ func _run() -> void:
 		if g.kind == "deer":
 			herd = g
 			break
-	if herd == null:
-		fail("no deer herd")
-	else:
+	check(herd == null, "no deer herds (removed 14 Nov)")
+	if herd != null:
 		var p0: Vector3 = herd.positions()[0]
 		var start := p0
 		await _put(player, p0 + Vector3(9, 0, 0))

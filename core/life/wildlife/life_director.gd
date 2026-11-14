@@ -399,8 +399,11 @@ func _place_herds(space: PhysicsDirectSpaceState3D) -> void:
 				herds.append(e)
 			if herds.size() >= (2 if pass_i == 0 else 6):     # r34 flora: twice the ground (was 4)
 				break
-	var hi := Marches.make_herds(_add_group, space, herds, hrng, 0, "Deer%d", 0)
-	Marches.herds(_add_group, space, camps, BUILD_SEED)
+	# no deer herds (Luke, 14 Nov: "we can get rid of deer, they suck"). The foxes, hares and the elk stay, and the
+	# white hart is its own event (phenomena.gd). `-- --deer` brings the herds back for the tools that film them.
+	if "--deer" in OS.get_cmdline_user_args():
+		Marches.make_herds(_add_group, space, herds, hrng, 0, "Deer%d", 0)
+		Marches.herds(_add_group, space, camps, BUILD_SEED)
 	_place_foxes_and_hares(space, camps)
 
 

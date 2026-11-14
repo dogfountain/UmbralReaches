@@ -69,7 +69,17 @@ var _pre := -1
 var _flush := 0.0
 
 
+var _hitch_log := "--hitch-log" in OS.get_cmdline_user_args()    ## each frame over 18 ms: where its time went
+var _pp_frame := 0                ## physics scripts, usec this frame
+
+
 func _on_post_draw() -> void:
+	if _hitch_log and _it0 >= 0 and _sp1 >= 0:
+		var now := Time.get_ticks_usec()
+		if now - _it0 > 18000:
+			print("HITCH %.1f ms: physics scripts %.1f, idle scripts %.1f, after idle to pre-draw %.1f, draw %.1f, other %.1f" % [(now - _it0) / 1000.0,
+				_pp_frame / 1000.0, (_sp1 - _sp0) / 1000.0, maxf(_pre - _sp1, 0) / 1000.0, (now - maxi(_pre, _sp1)) / 1000.0, (_sp0 - _it0 - _pp_frame) / 1000.0])
+	_pp_frame = 0
 	if _sp1 >= 0:
 		_seg[1] += Time.get_ticks_usec() - _sp1
 		_seg_n[1] += 1
@@ -112,7 +122,7 @@ func _meter() -> void:
 		[-2000000000, true, func() -> void:
 			_pp0 = Time.get_ticks_usec()
 			if _it0 < 0: _it0 = _pp0],
-		[2000000000, true, func() -> void: _pe = Time.get_ticks_usec(); _pp_acc += _pe - _pp0; _pp_ticks += 1]]
+		[2000000000, true, func() -> void: _pe = Time.get_ticks_usec(); _pp_acc += _pe - _pp0; _pp_frame += _pe - _pp0; _pp_ticks += 1]]
 	for m: Array in marks:
 		var n := Mark.new()
 		n.cb = m[2]

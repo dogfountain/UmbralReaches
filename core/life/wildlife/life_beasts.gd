@@ -267,9 +267,20 @@ func tick(dt: float, ctx: Dictionary) -> void:
 
 ## Deer and elk keep a body's length between them: a stroll could end inside another grazer (a hind's body through
 ## the stag's legs). Two standing too close step apart slowly, as a herd shuffles on its grass.
+var _apart_wait := 0.0           ## seconds until the next try, after a tick in which no crowded pair could step
+
+
 func _keep_apart(dt: float) -> void:
 	if kind != "deer" and kind != "elk":
 		return
+	# two grazers too close on ground neither may step onto (a site's edge, a bank, the water's side) tried again
+	# every tick for ever: two open-ground tests a pair a tick (each scans every site), 80 % of a herd's tick.
+	# A tick in which nobody could step is followed by two seconds' rest.
+	_apart_wait -= dt
+	if _apart_wait > 0.0:
+		return
+	var crowded := false
+	var moved := false
 	var gap := 3.4 if kind == "elk" else 2.4             # a body and a head: a deer is about 2 m nose to tail
 	for i in animals.size():
 		var a: Dictionary = animals[i]
@@ -286,16 +297,20 @@ func _keep_apart(dt: float) -> void:
 			var l := d.length()
 			if l >= gap:
 				continue
+			crowded = true
 			var dir := d / l if l > 0.01 else Vector3(cos(float(i)), 0.0, sin(float(i)))
 			var step := minf((gap - l) * 0.5, dt * 0.6)
 			for e: Array in [[a, -dir], [b, dir]]:
 				var an: Dictionary = e[0]
 				var np: Vector3 = (an.pos as Vector3) + (e[1] as Vector3) * step
 				if _ok(np.x, np.z):
+					moved = true
 					an.pos = Vector3(np.x, _ground(np.x, np.z, np.y), np.z)
 					if int(an.state) == WALK:
 						an.target = Vector3((an.target as Vector3).x, np.y, (an.target as Vector3).z)
 			_dirty = true
+	if crowded and not moved:
+		_apart_wait = 2.0
 
 
 ## Nothing would move between ticks: everyone standing, heads, pitch and feet settled.

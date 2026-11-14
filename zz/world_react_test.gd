@@ -143,7 +143,7 @@ func _run() -> void:
 	if herd == null:
 		herd = _group("deer")
 	if herd == null:
-		fail("no deer herd")
+		print("WORLD skip: no deer herds (removed 14 Nov)")
 	else:
 		var lead: Vector3 = herd.positions()[0]
 		await _put(_safe_near(lead, 42.0))

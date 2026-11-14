@@ -423,9 +423,22 @@ func release() -> void:
 
 # --- per frame ----------------------------------------------------------------------------------
 
+var _far_acc := 0.0                ## frame time saved up while stepping every fourth frame (far from the camera)
+
+
 func _process(delta: float) -> void:
 	if village == null:
 		return
+	# past 55 m a villager is a few pixels: his routine steps every fourth frame with the time saved up (30 a second
+	# at 120 fps; a walker moves 4 cm a step). 32 of them were 0.2 ms of every frame of a fight two fields away.
+	if attend == null and follow == null:
+		var cam := get_viewport().get_camera_3d()
+		if cam != null and cam.global_position.distance_squared_to(global_position) > 3025.0:
+			_far_acc += delta
+			if (Engine.get_process_frames() + get_instance_id()) % 4 != 0:
+				return
+			delta = _far_acc
+		_far_acc = 0.0
 	var dt := delta * float(village.get("time_scale"))
 	_t += dt
 	if attend != null:
