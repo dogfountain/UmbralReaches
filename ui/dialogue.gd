@@ -619,13 +619,13 @@ func _subtitles(delta: float) -> void:
 		if _sub_t <= 0.6 and _sub.modulate.a > 0.0 and (_sub_tw == null or not _sub_tw.is_running()):
 			_sub_tw = create_tween()
 			_sub_tw.tween_property(_sub, "modulate:a", 0.0, 0.55)
-		if _sub_t <= 0.0 and td:
-			td.end(&"narration")
+		if _sub_t <= 0.0 and td and _sub_queue.is_empty():
+			td.end(&"narration")                  # kept up between lines: no banner may slip into the gap
 		return
 	if _sub_queue.is_empty():
 		return
 	var life := 4.2 + float(_sub_queue[0].length()) / CPS * 1.2
-	if td and not td.begin(&"narration", life + 1.0, td.lane_rect(&"sub")):
+	if td and not td.begin(&"narration", life + 1.0, td.lane_rect(&"sub"), td.is_up(&"narration")):
 		return                                 # the lane is not ours yet (a boss's emote): wait
 	_sub.text = _sub_queue.pop_front()
 	TextDirector.plate(_sub, _sub.text, 960.0, -270.0)

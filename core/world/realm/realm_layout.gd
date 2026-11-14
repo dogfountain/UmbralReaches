@@ -20,7 +20,17 @@ const LAVA_Y := -15.5                                       ## the rift's lava s
 const SPAWN := Vector3(0.0, 0.0, 33.0)                     ## the spawn brazier (Zone/Braziers/Sanctuary)
 ## New game: on the Pilgrims' Road at waystone III, facing Hearthward (docs/STORY.md known gap).
 ## The Sanctuary fire stays SPAWN; Continue / kindle still wake at the last checkpoint.
-const PLAYER_START := Vector3(-16.0, 0.15, 55.5)
+## r38: south of the road's junction, looking up the approach at Hearthward's timber gate (centre (2.3, 44)), the
+## spawn brazier through it and the stair behind; nothing within 2 m of the camera (the old start stood between
+## Maud's cottage and a lamp post). START_FACE is what the wanderer looks at.
+const PLAYER_START := Vector3(-4.4, 0.15, 57.4)
+const START_FACE := Vector2(1.0, 40.0)
+
+
+## The yaw a new game (and the Deeper Night's reload) wakes with.
+static func start_yaw() -> float:
+	var face := START_FACE - Vector2(PLAYER_START.x, PLAYER_START.z)
+	return atan2(-face.x, -face.y)
 const TAVERN := Rect2(10.0, 25.6, 16.0, 9.2)               ## Tavern.X0..X1, Z0..Z1 (+ yard east to x 29)
 ## relocation (Luke, 14 Nov: "the ossuary is in a terrible place ... all bosses are on the top of the map"):
 ## the Ossuary no longer hangs on the rift's east wall. It stands under the Waiting Field: a quarried bone

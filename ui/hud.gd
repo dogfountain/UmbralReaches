@@ -25,6 +25,7 @@ var _bench_line := ""
 var _bar: GloomBar
 var _prompt: Label
 var _title: Label
+var _cards: Control                  ## the title card's layer (over the fade)
 var _subtitle: Label
 var _debug: Label
 var _fade: ColorRect
@@ -130,13 +131,18 @@ func _ready() -> void:
 	_prompt.offset_right = 500
 	_prompt.modulate.a = 0.0
 
-	_title = _label(root, "", 64, Med.GILT, HORIZONTAL_ALIGNMENT_CENTER)
+	# the title card lives over the fade, not under the HUD: the opening plays it while the HUD is still away
+	_cards = Control.new()
+	_cards.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_cards.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	outer.add_child(_cards)
+	_title = _label(_cards, "", 64, Med.GILT, HORIZONTAL_ALIGNMENT_CENTER)
 	_title.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	_title.offset_top = 250
 	_title.offset_bottom = 340
 	_title.offset_left = -900
 	_title.offset_right = 900
-	_subtitle = _label(root, "", 26, Med.BONE, HORIZONTAL_ALIGNMENT_CENTER)
+	_subtitle = _label(_cards, "", 26, Med.BONE, HORIZONTAL_ALIGNMENT_CENTER)
 	_subtitle.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	_subtitle.offset_top = 340
 	_subtitle.offset_bottom = 380
@@ -196,6 +202,7 @@ func _ready() -> void:
 	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	outer.add_child(_fade)
+	outer.move_child(_cards, -1)                 # over the black, so the card can play on it
 
 	# a new game opens on black with no HUD: the story (core/story/story.gd _opening) lifts it in beats
 	HudPrefs.reset_stage()
@@ -353,11 +360,11 @@ func _on_respawned(_at: Vector3) -> void:
 	create_tween().tween_property(_fade, "color:a", 0.0, 1.0).set_delay(0.2)
 
 
-func _on_zone(title: String, subtitle: String) -> void:
+func _on_zone(title: String, subtitle: String, opening := false) -> void:
 	if Travel.returning:
 		Travel.returning = false
 		return
-	if _opening_hold:
+	if _opening_hold and not opening:
 		_card_after = [title, subtitle]          # the card waits for the opening: it plays when the HUD arrives
 		return
 	# the night's title card waits for the loading screen to lift, and for the text director's banner lane
@@ -441,8 +448,8 @@ func _tips_tick(delta: float) -> void:
 	if _tip_check > 0.0:
 		return
 	_tip_check = 0.25
-	if _menu_open() or (not staged_in() and not _lifting):
-		return
+	if _menu_open() or (not staged_in() and not _lifting) or title_busy():
+		return                         # the title card goes first: no tip draws under it
 	var zn := get_tree().current_scene
 	if zn != null and zn.get_node_or_null("LoadingScreen") != null:
 		return                         # the cover is still up: no lesson over a tour
@@ -528,6 +535,7 @@ var _stage_t := 0.0
 ##   hold_opening(false)  the HUD arrives (what has not been earned yet stays hidden: see _stage_tick)
 func hold_opening(on: bool) -> void:
 	_opening_hold = on
+	_td.opening = on
 	_ui.visible = not on
 	if on:
 		_fade.color.a = 1.0
@@ -540,6 +548,17 @@ func hold_opening(on: bool) -> void:
 func fade_in_opening(seconds := 3.0) -> void:
 	_lifting = true
 	create_tween().tween_property(_fade, "color:a", 0.0, seconds)
+
+
+## The opening's first message: the zone's title card, over the lifting black, ahead of the narration
+## (core/story/story.gd waits for title_busy() to clear). True when a card was waiting.
+func play_opening_card() -> bool:
+	if _card_after.is_empty():
+		return false
+	var c := _card_after
+	_card_after = []
+	_on_zone(String(c[0]), String(c[1]), true)
+	return true
 
 
 ## The pieces of the HUD that come later: the compass and the minimap with the Keep (met_keep).
