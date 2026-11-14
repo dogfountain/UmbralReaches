@@ -66,7 +66,7 @@ MA = GB.make_low(HA, 4000, "ArmsMed")
 for _m in (MB, MA):
     _m.hide_render = True
     _m.hide_viewport = True
-plates, plates_lo = [], []
+plates, plates_lo = {"body": [], "arms": []}, {"body": [], "arms": []}
 gamb = []
 
 
@@ -79,10 +79,11 @@ def add(o, sock=None):
 
 def keep(sel_fn, off, thick=0.01, src=HB, name="Plate", mat=PLATE, folds=None, bevel=0.003, smooth_iter=5, bucket=None):
     o = L.shell(src, name, sel_fn, off, thick, mat, "stiff", folds=folds, smooth_iter=smooth_iter, bevel=bevel)
-    plates.append(o)
+    key = "arms" if src is HA else "body"
+    plates[key].append(o)
     med = MA if src is HA else MB
     lo = L.shell(med, name + "Lo", sel_fn, off, 0.0, mat, "stiff", folds=folds, smooth_iter=max(2, smooth_iter - 2), bevel=0.0)
-    plates_lo.append(lo)
+    plates_lo[key].append(lo)
     return o
 
 
@@ -184,22 +185,23 @@ def joined(lst, name):
     return ob
 
 
-n_lo = sum(L.tri_count(o) for o in plates_lo)
+allo = plates_lo["body"] + plates_lo["arms"]
+n_lo = sum(L.tri_count(o) for o in allo)
 ratio = min(1.0, 3700.0 / max(n_lo, 1))
 print("PLATES lo tris", n_lo, "ratio", ratio)
 if ratio < 1.0:
-    for o in plates_lo:
+    for o in allo:
         L.mods(o, ("DECIMATE", dict(ratio=ratio, use_collapse_triangulate=True)))
-plate_hi = joined(plates, "PlatesHigh")
-plate_lo = joined(plates_lo, "PlatesLow")
-for o in (plate_hi,):
-    o.hide_render = True
-    o.hide_viewport = True
-plate_lo["sock"] = "stiff"
-plate_lo["fixed"] = True
-L.smooth_shade(plate_lo)
-PAIRS.append((plate_lo, plate_hi))
-objs.append(plate_lo)
+for key, sk in (("body", "bodystiff"), ("arms", "armstiff")):      # torso plates follow the chest, never the arm bone beside a flank
+    plate_hi = joined(plates[key], "Plates" + key + "High")
+    plate_lo = joined(plates_lo[key], "Plates" + key + "Low")
+    plate_hi.hide_render = True
+    plate_hi.hide_viewport = True
+    plate_lo["sock"] = sk
+    plate_lo["fixed"] = True
+    L.smooth_shade(plate_lo)
+    PAIRS.append((plate_lo, plate_hi))
+    objs.append(plate_lo)
 gb_hi = joined([g for g in gamb if g.get("sock") == "bodyskin"], "GambHigh")
 L.hi_lo(gb_hi, 700, "GambLow", "bodyskin", PAIRS, objs)
 for g in gamb:

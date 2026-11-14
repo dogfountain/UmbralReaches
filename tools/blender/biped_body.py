@@ -21,11 +21,13 @@ class Ctx:
     pass
 
 
-def body(OPT, SKIN, CLAW, EYE, claw=0.06, teeth=True, nails=True, eyes=True, body_tris=4600, arm_tris=1800, face=None, voxel=0.005, extra=None, toe_claws=True):
+def body(OPT, SKIN, CLAW, EYE, claw=0.06, teeth=True, nails=True, eyes=True, body_tris=4600, arm_tris=1800, face=None, voxel=0.005, extra=None, toe_claws=True, skel=None, mouth=0.0):
     c = Ctx()
     c.OPT = OPT
     c.objs, c.pairs = [], []
     sk, segs, Y = GB.humanoid(OPT)
+    if skel is not None:
+        skel(sk)
     c.sk, c.segs, c.Y = sk, segs, Y
     c.hi = {}
     for skx, nm, root, tr in ((sk, "Body", "pel", body_tris), (sk.arms, "Arms", ["trpl", "trpr"], arm_tris)):
@@ -67,7 +69,7 @@ def body(OPT, SKIN, CLAW, EYE, claw=0.06, teeth=True, nails=True, eyes=True, bod
     c.hy, c.hz, c.hw = hy, hz, hw
     if not OPT.get("nohead"):
         if teeth:
-            for row, (dy, sgn) in enumerate(((-0.058, -1), (-0.07, 1))):
+            for row, (dy, sgn) in enumerate(((-0.058, -1), (-0.07 - mouth, 1))):
                 for k in range(9):
                     a = math.pi * (0.18 + 0.64 * k / 8.0)
                     base = Vector(G(math.cos(a) * 0.034 * hw, hy + dy, hz - 0.058 - math.sin(a) * 0.026))

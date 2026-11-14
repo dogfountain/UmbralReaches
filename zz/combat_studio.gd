@@ -31,6 +31,9 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--tag="): tag = a.trim_prefix("--tag=")
 		elif a.begins_with("--pose="): pose = a.trim_prefix("--pose=")
+		elif a.begins_with("--size="):
+			var wh := a.trim_prefix("--size=").split("x")
+			if wh.size() == 2: get_window().size = Vector2i(int(wh[0]), int(wh[1]))
 		elif a.begins_with("--only="):
 			for k in a.trim_prefix("--only=").split(","):
 				if KINDS.has(k):
@@ -97,6 +100,8 @@ func _spawn() -> void:
 		cur.queue_free()
 	var scr := load(KINDS[order[ki]]) as GDScript
 	cur = scr.new() as Enemy
+	if "dormant" in cur:
+		cur.set("dormant", false)      # a Pilgrim lies in its grave until woken
 	add_child(cur)
 	cur.global_position = Vector3.ZERO
 	cur.rotation.y = 0.0
@@ -129,7 +134,7 @@ func _process(d: float) -> void:
 	var h := maxf(cur.hp_bar_y, 1.0)
 	var look := Vector3(0, h * 0.5, 0)
 	var dist := h * 1.7 + 0.7
-	var views := [Vector3(-0.62, 0.32, -1.0), Vector3(-1.0, 0.18, 0.08)]
+	var views := [Vector3(-0.62, 0.32, -1.0), Vector3(-1.0, 0.18, 0.08), Vector3(0.55, 0.25, 1.0)]
 	cam.global_position = look + views[vi].normalized() * dist
 	cam.look_at(look)
 	if t > 0.45:

@@ -454,13 +454,13 @@ def surf_pt(Pg, drape, y, th):
     return p, n
 
 
-def patch(src, name, c, r, mat, sock, off=0.005, thick=0.004, seed=1.0, ragged=0.28):
+def patch(src, name, c, r, mat, sock, off=0.005, thick=0.004, seed=1.0, ragged=0.28, axis=(0.0, 0.0)):
     """A patch of cloth sewn on: the faces of `src` within a ragged disc round rig point c (outer faces only), lifted."""
     cc = np.array(c, dtype=np.float32)
 
     def sel(P, N):
         d = np.linalg.norm(P - cc, axis=1)
-        out = (N[:, 0] * (P[:, 0]) + N[:, 2] * (P[:, 2])) > 0.0
+        out = (N[:, 0] * (P[:, 0] - axis[0]) + N[:, 2] * (P[:, 2] - axis[1])) > 0.0
         edge = r * (1.0 + ragged * hash_noise(P, 14.0, seed)) - d
         return np.where(out, edge, -1.0)
     return shell(src, name, sel, off, thick, mat, sock, smooth_iter=2)
@@ -476,29 +476,33 @@ def displace(ob, fn):
 
 
 class Plates:
-    """Plates / bone shells cut from the body for the GAME mesh out of coarse copies of the body surface and, for the BAKE,
-    from the full-resolution one: keep(sel, off, thick) adds both; finish(tris, sock) joins each set, decimates the low set
-    to `tris` and registers the (low, high) pair."""
+    """Plates / bone shells cut from the body: keep(sel, off, thick) adds a high shell (for the bake) and a game shell cut from a
+    coarse copy (or, fine=True, from the fine surface); finish(tris, ...) joins them, thins the game set to `tris` and registers
+    the (low, high) pairs. Plates on the torso and on the arms are joined APART (sock "bodystiff" / "armstiff"): a plate that
+    wraps a flank must follow the chest, never the arm bone beside it."""
 
-    def __init__(self, hi_src, lo_src, arm_hi=None, arm_lo=None):
+    def __init__(self, hi_src, lo_src, arm_hi=None, arm_lo=None, fine=False):
+        self.fine = fine
         self.src = {"body": (hi_src, lo_src), "arms": (arm_hi, arm_lo)}
-        self.hi, self.lo = [], []
+        self.hi = {"body": [], "arms": []}
+        self.lo = {"body": [], "arms": []}
 
     def keep(self, sel, off, thick=0.01, on="body", name="Plate", mat=None, folds=None, bevel=0.003, smooth_iter=5, sock="stiff"):
         h, l = self.src[on]
+        if self.fine:
+            l = h
         hi = shell(h, name, sel, off, thick, mat, sock, folds=folds, smooth_iter=smooth_iter, bevel=bevel)
-        self.hi.append(hi)
+        self.hi[on].append(hi)
         try:
-            self.lo.append(shell(l, name + "Lo", sel, off, 0.0, mat, sock, folds=folds, smooth_iter=max(2, smooth_iter - 2), bevel=0.0))
+            self.lo[on].append(shell(l, name + "Lo", sel, off, 0.0, mat, sock, folds=folds, smooth_iter=max(2, smooth_iter - 2), bevel=0.0))
         except RuntimeError:
-            # a piece too small for the coarse copy's faces: its game mesh is the high shell thinned hard
             lo = hi.copy()
             lo.data = hi.data.copy()
             lo.name = name + "Lo"
             bpy.context.scene.collection.objects.link(lo)
             n = max(tri_count(lo), 1)
             mods(lo, ("DECIMATE", dict(ratio=min(1.0, 120.0 / n), use_collapse_triangulate=True)))
-            self.lo.append(lo)
+            self.lo[on].append(lo)
 
     def _join(self, lst, name):
         bpy.ops.object.select_all(action='DESELECT')
@@ -511,22 +515,30 @@ class Plates:
         return ob
 
     def finish(self, tris, sock, pairs, objs, name="Plates"):
-        n = sum(tri_count(o) for o in self.lo)
+        allo = self.lo["body"] + self.lo["arms"]
+        n = sum(tri_count(o) for o in allo)
         ratio = min(1.0, float(tris) / max(n, 1))
         print("PLATES", name, "lo tris", n, "ratio", ratio)
-        if ratio < 1.0:
-            for o in self.lo:
+        for o in allo:
+            if self.fine:
+                mods(o, ("SMOOTH", dict(factor=0.7, iterations=14)))
+            if ratio < 1.0:
                 mods(o, ("DECIMATE", dict(ratio=ratio, use_collapse_triangulate=True)))
-        hi = self._join(self.hi, name + "High")
-        lo = self._join(self.lo, name + "Low")
-        hi.hide_render = True
-        hi.hide_viewport = True
-        lo["sock"] = sock
-        lo["fixed"] = True
-        smooth_shade(lo)
-        pairs.append((lo, hi))
-        objs.append(lo)
-        return lo
+        out = []
+        for on, sk in (("body", "bodystiff"), ("arms", "armstiff")):
+            if not self.hi[on]:
+                continue
+            hi = self._join(self.hi[on], name + on.title() + "High")
+            lo = self._join(self.lo[on], name + on.title() + "Low")
+            hi.hide_render = True
+            hi.hide_viewport = True
+            lo["sock"] = sk
+            lo["fixed"] = True
+            smooth_shade(lo)
+            pairs.append((lo, hi))
+            objs.append(lo)
+            out.append(lo)
+        return out
 
 
 def wrap_shell(src, name, y0, y1, side, off, mat, sock, tris, pairs, objs, turns=7.0, cx=0.0, xs=0.0, thick=0.004, amp=0.0035):
@@ -547,3 +559,11 @@ def report(objs, n=40):
     print("TRIS total", sum(r[0] for r in rows), "parts", len(rows))
     for r in rows[:n]:
         print("  TRIS", r)
+
+
+def soften(mat, f=0.5):
+    """Scale the bump of a procedural material (a K.Mat): the cloth scan bump is fine grain that bakes to fuzz."""
+    for n in (mat.nodes if hasattr(mat, "nodes") else mat.m.node_tree.nodes):
+        if n.bl_idname == 'ShaderNodeBump':
+            n.inputs['Strength'].default_value *= f
+            n.inputs['Distance'].default_value *= f

@@ -38,7 +38,7 @@ sm = L.smooth
 D = {
     "chanter": dict(W=0.82, Lm=0.72, nk=0.07, finger=0.24, wrist=0.62, hc=(0, 1.7, -0.1), head_w=0.07, neck_r=0.04, hump=0.04, waist=0.9,
                     skin=((0.22, 0.27, 0.35), (0.045, 0.06, 0.09)), face=(0.32, 0.38, 0.46), eye=(0.45, 1.0, 0.3),
-                    robe=(0.085, 0.09, 0.07), patch=(0.17, 0.15, 0.1), hem=0.06, tears=0.14, claw=0.08, hem_y=0.045, peak=0.07),
+                    robe=(0.085, 0.09, 0.07), patch=(0.17, 0.15, 0.1), hem=0.06, tears=0.14, claw=0.08, hem_y=0.045, peak=0.15),
     "tollman": dict(W=0.9, Lm=0.8, nk=0.12, finger=0.2, wrist=0.64, hc=(0, 1.69, -0.13), head_w=0.07, neck_r=0.042, hump=0.07, waist=1.0,
                     skin=((0.32, 0.3, 0.3), (0.06, 0.055, 0.055)), face=(0.36, 0.34, 0.33), eye=(1.0, 0.72, 0.25),
                     robe=(0.19, 0.16, 0.115), patch=(0.12, 0.09, 0.06), hem=0.05, tears=0.1, claw=0.07, hem_y=0.22, peak=0.012),
@@ -67,11 +67,13 @@ WOOD = GK.wood("Wood", (0.2, 0.13, 0.08), 0.5)
 ROPE = GK.cloth("Rope", (0.3, 0.24, 0.16), "rough_linen", 30.0, (0.1, 0.08, 0.05), 0.9)
 LIGHT = GK.glow("Glow", (1.0, 0.62, 0.2) if KIND == "pilgrim" else (0.45, 1.0, 0.3), 4.0)
 MATS = [SKIN, CLAW, EYE, FACE, ROBE, MANTLE, PATCH, LEATHER, IRON, BONE, WOOD, ROPE, LIGHT]
+for _m in (ROBE, MANTLE, PATCH, ROPE):
+    L.soften(_m, 0.4)                                # the cloth bump is fine grain: it baked to fuzz
 
 # --- the body ---------------------------------------------------------------------------------------------------
 OPT = dict(W=Wd, L=D["Lm"], nk=nk, finger=D["finger"], wrist=D["wrist"], ribs=0.006, belly=-1.0, collar=1.3, tendon=1.4, hc=HC,
            jaw_w=0.04, brow=0.013, waist=wa, head_w=D["head_w"], neck_r=nkr, hump=hump)
-ctx = BB.body(OPT, SKIN, CLAW, EYE, claw=D["claw"], body_tris=2800, arm_tris=1500, toe_claws=False)
+ctx = BB.body(OPT, SKIN, CLAW, EYE, claw=D["claw"], body_tris=2500, arm_tris=1300, toe_claws=False)
 objs, PAIRS = ctx.objs, ctx.pairs
 WTS = BW.base_weights(ctx, S, neck=nk)
 
@@ -87,6 +89,11 @@ def Hi(ob, tris, name, sock):
     return L.hi_lo(ob, tris, name, sock, PAIRS, objs)
 
 
+def fx_(o):
+    o["fixed"] = True
+    return o
+
+
 def rope(name, pts, r, sock, mat=None, taper=None):
     return add(K.curve_tube(name, [Vector(G(*p)) for p in pts], r, sock, mat or ROPE, taper), sock)
 
@@ -98,7 +105,7 @@ if KIND == "tollman":
 else:
     skirt = [(0.78, 0, 0.005, 0.18, 0.128, 0.14, 2.0), (0.5, 0, 0.0, 0.235, 0.18, 0.2, 2.0), (0.22, 0, 0.01, 0.29, 0.235, 0.255, 2.0),
              (-0.02, 0, 0.012, 0.33, 0.27, 0.295, 2.0), (-0.2, 0, 0.012, 0.34, 0.28, 0.3, 2.0)]
-SH = 0.0 if KIND == "chanter" else 0.1             # a shoulder yoke: the robe's shoulder line reaches out over the arms (no capped sleeve ends)
+SH = {"chanter": 0.0, "tollman": 0.17, "pilgrim": 0.1}[KIND]             # a shoulder yoke: the robe's shoulder line reaches out over the arms (no capped sleeve ends)
 keys = [
     (1.585, 0, -nk * 0.9, nkr * 1.2 + 0.03, nkr * 1.1 + 0.03, nkr * 1.3 + 0.03, 2.0),
     (1.525, 0, -nk * 0.35, 0.085 * Wd + pad + 0.35 * SH, 0.058 + pad, 0.074 + 0.35 * hump + pad, 2.0),
@@ -118,7 +125,7 @@ Pg = robe_d.points()
 robe_hi = L.grid_surface("RobeHigh", Pg, "robe", ROBE, wrap=True, thick=0.008, sub=1)
 co, nr = L.mesh_arrays(robe_hi)
 P_ = L.to_rig(co)
-disp = 0.0009 * L.hash_noise(P_, 38.0, 1.0) + 0.0028 * L.hash_noise(P_ * np.array([2.5, 0.35, 2.5]), 9.0, 3.0)
+disp = 0.0 * L.hash_noise(P_, 38.0, 1.0) + 0.0022 * L.hash_noise(P_ * np.array([2.5, 0.35, 2.5]), 9.0, 3.0)
 robe_hi.data.vertices.foreach_set('co', (co + L.to_bl(L.to_rig(nr)) * disp[:, None]).astype(np.float32).ravel())
 robe_hi.data.update()
 WTS["robe"] = BW.skirt_weights(WTS, y_hip=0.9, y_knee=0.45, spread=0.85, knee_part=0.55, torso_from=1.0)
@@ -133,7 +140,7 @@ for pi, (py, pth, pr) in enumerate(PATCHES):
         L.mods(pt, ("DECIMATE", dict(ratio=min(1.0, 110.0 / max(L.tri_count(pt), 1)), use_collapse_triangulate=True)))
     except RuntimeError as e:
         print("PATCH skipped", e)
-robe_lo = Hi(robe_hi, 3300, "RobeLow", "robe")
+robe_lo = Hi(robe_hi, 3000, "RobeLow", "robe")
 
 # --- sleeves: hang from the shoulder, loose, a cuff past the hand ----------------------------------------------------
 sleeve_len = {"chanter": 0.12, "tollman": 0.12, "pilgrim": 0.06}[KIND]
@@ -142,13 +149,13 @@ for tag, sx in (("l", -1), ("r", 1)):
     ax = sx * 0.248
     sl = L.sleeve("SleeveHigh", (ax * 0.92, 1.36, 0.0), (ax, D["wrist"] + 0.06, -0.005), SLV[0], SLV[1], MANTLE, "sleeve_" + tag, hem_amp=0.05,
                   droop=0.0, seed=3.0 + sx, amp=0.034, nth=56, rows=40, thick=0.006, drop_len=sleeve_len)
-    L.hi_lo(sl, 700, "SleeveLow", "sleeve_" + tag, PAIRS, objs)
+    L.hi_lo(sl, 600, "SleeveLow", "sleeve_" + tag, PAIRS, objs)
     WTS["sleeve_" + tag] = WTS["armskin"]
 
 # --- the cowl ------------------------------------------------------------------------------------------------------------
-hd = L.hood("HoodHigh", (HC[0], 1.7 + (0.012 if KIND != "tollman" else 0.004), HC[2] + 0.012), ROBE, "hood", size=(0.122, 0.14, 0.132), face_r=(0.058, 0.078),
+hd = L.hood("HoodHigh", (HC[0], 1.7 + (0.012 if KIND != "tollman" else 0.004), HC[2] + 0.02), ROBE, "hood", size=(0.122, 0.14, 0.126), face_r=(0.07, 0.092),
             face_dy=-0.022, peak=D["peak"], back_drop=0.2, lip=0.014, seed=4.0, amp=0.007)
-L.hi_lo(hd, 1100, "HoodLow", "hood", PAIRS, objs)
+L.hi_lo(hd, 1000, "HoodLow", "hood", PAIRS, objs)
 WTS["hood"] = lambda p: {"head": float(sm(1.5, 1.62, p.z)), "chest": float(1.0 - sm(1.5, 1.62, p.z))}
 
 # --- a mantle (chanter: poncho; tollman: scapular; pilgrim: a long cloak open in front) -------------------------------------
@@ -176,7 +183,7 @@ else:
                  nth=176, dy=0.008, flare=0.03, seed=6.0)
 Pgm = md.points()
 mantle_hi = L.grid_surface("MantleHigh", Pgm, "mantle", MANTLE, wrap=True, thick=0.007, sub=1)
-L.hi_lo(mantle_hi, 1700 if KIND != "tollman" else 1300, "MantleLow", "mantle", PAIRS, objs)
+L.hi_lo(mantle_hi, 1500 if KIND != "tollman" else 1200, "MantleLow", "mantle", PAIRS, objs)
 WTS["mantle"] = BW.GB.envelope_weights(ctx.segs, band=0.11, power=1.5)
 if KIND == "pilgrim":
     WTS["mantle"] = BW.skirt_weights(WTS, y_hip=0.9, y_knee=0.45, spread=0.55, knee_part=0.4, torso_from=1.0)
@@ -241,17 +248,18 @@ elif KIND == "tollman":
     # the hand-bell: a grip through the fist, a flared black iron bell with a rolled lip, bands and a clapper.
     # Its own rigid part on the hand (tollman.gd swings it about the hand when it rings).
     c = (0.248, 0.0, -0.03)
-    by0 = 0.4 - 0.268                                    # the lip's height: the bell hangs from the fist
-    prof = [(0.108, 0.0), (0.112, 0.012), (0.1, 0.03), (0.088, 0.075), (0.072, 0.13), (0.058, 0.18), (0.046, 0.22), (0.032, 0.248), (0.02, 0.262), (0.0, 0.268)]
+    BS = 1.32
+    by0 = 0.4 - 0.268 * BS                                    # the lip's height: the bell hangs from the fist
+    prof = [(r_ * BS, h_ * BS) for r_, h_ in [(0.108, 0.0), (0.112, 0.012), (0.1, 0.03), (0.088, 0.075), (0.072, 0.13), (0.058, 0.18), (0.046, 0.22), (0.032, 0.248), (0.02, 0.262), (0.0, 0.268)]]
     objs.append(L.lathe("Bell", prof, (c[0], by0, c[2]), IRON, "bell", nth=40, wobble=0.015, seed=1.0, fold=0.0))
-    add(L.band_loop("Lip", (c[0], by0, c[2]), 0.112, 0.112, 0.012, IRON, "bell", n=28, sides=6), "bell")
+    add(L.band_loop("Lip", (c[0], by0, c[2]), 0.112 * BS, 0.112 * BS, 0.014, IRON, "bell", n=28, sides=6), "bell")
     for yb in (0.06, 0.1):
-        add(L.band_loop("Band", (c[0], by0 + yb, c[2]), 0.09 - 0.35 * (yb - 0.06), 0.09 - 0.35 * (yb - 0.06), 0.005, IRON, "bell", n=24, sides=5), "bell")
+        add(L.band_loop("Band", (c[0], by0 + yb * BS, c[2]), (0.09 - 0.35 * (yb - 0.06)) * BS, (0.09 - 0.35 * (yb - 0.06)) * BS, 0.006, IRON, "bell", n=24, sides=5), "bell")
     add(K.loft("Grip", [Vector(G(c[0], 0.4, c[2])), Vector(G(c[0], 0.63, c[2]))], [(0.022, 0.022), (0.018, 0.018)], "bell", WOOD, 10), "bell")
     for k in range(6):
         add(K.loft("Wrap", [Vector(G(c[0], 0.43 + 0.03 * k, c[2])), Vector(G(c[0], 0.447 + 0.03 * k, c[2]))], [(0.026, 0.026)] * 2, "bell", LEATHER, 8), "bell")
     add(K.blob("Pommel", Vector(G(c[0], 0.645, c[2])), (0.028, 0.022, 0.028), "bell", IRON, 14, 10), "bell")
-    add(K.blob("Clapper", Vector(G(c[0], by0 + 0.03, c[2])), (0.025, 0.03, 0.025), "bell", IRON, 14, 10), "bell")
+    add(K.blob("Clapper", Vector(G(c[0], by0 + 0.03, c[2])), (0.03, 0.036, 0.03), "bell", IRON, 14, 10), "bell")
     add(K.loft("Clap", [Vector(G(c[0], by0 + 0.05, c[2])), Vector(G(c[0], by0 + 0.17, c[2]))], [(0.006, 0.006)] * 2, "bell", IRON, 6), "bell")
     rigid = {"bell": ("bell_hand_r", S["hand_r"])}
     # the rope it rings with, over the shoulder
@@ -261,7 +269,7 @@ elif KIND == "tollman":
         yy, thh = 1.5 - 0.5 * t, FRONT + 1.0 - 1.9 * t
         pp, nn = L.surf_pt(Pgm if yy > 1.0 else Pg, md if yy > 1.0 else robe_d, yy, thh)
         tr.append(pp + nn * 0.03)
-    rope("TollRope", tr, 0.012, "r:chest", ROPE)
+    rope("TollRope", tr, 0.02, "r:chest", ROPE)
 elif KIND == "pilgrim":
     # a pilgrim's staff of ash, crooked at the head with a gourd hung from it; a candle on a cord at the breast
     shaft = [HR + G(0.0 + 0.012 * math.sin(t * 5), -0.72 + 1.82 * t, -0.03) for t in [i / 16.0 for i in range(17)]]
@@ -279,6 +287,16 @@ elif KIND == "pilgrim":
         add(K.blob("Wax", Vector(G(cx + 0.015 * math.cos(k * 2.3), cy + 0.01 - 0.02 * k, cz - 0.018 * math.sin(k * 2.3 + 1) - 0.012)), (0.005, 0.018, 0.005), "r:chest", BONE, 8, 6), "r:chest")
     add(K.blob("Flame", Vector(G(cx, cy + 0.085, cz)), (0.011, 0.028, 0.011), "r:chest", LIGHT, 10, 8), "r:chest")
     add(L.band_loop("Holder", (cx, cy - 0.075, cz), 0.03, 0.03, 0.004, IRON, "r:chest", n=16, sides=5), "r:chest")
+    # the pack it bends under: a canvas pack with a bedroll and a blanket, slung from rope straps over the cloak
+    pk = L.lathe("Pack", [(0.0, -0.26), (0.12, -0.25), (0.2, -0.16), (0.225, 0.0), (0.2, 0.15), (0.14, 0.27), (0.06, 0.33)], (0.0, 1.0, 0.36), PATCH, "r:chest", nth=26, wobble=0.12, seed=4.0, fold=0.05, fold_n=4, thick=0.0, ellip=(1.15, 0.8), rows=10)
+    L.displace(pk, lambda P, N: 0.012 * L.hash_noise(P, 14.0, 2.0) + 0.012 * np.sin(np.arctan2(P[:, 0], P[:, 2] - 0.36) * 5 + P[:, 1] * 5))
+    L.smooth_shade(pk)
+    pk["fixed"] = True
+    add(pk, "r:chest")
+    add(fx_(K.loft("PackRoll", [Vector(G(-0.27, 1.36, 0.3)), Vector(G(0.0, 1.38, 0.32)), Vector(G(0.27, 1.36, 0.3))], [0.07, 0.078, 0.07], "r:chest", MANTLE, 10)), "r:chest")
+    for sx in (-1, 1):
+        rope("PackStrap", [(sx * 0.1, 1.5, 0.12), (sx * 0.15, 1.46, 0.0), (sx * 0.16, 1.34, -0.14), (sx * 0.12, 1.12, -0.12), (sx * 0.1, 1.0, 0.12), (sx * 0.14, 1.2, 0.25)], 0.014, "r:chest", ROPE)
+    add(fx_(K.blob("PackPot", Vector(G(0.17, 0.82, 0.4)), (0.06, 0.06, 0.06), "r:chest", IRON, 14, 10)), "r:chest")
     shp = L.surf_pt(Pgm, md, 1.43, FRONT - 0.7)
     objs.append(L.lathe("Shell", [(0.0, 0.0), (0.03, 0.01), (0.052, 0.03), (0.05, 0.036), (0.0, 0.012)], (shp[0][0], shp[0][1], shp[0][2] - 0.03), BONE, "r:chest", nth=18, fold=0.18, fold_n=7, thick=0.004))
 

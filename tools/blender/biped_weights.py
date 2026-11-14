@@ -25,7 +25,9 @@ def base_weights(ctx, S, neck=0.1):
     WAIST = G(0, 1.02, 0)
     NECK = G(0, 1.63, -0.02 - neck)
     body_fn, arm_fn, all_fn, stiff_fn = seg_weights(ctx)
-    W = {"bodyskin": body_fn, "armskin": arm_fn, "all": all_fn, "stiff": stiff_fn,
+    ARMB = ("shoulder_", "elbow_", "hand_")
+    body_stiff = GB.envelope_weights([sg for sg in ctx.segs if not sg[0].startswith(ARMB)], band=0.012, power=3.0)   # torso plates never follow the arm bones
+    W = {"bodyskin": body_fn, "armskin": arm_fn, "all": all_fn, "stiff": stiff_fn, "bodystiff": body_stiff, "armstiff": stiff_fn,
          "head": lambda p: GK.chain_w(p, [("chest", C0), ("head", NECK + G(0, -0.01, 0))], 0.025),
          "torso": lambda p: GK.chain_w(p, [("pelvis", P0), ("chest", WAIST), ("head", NECK)], [0.075, 0.035])}
     for tag in ("l", "r"):

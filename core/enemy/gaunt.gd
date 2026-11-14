@@ -67,8 +67,8 @@ func _tint() -> void:
 		_mat = (base as ShaderMaterial).duplicate() as ShaderMaterial
 		if GruntModel.has(&"wretch") and _mat.shader == GruntModel.SHADER:
 			_mat.set_shader_parameter("rim_col", Color(0.75, 0.82, 1.0))
-			_mat.set_shader_parameter("rim_amount", 0.38)
-			_mat.set_shader_parameter("emit_pulse", 0.5)
+			_mat.set_shader_parameter("rim_amount", 0.06)
+			_mat.set_shader_parameter("emit_pulse", 0.0)
 			_mat.set_shader_parameter("pulse_rate", 2.4)
 		else:
 			_mat.set_shader_parameter("rim_amount", 0.5)

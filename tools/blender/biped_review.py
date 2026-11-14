@@ -49,7 +49,7 @@ if os.environ.get("BOSS_BAKE_CPU", "") != "1":
     except Exception as e:
         print("GPU unavailable", e)
 sc.cycles.samples = SAMPLES
-sc.cycles.use_denoising = False
+sc.cycles.use_denoising = True
 sc.render.resolution_x = RES
 sc.render.resolution_y = int(RES * 1.25)
 sc.view_settings.view_transform = 'AgX'
@@ -253,7 +253,7 @@ if ONLY in ("", "turn"):
     ps = []
     for mode in ("night", "neutral"):
         for name, az in (("front", 90), ("three", 50), ("side", 0), ("back", 270)):
-            ps.append(shoot("turn_%s_%s" % (name, mode), az, 0.12, D0, tz, 50, mode))
+            ps.append(shoot("turn_%s_%s" % (name, mode), az, 0.1, D0, tz, 85, mode))
     cd.lens = 70
     hz = float(arg("--head", "0")) or 1.67
     for mode in ("night",):
@@ -283,5 +283,5 @@ if ONLY in ("", "pose"):
         c2 = (lo2 + hi2) * 0.5
         d2 = max(hi2.z - lo2.z, hi2.x - lo2.x, 1.4) * 1.55
         for view, az in (("three", 50), ("side", 0), ("front", 90)):
-            pp.append(shoot("pose_%s_%s" % (name, view), az, 0.1, d2, c2.z, 50, "night", Vector((0, 0, c2.z))))
+            pp.append(shoot("pose_%s_%s" % (name, view), az, 0.1, d2, c2.z, 75, "night", Vector((0, 0, c2.z))))
     sheet(pp, 3, os.path.join(OUT, "pose_sheet.png"), (400, 500))
