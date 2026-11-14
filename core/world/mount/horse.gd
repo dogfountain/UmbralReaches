@@ -16,6 +16,7 @@ const HorseRig := preload("res://core/world/mount/horse_rig.gd")
 const DB := preload("res://core/world/mount/horse_db.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
+const Move := preload("res://core/world/mount/horse_move.gd")
 
 const GRAVITY := 24.0                ## m/s^2 on the leap (a horse's jump is snappy, not floaty)
 const HOP_H := 0.6                   ## apex of a standing hop (m)
@@ -69,7 +70,8 @@ var _vis: Node3D                     ## the rider's Visual while the horse draws
 var _vis_yaw := 0.0
 var _vis_local := Transform3D.IDENTITY   ## the rider Visual's own place under the Player, given back on dismount
 var _back := INF                     ## the back's drop, smoothed (the seat's floor)
-var _trampled := {}                  ## enemy instance id -> msec of the last trample on it
+var _mv := Move.new()                ## the way round things: probe, slide, shoulder, unwedge (horse_move.gd)
+var _trampled := {}                ## enemy instance id -> msec of the last trample on it
 
 
 func _ready() -> void:
@@ -256,6 +258,11 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	var w := Vector3(wish.x, 0.0, wish.z)
 	if _mount_t < MOUNT_T:
 		w = Vector3.ZERO                       # r36: it stands while the rider climbs on
+	var driven := w.length() > 0.3 and _mv.free_t <= 0.0
+	if _mv.free_t > 0.0:
+		# freeing itself: turn toward the way out (to the side, when it is backing out)
+		var rt := Vector3(cos(_yaw), 0.0, -sin(_yaw))
+		w = _mv.free_dir if _mv.free_dir.dot(Vector3(-sin(_yaw), 0.0, -cos(_yaw))) > -0.2 else rt * (signf(_mv.free_dir.dot(rt)) if _mv.free_dir.dot(rt) != 0.0 else 1.0)
 	if w.length() > 0.1:
 		want = float(_d.gallop) if sprint else (float(_d.trot) if w.length() > 0.7 else float(_d.walk))
 		var target_yaw := atan2(-w.x, -w.z)
@@ -271,31 +278,7 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		want = maxf(want, speed)                 # nothing to push against: the stride is carried through the leap
 	speed = move_toward(speed, want, (6.0 if want > speed else 9.0) * dt * lerpf(0.5, 1.0, smoothstep(0.0, 1.5, speed)) * (1.0 / float(_d.get("heft", 1.0))))
 	var fwd := Vector3(-sin(_yaw), 0.0, -cos(_yaw))
-	if speed > 0.05:
-		var step := fwd * speed * dt
-		var next := global_position + step
-		var g := _ground(next)
-		var chest := global_position + Vector3.UP * 1.2 * _scale()
-		var wall := _space.intersect_ray(PhysicsRayQueryParameters3D.create(chest, chest + fwd * (0.9 * _scale() + speed * dt), Layers.WORLD | Layers.PROPS, [p.get_rid()]))
-		var blocked := g.y - global_position.y > float(_d.climb) or (g.y - global_position.y < -6.0 and not _air)
-		if not wall.is_empty() and not blocked:
-			# a wall: slide along it (scrub off the speed into it) rather than stop dead
-			var n: Vector3 = wall.normal
-			n.y = 0.0
-			if n.length() > 0.01:
-				n = n.normalized()
-				var slide := fwd - n * fwd.dot(n)
-				if slide.length() > 0.2:
-					var sn := global_position + slide.normalized() * speed * dt * slide.length()
-					var sg := _ground(sn)
-					if sg.y - global_position.y <= float(_d.climb) and sg.y - global_position.y >= -6.0:
-						global_position = Vector3(sn.x, _follow_y(sg.y, dt), sn.z)
-			speed = move_toward(speed, 0.0, maxf(speed, 3.0) / 0.2 * dt)
-		elif blocked:
-			speed = move_toward(speed, 0.0, maxf(speed, 3.0) / 0.2 * dt)       # eased to a stop in ~0.2 s
-		else:
-			global_position = Vector3(next.x, _follow_y(g.y, dt), next.z)
-			_phase += TAU * _rig.freq(speed) * dt            # unwrapped: a wrap would swing the legs back a frame
+	_advance(p, fwd, w, want, driven, dt)
 	# the vertical: the crouch, the climb and fall, the landing on the ground under the hooves
 	_vertical(dt, _ground(global_position).y)
 	var s_air := clampf(_vy / 7.0, -1.0, 1.0)
@@ -367,6 +350,76 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		vis.global_rotation.y = lerp_angle(cur, _yaw, 1.0 - exp(-12.0 * dt))
 		_vis_yaw = vis.global_rotation.y
 	p.velocity = fwd * speed
+
+
+## One tick of travel (docs: horse_move.gd). Low things (below `climb`) are stepped onto by the ground ray, or
+## hopped when the rise is a knee's; taller things are slid along (the heading eases along the face, most of
+## the speed kept unless head-on); grunts are shouldered aside; bosses and real walls still stop it; driven
+## and getting nowhere for ~0.6 s, it backs and turns out of it.
+func _advance(p: Player, fwd: Vector3, w: Vector3, want: float, driven: bool, dt: float) -> void:
+	var sc := _scale()
+	var skip: Array[RID] = [p.get_rid()]
+	var foes := _mv.gather(get_tree(), global_position, 2.6 * sc + speed * 0.15)
+	_mv.shoulder(foes, global_position, fwd, speed, sc)
+	if _mv.free_t > 0.0:
+		_free_step(skip, sc, dt)
+	elif speed > 0.05:
+		_go(skip, fwd, w, want, sc, dt)
+	if _mv.wedged(driven, global_position, dt, _air):
+		_mv.way_out(_space, skip, global_position, fwd, w, sc)
+
+
+func _go(skip: Array[RID], fwd: Vector3, w: Vector3, want: float, sc: float, dt: float) -> void:
+	var climb := float(_d.climb)
+	var reach := 1.25 * sc + speed * dt
+	var hit: Dictionary = _mv.probe(_space, skip, global_position, fwd, fwd.cross(Vector3.UP), reach, climb * 0.85, 1.2 * sc, sc)
+	var dir := fwd
+	if not hit.is_empty():
+		var sl: Dictionary = _mv.slide(hit, fwd, w, dt)
+		var e := clampf((reach - float(hit.dist)) / (reach - 0.9 * sc), 0.0, 1.0)      # 0 at the edge of reach, 1 with the nose to it
+		var sdir: Vector3 = sl.dir
+		dir = fwd.lerp(sdir, e).normalized()
+		var close := float(hit.dist)
+		if close < 0.85 * sc:
+			dir = (dir + (hit.n as Vector3) * clampf((0.85 * sc - close) * 3.0, 0.0, 1.0)).normalized()     # eased back out of it
+		var cap := maxf(want * lerpf(1.0, float(sl.keep), e), 1.2 if float(sl.keep) > 0.0 else 0.0)
+		if speed > cap:
+			speed = move_toward(speed, cap, 30.0 * dt)
+		if float(sl.keep) > 0.0:
+			_yaw = lerp_angle(_yaw, atan2(-sdir.x, -sdir.z), (1.0 - exp(-6.0 * dt)) * e)
+	if not _air and _gather <= 0.0 and speed > 3.5 and _mv.hop_cd <= 0.0 and _land < 0.3:
+		# a knee-high rise right ahead (a stone, a kerb, a log): a hop over it, not a stumble
+		var da := 0.55 * sc + 0.05 * speed
+		var ga := _ground(global_position + dir * da).y
+		var gb := _ground(global_position + dir * (da + 0.5)).y
+		var rise := gb - global_position.y
+		if gb - ga >= 0.3 and rise >= 0.25 and rise <= float(_d.climb) + 0.1:
+			_vy = sqrt(2.0 * GRAVITY * (rise + 0.28))
+			_air = true
+			_air_t = 0.0
+			_air_y0 = global_position.y
+			_mv.hop_cd = 0.3
+	var next := global_position + dir * speed * dt
+	var g := _ground(next)
+	if g.y - global_position.y > climb:
+		speed = move_toward(speed, 0.0, maxf(speed, 3.0) / 0.2 * dt)       # eased to a stop in ~0.2 s
+		return
+	global_position = Vector3(next.x, _follow_y(g.y, dt), next.z)
+	_phase += TAU * _rig.freq(speed) * dt            # unwrapped: a wrap would swing the legs back a frame
+
+
+## The way out of a wedge: a slow step to the side or back along `_mv.free_dir`, the way checked first.
+func _free_step(skip: Array[RID], sc: float, dt: float) -> void:
+	var dir: Vector3 = _mv.free_dir
+	speed = move_toward(speed, 1.6, 20.0 * dt)
+	var hit: Dictionary = _mv.probe(_space, skip, global_position, dir, dir.cross(Vector3.UP), 1.0 * sc, float(_d.climb) * 0.85, 1.2 * sc, sc)
+	if not hit.is_empty():
+		return
+	var next := global_position + dir * 1.8 * dt
+	var g := _ground(next)
+	if g.y - global_position.y <= float(_d.climb):
+		global_position = Vector3(next.x, _follow_y(g.y, dt), next.z)
+		_phase += TAU * _rig.freq(speed) * dt
 
 
 ## The seated rider is drawn by the horse, once per rendered frame, at the same interpolated moment as the
