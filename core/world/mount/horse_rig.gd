@@ -352,7 +352,7 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 	for j in 3:
 		var km := (46.0 - 8.0 * float(j)) / heft
 		var cm := 2.0 * sqrt(km) * 0.3
-		var tgt_m := Vector2(-0.5 * k, 0.0) + Vector2(drive.x * 0.8 - nod * 0.4, drive.y * 0.5) + Vector2(sin(_t * 1.5 + float(j)) * 0.04, sin(_t * 1.1 + float(j) * 1.3) * 0.05)
+		var tgt_m := Vector2(-0.26 * k, 0.0) + Vector2(drive.x * 0.8 - nod * 0.4, drive.y * 0.5) + Vector2(sin(_t * 1.5 + float(j)) * 0.04, sin(_t * 1.1 + float(j) * 1.3) * 0.05)
 		if dtc > 0.0:
 			_mane_v[j] += ((tgt_m - _mane_a[j]) * km - _mane_v[j] * cm) * dtc
 			_mane_a[j] = (_mane_a[j] + _mane_v[j] * dtc).clamp(Vector2(-0.9, -0.6), Vector2(0.9, 0.6))

@@ -43,12 +43,33 @@ world_map_shot, horse_studio, the fight bench and the baseline views. Findings a
 15. Hearthward's forge lean-to, shrine, well and notice board are the old code-built pieces at the old scale.
 16. The title screen is very dark: the title is at about 15 % contrast on black (as captured).
 
-## Animator
-17. Movement feel passes the tool's smoothness read (walk, sprint: camera and body move on rendered frames).
-    Not judged this round: enemy and boss animation in motion (stills only), the horse's new hop.
+## Animator (judged in motion: zz/enemy_seq strips of all 19 kinds, walk / attack / stagger / death, shot in real time; zz/move_seq loco, combat, traversal; horse_studio gaits)
+17. **A stagger read as standing to attention.** Every biped (wretch, husk, tollman, the Abbot...) snapped upright
+    with its arms down and stood still for the 1.1 s punish window. Fixed (hunch_rig): the blow knocks it back,
+    arms flung, then it sags on buckling knees, head hanging, weaving from foot to foot.
+17a. **The wind-up was a dead hold.** It rose in 0.2 s and froze until the strike. Fixed: through the hold the
+    coil keeps tightening (deeper knees, arms further back) and the tremble grows.
+17b. **Deaths: planks and tipped toys.** Robed bosses fell as one rigid board; quadrupeds rolled onto their backs
+    with four stiff legs in the air. Fixed: bipeds drop to their knees, arms thrown, and twist as they go over;
+    quadruped legs kick once and curl in, and the roll stops short of belly-up.
+17c. **The Thornwarden's mane floated 23 cm above his back** (rooted in the air in the model). Fixed in
+    tools/blender/boss_thornwarden.py and re-exported.
+17d. **The Ascended Warden slid like a statue** (it floats, so no stride, and nothing else moved). Fixed: a
+    hovering rig leans into its travel, bobs on a slow breath and trails its arms.
+17e. **Quadruped stagger was one frozen pose.** Fixed: it shudders, shakes its head and scrabbles.
+17f. **Horse: at a gallop the mane blew flat across the saddle**, over the rider's seat. Sweep halved. Walk,
+    trot and gallop poses read; the mane cards are saw-toothed up close (art, open).
+17g. Wanderer: walk, sprint, strafe, backpedal and the casts hold strong poses. Open: the stop out of a sprint
+    snaps upright in two frames; feet slide 7-10 cm per metre travelled (move_seq's measure).
+17h. Open: the leaper's dorsal spines part from its back when it arches; the burrower stands on straight pins.
 
-## Sound designer
-Not judged this round: nothing was listened to. No claim either way.
+## Sound designer (measured, not heard: tools/analyze_foley.py, the bus chain in core/world/ambience.gd)
+17i. **Footsteps and hooves were level-matched by their tallest sample**, so a click on stone sat 8-10 dB under
+    a squelch in mud (11.7 dB spread across 24 one-shots). Fixed (foley.gd): matched on the loudest 40 ms with a
+    soft-clipped ceiling; spread now about 6 dB. Two kinds (stone, salt) still read over 0 dBFS true peak before
+    the master limiter (-0.5 dB), which catches them.
+17j. The chain is sound: a compressor and hard limiter on Master, a compressor on Voices, reverb and a muffle
+    low-pass for rooms. Not judged by ear: music, boss themes, voices (no one can listen from here; say so).
 
 ## QA
 18. The banner / title overlap above. No script errors in any capture run.

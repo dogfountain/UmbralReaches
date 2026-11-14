@@ -139,11 +139,15 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	var breathe := sin(_t * 2.4) * 0.012 * (1.0 - clampf(st, 0.0, 1.0))
 	_body.position.y = body_height + bob + breathe - _land * 0.14 - _coil * 0.16 + _air * 0.05 - _fold * body_height * 0.75 - _reel * body_height * 0.35
 	_body.rotation.x = 0.06 * sin(_phase * 2.0) * st - _air * 0.12 + _coil * 0.18 + _land * 0.1 + _snap * 0.22 - _flinch * 0.3 - _howl * 0.35
-	_body.rotation.z = -_turn * 0.05 + sin(_phase) * 0.04 * st + _flinch * _flinch_side * 0.35 + _fold * 0.4
+	# a stagger is not a pose held still: flat on its belly it shudders, shakes its head and scrabbles
+	var shake := _reel * (1.0 - _fold)
+	_body.rotation.z = -_turn * 0.05 + sin(_phase) * 0.04 * st + _flinch * _flinch_side * 0.35 + _fold * 0.4 + sin(_t * 9.0) * 0.07 * shake
+	_body.position.x = sin(_t * 5.3) * 0.03 * shake
 	_front.rotation.y = -_turn * 0.08 + sin(_phase) * 0.05 * st
 	_front.rotation.x = _snap * 0.3 - _coil * 0.2
 	_head.rotation.x = -0.1 * st + _coil * 0.35 + sin(_t * 1.1) * 0.05 * (1.0 - st) - _air * 0.25 - _snap * 0.55 - _flinch * 0.5 + _fold * 0.4 - _howl * 0.9
-	_head.rotation.y = sin(_t * 0.6) * 0.18 * (1.0 - clampf(st, 0.0, 1.0))
+	_head.rotation.y = sin(_t * 0.6) * 0.18 * (1.0 - clampf(st, 0.0, 1.0)) + sin(_t * 7.0) * 0.4 * shake
+	_head.rotation.x += 0.35 * shake
 	_tail.rotation.y = sin(_phase + 1.4) * 0.35 * st + sin(_t * 1.7) * 0.12 - _turn * 0.1
 	_tail.rotation.x = -0.15 + _air * 0.35 + _coil * 0.2
 
@@ -171,8 +175,12 @@ func _animate_spider(st: float) -> void:
 		var air_reach := (-0.65 if front else 0.75) * _air   # forelegs reach, hind legs trail
 		hip.rotation.y = -sx * (yaw_swing + air_reach)
 		var reach := (_snap * 0.5) if front else 0.0
-		hip.rotation.z = sx * (lift * 0.38 * st - _coil * 0.25 + _land * 0.2 - _air * 0.15 + reach + _fold * 0.55 + _reel * 0.3)
-		knee.rotation.z = -sx * (lift * 0.25 * st + _coil * 0.35 - _air * 0.4 - _fold * 0.3)
+		var scrab := maxf(0.0, sin(_t * 6.5 + float(leg.off) * 1.3 + (0.0 if front else 1.1))) * _reel * (1.0 - _fold)
+		# death: the legs kick once and curl in over the belly (they stood straight up like a tipped toy)
+		var curl := smoothstep(0.25, 0.9, _fold)
+		var kick := sin(clampf(_fold / 0.5, 0.0, 1.0) * PI) * sin(_t * 17.0 + float(leg.off)) * 0.2
+		hip.rotation.z = sx * (lift * 0.38 * st - _coil * 0.25 + _land * 0.2 - _air * 0.15 + reach + _fold * 0.55 + _reel * 0.3 + scrab * 0.3 + curl * 0.35 + kick)
+		knee.rotation.z = -sx * (lift * 0.25 * st + _coil * 0.35 - _air * 0.4 - _fold * 0.3 + scrab * 0.35 - curl * 1.25)
 		knee.rotation.x = (0.25 if front else -0.25) * _air
 		(leg.foot as Node3D).rotation.z = -(hip.rotation.z + knee.rotation.z)     # the paw stays flat
 
@@ -189,7 +197,8 @@ func _animate_upright(st: float) -> void:
 		var swing := sin(ph)                  # >0 = foot behind the hip, <0 = ahead
 		var lift := maxf(0.0, -cos(ph))
 		var fb := 1.0 if front else -1.0
-		var bend := _coil * 0.6 + _land * 0.4 + _fold * 0.5 + _howl * (0.0 if front else 0.7)
+		var scrab := maxf(0.0, sin(_t * 6.5 + float(leg.off) * 1.3)) * _reel * (1.0 - _fold)
+		var bend := _coil * 0.6 + _land * 0.4 + _fold * 0.5 + _howl * (0.0 if front else 0.7) + scrab * 0.5 + smoothstep(0.3, 0.9, _fold) * 0.8
 		var reach := (0.75 * _air + _snap * 0.6 + _howl * 0.5) if front else -0.85 * _air
 		hip.rotation.x = -swing * 0.5 * st + reach + fb * bend * 0.55
 		hip.rotation.z = sx * (_fold * 0.5 + _flinch * 0.1 + _reel * 0.3)
@@ -246,7 +255,7 @@ func _topple() -> void:
 	var u := clampf((_fold - 0.1) / 0.9, 0.0, 1.0)
 	var fall := u * u * (3.0 - 2.0 * u) * 0.4 + u * u * u * 0.6
 	var rebound := sin(clampf((_fold - 0.8) / 0.2, 0.0, 1.0) * PI) * 0.08
-	var roll := _fall_side * (1.45 if upright else 2.7) * (fall - rebound)
+	var roll := _fall_side * (1.45 if upright else 2.15) * (fall - rebound)
 	var rot := Basis.from_euler(Vector3(0.0, 0.0, roll))
 	var base := _fall_base.basis
 	var scl := base.get_scale()

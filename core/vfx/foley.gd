@@ -141,9 +141,27 @@ static func _wav(pcm: PackedFloat32Array, loop: bool) -> AudioStreamWAV:
 	var peak := 0.0001
 	for v in pcm:
 		peak = maxf(peak, absf(v))
-	var g := (0.5 if loop else 0.92) / peak
+	if loop:
+		var gl := 0.5 / peak
+		for i in pcm.size():
+			bytes.encode_s16(i * 2, int(clampf(pcm[i] * gl, -1.0, 1.0) * 32767.0))
+		return _wav_bytes(bytes, loop)
+	# One-shots are matched by how loud they SOUND, not by their tallest sample: peak-normalised, a click on stone
+	# sat 8-10 dB under a squelch in mud (measured, tools/analyze_foley.py). The loudest 40 ms of every take is
+	# brought to the same level, peaks are rounded off by a soft clip, and the ceiling leaves 2 dB for the
+	# peaks between samples (three kinds read over 0 dBFS true peak).
+	var win := maxi(1, int(RATE * 0.04))
+	var acc := 0.0
+	var best := 0.0
 	for i in pcm.size():
-		bytes.encode_s16(i * 2, int(clampf(pcm[i] * g, -1.0, 1.0) * 32767.0))
+		acc += pcm[i] * pcm[i]
+		if i >= win:
+			acc -= pcm[i - win] * pcm[i - win]
+		best = maxf(best, acc)
+	var rms := sqrt(maxf(best, 0.0) / float(win))
+	var g := minf(0.4 / maxf(rms, 0.0001), 2.6 / peak)
+	for i in pcm.size():
+		bytes.encode_s16(i * 2, int(tanh(pcm[i] * g) * 0.8 * 32767.0))
 	return _wav_bytes(bytes, loop)
 
 

@@ -96,7 +96,7 @@ func _build() -> void:
 	super._build()
 	name = "AscendedWarden"
 	BossKit.embiggen(self, SCALE)
-	posture({"hunch": 0.05, "crouch": 0.0, "arm_reach": 0.1, "head_jut": 0.1, "limp": 0.0, "sway": 0.4, "twitch": 0.0, "splay": 0.15})
+	posture({"hunch": 0.05, "crouch": 0.0, "arm_reach": 0.1, "head_jut": 0.1, "limp": 0.0, "sway": 0.4, "twitch": 0.0, "splay": 0.15, "hover": 1.0})
 	# its halo lights the deck round it
 	var head := _rig.socket("head") if _rig else null
 	if head:

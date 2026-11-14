@@ -122,9 +122,9 @@ for k in range(14):
     t = k / 13.0
     z = -0.6 + 1.0 * t
     hump = 0.15 * math.exp(-((z + 0.3) / 0.25) ** 2)
-    root = B + G(0, 0.36 + hump, z)
+    root = B + G(0, 0.25 + hump - 0.05 * max(0.0, (z - 0.1) / 0.3) ** 2, z)      # rooted IN the back (they floated 9 cm above it)
     for side in (-1, 1):
-        tip = root + G(side * 0.06, 0.16 + 0.06 * math.sin(t * 7), 0.12)
+        tip = root + G(side * 0.06, 0.27 + 0.06 * math.sin(t * 7), 0.12)
         add(K.loft("Cane", [root, root.lerp(tip, 0.5) + G(side * 0.02, 0.02, 0), tip], [0.016, 0.011, 0.0], "body", BARK, 8))
         add(K.loft("Barb", [root.lerp(tip, 0.4), root.lerp(tip, 0.4) + G(side * 0.04, 0.02, -0.02)], [0.005, 0.0], "body", BONE, 5))
 # the ember heart: a split down the sternum between bark plates, lit inside
