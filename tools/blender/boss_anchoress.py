@@ -1,0 +1,308 @@
+"""The Anchoress: a hermit who had herself walled into the Crowns' face to pray the sky still and would not come
+out when the wall was opened: a gaunt woman in grey wool and the chain she bound herself with, a hood over a
+sunken face with a rope across the mouth and a salt-crust on the brow, a cairn-stone anchor on a chain in her right
+hand, a caged lantern in her left. ONE skinned mesh on the HunchRig's sockets (GruntModel poses it): a fused sculpted
+body and head, wool that is draped geometry (hood, shawl, long skirt, sleeves; boss_sculpt_lib.Garment) skinned to the
+chest, hips, knees and arms, a chain of real links wound over the shawl. The anchor (right hand) and the lantern
+(left hand) are separate rigid parts on their sockets.
+
+  tools/blender/run.sh boss_anchoress.py -- [--review shots/model_review/anchoress] [--no-export] [--lowres]
+Writes art/models/boss_anchoress.glb and art/textures/boss_anchoress_*.png
+"""
+import bpy
+import math
+import os
+import sys
+import numpy as np
+from mathutils import Vector, Matrix, noise
+
+sys.path.insert(0, os.path.dirname(__file__))
+import boss_kit as K
+import grunt_kit as GK
+import grunt_body as GB
+import boss_sculpt_lib as L
+from boss_kit import G
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+REVIEW = args[args.index("--review") + 1] if "--review" in args else ""
+EXPORT = "--no-export" not in args
+LOWRES = "--lowres" in args
+HI = (150, 100) if LOWRES else (280, 180)
+
+K.reset()
+S = dict(K.SOCKETS)
+P0, C0, H0 = S["pelvis"], S["chest"], S["head"]
+
+# --- materials -----------------------------------------------------------------------------------
+SKIN = GK.hollow_skin("Skin", (0.66, 0.62, 0.55), (0.2, 0.17, 0.14), wet=0.0, wrinkle=70.0, liv=(0.78, 0.74, 0.82), extremities=0.5, vein_amt=0.4)
+WOOL = GK.cloth("Wool", (0.3, 0.28, 0.25), "caban", 8.0, (0.05, 0.045, 0.04), 0.9)
+WOOL2 = GK.cloth("WoolDark", (0.19, 0.18, 0.17), "caban", 9.0, (0.03, 0.028, 0.026), 0.92)
+IRON = GK.iron("Iron", (0.12, 0.115, 0.12), (0.2, 0.1, 0.05))
+STONE = GK.stone("Cairn", (0.3, 0.31, 0.3), (0.09, 0.11, 0.07))
+SALT = GK.stone("Salt", (0.78, 0.8, 0.78), (0.5, 0.55, 0.5))
+ROPE = GK.cloth("Rope", (0.42, 0.33, 0.2), "caban", 20.0, (0.1, 0.08, 0.05), 0.85)
+GLOW = GK.glow("Lamp", (1.0, 0.55, 0.16), 8.0)
+EYE = GK.glow("EyeGlow", (1.0, 0.6, 0.2), 6.0)
+MATS = [SKIN, WOOL, WOOL2, IRON, STONE, SALT, ROPE, GLOW, EYE]
+objs = []
+PAIRS = []
+WEIGHTS = {}
+
+
+def TUBE(*a, **k):
+    return K.curve_tube(*a, res=1, **k)
+
+
+def add(o, w=None):
+    objs.append(o)
+    if w is not None:
+        WEIGHTS[o["sock"]] = w
+    return o
+
+
+HEAD1 = lambda p: {"head": 1.0}
+CHEST1 = lambda p: {"chest": 1.0}
+
+# --- the body: torso and neck, thin arms and long hands --------------------------------------------------------
+OPT = dict(W=0.78, L=0.66, nk=0.04, finger=0.2, wrist=0.72, ribs=0.0, belly=-1.0, collar=1.5, tendon=1.7, hc=(0, 1.68, -0.06),
+           head_w=0.068, neck_r=0.034, nohead=False, jaw_w=0.036, brow=0.014, hand_r=0.9)
+sk_full, SEGS, _Y = GB.humanoid(OPT)
+tsk = L.torso_skel(0.78, 0.034, 1.6)
+
+
+def torso_sculpt(s):
+    for sx in (-1, 1):
+        s.ridge((sx * 0.02, 1.475, -0.075), (sx * 0.2, 1.455, -0.03), 0.011, 0.012, facing=(0, 0.3, -1))
+        s.bump((sx * 0.055, 1.5, -0.065), 0.03, -0.014, facing=(0, 0.4, -1))
+    s.noise(26.0, 0.0016)
+
+
+to, thi = L.sculpted("Torso", tsk, "pel", SKIN, "bodyskin", 1600, torso_sculpt, 0.006, False, PAIRS)
+add(to)
+WEIGHTS["bodyskin"] = GB.envelope_weights([sg for sg in SEGS if sg[0] in ("pelvis", "chest", "head")], 0.07)
+
+
+def arm_sculpt(s):
+    GB.humanoid_sculpt(s, OPT, _Y)
+
+
+ao, ahi = L.sculpted("Arms", sk_full.arms, ["trpl", "trpr"], SKIN, "armskin", 3800, arm_sculpt, 0.0042, False, PAIRS)
+add(ao)
+WEIGHTS["armskin"] = GB.envelope_weights([sg for sg in SEGS if sg[0].startswith(("shoulder_", "elbow_", "hand_")) or sg[0] == "chest"], 0.05)
+
+# --- the head: a gaunt face sunk under the hood --------------------------------------------------------------------
+hc = OPT["hc"]
+hsk = GB.Skel()
+hsk.v("a", (hc[0], hc[1], hc[2]), 0.02)
+hsk.v("b", (hc[0], hc[1] - 0.03, hc[2] - 0.03), 0.02, "a")
+GB.head_masses(hsk, OPT, hc[1])
+
+
+def head_sculpt(s):
+    GB.head_sculpt(s, OPT, _Y)
+    hz = hc[2]
+    for sx in (-1, 1):
+        s.bump((sx * 0.032, hc[1] + 0.01, hz - 0.075), 0.03, -0.012, facing=(0, 0, -1))         # deep, shut eyes
+        s.bump((sx * 0.05, hc[1] - 0.04, hz - 0.066), 0.032, -0.014, facing=(sx * 0.4, 0, -1))   # hollow cheeks
+    s.noise(40.0, 0.0012)
+
+
+ho, hhi = L.sculpted("Face", hsk, "a", SKIN, "head", 2600, head_sculpt, 0.0035, False, PAIRS)
+add(ho, HEAD1)
+FZ = hc[2] - 0.085
+# the rope across the mouth, knotted, its ends hanging; the salt-crust on the brow
+rope = [G(-0.075, hc[1] - 0.045, hc[2] - 0.04), G(-0.05, hc[1] - 0.056, FZ + 0.01), G(0.0, hc[1] - 0.058, FZ - 0.003), G(0.05, hc[1] - 0.056, FZ + 0.01), G(0.075, hc[1] - 0.045, hc[2] - 0.04)]
+add(TUBE("Gag", rope, 0.0125, "head", ROPE), HEAD1)
+add(K.blob("GagKnot", G(0.052, hc[1] - 0.057, FZ + 0.012), (0.016, 0.014, 0.016), "head", ROPE, 10, 6), HEAD1)
+add(L.thorn("GagEnd", G(0.052, hc[1] - 0.06, FZ + 0.008), Vector(G(0.1, -1.0, -0.2)), 0.12, 0.009, Vector(G(0.03, 0, -0.03)), "head", ROPE, 5, 6, 1.0), HEAD1)
+add(L.thorn("GagEnd", G(0.055, hc[1] - 0.06, FZ + 0.008), Vector(G(0.3, -1.0, 0.0)), 0.08, 0.008, Vector(G(0.03, 0, 0.0)), "head", ROPE, 5, 6, 1.0), HEAD1)
+rng = np.random.RandomState(4)
+for k in range(16):
+    x = ((k % 9) - 4) * 0.018 + rng.uniform(-0.004, 0.004)
+    y = hc[1] + (0.055 if k < 9 else -0.02) + 0.01 * math.cos(k * 0.7) + rng.uniform(-0.004, 0.004)
+    r = rng.uniform(0.003, 0.007)
+    add(GK.slab("Salt", G(x, y, FZ + 0.004 + 0.004 * rng.uniform()), (r, r * 0.9, r * 1.1), Matrix.Rotation(rng.uniform(0, 3), 3, 'Z').to_quaternion(), "head", SALT, 0.0, 0.2, k, 8, 6, 0.85), HEAD1)
+for sx in (-1, 1):                      # a coal of light under each lid: she is praying, not sleeping
+    add(K.blob("Ember", G(sx * 0.032, hc[1] + 0.009, hc[2] - 0.067), (0.01, 0.005, 0.005), "head", EYE, 8, 6), HEAD1)
+
+HCB = Vector(G(hc[0], hc[1], hc[2]))
+L.scale_about([o for o in objs if o["sock"] == "head"] + [hhi], HCB, 1.65)
+
+# --- the wool -------------------------------------------------------------------------------------------------------
+def hood_w(p):
+    h = GK.chain_w(p, [("chest", C0), ("head", G(0, 1.55, -0.02))], 0.08)
+    return h
+
+
+hood = L.Garment([(1.98, 0, 0.05, 0.03, 0.03, 0.04, 2.0), (1.94, 0, 0.05, 0.1, 0.1, 0.12, 2.0), (1.86, 0, 0.04, 0.145, 0.14, 0.17, 2.0), (1.72, 0, 0.05, 0.17, 0.155, 0.2, 2.0),
+                  (1.55, 0, 0.06, 0.22, 0.17, 0.24, 2.0), (1.38, 0, 0.07, 0.3, 0.2, 0.3, 2.0), (1.2, 0, 0.08, 0.33, 0.23, 0.33, 2.0)],
+                 top=1.98, hem=1.2, folds=[(7, 0.3, 1.0, 0.7, 0.1), (15, 0.0, 0.6, 1.9, 0)], amp=0.05, ramp=(0.1, 0.6), gap=1.05, gap_from=0.04, lay=0.0,
+                 hem_lift=0.04, flare=0.03, micro=0.0016, tongues=(13, 0.09, 1.3), back_drop=0.22)
+lo, hi = L.shell(hood, "Hood", "hood", WOOL, 2200, HI, solid=0.007)
+PAIRS.append((lo, hi))
+add(lo, hood_w)
+
+shawl = L.Garment([(1.6, 0, 0.02, 0.17, 0.12, 0.13, 2.1), (1.48, 0, 0.0, 0.27, 0.17, 0.19, 2.0), (1.3, 0, 0.0, 0.31, 0.2, 0.22, 2.0), (1.08, 0, 0.0, 0.34, 0.23, 0.25, 2.0),
+                   (0.9, 0, 0.0, 0.37, 0.26, 0.29, 2.0)],
+                  top=1.6, hem=1.0, folds=[(8, 0.3, 1.0, 0.5, 0.15), (19, 0.0, 0.6, 1.1, -0.2)], amp=0.06, ramp=(0.1, 0.55), gap=0.45, gap_from=0.25, front=L.FRONT + 0.6, lay=0.0,
+                  hem_lift=0.06, flare=0.03, micro=0.0016, tongues=(17, 0.1, 1.2), back_drop=0.15, warp=0.8)
+lo, hi = L.shell(shawl, "Shawl", "shawl", WOOL2, 2300, HI, solid=0.008)
+PAIRS.append((lo, hi))
+sh_w = L.cape_weights(0.5)
+add(lo, sh_w)
+
+skirt = L.Garment([(1.52, 0, 0.01, 0.13, 0.095, 0.1, 2.2), (1.4, 0, 0.01, 0.155, 0.105, 0.11, 2.2), (1.26, 0, 0, 0.155, 0.11, 0.11, 2.2), (1.16, 0, 0, 0.14, 0.1, 0.1, 2.2), (1.0, 0, 0, 0.16, 0.12, 0.12, 2.1), (0.75, 0, 0, 0.21, 0.17, 0.18, 2.0), (0.45, 0, 0.01, 0.29, 0.25, 0.27, 2.0),
+                   (0.2, 0, 0.02, 0.42, 0.37, 0.41, 2.0), (-0.1, 0, 0.02, 0.54, 0.49, 0.55, 2.0)],
+                  top=1.52, hem=0.03, folds=[(11, 0.0, 1.0, 0.3, 0.1), (23, 0.0, 0.7, 1.3, -0.15), (5, 0.4, 0.3, 2.0, 0)], amp=0.075, ramp=(0.3, 0.6), lay=0.06, lay_r=0.06,
+                  hem_lift=0.05, micro=0.0018, tongues=(21, 0.05, 1.0), back_drop=0.04)
+lo, hi = L.shell(skirt, "Skirt", "skirt", WOOL2, 4200, HI)
+PAIRS.append((lo, hi))
+hip_w = L.skirt_weights(1.12, 0.92, 0.42)
+add(lo, hip_w)
+
+# a torn overskirt, open off-centre, over the first
+over = L.Garment([(1.2, 0, 0, 0.16, 0.125, 0.125, 2.2), (0.9, 0, 0, 0.25, 0.2, 0.2, 2.0), (0.6, 0, 0.01, 0.35, 0.3, 0.32, 2.0), (0.3, 0, 0.02, 0.47, 0.41, 0.45, 2.0), (0.05, 0, 0.02, 0.58, 0.52, 0.58, 2.0)],
+                 top=1.2, hem=0.42, folds=[(9, 0.0, 1.0, 0.9, 0.2), (19, 0.0, 0.7, 2.1, -0.1)], amp=0.08, ramp=(0.05, 0.5), gap=0.75, gap_from=0.0, front=L.FRONT + 0.7,
+                 lay=0.0, hem_lift=0.08, micro=0.0016, tongues=(11, 0.14, 1.2), warp=0.9)
+lo, hi = L.shell(over, "Overskirt", "overskirt", WOOL, 1100, HI, solid=0.007)
+PAIRS.append((lo, hi))
+add(lo, hip_w)
+# salt-stiffened hem: a pale crusted band round the skirt, and barnacle crust climbing the left-back of it
+add(L.band(skirt, "SaltBand", "skirt_trim", SALT, 0.86, 0.925, 0.0, 1.0, n=64, m=3, off=0.014), hip_w)
+WEIGHTS["skirt_trim"] = hip_w
+rs = np.random.RandomState(11)
+for k in range(46):
+    vv = 0.93 - 0.4 * rs.beta(1.2, 2.2)
+    uu = (0.62 + 0.14 * rs.randn()) % 1.0 if k > 14 else rs.uniform(0, 1)
+    if k <= 14:
+        vv = rs.uniform(0.86, 0.93)
+    pp, nn = skirt.surf(np.array([uu]), np.array([vv]))
+    r = rs.uniform(0.012, 0.03) if k <= 14 else rs.uniform(0.008, 0.02)
+    add(GK.slab("Crust", Vector(G(*(pp[0] + nn[0] * 0.014))), (r, r, r * 0.7), Matrix.Rotation(rs.uniform(0, 3), 3, 'Z').to_quaternion(), "skirt_trim", SALT, 0.0, 0.3, k, 6, 4, 0.5), hip_w)
+
+for tag, sx in (("l", -1), ("r", 1)):
+    sl = L.Garment([(1.47, sx * 0.23, 0, 0.082, 0.078, 0.078, 2.2), (1.3, sx * 0.24, 0, 0.074, 0.074, 0.074, 2.2), (1.1, sx * 0.245, 0, 0.066, 0.066, 0.066, 2.2),
+                    (0.95, sx * 0.25, 0, 0.078, 0.076, 0.076, 2.0), (0.86, sx * 0.255, 0.01, 0.1, 0.095, 0.095, 2.0), (0.78, sx * 0.255, 0.01, 0.11, 0.105, 0.105, 2.0)],
+                   top=1.47, hem=0.85, folds=[(7, 0.0, 1.0, 0.5, 0.1), (16, 0, 0.6, 1.5, 0)], amp=0.03, ramp=(0.2, 0.7), lay=0.0, hem_lift=0.025, seed=sx, micro=0.0012,
+                   tongues=(9, 0.07, 1.3))
+    lo, hi = L.shell(sl, "Sleeve" + tag, "sleeve_" + tag, WOOL, 1300, (120, 90) if not LOWRES else (70, 50))
+    PAIRS.append((lo, hi))
+    add(lo, L.sleeve_weights(tag))
+
+# the rope belt: two turns round the waist, a knot at the right hip (where the lantern's hook hangs) and its tails
+belt = []
+for i in range(0, 73):
+    a = math.tau * i / 36.0
+    belt.append(G(math.cos(a) * (0.16 + 0.004 * math.sin(a * 3)), 1.13 + 0.012 * math.sin(a * 2) + (0.012 if i > 36 else 0.0), math.sin(a) * (0.125 + 0.003 * math.sin(a * 3))))
+add(TUBE("Belt", belt, 0.011, "belt", ROPE), hip_w)
+WEIGHTS["belt"] = hip_w
+KN = G(0.14, 1.1, -0.145)
+add(K.blob("Knot", KN, (0.028, 0.026, 0.028), "belt", ROPE, 12, 8), hip_w)
+add(L.thorn("BeltTail", KN + G(0, -0.01, 0), Vector(G(0.15, -1.0, -0.1)), 0.34, 0.012, Vector(G(0.03, 0, -0.02)), "belt", ROPE, 5, 8, 1.0), hip_w)
+add(L.thorn("BeltTail", KN + G(0, -0.01, 0), Vector(G(-0.05, -1.0, -0.25)), 0.26, 0.011, Vector(G(-0.02, 0, -0.05)), "belt", ROPE, 5, 8, 1.0), hip_w)
+# the hip lamp's hook and a small cell-lamp on it (the weak point's light sits at this spot)
+add(TUBE("Hook", [KN + G(0, -0.03, 0), KN + G(0.0, -0.07, -0.015), KN + G(0.02, -0.095, -0.02), KN + G(0.0, -0.11, -0.01)], 0.0055, "belt", IRON), hip_w)
+add(K.blob("CellLamp", KN + G(0.0, -0.15, -0.02), (0.026, 0.038, 0.026), "belt", GLOW, 10, 8), hip_w)
+for k in range(4):
+    a = math.tau * k / 4.0
+    add(TUBE("CellBar", [KN + G(math.cos(a) * 0.028, -0.1, math.sin(a) * 0.028), KN + G(math.cos(a) * 0.034, -0.15, -0.02 + math.sin(a) * 0.034), KN + G(math.cos(a) * 0.028, -0.2, math.sin(a) * 0.028)], 0.0035, "belt", IRON), hip_w)
+
+# the weight she drags: a chain from the knot down to the floor and trailing behind her
+tp = [G(0.14, 1.1, -0.145), G(0.19, 0.8, -0.2), G(0.22, 0.4, -0.27), G(0.2, 0.06, -0.3), G(0.05, 0.03, -0.12), G(-0.2, 0.03, 0.2), G(-0.5, 0.03, 0.45), G(-0.85, 0.03, 0.55), G(-1.2, 0.03, 0.5)]
+sm = []
+for a_, b_ in zip(tp, tp[1:]):
+    for k in range(6):
+        sm.append(Vector(a_).lerp(Vector(b_), k / 6.0))
+sm.append(Vector(tp[-1]))
+add(GK.chain_links("Trail", sm, 0.012, "belt", IRON, 0.034), hip_w)
+add(K.blob("TrailRing", Vector(tp[-1]), (0.04, 0.012, 0.04), "belt", IRON, 10, 6), hip_w)
+
+# the chain she bound herself with: wound over the shawl, crossing the breast, a loop hanging to the knot
+sh_a, sh_f = 0.36, 0.255
+chain = []
+for i in range(0, 121):
+    t = i / 120.0
+    a = math.tau * 2.6 * t + 0.3
+    y = 1.34 - 0.3 * t + 0.015 * math.sin(a * 2)
+    chain.append(G(math.sin(a) * (0.255 + 0.01 * t), y, math.cos(a) * (0.17 + 0.01 * t) * 1.0))
+add(GK.chain_links("Chain", chain, 0.0115, "chain", IRON, 0.032), L.cape_weights(0.3))
+WEIGHTS["chain"] = L.cape_weights(0.3)
+for sx in (-1, 1):                      # over each shoulder, crossing to the opposite hip
+    pts = [G(sx * 0.13, 1.5, 0.02), G(sx * 0.2, 1.46, -0.07), G(sx * 0.1, 1.3, -0.19), G(-sx * 0.02, 1.15, -0.21), G(-sx * 0.12, 1.02, -0.2)]
+    sm = []
+    for a_, b_ in zip(pts, pts[1:]):
+        for k in range(5):
+            sm.append(Vector(a_).lerp(Vector(b_), k / 5.0) + Vector(G(0, -0.01 * math.sin(k / 5.0 * math.pi), 0)))
+    sm.append(Vector(pts[-1]))
+    add(GK.chain_links("Chain", sm, 0.011, "chain", IRON, 0.03), L.cape_weights(0.3))
+loop = [G(-0.12, 1.02, -0.2), G(-0.1, 0.9, -0.215), G(0.0, 0.84, -0.225), G(0.1, 0.9, -0.2), G(0.14, 1.07, -0.16)]
+sm = []
+for a_, b_ in zip(loop, loop[1:]):
+    for k in range(6):
+        sm.append(Vector(a_).lerp(Vector(b_), k / 6.0))
+sm.append(Vector(loop[-1]))
+add(GK.chain_links("Chain", sm, 0.011, "belt", IRON, 0.03), hip_w)
+
+# --- the anchor (right hand): a cairn-stone on a chain, an iron ring, hanging a body-length (rigid) ----------------------
+HR = S["hand_r"]
+rig_r = []
+
+
+def radd(o):
+    o["sock"] = "hand_r"
+    rig_r.append(o)
+    return o
+
+
+radd(GK.chain_links("Chain", [HR + G(0, -0.02, 0), HR + G(0.01, -0.3, -0.02), HR + G(0.0, -0.56, 0.0)], 0.0095, "hand_r", IRON, 0.03))
+radd(TUBE("Ring", [HR + G(math.cos(a) * 0.075, -0.6, math.sin(a) * 0.075) for a in [math.tau * i / 18 for i in range(19)]], 0.012, "hand_r", IRON))
+for j, (w, h, y, z) in enumerate(((0.2, 0.12, -0.84, 0.0), (0.15, 0.1, -0.73, 0.01), (0.1, 0.08, -0.655, 0.0))):
+    radd(GK.slab("Stone", HR + G(0.01 * j, y, z), (w, w * 0.9, h * 0.5), Matrix.Rotation(0.12 * j, 3, 'Z').to_quaternion(), "hand_r", STONE, 0.0, 0.05, j + 2.0, 24, 12, 0.5))
+for y in (-0.8, -0.9):
+    radd(TUBE("Strap", [HR + G(math.cos(a) * 0.205, y, math.sin(a) * 0.185) for a in [math.tau * i / 20 for i in range(21)]], 0.011, "hand_r", IRON))
+for k in range(5):
+    rr = np.random.RandomState(20 + k)
+    radd(GK.slab("Salt", HR + G(rr.uniform(-0.06, 0.06), -0.69 + rr.uniform(-0.02, 0.01), rr.uniform(-0.05, 0.05)), (0.025, 0.022, 0.03), Matrix.Rotation(k, 3, 'Z').to_quaternion(), "hand_r", SALT, 0.0, 0.2, k, 8, 6, 0.4))
+for o in rig_r:
+    add(o)
+
+# --- the lantern (left hand): a caged lamp, hot inside (rigid) ---------------------------------------------------------------
+HL = S["hand_l"]
+for o in (TUBE("Handle", [HL + G(0, -0.02, 0), HL + G(0, -0.1, 0.0), HL + G(0, -0.15, 0)], 0.0075, "hand_l", IRON),
+          K.blob("Cap", HL + G(0, -0.15, 0), (0.055, 0.02, 0.055), "hand_l", IRON, 14, 8), K.blob("Base", HL + G(0, -0.32, 0), (0.05, 0.02, 0.05), "hand_l", IRON, 14, 8),
+          K.blob("Flame", HL + G(0, -0.23, 0), (0.045, 0.065, 0.045), "hand_l", GLOW, 12, 10)):
+    o["sock"] = "hand_l"
+    add(o)
+for k in range(6):
+    a = math.tau * k / 6.0
+    o = TUBE("Bar", [HL + G(math.cos(a) * 0.055, -0.15, math.sin(a) * 0.055), HL + G(math.cos(a) * 0.075, -0.23, math.sin(a) * 0.075), HL + G(math.cos(a) * 0.055, -0.31, math.sin(a) * 0.055)], 0.0045, "hand_l", IRON)
+    o["sock"] = "hand_l"
+    add(o)
+o = L.thorn("Spike", HL + G(0, -0.34, 0), Vector(G(0, -1, 0)), 0.04, 0.012, Vector((0, 0, 0)), "hand_l", IRON, 5, 4, 1.0)
+add(o)
+
+print("ANCHORESS parts", len(objs), "tris", sum(L.tri_count(o) for o in objs))
+_t = {}
+for o in objs:
+    _t[o["sock"]] = _t.get(o["sock"], 0) + L.tri_count(o)
+print("TRIS by part", _t)
+if REVIEW:
+    os.makedirs(os.path.dirname(REVIEW), exist_ok=True)
+if REVIEW and not EXPORT:
+    L.drop_highs(PAIRS)
+    if "--close" in args:
+        L.turnarounds(REVIEW + "_hands", 0.85, 2.2, angles=(("a", 75), ("b", 100)), samples=32, size=(700, 700), cam_z=0.9)
+        L.turnarounds(REVIEW + "_head", 1.65, 1.6, angles=(("a", 80), ("b", 40)), samples=32, size=(700, 700), cam_z=1.65)
+    L.turnarounds(REVIEW + "_raw", 1.0, 5.6, angles=(("front", 90), ("three", 45), ("side", 0), ("back", -90)), samples=32, size=(700, 940), cam_z=1.3)
+if EXPORT:
+    L.export_skinned2(objs, MATS, "boss_anchoress", S, WEIGHTS, {"hand_r": ("hand_r", S["hand_r"]), "hand_l": ("hand_l", S["hand_l"])}, 4096 if not LOWRES else 1024, PAIRS)
+    L.drop_highs(PAIRS)
+    if REVIEW:
+        L.use_atlas("boss_anchoress")
+        arm = bpy.data.objects["Armature"]
+        L.turnarounds(REVIEW + "_turn", 1.0, 5.6, cam_z=1.3)
+        for nm, rots in L.POSES.items():
+            L.reset_pose(arm)
+            L.pose(arm, rots)
+            L.turnarounds(REVIEW + "_" + nm, 1.0, 5.6, angles=(("front", 90), ("three", 45), ("side", 0)), cam_z=1.3)
