@@ -882,27 +882,81 @@ def preview(arm, meshes, made, out_dir):
     print("PREVIEW", out_dir)
 
 
+def look(body, held, out_dir):
+    """A turnaround in the model's own colours (vertex tint; glow as white), to judge the build before the game."""
+    os.makedirs(out_dir, exist_ok=True)
+    sc = bpy.context.scene
+    sc.render.engine = 'BLENDER_WORKBENCH'
+    sc.display.shading.light = 'STUDIO'
+    sc.display.shading.color_type = 'VERTEX'
+    sc.display.shading.show_cavity = True
+    sc.display.shading.cavity_type = 'BOTH'
+    sc.display.shading.show_shadows = True
+    sc.display.shading.show_backface_culling = False
+    sc.render.resolution_x, sc.render.resolution_y = 700, 1000
+    cam_d = bpy.data.cameras.new("LCam")
+    cam_d.lens = 70
+    cam = bpy.data.objects.new("LCam", cam_d)
+    sc.collection.objects.link(cam)
+    sc.camera = cam
+    paths = []
+    for name, ang in (("front", 0.0), ("q34", 0.7), ("side", 1.5708), ("back", 3.1416)):
+        pos = V(math.sin(ang) * 7.5, 1.45, -math.cos(ang) * 7.5)
+        cam.location = bl(pos)
+        cam.rotation_euler = (bl(V(0, 1.22, 0.0)) - cam.location).to_track_quat('-Z', 'Y').to_euler()
+        sc.render.filepath = os.path.join(out_dir, "%s_%s.png" % (BOSS, name))
+        bpy.ops.render.render(write_still=True)
+        paths.append(sc.render.filepath)
+    cam.location = bl(V(0.9, 1.78, -1.9))
+    cam.rotation_euler = (bl(V(0, 1.8, 0.0)) - cam.location).to_track_quat('-Z', 'Y').to_euler()
+    sc.render.filepath = os.path.join(out_dir, "%s_head.png" % BOSS)
+    bpy.ops.render.render(write_still=True)
+    bpy.data.objects.remove(cam)
+    print("LOOK", out_dir)
+
+
 def main():
     model = os.path.join(ROOT, "art", "models", "boss_%s.glb" % BOSS)
-    src = os.path.join(ROOT, "art", "blender", "boss_%s_body.glb" % BOSS)
-    if not os.path.exists(src):
-        shutil.copyfile(model, src)                       # the socket-rigged body, kept as this script's source
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=src)
-    bpy.context.scene.render.fps = FPS
-    old = [o for o in bpy.data.objects if o.type == 'ARMATURE'][0]
-    sockets = {b.name: np.array([(old.matrix_world @ b.head_local).x, (old.matrix_world @ b.head_local).z, -(old.matrix_world @ b.head_local).y]) for b in old.data.bones}
-    body = bpy.data.objects["body"]
-    def sock_of(nm):
+    built = "--built" in ARGS
+    if built:
+        # a body BUILT for tiling materials (boss_build.py), labelled with the socket names the skinning reads
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import boss_build
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.context.scene.render.fps = FPS
+        sockets = {"pelvis": V(0, 0.94, 0), "chest": V(0, 1.28, 0), "head": V(0, 1.64, 0)}
+        for tag, sx in (("l", -1), ("r", 1)):
+            sockets.update({"shoulder_" + tag: V(sx * 0.24, 1.40, 0), "elbow_" + tag: V(sx * 0.24, 1.08, 0), "hand_" + tag: V(sx * 0.24, 0.78, 0),
+                            "hip_" + tag: V(sx * 0.11, 0.75, 0), "knee_" + tag: V(sx * 0.11, 0.33, 0), "foot_" + tag: V(sx * 0.11, -0.09, 0)})
+        body, held = boss_build.build(BOSS)
+        old = None
+        if "pelvis" not in body.vertex_groups:
+            body.vertex_groups.new(name="pelvis")
+    else:
+        src = os.path.join(ROOT, "art", "blender", "boss_%s_body.glb" % BOSS)
+        if not os.path.exists(src):
+            shutil.copyfile(model, src)                       # the socket-rigged body, kept as this script's source
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.ops.import_scene.gltf(filepath=src)
+        bpy.context.scene.render.fps = FPS
+        old = [o for o in bpy.data.objects if o.type == 'ARMATURE'][0]
+        sockets = {b.name: np.array([(old.matrix_world @ b.head_local).x, (old.matrix_world @ b.head_local).z, -(old.matrix_world @ b.head_local).y]) for b in old.data.bones}
+        body = bpy.data.objects["body"]
+
+        def sock_of(nm):
+            nm = nm.split(".")[0]
+            return nm if nm in sockets else (nm.split("_", 1)[1] if "_" in nm and nm.split("_", 1)[1] in sockets else "")
+        held = [o for o in bpy.data.objects if o.type == 'MESH' and o is not body and sock_of(o.name)]
+        for o in [o for o in bpy.data.objects if o.type == 'MESH' and o is not body and o not in held]:
+            bpy.data.objects.remove(o)
+        bpy.ops.object.select_all(action='DESELECT')
+        body.select_set(True)
+        bpy.context.view_layer.objects.active = body
+        bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+
+    def sock_of2(nm):
         nm = nm.split(".")[0]
         return nm if nm in sockets else (nm.split("_", 1)[1] if "_" in nm and nm.split("_", 1)[1] in sockets else "")
-    held = [o for o in bpy.data.objects if o.type == 'MESH' and o is not body and sock_of(o.name)]
-    for o in [o for o in bpy.data.objects if o.type == 'MESH' and o is not body and o not in held]:
-        bpy.data.objects.remove(o)
-    bpy.ops.object.select_all(action='DESELECT')
-    body.select_set(True)
-    bpy.context.view_layer.objects.active = body
-    bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
     co = np.array([body.matrix_world @ v.co for v in body.data.vertices])
     Pr = np.stack([co[:, 0], co[:, 2], -co[:, 1]], 1)
     gi = body.vertex_groups["pelvis"].index
@@ -913,13 +967,16 @@ def main():
     # things carried: a mesh whose origin is the old socket's joint follows the bone that replaced it
     bone_of = {"hand_r": "hand_r", "hand_l": "hand_l", "chest": "chest", "head": "head", "pelvis": "hips"}
     for o in held:
-        sock = sock_of(o.name)
+        sock = sock_of2(o.name)
         o.parent = arm
         o.parent_type = 'BONE'
         o.parent_bone = bone_of.get(sock, "chest")
         o.matrix_world = Matrix.Translation(bl(sockets[sock]))
         print("HELD", o.name, "->", o.parent_bone)
-    bpy.data.objects.remove(old)
+    if old is not None:
+        bpy.data.objects.remove(old)
+    if arg("--look"):
+        look(body, held, arg("--look"))
     poser = Poser(arm)
     made = key_clips(arm, poser, arg("--only").split(",") if arg("--only") else None)
     if arg("--preview"):
@@ -933,7 +990,8 @@ def main():
             tr.mute = False
             tr.is_solo = False
         bpy.ops.export_scene.gltf(filepath=model, export_format='GLB', use_selection=True, export_apply=False, export_yup=True,
-                                  export_materials='NONE', export_normals=True, export_tangents=True, export_texcoords=True,
+                                  export_materials='EXPORT' if built else 'NONE', export_vertex_color='ACTIVE' if built else 'NONE',
+                                  export_active_vertex_color_when_no_material=True, export_normals=True, export_tangents=True, export_texcoords=True,
                                   export_skins=True, export_def_bones=True, export_animations=True,
                                   export_animation_mode='NLA_TRACKS', export_force_sampling=True, export_frame_step=1,
                                   export_all_influences=False, export_optimize_animation_size=False)

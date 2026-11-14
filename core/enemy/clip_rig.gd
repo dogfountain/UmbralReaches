@@ -18,8 +18,11 @@ extends CharacterRig
 ## Sockets are bone attachments: `socket_bones` maps the names the game asks for to bones in the model.
 
 const GruntModel := preload("res://core/enemy/grunt_model.gd")
+const BossLook := preload("res://core/enemy/boss_look.gd")
 
 var scene_path := ""
+## The model is built geometry with named surfaces (tools/blender/boss_build.py), not a baked atlas body.
+var built := false
 ## Game socket name -> bone name. Names missing here are looked up as bones of the same name.
 var socket_bones := {}
 ## Metres of ground one loop of the clip covers at speed scale 1 (measured in Blender from the feet).
@@ -56,6 +59,7 @@ static func fit(e: Node, scene: String, kind: StringName, bones: Dictionary, opt
 	rig.set("walk_stride", float(opts.get("walk_stride", 1.0)))
 	rig.set("run_stride", float(opts.get("run_stride", 2.0)))
 	rig.set("run_at", float(opts.get("run_at", 99.0)))
+	rig.set("built", bool(opts.get("built", false)))
 	var en: Variant = e
 	en.attach_rig(rig)
 	rig.scale = opts.get("scale", Vector3.ONE)
@@ -127,6 +131,9 @@ func _build() -> void:
 
 ## The skinned meshes wearing the kind's material (flash, glint, dissolve): what Enemy.set_flesh wants.
 func dress(kind: StringName) -> Array[MeshInstance3D]:
+	# a BUILT model names its surfaces (wool, trim, bone...) and wears tiling materials; a baked one wears its atlas
+	if built and BossLook.has(kind):
+		return BossLook.dress(kind, _meshes)
 	var mat := GruntModel.material(kind) if GruntModel.has(kind) else null
 	var phase := randf() * TAU
 	for mi in _meshes:

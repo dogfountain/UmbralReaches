@@ -145,6 +145,7 @@ func _build() -> void:
 	# his motion is authored (tools/blender/boss_humanoid_anim.py): a real skeleton, a ring of skirt bones and
 	# keyed clips played by ClipRig, in place of the Ossuant's joints posed by formula
 	var rig: CharacterRig = ClipRig.new()
+	rig.built = true                        # built geometry in tiling materials (tools/blender/boss_build.py), as the wanderer is
 	rig.scene_path = "res://art/models/boss_bone_abbot.glb"
 	rig.socket_bones = {"pelvis": "hips", "body": "spine", "chest": "chest", "front": "chest", "head": "head", "hand_r": "hand_r", "hand_l": "hand_l"}
 	rig.walk_stride = 0.645
