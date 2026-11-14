@@ -11,6 +11,7 @@ extends Wretch
 ## No class_name (project rule): EnemySpawner.KIN and Tiers.KIND_PATHS load it by path.
 
 const Variants := preload("res://core/life/encounters/variants.gd")
+const GruntModel := preload("res://core/enemy/grunt_model.gd")
 const RISE_R := 14.0
 const RISE_T := 1.15
 const SUNK := 1.3
@@ -28,6 +29,8 @@ static var _parts: Dictionary = {}
 
 func _init() -> void:
 	super._init()
+	if GruntModel.has(&"pilgrim"):
+		body_kind = &"pilgrim"           # its own modelled body (hooded cloak, candle, staff): no parts stuck on
 	max_hp = 4
 	hp = 4.0
 	walk_speed = 2.7
@@ -83,7 +86,7 @@ func _tint() -> void:
 
 ## Hood, rope girdle, the candle stub: CreatureMesh parts through the shared GenCache.
 func _dress() -> void:
-	if _rig == null:
+	if _rig == null or GruntModel.has(&"pilgrim"):
 		return
 	if _parts.is_empty():
 		_parts = Variants.cached("pilgrim_parts_v2", _build_parts, "res://core/enemy/pilgrim.gd")

@@ -73,6 +73,8 @@ func _spawn() -> void:
 	if is_instance_valid(cur):
 		cur.queue_free()
 	cur = (load(Studio.KINDS[order[ki]]) as GDScript).new() as Enemy
+	if "dormant" in cur:
+		cur.set("dormant", false)      # a Pilgrim lies in its grave until woken: the strip shows it walking
 	add_child(cur)
 	cur.global_position = Vector3.ZERO
 	cur.sleep()

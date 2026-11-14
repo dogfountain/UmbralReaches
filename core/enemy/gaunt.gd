@@ -27,6 +27,8 @@ static var _mat: ShaderMaterial
 
 func _init() -> void:
 	super._init()
+	if GruntModel.has(&"gaunt"):
+		body_kind = &"gaunt"           # its own starved, bound-handed model (ribs, veil), not the Wretch's with a tint
 	max_hp = 2
 	hp = 2.0
 	walk_speed = 4.3

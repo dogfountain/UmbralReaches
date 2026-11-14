@@ -2,12 +2,15 @@ extends RefCounted
 ## Modelled bodies for the rank-and-file enemies (r30). tools/blender/grunt_humanoid.py and
 ## grunt_quad.py build each kind in its rig's rest pose -- fused metaball muscle, cloth, bone,
 ## chitin, iron -- bake one atlas per kind and export ONE skinned mesh on a flat skeleton, a bone
-## per rig socket, weighted across every joint (knees, elbows, the waist bend as flesh; no cracks
+## per rig socket (the two-legged kinds that wear things -- chanter, tollman, pilgrim, bulwark, wretch,
+## gaunt, ossuant, quiller, cinder_caster -- come from tools/blender/biped_*.py: garments and armour cut from
+## the body's own surface, see biped_sculpt_lib.py), weighted across every joint (knees, elbows, the waist bend as flesh; no cracks
 ## between rigid parts). GruntSkin poses the bones from the sockets each frame. EnemyBody / KinLook
 ## dress with these when the GLB exists and fall back to the procedural CreatureMesh body.
 ##
 ## Other meshes in the GLB are rigid, on a socket: "shield_<socket>" is the Bulwark's door-shield
-## (node Kin_shield_<socket>, which bulwark.gd looks up and breaks off).
+## (node Kin_shield_<socket>, which bulwark.gd looks up and breaks off); "bell_<socket>" is the Tollman's
+## hand-bell (node "Bell", which tollman.gd swings when it tolls).
 ## Load by path (no class_name): const GruntModel := preload("res://core/enemy/grunt_model.gd")
 
 const SHADER := preload("res://core/enemy/grunt_pbr.gdshader")
@@ -17,11 +20,17 @@ const SHADOWED := ["chest", "pelvis", "head", "body", "front"]
 ## kind -> [glb, shader params]. Families: hollowed people = wet; rift-born = heat; Ossuary dead = dust
 const KINDS := {
 	&"wretch": ["res://art/models/grunt_wretch.glb", {"rim_col": Color(1.0, 0.46, 0.16), "rim_amount": 0.42, "wet": 0.72, "normal_depth": 1.2}],
+	&"quiller": ["res://art/models/grunt_quiller.glb", {"rim_col": Color(0.62, 0.78, 1.0), "rim_amount": 0.3, "dust": 0.7, "dust_col": Color(0.46, 0.43, 0.38), "normal_depth": 1.25}],
+	&"cinder_caster": ["res://art/models/grunt_cinder_caster.glb", {"rim_col": Color(1.3, 0.45, 0.12), "rim_amount": 0.22, "emit_pulse": 0.5, "pulse_rate": 1.6, "heat": 0.55, "normal_depth": 1.25}],
+	&"gaunt": ["res://art/models/grunt_gaunt.glb", {"rim_col": Color(0.75, 0.82, 1.0), "rim_amount": 0.38, "emit_pulse": 0.5, "pulse_rate": 2.4, "wet": 0.3, "normal_depth": 1.25}],
 	&"husk": ["res://art/models/grunt_husk.glb", {"rim_col": Color(1.0, 0.5, 0.12), "rim_amount": 0.5, "emit_pulse": 0.4, "pulse_rate": 1.4, "wet": 0.9, "normal_depth": 1.25}],
 	&"spitter": ["res://art/models/grunt_spitter.glb", {"rim_col": Color(0.3, 1.0, 0.72), "rim_amount": 0.8, "emit_pulse": 0.5, "pulse_rate": 3.0, "membrane": 0.7, "wet": 1.0, "normal_depth": 1.15}],
 	&"ossuant": ["res://art/models/grunt_ossuant.glb", {"rim_col": Color(1.0, 0.82, 0.48), "rim_amount": 0.45, "dust": 0.78, "dust_col": Color(0.46, 0.43, 0.38), "normal_depth": 1.3}],
 	&"bulwark": ["res://art/models/grunt_bulwark.glb", {"rim_col": Color(1.0, 0.55, 0.2), "rim_amount": 0.45, "wet": 0.62, "normal_depth": 1.25}],
-	&"chanter": ["res://art/models/grunt_chanter.glb", {"rim_col": Color(0.62, 1.0, 0.4), "rim_amount": 0.5, "emit_pulse": 0.28, "pulse_rate": 1.1, "wet": 0.58, "normal_depth": 1.15}],
+	&"chanter": ["res://art/models/grunt_chanter.glb", {"rim_col": Color(0.62, 1.0, 0.4), "rim_amount": 0.14, "emit_pulse": 0.28, "pulse_rate": 1.1, "wet": 0.2, "normal_depth": 1.2}],
+	# the robed bipeds' remodel: cloth, not wet flesh
+	&"tollman": ["res://art/models/grunt_tollman.glb", {"rim_col": Color(0.9, 0.62, 0.3), "rim_amount": 0.32, "wet": 0.15, "normal_depth": 1.2}],
+	&"pilgrim": ["res://art/models/grunt_pilgrim.glb", {"rim_col": Color(1.0, 0.78, 0.42), "rim_amount": 0.32, "emit_pulse": 0.3, "pulse_rate": 1.3, "wet": 0.15, "normal_depth": 1.2}],
 	&"crawler": ["res://art/models/grunt_crawler.glb", {"rim_col": Color(1.0, 0.26, 0.16), "rim_amount": 0.5, "heat": 0.72, "normal_depth": 1.3}],
 	&"leaper": ["res://art/models/grunt_leaper.glb", {"rim_col": Color(1.0, 0.6, 0.14), "rim_amount": 0.5, "emit_pulse": 0.3, "pulse_rate": 1.8, "heat": 0.72, "normal_depth": 1.25}],
 	&"burrower": ["res://art/models/grunt_burrower.glb", {"rim_col": Color(1.0, 0.62, 0.22), "rim_amount": 0.5, "emit_pulse": 0.35, "pulse_rate": 1.2, "heat": 0.62, "normal_depth": 1.2}],
@@ -90,7 +99,7 @@ static func dress(rig: CharacterRig, kind: StringName) -> Array[MeshInstance3D]:
 		var nm := String(mi0.name)
 		var tag := ""
 		var sock := nm
-		for t: String in ["shield", "staff"]:
+		for t: String in ["shield", "staff", "bell"]:
 			if nm.begins_with(t + "_"):
 				tag = t
 				sock = nm.substr(t.length() + 1)
@@ -99,7 +108,7 @@ static func dress(rig: CharacterRig, kind: StringName) -> Array[MeshInstance3D]:
 			push_error("GruntModel: %s part '%s' has no socket" % [kind, nm])
 			continue
 		var mi := MeshInstance3D.new()
-		mi.name = {"shield": "Kin_shield_", "staff": "Kin_glow_"}.get(tag, "Flesh_") + sock
+		mi.name = "Bell" if tag == "bell" else {"shield": "Kin_shield_", "staff": "Kin_glow_"}.get(tag, "Flesh_") + sock
 		mi.mesh = mi0.mesh
 		mi.material_override = mat
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if sock in SHADOWED or tag == "shield" else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

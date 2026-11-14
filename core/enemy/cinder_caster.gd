@@ -17,10 +17,13 @@ var look_kind := "spitter"         ## Variants dress it as a spitter
 static var _mat: ShaderMaterial
 static var _sac_mat: ShaderMaterial
 static var _slag_parts: Dictionary = {}
+const GruntModel := preload("res://core/enemy/grunt_model.gd")
 
 
 func _init() -> void:
 	super._init()
+	if GruntModel.has(&"cinder_caster"):
+		body_kind = &"cinder_caster"     # its own smith's body (apron, slag crust, ladle); the sac still hangs in its throat cradle
 	max_hp = 3
 	glow_col = EMBER
 	hp = 3.0
@@ -57,7 +60,7 @@ func _tint() -> void:
 			return
 		_mat = (base as ShaderMaterial).duplicate() as ShaderMaterial
 		_mat.set_shader_parameter("rim_col", Color(1.3, 0.45, 0.12))
-		_mat.set_shader_parameter("rim_amount", 0.4)
+		_mat.set_shader_parameter("rim_amount", 0.22 if GruntModel.has(&"cinder_caster") else 0.4)
 		_mat.set_shader_parameter("eye_col", EMBER)
 		_mat.set_shader_parameter("pulse_rate", 1.6)
 	for mi in _flesh:
@@ -73,8 +76,8 @@ func _tint() -> void:
 
 ## A crust of slag over its shoulders and back, cracked through with ember (CreatureMesh parts, cached).
 func _slag() -> void:
-	if _rig == null:
-		return
+	if _rig == null or GruntModel.has(&"cinder_caster"):
+		return                           # the modelled body carries its own slag crust
 	if _slag_parts.is_empty():
 		_slag_parts = Variants.cached("cinder_slag_v1", _build_slag, "res://core/enemy/cinder_caster.gd")
 	var mat := Variants.material("cinder", "spitter", EMBER)

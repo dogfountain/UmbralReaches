@@ -62,12 +62,13 @@ func _build() -> void:
 	posture({"hunch": 0.5, "crouch": 0.2, "arm_reach": 0.2, "head_jut": 0.7, "sway": 0.6, "twitch": 0.25, "splay": 0.08})
 	if _rig:
 		_rig.scale = Vector3(0.92, 1.0, 0.92)
-	set_flesh(KinLook.dress(self, "chanter"))
+	var modelled := GruntModel.dress(_rig, &"tollman")        # its own model, bell and all
+	set_flesh(modelled if not modelled.is_empty() else KinLook.dress(self, "chanter"))
 	# its own copy of the Chanter's look: ember-gold where the Chanter is corpse-green
 	if _mat == null and not _flesh.is_empty() and _flesh[0].material_override is ShaderMaterial:
 		_mat = (_flesh[0].material_override as ShaderMaterial).duplicate() as ShaderMaterial
 		_mat.set_shader_parameter("rim_col", Color(0.9, 0.62, 0.3))
-		_mat.set_shader_parameter("rim_amount", 0.3)
+		_mat.set_shader_parameter("rim_amount", 0.2)
 		_mat.set_shader_parameter("emit_pulse", 0.0)
 	if _mat:
 		for mi in _flesh:
@@ -75,7 +76,9 @@ func _build() -> void:
 				mi.material_override = _mat
 	# the hand-bell, hung from the staff's head
 	var hand := _rig.socket("hand_r") if _rig else null
-	if hand:
+	if hand and hand.get_node_or_null("Bell") != null:
+		_bell = hand.get_node("Bell") as Node3D
+	elif hand:
 		if _bell_mesh == null:
 			_bell_mesh = ProcMesh.cyl(0.035, 0.11, 0.17, 12, 2)
 			_bell_mat = ProcMesh.std_mat(Color(0.12, 0.1, 0.09), 0.45, 0.8)
