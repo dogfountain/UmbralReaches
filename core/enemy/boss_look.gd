@@ -44,6 +44,17 @@ const KINDS := {
 	&"ascended_warden": {"emit_col": Color(1.0, 0.9, 0.62), "emit_energy": 3.0, "emit_pulse": 0.1, "rim_col": Color(1.0, 0.88, 0.55), "rim_amount": 0.06},
 	&"hierarch": {"emit_col": Color(1.0, 0.55, 0.2), "emit_energy": 3.4, "emit_pulse": 0.15, "rim_col": Color(0.9, 0.85, 0.5), "rim_amount": 0.04},
 	&"anchoress": {"emit_col": Color(1.0, 0.78, 0.45), "emit_energy": 2.8, "emit_pulse": 0.25, "rim_col": Color(0.8, 0.6, 0.4), "rim_amount": 0.04},
+	&"wretch": {"emit_col": Color(1.0, 0.45, 0.15), "emit_energy": 3.0},
+	&"husk": {"emit_col": Color(1.0, 0.45, 0.12), "emit_energy": 3.2, "emit_pulse": 0.35},
+	&"chanter": {"emit_col": Color(0.6, 1.0, 0.4), "emit_energy": 3.0, "emit_pulse": 0.25},
+	&"tollman": {"emit_col": Color(1.0, 0.65, 0.3), "emit_energy": 2.8},
+	&"pilgrim": {"emit_col": Color(1.0, 0.75, 0.4), "emit_energy": 2.6},
+	&"gaunt": {"emit_col": Color(0.75, 0.85, 1.0), "emit_energy": 2.8},
+	&"quiller": {"emit_col": Color(0.7, 0.85, 1.0), "emit_energy": 2.8},
+	&"ossuant": {"emit_col": Color(1.0, 0.8, 0.45), "emit_energy": 3.0},
+	&"bulwark": {"emit_col": Color(1.0, 0.55, 0.2), "emit_energy": 3.2},
+	&"spitter": {"emit_col": Color(0.4, 1.0, 0.7), "emit_energy": 3.0, "emit_pulse": 0.4, "pulse_rate": 3.0},
+	&"cinder_caster": {"emit_col": Color(1.0, 0.45, 0.1), "emit_energy": 3.4, "emit_pulse": 0.3},
 	&"thornwarden": {"emit_col": Color(1.0, 0.45, 0.12), "emit_energy": 3.5, "emit_pulse": 0.3, "rim_col": Color(1.0, 0.42, 0.1), "rim_amount": 0.0},
 }
 static var _mats := {}

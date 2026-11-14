@@ -18,6 +18,7 @@ const GruntSkin := preload("res://core/enemy/grunt_skin.gd")
 const SHADOWED := ["chest", "pelvis", "head", "body", "front"]
 
 ## kind -> [glb, shader params]. Families: hollowed people = wet; rift-born = heat; Ossuary dead = dust
+const BossLook := preload("res://core/enemy/boss_look.gd")
 const KINDS := {
 	&"wretch": ["res://art/models/grunt_wretch.glb", {"rim_col": Color(1.0, 0.46, 0.16), "rim_amount": 0.16, "wet": 0.1, "normal_depth": 1.2}],
 	&"quiller": ["res://art/models/grunt_quiller.glb", {"rim_col": Color(0.62, 0.78, 1.0), "rim_amount": 0.18, "rim_scale": 0.3, "normal_depth": 1.25}],
@@ -48,7 +49,15 @@ static var _scenes := {}
 static var _mats := {}
 
 
+## Kinds whose model is BUILT (tools/blender/grunt_build.py): clean geometry with named surfaces, dressed in the tiling
+## materials of boss_look.gd like the wanderer, not one baked atlas.
+const BUILT := {&"wretch": true, &"husk": true, &"chanter": true, &"tollman": true, &"pilgrim": true, &"gaunt": true, &"quiller": true,
+	&"ossuant": true, &"bulwark": true, &"spitter": true, &"cinder_caster": true}
+
+
 static func has(kind: StringName) -> bool:
+	if BUILT.has(kind) and KINDS.has(kind):
+		return ResourceLoader.exists(KINDS[kind][0])
 	return KINDS.has(kind) and ResourceLoader.exists(KINDS[kind][0]) and ResourceLoader.exists(_tex(kind, "albedo"))
 
 
@@ -90,7 +99,10 @@ static func dress(rig: CharacterRig, kind: StringName) -> Array[MeshInstance3D]:
 			body.skeleton = NodePath("..")
 			body.transform = Transform3D.IDENTITY
 			body.name = "Flesh_body"
-			body.material_override = mat
+			if BUILT.has(kind):
+				BossLook.dress(kind, [body] as Array[MeshInstance3D])          # named surfaces in tiling materials
+			else:
+				body.material_override = mat
 			body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 			body.set_instance_shader_parameter(&"pulse_phase", phase)
 			var drv := GruntSkin.new()
@@ -117,7 +129,10 @@ static func dress(rig: CharacterRig, kind: StringName) -> Array[MeshInstance3D]:
 		var mi := MeshInstance3D.new()
 		mi.name = "Bell" if tag == "bell" else {"shield": "Kin_shield_", "staff": "Kin_glow_"}.get(tag, "Flesh_") + sock
 		mi.mesh = mi0.mesh
-		mi.material_override = mat
+		if BUILT.has(kind):
+			BossLook.dress(kind, [mi] as Array[MeshInstance3D])
+		else:
+			mi.material_override = mat
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if sock in SHADOWED or tag == "shield" else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.set_instance_shader_parameter(&"pulse_phase", phase)
 		at.add_child(mi)

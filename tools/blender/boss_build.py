@@ -147,23 +147,26 @@ class Geo:
         return ids
 
     def tube(self, path, radii, col, mat, lab, n=10, flat=1.0):
-        """A tube along a path (arms, fingers, a crook, a rope)."""
+        """A tube along a path (arms, fingers, a crook, a rope); its frame is carried along without twisting."""
         P = []
-        prev = None
         ln = 0.0
         us = []
+        u_prev = None
         for k, c in enumerate(path):
             a = path[max(k - 1, 0)]
             b = path[min(k + 1, len(path) - 1)]
             t = b - a
             t /= max(np.linalg.norm(t), 1e-9)
-            ref = V(0, 0, 1) if abs(t[2]) < 0.9 else V(1, 0, 0)
-            if prev is not None:
-                ref = prev
-            u = np.cross(t, ref)
+            if u_prev is None:
+                ref = V(0, 0, 1) if abs(t[2]) < 0.9 else V(1, 0, 0)
+                u = np.cross(t, ref)
+            else:
+                u = u_prev - t * float(t @ u_prev)
+                if np.linalg.norm(u) < 1e-6:
+                    u = np.cross(t, V(1, 0, 0))
             u /= max(np.linalg.norm(u), 1e-9)
             w = np.cross(t, u)
-            prev = w
+            u_prev = u
             r = radii[k] if hasattr(radii, "__len__") else radii
             P.append([c + (u * math.cos(TAU * j / n) + w * math.sin(TAU * j / n) * flat) * r for j in range(n)])
             if k:
