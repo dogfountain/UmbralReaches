@@ -108,8 +108,8 @@ static func _specs() -> Array[Dictionary]:
 	out.append(_s("wf_bank_e", "post", -196.6, 59.0, {"face": PI}))
 	# --- the Sorrow's ford and the Siege Lines' palisade gate -------------------------------------------------------
 	out.append(_s("sr_ford_post", "post", -197.6, -24.0, {"face": "road"}))
-	out.append(_s("sg_gate_w", "post", -210.6, 108.4, {"face": "road"}))
-	out.append(_s("sg_gate_e", "post", -201.6, 108.4, {"face": "road"}))
+	out.append(_s("sg_gate_w", "post", -210.6, 113.0, {"face": "road"}))
+	out.append(_s("sg_gate_e", "post", -201.6, 113.0, {"face": "road"}))
 	# --- the Pilgrims' Road: roadside shrines, waystones, cairns, posts ----------------------------------------
 	out.append(_s("rd_shrine_a", "niche", -37.4, 64.2, {"free": true, "face": "road", "light": false}))
 	out.append(_s("rd_shrine_b", "niche", -30.4, 62.6, {"free": true, "face": "road", "light": false}))
