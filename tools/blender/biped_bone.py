@@ -128,10 +128,11 @@ for i in range(n_rib):
     def rib_sel(P, N, y0=y0, i=i):
         front = np.clip(-P[:, 2] / 0.11, 0.0, 1.0)
         yc = y0 - 0.055 * front * (0.6 + 0.1 * i)
-        band = 0.03 - np.abs(P[:, 1] - yc)
+        band = 0.025 - np.abs(P[:, 1] - yc)
         gap = np.where(P[:, 2] < -0.02, np.abs(P[:, 0]) - (0.034 + 0.002 * i), 1.0)     # the breastbone stands between the ribs' ends
         return np.minimum(band, gap)
-    bones.keep(rib_sel, (lambda i: lambda P, N: 0.04 - 0.0012 * i + (0.008 if i % 2 else 0.0) + 0.0 * P[:, 0])(i), 0.02, mat=BONE if i % 3 else BONE_P, bevel=0.006, name="Rib")
+    bones.keep(rib_sel, (lambda i: lambda P, N: 0.04 - 0.0012 * i + (0.008 if i % 2 else 0.0) + 0.0 * P[:, 0])(i), 0.02, mat=BONE if i % 3 else BONE_P, bevel=0.006, name="Rib",
+               folds=lambda P, N: 0.006 * np.sin(np.arctan2(P[:, 0], -P[:, 2]) * 24.0) * (1.0 + 0.5 * np.sin(P[:, 1] * 40.0)))      # knuckled, carved ribs
 bones.keep(lambda P, N: np.where((P[:, 2] < -0.04) & (np.abs(P[:, 0]) < 0.036) & (P[:, 1] > 1.2) & (P[:, 1] < 1.47), np.minimum(0.036 - np.abs(P[:, 0]), (P[:, 1] - 1.2)), -1.0),
            0.05, 0.016, mat=BONE_P, bevel=0.005, name="Sternum")
 bones.keep(lambda P, N: np.where((P[:, 2] > 0.03) & (P[:, 1] > 0.98) & (P[:, 1] < 1.51), np.minimum(0.021 - np.abs(P[:, 0]), np.minimum(P[:, 1] - 0.98, 1.51 - P[:, 1])), -1.0),
@@ -162,14 +163,17 @@ for sx in (-1, 1):
     for (cy, rx, ry, rz, of_, nm_, mt_) in ((1.44, 0.14, 0.11, 0.13, 0.05, "Scapula", BONE), (1.3, 0.125, 0.085, 0.12, 0.044, "Scapula2", BONE_D), (1.18, 0.105, 0.07, 0.1, 0.038, "Scapula3", BONE)):
         bones.keep((lambda cy, rx, ry, rz, sx: lambda P, N: 1.0 - np.sqrt(((P[:, 0] - sx * 0.27) / rx) ** 2 + ((P[:, 1] - cy) / ry) ** 2 + (P[:, 2] / rz) ** 2))(cy, rx, ry, rz, sx),
                    of_, 0.017, on="arms", mat=mt_, bevel=0.006, name=nm_)                      # shoulder blades, worn as stacked pauldrons
-bones.finish(3600, "stiff", PAIRS, objs, "Bones")
+for sx in (-1, 1):                                                              # bundled long bones down each shin and thigh, and bound-on bands
+    for dx in (-0.022, 0.0, 0.022):
+        for (ya, yb, nm_) in ((0.1, 0.3, "ShinBone"), (0.42, 0.74, "ThighBone")):
+            bones.keep((lambda dx, ya, yb, sx: lambda P, N: np.where((P[:, 2] < 0.0) & (P[:, 1] > ya) & (P[:, 1] < yb), 0.011 - np.hypot(P[:, 0] - sx * (0.11 + dx), 0.0 * P[:, 2]), -1.0))(dx, ya, yb, sx),
+                       0.034, 0.012, mat=BONE_P if dx == 0.0 else BONE, bevel=0.004, name=nm_)
+    for yy in (0.13, 0.25, 0.46, 0.6):
+        bones.keep((lambda yy, sx: lambda P, N: np.where(P[:, 0] * sx > 0.02, 0.018 - np.abs(P[:, 1] - yy), -1.0))(yy, sx), 0.048, 0.012, mat=BONE_D, bevel=0.004, name="Band")
+bones.finish(4200, "stiff", PAIRS, objs, "Bones")
 
 # sinew bindings (bandage wound round the limbs, a spiral ridge on a thin band) and the belt of finger-bones
-# (no wound bandages: a thin shell thinned to a hundred triangles stretches into sheets when the limb moves; the bone casings and straps carry the binding)
-for tag, sx in (("l", -1), ("r", 1)):
-    for yy in (-0.12, -0.26):
-        c0 = S["knee_" + tag] + G(0, yy, 0.0)
-        add(K.loft("Strap", [c0 + G(math.cos(a) * 0.06, 0.0, math.sin(a) * 0.058 - 0.004) for a in [math.tau * i / 14 for i in range(15)]], [(0.014, 0.006)] * 15, "leg_" + tag, LEATHER, 5), "leg_" + tag)
+# (no hoops and no wound bandages: bands are plates cut from the leg itself, fused to it)
 add(L.band_loop("Belt", (0, 0.93, 0.0), 0.19, 0.15, 0.02, LEATHER, "r:pelvis", n=40, sides=6, squash=0.5), "r:pelvis")
 for k in range(9):
     a = -1.5 + 3.0 * k / 8.0
@@ -234,8 +238,7 @@ else:
     def mh(th):                                          # asymmetric: it falls long on the bow side, short and clear over the throwing arm
         return _mh0(th) - 0.22 * np.exp(-((np.abs(((th - math.pi) + math.pi) % math.tau - math.pi)) / 0.9) ** 2) + 0.1 * np.sin(th)
     md = L.Drape(mk, 1.575, mh, y_fold0=1.5, y_hem_ref=1.1, amp=0.14, waves=L.Waves(seed=11, counts=(3, 6, 10, 17), amps=(1.0, 0.7, 0.4, 0.18)), nth=160, dy=0.008, flare=0.02, seed=6.0)
-    mhi = L.grid_surface("MantleHigh", md.points(), "mantle", RAG, wrap=True, thick=0.007, sub=1)
-    L.hi_lo(mhi, 900, "MantleLow", "mantle", PAIRS, objs)
+    L.drape_pair("Mantle", md.points(), RAG, "mantle", 1000, PAIRS, objs, thick=0.007)
     WTS["mantle"] = BW.GB.envelope_weights(ctx.segs, band=0.11, power=1.5)
     # the quiver: a bound sheaf of ribs on the back, lashed with leather and a sling across the chest
     for k in range(11):

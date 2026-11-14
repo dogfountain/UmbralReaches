@@ -67,7 +67,7 @@ elif GA:
             (1.24, 0, 0.0, 0.128, 0.11, 0.095, 2.0), (1.33, 0, 0.01, 0.14, 0.125, 0.105, 2.05), (1.41, 0, 0.012, 0.145, 0.105, 0.105, 2.2),
             (1.465, 0, 0.02, 0.13, 0.075, 0.095, 2.2), (1.5, 0, 0.015, 0.1, 0.062, 0.085, 2.0), (1.53, 0, -0.01, 0.065, 0.05, 0.065, 2.0),
             (1.58, 0, -0.07, 0.04, 0.04, 0.045, 2.0), (1.62, 0, -0.11, 0.037, 0.037, 0.04, 2.0)]
-    OPT = dict(W=0.8, L=0.85, nk=0.14, finger=0.36, hand_r=1.5, wrist=0.46, ribs=0.0, belly=-1.6, collar=1.9, tendon=2.1, hc=(0, 1.7, -0.17), jaw_w=0.036, brow=0.018,
+    OPT = dict(W=0.8, L=1.0, nk=0.14, finger=0.36, hand_r=1.5, wrist=0.46, ribs=0.0, belly=-1.6, collar=1.9, tendon=2.1, hc=(0, 1.7, -0.17), jaw_w=0.036, brow=0.018,
                waist=0.75, head_w=0.066, neck_r=0.038, hump=0.03, torso=KEYS, cavity=0.03)
 elif HU:
     SK = ((0.2, 0.19, 0.17), (0.022, 0.02, 0.018)); EYEC = (1.0, 0.5, 0.12)
@@ -130,7 +130,7 @@ def skel(sk):
 
 
 def extra(sc, Y, nm):
-    k = {"wretch": 1.3, "gaunt": 1.2, "husk": 2.0, "spitter": 1.3}[KIND]
+    k = {"wretch": 1.3, "gaunt": 1.7, "husk": 2.0, "spitter": 1.3}[KIND]
     AN.muscles(sc, Y, nm, k, lean=1.0)
     AN.joints(sc, Y, nm, OPT["hand_r"], OPT["wrist"], 1.0 if not HU else 1.2)
     if WR and nm == "Body":
@@ -200,8 +200,7 @@ def cloth_shell(src, name, y0, y1, off, thick, mat, sock, tris, seed=1.0, ragged
         th = np.arctan2(P[:, 0], -P[:, 2])
         t = sm(y1, y0, P[:, 1])
         return folds_amp * (0.3 + t) * (np.sin(th * 9 + 3.0 * P[:, 1] + seed) + 0.5 * np.sin(th * 21 + P[:, 1] * 6 + seed * 2)) + 0.0015 * L.hash_noise(P, 26.0, seed)
-    hi = L.shell(src, name + "High", sel if callable(off) or True else sel, off, thick, mat, sock, folds=fold, smooth_iter=3)
-    return L.hi_lo(hi, tris, name + "Low", sock, PAIRS, objs)
+    return L.shell_pair(src, name, sel, off, thick, mat, sock, tris, PAIRS, objs, folds=fold, smooth_iter=3)
 
 
 def strap_shell(src, name, pts, w, off, mat, sock, tris, thick=0.005):
@@ -315,7 +314,14 @@ elif GA:
     bones.keep(lambda P, N: np.where((P[:, 2] < -0.04) & (np.abs(P[:, 0]) < 0.03) & (P[:, 1] > 1.18) & (P[:, 1] < 1.46), np.minimum(0.03 - np.abs(P[:, 0]), P[:, 1] - 1.18), -1.0), 0.036, 0.011, mat=BONE, bevel=0.003, name="Sternum")
     bones.keep(lambda P, N: np.where((P[:, 2] > 0.02) & (P[:, 1] > 0.98) & (P[:, 1] < 1.5), np.minimum(0.016 - np.abs(P[:, 0]), np.minimum(P[:, 1] - 0.98, 1.5 - P[:, 1])), -1.0),
                lambda P, N: 0.026 + 0.01 * (np.abs(np.sin(P[:, 1] * math.pi / 0.04)) ** 0.6), 0.011, mat=BONE, bevel=0.003, name="Spine")
-    bones.finish(2600, "stiff", PAIRS, objs, "Cage")
+    for sx in (-1, 1):                                              # the legs get a frame too: bone ridges down thigh and shin, knee caps, hip crests
+        for (ya, yb, nm_) in ((0.1, 0.3, "ShinBone"), (0.42, 0.74, "ThighBone")):
+            bones.keep((lambda ya, yb, sx: lambda P, N: np.where((P[:, 2] < 0.0) & (P[:, 1] > ya) & (P[:, 1] < yb), 0.013 - np.abs(P[:, 0] - sx * 0.11), -1.0))(ya, yb, sx),
+                       0.03, 0.012, mat=BONE, bevel=0.004, name=nm_)
+        kc = np.array([sx * 0.11, 0.345, -0.045], dtype=np.float32)
+        bones.keep((lambda kc: lambda P, N: np.where(np.linalg.norm(P - kc, axis=1) < 0.05, 1.0, -1.0))(kc), 0.032, 0.012, mat=BONE, bevel=0.004, name="Patella")
+        bones.keep(lambda P, N, sx=sx: np.where((P[:, 0] * sx > 0.07) & (P[:, 1] > 0.86) & (P[:, 1] < 1.0) & (N[:, 2] > -0.5), np.minimum(P[:, 1] - 0.86, 1.0 - P[:, 1]), -1.0), 0.03, 0.012, mat=BONE, bevel=0.004, name="Iliac")
+    bones.finish(3600, "stiff", PAIRS, objs, "Cage")
     for sx in (-1, 1):
         L.wrap_shell(HA, "HandWrap", 0.62, 0.76, sx, 0.008, WRAP, "armskin", 200, PAIRS, objs, turns=4.0, cx=sx * 0.25, xs=0.17)
         L.wrap_shell(HB, "ShinWrap", 0.06, 0.3, sx, 0.011, WRAP, "bodyskin", 220, PAIRS, objs, turns=6.0, cx=sx * 0.11, xs=0.02)
@@ -331,8 +337,7 @@ elif GA:
         return _mh0(th) + 0.5 * np.exp(-(d / 0.75) ** 2)
     md = L.Drape(mk, 1.585, mh, y_fold0=1.5, y_hem_ref=1.1, amp=0.05, waves=L.Waves(seed=21, counts=(3, 6, 11, 17), amps=(1.0, 0.7, 0.4, 0.2)), nth=150, dy=0.008, flare=0.04, seed=6.0)
     Pgm = md.points()
-    mhi = L.grid_surface("MantleHigh", Pgm, "mantle", RAG, wrap=True, thick=0.012, sub=1)
-    L.hi_lo(mhi, 1500, "MantleLow", "mantle", PAIRS, objs)
+    L.drape_pair("Mantle", Pgm, RAG, "mantle", 1400, PAIRS, objs, thick=0.012)
     WTS["mantle"] = BW.GB.envelope_weights(ctx.segs, band=0.11, power=1.5)
     for k in range(8):                                                                       # heavy ragged tails off the mantle
         th = math.tau * (k + 0.5) / 8.0

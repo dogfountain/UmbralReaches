@@ -87,7 +87,52 @@ def fast_ao(samples=16):
     src = inspect.getsource(GK.bake_atlas_hl).replace("48 if kind == 'AO' else 1", "%d if kind == 'AO' else 1" % samples)
     ns = dict(GK.__dict__)
     exec(src, ns)
-    GK.bake_atlas_hl = ns["bake_atlas_hl"]
+    orig = ns["bake_atlas_hl"]
+
+    def guarded(objs, mats, prefix, tex_dir, size, pairs):
+        orig(objs, mats, prefix, tex_dir, size, pairs)
+        check_islands(objs, prefix)
+    GK.bake_atlas_hl = guarded
+
+
+def check_islands(objs, prefix, limit=0.85):
+    """Fail the bake if any part's UV islands came out near white or empty in the albedo (a missed bake, a bad UV)."""
+    import numpy as np
+    img = bpy.data.images.get(prefix + "_albedo")
+    if img is None:
+        return
+    w, h = img.size
+    a = np.empty(w * h * 4, dtype=np.float32)
+    img.pixels.foreach_get(a)
+    a = a.reshape(h, w, 4)
+    nimg = bpy.data.images.get(prefix + "_normal")
+    nrm = None
+    if nimg is not None:
+        nrm = np.empty(w * h * 4, dtype=np.float32)
+        nimg.pixels.foreach_get(nrm)
+        nrm = nrm.reshape(h, w, 4)
+    bad = []
+    for o in objs:
+        me = o.data
+        if not me.uv_layers:
+            continue
+        uv = np.empty(len(me.loops) * 2, dtype=np.float32)
+        me.uv_layers.active.data.foreach_get('uv', uv)
+        uv = uv.reshape(-1, 2)
+        px = np.clip((uv[:, 0] * (w - 1)).astype(int), 0, w - 1)
+        py = np.clip((uv[:, 1] * (h - 1)).astype(int), 0, h - 1)
+        m = a[py, px, :3].mean()
+        if len(uv) > 30:
+            print("ISLAND %-22s mean %.3f" % (o.name, m))
+        if len(uv) > 30 and m > limit:
+            bad.append((o.name, round(float(m), 3)))
+        if nrm is not None and len(uv) > 30:
+            nb = nrm[py, px, 2].mean()
+            print("NORMALB %-22s blue %.3f" % (o.name, nb))
+            if nb < 0.8:                       # a normal map that leans far off flat is a crumpled bake
+                bad.append((o.name + " normal", round(float(nb), 3)))
+    if bad:
+        raise RuntimeError("BAKE GUARD: near-white islands %s" % bad)
 
 
 def lean(max_sides=6, small=0.085):

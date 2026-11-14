@@ -20,7 +20,7 @@ const SHADOWED := ["chest", "pelvis", "head", "body", "front"]
 ## kind -> [glb, shader params]. Families: hollowed people = wet; rift-born = heat; Ossuary dead = dust
 const KINDS := {
 	&"wretch": ["res://art/models/grunt_wretch.glb", {"rim_col": Color(1.0, 0.46, 0.16), "rim_amount": 0.16, "wet": 0.1, "normal_depth": 1.2}],
-	&"quiller": ["res://art/models/grunt_quiller.glb", {"rim_col": Color(0.62, 0.78, 1.0), "rim_amount": 0.18, "dust": 0.22, "dust_col": Color(0.46, 0.43, 0.38), "normal_depth": 1.25}],
+	&"quiller": ["res://art/models/grunt_quiller.glb", {"rim_col": Color(0.62, 0.78, 1.0), "rim_amount": 0.18, "normal_depth": 1.25}],
 	&"cinder_caster": ["res://art/models/grunt_cinder_caster.glb", {"rim_col": Color(1.3, 0.45, 0.12), "rim_amount": 0.22, "emit_pulse": 0.5, "pulse_rate": 1.6, "heat": 0.55, "normal_depth": 1.25}],
 	&"gaunt": ["res://art/models/grunt_gaunt.glb", {"rim_col": Color(0.75, 0.82, 1.0), "rim_amount": 0.2, "emit_pulse": 0.5, "pulse_rate": 2.4, "wet": 0.1, "normal_depth": 1.25}],
 	&"husk": ["res://art/models/grunt_husk.glb", {"rim_col": Color(1.0, 0.5, 0.12), "rim_amount": 0.16, "emit_pulse": 0.4, "pulse_rate": 1.4, "wet": 0.1, "normal_depth": 1.25}],
