@@ -23,7 +23,7 @@ const KINDS := {
 	&"bulwark": ["res://art/models/grunt_bulwark.glb", {"rim_col": Color(1.0, 0.55, 0.2), "rim_amount": 0.45, "wet": 0.62, "normal_depth": 1.25}],
 	&"chanter": ["res://art/models/grunt_chanter.glb", {"rim_col": Color(0.62, 1.0, 0.4), "rim_amount": 0.5, "emit_pulse": 0.28, "pulse_rate": 1.1, "wet": 0.58, "normal_depth": 1.15}],
 	&"crawler": ["res://art/models/grunt_crawler.glb", {"rim_col": Color(1.0, 0.26, 0.16), "rim_amount": 0.5, "heat": 0.72, "normal_depth": 1.3}],
-	&"leaper": ["res://art/models/grunt_leaper.glb", {"rim_col": Color(1.0, 0.6, 0.14), "rim_amount": 0.2, "emit_pulse": 0.3, "pulse_rate": 1.8, "heat": 0.72, "normal_depth": 1.5}],
+	&"leaper": ["res://art/models/grunt_leaper.glb", {"rim_col": Color(1.0, 0.6, 0.14), "rim_amount": 0.1, "emit_pulse": 0.3, "pulse_rate": 1.8, "heat": 0.72, "normal_depth": 1.5}],
 	&"burrower": ["res://art/models/grunt_burrower.glb", {"rim_col": Color(1.0, 0.62, 0.22), "rim_amount": 0.2, "emit_pulse": 0.35, "pulse_rate": 1.2, "heat": 0.62, "normal_depth": 1.6}],
 	# the Thornwarden (a boss, r38d): bark and ember, one skinned body like the grunts'
 	&"thornwarden": ["res://art/models/boss_thornwarden.glb", {"rim_col": Color(1.0, 0.42, 0.1), "rim_amount": 0.18, "heat": 0.55, "dust": 0.28, "dust_col": Color(0.32, 0.26, 0.18), "normal_depth": 1.25}],
