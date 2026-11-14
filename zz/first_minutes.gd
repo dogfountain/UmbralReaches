@@ -22,6 +22,7 @@ var shots := true
 var ls_seen := false
 var ls_done_t := -1.0
 var title_t := -1.0
+var _title_full := false
 var hint_t := -1.0
 var _banner: Node = null
 var _banner_n := 0
@@ -185,6 +186,12 @@ func _watch_ui() -> void:
 			title_t = t_all
 			print("FIRST title card visible at %.2f s (loading lifted %.2f)" % [t_all, ls_done_t])
 			_shot("title")
+	if hud and title_t >= 0.0 and not _title_full:
+		var tf := hud.get("_title") as Label
+		var fd := hud.get("_fade") as ColorRect
+		if tf and tf.modulate.a > 0.97 and fd and fd.color.a < 0.03:
+			_title_full = true
+			_shot("title_full")                  # the card at rest (the first shot is mid-fade)
 	# r37: the text director (ui/text_director.gd): two lanes in one rectangle on any frame, or two banners
 	# within 90 s, is a FAIL line
 	var td := get_tree().get_first_node_in_group(&"text_director")

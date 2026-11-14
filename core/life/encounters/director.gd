@@ -812,8 +812,7 @@ func begin_deeper_night(reload: bool) -> void:
 		var path := get_tree().current_scene.scene_file_path if get_tree().current_scene else ""
 		if path != "":
 			await get_tree().create_timer(2.5).timeout
-			var face := Vector2(RealmLayout.SPAWN.x - RealmLayout.PLAYER_START.x, RealmLayout.SPAWN.z - RealmLayout.PLAYER_START.z)
-			Travel.go(path, RealmLayout.PLAYER_START, atan2(-face.x, -face.y), _player)
+			Travel.go(path, RealmLayout.PLAYER_START, RealmLayout.start_yaw(), _player)
 
 
 func _on_boss(boss: Node, _title: String) -> void:

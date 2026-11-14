@@ -41,10 +41,10 @@ func _build() -> void:
 	rig.body_len = 1.15
 	rig.hip_spread = 0.2
 	rig.upper_len = 0.32
-	rig.stride_len = 0.7
-	# r30: the modelled leaper stands on hound legs (the Thornwarden, a Leaper too, keeps the spider
-	# layout its own model is fitted to; so does the procedural fallback)
-	rig.upright = _kind(&"leaper") == &"leaper" and GruntModel.has(&"leaper")
+	rig.stride_len = 1.1                    # a hound covers its own length a stride (0.7 was three frantic cycles a second)
+	# r30: the modelled leaper stands on hound legs, and so does the Thornwarden's skinned body (a Leaper
+	# too); the procedural fallback keeps the spider layout
+	rig.upright = _kind(&"leaper") in [&"leaper", &"thornwarden"] and GruntModel.has(_kind(&"leaper"))
 	attach_rig(rig)
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape is CapsuleShape3D:

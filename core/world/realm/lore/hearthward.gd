@@ -9,6 +9,7 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Cottage := preload("res://core/world/realm/lore/cottage.gd")
 const Pilot := preload("res://core/world/realm/scale_pilot.gd")
 const Square := preload("res://core/world/realm/lore/hearthward_square.gd")
+const Pieces := preload("res://core/world/realm/lore/hearthward_pieces.gd")
 const BRAZIER := Vector2(0.0, 33.0)
 
 
@@ -56,8 +57,14 @@ static func build(parent: Node) -> void:
 	L.scrap("hw_harrow", hx * Vector3(-3.1 + 6.2 * 0.36, 0.3, -3.1), hx * Vector3(-3.1 + 6.2 * 0.36, 2.2, -2.4))
 	L.page(hx * Vector3(3.1 - 0.5 - 0.62, 1.02, 2.4 * 0.25 + 0.2), hx.basis.orthonormalized() * Vector3(-0.2, 1.0, 0).normalized())
 	L.scrap("jn_4", hx * Vector3(1.9, 0.4, 0.6))
+	# the well, notice board, shrine and forge are modelled pieces at the village's scale (hearthward_pieces.gd) when
+	# the pilot is on; the old code-built ones when it is off
+	var pieces: RefCounted = Pieces.begin(L) if Pilot.on() else null
 	# --- the well ---------------------------------------------------------------------------------
-	_well(L, Vector2(-10.0, 48.5))
+	if pieces:
+		pieces.well(Vector2(-10.0, 48.5))
+	else:
+		_well(L, Vector2(-10.0, 48.5))
 	# --- gardens ------------------------------------------------------------------------------
 	var gw := Pilot.on()                       # the bean garden stands west of the wider house (the pilot off: where it was)
 	var gr_w := Rect2(-35.0, 44.6, 6.0, 5.0) if gw else Rect2(-27.5, 44.5, 6.0, 5.0)
@@ -80,11 +87,18 @@ static func build(parent: Node) -> void:
 	var face_pt: Vector3 = L.headstone(tg, face(gq, Vector2(25, 42)), 1, 0.85, Vector2(0.08, -0.05), "lore_tstone", true)
 	L.scrap("hw_reed", face_pt)
 	# --- Edda's forge across the road ------------------------------------------------------------
-	_forge(L, Vector2(11.0, 60.0))
+	if pieces:
+		pieces.forge(Vector2(11.0, 60.0))
+	else:
+		_forge(L, Vector2(11.0, 60.0))
 	# --- noticeboard, shrine, green -----------------------------------------------------------
 	var nb := Pilot.hw_xz(Vector2(-5.5, 45.5))       # in front of the gate's wall, where the road arrives (scale_pilot.gd HW_POINTS)
-	_noticeboard(L, nb, face(nb, BRAZIER))
-	_shrine(L, Vector2(-8.5, 19.5), face(Vector2(-8.5, 19.5), BRAZIER))
+	if pieces:
+		pieces.notice(nb, face(nb, BRAZIER), ["hw_notice_keep", "hw_notice_lost", "hw_notice_stair"])
+		pieces.shrine(Vector2(-8.5, 19.5), face(Vector2(-8.5, 19.5), BRAZIER))
+	else:
+		_noticeboard(L, nb, face(nb, BRAZIER))
+		_shrine(L, Vector2(-8.5, 19.5), face(Vector2(-8.5, 19.5), BRAZIER))
 	var b1 := Vector2(-8.2, 37.4) if gw else Vector2(-11.6, 36.0)     # off the stalls' front
 	L.bench(L.gv(b1.x, b1.y), face(b1, BRAZIER) + PI)
 	L.bench(L.gv(8.6, 41.6), face(Vector2(8.6, 41.6), BRAZIER) + PI)
@@ -120,6 +134,8 @@ static func build(parent: Node) -> void:
 	L.crate(p, Vector3(rw.x, L.g(rw.x, rw.z), rw.z), 0.6, 0.3)
 	var sw: Vector3 = (south.xf as Transform3D) * Vector3(-4.0, 0, 0.5)
 	_woodpile(L, Vector3(sw.x, L.g(sw.x, sw.z), sw.z), (south.xf as Transform3D).basis.orthonormalized().get_euler().y)
+	if pieces:
+		pieces.finish()
 	if Pilot.on():
 		Square.build(L)                           # the square's market, cross, gate and yards (hearthward_square.gd)
 	var draws: int = L.finish()

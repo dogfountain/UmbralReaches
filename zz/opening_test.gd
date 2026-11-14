@@ -1,7 +1,8 @@
 extends Node
 ## The staged opening of a new game (r37), without the world: a stand-in wanderer, the real HUD and the real story
 ## director, with the opening forced on (HudPrefs.test_force).
-##   one narration line alone on black, no HUD -> the black lifts, still no HUD (only the move prompt) ->
+##   the black lifts with no HUD and the zone's title card plays on it -> the first narration line, once the card is
+##   gone (one message at a time) -> still no HUD (only the move prompt) ->
 ##   when the wanderer moves the HUD arrives and the second line is spoken -> the Gloom bar waits for Gloom, the
 ##   compass and minimap for the Keep, the objective shows for 6 s then hides (a held key brings it back), the hotbar
 ##   draws only the slots that have been taught.
@@ -25,6 +26,7 @@ func _ready() -> void:
 	add_child(player)
 	var hud: CanvasLayer = (load("res://ui/hud.gd") as GDScript).new()
 	add_child(hud)
+	Events.zone_entered.emit("THE TEST NIGHT", "a card to play first")       # held by the HUD until the opening plays it
 	var story := StoryScript.new()
 	add_child(story)
 	await get_tree().process_frame
@@ -35,29 +37,30 @@ func _ready() -> void:
 	_ok(bool(hud.get("_opening_hold")) and not content.visible and is_equal_approx(fade.color.a, 1.0), "a new game opens on black with no HUD")
 	_ok(not HudPrefs.gloom_known(), "the Gloom bar is not known yet")
 	_ok(not (hud.get("_compass") as Control).visible or true, "(compass checked once the stage ticks)")
-	# 1. the first line alone
+	# 1. the black lifts and the title card plays on it, alone; then the first line
 	var t := 0.0
-	while t < 20.0:
+	var card_seen := false
+	var card_with_line := false
+	var title: Label = hud.get("_title")
+	while t < 30.0:
 		await get_tree().create_timer(0.1).timeout
 		t += 0.1
+		card_seen = card_seen or title.modulate.a > 0.5
 		ui = story.get("ui")
 		if ui != null and is_instance_valid(ui) and ui.has_method("narrating") and bool(ui.call("narrating")) and String((ui.get("_sub") as Label).text) != "":
+			card_with_line = hud.call("title_busy")
 			break
+	_ok(bool(hud.get("_lifting")) and not content.visible, "the black lifts with no HUD")
+	_ok(card_seen, "the title card played over the lifting black")
 	_ok(ui != null and String((ui.get("_sub") as Label).text) == String(DialogueDB.OPENING[0]), "the first line is spoken (%s)" % [(ui.get("_sub") as Label).text if ui else "no dialogue"])
-	_ok((ui.get("_sub_queue") as Array).is_empty() and not content.visible and fade.color.a > 0.99, "...alone, on black, with no HUD")
-	# 2. the black lifts, the HUD does not come
+	_ok(not card_with_line, "...once the card was gone (one message at a time)")
+	_ok((ui.get("_sub_queue") as Array).is_empty() and not content.visible, "...alone, with no HUD")
+	_ok(fade.color.a < 0.05, "...over the world (fade %.2f)" % fade.color.a)
 	t = 0.0
-	while t < 30.0 and not bool(hud.get("_lifting")):
+	while t < 30.0 and td.call("lesson_text") == "":
 		await get_tree().create_timer(0.1).timeout
 		t += 0.1
-	_ok(bool(hud.get("_lifting")), "the black lifts after the line (%.1f s)" % t)
-	await get_tree().create_timer(1.2).timeout
-	_ok(fade.color.a < 0.95 and not content.visible, "...over the world, still with no HUD (fade %.2f)" % fade.color.a)
-	t = 0.0
-	while t < 4.0 and td.call("lesson_text") == "":
-		await get_tree().create_timer(0.1).timeout
-		t += 0.1
-	_ok(String(td.call("lesson_text")).contains("move"), "only the move prompt shows: '%s'" % td.call("lesson_text"))
+	_ok(String(td.call("lesson_text")).contains("move"), "only the move prompt shows, after the line (%.1f s): '%s'" % [t, td.call("lesson_text")])
 	_ok((ui.get("_sub_queue") as Array).is_empty(), "the second line waits for the wanderer to move")
 	# 3. the wanderer moves
 	player.global_position += Vector3(6, 0, 0)

@@ -14,6 +14,7 @@ extends Node
 const QuestDB := preload("res://core/story/quest_db.gd")
 const DialogueDB := preload("res://core/story/dialogue_db.gd")
 const DialogueUI := preload("res://ui/dialogue.gd")
+const HudUI := preload("res://ui/hud.gd")
 const Voice := preload("res://core/npc/npc_voice.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 const ShopUI := preload("res://ui/shop.gd")
@@ -396,31 +397,34 @@ func _opening() -> void:
 	_stage_opening(hud)
 
 
-## a new game opens in beats. The first line alone on black; the black lifts over the world with no HUD;
-## when the wanderer first moves the HUD arrives and the second line is spoken; the Gloom bar waits for
-## Gloom, the compass and minimap for the Keep, the hotbar's slots for the spells taught.
-func _stage_opening(hud: Node) -> void:
-	ui.narrate([DialogueDB.OPENING[0]])
-	var t := 0.0
-	await get_tree().create_timer(0.3).timeout
-	while is_inside_tree() and is_instance_valid(ui) and ui.narrating() and t < 40.0:
-		await get_tree().create_timer(0.2).timeout
-		t += 0.2
-	if not is_inside_tree() or not is_instance_valid(hud):
-		return
-	hud.call("fade_in_opening", 3.0)
+## a new game opens in beats, one message at a time. The black lifts over the world and the zone's title
+## card plays on it; when the card is gone the first line is spoken; when the wanderer first moves the HUD
+## arrives and the rest is spoken; the place banner (the region's name) waits for all of it (the text
+## director holds banners while the HUD's opening is staged and while narration is up). The Gloom bar
+## waits for Gloom, the compass and minimap for the Keep, the hotbar's slots for the spells taught.
+func _stage_opening(hud_node: Node) -> void:
+	var hud := hud_node as HudUI
+	hud.fade_in_opening(3.0)
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	var start := p.global_position if p else Vector3.ZERO
-	await get_tree().create_timer(1.5).timeout
-	t = 0.0
+	await get_tree().create_timer(0.6).timeout
+	var c := 0.0
+	while is_inside_tree() and is_instance_valid(hud) and hud.title_busy() and c < 12.0:
+		await get_tree().create_timer(0.2).timeout
+		c += 0.2
+	if not is_inside_tree() or not is_instance_valid(hud) or not is_instance_valid(ui):
+		return
+	ui.narrate([DialogueDB.OPENING[0]])
+	await get_tree().create_timer(1.0).timeout
+	var t := 0.0
 	while is_inside_tree() and is_instance_valid(p) and p.global_position.distance_to(start) < 2.5 and t < 150.0:
 		await get_tree().create_timer(0.2).timeout
 		t += 0.2
 	if not is_inside_tree() or not is_instance_valid(hud):
 		return
-	hud.call("hold_opening", false)
 	if is_instance_valid(ui):
-		ui.narrate(DialogueDB.OPENING.slice(1))
+		ui.narrate(DialogueDB.OPENING.slice(1))      # queued before the HUD's hold lifts: no banner slips in between
+	hud.hold_opening(false)
 
 
 func _on_boss(id: String) -> void:

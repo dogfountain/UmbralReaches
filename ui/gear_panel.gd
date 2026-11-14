@@ -27,6 +27,8 @@ const Doll := preload("res://ui/gear_doll.gd")
 const IconCache := preload("res://ui/gear_icons.gd")
 const GearRuntime := preload("res://core/items/gear_runtime.gd")
 const W := preload("res://ui/gear_widgets.gd")
+const PageGrid := preload("res://ui/page_grid.gd")
+const PAGE_PT := 17                  ## the gear page's body type (the stat lines run above it at 20, the small print at 15)
 
 const Med := preload("res://ui/medieval_style.gd")
 const INK := Med.BONE
@@ -111,14 +113,7 @@ func _build() -> void:
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(dim)
-	var margin := MarginContainer.new()               # the space under the character screen's tab band
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_top", 128)
-	margin.add_theme_constant_override("margin_bottom", 18)
-	margin.add_theme_constant_override("margin_left", 18)
-	margin.add_theme_constant_override("margin_right", 18)
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root.add_child(margin)
+	var margin := PageGrid.cell(_root)                # the character screen's one grid cell, under its tab band
 	var panel := PanelContainer.new()
 	panel.theme = Med.theme()
 	var psb := Med.panel("leather", 20)
@@ -126,7 +121,11 @@ func _build() -> void:
 	margin.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
-	panel.add_child(col)
+	var pad := MarginContainer.new()                  # the title and the currencies stood on the frame's gilt edge
+	for side: String in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(side, 16)
+	panel.add_child(pad)
+	pad.add_child(col)
 
 	var head := HBoxContainer.new()
 	col.add_child(head)
@@ -155,11 +154,11 @@ func _build() -> void:
 
 func _build_doll(body: HBoxContainer) -> void:
 	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 548
+	left.custom_minimum_size.x = 470
 	left.add_theme_constant_override("separation", 8)
 	body.add_child(left)
 	_stage = Control.new()
-	_stage.custom_minimum_size = Vector2(548, 440)
+	_stage.custom_minimum_size = Vector2(470, 440)
 	_stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_stage.size_flags_stretch_ratio = 2.4
 	_stage.draw.connect(_draw_threads)
@@ -263,6 +262,11 @@ func _build_detail(body: HBoxContainer) -> void:
 	_d_name = W.label("", 1, INK)                        # kept for the pages that read the title; the card carries the name
 	_d_name.visible = false
 	right.add_child(_d_name)
+	var diff_box := PanelContainer.new()
+	diff_box.add_theme_stylebox_override("panel", Med.inset(8))
+	right.add_child(diff_box)
+	_d_diff = W.rich(21)
+	diff_box.add_child(_d_diff)
 	var cards := HBoxContainer.new()
 	cards.add_theme_constant_override("separation", 12)
 	cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -271,15 +275,12 @@ func _build_detail(body: HBoxContainer) -> void:
 	cards.add_child(a[0])
 	_card_a = a[1]
 	_cap_a = a[3]
+	(_card_a.get_meta(&"name") as Label).add_theme_font_size_override("font_size", 24)        # the title, the top of the page's type scale
 	var b := W.card("WORN IN THIS SLOT")
 	cards.add_child(b[0])
 	_card_b = b[1]
 	_cap_b = b[3]
-	var diff_box := PanelContainer.new()
-	diff_box.add_theme_stylebox_override("panel", Med.inset(8))
-	right.add_child(diff_box)
-	_d_diff = W.rich(17)
-	diff_box.add_child(_d_diff)
+	(_card_b.get_meta(&"name") as Label).add_theme_font_size_override("font_size", 24)
 	_why = W.label("", 17, WARN)
 	_why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_why.custom_minimum_size.y = 24
@@ -663,7 +664,7 @@ func _show() -> void:
 	var worn := _worn_uid(st, int(p.uid))
 	_cap_a.text = "WORN" if worn else "CHOSEN"
 	_d_name.text = String(p.name)                # the card's band carries the name; _d_name holds it bare for anything that reads it
-	Tip.set_text(_card_a, Tip.piece(p, cur, st, {"full": true, "no_compare": true, "head": false, "blocks": true, "reforge_idx": _reforge_idx if Slice.full() else -1}), r, String(p.name))
+	Tip.set_text(_card_a, Tip.piece(p, cur, st, {"full": true, "page": true, "no_compare": true, "head": false, "blocks": true, "reforge_idx": _reforge_idx if Slice.full() else -1}), r, String(p.name), PAGE_PT)
 	_card_b.get_parent().visible = true
 	if worn:
 		_cap_b.text = "COMPARE"
@@ -674,7 +675,7 @@ func _show() -> void:
 		Tip.set_text(_card_b, "[center]%s[/center]\n%s\n[center]%s[/center]" % [Tip._c(DIM, "Nothing worn in %s." % GearDB.SLOT_NAMES[String(p.slot)]), Card.DIV, Tip._c(QUIET, GearDB.SLOT_WHERE[String(p.slot)])], 0, "Empty slot")
 	else:
 		_cap_b.text = "WORN IN THIS SLOT"
-		Tip.set_text(_card_b, Tip.piece(cur, cur, st, {"full": true, "no_compare": true, "head": false, "blocks": true}), int(cur.rarity), String(cur.name))
+		Tip.set_text(_card_b, Tip.piece(cur, cur, st, {"full": true, "page": true, "no_compare": true, "head": false, "blocks": true}), int(cur.rarity), String(cur.name), PAGE_PT)
 	if not worn:
 		_d_diff.text = _diff_line(p, cur, st)
 	_b_wear.disabled = false
@@ -694,14 +695,17 @@ func _show() -> void:
 		_why.text = ("Raise: " + why) if why != "" else ""
 
 
+## The verdict, first on the page where the eye lands: what wearing the chosen piece changes, a green or red
+## line each in two columns, at the stat size. Nothing more is said than the changes.
 func _diff_line(p: Dictionary, cur: Dictionary, st: Dictionary) -> String:
 	var diffs := GearStats.compare(p, cur, st)
+	var head := "[center][font_size=15]%s[/font_size][/center]" % Tip._c(Med.GILT, ("INSTEAD OF " + String(cur.get("name", "")).to_upper()) if not cur.is_empty() else "THE SLOT IS EMPTY")
 	if diffs.is_empty():
-		return Tip._c(QUIET, "Worn instead: no change.")
-	var bits := PackedStringArray()
+		return head + "\n[center]%s[/center]" % Tip._c(QUIET, "no change")
+	var cells := ""
 	for d: Array in diffs:
-		bits.append(Tip._c(Tip.GOOD if bool(d[2]) else Tip.BAD, ("▲ " if bool(d[2]) else "▼ ") + String(d[1])))
-	return Tip._c(QUIET, "Worn instead:   ") + "      ".join(bits)
+		cells += "[cell padding=0,1,28,1]%s[/cell]" % Tip._c(Tip.GOOD if bool(d[2]) else Tip.BAD, ("▲ " if bool(d[2]) else "▼ ") + String(d[1]))
+	return head + "\n[table=2]" + cells + "[/table]"
 
 
 ## A charm, relic or core selected, or an empty socket.

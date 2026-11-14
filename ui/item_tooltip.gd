@@ -76,15 +76,23 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 		lines.append("[center][font_size=%d][b]%s[/b][/font_size][/center]" % [int(opts.get("title_size", 26)), _c(qc, _esc(String(p.get("name", "?"))))])
 	var worn := not cur.is_empty() and int(cur.get("uid", -1)) == int(p.get("uid", -2))
 	var slot := String(p.get("slot", ""))
-	lines.append("[center]%s%s[/center]" % [_c(qc.lightened(0.15), LootDB.quality_name(q)), _c(QUIET, "  ·  Item Level %d" % GearDB.item_level(p))])
-	lines.append("[center]%s%s[/center]" % [_c(INK, String(GearDB.SLOT_NAMES.get(slot, slot))), ("    " + _c(GOLD, "Worn")) if worn else ""])
+	# the gear page's type scale (opts "page"): the stat lines lead at 20, the type line and the trait above them,
+	# the set, the raise level and the flavour under them at 15 and 16
+	var pg := bool(opts.get("page", false))
+	if pg:
+		lines.append("[center]%s%s%s[/center]" % [_c(qc.lightened(0.15), LootDB.quality_name(q)), _c(QUIET, "  ·  Item Level %d  ·  " % GearDB.item_level(p)), _c(INK, String(GearDB.SLOT_NAMES.get(slot, slot)))])
+		if worn:
+			lines.append("[center]%s[/center]" % _c(GOLD, "Worn"))
+	else:
+		lines.append("[center]%s%s[/center]" % [_c(qc.lightened(0.15), LootDB.quality_name(q)), _c(QUIET, "  ·  Item Level %d" % GearDB.item_level(p))])
+		lines.append("[center]%s%s[/center]" % [_c(INK, String(GearDB.SLOT_NAMES.get(slot, slot))), ("    " + _c(GOLD, "Worn")) if worn else ""])
 	lines.append(_hr(true))
 	# the implicit (the slot's own base stat) stands apart from the rolled lines
-	lines.append("[center]%s[/center]" % _c(INK, GearDB.base_line(p)))
+	lines.append("[center]%s[/center]" % (("[font_size=20]%s[/font_size]" if pg else "%s") % _c(INK, GearDB.base_line(p))))
 	lines.append(_hr())
 	# the trait is the line that changes how you play, so it comes first and reads biggest
 	if GearDB.trait_line(p) != "":
-		lines.append("[font_size=19][b]%s[/b][/font_size]" % _c(Med.GILT, GearDB.trait_line(p)))
+		lines.append("[font_size=%d][b]%s[/b][/font_size]" % [21 if pg else 19, _c(Med.GILT, GearDB.trait_line(p))])
 	# the sentence that changes a verb leads; the percents are the second look (smaller and quieter beneath it,
 	# full size on the gear page where they are reforged: opts "full")
 	var verb_led := GearDB.trait_line(p) != "" and not bool(opts.get("full", false))
@@ -95,7 +103,7 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 		if a is Array:
 			var mark := "> " if i == ri and aff.size() > 1 else "+ "
 			var al := mark + GearDB.affix_line(p, a)
-			lines.append(_stat(al, QUIET if verb_led else (GOLD if i == ri and aff.size() > 1 else STAT), pips(GearDB.affix_tier(a)), 15 if verb_led else 0))
+			lines.append(_stat(al, QUIET if verb_led else (GOLD if i == ri and aff.size() > 1 else STAT), pips(GearDB.affix_tier(a)), 15 if verb_led else (20 if pg else 0)))
 	if ri >= 0 and ri < aff.size():
 		var pool := GearDB.reforge_pool(p, ri)
 		if not pool.is_empty():
@@ -107,15 +115,21 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 	var s := String(p.get("set", ""))
 	if GearDB.SETS.has(s):
 		lines.append(_hr())
-		lines.append_array(set_block(s, st))
+		if pg:                                  # the page's own Sets panel lists the pieces and the bonuses: the card names the set and no more
+			lines.append("[center][font_size=16]%s[/font_size][/center]" % set_block(s, st)[0].trim_prefix("[center]").trim_suffix("[/center]"))
+		else:
+			lines.append_array(set_block(s, st))
 	var lv := int(p.get("level", 0))
-	if Slice.full() or lv > 0:
+	if (Slice.full() or lv > 0) and not (pg and lv == 0):          # (the page's Raise button already says what is left to raise)
 		lines.append(_hr())
-		lines.append(_c(QUIET, "Raised %d of %d" % [lv, GearDB.max_level(p)]) + "  " + _c(GOLD, "●".repeat(lv)) + _c(Color(GREY, 0.55), "○".repeat(GearDB.max_level(p) - lv)))
+		if pg:
+			lines.append("[font_size=15]%s[/font_size]" % _c(QUIET, "Raised %d / %d" % [lv, GearDB.max_level(p)]))
+		else:
+			lines.append(_c(QUIET, "Raised %d of %d" % [lv, GearDB.max_level(p)]) + "  " + _c(GOLD, "●".repeat(lv)) + _c(Color(GREY, 0.55), "○".repeat(GearDB.max_level(p) - lv)))
 	var fl := GearDB.flavour(p)
 	if fl != "":
 		lines.append(_hr())
-		lines.append("[center][i]%s[/i][/center]" % _c(FLAVOUR, "\"%s\"" % _esc(fl)))
+		lines.append(("[center][i][font_size=16]%s[/font_size][/i][/center]" if pg else "[center][i]%s[/i][/center]") % _c(Color(FLAVOUR, 0.85), "\"%s\"" % _esc(fl)))
 	if not worn and not bool(opts.get("no_compare", false)):
 		lines.append(_hr(true))
 		lines.append_array(compare_block(p, cur, st))
@@ -210,5 +224,5 @@ static func set_quality(pc: PanelContainer, q: int) -> void:
 
 
 ## Fill a card made by panel(): `bb` from piece() / item() with {"head": false, "blocks": true}, the name beside it.
-static func set_text(pc: PanelContainer, bb: String, q: int, nm := "") -> void:
-	Card.fill(pc, nm, q, bb)
+static func set_text(pc: PanelContainer, bb: String, q: int, nm := "", size := Card.BODY_SIZE) -> void:
+	Card.fill(pc, nm, q, bb, size)

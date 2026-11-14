@@ -10,7 +10,7 @@ rebuilding the creatures, the method to use, and a brief for each boss.
 
 | Boss | Base kind / rig | In-game scale | Built by | Model now | Triangles |
 |---|---|---|---|---|---|
-| Thornwarden | Leaper (`QuadRig`) | 2.6x | `tools/blender/boss_thornwarden.py` | `art/models/boss_thornwarden.glb` | 39.9k, 16 rigid parts |
+| Thornwarden | Leaper (`QuadRig`, upright) | 3.8x | `tools/blender/boss_thornwarden.py` | `art/models/boss_thornwarden.glb` | 40k, ONE skinned mesh (r38d: `quad_sdf.py` SDF model, bark plates in `quad_bark.py`, dressed by `GruntModel`) |
 | Bone Abbot (Osric) | Ossuant (`HunchRig`) | 2.6x | `tools/blender/boss_bone_abbot.py` | `art/models/boss_bone_abbot.glb` | 40.0k, 16 rigid parts |
 | Ascended Warden | Husk (`HunchRig`) | 5x (about 9 m) | `tools/blender/boss_ascended_warden.py` | `art/models/boss_ascended_warden.glb` | 40.0k, 9 rigid parts |
 | The Speaking Crown (Fallen Hierarch) | Husk (`HunchRig`) | 3.4x | `tools/blender/boss_hierarch.py` | `art/models/boss_hierarch.glb` | 32.3k, 9 rigid parts |

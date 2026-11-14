@@ -13,10 +13,12 @@ extends Control
 const LANTERN := Color("#FFB347")
 const INK := Color(0.93, 0.88, 0.8)
 const BAR_H := 9.0             ## the line itself, at the 1920x1080 canvas
-const TEXT_H := 30.0           ## room above it for the level plate
+const TEXT_H := 40.0           ## room above it for the level plate
 const H := BAR_H + TEXT_H
 const MARGIN := 28.0           ## the plate's distance from the left edge
-const PT := 14
+const PT := 21                 ## the level plate's type: readable at a glance on the 1920x1080 canvas
+## What a gain was for, in words (the Hearth keeps the source key); an unknown key shows as its own words.
+const WHY := {"discover": "discovered", "kindle": "kindled", "seal": "seal broken", "quest": "task done", "keepsake": "keepsake found", "home": "home", "elite": "elite slain", "boss": "great one slain"}
 const Forge := preload("res://ui/hud_forge.gd")
 const Med := preload("res://ui/medieval_style.gd")
 const UIType := preload("res://ui/type.gd")
@@ -140,10 +142,11 @@ func _draw() -> void:
 	var a := 1.0
 	if _num_t > 0.0:
 		var why := String(_info.get("why", ""))
+		why = String(WHY.get(why, why.replace("_", " ")))
 		t += ("   ·   " if t != "" else "") + "%d / %d   +%d%s" % [roundi(float(_info.xp)), roundi(float(_info.next)), roundi(_gain), ("  " + why) if why != "" else ""]
 	if t == "":
 		return
 	var tw := _font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, PT).x
-	var pr := Rect2(MARGIN, bar.position.y - 24.0, tw + 24.0, 22.0)
+	var pr := Rect2(MARGIN, bar.position.y - 34.0, tw + 28.0, 31.0)
 	Forge.tab(self, pr, a)
-	Forge.label(self, _font, Vector2(pr.position.x + 12.0, pr.position.y + 16.0), t, PT, Color(INK, a), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
+	Forge.label(self, _font, Vector2(pr.position.x + 14.0, pr.position.y + 22.0), t, PT, Color(INK, a), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)

@@ -18,6 +18,7 @@ extends CanvasLayer
 ## Runtime and rules: core/life/progression/kindling.gd; data: upgrade_db.gd; icons: icons.gd.
 
 const DB := preload("res://core/life/progression/upgrade_db.gd")
+const PageGrid := preload("res://ui/page_grid.gd")
 const PathsDB := preload("res://core/life/progression/paths_db.gd")
 const HearthDB := preload("res://core/life/progression/hearth_db.gd")
 const HearthRT := preload("res://core/life/progression/hearth.gd")
@@ -146,10 +147,7 @@ func _build() -> void:
 	glow.set_anchors_preset(Control.PRESET_FULL_RECT)
 	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(glow)
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root.add_child(center)
+	var center := PageGrid.cell(_root)             # the character screen's one grid cell: the window fills it
 	var panel := PanelContainer.new()
 	panel.theme = Med.theme()
 	panel.add_theme_stylebox_override("panel", Med.panel("leather", 40))
@@ -220,10 +218,13 @@ func _build() -> void:
 	# body: page on the left, detail on the right
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 26)
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(body)
 	var scroll := ScrollContainer.new()
 	_scroll = scroll
-	scroll.custom_minimum_size = Vector2(800, 560)
+	scroll.custom_minimum_size = Vector2(800, 400)
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_stretch_ratio = 1.7
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	body.add_child(scroll)
 	_page_box = VBoxContainer.new()
@@ -233,6 +234,7 @@ func _build() -> void:
 	body.add_child(VSeparator.new())
 	var info := VBoxContainer.new()
 	info.custom_minimum_size = Vector2(420, 0)
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_theme_constant_override("separation", 10)
 	body.add_child(info)
 	var irow := HBoxContainer.new()
@@ -538,6 +540,7 @@ func _card(kind: String, id: String, w: float, h: float) -> Card:
 	c.id = id
 	c.font = _title_font
 	c.custom_minimum_size = Vector2(w, h)
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL      # the page's cards share the cell's width
 	if kind != "head":
 		_cards.append(c)
 	return c

@@ -431,38 +431,99 @@ def build_hitch():
     return finish(p, "hitch_rail", (V(0, 0.62, 0), (2.4, 1.25, 0.3)))
 
 
+def line_y(x):
+    """The line's height at x: a rope between two hooks, sagging in the middle."""
+    return 2.34 - 0.21 * (1.0 - (x / 2.4) ** 2)
+
+
+def cloth_hang(p, x0, x1, drop, col, kind=CLOTH, folds=4.0, phase=0.0, amp=0.07, sway=0.0, thick=0.012, hem=0.05,
+               narrow=0.05, z0=0.0, shade=0.18):
+    """A piece of cloth hung over the line: a front and a back layer meeting over the rope, a hem and
+    side edges that close its thickness. Folds run down it (sines across the width, deeper toward the hem), the hem
+    is uneven and the piece narrows and sways as it hangs. Metres, line along x."""
+    nx, ny = 14, 8
+    xc = (x0 + x1) / 2
+
+    def pt(u, v, side, sd):
+        x = x0 + (x1 - x0) * u
+        top = line_y(x) + 0.026
+        lowest = 1.0 + hem * math.sin(5.1 * u + phase * 2.0) + 0.5 * hem * math.sin(11.0 * u + phase)
+        y = top - drop * v * lowest
+        x = xc + (x - xc) * (1.0 - narrow * v) + sway * v * v
+        fold = amp * math.sin(2 * math.pi * folds * u + phase + 1.3 * v) * (0.25 + 0.75 * v) \
+            + 0.5 * amp * math.sin(2 * math.pi * folds * 1.9 * u + 2.0 * phase) * v * v
+        z = z0 + side * (thick + 0.012 * v) * min(1.0, v * 6.0) + fold * (1.0 if side > 0 else 0.85) + sd * v ** 1.6 * 0.04
+        return (x, y, z)
+
+    def tone_of(u, v, side):
+        f = math.sin(2 * math.pi * folds * u + phase + 1.3 * v) * (0.25 + 0.75 * v)
+        k = 1.0 - shade * (0.5 - 0.5 * f) - 0.05 * v * (0.5 if side > 0 else 1.0)
+        return (col[0] * k, col[1] * k, col[2] * k)
+
+    grid = {}
+    for side in (1, -1):
+        for ix in range(nx + 1):
+            for iy in range(ny + 1):
+                u, v = ix / nx, iy / ny
+                if side < 0 and iy == 0:
+                    grid[(side, ix, iy)] = grid[(1, ix, 0)]          # the two layers meet at the crown, over the rope
+                    continue
+                grid[(side, ix, iy)] = (p.vt(V(*pt(u, v, side, 0.0))), tone_of(u, v, side))
+    mid = V(xc, line_y(xc) - drop * 0.5, z0)
+    for side in (1, -1):
+        for ix in range(nx):
+            for iy in range(ny):
+                q = [grid[(side, ix, iy)], grid[(side, ix + 1, iy)], grid[(side, ix + 1, iy + 1)], grid[(side, ix, iy + 1)]]
+                p.fc([c[0] for c in q], [c[1] for c in q], kind, True, out=mid)
+    # the hem, the two side edges
+    for ix in range(nx):
+        q = [grid[(1, ix, ny)], grid[(1, ix + 1, ny)], grid[(-1, ix + 1, ny)], grid[(-1, ix, ny)]]
+        p.fc([c[0] for c in q], [c[1] for c in q], kind, False, out=mid)
+    for ix in (0, nx):
+        for iy in range(ny):
+            q = [grid[(1, ix, iy)], grid[(1, ix, iy + 1)], grid[(-1, ix, iy + 1)], grid[(-1, ix, iy)]]
+            if iy == 0:
+                q = q[:3]                                   # the crown is one row: a triangle
+            p.fc([c[0] for c in q], [c[1] for c in q], kind, False, out=mid)
+
+
+def peg(p, x, side_x=0.0):
+    box(p, V(x, line_y(x) - 0.02, 0.0), (0.03, 0.09, 0.06), tone="pale")
+
+
 def build_line():
     p = P(121)
-    for sx in (-2.4, 2.4):
-        box(p, V(sx, 1.3, 0), (0.12, 2.6, 0.12), tone="dark", jit=0.005, omit=('-y',), R=rotm(0, 0, -sx * 0.01))
-        box(p, V(sx, 2.5, 0), (0.34, 0.06, 0.06), tone="grey")
-    n = 14
-    pts = [(-2.4 + 4.8 * i / n, 2.46 - 0.16 * math.sin(math.pi * i / n)) for i in range(n + 1)]
+    # two poles: tapering, one leaning, each with a notched top and a hook; a forked prop propping the line
+    for sx, lean in ((-2.4, 0.03), (2.4, -0.015)):
+        box(p, V(sx, 1.25, 0), (0.12, 2.5, 0.12), tone="dark", jit=0.006, omit=('-y',), taper=(0.78, 0.78), R=rotm(0, 0, -lean))
+        box(p, V(sx, 2.46, 0), (0.17, 0.06, 0.09), tone="grey")
+        box(p, V(sx + (0.05 if sx < 0 else -0.05), 2.38, 0.0), (0.03, 0.12, 0.03), kind=IRON, col=p.iron())
+    beam_between(p, V(0.35, 0.0, 0.1), V(0.12, 2.04, 0.012), 0.05, tone="mid", jit=0.004)
+    for sg in (-1.0, 1.0):
+        beam_between(p, V(0.12, 1.98, 0.012), V(0.12 + sg * 0.1, 2.17, 0.012), 0.032, tone="mid")
+    # the rope: a sagging curve in short runs, with a knot at each pole
+    n = 24
+    pts = [(-2.4 + 4.8 * i / n, line_y(-2.4 + 4.8 * i / n)) for i in range(n + 1)]
     for i in range(n):
-        beam_between(p, V(pts[i][0], pts[i][1], 0), V(pts[i + 1][0], pts[i + 1][1], 0), 0.014, kind=IRON, col=(0.7, 0.6, 0.5))
-    cols = [(1.0, 0.96, 0.88), (0.9, 0.82, 0.62), (0.8, 0.4, 0.34), (1.0, 0.95, 0.85), (0.5, 0.58, 0.72)]
-    spots = [(-1.7, 1.15, 0.5), (-0.7, 0.8, 0.9), (0.55, 0.55, 1.15), (1.5, 0.7, 0.85)]
-    for i, (x, w, hh) in enumerate(spots):
-        y = 2.46 - 0.16 * math.sin(math.pi * (x + 2.4) / 4.8)
-        col = cols[i % len(cols)]
-        # a sheet or a shirt hung over the line: two faces with a little belly
-        a, b = x - w / 2, x + w / 2
-        for side, zz in ((1, 0.015), (-1, -0.015)):
-            nl, nk = 3, 2
-            for ix in range(nl):
-                for iy in range(nk):
-                    xa, xb = a + w * ix / nl, a + w * (ix + 1) / nl
-                    ya, yb = y - hh * iy / nk, y - hh * (iy + 1) / nk
-                    bel = lambda xx, yy: side * (0.05 * math.sin(math.pi * (xx - a) / w) * (1 - (y - yy) / hh * 0.6) + 0.015)
-                    q = [(xa, ya, bel(xa, ya)), (xb, ya, bel(xb, ya)), (xb, yb, bel(xb, yb) + 0.01 * side), (xa, yb, bel(xa, yb) + 0.01 * side)]
-                    quad(p, q if side > 0 else q[::-1], (col[0] * (0.92 if (ix + iy) % 2 else 1.0), col[1], col[2]), CLOTH, out=(x, (ya + yb) / 2, -side * 0.5))
-        for xx in (a + 0.05, b - 0.05):
-            box(p, V(xx, y + 0.0, 0), (0.025, 0.04, 0.04), tone="pale")
-    # a basket under the line
-    prism(p, 10, 0.26, 0.0, 0.3, (-0.2, 0.55), kind=WOOD, r1=0.32, col=p.wood("pale"), caps=(True, False))
+        beam_between(p, V(pts[i][0], pts[i][1], 0), V(pts[i + 1][0], pts[i + 1][1], 0), 0.018, kind=IRON, col=(0.72, 0.62, 0.5))
+    # laundry (cream sheet, madder shirt, indigo trousers, ochre sheet, a small cloth)
+    cloth_hang(p, -2.05, -0.82, 1.28, (1.0, 0.95, 0.86), folds=3.0, phase=0.4, amp=0.08, sway=-0.03)
+    cloth_hang(p, -0.64, -0.06, 0.82, (0.82, 0.36, 0.32), folds=2.0, phase=1.7, amp=0.06, narrow=0.10, z0=0.01)
+    for sg in (-1.0, 1.0):                           # the shirt's sleeves: hung from its shoulders, cuffs out
+        xs = -0.35 + sg * 0.36
+        cloth_hang(p, xs - 0.08, xs + 0.08, 0.5, (0.8, 0.34, 0.3), folds=1.0, phase=0.6 + sg, amp=0.02, sway=sg * 0.07, narrow=0.05, z0=0.02, shade=0.14)
+    for xs in (0.18, 0.40):                          # trousers: two legs on one peg
+        cloth_hang(p, xs - 0.09, xs + 0.09, 0.95, (0.42, 0.5, 0.68), folds=1.0, phase=0.3 + xs * 3, amp=0.025, narrow=0.18, z0=0.0, shade=0.14)
+    cloth_hang(p, 0.78, 2.0, 1.05, (0.9, 0.78, 0.55), folds=3.0, phase=2.4, amp=0.085, sway=0.05, narrow=0.06, z0=-0.01)
+    cloth_hang(p, 2.12, 2.36, 0.42, (0.95, 0.9, 0.78), folds=1.0, phase=0.2, amp=0.025, narrow=0.1, z0=0.0)
+    for x in (-2.05, -0.82, -0.64, -0.06, 0.09, 0.27, 0.78, 2.0, 2.12, 2.36):
+        peg(p, x)
+    # a basket under the line, with folded laundry piled in it
+    prism(p, 10, 0.26, 0.0, 0.3, (-0.2, 0.7), kind=WOOD, r1=0.32, col=p.wood("pale"), caps=(True, False))
+    cols = [(1.0, 0.96, 0.88), (0.82, 0.4, 0.34), (0.5, 0.58, 0.72), (0.9, 0.82, 0.62)]
     for k in range(4):
-        blob(p, V(-0.2 + 0.1 * (k - 1.5), 0.31, 0.55), (0.11, 0.07, 0.1), cols[k], CLOTH, 6, 3)
-    return finish(p, "washing_line", (V(0, 1.3, 0), (5.0, 2.6, 0.2)))
+        blob(p, V(-0.2 + 0.1 * (k - 1.5), 0.31, 0.7 + 0.03 * (k % 2)), (0.11, 0.07, 0.1), cols[k], CLOTH, 6, 3)
+    return finish(p, "washing_line", (V(0, 1.3, 0), (5.0, 2.6, 0.4)))
 
 
 MODELS = [

@@ -88,11 +88,7 @@ static func dress(rig: CharacterRig, kind: StringName) -> Array[MeshInstance3D]:
 # Built in Blender (tools/blender/boss_*.py) in the rig's rest pose, baked into one atlas and split
 # into one mesh per socket, origin on the joint. Used in place of the procedural body when present.
 const MODELS := {
-	&"bone_abbot": "res://art/models/boss_bone_abbot.glb",
-	&"ascended_warden": "res://art/models/boss_ascended_warden.glb",
-	&"thornwarden": "res://art/models/boss_thornwarden.glb",
-	# --- west marches ---
-	&"hierarch": "res://art/models/boss_hierarch.glb",
+	# every modelled boss is one skinned mesh on the rig now (GruntModel.KINDS), not a mesh per socket
 }
 const BOSS_PBR := preload("res://core/enemy/boss_pbr.gdshader")
 static var _model_meshes := {}   # kind -> {mesh name: Mesh}
@@ -138,7 +134,10 @@ static func _dress_model(rig: CharacterRig, kind: StringName) -> Array[MeshInsta
 ## Ask the loader's worker threads for a modelled boss's mesh and textures, so the rig's first build finds
 ## them already read and decoded instead of stalling a frame on the disk.
 static func prefetch(kind: StringName) -> void:
-	if not MODELS.has(kind) or _model_mats.has(kind):
+	if not MODELS.has(kind):
+		GruntModel.prefetch(kind)
+		return
+	if _model_mats.has(kind):
 		return
 	var base := String(MODELS[kind]).get_file().get_basename()
 	for path: String in [MODELS[kind], "res://art/textures/%s_albedo.png" % base, "res://art/textures/%s_normal.png" % base,

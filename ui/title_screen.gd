@@ -50,6 +50,10 @@ func _ready() -> void:
 	bg.color = bg_colour()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	var backdrop := _Backdrop.new()                   # the night the game is about: the sky turning inward over the Crowns, a fire at the foot
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(backdrop)
 	var glow := TextureRect.new()                     # a warm pool of firelight behind the emblem and the title
 	glow.set_anchors_preset(Control.PRESET_FULL_RECT)
 	glow.texture = _glow_texture()
@@ -61,6 +65,13 @@ func _ready() -> void:
 	var tw := create_tween().set_loops()
 	tw.tween_property(glow, "modulate:a", 1.0, 4.0).set_trans(Tween.TRANS_SINE)
 	tw.tween_property(glow, "modulate:a", 0.7, 4.0).set_trans(Tween.TRANS_SINE)
+	var shade := TextureRect.new()                    # a dark pool behind the column: the title and the plates read against it, not the sky
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.texture = _shade_texture()
+	shade.stretch_mode = TextureRect.STRETCH_SCALE
+	shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(shade)
 	var vig := _Border.new()
 	vig.set_anchors_preset(Control.PRESET_FULL_RECT)
 	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -211,10 +222,96 @@ class _MenuButton extends Button:
 			draw_polyline(pts, Color(0.15, 0.07, 0.02), 1.5)
 
 
+## A soft dark ellipse, centred on the column of title and menu.
+static func _shade_texture() -> Texture2D:
+	var g := Gradient.new()
+	g.colors = PackedColorArray([Color(0.02, 0.012, 0.01, 0.78), Color(0.02, 0.012, 0.01, 0.55), Color(0.02, 0.012, 0.01, 0.0)])
+	g.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	var t := GradientTexture2D.new()
+	t.gradient = g
+	t.fill = GradientTexture2D.FILL_RADIAL
+	t.fill_from = Vector2(0.5, 0.5)
+	t.fill_to = Vector2(0.95, 0.5)
+	t.width = 256
+	t.height = 144
+	return t
+
+
+## The backdrop, drawn in code: a night sky that grades from indigo to the ember of a far fire, stars, faint rings
+## turning inward (the sky of the story), three ridges of the Crowns and the small fire at their foot.
+class _Backdrop extends Control:
+	var _stars: Array[Vector3] = []              ## x, y (0..1), size/phase
+	var _t := 0.0
+	var _acc := 0.0
+
+	func _ready() -> void:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 38
+		for i in 170:
+			_stars.append(Vector3(rng.randf(), pow(rng.randf(), 1.4) * 0.74, rng.randf()))
+
+	func _process(delta: float) -> void:
+		_t += delta
+		_acc += delta
+		if _acc > 0.05:
+			_acc = 0.0
+			queue_redraw()
+
+	func _ridge(y0: float, amp: float, seed_: float, col: Color) -> void:
+		var pts := PackedVector2Array()
+		var n := 48
+		for i in n + 1:
+			var u := float(i) / float(n)
+			# peaks: the ridge is a sum of |sin| (sharp crests, soft saddles), not rolling hills
+			var h := pow(absf(sin(u * 5.0 + seed_)), 0.8) * 0.55 + pow(absf(sin(u * 13.0 + seed_ * 2.3)), 1.2) * 0.3 + sin(u * 2.3 + seed_ * 0.7) * 0.25
+			pts.append(Vector2(u * size.x, y0 - (h * 0.7 + 0.2) * amp))
+		pts.append(Vector2(size.x, size.y))
+		pts.append(Vector2(0, size.y))
+		draw_colored_polygon(pts, col)
+
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		var hz := h * 0.80
+		# the sky: four bands, the colour carried between them by vertex colour
+		var rows := [[0.0, Color(0.015, 0.015, 0.06)], [0.38, Color(0.05, 0.04, 0.13)], [0.64, Color(0.17, 0.08, 0.17)], [0.8, Color(0.42, 0.2, 0.1)]]
+		for i in rows.size() - 1:
+			var y0: float = float(rows[i][0]) * h
+			var y1: float = float(rows[i + 1][0]) * h
+			var c0: Color = rows[i][1]
+			var c1: Color = rows[i + 1][1]
+			draw_polygon(PackedVector2Array([Vector2(0, y0), Vector2(w, y0), Vector2(w, y1), Vector2(0, y1)]), PackedColorArray([c0, c0, c1, c1]))
+		draw_rect(Rect2(0, hz, w, h - hz), Color(0.03, 0.02, 0.02))
+		# the rings turning inward over the middle of the sky
+		var ctr := Vector2(w * 0.5, h * 0.3)
+		for k in 14:
+			var r := 90.0 + float(k) * 62.0
+			var a0 := _t * 0.03 * (1.0 + float(k % 3) * 0.4) + float(k) * 0.9
+			draw_arc(ctr, r, a0, a0 + 2.6 + float(k % 4) * 0.5, 64, Color(0.62, 0.5, 0.95, 0.07 + 0.012 * float(k % 3)), 2.0 + float(k % 2) * 2.0, true)
+		# stars, twinkling a little
+		for st in _stars:
+			var tw := 0.55 + 0.45 * sin(_t * (0.8 + st.z * 1.6) + st.z * 40.0)
+			var a := (0.35 + 0.55 * st.z) * tw
+			var sz := 1.0 + st.z * 1.4
+			draw_rect(Rect2(st.x * w, st.y * h, sz, sz), Color(0.85, 0.88, 1.0, a))
+		# the Crowns: three ridges, the far one lit by the horizon
+		_ridge(hz - 6.0, h * 0.26, 0.4, Color(0.15, 0.08, 0.14))
+		_ridge(hz + 12.0, h * 0.18, 2.1, Color(0.085, 0.05, 0.09))
+		_ridge(hz + 38.0, h * 0.12, 4.6, Color(0.04, 0.025, 0.045))
+		# the fire at their foot: a pool of light and a small flame, flickering
+		var fc := Vector2(w * 0.5, hz + 70.0)
+		var fl := 0.8 + 0.2 * sin(_t * 7.3) * sin(_t * 3.1)
+		for k in 6:
+			draw_circle(fc + Vector2(0, -6), 230.0 - 34.0 * float(k), Color(1.0, 0.5, 0.18, 0.03 * fl))
+		draw_colored_polygon(PackedVector2Array([fc + Vector2(-9, 0), fc + Vector2(-4, -14 * fl), fc + Vector2(0, -30 * fl), fc + Vector2(5, -15 * fl), fc + Vector2(9, 0)]), Color(1.0, 0.62, 0.22, 0.95))
+		draw_colored_polygon(PackedVector2Array([fc + Vector2(-4.5, 0), fc + Vector2(0, -16 * fl), fc + Vector2(4.5, 0)]), Color(1.0, 0.92, 0.7))
+		draw_rect(Rect2(fc + Vector2(-14, 0), Vector2(28, 4)), Color(0.12, 0.07, 0.05))
+
+
 ## A radial pool of warm light, centred a little above the middle of the screen.
 static func _glow_texture() -> Texture2D:
 	var g := Gradient.new()
-	g.colors = PackedColorArray([Color(0.62, 0.34, 0.12, 0.5), Color(0.34, 0.17, 0.06, 0.22), Color(0.1, 0.05, 0.02, 0.0)])
+	g.colors = PackedColorArray([Color(0.62, 0.34, 0.12, 0.3), Color(0.34, 0.17, 0.06, 0.12), Color(0.1, 0.05, 0.02, 0.0)])
 	g.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
 	var t := GradientTexture2D.new()
 	t.gradient = g

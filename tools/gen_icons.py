@@ -42,6 +42,7 @@ import aura_art  # noqa: E402,F401
 import kindling_art  # noqa: E402,F401
 import marks  # noqa: E402,F401
 import lore  # noqa: E402,F401
+import gloom_hud  # noqa: E402,F401
 
 OUT = os.path.join(HERE, "..", "ui", "icons")
 

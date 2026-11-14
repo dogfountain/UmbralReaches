@@ -43,6 +43,7 @@ const UIType := preload("res://ui/type.gd")
 const Med := preload("res://ui/medieval_style.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 const Forge := preload("res://ui/hud_forge.gd")
+const GloomMeter := preload("res://ui/gloom_meter.gd")
 
 const LANTERN := Color("#FFB347")
 const EMBER := Color("#FF6A2A")
@@ -69,6 +70,7 @@ const PF_POS := Vector2(22, 16)
 const PORTRAIT_R := 42.0
 const BOSS_LEAVE_M := 60.0         ## a boss this far away is no longer the fight
 const PF_W := 330.0                ## the plate right of the portrait
+const PF_H := 130.0              ## and its height: name, Wounds, the Gloom meter, Breath
 const TF_W := 380.0
 const BF_W := 480.0
 const TF_TOP := 92.0               ## under the compass
@@ -785,7 +787,7 @@ func _tick_encounter_layout() -> void:
 	if HudPrefs.unit_frames and _enc_hud._status != null:
 		_enc_hud._status.position = Vector2(PF_POS.x + 6, _buff_row_y() + ICON + 26.0)
 	if HudPrefs.unit_frames and _enc_hud._ng != null:
-		_enc_hud._ng.position = Vector2(PF_POS.x + PORTRAIT_R * 2.0 + 16.0, PF_POS.y + 96.0)
+		_enc_hud._ng.position = Vector2(PF_POS.x + PORTRAIT_R * 2.0 + 16.0, PF_POS.y + PF_H)
 	if _enc_hud._elite_box != null:
 		var ours := HudPrefs.unit_frames and _target != null and _rank(_target) != "normal"
 		_enc_hud._elite_box.modulate.a = 0.0 if ours else 1.0
@@ -797,7 +799,7 @@ func _vs() -> Vector2:
 
 
 func _buff_row_y() -> float:
-	return PF_POS.y + PORTRAIT_R * 2.0 + 18.0
+	return PF_POS.y + PORTRAIT_R * 2.0 + 18.0 + (PF_H - 96.0)
 
 
 # --- drawing ---------------------------------------------------------------------------------------
@@ -831,7 +833,7 @@ func _draw_layer(c: Control, nm: String) -> void:
 func _draw_combat_tag() -> void:
 	if _fight <= 0.0:
 		return
-	var plate := Rect2(PF_POS + Vector2(PORTRAIT_R * 1.55, -4.0), Vector2(PF_W, 96.0))
+	var plate := Rect2(PF_POS + Vector2(PORTRAIT_R * 1.55, -4.0), Vector2(PF_W, PF_H))
 	var x := PF_POS.x + PORTRAIT_R * 2.0 + 12.0
 	var w := plate.end.x - x - 12.0
 	var fa := 0.8 + 0.2 * sin(_t * 6.0)
@@ -860,7 +862,7 @@ func _diamond(p: Vector2, d: float, col: Color) -> void:
 
 func _draw_player() -> void:
 	var c := PF_POS + Vector2(PORTRAIT_R, PORTRAIT_R)
-	var plate := Rect2(PF_POS + Vector2(PORTRAIT_R * 1.55, -4.0), Vector2(PF_W, 96.0))
+	var plate := Rect2(PF_POS + Vector2(PORTRAIT_R * 1.55, -4.0), Vector2(PF_W, PF_H))
 	_plate(plate, 1.0)
 	_portrait(c)
 	var x := PF_POS.x + PORTRAIT_R * 2.0 + 12.0
@@ -873,32 +875,27 @@ func _draw_player() -> void:
 ## The wanderer's bars (health, Gloom, breath) and the Gloom rising off the portrait: their own layer, as they
 ## change with every blow and cast and the Gloom bar pulses when it runs high.
 func _draw_player_bars() -> void:
-	var plate := Rect2(PF_POS + Vector2(PORTRAIT_R * 1.55, -4.0), Vector2(PF_W, 96.0))
+	var plate := Rect2(PF_POS + Vector2(PORTRAIT_R * 1.55, -4.0), Vector2(PF_W, PF_H))
 	var x := PF_POS.x + PORTRAIT_R * 2.0 + 12.0
 	var w := plate.end.x - x - 12.0
 	var y := plate.position.y + 39.0
 	_portrait_pops_draw(PF_POS + Vector2(PORTRAIT_R, PORTRAIT_R))
 	var hp := _health()
-	var g := float(_p("gloom", 0.0))
-	var gmax := maxf(float(_p("gloom_max", 100.0)), 0.001)
-	var gr := clampf(g / gmax, 0.0, 1.0)
+	var gr := clampf(float(_p("gloom", 0.0)) / maxf(float(_p("gloom_max", 100.0)), 0.001), 0.0, 1.0)
 	# the Gloom bar is not drawn until Gloom first rises above 0 (a new game opens without it)
 	HudPrefs.note_gloom(gr)
 	var gloom_known := HudPrefs.gloom_known()
-	var gcol := LILAC.lerp(EMBER, smoothstep(0.5, 1.0, gr)).darkened(0.12)
-	if gr > 0.75:
-		gcol = gcol.lightened(0.25 * (0.5 + 0.5 * sin(_t * 9.0)))
 	if hp.x >= 0.0:
 		var hr := Rect2(Vector2(x, y), Vector2(w, 24))
 		_bar(hr, hp.x / hp.y, HEALTH, 1.0, _p_trail)
 		Forge.label(_ci, _font, hr.position + Vector2(0, 18), "%s / %s" % [_num(hp.x), _num(hp.y)], 16, INK, HORIZONTAL_ALIGNMENT_CENTER, w)
-		y += 28.0
+		y += 32.0
 		if gloom_known:
-			_gloom_bar(Rect2(Vector2(x, y), Vector2(w, 20)), gr, g, gmax, gcol)
-			y += 24.0
+			GloomMeter.draw(_ci, Rect2(Vector2(x - 8.0, y), Vector2(w + 8.0, GloomMeter.ROW_H)), gr, _t)
+			y += GloomMeter.ROW_H + 3.0
 	elif gloom_known:
-		_gloom_bar(Rect2(Vector2(x, y), Vector2(w, 22)), gr, g, gmax, gcol)
-		y += 26.0
+		GloomMeter.draw(_ci, Rect2(Vector2(x - 8.0, y), Vector2(w + 8.0, GloomMeter.ROW_H)), gr, _t)
+		y += GloomMeter.ROW_H + 3.0
 	var bt := _breath()
 	if bt.x >= 0.0:
 		_bar(Rect2(Vector2(x, y), Vector2(w, 7)), bt.x, Color(0.55, 0.62, 0.95) if bt.y > 0.5 else BREATH, 1.0)
@@ -911,14 +908,6 @@ func _draw_player_auras() -> void:
 		var na := clampf(_buff_note_t, 0.0, 1.0)
 		var n := mini(_buffs.size(), 9)
 		Forge.label(_ci, _body, Vector2(PF_POS.x + 8.0 + n * (ICON + 6.0), _buff_row_y() + 20.0), _buff_note, 16, Color(INK, 0.9 * na))
-
-
-## The Gloom bar: segmented in quarters, its name and its number set on the bar in two corners that never meet.
-func _gloom_bar(gb: Rect2, gr: float, g: float, gmax: float, gcol: Color) -> void:
-	Forge.label(_ci, _font, gb.position + Vector2(2, gb.size.y - 5.0), "GLOOM", 14, Color(LILAC, 0.95), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 2)
-	var bar := Rect2(gb.position + Vector2(62.0, 0.0), gb.size - Vector2(62.0, 0.0))
-	_bar(bar, gr, gcol, 1.0, -1.0, [0.25, 0.5, 0.75])
-	Forge.label(_ci, _font, bar.position + Vector2(0, bar.size.y - 5.0), "%d / %d" % [roundi(g), roundi(gmax)], 14, Color(INK, 0.96), HORIZONTAL_ALIGNMENT_RIGHT, bar.size.x - 8.0, 2)
 
 
 ## The hooded wanderer in a medallion: void face, two lit eyes, the lantern ring (ember in a fight).
