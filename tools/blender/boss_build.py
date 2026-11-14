@@ -175,6 +175,37 @@ class Geo:
         rm = radii[0] if hasattr(radii, "__len__") else radii
         self.grid(P, col, mat, lab, lambda i, j, p: (TAU * j / n * rm, us[i]), wrap=True)
 
+    def skin(self, nodes, edges, col, mat, lab, subdiv=2, smooth=0.5, crease=None):
+        """An organic body as an artist blocks one out: a skeleton of points with radii, wrapped by Blender's Skin
+        modifier into one quad mesh with clean loops, then subdivided (the base-mesh step of blockout -> sculpt ->
+        retopology). nodes: [(point, rx, ry)] (rx across, ry deep); edges: [(i, j)]. lab: name or fn(point)."""
+        me = bpy.data.meshes.new("skin")
+        me.from_pydata([(p[0], -p[2], p[1]) for (p, rx, ry) in nodes], edges, [])
+        ob = bpy.data.objects.new("skin", me)
+        bpy.context.scene.collection.objects.link(ob)
+        md = ob.modifiers.new("Skin", 'SKIN')
+        md.use_smooth_shade = True
+        md.branch_smoothing = smooth
+        for i, (p, rx, ry) in enumerate(nodes):
+            me.skin_vertices[0].data[i].radius = (rx, ry)
+        me.skin_vertices[0].data[0].use_root = True
+        sd = ob.modifiers.new("Sub", 'SUBSURF')
+        sd.levels = subdiv
+        sd.render_levels = subdiv
+        dg = bpy.context.evaluated_depsgraph_get()
+        ev = ob.evaluated_get(dg)
+        m2 = ev.to_mesh()
+        base = len(self.v)
+        for v in m2.vertices:
+            q = V(v.co.x, v.co.z, -v.co.y)
+            c = col(0, 0, q) if callable(col) else col
+            self.vert(q, c, (q[0] + q[2], q[1]), lab(q) if callable(lab) else lab)
+        for poly in m2.polygons:
+            self.faces.append([base + i for i in poly.vertices])
+            self.fmat.append(mat)
+        ev.to_mesh_clear()
+        bpy.data.objects.remove(ob)
+
     def ball(self, at, r, col, mat, lab, n=14, sx=1.0, sy=1.0, sz=1.0):
         P = []
         for i in range(n + 1):
