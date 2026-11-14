@@ -73,7 +73,8 @@ func _cam_frame(delta: float) -> void:
 	_fov_kick = lerpf(_fov_kick, _fov_want, 1.0 - exp(-6.0 * delta))
 	_fov_burst = lerpf(_fov_burst, player._fov_burst_want, snap)
 	player._fov_burst_want *= exp(-4.0 * delta)
-	var fov := Settings.fov + minf(_fov_kick + _fov_burst, 14.0)      # one motion: the burst rides on the speed kick
+	player.fov_zoom = lerpf(player.fov_zoom, player.fov_zoom_want, 1.0 - exp(-(3.5 if player.fov_zoom_want < player.fov_zoom else 8.0) * delta))
+	var fov := (Settings.fov + minf(_fov_kick + _fov_burst, 14.0)) * player.fov_zoom      # one motion: the burst rides on the speed kick
 	if absf(player._cam.fov - fov) > 0.0001:
 		player._cam.fov = fov
 	_cam_roll = lerpf(_cam_roll, _roll_want, 1.0 - exp(-5.0 * delta))

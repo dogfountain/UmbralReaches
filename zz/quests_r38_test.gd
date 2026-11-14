@@ -24,6 +24,8 @@ const Rares := preload("res://core/enemy/rares.gd")
 const Elites := preload("res://core/life/encounters/elites.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const GearStats := preload("res://core/items/gear_stats.gd")
+const Hier := preload("res://core/world/realm/realm_pois_hierarch.gd")
+const Director := preload("res://core/life/secrets/director.gd")
 
 const MINE := ["pans_hauler", "pans_pan", "salt_barrel", "bitter_mother", "drover_tally", "long_round", "bryn_iron", "wren_gran",
 	"plinth_lamp", "cutters_pledge", "landing_staves", "moor_niches"]
@@ -32,6 +34,8 @@ const HORSE := ["salt_barrel", "drover_tally", "long_round", "plinth_lamp"]     
 const BOSS_GROUND := ["bryn_iron", "wren_gran", "plinth_lamp", "landing_staves"]    ## end at, or pass, a boss's ground without the boss
 const WALK := 4.5
 const GALLOP := 9.5
+const TROT := 6.5
+const ROUTE_K := 1.2                ## a road against the straight line between its ends
 
 var fails := 0
 var t := 0.0
@@ -194,8 +198,10 @@ func _data() -> void:
 					var from: Vector2 = Chains.PICKUPS[stp.from].near
 					var v := from.distance_to(stp.to as Vector2) / float(stp.time)
 					print("       %s carries %.0f m in %.0f s: %.1f m/s (walk %.1f, gallop %.1f)" % [id, from.distance_to(stp.to as Vector2), float(stp.time), v, WALK, GALLOP])
-					ok(v < GALLOP, "%s: a horse makes the carry" % id)
-					ok(v > 3.0, "%s: the carry is no stroll" % id)
+					# a road is not a straight line (x1.2): at a walk it cannot be done, at a trot it is done with a tenth to spare
+					var way := from.distance_to(stp.to as Vector2) * ROUTE_K
+					ok(way / WALK > float(stp.time), "%s: not possible at a walk (%.0f s needed, %.0f given)" % [id, way / WALK, float(stp.time)])
+					ok(way / TROT < float(stp.time) * 0.9, "%s: comfortable on a horse at a trot (%.0f s needed, %.0f given)" % [id, way / TROT, float(stp.time)])
 		if id in BOSS_GROUND:
 			ok(_pts(id).any(func(p: Vector2) -> bool: return _boss_near(p)), "%s ends at or passes a boss's ground" % id)
 			ok(not _requires_boss(id), "%s does not require the boss" % id)
@@ -228,6 +234,7 @@ func _run() -> void:
 	village.set("time_scale", 0.0)
 	await _frames(3)
 	_floors()
+	_palm()
 	_lamps_and_secrets()
 	_givers()
 	Runner.chance_override = 1.0
@@ -257,6 +264,8 @@ func _floors() -> void:
 		if p.has("camp"):
 			var f: Vector3 = village.call("anchor", "@fire_" + String(p.camp))
 			ok(f != Vector3.INF and Vector2(at.x - f.x, at.z - f.z).length() < 4.0, "%s waits by %s's fire (%.1f m)" % [k, p.camp, Vector2(at.x - f.x, at.z - f.z).length()])
+		elif p.get("palm", false):
+			ok(at.distance_to(Hier.palm_pos(0)) < 0.01, "%s: the set-down point is the palm (%s)" % [k, at])
 		else:
 			ok(at != Vector3.INF and d < 8.0, "%s found a floor %.1f m from its place" % [k, d])
 	for id: String in MINE:
@@ -265,7 +274,53 @@ func _floors() -> void:
 			if (key == "found_" and qd.has("found_at")) or (key == "stand_" and qd.has("stands")):
 				var want: Vector2 = qd.found_at if key == "found_" else qd.stands.at
 				var at2: Vector3 = QuestWorld.spots.get(key + id, Vector3.INF)
+				if key == "stand_" and bool(qd.stands.get("palm", false)):
+					ok(at2.distance_to(Hier.palm_pos(1)) < 0.01, "%s: the lantern that stays stands in the palm" % id)
+					continue
 				ok(at2 != Vector3.INF and Vector2(at2.x - want.x, at2.z - want.y).length() < 8.0, "%s: %s spot found (%.1f m)" % [id, key, Vector2(at2.x - want.x, at2.z - want.y).length() if at2 != Vector3.INF else -1.0])
+
+
+## A Lamp for the Palm: the set-down point is ON the hand (a floor there at the palm's height), and a walker can get there:
+## a flood fill over the surfaces a wanderer can stand on (a step of 0.45 m at most, the Player's STEP_MAX), 0.5 m cells,
+## from the foot of the fallen blocks to the palm.
+func _palm() -> void:
+	print("the palm")
+	var space := player.get_world_3d().direct_space_state
+	var palm := Hier.palm_pos(0)
+	var y_at := func(x: float, z: float) -> float:
+		var q := PhysicsRayQueryParameters3D.create(Vector3(x, palm.y + 2.2, z), Vector3(x, palm.y - 9.0, z), Layers.WORLD)
+		var h := space.intersect_ray(q)
+		return h.position.y if h else NAN
+	var floor_y: float = y_at.call(palm.x, palm.z)
+	ok(not is_nan(floor_y) and absf(floor_y - palm.y) < 0.15, "the set-down point has a floor at the palm's height (%.2f, palm %.2f)" % [floor_y, palm.y])
+	var lamp_y: float = y_at.call(Hier.palm_pos(1).x, Hier.palm_pos(1).z)
+	ok(not is_nan(lamp_y) and absf(lamp_y - palm.y) < 0.15, "the standing lantern has a floor in the palm too (%.2f)" % lamp_y)
+	var b := Basis(Vector3.UP, Hier.body_yaw())
+	var hx := Hier.hand_xz()
+	var foot3 := Vector3(hx.x, 0.0, hx.y) + b * Vector3(Hier.STAIR_X, 0.0, Hier.STAIR_Z0)
+	var foot_y: float = RealmLayout.ground(space, foot3.x, foot3.z)
+	var start := Vector2i(roundi((foot3.x - palm.x) * 2.0), roundi((foot3.z - palm.z) * 2.0))
+	var seen := {start: foot_y}
+	var queue: Array[Vector2i] = [start]
+	var goal := Vector2i.ZERO
+	var reached := false
+	while not queue.is_empty() and seen.size() < 3000:
+		var c: Vector2i = queue.pop_front()
+		if c == goal:
+			reached = true
+			break
+		for dv: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1)]:
+			var n := c + dv
+			if seen.has(n) or absi(n.x) > 28 or absi(n.y) > 28:
+				continue
+			var ny: float = y_at.call(palm.x + n.x * 0.5, palm.z + n.y * 0.5) if n != start else foot_y
+			if c == start:
+				print("PALMDBG start y %.2f neighbour %s y %.2f" % [float(seen[c]), n, ny])
+			if is_nan(ny) or absf(ny - float(seen[c])) > 0.45:
+				continue
+			seen[n] = ny
+			queue.append(n)
+	ok(reached, "the palm can be walked onto from the foot of the blocks (%d cells searched, step 0.45 m)" % seen.size())
 
 
 func _lamp_node(lid: String) -> Node:
@@ -416,7 +471,10 @@ func _step(id: String, s: int, choice: int) -> void:
 					continue
 				var pn := p as Node3D
 				var gnd := RealmLayout.ground(pn.get_world_3d().direct_space_state, pn.global_position.x, pn.global_position.z)
-				ok(absf(pn.global_position.y - gnd) < 1.0, "%s: %s stands on the ground (%.2f over it)" % [id, k, pn.global_position.y - gnd])
+				if bool((Chains.PICKUPS[k] as Dictionary).get("palm", false)):
+					ok(pn.global_position.distance_to(Hier.palm_pos(0)) < 0.01, "%s: %s is set IN the palm (%.2f m over the ground there)" % [id, k, pn.global_position.y - gnd])
+				else:
+					ok(absf(pn.global_position.y - gnd) < 1.0, "%s: %s stands on the ground (%.2f over it)" % [id, k, pn.global_position.y - gnd])
 				p.call("interact", player)
 				await _frames(1)
 				if (Chains.PICKUPS[k] as Dictionary).has("conv"):
@@ -445,9 +503,20 @@ func _step(id: String, s: int, choice: int) -> void:
 			if c.begins_with("secret:lamps:"):
 				var ln := _lamp_node(c.trim_prefix("secret:lamps:"))
 				if ln != null:
+					# the act: standing at the lamp does nothing; kindling it does
+					await _stand(stp.at as Vector2)
+					ok(Book.step(id) == s, "%s: standing at %s does not light it (step %d holds)" % [id, c.trim_prefix("secret:lamps:"), s])
 					ln.call("interact", player)
 			elif c.begins_with("secret:"):
 				var parts := c.split(":")
+				if parts[2] == "cutters_nook":
+					# the climb: at the foot of the sheer stack (6.6 m under the lean-to) the nook is not found; on top it is
+					for site: Dictionary in State.sites:
+						if String(site.id) == "cutters_nook":
+							var top: Vector3 = site.at
+							var foot: Vector3 = site.foot
+							ok(not Director.reaches(site, Vector3(top.x, foot.y + 0.1, top.z)), "%s: the foot of the stack, right under the nook, does not find it (%.1f m below)" % [id, top.y - foot.y])
+							ok(Director.reaches(site, top + Vector3.UP * 0.1), "%s: standing in the nook finds it" % id)
 				var sec: Dictionary = Travel.system_state("secrets")
 				if not (sec.get(parts[1]) is Dictionary):
 					sec[parts[1]] = {}

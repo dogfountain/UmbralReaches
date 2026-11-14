@@ -42,6 +42,15 @@ func _ready() -> void:
 	Events.seal_broken.connect(func(_id: String) -> void: _seal_t = 1.0)
 
 
+## A secret is found when the wanderer is within its radius, and level with it: 8 m for the rest, but a site that is
+## reached only by climbing (`climb_only`: the Cutters' Nook, 6.6 m up a sheer stack, with a 1.6 m radius) only when he
+## stands up there; the foot of the stack was enough, and the quest step that asks for the climb completed without it.
+static func reaches(s: Dictionary, at: Vector3) -> bool:
+	var c: Vector3 = s.at
+	var dy := absf(at.y - c.y)
+	return Vector2(at.x - c.x, at.z - c.z).length() < float(s.get("r", 6.0)) and dy < (3.5 if bool(s.get("climb_only", false)) else 8.0)
+
+
 func _process(delta: float) -> void:
 	_t -= delta
 	_seal_t -= delta
@@ -63,7 +72,7 @@ func _process(delta: float) -> void:
 		if not _heard.has(s.id) and dxz < float(s.get("r", 6.0)) + HEAR and absf(at.y - c.y) < 12.0:
 			_heard[s.id] = true          # guidance without a marker: something hums nearby, once
 			Kit.play("hum", c + Vector3.UP, -13.0, 0.62)
-		if dxz < float(s.get("r", 6.0)) and absf(at.y - c.y) < 8.0:
+		if reaches(s, at):
 			State.mark("found", s.id)
 			Kit.play("hum", c, -6.0)
 			State.banner("secret found  ·  %d of %d" % [State.found_count(), State.sites.size()], String(s.name))

@@ -30,8 +30,23 @@ class StubDir extends Node:
 	var nav := StubNav.new()
 	var at := Vector3.ZERO
 
-	func anchor(_k: String) -> Vector3:
+	func anchor(k: String) -> Vector3:
+		# the forge's stations as the village sets them out, relative to the villager (model frame: forward is -z)
+		match k:
+			"@coals":
+				return Vector3(0.25, 0.78, -0.6)
+			"@water":
+				return Vector3(-0.15, 0.72, -0.62)
+			"@wheel":
+				return Vector3(-0.1, 0.95, -0.55)
+			"@anvil":
+				return Vector3(0.0, 0.88, -0.7)
+		if k.begins_with("@block_"):
+			return Vector3(0.0, 0.4, -0.8)
 		return at
+
+	func lamp_pos(_id: String) -> Vector3:
+		return at + Vector3(0.0, 2.2, 0.0)
 
 	func strike(_v: Node3D) -> void:
 		pass
@@ -55,6 +70,8 @@ class StubDir extends Node:
 var tag := "x"
 var view := "side"
 var only: Array = []
+var acts_mode := false      ## --acts: every distinct act of the villager's routines as a row, at play distance (--dist=7.5), instead of the gait rows
+var dist := 3.4
 var dir_node: StubDir
 var cam: Camera3D
 var v: Node3D
@@ -65,6 +82,7 @@ var slide_d := 0.0
 var walk_d := 0.0
 var meas := false
 var prev_pos := Vector3.INF
+var samples: Array = [[], []]       ## per foot: world positions, one per frame of the measured walk
 
 
 func _ready() -> void:
@@ -76,6 +94,10 @@ func _ready() -> void:
 			tag = a.trim_prefix("--tag=")
 		elif a.begins_with("--cam="):
 			view = a.trim_prefix("--cam=")
+		elif a == "--acts":
+			acts_mode = true
+		elif a.begins_with("--dist="):
+			dist = float(a.trim_prefix("--dist="))
 		elif a.begins_with("--only="):
 			only = Array(a.trim_prefix("--only=").split(","))
 	if only.is_empty():
@@ -140,11 +162,30 @@ func _measure() -> void:
 	prev_pos = v.global_position
 	for i in 2:
 		var f := _foot(i)
+		(samples[i] as Array).append(f)
 		if prev_feet[i] != Vector3.INF and f.y < 0.09 and (prev_feet[i] as Vector3).y < 0.09:
 			slide_d += Vector2(f.x - prev_feet[i].x, f.z - prev_feet[i].z).length()
 		if OS.get_cmdline_user_args().has("--ft") and i == 0:
 			print("VF y=%.3f z=%.3f bodyz=%.3f" % [f.y, f.z, v.global_position.z])
 		prev_feet[i] = f
+
+
+## The skate of the PLANTED foot, per metre walked: a sole is planted when it is within 1.2 cm of the lowest
+## it reaches over the walk. (The older `slide` figure counts any ankle under 9 cm, which includes the first and last
+## frames of every swing, where the foot is lifting off or landing at two and a half times the body's speed.)
+func _contact_slide() -> float:
+	var tot := 0.0
+	for i in 2:
+		var a: Array = samples[i]
+		var ymin := 1.0e9
+		for f: Vector3 in a:
+			ymin = minf(ymin, f.y)
+		for j in range(1, a.size()):
+			var f0: Vector3 = a[j - 1]
+			var f1: Vector3 = a[j]
+			if f0.y < ymin + 0.012 and f1.y < ymin + 0.012:
+				tot += Vector2(f1.x - f0.x, f1.z - f0.z).length()
+	return 100.0 * tot / maxf(walk_d, 0.01)
 
 
 func _foot(i: int) -> Vector3:
@@ -176,7 +217,7 @@ func _cam() -> void:
 			d = Vector3(0.7, 0, -0.7).normalized()
 		"front":
 			d = Vector3(0, 0, -1)
-	cam.global_position = at + d * 3.4 + Vector3.UP * 0.25
+	cam.global_position = at + d * dist + Vector3.UP * 0.25
 	cam.look_at(at)
 
 
@@ -184,9 +225,12 @@ func _cam() -> void:
 func _row(nm: String, n: int, step: float) -> void:
 	var frames: Array[Image] = []
 	var acc := 0.0
+	var lo := {}
+	var hi := {}
 	while frames.size() < n:
 		acc += await _frame()
 		_cam()
+		_range(lo, hi)
 		if acc >= step:
 			acc -= step
 			var im := get_viewport().get_texture().get_image()
@@ -194,6 +238,26 @@ func _row(nm: String, n: int, step: float) -> void:
 			im.resize(240, 200, Image.INTERPOLATE_BILINEAR)
 			frames.append(im)
 	rows.append([nm, frames])
+	if nm in ["idle", "talk"]:
+		var parts: Array[String] = []
+		for bn: String in lo:
+			parts.append("%s %.1f" % [bn, rad_to_deg(float(hi[bn]))])
+		print("VSEQ motion %s %s: furthest each bone strays from its first pose in the row (deg): %s" % [v.id, nm, ", ".join(parts)])
+
+
+## Track how far each bone turns over a row (a head that turns, a chest that breathes, a hand that gestures): the sum of
+## the three Euler ranges of the local pose, in radians.
+func _range(lo: Dictionary, hi: Dictionary) -> void:
+	var rig: Object = v.get("rig")
+	if rig == null:
+		return
+	for pair: Array in [["head", 3], ["chest", 2], ["spine", 1], ["arm_r", 5], ["arm_l", 8], ["fore_r", 6]]:
+		var q: Quaternion = rig.call("get_q", int(pair[1]))
+		var key := String(pair[0])
+		if not lo.has(key):
+			lo[key] = q                       # the first pose of the row
+			hi[key] = 0.0
+		hi[key] = maxf(hi[key], (lo[key] as Quaternion).angle_to(q))
 
 
 func _spawn(id: String) -> void:
@@ -216,7 +280,29 @@ func _run() -> void:
 	for id: String in only:
 		_spawn(id)
 		await _wait(0.6)
-		await _row("idle", 8, 0.35)
+		if acts_mode:
+			var seen := {}
+			for rl: Variant in (Cast.CAST[id].routines as Dictionary).values():
+				for st: Variant in rl:
+					var an := String((st as Dictionary).get("act", ""))
+					if an != "" and not seen.has(an) and an not in ["sit", "doze", "chat"]:
+						seen[an] = true
+			if (Cast.CAST[id].routines as Dictionary).values().any(func(rl: Array) -> bool: return rl.any(func(st: Dictionary) -> bool: return st.has("lamps"))):
+				seen["light"] = true
+			for an: String in seen:
+				v.pinned = true
+				v.global_position = Vector3.ZERO
+				v.yaw = 0.0
+				v.rotation.y = 0.0
+				v.face_yaw = 0.0
+				dir_node.at = Vector3(0.0, 0.85 if an in ["hammer", "heat", "quench", "grind", "sell", "sift", "tend"] else 0.0, -0.8)
+				v.hold(an, Vector3.INF, 5.0 if an in ["light", "quench"] else 1.0e6)       # a shaped act runs its whole length in the row
+				await _wait(0.1 if an in ["light", "quench"] else 1.2)
+				print("ACT ", an, " state=", v.state, " act=", v.act, " t=", v.act_t, " pos=", v.global_position)
+				await _row(an, 10 if an == "idle" else 8, 1.1 if an == "idle" else 0.4)
+			_sheet(id)
+			continue
+		await _row("idle", 8, 1.0)
 		# walking: along -z off the network
 		v.pinned = false
 		v.follow = Vector3(0, 0, -60)
@@ -226,10 +312,12 @@ func _run() -> void:
 		prev_pos = Vector3.INF
 		slide_d = 0.0
 		walk_d = 0.0
+		samples = [[], []]
 		meas = true
 		await _row("walk", 10, 0.07)
 		await _wait(2.0)
 		meas = false
+		print("VSEQ contact %s %.1f cm/m (sole within 1.2 cm of its floor level, both frames; the swing foot skimming in or out is not a planted foot)" % [id, _contact_slide()])
 		print("VSEQ slide %s %.1f cm/m over %.1f m" % [id, 100.0 * slide_d / maxf(walk_d, 0.01), walk_d])
 		v.follow = null
 		v.state = "idle"
@@ -239,7 +327,9 @@ func _run() -> void:
 		v.face_yaw = 0.0
 		v.attend = wanderer
 		await _wait(0.8)
+		v.speaking = true                       # the line typing: the jaw, the hands, the lean
 		await _row("talk", 8, 0.3)
+		v.speaking = false
 		v.attend = null
 		# the work of the rig's tool
 		var tool := String((Cast.CAST[id].rig as Dictionary).get("r", ""))

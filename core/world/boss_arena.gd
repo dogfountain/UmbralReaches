@@ -36,7 +36,10 @@ var room: Node = null
 var last_emote := ""                    ## the last raid-warning line shown (tests read it)
 var _emote_lbl: Label
 var _emote_layer: CanvasLayer           ## its own layer: the r33 unit frames hide the bar layer, not this
+var intro_turn := false                ## BossFrame: he rises with his back to the wanderer and turns to him inside the title's time
+var frame_look := 0.7                  ## BossFrame: the share of his height the intro view aims at (higher seats him lower, under the name card)
 var _emote_t := 0.0
+var _emote_wait: Array = []             ## [text, colour] held back while the title card is up
 
 var _boss: Enemy
 var _active := false
@@ -233,6 +236,10 @@ func _named() -> String:
 
 ## r34 raids: the boss's emote line (BossKit.emote): large, warm, under the cast bar, for 5 s.
 func emote(text: String, col := Color(1.0, 0.82, 0.45)) -> void:
+	# one message at a time: while the name card is up the line waits, and plays after it has faded
+	if get_node_or_null("BossTitle") != null:
+		_emote_wait = [text, col]
+		return
 	last_emote = text
 	if _emote_lbl == null or not is_instance_valid(_emote_lbl):
 		Events.toast.emit(text)
@@ -244,6 +251,10 @@ func emote(text: String, col := Color(1.0, 0.82, 0.45)) -> void:
 
 
 func _tick_emote(d: float) -> void:
+	if not _emote_wait.is_empty() and get_node_or_null("BossTitle") == null:
+		var w := _emote_wait
+		_emote_wait = []
+		emote(String(w[0]), w[1] as Color)
 	if _emote_t <= 0.0 or _emote_lbl == null or not is_instance_valid(_emote_lbl):
 		return
 	_emote_t -= d
@@ -305,6 +316,7 @@ func _begin() -> void:
 		if g.has_method("close"):
 			g.call("close")
 	_show_bar()
+	BossTitle.show_for(self, title, subtitle)       # first: the boss's own emote (on_engaged) waits for the card to fade
 	if room != null and is_instance_valid(room) and room.has_method("room_begin"):
 		room.call("room_begin", _boss)
 	if _boss.has_method("on_engaged"):
@@ -312,8 +324,7 @@ func _begin() -> void:
 	Events.boss_engaged.emit(_boss, title)
 	# the boss's name is a title in the encounter HUD's voice (BossTitle) and the view turns to him
 	# (BossFrame) for the beat he rises; the hud's zone card waited out the fight and then drew late
-	BossTitle.show_for(self, title, subtitle)
-	BossFrame.start(self, _boss)
+	BossFrame.start(self, _boss, frame_look, intro_turn)
 	Sfx.play("res://art/audio/ward_chime.wav", boss_at, 4.0)
 	SpellFx.rift_in(boss_at)
 
@@ -482,7 +493,7 @@ func _show_bar() -> void:
 	add_child(_emote_layer)
 	_emote_lbl = Label.new()
 	_emote_lbl.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_emote_lbl.position = Vector2(-450, 168)
+	_emote_lbl.position = Vector2(-450, 190)   # its own band: under the bar, over the name card's row (the card has faded by then), above where his head may rise (BossFrame.TOP_LIMIT)
 	_emote_lbl.size = Vector2(900, 60)
 	_emote_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_emote_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

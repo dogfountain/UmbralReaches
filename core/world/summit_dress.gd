@@ -113,7 +113,7 @@ static func dress(root: Node) -> void:
 	var ward := WardSeal.make(holder, "summit", Vector3(0.0, 25.2, -70.9), Vector3.BACK, 5.8, 3.6, "light", "The summit ward", bosses)
 	ward.requires_bells = Chains.BELLS_NEEDED     # r36 Act II: the door opens to a peal
 	var dais := SUMMIT + Vector3(DAIS_C.x, TOP_DECK_Y, DAIS_C.y)
-	var arena := BossArena.make(holder, "ascended_warden", "The Ascended Warden", dais, DAIS_R - 0.5, AscendedWarden, dais + Vector3(0, 0.1, -6.0))
+	var arena := BossArena.make(holder, "ascended_warden", "The Ascended Warden", dais, DAIS_R - 0.5, AscendedWarden, dais + Vector3(0, 0.1, 3.5))   # he rises on the near side of the dais: at -6 m he stood 32 m from the pull and read as a small figure in the bubble
 	arena.ceiling = 14.0
 	arena.max_rise = 0.5                       # the raid deck is one flat paved floor
 	# r34 raids: the room the fight changes (pylons, broken edges, the falling sky, its light)

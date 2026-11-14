@@ -59,7 +59,7 @@ const QUESTS := {
 			{"kind": "slay", "of": 3, "region": "road", "label": "The road's hollowed", "at": Vector2(150.0, 66.0),
 				"text": "Clear the hollowed off the Pilgrims' Road, so the keg is not taken off you on the way ({n}/{of})"},
 			{"kind": "find", "text": "Take Orrin's sealed keg from his stall"},
-			{"kind": "carry", "from": "salt_barrel", "to": Vector2(-188.0, 66.0), "r": 9.0, "time": 75.0, "label": "Salt keg",
+			{"kind": "carry", "from": "salt_barrel", "to": Vector2(-188.0, 66.0), "r": 9.0, "time": 85.0, "label": "Salt keg",
 				"lost": "The wax has cracked in the cold and the Heron's door is barred. Orrin has sealed another.",
 				"text": "Carry the keg across the whole Marches to the Grey Heron at Weirford, before the Watch bars the door ({t} s). A horse would help"},
 			{"kind": "turnin", "who": "dorrit", "text": "Give the keg to Dorrit Marl, at the Grey Heron"},

@@ -614,8 +614,8 @@ class Gen:
 			cr = crown_cards(C_HANG, Vector2(1.6, 2.6), 1, Color(0.8, 0.85, 0.75), 0.0, 0.0, true)
 		else:
 			# a rounded crown of leaf above, thin strands hanging round and under it (a willow is a dome, not curtains)
-			cr = crown_cards(C_BIRCH, Vector2(2.0, 2.9), 2, Color(0.25, 0.46, 0.34), 0.3, 0.85)       # (0.42, 0.58, 0.34) read bright lime beside the strands
-			crown_cards(C_WILLOW, Vector2(2.8, 4.0), 8, Color(0.6, 0.78, 0.72), 0.0, 0.0, true)       # the strands too: cooler and a third darker (they were 0.85, 0.95, 0.85)
+			cr = crown_cards(C_BIRCH, Vector2(2.0, 2.9), 2, Color(0.30, 0.31, 0.27), 0.3, 0.6)       # (0.25, 0.46, 0.34) read vivid emerald; now the oak crown value family: grey-green
+			crown_cards(C_WILLOW, Vector2(2.8, 4.0), 8, Color(0.56, 0.55, 0.5), 0.0, 0.0, true)       # the strands (0.6, 0.78, 0.72) were emerald too: dusty, a touch lighter than the dome
 		return done(true, cr, "oak" if not dead else "dead")
 
 	func make_snag(v: int) -> Dictionary:
