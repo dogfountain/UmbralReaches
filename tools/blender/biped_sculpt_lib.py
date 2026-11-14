@@ -549,8 +549,7 @@ def wrap_shell(src, name, y0, y1, side, off, mat, sock, tris, pairs, objs, turns
     def fold(P, N):
         ph = (P[:, 1] - y0) / (y1 - y0) * turns * math.tau + np.arctan2(P[:, 2], P[:, 0] - cx)
         return amp * (np.abs(np.sin(ph * 0.5)) - 0.5) + 0.0012 * hash_noise(P, 40.0, 2.0)
-    hi = shell(src, name + "High", sel, off, thick, mat, sock, folds=fold, smooth_iter=2)
-    return hi_lo(hi, tris, name + "Low", sock, pairs, objs)
+    return shell_pair(src, name, sel, off, thick, mat, sock, tris, pairs, objs, folds=fold, smooth_iter=2)
 
 
 def report(objs, n=40):
@@ -567,3 +566,36 @@ def soften(mat, f=0.5):
         if n.bl_idname == 'ShaderNodeBump':
             n.inputs['Strength'].default_value *= f
             n.inputs['Distance'].default_value *= f
+
+
+def drape_pair(name, Pg, mat, sock, tris, pairs, objs, thick=0.007, wrap=True):
+    """A cloth surface for the game and the bake. The HIGH is the fine grid, solidified and subdivided; the LOW is the same grid,
+    SINGLE-SIDED and thinned (a solid shell thinned to a few hundred triangles collapses across its own thickness and bakes a
+    crumpled normal map: the Quiller's white faceted cloak). Returns the low."""
+    hi = grid_surface(name + "High", Pg, sock, mat, wrap=wrap, thick=thick, sub=1)
+    lo = grid_surface(name + "Low", Pg, sock, mat, wrap=wrap, thick=0.0, sub=0)
+    n = max(tri_count(lo), 1)
+    mods(lo, ("DECIMATE", dict(ratio=min(1.0, float(tris) / n), use_collapse_triangulate=True)))
+    smooth_shade(lo)
+    hi.hide_render = True
+    hi.hide_viewport = True
+    lo["fixed"] = True
+    pairs.append((lo, hi))
+    objs.append(lo)
+    return lo
+
+
+def shell_pair(src, name, sel, off, thick, mat, sock, tris, pairs, objs, folds=None, smooth_iter=3, bevel=0.0):
+    """A garment cut from the body for the game and the bake: HIGH = the solid shell, LOW = the same cut SINGLE-SIDED and thinned
+    (thinning a solid thin shell collapses it across its thickness into crumpled sheets: bright facets in the engine)."""
+    hi = shell(src, name + "High", sel, off, thick, mat, sock, folds=folds, smooth_iter=smooth_iter, bevel=bevel)
+    lo = shell(src, name + "Low", sel, off, 0.0, mat, sock, folds=folds, smooth_iter=smooth_iter, bevel=0.0)
+    n = max(tri_count(lo), 1)
+    mods(lo, ("DECIMATE", dict(ratio=min(1.0, float(tris) / n), use_collapse_triangulate=True)))
+    smooth_shade(lo)
+    hi.hide_render = True
+    hi.hide_viewport = True
+    lo["fixed"] = True
+    pairs.append((lo, hi))
+    objs.append(lo)
+    return lo
