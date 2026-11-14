@@ -206,6 +206,16 @@ class Geo:
         ev.to_mesh_clear()
         bpy.data.objects.remove(ob)
 
+    def mesh(self, P, F, col, mat, lab):
+        """A finished surface (vertices in rig space, faces as index lists), e.g. a retargeted MakeHuman body."""
+        base = len(self.v)
+        for q in P:
+            q = np.asarray(q)
+            self.vert(q, col(0, 0, q) if callable(col) else col, (q[0] + q[2], q[1]), lab(q) if callable(lab) else lab)
+        for f in F:
+            self.faces.append([base + i for i in f])
+            self.fmat.append(mat)
+
     def ball(self, at, r, col, mat, lab, n=14, sx=1.0, sy=1.0, sz=1.0):
         P = []
         for i in range(n + 1):
