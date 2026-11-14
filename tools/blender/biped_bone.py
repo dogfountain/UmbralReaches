@@ -72,6 +72,20 @@ def extra(sc, Y, nm):
     AN.muscles(sc, Y, nm, 1.0, lean=0.6)
     AN.joints(sc, Y, nm, 1.0, 0.74, 1.3)
     AN.damage(sc, 21 if QUILLER else 22, count=40, amp=0.008)
+    if nm == "Body":                                   # below the rib plates the torso was smooth skin: sinew, a caved belly, creased leather
+        low = np.clip((1.09 - sc.P[:, 1]) / 0.05, 0.0, 1.0)                                    # (the plates are cut from this surface above it: keep their source clean)
+        sc.bump((0.0, Y(0.99), -0.1), 0.11, -0.04, facing=(0, 0, -1))                          # the belly caved in under the cage
+        for sx_ in (-1, 1):
+            sc.ridge((sx_ * 0.07, Y(1.07), -0.1), (sx_ * 0.13, Y(0.94), -0.06), 0.014, 0.016, facing=(sx_ * 0.5, 0, -1))       # oblique cords
+            sc.ridge((sx_ * 0.1, Y(1.07), -0.105), (sx_ * 0.15, Y(0.96), -0.05), 0.008, -0.012, facing=(sx_ * 0.5, 0, -1))     # the groove under each
+            sc.ridge((sx_ * 0.03, Y(1.07), -0.12), (sx_ * 0.03, Y(0.9), -0.11), 0.01, 0.014, facing=(0, 0, -1))                # rectus cords either side of the midline
+            for kk, yy_ in enumerate((1.04, 0.99, 0.94)):                                                                        # tendon intersections across them
+                sc.ridge((sx_ * 0.012, Y(yy_), -0.118), (sx_ * 0.055, Y(yy_), -0.112), 0.005, -0.012, facing=(0, 0, -1))
+            sc.ridge((sx_ * 0.035, Y(1.07), 0.1), (sx_ * 0.04, Y(0.92), 0.1), 0.012, 0.014, facing=(0, 0, 1))                   # the long back muscles
+            sc.ridge((sx_ * 0.1, Y(1.06), 0.085), (sx_ * 0.13, Y(0.95), 0.07), 0.01, -0.012, facing=(sx_, 0, 1))                # lumbar hollows
+        sc.ridge((0.0, Y(1.07), -0.122), (0.0, Y(0.9), -0.112), 0.006, -0.012, facing=(0, 0, -1))                                # the linea alba
+        sc.folds(40.0, 0.009, mask=low)                                                          # leathered, creased skin
+        sc.noise(24.0, 0.005, mask=low)
 
 
 ctx = BB.body(OPT, SKIN, CLAW, EYE, claw=0.06, teeth=False, eyes=False, body_tris=3200 if QUILLER else 3400, arm_tris=1200 if QUILLER else 1300, extra=extra, skel=skel)
@@ -169,7 +183,8 @@ for sx in (-1, 1):                                                              
             bones.keep((lambda dx, ya, yb, sx: lambda P, N: np.where((P[:, 2] < 0.0) & (P[:, 1] > ya) & (P[:, 1] < yb), 0.011 - np.hypot(P[:, 0] - sx * (0.11 + dx), 0.0 * P[:, 2]), -1.0))(dx, ya, yb, sx),
                        0.034, 0.012, mat=BONE_P if dx == 0.0 else BONE, bevel=0.004, name=nm_)
     for yy in (0.13, 0.25, 0.46, 0.6):
-        bones.keep((lambda yy, sx: lambda P, N: np.where(P[:, 0] * sx > 0.02, 0.018 - np.abs(P[:, 1] - yy), -1.0))(yy, sx), 0.048, 0.012, mat=BONE_D, bevel=0.004, name="Band")
+        # a bound cuff: it hugs the limb (a plate 5 cm off the skin was a loose ring floating round the leg, a fin at the side)
+        bones.keep((lambda yy, sx: lambda P, N: np.where(P[:, 0] * sx > 0.02, 0.016 - np.abs(P[:, 1] - yy), -1.0))(yy, sx), 0.014, 0.01, mat=BONE_D, bevel=0.003, name="Band")
 bones.finish(4200, "stiff", PAIRS, objs, "Bones")
 
 # sinew bindings (bandage wound round the limbs, a spiral ridge on a thin band) and the belt of finger-bones

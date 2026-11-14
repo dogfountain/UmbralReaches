@@ -38,19 +38,37 @@ P0, C0, H0 = S["pelvis"], S["chest"], S["head"]
 SKIN = GK.hollow_skin("Skin", (0.66, 0.62, 0.55), (0.2, 0.17, 0.14), wet=0.0, wrinkle=70.0, liv=(0.78, 0.74, 0.82), extremities=0.5, vein_amt=0.4)
 WOOL = GK.cloth("Wool", (0.3, 0.28, 0.25), "caban", 8.0, (0.05, 0.045, 0.04), 0.9)
 WOOL2 = GK.cloth("WoolDark", (0.19, 0.18, 0.17), "caban", 9.0, (0.03, 0.028, 0.026), 0.92)
+def salt_wool(name, tint, grime, rough=0.9):
+    """Grey wool with a salt tide-line: pale crust dried into the cloth along the hem and up in streaks (no separate white bands)."""
+    m = K.Mat(name)
+    sc = m.scan("caban", 8.0)
+    blot = m.noise(5.0, 6.0, 0.6)
+    col = m.mul(m.mono(sc["color"]), tuple(c * 2.2 for c in tint))
+    col = m.mix(m.math('MULTIPLY', blot, 0.45), col, grime)
+    z = m.zpos()
+    tide = m.math('ADD', 0.3, m.math('MULTIPLY', m.noise(7.0, 5.0, 0.6), 0.22))
+    below = m.math('LESS_THAN', z, tide)
+    streak = m.math('GREATER_THAN', m.noise(9.0, 4.0, 0.6), 0.45)
+    salt = m.math('MULTIPLY', below, streak)
+    col = m.mix(m.math('MULTIPLY', salt, 0.55), col, (0.34, 0.35, 0.33))
+    h = m.math('ADD', m.math('MULTIPLY', sc["disp"], 1.0), m.math('MULTIPLY', salt, 0.5))
+    return m.finish(col, rough, 0.0, h, 0.6, 0.002)
+
+
+WOOLS = salt_wool("WoolSalt", (0.19, 0.18, 0.17), (0.03, 0.028, 0.026), 0.92)
 IRON = GK.iron("Iron", (0.12, 0.115, 0.12), (0.2, 0.1, 0.05))
 STONE = GK.stone("Cairn", (0.3, 0.31, 0.3), (0.09, 0.11, 0.07))
 # her face is lit from within, faintly: a lamp-coloured warmth in the skin (the night grade would otherwise drown it)
-FACE = GK.hollow_skin("Face", (0.7, 0.64, 0.55), (0.24, 0.19, 0.15), wet=0.0, wrinkle=70.0, liv=(0.78, 0.74, 0.82), extremities=0.0, vein_amt=0.4)
+FACE = GK.hollow_skin("Face", (0.52, 0.42, 0.34), (0.2, 0.14, 0.11), wet=0.0, wrinkle=70.0, liv=(0.78, 0.74, 0.82), extremities=0.0, vein_amt=0.4)
 FACE.emit = (1.0, 0.62, 0.3)
-FACE.emit_strength = 0.7
+FACE.emit_strength = 0.35
 FACE.bsdf.inputs['Emission Color'].default_value = (1.0, 0.62, 0.3, 1.0)
-FACE.bsdf.inputs['Emission Strength'].default_value = 0.1
+FACE.bsdf.inputs['Emission Strength'].default_value = 0.05
 SALT = GK.stone("Salt", (0.78, 0.8, 0.78), (0.5, 0.55, 0.5))
 ROPE = GK.cloth("Rope", (0.42, 0.33, 0.2), "caban", 20.0, (0.1, 0.08, 0.05), 0.85)
 GLOW = GK.glow("Lamp", (1.0, 0.55, 0.16), 8.0)
 EYE = GK.glow("EyeGlow", (1.0, 0.6, 0.2), 6.0)
-MATS = [SKIN, FACE, WOOL, WOOL2, IRON, STONE, SALT, ROPE, GLOW, EYE]
+MATS = [SKIN, FACE, WOOL, WOOL2, IRON, STONE, SALT, ROPE, GLOW, EYE, WOOLS]
 objs = []
 PAIRS = []
 WEIGHTS = {}
@@ -74,7 +92,42 @@ CHEST1 = lambda p: {"chest": 1.0}
 OPT = dict(W=0.78, L=0.66, nk=0.04, finger=0.2, wrist=0.72, ribs=0.0, belly=-1.0, collar=1.5, tendon=1.7, hc=(0, 1.68, -0.06),
            head_w=0.068, neck_r=0.034, nohead=False, jaw_w=0.036, brow=0.014, hand_r=0.9)
 sk_full, SEGS, _Y = GB.humanoid(OPT)
-tsk = L.torso_skel(0.78, 0.034, 1.6)
+
+
+def LEAN(y):
+    """The stoop modelled into the upper body: a hermit bowed over her chain. Forward (-z) from the waist up, 0 below the belt."""
+    y = np.asarray(y, dtype=np.float64)
+    t = np.clip((y - 1.0) / 0.55, 0.0, 1.0)
+    return -0.085 * t * t * (3.0 - 2.0 * t)
+
+
+def arm_out(keys):
+    """Sleeve sections follow the arms held out from the skirt (the same outward shift as the arm skeleton)."""
+    return [(k[0], k[1] + (1.0 if k[1] > 0 else -1.0) * ARMOUT * min(1.0, max(0.0, (1.2 - k[0]) / 0.4)),) + tuple(k[2:]) for k in keys]
+
+
+def GarmentL(keys, *a, **k):
+    return L.Garment(lean_keys(keys), *a, **k)
+
+
+def lean_keys(keys):
+    return [(k[0], k[1], k[2] + float(LEAN(k[0])),) + tuple(k[3:]) for k in keys]
+
+
+ARMOUT = 0.11                                          # the forearms and hands held a little away from the skirt, so they read outside the cloth
+for _i in range(len(sk_full.arms.p)):                  # the arms hang from the bowed shoulders
+    _x, _y, _z = sk_full.arms.p[_i]
+    _out = ARMOUT * min(1.0, max(0.0, (1.2 - _y) / 0.4)) * (1.0 if _x > 0 else -1.0)
+    sk_full.arms.p[_i] = (_x + _out, _y, _z + float(LEAN(_y)))
+tsk = GB.Skel()
+W_ = 0.78
+tsk.loft(lean_keys([(0.78, 0, 0.0, 0.06 * W_, 0.05, 0.05, 2.0), (0.84, 0, 0.0, 0.1 * W_, 0.07, 0.08, 2.2), (0.95, 0, 0.0, 0.125 * W_, 0.08, 0.09, 2.2),
+                    (1.05, 0, 0.0, 0.115 * W_ * 0.9, 0.075, 0.085, 2.2), (1.15, 0, 0.0, 0.13 * W_, 0.085, 0.09, 2.2),
+                    (1.26, 0, 0.005, 0.145 * W_, 0.095, 0.095, 2.05), (1.36, 0, 0.01, 0.155 * W_, 0.1, 0.1, 2.1), (1.43, 0, 0.012, 0.16 * W_, 0.092, 0.095, 2.25),
+                    (1.47, 0, 0.012, 0.15 * W_, 0.075, 0.09, 2.2), (1.5, 0, 0.01, 0.12 * W_, 0.064, 0.08, 2.0), (1.535, 0, 0.0, 0.085 * W_, 0.058, 0.07, 2.0),
+                    (1.57, 0, -0.01, 0.034 * 1.2, 0.034 * 1.08, 0.034 * 1.2, 2.0), (1.6, 0, -0.02, 0.034, 0.034, 0.034 * 1.05, 2.0)]))
+tsk.v("pel", (0, 0.9, 0), 0.03)
+tsk.v("wst", (0, 1.04, 0), 0.03, "pel")
 
 
 def torso_sculpt(s):
@@ -98,23 +151,32 @@ add(ao)
 WEIGHTS["armskin"] = GB.envelope_weights([sg for sg in SEGS if sg[0].startswith(("shoulder_", "elbow_", "hand_")) or sg[0] == "chest"], 0.05)
 
 # --- the head: a gaunt face sunk under the hood --------------------------------------------------------------------
-hc = OPT["hc"]
+hc = (OPT["hc"][0], OPT["hc"][1], OPT["hc"][2] + float(LEAN(OPT["hc"][1])))
+OPT_H = dict(OPT, hc=hc)
 hsk = GB.Skel()
 hsk.v("a", (hc[0], hc[1], hc[2]), 0.02)
 hsk.v("b", (hc[0], hc[1] - 0.03, hc[2] - 0.03), 0.02, "a")
-GB.head_masses(hsk, OPT, hc[1])
+GB.head_masses(hsk, OPT_H, hc[1])
+hz = hc[2]
+hsk.mass((0, hc[1] + 0.03, hz - 0.052), (0.05, 0.011, 0.02))               # the brow shelf
+hsk.mass((0, hc[1] + 0.008, hz - 0.074), (0.012, 0.032, 0.018))               # the bridge of the nose
+hsk.mass((0, hc[1] - 0.016, hz - 0.082), (0.017, 0.02, 0.018))               # the nose
 
 
 def head_sculpt(s):
-    GB.head_sculpt(s, OPT, _Y)
-    hz = hc[2]
+    GB.head_sculpt(s, OPT_H, _Y)
     for sx in (-1, 1):
-        s.bump((sx * 0.032, hc[1] + 0.01, hz - 0.075), 0.034, -0.034, facing=(0, 0, -1))         # deep, shut eyes
-        s.ridge((sx * 0.012, hc[1] + 0.03, hz - 0.075), (sx * 0.058, hc[1] + 0.038, hz - 0.06), 0.009, 0.014, facing=(0, 0.3, -1))   # a hard brow
-        s.bump((sx * 0.052, hc[1] - 0.045, hz - 0.062), 0.04, -0.05, facing=(sx * 0.4, 0, -1))   # hollow cheeks, sunk to the bone
-        s.bump((sx * 0.062, hc[1] - 0.012, hz - 0.058), 0.022, 0.012, facing=(sx * 0.6, 0, -1))   # cheekbones standing out over them
-        s.bump((sx * 0.065, hc[1] - 0.062, hz - 0.045), 0.018, -0.012, facing=(sx, 0, -1))        # the pinch where the rope bites at the mouth corners
-    s.ridge((0, hc[1] + 0.02, hz - 0.08), (0, hc[1] - 0.03, hz - 0.092), 0.011, 0.011, facing=(0, 0, -1))   # the nose
+        s.bump((sx * 0.031, hc[1] + 0.012, hz - 0.082), 0.026, -0.04, facing=(0, 0, -1))                # deep eye hollows
+        s.ridge((sx * 0.006, hc[1] + 0.018, hz - 0.088), (sx * 0.056, hc[1] + 0.02, hz - 0.07), 0.007, 0.011, facing=(0, 0.2, -1))   # the upper lids, closed
+        s.ridge((sx * 0.01, hc[1] + 0.003, hz - 0.088), (sx * 0.05, hc[1] + 0.005, hz - 0.074), 0.005, 0.007, facing=(0, 0, -1))     # the lower lids
+        s.ridge((sx * 0.014, hc[1] + 0.036, hz - 0.082), (sx * 0.064, hc[1] + 0.04, hz - 0.066), 0.011, 0.018, facing=(0, 0.3, -1))   # the hard brow
+        s.bump((sx * 0.05, hc[1] - 0.04, hz - 0.058), 0.04, -0.034, facing=(sx * 0.4, 0, -1))           # cheeks sunk to the bone
+        s.bump((sx * 0.06, hc[1] - 0.012, hz - 0.064), 0.024, 0.016, facing=(sx * 0.6, 0, -1))          # cheekbones standing out over them
+        s.bump((sx * 0.066, hc[1] - 0.062, hz - 0.044), 0.02, -0.02, facing=(sx, 0, -1))                # the hollow where the rope bites
+        s.ridge((sx * 0.012, hc[1] - 0.05, hz - 0.087), (sx * 0.05, hc[1] - 0.046, hz - 0.066), 0.006, 0.009, facing=(0, 0, -1))      # lips, drawn tight round the gag
+        s.ridge((sx * 0.01, hc[1] - 0.066, hz - 0.086), (sx * 0.04, hc[1] - 0.062, hz - 0.07), 0.006, 0.007, facing=(0, 0, -1))       # the lower lip
+    s.ridge((0, hc[1] + 0.02, hz - 0.1), (0, hc[1] - 0.03, hz - 0.112), 0.011, 0.016, facing=(0, 0, -1))   # the nose
+    s.bump((0, hc[1] - 0.032, hz - 0.098), 0.016, -0.012, facing=(0, 0, -1))                              # under the nose
     s.noise(40.0, 0.0012)
 
 
@@ -127,17 +189,11 @@ add(TUBE("Gag", rope, 0.0125, "head", ROPE), HEAD1)
 add(K.blob("GagKnot", G(0.052, hc[1] - 0.057, FZ + 0.012), (0.016, 0.014, 0.016), "head", ROPE, 10, 6), HEAD1)
 add(L.thorn("GagEnd", G(0.052, hc[1] - 0.06, FZ + 0.008), Vector(G(0.1, -1.0, -0.2)), 0.12, 0.009, Vector(G(0.03, 0, -0.03)), "head", ROPE, 5, 6, 1.0), HEAD1)
 add(L.thorn("GagEnd", G(0.055, hc[1] - 0.06, FZ + 0.008), Vector(G(0.3, -1.0, 0.0)), 0.08, 0.008, Vector(G(0.03, 0, 0.0)), "head", ROPE, 5, 6, 1.0), HEAD1)
-rng = np.random.RandomState(4)
-for k in range(30):
-    x = ((k % 9) - 4) * 0.009 + rng.uniform(-0.003, 0.003)
-    y = hc[1] + (0.055 if k < 9 else (-0.02 if k < 18 else -0.075)) + 0.01 * math.cos(k * 0.7) + rng.uniform(-0.004, 0.004)
-    r = rng.uniform(0.002, 0.0045)
-    add(GK.slab("Salt", G(x, y, FZ + 0.016 + 0.004 * rng.uniform()), (r, r * 0.9, r * 1.1), Matrix.Rotation(rng.uniform(0, 3), 3, 'Z').to_quaternion(), "head", SALT, 0.0, 0.2, k, 8, 6, 0.85), HEAD1)
 for sx in (-1, 1):                      # a coal of light under each lid: she is praying, not sleeping
-    add(K.blob("Ember", G(sx * 0.032, hc[1] + 0.009, hc[2] - 0.067), (0.013, 0.007, 0.006), "head", EYE, 8, 6), HEAD1)
+    add(K.blob("Ember", G(sx * 0.032, hc[1] + 0.009, hc[2] - 0.067), (0.009, 0.005, 0.005), "head", EYE, 8, 6), HEAD1)
 
 HCB = Vector(G(hc[0], hc[1], hc[2]))
-L.scale_about([o for o in objs if o["sock"] == "head"] + [hhi], HCB, 1.9)
+L.scale_about([o for o in objs if o["sock"] == "head"] + [hhi], HCB, 1.35)
 
 # --- the wool -------------------------------------------------------------------------------------------------------
 def hood_w(p):
@@ -145,17 +201,17 @@ def hood_w(p):
     return h
 
 
-hood = L.Garment([(2.02, 0.03, 0.05, 0.03, 0.03, 0.04, 2.0), (1.98, 0.03, 0.05, 0.11, 0.1, 0.13, 2.0), (1.9, 0.02, 0.05, 0.17, 0.16, 0.2, 2.0), (1.74, 0, 0.06, 0.23, 0.19, 0.25, 2.0),
-                  (1.55, 0, 0.06, 0.26, 0.2, 0.27, 2.0), (1.38, 0, 0.07, 0.31, 0.21, 0.31, 2.0), (1.2, 0, 0.08, 0.34, 0.23, 0.33, 2.0)],
-                 top=2.02, hem=1.2, folds=[(7, 0.3, 1.0, 0.7, 0.1), (15, 0.0, 0.6, 1.9, 0)], amp=0.05, ramp=(0.1, 0.6), gap=1.5, gap_from=0.0, lay=0.0,
-                 hem_lift=0.04, flare=0.03, micro=0.0016, tongues=(13, 0.09, 1.3), back_drop=0.22)
+hood = GarmentL([(2.0, 0.0, -0.01, 0.03, 0.03, 0.04, 2.0), (1.96, 0.0, -0.01, 0.1, 0.12, 0.13, 2.0), (1.88, 0.0, -0.01, 0.15, 0.18, 0.2, 2.0), (1.76, 0, 0.0, 0.18, 0.21, 0.23, 2.0),
+                 (1.6, 0, 0.02, 0.22, 0.22, 0.26, 2.0), (1.48, 0, 0.03, 0.25, 0.22, 0.28, 2.0), (1.4, 0, 0.03, 0.26, 0.22, 0.29, 2.0)],
+                top=2.0, hem=1.45, folds=[(7, 0.3, 1.0, 0.7, 0.1), (15, 0.0, 0.6, 1.9, 0)], amp=0.05, ramp=(0.1, 0.6), gap=1.5, gap_from=0.0, lay=0.0,
+                hem_lift=0.05, flare=0.03, micro=0.0016, tongues=(11, 0.1, 1.3), back_drop=0.12)
 lo, hi = L.shell(hood, "Hood", "hood", WOOL, 1700, HI, solid=0.007, ratio_floor=0.004)
 PAIRS.append((lo, hi))
 add(lo, hood_w)
 
-shawl = L.Garment([(1.6, 0, 0.02, 0.17, 0.12, 0.13, 2.1), (1.48, 0, 0.0, 0.27, 0.17, 0.19, 2.0), (1.3, 0, 0.0, 0.31, 0.2, 0.22, 2.0), (1.08, 0, 0.0, 0.34, 0.23, 0.25, 2.0),
-                   (0.9, 0, 0.0, 0.37, 0.26, 0.29, 2.0)],
-                  top=1.6, hem=1.0, folds=[(8, 0.3, 1.0, 0.5, 0.15), (19, 0.0, 0.6, 1.1, -0.2)], amp=0.06, ramp=(0.1, 0.55), gap=0.45, gap_from=0.25, front=L.FRONT + 0.6, lay=0.0,
+shawl = GarmentL([(1.66, 0, -0.01, 0.052, 0.05, 0.055, 2.0), (1.62, 0, 0.0, 0.1, 0.075, 0.085, 2.1), (1.55, 0, 0.01, 0.17, 0.11, 0.12, 2.1), (1.48, 0, 0.0, 0.25, 0.17, 0.19, 2.0), (1.3, 0, 0.0, 0.25, 0.2, 0.22, 2.0), (1.08, 0, 0.0, 0.25, 0.23, 0.25, 2.0),
+                   (0.9, 0, 0.0, 0.3, 0.26, 0.29, 2.0)],
+                  top=1.66, hem=1.2, folds=[(8, 0.3, 1.0, 0.5, 0.15), (19, 0.0, 0.6, 1.1, -0.2)], amp=0.06, ramp=(0.1, 0.55), gap=0.45, gap_from=0.25, front=L.FRONT + 0.6, lay=0.0,
                   hem_lift=0.06, flare=0.03, micro=0.0016, tongues=(17, 0.1, 1.2), back_drop=0.15, warp=0.8)
 lo, hi = L.shell(shawl, "Shawl", "shawl", WOOL2, 1500, HI, solid=0.008, ratio_floor=0.004)
 PAIRS.append((lo, hi))
@@ -178,40 +234,29 @@ def torn_hem(base, hitch_at, hitch_h, tat):
     return fn
 
 
-skirt = L.Garment([(1.52, 0, 0.01, 0.13, 0.095, 0.1, 2.2), (1.4, 0, 0.01, 0.155, 0.105, 0.11, 2.2), (1.26, 0, 0, 0.155, 0.11, 0.11, 2.2), (1.16, 0, 0, 0.14, 0.1, 0.1, 2.2), (1.0, 0, 0, 0.16, 0.12, 0.12, 2.1), (0.75, 0, 0, 0.21, 0.17, 0.18, 2.0), (0.45, 0, 0.01, 0.29, 0.25, 0.27, 2.0),
+skirt = GarmentL([(1.52, 0, 0.01, 0.13, 0.095, 0.1, 2.2), (1.4, 0, 0.01, 0.155, 0.105, 0.11, 2.2), (1.26, 0, 0, 0.155, 0.11, 0.11, 2.2), (1.16, 0, 0, 0.14, 0.1, 0.1, 2.2), (1.0, 0, 0, 0.14, 0.12, 0.12, 2.1), (0.75, 0, 0, 0.15, 0.13, 0.14, 2.0), (0.45, 0, 0.01, 0.21, 0.19, 0.21, 2.0),
                    (0.2, 0, 0.02, 0.42, 0.37, 0.41, 2.0), (-0.1, 0, 0.02, 0.54, 0.49, 0.55, 2.0)],
                   top=1.52, hem=0.03, folds=[(11, 0.0, 1.0, 0.3, 0.1), (23, 0.0, 0.7, 1.3, -0.15), (5, 0.4, 0.3, 2.0, 0)], amp=0.09, ramp=(0.3, 0.6), lay=0.0, lay_r=0.06,
                   hem_lift=0.05, micro=0.0018, hem_fn=torn_hem(0.03, -2.3, 0.2, 0.08))
-lo, hi = L.shell(skirt, "Skirt", "skirt", WOOL2, 3000, HI, ratio_floor=0.004)
+lo, hi = L.shell(skirt, "Skirt", "skirt", WOOLS, 3000, HI, ratio_floor=0.004)
 PAIRS.append((lo, hi))
 hip_w = L.skirt_weights(1.12, 0.92, 0.42)
 add(lo, hip_w)
 
 # a torn overskirt, open off-centre, over the first
-over = L.Garment([(1.2, 0, 0, 0.16, 0.125, 0.125, 2.2), (0.9, 0, 0, 0.25, 0.2, 0.2, 2.0), (0.6, 0, 0.01, 0.35, 0.3, 0.32, 2.0), (0.3, 0, 0.02, 0.47, 0.41, 0.45, 2.0), (0.05, 0, 0.02, 0.58, 0.52, 0.58, 2.0)],
+over = GarmentL([(1.2, 0, 0, 0.16, 0.125, 0.125, 2.2), (0.9, 0, 0, 0.17, 0.15, 0.15, 2.0), (0.6, 0, 0.01, 0.22, 0.2, 0.22, 2.0), (0.3, 0, 0.02, 0.43, 0.38, 0.42, 2.0), (0.05, 0, 0.02, 0.58, 0.52, 0.58, 2.0)],
                  top=1.2, hem=0.42, folds=[(9, 0.0, 1.0, 0.9, 0.2), (19, 0.0, 0.7, 2.1, -0.1)], amp=0.08, ramp=(0.05, 0.5), gap=0.75, gap_from=0.0, front=L.FRONT + 0.7,
                  lay=0.0, hem_lift=0.08, micro=0.0016, tongues=(11, 0.14, 1.2), warp=0.9)
 lo, hi = L.shell(over, "Overskirt", "overskirt", WOOL, 1000, HI, solid=0.007, ratio_floor=0.004)
 PAIRS.append((lo, hi))
 add(lo, hip_w)
-# salt-stiffened hem: a pale crusted band round the skirt, and barnacle crust climbing the left-back of it
-add(L.band(skirt, "SaltBand", "skirt_trim", SALT, 0.86, 0.925, 0.0, 1.0, n=64, m=3, off=0.014), hip_w)
-WEIGHTS["skirt_trim"] = hip_w
-rs = np.random.RandomState(11)
-for k in range(46):
-    vv = 0.93 - 0.4 * rs.beta(1.2, 2.2)
-    uu = (0.62 + 0.14 * rs.randn()) % 1.0 if k > 14 else rs.uniform(0, 1)
-    if k <= 14:
-        vv = rs.uniform(0.86, 0.93)
-    pp, nn = skirt.surf(np.array([uu]), np.array([vv]))
-    r = rs.uniform(0.012, 0.03) if k <= 14 else rs.uniform(0.008, 0.02)
-    add(GK.slab("Crust", Vector(G(*(pp[0] + nn[0] * 0.014))), (r, r, r * 0.7), Matrix.Rotation(rs.uniform(0, 3), 3, 'Z').to_quaternion(), "skirt_trim", SALT, 0.0, 0.3, k, 6, 4, 0.5), hip_w)
+# (the salt is dried into the wool itself, a tide-line in the WoolSalt material: no separate white bands or loose flakes)
 
 for tag, sx in (("l", -1), ("r", 1)):
-    sl = L.Garment([(1.47, sx * 0.23, 0, 0.082, 0.078, 0.078, 2.2), (1.3, sx * 0.24, 0, 0.074, 0.074, 0.074, 2.2), (1.1, sx * 0.245, 0, 0.066, 0.066, 0.066, 2.2),
-                    (0.95, sx * 0.25, 0, 0.078, 0.076, 0.076, 2.0), (0.86, sx * 0.255, 0.01, 0.1, 0.095, 0.095, 2.0), (0.78, sx * 0.255, 0.01, 0.11, 0.105, 0.105, 2.0)],
-                   top=1.47, hem=0.85, folds=[(7, 0.0, 1.0, 0.5, 0.1), (16, 0, 0.6, 1.5, 0)], amp=0.03, ramp=(0.2, 0.7), lay=0.0, hem_lift=0.025, seed=sx, micro=0.0012,
-                   tongues=(9, 0.07, 1.3))
+    sl = GarmentL(arm_out([(1.47, sx * 0.23, 0, 0.082, 0.078, 0.078, 2.2), (1.3, sx * 0.24, 0, 0.074, 0.074, 0.074, 2.2), (1.1, sx * 0.245, 0, 0.066, 0.066, 0.066, 2.2),
+                    (0.95, sx * 0.25, 0, 0.078, 0.076, 0.076, 2.0), (0.86, sx * 0.255, 0.01, 0.1, 0.095, 0.095, 2.0), (0.78, sx * 0.255, 0.01, 0.11, 0.105, 0.105, 2.0)]),
+                   top=1.47, hem=1.08, folds=[(7, 0.0, 1.0, 0.5, 0.1), (16, 0, 0.6, 1.5, 0)], amp=0.03, ramp=(0.2, 0.7), lay=0.0, hem_lift=0.025, seed=sx, micro=0.0012,
+                   tongues=(9, 0.04, 1.3))
     lo, hi = L.shell(sl, "Sleeve" + tag, "sleeve_" + tag, WOOL, 1300, (120, 90) if not LOWRES else (70, 50))
     PAIRS.append((lo, hi))
     add(lo, L.sleeve_weights(tag))
@@ -246,7 +291,7 @@ add(K.blob("TrailRing", Vector(tp[-1]), (0.07, 0.02, 0.07), "belt", IRON, 10, 6)
 add(GK.slab("TrailStone", Vector(tp[-1]) + Vector(G(-0.1, 0.06, 0.04)), (0.13, 0.11, 0.08), Matrix.Rotation(0.5, 3, 'Z').to_quaternion(), "belt", STONE, 0.0, 0.08, 9.0, 18, 10, 0.5), hip_w)
 
 # a torn strip of the shawl hanging from the left shoulder to the knee, ragged, swinging free of the skirt
-tail = L.Garment([(1.5, 0, 0.0, 0.3, 0.22, 0.24, 2.0), (1.2, 0, 0.0, 0.38, 0.27, 0.3, 2.0), (0.85, 0, 0.0, 0.46, 0.34, 0.38, 2.0), (0.5, 0, 0.0, 0.52, 0.4, 0.44, 2.0), (0.25, 0, 0.0, 0.56, 0.44, 0.48, 2.0)],
+tail = GarmentL([(1.5, 0, 0.0, 0.3, 0.22, 0.24, 2.0), (1.2, 0, 0.0, 0.38, 0.27, 0.3, 2.0), (0.85, 0, 0.0, 0.46, 0.34, 0.38, 2.0), (0.5, 0, 0.0, 0.52, 0.4, 0.44, 2.0), (0.25, 0, 0.0, 0.56, 0.44, 0.48, 2.0)],
                  top=1.5, hem=0.48, folds=[(7, 0.4, 1.0, 0.3, 0.1), (17, 0.0, 0.7, 1.3, -0.1)], amp=0.04, ramp=(0.1, 0.5), gap=2.7, gap_from=0.0, front=0.1, lay=0.0,
                  hem_fn=torn_hem(0.45, 0.0, 0.0, 0.16), micro=0.0016, warp=0.8)
 lo, hi = L.shell(tail, "Tail", "tail", WOOL, 900, (100, 80) if not LOWRES else (60, 50), solid=0.007, ratio_floor=0.004)
@@ -291,7 +336,7 @@ sm.append(Vector(loop[-1]))
 add(GK.chain_links("Chain", sm, 0.011, "belt", IRON, 0.03), hip_w)
 
 # --- the anchor (right hand): a cairn-stone on a chain, an iron ring, hanging a body-length (rigid) ----------------------
-HR = S["hand_r"]
+HR = S["hand_r"] + Vector(G(ARMOUT, 0.0, 0.0))
 rig_r = []
 
 
@@ -314,7 +359,7 @@ for o in rig_r:
     add(o)
 
 # --- the lantern (left hand): a caged lamp, hot inside (rigid) ---------------------------------------------------------------
-HL = S["hand_l"]
+HL = S["hand_l"] + Vector(G(-ARMOUT, 0.0, 0.0))
 for o in (TUBE("Handle", [HL + G(0, -0.02, 0), HL + G(0, -0.1, 0.0), HL + G(0, -0.15, 0)], 0.0075, "hand_l", IRON),
           K.blob("Cap", HL + G(0, -0.15, 0), (0.055, 0.02, 0.055), "hand_l", IRON, 14, 8), K.blob("Base", HL + G(0, -0.32, 0), (0.05, 0.02, 0.05), "hand_l", IRON, 14, 8),
           K.blob("Flame", HL + G(0, -0.23, 0), (0.045, 0.065, 0.045), "hand_l", GLOW, 12, 10)):

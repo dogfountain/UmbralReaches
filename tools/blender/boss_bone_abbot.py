@@ -42,7 +42,7 @@ def brocade(name="Cloth", tint=(0.2, 0.17, 0.2)):
     m = K.Mat(name)
     sc = m.scan("caban", 9.0)
     blot = m.noise(5.0, 6.0, 0.6)
-    col = m.mul(m.mono(sc["color"]), tuple(c * 0.55 for c in tint))
+    col = m.mul(m.mono(sc["color"]), tuple(c * 0.85 for c in tint))
     col = m.mix(m.math('MULTIPLY', blot, 0.4), col, (0.012, 0.01, 0.012))
     sep = m.n('ShaderNodeSeparateXYZ')
     geo = m.n('ShaderNodeNewGeometry')
@@ -56,7 +56,8 @@ def brocade(name="Cloth", tint=(0.2, 0.17, 0.2)):
     col = m.mix(m.math('MULTIPLY', pat, 0.38), col, (0.36, 0.25, 0.1))
     h = m.math('ADD', m.math('MULTIPLY', sc["disp"], 0.9), m.math('MULTIPLY', pat, 0.4))
     rough = m.math('SUBTRACT', m.math('ADD', m.math('MULTIPLY', sc["rough"], 0.3), 0.7), m.math('MULTIPLY', pat, 0.3))
-    return m.finish(col, rough, m.math('MULTIPLY', pat, 0.4), h, 0.7, 0.0018)
+    glow = m.mix(m.math('MULTIPLY', pat, 1.0), (0.0, 0.0, 0.0), (0.62, 0.42, 0.16))        # the gilt damask is lit from within (it was a black cope in a black hall)
+    return m.finish(col, rough, m.math('MULTIPLY', pat, 0.4), h, 0.7, 0.0018, emit=glow, emit_strength=0.9)
 
 
 def gilt(name="Gold", base=(0.78, 0.55, 0.22)):
@@ -69,7 +70,7 @@ def gilt(name="Gold", base=(0.78, 0.55, 0.22)):
     m.links.new(m.coord.outputs['Object'], brick.inputs['Vector'])
     rough = m.math('ADD', 0.24, m.math('MULTIPLY', m.math('SUBTRACT', 1.0, wear), 0.4))
     h = m.math('ADD', m.noise(90.0, 3.0, 0.5), m.math('MULTIPLY', brick.outputs['Fac'], 0.6))
-    return m.finish(col, rough, 0.95, h, 0.5, 0.0016)
+    return m.finish(col, rough, 0.55, h, 0.5, 0.0016, emit=m.mul(col, (0.8, 0.8, 0.8)), emit_strength=0.55)
 
 
 def wax_mat():
@@ -92,7 +93,20 @@ def sinew_mat():
 
 
 CLOTH = brocade()
-WINE = GK.cloth("Wine", (0.14, 0.02, 0.03), "caban", 9.0, (0.02, 0.008, 0.012), 0.8)
+def wine_mat():
+    """The cassock, red wool lit from within by the reliquary candle: the glow is strongest at the breast and fades down the skirt."""
+    m = K.Mat("Wine")
+    sc = m.scan("caban", 9.0)
+    blot = m.noise(5.0, 6.0, 0.6)
+    col = m.mul(m.mono(sc["color"]), tuple(c * 2.2 for c in (0.2, 0.03, 0.04)))
+    col = m.mix(m.math('MULTIPLY', blot, 0.45), col, (0.02, 0.008, 0.012))
+    h = m.math('MULTIPLY', sc["disp"], 1.0)
+    fall = m.ramp(m.zpos(), [(0.15, (0.25, 0.25, 0.25)), (0.75, (0.7, 0.7, 0.7)), (1.25, (1.0, 1.0, 1.0))])
+    glow = m.mix(fall, (0.0, 0.0, 0.0), (0.95, 0.34, 0.08))
+    return m.finish(col, 0.8, 0.0, h, 0.6, 0.002, emit=glow, emit_strength=0.55)
+
+
+WINE = wine_mat()
 GOLD = gilt()
 WAX = wax_mat()
 FLAME = glow_mat("Flame", (1.0, 0.62, 0.22), 8.0)
@@ -282,7 +296,7 @@ add(TUBE("Chain", chain, 0.0045, "chest", GOLD), CH)
 # --- cloth ---------------------------------------------------------------------------------------------------
 hip_w = L.skirt_weights(1.12, 0.92, 0.42, 0.3)
 cass = L.Garment([(1.18, 0, 0, 0.14, 0.105, 0.105, 2.2), (1.0, 0, 0, 0.16, 0.125, 0.125, 2.1), (0.78, 0, 0, 0.2, 0.16, 0.17, 2.0),
-                  (0.48, 0, 0.01, 0.29, 0.24, 0.26, 2.0), (0.2, 0, 0.02, 0.4, 0.34, 0.38, 2.0), (-0.1, 0, 0.02, 0.52, 0.47, 0.52, 2.0)],
+                  (0.48, 0, 0.01, 0.29, 0.15, 0.17, 2.0), (0.2, 0, 0.02, 0.4, 0.15, 0.17, 2.0), (-0.1, 0, 0.02, 0.52, 0.15, 0.17, 2.0)],
                  top=1.18, hem=0.025, folds=[(12, 0.0, 1.0, 0.3, 0.1), (25, 0.0, 0.7, 1.3, -0.15), (6, 0.4, 0.3, 2.0, 0)], amp=0.07,
                  ramp=(0.0, 0.45), lay=0.07, lay_r=0.07, hem_lift=0.05, micro=0.0016, back_drop=0.05)
 lo, hi = L.shell(cass, "Cassock", "cassock", WINE, 3600, HI)
@@ -296,8 +310,8 @@ WEIGHTS["cassock_trim"] = hip_w
 
 cope_w = L.cope_weights(0.5)
 cope = L.Garment([(1.86, 0, 0.1, 0.2, 0.0, 0.1, 2.0), (1.72, 0, 0.07, 0.2, 0.06, 0.15, 2.0), (1.58, 0, 0.03, 0.24, 0.13, 0.17, 2.2), (1.44, 0, 0.0, 0.38, 0.18, 0.2, 2.0),
-                  (1.1, 0, 0.0, 0.44, 0.26, 0.29, 2.0), (0.7, 0, 0.02, 0.54, 0.34, 0.41, 2.0), (0.3, 0, 0.03, 0.6, 0.44, 0.56, 2.0),
-                  (0.0, 0, 0.04, 0.68, 0.52, 0.68, 2.0), (-0.1, 0, 0.04, 0.72, 0.55, 0.72, 2.0)],
+                  (1.1, 0, 0.0, 0.44, 0.24, 0.27, 2.0), (0.7, 0, 0.02, 0.54, 0.21, 0.24, 2.0), (0.3, 0, 0.03, 0.6, 0.2, 0.23, 2.0),
+                  (0.0, 0, 0.04, 0.68, 0.2, 0.23, 2.0), (-0.1, 0, 0.04, 0.72, 0.2, 0.23, 2.0)],
                  top=1.86, hem=0.03, folds=[(9, 0.3, 1.0, 0.3, 0.15), (19, 0.0, 0.6, 1.1, -0.2), (4, 0.6, 0.5, 2.0, 0.0)], amp=0.2,
                  ramp=(0.1, 0.5), gap=0.9, gap_from=0.0, lay=0.06, lay_r=0.09, hem_lift=0.06, flare=0.06, micro=0.0014, back_drop=0.1, tongues=(15, 0.09, 1.5), warp=0.8,
                  top_fn=lambda t: -0.24 + 0.34 * ((np.sin(t) + 1.0) * 0.5) ** 1.5)

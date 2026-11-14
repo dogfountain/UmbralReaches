@@ -134,23 +134,39 @@ WEIGHTS["armskin"] = GB.envelope_weights([sg for sg in SEGS if sg[0].startswith(
 hk = GB.Skel()
 hk.v("a", (0, 1.76, -0.02), 0.03)
 hk.v("b", (0, 1.7, -0.05), 0.03, "a")
-hk.mass((0, 1.79, -0.02), (0.135, 0.15, 0.135))                 # cranium
-hk.mass((0, 1.72, -0.06), (0.115, 0.1, 0.1))                    # the cheeks and the upper jaw
-hk.mass((0, 1.88, -0.0), (0.105, 0.07, 0.1))                    # the crown block
+# a chiselled visage built from masses, not bumps: a cranium and temples, a jutting brow lintel, a long nose, cheekbones, and a
+# jaw that is two broken halves with the horn between them (the mouth breaks out of the jaw)
+hk.mass((0, 1.80, -0.01), (0.128, 0.14, 0.13))                  # cranium
+hk.mass((0, 1.885, 0.0), (0.1, 0.06, 0.095))                    # the crown block
+hk.mass((0, 1.838, -0.095), (0.12, 0.03, 0.056))                # the brow lintel
+hk.mass((0, 1.80, -0.125), (0.02, 0.05, 0.035))                 # the bridge of the nose
+hk.mass((0, 1.752, -0.14), (0.029, 0.042, 0.04))                # the nose
+hk.mass((0, 1.724, -0.152), (0.03, 0.022, 0.026))               # its tip
+for sx in (-1, 1):
+    hk.mass((sx * 0.082, 1.745, -0.085), (0.05, 0.04, 0.05))    # cheekbones
+    hk.mass((sx * 0.1, 1.78, -0.04), (0.04, 0.06, 0.07))        # temples
+    hk.mass((sx * 0.088, 1.695, -0.045), (0.04, 0.075, 0.07))   # the jaw's rising branch
+    hk.mass((sx * 0.062, 1.655, -0.1), (0.036, 0.034, 0.052))   # the jaw's broken body, either side of the mouth
 
 
 def visage_sculpt(s):
-    fz = -0.145
     front = (0, 0, -1)
-    s.ridge((-0.12, 1.84, fz + 0.01), (0.12, 1.84, fz + 0.01), 0.034, 0.05, facing=front)                       # the brow, a stone lintel
+    fz = -0.145
+    s.ridge((-0.115, 1.842, fz + 0.01), (0.115, 1.842, fz + 0.01), 0.03, 0.034, facing=front)                   # the brow, a stone lintel
     for sx in (-1, 1):
-        s.bump((sx * 0.055, 1.795, fz + 0.02), 0.036, -0.075, facing=front)                                    # deep sockets
-        s.bump((sx * 0.105, 1.77, fz + 0.05), 0.045, -0.03, facing=(sx, 0, -1))                                # temples
-        s.bump((sx * 0.09, 1.73, fz + 0.04), 0.05, 0.05, facing=(sx * 0.5, 0, -1))                             # cheekbones
-        s.ridge((sx * 0.02, 1.87, fz + 0.01), (sx * 0.1, 1.885, fz + 0.03), 0.022, 0.02, facing=front)         # brow furrows
-        s.ridge((sx * 0.06, 1.755, fz + 0.02), (sx * 0.11, 1.715, fz + 0.01), 0.018, 0.02, facing=(sx, 0, -1)) # the line from cheek to jaw
-    s.ridge((0, 1.83, fz + 0.01), (0, 1.74, fz - 0.025), 0.026, 0.045, facing=front)                           # nose
-    s.bump((0, 1.915, fz + 0.03), 0.075, 0.025, facing=front)                                                  # forehead boss
+        s.bump((sx * 0.056, 1.797, fz + 0.004), 0.034, -0.092, facing=front)                                    # deep sockets under it
+        s.ridge((sx * 0.025, 1.757, fz + 0.012), (sx * 0.095, 1.765, fz + 0.04), 0.014, 0.018, facing=(sx * 0.4, 0, -1))   # the lower lids / orbital rim
+        s.bump((sx * 0.1, 1.78, fz + 0.06), 0.04, -0.034, facing=(sx, 0, -1))                                   # temples sunk
+        s.bump((sx * 0.088, 1.742, fz + 0.04), 0.036, 0.03, facing=(sx * 0.5, 0, -1))                          # cheek planes, proud
+        s.bump((sx * 0.078, 1.695, fz + 0.06), 0.04, -0.034, facing=(sx * 0.6, 0, -1))                         # hollow under the cheekbone
+        s.bump((sx * 0.018, 1.728, fz - 0.012), 0.011, -0.02, facing=front)                                     # nostrils
+        s.ridge((sx * 0.03, 1.92, fz + 0.04), (sx * 0.1, 1.9, fz + 0.07), 0.016, 0.012, facing=front)          # brow furrows climbing the forehead
+    s.ridge((0, 1.81, fz - 0.005), (0, 1.73, fz - 0.03), 0.02, 0.03, facing=front)                              # the nose, a flat ridge
+    s.bump((0, 1.92, fz + 0.03), 0.075, 0.02, facing=front)                                                     # forehead boss
+    # fractures carved through the face: a split from the brow past the left socket to the cheek, another across the forehead
+    for a_, b_ in (((-0.03, 1.93, fz + 0.01), (-0.06, 1.84, fz + 0.0)), ((-0.075, 1.77, fz + 0.01), (-0.105, 1.70, fz + 0.05)), ((0.04, 1.95, fz + 0.03), (0.09, 1.9, fz + 0.05)),
+                   ((0.11, 1.74, fz + 0.06), (0.082, 1.68, fz + 0.07))):
+        s.ridge(a_, b_, 0.006, -0.014, facing=front)
     s.noise(24.0, 0.005)
     s.folds(40.0, 0.002)
 
@@ -160,7 +176,7 @@ HEADOBJS = [ho, hhi]
 add(ho, HEAD1)
 for sx in (-1, 1):
     # the ember in each socket: a coal sunk under the brow-lintel, big enough to read as eyes at 20 m
-    HEADOBJS.append(add(K.blob("Eye", Vector(G(sx * 0.055, 1.79, -0.14)), (0.021, 0.011, 0.015), "head", EMBER, 8, 6), HEAD1))
+    HEADOBJS.append(add(K.blob("Eye", Vector(G(sx * 0.055, 1.797, -0.095)), (0.024, 0.016, 0.016), "head", EMBER, 8, 6), HEAD1))
 # the crown: a gilt band round the brow and broken tines standing up from it, several snapped
 CC = Vector(G(0, 1.9, -0.02))
 HEADOBJS.append(add(TUBE("Crown", [CC + Vector((math.cos(a) * 0.125, math.sin(a) * 0.115, 0.0)) for a in [math.tau * i / 28 for i in range(29)]], 0.014, "head", GILT), HEAD1))
@@ -187,9 +203,16 @@ def cr(vals, t):
     return 0.5 * ((2 * p1) + (-p0 + p2) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f * f + (-p0 + 3 * p1 - 3 * p2 + p3) * f ** 3)
 
 
-axis = [Vector(G(0, 1.70, -0.12)), Vector(G(0, 1.67, -0.24)), Vector(G(0, 1.625, -0.38)), Vector(G(0, 1.565, -0.55)), Vector(G(0, 1.48, -0.73))]
-rad = [0.085, 0.095, 0.125, 0.2, 0.31]
-NU, NS = 40, 26
+axis = [Vector(G(0, 1.645, -0.13)), Vector(G(0, 1.652, -0.27)), Vector(G(0, 1.628, -0.44)), Vector(G(0, 1.57, -0.6)), Vector(G(0, 1.48, -0.73))]
+
+
+def rad_at(s):
+    """A trumpet's profile, not a bell's: a narrow throat that stays narrow, then a flare that accelerates, a rolled lip at the end."""
+    lip = 0.026 * max(0.0, (s - 0.93) / 0.07) ** 0.7
+    return 0.066 + 0.042 * s + 0.205 * s ** 3.1 + lip
+
+
+NU, NS = 44, 40
 Pr = np.zeros((NS + 1, NU, 3))
 for i in range(NS + 1):
     s = i / NS
@@ -197,23 +220,24 @@ for i in range(NS + 1):
     tg = (cr(axis, min(s + 0.02, 1.0)) - cr(axis, max(s - 0.02, 0.0))).normalized()
     ux = Vector((1, 0, 0))
     vx = tg.cross(ux).normalized()
-    r = cr(rad, s)
+    r = rad_at(s)
     for j in range(NU):
         a = math.tau * j / NU
-        # flutes that deepen toward the lip, and a lip that is cracked, chipped and split: a wedge broken out low-left
-        fl = (abs(math.cos(0.5 * 12 * a + 0.4)) - 0.64) * 0.045 * s ** 1.1 + (abs(math.cos(0.5 * 26 * a + 1.3)) - 0.64) * 0.006 * s
-        chip = 0.035 * s ** 4 * max(0.0, math.sin(a * 3.0 + 0.7) + math.sin(a * 7.0 + 2.0) - 0.5)
-        wedge = 0.07 * s ** 6 * max(0.0, 1.0 - abs(math.atan2(math.sin(a - 4.0), math.cos(a - 4.0))) / 0.33)
+        # flutes that deepen toward the lip, and a lip that is cracked, chipped and split: a wedge broken out low-left; the
+        # horn mouth is a little wider than tall, and the throat stays narrow, so from the side it reads as a horn, not a cone
+        fl = (abs(math.cos(0.5 * 12 * a + 0.4)) - 0.64) * 0.04 * s ** 1.4 + (abs(math.cos(0.5 * 26 * a + 1.3)) - 0.64) * 0.005 * s
+        chip = 0.035 * s ** 5 * max(0.0, math.sin(a * 3.0 + 0.7) + math.sin(a * 7.0 + 2.0) - 0.5)
+        wedge = 0.07 * s ** 7 * max(0.0, 1.0 - abs(math.atan2(math.sin(a - 4.0), math.cos(a - 4.0))) / 0.33)
         rr = r + fl - chip - wedge + 0.004 * math.sin(a * 5 + s * 7)
-        p = c + ux * math.cos(a) * rr + vx * math.sin(a) * rr
+        p = c + ux * math.cos(a) * rr * (1.0 + 0.1 * s) + vx * math.sin(a) * rr * (1.0 - 0.05 * s)
         Pr[i, j] = (p.x, p.z, -p.y)
 horn = L.grid_mesh("Horn", Pr, True, "head", STONE)
 K.solidify(horn, 0.026)
 add(horn, HEAD1)
 MOUTH = axis[-1]
 # the ember deep in the throat (a coal, with the glow of cracks running up the inside wall toward the lip)
-THROAT = cr(axis, 0.14)
-add(K.blob("Throat", THROAT, (0.095, 0.095, 0.095), "head", EMBER, 20, 12), HEAD1)
+THROAT = cr(axis, 0.13)
+add(K.blob("Throat", THROAT, (0.062, 0.062, 0.062), "head", EMBER, 20, 12), HEAD1)
 for k in range(5):
     a = 0.5 + math.tau * k / 5 + 0.2 * math.sin(k * 2.0)
     pts = []
@@ -222,13 +246,13 @@ for k in range(5):
         c = cr(axis, s)
         tg = (cr(axis, min(s + 0.02, 1.0)) - cr(axis, max(s - 0.02, 0.0))).normalized()
         vx = tg.cross(Vector((1, 0, 0))).normalized()
-        rr = cr(rad, s) * 0.93 + 0.006
+        rr = rad_at(s) * 0.93 + 0.006
         aa = a + 0.18 * math.sin(q * 1.3 + k)
         pts.append(c + Vector((1, 0, 0)) * math.cos(aa) * rr + vx * math.sin(aa) * rr)
     add(TUBE("ThroatCrack", pts, 0.0075, "head", EMBER), HEAD1)
-for t in (0.55, 0.78):
+for t in (0.3, 0.52, 0.76):
     c = cr(axis, t)
-    r = cr(rad, t) + 0.016
+    r = rad_at(t) * (1.04 if False else 1.0) + 0.009
     tg = (cr(axis, min(t + 0.02, 1.0)) - cr(axis, max(t - 0.02, 0.0))).normalized()
     vx = tg.cross(Vector((1, 0, 0))).normalized()
     add(TUBE("Band", [c + Vector((1, 0, 0)) * math.cos(a) * r + vx * math.sin(a) * r for a in [math.tau * i / 30 for i in range(31)]], 0.009, "head", GILT), HEAD1)

@@ -102,7 +102,7 @@ def field():
     # forehead and sagittal crest, a long NARROW muzzle of two nasal bones tapering to a small premaxilla, a big nasal opening,
     # a toothless gap (the diastema) before the cheek teeth, slender zygomatic arches, a slung slender mandible, and the antler
     # pedicles standing on the frontal bones with coronet burrs.
-    HS = 1.22                                                    # the head is the beast's face: it fills the frame
+    HS = 1.75                                                    # the head is the beast's face and a good part of its mass
     CZ = hz - 0.02
 
     def sp(x, y, z):
@@ -110,31 +110,33 @@ def field():
 
     def sr(*r):
         return tuple(v * HS for v in r)
-    F.add(Q.Ell(sp(0, 0.695, hz + 0.005), sr(0.098, 0.088, 0.115)), 0.04, "bone")                               # the braincase
-    F.add(Q.Ell(sp(0, 0.72, hz - 0.1), sr(0.082, 0.055, 0.085)), 0.04, "bone")                                  # the forehead between the orbits
-    F.add(Q.Ell(sp(0, 0.745, hz + 0.0), sr(0.018, 0.028, 0.12)), 0.03, "bone")                                  # the sagittal crest
-    F.add(Q.Ell(sp(0, 0.675, hz + 0.1), sr(0.06, 0.055, 0.04)), 0.03, "bone")                                   # the occiput
-    # the muzzle: nasal bones on top, the maxilla beneath, both long and narrow, a small premaxilla at the tip
-    Pt.chain(F, [sp(0, 0.715, hz - 0.15), sp(0, 0.68, hz - 0.26), sp(0, 0.655, hz - 0.36)], [0.046 * HS, 0.032 * HS, 0.025 * HS], 0.02, "bone")
+    F.add(Q.Ell(sp(0, 0.7, hz + 0.01), sr(0.098, 0.092, 0.11)), 0.04, "bone")                                  # the braincase, round
+    F.add(Q.Ell(sp(0, 0.735, hz - 0.095), sr(0.082, 0.05, 0.075)), 0.04, "bone")                               # the high forehead between the orbits
+    F.add(Q.Ell(sp(0, 0.755, hz + 0.0), sr(0.016, 0.026, 0.115)), 0.03, "bone")                                # the sagittal crest
+    F.add(Q.Ell(sp(0, 0.68, hz + 0.1), sr(0.06, 0.055, 0.04)), 0.03, "bone")                                   # the occiput
+    # the muzzle: a long NARROW nasal bridge sloping down from the forehead, a deep short maxilla beneath, a small blunt rhinarium
+    Pt.chain(F, [sp(0, 0.725, hz - 0.15), sp(0, 0.69, hz - 0.24), sp(0, 0.66, hz - 0.33)], [0.034 * HS, 0.024 * HS, 0.019 * HS], 0.02, "bone")
     for sx in (-1, 1):
-        Pt.chain(F, [sp(sx * 0.07, 0.665, hz - 0.14), sp(sx * 0.05, 0.635, hz - 0.26), sp(sx * 0.032, 0.62, hz - 0.36)], [0.042 * HS, 0.03 * HS, 0.023 * HS], 0.02, "bone")
-    F.add(Q.Ell(sp(0, 0.617, hz - 0.375), sr(0.04, 0.03, 0.032)), 0.03, "bone")
+        Pt.chain(F, [sp(sx * 0.055, 0.675, hz - 0.14), sp(sx * 0.037, 0.65, hz - 0.24), sp(sx * 0.026, 0.636, hz - 0.32)], [0.03 * HS, 0.02 * HS, 0.016 * HS], 0.02, "bone")
+    F.add(Q.Ell(sp(0, 0.632, hz - 0.345), sr(0.03, 0.022, 0.024)), 0.03, "bone")                              # the rhinarium
     for sx in (-1, 1):
-        # the orbit: a raised round rim, a deep socket, the ember set well inside (the orbit looks sideways, as a deer's does)
-        F.add(Q.Ell(sp(sx * 0.108, 0.708, hz - 0.098), sr(0.032, 0.062, 0.062)), 0.03, "bone")
-        F.add(Q.Ell(sp(sx * 0.082, 0.762, hz - 0.1), sr(0.05, 0.02, 0.07), (0.15, 0, 0)), 0.03, "bone")             # the brow arch
-        F.sub(Q.Ell(sp(sx * 0.128, 0.708, hz - 0.098), sr(0.04, 0.047, 0.047)), 0.012)
-        F.add(Q.Ell(sp(sx * 0.121, 0.708, hz - 0.098), sr(0.03, 0.04, 0.04)), 0.004, "ember")
+        # the orbit: BIG, round, set high on the side of the head, a raised round rim, a deep socket, the ember well inside
+        F.add(Q.Ell(sp(sx * 0.112, 0.725, hz - 0.1), sr(0.034, 0.075, 0.075)), 0.03, "bone")
+        F.add(Q.Ell(sp(sx * 0.088, 0.79, hz - 0.1), sr(0.05, 0.018, 0.07), (0.15, 0, 0)), 0.03, "bone")             # the brow arch
+        F.sub(Q.Ell(sp(sx * 0.134, 0.725, hz - 0.1), sr(0.04, 0.056, 0.056)), 0.012)
+        F.add(Q.Ell(sp(sx * 0.126, 0.725, hz - 0.1), sr(0.03, 0.043, 0.043)), 0.004, "ember")
         # the zygomatic arch: a slender bridge from the cheek back under the orbit to the ear
-        Pt.chain(F, [sp(sx * 0.1, 0.65, hz - 0.14), sp(sx * 0.128, 0.628, hz - 0.04), sp(sx * 0.095, 0.612, hz + 0.05)], [0.014 * HS, 0.014 * HS, 0.017 * HS], 0.01, "bone")
-        # the mandible: slender, slung, with its angle at the back; and a short row of cheek teeth only
-        Pt.chain(F, [sp(sx * 0.072, 0.592, hz + 0.03), sp(sx * 0.052, 0.553, hz - 0.12), sp(sx * 0.03, 0.54, hz - 0.25)], [0.03 * HS, 0.022 * HS, 0.015 * HS], 0.01, "bone")
-        for k in range(3):
-            Pt.tooth(F, sp(sx * 0.05, 0.607, hz - 0.08 - 0.035 * k), (0, -1, 0.05), 0.026 * HS, 0.011 * HS, "bone")
+        Pt.chain(F, [sp(sx * 0.1, 0.65, hz - 0.14), sp(sx * 0.128, 0.628, hz - 0.04), sp(sx * 0.095, 0.612, hz + 0.05)], [0.012 * HS, 0.012 * HS, 0.015 * HS], 0.01, "bone")
+        # the mandible: SLENDER and short, slung well under the maxilla, curving down to a small chin (not a crocodile's long jaw)
+        Pt.chain(F, [sp(sx * 0.07, 0.6, hz + 0.03), sp(sx * 0.044, 0.58, hz - 0.07), sp(sx * 0.026, 0.592, hz - 0.15)], [0.024 * HS, 0.015 * HS, 0.012 * HS], 0.01, "bone")
+        for k in range(2):                                        # two worn cheek teeth only (a deer has no upper incisors, no fangs)
+            Pt.tooth(F, sp(sx * 0.046, 0.62, hz - 0.06 - 0.03 * k), (0, -1, 0.05), 0.018 * HS, 0.008 * HS, "bone")
         # the pedicle: the antler's stalk standing from the frontal bone, with the coronet burr
-        Pt.chain(F, [sp(sx * 0.055, 0.745, hz - 0.04), sp(sx * 0.066, 0.775, hz - 0.01)], [0.036 * HS, 0.036 * HS], 0.02, "bone")
-        F.add(Q.Ell(sp(sx * 0.07, 0.776, hz - 0.005), sr(0.052, 0.022, 0.05)), 0.03, "bone")
-    F.sub(Q.Ell(sp(0, 0.668, hz - 0.3), sr(0.024, 0.02, 0.045)), 0.008)                                          # the nasal opening
+        Pt.chain(F, [sp(sx * 0.055, 0.76, hz - 0.03), sp(sx * 0.066, 0.795, hz - 0.0)], [0.034 * HS, 0.034 * HS], 0.02, "bone")
+        F.add(Q.Ell(sp(sx * 0.07, 0.797, hz + 0.005), sr(0.05, 0.02, 0.048)), 0.03, "bone")
+        # the ear: a broad leaf of hide set behind the orbit, swept out and back (the strongest cue that this is a deer)
+        F.add(Q.Ell(sp(sx * 0.14, 0.77, hz + 0.09), sr(0.014, 0.1, 0.046), (0.5, 0, -0.7 * sx)), 0.015, "hide")
+    F.sub(Q.Ell(sp(0, 0.672, hz - 0.3), sr(0.016, 0.016, 0.034)), 0.008)                                          # the nasal opening
     # the antler crown, rooted in the skull's crest
     for sx in (-1, 1):
         crown(F, sx)
@@ -250,9 +252,9 @@ def bone_mat():
     stain = m.noise(2.6, 5.0, 0.6)
     crack = m.math('LESS_THAN', m.voronoi(24.0, 'DISTANCE_TO_EDGE'), 0.02)
     crack = m.math('MULTIPLY', crack, m.math('GREATER_THAN', m.noise(5.0, 3.0, 0.5), 0.42))
-    col = m.mul(m.mono(sc["color"]), (0.42, 0.34, 0.24))
+    col = m.mul(m.mono(sc["color"]), (0.27, 0.2, 0.13))
     col = m.mix(m.math('MULTIPLY', m.math('SUBTRACT', 1.0, dirt), 0.7), col, (0.24, 0.17, 0.1))
-    col = m.mix(m.math('MULTIPLY', m.math('GREATER_THAN', stain, 0.42), 0.8), col, (0.14, 0.095, 0.06))
+    col = m.mix(m.math('MULTIPLY', m.math('GREATER_THAN', stain, 0.36), 0.9), col, (0.1, 0.07, 0.045))
     moss = m.math('MULTIPLY', m.math('GREATER_THAN', m.noise(6.0, 6.0, 0.6), 0.6), m.math('GREATER_THAN', m.zpos(), 0.6))
     col = m.mix(m.math('MULTIPLY', moss, 0.85), col, (0.08, 0.11, 0.045))
     col = m.mix(crack, col, (0.05, 0.035, 0.025))
