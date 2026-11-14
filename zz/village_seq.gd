@@ -30,7 +30,19 @@ class StubDir extends Node:
 	var nav := StubNav.new()
 	var at := Vector3.ZERO
 
-	func anchor(_k: String) -> Vector3:
+	func anchor(k: String) -> Vector3:
+		# the forge's stations as the village sets them out, relative to the villager (model frame: forward is -z)
+		match k:
+			"@coals":
+				return Vector3(0.25, 0.78, -0.6)
+			"@water":
+				return Vector3(-0.15, 0.72, -0.62)
+			"@wheel":
+				return Vector3(-0.1, 0.95, -0.55)
+			"@anvil":
+				return Vector3(0.0, 0.88, -0.7)
+		if k.begins_with("@block_"):
+			return Vector3(0.0, 0.4, -0.8)
 		return at
 
 	func lamp_pos(_id: String) -> Vector3:
@@ -287,7 +299,7 @@ func _run() -> void:
 				v.hold(an, Vector3.INF, 5.0 if an in ["light", "quench"] else 1.0e6)       # a shaped act runs its whole length in the row
 				await _wait(0.1 if an in ["light", "quench"] else 1.2)
 				print("ACT ", an, " state=", v.state, " act=", v.act, " t=", v.act_t, " pos=", v.global_position)
-				await _row(an, 8, 0.4)
+				await _row(an, 10 if an == "idle" else 8, 1.1 if an == "idle" else 0.4)
 			_sheet(id)
 			continue
 		await _row("idle", 8, 1.0)

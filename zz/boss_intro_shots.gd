@@ -94,6 +94,12 @@ func _sight() -> void:
 	var boss := arena.get("_boss") as Node3D
 	if cam == null or boss == null:
 		return
+	var bf := boss.get("_face") as Node3D
+	if bf:
+		var fwd := -bf.global_basis.z
+		var tp := p.global_position - boss.global_position
+		tp.y = 0.0
+		print("BSHOT facing: face fwd %s, to player %s, dot %.2f, face rot y %.2f" % [fwd.snapped(Vector3.ONE * 0.01), tp.normalized().snapped(Vector3.ONE * 0.01), fwd.dot(tp.normalized()), bf.rotation.y])
 	for h: float in [1.2, 2.6]:
 		var to := boss.global_position + Vector3.UP * h
 		var q := PhysicsRayQueryParameters3D.create(cam.global_position, to, Layers.WORLD)

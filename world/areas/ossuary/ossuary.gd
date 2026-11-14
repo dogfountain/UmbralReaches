@@ -766,6 +766,7 @@ func _crypt(hall: Node3D) -> void:
 	# hall's wall shuts the stair off behind it (WoW's raid door, here two bone portcullises)
 	arena.gate = WardSeal.make_arena_gate(self, "abbot_door", OssHall.wat(da, OssHall.TIER_A.x + 0.3), inward, 3.4, 3.6, "bone")
 	arena.gates = [WardSeal.make_arena_gate(self, "abbot_gate", OssHall.wat(da, OssHall.WALL_R + 0.4), inward, 3.4, 3.6, "bone")]
+	arena.intro_turn = true
 	arena.frame_look = 0.9                      # his mitre rose into the name card at 0.7: seated lower, face and mitre clear of the title
 	arena.subtitle = "Abbot Osric, still counting"
 	arena.phase_titles = {4: "Abbot Osric"}

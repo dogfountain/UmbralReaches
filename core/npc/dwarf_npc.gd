@@ -226,7 +226,11 @@ func _process(delta: float) -> void:
 
 
 ## Pose the rig for the current beat (also driven by the tests and the studio shots).
+var _pose_step := 0.016                ## the time this pose covers (turn_legs steps its shuffle by it)
+
+
 func animate(delta: float) -> void:
+	_pose_step = delta
 	if life == null:
 		life = Life.new(seed_n)
 	life.step(delta, _act in ["talk", "argue"] or (_act == "attend" and speaking))
@@ -433,10 +437,15 @@ func _pose(spine: Quaternion, chest: Quaternion, yaw: float, pitch: float, jaw: 
 	elif not seated:
 		# standing: the weight-bearing knee locks, the other softens
 		var sw: float = life.sway() if life else 0.0
-		rig.q(DwarfRig.B_THIGH_R, Quaternion(Vector3.RIGHT, 0.04 * maxf(-sw, 0.0)))
-		rig.q(DwarfRig.B_THIGH_L, Quaternion(Vector3.RIGHT, 0.04 * maxf(sw, 0.0)))
-		rig.q(DwarfRig.B_SHIN_R, Quaternion(Vector3.RIGHT, -0.1 * maxf(-sw, 0.0)))
-		rig.q(DwarfRig.B_SHIN_L, Quaternion(Vector3.RIGHT, -0.1 * maxf(sw, 0.0)))
+		# turning on the spot: shuffle steps with the planted feet kept where they stand (npc_life.gd turn_legs)
+		var td: float = life.turn_legs(rig, global_rotation.y, _pose_step) if life else INF
+		if td != INF:
+			rig.position.y = td
+		else:
+			rig.q(DwarfRig.B_THIGH_R, Quaternion(Vector3.RIGHT, 0.04 * maxf(-sw, 0.0)))
+			rig.q(DwarfRig.B_THIGH_L, Quaternion(Vector3.RIGHT, 0.04 * maxf(sw, 0.0)))
+			rig.q(DwarfRig.B_SHIN_R, Quaternion(Vector3.RIGHT, -0.1 * maxf(-sw, 0.0)))
+			rig.q(DwarfRig.B_SHIN_L, Quaternion(Vector3.RIGHT, -0.1 * maxf(sw, 0.0)))
 	rig.fk_all()
 	rig.arm_to("r", wrist_r, Vector3(0.8, -0.5, 0.3), mug_q)
 	rig.arm_to("l", wrist_l, Vector3(-0.8, -0.5, 0.3), left_q)
@@ -585,6 +594,8 @@ func _swap(sit: bool) -> void:
 
 func _animate_walk(_delta: float) -> void:
 	rig.reset()
+	if life:
+		life.turn_reset(global_rotation.y)
 	var w := _walk
 	var drop := Life.walk_legs(rig, _gait, w, SWING, 0.95, 0.022)
 	var s := cos(TAU * _gait)          # +1 when the right heel strikes

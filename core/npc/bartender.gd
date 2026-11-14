@@ -51,6 +51,8 @@ var life: Life
 var _acc := 0.0
 var _pose_dt := 0.0
 var _guest: Node3D
+var _armed := false              ## the feet are stepping out to the stride's first stance
+var _spd := 0.0                  ## 0..1 of the walking pace
 
 
 func _ready() -> void:
@@ -136,11 +138,31 @@ func _process(delta: float) -> void:
 	# he sets off only once he faces the way he goes (the turn is made on shuffle steps, npc_life.gd turn_legs), and turns at a
 	# human rate: a snap of the whole body over planted feet dragged them
 	var heading := -PI * 0.5 if dx > 0.0 else PI * 0.5
-	var go := walking and absf(angle_difference(_yaw, heading)) < 0.08
-	if go and _walk >= 0.3:       # not before the stride is under him (the feet's reach grows with the blend)
-		global_position.x += signf(dx) * minf(absf(dx), 1.0 * delta)
-		_phase += delta * TAU / (Life.calib_stride(rig, 0.38, 0.95, 0.022) * maxf(_walk, 0.3))     # the stride grows with the blend, so the phase quickens as it starts: the planted foot stays put
-	_walk = move_toward(_walk, 1.0 if go else 0.0, delta * 4.0)
+	var facing_ok := walking and absf(angle_difference(_yaw, heading)) < 0.08
+	if _walk < 0.5:
+		# standing: when he faces the way he goes, the feet step out to where the stride has them (the gait's first step is
+		# taken standing, not dragged), and only then does he move off
+		if facing_ok:
+			if not _armed:
+				life.turn_walkup(rig, 0.0, 0.38)
+				_armed = true
+			elif life.turn_ready():
+				_walk = 1.0
+				_phase = 0.0
+				_spd = 0.0
+				_armed = false
+		else:
+			_armed = false
+	if _walk >= 0.5:
+		if facing_ok:
+			_spd = move_toward(_spd, 1.0, delta * 3.5)           # the body gathers speed; the phase follows the distance, so the planted foot keeps still
+			var stepd := minf(absf(dx), _spd * delta)
+			global_position.x += signf(dx) * stepd
+			_phase += stepd * TAU / Life.calib_stride(rig, 0.38, 0.95, 0.022)
+		else:
+			life.turn_adopt(rig, fposmod(_phase / TAU, 1.0), 0.38, global_rotation.y)       # the stride ends on steps home, not a fade
+			_walk = 0.0
+			_spd = 0.0
 	# face: along the walk, the kegs (+x) when filling, the wanderer when greeting, else the room (-z)
 	var want := facing
 	if walking:

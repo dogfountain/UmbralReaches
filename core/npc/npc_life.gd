@@ -214,7 +214,7 @@ static func walk_legs(rig: DwarfRig, p: float, amt: float, swing: float, knee: f
 			var u3 := u2 * u
 			var m := -3.3333 * zz * 0.4
 			zf[side] = (2.0 * u3 - 3.0 * u2 + 1.0) * -zz + (u3 - 2.0 * u2 + u) * m + (-2.0 * u3 + 3.0 * u2) * zz + (u3 - u2) * m
-			lf[side] = lift_h * pow(sin(PI * u), 1.3)
+			lf[side] = lift_h * pow(sin(PI * u), 0.7)
 	# the pelvis: the lowest height any leg can reach to its own foot (a smooth minimum, 5 mm round)
 	var kk := 0.005
 	var e := 0.0
@@ -252,6 +252,8 @@ var _tsw: Array[float] = [-1.0, -1.0]   ## a foot's swing progress 0..1, -1 = pl
 var _tfrom: Array[float] = [0.0, 0.0]
 var _tto: Array[float] = [0.0, 0.0]
 var _tquiet := 0.0
+var _tgoal: Array[float] = [INF, INF]   ## offsets the feet are to be stepped to (the gait's first stance), INF = none
+var _tready := false
 const TURN_STEP := 0.11                 ## m a planted foot may be carried off before it steps
 const TURN_SWING := 0.24                ## s a shuffle step takes
 
@@ -261,6 +263,49 @@ func turn_reset(yaw: float) -> void:
 	_tf = [0.0, 0.0]
 	_tsw = [-1.0, -1.0]
 	_tquiet = 0.0
+
+
+## The walk ends (or begins) with its feet where the gait had them: take those offsets as the turn's planted feet and step them
+## home (no snap of the sole, no drag as the stride's amplitude fades). `p` the gait phase, `swing` its swing angle.
+func turn_adopt(rig: DwarfRig, p: float, swing: float, yaw: float) -> void:
+	var zz := leg_len(rig) * sin(swing) * 0.97
+	for side in 2:
+		var c := fposmod(p + 0.5 * float(side), 1.0)
+		var z := 0.0
+		if c < 0.6:
+			z = zz * (1.0 - 2.0 * c / 0.6)
+		else:
+			var u := (c - 0.6) / 0.4
+			var u2 := u * u
+			var u3 := u2 * u
+			var m := -3.3333 * zz * 0.4
+			z = (2.0 * u3 - 3.0 * u2 + 1.0) * -zz + (u3 - 2.0 * u2 + u) * m + (-2.0 * u3 + 3.0 * u2) * zz + (u3 - u2) * m
+		_tf[side] = z
+		_tsw[side] = -1.0
+	_ty = yaw
+	_tquiet = 1.0
+
+
+## True when both planted feet are under the hips and none is stepping (the body may set off).
+## Step the feet out to where the gait at phase `p0` has them (one at a time, standing); turn_ready() when both are there.
+func turn_walkup(rig: DwarfRig, p0: float, swing: float) -> void:
+	var zz := leg_len(rig) * sin(swing) * 0.97
+	for side in 2:
+		var c := fposmod(p0 + 0.5 * float(side), 1.0)
+		_tgoal[side] = zz * (1.0 - 2.0 * c / 0.6) if c < 0.6 else 0.0
+	_tready = false
+
+
+func turn_ready() -> bool:
+	return _tready
+
+
+func turn_settle() -> void:
+	_tquiet = maxf(_tquiet, 1.0)
+
+
+func turn_home() -> bool:
+	return maxf(absf(_tf[0]), absf(_tf[1])) < 0.02 and _tsw[0] < 0.0 and _tsw[1] < 0.0
 
 
 func turn_legs(rig: DwarfRig, yaw: float, dt: float) -> float:
@@ -276,7 +321,22 @@ func turn_legs(rig: DwarfRig, yaw: float, dt: float) -> float:
 		if _tsw[i] < 0.0:
 			_tf[i] += (-1.0 if i == 0 else 1.0) * r * dth        # planted: fixed in the world, so it slides round the body's frame
 	var swinging := _tsw[0] >= 0.0 or _tsw[1] >= 0.0
-	if not swinging:
+	if _tgoal[0] != INF or _tgoal[1] != INF:
+		if not swinging:
+			var pick := -1
+			var far := 0.004
+			for i in 2:
+				if _tgoal[i] != INF and absf(_tf[i] - _tgoal[i]) > far:
+					far = absf(_tf[i] - _tgoal[i])
+					pick = i
+			if pick >= 0:
+				_tsw[pick] = 0.0
+				_tfrom[pick] = _tf[pick]
+				_tto[pick] = _tgoal[pick]
+			else:
+				_tgoal = [INF, INF]
+				_tready = true
+	elif not swinging:
 		var worst := 0 if absf(_tf[0]) >= absf(_tf[1]) else 1
 		if absf(_tf[worst]) > TURN_STEP:
 			_tsw[worst] = 0.0
@@ -306,7 +366,11 @@ func turn_legs(rig: DwarfRig, yaw: float, dt: float) -> float:
 	var l2 := bv.length()
 	var z0 := ank.z - hip.z
 	var d0 := hip.y - ank.y
-	var h := d0 * 0.985 - 0.5 * maxf(lift[0], lift[1])
+	var lgt := l1 + l2
+	var h := d0
+	for side in 2:
+		var wz: float = z0 - _tf[side]
+		h = minf(h, lift[side] + sqrt(maxf(pow(0.99 * lgt, 2.0) - wz * wz, 0.01)))
 	for side in 2:
 		var dy: float = lift[side] - h
 		var dz: float = z0 - _tf[side]

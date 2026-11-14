@@ -36,6 +36,7 @@ var room: Node = null
 var last_emote := ""                    ## the last raid-warning line shown (tests read it)
 var _emote_lbl: Label
 var _emote_layer: CanvasLayer           ## its own layer: the r33 unit frames hide the bar layer, not this
+var intro_turn := false                ## BossFrame: he rises with his back to the wanderer and turns to him inside the title's time
 var frame_look := 0.7                  ## BossFrame: the share of his height the intro view aims at (higher seats him lower, under the name card)
 var _emote_t := 0.0
 var _emote_wait: Array = []             ## [text, colour] held back while the title card is up
@@ -323,7 +324,7 @@ func _begin() -> void:
 	Events.boss_engaged.emit(_boss, title)
 	# the boss's name is a title in the encounter HUD's voice (BossTitle) and the view turns to him
 	# (BossFrame) for the beat he rises; the hud's zone card waited out the fight and then drew late
-	BossFrame.start(self, _boss, frame_look)
+	BossFrame.start(self, _boss, frame_look, intro_turn)
 	Sfx.play("res://art/audio/ward_chime.wav", boss_at, 4.0)
 	SpellFx.rift_in(boss_at)
 

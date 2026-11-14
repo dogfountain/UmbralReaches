@@ -411,6 +411,7 @@ static func embiggen(e: Enemy, s: float) -> void:
 ## while the title card shows, roars at 2/3 of it, and only then may it attack. Before r30 the
 ## Thornwarden could pounce before the card had faded.
 static func intro(e: Enemy, col: Color, dur := INTRO) -> void:
+	dur = maxf(dur, BossFrame.HOLD)            # he stays where he rose while the camera is on him: no boss walks into the frame or the emote line
 	e._ward_t = dur
 	e._combo_left = 0
 	if e._state != Enemy.DEAD:

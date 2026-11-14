@@ -21,6 +21,7 @@ const VState := preload("res://core/life/village/village_state.gd")
 const VAudio := preload("res://core/life/village/village_audio.gd")
 const Life := preload("res://core/npc/npc_life.gd")
 const Forge := preload("res://core/life/village/villager_forge.gd")
+const Idle := preload("res://core/life/village/villager_idle.gd")
 const Voice := preload("res://core/npc/npc_voice.gd")
 ## Acts that carry speech outside a conversation: [cycle s, talking s per cycle, volume dB]
 ## (the seller calls her wares, people at a fire murmur, the mourner mutters, idlers talk to themselves)
@@ -115,6 +116,7 @@ var _dip := 0.0                       ## knee give on a blow (hammer, axe), set 
 var _foot_push := 0.0                 ## the digger's boot on the spade (0..1)
 var _gait := [0.36, 0.88, 0.02, 0.3]
 var _pdt := 0.0
+var _shift_x := 0.0                   ## the hips' sideways shift over the standing foot (villager_idle.gd)
 var _turn_on := false                 ## the feet are shuffling round a turn on the spot (npc_life.gd turn_legs)
 var _gest := 0.0                      ## which hand has the word: +1 right, -1 left, eased
 var _pass_t := 0.0
@@ -770,6 +772,7 @@ func _chatting() -> bool:
 func _pose(dt: float) -> void:
 	var r := rig
 	_pdt = dt
+	_shift_x = 0.0
 	var k: float = r.k
 	r.reset()
 	var off := 0.0
@@ -960,27 +963,8 @@ func _pose(dt: float) -> void:
 		if free_l:
 			r.arm_to("l", Vector3(-0.16, 0.98 + 0.1 * bt - (0.06 * gs if free_r else 0.0), -0.3 - 0.08 * bt + (0.04 * gs if free_r else 0.0)) * k, Vector3(-0.9, -0.6, 0.2), Quaternion(Vector3.FORWARD, -0.6 - 0.5 * bt) * Quaternion(Vector3.RIGHT, -0.4))
 	if cur in ["idle", "watch", "attend", "warm", "look_up", "read", "knock", "chat", "sell"] and walk_amt < 0.1 and not _turn_on:
-		# standing is never still: the weight rolls from one foot to the other, the free knee softens
-		var ph := float(hash(id) % 628) * 0.01
-		var ws := sin(_t * 0.4 + ph)
-		r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, 0.06 * sin(_t * 0.37 + ph * 1.3)))     # rocking fore and aft as well
-		r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.FORWARD, 0.07 * ws))
-		if not speaking and attend == null:
-			# a slow turn of the chest against the head's wander, the shoulders lifting with the breath, and every so often
-			# one hand coming up (to the chin, to the belt) and going down again
-			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.UP, 0.12 * sin(_t * 0.23 + ph * 1.7)) * Quaternion(Vector3.BACK, 0.02 * ws))
-			var fid := pow(maxf(0.0, sin(_t * 0.5 + ph * 2.3)), 4.0)
-			if arms_free[0] and tool_r == "":
-				r.q(B_ARM_R, (r.get_q(B_ARM_R) as Quaternion) * Quaternion(Vector3.RIGHT, -0.9 * fid) * Quaternion(Vector3.BACK, 0.02 + 0.05 * breath * 12.0))
-				r.q(B_FORE_R, (r.get_q(B_FORE_R) as Quaternion) * Quaternion(Vector3.RIGHT, 1.4 * fid))
-			if arms_free[1] and tool_l == "":
-				r.q(B_ARM_L, (r.get_q(B_ARM_L) as Quaternion) * Quaternion(Vector3.BACK, -0.02 - 0.05 * breath * 12.0))
-		var rest_r := 0.09 * maxf(0.0, ws)
-		var rest_l := 0.09 * maxf(0.0, -ws)
-		r.q(B_THIGH_R, (r.get_q(B_THIGH_R) as Quaternion) * Quaternion(Vector3.RIGHT, rest_r))
-		r.q(B_SHIN_R, (r.get_q(B_SHIN_R) as Quaternion) * Quaternion(Vector3.RIGHT, -2.0 * rest_r))
-		r.q(B_THIGH_L, (r.get_q(B_THIGH_L) as Quaternion) * Quaternion(Vector3.RIGHT, rest_l))
-		r.q(B_SHIN_L, (r.get_q(B_SHIN_L) as Quaternion) * Quaternion(Vector3.RIGHT, -2.0 * rest_l))
+		# standing is never still (villager_idle.gd): the weight from foot to foot, the look-around, and now and then a larger gesture
+		head_pitch += Idle.stand(self, k, arms_free[0] and tool_r == "", arms_free[1] and tool_l == "", breath)
 	if _foot_push > 0.001 and cur == "dig":
 		r.q(B_THIGH_R, Quaternion(Vector3.RIGHT, 0.55 * _foot_push))
 		r.q(B_SHIN_R, Quaternion(Vector3.RIGHT, -0.75 * _foot_push))
@@ -1011,7 +995,7 @@ func _pose(dt: float) -> void:
 	if speaking or chat:
 		r.q(B_JAW, Quaternion(Vector3.RIGHT, -0.15 * life.jaw()))
 	r.q(B_LID, Quaternion(Vector3.RIGHT, life.blink()))
-	(rig as Node3D).position = Vector3(0, off, 0)
+	(rig as Node3D).position = Vector3(_shift_x, off, 0)
 	r.apply()
 	r.update_glow()
 	var gm: StandardMaterial3D = r.glow_mat
