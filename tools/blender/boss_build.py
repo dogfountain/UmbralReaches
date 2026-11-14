@@ -52,7 +52,7 @@ class Geo:
         return ids
 
     # --- shapes ---------------------------------------------------------------------------------------
-    def robe(self, rings, col, mat, lab, n=96, t0=0.0, t1=TAU, pleats=0, pleat_amp=0.0, pleat_from=None, hem_break=0.0, flip=False):
+    def robe(self, rings, col, mat, lab, n=96, t0=0.0, t1=TAU, pleats=0, pleat_amp=0.0, pleat_from=None, hem_break=0.0, flip=False, tatter=0.0):
         """A hanging garment: rings = [(y, rx, rz, cz)] top to bottom (rx across, rz deep, cz centre z).
         Open between t0..t1 (0 = front, clockwise from above) or closed all round. Pleats deepen from
         `pleat_from` (y) down to the hem; `hem_break` throws the last ring's folds onto the floor."""
@@ -79,6 +79,10 @@ class Geo:
                 yy = y
                 if i == len(rings) - 1 and hem_break > 0.0:
                     yy = y + hem_break * max(0.0, fold) * 0.5
+                if i == len(rings) - 1 and tatter > 0.0:                   # a torn hem: long rags and short, none alike
+                    h = math.sin(j * 12.9898) * 43758.5453
+                    h = h - math.floor(h)
+                    yy = y + tatter * (h ** 2.0) * (1.0 if j % 3 else 0.25)
                 row.append(V(x, yy, z))
             P.append(row)
         mean_r = [0.5 * (r[1] + r[2]) for r in rings]
@@ -399,7 +403,83 @@ def bone_abbot():
     return body, [staff]
 
 
-BUILDERS = {"bone_abbot": bone_abbot}
+# --- the Ascended Warden ------------------------------------------------------------------------------
+# What is left of a priest who went up: a white bell of linen hanging in the air with nothing under it, a mantle,
+# a long gilt-edged tabard, ashen hands held out of wide sleeves, a smooth white-gold mask with two slits of light
+# inside a veil, and behind the head a wheel of thorns that burns.
+
+def ascended_warden():
+    g = Geo()
+    LINEN, PALE, GOLD, ASH, DARK, MASK = (0.82, 0.8, 0.74), (0.93, 0.9, 0.82), (0.95, 0.78, 0.4), (0.42, 0.42, 0.45), (0.015, 0.015, 0.02), (0.95, 0.9, 0.76)
+    lab = waist_split(0.98)
+    bell = [(1.5, 0.17, 0.12, 0.0), (1.38, 0.19, 0.135, 0.0), (1.2, 0.185, 0.14, 0.0), (1.04, 0.2, 0.16, 0.0), (0.86, 0.3, 0.26, 0.0), (0.66, 0.44, 0.4, 0.01),
+            (0.46, 0.56, 0.52, 0.02), (0.3, 0.63, 0.59, 0.03), (0.18, 0.66, 0.62, 0.03)]
+    g.robe(bell, LINEN, "linen", lab, n=120, pleats=18, pleat_amp=0.1, pleat_from=1.02, tatter=0.14)
+    inner = [(y, rx * 0.94, rz * 0.94, cz) for (y, rx, rz, cz) in bell[3:]]
+    g.robe(inner, DARK, "iron", "pelvis", n=60, pleats=18, pleat_amp=0.1, pleat_from=1.02, flip=True)
+    pleat = lambda th: 1.0 + 0.1 * 0.45 * ((1.0 - abs(math.sin(th * 9)) ** 0.7) * 2.0 - 1.0)
+    g.ring_band(0.42, 0.5, 0.572, 0.532, 0.02, GOLD, "trim", "pelvis", n=120, fn=pleat)
+    g.ring_band(1.0, 1.06, 0.205, 0.165, 0.0, GOLD, "trim", "chest", n=48)
+    # the tabard: a long panel down the front, gilt edged
+    tab = [V(0.0, y, -(rz * 1.035) + cz - 0.006) for (y, rx, rz, cz) in bell[:8]]
+    g.band(tab, 0.2, PALE, "linen", lab, out=0.012, up=[V(0, 0, -1)] * len(tab))
+    for sx in (-1, 1):
+        g.band([p + V(sx * 0.105, 0, 0) for p in tab], 0.035, GOLD, "trim", lab, out=0.018, up=[V(0, 0, -1)] * len(tab))
+    g.band([tab[-1] + V(-0.12, -0.03, 0), tab[-1] + V(0.0, -0.09, -0.01), tab[-1] + V(0.12, -0.03, 0)], 0.04, GOLD, "trim", "pelvis", out=0.018, up=[V(0, 0, -1)] * 3)
+    # the mantle over the shoulders
+    mant = [(1.58, 0.2, 0.15, 0.01), (1.52, 0.3, 0.2, 0.01), (1.4, 0.36, 0.25, 0.02), (1.24, 0.42, 0.31, 0.03), (1.14, 0.45, 0.34, 0.03)]
+    Pm = g.robe(mant, PALE, "linen", "chest", n=72, pleats=10, pleat_amp=0.05, pleat_from=1.5, tatter=0.05)
+    g.ring_band(1.15, 1.2, 0.452, 0.342, 0.03, GOLD, "trim", "chest", n=72)
+    # the sun on the breast
+    g.lathe([(0.0, 0.0), (0.07, 0.004), (0.085, 0.012), (0.07, 0.02), (0.0, 0.024)], V(0.0, 1.32, -0.2), GOLD, "gilt", "chest", n=20, axis="z")
+    g.ball(V(0.0, 1.32, -0.228), 0.032, (1.0, 0.9, 0.6, 0.0), "glow", "chest", n=8, sz=0.5)
+    for k in range(12):
+        a = TAU * k / 12
+        g.tube([V(math.cos(a) * 0.085, 1.32 + math.sin(a) * 0.085, -0.212), V(math.cos(a) * (0.13 + 0.03 * (k % 2)), 1.32 + math.sin(a) * (0.13 + 0.03 * (k % 2)), -0.208)], [0.008, 0.001], GOLD, "gilt", "chest", n=5)
+    # wide sleeves, gilt bracers, ashen hands
+    for sx in (-1, 1):
+        t = "l" if sx < 0 else "r"
+        sleeve(g, sx, LINEN, GOLD, r_top=0.08, r_cuff=0.15, drop=0.2)
+        g.tube([V(sx * 0.24, 0.98, 0), V(sx * 0.24, 0.8, 0)], [0.026, 0.021], ASH, "bone", "elbow_" + t, n=6)
+        g.lathe([(0.03, 0.0), (0.034, 0.02), (0.03, 0.08), (0.034, 0.1)], V(sx * 0.24, 0.82, 0), GOLD, "gilt", "elbow_" + t, n=10)
+        hand(g, sx, ASH, "hand_" + t, closed=0.1)
+    # the head: a veil, the dark inside it, the mask
+    veil = [(1.5, 0.2, 0.17, 0.02), (1.6, 0.175, 0.165, 0.015), (1.72, 0.17, 0.18, 0.01), (1.84, 0.15, 0.17, 0.015), (1.92, 0.1, 0.12, 0.03), (1.95, 0.02, 0.03, 0.04)]
+    g.robe(veil, PALE, "linen", lambda p: "head" if p[1] > 1.6 else "chest", n=44, t0=math.radians(42), t1=TAU - math.radians(42))
+    g.ball(V(0.0, 1.73, 0.0), 0.125, DARK, "iron", "head", n=10, sy=1.15)
+
+    def mask(u, v):
+        th = (u - 0.5) * math.radians(118)
+        ph = v
+        y = 1.6 + 0.26 * ph
+        r = 0.132 * (0.8 + 0.2 * math.sin(ph * math.pi) ** 0.6) * (1.0 - 0.18 * (1.0 - ph) ** 2)
+        nose = 0.012 * math.exp(-((u - 0.5) / 0.07) ** 2) * math.exp(-((ph - 0.4) / 0.22) ** 2)
+        brow = 0.006 * math.exp(-((ph - 0.66) / 0.06) ** 2)
+        return V(math.sin(th) * r, y, -math.cos(th) * (r * 1.06 + nose + brow))
+    g.plate(mask, 25, 15, MASK, "bone", "head")
+    for sx in (-1, 1):                                                    # the eyes: two slits of light
+        g.ball(V(sx * 0.05, 1.752, -0.128), 0.02, (1.0, 0.95, 0.7, 0.0), "glow", "head", n=6, sx=1.5, sy=0.32, sz=0.4)
+    g.tube([V(0.012, 1.86, -0.118), V(0.02, 1.8, -0.137), V(0.006, 1.74, -0.146), V(0.022, 1.68, -0.14), V(0.014, 1.62, -0.118)], 0.0028, DARK, "iron", "head", n=4)   # the crack
+    g.ring_band(1.845, 1.875, 0.158, 0.15, 0.012, GOLD, "trim", "head", n=44, t0=math.radians(-70), t1=math.radians(70))                        # a circlet over the brow
+    # the wheel of thorns behind the head
+    C = V(0.0, 1.8, 0.16)
+    for (rr, tr, mat, col) in ((0.36, 0.016, "gilt", GOLD), (0.27, 0.009, "glow", (1.0, 0.9, 0.6, 0.0)), (0.46, 0.008, "gilt", GOLD)):
+        g.tube([C + V(math.cos(a) * rr, math.sin(a) * rr, 0.0) for a in np.linspace(0, TAU, 49)], tr, col, mat, "head", n=6)
+    for k in range(16):
+        a = TAU * k / 16 + 0.1
+        ln = 0.3 if k % 2 == 0 else 0.16
+        bend = 0.05 * (1 if k % 4 < 2 else -1)
+        g.tube([C + V(math.cos(a) * 0.36, math.sin(a) * 0.36, 0.0), C + V(math.cos(a + 0.06) * (0.36 + ln * 0.6), math.sin(a + 0.06) * (0.36 + ln * 0.6), bend),
+                C + V(math.cos(a) * (0.36 + ln), math.sin(a) * (0.36 + ln), bend * 2.0)], [0.014, 0.008, 0.001], GOLD, "gilt", "head", n=5)
+    for k in range(8):                                                    # spokes from the ring of light
+        a = TAU * k / 8
+        g.tube([C + V(math.cos(a) * 0.27, math.sin(a) * 0.27, 0.0), C + V(math.cos(a) * 0.36, math.sin(a) * 0.36, 0.0)], 0.006, GOLD, "gilt", "head", n=4)
+    g.tube([C + V(-0.1, -0.2, 0.0), V(-0.08, 1.62, 0.12)], 0.01, GOLD, "gilt", "head", n=5)
+    g.tube([C + V(0.1, -0.2, 0.0), V(0.08, 1.62, 0.12)], 0.01, GOLD, "gilt", "head", n=5)
+    return g.to_object("body"), []
+
+
+BUILDERS = {"bone_abbot": bone_abbot, "ascended_warden": ascended_warden}
 
 
 def build(name):
