@@ -24,6 +24,7 @@ extends Husk
 ##   he lets go of the door: every pylon blazes again, the halo breaks open: blinks every 2.6 s, double
 ##   fans, the falling sky on you, eclipses and flares. (r35: no soft enrage.)
 
+const ClipRig := preload("res://core/enemy/clip_rig.gd")
 const FAN_WINDUP := 0.85
 const HP := 760
 const QuestBook := preload("res://core/story/quest_book.gd")
@@ -93,7 +94,8 @@ func phase_marks() -> Array[float]:
 
 
 func _build() -> void:
-	super._build()
+	# authored motion on a real skeleton (tools/blender/boss_humanoid_anim.py), played by ClipRig
+	ClipRig.fit(self, "res://art/models/boss_ascended_warden.glb", &"ascended_warden", {"pelvis": "hips", "body": "spine", "chest": "chest", "front": "chest", "head": "head", "hand_r": "hand_r", "hand_l": "hand_l"}, {"walk_stride": 1.65, "scale": Vector3(1.08, 0.86, 1.08), "cap": 0.86})
 	name = "AscendedWarden"
 	BossKit.embiggen(self, SCALE)
 	posture({"hunch": 0.05, "crouch": 0.0, "arm_reach": 0.1, "head_jut": 0.1, "limp": 0.0, "sway": 0.4, "twitch": 0.0, "splay": 0.15, "hover": 1.0})

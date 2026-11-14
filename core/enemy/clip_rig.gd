@@ -47,6 +47,28 @@ var _sock_node: Array[Node3D] = []
 var _sock_rest: Array[Basis] = []
 
 
+## Put an enemy on a clip rig: what its _build did with attach_rig() and EnemyBody.dress(), for a modelled skeleton.
+## opts: walk_stride, run_stride, run_at, scale (Vector3, the kind's own proportions), cap (collision height factor).
+static func fit(e: Node, scene: String, kind: StringName, bones: Dictionary, opts := {}) -> CharacterRig:
+	var rig: CharacterRig = (load("res://core/enemy/clip_rig.gd") as GDScript).new()
+	rig.set("scene_path", scene)
+	rig.set("socket_bones", bones)
+	rig.set("walk_stride", float(opts.get("walk_stride", 1.0)))
+	rig.set("run_stride", float(opts.get("run_stride", 2.0)))
+	rig.set("run_at", float(opts.get("run_at", 99.0)))
+	var en: Variant = e
+	en.attach_rig(rig)
+	rig.scale = opts.get("scale", Vector3.ONE)
+	var col := e.get_node_or_null("Collision") as CollisionShape3D
+	if col and col.shape is CapsuleShape3D and opts.has("cap"):
+		var cap := col.shape as CapsuleShape3D
+		cap.height = 1.7 * float(opts.cap)
+		col.position.y = cap.height * 0.5
+	var r: Variant = rig
+	en.set_flesh(r.dress(kind))
+	return rig
+
+
 func _build() -> void:
 	_sockets.clear()
 	_equipped.clear()

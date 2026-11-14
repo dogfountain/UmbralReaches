@@ -237,10 +237,10 @@ func _named() -> String:
 ## r34 raids: the boss's emote line (BossKit.emote): large, warm, under the cast bar, for 5 s.
 func emote(text: String, col := Color(1.0, 0.82, 0.45)) -> void:
 	# one message at a time: while the name card is up the line waits, and plays after it has faded
+	last_emote = text                        # what was announced, from the moment it is asked for (the card only delays showing it)
 	if get_node_or_null("BossTitle") != null:
 		_emote_wait = [text, col]
 		return
-	last_emote = text
 	if _emote_lbl == null or not is_instance_valid(_emote_lbl):
 		Events.toast.emit(text)
 		return

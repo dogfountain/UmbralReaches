@@ -19,6 +19,7 @@ extends "res://core/enemy/wretch.gd"
 ##   the lantern flares; everything quickens, the Swing comes twice (the second turned across the
 ##   first), the Rockfall comes in sixes and the Undertow every 17 s.
 
+const ClipRig := preload("res://core/enemy/clip_rig.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 const HermitScript := preload("res://core/enemy/wretch.gd")
 
@@ -77,7 +78,8 @@ func phase_marks() -> Array[float]:
 
 
 func _build() -> void:
-	super._build()
+	# authored motion on a real skeleton (tools/blender/boss_humanoid_anim.py), played by ClipRig
+	ClipRig.fit(self, "res://art/models/boss_anchoress.glb", &"anchoress", {"pelvis": "hips", "body": "spine", "chest": "chest", "front": "chest", "head": "head", "hand_r": "hand_r", "hand_l": "hand_l"}, {"walk_stride": 0.371})
 	name = "Anchoress"
 	BossKit.embiggen(self, SCALE)
 
