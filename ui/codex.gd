@@ -12,6 +12,8 @@ extends CanvasLayer
 ##     the place goes in the journal.
 ## Data: core/world/realm/lore/codex_store.gd (user://codex.cfg); texts: lore_db.gd.
 
+const PageGrid := preload("res://ui/page_grid.gd")
+const MapView := preload("res://ui/codex_map.gd")
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
 const LoreIndex := preload("res://core/world/realm/lore/lore_index.gd")
 const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
@@ -442,10 +444,8 @@ func _build_book() -> void:
 	var panel := PanelContainer.new()
 	panel.theme = Med.theme()
 	panel.add_theme_stylebox_override("panel", _paper_box(0.97, 30))
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.custom_minimum_size = Vector2(1280, 760)
-	panel.position = Vector2(-640, -380)
 	_book.add_child(panel)
+	PageGrid.place(panel)                              # the character screen's one grid cell: the book fills it
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 14)
 	panel.add_child(col)
@@ -498,7 +498,7 @@ func _build_book() -> void:
 	well.add_theme_stylebox_override("panel", Med.inset(10))
 	body.add_child(well)
 	_list_scroll = ScrollContainer.new()
-	_list_scroll.custom_minimum_size = Vector2(420, 540)
+	_list_scroll.custom_minimum_size = Vector2(420, 300)
 	_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	well.add_child(_list_scroll)
 	_list = VBoxContainer.new()
@@ -525,7 +525,7 @@ func _build_book() -> void:
 	_p_foot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_p_foot.custom_minimum_size = Vector2(640, 0)
 	_map_view = MapView.new()
-	_map_view.custom_minimum_size = Vector2(700, 540)
+	_map_view.custom_minimum_size = Vector2(600, 360)
 	_map_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_map_view.set("font", _body_font)
 	_map_view.set("title_font", _title_font)
@@ -537,7 +537,9 @@ func _build_book() -> void:
 func _show_tab(i: int) -> void:
 	_tab = i
 	_map_view.visible = String(TABS[i][0]) == "map"
-	_p_body.visible = not _map_view.visible
+	for c in _map_view.get_parent().get_children():      # the map has the whole sheet: no title, rule or text above it
+		if c != _map_view and c != _p_foot:
+			(c as Control).visible = not _map_view.visible
 	for j in _tab_buttons.size():
 		_tab_buttons[j].button_pressed = j == i
 	for c in _list.get_children():
@@ -680,6 +682,9 @@ func _fill_map() -> void:
 	_map_view.set("focus", Vector2.INF)
 	var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	_map_view.set("you", Vector2(pl.global_position.x, pl.global_position.z) if pl else Vector2.INF)
+	if pl:
+		var fwd := -pl.global_basis.z
+		_map_view.set("you_dir", Vector2(fwd.x, fwd.z))
 	_map_view.queue_redraw()
 	var total := maxi(SecretState.sites.size(), SecretPages.SECRETS.size())
 	_head("Secret places   %d / %d" % [found.size(), total])
@@ -762,7 +767,7 @@ func _pins() -> Array:
 		for d: Vector2 in drawn:
 			dup = dup or d.distance_to(at) < 3.0
 		if not dup:
-			out.append({"at": at, "kind": "mark", "name": String(m3.get_meta(&"map_label", kind)), "col": m3.get_meta(&"map_color", Color(1.0, 0.8, 0.4))})
+			out.append({"at": at, "kind": "mark", "mk": kind, "name": String(m3.get_meta(&"map_label", kind)), "col": m3.get_meta(&"map_color", Color(1.0, 0.8, 0.4))})
 	return out
 
 
@@ -828,118 +833,6 @@ func _region_states() -> Array:
 	for r: Dictionary in RealmLayout.REGIONS:
 		out.append({"r": r, "known": CodexStore.discovered(String(r.id)), "name": LoreDB.place_name(String(r.id))})
 	return out
-
-
-class MapView extends Control:
-	## Draws the valley north-up: regions (lit once walked, a faint outline otherwise), the roads,
-	## the rift, ember marks for secret places found, and the wanderer.
-	var font: Font
-	var title_font: Font
-	var marks: Array = []
-	var pins: Array = []                ## braziers, the Keg, the tasks' places ({at, kind, name})
-	var regions: Array = []
-	var focus := Vector2.INF
-	var you := Vector2.INF
-	const M_INK := Color(0.93, 0.88, 0.8)
-	const M_EMBER := Color(1.0, 0.62, 0.3)
-	const M_EDGE := Color(0.46, 0.34, 0.26)
-	const M_QUIET := Color(0.6, 0.55, 0.62)
-
-	func _to(p: Vector2) -> Vector2:
-		var b := RealmLayout.BOUNDS
-		var s := minf((size.x - 20.0) / b.size.x, (size.y - 20.0) / b.size.y)
-		var off := (size - b.size * s) * 0.5
-		return off + (p - b.position) * s
-
-	func _scale() -> float:
-		var b := RealmLayout.BOUNDS
-		return minf((size.x - 20.0) / b.size.x, (size.y - 20.0) / b.size.y)
-
-	func _area(r: Dictionary) -> float:
-		if r.has("rect"):
-			return (r.rect as Rect2).get_area()
-		return PI * float(r.r) * float(r.r)
-
-	func _draw() -> void:
-		var b := RealmLayout.BOUNDS
-		var s := _scale()
-		var r0 := _to(b.position)
-		draw_rect(Rect2(r0, b.size * s), Color(0.09, 0.065, 0.05, 0.95))
-		draw_rect(Rect2(r0, b.size * s), M_EDGE, false, 1.0)
-		# regions: lit once walked
-		for rs: Dictionary in regions:
-			var r: Dictionary = rs.r
-			var known: bool = rs.known
-			var fill := Color(0.62, 0.42, 0.26, 0.13) if known else Color(0.3, 0.26, 0.3, 0.05)
-			var line := Color(0.62, 0.46, 0.32, 0.6) if known else Color(0.4, 0.36, 0.42, 0.25)
-			if String(r.get("biome", "")) == "ash" and String(r.id) == "rift" and known:
-				fill = Color(0.5, 0.12, 0.05, 0.3)
-			if r.has("rect"):
-				var rc: Rect2 = r.rect
-				var a := _to(rc.position)
-				var e := _to(rc.end)
-				draw_rect(Rect2(a, e - a), fill)
-				draw_rect(Rect2(a, e - a), line, false, 1.0)
-			else:
-				var c := _to(r.c)
-				var rad := float(r.r) * s
-				draw_circle(c, rad, fill)
-				draw_arc(c, rad, 0.0, TAU, 48, line, 1.0)
-		# the roads
-		for path: Dictionary in RealmLayout.PATHS:
-			var pts := PackedVector2Array()
-			for q: Vector2 in path.pts:
-				pts.append(_to(q))
-			draw_polyline(pts, Color(0.85, 0.78, 0.66, 0.4), 2.0)
-		# names of the places walked
-		if font:
-			# smaller places first, so a big region's name never hides a small one's
-			var order := regions.duplicate()
-			order.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _area(a.r) < _area(b.r))
-			var taken: Array[Rect2] = []
-			for rs: Dictionary in order:
-				if not bool(rs.known):
-					continue
-				var r: Dictionary = rs.r
-				var c2: Vector2 = (r.rect as Rect2).get_center() if r.has("rect") else r.c
-				var t := String(rs.name)
-				var w := font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
-				var at := _to(c2) - Vector2(w * 0.5, 0)
-				var box := Rect2(at + Vector2(0, -12), Vector2(w, 15))
-				for o in taken:
-					if o.intersects(box):          # nudge below a name already written there
-						box.position.y += 15.0
-						at.y += 15.0
-						break
-				taken.append(box)
-				draw_string(font, at, t, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(M_INK, 0.75))
-		# secret places
-		for m: Dictionary in marks:
-			var p := _to(m.at)
-			var d := 5.0
-			draw_colored_polygon(PackedVector2Array([p + Vector2(0, -d), p + Vector2(d, 0), p + Vector2(0, d), p + Vector2(-d, 0)]), M_EMBER)
-		# braziers (a flame, grey until kindled), the Keg (a warm square), tasks (gold rings)
-		for pn: Dictionary in pins:
-			var pp := _to(pn.at)
-			if IconArt.draw_mark(self, "mark", String(pn.kind).replace("task", "quest_target"), pp, 20.0):
-				continue                  # (the painted coins; "mark", the secret places, have none and keep their diamond)
-			match String(pn.kind):
-				"fire", "ash":
-					var col := M_EMBER if String(pn.kind) == "fire" else Color(0.55, 0.5, 0.52, 0.8)
-					draw_colored_polygon(PackedVector2Array([pp + Vector2(0, -8), pp + Vector2(4, 1), pp + Vector2(2.5, 4), pp + Vector2(-2.5, 4), pp + Vector2(-4, 1)]), col)
-				"mark":
-					var mc: Color = pn.get("col", Color(1.0, 0.8, 0.4))
-					draw_colored_polygon(PackedVector2Array([pp + Vector2(0, -5), pp + Vector2(5, 0), pp + Vector2(0, 5), pp + Vector2(-5, 0)]), mc)
-		if focus != Vector2.INF:
-			var fp := _to(focus)
-			draw_arc(fp, 11.0, 0.0, TAU, 24, M_INK, 1.5)
-			draw_arc(fp, 16.0, 0.0, TAU, 24, Color(M_INK, 0.4), 1.0)
-		if you != Vector2.INF:
-			var yp := _to(you)
-			draw_circle(yp, 4.0, Color(0.7, 0.85, 1.0))
-			draw_arc(yp, 8.0, 0.0, TAU, 20, Color(0.7, 0.85, 1.0, 0.6), 1.0)
-		if title_font:
-			draw_string(title_font, r0 + Vector2(10, 22), "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, M_QUIET)
 
 
 func _page(meta: String, title: String, body: String, foot: String) -> void:
