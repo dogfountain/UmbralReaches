@@ -15,7 +15,6 @@ const DRAW := 0.85
 const LANE_LEN := 17.0
 const HOP_BACK := 5.5
 var look_kind := "ossuant"
-const GruntModel := preload("res://core/enemy/grunt_model.gd")
 
 var _hop_back_cd := 0.0
 var _aim_yaw := 0.0
@@ -25,8 +24,6 @@ static var _mat: ShaderMaterial
 
 func _init() -> void:
 	super._init()
-	if GruntModel.has(&"quiller"):
-		body_kind = &"quiller"           # its own hooded, rib-quivered model, not the Ossuant's
 	max_hp = 2
 	glow_col = Color(2.2, 1.8, 1.2)
 	hp = 2.0
