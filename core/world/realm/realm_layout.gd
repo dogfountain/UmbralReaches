@@ -306,7 +306,7 @@ const BASE_PATHS := [
 	{"id": "siege_track", "w": 1.4, "pts": [Vector2(-214, 65), Vector2(-215, 84), Vector2(-208, 99), Vector2(-206, 105), Vector2(-203, 118), Vector2(-192, 132), Vector2(-181, 146), Vector2(-182.5, 159.06), Vector2(-177, 175), Vector2(-179, 190)]},
 	{"id": "spire_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 52), Vector2(226, 30), Vector2(236, 14)]},
 	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(204, -84), Vector2(205, -102), Vector2(206, -108)]},
-	{"id": "salt_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 104), Vector2(206, 140), Vector2(202, 180), Vector2(196, 212)]},
+	{"id": "salt_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(212, 108), Vector2(212, 186), Vector2(196, 212)]},        # the Brine Road: straight from Saltmarket to the pump tower (realm_pois_east_works.gd), so it is not in MEANDER_IDS
 	{"id": "downs_track", "w": 1.4, "pts": [Vector2(-179, 190), Vector2(-150, 196), Vector2(-110, 190), Vector2(-44, 192), Vector2(0, 190), Vector2(44, 192), Vector2(110, 186), Vector2(160, 200), Vector2(196, 212)]},
 	# the Crowns' foot, east-west: the two boss corners are joined to the old north (through the wall's breaches)
 	{"id": "crowns_west", "w": 1.4, "pts": [Vector2(-196, -76), Vector2(-178, -72), Vector2(-164, -76), Vector2(-150, -74), Vector2(-140, -70), Vector2(-132, -66)]},
@@ -322,7 +322,7 @@ const BASE_PATHS := [
 ## The main road keeps its line: its waystones and cart stand a fixed step beside it (lore/road.gd).
 const MEANDER_IDS := {"west_track": 2.4, "moor_track": 2.4, "necropolis_way": 2.2, "orchard_lane": 2.2,
 	"mere_causeway": 2.0, "south_track": 2.6, "weir_track": 2.4, "siege_track": 2.4, "spire_track": 2.0,
-	"anchor_track": 2.4, "salt_track": 2.2, "crowns_west": 2.2, "crowns_east": 2.2, "downs_track": 2.8, "downs_link": 1.6}
+	"anchor_track": 2.4, "crowns_west": 2.2, "crowns_east": 2.2, "downs_track": 2.8, "downs_link": 1.6}
 const MEANDER_STEP := 6.0
 static var PATHS: Array = _meander(BASE_PATHS)
 

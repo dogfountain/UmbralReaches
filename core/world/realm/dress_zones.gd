@@ -32,10 +32,6 @@ const LANES := [
 	[Vector2(-196.0, 71.4), Vector2(-192.8, 74.4), Vector2(-191.0, 76.2)],
 	[Vector2(-185.0, 70.6), Vector2(-192.8, 74.4), Vector2(-195.6, 77.4)],
 	[Vector2(-186.0, 64.8), Vector2(-177.0, 64.8), Vector2(-174.0, 70.4)],
-	[Vector2(216.2, 98.6), Vector2(213.0, 94.0), Vector2(218.0, 91.0), Vector2(222.4, 85.0)],
-	[Vector2(216.2, 98.6), Vector2(213.0, 102.0), Vector2(206.0, 105.8)],
-	[Vector2(216.2, 98.6), Vector2(219.6, 100.0), Vector2(222.0, 106.4), Vector2(225.0, 105.0)],
-	[Vector2(213.0, 94.0), Vector2(206.0, 88.4)],
 ]
 const LANE_W := 0.9                    ## half width kept bare along a lane
 
@@ -51,6 +47,9 @@ static func squares() -> Array:
 			if Pilot.on() and String(s.id) == "weirford":
 				d["c"] = Pilot.SQUARE[0]
 				d["r"] = Pilot.SQUARE[1]
+			elif String(s.id) == "saltmarket":
+				d["c"] = Pilot.sm_square()[0]
+				d["r"] = Pilot.sm_square()[1]
 			out.append(d)
 		_sq = out                        # set whole: the land's splat rows read this from worker threads
 	return _sq
@@ -93,6 +92,9 @@ static func _init_once() -> void:
 	for pl: Array in LANES:
 		for i in pl.size() - 1:
 			_add_lane(Pilot.xz(pl[i]), Pilot.xz(pl[i + 1]))
+	for pl: Array in Pilot.sm_lanes():                   # Saltmarket's yard: the fire to each door (the houses' plan is scale_pilot.gd's)
+		for i in pl.size() - 1:
+			_add_lane(pl[i], pl[i + 1])
 
 
 static func _add_lane(a: Vector2, b: Vector2) -> void:

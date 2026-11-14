@@ -39,7 +39,7 @@ const MODULES := {
 const PRELOAD := [
 	"res://art/models/mossy_platform.glb", "res://art/models/summit_pillar.glb",
 	# the east and south marches' kit scenes (13-17 MB each) are the biggest loads of the places pass
-	"res://art/models/r37e_spire.glb", "res://art/models/r37e_saltworks.glb", "res://art/models/r37e_hamlet.glb", "res://art/models/r37e_cells.glb",
+	"res://art/models/r37e_spire.glb", "res://art/models/r37e_saltworks.glb", "res://art/models/r37e_works.glb", "res://art/models/r37e_hamlet.glb", "res://art/models/r37e_cells.glb",
 	"res://art/models/r37_south_hut.glb", "res://art/models/r37_south_oak.glb", "res://art/models/r37_south_wall.glb", "res://art/models/r37_south_well.glb",
 ]
 
