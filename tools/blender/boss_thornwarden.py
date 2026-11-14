@@ -1,49 +1,231 @@
-"""The Thornwarden (r30): a stag-boar of the hedge on the Leaper's QuadRig -- a humped bark-shingled
-body with moss in the seams and an ember heart splitting the chest, a bramble mane, a bone-white
-deer-skull mask with embers in the sockets, a great branching antler crown wound with bramble,
-heavy haunches, thick legs on splayed root feet. Baked into one atlas and split per socket.
+"""The Thornwarden (r38d): the Thorn Henge's keeper, rebuilt as ONE continuous sculpted skin on the Leaper's QuadRig
+(thornwarden.gd extends Leaper, upright hound legs). A stag-boar of bark and briar: a high humped shoulder
+over a deep ribcage and a tucked waist, a neck that flows from the hump down into a long deer skull
+(bone-white, embers in the sockets, jaw, teeth), a crown of branching antlers that grows out of the skull's crest,
+bark shingles laid in rows that follow the ribs, the haunch and every limb, a spine of thorns and a mane of
+briar canes grown from the vertebrae, thick-muscled legs with a point of elbow, a carpus, a hock, and cloven
+hooves gripped by root tendrils, a thorned tail ending in a bramble knot, an ember heart split into the
+breast. Skinned to the rig's bones (a bone per socket) with smooth weights; baked from a ~1M-polygon high.
 
-  tools/blender/run.sh boss_thornwarden.py -- [--preview /tmp/thorn.png] [--no-export]
-Writes art/models/boss_thornwarden.glb and art/textures/boss_thornwarden_*.png
+  tools/blender/run.sh boss_thornwarden.py -- [--no-bake] [--preview /tmp/t.png] [--voxel 0.006] [--size 4096]
+Writes art/models/boss_thornwarden.glb and art/textures/boss_thornwarden_{albedo,normal,orm,emit}.png
 """
-import bpy
 import math
 import os
-import random
 import sys
-from mathutils import Vector, noise
+import numpy as np
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import boss_kit as K
 import grunt_kit as GK
-from boss_kit import G
+import quad_sdf as Q
+import quad_parts as Pt
+import quad_run as R
+import quad_bark as BK
+from quad_parts import V
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-PREVIEW = args[args.index("--preview") + 1] if "--preview" in args else ""
-EXPORT = "--no-export" not in args
-S = K.quad_sockets(0.56, 1.15, 0.2, 0.32)           # thornwarden.gd extends Leaper (leaper.gd _build)
-rnd = random.Random(4417)
+NAME = "Thornwarden"
+PREFIX = "boss_thornwarden"
+VOXEL, SUB, TRIS, SIZE, BAND = 0.0058, 1, 40000, 4096, 0.07
+PREVIEW = ((0, 0.9, -0.1), 5.2)
+EXTRUDE, RAY = 0.04, 0.1
+WSMOOTH = 4
+S = R.rig_sockets(0.56, 1.15, 0.2, 0.32, True)
+B, FR, H, T = S["body"], S["front"], S["head"], S["tail"]
+KEYS = [(-0.60, 0.0, 0.62, 0.07, 0.08, 0.08), (-0.52, 0.0, 0.64, 0.17, 0.16, 0.17), (-0.4, 0.0, 0.69, 0.26, 0.28, 0.23),
+        (-0.22, 0.0, 0.7, 0.29, 0.3, 0.23), (-0.02, 0.0, 0.65, 0.26, 0.25, 0.21), (0.18, 0.0, 0.64, 0.24, 0.19, 0.19),
+        (0.34, 0.0, 0.64, 0.25, 0.18, 0.19), (0.48, 0.0, 0.63, 0.19, 0.15, 0.15), (0.58, 0.0, 0.62, 0.09, 0.09, 0.09), (0.65, 0.0, 0.61, 0.03, 0.03, 0.03)]
+TRUNK = Q.Loft(KEYS)
+rng = np.random.RandomState(4417)
 
-K.reset()
+
+def top(z):
+    return float(np.interp(z, TRUNK.zs, TRUNK.tab[:, 1] + TRUNK.tab[:, 3]))
+
+
+def sockets():
+    return S
+
+
+def segments(S):
+    segs = R.rig_bones(S, 0.6, 0.3)
+    # the crown follows the head; the shoulder hump and scapulae the body
+    for sx in (-1, 1):
+        segs += [("head", V(sx * 0.07, 0.75, -0.65), V(sx * 0.25, 1.15, -0.55), 0.09), ("head", V(sx * 0.25, 1.15, -0.55), V(sx * 0.45, 1.5, -0.35), 0.1),
+                 ("head", V(sx * 0.45, 1.5, -0.35), V(sx * 0.5, 1.8, 0.0), 0.1), ("body", V(sx * 0.12, 0.95, -0.35), V(sx * 0.22, 0.6, -0.42), 0.05)]
+    segs += [("body", V(0, 0.95, -0.3), V(0, 0.8, 0.3), 0.06), ("front", V(0, 0.75, -0.5), V(0, 0.68, -0.66), 0.06)]
+    return segs
+
+
+def tine(F, p0, p1, bend, r0, r1, tag="bone", k=0.015, n=6, fork=0.0, fork_to=None):
+    p0, p1 = V(*p0), V(*p1)
+    bend = V(*bend)
+    pts = [p0 + (p1 - p0) * (i / n) + bend * 4.0 * (i / n) * (1 - i / n) for i in range(n + 1)]
+    rad = [r0 + (r1 - r0) * (i / n) ** 0.9 for i in range(n + 1)]
+    Pt.chain(F, pts, rad, k, tag)
+    if fork and fork_to is not None:
+        i = int(n * fork)
+        tine(F, pts[i], fork_to, (0, 0.03, 0), rad[i] * 0.75, r1, tag, k * 0.7, 4)
+    return pts
+
+
+def crown(F, sx):
+    root = V(sx * 0.07, 0.77, H[2] - 0.0)
+    beam = [root, V(sx * 0.2, 1.0, -0.64), V(sx * 0.36, 1.25, -0.52), V(sx * 0.5, 1.45, -0.35), V(sx * 0.58, 1.6, -0.12), V(sx * 0.55, 1.72, 0.1)]
+    rad = [0.08, 0.072, 0.062, 0.05, 0.04, 0.026]
+    Pt.chain(F, beam, rad, 0.03, "bark")
+    F.add(Q.Ell(root + V(0, 0.0, 0.0), (0.075, 0.055, 0.07)), 0.04, "bark")
+    # the brow tine, a long forward spear, and the tines up the beam, each forked
+    tine(F, beam[1], V(sx * 0.16, 0.98, -1.02), (0, -0.06, 0), 0.044, 0.01, "bone", 0.02, 6, 0.55, V(sx * 0.3, 1.1, -1.05))
+    tine(F, beam[2], V(sx * 0.46, 1.6, -0.78), (sx * 0.04, 0.1, 0), 0.042, 0.009, "bone", 0.02, 6, 0.6, V(sx * 0.66, 1.62, -0.7))
+    tine(F, beam[3], V(sx * 0.74, 1.68, -0.5), (sx * 0.05, 0.08, 0), 0.04, 0.009, "bone", 0.02, 6, 0.55, V(sx * 0.88, 1.5, -0.35))
+    tine(F, beam[4], V(sx * 0.82, 1.72, -0.2), (0.04 * sx, 0.06, 0), 0.034, 0.008, "bone", 0.018, 5, 0.5, V(sx * 0.96, 1.55, -0.12))
+    tine(F, beam[5], V(sx * 0.62, 1.74, 0.34), (0, 0.04, 0.0), 0.024, 0.007, "bone", 0.015, 5)
+    tine(F, beam[2], V(sx * 0.12, 1.42, -0.18), (0, 0.08, 0), 0.038, 0.009, "bone", 0.02, 6, 0.6, V(sx * 0.08, 1.58, 0.0))
+    for i in range(1, 5):                                             # burls on the beam
+        F.add(Q.Ell(beam[i] + V(sx * 0.02, 0.02, 0.03), (0.034, 0.03, 0.036)), 0.02, "bark")
+
+
+def field():
+    F = Q.Field()
+    F.add(TRUNK, 0.06, "bark")
+    hz = H[2]
+    # neck, thick, flowing down from the hump into the skull
+    Pt.chain(F, [V(0, 0.82, -0.4), V(0, 0.8, -0.52), V(0, 0.74, -0.62), V(0, 0.69, hz + 0.01)], [0.2, 0.15, 0.115, 0.09], 0.07, "bark")
+    # the deer skull: a rounded cranium, orbits ringed in raised bone with the ember set deep, a long face that narrows
+    # to a nose with its nasal opening, a zygomatic arch, a slung jaw with teeth
+    HS = 1.22                                                    # the head is the beast's face: it fills the frame
+    CZ = hz - 0.02
+
+    def sp(x, y, z):
+        return V(x * HS, 0.69 + (y - 0.69) * HS, CZ + (z - CZ) * HS)
+
+    def sr(*r):
+        return tuple(v * HS for v in r)
+    F.add(Q.Ell(sp(0, 0.69, hz - 0.02), sr(0.118, 0.105, 0.15)), 0.05, "bone")
+    F.add(Q.Ell(sp(0, 0.775, hz + 0.0), sr(0.065, 0.032, 0.09)), 0.03, "bone")                                  # the crest the crown grows from
+    F.add(Q.Ell(sp(0, 0.655, hz - 0.2), sr(0.082, 0.07, 0.1)), 0.05, "bone")
+    F.add(Q.Ell(sp(0, 0.74, hz - 0.1), sr(0.1, 0.03, 0.07)), 0.04, "bone")
+    F.add(Q.Ell(sp(0, 0.628, hz - 0.29), sr(0.06, 0.054, 0.08)), 0.04, "bone")
+    F.add(Q.Ell(sp(0, 0.612, hz - 0.39), sr(0.05, 0.044, 0.06)), 0.03, "bone")
+    F.add(Q.Ell(sp(0, 0.69, hz - 0.25), sr(0.018, 0.022, 0.13)), 0.04, "bone")                                    # nasal bridge ridge
+    for sx in (-1, 1):
+        F.add(Q.Ell(sp(sx * 0.094, 0.708, hz - 0.115), sr(0.052, 0.05, 0.048)), 0.03, "bone")                         # the orbit's rim
+        F.add(Q.Ell(sp(sx * 0.085, 0.752, hz - 0.12), sr(0.055, 0.028, 0.07), (0.15, 0, 0)), 0.03, "bone")           # brow
+        Pt.chain(F, [sp(sx * 0.11, 0.65, hz - 0.12), sp(sx * 0.125, 0.625, hz - 0.03), sp(sx * 0.09, 0.6, hz + 0.05)], [0.016 * HS, 0.017 * HS, 0.02 * HS], 0.012, "bone")   # zygomatic arch
+        Pt.chain(F, [sp(sx * 0.07, 0.585, hz + 0.02), sp(sx * 0.058, 0.535, hz - 0.2), sp(sx * 0.03, 0.52, hz - 0.37)], [0.034 * HS, 0.028 * HS, 0.02 * HS], 0.012, "bone")      # lower jaw, slung open
+        F.sub(Q.Ell(sp(sx * 0.1, 0.71, hz - 0.125), sr(0.036, 0.034, 0.032)), 0.012)
+        F.add(Q.Ell(sp(sx * 0.1, 0.71, hz - 0.118), sr(0.03, 0.028, 0.026)), 0.004, "ember")
+        for k in range(5):
+            z = hz - 0.17 - 0.036 * k
+            Pt.tooth(F, sp(sx * (0.056 - 0.002 * k), 0.592, z), (0, -1, 0.05), 0.045 * HS, (0.01 if k > 2 else 0.0075) * HS, "bone")
+            Pt.tooth(F, sp(sx * (0.048 - 0.0015 * k), 0.535, z + 0.015), (0, 1, 0.05), 0.04 * HS, 0.009 * HS, "bone")
+    F.sub(Q.Ell(sp(0, 0.626, hz - 0.43), sr(0.018, 0.021, 0.03)), 0.008)                                          # the nasal opening
+    # the antler crown, rooted in the skull's crest
+    for sx in (-1, 1):
+        crown(F, sx)
+    # the thorn mane: canes of briar grown from the hump and the neck, swept back
+    for k in range(9):
+        t = k / 8.0
+        z = -0.5 + 0.7 * t
+        r0 = V(0, top(z) - 0.03, z)
+        for side in (-1, 1):
+            tip = r0 + V(side * (0.06 + 0.05 * math.sin(t * 5)), 0.3 + 0.1 * math.sin(t * 7 + side), 0.18)
+            mid = (r0 + tip) * 0.5 + V(side * 0.03, 0.05, -0.04)
+            Pt.chain(F, [r0, mid, tip], [0.02, 0.014, 0.004], 0.025, "bark")
+    # the spine of thorns
+    for k in range(8):
+        z = -0.42 + 0.125 * k
+        L = 0.3 - 0.022 * k
+        Pt.claw(F, V(0, top(z) - 0.02, z), (0, 1, 0.5), L, 0.05 - 0.003 * k, (0, 0, 1), 0.04, "bone", 4)
+    # tail: thick root, bark ridged, ending in a bramble knot
+    tl = Pt.arc(V(0, 0.6, 0.55), V(0, 0.3, 1.0), V(0, 0.08, 0.0), 8)
+    Pt.chain(F, tl, [0.14, 0.12, 0.1, 0.085, 0.07, 0.058, 0.048, 0.04, 0.036], 0.05, "bark")
+    kn = tl[-1] + V(0, -0.02, 0.05)
+    F.add(Q.Ell(kn, (0.085, 0.085, 0.1)), 0.04, "bark")
+    for k in range(12):
+        a = k * 2.4
+        d = V(math.cos(a), math.sin(a) * 0.8, 0.35 + 0.6 * math.sin(k * 1.3))
+        Pt.claw(F, kn + Pt.unit(d) * 0.05, d, 0.16 + 0.04 * (k % 3), 0.024, (0, -0.3, 0.2), 0.015, "bone", 3)
+    # the ember heart: a split down the breast between bark plates, lit inside, thorn lips
+    F.sub(Q.Ell((0, 0.52, -0.64), (0.028, 0.16, 0.06)), 0.02)
+    F.add(Q.Ell((0, 0.52, -0.6), (0.016, 0.13, 0.03)), 0.0, "ember")
+    # legs
+    for sx in (-1, 1):
+        t = "fl" if sx < 0 else "fr"
+        t2 = "bl" if sx < 0 else "br"
+        hp, kn_, ft = S["leg_%s_hip" % t], S["leg_%s_knee" % t], S["leg_%s_foot" % t]
+        # shoulder: a scapula under the hump, a heavy muscle, a humerus, the point of the elbow, a forearm, carpus, cannon
+        F.add(Q.RoundCone(V(sx * 0.14, 0.95, -0.34), V(sx * 0.21, 0.52, -0.42), 0.09, 0.14, 0.5, (1, 0, 0)), 0.08, "bark")
+        F.add(Q.Ell((sx * 0.22, 0.5, -0.4), (0.09, 0.17, 0.15)), 0.09, "bark")
+        F.add(Q.RoundCone(hp + V(0, 0.02, 0), kn_ + V(0, 0.02, 0), 0.14, 0.085, 0.8, (1, 0, 0)), 0.06, "bark")
+        F.add(Q.Ell(kn_ + V(0, 0.0, 0.07), (0.052, 0.06, 0.06)), 0.03, "bark")
+        wr = V(sx * 0.2, 0.115, -0.385)
+        Pt.chain(F, [kn_, kn_ + (wr - kn_) * 0.5, wr], [0.085, 0.07, 0.046], 0.05, "bark", 0.88)
+        F.add(Q.Ell(wr + V(0, 0.0, 0.02), (0.05, 0.055, 0.05)), 0.03, "bark")
+        Pt.chain(F, [wr, V(sx * 0.2, 0.06, -0.395)], [0.04, 0.036], 0.025, "hide")
+        # cloven hoof gripped by roots
+        for hf, hdx in ((0, -0.027), (1, 0.027)):
+            F.add(Q.Ell((sx * 0.2 + hdx, 0.03, ft[2] - 0.035), (0.034, 0.036, 0.07)), 0.01, "bone")
+        F.add(Q.Ell((sx * 0.2, 0.055, ft[2] - 0.01), (0.05, 0.04, 0.06)), 0.03, "hide")
+        for k in range(3):
+            a = (k - 1) * 0.8
+            Pt.claw(F, V(sx * 0.2 + math.sin(a) * 0.035, 0.05, ft[2] - 0.03), (math.sin(a), -0.1, -math.cos(a)), 0.11, 0.026, (0, -0.8, 0), 0.025, "bark", 4)
+        # hind: haunch, thigh, stifle, gaskin, hock, cannon, hoof
+        hp2, kn2, ft2 = S["leg_%s_hip" % t2], S["leg_%s_knee" % t2], S["leg_%s_foot" % t2]
+        F.add(Q.RoundCone(V(sx * 0.15, 0.7, 0.34), kn2 + V(0, 0.0, 0.02), 0.15, 0.08, 0.5, (1, 0, 0)), 0.07, "bark")
+        F.add(Q.Ell((sx * 0.15, 0.64, 0.35), (0.07, 0.12, 0.13)), 0.09, "bark")
+        F.add(Q.RoundCone(V(sx * 0.17, 0.52, 0.43), V(sx * 0.2, 0.28, 0.4), 0.07, 0.04, 0.6, (1, 0, 0)), 0.05, "bark")
+        F.add(Q.Ell(kn2 + V(0, 0.0, -0.05), (0.04, 0.05, 0.034)), 0.02, "bark")
+        hk = V(sx * 0.2, 0.17, 0.5)
+        Pt.chain(F, [kn2, kn2 + (hk - kn2) * 0.5 + V(0, 0.01, 0.0), hk], [0.09, 0.07, 0.052], 0.04, "bark", 0.88)
+        F.add(Q.Ell(hk + V(0, 0.0, 0.02), (0.04, 0.05, 0.04)), 0.02, "bark")
+        Pt.chain(F, [V(sx * 0.2, 0.36, 0.42), V(sx * 0.2, 0.22, 0.52), hk + V(0, 0, 0.03)], [0.02, 0.018, 0.018], 0.015, "bark")
+        Pt.chain(F, [hk, V(sx * 0.2, 0.09, 0.44), V(sx * 0.2, 0.06, ft2[2] - 0.0)], [0.046, 0.04, 0.042], 0.025, "hide")
+        for hf, hdx in ((0, -0.027), (1, 0.027)):
+            F.add(Q.Ell((sx * 0.2 + hdx, 0.03, ft2[2] - 0.035), (0.034, 0.036, 0.07)), 0.01, "bone")
+        F.add(Q.Ell((sx * 0.2, 0.055, ft2[2] - 0.01), (0.05, 0.04, 0.06)), 0.03, "hide")
+        for k in range(3):
+            a = (k - 1) * 0.8
+            Pt.claw(F, V(sx * 0.2 + math.sin(a) * 0.035, 0.05, ft2[2] - 0.03), (math.sin(a), -0.1, -math.cos(a)), 0.11, 0.026, (0, -0.8, 0), 0.025, "bark", 4)
+    return F
+
+
+# --- materials ---------------------------------------------------------------------------------------
+
+def attr(m, name):
+    n = m.n('ShaderNodeVertexColor')
+    n.layer_name = name
+    sp = m.n('ShaderNodeSeparateColor')
+    m.links.new(n.outputs['Color'], sp.inputs['Color'])
+    return sp.outputs['Red'], sp.outputs['Green'], sp.outputs['Blue']
 
 
 def bark_mat():
     m = K.Mat("Bark")
     sc = m.scan("bark_brown_02", 3.5)
-    moss_n = m.noise(5.0, 6.0, 0.6)
-    crev = m.math('LESS_THAN', sc["disp"], 0.35)
-    moss = m.math('MULTIPLY', m.math('GREATER_THAN', moss_n, 0.55), m.math('ADD', crev, 0.25), True)
+    crev, pid, moss_a = attr(m, "bark")
     col = m.mul(sc["color"], (0.5, 0.42, 0.37))
+    col = m.mul(col, (0.62, 0.62, 0.62))
+    vary = m.ramp(pid, [(0.0, (0.55, 0.5, 0.48)), (1.0, (1.25, 1.15, 1.05))])
+    col = m.mul(col, (1.0, 1.0, 1.0))
+    mx = m.n('ShaderNodeMix')
+    mx.data_type = 'RGBA'
+    mx.blend_type = 'MULTIPLY'
+    mx.inputs[0].default_value = 1.0
+    m.links.new(col, mx.inputs[6])
+    m.links.new(vary, mx.inputs[7])
+    col = mx.outputs[2]
+    moss_n = m.noise(5.0, 6.0, 0.6)
+    moss = m.math('MULTIPLY', m.math('GREATER_THAN', moss_n, 0.5), m.math('ADD', crev, 0.2), True)
     col = m.mix(moss, col, (0.045, 0.06, 0.03))
-    # r37: split bark chars black in its deepest fissures, and the heart's ember shows through them
-    deep = m.math('LESS_THAN', sc["disp"], 0.2)
-    char = m.math('MULTIPLY', deep, m.math('ADD', 0.35, m.noise(4.0, 3.0, 0.5)), True)
-    col = m.mix(m.math('MULTIPLY', char, 0.8), col, (0.012, 0.008, 0.006))
-    h = m.math('ADD', m.math('MULTIPLY', sc["disp"], 1.0), m.math('MULTIPLY', moss, 0.15))
-    seam = m.math('MULTIPLY', m.math('LESS_THAN', sc["disp"], 0.09), m.math('GREATER_THAN', m.noise(3.0, 2.0, 0.5), 0.52))
+    char = m.math('MULTIPLY', m.math('GREATER_THAN', crev, 0.55), 0.9)
+    col = m.mix(char, col, (0.012, 0.008, 0.006))
+    h = m.math('ADD', m.math('MULTIPLY', sc["disp"], 1.0), m.math('MULTIPLY', crev, -0.8))
+    gate = m.math('GREATER_THAN', m.noise(3.0, 2.0, 0.5), 0.54)
+    seam = m.math('MULTIPLY', m.math('GREATER_THAN', crev, 0.9), gate)
     ember = m.mix(seam, (0.0, 0.0, 0.0), (1.0, 0.3, 0.05))
-    return m.finish(col, m.math('ADD', m.math('MULTIPLY', sc["rough"], 0.4), 0.55), 0.0, h, 1.0, 0.008, emit=ember, emit_strength=2.4)
+    return m.finish(col, m.math('ADD', m.math('MULTIPLY', sc["rough"], 0.4), 0.5), 0.0, h, 1.0, 0.006, emit=ember, emit_strength=2.4)
 
 
 def bone_mat():
@@ -52,8 +234,8 @@ def bone_mat():
     dirt = m.noise(8.0, 8.0, 0.6)
     crack = m.math('LESS_THAN', m.voronoi(30.0, 'DISTANCE_TO_EDGE'), 0.018)
     crack = m.math('MULTIPLY', crack, m.math('GREATER_THAN', m.noise(7.0, 3.0, 0.5), 0.5))
-    col = m.mul(m.mono(sc["color"]), (1.25, 1.12, 0.9))
-    col = m.mix(m.math('MULTIPLY', m.math('SUBTRACT', 1.0, dirt), 0.5), col, (0.4, 0.3, 0.2))
+    col = m.mul(m.mono(sc["color"]), (0.95, 0.84, 0.66))
+    col = m.mix(m.math('MULTIPLY', m.math('SUBTRACT', 1.0, dirt), 0.65), col, (0.3, 0.22, 0.14))
     col = m.mix(crack, col, (0.13, 0.09, 0.06))
     h = m.math('ADD', m.math('MULTIPLY', sc["disp"], 0.7), m.math('MULTIPLY', crack, -0.7))
     return m.finish(col, m.math('ADD', m.math('MULTIPLY', sc["rough"], 0.5), 0.3), 0.0, h, 0.8, 0.0025)
@@ -78,150 +260,62 @@ def ember_mat():
     return m.finish((0.05, 0.02, 0.01), 0.6, 0.0, None, emit=col, emit_strength=8.0)
 
 
-BARK = bark_mat()
-BONE = bone_mat()
-HIDE = hide_mat()
-EMBER = ember_mat()
-MATS = [BARK, BONE, HIDE, EMBER]
-objs = []
-
-
-def add(o):
-    objs.append(o)
-    return o
-
-
-B = S["body"]
-# --- body: a deep chest and a hump at the withers, haunches, belly; bark shingles, an ember heart -------
-# one blended mass (metaballs): deep chest and withers hump forward, a tucked barrel, heavy haunches
-els = [(B + G(0, 0.05, -0.3), (0.3, 0.36, 0.28), 2.0), (B + G(0, 0.24, -0.32), (0.18, 0.24, 0.2), 2.0),
-       (B + G(0, 0.02, 0.02), (0.24, 0.3, 0.23), 2.0), (B + G(0, 0.06, 0.32), (0.25, 0.24, 0.22), 2.0),
-       (B + G(0, -0.12, -0.15), (0.17, 0.3, 0.12), 1.5)]
-for tag, sx, z in (("fl", -1, -0.414), ("fr", 1, -0.414), ("bl", -1, 0.391), ("br", 1, 0.391)):
-    els.append((B + G(sx * 0.2, 0.05, z), (0.15, 0.2, 0.2), 2.0))
-add(K.meta_body("Body", els, "body", HIDE, 0.016, 0.012, 1.0))
-# bark shingles, roof-tile rows from the spine down the flanks
-for row in range(5):
-    n = 16 - row * 2
-    a = 0.12 + 0.3 * row
-    for k in range(n):
-        z = -0.55 + 1.05 * (k + 0.5 * (row % 2)) / n
-        for sx in (-1, 1):
-            hump = 0.15 * math.exp(-((z + 0.3) / 0.25) ** 2)
-            base = B + G(sx * math.sin(a) * 0.27, 0.27 + hump - (1 - math.cos(a)) * 0.3, z)
-            sz = (rnd.uniform(0.07, 0.11), rnd.uniform(0.08, 0.13), rnd.uniform(0.012, 0.02))
-            from mathutils import Euler
-            rot = Euler((0.25, sx * a * 1.1, rnd.uniform(-0.2, 0.2))).to_matrix()
-            def warp(c, rot=rot, sz=sz):
-                c = Vector((c.x, c.y, c.z + 0.5 * c.x * c.x))        # curved like a shingle
-                c = Vector((c.x * sz[0], c.y * sz[1], c.z * sz[2]))
-                return rot @ c
-            add(K.blob("Shingle", base, (1.0, 1.0, 1.0), "body", BARK, 16, 8, warp))
-# the bramble mane along the spine: twisted pairs of canes, barbed
-for k in range(14):
-    t = k / 13.0
-    z = -0.6 + 1.0 * t
-    hump = 0.15 * math.exp(-((z + 0.3) / 0.25) ** 2)
-    root = B + G(0, 0.25 + hump - 0.05 * max(0.0, (z - 0.1) / 0.3) ** 2, z)      # rooted IN the back (they floated 9 cm above it)
-    for side in (-1, 1):
-        tip = root + G(side * 0.06, 0.27 + 0.06 * math.sin(t * 7), 0.12)
-        add(K.loft("Cane", [root, root.lerp(tip, 0.5) + G(side * 0.02, 0.02, 0), tip], [0.016, 0.011, 0.0], "body", BARK, 8))
-        add(K.loft("Barb", [root.lerp(tip, 0.4), root.lerp(tip, 0.4) + G(side * 0.04, 0.02, -0.02)], [0.005, 0.0], "body", BONE, 5))
-# the ember heart: a split down the sternum between bark plates, lit inside
-heart = [B + G(0, 0.25 - 0.06 * k, -0.6 - 0.02 * math.sin(k)) for k in range(7)]
-add(K.loft("Heart", heart, [(0.018, 0.04)] * 7, "body", EMBER, 10))
-for sx in (-1, 1):
-    add(K.blob("Lip", B + G(sx * 0.07, 0.07, -0.6), (0.06, 0.16, 0.05), "body", BARK, 24, 12))
-
-# --- neck (front) and tail ----------------------------------------------------------------------------
-F = S["front"]
-add(K.loft("Neck", [B + G(0, 0.15, -0.45), F + G(0, 0.05, -0.02), S["head"] + G(0, -0.02, 0.04)], [0.2, 0.15, 0.1], "front", HIDE, 24, wobble=0.06))
-for k in range(8):
-    p = F + G(0, 0.17 - 0.02 * k, 0.1 - 0.04 * k)
-    for side in (-1, 1):
-        add(K.loft("ManeCane", [p, p + G(side * 0.08, 0.12, 0.08)], [0.014, 0.0], "front", BARK, 7))
-T = S["tail"]
-tail = [T + G(0, 0.0 - 0.03 * t * t, 0.4 * t) for t in [i / 8.0 for i in range(9)]]
-add(K.loft("Tail", tail, [0.08 * (1.0 - t) + 0.005 for t in [i / 8.0 for i in range(9)]], "tail", BARK, 12, wobble=0.15))
-
-# --- head: a long deer skull worn over the snout, embers in the sockets, the antler crown --------------------
-Hd = S["head"]
-
-
-def deer_skull(c):
-    p = Vector(c)
-    n = p.normalized()
-    def dent(at, r, d):
-        return d * math.exp(-((p - at).length / r) ** 2)
-    push = 0.0
+def axes():
+    A = []
+    A.append(BK.Axis(V(0, 0.66, -0.5), V(0, 0.62, 0.55), (0, 1, 0), 0.25, 0.14, 0.17, 0.03))              # the trunk
+    A.append(BK.Axis(V(0, 0.82, -0.4), V(0, 0.7, -0.64), (0, 1, 0), 0.15, 0.1, 0.12, 0.022))            # the neck
     for sx in (-1, 1):
-        push -= dent(Vector((sx * 0.6, 0.2, 0.35)), 0.24, 0.45)    # orbits
-        push += dent(Vector((sx * 0.7, 0.05, 0.1)), 0.25, 0.15)    # zygomatic arches
-        push -= dent(Vector((sx * 0.3, 0.85, 0.15)), 0.18, 0.2)    # nasal hollows
-        push -= dent(Vector((sx * 0.62, -0.55, 0.0)), 0.22, 0.2)   # temporal fossae
-    push += dent(Vector((0.0, -0.3, 0.75)), 0.4, 0.12)             # the crown
-    if p.y > 0.2:
-        p.x *= 1.0 - 0.45 * (p.y - 0.2)                            # the long muzzle narrows
-    return p + n * push + n * 0.025 * noise.noise(p * 7.0)
+        t, t2 = ("fl", "bl") if sx < 0 else ("fr", "br")
+        hp, kn, ft = S["leg_%s_hip" % t], S["leg_%s_knee" % t], S["leg_%s_foot" % t]
+        A.append(BK.Axis(hp + V(0, 0.1, 0), kn, (sx, 0, 0), 0.1, 0.09, 0.11, 0.018))
+        A.append(BK.Axis(kn, V(sx * 0.2, 0.1, -0.385), (sx, 0, 0), 0.07, 0.08, 0.1, 0.014))
+        hp2, kn2, ft2 = S["leg_%s_hip" % t2], S["leg_%s_knee" % t2], S["leg_%s_foot" % t2]
+        A.append(BK.Axis(V(sx * 0.16, 0.66, 0.36), kn2, (sx, 0, 0), 0.12, 0.1, 0.12, 0.02))
+        A.append(BK.Axis(kn2, V(sx * 0.2, 0.17, 0.5), (sx, 0, 0), 0.06, 0.08, 0.1, 0.014))
+    A.append(BK.Axis(V(0, 0.58, 0.55), V(0, 0.4, 1.35), (0, 1, 0), 0.07, 0.05, 0.08, 0.012))
+    return A
 
 
-add(K.blob("Skull", Hd + G(0, 0.06, -0.14), (0.1, 0.26, 0.09), "head", BONE, 64, 32, deer_skull))
-add(K.blob("Jaw", Hd + G(0, -0.03, -0.12), (0.065, 0.22, 0.035), "head", BONE, 32, 16))
-for sx in (-1, 1):
-    add(K.blob("Ember eye", Hd + G(sx * 0.04, 0.05, -0.06), (0.016, 0.012, 0.014), "head", EMBER, 12, 8))
-for k in range(6):
-    x = (k - 2.5) * 0.012
-    add(K.loft("Tooth", [Hd + G(x, -0.025, -0.27 + abs(x)), Hd + G(x, -0.05, -0.27 + abs(x))], [0.005, 0.0], "head", BONE, 6))
+def detail(ctx):
+    sc = ctx.sc
+    P, N = ctx.P, ctx.N
+    tags = ["bark", "hide", "bone", "ember"]
+    idx = ctx.region(tags, {"bone": 0.004, "ember": 0.006, "hide": 0.0})
+    barkish = (idx == 0) | (idx == 1)
+    # bark zone: the upper and outer surfaces; hide under the belly, the throat, the lower legs
+    zone = np.clip((N[:, 1] + 0.45) * 1.7, 0.0, 1.0) * barkish
+    low_leg = np.clip((0.2 - P[:, 1]) * 12.0, 0.0, 1.0)
+    zone = zone * (1.0 - low_leg)
+    zone = np.where(idx == 1, 0.0, zone)                                     # a prim tagged hide stays hide
+    zone = np.where(P[:, 2] < -0.62, zone * np.clip((0.7 - P[:, 1]) * 0 + 1.0, 0, 1) * 0.0, zone)       # not on the face
+    zone = zone * np.clip((ctx.tag('bone') - 0.004) / 0.03, 0.0, 1.0)
+    disp, crev, pid = BK.plates(P, N, axes(), zone, warp=0.55)
+    sc.d += disp
+    sc.noise(22.0, 0.004, mask=zone, seed=2)
+    sc.noise(48.0, 0.0018, seed=7)
+    sc.folds(36.0, 0.0016, mask=1.0 - zone)
+    # the skull: deep sockets, brow, a long nasal channel; the ribs under the hide of the flank
+    hz = H[2]
+    for sx in (-1, 1):
+        sc.bump((sx * 0.077, 0.7, hz - 0.11), 0.034, -0.014, facing=(sx, 0.2, -0.6))
+        sc.bump((sx * 0.07, 0.64, hz - 0.2), 0.03, -0.01, facing=(sx, 0, -0.3))
+        sc.ridge((sx * 0.04, 0.735, hz - 0.13), (sx * 0.075, 0.74, hz - 0.08), 0.014, 0.008, facing=(0, 1, 0))
+        sc.ridge((sx * 0.025, 0.66, hz - 0.2), (sx * 0.028, 0.615, hz - 0.33), 0.008, -0.006, facing=(sx, 0.3, -0.4))
+    mask_attr = np.zeros((len(P), 4), dtype=np.float32)
+    mask_attr[:, 0] = crev
+    mask_attr[:, 1] = pid
+    ctx.attrs["bark"] = mask_attr
+    BARK = bark_mat()
+    HIDE = hide_mat()
+    BONE = bone_mat()
+    EMBER = ember_mat()
+    out = np.zeros(len(P), dtype=np.int32)
+    out[(idx == 0) | (idx == 1)] = 1                  # bark by default (the plates carry the pattern)
+    out[(zone < 0.35) & barkish] = 0                  # hide where the plates fade out
+    out[idx == 2] = 2
+    out[idx == 3] = 3
+    return [HIDE, BARK, BONE, EMBER], out
 
 
-def antler(root, d, length, radius, depth, side):
-    pts, radii = [], []
-    bend = G(side * 0.25, -0.05, 0.12)
-    for k in range(7):
-        t = k / 6.0
-        pts.append(root + d * length * t + bend * length * t * t + Vector((0, 0, 0.03 * length * math.sin(t * 5.0))))
-        radii.append(radius * (1.0 - 0.55 * t) if depth > 1 else radius * (1.0 - t))
-    add(K.loft("Tine", pts, radii, "head", BONE if depth == 1 else BARK, 10, wobble=0.15, seed=depth))
-    if depth <= 1:
-        return
-    if depth == 3:
-        coil = [pts[0].lerp(pts[3], t) + Vector((math.cos(t * 18) * radius * 1.3, math.sin(t * 18) * radius * 1.3, 0)) for t in [i / 30.0 for i in range(31)]]
-        add(K.curve_tube("Bramble", coil, radius * 0.25, "head", BARK))
-    for f, i in enumerate((2, 4)):
-        tan = (pts[i + 1] - pts[i - 1]).normalized()
-        out = (tan + Vector((0, 0, 0.9)) + G(side * 0.25, 0, 0.5 if f == 0 else -0.4)).normalized()
-        antler(pts[i], out, length * 0.55, radii[i] * 0.72, depth - 1, side)
-    antler(pts[6], (pts[6] - pts[5]).normalized(), length * 0.45, radii[6] * 0.9, depth - 1, side)
-
-
-for side in (-1, 1):
-    antler(Hd + G(side * 0.05, 0.08, 0.0), G(side * 0.55, 1.0, 0.2).normalized(), 0.62, 0.035, 3, side)
-
-# --- legs: heavy upper legs (out from the hip), thick lower legs, splayed root feet ------------------------
-for tag in ("fl", "fr", "bl", "br"):
-    hip, knee, foot = S["leg_%s_hip" % tag], S["leg_%s_knee" % tag], S["leg_%s_foot" % tag]
-    add(K.loft("Thigh", [hip, hip.lerp(knee, 0.5) + G(0, 0.05, 0), knee], [0.11, 0.1, 0.07], "leg_%s_hip" % tag, HIDE, 18, wobble=0.12))
-    hock = knee.lerp(foot, 0.45) + G(0, 0, 0.05 if tag.startswith("b") else -0.03)
-    add(K.loft("Shin", [knee, hock, foot + G(0, 0.06, 0)], [0.075, 0.055, 0.05], "leg_%s_knee" % tag, HIDE, 16, wobble=0.12))
-    for k in range(5):
-        z = knee.z - 0.1 - k * 0.09
-        p = knee.lerp(foot, (knee.z - z) / max(knee.z - foot.z, 0.01))
-        add(K.blob("LegPlate", p + G(0, 0, -0.06), (0.06, 0.03, 0.08), "leg_%s_knee" % tag, BARK, 16, 8))
-    add(K.blob("Pad", foot + G(0, 0.03, 0), (0.07, 0.07, 0.045), "leg_%s_foot" % tag, BARK, 20, 10))
-    for t in range(5):
-        a = (t - 2) * 0.55
-        d = G(math.sin(a), -0.15, -math.cos(a)).normalized() if t < 4 else G(0, -0.2, 1).normalized()
-        if t == 4:
-            d = G(0.3, -0.2, 1.0).normalized()
-        root = foot + G(0, 0.03, 0)
-        add(K.loft("Root", [root, root + d * 0.07 + G(0, -0.02, 0), root + d * 0.15 + G(0, -0.03, 0), root + d * 0.2 + G(0, -0.025, 0)], [0.025, 0.02, 0.012, 0.0], "leg_%s_foot" % tag, BARK, 10, wobble=0.2))
-
-# fuse: one continuous hide per socket, the bark shingles into one carapace, sculpted
-objs[:] = K.fuse(objs, 0.004, keep={"Ember", "Bone"}, sculpt=0.003, sculpt_scale=0.035, decimate=0.3)
-print("THORN parts", len(objs))
-if PREVIEW:
-    K.preview(PREVIEW, 0.8, 4.8, ((25, 1.6), (95, 1.2)))
-if EXPORT:
-    K.bake_atlas(objs, MATS, "boss_thornwarden", os.path.join(ROOT, "art", "textures"), 4096)
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT, "art", "blender", "boss_thornwarden.blend"))
-    K.split_and_export(objs, os.path.join(ROOT, "art", "models", "boss_thornwarden.glb"), None, S)
+if __name__ == "__main__":
+    R.run(__import__(__name__))

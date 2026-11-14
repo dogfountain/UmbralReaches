@@ -90,7 +90,7 @@ static func dress(rig: CharacterRig, kind: StringName) -> Array[MeshInstance3D]:
 const MODELS := {
 	&"bone_abbot": "res://art/models/boss_bone_abbot.glb",
 	&"ascended_warden": "res://art/models/boss_ascended_warden.glb",
-	&"thornwarden": "res://art/models/boss_thornwarden.glb",
+	# r38d: the Thornwarden is ONE skinned mesh on the rig (GruntModel.KINDS), not a mesh per socket
 	# --- west marches ---
 	&"hierarch": "res://art/models/boss_hierarch.glb",
 }

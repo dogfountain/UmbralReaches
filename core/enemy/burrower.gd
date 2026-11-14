@@ -42,7 +42,7 @@ func _init() -> void:
 func _build() -> void:
 	name = "Burrower"
 	var rig := QuadRig.new()
-	rig.body_height = 0.48
+	rig.body_height = 0.36
 	rig.body_len = 1.05
 	rig.hip_spread = 0.22
 	rig.upper_len = 0.24
