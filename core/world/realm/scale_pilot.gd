@@ -186,6 +186,55 @@ static func xz3(v: Vector3) -> Vector3:
 	return Vector3(q.x, v.y, q.y)
 
 
+# --- Hearthward (14 Nov: the village at the spawn, same proportions as Weirford) -------------------------
+## Its five modelled cottages grow about their own centres (lore/cottage.gd takes the factor from hw_scale; Maud's
+## also moves, off the new market's back), and every old point of the village plan near one goes with it
+## (hw_xz): the walk nodes, the lamplighter's posts, the faces in the routines. HW_POINTS are the points set by
+## hand: a doorstep clear of a longer eave, a lamp moved off a stall, the notice board's new place.
+const HW := {
+	"hw_maud": {"old": Vector2(-17.0, 42.0), "at": Vector2(-20.5, 44.0), "s": 1.45, "half": Vector2(3.3, 2.5)},
+	"hw_reed": {"old": Vector2(22.0, 42.0), "at": Vector2(22.0, 42.0), "s": 1.45, "half": Vector2(3.2, 2.5)},
+	"hw_south": {"old": Vector2(-15.0, 64.0), "at": Vector2(-15.0, 66.5), "s": 1.45, "half": Vector2(3.0, 2.4)},
+	"hw_harrow": {"old": Vector2(-19.0, 13.0), "at": Vector2(-17.0, 11.5), "s": 1.4, "half": Vector2(3.1, 2.4)},
+	"hw_cobb": {"old": Vector2(-33.0, 37.5), "at": Vector2(-33.0, 37.5), "s": 1.4, "half": Vector2(3.5, 2.7)},
+}
+const HW_POINTS := {
+	Vector2(-11.8, 37.4): Vector2(-9.9, 36.6),        # lamp_maud: off the stalls' front
+	Vector2(-1.0, 43.5): Vector2(-2.0, 41.6),         # green_n: off the gate's west pier
+	Vector2(-4.0, 43.9): Vector2(-5.8, 41.9),         # the notice node, in front of the board
+	Vector2(-5.5, 45.5): Vector2(-6.6, 43.3),         # the notice board itself (the villagers face it), against the gate's wall, 10 m off the brazier
+	Vector2(19.6, 37.3): Vector2(17.0, 37.0),         # lamp_reed: between the tavern's south wall and the Reeds' eave
+	Vector2(24.5, 37.3): Vector2(27.8, 36.6), Vector2(28.2, 39.0): Vector2(28.0, 46.5),
+	Vector2(28.0, 44.2): Vector2(31.2, 46.5), Vector2(30.4, 46.4): Vector2(33.4, 47.4),      # the Reeds' garden and grave, east of the wider house: the lane runs down its west side to the garden gate
+	Vector2(-13.6, 16.6): Vector2(-11.0, 18.2),      # the Harrows' doorstep, in front of the wider house
+	Vector2(-8.8, 61.0): Vector2(-8.4, 60.8),         # Col's block: clear of the Wrights' bigger front corner
+}
+
+
+static func hw_scale(site: String) -> float:
+	return float((HW[site] as Dictionary).s) if on() and HW.has(site) else 1.0
+
+
+## Where a Hearthward cottage stands (its old centre when the pilot is off).
+static func hw_at(site: String, old: Vector2) -> Vector2:
+	return (HW[site] as Dictionary).at if on() and HW.has(site) else old
+
+
+## A point of Hearthward's old plan in the new one.
+static func hw_xz(v: Vector2) -> Vector2:
+	if not on():
+		return v
+	if HW_POINTS.has(v):
+		return HW_POINTS[v]
+	for id: String in HW:
+		var d: Dictionary = HW[id]
+		var half: Vector2 = d.half
+		var o: Vector2 = d.old
+		if v.distance_to(o) <= half.length() + 2.8:
+			return (d.at as Vector2) + (v - o) * float(d.s)
+	return v
+
+
 # --- the scaled kit ------------------------------------------------------------------------------------
 
 ## Coarser copies of the building materials (world-triplanar: a scaled wall keeps sharp texture but its courses

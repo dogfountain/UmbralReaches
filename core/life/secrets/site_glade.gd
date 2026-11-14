@@ -34,7 +34,7 @@ static func build(root: Node, host: Node3D) -> void:
 	_seq_t = 0.0
 	_mouths.clear()
 	var sp := Kit.space(root)
-	var c2 := LK.search_spot(sp, GLADE_NEAR, 36.0, Vector2(4.8, 4.8), 1.0, 1.7, ["secrets_singing"], 3.0, func(q: Vector2) -> bool: return Kit.gy(sp, q.x, q.y) > -0.5)
+	var c2 := LK.search_spot(sp, GLADE_NEAR, 48.0, Vector2(4.8, 4.8), 1.0, 1.7, ["secrets_singing"], 3.0, func(q: Vector2) -> bool: return Kit.gy(sp, q.x, q.y) > -0.5)
 	if c2 == Vector2.INF:
 		print("SECRETS singing stones: no clear spot")
 		PlacementLog.skip("secrets", "singing_stones", Vector3(GLADE_NEAR.x, 0, GLADE_NEAR.y), "no clear spot")

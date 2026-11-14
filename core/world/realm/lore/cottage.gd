@@ -8,6 +8,7 @@ extends RefCounted
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const LA := preload("res://core/world/realm/lore/lore_assets.gd")
 const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
+const Pilot := preload("res://core/world/realm/scale_pilot.gd")
 ## Hearthward's five cottages are modelled (tools/blender/cottage_kit.py -> art/models/cottages/cottage_<name>.glb, same
 ## footprint, door, windows and chimney as the code below); the code-built cottage stays for the wilds and barrows huts.
 const MODELLED := {"hw_maud": "maud", "hw_harrow": "harrow", "hw_reed": "reed", "hw_cobb": "cobb", "hw_south": "south"}
@@ -20,11 +21,12 @@ static func build(L: RefCounted, site_name: String, c: Vector2, w: float, d: flo
 	var k: OssKit = L.k
 	var rng: RandomNumberGenerator = L.rng
 	var bas := Basis(Vector3.UP, yaw)
+	var sc := Pilot.hw_scale(site_name) if MODELLED.has(site_name) else 1.0       # Hearthward's cottages are 1.4-1.45 x (scale_pilot.gd HW)
 	# footprint corners in world xz -> site rect, ground range
 	var corners: Array[Vector2] = []
 	for sx: float in [-1.0, 1.0]:
 		for sz: float in [-1.0, 1.0]:
-			var q: Vector3 = bas * Vector3(sx * (w * 0.5 + 0.3), 0, sz * (d * 0.5 + 0.3))
+			var q: Vector3 = bas * Vector3(sx * (w * 0.5 * sc + 0.3), 0, sz * (d * 0.5 * sc + 0.3))
 			corners.append(Vector2(c.x + q.x, c.y + q.z))
 	var lo := corners[0]
 	var hi := corners[0]
@@ -39,7 +41,7 @@ static func build(L: RefCounted, site_name: String, c: Vector2, w: float, d: flo
 	var ruined := state == "ruin" or state == "burned"
 	var stone := "lore_rubble" if walls == "lore_rubble" else "lore_tstone"
 	if MODELLED.has(site_name):
-		return _build_modelled(L, site_name, MODELLED[site_name], w, d, state, roof, bas, xf, gr, fy, rect, stone)
+		return _build_modelled(L, site_name, MODELLED[site_name], w, d, state, roof, bas, xf, gr, fy, rect, stone, sc)
 	var face_key := walls
 	var shade := 0.55 if state == "burned" else 1.0
 	# foundation (local footprint, world rotated): one block per footprint, below grade
@@ -153,7 +155,7 @@ static func build(L: RefCounted, site_name: String, c: Vector2, w: float, d: flo
 	if not ruined:
 		var wb := xf * Vector3(hw - 0.45, 0, -hd - 0.5)
 		wb.y = L.g(wb.x, wb.z)
-		L.barrel(L.p, wb, 1.0, false, rng.randf() * TAU)
+		L.barrel(L.p, wb, 1.0 + 0.25 * (sc - 1.0) / 0.45, false, rng.randf() * TAU)
 		for row in 2:
 			for i in 5 - row:
 				var lq := xf * Vector3(-hw - 0.35, 0.12 + 0.2 * float(row), -hd + 0.9 + 0.22 * float(i) + 0.11 * float(row))
@@ -167,7 +169,9 @@ static func build(L: RefCounted, site_name: String, c: Vector2, w: float, d: flo
 
 ## One modelled cottage: the glb (near, far beyond FAR_FROM, collision from its -colonly), the lit-window lights and
 ## shafts where the code put them, the chimney smoke, and the lived-in traces (water butt, log pile) that stay code-built.
-static func _build_modelled(L: RefCounted, site_name: String, key: String, w: float, d: float, state: String, roof: String, bas: Basis, xf: Transform3D, gr: Vector2, fy: float, rect: Rect2, stone: String) -> Dictionary:
+static func _build_modelled(L: RefCounted, site_name: String, key: String, w: float, d: float, state: String, roof: String, bas: Basis, xu: Transform3D, gr: Vector2, fy: float, rect: Rect2, stone: String, sc := 1.0) -> Dictionary:
+	# `xu` is the cottage's frame; `xf` is the same frame at the pilot's scale: a point in the model's own metres comes out where it is built
+	var xf := Transform3D(xu.basis.scaled(Vector3.ONE * sc), xu.origin)
 	var k: OssKit = L.k
 	var rng: RandomNumberGenerator = L.rng
 	var hw := w * 0.5
@@ -175,8 +179,8 @@ static func _build_modelled(L: RefCounted, site_name: String, key: String, w: fl
 	var ruined := state == "ruin" or state == "burned"
 	# the footing below grade (its top sits just under the model's floor)
 	var fh := fy - gr.x + 0.5
-	k.box(stone, xf * Vector3(0, -0.12 - fh * 0.5, 0), Vector3(w + 0.24, fh, d + 0.24), bas, false, 0.8 * (0.55 if state == "burned" else 1.0))
-	var root := WestKit.place(L.holder, "cottages/cottage_%s.glb" % key, xf)
+	k.box(stone, xu * Vector3(0, -0.12 - fh * 0.5, 0), Vector3(w * sc + 0.24, fh, d * sc + 0.24), bas, false, 0.8 * (0.55 if state == "burned" else 1.0))
+	var root := WestKit.place(L.holder, "cottages/cottage_%s.glb" % key, xu, {"scale": Vector3.ONE * sc})
 	if root == null:
 		return {"floor": fy, "door": xf * Vector3(-hw + w * 0.36, 0.0, -hd - 0.9), "xf": xf, "site": site_name, "rect": rect, "ground": gr}
 	root.name = "Cottage_%s" % key
@@ -210,7 +214,7 @@ static func _build_modelled(L: RefCounted, site_name: String, key: String, w: fl
 			var pc: Vector3 = wn[0]
 			var inward: Vector3 = wn[1]
 			var mouth: Vector3 = xf * (pc - inward * 0.2)
-			Interiors.shaft(L.holder, "CotTrail_%d_%d" % [int(mouth.x * 4.0), int(mouth.z * 4.0)], mouth, xf.basis * (-inward) + Vector3(0.0, -0.55, 0.0), Color(1.0, 0.58, 0.24), 0.85, 9.5, 20.0)
+			Interiors.shaft(L.holder, "CotTrail_%d_%d" % [int(mouth.x * 4.0), int(mouth.z * 4.0)], mouth, bas * (-inward) + Vector3(0.0, -0.55, 0.0), Color(1.0, 0.58, 0.24), 0.85, 9.5, 20.0)
 			L.light("CotGlow_%d_%d" % [int(mouth.x * 4.0), int(mouth.z * 4.0)], xf * (pc - inward * 0.6), Color(1.0, 0.58, 0.26), 0.42, 3.6)
 		var top := 2.6 + d * 0.5 * 0.95 + (1.55 if roof != "slate" else 1.05)
 		var smoke := Vfx.emitter(Color(0.32, 0.32, 0.36, 0.35), {"count": 10, "life": 4.5, "speed": Vector2(0.25, 0.5), "size": 0.55, "gravity": -0.12, "radius": 0.1, "additive": false, "spread": 12.0})
@@ -222,7 +226,7 @@ static func _build_modelled(L: RefCounted, site_name: String, key: String, w: fl
 	if not ruined:
 		var wb := xf * Vector3(hw - 0.45, 0, -hd - 0.5)
 		wb.y = L.g(wb.x, wb.z)
-		L.barrel(L.p, wb, 1.0, false, rng.randf() * TAU)
+		L.barrel(L.p, wb, 1.0 + 0.25 * (sc - 1.0) / 0.45, false, rng.randf() * TAU)
 		for row in 2:
 			for i in 5 - row:
 				var lq := xf * Vector3(-hw - 0.35, 0.12 + 0.2 * float(row), -hd + 0.9 + 0.22 * float(i) + 0.11 * float(row))

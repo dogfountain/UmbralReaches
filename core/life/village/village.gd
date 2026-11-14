@@ -90,14 +90,14 @@ func _build() -> void:
 	nav.call("use_space", space)
 	var west_pois: Variant = load("res://core/world/realm/realm_pois_west_marches.gd")      # no preload: a cycle
 	nav.set("decks", west_pois.decks())
-	var node_xz: Dictionary = Cast.NODES.duplicate()
-	var edges: Array = Cast.EDGES.duplicate()
+	var node_xz: Dictionary = Cast.nodes().duplicate()
+	var edges: Array = Cast.edges().duplicate()
 	var spots := {}
-	for l: Dictionary in Cast.LAMPS:
-		spots[String(l.spot)] = Cast.NODES.get(String(l.spot), Vector2.ZERO)
+	for l: Dictionary in Cast.lamps():
+		spots[String(l.spot)] = Cast.nodes().get(String(l.spot), Vector2.ZERO)
 		lamp_spots[String(l.id)] = String(l.spot)
-	lamps = Props.lamps(self, space, Cast.LAMPS, Cast.NODES)
-	var cart_xz: Vector2 = Cast.NODES.cart
+	lamps = Props.lamps(self, space, Cast.lamps(), Cast.nodes())
+	var cart_xz: Vector2 = Cast.nodes().cart
 	var to_b := (Vector2(0, 33) - cart_xz).normalized()
 	var cart: Dictionary = Props.cart(self, space, cart_xz + to_b * 1.05, atan2(-to_b.x, -to_b.y))
 	anchors["@cart"] = cart.anchor
@@ -109,7 +109,7 @@ func _build() -> void:
 	anchors["@wheel"] = Vector3(13.4, fy + 0.86, 59.12)
 	forge_flare = Props.forge_flare(self, Vector3(11.2, fy + 1.5, 60.3))
 	lights.append(forge_flare)
-	var chop: Vector2 = Cast.NODES.chop
+	var chop: Vector2 = Cast.nodes().chop
 	anchors["@block_col"] = Props.block(self, space, chop + Vector2(0, 0.85))
 	_well = Props.well(self, space, WELL)
 	await get_tree().process_frame
@@ -373,7 +373,7 @@ static var _cast_all: Dictionary = {}
 
 static func cast_all() -> Dictionary:
 	if _cast_all.is_empty():
-		_cast_all = Cast.CAST.duplicate()
+		_cast_all = Cast.cast().duplicate()
 		_cast_all.merge(WestCast.cast())
 	return _cast_all
 

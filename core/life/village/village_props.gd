@@ -20,6 +20,7 @@ const GenCache := preload("res://core/world/realm/gen_cache.gd")
 const DwarfMeshG := preload("res://core/npc/dwarf_mesh.gd")
 const DwarfLookG := preload("res://core/npc/dwarf_look.gd")
 const SELF := "res://core/life/village/village_props.gd"
+const Pilot := preload("res://core/world/realm/scale_pilot.gd")
 const GLASS := preload("res://core/life/village/lamp_glass.gdshader")
 const HALO := preload("res://core/life/village/lamp_halo.gdshader")
 const LANTERN_H := 2.35            ## lantern centre over the ground
@@ -576,12 +577,13 @@ static func site_y(n: String, fallback := 0.0) -> float:
 
 static func cottage_xf(id: String) -> Transform3D:
 	var c: Dictionary = COTTAGES[id]
-	var ctr: Vector2 = c.c
+	var ctr: Vector2 = Pilot.hw_at(String(c.site), c.c)
 	var yaw := float(c.get("yaw", 0.0))
 	if c.has("face"):
-		var d: Vector2 = (c.face as Vector2) - ctr
+		var d: Vector2 = (c.face as Vector2) - (c.c as Vector2)         # the yaw is the old plan's (hearthward.gd turns the house the same way)
 		yaw = atan2(-d.x, -d.y) + float(c.get("add", 0.0))
-	return Transform3D(Basis(Vector3.UP, yaw), Vector3(ctr.x, site_y(String(c.site)), ctr.y))
+	# at the scale pilot's size (scale_pilot.gd HW): a point in the cottage's own metres comes out where the model is; a direction wants .basis.orthonormalized()
+	return Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * Pilot.hw_scale(String(c.site))), Vector3(ctr.x, site_y(String(c.site)), ctr.y))
 
 
 ## Lit panes over the shutters of a dark cottage, with an iron cross in front, and chimney smoke.
@@ -630,13 +632,13 @@ static func windows(parent: Node, id: String, smoke := true) -> Node3D:
 			var b := xf * (pc + along * pw * 0.5 - Vector3.UP * ph * 0.5)
 			var cc := xf * (pc + along * pw * 0.5 + Vector3.UP * ph * 0.5)
 			var dd := xf * (pc - along * pw * 0.5 + Vector3.UP * ph * 0.5)
-			k.quad("glow", a, b, cc, dd, xf.basis * nrm, false, 0.11)
-		var wb := xf.basis * Basis(along, Vector3.UP, along.cross(Vector3.UP))
+			k.quad("glow", a, b, cc, dd, xf.basis.orthonormalized() * nrm, false, 0.11)
+		var wb := xf.basis.orthonormalized() * Basis(along, Vector3.UP, along.cross(Vector3.UP))
 		k.box("iron", xf * (ctr + nrm * 0.03), Vector3(0.04, 0.92, 0.04), wb, false, 0.5)
 		k.box("iron", xf * (ctr + nrm * 0.03 + Vector3.UP * 0.05), Vector3(0.82, 0.04, 0.04), wb, false, 0.5)
 		k.box("iron", xf * (ctr + nrm * 0.03), Vector3(0.82, 0.04, 0.04), wb, false, 0.45)   # crossbar
 		var world_ctr: Vector3 = xf * ctr
-		var out: Vector3 = (xf.basis * nrm).normalized()
+		var out: Vector3 = (xf.basis.orthonormalized() * nrm).normalized()
 		Interiors.shaft(h, "WindowTrail_%d" % pi, world_ctr - out * 0.05, out + Vector3(0.0, -0.55, 0.0), warm, 0.55, 8.0, 14.0)
 		pi += 1
 	_commit(k, h, "LitBody", 120.0)
@@ -671,7 +673,7 @@ static func reed_roof(parent: Node, space: PhysicsDirectSpaceState3D) -> Node3D:
 		var top := Vector3(0, ridge, 0)
 		var dv := (top - eave).normalized()
 		var out := Vector3(0, absf(dv.z), -dv.y * s).normalized()
-		var rb := xf.basis * Basis(Vector3.RIGHT, out, Vector3.RIGHT.cross(out)).orthonormalized()
+		var rb := xf.basis.orthonormalized() * Basis(Vector3.RIGHT, out, Vector3.RIGHT.cross(out)).orthonormalized()
 		for i in 9:
 			var t := rng.randf_range(0.15, 0.85)
 			var x := rng.randf_range(-w * 0.42, w * 0.42)
@@ -738,7 +740,7 @@ static func harrow_frame(parent: Node) -> Node3D:
 	var hd := d * 0.5
 	var xf := cottage_xf("harrow")
 	var ridge := H + hd * 0.95
-	var b := xf.basis
+	var b := xf.basis.orthonormalized()
 	for sx: float in [-1.0, 1.0]:
 		for sz: float in [-1.0, 1.0]:
 			k.box("lore_beam", xf * Vector3(sx * (hw - 0.25), H * 0.5, sz * (hd - 0.25)), Vector3(0.2, H, 0.2), b, false, 0.8)
@@ -785,11 +787,11 @@ static func harrow_roof(parent: Node) -> Node3D:
 	k.keep_lanes = false
 	for sx: float in [-1.0, 1.0]:
 		var gx := sx * hw
-		var o := xf.basis * Vector3(sx, 0, 0)
+		var o := xf.basis.orthonormalized() * Vector3(sx, 0, 0)
 		k.quad("lore_beam", xf * Vector3(gx, H, -hd), xf * Vector3(gx, H, hd), xf * Vector3(gx, ridge, 0), xf * Vector3(gx, ridge, 0), o, false, 0.7)
 		k.quad("lore_beam", xf * Vector3(gx - sx * 0.05, H, -hd), xf * Vector3(gx - sx * 0.05, H, hd), xf * Vector3(gx - sx * 0.05, ridge, 0), xf * Vector3(gx - sx * 0.05, ridge, 0), -o, false, 0.5)
 	# the hearth inside glows through the broken walls
-	k.box("lore_ember", xf * Vector3(hw - 0.9, 0.15, hd * 0.25), Vector3(0.5, 0.05, 0.6), xf.basis, false, 0.9)
+	k.box("lore_ember", xf * Vector3(hw - 0.9, 0.15, hd * 0.25), Vector3(0.5, 0.05, 0.6), xf.basis.orthonormalized(), false, 0.9)
 	_commit(k, h, "RoofBody", 120.0)
 	var fl := Vfx.emitter(Color(1.0, 0.55, 0.2), {"count": 10, "life": 0.6, "speed": Vector2(0.2, 0.6), "size": 0.12, "gravity": 1.2, "radius": 0.15, "spread": 10.0})
 	if fl:
