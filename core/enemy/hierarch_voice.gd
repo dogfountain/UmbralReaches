@@ -70,7 +70,7 @@ func phase_marks() -> Array[float]:
 
 func _build() -> void:
 	# authored motion on a real skeleton (tools/blender/boss_humanoid_anim.py), played by ClipRig
-	ClipRig.fit(self, "res://art/models/boss_hierarch.glb", &"hierarch", {"pelvis": "hips", "body": "spine", "chest": "chest", "front": "chest", "head": "head", "hand_r": "hand_r", "hand_l": "hand_l"}, {"walk_stride": 0.571, "scale": Vector3(1.08, 0.86, 1.08), "cap": 0.86})
+	ClipRig.fit(self, "res://art/models/boss_hierarch.glb", &"hierarch", {"pelvis": "hips", "body": "spine", "chest": "chest", "front": "chest", "head": "head", "hand_r": "hand_r", "hand_l": "hand_l"}, {"walk_stride": 0.571, "scale": Vector3(1.08, 0.86, 1.08), "cap": 0.86, "built": true})
 	name = "HierarchVoice"
 	BossKit.embiggen(self, SCALE)
 	posture({"hunch": 0.0, "crouch": 0.0, "arm_reach": 0.12, "head_jut": 0.0, "limp": 0.0, "sway": 0.25, "twitch": 0.0, "splay": 0.2})

@@ -79,7 +79,7 @@ func phase_marks() -> Array[float]:
 
 func _build() -> void:
 	# authored motion on a real skeleton (tools/blender/boss_humanoid_anim.py), played by ClipRig
-	ClipRig.fit(self, "res://art/models/boss_anchoress.glb", &"anchoress", {"pelvis": "hips", "body": "spine", "chest": "chest", "front": "chest", "head": "head", "hand_r": "hand_r", "hand_l": "hand_l"}, {"walk_stride": 0.371})
+	ClipRig.fit(self, "res://art/models/boss_anchoress.glb", &"anchoress", {"pelvis": "hips", "body": "spine", "chest": "chest", "front": "chest", "head": "head", "hand_r": "hand_r", "hand_l": "hand_l"}, {"walk_stride": 0.371, "built": true})
 	name = "Anchoress"
 	BossKit.embiggen(self, SCALE)
 
