@@ -92,6 +92,64 @@ static func material(kind: StringName, surface: String) -> ShaderMaterial:
 	return m
 
 
+## The surface layers of a built model, in the order tools/blender/boss_build.py LAYERS writes them into UV2.x.
+const LAYERS := ["wool", "linen", "trim", "leather", "bone", "gilt", "iron", "wood", "stone", "glow"]
+const TILES := ["wool", "trim", "leather", "iron", "wood"]
+static var _arrays := {}
+
+
+static func _array(normal: bool) -> Texture2DArray:
+	var key := "n" if normal else "a"
+	if _arrays.has(key):
+		return _arrays[key]
+	var imgs: Array[Image] = []
+	for t: String in TILES:
+		var im := (WTex.img(t + ("_n" if normal else ""))).duplicate() as Image
+		if im.is_compressed():
+			im.decompress()
+		im.convert(Image.FORMAT_RGBA8)
+		im.clear_mipmaps()
+		if im.get_width() != 512 or im.get_height() != 512:
+			im.resize(512, 512, Image.INTERPOLATE_LANCZOS)
+		im.generate_mipmaps()
+		imgs.append(im)
+	var arr := Texture2DArray.new()
+	arr.create_from_images(imgs)
+	_arrays[key] = arr
+	return arr
+
+
+## One material for a whole built model: every layer's tile and finish in arrays the shader indexes by UV2.x.
+static func atlas(kind: StringName) -> ShaderMaterial:
+	var key := "%s|atlas" % kind
+	if _mats.has(key):
+		return _mats[key]
+	var m := ShaderMaterial.new()
+	m.shader = SHADER
+	m.set_shader_parameter("atlas", true)
+	m.set_shader_parameter("tiles", _array(false))
+	m.set_shader_parameter("tiles_n", _array(true))
+	var lt := PackedFloat32Array(); var luv := PackedVector2Array(); var lm := PackedFloat32Array(); var lr := PackedFloat32Array()
+	var ln := PackedFloat32Array(); var lsh := PackedFloat32Array(); var lmean := PackedFloat32Array(); var lrune := PackedFloat32Array()
+	for nm: String in LAYERS:
+		var su: Array = SURFACES[nm]
+		lt.append(float(TILES.find(String(su[0]))))
+		luv.append(su[1])
+		lm.append(su[2])
+		lr.append(su[3])
+		ln.append(su[4])
+		lsh.append(su[5])
+		lmean.append(0.0 if bool(su[6]) else _mean(String(su[0])))
+		lrune.append(0.55 if nm == "trim" else 0.0)
+	for pair: Array in [["l_tile", lt], ["l_uv", luv], ["l_metal", lm], ["l_rough", lr], ["l_ndepth", ln], ["l_sheen", lsh], ["l_mean", lmean], ["l_rune", lrune]]:
+		m.set_shader_parameter(pair[0], pair[1])
+	var k: Dictionary = KINDS.get(kind, {})
+	for p: String in k:
+		m.set_shader_parameter(p, k[p])
+	_mats[key] = m
+	return m
+
+
 ## Dress every surface of a built model's meshes by its name; returns the meshes (Enemy.set_flesh).
 static func dress(kind: StringName, meshes: Array[MeshInstance3D]) -> Array[MeshInstance3D]:
 	var phase := randf() * TAU
@@ -105,7 +163,8 @@ static func dress(kind: StringName, meshes: Array[MeshInstance3D]) -> Array[Mesh
 				nm = sm.resource_name
 			if nm == "" and mi.mesh is ArrayMesh:
 				nm = (mi.mesh as ArrayMesh).surface_get_name(i)
-			mi.set_surface_override_material(i, material(kind, nm.to_lower().split(".")[0]))
+			var sname := nm.to_lower().split(".")[0]
+			mi.set_surface_override_material(i, atlas(kind) if sname == "atlas" else material(kind, sname))
 		mi.set_instance_shader_parameter(&"pulse_phase", phase)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	return meshes

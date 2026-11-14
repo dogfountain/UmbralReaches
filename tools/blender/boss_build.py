@@ -15,6 +15,8 @@ import numpy as np
 from mathutils import Vector
 
 TAU = math.tau
+## surface layers, in the order core/enemy/boss_look.gd reads them
+LAYERS = ["wool", "linen", "trim", "leather", "bone", "gilt", "iron", "wood", "stone", "glow"]
 
 
 def V(x, y, z):
@@ -246,16 +248,23 @@ class Geo:
 
     # --- to Blender -----------------------------------------------------------------------------------
     def to_object(self, name, split_deg=42.0):
-        mats = sorted(set(self.fmat))
+        # ONE material for the whole model (one draw call): which surface a face is rides in UV2.x, and the shader
+        # picks that surface's tile and finish (boss_look.gd LAYERS); a material per surface cost ~400 draws a fight
         me = bpy.data.meshes.new(name)
         me.from_pydata([(p[0], -p[2], p[1]) for p in self.v], [], self.faces)
-        for m in mats:
-            mt = bpy.data.materials.get(m) or bpy.data.materials.new(m)
-            me.materials.append(mt)
-        for poly, m in zip(me.polygons, self.fmat):
-            poly.material_index = mats.index(m)
+        mt = bpy.data.materials.get("atlas") or bpy.data.materials.new("atlas")
+        me.materials.append(mt)
+        for poly in me.polygons:
             poly.use_smooth = True
         uvl = me.uv_layers.new(name="UVMap")
+        uv2 = me.uv_layers.new(name="Layer")
+        me.uv_layers.active = uvl
+        fl = {}
+        for poly, m in zip(me.polygons, self.fmat):
+            fl[poly.index] = float(LAYERS.index(m)) + 0.5 if m in LAYERS else 0.5
+        for poly in me.polygons:
+            for li in poly.loop_indices:
+                uv2.data[li].uv = (fl[poly.index], 0.5)
         ca = me.color_attributes.new(name="Color", type='FLOAT_COLOR', domain='CORNER')
         for li, loop in enumerate(me.loops):
             vi = loop.vertex_index
