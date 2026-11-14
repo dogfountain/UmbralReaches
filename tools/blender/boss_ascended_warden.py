@@ -121,6 +121,52 @@ sk_full, SEGS, _Y = GB.humanoid(OPT)
 tsk = L.torso_skel(0.85, 0.04, 1.64)
 
 
+# --- the forearms are carried forward into a gesture (an offering: forearms out, palms turned up), so the hands read
+# in silhouette instead of hanging lost in the skirt. The rig's bones stay where they are (sockets are the contract); the
+# mesh below each elbow is bent about the elbow socket and skinned wholly to the elbow bone, so every pose keeps the gesture.
+PITCH = math.radians(68.0)        # the forearm swings forward from hanging to nearly level
+ROLL = math.radians(58.0)         # the palm turns from facing the thigh toward the sky
+YAW = math.radians(30.0)          # and the forearms open a little outward
+
+
+def _sst(e0, e1, x):
+    t = min(max((x - e0) / (e1 - e0), 0.0), 1.0)
+    return t * t * (3.0 - 2.0 * t)
+
+
+def bend_rig(p, sx):
+    """rig-space point -> its place with the forearm carried forward (blended over the elbow)."""
+    ax = sx * 0.24
+    d = Vector((p[0] - ax, p[1] - 1.08, p[2]))
+    b = _sst(0.07, -0.11, d.y)
+    if b <= 0.0:
+        return Vector(p)
+    r, th, ps = ROLL * b * -sx, PITCH * b, YAW * b * -sx
+    x, y, z = d
+    x, z = x * math.cos(r) + z * math.sin(r), -x * math.sin(r) + z * math.cos(r)      # roll about the forearm's own (vertical) axis
+    y, z = y * math.cos(th) - z * math.sin(th), y * math.sin(th) + z * math.cos(th)   # pitch forward about the elbow
+    x, z = x * math.cos(ps) + z * math.sin(ps), -x * math.sin(ps) + z * math.cos(ps)  # yaw outward
+    return Vector((ax + x, 1.08 + y, z))
+
+
+def bend_obj(o, sx):
+    """Bend a Blender mesh (rig -> bend -> rig); only the side `sx` (the arm it hangs on)."""
+    for v in o.data.vertices:
+        q = bend_rig((v.co.x, v.co.z, -v.co.y), sx)
+        v.co = Vector(G(q.x, q.y, q.z))
+    o.data.update()
+
+
+def arm_chain_w(tag):
+    """Skin weights for anything on an arm: the chest at the shoulder, the shoulder bone to the elbow, everything below
+    the elbow (the bent forearm, hand, bracer, cuff) to the elbow bone alone."""
+    sx = -1.0 if tag == "l" else 1.0
+    wr = bend_rig((sx * 0.24, 0.78, 0.0), sx)
+    chain = [("chest", G(sx * 0.12, 1.43, 0)), ("shoulder_" + tag, G(sx * 0.24, 1.40, 0)), ("elbow_" + tag, G(sx * 0.24, 1.08, 0)), ("elbow_" + tag, Vector(G(wr.x, wr.y, wr.z)))]
+    return lambda p: GK.chain_w(p, chain, [0.04, 0.06, 0.05])
+
+
+
 def torso_sculpt(s):
     for sx in (-1, 1):
         s.ridge((sx * 0.02, 1.47, -0.075), (sx * 0.2, 1.455, -0.03), 0.011, 0.01, facing=(0, 0.3, -1))     # collarbones
@@ -139,8 +185,15 @@ def arm_sculpt(s):
 
 
 ao, ahi = L.sculpted("Arms", sk_full.arms, ["trpl", "trpr"], ASH, "armskin", 3600, arm_sculpt, 0.0042, False, PAIRS)
+for _o in (ao, ahi):                              # both arms in one surface: bend each half about its own elbow
+    for v in _o.data.vertices:
+        sxv = -1 if v.co.x < 0 else 1
+        q = bend_rig((v.co.x, v.co.z, -v.co.y), sxv)
+        v.co = Vector(G(q.x, q.y, q.z))
+    _o.data.update()
 add(ao)
-WEIGHTS["armskin"] = GB.envelope_weights([sg for sg in SEGS if sg[0].startswith(("shoulder_", "elbow_", "hand_")) or sg[0] == "chest"], 0.05)
+_awl, _awr = arm_chain_w("l"), arm_chain_w("r")
+WEIGHTS["armskin"] = lambda p: (_awl if p.x < 0 else _awr)(p)
 
 # --- the head: a sculpted mask of white gold, calm, with slit eyes and a hairline crack ----------------------
 mk = GB.Skel()
@@ -301,7 +354,7 @@ rk = [(1.52, 0, 0.0, 0.17, 0.12, 0.12, 2.2), (1.34, 0, 0.03, 0.25, 0.15, 0.19, 2
       (0.55, 0, 0.35, 0.6, 0.22, 0.58, 2.0), (0.25, 0, 0.42, 0.76, 0.3, 0.74, 2.0), (-0.05, 0, 0.45, 0.9, 0.36, 0.86, 2.0), (-0.3, 0, 0.45, 0.98, 0.4, 0.92, 2.0)]
 robe = L.Garment(rk, top=1.52, hem=0.18, folds=[(12, 0.2, 1.0, 0.3, 0.12), (27, 0.0, 0.7, 1.4, -0.1), (6, 0.5, 0.4, 2.0, 0)], amp=0.1, ramp=(0.05, 0.5),
                  lay=0.0, micro=0.0016, hem_fn=ragged(0.16, 0.2), warp=0.8)
-lo, hi = L.shell(robe, "Robe", "robe", LINEN, 3300, HI, solid=0.007)
+lo, hi = L.shell(robe, "Robe", "robe", LINEN, 2000, HI, solid=0.007, ratio_floor=0.004)
 PAIRS.append((lo, hi))
 add(lo, robe_w)
 for nm, (v0, v1, u0, u1) in (("RobeBand", (0.02, 0.9, -0.025, 0.025)), ("RobeHem", (0.8, 0.84, 0.0, 1.0)), ("RobeHem2", (0.7, 0.715, 0.0, 1.0))):
@@ -324,7 +377,7 @@ WEIGHTS["robe_void"] = robe_w
 tab = L.Garment([(1.44, 0, 0.0, 0.21, 0.15, 0.15, 2.1), (1.2, 0, 0.1, 0.24, 0.17, 0.24, 2.0), (1.0, 0, 0.16, 0.27, 0.17, 0.3, 2.0), (0.8, 0, 0.22, 0.3, 0.17, 0.36, 2.0)],
                 top=1.44, hem=0.86, folds=[(7, 0.3, 1.0, 0.8, 0.1), (15, 0.0, 0.6, 1.9, 0)], amp=0.05, ramp=(0.1, 0.6), gap=0.4, gap_from=0.15, lay=0.0,
                 micro=0.0013, hem_fn=ragged(0.86, 0.06))
-lo, hi = L.shell(tab, "Tabard", "tabard", LINEN, 950, HI, solid=0.006)
+lo, hi = L.shell(tab, "Tabard", "tabard", LINEN, 950, HI, solid=0.006, ratio_floor=0.004)
 PAIRS.append((lo, hi))
 add(lo, robe_w)
 for nm, (v0, v1, u0, u1) in (("TabL", (0.12, 0.96, 0.0, 0.04)), ("TabR", (0.12, 0.96, 0.96, 1.0))):
@@ -336,7 +389,7 @@ mantle = L.Garment([(1.64, 0, 0.02, 0.12, 0.1, 0.11, 2.2), (1.54, 0, 0.02, 0.3, 
                     (0.9, 0, 0.0, 0.58, 0.38, 0.4, 2.0), (0.7, 0, 0.0, 0.62, 0.42, 0.45, 2.0)],
                    top=1.64, hem=1.0, folds=[(8, 0.3, 1.0, 0.5, 0.15), (17, 0.0, 0.6, 1.1, -0.2)], amp=0.09, ramp=(0.1, 0.55), gap=0.5, gap_from=0.2, lay=0.0,
                    flare=0.04, micro=0.0013, hem_fn=ragged(1.0, 0.1), back_drop=0.0)
-lo, hi = L.shell(mantle, "Mantle", "mantle", LINEN, 1600, HI, solid=0.008)
+lo, hi = L.shell(mantle, "Mantle", "mantle", LINEN, 1500, HI, solid=0.008, ratio_floor=0.004)
 PAIRS.append((lo, hi))
 add(lo, mantle_w)
 for nm, (v0, v1, u0, u1) in (("MantleL", (0.22, 0.985, 0.0, 0.035)), ("MantleR", (0.22, 0.985, 0.965, 1.0))):
@@ -347,7 +400,7 @@ veil = L.Garment([(1.98, 0, 0.03, 0.04, 0.04, 0.04, 2.0), (1.95, 0, 0.03, 0.1, 0
                   (1.6, 0, 0.06, 0.22, 0.17, 0.24, 2.0), (1.4, 0, 0.07, 0.3, 0.2, 0.3, 2.0), (1.15, 0, 0.08, 0.34, 0.24, 0.35, 2.0)],
                  top=1.98, hem=1.0, folds=[(7, 0.3, 1.0, 0.7, 0.1), (15, 0.0, 0.6, 1.9, 0)], amp=0.06, ramp=(0.1, 0.6), gap=1.15, gap_from=0.04, lay=0.0,
                  hem_lift=0.04, flare=0.03, micro=0.0012, hem_fn=ragged(1.0, 0.14))
-lo, hi = L.shell(veil, "Veil", "veil", LINEN, 1500, HI, solid=0.006)
+lo, hi = L.shell(veil, "Veil", "veil", LINEN, 1400, HI, solid=0.006, ratio_floor=0.004)
 PAIRS.append((lo, hi))
 add(lo, veil_w)
 add(L.band(veil, "VeilL", "veil_trim", GOLD, 0.1, 0.99, 0.0, 0.03, n=3, m=40, off=0.01), veil_w)
@@ -360,19 +413,25 @@ for tag, sx in (("l", -1), ("r", 1)):
                    top=1.47, hem=0.95, folds=[(8, 0.0, 1.0, 0.5, 0.1), (18, 0, 0.6, 1.5, 0)], amp=0.06, ramp=(0.2, 0.7), lay=0.0, hem_lift=0.04, seed=sx,
                    micro=0.0013, hem_fn=ragged(0.95, 0.05))
     lo, hi = L.shell(sl, "Sleeve" + tag, "sleeve_" + tag, LINEN, 1400, (140, 100) if not LOWRES else (80, 60))
+    bend_obj(lo, sx)
+    bend_obj(hi, sx)
     PAIRS.append((lo, hi))
-    add(lo, L.sleeve_weights(tag))
-    add(L.band(sl, "Cuff" + tag, "sleeve_" + tag + "_t", GOLD, 0.86, 0.915, 0.0, 1.0, n=50, m=2, off=0.012), L.sleeve_weights(tag))
-    WEIGHTS["sleeve_" + tag + "_t"] = L.sleeve_weights(tag)
+    add(lo, arm_chain_w(tag))
+    cuf = L.band(sl, "Cuff" + tag, "sleeve_" + tag + "_t", GOLD, 0.86, 0.915, 0.0, 1.0, n=50, m=2, off=0.012)
+    bend_obj(cuf, sx)
+    add(cuf, arm_chain_w(tag))
+    WEIGHTS["sleeve_" + tag + "_t"] = arm_chain_w(tag)
     # the bracer: a gilt sleeve on the forearm with raised rings, below the cuff
     ax = sx * 0.24
     yy = [0.97, 0.92, 0.86, 0.8, 0.76]
     br = K.loft("Bracer", [G(ax, y, 0.0) for y in yy], [0.034, 0.0345, 0.032, 0.029, 0.027], "bracer_" + tag, GOLD, 14, cap0=False, cap1=False)
-    add(br, (lambda t: lambda p: GK.chain_w(p, [("elbow_" + t, S["elbow_" + t]), ("hand_" + t, S["hand_" + t])], [0.05]))(tag))
+    bend_obj(br, sx)
+    add(br, arm_chain_w(tag))
     for y in (0.945, 0.84):
-        add(TUBE("BracerRing", [G(ax + math.cos(a) * 0.037, y, math.sin(a) * 0.037) for a in [math.tau * i / 18 for i in range(19)]], 0.004, "bracer_" + tag, GOLD),
-            (lambda t: lambda p: GK.chain_w(p, [("elbow_" + t, S["elbow_" + t]), ("hand_" + t, S["hand_" + t])], [0.05]))(tag))
-    WEIGHTS["bracer_" + tag] = (lambda t: lambda p: GK.chain_w(p, [("elbow_" + t, S["elbow_" + t]), ("hand_" + t, S["hand_" + t])], [0.05]))(tag)
+        rg = TUBE("BracerRing", [G(ax + math.cos(a) * 0.037, y, math.sin(a) * 0.037) for a in [math.tau * i / 18 for i in range(19)]], 0.004, "bracer_" + tag, GOLD)
+        bend_obj(rg, sx)
+        add(rg, arm_chain_w(tag))
+    WEIGHTS["bracer_" + tag] = arm_chain_w(tag)
 
 # a gilt cord at the waist with two long tails
 for sx in (-1, 1):

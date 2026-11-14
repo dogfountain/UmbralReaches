@@ -376,8 +376,9 @@ def cape_weights(sleeve_bleed=0.5):
 
 
 def cope_weights(shoulder=0.5):
-    """A cope that stays gathered round the body: the chest above, the pelvis (not the hips) below, a little knee at the
-    hem, so when the figure kneels or pitches over the cloth follows the trunk and does not fan out."""
+    """A cope that stays gathered round the body: the chest above; lower down the pelvis, a share of the chest (so the cloth
+    leans over with the trunk like a cape on a shoulder line, not swung out on the pelvis's long lever) and the thighs
+    (so a kneeling or toppled figure keeps the cloth over its legs); no knee weight, which flung the hem behind the shin."""
     def fn(p):
         y = p.z
         w = {"chest": 1.0}
@@ -390,11 +391,12 @@ def cope_weights(shoulder=0.5):
             w["head"] = h
         lo = GK._smooth(1.2, 0.7, y)
         if lo > 0.0:
-            w["pelvis"] = lo * 1.4
-            kn = GK._smooth(0.55, 0.2, y) * 0.35
+            w["pelvis"] = lo * 1.1
             for tag, sx in (("l", -1.0), ("r", 1.0)):
-                w["knee_" + tag] = kn * GK._smooth(-0.05, 0.12, p.x * sx)
-        w["chest"] = max(w["chest"] - sum(v for k, v in w.items() if k != "chest") * 0.5, 0.05)
+                sd = GK._smooth(-0.1, 0.2, p.x * sx)
+                w["hip_" + tag] = lo * 0.35 * sd * GK._smooth(0.95, 0.55, y)
+        # the chest keeps a floor all the way down: the cloth hangs from the shoulders
+        w["chest"] = max(w["chest"] - sum(v for k, v in w.items() if k != "chest") * 0.5, 0.35 if lo > 0.0 else 0.05)
         t = sum(w.values())
         return {k: v / t for k, v in w.items() if v / t > 0.004}
     return fn
@@ -543,6 +545,9 @@ POSES = {
     "kneel": {"hip_l": (math.radians(85), 0, 0), "hip_r": (math.radians(85), 0, 0), "knee_l": (math.radians(-150), 0, 0),
               "knee_r": (math.radians(-150), 0, 0), "chest": (math.radians(-18), 0, 0), "head": (math.radians(-10), 0, 0),
               "shoulder_l": (math.radians(30), 0, 0), "shoulder_r": (math.radians(30), 0, 0)},
+    # the death: down on the knees and pitched over (the rig's collapse, frozen near its end)
+    "fall": {"pelvis": (math.radians(55), 0, 0), "hip_l": (math.radians(70), 0, 0), "hip_r": (math.radians(70), 0, 0), "knee_l": (math.radians(-130), 0, 0),
+             "knee_r": (math.radians(-130), 0, 0), "chest": (math.radians(35), 0, 0), "head": (math.radians(10), 0, 0)},
     # mid stride, arms swinging
     "stride": {"hip_l": (math.radians(32), 0, 0), "knee_l": (math.radians(-12), 0, 0), "hip_r": (math.radians(-26), 0, 0),
                "knee_r": (math.radians(-50), 0, 0), "shoulder_l": (math.radians(-28), 0, math.radians(-6)),
@@ -551,9 +556,15 @@ POSES = {
 }
 
 
+if os.environ.get("BOSS_POSES"):          # pose checks: BOSS_POSES=kneel,fall renders only those
+    POSES = {k: v for k, v in POSES.items() if k in os.environ["BOSS_POSES"].split(",")}
+
+
 def use_atlas(prefix, tex_dir=None):
     """Review: give every mesh the baked atlas as one material (what the engine shows), so posed renders
     show the real maps. Run after the export."""
+    if os.environ.get("BOSS_NOBAKE"):
+        return                      # pose check without a bake: the procedural materials stay
     tex_dir = tex_dir or os.path.join(os.path.dirname(__file__), "..", "..", "art", "textures")
     m = bpy.data.materials.new("Atlas")
     m.use_nodes = True
@@ -706,6 +717,30 @@ def bake_atlas2(objs, mats, prefix, tex_dir, size, pairs, ao_samples=24):
                 bpy.context.view_layer.objects.active = low
                 bpy.ops.object.bake(type=kind, use_selected_to_active=True, cage_extrusion=0.02, max_ray_distance=0.06, use_clear=False, margin=6)
         print("BAKED", key, round(time.time() - t0), "s")
+        if key == "ao":
+            a_ = np.empty(size * size * 4, dtype=np.float32)
+            images["ao"].pixels.foreach_get(a_)
+            g_ = np.empty(size * size * 4, dtype=np.float32)
+            images["rough"].pixels.foreach_get(g_)
+            cov_ = g_.reshape(-1, 4)[:, 0] > 0.05
+            ao4 = a_.reshape(-1, 4)
+            raw = ao4[:, 0]
+            black = (raw < 0.05) & cov_
+            fb = float(black.sum()) / max(int(cov_.sum()), 1)
+            print("AO mean over covered texels", round(float(raw[cov_].mean()) if cov_.any() else 0.0, 3), "pure-black fraction", round(fb, 3))
+            if fb > 0.6:
+                raise RuntimeError("AO bake is black (%.0f%% of the covered texels are 0): the atlas would render as a black shape" % (fb * 100.0))
+            # texels the AO ray started inside other cloth / the back of a solidified shell read 0: those are bake faults, not
+            # occlusion, so they go white; and the occlusion that remains is softened (it dims at most 60%)
+            ao4[black, 0] = 1.0
+            ao4[cov_, 0] = 0.4 + 0.6 * ao4[cov_, 0]
+            ao4[cov_, 1] = ao4[cov_, 0]
+            ao4[cov_, 2] = ao4[cov_, 0]
+            images["ao"].pixels.foreach_set(a_)
+            mean_ = float(ao4[cov_, 0].mean()) if cov_.any() else 0.0
+            print("AO mean after repair", round(mean_, 3))
+            if mean_ < 0.3:
+                raise RuntimeError("AO bake is black (mean %.3f): the atlas would render as a black shape" % mean_)
     os.makedirs(tex_dir, exist_ok=True)
 
     def px(img):
@@ -738,10 +773,13 @@ def export_skinned2(objs, mats, name, sockets, weights, rigid=None, size=2048, p
     tex_dir = os.path.join(os.path.dirname(__file__), "..", "..", "art", "textures")
     blend_dir = os.path.join(os.path.dirname(__file__), "..", "..", "art", "blender")
     objs = consolidate(objs, pairs or [])
-    bake_atlas2(objs, mats, name, tex_dir, size, pairs or [])
+    nobake = bool(os.environ.get("BOSS_NOBAKE"))      # pose / weight checks: no bake, nothing written into art/
+    if not nobake:
+        bake_atlas2(objs, mats, name, tex_dir, size, pairs or [])
     drop_highs(pairs or [])          # the dense sources are not kept in the .blend
-    os.makedirs(blend_dir, exist_ok=True)
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(blend_dir, name + ".blend"))
+    if not nobake:
+        os.makedirs(blend_dir, exist_ok=True)
+        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(blend_dir, name + ".blend"))
     arm = GK.armature(sockets)
     skinned, solo = [], {}
     for o in objs:
@@ -782,6 +820,8 @@ def export_skinned2(objs, mats, name, sockets, weights, rigid=None, size=2048, p
         o.select_set(True)
     tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in out if o.type == 'MESH')
     path = os.path.join(os.path.dirname(__file__), "..", "..", "art", "models", name + ".glb")
+    if nobake:
+        path = os.path.join(os.environ.get("BOSS_OUT", "/private/tmp"), name + "_nobake.glb")
     bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', use_selection=True, export_apply=True,
                               export_yup=True, export_materials='NONE', export_normals=True, export_texcoords=True,
                               export_skins=True, export_animations=False, export_all_influences=False)
