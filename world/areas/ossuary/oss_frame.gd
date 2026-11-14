@@ -93,7 +93,14 @@ static func pit_d(p: Vector2) -> float:
 	var dz := maxf(PIT_Z0 - q.y, q.y - PIT_Z1)
 	var ox := maxf(dx, 0.0)
 	var oz := maxf(dz, 0.0)
-	return sqrt(ox * ox + oz * oz) + minf(maxf(dx, dz), 0.0)
+	var d := sqrt(ox * ox + oz * oz) + minf(maxf(dx, dz), 0.0)
+	# the field side was ruled straight, a box stamped in the turf: a quarry's worked edge goes in and out where the
+	# stone was won. Only the west lip and its corners (the east bank keeps its line: the gallery, the Counting Door
+	# and the stair shaft stand against it), and only outward, never under a pier.
+	var gate := RealmLayout.OSSUARY_GATE
+	var west := (1.0 - smoothstep(PIT_X0 + 4.0, PIT_X0 + 9.0, q.x)) * smoothstep(LANDING_R + 4.0, LANDING_R + 10.0, p.distance_to(Vector2(gate.x, gate.z)))
+	var wob := 2.0 + 1.8 * sin(q.y * 0.19 + 1.3) * sin(q.y * 0.067 + 0.4) + 0.8 * sin(q.y * 0.43)      # 0..4.6 m: on the 4 m ground lattice less did not show
+	return d - maxf(wob, 0.0) * west
 
 
 ## The Ossuary's quarry: the Pilgrims' Landing levelled to the bone bridge's deck, then the pit cut down to its

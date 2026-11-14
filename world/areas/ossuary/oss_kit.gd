@@ -57,7 +57,7 @@ static func mat(key: String) -> Material:
 	var m := StandardMaterial3D.new()
 	match key:
 		"stone":      _tri(m, "oss_ashlar", 0.32, Color(0.92, 0.9, 0.88))
-		"plaster":    _tri(m, "oss_plaster", 0.3, Color(0.95, 0.92, 0.88))       # 3.3 m tile: brick 0.42 x 0.14 m (at 2 m the bare-brick patches repeated into spots across a facade)
+		"plaster":    _daub(m, 0.16, Color(0.84, 0.82, 0.78))        # lime daub, cracked and stained (oss_plaster's bare-brick holes read as leopard print on every facade)
 		"brick":      _tri(m, "oss_brick", 0.5, Color(0.95, 0.92, 0.9))
 		"ruin":       _tri(m, "oss_ruin", 0.4, Color(0.95, 0.93, 0.9))
 		"floor":      _tri(m, "oss_floor", 0.22, Color(0.9, 0.88, 0.86))
@@ -102,6 +102,26 @@ static func mat(key: String) -> Material:
 			return sm
 	_mats[key] = m
 	return m
+
+
+## The lime-daub plaster (art/textures r37_daub_*: albedo, normal and an ORM map), world-triplanar like _tri.
+static func _daub(m: StandardMaterial3D, scale: float, tint: Color) -> void:
+	m.albedo_texture = load(T + "r37_daub_albedo.png")
+	m.albedo_color = tint
+	m.normal_enabled = true
+	m.normal_texture = load(T + "r37_daub_normal.png")
+	m.normal_scale = 0.5                         # at full strength its cracks read as static across a facade
+	var orm: Texture2D = load(T + "r37_daub_orm.png")
+	m.roughness_texture = orm
+	m.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
+	m.ao_enabled = true
+	m.ao_texture = orm
+	m.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_triplanar_sharpness = 4.0
+	m.uv1_scale = Vector3.ONE * scale
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 
 
 static func _tri(m: StandardMaterial3D, tex: String, scale: float, tint: Color) -> void:
