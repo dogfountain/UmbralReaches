@@ -55,6 +55,10 @@ const ThrQ := preload("res://core/story/quest_chains_threshold.gd")   ## the Pil
 const ChainQ := preload("res://core/story/quest_chains_sky_chain.gd")   ## the Sky Chain: Elspeth's count of the links
 const StarQ := preload("res://core/story/quest_chains_star_crater.gd")   ## the Star-Fall Crater: Marl's task at the Lamp
 const R37UF := preload("res://core/story/quest_chains_upward_falls.gd")   ## the Upward Falls: Osk's task at the Order's weir
+## twelve one-time tales in the Marches and the south (east, south, west files), listed in the blocks marked `# --- tales ---`.
+const R38E := preload("res://core/story/quest_chains_r38_east.gd")
+const R38S := preload("res://core/story/quest_chains_r38_south.gd")
+const R38W := preload("res://core/story/quest_chains_r38_west.gd")
 
 const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
 	"hearth_ash", "road_clear", "coal_shrine", "spire_lamps", "alms_loaf",
@@ -77,7 +81,10 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"shepherd_strays", "oak_song", "well_answer",
 	"wf_wheel", "wf_upward", "wf_watch", "wf_lights", "wf_crown",
 	"salt_sweep", "salt_widow", "star_lamp", "spire_coal", "anchor_names", "anchor_vow",
-	"bounds_beaten", "quarry_stone", "moor_fires", "founder_pour", "orchard_stand", "field_round", "mere_ferry"]
+	"bounds_beaten", "quarry_stone", "moor_fires", "founder_pour", "orchard_stand", "field_round", "mere_ferry",
+	# --- tales ---
+	"pans_hauler", "pans_pan", "salt_barrel", "bitter_mother", "drover_tally", "long_round", "bryn_iron", "wren_gran",
+	"plinth_lamp", "cutters_pledge", "landing_staves", "moor_niches"]
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
 const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
@@ -87,7 +94,7 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 	"dunstan": "Dunstan Pike",
 	"osk": "Osk the miller", "cassel": "Captain Cassel", "ennis": "Sister Ennis", "tolliver": "Old Tolliver",
 	"dorrit": "Dorrit Marl", "bryn": "Bryn Gale", "wren": "Wren", "gwyn": "Gwyn the ostler",
-	"marl": "Marl Pannick", "teasel": "Teasel Dray", "orrin": "Orrin Vail", "ardel": "Ardel Wick", "pip": "Pip"}
+	"marl": "Marl Pannick", "teasel": "Teasel Dray", "orrin": "Orrin Vail", "ardel": "Ardel Wick", "pip": "Pip", "nella": "Nella Crake"}
 
 ## r34: the raids' attunements (WoW's attunement chains, adapted): the last task of each pre-raid
 ## chain, once handed in, loosens the boss's hold (QuestBook.attuned(boss); Travel.story flag
@@ -776,6 +783,11 @@ const QUESTS := {
 	"orchard_stand": Sig.ORCHARD_STAND, "field_round": Sig.FIELD_ROUND, "mere_ferry": Sig.MERE_FERRY,
 	"threshold_chapel": ThrQ.THRESHOLD_CHAPEL, "wf_upward": R37UF.QUESTS["wf_upward"], "star_lamp": StarQ.STAR_LAMP,
 	"chain_count": ChainQ.CHAIN_COUNT,
+	# --- tales ---
+	"pans_hauler": R38E.QUESTS["pans_hauler"], "pans_pan": R38E.QUESTS["pans_pan"], "salt_barrel": R38E.QUESTS["salt_barrel"],
+	"bitter_mother": R38E.QUESTS["bitter_mother"], "drover_tally": R38S.QUESTS["drover_tally"], "long_round": R38S.QUESTS["long_round"],
+	"bryn_iron": R38S.QUESTS["bryn_iron"], "wren_gran": R38S.QUESTS["wren_gran"], "plinth_lamp": R38W.QUESTS["plinth_lamp"],
+	"cutters_pledge": R38W.QUESTS["cutters_pledge"], "landing_staves": R38W.QUESTS["landing_staves"], "moor_niches": R38W.QUESTS["moor_niches"],
 }
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
@@ -896,6 +908,14 @@ const PICKUPS := {
 	"foreman_stone": Sig.PICKUPS["foreman_stone"], "foreman_place": Sig.PICKUPS["foreman_place"],
 	"moor_flame_fire": Sig.PICKUPS["moor_flame_fire"], "moor_flame_mid": Sig.PICKUPS["moor_flame_mid"],
 	"pour_ladle": Sig.PICKUPS["pour_ladle"], "scion_linnet": Sig.PICKUPS["scion_linnet"], "ferry_lamp_out": Sig.PICKUPS["ferry_lamp_out"],
+	# --- tales ---
+	"pans_letter": R38E.PICKUPS["pans_letter"], "pans_tally": R38E.PICKUPS["pans_tally"], "pan_seed": R38E.PICKUPS["pan_seed"],
+	"salt_barrel": R38E.PICKUPS["salt_barrel"], "skimmer_shed": R38E.PICKUPS["skimmer_shed"], "tower_marks": R38E.PICKUPS["tower_marks"],
+	"skimmer_lay": R38E.PICKUPS["skimmer_lay"], "drover_stick": R38S.PICKUPS["drover_stick"], "drover_fold": R38S.PICKUPS["drover_fold"],
+	"gate_lantern": R38S.PICKUPS["gate_lantern"], "bryn_tags": R38S.PICKUPS["bryn_tags"], "bryn_grave": R38S.PICKUPS["bryn_grave"],
+	"plinth_lamp": R38W.PICKUPS["plinth_lamp"], "plinth_palm": R38W.PICKUPS["plinth_palm"], "cutters_roll": R38W.PICKUPS["cutters_roll"],
+	"staff_a": R38W.PICKUPS["staff_a"], "staff_b": R38W.PICKUPS["staff_b"], "staff_c": R38W.PICKUPS["staff_c"],
+	"staves_place": R38W.PICKUPS["staves_place"], "niche_name": R38W.PICKUPS["niche_name"],
 }
 
 ## Oswin's walk: from wherever he is to the waystone. He keeps 2-3 m behind you and waits when you

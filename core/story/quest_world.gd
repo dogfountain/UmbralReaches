@@ -50,6 +50,13 @@ static func prepare(v: Node3D) -> void:
 			if f != Vector3.INF:
 				near = Vector2(f.x + 0.9, f.z - 0.9)
 		spots[k] = _spot(nav, near)
+	# a task found in the world starts at its body / grave (a floor under the prop), and some leave a lit thing standing
+	for qid: String in Chains.ORDER:
+		var qd: Dictionary = Chains.QUESTS[qid]
+		if qd.has("found_at"):
+			spots["found_" + qid] = _spot(nav, qd.found_at)
+		if qd.has("stands"):
+			spots["stand_" + qid] = _spot(nav, qd.stands.at)
 	spots["stair"] = _spot(nav, Chains.ESCORT.to)
 	spots["hollow"] = spots.get("lantern", Vector3.INF)
 	spots["names"] = _spot(nav, Vector2(-82.3, 44.6), 0.5)
@@ -331,6 +338,7 @@ func _process(delta: float) -> void:
 	var pl := _player()
 	if pl == null:
 		return
+	_found(pl)
 	# the escort arrives
 	var stone := _stone3()
 	if Book.active("forty_first") and Book.step("forty_first") == 0:
@@ -376,6 +384,19 @@ func _process(delta: float) -> void:
 					lg.call("banner", "IN THE REEDS", String(Chains.HOLLOW.title), "Ostrin's father. His face is a hole. Put him to rest.")
 				else:
 					_narrate("A man stands over a cold lantern in the reeds. He turns. His face is a hole.")
+
+
+## a task found in the world (`found_at`, `found_r`: nobody offers it) starts when the wanderer comes close, once the keep has spoken.
+func _found(pl: Node3D) -> void:
+	if not bool((Travel.story.get("flags", {}) as Dictionary).get("met_keep", false)):
+		return
+	for id: String in Chains.ORDER:
+		var qd: Dictionary = Chains.QUESTS[id]
+		if not qd.has("found_at") or Book.started(id):
+			continue
+		var at: Vector2 = qd.found_at
+		if Vector2(pl.global_position.x - at.x, pl.global_position.z - at.y).length() < float(qd.get("found_r", 7.0)) and Book.start(id):
+			_narrate(String(qd.get("found_say", "")))
 
 
 const HOLLOW_STAND_R := 70.0   ## the body stands this far out, in view on a gallop; it wakes at Chains.HOLLOW.wake
@@ -431,6 +452,12 @@ func _sync_props() -> void:
 		var bd: Dictionary = Chains.PICKUPS[bk]
 		if String(bd.kind) == "bell" and Book.started(String(bd.quest)) and not pickups.has(bk) and Book.pick(String(bd.quest)) in ["rung", "carried"]:
 			want["bell:" + bk] = Book.pick(String(bd.quest))
+	for qid: String in Chains.ORDER:       # the body or grave a found task starts at; the light a finished one leaves
+		var qd: Dictionary = Chains.QUESTS[qid]
+		if qd.has("found_prop") and not Book.started(qid):
+			want["found:" + qid] = String(qd.found_prop)
+		elif qd.has("stands") and Book.done(qid):
+			want["stand:" + qid] = String(qd.stands.kind)
 	if Book.done("alms_loaf"):
 		want["loaf"] = "loaf"
 	if Book.done("ring_heart"):
@@ -457,13 +484,16 @@ func _sync_props() -> void:
 				QProps.ring_bell(bh, 1.0)            # rung on the choice, once, where you are looking
 			_bell_taken.erase(bkey)
 			continue
-		var kind: String = {"tongs": "tongs", "names": "slabs", "mug": "mug_full", "staff": "staff", "loaf": "loaf_circle", "thorn": "thorn"}.get(id2, "lantern_lit" if want[id2] == "lit" else "lantern")
+		var kind: String = String(want[id2]) if id2.begins_with("found:") or id2.begins_with("stand:") else {"tongs": "tongs", "names": "slabs", "mug": "mug_full", "staff": "staff", "loaf": "loaf_circle", "thorn": "thorn"}.get(id2, "lantern_lit" if want[id2] == "lit" else "lantern")
 		var h := QProps.make(self, "Outcome_" + id2, kind, xf as Transform3D)
 		h.set_meta("v", String(want[id2]))
 		props[id2] = h
 
 
 func _prop_xf(id: String, v: String) -> Variant:
+	if id.begins_with("found:") or id.begins_with("stand:"):
+		var sp: Vector3 = spots.get(("found_" if id.begins_with("found:") else "stand_") + id.substr(6), Vector3.INF)
+		return null if sp == Vector3.INF else Transform3D(Basis(Vector3.UP, float(hash(id) % 628) * 0.01), sp)
 	match id:
 		"tongs":
 			if v == "stone":
