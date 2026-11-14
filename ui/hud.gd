@@ -548,17 +548,12 @@ func hold_opening(on: bool) -> void:
 func fade_in_opening(seconds := 3.0) -> void:
 	_lifting = true
 	create_tween().tween_property(_fade, "color:a", 0.0, seconds)
-
-
-## The opening's first message: the zone's title card, over the lifting black, ahead of the narration
-## (core/story/story.gd waits for title_busy() to clear). True when a card was waiting.
-func play_opening_card() -> bool:
-	if _card_after.is_empty():
-		return false
-	var c := _card_after
-	_card_after = []
-	_on_zone(String(c[0]), String(c[1]), true)
-	return true
+	# the opening's first message: the zone's title card, over the lifting black, ahead of the narration (core/story/story.gd
+	# waits for title_busy() to clear). Played here, in the same call, so no tip finds the gap before it.
+	if not _card_after.is_empty():
+		var c := _card_after
+		_card_after = []
+		_on_zone(String(c[0]), String(c[1]), true)
 
 
 ## The pieces of the HUD that come later: the compass and the minimap with the Keep (met_keep).

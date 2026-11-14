@@ -298,7 +298,7 @@ def build_forge():
     box(p, V(tx, 0.74, tz), (0.74, 0.04, 1.78), kind=DARK, col=(0.04, 0.05, 0.06))
     box(p, V(tx, 0.84, tz), (1.04, 0.1, 2.08), kind=ASHLAR, col=stone_col(p, "pale"), jit=0.003)
     # the grindstone: two posts, a wheel on an axle, a crank, a water trough under it
-    gx, gz = 3.0, -1.5
+    gx, gz = 3.0, -1.9
     for sz in (-0.3, 0.3):
         box(p, V(gx, 0.5, gz + sz), (0.1, 1.0, 0.1), tone="dark")
         box(p, V(gx, 0.14, gz + sz), (0.7, 0.1, 0.08), tone="dark")
@@ -322,9 +322,9 @@ def build_forge():
     box(p, V(-3.2, 0.5, -1.0), (0.9, 0.9, 1.2), tone="dark", jit=0.004)
     for k in range(9):
         blob(p, V(-3.2 + p.rng.uniform(-0.3, 0.3), 1.0 + p.rng.uniform(0.0, 0.07), -1.0 + p.rng.uniform(-0.45, 0.45)), (0.11, 0.08, 0.1), (0.12, 0.11, 0.11), DARK, 5, 3)
-    prism(p, 12, 0.36, 0.0, 1.05, (3.55, -2.3), kind=WOOD, col=p.wood("mid"), r1=0.34)
+    prism(p, 12, 0.36, 0.0, 1.05, (-3.4, -2.4), kind=WOOD, col=p.wood("mid"), r1=0.34)
     for yy in (0.2, 0.55, 0.9):
-        prism(p, 12, 0.375, yy, yy + 0.06, (3.55, -2.3), kind=IRON, caps=(False, False), col=p.iron())
+        prism(p, 12, 0.375, yy, yy + 0.06, (-3.4, -2.4), kind=IRON, caps=(False, False), col=p.iron())
     for k in range(4):
         box(p, V(0.2 + 0.0, 0.1 + 0.09 * k, -2.0), (1.0, 0.08, 0.14), kind=IRON, col=p.iron(), R=rotm(0.04 * (k % 2)))
     return finish(p, "hw_forge", (V(0, 2.2, 0.0), (8.6, 4.4, 6.4)))

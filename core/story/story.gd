@@ -14,6 +14,7 @@ extends Node
 const QuestDB := preload("res://core/story/quest_db.gd")
 const DialogueDB := preload("res://core/story/dialogue_db.gd")
 const DialogueUI := preload("res://ui/dialogue.gd")
+const HudUI := preload("res://ui/hud.gd")
 const Voice := preload("res://core/npc/npc_voice.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 const ShopUI := preload("res://ui/shop.gd")
@@ -401,19 +402,16 @@ func _opening() -> void:
 ## arrives and the rest is spoken; the place banner (the region's name) waits for all of it (the text
 ## director holds banners while the HUD's opening is staged and while narration is up). The Gloom bar
 ## waits for Gloom, the compass and minimap for the Keep, the hotbar's slots for the spells taught.
-func _stage_opening(hud: Node) -> void:
-	hud.call("fade_in_opening", 3.0)
+func _stage_opening(hud_node: Node) -> void:
+	var hud := hud_node as HudUI
+	hud.fade_in_opening(3.0)
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	var start := p.global_position if p else Vector3.ZERO
-	await get_tree().create_timer(0.8).timeout
-	if not is_inside_tree() or not is_instance_valid(hud):
-		return
-	if bool(hud.call("play_opening_card")):
-		await get_tree().create_timer(0.6).timeout
-		var c := 0.0
-		while is_inside_tree() and is_instance_valid(hud) and bool(hud.call("title_busy")) and c < 12.0:
-			await get_tree().create_timer(0.2).timeout
-			c += 0.2
+	await get_tree().create_timer(0.6).timeout
+	var c := 0.0
+	while is_inside_tree() and is_instance_valid(hud) and hud.title_busy() and c < 12.0:
+		await get_tree().create_timer(0.2).timeout
+		c += 0.2
 	if not is_inside_tree() or not is_instance_valid(hud) or not is_instance_valid(ui):
 		return
 	ui.narrate([DialogueDB.OPENING[0]])
@@ -426,7 +424,7 @@ func _stage_opening(hud: Node) -> void:
 		return
 	if is_instance_valid(ui):
 		ui.narrate(DialogueDB.OPENING.slice(1))      # queued before the HUD's hold lifts: no banner slips in between
-	hud.call("hold_opening", false)
+	hud.hold_opening(false)
 
 
 func _on_boss(id: String) -> void:

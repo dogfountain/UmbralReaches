@@ -1,6 +1,6 @@
 extends RefCounted
 ## Hearthward's well, notice board, hearth shrine and Edda's forge as modelled pieces at the village's scale
-## (r38: they were code-built box pieces at the old scale beside 4 m eaves). The models are
+## (they were code-built box pieces at the old scale beside 4 m eaves). The models are
 ## tools/blender/props_hearth.py -> art/models/props/hw_*.glb, drawn at the size they stand at; the collision is a few
 ## boxes each. What the village reads stays where it was: the sites (Props.site_y), the inscriptions (L.scrap), the
 ## pages and letters, the saint, the candles and coals, the forge's light, and the walk nodes (the forge's are
@@ -121,11 +121,11 @@ func forge(c: Vector2) -> void:
 		[Vector3(1.3, 1.7, -2.75), Vector3(0.34, 3.4, 0.34)], [Vector3(3.85, 1.7, -2.75), Vector3(0.34, 3.4, 0.34)],
 		[Vector3(-1.75, 0.6, 1.75), Vector3(2.4, 1.2, 1.7)],
 		[Vector3(-2.75, 2.0, 2.07), Vector3(0.4, 4.0, 0.9)], [Vector3(-0.75, 2.0, 2.07), Vector3(0.4, 4.0, 0.9)],
-		[Vector3(1.0, 0.7, 0.25), Vector3(0.9, 1.4, 0.95)],
+		[Vector3(1.0, 0.7, 0.25), Vector3(0.8, 1.4, 0.8)],
 		[Vector3(2.75, 0.45, 1.15), Vector3(1.0, 0.9, 2.0)],
-		[Vector3(3.0, 0.6, -1.5), Vector3(0.9, 1.2, 1.0)],
+		[Vector3(3.0, 0.6, -1.9), Vector3(0.7, 1.2, 1.0)],
 		[Vector3(-3.2, 0.45, -1.0), Vector3(0.9, 0.9, 1.2)],
-		[Vector3(3.55, 0.52, -2.3), Vector3(0.75, 1.05, 0.75)],
+		[Vector3(-3.4, 0.52, -2.4), Vector3(0.75, 1.05, 0.75)],
 		[Vector3(-3.0, 0.45, 0.6), Vector3(0.9, 0.9, 1.3)]]
 	_put("hw_forge.glb", o, 0.0, cols)
 	# the coals on the hearth, the anvil's plaque, the old forge's light
