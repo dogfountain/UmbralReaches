@@ -39,7 +39,7 @@ const FORGE := Vector2(11.0, 60.0)
 const WELL := Vector2(-10.0, 48.5)
 ## The Thornwood's far west, clear of the enemy camps (r31: in from -102, where the r30 edge cliffs and
 ## boulders now stand, so no clear spot was found and Wyck had no camp)
-const HERMIT_NEAR := Vector2(-93.0, 5.0)
+const HERMIT_NEAR := Vector2(-93.0, 9.0)
 const SEXTON_NEAR := Vector2(-57.0, 40.6)
 
 var time_scale := 1.0                 ## tests speed the village up
