@@ -8,11 +8,12 @@ extends RefCounted
 ##   weirford_town     the inn (The Grey Heron), the smithy, two cottages, the stables, the square's well and
 ##                     stall, the watch hut: lit windows (no lights), people (village_cast_west_marches.gd)
 ##   sorrow_shrine     the drowned shrine in the river (a secret: site_west_marches.gd), a chest, fords and posts
-##   hierarch_statue   the Fallen Hierarch (r37_statue.glb): the skull's floor is the Speaking Crown's room
-##   hierarch_hand     the open hand, palm up: steps up to it, a chest on the palm
-##   siege_line        the outer earthwork's palisade and gate, a chest-high stair to the rampart
-##   siege_trebs       three rotted trebuchets
-##   siege_tower       a four-storey siege tower you can climb (its stairs are built in), a chest at the top
+##   hierarch_*        the Fallen Hierarch in the Siege Lines, his hand, and his empty plinth in the old valley
+##                     (realm_pois_hierarch.gd builds them; the POIS entries stay here)
+##   siege_line        the inner earthwork's palisade arcs and the north gate, ringing the fallen Hierarch
+##   siege_trebs       three rotted trebuchets behind the palisade, every arm cocked on the skull
+##   siege_tower       a four-storey siege tower you can climb (its stairs are built in), a chest at the top; its
+##                     ramp runs down toward the skull
 ## Same API as the Realm's other places (groups "world_poi", "loot_chest"; every host carries meta "region").
 ## Built by realm_pois.gd. No class_name: preload by path.
 
@@ -25,17 +26,10 @@ const Kit := preload("res://core/world/realm/west_marches_kit.gd")
 const PropModels := preload("res://core/world/realm/prop_models.gd")
 const DROWNED := "ruin_drowned.glb"
 const Hearth := preload("res://core/world/realm/cottage_hearth.gd")
-const Raid := preload("res://core/world/hierarch_raid.gd")
+const Hier := preload("res://core/world/realm/realm_pois_hierarch.gd")
 const Pilot := preload("res://core/world/realm/scale_pilot.gd")
 
 const WATER := -0.9
-
-## The statue: the skull's centre is the Fallen Hierarch's raid floor (RealmLayout RAIDS "hierarch"), the
-## body lies away from it along BODY_DIR (xz), the model's +X. The gate faces the way the weir track arrives.
-const HEAD_C := Vector2(-214.0, -104.0)
-const BODY_DIR := Vector2(-0.35, 0.94)
-const FLOOR_Y := 4.0
-const HAND_LOCAL := Vector3(38.0, 2.7, 37.5)          ## the palm's top, model frame in Godot axes (x along the body, z = -Blender y)
 
 ## id -> {at, size (footprint, local x by z), yaw, h (wall height), region, title, line, kind}
 const BLD := {
@@ -53,25 +47,30 @@ const POIS := {
 	"weirford_mill": {"at": Vector2(-214.0, 58.0), "title": "The Weir Mill", "line": "it ground the abbey's flour, and kept its head down", "region": "weirford", "r": 14.0},
 	"weirford_town": {"at": Vector2(-190.0, 66.0), "title": "Weirford", "line": "warm, and wary", "region": "weirford", "r": 26.0},
 	"sorrow_shrine": {"at": Vector2(-208.0, -40.0), "title": "The Drowned Shrine", "line": "the river came to see it, and stayed", "region": "sorrow", "r": 9.0, "wet": true},
-	"hierarch_statue": {"at": HEAD_C, "title": "The Fallen Hierarch", "line": "he was raised taller than the Stair", "region": "hierarch", "r": 34.0},
-	"hierarch_hand": {"at": Vector2(-236.0, -84.0), "title": "The Hierarch's Hand", "line": "palm up, as if for a coin", "region": "hierarch", "r": 7.0},
-	"siege_line": {"at": Vector2(-214.0, 120.0), "title": "The Outer Earthwork", "line": "the Marches dug in here, and then dug in deeper", "region": "siege", "r": 22.0},
-	"siege_trebs": {"at": Vector2(-190.0, 208.0), "title": "The Trebuchet Line", "line": "every arm cocked toward the gates", "region": "siege", "r": 18.0},
-	"siege_tower": {"at": Vector2(-236.0, 170.0), "title": "The Siege Tower", "line": "four floors, and the gate it never reached", "region": "siege", "r": 10.0},
+	"hierarch_statue": {"at": Hier.HEAD_C, "title": "The Fallen Hierarch", "line": "he was raised taller than the Stair", "region": "siege", "r": 34.0},
+	"hierarch_hand": {"at": Hier.HEAD_C + Vector2(-26.0, 46.0), "title": "The Hierarch's Hand", "line": "palm up, as if for a coin", "region": "siege", "r": 7.0},
+	"hierarch_plinth": {"at": Hier.PLINTH_C, "title": "The Empty Plinth", "line": "his feet are still on it", "region": "plinth", "r": 26.0},
+	"siege_line": {"at": Vector2(-206.0, 110.0), "title": "The Outer Earthwork", "line": "the Marches dug in here, and then dug in deeper", "region": "siege", "r": 22.0},
+	"siege_trebs": {"at": Vector2(-200.0, 114.0), "title": "The Trebuchet Line", "line": "every arm cocked on the giant", "region": "siege", "r": 18.0},
+	"siege_tower": {"at": TOWER_AT, "title": "The Siege Tower", "line": "four floors, and a giant to climb", "region": "siege", "r": 10.0},
 }
 
 const LOOT := {
 	"sorrow_shrine": ["reliquary", {"grave_ash": 18, "relic_fragment": 1}],
-	"hierarch_hand": ["iron", {"grave_ash": 16, "relic_fragment": 1}],
-	"hierarch_crown": ["reliquary", {"grave_ash": 28, "relic_fragment": 2, "ember_shard": 2}],
 	"siege_tower_top": ["iron", {"grave_ash": 15, "grave_iron": 2, "relic_fragment": 1}],
 	"weirford_loft": ["wood", {"grave_ash": 9, "grave_iron": 1}],
 	"siege_camp": ["wood", {"grave_ash": 8, "grave_iron": 1}],
 }
 
 ## The Marches camps' dressing: lean-to + cold ring + a bedroll or two (EnemySpawner.REALM_CAMPS holds the foes).
-const CAMPS := [Vector2(-232.0, 0.0), Vector2(-178.0, -50.0), Vector2(-178.0, -124.0), Vector2(-180.0, 150.0), Vector2(-240.0, 218.0),
-	Vector2(-248.0, -116.0), Vector2(-222.0, 190.0), Vector2(-196.0, 228.0)]
+const CAMPS := [Vector2(-232.0, 0.0), Vector2(-178.0, -50.0), Vector2(-187.0, -102.0), Vector2(-240.0, 168.0), Vector2(-240.0, 218.0),
+	Vector2(-216.0, 226.0), Vector2(-196.0, 228.0)]
+
+## The Siege Lines' engines, drawn up round the fallen Hierarch (HEAD_C): the trebuchets stand behind the palisade
+## (xz, each aimed at the skull), the siege tower on the east flank with its ramp running down toward the skull.
+const TREBS := [Vector2(-230.0, 118.0), Vector2(-196.0, 113.0), Vector2(-185.0, 116.0)]
+const TOWER_AT := Vector2(-172.0, 128.0)
+const RING_R := 43.0                     ## the inner earthwork's radius round the skull (RealmLayout.SIEGE_RINGS)
 
 static var spots := {}                   ## id -> {at: Vector3, yaw, rect}
 static var built: Array[String] = []
@@ -92,10 +91,6 @@ static func decks() -> Array:
 	if deck_rect.size == Vector2.ZERO:
 		return []
 	return [{"rect": deck_rect, "y": deck_y}]
-
-
-static func body_yaw() -> float:
-	return atan2(-BODY_DIR.y, BODY_DIR.x)
 
 
 static func _bx(ctr: Vector2, half: Vector2) -> Rect2:
@@ -139,42 +134,18 @@ static func reserve(root: Node) -> void:
 	WorldLanes.register_lane("r37w_bridge", [Vector2(-208.0 - 16.0 * bk.x, 65.6), Vector2(-208.0 + 18.0 * bk.x, 65.6)], 3.4 * bk.z)
 	WorldLanes.register_lane("r37w_weir", [Vector2(-215.0, 58.0), Vector2(-199.0, 58.0)], 3.0)
 	Flora.tree_clear.append([Vector2(-200.0, 66.0), 30.0])
-	# the statue's body and arm lie on the land as it is: no cut, nothing grows on them
-	var yaw := body_yaw()
-	var dir := BODY_DIR.normalized()
-	var right := Vector2(-dir.y, dir.x)
-	for i in 5:
-		var c := HEAD_C + dir * (28.0 + 7.5 * float(i))
-		var rc2 := _bx(c, Vector2(11.0, 11.0))
-		WorldLanes.register_site("r37w_body_%d" % i, rc2, _hi(space, rc2), _hi(space, rc2) + 1.0)
-	var hand := _hand_xz()
-	var arm := _bx((HEAD_C + dir * 40.0 + hand) * 0.5, Vector2(18.0, 18.0))
-	WorldLanes.register_site("r37w_arm", arm, _hi(space, arm), _hi(space, arm) + 1.0)
-	# the palm lies in the Crowns' west shoulder, where the land stands 6 to 11 m over it: the shoulder is cut back to the
-	# palm's base so the hand shows, can be walked round, and its steps have ground to start on. It stops 5 m short of the
-	# terrain's edge (x -272): a cut running out to the edge would leave a drop to the horizon ring behind it.
-	var pad := Rect2(-267.0, hand.y - 12.0, 31.0, 24.0)
-	WorldLanes.register_site("r37w_hand_pad", pad, FLOOR_Y, FLOOR_Y - 0.1)
-	Flora.tree_clear.append([HEAD_C + dir * 30.0, 34.0])
+	Hier.reserve(space)
 	# the siege tower and the trebuchets: levelled pads
-	var tw := _bx(Vector2(-236.0, 170.0), Vector2(7.5, 7.5))
+	var tw := _bx(TOWER_AT, Vector2(7.5, 7.5))
 	var tlo := _lo(space, tw)
 	WorldLanes.register_site("r37w_tower", tw, tlo + 0.05, tlo)
-	for i in 3:
-		var tc := _bx(Vector2(-204.0 + 14.0 * float(i), 206.0 + 4.0 * float(i % 2)), Vector2(8.0, 5.0))
+	for i in TREBS.size():
+		var tc := _bx(TREBS[i], Vector2(8.0, 8.0))
 		var tl := _lo(space, tc)
 		WorldLanes.register_site("r37w_treb_%d" % i, tc, tl + 0.05, tl)
-	Flora.tree_clear.append([Vector2(-236.0, 170.0), 14.0])
-	Flora.tree_clear.append([Vector2(-196.0, 208.0), 22.0])
+	Flora.tree_clear.append([TOWER_AT, 14.0])
+	Flora.tree_clear.append([TREBS[1], 28.0])
 	print("REALM_POI r37 west reserved %s" % [spots.keys()])
-
-
-static func _hi(space: PhysicsDirectSpaceState3D, rc: Rect2) -> float:
-	var hi := -INF
-	for ix in 4:
-		for iz in 4:
-			hi = maxf(hi, RealmLayout.ground(space, rc.position.x + rc.size.x * ix / 3.0, rc.position.y + rc.size.y * iz / 3.0))
-	return hi
 
 
 static func _lo(space: PhysicsDirectSpaceState3D, rc: Rect2) -> float:
@@ -183,13 +154,6 @@ static func _lo(space: PhysicsDirectSpaceState3D, rc: Rect2) -> float:
 		for iz in 4:
 			lo = minf(lo, RealmLayout.ground(space, rc.position.x + rc.size.x * ix / 3.0, rc.position.y + rc.size.y * iz / 3.0))
 	return lo
-
-
-## The palm's xz in the world (model (38, 37.5) in x-along-body / lateral terms).
-static func _hand_xz() -> Vector2:
-	var b := Basis(Vector3.UP, body_yaw())
-	var w := b * Vector3(HAND_LOCAL.x, 0.0, HAND_LOCAL.z)
-	return HEAD_C + Vector2(w.x, w.z)
 
 
 static func _g(space: PhysicsDirectSpaceState3D, x: float, z: float) -> float:
@@ -221,8 +185,9 @@ static func build(holder: Node3D) -> void:
 			"weirford_mill": _mill(host, space)
 			"weirford_town": _town(host, space)
 			"sorrow_shrine": _shrine(host, space)
-			"hierarch_statue": _statue(host, space)
-			"hierarch_hand": _hand(host, space)
+			"hierarch_statue": arena = Hier.statue(host, space)
+			"hierarch_hand": Hier.hand(host, space)
+			"hierarch_plinth": Hier.plinth(host, space)
 			"siege_line": _siege_line(host, space)
 			"siege_trebs": _trebs(host, space)
 			"siege_tower": _tower(host, space)
@@ -683,126 +648,39 @@ static func _shrine(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	host.set_meta("approach", Vector3(-202.0, _g(space, -202.0, -37.0), -37.0))
 
 
-# --- the Fallen Hierarch -------------------------------------------------------------------------------
-
-static func _statue(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
-	var yaw := body_yaw()
-	var origin := Vector3(HEAD_C.x, FLOOR_Y - 0.15, HEAD_C.y)
-	var xf := Transform3D(Basis(Vector3.UP, yaw), origin)
-	# the near model (the engine's own mesh LODs) fades out where the far mesh takes over
-	var near := Kit.place(host, "r37_statue.glb", xf)
-	if near:
-		near.name = "Statue"
-		# the far mesh (r37_statue_far.glb, ~1.6k triangles) from 160 m out to the horizon; the near model fades out there
-		var far_ps := Kit.scene("r37_statue_far.glb")
-		if far_ps:
-			var far_root := far_ps.instantiate() as Node3D
-			for mi in far_root.find_children("*", "MeshInstance3D", true, false):
-				var m := mi as MeshInstance3D
-				if m.mesh != null:
-					FarDetail.register(near, m.mesh, Transform3D.IDENTITY, 160.0, null, false)
-			far_root.free()
-		FarDetail.near_ends(near, 160.0, 30.0)
-	# the arena: the floor inside the skull; its mouth is the gate toward the weir track
-	var c := Vector3(HEAD_C.x, FLOOR_Y, HEAD_C.y)
-	var raid := RealmLayout.raid("hierarch")
-	var gate2: Vector2 = raid.gate
-	var out := (gate2 - HEAD_C).normalized()
-	var mouth := c + Vector3(out.x, 0.0, out.y) * 21.0
-	mouth.y = _g(space, mouth.x, mouth.z)
-	var room: Node3D = Raid.new()
-	room.name = "HierarchRoom"
-	host.add_child(room)
-	room.global_position = c
-	room.set("centre", c)
-	room.set("radius", 20.0)
-	var spawn := c - Vector3(out.x, 0.0, out.y) * 5.0 + Vector3.UP * 0.1
-	var ar: BossArena = BossArena.make(host, "r37_hierarch", "The Speaking Crown", c, 20.0, HierarchVoice, spawn)
-	ar.room = room
-	ar.ceiling = 26.0
-	ar.subtitle = "the Hierarch's voice, kept in his head"
-	var gate := WardSeal.make_arena_gate(host, "hierarch", mouth, Vector3(-out.x, 0.0, -out.y), 12.0, 6.0, "light")
-	ar.gate = gate
-	ar.on_slain = func(fresh: bool) -> void:
-		if fresh:
-			Events.toast.emit("The horn goes quiet. The skull is only stone.")
-		var sp := RealmLayout.ground(host.get_world_3d().direct_space_state, c.x + out.x * 3.0, c.z + out.y * 3.0)
-		if host.get_node_or_null("Chest_hierarch_crown") == null:
-			_chest(host, "hierarch_crown", Vector3(c.x + out.x * 3.0, sp, c.z + out.y * 3.0), 0.0)
-	arena = ar
-	# a pale column out of the skull (the boss beacon, gone when he falls): the Thornwood's hills hide the
-	# statue's 30 m from Hearthward, so its top reads over them at night
-	var bn: Variant = Wayfinding.beacon(host, c, "r37_hierarch", Color(0.66, 0.76, 0.92), 78.0, 0.45, 20.0, false, 280.0)
-	if bn is Node:
-		(bn as Node).name = "Beacon_r37_hierarch"
-	# cover on the floor: three fallen tines (stone slabs on edge), solid, so the Echo's feet and the
-	# Toll's gaps have something to be read against; the mouth's inside edge is lit by the horn's ember
-	var k := _kit()
-	for i in 3:
-		var a := TAU * (float(i) + 0.4) / 3.0
-		var p := c + Vector3(cos(a), 0.0, sin(a)) * 12.0
-		# on the room's own floor, sunk 0.3 m so the tilt lifts no corner (a ground ray met the shell above it: they hung
-		# about a metre up)
-		var bb := Basis(Vector3.UP, a + 0.4) * Basis(Vector3.FORWARD, 0.18)
-		k.box("ruin", Vector3(p.x, FLOOR_Y + 2.4 - 0.3, p.z), Vector3(1.8, 4.8, 1.2), bb, true, 0.9)
-	k.commit(host, "CrownTines")
-	_lore(host, "r37w_statue", Vector3(HEAD_C.x + out.x * 24.5, _g(space, HEAD_C.x + out.x * 24.5, HEAD_C.y + out.y * 24.5) + 1.1, HEAD_C.y + out.y * 24.5 + 2.5), Vector3(HEAD_C.x + out.x * 24.5, FLOOR_Y + 1.1, HEAD_C.y + out.y * 24.5))
-	host.set_meta("approach", mouth)
-	host.set_meta("boss", "r37_hierarch")
-
-
-static func _hand(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
-	var hx := _hand_xz()
-	var origin_y := FLOOR_Y - 0.15
-	var palm := Vector3(hx.x, origin_y + HAND_LOCAL.y, hx.y)
-	host.set_meta("centre", palm)
-	var k := _kit()
-	var b := Basis(Vector3.UP, body_yaw())
-	# a stair of fallen blocks up to the palm from the open (finger) side, so the hand can be walked onto
-	var from := palm + b * Vector3(0.0, 0.0, 6.2)
-	var g0 := _g(space, from.x, from.z)
-	var rise := palm.y - g0 - 0.2
-	var n := clampi(ceili(rise / 0.42), 1, 14)
-	for i in n:
-		var t := float(i + 1) / float(n)
-		var p := from.lerp(palm + b * Vector3(0, 0, 3.4), float(i) / float(n)) + b * Vector3(3.0, 0, 0)
-		k.box("ruin", Vector3(p.x, g0 + rise * t * 0.5 - 0.1, p.z), Vector3(1.8, rise * t + 0.2, 1.4), b, true, 0.85)
-	k.commit(host, "HandSteps")
-	_chest(host, "hierarch_hand", palm + b * Vector3(0.0, 0.1, 0.4), body_yaw())
-	_lore(host, "r37w_hand", palm + b * Vector3(-1.5, 0.9, -1.2), palm + b * Vector3(-1.5, 0.9, -1.2))
-	host.set_meta("approach", Vector3(from.x, g0, from.z))
-
-
 # --- the Siege Lines --------------------------------------------------------------------------------------
 
 static func _siege_line(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 37003
-	var gate_at := Vector2(-214.0, 116.0)
+	var hc := Hier.HEAD_C
 	var line := Node3D.new()
 	line.name = "Palisade"
 	host.add_child(line)
+	# the north gate stands in the inner ring's breach; the palisade runs along the bank's crest on either side
+	var gate_at := Vector2(hc.x, hc.y - RING_R)
 	var gy := _g(space, gate_at.x, gate_at.y)
 	Kit.place(line, "r37_palisade.glb", Transform3D(Basis(Vector3.UP, 0.0), Vector3(gate_at.x, gy, gate_at.y)), {"pick": "PalGate", "shift": Vector3(26.0, 0.0, 0.0)})
 	var variants := ["PalA", "PalA", "PalB", "PalA", "PalC", "PalB", "PalA", "PalA"]
 	var shifts := {"PalA": 0.0, "PalB": 8.0, "PalC": 16.0}
-	for side: float in [-1.0, 1.0]:
-		for i in 8:
-			var x := gate_at.x + side * (5.0 + 4.2 * float(i)) - side * 0.0
-			var z := gate_at.y + 0.02 * float(i) * float(i) * rng.randf_range(0.6, 1.4)
+	var da := rad_to_deg(4.2 / RING_R)
+	var i := 0
+	# two arcs of bearings (degrees, 0 = east, 90 = south): the north-west run to the gate and the north-east run to the
+	# breach where the east flank is open (the March Wall's foot closes the ring beyond it)
+	for arc: Array in [[-136.0, -97.0], [-83.0, -48.0]]:
+		var a := float(arc[0])
+		while a <= float(arc[1]):
+			var ar := deg_to_rad(a)
+			var x := hc.x + cos(ar) * RING_R
+			var z := hc.y + sin(ar) * RING_R
 			var gg := _g(space, x, z)
-			var v: String = variants[(i + (0 if side < 0.0 else 3)) % variants.size()]
-			Kit.place(line, "r37_palisade.glb", Transform3D(Basis(Vector3.UP, rng.randf_range(-0.06, 0.06)), Vector3(x, gg - 0.05, z)), {"pick": v, "shift": Vector3(float(shifts[v]), 0.0, 0.0), "range_end": 260.0})
-	# a second, shorter line south on the track, and stakes scattered in front of the gate
-	for i in 5:
-		var z2 := 138.0 + 4.2 * float(i)
-		var x2 := -218.0 + 1.5 * float(i)
-		var g2 := _g(space, x2, z2)
-		Kit.place(line, "r37_palisade.glb", Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(x2, g2 - 0.05, z2)), {"pick": "PalB" if i % 2 == 0 else "PalA", "shift": Vector3(8.0 if i % 2 == 0 else 0.0, 0.0, 0.0), "range_end": 260.0})
-	var lg := _g(space, gate_at.x, gate_at.y + 4.0)
-	FarDetail.register(line, FarDetail.hull(AABB(Vector3(gate_at.x - 38.0, lg - 0.5, gate_at.y - 1.0), Vector3(76.0, 4.6, 4.0)), 0.0, Color(0.14, 0.12, 0.1)), Transform3D.IDENTITY, 120.0)
+			var v: String = variants[i % variants.size()]
+			var yaw := atan2(-cos(ar), -sin(ar)) + rng.randf_range(-0.06, 0.06)
+			Kit.place(line, "r37_palisade.glb", Transform3D(Basis(Vector3.UP, yaw), Vector3(x, gg - 0.05, z)), {"pick": v, "shift": Vector3(float(shifts[v]), 0.0, 0.0), "range_end": 260.0})
+			a += da
+			i += 1
 	var k := _kit()
-	for i in 14:
+	for j in 14:
 		var p := Vector2(gate_at.x + rng.randf_range(-14.0, 14.0), gate_at.y - rng.randf_range(3.0, 11.0))
 		var pg := _g(space, p.x, p.y)
 		k.box("wood", Vector3(p.x, pg + 0.6, p.y), Vector3(0.14, 1.4, 0.14), Basis(Vector3(rng.randf_range(-1, 1), 0, rng.randf_range(-1, 1)).normalized(), rng.randf_range(0.3, 0.6)), false, 0.7)
@@ -811,45 +689,53 @@ static func _siege_line(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 
 
 static func _trebs(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
-	for i in 3:
-		var x := -204.0 + 14.0 * float(i)
-		var z := 206.0 + 4.0 * float(i % 2)
-		var gy := _lo(space, _bx(Vector2(x, z), Vector2(8.0, 5.0)))
+	for i in TREBS.size():
+		var at: Vector2 = TREBS[i]
+		var gy := _lo(space, _bx(at, Vector2(8.0, 8.0)))
 		var fallen := i == 1
-		var tr := Kit.place(host, "r37_trebuchet.glb", Transform3D(Basis(Vector3.UP, -PI * 0.25 + 0.1 * float(i)), Vector3(x, gy + 0.05, z)),
+		# the arm throws toward the model's +X: aimed at the skull
+		var to := Hier.HEAD_C - at
+		var tr := Kit.place(host, "r37_trebuchet.glb", Transform3D(Basis(Vector3.UP, atan2(-to.y, to.x) + 0.08 * float(i - 1)), Vector3(at.x, gy + 0.05, at.y)),
 			{"pick": "TrebB" if fallen else "TrebA", "shift": Vector3(30.0 if fallen else 0.0, 0.0, 0.0)})
 		if tr:
 			FarDetail.register(tr, FarDetail.hull(AABB(Vector3(-12.0, 0.0, -4.0), Vector3(19.0, 12.0, 8.0)), 0.3, Color(0.14, 0.12, 0.1)), Transform3D.IDENTITY, 110.0)
-	_lore(host, "r37w_trebs", Vector3(-194.0, _g(space, -194.0, 200.0) + 1.1, 200.0), Vector3(-194.0, _g(space, -194.0, 200.0) + 1.1, 200.0))
+	var lp := Vector3(-202.0, _g(space, -202.0, 109.0) + 1.1, 109.0)
+	_lore(host, "r37w_trebs", lp, lp)
 
 
 static func _tower(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
-	var rc := _bx(Vector2(-236.0, 170.0), Vector2(7.5, 7.5))
+	var rc := _bx(TOWER_AT, Vector2(7.5, 7.5))
 	var gy := _lo(space, rc)
-	var at := Vector3(-236.0, gy - 0.1, 170.0)
-	var tw := Kit.place(host, "r37_siege_tower.glb", Transform3D(Basis(Vector3.UP, -PI * 0.5), at))
+	var at := Vector3(TOWER_AT.x, gy - 0.1, TOWER_AT.y)
+	# the open face (model -Z) looks along the ramp, toward the skull's brow
+	var to := (Hier.HEAD_C + Vector2(-6.0, -4.0)) - TOWER_AT
+	var face := to.normalized()
+	var yaw := atan2(-face.x, -face.y)
+	var fb := Basis(Vector3.UP, yaw)
+	var tw := Kit.place(host, "r37_siege_tower.glb", Transform3D(fb, at))
 	if tw:
 		FarDetail.register(tw, FarDetail.hull(AABB(Vector3(-3.4, 0.0, -3.4), Vector3(6.8, 16.0, 6.8)), 0.1, Color(0.14, 0.12, 0.1)), Transform3D.IDENTITY, 120.0)
-	# the drawbridge's foot (model y 15, z 0.2) is the lowest ground's height plus 0.2 and the ground falls away beyond the
-	# pad: a few low timber steps carry it down to the ground it meets, so the ramp can be walked onto
-	var foot := at + Vector3(15.0, 0.2, 0.0)
+	# the drawbridge's foot (15 m out along the face, 0.2 up) is the lowest ground's height plus 0.2 and the ground may fall
+	# away beyond the pad: a few low timber steps carry it down to the ground it meets, so the ramp can be walked onto
+	var out := Vector3(face.x, 0.0, face.y)
+	var foot := at + out * 15.0 + Vector3(0.0, 0.2, 0.0)
 	var sk := _kit()
 	var prev := foot.y
-	for i in 7:
-		var sx := foot.x + 0.5 + 0.55 * float(i)
-		var gi := _g(space, sx, foot.z)
+	var sb := Basis(Vector3.UP, atan2(-face.y, face.x))        # local x along the ramp
+	for j in 7:
+		var sp := foot + out * (0.5 + 0.55 * float(j))
+		var gi := _g(space, sp.x, sp.z)
 		var top := prev - 0.2
 		if top <= gi + 0.12:
 			break
-		sk.box("wood", Vector3(sx, (top + gi - 0.4) * 0.5, foot.z), Vector3(0.55, top - gi + 0.4, 4.4), Basis.IDENTITY, true, 0.8)
+		sk.box("wood", Vector3(sp.x, (top + gi - 0.4) * 0.5, sp.z), Vector3(0.55, top - gi + 0.4, 4.4), sb, true, 0.8)
 		prev = top
 	sk.commit(host, "TowerFootSteps")
 	# its top: the platform (z 14.4 in the model) is 14.4 m over the wheels' foot
-	_chest(host, "siege_tower_top", at + Vector3(0.0, 14.6, 0.0), -PI * 0.5)
-	var fb := Basis(Vector3.UP, -PI * 0.5)                # the tower's open face (model +Y, Godot -Z) looks east, toward the Realm
-	host.set_meta("route", [at + fb * Vector3(0.0, 0.2, -13.0), at + Vector3(0.0, 14.5, 0.0)])
+	_chest(host, "siege_tower_top", at + Vector3(0.0, 14.6, 0.0), yaw)
+	host.set_meta("route", [at + out * 13.0 + Vector3(0.0, 0.2, 0.0), at + Vector3(0.0, 14.5, 0.0)])
 	host.set_meta("walk", [true, true])
-	host.set_meta("approach", at + fb * Vector3(0.0, 0.0, -13.0))
+	host.set_meta("approach", at + out * 13.0)
 	_lore(host, "r37w_tower", at + fb * Vector3(-3.4, 1.0, -6.0), at + fb * Vector3(-3.4, 1.0, -6.0))
 
 

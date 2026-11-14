@@ -7,7 +7,7 @@ const EYES := [Vector3(0.0, 1.9, 26.5), Vector3(-4.0, 1.9, 40.0), Vector3(4.0, 1
 ## [name, xz, y from, y to]
 const TARGETS := [
 	["spire", Vector2(245.0, 4.0), 12.0, 48.0],
-	["hierarch_head", Vector2(-214.0, -104.0), 4.0, 100.0],
+	["hierarch_head", Vector2(-206.0, 148.0), 1.0, 100.0],
 	["oak", Vector2(-70.0, 206.0), 16.0, 58.0],
 ]
 var main: Node

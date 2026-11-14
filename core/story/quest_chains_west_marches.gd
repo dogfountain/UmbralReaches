@@ -7,7 +7,7 @@ extends RefCounted
 ##   wf_crown   The Voice in the Head (Old Tolliver): three rubbings off the colossus, then silence the Speaking Crown
 ## House style (docs/LORE.md): terse, concrete, dark.
 
-const ZONES := [["weirford", "Weirford"], ["sorrow", "The Sorrow's Banks"], ["hierarch", "The Fallen Hierarch"], ["siege", "The Siege Lines"]]
+const ZONES := [["weirford", "Weirford"], ["sorrow", "The Sorrow's Banks"], ["plinth", "The Empty Plinth"], ["siege", "The Siege Lines"]]
 
 const ORDER := ["wf_wheel", "wf_watch", "wf_lights", "wf_crown"]
 
@@ -34,11 +34,11 @@ const QUESTS := {
 		"text": "The Marches' war-band never stood down, and nobody at Weirford has seen the Lines in nine years. Cassel will not send four men to count them. He will send a lamp: carried to the top of the siege tower and left burning, so that whatever is out there knows it is being watched. The Gate-Breaker walks the outer earthwork between the lamp and the road home.",
 		"steps": [
 			{"kind": "find", "text": "Take a lit signal lamp from the rack at the Weirford watch post"},
-			{"kind": "carry", "from": "wf_signal_lamp", "to": Vector2(-236.0, 170.0), "r": 7.0, "time": 200.0, "label": "Signal lamp",
+			{"kind": "carry", "from": "wf_signal_lamp", "to": Vector2(-172.0, 128.0), "r": 7.0, "time": 200.0, "label": "Signal lamp",
 				"lost": "The signal lamp has gone out. Cassel's rack has another.",
 				"text": "Carry the signal lamp to the siege tower in the Siege Lines before it dies ({t} s)"},
-			{"kind": "slay", "of": 1, "rares": ["gate_breaker"], "label": "The Gate-Breaker", "at": Vector2(-196.0, 162.0),
-				"text": "Put down the Gate-Breaker, on its round of the outer earthwork"},
+			{"kind": "slay", "of": 1, "rares": ["gate_breaker"], "label": "The Gate-Breaker", "at": Vector2(-241.0, 142.0),
+				"text": "Put down the Gate-Breaker, on its round of the earthwork"},
 			{"kind": "turnin", "who": "cassel", "text": "Tell Captain Cassel the lamp is on the Lines"},
 		],
 		"reward": {"ash": 22},
@@ -60,8 +60,8 @@ const QUESTS := {
 		"text": "They cut a hollow in the Hierarch's head so that one voice could be heard across the Marches, and sat a boy in it to hold the note. The statue fell. The note did not stop. Tolliver helped cut the hollow, and wants it quiet. He needs three rubbings of the colossus's carved edicts, from the hand, the shoulder and the lip, to know which of them the voice is still speaking. Then someone has to go in.",
 		"steps": [
 			{"kind": "gather", "of": 3, "text": "Take three rubbings of the Hierarch's edicts: the hand, the shoulder, the lip ({n}/{of})"},
-			{"kind": "visit", "at": Vector2(-203.0, -86.0), "r": 7.0, "text": "Stand at the mouth of the skull"},
-			{"kind": "cond", "cond": "boss:r37_hierarch", "at": Vector2(-214.0, -104.0), "label": "The Speaking Crown", "past": "The skull is already quiet.",
+			{"kind": "visit", "at": Vector2(-187.0, 157.4), "r": 7.0, "text": "Stand at the mouth of the skull"},
+			{"kind": "cond", "cond": "boss:r37_hierarch", "at": Vector2(-206.0, 148.0), "label": "The Speaking Crown", "past": "The skull is already quiet.",
 				"text": "Silence the Speaking Crown, in the Fallen Hierarch's skull"},
 			{"kind": "turnin", "who": "tolliver", "text": "Tell Tolliver the horn is quiet"},
 		],
@@ -83,10 +83,10 @@ const PICKUPS := {
 		"say": "The last of the three, upside down in the shallows below the ford. Under it the tallow has gone grey and the bark has gone black. Someone small made it."},
 	"wf_votive_place": {"quest": "wf_lights", "step": 1, "near": Vector2(-205.0, -40.0), "kind": "place", "name": "the drowned shrine's altar", "verb": "Set the boats on",
 		"say": "You set them in a row on the shrine's altar, with the water to your knees. The wicks catch from nothing. For a moment the whole shallows is lit from underneath, and it is not a pleasant light, and it is not a cruel one."},
-	"wf_rub_hand": {"quest": "wf_crown", "step": 0, "near": Vector2(-234.0, -82.0), "kind": "page", "name": "an edict, on the thumb", "verb": "Rub",
+	"wf_rub_hand": {"quest": "wf_crown", "step": 0, "near": Vector2(-231.1, 189.9), "kind": "page", "name": "an edict, on the thumb", "verb": "Rub",
 		"say": "Cut in the thumb's side, in the Order's square hand, backwards: THE FIRST EDICT. LET NONE LOOK DOWN. You take it on a leaf of bark with the heel of a coal. It comes up black and perfect."},
-	"wf_rub_shoulder": {"quest": "wf_crown", "step": 0, "near": Vector2(-229.0, -75.0), "kind": "page", "name": "an edict, on the shoulder", "verb": "Rub",
+	"wf_rub_shoulder": {"quest": "wf_crown", "step": 0, "near": Vector2(-183.3, 174.0), "kind": "page", "name": "an edict, on the shoulder", "verb": "Rub",
 		"say": "Along the collar of the stone cope, the Second: LET NONE SPEAK BUT THROUGH ME. The mason ran out of room and the last word is carved on the fold below, where nobody would read it."},
-	"wf_rub_lip": {"quest": "wf_crown", "step": 0, "near": Vector2(-204.0, -92.0), "kind": "page", "name": "an edict, on the lip", "verb": "Rub",
+	"wf_rub_lip": {"quest": "wf_crown", "step": 0, "near": Vector2(-191.1, 152.9), "kind": "page", "name": "an edict, on the lip", "verb": "Rub",
 		"say": "Cut small along the jaw's rim, almost under the moss: THE THIRD. HOLD THE NOTE. There is a child's thumbprint in the wet stone at the end of the line, a long time dry."},
 }

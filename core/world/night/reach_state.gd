@@ -29,7 +29,7 @@ const FACTIONS := {
 	"road": {"name": "the road folk", "zones": ["moor", "mere", "foundry", "quarry"], "bells": ["bell_moor", "bell_mere", "bell_foundry", "bell_quarry"],
 		"gift": {"grave_iron": 3, "relic_fragment": 2}, "friend": "The road folk know your face. Ysolt sends iron; Cadoc sends nothing, and says so.",
 		"kin": "On the moor and the mere they keep a place at the fire for you now."},
-	"marchers": {"name": "the Marchers", "zones": ["weirford", "sorrow", "hierarch", "siege", "stillwater", "anchorholds", "saltmarket", "saltpans"], "bells": ["bell_spire"],
+	"marchers": {"name": "the Marchers", "zones": ["weirford", "sorrow", "plinth", "siege", "stillwater", "anchorholds", "saltmarket", "saltpans"], "bells": ["bell_spire"],
 		"gift": {"relic_fragment": 3, "grave_iron": 2}, "friend": "A tin of lamp-wick and a twist of salt are left by your next fire. The Marchers' way of saying the Order's door was never theirs.",
 		"kin": "The Marchers leave a lamp lit on the road for you now. Their dead lie quieter where you pass."},
 }

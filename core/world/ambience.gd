@@ -67,7 +67,7 @@ const SCAPES := {
 	"mere": {"night": 0.7, "fen": 1.0, "crickets": 0.3, "meadow": 0.2},
 	# the Outer Marches and the downs (Foundation): the river's water, the siege's wind, the salt's silence
 	"sorrow": {"night": 0.7, "leaves": 0.55, "fen": 0.5, "crickets": 0.2},
-	"hierarch": {"night": 0.7, "high_wind": 0.4, "leaves": 0.3, "crickets": 0.1},
+	"plinth": {"night": 0.7, "high_wind": 0.4, "leaves": 0.3, "crickets": 0.1},
 	"siege": {"night": 0.7, "high_wind": 0.4, "meadow": 0.2, "crickets": 0.15},
 	"stillwater": {"night": 0.7, "fen": 0.85, "crickets": 0.2, "high_wind": 0.1},
 	"anchorholds": {"night": 0.6, "high_wind": 0.75, "chasm": 0.1},
@@ -82,7 +82,7 @@ const REGION_SCAPE := {"hearth": "village", "chapel": "village", "road": "heath"
 	# r34 flora: the new ground, each its own scape (SCAPES / SPOTS)
 	"quarry": "quarry", "holds": "holds", "foundry": "foundry", "moor": "moor", "orchard": "orchard", "necropolis": "necropolis", "mere": "mere",
 	# the Marches
-	"weirford": "village", "sorrow": "sorrow", "hierarch": "hierarch", "siege": "siege", "stillwater": "stillwater",
+	"weirford": "village", "sorrow": "sorrow", "plinth": "plinth", "siege": "siege", "stillwater": "stillwater",
 	"anchorholds": "anchorholds", "saltmarket": "heath", "saltpans": "salt", "downs": "downs", "oak": "wood", "well": "well"}
 
 ## soundscape -> [interval min, max (s), distance min, max (m), palette [[sound, weight, height]]]
@@ -106,7 +106,7 @@ const SPOTS := {
 	"mere": [6.0, 13.0, 12.0, 40.0, [["life:plop", 0.35, 0.0], ["bittern", 0.3, 0.3], ["life:heron", 0.2, 1.0], ["peewit", 0.06, 3.0]]],
 	# the Marches
 	"sorrow": [6.0, 14.0, 12.0, 38.0, [["life:plop", 0.3, 0.0], ["twig", 0.2, 0.2], ["life:owl", 0.2, 6.0], ["bittern", 0.15, 0.3], ["creak", 0.1, 3.0]]],
-	"hierarch": [8.0, 18.0, 14.0, 42.0, [["life:crow", 0.3, 8.0], ["howl", 0.15, 20.0], ["creak", 0.2, 3.0], ["life:owl", 0.2, 6.0], ["twig", 0.15, 0.2]]],
+	"plinth": [8.0, 18.0, 14.0, 42.0, [["life:crow", 0.3, 8.0], ["howl", 0.15, 20.0], ["creak", 0.2, 3.0], ["life:owl", 0.2, 6.0], ["twig", 0.15, 0.2]]],
 	"siege": [7.0, 16.0, 14.0, 42.0, [["creak", 0.35, 2.0], ["pebbles", 0.2, 0.0], ["life:crow", 0.25, 6.0], ["howl", 0.1, 20.0], ["bell_far", 0.1, 6.0]]],
 	"stillwater": [6.0, 13.0, 12.0, 40.0, [["life:plop", 0.35, 0.0], ["life:heron", 0.2, 1.0], ["bittern", 0.2, 0.3], ["life:owl2", 0.15, 5.0], ["bell_far", 0.1, 8.0]]],
 	"anchorholds": [8.0, 18.0, 14.0, 44.0, [["howl", 0.25, 25.0], ["pebbles", 0.3, 0.0], ["bell_far", 0.25, 12.0], ["life:crow", 0.2, 8.0]]],
@@ -130,7 +130,7 @@ const PLACES := {
 }
 const SCAPE_PLACE := {"village": "open", "heath": "open", "wood": "wood", "fen": "open", "crossing": "cliff", "summit": "cliff",
 	"quarry": "cliff", "holds": "wood", "foundry": "cliff", "moor": "open", "orchard": "wood", "necropolis": "open", "mere": "open",
-	"sorrow": "wood", "hierarch": "open", "siege": "open", "stillwater": "open", "anchorholds": "cliff", "salt": "open", "downs": "open",
+	"sorrow": "wood", "plinth": "open", "siege": "open", "stillwater": "open", "anchorholds": "cliff", "salt": "open", "downs": "open",
 	"well": "well"}
 const ROOM_KEYS := ["room_size", "damping", "spread", "predelay_msec", "hipass"]
 ## outdoor layers indoors: [low-pass cutoff Hz, AmbOut volume dB]

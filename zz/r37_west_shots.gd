@@ -9,14 +9,15 @@ const VIEWS := [
 	["smithy", Vector3(-174, -99, 62), Vector3(-174, 2, 75)],
 	["square", Vector3(-188, -99, 69), Vector3(-192, 2, 77)],
 	["stables", Vector3(-184, -99, 90), Vector3(-196, 2, 92)],
-	["statue_in", Vector3(-200, -99, -85), Vector3(-214, 8, -104)],
-	["statue_far", Vector3(-176, -98, -48), Vector3(-224, 10, -104)],
-	["statue_path", Vector3(-190, -98, -66), Vector3(-222, 8, -100)],
-	["hand", Vector3(-222, -99, -68), Vector3(-236, 3, -84)],
-	["tower", Vector3(-214, -99, 170), Vector3(-236, 8, 170)],
-	["trebs", Vector3(-190, -99, 194), Vector3(-196, 5, 208)],
+	["statue_in", Vector3(-176, -99, 168), Vector3(-206, 8, 148)],
+	["statue_far", Vector3(-212, -98, 108), Vector3(-206, 10, 150)],
+	["statue_path", Vector3(-192, -98, 130), Vector3(-206, 8, 150)],
+	["hand", Vector3(-215, -99, 215), Vector3(-235, 3, 193)],
+	["tower", Vector3(-186, -99, 150), Vector3(-172, 8, 128)],
+	["trebs", Vector3(-206, -99, 126), Vector3(-196, 5, 113)],
 	["shrine", Vector3(-198, -99, -33), Vector3(-208, 1, -40)],
-	["palisade", Vector3(-214, -99, 106), Vector3(-214, 3, 116)],
+	["palisade", Vector3(-206, -99, 94), Vector3(-206, 3, 104)],
+	["plinth", Vector3(-214, -99, -62), Vector3(-214, 6, -100)],
 ]
 var p: Player
 var main: Node

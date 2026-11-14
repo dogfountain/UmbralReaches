@@ -84,9 +84,9 @@ const ELITES := {
 	# --- west marches ---
 	"siege_captain": {
 		"title": "Captain Varr, the Wall-Breaker", "kind": "husk", "script": "res://core/life/encounters/elite_siege_captain.gd",
-		"haunt": [Vector2(-218, 172), Vector2(-212, 180), Vector2(-224, 164), Vector2(-206, 150)], "region": "siege",
+		"haunt": [Vector2(-212, 128), Vector2(-196, 128), Vector2(-188, 134), Vector2(-218, 134)], "region": "siege",
 		"hp": 34, "ash": 32, "scale": 1.4, "glow": Color(2.2, 1.4, 0.4), "loot": "varrs_signet",
-		"where": "the Siege Lines, between the tower and the palisade",
+		"where": "the Siege Lines, between the palisade gate and the giant's mouth",
 		"note": "THE MARCHES' WAR-BAND NEVER STOOD DOWN. The captain is still giving the order to go in. He brings the hammer down in front of him, flat and wide, and calls two of his own out of the earthwork when he is alone. Do not stand in the ring. Do not let him be alone. -- scratched on the Weirford watch's tally board",
 		"trait": "Siege Hammer: a wide disc fills, then slams. Hold the Line: calls two conscripts.",
 	},

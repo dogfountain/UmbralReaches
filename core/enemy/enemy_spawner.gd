@@ -103,16 +103,15 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(-92.0, 60.0, 222.0), "kinds": ["burrower", "mite", "crawler"], "probe": 0.0, "r": 1.8},  # west of the Grandmother Oak, clear of downs_track
 	{"at": Vector3(96.0, 60.0, 222.0), "kinds": ["spitter", "husk", "ossuant"], "probe": 0.0},   # the Well's south-east rim, clear of the fire
 	# --- west marches (docs/r37_expansion.md): the Sorrow's Banks (tier 2: the drowned and what hunts the fords),
-	# the Fallen Hierarch's valley (tier 3: stone-bound husks and bulwarks round the skull), the Siege Lines
-	# (tier 2: the Marches' war-bands that never went home). Weirford itself has no camp: its watch holds it.
+	# the empty plinth's valley (tier 2: the stone-bound), the Siege Lines round the fallen Hierarch (tier 3: the Marches'
+	# war-bands that never went home, stone-bound round the skull). Weirford itself has no camp: its watch holds it.
 	{"at": Vector3(-240.0, 60.0, -10.0), "kinds": ["husk@drowned", "spitter", "wretch@drowned"], "probe": 0.0},          # the Sorrow's west bank
 	{"at": Vector3(-178.0, 60.0, -50.0), "kinds": ["crawler", "gaunt", "crawler"], "probe": 0.0},                      # the east bank, off weir_track
-	{"at": Vector3(-186.0, 60.0, -118.0), "kinds": ["husk@stonebound", "bulwark@stonebound", "chanter"], "probe": 0.0, "r": 2.6},   # the Hierarch's camp under the Crowns
-	{"at": Vector3(-248.0, 60.0, -116.0), "kinds": ["husk@stonebound", "husk@stonebound", "chanter"], "probe": 0.0},   # the crown's far side, west of the skull
-	{"at": Vector3(-180.0, 60.0, 150.0), "kinds": ["bulwark", "husk", "chanter"], "probe": 0.0},                       # the palisade
+	{"at": Vector3(-187.0, 60.0, -102.0), "kinds": ["husk@stonebound", "bulwark@stonebound", "chanter"], "probe": 0.0, "r": 2.6},   # the valley floor, east of the plinth
+	{"at": Vector3(-240.0, 60.0, 168.0), "kinds": ["husk@stonebound", "bulwark@stonebound", "chanter"], "probe": 0.0},   # the west strip between the river and the skull
 	{"at": Vector3(-240.0, 60.0, 218.0), "kinds": ["leaper", "husk", "wretch"], "probe": 0.0},                         # the south rings
-	{"at": Vector3(-222.0, 60.0, 190.0), "kinds": ["gaunt", "gaunt", "wretch"], "probe": 0.0},                         # below the siege tower
-	{"at": Vector3(-196.0, 60.0, 228.0), "kinds": ["cinder", "bulwark", "cinder"], "probe": 0.0, "r": 2.8},            # behind the trebuchet line
+	{"at": Vector3(-216.0, 60.0, 226.0), "kinds": ["gaunt", "gaunt", "wretch"], "probe": 0.0},                         # south of the giant's hand
+	{"at": Vector3(-196.0, 60.0, 228.0), "kinds": ["cinder", "bulwark", "cinder"], "probe": 0.0, "r": 2.8},            # beyond the broken waist
 	# --- the east marches: Stillwater (tier 2: the lake's drowned and what nests on its shore), the Anchorholds
 	# (tier 3: the hermits' own, walled in and let out), Saltmarket's approach (tier 1), the White Pans (tier 2)
 	{"at": Vector3(172.0, 60.0, -36.0), "kinds": ["husk", "spitter", "husk"], "probe": 0.0},      # the north shore

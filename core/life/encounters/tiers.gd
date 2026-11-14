@@ -14,8 +14,8 @@ const REGION_BASE := {
 	# Founder's Pits under the Crowns are the hard ones; the Rooted Holds stay gentle)
 	"quarry": 2, "foundry": 2, "holds": 1, "moor": 1, "orchard": 1, "necropolis": 1, "mere": 1,
 	# the Outer Marches and the downs, at the tiers RealmLayout.REGIONS suggests (Weirford and Saltmarket
-	# are the safe towns; the Hierarch's valley and the Anchorholds, each under a boss, are the hard ones)
-	"weirford": 1, "sorrow": 2, "hierarch": 3, "siege": 2, "stillwater": 2, "anchorholds": 3, "saltmarket": 1,
+	# are the safe towns; the Siege Lines round the fallen Hierarch and the Anchorholds, each under a boss, are the hard ones)
+	"weirford": 1, "sorrow": 2, "plinth": 2, "siege": 3, "stillwater": 2, "anchorholds": 3, "saltmarket": 1,
 	"saltpans": 2, "downs": 1, "oak": 2, "well": 2,
 }
 
@@ -47,7 +47,7 @@ const REGION_POOL := {
 	"well": ["spitter", "husk", "wretch", "spitter", "ossuant"],
 	# --- west marches ---
 	"weirford": ["wretch", "crawler"], "sorrow": ["wretch", "spitter", "crawler", "husk", "gaunt"],
-	"hierarch": ["husk", "bulwark", "chanter", "leaper", "husk"], "siege": ["bulwark", "husk", "chanter", "gaunt", "cinder"],
+	"plinth": ["husk", "bulwark", "chanter", "leaper", "husk"], "siege": ["bulwark", "husk", "chanter", "gaunt", "cinder"],
 	# --- the east marches ---
 	"stillwater": ["husk", "spitter", "wretch", "gaunt", "husk"], "anchorholds": ["bulwark", "chanter", "leaper", "husk", "quiller"],
 	"saltmarket": ["wretch", "crawler"], "saltpans": ["husk", "burrower", "cinder", "gaunt", "crawler"],
@@ -60,7 +60,8 @@ const REGION_VARIANT := {
 	"mere": {"husk": "drowned", "wretch": "drowned", "ossuant": "drowned"},
 	# --- west marches ---
 	"sorrow": {"husk": "drowned", "wretch": "drowned"},
-	"hierarch": {"husk": "stonebound", "bulwark": "stonebound", "leaper": "stonebound"},
+	"plinth": {"husk": "stonebound", "bulwark": "stonebound", "leaper": "stonebound"},
+	"siege": {"husk": "stonebound", "bulwark": "stonebound"},
 	# --- the east marches ---
 	"stillwater": {"husk": "drowned", "wretch": "drowned"},
 	"anchorholds": {"husk": "stonebound", "bulwark": "stonebound"},

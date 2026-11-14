@@ -108,8 +108,8 @@ static func _specs() -> Array[Dictionary]:
 	out.append(_s("wf_bank_e", "post", -196.6, 59.0, {"face": PI}))
 	# --- the Sorrow's ford and the Siege Lines' palisade gate -------------------------------------------------------
 	out.append(_s("sr_ford_post", "post", -197.6, -24.0, {"face": "road"}))
-	out.append(_s("sg_gate_w", "post", -217.6, 113.0, {"face": "road"}))
-	out.append(_s("sg_gate_e", "post", -210.0, 110.6, {"face": "road"}))
+	out.append(_s("sg_gate_w", "post", -210.6, 108.4, {"face": "road"}))
+	out.append(_s("sg_gate_e", "post", -201.6, 108.4, {"face": "road"}))
 	# --- the Pilgrims' Road: roadside shrines, waystones, cairns, posts ----------------------------------------
 	out.append(_s("rd_shrine_a", "niche", -37.4, 64.2, {"free": true, "face": "road", "light": false}))
 	out.append(_s("rd_shrine_b", "niche", -30.4, 62.6, {"free": true, "face": "road", "light": false}))
@@ -477,11 +477,11 @@ static func _ledge(host: Node3D, root: Node) -> void:
 
 ## The Siege Lines' tower: lanterns at its foot, a cresset on its roof.
 static func _siege_tower(host: Node3D, root: Node) -> void:
-	var c := Vector2(-236.5, 169.5)
+	var c := Vector2(-172.0, 128.0)
 	var roof := _top_y(c, -100.0)
 	var lead: Lamp = null
-	for off: Vector2 in [Vector2(-9.6, 0.0), Vector2(9.6, 0.0)]:
-		var l := place(host, _s("siege_tower_%d" % int(off.x), "post", c.x + off.x, c.y + off.y, {"face": "road"}))
+	for off: Vector2 in [Vector2(0.0, -9.6), Vector2(0.0, 9.6)]:
+		var l := place(host, _s("siege_tower_%d" % int(off.y), "post", c.x + off.x, c.y + off.y, {"face": "road"}))
 		if lead == null:
 			lead = l
 		elif l != null and lead != null:

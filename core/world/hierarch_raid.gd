@@ -1,6 +1,6 @@
 extends Node3D
 ## The Speaking Crown's room, the floor inside the Fallen Hierarch's split skull (RealmLayout RAIDS
-## "hierarch"; built by realm_pois_west_marches.gd, BossArena.room points here). The skull itself is the
+## "hierarch"; built by realm_pois_hierarch.gd in the Siege Lines, BossArena.room points here). The skull itself is the
 ## statue model; this node is what the fight changes in it:
 ##   room_begin(boss) / room_reset() / room_won()   BossArena's hooks
 ##   set_mood(m)         "fall" (phase II) and "sky" (phase III): the crown sheds, dust hangs in the horn

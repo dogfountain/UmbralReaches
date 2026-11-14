@@ -638,7 +638,7 @@ func _place_bats() -> void:
 		[Vector3(0, RL.height_at(0, 141) + 7.0, 141), 6.0, 4, 70.0],
 		# the Anchorholds' cliff, the Well of Echoes' pit, the Fallen Hierarch's broken crown
 		[Vector3(236, RL.height_at(236, -110) + 9.0, -110), 9.0, 6, 90.0], [Vector3(72, -4, 204), 11.0, 7, 90.0],
-		[Vector3(-214, RL.height_at(-214, -104) + 24.0, -104), 14.0, 6, 110.0],
+		[Vector3(-206, RL.height_at(-206, 148) + 24.0, 148), 14.0, 6, 110.0],
 	]
 	var i := 0
 	for s: Array in swarms:
