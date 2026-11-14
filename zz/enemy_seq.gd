@@ -10,6 +10,7 @@ const N := 8
 const STEP := 0.1
 var order: Array[String] = []
 var tag := "seq"
+var speed_k := 1.0          ## --speed=0.45: the walk row at a part of the kind's pace (a trot, not the chase)
 var ki := 0
 var cur: Enemy
 var cam: Camera3D
@@ -26,6 +27,7 @@ func _ready() -> void:
 	get_window().size = Vector2i(600, 600)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--tag="): tag = a.trim_prefix("--tag=")
+		elif a.begins_with("--speed="): speed_k = float(a.trim_prefix("--speed="))
 		elif a.begins_with("--only="):
 			for k in a.trim_prefix("--only=").split(","):
 				if Studio.KINDS.has(k): order.append(k)
@@ -118,7 +120,7 @@ func _process(d: float) -> void:
 		return
 	# real time: the rig is driven every rendered frame (as in play), and a still is kept each `step` seconds
 	var step: float = ROWS[row][1]
-	var v := (-cur.global_basis.z * cur.walk_speed) if row == 0 else Vector3.ZERO
+	var v := (-cur.global_basis.z * cur.walk_speed * speed_k) if row == 0 else Vector3.ZERO
 	if cur._rig:
 		cur._rig.animate(v, true, d)
 	acc += d

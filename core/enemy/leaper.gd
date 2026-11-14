@@ -41,7 +41,7 @@ func _build() -> void:
 	rig.body_len = 1.15
 	rig.hip_spread = 0.2
 	rig.upper_len = 0.32
-	rig.stride_len = 0.7
+	rig.stride_len = 1.1                    # a hound covers its own length a stride (0.7 was three frantic cycles a second)
 	# r30: the modelled leaper stands on hound legs, and so does the Thornwarden's skinned body (a Leaper
 	# too); the procedural fallback keeps the spider layout
 	rig.upright = _kind(&"leaper") in [&"leaper", &"thornwarden"] and GruntModel.has(_kind(&"leaper"))
