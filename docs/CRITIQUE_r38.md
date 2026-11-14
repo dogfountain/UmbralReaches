@@ -8,11 +8,11 @@ world_map_shot, horse_studio, the fight bench and the baseline views. Findings a
 ## Creative director (pillars)
 1. **The dark is the clock, and the clock is the smallest thing on the HUD.** Gloom is a 3 px bar under the name
    plate reading "7 / 100". Wounds are five times its size. The pillar says everything is measured against the
-   dark. Fix: Gloom gets its own readable meter, and the world (not only the bar) shows it rising.
+   dark. Fix: Gloom gets its own readable meter, and the world (not only the bar) shows it rising. DONE: core/world/gloom_world.gd (grade, fog, lantern, sound; zz/gloom_shots).
 2. **The first ten seconds are three messages on top of each other.** The region banner, the title card and the
    opening narration all draw at once (first_minutes: "FAIL banner and title card on screen together"), over a
    camera that faces a cottage wall and a lamp post: the scaled-up Hearthward cottage now crowds the start spot.
-   Fix: one message at a time; the start looks down the road at the gate and the stair.
+   Fix: one message at a time (DONE for bosses: a boss title wins the banner lane); the start looks down the road at the gate and the stair.
 3. "Daily" quests in a game that is one night: Luke keeps the five chains (14 Nov: too little content). Closed.
 
 ## Combat designer
@@ -36,7 +36,7 @@ world_map_shot, horse_studio, the fight bench and the baseline views. Findings a
 12. The compass shows four distance tags at once, two of them dimmed to unreadable.
 
 ## Art director / environment / tech art
-13. **The washing line at the spawn is three flat untextured rectangles** the size of doors, in the first frame
+13. (washing sheet now reads linen, 14 Nov; willow tints cooled) **The washing line at the spawn is three flat untextured rectangles** the size of doors, in the first frame
     of the game. Cut to cloth with folds and sag, or remove.
 14. **Willows still read as green slabs** at mid distance in three of the combat stills.
 15. Hearthward's forge lean-to, shrine, well and notice board are the old code-built pieces at the old scale.
