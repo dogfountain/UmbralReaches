@@ -86,6 +86,17 @@ func _spawn() -> void:
 	frames.clear()
 
 
+## The creature's visual bounds in world space (any scale fits: bosses and mites alike), from its meshes.
+func _bounds(n: Node3D) -> AABB:
+	var box := AABB(n.global_position, Vector3.ZERO)
+	for m in n.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		if mi.mesh == null or not mi.visible:
+			continue
+		box = box.merge(mi.global_transform * mi.get_aabb())
+	return box
+
+
 const ROWS := [["walk", 0.12], ["attack", 0.1], ["stagger", 0.16], ["collapse", 0.12]]
 
 
@@ -95,9 +106,10 @@ var acc := 0.0
 func _process(d: float) -> void:
 	if cur == null:
 		return
-	var h := maxf(cur.hp_bar_y, 1.0)
-	var look := Vector3(0, h * 0.5, 0)
-	cam.global_position = look + Vector3(-1.0, 0.14, 0.4).normalized() * (h * 2.1 + 1.0)
+	var box := _bounds(cur)
+	var look := box.get_center()
+	var ext := maxf(box.size.length(), 1.2)
+	cam.global_position = look + Vector3(-1.0, 0.14, -0.4).normalized() * (ext * 1.35 + 0.6)
 	cam.look_at(look)
 	if wait > 0:
 		wait -= 1
