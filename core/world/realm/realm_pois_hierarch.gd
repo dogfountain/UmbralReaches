@@ -30,7 +30,9 @@ const HAND_LOCAL := Vector3(38.0, 2.7, 37.5)          ## the palm's top, model f
 const PLINTH_C := Vector2(-214.0, -104.0)
 const PLINTH_Y := 0.2                  ## the model's z 0: the valley floor under it (its foundation is sunk 1.5 m; the ramp's foot, 2.8 m up, lands on the saddle to the south)
 const PLINTH_YAW := 0.0
-const ROLLERS := 7                      ## the haul's logs, left lying in the furrow south of the saddle
+## The haul's logs, left lying south of the ramp's foot (offset from the plinth's centre: x, z, yaw), a few kicked aside.
+## They stop short of the Sorrow's spring (z -56), where the furrow runs into water.
+const ROLLERS := [Vector3(0.0, 41.5, 0.03), Vector3(1.5, 46.0, -0.09), Vector3(-13.0, 35.0, 0.5), Vector3(11.0, 33.0, 1.15), Vector3(-6.0, 50.0, 0.12)]
 
 const LOOT := {
 	"hierarch_hand": ["iron", {"grave_ash": 16, "relic_fragment": 1}],
@@ -231,14 +233,14 @@ static func plinth(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	# the rollers: logs lying across the furrow, each resting on its two ends, a few kicked askew
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 37011
-	for i in ROLLERS:
-		var c := PLINTH_C + Vector2(rng.randf_range(-1.0, 1.0), 44.0 + 5.0 * float(i))
-		var yaw := rng.randf_range(-0.12, 0.12) + (0.55 if i == 4 else 0.0)
+	for rl: Vector3 in ROLLERS:
+		var c := PLINTH_C + Vector2(rl.x + rng.randf_range(-0.4, 0.4), rl.y)
+		var yaw := rl.z
 		var ax := Vector2(cos(yaw), -sin(yaw))
 		var e0 := _g(space, c.x - ax.x * 3.4, c.y - ax.y * 3.4)
 		var e1 := _g(space, c.x + ax.x * 3.4, c.y + ax.y * 3.4)
 		var b := Basis(Vector3.UP, yaw) * Basis(Vector3(0, 0, 1), atan2(e1 - e0, 6.8))
-		Kit.place(host, "r37_roller.glb", Transform3D(b, Vector3(c.x, maxf(e0, e1) + 0.38, c.y)), {"pick": "Roller", "range_end": 200.0})
+		Kit.place(host, "r37_roller.glb", Transform3D(b, Vector3(c.x, (e0 + e1) * 0.5 + 0.34, c.y)), {"pick": "Roller", "range_end": 200.0})
 	var lp := Vector3(PLINTH_C.x + 11.0, 0.0, PLINTH_C.y + 30.0)
 	lp.y = _g(space, lp.x, lp.z) + 1.1
 	_lore(host, "r37w_plinth", lp, lp)

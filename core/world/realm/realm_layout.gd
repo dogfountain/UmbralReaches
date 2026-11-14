@@ -299,7 +299,7 @@ const BASE_PATHS := [
 	{"id": "south_track", "w": 1.4, "pts": [Vector2(-112, 122), Vector2(-80, 132), Vector2(-40, 134), Vector2(0, 128), Vector2(40, 134), Vector2(76, 128), Vector2(104, 120)]},
 	# the Marches (docs/r37_expansion.md)
 	{"id": "weir_track", "w": 1.4, "pts": [Vector2(-196, 66), Vector2(-192, 36), Vector2(-188, 0), Vector2(-188, -40), Vector2(-196, -76), Vector2(-200, -82)]},
-	{"id": "siege_track", "w": 1.4, "pts": [Vector2(-214, 65), Vector2(-216, 86), Vector2(-210, 102), Vector2(-204, 118), Vector2(-192, 132), Vector2(-181, 146), Vector2(-182.5, 159.06), Vector2(-177, 175), Vector2(-179, 190)]},
+	{"id": "siege_track", "w": 1.4, "pts": [Vector2(-214, 65), Vector2(-215, 84), Vector2(-208, 99), Vector2(-206, 105), Vector2(-203, 118), Vector2(-192, 132), Vector2(-181, 146), Vector2(-182.5, 159.06), Vector2(-177, 175), Vector2(-179, 190)]},
 	{"id": "spire_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 52), Vector2(226, 30), Vector2(236, 14)]},
 	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(204, -84), Vector2(205, -102), Vector2(206, -108)]},
 	{"id": "salt_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 104), Vector2(206, 140), Vector2(202, 180), Vector2(196, 212)]},
@@ -504,10 +504,10 @@ const SPIRE_Y := LAKE_Y + 12.0                             ## the Spire's bluff 
 const WELL_FLOOR_Y := -17.0                                ## the sinkhole's floor; its pool stands 0.8 m above it
 const WELL_POOL_Y := -16.2
 const WELL_POOL_R := 9.0                                   ## the floor's flat, with the pool, radius
-## Low banks, ditches outside, ringing the fallen Hierarch (centre: his skull); "breaches" are the bearings (degrees,
-## 0 = east, 90 = south) where the ring is open: the palisade gate in the north, the track's way out in the south-east.
-const SIEGE_RINGS := [{"c": Vector2(-206.0, 148.0), "r": 46.0, "breaches": [-90.0, -35.0, 48.0, 135.0]},
-	{"c": Vector2(-206.0, 148.0), "r": 64.0, "breaches": [-96.0, 45.0, -150.0, 110.0]}]
+## A low bank, its ditch outside, ringing the fallen Hierarch (centre: his skull); "breaches" are the bearings
+## (degrees, 0 = east, 90 = south) where the ring is open: the palisade gate in the north, the gap beside the siege
+## tower. It runs out at the river in the west and at the March Wall's foot in the east.
+const SIEGE_RINGS := [{"c": Vector2(-206.0, 148.0), "r": 43.0, "breaches": [-90.0, -35.0, 48.0, 135.0]}]
 const SIEGE_RECT := Rect2(-258.0, 110.0, 100.0, 130.0)
 
 
@@ -581,8 +581,8 @@ static func marches_detail(x: float, z: float, h: float) -> float:
 			var gap := smoothstep(-248.0, -238.0, x) * (1.0 - smoothstep(-184.0, -172.0, x))       # the rings run out at the river and at the March Wall's foot
 			for br: float in ring.breaches:
 				gap *= smoothstep(8.0, 15.0, absf(wrapf(bearing - br + 180.0, 0.0, 360.0) - 180.0))
-			var bank := 2.6 * exp(-pow((d - r) / 2.8, 2.0))
-			var ditch := 1.8 * exp(-pow((d - r - 5.4) / 2.4, 2.0))
+			var bank := 2.1 * exp(-pow((d - r) / 3.2, 2.0))
+			var ditch := 1.4 * exp(-pow((d - r - 6.0) / 2.8, 2.0))
 			h += m * sg * gap * (bank - ditch)
 	return h
 

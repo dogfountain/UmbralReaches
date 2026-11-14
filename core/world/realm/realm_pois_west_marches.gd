@@ -62,13 +62,13 @@ const LOOT := {
 
 ## The Marches camps' dressing: lean-to + cold ring + a bedroll or two (EnemySpawner.REALM_CAMPS holds the foes).
 const CAMPS := [Vector2(-232.0, 0.0), Vector2(-178.0, -50.0), Vector2(-187.0, -102.0), Vector2(-240.0, 168.0), Vector2(-240.0, 218.0),
-	Vector2(-216.0, 226.0), Vector2(-196.0, 230.0)]
+	Vector2(-216.0, 226.0), Vector2(-196.0, 228.0)]
 
 ## The Siege Lines' engines, drawn up round the fallen Hierarch (HEAD_C): the trebuchets stand behind the palisade
 ## (xz, each aimed at the skull), the siege tower on the east flank with its ramp running down toward the skull.
 const TREBS := [Vector2(-230.0, 118.0), Vector2(-196.0, 113.0), Vector2(-185.0, 116.0)]
 const TOWER_AT := Vector2(-172.0, 128.0)
-const RING_R := 46.0                     ## the inner earthwork's radius round the skull (RealmLayout.SIEGE_RINGS)
+const RING_R := 43.0                     ## the inner earthwork's radius round the skull (RealmLayout.SIEGE_RINGS)
 
 static var spots := {}                   ## id -> {at: Vector3, yaw, rect}
 static var built: Array[String] = []

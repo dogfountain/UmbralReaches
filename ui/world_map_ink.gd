@@ -265,8 +265,7 @@ func _places() -> void:
 	# the siege lines: two rings of earthwork round the fallen Hierarch, face up, the engines and the tower on the north
 	var hdc := Vector2(-206.0, 148.0)
 	var sc := _w(hdc)
-	for rr: float in [30.0, 42.0]:
-		_dashed_arc(sc, rr * K, 4.0, 4.0)
+	_dashed_arc(sc, 36.0 * K, 4.0, 4.0)
 	var bd := Vector2(0.2, 0.98).normalized()
 	var br := Vector2(-bd.y, bd.x)
 	var hp := PackedVector2Array()

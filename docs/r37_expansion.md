@@ -20,8 +20,8 @@ shut out.
 | --- | --- | --- | --- |
 | Weirford | road x -205 | a living outpost town at the river crossing: stone bridge, weir, watermill, inn, smithy, stables | 6-8 people with routines, quest hub, watch post (sword NPCs), fire |
 | The Sorrow's Banks | west, north of town | a river valley (the Sorrow) with fords and alder banks; a drowned shrine | camps, rares, a secret, fire |
-| The Fallen Hierarch | NW at the Crowns' foot | a ~60 m toppled statue of the Hierarch in a moss valley; walk its body; the head split open | BOSS in the broken crown (RAIDS "hierarch"), camp, fire |
-| The Siege Lines | SW | earthwork rings, palisades, rotted trebuchets, a siege tower you climb | 2 camps, named mini-boss (the siege-captain), fire |
+| The Empty Plinth | NW at the Crowns' foot | the moss valley the Hierarch's colossus stood in: his plinth, the two stone feet still on it, a hauling ramp, the furrow of rollers south | camp, a rare (the Moss-Mason), fire |
+| The Siege Lines (the Fallen Hierarch) | SW | the toppled colossus (about 60 m) lies at the middle of earthwork rings, palisades, rotted trebuchets and a siege tower you climb, all drawn round it; walk its body; the head split open | BOSS in the broken crown (RAIDS "hierarch"), 3 camps, named mini-boss (the siege-captain), fire |
 | Stillwater | east | a cold lake under a bluff; the Lamplighters' Spire, a climbable beacon tower; relighting its lamp is a quest | camp, sunken boat-house, a secret, fire |
 | The Anchorholds | NE in the Crowns' face | hermits' cells cut into the cliff, ladders, walkways, a cliff chapel | BOSS on the cliff terrace (RAIDS "anchorhold"), fire |
 | Saltmarket | east road fork | a salt-workers' hamlet | 4-6 people, trader, quests, fire |
@@ -86,8 +86,9 @@ heights. What each place stands on:
   rim at r `WELL_R`. The pit gives way within 4 m of a path, so downs_track passes on the rim (a drop beside it).
 - White Pans: `PANS` is flat (0.3) with shallow evaporation beds and 0.3 m bunds on a 20 x 14 m lattice; biome "salt"
   (own ground textures, footsteps, wind ambience, sparse dead brush). Weirford and Saltmarket are flattened (0.6).
-- Siege Lines: two earthwork rings (`SIEGE_RINGS`, centre (-218, 168), r 29 and 64): a 1.9 m bank and a ditch
-  outside, with breaches. The Hierarch's valley flanks rise 11 m round the raid floor. The Anchorholds' face is
+- Siege Lines: one earthwork ring round the fallen Hierarch (`SIEGE_RINGS`, centre his skull (-206, 148), r 43): a 2.1 m
+  bank and a ditch outside, open at the bearings listed as breaches, running out at the river and at the March Wall's
+  foot. The old Hierarch valley (now the Empty Plinth's) keeps its 11 m flanks, with no raid floor in it. The Anchorholds' face is
   10 m higher so the terrace (y 16) is a shelf. The Grandmother Oak stands on a 3 m knoll (`OAK_C`).
 - Encounter tiers for every new region are in `Tiers.REGION_BASE`; mist banks, ambience, flora looks (RealmFlora
   `LOOKS`), wildlife (extra herds, foxes, hares, owls, frogs and flocks from their own streams) cover the new ground.
@@ -108,18 +109,30 @@ sets over `<part>__<set>` meshes, `<asset>-colonly` collision, vertex-colour mac
 - **The Sorrow's Banks**: the drowned shrine in the river (a chest and the secret *Aldith's Walk*,
   `core/life/secrets/site_west_marches.gd`: an iron ring raises a sunk walk to a lamp-islet and a box), ford posts,
   two camps, a rare (the Drowned Reeve), a fire (`SorrowFire`).
-- **The Fallen Hierarch**: `r37_statue.glb` (head shell ~28 k tris, torso and arm ~10 k, debris; the engine
+- **The Fallen Hierarch** (moved from the north-west valley to the middle of the Siege Lines, Luke 14 Nov: the bosses
+  ring the spawn, one in each quarter; `core/world/realm/realm_pois_hierarch.gd` builds him, the hand and the plinth).
+  The story: the Marches could not take the Order's gates, so they pulled its colossus off his plinth and hauled him
+  south on rollers to their lines, and dug in round him. `r37_statue.glb` (head shell ~28 k tris, torso and arm ~10 k, debris; the engine
   generates mesh LODs on import) plus a separate ~1.6 k-tri far mesh node `StatueFar` (meta `far_mesh`, fades in from
   330 m while the near model fades out from 420 m; the Foundation's far-detail hook can replace it). The skull is a
   hollow bowl split open round the raid floor; the body lies away from it (`BODY_DIR`); the open hand is a POI with a
   stair of fallen blocks and a chest. Boss: **the Speaking Crown** (`core/enemy/hierarch_voice.gd`, a Husk rig with
   `boss_hierarch.glb`, 640 HP, 3 phases; room `core/world/hierarch_raid.gd`; id `r37_hierarch`, trophy `crown_shard`).
-- **The Siege Lines**: the outer earthwork's palisade and gate, rotted trebuchets (`r37_trebuchet.glb`), a four-storey
-  siege tower with its stairs built in (a chest on top), two more camps, a rare (the Gate-Breaker), the mini-boss
-  **Captain Varr, the Wall-Breaker** (`elite_siege_captain.gd`, `Elites.ELITES["siege_captain"]`), a fire (`SiegeFire`).
+- **The Empty Plinth** (`r37_plinth.glb`, `tools/blender/r37_west.py --only plinth`): a stepped ashlar plinth with a dentil
+  course and a band of cut letters, the Hierarch's two stone feet in the hem of his robe, cut through the shin (iron armature
+  standing out of the breaks, chains wound round the ankles), a timber hauling ramp up its south face (walkable, to the
+  feet), and five iron-bound rollers (`r37_roller.glb`) lying south of its ramp. Lore plaque `r37w_plinth`,
+  the Watch notice, the mason's grave, the choirmaster's note; the camp, the fire (`HierarchFire`) and the Moss-Mason stay.
+- **The Siege Lines**: the earthwork ring's palisade arcs and north gate (siege_track passes through it), three rotted
+  trebuchets behind the palisade with every arm cocked on the skull (`r37_trebuchet.glb`), a four-storey siege tower on the
+  east flank with its stairs built in (a chest on top) and its ramp running down toward the skull, three more camps, a rare
+  (the Gate-Breaker), the mini-boss **Captain Varr, the Wall-Breaker** (`elite_siege_captain.gd`,
+  `Elites.ELITES["siege_captain"]`), a fire (`SiegeFire`) outside the north gate. siege_track now arrives at the Speaking
+  Crown's gate on the east side of the skull and runs on to the downs.
 - **Quests** (`quest_chains_west_marches.gd`): The Stopped Wheel, The Lamp on the Lines, Lights for the Sunk, and
   The Voice in the Head (after the Wheel; ends in the boss). Lore: `lore/west_marches_texts.gd` (22 texts, a series,
   four codex places), placed by `lore/west_marches_places.gd` and the POIs.
 
 Tuning notes: the statue's head is oversized so the raid floor (r 24) fits inside it; the whole figure is about
-100 m long rather than 60. Switches: `--no-r37-west` (places, writings, secret).
+100 m long rather than 60. The bosses ring the spawn (0, 33): north the Ascended Warden's summit, north-east the Anchoress,
+west the Thorn Henge, south-west the Hierarch, south the Ossuary. Switches: `--no-r37-west` (places, writings, secret).

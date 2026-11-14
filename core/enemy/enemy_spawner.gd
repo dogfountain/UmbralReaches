@@ -111,7 +111,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(-240.0, 60.0, 168.0), "kinds": ["husk@stonebound", "bulwark@stonebound", "chanter"], "probe": 0.0},   # the west strip between the river and the skull
 	{"at": Vector3(-240.0, 60.0, 218.0), "kinds": ["leaper", "husk", "wretch"], "probe": 0.0},                         # the south rings
 	{"at": Vector3(-216.0, 60.0, 226.0), "kinds": ["gaunt", "gaunt", "wretch"], "probe": 0.0},                         # south of the giant's hand
-	{"at": Vector3(-196.0, 60.0, 230.0), "kinds": ["cinder", "bulwark", "cinder"], "probe": 0.0, "r": 2.8},            # beyond the broken waist
+	{"at": Vector3(-196.0, 60.0, 228.0), "kinds": ["cinder", "bulwark", "cinder"], "probe": 0.0, "r": 2.8},            # beyond the broken waist
 	# --- the east marches: Stillwater (tier 2: the lake's drowned and what nests on its shore), the Anchorholds
 	# (tier 3: the hermits' own, walled in and let out), Saltmarket's approach (tier 1), the White Pans (tier 2)
 	{"at": Vector3(172.0, 60.0, -36.0), "kinds": ["husk", "spitter", "husk"], "probe": 0.0},      # the north shore
