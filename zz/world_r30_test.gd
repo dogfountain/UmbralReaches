@@ -2,7 +2,7 @@ extends Node
 ## r30 world-builder checks (docs/critique/r30/world_builder.md), in memory only (saves held):
 ##   - the Abbot's and the Warden's fights shut their own arena-mouth gates, and a reset/kill opens
 ##     them again WITHOUT forcing the progression seals (portcullis, summit ward) open
-##   - the Ossuary lift is held at the pit floor until the Abbot falls
+##   - the Ossuary has no lift to the summit (it stands under the Waiting Field)
 ##   - region_at names the five landmarks at their centres (most specific place wins)
 ##   - every Realm camp stands 10 m+ inside BOUNDS
 ##   - no stair-era WindowRig under the Realm
@@ -111,8 +111,7 @@ func _physics_process(_d: float) -> void:
 			# r34: the places agents add their own beacons; the two boss landmarks must still stand
 			check("two landmark beacons (henge, summit)", main.find_child("Beacon_thornwarden", true, false) != null and main.find_child("Beacon_ascended_warden", true, false) != null)
 			_tower()
-			var lift := main.find_child("ChainLift", true, false)
-			check("Ossuary lift held until the Abbot falls", lift != null and bool(lift.get("hold")))
+			check("no Ossuary lift to the summit", main.find_child("ChainLift", true, false) == null)
 			check("abbot arena has mouth gates", abbot.gate != null and abbot.gate.get("arena_only") == true and abbot.gates.size() == 1)
 			check("warden arena has a mouth veil", warden.gate != null and warden.gate.get("arena_only") == true)
 			check("arena gates open at rest", not _shut(abbot.gate) and not _shut(abbot.gates[0]) and not _shut(warden.gate))
@@ -148,7 +147,7 @@ func _physics_process(_d: float) -> void:
 			check("raid door's outer grille shut", _shut(abbot.gates[0]))
 			check("portcullis untouched", _shut(_seal("oss_gallery")))
 			# run up the stair past the leash: r35, the fight is HELD (it used to reset)
-			_tp(Vector3(21.0, Ossuary.GAL_Y + 0.6, -64.0))
+			_tp(OssFrame.w(Vector3(21.0, Ossuary.GAL_Y + 0.6, -64.0)))
 			step = 2
 			wait = 30
 		2:
@@ -169,8 +168,6 @@ func _physics_process(_d: float) -> void:
 		4:
 			check("abbot slain", Travel.bosses_slain.has("bone_abbot"))
 			check("grilles open after the kill", not _shut(abbot.gate) and not _shut(abbot.gates[0]))
-			var lift := main.find_child("ChainLift", true, false)
-			check("lift released by the Abbot's fall", lift != null and not bool(lift.get("hold")))
 			# the Warden (the Thornwarden counted as fallen)
 			Travel.bosses_slain["thornwarden"] = true
 			_tp(SummitDress.SUMMIT + Vector3(SummitDress.DAIS_C.x, SummitDress.TOP_DECK_Y + 0.45, SummitDress.DAIS_C.y + 4.0))

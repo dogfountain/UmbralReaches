@@ -76,7 +76,7 @@ const REGIONS := [
 	{"id": "fen", "name": "The Hollow Fen", "rect": Rect2(40, -80, 70, 115), "biome": "fen", "tier": 1,
 		"lore": "Black pools and drowned graves where the hollowed were laid when the crypt was full."},
 	{"id": "barrows", "name": "The Barrow Field", "c": Vector2(78, -42), "r": 20.0, "biome": "fen", "tier": 2,
-		"lore": "Grave mounds of the abbey's lay brothers; the path down to the Ossuary starts here."},
+		"lore": "Grave mounds of the abbey's lay brothers; the lantern road down into the fen starts here."},
 	{"id": "rift", "name": "The Ashen Rift", "rect": Rect2(-30, -118, 60, 106), "biome": "ash", "tier": 2,
 		"lore": "The wound the ascension tore in the land; lava where the pilgrims' stair once stood."},
 	{"id": "ossuary", "name": "The Ossuary", "rect": Rect2(-62, 148, 106, 38), "biome": "ruin", "tier": 2,

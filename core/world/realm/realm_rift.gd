@@ -11,6 +11,7 @@ extends RefCounted
 const Crossing := preload("res://core/world/realm/rift/crossing.gd")
 const Features := preload("res://core/world/realm/rift/features.gd")
 const Threshold := preload("res://core/world/realm/rift/threshold.gd")
+const OssRemains := preload("res://core/world/realm/rift/oss_remains.gd")
 
 ## The Pilgrims' Threshold (Luke, 9 Nov: "I don't think the lava place should be so close to the village",
 ## then "make it architectural, explore, make it magical"): south of STAR_Z the rift holds starwater, a
@@ -54,6 +55,10 @@ static func build(root: Node) -> void:
 	threshold.name = "Threshold"
 	host.add_child(threshold)
 	await Threshold.new().build(root, threshold, STAR_Z, STARFALLS)
+	var remains := Node3D.new()                  # the piers the Ossuary left on the east wall
+	remains.name = "OssRemains"
+	host.add_child(remains)
+	OssRemains.build(remains)
 	# LavaWorks (attached by main.gd before the Realm builds) waits for this to lay out the lava
 	root.set_meta("rift_lava", {"falls": FALLS, "starfalls": STARFALLS, "star_z": STAR_Z, "star_band": STAR_BAND, "vents": fb.vents})
 	print("RIFT crossing %d ms, features %d ms" % [t1 - t0, Time.get_ticks_msec() - t1])

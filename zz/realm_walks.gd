@@ -4,8 +4,8 @@ extends Node
 ## Routes (each starts from a teleport, so one failure does not hide the next):
 ##   henge   spawn -> west_way -> the henge stair foot -> up the pilgrim stair -> through the gate
 ##   henge_stair  the same stair alone, from just below its foot
-##   barrows spawn -> east_way -> the Barrow Field -> fen_descent -> the Ossuary's fen door
-##   crypt   the fen door's threshold -> up the stair in the cut -> the gallery door -> the gallery
+##   barrows spawn -> east_way -> the Barrow Field -> fen_descent -> the fen fire
+##   crypt   spawn -> necropolis_way -> south_track -> oss_lane -> the Pilgrims' Landing -> the bone bridge -> the gate hall
 ## Prints "LEG ..." per waypoint, "STUCK route leg ..." on a failure, and "REALMWALK ok" / "REALMWALK FAIL n".
 var p: Player
 var main: Node
@@ -62,14 +62,18 @@ func _build_routes() -> void:
 	var barrows: Array[Vector3] = [Vector3(12.0, 0, 18.0)]      # round the tavern porch
 	barrows.append_array(_pts(_path("east_way")))
 	barrows.append_array(_pts(_path("fen_descent").slice(1)))
-	barrows.append(Vector3(Ossuary.FEN_X + 1.0, 0, Ossuary.FEN_GATE.z))
-	var crypt: Array[Vector3] = [Vector3(Ossuary.FEN_X + 1.0, 0, Ossuary.FEN_GATE.z), Vector3(Ossuary.FEN_X, 0, Ossuary.FEN_FOOT_Z + 0.4),
-		Vector3(Ossuary.FEN_X, 0, Ossuary.FEN_HEAD_Z + 0.6), Vector3(28.6, 0, Ossuary.FEN_DOOR_Z), Vector3(24.6, 0, Ossuary.FEN_DOOR_Z), Vector3(23.4, 0, -62.0)]
+	var crypt: Array[Vector3] = _pts(_path("necropolis_way"))
+	for v: Vector2 in [Vector2(-8.0, 130.0), Vector2(-24.0, 133.0), Vector2(-40.0, 134.0)]:
+		crypt.append(Vector3(v.x, 0, v.y))
+	crypt.append_array(_pts(_path("oss_lane").slice(1)))
+	for x: float in [-1.0, 8.0, 17.0, 21.0]:                                    # the bone bridge, into the gate hall
+		var q := OssFrame.w(Vector3(x, 0.0, -34.0))
+		crypt.append(Vector3(q.x, 0, q.z))
 	routes = [
 		{"name": "henge", "from": SPAWN_WALK, "pts": henge, "end_y": ThornHenge.C.y},
 		{"name": "henge_stair", "from": f3 + away * 2.5 + Vector3.UP * 1.5, "pts": stair, "end_y": ThornHenge.C.y},
-		{"name": "barrows", "from": SPAWN_WALK, "pts": barrows, "end_y": Ossuary.FEN_GATE.y},
-		{"name": "crypt", "from": Vector3(Ossuary.fen_out - 0.8, Ossuary.FEN_GATE.y + 0.3, Ossuary.FEN_GATE.z), "pts": crypt, "end_y": Ossuary.GAL_Y},
+		{"name": "barrows", "from": SPAWN_WALK, "pts": barrows, "end_y": 0.0},
+		{"name": "crypt", "from": SPAWN_WALK, "pts": crypt, "end_y": OssFrame.ORIGIN.y + Ossuary.HALL_Y},
 	]
 
 
@@ -111,9 +115,9 @@ func _physics_process(delta: float) -> void:
 		for n in get_tree().get_nodes_in_group(Groups.ENEMY):
 			(n as Node).queue_free()             # the walk is about the ground, not the fights
 	if not started:
-		if not main.has_meta("summit_dressed") or ThornHenge.stair_pts.is_empty() or main.find_child("FenGate", true, false) == null:
+		if not main.has_meta("summit_dressed") or ThornHenge.stair_pts.is_empty() or main.find_child("CountCut", true, false) == null:
 			if t > 60 * 120:
-				print("REALMWALK FAIL realm not ready (henge %s, fen gate %s)" % [not ThornHenge.stair_pts.is_empty(), main.find_child("FenGate", true, false) != null])
+				print("REALMWALK FAIL realm not ready (henge %s, the Ossuary %s)" % [not ThornHenge.stair_pts.is_empty(), main.find_child("CountCut", true, false) != null])
 				get_tree().quit()
 			return
 		started = true

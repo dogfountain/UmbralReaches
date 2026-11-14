@@ -55,7 +55,7 @@ const RUMOURS := [
 	["!q:keg_thief", "Somebody's been at the back keg after I bank the fire. If you hear who, I'm buying."],
 	["!v:oil", "Grisel will trade you lamp oil for grave ash. Fennick's round gets longer. So does his complaining."],
 	["!kindled:4", "Four braziers in the valley: the Stair's foot, the glade shrine, the Barrow Field, the fen. Light them and the dark leans less."],
-	["!seal:oss_gallery", "There's a door on the fen side of the Ossuary, a stair up into the gallery. The Abbot's people used it. Use, maybe."],
+	["!seal:oss_gallery", "The Ossuary is under the Waiting Field, past the First Pilgrims' Tomb: a bone bridge over the quarry to a gate hall. The gallery past it is sealed. Mind the bones that stand up."],
 	["!met:wyck", "There's a hermit in the far Thornwood, past the camps. Buries birds face down. Small fire. Ask him about the Rooted, if you like long answers."],
 	["!v:pell", "Pell went north toward the light. Nine winters, red hood. Nan still chalks a circle for her every night."],
 	["secrets:1", "You've been poking about where the Order hid things. So did the Order. They didn't come back for most of it either."],

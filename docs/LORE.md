@@ -97,8 +97,8 @@ Pin every "how long ago" to **nine winters** (Pell is "nine winters" by the same
   came with axes it woke, and it has never fully slept since. It does not serve the sky or the
   fire; it keeps the wood. Its **Thorn Heart** still beats, slowly. Cut it out and the wood will
   bleed, and stop bleeding, and forget you.
-- **The Bone Abbot** (the Ossuary under the abbey, reached down the fen descent from the Barrow
-  Field). Abbot Osric, who kept the dead in order for their ascension and never stopped counting
+- **The Bone Abbot** (the Ossuary, the necropolis's charnel house: a quarried bone pit under the Waiting Field's
+  slope, reached by a bone bridge from the Pilgrims' Landing, west of the First Pilgrims' Tomb). Abbot Osric, who kept the dead in order for their ascension and never stopped counting
   them. He calls the faithful from the bones. His **crown** is knucklebone and iron; the **Bone
   Reliquary** rises from his charnel mound when he falls.
 - **The Ascended Warden** (the summit, across the Crossing). Once the Hierarch Aurel, last priest
@@ -124,7 +124,7 @@ still counting*; the Ascended Warden *the one who holds the door*.
 | **Chapel of the First Kindling** | The Chapel of the Open Sky (YA 312), a washing-and-blessing house for pilgrims. | Roofless. Faceless saints in the nave. The First Hearth on the altar, still warm. Its yard holds Edda, and the penitent who stayed. |
 | **The Glimmer Glade** | A clearing where the Rooted left offerings. | A shrine to the lost: candles, bundles, names. The glimmers are only light the sky did not swallow. |
 | **The Thornwood** | The Rooted's oak valley; the abbey's boundary walls cut into it. | Ancient oaks, the Ring on its hill, toppled saints face-down in the moss, old-tongue tablets. |
-| **The Barrow Field** | The Rooted's barrows, taken for the abbey's lay brothers. | Sealed mounds "until the sky calls"; the descent to the Ossuary starts here. |
+| **The Barrow Field** | The Rooted's barrows, taken for the abbey's lay brothers. | Sealed mounds "until the sky calls"; the lantern road down into the fen starts here. |
 | **The Hollow Fen** | Low water-meadow. | Drowned graves: the hollowed, sunk under three stones (eyes, mouth, heart). Leaning markers. Lights over the water that are not candles. |
 | **The Ashen Rift** | The Stair of Ascension: four thousand steps. | The wound. Lava where the Stair stood; the Crossing is what is left of it. |
 | **The Summit** | The cathedral of the Open Sky. | The Warden's dais under the turning sky. |
@@ -205,7 +205,7 @@ keeps the pilgrims' roll by name), **Cadoc** (Corvin's Mere; rowed for Corvin, w
 over and walks the banks as the Ferryman Without a Boat). Rares their bounties name: Old Rook, Brother
 Chisel, Gorse-Wife Hennet, Clapper, Old Pippin, the Last Pilgrim, the Ferryman Without a Boat.
 The raids' attunements (`quest_chains.gd` ATTUNE): the keeper's three ward-stones and a ward-coal laid at
-the Ring's stair (the Thornwarden "holds back a hand"); the pilgrims' roll read at the Ossuary's fen door
+the Ring's stair (the Thornwarden "holds back a hand"); the pilgrims' roll read at the Ossuary's bone bridge
 (the Abbot's count comes up short: "a doubting Abbot is half an Abbot"); the Founder's peal rung in
 Mother's order and a tongue cast in her mould for Brannoc (the great bell in the Warden's hand rings
 wrong). None is needed to finish the story.
@@ -245,7 +245,7 @@ Rooted) in the cuts; anonymous headstones carry the same carvings unlit. Until r
 | Pilgrims' Road: gates, edict steles, waystones, milestones, road lamps, roadside shrine, graves, cart, field walls | z 50..80 | rd_*, jn_1, jn_2 |
 | Shrine of the Lost: the open door, candles, offerings (Pell's shoe), ribbon stakes, name-stones | (-45.5, 17.5) | gl_*, jn_5 |
 | Barrow Field: sealed barrow (lit), the Rooted's, the broken barrow, the lay brothers' lodge (lit), waymark | round (90, -55) | br_*, jn_7 |
-| Fen descent: Tally posts, Wenna's last page | along fen_descent to the Ossuary door | br_tally_3/4, jn_9 |
+| Fen descent: Tally posts, Wenna's last page | along fen_descent, to the fen fire | br_tally_3/4, jn_9 |
 | Drowned Graves: four clusters, Corvin's lamp (lit) and rite post, Wenna's mother's stone | (55, 22) (92, 8) (70, -4) (60, -30) | fen_*, jn_6, jn_8 |
 | East way: the Lay Brothers' Way waystone, the cloak | along east_way | fen_brothers, fen_pilgrim |
 | Thornwood: abbey bounds, old-tongue tablets, the Song of the Ring (4 stones), fallen saint, standing stones, woodcutter's hut, the woodsmen's camp | west of x -40 | tw_* |

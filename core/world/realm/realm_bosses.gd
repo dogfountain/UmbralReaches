@@ -17,7 +17,7 @@ const BRAZIERS := {
 	"StairFoot": [Vector2(-5.0, -2.0), Vector2(0.0, -2.0)],        # the Crossing's foot, by rift_rim
 	"Shrine": [Vector2(-31.0, 4.0), Vector2(-36.0, 8.6)],          # the Glimmer Glade, beside west_way
 	"Landing": [Vector2(84.0, -36.0), Vector2(78.0, -40.0)],       # the Barrow Field, where fen_descent starts
-	"Threshold": [Vector2(50.6, -57.5), Vector2(55.6, -56.6)],     # on the fen, where fen_descent ends (the Ossuary's fen door was above it until ; the fire stays: a checkpoint, off fen_descent) (was (47, -55), half a metre off the Lay Brothers' Stair's foot: the climb glanced off it; it faces east so the ember post stands south of the brazier, off the path)
+	"Threshold": [Vector2(50.6, -57.5), Vector2(55.6, -56.6)],     # on the fen, where fen_descent ends (the Ossuary's fen door was above it until the Ossuary moved; the fire stays: a checkpoint, off fen_descent) (was (47, -55), half a metre off the Lay Brothers' Stair's foot: the climb glanced off it; it faces east so the ember post stands south of the brazier, off the path)
 }
 ## r34 places (docs/r34/places.md): one fire for each new region (RealmLayout.SLOTS "fire"), so the
 ## Ember Road and the checkpoints keep the same spacing over the doubled ground. Copies of a valley

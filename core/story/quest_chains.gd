@@ -145,7 +145,7 @@ const QUESTS := {
 	"slow_way": {"name": "The Slow Way Down", "giver": "harrow", "where": "Ostrin Harrow, at the Keg's bar", "zone": "fen",
 		"text": "Ostrin's father took his lantern down the fen after the bells, six winters gone. Ostrin wants the lantern back, whatever is holding it.",
 		"steps": [
-			{"kind": "reach", "text": "Search the fen by the fen brazier, under the Ossuary's door, for Father Harrow's lantern", "at": Vector2(58.0, -47.0)},
+			{"kind": "reach", "text": "Search the fen by the fen brazier, below the barrows' descent, for Father Harrow's lantern", "at": Vector2(58.0, -47.0)},
 			{"kind": "kill", "text": "Put the hollowed man by the lantern to rest", "at": Vector2(58.0, -47.0)},
 			{"kind": "find", "text": "Take Father Harrow's lantern"},
 			{"kind": "talk", "who": "harrow", "text": "Bring the lantern to Ostrin Harrow at the Kindled Keg"},
@@ -607,9 +607,9 @@ const QUESTS := {
 		"outcome": {"": "Agathe unpicked every knot, and named nobody. Some things you only undo."}},
 	"abbot_names": {"name": "Called by Name", "giver": "agathe", "where": "Sister Agathe, at the gate of the Waiting Field", "zone": "necropolis",
 		"offer": true, "avail": "qd:abbot_cords", "raid": "bone_abbot",
-		"text": "Take the roll down to the Ossuary's fen door and read it, all of it, into the dark. Then he goes to his count and finds it short. A counter who comes up short begins to doubt. A doubting Abbot is half an Abbot.",
+		"text": "Take the roll down to the Ossuary's bone bridge, under the Waiting Field, and read it, all of it, into the dark. Then he goes to his count and finds it short. A counter who comes up short begins to doubt. A doubting Abbot is half an Abbot.",
 		"steps": [
-			{"kind": "visit", "at": Vector2(48.0, -60.0), "r": 10.0, "label": "The Ossuary's fen door", "text": "Read the pilgrims' roll aloud at the Ossuary's fen door"},
+			{"kind": "visit", "at": Vector2(-40.0, 146.0), "r": 10.0, "label": "The Ossuary's bone bridge", "text": "Read the pilgrims' roll aloud at the Ossuary's bone bridge"},
 			{"kind": "turnin", "who": "agathe", "text": "Tell Sister Agathe the names were read"},
 		],
 		"reward": {"ash": 25},
