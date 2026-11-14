@@ -113,9 +113,11 @@ static func tree(x: float, z: float, sp := "") -> Vector2:
 	return Vector2(lerpf(1.0, k.x, w), lerpf(1.0, k.y, w))
 
 
-## Undergrowth that grows with the woods (shrubs, ferns, gorse, dead bushes): this much bigger. Grass,
-## flowers, moss and litter keep their size (they are the ground's texture, not things beside the wanderer).
-const UNDER := {"shrub": 1.15, "fern": 1.3, "gorse": 1.25, "deadbush": 1.3}      # brambles stay low: bigger ones buried the camera
+## The low growth's size against its meshes' own (per kind).
+## (Luke, 14 Nov: "the grass and flora is way too big": grass stood to the knee and tall grass to the waist, ferns and
+## shrubs were scaled up with the trees. The floor of a wood is small under huge trees: that is what makes them huge.)
+const UNDER := {"grass": 0.55, "tallgrass": 0.6, "flowers": 0.65, "heather": 0.7, "fern": 0.7, "shrub": 0.75, "gorse": 0.8,
+	"deadbush": 0.8, "bramble": 0.75, "reeds": 0.75, "cattail": 0.75, "glowcap": 0.8, "mushroom": 0.8}
 
 
 ## More of the low growth that fills a wood's floor (per m2, over the biome tables): the landscape denser.

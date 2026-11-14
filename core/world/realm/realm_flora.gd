@@ -1316,8 +1316,8 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 			var id: String = _variant(list, px, pz, CHUNK, 1, rng, lh)
 			var xf := _plant_xf(rng, code, Vector3(px, gy, pz), nrm)
 			var gk := Pilot.under(sp)
-			if gk > 1.0:
-				xf.basis = xf.basis.scaled(Vector3(gk, gk, gk))     # bushes and ferns grow with the woods; grass stays grass
+			if gk != 1.0:
+				xf.basis = xf.basis.scaled(Vector3(gk, gk, gk))     # the low growth's size (scale_pilot.UNDER)
 			var near_way := pdk < 4.0
 			if (sdk < 8.0 or near_way) and _clash(null, id, xf, false, AABB(), 0.6 if near_way else 0.4):
 				continue
