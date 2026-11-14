@@ -136,7 +136,7 @@ static func _vault(root: Node, host: Node3D, works: Node3D, crust: Node3D) -> vo
 	k.keep_lanes = false
 	# the three valves, left to right (west, middle, east), each an iron wheel on a post beside the pans
 	var vp: Array[Vector3] = []
-	for off: Vector2 in [Vector2(-14.8, 6.0), Vector2(-1.0, 14.5), Vector2(13.2, 6.0)]:
+	for off: Vector2 in [Vector2(-11.0, 1.0), Vector2(9.8, 0.6), Vector2(17.5, -10.0)]:       # the forecourt's south end, between the hall and the bin, east of the heaps (realm_pois_east_works.gd)
 		var p := Vector3(wc.x + off.x, 0, wc.z + off.y)
 		p.y = Kit.gy(sp, p.x, p.z)
 		vp.append(p)
@@ -166,7 +166,7 @@ static func _vault(root: Node, host: Node3D, works: Node3D, crust: Node3D) -> vo
 	var lid := Kit.mi(node, _bx(Vector3(2.2, 0.16, 2.2)), OssKit.mat("stone"), Transform3D(Basis.IDENTITY, hp + Vector3.UP * 0.22), 80.0)
 	var lid_body := Kit.box_body(node, hp + Vector3.UP * 0.22, Vector3(2.2, 0.16, 2.2), Basis.IDENTITY)
 	State.cache(node, "salt_vault", hp + Vector3(0, 0.5, 0), "the brine-clerk's strongroom", Callable(), func() -> bool: return State.has("solved", "salt_vault"))
-	State.reading(node, "sc_vault_slate", Vector3(wc.x - 12.0, Kit.gy(sp, wc.x - 12.0, wc.z + 12.5) + 0.9, wc.z + 12.5))
+	State.reading(node, "sc_vault_slate", Vector3(wc.x - 10.0, Kit.gy(sp, wc.x - 10.0, wc.z + 3.4) + 0.9, wc.z + 3.4))
 	State.reading(node, "sc_vault_plate", hp + Vector3(1.9, 0.9, 0.0))
 	Kit.site(root, "secrets_vault", Rect2(hp.x - 2.2, hp.z - 2.2, 4.4, 4.4), hp.y)
 	var sync := func(animate: bool) -> void:

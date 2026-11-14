@@ -26,6 +26,9 @@ const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
+const Works := preload("res://core/world/realm/realm_pois_east_works.gd")
+const Saltmarket := preload("res://core/world/realm/realm_pois_east_saltmarket.gd")
+const EastKit := preload("res://core/world/realm/east_works_kit.gd")
 const M := "res://art/models/"
 const SPIRE := M + "r37e_spire.glb"
 const CELLS := M + "r37e_cells.glb"
@@ -59,6 +62,9 @@ static var lamp_node: Node3D = null
 
 static func release() -> void:
 	_win_mat = null
+	EastKit.release()
+	Works.release()
+	Saltmarket.release()
 	_boxes_map.clear()
 	_meshes.clear()
 	lamp_node = null
@@ -111,6 +117,7 @@ static func reserve(root: Node, _skip: PackedStringArray) -> void:
 			WorldLanes.register_site("poi_" + id, rect, lo + 0.05, lo)
 		spots[id] = {"at": Vector3(q.x, base, q.y), "yaw": yaw, "rect": rect, "lo": lo, "hi": hi}
 	if spots.has("saltworks"):
+		Works.reserve(space)
 		for f: Dictionary in PAN_FIELDS:
 			var fr: Rect2 = f.rect
 			var fy := RealmLayout.ground(space, fr.get_center().x, fr.get_center().y)
@@ -122,6 +129,8 @@ static func reserve(root: Node, _skip: PackedStringArray) -> void:
 				continue
 			pi += 1
 			WorldLanes.register_terrace("poi_pan_%d" % pi, pq, 4.2, RealmLayout.ground(space, pq.x, pq.y))       # a level bed under each pan
+	if spots.has("saltmarket"):
+		Saltmarket.reserve()
 	if spots.has("lamp_spire"):
 		Flora.tree_clear.append([Vector2((spots.lamp_spire.at as Vector3).x, (spots.lamp_spire.at as Vector3).z), 20.0])
 	# the Anchoress's cairns and the walk are built on the raid floor (reserved by RealmBosses)
@@ -485,91 +494,16 @@ static func _plinth(host: Node3D, space: PhysicsDirectSpaceState3D, xf: Transfor
 
 # --- The hamlet ---------------------------------------------------------------------------------------
 
-## [mesh, local offset from the yard's centre (xz), yaw degrees]
-const HOUSES := [["House_A", Vector2(-12, -6), 90.0], ["House_B", Vector2(-12, 10), 90.0], ["House_C", Vector2(13, -10), -90.0],
-	["Drying_Shed", Vector2(14, 10), 90.0], ["Stall", Vector2(8, 10), 180.0]]
-const HOUSE_COL := {"House_A": "HOUSE_A_BOXES", "House_B": "HOUSE_B_BOXES", "House_C": "HOUSE_C_BOXES", "Drying_Shed": "DRYING_SHED_BOXES", "Stall": "STALL_BOXES"}
-
-
+## The hamlet: realm_pois_east_saltmarket.gd (the plan is scale_pilot.gd's, at World-of-Warcraft proportions).
 static func _saltmarket(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary) -> void:
-	var c: Vector3 = s.at
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 37201
-	for h: Array in HOUSES:
-		var off: Vector2 = h[1]
-		var p := Vector3(c.x + off.x, c.y, c.z + off.y)
-		p.y = _gy(space, p.x, p.z)
-		var xf := Transform3D(Basis(Vector3.UP, deg_to_rad(float(h[2]))), p)
-		piece(host, HAMLET, String(h[0]), xf, Vector2(0, 230), true, String(h[0]) in ["House_A", "House_B"])
-		cols(host, String(h[0]) + "Body", _tbl(HOUSE_COL[h[0]]), xf)
-		if String(h[0]) == "Stall":
-			P._light(host, p + Vector3(0, 2.2, 0.4), Color(1.0, 0.62, 0.3), 0.9, 8.0)
-			P._lore(host, "r37e_market_board", xf * Vector3(2.0, 1.0, 0.4))
-		if String(h[0]) == "House_A" or String(h[0]) == "House_B":
-			P._light(host, p + xf.basis * Vector3(0, 1.9, 3.3), Color(1.0, 0.66, 0.34), 0.7, 6.0)       # the hearth through the window
-	# the yard: barrels and crates stacked against the houses' backs (nothing on the walks), heaps of salt
-	var k := OssKit.new()
-	k.keep_lanes = false
-	var spots_xz: Array[Vector2] = [Vector2(-17, -9), Vector2(-17, -3.5), Vector2(-17, 13), Vector2(19, -14), Vector2(19, -7), Vector2(19, 15), Vector2(12, 15), Vector2(4, 16)]
-	# the modelled crate and barrel (art/models/props; they were bare wood boxes, black at night), each a box collider
-	var yard := {"crate": [], "barrel": []}
-	for i in spots_xz.size():
-		var q := Vector3(c.x + spots_xz[i].x, 0, c.z + spots_xz[i].y)
-		q.y = _gy(space, q.x, q.z)
-		var a := rng.randf() * TAU
-		(yard["crate" if i % 2 == 0 else "barrel"] as Array).append(Transform3D(Basis(Vector3.UP, a), q))
-	for file: String in yard:
-		var xfs: Array = yard[file]
-		var bb := AABB()
-		for part: Dictionary in SiteProps.parts(file):
-			bb = (part.mesh as Mesh).get_aabb() if bb.size == Vector3.ZERO else bb.merge((part.mesh as Mesh).get_aabb())
-			var mmi := OssKit.multimesh(part.mesh, xfs, part.mat, true)
-			mmi.name = "Yard_" + file
-			host.add_child(mmi)
-		for xf: Transform3D in xfs:
-			LK.col_box(k, xf * bb.get_center(), bb.size * 0.95, xf.basis)
-	var seat := Vector3(HAMLET_FIRE.x + 1.6, 0, HAMLET_FIRE.y + 0.8)
-	seat.y = _gy(space, seat.x, seat.z)
-	k.box("wood", seat + Vector3.UP * 0.2, Vector3(1.4, 0.4, 0.4), Basis(Vector3.UP, 0.3), false, 0.7)
-	k.commit(host, "YardBody")
-	for i in 3:
-		var q2 := Vector3(c.x + [-15.0, 14.0, -2.0][i], 0, c.z + [18.0, 19.0, 21.0][i])
-		q2.y = _gy(space, q2.x, q2.z)
-		piece(host, WORKS, "Salt_Heap", Transform3D(Basis(Vector3.UP, rng.randf() * TAU), q2), Vector2(0, 140))
-	P._lore(host, "r37e_salt_marker", Vector3(c.x + 1.0, _gy(space, c.x + 1.0, c.z - 15.0) + 1.0, c.z - 15.0))
-	P._lore(host, "r37e_hearth_slate", Vector3(HAMLET_FIRE.x - 2.4, _gy(space, HAMLET_FIRE.x - 2.4, HAMLET_FIRE.y) + 0.9, HAMLET_FIRE.y - 1.0))
+	Saltmarket.build(host, space, s.at)
 
 
-## Called by village.gd (after the outposts): the hamlet's walking nodes, anchors and edges, so its five
-## people have routines round the fire, the stall, the doors and the drying shed. Returns true if laid.
+## Called by village.gd (after the outposts): the hamlet's walking nodes, anchors and edges. Returns true if laid.
 static func hamlet(v: Node3D, space: PhysicsDirectSpaceState3D, node_xz: Dictionary, edges: Array) -> bool:
 	if not spots.has("saltmarket") or "--no-r37-east" in OS.get_cmdline_user_args():
 		return false
-	var c: Vector3 = spots.saltmarket.at
-	var f := HAMLET_FIRE
-	var n := {
-		"sm_fire": f + Vector2(-1.8, 0.6), "sm_seat": f + Vector2(1.6, 2.0), "sm_stall": Vector2(c.x + 8.0, c.z + 11.4), "sm_stall_w": Vector2(c.x + 4.6, c.z + 11.2),
-		"sm_w1": f + Vector2(-5, -4), "sm_w2": f + Vector2(0, -7), "sm_w3": f + Vector2(-5, 4),
-		"sm_door_a": Vector2(c.x - 8.0, c.z - 6.6), "sm_door_b": Vector2(c.x - 8.0, c.z + 10.8), "sm_door_c": Vector2(c.x + 8.4, c.z - 10.0),
-		"sm_shed": Vector2(c.x + 11.0, c.z + 10.0),
-	}
-	for k: String in n:
-		node_xz[k] = n[k]
-	edges.append_array([["sm_fire", "sm_seat"], ["sm_fire", "sm_w1"], ["sm_w1", "sm_w2"], ["sm_w2", "sm_w3"], ["sm_w3", "sm_fire"],
-		["sm_fire", "sm_stall_w"], ["sm_w3", "sm_stall_w"], ["sm_stall_w", "sm_stall"], ["sm_stall", "sm_shed"], ["sm_w2", "sm_shed"], ["sm_w1", "sm_door_a"], ["sm_w3", "sm_door_a"],
-		["sm_w3", "sm_door_b"], ["sm_fire", "sm_door_b"], ["sm_w2", "sm_door_c"], ["sm_w1", "sm_door_c"], ["sm_seat", "sm_stall_w"]])
-	var gy := _gy(space, f.x, f.y)
-	var anchors: Dictionary = v.get("anchors")
-	anchors["@sm_fire"] = Vector3(f.x, gy + 0.9, f.y)
-	anchors["@stall"] = Vector3(c.x + 8.0, _gy(space, c.x + 8.0, c.z + 9.4) + 1.0, c.z + 9.4)
-	anchors["@sm_shed"] = Vector3(c.x + 14.0, _gy(space, c.x + 14.0, c.z + 10.0) + 1.4, c.z + 10.0)
-	anchors["@spire"] = Vector3(240.0, 26.0, 8.0)
-	anchors["@out_sm"] = Vector3(f.x + 6.0, gy + 1.4, f.y - 12.0)
-	var oa: Dictionary = v.get("outpost_at")
-	for who: String in ["marl", "ardel"]:
-		oa[who] = Vector3(f.x, gy, f.y)
-		anchors["@fire_" + who] = Vector3(f.x, gy + 0.2, f.y)
-	return true
+	return Saltmarket.hamlet(v, space, node_xz, edges)
 
 
 # --- The pan fields (the White Pans, east of the works) -------------------------------------------------
@@ -578,8 +512,8 @@ const DoubledPois := preload("res://core/world/realm/realm_pois_doubled_realm.gd
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 ## Two fields of evaporation pans, north and south of the works (east of x 219: the star-fall wonder owns the west flat).
 const PAN_FIELDS := [
-	{"id": "pans_a", "rect": Rect2(219.5, 120.4, 31.0, 13.4), "rows": [123.6, 130.6]},
-	{"id": "pans_b", "rect": Rect2(219.5, 191.4, 31.0, 12.4), "rows": [194.6, 200.8]},
+	{"id": "pans_a", "rect": Rect2(219.5, 119.9, 31.0, 14.2), "rows": [123.2, 130.8]},      # a stone channel runs down the gap between the rows (realm_pois_east_works.gd)
+	{"id": "pans_b", "rect": Rect2(219.5, 191.1, 31.0, 13.2), "rows": [193.9, 201.5]},
 ]
 const PAN_XS := [222.5, 230.8, 239.1, 247.4]
 
@@ -666,10 +600,10 @@ static func _pan_spots() -> Array[Dictionary]:
 		var ri := 0
 		for rz: float in f.rows:
 			for i in PAN_XS.size():
-				var jx := rng.randf_range(-0.5, 0.5)
-				var jz := rng.randf_range(-0.4, 0.4)
-				var yaw := rng.randf_range(-0.16, 0.16) + (0.04 if ri == 1 else -0.03)
-				if rng.randf() < 0.18:
+				var jx := rng.randf_range(-0.2, 0.2)
+				var jz := rng.randf_range(-0.1, 0.1)
+				var yaw := rng.randf_range(-0.025, 0.025)
+				if rng.randf() < 0.1:
 					continue                  # a pan not laid, a gap in the row
 				out.append({"at": Vector2(float(PAN_XS[i]) + jx + float(ri) * 0.7, rz + jz), "yaw": yaw, "field": String(f.id)})
 			ri += 1
@@ -733,54 +667,15 @@ static func _drifts(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	print("REALM_POI r37e pans: %d wall drifts" % n)
 
 
-# --- The salt-works -----------------------------------------------------------------------------------
+# --- The salt-works ---------------------------------------------------------------------------------
 
+## The works (realm_pois_east_works.gd) and the two fields of pans.
 static func _saltworks(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary) -> void:
-	var c: Vector3 = s.at
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 37301
-	var at := func(dx: float, dz: float) -> Vector3:
-		return Vector3(c.x + dx, _gy(space, c.x + dx, c.z + dz), c.z + dz)
-	# the boiling hall, its door facing the pans
-	var hx := Transform3D(Basis(Vector3.UP, -PI * 0.5), at.call(2.0, -14.0))
-	piece(host, WORKS, "Works_Hall", hx, Vector2(0, 260))
-	FarDetail.register(host, FarDetail.hull(AABB(Vector3(-8.0, 0.0, -5.0), Vector3(16.0, 11.0, 10.0)), 0.25), hx, 250.0, null, false)
-	cols(host, "HallBody", _tbl("WORKS_HALL_BOXES"), hx)
-	_smoke(host, hx * Vector3(5.0, 11.4, -1.0), Color(0.55, 0.55, 0.55), 8)
-	P._light(host, hx * Vector3(-3.0, 3.4, 4.6), Color(1.0, 0.6, 0.3), 1.0, 9.0)
-	P._lore(host, "r37e_works_ledger", hx * Vector3(1.6, 1.3, 4.0))
-	P._lore(host, "r37e_works_gate", hx * Vector3(-5.5, 1.1, 5.2))
-	# the pans: a grid, rakes left standing in them
-	var pans: Array[Vector3] = []
-	for col_x: float in [-10.0, 8.0]:
-		for row_z: float in [2.0, 10.0]:
-			var p: Vector3 = at.call(col_x, row_z)
-			var px := Transform3D(Basis(Vector3.UP, 0.0), p)
-			piece(host, WORKS, "Pan_Unit", px, Vector2(0, 150), false)
-			cols(host, "PanBody", _tbl("PAN_BOXES"), px)
-			pans.append(p)
-			_brine(host, p, 0.0, pans.size())
-	# three derricks reaching over the pans (their booms swing out over the brine)
-	var derricks: Array[Vector3] = []
-	for dd: Vector2 in [Vector2(-1.0, 6.0), Vector2(-1.0, -4.0), Vector2(17.0, 6.0)]:
-		var dp: Vector3 = at.call(dd.x, dd.y)
-		var dx := Transform3D(Basis(Vector3.UP, PI * (0.5 if dd.x < 10.0 else 1.5)), dp)
-		piece(host, WORKS, "Derrick", dx, Vector2(0, 250))
-		cols(host, "DerrickBody", _tbl("DERRICK_BOXES"), dx)
-		derricks.append(dp)
-	for i in 5:
-		var hp: Vector3 = at.call(rng.randf_range(-16.0, 16.0), rng.randf_range(-4.0, 18.0))
-		var near := false
-		for pp in pans:
-			if absf(hp.x - pp.x) < 4.6 and absf(hp.z - pp.z) < 3.4:
-				near = true
-		if not near:
-			piece(host, WORKS, "Salt_Heap", Transform3D(Basis(Vector3.UP, rng.randf() * TAU), hp), Vector2(0, 150))
-	s["derricks"] = derricks
-	s["pans"] = pans
+	var meta := Works.build(host, space)
+	s["derricks"] = meta.derricks
 	spots["saltworks"] = s
-	host.set_meta("derricks", derricks)
-	host.set_meta("approach", at.call(-4.0, -6.0))
+	host.set_meta("derricks", meta.derricks)
+	host.set_meta("approach", meta.approach)
 	_pan_fields(host, space)
 	_drifts(host, space)
 

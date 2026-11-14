@@ -234,3 +234,85 @@ class SKit extends OssKit:
 		if coarse and COARSE.has(key):
 			key = COARSE[key]
 		super.box(key, to + (c - origin) * s, size * s, b, solid, shade)
+
+
+# --- East: Saltmarket and the White Pans (Luke, 14 Nov: "you should feel very small in it") ------------------------
+## The same proportions on the east side: Saltmarket's houses at 1.5x about their foot (taller doors with them: the
+## hamlet models are 3.2 m to the eaves, 4.8 here), the works' hall at 1.5x, props at PROP, and the White Pans' new
+## pieces (r37e_works.glb, modelled at size). Readers: realm_pois_east_saltmarket.gd (houses, yard, people's nodes),
+## realm_pois_east_works.gd (the works), dress_zones.gd (the square and its lanes).
+const SM_C := Vector2(214.0, 95.0)                   ## the hamlet's pad (realm_pois_east_marches.gd POIS "saltmarket")
+const SM_SQUARE := [Vector2(216.0, 98.0), 18.0]      ## the yard's paving: it was [Vector2(215, 97), 14.5]
+const SM_SQUARE_OLD := [Vector2(215.0, 97.0), 14.5]
+const SM_K := 1.5
+## id -> its size (w x d, the model's), door x, and where it stood before (offset from SM_C, yaw degrees) and stands now
+## (foot, yaw degrees): each faces the yard. The stall's "w x d" is its footprint.
+const SM_HOUSES := {
+	"House_A": {"w": 7.0, "d": 5.0, "dx": 0.6, "old": [Vector2(-12, -6), 90.0], "at": Vector2(197.0, 89.5), "yaw": 66.0},
+	"House_B": {"w": 6.0, "d": 4.6, "dx": -0.8, "old": [Vector2(-12, 10), 90.0], "at": Vector2(198.0, 106.5), "yaw": 112.0},
+	"House_C": {"w": 8.0, "d": 5.6, "dx": 0.0, "old": [Vector2(13, -10), -90.0], "at": Vector2(235.0, 88.5), "yaw": -62.0},
+	"Drying_Shed": {"w": 8.2, "d": 4.6, "dx": 0.0, "old": [Vector2(14, 10), 90.0], "at": Vector2(236.0, 104.0), "yaw": -100.0},
+	"Stall": {"w": 3.4, "d": 3.8, "dx": 0.0, "old": [Vector2(8, 10), 180.0], "at": Vector2(222.5, 112.0), "yaw": 195.0},
+}
+## The Brine Road and the works (the salt track straight at x 212, the spine along x 217, the pump tower at its end).
+const ROAD_X := 212.0
+const ROAD_Z1 := 186.0
+const SPINE_X := 217.2
+const FORECOURT := Vector2(147.0, 166.0)             ## z the east kerb stays open: the boiling house's forecourt
+const TOWER := Vector2(226.0, 178.0)
+const FIELD_A_Z := 127.0                             ## the channel down the gap between each pan field's two rows
+const FIELD_B_Z := 197.7
+const WORKS_HALL := Vector2(236.0, 156.0)
+const WORKS_HALL_K := 1.5
+const WORKS_HALL_OLD := Vector2(234.0, 154.0)
+const DERRICKS := [Vector3(226.0, 140.0, PI), Vector3(246.0, 140.0, PI), Vector3(226.0, 187.0, 0.0)]       ## x, z, yaw
+const DERRICK_OLD := [Vector3(231.0, 164.0, PI * 0.5), Vector3(231.0, 174.0, PI * 0.5), Vector3(249.0, 174.0, PI * 1.5)]
+const DERRICK_K := 1.3
+## The salt sheds (x, z, yaw): doors toward the Road (the west one) and the forecourt's south (the east one).
+const WORKS_SHEDS := [Vector3(195.0, 119.5, PI * 0.5), Vector3(243.0, 182.5, -PI * 0.5)]
+## Placed things (kind = a mesh of r37e_works.glb): [x, z, yaw].
+const WORKS_PROPS := {
+	"Salt_Cart": [Vector3(222.0, 149.0, -0.4), Vector3(224.0, 166.0, 0.5), Vector3(207.0, 188.0, 1.9)],
+	"Sledge": [Vector3(226.0, 158.0, 1.8), Vector3(203.5, 112.5, 0.3)],
+	"Block_Stack": [Vector3(228.2, 146.5, PI * 0.5), Vector3(228.2, 161.0, PI * 0.5), Vector3(231.0, 190.5, 0.0)],
+	"Salt_Mound": [Vector3(247.0, 152.0, 0.4), Vector3(247.5, 166.0, 2.0), Vector3(182.0, 120.0, 0.5), Vector3(250.0, 176.0, 1.0)],
+	"Salt_Bin": [Vector3(236.0, 173.0, PI)],
+	"Drying_Rack": [Vector3(205.3, 137.0, PI * 0.5), Vector3(205.3, 151.0, PI * 0.5), Vector3(205.3, 165.0, PI * 0.5),
+		Vector3(178.0, 183.0, 0.0), Vector3(191.5, 183.0, 0.0), Vector3(178.0, 189.0, 0.0), Vector3(191.5, 189.0, 0.0)],
+}
+
+
+## A hamlet building's plan: {at (foot), yaw (radians), s (scale), w, d, dx}. Before the pilot: the old plot, scale 1.
+static func sm_house(id: String) -> Dictionary:
+	var h: Dictionary = SM_HOUSES[id]
+	if on():
+		return {"at": h.at, "yaw": deg_to_rad(float(h.yaw)), "s": SM_K, "w": h.w, "d": h.d, "dx": h.dx}
+	var o: Array = h.old
+	return {"at": SM_C + (o[0] as Vector2), "yaw": deg_to_rad(float(o[1])), "s": 1.0, "w": h.w, "d": h.d, "dx": h.dx}
+
+
+## A point in a hamlet building's frame (x across, z out of the door side), in the world's xz.
+static func sm_local(id: String, x: float, z: float) -> Vector2:
+	var h := sm_house(id)
+	var a: float = h.yaw
+	var s: float = h.s
+	return (h.at as Vector2) + Vector2(x * cos(a) + z * sin(a), -x * sin(a) + z * cos(a)) * s
+
+
+## Where a building's door lets onto the yard.
+static func sm_door(id: String) -> Vector2:
+	var h := sm_house(id)
+	return sm_local(id, float(h.dx), float(h.d) * 0.5 + 1.7)
+
+
+static func sm_square() -> Array:
+	return SM_SQUARE if on() else SM_SQUARE_OLD
+
+
+## The yard's worn lanes (polylines in the world's xz): the fire to each door, and the road to the fire.
+static func sm_lanes() -> Array:
+	var f := Vector2(216.2, 98.6)
+	var out: Array = [[f, Vector2(213.0, 92.0), Vector2(212.0, 84.0)], [f, Vector2(213.0, 105.0), Vector2(212.0, 114.0)]]
+	for id: String in ["House_A", "House_B", "House_C", "Drying_Shed", "Stall"]:
+		out.append([f, sm_door(id)])
+	return out
