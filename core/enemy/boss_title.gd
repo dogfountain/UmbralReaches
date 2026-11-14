@@ -20,6 +20,7 @@ static func show_for(host: Node, title: String, subtitle: String, col := GOLD) -
 	var t := BossTitle.new()
 	t.layer = 41
 	t.name = "BossTitle"
+	t.add_to_group(&"boss_title")           # the HUD holds its lessons while a name card is up
 	host.add_child(t)
 	t._build(title, subtitle, col)
 	return t

@@ -490,7 +490,8 @@ func _tips_tick(delta: float) -> void:
 	elif p.get("riding") != null:
 		_jit("ride", "%s  leap   ·   %s  get down" % [_pk("jump", "A"), _pk("interact", "X")])
 	elif fight:
-		if p.has_method("lock_target") and p.call("lock_target") == null:
+		# not over a boss's name card: the lesson waits until the title has gone (it drew across the boss's body)
+		if get_tree().get_first_node_in_group(&"boss_title") == null and p.has_method("lock_target") and p.call("lock_target") == null:
 			_jit("lock", "%s  lock on to it   ·   %s  roll through a blow" % [_pk("lock_on", "R3"), _pk("dodge", "B")], false)
 	elif not Hints.seen(&"tip_move"):
 		_first_steps()
