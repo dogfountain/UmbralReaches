@@ -65,23 +65,29 @@ def tine(F, p0, p1, bend, r0, r1, tag="bone", k=0.015, n=6, fork=0.0, fork_to=No
     Pt.chain(F, pts, rad, k, tag)
     if fork and fork_to is not None:
         i = int(n * fork)
-        tine(F, pts[i], fork_to, (0, 0.03, 0), rad[i] * 0.75, r1, tag, k * 0.7, 4)
+        ft_ = V(*fork_to)
+        tine(F, pts[i], ft_, (0, 0.03, 0), rad[i] * 0.75, r1, tag, k * 0.7, 4)
     return pts
 
 
 def crown(F, sx):
     root = V(sx * 0.07, 0.77, H[2] - 0.0)
     beam = [root, V(sx * 0.2, 1.0, -0.64), V(sx * 0.36, 1.25, -0.52), V(sx * 0.5, 1.45, -0.35), V(sx * 0.58, 1.6, -0.12), V(sx * 0.55, 1.72, 0.1)]
-    rad = [0.08, 0.072, 0.062, 0.05, 0.04, 0.026]
+    rad = [0.056, 0.048, 0.04, 0.033, 0.026, 0.018]
     Pt.chain(F, beam, rad, 0.03, "bark")
-    F.add(Q.Ell(root + V(0, 0.0, 0.0), (0.075, 0.055, 0.07)), 0.04, "bark")
-    # the brow tine, a long forward spear, and the tines up the beam, each forked
-    tine(F, beam[1], V(sx * 0.16, 0.98, -1.02), (0, -0.06, 0), 0.044, 0.01, "bone", 0.02, 6, 0.55, V(sx * 0.3, 1.1, -1.05))
-    tine(F, beam[2], V(sx * 0.46, 1.6, -0.78), (sx * 0.04, 0.1, 0), 0.042, 0.009, "bone", 0.02, 6, 0.6, V(sx * 0.66, 1.62, -0.7))
-    tine(F, beam[3], V(sx * 0.74, 1.68, -0.5), (sx * 0.05, 0.08, 0), 0.04, 0.009, "bone", 0.02, 6, 0.55, V(sx * 0.88, 1.5, -0.35))
-    tine(F, beam[4], V(sx * 0.82, 1.72, -0.2), (0.04 * sx, 0.06, 0), 0.034, 0.008, "bone", 0.018, 5, 0.5, V(sx * 0.96, 1.55, -0.12))
-    tine(F, beam[5], V(sx * 0.62, 1.74, 0.34), (0, 0.04, 0.0), 0.024, 0.007, "bone", 0.015, 5)
-    tine(F, beam[2], V(sx * 0.12, 1.42, -0.18), (0, 0.08, 0), 0.038, 0.009, "bone", 0.02, 6, 0.6, V(sx * 0.08, 1.58, 0.0))
+    F.add(Q.Ell(root + V(0, 0.0, 0.0), (0.06, 0.045, 0.055)), 0.04, "bark")
+    # tines staggered up the beam (not sprayed from one spot), each its own length and lean, the long ones forked once
+    def beam_at(t):
+        f = t * (len(beam) - 1)
+        i = min(int(f), len(beam) - 2)
+        return beam[i] + (beam[i + 1] - beam[i]) * (f - i)
+    for t_, d_, L_, r_, fork_ in [(0.16, (0.1 * sx, -0.05, -1.0), 0.5, 0.04, True), (0.3, (0.5 * sx, 1.0, -0.6), 0.5, 0.034, True),
+                                  (0.45, (0.9 * sx, 0.8, -0.2), 0.45, 0.032, True), (0.6, (0.4 * sx, 1.0, 0.5), 0.4, 0.03, False),
+                                  (0.74, (0.9 * sx, 0.7, 0.2), 0.4, 0.026, True), (0.88, (0.2 * sx, 1.0, 0.6), 0.3, 0.02, False)]:
+        p0_ = beam_at(t_)
+        d_ = Pt.unit(V(*d_))
+        p1_ = p0_ + d_ * L_
+        tine(F, p0_, p1_, (0, 0.05, 0), r_, 0.008, "bone", 0.016, 6, 0.65 if fork_ else 0.0, p0_ + d_ * L_ * 0.65 + Pt.unit(V(sx * 0.4, 0.8, 0.5)) * L_ * 0.45)
     for i in range(1, 5):                                             # burls on the beam
         F.add(Q.Ell(beam[i] + V(sx * 0.02, 0.02, 0.03), (0.034, 0.03, 0.036)), 0.02, "bark")
 
@@ -104,23 +110,23 @@ def field():
         return tuple(v * HS for v in r)
     F.add(Q.Ell(sp(0, 0.69, hz - 0.02), sr(0.118, 0.105, 0.15)), 0.05, "bone")
     F.add(Q.Ell(sp(0, 0.775, hz + 0.0), sr(0.065, 0.032, 0.09)), 0.03, "bone")                                  # the crest the crown grows from
-    F.add(Q.Ell(sp(0, 0.655, hz - 0.2), sr(0.082, 0.07, 0.1)), 0.05, "bone")
+    F.add(Q.Ell(sp(0, 0.66, hz - 0.15), sr(0.095, 0.085, 0.1)), 0.05, "bone")
     F.add(Q.Ell(sp(0, 0.74, hz - 0.1), sr(0.1, 0.03, 0.07)), 0.04, "bone")
-    F.add(Q.Ell(sp(0, 0.628, hz - 0.29), sr(0.06, 0.054, 0.08)), 0.04, "bone")
-    F.add(Q.Ell(sp(0, 0.612, hz - 0.39), sr(0.05, 0.044, 0.06)), 0.03, "bone")
-    F.add(Q.Ell(sp(0, 0.69, hz - 0.25), sr(0.018, 0.022, 0.13)), 0.04, "bone")                                    # nasal bridge ridge
+    F.add(Q.Ell(sp(0, 0.635, hz - 0.22), sr(0.07, 0.068, 0.075)), 0.04, "bone")
+    F.add(Q.Ell(sp(0, 0.625, hz - 0.25), sr(0.056, 0.054, 0.05)), 0.03, "bone")
+    F.add(Q.Ell(sp(0, 0.7, hz - 0.2), sr(0.02, 0.026, 0.13)), 0.04, "bone")                                    # nasal bridge ridge
     for sx in (-1, 1):
-        F.add(Q.Ell(sp(sx * 0.094, 0.708, hz - 0.115), sr(0.052, 0.05, 0.048)), 0.03, "bone")                         # the orbit's rim
+        F.add(Q.Ell(sp(sx * 0.112, 0.71, hz - 0.1), sr(0.04, 0.068, 0.064)), 0.03, "bone")                         # the orbit's rim
         F.add(Q.Ell(sp(sx * 0.085, 0.752, hz - 0.12), sr(0.055, 0.028, 0.07), (0.15, 0, 0)), 0.03, "bone")           # brow
         Pt.chain(F, [sp(sx * 0.11, 0.65, hz - 0.12), sp(sx * 0.125, 0.625, hz - 0.03), sp(sx * 0.09, 0.6, hz + 0.05)], [0.016 * HS, 0.017 * HS, 0.02 * HS], 0.012, "bone")   # zygomatic arch
-        Pt.chain(F, [sp(sx * 0.07, 0.585, hz + 0.02), sp(sx * 0.058, 0.535, hz - 0.2), sp(sx * 0.03, 0.52, hz - 0.37)], [0.034 * HS, 0.028 * HS, 0.02 * HS], 0.012, "bone")      # lower jaw, slung open
-        F.sub(Q.Ell(sp(sx * 0.1, 0.71, hz - 0.125), sr(0.036, 0.034, 0.032)), 0.012)
-        F.add(Q.Ell(sp(sx * 0.1, 0.71, hz - 0.118), sr(0.03, 0.028, 0.026)), 0.004, "ember")
+        Pt.chain(F, [sp(sx * 0.07, 0.585, hz + 0.02), sp(sx * 0.058, 0.535, hz - 0.2), sp(sx * 0.03, 0.53, hz - 0.25)], [0.034 * HS, 0.028 * HS, 0.02 * HS], 0.012, "bone")      # lower jaw, slung open
+        F.sub(Q.Ell(sp(sx * 0.13, 0.71, hz - 0.1), sr(0.04, 0.048, 0.046)), 0.012)
+        F.add(Q.Ell(sp(sx * 0.122, 0.71, hz - 0.1), sr(0.03, 0.042, 0.04)), 0.004, "ember")
         for k in range(5):
             z = hz - 0.17 - 0.036 * k
             Pt.tooth(F, sp(sx * (0.056 - 0.002 * k), 0.592, z), (0, -1, 0.05), 0.045 * HS, (0.01 if k > 2 else 0.0075) * HS, "bone")
             Pt.tooth(F, sp(sx * (0.048 - 0.0015 * k), 0.535, z + 0.015), (0, 1, 0.05), 0.04 * HS, 0.009 * HS, "bone")
-    F.sub(Q.Ell(sp(0, 0.626, hz - 0.43), sr(0.018, 0.021, 0.03)), 0.008)                                          # the nasal opening
+    F.sub(Q.Ell(sp(0, 0.635, hz - 0.28), sr(0.018, 0.021, 0.03)), 0.008)                                          # the nasal opening
     # the antler crown, rooted in the skull's crest
     for sx in (-1, 1):
         crown(F, sx)
@@ -283,8 +289,8 @@ def detail(ctx):
     idx = ctx.region(tags, {"bone": 0.004, "ember": 0.006, "hide": 0.0})
     barkish = (idx == 0) | (idx == 1)
     # bark zone: the upper and outer surfaces; hide under the belly, the throat, the lower legs
-    zone = np.clip((N[:, 1] + 0.45) * 1.7, 0.0, 1.0) * barkish
-    low_leg = np.clip((0.2 - P[:, 1]) * 12.0, 0.0, 1.0)
+    zone = np.clip((N[:, 1] + 1.2) * 1.0, 0.0, 1.0) * barkish
+    low_leg = np.clip((0.12 - P[:, 1]) * 14.0, 0.0, 1.0)
     zone = zone * (1.0 - low_leg)
     zone = np.where(idx == 1, 0.0, zone)                                     # a prim tagged hide stays hide
     zone = np.where(P[:, 2] < -0.62, zone * np.clip((0.7 - P[:, 1]) * 0 + 1.0, 0, 1) * 0.0, zone)       # not on the face
