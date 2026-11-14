@@ -54,8 +54,8 @@ func _run(L: RefCounted) -> void:
 
 ## Put a model down: yaw, scale and a handful of collision boxes ([centre, size] in the model's own frame, metres,
 ## before the scale).
-func _put(pm: PropModels, file: String, at: Vector2, yaw: float, s := 1.0, cols: Array = [], part := "") -> Vector3:
-	var y: float = _l.g(at.x, at.y)
+func _put(pm: PropModels, file: String, at: Vector2, yaw: float, s := 1.0, cols: Array = [], part := "", lift := 0.0) -> Vector3:
+	var y: float = _l.g(at.x, at.y) + lift
 	var b := Basis(Vector3.UP, yaw)
 	var xf := Transform3D(b.scaled(Vector3.ONE * s), Vector3(at.x, y, at.y))
 	pm.add(file, xf, part)
@@ -141,8 +141,12 @@ func _yards(pk: float) -> void:
 	_put(_small, "crate_broken.glb", Vector2(18.1, zs + 0.1), 0.5, pk)
 	_put(_small, "sack.glb", Vector2(19.0, zs), 0.2, pk)
 	# Maud's yard: a washing line behind the house, its basket under it
-	_put(_small, "washing_line.glb", Vector2(-14.0, 51.0), 0.12, pk, [[Vector3(-2.4, 1.3, 0), Vector3(0.14, 2.6, 0.14)], [Vector3(2.4, 1.3, 0), Vector3(0.14, 2.6, 0.14)]])
-	# the Wrights': a cart by the road, a trough
+	_put(_small, "washing_line.glb", Vector2(-16.2, 52.6), 0.1, pk, [[Vector3(-2.4, 1.3, 0), Vector3(0.14, 2.6, 0.14)], [Vector3(2.4, 1.3, 0), Vector3(0.14, 2.6, 0.14)]])
+	# the forge: its hand cart, sacks of charcoal on the bed
+	var fc := _put(_small, "handcart.glb", Vector2(9.0, 55.4), PI * 0.5 + 0.2, pk, [[Vector3(-0.05, 0.46, 0), Vector3(1.6, 0.92, 1.0)]])
+	_put(_small, "sack.glb", Vector2(fc.x, fc.z) + Vector2(0.05, 0.25), 0.4, pk * 0.9, [], "", 0.5 * pk)
+	_put(_small, "sack_open.glb", Vector2(fc.x, fc.z) + Vector2(-0.1, -0.35), 1.2, pk * 0.9, [], "", 0.5 * pk)
+	# the Wrights': a cart by the road
 	_put(_small, "handcart.glb", Vector2(-21.8, 64.0), 0.5, pk, [[Vector3(-0.05, 0.46, 0), Vector3(1.6, 0.92, 1.0)]])
 	# the Reeds': sacks and a stack of wood against the east gable
 	_put(_small, "firewood.glb", Vector2(16.0, 42.0), PI * 0.5, pk, [[Vector3(0, 0.33, 0), Vector3(1.0, 0.66, 0.65)]])

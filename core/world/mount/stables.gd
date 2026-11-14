@@ -26,7 +26,7 @@ func _ready() -> void:
 	var space := host.get_world_3d().direct_space_state
 	for b: String in DB.ORDER:
 		var d: Dictionary = DB.BREEDS[b]
-		var at: Vector2 = ScalePilot.xz(d.at)            # Weirford's stables stand on a new plot under the scale pilot
+		var at: Vector2 = ScalePilot.hw_xz(ScalePilot.xz(d.at))      # Weirford's stables stand on a new plot under the scale pilot; Hearthward's post stays south of the Reeds' wider house
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(at.x, 90.0, at.y), Vector3(at.x, -40.0, at.y), Layers.WORLD))
 		var g: Vector3 = (hit.position as Vector3) if not hit.is_empty() else Vector3(at.x, 0.0, at.y)
 		var f: Vector2 = ScalePilot.dir(d.at, d.face)

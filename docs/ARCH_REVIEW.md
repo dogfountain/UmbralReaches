@@ -23,9 +23,10 @@ silhouette, material, how a building meets the ground, streets and squares as ro
 2. **The gate passages are black voids.** The kindled gate posts stand 6 m inside; until they are lit the one
    opening in the wall reads as a hole. A recessed arch with a lit keystone lamp (or a lantern hung in the vault,
    kindled with the posts) would make the gate legible from the road.
-3. **Hearthward's square has one wall.** The Hollow Lantern holds the east side; the other three open onto
-   scrub. A square is a room: a low wall or a row of market stalls on the west, a well or a market cross at
-   the centre, a cottage or two closing the south.
+3. **Hearthward's square has one wall.** (Done, 14 Nov: `core/world/realm/lore/hearthward_square.gd`. The Hollow
+   Lantern holds the east; two awninged stalls and a third against the wall close the west and the south-east; a
+   roofed timber gate stands where the road's two arms meet, with a low stone wall each side; a stepped market cross
+   stands off the brazier. The road to the stair stays open. Models: `tools/blender/props_market.py`.)
 4. **The White Pans have no middle ground.** Between the wanderer and the mountains there is a flat white floor
    and lamp posts at prop scale. Salt sheds, drying racks, carts and heaps at building scale would give the
    flat a depth and a measure.
@@ -33,8 +34,9 @@ silhouette, material, how a building meets the ground, streets and squares as ro
    of the approach.
 6. **Weirford beside its gate.** The houses now stand at WoW scale (1.4-1.6x) but the gatehouse beside them
    reads as a sheer wall: the town and the wall do not meet (no lean-to, no stair, no wall walk).
-7. **Building scale outside Weirford.** Only Weirford was rebuilt at WoW proportions; Saltmarket, the
-   Hearthward cottages and the outposts are still the old size beside trees that are now twice as big.
+7. **Building scale outside Weirford.** Only Weirford was rebuilt at WoW proportions; Saltmarket and the
+   outposts are still the old size beside trees that are now twice as big. (Hearthward's five cottages and ruins
+   are 1.4-1.45 x since 14 Nov: `scale_pilot.gd` HW; its forge lean-to is still the old size.)
 
 ## Good, keep
 

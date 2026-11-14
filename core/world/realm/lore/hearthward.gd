@@ -241,7 +241,7 @@ static func _forge(L: RefCounted, c: Vector2) -> void:
 	L.letters(pl + b * Vector3(0, 0, -0.015), b * Vector3(0, 0, -1), 0.22, 2)
 	L.scrap("hw_forge", an + b * Vector3(0, 0.3, -0.9))
 	L.light("ForgeEmbers", fh + Vector3.UP * 1.25 + b * Vector3(0, 0, -0.5), Color(1.0, 0.42, 0.14), 0.7, 4.0)
-	L.cart(xf * Vector3(-2.0, 0, -4.4) + Vector3.UP * (L.g((xf * Vector3(-2.0, 0, -4.4)).x, (xf * Vector3(-2.0, 0, -4.4)).z) - fy), PI * 0.5 + 0.2, false, "hay")
+	# (the forge's hand cart is the modelled one now: hearthward_square.gd)
 	L.barrel(p, xf * Vector3(2.9, 0, -1.9), 0.9)
 
 
