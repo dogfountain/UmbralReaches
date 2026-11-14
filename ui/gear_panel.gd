@@ -121,7 +121,11 @@ func _build() -> void:
 	margin.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
-	panel.add_child(col)
+	var pad := MarginContainer.new()                  # the title and the currencies stood on the frame's gilt edge
+	for side: String in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(side, 16)
+	panel.add_child(pad)
+	pad.add_child(col)
 
 	var head := HBoxContainer.new()
 	col.add_child(head)
