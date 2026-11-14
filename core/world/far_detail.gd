@@ -15,8 +15,9 @@ extends RefCounted
 
 const VIEW_FAR := 420.0                  ## camera far plane (m); the fog has swallowed the world by then
 const FAR_TREE_END := 230.0              ## the @far tree meshes end here (the canopy shell carries on)
-const FAR_CARD_END := 85.0               ## far leaf cards (overdraw) end here; trunks and the canopy shell carry on
-const CANOPY_BEGIN := 200.0             ## a forest chunk's canopy shell fades in from here
+const FAR_CARD_END := 190.0              ## far leaf cards end here (85 until 14 Nov: from a hill the woods between 85 and 200 m were bare
+                                         ## black branches, Luke: "trees and foliage should be much more prevalent when looking down from a hill")
+const CANOPY_BEGIN := 150.0             ## a forest chunk's canopy shell fades in from here (under the far cards' last 40 m: no leafless band)
 const SHELL_CELL := 2.0
 
 static var _shell_mat: ShaderMaterial

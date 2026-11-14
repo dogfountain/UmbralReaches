@@ -224,8 +224,8 @@ const MOON_ATLAS := [1024, 1024, 1024]        ## by Settings.shadow_quality (0 =
 const MOON_FILTER := [1, 1, 1]                ## RenderingServer.ShadowQuality (1 very low; 2 low costs 1-2.6 ms)
 const MOON_BIAS := 0.06
 const MOON_NORMAL_BIAS := 2.5
-const MOON_FAR := [22.0, 34.0, 64.0]
-const MOON_SPLIT_1 := 0.16
+const MOON_FAR := [22.0, 28.0, 44.0]         ## shorter (Luke, 14 Nov; was 34 and 64 m): the far tree shadows were 0.33 ms of a fight frame
+const MOON_SPLIT_1 := 0.23                   ## the near split still ends about 10 m out
 static var _atlas := 0
 static var _filter := -1
 

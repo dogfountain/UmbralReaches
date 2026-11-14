@@ -35,7 +35,7 @@ const UNDER := {
 ## water) by swapping the cover and its colour rather than adding more of it.
 const LOOKS := {
 	"quarry": {"tree_mul": {"oak": 0.0, "birch": 0.3, "pine": 0.35, "sapling": 0.35},
-		"under_mul": {"grass": 0.45, "tallgrass": 0.5, "heather": 0.5, "flowers": 0.4, "fern": 0.3},
+		"under_mul": {"grass": 0.62, "tallgrass": 0.7, "heather": 0.7, "flowers": 0.4, "fern": 0.45},
 		"under_add": {"scaffold": 0.006, "moss": 0.02},
 		"tint": Color(0.92, 0.9, 0.82), "props": {"rubble": 0.07, "block": 0.012}, "stone_mul": 1.6, "style": "granite"},
 	"holds": {"tree_mul": {"oak": 0.12, "birch": 0.5, "pine": 0.2, "sapling": 0.15, "snag": 0.3},
@@ -55,7 +55,7 @@ const LOOKS := {
 		"under_add": {"grass": 0.62, "tallgrass": 0.08, "ashdrift": 0.14, "cinders": 0.006, "stump": 0.004, "log": 0.0015, "litter": 0.03},
 		"tint": Color(0.62, 0.6, 0.56)},
 	"necropolis": {"tree_mul": {"oak": 0.15, "birch": 0.4, "pine": 0.2, "sapling": 0.2, "snag": 0.6}, "tree_add": {"yew": 0.3}, "rows": "cypress",
-		"under_mul": {"grass": 1.75, "tallgrass": 2.6, "flowers": 0.5, "heather": 0.4, "moss": 1.8, "shrub": 0.4, "bramble": 1.4},   # grass 1.15 -> 1.42 (it sat on the floor of its band against heath)
+		"under_mul": {"grass": 2.15, "tallgrass": 2.6, "flowers": 0.5, "heather": 0.4, "moss": 1.8, "shrub": 0.4, "bramble": 1.4},   # grass 1.15 -> 1.42 (it sat on the floor of its band against heath)
 		"under_add": {"glowcap": 0.003},
 		"tint": Color(0.8, 0.86, 0.8), "props": {"headstone": 0.006}, "stone_mul": 1.3, "style": "granite"},
 	"mere": {"tree_mul": {"oak": 0.2, "birch": 0.6, "pine": 0.0, "sapling": 0.5}, "dead_willow": 0.85,

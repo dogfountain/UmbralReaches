@@ -14,24 +14,24 @@ const CHUNK := 24.0                    ## undergrowth chunks
 const TREE_CHUNK := 32.0               ## tree chunks
 const FAR_UNDER := 8.0                 ## the far mesh begins this much nearer than the near tree's end (solid under its fade)
 const NEAR_END := 38.0                 ## chunk-origin distance where big trees swap to their @far meshes
-const STONE_RANGE := 44.0
+const STONE_RANGE := 80.0
 const STONE_SIZES := [Vector3(0.55, 0.34, 0.48), Vector3(0.9, 0.5, 0.75)]
 
 ## species groups: visibility range end (0 = none: the camera far plane, 82 m, ends them),
 ## shadows, keep-off path distance (m from the path edge), clearance from sites
 const STYLE := {
-	"grass": [38.0, false, 1.0, 0.6], "tallgrass": [40.0, false, 3.0, 0.8], "flowers": [36.0, false, 3.0, 0.6],
-	"heather": [38.0, false, 3.0, 0.6], "fern": [44.0, false, 3.0, 1.0], "shrub": [58.0, false, 3.5, 1.5],
-	"bramble": [58.0, false, 3.5, 2.0], "litter": [32.0, false, 3.0, 0.8], "moss": [34.0, false, 3.0, 0.8],
-	"mushroom": [26.0, false, 3.0, 0.8], "glowcap": [46.0, false, 3.0, 0.8], "reeds": [52.0, false, 3.0, 0.8],
-	"cattail": [52.0, false, 3.0, 0.8], "log": [64.0, true, 3.5, 3.0], "stump": [56.0, false, 3.0, 1.5],
-	"roots": [50.0, false, 3.0, 1.5],
-	"stone": [44.0, false, 1.2, 1.0],                                  # stones in the turf (_place_stones)
+	"grass": [46.0, false, 1.0, 0.6], "tallgrass": [62.0, false, 3.0, 0.8], "flowers": [44.0, false, 3.0, 0.6],
+	"heather": [60.0, false, 3.0, 0.6], "fern": [78.0, false, 3.0, 1.0], "shrub": [120.0, false, 3.5, 1.5],
+	"bramble": [100.0, false, 3.5, 2.0], "litter": [32.0, false, 3.0, 0.8], "moss": [34.0, false, 3.0, 0.8],
+	"mushroom": [26.0, false, 3.0, 0.8], "glowcap": [60.0, false, 3.0, 0.8], "reeds": [90.0, false, 3.0, 0.8],
+	"cattail": [90.0, false, 3.0, 0.8], "log": [110.0, true, 3.5, 3.0], "stump": [96.0, false, 3.0, 1.5],
+	"roots": [80.0, false, 3.0, 1.5],
+	"stone": [80.0, false, 1.2, 1.0],                                  # stones in the turf (_place_stones)
 	"oak": [0.0, true, 3.5, 0.0], "birch": [0.0, true, 3.0, 0.0], "pine": [0.0, true, 3.0, 0.0],
-	"willow": [0.0, true, 3.0, 0.0], "snag": [0.0, true, 3.0, 0.0], "sapling": [60.0, false, 3.0, 1.5],
+	"willow": [0.0, true, 3.0, 0.0], "snag": [0.0, true, 3.0, 0.0], "sapling": [140.0, false, 3.0, 1.5],
 	"fruit": [0.0, true, 3.0, 0.0], "cypress": [0.0, true, 3.0, 0.0], "yew": [0.0, true, 3.5, 0.0], "windtree": [0.0, true, 3.0, 0.0],
-	"gorse": [52.0, false, 3.0, 1.2], "deadbush": [50.0, false, 3.0, 1.2], "ashdrift": [34.0, false, 2.0, 0.8],
-	"cinders": [30.0, false, 2.5, 0.8], "lily": [48.0, false, 1.0, 0.5], "scaffold": [52.0, false, 3.0, 2.0],
+	"gorse": [110.0, false, 3.0, 1.2], "deadbush": [100.0, false, 3.0, 1.2], "ashdrift": [34.0, false, 2.0, 0.8],
+	"cinders": [30.0, false, 2.5, 0.8], "lily": [70.0, false, 1.0, 0.5], "scaffold": [90.0, false, 3.0, 2.0],
 }
 
 ## The regions' own stone (LOOKS props), per m2 at full look weight. [mesh, size, style

@@ -1252,7 +1252,7 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 		var sp: String = kinds[s]
 		var uk: Array = _ukind[s]
 		var code: int = uk[0]
-		var rate := rates[s]
+		var rate := rates[s] * Pilot.under_more(sp)
 		var wet := code == 18 or code == 19
 		if rate <= 0.0 and not (wet and shore):
 			continue

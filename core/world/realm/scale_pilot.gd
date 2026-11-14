@@ -15,9 +15,9 @@ extends RefCounted
 
 const RECT := Rect2(-246.0, 26.0, 102.0, 80.0)      ## the pilot's ground: x -246..-144, z 26..106
 const EDGE := 14.0                                  ## flora eases back to its own size over this margin
-const FLORA := 2.0
-const FLORA_Y := 1.8
-const FLORA_KEEP := 0.5
+const FLORA := 2.6                                  ## huge (Luke, 14 Nov: "make the trees huge ... more dense"; were 2.0 / 1.8 / 0.5)
+const FLORA_Y := 2.4
+const FLORA_KEEP := 0.72
 const STONE := 1.45
 const PROP := 1.25
 const CHUNK := 1.4                                  ## masonry, boards and slates are this much coarser on scaled buildings
@@ -103,7 +103,7 @@ static func flora_w(_x: float, _z: float) -> float:
 
 ## Species whose height grows less than the rest (wide, tall): a willow 1.8x as tall was a curtain wall with no crown,
 ## a green hedge; wide and only somewhat taller it keeps its dome and the fall of its strands.
-const SPECIES := {"willow": Vector2(2.0, 1.3)}
+const SPECIES := {"willow": Vector2(2.4, 1.6)}
 
 
 ## A tree's extra scale at (x, z): (wide, tall).
@@ -116,6 +116,14 @@ static func tree(x: float, z: float, sp := "") -> Vector2:
 ## Undergrowth that grows with the woods (shrubs, ferns, gorse, dead bushes): this much bigger. Grass,
 ## flowers, moss and litter keep their size (they are the ground's texture, not things beside the wanderer).
 const UNDER := {"shrub": 1.15, "fern": 1.3, "gorse": 1.25, "deadbush": 1.3}      # brambles stay low: bigger ones buried the camera
+
+
+## More of the low growth that fills a wood's floor (per m2, over the biome tables): the landscape denser.
+const UNDER_MORE := {"shrub": 1.6, "fern": 1.5, "gorse": 1.4, "deadbush": 1.3, "tallgrass": 1.25, "heather": 1.2, "bramble": 1.2, "reeds": 1.2}
+
+
+static func under_more(sp: String) -> float:
+	return float(UNDER_MORE.get(sp, 1.0)) if on() else 1.0
 
 
 static func under(sp: String) -> float:
