@@ -317,7 +317,7 @@ def segs(extra=None):
     return s + (extra or [])
 
 
-def skirt_weights(waist=1.05, hips=0.9, knee_y=0.42):
+def skirt_weights(waist=1.05, hips=0.9, knee_y=0.42, gain=1.0):
     """A skirt / robe that hangs from the waist: pelvis at the belt, then the nearer leg, then the knee."""
     def fn(p):
         y = p.z
@@ -331,9 +331,9 @@ def skirt_weights(waist=1.05, hips=0.9, knee_y=0.42):
             a = GK._smooth(hips, hips - 0.28, y)                 # how far down the hip bone owns it
             b = GK._smooth(knee_y + 0.14, knee_y - 0.12, y)
             if a > 0.0:
-                w["hip_" + tag] = body * a * side * (1.0 - b)
+                w["hip_" + tag] = body * a * side * (1.0 - b) * gain
                 if b > 0.0:
-                    w["knee_" + tag] = body * a * side * b
+                    w["knee_" + tag] = body * a * side * b * gain
         used = sum(w.values())
         w["pelvis"] = max(body - (used - w.get("chest", 0.0)), 0.0)
         t = sum(w.values()) or 1.0
@@ -370,6 +370,31 @@ def cape_weights(sleeve_bleed=0.5):
                 kn = GK._smooth(0.7, 0.35, y)
                 w["hip_" + tag] = lo * 0.45 * sd * (1.0 - kn) * GK._smooth(0.95, 0.7, y)
         w["chest"] = max(w["chest"] - sum(v for k, v in w.items() if k != "chest") * 0.5, 0.15)
+        t = sum(w.values())
+        return {k: v / t for k, v in w.items() if v / t > 0.004}
+    return fn
+
+
+def cope_weights(shoulder=0.5):
+    """A cope that stays gathered round the body: the chest above, the pelvis (not the hips) below, a little knee at the
+    hem, so when the figure kneels or pitches over the cloth follows the trunk and does not fan out."""
+    def fn(p):
+        y = p.z
+        w = {"chest": 1.0}
+        for tag, sx in (("l", -1.0), ("r", 1.0)):
+            a = GK._smooth(0.12, 0.3, p.x * sx) * shoulder * GK._smooth(1.0, 1.4, y)
+            if a > 0.0:
+                w["shoulder_" + tag] = a
+        h = GK._smooth(1.50, 1.64, y) * 0.8
+        if h > 0.0:
+            w["head"] = h
+        lo = GK._smooth(1.2, 0.7, y)
+        if lo > 0.0:
+            w["pelvis"] = lo * 1.4
+            kn = GK._smooth(0.55, 0.2, y) * 0.35
+            for tag, sx in (("l", -1.0), ("r", 1.0)):
+                w["knee_" + tag] = kn * GK._smooth(-0.05, 0.12, p.x * sx)
+        w["chest"] = max(w["chest"] - sum(v for k, v in w.items() if k != "chest") * 0.5, 0.05)
         t = sum(w.values())
         return {k: v / t for k, v in w.items() if v / t > 0.004}
     return fn

@@ -35,7 +35,7 @@ S = dict(K.SOCKETS)
 P0, C0, H0 = S["pelvis"], S["chest"], S["head"]
 
 # --- materials -----------------------------------------------------------------------------------
-SKIN = GK.hollow_skin("Skin", (0.5, 0.47, 0.42), (0.16, 0.14, 0.12), wet=0.0, wrinkle=70.0, liv=(0.78, 0.74, 0.82), extremities=0.5, vein_amt=0.4)
+SKIN = GK.hollow_skin("Skin", (0.66, 0.62, 0.55), (0.2, 0.17, 0.14), wet=0.0, wrinkle=70.0, liv=(0.78, 0.74, 0.82), extremities=0.5, vein_amt=0.4)
 WOOL = GK.cloth("Wool", (0.3, 0.28, 0.25), "caban", 8.0, (0.05, 0.045, 0.04), 0.9)
 WOOL2 = GK.cloth("WoolDark", (0.19, 0.18, 0.17), "caban", 9.0, (0.03, 0.028, 0.026), 0.92)
 IRON = GK.iron("Iron", (0.12, 0.115, 0.12), (0.2, 0.1, 0.05))
@@ -113,21 +113,21 @@ add(ho, HEAD1)
 FZ = hc[2] - 0.085
 # the rope across the mouth, knotted, its ends hanging; the salt-crust on the brow
 rope = [G(-0.075, hc[1] - 0.045, hc[2] - 0.04), G(-0.05, hc[1] - 0.056, FZ + 0.01), G(0.0, hc[1] - 0.058, FZ - 0.003), G(0.05, hc[1] - 0.056, FZ + 0.01), G(0.075, hc[1] - 0.045, hc[2] - 0.04)]
-add(TUBE("Gag", rope, 0.0085, "head", ROPE), HEAD1)
+add(TUBE("Gag", rope, 0.0125, "head", ROPE), HEAD1)
 add(K.blob("GagKnot", G(0.052, hc[1] - 0.057, FZ + 0.012), (0.016, 0.014, 0.016), "head", ROPE, 10, 6), HEAD1)
 add(L.thorn("GagEnd", G(0.052, hc[1] - 0.06, FZ + 0.008), Vector(G(0.1, -1.0, -0.2)), 0.12, 0.009, Vector(G(0.03, 0, -0.03)), "head", ROPE, 5, 6, 1.0), HEAD1)
 add(L.thorn("GagEnd", G(0.055, hc[1] - 0.06, FZ + 0.008), Vector(G(0.3, -1.0, 0.0)), 0.08, 0.008, Vector(G(0.03, 0, 0.0)), "head", ROPE, 5, 6, 1.0), HEAD1)
 rng = np.random.RandomState(4)
-for k in range(9):
-    x = (k - 4) * 0.018 + rng.uniform(-0.004, 0.004)
-    y = hc[1] + 0.055 + 0.01 * math.cos(k * 0.7) + rng.uniform(-0.004, 0.004)
-    r = rng.uniform(0.007, 0.013)
-    add(GK.slab("Salt", G(x, y, FZ + 0.004 + 0.004 * rng.uniform()), (r, r * 0.9, r * 1.1), Matrix.Rotation(rng.uniform(0, 3), 3, 'Z').to_quaternion(), "head", SALT, 0.0, 0.2, k, 8, 6, 0.4), HEAD1)
+for k in range(16):
+    x = ((k % 9) - 4) * 0.018 + rng.uniform(-0.004, 0.004)
+    y = hc[1] + (0.055 if k < 9 else -0.02) + 0.01 * math.cos(k * 0.7) + rng.uniform(-0.004, 0.004)
+    r = rng.uniform(0.003, 0.007)
+    add(GK.slab("Salt", G(x, y, FZ + 0.004 + 0.004 * rng.uniform()), (r, r * 0.9, r * 1.1), Matrix.Rotation(rng.uniform(0, 3), 3, 'Z').to_quaternion(), "head", SALT, 0.0, 0.2, k, 8, 6, 0.85), HEAD1)
 for sx in (-1, 1):                      # a coal of light under each lid: she is praying, not sleeping
-    add(K.blob("Ember", G(sx * 0.032, hc[1] + 0.009, hc[2] - 0.067), (0.007, 0.004, 0.004), "head", EYE, 8, 6), HEAD1)
+    add(K.blob("Ember", G(sx * 0.032, hc[1] + 0.009, hc[2] - 0.067), (0.01, 0.005, 0.005), "head", EYE, 8, 6), HEAD1)
 
 HCB = Vector(G(hc[0], hc[1], hc[2]))
-L.scale_about([o for o in objs if o["sock"] == "head"] + [hhi], HCB, 1.3)
+L.scale_about([o for o in objs if o["sock"] == "head"] + [hhi], HCB, 1.65)
 
 # --- the wool -------------------------------------------------------------------------------------------------------
 def hood_w(p):
@@ -137,7 +137,7 @@ def hood_w(p):
 
 hood = L.Garment([(1.98, 0, 0.05, 0.03, 0.03, 0.04, 2.0), (1.94, 0, 0.05, 0.1, 0.1, 0.12, 2.0), (1.86, 0, 0.04, 0.145, 0.14, 0.17, 2.0), (1.72, 0, 0.05, 0.17, 0.155, 0.2, 2.0),
                   (1.55, 0, 0.06, 0.22, 0.17, 0.24, 2.0), (1.38, 0, 0.07, 0.3, 0.2, 0.3, 2.0), (1.2, 0, 0.08, 0.33, 0.23, 0.33, 2.0)],
-                 top=1.98, hem=1.2, folds=[(7, 0.3, 1.0, 0.7, 0.1), (15, 0.0, 0.6, 1.9, 0)], amp=0.05, ramp=(0.1, 0.6), gap=0.85, gap_from=0.06, lay=0.0,
+                 top=1.98, hem=1.2, folds=[(7, 0.3, 1.0, 0.7, 0.1), (15, 0.0, 0.6, 1.9, 0)], amp=0.05, ramp=(0.1, 0.6), gap=1.05, gap_from=0.04, lay=0.0,
                  hem_lift=0.04, flare=0.03, micro=0.0016, tongues=(13, 0.09, 1.3), back_drop=0.22)
 lo, hi = L.shell(hood, "Hood", "hood", WOOL, 2200, HI, solid=0.007)
 PAIRS.append((lo, hi))
@@ -145,7 +145,7 @@ add(lo, hood_w)
 
 shawl = L.Garment([(1.6, 0, 0.02, 0.17, 0.12, 0.13, 2.1), (1.48, 0, 0.0, 0.27, 0.17, 0.19, 2.0), (1.3, 0, 0.0, 0.31, 0.2, 0.22, 2.0), (1.08, 0, 0.0, 0.34, 0.23, 0.25, 2.0),
                    (0.9, 0, 0.0, 0.37, 0.26, 0.29, 2.0)],
-                  top=1.6, hem=1.0, folds=[(8, 0.3, 1.0, 0.5, 0.15), (19, 0.0, 0.6, 1.1, -0.2)], amp=0.06, ramp=(0.1, 0.55), gap=0.45, gap_from=0.25, lay=0.0,
+                  top=1.6, hem=1.0, folds=[(8, 0.3, 1.0, 0.5, 0.15), (19, 0.0, 0.6, 1.1, -0.2)], amp=0.06, ramp=(0.1, 0.55), gap=0.45, gap_from=0.25, front=L.FRONT + 0.6, lay=0.0,
                   hem_lift=0.06, flare=0.03, micro=0.0016, tongues=(17, 0.1, 1.2), back_drop=0.15, warp=0.8)
 lo, hi = L.shell(shawl, "Shawl", "shawl", WOOL2, 2300, HI, solid=0.008)
 PAIRS.append((lo, hi))
@@ -160,6 +160,26 @@ lo, hi = L.shell(skirt, "Skirt", "skirt", WOOL2, 4200, HI)
 PAIRS.append((lo, hi))
 hip_w = L.skirt_weights(1.12, 0.92, 0.42)
 add(lo, hip_w)
+
+# a torn overskirt, open off-centre, over the first
+over = L.Garment([(1.2, 0, 0, 0.16, 0.125, 0.125, 2.2), (0.9, 0, 0, 0.25, 0.2, 0.2, 2.0), (0.6, 0, 0.01, 0.35, 0.3, 0.32, 2.0), (0.3, 0, 0.02, 0.47, 0.41, 0.45, 2.0), (0.05, 0, 0.02, 0.58, 0.52, 0.58, 2.0)],
+                 top=1.2, hem=0.42, folds=[(9, 0.0, 1.0, 0.9, 0.2), (19, 0.0, 0.7, 2.1, -0.1)], amp=0.08, ramp=(0.05, 0.5), gap=0.75, gap_from=0.0, front=L.FRONT + 0.7,
+                 lay=0.0, hem_lift=0.08, micro=0.0016, tongues=(11, 0.14, 1.2), warp=0.9)
+lo, hi = L.shell(over, "Overskirt", "overskirt", WOOL, 1100, HI, solid=0.007)
+PAIRS.append((lo, hi))
+add(lo, hip_w)
+# salt-stiffened hem: a pale crusted band round the skirt, and barnacle crust climbing the left-back of it
+add(L.band(skirt, "SaltBand", "skirt_trim", SALT, 0.86, 0.925, 0.0, 1.0, n=64, m=3, off=0.014), hip_w)
+WEIGHTS["skirt_trim"] = hip_w
+rs = np.random.RandomState(11)
+for k in range(46):
+    vv = 0.93 - 0.4 * rs.beta(1.2, 2.2)
+    uu = (0.62 + 0.14 * rs.randn()) % 1.0 if k > 14 else rs.uniform(0, 1)
+    if k <= 14:
+        vv = rs.uniform(0.86, 0.93)
+    pp, nn = skirt.surf(np.array([uu]), np.array([vv]))
+    r = rs.uniform(0.012, 0.03) if k <= 14 else rs.uniform(0.008, 0.02)
+    add(GK.slab("Crust", Vector(G(*(pp[0] + nn[0] * 0.014))), (r, r, r * 0.7), Matrix.Rotation(rs.uniform(0, 3), 3, 'Z').to_quaternion(), "skirt_trim", SALT, 0.0, 0.3, k, 6, 4, 0.5), hip_w)
 
 for tag, sx in (("l", -1), ("r", 1)):
     sl = L.Garment([(1.47, sx * 0.23, 0, 0.082, 0.078, 0.078, 2.2), (1.3, sx * 0.24, 0, 0.074, 0.074, 0.074, 2.2), (1.1, sx * 0.245, 0, 0.066, 0.066, 0.066, 2.2),
@@ -187,6 +207,16 @@ add(K.blob("CellLamp", KN + G(0.0, -0.15, -0.02), (0.026, 0.038, 0.026), "belt",
 for k in range(4):
     a = math.tau * k / 4.0
     add(TUBE("CellBar", [KN + G(math.cos(a) * 0.028, -0.1, math.sin(a) * 0.028), KN + G(math.cos(a) * 0.034, -0.15, -0.02 + math.sin(a) * 0.034), KN + G(math.cos(a) * 0.028, -0.2, math.sin(a) * 0.028)], 0.0035, "belt", IRON), hip_w)
+
+# the weight she drags: a chain from the knot down to the floor and trailing behind her
+tp = [G(0.14, 1.1, -0.145), G(0.19, 0.8, -0.2), G(0.22, 0.4, -0.27), G(0.2, 0.06, -0.3), G(0.05, 0.03, -0.12), G(-0.2, 0.03, 0.2), G(-0.5, 0.03, 0.45), G(-0.85, 0.03, 0.55), G(-1.2, 0.03, 0.5)]
+sm = []
+for a_, b_ in zip(tp, tp[1:]):
+    for k in range(6):
+        sm.append(Vector(a_).lerp(Vector(b_), k / 6.0))
+sm.append(Vector(tp[-1]))
+add(GK.chain_links("Trail", sm, 0.012, "belt", IRON, 0.034), hip_w)
+add(K.blob("TrailRing", Vector(tp[-1]), (0.04, 0.012, 0.04), "belt", IRON, 10, 6), hip_w)
 
 # the chain she bound herself with: wound over the shawl, crossing the breast, a loop hanging to the knot
 sh_a, sh_f = 0.36, 0.255

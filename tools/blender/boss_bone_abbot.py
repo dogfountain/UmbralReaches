@@ -152,7 +152,7 @@ def legs_sculpt(s):
     s.noise(30.0, 0.0018)
 
 
-bo, bhi = L.sculpted("Legs", sk, "pel", BONE, "bodyskin", 2000, legs_sculpt, 0.0048, False, PAIRS)
+bo, bhi = L.sculpted("Legs", sk, "pel", BONE, "bodyskin", 1500, legs_sculpt, 0.0048, False, PAIRS)
 add(bo)
 SEGS = L.segs()
 WEIGHTS["bodyskin"] = GB.envelope_weights([sg for sg in SEGS if sg[0] in ("pelvis", "hip_l", "hip_r", "knee_l", "knee_r", "foot_l", "foot_r")])
@@ -160,8 +160,8 @@ WEIGHTS["bodyskin"] = GB.envelope_weights([sg for sg in SEGS if sg[0] in ("pelvi
 # the spine: seventeen vertebrae with their processes, curving up behind the ribcage and forward into the skull
 SPW = lambda p: GK.chain_w(p, [("pelvis", G(0, 0.9, 0.0)), ("chest", G(0, 1.1, 0.07)), ("head", G(0, 1.64, -0.01))], [0.07, 0.05])
 WEIGHTS["spine"] = SPW
-for k in range(16):
-    t = k / 15.0
+for k in range(13):
+    t = k / 12.0
     y = 1.0 + t * 0.62
     z = 0.075 - 0.02 * math.sin(t * 2.2) + (-0.075 * max(0.0, (t - 0.72) / 0.28) ** 1.6)
     s_ = 1.0 - 0.38 * t
@@ -180,11 +180,11 @@ for i in range(9):
     rr = 0.0085 + 0.0015 * math.sin(t * math.pi)
     for sx in (-1, 1):
         pts = []
-        for k in range(11):
-            a = math.pi * (0.04 + 0.86 * k / 10.0)
-            fall = 0.055 * (k / 10.0) ** 1.4
+        for k in range(9):
+            a = math.pi * (0.04 + 0.86 * k / 8.0)
+            fall = 0.055 * (k / 8.0) ** 1.4
             pts.append(G(sx * math.sin(a) * w + sx * 0.02 * (1 - math.cos(a)) * 0.0, y - fall, 0.02 - math.cos(a) * d))
-        add(K.loft("Rib", pts, [rr * (0.8 + 0.3 * math.sin(math.pi * k / 10.0)) for k in range(11)], "chest", BONE, 5, squash=(1.0, 0.55), wobble=0.08), CH)
+        add(K.loft("Rib", pts, [rr * (0.8 + 0.3 * math.sin(math.pi * k / 10.0)) for k in range(9)], "chest", BONE, 4, squash=(1.0, 0.55), wobble=0.08), CH)
         if i < 7:
             add(K.loft("Cartilage", [pts[-1], G(sx * 0.016, y - 0.07, -0.112 - 0.004 * i)], [rr * 0.8, rr * 0.9], "chest", SINEW, 4), CH)
 add(K.loft("Sternum", [G(0, 1.47, -0.108), G(0, 1.31, -0.122), G(0, 1.17, -0.112)], [(0.024, 0.007), (0.021, 0.008), (0.011, 0.006)], "chest", BONE, 8), CH)
@@ -215,14 +215,14 @@ for tag, sx in (("l", -1), ("r", 1)):
     pa(K.blob("Carpals", G(ax + sx * 0.002, 0.75, -0.008), (0.027, 0.021, 0.019), sock, BONE, 14, 8))
     for f in range(4):
         fx = ax + (f - 1.5) * 0.017
-        len_ = [0.9, 1.0, 0.95, 0.8][f] * 1.2
+        len_ = [0.9, 1.0, 0.95, 0.8][f] * 1.6
         base = G(fx * 0.9 + ax * 0.1, 0.735, -0.012)
         mc = G(fx, 0.665, -0.02)
-        pa(K.bone("Metacarpal", base, mc, 0.0075, sock, BONE, 1.7, 7, 5, f))
+        pa(K.bone("Metacarpal", base, mc, 0.0085, sock, BONE, 1.7, 7, 5, f))
         p0 = mc
         pts = [mc]
         yy, zz = 0.665, -0.02
-        for j, (ln, rr) in enumerate(((0.052, 0.0082), (0.036, 0.007), (0.028, 0.0058))):
+        for j, (ln, rr) in enumerate(((0.052, 0.0094), (0.036, 0.008), (0.028, 0.0066))):
             yy -= ln * len_ * 0.96
             zz -= (0.008 + 0.012 * j) * len_
             pts.append(G(fx + sx * 0.0015 * f, yy, zz))
@@ -233,7 +233,7 @@ for tag, sx in (("l", -1), ("r", 1)):
     pa(K.bone("ThumbA", tb, G(ax - sx * 0.04, 0.68, -0.04), 0.0072, sock, BONE, 1.6, 7, 4))
     pa(K.bone("ThumbB", G(ax - sx * 0.04, 0.68, -0.04), G(ax - sx * 0.05, 0.635, -0.062), 0.0058, sock, BONE, 1.5, 7, 4))
     pa(GK.claw("Claw", G(ax - sx * 0.05, 0.635, -0.062), Vector(G(-sx * 0.2, -1.0, -0.5)), 0.045, 0.004, sock, BONE, 0.5))
-    fz_ = K.fuse(parts, 0.0028, keep=set(), sculpt=0.0009, sculpt_scale=0.015, decimate=0.07)
+    fz_ = K.fuse(parts, 0.0028, keep=set(), sculpt=0.0009, sculpt_scale=0.015, decimate=0.055)
     for o in fz_:
         o["fixed"] = True
         add(o)
@@ -253,7 +253,7 @@ OPT = dict(W=0.92, L=0.62, nk=0.0, finger=0.17, wrist=0.74, hc=(0, 1.665, -0.035
 _Y = lambda y: y
 hy, hz = OPT["hc"][1], OPT["hc"][2]
 skp = GB.skull_part(OPT, _Y)
-so, shi = L.sculpted("Skull", skp, "a", BONE, "skull", 2800, skull_sculpt, 0.0035, False, PAIRS)
+so, shi = L.sculpted("Skull", skp, "a", BONE, "skull", 2200, skull_sculpt, 0.0035, False, PAIRS)
 add(so, lambda p: {"head": 1.0})
 HCB = Vector(G(0, hy, hz))
 L.scale_about([so, shi], HCB, 1.2)
@@ -280,90 +280,125 @@ chain = [G(-0.11, 1.5, -0.07), G(-0.06, 1.38, -0.15), RQ + G(0, 0.15, 0), G(0.06
 add(TUBE("Chain", chain, 0.0045, "chest", GOLD), CH)
 
 # --- cloth ---------------------------------------------------------------------------------------------------
-hip_w = L.skirt_weights(1.12, 0.92, 0.42)
+hip_w = L.skirt_weights(1.12, 0.92, 0.42, 0.55)
 cass = L.Garment([(1.18, 0, 0, 0.14, 0.105, 0.105, 2.2), (1.0, 0, 0, 0.16, 0.125, 0.125, 2.1), (0.78, 0, 0, 0.2, 0.16, 0.17, 2.0),
                   (0.48, 0, 0.01, 0.29, 0.24, 0.26, 2.0), (0.2, 0, 0.02, 0.4, 0.34, 0.38, 2.0), (-0.1, 0, 0.02, 0.52, 0.47, 0.52, 2.0)],
                  top=1.18, hem=0.025, folds=[(12, 0.0, 1.0, 0.3, 0.1), (25, 0.0, 0.7, 1.3, -0.15), (6, 0.4, 0.3, 2.0, 0)], amp=0.07,
                  ramp=(0.0, 0.45), lay=0.07, lay_r=0.07, hem_lift=0.05, micro=0.0016, back_drop=0.05)
-lo, hi = L.shell(cass, "Cassock", "cassock", WINE, 4200, HI)
+lo, hi = L.shell(cass, "Cassock", "cassock", WINE, 3600, HI)
 PAIRS.append((lo, hi))
 add(lo, hip_w)
 # the two bands of the stole down the front, orphrey bands at the hem and a placket
 for nm, (v0, v1, u0, u1) in (("StoleL", (0.02, 0.97, -0.055, -0.018)), ("StoleR", (0.02, 0.97, 0.018, 0.055)), ("HemBand", (0.875, 0.925, 0.0, 1.0)),
                              ("HemBand2", (0.83, 0.845, 0.0, 1.0))):
-    add(L.band(cass, nm, "cassock_trim", GOLD, v0, v1, u0, u1, n=90 if u1 - u0 > 0.5 else 3, m=50 if v1 - v0 > 0.5 else 2, off=0.012), hip_w)
+    add(L.band(cass, nm, "cassock_trim", GOLD, v0, v1, u0, u1, n=64 if u1 - u0 > 0.5 else 3, m=36 if v1 - v0 > 0.5 else 2, off=0.012), hip_w)
 WEIGHTS["cassock_trim"] = hip_w
 
-cope_w = L.cape_weights(0.5)
+cope_w = L.cope_weights(0.5)
 cope = L.Garment([(1.86, 0, 0.1, 0.2, 0.0, 0.1, 2.0), (1.72, 0, 0.07, 0.2, 0.06, 0.15, 2.0), (1.58, 0, 0.03, 0.24, 0.13, 0.17, 2.2), (1.44, 0, 0.0, 0.38, 0.18, 0.2, 2.0),
-                  (1.1, 0, 0.0, 0.44, 0.26, 0.29, 2.0), (0.7, 0, 0.02, 0.54, 0.34, 0.41, 2.0), (0.3, 0, 0.03, 0.66, 0.46, 0.6, 2.0),
-                  (0.0, 0, 0.04, 0.78, 0.57, 0.78, 2.0), (-0.1, 0, 0.04, 0.82, 0.61, 0.82, 2.0)],
+                  (1.1, 0, 0.0, 0.44, 0.26, 0.29, 2.0), (0.7, 0, 0.02, 0.54, 0.34, 0.41, 2.0), (0.3, 0, 0.03, 0.6, 0.44, 0.56, 2.0),
+                  (0.0, 0, 0.04, 0.68, 0.52, 0.68, 2.0), (-0.1, 0, 0.04, 0.72, 0.55, 0.72, 2.0)],
                  top=1.86, hem=0.03, folds=[(9, 0.3, 1.0, 0.3, 0.15), (19, 0.0, 0.6, 1.1, -0.2), (4, 0.6, 0.5, 2.0, 0.0)], amp=0.2,
-                 ramp=(0.1, 0.5), gap=0.9, gap_from=0.0, lay=0.06, lay_r=0.09, hem_lift=0.06, flare=0.06, micro=0.0014, back_drop=0.1,
+                 ramp=(0.1, 0.5), gap=0.9, gap_from=0.0, lay=0.06, lay_r=0.09, hem_lift=0.06, flare=0.06, micro=0.0014, back_drop=0.1, tongues=(15, 0.09, 1.5), warp=0.8,
                  top_fn=lambda t: -0.24 + 0.34 * ((np.sin(t) + 1.0) * 0.5) ** 1.5)
-lo, hi = L.shell(cope, "Cope", "cope", CLOTH, 3000, HI, solid=0.011)
+lo, hi = L.shell(cope, "Cope", "cope", CLOTH, 2100, HI, solid=0.011)
 PAIRS.append((lo, hi))
 add(lo, cope_w)
 # the orphrey: a broad gilt band down each front edge and round the hem, a morse (clasp) at the throat
 for nm, (v0, v1, u0, u1) in (("OrphL", (0.08, 0.992, 0.0, 0.045)), ("OrphR", (0.08, 0.992, 0.955, 1.0)), ("CopeHem", (0.885, 0.93, 0.0, 1.0))):
-    add(L.band(cope, nm, "cope_trim", GOLD, v0, v1, u0, u1, n=3 if u1 - u0 < 0.5 else 110, m=60 if v1 - v0 > 0.5 else 2, off=0.014), cope_w)
+    add(L.band(cope, nm, "cope_trim", GOLD, v0, v1, u0, u1, n=3 if u1 - u0 < 0.5 else 80, m=40 if v1 - v0 > 0.5 else 2, off=0.014), cope_w)
 # the pallium: a Y of gilt orphrey down the back (from each shoulder to the nape, then straight to the hem), a ring at the crossing
 add(L.ribbon(cope, "PalliumL", "cope_trim", GOLD, [(0.3, 0.12), (0.4, 0.22), (0.5, 0.34), (0.5, 0.985)], 0.045, 60, 0.014), cope_w)
 add(L.ribbon(cope, "PalliumR", "cope_trim", GOLD, [(0.7, 0.12), (0.6, 0.22), (0.5, 0.34)], 0.045, 30, 0.014), cope_w)
 _pc = Vector(G(*cope.surf(np.array([0.5]), np.array([0.34]))[0][0]))
 add(K.blob("PalliumBoss", _pc + Vector((0, 0.03, 0)), (0.055, 0.02, 0.055), "cope_trim", GOLD, 20, 10), cope_w)
 add(K.blob("PalliumJewel", _pc + Vector((0, 0.045, 0)), (0.02, 0.01, 0.027), "cope_trim", EYE, 12, 8), cope_w)
+
+# embroidery: a second gilt line inside each orphrey, studs set along it, a worn pattern of crosses on the field
+for nm, (u0, u1) in (("OrphInL", (0.052, 0.058)), ("OrphInR", (0.942, 0.948))):
+    add(L.band(cope, nm, "cope_trim", GOLD, 0.1, 0.9, u0, u1, n=2, m=50, off=0.012), cope_w)
+for uu in (0.025, 0.975):
+    for vv in np.linspace(0.14, 0.86, 9):
+        pp, nn = cope.surf(np.array([uu]), np.array([vv]))
+        add(K.blob("Stud", Vector(G(*(pp[0] + nn[0] * 0.02))), (0.011, 0.011, 0.011), "cope_trim", EYE if int(vv * 100) % 2 == 0 else GOLD, 6, 4), cope_w)
+for vv in (0.34, 0.6):
+    for uu in np.linspace(0.16, 0.84, 5):
+        pp, nn = cope.surf(np.array([uu]), np.array([vv]))
+        c0 = Vector(G(*(pp[0] + nn[0] * 0.013)))
+        add(TUBE("Cross", [c0 + Vector((0, 0, -0.035)), c0 + Vector((0, 0, 0.035))], 0.0045, "cope_trim", GOLD), cope_w)
+        add(TUBE("Cross", [c0 + Vector((-0.025, 0, 0.01)), c0 + Vector((0.025, 0, 0.01))], 0.0045, "cope_trim", GOLD), cope_w)
+# the morse: a gilt plaque on each lapel and a chain looped across the breast between them
+mp = []
+for uu in (0.012, 0.988):
+    pp, nn = cope.surf(np.array([uu]), np.array([0.3]))
+    q = Vector(G(*(pp[0] + nn[0] * 0.02)))
+    mp.append(q)
+    add(K.blob("Morse", q, (0.032, 0.014, 0.032), "cope_trim", GOLD, 10, 6), cope_w)
+    add(K.blob("MorseGem", q + Vector((0, 0.02, 0)), (0.013, 0.007, 0.017), "cope_trim", EYE, 8, 5), cope_w)
+sag = [mp[0].lerp(mp[1], t) + Vector((0, 0.04 * math.sin(t * math.pi), -0.09 * math.sin(t * math.pi))) for t in [i / 10.0 for i in range(11)]]
+add(TUBE("MorseChain", sag, 0.005, "cope_trim", GOLD), cope_w)
 WEIGHTS["cope_trim"] = cope_w
 
 
 for tag, sx in (("l", -1), ("r", 1)):
     sl = L.Garment([(1.47, sx * 0.23, 0, 0.082, 0.077, 0.077, 2.2), (1.3, sx * 0.24, 0, 0.078, 0.078, 0.078, 2.2), (1.08, sx * 0.245, 0, 0.09, 0.09, 0.09, 2.2),
-                    (1.08, sx * 0.25, 0, 0.13, 0.12, 0.12, 2.0), (0.98, sx * 0.26, 0, 0.18, 0.165, 0.165, 2.0), (0.88, sx * 0.265, 0.01, 0.2, 0.19, 0.19, 2.0)],
-                   top=1.47, hem=1.0, folds=[(8, 0.0, 1.0, 0.5, 0.1), (17, 0, 0.6, 1.5, 0)], amp=0.055, ramp=(0.2, 0.7), lay=0.0, hem_lift=0.035, seed=sx,
+                    (1.12, sx * 0.25, 0, 0.13, 0.12, 0.12, 2.0), (1.06, sx * 0.26, 0, 0.17, 0.155, 0.155, 2.0), (0.98, sx * 0.265, 0.01, 0.2, 0.19, 0.19, 2.0)],
+                   top=1.47, hem=1.1, folds=[(8, 0.0, 1.0, 0.5, 0.1), (17, 0, 0.6, 1.5, 0)], amp=0.055, ramp=(0.2, 0.7), lay=0.0, hem_lift=0.035, seed=sx,
                    micro=0.0013, back_drop=0.05)
-    lo, hi = L.shell(sl, "Sleeve" + tag, "sleeve_" + tag, WINE, 1500, (140, 100) if not LOWRES else (80, 60))
+    lo, hi = L.shell(sl, "Sleeve" + tag, "sleeve_" + tag, WINE, 1200, (140, 100) if not LOWRES else (80, 60))
     PAIRS.append((lo, hi))
     add(lo, L.sleeve_weights(tag))
     add(L.band(sl, "Cuff" + tag, "sleeve_" + tag + "_t", GOLD, 0.9, 0.99, 0.0, 1.0, n=60, m=3, off=0.012), L.sleeve_weights(tag))
     WEIGHTS["sleeve_" + tag + "_t"] = L.sleeve_weights(tag)
 
 # --- the mitre: a tall ogee of bone, a gilt circlet and orphreys, a jewel, lappets down the back ------------------------
-MB = H0 + G(0, 0.085, -0.03)
-NU, NS = 36, 14
-Pr = np.zeros((NS + 1, NU, 3))
-for i in range(NS + 1):
-    s = i / NS
-    for j in range(NU):
-        a = math.tau * j / NU
-        # the front and back are shields rising to the peak; at the sides the cleft closes into a fold
-        hmax = 0.56 * (0.2 + 0.8 * abs(math.sin(a)) ** 0.7)
-        rx = 0.158 * (1.0 - s) ** 1.45 + 0.0035 * s
-        ry = 0.095 * (1.0 - s ** 1.2) ** 0.9 + 0.003
-        # rig space: x, y up, z (the front is -z); the mitre sits on the head
-        Pr[i, j] = (math.cos(a) * rx, 1.64 + 0.085 + s * hmax, -0.03 - math.sin(a) * ry)
-mit = L.grid_mesh("Mitre", Pr, True, "head", BONE)
-add(mit, lambda p: {"head": 1.0})
-circ = [MB + Vector((math.cos(a) * 0.166, math.sin(a) * 0.1, 0.012)) for a in [math.tau * i / 36 for i in range(37)]]
-add(TUBE("Circlet", circ, 0.0125, "head", GOLD), lambda p: {"head": 1.0})
-circ2 = [MB + Vector((math.cos(a) * 0.15, math.sin(a) * 0.09, 0.055)) for a in [math.tau * i / 36 for i in range(37)]]
-add(TUBE("Circlet2", circ2, 0.005, "head", GOLD), lambda p: {"head": 1.0})
-for sy in (-1, 1):
-    pts = []
-    for k in range(14):
-        t = k / 13.0
-        pts.append(MB + Vector((0, sy * (0.095 * (1.0 - t ** 1.2) ** 0.9 + 0.007), 0.012 + t * 0.55)))
-    add(TUBE("Orphrey", pts, 0.008, "head", GOLD), lambda p: {"head": 1.0})
-    for k in range(5):
-        t = 0.15 + 0.17 * k
-        y = sy * (0.095 * (1.0 - t ** 1.2) ** 0.9 + 0.01)
-        add(K.blob("Boss", MB + Vector((0, y, t * 0.56)), (0.012, 0.007, 0.012), "head", GOLD, 10, 5), lambda p: {"head": 1.0})
-# the cross of gilt on the front shield
-add(TUBE("CrossV", [MB + Vector((0, 0.099, 0.06)), MB + Vector((0, 0.09, 0.36))], 0.009, "head", GOLD), lambda p: {"head": 1.0})
-add(TUBE("CrossH", [MB + Vector((-0.055, 0.094, 0.24)), MB + Vector((0.055, 0.094, 0.24))], 0.009, "head", GOLD), lambda p: {"head": 1.0})
-add(K.blob("Jewel", MB + Vector((0, 0.108, 0.11)), (0.018, 0.006, 0.026), "head", EYE, 12, 8), lambda p: {"head": 1.0})
-add(K.blob("Finial", MB + Vector((0, 0, 0.57)), (0.014, 0.014, 0.022), "head", GOLD, 12, 8), lambda p: {"head": 1.0})
+BASE_Y = 1.64 + 0.085
+MH = 0.58
+plates = []
+
+
+def mitre_plate(sgn):
+    """A peaked shield, bowed out, with an ogee outline: the front and the back plate of the mitre."""
+    nv, nu = 14, 10
+    P = np.zeros((nv + 1, nu + 1, 3))
+    for i in range(nv + 1):
+        v = i / nv
+        w = 0.15 * (1.0 - v ** 1.6) ** 1.3 * (1.0 + 0.12 * math.sin(v * math.pi)) + 0.003
+        for j in range(nu + 1):
+            u = -1.0 + 2.0 * j / nu
+            bow = 0.032 * (1.0 - u * u) * (1.0 - v) ** 0.8
+            P[i, j] = (u * w, BASE_Y + v * MH, -0.03 + sgn * (0.07 - 0.03 * v + bow))
+    return P
+
+
+for sg, nm in ((-1, "MitreFront"), (1, "MitreBack")):
+    pl = L.grid_mesh(nm, mitre_plate(sg), False, "head", BONE)
+    K.solidify(pl, 0.008)
+    add(pl, lambda p: {"head": 1.0})
+    # orphrey: gilt edging down both slopes, a central band and a cross-band
+    for sx in (-1, 1):
+        pts = []
+        for i in range(0, 19):
+            v = i / 18.0
+            w = 0.15 * (1.0 - v ** 1.6) ** 1.3 * (1.0 + 0.12 * math.sin(v * math.pi)) + 0.003
+            pts.append(Vector(G(sx * w, BASE_Y + v * MH, -0.03 + sg * (0.07 - 0.03 * v + 0.012))))
+        add(TUBE("MitreEdge", pts, 0.0065, "head", GOLD), lambda p: {"head": 1.0})
+    add(TUBE("MitreSpine", [Vector(G(0, BASE_Y + v * MH * 0.92, -0.03 + sg * (0.07 - 0.03 * v + 0.044 * (1 - v) ** 0.8 + 0.01))) for v in [i / 10.0 for i in range(11)]], 0.009, "head", GOLD), lambda p: {"head": 1.0})
+    add(TUBE("MitreCross", [Vector(G(x, BASE_Y + 0.26, -0.03 + sg * (0.07 - 0.03 * 0.45 + 0.025 * (1 - (x / 0.07) ** 2) * 0.6 + 0.012))) for x in np.linspace(-0.07, 0.07, 7)], 0.008, "head", GOLD), lambda p: {"head": 1.0})
+# the cleft between the plates is closed low down by a fold of lining at each side
 for sx in (-1, 1):
-    pts = [MB + Vector((sx * 0.05, -0.085, 0.0)) + Vector((sx * 0.06 * t, -0.03 * t, -0.52 * t)) + Vector((0, -0.012 * math.sin(t * 6.0), 0)) for t in [i / 10.0 for i in range(11)]]
+    add(K.loft("MitreFold", [Vector(G(sx * 0.152, BASE_Y, -0.03)), Vector(G(sx * 0.135, BASE_Y + 0.07, -0.03)), Vector(G(sx * 0.1, BASE_Y + 0.13, -0.03))], [(0.01, 0.075), (0.008, 0.05), (0.004, 0.02)], "head", WINE, 6), lambda p: {"head": 1.0})
+MB = Vector(G(0, BASE_Y, -0.03))
+circ = [MB + Vector((math.cos(a) * 0.168, math.sin(a) * 0.098, 0.006)) for a in [math.tau * i / 36 for i in range(37)]]
+add(TUBE("Circlet", circ, 0.0125, "head", GOLD), lambda p: {"head": 1.0})
+circ2 = [MB + Vector((math.cos(a) * 0.165, math.sin(a) * 0.095, 0.05)) for a in [math.tau * i / 36 for i in range(37)]]
+add(TUBE("Circlet2", circ2, 0.005, "head", GOLD), lambda p: {"head": 1.0})
+add(K.blob("Jewel", MB + Vector((0, 0.1, 0.13)), (0.02, 0.007, 0.028), "head", EYE, 12, 8), lambda p: {"head": 1.0})
+add(K.blob("Jewel", MB + Vector((0, -0.1, 0.13)), (0.02, 0.007, 0.028), "head", EYE, 12, 8), lambda p: {"head": 1.0})
+for sg in (-1, 1):
+    add(K.blob("Finial", Vector(G(0, BASE_Y + MH + 0.01, -0.03 + sg * 0.04)), (0.012, 0.012, 0.02), "head", GOLD, 10, 6), lambda p: {"head": 1.0})
+for sx in (-1, 1):
+    pts = [MB + Vector((sx * 0.05, -0.07, 0.0)) + Vector((sx * 0.06 * t, -0.03 * t, -0.52 * t)) + Vector((0, -0.012 * math.sin(t * 6.0), 0)) for t in [i / 10.0 for i in range(11)]]
     add(K.loft("Lappet", pts, [(0.03, 0.004)] * 11, "head", WINE, 8), lambda p: {"head": 1.0})
     add(K.loft("LappetTrim", pts[6:], [(0.026, 0.006)] * 5, "head", GOLD, 8), lambda p: {"head": 1.0})
 
@@ -393,7 +428,7 @@ for k in range(1, 28, 3):
     cadd(K.blob("CrookBead", crook[k], (0.019, 0.019, 0.019), "crozier", BONE, 12, 6))
 cadd(K.blob("CrookSkull", HR + G(0, 1.2, -0.12), (0.03, 0.036, 0.033), "crozier", BONE, 20, 12))
 cadd(K.blob("CrookFlame", HR + G(0, 1.27, -0.17), (0.012, 0.012, 0.03), "crozier", FLAME, 12, 8))
-fz = K.fuse(cro, 0.006, keep={"Gold", "Flame"}, sculpt=0.0008, sculpt_scale=0.02, decimate=0.12)
+fz = K.fuse(cro, 0.006, keep={"Gold", "Flame"}, sculpt=0.0008, sculpt_scale=0.02, decimate=0.09)
 objs.extend(fz)
 
 print("ABBOT parts", len(objs), "tris", sum(L.tri_count(o) for o in objs))

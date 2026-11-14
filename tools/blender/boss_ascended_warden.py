@@ -91,9 +91,10 @@ LINEN = linen_mat()
 GOLD = gold_mat()
 MASK = mask_mat()
 ASH = GK.hollow_skin("Ash", (0.42, 0.4, 0.38), (0.12, 0.11, 0.1), wet=0.1, wrinkle=60.0, liv=(0.8, 0.78, 0.85), extremities=0.0)
+INNER = glow_mat("Inner", (0.0, 0.0, 0.0), 0.0)
 HALO = glow_mat("Halo", (1.0, 0.86, 0.6), 8.0)
 EYE = glow_mat("Eye", (1.0, 0.9, 0.7), 8.0)
-MATS = [LINEN, GOLD, MASK, ASH, HALO, EYE]
+MATS = [LINEN, GOLD, MASK, ASH, HALO, EYE, INNER]
 objs = []
 PAIRS = []
 WEIGHTS = {}
@@ -137,7 +138,7 @@ def arm_sculpt(s):
     GB.humanoid_sculpt(s, OPT, _Y)
 
 
-ao, ahi = L.sculpted("Arms", sk_full.arms, ["trpl", "trpr"], ASH, "armskin", 4200, arm_sculpt, 0.0042, False, PAIRS)
+ao, ahi = L.sculpted("Arms", sk_full.arms, ["trpl", "trpr"], ASH, "armskin", 3600, arm_sculpt, 0.0042, False, PAIRS)
 add(ao)
 WEIGHTS["armskin"] = GB.envelope_weights([sg for sg in SEGS if sg[0].startswith(("shoulder_", "elbow_", "hand_")) or sg[0] == "chest"], 0.05)
 
@@ -286,22 +287,56 @@ def mantle_w(p):
     return {k: v / t for k, v in w.items()}
 
 
-robe = L.Garment([(1.52, 0, 0, 0.17, 0.12, 0.12, 2.2), (1.3, 0, 0, 0.19, 0.14, 0.14, 2.1), (1.1, 0, 0, 0.18, 0.14, 0.14, 2.0), (0.9, 0, 0, 0.17, 0.14, 0.15, 2.0),
-                  (0.62, 0, 0, 0.17, 0.15, 0.16, 2.0), (0.46, 0, 0.01, 0.2, 0.18, 0.2, 2.0), (0.3, 0, 0.02, 0.36, 0.33, 0.36, 2.0), (0.12, 0, 0.02, 0.58, 0.52, 0.58, 2.0), (-0.1, 0, 0.02, 0.74, 0.68, 0.74, 2.0), (-0.3, 0, 0.02, 0.82, 0.76, 0.82, 2.0)],
-                 top=1.52, hem=0.2, folds=[(14, 0.1, 1.0, 0.3, 0.12), (30, 0.0, 0.7, 1.4, -0.1), (7, 0.5, 0.4, 2.0, 0)], amp=0.07, ramp=(0.05, 0.5),
-                 lay=0.0, hem_lift=0.05, micro=0.0016, tongues=(14, 0.26, 1.7))
+def ragged(base, depth):
+    """A tattered hem: a slow swell, a finer one, and sparse long tatters hanging lower (no regular fringe)."""
+    def fn(t):
+        h = base + 0.05 * np.sin(5 * t + 0.4) + 0.03 * np.sin(13 * t + 1.1)
+        tat = np.clip(np.sin(9 * t + 0.2) + np.sin(23 * t + 2.0) + np.sin(37 * t) - 1.3, 0.0, None)
+        return h - depth * tat
+    return fn
+
+
+# a tall bell: narrow through the shoulders, then a full heavy skirt that sweeps out and trails behind the hands
+rk = [(1.52, 0, 0.0, 0.17, 0.12, 0.12, 2.2), (1.34, 0, 0.03, 0.25, 0.15, 0.19, 2.1), (1.1, 0, 0.12, 0.34, 0.17, 0.32, 2.0), (0.85, 0, 0.24, 0.46, 0.17, 0.46, 2.0),
+      (0.55, 0, 0.35, 0.6, 0.22, 0.58, 2.0), (0.25, 0, 0.42, 0.76, 0.3, 0.74, 2.0), (-0.05, 0, 0.45, 0.9, 0.36, 0.86, 2.0), (-0.3, 0, 0.45, 0.98, 0.4, 0.92, 2.0)]
+robe = L.Garment(rk, top=1.52, hem=0.18, folds=[(12, 0.2, 1.0, 0.3, 0.12), (27, 0.0, 0.7, 1.4, -0.1), (6, 0.5, 0.4, 2.0, 0)], amp=0.1, ramp=(0.05, 0.5),
+                 lay=0.0, micro=0.0016, hem_fn=ragged(0.16, 0.2), warp=0.8)
 lo, hi = L.shell(robe, "Robe", "robe", LINEN, 3300, HI, solid=0.007)
 PAIRS.append((lo, hi))
 add(lo, robe_w)
-for nm, (v0, v1, u0, u1) in (("RobeBand", (0.02, 0.97, -0.028, 0.028)), ("RobeHem", (0.86, 0.9, 0.0, 1.0)), ("RobeHem2", (0.8, 0.815, 0.0, 1.0))):
-    add(L.band(robe, nm, "robe_trim", GOLD, v0, v1, u0, u1, n=3 if u1 - u0 < 0.5 else 100, m=40 if v1 - v0 > 0.5 else 2, off=0.012), robe_w)
+for nm, (v0, v1, u0, u1) in (("RobeBand", (0.02, 0.9, -0.025, 0.025)), ("RobeHem", (0.8, 0.84, 0.0, 1.0)), ("RobeHem2", (0.7, 0.715, 0.0, 1.0))):
+    add(L.band(robe, nm, "robe_trim", GOLD, v0, v1, u0, u1, n=3 if u1 - u0 < 0.5 else 90, m=36 if v1 - v0 > 0.5 else 2, off=0.014), robe_w)
 WEIGHTS["robe_trim"] = robe_w
+# the hollow dark inside the bell, seen from below: a shell just inside the robe, facing in
+vk = [(k_[0], k_[1], k_[2], k_[3] * 0.93, k_[4] * 0.93, k_[5] * 0.93, k_[6]) for k_ in rk]
+void = L.Garment(vk, top=1.2, hem=0.22, folds=[(12, 0.2, 1.0, 0.3, 0.12)], amp=0.04, ramp=(0.05, 0.5), lay=0.0, hem_fn=ragged(0.2, 0.12))
+vo = void.mesh("Void", 36, 18, "robe_void", INNER)
+bpy.context.view_layer.objects.active = vo
+import bmesh as _bm
+_b = _bm.new()
+_b.from_mesh(vo.data)
+_bm.ops.reverse_faces(_b, faces=_b.faces)
+_b.to_mesh(vo.data)
+_b.free()
+add(vo, robe_w)
+WEIGHTS["robe_void"] = robe_w
+# a layered tabard of the same linen over the breast and belly, open at the front, banded in gilt
+tab = L.Garment([(1.44, 0, 0.0, 0.21, 0.15, 0.15, 2.1), (1.2, 0, 0.1, 0.24, 0.17, 0.24, 2.0), (1.0, 0, 0.16, 0.27, 0.17, 0.3, 2.0), (0.8, 0, 0.22, 0.3, 0.17, 0.36, 2.0)],
+                top=1.44, hem=0.86, folds=[(7, 0.3, 1.0, 0.8, 0.1), (15, 0.0, 0.6, 1.9, 0)], amp=0.05, ramp=(0.1, 0.6), gap=0.4, gap_from=0.15, lay=0.0,
+                micro=0.0013, hem_fn=ragged(0.86, 0.06))
+lo, hi = L.shell(tab, "Tabard", "tabard", LINEN, 950, HI, solid=0.006)
+PAIRS.append((lo, hi))
+add(lo, robe_w)
+for nm, (v0, v1, u0, u1) in (("TabL", (0.12, 0.96, 0.0, 0.04)), ("TabR", (0.12, 0.96, 0.96, 1.0))):
+    add(L.band(tab, nm, "tab_trim", GOLD, v0, v1, u0, u1, n=3, m=24, off=0.01), robe_w)
+add(L.band(tab, "TabHem", "tab_trim", GOLD, 0.84, 0.9, 0.0, 1.0, n=3, m=2, off=0.01), robe_w) if False else None
+WEIGHTS["tab_trim"] = robe_w
 
-mantle = L.Garment([(1.64, 0, 0.02, 0.12, 0.1, 0.11, 2.2), (1.54, 0, 0.02, 0.24, 0.15, 0.16, 2.1), (1.4, 0, 0.0, 0.37, 0.21, 0.22, 2.0), (1.15, 0, 0.0, 0.43, 0.28, 0.3, 2.0),
-                    (0.9, 0, 0.0, 0.5, 0.36, 0.38, 2.0), (0.7, 0, 0.0, 0.54, 0.4, 0.43, 2.0)],
-                   top=1.64, hem=1.06, folds=[(8, 0.3, 1.0, 0.5, 0.15), (17, 0.0, 0.6, 1.1, -0.2)], amp=0.07, ramp=(0.1, 0.55), gap=0.5, gap_from=0.2, lay=0.0,
-                   hem_lift=0.05, flare=0.04, micro=0.0013, tongues=(10, 0.16, 2.2), back_drop=0.12)
-lo, hi = L.shell(mantle, "Mantle", "mantle", LINEN, 2000, HI, solid=0.008)
+mantle = L.Garment([(1.64, 0, 0.02, 0.12, 0.1, 0.11, 2.2), (1.54, 0, 0.02, 0.3, 0.16, 0.17, 2.1), (1.4, 0, 0.0, 0.46, 0.22, 0.23, 2.0), (1.15, 0, 0.0, 0.52, 0.3, 0.32, 2.0),
+                    (0.9, 0, 0.0, 0.58, 0.38, 0.4, 2.0), (0.7, 0, 0.0, 0.62, 0.42, 0.45, 2.0)],
+                   top=1.64, hem=1.0, folds=[(8, 0.3, 1.0, 0.5, 0.15), (17, 0.0, 0.6, 1.1, -0.2)], amp=0.09, ramp=(0.1, 0.55), gap=0.5, gap_from=0.2, lay=0.0,
+                   flare=0.04, micro=0.0013, hem_fn=ragged(1.0, 0.1), back_drop=0.0)
+lo, hi = L.shell(mantle, "Mantle", "mantle", LINEN, 1600, HI, solid=0.008)
 PAIRS.append((lo, hi))
 add(lo, mantle_w)
 for nm, (v0, v1, u0, u1) in (("MantleL", (0.22, 0.985, 0.0, 0.035)), ("MantleR", (0.22, 0.985, 0.965, 1.0))):
@@ -311,8 +346,8 @@ WEIGHTS["mantle_trim"] = mantle_w
 veil = L.Garment([(1.98, 0, 0.03, 0.04, 0.04, 0.04, 2.0), (1.95, 0, 0.03, 0.1, 0.1, 0.1, 2.0), (1.88, 0, 0.03, 0.14, 0.13, 0.145, 2.0), (1.76, 0, 0.04, 0.17, 0.15, 0.18, 2.0),
                   (1.6, 0, 0.06, 0.22, 0.17, 0.24, 2.0), (1.4, 0, 0.07, 0.3, 0.2, 0.3, 2.0), (1.15, 0, 0.08, 0.34, 0.24, 0.35, 2.0)],
                  top=1.98, hem=1.0, folds=[(7, 0.3, 1.0, 0.7, 0.1), (15, 0.0, 0.6, 1.9, 0)], amp=0.06, ramp=(0.1, 0.6), gap=1.15, gap_from=0.04, lay=0.0,
-                 hem_lift=0.04, flare=0.03, micro=0.0012, tongues=(8, 0.18, 2.0), back_drop=0.25)
-lo, hi = L.shell(veil, "Veil", "veil", LINEN, 1800, HI, solid=0.006)
+                 hem_lift=0.04, flare=0.03, micro=0.0012, hem_fn=ragged(1.0, 0.14))
+lo, hi = L.shell(veil, "Veil", "veil", LINEN, 1500, HI, solid=0.006)
 PAIRS.append((lo, hi))
 add(lo, veil_w)
 add(L.band(veil, "VeilL", "veil_trim", GOLD, 0.1, 0.99, 0.0, 0.03, n=3, m=40, off=0.01), veil_w)
@@ -323,7 +358,7 @@ for tag, sx in (("l", -1), ("r", 1)):
     sl = L.Garment([(1.47, sx * 0.23, 0, 0.085, 0.08, 0.08, 2.2), (1.3, sx * 0.24, 0, 0.082, 0.08, 0.08, 2.2), (1.15, sx * 0.245, 0, 0.1, 0.1, 0.1, 2.2),
                     (1.02, sx * 0.25, 0, 0.17, 0.16, 0.16, 2.0), (0.9, sx * 0.255, 0.01, 0.23, 0.22, 0.22, 2.0), (0.8, sx * 0.255, 0.01, 0.26, 0.25, 0.25, 2.0)],
                    top=1.47, hem=0.95, folds=[(8, 0.0, 1.0, 0.5, 0.1), (18, 0, 0.6, 1.5, 0)], amp=0.06, ramp=(0.2, 0.7), lay=0.0, hem_lift=0.04, seed=sx,
-                   micro=0.0013, tongues=(7, 0.12, 2.0))
+                   micro=0.0013, hem_fn=ragged(0.95, 0.05))
     lo, hi = L.shell(sl, "Sleeve" + tag, "sleeve_" + tag, LINEN, 1400, (140, 100) if not LOWRES else (80, 60))
     PAIRS.append((lo, hi))
     add(lo, L.sleeve_weights(tag))

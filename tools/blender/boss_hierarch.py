@@ -123,13 +123,42 @@ ao, ahi = L.sculpted("Arms", sk_full.arms, ["trpl", "trpr"], STONE, "armskin", 4
 add(ao)
 WEIGHTS["armskin"] = GB.envelope_weights([sg for sg in SEGS if sg[0].startswith(("shoulder_", "elbow_", "hand_")) or sg[0] == "chest"], 0.05)
 
-# --- the head: the speaking-horn --------------------------------------------------------------------------------
-axis = [H0 + G(0, -0.04, 0.0), H0 + G(0, 0.06, -0.01), H0 + G(0, 0.22, -0.05), H0 + G(0, 0.38, -0.12), H0 + G(0, 0.52, -0.2)]
-rad = [0.085, 0.095, 0.15, 0.24, 0.34]
+# --- the head: a carved stone visage whose mouth is the speaking-horn --------------------------------------------------------
+# a heavy brow, deep sockets with an ember in each, a broken nose and cheek planes, a crown of tines above; the lower face
+# breaks open into a great cracked trumpet-mouth that faces the player, an ember deep in its throat
+hk = GB.Skel()
+hk.v("a", (0, 1.76, -0.02), 0.03)
+hk.v("b", (0, 1.7, -0.05), 0.03, "a")
+hk.mass((0, 1.79, -0.02), (0.135, 0.15, 0.135))                 # cranium
+hk.mass((0, 1.72, -0.06), (0.115, 0.1, 0.1))                    # the cheeks and the upper jaw
+hk.mass((0, 1.88, -0.0), (0.105, 0.07, 0.1))                    # the crown block
+
+
+def visage_sculpt(s):
+    fz = -0.145
+    front = (0, 0, -1)
+    s.ridge((-0.115, 1.835, fz + 0.01), (0.115, 1.835, fz + 0.01), 0.03, 0.035, facing=front)                    # the brow, a stone lintel
+    for sx in (-1, 1):
+        s.bump((sx * 0.055, 1.795, fz + 0.015), 0.032, -0.05, facing=front)                                    # sockets
+        s.bump((sx * 0.1, 1.77, fz + 0.05), 0.04, -0.02, facing=(sx, 0, -1))                                   # temples
+        s.bump((sx * 0.085, 1.735, fz + 0.04), 0.04, 0.03, facing=(sx * 0.5, 0, -1))                           # cheekbones
+        s.ridge((sx * 0.02, 1.86, fz + 0.01), (sx * 0.09, 1.87, fz + 0.03), 0.02, 0.014, facing=front)         # brow furrows
+    s.ridge((0, 1.82, fz + 0.01), (0, 1.73, fz - 0.015), 0.022, 0.032, facing=front)                           # nose
+    s.bump((0, 1.9, fz + 0.03), 0.07, 0.02, facing=front)                                                      # forehead boss
+    s.noise(24.0, 0.004)
+    s.folds(40.0, 0.002)
+
+
+ho, hhi = L.sculpted("Visage", hk, "a", STONE, "head", 3000, visage_sculpt, 0.0045, False, PAIRS)
+add(ho, HEAD1)
+for sx in (-1, 1):
+    add(K.blob("Eye", Vector(G(sx * 0.055, 1.792, -0.152)), (0.017, 0.008, 0.012), "head", EMBER, 8, 6), HEAD1)
+# the mouth: a trumpet breaking out of the jaw, flaring forward and a little down
+axis = [Vector(G(0, 1.64, -0.07)), Vector(G(0, 1.6, -0.17)), Vector(G(0, 1.56, -0.28)), Vector(G(0, 1.52, -0.4)), Vector(G(0, 1.47, -0.52))]
+rad = [0.07, 0.085, 0.12, 0.17, 0.225]
 
 
 def cr(vals, t):
-    """Catmull-Rom through vals at t in 0..1 (vals are Vectors or floats)."""
     n = len(vals) - 1
     x = min(max(t, 0.0), 1.0) * n
     i = min(int(x), n - 1)
@@ -138,7 +167,7 @@ def cr(vals, t):
     return 0.5 * ((2 * p1) + (-p0 + p2) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f * f + (-p0 + 3 * p1 - 3 * p2 + p3) * f ** 3)
 
 
-NU, NS = 44, 36
+NU, NS = 40, 30
 Pr = np.zeros((NS + 1, NU, 3))
 for i in range(NS + 1):
     s = i / NS
@@ -149,60 +178,68 @@ for i in range(NS + 1):
     r = cr(rad, s)
     for j in range(NU):
         a = math.tau * j / NU
-        # carved flutes: grooves down the horn that deepen toward the mouth, a wobble so it reads as cut stone
-        fl = (abs(math.cos(0.5 * 12 * a + 0.4)) - 0.64) * 0.03 * s ** 1.1
-        fl += (abs(math.cos(0.5 * 28 * a + 1.3)) - 0.64) * 0.004 * s
-        rr = r * (1.0 + 0.0) + fl + 0.004 * math.sin(a * 5 + s * 7)
+        fl = (abs(math.cos(0.5 * 12 * a + 0.4)) - 0.64) * 0.03 * s ** 1.1 + (abs(math.cos(0.5 * 26 * a + 1.3)) - 0.64) * 0.005 * s
+        # the mouth is cracked and chipped: a ragged lip
+        chip = 0.02 * s ** 4 * max(0.0, math.sin(a * 3.0 + 0.7) + math.sin(a * 7.0 + 2.0) - 0.6)
+        rr = r + fl - chip + 0.004 * math.sin(a * 5 + s * 7)
         p = c + ux * math.cos(a) * rr + vx * math.sin(a) * rr
-        Pr[i, j] = (p.x, p.z, -p.y)                    # Blender -> rig
+        Pr[i, j] = (p.x, p.z, -p.y)
 horn = L.grid_mesh("Horn", Pr, True, "head", STONE)
-K.solidify(horn, 0.02)
+K.solidify(horn, 0.022)
 add(horn, HEAD1)
-rim = [axis[-1] + Vector((math.cos(a) * 0.345, 0.0, math.sin(a) * 0.345)) for a in [math.tau * i / 40 for i in range(41)]]
-add(TUBE("HornRim", rim, 0.018, "head", PALE), HEAD1)
-add(K.blob("Throat", axis[-1] + G(0, -0.17, 0.0), (0.12, 0.12, 0.12), "head", EMBER, 20, 12), HEAD1)       # the ember deep in the mouth
-for k in range(3):                                   # carved bands round the horn
-    t = 0.45 + 0.17 * k
+MOUTH = axis[-1]
+add(TUBE("HornRim", [MOUTH + Vector((math.cos(a) * 0.29, 0.0, math.sin(a) * 0.29)).copy() for a in [math.tau * i / 36 for i in range(37)]] if False else
+         [Vector((MOUTH.x + math.cos(a) * 0.23, MOUTH.y + 0.0, MOUTH.z + math.sin(a) * 0.23)) for a in [math.tau * i / 36 for i in range(37)]], 0.016, "head", PALE), HEAD1)
+add(K.blob("Throat", cr(axis, 0.5), (0.085, 0.085, 0.085), "head", EMBER, 18, 10), HEAD1)             # the ember deep in the throat
+for t in (0.45, 0.65):
     c = cr(axis, t)
-    r = cr(rad, t) + 0.016
-    add(TUBE("Band", [c + Vector((math.cos(a) * r, 0.0, math.sin(a) * r)) for a in [math.tau * i / 28 for i in range(29)]], 0.0075, "head", GILT), HEAD1)
-# the broken tiara: tines round the mouth, leaning out, several snapped off short
-for k in range(9):
-    a = math.tau * k / 9 + 0.2
-    d = Vector((math.cos(a), 0.0, math.sin(a)))
-    base = axis[-1] + d * 0.335
-    ln = 0.22 + 0.1 * noise.noise(Vector((k * 1.7, 2.0, 0.0)))
-    if k % 4 == 1:
-        ln *= 0.3
-    add(L.thorn("Tine", base, Vector((0, 1, 0)) * 1.0 + d * 0.35, ln, 0.026 if k % 4 != 1 else 0.018, d * ln * 0.25 + Vector((0, 0, -0.04)), "head", PALE, 5, 6, 0.6), HEAD1)
-    if k % 4 != 1:
-        add(K.blob("TineCap", base + Vector((0, 0.01, 0)), (0.026, 0.02, 0.026), "head", GILT, 10, 6), HEAD1)
-# the jaw-block under the horn and the hollowed face's remnant: two pale eyes in a skull cap
-add(K.blob("Skull", H0 + G(0, -0.08, 0.02), (0.07, 0.07, 0.08), "head", DARK, 16, 10), HEAD1)
+    r = cr(rad, t) + 0.014
+    add(TUBE("Band", [Vector((c.x + math.cos(a) * r, c.y + 0.0, c.z + math.sin(a) * r)) for a in [math.tau * i / 26 for i in range(27)]], 0.0075, "head", GILT), HEAD1)
+# jaw plates hold the trumpet at each side, a lower lip of stone under it
 for sx in (-1, 1):
-    add(K.blob("Eye", H0 + G(sx * 0.03, -0.075, -0.05), (0.012, 0.007, 0.01), "head", EMBER, 8, 6), HEAD1)
-add(GK.slab("Gorget", H0 + G(0, -0.095, -0.01), (0.12, 0.1, 0.045), Matrix.Rotation(0, 3, 'X').to_quaternion(), "head", PALE, 0.0, 0.01, 3.0, 20, 10, 0.5), HEAD1)
+    add(GK.slab("Jaw", Vector(G(sx * 0.115, 1.66, -0.12)), (0.045, 0.1, 0.07), Matrix.Rotation(sx * 0.3, 3, 'Z').to_quaternion(), "head", PALE, 0.0, 0.01, 2.0 + sx, 14, 8, 0.5), HEAD1)
+# the crown: a gilt band round the brow and broken tines standing up from it, several snapped
+CC = Vector(G(0, 1.9, -0.02))
+add(TUBE("Crown", [CC + Vector((math.cos(a) * 0.125, math.sin(a) * 0.115, 0.0)) for a in [math.tau * i / 28 for i in range(29)]], 0.012, "head", GILT), HEAD1)
+for k in range(9):
+    a = math.tau * k / 9 + 0.35
+    d = Vector((math.cos(a), math.sin(a), 0.0))
+    base = CC + Vector((d.x * 0.125, d.y * 0.115, 0.0))
+    ln = 0.2 + 0.08 * noise.noise(Vector((k * 1.7, 2.0, 0.0)))
+    if k % 3 == 1:
+        ln *= 0.3
+    add(L.thorn("Tine", base, Vector((0, 0, 1)), ln, 0.022 if k % 3 != 1 else 0.016, d * 0.05 + Vector((0, 0, 0)), "head", PALE, 5, 6, 0.6), HEAD1)
 
-# --- pauldrons: stacked, overlapping stone plates; gauntlets of fitted blocks ----------------------------------------
+# --- pauldrons and gauntlets: carved, chipped masonry with mouldings (profiles turned on an axis, not blocks) ------------------
+def moulded(name, p0, d, prof, sock, mat, sides=20, seed=0.0):
+    """A turned stone shape along direction d from p0: prof = [(distance, radius)] (cornices, beads, hollows, a dome)."""
+    d = Vector(d).normalized()
+    pts = [Vector(p0) + d * t for t, _ in prof]
+    return K.loft(name, pts, [r for _, r in prof], sock, mat, sides, cap0=True, cap1=True, wobble=0.05, seed=seed)
+
+
 for sx, tag in ((-1, "l"), (1, "r")):
     S_ = S["shoulder_" + tag]
     wsh = (lambda t: lambda p: GK.chain_w(p, [("chest", C0), ("shoulder_" + t, S["shoulder_" + t] + G(0, 0.02, 0)), ("elbow_" + t, S["elbow_" + t])], [0.05, 0.05]))(tag)
     WEIGHTS["plate_" + tag] = wsh
-    for j in range(3):
-        quat = Matrix.Rotation(-sx * (0.3 + 0.14 * j), 3, 'Y').to_quaternion() @ Matrix.Rotation(0.0, 3, 'X').to_quaternion()
-        add(GK.slab("Pauldron", S_ + G(sx * (0.075 + 0.035 * j), 0.1 - 0.065 * j, 0.0), (0.13 - 0.012 * j, 0.115 - 0.01 * j, 0.05), quat,
-                   "plate_" + tag, STONE if j != 1 else PALE, 0.15, 0.012, 1.0 + j + sx, 24, 12, 0.5), wsh)
-    # a gilt rim on the top plate
-    add(TUBE("PauldronRim", [S_ + G(sx * 0.035, 0.1, 0.0) + Vector((math.cos(a) * 0.125, math.sin(a) * 0.108, 0)) for a in [math.tau * i / 24 for i in range(25)]], 0.006, "plate_" + tag, GILT), wsh)
+    # a stepped dome: cornice, bead, cavetto, a second cornice, the cap, a finial
+    prof = [(0.0, 0.17), (0.012, 0.185), (0.03, 0.19), (0.045, 0.165), (0.06, 0.16), (0.075, 0.175), (0.09, 0.176), (0.105, 0.15), (0.13, 0.135), (0.16, 0.115), (0.19, 0.085), (0.215, 0.05), (0.23, 0.02)]
+    add(moulded("Pauldron", S_ + G(sx * 0.05, 0.02, 0.0), G(sx * 0.62, 1.0, 0.0), prof, "plate_" + tag, STONE, 22, 1.0 + sx), wsh)
+    add(moulded("PauldronSkirt", S_ + G(sx * 0.15, -0.05, 0.0), G(sx * 0.9, 0.5, 0.0), [(0.0, 0.2), (0.015, 0.215), (0.035, 0.205), (0.05, 0.17), (0.07, 0.1), (0.08, 0.0)], "plate_" + tag, PALE, 20, 3.0 + sx), wsh)
+    add(TUBE("PauldronRim", [S_ + G(sx * 0.05, 0.02, 0.0) + Vector(G(sx * 0.62, 1.0, 0.0)).normalized() * 0.03 + Vector((math.cos(a) * 0.19, math.sin(a) * 0.19, 0)) for a in [math.tau * i / 24 for i in range(25)]] if False else
+             [Vector(S_ + G(sx * 0.05, 0.02, 0.0) + Vector(G(sx * 0.62, 1.0, 0.0)).normalized() * 0.03) + Vector((0, 0, 0)) for _ in range(2)], 0.001, "plate_" + tag, GILT), wsh) if False else None
+    add(L.thorn("Finial", S_ + G(sx * 0.05, 0.02, 0.0) + Vector(G(sx * 0.62, 1.0, 0.0)).normalized() * 0.23, G(sx * 0.62, 1.0, 0.0), 0.12, 0.022, Vector((0, 0, 0)), "plate_" + tag, GILT, 6, 5, 1.0), wsh)
     wgl = (lambda t: lambda p: GK.chain_w(p, [("elbow_" + t, S["elbow_" + t]), ("hand_" + t, S["hand_" + t] + G(0, 0.0, 0))], [0.04]))(tag)
     WEIGHTS["gaunt_" + tag] = wgl
     ax = sx * 0.24
-    for k, y in enumerate((1.0, 0.925, 0.85, 0.775)):
-        r = 0.09 - 0.005 * k
-        yy = [y - 0.037, y - 0.031, y + 0.031, y + 0.037]
-        blk = K.loft("Cuff", [G(ax, v, 0.0) for v in yy], [r * 0.86, r, r, r * 0.86], "gaunt_" + tag, PALE if k % 2 == 0 else STONE, 10, cap0=True, cap1=True, wobble=0.06, seed=k * 3 + sx)
-        add(blk, wgl)
-    add(TUBE("CuffGilt", [G(ax + math.cos(a) * 0.075, 1.045, math.sin(a) * 0.075) for a in [math.tau * i / 20 for i in range(21)]], 0.006, "gaunt_" + tag, GILT), wgl)
+    gp = []
+    y = 1.06
+    for seg in range(3):
+        for dy, r in ((0.0, 0.086), (0.012, 0.096), (0.03, 0.098), (0.042, 0.08), (0.058, 0.082), (0.07, 0.095), (0.082, 0.1)):
+            gp.append((y - dy - seg * 0.095, r - 0.006 * seg))
+    gp.sort(key=lambda q: -q[0])
+    add(K.loft("Gauntlet", [G(ax, q[0], 0.0) for q in gp], [q[1] for q in gp], "gaunt_" + tag, PALE, 14, wobble=0.06, seed=sx + 5), wgl)
+    add(TUBE("CuffGilt", [G(ax + math.cos(a) * 0.1, 1.045, math.sin(a) * 0.1) for a in [math.tau * i / 20 for i in range(21)]], 0.006, "gaunt_" + tag, GILT), wgl)
 
 # --- the breastplate: a gilt lozenge, an ember at its heart, edict-lines carved over the breast -------------------------
 PC = G(0, 1.31, -0.14)
