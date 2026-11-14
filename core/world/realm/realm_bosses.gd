@@ -161,7 +161,7 @@ static func _reseat_braziers_later(root: Node) -> void:
 ## The Ossuary's quarry (): the pit and the Pilgrims' Landing keep the flora, the lore and the rocks out (no
 ## floor of their own: the terrain's cut is RealmLayout.oss_pit_shape, the stamp leaves them alone).
 static func _ossuary_sites() -> void:
-	var pit := OssFrame.wrect(Rect2(OssFrame.PIT_X0 - 5.0, OssFrame.PIT_Z0 - 5.0, OssFrame.PIT_X1_HALL - OssFrame.PIT_X0 + 10.0, OssFrame.PIT_Z1 - OssFrame.PIT_Z0 + 10.0))
+	var pit := OssFrame.wrect(Rect2(OssFrame.PIT_X0, OssFrame.PIT_Z0 - 5.0, OssFrame.PIT_X1_HALL - OssFrame.PIT_X0 + 4.0, OssFrame.PIT_Z1 - OssFrame.PIT_Z0 + 10.0))    # (the north margin is 1 m: the tomb stands on the brow)
 	var y := RealmLayout.OSSUARY_GATE.y
 	WorldLanes.register_site("oss_pit", pit, y, y)
 	WorldLanes.register_site("oss_landing", OssFrame.wrect(Rect2(-14.0, -40.0, 11.0, 12.0)), y, y)

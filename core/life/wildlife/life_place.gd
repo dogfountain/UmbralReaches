@@ -326,6 +326,8 @@ static func open_ground(x: float, z: float) -> bool:
 		return false
 	if RL.in_water(x, z) or RL.in_water(x + 1.5, z) or RL.in_water(x - 1.5, z) or RL.in_water(x, z + 1.5) or RL.in_water(x, z - 1.5):
 		return false
+	if z > 128.0 and z < 196.0 and OssFrame.pit_d(Vector2(x, z)) < 10.0:
+		return false                                       # the Ossuary's quarry: its bed and its brink
 	var b := RealmLayout.biome_at(x, z)
 	if b == "ash" or b == "crag":
 		return false

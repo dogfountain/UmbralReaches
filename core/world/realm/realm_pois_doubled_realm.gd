@@ -76,7 +76,7 @@ const POIS := {
 		"title": "The Press-House", "line": "the abbey's cider, the road's bread", "region": "orchard", "face": Vector2(-112, 124)},
 	"orchard_heart": {"at": Vector2(-86, 122), "search": 10.0, "half": Vector2(8.5, 8.5), "rise": 1.4,
 		"title": "The Mother Tree", "line": "the first graft, the last to burn", "region": "orchard", "face": Vector2(-80, 132)},
-	"necro_mausoleum": {"at": Vector2(0, 141), "search": 10.0, "half": Vector2(7.5, 7.5), "rise": 4.0,
+	"necro_mausoleum": {"at": Vector2(0, 144.5), "search": 10.0, "half": Vector2(7.5, 7.5), "rise": 4.0,
 		"title": "The First Pilgrims' Tomb", "line": "first in line when the sky calls", "region": "necropolis", "face": Vector2(0, 128), "vista": 10.0},
 	"necro_ranks": {"at": Vector2(-24, 118), "search": 10.0, "half": Vector2(10, 8), "rise": 2.0,
 		"title": "The Pilgrims' Ranks", "line": "every face toward the mountain", "region": "necropolis", "face": Vector2(-24, 100)},

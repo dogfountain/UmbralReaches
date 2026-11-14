@@ -8,7 +8,7 @@ const REACH_M := 2.5
 ## [label, from, to]; points are x,z on the ground (y is snapped to the mesh).
 const PAIRS: Array = [
 	["road to the Thornwarden arena", Vector2(0, 33), Vector2(-86, -24)],
-	["road to the Ossuary gallery seal pin", Vector2(0, 33), Vector2(-7.3, 172.0)],
+	["road to the Ossuary gallery seal pin", Vector2(0, 33), Vector2(-16.0, 174.0)],
 	["road to the Bone Abbot", Vector2(0, 33), Vector2(6.0, 168.0)],
 	["road to the gallery door (over the bone bridge)", Vector2(0, 33), Vector3(-21.5, 1.0, 173.0)],
 	["road to the pit floor (down the gallery stair)", Vector2(0, 33), Vector3(12.0, -3.2, 167.0)],

@@ -67,3 +67,13 @@ static func cache(parent: Node, id: String, at: Vector3, what: String, opened: C
 
 static func take(id: String, at: Vector3) -> bool:
 	return State.take(id, OssFrame.w(at))
+
+
+## A walking route for the secrets' registry (and its tests): `from` is a local point, `pts` local xz waypoints
+## (their y is kept: 0 means "stay on the floor"); the route comes out in world coordinates.
+static func route(from: Vector3, pts: Array) -> Dictionary:
+	var out: Array[Vector3] = []
+	for v: Vector3 in pts:
+		var q := OssFrame.w(v)
+		out.append(Vector3(q.x, v.y, q.z))
+	return {"from": OssFrame.w(from), "pts": out}

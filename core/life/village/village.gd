@@ -115,7 +115,10 @@ func _build() -> void:
 	await get_tree().process_frame
 	# camps: the hermit's in the Thornwood, the sexton's grave by the Kindlers' Yard
 	# the camp's own walks (fire to grave, fire to seat) must be clear too, not just its ring
-	var hc := _find_clear(HERMIT_NEAR, 3.0, 3.5, 15.0, [[Vector2.ZERO, Vector2(-2.1, 2.35)], [Vector2.ZERO, Vector2(1.5, 0.3)], [Vector2(-2.1, 2.35), Vector2(1.5, 0.3)]])
+	# ... and his walk round the fire (h_w1, h_w2, h_w3 below): with bigger trees a stop was walled off wherever the wood shifted
+	var hw: Array[Vector2] = [Vector2(0.2, 1.05), Vector2(4.0, -3.0), Vector2(6.0, 2.0), Vector2(2.5, 4.0)]
+	var hc := _find_clear(HERMIT_NEAR, 3.0, 3.5, 15.0, [[Vector2.ZERO, Vector2(-2.1, 2.35)], [Vector2.ZERO, Vector2(1.5, 0.3)], [Vector2(-2.1, 2.35), Vector2(1.5, 0.3)],
+		[hw[0], hw[1]], [hw[1], hw[2]], [hw[2], hw[3]], [hw[3], hw[0]]], "", true)
 	if hc != Vector2.INF:
 		var camp: Dictionary = Props.hermit(self, space, hc)
 		lights.append(camp.light)
@@ -128,10 +131,25 @@ func _build() -> void:
 		node_xz["h_fire"] = Vector2(f.x + 0.2, f.z + 1.05)
 		node_xz["h_seat"] = Vector2(seat.x, seat.z)
 		node_xz["h_grave"] = Vector2(g.x + 0.1, g.z + 0.75)
-		node_xz["h_w1"] = Vector2(f.x + 4.0, f.z - 3.0)
-		node_xz["h_w2"] = Vector2(f.x + 6.0, f.z + 2.0)
-		node_xz["h_w3"] = Vector2(f.x + 2.5, f.z + 4.0)
-		edges.append_array([["h_fire", "h_seat"], ["h_fire", "h_grave"], ["h_fire", "h_w1"], ["h_w1", "h_w2"], ["h_w2", "h_w3"], ["h_w3", "h_fire"], ["h_seat", "h_w1"],
+		# his walk's three stops: each the first of a few spots the network can walk to from the fire (the Thornwood's
+		# trees and boulders are big: a fixed stop was walled off wherever the wood shifted)
+		var hf := Vector2(f.x + 0.2, f.z + 1.05)
+		var stops := {"h_w1": [Vector2(4.0, -3.0), Vector2(3.0, -2.0), Vector2(4.5, -1.2), Vector2(2.2, -3.2)],
+			"h_w2": [Vector2(6.0, 2.0), Vector2(5.0, 1.0), Vector2(4.5, 2.6), Vector2(5.5, -0.2)],
+			"h_w3": [Vector2(2.5, 4.0), Vector2(3.4, 2.6), Vector2(1.2, 3.4), Vector2(4.0, 3.4), Vector2(2.0, 2.4)]}
+		var floor_fn := Callable(nav, &"floor_at")
+		var edge_fn := Callable(nav, &"_edge_ok")
+		for sid: String in stops:
+			var pick: Vector2 = (stops[sid] as Array)[0]
+			for o: Vector2 in stops[sid]:
+				var q := Vector2(f.x, f.z) + o
+				var e0 := Vector3(hf.x, float(floor_fn.call(hf.x, hf.y)), hf.y)
+				var e1 := Vector3(q.x, float(floor_fn.call(q.x, q.y)), q.y)
+				if String(edge_fn.call(e0, e1)) == "":
+					pick = o
+					break
+			node_xz[sid] = Vector2(f.x, f.z) + pick
+		edges.append_array([["h_fire", "h_seat"], ["h_fire", "h_grave"], ["h_fire", "h_w1"], ["h_fire", "h_w2"], ["h_w1", "h_w2"], ["h_w2", "h_w3"], ["h_w3", "h_fire"], ["h_seat", "h_w1"],
 			["h_grave", "h_seat"], ["h_grave", "h_w3"]])      # spare ways to the grave: the Thornwood fills up
 	else:
 		report.append("no clear spot for the hermit's camp")
@@ -273,12 +291,12 @@ func _outposts(space: PhysicsDirectSpaceState3D, node_xz: Dictionary, edges: Arr
 
 ## A spot near `near` whose `r`-metre disc is clear floor, `path_off` off every Realm path and out
 ## of every registered site.
-func _find_clear(near: Vector2, r: float, path_off: float, camp_r := 15.0, lines: Array = [], region := "") -> Vector2:
+func _find_clear(near: Vector2, r: float, path_off: float, camp_r := 15.0, lines: Array = [], region := "", strict := false) -> Vector2:
 	var fallback := Vector2.INF            # the first spot whose ring is clear, if none has clear walks too
 	var flat := 0.9 if region == "" else 2.2      # r34 outposts: each piece sits on its own ground (the walks are checked step by step)
 	var rings: Array = [0.0, 1.5, 3.0, 4.5, 6.0, 8.0, 10.0, 12.0, 15.0, 18.0]
-	if region != "":
-		rings.append_array([21.0, 24.0, 28.0])      # r34 outposts: a region's ground can be broken
+	if region != "" or strict:
+		rings.append_array([21.0, 24.0, 28.0])      # r34 outposts: a region's ground can be broken (the hermit: the Thornwood's trees are big)
 	for ring: float in rings:
 		var n := 1 if ring == 0.0 else (10 if ring < 19.0 else 16)
 		for i in n:
@@ -305,8 +323,8 @@ func _find_clear(near: Vector2, r: float, path_off: float, camp_r := 15.0, lines
 				for ln: Array in lines:
 					var a0: Vector2 = p + (ln[0] as Vector2)
 					var a1: Vector2 = p + (ln[1] as Vector2)
-					if region != "":
-						# r34 outposts: the walk must pass the network's own test (steps, water, props)
+					if region != "" or strict:
+						# r34 outposts (and the hermit's camp): the walk must pass the network's own test (steps, water, props)
 						var e0 := Vector3(a0.x, float(nav.call("floor_at", a0.x, a0.y)), a0.y)
 						var e1 := Vector3(a1.x, float(nav.call("floor_at", a1.x, a1.y)), a1.y)
 						if String(nav.call("_edge_ok", e0, e1)) != "":
@@ -322,6 +340,8 @@ func _find_clear(near: Vector2, r: float, path_off: float, camp_r := 15.0, lines
 						break
 			if ok and hi - lo < flat:
 				return p
+	if strict:
+		print("REALM_VILLAGE camp near %s: no spot with clear walks, fallback %s" % [near, fallback])
 	return fallback if region == "" else Vector2.INF       # r34 outposts: walks that hold, or none
 
 

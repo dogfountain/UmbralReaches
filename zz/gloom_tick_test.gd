@@ -134,9 +134,9 @@ func _hanging(spot: Vector3) -> void:
 		print("GLOOMTICK FAIL hanging (hang %s held %s drain %.2f gloom %.2f -> %.2f)" % [p._hang, held, drain, g0, p.gloom])
 	# a wanderer who falls through the world while hanging is caught all the same
 	if p._hang:
-		p.global_position.y = -50.0
+		p.global_position.y = -70.0
 		await get_tree().create_timer(0.5).timeout
-		if p.global_position.y > -40.0 and not p._hang:
+		if p.global_position.y > -60.0 and not p._hang:
 			print("GLOOMTICK ok rescued while hanging")
 		else:
 			fails += 1

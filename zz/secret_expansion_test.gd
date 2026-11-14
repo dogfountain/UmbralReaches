@@ -153,20 +153,20 @@ func _deep_run(deep: Node) -> void:
 	await _secs(3.2)
 	check("the capstan turns the drum a quarter (door east)", int(deep.call("deep").drum) == 1 and absf(angle_difference(drum.rotation.y, -PI * 0.5)) < 0.05)
 	# walk out east onto the lava window, turn the mirror west
-	check("walk out of the drum's east door to the lava window", await _walk_pts("drum-east", p.global_position, [Vector3(20.6, 0, -84.0), Vector3(21.9, 0, -84.9)] as Array[Vector3], false, -2.0))
+	check("walk out of the drum's east door to the lava window", await _walk_pts("drum-east", p.global_position, _ow([Vector3(20.6, 0, -84.0), Vector3(21.9, 0, -84.9)]), false, -9.4))
 	var me := _touch(deep, "TurnMirrorE")
 	for i in 6:
 		_use(me)
 		await _secs(0.6)
 	check("east mirror throws the light west (%d)" % int(deep.call("deep").mirror_e), int(deep.call("deep").mirror_e) == 4)
-	check("walk back into the drum", await _walk_pts("drum-back", p.global_position, [Vector3(20.6, 0, -84.0), Vector3(18.3, 0, -84.9)] as Array[Vector3], false, -2.0))
+	check("walk back into the drum", await _walk_pts("drum-back", p.global_position, _ow([Vector3(20.6, 0, -84.0), Vector3(18.3, 0, -84.9)]), false, -9.4))
 	_use(cap)
 	await _secs(3.2)
 	_use(cap)
 	await _secs(3.2)
 	check("drum door now faces west", int(deep.call("deep").drum) == 3)
 	check("the eye is not lit while the west mirror looks south", not State.has("solved", "deep_beam"))
-	check("walk out west to the bronze mirror", await _walk_pts("drum-west", p.global_position, [Vector3(14.9, 0, -84.0), Vector3(10.0, 0, -84.0)] as Array[Vector3], false, -2.0))
+	check("walk out west to the bronze mirror", await _walk_pts("drum-west", p.global_position, _ow([Vector3(14.9, 0, -84.0), Vector3(10.0, 0, -84.0)]), false, -9.4))
 	var mw := _touch(deep, "TurnMirrorW")
 	for i in 4:
 		_use(mw)
@@ -174,7 +174,7 @@ func _deep_run(deep: Node) -> void:
 	check("caught light reaches the sun-eye: the hoard's door lifts", State.has("solved", "deep_beam"))
 	await _secs(2.6)
 	var sh := State.site("hoard")
-	check("walk into the Abbot's hoard", await _walk_pts("hoard-in", p.global_position, [Vector3(7.0, 0, -85.6), Vector3(6.4, 0, -86.4), Vector3(6.4, 0, -88.4), Vector3(7.4, 0, -90.4)] as Array[Vector3], false, -2.0))
+	check("walk into the Abbot's hoard", await _walk_pts("hoard-in", p.global_position, _ow([Vector3(7.0, 0, -85.6), Vector3(6.4, 0, -86.4), Vector3(6.4, 0, -88.4), Vector3(7.4, 0, -90.4)]), false, -9.4))
 	var ash := Travel.count("grave_ash")
 	f = Travel.count("relic_fragment")
 	_use(_touch(deep, "Cache_deep_hoard"))
@@ -182,7 +182,7 @@ func _deep_run(deep: Node) -> void:
 	check("the count is ended (beacon in the belfry)", State.has("open", "count_ended") and (deep.find_child("CountEnded", true, false) as Node3D).visible)
 	sh = sh
 	# the Weighing Floor: across the risen bridge, the fight, the cage
-	check("walk to the drum and turn it south", await _walk_pts("hoard-out", p.global_position, [Vector3(6.4, 0, -86.0), Vector3(8.0, 0, -84.0), Vector3(14.9, 0, -84.0), Vector3(17.0, 0, -85.3)] as Array[Vector3], false, -2.0))
+	check("walk to the drum and turn it south", await _walk_pts("hoard-out", p.global_position, _ow([Vector3(6.4, 0, -86.0), Vector3(8.0, 0, -84.0), Vector3(14.9, 0, -84.0), Vector3(17.0, 0, -85.3)]), false, -9.4))
 	_use(cap)
 	await _secs(3.2)
 	_use(cap)
@@ -197,7 +197,7 @@ func _deep_run(deep: Node) -> void:
 	var pts: Array[Vector3] = []
 	for v: Vector3 in sw.route.pts:
 		pts.append(v)
-	check("cross the bone bridge onto the Weighing Floor", await _walk_pts("weighing", p.global_position, pts, false, -2.0))
+	check("cross the bone bridge onto the Weighing Floor", await _walk_pts("weighing", p.global_position, pts, false, -9.4))
 	await _secs(1.0)
 	var foes: Array = deep.get("_arena_live")
 	check("the Sexton and two wretches rise (%d)" % foes.size(), foes.size() == 3 and bool(deep.get("_arena_on")))
@@ -220,17 +220,17 @@ func _deep_run(deep: Node) -> void:
 	# the cage: the top rope refuses until the pin is knocked out below
 	_use(_touch(deep, "RopeTop"))
 	check("the cage stays pinned from above", not State.has("open", "deep_lift"))
-	check("walk to the cage's pin", await _walk_pts("cage-walk", p.global_position, [Vector3(15.3, 0, -66.5), Vector3(14.9, 0, -64.4)] as Array[Vector3], false, -2.0))
+	check("walk to the cage's pin", await _walk_pts("cage-walk", p.global_position, _ow([Vector3(15.3, 0, -66.5), Vector3(14.9, 0, -64.4)]), false, -9.4))
 	_use(_touch(deep, "RopeBottom"))
 	check("the pin is knocked out: the shortcut opens", State.has("open", "deep_lift"))
-	check("walk onto the cage", await _walk_pts("cage-on", p.global_position, [Vector3(15.2, 0, -62.4)] as Array[Vector3], false, -2.0))
+	check("walk onto the cage", await _walk_pts("cage-on", p.global_position, _ow([Vector3(15.2, 0, -62.4)]), false, -9.4))
 	_use(_touch(deep, "HaulChain"))
 	var t0 := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - t0 < 15000 and bool((deep.get("_lift") as Node).call("moving")):
 		await get_tree().physics_frame
 	await _secs(0.5)
-	check("ride the cage up to the gallery (y %.2f)" % p.global_position.y, absf(p.global_position.y - 8.4) < 0.5)
-	check("step off through the arcade into the niche gallery", await _walk_pts("cage-off", p.global_position, [Vector3(17.2, 0, -62.1), Vector3(19.6, 0, -62.1)] as Array[Vector3], false, 8.4))
+	check("ride the cage up to the gallery (y %.2f)" % p.global_position.y, absf(p.global_position.y - 1.0) < 0.5)
+	check("step off through the arcade into the niche gallery", await _walk_pts("cage-off", p.global_position, _ow([Vector3(17.2, 0, -62.1), Vector3(19.6, 0, -62.1)]), false, 1.0))
 	check("every Lower Count place found (%d/4)" % _found(["lower_count", "count_drum", "weighing", "hoard"]), _found(["lower_count", "count_drum", "weighing", "hoard"]) == 4)
 
 
@@ -414,6 +414,15 @@ func _walk(s: Dictionary, end_tol := 1.2) -> bool:
 	if absf(from.y) > 0.01:
 		from.y += 0.9
 	return await _walk_pts(String(s.id), from, pts, true, goal.y if absf(goal.y) > 0.001 else NAN, end_tol)
+
+
+## (Ossuary walks: local waypoints in, world out)
+func _ow(pts: Array) -> Array[Vector3]:
+	var out: Array[Vector3] = []
+	for v: Vector3 in pts:
+		var q := OssFrame.w(v)
+		out.append(Vector3(q.x, v.y, q.z))
+	return out
 
 
 func _walk_pts(label: String, from: Vector3, pts: Array[Vector3], teleport := true, end_y := NAN, end_tol := 1.2) -> bool:

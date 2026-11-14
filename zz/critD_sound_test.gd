@@ -126,7 +126,7 @@ func _run() -> void:
 	var twin := amb.get_node_or_null("Bed_night_twin") as AudioStreamPlayer
 	check(twin != null and twin.playing and absf(twin.pitch_scale - 1.0) > 0.01, "the night bed's detuned twin plays")
 	# stand deep in the crypt (the camera follows): the surface check reads where she is
-	player.global_position = Vector3(16.0, -3.0, -60.0)
+	player.global_position = OssFrame.w(Vector3(16.0, 4.0, -60.0))
 	wx.set("_biome_t", 0.0)
 	await _frames(30)
 	wx.set("_biome_t", 0.0)

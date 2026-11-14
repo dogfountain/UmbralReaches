@@ -35,6 +35,8 @@ func _process(d: float) -> void:
 		0:
 			Travel._busy = true
 			if main and main.has_meta("realm_done") and t > 3.0:
+				phase = -1
+				await get_tree().create_timer(1.0).timeout      # as the second census: what waits on realm_done (the Ossuary's Counting Door cut) is built a frame later
 				first = _census(main)
 				print("REBUILD first ", first)
 				phase = 1

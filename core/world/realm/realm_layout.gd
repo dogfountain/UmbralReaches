@@ -264,9 +264,9 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(-80, 142), "note": "the south rows"}],
 	"necropolis": [
 		{"kind": "fire", "at": Vector2(8, 108), "note": "at the field's gate, off necropolis_way"},
-		{"kind": "poi", "at": Vector2(0, 141), "note": "the mausoleum at the head of the way, on the brow above the Ossuary's quarry"},
+		{"kind": "poi", "at": Vector2(0, 144.5), "note": "the mausoleum at the head of the way, on the brow above the Ossuary's quarry"},
 		{"kind": "poi", "at": Vector2(-26, 118), "note": "the pilgrims' ranks"},
-		{"kind": "camp", "at": Vector2(-30, 140), "note": "the west tombs"},
+		{"kind": "camp", "at": Vector2(-30, 141), "note": "the west tombs"},
 		{"kind": "camp", "at": Vector2(28, 114), "note": "the east tombs"}],
 	"mere": [
 		{"kind": "fire", "at": Vector2(103, 98), "note": "the mere's north bank, near mere_causeway"},

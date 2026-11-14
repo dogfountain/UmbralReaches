@@ -1276,14 +1276,14 @@ func _register() -> void:
 	var chapel_in := Vector3(16.0, CHAPEL_Y, -100.6)
 	var walk_cells: Array[Vector3] = [Vector3(17.3, 0, -99.95), Vector3(18.7, 0, -100.1), Vector3(18.7, 0, -105.9), Vector3(17.2, 0, -105.9), Vector3(14.3, 0, -104.6), Vector3(13.6, 0, -103.4)]
 	State.register({"id": "lower_count", "name": "The Uncounted Cells", "at": OssFrame.w(Vector3(15.0, CELL_Y, -102.8)), "r": 4.5, "node": self,
-		"route": {"from": chapel_in, "pts": walk_cells}, "goal": Vector3(13.6, CELL_Y, -103.4), "sync": sync})
+		"route": OssWorld.route(chapel_in, walk_cells), "goal": OssFrame.w(Vector3(13.6, CELL_Y, -103.4)), "sync": sync})
 	var walk_drum: Array[Vector3] = [Vector3(13.6, 0, -101.0), Vector3(16.2, 0, -100.0), Vector3(16.2, 0, -97.8), Vector3(18.0, 0, -97.2), Vector3(18.0, 0, -91.6), Vector3(18.0, 0, -87.0), Vector3(18.0, 0, -85.2)]
 	State.register({"id": "count_drum", "name": "The Count Drum", "at": OssFrame.w(DRUM), "r": 3.0, "node": self,
-		"route": {"from": Vector3(13.6, CELL_Y + 0.05, -103.4), "pts": walk_drum}, "goal": Vector3(18.0, D, -85.2)})
+		"route": OssWorld.route(Vector3(13.6, CELL_Y + 0.05, -103.4), walk_drum), "goal": OssFrame.w(Vector3(18.0, D, -85.2))})
 	State.register({"id": "weighing", "name": "The Weighing Floor", "at": OssFrame.w(ARENA), "r": 4.0, "node": self,
-		"route": {"from": DRUM + Vector3(0, 0.2, 0), "pts": [Vector3(18.0, 0, -79.0), Vector3(17.6, 0, -74.0), Vector3(15.5, 0, -71.0)] as Array[Vector3]}, "goal": ARENA})
+		"route": OssWorld.route(DRUM + Vector3(0, 0.2, 0), [Vector3(18.0, 0, -79.0), Vector3(17.6, 0, -74.0), Vector3(15.5, 0, -71.0)]), "goal": OssFrame.w(ARENA)})
 	State.register({"id": "hoard", "name": "The Abbot's Hoard", "at": OssFrame.w(Vector3(7.4, D, -90.0)), "r": 3.2, "node": self,
-		"route": {"from": DRUM + Vector3(0, 0.2, 0), "pts": [Vector3(12.0, 0, -84.0), Vector3(HOARD_DOOR_X, 0, -85.0), Vector3(HOARD_DOOR_X, 0, -88.4), Vector3(7.4, 0, -89.6)] as Array[Vector3]}, "goal": Vector3(7.4, D, -89.6)})
+		"route": OssWorld.route(DRUM + Vector3(0, 0.2, 0), [Vector3(12.0, 0, -84.0), Vector3(HOARD_DOOR_X, 0, -85.0), Vector3(HOARD_DOOR_X, 0, -88.4), Vector3(7.4, 0, -89.6)]), "goal": OssFrame.w(Vector3(7.4, D, -89.6))})
 
 
 static func _box(size: Vector3) -> BoxMesh:

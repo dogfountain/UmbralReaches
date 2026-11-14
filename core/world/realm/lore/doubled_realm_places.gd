@@ -331,7 +331,7 @@ static func _row_stones(L: RefCounted, r: Rect2, n: int) -> void:
 static func _field(L: RefCounted) -> void:
 	var rng: RandomNumberGenerator = L.rng
 	var blocks := [Rect2(8, 114, 12, 7), Rect2(-22, 126, 12, 7), Rect2(12, 126, 12, 7), Rect2(-40, 106, 10, 7), Rect2(26, 102, 12, 6), Rect2(-8, 138, 6, 5), Rect2(28, 142, 9, 6), Rect2(-36, 136, 8, 6), Rect2(-18, 104, 10, 6),
-		Rect2(4, 100, 8, 6), Rect2(14, 136, 10, 6), Rect2(-24, 140, 8, 6), Rect2(32, 120, 8, 8), Rect2(-42, 118, 6, 8), Rect2(16, 148, 10, 5)]
+		Rect2(4, 100, 8, 6), Rect2(14, 136, 10, 6), Rect2(-24, 140, 8, 6), Rect2(32, 120, 8, 8), Rect2(-42, 118, 6, 8)]      # (a fifteenth block at (16, 148) is the Ossuary's quarry now)
 	var bi := 0
 	for r: Rect2 in blocks:
 		bi += 1

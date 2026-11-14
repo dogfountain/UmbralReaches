@@ -597,7 +597,7 @@ func _bank_home(r: Rect2, rng: RandomNumberGenerator) -> Vector2:
 	var best_h := INF
 	for k in 14:
 		var q := Vector2(rng.randf_range(inner.position.x, inner.end.x), rng.randf_range(inner.position.y, inner.end.y))
-		var ok := true
+		var ok := not (q.y > 128.0 and q.y < 196.0 and OssFrame.pit_d(q) < 14.0)       # (never in the Ossuary's quarry: it is the lowest ground there is)
 		for b in _banks:
 			if b.rect == r and (b.home as Vector2).distance_to(q) < 22.0:
 				ok = false

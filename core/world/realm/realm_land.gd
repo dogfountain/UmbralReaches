@@ -551,6 +551,8 @@ static func in_water(x: float, z: float) -> bool:
 	var j := floori((z - GZ0) / STEP)
 	if i < 0 or j < 0 or i >= GNX - 1 or j >= GNZ - 1:
 		return false
+	if z > 128.0 and z < 196.0 and OssFrame.pit_d(Vector2(x, z)) < 8.0:
+		return false                               # the Ossuary's pool is no pond: no frogs, reeds or mist over a 29 m drop
 	return _water[j * GNX + i] == 1 and height_at(x, z) < water_y_at(x, z)
 
 

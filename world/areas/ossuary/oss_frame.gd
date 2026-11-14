@@ -89,7 +89,9 @@ const LANDING_R := 7.0                   ## the Pilgrims' Landing's flat (blends
 static func pit_d(p: Vector2) -> float:
 	var q := l2(p)
 	var ex := lerpf(PIT_X1, PIT_X1_HALL, smoothstep(-42.0, -38.0, q.y) * (1.0 - smoothstep(-21.0, -17.0, q.y)))
-	var dx := maxf(PIT_X0 - q.x, q.x - ex)
+	# the lip stands back 3 m over the gallery and the pit stair (local z -90..-60): the First Pilgrims' Tomb stands on the brow there
+	var x0 := lerpf(PIT_X0, 5.0, smoothstep(-90.0, -84.0, q.y) * (1.0 - smoothstep(-64.0, -58.0, q.y)))
+	var dx := maxf(x0 - q.x, q.x - ex)
 	var dz := maxf(PIT_Z0 - q.y, q.y - PIT_Z1)
 	var ox := maxf(dx, 0.0)
 	var oz := maxf(dz, 0.0)
