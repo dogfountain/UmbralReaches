@@ -67,7 +67,7 @@ func well(c: Vector2) -> void:
 func notice(c: Vector2, yaw: float, ids: Array) -> void:
 	var L := _l
 	var at: Vector3 = L.gv(c.x, c.y)
-	L.site("hw_notice", Rect2(c - Vector2(1.7, 1.7), Vector2(3.4, 3.4)), at.y)
+	L.site("hw_notice", Rect2(c - Vector2(1.3, 1.3), Vector2(2.6, 2.6)), at.y)      # the board's own footprint (3.4 m reached into the brazier's ring)
 	var b := _put("hw_notice.glb", at, yaw, [
 		[Vector3(-1.15, 1.6, 0), Vector3(0.26, 3.2, 0.26)], [Vector3(1.15, 1.6, 0), Vector3(0.26, 3.2, 0.26)],
 		[Vector3(0, 1.95, 0), Vector3(2.3, 1.6, 0.2)]])

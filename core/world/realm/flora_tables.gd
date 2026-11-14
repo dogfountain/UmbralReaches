@@ -74,3 +74,25 @@ static func on_edge_wall(at: Vector2, spread: float) -> bool:
 		if absf(at.x - bd.position.x) < reach or absf(at.x - bd.end.x) < reach:
 			return true
 	return at.y > bd.end.y - reach and at.y < bd.end.y + 3.0
+
+
+static var _walk_pts: PackedVector2Array = PackedVector2Array()
+
+
+## Is this point on a walked route that is not a painted path? (The Fen postern's crest walk, site_fen.gd CREST,
+## sampled every 2 m: a fallen log across it stopped the shortcut dead.) Logs and stumps keep 5 m off it.
+static func on_walk_route(at: Vector2) -> bool:
+	if _walk_pts.is_empty():
+		var crest: Array = (load("res://core/life/secrets/site_fen.gd") as GDScript).get_script_constant_map().get("CREST", [])
+		for i in crest.size():
+			var a: Vector2 = crest[i]
+			_walk_pts.append(a)
+			if i + 1 < crest.size():
+				var b: Vector2 = crest[i + 1]
+				var n := ceili(a.distance_to(b) / 2.0)
+				for k in range(1, n):
+					_walk_pts.append(a.lerp(b, float(k) / float(n)))
+	for w in _walk_pts:
+		if at.distance_to(w) < 5.0:
+			return true
+	return false

@@ -1293,6 +1293,8 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 					continue
 			elif pdk < keep_p + 1.5 and RealmLayout.path_dist(Vector2(px, pz)) < keep_p:
 				continue                                   # the grid is 1 m: exact near the edge
+			if (code == 20 or code == 21) and Tables.on_walk_route(Vector2(px, pz)):
+				continue                                   # no log or stump across a walked route off the paths
 			# ground_y(px, pz), inline
 			var fx := clampf((px - x0) / CELL, 0.0, nx - 1.001)
 			var fz := clampf((pz - z0) / CELL, 0.0, nz - 1.001)
