@@ -42,6 +42,9 @@ var _flinch := 0.0
 var _flinch_side := 0.0
 var _airborne := false
 var _size := 1.0
+var _sock_bone: PackedInt32Array = PackedInt32Array()
+var _sock_node: Array[Node3D] = []
+var _sock_rest: Array[Basis] = []
 
 
 func _build() -> void:
@@ -75,11 +78,16 @@ func _build() -> void:
 			var idx := _skeleton.find_bone(bone)
 			if idx < 0:
 				continue
-			var at := BoneAttachment3D.new()
+			# a socket is a joint in RIG axes (what the procedural rigs gave): it sits on the bone and turns with
+			# it, but at rest it is unrotated, so an offset written for the old rigs still points the same way
+			var at := Node3D.new()
 			at.name = "Socket_" + k
-			at.bone_name = bone
-			_skeleton.add_child(at)
+			add_child(at)
 			_sockets[k] = at
+			_sock_bone.append(idx)
+			_sock_node.append(at)
+			_sock_rest.append(_skeleton.get_bone_global_rest(idx).basis.orthonormalized().inverse())
+		_place_sockets()
 	# the three joints the base class and Enemy read; fall back along the chain so none is null
 	_pelvis = (_sockets.get("pelvis", _sockets.get("body", _model)) as Node3D)
 	_chest = (_sockets.get("chest", _sockets.get("front", _pelvis)) as Node3D)
@@ -144,6 +152,16 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 			elif _state != &"windup_hold":
 				_locomote(vel, on_floor)
 	_anim.advance(delta)
+	_place_sockets()
+
+
+func _place_sockets() -> void:
+	if _skeleton == null:
+		return
+	var rel := global_transform.affine_inverse() * _skeleton.global_transform
+	for i in _sock_node.size():
+		var xf := rel * _skeleton.get_bone_global_pose(_sock_bone[i])
+		_sock_node[i].transform = Transform3D(xf.basis.orthonormalized() * _sock_rest[i], xf.origin)
 
 
 func _locomote(vel: Vector3, on_floor: bool) -> void:

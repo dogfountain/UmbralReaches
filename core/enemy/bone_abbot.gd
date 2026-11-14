@@ -30,6 +30,7 @@ extends Ossuant
 ## Kept from r29-r33 (tests call them): _tithe, _requiem, _raise_faithful, _cage, the reliquary at his
 ## breast (two bursts break the Requiem; one breaks Raise the Faithful), the phase floors.
 
+const ClipRig := preload("res://core/enemy/clip_rig.gd")
 const ChanterScript := preload("res://core/enemy/chanter.gd")
 const TallyScript := preload("res://core/enemy/tally_reliquary.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
@@ -140,8 +141,23 @@ func _absorb(dmg: float, from: Node) -> float:
 
 
 func _build() -> void:
-	super._build()
 	name = "BoneAbbot"
+	# his motion is authored (tools/blender/boss_humanoid_anim.py): a real skeleton, a ring of skirt bones and
+	# keyed clips played by ClipRig, in place of the Ossuant's joints posed by formula
+	var rig: CharacterRig = ClipRig.new()
+	rig.scene_path = "res://art/models/boss_bone_abbot.glb"
+	rig.socket_bones = {"pelvis": "hips", "body": "spine", "chest": "chest", "front": "chest", "head": "head", "hand_r": "hand_r", "hand_l": "hand_l"}
+	rig.walk_stride = 0.645
+	rig.run_at = 99.0                       # he does not run
+	attach_rig(rig)
+	_rig.scale = Vector3(1.04, 0.94, 1.04)
+	_rig_xf = _rig.transform
+	var col := get_node_or_null("Collision") as CollisionShape3D
+	if col and col.shape is CapsuleShape3D:
+		var cap := col.shape as CapsuleShape3D
+		cap.height = CAPSULE_H * 0.92
+		col.position.y = cap.height * 0.5
+	set_flesh(rig.dress(&"bone_abbot"))
 	set_meta(&"yield_cast", "Bone Rain")           # the rain's long bar gives way to the next rite's
 	BossKit.embiggen(self, SCALE)
 	strike_range = 3.0                          # embiggen caps reach at 1.7x; his arms are 2.6x
@@ -163,6 +179,9 @@ func _build() -> void:
 ## The crozier is carried upright in the right hand (it hung from the swinging arm like a cane, the
 ## hook behind the head): each frame its mesh is turned back to vertical about the hand.
 func _process(_delta: float) -> void:
+	if _rig != null and _rig.get_script() == ClipRig:
+		set_process(false)                   # the authored clips carry the crozier themselves
+		return
 	if _crozier_mi == null:
 		var hand := _rig.socket("hand_r") if _rig else null
 		_crozier_mi = hand.get_node_or_null("Kin_glow_hand_r") as Node3D if hand else null
@@ -865,8 +884,11 @@ func _tithe() -> void:
 			continue
 		BossKit.zone(get_parent(), at, 0.75 + 0.16 * float(i), 22.0, {"by": self, "radius": 1.5, "color": BossKit.BONE, "spikes": "bone"})
 		get_tree().create_timer(0.75 + 0.16 * float(i), false).timeout.connect(func() -> void:
-			if is_instance_valid(self) and is_alive() and _rig is HunchRig:
-				(_rig as HunchRig).strike())                                # the crozier meets each spike
+			if not (is_instance_valid(self) and is_alive()):
+				return
+			var r: Variant = _rig                                              # HunchRig or ClipRig: both strike
+			if r != null:
+				r.strike())                                # the crozier meets each spike
 
 
 ## The reliquary found while the Requiem is sung: two such bolts break the song. While it raises the
