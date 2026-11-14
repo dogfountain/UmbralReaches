@@ -24,7 +24,7 @@ const HermitScript := preload("res://core/enemy/wretch.gd")
 
 const ID := "r37_anchoress"
 const HP := 560
-const SCALE := 2.3
+const SCALE := 3.0               ## 2.3 -> 3.0 (a boss in her own room)
 const LANE_LEN := 6.4                 ## half length of the Swing's strip (x2 on the ground)
 const LANE_W := 1.7
 const RING_R := 5.4

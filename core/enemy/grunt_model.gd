@@ -16,16 +16,16 @@ const SHADOWED := ["chest", "pelvis", "head", "body", "front"]
 
 ## kind -> [glb, shader params]. Families: hollowed people = wet; rift-born = heat; Ossuary dead = dust
 const KINDS := {
-	&"wretch": ["res://art/models/grunt_wretch.glb", {"rim_amount": 0.18, "wet": 0.72, "normal_depth": 1.2}],
-	&"husk": ["res://art/models/grunt_husk.glb", {"emit_pulse": 0.4, "pulse_rate": 1.4, "wet": 0.9, "normal_depth": 1.25}],
-	&"spitter": ["res://art/models/grunt_spitter.glb", {"emit_pulse": 0.5, "pulse_rate": 3.0, "membrane": 0.7, "wet": 1.0, "normal_depth": 1.15}],
-	&"ossuant": ["res://art/models/grunt_ossuant.glb", {"dust": 0.78, "dust_col": Color(0.46, 0.43, 0.38), "normal_depth": 1.3}],
-	&"bulwark": ["res://art/models/grunt_bulwark.glb", {"wet": 0.62, "normal_depth": 1.25}],
-	&"chanter": ["res://art/models/grunt_chanter.glb", {"emit_pulse": 0.28, "pulse_rate": 1.1, "wet": 0.58, "normal_depth": 1.15}],
-	&"crawler": ["res://art/models/grunt_crawler.glb", {"heat": 0.72, "normal_depth": 1.3}],
-	&"leaper": ["res://art/models/grunt_leaper.glb", {"emit_pulse": 0.3, "pulse_rate": 1.8, "heat": 0.72, "normal_depth": 1.25}],
-	&"burrower": ["res://art/models/grunt_burrower.glb", {"emit_pulse": 0.35, "pulse_rate": 1.2, "heat": 0.62, "normal_depth": 1.2}],
-	&"mite": ["res://art/models/grunt_mite.glb", {"emit_pulse": 0.48, "pulse_rate": 2.6, "membrane": 0.6, "heat": 0.6, "normal_depth": 1.15}],
+	&"wretch": ["res://art/models/grunt_wretch.glb", {"rim_col": Color(1.0, 0.46, 0.16), "rim_amount": 0.42, "wet": 0.72, "normal_depth": 1.2}],
+	&"husk": ["res://art/models/grunt_husk.glb", {"rim_col": Color(1.0, 0.5, 0.12), "rim_amount": 0.5, "emit_pulse": 0.4, "pulse_rate": 1.4, "wet": 0.9, "normal_depth": 1.25}],
+	&"spitter": ["res://art/models/grunt_spitter.glb", {"rim_col": Color(0.3, 1.0, 0.72), "rim_amount": 0.8, "emit_pulse": 0.5, "pulse_rate": 3.0, "membrane": 0.7, "wet": 1.0, "normal_depth": 1.15}],
+	&"ossuant": ["res://art/models/grunt_ossuant.glb", {"rim_col": Color(1.0, 0.82, 0.48), "rim_amount": 0.45, "dust": 0.78, "dust_col": Color(0.46, 0.43, 0.38), "normal_depth": 1.3}],
+	&"bulwark": ["res://art/models/grunt_bulwark.glb", {"rim_col": Color(1.0, 0.55, 0.2), "rim_amount": 0.45, "wet": 0.62, "normal_depth": 1.25}],
+	&"chanter": ["res://art/models/grunt_chanter.glb", {"rim_col": Color(0.62, 1.0, 0.4), "rim_amount": 0.5, "emit_pulse": 0.28, "pulse_rate": 1.1, "wet": 0.58, "normal_depth": 1.15}],
+	&"crawler": ["res://art/models/grunt_crawler.glb", {"rim_col": Color(1.0, 0.26, 0.16), "rim_amount": 0.5, "heat": 0.72, "normal_depth": 1.3}],
+	&"leaper": ["res://art/models/grunt_leaper.glb", {"rim_col": Color(1.0, 0.6, 0.14), "rim_amount": 0.5, "emit_pulse": 0.3, "pulse_rate": 1.8, "heat": 0.72, "normal_depth": 1.25}],
+	&"burrower": ["res://art/models/grunt_burrower.glb", {"rim_col": Color(1.0, 0.62, 0.22), "rim_amount": 0.5, "emit_pulse": 0.35, "pulse_rate": 1.2, "heat": 0.62, "normal_depth": 1.2}],
+	&"mite": ["res://art/models/grunt_mite.glb", {"rim_col": Color(0.3, 1.0, 0.88), "rim_amount": 0.6, "emit_pulse": 0.48, "pulse_rate": 2.6, "membrane": 0.6, "heat": 0.6, "normal_depth": 1.15}],
 }
 
 static var _scenes := {}

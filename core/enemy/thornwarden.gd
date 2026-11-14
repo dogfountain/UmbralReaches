@@ -26,7 +26,7 @@ extends Leaper
 const SLAM_R := 3.2
 const SLAM_R2 := 5.0
 const LANES_EVERY := 7.0
-const SCALE := 2.6
+const SCALE := 3.8              ## 2.6 -> 3.8 (about 6.4 m, 9 m across): the smallest thing in his own arena no more
 
 var phase := 1
 var rooted := false             ## the intermission: rooted in the altar, immune
@@ -96,7 +96,8 @@ func on_engaged(arena: Node) -> void:
 	# r34 merge: attunement (Ruan's ward-stones): its Thornspeakers' song only takes a quarter off your blows
 	_attuned = QuestBook.attuned("thornwarden")
 	# r35: world cues, not text: one short line a mechanic, no instructions (the arena shows what to do)
-	BossKit.emote(self, "The ward-stones hold. Its song is weak." if _attuned else "The Thornwarden rises from the ring.")
+	if _attuned:
+		BossKit.emote(self, "The ward-stones hold. Its song is weak.")
 
 
 func _absorb(dmg: float, from: Node) -> float:

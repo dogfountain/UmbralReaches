@@ -190,7 +190,7 @@ func _henge() -> void:
 		return
 	check("henge: the raid door shuts behind you", _shut(seal) and Player.boss_fight_active(get_tree()))
 	check("henge: the boss is raid-sized", b._rig != null and b._rig.scale.x >= 2.5 and b.max_hp >= 500, "x%.1f, %d hp" % [b._rig.scale.x if b._rig else 0.0, b.max_hp])
-	check("henge: the pull is announced (emote)", arena.last_emote != "", arena.last_emote)
+	check("henge: the pull is announced (a boss title)", arena.get_node_or_null("BossTitle") != null or arena.last_emote != "", arena.last_emote)
 	await _secs(2.6)
 	# r35: its own theme (boss_themes.gd), rendered on a thread on the first pull
 	var themes := get_tree().get_first_node_in_group(&"boss_themes")

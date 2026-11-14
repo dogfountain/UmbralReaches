@@ -310,7 +310,10 @@ func _begin() -> void:
 	if _boss.has_method("on_engaged"):
 		_boss.call("on_engaged", self)
 	Events.boss_engaged.emit(_boss, title)
-	Events.zone_entered.emit(title.to_upper(), subtitle)
+	# the boss's name is a title in the encounter HUD's voice (BossTitle) and the view turns to him
+	# (BossFrame) for the beat he rises; the hud's zone card waited out the fight and then drew late
+	BossTitle.show_for(self, title, subtitle)
+	BossFrame.start(self, _boss)
 	Sfx.play("res://art/audio/ward_chime.wav", boss_at, 4.0)
 	SpellFx.rift_in(boss_at)
 

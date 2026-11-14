@@ -164,7 +164,7 @@ static func statue(host: Node3D, space: PhysicsDirectSpaceState3D) -> BossArena:
 	room.global_position = c
 	room.set("centre", c)
 	room.set("radius", 20.0)
-	var spawn := c - Vector3(out.x, 0.0, out.y) * 5.0 + Vector3.UP * 0.1
+	var spawn := c + Vector3(out.x, 0.0, out.y) * 4.5 + Vector3.UP * 0.1   # rises on the entry axis, in sight of the mouth (was behind the centre, 26 m off)
 	var ar: BossArena = BossArena.make(host, "r37_hierarch", "The Speaking Crown", c, 20.0, HierarchVoice, spawn)
 	ar.room = room
 	ar.ceiling = 26.0

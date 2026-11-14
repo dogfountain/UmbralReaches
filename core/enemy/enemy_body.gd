@@ -161,7 +161,10 @@ static func _model_mat(kind: StringName) -> ShaderMaterial:
 	m.set_shader_parameter("orm_tex", load("res://art/textures/%s_orm.png" % base))
 	m.set_shader_parameter("emit_tex", load("res://art/textures/%s_emit.png" % base))
 	m.set_shader_parameter("normal_depth", 1.25)
-	m.set_shader_parameter("rim_amount", 0.2)
+	# the boss's own accent edge (ember on the thorn, candle on the abbot, pale gold on the robed two)
+	m.set_shader_parameter("rim_col", {&"thornwarden": Color(1.0, 0.42, 0.1), &"bone_abbot": Color(1.0, 0.7, 0.32),
+		&"ascended_warden": Color(1.0, 0.88, 0.55), &"hierarch": Color(0.9, 0.85, 0.5)}.get(kind, Color(1.0, 0.6, 0.25)))
+	m.set_shader_parameter("rim_amount", 0.55)
 	# family finish: Ossuary dust, hollowed wet sheen, bark/heat on the living thorn
 	match kind:
 		&"bone_abbot":
@@ -220,7 +223,7 @@ static func material(kind: StringName) -> ShaderMaterial:
 	var p: Dictionary = {
 		# r30 value / colour keys per family, in hues the grade keeps (ember, gold, green-teal): every kind
 		# was the same mid mauve-grey and read alike at 15 m
-		&"wretch": {"skin": Color(0.36, 0.33, 0.36), "deep": Color(0.1, 0.07, 0.09), "eye": Color(1.6, 0.42, 0.1), "rim": 0.3, "tex": &"wretch", "matte": 0.2},
+		&"wretch": {"skin": Color(0.36, 0.33, 0.36), "deep": Color(0.1, 0.07, 0.09), "eye": Color(1.6, 0.42, 0.1), "rim": 0.3, "rimc": Color(1.0, 0.46, 0.16), "tex": &"wretch", "matte": 0.2},
 		&"husk": {"skin": Color(0.56, 0.56, 0.4), "deep": Color(0.18, 0.17, 0.08), "eye": Color(1.0, 0.45, 0.12), "rim": 0.25, "tex": &"husk", "linen": Color(0.42, 0.37, 0.3), "matte": 0.3, "depth": 0.5},
 		&"spitter": {"skin": Color(0.72, 0.76, 0.68), "deep": Color(0.24, 0.3, 0.25), "eye": Color(0.3, 1.4, 1.0), "rim": 0.55, "vein": Color(0.08, 0.2, 0.12), "tex": &"spitter"},
 		&"crawler": {"skin": Color(0.3, 0.27, 0.3), "deep": Color(0.08, 0.05, 0.07), "eye": Color(1.3, 0.18, 0.12), "rim": 0.3, "tex": &"crawler", "bone": Color(0.26, 0.22, 0.24), "matte": 0.35, "depth": 0.45},
@@ -234,7 +237,8 @@ static func material(kind: StringName) -> ShaderMaterial:
 	m.set_shader_parameter("skin", p.skin)
 	m.set_shader_parameter("skin_deep", p.deep)
 	m.set_shader_parameter("eye_col", p.eye)
-	m.set_shader_parameter("rim_amount", p.rim)
+	m.set_shader_parameter("rim_amount", float(p.rim) * 0.7)
+	m.set_shader_parameter("rim_col", p.get("rimc", Color(1.0, 0.55, 0.22)))
 	if p.has("vein"):
 		m.set_shader_parameter("vein", p.vein)
 	if p.has("bone"):

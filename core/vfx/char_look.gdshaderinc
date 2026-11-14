@@ -97,6 +97,14 @@ vec3 cl_moon_rim(vec3 normal, vec3 view, mat4 view_matrix) {
 	return vec3(0.28, 0.38, 0.62) * pow(1.0 - ndv, 8.0) * (0.3 + 0.7 * up) * CL_MOON;
 }
 
+// r38 combat read: the creature's own accent -- a wide fresnel in a kind colour (ember in a husk, gloom-teal
+// on a spitter's wet skin), so the body edge parts from dark ground at 8-15 m, in the open and under trees.
+// Emission-only, one pow; kept low (well under the 1.15 bloom threshold) so it never competes with a windup fill.
+vec3 cl_accent(vec3 normal, vec3 view, vec3 col, float amount) {
+	float ndv = clamp(dot(normal, view), 0.0, 1.0);
+	return col * amount * pow(1.0 - ndv, 2.0) * (0.35 + 0.65 * smoothstep(0.0, 0.5, 1.0 - ndv));
+}
+
 // r38: lift the body so skin, bone and cloth read as materials in moonlight (a small gain, hue kept: no
 // added black-point; the night stays dark, the grade still does its work).
 vec3 cl_lift(vec3 a) {

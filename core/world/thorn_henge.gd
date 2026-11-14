@@ -292,7 +292,7 @@ func _build(root: Node) -> void:
 	var seal := WardSeal.make(self, "henge", mouth, gout, seal_w, 5.2 if realm else 4.6, "thorn", "The thorn seal")
 	var arena: BossArena
 	if realm:
-		arena = BossArena.make(self, "thornwarden", "The Thornwarden", C, float(raid.get("ARENA_R")), Thornwarden, C + gout * 6.8 + Vector3.UP * 0.1)
+		arena = BossArena.make(self, "thornwarden", "The Thornwarden", C, float(raid.get("ARENA_R")), Thornwarden, C + gout * 17.5 + Vector3.UP * 0.1)   # rises in the open on the entry axis (between hedge and raid door), not behind the trilithon
 		arena.room = raid
 		arena.ceiling = 9.0
 	else:
