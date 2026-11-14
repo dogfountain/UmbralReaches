@@ -135,7 +135,7 @@ def field():
         Pt.chain(F, [sp(sx * 0.055, 0.76, hz - 0.03), sp(sx * 0.066, 0.795, hz - 0.0)], [0.034 * HS, 0.034 * HS], 0.02, "bone")
         F.add(Q.Ell(sp(sx * 0.07, 0.797, hz + 0.005), sr(0.05, 0.02, 0.048)), 0.03, "bone")
         # the ear: a broad leaf of hide set behind the orbit, swept out and back (the strongest cue that this is a deer)
-        F.add(Q.Ell(sp(sx * 0.14, 0.77, hz + 0.09), sr(0.014, 0.1, 0.046), (0.5, 0, -0.7 * sx)), 0.015, "hide")
+        F.add(Q.Ell(sp(sx * 0.14, 0.77, hz + 0.09), sr(0.022, 0.065, 0.034), (0.5, 0, -0.7 * sx)), 0.015, "bark")
     F.sub(Q.Ell(sp(0, 0.672, hz - 0.3), sr(0.016, 0.016, 0.034)), 0.008)                                          # the nasal opening
     # the antler crown, rooted in the skull's crest
     for sx in (-1, 1):
@@ -307,11 +307,11 @@ def detail(ctx):
         idx = np.where((np.linalg.norm(P - c_, axis=1) < 0.046) & (N[:, 0] * sx_ > 0.2), 3, idx)
     barkish = (idx == 0) | (idx == 1)
     # bark zone: the upper and outer surfaces; hide under the belly, the throat, the lower legs
-    zone = np.clip((N[:, 1] + 1.2) * 1.0, 0.0, 1.0) * barkish
+    zone = barkish * 1.0   # plated all round: belly, flanks, throat and neck-to-shoulder too (a smooth bare underside lit up pale in the coil pose)
     low_leg = np.clip((0.12 - P[:, 1]) * 14.0, 0.0, 1.0)
     zone = zone * (1.0 - low_leg)
-    zone = np.where(idx == 1, 0.0, zone)                                     # a prim tagged hide stays hide
-    zone = np.where(P[:, 2] < -0.62, zone * np.clip((0.7 - P[:, 1]) * 0 + 1.0, 0, 1) * 0.0, zone)       # not on the face
+    zone = np.where((idx == 1) & (P[:, 1] < 0.15), 0.0, zone)         # only the lowest hide (feet, cannons) stays hide: the belly and inner legs are plated too
+    zone = np.where((P[:, 2] < -0.78) & (P[:, 1] > 0.5), 0.0, zone)       # not on the face (the throat, chest and neck-to-shoulder are plated)
     zone = zone * np.clip((ctx.tag('bone') - 0.004) / 0.03, 0.0, 1.0)
     disp, crev, pid = BK.plates(P, N, axes(), zone, warp=0.55)
     sc.d += disp

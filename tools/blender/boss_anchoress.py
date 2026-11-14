@@ -119,6 +119,20 @@ for _i in range(len(sk_full.arms.p)):                  # the arms hang from the 
     _x, _y, _z = sk_full.arms.p[_i]
     _out = ARMOUT * min(1.0, max(0.0, (1.2 - _y) / 0.4)) * (1.0 if _x > 0 else -1.0)
     sk_full.arms.p[_i] = (_x + _out, _y, _z + float(LEAN(_y)))
+# the hands DO something: each fist closes round its grip (a link of the chain on the right, the lamp's ring on the left), fingers stacked
+# down the grip and wrapped back, outer side, front and inner side round it, the thumb laid across the front (arm nodes are (x, depth+front, height))
+for _t, _s in (("r", 1.0), ("l", -1.0)):
+    _w = sk_full.arms.p[sk_full.arms.idx["wr" + _t]]
+    _ax = _w[0]
+    _rr = 0.058
+    for _k in range(4):
+        _h = 0.69 - 0.05 * _k
+        _ring = ((_ax, -_rr * 0.9), (_ax + _s * _rr, 0.0), (_ax, _rr * 1.0), (_ax - _s * _rr * 0.9, 0.0))
+        for _j in range(4):
+            sk_full.arms.p[sk_full.arms.idx["f%d%s%d" % (_k, _t, _j)]] = (_ring[_j][0], _ring[_j][1] + _w[1], _h - 0.004 * _j)
+    sk_full.arms.p[sk_full.arms.idx["th" + _t + "0"]] = (_ax - _s * 0.03, _w[1] + 0.0, 0.67)
+    sk_full.arms.p[sk_full.arms.idx["th" + _t + "1"]] = (_ax - _s * 0.012, _w[1] + 0.045, 0.655)
+    sk_full.arms.p[sk_full.arms.idx["th" + _t + "2"]] = (_ax + _s * 0.014, _w[1] + 0.05, 0.64)
 tsk = GB.Skel()
 W_ = 0.78
 tsk.loft(lean_keys([(0.78, 0, 0.0, 0.06 * W_, 0.05, 0.05, 2.0), (0.84, 0, 0.0, 0.1 * W_, 0.07, 0.08, 2.2), (0.95, 0, 0.0, 0.125 * W_, 0.08, 0.09, 2.2),
@@ -365,6 +379,11 @@ for y in (-0.8, -0.9):
 for k in range(5):
     rr = np.random.RandomState(20 + k)
     radd(GK.slab("Salt", HR + G(rr.uniform(-0.06, 0.06), -0.69 + rr.uniform(-0.02, 0.01), rr.uniform(-0.05, 0.05)), (0.025, 0.022, 0.03), Matrix.Rotation(k, 3, 'Z').to_quaternion(), "hand_r", SALT, 0.0, 0.2, k, 8, 6, 0.4))
+# the chain hand: a gaunt, big-knuckled fist closed round a link, the chain leaving the bottom of it (rigid, on the hand socket, so it moves with the hand)
+radd(K.blob("Fist", HR + Vector(G(0.0, -0.05, 0.0)), (0.058, 0.066, 0.062), "hand_r", SKIN, 16, 12))
+for k in range(4):
+    radd(K.blob("Knuckle", HR + Vector(G(0.0, 0.0 - 0.028 * k, -0.052)), (0.026, 0.018, 0.02), "hand_r", SKIN, 10, 8))
+radd(K.loft("Thumb", [HR + Vector(G(0.04, 0.0, -0.01)), HR + Vector(G(0.025, -0.03, -0.06)), HR + Vector(G(-0.005, -0.06, -0.062))], [0.016, 0.014, 0.012], "hand_r", SKIN, 7))
 for o in rig_r:
     add(o)
 
@@ -378,6 +397,15 @@ for o in (TUBE("Handle", [HL + G(0, -0.02, 0), HL + G(0, -0.1, 0.0), HL + G(0, -
 for k in range(6):
     a = math.tau * k / 6.0
     o = TUBE("Bar", [HL + G(math.cos(a) * 0.055, -0.15, math.sin(a) * 0.055), HL + G(math.cos(a) * 0.075, -0.23, math.sin(a) * 0.075), HL + G(math.cos(a) * 0.055, -0.31, math.sin(a) * 0.055)], 0.0045, "hand_l", IRON)
+    o["sock"] = "hand_l"
+    add(o)
+# the lamp hand: a closed fist round the lamp's ring, knuckles forward
+for o in (K.blob("Fist", HL + Vector(G(0.0, -0.05, 0.0)), (0.058, 0.066, 0.062), "hand_l", SKIN, 16, 12),
+          K.loft("Thumb", [HL + Vector(G(-0.04, 0.0, -0.01)), HL + Vector(G(-0.025, -0.03, -0.06)), HL + Vector(G(0.005, -0.06, -0.062))], [0.016, 0.014, 0.012], "hand_l", SKIN, 7)):
+    o["sock"] = "hand_l"
+    add(o)
+for k in range(4):
+    o = K.blob("Knuckle", HL + Vector(G(0.0, 0.0 - 0.028 * k, -0.052)), (0.026, 0.018, 0.02), "hand_l", SKIN, 10, 8)
     o["sock"] = "hand_l"
     add(o)
 o = L.thorn("Spike", HL + G(0, -0.34, 0), Vector(G(0, -1, 0)), 0.04, 0.012, Vector((0, 0, 0)), "hand_l", IRON, 5, 4, 1.0)
