@@ -57,6 +57,7 @@ var _arena_c := Vector3.INF
 
 func _init() -> void:
 	super._init()
+	body_kind = &"anchoress"
 	max_hp = HP
 	hp = float(HP)
 	walk_speed = 3.2
@@ -78,7 +79,6 @@ func phase_marks() -> Array[float]:
 func _build() -> void:
 	super._build()
 	name = "Anchoress"
-	_dress()
 	BossKit.embiggen(self, SCALE)
 
 
@@ -97,91 +97,8 @@ func _absorb(dmg: float, from: Node) -> float:
 	return BossKit.absorb(self, dmg, from, BossKit.phase_floor(self, phase, phase_marks(), _sig))
 
 
-# --- the look: wool, chain, a stone on a chain, a caged lantern ------------------------------------
-
-const WOOL := Color(0.46, 0.43, 0.38)
-const WOOL2 := Color(0.34, 0.32, 0.3)
-const IRON := Color(0.26, 0.25, 0.28)
-const STONE := Color(0.5, 0.52, 0.5)
-static var _parts_cache := {}
-static var _mat_cache: ShaderMaterial = null
-
-
-static func _mat() -> ShaderMaterial:
-	if _mat_cache == null:
-		_mat_cache = EnemyBody.material(&"wretch").duplicate() as ShaderMaterial
-		_mat_cache.set_shader_parameter("skin", Color(0.5, 0.47, 0.42))
-		_mat_cache.set_shader_parameter("deep", Color(0.16, 0.14, 0.12))
-		_mat_cache.set_shader_parameter("eye_col", GLOW)
-		_mat_cache.set_shader_parameter("rim_col", Color(0.8, 0.6, 0.4))
-	return _mat_cache
-
-
-func _dress() -> void:
-	if _rig == null:
-		return
-	if _parts_cache.is_empty():
-		_parts_cache = _make_parts()
-	var dressed: Array[MeshInstance3D] = []
-	for mi0 in _flesh:
-		if is_instance_valid(mi0):
-			dressed.append(mi0)
-	for sock: String in _parts_cache:
-		var at := _rig.socket(sock)
-		if at == null:
-			continue
-		var mi := MeshInstance3D.new()
-		mi.name = "Anchoress_" + sock
-		mi.mesh = _parts_cache[sock]
-		mi.material_override = _mat()
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if sock in ["chest", "head", "pelvis"] else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		at.add_child(mi)
-		dressed.append(mi)
-	set_flesh(dressed)
-
-
-static func _make_parts() -> Dictionary:
-	var parts := {}
-	# head: a hood of grey wool, a rope across the mouth, a salt-crust on the brow
-	var h := CreatureMesh.new(37001)
-	h.blob(Vector3(0, 0.05, 0.03), Vector3(0.17, 0.18, 0.18), Basis.IDENTITY, WOOL, 0.0, 0.2, 0.0, 7, 12, 1.0)
-	h.tube(PackedVector3Array([Vector3(0, 0.16, 0.07), Vector3(0, 0.1, 0.19), Vector3(0, -0.02, 0.23), Vector3(0, -0.14, 0.2)]),
-		PackedFloat32Array([0.07, 0.06, 0.04, 0.0]), 6, WOOL2, 0.0, 0.15, 0.0, Vector2(1.0, 0.5), 1.0)
-	h.tube(PackedVector3Array([Vector3(-0.11, -0.04, -0.12), Vector3(0, -0.05, -0.15), Vector3(0.11, -0.04, -0.12)]), PackedFloat32Array([0.01, 0.01, 0.01]), 4, Color(0.6, 0.5, 0.36), 0.0, 0.0)
-	for k in 5:
-		h.blob(Vector3(-0.08 + 0.04 * float(k), 0.12, -0.12), Vector3(0.016, 0.02, 0.014), Basis.IDENTITY, Color(0.86, 0.88, 0.84), 1.0, 0.1, 0.0, 4, 6)
-	parts["head"] = h.commit()
-	# chest: chain wrapped over the shoulders and down, a shawl, a pendant cairn-stone, the lamp's chain
-	var c := CreatureMesh.new(37002)
-	for k in 4:
-		c.wrap(Vector3(-0.26, 0.18 - 0.04 * float(k), 0.0), Vector3(0.26, -0.22 - 0.03 * float(k), 0.0), 0.22 + 0.012 * float(k), 1.4 + 0.3 * float(k), 0.022, IRON)
-	for k in 12:
-		var ang := TAU * float(k) / 12.0
-		c.strand(Vector3(cos(ang) * 0.2, 0.2, sin(ang) * 0.16), Vector3(cos(ang) * 0.3, -1.0, sin(ang) * 0.3).normalized(), 0.4 + 0.1 * float(k % 3), 0.07, 0.04, WOOL, 1.0, 0.3, 5)
-	c.blob(Vector3(0.0, -0.06, -0.24), Vector3(0.06, 0.07, 0.05), Basis.IDENTITY, STONE, 1.0, 0.14, 0.0, 6, 9)
-	c.tube(PackedVector3Array([Vector3(-0.1, 0.18, -0.16), Vector3(0, -0.02, -0.24), Vector3(0.1, 0.18, -0.16)]), PackedFloat32Array([0.008, 0.008, 0.008]), 4, IRON, 1.0, 0.0)
-	parts["chest"] = c.commit()
-	# pelvis: a long grey skirt tied with rope, the lantern's hook
-	var p := CreatureMesh.new(37003)
-	p.skirt(Vector3(0, 0.02, 0), 0.26, 0.22, 0.95, 0.1, 0.5, 9, 0.3, WOOL2)
-	p.tube(PackedVector3Array([Vector3(-0.22, 0.0, 0), Vector3(0, -0.02, -0.24), Vector3(0.22, 0.0, 0)]), PackedFloat32Array([0.016, 0.016, 0.016]), 4, Color(0.55, 0.45, 0.32), 0.0, 0.0)
-	parts["pelvis"] = p.commit()
-	# right hand: the anchor: a cairn-stone on a chain, an iron ring, hanging a body-length
-	var r := CreatureMesh.new(37004)
-	r.tube(PackedVector3Array([Vector3(0, -0.02, 0), Vector3(0.01, -0.3, -0.02), Vector3(0.0, -0.58, 0.0)]), PackedFloat32Array([0.012, 0.012, 0.012]), 4, IRON, 1.0, 0.0)
-	r.blob(Vector3(0, -0.74, 0), Vector3(0.17, 0.2, 0.17), Basis.IDENTITY, STONE, 1.0, 0.2, 0.0, 7, 10)
-	r.blob(Vector3(0.04, -0.62, 0.02), Vector3(0.05, 0.03, 0.05), Basis.IDENTITY, Color(0.85, 0.86, 0.82), 1.0, 0.1, 0.0, 4, 6)
-	r.ring(Vector3(0, -0.6, 0), Vector3.FORWARD, 0.07, 0.014, IRON, 1.0, 0.0, 12)
-	parts["hand_r"] = r.commit()
-	# left hand: a lantern in an iron cage, hot inside
-	var l := CreatureMesh.new(37005)
-	l.tube(PackedVector3Array([Vector3(0, -0.02, 0), Vector3(0, -0.12, 0)]), PackedFloat32Array([0.008, 0.008]), 4, IRON, 1.0, 0.0)
-	l.blob(Vector3(0, -0.2, 0), Vector3(0.05, 0.07, 0.05), Basis.IDENTITY, Color(1.0, 0.6, 0.2), 0.0, 0.0, 1.0, 5, 8)
-	for k in 6:
-		var a := TAU * float(k) / 6.0
-		l.tube(PackedVector3Array([Vector3(cos(a) * 0.06, -0.13, sin(a) * 0.06), Vector3(cos(a) * 0.07, -0.2, sin(a) * 0.07), Vector3(cos(a) * 0.06, -0.27, sin(a) * 0.06)]), PackedFloat32Array([0.004, 0.004, 0.004]), 3, IRON, 1.0, 0.0)
-	parts["hand_l"] = l.commit()
-	return parts
+# --- the look: boss_anchoress.glb (tools/blender/boss_anchoress.py), dressed by GruntModel as body_kind "anchoress":
+# one skinned body (wool, chain, hood), the anchor on hand_r and the lantern on hand_l as rigid parts ---------
 
 
 # --- the fight ------------------------------------------------------------------------------------

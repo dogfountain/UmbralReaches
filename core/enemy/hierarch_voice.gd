@@ -58,8 +58,8 @@ func _init() -> void:
 	walk_speed = 3.0
 	strike_gloom = 40.0
 	weak_socket = "head"                      # the horn's mouth
-	weak_offset = Vector3(0.0, 0.3, -0.15)
-	weak_r = 0.17
+	weak_offset = Vector3(0.0, 0.52, -0.2)
+	weak_r = 0.22
 	weak_open = false
 
 

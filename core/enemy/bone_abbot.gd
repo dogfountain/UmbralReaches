@@ -165,7 +165,7 @@ func _build() -> void:
 func _process(_delta: float) -> void:
 	if _crozier_mi == null:
 		var hand := _rig.socket("hand_r") if _rig else null
-		_crozier_mi = hand.get_node_or_null("Boss_hand_r") as Node3D if hand else null
+		_crozier_mi = hand.get_node_or_null("Kin_glow_hand_r") as Node3D if hand else null
 		if _crozier_mi == null:
 			return
 	if _state == DEAD or _face == null:

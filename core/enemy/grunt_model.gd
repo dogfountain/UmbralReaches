@@ -25,6 +25,11 @@ const KINDS := {
 	&"crawler": ["res://art/models/grunt_crawler.glb", {"rim_col": Color(1.0, 0.26, 0.16), "rim_amount": 0.5, "heat": 0.72, "normal_depth": 1.3}],
 	&"leaper": ["res://art/models/grunt_leaper.glb", {"rim_col": Color(1.0, 0.6, 0.14), "rim_amount": 0.5, "emit_pulse": 0.3, "pulse_rate": 1.8, "heat": 0.72, "normal_depth": 1.25}],
 	&"burrower": ["res://art/models/grunt_burrower.glb", {"rim_col": Color(1.0, 0.62, 0.22), "rim_amount": 0.5, "emit_pulse": 0.35, "pulse_rate": 1.2, "heat": 0.62, "normal_depth": 1.2}],
+	# the modelled bosses (tools/blender/boss_*.py): one skinned mesh each, a bone per rig socket
+	&"bone_abbot": ["res://art/models/boss_bone_abbot.glb", {"rim_col": Color(1.0, 0.7, 0.32), "rim_amount": 0.5, "emit_pulse": 0.22, "pulse_rate": 3.2, "dust": 0.35, "dust_col": Color(0.48, 0.44, 0.38), "normal_depth": 1.25}],
+	&"ascended_warden": ["res://art/models/boss_ascended_warden.glb", {"rim_col": Color(1.0, 0.88, 0.55), "rim_amount": 0.55, "emit_pulse": 0.12, "pulse_rate": 1.2, "wet": 0.15, "normal_depth": 1.2}],
+	&"hierarch": ["res://art/models/boss_hierarch.glb", {"rim_col": Color(0.9, 0.85, 0.5), "rim_amount": 0.5, "emit_pulse": 0.18, "pulse_rate": 1.0, "dust": 0.25, "dust_col": Color(0.42, 0.4, 0.36), "normal_depth": 1.3}],
+	&"anchoress": ["res://art/models/boss_anchoress.glb", {"rim_col": Color(0.8, 0.6, 0.4), "rim_amount": 0.4, "emit_pulse": 0.2, "pulse_rate": 1.6, "wet": 0.05, "normal_depth": 1.2}],
 	&"mite": ["res://art/models/grunt_mite.glb", {"rim_col": Color(0.3, 1.0, 0.88), "rim_amount": 0.6, "emit_pulse": 0.48, "pulse_rate": 2.6, "membrane": 0.6, "heat": 0.6, "normal_depth": 1.15}],
 }
 
@@ -113,6 +118,15 @@ static func dress(rig: CharacterRig, kind: StringName) -> Array[MeshInstance3D]:
 		mark.name = "Kin_glow_hand_r"
 		rig.socket("hand_r").add_child(mark)
 	return out
+
+
+## Ask the loader's worker threads for a modelled body's mesh and maps, so the first dress finds them read.
+static func prefetch(kind: StringName) -> void:
+	if not KINDS.has(kind):
+		return
+	for path: String in [KINDS[kind][0], _tex(kind, "albedo"), _tex(kind, "normal"), _tex(kind, "orm"), _tex(kind, "emit")]:
+		if ResourceLoader.exists(path):
+			ResourceLoader.load_threaded_request(path)
 
 
 static func _scene(kind: StringName) -> PackedScene:
