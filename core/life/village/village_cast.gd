@@ -406,3 +406,63 @@ const WARES := [
 	{"id": "slates", "text": "Slates for the Reeds' roof", "price": 18, "glyph": "slates", "info": "Bet Reed's roof lets in the rain over Tobin's old bed. A stack of good slate, and a ladder borrowed from the Keg.", "if": "v:reed_home,!v:reed_roof", "do": "v:paid_slates", "say": "Slates. Bet will pretend she didn't want them."},
 	{"id": "thatch", "text": "Thatch for the Harrows' house", "price": 24, "glyph": "thatch", "info": "The Harrows' new rafters want a roof. Reed thatch from the fen edge, and Col's bad knees.", "if": "v:harrow_frame,!v:harrow_roof", "do": "v:paid_thatch", "say": "Thatch. The girl needs a roof more than she needs a candle. Don't tell her I said so."},
 ]
+
+
+# --- as walked ------------------------------------------------------------------------------------------
+## The scale pilot (scale_pilot.gd HW) rebuilt Hearthward's cottages at World-of-Warcraft proportions and added a gate
+## and a market to the square: nodes(), edges(), lamps() and cast() are the tables above as the village is built.
+## A point moves with the house it stands at (Pilot.hw_xz); the gate is the one way into the square from the south.
+const Pilot := preload("res://core/world/realm/scale_pilot.gd")
+const GATE_N := Vector2(1.2, 42.0)                 ## inside the gate: the road's two arms meet here
+const HARROW_W := Vector2(-12.0, 22.0)             ## west of the shrine, on the way to the Harrows' doorstep
+
+static var _nodes_cache := {}
+
+
+static func nodes() -> Dictionary:
+	if not Pilot.on():
+		return NODES
+	if _nodes_cache.is_empty():
+		var out := {}
+		for id: String in NODES:
+			out[id] = Pilot.hw_xz(NODES[id])
+		out["gate_n"] = GATE_N
+		out["harrow_w"] = HARROW_W
+		_nodes_cache = out
+	return _nodes_cache
+
+
+static func edges() -> Array:
+	if not Pilot.on():
+		return EDGES
+	var out := EDGES.duplicate()
+	out.erase(["road_w1", "green_n"])              # the wall beside the gate: both arms of the road come in under it
+	out.erase(["green_n", "road_bend"])
+	out.erase(["green_sw", "harrow"])               # the shrine stands on the straight line now that the house is wider
+	out.append_array([["green_n", "gate_n"], ["gate_n", "road_bend"], ["green_ne", "gate_n"], ["shrine", "harrow_w"], ["harrow_w", "harrow"]])
+	return out
+
+
+static func lamps() -> Array:
+	if not Pilot.on():
+		return LAMPS
+	var out: Array = []
+	for l: Dictionary in LAMPS:
+		var d := l.duplicate()
+		d["post"] = Pilot.hw_xz(l.post)
+		out.append(d)
+	return out
+
+
+## CAST with every routine's "face" carried over (a villager still faces the notice board where it stands now).
+static func cast() -> Dictionary:
+	if not Pilot.on():
+		return CAST
+	var out := CAST.duplicate(true)
+	for id: String in out:
+		var rts: Dictionary = out[id].routines
+		for rn: String in rts:
+			for step: Dictionary in rts[rn]:
+				if step.get("face") is Vector2:
+					step["face"] = Pilot.hw_xz(step.face)
+	return out

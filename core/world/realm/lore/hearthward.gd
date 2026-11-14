@@ -7,6 +7,8 @@ extends RefCounted
 
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Cottage := preload("res://core/world/realm/lore/cottage.gd")
+const Pilot := preload("res://core/world/realm/scale_pilot.gd")
+const Square := preload("res://core/world/realm/lore/hearthward_square.gd")
 const BRAZIER := Vector2(0.0, 33.0)
 
 
@@ -20,21 +22,22 @@ static func build(parent: Node) -> void:
 	var k: OssKit = L.k
 	var p: OssKit = L.p
 	# --- cottages -------------------------------------------------------------------------------
-	var maud: Dictionary = Cottage.build(L, "hw_maud", Vector2(-17.0, 42.0), 6.6, 5.0, face(Vector2(-17, 42), BRAZIER), "lit", "thatch", "lore_plaster")
-	var harrow: Dictionary = Cottage.build(L, "hw_harrow", Vector2(-19.0, 13.0), 6.2, 4.8, face(Vector2(-19, 13), BRAZIER) + 0.2, "ruin", "slate")
+	var maud: Dictionary = Cottage.build(L, "hw_maud", Pilot.hw_at("hw_maud", Vector2(-17.0, 42.0)), 6.6, 5.0, face(Vector2(-17, 42), BRAZIER), "lit", "thatch", "lore_plaster")
+	var harrow: Dictionary = Cottage.build(L, "hw_harrow", Pilot.hw_at("hw_harrow", Vector2(-19.0, 13.0)), 6.2, 4.8, face(Vector2(-19, 13), BRAZIER) + 0.2, "ruin", "slate")
 	var reed: Dictionary = Cottage.build(L, "hw_reed", Vector2(22.0, 42.0), 6.4, 5.0, 0.0, "dark", "slate")
 	var barn: Dictionary = Cottage.build(L, "hw_cobb", Vector2(-33.0, 37.5), 7.0, 5.4, PI * 0.5 + 0.15, "burned", "thatch")
-	var south: Dictionary = Cottage.build(L, "hw_south", Vector2(-15.0, 64.0), 6.0, 4.8, face(Vector2(-15, 64), Vector2(-10, 55)), "dark", "thatch", "lore_plaster")
+	var south: Dictionary = Cottage.build(L, "hw_south", Pilot.hw_at("hw_south", Vector2(-15.0, 64.0)), 6.0, 4.8, face(Vector2(-15, 64), Vector2(-10, 55)), "dark", "thatch", "lore_plaster")
 	# Maud's door plaque and the window spill
-	var mx: Transform3D = maud.xf
+	var mx: Transform3D = maud.xf           # at the pilot's scale: a point in the cottage's own metres comes out where it is built
+	var mxb := mx.basis.orthonormalized()
 	var plaque: Vector3 = mx * Vector3(-3.3 + 6.6 * 0.36 + 0.95, 1.5, -2.5 - 0.03)
-	k.box("lore_beam", plaque, Vector3(0.36, 0.26, 0.03), mx.basis, false, 0.8)
-	L.letters(plaque + mx.basis.z * -0.02, mx.basis.z * -1.0, 0.26, 3)
+	k.box("lore_beam", plaque, Vector3(0.36, 0.26, 0.03), mxb, false, 0.8)
+	L.letters(plaque + mxb.z * -0.02, mxb.z * -1.0, 0.26, 3)
 	L.scrap("hw_maud", mx * Vector3(-3.3 + 6.6 * 0.36 + 0.9, 0.2, -3.3), plaque)
 	# her letters to Hobb: one on the windowsill under the candle, one at the garden gate, one
 	# on the chopping block at the back door
 	var sill := mx * Vector3(-3.3 + 6.6 * 0.72 + 0.12, 0.99, -2.5 - 0.16)
-	L.page(sill, mx.basis * Vector3(0, 1, -0.25).normalized(), 0.3)
+	L.page(sill, mxb * Vector3(0, 1, -0.25).normalized(), 0.3)
 	L.scrap("hw_maud_1", mx * Vector3(-3.3 + 6.6 * 0.72 + 0.2, 0.25, -3.6), sill)
 	var back := mx * Vector3(0.4, 0.0, 3.25)
 	back.y = L.g(back.x, back.z)
@@ -43,40 +46,47 @@ static func build(parent: Node) -> void:
 		cm.tube(PackedVector3Array([Vector3(0, 0, 0), Vector3(0, 0.42, 0), Vector3(0, 0.5, 0)]), PackedFloat32Array([0.3, 0.27, 0.26]), 11, Color(0.75, 0.66, 0.56), 0.0, 0.15)
 		return cm.commit())
 	LK.organic(p, "lore_beam", blk, Transform3D(Basis.IDENTITY, back), true)
-	p.box("iron", back + Vector3(0.05, 0.6, 0.02), Vector3(0.04, 0.14, 0.22), mx.basis * Basis(Vector3.RIGHT, 0.5), false, 0.7)
+	p.box("iron", back + Vector3(0.05, 0.6, 0.02), Vector3(0.04, 0.14, 0.22), mxb * Basis(Vector3.RIGHT, 0.5), false, 0.7)
 	L.page(back + Vector3(-0.08, 0.51, 0.0), Vector3.UP, 0.5)
-	L.scrap("hw_maud_3", back + mx.basis * Vector3(0, 0.25, 0.9), back + Vector3.UP * 0.5)
+	L.scrap("hw_maud_3", back + mxb * Vector3(0, 0.25, 0.9), back + Vector3.UP * 0.5)
 	L.light("MaudWindow", mx * Vector3(-3.3 + 6.6 * 0.72, 1.4, -3.3), Color(1.0, 0.58, 0.26), 0.55, 4.5)
 	k.candle_cluster(mx * Vector3(-3.3 + 6.6 * 0.72, 0.95, -2.5 + 0.38), 1, 0.02, L.rng)
 	# the Harrows' chalked lintel + Wenna's page on their cold hearth
 	var hx: Transform3D = harrow.xf
 	L.scrap("hw_harrow", hx * Vector3(-3.1 + 6.2 * 0.36, 0.3, -3.1), hx * Vector3(-3.1 + 6.2 * 0.36, 2.2, -2.4))
-	L.page(hx * Vector3(3.1 - 0.5 - 0.62, 1.02, 2.4 * 0.25 + 0.2), hx.basis * Vector3(-0.2, 1.0, 0).normalized())
+	L.page(hx * Vector3(3.1 - 0.5 - 0.62, 1.02, 2.4 * 0.25 + 0.2), hx.basis.orthonormalized() * Vector3(-0.2, 1.0, 0).normalized())
 	L.scrap("jn_4", hx * Vector3(1.9, 0.4, 0.6))
 	# --- the well ---------------------------------------------------------------------------------
 	_well(L, Vector2(-10.0, 48.5))
 	# --- gardens ------------------------------------------------------------------------------
-	L.garden(Rect2(-27.5, 44.5, 6.0, 5.0), 1, true)
+	var gw := Pilot.on()                       # the bean garden stands west of the wider house (the pilot off: where it was)
+	var gr_w := Rect2(-35.0, 44.6, 6.0, 5.0) if gw else Rect2(-27.5, 44.5, 6.0, 5.0)
+	L.garden(gr_w, 1, true)
 	# Maud's second letter, tied to the gate post of the bean garden
-	var gp: Vector3 = L.gv(-21.5, 46.25)
+	var gp: Vector3 = L.gv(gr_w.end.x, gr_w.position.y + 1.75)
 	p.box("lore_beam", gp + Vector3.UP * 0.6, Vector3(0.13, 1.4, 0.13), Basis.IDENTITY, true, 0.7)
 	L.page(gp + Vector3(0.075, 0.95, 0.0), Vector3.RIGHT, 0.2)
 	L.scrap("hw_maud_2", gp + Vector3(0.9, 0.25, 0.4), gp + Vector3(0.08, 0.95, 0))
-	L.site("hw_garden_w", Rect2(-27.5, 44.5, 6.0, 5.0), L.g(-24.5, 47.0))
-	L.garden(Rect2(27.0, 43.5, 5.5, 5.0), 3)
-	L.site("hw_garden_e", Rect2(27.0, 43.5, 5.5, 5.0), L.g(29.7, 46.0))
-	L.garden(Rect2(-27.5, 6.0, 5.0, 4.5), 0)
-	L.site("hw_garden_n", Rect2(-27.5, 6.0, 5.0, 4.5), L.g(-25.0, 8.2))
+	L.site("hw_garden_w", gr_w, L.g(gr_w.get_center().x, gr_w.get_center().y))
+	var gr_e := Rect2(29.5, 44.0, 5.5, 5.0) if gw else Rect2(27.0, 43.5, 5.5, 5.0)
+	L.garden(gr_e, 3)
+	L.site("hw_garden_e", gr_e, L.g(gr_e.get_center().x, gr_e.get_center().y))
+	var gr_n := Rect2(-31.5, 5.5, 5.0, 4.5) if gw else Rect2(-27.5, 6.0, 5.0, 4.5)
+	L.garden(gr_n, 0)
+	L.site("hw_garden_n", gr_n, L.g(gr_n.get_center().x, gr_n.get_center().y))
 	# Tobin Reed's grave in the east garden's corner
-	var tg: Vector3 = L.gv(31.6, 47.6)
-	var face_pt: Vector3 = L.headstone(tg, face(Vector2(31.6, 47.6), Vector2(25, 42)), 1, 0.85, Vector2(0.08, -0.05), "lore_tstone", true)
+	var gq := Vector2(33.6, 48.0) if gw else Vector2(31.6, 47.6)
+	var tg: Vector3 = L.gv(gq.x, gq.y)
+	var face_pt: Vector3 = L.headstone(tg, face(gq, Vector2(25, 42)), 1, 0.85, Vector2(0.08, -0.05), "lore_tstone", true)
 	L.scrap("hw_reed", face_pt)
 	# --- Edda's forge across the road ------------------------------------------------------------
 	_forge(L, Vector2(11.0, 60.0))
 	# --- noticeboard, shrine, green -----------------------------------------------------------
-	_noticeboard(L, Vector2(-5.5, 45.5), face(Vector2(-5.5, 45.5), BRAZIER))
+	var nb := Pilot.hw_xz(Vector2(-5.5, 45.5))       # in front of the gate's wall, where the road arrives (scale_pilot.gd HW_POINTS)
+	_noticeboard(L, nb, face(nb, BRAZIER))
 	_shrine(L, Vector2(-8.5, 19.5), face(Vector2(-8.5, 19.5), BRAZIER))
-	L.bench(L.gv(-11.6, 36.0), face(Vector2(-11.6, 36.0), BRAZIER) + PI)
+	var b1 := Vector2(-8.2, 37.4) if gw else Vector2(-11.6, 36.0)     # off the stalls' front
+	L.bench(L.gv(b1.x, b1.y), face(b1, BRAZIER) + PI)
 	L.bench(L.gv(8.6, 41.6), face(Vector2(8.6, 41.6), BRAZIER) + PI)
 	var hs: Vector3 = L.gv(6.2, 22.4)
 	var hb := Basis(Vector3.UP, face(Vector2(6.2, 22.4), BRAZIER))
@@ -99,17 +109,19 @@ static func build(parent: Node) -> void:
 	var sx: Transform3D = south.xf
 	L.scrap("hw_wright", (south.door as Vector3) + Vector3.UP * 0.3, sx * Vector3(-3.0 + 6.0 * 0.36, 0.7, -2.45))
 	var bxf: Transform3D = barn.xf
-	L.scrap("hw_cobb_barn", (barn.door as Vector3) + bxf.basis * Vector3(0.6, 0.3, 0.0), bxf * Vector3(-3.5 + 7.0 * 0.36, 1.2, -2.6))
+	L.scrap("hw_cobb_barn", (barn.door as Vector3) + bxf.basis.orthonormalized() * Vector3(0.6, 0.3, 0.0), bxf * Vector3(-3.5 + 7.0 * 0.36, 1.2, -2.6))
 	# --- yard clutter ---------------------------------------------------------------------------
 	var bx: Transform3D = barn.xf
-	L.cart(bx * Vector3(-1.0, 0, -5.2) + Vector3.UP * (L.g((bx * Vector3(-1.0, 0, -5.2)).x, (bx * Vector3(-1.0, 0, -5.2)).z) - bx.origin.y), bx.basis.get_euler().y + 0.4, true, "")
-	for q: Vector3 in [Vector3(3.9, 0, -1.6), Vector3(3.9, 0, -0.9), Vector3(4.3, 0, -1.25)]:
+	L.cart(bx * Vector3(-1.0, 0, -5.2) + Vector3.UP * (L.g((bx * Vector3(-1.0, 0, -5.2)).x, (bx * Vector3(-1.0, 0, -5.2)).z) - bx.origin.y), bx.basis.orthonormalized().get_euler().y + 0.4, true, "")
+	for q: Vector3 in [Vector3(1.2, 0, 3.5), Vector3(2.0, 0, 3.5), Vector3(1.6, 0, 4.1)]:       # behind the house: the lane to the garden runs down its east side
 		var w: Vector3 = (reed.xf as Transform3D) * q
-		L.barrel(p, Vector3(w.x, L.g(w.x, w.z), w.z), 0.95)
-	var rw: Vector3 = (reed.xf as Transform3D) * Vector3(3.95, 0, 0.6)
+		L.barrel(p, Vector3(w.x, L.g(w.x, w.z), w.z), 1.2)
+	var rw: Vector3 = (reed.xf as Transform3D) * Vector3(-0.9, 0, 3.5)
 	L.crate(p, Vector3(rw.x, L.g(rw.x, rw.z), rw.z), 0.6, 0.3)
 	var sw: Vector3 = (south.xf as Transform3D) * Vector3(-4.0, 0, 0.5)
-	_woodpile(L, Vector3(sw.x, L.g(sw.x, sw.z), sw.z), (south.xf as Transform3D).basis.get_euler().y)
+	_woodpile(L, Vector3(sw.x, L.g(sw.x, sw.z), sw.z), (south.xf as Transform3D).basis.orthonormalized().get_euler().y)
+	if Pilot.on():
+		Square.build(L)                           # the square's market, cross, gate and yards (hearthward_square.gd)
 	var draws: int = L.finish()
 	L.note("Hearthward", Vector3(0, 0, 38))
 	print("REALM_LORE hearthward draws %d" % draws)
@@ -229,7 +241,7 @@ static func _forge(L: RefCounted, c: Vector2) -> void:
 	L.letters(pl + b * Vector3(0, 0, -0.015), b * Vector3(0, 0, -1), 0.22, 2)
 	L.scrap("hw_forge", an + b * Vector3(0, 0.3, -0.9))
 	L.light("ForgeEmbers", fh + Vector3.UP * 1.25 + b * Vector3(0, 0, -0.5), Color(1.0, 0.42, 0.14), 0.7, 4.0)
-	L.cart(xf * Vector3(-2.0, 0, -4.4) + Vector3.UP * (L.g((xf * Vector3(-2.0, 0, -4.4)).x, (xf * Vector3(-2.0, 0, -4.4)).z) - fy), PI * 0.5 + 0.2, false, "hay")
+	# (the forge's hand cart is the modelled one now: hearthward_square.gd)
 	L.barrel(p, xf * Vector3(2.9, 0, -1.9), 0.9)
 
 

@@ -83,8 +83,8 @@ static func _init_once() -> void:
 	fire_points()
 	var hw: Dictionary = SQUARES[0]
 	var hc: Vector2 = hw.c
-	var nodes: Dictionary = Cast.NODES
-	for e: Array in Cast.EDGES:
+	var nodes: Dictionary = Cast.nodes()
+	for e: Array in Cast.edges():
 		var a: Vector2 = nodes[e[0]]
 		var b: Vector2 = nodes[e[1]]
 		if a.distance_to(hc) < float(hw.r) + 2.0 and b.distance_to(hc) < float(hw.r) + 2.0:
