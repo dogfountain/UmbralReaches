@@ -326,7 +326,7 @@ func _process(delta: float) -> void:
 ## current one clearly left (< 0.3) before the name changes.
 func _region_for(at: Vector3) -> String:
 	if RealmLayout.OSSUARY_HALL.has_point(at):
-		at = Vector3(17.0, at.y, -66.0)      # r34 crypt: the pit hall under the fen and the Crowns is the Ossuary's
+		at = Vector3(-8.0, at.y, 168.0)      # the pit hall under the downs is the Ossuary's (a point in its region)
 	var best := ""
 	var best_w := 0.0
 	var cur_w := 0.0

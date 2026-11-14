@@ -88,7 +88,7 @@ var route := [
 	[Vector3(26, 0, 22), "@east"],
 	[Vector3(42, 0, 10), "east_way"], [Vector3(58, 0, -12), "east_way"], [Vector3(72, 0, -34), "fen"],
 	[Vector3(78, 0, -42), "barrows"], [Vector3(62, 0, -56), "fen_descent"], [Vector3(44, 0, -62), "fen_descent"],
-	[Vector3(34, 0, -66), "ossuary gate"],
+	[Vector3(54, 0, -59.5), "fen fire"],
 	[Vector3(0, 0, 22), "@rim"],
 	[Vector3(0, 0, 4), "rift_rim"], [Vector3(0, 0, -10.5), "forecourt"], [Vector3(0, 0, -15.5), "rim steps"],
 	[Vector3(0, 0, -21), "tower 1"], [Vector3(-13, 0, -30), "viaduct"], [Vector3(-1.8, 0, -40), "fallen column"],

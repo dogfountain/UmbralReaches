@@ -1,9 +1,10 @@
 extends RefCounted
 ## Realm module "bosses" (docs/REALM_PLAN.md): the progression rebuilt into the new layout.
 ##   - Thorn Henge on its hill at RealmLayout.HENGE_C, its pilgrim stair from west_way's end
-##   - the Ossuary's fen door at RealmLayout.OSSUARY_GATE: its cut is registered here (before the
-##     terrain stamp); the door and the stair up into the niche gallery are built by the Ossuary
-##     itself (world/areas/ossuary/ossuary.gd `_fen_gate`), which is streamed
+##   - the Ossuary's quarry (under the Waiting Field, RealmLayout.OSSUARY): its ground is cut by
+##     RealmLayout.oss_pit_shape; the pit and the Pilgrims' Landing are registered here as keep-out sites
+##     (before the terrain stamp, the lore and the flora). The tiers are built by the Ossuary itself
+##     (world/areas/ossuary/ossuary.gd), which is streamed
 ##   - the four checkpoint braziers (not the spawn one) moved onto the new map
 ##   - camps: EnemySpawner.seed_realm (world/main.gd), planted once the Realm is built
 ## The summit ward stays where SummitDress makes it (RealmLayout.SUMMIT_WARD, the Crossing's head).
@@ -16,7 +17,7 @@ const BRAZIERS := {
 	"StairFoot": [Vector2(-5.0, -2.0), Vector2(0.0, -2.0)],        # the Crossing's foot, by rift_rim
 	"Shrine": [Vector2(-31.0, 4.0), Vector2(-36.0, 8.6)],          # the Glimmer Glade, beside west_way
 	"Landing": [Vector2(84.0, -36.0), Vector2(78.0, -40.0)],       # the Barrow Field, where fen_descent starts
-	"Threshold": [Vector2(50.6, -57.5), Vector2(55.6, -56.6)],     # on the fen below the Ossuary's fen door, off fen_descent (r34: was (47, -55), half a metre off the Lay Brothers' Stair's foot: the climb glanced off it; it faces east so the ember post stands south of the brazier, off the path)
+	"Threshold": [Vector2(50.6, -57.5), Vector2(55.6, -56.6)],     # on the fen, where fen_descent ends (the Ossuary's fen door was above it until the Ossuary moved; the fire stays: a checkpoint, off fen_descent) (was (47, -55), half a metre off the Lay Brothers' Stair's foot: the climb glanced off it; it faces east so the ember post stands south of the brazier, off the path)
 }
 ## r34 places (docs/r34/places.md): one fire for each new region (RealmLayout.SLOTS "fire"), so the
 ## Ember Road and the checkpoints keep the same spacing over the doubled ground. Copies of a valley
@@ -52,7 +53,7 @@ static func build(root: Node) -> void:
 	ThornHenge.build(root)
 	_reserve_raids()
 	_braziers(root)
-	_ossuary_cut(root)
+	_ossuary_sites()
 	# r30: the watchtower's ground (RealmWayfinding builds it after the flora; reserved now so the
 	# stamp levels it and nothing grows there)
 	(load("res://core/world/realm/realm_wayfinding.gd") as GDScript).call("reserve_tower", root)
@@ -60,8 +61,8 @@ static func build(root: Node) -> void:
 	(load("res://core/world/realm/realm_pois.gd") as GDScript).call("reserve", root)
 	root.set_meta("realm_bosses_done", true)
 	_reseat_braziers_later(root)            # not awaited: runs on after the stamp and flora
-	print("REALM bosses: henge at %s, braziers %s, fen gate cut to x %.1f (%d ms)" % [
-		ThornHenge.C, BRAZIERS.keys(), Ossuary.fen_out, Time.get_ticks_msec() - t0])
+	print("REALM bosses: henge at %s, braziers %s (%d ms)" % [
+		ThornHenge.C, BRAZIERS.keys(), Time.get_ticks_msec() - t0])
 
 
 ## r34 layout: the raid floors (RealmLayout.RAIDS) as sites, registered before the stamp, lore and flora
@@ -73,8 +74,8 @@ static func _reserve_raids() -> void:
 		if String(r.mode) == "level":
 			WorldLanes.register_terrace(n, r.c, float(r.r), float(r.y))
 		else:
-			# the summit's own monument (SummitDress) and the Ossuary's lift tower already stand in it
-			WorldLanes.register_zone(n, r.c, float(r.r), float(r.y), float(r.y) - 0.8, ["SummitAltar", "Area_ossuary"])
+			# the summit's own monument (SummitDress) already stands in it
+			WorldLanes.register_zone(n, r.c, float(r.r), float(r.y), float(r.y) - 0.8, ["SummitAltar"])
 
 
 ## r34 places: every placed fire's name (the valley's four, then the new regions' seven).
@@ -157,22 +158,10 @@ static func _reseat_braziers_later(root: Node) -> void:
 			b.global_position.y = _ground(space, at) - 0.12
 
 
-## The Ossuary's fen door: the stair inside the cliff is cut out of the ground now (hard cuts, no
-## falloff, the Ossuary's retaining walls line them) so the stamp knows before it runs. The cut runs
-## east past the door until it meets ground no higher than the threshold.
-static func _ossuary_cut(root: Node) -> void:
-	var space := (root as Node3D).get_world_3d().direct_space_state
-	var gy := Ossuary.FEN_GATE.y
-	var x := Ossuary.FEN_FACADE_X + 2.0
-	while x < Ossuary.FEN_FACADE_X + 9.0 and _ground(space, Vector2(x, Ossuary.FEN_GATE.z), 0.8) > gy + 0.35:
-		x += 1.0
-	Ossuary.fen_out = x
-	for r: Array in Ossuary.fen_cuts():
-		WorldLanes.register_site(String(r[0]), r[1] as Rect2, float(r[2]), float(r[2]) - 0.1, true)
-	var lo := Vector3(Ossuary.FEN_X, gy, Ossuary.FEN_FOOT_Z)
-	var hi := Vector3(Ossuary.FEN_X, Ossuary.GAL_Y, Ossuary.FEN_HEAD_Z)
-	WorldLanes.register_flight("oss_fen_stair", lo, hi, Ossuary.FEN_W * 0.5)
-	WorldLanes.register_portal("oss_fen_gate", Vector3(Ossuary.FEN_FACADE_X + 0.45, Ossuary.FEN_GATE.y, Ossuary.FEN_GATE.z), Vector3.RIGHT, 1.8, 2.8)
-	WorldLanes.register_portal("oss_fen_door", Vector3(27.35, Ossuary.GAL_Y, Ossuary.FEN_DOOR_Z), Vector3.RIGHT, 1.6, 2.6)
-	WorldLanes.register_lane("oss_fen_way", [Vector2(Ossuary.fen_out, Ossuary.FEN_GATE.z), Vector2(Ossuary.FEN_X, Ossuary.FEN_GATE.z),
-		Vector2(Ossuary.FEN_X, Ossuary.FEN_DOOR_Z), Vector2(26.0, Ossuary.FEN_DOOR_Z)], 1.2)
+## The Ossuary's quarry (): the pit and the Pilgrims' Landing keep the flora, the lore and the rocks out (no
+## floor of their own: the terrain's cut is RealmLayout.oss_pit_shape, the stamp leaves them alone).
+static func _ossuary_sites() -> void:
+	var pit := OssFrame.wrect(Rect2(OssFrame.PIT_X0 - 5.0, OssFrame.PIT_Z0 - 5.0, OssFrame.PIT_X1_HALL - OssFrame.PIT_X0 + 10.0, OssFrame.PIT_Z1 - OssFrame.PIT_Z0 + 10.0))
+	var y := RealmLayout.OSSUARY_GATE.y
+	WorldLanes.register_site("oss_pit", pit, y, y)
+	WorldLanes.register_site("oss_landing", OssFrame.wrect(Rect2(-14.0, -40.0, 11.0, 12.0)), y, y)

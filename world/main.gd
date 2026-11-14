@@ -11,7 +11,7 @@ const LightDirector := preload("res://core/world/light_director.gd")
 const AREAS: Array[Dictionary] = [
 	# load_r covers the whole Realm: the Ossuary loads at boot under the loading screen instead of a
 	# ~265 ms freeze when a player first walks within 110 m of it (from the far west)
-	{"id": "ossuary", "source": "res://world/areas/ossuary/ossuary.gd", "anchor": Vector3(19.0, 4.0, -36.0), "load_r": 400.0, "unload_r": 500.0},
+	{"id": "ossuary", "source": "res://world/areas/ossuary/ossuary.gd", "anchor": Vector3(-14.0, -3.0, 167.0), "load_r": 400.0, "unload_r": 500.0},
 ]
 
 

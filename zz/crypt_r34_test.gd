@@ -12,6 +12,7 @@ extends Node
 ##   --sim: a scripted fight at ~4.5 effective dps (Tallies and Choir broken a few seconds after they
 ##   rise; time x3) and prints the kill time per phase (not part of the gate).
 const Hall := preload("res://world/areas/ossuary/oss_hall.gd")
+const FLOOR_W := Hall.FLOOR_Y - 7.4                       ## the hall floor's world height (OssFrame.ORIGIN.y)
 var p: Player
 var main: Node
 var fails := 0
@@ -112,7 +113,7 @@ func _static_checks() -> void:
 			out += 1
 			print("CRYPT34 outside the reserve: %s %s" % [g.name, bb])
 	check("the hall stays inside OSSUARY_HALL", out == 0, str(out))
-	var c := Hall.C
+	var c := Hall.WC
 	var hits := 0
 	var n := 0
 	for i in 16:
@@ -123,9 +124,9 @@ func _static_checks() -> void:
 			var q := c + Vector3(cos(a) * r, 0.0, sin(a) * r)
 			var f := _ray(q, 1.0, 3.0) if r > 0.0 else _ray(q, 8.0, 3.0)
 			n += 1
-			if f != Vector3.INF and (r == 0.0 or absf(f.y - Hall.FLOOR_Y) < 0.05):
+			if f != Vector3.INF and (r == 0.0 or absf(f.y - FLOOR_W) < 0.05):
 				hits += 1
-	check("the floor stands at y %.0f everywhere (%d of %d)" % [Hall.FLOOR_Y, hits, n], hits == n)
+	check("the floor stands at y %.0f everywhere (%d of %d)" % [FLOOR_W, hits, n], hits == n)
 	var sockets: Array = hall.get("sockets")
 	check("three chapels with Tally plinths", sockets.size() == 3)
 	check("four bells", (hall.get("bells") as Array).size() == 4)
@@ -134,8 +135,7 @@ func _static_checks() -> void:
 	var a := _arena()
 	check("the Abbot's arena is the hall's floor", a != null and a.global_position.distance_to(c) < 0.5 and a.radius >= 22.0)
 	check("raid door: two arena grilles, open at rest", a != null and a.gate != null and a.gate.get("arena_only") == true and a.gates.size() == 1 and not _shut(a.gate) and not _shut(a.gates[0]))
-	var lift := main.find_child("ChainLift", true, false)
-	check("the chain lift is held until the Abbot falls", lift != null and bool(lift.get("hold")))
+	check("no chain lift to the summit any more", main.find_child("ChainLift", true, false) == null)
 	check("the gallery seal still guards the crypt", main.find_child("Seal_oss_gallery", true, false) != null)
 	if a:
 		var au := a.audit()
@@ -147,7 +147,7 @@ func _walk_down() -> void:
 	var lanes := [(Hall.LANE_A.x + Hall.LANE_A.y) * 0.5, (Hall.LANE_B.x + Hall.LANE_B.y) * 0.5]
 	var dz := Hall.DOOR_Z
 	var zn := (Hall.ZN + Hall.ZN_OUT) * 0.5
-	var pts: Array[Vector2] = [Vector2(24.5, dz), Vector2(28.6, dz), Vector2(lanes[0], dz)]
+	var pts: Array[Vector2] = [Vector2(24.5, dz), Vector2(28.6, dz), Vector2(lanes[0], dz)]       # (local; made world below)
 	for i in range(1, Hall.FLIGHTS + 1):
 		var lane: float = lanes[0] if i % 2 == 1 else lanes[1]
 		var other: float = lanes[1] if i % 2 == 1 else lanes[0]
@@ -160,7 +160,9 @@ func _walk_down() -> void:
 	for r: float in [22.0, 19.6]:
 		var q := Hall.at(da, r)
 		pts.append(Vector2(q.x, q.z))
-	_tp(Vector3(21.5, Ossuary.PIT_Y + 0.3, -82.0))
+	for i in pts.size():
+		pts[i] = OssFrame.w2(pts[i])
+	_tp(OssFrame.w(Vector3(21.5, Ossuary.PIT_Y + 0.3, -82.0)))
 	await _frames(10)
 	var t0 := Time.get_ticks_msec()
 	var reached := 0
@@ -182,7 +184,7 @@ func _walk_down() -> void:
 	p.debug_drive(Vector3.ZERO)
 	await _frames(10)
 	check("walked from the pit down the Counting Stair to the raid door (%d of %d, %.0f s)" % [reached, pts.size(), (Time.get_ticks_msec() - t0) * 0.001], reached == pts.size())
-	check("reached the hall's floor level", absf(p.global_position.y - Hall.FLOOR_Y) < 0.6, str(p.global_position))
+	check("reached the hall's floor level", absf(p.global_position.y - FLOOR_W) < 0.6, str(p.global_position))
 	check("no fight before the inner grille", _boss() == null)
 
 
@@ -194,9 +196,9 @@ func _fight() -> void:
 		if is_instance_valid(p) and not get_meta(&"let_gloom", false):
 			p.gloom = 0.0; p.wounds = 0.0)
 	var a := _arena()
-	var c := Hall.C
+	var c := Hall.WC
 	var da := Hall.door_ang()
-	_tp(Hall.at(da, 15.0, c.y + 0.2))
+	_tp(Hall.wat(da, 15.0, Hall.FLOOR_Y + 0.2))
 	await _frames(20)
 	var b := _boss()
 	check("the Bone Abbot rose", b != null)
@@ -222,9 +224,9 @@ func _fight() -> void:
 	var pa := rad_to_deg(atan2(p.global_position.z - c.z, p.global_position.x - c.x))
 	var best := 0
 	for i in bells.size():
-		if absf(angle_difference(deg_to_rad(pa), deg_to_rad(float(bells[i])))) < absf(angle_difference(deg_to_rad(pa), deg_to_rad(float(bells[best])))):
+		if absf(angle_difference(deg_to_rad(pa), deg_to_rad(float(bells[i]) + 90.0))) < absf(angle_difference(deg_to_rad(pa), deg_to_rad(float(bells[best]) + 90.0))):
 			best = i
-	var away := -Vector3(cos(deg_to_rad(float(bells[best]))), 0.0, sin(deg_to_rad(float(bells[best]))))
+	var away := -Vector3(cos(deg_to_rad(float(bells[best]) + 90.0)), 0.0, sin(deg_to_rad(float(bells[best]) + 90.0)))
 	_tp(c + away * BoneAbbot.SHADOW_AT + Vector3.UP * 0.2)
 	set_meta(&"let_gloom", true)
 	p.gloom = 0.0; p.wounds = 0.0
@@ -232,7 +234,7 @@ func _fight() -> void:
 	await _secs(BoneAbbot.TOLL_TIME + 0.5)
 	check("the mound's sound-shadow is safe from the Tolling", p.wounds - g0 < 1.0, "%.1f" % (p.wounds - g0))
 	set_meta(&"let_gloom", false)
-	_tp(Hall.at(da, 15.0, c.y + 0.2))
+	_tp(Hall.wat(da, 15.0, Hall.FLOOR_Y + 0.2))
 	# the intermission
 	b.set_meta(&"test_no_floor", true)
 	b.hp = b.max_hp * 0.65
@@ -288,7 +290,7 @@ func _fight() -> void:
 		_tp((pl.at as Vector3) + Vector3.UP * 0.2)
 		await _frames(6)
 	check("every plate counted (the bar says so)", b.cast_name.contains("3 of 3"), b.cast_name)
-	_tp(Hall.at(da, 15.0, c.y + 0.2))
+	_tp(Hall.wat(da, 15.0, Hall.FLOOR_Y + 0.2))
 	# phase III: the floor falls
 	b.hp = b.max_hp * 0.32
 	await _secs(1.0)
@@ -296,17 +298,17 @@ func _fight() -> void:
 	await _secs(10.0)
 	check("the floor remembers: four sectors fell", int(hall.call("fallen_count")) == 4, str(hall.call("fallen_count")))
 	var k: int = Hall.FALL_III[0]
-	var over := c + Vector3(cos(deg_to_rad(45.0 * k)), 0, sin(deg_to_rad(45.0 * k))) * 14.5
+	var over := Hall.wat(45.0 * k, 14.5, Hall.FLOOR_Y)
 	var f := _ray(over + Vector3.UP * 0.5, 1.0, 12.0)
-	check("no floor over a fallen sector (the deep below)", f != Vector3.INF and f.y < Hall.FLOOR_Y - 3.0, str(f))
+	check("no floor over a fallen sector (the deep below)", f != Vector3.INF and f.y < FLOOR_W - 3.0, str(f))
 	set_meta(&"let_gloom", true)
 	_tp(over + Vector3.UP * 0.4)
 	var g1 := p.wounds
 	await _secs(2.0)
-	check("a fall into the deep throws you back onto standing stone", bool(hall.call("floor_under", p.global_position)) and p.global_position.y > Hall.FLOOR_Y - 0.6, str(p.global_position.snapped(Vector3.ONE * 0.1)))
+	check("a fall into the deep throws you back onto standing stone", bool(hall.call("floor_under", p.global_position)) and p.global_position.y > FLOOR_W - 0.6, str(p.global_position.snapped(Vector3.ONE * 0.1)))
 	check("...for Wounds (r35: it was Gloom)", p.wounds - g1 >= 15.0, "%.1f" % (p.wounds - g1))
 	set_meta(&"let_gloom", false)
-	_tp(Hall.at(da, 15.0, c.y + 0.2))
+	_tp(Hall.wat(da, 15.0, Hall.FLOOR_Y + 0.2))
 	# phase IV: the burn
 	b.hp = b.max_hp * 0.11
 	await _secs(8.0)
@@ -323,8 +325,6 @@ func _fight() -> void:
 	await _secs(2.0)
 	check("the Abbot slain and saved", Travel.bosses_slain.has("bone_abbot"))
 	check("both grilles open after the kill", not _shut(a.gate) and not _shut(a.gates[0]))
-	var lift := main.find_child("ChainLift", true, false)
-	check("the chain lift released", lift != null and not bool(lift.get("hold")))
 	var r := main.find_child("BoneReliquary", true, false) as Node3D
 	check("the Bone Reliquary rises before the mound", r != null and Vector2(r.global_position.x - c.x, r.global_position.z - c.z).length() < 7.0)
 	check("the floor is whole again", int(hall.call("fallen_count")) == 0)
@@ -338,13 +338,13 @@ func _fight() -> void:
 # --- the scripted fight (--sim) ----------------------------------------------------------------------
 
 func _sim() -> void:
-	var c := Hall.C
+	var c := Hall.WC
 	var dps := 3.5
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--dps="):
 			dps = float(a.trim_prefix("--dps="))
 	Engine.time_scale = 3.0
-	_tp(Hall.at(Hall.door_ang(), 15.0, c.y + 0.2))
+	_tp(Hall.wat(Hall.door_ang(), 15.0, Hall.FLOOR_Y + 0.2))
 	await _frames(20)
 	var b := _boss()
 	if b == null:

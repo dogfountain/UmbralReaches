@@ -384,7 +384,7 @@ func _process(delta: float) -> void:
 ## calls this first (see the list above it).
 func _tick_always(delta: float) -> void:
 	vitals._update_gloom(delta)
-	if global_position.y < -40.0:
+	if global_position.y < -60.0:    # (the Ossuary's pit hall floor stands at -39, its deep at -45)
 		vitals._fell_out()
 
 

@@ -26,7 +26,7 @@ the road to the three who hold the valley, and the ending after the Ascended War
    fire; node names StairFoot, Shrine, Landing, Threshold never reach the player).
 4. **People.** The keep's hub reacts to progress (greeting, "what now", news of the braziers and
    of the village, Hobb's cairn found). Three patrons talk: **Hesk the Woodcutter** (the Ring, the Rooted, the thorn
-   seal), **Ostrin Harrow** at the bar (the fen, the three stones, the Ossuary's fen door), and
+   seal), **Ostrin Harrow** at the bar (the fen, the three stones, the way to the Ossuary under the Waiting Field), and
    **Brannoc Bellwright** (the bells his mother the Founder cast, the summit ward; "Who's up
    there?" opens after one boss). Each says something different once his boss is dead, and again
    in the Deeper Night. Eleven villagers talk as well (`core/life/village/village_talk_db.gd`).

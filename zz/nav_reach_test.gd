@@ -8,12 +8,12 @@ const REACH_M := 2.5
 ## [label, from, to]; points are x,z on the ground (y is snapped to the mesh).
 const PAIRS: Array = [
 	["road to the Thornwarden arena", Vector2(0, 33), Vector2(-86, -24)],
-	["road to the Ossuary gallery seal pin", Vector2(0, 33), Vector2(34, -66)],
-	["road to the Bone Abbot", Vector2(0, 33), Vector2(17, -80)],
-	["road to the gallery landing (up the fen stair)", Vector2(0, 33), Vector3(30, 8.4, -54.8)],
-	["road to the pit floor (down the gallery stair)", Vector2(0, 33), Vector3(16, 4.2, -86)],
-	["gallery landing to the Sanctuary", Vector3(30, 8.4, -54.8), Vector2(0, 33)],
-	["road to the Counting Door", Vector2(0, 33), Vector2(28.0, -84.0)],
+	["road to the Ossuary gallery seal pin", Vector2(0, 33), Vector2(-7.3, 172.0)],
+	["road to the Bone Abbot", Vector2(0, 33), Vector2(6.0, 168.0)],
+	["road to the gallery door (over the bone bridge)", Vector2(0, 33), Vector3(-21.5, 1.0, 173.0)],
+	["road to the pit floor (down the gallery stair)", Vector2(0, 33), Vector3(12.0, -3.2, 167.0)],
+	["gallery door to the Sanctuary", Vector3(-21.5, 1.0, 173.0), Vector2(0, 33)],
+	["road to the Counting Door", Vector2(0, 33), Vector2(10.0, 179.0)],
 	["road to the west Gloom Surge pin", Vector2(0, 33), Vector2(-190, 66)],
 	["road to the far north-west landmark", Vector2(0, 33), Vector2(-126, -101)],
 	["road to the Thorn seal", Vector2(0, 33), Vector2(-61, -7)],

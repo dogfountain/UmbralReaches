@@ -1,6 +1,9 @@
 extends Node3D
 ## THE PIT HALL (r34 crypt; docs/r34/raid_crypt.md): the Bone Abbot's raid room, dug down from the
-## charnel pit into the layout's OSSUARY_HALL reserve (RealmLayout: x 26..82, y -38..-6, z -124..-68).
+## charnel pit into the layout's OSSUARY_HALL reserve (local x 26..82, y -38..-6, z -124..-68; RealmLayout
+## holds the world box: the Ossuary's frame, OssFrame, stands it under the Southern Downs).
+## Every number in here is LOCAL (the Ossuary's own coordinates); what the world asks about (the boss,
+## the tests, a body's position) goes through wat() / WC and floor_under() (world in, local inside).
 ## Built by the Ossuary after its own tiers, in the Ossuary's stone. No class_name: loaded by path.
 ##
 ##   CHARNEL PIT (y 4.2) ── the east gap ── the Counting Door in the bank (Ossuary: facade + cut)
@@ -20,7 +23,8 @@ extends Node3D
 
 const Kit := preload("res://core/life/secrets/kit.gd")
 
-const C := Vector3(59.0, -32.0, -99.0)        ## floor centre
+const C := Vector3(59.0, -32.0, -99.0)        ## floor centre (local)
+const BOX := AABB(Vector3(26.0, -38.0, -124.0), Vector3(56.0, 32.0, 56.0))   ## the hall's volume (local)
 const FLOOR_Y := -32.0
 const FLOOR_R := 18.5                          ## the fighting floor (sectors' outer edge)
 const INNER_R := 10.0                          ## the inner disc never falls
@@ -86,10 +90,27 @@ var _tweens: Array[Tween] = []
 var _vis_t := 0.0
 
 
-## Floor point at `deg` (0 = east, 90 = south), radius `r`, height `y`.
+static var WC: Vector3 = OssFrame.w(C)             ## the floor's centre in the world
+
+
+## Floor point at `deg` (0 = local east, 90 = local south), radius `r`, height `y` (local).
 static func at(deg: float, r: float, y := FLOOR_Y) -> Vector3:
 	var a := deg_to_rad(deg)
 	return Vector3(C.x + cos(a) * r, y, C.z + sin(a) * r)
+
+
+## The same point in the world (`deg` is still the hall's own angle; `y` is a local height).
+static func wat(deg: float, r: float, y := FLOOR_Y) -> Vector3:
+	return OssFrame.w(at(deg, r, y))
+
+
+## A world position's hall angle (deg, the hall's own) and distance from the floor's centre.
+static func wang_of(p: Vector3) -> float:
+	return ang_of(OssFrame.l(p))
+
+
+static func wflat_r(p: Vector3) -> float:
+	return flat_r(OssFrame.l(p))
 
 
 static func ang_of(p: Vector3) -> float:
@@ -109,8 +130,9 @@ static func sector_of(p: Vector3) -> int:
 	return int(floor(fposmod(ang_of(p) + 22.5, 360.0) / 45.0)) % SECTORS
 
 
-## Is there floor under `p` (xz)? The inner disc always; a sector while it stands.
-func floor_under(p: Vector3) -> bool:
+## Is there floor under `p` (a WORLD position, xz)? The inner disc always; a sector while it stands.
+func floor_under(wp: Vector3) -> bool:
+	var p := OssFrame.l(wp)
 	var r := flat_r(p)
 	if r <= INNER_R + 0.05:
 		return true
@@ -802,10 +824,10 @@ func collapse(i: int, warn: float) -> bool:
 	marked[i] = true                                 # the stone stands through the shake; floor_under() flips when it goes
 	var n := sectors[i]
 	var am := deg_to_rad(45.0 * float(i))
-	var mid := C + Vector3(cos(am) * 14.2, 0.1, sin(am) * 14.2)
+	var mid := OssFrame.w(C + Vector3(cos(am) * 14.2, 0.1, sin(am) * 14.2))      # (the effects are the world's)
 	# the paint is the slice that will drop: a wedge from the hall's centre out to the floor's edge
-	var dir := Vector3(cos(am), 0.0, sin(am))
-	SpellFx.danger(C, warn, {"radius": FLOOR_R, "half_angle": deg_to_rad(22.5), "yaw": atan2(-dir.x, -dir.z), "color": BossKit.BONE})
+	var dir := OssFrame.wd(Vector3(cos(am), 0.0, sin(am)))
+	SpellFx.danger(WC, warn, {"radius": FLOOR_R, "half_angle": deg_to_rad(22.5), "yaw": atan2(-dir.x, -dir.z), "color": BossKit.BONE})
 	Sfx.play_stream(BossKit.Synth.get_stream("stagger"), mid, 4.0, 0.35)
 	Kit.play("grind", mid, 4.0, 0.6)
 	var home: Vector3 = n.get_meta("home", Vector3.ZERO)
@@ -925,7 +947,7 @@ func _bells() -> void:
 		var pivot := Node3D.new()
 		pivot.name = "Bell%d" % int(bd)
 		hall.add_child(pivot)
-		pivot.global_position = C + radial * BELL_R + Vector3.UP * (BELL_Y + 1.9 - FLOOR_Y)
+		pivot.position = C + radial * BELL_R + Vector3.UP * (BELL_Y + 1.9 - FLOOR_Y)
 		pivot.set_meta("deg", bd)
 		var mi := MeshInstance3D.new()
 		mi.mesh = mesh
@@ -947,7 +969,7 @@ func _bells() -> void:
 		beam.mesh = bm
 		beam.material_override = iron
 		hall.add_child(beam)
-		beam.global_transform = Transform3D(Basis(Vector3.UP, -a + PI * 0.5), C + radial * ((WALL_R + BELL_R) * 0.5 + 0.2) + Vector3.UP * (BELL_Y + 2.0 - FLOOR_Y))
+		beam.transform = Transform3D(Basis(Vector3.UP, -a + PI * 0.5), C + radial * ((WALL_R + BELL_R) * 0.5 + 0.2) + Vector3.UP * (BELL_Y + 2.0 - FLOOR_Y))
 		bells.append(pivot)
 
 
@@ -969,7 +991,7 @@ func toll(i: int, swings := 3) -> void:
 
 
 func bell_at(i: int) -> Vector3:
-	return bells[i].global_position if i >= 0 and i < bells.size() else C
+	return bells[i].global_position if i >= 0 and i < bells.size() else WC
 
 
 # --- light, the deep's catch, sound, the moon ----------------------------------------------------
@@ -1003,7 +1025,7 @@ func _omni(parent: Node3D, n: String, p: Vector3, col: Color, e: float, r: float
 	l.set_meta(&"light_class", "fill")
 	l.set_meta(&"base", {"e": e, "r": r, "a": 1.0})
 	parent.add_child(l)
-	l.global_position = p
+	l.position = p
 	LightPolicy.apply_fade(l)
 	LightPolicy.apply_illumination(l)
 	l.omni_attenuation *= att
@@ -1026,15 +1048,15 @@ func _catch() -> void:
 	cs.shape = cyl
 	ar.add_child(cs)
 	hall.add_child(ar)
-	ar.global_position = Vector3(C.x, DEEP_Y + 1.6, C.z)
+	ar.position = Vector3(C.x, DEEP_Y + 1.6, C.z)
 	ar.body_entered.connect(_on_caught)
 
 
 func _on_caught(body: Node3D) -> void:
-	if flat_r(body.global_position) < INNER_R - 0.2:
+	if wflat_r(body.global_position) < INNER_R - 0.2:
 		return
-	var a := deg_to_rad(ang_of(body.global_position))
-	var back := Vector3(C.x + cos(a) * (INNER_R - 1.4), FLOOR_Y + 0.15, C.z + sin(a) * (INNER_R - 1.4))
+	var a := deg_to_rad(wang_of(body.global_position))
+	var back := OssFrame.w(Vector3(C.x + cos(a) * (INNER_R - 1.4), FLOOR_Y + 0.15, C.z + sin(a) * (INNER_R - 1.4)))
 	if body.is_in_group(Groups.PLAYER):
 		var p := body as Player
 		if p == null:
@@ -1061,15 +1083,13 @@ func _ambience() -> void:
 	var amb := Area.new()
 	amb.name = "HallAmbience"
 	amb.ambience = "ossuary"
-	amb.ambience_bounds = RealmLayout.OSSUARY_HALL
+	amb.ambience_bounds = BOX                        # local: the Area converts the listener into the Ossuary's frame
 	add_child(amb)
-	amb.global_position = Vector3.ZERO
 	var up := Area.new()                             # the stair above the hall box (under the bank)
 	up.name = "StairAmbience"
 	up.ambience = "ossuary"
 	up.ambience_bounds = AABB(Vector3(SX0 - SHAFT_T, -6.0, ZN_OUT - SHAFT_T), Vector3(SX1 - SX0 + 2.0 * SHAFT_T, ROOF_Y + 6.0, ZS_OUT - ZN_OUT + 2.0 * SHAFT_T))
 	add_child(up)
-	up.global_position = Vector3.ZERO
 
 
 ## Buried stone takes no moonlight (the moon's shadow reaches ~25 m; the hall is 30 m under the
@@ -1081,7 +1101,7 @@ func _underground() -> void:
 	for gi in stair.find_children("*", "GeometryInstance3D", true, false):
 		var g := gi as GeometryInstance3D
 		var box: AABB = g.global_transform * g.get_aabb()
-		if box.end.y < TOP_Y - 1.0 or g is MultiMeshInstance3D:
+		if box.end.y - OssFrame.ORIGIN.y < TOP_Y - 1.0 or g is MultiMeshInstance3D:
 			g.layers = UNDER_LAYER
 		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_tell_moon()
@@ -1103,25 +1123,6 @@ func _tell_moon() -> void:
 			m.light_cull_mask &= ~UNDER_LAYER
 
 
-var _lava_hidden := false
-var _lava: Node3D
-
-
-func _hide_lava(on: bool) -> void:
-	if on == _lava_hidden:
-		return
-	_lava_hidden = on
-	if _lava == null or not is_instance_valid(_lava):
-		var found := get_tree().root.find_children("*", "Lava", true, false)
-		_lava = (found[0] as Node).get_parent() as Node3D if not found.is_empty() else null
-	if _lava:
-		_lava.visible = not on
-
-
-func _exit_tree() -> void:
-	_hide_lava(false)
-
-
 func _physics_process(delta: float) -> void:
 	if not built:
 		return
@@ -1132,16 +1133,14 @@ func _physics_process(delta: float) -> void:
 		var cam := get_viewport().get_camera_3d()
 		var want := false
 		for q: Node3D in [p, cam]:
-			if q and q.global_position.x > 2.0 and q.global_position.x < 86.0 and q.global_position.z > -128.0 and q.global_position.z < -20.0 and q.global_position.y < 14.0:
+			if q == null:
+				continue
+			var lq := OssFrame.l(q.global_position)         # (local: the hall's own frame)
+			if lq.x > 2.0 and lq.x < 86.0 and lq.z > -128.0 and lq.z < -20.0 and lq.y < 11.0:
 				want = true
 		if hall.visible != want:
 			hall.visible = want
 		_tell_moon()
-		# under the bank the rift's lava plane (y -15.5, x to 46) would cut through the hall's vault
-		# and the stair: it is hidden while the camera is down here (the kill box keeps working)
-		var under := cam != null and cam.global_position.y < 0.0 and cam.global_position.x > SX0 - SHAFT_T - 0.5 \
-			and RealmLayout.OSSUARY_HALL.grow(0.5).has_point(Vector3(cam.global_position.x, -20.0, cam.global_position.z))
-		_hide_lava(under)
 	# the floor comes back whenever no fight holds it (a reset, the kill, a Hollowing)
 	_restore_t -= delta
 	if _restore_t <= 0.0:

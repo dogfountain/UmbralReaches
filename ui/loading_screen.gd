@@ -22,15 +22,15 @@ const VIEWS := [
 	[Vector3(-58.0, NAN, 60.0), -0.1],         # the chapel
 	[Vector3(33.8, NAN, 16.2), -0.08],         # the east way
 	[Vector3(52.0, NAN, 12.0), -0.1],          # the fen
-	[Vector3(70.0, NAN, -34.0), -0.1],         # the barrows, toward the Ossuary door
-	[Vector3(34.0, 5.9, -66.0), -0.1],         # the Ossuary gate
-	[Vector3(16.0, 5.9, -86.0), 0.05],         # the Ossuary pit
+	[Vector3(70.0, NAN, -34.0), -0.1],         # the barrows
+	[Vector3(-40.0, NAN, 147.5), -0.1],        # the Ossuary's Pilgrims' Landing (the Waiting Field's west end)
+	[Vector3(12.0, -1.5, 167.0), 0.05],        # the Ossuary pit (on the charnel floor)
 	[Vector3(0.0, 2.6, -10.0), -0.05],         # the Crossing
 	[Vector3(-8.3, 19.8, -43.5), -0.2],        # the viaduct by the Spindle
 	[Vector3(0.0, 29.7, -92.0), -0.1],         # the summit
 	# r28: the Lower Count under the Ossuary, the Singing Stones, the Ash-Hermit's perch (agent D)
-	[Vector3(18.0, 1.2, -86.0), 0.0],          # inside the Count Drum
-	[Vector3(10.0, 1.2, -84.0), 0.0],          # the drum's west landing
+	[Vector3(12.0, -6.2, 169.0), 0.0],         # inside the Count Drum
+	[Vector3(10.0, -6.2, 161.0), 0.0],         # the drum's west landing
 	[Vector3(-28.0, NAN, 33.0), -0.1],         # the Singing Stones
 	[Vector3(-48.0, NAN, -31.0), -0.05],       # toward the hermit's perch
 ]

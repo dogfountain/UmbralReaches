@@ -631,11 +631,11 @@ func _place_bats() -> void:
 		[Vector3(0, -4, -28), 13.0, 10, 140.0], [Vector3(-10, -2, -50), 15.0, 10, 140.0], [Vector3(9, 1, -74), 12.0, 9, 140.0],
 		[Vector3(-4, 4, -92), 10.0, 7, 140.0], [Vector3(-9, 17, -50), 7.0, 6, 90.0],
 		[Vector3(18, 9.5, 30), 6.0, 4, 55.0], [Vector3(-82, 9, 52), 7.0, 5, 60.0], [Vector3(80, 5, -40), 9.0, 4, 70.0],
-		# r30: the Ossuary's gate-hall roof and its chapel spire (nothing lived on the high ground)
-		[Vector3(24, 21, -31), 6.0, 5, 90.0], [Vector3(16, 14, -103), 5.0, 4, 70.0],
+		# the Ossuary's gate-hall roof and its chapel spire (nothing lived on the high ground); where it stands now
+		[Vector3(-43, 13.6, 175), 6.0, 5, 90.0], [Vector3(29, 6.6, 167), 5.0, 4, 70.0],
 		# r34 flora: the Founder's Pits' slag heaps, the quarry pit, the mausoleum at the field's top
 		[Vector3(132, RL.height_at(132, -90) + 9.0, -90), 9.0, 6, 90.0], [Vector3(-127, RL.height_at(-127, -104) + 7.0, -104), 10.0, 6, 90.0],
-		[Vector3(0, RL.height_at(0, 147) + 7.0, 147), 6.0, 4, 70.0],
+		[Vector3(0, RL.height_at(0, 141) + 7.0, 141), 6.0, 4, 70.0],
 		# the Anchorholds' cliff, the Well of Echoes' pit, the Fallen Hierarch's broken crown
 		[Vector3(236, RL.height_at(236, -110) + 9.0, -110), 9.0, 6, 90.0], [Vector3(72, -4, 204), 11.0, 7, 90.0],
 		[Vector3(-214, RL.height_at(-214, -104) + 24.0, -104), 14.0, 6, 110.0],

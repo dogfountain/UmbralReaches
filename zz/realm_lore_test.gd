@@ -157,7 +157,7 @@ func _process(d: float) -> void:
 			fail("site %s on the henge" % st.name)
 		if r.intersects(Rect2(-24, -118, 48, 106)):
 			fail("site %s in the rift" % st.name)
-		if r.intersects(Rect2(RealmLayout.OSSUARY.position.x, RealmLayout.OSSUARY.position.z, RealmLayout.OSSUARY.size.x, RealmLayout.OSSUARY.size.z)):
+		if not String(st.name).begins_with("oss_") and r.intersects(Rect2(RealmLayout.OSSUARY.position.x, RealmLayout.OSSUARY.position.z, RealmLayout.OSSUARY.size.x, RealmLayout.OSSUARY.size.z)):
 			fail("site %s on the Ossuary" % st.name)
 		for other in WorldLanes.sites:
 			if String(other.name) in mine:

@@ -365,7 +365,7 @@ func _sink() -> void:
 		_hp_bar.visible = false
 	if _weak:
 		_weak.visible = false
-	var top := Vector3(Hall.C.x, Hall.MOUND_TOP, Hall.C.z)
+	var top := Vector3(Hall.WC.x, OssFrame.ORIGIN.y + Hall.MOUND_TOP, Hall.WC.z)    # (MOUND_TOP is the hall's own height)
 	SpellFx.rift_out(global_position)
 	Vfx.burst(global_position + Vector3.UP * 2.0, Color(0.85, 0.8, 0.7), {"count": 60, "life": 1.0, "speed": Vector2(2.0, 6.0), "size": 0.08, "gravity": -9.0, "additive": false})
 	global_position = top
@@ -406,7 +406,7 @@ func _intermission(delta: float) -> void:
 	if _wave_t <= 0.0 and _inter_t > 4.0:
 		_wave_t = WAVE_EVERY
 		_waves += 1
-		var at := Hall.C
+		var at := Hall.WC
 		var bid := String(get_meta(&"boss_id", ""))
 		var cap := left + 4 + _choir_count()
 		var per := 1 if _attuned else 2
@@ -450,7 +450,7 @@ func _end_intermission(fed: int) -> void:
 		var tw := create_tween()
 		tw.tween_property(_visual, "position:y", 0.0, 1.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	# he climbs down off the mound to its foot on the side away from you
-	var c := Hall.C
+	var c := Hall.WC
 	var away := Vector3(c.x, 0, c.z) - (Vector3(_p.global_position.x, 0, _p.global_position.z) if _p else Vector3(c.x + 1.0, 0, c.z))
 	away = away.normalized() if away.length() > 0.1 else Vector3.RIGHT
 	global_position = Vector3(c.x, c.y + 0.1, c.z) + away * (Hall.MOUND_R + 1.6)
@@ -509,7 +509,7 @@ func _summon_choir() -> void:
 	if _p:
 		pa = atan2(_p.global_position.z - base.z, _p.global_position.x - base.x)
 	if _hall_ok():
-		var c := Hall.C
+		var c := Hall.WC
 		base = c
 		if _p:
 			pa = atan2(_p.global_position.z - c.z, _p.global_position.x - c.x)
@@ -564,23 +564,24 @@ func _tick_choir(delta: float) -> void:
 func _tolling() -> void:
 	_toll_t = [0.0, 26.0, 28.0, 24.0, 18.0][phase]
 	_busy = TOLL_TIME + 0.4
-	var c := Hall.C
+	var c := Hall.WC
 	var bells: Array = Hall.BELLS
 	var pa := rad_to_deg(atan2(_p.global_position.z - c.z, _p.global_position.x - c.x))
 	var bi := 0
 	var best := 999.0
+	var quarter := rad_to_deg(-OssFrame.YAW)                  # the hall's own angles, turned into the world's
 	for i in bells.size():
-		var d := absf(angle_difference(deg_to_rad(pa), deg_to_rad(float(bells[i]))))
+		var d := absf(angle_difference(deg_to_rad(pa), deg_to_rad(float(bells[i]) + quarter)))
 		if d < best:
 			best = d
 			bi = i
-	var ba := deg_to_rad(float(bells[bi]))
+	var ba := deg_to_rad(float(bells[bi]) + quarter)
 	var away := Vector3(-cos(ba), 0.0, -sin(ba))
 	var hole := Vector3(c.x, c.y, c.z) + away * SHADOW_AT
 	if _hall_ok():
 		_hall.call("toll", bi)
 	BossKit.cast(self, "The Tolling", TOLL_TIME)
-	BossKit.emote(self, "He raises his crozier to the %s bell." % ["east", "south", "west", "north"][bi])
+	BossKit.emote(self, "He raises his crozier to the %s bell." % ["south", "west", "north", "east"][bi])
 	BossKit.zone(get_parent(), Vector3(c.x, c.y, c.z), TOLL_TIME, TOLL_GLOOM, {"by": self, "radius": 27.5, "color": BossKit.BONE,
 		"holes": [[hole, SHADOW_R], [Vector3(c.x, c.y, c.z), Hall.MOUND_R + 0.4]], "h": 3.0})
 	SpellFx.column(hole, SHADOW_R * 0.8, 6.0, TOLL_TIME + 0.3)
@@ -654,7 +655,7 @@ func _reckoning(n: int) -> void:
 	var lo := 5.5
 	var hi := 11.0
 	if _hall_ok():
-		c = Hall.C
+		c = Hall.WC
 		lo = Hall.MOUND_R + 2.4
 		hi = Hall.FLOOR_R - 1.8
 	var pp := _p.global_position
@@ -762,7 +763,7 @@ func _keep_on_floor() -> void:
 		return
 	if bool(_hall.call("floor_under", global_position)):
 		return
-	var c := Hall.C
+	var c := Hall.WC
 	var a := atan2(global_position.z - c.z, global_position.x - c.x)
 	var r := Hall.INNER_R - 0.6
 	global_position = Vector3(c.x + cos(a) * r, global_position.y, c.z + sin(a) * r)

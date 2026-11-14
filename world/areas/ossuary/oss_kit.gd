@@ -17,8 +17,17 @@ var skulls: Array = [[], []]            # with jaw / without jaw
 var bones: Array = [[], [], []]         # femur, rib, vertebra
 var solids: Array = []                  # [centre, basis, half extents] of every solid box (prop clipping test)
 var rejected := 0
-var keep_lanes := true                  ## reject floor clutter on WorldLanes.FIXED_LANES
-## Test the Ossuary's own walkways (FIXED_LANES are its gate hall, gallery, pit stair and chapel):
+## The Ossuary's own walkways, in its own (local) coordinates: [name, [Vector3(x, floor y, z) ...], half width].
+## Floor clutter (candles, bones) is kept off them by any kit with `always_lanes`.
+const FIXED_LANES := [
+	["oss_bridge", [Vector3(-9.0, 12.6, -34), Vector3(19.6, 12.6, -34), Vector3(20.2, 12.6, -36.6), Vector3(23, 12.6, -36.6), Vector3(23, 12.6, -39.5)], 0.8],
+	["oss_stair1", [Vector3(23, 12.6, -39.5), Vector3(23, 8.4, -49.5), Vector3(23, 8.4, -52.5)], 1.0],
+	["oss_gallery", [Vector3(23, 8.4, -52.5), Vector3(20, 8.4, -58), Vector3(20, 8.4, -65.5), Vector3(21, 8.4, -67.5)], 0.8],
+	["oss_stair2", [Vector3(21, 8.4, -68.5), Vector3(21, 4.2, -78), Vector3(20.5, 4.2, -80), Vector3(17.5, 4.2, -84)], 0.9],
+	["oss_chapel", [Vector3(17.5, 4.2, -84), Vector3(16, 4.2, -95.5), Vector3(16, 4.2, -104)], 0.8],
+]
+var keep_lanes := true                  ## reject floor clutter on FIXED_LANES
+## Test the Ossuary's own walkways (FIXED_LANES are its bridge, gate hall, gallery, pit stair and chapel):
 ## only a kit with this on rejects clutter on them, so every night gets the same crypt.
 var always_lanes := false
 ## r34 crypt: prop cell size (a big room like the pit hall draws far fewer, larger cells)
@@ -477,7 +486,7 @@ func blocked(p: Vector3, margin := 0.02) -> bool:
 func _on_fixed_lane(b: AABB) -> bool:
 	if not always_lanes:
 		return false
-	for lane: Array in WorldLanes.FIXED_LANES:
+	for lane: Array in FIXED_LANES:
 		var pts: Array = lane[1]
 		var w: float = float(lane[2])
 		var lo := Vector2(b.position.x, b.position.z)

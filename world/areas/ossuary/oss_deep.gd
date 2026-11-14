@@ -10,7 +10,7 @@ extends Node3D
 ##   a stair down under the pit to the deep floor (y -2) and
 ##   THE COUNT DRUM: a round crypt under the charnel pit that turns on its spindle. One door,
 ##     one slit opposite; the capstan inside turns it a quarter at a time (N, E, S, W).
-##       E  the lava window: a bronze mirror over a grate catches the fire below (turn it)
+##       E  the pool window: a bronze mirror over a grate catches the drowned lamp's light below (turn it)
 ##       S  the bone bridge (rises when the wheels are right) to the Weighing Floor
 ##       W  the Abbot's hoard: its bone door lifts when caught light reaches the sun-eye beside
 ##          it (E mirror -> through the drum, door W, slit E -> W mirror -> the eye)
@@ -62,7 +62,7 @@ const BELFRY := Vector3(18.0, 25.4, -39.6)       ## the gate hall bell tower's o
 ## Lanes the Ossuary's own under-structure keeps clear of (xz rects and circles).
 const CLEAR_RECTS := [
 	Rect2(15.2, -106.8, 4.6, 19.6),      # chapel flight, cells walk, deep stair, north arm
-	Rect2(21.2, -86.2, 2.6, 4.4),        # lava window
+	Rect2(21.2, -86.2, 2.6, 4.4),        # pool window
 	Rect2(16.7, -80.8, 2.6, 5.6),        # bone bridge
 	Rect2(13.6, -66.0, 3.2, 5.4),        # cage walk and cage
 	Rect2(5.8, -93.7, 9.0, 12.4),        # hoard, west landing, west arm
@@ -428,7 +428,7 @@ func _drum() -> void:
 	k.commit(skin, "DrumMeshBody")
 	drum_body.rotation.y = _drum_angle(int(deep().drum))
 	# the capstan: turn the count a quarter (clockwise seen from above: N, E, S, W)
-	var t := Kit.touch(self, DRUM + Vector3(0.0, 1.0, 1.1), "", func(_by: Node) -> void: turn_drum(), 1.6)
+	var t := OssWorld.touch(self, DRUM + Vector3(0.0, 1.0, 1.1), "", func(_by: Node) -> void: turn_drum(), 1.6)
 	t.name = "Capstan"
 	t.set("prompt_fn", func() -> String:
 		return "" if _drum_turning else "Turn the count")
@@ -452,9 +452,9 @@ func turn_drum(instant := false) -> void:
 	_drum_to = _drum_from - PI * 0.5
 	_drum_t = 0.0
 	_drum_turning = true
-	Kit.play("grind", DRUM, 0.0, 0.7)
-	Kit.play("clank", DRUM + Vector3.UP * 1.0, -4.0, 0.6)
-	Kit.fx_dust(DRUM + Vector3.UP * DRUM_H, Color(0.45, 0.42, 0.4, 0.6), 30)
+	OssWorld.play("grind", DRUM, 0.0, 0.7)
+	OssWorld.play("clank", DRUM + Vector3.UP * 1.0, -4.0, 0.6)
+	OssWorld.fx_dust(DRUM + Vector3.UP * DRUM_H, Color(0.45, 0.42, 0.4, 0.6), 30)
 	_clear_beam()
 
 
@@ -465,13 +465,13 @@ func _physics_process(delta: float) -> void:
 		if _drum_t >= 1.0:
 			_drum_turning = false
 			drum_body.rotation.y = _drum_angle(int(deep().drum))
-			Kit.play("clank", DRUM, -2.0, 0.5)
+			OssWorld.play("clank", DRUM, -2.0, 0.5)
 			_trace(true)
 	if _arena_on:
 		_arena_tick()
 
 
-# --- east: the lava window -------------------------------------------------------------------
+# --- east: the pool window -------------------------------------------------------------------
 
 func _east(k: OssKit) -> void:
 	var y := D
@@ -500,11 +500,11 @@ func _east(k: OssKit) -> void:
 	area.call("_pier", k, E_PLAT.get_center().x + 0.4, pz1 - 0.8, y - 0.5, 1.6)
 	k.candle_cluster(Vector3(px1 - 0.45, y, pz0 + 0.5), 4, 0.15, _rng)
 	k.candle_cluster(Vector3(px1 - 0.45, y, pz1 - 0.5), 3, 0.15, _rng)
-	# the deep fire's light rising through the grate to the mirror: always there
+	# the drowned lamp's light rising through the grate to the mirror: always there (a lamp the sexton sank in the pool)
 	var shaft := Node3D.new()
 	shaft.name = "FireShaft"
 	add_child(shaft)
-	Beam.segment(shaft, Vector3(E_MIRROR.x, RealmLayout.LAVA_Y + 0.3, E_MIRROR.y), Vector3(E_MIRROR.x, BEAM_Y, E_MIRROR.y), 0.55)
+	OssWorld.beam_segment(shaft, Vector3(E_MIRROR.x, OssFrame.POOL_Y + 0.3, E_MIRROR.y), Vector3(E_MIRROR.x, BEAM_Y, E_MIRROR.y), 0.55)
 
 
 # --- west: the landing and the Abbot's hoard ---------------------------------------------------
@@ -649,7 +649,7 @@ func _slab() -> void:
 		mi.mesh = bm
 		mi.material_override = OssKit.mat("floor")
 		holder.add_child(mi)
-		mi.global_position = Vector3(HOLE.get_center().x, CHAPEL_Y - 0.11, HOLE.position.y + seg_len * (float(i) + 0.5))
+		mi.position = Vector3(HOLE.get_center().x, CHAPEL_Y - 0.11, HOLE.position.y + seg_len * (float(i) + 0.5))
 		stones.append(mi)
 	# the cut words on the middle stone and a cold seep of air at the seams (until opened)
 	var words := MeshInstance3D.new()
@@ -659,15 +659,15 @@ func _slab() -> void:
 	words.material_override = OssKit.mat("dark")
 	stones[1].add_child(words)
 	words.position = Vector3(0, 0.11, 0)
-	var body := Kit.box_body(holder, Vector3(HOLE.get_center().x, CHAPEL_Y - 0.15, HOLE.get_center().y), Vector3(HOLE.size.x, 0.3, HOLE.size.y))
+	var body := OssWorld.box_body(holder, Vector3(HOLE.get_center().x, CHAPEL_Y - 0.15, HOLE.get_center().y), Vector3(HOLE.size.x, 0.3, HOLE.size.y))
 	var seep: Array[Node3D] = []
 	for i in 3:
-		seep.append(Kit.glint(holder, Vector3(HOLE.position.x + 0.2 + 0.6 * float(i), CHAPEL_Y + 0.12, HOLE.position.y + 0.1 + seg_len * float(i + 1) - 0.05), Color(0.55, 0.75, 1.0), 0.22, 18.0))
-	var t := Kit.touch(self, Vector3(HOLE.get_center().x - 0.3, CHAPEL_Y + 0.6, HOLE.get_center().y), "", func(_by: Node) -> void:
+		seep.append(OssWorld.glint(holder, Vector3(HOLE.position.x + 0.2 + 0.6 * float(i), CHAPEL_Y + 0.12, HOLE.position.y + 0.1 + seg_len * float(i + 1) - 0.05), Color(0.55, 0.75, 1.0), 0.22, 18.0))
+	var t := OssWorld.touch(self, Vector3(HOLE.get_center().x - 0.3, CHAPEL_Y + 0.6, HOLE.get_center().y), "", func(_by: Node) -> void:
 		if State.has("open", "deep_slab"):
 			return
 		if not Travel.bosses_slain.has("bone_abbot"):
-			Kit.play("clank", Vector3(HOLE.get_center().x, CHAPEL_Y, HOLE.get_center().y), -6.0, 0.7)
+			OssWorld.play("clank", Vector3(HOLE.get_center().x, CHAPEL_Y, HOLE.get_center().y), -6.0, 0.7)
 			State.toast("It will not shift. Somewhere under it, something is still counting.")
 			return
 		State.mark("open", "deep_slab")
@@ -686,18 +686,18 @@ func _slab() -> void:
 		if not open:
 			return
 		if animate:
-			Kit.play("grind", Vector3(HOLE.get_center().x, CHAPEL_Y, HOLE.get_center().y), 2.0, 0.6)
+			OssWorld.play("grind", Vector3(HOLE.get_center().x, CHAPEL_Y, HOLE.get_center().y), 2.0, 0.6)
 			for i in stones.size():
 				var s := stones[i]
 				var tw := s.create_tween()
 				tw.tween_interval(0.25 * float(i))
-				tw.tween_property(s, "global_position:y", s.global_position.y - 0.35, 0.5).set_trans(Tween.TRANS_SINE)
-				tw.tween_property(s, "global_position", s.global_position + Vector3(-0.2, -7.0, 0.4 * float(i - 1)), 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+				tw.tween_property(s, "position:y", s.position.y - 0.35, 0.5).set_trans(Tween.TRANS_SINE)
+				tw.tween_property(s, "position", s.position + Vector3(-0.2, -7.0, 0.4 * float(i - 1)), 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 				tw.parallel().tween_property(s, "rotation", Vector3(0.9 * float(i - 1), 0.0, 1.2), 0.9)
 				tw.tween_callback(func() -> void:
 					s.visible = false
-					Kit.play("clank", s.global_position, 0.0, 0.5))
-			Kit.fx_dust(Vector3(HOLE.get_center().x, CHAPEL_Y + 0.3, HOLE.get_center().y), Color(0.5, 0.48, 0.45, 0.7), 60)
+					OssWorld.play("clank", OssFrame.l(s.global_position), 0.0, 0.5))
+			OssWorld.fx_dust(Vector3(HOLE.get_center().x, CHAPEL_Y + 0.3, HOLE.get_center().y), Color(0.5, 0.48, 0.45, 0.7), 60)
 		else:
 			for s in stones:
 				s.visible = false)
@@ -740,10 +740,10 @@ func _bridge() -> void:
 	mmi.material_override = bm
 	mmi.visibility_range_end = 70.0
 	holder.add_child(mmi)
-	var body := Kit.box_body(holder, Vector3(x, D - 0.25, S_BRIDGE.get_center().y), Vector3(S_BRIDGE.size.x, 0.5, S_BRIDGE.size.y + 0.4))
+	var body := OssWorld.box_body(holder, Vector3(x, D - 0.25, S_BRIDGE.get_center().y), Vector3(S_BRIDGE.size.x, 0.5, S_BRIDGE.size.y + 0.4))
 	var rails: Array[StaticBody3D] = []
 	for s: float in [-1.0, 1.0]:
-		rails.append(Kit.box_body(holder, Vector3(x + s * 1.05, D + 0.6, S_BRIDGE.get_center().y), Vector3(0.14, 1.2, S_BRIDGE.size.y)))
+		rails.append(OssWorld.box_body(holder, Vector3(x + s * 1.05, D + 0.6, S_BRIDGE.get_center().y), Vector3(0.14, 1.2, S_BRIDGE.size.y)))
 	_sync.append(func(animate: bool) -> void:
 		var up := State.has("solved", "deep_dials")
 		Kit.set_body(body, up)
@@ -756,11 +756,11 @@ func _bridge() -> void:
 				var tw := mmi.create_tween()
 				tw.tween_interval(0.35 * float(i))
 				tw.tween_method(func(u: float) -> void: mm.set_instance_transform(i, from.interpolate_with(to, u)), 0.0, 1.0, 1.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-				tw.tween_callback(func() -> void: Kit.play("clank", to.origin, -6.0, 0.8 + 0.05 * float(i)))
+				tw.tween_callback(func() -> void: OssWorld.play("clank", to.origin, -6.0, 0.8 + 0.05 * float(i)))
 			else:
 				mm.set_instance_transform(i, to)
 		if animate and up:
-			Kit.play("grind", Vector3(x, D, S_BRIDGE.get_center().y), 2.0, 0.6))
+			OssWorld.play("grind", Vector3(x, D, S_BRIDGE.get_center().y), 2.0, 0.6))
 
 
 ## The three bronze wheels under the shelves. Each shows its count with lit studs (1..5).
@@ -788,7 +788,7 @@ func _dials() -> void:
 		wheel.mesh = cyl
 		wheel.material_override = Kit.mat("bronze")
 		holder.add_child(wheel)
-		wheel.global_transform = Transform3D(Basis(Vector3.FORWARD, PI * 0.5), c)
+		wheel.transform = Transform3D(Basis(Vector3.FORWARD, PI * 0.5), c)
 		var wst := SurfaceTool.new()               # the wheel and its bronze handle, one mesh
 		wst.begin(Mesh.PRIMITIVE_TRIANGLES)
 		wst.append_from(cyl, 0, Transform3D.IDENTITY)
@@ -811,7 +811,7 @@ func _dials() -> void:
 		holder.add_child(mmi)
 		studs.append(mm)
 		var idx := i
-		var t := Kit.touch(holder, c + Vector3(0.3, 0.2, 0), "", func(_by: Node) -> void: turn_wheel(idx), 1.5)
+		var t := OssWorld.touch(holder, c + Vector3(0.3, 0.2, 0), "", func(_by: Node) -> void: turn_wheel(idx), 1.5)
 		t.name = "Wheel_%d" % i
 		t.set("prompt_fn", func() -> String:
 			if State.has("solved", "deep_dials"):
@@ -822,7 +822,7 @@ func _dials() -> void:
 		var solved := State.has("solved", "deep_dials")
 		for i in wheels.size():
 			var v := int(vals[i])
-			wheels[i].global_basis = Basis(Vector3.RIGHT, float(v) * TAU / 5.0) * Basis(Vector3.FORWARD, PI * 0.5)
+			wheels[i].basis = Basis(Vector3.RIGHT, float(v) * TAU / 5.0) * Basis(Vector3.FORWARD, PI * 0.5)
 			for j in 5:
 				var on := j < v
 				var col := Color(1.0, 0.55, 0.22) * (1.25 if solved else 1.0) if on else Color(0.07, 0.05, 0.04)
@@ -834,14 +834,14 @@ func turn_wheel(i: int) -> void:
 		return
 	var vals: Array = deep().dials
 	vals[i] = int(vals[i]) % 5 + 1
-	Kit.play("clank", Vector3(12.5, CELL_Y + 0.7, float(SHELVES[i][0])), -8.0, 0.9 + 0.1 * float(vals[i]))
+	OssWorld.play("clank", Vector3(12.5, CELL_Y + 0.7, float(SHELVES[i][0])), -8.0, 0.9 + 0.1 * float(vals[i]))
 	var ok := true
 	for j in SHELVES.size():
 		if int(vals[j]) != int(SHELVES[j][1]):
 			ok = false
 	if ok:
 		State.mark("solved", "deep_dials")
-		Kit.play("chime", Vector3(13.0, CELL_Y + 1.0, -103.4), -2.0)
+		OssWorld.play("chime", Vector3(13.0, CELL_Y + 1.0, -103.4), -2.0)
 		State.toast("Four, two, five. Far below, chains take up a weight.")
 		State.banner("the count is true", "The Uncounted Cells")
 	sync(ok)
@@ -864,7 +864,7 @@ func _mirrors() -> void:
 	ring.mesh = tor
 	ring.material_override = Kit.mat("bronze")
 	eye.add_child(ring)
-	ring.global_transform = Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(EYE.x, BEAM_Y, HOARD.end.y + 0.52))
+	ring.transform = Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(EYE.x, BEAM_Y, HOARD.end.y + 0.52))
 	_eye_mi = MeshInstance3D.new()
 	var sph := SphereMesh.new()
 	sph.radius = 0.17
@@ -872,7 +872,7 @@ func _mirrors() -> void:
 	_eye_mi.mesh = sph
 	_eye_mi.material_override = Kit.mat("lamp_dark")
 	eye.add_child(_eye_mi)
-	_eye_mi.global_position = Vector3(EYE.x, BEAM_Y, HOARD.end.y + 0.55)
+	_eye_mi.position = Vector3(EYE.x, BEAM_Y, HOARD.end.y + 0.55)
 	var rays := SurfaceTool.new()
 	rays.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var rb := BoxMesh.new()
@@ -902,7 +902,7 @@ func _mirror(n: String, base: Vector3, key: String) -> Node3D:
 	var head := Node3D.new()
 	head.name = "Head"
 	holder.add_child(head)
-	head.global_position = Vector3(base.x, BEAM_Y, base.z)
+	head.position = Vector3(base.x, BEAM_Y, base.z)
 	var disc := MeshInstance3D.new()
 	var cyl := CylinderMesh.new()
 	cyl.top_radius = 0.42
@@ -936,10 +936,10 @@ func _mirror(n: String, base: Vector3, key: String) -> Node3D:
 	yoke.material_override = OssKit.mat("iron")
 	head.add_child(yoke)
 	head.rotation.y = _mirror_yaw(int(deep()[key]))
-	var t := Kit.touch(holder, base + Vector3(0, 1.0, 0), "", func(_by: Node) -> void:
+	var t := OssWorld.touch(holder, base + Vector3(0, 1.0, 0), "", func(_by: Node) -> void:
 		var d := deep()
 		d[key] = posmod(int(d[key]) - 1, 8)
-		Kit.play("creak", base + Vector3.UP, -6.0, 1.3)
+		OssWorld.play("creak", base + Vector3.UP, -6.0, 1.3)
 		var tw := head.create_tween()
 		tw.tween_property(head, "rotation:y", head.rotation.y - PI * 0.25, 0.45).set_trans(Tween.TRANS_SINE)
 		tw.tween_callback(func() -> void:
@@ -975,7 +975,6 @@ func _trace(animate: bool) -> void:
 			"pass": func(dir: Vector2) -> bool: return drum_open_ew and absf(dir.y) < 0.05},
 		{"kind": "target", "id": "eye", "at": EYE, "r": 0.4},
 		{"kind": "block", "id": "hoard", "at": Vector2(HOARD.get_center().x, HOARD.get_center().y - 0.6), "r": 3.0},
-		{"kind": "block", "id": "lift_col", "at": Vector2(14.85, -89.0), "r": 0.5},
 		{"kind": "block", "id": "cliff", "at": Vector2(30.0, -84.0), "r": 6.2},
 		{"kind": "block", "id": "pier_ne", "at": Vector2(21.9, -91.9), "r": 1.1},
 		{"kind": "block", "id": "pier_se", "at": Vector2(21.0, -78.6), "r": 1.7},
@@ -984,13 +983,13 @@ func _trace(animate: bool) -> void:
 	# (a free run stops at 16 m: the light thins in the dark)
 	var res := Beam.trace(E_MIRROR, Beam.dir8(int(d.mirror_e)), els, 16.0)
 	var pts: Array = res.pts
-	Beam.draw(_beam_holder, pts, BEAM_Y)
+	OssWorld.beam_draw(_beam_holder, pts, BEAM_Y)
 	var lit := String(res.hit) == "eye"
 	_eye_mi.material_override = Kit.mat("lamp_glass" if lit or State.has("solved", "deep_beam") else "lamp_dark")
 	if lit and not State.has("solved", "deep_beam"):
 		State.mark("solved", "deep_beam")
 		State.mark("open", "deep_hoard_door")
-		Kit.play("chime", Vector3(EYE.x, BEAM_Y, EYE.y), 0.0)
+		OssWorld.play("chime", Vector3(EYE.x, BEAM_Y, EYE.y), 0.0)
 		State.toast("The sun-eye takes the light. The Abbot's door lifts.")
 		State.banner("light in the dark", "The Abbot's Hoard")
 		sync(true)
@@ -1009,37 +1008,37 @@ func _hoard_door() -> void:
 	for yy: float in [0.4, 1.3, 2.0]:
 		k.box("iron", Vector3(HOARD_DOOR_X, D + yy, z), Vector3(1.5, 0.07, 0.08), Basis.IDENTITY, false)
 	k.commit(holder, "DoorUnused")
-	var body := Kit.box_body(self, Vector3(HOARD_DOOR_X, D + 1.2, z), Vector3(1.6, 2.4, 0.4))
+	var body := OssWorld.box_body(self, Vector3(HOARD_DOOR_X, D + 1.2, z), Vector3(1.6, 2.4, 0.4))
 	_sync.append(func(animate: bool) -> void:
 		var open := State.has("solved", "deep_beam")
 		Kit.set_body(body, not open)
 		var to := 2.3 if open else 0.0
 		if animate and open and holder.position.y < 2.0:
-			Kit.play("grind", Vector3(HOARD_DOOR_X, D + 1.0, z), 0.0, 1.2)
+			OssWorld.play("grind", Vector3(HOARD_DOOR_X, D + 1.0, z), 0.0, 1.2)
 			holder.create_tween().tween_property(holder, "position:y", to, 2.4).set_trans(Tween.TRANS_SINE)
 		else:
 			holder.position.y = to)
 	# the hoard itself
 	var lid_at := Vector3(7.4, D + 0.6, HOARD.position.y + 1.0)
-	var lid := Kit.mi(self, _box(Vector3(1.0, 0.12, 0.6)), OssKit.mat("wood"), Transform3D(Basis.IDENTITY, lid_at + Vector3.UP * 0.62), 40.0)
+	var lid := OssWorld.mi(self, _box(Vector3(1.0, 0.12, 0.6)), OssKit.mat("wood"), Transform3D(Basis.IDENTITY, lid_at + Vector3.UP * 0.62), 40.0)
 	k = OssKit.new()
 	k.keep_lanes = false
 	k.box("wood", lid_at + Vector3.UP * 0.28, Vector3(1.0, 0.56, 0.6), Basis.IDENTITY, true, 0.7)
 	k.box("iron", lid_at + Vector3.UP * 0.3, Vector3(1.04, 0.07, 0.64), Basis.IDENTITY, false, 0.9)
 	k.commit(holder.get_parent(), "HoardChestBody")
-	State.cache(self, "deep_hoard", lid_at + Vector3.UP * 0.6, "the Abbot's coffer", func(animate: bool) -> void:
+	OssWorld.cache(self, "deep_hoard", lid_at + Vector3.UP * 0.6, "the Abbot's coffer", func(animate: bool) -> void:
 		var to := Transform3D(Basis(Vector3.RIGHT, -1.9), lid_at + Vector3(0, 0.62, -0.32))
 		if animate:
-			lid.create_tween().tween_property(lid, "global_transform", to, 0.8)
+			lid.create_tween().tween_property(lid, "transform", to, 0.8)
 		else:
-			lid.global_transform = to
+			lid.transform = to
 		if not State.has("open", "count_ended"):
 			State.mark("open", "count_ended")
 			_end_count(animate),
 		func() -> bool: return State.has("solved", "deep_beam"))
 	_sync.append(func(_animate: bool) -> void:
 		if State.has("looted", "deep_hoard"):
-			lid.global_transform = Transform3D(Basis(Vector3.RIGHT, -1.9), lid_at + Vector3(0, 0.62, -0.32)))
+			lid.transform = Transform3D(Basis(Vector3.RIGHT, -1.9), lid_at + Vector3(0, 0.62, -0.32)))
 
 
 # --- the Weighing Floor's fight ---------------------------------------------------------------
@@ -1053,8 +1052,8 @@ var _grille_s_vis: Node3D
 func _arena_logic() -> void:
 	_grille_n_vis = _grille("GrilleNorth", Vector3(18.0, D, -75.6), Vector3.RIGHT, 2.3)
 	_grille_s_vis = _grille("GrilleSouth", Vector3(15.2, D, ARENA.z + ARENA_R - 0.1), Vector3.RIGHT, 2.5)
-	_grille_n = Kit.box_body(self, Vector3(18.0, D + 1.4, -75.6), Vector3(2.4, 2.8, 0.3))
-	_grille_s = Kit.box_body(self, Vector3(15.2, D + 1.4, ARENA.z + ARENA_R - 0.1), Vector3(2.6, 2.8, 0.3))
+	_grille_n = OssWorld.box_body(self, Vector3(18.0, D + 1.4, -75.6), Vector3(2.4, 2.8, 0.3))
+	_grille_s = OssWorld.box_body(self, Vector3(15.2, D + 1.4, ARENA.z + ARENA_R - 0.1), Vector3(2.6, 2.8, 0.3))
 	Events.hollowed.connect(_arena_reset)
 	_sync.append(func(animate: bool) -> void:
 		var won := State.has("elites", "sexton")
@@ -1084,7 +1083,7 @@ func _set_grille(body: StaticBody3D, vis: Node3D, shut: bool, animate: bool) -> 
 	Kit.set_body(body, shut)
 	var to := 0.0 if shut else 2.75
 	if animate and absf(vis.position.y - to) > 0.1:
-		Kit.play("grind", vis.global_position + Vector3.UP, -2.0, 1.3)
+		OssWorld.play("grind", OssFrame.l(vis.global_position) + Vector3.UP, -2.0, 1.3)
 		vis.create_tween().tween_property(vis, "position:y", to, 1.1 if shut else 2.0).set_trans(Tween.TRANS_SINE)
 	else:
 		vis.position.y = to
@@ -1100,7 +1099,7 @@ func _arena_tick() -> void:
 	_arena_on = false
 	_arena_live.clear()
 	State.mark("elites", "sexton")
-	State.take("deep_sexton", ARENA + Vector3.UP)
+	OssWorld.take("deep_sexton", ARENA + Vector3.UP)
 	State.toast("The Sexton is weighed and found wanting. The pin of the cage hangs loose.")
 	State.banner("the Weighing is done", "The Weighing Floor")
 	_set_grille(_grille_n, _grille_n_vis, false, true)
@@ -1124,7 +1123,7 @@ func start_weighing() -> void:
 		return
 	_arena_on = true
 	# 60 HP (was base x5 = 15-25: down in 3-5 s of held bolt; A's r29 scale puts bosses at 72-120)
-	var sx := Kit.spawn_elite(area, "ossuant", ARENA + Vector3(-1.0, 0.1, 2.0), "The Sexton", 60)
+	var sx := OssWorld.spawn_elite(area, "ossuant", ARENA + Vector3(-1.0, 0.1, 2.0), "The Sexton", 60)
 	sx.set_meta("deep_elite", "sexton")
 	_arena_live.append(sx)
 	for p: Vector3 in [ARENA + Vector3(2.6, 0.1, 1.2), ARENA + Vector3(-3.0, 0.1, -1.6)]:
@@ -1132,7 +1131,7 @@ func start_weighing() -> void:
 		area.add_child(w)
 		w.station(p)
 		_arena_live.append(w)
-	Kit.fx_dust(ARENA + Vector3.UP * 0.3, Color(0.3, 0.3, 0.32, 0.8), 60)
+	OssWorld.fx_dust(ARENA + Vector3.UP * 0.3, Color(0.3, 0.3, 0.32, 0.8), 60)
 	_set_grille(_grille_n, _grille_n_vis, true, true)
 	State.toast("The Sexton rises from the low pan.")
 
@@ -1148,7 +1147,7 @@ func _process(delta: float) -> void:
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	if p == null:
 		return
-	var at := p.global_position
+	var at := OssFrame.l(p.global_position)               # (the Ossuary's own frame)
 	if not _arena_on and not State.has("elites", "sexton") and absf(at.y - D) < 1.6 \
 			and Vector2(at.x - ARENA.x, at.z - ARENA.z).length() < ARENA_R - 1.4:
 		start_weighing()
@@ -1165,7 +1164,7 @@ func _cage() -> void:
 	_lift.set("unlock_ready", func() -> bool: return State.has("elites", "sexton"))
 	_lift.set("on_unlock", func() -> void:
 		State.mark("open", "deep_lift")
-		Kit.play("clank", LIFT_AT + Vector3.UP, 2.0, 0.6)
+		OssWorld.play("clank", LIFT_AT + Vector3.UP, 2.0, 0.6)
 		State.toast("The pin drops into the dark. Above, in the gallery, a grille lifts.")
 		State.banner("a way back up", "The Sexton's Cage")
 		sync(true))
@@ -1178,7 +1177,7 @@ func _cage() -> void:
 	k.block("floor", Vector3(16.45, GAL_Y - 0.6, LIFT_AT.z - 1.15), Vector3(17.5, GAL_Y, LIFT_AT.z + 1.15))
 	k.commit(self, "CageLandingBody")
 	var gv := _grille("GalleryGrille", Vector3(17.5, GAL_Y, LIFT_AT.z), Vector3.BACK, 2.3)
-	var gb := Kit.box_body(self, Vector3(17.5, GAL_Y + 1.4, LIFT_AT.z), Vector3(0.3, 2.8, 2.4))
+	var gb := OssWorld.box_body(self, Vector3(17.5, GAL_Y + 1.4, LIFT_AT.z), Vector3(0.3, 2.8, 2.4))
 	_sync.append(func(animate: bool) -> void:
 		_set_grille(gb, gv, not State.has("open", "deep_lift"), animate))
 
@@ -1202,7 +1201,7 @@ func _beacon() -> void:
 	orb.material_override = m
 	orb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_beacon_node.add_child(orb)
-	orb.global_position = BELFRY
+	orb.position = BELFRY
 	var halo := MeshInstance3D.new()
 	var q := QuadMesh.new()
 	q.size = Vector2(5.5, 5.5)
@@ -1211,8 +1210,8 @@ func _beacon() -> void:
 	halo.set_instance_shader_parameter(&"tint", Color(0.35, 0.6, 1.0))
 	halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_beacon_node.add_child(halo)
-	halo.global_position = BELFRY
-	var l := Kit.omni(_beacon_node, BELFRY, Color(0.55, 0.78, 1.0), 2.2, 14.0)
+	halo.position = BELFRY
+	var l := OssWorld.omni(_beacon_node, BELFRY, Color(0.55, 0.78, 1.0), 2.2, 14.0)
 	l.distance_fade_begin = 140.0
 	l.distance_fade_length = 30.0
 	_beacon_node.visible = false
@@ -1223,7 +1222,7 @@ func _beacon() -> void:
 func _end_count(animate: bool) -> void:
 	_beacon_node.visible = true
 	if animate:
-		Kit.play("bell_great", BELFRY, 6.0, 0.8)
+		OssWorld.play("bell_great", BELFRY, 6.0, 0.8)
 		State.toast("Far above, in the gate hall's tower, the bell tolls once. The count is ended.")
 		State.banner("the count is ended", "The Ossuary")
 
@@ -1241,7 +1240,7 @@ func _no_moon_shadows() -> void:
 		if gi.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF or not gi.is_inside_tree():
 			continue
 		var box: AABB = gi.global_transform * gi.get_aabb()
-		if box.end.y < CHAPEL_Y - 0.5:
+		if box.end.y - OssFrame.ORIGIN.y < CHAPEL_Y - 0.5:
 			gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			n += 1
 	print("OSSUARY lower count: %d buried meshes cast no moon shadow" % n)
@@ -1250,20 +1249,20 @@ func _no_moon_shadows() -> void:
 func _lights() -> void:
 	area.call("_omni", "DeepCells", Vector3(15.0, CELL_Y + 2.6, -103.0), Color(1.0, 0.6, 0.3), 1.1, 8.0, false)
 	area.call("_omni", "DeepDrum", DRUM + Vector3(0, 2.4, 0), Color(1.0, 0.58, 0.3), 1.0, 6.5, false)
-	area.call("_omni", "DeepWindow", Vector3(E_MIRROR.x, D - 1.0, E_MIRROR.y), Color(1.0, 0.42, 0.14), 1.6, 7.0, false)
+	area.call("_omni", "DeepWindow", Vector3(E_MIRROR.x, D - 1.0, E_MIRROR.y), Color(1.0, 0.7, 0.4), 1.4, 7.0, false)
 	area.call("_omni", "DeepWeighing", ARENA + Vector3(0, 3.2, 0), Color(1.0, 0.56, 0.28), 1.6, 11.0, false)
 	area.call("_omni", "DeepHoard", Vector3(7.4, D + 2.4, -90.0), Color(1.0, 0.66, 0.34), 1.2, 7.5, false)
 
 
 func _readings() -> void:
-	State.reading(self, "sc_deep_slab", Vector3(HOLE.position.x - 0.5, CHAPEL_Y + 0.4, HOLE.position.y + 0.6))
-	State.reading(self, "sc_deep_sexton", Vector3(15.2, CELL_Y + 1.05, -102.6))
-	State.reading(self, "sc_deep_rule", Vector3(12.8, CELL_Y + 1.5, -100.0))
-	State.reading(self, "sc_deep_drum", DRUM + Vector3(0.0, 1.6, -DRUM_R - 0.9))
-	State.reading(self, "sc_deep_window", Vector3(E_PLAT.end.x - 0.5, D + 1.1, E_PLAT.position.y + 1.0))
-	State.reading(self, "sc_deep_weigh", ARENA + Vector3(-1.4, 0.9, 2.1))
-	State.reading(self, "sc_deep_hoard", Vector3(9.6, D + 1.0, HOARD.position.y + 1.1))
-	State.cache(self, "deep_cells", Vector3(16.95, CELL_Y + 0.6, -100.9), "the sexton's strongbox", Callable())
+	OssWorld.reading(self, "sc_deep_slab", Vector3(HOLE.position.x - 0.5, CHAPEL_Y + 0.4, HOLE.position.y + 0.6))
+	OssWorld.reading(self, "sc_deep_sexton", Vector3(15.2, CELL_Y + 1.05, -102.6))
+	OssWorld.reading(self, "sc_deep_rule", Vector3(12.8, CELL_Y + 1.5, -100.0))
+	OssWorld.reading(self, "sc_deep_drum", DRUM + Vector3(0.0, 1.6, -DRUM_R - 0.9))
+	OssWorld.reading(self, "sc_deep_window", Vector3(E_PLAT.end.x - 0.5, D + 1.1, E_PLAT.position.y + 1.0))
+	OssWorld.reading(self, "sc_deep_weigh", ARENA + Vector3(-1.4, 0.9, 2.1))
+	OssWorld.reading(self, "sc_deep_hoard", Vector3(9.6, D + 1.0, HOARD.position.y + 1.1))
+	OssWorld.cache(self, "deep_cells", Vector3(16.95, CELL_Y + 0.6, -100.9), "the sexton's strongbox", Callable())
 
 
 func _register() -> void:
@@ -1276,14 +1275,14 @@ func _register() -> void:
 		return
 	var chapel_in := Vector3(16.0, CHAPEL_Y, -100.6)
 	var walk_cells: Array[Vector3] = [Vector3(17.3, 0, -99.95), Vector3(18.7, 0, -100.1), Vector3(18.7, 0, -105.9), Vector3(17.2, 0, -105.9), Vector3(14.3, 0, -104.6), Vector3(13.6, 0, -103.4)]
-	State.register({"id": "lower_count", "name": "The Uncounted Cells", "at": Vector3(15.0, CELL_Y, -102.8), "r": 4.5, "node": self,
+	State.register({"id": "lower_count", "name": "The Uncounted Cells", "at": OssFrame.w(Vector3(15.0, CELL_Y, -102.8)), "r": 4.5, "node": self,
 		"route": {"from": chapel_in, "pts": walk_cells}, "goal": Vector3(13.6, CELL_Y, -103.4), "sync": sync})
 	var walk_drum: Array[Vector3] = [Vector3(13.6, 0, -101.0), Vector3(16.2, 0, -100.0), Vector3(16.2, 0, -97.8), Vector3(18.0, 0, -97.2), Vector3(18.0, 0, -91.6), Vector3(18.0, 0, -87.0), Vector3(18.0, 0, -85.2)]
-	State.register({"id": "count_drum", "name": "The Count Drum", "at": DRUM, "r": 3.0, "node": self,
+	State.register({"id": "count_drum", "name": "The Count Drum", "at": OssFrame.w(DRUM), "r": 3.0, "node": self,
 		"route": {"from": Vector3(13.6, CELL_Y + 0.05, -103.4), "pts": walk_drum}, "goal": Vector3(18.0, D, -85.2)})
-	State.register({"id": "weighing", "name": "The Weighing Floor", "at": ARENA, "r": 4.0, "node": self,
+	State.register({"id": "weighing", "name": "The Weighing Floor", "at": OssFrame.w(ARENA), "r": 4.0, "node": self,
 		"route": {"from": DRUM + Vector3(0, 0.2, 0), "pts": [Vector3(18.0, 0, -79.0), Vector3(17.6, 0, -74.0), Vector3(15.5, 0, -71.0)] as Array[Vector3]}, "goal": ARENA})
-	State.register({"id": "hoard", "name": "The Abbot's Hoard", "at": Vector3(7.4, D, -90.0), "r": 3.2, "node": self,
+	State.register({"id": "hoard", "name": "The Abbot's Hoard", "at": OssFrame.w(Vector3(7.4, D, -90.0)), "r": 3.2, "node": self,
 		"route": {"from": DRUM + Vector3(0, 0.2, 0), "pts": [Vector3(12.0, 0, -84.0), Vector3(HOARD_DOOR_X, 0, -85.0), Vector3(HOARD_DOOR_X, 0, -88.4), Vector3(7.4, 0, -89.6)] as Array[Vector3]}, "goal": Vector3(7.4, D, -89.6)})
 
 

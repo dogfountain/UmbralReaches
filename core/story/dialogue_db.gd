@@ -36,7 +36,7 @@ const CONV := {
 			"lore_2": {"say": "Edda put coals from her forge on a bare altar and the dark stopped at the door. Every fire since is hers. Yours too, now.", "next": "meet_hub"},
 			"three_1": {"say": "Three. Something in the Ring on the western hill that keeps the oaks; the Rooted call it the Thornwarden. The Abbot under the abbey, still counting his dead.", "next": "three_2"},
 			"three_2": {"say": "And whatever stands at the top of the Stair with the door open. The ward on the Crossing won't let you near it till the other two are down: a heart out of the Ring, a crown out of the crypt.", "next": "meet_hub"},
-			"start_1": {"say": "First: the braziers. Four of them — Stair foot, glade shrine, Barrow Field, fen under the Ossuary. Kindle them. Light is somewhere to stand when the dark leans on you.", "next": "start_2"},
+			"start_1": {"say": "First: the braziers. Four of them — Stair foot, glade shrine, Barrow Field, the fen below it. Kindle them. Light is somewhere to stand when the dark leans on you.", "next": "start_2"},
 			"start_2": {"say": "Then pick a door. Thorn seal on the Thornwood edge, west. Or the gallery seal in the crypt, through the fen. Both, before the Crossing will take you up to shut the sky's door.", "do": "flag:met_keep,teach:ward", "choices": [
 				{"text": "Another question.", "to": "meet_hub"},
 				{"text": "I'll go.", "to": "meet_end"},
@@ -69,7 +69,7 @@ const CONV := {
 				["boss:ascended_warden", "Now? Now nothing. Sit. Let the valley learn not to be pulled at. It'll take a while; it's been a while."],
 				["boss:thornwarden,boss:bone_abbot,!seal:summit", "Across the Crossing. There's a ward at the landing with guards that don't sleep. Clear them and it'll let heart and crown through. It was cut to let nobody else."],
 				["boss:thornwarden,boss:bone_abbot", "Up. Whatever's at the top is halfway into the sky and stuck there. Make it let go of the door."],
-				["boss:thornwarden", "The crown, then. Down from the Barrow Field, through the fen door, into the gallery. Mind the bones that stand up."],
+				["boss:thornwarden", "The crown, then. South on the Waiting Field's road, past the tomb, to the bone bridge, and over it into the gallery. Mind the bones that stand up."],
 				["boss:bone_abbot", "The heart, then. West road, past the glade, up the hill to the Ring. The thorn seal first."],
 				["seal:henge", "Into the Ring. Cut out the heart. Don't let it sing to you."],
 				["seal:oss_gallery", "Down to the charnel floor. The Abbot's on his mound. When he falls, something rises; bring it out."],
@@ -220,7 +220,7 @@ const CONV := {
 				{"text": "Neither.", "to": ""},
 			]},
 			"father": {"say": "After Mother went up with the bells he took the lantern and went down. Said if the light was up there, whatever was left was down there, and somebody ought to keep it company.", "next": "father2"},
-			"father2": {"say": "Six winters gone. Out on the fen, by the fen brazier under the Ossuary's fen door. If you go that way... bring me the lantern. Whatever's holding it.", "choices": [
+			"father2": {"say": "Six winters gone. Out on the fen, by the fen brazier below the barrows' descent. If you go that way... bring me the lantern. Whatever's holding it.", "choices": [
 				{"text": "I'll find him.", "to": "father_yes", "do": "qs:slow_way,att:harrow:1"},
 				{"text": "Some things stay lost.", "to": "father_no"},
 			]},
@@ -229,7 +229,7 @@ const CONV := {
 			"father_where": {"say_if": [
 				["qat:slow_way:2", "You've done it, then. I can see it on you. Bring me the lantern. Just the lantern."],
 				["qat:slow_way:1", "Something's standing over it. I heard it in your voice. Do what you have to."],
-				["", "Out on the fen, past the fen brazier under the Ossuary's door. A tin lantern with our name scratched on the base."],
+				["", "Out on the fen, past the fen brazier below the barrows' descent. A tin lantern with our name scratched on the base."],
 			], "next": "hub"},
 			"lantern": {"say": "That's it. That's his. ...Was it him? Tell me.", "choices": [
 				{"text": "It was him. Hollow. I put him to rest.", "to": "truth", "do": "qp:slow_way:truth,att:harrow:2"},
@@ -247,7 +247,7 @@ const CONV := {
 			"oss": {"say_if": [
 				["boss:bone_abbot", "Nobody's counting down there now. You saw to that. I don't go. Neither should you."],
 				["seal:oss_gallery", "You've been. Then you've seen him counting. Finish it."],
-				["", "Barrow Field, then down the fen. There's a door on the fen side now, a stair up into the gallery. The gallery's sealed; the dead in it want counting."],
+				["", "South, down the Waiting Field's road and along the brow, past the tomb. A bone bridge crosses the quarry to the gate hall; the gallery beyond it is sealed, and the dead in it want counting."],
 			], "next": "hub"},
 			"after": {"say": "The Abbot's down? Then nobody's counting them anymore. Good. Let them lose count. Let Father lose count.", "do": "flag:harrow_after", "next": "hub"},
 		},

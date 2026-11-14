@@ -21,7 +21,7 @@ const Starlit := preload("res://core/world/realm/rift/starlit_stone.gd")
 const Footing := preload("res://core/world/footing.gd")
 
 const LANTERN_PATHS := [
-	"west_way", "east_way", "fen_descent",
+	"west_way", "east_way", "fen_descent", "oss_lane",      # (oss_lane is the Ossuary's: a lantern at the Pilgrims' Landing)
 	"west_track", "weir_track", "spire_track", "anchor_track", "salt_track", "downs_track",
 ]
 const LANTERN_STEP := 26.0              ## metres between lanterns along a path (Luke, 9 Nov: 18 m on nine roads put

@@ -85,7 +85,7 @@ func _blocked(p: Vector2, top_y: float, pad := 1.5) -> bool:
 				return true
 	if RealmLayout.path_dist(p) < 1.2:
 		return true
-	var oss := RealmLayout.OSSUARY
+	var oss := RealmLayout.OSSUARY_OLD         # (the Ossuary left this wall; the old site stays clear of rocks and pipes: a bare cliff)
 	if p.x > oss.position.x - 0.5 and p.x < oss.end.x and p.y > oss.position.z and p.y < oss.end.z and top_y > oss.position.y - 1.0:
 		return true
 	return false
