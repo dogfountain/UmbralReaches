@@ -124,8 +124,8 @@ func _ready() -> void:
 			var val := kv.get_slice(":", 1)
 			var cur: Variant = Settings.get(k)
 			Settings.set(k, (val == "true") if cur is bool else (float(val) if cur is float else int(val)))
-	print("LINES config preset %d shadows %d ssr %s ssao %s aa %d detail %d fov %.0f tag %s" % [preset, Settings.shadow_quality,
-		Settings.ssr_enabled, Settings.ssao_enabled, Settings.aa_mode, Settings.detail, Settings.fov, tag])
+	print("LINES config preset %d shadows %d ssr %s aa %d detail %d fov %.0f tag %s" % [preset, Settings.shadow_quality,
+		Settings.ssr_enabled, Settings.aa_mode, Settings.detail, Settings.fov, tag])
 	get_window().size = Vector2i(1920, 1080)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://shots"))
 	main = load("res://world/main.tscn").instantiate()

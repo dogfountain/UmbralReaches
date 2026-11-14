@@ -76,8 +76,6 @@ func _ready() -> void:
 	Settings.fps_limit = 0
 	if "ssr" in off:
 		Settings.ssr_enabled = false
-	if "ssao" in off:
-		Settings.ssao_enabled = false
 	if "glow" in off:
 		Settings.glow_enabled = false
 	if "fog" in off:

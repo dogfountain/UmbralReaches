@@ -203,9 +203,9 @@ func _run_perf_baseline() -> void:
 	get_window().mode = Window.MODE_EXCLUSIVE_FULLSCREEN
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	await get_tree().create_timer(1.2).timeout
-	print("PERF_BASELINE settings preset=%d shadows=%d fog=%s ssao=%s glow=%s grade=%s scale=%.2f cap=%d window=%s mode=%d screen=%s render=%s" % [
+	print("PERF_BASELINE settings preset=%d shadows=%d fog=%s glow=%s grade=%s scale=%.2f cap=%d window=%s mode=%d screen=%s render=%s" % [
 		Settings.quality_preset, Settings.shadow_quality, Settings.fog_enabled,
-		Settings.ssao_enabled, Settings.glow_enabled, Settings.grade_enabled,
+		Settings.glow_enabled, Settings.grade_enabled,
 		Settings.render_scale, Settings.render_height_cap(),
 		str(get_window().size), get_window().mode,
 		str(DisplayServer.screen_get_size()),

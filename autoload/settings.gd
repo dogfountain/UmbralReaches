@@ -34,7 +34,6 @@ var vsync := true
 var render_scale := 0.0             # 0 = auto, else 0.5-1.0 fixed
 var shadow_quality := 2             # 0 off, 1 low, 2 high
 var fog_enabled := true
-var ssao_enabled := true
 var glow_enabled := true
 var grade_enabled := true
 var dof_enabled := false            ## kept for old cfg files; far DoF stays off (binding rule)
@@ -97,12 +96,11 @@ func load_settings() -> void:
 	render_scale = 0.0 if render_scale <= 0.0 else clampf(render_scale, 0.5, 1.0)
 	shadow_quality = clampi(_v(cfg, "graphics", "shadow_quality", shadow_quality), 0, SHADOW_NAMES.size() - 1)
 	fog_enabled = _v(cfg, "graphics", "fog_enabled", fog_enabled)
-	ssao_enabled = _v(cfg, "graphics", "ssao_enabled", ssao_enabled)
 	glow_enabled = _v(cfg, "graphics", "glow_enabled", glow_enabled)
 	grade_enabled = _v(cfg, "graphics", "grade_enabled", grade_enabled)
 	ssr_enabled = _v(cfg, "graphics", "ssr_enabled", ssr_enabled)
 	quality_preset = clampi(_v(cfg, "graphics", "quality_preset", quality_preset), 0, PRESETS.size() - 1)
-	detail = clampi(_v(cfg, "graphics", "detail", int(PRESETS[quality_preset][7])), 0, 2)
+	detail = clampi(_v(cfg, "graphics", "detail", int(PRESETS[quality_preset][6])), 0, 2)
 	motion_blur = clampf(_v(cfg, "graphics", "motion_blur", motion_blur), 0.0, 1.0)
 	aa_mode = clampi(_v(cfg, "graphics", "aa_mode", aa_mode), 0, AA_NAMES.size() - 1)
 	if cfg.has_section_key("display", "fps_limit"):
@@ -172,7 +170,6 @@ func save_settings() -> void:
 	cfg.set_value("graphics", "render_scale", render_scale)
 	cfg.set_value("graphics", "shadow_quality", shadow_quality)
 	cfg.set_value("graphics", "fog_enabled", fog_enabled)
-	cfg.set_value("graphics", "ssao_enabled", ssao_enabled)
 	cfg.set_value("graphics", "glow_enabled", glow_enabled)
 	cfg.set_value("graphics", "grade_enabled", grade_enabled)
 	cfg.set_value("graphics", "dof_enabled", dof_enabled)
@@ -334,11 +331,12 @@ func render_height_cap() -> int:
 	return 810 if detail <= 0 else 960
 
 
-## What each preset sets: [shadows, fog, ssao, glow, grade, ssr, motion blur, detail]
+## What each preset sets: [shadows, fog, glow, grade, ssr, motion blur, detail] (ambient occlusion is out of the game:
+## Luke, 14 Nov; it was 0.6 ms of a fight frame for creases that barely showed at night)
 const PRESETS := [
-	[1, false, false, true, true, false, 0.0, 0],
-	[2, true, true, true, true, false, 0.25, 1],
-	[2, true, true, true, true, true, 0.35, 2],
+	[1, false, true, true, false, 0.0, 0],
+	[2, true, true, true, false, 0.25, 1],
+	[2, true, true, true, true, 0.35, 2],
 ]
 
 
@@ -353,12 +351,11 @@ func set_preset_fields(index: int) -> void:
 	var p: Array = PRESETS[quality_preset]
 	shadow_quality = p[0]
 	fog_enabled = p[1]
-	ssao_enabled = p[2]
-	glow_enabled = p[3]
-	grade_enabled = p[4]
-	ssr_enabled = p[5]
-	motion_blur = p[6]
-	detail = p[7]
+	glow_enabled = p[2]
+	grade_enabled = p[3]
+	ssr_enabled = p[4]
+	motion_blur = p[5]
+	detail = p[6]
 	dof_enabled = false
 
 
@@ -366,7 +363,7 @@ func set_preset_fields(index: int) -> void:
 func matching_preset() -> int:
 	for i in PRESETS.size():
 		var p: Array = PRESETS[i]
-		if shadow_quality == p[0] and fog_enabled == p[1] and ssao_enabled == p[2] and glow_enabled == p[3] \
-				and grade_enabled == p[4] and ssr_enabled == p[5] and is_equal_approx(motion_blur, p[6]) and detail == p[7]:
+		if shadow_quality == p[0] and fog_enabled == p[1] and glow_enabled == p[2] \
+				and grade_enabled == p[3] and ssr_enabled == p[4] and is_equal_approx(motion_blur, p[5]) and detail == p[6]:
 			return i
 	return -1

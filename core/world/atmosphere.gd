@@ -55,7 +55,7 @@ static func _thin_particles(root: Node) -> void:
 static func apply_zone_settings(root: Node, env: Environment, cam: Camera3D, moon: DirectionalLight3D) -> void:
 	set_fog(env, Settings.fog_enabled)
 	apply_quality(env, cam)
-	env.ssao_enabled = Settings.ssao_enabled
+	env.ssao_enabled = false                     # out of the game (Luke, 14 Nov): 0.6 ms of a fight frame, barely seen at night
 	env.glow_enabled = Settings.glow_enabled
 	LightPolicy.apply_all(root, moon)
 	_flora_detail(root)
@@ -113,11 +113,6 @@ static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit
 	env.ambient_light_sky_contribution = 0.0
 	env.ambient_light_color = Color(0.24, 0.22, 0.34)
 	env.tonemap_exposure = 1.0
-	env.ssao_radius = 1.45
-	env.ssao_intensity = 1.7
-	env.ssao_power = 1.45
-	env.ssao_light_affect = 0.48
-	env.ssao_ao_channel_affect = 0.18
 	# (r35) no tonemap_white here: the night is AgX (environment.tres), which ignores it (white 1.0
 	# against 6.5 moved nothing, exposure 2.0 moved YAVG 42 -> 70; zz/lane_a_bench env:). AgX has
 	# its own tonemap_agx_white / _contrast, left at Godot's defaults: contrast 1.5 darkened the

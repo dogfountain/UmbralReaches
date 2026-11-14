@@ -37,7 +37,6 @@ var _scale_slider: HSlider
 var _scale_label: Label
 var _shadow_option: OptionButton
 var _fog_btn: CheckButton
-var _ssao_btn: CheckButton
 var _glow_btn: CheckButton
 var _grade_btn: CheckButton
 var _ssr_btn: CheckButton
@@ -218,9 +217,6 @@ func _build_graphics(p: VBoxContainer) -> void:
 	_head(p, "EFFECTS")
 	_fog_btn = _check(p, "Volumetric Fog", "Off removes the shafts and depth of the air; the distance fog and height haze stay", func(v: bool) -> void:
 		Settings.fog_enabled = v
-		_custom())
-	_ssao_btn = _check(p, "Ambient Occlusion", "Contact shadows in corners and under props", func(v: bool) -> void:
-		Settings.ssao_enabled = v
 		_custom())
 	_glow_btn = _check(p, "Glow", "Light bleed from fires, glimmers and the sky", func(v: bool) -> void:
 		Settings.glow_enabled = v
@@ -752,7 +748,6 @@ func _refresh() -> void:
 	_scale_label.text = "Auto" if auto else "%d%%" % roundi(Settings.render_scale * 100.0)
 	_shadow_option.select(Settings.shadow_quality)
 	_fog_btn.button_pressed = Settings.fog_enabled
-	_ssao_btn.button_pressed = Settings.ssao_enabled
 	_glow_btn.button_pressed = Settings.glow_enabled
 	_grade_btn.button_pressed = Settings.grade_enabled
 	_ssr_btn.button_pressed = Settings.ssr_enabled
