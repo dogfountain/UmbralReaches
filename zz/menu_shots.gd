@@ -115,6 +115,7 @@ func _run() -> void:
 		shop.call("close")
 	var ts := TitleScreen.new()
 	get_tree().root.add_child(ts)
+	await get_tree().create_timer(1.6, true, false, true).timeout        # at rest: the veil has lifted and the glow has breathed in
 	await _shot("title")
 	ts.queue_free()
 	get_tree().quit(0)

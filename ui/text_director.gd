@@ -41,6 +41,7 @@ const UIType := preload("res://ui/type.gd")
 const Stamina := preload("res://core/player/stamina.gd")
 
 var enabled_fight_gate := true         ## tests switch the locked-on rule off
+var opening := false                   ## a new game's staged opening is on: banners and quest cards wait (the HUD sets it)
 var _clock := 0.0
 var _occ: Dictionary = {}              ## kind -> {"until": float, "rect": Rect2}
 var _last_discovery := -1.0e9
@@ -199,6 +200,8 @@ func can_begin(kind: StringName) -> bool:
 	var lane := _lane(kind)
 	if narration_or_dialogue() and kind != &"narration":
 		return false
+	if opening and kind in [&"discovery", &"quest"]:
+		return false                                     # the title card and the opening's words go first
 	if in_fight() and not kind in [&"boss_emote", &"lesson", &"narration"]:
 		return false
 	if kind == &"discovery" and in_combat():

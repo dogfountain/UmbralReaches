@@ -695,20 +695,22 @@ static func reed_roof(parent: Node, space: PhysicsDirectSpaceState3D) -> Node3D:
 
 
 ## The well: boards across its mouth while it is fouled; a new rope, a full bucket, water when it is
-## drawn again. Returns {shut, open} (the director shows one).
+## drawn again. Returns {shut, open} (the director shows one). The modelled curb (hearthward_pieces.gd, 1.3 times the
+## old code-built one) is the size the pilot gives it: every offset below goes out with it.
 static func well(parent: Node, space: PhysicsDirectSpaceState3D, c: Vector2) -> Dictionary:
 	LK.ensure_mats()
 	var y := site_y("hw_well", ground(space, c.x, c.y))
 	var at := Vector3(c.x, y, c.y)
+	var w := 1.3 if Pilot.on() else 1.0
 	var shut := holder(parent, "WellShut")
 	var k := OssKit.new()
 	k.keep_lanes = false
 	for i in 5:
-		var z := -0.8 + 0.4 * float(i)
-		k.box("lore_beam", at + Vector3(0.02 * float(i % 2), 0.72, z), Vector3(2.15, 0.06, 0.32), Basis(Vector3.UP, 0.04 * float(i - 2)), false, 0.5 + 0.06 * float(i % 3))
-	k.box("lore_beam", at + Vector3(-0.6, 0.77, 0), Vector3(0.1, 0.05, 1.9), Basis.IDENTITY, false, 0.45)
-	k.box("lore_beam", at + Vector3(0.6, 0.77, 0), Vector3(0.1, 0.05, 1.9), Basis.IDENTITY, false, 0.45)
-	k.box("lore_char", at + Vector3(0.2, 0.8, -0.2), Vector3(0.5, 0.02, 0.06), Basis(Vector3.UP, 0.7), false, 0.6)
+		var z := (-0.8 + 0.4 * float(i)) * w
+		k.box("lore_beam", at + Vector3(0.02 * float(i % 2) * w, 0.72 * w + 0.03, z), Vector3(2.15, 0.06, 0.32) * w, Basis(Vector3.UP, 0.04 * float(i - 2)), false, 0.5 + 0.06 * float(i % 3))
+	k.box("lore_beam", at + Vector3(-0.6 * w, 0.77 * w + 0.03, 0), Vector3(0.1, 0.05, 1.9) * w, Basis.IDENTITY, false, 0.45)
+	k.box("lore_beam", at + Vector3(0.6 * w, 0.77 * w + 0.03, 0), Vector3(0.1, 0.05, 1.9) * w, Basis.IDENTITY, false, 0.45)
+	k.box("lore_char", at + Vector3(0.2 * w, 0.8 * w + 0.03, -0.2 * w), Vector3(0.5, 0.02, 0.06) * w, Basis(Vector3.UP, 0.7), false, 0.6)
 	_commit(k, shut, "ShutBody")
 	var opened := holder(parent, "WellOpen")
 	var k2 := OssKit.new()
@@ -717,12 +719,12 @@ static func well(parent: Node, space: PhysicsDirectSpaceState3D, c: Vector2) -> 
 		var cm := CreatureMesh.new(61)
 		cm.tube(PackedVector3Array([Vector3(0, 0, 0), Vector3(0, 0.26, 0)]), PackedFloat32Array([0.12, 0.15]), 12, Color(0.62, 0.5, 0.4), 0.0, 0.02)
 		return cm.commit())
-	LK.organic(k2, "lore_beam", bucket, Transform3D(Basis.IDENTITY, at + Vector3(0.55, 0.68, -0.98)))
-	k2.box("dark", at + Vector3(0.55, 0.93, -0.98), Vector3(0.24, 0.01, 0.24), Basis(Vector3.UP, 0.785), false, 0.35)
+	LK.organic(k2, "lore_beam", bucket, Transform3D(Basis.IDENTITY, at + Vector3(0.55 * w, 0.68 * w + 0.07, -0.98 * w)))
+	k2.box("dark", at + Vector3(0.55 * w, 0.93 * w + 0.07, -0.98 * w), Vector3(0.24, 0.01, 0.24), Basis(Vector3.UP, 0.785), false, 0.35)
 	var coil := _coil()
-	LK.organic(k2, "lore_beam", coil, Transform3D(Basis.IDENTITY, at + Vector3(-0.5, 0.68, -1.0)))
-	k2.box("lore_beam", at + Vector3(0.1, 0.95, 0), Vector3(0.025, 0.75, 0.025), Basis.IDENTITY, false, 0.9)
-	k2.box("lore_tslate", at + Vector3(0, 0.12, 0), Vector3(1.3, 0.01, 1.3), Basis(Vector3.UP, 0.2), false, 0.5)
+	LK.organic(k2, "lore_beam", coil, Transform3D(Basis.IDENTITY, at + Vector3(-0.5 * w, 0.68 * w + 0.07, -1.0 * w)))
+	k2.box("lore_beam", at + Vector3(0.1 * w, 0.95 * w + 0.07, 0), Vector3(0.025, 0.75, 0.025), Basis.IDENTITY, false, 0.9)
+	k2.box("lore_tslate", at + Vector3(0, 0.12, 0), Vector3(1.3, 0.01, 1.3) * w, Basis(Vector3.UP, 0.2), false, 0.5)
 	_commit(k2, opened, "OpenBody")
 	return {"shut": shut, "open": opened}
 

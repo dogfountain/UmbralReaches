@@ -207,6 +207,8 @@ const HW := {
 	"hw_south": {"old": Vector2(-15.0, 64.0), "at": Vector2(-15.0, 66.5), "s": 1.45, "half": Vector2(3.0, 2.4)},
 	"hw_harrow": {"old": Vector2(-19.0, 13.0), "at": Vector2(-17.0, 11.5), "s": 1.4, "half": Vector2(3.1, 2.4)},
 	"hw_cobb": {"old": Vector2(-33.0, 37.5), "at": Vector2(-33.0, 37.5), "s": 1.4, "half": Vector2(3.5, 2.7)},
+	# Edda's forge is no cottage (nothing asks hw_scale for it): its stations and walk nodes go out about its old centre
+	"hw_forge": {"old": Vector2(11.0, 60.0), "at": Vector2(11.0, 60.0), "s": 1.25, "half": Vector2(3.4, 2.6)},
 }
 const HW_POINTS := {
 	Vector2(-11.8, 37.4): Vector2(-9.9, 36.6),        # lamp_maud: off the stalls' front

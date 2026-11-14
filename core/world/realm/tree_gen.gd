@@ -446,12 +446,16 @@ class Gen:
 			var s := rng.randf_range(sz.x, sz.y) * (1.4 if far and not hang else 1.0)
 			var outw := Vector3(p.x - c.x, 0, p.z - c.z).normalized()
 			if hang:
+				# strands: narrow ribbons with real gaps between them (the texture's own gaps fill in at range, the
+				# geometry's do not), scattered round the anchor, the rim's longest so the curtain follows a dome
+				var rr := clampf(Vector2(p.x - c.x, p.z - c.z).length() / maxf(cr, 1.0), 0.0, 1.0)
 				for k in per:
 					var ra := rng.randf() * TAU
-					var rt := Vector3(cos(ra), 0, sin(ra)) * s * 0.12
-					var tuck := s * rng.randf_range(0.05, 0.35)      # each card's top tucked into the crown by its own amount: no level top edge
-					var l := s * rng.randf_range(0.7, 1.4)
-					card(leaf, p - Vector3.UP * (l - tuck) + outw * 0.2, rt, Vector3.UP * l, cell, nfn, cfn, 1.0, 0.25, rng.randf() < 0.5)
+					var rt := Vector3(cos(ra), 0, sin(ra)) * s * rng.randf_range(0.075, 0.115)
+					var off := Vector3(rng.randf_range(-1.0, 1.0), 0, rng.randf_range(-1.0, 1.0)) * s * 0.3
+					var tuck := s * rng.randf_range(0.05, 0.3)       # each ribbon's top tucked into the crown by its own amount: no level top edge
+					var l := s * rng.randf_range(0.55, 1.25) * (0.6 + 0.6 * rr)
+					card(leaf, p - Vector3.UP * (l - tuck) + outw * (0.2 + 0.6 * rr) + off, rt, Vector3.UP * l, cell, nfn, cfn, 1.0, 0.25, rng.randf() < 0.5)
 				continue
 			var up := (d * out_bias + outw * 0.3 + Vector3.UP * up_bias + rvec() * 0.35).normalized()
 			var side := up.cross(Vector3.UP if absf(up.y) < 0.95 else Vector3.RIGHT).normalized()
@@ -609,7 +613,9 @@ class Gen:
 		if dead:
 			cr = crown_cards(C_HANG, Vector2(1.6, 2.6), 1, Color(0.8, 0.85, 0.75), 0.0, 0.0, true)
 		else:
-			cr = crown_cards(C_WILLOW, Vector2(2.4, 3.6), 2, Color(0.85, 0.95, 0.85), 0.0, 0.0, true)
+			# a rounded crown of leaf above, thin strands hanging round and under it (a willow is a dome, not curtains)
+			cr = crown_cards(C_BIRCH, Vector2(2.0, 2.9), 2, Color(0.42, 0.58, 0.34), 0.3, 0.85)
+			crown_cards(C_WILLOW, Vector2(2.8, 4.0), 8, Color(0.85, 0.95, 0.85), 0.0, 0.0, true)
 		return done(true, cr, "oak" if not dead else "dead")
 
 	func make_snag(v: int) -> Dictionary:

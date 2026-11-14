@@ -246,8 +246,7 @@ func _ready() -> void:
 			# new game: wake on the Pilgrims' Road at waystone III, facing Hearthward
 			var RL := preload("res://core/world/realm/realm_layout.gd")
 			global_position = RL.PLAYER_START
-			var face := Vector2(RL.SPAWN.x - RL.PLAYER_START.x, RL.SPAWN.z - RL.PLAYER_START.z)
-			_yaw = atan2(-face.x, -face.y)
+			_yaw = RL.start_yaw()
 	checkpoint = global_position
 	_ash_banked = Travel.count("grave_ash")
 	vitals.restore_mound.call_deferred()

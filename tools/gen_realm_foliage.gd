@@ -206,21 +206,22 @@ func _pine() -> void:
 
 
 func _willow() -> void:
-	# long hanging strands from the top edge with narrow leaves
-	for s in 13:
-		var x := lerpf(40, CELL - 40, (float(s) + rng.randf()) / 13.0)
+	# three dense hanging strands from the top edge with narrow leaves: a card is a ribbon (core/world/realm/tree_gen.gd
+	# make_willow lays many of them, narrow, with gaps between: at range the texture's own gaps fill in, the geometry's don't)
+	for s in 3:
+		var x := lerpf(110, CELL - 110, float(s) / 2.0) + rng.randf_range(-14, 14)
 		var top := Vector2(x, PAD + 4)
-		var bot := Vector2(x + rng.randf_range(-40, 40), CELL - PAD - rng.randf_range(10, 120))
-		var ctrl := top.lerp(bot, 0.5) + Vector2(rng.randf_range(-35, 35), 0)
-		_curve(top, ctrl, bot, 1.6, 0.8, Color(0.24, 0.22, 0.14))
-		var n := int(top.distance_to(bot) / 9.0)
+		var bot := Vector2(x + rng.randf_range(-30, 30), CELL - PAD - rng.randf_range(4, 90))
+		var ctrl := top.lerp(bot, 0.5) + Vector2(rng.randf_range(-30, 30), 0)
+		_curve(top, ctrl, bot, 2.2, 1.0, Color(0.24, 0.22, 0.14))
+		var n := int(top.distance_to(bot) / 7.0)
 		for k in n:
-			var t := float(k) / n + rng.randf_range(0, 0.04)
+			var t := float(k) / n + rng.randf_range(0, 0.03)
 			var p := _bez(top, ctrl, bot, t)
 			var side := 1.0 if k % 2 == 0 else -1.0
-			var ang := PI + side * rng.randf_range(0.35, 0.75)
-			var l := rng.randf_range(26, 44) * (0.7 + 0.3 * sin(PI * t))
-			_leaf(p.x, p.y, ang, l, l * 0.17, _jit(Color(0.30, 0.38, 0.22), 0.18), 2)
+			var ang := PI + side * rng.randf_range(0.25, 0.6)
+			var l := rng.randf_range(44, 72) * (0.75 + 0.25 * sin(PI * t))
+			_leaf(p.x, p.y, ang, l, l * 0.2, _jit(Color(0.30, 0.38, 0.22), 0.18), 2)
 
 
 func _shrub() -> void:
