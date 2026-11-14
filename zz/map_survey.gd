@@ -65,6 +65,7 @@ func _ready() -> void:
 			"--no-grid": do_grid = false
 			"--no-probe": do_probe = false
 			"--dark": dark = true
+			"--no-ssao": no_ssao = true
 			"--png": png = true
 			"--settled-only": settled_only = true
 			"--probe-only": probe_only = true
@@ -157,7 +158,14 @@ func _process(d: float) -> void:
 		si += 1
 
 
+var no_ssao := false               ## --no-ssao: stills without ambient occlusion (to judge it against the same views with)
+
+
 func _begin() -> void:
+	if no_ssao:
+		for we in main.find_children("*", "WorldEnvironment", true, false):
+			if (we as WorldEnvironment).environment:
+				(we as WorldEnvironment).environment.ssao_enabled = false
 	space = (main as Node3D).get_world_3d().direct_space_state if main is Node3D else get_tree().root.get_world_3d().direct_space_state
 	report.append("SURVEY %s rect x %.0f..%.0f z %.0f..%.0f" % [nm, rect.position.x, rect.end.x, rect.position.y, rect.end.y])
 	if do_probe:
