@@ -52,7 +52,7 @@ teardown (quit, or the Deeper Night rebuilding in-process)
 | `core/util/` | `Groups`, `Layers`, `ProcMesh`, `save_dir.gd` (the `--save-dir` seam). |
 | `core/debug/` | Boot diagnostics, perf watch, deep-dive recorder. |
 | `ui/` | HUD, settings menu, loading screen, `character_screen.gd` (r35/r36: one key, four tabs: gear, charms, relics, staff), Satchel, Kindling (`growth.gd`), Journal (`codex.gd`), quest log, dialogue, shop, hotbar, hints. |
-| `world/` | `main.tscn` / `main.gd` (the night), `areas/ossuary/` (streamed Ossuary), `zones/ascension/` (baked meshes), `lab/` (light lab). |
+| `world/` | `main.tscn` / `main.gd` (the night), `areas/ossuary/` (streamed Ossuary: built in its own local coordinates, the node carries the frame in `oss_frame.gd` (a quarter turn under the Waiting Field); `oss_world.gd` places kit nodes by local numbers), `zones/ascension/` (baked meshes), `lab/` (light lab). |
 | `zz/` | Tests (`*_test.tscn`), probes, shot generators. Not shipped. |
 | `tools/` | Bakers, texture/audio generators, `run_tests.sh`. Not shipped. |
 
