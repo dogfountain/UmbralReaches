@@ -39,6 +39,8 @@ static func available(id: String, tree: SceneTree = null, ws := {}) -> bool:
 		return false
 	if Chains.hidden(id):                      # the slice: no dailies, no attunement chains
 		return false
+	if qd.has("found_at"):                     # found in the world (quest_world.gd starts it), never offered
+		return false
 	if Book.started(id) and not Book.repeatable(id):
 		return false
 	var state: Dictionary = ws if not ws.is_empty() else (VState.world(tree) if tree else _ws())

@@ -14,6 +14,7 @@ extends RefCounted
 ## Load by path: const DialogueDB := preload("res://core/story/dialogue_db.gd")
 
 const QuestDB := preload("res://core/story/quest_db.gd")
+const R38E := preload("res://core/story/quest_chains_r38_east.gd")   ## the hauler's tally is a choice (its pickup opens this)
 
 const KEEP_PORTRAIT := {"seated": false, "seed": 5150, "apron": true, "hat": "bare", "rag": true}
 
@@ -421,6 +422,7 @@ const CONV := {
 			"gone": {"say_if": [["qp:bell_mere:carried", "The bell hangs dumb and empty; the loop is bare where you took the tongue."], ["", "The bell hangs where you left it, tongue and all."]], "who": "", "next": ""},
 		},
 	},
+	"r38_tally": R38E.CONVS["r38_tally"],
 }
 
 ## Narration beats (non-blocking subtitles).
