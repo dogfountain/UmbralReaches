@@ -224,7 +224,7 @@ def bark_mat():
     col = m.mul(sc["color"], (0.5, 0.42, 0.37))
     col = m.mul(col, (0.62, 0.62, 0.62))
     vary = m.ramp(pid, [(0.0, (0.55, 0.5, 0.48)), (1.0, (1.25, 1.15, 1.05))])
-    col = m.mul(col, (1.0, 1.0, 1.0))
+    col = m.mul(col, (0.5, 0.48, 0.46))   # the underside gets no shader dust (up-facing coat), so the bare bark base showed as a pale red-brown: darker base
     mx = m.n('ShaderNodeMix')
     mx.data_type = 'RGBA'
     mx.blend_type = 'MULTIPLY'
