@@ -26,7 +26,9 @@ const Kept := preload("res://core/world/realm/lamps/lamps_kept.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const West := "res://core/world/realm/realm_pois_west_marches.gd"
 const Pilot := preload("res://core/world/realm/scale_pilot.gd")
+const Data := preload("res://core/world/realm/south_marches_kit_data.gd")
 const WALL_REACH := 3.2
+const PW_HALF := 2.8                   ## half the March gate's passage (the kit's GATE_PW / 2)
 const KEEP_OFF := 1.7                  ## from another interactable (ground lamps)
 
 static var stats: Dictionary = {}      ## look -> count (last build; the probe and the tests)
@@ -381,7 +383,53 @@ static func _wall(host: Node3D, root: Node) -> void:
 			var ty := _top_y(Vector2(top.x, top.z), -100.0)
 			if ty > gm.global_position.y + 8.0:
 				gl.add_follower(_crown(host, Vector3(top.x, ty, top.z), "wall_gc_%d_%d" % [int(gm.global_position.x), int(sx)]))
+			_gate_arch(host, gm, gl, sx)
 	print("LAMPS wall: %d towers, %d gate posts" % [n_tower, n_gate])
+
+
+## The gatehouse's own lamps, followers of its two posts: a lantern hung from the vault's crown (with a faint cold fill while the
+## posts are dark: the arch reads as an opening, not a hole), and on each face of the passage a bracket lantern at the springing,
+## the south one on the leader sx = +1, the north on sx = -1. All burn when either post is kindled.
+static func _gate_arch(host: Node3D, gm: Node3D, leader: Lamp, sx: float) -> void:
+	var k := gm.global_basis.get_scale().x
+	var gid := "%d_%d" % [int(gm.global_position.x), int(sx)]
+	var yaw := gm.global_rotation.y
+	var spring := float(Data.GATE_SPRING)
+	var zf := float(Data.GATE_FRONT_Z) + 0.18
+	var zr := float(Data.GATE_REAR_Z) - 0.18
+	if sx > 0.0:
+		var hook := gm.global_transform * Vector3(0.0, float(Data.GATE_CROWN) - 0.08, -2.6)
+		var v := _gate_lamp(host, hook, yaw, "wall_gv_" + gid, k, 3.9, 5.0, 3.5)
+		leader.add_follower(v)
+		var other := _lamp_at(host, "wall_g_%d_%d" % [int(gm.global_position.x), -1])
+		if other != null:
+			other.add_follower(v)
+	for face: float in [1.0, -1.0]:
+		var zl := zf if face > 0.0 else zr
+		var at := gm.global_transform * Vector3(sx * (PW_HALF + 0.3), spring - 0.2, zl)
+		# the face toward the March throws light; the Realm's face is glass only (the lamps' light budget: lamps_test)
+		leader.add_follower(_gate_lamp(host, at, yaw + (0.0 if face > 0.0 else PI), "wall_gb_%s_%d" % [gid, int(face)], k, 0.0, 2.5 if face > 0.0 else 0.0, 0.0))
+
+
+static func _lamp_at(host: Node3D, id: String) -> Lamp:
+	return host.get_node_or_null("Lamp_" + id) as Lamp
+
+
+## One follower lantern of the gate: `chain` > 0 hangs it from the point (a vault), 0 puts it on a bracket out of the wall.
+static func _gate_lamp(host: Node3D, at: Vector3, yaw: float, id: String, k: float, chain: float, power: float, cold: float) -> Lamp:
+	var lamp := Lamp.new()
+	lamp.name = "Lamp_" + id
+	lamp.lamp_id = id
+	lamp.look = "hang"
+	lamp.follower = true
+	lamp.chain = chain
+	lamp.power = maxf(power, 1.0)
+	lamp.want_light = power > 0.0
+	lamp.cold_fill = cold
+	host.add_child(lamp)
+	lamp.global_transform = Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3.ONE * k), at)
+	stats["hang"] = int(stats.get("hang", 0)) + 1
+	return lamp
 
 
 ## A cresset on a roof or a battlement, lit by its leader.

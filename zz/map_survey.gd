@@ -9,6 +9,7 @@ extends Node
 ##           thing mostly under the terrain. BODY = a rig (person, creature) whose origin is off the ground.
 ##   stills  a close-up of each finding (survey light on), and over a grid of the rect an aerial view (survey
 ##           light on) and two eye-level views in the game's own night look.
+##   --kindle=a,b kindles the lamps whose id contains a or b first (their followers burn with them);
 ##   --views / --views-file=<path> add free views; --spots-file=<path> (name x,y,z size) two close-ups of each spot
 ##   --find=a,b: two close-ups of every mesh node whose name (or its parent's) contains a or b, and a spots-file
 ##   line for each in the report (the same views again after a change).
@@ -39,6 +40,8 @@ var views: Array = []
 var spots: Array = []              ## [name, centre, size]
 var who: Array[Vector3] = []       ## (x, radius, z)
 var finds := PackedStringArray()
+var kindle := PackedStringArray()
+var kindled_at := Vector3.INF
 var main: Node
 var t := 0.0
 var done_t := -1.0
@@ -78,6 +81,8 @@ func _ready() -> void:
 				for w in kv[1].split(";", false):
 					var q := w.split(",")
 					who.append(Vector3(float(q[0]), float(q[2]), float(q[1])))
+			"--kindle":                      # a,b: kindle every lamp the wanderer can light whose id contains a or b (their followers burn too)
+				kindle = kv[1].split(",", false)
 			"--touch": touch = float(kv[1])
 			"--step": step = float(kv[1])
 			"--closeups": max_close = int(kv[1])
@@ -158,6 +163,18 @@ func _process(d: float) -> void:
 
 
 func _begin() -> void:
+	for n in get_tree().get_nodes_in_group(Lamp.GROUP):
+		var l := n as Lamp
+		for tok in kindle:
+			if l != null and not l.lit and l.lamp_id.contains(tok):
+				l.interact(self)
+				kindled_at = l.global_position
+				break
+	var wanderer := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	if wanderer != null and kindled_at != Vector3.INF:       # a lamp's light shows only within 60 m of her: stand her at the lamps, unseen and still
+		wanderer.global_position = kindled_at
+		wanderer.visible = false
+		wanderer.set_physics_process(false)
 	space = (main as Node3D).get_world_3d().direct_space_state if main is Node3D else get_tree().root.get_world_3d().direct_space_state
 	report.append("SURVEY %s rect x %.0f..%.0f z %.0f..%.0f" % [nm, rect.position.x, rect.end.x, rect.position.y, rect.end.y])
 	if do_probe:

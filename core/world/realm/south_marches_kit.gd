@@ -3,7 +3,7 @@ extends RefCounted
 ## meshes at the origin; this loads each file once, hands out its meshes by name, and puts a mesh in
 ## the world (a MeshInstance3D out of the atmosphere's blanket cull, with its own fade range) and a
 ## collision shape from a mesh (the oak's *Col proxies). No class_name: preload by path.
-##   WALL   WallSeg_A/B/C, Tower, TowerRuin, Gatehouse, BreachStub, Rubble, WallFar, TowerFar, GateFar
+##   WALL   WallSeg_A/B/C/D/E, Tower, TowerRuin, Gatehouse, BreachStub, Rubble, WallStair, WallShed, WallFar, TowerFar, GateFar
 ##   OAK    Trunk, Roots, Limbs, Crown, Stair, OakFar, TrunkCol, StairCol, RailCol, LimbCol, DeckCol
 ##   WELL   LedgeSlab, LedgeSlabOpen, LedgeLanding, Corbel, Pier, DescentGate, CaveMouth, Spillway,
 ##          EchoStone, RimPost, Rubble

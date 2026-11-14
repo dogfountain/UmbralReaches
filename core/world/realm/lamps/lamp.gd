@@ -43,11 +43,15 @@ var want_light := true                   ## a real (small) OmniLight when lit
 var free_niche := false                  ## a niche standing on its own plinth
 var chain := 0.0                         ## a hung lamp's chain (metres) from a ceiling
 var lit := false
+var power := 1.0                         ## scales the flame's light and its reach (a lantern in a vault: the passage is 8 m high)
+var cold_fill := 0.0                     ## > 0: a faint cold light while unkindled, so a dark opening reads as an opening (the March gate's vault)
+var cold_range := 9.0
 
 var _body: Node3D
 var _glow: Node3D
 var _glow_parts: Array[MeshInstance3D] = []
 var _light: OmniLight3D
+var _cold: OmniLight3D
 var _flame_at := Vector3.ZERO
 var _light_at := Vector3.ZERO
 var _e := 0.4
@@ -65,8 +69,8 @@ func _ready() -> void:
 	_flame_at = d.flame
 	_light_at = d.light
 	var lf := LightPolicy.illum(&"kept_lamp")  # the one brightness table (LightPolicy.ILLUM)
-	_e = float(d.e) * lf.x
-	_range = float(d.range) * lf.y
+	_e = float(d.e) * lf.x * power
+	_range = float(d.range) * lf.y * minf(power, 1.7)
 	var kit: Dictionary = d.get("kit", {})
 	if kit.is_empty():
 		var bm := MeshInstance3D.new()
@@ -207,6 +211,23 @@ func _set_lit(on: bool, animate: bool) -> void:
 	elif _light:
 		_light.queue_free()
 		_light = null
+	if on and _cold != null:
+		_cold.queue_free()
+		_cold = null
+	elif not on and cold_fill > 0.0 and _cold == null:
+		_cold = OmniLight3D.new()
+		_cold.name = "ColdFill"
+		_cold.position = _light_at
+		_cold.light_color = Color(0.55, 0.68, 1.0)
+		_cold.light_energy = cold_fill
+		_cold.omni_range = cold_range
+		_cold.omni_attenuation = 1.3
+		_cold.shadow_enabled = false
+		_cold.light_specular = 0.0
+		_cold.set_meta(&"light_class", &"lamp")
+		_cold.set_meta(&"base", {"e": cold_fill, "r": cold_range, "a": 1.3})
+		LightPolicy.apply_fade(_cold)
+		add_child(_cold)
 	_glow.scale = Vector3.ONE
 
 
