@@ -45,7 +45,11 @@ func setup(zone: Zone, mat: ShaderMaterial, env: Environment) -> void:
 	_mat = mat
 	_env = env
 	process_priority = 100                    # after the rig has set its lantern for the frame
-	Events.gloom_changed.connect(func(v: float, m: float) -> void: _target = clampf(v / maxf(m, 1.0), 0.0, 1.0))
+	Events.gloom_changed.connect(_on_gloom)      # a method, not a lambda: the signal drops it when this node is freed with its night
+
+
+func _on_gloom(v: float, m: float) -> void:
+	_target = clampf(v / maxf(m, 1.0), 0.0, 1.0)
 
 
 func _process(delta: float) -> void:
