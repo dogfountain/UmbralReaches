@@ -42,6 +42,11 @@ def object_from_quads(name, P, quads):
     bm = bmesh.new()
     bm.from_mesh(me)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    # a closed surface must enclose positive volume: if the recalc left the whole skin inside out, flip it
+    vol = sum(f.calc_area() * f.normal.dot(f.calc_center_median()) for f in bm.faces) / 3.0
+    if vol < 0:
+        bmesh.ops.reverse_faces(bm, faces=bm.faces)
+        print("WARNING: skin was inside out (volume %.4f), flipped" % vol)
     bm.to_mesh(me)
     bm.free()
     for p in me.polygons:
@@ -260,6 +265,17 @@ def bake(low, high, mats, prefix, size, tex_dir=None, extrude=0.02, ray=0.06, ao
             if route:
                 K._unroute(m)
         print("BAKED", key)
+        if key == "ao":
+            a_ = np.empty(size * size * 4, dtype=np.float32)
+            images["ao"].pixels.foreach_get(a_)
+            r_ = a_.reshape(-1, 4)[:, 0]
+            g_ = np.empty(size * size * 4, dtype=np.float32)
+            images["rough"].pixels.foreach_get(g_)
+            cov_ = g_.reshape(-1, 4)[:, 0] > 0.05
+            mean_ = float(r_[cov_].mean()) if cov_.any() else 0.0
+            print("AO mean over covered texels", round(mean_, 3))
+            if mean_ < 0.3:
+                raise RuntimeError("AO bake is black (mean %.3f): the atlas would render as a black shape" % mean_)
     os.makedirs(tex_dir, exist_ok=True)
 
     def px(img):
