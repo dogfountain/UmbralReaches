@@ -9,7 +9,7 @@ Umbral Reaches is a short, dark, solo action game about carrying light into a va
 
 ## Not this game
 
-- An MMO treadmill (daily chores, gear grind for its own sake, borrowed MMO scaffolding).
+- An MMO treadmill (gear grind for its own sake, borrowed MMO scaffolding). The five daily quest chains are an exception Luke kept on 14 Nov 2026, for content (docs/DECISIONS.md).
 - A survival-crafter (hunger, durability, base-building).
 - An open world (a map to clear; the Realm is a path through one night, not a checklist).
 

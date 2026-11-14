@@ -13,8 +13,7 @@ world_map_shot, horse_studio, the fight bench and the baseline views. Findings a
    opening narration all draw at once (first_minutes: "FAIL banner and title card on screen together"), over a
    camera that faces a cottage wall and a lamp post: the scaled-up Hearthward cottage now crowds the start spot.
    Fix: one message at a time; the start looks down the road at the gate and the stair.
-3. **"Daily" quests in a game that is one night.** Five chains are `repeat: "daily"`. PILLARS.md lists "daily
-   chores" under "not this game". Luke's call (see the question to him).
+3. "Daily" quests in a game that is one night: Luke keeps the five chains (14 Nov: too little content). Closed.
 
 ## Combat designer
 4. **Grunts do not read against the night.** At play distance a wretch or husk is a dark grey figure on dark blue
