@@ -47,7 +47,7 @@ var _pitch_lean_v := 0.0
 var _spd_hi := 0.0               ## recent top ground speed, decaying: what a stop has to shed
 var _stop_t := -1.0              ## s since a run ended (< 0: none); the braking lean, the sink and the settle ride on it
 var _stop_amp := 0.0
-var _arm_st := 0.0               ## the arms' share of the stride: follows it up at once, down slowly (the staff and the free arm carry on)
+var _arm_st := 0.0               ## the stride as the arms carry it: up at once, down slowly
 var _staff_sw := Vector2.ZERO    ## staff swing spring (pitch, roll)
 var _staff_sw_v := Vector2.ZERO
 var _nod := 0.0                  ## head/hood nod spring (landings, stops)
@@ -918,13 +918,11 @@ func _hero_pose(speed: float, on_floor: bool, idle: float, breathe: float, delta
 	_look_tick(speed, dt)
 
 
-## A stop with weight: out of a run the body does not snap upright. The motor sheds the speed in a
-## quarter second, so the rig keeps its own clock: the torso rocks back against the brake (the hips
-## sink, the knees take it, the free arm opens), then comes through upright with a small overshoot
-## forward and settles, the staff and the robe following through. `_stop_amp` scales with the speed shed.
+## A stop with weight: the motor sheds a run in a quarter second, so the rig keeps its own clock: the torso
+## rocks back against the brake (hips sink, knees take it, free arm opens), then overshoots forward and settles.
 func _stop_tick(speed: float, on_floor: bool, dt: float) -> void:
 	_spd_hi = maxf(speed, _spd_hi - 9.0 * dt)
-	var can := on_floor and slide < 0.2 and ride < 0.1 and hang < 0.05 and not (_mv_t >= 0.0)
+	var can := on_floor and slide < 0.2 and ride < 0.1 and hang < 0.05 and _mv_t < 0.0
 	if _stop_t < 0.0:
 		if can and speed < _spd_hi * 0.9 and _spd_hi > 3.2 and Vector2(_local_acc.x, _local_acc.z).length() > 12.0:
 			_stop_t = 0.0
@@ -940,10 +938,9 @@ func _stop_tick(speed: float, on_floor: bool, dt: float) -> void:
 		return
 	var k := _stop_amp
 	var e := sin(STOP_W * _stop_t) * exp(-STOP_Z * _stop_t) / 0.58      # +1 at the first peak (back), then a small forward overshoot
-	var fade := 1.0 - smoothstep(STOP_LEN * 0.8, STOP_LEN, _stop_t)
-	e *= fade * k
+	e *= (1.0 - smoothstep(STOP_LEN * 0.8, STOP_LEN, _stop_t)) * k
 	var back := maxf(e, 0.0)
-	var on := smoothstep(0.0, 0.06, _stop_t)             # in from the first frame, not on it
+	var on := smoothstep(0.0, 0.06, _stop_t)
 	_torso.rotation.x += 0.34 * e * on
 	_pelvis.rotation.x -= 0.1 * e * on                  # the hips tuck under the lean
 	_head.rotation.x -= 0.14 * e * on
@@ -1601,8 +1598,8 @@ func _process(delta: float) -> void:
 const H_LEG := 0.40                 ## the wanderer's thigh = shin
 const H_PELVIS := 0.955             ## pelvis height standing (hip 0.765: soft knees under the robe)
 const STOP_LEN := 1.0
-const STOP_W := 8.0                 ## the stop's rock: rad/s (a 0.8 s period) ...
-const STOP_Z := 3.2                 ## ... and how fast it dies away
+const STOP_W := 8.0                 ## the stop's rock (rad/s) and
+const STOP_Z := 3.2                 ## how fast it dies away
 const LAND_LEAD := 0.9              ## how much of the body's travel to touchdown the swinging sole leads (1: lands at rest)
 const BALL := 0.1                   ## sole point -> ball of the foot: the heel rises about it
 const TOE_OUT := 0.07
@@ -1902,14 +1899,12 @@ func _cycle(speed: float, xf: Transform3D, by: float, dt: float) -> void:
 		var td := xf * (Vector3((-1.0 if i == 0 else 1.0) * _foot_w(), 0.0, 0.0) + along * _g_td)
 		if _f_sw[i]:
 			if c < c0:
-				# (where the mark was when the cycle crossed 1: the body has moved on since, by up to a tick)
 				var tdc := td - flat * (c * 2.0 * _g_L / maxf(speed, 0.5)) * LAND_LEAD
 				_plant(i, _ground(tdc, xf.origin.y), by)        # touchdown
 				_footstep(speed)
 			else:
 				var u := clampf((c - (_f_u0[i] as float)) / maxf(1.0 - (_f_u0[i] as float), 0.02), 0.0, 1.0)
-				# the sole lands where the body WILL be then (not where it is now): a foot chasing a
-				# moving mark touches down at the body's speed and stops dead, which is a skid on every step
+				# the sole lands where the body WILL be then: a foot chasing a moving mark skids on every step
 				var ahead := Vector3(flat.x, 0.0, flat.z) * ((1.0 - c) * 2.0 * _g_L / maxf(speed, 0.5)) * LAND_LEAD
 				_swing_foot(i, _ground(td + ahead, xf.origin.y), by, u, lift)
 		if not _f_sw[i]:
