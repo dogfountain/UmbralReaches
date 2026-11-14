@@ -255,13 +255,23 @@ func begin(night: Node) -> void:
 			cast = false
 		elif a.begins_with("--cap="):
 			cap = int(a.trim_prefix("--cap="))
+		elif a.begins_with("--pad="):
+			pad_us = int(a.trim_prefix("--pad="))
 		elif a.begins_with("--slow="):
 			slow_ms = float(a.trim_prefix("--slow="))
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)     # the real cost, not the refresh cap
 
 
+var pad_us := 0                ## --pad=3000: a busy wait added to every frame. macOS paces frames to the display (they sit on 8.33 ms
+                               ## whatever is switched off); padded past that floor, an A/B's saving shows as a difference
+
+
 func _process(delta: float) -> void:
 	t += 1
+	if pad_us > 0 and started:
+		var until := Time.get_ticks_usec() + pad_us
+		while Time.get_ticks_usec() < until:
+			pass
 	if p == null:
 		p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		return
