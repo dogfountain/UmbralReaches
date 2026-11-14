@@ -428,6 +428,9 @@ static func nodes() -> Dictionary:
 			out[id] = Pilot.hw_xz(NODES[id])
 		out["gate_n"] = GATE_N
 		out["harrow_w"] = HARROW_W
+		# the turn outside the gate: on the gate's axis and 3.4 m off its posts (at 1.2 m a walker turning east for the
+		# forge brushed the east post: Hild, about one night in three)
+		out["road_bend"] = Vector2(GATE_N.x, 47.4)
 		_nodes_cache = out
 	return _nodes_cache
 

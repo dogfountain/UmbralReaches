@@ -263,6 +263,8 @@ func _sample(vs: Dictionary) -> void:
 		if String(v.get("state")) == "walk" and not bool(nav.call("clear", Vector3(p.x, fy, p.z))):
 			bad_clear += 1
 			if bad_clear < 6:
+				print("    in a wall or prop: %s at %s (goal %s)" % [vid2, p, (v.call("info") as Dictionary).get("goal", "")])
+			if bad_clear < 6:
 				print("    in something: %s at %s" % [vid2, p])
 		var inside := _inside_building(p)
 		if inside != "":
