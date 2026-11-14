@@ -24,6 +24,7 @@ var cur: Array[Image] = []
 var sheets: Array = []
 var dismounted := false
 var mounted := false
+var _was_air := false
 
 
 func _ready() -> void:
@@ -66,6 +67,7 @@ func _ready() -> void:
 	var stone := StandardMaterial3D.new()
 	stone.albedo_color = Color(0.45, 0.42, 0.4)
 	_box(Vector3(0, 0.17, -86), Vector3(1.2, 0.34, 0.5), stone)             # the hop's stone (trot)
+	_box(Vector3(0, 0.13, -75), Vector3(0.9, 0.26, 0.45), stone)           # a small rock (26 cm) in the trot's path, after the stone
 	_box(Vector3(0, 0.2, -150), Vector3(1.4, 0.4, 0.6), stone)              # the gallop leap's
 	_spawn_player()
 	horse = HorseScript.new()
@@ -165,6 +167,10 @@ func _physics_process(delta: float) -> void:
 		w = Vector3(0, 0, -1)
 		sprint = true
 	p.debug_drive(w, sprint)
+	var air := bool(horse.get("_air"))
+	if air != _was_air:
+		_was_air = air
+		print("HSEQ air=%s t=%.2f z=%.2f y=%.2f speed=%.1f" % [air, t, horse.global_position.z, horse.global_position.y, float(horse.get("speed"))])
 	if t > 24.0 and not dismounted:
 		dismounted = true
 		horse.dismount()

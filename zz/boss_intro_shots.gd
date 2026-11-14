@@ -80,7 +80,22 @@ func _process(delta: float) -> void:
 	if ti < TIMES.size() and t >= TIMES[ti]:
 		get_viewport().get_texture().get_image().save_png(out.path_join("%s_%d.png" % [id, ti]))
 		print("BSHOT frame ", ti, " yaw ", p._yaw)
+		_sight()
 		ti += 1
 	if ti >= TIMES.size():
 		print("BOSSINTRO done")
 		get_tree().quit()
+
+
+## What stands between the camera and the boss's chest and head at this moment (any hit before him is a pillar in the shot).
+func _sight() -> void:
+	var cam := get_viewport().get_camera_3d()
+	var boss := arena.get("_boss") as Node3D
+	if cam == null or boss == null:
+		return
+	for h: float in [1.2, 2.6]:
+		var to := boss.global_position + Vector3.UP * h
+		var q := PhysicsRayQueryParameters3D.create(cam.global_position, to, Layers.WORLD)
+		var hit := cam.get_world_3d().direct_space_state.intersect_ray(q)
+		var d := cam.global_position.distance_to(to)
+		print("BSHOT sight h=%.1f cam=%s dist=%.1f blocked=%s" % [h, cam.global_position, d, str(hit.collider.get_path()) + " at " + str(snappedf(cam.global_position.distance_to(hit.position), 0.1)) if hit else "no"])

@@ -167,40 +167,77 @@ static func interval(cam: Camera3D, pos: Vector3, moving := false) -> float:
 	return 1.0 / 12.0
 
 
-## Legs and pelvis for a walk at gait phase `p` (0..1 a stride; the right heel strikes at 0),
-## blended by `amt`, on any DwarfRig-shaped rig (bones 11-14 thighs/shins). Stance is 60 % of the
-## cycle, swing 40 %: the thigh is forward with the knee nearly straight at heel strike (so the boot's
-## toe is up: heel first), drifts back under the body through stance and leaves on the toe with the
-## leg behind (toe down), then the knee folds through the swing and reaches forward again; a little
-## knee give just after each strike takes the weight. Returns the pelvis drop (m, <= 0): lowest in
-## double support, highest over the planted foot (two bumps a stride).
-## opts (Dictionary): swing (rad, thigh amplitude), knee (rad, swing-phase fold), bob (m)
-static func walk_legs(rig: DwarfRig, p: float, amt: float, swing: float, knee: float, bob: float) -> float:
+## Legs and pelvis for a walk at gait phase `p` (0..1 a stride; the right heel strikes at 0), blended by `amt`,
+## on any DwarfRig-shaped rig (bones 11-14 thighs/shins). Solved, not tuned: each ankle is given a PATH and
+## the thigh and knee are found by two-bone IK in the leg's plane. Stance is 60 % of the cycle: the planted
+## ankle sits still on the floor while the body goes over it, so it travels back under the hip at exactly the
+## body's speed (a stride of 3.33 Z, Z = half the stance's sweep = the leg's length times sin(swing)); the swing
+## lifts it on a Hermite that leaves and arrives at the stance's own backward speed, so a sole lands at rest
+## relative to the GROUND, whatever the leg's proportions (the bone-angle gait it replaces crept 13-54 cm a
+## metre on the old and the long-skirted). The pelvis drops to whichever leg is reaching furthest (smooth
+## minimum), which is the bob: lowest in double support, highest over the planted foot.
+## swing (rad): the stance sweep; knee: the swing's lift (0.95 = a 9 cm clearance on a 0.69 m leg); bob: unused
+## (the pelvis's motion now follows from the legs). Returns the pelvis drop (m, <= 0).
+static func leg_len(rig: DwarfRig) -> float:
+	var hip: Vector3 = rig.rests[11]
+	var kn: Vector3 = rig.rests[12]
+	var ank: Vector3 = rig.ankle(1.0)
+	return hip.distance_to(kn) + kn.distance_to(ank)
+
+
+static func walk_legs(rig: DwarfRig, p: float, amt: float, swing: float, knee: float, _bob: float) -> float:
 	if amt <= 0.001:
 		return 0.0
-	var sa := sin(swing)
+	var hip: Vector3 = rig.rests[11]
+	var kn: Vector3 = rig.rests[12]
+	var ank: Vector3 = rig.ankle(1.0)
+	var a := Vector2(kn.y - hip.y, kn.z - hip.z)
+	var b := Vector2(ank.y - kn.y, ank.z - kn.z)
+	var l1 := a.length()
+	var l2 := b.length()
+	var lg := l1 + l2
+	var z0 := ank.z - hip.z                         # the ankle's rest offset from the hip, fore-aft (-z is forward)
+	var d0 := hip.y - ank.y                         # hip height above the ankle plane at rest
+	var zz := lg * sin(swing) * 0.97 * amt          # half the stance's sweep
+	var lift_h := 0.105 * knee * lg / 0.69
+	var reach := lerpf(d0, 0.99 * lg, amt)
+	var zf: Array[float] = [0.0, 0.0]
+	var lf: Array[float] = [0.0, 0.0]
 	for side in 2:
 		var c := fposmod(p + 0.5 * float(side), 1.0)
-		# stance (0..0.6): the planted foot slides back under the hip at the body's own speed, so its
-		# horizontal offset is LINEAR in the phase (an angle that followed a cosine had it creeping at the
-		# touchdown and racing mid-stance: a skate of 30 cm a step); swing: forward again, eased
-		var x := 0.0
 		if c < 0.6:
-			x = sa * (1.0 - 2.0 * c / 0.6)
+			zf[side] = zz * (1.0 - 2.0 * c / 0.6)
 		else:
-			# a Hermite swing that leaves and arrives at the stance's own (backward) slope: the sole touches down
-			# at rest relative to the ground, not riding along with the body and stopping dead
+			# swing: a Hermite from the stance's end to its start, at the stance's own (backward) speed at both ends
 			var u := (c - 0.6) / 0.4
 			var u2 := u * u
 			var u3 := u2 * u
-			var m := -3.33 * sa * 0.4
-			x = (2.0 * u3 - 3.0 * u2 + 1.0) * -sa + (u3 - 2.0 * u2 + u) * m + (-2.0 * u3 + 3.0 * u2) * sa + (u3 - u2) * m
-		var th := asin(clampf(x, -0.99, 0.99))
-		var flex := 0.12 * exp(-pow((c - 0.1) / 0.08, 2.0)) + knee * exp(-pow((c - 0.86) / 0.14, 2.0)) + 0.045
+			var m := -3.3333 * zz * 0.4
+			zf[side] = (2.0 * u3 - 3.0 * u2 + 1.0) * -zz + (u3 - 2.0 * u2 + u) * m + (-2.0 * u3 + 3.0 * u2) * zz + (u3 - u2) * m
+			lf[side] = lift_h * pow(sin(PI * u), 1.3)
+	# the pelvis: the lowest height any leg can reach to its own foot (a smooth minimum, 5 mm round)
+	var kk := 0.005
+	var e := 0.0
+	for side in 2:
+		var w := z0 - zf[side]
+		var hs := lf[side] + sqrt(maxf(reach * reach - w * w, 0.01))
+		e += exp(-hs / kk)
+	var h := minf(-kk * log(e), d0)
+	for side in 2:
+		var dy := lf[side] - h
+		var dz := z0 - zf[side]
+		var dist := clampf(sqrt(dy * dy + dz * dz), absf(l1 - l2) + 0.02, lg * 0.999)
+		var cd := clampf((dist * dist - l1 * l1 - l2 * l2) / (2.0 * l1 * l2), -1.0, 1.0)
+		var d_rest := angle_difference(atan2(a.y, a.x), atan2(b.y, b.x))
+		var aa := atan2(a.y, a.x)
+		var flex := maxf(d_rest + acos(cd), 0.0)
+		var del := d_rest - flex
+		var f0 := Vector2(cos(aa), sin(aa)) * l1 + Vector2(cos(aa + del), sin(aa + del)) * l2
+		var th := atan2(dz, dy) - atan2(f0.y, f0.x)
 		var bt := 11 if side == 0 else 13
-		rig.q(bt, Quaternion(Vector3.RIGHT, th * amt))
-		rig.q(bt + 1, Quaternion(Vector3.RIGHT, -flex * amt))
-	return -bob * amt * (0.5 + 0.5 * cos(TAU * 2.0 * p))
+		rig.q(bt, Quaternion(Vector3.RIGHT, th))
+		rig.q(bt + 1, Quaternion(Vector3.RIGHT, -flex))
+	return h - d0
 
 
 ## Pose blending between low-rate updates (r30). Past 11 m a villager poses at 30/20/12 Hz (see
@@ -258,6 +295,12 @@ func blend_step(rig: DwarfRig, acc: float) -> void:
 ## Metres covered by one full stride (two steps) for a leg of length `leg` swinging `swing` rad.
 static func stride_len(leg: float, swing: float) -> float:
 	return 3.33 * leg * sin(swing) * 0.97       # the stance (0.6 of a cycle) covers the sweep of one leg, 2 leg sin(swing)
+
+
+## Metres of ground per full cycle for this rig at full amplitude (world scale): twice the stance's sweep over
+## its 0.6 of the cycle, from the rig's own bone lengths (walk_legs plants the ankle, so this is exact).
+static func calib_stride(rig: DwarfRig, swing: float, _knee := 0.0, _bob := 0.0) -> float:
+	return 3.3333 * leg_len(rig) * sin(swing) * 0.97 * (rig as Node3D).scale.x
 
 
 ## A dialogue portrait (the box's live bust): breathing, blinks, small slow head moves with saccades,

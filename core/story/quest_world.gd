@@ -19,6 +19,7 @@ const Chains := preload("res://core/story/quest_chains.gd")
 const QProps := preload("res://core/story/quest_props.gd")
 const Pickup := preload("res://core/story/quest_pickup.gd")
 const RealmLayout := preload("res://core/world/realm/realm_layout.gd")
+const Hier := preload("res://core/world/realm/realm_pois_hierarch.gd")
 
 ## Found floor points: pickup key / "stair" / "names" / "staff" -> Vector3 (tests read them).
 static var spots := {}
@@ -50,13 +51,15 @@ static func prepare(v: Node3D) -> void:
 			if f != Vector3.INF:
 				near = Vector2(f.x + 0.9, f.z - 0.9)
 		spots[k] = _spot(nav, near)
+		if bool(Chains.PICKUPS[k].get("palm", false)):
+			spots[k] = Hier.palm_pos(0)           # set down IN the Hierarch's palm, not at the foot of the blocks that climb to it
 	# a task found in the world starts at its body / grave (a floor under the prop), and some leave a lit thing standing
 	for qid: String in Chains.ORDER:
 		var qd: Dictionary = Chains.QUESTS[qid]
 		if qd.has("found_at"):
 			spots["found_" + qid] = _spot(nav, qd.found_at)
 		if qd.has("stands"):
-			spots["stand_" + qid] = _spot(nav, qd.stands.at)
+			spots["stand_" + qid] = Hier.palm_pos(1) if bool(qd.stands.get("palm", false)) else _spot(nav, qd.stands.at)
 	spots["stair"] = _spot(nav, Chains.ESCORT.to)
 	spots["hollow"] = spots.get("lantern", Vector3.INF)
 	spots["names"] = _spot(nav, Vector2(-82.3, 44.6), 0.5)

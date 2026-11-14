@@ -89,10 +89,16 @@ func _build_banner() -> void:
 	add_child(_banner)
 	_b_top = _lbl(18, Med.GILT_DEEP)
 	_b_name = _lbl(38, Med.BONE)
-	_b_sub = _lbl(20, QUIET, false)
+	_b_sub = _lbl(22, QUIET, false)
+	# a task's ending is two or three sentences (200-330 characters): wrapped to the banner's width, on a backing so it reads over
+	# the lit street or the dark alike, not one line three screens wide
+	_b_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_b_sub.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_b_sub.add_theme_stylebox_override("normal", TextDirector.backing(18, 8))
 	for l: Label in [_b_top, _b_name, _b_sub]:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_banner.add_child(l)
+	_banner.add_theme_constant_override("separation", 6)
 
 
 func _build_progress() -> void:
@@ -230,7 +236,8 @@ func _process(_d: float) -> void:
 	_prog.visible = not get_tree().paused
 	if not _bq.is_empty() and not get_tree().paused:
 		var td := TextDirector.of(self)
-		if td == null or td.begin(&"quest", 5.8, Rect2(td.lane_rect(&"banner").position + Vector2(50, 8), Vector2(1000, 150))):
+		var hold := _hold(String((_bq[0] as Array)[2]))
+		if td == null or td.begin(&"quest", hold + 2.2, Rect2(td.lane_rect(&"banner").position + Vector2(50, 8), Vector2(1000, 230))):
 			_show_banner.callv(_bq.pop_front())
 
 
@@ -240,16 +247,23 @@ func banner(top: String, name_text: String, sub: String) -> void:
 		_bq.append([top, name_text, sub])
 
 
+## Seconds a banner holds: 3.6 for a line, more for an ending (about 16 characters a second to read it, up to 13).
+func _hold(sub: String) -> float:
+	return clampf(2.4 + float(sub.length()) / 16.0, 3.6, 13.0)
+
+
 func _show_banner(top: String, name_text: String, sub: String) -> void:
 	_b_top.text = TextDirector.sentence(top)           # the same case rule as every other line; the name stays as the lore spells it
 	_b_name.text = name_text
 	_b_sub.text = TextDirector.sentence(sub)
+	_b_sub.visible = sub != ""
+	_b_sub.custom_minimum_size = Vector2(960 if sub.length() > 90 else 0, 0)
 	if _b_tw:
 		_b_tw.kill()
 	_b_tw = create_tween()
 	_b_tw.set_pause_mode(Tween.TWEEN_PAUSE_STOP)     # a task begun in a conversation waits for it to close
 	_b_tw.tween_property(_banner, "modulate:a", 1.0, 0.5)
-	_b_tw.tween_interval(3.6)
+	_b_tw.tween_interval(_hold(sub))
 	_b_tw.tween_property(_banner, "modulate:a", 0.0, 1.2)
 
 

@@ -17,6 +17,7 @@ const LIGHT_E := 7.0            ## the rise light: the boss stands in his own po
 const LIGHT_COL := Color(1.0, 0.8, 0.58)
 
 var _boss: Enemy
+var _look := LOOK_HEIGHT        ## where in his height the view aims (a higher value seats him lower in the frame, under the title)
 var _height := 3.0              ## his top above his feet, measured from his meshes once
 var _light: OmniLight3D
 var _p: Player
@@ -25,13 +26,14 @@ var _last_yaw := 0.0
 var _last_pitch := 0.0
 
 
-static func start(host: Node, boss: Enemy) -> void:
+static func start(host: Node, boss: Enemy, look := LOOK_HEIGHT) -> void:
 	var p := host.get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 	if p == null or boss == null:
 		return
 	var f := BossFrame.new()
 	f.name = "BossFrame"
 	f._boss = boss
+	f._look = look
 	f._p = p
 	f._height = clampf(_measure(boss), 1.6, 9.0)
 	host.add_child(f)
@@ -89,7 +91,7 @@ func _process(delta: float) -> void:
 	var k := 1.0 - exp(-EASE_IN * delta)
 	# aimed a little to the left of him, so he stands to the right of the wanderer instead of behind his hood
 	var yaw := lerp_angle(_p._yaw, atan2(-to.x, -to.z) + SIDE, k * fade)
-	var rise := atan2(_boss.global_position.y + _height * LOOK_HEIGHT - (_p.global_position.y + 1.7), to.length() + _p.ARM_LEN * 0.8)
+	var rise := atan2(_boss.global_position.y + _height * _look - (_p.global_position.y + 1.7), to.length() + _p.ARM_LEN * 0.8)
 	var pitch := lerpf(_p._pitch, clampf(rise, PITCH, PITCH_MAX), k * fade)
 	_p.set_view(yaw, pitch)
 	_last_yaw = yaw

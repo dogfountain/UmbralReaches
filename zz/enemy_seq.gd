@@ -10,6 +10,8 @@ const N := 8
 const STEP := 0.1
 var order: Array[String] = []
 var tag := "seq"
+var tel := 0.45             ## --tel=1.0: the attack row's telegraph length (the boss's own: Thornwarden 0.7 pounce, 1.0 lash)
+var full := false           ## --full: also keep every frame at the window's size (shots/enemy_seq/<tag>_<kind>_<row>_<n>.png)
 var speed_k := 1.0          ## --speed=0.45: the walk row at a part of the kind's pace (a trot, not the chase)
 var ki := 0
 var cur: Enemy
@@ -27,6 +29,8 @@ func _ready() -> void:
 	get_window().size = Vector2i(600, 600)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--tag="): tag = a.trim_prefix("--tag=")
+		elif a == "--full": full = true
+		elif a.begins_with("--tel="): tel = float(a.trim_prefix("--tel="))
 		elif a.begins_with("--speed="): speed_k = float(a.trim_prefix("--speed="))
 		elif a.begins_with("--only="):
 			for k in a.trim_prefix("--only=").split(","):
@@ -126,7 +130,7 @@ func _process(d: float) -> void:
 	if cur._rig:
 		cur._rig.animate(v, true, d)
 	acc += d
-	if ROWS[row][0] == "attack" and not struck and t_row + d >= 0.45 and cur._rig and cur._rig.has_method("strike"):
+	if ROWS[row][0] == "attack" and not struck and t_row + d >= tel and cur._rig and cur._rig.has_method("strike"):
 		struck = true
 		cur._rig.call("strike")
 	t_row += d
@@ -134,6 +138,8 @@ func _process(d: float) -> void:
 		return
 	acc -= step
 	frames.append(get_viewport().get_texture().get_image())
+	if full:
+		frames[-1].save_png(ProjectSettings.globalize_path("res://shots/enemy_seq/%s_%s_%s_%d.png" % [tag, order[ki], ROWS[row][0], fi]))
 	fi += 1
 	if fi < N:
 		return
@@ -153,7 +159,7 @@ func _process(d: float) -> void:
 	var nm: String = ROWS[row][0]
 	if cur._rig:
 		if nm == "attack" and cur._rig.has_method("telegraph"):
-			cur._rig.call("telegraph", 0.45)
+			cur._rig.call("telegraph", tel)
 		elif nm == "stagger" and cur._rig.has_method("stagger"):
 			cur._rig.call("stagger")
 		elif nm == "collapse" and cur._rig.has_method("collapse"):

@@ -393,7 +393,7 @@ func _go(skip: Array[RID], fwd: Vector3, w: Vector3, want: float, sc: float, dt:
 		var ga := _ground(global_position + dir * da).y
 		var gb := _ground(global_position + dir * (da + 0.5)).y
 		var rise := gb - global_position.y
-		if gb - ga >= 0.3 and rise >= 0.25 and rise <= float(_d.climb) + 0.1:
+		if gb - ga >= 0.18 and rise >= 0.18 and rise <= float(_d.climb) + 0.1:
 			_vy = sqrt(2.0 * GRAVITY * (rise + 0.28))
 			_air = true
 			_air_t = 0.0

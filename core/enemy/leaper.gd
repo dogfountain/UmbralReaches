@@ -45,6 +45,7 @@ func _build() -> void:
 	# r30: the modelled leaper stands on hound legs, and so does the Thornwarden's skinned body (a Leaper
 	# too); the procedural fallback keeps the spider layout
 	rig.upright = _kind(&"leaper") in [&"leaper", &"thornwarden"] and GruntModel.has(_kind(&"leaper"))
+	rig.heavy = 1.0 if _kind(&"leaper") == &"thornwarden" else 0.0
 	attach_rig(rig)
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape is CapsuleShape3D:

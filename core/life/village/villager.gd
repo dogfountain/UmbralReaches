@@ -113,6 +113,9 @@ var _pose_acc := 0.0
 var _dip := 0.0                       ## knee give on a blow (hammer, axe), set by the work poses
 var _foot_push := 0.0                 ## the digger's boot on the spade (0..1)
 var _gait := [0.36, 0.88, 0.02, 0.3]
+var _gest := 0.0                      ## which hand has the word: +1 right, -1 left, eased
+var _pass_t := 0.0
+var _pass := Vector3.INF              ## a villager walking by, whom the eye follows
 
 
 func setup(vid: String, d: Dictionary, director: Node) -> void:
@@ -538,8 +541,8 @@ func _walk(dt: float) -> void:
 	walk_amt = move_toward(walk_amt, 1.0, dt * 2.5)
 	var step_len := v * dt
 	walked += step_len
-	var stride := Life.stride_len(0.69 * rig.k * Rig.SCALE, float(_gait[0]))
-	gait = fposmod(gait + step_len / stride, 1.0)
+	var stride := Life.calib_stride(rig, float(_gait[0]), float(_gait[1]), float(_gait[2]) * rig.k)
+	gait = fposmod(gait + step_len / (stride * maxf(walk_amt, 0.35)), 1.0)
 	# along the path; a sidestep offset eases in and back out
 	_side = move_toward(_side, _side_to, dt * 1.2)
 	if _blocked == 0.0 and _side_to != 0.0:
@@ -605,8 +608,8 @@ func _follow(dt: float) -> void:
 			global_position = Vector3(nx.x, y, nx.z)
 			yaw = lerp_angle(yaw, atan2(-d2.x, -d2.z), minf(1.0, dt * 5.0))
 			walked += v * dt
-			var stride := Life.stride_len(0.69 * rig.k * Rig.SCALE, float(_gait[0]))
-			gait = fposmod(gait + v * dt / stride, 1.0)
+			var stride := Life.calib_stride(rig, float(_gait[0]), float(_gait[1]), float(_gait[2]) * rig.k)
+			gait = fposmod(gait + v * dt / (stride * maxf(walk_amt, 0.35)), 1.0)
 			moved = true
 			break
 		walk_amt = move_toward(walk_amt, 1.0 if moved else 0.0, dt * 2.5)
@@ -923,18 +926,37 @@ func _pose(dt: float) -> void:
 		off += _legs_walk(k, walk_amt)
 	if arms_free[0] or arms_free[1]:
 		_arms_carry(k, tool_r, tool_l, arms_free)
-	# speaking: the free hands open and rise on the stressed words, the head nods with them
+	# speaking: the free hands open and rise on the stressed words, the head nods with them, the body leans in to
+	# the listener on the beat and the hands trade the word between them (right on one, left on the next)
+	_gest = lerpf(_gest, (1.0 if (life.words & 1) == 1 else -1.0) if speaking else 0.0, minf(1.0, dt * 4.0))
 	if speaking:
 		var bt: float = life.beat()
-		head_pitch += 0.07 * bt - 0.02
-		if arms_free[0] and tool_r in ["", "chalk"]:
-			r.arm_to("r", Vector3(0.16, 0.98 + 0.1 * bt, -0.3 - 0.08 * bt) * k, Vector3(0.9, -0.6, 0.2), Quaternion(Vector3.FORWARD, 0.6 + 0.5 * bt) * Quaternion(Vector3.RIGHT, -0.4))
-		elif arms_free[1] and tool_l == "":
-			r.arm_to("l", Vector3(-0.16, 0.98 + 0.1 * bt, -0.3 - 0.08 * bt) * k, Vector3(-0.9, -0.6, 0.2), Quaternion(Vector3.FORWARD, -0.6 - 0.5 * bt) * Quaternion(Vector3.RIGHT, -0.4))
+		head_pitch += 0.1 * bt - 0.02
+		var gs := _gest
+		var lean_in := 0.035 + 0.05 * bt
+		r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, -lean_in * 0.5))
+		r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.UP, 0.06 * gs * (0.4 + bt)) * Quaternion(Vector3.RIGHT, -lean_in))
+		var free_r: bool = arms_free[0] and tool_r in ["", "chalk"]
+		var free_l: bool = arms_free[1] and tool_l == ""
+		if free_r:
+			r.arm_to("r", Vector3(0.16, 0.98 + 0.1 * bt + (0.06 * gs if free_l else 0.0), -0.3 - 0.08 * bt - (0.04 * gs if free_l else 0.0)) * k, Vector3(0.9, -0.6, 0.2), Quaternion(Vector3.FORWARD, 0.6 + 0.5 * bt) * Quaternion(Vector3.RIGHT, -0.4))
+		if free_l:
+			r.arm_to("l", Vector3(-0.16, 0.98 + 0.1 * bt - (0.06 * gs if free_r else 0.0), -0.3 - 0.08 * bt + (0.04 * gs if free_r else 0.0)) * k, Vector3(-0.9, -0.6, 0.2), Quaternion(Vector3.FORWARD, -0.6 - 0.5 * bt) * Quaternion(Vector3.RIGHT, -0.4))
 	if cur in ["idle", "watch", "attend", "warm", "look_up", "read", "knock", "chat", "sell"] and walk_amt < 0.1:
 		# standing is never still: the weight rolls from one foot to the other, the free knee softens
-		var ws := sin(_t * 0.4 + float(hash(id) % 628) * 0.01)
+		var ph := float(hash(id) % 628) * 0.01
+		var ws := sin(_t * 0.4 + ph)
 		r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.FORWARD, 0.04 * ws))
+		if not speaking and attend == null:
+			# a slow turn of the chest against the head's wander, the shoulders lifting with the breath, and every so often
+			# one hand coming up (to the chin, to the belt) and going down again
+			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.UP, 0.07 * sin(_t * 0.23 + ph * 1.7)) * Quaternion(Vector3.BACK, 0.02 * ws))
+			var fid := pow(maxf(0.0, sin(_t * 0.31 + ph * 2.3)), 6.0)
+			if arms_free[0] and tool_r == "":
+				r.q(B_ARM_R, (r.get_q(B_ARM_R) as Quaternion) * Quaternion(Vector3.RIGHT, -0.55 * fid) * Quaternion(Vector3.BACK, 0.02 + 0.05 * breath * 12.0))
+				r.q(B_FORE_R, (r.get_q(B_FORE_R) as Quaternion) * Quaternion(Vector3.RIGHT, 1.0 * fid))
+			if arms_free[1] and tool_l == "":
+				r.q(B_ARM_L, (r.get_q(B_ARM_L) as Quaternion) * Quaternion(Vector3.BACK, -0.02 - 0.05 * breath * 12.0))
 		var rest_r := 0.05 * maxf(0.0, ws)
 		var rest_l := 0.05 * maxf(0.0, -ws)
 		r.q(B_THIGH_R, (r.get_q(B_THIGH_R) as Quaternion) * Quaternion(Vector3.RIGHT, rest_r))
@@ -1075,6 +1097,18 @@ func _head(k: float, target: Vector3, pitch: float, dt: float) -> void:
 			var glance := state != "act" or fmod(_t + float(hash(id) % 5), 8.0) < (1.6 if act in WORK else 3.0)
 			if glance:
 				target = pp + Vector3.UP * 1.5
+	if target == Vector3.INF and state != "walk":
+		_pass_t -= dt
+		if _pass_t <= 0.0:
+			_pass_t = 0.4 + _rng.randf() * 0.2
+			_pass = Vector3.INF
+			for o: Node in get_tree().get_nodes_in_group("villager"):
+				if o != self and o is Node3D and not bool(o.get("hidden")) and String(o.get("state")) == "walk":
+					var dd := (o as Node3D).global_position - global_position
+					if dd.length() < 5.0 and dd.normalized().dot(_fwd()) > -0.3:
+						_pass = (o as Node3D).global_position + Vector3.UP * 1.45
+						break
+		target = _pass
 	if target != Vector3.INF:
 		var m := _m(target)
 		var hc: Vector3 = r.hc

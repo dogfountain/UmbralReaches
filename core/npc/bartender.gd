@@ -135,7 +135,7 @@ func _process(delta: float) -> void:
 	var walking := absf(dx) > 0.05 and not near
 	if walking:
 		global_position.x += signf(dx) * minf(absf(dx), 1.0 * delta)
-		_phase += delta * TAU / Life.stride_len(0.44, 0.38)
+		_phase += delta * TAU / (Life.calib_stride(rig, 0.38, 0.95, 0.022) * maxf(_walk, 0.35))     # the stride grows with the blend, so the phase quickens as it starts: the planted foot stays put
 	_walk = move_toward(_walk, 1.0 if walking else 0.0, delta * 4.0)
 	# face: along the walk, the kegs (+x) when filling, the wanderer when greeting, else the room (-z)
 	var want := facing

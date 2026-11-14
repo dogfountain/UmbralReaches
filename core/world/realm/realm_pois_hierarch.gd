@@ -25,6 +25,9 @@ const Pilot := preload("res://core/world/realm/scale_pilot.gd")
 const HEAD_C := Vector2(-206.0, 148.0)
 const BODY_DIR := Vector2(0.2, 0.98)
 const FLOOR_Y := 0.8
+const PALM_Y := 3.95                                   ## the palm's top in the world, measured (a flat 7 m: zz/quests_r38_test.gd); the model's 2.7 below was 0.6 under it
+const STAIR_X := -4.7                                  ## the palm's stair stands this far out from its centre (statue frame, x), on the open side
+const STAIR_Z0 := 1.6                                  ## and starts here, climbing toward -z
 const HAND_LOCAL := Vector3(38.0, 2.7, 37.5)          ## the palm's top, model frame in Godot axes (x along the body, z = -Blender y)
 ## The empty plinth, in the valley he was taken from (it faces south, the way he went).
 const PLINTH_C := Vector2(-214.0, -104.0)
@@ -72,6 +75,14 @@ static func _lo(space: PhysicsDirectSpaceState3D, rc: Rect2) -> float:
 static func hand_xz() -> Vector2:
 	var w := Basis(Vector3.UP, body_yaw()) * Vector3(HAND_LOCAL.x, 0.0, HAND_LOCAL.z)
 	return HEAD_C + Vector2(w.x, w.z)
+
+
+## The palm's top in the world, and a spot on it clear of the chest (the lamp of "A Lamp for the Palm" is set here, standing
+## in the hand; `slot` 0 is the set-down point, 1 the lantern that stays).
+static func palm_pos(slot := 0) -> Vector3:
+	var hx := hand_xz()
+	var b := Basis(Vector3.UP, body_yaw())
+	return Vector3(hx.x, PALM_Y, hx.y) + b * Vector3(0.0, 0.0, -0.9 - 0.35 * float(slot))
 
 
 ## A point in the statue's own frame (x along the body, z lateral, as the model's Godot axes) in the world xz.
@@ -202,24 +213,26 @@ static func statue(host: Node3D, space: PhysicsDirectSpaceState3D) -> BossArena:
 
 static func hand(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var hx := hand_xz()
-	var origin_y := FLOOR_Y - 0.15
-	var palm := Vector3(hx.x, origin_y + HAND_LOCAL.y, hx.y)
+	var palm := Vector3(hx.x, PALM_Y, hx.y)
 	host.set_meta("centre", palm)
 	var k := _kit()
 	var b := Basis(Vector3.UP, body_yaw())
-	# a stair of fallen blocks up to the palm from the open (finger) side, so the hand can be walked onto
-	var from := palm + b * Vector3(0.0, 0.0, 6.2)
-	var g0 := _g(space, from.x, from.z)
-	var rise := palm.y - g0 - 0.2
-	var n := clampi(ceili(rise / 0.42), 1, 14)
+	# a stair of fallen blocks up the palm's open (west) side, 0.55 m a tread (the thumb stands to the south of it, a pit under the edge), each at most 0.45 m above the last (a walk, no
+	# jump), from the ground beside the hand to a tread level with the palm's edge (the palm is a 7 m flat, measured at
+	# PALM_Y: the stair that went in from the finger side ran under the fingers)
+	var foot := palm + b * Vector3(STAIR_X, 0.0, STAIR_Z0)
+	var g0 := _g(space, foot.x, foot.z)
+	var top := palm.y - 0.15
+	var n := clampi(ceili((top - g0) / 0.42), 1, 16)
 	for i in n:
-		var t := float(i + 1) / float(n)
-		var p := from.lerp(palm + b * Vector3(0, 0, 3.4), float(i) / float(n)) + b * Vector3(3.0, 0, 0)
-		k.box("ruin", Vector3(p.x, g0 + rise * t * 0.5 - 0.1, p.z), Vector3(1.8, rise * t + 0.2, 1.4), b, true, 0.85)
+		var ty := g0 + (top - g0) * float(i + 1) / float(n)
+		var c := palm + b * Vector3(STAIR_X + 0.6, 0.0, STAIR_Z0 - 0.55 * float(i))
+		var base := g0 - 1.3
+		k.box("ruin", Vector3(c.x, (ty + base) * 0.5, c.z), Vector3(2.4, ty - base, 0.6), b, true, 0.85)
 	k.commit(host, "HandSteps")
 	_chest(host, "hierarch_hand", palm + b * Vector3(0.0, 0.1, 0.4), body_yaw())
 	_lore(host, "r37w_hand", palm + b * Vector3(-1.5, 0.9, -1.2), palm + b * Vector3(-1.5, 0.9, -1.2))
-	host.set_meta("approach", Vector3(from.x, g0, from.z))
+	host.set_meta("approach", Vector3(foot.x, g0, foot.z))
 
 
 # --- the empty plinth ---------------------------------------------------------------------------------
