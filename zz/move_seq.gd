@@ -42,7 +42,7 @@ const PLANS := {
 }
 ## [name, start time s, frames, every n rendered frames]
 const BURSTS := {
-	"loco": [["start", 1.55, 10, 3], ["walk", 3.0, 10, 2], ["sprint", 6.0, 10, 2], ["stop", 6.95, 10, 4],
+	"loco": [["start", 1.55, 10, 3], ["walk", 3.0, 10, 2], ["sprint", 6.0, 10, 2], ["stop", 6.95, 12, 3],
 		["back", 9.6, 10, 3], ["strafe", 11.1, 10, 3], ["spin", 11.9, 10, 5]],
 	"jump": [["jump", 2.55, 10, 4], ["land", 3.0, 10, 3], ["slide", 4.15, 10, 4]],
 	"combat": [["lock_strafe", 1.6, 10, 4], ["backpedal", 3.8, 10, 3], ["cast_diag", 5.6, 10, 3], ["cast_side", 7.1, 10, 3],
@@ -67,6 +67,12 @@ var burst_skip := 0
 var rows: Array = []                 ## [name, Array[Image]]
 var cur: Array[Image] = []
 var slide_d := 0.0
+var raw_d := 0.0                  ## the same with every grounded sole counted, rolls and steep scrambles too
+var seg_slide := {}                ## plan step index -> [planted slide m, travel m]
+var slide_tgt := 0.0
+var prev_tgt := [Vector3.INF, Vector3.INF]
+var seg_sw := {}
+var slide_sw := 0.0              ## the part of slide_d made while that foot was in its swing (not planted)
 var travel := 0.0
 var prev_feet := [Vector3.INF, Vector3.INF]
 var prev_pos := Vector3.INF
@@ -275,10 +281,32 @@ func _physics_process(delta: float) -> void:
 	for i in 2:
 		var f := rig.socket("foot_" + ("l" if i == 0 else "r")).global_position
 		if prev_feet[i] != Vector3.INF and f.y < 0.03 and (prev_feet[i] as Vector3).y < 0.03 and p.is_grounded():
-			slide_d += Vector2(f.x - prev_feet[i].x, f.z - prev_feet[i].z).length()
+			raw_d += Vector2(f.x - prev_feet[i].x, f.z - prev_feet[i].z).length()
+		if prev_feet[i] != Vector3.INF and f.y < 0.03 and (prev_feet[i] as Vector3).y < 0.03 and p.is_grounded() and rig._plant_k > 0.5:
+			var dd := Vector2(f.x - prev_feet[i].x, f.z - prev_feet[i].z).length()
+			slide_d += dd
+			if rig._f_sw[i]:
+				slide_sw += dd
+				var sw3: Array = seg_sw.get(plan_i, [0.0])
+				sw3[0] += dd
+				seg_sw[plan_i] = sw3
+			else:
+				var sg: Array = seg_slide.get(plan_i, [0.0, 0.0])
+				sg[0] += dd
+				seg_slide[plan_i] = sg
+		var tg: Vector3 = rig._f_out[i]
+		if prev_tgt[i] != Vector3.INF and not rig._f_sw[i] and f.y < 0.03 and p.is_grounded():
+			slide_tgt += Vector2(tg.x - prev_tgt[i].x, tg.z - prev_tgt[i].z).length()
+		if OS.get_cmdline_user_args().has("--ft") and t > 3.0 and t < 3.6 and i == 0:
+			print("FT t=%.3f sw=%s out=%s foot=%s d=%.4f" % [t, rig._f_sw[i], (tg - p.global_position).snapped(Vector3.ONE * 0.001), f.snapped(Vector3.ONE * 0.001), Vector2(tg.x - prev_tgt[i].x, tg.z - prev_tgt[i].z).length() if prev_tgt[i] != Vector3.INF else 0.0])
+		prev_tgt[i] = tg
 		prev_feet[i] = f
 	if prev_pos != Vector3.INF:
-		travel += Vector2(p.global_position.x - prev_pos.x, p.global_position.z - prev_pos.z).length()
+		var td := Vector2(p.global_position.x - prev_pos.x, p.global_position.z - prev_pos.z).length()
+		travel += td
+		var sg2: Array = seg_slide.get(plan_i, [0.0, 0.0])
+		sg2[1] += td
+		seg_slide[plan_i] = sg2
 	prev_pos = p.global_position
 
 
@@ -323,7 +351,13 @@ func _process(_d: float) -> void:
 
 func _finish() -> void:
 	set_physics_process(false)
-	print("SEQ slide %.3f m over %.1f m travelled = %.1f cm/m%s" % [slide_d, travel, 100.0 * slide_d / maxf(travel, 0.01), " (legacy legs)" if legacy else ""])
+	print("SEQ slide %.3f m over %.1f m travelled = %.1f cm/m (swing part %.1f, planted part %.1f)%s" % [slide_d, travel, 100.0 * slide_d / maxf(travel, 0.01), 100.0 * slide_sw / maxf(travel, 0.01), 100.0 * (slide_d - slide_sw) / maxf(travel, 0.01), " (legacy legs)" if legacy else ""])
+	print("SEQ raw (all grounded soles, rolls included) %.1f cm/m" % (100.0 * raw_d / maxf(travel, 0.01)))
+	print("SEQ tgt-slide %.1f cm/m" % (100.0 * slide_tgt / maxf(travel, 0.01)))
+	if OS.get_cmdline_user_args().has("--segs"):
+		for k: int in seg_slide:
+			var sg: Array = seg_slide[k]
+			print("SEQ seg %d (t>=%.1f) planted slide %.3f m, swing %.3f m, over %.2f m (%s)" % [k - 1, float(PLANS[plan_name][maxi(k - 1, 0)][0]), sg[0], (seg_sw.get(k, [0.0]) as Array)[0], sg[1], PLANS[plan_name][maxi(k - 1, 0)][3]])
 	if not rows.is_empty():
 		var cols := 0
 		for r: Array in rows:

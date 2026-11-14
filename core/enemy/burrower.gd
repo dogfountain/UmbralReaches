@@ -46,7 +46,7 @@ func _build() -> void:
 	rig.body_len = 1.05
 	rig.hip_spread = 0.22
 	rig.upper_len = 0.24
-	rig.stride_len = 0.75
+	rig.stride_len = 0.55                   # (the legs sweep ~0.27 m a half cycle: 0.75 had them skating)
 	attach_rig(rig)
 	rig.scale = Vector3.ONE * 1.18
 	var col := get_node_or_null("Collision") as CollisionShape3D

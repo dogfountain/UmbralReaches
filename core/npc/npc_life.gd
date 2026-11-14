@@ -178,13 +178,25 @@ static func interval(cam: Camera3D, pos: Vector3, moving := false) -> float:
 static func walk_legs(rig: DwarfRig, p: float, amt: float, swing: float, knee: float, bob: float) -> float:
 	if amt <= 0.001:
 		return 0.0
+	var sa := sin(swing)
 	for side in 2:
 		var c := fposmod(p + 0.5 * float(side), 1.0)
-		var w := c / 0.6 * 0.5 if c < 0.6 else 0.5 + (c - 0.6) / 0.4 * 0.5
-		# ease the stance→swing handoff so the thigh does not kink at 0.6
-		w = w * w * (3.0 - 2.0 * w)
-		var th := swing * cos(TAU * w)
-		var flex := 0.12 * exp(-pow((c - 0.1) / 0.08, 2.0)) + knee * exp(-pow((c - 0.74) / 0.14, 2.0)) + 0.045
+		# stance (0..0.6): the planted foot slides back under the hip at the body's own speed, so its
+		# horizontal offset is LINEAR in the phase (an angle that followed a cosine had it creeping at the
+		# touchdown and racing mid-stance: a skate of 30 cm a step); swing: forward again, eased
+		var x := 0.0
+		if c < 0.6:
+			x = sa * (1.0 - 2.0 * c / 0.6)
+		else:
+			# a Hermite swing that leaves and arrives at the stance's own (backward) slope: the sole touches down
+			# at rest relative to the ground, not riding along with the body and stopping dead
+			var u := (c - 0.6) / 0.4
+			var u2 := u * u
+			var u3 := u2 * u
+			var m := -3.33 * sa * 0.4
+			x = (2.0 * u3 - 3.0 * u2 + 1.0) * -sa + (u3 - 2.0 * u2 + u) * m + (-2.0 * u3 + 3.0 * u2) * sa + (u3 - u2) * m
+		var th := asin(clampf(x, -0.99, 0.99))
+		var flex := 0.12 * exp(-pow((c - 0.1) / 0.08, 2.0)) + knee * exp(-pow((c - 0.86) / 0.14, 2.0)) + 0.045
 		var bt := 11 if side == 0 else 13
 		rig.q(bt, Quaternion(Vector3.RIGHT, th * amt))
 		rig.q(bt + 1, Quaternion(Vector3.RIGHT, -flex * amt))
@@ -245,7 +257,7 @@ func blend_step(rig: DwarfRig, acc: float) -> void:
 
 ## Metres covered by one full stride (two steps) for a leg of length `leg` swinging `swing` rad.
 static func stride_len(leg: float, swing: float) -> float:
-	return 4.0 * leg * sin(swing) * 0.92
+	return 3.33 * leg * sin(swing) * 0.97       # the stance (0.6 of a cycle) covers the sweep of one leg, 2 leg sin(swing)
 
 
 ## A dialogue portrait (the box's live bust): breathing, blinks, small slow head moves with saccades,
