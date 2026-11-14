@@ -52,7 +52,7 @@ static var _mats := {}
 ## Kinds whose model is BUILT (tools/blender/grunt_build.py): clean geometry with named surfaces, dressed in the tiling
 ## materials of boss_look.gd like the wanderer, not one baked atlas.
 const BUILT := {&"wretch": true, &"husk": true, &"chanter": true, &"tollman": true, &"pilgrim": true, &"gaunt": true, &"quiller": true,
-	&"ossuant": true, &"bulwark": true, &"spitter": true, &"cinder_caster": true}
+	&"ossuant": true, &"bulwark": true, &"spitter": true, &"cinder_caster": true, &"crawler": true, &"mite": true, &"burrower": true, &"leaper": true}
 
 
 static func has(kind: StringName) -> bool:

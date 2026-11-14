@@ -55,6 +55,10 @@ const KINDS := {
 	&"bulwark": {"emit_col": Color(1.0, 0.55, 0.2), "emit_energy": 3.2},
 	&"spitter": {"emit_col": Color(0.4, 1.0, 0.7), "emit_energy": 3.0, "emit_pulse": 0.4, "pulse_rate": 3.0},
 	&"cinder_caster": {"emit_col": Color(1.0, 0.45, 0.1), "emit_energy": 3.4, "emit_pulse": 0.3},
+	&"crawler": {"emit_col": Color(1.0, 0.4, 0.15), "emit_energy": 3.0, "emit_pulse": 0.3},
+	&"mite": {"emit_col": Color(0.3, 1.0, 0.85), "emit_energy": 2.6, "emit_pulse": 0.45, "pulse_rate": 2.6},
+	&"burrower": {"emit_col": Color(1.0, 0.55, 0.2), "emit_energy": 2.4, "emit_pulse": 0.3},
+	&"leaper": {"emit_col": Color(1.0, 0.45, 0.15), "emit_energy": 3.0},
 	&"thornwarden": {"emit_col": Color(1.0, 0.45, 0.12), "emit_energy": 3.5, "emit_pulse": 0.3, "rim_col": Color(1.0, 0.42, 0.1), "rim_amount": 0.0},
 }
 static var _mats := {}

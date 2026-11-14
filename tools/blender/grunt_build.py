@@ -362,8 +362,186 @@ def cinder_caster():
     return g.to_object("body"), [l.to_object("staff_hand_r")]
 
 
+# --- the four-legged kinds (QuadRig) -------------------------------------------------------------------
+
+def quad_sockets(BH, BL, HSP, UL, upright):
+    """Rest sockets of a QuadRig (core/enemy/quad_rig.gd), as the rig builds them."""
+    s = {"body": V(0, BH, 0)}
+    s["front"] = s["body"] + V(0, 0.04, -BL * 0.45)
+    s["head"] = s["front"] + V(0, 0.03, -0.16)
+    s["tail"] = s["body"] + V(0, 0.02, BL * 0.45)
+    for tag, sx, front in (("fl", -1, True), ("fr", 1, True), ("bl", -1, False), ("br", 1, False)):
+        z = -BL * 0.36 if front else BL * 0.34
+        hip = s["body"] + V(sx * HSP, -0.02, z)
+        if upright:
+            seg = (BH - 0.05) * 0.5
+            knee = hip + V(0, -seg, 0.06 if front else -0.08)
+            foot = knee + V(0, -seg, -0.04 if front else 0.1)
+        else:
+            knee = hip + V(sx * UL, 0.1, 0.0)
+            foot = knee + V(sx * 0.07, -(BH + 0.08), 0.0)
+        s["leg_%s_hip" % tag], s["leg_%s_knee" % tag], s["leg_%s_foot" % tag] = hip, knee, foot
+    return s
+
+
+QSOCK = {"crawler": (0.34, 0.72, 0.14, 0.24, False), "mite": (0.34, 0.72, 0.14, 0.24, False),
+         "burrower": (0.36, 1.05, 0.22, 0.24, False), "leaper": (0.56, 1.15, 0.2, 0.32, True)}
+
+
+def quad_leg(g, S, tag, col, mat="bone", r=(0.035, 0.028, 0.012), spikes=0, spike_col=None, claw_col=None, extra=None):
+    """A leg from hip to knee to foot, labelled in three, a claw at the foot; `extra` = (dz) adds a second leg beside it
+    (spiders have eight: the extra pair rides the same bones)."""
+    hip, knee, foot = S["leg_%s_hip" % tag], S["leg_%s_knee" % tag], S["leg_%s_foot" % tag]
+    for dz in [0.0] + ([extra] if extra else []):
+        o = V(0, 0, dz)
+        g.tube([hip + o, (hip + knee) * 0.5 + o + V(0, 0.02, 0), knee + o], [r[0], r[0] * 0.95, r[1] * 1.1], col, mat, "leg_%s_hip" % tag, n=10)
+        g.tube([knee + o, (knee + foot) * 0.5 + o, foot + o + V(0, 0.03, 0)], [r[1] * 1.1, r[1], r[2] * 1.4], col, mat, "leg_%s_knee" % tag, n=10)
+        g.tube([foot + o + V(0, 0.03, 0), foot + o + V(0, -0.0, -0.03), foot + o + V(0, -0.01, -0.07)], [r[2] * 1.4, r[2], 0.002], claw_col or col, mat, "leg_%s_foot" % tag, n=6)
+        g.ball(knee + o, r[1] * 1.35, col, mat, "leg_%s_knee" % tag, n=6)
+        for k in range(spikes):
+            p = knee + o + (foot - knee) * (0.2 + 0.25 * k)
+            g.tube([p, p + V(0.03 * np.sign(p[0]), 0.035, 0.0)], [0.009, 0.001], spike_col or col, mat, "leg_%s_knee" % tag, n=4)
+
+
+def shell(g, c, rx, ry, rz, col, mat, lab, bands=6, gap=0.012, flare=0.0, front=-1.0):
+    """A segmented carapace: overlapping bands along z, each a half-shell with a lifted back edge."""
+    for k in range(bands):
+        z0 = -rz + 2.0 * rz * k / bands
+        z1 = -rz + 2.0 * rz * (k + 1) / bands + gap * 2.0
+        def band(u, v, z0=z0, z1=z1):
+            th = (u - 0.5) * math.pi * 1.15
+            z = z0 + (z1 - z0) * v
+            t = z / rz
+            prof = max(0.0, 1.0 - t * t) ** 0.5
+            lift = 1.0 + 0.06 * v + flare * v
+            return c + V(math.sin(th) * rx * prof * lift, math.cos(th) * ry * prof * lift - 0.0, z)
+        g.plate(band, 15, 4, col, mat, lab)
+
+
+def quad_part_label(S, keys):
+    def f(p):
+        return min(keys, key=lambda k: float(np.linalg.norm(p - S[k])))
+    return f
+
+
+def crawler():
+    """A bone spider: a skull for a head, a banded carapace, a lit sac in a cage of ribs behind, eight jointed legs."""
+    S = quad_sockets(*QSOCK["crawler"])
+    g = Geo()
+    BONE, CHIT, DARK = (0.78, 0.72, 0.6), (0.24, 0.2, 0.18), (0.03, 0.025, 0.03)
+    lab = quad_part_label(S, ["front", "body", "tail"])
+    shell(g, S["body"] + V(0, 0.04, -0.05), 0.17, 0.1, 0.2, CHIT, "iron", lab, bands=5)
+    g.ball(S["body"] + V(0, 0.0, -0.05), 0.15, DARK, "iron", lab, n=10, sy=0.6, sz=1.4)
+    sac = S["tail"] + V(0, 0.05, 0.06)
+    g.ball(sac, 0.15, (1.0, 0.4, 0.15, 0.0), "glow", "tail", n=10, sy=0.85, sz=1.1)
+    for k in range(5):
+        a = -0.5 + k * 0.25
+        g.tube([sac + V(math.sin(a) * 0.17 * math.sin(p), 0.17 * math.cos(p) * 0.85, math.cos(a) * 0.0 + (p - 1.57) * 0.1) for p in np.linspace(0.3, 2.9, 8)], 0.012, BONE, "bone", "tail", n=5)
+    for k in range(6):
+        p = sac + V(0, 0.0, -0.18 + 0.07 * k)
+        g.tube([p + V(-0.18, -0.02, 0), p + V(-0.05, 0.16, 0), p + V(0.05, 0.16, 0), p + V(0.18, -0.02, 0)], 0.011, BONE, "bone", "tail", n=5)
+    H = S["head"]
+    g.ball(H + V(0, 0.0, 0.02), 0.085, BONE, "bone", "head", n=10, sx=1.15, sy=0.85, sz=1.0)
+    g.ball(H + V(0, -0.03, -0.06), 0.055, BONE, "bone", "head", n=8, sx=1.0, sy=0.7)
+    for sx in (-1, 1):
+        g.ball(H + V(sx * 0.04, 0.015, -0.055), 0.02, DARK, "iron", "head", n=6)
+        g.ball(H + V(sx * 0.04, 0.015, -0.066), 0.011, (1.0, 0.3, 0.15, 0.0), "glow", "head", n=5)
+        g.tube([H + V(sx * 0.03, -0.05, -0.09), H + V(sx * 0.05, -0.09, -0.13), H + V(sx * 0.02, -0.12, -0.16)], [0.012, 0.008, 0.002], BONE, "bone", "head", n=5)
+        g.tube([H + V(sx * 0.05, 0.05, 0.0), H + V(sx * 0.08, 0.12, 0.03), H + V(sx * 0.07, 0.16, 0.08)], [0.012, 0.007, 0.001], BONE, "bone", "head", n=5)
+    for tag in ("fl", "fr", "bl", "br"):
+        quad_leg(g, S, tag, BONE, "bone", r=(0.028, 0.022, 0.01), spikes=2, claw_col=DARK, extra=(0.1 if tag[0] == "f" else -0.1))
+    return g.to_object("body"), [], S
+
+
+def mite():
+    """A blood-tick: a round cracked shell over a cyan sac that glows through its seams, a small armoured head, eight legs."""
+    S = quad_sockets(*QSOCK["mite"])
+    g = Geo()
+    CHIT, DARK, GLOW = (0.32, 0.3, 0.34), (0.03, 0.03, 0.035), (0.3, 1.0, 0.85, 0.0)
+    lab = quad_part_label(S, ["front", "body", "tail"])
+    c = S["body"] + V(0, 0.03, 0.04)
+    g.ball(c, 0.25, GLOW, "glow", lab, n=12, sy=0.7, sz=1.1)
+    for k in range(8):                                                   # the shell: meridian plates with gaps of light
+        a0 = TAU * k / 8 + 0.05
+        def pl(u, v, a0=a0):
+            a = a0 + u * (TAU / 8 - 0.12)
+            ph = 0.15 + v * 1.25
+            return c + V(math.cos(a) * math.sin(ph) * 0.27, math.cos(ph) * 0.2 + 0.0, math.sin(a) * math.sin(ph) * 0.29)
+        g.plate(pl, 4, 7, CHIT, "iron", lab)
+    H = S["head"] + V(0, -0.04, 0.06)
+    g.ball(H, 0.075, CHIT, "iron", "head", n=8, sx=1.1, sy=0.75)
+    for sx in (-1, 1):
+        for k in (0, 1):
+            g.ball(H + V(sx * (0.025 + 0.025 * k), 0.035, -0.055 + 0.015 * k), 0.012, GLOW, "glow", "head", n=5)
+        g.tube([H + V(sx * 0.02, -0.03, -0.06), H + V(sx * 0.03, -0.06, -0.12)], [0.012, 0.002], DARK, "iron", "head", n=5)
+    for tag in ("fl", "fr", "bl", "br"):
+        quad_leg(g, S, tag, CHIT, "iron", r=(0.022, 0.018, 0.008), claw_col=DARK, extra=(0.1 if tag[0] == "f" else -0.1))
+    return g.to_object("body"), [], S
+
+
+def burrower():
+    """A digger in banded stone-plate, like an armadillo of slate: a blunt shovel snout, amber deep in the seams,
+    forelimbs ending in broad digging claws."""
+    S = quad_sockets(*QSOCK["burrower"])
+    g = Geo()
+    PLATE, DARK, CLAW = (0.4, 0.38, 0.34), (0.03, 0.025, 0.02), (0.2, 0.19, 0.18)
+    lab = quad_part_label(S, ["front", "body", "tail"])
+    g.ball(S["body"] + V(0, -0.02, 0.0), 0.26, (1.0, 0.55, 0.2, 0.0), "glow", lab, n=10, sy=0.5, sz=2.0)
+    shell(g, S["body"] + V(0, 0.0, 0.0), 0.3, 0.22, 0.5, PLATE, "stone", lab, bands=8, gap=0.015, flare=0.05)
+    H = S["head"] + V(0, -0.05, 0.0)
+    g.lathe([(0.0, 0.0), (0.1, 0.02), (0.13, 0.1), (0.11, 0.2), (0.06, 0.27), (0.0, 0.28)], H + V(0, 0, 0.12), PLATE, "stone", "head", n=14, axis="z", squash=0.7)
+    for sx in (-1, 1):
+        g.ball(H + V(sx * 0.06, 0.04, -0.06), 0.016, (1.0, 0.55, 0.2, 0.0), "glow", "head", n=5)
+    g.lathe([(0.0, 0.0), (0.035, 0.0), (0.03, 0.06)], H + V(0, -0.02, -0.15), DARK, "iron", "head", n=10, axis="z")
+    for tag in ("fl", "fr", "bl", "br"):
+        quad_leg(g, S, tag, PLATE, "stone", r=(0.06, 0.05, 0.025), claw_col=CLAW)
+        if tag[0] == "f":
+            foot = S["leg_%s_foot" % tag]
+            for k in range(3):
+                g.tube([foot + V((k - 1) * 0.03, 0.03, -0.02), foot + V((k - 1) * 0.04, 0.0, -0.1), foot + V((k - 1) * 0.045, -0.02, -0.16)], [0.016, 0.012, 0.002], CLAW, "iron", "leg_%s_foot" % tag, n=6)
+    tl = [S["tail"] + V(0, -0.02 - 0.03 * k, 0.08 * k) for k in range(5)]
+    g.tube(tl, [0.1, 0.085, 0.065, 0.045, 0.01], PLATE, "stone", "tail", n=10)
+    return g.to_object("body"), [], S
+
+
+def leaper():
+    """A bone-plated hound: a lean dark body, a skull for a face with coals in it, plates down the spine and over the
+    shoulders and thighs, a heavy lash of a tail."""
+    S = quad_sockets(*QSOCK["leaper"])
+    g = Geo()
+    HIDE, BONE, DARK = (0.12, 0.1, 0.1), (0.8, 0.74, 0.62), (0.02, 0.02, 0.02)
+    lab = quad_part_label(S, ["front", "body", "tail"])
+    spine = [S["tail"] + V(0, -0.02, 0.04), S["body"] + V(0, 0.04, 0.2), S["body"] + V(0, 0.07, -0.1), S["front"] + V(0, 0.05, 0.05), S["front"] + V(0, 0.08, -0.08)]
+    g.tube(spine, [0.13, 0.15, 0.16, 0.17, 0.13], HIDE, "leather", lab, n=14, flat=1.15)
+    for k in range(10):                                                  # spine plates
+        t = k / 9
+        p = spine[0] * (1 - t) + spine[-1] * t + V(0, 0.15 + 0.03 * math.sin(t * math.pi), 0)
+        g.tube([p + V(0, -0.02, 0.04), p + V(0, 0.06, -0.02)], [0.025, 0.004], BONE, "bone", lab(p), n=5)
+    for sx in (-1, 1):
+        for (key, z, ln) in (("front", 0.06, 0.22), ("body", 0.28, 0.24)):
+            c = S[key] + V(sx * 0.15, 0.02, z)
+            def pl(u, v, c=c, sx=sx, ln=ln):
+                return c + V(sx * (0.04 + 0.06 * math.sin(v * math.pi)), 0.1 - 0.2 * v, (u - 0.5) * ln)
+            g.plate(pl, 5, 5, BONE, "bone", key, flip=sx > 0)
+    H = S["head"]
+    g.lathe([(0.0, -0.1), (0.07, -0.08), (0.085, 0.0), (0.06, 0.12), (0.035, 0.2), (0.0, 0.22)], H + V(0, 0.02, 0.0), BONE, "bone", "head", n=12, axis="z", squash=0.8)
+    for sx in (-1, 1):
+        g.ball(H + V(sx * 0.05, 0.04, -0.02), 0.02, DARK, "iron", "head", n=6)
+        g.ball(H + V(sx * 0.05, 0.04, -0.033), 0.011, (1.0, 0.45, 0.15, 0.0), "glow", "head", n=5)
+        g.tube([H + V(sx * 0.05, 0.08, 0.05), H + V(sx * 0.09, 0.14, 0.15), H + V(sx * 0.1, 0.13, 0.26)], [0.018, 0.012, 0.002], BONE, "bone", "head", n=6)
+    for k in range(6):
+        g.tube([H + V((k - 2.5) * 0.02, -0.035, -0.13 + 0.02 * abs(k - 2.5)), H + V((k - 2.5) * 0.02, -0.07, -0.13 + 0.02 * abs(k - 2.5))], [0.006, 0.001], BONE, "bone", "head", n=4)
+    for tag in ("fl", "fr", "bl", "br"):
+        quad_leg(g, S, tag, HIDE, "leather", r=(0.05, 0.035, 0.018), claw_col=BONE)
+    tail = [S["tail"] + V(0, -0.02 - 0.06 * k * k * 0.1, 0.12 * k) for k in range(7)]
+    g.tube(tail, [0.07, 0.06, 0.05, 0.04, 0.03, 0.02, 0.004], HIDE, "leather", "tail", n=10)
+    g.tube([tail[-2], tail[-1] + V(0, 0.02, 0.12)], [0.03, 0.002], BONE, "bone", "tail", n=6)
+    return g.to_object("body"), [], S
+
+
 KINDS = {"wretch": wretch, "husk": husk, "chanter": chanter, "tollman": tollman, "pilgrim": pilgrim, "gaunt": gaunt, "quiller": quiller,
-         "ossuant": ossuant, "bulwark": bulwark, "spitter": spitter, "cinder_caster": cinder_caster}
+         "ossuant": ossuant, "bulwark": bulwark, "spitter": spitter, "cinder_caster": cinder_caster,
+         "crawler": crawler, "mite": mite, "burrower": burrower, "leaper": leaper}
 
 
 # --- skin and export -----------------------------------------------------------------------------------
@@ -396,13 +574,13 @@ def soften(ob, iters=3):
             g.add(sel[wq == v].tolist(), float(v), 'REPLACE')
 
 
-def armature():
+def armature(sock):
     data = bpy.data.armatures.new("Armature")
     ob = bpy.data.objects.new("Armature", data)
     bpy.context.scene.collection.objects.link(ob)
     bpy.context.view_layer.objects.active = ob
     bpy.ops.object.mode_set(mode='EDIT')
-    for nm, at in SOCK.items():
+    for nm, at in sock.items():
         b = data.edit_bones.new(nm)
         b.head = bl(at)
         b.tail = bl(at) + Vector((0, 0, 0.06))
@@ -413,16 +591,18 @@ def armature():
 
 def build_kind(kind):
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    body, held = KINDS[kind]()
+    out = KINDS[kind]()
+    body, held = out[0], out[1]
+    sock = out[2] if len(out) > 2 else SOCK
     soften(body)
-    arm = armature()
+    arm = armature(sock)
     body.parent = arm
     md = body.modifiers.new("Armature", 'ARMATURE')
     md.object = arm
     for h in held:                                                            # held things: origin on their socket's joint
         if h.name.startswith("shield_"):                                     # (the shield is drawn in rig space)
-            h.data.transform(__import__("mathutils").Matrix.Translation(-bl(SOCK[h.name.split("_", 1)[1]])))
-    if arg("--look"):
+            h.data.transform(__import__("mathutils").Matrix.Translation(-bl(sock[h.name.split("_", 1)[1]])))
+    if arg("--look") and sock is SOCK:
         look(kind, [body] + held, arg("--look"))
     bpy.ops.object.select_all(action='DESELECT')
     for o in [arm, body] + held:
