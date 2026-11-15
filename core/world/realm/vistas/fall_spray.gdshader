@@ -5,7 +5,7 @@ render_mode blend_mix, unshaded, depth_draw_never, cull_disabled, shadows_disabl
 
 uniform sampler2D depth_tex : hint_depth_texture, repeat_disable, filter_nearest;
 uniform vec3 tint = vec3(0.52, 0.6, 0.72);
-uniform float density = 0.55;
+uniform float density = 0.72;
 instance uniform float seed = 0.0;
 
 float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }

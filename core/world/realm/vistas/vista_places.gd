@@ -11,7 +11,8 @@ extends RefCounted
 ## - Sightlines: tree-free fans where a way comes over the scarp's lip or crosses into a Reach, so the land opens there.
 ## - The scarp's cliffs: stratified rock faces along the downs' south escarpment and a talus of boulders at its foot.
 ## - Valley mist: sheets laid over the low ground (the Long Arches' valley, the Reedmere, the Drowned Nave's basin, the
-##   Southwood's hollows, the Kings' Barrows' vale, Corvin's Mere, the Hollow Fen) that pool in it (valley_mist.gdshader).
+##   Southwood's hollows, the Kings' Barrows' vale, the Empty Plinth's valley head) that pool in it (valley_mist.gdshader);
+##   the old Marches' hollows have the weather's mist banks.
 ##   `-- --no-vistas` turns these places off, `-- --no-vista-sky` the sky's far ranges and veils (A/B).
 
 const Kit37 := preload("res://core/world/realm/west_marches_kit.gd")
@@ -50,15 +51,13 @@ const MISTS := [
 	[Vector2(318.0, 164.0), Vector2(70.0, 98.0), 2.4, 0.5],          # the Drowned Nave's basin
 	[Vector2(176.0, 334.0), Vector2(150.0, 110.0), 2.6, 0.42],       # the Southwood's hollows
 	[Vector2(-298.0, 160.0), Vector2(56.0, 150.0), 2.4, 0.4],        # the Kings' Barrows' vale
-	[Vector2(107.0, 121.0), Vector2(90.0, 64.0), 2.0, 0.45],         # Corvin's Mere
-	[Vector2(75.0, -22.0), Vector2(70.0, 112.0), 2.0, 0.4],          # the Hollow Fen
 	[Vector2(-214.0, -112.0), Vector2(64.0, 56.0), 2.0, 0.38],      # the Empty Plinth's valley head, under the fall
 ]
 ## High falls down the Crowns' face: [x, the z it breaks out of the rock, the z it may run to at most, width at the
 ## lip, width at the foot]. The Sorrow is born here: it falls into the Empty Plinth's moss, sinks, and rises again at
 ## its spring (RealmLayout.RIVER's head) south down the valley.
 const FALLS := [
-	[-214.0, -159.0, -112.0, 3.6, 11.0],
+	[-214.0, -159.0, -112.0, 7.0, 17.0],
 ]
 
 static var built := {}                 ## what the last build made (tests, the shots)
@@ -292,6 +291,9 @@ static func _mists(host: Node3D) -> int:
 		mi.mesh = pm
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.position = Vector3(c.x, lo + float(m[2]), c.y)
+		mi.visibility_range_end = 300.0 + maxf(sz.x, sz.y) * 0.5          # a sheet is for the view over it: past this the fog has it
+		mi.visibility_range_end_margin = 40.0
+		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		mi.set_meta(&"far_detail", true)
 		mi.add_to_group(Groups.CULL_SKIP)
 		host.add_child(mi)
@@ -360,7 +362,7 @@ static func _falls(host: Node3D) -> int:
 			var sp := MeshInstance3D.new()
 			sp.name = "FallSpray%d" % k
 			var q := QuadMesh.new()
-			q.size = Vector2(14.0 - k * 3.0, 11.0 - k * 2.0)
+			q.size = Vector2(22.0 - k * 4.0, 16.0 - k * 3.0)
 			q.center_offset = Vector3(0.0, q.size.y * 0.42, 0.0)
 			var sm := ShaderMaterial.new()
 			sm.shader = SPRAY

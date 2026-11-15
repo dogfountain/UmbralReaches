@@ -10,8 +10,6 @@ extends RefCounted
 ## - scarp(): the downs' south edge (RealmReaches.SCARP_Z) is an escarpment, not a 40 m ramp: a lip, a face
 ##   steep enough for the ground shader's cliff rock and the strata ledges, a talus foot; the line wanders
 ##   (spurs and combes), and where a way goes down it becomes a combe with a gentler fall.
-## - thresholds(): low ridges where the Marches end and the Reaches begin (x +-266), broken into knolls, with a saddle
-##   where the road crosses: going out on the road you crest a rise and the new country opens below you.
 ## The rectangles of earlier landforms are warped at their source (RealmLayout._mwarp on their rects).
 
 const SCARP_LINE := 263.0           ## the face's middle (z), before its wander
@@ -107,35 +105,3 @@ static func scarp(p: Vector2, h: float, m: float) -> float:
 	var lip := LIP * exp(-pow((z - (line - face * 0.5 - 4.0)) / 7.0, 2.0)) * (1.0 - near_way * 0.8)
 	return h + m * wide * ((was - now) + lip)
 
-
-## Where the Marches give onto the Reaches: a ridge either side, its saddle on the road.
-const RIM_X := 266.0
-const RIM_H := 6.5
-const ROAD_Z := Vector2(56.0, 64.0)        ## where the road crosses x -266 and x 266
-
-
-static func thresholds(p: Vector2, h: float, m: float) -> float:
-	if m <= 0.0 or absf(absf(p.x) - RIM_X) > 30.0:
-		return h
-	var x := p.x
-	var z := p.y
-	var west := x < 0.0
-	var line := RIM_X + 4.0 * sin(z * 0.047 + (0.0 if west else 2.0)) + 2.0 * sin(z * 0.13 + 1.0)
-	var d := absf(x) - line
-	var cross := exp(-pow(d / 13.0, 2.0))
-	# along the edge: the West ridge from the Greyfell's foot to the Barrows (the Sorrow takes the south), the East one
-	# from the Bellfall's foot to the Nave's basin
-	var along := smoothstep(-48.0, -28.0, z) * (1.0 - smoothstep(150.0, 180.0, z)) if west else smoothstep(-42.0, -22.0, z) * (1.0 - smoothstep(98.0, 122.0, z))
-	if along <= 0.0:
-		return h
-	# knolls on it, a saddle where the road goes over, lower near every way, nothing on Lastlight's flat
-	var knolls := 0.65 + 0.35 * sin(z * 0.09 + (1.3 if west else 0.2)) + 0.2 * sin(z * 0.23)
-	var saddle := 1.0 - 0.72 * exp(-pow((z - (ROAD_Z.x if west else ROAD_Z.y)) / 24.0, 2.0))
-	var ways := lerpf(0.4, 1.0, smoothstep(5.0, 22.0, RealmLayout.path_dist(p)))
-	var town := 1.0 if west else 1.0 - sqrt(_bump(p, RealmReaches.TOWN_E, 80.0))
-	return h + m * RIM_H * cross * along * knolls * saddle * ways * town
-
-
-static func _bump(p: Vector2, c: Vector2, r: float) -> float:
-	var t := clampf(1.0 - p.distance_to(c) / r, 0.0, 1.0)
-	return t * t * (3.0 - 2.0 * t)

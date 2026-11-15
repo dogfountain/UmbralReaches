@@ -471,7 +471,7 @@ static func macro_dry(x: float, z: float) -> float:
 	# the Outer Marches and the southern downs (zero inside OLD_BOUNDS, eased in over 12 m outside it)
 	var m37 := smoothstep(0.0, 12.0, _out_dist(p, OLD_BOUNDS))
 	if m37 > 0.0:
-		h = RealmRelief.thresholds(p, RealmRelief.scarp(p, RealmReaches.shape(p, _marches(p, h, m37), m37), m37), m37)      # + the scarp, the Reaches' rims
+		h = RealmRelief.scarp(p, RealmReaches.shape(p, _marches(p, h, m37), m37), m37)      # the Marches, the Far Reaches, the downs' scarp
 	# horizon ring
 	var out := _out_dist(p, BOUNDS)
 	h += RealmRelief.horizon(p, out)          # a mountain range, with passes where the road and the Sorrow leave
