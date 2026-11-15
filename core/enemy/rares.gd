@@ -14,6 +14,11 @@ const EliteKit := preload("res://core/life/encounters/elite_kit.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
+const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
+const RealmLand := preload("res://core/world/realm/realm_land.gd")
+## A rare's ground: the camps' rules (no pool, lip, slope or rock), but it may walk a way, and the Holds' edge
+## is Old Rook's by design.
+const GROUND := {"ways": false, "safe": false}
 const TICK := 0.5
 const NEAR := 95.0              ## the rare walks its beat while you are within this (and it is not dead)
 const FAR := 130.0              ## further than this it goes back into the dark, healed
@@ -33,7 +38,7 @@ const RARES := {
 		"ash": 30, "loot": [["relic_fragment", 1]],
 		"line": "Gutterwick falls. The lamp-oil in its belly burns blue, then out."},
 	"mother_sallow": {"title": "Mother Sallow", "kind": "spitter", "hp": 18, "scale": 1.3,
-		"spots": [Vector2(84, -22), Vector2(90, 6), Vector2(100, 12)], "ash": 32, "loot": [["relic_fragment", 2]],
+		"spots": [Vector2(84, -22), Vector2(90, 6), Vector2(100, 12), Vector2(80, -12), Vector2(104, 2), Vector2(92, -24)], "ash": 32, "loot": [["relic_fragment", 2]],
 		"line": "Mother Sallow sinks into the fen she nursed."},
 	"wicker_jack": {"title": "Wicker Jack, the Grinning", "kind": "gaunt", "hp": 20, "scale": 1.25,
 		"spots": [Vector2(12, 72), Vector2(-12, 74), Vector2(24, 74)], "ash": 30, "loot": [["relic_fragment", 1]],
@@ -116,13 +121,53 @@ const RARES := {
 		"line": "The Gate-Breaker drops its ram. The gate it wanted is a long way east."},
 	# --- the east marches ---
 	"salt_widow": {"title": "The Salt-Widow", "kind": "gaunt", "hp": 30, "scale": 1.4,
-		"spots": [Vector2(238, 132), Vector2(248, 138), Vector2(224, 134)], "ash": 40, "loot": [["relic_fragment", 2]],
+		"spots": [Vector2(238, 132), Vector2(248, 138), Vector2(224, 134), Vector2(216, 142), Vector2(218, 136)], "ash": 40, "loot": [["relic_fragment", 2]],
 		"route": [Vector2(238, 132), Vector2(250, 142), Vector2(236, 138), Vector2(222, 134), Vector2(212, 130)],
 		"line": "The Salt-Widow sits down on the white, and the white takes her."},
 	"drowned_lamplighter": {"title": "The Drowned Lamplighter", "kind": "husk", "variant": "drowned", "hp": 36, "scale": 1.35,
 		"spots": [Vector2(180, 18), Vector2(178, -2), Vector2(184, 30)], "ash": 38, "loot": [["relic_fragment", 2]],
 		"route": [Vector2(180, 18), Vector2(176, -2), Vector2(178, -24), Vector2(184, 6), Vector2(186, 28)],
 		"line": "The Drowned Lamplighter lets the lamp go. It does not float."},
+	# --- the Far Reaches (enemies pass): one for each wild region, on its landmark; most walk a round (you meet
+	# them on it), a step tougher than the Marches' as the outer ring is
+	"keep_sentry": {"title": "The Sentry Who Was Never Relieved", "kind": "bulwark", "variant": "stonebound", "hp": 56, "scale": 1.5,
+		"spots": [Vector2(-284, -116), Vector2(-278, -112), Vector2(-290, -118), Vector2(-286, -110)], "ash": 50, "loot": [["relic_fragment", 3]],
+		"line": "The Sentry sets down his pike at the fell shrine. Nobody came to relieve him, so he relieves himself."},
+	"lamp_wick": {"title": "Wick, the Lamp-Grown", "kind": "spitter", "hp": 30, "scale": 1.4,
+		"spots": [Vector2(-316, -2), Vector2(-344, -14), Vector2(-318, -20)], "ash": 44, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(-316, -2), Vector2(-322, -24), Vector2(-342, -22), Vector2(-348, 2), Vector2(-332, 12)],
+		"line": "Wick goes out. The caps round it glow a little brighter, for a while."},
+	"crownless": {"title": "The Crownless King", "kind": "ossuant", "hp": 44, "scale": 1.5,
+		"spots": [Vector2(-334, 98), Vector2(-338, 106), Vector2(-330, 92)], "ash": 46, "loot": [["relic_fragment", 3]],
+		"route": [Vector2(-334, 98), Vector2(-346, 132), Vector2(-332, 170), Vector2(-344, 196), Vector2(-330, 140)],
+		"line": "The Crownless King lies down at last. His barrow is still open, and still empty."},
+	"heron_wife": {"title": "The Heron-Wife", "kind": "spitter", "hp": 32, "scale": 1.45,
+		"spots": [Vector2(-300, 372), Vector2(-292, 360), Vector2(-310, 380)], "ash": 44, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(-300, 372), Vector2(-318, 384), Vector2(-344, 380), Vector2(-356, 344), Vector2(-312, 352)],
+		"line": "The Heron-Wife folds down into the reeds. The meres go quiet."},
+	"tithe_taker": {"title": "The Tithe-Taker", "kind": "husk", "hp": 38, "scale": 1.4,
+		"spots": [Vector2(-176, 380), Vector2(-150, 376), Vector2(-196, 350)], "ash": 40, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(-176, 380), Vector2(-150, 376), Vector2(-132, 386), Vector2(-160, 362), Vector2(-196, 350)],
+		"line": "The Tithe-Taker drops his sack. There is nothing in it but soil."},
+	"aqueduct_hound": {"title": "Spill, the Aqueduct's Hound", "kind": "crawler", "hp": 30, "scale": 1.6,
+		"spots": [Vector2(-12, 360), Vector2(8, 362), Vector2(-24, 366)], "ash": 44, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(-12, 360), Vector2(12, 362), Vector2(44, 356), Vector2(64, 346), Vector2(24, 350)],
+		"line": "Spill lies down in the dry channel it guarded. Nothing runs in it now."},
+	"charcoal_burner": {"title": "The Last Charcoal-Burner", "kind": "cinder", "hp": 36, "scale": 1.5,
+		"spots": [Vector2(158, 326), Vector2(178, 340), Vector2(160, 342)], "ash": 46, "loot": [["relic_fragment", 3]],
+		"line": "The Last Charcoal-Burner banks his fire for good. The stack smokes on without him."},
+	"cracked_tollman": {"title": "The Cracked Tollman", "kind": "tollman", "hp": 40, "scale": 1.5,
+		"spots": [Vector2(348, -110), Vector2(344, -120), Vector2(352, -102)], "ash": 50, "loot": [["relic_fragment", 3]],
+		"route": [Vector2(348, -110), Vector2(352, -90), Vector2(338, -74), Vector2(300, -76), Vector2(338, -74)],
+		"line": "The Cracked Tollman rings once more, flat. The eighth bell does not answer."},
+	"rope_nun": {"title": "The Bell-Rope Nun", "kind": "chanter", "hp": 34, "scale": 1.45,
+		"spots": [Vector2(350, 146), Vector2(354, 160), Vector2(346, 136)], "ash": 44, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(350, 146), Vector2(354, 176), Vector2(342, 204), Vector2(354, 160), Vector2(344, 128)],
+		"line": "The Bell-Rope Nun lets go of the rope. Under the water, something in the nave rings."},
+	"cairn_counter": {"title": "The One Who Counted", "kind": "pilgrim", "hp": 38, "scale": 1.45,
+		"spots": [Vector2(318, 252), Vector2(310, 258), Vector2(324, 248)], "ash": 50, "loot": [["relic_fragment", 3]],
+		"route": [Vector2(318, 252), Vector2(330, 290), Vector2(358, 306), Vector2(334, 362), Vector2(296, 346), Vector2(300, 306)],
+		"line": "The One Who Counted adds a stone, and stops. The count is a thousand."},
 }
 
 var haunts: Dictionary = {}      ## id -> Vector3 on the ground
@@ -145,10 +190,10 @@ func setup(scripts: Dictionary) -> void:
 	for id: String in RARES:
 		var fallback := Vector3.INF
 		for c: Vector2 in RARES[id].spots:
-			var g := _ground(space, Vector3(c.x, 90.0, c.y))
+			var g := _ground(space, _over(c))
 			if g == Vector3.INF or LightGrid.is_lit(g):
 				continue
-			if not WorldLanes.site_at(c, 1.0).is_empty():
+			if not WorldLanes.site_at(c, 1.0).is_empty() or not SpawnRules.ok(space, g, GROUND):
 				continue
 			# r34: a haunt it can walk a beat round (open, level enough); else the first clear one
 			if not RARES[id].has("route") and _beat(g).size() < 3:
@@ -286,7 +331,9 @@ func route(id: String) -> Array[Vector3]:
 	var out: Array[Vector3] = [haunts[id]]
 	var space := get_world_3d().direct_space_state
 	for c: Vector2 in RARES[id].get("route", []):
-		var g := _ground(space, Vector3(c.x, 90.0, c.y))
+		var g := _ground(space, _over(c))
+		if g != Vector3.INF and not SpawnRules.ok(space, g, GROUND):
+			g = SpawnRules.find(space, c, 5.0, g.y + 8.0, GROUND, g.y, 3.0)    # a stop in a pool or on a lip: beside it
 		if g == Vector3.INF or LightGrid.is_lit(g) or g.distance_to(out[out.size() - 1]) < 1.0:
 			continue
 		out.append(g)
@@ -302,7 +349,7 @@ func _beat(at: Vector3) -> Array[Vector3]:
 	for k in 3:
 		var a := a0 + TAU * float(k) / 3.0
 		var g := _ground(space, at + Vector3(cos(a) * BEAT_R, 6.0, sin(a) * BEAT_R))
-		if g != Vector3.INF and absf(g.y - at.y) < 2.5 and not LightGrid.is_lit(g):
+		if g != Vector3.INF and absf(g.y - at.y) < 2.5 and not LightGrid.is_lit(g) and SpawnRules.ok(space, g, GROUND):
 			out.append(g)
 	return out
 
@@ -343,6 +390,11 @@ func _show_marker(id: String, on: bool) -> void:
 		m.add_to_group(&"map_marker")
 	elif not on and m.is_in_group(&"map_marker"):
 		m.remove_from_group(&"map_marker")
+
+
+## Just over the ground at xz (a roof, a deck or a tree's crown above the haunt is not where a rare walks).
+func _over(c: Vector2) -> Vector3:
+	return Vector3(c.x, RealmLand.height_at(c.x, c.y) + 3.0, c.y)
 
 
 func _ground(space: PhysicsDirectSpaceState3D, from: Vector3) -> Vector3:

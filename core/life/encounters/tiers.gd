@@ -17,10 +17,24 @@ const REGION_BASE := {
 	# are the safe towns; the Siege Lines round the fallen Hierarch and the Anchorholds, each under a boss, are the hard ones)
 	"weirford": 1, "sorrow": 2, "plinth": 2, "siege": 3, "stillwater": 2, "anchorholds": 3, "saltmarket": 1,
 	"saltpans": 2, "downs": 1, "oak": 2, "well": 2,
-	# the Far Reaches (RealmReaches): the three towns are safe, the wild between them 2, the far corners and the fells 3
-	"greyfell": 3, "lanternwood": 2, "kingsbarrows": 3, "reedmere": 2, "fallow": 1, "arches": 2, "southwood": 3,
-	"bellfall": 3, "lastlight": 1, "nave": 3, "cairns": 3,
+	# the Far Reaches (RealmReaches), the outer ring past the Marches and the next step of the curve: the country
+	# round the two towns is 2 (the towns themselves are safe: SpawnRules.SAFE), the wild between them 3, the far
+	# corners 4 (the Greyfell's keep, the Bellfall's crater, the Thousand Cairns: the furthest walks from the hub)
+	"greyfell": 4, "lanternwood": 3, "kingsbarrows": 3, "reedmere": 3, "fallow": 2, "arches": 3, "southwood": 3,
+	"bellfall": 4, "lastlight": 2, "nave": 3, "cairns": 4,
 }
+## The Pilgrims' Road is Hearthward's gentle road only inside the March Wall: past its gates the road's own
+## strip takes this tier (the Marches' country on either side is 2).
+const ROAD_OUTSIDE := 1
+
+## The level a plain pawn shows (Enemy.level(), the name plate): the first level of each tier's band, so the number
+## always reads the danger it stands for (tier 0 levels 1-3 ... tier 6 levels 28-31), and within a band a place
+## further from the hub reads a step or two higher (STEP_M: one step a ring of this many metres, up to STEPS).
+## The night's depth lifts the tier, so the plate climbs with the bosses felled.
+const LEVEL_BAND := [1, 4, 9, 14, 19, 24, 28]
+const STEP_M := 110.0
+const STEPS := 3
+const HUB := Vector2(4.0, 36.0)
 
 ## Per tier: health x, Gloom per blow x, pace x, chance a pawn wears a variant, chance a camp gets
 ## one more (mixed) member, which variants it may draw.
@@ -110,7 +124,25 @@ static func ng_level() -> int:
 
 
 static func tier_at(at: Vector3) -> int:
-	return clampi(region_base(region_id(at)) + night_depth(), 0, TIERS.size() - 1)
+	return clampi(base_at(at) + night_depth(), 0, TIERS.size() - 1)
+
+
+## The base danger where `at` stands (its region's, but the road beyond the March Wall is not Hearthward's road).
+static func base_at(at: Vector3) -> int:
+	var id := region_id(at)
+	if id == "road" and absf(at.x) > RealmLayout.MARCH_WALL_X:
+		return ROAD_OUTSIDE
+	return region_base(id)
+
+
+## How far into its band a place at `at` reads: a step a STEP_M ring out from the hub (0 .. STEPS).
+static func step_at(at: Vector3) -> int:
+	return clampi(int(Vector2(at.x, at.z).distance_to(HUB) / STEP_M), 0, STEPS)
+
+
+## The level a pawn of tier `tier` shows at `at` (`weight` 1 for a full-bodied kind, rank bonus by the caller).
+static func level_for(tier: int, at: Vector3, weight := 1) -> int:
+	return int(LEVEL_BAND[clampi(tier, 0, LEVEL_BAND.size() - 1)]) + step_at(at) + weight
 
 
 ## Base danger of a region id: REGION_BASE, else the tier RealmLayout.REGIONS suggests, else 1.

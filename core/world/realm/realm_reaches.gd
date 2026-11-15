@@ -12,43 +12,44 @@ extends RefCounted
 
 const MARCH_BOUNDS := Rect2(-260.0, -150.0, 520.0, 390.0)    ## the Marches' Realm (the Outer Marches and the downs)
 
-## Regions (RealmLayout.REGIONS' schema). Tiers rise with the distance from Hearthward: the three towns are
-## the safe places (1), the wild ground between them 2, the far corners and the fells under the Crowns 3.
+## Regions (RealmLayout.REGIONS' schema). Tiers rise with the distance from Hearthward, one step past the Marches:
+## the country round the towns 2 (the towns themselves are safe places: SpawnRules.SAFE), the wild between them 3,
+## the far corners 4 (the Greyfell, the Bellfall, the Thousand Cairns). Tiers.REGION_BASE keeps the same numbers.
 const REGIONS := [
 	# --- the West Reach (beyond the Sorrow) ---------------------------------------------------------------
-	{"id": "greyfell", "name": "The Greyfell", "rect": Rect2(-370, -150, 110, 100), "blobs": [{"c": Vector2(-272, -66), "r": 16.0}], "biome": "crag", "tier": 3,
+	{"id": "greyfell", "name": "The Greyfell", "rect": Rect2(-370, -150, 110, 100), "blobs": [{"c": Vector2(-272, -66), "r": 16.0}], "biome": "crag", "tier": 4,
 		"purpose": "a high grey fell at the Crowns' west corner; the Order's Broken Keep on its crag, a garrison that never stood down",
 		"lore": "The Order's last keep in the west watched the pass for a sky that never came. Its garrison still keeps the watch."},
-	{"id": "lanternwood", "name": "The Lanternwood", "rect": Rect2(-370, -50, 110, 118), "biome": "oldforest", "tier": 2,
+	{"id": "lanternwood", "name": "The Lanternwood", "rect": Rect2(-370, -50, 110, 118), "biome": "oldforest", "tier": 3,
 		"purpose": "a deep old wood where cold fungus lights the ground blue; wisps, a ring of giant caps, the road's last milestone",
 		"lore": "Nothing burns in the Lanternwood and nothing needs to. The light grows out of the dead."},
 	{"id": "kingsbarrows", "name": "The Kings' Barrows", "rect": Rect2(-370, 68, 110, 168), "biome": "heath", "tier": 3,
 		"purpose": "a long heather ridge of great barrows and a stone row; the King's Barrow is open",
 		"lore": "Before the Order, before the Rooted, kings were laid on this ridge with their faces to the west. One door stands open."},
-	{"id": "reedmere", "name": "The Reedmere", "rect": Rect2(-370, 236, 150, 162), "biome": "fen", "tier": 2,
+	{"id": "reedmere", "name": "The Reedmere", "rect": Rect2(-370, 236, 150, 162), "biome": "fen", "tier": 3,
 		"purpose": "where the Sorrow spreads into reed meres; Reedholm's stilt-houses and the heron fishers",
 		"lore": "The Sorrow loses its banks here and forgets it was a river. The Reedholm folk fish it by lamp."},
 	# --- the Deep South (below the downs' scarp) -----------------------------------------------------------
-	{"id": "fallow", "name": "Fallowmere", "rect": Rect2(-220, 240, 128, 158), "biome": "meadow", "tier": 1,
+	{"id": "fallow", "name": "Fallowmere", "rect": Rect2(-220, 240, 128, 158), "biome": "meadow", "tier": 2,
 		"purpose": "a farming hamlet in the low fields: the tithe barn, the fold, hedged strips gone to seed",
 		"lore": "Fallowmere grew the Order's bread. Half its fields are fallow now, and the other half are graves."},
-	{"id": "arches", "name": "The Long Arches", "rect": Rect2(-92, 240, 184, 158), "biome": "ruin", "tier": 2,
+	{"id": "arches", "name": "The Long Arches", "rect": Rect2(-92, 240, 184, 158), "biome": "ruin", "tier": 3,
 		"purpose": "the Order's great aqueduct striding across a dry valley; its castellum and the broken span",
 		"lore": "The Order carried the Crowns' snow south to the fields on a road of arches. The water stopped when the sky did."},
 	{"id": "southwood", "name": "The Southwood", "rect": Rect2(92, 240, 170, 158), "biome": "oldforest", "tier": 3,
 		"purpose": "a dark wood of hollies and oaks; the charcoal burners' ruin, the witch's hollow, the things that hunt it",
 		"lore": "The charcoal burners stayed when the town went north. Their stacks still smoke on nights without wind."},
 	# --- the East Reach (beyond the Pans and the Anchorholds) ----------------------------------------------
-	{"id": "bellfall", "name": "The Bellfall", "rect": Rect2(260, -150, 110, 110), "biome": "crag", "tier": 3,
+	{"id": "bellfall", "name": "The Bellfall", "rect": Rect2(260, -150, 110, 110), "biome": "crag", "tier": 4,
 		"purpose": "a crater at the Crowns' east corner where the eighth bell came down: the bell, cracked, half sunk in scorched rock",
 		"lore": "The Founder cast seven bells for the Stair. The eighth was cast in the sky, and the sky let it fall."},
-	{"id": "lastlight", "name": "Lastlight", "rect": Rect2(260, -40, 110, 136), "biome": "meadow", "tier": 1,
+	{"id": "lastlight", "name": "Lastlight", "rect": Rect2(260, -40, 110, 136), "biome": "meadow", "tier": 2,
 		"purpose": "the walled waystation at the road's east end: a gate that stays shut, an inn, a watch, travellers",
 		"lore": "The last lamp the pilgrims saw before the road turned to the mountain. Lastlight still lights it."},
 	{"id": "nave", "name": "The Drowned Nave", "rect": Rect2(260, 96, 110, 138), "biome": "fen", "tier": 3,
 		"purpose": "a cathedral the Order never finished, its nave flooded to the knee; moon shafts through the broken vault",
 		"lore": "They built the nave first and the floor last. The water came in before the floor did."},
-	{"id": "cairns", "name": "The Thousand Cairns", "rect": Rect2(260, 234, 110, 164), "biome": "heath", "tier": 3,
+	{"id": "cairns", "name": "The Thousand Cairns", "rect": Rect2(260, 234, 110, 164), "biome": "heath", "tier": 4,
 		"purpose": "a high windy heath of cairns, one for every pilgrim who turned back; the Cairn Tower at its crown",
 		"lore": "Every stone is a pilgrim who turned for home. Nobody has counted them, and nobody should."},
 ]

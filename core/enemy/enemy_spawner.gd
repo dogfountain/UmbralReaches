@@ -9,6 +9,8 @@ const KEEP_CLEAR := 7.0
 const HAVEN := Vector3(-3.4, 0.0, -8.5)
 const HAVEN_R := 12.0
 
+const ReachCamps := preload("res://core/enemy/realm_camps_reaches.gd")
+
 ## Camps of the redesigned zone (docs/REALM_PLAN.md, RealmLayout). r28: five camps that the sites
 ## had swallowed (skipped at plant: "inside site barrow_92_-65", "fen_graves_55_22", "barrow_89_-50",
 ## "rd_wall_-62_70", "rd_wall_54_74") moved 5-11 m onto clear ground off the paths.
@@ -45,7 +47,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(-84.0, 60.0, 88.0), "kinds": ["burrower", "wretch"], "probe": 0.0},             # south of the road beyond the chapel, at the orchard's edge (it lay 47 m from the green, on the road out of the village)
 	{"at": Vector3(80.0, 60.0, 49.0), "kinds": ["chanter", "husk", "crawler"], "probe": 0.0},      # Pilgrims' Road east, back from the road (it stood 4.7 m off it)
 	{"at": Vector3(-35.0, 60.0, -10.0), "kinds": ["quiller", "leaper"], "probe": 0.0},             # rift rim west (r31 merge: off the secret bridge's landing at -23.5,-5.3, where a pounce threw you into the rift; r34 enemies: was -38,6, 7 m from the Shrine fire: in its light)
-	{"at": Vector3(22.0, 60.0, -6.0), "kinds": ["wretch", "crawler"], "probe": 0.0},               # rift rim east
+	{"at": Vector3(34.0, 60.0, -4.0), "kinds": ["wretch", "crawler"], "probe": 0.0},               # rift rim east (was 22,-6: 41 m from Hearthward, its pawns on the rim's slope)
 	# --- r34 enemies: the new ground at the old density (docs/r34/layout.md: ~4 camps per 10,000 m²,
 	# ~1 foe per 1,000 m²), each region its own roster and a reason. Every camp: 10 m+ inside BOUNDS,
 	# 13 m+ from every fire (the braziers and the new regions' fire slots), 4 m+ off the ways, off the
@@ -78,7 +80,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(-30.0, 60.0, 146.0), "kinds": ["pilgrim", "pilgrim", "chanter"], "probe": 0.0},  # the west tombs
 	{"at": Vector3(28.0, 60.0, 114.0), "kinds": ["ossuant", "pilgrim", "ossuant"], "probe": 0.0},   # the east tombs
 	{"at": Vector3(-12.0, 60.0, 140.0), "kinds": ["pilgrim", "pilgrim", "pilgrim", "pilgrim"], "probe": 0.0, "r": 3.0},   # a row of graves below the mausoleum
-	{"at": Vector3(-36.0, 60.0, 124.0), "kinds": ["chanter", "ossuant", "quiller"], "probe": 0.0},  # the field's west edge
+	{"at": Vector3(-40.0, 60.0, 110.0), "kinds": ["chanter", "ossuant", "quiller"], "probe": 0.0},  # the field's west edge (was -36,124: 12 m from Sister Agathe's fire)
 	# Corvin's Mere (tier 1): the drowned and what nests over the water. Spitters on the banks, drowned
 	# husks out of the meres; the causeway itself is an ambush (director.FIXED_AMBUSHES).
 	{"at": Vector3(137.0, 60.0, 102.0), "kinds": ["spitter", "husk", "wretch"], "probe": 0.0},     # the east bank
@@ -121,11 +123,11 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(180.0, 60.0, -82.0), "kinds": ["bulwark", "chanter", "leaper"], "probe": 0.0},  # the scree
 	{"at": Vector3(232.0, 60.0, -94.0), "kinds": ["bulwark", "quiller", "wretch"], "probe": 0.0},  # the east cells
 	{"at": Vector3(184.0, 60.0, -60.0), "kinds": ["leaper", "gaunt", "gaunt"], "probe": 0.0},      # anchor_track's lower bend
-	{"at": Vector3(182.0, 60.0, 110.0), "kinds": ["wretch", "crawler"], "probe": 0.0},            # Saltmarket's west approach (the salt shed stands at (195, 119.5))
+	{"at": Vector3(170.0, 60.0, 122.0), "kinds": ["wretch", "crawler"], "probe": 0.0},            # Saltmarket's west approach (the salt shed stands at (195, 119.5); was 182,110: 10 m past the hamlet's edge)
 	{"at": Vector3(178.0, 60.0, 196.0), "kinds": ["burrower", "burrower", "crawler", "mite"], "probe": 0.0, "r": 1.8},   # the west pans
 	{"at": Vector3(240.0, 60.0, 140.0), "kinds": ["cinder", "wretch", "gaunt"], "probe": 0.0},    # the east pans
 	{"at": Vector3(210.0, 60.0, 214.0), "kinds": ["husk", "husk", "chanter"], "probe": 0.0},      # the south pans
-]
+] + ReachCamps.CAMPS          # the Far Reaches (core/enemy/realm_camps_reaches.gd)
 
 
 ## Realm entry (world/main.gd calls this when --realm is on). The camps are counted for their seals
@@ -191,6 +193,7 @@ const KIN := {
 }
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
+const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
 const PATROL_PACE := 1.5           ## m/s a roaming camp walks its round at (every member alike: in step)
 var _camps: Array = []
 var _realm := false
@@ -235,8 +238,15 @@ func _plant() -> void:
 			why = "haven"
 		elif _realm and is_nan(_last_hit_y):
 			why = "no ground"                       # e.g. the Crossing's head is not built
-		elif _realm and not WorldLanes.site_at(Vector2(center.x, center.z), 1.0).is_empty() and not camp.get("strict", false):
-			why = "inside site " + String(WorldLanes.site_at(Vector2(center.x, center.z), 1.0).name)
+		elif _realm and not camp.get("strict", false) and not _camp_ground_ok(space, center, String(camp.get("seal", ""))):
+			# a place built over it since it was set down (a site), or ground the spawn rules refuse (water, a lip, a
+			# rock): the nearest fair ground within CAMP_MOVE keeps the camp where it was meant to be
+			var moved := _camp_move(space, center, String(camp.get("seal", "")))
+			if moved == Vector3.INF:
+				var st := WorldLanes.site_at(Vector2(center.x, center.z), 1.0)
+				why = ("inside site " + String(st.name)) if not st.is_empty() else "no fair ground: " + String(SpawnRules.assess(space, center).why)
+			else:
+				center = moved
 		if why != "":
 			var skip := String(camp.get("seal", ""))
 			if skip != "" and _seal_camps.has(skip):
@@ -252,8 +262,13 @@ func _plant() -> void:
 		var route: Array[Vector3] = []
 		for c2: Vector2 in camp.get("patrol", []):
 			var g2 := _ground(space, Vector3(c2.x, float(camp.at.y), c2.y), float(camp.get("probe", 24.0)))
-			if not is_nan(_last_hit_y):
+			if is_nan(_last_hit_y):
+				continue
+			if _realm and not SpawnRules.ok(space, g2):
+				g2 = SpawnRules.find(space, Vector2(c2.x, c2.y), 6.0, g2.y + 8.0)   # a stop on a way, in a pool, on a lip: beside it
+			if g2 != Vector3.INF:
 				route.append(g2)
+		var opts := {"ways": sid == ""}
 		for i in n:
 			var a := TAU * float(i) / float(maxi(n, 1)) + 0.15
 			var ring: float = float(camp.get("r", 2.5)) if n > 1 else float(camp.get("r", 0.0))
@@ -264,6 +279,12 @@ func _plant() -> void:
 			var at := _ground(space, probe, float(camp.get("probe", 24.0)), bool(camp.get("strict", false)))
 			if _realm and is_nan(_last_hit_y):
 				at = center                               # no floor there (a cliff edge): stand at the camp
+			elif _realm and not camp.get("strict", false) and not SpawnRules.ok(space, at, opts):
+				# its place in the ring is water, a lip, a rock or the way: the nearest fair floor beside it, else the camp's
+				var near := SpawnRules.find(space, Vector2(at.x, at.z), 3.0, center.y + 8.0, opts, center.y, 2.5)
+				if near == Vector3.INF:
+					near = SpawnRules.find(space, Vector2(center.x, center.z), ring + 2.5, center.y + 8.0, opts, center.y, 2.5)
+				at = near if near != Vector3.INF else center
 			var key := String(kinds[i])
 			var look := ""
 			if key.contains("@"):
@@ -274,7 +295,8 @@ func _plant() -> void:
 			var kind: GDScript = _scripts.get(key, _scripts.get("wretch"))
 			if kind == null:
 				continue
-			var slot := {"at": at, "pawn": null, "pending": false, "kind": kind, "seal": sid, "key": "%s#%d" % [str(camp.at), i], "variant": look}
+			var slot := {"at": at, "pawn": null, "pending": false, "kind": kind, "seal": sid, "key": "%s#%d" % [str(camp.at), i], "variant": look,
+				"strict": bool(camp.get("strict", false)), "center": center}
 			if route.size() > 1:
 				var pts: Array[Vector3] = []
 				for g3 in route:
@@ -284,7 +306,7 @@ func _plant() -> void:
 	for slot in _slots:
 		_spawn(slot)
 	if _realm:
-		_make_rares()
+		_settle.call_deferred()            # the rares and a second look at every slot once the Realm's ground is final
 		if Slice.full():                    # the Kindled Watch is outside the 30-minute slice (docs/DECISIONS.md)
 			(load("res://core/world/watch/watch_posts.gd") as GDScript).call("build", get_parent() as Node3D)
 		(load("res://core/world/mount/stables.gd") as GDScript).call("build", get_parent() as Node3D)   # r36 horses
@@ -298,6 +320,91 @@ func _plant() -> void:
 			get_parent().add_child(roam)
 	planted_done = true
 	planted.emit()
+
+
+## The camps are planted before the Realm's last passes: the places built after them register their own ground,
+## and TerrainStamp.settle moves the ground under the floors (up to a metre). Once the Realm is done every slot
+## and patrol stop is set on the ground as it is and checked against the spawn rules again (a pawn standing far
+## off is moved with its slot), then the rares find their haunts on it. `settled` is set when that is done.
+var settled := false
+signal settled_done
+
+
+func _settle() -> void:
+	var host := get_parent()
+	var t0 := Time.get_ticks_msec()
+	while is_inside_tree() and not host.has_meta("realm_done") and Time.get_ticks_msec() - t0 < 180000:
+		await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	await get_tree().physics_frame
+	var space := get_world_3d().direct_space_state
+	var player := _player()
+	var moved := 0
+	for slot in _slots:
+		if bool(slot.get("strict", false)):
+			continue
+		var at: Vector3 = slot.at
+		var opts := {"ways": String(slot.get("seal", "")) == ""}
+		var g := SpawnRules.floor_at(space, Vector2(at.x, at.z), at.y + 3.0, 7.0)
+		if g == Vector3.INF or not SpawnRules.ok(space, g, opts) or not WorldLanes.site_at(Vector2(g.x, g.z), 0.4).is_empty():
+			var near := SpawnRules.find(space, Vector2(at.x, at.z), 4.0, at.y + 4.0, opts, at.y, 3.0)
+			g = near if near != Vector3.INF else g
+		var pawn: Variant = slot.pawn
+		if slot.has("patrol"):
+			# each pawn walks its own line of the round (the camp's stops plus its place in the ring): every stop
+			# on the ground as settled and on fair floor, else beside it
+			var pts: Array[Vector3] = []
+			for q: Vector3 in slot.patrol:
+				var h := SpawnRules.floor_at(space, Vector2(q.x, q.z), q.y + 3.0, 7.0)
+				if h == Vector3.INF or not SpawnRules.ok(space, h, opts):
+					var near := SpawnRules.find(space, Vector2(q.x, q.z), 3.5, q.y + 4.0, opts, q.y, 3.0)
+					h = near if near != Vector3.INF else h
+				pts.append(h if h != Vector3.INF else q)
+			slot.patrol = pts
+			if is_instance_valid(pawn) and pawn is Enemy:
+				(pawn as Enemy).patrol.assign(pts)
+		if g == Vector3.INF or g.distance_to(at) < 0.03:
+			continue
+		slot.at = g
+		moved += 1
+		if is_instance_valid(pawn) and pawn is Enemy and (pawn as Enemy).is_alive() and (player == null or player.global_position.distance_to(g) > 40.0):
+			(pawn as Enemy).station(g)
+	print("ENEMYSPAWNER settled: %d of %d slots set on the final ground" % [moved, _slots.size()])
+	_make_rares()
+	settled = true
+	settled_done.emit()
+
+
+## A camp's centre: off sites, off the ways (CAMP_BERTH; a seal guard's way is its post) and on ground the spawn
+## rules take (core/life/encounters/spawn_rules.gd).
+const CAMP_BERTH := 4.0
+const CAMP_MOVE := 12.0
+
+
+func _camp_ground_ok(space: PhysicsDirectSpaceState3D, at: Vector3, sid: String) -> bool:
+	var q := Vector2(at.x, at.z)
+	if not WorldLanes.site_at(q, 1.0).is_empty():
+		return false
+	if sid == "" and RealmLayout.path_dist(q) < CAMP_BERTH:
+		return false
+	var gap: Array = SpawnRules.safe_gap(q)
+	if sid == "" and float(gap[0]) < float(gap[2]):
+		return false                                    # never nearer a town (or the hub) than its camp margin
+	return SpawnRules.ok(space, at, {"ways": sid == ""})
+
+
+func _camp_move(space: PhysicsDirectSpaceState3D, at: Vector3, sid: String) -> Vector3:
+	var r := 1.5
+	while r <= CAMP_MOVE:
+		var n := int(r * 1.6) + 6
+		for k in n:
+			var a := TAU * float(k) / float(n) + r * 0.37
+			var g := SpawnRules.floor_at(space, Vector2(at.x + cos(a) * r, at.z + sin(a) * r), at.y + 10.0)
+			if g != Vector3.INF and absf(g.y - at.y) < 4.0 and _camp_ground_ok(space, g, sid):
+				return g
+		r += 1.5
+	return Vector3.INF
 
 
 ## r33: the named rares walk their haunts (core/enemy/rares.gd); their haunts are map markers.

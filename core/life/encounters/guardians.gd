@@ -19,6 +19,8 @@ extends Node
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
+const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
+const ESCORT_GROUND := {"ways": false}             ## an escort stands on its guardian's floor (a place's ground may hold a way)
 const GROUP := &"guardian_site"
 const NEAR := 55.0                 ## the guardian rises when you come this close to its site
 const FAR := 95.0                  ## ...and goes back to it, healed, past this
@@ -49,10 +51,32 @@ const GUARDIANS := {
 		"escort": ["burrower", "mite", "mite"], "ash": 16, "regions": ["orchard"], "enrage_call": "mite"},
 	"sedge_mother": {"title": "The Sedge-Mother", "base": "spitter", "scale": 1.45, "hp": 22,
 		"escort": ["wretch", "wretch"], "ash": 16, "regions": ["mere"], "enrage_call": "spitter"},
+	# --- the Far Reaches (enemies pass): a champion of each region's roster on its landmark, a step past the
+	# Marches' (more health and ash: the outer ring is the curve's next step)
+	"castellan": {"title": "The Castellan of the Broken Keep", "base": "bulwark", "variant": "stonebound", "scale": 1.6, "hp": 48,
+		"escort": ["chanter", "husk", "husk"], "ash": 22, "regions": ["greyfell"], "enrage_call": "husk"},
+	"cap_mother": {"title": "The Cap-Mother", "script": "res://core/enemy/brood_mother.gd", "hp": 52,
+		"escort": ["mite", "mite", "crawler"], "ash": 20, "regions": ["lanternwood"]},
+	"barrow_king": {"title": "The Barrow-King", "base": "ossuant", "scale": 1.6, "hp": 42,
+		"escort": ["ossuant", "quiller", "chanter"], "ash": 20, "regions": ["kingsbarrows"], "enrage_call": "ossuant"},
+	"reed_reeve": {"title": "The Reed-Reeve", "base": "husk", "variant": "drowned", "scale": 1.5, "hp": 42,
+		"escort": ["spitter", "spitter", "wretch"], "ash": 20, "regions": ["reedmere"], "enrage_call": "wretch"},
+	"scarecrow": {"title": "The Scarecrow of Fallowmere", "base": "gaunt", "scale": 1.45, "hp": 26,
+		"escort": ["wretch", "wretch", "crawler"], "ash": 18, "regions": ["fallow"], "enrage_call": "crawler"},
+	"water_bailiff": {"title": "The Water-Bailiff", "base": "bulwark", "scale": 1.55, "hp": 46,
+		"escort": ["quiller", "husk"], "ash": 20, "regions": ["arches"], "enrage_call": "husk"},
+	"hollow_witch": {"title": "The Hollow-Witch", "base": "chanter", "scale": 1.5, "hp": 36,
+		"escort": ["spitter", "gaunt", "crawler"], "ash": 20, "regions": ["southwood"], "enrage_call": "crawler"},
+	"eighth_ringer": {"title": "The Eighth Ringer", "base": "tollman", "scale": 1.6, "hp": 44,
+		"escort": ["cinder", "bulwark"], "ash": 22, "regions": ["bellfall"], "enrage_call": "cinder"},
+	"precentor": {"title": "The Drowned Precentor", "base": "ossuant", "variant": "drowned", "scale": 1.5, "hp": 40,
+		"escort": ["chanter", "pilgrim", "pilgrim"], "ash": 20, "regions": ["nave"], "enrage_call": "pilgrim"},
+	"cairn_warden": {"title": "The Cairn-Warden", "base": "chanter", "scale": 1.5, "hp": 38,
+		"escort": ["pilgrim", "pilgrim", "gaunt"], "ash": 22, "regions": ["cairns"], "enrage_call": "pilgrim"},
 }
 ## r34: no guardian holds a place here (the Rooted Holds' clearing is safe-ish; a site there is left
 ## empty, and the director spawns nothing in it either).
-const NO_GUARDIAN := ["holds"]
+const NO_GUARDIAN := ["holds", "lastlight"]
 
 ## Until the world places its own: a nest in the deep Thornwood, a barrow-keeper on the Barrow
 ## Field's far side, a knight on the west of the Pilgrims' Road, a stalker on the Crowns.
@@ -68,6 +92,18 @@ const FALLBACK := [
 	{"at": Vector2(-90.0, 124.0), "id": "ash_sow", "key": "fb_orchard_heart", "r34": true},
 	{"at": Vector2(0.0, 142.0), "id": "vigil_keeper", "key": "fb_mausoleum", "r34": true},
 	{"at": Vector2(128.0, 122.0), "id": "drowned_deacon", "key": "fb_mere_landing", "r34": true},
+	# --- the Far Reaches (enemies pass): on each region's landmark (RealmReaches.SLOTS' places), skipped when its
+	# place builder sets its own site within 45 m (a group site with no "guardian" meta picks the region's own)
+	{"at": Vector2(-318.0, -104.0), "id": "castellan", "key": "fb_broken_keep", "r34": true},
+	{"at": Vector2(-330.0, -8.0), "id": "cap_mother", "key": "fb_ring_of_caps", "r34": true},
+	{"at": Vector2(-338.0, 152.0), "id": "barrow_king", "key": "fb_kings_barrow", "r34": true},
+	{"at": Vector2(-330.0, 352.0), "id": "reed_reeve", "key": "fb_heron_stones", "r34": true},
+	{"at": Vector2(-118.0, 350.0), "id": "scarecrow", "key": "fb_scarecrow_field", "r34": true},
+	{"at": Vector2(-56.0, 346.0), "id": "water_bailiff", "key": "fb_castellum", "r34": true},
+	{"at": Vector2(222.0, 356.0), "id": "hollow_witch", "key": "fb_witchs_hollow", "r34": true},
+	{"at": Vector2(318.0, -96.0), "id": "eighth_ringer", "key": "fb_fallen_bell", "r34": true},
+	{"at": Vector2(320.0, 116.0), "id": "precentor", "key": "fb_drowned_nave", "r34": true},      # the nave's head on the north shore
+	{"at": Vector2(322.0, 320.0), "id": "cairn_warden", "key": "fb_cairn_tower", "r34": true},
 ]
 
 static var _extra: Array[Dictionary] = []
@@ -146,8 +182,8 @@ func refresh_sites() -> void:
 			key = "%d_%d_%d" % [roundi(at.x), roundi(at.y), roundi(at.z)]
 		if have.has(key):
 			return
-		if Tiers.region_id(at) in NO_GUARDIAN:
-			return
+		if Tiers.region_id(at) in NO_GUARDIAN or SpawnRules.safe_at(Vector2(at.x, at.z)) != "":
+			return                                     # a town or the Holds: no fighting floor of ours
 		if id == "" or not GUARDIANS.has(id):
 			var taken: Array = []
 			var reg := Tiers.region_id(at)
@@ -266,8 +302,11 @@ func spawn(s: Dictionary) -> Enemy:
 		var a := TAU * float(i) / float(maxi(kinds.size(), 1)) + 0.4
 		var p := at + Vector3(cos(a), 0.0, sin(a)) * ESCORT_R
 		var g: Vector3 = director.call("_ground_at", p, at.y + 6.0)
-		if g == Vector3.INF or absf(g.y - at.y) > 2.5:
-			g = at + Vector3(cos(a), 0.0, sin(a)) * 1.2
+		if g == Vector3.INF or absf(g.y - at.y) > 2.5 or not SpawnRules.ok(get_viewport().world_3d.direct_space_state, g, ESCORT_GROUND):
+			# its place in the ring is water, a lip or a rock: fair floor beside it, else a step from the guardian
+			g = SpawnRules.find(get_viewport().world_3d.direct_space_state, Vector2(p.x, p.z), 2.5, at.y + 6.0, ESCORT_GROUND, at.y, 2.5)
+			if g == Vector3.INF:
+				g = at + Vector3(cos(a), 0.0, sin(a)) * 1.2
 		var m := Tiers.script_for(String(kinds[i])).new() as Enemy
 		Tiers.scale_stats(m, tier)
 		var rv := Tiers.region_variant(g, String(kinds[i]))
