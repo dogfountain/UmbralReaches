@@ -102,6 +102,7 @@ const CONV := {
 			["qp:forty_first:faith,boss:ascended_warden", "There was a bell. One. They said it was the door shutting. I think it was my turn, and I wasn't there. I'll wait for the next."],
 			["qp:forty_first:faith", "Forty-one. I touch it every night. The Stair's just down the road, and the door's at the top. They'll ring for me when it's my turn."],
 			["boss:ascended_warden", "There was a bell. One. From the bottom up, they're saying. I think I'll go home. Wherever that was."],
+			["qp:forty_first:truth", "I've stopped counting the waystones. It's odd how much quieter the road is without the number in it."],
 			["seal:summit", "The ward on the Crossing is broken, they say. Then the way's open. Then why am I still sitting here?"],
 			["bosses:1", "You've been up there. Is anyone at the top? Are they waiting for us?"],
 			["", "I count the waystones in my sleep. Forty-one to the Stair. Then four thousand steps. Then the door."],

@@ -23,6 +23,8 @@ const SID := "hearth"
 const DB := preload("res://core/life/progression/upgrade_db.gd")
 const SVC_FLAG := {"smith": "svc_smith", "herbs": "svc_herbs", "bells": "svc_bells", "beacon": "svc_beacon"}
 const LevelDB := preload("res://core/life/progression/level.gd")
+const QuestChains := preload("res://core/story/quest_chains.gd")
+const QuestBook := preload("res://core/story/quest_book.gd")
 const GearRuntime := preload("res://core/items/gear_runtime.gd")
 
 ## r33 progression (see level.gd): the XP bar's data source.
@@ -51,9 +53,11 @@ func _ready() -> void:
 	Events.brazier_kindled.connect(func(_b: Node3D) -> void: give_memory(LevelDB.xp_for("kindle"), "kindle"))
 	Events.seal_broken.connect(func(_id: String) -> void: give_memory(LevelDB.xp_for("seal"), "seal"))
 	Events.boss_slain.connect(func(_id: String) -> void: give_memory(LevelDB.xp_for("boss"), "boss"))
-	Events.quest_changed.connect(func(_id: String, _step: int, done: bool) -> void:
+	Events.quest_changed.connect(func(id: String, _step: int, done: bool) -> void:
 		if done:
-			give_memory(LevelDB.xp_for("quest"), "quest"))
+			var qd: Dictionary = QuestChains.QUESTS.get(id, {})
+			var again := int(QuestBook.q(id).get("c", 0)) > 1
+			give_memory(LevelDB.quest_xp(int((qd.get("reward", {}) as Dictionary).get("ash", 0)), again), "quest"))
 	Events.item_gained.connect(_on_item)
 	Events.zone_entered.connect(_on_zone)
 	# r33 merge: the Realm's discovery (realm_discovery.gd) fires region_discovered once per place
