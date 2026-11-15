@@ -181,7 +181,11 @@ def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shou
     cur = sum(len(p.vertices) - 2 for p in h.data.polygons)
     if cur > tris:
         d = h.modifiers.new("Dec", 'DECIMATE')
-        d.ratio = tris / cur
+        d.ratio = max(tris / cur, 0.4)                 # the head is spared, so the body pays: never thin it to a wire
+        if "J_head" in h.vertex_groups:                  # the face keeps the detail it was sculpted with: thin the body only
+            d.vertex_group = "J_head"
+            d.invert_vertex_group = True
+            d.vertex_group_factor = 1.0
         bpy.ops.object.modifier_apply(modifier=d.name)
     me = h.data
     Q = np.array([(v.co.x, v.co.z, -v.co.y) for v in me.vertices])

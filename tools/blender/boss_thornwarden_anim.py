@@ -594,6 +594,9 @@ def main():
         import grunt_build
         bpy.ops.wm.read_factory_settings(use_empty=True)
         body = grunt_build.thornwarden()[0]
+        if "--bake" in ARGS:
+            import bake_kind
+            bake_kind.bake(body, "thornwarden", size=int(arg("--size", "2048")), prefix="boss")
         old = None
     else:
         bpy.ops.wm.open_mainfile(filepath=os.path.join(ROOT, "art", "blender", "boss_thornwarden.blend"))

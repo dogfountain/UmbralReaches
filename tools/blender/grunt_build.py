@@ -155,16 +155,59 @@ def body(g, col, mat="leather", girth=1.0, belly=0.0, limb=1.0, head=1.0, neck=1
             B.hand(g, sx, col, "hand_" + side(sx), closed=0.5)
 
 
-def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40):
+def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0):
     """A MakeHuman body (mh_body.py), shaped by `macro` (gender, age, muscle, weight, proportions, height: 0..1),
-    retargeted to the rig, with coals in the eyes."""
+    retargeted to the rig, with coals in the eyes. skull 0..1: the face wasted toward the bone beneath (cheeks and
+    temples hollowed, lips drawn back off the teeth, the eyes sunk), with the teeth bared."""
     import mh_body
     P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y)
+    bd = Body(P, F, FUV, L)
+    E = [e for e in eyes if e is not None]
+    if skull > 0.0 and len(E) == 2:
+        ey = (E[0][1] + E[1][1]) * 0.5
+        ez = min(E[0][2], E[1][2])
+        hw = abs(E[0][0] - E[1][0]) * 0.5
+        mouth_y = ey - hw * 2.4
+        Q = bd.P.copy()
+        for i in range(len(Q)):
+            if bd.L[i] != "head":
+                continue
+            p = Q[i]
+            if p[2] > ez + 0.07:
+                continue
+            fwd = min(max((ez + 0.07 - p[2]) / 0.07, 0.0), 1.0)
+            # cheeks and temples: in, between cheekbone and jaw, and beside the brow
+            cheek = math.exp(-((p[1] - (ey - hw * 1.3)) / (hw * 0.9)) ** 2) * min(max((abs(p[0]) - hw * 0.5) / hw, 0.0), 1.0)
+            temple = math.exp(-((p[1] - (ey + hw * 0.4)) / (hw * 0.7)) ** 2) * min(max((abs(p[0]) - hw * 1.3) / hw, 0.0), 1.0)
+            # lips: drawn back off the teeth
+            lip = math.exp(-((p[1] - mouth_y) / (hw * 0.45)) ** 2) * math.exp(-(p[0] / (hw * 1.1)) ** 2)
+            # the sockets: sunk round each eye
+            sock = sum(math.exp(-(np.linalg.norm((p - e)[:2]) / (hw * 0.55)) ** 2) for e in E)
+            d = skull * fwd * (0.009 * cheek + 0.006 * temple + 0.004 * lip + 0.006 * sock)
+            Q[i] = p - bd.N[i] * d
+        bd.P = Q
+        P = Q
+        TOOTH = (0.72, 0.66, 0.5)
+        front = {}
+        for i in range(len(Q)):
+            if bd.L[i] == "head" and abs(Q[i][1] - mouth_y) < 0.006 and abs(Q[i][0]) < hw:
+                kx = int(round(Q[i][0] / (hw / 3.0)))
+                if kx not in front or Q[i][2] < front[kx][2]:
+                    front[kx] = Q[i]
+        mz = min((q[2] for q in front.values()), default=ez - 0.02)
+        lipz = lambda x: mz + abs(x / hw) ** 2 * hw * 0.5
+        for row, dy in ((0, 0.005), (1, -0.007)):
+            for k in range(7):
+                a = (k - 3.0) / 3.0
+                x = a * hw * 0.95
+                z = lipz(x) - 0.002
+                y = mouth_y + dy
+                h = (0.009 if row == 0 else -0.008) * (1.0 - 0.3 * abs(a))
+                g.tube([V(x, y, z), V(x, y - h * 1.3, z - 0.003)], [0.006 * skull, 0.0035 * skull], TOOTH, "bone", "head", n=5)
     g.mesh(P, F, col, mat, L, FUV)
     for e in eyes:
         if e is not None:
             g.ball(e + V(0, 0, -0.004), eye_r, eye, "glow", "head", n=6)
-    bd = Body(P, F, FUV, L)
     bd.eyes = [e for e in eyes if e is not None]
     return bd
 
@@ -227,6 +270,35 @@ def line(b, labels, ys, ang, off=0.02):
         if loop:
             out.append(min(loop, key=lambda t: abs(math.remainder(t[0] - ang, TAU)))[1])
     return out
+
+
+def crust(g, b, sel, n, col, mat="bone", size=(0.02, 0.05), seed=1, lift=0.004, glow=None):
+    """Growths that have taken the body over, the way the Shroud's take the Fell: bracket-shelves like a fungus on a
+    dead trunk, flat and thick with rounded lips, stacked in clusters off the skin, each tilted up and out; a few lit
+    from beneath where they root (glow: an (r, g, b, 0) tint)."""
+    rng = np.random.default_rng(seed)
+    idx = [i for i in range(len(b.P)) if sel(b.P[i], b.L[i])]
+    if not idx:
+        return
+    seeds = rng.choice(idx, size=min(max(n // 7, 1), len(idx)), replace=False)
+    up = V(0, 1.0, 0)
+    for s0 in seeds:
+        c0 = b.P[s0]
+        near = sorted([i for i in idx if np.linalg.norm(b.P[i] - c0) < 0.07], key=lambda i: b.P[i][1])
+        pick = near[::max(1, len(near) // 7)][:7]
+        for k, i in enumerate(pick):
+            p, nrm, lab = b.P[i], b.N[i], b.L[i]
+            r = rng.uniform(*size) * (1.0 - 0.08 * k)
+            axis = nrm * 0.35 + up * 0.9 + rng.normal(0, 0.15, 3)        # the shelf's cup faces up, tilted off the body
+            axis /= np.linalg.norm(axis)
+            side = nrm - axis * float(nrm @ axis)
+            side /= max(np.linalg.norm(side), 1e-6)
+            centre = p + nrm * lift - axis * r * 0.9 + side * r * 0.35
+            phi = math.atan2(float(side @ np.cross(axis, np.cross(side, axis))), 1.0)
+            dome(g, centre, axis, r, math.radians(rng.uniform(4, 12)), math.radians(rng.uniform(28, 40)), col, mat, lab, n=9, m=2,
+                 thick=r * 0.16, arc=math.radians(rng.uniform(170, 230)), phi0=rng.uniform(0, TAU), rim=True)
+            if glow is not None and rng.random() < 0.3:
+                g.ball(p + nrm * (lift + 0.003), r * 0.2, glow, "glow", lab, n=5)
 
 
 def wraps(g, b, prefixes, y0, y1, col, mat="linen", pitch=0.034, width=0.024, off=0.007, seed=0):
@@ -467,19 +539,27 @@ def pilgrim():
 
 
 def gaunt():
-    """Too tall and too thin: grey skin stretched over a ribcage like a cage, hands to the knees, a strip of shroud over
-    the head and shoulders and nothing else but wrappings."""
+    """Too tall and too thin, and the Shroud has grown into it: wiry dead flesh gone grey-blue, a torn shroud fitted
+    over the skull and shoulders, and shelves of pale crust bursting from one shoulder, the crown of the head and
+    the breastbone, lit from beneath where they root. Wrappings on the forearms and shins."""
     g = Geo()
-    SHROUD, SKIN = (0.36, 0.37, 0.4), (0.43, 0.41, 0.41)
-    b = human(g, SKIN, (0.75, 0.85, 1.0, 0.0), macro={"gender": 0.6, "age": 0.95, "muscle": 0.0, "weight": 0.0, "proportions": 0.0, "height": 1.0}, girth=0.85, limb=0.9, head=1.05, tris=12000)
-    wraps(g, b, ("elbow_",), 0.82, 1.06, SHROUD)
-    wraps(g, b, ("knee_",), 0.06, 0.36, SHROUD, seed=3)
-    wraps(g, b, ("chest", "pelvis"), 0.98, 1.12, SHROUD, pitch=0.04, width=0.03, off=0.009, seed=5)
-    g.robe([(1.95, 0.02, 0.03, 0.03), (1.88, 0.1, 0.11, 0.02), (1.76, 0.135, 0.14, 0.0), (1.6, 0.17, 0.15, 0.01), (1.48, 0.26, 0.17, 0.01), (1.3, 0.3, 0.2, 0.02)],
-           SHROUD, "linen", lambda p: "head" if p[1] > 1.6 else "chest", n=48, t0=math.radians(28), t1=TAU - math.radians(28), pleats=7, pleat_amp=0.06, tatter=0.18)
-    g.ball(V(0.0, 1.74, 0.0), 0.1, (0.015, 0.015, 0.02), "iron", "head", n=8, sy=1.2)
-    B.eyes(g, 1.75, -0.098, 0.035, 0.011, (0.75, 0.85, 1.0, 0.0))
-    g.robe([(0.98, 0.13, 0.1, 0.0), (0.9, 0.15, 0.12, 0.0), (0.6, 0.18, 0.15, 0.0)], SHROUD, "linen", "pelvis", n=40, pleats=8, pleat_amp=0.1, tatter=0.2)
+    SHROUD, SKIN, CRUST, GL = (0.25, 0.27, 0.31), (0.34, 0.37, 0.42), (0.62, 0.68, 0.76), (0.55, 0.78, 1.0, 0.0)
+    b = human(g, SKIN, (0.75, 0.85, 1.0, 0.0), macro={"gender": 0.9, "age": 0.9, "muscle": 0.75, "weight": 0.0, "proportions": 1.0, "height": 1.0},
+              girth=0.9, limb=0.95, head=1.05, tris=12000, skull=1.0)
+    wraps(g, b, ("elbow_",), 0.82, 1.04, SHROUD)
+    wraps(g, b, ("knee_",), 0.06, 0.3, SHROUD, seed=3)
+    # the shroud: cut from the skull, the back of the neck and the shoulders, torn along its edge; the face left bare
+    def shroud(p, l):
+        if l == "head":
+            return not (p[2] < -0.035 and p[1] < 1.78)
+        return (l == "chest" and p[1] > 1.38) or (l.startswith("shoulder_") and p[1] > 1.32 and p[2] > -0.06)
+    wear(g, b, shroud, 0.022, SHROUD, "linen", thick=0.006, smooth=2)
+    g.robe([(0.98, 0.14, 0.105, 0.0), (0.9, 0.155, 0.12, 0.0), (0.72, 0.17, 0.14, 0.0), (0.56, 0.18, 0.15, 0.0)], SHROUD, "linen", B.waist_split(0.88),
+           n=48, pleats=9, pleat_amp=0.05, tatter=0.3)
+    # the crust: a great mass on the left shoulder spilling to the neck, a crown on the skull, a seam down the breast
+    crust(g, b, lambda p, l: (l == "shoulder_l" and p[1] > 1.2) or (l == "chest" and p[0] < -0.06 and p[1] > 1.3), 70, CRUST, size=(0.03, 0.075), seed=2, glow=GL, lift=0.01)
+    crust(g, b, lambda p, l: l == "head" and p[1] > 1.76, 35, CRUST, size=(0.025, 0.065), seed=9, glow=GL, lift=0.02)
+    crust(g, b, lambda p, l: l == "chest" and 1.08 < p[1] < 1.36 and abs(p[0]) < 0.06 and p[2] < 0.0, 40, CRUST, size=(0.015, 0.04), seed=5, glow=GL)
     return g.to_object("body"), []
 
 
@@ -569,7 +649,7 @@ def bulwark():
     at each shoulder, bracers and gauntlets, a great helm over the skull with a lit slit, a tower of planks as a shield."""
     g = Geo()
     IRON, DARKI, QUILT, WOOD, BAND, LEATH = (0.3, 0.3, 0.32), (0.2, 0.2, 0.22), (0.3, 0.24, 0.18), (0.32, 0.22, 0.14), (0.2, 0.2, 0.22), (0.18, 0.13, 0.09)
-    b = human(g, (0.38, 0.33, 0.3), (1.0, 0.55, 0.2, 0.0), macro={"gender": 1.0, "age": 0.5, "muscle": 1.0, "weight": 0.7}, girth=1.05, head=1.0, tris=6000)
+    b = human(g, (0.38, 0.33, 0.3), (1.0, 0.55, 0.2, 0.0), macro={"gender": 1.0, "age": 0.5, "muscle": 1.0, "weight": 0.7}, girth=1.05, head=1.0, tris=10000)
     # the gambeson under it all, and its skirt
     wear(g, b, lambda p, l: l in ("chest", "pelvis") or (l.startswith("shoulder_")) or (l.startswith("elbow_") and p[1] > 1.0), 0.016, QUILT, "wool")
     girdle(g, b, 0.94, 0.42, ("pelvis",), 0.03, 0.12, QUILT, "wool", "pelvis", rows=4)
@@ -1081,6 +1161,9 @@ def build_kind(kind):
     body, held = out[0], out[1]
     sock = out[2] if len(out) > 2 else SOCK
     soften(body)
+    if "--bake" in ARGS:                                                  # the finished way: a high copy baked into four maps
+        import bake_kind
+        bake_kind.bake(body, kind, size=int(arg("--size", "2048")), extras=held)
     arm = armature(sock)
     body.parent = arm
     md = body.modifiers.new("Armature", 'ARMATURE')

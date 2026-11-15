@@ -929,6 +929,9 @@ def main():
             sockets.update({"shoulder_" + tag: V(sx * 0.24, 1.40, 0), "elbow_" + tag: V(sx * 0.24, 1.08, 0), "hand_" + tag: V(sx * 0.24, 0.78, 0),
                             "hip_" + tag: V(sx * 0.11, 0.75, 0), "knee_" + tag: V(sx * 0.11, 0.33, 0), "foot_" + tag: V(sx * 0.11, -0.09, 0)})
         body, held = boss_build.build(BOSS)
+        if "--bake" in ARGS:                                   # its own baked maps, as the grunts have
+            import bake_kind
+            bake_kind.bake(body, BOSS, size=int(arg("--size", "2048")), extras=held, prefix="boss")
         old = None
         if "pelvis" not in body.vertex_groups:
             body.vertex_groups.new(name="pelvis")

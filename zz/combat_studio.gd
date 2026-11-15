@@ -19,6 +19,7 @@ const KINDS := {
 	"pilgrim": "res://core/enemy/pilgrim.gd", "cinder_caster": "res://core/enemy/cinder_caster.gd",
 }
 var tag := "shot"
+var zoom := 1.0          ## --zoom=0.35: a close portrait (head and chest) instead of the whole figure
 var pose := ""
 var order: Array[String] = []
 var cam: Camera3D
@@ -31,6 +32,7 @@ var saved: Array[String] = []
 func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--tag="): tag = a.trim_prefix("--tag=")
+		if a.begins_with("--zoom="): zoom = float(a.trim_prefix("--zoom="))
 		elif a.begins_with("--pose="): pose = a.trim_prefix("--pose=")
 		elif a.begins_with("--size="):
 			var wh := a.trim_prefix("--size=").split("x")
@@ -133,8 +135,8 @@ func _process(d: float) -> void:
 				cur._rig.set("_gesture_t", 0.4)
 		cur._rig.animate(Vector3.ZERO, true, d)     # the enemy is asleep; pose its rig by hand
 	var h := maxf(cur.hp_bar_y, 1.0)
-	var look := Vector3(0, h * 0.5, 0)
-	var dist := h * 1.7 + 0.7
+	var look := Vector3(0, h * lerpf(0.82, 0.5, zoom), 0)
+	var dist := (h * 1.7 + 0.7) * zoom
 	var views := [Vector3(-0.62, 0.32, -1.0), Vector3(-1.0, 0.18, 0.08), Vector3(0.55, 0.25, 1.0)]
 	cam.global_position = look + views[vi].normalized() * dist
 	cam.look_at(look)

@@ -257,6 +257,8 @@ class Geo:
                 el.radius = m * K
                 el.size_x, el.size_y, el.size_z = rx / m, rz / m, ry / m
                 neg = len(e) > 3 and e[3]
+                if len(e) > 4 and e[4] is not None:                  # a turned mass: e[4] = the axis its ry (thin) lies along
+                    el.rotation = Vector((0.0, 0.0, 1.0)).rotation_difference(bl(e[4]).normalized())
             else:
                 a, b, r = np.asarray(e[1], dtype=np.float64), np.asarray(e[2], dtype=np.float64), e[3]
                 el = mb.elements.new(type='CAPSULE')

@@ -132,7 +132,7 @@ func _build() -> void:
 ## The skinned meshes wearing the kind's material (flash, glint, dissolve): what Enemy.set_flesh wants.
 func dress(kind: StringName) -> Array[MeshInstance3D]:
 	# a BUILT model names its surfaces (wool, trim, bone...) and wears tiling materials; a baked one wears its atlas
-	if built and BossLook.has(kind):
+	if built and BossLook.has(kind) and not (GruntModel.KINDS.has(kind) and ResourceLoader.exists(GruntModel._tex(kind, "albedo"))):
 		return BossLook.dress(kind, _meshes)
 	var mat := GruntModel.material(kind) if GruntModel.has(kind) else null
 	var phase := randf() * TAU

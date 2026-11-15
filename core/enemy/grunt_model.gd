@@ -20,29 +20,29 @@ const SHADOWED := ["chest", "pelvis", "head", "body", "front"]
 ## kind -> [glb, shader params]. Families: hollowed people = wet; rift-born = heat; Ossuary dead = dust
 const BossLook := preload("res://core/enemy/boss_look.gd")
 const KINDS := {
-	&"wretch": ["res://art/models/grunt_wretch.glb", {"rim_col": Color(1.0, 0.46, 0.16), "rim_amount": 0.16, "wet": 0.1, "normal_depth": 1.2}],
-	&"quiller": ["res://art/models/grunt_quiller.glb", {"rim_col": Color(0.62, 0.78, 1.0), "rim_amount": 0.18, "rim_scale": 0.3, "normal_depth": 1.25}],
-	&"cinder_caster": ["res://art/models/grunt_cinder_caster.glb", {"rim_col": Color(1.3, 0.45, 0.12), "rim_amount": 0.22, "emit_pulse": 0.5, "pulse_rate": 1.6, "heat": 0.55, "normal_depth": 1.25}],
-	&"gaunt": ["res://art/models/grunt_gaunt.glb", {"rim_col": Color(0.75, 0.82, 1.0), "rim_amount": 0.2, "rim_scale": 0.12, "emit_pulse": 0.5, "pulse_rate": 2.4, "wet": 0.1, "normal_depth": 1.25}],
-	&"husk": ["res://art/models/grunt_husk.glb", {"rim_col": Color(1.0, 0.5, 0.12), "rim_amount": 0.16, "emit_pulse": 0.4, "pulse_rate": 1.4, "wet": 0.1, "normal_depth": 1.25}],
-	&"spitter": ["res://art/models/grunt_spitter.glb", {"rim_col": Color(0.3, 1.0, 0.72), "rim_amount": 0.3, "emit_pulse": 0.5, "pulse_rate": 3.0, "membrane": 0.7, "wet": 0.2, "normal_depth": 1.15}],
-	&"ossuant": ["res://art/models/grunt_ossuant.glb", {"rim_col": Color(1.0, 0.82, 0.48), "rim_amount": 0.18, "dust": 0.78, "dust_col": Color(0.46, 0.43, 0.38), "normal_depth": 1.3}],
-	&"bulwark": ["res://art/models/grunt_bulwark.glb", {"rim_col": Color(1.0, 0.55, 0.2), "rim_amount": 0.2, "wet": 0.3, "normal_depth": 1.25}],
-	&"chanter": ["res://art/models/grunt_chanter.glb", {"rim_col": Color(0.62, 1.0, 0.4), "rim_amount": 0.08, "emit_pulse": 0.12, "pulse_rate": 1.1, "wet": 0.2, "normal_depth": 1.2}],
+	&"wretch": ["res://art/models/grunt_wretch.glb", {"rim_col": Color(1.0, 0.46, 0.16), "rim_amount": 0.08, "wet": 0.0, "normal_depth": 1.2}],
+	&"quiller": ["res://art/models/grunt_quiller.glb", {"rim_col": Color(0.62, 0.78, 1.0), "rim_amount": 0.09, "rim_scale": 0.3, "normal_depth": 1.25}],
+	&"cinder_caster": ["res://art/models/grunt_cinder_caster.glb", {"rim_col": Color(1.3, 0.45, 0.12), "rim_amount": 0.11, "emit_pulse": 0.5, "pulse_rate": 1.6, "heat": 0.55, "normal_depth": 1.25}],
+	&"gaunt": ["res://art/models/grunt_gaunt.glb", {"rim_col": Color(0.75, 0.82, 1.0), "rim_amount": 0.1, "rim_scale": 0.12, "emit_pulse": 0.5, "pulse_rate": 2.4, "wet": 0.0, "normal_depth": 1.25}],
+	&"husk": ["res://art/models/grunt_husk.glb", {"rim_col": Color(1.0, 0.5, 0.12), "rim_amount": 0.08, "emit_pulse": 0.4, "pulse_rate": 1.4, "wet": 0.0, "normal_depth": 1.25}],
+	&"spitter": ["res://art/models/grunt_spitter.glb", {"rim_col": Color(0.3, 1.0, 0.72), "rim_amount": 0.15, "emit_pulse": 0.5, "pulse_rate": 3.0, "membrane": 0.7, "wet": 0.0, "normal_depth": 1.15}],
+	&"ossuant": ["res://art/models/grunt_ossuant.glb", {"rim_col": Color(1.0, 0.82, 0.48), "rim_amount": 0.09, "dust": 0.78, "dust_col": Color(0.46, 0.43, 0.38), "normal_depth": 1.3}],
+	&"bulwark": ["res://art/models/grunt_bulwark.glb", {"rim_col": Color(1.0, 0.55, 0.2), "rim_amount": 0.1, "wet": 0.0, "normal_depth": 1.25}],
+	&"chanter": ["res://art/models/grunt_chanter.glb", {"rim_col": Color(0.62, 1.0, 0.4), "rim_amount": 0.04, "emit_pulse": 0.12, "pulse_rate": 1.1, "wet": 0.0, "normal_depth": 1.2}],
 	# the robed bipeds' remodel: cloth, not wet flesh
-	&"tollman": ["res://art/models/grunt_tollman.glb", {"rim_col": Color(0.9, 0.62, 0.3), "rim_amount": 0.16, "wet": 0.15, "normal_depth": 1.2}],
-	&"pilgrim": ["res://art/models/grunt_pilgrim.glb", {"rim_col": Color(1.0, 0.78, 0.42), "rim_amount": 0.2, "emit_pulse": 0.3, "pulse_rate": 1.3, "wet": 0.15, "normal_depth": 1.2}],
-	&"crawler": ["res://art/models/grunt_crawler.glb", {"rim_col": Color(1.0, 0.26, 0.16), "rim_amount": 0.5, "heat": 0.72, "normal_depth": 1.3}],
-	&"leaper": ["res://art/models/grunt_leaper.glb", {"rim_col": Color(1.0, 0.6, 0.14), "rim_amount": 0.04, "rim_scale": 0.0, "emit_pulse": 0.3, "pulse_rate": 1.8, "heat": 0.72, "normal_depth": 1.5}],
-	&"burrower": ["res://art/models/grunt_burrower.glb", {"rim_col": Color(1.0, 0.62, 0.22), "rim_amount": 0.2, "emit_pulse": 0.35, "pulse_rate": 1.2, "heat": 0.62, "normal_depth": 1.6}],
+	&"tollman": ["res://art/models/grunt_tollman.glb", {"rim_col": Color(0.9, 0.62, 0.3), "rim_amount": 0.08, "wet": 0.0, "normal_depth": 1.2}],
+	&"pilgrim": ["res://art/models/grunt_pilgrim.glb", {"rim_col": Color(1.0, 0.78, 0.42), "rim_amount": 0.1, "emit_pulse": 0.3, "pulse_rate": 1.3, "wet": 0.0, "normal_depth": 1.2}],
+	&"crawler": ["res://art/models/grunt_crawler.glb", {"rim_col": Color(1.0, 0.26, 0.16), "rim_amount": 0.25, "heat": 0.72, "normal_depth": 1.3}],
+	&"leaper": ["res://art/models/grunt_leaper.glb", {"rim_col": Color(1.0, 0.6, 0.14), "rim_amount": 0.02, "rim_scale": 0.0, "emit_pulse": 0.3, "pulse_rate": 1.8, "heat": 0.72, "normal_depth": 1.5}],
+	&"burrower": ["res://art/models/grunt_burrower.glb", {"rim_col": Color(1.0, 0.62, 0.22), "rim_amount": 0.1, "emit_pulse": 0.35, "pulse_rate": 1.2, "heat": 0.62, "normal_depth": 1.6}],
 	# the Thornwarden (a boss, r38d): bark and ember, one skinned body like the grunts'
-	&"thornwarden": ["res://art/models/boss_thornwarden.glb", {"rim_col": Color(1.0, 0.42, 0.1), "rim_amount": 0.0, "rim_scale": 0.0, "heat": 0.55, "dust": 0.28, "dust_col": Color(0.32, 0.26, 0.18), "normal_depth": 1.25}],
+	&"thornwarden": ["res://art/models/boss_thornwarden.glb", {"rim_col": Color(1.0, 0.42, 0.1), "rim_amount": 0, "rim_scale": 0.0, "heat": 0.55, "dust": 0.28, "dust_col": Color(0.32, 0.26, 0.18), "normal_depth": 1.25}],
 	# the modelled bosses (tools/blender/boss_*.py): one skinned mesh each, a bone per rig socket
-	&"bone_abbot": ["res://art/models/boss_bone_abbot.glb", {"rim_col": Color(1.0, 0.7, 0.32), "rim_amount": 0.16, "emit_energy": 2.0, "emit_pulse": 0.22, "pulse_rate": 3.2, "dust": 0.35, "dust_col": Color(0.48, 0.44, 0.38), "normal_depth": 1.25}],
-	&"ascended_warden": ["res://art/models/boss_ascended_warden.glb", {"rim_col": Color(1.0, 0.88, 0.55), "rim_amount": 0.18, "emit_pulse": 0.12, "pulse_rate": 1.2, "wet": 0.15, "normal_depth": 1.2}],
-	&"hierarch": ["res://art/models/boss_hierarch.glb", {"rim_col": Color(0.9, 0.85, 0.5), "rim_amount": 0.16, "emit_pulse": 0.18, "pulse_rate": 1.0, "dust": 0.25, "dust_col": Color(0.42, 0.4, 0.36), "normal_depth": 1.3}],
-	&"anchoress": ["res://art/models/boss_anchoress.glb", {"rim_col": Color(0.8, 0.6, 0.4), "rim_amount": 0.13, "emit_pulse": 0.2, "pulse_rate": 1.6, "wet": 0.05, "normal_depth": 1.2}],
-	&"mite": ["res://art/models/grunt_mite.glb", {"rim_col": Color(0.3, 1.0, 0.88), "rim_amount": 0.6, "emit_pulse": 0.48, "pulse_rate": 2.6, "membrane": 0.6, "heat": 0.6, "normal_depth": 1.15}],
+	&"bone_abbot": ["res://art/models/boss_bone_abbot.glb", {"rim_col": Color(1.0, 0.7, 0.32), "rim_amount": 0.08, "emit_energy": 2.0, "emit_pulse": 0.22, "pulse_rate": 3.2, "dust": 0.35, "dust_col": Color(0.48, 0.44, 0.38), "normal_depth": 1.25}],
+	&"ascended_warden": ["res://art/models/boss_ascended_warden.glb", {"rim_col": Color(1.0, 0.88, 0.55), "rim_amount": 0.09, "emit_pulse": 0.12, "pulse_rate": 1.2, "wet": 0.0, "normal_depth": 1.2}],
+	&"hierarch": ["res://art/models/boss_hierarch.glb", {"rim_col": Color(0.9, 0.85, 0.5), "rim_amount": 0.08, "emit_pulse": 0.18, "pulse_rate": 1.0, "dust": 0.25, "dust_col": Color(0.42, 0.4, 0.36), "normal_depth": 1.3}],
+	&"anchoress": ["res://art/models/boss_anchoress.glb", {"rim_col": Color(0.8, 0.6, 0.4), "rim_amount": 0.065, "emit_pulse": 0.2, "pulse_rate": 1.6, "wet": 0.0, "normal_depth": 1.2}],
+	&"mite": ["res://art/models/grunt_mite.glb", {"rim_col": Color(0.3, 1.0, 0.88), "rim_amount": 0.3, "emit_pulse": 0.48, "pulse_rate": 2.6, "membrane": 0.6, "heat": 0.6, "normal_depth": 1.15}],
 }
 
 static var _scenes := {}
@@ -51,8 +51,7 @@ static var _mats := {}
 
 ## Kinds whose model is BUILT (tools/blender/grunt_build.py): clean geometry with named surfaces, dressed in the tiling
 ## materials of boss_look.gd like the wanderer, not one baked atlas.
-const BUILT := {&"wretch": true, &"husk": true, &"chanter": true, &"tollman": true, &"pilgrim": true, &"gaunt": true, &"quiller": true,
-	&"ossuant": true, &"bulwark": true, &"spitter": true, &"cinder_caster": true, &"crawler": true, &"mite": true, &"burrower": true, &"leaper": true}
+const BUILT := {}       # every kind is baked now (tools/blender/bake_kind.py): its own four maps, as the old atlases were
 
 
 static func has(kind: StringName) -> bool:

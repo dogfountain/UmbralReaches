@@ -55,10 +55,10 @@ void fragment() {
 	AO = orm.r;
 	AO_LIGHT_AFFECT = 0.6;
 	ROUGHNESS = cl_wear_rough(cl_rough(orm.g, opos), wear);
-	SPECULAR = cl_wear_spec(0.5, wear);
+	SPECULAR = cl_wear_spec(mix(0.5, 0.18, smoothstep(0.65, 0.95, orm.g)), wear);   // matte cloth does not shine
 	METALLIC = orm.b;
 	// baked atlas carries normals: skip procedural cl_bump (was a multi-noise hit on every grunt)
-	ALBEDO = mix(ALBEDO, cl_skin_albedo(ALBEDO, opos, 0.7), 0.55 * (1.0 - orm.b));
+	// (the bake paints skin, cloth and metal apart: no shared skin tone laid over everything any more)
 	NORMAL_MAP = texture(normal_tex, UV).rgb;
 	NORMAL_MAP_DEPTH = normal_depth;
 	ROUGHNESS = cl_skin_rough(ROUGHNESS, opos);
