@@ -79,6 +79,17 @@ const SCAPES := {
 	"salt": {"night": 0.55, "high_wind": 0.7, "crickets": 0.05},
 	"downs": {"night": 0.85, "meadow": 0.6, "high_wind": 0.3, "crickets": 0.2},
 	"well": {"night": 0.5, "chasm": 0.7, "high_wind": 0.2},
+	# --- the Far Reaches (docs/living_realm.md): each country heard before it is seen ---
+	"fell": {"night": 0.6, "high_wind": 0.85, "chasm": 0.1},
+	"lanternwood": {"night": 0.7, "leaves": 0.9, "fen": 0.15, "crickets": 0.15},
+	"barrowheath": {"night": 0.85, "high_wind": 0.5, "meadow": 0.5, "crickets": 0.15},
+	"reedmere": {"night": 0.7, "fen": 1.0, "crickets": 0.3, "meadow": 0.1},
+	"fields": {"night": 0.9, "meadow": 0.8, "crickets": 0.6, "murmur": 0.15},
+	"arches": {"night": 0.7, "high_wind": 0.45, "meadow": 0.35, "crickets": 0.25},
+	"southwood": {"night": 0.65, "leaves": 1.0, "crickets": 0.2},
+	"bellfall": {"night": 0.55, "high_wind": 0.7, "chasm": 0.25},
+	"nave": {"night": 0.6, "fen": 0.8, "chasm": 0.12},
+	"cairns": {"night": 0.7, "high_wind": 0.9, "meadow": 0.25},
 }
 
 ## RealmLayout region id -> soundscape
@@ -88,7 +99,10 @@ const REGION_SCAPE := {"hearth": "village", "chapel": "village", "road": "heath"
 	"quarry": "quarry", "holds": "holds", "foundry": "foundry", "moor": "moor", "orchard": "orchard", "necropolis": "necropolis", "mere": "mere",
 	# the Marches
 	"weirford": "village", "sorrow": "sorrow", "plinth": "plinth", "siege": "siege", "stillwater": "stillwater",
-	"anchorholds": "anchorholds", "saltmarket": "heath", "saltpans": "salt", "downs": "downs", "oak": "wood", "well": "well"}
+	"anchorholds": "anchorholds", "saltmarket": "heath", "saltpans": "salt", "downs": "downs", "oak": "wood", "well": "well",
+	# --- the Far Reaches ---
+	"greyfell": "fell", "lanternwood": "lanternwood", "kingsbarrows": "barrowheath", "reedmere": "reedmere", "fallow": "fields",
+	"arches": "arches", "southwood": "southwood", "bellfall": "bellfall", "lastlight": "village", "nave": "nave", "cairns": "cairns"}
 
 ## soundscape -> [interval min, max (s), distance min, max (m), palette [[sound, weight, height]]]
 ## sound "life:x" plays LifeSynth's x; height: metres above the ground, or "lava" (down on the lava)
@@ -118,6 +132,19 @@ const SPOTS := {
 	"salt": [9.0, 20.0, 18.0, 50.0, [["howl", 0.3, 20.0], ["pebbles", 0.3, 0.0], ["creak", 0.3, 3.0], ["whisper", 0.1, 1.0]]],
 	"downs": [8.0, 18.0, 18.0, 50.0, [["peewit", 0.3, 3.0], ["nightjar", 0.25, 1.0], ["life:owl2", 0.2, 5.0], ["vixen", 0.15, 0.3], ["howl", 0.1, 20.0]]],
 	"well": [6.0, 13.0, 10.0, 30.0, [["drip", 0.4, 2.0], ["pebbles", 0.3, 0.0], ["howl", 0.15, 15.0], ["whisper", 0.1, 1.5]]],
+	# --- the Far Reaches: the keep's ravens and the fell's wind, the wood's cold chimes, the barrows' whispers, the
+	# meres' bitterns, the fields' owls and vixens, the aqueduct's dripping stone, the bell that still hums, the
+	# Nave's water dropping from the vault, the Cairns' stones settling in the wind ---
+	"fell": [8.0, 18.0, 16.0, 46.0, [["life:crow", 0.3, 8.0], ["howl", 0.2, 25.0], ["pebbles", 0.3, 0.0], ["creak", 0.12, 3.0], ["bell_far", 0.08, 12.0]]],
+	"lanternwood": [6.0, 14.0, 12.0, 38.0, [["twig", 0.25, 0.2], ["life:owl", 0.25, 6.0], ["creak", 0.2, 3.0], ["chime", 0.12, 2.0], ["whisper", 0.06, 1.5], ["life:owl2", 0.12, 6.0]]],
+	"barrowheath": [8.0, 18.0, 18.0, 48.0, [["nightjar", 0.25, 1.0], ["peewit", 0.2, 3.0], ["howl", 0.15, 20.0], ["life:crow", 0.2, 5.0], ["whisper", 0.1, 1.0], ["bell_far", 0.08, 8.0]]],
+	"reedmere": [6.0, 13.0, 12.0, 40.0, [["bittern", 0.35, 0.3], ["life:plop", 0.3, 0.0], ["life:heron", 0.2, 1.0], ["peewit", 0.08, 3.0], ["creak", 0.07, 2.0]]],
+	"fields": [8.0, 17.0, 16.0, 46.0, [["life:owl2", 0.3, 5.0], ["vixen", 0.25, 0.3], ["nightjar", 0.2, 1.0], ["creak", 0.15, 3.0], ["life:crow", 0.1, 6.0]]],
+	"arches": [7.0, 16.0, 14.0, 42.0, [["life:owl", 0.25, 8.0], ["pebbles", 0.25, 0.0], ["drip", 0.15, 6.0], ["life:crow", 0.15, 10.0], ["howl", 0.1, 20.0], ["creak", 0.1, 2.0]]],
+	"southwood": [6.0, 14.0, 12.0, 40.0, [["twig", 0.3, 0.2], ["creak", 0.25, 3.0], ["life:owl", 0.2, 6.0], ["howl", 0.1, 20.0], ["vixen", 0.1, 0.3], ["whisper", 0.05, 1.5]]],
+	"bellfall": [8.0, 18.0, 14.0, 44.0, [["bell_far", 0.3, 3.0], ["pebbles", 0.3, 0.0], ["howl", 0.2, 25.0], ["life:crow", 0.2, 8.0]]],
+	"nave": [6.0, 13.0, 8.0, 32.0, [["drip", 0.35, 4.0], ["life:plop", 0.2, 0.0], ["bittern", 0.15, 0.3], ["bell_far", 0.12, 10.0], ["whisper", 0.08, 1.5], ["life:owl2", 0.1, 6.0]]],
+	"cairns": [8.0, 18.0, 18.0, 50.0, [["howl", 0.3, 20.0], ["peewit", 0.25, 3.0], ["pebbles", 0.25, 0.0], ["life:crow", 0.15, 5.0], ["whisper", 0.05, 1.0]]],
 }
 
 ## reverb zones: AudioEffectReverb settings
@@ -136,7 +163,9 @@ const PLACES := {
 const SCAPE_PLACE := {"village": "open", "heath": "open", "wood": "wood", "fen": "open", "crossing": "cliff", "summit": "cliff",
 	"quarry": "cliff", "holds": "wood", "foundry": "cliff", "moor": "open", "orchard": "wood", "necropolis": "open", "mere": "open",
 	"sorrow": "wood", "plinth": "open", "siege": "open", "stillwater": "open", "anchorholds": "cliff", "salt": "open", "downs": "open",
-	"well": "well"}
+	"well": "well",
+	"fell": "cliff", "lanternwood": "wood", "barrowheath": "open", "reedmere": "open", "fields": "open", "arches": "cliff",
+	"southwood": "wood", "bellfall": "cliff", "nave": "cliff", "cairns": "open"}
 const ROOM_KEYS := ["room_size", "damping", "spread", "predelay_msec", "hipass"]
 ## outdoor layers indoors: [low-pass cutoff Hz, AmbOut volume dB]
 const MUFFLE := {"": [20000.0, 0.0], "tavern": [700.0, -4.0], "ossuary": [320.0, -16.0], "rift": [20000.0, 0.0]}
