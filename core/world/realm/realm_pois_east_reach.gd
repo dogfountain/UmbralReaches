@@ -6,6 +6,8 @@ extends RefCounted
 ##              crater at RealmReaches.CRATER_C, a third sunk, its mouth toward the south lip where bell_track comes in;
 ##              the lip's shards thrown across the floor, fallen rock heaped round it, thin smoke still rising from the
 ##              impact's cracks, a chest in its mouth, a glide perch on its back. Far mesh from 140 m.
+##   nave       the Drowned Nave (tools/blender/reach_east_nave.py, the East agent's model): the unfinished cathedral in
+##              its flooded basin at NAVE_C, west front to nave_track; far mesh from 160 m.
 ##   `-- --no-east-reach` turns it off.
 
 const Kit37 := preload("res://core/world/realm/west_marches_kit.gd")
@@ -14,10 +16,12 @@ const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const P := preload("res://core/world/realm/realm_pois.gd")
 const SMOKE := preload("res://core/world/realm/vistas/beacon_smoke.gdshader")
+const SecretKit := preload("res://core/life/secrets/kit.gd")
 
 const BELL := "vista_bell.glb"
 const SCALE := 1.55                          ## the model is 12.6 m across the mouth: the eighth bell is ~20
 const BELL_FAR := "res://art/models/vista_bell_far.glb"
+const NAVE := "res://art/models/reach_e_nave.glb"
 const NEAR_END := 140.0
 const LOOT := {"bellfall_mouth": ["iron", {"grave_ash": 18, "grave_iron": 2, "relic_fragment": 1}]}
 
@@ -40,6 +44,11 @@ static func reserve(root: Node) -> void:
 		var q := c + Vector2(cos(TAU * k / 9.0), sin(TAU * k / 9.0)) * (0.0 if k == 0 else 5.0)
 		_bell_y = minf(_bell_y, RealmLayout.ground(space, q.x, q.y))
 	Flora.tree_clear.append([c, 34.0])                # the crater burned: nothing grows in it yet
+	var nc := RealmReaches.NAVE_C
+	Flora.tree_clear.append([nc, 30.0])
+	for k in 5:                                          # nave_track's last bend: the west front seen down the water
+		Flora.tree_clear.append([Vector2(298.0, 124.0).lerp(nc, float(k) / 5.0), 9.0 + k])
+	WorldLanes.register_site("poi_nave", Rect2(nc - Vector2(10.0, 30.0), Vector2(20.0, 60.0)), RealmLayout.ground(space, nc.x, nc.y), RealmLayout.ground(space, nc.x, nc.y))
 	WorldLanes.register_site("poi_bellfall", Rect2(c - Vector2(8.0, 8.0), Vector2(16.0, 16.0)), _bell_y, _bell_y)
 
 
@@ -59,6 +68,8 @@ static func build(holder: Node3D) -> void:
 	holder.add_child(host)
 	_bell(host, space)
 	built.append("bellfall")
+	if _nave(holder, space):
+		built.append("nave")
 	print("REALM_POI east reach built %s" % [built])
 
 
@@ -148,3 +159,71 @@ static func _bell(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var mouth := root.global_transform * Vector3(0.0, 0.0, 2.6)
 	ch.global_transform = Transform3D(Basis(Vector3.UP, PI), Vector3(mouth.x, RealmLayout.ground(space, mouth.x, mouth.z) + 0.02, mouth.z))
 	P._perch(host, root.global_transform * Vector3(0.0, 8.2, -2.0), Vector3(0.0, 0.0, 1.0), 8.0)
+
+
+static func _nave(holder: Node3D, space: PhysicsDirectSpaceState3D) -> bool:
+	var ps := load(NAVE) as PackedScene
+	if ps == null:
+		return false
+	var nc := RealmReaches.NAVE_C
+	var host := Node3D.new()
+	host.name = "Poi_nave"
+	host.set_meta("site", "poi_nave")
+	host.add_to_group("world_poi")
+	host.set_meta("poi", "nave")
+	host.set_meta("title", "The Drowned Nave")
+	host.set_meta("line", "the water came in before the floor did")
+	host.set_meta("region", "nave")
+	holder.add_child(host)
+	var root := ps.instantiate() as Node3D
+	root.name = "DrownedNave"
+	host.add_child(root)
+	root.global_transform = Transform3D(Basis.IDENTITY, Vector3(nc.x, RealmLayout.ground(space, nc.x, nc.y), nc.y))
+	var far: Mesh = null
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		var nm := String(mi.name)
+		if nm.begins_with("NaveCol"):
+			mi.create_trimesh_collision()
+			mi.visible = false
+		elif nm.begins_with("NaveFar"):
+			far = mi.mesh
+			mi.queue_free()
+	if far != null:
+		FarDetail.register(root, far, Transform3D.IDENTITY, 160.0)
+	_nave_shafts(host, root)
+	return true
+
+
+## Moonlight down through the vault where it stands open (the bays past the third): soft shafts along the moon's own
+## direction (the glades' shaft material), falling on the water between the piers.
+static func _nave_shafts(host: Node3D, root: Node3D) -> void:
+	var moon := Vector3(0.35, -0.85, 0.4).normalized()
+	for l in host.get_tree().root.find_children("*", "DirectionalLight3D", true, false):
+		if not l.has_meta(&"no_shadow"):
+			moon = -(l as DirectionalLight3D).global_basis.z
+			break
+	var up := -moon
+	var mesh := QuadMesh.new()
+	mesh.size = Vector2(5.0, 30.0)
+	mesh.center_offset = Vector3(0, 15.0, 0)
+	var mat := SecretKit.shader_mat("shaft")
+	var node := Node3D.new()
+	node.name = "VaultShafts"
+	host.add_child(node)
+	for zl: float in [-6.0, 4.0, 13.0, 21.0]:
+		var at := root.global_transform * Vector3(0.0, -0.4, zl)
+		for k in 2:
+			var yaw := float(k) * PI * 0.5 + 0.3
+			var side := Vector3(cos(yaw), 0, sin(yaw)).cross(up).normalized()
+			var fwd := side.cross(up).normalized()
+			var mi := MeshInstance3D.new()
+			mi.mesh = mesh
+			mi.material_override = mat
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mi.visibility_range_end = 110.0
+			mi.visibility_range_end_margin = 14.0
+			mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			node.add_child(mi)
+			mi.global_transform = Transform3D(Basis(side, up, fwd), at)
+			mi.set_instance_shader_parameter(&"strength", 1.0)
