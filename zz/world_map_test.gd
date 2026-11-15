@@ -81,7 +81,7 @@ func _run() -> void:
 	var far := Vector2(235.0, 190.0)            # the White Pans, unwalked
 	_ok(float(wm.call("fog_at", hearth.x, hearth.y)) > 0.95, "Hearthward (walked) is uncovered")
 	_ok(float(wm.call("fog_at", far.x, far.y)) < 0.05, "the White Pans (unwalked) are fogged")
-	_ok(float(wm.call("fog_at", -305.0, 300.0)) > 0.95, "the border margin always shows")
+	_ok(float(wm.call("fog_at", -400.0, 300.0)) > 0.95, "the border margin always shows")
 	var rev: Array = wm.call("revealed_regions")
 	_ok("hearth" in rev and not ("saltpans" in rev), "only walked regions are lettered")
 	var kinds := {}

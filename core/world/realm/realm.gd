@@ -106,7 +106,7 @@ const _STATIC_CACHES := {
 	"res://core/world/realm/site_props.gd": ["_meshes", "_cloth"],
 	"res://core/world/realm/lamps/lamp.gd": ["_meshes", "_mats"],
 	# --- the vistas ---
-	"res://core/world/realm/realm_vistas.gd": ["_mats"],
+	"res://core/world/realm/vistas/vista_places.gd": ["_mats"],
 }
 
 
