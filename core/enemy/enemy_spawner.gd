@@ -195,6 +195,7 @@ const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
 const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
 const PATROL_PACE := 1.5           ## m/s a roaming camp walks its round at (every member alike: in step)
+const HIDE_R := 170.0              ## a sleeping pawn further than this is hidden (the bodies' draw range ends ~130 m)
 var _camps: Array = []
 var _realm := false
 var _slots: Array[Dictionary] = []
@@ -455,7 +456,14 @@ func _process(delta: float) -> void:
 		var d2 := player.global_position.distance_squared_to(enemy.global_position)
 		var reach := enemy.sleep_range
 		if d2 > reach * reach:
-			enemy.sleep()
+			# far past its body's draw range it is not shown at all, so its skin stops at its first check each frame
+			# (the doubled Realm keeps a few hundred camp pawns asleep at any spot). Visibility flips only when it
+			# changes (sleep() shows it): asleep, hidden and far, it is left alone.
+			var far := d2 > HIDE_R * HIDE_R
+			if enemy.process_mode != Node.PROCESS_MODE_DISABLED or (not far and not enemy.visible):
+				enemy.sleep()
+			if far and enemy.visible:
+				enemy.visible = false
 		else:
 			enemy.wake()
 
