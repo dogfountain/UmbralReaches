@@ -853,18 +853,32 @@ func near_count(pos: Vector3, r := CAP_R) -> int:
 
 ## A fair place for something of ours to stand: not the haven or the tavern, not in a building,
 ## not in or near light, not in water or lava, not in the crypt or a boss's ring, in bounds.
-func spot_ok(p: Vector3, ignore_light := false) -> bool:
-	if _in_haven(p):
+## Ground a foe may appear on, for every spawner: out of the havens, in bounds, never on a way (nothing at all within
+## HUB_ROAD_R of Hearthward's ways), never in water, lava or the Ossuary. on_way_ok: a procession may walk a way.
+const HUB_ROAD_R := 100.0
+
+
+static func fair_ground(p: Vector3, on_way_ok := false) -> bool:
+	var q := Vector2(p.x, p.z)
+	if q.distance_to(HAVEN_C) < HAVEN_R or Rect2(RealmLayout.TAVERN).grow(6.0).has_point(q) or q.distance_to(HOLDS_C) < HOLDS_R:
 		return false
-	if not RealmLayout.BOUNDS.grow(-4.0).has_point(Vector2(p.x, p.z)):
+	if not RealmLayout.BOUNDS.grow(-4.0).has_point(q):
+		return false
+	var pd := RealmLayout.path_dist(q)
+	if (q.distance_to(HAVEN_C) < HUB_ROAD_R and (pd < 6.0 or on_way_ok)) or (pd < 1.0 and not on_way_ok):
+		return false
+	if p.y < RealmLayout.LAVA_Y + 3.0 or RealmLayout.in_ossuary(p):
+		return false
+	var wl := RealmLayout.water_level_at(p.x, p.z)
+	return not RealmLand.in_water(p.x, p.z) and (is_nan(wl) or p.y > wl + 0.15)
+
+
+func spot_ok(p: Vector3, ignore_light := false) -> bool:
+	if not fair_ground(p):
 		return false
 	if not ignore_light and LightGrid.repel(p, 4.0) != Vector3.ZERO:
 		return false
 	if not WorldLanes.site_at(Vector2(p.x, p.z), 0.8).is_empty():
-		return false
-	if p.y < RealmLayout.LAVA_Y + 3.0 or RealmLayout.in_ossuary(p):
-		return false
-	if RealmLand.in_water(p.x, p.z) and p.y < -0.4:
 		return false
 	for a in get_tree().get_nodes_in_group(&"boss_arena"):
 		var r := (a as BossArena).radius + 4.0

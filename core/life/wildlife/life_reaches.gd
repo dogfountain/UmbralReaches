@@ -53,6 +53,17 @@ const ROSTER := {
 	"well": {"crows": 1, "hares": 1},
 }
 
+## Hand-placed (the Far Reaches' first life pass, kept): bats round the high and hollow places at the height of what
+## stands there [xz, height over the ground, radius, count], and fireflies on the meres' reedy edges, the hamlet's
+## hedges and orchard, the lit wood, the nave's shore, the Southwood. The rosters' own bats and fireflies fill in
+## round these (never within 20-30 m of one).
+const BATS := [[Vector2(-318, -108), 18.0, 10.0, 7], [Vector2(-345, 152), 6.0, 7.0, 5], [Vector2(0, 342), 22.0, 14.0, 8],
+	[Vector2(-60, 352), 14.0, 7.0, 4], [Vector2(318, -100), 8.0, 13.0, 6], [Vector2(318, 164), 16.0, 14.0, 8],
+	[Vector2(327, 324), 16.0, 6.0, 5], [Vector2(226, 362), 8.0, 7.0, 4]]
+const FIREFLIES := [Vector2(-300, 330), Vector2(-262, 360), Vector2(-344, 312), Vector2(-178, 286), Vector2(-136, 318),
+	Vector2(-320, 4), Vector2(-344, -20), Vector2(-300, 40), Vector2(296, 150), Vector2(342, 190), Vector2(140, 320),
+	Vector2(196, 344), Vector2(306, 40), Vector2(-60, 300), Vector2(40, 300)]
+
 static var _camps: Array[Vector2] = []
 static var _fires: Array[Vector2] = []
 static var report := {}                 ## region -> {kind: n placed} (tests, census)
@@ -76,6 +87,7 @@ static func place(dir: Node3D, root: Node, space: PhysicsDirectSpaceState3D, add
 			(by_region[rid0] as Array).append(t)
 	var pools := LifePlace.pools(true)
 	new_pools = pools
+	_hand_placed(dir)
 
 	for rid: String in ROSTER:
 		var reg := _region(rid)
@@ -106,6 +118,47 @@ static func place(dir: Node3D, root: Node, space: PhysicsDirectSpaceState3D, add
 				(report[rid] as Dictionary)[k] = made
 	print("LIFE reaches in %d ms: %s" % [Time.get_ticks_msec() - t0, report])
 
+
+
+static func _hand_placed(dir: Node3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = SEED + 7
+	var flies: Array = dir.get("fireflies")
+	for i in FIREFLIES.size():
+		var s: Vector2 = FIREFLIES[i]
+		if not _clear(s, 16.0, 5.0):
+			continue
+		var n := 12 + (i % 3) * 4
+		var mmi := LifeKit.group("firefly", n)
+		mmi.name = "FirefliesR"
+		for k in n:
+			mmi.multimesh.set_instance_transform(k, Transform3D(Basis.IDENTITY, Vector3(rng.randf_range(-2.5, 2.5), 0, rng.randf_range(-2.5, 2.5))))
+			mmi.multimesh.set_instance_custom_data(k, Color(rng.randf_range(2.0, 4.5), rng.randf_range(0.12, 0.3), rng.randf_range(0.5, 1.7), rng.randf_range(0.0, TAU)))
+		mmi.multimesh.custom_aabb = AABB(Vector3(-7, -0.5, -7), Vector3(14, 4, 14))
+		mmi.visibility_range_end = 55.0
+		mmi.visibility_range_end_margin = 6.0
+		dir.add_child(mmi)
+		mmi.global_position = Vector3(s.x, RL.height_at(s.x, s.y), s.y)
+		flies.append(mmi)
+		_note(dir, "firefly", n)
+	var swarms: Array = dir.get("bats")
+	for e: Array in BATS:
+		var at: Vector2 = e[0]
+		var r: float = e[2]
+		var n2: int = e[3]
+		var mmi2 := LifeKit.group("bat", n2)
+		mmi2.name = "BatsR"
+		for k in n2:
+			mmi2.multimesh.set_instance_transform(k, Transform3D(Basis.IDENTITY, Vector3(rng.randf_range(-2, 2), rng.randf_range(-1.5, 1.5), rng.randf_range(-2, 2))))
+			var sp := rng.randf_range(0.45, 0.9) * (1.0 if rng.randf() < 0.6 else -1.0)
+			mmi2.multimesh.set_instance_custom_data(k, Color(r * rng.randf_range(0.45, 1.0), sp, rng.randf_range(1.0, 3.0), rng.randf_range(0.0, TAU)))
+		mmi2.multimesh.custom_aabb = AABB(Vector3(-r * 1.5 - 3, -6, -r * 1.5 - 3), Vector3(r * 3 + 6, 12, r * 3 + 6))
+		mmi2.visibility_range_end = 100.0
+		mmi2.visibility_range_end_margin = 10.0
+		dir.add_child(mmi2)
+		mmi2.global_position = Vector3(at.x, RL.height_at(at.x, at.y) + float(e[1]), at.y)
+		swarms.append(mmi2)
+		_note(dir, "bat", n2)
 
 
 # --- keep-offs -------------------------------------------------------------------------------------
@@ -704,6 +757,10 @@ static func _bats(dir: Node3D, space: PhysicsDirectSpaceState3D, reg: Dictionary
 		var spaced := true
 		for o in placed:
 			if o.distance_to(c) < 30.0:
+				spaced = false
+		for sw: Node in swarms:
+			var sp3 := (sw as Node3D).global_position
+			if Vector2(sp3.x, sp3.z).distance_to(c) < 30.0:
 				spaced = false
 		if not spaced:
 			continue
