@@ -4,8 +4,8 @@ extends RefCounted
 ##                 Grandmother Oak's grove), soft shafts along the moon's own direction and a slow drift of motes,
 ##                 found at build time from the flora's canopy (a clearing ringed by trees), at most a few per wood.
 ##                 Additive cards, no lights; they fade with distance. The Thornwood's shafts stay the secret's reward.
-##   lookouts      three cairns on the downs' south scarp and the Kings' ridge, each with a stone seat and a glide
-##                 perch, set where the Long Arches, the Reedmere and the far woods all show at once.
+##   lookouts      three cairns on the downs' south scarp and the Kings' ridge, each with a stone seat (and a glide
+##                 perch where the ground falls away), set where the Long Arches, the Reedmere and the far woods all show at once.
 ## Built by realm_pois.gd (REACH_POIS): reserve() before the stamp and the flora, build() after the flora.
 
 const Flora := preload("res://core/world/realm/realm_flora.gd")
@@ -159,8 +159,9 @@ static func _lookouts(root: Node, host: Node3D) -> void:
 		pm.add("lore_cairn_stack.glb", Transform3D(b.scaled(Vector3.ONE * 1.6), Vector3(q.x, y - 0.1, q.y)))
 		var seat := q - f * 2.6 + Vector2(f.y, -f.x) * 1.4
 		pm.add("bench.glb", Transform3D(b, Vector3(seat.x, Kit.low(sp, seat, 0.8) - 0.05, seat.y)))
-		var at := Vector3(q.x, y + 2.4, q.y)
-		P._perch(host, at + Vector3(f.x, 0.0, f.y) * 1.2, Vector3(f.x, 0.0, f.y), maxf(6.0, y - RealmLayout.ground(sp, q.x + f.x * 30.0, q.y + f.y * 30.0)))
+		var drop := y - RealmLayout.ground(sp, q.x + f.x * 8.0, q.y + f.y * 8.0)
+		if drop > 5.5:                                  # a perch only where the ground really falls away below it
+			P._perch(host, Vector3(q.x + f.x * 1.2, y + 0.3, q.y + f.y * 1.2), Vector3(f.x, 0.0, f.y), drop)
 		lookouts_at.append(Vector3(q.x, y, q.y))
 	for mi in pm.commit(host, "Lookouts", true, true):
 		mi.visibility_range_end = 160.0
