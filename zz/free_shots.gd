@@ -1,6 +1,9 @@
 extends Node
 ## Stills from a free camera in the real night (windowed; in memory only, saves held).
 ##   godot --path . res://zz/free_shots.tscn -- --out=<dir> [--tag=after] --view=name:cx:cy:cz:tx:ty:tz ...
+##   --stand=name:tx:tz:ty:dist:up:yawdeg   a stand-off view: look at the world point (tx, ground + ty) from dist m back
+##       along bearing yawdeg (0 = camera south of the point, 90 = east of it) and up m higher; the eye is pushed
+##       outward and up until it overlaps no collider, so a landmark shot never lands inside geometry
 ## cx,cz / tx,tz are world xz; cy / ty are metres over the ground there (eye and look-at). Prints each
 ## view's ground heights and the terrain under the look-at point.
 const Footing := preload("res://core/world/footing.gd")
@@ -38,6 +41,9 @@ func _ready() -> void:
 				bell_kind = g[2]
 			if g.size() > 3:
 				bell.y = float(g[3])
+		elif a.begins_with("--stand="):
+			var g2 := a.trim_prefix("--stand=").split(":")
+			views.append([g2[0], Vector3(float(g2[1]), float(g2[4]), float(g2[2])), Vector3(float(g2[1]), float(g2[3]), float(g2[2])), float(g2[5]), float(g2[6])])
 		elif a.begins_with("--view="):
 			var f := a.trim_prefix("--view=").split(":")
 			views.append([f[0], Vector3(float(f[1]), float(f[2]), float(f[3])), Vector3(float(f[4]), float(f[5]), float(f[6]))])
@@ -105,6 +111,28 @@ func _hold() -> void:
 	var b := v[2] as Vector3
 	var eye := Vector3(a.x, _ground(a.x, a.z) + a.y, a.z)
 	var tgt := Vector3(b.x, _ground(b.x, b.z) + b.y, b.z)
+	if v.size() > 3:
+		# stand-off: a = (tx, dist, tz), b = (tx, ty, tz), v[3] = up, v[4] = bearing in degrees
+		var yaw := deg_to_rad(float(v[4]))
+		var dist := a.y
+		eye = tgt + Vector3(sin(yaw) * dist, float(v[3]), cos(yaw) * dist)
+		# push the eye out of any collider (a wall, trunk, roof or the ground it landed in): outward and up until a
+		# 0.7 m sphere at the eye overlaps nothing
+		var sq := PhysicsShapeQueryParameters3D.new()
+		var sph := SphereShape3D.new()
+		sph.radius = 0.7
+		sq.shape = sph
+		sq.collision_mask = 1
+		var out_dir := Vector3(sin(yaw), 0.0, cos(yaw))
+		var space := (main as Node3D).get_world_3d().direct_space_state
+		for _k in 40:
+			sq.transform = Transform3D(Basis.IDENTITY, eye)
+			if space.intersect_shape(sq, 1).is_empty():
+				break
+			eye += out_dir * 3.0 + Vector3.UP * 1.5
+		var gy := _ground(eye.x, eye.z)
+		if eye.y < gy + 1.2:
+			eye.y = gy + 1.2
 	p.global_position = Vector3(a.x, eye.y - 3.0, a.z) if i < 0 else p.global_position
 	cam.global_position = eye
 	cam.look_at(tgt, Vector3.UP)
