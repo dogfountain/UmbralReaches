@@ -25,6 +25,7 @@ const OldUnder := preload("res://core/world/realm/flora_old_undergrowth.gd")
 const Emit := preload("res://core/world/realm/flora_emit.gd")
 const Cache := preload("res://core/world/realm/flora_cache.gd")
 const Pilot := preload("res://core/world/realm/scale_pilot.gd")
+const Density := preload("res://core/world/realm/flora_layers.gd")    ## the layered dressing and the wayside's plan (Luke, 15 Nov: density)
 
 const CHUNK := Emit.CHUNK              ## undergrowth chunks
 const TREE_CHUNK := Emit.TREE_CHUNK    ## tree chunks
@@ -108,6 +109,7 @@ static func build(root: Node) -> void:
 		old.free()
 	await root.get_tree().physics_frame
 	var space := (root as Node3D).get_world_3d().direct_space_state
+	Density.plan(root, tree_clear)                 # the wayside's places register their ground and clearings before the fingerprint
 	_noises()
 	var area := RealmLayout.BOUNDS.grow(MARGIN)
 	_x0 = RealmLayout.OLD_BOUNDS.position.x - MARGIN - 4.0 * ceilf((RealmLayout.OLD_BOUNDS.position.x - area.position.x - MARGIN) / 4.0)   # the old Realm's lattice phase (cover, biome cells)
@@ -178,6 +180,7 @@ static func _scatter(root: Node, space: PhysicsDirectSpaceState3D) -> void:
 	_place_trees(space, rng, items)
 	_lap("trees")
 	_place_under(rng, items)
+	Density.decorate(items, load(Cache.SELF))      # feet, verges, thickets, deadfall, drifts, glades, the wayside's creep
 	_lap("under")
 	var srng := RandomNumberGenerator.new()
 	srng.seed = 20261105
@@ -643,9 +646,9 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 				continue
 			var y := _gy[k]
 			if sp == "willow" or sp == "sapling" or sp == "snag":
-				if y < WATER_Y + 0.15:
+				if y < WATER_Y + 0.15 and Tables.wet(at.x, at.y):
 					continue
-			elif y < WATER_Y + 0.35:
+			elif y < WATER_Y + 0.35 and Tables.wet(at.x, at.y):
 				continue
 			var id: String = _variant(ids, at.x, at.y, TREE_CHUNK, 2, rng)
 			var dead := 0.55
@@ -674,7 +677,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 			for a in 4:
 				var o := Vector2(cos(a * PI * 0.5 + 0.4), sin(a * PI * 0.5 + 0.4)) * r * 1.2
 				gy = minf(gy, _ray_y(space, at.x + o.x, at.y + o.y, y))
-			if gy < WATER_Y + 0.05 or RealmLayout.path_dist(at) < float(st[2]) + float(d.r):
+			if (gy < WATER_Y + 0.05 and Tables.wet(at.x, at.y)) or RealmLayout.path_dist(at) < float(st[2]) + float(d.r):
 				continue
 			var s := rng.randf_range(0.85, 1.15)
 			var yaw := rng.randf() * TAU
@@ -731,7 +734,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 					break
 			if _hangs(space, id, basis, at, gy) > 0.6:
 				continue                                  # even at its own size its roots stand out over a bank: no tree here
-			pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02)      # after every draw and test: the layout is the one it was
+			pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02 if Tables.wet(at.x, at.y) else -INF)      # after every draw and test: the layout is the one it was
 			_add(items, id, Transform3D(basis, pos), tint)
 			if bool(d.tall):
 				trees.append([pos, id, float(d.r) * s, float(d.h) * hs])
@@ -830,7 +833,7 @@ static func _place_rows(space: PhysicsDirectSpaceState3D, rng: RandomNumberGener
 
 static func _plant_tree(space: PhysicsDirectSpaceState3D, rng: RandomNumberGenerator, items: Dictionary, grid: Dictionary, cover: Dictionary, sp: String, id: String, at: Vector2, yaw: float) -> bool:
 	var k := _idx(at.x, at.y)
-	if _gn[k] < 0.72 or _gy[k] < WATER_Y + 0.35 or _ok[k] == 0:
+	if _gn[k] < 0.72 or (_gy[k] < WATER_Y + 0.35 and Tables.wet(at.x, at.y)) or _ok[k] == 0:
 		rejects[sp + " ground"] = int(rejects.get(sp + " ground", 0)) + 1
 		return false
 	var d: Dictionary = TreeGen.kind(id)
@@ -848,7 +851,7 @@ static func _plant_tree(space: PhysicsDirectSpaceState3D, rng: RandomNumberGener
 	for a in 4:
 		var o := Vector2(cos(a * PI * 0.5 + 0.4), sin(a * PI * 0.5 + 0.4)) * r * 1.2
 		gy = minf(gy, _ray_y(space, at.x + o.x, at.y + o.y, y))
-	if gy < WATER_Y + 0.05 or RealmLayout.path_dist(at) < float(st[2]) + float(d.r):
+	if (gy < WATER_Y + 0.05 and Tables.wet(at.x, at.y)) or RealmLayout.path_dist(at) < float(st[2]) + float(d.r):
 		return false
 	var s := rng.randf_range(0.88, 1.12)
 	var basis := Basis(Vector3.UP, yaw).scaled(Vector3(s, s * rng.randf_range(0.94, 1.06), s))
@@ -864,7 +867,7 @@ static func _plant_tree(space: PhysicsDirectSpaceState3D, rng: RandomNumberGener
 	if not grid.has(key):
 		grid[key] = []
 	(grid[key] as Array).append([at, spacing])
-	pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02)
+	pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02 if Tables.wet(at.x, at.y) else -INF)
 	_add(items, id, Transform3D(basis, pos), _tint(rng, 0.1))
 	if bool(d.tall):
 		trees.append([pos, id, float(d.r) * s, float(d.h) * s])
@@ -1312,7 +1315,7 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 				if gy > WATER_Y - 0.15 or not Land.in_water(px, pz):
 					continue
 				gy = WATER_Y
-			elif gy < WATER_Y + 0.12 and not wet:
+			elif gy < WATER_Y + 0.12 and not wet and Tables.wet(px, pz):      # (a dry hollow under the fen's level grows as the ground round it)
 				continue
 			if wet and gy < WATER_Y - 0.4:
 				continue
@@ -1633,7 +1636,7 @@ static func _stone_pass(rng: RandomNumberGenerator, out: Dictionary, old: bool) 
 				if (_pd[k] < 2.0 and RealmLayout.path_dist(Vector2(px, pz)) < 1.2) or (_sd[k] < 2.0 and not WorldLanes.site_at(Vector2(px, pz), 1.0).is_empty()):
 					continue
 				var gy := ground_y(px, pz)
-				if gy < WATER_Y + 0.6:
+				if gy < WATER_Y + 0.6 and Tables.wet(px, pz):
 					continue                            # sunk in the turf, never under the fen's water line
 				var best := ""
 				var bw := 0.0
@@ -1680,7 +1683,7 @@ static func _place_prop(rng: RandomNumberGenerator, out: Dictionary, kind: Strin
 		if _ok[k] == 0 or _pd[k] < 1.5 + big or _sd[k] < 1.2 + big or _gn[k] < 0.75:
 			continue
 		var gy := ground_y(px, pz)
-		if gy < WATER_Y + 0.6:
+		if gy < WATER_Y + 0.6 and Tables.wet(px, pz):
 			continue
 		if _pd[k] < 4.0 + big and RealmLayout.path_dist(Vector2(px, pz)) < 1.5 + big:
 			continue

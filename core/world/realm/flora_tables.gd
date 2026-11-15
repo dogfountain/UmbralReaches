@@ -2,6 +2,8 @@ extends RefCounted
 ## The flora's data tables (rates per biome, the regions' looks), split from realm_flora.gd, which
 ## places. Read through `RealmFlora.UNDER` / `RealmFlora.LOOKS`.
 
+const Land := preload("res://core/world/realm/realm_land.gd")
+
 ## undergrowth: instances per m2 by biome
 ## (docs/enshrouded/world.md) layered like an Enshrouded wood -- a grass floor even under the
 ## oaks, bracken and shrubs thickest at the forest's edges (_under_mod), tall-grass and flower drifts
@@ -63,6 +65,17 @@ const LOOKS := {
 		"under_add": {"lily": 0.35},
 		"tint": Color(0.86, 0.94, 0.88)},
 }
+
+
+## Water at or beside (x, z) (RealmLand's water grid): the flora keeps its fen rules there. A hollow under the fen's
+## level with no water in it (the Long Arches' dry valley, a crater's floor) grows as the ground round it.
+static func wet(x: float, z: float) -> bool:
+	if Land.in_water(x, z):
+		return true
+	for o: Vector2 in [Vector2(2.5, 0.0), Vector2(-2.5, 0.0), Vector2(0.0, 2.5), Vector2(0.0, -2.5)]:
+		if Land.in_water(x + o.x, z + o.y):
+			return true
+	return false
 
 
 ## The world's edge on the west, east and south is a wall of cliff faces (RealmWayfinding.edges): a tree

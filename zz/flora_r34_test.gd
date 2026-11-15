@@ -165,8 +165,8 @@ func _check() -> void:
 		for rd: Dictionary in RealmLayout.RAIDS:
 			if Vector2(p.x, p.z).distance_to(rd.c) < float(rd.r) - 0.5 and sp != "stone":
 				on_raid += 1
-		if p.y < Flora.WATER_Y - 0.01 and not (sp in ["reeds", "cattail", "stone"]):
-			wet += 1
+		if p.y < Flora.WATER_Y - 0.01 and Flora.Tables.wet(p.x, p.z) and not (sp in ["reeds", "cattail", "stone"]):
+			wet += 1          # (a dry hollow under the fen's level grows: flora_tables.gd wet)
 	for bk: String in ["b:crag", "b:heath", "b:ruin", "b:fen", "b:oldforest", "b:meadow", "r33"]:
 		print("FLORA34 reference %s %.2f /m2 of open ground (%.0f m2)" % [bk, float(count.get(bk, 0)) / float(area.get(bk, 1)), float(area.get(bk, 0))])
 	for id: String in REF:
@@ -195,7 +195,7 @@ func _check() -> void:
 	var ground := 0
 	for tr: Array in Flora.trees:
 		var p: Vector3 = tr[0]
-		if p.y < Flora.WATER_Y:
+		if p.y < Flora.WATER_Y and Flora.Tables.wet(p.x, p.z):
 			ground += 1
 	check("no tree stands in the water (%d)" % ground, ground == 0)
 	_outposts()
