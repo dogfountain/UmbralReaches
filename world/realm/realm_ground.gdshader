@@ -51,6 +51,14 @@ uniform float far_scale = 0.31;                  // far tiles are ~3x larger
 // spot) a gain and takes the cold tint back off their colour; the moon (directional) is unchanged.
 uniform float lamp_gain = 4.8;                 // 2.4 at brightness 1.2: doubled as the albedo halved, so a fire lights the ground as before
 uniform float lamp_untint = 0.75;                // how much of the cold grade is undone for positional lights
+// The Ashen Rift's scorch (core/world/realm/rift/scorch.gd sets these): a map over scorch_rect (x0 z0 x1 z1),
+// r pale ash drift, g cooled lava flow (0 at its margin .. 1 on its spine), b heat left in it, a burn.
+uniform sampler2D scorch_tex : filter_linear, repeat_disable, hint_default_black;
+uniform vec4 scorch_rect = vec4(0.0);
+uniform vec3 scorch_ash : source_color = vec3(0.4, 0.38, 0.355);
+uniform vec3 scorch_crust : source_color = vec3(0.04, 0.038, 0.045);
+uniform vec3 scorch_heat : source_color = vec3(1.0, 0.32, 0.07);
+uniform float scorch_heat_energy = 1.7;
 
 vec2 rot_c(vec2 p) { return vec2(0.8 * p.x - 0.6 * p.y, 0.6 * p.x + 0.8 * p.y); }
 
@@ -229,6 +237,54 @@ void fragment() {
 		ao = mix(ao, n_i[6].a, jk);
 	}
 
+	// the rift's scorch: charred turf, roped black basalt where the lava ran over the lip (warm seams near the
+	// lip), pale ash lying in the lee and the low ground. Before the worn path, so a way crosses it as earth.
+	float scorch_glow = 0.0;
+	vec2 sc_sz = max(scorch_rect.zw - scorch_rect.xy, vec2(0.001));
+	vec2 sct = (p - scorch_rect.xy) / sc_sz;
+	if (scorch_rect.z > scorch_rect.x && sct.x > 0.0 && sct.y > 0.0 && sct.x < 1.0 && sct.y < 1.0) {
+		vec4 sc = texture(scorch_tex, sct);
+		// the ring round the burn is dry (straw, umber); the burn itself is charred
+		float lumb = dot(col, vec3(0.299, 0.587, 0.114));
+		col = mix(col, vec3(lumb) * vec3(1.08, 0.9, 0.66), smoothstep(0.02, 0.4, sc.a) * 0.55);
+		col = mix(col, vec3(lumb) * vec3(0.5, 0.44, 0.4), smoothstep(0.45, 0.85, sc.a) * 0.8);
+		float gn = sc.g + (vnoise(p * 0.9) - 0.5) * 0.07;
+		float fl = smoothstep(0.03, 0.1, gn);
+		if (fl > 0.001) {
+			// ropes along the flow's isolines, bent by noise (pahoehoe), fading out with distance (they alias into
+			// stripes from afar); tumuli (metre-scale swells) and a seam network breaking the crust into plates
+			// ropes come in short bunched arcs (a mask of patches), not in one ripple over the whole lobe
+			float near_k = (1.0 - smoothstep(12.0, 30.0, cdist)) * smoothstep(0.45, 0.75, vnoise(rot(p, 0.4) * 0.22));
+			float ph = gn * 90.0 + vnoise(p * 0.55) * 7.0 + vnoise(p * 1.7) * 1.5;
+			float rope = sin(ph) * near_k;
+			float gx = texture(scorch_tex, sct + vec2(0.4, 0.0) / sc_sz).g - sc.g;
+			float gz = texture(scorch_tex, sct + vec2(0.0, 0.4) / sc_sz).g - sc.g;
+			vec2 rope_t = -vec2(gx, gz) * cos(ph) * 90.0 * 0.025 * near_k;
+			// tumuli and slabs: the crust heaved in metre swells and broke into plates along a seam network
+			vec2 tum = -vnoise_grad(rot(p, 1.9) * 0.32) * 0.32 * 1.8 - vnoise_grad(rot(p, 0.8) * 0.9) * 0.9 * 0.35;
+			// cooling cracks: a fine network (plates of half a metre to a metre), a few centimetres wide whatever the distance
+			float crk = abs(vnoise(rot(p, 0.7) * 2.1) * 0.75 + vnoise(rot(p, 2.2) * 5.3) * 0.25 - 0.5);
+			float seam = 1.0 - smoothstep(0.0, 0.018 + fwidth(crk) * 1.2, crk);
+			vec3 crust = scorch_crust * (0.85 + 0.3 * (rope * 0.5 + 0.5)) * (0.8 + 0.4 * vnoise(p * 3.1));
+			crust *= 1.0 - seam * 0.6;
+			col = mix(col, crust, fl);
+			tilt = mix(tilt, rope_t + tum + tilt * 0.25, fl);
+			rough = mix(rough, mix(0.74, 0.92, rope * 0.5 + 0.5), fl);      // a dull glass: the crests catch a little moon
+			ao = mix(ao, mix(0.8, 1.0, rope * 0.5 + 0.5), fl);
+			float pulse = 0.7 + 0.3 * sin(TIME * 0.7 + p.x * 0.31 + p.y * 0.23);
+			// the seams glow where the crust is still warm, brightest where they widen; most stay dark
+			seam *= smoothstep(0.3, 0.7, vnoise(rot(p, 1.4) * 0.35) + sc.b * 0.35);
+			// (the seams are drawn in plan: on a steep face they would stretch into streaks, so they keep to the flat)
+			scorch_glow = seam * fl * smoothstep(0.05, 0.6, sc.b) * pulse * smoothstep(0.86, 0.96, wnrm.y);
+		}
+		// pale ash: drifts fill the hollows and crevices first, streaked by noise
+		float ad = smoothstep(0.42, 0.82, sc.r + (vnoise(rot(p, 2.3) * 0.6) - 0.5) * 0.45 + (0.82 - ao) * 0.35);
+		col = mix(col, scorch_ash * (0.8 + 0.35 * vnoise(p * 1.7)), ad);
+		tilt *= 1.0 - ad * 0.7;
+		rough = mix(rough, 0.97, ad);
+		ao = mix(ao, 0.96, ad * 0.6);
+	}
+
 	// worn path: overlay with an irregular, height-aware edge
 	if (path > 0.01) {
 		vec2 uv = vec2(0.921061 * p.x - 0.389418 * p.y, 0.389418 * p.x + 0.921061 * p.y) * SCALE[7];   // turned 0.4 rad
@@ -319,6 +375,7 @@ void fragment() {
 	AO_LIGHT_AFFECT = 0.35;
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.6);
 	EMISSION = rim_color * rim_strength * fres * (0.4 + 0.6 * flat_k);
+	EMISSION += scorch_heat * scorch_glow * scorch_heat_energy * (1.0 - path);
 }
 
 // The engine's Burley diffuse with a gain on positional lights, and a plain GGX highlight (the ground is rough:

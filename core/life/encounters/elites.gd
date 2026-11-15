@@ -50,10 +50,10 @@ const ELITES := {
 	},
 	"cinder_cantor": {
 		"title": "The Cinder Cantor", "kind": "spitter", "script": "res://core/life/encounters/elite_cinder_cantor.gd",
-		"haunt": [Vector2(-24, -14), Vector2(-20, -18), Vector2(-26, -8), Vector2(22, -14)], "region": "rift",
+		"haunt": [Vector2(-50.4, -84.8), Vector2(-40.5, -86.6), Vector2(-60.5, -83.0), Vector2(-24, -14)], "region": "rift",
 		"hp": 12, "ash": 20, "scale": 1.24, "glow": Color(2.4, 0.8, 0.2), "loot": "cinder_censer",
-		"where": "the Ashen Rift's rim, near the Crossing",
-		"note": "The choir on the Stair sang to the last bell. One of them is still singing, on the rim, swinging a censer full of the Rift. It spits three coals at once, wide. Close in. Do not stand at singing distance. -- scratched under the Last Bell",
+		"where": "the Choir House under the Ashen Rift's west berm, in the lava's nave",
+		"note": "The choir on the Stair sang to the last bell. One of them is still singing, in the burned hall below the west berm where the lava came in, swinging a censer full of the Rift. It spits three coals at once, wide. Close in. Do not stand at singing distance. -- scratched under the Last Bell",
 		"trait": "Spits a fan of three coals; keeps its distance.",
 	},
 	"penitent": {
