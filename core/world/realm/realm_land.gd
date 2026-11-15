@@ -320,7 +320,7 @@ static func _base(x: float, z: float, bw: PackedFloat32Array, river := true) -> 
 	var gully := _n_gully.get_noise_2d(x, z)            # ridged: sharp spurs between gullies
 	var h := m
 	h += roll * amp_roll * calm
-	h += (ridge + 0.25) * (hill * 3.6 + mountain * 9.0)
+	h += (ridge + 0.25) * (hill * 3.6 + mountain * lerpf(9.0, 4.5, smoothstep(14.0, 60.0, out)))      # the range beyond the edge: massive, not spiked
 	h += (gully + 0.3) * (hill * 1.3 + mountain * 2.5 + 0.35 * bw[1] + 0.15 * bw[4])
 	h += fine * (0.09 + 0.12 * bw[2] + 0.1 * bw[1]) * calm
 	# strata: hills break into soft ledges (bench + riser) so rock shows on the risers
