@@ -66,12 +66,14 @@ const CAMPS: Array[Dictionary] = [
 	{"name": "the crater's east rim", "at": Vector3(346.0, 60.0, -88.0), "kinds": ["tollman", "husk", "gaunt"], "probe": 0.0},
 	{"name": "the round below bell_link", "at": Vector3(262.0, 60.0, -66.0), "kinds": ["husk", "gaunt", "wretch"], "probe": 0.0,
 		"patrol": [Vector2(262, -66), Vector2(280, -64), Vector2(284, -50), Vector2(264, -52)]},
-	# --- Lastlight (tier 2): the walled waystation is a safe place; a camp at bell_track's lower bend and a pack
-	# that walks the road between Saltmarket and the waystation's gate, clear of both (and west of the nav tiles'
-	# seam at x 262, which a path crosses only the long way round).
+	# --- Lastlight (tier 2): the walled waystation is a safe place, and the road from Saltmarket to its gate is the
+	# salt carter's (village_cast_travellers.gd): a camp at bell_track's lower bend only.
 	{"name": "bell_track's lower bend", "at": Vector3(290.0, 60.0, -14.0), "kinds": ["wretch", "husk", "crawler"], "probe": 0.0},
-	{"name": "the road to Lastlight", "at": Vector3(255.0, 60.0, 80.0), "kinds": ["gaunt", "husk", "wretch"], "probe": 0.0,
-		"patrol": [Vector2(255, 80), Vector2(247, 79), Vector2(246, 44), Vector2(254, 46)]},
+	# --- the road west of Weirford (tier 3, the Lanternwood and the Barrows' edge): a pack walks both verges between
+	# the town and fell_track, clear of the town and west of the nav tiles' seam at x -262 (a path across it goes the
+	# long way round)
+	{"name": "the road west of Weirford", "at": Vector3(-268.0, 60.0, 74.0), "kinds": ["gaunt", "husk", "wretch"], "probe": 0.0,
+		"patrol": [Vector2(-268, 74), Vector2(-286, 72), Vector2(-288, 48), Vector2(-268, 46)]},
 	# --- the Drowned Nave (tier 3): the drowned come out of the nave's water onto its shores (the Precentor holds
 	# the nave's door).
 	{"name": "the nave's east shore", "at": Vector3(348.0, 60.0, 124.0), "kinds": ["husk@drowned", "spitter", "wretch@drowned"], "probe": 0.0},

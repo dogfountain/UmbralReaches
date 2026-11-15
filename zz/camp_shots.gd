@@ -1,14 +1,16 @@
 extends Node
-## Stills of the camps as planted (windowed): for each chosen camp a top-down view (24 m over its centre) and a walk
+## Stills of the camps as planted (windowed): for each chosen camp an overhead view (16 m up, 12 m out, from the
+## clearest bearing) and a walk
 ## view (eye height, WALK m out along the way it is met from, looking at it). The pawns are frozen where they stand;
 ## a survey light hangs over each camp (--dark: the game's own night only). Guardians and rares within 40 m of a camp
 ## are raised for its views. Saves held (Travel._busy).
-##   godot --path . res://zz/camp_shots.tscn -- --out=<dir> [--camps=keep,crater,camp12] [--reaches] [--dark] [--views=top,walk]
+##   godot --path . res://zz/camp_shots.tscn -- --out=<dir> [--camps=keep,crater,camp12] [--reaches] [--dark] [--views=top,walk] [--walk=16]
 ## --camps: substrings of a camp's "name" or "campNN" (its index in EnemySpawner.REALM_CAMPS, from 1, as the audit
 ## numbers them); --reaches: every Far Reaches camp (core/enemy/realm_camps_reaches.gd).
 const ReachCamps := preload("res://core/enemy/realm_camps_reaches.gd")
+const Flora := preload("res://core/world/realm/realm_flora.gd")
 const SETTLE := 14
-const WALK := 16.0
+var walk := 16.0                 ## --walk=m: how far out the walk view stands
 var main: Node
 var out := "/tmp"
 var picks: Array[String] = []
@@ -38,9 +40,11 @@ func _ready() -> void:
 			reaches = true
 		elif a == "--dark":
 			dark = true
+		elif a.begins_with("--walk="):
+			walk = float(a.trim_prefix("--walk="))
 		elif a.begins_with("--views="):
 			want = Array(a.trim_prefix("--views=").split(","))
-	get_window().size = Vector2i(1280, 800)
+	get_window().size = Vector2i(1024, 640)
 	DirAccess.make_dir_recursive_absolute(out)
 	main = load("res://world/main.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(main)
@@ -122,13 +126,37 @@ func _plan(sp: EnemySpawner) -> void:
 		var c: Vector3 = centres[str(cp.at)]
 		var file := "%s_%s" % [tag, nm.replace(" ", "_").replace("'", "")]
 		if "top" in want:
-			shots.append(["%s_top.png" % file, c + Vector3(0.0, 24.0, 7.0), c, c])
+			shots.append(["%s_top.png" % file, _overhead(c), c, c])
 		if "walk" in want:
 			var from := _approach(Vector2(c.x, c.z))
-			var e2 := Vector2(c.x, c.z) + from * WALK
+			var e2 := Vector2(c.x, c.z) + from * walk
 			var gy := RealmLayout.ground(space, e2.x, e2.y)
 			shots.append(["%s_walk.png" % file, Vector3(e2.x, gy + 1.7, e2.y), c + Vector3.UP * 1.0, c])
 	print("CAMPSHOTS planned %d views" % shots.size())
+
+
+## The overhead eye: 16 m up and 12 m out (a 53 degree look down), from whichever of eight bearings has the fewest
+## trees (RealmFlora.trees) near the line of sight, so a pine's crown does not fill the view.
+func _overhead(c: Vector3) -> Vector3:
+	var best := Vector3.INF
+	var fewest := 1 << 30
+	for k in 8:
+		var a := TAU * float(k) / 8.0
+		var eye := c + Vector3(cos(a) * 12.0, 16.0, sin(a) * 12.0)
+		var n := 0
+		for tr: Array in Flora.trees:
+			var tp: Vector3 = tr[0]
+			var q := Vector2(tp.x, tp.z)
+			var a2 := Vector2(c.x, c.z)
+			var b2 := Vector2(eye.x, eye.z)
+			var ab := b2 - a2
+			var t := clampf((q - a2).dot(ab) / ab.length_squared(), 0.0, 1.0)
+			if q.distance_to(a2 + ab * t) < 5.0 + float(tr[2]):
+				n += 1
+		if n < fewest:
+			fewest = n
+			best = eye
+	return best
 
 
 ## The bearing (unit xz, from the camp) a walker comes from: the nearest way's nearest point, else the south.

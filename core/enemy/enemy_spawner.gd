@@ -47,7 +47,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(-84.0, 60.0, 88.0), "kinds": ["burrower", "wretch"], "probe": 0.0},             # south of the road beyond the chapel, at the orchard's edge (it lay 47 m from the green, on the road out of the village)
 	{"at": Vector3(80.0, 60.0, 49.0), "kinds": ["chanter", "husk", "crawler"], "probe": 0.0},      # Pilgrims' Road east, back from the road (it stood 4.7 m off it)
 	{"at": Vector3(-35.0, 60.0, -10.0), "kinds": ["quiller", "leaper"], "probe": 0.0},             # rift rim west (r31 merge: off the secret bridge's landing at -23.5,-5.3, where a pounce threw you into the rift; r34 enemies: was -38,6, 7 m from the Shrine fire: in its light)
-	{"at": Vector3(34.0, 60.0, -4.0), "kinds": ["wretch", "crawler"], "probe": 0.0},               # rift rim east (was 22,-6: 41 m from Hearthward, its pawns on the rim's slope)
+	{"at": Vector3(22.0, 60.0, -6.0), "kinds": ["wretch", "crawler"], "probe": 0.0},               # rift rim east
 	# --- r34 enemies: the new ground at the old density (docs/r34/layout.md: ~4 camps per 10,000 m²,
 	# ~1 foe per 1,000 m²), each region its own roster and a reason. Every camp: 10 m+ inside BOUNDS,
 	# 13 m+ from every fire (the braziers and the new regions' fire slots), 4 m+ off the ways, off the
