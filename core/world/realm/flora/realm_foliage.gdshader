@@ -181,11 +181,12 @@ void fragment() {
 		if (shrub) {
 			c *= 0.62;
 		}
-		// the birch cell (atlas column 1, row 0) is the pale round-leaved crown of the young birches and saplings
-		if (!ground && UV.x > 0.25 && UV.x < 0.5 && UV.y < 0.25) {
-			c *= 0.68;
-		}
 		c /= 1.0 + 2.0 * max(lum2 - 0.14, 0.0);
+	}
+	// the birch cell (atlas column 1, row 0) is the pale round-leaved crown of the young birches and saplings, and the same leaf on
+	// ground-card sprays (the bright mint plant under the oak): to the crowns' value on every material
+	if (UV.x > 0.25 && UV.x < 0.5 && UV.y < 0.25) {
+		c *= ground ? 0.55 : 0.68;
 	}
 	ALBEDO = c * mottle;
 	ROUGHNESS = roughness;

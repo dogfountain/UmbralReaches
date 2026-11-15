@@ -127,8 +127,8 @@ void fragment() {
 	float w[8] = float[](w_a.r * w_k, w_b.x * w_k, w_a.g * w_k, w_a.b * w_k, w_a.a * w_k, w_b.y * w_k, w_b.z * w_k, w_salt);
 	if (dbg_skip >= 0 && dbg_skip < 8) { w[dbg_skip] = 0.0; }
 	// r38: below its own region the salt crust must not show on other ground at all (its crack network drew white scratches across
-	// Saltmarket's flagstones): the weight is cut to nothing under 0.5 and ramps to full by 0.85, so the White Pans proper are unchanged
-	w[7] *= smoothstep(0.5, 0.85, w[7]);
+	// Saltmarket's flagstones): the weight is cut to nothing under 0.7 and ramps to full by 0.95, so the White Pans proper are unchanged
+	w[7] *= smoothstep(0.7, 0.95, w[7]);
 	float path = dbg_skip == 8 ? 0.0 : clamp(w_b.w, 0.0, 1.0);
 	vec2 p = wpos.xz;
 	// distance LOD: near, the tiles at their own scale with their normal maps; far, the same layers

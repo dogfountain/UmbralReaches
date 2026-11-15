@@ -665,7 +665,7 @@ class Gen:
 			"max_depth": 2, "leaf_from": 1, "leaf_per": 1.6,
 		}
 		grow(pts, radii_for(pts, trunk_r, 0.01), 0, P)
-		var cr := crown_cards(C_OAK if v == 0 else C_BIRCH, Vector2(0.8, 1.2), 2, Color(0.95, 1.0, 0.92))
+		var cr := crown_cards(C_OAK if v == 0 else C_BIRCH, Vector2(0.8, 1.2), 2, Color(0.6, 0.66, 0.58))
 		return done(false, cr, "oak" if v == 0 else "birch")
 
 	## Dome of cluster cards (shrubs, brambles, heather): n cards over a half-ellipsoid.
