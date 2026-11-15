@@ -442,8 +442,13 @@ func load_game() -> void:
 	var lb: Variant = cfg.get_value("progress", "loot_bags", [])
 	if lb is Array:
 		for r: Variant in lb:
-			if r is Dictionary and (r as Dictionary).get("pos") is Vector3 and _sane_point((r as Dictionary).pos) and (r as Dictionary).get("entries") is Array and not ((r as Dictionary).entries as Array).is_empty():
-				loot_bags.append({"pos": r.pos, "title": String(r.get("title", "the remains")), "entries": (r.entries as Array).duplicate(true)})
+			if r is Dictionary and (r as Dictionary).get("pos") is Vector3 and _sane_point((r as Dictionary).pos) and (r as Dictionary).get("entries") is Array:
+				var ents: Array = []
+				for e: Variant in (r.entries as Array):
+					if e is Dictionary:          # a bag entry the bag code reads as a Dictionary: anything else is dropped, not a script error
+						ents.append((e as Dictionary).duplicate(true))
+				if not ents.is_empty():
+					loot_bags.append({"pos": r.pos, "title": String(r.get("title", "the remains")), "entries": ents})
 	_to_lay = loot_bags.duplicate(true)
 	var hv: Variant = cfg.get_value("progress", "hollows", 0)
 	saved_hollows = maxi(0, int(hv)) if (hv is int or hv is float) else 0

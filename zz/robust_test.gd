@@ -50,9 +50,14 @@ func _ready() -> void:
 	var sv := ConfigFile.new()
 	sv.set_value("progress", "version", 1)
 	sv.set_value("progress", "checkpoints", {"res://world/main.tscn": Vector3(400.0, 3.0, 400.0)})
+	# a damaged bag record: entries that are not Dictionaries are dropped, a bag left empty is dropped whole
+	sv.set_value("progress", "loot_bags", [
+		{"pos": Vector3(1.0, 0.0, 1.0), "title": "bad", "entries": [5, {"kind": "item", "id": "ember_shard", "n": 1}, "junk"]},
+		{"pos": Vector3(2.0, 0.0, 2.0), "title": "empty", "entries": [7, null]}])
 	sv.save(Travel.SAVE_PATH)
 	Travel.load_game()
 	_ok(Travel.checkpoint_for("res://world/main.tscn") == Vector3(400.0, 3.0, 400.0), "save: checkpoint loaded")
+	_ok(Travel.loot_bags.size() == 1 and ((Travel.loot_bags[0] as Dictionary).entries as Array).size() == 1, "save: a damaged loot bag keeps its sound entries only (%s)" % [Travel.loot_bags])
 	# 3. lint: every InputMap action is defined in InputSetup (six scripts used to add their own)
 	var strays := _stray_add_actions("res://")
 	_ok(strays.is_empty(), "input: no InputMap.add_action outside InputSetup %s" % [strays])

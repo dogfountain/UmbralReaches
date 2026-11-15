@@ -17,6 +17,15 @@ const PAIRS: Array = [
 	["road to the west Gloom Surge pin", Vector2(0, 33), Vector2(-190, 66)],
 	["road to the far north-west landmark", Vector2(0, 33), Vector2(-126, -101)],
 	["road to the Thorn seal", Vector2(0, 33), Vector2(-61, -7)],
+	# r37 (the Outer Marches and the Southern Downs): the towns, the two Marches boss gates, the far corners
+	["road to Weirford", Vector2(0, 33), Vector2(-205, 66)],
+	["road to the Hierarch's gate (the Siege Lines)", Vector2(0, 33), Vector2(-182.5, 159.06)],
+	["road to Saltmarket", Vector2(0, 33), Vector2(212, 92)],
+	["road to the Anchoress's gate (the Anchorholds)", Vector2(0, 33), Vector2(206, -114)],
+	["road to Stillwater", Vector2(0, 33), Vector2(210, 16)],
+	["road to the Grandmother Oak", Vector2(0, 33), Vector2(-70, 206)],
+	["road to the Empty Plinth's approach", Vector2(0, 33), Vector2(-214, -64)],
+	["road to the plinth valley's camp", Vector2(0, 33), Vector2(-187, -102)],
 ]
 var fails := 0
 var main: Node
