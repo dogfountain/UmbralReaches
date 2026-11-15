@@ -213,6 +213,14 @@ var _cur: Dictionary = {}              ## the banner on screen (kept to show aga
 var _cut := false
 
 
+const Tiers := preload("res://core/life/encounters/tiers.gd")
+
+
+func _danger() -> String:
+	var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	return String(Tiers.info(Tiers.tier_at(pl.global_position)).name).to_lower() if pl else ""
+
+
 func _show(b: Dictionary) -> void:
 	var kind := String(b.kind)
 	var fresh := bool(b.fresh)
@@ -226,7 +234,10 @@ func _show(b: Dictionary) -> void:
 	p.small = false
 	match kind:
 		"region":
-			p.top = "— discovered —" if fresh else ""
+			# the night's danger here (encounters' tier: the region's base and how deep the night has gone), so the
+			# far country reads as harder before the first pack does it
+			var dz := _danger()
+			p.top = ("— discovered · %s —" % dz if fresh else "— %s —" % dz) if dz != "" else ("— discovered —" if fresh else "")
 			p.line = String(b.line) if fresh else ""
 			p.size_px = 58 if fresh else 40
 			p.width = 1100.0 if fresh else 760.0
