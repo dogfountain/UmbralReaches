@@ -18,6 +18,7 @@ extends Node3D
 
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
+const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
 const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
 const TextDirector := preload("res://ui/text_director.gd")
 
@@ -73,7 +74,10 @@ func sites() -> Array[Dictionary]:
 	var space := get_world_3d().direct_space_state if is_inside_tree() else null
 	for n in get_tree().get_nodes_in_group("world_poi"):
 		if n.has_meta("centre"):
-			out.append({"id": String(n.get_meta("poi")), "name": String(n.get_meta("title")), "at": n.get_meta("centre")})
+			var c: Vector3 = n.get_meta("centre")
+			if SpawnRules.safe_at(Vector2(c.x, c.z)) in SpawnRules.TOWNS:
+				continue                       # a town's own place (its bridge, its mill): the Gloom does not well up in a town
+			out.append({"id": String(n.get_meta("poi")), "name": String(n.get_meta("title")), "at": c})
 	for id: String in EXTRA_SITES:
 		var xz: Vector2 = EXTRA_SITES[id][0]
 		out.append({"id": id, "name": String(EXTRA_SITES[id][1]), "at": Vector3(xz.x, RealmLayout.ground(space, xz.x, xz.y), xz.y)})
@@ -232,7 +236,8 @@ func _spawn_wave() -> void:
 		if hit.is_empty() or (hit.normal as Vector3).y < 0.75:
 			continue
 		var spot: Vector3 = hit.position
-		if enc and enc.has_method("spot_ok") and not bool(enc.call("spot_ok", spot, true)) and i < want * 4:
+		# late in the search the light may be bent, never the ground rules (water, a lip, a rock, a town)
+		if enc and enc.has_method("spot_ok") and not bool(enc.call("spot_ok", spot, true)) and (i < want * 4 or not SpawnRules.ok(space, spot, {"ways": false})):
 			continue
 		var e := _make(String(pool[(made + wave) % pool.size()]), spot, tier)
 		if e:

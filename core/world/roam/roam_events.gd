@@ -10,6 +10,7 @@ extends Node
 
 const VillagerScript := preload("res://core/life/village/villager.gd")
 const ReachState := preload("res://core/world/night/reach_state.gd")
+const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
 
 const FIRST := 150.0             ## seconds before the first event of a night
 const EVERY := Vector2(200.0, 360.0)
@@ -119,6 +120,9 @@ func _place(p: Node3D, k: String) -> Vector3:
 			var bn := b as Node3D
 			if bn == null or not bool(bn.get("lit")):
 				continue
+			if SpawnRules.safe_at(Vector2(bn.global_position.x, bn.global_position.z), 12.0) != "":
+				continue                   # a town's or the hub's own fire: the dark does not come into a safe place
+
 			var d := bn.global_position.distance_to(p.global_position)
 			if d > NEAR.x * 0.6 and d < NEAR.y * 1.4 and d < bd:
 				bd = d
@@ -135,6 +139,8 @@ func _place(p: Node3D, k: String) -> Vector3:
 		var g: Vector3 = hit.position
 		if LightGrid.is_lit(g) or absf(g.y - p.global_position.y) > 12.0:
 			continue
+		if not SpawnRules.ok(space, g) or not WorldLanes.site_at(Vector2(g.x, g.z), 1.0).is_empty():
+			continue                       # the same ground rules as the camps and the tide (no town, way, pool, lip, rock)
 		return g
 	return Vector3.INF
 
@@ -149,7 +155,7 @@ func _procession(p: Node3D) -> void:
 		var e: Enemy = _make(Wretch if i % 2 == 0 else Husk)
 		e.set_meta(&"roam", kind)
 		get_parent().add_child(e)
-		e.global_position = _at - dir * (2.2 * float(i)) + Vector3.UP * 0.1
+		e.global_position = _fair(_at - dir * (2.2 * float(i)), 2.5) + Vector3.UP * 0.1
 		e.patrol.assign(route)
 		e.roam = true
 		e.patrol_speed = 1.1
@@ -167,7 +173,7 @@ func _incursion() -> void:
 		var e: Enemy = _make(Wretch if i % 2 == 0 else Spitter)
 		e.set_meta(&"roam", kind)
 		get_parent().add_child(e)
-		e.global_position = _ground(at) + Vector3.UP * 0.1
+		e.global_position = _fair(at, 5.0) + Vector3.UP * 0.1
 		_foes.append(e)
 	Events.toast.emit("The dark leans on a fire. Hollowed gather at the edge of its light.")
 
@@ -285,6 +291,13 @@ func _make_pin(k: String) -> void:
 	_pin.add_to_group("map_marker")
 	get_parent().add_child(_pin)
 	_pin.global_position = _at
+
+
+## Fair ground near `at` (SpawnRules; the edge of a fire's light is allowed: the incursion stands there), else
+## the plain ground under it.
+func _fair(at: Vector3, reach: float) -> Vector3:
+	var g := SpawnRules.find(get_viewport().world_3d.direct_space_state, Vector2(at.x, at.z), reach, at.y + 20.0, {"ways": false}, at.y, 4.0)
+	return g if g != Vector3.INF else _ground(at)
 
 
 func _ground(at: Vector3) -> Vector3:

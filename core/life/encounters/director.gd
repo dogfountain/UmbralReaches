@@ -13,7 +13,8 @@ extends Node3D
 ##             Crossing's foot; paid once
 ##   Deeper Night  after the Ascended Warden: the bell at the summit and the Crossing's foot
 ##             begins NG+ (bosses and seals reset, two tiers deeper, Umbral elites, cold tint)
-## Fair: no spawns in the haven, the tavern, buildings, light or water; at most CAP enemies near
+## Fair: nothing of ours rises in a safe place (the haven, the tavern, the Holds, the towns: SpawnRules.SAFE),
+## a building, light, water, on a way, a lip or a slope, or inside a rock (spot_ok); at most CAP enemies near
 ## the player for anything this adds; every attack keeps its telegraph. Cheap: one 4 Hz tick.
 ## State: Travel.system_state("encounters") = {ng, slain, looted, trophies, tides, ambushes}.
 
@@ -26,9 +27,10 @@ const Post := preload("res://core/life/encounters/bounty_post.gd")
 const Bell := preload("res://core/life/encounters/deeper_bell.gd")
 const Guardians := preload("res://core/life/encounters/guardians.gd")
 const Pilgrim := preload("res://core/enemy/pilgrim.gd")
-const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const Synth := preload("res://core/vfx/synth.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
+const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
+const AmbushSites := preload("res://core/life/encounters/ambush_sites.gd")
 
 const TICK := 0.25
 const CAP := 12                    ## most enemies near the player that tides/ambushes/elites add to
@@ -129,21 +131,29 @@ func setup(world: Node3D) -> void:
 	EnemySpawner.kind_hook = _kind_hook
 	EnemySpawner.dress_hook = _dress_hook
 	EnemySpawner.hold_for_rest = true
-	_plan_ambushes()
-	_place_elites()
-	_place_posts()
 	_place_bells()
 	guardians = Guardians.new()
 	guardians.director = self
 	add_child(guardians)
 	_motes = _make_motes()
 	add_child(_motes)
-	ready_done = true
 	if spawner:
 		if spawner.planted_done:
 			_after_planted()
 		else:
 			spawner.planted.connect(_after_planted, CONNECT_ONE_SHOT)
+	# the ambushes, the elites' haunts and their notices go on the ground as it ends up (TerrainStamp.settle and the
+	# places built after this module move it and claim it)
+	var t0 := Time.get_ticks_msec()
+	while is_inside_tree() and root.is_inside_tree() and not root.has_meta("realm_done") and Time.get_ticks_msec() - t0 < 180000:
+		await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	await get_tree().physics_frame
+	_plan_ambushes()
+	_place_elites()
+	_place_posts()
+	ready_done = true
 	print("ENCOUNTERS ready: ng %d, depth %d, %d ambush sites, %d elites (%s), %d posts" % [ng(), Tiers.night_depth(),
 		ambushes.size(), haunts.size(), ", ".join(haunts.keys()), posts.size()])
 
@@ -261,9 +271,9 @@ func _busy_fight() -> bool:
 	return false
 
 
+## Hearthward, its tavern, the Rooted Holds and the towns: no tide gathers here and nothing of ours rises in them.
 func _in_haven(p: Vector3) -> bool:
-	return Vector2(p.x, p.z).distance_to(HAVEN_C) < HAVEN_R or Rect2(RealmLayout.TAVERN).grow(6.0).has_point(Vector2(p.x, p.z)) \
-		or Vector2(p.x, p.z).distance_to(HOLDS_C) < HOLDS_R
+	return Vector2(p.x, p.z).distance_to(HAVEN_C) < HAVEN_R or SpawnRules.safe_at(Vector2(p.x, p.z)) != ""
 
 
 # --- rest ---------------------------------------------------------------------------------------
@@ -376,7 +386,7 @@ func _wave(pos: Vector3) -> void:
 	var pool: Array = Tiers.REGION_POOL.get(region, ["wretch", "crawler"])
 	var base := randf() * TAU
 	var made := 0
-	for i in want * 4:
+	for i in want * 7:
 		if made >= want:
 			break
 		var a := base + randf_range(-0.9, 0.9) + float(i % 2) * PI
@@ -401,44 +411,21 @@ func _wave(pos: Vector3) -> void:
 
 # --- ambushes -----------------------------------------------------------------------------------
 
+## The road ambushes: where the land suggests one (AmbushSites: fords, causeways, cuttings, ruins, woods, blind
+## bends and crests), clear of the fires and the safe places, plus the ones laid on purpose (FIXED_AMBUSHES).
 func _plan_ambushes() -> void:
-	ambushes.clear()
 	var keep_off: Array[Vector2] = [Vector2(RealmLayout.SPAWN.x, RealmLayout.SPAWN.z), Vector2(RealmLayout.OSSUARY_GATE.x, RealmLayout.OSSUARY_GATE.z),
 		RealmLayout.HENGE_STAIR_FOOT]
 	for n: String in BRAZIER_NAMES:
 		keep_off.append(n_at(n))
+	for b in get_tree().get_nodes_in_group(Groups.BRAZIER):
+		keep_off.append(Vector2((b as Node3D).global_position.x, (b as Node3D).global_position.z))
 	for rid: String in RealmLayout.SLOTS:                 # r34: the new regions' fires
 		for sl: Dictionary in RealmLayout.SLOTS[rid]:
 			if String(sl.kind) == "fire":
 				keep_off.append(sl.at)
 	keep_off.append(HOLDS_C)
-	for path: Dictionary in RealmLayout.PATHS:
-		if String(path.id) in ["rift_rim", "chapel_lane"]:
-			continue
-		var pts: Array = path.pts
-		for i in pts.size() - 1:
-			var a: Vector2 = pts[i]
-			var b: Vector2 = pts[i + 1]
-			var steps := int(a.distance_to(b) / 6.0)
-			for k in steps:
-				var p := a.lerp(b, float(k) / float(maxi(steps, 1)))
-				if p.distance_to(HAVEN_C) < HAVEN_R + 16.0:
-					continue
-				var bad := false
-				for o in keep_off:
-					if p.distance_to(o) < 24.0:
-						bad = true
-						break
-				for s: Dictionary in ambushes:
-					if p.distance_to(Vector2(s.at.x, s.at.z)) < 42.0:
-						bad = true
-						break
-				if bad:
-					continue
-				var g := _ground_at(Vector3(p.x, 0, p.y), 90.0)
-				if g == Vector3.INF:
-					continue
-				ambushes.append({"at": g, "dir": (b - a).normalized(), "cd": 0.0, "path": String(path.id)})
+	ambushes = AmbushSites.plan(_space, keep_off, _ground_at, spot_ok)
 	for f: Dictionary in FIXED_AMBUSHES:
 		var c: Vector2 = f.at
 		var g := _ground_at(Vector3(c.x, 0, c.y), 90.0)
@@ -446,7 +433,7 @@ func _plan_ambushes() -> void:
 			push_warning("Encounters: no ground for the fixed ambush on %s" % f.path)
 			continue
 		ambushes = ambushes.filter(func(s: Dictionary) -> bool: return Vector2(s.at.x, s.at.z).distance_to(c) > 30.0)
-		ambushes.append({"at": g, "dir": f.dir, "cd": 0.0, "path": String(f.path)})
+		ambushes.append({"at": g, "dir": f.dir, "cd": 0.0, "path": String(f.path), "why": String(f.get("why", "causeway"))})
 
 
 func n_at(n: String) -> Vector2:
@@ -485,17 +472,12 @@ func trigger_ambush(s: Dictionary) -> int:
 	if fwd.length() < 0.5:
 		fwd = Vector3((s.dir as Vector2).x, 0, (s.dir as Vector2).y)
 	fwd = fwd.normalized()
-	var side := Vector3(-fwd.z, 0, fwd.x)
 	var lead := maxf(1.0, (Vector2(_player.velocity.x, _player.velocity.z).length() if _player else 0.0) / 5.0)   # a gallop is met further on
-	var offsets: Array[Vector3] = [fwd * 10.0 * lead + side * 4.0, fwd * 10.0 * lead - side * 4.5, side * 8.0 + fwd * 2.0, -side * 8.0 + fwd * 2.0, -fwd * 9.0]
-	var pool: Array = Tiers.REGION_POOL.get(Tiers.region_id(pos), ["wretch"])
+	var pool: Array = AmbushSites.kinds(Tiers.REGION_POOL.get(Tiers.region_id(pos), ["wretch"]))
 	var made := 0
-	for o in offsets:
+	for spot in AmbushSites.rise_spots(pos + Vector3(fwd.x, 0.0, fwd.z) * 10.0 * (lead - 1.0), Vector2(fwd.x, fwd.z), _ground_at, spot_ok):
 		if made >= want:
 			break
-		var spot := _ground_at(pos + o, pos.y + 25.0)
-		if spot == Vector3.INF or not spot_ok(spot):
-			continue
 		var kind := String(pool[made % pool.size()])
 		var rv := Tiers.region_variant(spot, kind)     # r34: the mere's drowned climb out drowned
 		var e := _make(kind, spot, tier, rv if rv != "" else Tiers.pick_variant(spot, "amb%d" % made, int(state.get("ambushes", 0))))
@@ -513,28 +495,9 @@ func trigger_ambush(s: Dictionary) -> int:
 		made += 1
 	if made > 0:
 		state["ambushes"] = int(state.get("ambushes", 0)) + 1
-		hud.banner("AMBUSH", _ambush_line(String(s.path)), Color(1.0, 0.55, 0.4))
+		hud.banner("AMBUSH", AmbushSites.line(String(s.path), String(s.get("why", ""))), Color(1.0, 0.55, 0.4))
 		Sfx.play_stream(Synth.get_stream("growl"), pos + fwd * 8.0, 2.0, 0.6)
 	return made
-
-
-func _ambush_line(path: String) -> String:
-	match path:
-		"road":
-			return "The pilgrims who sat down by the road get up."
-		"west_way":
-			return "The Thornwood's edge was not empty."
-		"east_way", "fen_descent":
-			return "The drowned climb out of the verge."
-		"mere_causeway":
-			return "The drowned climb up onto the causeway."
-		"necropolis_way":
-			return "The pilgrims in the verge were not asleep."
-		"west_track":
-			return "The wood closes in behind you."
-		"moor_track":
-			return "Something has been pacing you across the moor."
-	return "The hollowed rise from the verge."
 
 
 # --- elites -------------------------------------------------------------------------------------
@@ -856,15 +819,11 @@ func near_count(pos: Vector3, r := CAP_R) -> int:
 func spot_ok(p: Vector3, ignore_light := false) -> bool:
 	if _in_haven(p):
 		return false
-	if not RealmLayout.BOUNDS.grow(-4.0).has_point(Vector2(p.x, p.z)):
-		return false
 	if not ignore_light and LightGrid.repel(p, 4.0) != Vector3.ZERO:
 		return false
 	if not WorldLanes.site_at(Vector2(p.x, p.z), 0.8).is_empty():
 		return false
-	if p.y < RealmLayout.LAVA_Y + 3.0 or RealmLayout.in_ossuary(p):
-		return false
-	if RealmLand.in_water(p.x, p.z) and p.y < -0.4:
+	if not SpawnRules.ok(_space, p):                  # bounds, lava, the Ossuary, water, ways, slope, lips, rocks
 		return false
 	for a in get_tree().get_nodes_in_group(&"boss_arena"):
 		var r := (a as BossArena).radius + 4.0

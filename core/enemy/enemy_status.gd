@@ -1,5 +1,7 @@
 class_name EnemyStatus
 extends RefCounted
+
+const Tiers := preload("res://core/life/encounters/tiers.gd")
 ## The buffs and debuffs an enemy shows on its plate (Enemy.debuffs): statics only.
 
 
@@ -40,7 +42,11 @@ static func level(e: Enemy) -> int:
 		return -1
 	if e.has_meta(&"level"):
 		return int(e.get_meta(&"level"))
-	var lv := 1 + 2 * int(e.get_meta(&"enc_tier", 0)) + (1 if e.max_hp >= 4 else 0)
+	# the tier's band and how far out the pawn was set down (its home: a hunter's follows the wanderer, so the
+	# first read is kept); see Tiers.level_for
+	if not e.has_meta(&"enc_at"):
+		e.set_meta(&"enc_at", e.home if e.home != Vector3.ZERO else e.global_position)
+	var lv := Tiers.level_for(int(e.get_meta(&"enc_tier", 0)), e.get_meta(&"enc_at"), 1 if e.max_hp >= 4 else 0)
 	match e.rank():
 		"elite":
 			lv += 2

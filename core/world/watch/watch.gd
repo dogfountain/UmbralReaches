@@ -13,6 +13,7 @@ const VillagerScript := preload("res://core/life/village/villager.gd")
 const GearDB := preload("res://core/items/gear_db.gd")
 const GearRuntime := preload("res://core/items/gear_runtime.gd")
 const ReachState := preload("res://core/world/night/reach_state.gd")
+const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
 
 const WAKE := 70.0               ## the post wakes (watchmen, assaults) within this of the wanderer
 const ASSAULT_R := 55.0          ## assaults only come while she is this close
@@ -185,7 +186,7 @@ func _assault() -> void:
 	var host := get_parent()
 	for i in n:
 		var a := randf_range(-1.2, 1.2)
-		var at := _ground(global_position + face.rotated(Vector3.UP, a) * COME_FROM)
+		var at := _come_from(global_position + face.rotated(Vector3.UP, a) * COME_FROM)
 		var e: Enemy = ((Husk as GDScript) if i % 3 == 2 else (Wretch as GDScript)).new() as Enemy
 		e.set_meta(&"watch", id)
 		host.add_child(e)
@@ -356,6 +357,22 @@ func _state() -> Dictionary:
 	if not (st.get("held") is Dictionary):
 		st["held"] = {}
 	return st
+
+
+## Where one of an assault comes from: fair ground near `at` (not in the river or a pool, not on a lip, not in a
+## rock or a town: core/life/encounters/spawn_rules.gd), else the plain ground there.
+func _come_from(at: Vector3) -> Vector3:
+	var space := get_world_3d().direct_space_state
+	var g := SpawnRules.find(space, Vector2(at.x, at.z), 6.0, at.y + 20.0, {"ways": false}, at.y, 5.0)
+	if g == Vector3.INF:
+		# the post looks out over water (the mere's): they come along its shore, round the post
+		var c := global_position
+		for k in 12:
+			var a := TAU * float(k) / 12.0
+			g = SpawnRules.find(space, Vector2(c.x + cos(a) * COME_FROM, c.z + sin(a) * COME_FROM), 4.0, c.y + 20.0, {"ways": false}, c.y, 5.0)
+			if g != Vector3.INF:
+				break
+	return g if g != Vector3.INF else _ground(at)
 
 
 func _ground(at: Vector3) -> Vector3:
