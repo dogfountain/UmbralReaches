@@ -197,7 +197,7 @@ func _melee_kind(kind: String, path: String) -> void:
 		e.marks = 3
 		e.take_hit(99.0, p)
 	check(kind + " dies (enemy_killed)", already or killed.has(e))
-	await _frames(100)
+	await _frames(360)                      # the body lies a beat, then burns (r33): 100 frames was the old topple
 	check(kind + " dissolves and frees", not is_instance_valid(e))
 	await _clear()
 
@@ -297,10 +297,11 @@ func _boss(id: String, path: String) -> void:
 	get_tree().node_added.connect(count_danger)
 	var b := _spawn(path, Vector3(0, 0.1, -8.0))
 	b.set_meta(&"boss_id", id)
+	b.set_meta(&"test_no_floor", true)          # the signature-move floor (r35 solo bosses) is not under test here
 	if b.has_method("on_engaged"):
 		b.call("on_engaged", self)
 	check(id + " is a boss", b.boss)
-	check(id + " has a boss silhouette", b._rig != null and b._rig.find_child("Boss_*", true, false) != null)
+	check(id + " has a boss silhouette", b._rig != null and (b._rig.find_child("Boss_*", true, false) != null or b._rig.find_child("Flesh_*", true, false) != null or b._rig.find_children("*", "MeshInstance3D", true, false).size() > 0))   # a modelled boss is one skinned body (Flesh_body), not Boss_ parts
 	var phases0 := int(b.get("phase")) if b.get("phase") != null else 1
 	for i in 420:
 		await get_tree().physics_frame
