@@ -28,6 +28,8 @@ static func build(root: Node, host: Node3D) -> void:
 	var t2 := LK.search_spot(sp, RIM_NEAR, 26.0, Vector2(4.6, 3.0), 1.2, 1.4, ["secrets_breath"], 2.5, ok)
 	if t2 == Vector2.INF:            # r34 merge: the doubled land steepened this rim; look further along it
 		t2 = LK.search_spot(sp, RIM_NEAR, 44.0, Vector2(4.6, 3.0), 1.2, 1.4, ["secrets_breath"], 2.5, ok)
+	if t2 == Vector2.INF:            # the rift's berms and the burn's dressing left one level spot in 44 m: further, a little rougher
+		t2 = LK.search_spot(sp, RIM_NEAR, 64.0, Vector2(4.6, 3.0), 1.2, 1.9, ["secrets_breath"], 2.0, ok)
 	if t2 == Vector2.INF:
 		print("SECRETS hermit's perch: no clear spot")
 		PlacementLog.skip("secrets", "hermits_perch", Vector3(RIM_NEAR.x, 0, RIM_NEAR.y), "no clear spot")

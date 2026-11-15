@@ -320,7 +320,7 @@ static func _base(x: float, z: float, bw: PackedFloat32Array, river := true) -> 
 	var gully := _n_gully.get_noise_2d(x, z)            # ridged: sharp spurs between gullies
 	var h := m
 	h += roll * amp_roll * calm
-	h += (ridge + 0.25) * (hill * 3.6 + mountain * 9.0)
+	h += (ridge + 0.25) * (hill * 3.6 + mountain * lerpf(9.0, 4.5, smoothstep(14.0, 60.0, out)))      # the range beyond the edge: massive, not spiked
 	h += (gully + 0.3) * (hill * 1.3 + mountain * 2.5 + 0.35 * bw[1] + 0.15 * bw[4])
 	h += fine * (0.09 + 0.12 * bw[2] + 0.1 * bw[1]) * calm
 	# strata: hills break into soft ledges (bench + riser) so rock shows on the risers
@@ -529,6 +529,7 @@ static func _heights() -> void:
 				if not is_nan(o):
 					h = lerpf(h, o, k)
 				h = RealmLayout.raid_shape(x, z, h)          # r34: the summit's raid volume is cut out of the kept core too
+			h += preload("res://core/world/realm/rift/scorch.gd").lift(x, z)          # the rift's cooled lava flows
 			if _keep_d(x, z) > 0.0:
 				for pr: Dictionary in _profiles:
 					if not pr.over:
@@ -601,7 +602,7 @@ static func _splat(x: float, z: float, h: float, nrm_y: float, ring: bool) -> Ar
 		var b := RealmLayout.BOUNDS
 		bw = _bw(clampf(x, b.position.x + 4.0, b.end.x - 4.0), clampf(z, b.position.y + 4.0, b.end.y - 4.0))
 	else:
-		bw = _bw(x, z)
+		bw = preload("res://core/world/realm/rift/scorch.gd").splat(_bw(x, z), x, z)      # the rift's burn is ash country
 	# ruins: flagstone only in patches, meadow/heath between
 	var ruin := bw[6]
 	if ruin > 0.0:

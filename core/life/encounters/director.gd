@@ -376,7 +376,7 @@ func _wave(pos: Vector3) -> void:
 	var pool: Array = Tiers.REGION_POOL.get(region, ["wretch", "crawler"])
 	var base := randf() * TAU
 	var made := 0
-	for i in want * 4:
+	for i in want * 10:                     # (water, ways and sites refuse many tries: a pack still comes)
 		if made >= want:
 			break
 		var a := base + randf_range(-0.9, 0.9) + float(i % 2) * PI
@@ -853,11 +853,8 @@ func near_count(pos: Vector3, r := CAP_R) -> int:
 
 ## A fair place for something of ours to stand: not the haven or the tavern, not in a building,
 ## not in or near light, not in water or lava, not in the crypt or a boss's ring, in bounds.
-## Ground a foe of ours may appear on, for every spawner (tides, ambushes, world events, roaming events): out of
-## Hearthward's haven, the Keg and the Holds, inside the bounds, never on a way (and never on one within HUB_ROAD_R
-## of Hearthward: the road out of the village is walked in peace), never in water (the fen's pools, the Sorrow, the
-## lakes, the Well), never in the lava or the Ossuary's volume. on_way_ok: a file that walks a way (a procession)
-## may stand on one, but nowhere near Hearthward.
+## Ground a foe may appear on, for every spawner: out of the havens, in bounds, never on a way (nothing at all within
+## HUB_ROAD_R of Hearthward's ways), never in water, lava or the Ossuary. on_way_ok: a procession may walk a way.
 const HUB_ROAD_R := 100.0
 
 
@@ -868,9 +865,7 @@ static func fair_ground(p: Vector3, on_way_ok := false) -> bool:
 	if not RealmLayout.BOUNDS.grow(-4.0).has_point(q):
 		return false
 	var pd := RealmLayout.path_dist(q)
-	if q.distance_to(HAVEN_C) < HUB_ROAD_R and (pd < 6.0 or on_way_ok):
-		return false
-	if pd < 1.0 and not on_way_ok:
+	if (q.distance_to(HAVEN_C) < HUB_ROAD_R and (pd < 6.0 or on_way_ok)) or (pd < 1.0 and not on_way_ok):
 		return false
 	if p.y < RealmLayout.LAVA_Y + 3.0 or RealmLayout.in_ossuary(p):
 		return false

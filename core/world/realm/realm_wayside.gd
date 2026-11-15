@@ -15,7 +15,7 @@ const Land := preload("res://core/world/realm/realm_land.gd")
 
 const CELL := 44.0
 const CHUNK := 132.0
-const VIEW_END := 150.0
+const VIEW_END := 110.0                 ## (150 cost the Thornwarden fight ~40 draws: walls and shrines across the wood)
 const SEED := 20261115
 ## Regions nothing is scattered in: the towns and their yards, the boss floors' regions, the dungeon's quarry.
 const KEEP_REGIONS := ["hearth", "weirford", "saltmarket", "lastlight", "fallow", "summit", "rift", "ossuary", "henge", "crags"]

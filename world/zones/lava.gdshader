@@ -30,6 +30,7 @@ uniform float noise_scale = 0.055;    // world units -> noise units
 uniform float warp = 0.9;
 uniform float plate_scale = 6.5;      // plates per noise unit (~2.8 m plates at noise_scale 0.055)
 uniform float plate_dark = 0.4;       // emission left at a crust plate's thick middle (open channel)
+uniform float plate_stretch = 1.0;    // < 1 draws the plates out along flow_dir (rafts of crust riding the current)
 // Banks: R = distance to land/piers (0 at the rock, 1 at >= bank_reach m), built at runtime by
 // LavaWorks from the real terrain and pier footprints. Without it the sheet is all open river.
 uniform sampler2D bank_tex : filter_linear, repeat_disable, hint_default_white;
@@ -135,7 +136,11 @@ void fragment() {
 	vec2 drift = normalize(flow_dir) * flow_rate * noise_scale * TIME;
 	vec2 q = vec2(fbm3(uv + vec2(t, -t * 0.6)), fbm3(uv + vec2(5.2, 1.3) - t * 0.4)) - 0.5;
 	float hot = smoothstep(0.3, 0.75, fbm3(uv * 0.6 + q * 0.8 - drift * 0.5 + vec2(2.1, 7.7)));
-	vec2 pl = plates((uv - drift + warp * q * 0.8) * plate_scale);
+	// plates drawn out along the current (a river's crust tears into rafts, not honeycomb)
+	vec2 fd = normalize(flow_dir);
+	vec2 pu = uv - drift + warp * q * 0.8;
+	pu = vec2(dot(pu, vec2(fd.y, -fd.x)), dot(pu, fd) * plate_stretch);
+	vec2 pl = plates(pu * plate_scale);
 	float edge = pl.x;
 
 	// cracks: thin where the crust has cooled, opening into molten channels in the hot reaches;

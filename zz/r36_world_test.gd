@@ -124,8 +124,11 @@ func _roam() -> void:
 	ok(r != null, "the roaming events run")
 	if r == null:
 		return
+	# out in the Thornwood by west_track: nothing of the dark starts within 100 m of Hearthward's roads (Director.fair_ground)
+	var out_at := Vector3(-112.0, 0.0, -40.0)
+	out_at.y = RealmLayout.ground(p.get_world_3d().direct_space_state, out_at.x, out_at.z) + 0.3
 	for k: String in ["procession", "tear", "pilgrim", "incursion"]:
-		p.teleport(Vector3(0.0, 0.0, 30.0))
+		p.teleport(out_at)
 		await _wait(0.4)
 		var started := bool(r.call("start", k))
 		if k == "incursion" and not started:
