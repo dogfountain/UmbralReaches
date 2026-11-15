@@ -19,9 +19,9 @@ const BED_RATE := 22050
 const VARIANTS := 3
 const GenCache := preload("res://core/world/realm/gen_cache.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
-const SURFACES: Array[StringName] = [&"grass", &"road", &"stone", &"wood", &"water", &"mud"]
+const SURFACES: Array[StringName] = [&"grass", &"road", &"stone", &"wood", &"water", &"mud", &"ash", &"salt"]
 ## Per-surface level (dB) a hoof is played at over the gait's own: the stone is bright and carries, the grass is dull.
-const HOOF_DB := {&"grass": -3.0, &"road": -1.0, &"stone": 1.0, &"wood": 0.0, &"water": -1.5, &"mud": -3.5}
+const HOOF_DB := {&"grass": -3.0, &"road": -1.0, &"stone": 1.0, &"wood": 0.0, &"water": -1.5, &"mud": -3.5, &"ash": -3.0, &"salt": -1.5}
 
 static var _cache := {}
 static var _turn := {}
@@ -84,6 +84,12 @@ static func surface_at(space: PhysicsDirectSpaceState3D, pos: Vector3) -> String
 		var biome := RealmLayout.biome_at(pos.x, pos.z)
 		if biome == "fen":
 			return &"mud"
+		# the wanderer's own feet already know these grounds (character_rig._surface); the horse did not: the Cinder
+		# Orchard's ash and the White Pans' salt crust rang as turf under her hooves, bare crag as grass
+		if biome == "ash" or biome == "salt":
+			return StringName(biome)
+		if biome == "crag":
+			return &"stone"
 		if RealmLayout.path_dist(Vector2(pos.x, pos.z)) < 0.4:
 			return &"road"
 		return &"grass"
@@ -321,6 +327,16 @@ static func _hoof(surface: String, seed_v: int) -> PackedFloat32Array:
 			for b in 4:
 				var f := r.randf_range(450.0, 900.0)
 				_add(out, r.randf_range(0.02, 0.15), _sine(0.07, f, f * r.randf_range(1.6, 2.4), 55.0, 0.003), r.randf_range(0.12, 0.3))
+		"ash":        # a soft puff of cinder: the hoof sinks into dust, grit scattered behind it
+			_add(out, 0.0, _sine(0.2, _j(r, 82.0), 46.0, 24.0, 0.003), 0.75)
+			_add(out, 0.0, _thud_noise(r, 0.14, _j(r, 1100.0), 30.0, 0.004), 0.6)
+			for g in 20:
+				_add(out, r.randf_range(0.004, 0.14), _burst(r, 0.02, r.randf_range(1800.0, 4500.0), 1.5, 280.0, 0.0003), r.randf_range(0.06, 0.2))
+		"salt":       # a crust broken under the shoe: a dull knock, then bright grains skittering
+			_add(out, 0.0, _sine(0.18, _j(r, 96.0), 54.0, 30.0, 0.001), 0.7)
+			_add(out, 0.0, _burst(r, 0.05, _j(r, 2600.0), 1.0, 80.0, 0.0006), 0.5)
+			for g in 26:
+				_add(out, r.randf_range(0.0, 0.16), _burst(r, 0.015, r.randf_range(4200.0, 8200.0), 2.2, 380.0, 0.0002), r.randf_range(0.08, 0.28))
 		"mud":         # a heavy squelch: the foot sinks, and sucks free
 			_add(out, 0.0, _sine(0.2, _j(r, 70.0), 42.0, 20.0, 0.004), 0.8)
 			_add(out, 0.0, _thud_noise(r, 0.2, _j(r, 520.0), 17.0, 0.008), 0.9)

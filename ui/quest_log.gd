@@ -173,7 +173,7 @@ func _build_ledger() -> void:
 	_detail.add_theme_constant_override("separation", 8)
 	right.add_child(_detail)
 	col.add_child(Med.rule(Color(Med.BRONZE, 0.6), false))
-	_hint = _lbl(14, QUIET)
+	_hint = _lbl(17, QUIET)
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(_hint)
 
@@ -253,6 +253,7 @@ func _hold(sub: String) -> float:
 
 
 func _show_banner(top: String, name_text: String, sub: String) -> void:
+	UiSound.play(self, "quest_done" if top == "TASK DONE" else "quest_new")      # the banner was the only sign a task was taken up or done
 	_b_top.text = TextDirector.sentence(top)           # the same case rule as every other line; the name stays as the lore spells it
 	_b_name.text = name_text
 	_b_sub.text = TextDirector.sentence(sub)

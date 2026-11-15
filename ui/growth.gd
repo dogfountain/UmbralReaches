@@ -285,7 +285,7 @@ func _build() -> void:
 	info.add_child(_d_btn)
 	# footer
 	col.add_child(Med.rule(Color(Med.BRONZE, 0.6), false))
-	_foot = _label("", 14, QUIET)
+	_foot = _label("", 17, QUIET)
 	_foot_refresh()
 	var foot := _foot
 	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -526,7 +526,7 @@ func _heading(t: String, note := "") -> void:
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(l)
 	if note != "":
-		var n := _label(note, 15, QUIET, _body_font)
+		var n := _label(note, 17, QUIET, _body_font)
 		n.size_flags_vertical = Control.SIZE_SHRINK_END
 		h.add_child(n)
 	_page_box.add_child(h)

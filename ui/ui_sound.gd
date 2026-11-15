@@ -4,6 +4,7 @@ extends RefCounted
 ##   const UiSound := preload("res://ui/ui_sound.gd")
 ##   UiSound.play(self, "move")      # focus / hover moved      "tab"      a page or tab changed
 ##   UiSound.play(self, "confirm")   # a toggle, a pick, a buy  "back"     a menu closed
+##   "quest_new" / "quest_done"      # a task taken up / finished (ui/quest_log.gd banners)
 ## Plays on the SFX bus and while the tree is paused (menus pause the world).
 
 const RATE := 44100
@@ -14,6 +15,10 @@ const KINDS := {
 	"confirm": [0.085, 660.0, 700.0, 1.5, 42.0, -16.0],
 	"back": [0.075, 560.0, 400.0, 0.0, 48.0, -18.0],
 	"tick": [0.012, 3200.0, 3200.0, 0.0, 320.0, -25.0],
+	a task taken up, and a task done, were silent (a banner and a toast only). A spec's seventh entry is
+	# further notes as [start s, Hz]: the first note's contour is not bent for them. Rising fifth; then a rising triad
+	"quest_new": [0.30, 523.0, 523.0, 2.0, 11.0, -15.0, [[0.09, 784.0]]],
+	"quest_done": [0.62, 523.0, 523.0, 2.0, 7.5, -11.0, [[0.12, 659.0], [0.24, 784.0], [0.38, 1047.0]]],
 }
 
 
@@ -37,11 +42,14 @@ static func play(host: Node, kind: String) -> void:
 
 
 static func _make(spec: Array) -> AudioStreamWAV:
+	var more: Array = spec[6] if spec.size() > 6 else []
 	var n := int(float(spec[0]) * RATE)
 	var data := PackedByteArray()
 	data.resize(n * 2)
 	var ph := 0.0
 	var ph2 := 0.0
+	var extra_ph := PackedFloat64Array()
+	extra_ph.resize(more.size())
 	for i in n:
 		var t := float(i) / RATE
 		var k := float(i) / float(maxi(n - 1, 1))
@@ -50,7 +58,16 @@ static func _make(spec: Array) -> AudioStreamWAV:
 		ph2 += TAU * f * float(spec[3]) / RATE
 		var env := exp(-float(spec[4]) * t) * minf(1.0, t * 2000.0)      # 0.5 ms attack: no click
 		var v := sin(ph) + (0.35 * sin(ph2) if float(spec[3]) > 0.0 else 0.0)
-		data.encode_s16(i * 2, int(clampf(v * env * 0.6, -1.0, 1.0) * 32767.0))
+		v *= env
+		for j in more.size():
+			var t0 := float((more[j] as Array)[0])
+			if t < t0:
+				continue
+			extra_ph[j] += TAU * float((more[j] as Array)[1]) / RATE
+			var e2 := exp(-float(spec[4]) * (t - t0)) * minf(1.0, (t - t0) * 2000.0)
+			v += (sin(extra_ph[j]) + (0.35 * sin(extra_ph[j] * float(spec[3])) if float(spec[3]) > 0.0 else 0.0)) * e2
+		v /= 1.0 + 0.5 * float(more.size())
+		data.encode_s16(i * 2, int(clampf(v * 0.6, -1.0, 1.0) * 32767.0))
 	var w := AudioStreamWAV.new()
 	w.format = AudioStreamWAV.FORMAT_16_BITS
 	w.mix_rate = RATE

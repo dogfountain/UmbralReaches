@@ -21,13 +21,18 @@ func arrow(c: Control, p: Vector2, hot: bool, s := 1.0) -> void:
 		pts.append(p + q.rotated(ang) * s)
 	if s >= 1.0:
 		var pr := fmod(pulse, 1.6) / 1.6
-		c.draw_arc(p, 14.0 + pr * 14.0, 0.0, TAU, 32, Color(CREAM, (1.0 - pr) * 0.7), 2.0, true)
+		a cream arrow and a cream ring on cream parchment did not read as "you are here". A dark seal behind the
+		# arrow with a gilt rim, and a gilt-and-ink pulse, carry on any ground
+		c.draw_arc(p, 20.0 + pr * 16.0, 0.0, TAU, 32, Color(INK, (1.0 - pr) * 0.8), 3.0, true)
+		c.draw_arc(p, 20.0 + pr * 16.0, 0.0, TAU, 32, Color(GOLD, (1.0 - pr) * 0.9), 1.6, true)
+		c.draw_circle(p, 18.0, Color(INK, 0.9))
+		c.draw_arc(p, 18.0, 0.0, TAU, 32, GOLD, 2.0, true)
 	c.draw_colored_polygon(pts, CREAM)
 	var loop := pts.duplicate()
 	loop.append(pts[0])
-	c.draw_polyline(loop, INK, 2.2 * s, true)
+	c.draw_polyline(loop, INK, 2.2 * s if s < 1.0 else 1.2, true)
 	if hot:
-		c.draw_arc(p, 17.0, 0.0, TAU, 28, INK, 2.0, true)
+		c.draw_arc(p, 22.0, 0.0, TAU, 28, GOLD, 2.0, true)
 
 
 func glyph(c: Control, kind: String, p: Vector2, hot: bool, s := 1.0) -> void:
