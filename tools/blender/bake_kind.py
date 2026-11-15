@@ -18,7 +18,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 LAYERS = ["wool", "linen", "trim", "leather", "bone", "gilt", "iron", "wood", "stone", "glow", "skin"]
 # per layer: roughness, metallic, mottle, edge-wear, [displacements: (texture, size, strength, stretch_z)]
 FINISH = {
-    "wool":    (0.92, 0.0, 0.06, 0.12, [("CLOUDS", 0.05, 0.022, 5.0), ("STUCCI", 0.005, 0.0025, 1.0)]),
+    "wool":    (0.92, 0.0, 0.06, 0.12, [("CLOUDS", 0.05, 0.009, 5.0), ("STUCCI", 0.005, 0.0025, 1.0)]),
     "linen":   (0.88, 0.0, 0.06, 0.12, [("CLOUDS", 0.04, 0.008, 6.0), ("STUCCI", 0.004, 0.0018, 1.0)]),
     "trim":    (0.6, 0.4, 0.06, 0.35, [("STUCCI", 0.006, 0.0010, 1.0)]),
     "leather": (0.72, 0.0, 0.18, 0.35, [("VORONOI", 0.02, 0.0015, 1.0), ("CLOUDS", 0.04, 0.003, 1.0)]),

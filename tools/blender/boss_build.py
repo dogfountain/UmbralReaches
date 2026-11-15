@@ -615,6 +615,21 @@ def ascended_warden():
     g = Geo()
     LINEN, PALE, GOLD, ASH, DARK, MASK = (0.82, 0.8, 0.74), (0.93, 0.9, 0.82), (0.95, 0.78, 0.4), (0.42, 0.42, 0.45), (0.015, 0.015, 0.02), (0.95, 0.9, 0.76)
     lab = waist_split(0.98)
+    import grunt_build as GB                                             # the ashen body under the linen, first: the linen is kept off it
+    bd = GB.human(g, ASH, (1.0, 0.95, 0.7, 0.0), macro={"gender": 0.5, "age": 0.6, "muscle": 0.2, "weight": 0.0, "height": 1.0}, girth=0.9, head=1.0)
+    # nothing is under the mask: the body's head drawn in small behind it (it stood through the mask and the veil)
+    n0 = g._fit[1] - len(bd.P)
+    hi = [k for k in range(len(bd.P)) if bd.L[k] == "head"]
+    hc = np.mean([g.v[n0 + k] for k in hi], axis=0)
+    HC = V(0.0, 1.72, 0.01)                                              # the middle of the mask's dark (below)
+    for k in range(len(bd.P)):
+        y = float(g.v[n0 + k][1])
+        if bd.L[k] == "head" or y > 1.52:              # the jaw and the neck too (they carry the chest's label)
+            w = 1.0 if bd.L[k] == "head" else min((y - 1.52) / 0.08, 1.0)
+            g.v[n0 + k] = g.v[n0 + k] + (HC + (g.v[n0 + k] - hc) * 0.55 - g.v[n0 + k]) * w
+    for k in range(g._fit[1], len(g.v)):                                 # its eye coals too
+        if g.lab[k] == "head":
+            g.v[k] = HC + (g.v[k] - hc) * 0.55
     bell = [(1.5, 0.17, 0.12, 0.0), (1.38, 0.19, 0.135, 0.0), (1.2, 0.185, 0.14, 0.0), (1.04, 0.2, 0.16, 0.0), (0.86, 0.3, 0.26, 0.0), (0.66, 0.44, 0.4, 0.01),
             (0.46, 0.56, 0.52, 0.02), (0.3, 0.63, 0.59, 0.03), (0.18, 0.66, 0.62, 0.03)]
     g.robe(bell, LINEN, "linen", lab, n=120, pleats=18, pleat_amp=0.1, pleat_from=1.02, tatter=0.14)
@@ -641,11 +656,7 @@ def ascended_warden():
         g.tube([V(math.cos(a) * 0.085, 1.32 + math.sin(a) * 0.085, -0.212), V(math.cos(a) * (0.13 + 0.03 * (k % 2)), 1.32 + math.sin(a) * (0.13 + 0.03 * (k % 2)), -0.208)], [0.008, 0.001], GOLD, "gilt", "chest", n=5)
     # wide sleeves, gilt bracers, ashen hands
     for sx in (-1, 1):
-        t = "l" if sx < 0 else "r"
-        sleeve(g, sx, LINEN, GOLD, r_top=0.08, r_cuff=0.15, drop=0.2)
-        g.lathe([(0.034, 0.0), (0.038, 0.02), (0.034, 0.08), (0.038, 0.1)], V(sx * 0.24, 0.84, 0), GOLD, "gilt", "elbow_" + t, n=10)
-    import grunt_build as GB                                             # the ashen body under the linen
-    GB.human(g, ASH, (1.0, 0.95, 0.7, 0.0), macro={"gender": 0.5, "age": 0.6, "muscle": 0.2, "weight": 0.0, "height": 1.0}, girth=0.9, head=1.0)
+        GB.sleeve(g, bd, sx, LINEN, GOLD, flare=0.03, bell=0.08, y_cuff=0.74, mat="linen")
     # the head: a veil, the dark inside it, the mask
     veil = [(1.5, 0.2, 0.17, 0.02), (1.6, 0.175, 0.165, 0.015), (1.72, 0.17, 0.18, 0.01), (1.84, 0.15, 0.17, 0.015), (1.92, 0.1, 0.12, 0.03), (1.95, 0.02, 0.03, 0.04)]
     g.robe(veil, PALE, "linen", lambda p: "head" if p[1] > 1.6 else "chest", n=44, t0=math.radians(42), t1=TAU - math.radians(42))
@@ -691,6 +702,9 @@ def hierarch():
     g = Geo()
     STONE, PALE, DARK, GILT, MOSS = (0.5, 0.48, 0.44), (0.62, 0.6, 0.55), (0.02, 0.02, 0.02), (0.75, 0.6, 0.32), (0.3, 0.34, 0.24)
     lab = waist_split(0.98)
+    import grunt_build as GB                     # the statue's body is carved from a man's: an old, heavy king's face and hands
+    bd = GB.human(g, PALE, (1.0, 0.55, 0.2, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.5, "weight": 0.9, "proportions": 0.4},
+                  girth=1.15, head=1.7, mat="stone", shoulder_y=1.5)
     robe = [(1.5, 0.2, 0.15, 0.0), (1.3, 0.22, 0.17, 0.0), (1.05, 0.21, 0.17, 0.0), (0.8, 0.27, 0.23, 0.0), (0.45, 0.36, 0.32, 0.01), (0.1, 0.43, 0.39, 0.02), (0.0, 0.45, 0.41, 0.02)]
     g.robe(robe, STONE, "stone", lab, n=96, pleats=12, pleat_amp=0.06, pleat_from=1.0)
     g.ring_band(0.04, 0.14, 0.452, 0.412, 0.02, GILT, "trim", "pelvis", n=96)
@@ -701,12 +715,9 @@ def hierarch():
     for k in range(5):                                                    # moss in the folds near the ground
         a = 0.9 + k * 1.05
         g.ball(V(math.sin(a) * 0.6, 0.06, -math.cos(a) * 0.52 + 0.06), 0.07, MOSS, "wool", "pelvis", n=6, sy=0.4)
-    import grunt_build as GB                     # the statue's body is carved from a man's: an old, heavy king's face and hands
-    bd = GB.human(g, PALE, (1.0, 0.55, 0.2, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.5, "weight": 0.9, "proportions": 0.4},
-                  girth=1.15, head=1.7, mat="stone", shoulder_y=1.5)
     for sx in (-1, 1):
         t = "l" if sx < 0 else "r"
-        sleeve(g, sx, STONE, GILT, r_top=0.1, r_cuff=0.13, drop=0.04)
+        GB.sleeve(g, bd, sx, STONE, GILT, flare=0.03, mat="stone")
         g.lathe([(0.0, 0.0), (0.15, 0.0), (0.16, 0.05), (0.14, 0.1), (0.08, 0.14), (0.0, 0.15)], V(sx * 0.27, 1.38, 0.0), PALE, "stone", "shoulder_" + t, n=20)
         if sx < 0:
             g.box(V(-0.36, 1.46, 0.04), (0.04, 0.03, 0.06), PALE, "stone", "shoulder_l")        # the broken edge
@@ -747,6 +758,8 @@ def anchoress():
     g = Geo()
     DRESS, SHAWL, SALT, SKIN, IRON, ROPE = (0.22, 0.2, 0.2), (0.3, 0.27, 0.24), (0.8, 0.78, 0.72), (0.62, 0.55, 0.5), (0.18, 0.17, 0.17), (0.45, 0.36, 0.26)
     lab = waist_split(0.98)
+    import grunt_build as GB                                             # a MakeHuman body first: what she wears is laid on it
+    bd = GB.human(g, SKIN, (1.0, 0.8, 0.5, 0.0), macro={"gender": 0.0, "age": 0.9, "muscle": 0.15, "weight": 0.05, "proportions": 0.3}, girth=0.92, head=1.0)
     dress = [(1.5, 0.17, 0.12, 0.0), (1.36, 0.18, 0.13, 0.0), (1.2, 0.17, 0.13, 0.0), (1.02, 0.16, 0.125, 0.0), (0.8, 0.21, 0.18, 0.0), (0.45, 0.29, 0.26, 0.01), (0.12, 0.35, 0.32, 0.02), (0.0, 0.37, 0.34, 0.02)]
     def salted(i, j, p):                                                 # salt dried up the hem in a crusted tide line
         tide = 0.22 + 0.06 * math.sin(p[0] * 31.0) + 0.04 * math.sin(p[2] * 47.0 + 1.3)
@@ -767,14 +780,21 @@ def anchoress():
     sh = [(1.58, 0.2, 0.15, 0.01), (1.5, 0.27, 0.19, 0.01), (1.36, 0.31, 0.22, 0.02), (1.15, 0.33, 0.25, 0.03), (0.98, 0.32, 0.25, 0.04)]
     g.robe(sh, SHAWL, "wool", "chest", n=56, t0=math.radians(30), t1=TAU - math.radians(70), pleats=8, pleat_amp=0.06, tatter=0.14)
     g.chain([V(math.sin(a) * 0.32, 1.14 - 0.03 * math.sin(a), -math.cos(a) * 0.255) for a in np.linspace(0, TAU, 33)], IRON, "iron", "chest")
-    import grunt_build as GB                                             # a MakeHuman body: her face and hands are real
-    GB.human(g, SKIN, (1.0, 0.8, 0.5, 0.0), macro={"gender": 0.0, "age": 0.9, "muscle": 0.15, "weight": 0.05, "proportions": 0.3}, girth=0.92, head=1.0)
+    # under the dress and the shawl (hand cut, close at the breast): the body drawn in, so it never shows through
+    GB.tuck(g, bd, [k for k in range(len(bd.P)) if bd.L[k] in ("chest", "pelvis") or (bd.L[k].startswith(("shoulder_", "hip_")) and bd.P[k][1] > 0.7)], 0.022)
     for sx in (-1, 1):
-        sleeve(g, sx, DRESS, ROPE, r_top=0.07, r_cuff=0.09, drop=0.04)
-    # the head: a deep hood; in it a gaunt face, the rope gag biting in, two lit eyes
-    hood = [(1.5, 0.19, 0.16, 0.02), (1.6, 0.17, 0.16, 0.015), (1.72, 0.165, 0.175, 0.005), (1.84, 0.15, 0.17, 0.01), (1.92, 0.1, 0.12, 0.03), (1.96, 0.03, 0.04, 0.05)]
-    g.robe(hood, SHAWL, "wool", lambda p: "head" if p[1] > 1.6 else "chest", n=40, t0=math.radians(40), t1=TAU - math.radians(40), pleats=5, pleat_amp=0.05)
-    g.tube([V(-0.085, 1.62, -0.03), V(-0.055, 1.615, -0.085), V(0.0, 1.615, -0.1), V(0.055, 1.615, -0.085), V(0.085, 1.62, -0.03)], 0.011, ROPE, "leather", "head", n=6)   # the gag
+        GB.sleeve(g, bd, sx, DRESS, ROPE, flare=0.015)
+    # the head: a deep hood laid on her, her gaunt face seen in it, the rope gag biting into the mouth
+    GB.cowl(g, bd, SHAWL, open_w=0.07, open_h=0.095, shade=False, seed=3.1)
+    E = bd.eyes
+    if len(E) == 2:
+        ey = (E[0][1] + E[1][1]) * 0.5
+        hw = abs(E[0][0] - E[1][0]) * 0.5
+        my = ey - hw * 2.35
+        loop = GB.contour(bd, my, ("head",), off=0.006, bins=36, band=0.012)
+        front = sorted([(a, q) for a, q in loop if abs(math.remainder(a - math.pi, TAU)) < 1.5], key=lambda t: math.remainder(t[0] - math.pi, TAU))
+        if len(front) > 3:
+            g.tube([q for _, q in front], 0.011, ROPE, "leather", "head", n=6)
     # the lamp, up at her face in the left fist (in the hand's own space)
     lp = Geo()
     lp.tube([V(0, 0.0, -0.02), V(0, -0.06, -0.02)], 0.006, IRON, "iron", "hand_l", n=4)

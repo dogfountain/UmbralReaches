@@ -170,6 +170,7 @@ def shrink(g, b, labels, rows, off, col, mat, lab, thick=0.008, edge=None, reach
     # drape: smooth t toward the neighbours a few times, never below the skin, so the cloth bridges a nose, lips and
     # the hollows between ribs the way stretched cloth does instead of tracing them
     T, Tmin, Nn, O3, D3 = [], [], [], [], []
+    under = []
     for row in rows:
         tr, mr, nr, orow, drow = [], [], [], [], []
         for o, d in row:
@@ -187,6 +188,8 @@ def shrink(g, b, labels, rows, off, col, mat, lab, thick=0.008, edge=None, reach
             n = n * 0.35 + np.array(d3[:]) * 0.65
             n /= max(np.linalg.norm(n), 1e-9)
             t = reach - dist + (off(o, d) if callable(off) else off)
+            if t - (reach - dist) < 0.03:
+                under.append(hit)
             for bc, br in balls:                    # things on the skin the cloth must also clear (the eye coals)
                 oc = np.array(o3[:]) - bc
                 dd = np.array(d3[:])
@@ -277,10 +280,26 @@ def shrink(g, b, labels, rows, off, col, mat, lab, thick=0.008, edge=None, reach
         if (c, a) not in cnt:
             F2.append([c, a, a + n, c + n])
             FU2.append([(0.0, 0.0), (thick * 4, 0.0), (thick * 4, thick * 4), (0.0, thick * 4)])
+    if under and cut is None:                       # (a garment with an opening shows what is under it: leave that be)
+        kd = _body_tree(b)
+        tuck(g, b, {kd.find(h)[1] for h in under}, depth=0.01)
     k0 = len(g.v)
     g.mesh(np.concatenate([O, In]), F2, col, mat, lab, FU2)
     g.__dict__.setdefault("_laid", []).append((k0, len(g.v)))     # already on the skin: fit() leaves it be
     return O
+
+
+def tuck(g, b, idx, depth=0.012):
+    """Draw the body in under its clothes: the body vertices `idx` move `depth` inward along the skin's normal, so a
+    tight garment is not pierced by the skin when the two are posed (the skin moves with more joints than the cloth)."""
+    if getattr(g, "_fit", None) is None or g._fit[0] is not b:
+        return
+    n0 = g._fit[1] - len(b.P)
+    done = g.__dict__.setdefault("_tucked", set())
+    for k in idx:
+        if k not in done:
+            done.add(k)
+            g.v[n0 + k] = g.v[n0 + k] - b.N[k] * depth
 
 
 def _centre(b, y, labels, band=0.02):

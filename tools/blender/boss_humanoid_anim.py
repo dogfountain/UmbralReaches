@@ -892,7 +892,7 @@ def look(body, held, out_dir):
     sc.display.shading.show_cavity = True
     sc.display.shading.cavity_type = 'BOTH'
     sc.display.shading.show_shadows = True
-    sc.display.shading.show_backface_culling = False
+    sc.display.shading.show_backface_culling = "--cull" in ARGS
     sc.render.resolution_x, sc.render.resolution_y = 700, 1000
     cam_d = bpy.data.cameras.new("LCam")
     cam_d.lens = 70
