@@ -58,6 +58,11 @@ uniform float wind_sheen = 0.0;
 // occluded heart (baked into COLOR) pass less, and what comes through is a touch yellower and more
 // saturated than the lit face, as light through a leaf is.
 uniform vec3 transmit_tint = vec3(1.0, 1.08, 0.8);   // linear multiplier, not a colour pick
+// r38 art pass: a backlit or moon-struck crown read neon lime (the albedo tint is boosted to lift a dark atlas, and the
+// transmission multiplied the same saturated green again). Painterly leaves keep their value and lose chroma as they
+// brighten: pull the lit/transmitted colour toward its luma (olive, not emerald). 0 = as it was.
+uniform float lit_desat = 0.32;
+uniform float transmit_desat = 0.5;
 
 varying vec3 wpos;
 varying float vhue;
@@ -162,8 +167,12 @@ void fragment() {
 	float tip = clamp(UV2.x, 0.0, 1.0);
 	c *= mix(1.0 - base_dark, 1.0 + tip_light, tip);
 	c *= 1.0 + wind_sheen * vwind;
+	float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+	// the brighter the leaf, the more chroma it gives up (dark leaves keep their deep greens); a touch of warmth back
+	c = mix(c, vec3(lum) * vec3(1.06, 1.0, 0.86), (ground ? 0.0 : lit_desat) * smoothstep(0.03, 0.25, lum));
 	ALBEDO = c * mottle;
 	ROUGHNESS = roughness;
-	BACKLIGHT = backlight * mix(0.6, 1.3, tip) * transmit_tint * ALBEDO;
+	vec3 thin = mix(ALBEDO, vec3(dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722))) * vec3(1.05, 1.0, 0.8), (ground ? 0.2 : transmit_desat));
+	BACKLIGHT = backlight * mix(0.6, 1.3, tip) * transmit_tint * thin;
 	EMISSION = rim_color * rim_strength * pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 2.0) * ALBEDO * 3.0;
 }
