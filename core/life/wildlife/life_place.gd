@@ -67,7 +67,23 @@ static func eligible_light(root: Node, l: OmniLight3D) -> bool:
 ## The fen pools: grid cells under water flood-filled into pools, biggest first.
 ## Each: {cells: Array[Vector2], center: Vector2, edge: Array[Vector2] (land just off the water,
 ## nudged toward it), n: cell count}.
+static var pool_cache := {}          ## this build's pools, every one, biggest first (the director clears it per build)
+
+
 static func pools(new_ground := false) -> Array[Dictionary]:
+	if not pool_cache.has("all"):
+		pool_cache["all"] = _all_pools()
+	# the old Realm's pools (centre inside OLD_BOUNDS) keep their place in the list; the Marches' (the Sorrow,
+	# Stillwater, the Well's pool) are asked for with new_ground = true
+	var keep: Array[Dictionary] = []
+	for p: Dictionary in pool_cache["all"]:
+		if RealmLayout.OLD_BOUNDS.has_point(p.center as Vector2) != new_ground:
+			keep.append(p)
+	return keep
+
+
+## The flood fill (a quarter of a second over the doubled Realm's grid: made once a build).
+static func _all_pools() -> Array[Dictionary]:
 	var wet := {}
 	for j in RL.GNZ - 1:
 		for i in RL.GNX - 1:
@@ -105,13 +121,7 @@ static func pools(new_ground := false) -> Array[Dictionary]:
 						edge.append(toward)
 		out.append({"cells": cells, "center": sum / float(cells.size()), "edge": edge, "n": cells.size()})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.n) > int(b.n))
-	# the old Realm's pools (centre inside OLD_BOUNDS) keep their place in the list; the Marches' (the Sorrow,
-	# Stillwater, the Well's pool) are asked for with new_ground = true
-	var keep: Array[Dictionary] = []
-	for p: Dictionary in out:
-		if RealmLayout.OLD_BOUNDS.has_point(p.center as Vector2) != new_ground:
-			keep.append(p)
-	return keep
+	return out
 
 
 ## Nearest water cell centre to p (for frogs leaping in, herons facing the pool).

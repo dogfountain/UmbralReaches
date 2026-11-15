@@ -248,6 +248,9 @@ func _sample(vs: Dictionary) -> void:
 	var ex: Array[RID] = []
 	for vid: String in vs:
 		ex.append(((vs[vid] as Node).get("body") as CollisionObject3D).get_rid())
+	for wf in get_tree().get_root().find_children("Villager_road_*", "Node3D", true, false):
+		if (wf as Node).has_meta(&"wayfarer"):
+			ex.append(((wf as Node).get("body") as CollisionObject3D).get_rid())       # the roads' people are people, not props
 	nav.call("use_space", village.get_world_3d().direct_space_state, ex)
 	for vid2: String in vs:
 		var v: Node3D = vs[vid2]

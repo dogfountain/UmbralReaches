@@ -10,6 +10,7 @@ extends RefCounted
 ## Tests: zz/life_test.tscn.  Sounds: zz/life_gen_audio.tscn writes art/audio/life/*.wav.
 
 const Director := preload("res://core/life/wildlife/life_director.gd")
+const Wayfarers := preload("res://core/life/wayfarers/wayfarers.gd")       ## people on the roads (docs/living_realm.md)
 
 
 static func build(root: Node) -> void:
@@ -21,3 +22,4 @@ static func build(root: Node) -> void:
 	root.add_child(d)
 	d.setup(root)
 	Realm.prof_add("life: wildlife", t)
+	Wayfarers.build(root)

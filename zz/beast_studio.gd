@@ -4,7 +4,7 @@ extends Node
 ##   godot --path . res://zz/beast_studio.tscn -- --tag=x --only=deer,stag,fox [--sheet]
 ## Writes <OUT>/studio_<kind>_<tag>.png (a sheet of the views) and, with --full, each view alone.
 const LifeKit := preload("res://core/life/wildlife/life_kit.gd")
-const OUT := "/private/tmp/claude-501/-Users-luke-UmbralReaches/968888c4-6238-49b1-a0f8-2ba292b49c0a/scratchpad/wave6/beasts/"
+var OUT := "/tmp/beasts/"                    ## --out=<dir>/
 var tag := "x"
 var only: Array = ["deer", "stag", "elk", "fox", "hare", "boar"]
 var full := false
@@ -28,6 +28,8 @@ func _ready() -> void:
 			only = Array(a.trim_prefix("--only=").split(","))
 		elif a == "--full":
 			full = true
+		elif a.begins_with("--out="):
+			OUT = a.trim_prefix("--out=").trim_suffix("/") + "/"
 	kinds = only
 	DirAccess.make_dir_recursive_absolute(OUT)
 	get_window().size = Vector2i(1280, 720)

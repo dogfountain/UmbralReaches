@@ -21,6 +21,8 @@ const PhenomenaScript := preload("res://core/life/wildlife/phenomena.gd")
 const RL := preload("res://core/world/realm/realm_land.gd")
 const Marches := preload("res://core/life/wildlife/life_marches.gd")
 const Settle := preload("res://core/life/wildlife/life_settle.gd")
+const Reaches := preload("res://core/life/wildlife/life_reaches.gd")       ## the Far Reaches' rosters (docs/living_realm.md)
+const Signs := preload("res://core/life/wildlife/life_signs.gd")           ## carrion, raven kettles, marsh lights, eyes, howls
 
 const NEAR_R := 16.0
 const OUT_TICK := 0.2                    ## logic interval for groups out of the camera's view
@@ -40,6 +42,7 @@ var moths := {}                          ## OmniLight3D -> MultiMeshInstance3D
 var fireflies: Array[MultiMeshInstance3D] = []
 var bats: Array[MultiMeshInstance3D] = []
 var rats: Node3D                         ## the Ossuary's rats (built while the crypt is loaded)
+var signs: Node3D                        ## life_signs.gd
 var counts := {}                         ## kind -> creatures placed (tests, report)
 var kind_us := {}                        ## accumulated tick time per kind (profiling)
 var perf_us := 0.0                       ## mean script time per frame (µs), this node + weather
@@ -84,11 +87,13 @@ var _kindle_t := 0.0
 
 
 func setup(r: Node) -> void:
+	var t_setup := Time.get_ticks_msec()
 	root = r
 	name = "Wildlife"
 	_rng.seed = BUILD_SEED
 	_rng2.seed = BUILD_SEED + 2
 	_rng3.seed = BUILD_SEED + 3
+	LifePlace.pool_cache.clear()                # (this build's pools are found once and shared)
 	var space := get_world_3d().direct_space_state
 	weather = WeatherScript.new()
 	add_child(weather)
@@ -114,6 +119,10 @@ func setup(r: Node) -> void:
 	_place_elk(space)
 	if not off:
 		_place_flocks()
+		Reaches.place(self, root, space, _add_group)
+		signs = Signs.new()
+		add_child(signs)
+		signs.setup(self, root, space, _add_group)
 		phenomena = PhenomenaScript.new()
 		add_child(phenomena)
 		phenomena.setup(self, weather, BUILD_SEED + 5)
@@ -121,7 +130,12 @@ func setup(r: Node) -> void:
 	for e in [["skill_cast", _on_skill], ["enemy_killed", _on_kill], ["player_hurt", _on_hurt], ["boss_engaged", _on_boss], ["brazier_kindled", _on_kindled], ["gloom_tide", _on_tide]]:
 		if Events.has_signal(e[0]):
 			Events.connect(e[0], e[1])
-	print("LIFE placed ", counts)
+	print("LIFE placed in %d ms: %s" % [Time.get_ticks_msec() - t_setup, counts])
+
+
+## The hollowed things near the camera (refreshed twice a second).
+func near_enemies() -> Array[Vector3]:
+	return _enemies
 
 
 func _add_group(g: Node3D) -> void:

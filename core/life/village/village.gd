@@ -33,6 +33,7 @@ const Rig := preload("res://core/life/village/villager_rig.gd")
 const Watch := preload("res://core/world/watch/watch.gd")
 const RoamEvents := preload("res://core/world/roam/roam_events.gd")
 const QuestWorld := preload("res://core/story/quest_world.gd")
+const WayfarerDB := preload("res://core/life/wayfarers/wayfarer_db.gd")
 
 const CYCLE := 600.0                  ## one village night (s)
 const FORGE := Vector2(11.0, 60.0)
@@ -401,6 +402,7 @@ static func warm_start() -> Dictionary:
 		warm.append(look.duplicate())
 	for look: Dictionary in RoamEvents.PILGRIMS:
 		warm.append(look.duplicate())
+	warm.append_array(WayfarerDB.rig_looks())         # the roads' people (core/life/wayfarers)
 	return DwarfRig.warm_begin(warm, func() -> Node: return Rig.new(), Rig.SELF_V)
 
 
