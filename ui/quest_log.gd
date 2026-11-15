@@ -225,19 +225,15 @@ func _on_changed(id: String, s: int, done: bool) -> void:
 	elif done and not bool(was[1]):
 		var xp := task_xp(id)
 		banner("TASK DONE  ·  +%d XP" % xp if xp > 0 else "TASK DONE", String(qd.name), outcome(id))
-		if xp > 0:
-			progress("+%d XP for the task" % xp, true)      # the corner toast says what it paid in ash and items; the memory it earned is said here
 	elif not done and Book.ready(id) and int(was[0]) != s:
 		progress("%s: return to %s" % [String(qd.name), String(Chains.GIVER_NAMES.get(String(Chains.step(id, s).get("who", "")), "the giver"))], true)
 	if is_open():
 		_fill()
 
 
-## The XP a task just paid: 24 + 1.5 x its ash, half again on a repeat (the formula of LevelDB.quest_xp, core/life/progression/level.gd).
+## The XP a task just paid (Book.xp: LevelDB.quest_xp, the amount the Hearth gives).
 static func task_xp(id: String) -> int:
-	var ash := int(((Chains.QUESTS.get(id, {}) as Dictionary).get("reward", {}) as Dictionary).get("ash", 0))
-	var n := 24 + roundi(1.5 * float(maxi(0, ash)))
-	return maxi(1, n / 2) if int(Book.q(id).get("c", 0)) > 1 else n
+	return Book.xp(id)
 
 
 ## The banner never draws over a menu or a conversation (both pause the tree), its own ledger included.
