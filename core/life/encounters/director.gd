@@ -376,7 +376,7 @@ func _wave(pos: Vector3) -> void:
 	var pool: Array = Tiers.REGION_POOL.get(region, ["wretch", "crawler"])
 	var base := randf() * TAU
 	var made := 0
-	for i in want * 4:
+	for i in want * 10:                     # (water, ways and sites refuse many tries: a pack still comes)
 		if made >= want:
 			break
 		var a := base + randf_range(-0.9, 0.9) + float(i % 2) * PI

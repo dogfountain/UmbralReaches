@@ -37,9 +37,14 @@ func _reveal() -> void:
 		var mat := surface.material_override as ShaderMaterial
 		if mat:
 			mat = mat.duplicate() as ShaderMaterial
-			mat.set_shader_parameter("emission_energy", 7.4)
-			mat.set_shader_parameter("hot_color", Color(1.0, 0.28, 0.04))
-			mat.set_shader_parameter("core_color", Color(1.0, 0.78, 0.28))
+			# a river of crust rafts with fire between them, not an orange honeycomb: darker plates, thinner seams, a
+			# deeper red, the white-hot kept for the open channel (the scorched rim round it carries the volcano now)
+			mat.set_shader_parameter("emission_energy", 5.8)
+			mat.set_shader_parameter("hot_color", Color(1.0, 0.24, 0.035))
+			mat.set_shader_parameter("core_color", Color(1.0, 0.6, 0.18))
+			mat.set_shader_parameter("plate_dark", 0.16)
+			mat.set_shader_parameter("crack_width", 0.34)
+			mat.set_shader_parameter("plate_stretch", 0.55)
 			surface.material_override = mat
 	for node in group.find_children("*", "OmniLight3D", true, false):
 		var light := node as OmniLight3D

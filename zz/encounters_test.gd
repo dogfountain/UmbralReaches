@@ -226,14 +226,19 @@ func _tide() -> void:
 		if is_instance_valid(h) and (h as Enemy).home.distance_to(p.global_position) > 0.5:
 			tracked = false
 	check("tide: hunters track the wanderer", tracked)
-	# later waves fill only up to the cap
+	# later waves fill only up to the cap (counted against what is near before each wave: a camp's pawns that
+	# noticed the wanderer from past the cleared ring may walk in on their own, and they are not the tide's)
+	var over := 0
 	for k in 4:
 		d.set("_waves", 1)
 		d.set("tide_age", 40.0)
+		var room0 := int(d.call("room", p.global_position))
+		var h0 := (d.get("hunters") as Array).size()
 		d.call("step", 0.3)
+		over = maxi(over, (d.get("hunters") as Array).size() - h0 - room0)
 	await _frames(2)
 	var near := int(d.call("near_count", p.global_position))
-	check("cap: <= 12 enemies near the wanderer", near <= 12, str(near))
+	check("cap: a wave adds no more than the room under 12 (%d near now)" % near, over <= 0, str(over))
 	# safe again at a lit brazier
 	var b := main.get_node_or_null("Zone/Braziers/StairFoot") as Brazier
 	check("tide: StairFoot brazier", b != null)

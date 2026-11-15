@@ -6,6 +6,7 @@ render_mode use_half_res_pass;
 global uniform float sky_time;
 
 #include "res://world/sky/sky_stars.gdshaderinc"
+#include "res://world/sky/sky_vistas.gdshaderinc"
 
 uniform vec3 col_deep  = vec3(0.024, 0.039, 0.153); // abyss  #060A27
 uniform vec3 col_rift  = vec3(0.357, 0.176, 0.839); // rift   #5B2DD6
@@ -84,6 +85,7 @@ void sky() {
         // Starburst spikes: wider than a pixel, so half resolution still holds them.
         float burst = sky_bursts(EYEDIR, 220.0);
         col += burst * vec3(0.86, 0.93, 1.2) * 0.7;
+        col += vs_veils(EYEDIR, vortex_dir, sky_time);
         COLOR = col;
         ALPHA = 1.0;
     } else {
@@ -116,6 +118,11 @@ void sky() {
         col = mix(col_deep * 0.5, col, smoothstep(-0.05, 0.12, EYEDIR.y)); // horizon falloff
         // moon-silvered haze low on the sky: ridges and towers separate from it
         col += vec3(0.11, 0.17, 0.29) * exp(-abs(EYEDIR.y) * 9.0);   // a thinner, brighter band: the ridges read dark against it
+        // far ranges past the Realm's own mountains (sky_vistas.gdshaderinc), paler on the moon's side
+        vec2 hz = normalize(EYEDIR.xz + vec2(1e-4));
+        float toward = dot(hz, normalize(md.xz + vec2(1e-4))) * 0.5 + 0.5;
+        float north_fade = smoothstep(0.9, 0.3, dot(hz, normalize(vortex_dir.xz + vec2(1e-4))));
+        col = vs_far_ranges(EYEDIR, col, mix(vec3(0.07, 0.11, 0.19), vec3(0.13, 0.17, 0.27), toward), col_deep, north_fade);
         COLOR = col;
     }
 }

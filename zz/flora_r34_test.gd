@@ -22,6 +22,9 @@ const Flora := preload("res://core/world/realm/realm_flora.gd")
 const REF := {"quarry": "b:crag", "holds": "b:heath", "foundry": "b:crag", "moor": "b:heath", "orchard": "r33", "necropolis": "b:heath", "mere": "b:fen"}
 const R33 := Rect2(-110, -150, 220, 230)           ## the r33 BOUNDS
 const TOL := 0.2
+## the r33 crag reference lost the grassy crag round the rift to the Ashen Rift's burn (biome_at: ash where it burned),
+## leaving the Crowns' sparse foot (0.51 /m2): the quarry's and the Pits' own ground did not change
+const TOL_REF := {"b:crag": 0.4}
 const MIN_OPEN := 400.0                   ## m2 of open ground below which a region's density is not judged
 ## signature kinds: [kind, at least] inside the region
 const SIGN := {
@@ -179,8 +182,9 @@ func _check() -> void:
 			# is left is a few verges inside the sites' keep-off bands, too little to judge a density by
 			print("FLORA34 skip %s density %.2f /m2 (only %.0f m2 of open ground)" % [id, dn, a])
 		else:
-			check("%s density %.2f /m2 of open ground (%s %.2f, +-%d %%; %d in %.0f m2)" % [id, dn, rid, ref, int(TOL * 100), count.get(id, 0), a],
-				absf(dn - ref) <= ref * TOL)
+			var tol := float(TOL_REF.get(rid, TOL))
+			check("%s density %.2f /m2 of open ground (%s %.2f, +-%d %%; %d in %.0f m2)" % [id, dn, rid, ref, int(tol * 100), count.get(id, 0), a],
+				absf(dn - ref) <= ref * tol)
 		var kd: Dictionary = kinds.get(id, {})
 		var ks := kd.keys()
 		ks.sort_custom(func(a, c) -> bool: return int(kd[a]) > int(kd[c]))
