@@ -771,8 +771,14 @@ def burrower():
     for sx in (-1, 1):
         g.ball(H + V(sx * 0.06, 0.04, -0.06), 0.016, (1.0, 0.55, 0.2, 0.0), "glow", "head", n=5)
     g.lathe([(0.0, 0.0), (0.035, 0.0), (0.03, 0.06)], H + V(0, -0.02, -0.15), DARK, "iron", "head", n=10, axis="z")
+    lab = quad_label(S, torso_r=0.2)
+    M = [("e", S["body"] + V(0, -0.05, 0.0), (0.24, 0.15, 0.46)), ("e", S["head"] + V(0, -0.06, 0.12), (0.11, 0.1, 0.12))]
+    for tag in ("fl", "fr", "bl", "br"):                                  # sprawled limbs: a heavy upper limb, a thick forearm
+        h, k, f = S["leg_%s_hip" % tag], S["leg_%s_knee" % tag], S["leg_%s_foot" % tag]
+        M += [("e", h + (k - h) * 0.35, (0.1, 0.075, 0.08)), ("c", h, k, 0.055), ("c", k, f + V(0, 0.04, 0.0), 0.045),
+              ("e", k + (f - k) * 0.3, (0.055, 0.07, 0.055)), ("e", f + V(0, 0.025, -0.03), (0.06, 0.03, 0.065))]
+    g.meta(M, (0.2, 0.17, 0.15), "skin", lab, res=0.014, tris=6000)
     for tag in ("fl", "fr", "bl", "br"):
-        quad_leg(g, S, tag, PLATE, "stone", r=(0.06, 0.05, 0.025), claw_col=CLAW)
         if tag[0] == "f":
             foot = S["leg_%s_foot" % tag]
             for k in range(3):
@@ -782,38 +788,105 @@ def burrower():
     return g.to_object("body"), [], S
 
 
+def quad_label(S, torso_r=0.12):
+    """Skinning labels for a quad by segment, as body_label does for the biped: the spine in three, the head, and
+    each leg in three (hip->knee is the thigh's bone, knee->foot the shin's). Torso distances count from its skin."""
+    segs = [("tail", S["tail"], S["tail"] + V(0, -0.15, 0.7), 0.0), ("body", S["body"] + V(0, 0, 0.35), S["body"] + V(0, 0, -0.25), torso_r),
+            ("front", S["front"] + V(0, 0, 0.25), S["front"], torso_r), ("head", S["front"] + V(0, 0.02, -0.08), S["head"] + V(0, 0, -0.25), 0.0)]
+    for tag in ("fl", "fr", "bl", "br"):
+        h, k, f = S["leg_%s_hip" % tag], S["leg_%s_knee" % tag], S["leg_%s_foot" % tag]
+        segs += [("leg_%s_hip" % tag, h, k, 0.0), ("leg_%s_knee" % tag, k, f, 0.0), ("leg_%s_foot" % tag, f, f + V(0, -0.02, -0.1), 0.0)]
+
+    def lab(p):
+        best, bd = "body", 9.0
+        for nm, a, c, r in segs:
+            ab = c - a
+            t = min(max(float((p - a) @ ab) / max(float(ab @ ab), 1e-9), 0.0), 1.0)
+            d = float(np.linalg.norm(p - (a + ab * t))) - r
+            if d < bd:
+                best, bd = nm, d
+        return best
+    return lab
+
+
+def skull(g, H, BONE, OLD, DARK, eye, s=1.0, lab="head", horns=True, muzzle=1.0):
+    """A beast's skull, modelled in bone masses: a vaulted cranium, a long muzzle, cheek arches, a brow, the sockets
+    sunk into it with coals in them, a lower jaw hung open a little, teeth along both, horns swept back."""
+    o = lambda x, y, z: H + V(x, y, z) * s
+    g.meta([("e", o(0, 0.04, 0.03), (0.065 * s, 0.058 * s, 0.075 * s)),
+            ("c", o(0, 0.025, -0.03), o(0, 0.0, -0.165 * muzzle), 0.036 * s),
+            ("e", o(0, -0.002, -0.17 * muzzle), (0.03 * s, 0.024 * s, 0.03 * s)),
+            ("e", o(0.052, 0.008, -0.03), (0.022 * s, 0.022 * s, 0.05 * s)), ("e", o(-0.052, 0.008, -0.03), (0.022 * s, 0.022 * s, 0.05 * s)),
+            ("e", o(0, 0.062, -0.035), (0.058 * s, 0.018 * s, 0.03 * s)),
+            ("e", o(0.043, 0.034, -0.058), (0.021 * s, 0.019 * s, 0.022 * s), True), ("e", o(-0.043, 0.034, -0.058), (0.021 * s, 0.019 * s, 0.022 * s), True),
+            ("e", o(0, -0.02, -0.12), (0.022 * s, 0.012 * s, 0.05 * s), True)],
+           BONE, "bone", lab, res=0.006 * s, tris=2400, smooth=1)
+    for sx in (-1, 1):
+        g.tube([o(sx * 0.045, -0.025, 0.02), o(sx * 0.035, -0.05, -0.06), o(sx * 0.012, -0.055, -0.15)], [0.016 * s, 0.013 * s, 0.01 * s], OLD, "bone", lab, n=7)
+        g.ball(o(sx * 0.043, 0.034, -0.05), 0.011 * s, eye, "glow", lab, n=5)
+        g.ball(o(sx * 0.043, 0.034, -0.044), 0.019 * s, DARK, "iron", lab, n=6)
+        if horns:
+            g.tube([o(sx * 0.05, 0.08, 0.04), o(sx * 0.09, 0.14, 0.13), o(sx * 0.1, 0.13, 0.25)], [0.018 * s, 0.012 * s, 0.002 * s], OLD, "bone", lab, n=7)
+    for k in range(7):
+        x = (k - 3) * 0.011
+        z = -0.17 * muzzle + abs(k - 3) * 0.022
+        g.tube([o(x * 1.5, -0.015, z), o(x * 1.5, -0.045, z - 0.004)], [0.0055 * s, 0.001], BONE, "bone", lab, n=4)
+        g.tube([o(x * 1.4, -0.05, z + 0.012), o(x * 1.4, -0.025, z + 0.01)], [0.005 * s, 0.001], BONE, "bone", lab, n=4)
+
+
 def leaper():
-    """A bone-plated hound: a lean dark body, a skull for a face with coals in it, plates down the spine and over the
-    shoulders and thighs, a heavy lash of a tail."""
+    """A bone-plated hound, built as an animal is blocked out: one skin over a spine of radii (a deep keel of a chest,
+    a tucked waist, a heavy rump), muscled thighs and forearms down to paws, a skull for a face with coals in it,
+    plates down the spine and over the shoulders and haunches, a lash of a tail."""
     S = quad_sockets(*QSOCK["leaper"])
     g = Geo()
-    HIDE, BONE, DARK = (0.12, 0.1, 0.1), (0.8, 0.74, 0.62), (0.02, 0.02, 0.02)
-    lab = quad_part_label(S, ["front", "body", "tail"])
-    spine = [S["tail"] + V(0, -0.02, 0.04), S["body"] + V(0, 0.04, 0.2), S["body"] + V(0, 0.07, -0.1), S["front"] + V(0, 0.05, 0.05), S["front"] + V(0, 0.08, -0.08)]
-    g.tube(spine, [0.13, 0.15, 0.16, 0.17, 0.13], HIDE, "leather", lab, n=14, flat=1.15)
-    for k in range(10):                                                  # spine plates
-        t = k / 9
-        p = spine[0] * (1 - t) + spine[-1] * t + V(0, 0.15 + 0.03 * math.sin(t * math.pi), 0)
-        g.tube([p + V(0, -0.02, 0.04), p + V(0, 0.06, -0.02)], [0.025, 0.004], BONE, "bone", lab(p), n=5)
-    for sx in (-1, 1):
-        for (key, z, ln) in (("front", 0.06, 0.22), ("body", 0.28, 0.24)):
-            c = S[key] + V(sx * 0.15, 0.02, z)
-            def pl(u, v, c=c, sx=sx, ln=ln):
-                return c + V(sx * (0.04 + 0.06 * math.sin(v * math.pi)), 0.1 - 0.2 * v, (u - 0.5) * ln)
-            g.plate(pl, 5, 5, BONE, "bone", key, flip=sx > 0)
-    H = S["head"]
-    g.lathe([(0.0, -0.1), (0.07, -0.08), (0.085, 0.0), (0.06, 0.12), (0.035, 0.2), (0.0, 0.22)], H + V(0, 0.02, 0.0), BONE, "bone", "head", n=12, axis="z", squash=0.8)
-    for sx in (-1, 1):
-        g.ball(H + V(sx * 0.05, 0.04, -0.02), 0.02, DARK, "iron", "head", n=6)
-        g.ball(H + V(sx * 0.05, 0.04, -0.033), 0.011, (1.0, 0.45, 0.15, 0.0), "glow", "head", n=5)
-        g.tube([H + V(sx * 0.05, 0.08, 0.05), H + V(sx * 0.09, 0.14, 0.15), H + V(sx * 0.1, 0.13, 0.26)], [0.018, 0.012, 0.002], BONE, "bone", "head", n=6)
-    for k in range(6):
-        g.tube([H + V((k - 2.5) * 0.02, -0.035, -0.13 + 0.02 * abs(k - 2.5)), H + V((k - 2.5) * 0.02, -0.07, -0.13 + 0.02 * abs(k - 2.5))], [0.006, 0.001], BONE, "bone", "head", n=4)
+    HIDE, BONE, DARK, OLD = (0.13, 0.1, 0.1), (0.8, 0.74, 0.62), (0.02, 0.02, 0.02), (0.6, 0.55, 0.45)
+    lab = quad_label(S)
+    B0, F0, T0 = S["body"], S["front"], S["tail"]
+    M = [("e", V(0, 0.5, -0.28), (0.15, 0.22, 0.24)),                     # the keel: a deep ribcage
+         ("e", V(0, 0.62, -0.33), (0.12, 0.08, 0.2)),                     # its back, up to the withers
+         ("c", V(0, 0.6, -0.12), V(0, 0.61, 0.2), 0.095),                 # the waist, tucked
+         ("e", V(0, 0.43, 0.04), (0.13, 0.08, 0.17), True),               # the tuck under it
+         ("e", V(0, 0.6, 0.36), (0.14, 0.13, 0.17)),                      # the rump
+         ("c", V(0, 0.6, -0.44), V(0, 0.68, -0.64), 0.085),               # the neck
+         ("e", S["head"] + V(0, 0.0, 0.03), (0.065, 0.065, 0.08))]
     for tag in ("fl", "fr", "bl", "br"):
-        quad_leg(g, S, tag, HIDE, "leather", r=(0.05, 0.035, 0.018), claw_col=BONE)
-    tail = [S["tail"] + V(0, -0.02 - 0.06 * k * k * 0.1, 0.12 * k) for k in range(7)]
-    g.tube(tail, [0.07, 0.06, 0.05, 0.04, 0.03, 0.02, 0.004], HIDE, "leather", "tail", n=10)
-    g.tube([tail[-2], tail[-1] + V(0, 0.02, 0.12)], [0.03, 0.002], BONE, "bone", "tail", n=6)
+        h, k, f = S["leg_%s_hip" % tag], S["leg_%s_knee" % tag], S["leg_%s_foot" % tag]
+        sx = -1.0 if tag[1] == "l" else 1.0
+        if tag[0] == "f":
+            M += [("e", h + V(-sx * 0.05, 0.06, -0.02), (0.07, 0.13, 0.09)),         # the shoulder and its blade
+                  ("c", h + V(-sx * 0.02, 0.0, 0.0), k, 0.05),                       # upper arm to the elbow
+                  ("c", k, f + V(0, 0.045, 0.0), 0.032),                             # forearm
+                  ("e", k + (f - k) * 0.25 + V(0, 0.0, -0.01), (0.038, 0.06, 0.04)),  # the forearm's muscle
+                  ("c", f + V(0, 0.045, 0.0), f + V(0, 0.02, -0.03), 0.026),
+                  ("e", f + V(0, 0.02, -0.04), (0.035, 0.022, 0.045))]               # the paw
+        else:
+            hock = f + V(0, 0.085, 0.045)
+            M += [("e", h + V(-sx * 0.03, 0.03, 0.0), (0.08, 0.15, 0.12)),            # the haunch
+                  ("c", h, k, 0.055),
+                  ("e", (h + k) * 0.5 + V(0, 0.0, 0.03), (0.06, 0.1, 0.075)),        # the thigh's muscle
+                  ("c", k, hock, 0.034),
+                  ("c", hock, f + V(0, 0.02, -0.02), 0.024),
+                  ("e", f + V(0, 0.02, -0.04), (0.035, 0.022, 0.045))]
+    tail = [T0 + V(0, -0.02 - 0.008 * k * k, 0.11 * (k + 1)) for k in range(6)]
+    pts = [T0 + V(0, 0.0, -0.05)] + tail
+    for k in range(len(pts) - 1):
+        M.append(("c", pts[k], pts[k + 1], 0.05 - 0.007 * k))
+    g.meta(M, HIDE, "skin", lab, res=0.012, tris=9000)
+    spine = [(V(0, 0.71, z), 0.0, 0.0) for z in (0.45, 0.3, 0.15)] + [(V(0, 0.71, 0.0), 0.0, 0.0), (V(0, 0.72, -0.2), 0.0, 0.0), (V(0, 0.72, -0.38), 0.0, 0.0)]
+    # plates down the spine, on the shoulders and the haunches
+    for k in range(11):
+        t = k / 10
+        z = (T0[2] - 0.05) * (1 - t) + (F0[2] - 0.05) * t
+        top = max((n[0][1] + n[2] for n in spine if abs(n[0][2] - z) < 0.16), default=B0[1] + 0.12)
+        p = V(0, top + 0.005, z)
+        g.tube([p + V(0, -0.03, 0.05), p + V(0, 0.05 + 0.02 * math.sin(t * math.pi), -0.02)], [0.026, 0.004], BONE if k % 2 else OLD, "bone", lab(p), n=5)
+    skull(g, S["head"] + V(0, 0.0, -0.03), BONE, OLD, DARK, (1.0, 0.45, 0.15, 0.0), s=1.4)
+    for tag in ("fl", "fr", "bl", "br"):                                   # claws
+        f = S["leg_%s_foot" % tag]
+        for k in range(3):
+            g.tube([f + V((k - 1) * 0.018, 0.02, -0.05), f + V((k - 1) * 0.02, 0.0, -0.075)], [0.007, 0.001], BONE, "bone", "leg_%s_foot" % tag, n=4)
+    g.tube([tail[-1], tail[-1] + V(0, 0.02, 0.12)], [0.012, 0.002], BONE, "bone", "tail", n=6)
     return g.to_object("body"), [], S
 
 
@@ -824,47 +897,77 @@ def thornwarden():
     S = quad_sockets(0.56, 1.15, 0.2, 0.32, True)
     g = Geo()
     BARK, DARKB, BONE, EMBER, DARK = (0.24, 0.17, 0.11), (0.14, 0.1, 0.07), (0.78, 0.72, 0.6), (1.0, 0.42, 0.1, 0.0), (0.02, 0.015, 0.012)
-    lab = quad_part_label(S, ["front", "body", "tail"])
-    spine = [S["tail"] + V(0, -0.02, 0.06), S["body"] + V(0, 0.06, 0.22), S["body"] + V(0, 0.12, -0.12), S["front"] + V(0, 0.14, 0.04), S["front"] + V(0, 0.12, -0.1)]
-    g.tube(spine, [0.15, 0.2, 0.23, 0.22, 0.15], DARKB, "wood", lab, n=16, flat=1.1)
-    g.tube([S["front"] + V(0, 0.0, 0.05), S["front"] + V(0, 0.01, -0.12)], [0.03, 0.025], EMBER, "glow", "front", n=6)   # the heart, through the breast
+    lab = quad_label(S, torso_r=0.15)
+    B0, F0, T0 = S["body"], S["front"], S["tail"]
+    M = [("e", V(0, 0.52, -0.28), (0.17, 0.24, 0.27)), ("e", V(0, 0.66, -0.34), (0.14, 0.09, 0.2)),
+         ("c", V(0, 0.62, -0.1), V(0, 0.64, 0.2), 0.12), ("e", V(0, 0.44, 0.04), (0.13, 0.08, 0.17), True),
+         ("e", V(0, 0.63, 0.36), (0.16, 0.15, 0.19)), ("c", V(0, 0.62, -0.44), V(0, 0.74, -0.62), 0.1)]
+    for tag in ("fl", "fr", "bl", "br"):
+        h, k, f = S["leg_%s_hip" % tag], S["leg_%s_knee" % tag], S["leg_%s_foot" % tag]
+        sx = -1.0 if tag[1] == "l" else 1.0
+        if tag[0] == "f":
+            M += [("e", h + V(-sx * 0.05, 0.06, -0.02), (0.08, 0.15, 0.1)), ("c", h + V(-sx * 0.02, 0.0, 0.0), k, 0.058),
+                  ("c", k, f + V(0, 0.06, 0.0), 0.036), ("e", k + (f - k) * 0.25, (0.045, 0.07, 0.045))]
+            ank = f + V(0, 0.06, 0.0)
+        else:
+            ank = f + V(0, 0.1, 0.05)
+            M += [("e", h + V(-sx * 0.03, 0.03, 0.0), (0.09, 0.17, 0.13)), ("c", h, k, 0.062), ("e", (h + k) * 0.5 + V(0, 0, 0.03), (0.07, 0.11, 0.085)),
+                  ("c", k, ank, 0.036), ("c", ank, f + V(0, 0.05, -0.01), 0.03)]
+        M += [("c", ank, f + V(0, 0.035, -0.015), 0.03)]
+    tail = [T0 + V(0, -0.02 - 0.05 * k * k * 0.1, 0.13 * k) for k in range(6)]
+    for k in range(5):
+        M.append(("c", tail[k], tail[k + 1], 0.1 - 0.016 * k))
+    P = g.meta(M, DARKB, "wood", lab, res=0.014, tris=10000)
+    P = np.array(P)
+
+    def surf(p, d):
+        """The body's surface from p looking along d: the vertex furthest along d within a slab round p."""
+        d = d / np.linalg.norm(d)
+        near = P[np.abs(P[:, 2] - p[2]) < 0.035]
+        if len(near) == 0:
+            return p
+        return near[int(np.argmax((near - p) @ d))]
+    crack = []                                                           # the heart, a burning split down the breast
+    for yy in np.linspace(0.62, 0.36, 7):
+        near = P[(np.abs(P[:, 1] - yy) < 0.025) & (np.abs(P[:, 0]) < 0.05) & (P[:, 2] < F0[2] + 0.25)]
+        if len(near):
+            q = near[int(np.argmin(near[:, 2]))]
+            crack.append(V(0.012 * math.sin(yy * 60.0), q[1], q[2] + 0.004))
+    if len(crack) > 2:
+        g.tube(crack, [0.008] + [0.02] * (len(crack) - 2) + [0.006], EMBER, "glow", "front", n=6, flat=0.45)
     for k in range(13):                                                  # bark plates in rows down both flanks and the back
         t = k / 12
-        p = spine[0] * (1 - t) + spine[-1] * t
-        rr = 0.2 + 0.04 * math.sin(t * math.pi)
-        for sx, ang in ((-1, 0.55), (0, 0.0), (1, 0.55)):
-            c = p + V(sx * math.sin(ang) * rr, math.cos(ang) * rr * 0.98, 0.0)
+        z = (T0[2] + 0.02) * (1 - t) + (F0[2] - 0.08) * t
+        axis = V(0, 0.6 if t > 0.3 else 0.62, z)
+        for sx, ang in ((-1, 0.35), (1, 0.35)):
+            c = surf(axis, V(sx * math.sin(ang), math.cos(ang), 0.0)) - V(0, 0.01, 0)
             def pl(u, v, c=c, sx=sx, ang=ang):
                 th = (u - 0.5) * 0.9 + sx * ang
-                return c + V(math.sin(th) * 0.05 - sx * math.sin(ang) * 0.02, (math.cos(th) - 1.0) * 0.05 - v * 0.09, (v - 0.5) * 0.11 + 0.02 * u)
-            g.plate(pl, 4, 3, BARK, "wood", lab(c))
+                return c + V(math.sin(th) * 0.055, (math.cos(th) - 1.0) * 0.055 - v * 0.08 + 0.012, (v - 0.5) * 0.12 + 0.02 * u)
+            g.plate(pl, 4, 3, BARK if (k + sx) % 2 else DARKB, "wood", lab(c))
     for k in range(11):                                                  # thorns down the spine
         t = 0.08 + k / 12
-        p = spine[0] * (1 - t) + spine[-1] * t + V(0, 0.22, 0)
+        z = (T0[2]) * (1 - t) + (F0[2] - 0.1) * t
+        p = surf(V(0, 0.6, z), V(0, 1.0, 0.0)) + V(0, 0.01, 0)
         h = 0.14 + 0.08 * math.sin(t * math.pi)
         g.tube([p, p + V(0.0, h * 0.6, 0.04), p + V(0.0, h, 0.1)], [0.022, 0.012, 0.001], DARKB, "wood", lab(p), n=5)
-    H = S["head"]
-    g.lathe([(0.0, -0.14), (0.09, -0.12), (0.11, -0.02), (0.085, 0.1), (0.06, 0.22), (0.04, 0.32), (0.0, 0.34)], H + V(0, 0.03, 0.0), BONE, "bone", "head", n=14, axis="z", squash=0.82)
+    H = S["head"] + V(0, 0.05, -0.02)
+    skull(g, H, BONE, (0.62, 0.56, 0.46), DARK, EMBER, s=1.55, horns=False, muzzle=1.15)
     for sx in (-1, 1):
-        g.lathe([(0.04, 0.0), (0.042, 0.02), (0.03, 0.04)], H + V(sx * 0.075, 0.07, 0.0), BONE, "bone", "head", n=10, axis="z")
-        g.ball(H + V(sx * 0.072, 0.07, -0.01), 0.032, DARK, "iron", "head", n=6)
-        g.ball(H + V(sx * 0.07, 0.07, -0.025), 0.012, EMBER, "glow", "head", n=5)
-        base = H + V(sx * 0.05, 0.12, 0.06)
+        base = H + V(sx * 0.06, 0.12, 0.06)
         beam = [base, base + V(sx * 0.08, 0.16, 0.04), base + V(sx * 0.16, 0.34, 0.0), base + V(sx * 0.2, 0.5, 0.06), base + V(sx * 0.18, 0.66, 0.14)]
         g.tube(beam, [0.03, 0.026, 0.02, 0.014, 0.004], BONE, "bone", "head", n=8)
+        g.ball(base, 0.036, (0.62, 0.56, 0.46), "bone", "head", n=7, sy=0.6)       # the burr where the antler grows
         for k, (i, d) in enumerate(((1, V(sx * 0.1, 0.08, -0.08)), (2, V(sx * 0.02, 0.14, -0.1)), (3, V(sx * 0.1, 0.1, 0.06)), (2, V(sx * 0.12, -0.02, 0.1)))):
             b = beam[i]
             g.tube([b, b + d * 0.5, b + d], [0.016, 0.01, 0.002], BONE, "bone", "head", n=6)
-    for k in range(5):
-        g.tube([H + V((k - 2) * 0.022, -0.06, -0.22 + 0.02 * abs(k - 2)), H + V((k - 2) * 0.022, -0.09, -0.22 + 0.02 * abs(k - 2))], [0.008, 0.001], BONE, "bone", "head", n=4)
     for tag in ("fl", "fr", "bl", "br"):
-        quad_leg(g, S, tag, BARK, "wood", r=(0.08, 0.06, 0.04), claw_col=DARKB)
+        for sx in (-1, 1):                                               # cloven hooves
+            g.ball(S["leg_%s_foot" % tag] + V(sx * 0.018, 0.022, -0.03), 0.03, DARK, "iron", "leg_%s_foot" % tag, n=7, sx=0.7, sz=1.3)
         foot = S["leg_%s_foot" % tag]
         for k in range(4):                                               # roots gripping the ground
             a = TAU * k / 4 + 0.4
             g.tube([foot + V(0, 0.04, 0), foot + V(math.cos(a) * 0.08, 0.0, math.sin(a) * 0.08), foot + V(math.cos(a) * 0.14, -0.01, math.sin(a) * 0.14)], [0.022, 0.014, 0.002], DARKB, "wood", "leg_%s_foot" % tag, n=5)
-    tail = [S["tail"] + V(0, -0.02 - 0.05 * k * k * 0.1, 0.13 * k) for k in range(6)]
-    g.tube(tail, [0.11, 0.09, 0.07, 0.05, 0.035, 0.02], DARKB, "wood", "tail", n=10)
     for k in range(8):
         a = TAU * k / 8
         p = tail[-1]

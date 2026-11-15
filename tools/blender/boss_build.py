@@ -210,6 +210,69 @@ class Geo:
         ev.to_mesh_clear()
         bpy.data.objects.remove(ob)
 
+    def meta(self, elems, col, mat, lab, res=0.014, tris=8000, smooth=2):
+        """A creature blocked out the way sculptors start one: muscle masses as metaballs that melt into each other
+        (a keel of a chest, haunches, a neck), limbs as capsules, carved by negative masses; meshed, relaxed and
+        decimated to `tris`. elems: ("e", centre, (rx, ry, rz)[, neg]) ellipsoids; ("c", a, b, r[, neg]) capsules.
+        Sizes are the surface's own (metres). UVs are boxed per face so a tile lies flat on every side."""
+        K = 1.0 / 0.57                                   # at threshold 0.6, stiffness 2: surface ~0.57 of the radius
+        mb = bpy.data.metaballs.new("meta")
+        mb.resolution = res
+        mb.render_resolution = res
+        mb.threshold = 0.6
+        ob = bpy.data.objects.new("meta", mb)
+        bpy.context.scene.collection.objects.link(ob)
+        bl = lambda p: Vector((float(p[0]), float(-p[2]), float(p[1])))
+        for e in elems:
+            if e[0] == "e":
+                el = mb.elements.new(type='ELLIPSOID')
+                el.co = bl(e[1])
+                rx, ry, rz = e[2]
+                m = min(rx, ry, rz)
+                el.radius = m * K
+                el.size_x, el.size_y, el.size_z = rx / m, rz / m, ry / m
+                neg = len(e) > 3 and e[3]
+            else:
+                a, b, r = np.asarray(e[1], dtype=np.float64), np.asarray(e[2], dtype=np.float64), e[3]
+                el = mb.elements.new(type='CAPSULE')
+                el.co = bl((a + b) * 0.5)
+                el.radius = r * K
+                el.size_x = float(np.linalg.norm(b - a)) * 0.5
+                el.rotation = Vector((1.0, 0.0, 0.0)).rotation_difference((bl(b) - bl(a)).normalized())
+                neg = len(e) > 4 and e[4]
+            el.stiffness = 2.0
+            el.use_negative = bool(neg)
+        dg = bpy.context.evaluated_depsgraph_get()
+        me = bpy.data.meshes.new_from_object(ob.evaluated_get(dg))
+        bpy.data.objects.remove(ob)
+        o2 = bpy.data.objects.new("metamesh", me)
+        bpy.context.scene.collection.objects.link(o2)
+        if smooth:
+            sm = o2.modifiers.new("Smooth", 'SMOOTH')
+            sm.factor = 0.5
+            sm.iterations = smooth
+        cur = len(me.polygons) * 2
+        if tris and cur > tris:
+            d = o2.modifiers.new("Dec", 'DECIMATE')
+            d.ratio = tris / cur
+        dg = bpy.context.evaluated_depsgraph_get()
+        m2 = o2.evaluated_get(dg).to_mesh()
+        base = len(self.v)
+        P = [V(v.co.x, v.co.z, -v.co.y) for v in m2.vertices]
+        for q in P:
+            self.vert(q, col(0, 0, q) if callable(col) else col, (q[0] + q[2], q[1]), lab(q) if callable(lab) else lab)
+        for poly in m2.polygons:
+            vs = list(poly.vertices)
+            nrm = np.abs(np.array([poly.normal.x, poly.normal.z, -poly.normal.y]))
+            ax = int(np.argmax(nrm))
+            uv = [((P[i][2], P[i][1]) if ax == 0 else ((P[i][0], P[i][2]) if ax == 1 else (P[i][0], P[i][1]))) for i in vs]
+            self.fuv[len(self.faces)] = uv
+            self.faces.append([base + i for i in vs])
+            self.fmat.append(mat)
+        o2.evaluated_get(dg).to_mesh_clear()
+        bpy.data.objects.remove(o2)
+        return P
+
     def mesh(self, P, F, col, mat, lab, FUV=None):
         """A finished surface (vertices in rig space, faces as index lists), e.g. a retargeted MakeHuman body.
         FUV: per-face lists of corner UVs (metres), the mesh's own unwrap; without it a flat projection."""
