@@ -164,6 +164,33 @@ static func reserve(root: Node) -> void:
 	# --- the east marches ---
 	var east_pois: Variant = load(R37E_PATH)
 	east_pois.reserve(root, skip)
+	_reaches("reserve", root)
+
+
+## The Far Reaches' place builders (docs/far_reaches.md) and the ones round the old Realm's set pieces: each
+## a script with static reserve(root) (before the stamp and the flora) and build(holder) (after the flora), skipped
+## until written. --no-reaches-pois skips them all (A/B).
+const REACH_POIS := [
+	"res://core/world/realm/realm_pois_west_reach.gd",
+	"res://core/world/realm/realm_pois_east_reach.gd",
+	"res://core/world/realm/realm_pois_deep_south.gd",
+	"res://core/world/realm/rift_rim.gd",
+	"res://core/world/realm/ossuary_ground.gd",
+	"res://core/world/realm/realm_vistas.gd",
+]
+
+
+static func _reaches(step: String, node: Node) -> void:
+	if "--no-reaches-pois" in OS.get_cmdline_user_args():
+		return
+	for path: String in REACH_POIS:
+		if not ResourceLoader.exists(path):
+			continue
+		var s := load(path) as GDScript
+		if s == null or not s.can_instantiate():
+			push_error("RealmPois: %s failed to load" % path)
+			continue
+		s.call(step, node)
 
 
 ## Each place faces where the player comes from.
@@ -257,6 +284,7 @@ static func build(root: Node) -> void:
 	# --- the east marches ---
 	var east_pois: Variant = load(R37E_PATH)
 	east_pois.build(holder)
+	_reaches("build", holder)
 	# r33: the places are named by the zone discovery (realm_discovery.gd: regions + subzones, the
 	# carved banner, Events.region_discovered); world events (world_events.gd) pick their sites here
 	if root.get_node_or_null("Discovery") == null:

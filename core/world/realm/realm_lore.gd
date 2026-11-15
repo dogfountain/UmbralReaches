@@ -22,6 +22,10 @@ const PARTS := [
 	"res://core/world/realm/lore/south_marches_places.gd",
 	# --- west marches ---
 	"res://core/world/realm/lore/west_marches_places.gd",
+	# the Far Reaches (docs/far_reaches.md): each area's writings, skipped until written
+	"res://core/world/realm/lore/west_reach_places.gd",
+	"res://core/world/realm/lore/east_reach_places.gd",
+	"res://core/world/realm/lore/deep_south_places.gd",
 ]
 
 
