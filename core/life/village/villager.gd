@@ -858,13 +858,22 @@ func _pose(dt: float) -> void:
 				arms_free = [false, true]
 				head_pitch += 0.4
 		"warm" when tool_l == "lantern" or tool_r in ["pole", "staff", "crook", "spade", "candle"]:
-			head_pitch += 0.12          # hands full: just stands to the fire
+			head_pitch += 0.12          # hands full: just stands to the fire, the shoulders hunched and turning with the heat
+			r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, -0.1) * Quaternion(Vector3.UP, 0.25 * sin(_t * 0.6 + float(hash(id) % 5))))
+			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.UP, 0.2 * sin(_t * 0.6 + float(hash(id) % 5))) * Quaternion(Vector3.FORWARD, 0.04 * sin(_t * 8.0)))
 		"warm":
-			var rub := sin(_t * 4.6) * 0.07
-			r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.14 - stoop * 0.4 + 0.04 * sin(_t * 1.3)))
-			r.q(B_CHEST, Quaternion(Vector3.FORWARD, 0.04 * sin(_t * 9.0)) * Quaternion(Vector3.RIGHT, -0.08))
-			r.arm_to("r", Vector3(0.1 + rub, 0.98, -0.4) * k, Vector3(0.9, -0.6, 0.2), null)
-			r.arm_to("l", Vector3(-0.1 + rub, 0.98, -0.4) * k, Vector3(-0.9, -0.6, 0.2), null)
+			# a cycle of about 4.5 s read from the body at 15 m: the hands pushed out to the glow (the body leaning in after them),
+			# then drawn back in to the chest with the shoulders hunched, the whole body turning side to side to the fire, a stamp
+			var wc := fposmod(_t * 0.22 + float(hash(id) % 5) * 0.2, 1.0)
+			var out := smoothstep(0.0, 0.2, wc) * (1.0 - smoothstep(0.55, 0.72, wc))
+			var rub := sin(_t * 5.0) * 0.05 * out
+			var turn_w := sin(_t * 0.8 + float(hash(id) % 5))
+			r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.04 - 0.2 * out + 0.1 * (1.0 - out) - stoop * 0.4) * Quaternion(Vector3.UP, 0.2 * turn_w))
+			r.q(B_CHEST, Quaternion(Vector3.UP, 0.3 * turn_w) * Quaternion(Vector3.RIGHT, -0.1 * (1.0 - out)) * Quaternion(Vector3.FORWARD, 0.05 * sin(_t * 9.0) * (1.0 - out)))
+			var hand_out := Vector3(0.13 + rub, 1.04, -0.62)
+			var hand_in := Vector3(0.1, 1.2, -0.2)
+			r.arm_to("r", hand_out.lerp(hand_in, 1.0 - out) * k, Vector3(0.9, -0.6, 0.2), null)
+			r.arm_to("l", Vector3(-hand_out.x + 0.26 * 0.0 - rub * 2.0, hand_out.y, hand_out.z).lerp(Vector3(-hand_in.x, hand_in.y, hand_in.z), 1.0 - out) * k, Vector3(-0.9, -0.6, 0.2), null)
 			arms_free = [false, false]
 			head_pitch += 0.15
 		"chat":
@@ -875,6 +884,14 @@ func _pose(dt: float) -> void:
 				arms_free[1] = false
 				head_pitch += 0.05 * bt0
 			r.q(B_SPINE, Quaternion(Vector3.FORWARD, 0.03 * sin(_t * 0.4)) * Quaternion(Vector3.RIGHT, -stoop * 0.4))
+		"watch":
+			# keeping watch: the shoulders and head sweep from side to side and hold at each end (a lookout reads by the turn)
+			var wv := sin(_t * 0.42 + float(hash(id) % 7))
+			var wt := signf(wv) * smoothstep(0.25, 0.8, absf(wv))
+			r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.UP, 0.4 * wt) * Quaternion(Vector3.RIGHT, -0.12 * absf(wt)))     # and peers out
+			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.UP, 0.5 * wt) * Quaternion(Vector3.RIGHT, -0.08 * absf(wt)))
+			_shift_x = 0.05 * wt
+			head_pitch += 0.1 * absf(wt)
 		"look_up":
 			r.q(B_CHEST, Quaternion(Vector3.RIGHT, 0.08))
 			head_pitch -= 0.5
@@ -994,6 +1011,11 @@ func _pose(dt: float) -> void:
 	if cur in ["idle", "watch", "attend", "warm", "look_up", "read", "knock", "chat", "sell"] and walk_amt < 0.1 and not _turn_on:
 		# standing is never still (villager_idle.gd): the weight from foot to foot, the look-around, and now and then a larger gesture
 		head_pitch += Idle.stand(self, k, arms_free[0] and tool_r == "", arms_free[1] and tool_l == "", breath)
+	if cur == "warm" and state == "act" and tool_l != "lantern":
+		var stp := pow(maxf(0.0, sin(_t * 1.9)), 6.0)            # a stamp every few seconds, on alternate feet
+		var sd := B_THIGH_R if sin(_t * 0.95) > 0.0 else B_THIGH_L
+		r.q(sd, (r.get_q(sd) as Quaternion) * Quaternion(Vector3.RIGHT, 0.7 * stp))
+		r.q(sd + 1, (r.get_q(sd + 1) as Quaternion) * Quaternion(Vector3.RIGHT, -1.1 * stp))
 	if _foot_push > 0.001 and cur == "dig":
 		r.q(B_THIGH_R, Quaternion(Vector3.RIGHT, 0.55 * _foot_push))
 		r.q(B_SHIN_R, Quaternion(Vector3.RIGHT, -0.75 * _foot_push))

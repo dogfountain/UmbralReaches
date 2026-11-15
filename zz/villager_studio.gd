@@ -35,10 +35,11 @@ class Stub extends Node:
 			"@wheel": Vector3(0.0, 0.86, -0.48), "@fire": Vector3(0.0, 0.2, -1.1), "@pit": Vector3(0.0, 0.0, -0.8)}.get(n, Vector3(0.0, 0.5, -0.7))
 
 	func strike(_v: Node) -> void:
-		pass
+		Vfx.burst(Vector3(0.0, 0.9, -0.75), Color(1.0, 0.62, 0.22), {"count": 16, "life": 0.55, "speed": Vector2(1.5, 4.2), "size": 0.022, "gravity": -9.0, "spread": 75.0, "dir": Vector3.UP, "damping": 0.6})
 
 	func quench(_v: Node) -> void:
-		pass
+		# village.gd's own steam
+		Vfx.burst(Vector3(0.0, 0.63, -1.29), Color(0.82, 0.84, 0.9, 0.45), {"count": 22, "life": 1.8, "speed": Vector2(0.3, 1.1), "size": 0.28, "gravity": 0.5, "spread": 25.0, "dir": Vector3.UP, "additive": false, "grow": 2.0})
 
 	func chop(_v: Node) -> void:
 		pass
@@ -47,7 +48,7 @@ class Stub extends Node:
 		pass
 
 	func grind_sparks(_v: Node) -> void:
-		pass
+		Vfx.burst(Vector3(0.0, 0.86, -0.48), Color(1.0, 0.75, 0.35), {"count": 10, "life": 0.4, "speed": Vector2(2.0, 4.0), "size": 0.015, "gravity": -9.0, "spread": 25.0, "dir": Vector3(0, 0.3, -1).normalized()})
 
 	func lamp_needs(_i: String) -> bool:
 		return false
@@ -109,6 +110,21 @@ func _ready() -> void:
 	glow.omni_range = 7.0
 	glow.position = Vector3(0.2, 1.2, -1.0)
 	add_child(glow)
+	# the forge's props at their real offsets: the anvil, and the quench barrel
+	var anvil := MeshInstance3D.new()
+	var abox := BoxMesh.new()
+	abox.size = Vector3(0.22, 0.3, 0.5)
+	anvil.mesh = abox
+	anvil.position = Vector3(0.0, 0.72, -0.75)
+	add_child(anvil)
+	var barrel := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.3
+	cyl.bottom_radius = 0.3
+	cyl.height = 0.62
+	barrel.mesh = cyl
+	barrel.position = Vector3(0.0, 0.31, -1.29)
+	add_child(barrel)
 	var fl := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(80, 80)

@@ -36,12 +36,16 @@ static func quench(v: Variant, k: float) -> void:
 	var u: float = v.act_t / v.act_len
 	var lift := smoothstep(0.0, 0.18, u) * (1.0 - smoothstep(0.2, 0.34, u))          # up and out of the fire
 	var dip := smoothstep(0.34, 0.46, u) * (1.0 - smoothstep(0.78, 0.9, u))          # plunged and held
-	var shake := 0.03 * sin(v._t * 14.0) * dip                                       # the hiss
+	var shake := 0.05 * sin(v._t * 14.0) * dip                                       # the hiss
 	var above := water + Vector3.UP * 0.45
 	var tip := above.lerp(water + Vector3.DOWN * 0.08, dip) + Vector3(0.0, 0.5 * lift, 0.2 * lift) * k + Vector3(shake, 0.0, 0.0)
 	var d := (tip - Vector3(-0.15, 1.0, -0.2) * k).normalized()
-	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.12 - 0.3 * dip + 0.2 * lift))
-	r.q(B_CHEST, Quaternion(Vector3.UP, -0.35 * lift))
+	# the whole body carries it: a turn of the shoulders to the barrel, the waist bent over it for the plunge (the knees give),
+	# the back straightening as the iron comes out
+	var turn := smoothstep(0.1, 0.34, u) * (1.0 - smoothstep(0.84, 0.98, u))
+	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.12 - 0.62 * dip + 0.2 * lift) * Quaternion(Vector3.UP, 0.18 * turn))
+	r.q(B_CHEST, Quaternion(Vector3.UP, -0.35 * lift + 0.3 * turn) * Quaternion(Vector3.RIGHT, -0.28 * dip))
+	v._dip = -0.045 * dip
 	r.hold(1, tip - d * tl.length(), d, Vector3.DOWN, Vector3(-0.9, -0.4, 0.3))
 
 
