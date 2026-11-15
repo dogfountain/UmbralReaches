@@ -51,7 +51,7 @@ const LOOKS := {
 	"fallow": {"tree_mul": {"oak": 0.25, "birch": 0.3, "pine": 0.0, "sapling": 0.2}, "tree_add": {"willow": 0.004},
 		"under_mul": {"grass": 1.1, "flowers": 1.6, "heather": 0.2}, "under_add": {"tallgrass": 0.14, "shrub": 0.01},
 		"tint": Color(0.98, 0.95, 0.84)},
-	"arches": {"tree_mul": {"oak": 0.2, "birch": 0.3, "pine": 0.2, "sapling": 0.4, "snag": 0.5}, "tree_add": {"yew": 0.004},
+	"arches": {"tree_mul": {"oak": 0.05, "birch": 0.1, "pine": 0.05, "sapling": 0.15, "snag": 0.3}, "tree_add": {"yew": 0.001},      # an open valley: the aqueduct is seen
 		"under_mul": {"grass": 1.0, "tallgrass": 1.2, "flowers": 0.8}, "under_add": {"moss": 0.02, "bramble": 0.006},
 		"tint": Color(0.92, 0.92, 0.84), "props": {"rubble": 0.06, "block": 0.008}, "stone_mul": 1.6},
 	"southwood": {"tree_mul": {"oak": 1.2, "pine": 0.6, "birch": 0.5}, "tree_add": {"yew": 0.03, "snag": 0.006},

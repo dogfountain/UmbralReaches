@@ -104,3 +104,4 @@ static func scarp(p: Vector2, h: float, m: float) -> float:
 	var now := SCARP_DROP * fall
 	var lip := LIP * exp(-pow((z - (line - face * 0.5 - 4.0)) / 7.0, 2.0)) * (1.0 - near_way * 0.8)
 	return h + m * wide * ((was - now) + lip)
+
