@@ -1,6 +1,7 @@
 extends Node
 ## Stills from a free camera in the real night (windowed; in memory only, saves held).
 ##   godot --path . res://zz/free_shots.tscn -- --out=<dir> [--tag=after] --view=name:cx:cy:cz:tx:ty:tz ...
+##   --hit=m   a big hit spark m metres in front of the camera before each shot
 ##   --kindle   light every brazier first
 ##   --stand=name:tx:tz:ty:dist:up:yawdeg   a stand-off view: look at the world point (tx, ground + ty) from dist m back
 ##       along bearing yawdeg (0 = camera south of the point, 90 = east of it) and up m higher; the eye is pushed
@@ -23,6 +24,7 @@ var bell := Vector3.ZERO         ## --bell=x:z puts a bell prop on the ground th
 var bell_kind := "bell"
 var kindle := false               ## --kindle: every brazier in the world is lit first (Brazier.kindle_quiet)
 var kindled := false
+var hit := 0.0                    ## --hit=metres: a hit spark (Vfx.impact, big) goes off that far in front of the camera 3 frames before each shot
 var lamp := false                ## --lamp: a lantern-warm light beside the bell
 
 
@@ -35,6 +37,8 @@ func _ready() -> void:
 			out = a.trim_prefix("--out=")
 		elif a.begins_with("--tag="):
 			tag = a.trim_prefix("--tag=")
+		elif a.begins_with("--hit="):
+			hit = float(a.trim_prefix("--hit="))
 		elif a == "--kindle":
 			kindle = true
 		elif a == "--lamp":
@@ -100,6 +104,9 @@ func _process(_d: float) -> void:
 		_hold()
 	if wait > 0:
 		wait -= 1
+		if hit > 0.0 and wait == 3 and i >= 0:
+			var at := cam.global_position - cam.global_basis.z * hit
+			Vfx.impact(at, Color(1.0, 0.62, 0.3), cam.global_basis.z, true)
 		return
 	if i >= 0:
 		var path := out.path_join("%s_%s.png" % [views[i][0], tag])

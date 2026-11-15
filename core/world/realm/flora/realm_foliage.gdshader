@@ -170,6 +170,11 @@ void fragment() {
 	float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
 	// the brighter the leaf, the more chroma it gives up (dark leaves keep their deep greens); a touch of warmth back
 	c = mix(c, vec3(lum) * vec3(1.06, 1.0, 0.86), (ground ? 0.0 : lit_desat) * smoothstep(0.03, 0.25, lum));
+	// the brightest crowns (young birches, sunlit oak tips) took the moon at full value: a shoulder keeps them leaf-green, not mint
+	if (!ground) {
+		float lum2 = dot(c, vec3(0.2126, 0.7152, 0.0722));
+		c /= 1.0 + 2.0 * max(lum2 - 0.14, 0.0);
+	}
 	ALBEDO = c * mottle;
 	ROUGHNESS = roughness;
 	vec3 thin = mix(ALBEDO, vec3(dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722))) * vec3(1.05, 1.0, 0.8), (ground ? 0.2 : transmit_desat));

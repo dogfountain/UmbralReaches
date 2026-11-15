@@ -546,6 +546,13 @@ void fragment() {
 	vec3 w = tri_w(n);
 	vec3 p = wpos * tex_scale;
 	vec3 alb = texture(albedo_tex, p.zy).rgb * w.x + texture(albedo_tex, p.xz).rgb * w.y + texture(albedo_tex, p.xy).rgb * w.z;
+	// r38: one tile repeating at 3 m under a strong per-block contrast read as a checkerboard. A second sample at another
+	// scale and turn hides the repeat, and the blocks' tone range comes in toward the mean (worn ashlar, not a mosaic)
+	vec3 p2 = vec3(p.x * 0.73 + p.z * 0.31, p.y * 0.73, p.z * 0.73 - p.x * 0.31) + vec3(0.37, 0.11, 0.53);
+	vec3 alb2 = texture(albedo_tex, p2.zy).rgb * w.x + texture(albedo_tex, p2.xz).rgb * w.y + texture(albedo_tex, p2.xy).rgb * w.z;
+	alb = mix(alb, alb2, 0.5);
+	float alum = dot(alb, vec3(0.2126, 0.7152, 0.0722));
+	alb = mix(vec3(alum), alb, 0.9) * mix(1.0, 0.35 / max(alum, 0.05), 0.35);
 	float rough = texture(rough_tex, p.zy).r * w.x + texture(rough_tex, p.xz).r * w.y + texture(rough_tex, p.xy).r * w.z;
 	// whiteout-blended triplanar normal
 	vec3 tx = texture(normal_tex, p.zy).xyz * 2.0 - 1.0;
