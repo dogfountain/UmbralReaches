@@ -33,7 +33,8 @@ const TOWNS := {
 ## How far out a town's edge is (its region's radius; the Far Reaches' towns are smaller).
 const TOWN_EDGE := {"Hearthward": 36.0, "Weirford": 28.0, "Saltmarket": 22.0, "Lastlight": 24.0, "Fallowmere": 22.0, "Reedholm": 16.0}
 ## Homes that are not towns (the fire nearest is home).
-const PLACES := {"Kings' Barrows": Vector2(-318.0, 96.0), "the Cairns": Vector2(300.0, 286.0), "the Siege Lines": Vector2(-214.0, 100.0)}
+const PLACES := {"Kings' Barrows": Vector2(-318.0, 96.0), "the Cairns": Vector2(300.0, 286.0), "the Siege Lines": Vector2(-214.0, 100.0),
+	"the Southwood": Vector2(150.0, 296.0), "the Long Arches": Vector2(-24.0, 318.0), "the Greyfell": Vector2(-310.0, -66.0)}
 
 const NEAR_ON := 92.0             ## a party's people are made real within this of the camera
 const NEAR_OFF := 108.0           ## and put away past this (their rigs have faded by then)

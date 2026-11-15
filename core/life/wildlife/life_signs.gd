@@ -16,6 +16,7 @@ extends Node3D
 const LifeKit := preload("res://core/life/wildlife/life_kit.gd")
 const LifePlace := preload("res://core/life/wildlife/life_place.gd")
 const Birds := preload("res://core/life/wildlife/life_birds.gd")
+const Beasts := preload("res://core/life/wildlife/life_beasts.gd")
 const Reaches := preload("res://core/life/wildlife/life_reaches.gd")
 const ScapeSynth := preload("res://core/life/wildlife/scape_synth.gd")
 const HorseRig := preload("res://core/world/mount/horse_rig.gd")
@@ -53,9 +54,9 @@ const LIGHTS := [
 	["kingsbarrows", "barrow", 3], ["barrows", "barrow", 1], ["lanternwood", "wood", 4],
 ]
 const LIGHT_LOOK := {
-	"marsh": [Color(0.55, 0.95, 0.8), 1.4, 0.18],
-	"barrow": [Color(0.62, 0.78, 1.0), 1.3, 0.16],
-	"wood": [Color(0.42, 0.85, 1.0), 1.25, 0.15],
+	"marsh": [Color(0.55, 0.95, 0.8), 1.6, 0.22],
+	"barrow": [Color(0.62, 0.78, 1.0), 1.5, 0.2],
+	"wood": [Color(0.42, 0.85, 1.0), 1.45, 0.19],
 }
 
 ## Woods where eyes watch the ways: [region, clusters].
@@ -178,6 +179,13 @@ func _carrion(root: Node, space: PhysicsDirectSpaceState3D, add: Callable) -> vo
 		g.name = "CrowsCarrion_%s" % rid
 		g.setup("crow", perches, mini(5, perches.size() - 2), SEED + 131 * i)
 		add.call(g)
+		# a fox at it, nosing at the carcass between the ravens (it bolts when you come, like any fox, and comes back)
+		var fq := spot + Vector2(cos(yaw), -sin(yaw)) * 1.9
+		if LifePlace.open_ground(fq.x, fq.y) and not RL.in_water(fq.x, fq.y):
+			var fox := Beasts.new()
+			fox.name = "FoxCarrion_%s" % rid
+			fox.setup("fox", [Vector3(fq.x, LifePlace.ground(space, fq.x, fq.y), fq.y)] as Array[Vector3], SEED + 977 * i)
+			add.call(fox)
 		var tr: Variant = director.get("tracks")
 		if tr != null:
 			for k in 5:
@@ -352,7 +360,8 @@ func _light_field(c: Vector2, kind: String) -> void:
 		var q := Vector2(_rng.randf_range(-spread, spread), _rng.randf_range(-spread, spread))
 		var y := RL.water_y_at(c.x + q.x, c.y + q.y) if kind == "marsh" and RL.in_water(c.x + q.x, c.y + q.y) else RL.height_at(c.x + q.x, c.y + q.y)
 		mm.set_instance_transform(k, Transform3D(Basis.IDENTITY, Vector3(q.x, y - gy, q.y)))
-		mm.set_instance_custom_data(k, Color(_rng.randf_range(1.5, 4.5), _rng.randf_range(0.05, 0.14), _rng.randf_range(0.5, 1.4) if kind != "wood" else _rng.randf_range(0.6, 2.2), _rng.randf_range(0.0, TAU)))
+		# they hang over the reeds and the heather (the grass is knee-high: lower, they are lost in it)
+		mm.set_instance_custom_data(k, Color(_rng.randf_range(1.5, 4.5), _rng.randf_range(0.05, 0.14), _rng.randf_range(1.3, 2.6) if kind != "wood" else _rng.randf_range(1.2, 3.2), _rng.randf_range(0.0, TAU)))
 	mm.custom_aabb = AABB(Vector3(-spread - 6, -3, -spread - 6), Vector3(spread * 2 + 12, 8, spread * 2 + 12))
 	var mmi := MultiMeshInstance3D.new()
 	mmi.name = "Lights_" + kind
