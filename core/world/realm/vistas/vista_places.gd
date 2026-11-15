@@ -188,6 +188,9 @@ static func _beacon(host: Node3D, b: Dictionary) -> bool:
 	perch.name = "GlidePerch"
 	perch.position = Vector3(0.0, FLOOR + 0.1, 0.0)
 	perch.add_to_group(&"glide_perch")
+	var yaw := float(sp.yaw)
+	perch.set_meta("facing", Vector3(sin(yaw), 0.0, cos(yaw)))      # the metas every perch carries (realm_pois.gd _perch)
+	perch.set_meta("drop", FLOOR)
 	root.add_child(perch)
 	return true
 
