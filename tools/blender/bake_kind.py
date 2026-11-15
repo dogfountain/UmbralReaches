@@ -281,8 +281,8 @@ def wire_albedo(N):
     ao_b = _math(nt, 'MULTIPLY_ADD', N["ao2"].outputs["AO"], 0.45, 0.55)
     c = _mix(nt, c, ao_b, 1.0, 'MULTIPLY')
     # edges: pointiness above its mean rubs the surface lighter
-    pt = _math(nt, 'SUBTRACT', N["geo"].outputs["Pointiness"], 0.52)
-    pt = _math(nt, 'MULTIPLY', pt, 14.0, clamp=True)
+    pt = _math(nt, 'SUBTRACT', N["geo"].outputs["Pointiness"], 0.56)     # only real edges, not the sculpt's grain
+    pt = _math(nt, 'MULTIPLY', pt, 5.0, clamp=True)
     pt = _math(nt, 'MULTIPLY', pt, N["r_wear"].outputs["Color"])
     c = _mix(nt, c, (1.0, 0.96, 0.9, 1.0), pt, 'SCREEN')
     return c
