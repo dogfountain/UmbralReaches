@@ -21,7 +21,7 @@ const AGENT_HEIGHT := 1.8
 const MAX_CLIMB := 0.625                  ## with a 0.5 m cell the ledge filter drops ramps steeper than atan(climb / cell): 0.4 lost every 27 degree stair (the fen and Counting stairs)
 const MAX_SLOPE := 40.0
 const WAIT_MS := 20000                    ## the loading screen never waits longer than this (twice the ground, was 12 s)
-const AREA := AABB(Vector3(-382.0, -60.0, -160.0), Vector3(764.0, 320.0, 570.0))     ## BOUNDS + 12 m (was x -272..272, z -160..252)
+const AREA := AABB(Vector3(-382.0, -60.0, -160.0), Vector3(764.0, 105.0, 570.0))     ## BOUNDS + 12 m (was x -272..272, z -160..252); nothing walks above y 45 (the probe point used to land on a Crowns peak island, which the map took ~27 s to answer for)
 
 ## Last build's numbers (read by zz/nav_test).
 static var info := {}
@@ -69,8 +69,8 @@ static func _settings(tile := AABB()) -> NavigationMesh:
 	nm.agent_max_slope = MAX_SLOPE
 	nm.region_min_size = 4.0
 	nm.region_merge_size = 20.0
-	nm.edge_max_length = 12.0
-	nm.edge_max_error = 0.4
+	nm.edge_max_length = 24.0                 # coarser polygons (were 12 m / 0.4): the doubled Realm's 152k polygons took the
+	nm.edge_max_error = 0.8                   # server ~24 s to join across the tiles (enemies flat-steered till then); 77k, ~4.6 s
 	var a := AREA if tile.size == Vector3.ZERO else tile
 	nm.filter_baking_aabb = a
 	return nm
