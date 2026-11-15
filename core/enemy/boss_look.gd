@@ -18,6 +18,7 @@ const SURFACES := {
 	"wood": ["wood", Vector2(1.5, 1.5), 0.0, 1.0, 1.0, 0.0, false],
 	"stone": ["iron", Vector2(0.8, 0.8), 0.0, 1.5, 1.4, 0.0, false],
 	"glow": ["iron", Vector2(1.0, 1.0), 0.0, 1.0, 0.0, 0.0, false],
+	"skin": ["leather", Vector2(2.6, 2.6), 0.0, 1.05, 0.8, 0.25, false],
 }
 static var _means := {}
 
@@ -93,7 +94,7 @@ static func material(kind: StringName, surface: String) -> ShaderMaterial:
 
 
 ## The surface layers of a built model, in the order tools/blender/boss_build.py LAYERS writes them into UV2.x.
-const LAYERS := ["wool", "linen", "trim", "leather", "bone", "gilt", "iron", "wood", "stone", "glow"]
+const LAYERS := ["wool", "linen", "trim", "leather", "bone", "gilt", "iron", "wood", "stone", "glow", "skin"]
 const TILES := ["wool", "trim", "leather", "iron", "wood"]
 static var _arrays := {}
 

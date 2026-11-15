@@ -155,15 +155,177 @@ def body(g, col, mat="leather", girth=1.0, belly=0.0, limb=1.0, head=1.0, neck=1
             B.hand(g, sx, col, "hand_" + side(sx), closed=0.5)
 
 
-def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="leather"):
+def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin"):
     """A MakeHuman body (mh_body.py), shaped by `macro` (gender, age, muscle, weight, proportions, height: 0..1),
     retargeted to the rig, with coals in the eyes."""
     import mh_body
-    P, F, eyes = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris)
-    g.mesh(P, F, col, mat, body_label)
+    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris)
+    g.mesh(P, F, col, mat, L, FUV)
     for e in eyes:
         if e is not None:
             g.ball(e + V(0, 0, -0.004), eye_r, eye, "glow", "head", n=6)
+    bd = Body(P, F, FUV, L)
+    bd.eyes = [e for e in eyes if e is not None]
+    return bd
+
+
+class Body:
+    """A built human kept for dressing: garments and armour are cut from its own surface (wear()), so they fit."""
+
+    def __init__(self, P, F, FUV, L):
+        self.P = np.asarray(P, dtype=np.float64)
+        self.F = F
+        self.FUV = FUV
+        N = np.zeros_like(self.P)
+        for f in F:
+            for k in range(1, len(f) - 1):
+                a, b, c = self.P[f[0]], self.P[f[k]], self.P[f[k + 1]]
+                n = np.cross(b - a, c - a)
+                N[f[0]] += n
+                N[f[k]] += n
+                N[f[k + 1]] += n
+        N /= np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-12)
+        ax = self.P.copy()
+        ax[:, 0] = np.where(np.abs(self.P[:, 0]) > 0.19, np.sign(self.P[:, 0]) * 0.24, 0.0)    # limbs' own axes, roughly
+        ax[:, 2] = 0.0
+        if float(np.sum(N * (self.P - ax), axis=1).mean()) < 0.0:
+            N = -N
+        self.N = N
+        self.L = list(L)
+
+
+def contour(b, y, labels=("chest",), off=0.02, bins=32, band=0.025):
+    """The body's cross-section at height y as a loop of points lifted `off` off the skin: [(angle, point)], angle
+    0 at the back, +-pi at the front (atan2(x, z)). For ribs and straps that hug the torso instead of an ellipse."""
+    pts = [(b.P[i], b.N[i]) for i in range(len(b.P)) if b.L[i] in labels and abs(b.P[i][1] - y) < band]
+    if not pts:
+        return []
+    cz = float(np.mean([p[2] for p, _ in pts]))
+    cx = float(np.mean([p[0] for p, _ in pts]))
+    best = {}
+    for p, nrm in pts:
+        a = math.atan2(p[0] - cx, p[2] - cz)
+        k = int((a + math.pi) / TAU * bins) % bins
+        r = math.hypot(p[0] - cx, p[2] - cz)
+        if k not in best or r > best[k][0]:
+            best[k] = (r, p, nrm)
+    out = []
+    for k in sorted(best):
+        r, p, nrm = best[k]
+        q = p + nrm * off
+        q = np.array([q[0], y, q[2]])
+        out.append((math.atan2(q[0] - cx, q[2] - cz), q))
+    return out
+
+
+def line(b, labels, ys, ang, off=0.02):
+    """A line down a limb's surface: at each height the contour point nearest the angle `ang` (0 back, pi front,
+    + toward the rig's +x). For a bone laid along a shin or a strap down the chest."""
+    out = []
+    for y in ys:
+        loop = contour(b, y, labels, off=off, band=0.03)
+        if loop:
+            out.append(min(loop, key=lambda t: abs(math.remainder(t[0] - ang, TAU)))[1])
+    return out
+
+
+def girdle(g, b, y, drop, labels, off, flare, col, mat, lab, bins=40, thick=0.012, rows=3, rim=True):
+    """A band hung round the body from its own cross-section at height y: fauld lames, a skirt, a belt. It falls
+    `drop` metres and flares `flare` outward as it goes, closed round, with thickness and a rolled hem."""
+    loop = sorted(contour(b, y, labels, off=off, bins=bins), key=lambda t: t[0])
+    if len(loop) < 8:
+        return
+    Q = [q for _, q in loop]
+    cx = float(np.mean([q[0] for q in Q]))
+    cz = float(np.mean([q[2] for q in Q]))
+    def ringat(t, inset):
+        out = []
+        for q in Q:
+            rd = np.array([q[0] - cx, 0.0, q[2] - cz])
+            rd /= max(np.linalg.norm(rd), 1e-9)
+            out.append(q + rd * (flare * t - inset) + V(0, -drop * t, 0))
+        return out
+    n = len(Q)
+    for inset, flip in ((0.0, False), (thick, True)):
+        g.grid([ringat(i / rows, inset) for i in range(rows + 1)], col, mat, lab,
+               lambda i, j, p: (j / n * 1.2, i / rows * drop), wrap=True, flip=flip)
+    if rim:
+        hem = ringat(1.0, thick * 0.5)
+        g.tube(hem + hem[:1], thick * 0.8, col, mat, lab, n=6)
+
+
+def dome(g, at, axis, r, a0, a1, col, mat, lab, n=20, m=5, thick=0.014, arc=TAU, phi0=0.0, rim=True):
+    """A spherical zone about `axis` through `at`, polar angles a0..a1 (0 at the pole): a pauldron, a lame, a cap.
+    Given thickness and a rolled rim, so it reads as plate and not paper."""
+    ax = np.asarray(axis, dtype=np.float64)
+    ax /= np.linalg.norm(ax)
+    e1 = np.cross(ax, V(0, 0, 1.0))
+    if np.linalg.norm(e1) < 1e-3:
+        e1 = np.cross(ax, V(1.0, 0, 0))
+    e1 /= np.linalg.norm(e1)
+    e2 = np.cross(ax, e1)
+
+    def pt(u, v, rr):
+        ph = phi0 + arc * u
+        th = a0 + (a1 - a0) * v
+        return at + rr * (math.cos(th) * ax + math.sin(th) * (math.cos(ph) * e1 + math.sin(ph) * e2))
+    closed = arc >= TAU - 1e-6
+    nu = n if closed else n + 1
+    for rr, flip in ((r, False), (r - thick, True)):
+        P = [[pt(j / n, i / m, rr) for j in range(nu)] for i in range(m + 1)]
+        g.grid(P, col, mat, lab, lambda i, j, p: (j / n * r * arc, i / m * r * (a1 - a0)), wrap=closed, flip=flip)
+    if rim:
+        ring = [pt(j / n, 1.0, r - thick * 0.5) for j in range(n + (1 if closed else 1))]
+        g.tube(ring, thick * 0.9, col, mat, lab, n=6)
+
+
+def wear(g, b, sel, off, col, mat, thick=0.012, lab=None, cuts=None, smooth=0):
+    """A garment or a plate cut from the body's own surface: the faces whose every corner passes sel(p, label) are
+    lifted `off` metres along the body's normals (off may be fn(p, label)) and given `thick`ness with a rolled edge,
+    so a cuirass follows the ribs it covers and a wrap follows the shin. Keeps the body's unwrap for the tile."""
+    keep = [i for i, f in enumerate(b.F) if all(sel(b.P[v], b.L[v]) for v in f)]
+    if not keep:
+        return
+    idx = sorted({v for i in keep for v in b.F[i]})
+    rm = {v: k for k, v in enumerate(idx)}
+    O = np.array([b.P[v] + b.N[v] * (off(b.P[v], b.L[v]) if callable(off) else off) for v in idx])
+    Nn = b.N[idx]
+    F = [[rm[v] for v in b.F[i]] for i in keep]
+    FU = [b.FUV[i] for i in keep]
+    cnt = {}
+    for f in F:
+        for a, c in zip(f, f[1:] + f[:1]):
+            cnt[(a, c)] = cnt.get((a, c), 0) + 1
+    if cuts:
+        # a cut by height runs along the triangles' edges, a saw; its rim is laid on the height it was cut at
+        rim = {v for (a, c) in cnt if (c, a) not in cnt for v in (a, c)}
+        for v in rim:
+            ys = [c for c in cuts if abs(O[v][1] - c) < 0.045]
+            if ys:
+                O[v][1] = min(ys, key=lambda c: abs(O[v][1] - c))
+    if smooth:
+        # hammered plate does not follow a nose or a lip: relax the shell (its rim held) toward its neighbours
+        nb = [set() for _ in range(len(O))]
+        for (a, c) in cnt:
+            nb[a].add(c)
+            nb[c].add(a)
+        rimset = {v for (a, c) in cnt if (c, a) not in cnt for v in (a, c)}
+        for _ in range(smooth):
+            O2 = O.copy()
+            for v in range(len(O)):
+                if v not in rimset and nb[v]:
+                    O2[v] = O[v] * 0.4 + np.mean([O[u] for u in nb[v]], axis=0) * 0.6
+            O = O2
+    n = len(O)
+    In = O - Nn * thick
+    P2 = np.concatenate([O, In])
+    F2 = F + [[v + n for v in f[::-1]] for f in F]
+    FU2 = FU + [list(u[::-1]) for u in FU]
+    for (a, c) in list(cnt):
+        if (c, a) not in cnt:                                    # an open edge: roll it over to the inner skin
+            F2.append([c, a, a + n, c + n])
+            FU2.append([(0.0, 0.0), (thick * 4, 0.0), (thick * 4, thick * 4), (0.0, thick * 4)])
+    g.mesh(P2, F2, col, mat, lab or ([b.L[v] for v in idx] * 2), FU2)
 
 
 def skull_face(g, col, eye, mat="bone", y=1.75, z=-0.09, w=1.0):
@@ -327,71 +489,106 @@ def quiller():
 
 
 def ossuant():
-    """A walking reliquary of fused bone: ribs as a breastplate, femur greaves, a skull helm crested with ribs."""
+    """A walking reliquary: a starved body bound in its own bones worn outside, ribs laid over the ribs, plates of
+    femur on the thighs, a skull helm over the skull with the coals showing through its sockets, a crest of ribs."""
     g = Geo()
-    BONE, OLD, DARK = (0.82, 0.76, 0.62), (0.6, 0.55, 0.44), (0.02, 0.02, 0.025)
-    legs(g, DARK, "iron", boot=(0.6, 0.55, 0.44), boot_mat="bone", r=(0.07, 0.06, 0.05))
-    for sx in (-1, 1):
-        t = side(sx)
-        g.tube([V(sx * 0.11, 0.92, -0.08), V(sx * 0.11, 0.58, -0.085)], [0.035, 0.03], BONE, "bone", "hip_" + t, n=8)
-        g.tube([V(sx * 0.11, 0.52, -0.075), V(sx * 0.11, 0.1, -0.07)], [0.032, 0.026], BONE, "bone", "knee_" + t, n=8)
-    g.ball(V(0.0, 1.22, 0.0), 0.22, DARK, "iron", "chest", n=12, sy=1.3, sz=0.8)
-    g.tube([V(0.0, 0.95, 0.17), V(0.0, 1.55, 0.15)], 0.03, OLD, "bone", "chest", n=8)
-    for k in range(7):
-        y = 0.98 + 0.075 * k
+    BONE, OLD, SINEW = (0.8, 0.74, 0.6), (0.58, 0.52, 0.42), (0.16, 0.11, 0.1)
+    eye = (1.0, 0.8, 0.45, 0.0)
+    b = human(g, SINEW, eye, macro={"gender": 1.0, "age": 1.0, "muscle": 0.0, "weight": 0.0, "proportions": 0.2, "height": 1.0},
+              girth=0.88, limb=1.0, head=1.0, tris=12000)
+    front = lambda p: p[2] < 0.0
+    # the ribcage: each rib a bar from the spine round the body's own cross-section to the sternum, falling forward
+    for k in range(8):
+        y = 1.40 - 0.052 * k
+        loop = contour(b, y, ("chest",), off=0.02)
         for sx in (-1, 1):
-            g.tube([V(sx * 0.02, y, -0.18), V(sx * 0.16, y - 0.015, -0.13), V(sx * 0.22, y - 0.03, 0.0), V(sx * 0.15, y - 0.02, 0.14)], [0.018, 0.016, 0.014, 0.01], BONE, "bone", "chest", n=6)
-    g.box(V(0.0, 1.18, -0.19), (0.025, 0.24, 0.012), BONE, "bone", "chest")
-    arms(g, DARK, "iron", r=(0.06, 0.05, 0.04))
+            arc = sorted([(abs(a), q) for a, q in loop if a * sx > 0 and 0.25 < abs(a) < 2.85], key=lambda t: t[0])
+            if len(arc) < 4:
+                continue
+            path = [q + V(0, -0.06 * (t - 0.25) / 2.6, 0) for t, q in arc]
+            r = 0.016 - 0.0008 * k
+            g.tube(path, [r * 0.8] + [r] * (len(path) - 2) + [r * 0.7], BONE, "bone", "chest", n=7)
+    wear(g, b, lambda p, l: l == "chest" and 1.0 < p[1] < 1.44 and abs(p[0]) < 0.032 and front(p), 0.04, OLD, "bone", thick=0.016, cuts=[1.0, 1.44])
+    for k in range(13):                                                   # the spine, a knuckle a hand's width
+        y = 0.9 + 0.052 * k
+        loop = contour(b, y, ("chest", "pelvis"), off=0.022)
+        back = [q for a, q in loop if abs(a) < 0.25]
+        if back:
+            g.ball(back[0], 0.022, OLD if k % 2 else BONE, "bone", "pelvis" if y < 0.95 else "chest", n=7, sy=0.7)
+    # collar bones and the girdle
+    wear(g, b, lambda p, l: l == "chest" and 1.44 < p[1] < 1.5 and abs(p[0]) > 0.04, 0.03, BONE, "bone", cuts=[1.44, 1.5])
+    wear(g, b, lambda p, l: l == "pelvis" and 0.84 < p[1] < 0.97, 0.03, OLD, "bone", thick=0.016, cuts=[0.84, 0.97])
     for sx in (-1, 1):
         t = side(sx)
-        g.ball(V(sx * 0.27, 1.42, 0.0), 0.11, BONE, "bone", "shoulder_" + t, n=10, sy=0.6)
-        g.tube([V(sx * 0.27, 1.06, -0.03), V(sx * 0.27, 0.82, -0.04)], [0.045, 0.04], BONE, "bone", "elbow_" + t, n=8)
-        B.hand(g, sx, BONE, "hand_" + t, closed=0.7)
-    g.lathe([(0.0, 1.86), (0.08, 1.84), (0.125, 1.76), (0.135, 1.64), (0.12, 1.56), (0.1, 1.53)], V(0.0, 0.0, 0.0), BONE, "bone", "head", n=18)
-    g.ball(V(0.0, 1.66, 0.0), 0.11, DARK, "iron", "head", n=8)
-    def face(u, v):
-        th = (u - 0.5) * math.radians(100)
-        tooth = abs(((u * 8.0) % 1.0) - 0.5) * 2.0
-        y = 1.71 - 0.17 * v - (0.015 * tooth if v > 0.95 else 0.0)
-        return V(math.sin(th) * 0.13, y, -math.cos(th) * 0.135)
-    g.plate(face, 17, 5, BONE, "bone", "head")
-    B.eyes(g, 1.68, -0.125, 0.048, 0.012, (1.0, 0.8, 0.45, 0.0))
+        # a shoulder blade of bone, a femur down the front of the thigh, a shin bone, the two bones of the forearm
+        dome(g, V(sx * 0.2, 1.36, 0.0), V(sx * 0.5, 1.0, 0.0), 0.12, 0.0, math.radians(62), BONE, "bone", "shoulder_" + t, n=16, m=5, thick=0.012)
+        fem = line(b, ("hip_" + t,), np.linspace(0.72, 0.4, 7), math.pi, off=0.016)
+        if len(fem) > 2:
+            g.tube(fem, [0.022] + [0.017] * (len(fem) - 2) + [0.024], BONE, "bone", "hip_" + t, n=8)
+            g.ball(fem[0], 0.03, OLD, "bone", "hip_" + t, n=8)
+            g.ball(fem[-1], 0.032, OLD, "bone", "knee_" + t, n=8)
+        tib = line(b, ("knee_" + t,), np.linspace(0.32, 0.1, 6), math.pi, off=0.012)
+        if len(tib) > 2:
+            g.tube(tib, [0.02] + [0.014] * (len(tib) - 2) + [0.018], BONE, "bone", "knee_" + t, n=8)
+        for ang in (math.pi - 0.9 * sx, math.pi + 0.9 * sx):
+            fa = line(b, ("elbow_" + t,), np.linspace(1.04, 0.83, 6), ang, off=0.01)
+            if len(fa) > 2:
+                g.tube(fa, [0.013] + [0.009] * (len(fa) - 2) + [0.012], BONE, "bone", "elbow_" + t, n=6)
+        wear(g, b, lambda p, l, t=t: l == "hand_" + t and p[2] < 0.01, 0.008, OLD, "bone")
+    # the skull helm over the whole head; its sockets sunk dark over the eyes, the coals burning in them
+    helm = lambda p, l: l == "head" and p[1] > 1.6
+    for e in b.eyes:
+        g.ball(e + V(0, 0.002, -0.026), 0.024, (0.02, 0.015, 0.012), "iron", "head", n=8, sz=0.6)
+        g.ball(e + V(0, 0, -0.04), 0.01, eye, "glow", "head", n=6)
+    wear(g, b, helm, 0.026, BONE, "bone", thick=0.016, smooth=3)
     for k in range(7):
         a = (k - 3) * 0.14
-        g.tube([V(math.sin(a) * 0.08, 1.74, math.cos(a) * 0.04), V(math.sin(a) * 0.15, 2.02 - abs(k - 3) * 0.04, 0.1 + math.cos(a) * 0.05)], [0.014, 0.003], BONE, "bone", "head", n=5)
+        g.tube([V(math.sin(a) * 0.07, 1.76, 0.02 + math.cos(a) * 0.03), V(math.sin(a) * 0.15, 2.0 - abs(k - 3) * 0.04, 0.12 + math.cos(a) * 0.05)], [0.014, 0.003], BONE, "bone", "head", n=5)
     return g.to_object("body"), []
 
 
 def bulwark():
-    """Plate over quilting: a great helm with a lit slit, pauldrons of lames, a tower of planks and iron as a shield."""
+    """Plate over quilting, all of it fitted to the man inside: a gambeson, a cuirass on the chest it covers, three lames
+    at each shoulder, bracers and gauntlets, a great helm over the skull with a lit slit, a tower of planks as a shield."""
     g = Geo()
-    IRON, QUILT, WOOD, BAND = (0.26, 0.26, 0.28), (0.3, 0.24, 0.18), (0.32, 0.22, 0.14), (0.2, 0.2, 0.22)
-    human(g, (0.38, 0.33, 0.3), (1.0, 0.55, 0.2, 0.0), macro={"gender": 1.0, "age": 0.5, "muscle": 1.0, "weight": 0.7}, girth=1.05, head=1.0)
-    for sx in (-1, 1):
-        g.box(V(sx * 0.11, -0.03, -0.04), (0.06, 0.05, 0.11), IRON, "iron", "foot_" + side(sx))
-    for sx in (-1, 1):
-        t = side(sx)
-        g.lathe([(0.088, 0.0), (0.094, 0.15), (0.088, 0.3)], V(sx * 0.11, 0.55, -0.005), IRON, "iron", "hip_" + t, n=14)
-        g.lathe([(0.072, 0.0), (0.078, 0.18), (0.068, 0.36)], V(sx * 0.11, 0.06, -0.01), IRON, "iron", "knee_" + t, n=14)
-        g.ball(V(sx * 0.11, 0.38, -0.06), 0.06, IRON, "iron", "knee_" + t, n=8, sz=0.7)
-    robe_body(g, QUILT, hem=0.55, flare=0.15, pleats=8, amp=0.03)
-    g.ball(V(0.0, 1.25, -0.01), 0.27, IRON, "iron", "chest", n=14, sx=1.0, sy=1.05, sz=0.82)
-    g.ring_band(0.97, 1.05, 0.25, 0.21, 0.0, (0.18, 0.13, 0.09), "leather", "chest", n=48)
-    for k in range(3):
-        g.ring_band(0.86 - 0.09 * k, 0.94 - 0.09 * k, 0.26 + 0.02 * k, 0.22 + 0.02 * k, 0.0, IRON, "iron", "pelvis", n=48)
+    IRON, DARKI, QUILT, WOOD, BAND, LEATH = (0.3, 0.3, 0.32), (0.2, 0.2, 0.22), (0.3, 0.24, 0.18), (0.32, 0.22, 0.14), (0.2, 0.2, 0.22), (0.18, 0.13, 0.09)
+    b = human(g, (0.38, 0.33, 0.3), (1.0, 0.55, 0.2, 0.0), macro={"gender": 1.0, "age": 0.5, "muscle": 1.0, "weight": 0.7}, girth=1.05, head=1.0, tris=6000)
+    # the gambeson under it all, and its skirt
+    wear(g, b, lambda p, l: l in ("chest", "pelvis") or (l.startswith("shoulder_")) or (l.startswith("elbow_") and p[1] > 1.0), 0.016, QUILT, "wool")
+    girdle(g, b, 0.94, 0.42, ("pelvis",), 0.03, 0.12, QUILT, "wool", "pelvis", rows=4)
+    # cuirass, breast and back
+    wear(g, b, lambda p, l: l == "chest" and 0.98 < p[1] < 1.5, 0.05, IRON, "iron", thick=0.016, cuts=[0.98, 1.5])
+    for k in range(3):                                                    # faulds: lames hung from the waist, each over the next
+        girdle(g, b, 0.98 - 0.075 * k, 0.1, ("pelvis", "chest"), 0.055 + 0.014 * k, 0.025, IRON if k % 2 == 0 else DARKI, "iron", "pelvis", rows=1)
+    girdle(g, b, 1.02, 0.05, ("chest", "pelvis"), 0.058, 0.0, LEATH, "leather", "chest", rows=1, rim=False)
+    # pauldrons: a domed cop over each shoulder and two lames below it, each overlapping the next
     for sx in (-1, 1):
         t = side(sx)
-        g.lathe([(0.07, 0.0), (0.075, 0.12), (0.07, 0.24)], V(sx * 0.24, 1.1, 0.0), QUILT, "wool", "shoulder_" + t, n=12)
-        for k in range(3):
-            g.ball(V(sx * (0.27 - 0.01 * k), 1.47 - 0.07 * k, 0.0), 0.15 - 0.015 * k, IRON, "iron", "shoulder_" + t, n=10, sy=0.45)
-        g.lathe([(0.07, 0.0), (0.075, 0.2), (0.06, 0.28)], V(sx * 0.24, 0.82, 0.0), IRON, "iron", "elbow_" + t, n=12)
-        g.box(V(sx * 0.24, 0.72, -0.02), (0.045, 0.06, 0.05), IRON, "iron", "hand_" + t)
-    g.lathe([(0.0, 1.98), (0.1, 1.95), (0.14, 1.88), (0.145, 1.7), (0.14, 1.55), (0.13, 1.5)], V(0.0, 0.0, 0.0), IRON, "iron", "head", n=20)
-    g.box(V(0.0, 1.76, -0.14), (0.09, 0.008, 0.008), (1.0, 0.55, 0.2, 0.0), "glow", "head")
-    g.box(V(0.0, 1.7, -0.14), (0.008, 0.05, 0.008), (0.2, 0.2, 0.2), "iron", "head")
+        c = V(sx * 0.21, 1.33, 0.0)
+        axis = V(sx * 1.0, 0.9, 0.0)
+        dome(g, c, axis, 0.135, 0.0, math.radians(72), IRON, "iron", "shoulder_" + t, n=22, m=6)
+        dome(g, c, axis, 0.143, math.radians(64), math.radians(84), DARKI, "iron", "shoulder_" + t, n=22, m=2)
+        dome(g, c, axis, 0.151, math.radians(77), math.radians(96), IRON, "iron", "shoulder_" + t, n=22, m=2)
+        g.ball(c + axis / np.linalg.norm(axis) * 0.137, 0.014, DARKI, "iron", "shoulder_" + t, n=6, sy=0.6)
+    # vambraces, couters, gauntlets
+    wear(g, b, lambda p, l: l.startswith("elbow_") and 0.83 < p[1] < 1.02, 0.03, IRON, "iron", thick=0.014, cuts=[0.83, 1.02])
+    wear(g, b, lambda p, l: l.startswith(("elbow_", "shoulder_")) and 1.02 < p[1] < 1.12, 0.045, DARKI, "iron", thick=0.014, cuts=[1.02, 1.12])
+    wear(g, b, lambda p, l: l.startswith("hand_"), 0.016, DARKI, "iron", thick=0.01)
+    # knee cops, greaves, sabatons
+    wear(g, b, lambda p, l: l.startswith(("knee_", "hip_")) and 0.28 < p[1] < 0.42, 0.045, IRON, "iron", thick=0.014, cuts=[0.28, 0.42])
+    wear(g, b, lambda p, l: l.startswith("knee_") and 0.06 < p[1] < 0.29, 0.03, IRON, "iron", thick=0.014, cuts=[0.06, 0.29])
+    wear(g, b, lambda p, l: l.startswith("foot_"), 0.022, DARKI, "iron", thick=0.012)
+    # a mail aventail round the neck, the great helm over the skull, its slit lit from inside
+    wear(g, b, lambda p, l: (l == "head" and p[1] < 1.6) or (l == "chest" and p[1] > 1.46 and abs(p[0]) < 0.14), 0.04, DARKI, "iron", thick=0.012)
+    wear(g, b, lambda p, l: l == "head" and p[1] > 1.585, 0.045, IRON, "iron", thick=0.016, cuts=[1.585], smooth=8)
+    ey = float(np.mean([e[1] for e in b.eyes])) if b.eyes else 1.69
+    for k, (dy, off, col, r) in enumerate(((0.0, 0.043, (1.0, 0.55, 0.2, 0.0), 0.008), (0.02, 0.05, DARKI, 0.011))):
+        slit = [q for a, q in sorted(contour(b, ey + dy, ("head",), off=off, band=0.012), key=lambda t: t[0] % TAU) if abs(math.remainder(a - math.pi, TAU)) < 0.75]
+        if len(slit) > 2:
+            g.tube(slit, r, col, "glow" if k == 0 else "iron", "head", n=6)
+    top = float(max(q[1] for q, l in zip(b.P, b.L) if l == "head")) + 0.035
     for k in range(5):
-        g.tube([V(0.0, 1.95, -0.06 + 0.04 * k), V(0.0, 2.08 - 0.02 * abs(k - 2), -0.05 + 0.045 * k)], [0.012, 0.002], IRON, "iron", "head", n=4)
+        g.tube([V(0.0, top - 0.01, -0.05 + 0.035 * k), V(0.0, top + 0.13 - 0.02 * abs(k - 2), -0.04 + 0.04 * k)], [0.012, 0.002], IRON, "iron", "head", n=4)
     sh = Geo()
     def board(u, v):
         return V(-0.12 + (u - 0.5) * 0.72, 0.15 + v * 1.15, -0.2 - 0.06 * math.cos((u - 0.5) * math.pi))

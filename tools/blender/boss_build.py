@@ -10,13 +10,14 @@ wool, linen, trim, leather, bone, gilt, iron, wood, glow.  Vertex colour = tint;
 UV: metres (u round or along, v up), except trim bands: u metres along, v 0..1 across.
 """
 import bpy
+import os
 import math
 import numpy as np
 from mathutils import Vector
 
 TAU = math.tau
 ## surface layers, in the order core/enemy/boss_look.gd reads them
-LAYERS = ["wool", "linen", "trim", "leather", "bone", "gilt", "iron", "wood", "stone", "glow"]
+LAYERS = ["wool", "linen", "trim", "leather", "bone", "gilt", "iron", "wood", "stone", "glow", "skin"]
 
 
 def V(x, y, z):
@@ -28,6 +29,7 @@ class Geo:
 
     def __init__(self):
         self.v, self.col, self.uv, self.lab, self.faces, self.fmat = [], [], [], [], [], []
+        self.fuv = {}                      # face index -> per-corner UVs (a finished mesh's own unwrap, seams kept)
 
     def vert(self, p, col, uv, lab):
         self.v.append(np.asarray(p, dtype=np.float64))
@@ -208,13 +210,17 @@ class Geo:
         ev.to_mesh_clear()
         bpy.data.objects.remove(ob)
 
-    def mesh(self, P, F, col, mat, lab):
-        """A finished surface (vertices in rig space, faces as index lists), e.g. a retargeted MakeHuman body."""
+    def mesh(self, P, F, col, mat, lab, FUV=None):
+        """A finished surface (vertices in rig space, faces as index lists), e.g. a retargeted MakeHuman body.
+        FUV: per-face lists of corner UVs (metres), the mesh's own unwrap; without it a flat projection."""
         base = len(self.v)
         for q in P:
             q = np.asarray(q)
-            self.vert(q, col(0, 0, q) if callable(col) else col, (q[0] + q[2], q[1]), lab(q) if callable(lab) else lab)
-        for f in F:
+            k = len(self.v) - base
+            self.vert(q, col(0, 0, q) if callable(col) else col, (q[0] + q[2], q[1]), lab[k] if isinstance(lab, list) else (lab(q) if callable(lab) else lab))
+        for i, f in enumerate(F):
+            if FUV is not None:
+                self.fuv[len(self.faces)] = FUV[i]
             self.faces.append([base + i for i in f])
             self.fmat.append(mat)
 
@@ -264,13 +270,16 @@ class Geo:
             fl[poly.index] = float(LAYERS.index(m)) + 0.5 if m in LAYERS else 0.5
         for poly in me.polygons:
             for li in poly.loop_indices:
-                uv2.data[li].uv = (fl[poly.index], 0.5)
+                uv2.data[li].uv = (fl[poly.index], 1.0)            # y: AO, open until baked (bake_ao)
         ca = me.color_attributes.new(name="Color", type='FLOAT_COLOR', domain='CORNER')
         for li, loop in enumerate(me.loops):
             vi = loop.vertex_index
             uvl.data[li].uv = self.uv[vi]
             c = self.col[vi]                                              # tints are written as seen (sRGB); the file wants linear
             ca.data[li].color = (c[0] ** 2.2, c[1] ** 2.2, c[2] ** 2.2, c[3])
+        for fi, cs in self.fuv.items():
+            for k, li in enumerate(me.polygons[fi].loop_indices):
+                uvl.data[li].uv = cs[k]
         me.color_attributes.active_color = ca
         me.color_attributes.render_color_index = 0
         ob = bpy.data.objects.new(name, me)
@@ -290,8 +299,59 @@ class Geo:
         md = ob.modifiers.new("Split", 'EDGE_SPLIT')
         md.split_angle = math.radians(split_deg)
         bpy.ops.object.modifier_apply(modifier=md.name)
+        bake_ao(ob, "Layer")
         ob.select_set(False)
         return ob
+
+
+def bake_ao(ob, layer_uv="Layer", dist=0.22, samples=48):
+    if os.environ.get("NO_AO"):
+        return
+    """DEPTH: Cycles ambient occlusion baked per corner into UV2.y (the layer UV's free channel), 1 open .. 0 deep.
+    The shader darkens the albedo by it (painted cavity, as the old baked atlases had), occludes ambient and
+    specular with it and finds worn edges against it. Only this object occludes itself: a hood over a face,
+    a coat over the ribs, the armpit, the gap between the fingers. Short rays, so only local creases count."""
+    sc = bpy.context.scene
+    sc.render.engine = 'CYCLES'
+    sc.cycles.device = 'CPU'
+    sc.cycles.samples = samples
+    if sc.world is None:
+        sc.world = bpy.data.worlds.new("World")
+    sc.world.light_settings.distance = dist
+    hidden = []
+    for o in sc.objects:
+        if o is not ob and not o.hide_render:
+            o.hide_render = True
+            hidden.append(o)
+    me = ob.data
+    ca = me.color_attributes["Color"]
+    n = len(me.loops)
+    saved = np.empty(n * 4, dtype=np.float32)
+    ca.data.foreach_get("color", saved)                # the tints: the bake paints over the active colours
+    me.color_attributes.active_color = ca
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.view_layer.objects.active = ob
+    ob.select_set(True)
+    sc.render.bake.target = 'VERTEX_COLORS'
+    sc.render.bake.margin = 0
+    try:
+        bpy.ops.object.bake(type='AO')
+        got = np.empty(n * 4, dtype=np.float32)
+        ca.data.foreach_get("color", got)
+        ao = np.clip(got.reshape(-1, 4)[:, 0], 0.02, 1.0)
+        print("AO", ob.name, "p10 %.2f p50 %.2f mean %.2f" % (np.percentile(ao, 10), np.percentile(ao, 50), ao.mean()))
+        uv2 = me.uv_layers[layer_uv]
+        u = np.empty(n * 2, dtype=np.float32)
+        uv2.data.foreach_get("uv", u)
+        u = u.reshape(-1, 2)
+        u[:, 1] = ao
+        uv2.data.foreach_set("uv", u.ravel())
+    except RuntimeError as e:
+        print("bake_ao failed on", ob.name, e)
+    ca.data.foreach_set("color", saved)
+    me.color_attributes.render_color_index = 0
+    for o in hidden:
+        o.hide_render = False
 
 
 def waist_split(y_split=0.95):

@@ -166,6 +166,18 @@ def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shou
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.delete(type='VERT')
     bpy.ops.object.mode_set(mode='OBJECT')
+    jg = {}
+    gnames = {g.index: g.name for g in h.vertex_groups}
+    for v in h.data.vertices:
+        best, bw = None, 0.0
+        for gr in v.groups:
+            nm = gnames.get(gr.group)
+            if nm in J and gr.weight > bw:
+                best, bw = nm, gr.weight
+        jt = joint_of(best)
+        if jt not in jg:
+            jg[jt] = h.vertex_groups.new(name="J_" + jt)
+        jg[jt].add([v.index], 1.0, 'REPLACE')
     cur = sum(len(p.vertices) - 2 for p in h.data.polygons)
     if cur > tris:
         d = h.modifiers.new("Dec", 'DECIMATE')
@@ -174,5 +186,51 @@ def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shou
     me = h.data
     Q = np.array([(v.co.x, v.co.z, -v.co.y) for v in me.vertices])
     F = [list(p.vertices) for p in me.polygons]
+    # MakeHuman's own unwrap (the skin layout its textures are painted on), scaled to metres so a tile laid on
+    # it keeps the same grain everywhere: metres per UV unit from the mean edge ratio
+    uvd = me.uv_layers.active.data
+    L3, L2 = 0.0, 0.0
+    for p in me.polygons:
+        li = list(p.loop_indices)
+        for a, b in zip(li, li[1:] + li[:1]):
+            L3 += (me.vertices[me.loops[a].vertex_index].co - me.vertices[me.loops[b].vertex_index].co).length
+            L2 += (uvd[a].uv - uvd[b].uv).length
+    k = L3 / max(L2, 1e-9)
+    FUV = [[(uvd[li].uv[0] * k, uvd[li].uv[1] * k) for li in p.loop_indices] for p in me.polygons]
+    jname = {g.index: g.name[2:] for g in h.vertex_groups if g.name.startswith("J_")}
+    L = []
+    for v in me.vertices:
+        best, bw = "chest", 0.0
+        for gr in v.groups:
+            if gr.group in jname and gr.weight > bw:
+                best, bw = jname[gr.group], gr.weight
+        L.append(best)
     bpy.data.objects.remove(h)
-    return Q, F, eyes
+    return Q, F, eyes, FUV, L
+
+
+def joint_of(bone):
+    """MakeHuman's bone -> the rig joint (socket) that carries it. .L is the character's left: rig x < 0, '_l'."""
+    if bone is None:
+        return "chest"
+    b = bone.lower()
+    t = "l" if b.endswith(".l") else ("r" if b.endswith(".r") else "")
+    if b.startswith("upperarm") or b.startswith("shoulder"):
+        return "shoulder_" + t
+    if b.startswith("lowerarm"):
+        return "elbow_" + t
+    if b.startswith(("wrist", "finger", "metacarpal", "thumb")):
+        return "hand_" + t
+    if b.startswith("upperleg"):
+        return "hip_" + t
+    if b.startswith("lowerleg"):
+        return "knee_" + t
+    if b.startswith(("foot", "toe")):
+        return "foot_" + t
+    if b.startswith(("root", "pelvis", "spine05", "spine04")):
+        return "pelvis"
+    if b.startswith(("neck02", "neck03", "head", "jaw", "eye", "tongue", "teeth")) or t == "" and b not in ("spine01", "spine02", "spine03", "neck01"):
+        return "head" if not b.startswith(("spine", "breast", "clavicle")) else "chest"
+    if any(k in b for k in ("levator", "oris", "risorius", "nose", "temporalis", "cheek", "brow", "lip", "ear", "orbicularis")):
+        return "head"
+    return "chest"
