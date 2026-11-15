@@ -20,6 +20,7 @@ const TracksScript := preload("res://core/life/wildlife/tracks.gd")
 const PhenomenaScript := preload("res://core/life/wildlife/phenomena.gd")
 const RL := preload("res://core/world/realm/realm_land.gd")
 const Marches := preload("res://core/life/wildlife/life_marches.gd")
+const Reaches := preload("res://core/life/wildlife/life_reaches.gd")
 const Settle := preload("res://core/life/wildlife/life_settle.gd")
 
 const NEAR_R := 16.0
@@ -469,6 +470,7 @@ func _place_foxes_and_hares(space: PhysicsDirectSpaceState3D, camps: Array[Vecto
 			break
 	Marches.foxes(_add_group, space, keep_off, _rng3, BUILD_SEED)
 	_place_hares(space, keep_off)
+	Reaches.place(self, _add_group, space, keep_off)          # the Far Reaches' foxes, hares, flocks, fireflies, bats
 
 
 ## r33 world: brown hares on the open heath and the road's verges, two or three to a form, well

@@ -30,6 +30,7 @@ const Pilgrim := preload("res://core/enemy/pilgrim.gd")
 const Synth := preload("res://core/vfx/synth.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
+const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const AmbushSites := preload("res://core/life/encounters/ambush_sites.gd")
 
 const TICK := 0.25
@@ -386,7 +387,7 @@ func _wave(pos: Vector3) -> void:
 	var pool: Array = Tiers.REGION_POOL.get(region, ["wretch", "crawler"])
 	var base := randf() * TAU
 	var made := 0
-	for i in want * 7:
+	for i in want * 10:                     # (water, ways, lips, rocks and sites refuse many tries: a pack still comes)
 		if made >= want:
 			break
 		var a := base + randf_range(-0.9, 0.9) + float(i % 2) * PI
@@ -814,16 +815,37 @@ func near_count(pos: Vector3, r := CAP_R) -> int:
 	return n
 
 
-## A fair place for something of ours to stand: not the haven or the tavern, not in a building,
-## not in or near light, not in water or lava, not in the crypt or a boss's ring, in bounds.
+## Ground a foe may appear on, for every spawner: out of the havens and the towns (SpawnRules.SAFE), in bounds, never
+## on a way (nothing at all within HUB_ROAD_R of Hearthward's ways), never in water, lava or the Ossuary. on_way_ok: a
+## procession may walk a way. Static and cheap (no physics): spot_ok adds the floor itself (slope, lips, rocks).
+const HUB_ROAD_R := SpawnRules.HUB_ROADS_R
+
+
+static func fair_ground(p: Vector3, on_way_ok := false) -> bool:
+	var q := Vector2(p.x, p.z)
+	if q.distance_to(HAVEN_C) < HAVEN_R or SpawnRules.safe_at(q) != "":
+		return false
+	if not RealmLayout.BOUNDS.grow(-4.0).has_point(q):
+		return false
+	var pd := RealmLayout.path_dist(q)
+	if (q.distance_to(HAVEN_C) < HUB_ROAD_R and (pd < SpawnRules.HUB_BERTH or on_way_ok)) or (pd < SpawnRules.WAY_BERTH and not on_way_ok):
+		return false
+	if p.y < RealmLayout.LAVA_Y + 3.0 or RealmLayout.in_ossuary(p):
+		return false
+	var wl := RealmLayout.water_level_at(p.x, p.z)
+	return not RealmLand.in_water(p.x, p.z) and (is_nan(wl) or p.y > wl + 0.15)
+
+
+## A fair place for something of ours to stand now: fair ground (above), not in or near light, not in a building
+## (a site), on a floor a body stands on (SpawnRules: no slope past ~39 degrees, no lip, no rock), not in a boss's ring.
 func spot_ok(p: Vector3, ignore_light := false) -> bool:
-	if _in_haven(p):
+	if not fair_ground(p):
 		return false
 	if not ignore_light and LightGrid.repel(p, 4.0) != Vector3.ZERO:
 		return false
 	if not WorldLanes.site_at(Vector2(p.x, p.z), 0.8).is_empty():
 		return false
-	if not SpawnRules.ok(_space, p):                  # bounds, lava, the Ossuary, water, ways, slope, lips, rocks
+	if not SpawnRules.ok(_space, p):
 		return false
 	for a in get_tree().get_nodes_in_group(&"boss_arena"):
 		var r := (a as BossArena).radius + 4.0

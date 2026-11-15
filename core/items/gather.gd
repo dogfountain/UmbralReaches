@@ -14,8 +14,8 @@ const SEED := 3301
 ## r34 places: the Realm doubled (docs/r34/layout.md), so the counts doubled to keep the density (r33:
 ## 16 blooms, 12 stones over 50,600 m2); the Cinder Orchard's ash grows blooms, the Founder's Pits'
 ## slag and the Saints' Quarry's benches hold grave-iron (the "ash" biome joined both lists).
-const BLOOMS := 32
-const IRON := 24
+const BLOOMS := 64                ## twice over since the Far Reaches doubled the ground (the same density as before)
+const IRON := 48
 const SPACING := 9.0
 const BLOOM_BIOMES := ["meadow", "heath", "glade", "oldforest", "ruin", "ash"]
 const IRON_BIOMES := ["fen", "heath", "crag", "ruin", "ash"]
@@ -47,7 +47,7 @@ func _lay() -> void:
 	for spec: Array in [["ash_bloom", BLOOMS, BLOOM_BIOMES], ["grave_iron", IRON, IRON_BIOMES]]:
 		var placed := 0
 		var tries := 0
-		while placed < int(spec[1]) and tries < 1800:
+		while placed < int(spec[1]) and tries < 3600:
 			tries += 1
 			var b := RealmLayout.BOUNDS.grow(-10.0)
 			var xz := Vector2(rng.randf_range(b.position.x, b.end.x), rng.randf_range(b.position.y, b.end.y))
