@@ -12,7 +12,7 @@ extends RefCounted
 ## - The scarp's cliffs: stratified rock faces along the downs' south escarpment and a talus of boulders at its foot.
 ## - Valley mist: sheets laid over the low ground (the Long Arches' valley, the Reedmere, the Drowned Nave's basin, the
 ##   Southwood's hollows, the Kings' Barrows' vale, Corvin's Mere, the Hollow Fen) that pool in it (valley_mist.gdshader).
-##   `-- --no-vistas` turns the module off (A/B).
+##   `-- --no-vistas` turns these places off, `-- --no-vista-sky` the sky's far ranges and veils (A/B).
 
 const Kit37 := preload("res://core/world/realm/west_marches_kit.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
@@ -20,6 +20,8 @@ const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const BeaconFire := preload("res://core/world/realm/vistas/beacon_fire.gd")
 const MIST := preload("res://core/world/realm/vistas/valley_mist.gdshader")
+const FALL := preload("res://core/world/realm/vistas/veil_fall.gdshader")
+const SPRAY := preload("res://core/world/realm/vistas/fall_spray.gdshader")
 
 const BEACON := "vista_beacon.glb"
 const BEACON_FAR := "res://art/models/vista_beacon_far.glb"
@@ -50,6 +52,13 @@ const MISTS := [
 	[Vector2(-298.0, 160.0), Vector2(56.0, 150.0), 2.4, 0.4],        # the Kings' Barrows' vale
 	[Vector2(107.0, 121.0), Vector2(90.0, 64.0), 2.0, 0.45],         # Corvin's Mere
 	[Vector2(75.0, -22.0), Vector2(70.0, 112.0), 2.0, 0.4],          # the Hollow Fen
+	[Vector2(-214.0, -112.0), Vector2(64.0, 56.0), 2.0, 0.38],      # the Empty Plinth's valley head, under the fall
+]
+## High falls down the Crowns' face: [x, the z it breaks out of the rock, the z it may run to at most, width at the
+## lip, width at the foot]. The Sorrow is born here: it falls into the Empty Plinth's moss, sinks, and rises again at
+## its spring (RealmLayout.RIVER's head) south down the valley.
+const FALLS := [
+	[-214.0, -159.0, -112.0, 3.6, 11.0],
 ]
 
 static var built := {}                 ## what the last build made (tests, the shots)
@@ -123,6 +132,10 @@ static func _seat(at: Vector2) -> float:
 
 static func build(holder: Node3D) -> void:
 	built.clear()
+	if "--no-vista-sky" in OS.get_cmdline_user_args():
+		var we := holder.get_tree().root.find_child("WorldEnvironment", true, false) as WorldEnvironment
+		if we and we.environment and we.environment.sky and we.environment.sky.sky_material is ShaderMaterial:
+			(we.environment.sky.sky_material as ShaderMaterial).set_shader_parameter("vistas", 0.0)
 	if off():
 		return
 	var t0 := Time.get_ticks_msec()
@@ -136,7 +149,8 @@ static func build(holder: Node3D) -> void:
 			n_b += 1
 	var n_c := _scarp_cliffs(host, space)
 	var n_m := _mists(host)
-	built = {"beacons": n_b, "cliffs": n_c, "mists": n_m}
+	var n_f := _falls(host)
+	built = {"beacons": n_b, "cliffs": n_c, "mists": n_m, "falls": n_f}
 	print("REALM_POI vista places built %s in %d ms" % [built, Time.get_ticks_msec() - t0])
 
 
@@ -281,5 +295,82 @@ static func _mists(host: Node3D) -> int:
 		mi.set_meta(&"far_detail", true)
 		mi.add_to_group(Groups.CULL_SKIP)
 		host.add_child(mi)
+		made += 1
+	return made
+
+
+## A ribbon laid down the face from where the water breaks out of the rock to where the ground eases (the slope over
+## 4 m falls under 0.35), standing a little off the rock and more as it drops (it leaves the face), then spray.
+static func _falls(host: Node3D) -> int:
+	var made := 0
+	for f: Array in FALLS:
+		var x := float(f[0])
+		var z := float(f[1])
+		var pts: Array[Vector3] = []
+		var drop := 0.0
+		var top := Land.height_at(x, z)
+		while z <= float(f[2]):
+			var h := Land.height_at(x, z)
+			var slope := (h - Land.height_at(x, z + 4.0)) / 4.0
+			drop = top - h
+			var wx := x + 1.2 * sin(z * 0.21)
+			pts.append(Vector3(wx, h + 0.7 + drop * 0.035, z + 0.35 + drop * 0.02))
+			if slope < 0.35 and drop > 8.0:
+				break
+			z += 1.5
+		if pts.size() < 4:
+			continue
+		var length := 0.0
+		for i in range(1, pts.size()):
+			length += pts[i].distance_to(pts[i - 1])
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var acc := 0.0
+		for i in pts.size():
+			if i > 0:
+				acc += pts[i].distance_to(pts[i - 1])
+			var v := acc / length
+			var w := lerpf(float(f[3]), float(f[4]), pow(v, 0.7)) * 0.5
+			for side: float in [-1.0, 1.0]:
+				st.set_uv(Vector2(0.5 + side * 0.5, v))
+				st.set_normal(Vector3(0, 0.2, 1).normalized())
+				st.add_vertex(pts[i] + Vector3(side * w, 0.0, 0.0))
+		for i in pts.size() - 1:
+			var a := i * 2
+			st.add_index(a)
+			st.add_index(a + 2)
+			st.add_index(a + 1)
+			st.add_index(a + 1)
+			st.add_index(a + 2)
+			st.add_index(a + 3)
+		var mi := MeshInstance3D.new()
+		mi.name = "CrownsFall%d" % made
+		mi.mesh = st.commit()
+		var mat := ShaderMaterial.new()
+		mat.shader = FALL
+		mat.set_shader_parameter("fall_len", length)
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.set_meta(&"far_detail", true)
+		mi.add_to_group(Groups.CULL_SKIP)
+		host.add_child(mi)
+		# spray where it lands
+		var foot: Vector3 = pts[pts.size() - 1]
+		for k in 3:
+			var sp := MeshInstance3D.new()
+			sp.name = "FallSpray%d" % k
+			var q := QuadMesh.new()
+			q.size = Vector2(14.0 - k * 3.0, 11.0 - k * 2.0)
+			q.center_offset = Vector3(0.0, q.size.y * 0.42, 0.0)
+			var sm := ShaderMaterial.new()
+			sm.shader = SPRAY
+			q.material = sm
+			sp.mesh = q
+			sp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			sp.set_instance_shader_parameter("seed", float(k) * 3.7)
+			sp.set_meta(&"far_detail", true)
+			sp.add_to_group(Groups.CULL_SKIP)
+			host.add_child(sp)
+			sp.position = foot + Vector3((k - 1) * 3.0, -1.5 + k * 0.8, 1.5 + k * 1.5)
 		made += 1
 	return made

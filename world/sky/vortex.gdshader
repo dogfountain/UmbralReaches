@@ -21,6 +21,7 @@ uniform float spin_speed = 0.015;   // revolutions per second
 uniform float spin_phase = 0.0;     // revolutions; keeps the angle continuous when spin_speed changes (reactivity.gd)
 uniform float intensity = 1.1;      // halved (Luke, 7 Nov: the vortex washed the night); was 2.2, above 1.0 so glow caught the arms
 uniform float vortex_size = 0.6;    // the vortex's extent on the sky, against its first size (1.0)
+uniform float vistas = 1.0;         // the far ranges and the drain veils (sky_vistas.gdshaderinc); 0 with -- --no-vista-sky (A/B)
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) {
@@ -85,7 +86,9 @@ void sky() {
         // Starburst spikes: wider than a pixel, so half resolution still holds them.
         float burst = sky_bursts(EYEDIR, 220.0);
         col += burst * vec3(0.86, 0.93, 1.2) * 0.7;
-        col += vs_veils(EYEDIR, vortex_dir, sky_time);
+        if (vistas > 0.5) {
+            col += vs_veils(EYEDIR, vortex_dir, sky_time);
+        }
         COLOR = col;
         ALPHA = 1.0;
     } else {
@@ -122,7 +125,9 @@ void sky() {
         vec2 hz = normalize(EYEDIR.xz + vec2(1e-4));
         float toward = dot(hz, normalize(md.xz + vec2(1e-4))) * 0.5 + 0.5;
         float north_fade = smoothstep(0.9, 0.3, dot(hz, normalize(vortex_dir.xz + vec2(1e-4))));
-        col = vs_far_ranges(EYEDIR, col, mix(vec3(0.07, 0.11, 0.19), vec3(0.13, 0.17, 0.27), toward), col_deep, north_fade);
+        if (vistas > 0.5) {
+            col = vs_far_ranges(EYEDIR, col, mix(vec3(0.07, 0.11, 0.19), vec3(0.13, 0.17, 0.27), toward), col_deep, north_fade);
+        }
         COLOR = col;
     }
 }
