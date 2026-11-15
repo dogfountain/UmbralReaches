@@ -39,7 +39,7 @@ const REGION_POOL := {
 	"road": ["wretch", "crawler", "husk", "burrower", "gaunt"], "hearth": ["wretch", "crawler"], "chapel": ["wretch", "husk", "spitter", "chanter", "tollman"],
 	"glade": ["crawler", "wretch"], "thornwood": ["crawler", "leaper", "wretch", "spitter", "chanter", "gaunt"], "henge": ["leaper", "crawler", "gaunt"],
 	"fen": ["ossuant", "spitter", "wretch", "burrower", "quiller"], "barrows": ["ossuant", "husk", "spitter", "bulwark", "quiller"], "rift": ["husk", "spitter", "leaper", "bulwark", "chanter", "tollman"],
-	"summit": ["husk", "spitter", "leaper", "bulwark", "chanter", "quiller"], "crags": ["leaper", "husk", "burrower", "gaunt"], "ossuary": ["ossuant", "husk", "bulwark", "quiller"],
+	"summit": ["husk", "spitter", "leaper", "bulwark", "chanter", "quiller"], "crags": ["leaper", "husk", "burrower", "gaunt"], "ossuary": ["ossuant", "husk", "bulwark", "quiller", "chanter", "pilgrim"],
 	# r34: each new region's own roster (docs/r34/layout.md; the camps in EnemySpawner.REALM_CAMPS)
 	"quarry": ["husk", "leaper", "leaper", "wretch", "bulwark"], "foundry": ["cinder", "bulwark", "wretch", "cinder", "gaunt"],
 	"moor": ["gaunt", "gaunt", "wretch", "crawler", "husk"], "orchard": ["burrower", "mite", "crawler", "burrower", "wretch"],

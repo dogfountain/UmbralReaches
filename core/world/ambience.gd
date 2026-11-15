@@ -79,11 +79,13 @@ const SCAPES := {
 	"salt": {"night": 0.55, "high_wind": 0.7, "crickets": 0.05},
 	"downs": {"night": 0.85, "meadow": 0.6, "high_wind": 0.3, "crickets": 0.2},
 	"well": {"night": 0.5, "chasm": 0.7, "high_wind": 0.2},
+	# the ossuary: its own ground over the pit (the pit's breath, a draught off the bank, the crickets gone quiet)
+	"charnel": {"night": 0.75, "chasm": 0.4, "high_wind": 0.22, "crickets": 0.08},
 }
 
 ## RealmLayout region id -> soundscape
 const REGION_SCAPE := {"hearth": "village", "chapel": "village", "road": "heath", "thornwood": "wood", "henge": "wood",
-	"glade": "wood", "fen": "fen", "barrows": "fen", "rift": "crossing", "ossuary": "crossing", "summit": "summit", "crags": "summit",
+	"glade": "wood", "fen": "fen", "barrows": "fen", "rift": "crossing", "ossuary": "charnel", "summit": "summit", "crags": "summit",
 	# r34 flora: the new ground, each its own scape (SCAPES / SPOTS)
 	"quarry": "quarry", "holds": "holds", "foundry": "foundry", "moor": "moor", "orchard": "orchard", "necropolis": "necropolis", "mere": "mere",
 	# the Marches
@@ -118,6 +120,7 @@ const SPOTS := {
 	"salt": [9.0, 20.0, 18.0, 50.0, [["howl", 0.3, 20.0], ["pebbles", 0.3, 0.0], ["creak", 0.3, 3.0], ["whisper", 0.1, 1.0]]],
 	"downs": [8.0, 18.0, 18.0, 50.0, [["peewit", 0.3, 3.0], ["nightjar", 0.25, 1.0], ["life:owl2", 0.2, 5.0], ["vixen", 0.15, 0.3], ["howl", 0.1, 20.0]]],
 	"well": [6.0, 13.0, 10.0, 30.0, [["drip", 0.4, 2.0], ["pebbles", 0.3, 0.0], ["howl", 0.15, 15.0], ["whisper", 0.1, 1.5]]],
+	"charnel": [8.0, 18.0, 14.0, 40.0, [["bell_far", 0.25, 6.0], ["whisper", 0.16, 1.2], ["bones", 0.2, 0.2], ["life:crow", 0.2, 6.0], ["pebbles", 0.14, 0.0], ["creak", 0.05, 2.0]]],
 }
 
 ## reverb zones: AudioEffectReverb settings
@@ -136,7 +139,7 @@ const PLACES := {
 const SCAPE_PLACE := {"village": "open", "heath": "open", "wood": "wood", "fen": "open", "crossing": "cliff", "summit": "cliff",
 	"quarry": "cliff", "holds": "wood", "foundry": "cliff", "moor": "open", "orchard": "wood", "necropolis": "open", "mere": "open",
 	"sorrow": "wood", "plinth": "open", "siege": "open", "stillwater": "open", "anchorholds": "cliff", "salt": "open", "downs": "open",
-	"well": "well"}
+	"well": "well", "charnel": "cliff"}
 const ROOM_KEYS := ["room_size", "damping", "spread", "predelay_msec", "hipass"]
 ## outdoor layers indoors: [low-pass cutoff Hz, AmbOut volume dB]
 const MUFFLE := {"": [20000.0, 0.0], "tavern": [700.0, -4.0], "ossuary": [320.0, -16.0], "rift": [20000.0, 0.0]}

@@ -58,6 +58,11 @@ const LOOKS := {
 		"under_mul": {"grass": 2.15, "tallgrass": 2.6, "flowers": 0.5, "heather": 0.4, "moss": 1.8, "shrub": 0.4, "bramble": 1.4},   # grass 1.15 -> 1.42 (it sat on the floor of its band against heath)
 		"under_add": {"glowcap": 0.003},
 		"tint": Color(0.8, 0.86, 0.8), "props": {"headstone": 0.006}, "stone_mul": 1.3, "style": "granite"},
+	# the Ossuary's own ground (ossuary_ground.gd): thin pale turf gone to moss and bramble, black yews, bone dust
+	"ossuary": {"tree_mul": {"oak": 0.05, "birch": 0.15, "pine": 0.1, "sapling": 0.1, "snag": 0.8}, "tree_add": {"yew": 0.32},
+		"under_mul": {"grass": 0.8, "tallgrass": 0.55, "flowers": 0.12, "heather": 0.3, "moss": 1.6, "shrub": 0.5, "bramble": 1.8},
+		"under_add": {"deadbush": 0.012, "ashdrift": 0.05},
+		"tint": Color(0.82, 0.84, 0.76), "props": {"cairn": 0.004, "rubble": 0.02}, "stone_mul": 1.2, "style": "granite"},
 	"mere": {"tree_mul": {"oak": 0.2, "birch": 0.6, "pine": 0.0, "sapling": 0.5}, "dead_willow": 0.85,
 		"under_mul": {"grass": 0.34, "tallgrass": 0.7, "flowers": 0.5, "reeds": 2.2, "cattail": 2.2, "moss": 1.6},
 		"under_add": {"lily": 0.35},

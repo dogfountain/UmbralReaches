@@ -123,6 +123,11 @@ const RARES := {
 		"spots": [Vector2(180, 18), Vector2(178, -2), Vector2(184, 30)], "ash": 38, "loot": [["relic_fragment", 2]],
 		"route": [Vector2(180, 18), Vector2(176, -2), Vector2(178, -24), Vector2(184, 6), Vector2(186, 28)],
 		"line": "The Drowned Lamplighter lets the lamp go. It does not float."},
+	# --- the ossuary --- the last of the bearers, still walking the Lych Way's head with its burden
+	"last_bearer": {"title": "The Last Bearer", "kind": "ossuant", "hp": 36, "scale": 1.5,
+		"spots": [Vector2(-61.0, 77.0), Vector2(-65.5, 76.5), Vector2(-66.5, 70.5)], "ash": 40, "loot": [["relic_fragment", 2]],
+		"route": [Vector2(-61.0, 77.0), Vector2(-63.0, 83.5), Vector2(-65.8, 76.0), Vector2(-66.2, 70.5)],      # north of the orchard watch (14 m+)
+		"line": "The Last Bearer sets its burden down at last. Nobody counts it."},
 }
 
 var haunts: Dictionary = {}      ## id -> Vector3 on the ground
