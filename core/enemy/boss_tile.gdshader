@@ -90,7 +90,7 @@ void fragment() {
 	w.y = max(w.y, smoothstep(0.75, 0.2, ao));         // every surface: its creases go matte and lose their shine
 	if (skin) {
 		// skin wears the leather's grain over MakeHuman's own unwrap: its weave in value, its pits in the normal
-		base = cl_skin_albedo(base, opos, skin_dead);
+		base = cl_skin_albedo(base, opos, skin_dead) * 0.85;
 		ROUGHNESS = cl_skin_rough(ROUGHNESS, opos);
 	}
 	base = cl_albedo(base, ao, opos);

@@ -229,6 +229,20 @@ def line(b, labels, ys, ang, off=0.02):
     return out
 
 
+def wraps(g, b, prefixes, y0, y1, col, mat="linen", pitch=0.034, width=0.024, off=0.007, seed=0):
+    """Bandage wound round a limb from y0 to y1: strips cut from the limb's own surface, a little uneven, a few
+    missing where they have rotted through."""
+    y = y0
+    k = seed
+    while y < y1:
+        w = width * (0.8 + 0.4 * ((k * 7919) % 11) / 11)
+        if (k * 31) % 9 != 4:
+            a, c = y, min(y + w, y1)
+            wear(g, b, lambda p, l, a=a, c=c: l.startswith(prefixes) and a < p[1] < c, off + 0.002 * (k % 2), col, mat, thick=0.006, cuts=[a, c])
+        y += pitch
+        k += 1
+
+
 def girdle(g, b, y, drop, labels, off, flare, col, mat, lab, bins=40, thick=0.012, rows=3, rim=True):
     """A band hung round the body from its own cross-section at height y: fauld lames, a skirt, a belt. It falls
     `drop` metres and flares `flare` outward as it goes, closed round, with thickness and a rolled hem."""
@@ -344,13 +358,13 @@ def wretch():
     skull with coals sunk in it, a stuffed sack hung from straps that cut into the shoulders, a gaff in its fist."""
     g = Geo()
     SKIN, RAG, SACK, BELT = (0.42, 0.37, 0.34), (0.3, 0.25, 0.2), (0.4, 0.33, 0.24), (0.2, 0.14, 0.1)
-    human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15)
+    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=12000)
+    wraps(g, b, ("knee_",), 0.07, 0.3, RAG)
+    wraps(g, b, ("elbow_", "hand_"), 0.8, 0.92, RAG, seed=2)
     g.robe([(0.98, 0.16, 0.12, 0.0), (0.9, 0.17, 0.13, 0.0), (0.7, 0.2, 0.16, 0.0), (0.56, 0.21, 0.17, 0.0)], RAG, "wool", B.waist_split(0.9), n=48, pleats=8, pleat_amp=0.1, tatter=0.14)
     g.ring_band(0.93, 0.99, 0.162, 0.122, 0.0, BELT, "leather", "pelvis", n=40)
     for sx in (-1, 1):
         t = side(sx)
-        for k in range(3):
-            g.lathe([(0.047, 0.0), (0.05, 0.025), (0.046, 0.05)], V(sx * 0.11, 0.06 + 0.11 * k, 0.0), RAG, "wool", "knee_" + t, n=12)
         g.lathe([(0.03, 0.0), (0.033, 0.03), (0.03, 0.06)], V(sx * 0.24, 0.82, 0.0), RAG, "wool", "elbow_" + t, n=10)
     S = V(0.0, 1.24, 0.24)
     g.ball(S, 0.22, SACK, "linen", "chest", n=12, sx=1.05, sy=1.2, sz=0.75)
@@ -456,8 +470,11 @@ def gaunt():
     """Too tall and too thin: grey skin stretched over a ribcage like a cage, hands to the knees, a strip of shroud over
     the head and shoulders and nothing else but wrappings."""
     g = Geo()
-    SHROUD, SKIN = (0.36, 0.37, 0.4), (0.52, 0.5, 0.5)
-    human(g, SKIN, (0.75, 0.85, 1.0, 0.0), macro={"gender": 0.6, "age": 0.95, "muscle": 0.0, "weight": 0.0, "proportions": 0.0, "height": 1.0}, girth=0.85, limb=0.9, head=1.05)
+    SHROUD, SKIN = (0.36, 0.37, 0.4), (0.43, 0.41, 0.41)
+    b = human(g, SKIN, (0.75, 0.85, 1.0, 0.0), macro={"gender": 0.6, "age": 0.95, "muscle": 0.0, "weight": 0.0, "proportions": 0.0, "height": 1.0}, girth=0.85, limb=0.9, head=1.05, tris=12000)
+    wraps(g, b, ("elbow_",), 0.82, 1.06, SHROUD)
+    wraps(g, b, ("knee_",), 0.06, 0.36, SHROUD, seed=3)
+    wraps(g, b, ("chest", "pelvis"), 0.98, 1.12, SHROUD, pitch=0.04, width=0.03, off=0.009, seed=5)
     g.robe([(1.95, 0.02, 0.03, 0.03), (1.88, 0.1, 0.11, 0.02), (1.76, 0.135, 0.14, 0.0), (1.6, 0.17, 0.15, 0.01), (1.48, 0.26, 0.17, 0.01), (1.3, 0.3, 0.2, 0.02)],
            SHROUD, "linen", lambda p: "head" if p[1] > 1.6 else "chest", n=48, t0=math.radians(28), t1=TAU - math.radians(28), pleats=7, pleat_amp=0.06, tatter=0.18)
     g.ball(V(0.0, 1.74, 0.0), 0.1, (0.015, 0.015, 0.02), "iron", "head", n=8, sy=1.2)
@@ -602,8 +619,10 @@ def bulwark():
 def spitter():
     """Thin and pale in a leather harness, a long neck, and a glowing sac in a cage at the throat."""
     g = Geo()
-    SKIN, HARN = (0.55, 0.55, 0.5), (0.18, 0.13, 0.09)
-    human(g, SKIN, (0.4, 1.0, 0.7, 0.0), macro={"gender": 0.4, "age": 0.9, "muscle": 0.1, "weight": 0.05, "proportions": 0.2}, girth=0.9, head=1.1)
+    SKIN, HARN = (0.44, 0.44, 0.4), (0.18, 0.13, 0.09)
+    b = human(g, SKIN, (0.4, 1.0, 0.7, 0.0), macro={"gender": 0.4, "age": 0.9, "muscle": 0.1, "weight": 0.05, "proportions": 0.2}, girth=0.9, head=1.1, tris=12000)
+    wraps(g, b, ("elbow_",), 0.84, 1.04, (0.3, 0.27, 0.22), seed=1)
+    wraps(g, b, ("knee_",), 0.08, 0.26, (0.3, 0.27, 0.22), seed=4)
     g.robe([(0.98, 0.15, 0.11, 0.0), (0.9, 0.16, 0.12, 0.0), (0.62, 0.19, 0.15, 0.0)], (0.22, 0.2, 0.16), "wool", "pelvis", n=40, pleats=8, pleat_amp=0.08, tatter=0.12)
     for sx in (-1, 1):
         strap(g, [V(sx * 0.12, 1.48, -0.1), V(-sx * 0.05, 1.2, -0.17), V(-sx * 0.15, 1.0, -0.12)], HARN)
@@ -681,6 +700,42 @@ def quad_leg(g, S, tag, col, mat="bone", r=(0.035, 0.028, 0.012), spikes=0, spik
             g.tube([p, p + V(0.03 * np.sign(p[0]), 0.035, 0.0)], [0.009, 0.001], spike_col or col, mat, "leg_%s_knee" % tag, n=4)
 
 
+def limb_masses(M, pts, radii, steps=4):
+    """A limb as masses: along each segment a run of capsules whose radius swells a third of the way and narrows to
+    the joint, a knuckle at each joint. pts: joints; radii: (joint, swell) per segment."""
+    for i in range(len(pts) - 1):
+        a, b = np.asarray(pts[i]), np.asarray(pts[i + 1])
+        r0, sw = radii[i]
+        r1 = radii[i + 1][0] if i + 1 < len(radii) else r0 * 0.4
+        prev = a
+        for k in range(1, steps + 1):
+            t = k / steps
+            q = a + (b - a) * t
+            r = r0 + (r1 - r0) * t + (sw - r0) * math.sin(math.pi * min(t * 1.5, 1.0)) * (1.0 - t * 0.5)
+            M.append(("c", prev, q, max(r, 0.004)))
+            prev = q
+        if i > 0:
+            M.append(("e", a, (r0 * 1.25, r0 * 1.25, r0 * 1.25)))
+
+
+def spider_legs(g, S, col, mat, r=(0.016, 0.024, 0.012), extra=0.1, claw_col=None, spikes=0):
+    """Eight jointed legs as one modelled piece: a swollen femur arching up to the knee, a long tibia down to a hooked
+    tip, knuckled joints; the second pair of each side rides the same bones."""
+    for tag in ("fl", "fr", "bl", "br"):
+        hip, knee, foot = S["leg_%s_hip" % tag], S["leg_%s_knee" % tag], S["leg_%s_foot" % tag]
+        dz = extra if tag[0] == "f" else -extra
+        for o in (V(0, 0, 0), V(0, 0, dz)):
+            M = []
+            limb_masses(M, [hip + o, knee + o + V(0, 0.02, 0)], [(r[0], r[1])], steps=5)
+            limb_masses(M, [knee + o + V(0, 0.02, 0), foot + o + V(0, 0.03, 0)], [(r[0] * 0.9, r[0] * 1.15)], steps=5)
+            g.meta(M, col, mat, lambda p, tag=tag: "leg_%s_hip" % tag if np.linalg.norm(p - S["leg_%s_hip" % tag]) < np.linalg.norm(p - S["leg_%s_knee" % tag]) * 0.9 else "leg_%s_knee" % tag,
+                   res=0.006, tris=500, smooth=1)
+            g.tube([foot + o + V(0, 0.035, 0), foot + o + V(0, 0.005, -0.02), foot + o + V(0, -0.005, -0.05)], [r[2], r[2] * 0.7, 0.002], claw_col or col, "iron", "leg_%s_foot" % tag, n=6)
+            for k in range(spikes):
+                p = knee + o + (foot - knee) * (0.25 + 0.25 * k)
+                g.tube([p, p + V(0.025 * np.sign(p[0]), 0.03, 0.0)], [0.007, 0.001], col, mat, "leg_%s_knee" % tag, n=4)
+
+
 def shell(g, c, rx, ry, rz, col, mat, lab, bands=6, gap=0.012, flare=0.0, front=-1.0):
     """A segmented carapace: overlapping bands along z, each a half-shell with a lifted back edge."""
     for k in range(bands):
@@ -719,15 +774,11 @@ def crawler():
         p = sac + V(0, 0.0, -0.18 + 0.07 * k)
         g.tube([p + V(-0.18, -0.02, 0), p + V(-0.05, 0.16, 0), p + V(0.05, 0.16, 0), p + V(0.18, -0.02, 0)], 0.011, BONE, "bone", "tail", n=5)
     H = S["head"]
-    g.ball(H + V(0, 0.0, 0.02), 0.085, BONE, "bone", "head", n=10, sx=1.15, sy=0.85, sz=1.0)
-    g.ball(H + V(0, -0.03, -0.06), 0.055, BONE, "bone", "head", n=8, sx=1.0, sy=0.7)
+    skull(g, H + V(0, 0.0, 0.03), BONE, (0.6, 0.55, 0.45), DARK, (1.0, 0.3, 0.15, 0.0), s=0.95, horns=False, muzzle=0.75)
     for sx in (-1, 1):
-        g.ball(H + V(sx * 0.04, 0.015, -0.055), 0.02, DARK, "iron", "head", n=6)
-        g.ball(H + V(sx * 0.04, 0.015, -0.066), 0.011, (1.0, 0.3, 0.15, 0.0), "glow", "head", n=5)
         g.tube([H + V(sx * 0.03, -0.05, -0.09), H + V(sx * 0.05, -0.09, -0.13), H + V(sx * 0.02, -0.12, -0.16)], [0.012, 0.008, 0.002], BONE, "bone", "head", n=5)
         g.tube([H + V(sx * 0.05, 0.05, 0.0), H + V(sx * 0.08, 0.12, 0.03), H + V(sx * 0.07, 0.16, 0.08)], [0.012, 0.007, 0.001], BONE, "bone", "head", n=5)
-    for tag in ("fl", "fr", "bl", "br"):
-        quad_leg(g, S, tag, BONE, "bone", r=(0.028, 0.022, 0.01), spikes=2, claw_col=DARK, extra=(0.1 if tag[0] == "f" else -0.1))
+    spider_legs(g, S, BONE, "bone", r=(0.018, 0.028, 0.012), claw_col=DARK, spikes=2)
     return g.to_object("body"), [], S
 
 
@@ -752,8 +803,7 @@ def mite():
         for k in (0, 1):
             g.ball(H + V(sx * (0.025 + 0.025 * k), 0.035, -0.055 + 0.015 * k), 0.012, GLOW, "glow", "head", n=5)
         g.tube([H + V(sx * 0.02, -0.03, -0.06), H + V(sx * 0.03, -0.06, -0.12)], [0.012, 0.002], DARK, "iron", "head", n=5)
-    for tag in ("fl", "fr", "bl", "br"):
-        quad_leg(g, S, tag, CHIT, "iron", r=(0.022, 0.018, 0.008), claw_col=DARK, extra=(0.1 if tag[0] == "f" else -0.1))
+    spider_legs(g, S, CHIT, "iron", r=(0.014, 0.022, 0.009), claw_col=DARK)
     return g.to_object("body"), [], S
 
 
