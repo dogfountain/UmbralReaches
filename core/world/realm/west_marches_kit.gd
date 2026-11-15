@@ -71,7 +71,7 @@ static func lit_mat(set_name: String) -> StandardMaterial3D:
 	return m
 
 
-## r38: timber and slate props (the village gate's underside, the forge's posts and lean-to, hitching rails) crushed to
+## Timber and slate props (the village gate's underside, the forge's posts and lean-to, hitching rails) crushed to
 ## black on their shaded faces under the moon (ambient is 0.125, and a lifted albedo multiplies almost nothing there): a
 ## cool sky-bounce fill that follows the texture's own detail, on prop sets only (the buildings' mat() and the global
 ## ambient stay as they were).
