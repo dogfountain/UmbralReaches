@@ -90,6 +90,8 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	if _body == null or delta <= 0.0:
 		return
 	_t += delta
+	if skin_parked != null:
+		skin_parked.call(&"unpark")              # a sleeping hound's skin follows this pose again (the studio poses by hand)
 	var flat := Vector3(vel.x, 0.0, vel.z)
 	var speed := flat.length()
 	var target_stride := clampf(speed / maxf(walk_speed, 0.1), 0.0, 1.4)

@@ -264,10 +264,13 @@ func animate(delta: float) -> void:
 	var br: float = life.breath()
 	var breathe := (br - 0.5) * 0.04
 	var lean := -0.1 if seated else -0.06
-	var sway: float = life.sway() if not seated else 0.0
-	var spine := Quaternion(Vector3.FORWARD, sway * 0.03) * Quaternion(Vector3.RIGHT, lean * 0.5 + breathe * 0.4)
-	var chest := Quaternion(Vector3.FORWARD, -sway * 0.025) * Quaternion(Vector3.RIGHT, lean * 0.5 + breathe)
-	rig.position = Vector3(sway * 0.012, 0, 0) if not seated else Vector3.ZERO
+	# read at 15 m: the weight shift is a whole-body move (a hip, a lean, a rolled shoulder), and a seated one rocks too
+	var sway_raw: float = life.sway()
+	var sway: float = sway_raw if not seated else 0.0
+	var rock := sway_raw * 0.045 if seated else sway * 0.075
+	var spine := Quaternion(Vector3.FORWARD, rock) * Quaternion(Vector3.RIGHT, lean * 0.5 + breathe * 1.6)
+	var chest := Quaternion(Vector3.FORWARD, -rock * 0.8) * Quaternion(Vector3.RIGHT, lean * 0.5 + breathe * 2.5)
+	rig.position = Vector3(sway * 0.035, 0, 0) if not seated else Vector3.ZERO
 	var head_yaw := _look.x
 	var head_pitch := _look.y
 	var jaw := 0.0
@@ -347,17 +350,20 @@ func animate(delta: float) -> void:
 			var g := 0.5 + 0.5 * sin(_act_t * 1.9)
 			left = left.lerp(Vector3(-0.2 + 0.05 * sin(_act_t * 1.3), rig.H + 0.4 + 0.06 * g + 0.08 * bt, -0.4 - 0.05 * bt), 0.85)
 			left_q = Quaternion(Vector3.FORWARD, -0.6 * g - 0.5 * bt) * Quaternion(Vector3.RIGHT, -0.5)
-			head_pitch += 0.07 * bt - 0.02
-			head_yaw += sin(_act_t * 1.1) * 0.08
-			chest = chest * Quaternion(Vector3.UP, sin(_act_t * 1.1) * 0.06) * Quaternion(Vector3.RIGHT, -0.04 * bt)
+			head_pitch += 0.17 * bt - 0.03
+			head_yaw += sin(_act_t * 1.1) * 0.2
+			chest = chest * Quaternion(Vector3.UP, sin(_act_t * 1.1) * 0.16) * Quaternion(Vector3.RIGHT, -0.1 * bt)
+			spine = spine * Quaternion(Vector3.RIGHT, -0.05 * bt)
 		"listen":
 			var nod := 0.0
 			if mate and mate.life:
-				nod = maxf(float(mate.life.beat()) - 0.45, 0.0) * 0.25
-			head_pitch += nod + 0.03 * sin(_act_t * 0.7)
-			head_yaw += 0.05 * sin(_act_t * 0.5)
+				nod = maxf(float(mate.life.beat()) - 0.45, 0.0) * 0.55
+			head_pitch += nod + 0.07 * sin(_act_t * 0.7)
+			head_yaw += 0.12 * sin(_act_t * 0.5)
+			chest = chest * Quaternion(Vector3.RIGHT, nod * 0.3)
 		"look":
 			head_yaw = _look_to.x * 1.3
+			chest = chest * Quaternion(Vector3.UP, _look_to.x * 0.35)
 		"sing":
 			# swaying in time, the mug lifted, the head back a little; the jaw opens on each note
 			var env_s := smoothstep(0.0, 0.08, k) * (1.0 - smoothstep(0.92, 1.0, k))
@@ -420,7 +426,9 @@ func animate(delta: float) -> void:
 				jaw = -0.085 * life.jaw()
 				left = left.lerp(Vector3(-0.2, rig.H + 0.4 + 0.06 * g2 + 0.08 * bt2, -0.4 - 0.04 * bt2), 0.7)
 				left_q = Quaternion(Vector3.FORWARD, -0.6 * g2 - 0.4 * bt2) * Quaternion(Vector3.RIGHT, -0.5)
-				head_pitch += 0.06 * bt2
+				head_pitch += 0.15 * bt2
+				head_yaw += sin(_t * 1.1) * 0.18
+				chest = chest * Quaternion(Vector3.UP, sin(_t * 1.1) * 0.14) * Quaternion(Vector3.RIGHT, -0.09 * bt2)
 	_pose(spine, chest, head_yaw, head_pitch, jaw, rig.wrist_for("r", rig.mug_base, mug_goal, mug_q), mug_q, left, left_q)
 	rig.apply()
 
