@@ -546,6 +546,26 @@ void fragment() {
 	vec3 w = tri_w(n);
 	vec3 p = wpos * tex_scale;
 	vec3 alb = texture(albedo_tex, p.zy).rgb * w.x + texture(albedo_tex, p.xz).rgb * w.y + texture(albedo_tex, p.xy).rgb * w.z;
+	// r38 (worn ashlar): the texture's own block mosaic read as a checkerboard, and averaging it away as bathroom tile. Its blocks
+	// come down to grain (a second sample at another turn hides the repeat), and the masonry is laid here instead: courses of
+	// different heights, blocks of different widths per course, a tone per block, darkened joints, a few stained blocks
+	vec3 p2 = vec3(p.x * 0.73 + p.z * 0.31, p.y * 0.73, p.z * 0.73 - p.x * 0.31) + vec3(0.37, 0.11, 0.53);
+	vec3 alb2 = texture(albedo_tex, p2.zy).rgb * w.x + texture(albedo_tex, p2.xz).rgb * w.y + texture(albedo_tex, p2.xy).rgb * w.z;
+	alb = mix(alb, alb2, 0.4);
+	float alum = dot(alb, vec3(0.2126, 0.7152, 0.0722));
+	alb = mix(vec3(alum), alb, 0.8) * mix(1.0, 0.35 / max(alum, 0.05), 0.65);
+	vec2 sideuv = abs(n.x) > abs(n.z) ? vec2(wpos.z, wpos.y) : vec2(wpos.x, wpos.y);
+	float course_h = 0.36;
+	float course = floor(sideuv.y / course_h);
+	float c_rnd = fract(sin(dot(vec2(course, 3.1), vec2(127.1, 311.7))) * 43758.5453);
+	float blk_w = mix(0.5, 1.15, c_rnd);
+	float cu = sideuv.x / blk_w + fract(sin(dot(vec2(course, 9.7), vec2(127.1, 311.7))) * 43758.5453) * 7.0;
+	vec2 cell = vec2(floor(cu), course);
+	float c_tone = fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453);
+	float c_stain = step(0.84, fract(sin(dot(cell + 7.3, vec2(127.1, 311.7))) * 43758.5453));
+	float block_tone = mix(0.76, 1.16, c_tone) * (1.0 - 0.22 * c_stain);
+	float edge_d = min(min(fract(cu), 1.0 - fract(cu)) * blk_w, min(fract(sideuv.y / course_h), 1.0 - fract(sideuv.y / course_h)) * course_h);
+	float joint_k = 1.0 - smoothstep(0.012, 0.034, edge_d);
 	float rough = texture(rough_tex, p.zy).r * w.x + texture(rough_tex, p.xz).r * w.y + texture(rough_tex, p.xy).r * w.z;
 	// whiteout-blended triplanar normal
 	vec3 tx = texture(normal_tex, p.zy).xyz * 2.0 - 1.0;
@@ -562,19 +582,27 @@ void fragment() {
 	float ao = COLOR.r;
 	// moss: on what faces the sky, in blotches; and creeping up from the ground in the damp
 	float up = smoothstep(0.15, 0.85, n.y);
-	float m_top = up * smoothstep(0.32, 0.62, big + moss_amount * 0.55 - 0.18) * step(0.001, moss_amount);
+	// r38: a tight smoothstep and a moss darker than the slab read as camouflage blotches on a moonlit roof: a soft edge, a value close to the stone's
+	float m_top = up * smoothstep(0.26, 0.9, big + moss_amount * 0.55 - 0.18) * 0.55 * step(0.001, moss_amount);
 	float m_foot = foot_moss * smoothstep(0.7, 0.58, ao) * smoothstep(0.35, 0.6, big + fine * 0.3);
 	float moss = clamp(max(m_top, m_foot) * (0.75 + 0.5 * fine), 0.0, 1.0);
-	vec3 moss_col = mix(vec3(0.13, 0.19, 0.08), vec3(0.27, 0.32, 0.12), fine);
+	vec3 moss_col = mix(vec3(0.2, 0.26, 0.11), vec3(0.34, 0.39, 0.16), fine);
 	// rain streaks down the sides, pale lichen crusts
 	float side = 1.0 - up;
 	float st = texture(noise_tex, vec2((wpos.x + wpos.z) * 1.7, wpos.y * 0.09)).r;
 	float lichen = smoothstep(0.66, 0.9, texture(noise_tex, wpos.xz * 1.9 + wpos.zy * 1.3).r) * side * streaks;
-	vec3 stone = alb * tint.rgb * COLOR.rgb;
-	stone *= 1.0 - streaks * side * smoothstep(0.55, 0.85, st) * 0.22;
+	// chipped edges: within a few cm of a block's corner the stone is darker and rougher
+	float corner_d = length(vec2(min(fract(cu), 1.0 - fract(cu)) * blk_w, min(fract(sideuv.y / course_h), 1.0 - fract(sideuv.y / course_h)) * course_h));
+	float chip = (1.0 - smoothstep(0.03, 0.09, corner_d)) * step(0.45, c_tone);
+	// cap stain: a darker run down from the top of the wall, broken by noise (the top is where the water pours from)
+	float run = texture(noise_tex, vec2(sideuv.x * 1.3, 0.37)).r;
+	float cap = smoothstep(0.38, 0.8, run) * smoothstep(0.2, 1.0, fract(wpos.y / 1.8));   // a stain building toward each 1.8 m of wall's top, in runs
+	float masonry = mix(1.0, block_tone * (1.0 - 0.5 * joint_k) * (1.0 - 0.3 * chip) * (1.0 - 0.28 * cap), side * 0.9);
+	vec3 stone = alb * tint.rgb * COLOR.rgb * masonry * 0.8 * mix(1.0, 0.62, up);
+	stone *= 1.0 - streaks * side * smoothstep(0.5, 0.85, st) * 0.4;
 	stone *= 0.9 + 0.2 * big;
 	stone = mix(stone, stone * vec3(0.88, 0.95, 0.8) + vec3(0.012, 0.018, 0.006), lichen * 0.5);      // a greener, darker crust, never paler than the stone
-	ALBEDO = mix(stone, moss_col * (0.6 + 0.4 * ao), moss);
+	ALBEDO = mix(stone, moss_col * (0.8 + 0.4 * ao), moss);
 	ROUGHNESS = mix(clamp(rough, 0.5, 1.0), 0.98, moss);
 	nw = normalize(mix(nw, n, moss * 0.6));
 	NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);

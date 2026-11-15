@@ -36,6 +36,7 @@ uniform vec3 rim_color = vec3(0.45, 0.72, 1.0);
 uniform float rim_strength = 0.07;                // 0.14 -> 0.07: a glow at grazing angles that the moon and albedo do not touch; halved with the ground
 uniform float blend_depth = 0.22;                // height-blend softness
 uniform float water_y = -0.9;
+uniform int dbg_skip = -1;                       // zz/free_shots --var: drop a weight layer (0..7) or the worn path (8)
 uniform float path_bright = 3.0;               // packed earth catches the moon more than turf
 // ENS art pass (docs/enshrouded/art.md): painterly ground. Crevices darken the albedo itself (not only
 // the ambient), and broad patches drift between mossy green and cold slate, hues the grade keeps.
@@ -124,7 +125,11 @@ void fragment() {
 	float w_rest = w_a.r + w_b.x + w_a.g + w_a.b + w_a.a + w_b.y + w_b.z;
 	float w_k = (1.0 - w_salt) / max(w_rest, 0.001);
 	float w[8] = float[](w_a.r * w_k, w_b.x * w_k, w_a.g * w_k, w_a.b * w_k, w_a.a * w_k, w_b.y * w_k, w_b.z * w_k, w_salt);
-	float path = clamp(w_b.w, 0.0, 1.0);
+	if (dbg_skip >= 0 && dbg_skip < 8) { w[dbg_skip] = 0.0; }
+	// r38: below its own region the salt crust must not show on other ground at all (its crack network drew white scratches across
+	// Saltmarket's flagstones): the weight is cut to nothing under 0.5 and ramps to full by 0.85, so the White Pans proper are unchanged
+	w[7] *= smoothstep(0.5, 0.85, w[7]);
+	float path = dbg_skip == 8 ? 0.0 : clamp(w_b.w, 0.0, 1.0);
 	vec2 p = wpos.xz;
 	// distance LOD: near, the tiles at their own scale with their normal maps; far, the same layers
 	// at far_scale (turned) so the 3 m repeat never lines up across a field, albedo only (one fetch a
@@ -157,6 +162,10 @@ void fragment() {
 			if (i == 7) {
 				// r37: the White Pans' salt crust (its own 2D textures)
 				vec2 fuv7 = vec2(0.62 * uv.x - 0.78 * uv.y, 0.78 * uv.x + 0.62 * uv.y) * far_scale;
+				// r38: where salt only spills a little (the rim of Saltmarket's paving, w < ~0.6) its pale crack network drew white scratches
+				// across the flagstones (isolated by skipping layer 7 in a capture: the dress decals and the flagstone layer were not it):
+				// spill takes the crust's seams down to a salt-grey; the White Pans' own crust (w near 1) is unchanged
+				
 				if (!far_on) {
 					a = texture(salt_alb, uv);
 					n = texture(salt_nrm, uv);

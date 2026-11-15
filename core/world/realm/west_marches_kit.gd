@@ -54,8 +54,34 @@ static func prop_mat(set_name: String) -> StandardMaterial3D:
 	var m := base.duplicate() as StandardMaterial3D
 	m.uv1_scale = Vector3(3, 3, 3)
 	m.normal_scale = base.normal_scale * 0.35
+	_sky_fill(m, set_name, 0.07)
 	_mats[key] = m
 	return m
+
+
+## A modelled prop dressed at building density (Hearthward's gate, forge, shrine, market: PropModels.big): the building set
+## with the sky-bounce fill below, cached apart from the buildings' own mat().
+static func lit_mat(set_name: String) -> StandardMaterial3D:
+	var key := "lit_" + set_name
+	if _mats.has(key):
+		return _mats[key]
+	var m := mat(set_name).duplicate() as StandardMaterial3D
+	_sky_fill(m, set_name, 0.2)
+	_mats[key] = m
+	return m
+
+
+## r38: timber and slate props (the village gate's underside, the forge's posts and lean-to, hitching rails) crushed to
+## black on their shaded faces under the moon (ambient is 0.125, and a lifted albedo multiplies almost nothing there): a
+## cool sky-bounce fill that follows the texture's own detail, on prop sets only (the buildings' mat() and the global
+## ambient stay as they were).
+static func _sky_fill(m: StandardMaterial3D, set_name: String, energy: float) -> void:
+	if set_name != "timber" and set_name != "slate":
+		return
+	m.emission_enabled = true
+	m.emission = Color(0.3, 0.21, 0.15)
+	m.emission_energy_multiplier = energy
+	m.emission_texture = m.albedo_texture
 
 
 static func scene(file: String) -> PackedScene:
