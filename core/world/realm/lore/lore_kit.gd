@@ -95,7 +95,7 @@ static func ensure_mats() -> void:
 	OssKit._mats["lore_tslate"] = LA.stone("oss_slate", 0.5, Color(1.7, 1.72, 1.8), 0.55, 0.0, 0.25)
 	OssKit._mats["lore_plaster"] = LA.stone("oss_plaster", 0.5, Color(0.8, 0.77, 0.7), 0.0, 0.55, 0.8)
 	OssKit._mats["lore_ashlar"] = LA.stone("oss_ashlar", 0.32, Color(0.96, 0.93, 0.9), 0.5, 0.5, 0.65)
-	OssKit._mats["lore_slates"] = LA.stone("oss_slate", 1.3, Color(1.6, 1.62, 1.7), 0.5, 0.0, 0.0)
+	OssKit._mats["lore_slates"] = LA.stone("oss_slate", 1.3, Color(1.0, 1.02, 1.08), 0.5, 0.0, 0.0)
 	OssKit._mats["lore_carve"] = LA.carve(false)
 	OssKit._mats["lore_carve_cold"] = LA.carve(true)
 	OssKit._mats["lore_carve_plain"] = LA.carve_plain()

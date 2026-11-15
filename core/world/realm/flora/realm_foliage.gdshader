@@ -177,6 +177,14 @@ void fragment() {
 		float lum2 = dot(c, vec3(0.2126, 0.7152, 0.0722));
 		// the brightest cards (the pale mint shrub clusters) lose most of their chroma on top of the shoulder
 		c = mix(c, vec3(lum2) * vec3(1.06, 1.0, 0.86), (shrub ? lit_desat : 0.0) * smoothstep(0.03, 0.25, lum2) + 0.5 * smoothstep(0.16, 0.4, lum2));
+		// shrubs sit at the crowns' value, not above it: brought to a fixed mid value by luminance, not just desaturated
+		if (shrub) {
+			c *= 0.62;
+		}
+		// the birch cell (atlas column 1, row 0) is the pale round-leaved crown of the young birches and saplings
+		if (!ground && UV.x > 0.25 && UV.x < 0.5 && UV.y < 0.25) {
+			c *= 0.68;
+		}
 		c /= 1.0 + 2.0 * max(lum2 - 0.14, 0.0);
 	}
 	ALBEDO = c * mottle;

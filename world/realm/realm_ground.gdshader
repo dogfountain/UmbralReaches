@@ -126,6 +126,9 @@ void fragment() {
 	float w_k = (1.0 - w_salt) / max(w_rest, 0.001);
 	float w[8] = float[](w_a.r * w_k, w_b.x * w_k, w_a.g * w_k, w_a.b * w_k, w_a.a * w_k, w_b.y * w_k, w_b.z * w_k, w_salt);
 	if (dbg_skip >= 0 && dbg_skip < 8) { w[dbg_skip] = 0.0; }
+	// r38: below its own region the salt crust must not show on other ground at all (its crack network drew white scratches across
+	// Saltmarket's flagstones): the weight is cut to nothing under 0.5 and ramps to full by 0.85, so the White Pans proper are unchanged
+	w[7] *= smoothstep(0.5, 0.85, w[7]);
 	float path = dbg_skip == 8 ? 0.0 : clamp(w_b.w, 0.0, 1.0);
 	vec2 p = wpos.xz;
 	// distance LOD: near, the tiles at their own scale with their normal maps; far, the same layers
@@ -162,7 +165,7 @@ void fragment() {
 				// r38: where salt only spills a little (the rim of Saltmarket's paving, w < ~0.6) its pale crack network drew white scratches
 				// across the flagstones (isolated by skipping layer 7 in a capture: the dress decals and the flagstone layer were not it):
 				// spill takes the crust's seams down to a salt-grey; the White Pans' own crust (w near 1) is unchanged
-				float spill_dim = mix(0.5, 1.0, smoothstep(0.4, 0.85, w[7]));
+				
 				if (!far_on) {
 					a = texture(salt_alb, uv);
 					n = texture(salt_nrm, uv);
@@ -174,7 +177,6 @@ void fragment() {
 						n = mix(texture(salt_nrm, uv), n, fk);
 					}
 				}
-				a.rgb *= spill_dim;
 			} else if (!far_on) {
 				a = texture(alb, vec3(uv, float(i)));
 				n = texture(nrm, vec3(uv, float(i)));

@@ -591,8 +591,14 @@ void fragment() {
 	float side = 1.0 - up;
 	float st = texture(noise_tex, vec2((wpos.x + wpos.z) * 1.7, wpos.y * 0.09)).r;
 	float lichen = smoothstep(0.66, 0.9, texture(noise_tex, wpos.xz * 1.9 + wpos.zy * 1.3).r) * side * streaks;
-	float masonry = mix(1.0, block_tone * (1.0 - 0.5 * joint_k), side * 0.9);
-	vec3 stone = alb * tint.rgb * COLOR.rgb * masonry * 0.8;
+	// chipped edges: within a few cm of a block's corner the stone is darker and rougher
+	float corner_d = length(vec2(min(fract(cu), 1.0 - fract(cu)) * blk_w, min(fract(sideuv.y / course_h), 1.0 - fract(sideuv.y / course_h)) * course_h));
+	float chip = (1.0 - smoothstep(0.03, 0.09, corner_d)) * step(0.45, c_tone);
+	// cap stain: a darker run down from the top of the wall, broken by noise (the top is where the water pours from)
+	float run = texture(noise_tex, vec2(sideuv.x * 1.3, 0.37)).r;
+	float cap = smoothstep(0.38, 0.8, run) * smoothstep(0.2, 1.0, fract(wpos.y / 1.8));   // a stain building toward each 1.8 m of wall's top, in runs
+	float masonry = mix(1.0, block_tone * (1.0 - 0.5 * joint_k) * (1.0 - 0.3 * chip) * (1.0 - 0.28 * cap), side * 0.9);
+	vec3 stone = alb * tint.rgb * COLOR.rgb * masonry * 0.8 * mix(1.0, 0.62, up);
 	stone *= 1.0 - streaks * side * smoothstep(0.5, 0.85, st) * 0.4;
 	stone *= 0.9 + 0.2 * big;
 	stone = mix(stone, stone * vec3(0.88, 0.95, 0.8) + vec3(0.012, 0.018, 0.006), lichen * 0.5);      // a greener, darker crust, never paler than the stone
