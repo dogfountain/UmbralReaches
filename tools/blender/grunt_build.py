@@ -975,7 +975,7 @@ def leaper():
     plates down the spine and over the shoulders and haunches, a lash of a tail."""
     S = quad_sockets(*QSOCK["leaper"])
     g = Geo()
-    HIDE, BONE, DARK, OLD = (0.13, 0.1, 0.1), (0.8, 0.74, 0.62), (0.02, 0.02, 0.02), (0.6, 0.55, 0.45)
+    HIDE, BONE, DARK, OLD = (0.27, 0.21, 0.18), (0.8, 0.74, 0.62), (0.02, 0.02, 0.02), (0.6, 0.55, 0.45)
     lab = quad_label(S)
     B0, F0, T0 = S["body"], S["front"], S["tail"]
     M = [("e", V(0, 0.5, -0.28), (0.15, 0.22, 0.24)),                     # the keel: a deep ribcage
