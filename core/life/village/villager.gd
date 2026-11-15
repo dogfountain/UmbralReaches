@@ -116,6 +116,7 @@ var _dip := 0.0                       ## knee give on a blow (hammer, axe), set 
 var _foot_push := 0.0                 ## the digger's boot on the spade (0..1)
 var _gait := [0.36, 0.88, 0.02, 0.3]
 var _pdt := 0.0
+var _shift_z := 0.0                   ## the body stepped forward (the smith leaning into the barrel)
 var _shift_x := 0.0                   ## the hips' sideways shift over the standing foot (villager_idle.gd)
 var _turn_on := false                 ## the feet are shuffling round a turn on the spot (npc_life.gd turn_legs)
 var _gest := 0.0                      ## which hand has the word: +1 right, -1 left, eased
@@ -773,6 +774,7 @@ func _pose(dt: float) -> void:
 	var r := rig
 	_pdt = dt
 	_shift_x = 0.0
+	_shift_z = 0.0
 	var k: float = r.k
 	r.reset()
 	var off := 0.0
@@ -1014,7 +1016,7 @@ func _pose(dt: float) -> void:
 	if speaking or chat:
 		r.q(B_JAW, Quaternion(Vector3.RIGHT, -0.15 * life.jaw()))
 	r.q(B_LID, Quaternion(Vector3.RIGHT, life.blink()))
-	(rig as Node3D).position = Vector3(_shift_x, off, 0)
+	(rig as Node3D).position = Vector3(_shift_x, off, _shift_z)
 	r.apply()
 	r.update_glow()
 	var gm: StandardMaterial3D = r.glow_mat
