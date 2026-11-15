@@ -1680,8 +1680,18 @@ def thornwarden():
     tail = [T0 + V(0, -0.02 - 0.05 * k * k * 0.1, 0.13 * k) for k in range(6)]
     for k in range(5):
         M.append(("c", tail[k], tail[k + 1], 0.1 - 0.016 * k))
+    k0 = len(g.v)
     P = g.meta(M, DARKB, "wood", lab, res=0.014, tris=10000)
     P = np.array(P)
+    k1 = len(g.v)
+    # old moss and lichen hung from him the way it hangs from a dead oak: a beard under the throat and the breast, ragged
+    # fringes along the belly, a few on the haunches
+    fur(g, k0, k1, lambda p, n: n[1] < -0.15 and p[2] < -0.05 and p[1] > 0.3, 300, (0.3, 0.33, 0.21), lab,
+        length=(0.08, 0.2), width=0.013, seed=5, lie=V(0.0, -1.0, 0.1), droop=0.6, rise=0.25)
+    fur(g, k0, k1, lambda p, n: n[1] < -0.3 and -0.05 <= p[2] < 0.45, 160, (0.26, 0.28, 0.19), lab,
+        length=(0.05, 0.12), width=0.012, seed=9, lie=V(0.0, -1.0, 0.0), droop=0.6, rise=0.2)
+    fur(g, k0, k1, lambda p, n: n[1] > 0.4 and abs(p[0]) > 0.07 and p[2] > 0.15, 90, (0.36, 0.38, 0.25), lab,
+        length=(0.04, 0.08), width=0.012, seed=13, lie=V(0.0, -0.4, 0.8), droop=0.4, rise=0.4)
 
     def surf(p, d):
         """The body's surface from p looking along d: the vertex furthest along d within a slab round p."""
