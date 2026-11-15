@@ -12,6 +12,7 @@ const Crossing := preload("res://core/world/realm/rift/crossing.gd")
 const Features := preload("res://core/world/realm/rift/features.gd")
 const Threshold := preload("res://core/world/realm/rift/threshold.gd")
 const OssRemains := preload("res://core/world/realm/rift/oss_remains.gd")
+const Scorch := preload("res://core/world/realm/rift/scorch.gd")
 
 ## The Pilgrims' Threshold (Luke, 9 Nov: "I don't think the lava place should be so close to the village",
 ## then "make it architectural, explore, make it magical"): south of STAR_Z the rift holds starwater, a
@@ -30,6 +31,7 @@ const STARFALLS := [[-37.0, -1.0]]   ## on a terrace bay centre (rift/threshold.
 static func build(root: Node) -> void:
 	if root.get_node_or_null("RealmRift") != null:
 		return
+	Scorch.apply_ground(root)                    # the burned land round the lip (RealmLand already took its heights and splat)
 	var host := Node3D.new()
 	host.name = "RealmRift"
 	host.set_meta("site", "realm_rift")

@@ -11,6 +11,7 @@ extends RefCounted
 ## House style (docs/LORE.md): terse, concrete, dark. Load by path.
 
 const WestTalk := preload("res://core/life/village/village_talk_west_marches.gd")    # --- west marches --- Weirford's conversations
+const Travellers := preload("res://core/life/village/village_cast_travellers.gd")    # the road's walkers
 const EastVillage := preload("res://core/life/village/village_east_marches.gd")   ## the east marches: Saltmarket's talk
 
 const CONV := {
@@ -448,6 +449,9 @@ const CONV := {
 	"wren": WestTalk.CONV["wren"],
 	"tolliver": WestTalk.CONV["tolliver"],
 	"gwyn": WestTalk.CONV["gwyn"],
+	# the road's walkers (village_cast_travellers.gd)
+	"tansy": Travellers.CONV["tansy"],
+	"marra": Travellers.CONV["marra"],
 	# --- the east marches ---
 	"marl": EastVillage.CONV_MARL, "teasel": EastVillage.CONV_TEASEL, "orrin": EastVillage.CONV_ORRIN, "ardel": EastVillage.CONV_ARDEL, "pip": EastVillage.CONV_PIP, "nella": EastVillage.CONV_NELLA,
 }

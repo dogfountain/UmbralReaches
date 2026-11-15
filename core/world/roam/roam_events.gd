@@ -10,6 +10,7 @@ extends Node
 
 const VillagerScript := preload("res://core/life/village/villager.gd")
 const ReachState := preload("res://core/world/night/reach_state.gd")
+const Director := preload("res://core/life/encounters/director.gd")
 
 const FIRST := 150.0             ## seconds before the first event of a night
 const EVERY := Vector2(200.0, 360.0)
@@ -134,6 +135,10 @@ func _place(p: Node3D, k: String) -> Vector3:
 			continue
 		var g: Vector3 = hit.position
 		if LightGrid.is_lit(g) or absf(g.y - p.global_position.y) > 12.0:
+			continue
+		# fair ground (no haven, water or lava; off the hub's roads); a procession walks a way, so only its
+		# file's head may stand on one, and never near Hearthward
+		if not Director.fair_ground(g, k == "procession") or not WorldLanes.site_at(Vector2(g.x, g.z), 0.8).is_empty():
 			continue
 		return g
 	return Vector3.INF
