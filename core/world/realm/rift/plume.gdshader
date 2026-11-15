@@ -6,11 +6,11 @@ render_mode unshaded, cull_back, depth_draw_never, blend_mix, shadows_disabled, 
 // shell fades where it meets rock (depth). The moonlit side is a cold grey, the far side near black, and the lava
 // lights the column's foot from below: the warmth sits low and fades into the night grade as it climbs.
 
-uniform vec3 smoke_dark : source_color = vec3(0.075, 0.07, 0.085);
-uniform vec3 smoke_lit : source_color = vec3(0.36, 0.38, 0.46);
-uniform vec3 glow_color : source_color = vec3(1.0, 0.36, 0.11);
-uniform float glow_energy = 1.9;
-uniform float glow_reach = 0.34;           // how far up the column (UV.y) the lava's light carries
+uniform vec3 smoke_dark : source_color = vec3(0.06, 0.06, 0.075);
+uniform vec3 smoke_lit : source_color = vec3(0.3, 0.32, 0.4);
+uniform vec3 glow_color : source_color = vec3(1.0, 0.34, 0.1);
+uniform float glow_energy = 2.2;
+uniform float glow_reach = 0.22;           // how far up the column (UV.y) the lava's light carries
 // its own haze (the engine's depth fog drowned a dark column against the night sky): far off it greys into the
 // distance colour, but never all the way, so the column stands on the horizon
 uniform vec3 haze_color : source_color = vec3(0.16, 0.18, 0.28);
@@ -55,24 +55,25 @@ void vertex() {
 	// billows bulge the shell out and in as they climb (UV2.x is the ring's radius): a lumpy, moving silhouette
 	float t = TIME * rise;
 	float b = fbm(vec2(UV.x * 3.0, UV.y * 5.0 - t * 5.0 + seed * 0.7), 3.0);
-	VERTEX += NORMAL * (b - 0.45) * UV2.x * 0.55 * smoothstep(0.0, 0.15, UV.y);
+	float b2 = fbm(vec2(UV.x * 7.0, UV.y * 12.0 - t * 12.0 + seed * 1.3), 7.0);
+	VERTEX += NORMAL * ((b - 0.45) * 0.6 + (b2 - 0.5) * 0.25) * UV2.x * smoothstep(0.0, 0.15, UV.y);
 }
 
 void fragment() {
 	float h = UV.y;
 	float t = TIME * rise;
 	// billows: big puffs climbing, warped by a slower field so they roll rather than slide
-	vec2 q = vec2(UV.x * 4.0, h * 6.5 - t * 6.5 + seed);
+	vec2 q = vec2(UV.x * 5.0, h * 9.0 - t * 9.0 + seed);
 	vec2 w = vec2(fbm(q * 0.5 + vec2(seed * 3.1, -t * 2.0), 2.0), fbm(q * 0.5 + vec2(7.7, seed - t * 1.3), 2.0)) - 0.5;
-	float n = fbm(q + w * 2.4, 4.0);
+	float n = fbm(q + w * 2.4, 5.0);
 	// the same field a little towards the top: its difference shades each puff (lit crown, shadowed belly)
-	float n_up = fbm(q + w * 2.4 + vec2(0.0, 0.22), 4.0);
+	float n_up = fbm(q + w * 2.4 + vec2(0.0, 0.16), 5.0);
 	// thick and whole low, breaking up as it spreads and thins
-	float body = mix(0.3, 0.55, smoothstep(0.1, 1.0, h));
+	float body = mix(0.26, 0.5, smoothstep(0.15, 1.0, h));
 	float a = smoothstep(body - 0.12, body + 0.18, n);
 	// the silhouette is the puffs' own edge; only the very grazing rim of a shell is let go
 	float face = abs(dot(NORMAL, VIEW));
-	a *= smoothstep(0.0, 0.3, face + (n - 0.5) * 0.4);
+	a *= smoothstep(0.0, 0.22, face + (n - 0.5) * 0.5);
 	a *= smoothstep(0.0, 0.04, h) * (1.0 - smoothstep(0.8, 1.0, h));
 	// fade where the shell meets the rock or the lava behind it
 	float depth = textureLod(depth_tex, SCREEN_UV, 0.0).r;
@@ -81,11 +82,13 @@ void fragment() {
 	a *= clamp((VERTEX.z - scene_z) / soft_depth, 0.0, 1.0);
 	// shading: the moon's side and the puff's crown lit, the lee and the belly dark, the lava's light from below
 	float lit = clamp(dot(wnrm, normalize(moon_dir)) * 0.5 + 0.5, 0.0, 1.0);
-	float puff = clamp((n - n_up) * 4.0 + 0.55, 0.0, 1.0);
-	vec3 c = mix(smoke_dark, smoke_lit, lit * mix(0.35, 1.0, puff));
+	float puff = clamp((n - n_up) * 9.0 + 0.5, 0.0, 1.0);
+	puff = puff * puff * (3.0 - 2.0 * puff);
+	vec3 c = mix(smoke_dark, smoke_lit, lit * mix(0.2, 1.0, puff) * (0.75 + 0.5 * n));
 	float under = 1.0 - smoothstep(0.0, glow_reach, h);
-	c += glow_color * glow_energy * under * under * mix(0.3, 1.0, 1.0 - puff) * (0.5 + 0.5 * n);
-	c = mix(c, haze_color, smoothstep(40.0, haze_far, -VERTEX.z) * 0.6);
+	// the lava lights the puffs' bellies from below, not the whole column
+	c += glow_color * glow_energy * under * under * mix(0.15, 1.0, smoothstep(0.35, 0.8, 1.0 - puff)) * (0.5 + 0.5 * n);
+	c = mix(c, haze_color, smoothstep(60.0, haze_far, -VERTEX.z) * 0.5);
 	ALBEDO = c;
 	ALPHA = clamp(a * density, 0.0, 1.0);
 }

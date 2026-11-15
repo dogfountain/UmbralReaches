@@ -58,7 +58,7 @@ uniform vec4 scorch_rect = vec4(0.0);
 uniform vec3 scorch_ash : source_color = vec3(0.4, 0.38, 0.355);
 uniform vec3 scorch_crust : source_color = vec3(0.04, 0.038, 0.045);
 uniform vec3 scorch_heat : source_color = vec3(1.0, 0.32, 0.07);
-uniform float scorch_heat_energy = 2.4;
+uniform float scorch_heat_energy = 1.7;
 
 vec2 rot_c(vec2 p) { return vec2(0.8 * p.x - 0.6 * p.y, 0.6 * p.x + 0.8 * p.y); }
 
@@ -253,22 +253,27 @@ void fragment() {
 		if (fl > 0.001) {
 			// ropes along the flow's isolines, bent by noise (pahoehoe), fading out with distance (they alias into
 			// stripes from afar); tumuli (metre-scale swells) and a seam network breaking the crust into plates
-			float near_k = 1.0 - smoothstep(14.0, 38.0, cdist);
-			float ph = gn * 70.0 + vnoise(p * 0.42) * 5.0;
+			// ropes come in short bunched arcs (a mask of patches), not in one ripple over the whole lobe
+			float near_k = (1.0 - smoothstep(12.0, 30.0, cdist)) * smoothstep(0.45, 0.75, vnoise(rot(p, 0.4) * 0.22));
+			float ph = gn * 90.0 + vnoise(p * 0.55) * 7.0 + vnoise(p * 1.7) * 1.5;
 			float rope = sin(ph) * near_k;
 			float gx = texture(scorch_tex, sct + vec2(0.4, 0.0) / sc_sz).g - sc.g;
 			float gz = texture(scorch_tex, sct + vec2(0.0, 0.4) / sc_sz).g - sc.g;
-			vec2 rope_t = -vec2(gx, gz) * cos(ph) * 70.0 * 0.05 * near_k;
-			vec2 tum = -vnoise_grad(rot(p, 1.9) * 0.32) * 0.32 * 1.6;
-			float crk = abs(vnoise(rot(p, 0.7) * 0.8 + vec2(rope * 0.25)) - 0.5);
-			float seam = 1.0 - smoothstep(0.012, 0.05, crk);
+			vec2 rope_t = -vec2(gx, gz) * cos(ph) * 90.0 * 0.025 * near_k;
+			// tumuli and slabs: the crust heaved in metre swells and broke into plates along a seam network
+			vec2 tum = -vnoise_grad(rot(p, 1.9) * 0.32) * 0.32 * 1.8 - vnoise_grad(rot(p, 0.8) * 0.9) * 0.9 * 0.35;
+			// cooling cracks: a fine network (plates of half a metre to a metre), a few centimetres wide whatever the distance
+			float crk = abs(vnoise(rot(p, 0.7) * 2.1) * 0.75 + vnoise(rot(p, 2.2) * 5.3) * 0.25 - 0.5);
+			float seam = 1.0 - smoothstep(0.0, 0.018 + fwidth(crk) * 1.2, crk);
 			vec3 crust = scorch_crust * (0.85 + 0.3 * (rope * 0.5 + 0.5)) * (0.8 + 0.4 * vnoise(p * 3.1));
-			crust *= 1.0 - seam * 0.5;
+			crust *= 1.0 - seam * 0.6;
 			col = mix(col, crust, fl);
 			tilt = mix(tilt, rope_t + tum + tilt * 0.25, fl);
 			rough = mix(rough, mix(0.74, 0.92, rope * 0.5 + 0.5), fl);      // a dull glass: the crests catch a little moon
 			ao = mix(ao, mix(0.8, 1.0, rope * 0.5 + 0.5), fl);
-			float pulse = 0.72 + 0.28 * sin(TIME * 0.7 + p.x * 0.31 + p.y * 0.23);
+			float pulse = 0.7 + 0.3 * sin(TIME * 0.7 + p.x * 0.31 + p.y * 0.23);
+			// the seams glow where the crust is still warm, brightest where they widen; most stay dark
+			seam *= smoothstep(0.3, 0.7, vnoise(rot(p, 1.4) * 0.35) + sc.b * 0.35);
 			// (the seams are drawn in plan: on a steep face they would stretch into streaks, so they keep to the flat)
 			scorch_glow = seam * fl * smoothstep(0.05, 0.6, sc.b) * pulse * smoothstep(0.86, 0.96, wnrm.y);
 		}

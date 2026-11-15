@@ -7,9 +7,16 @@ extends RefCounted
 ##     rubble at the flows' toes, a few black tors in the burned wood
 ##   - charred trunks lying where the fire dropped them (TreeGen logs, burned black)
 ##   - steam where the flows' fronts stopped in the fen's water, smoke where their crust is still warm
+##   - THE CHOIR HOUSE: the hall where the Stair's choir lodged on the flat below the west berm, standing in the main
+##     flow, which came through the berm's notch the night the rift brimmed, in at its door, filled its nave to the
+##     sills and burst its far gable
+##     (tools/blender/rift_choir_house.py; the Cinder Cantor haunts its nave, elites.gd; its writings, lore_db.gd)
 ## Everything keeps off the ways, the Crossing, every registered site and the chasm itself.
 
 const Scorch := preload("res://core/world/realm/rift/scorch.gd")
+const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
+const LoreMore := preload("res://core/world/realm/lore/lore_more.gd")
+const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Plume := preload("res://core/world/realm/rift/plume.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
@@ -18,8 +25,22 @@ const SEED := 7307
 const CHAR := Color(0.24, 0.215, 0.2)          ## a burned trunk's tint over its bark
 
 
+## Before the stamp and the flora: the Choir House's ground is a site (nothing grows or is put in it; the stamp
+## never cuts it: its floor is the flow itself) and a tree-free round.
 static func reserve(_root: Node) -> void:
-	pass
+	if "--no-scorch" in OS.get_cmdline_user_args():
+		return
+	var r := Rect2(_choir_pt(0.0, 0.0), Vector2.ZERO)
+	for c: Vector2 in [Vector2(-1.5, -5.2), Vector2(-1.5, 5.2), Vector2(Scorch.CHOIR_LEN + 4.2, -5.2), Vector2(Scorch.CHOIR_LEN + 4.2, 5.2)]:
+		r = r.expand(_choir_pt(c.x, c.y))
+	WorldLanes.register_site("rift_choir", r, 30.0, 40.0)
+	Flora.tree_clear.append([_choir_pt(Scorch.CHOIR_LEN * 0.5, 0.0), 11.0])
+
+
+## A point of the Choir House's plan: `along` metres in from the west door, `across` to the south (+) side.
+static func _choir_pt(along: float, across: float) -> Vector2:
+	var d := Scorch.CHOIR_DIR
+	return Scorch.CHOIR_DOOR + d * along + Vector2(-d.y, d.x) * across
 
 
 static func build(holder: Node) -> void:
@@ -39,10 +60,11 @@ static func build(holder: Node) -> void:
 	_commit_rocks(host, rocks)
 	var n_log := _logs(host, space, rng)
 	var n_steam := _steam(host, space, rng)
+	var choir := _choir(host, space)
 	Plume.build(host)
 	WorldLanes.own(host)
-	print("RIFT_RIM scorch dressed: %d rocks, %d tors, %d charred trunks, %d steam/smoke vents, the plume (%d ms)" % [
-		n_rock, n_tor, n_log, n_steam, Time.get_ticks_msec() - t0])
+	print("RIFT_RIM scorch dressed: %d rocks, %d tors, %d charred trunks, %d steam/smoke vents, the plume, the Choir House %s (%d ms)" % [
+		n_rock, n_tor, n_log, n_steam, "at %s" % choir if choir != Vector3.INF else "NOT PLACED", Time.get_ticks_msec() - t0])
 
 
 # --- placement ------------------------------------------------------------------------------------
@@ -360,3 +382,77 @@ static func _steam(host: Node3D, space: PhysicsDirectSpaceState3D, rng: RandomNu
 				smoke.emitting = true
 				n += 1
 	return n
+
+
+# --- the Choir House -----------------------------------------------------------------------------------
+
+## The hall in the first flow: the model's old floor (its z 0) is the ground under the flow (the ground there less
+## the flow's lift), so the crust stands in its nave as it does outside. Returns where its door stands (INF if not).
+static func _choir(host: Node3D, space: PhysicsDirectSpaceState3D) -> Vector3:
+	var lo := INF
+	for t: float in [0.5, 4.0, 7.0, 10.0, 13.5]:
+		for side: float in [-2.0, 0.0, 2.0]:
+			var q := _choir_pt(t, side)
+			var y := RealmLayout.ground(space, q.x, q.y)
+			lo = minf(lo, y - Scorch.lift(q.x, q.y))
+	if is_inf(lo) or is_nan(lo):
+		return Vector3.INF
+	var d := Scorch.CHOIR_DIR
+	var yaw := atan2(-d.x, -d.y)                  # the model's +Y (Godot -Z) runs down the flow
+	var at := Vector3(Scorch.CHOIR_DOOR.x, lo - 0.05, Scorch.CHOIR_DOOR.y)
+	var xf := Transform3D(Basis(Vector3.UP, yaw), at)
+	var root := Node3D.new()
+	root.name = "ChoirHouse"
+	root.set_meta("site", "rift_choir")
+	host.add_child(root)
+	var node := WestKit.place(root, "rift_choir_house.glb", xf)
+	if node == null:
+		return Vector3.INF
+	var char_mat := _char_mat()
+	var crust_mat := _crust_mat()
+	var far: Array[MeshInstance3D] = []
+	for n in node.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		var nm := String(mi.name)
+		if nm.contains("__char"):
+			mi.material_override = char_mat
+		elif nm.contains("__crust"):
+			mi.material_override = crust_mat
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if nm.begins_with("ChoirFar"):
+			far.append(mi)
+	for b in node.find_children("*", "StaticBody3D", true, false):
+		(b as StaticBody3D).collision_layer = Layers.WORLD
+		(b as StaticBody3D).collision_mask = 0
+	# the far copy draws from 150 m to the horizon in one stone colour; the near model fades out where it takes over
+	for fm in far:
+		FarDetail.register(node, fm.mesh, node.global_transform.affine_inverse() * fm.global_transform, 150.0, FarDetail.far_material(), false)
+		fm.queue_free()
+	FarDetail.near_ends(node, 150.0, 20.0)
+	# its writings: the hymn board on the west door's jamb, the cantor's desk, the buttress by the breach; and the
+	# peat-cutters' warning where the flows reach the fen
+	LoreMore.place(root, "rr_hymn_board", xf * Vector3(1.35, 1.9, 0.6))
+	LoreMore.place(root, "rr_cantor_desk", xf * Vector3(0.0, 2.6, -10.8))
+	LoreMore.place(root, "rr_breach", xf * Vector3(3.6, 1.6, -14.6))
+	var fen := Vector2(61.0, -82.5)
+	LoreMore.place(root, "rr_fen_notice", Vector3(fen.x, RealmLayout.ground(space, fen.x, fen.y) + 1.2, fen.y))
+	return at
+
+
+## Burned timber: the roof's rafters and the choir's stalls, black, a little lustre on the char.
+static func _char_mat() -> StandardMaterial3D:
+	var m := (WestKit.mat("timber") as StandardMaterial3D).duplicate() as StandardMaterial3D
+	m.albedo_color = Color(0.2, 0.175, 0.165)
+	m.roughness = 0.82
+	m.normal_scale = 1.4
+	return m
+
+
+## The frozen lava in the windows and doorways: the flows' dark glassy crust.
+static func _crust_mat() -> StandardMaterial3D:
+	var m := (WestKit.mat("stone") as StandardMaterial3D).duplicate() as StandardMaterial3D
+	m.albedo_color = Color(0.11, 0.1, 0.11)
+	m.roughness = 0.7
+	m.normal_scale = 1.6
+	m.uv1_scale = Vector3(1.6, 1.6, 1.6)
+	return m

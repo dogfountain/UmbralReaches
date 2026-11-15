@@ -423,6 +423,15 @@ const TEXTS := {
 	# --- lamps ---
 	"lamp_pilgrim": R37LL.TEXTS["lamp_pilgrim"],
 	"lamp_window": R37LL.TEXTS["lamp_window"],
+	# --- the lava (the Ashen Rift's rim: the Choir House, the flows; core/world/realm/rift_rim.gd) ---
+	"rr_hymn_board": {"region": "rift", "kind": "plaque", "title": "The hymn board",
+		"text": "THE NIGHT OF THE STAIR. The Ascent. The Open Door. The Last Bell. Choir to the Stair by the second bell. Under it, in chalk: It came to the door at the first verse. We sang the second from the roof."},
+	"rr_cantor_desk": {"region": "rift", "kind": "lectern", "title": "The cantor's desk",
+		"text": "The book is ash. Pressed into the stone where it lay is the shape of a hand keeping time, the fingers spread for the downbeat. Someone is still keeping it."},
+	"rr_breach": {"region": "rift", "kind": "rune", "title": "Scratched on a buttress",
+		"text": "IT CAME IN LIKE A TIDE AND WENT OUT LIKE A BELL. Lower, newer: Not after dark. She is still singing in there, and she wants the high part back."},
+	"rr_fen_notice": {"region": "fen", "kind": "notice", "title": "Peat-cutters' warning",
+		"text": "The black tongues are warm yet. No cutting within a rope's length of one: the water boils under the crust, and it will have your boots and then your feet."},
 }
 
 ## Multi-part stories, in journal order. `count` = parts in the world.

@@ -26,29 +26,38 @@ const HENGE := Vector2(-86.0, -24.0)                     ## Thorn Henge's hill s
 const MOUTH_Z := Vector2(-36.0, -6.0)                    ## the starwater mouth: the burn dies back over these z
 const RING := 30.0                                       ## metres of dying wood and dry turf round the burn
 
-## The flows that ran over the lip: points from the lip outward, half-widths (m) at each, thickness (m).
-## East, the low side, into the fen; one short tongue west where that lip dips. Clear of the Fen
-## postern's crest (site_fen.gd, x ~31-35 z > -33), the Threshold fire (50.6, -57.5) and every way.
+## The flows. The rift's lips are berms 11-15 m high (heaved up when it tore open); the night the rift brimmed the
+## lava broke through them at notches (`notch`: metres the crest is cut down where a flow crossed it) and ran down
+## their outer faces: west onto the flat at the Crowns' foot (the main flow, which took the Choir House, and a second
+## tongue), east in two cascades down the berm into the Hollow Fen's edge. Points from the lip outward, half-widths
+## (m) at each, thickness (m). Clear of the Watchers' Spire (realm_pois.gd, between the two west flows), the Fen
+## postern's crest (site_fen.gd), the Threshold fire and every way.
 const FLOWS := [
-	{"pts": [Vector2(23.0, -100.0), Vector2(31.0, -101.5), Vector2(39.0, -99.0), Vector2(47.0, -95.0), Vector2(54.0, -90.0), Vector2(58.5, -86.0)],
-		"hw": [3.0, 5.0, 6.5, 7.5, 7.0, 6.0], "thick": 1.35},
-	{"pts": [Vector2(23.0, -76.0), Vector2(31.0, -77.0), Vector2(38.0, -74.5), Vector2(44.0, -70.5), Vector2(47.5, -67.5)],
-		"hw": [2.6, 4.6, 6.0, 5.4, 4.6], "thick": 1.1},
-	{"pts": [Vector2(38.0, -74.5), Vector2(42.5, -80.0), Vector2(45.5, -85.0)],
-		"hw": [3.5, 4.2, 3.6], "thick": 0.9},
-	{"pts": [Vector2(23.0, -56.0), Vector2(29.5, -56.5), Vector2(35.5, -54.0), Vector2(39.5, -49.5)],
-		"hw": [2.2, 3.6, 4.2, 3.4], "thick": 0.8},
-	{"pts": [Vector2(-23.0, -97.0), Vector2(-29.5, -98.0), Vector2(-35.0, -96.0), Vector2(-38.5, -92.5)],
-		"hw": [2.2, 3.6, 4.0, 3.2], "thick": 0.75},
+	{"pts": [Vector2(-23.0, -87.5), Vector2(-29.0, -87.0), Vector2(-36.0, -86.5), Vector2(-43.0, -86.0), Vector2(-51.0, -84.6), Vector2(-59.0, -83.2), Vector2(-67.0, -84.5)],
+		"hw": [2.6, 4.2, 5.2, 6.5, 7.6, 8.0, 6.0], "thick": 1.35, "notch": 4.0},
+	{"pts": [Vector2(-23.0, -113.0), Vector2(-29.0, -113.5), Vector2(-36.0, -114.0), Vector2(-44.0, -114.8), Vector2(-53.0, -116.2), Vector2(-62.0, -115.5), Vector2(-69.0, -112.5)],
+		"hw": [2.4, 4.0, 4.8, 5.0, 5.2, 6.0, 5.0], "thick": 1.1, "notch": 4.0},
+	{"pts": [Vector2(26.0, -101.5), Vector2(32.0, -101.0), Vector2(39.0, -99.0), Vector2(47.0, -95.0), Vector2(54.0, -90.0), Vector2(58.5, -86.0)],
+		"hw": [3.0, 4.5, 6.0, 7.0, 6.5, 5.5], "thick": 1.2, "notch": 3.5},
+	{"pts": [Vector2(27.0, -76.5), Vector2(33.0, -77.0), Vector2(39.0, -74.5), Vector2(44.0, -70.5), Vector2(47.5, -67.5)],
+		"hw": [2.6, 4.2, 5.5, 5.0, 4.4], "thick": 1.0, "notch": 3.0},
 ]
+## The Choir House (rift_rim.gd; tools/blender/rift_choir_house.py) stands in the main west flow: its door's threshold,
+## the way into the hall (down the flow), its length and half width. The crust in its nave kept the heat longest.
+const CHOIR_DOOR := Vector2(-43.5, -86.0)
+const CHOIR_DIR := Vector2(-0.985, 0.172)
+const CHOIR_LEN := 14.0
+const CHOIR_HW := 3.7
 ## Fire pads (RealmBosses.R34_FIRES near here) the flows stop short of.
-const KEEP_CLEAR := [[Vector2(50.6, -57.5), 8.0], [Vector2(55.6, -56.6), 6.0], [Vector2(35.3, -32.6), 9.0]]
+const KEEP_CLEAR := [[Vector2(50.6, -57.5), 8.0], [Vector2(55.6, -56.6), 6.0], [Vector2(35.3, -32.6), 9.0], [Vector2(-52.0, -100.0), 9.5]]
 
 static var _burn := PackedFloat32Array()
 static var _ash := PackedFloat32Array()
 static var _flow := PackedFloat32Array()
 static var _heat := PackedFloat32Array()
 static var _lift := PackedFloat32Array()
+static var _carve := PackedFloat32Array()        ## the notches the flows cut in the berms (<= 0)
+static var _near := PackedFloat32Array()         ## the burn the flows set round themselves
 static var _tex: ImageTexture
 static var _n_lo: FastNoiseLite
 static var _n_mid: FastNoiseLite
@@ -208,6 +217,8 @@ static func prepare() -> void:
 	_flow.resize(n)
 	_heat.resize(n)
 	_lift.resize(n)
+	_carve.resize(n)
+	_near.resize(n)
 	if "--no-scorch" in OS.get_cmdline_user_args():          # A/B: the rift as it was (zeros everywhere)
 		_burn.fill(0.0)
 		_ash.fill(0.0)
@@ -224,7 +235,8 @@ static func prepare() -> void:
 			var p := Vector2(x, z)
 			var b := _burn_at(p)
 			var fl := _flow[k]
-			_burn[k] = maxf(b, fl * 0.9)
+			_burn[k] = maxf(maxf(b, fl * 0.9), _near[k])
+			_lift[k] += _carve[k]
 			_ash[k] = _ash_at(p, b) * (1.0 - smoothstep(0.05, 0.3, fl) * 0.7)
 	_tex = null
 
@@ -322,17 +334,20 @@ static func _flows() -> void:
 	_flow.fill(0.0)
 	_lift.fill(0.0)
 	_heat.fill(0.0)
+	_carve.fill(0.0)
+	_near.fill(0.0)
 	for f: Dictionary in FLOWS:
 		var pts: Array = f.pts
 		var hws: Array = f.hw
 		var thick: float = f.thick
+		var notch: float = f.get("notch", 0.0)
 		var box := Rect2(pts[0], Vector2.ZERO)
 		var maxw := 0.0
 		for q: Vector2 in pts:
 			box = box.expand(q)
 		for w: float in hws:
 			maxw = maxf(maxw, w)
-		box = box.grow(maxw + 3.0)
+		box = box.grow(maxw + 15.0)
 		var lens := PackedFloat32Array([0.0])
 		for s in pts.size() - 1:
 			lens.append(lens[s] + (pts[s] as Vector2).distance_to(pts[s + 1]))
@@ -359,6 +374,14 @@ static func _flows() -> void:
 						al = lerpf(lens[s], lens[s + 1], t)
 				# the lobe's margin wanders (toes and breakouts); the source pours thin over the lip
 				var edge := hw * (1.0 + 0.22 * _n_mid.get_noise_2d(p.x * 1.3 + 50.0, p.y * 1.3)) + 0.9 * _n_hi.get_noise_2d(p.x, p.y)
+				var k0 := j * NX + i
+				# the fire the flow set round itself: burned ground a dozen metres either side, dying out ragged
+				var near := (1.0 - smoothstep(edge * 0.6, edge + 13.0 + 5.0 * _n_mid.get_noise_2d(p.x * 0.7, p.y * 0.7 + 20.0), best)) * 0.85
+				_near[k0] = maxf(_near[k0], near * smoothstep(0.0, 4.0, al))
+				# the notch: where the flow crossed the berm's crest the crest is cut down (a breach the lava still fills)
+				if notch > 0.0:
+					var cut := notch * (1.0 - smoothstep(edge * 0.55, edge * 1.35, best)) * smoothstep(1.0, 6.0, al) * (1.0 - smoothstep(10.0, 17.0, al))
+					_carve[k0] = minf(_carve[k0], -cut)
 				var inner := clampf(1.0 - best / maxf(edge, 0.5), 0.0, 1.0)
 				if inner <= 0.0:
 					continue
@@ -371,8 +394,16 @@ static func _flows() -> void:
 				var bump := 0.18 * _n_hi.get_noise_2d(p.x * 1.7 + 11.0, p.y * 1.7)
 				var h := (thick * smoothstep(0.0, 0.3, inner) + bump * inner) * src * off
 				_lift[k] = maxf(_lift[k], h)
-				# still warm near the lip: the crust's cracks glow for the first ~14 m
-				_heat[k] = maxf(_heat[k], inner * (1.0 - smoothstep(3.0, 15.0, al)) * off)
+				# still warm near the lip: the crust's cracks glow for the first ~14 m; and in the Choir House's nave
+				_heat[k] = maxf(_heat[k], inner * maxf(1.0 - smoothstep(3.0, 15.0, al), 0.85 * _in_hall(p)) * off)
+
+
+## 1 inside the Choir House's walls (a soft edge), 0 outside.
+static func _in_hall(p: Vector2) -> float:
+	var q := p - CHOIR_DOOR
+	var along := q.dot(CHOIR_DIR)
+	var across := absf(q.dot(Vector2(-CHOIR_DIR.y, CHOIR_DIR.x)))
+	return smoothstep(0.0, 1.5, along) * (1.0 - smoothstep(CHOIR_LEN - 1.5, CHOIR_LEN, along)) * (1.0 - smoothstep(CHOIR_HW - 1.4, CHOIR_HW - 0.6, across))
 
 
 ## The ground shader's map over RECT (RGBA8): r ash, g flow, b heat, a burn.

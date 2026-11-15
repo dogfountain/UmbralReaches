@@ -1,6 +1,7 @@
 extends RefCounted
-## The rift's breath: a column of smoke out of the lava at the rift's head, leaning away downwind (east-south-east,
-## over the old flows and the fen) so it clears the summit's dais. Seen from the whole north of the Realm, it marks
+## The rift's breath: a column of smoke out of the lava in the rift's north-east corner, standing straight up inside
+## the chasm past the summit's dais (it clears the dais's rim by a few metres) and leaning away downwind
+## (east-south-east, over the east berm and the fen) once it is above the Crowns' foot. Seen from the whole north of the Realm, it marks
 ## where the night ends; from the village it rises behind the summit's right shoulder. Three nested shells of a bent
 ## tube (plume.gdshader, ~4 k triangles in all, at most three layers of overdraw), on the horizon's range like the
 ## other landmarks, and a few slow puffs where it leaves the lava for the near view.
@@ -10,11 +11,11 @@ const RINGS := 30
 const SIDES := 22
 ## The spine, from the lava up: [x, y, z, radius]. Rises steeply out of the chasm, then leans with the wind.
 const SPINE := [
-	[13.0, -16.5, -113.0, 4.5], [14.5, -6.0, -112.0, 6.5], [18.0, 6.0, -110.5, 9.0], [24.0, 18.0, -108.0, 12.0],
-	[33.0, 31.0, -104.0, 15.5], [45.0, 45.0, -98.5, 19.5], [60.0, 60.0, -92.0, 24.0], [78.0, 75.0, -84.0, 29.0],
-	[99.0, 89.0, -75.0, 35.0], [122.0, 101.0, -65.0, 42.0],
+	[18.5, -16.5, -117.5, 3.5], [19.0, -5.0, -117.5, 4.5], [19.5, 8.0, -117.5, 5.5], [20.5, 22.0, -117.0, 7.0],
+	[23.0, 36.0, -115.5, 9.5], [28.5, 50.0, -112.0, 13.0], [38.0, 63.0, -106.0, 17.0], [53.0, 76.0, -98.0, 21.5],
+	[72.0, 88.0, -88.0, 27.0], [96.0, 99.0, -76.0, 33.0], [122.0, 108.0, -64.0, 39.0],
 ]
-const SHELLS := [[1.0, 0.0, 0.72, 0.045], [0.78, 3.7, 0.8, 0.055], [0.55, 7.9, 0.88, 0.066]]   ## radius scale, seed, density, rise
+const SHELLS := [[1.0, 0.0, 0.82, 0.045], [0.78, 3.7, 0.9, 0.055], [0.55, 7.9, 0.95, 0.066]]   ## radius scale, seed, density, rise
 
 
 static func build(host: Node3D) -> void:
