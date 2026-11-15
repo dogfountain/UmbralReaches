@@ -400,6 +400,11 @@ func _tick_always(delta: float) -> void:
 ## Later in the frame, after move_and_slide, a started vault, mantle or grab also returns early (the state
 ## ticks from the next frame).
 ## The rule: a branch that returns early calls `_tick_always(delta)` first.
+const REST_CHECK := 4
+var _rest_ticks := 0
+var _rest_pos := Vector3.INF
+
+
 func _physics_process(delta: float) -> void:
 	_t += delta
 	if _last_pos != Vector3.INF and global_position.distance_squared_to(_last_pos) > 4.0:
@@ -588,7 +593,14 @@ func _physics_process(delta: float) -> void:
 	var was_grounded := _grounded
 	var pre_h := Vector3(velocity.x, 0.0, velocity.z)
 	var y0 := global_position.y
-	move_and_slide()
+	# standing still on the floor: move_and_slide would test the same contact and change nothing (it is 180 us a tick at the
+	# spawn, among the village's colliders, against 22 at the fen), so a settled idle body skips it and looks again every
+	# REST_CHECK ticks (the way an awake Enemy rests, enemy.gd) so a floor that goes, or a platform that moves, is noticed
+	var at_rest := _grounded and velocity.length_squared() < 0.0004 and _wish_len < 0.01 and global_position == _rest_pos and not _gliding and _roll_t < 0.0 and _step_t <= 0.0 and get_platform_velocity().length_squared() < 0.0001
+	_rest_ticks = _rest_ticks + 1 if at_rest else 0
+	if _rest_ticks < 2 or _rest_ticks % REST_CHECK == 0:
+		move_and_slide()
+		_rest_pos = global_position
 	_grounded = is_on_floor()
 	_glued = false
 	if not _hollowing:
