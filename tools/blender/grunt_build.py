@@ -70,6 +70,9 @@ def hood(g, col, dark=(0.015, 0.015, 0.02), eye=(1.0, 0.6, 0.25, 0.0), peak=0.0,
 
 
 def mantle(g, col, trim=None, y0=1.56, y1=1.16, r1=0.36, tatter=0.04):
+    if getattr(g, "_fit", None) is not None:          # a body to lay it on: a shawl over the shoulders, closed, torn at the hem
+        O = shawl(g, g._fit[0], col, y_low=y1, gap=(0.0, 0.0), seed=r1 * 10.0, tatter=max(tatter, 0.02), flare=0.05 + (r1 - 0.28) * 0.4)
+        return
     rings = [(y0, 0.2, 0.15, 0.01), (y0 - 0.06, 0.28, 0.19, 0.01), (y0 - 0.16, 0.32, 0.22, 0.02), ((y0 + y1) * 0.5 - 0.1, r1 * 0.95, r1 * 0.7, 0.03), (y1, r1, r1 * 0.75, 0.03)]
     g.robe(rings, col, "wool", "chest", n=60, pleats=8, pleat_amp=0.05, pleat_from=y0 - 0.06, tatter=tatter)
     if trim:
@@ -160,7 +163,7 @@ def _bvh(b, labels):
     return cache[key]
 
 
-def shrink(g, b, labels, rows, off, col, mat, lab, thick=0.008, edge=None, reach=0.6, cut=None, relax=2, fill=False, balls=(), ridges=None, wobble=None):
+def shrink(g, b, labels, rows, off, col, mat, lab, thick=0.008, edge=None, reach=0.6, cut=None, relax=2, fill=False, balls=(), ridges=None, wobble=None, clip=None):
     """Cloth as a clean quad sheet laid on the body: rows[i][j] = (origin, direction) rays cast from inside the
     part (BVH of the faces whose corners are all in `labels`); each lands `off` along the surface normal. The sheet
     keeps its own even grid, so its rims are clean lines (a hem, a slit) instead of the body's triangle saw.
@@ -247,6 +250,21 @@ def shrink(g, b, labels, rows, off, col, mat, lab, thick=0.008, edge=None, reach
                 if T[i][j] is not None:
                     T[i][j] += wobble(i, j, ni, nj)
     P = [[(O3[i][j] + D3[i][j] * T[i][j]) if T[i][j] is not None else None for j in range(nj)] for i in range(ni)]
+    if clip is not None:
+        # a hem as a line: each column ends where it crosses clip(point) (its own torn height), the crossing point set
+        # exactly on it and the rest of the column dropped; dropping whole quads gave a stair
+        for j in range(nj):
+            for i in range(1, ni):
+                a, c = P[i - 1][j], P[i][j]
+                if a is None or c is None:
+                    continue
+                ya, yc = clip(a), clip(c)
+                if a[1] >= ya and c[1] < yc:
+                    t = (a[1] - ya) / max(a[1] - ya - (c[1] - yc), 1e-9)
+                    P[i][j] = a + (c - a) * t
+                    for k in range(i + 1, ni):
+                        P[k][j] = None
+                    break
     vid, VO, VN = {}, [], []
     F, FU = [], []
     for i in range(ni - 1):
@@ -784,6 +802,36 @@ def sleeve(g, b, sx, col, trim=None, y_top=1.43, y_cuff=0.8, flare=0.02, bell=0.
             g.tube(ring + [ring[0]], 0.009, trim, "trim" if trim != col else mat, "elbow_" + t, n=6, flat=0.6)
 
 
+def shawl(g, b, col, mat="wool", y_low=1.05, gap=(math.radians(-25), math.radians(40)), seed=0.5, tatter=0.05, flare=0.04):
+    """A shawl or a mantle laid over the shoulders and the upper arms from one point inside the chest: it falls from
+    the neck over the shoulder caps and down the arms and the back to a torn hem at y_low, open down the front
+    between the angles `gap` (around pi, the front; uneven, as a shawl is worn), with folds where it hangs."""
+    hd = [b.P[i] for i in range(len(b.P)) if b.L[i] == "chest" and b.P[i][1] > 1.2]
+    c = np.array([float(np.mean([q[0] for q in hd])), 1.36, float(np.mean([q[2] for q in hd]))])
+    labs = tuple(sorted({l for l in b.L if not l.startswith(("hand_", "hip_", "knee_", "foot_"))}))
+    NU, NV = 72, 24
+    rows = dome_rays(c, NU, NV, math.radians(8), math.radians(122))
+
+    def off(o, d):
+        down = max(-float(d[1]), 0.0)
+        return 0.014 + flare * down
+
+    def edge(i, j):
+        a = TAU * (j + 0.5) / NU                         # 0 at the back
+        return not (math.pi + gap[0] < a < math.pi + gap[1])
+
+    def hem(p):
+        a = math.atan2(p[0] - c[0], p[2] - c[2])
+        return y_low + _rag_edge(V(math.sin(a), 0, math.cos(a)), seed, tatter) + tatter
+
+    def folds(i, j, ni, nj):
+        v = i / (ni - 1)
+        u = j / (nj - 1) * TAU
+        return 0.012 * max(v - 0.35, 0.0) * (math.sin(u * 9.0 + seed) * 0.7 + math.sin(u * 17.0 + seed * 2.0) * 0.3)
+    return shrink(g, b, labs, rows, off, col, mat, lambda p: "chest" if p[1] > 1.1 or abs(p[0]) < 0.18 else ("shoulder_l" if p[0] < 0 else "shoulder_r"),
+                  thick=0.01, reach=0.55, relax=16, edge=edge, clip=hem, wobble=folds, fill=True)
+
+
 def cowl(g, b, col, peak=0.0, open_w=0.065, seed=0.7, shade=True, mat="wool", open_h=0.085):
     """A hood laid on the body: cloth draped loose over the skull (air under it at the crown, the brim standing off
     the brow), falling onto the shoulders, an oval opening at the face; the face inside goes to shadow so only the
@@ -1061,8 +1109,8 @@ def quiller():
     rib-darts on the back."""
     SH, RAG = (0.27, 0.29, 0.3), (0.2, 0.2, 0.2)
     g = Geo()
-    human(g, (0.4, 0.36, 0.33), (0.7, 0.85, 1.0, 0.0), macro={"gender": 0.7, "age": 0.55, "muscle": 0.65, "weight": 0.25}, girth=0.95, head=1.05)
-    g.robe([(1.5, 0.19, 0.13, 0.0), (1.3, 0.2, 0.14, 0.0), (1.05, 0.19, 0.14, 0.0), (0.85, 0.2, 0.15, 0.0), (0.7, 0.21, 0.16, 0.0)], (0.22, 0.16, 0.11), "leather", B.waist_split(0.98), n=48, pleats=6, pleat_amp=0.04, tatter=0.06)
+    b = human(g, (0.4, 0.36, 0.33), (0.7, 0.85, 1.0, 0.0), macro={"gender": 0.7, "age": 0.55, "muscle": 0.65, "weight": 0.25}, girth=0.95, head=1.05)
+    coat(g, b, (0.22, 0.16, 0.11), mat="leather", y_top=1.46, y_hem=0.68, flare=0.05, seed=1.7, tatter=0.04, folds=6, thick=0.01, nu=60, nv=20)   # the jerkin
     for sx in (-1, 1):
         for k in range(3):
             g.lathe([(0.03, 0.0), (0.033, 0.03), (0.03, 0.06)], V(sx * 0.24, 0.82 + 0.06 * k, 0.0), RAG, "wool", "elbow_" + side(sx), n=10)
@@ -1435,7 +1483,15 @@ def burrower():
         M += [("e", h + (k - h) * 0.35, (0.1, 0.075, 0.08)), ("c", h, k, 0.055), ("c", k, f + V(0, 0.04, 0.0), 0.045),
               ("e", k + (f - k) * 0.3, (0.055, 0.07, 0.055)), ("e", f + V(0, 0.025, -0.03), (0.06, 0.03, 0.065))]
     g.meta(M, (0.2, 0.17, 0.15), "skin", lab, res=0.014, tris=6000)
-    for tag in ("fl", "fr", "bl", "br"):
+    for tag in ("fl", "fr", "bl", "br"):                                  # the limbs plated too: overlapping scutes, each lapping the next
+        h, k, f = S["leg_%s_hip" % tag], S["leg_%s_knee" % tag], S["leg_%s_foot" % tag]
+        for a, b2, R, lb in ((h, k, 0.092, "leg_%s_hip" % tag), (k, f + V(0, 0.04, 0.0), 0.062, "leg_%s_knee" % tag)):
+            ax = b2 - a
+            for t in range(4):
+                p0 = a + ax * (0.04 + 0.23 * t)
+                p1 = a + ax * (0.04 + 0.23 * t + 0.27)
+                shade = 1.0 - 0.08 * (t % 2)
+                g.tube([p0, p0 + (p1 - p0) * 0.5, p1], [R * 1.02, R * 1.12, R * 1.18], tuple(c * shade for c in PLATE), "stone", lb, n=12, flat=0.85)
         if tag[0] == "f":
             foot = S["leg_%s_foot" % tag]
             for k in range(3):
@@ -1491,6 +1547,49 @@ def skull(g, H, BONE, OLD, DARK, eye, s=1.0, lab="head", horns=True, muzzle=1.0)
         g.tube([o(x * 1.4, -0.05, z + 0.012), o(x * 1.4, -0.025, z + 0.01)], [0.005 * s, 0.001], BONE, "bone", lab, n=4)
 
 
+def fur(g, k0, k1, sel, count, col, lab, length=(0.06, 0.11), width=0.012, seed=3, lie=V(0.0, 0.0, 1.0), droop=0.5, rise=0.45):
+    """Coarse fur as geometry (the creatures' shader has no alpha cards): `count` locks planted on the skin built in
+    g.v[k0:k1] where sel(p, n) passes, each a flat tapered strand of 5 segments that leaves the skin along its normal,
+    lies back along `lie` and droops; dark at the root, lighter at the tip, a few broken short."""
+    rng = np.random.RandomState(seed)
+    P = np.array(g.v[k0:k1])
+    N = np.zeros_like(P)
+    for f in g.faces:
+        if f[0] < k0 or f[0] >= k1:
+            continue
+        a, b2, c = (g.v[f[0]], g.v[f[1]], g.v[f[2]])
+        n = np.cross(b2 - a, c - a)
+        for v in f:
+            if k0 <= v < k1:
+                N[v - k0] += n
+    N /= np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-12)
+    cen = P.mean(axis=0)
+    if float(np.sum(N * (P - cen), axis=1).mean()) < 0.0:
+        N = -N
+    ok = [i for i in range(len(P)) if sel(P[i], N[i])]
+    if not ok:
+        return
+    lie = np.asarray(lie, dtype=np.float64) / max(np.linalg.norm(lie), 1e-9)
+    for _ in range(count):
+        i = ok[rng.randint(len(ok))]
+        p, n = P[i], N[i]
+        ln = rng.uniform(*length) * (0.45 if rng.rand() < 0.12 else 1.0)
+        d = n * rise + lie * 0.9
+        d /= max(np.linalg.norm(d), 1e-9)
+        pts, ws = [], []
+        q = p - n * 0.004
+        for k in range(6):
+            t = k / 5.0
+            pts.append(q.copy())
+            ws.append(width * (1.0 - t ** 1.6) + 0.0008)
+            step = d * (ln / 5.0)
+            step[1] -= droop * ln / 5.0 * t
+            q = q + step
+        dark = 0.75 + 0.35 * rng.rand()
+        cc = tuple(min(c * dark, 1.0) for c in col)
+        g.tube(pts, ws, cc, "wool", lab(p) if callable(lab) else lab, n=3, flat=0.3)
+
+
 def leaper():
     """A bone-plated hound, built as an animal is blocked out: one skin over a spine of radii (a deep keel of a chest,
     a tucked waist, a heavy rump), muscled thighs and forearms down to paws, a skull for a face with coals in it,
@@ -1529,7 +1628,14 @@ def leaper():
     pts = [T0 + V(0, 0.0, -0.05)] + tail
     for k in range(len(pts) - 1):
         M.append(("c", pts[k], pts[k + 1], 0.05 - 0.007 * k))
+    k0 = len(g.v)
     g.meta(M, HIDE, "skin", lab, res=0.012, tris=9000)
+    k1 = len(g.v)
+    # a coarse ruff over the neck and the withers, and a crest down the back to the rump, lying back toward the tail
+    fur(g, k0, k1, lambda p, n: abs(p[0]) < 0.085 and n[1] > 0.35 and p[1] > 0.58 and p[2] < 0.42,
+        420, (0.22, 0.18, 0.15), lab, length=(0.06, 0.13), width=0.012, seed=7, lie=V(0.0, 0.2, 1.0), droop=0.3, rise=0.4)
+    fur(g, k0, k1, lambda p, n: p[2] < -0.3 and p[1] > 0.45 and n[1] > -0.4,                                  # the ruff at the throat
+        200, (0.3, 0.25, 0.21), lab, length=(0.05, 0.09), width=0.011, seed=11, lie=V(0.0, -0.6, 0.6), droop=0.5, rise=0.35)
     spine = [(V(0, 0.71, z), 0.0, 0.0) for z in (0.45, 0.3, 0.15)] + [(V(0, 0.71, 0.0), 0.0, 0.0), (V(0, 0.72, -0.2), 0.0, 0.0), (V(0, 0.72, -0.38), 0.0, 0.0)]
     # plates down the spine, on the shoulders and the haunches
     for k in range(11):
@@ -1698,7 +1804,7 @@ def build_kind(kind):
     for h in held:                                                            # held things: origin on their socket's joint
         if h.name.startswith("shield_"):                                     # (the shield is drawn in rig space)
             h.data.transform(__import__("mathutils").Matrix.Translation(-bl(sock[h.name.split("_", 1)[1]])))
-    if arg("--look") and sock is SOCK:
+    if arg("--look") and (sock is SOCK or not held):
         look(kind, [body] + held, arg("--look"))
     bpy.ops.object.select_all(action='DESELECT')
     for o in [arm, body] + held:
@@ -1730,8 +1836,8 @@ def look(kind, obs, out_dir):
     for o in obs[1:]:
         o.location = bl(SOCK[o.name.split("_", 1)[1]])
     z = float(arg("--look-zoom", "1.0"))                                  # 0.3: head and chest
-    aim = V(0, 1.0 + 0.55 * (1.0 - z), 0)
-    for name, ang in (("front", 0.0), ("q34", 0.75), ("back", 2.6)):
+    aim = V(0, float(arg("--look-y", "1.0")) + 0.55 * (1.0 - z), 0)
+    for name, ang in (("front", 0.0), ("q34", 0.75), ("side", 1.57), ("back", 2.6)):
         cam.location = bl(aim + V(math.sin(ang) * 6.0 * z, 0.3 * z, -math.cos(ang) * 6.0 * z))
         cam.rotation_euler = (bl(aim) - cam.location).to_track_quat('-Z', 'Y').to_euler()
         sc.render.filepath = os.path.join(out_dir, "%s_%s.png" % (kind, name))

@@ -502,31 +502,58 @@ def bone_abbot():
     g = Geo()
     WINE, BLACK, GOLD, BONE, DARK = (0.38, 0.065, 0.075), (0.09, 0.075, 0.085), (0.95, 0.72, 0.3), (0.86, 0.8, 0.66), (0.02, 0.02, 0.025)
     lab = waist_split(0.98)
-    # cassock: fitted to the breast, belted, falling in pleats that break on the floor
-    cass = [(1.50, 0.185, 0.125, 0.0), (1.40, 0.205, 0.14, 0.0), (1.26, 0.2, 0.145, 0.0), (1.08, 0.175, 0.135, 0.0), (1.02, 0.17, 0.13, 0.0),
-            (0.9, 0.2, 0.16, 0.0), (0.7, 0.26, 0.22, 0.0), (0.45, 0.33, 0.29, 0.01), (0.2, 0.4, 0.36, 0.02), (0.04, 0.45, 0.41, 0.02), (0.0, 0.47, 0.43, 0.02)]
-    g.robe(cass, WINE, "wool", lab, n=112, pleats=22, pleat_amp=0.085, pleat_from=1.0, hem_break=0.03)
-    pleat = lambda th: 1.0 + 0.085 * ((1.0 - abs(math.sin(th * 11)) ** 0.7) * 2.0 - 1.0 + 0.35 * math.sin(th * 22 * 1.37 + 1.3))
-    g.ring_band(0.035, 0.15, 0.452, 0.412, 0.02, GOLD, "trim", "pelvis", n=112, fn=lambda th: pleat(th) * 1.012)
-    g.ring_band(0.995, 1.065, 0.18, 0.14, 0.0, GOLD, "trim", "chest", n=48)                    # the cincture
-    # the orphrey down the front of the cassock
-    path, ups = [], []
-    for (y, rx, rz, cz) in cass:
-        path.append(V(0.0, y, -rz * (1.0 + (0.02 if y > 1.0 else 0.03)) + cz))
-        ups.append(V(0, 0, -1))
-    g.band(path, 0.085, GOLD, "trim", lab, out=0.008, up=ups)
-    # the cope: from the shoulders to the floor, open 70 degrees down the front, a standing collar behind the head
+    import grunt_build as GB                     # a gaunt old man's body under the vestments (its head is lost in the cowl's dark)
+    bd = GB.human(g, BONE, (1.0, 0.72, 0.36, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.2, "weight": 0.1, "height": 0.9}, girth=0.95, head=1.0)
+    n0 = g._fit[1] - len(bd.P)
+    hc = np.mean([g.v[n0 + k] for k in range(len(bd.P)) if bd.L[k] == "head"], axis=0)
+    HC = V(0.0, 1.72, 0.01)
+    for k in range(len(bd.P)):
+        y = float(g.v[n0 + k][1])
+        if bd.L[k] == "head" or y > 1.52:
+            w = 1.0 if bd.L[k] == "head" else min((y - 1.52) / 0.08, 1.0)
+            g.v[n0 + k] = g.v[n0 + k] + (HC + (g.v[n0 + k] - hc) * 0.5 - g.v[n0 + k]) * w
+    for k in range(g._fit[1], len(g.v)):
+        if g.lab[k] == "head":
+            g.v[k] = V(0.0, -5.0, 0.0)                                  # (its own eye coals: the candle eyes below stand for them)
+
+    def ring_at(O, y, out=0.0):
+        band = O[np.abs(O[:, 1] - y) < 0.025]
+        if len(band) < 12:
+            return []
+        cx, cz = float(band[:, 0].mean()), float(band[:, 2].mean())
+        ang = np.arctan2(band[:, 0] - cx, band[:, 2] - cz)
+        pts = []
+        for a in np.linspace(-math.pi, math.pi, 73):
+            q = band[np.argmin(np.abs(np.remainder(ang - a + math.pi, TAU) - math.pi))]
+            rr = math.hypot(q[0] - cx, q[2] - cz) + out
+            pts.append((a, rr, float(q[1])))
+        k = 5                                                            # a belt or a hem rides the folds' crests, smoothly
+        out_pts = []
+        for i2 in range(len(pts)):
+            win = [pts[(i2 + d) % len(pts)] for d in range(-k, k + 1)]
+            rr = max(w[1] for w in win)
+            yy = sum(w[2] for w in win) / len(win)
+            a = pts[i2][0]
+            out_pts.append(V(cx + math.sin(a) * rr, yy, cz + math.cos(a) * rr))
+        return out_pts
+    # the cassock: laid on him from the breast, belted, falling wide to the floor in deep folds
+    Oc = GB.coat(g, bd, WINE, mat="wool", y_top=1.5, y_hem=0.02, flare=0.24, seed=0.8, tatter=0.0, folds=11, thick=0.012, nu=96, nv=36)
+    hem = ring_at(Oc, 0.06, 0.006)
+    if hem:
+        g.tube(hem, 0.03, GOLD, "trim", "pelvis", n=6, flat=0.35)
+    belt = ring_at(Oc, 1.03, 0.008)
+    if belt:
+        g.tube(belt, 0.028, GOLD, "trim", "chest", n=6, flat=0.5)
+    front = Oc[(np.abs(Oc[:, 0]) < 0.012) & (Oc[:, 2] < float(Oc[:, 2].mean()))]
+    front = front[np.argsort(-front[:, 1])]
+    if len(front) > 4:                                                   # the orphrey down the front, smoothed over the folds
+        ys = np.linspace(float(front[:, 1].max()) - 0.01, float(front[:, 1].min()) + 0.02, 24)
+        zs = [float(front[np.argsort(np.abs(front[:, 1] - y))[:5]][:, 2].min()) for y in ys]
+        zs = [min(zs[max(i2 - 2, 0):i2 + 3]) for i2 in range(len(zs))]
+        g.band([V(0.0, float(y), z - 0.006) for y, z in zip(ys, zs)], 0.085, GOLD, "trim", lab, out=0.004, up=[V(0, 0, -1)] * len(ys))
+    # the cope: from the shoulders to the floor over everything, open down the front, gilt at its edges
     gap = math.radians(52)
-    cope = [(1.56, 0.24, 0.17, 0.02), (1.5, 0.31, 0.2, 0.02), (1.4, 0.335, 0.225, 0.03), (1.2, 0.36, 0.26, 0.03), (0.95, 0.42, 0.33, 0.04),
-            (0.65, 0.52, 0.44, 0.05), (0.35, 0.62, 0.55, 0.06), (0.1, 0.7, 0.63, 0.07), (0.0, 0.73, 0.66, 0.07)]
-    Pc = g.robe(cope, BLACK, "wool", lab, n=112, t0=gap, t1=TAU - gap, pleats=14, pleat_amp=0.13, pleat_from=1.42, hem_break=0.04)
-    for edge in (0, -1):                                                   # orphreys down both front edges
-        pth = [row[edge] for row in Pc]
-        nr = [V(math.sin(gap) * (1 if edge == 0 else -1) * 0.5, 0.0, -math.cos(gap)) for _ in pth]
-        g.band(pth, 0.11, GOLD, "trim", lab, out=0.006, up=nr)
-    g.band(Pc[-2], 0.1, GOLD, "trim", "pelvis", out=0.006, up=[V(p[0], 0.0, p[2] - 0.07) / max(np.linalg.norm(V(p[0], 0.0, p[2] - 0.07)), 1e-9) for p in Pc[-2]])
-    coll = [(1.56, 0.24, 0.17, 0.02), (1.66, 0.22, 0.17, 0.05), (1.76, 0.235, 0.19, 0.08), (1.8, 0.25, 0.2, 0.09)]
-    g.robe(coll, BLACK, "wool", "chest", n=40, t0=math.radians(70), t1=TAU - math.radians(70))
+    Op = GB.shawl(g, bd, BLACK, mat="wool", y_low=0.03, gap=(-gap, gap), seed=1.1, tatter=0.0, flare=0.34)
     # the morse: a gilt clasp across the breast, and the reliquary hung under it, lit
     g.box(V(0.0, 1.43, -0.2), (0.075, 0.045, 0.012), GOLD, "gilt", "chest")
     g.ball(V(0.0, 1.43, -0.214), 0.022, (1.0, 0.6, 0.25, 0.0), "glow", "chest", n=6)
@@ -539,11 +566,9 @@ def bone_abbot():
     g.lathe([(0.012, -0.085), (0.03, -0.1), (0.0, -0.12)], R, GOLD, "gilt", "chest", n=10)
     g.tube([R + V(0, 0.1, 0), V(-0.05, 1.4, -0.19), V(-0.09, 1.5, -0.1)], 0.004, GOLD, "gilt", "chest", n=4)
     g.tube([R + V(0, 0.1, 0), V(0.05, 1.4, -0.19), V(0.09, 1.5, -0.1)], 0.004, GOLD, "gilt", "chest", n=4)
-    # sleeves and hands
+    # sleeves laid on his arms, wide at the cuff
     for sx in (-1, 1):
-        sleeve(g, sx, WINE, GOLD)
-        hand(g, sx, BONE, "hand_" + ("l" if sx < 0 else "r"), closed=1.0 if sx > 0 else 0.3)
-        g.tube([V(sx * 0.24, 0.98, 0), V(sx * 0.24, 0.8, 0)], [0.022, 0.018], BONE, "bone", "elbow_" + ("l" if sx < 0 else "r"), n=6)
+        GB.sleeve(g, bd, sx, WINE, GOLD, flare=0.03, bell=0.06, y_cuff=0.76)
     # the head: a cowl full of dark, two candle eyes, a bone brow and a bone jaw-plate with teeth, the mitre over all
     H = V(0.0, 1.64, 0.0)
     cowl = [(1.5, 0.19, 0.16, 0.02), (1.58, 0.17, 0.155, 0.01), (1.7, 0.165, 0.17, 0.0), (1.82, 0.15, 0.165, 0.005), (1.9, 0.11, 0.13, 0.02), (1.94, 0.03, 0.04, 0.03)]
@@ -765,27 +790,37 @@ def anchoress():
         tide = 0.22 + 0.06 * math.sin(p[0] * 31.0) + 0.04 * math.sin(p[2] * 47.0 + 1.3)
         k = min(max((tide - p[1]) / 0.08, 0.0), 1.0)
         return tuple(DRESS[c] * (1 - k) + SALT[c] * k for c in range(3))
-    g.robe(dress, salted, "wool", lab, n=112, pleats=18, pleat_amp=0.11, pleat_from=1.0, tatter=0.12, hem_break=0.05)
+    Od = GB.coat(g, bd, lambda i, j, p: salted(i, j, p), mat="wool", y_top=1.48, y_hem=0.02, flare=0.2, seed=2.2, tatter=0.05, folds=11, thick=0.01, nu=88, nv=34)
     for k in range(5):                                                   # prayer strips hung from the rope belt, written and torn
         a = math.radians(-62 + k * 31 + 9 * math.sin(k * 2.1))
         top = V(math.sin(a) * 0.17, 1.0, -math.cos(a) * 0.135)
         ln = 0.22 + 0.16 * ((k * 37) % 5) / 5
         g.band([top + V(math.sin(a) * 0.05 * t, -ln * t, -math.cos(a) * 0.05 * t + 0.012 * math.sin(t * 6 + k)) for t in np.linspace(0, 1, 6)],
                0.04, SALT, "linen", lambda p: "pelvis" if p[1] < 0.95 else "chest", out=0.012, up=[V(math.sin(a), 0, -math.cos(a))] * 6)
-    for k in range(2):                                                   # the chain wound twice round her skirt, sagging
+    for k in range(2):                                                   # the chain wound twice round her skirt, on it
         y = 0.6 - 0.22 * k
-        rr = 0.255 + 0.07 * (0.6 - y) / 0.3
-        g.chain([V(math.sin(a) * rr, y - 0.05 * math.sin(a) ** 2, -math.cos(a) * rr * 0.92 + 0.012) for a in np.linspace(0, TAU, 41)], IRON, "iron", "pelvis")
+        band = Od[np.abs(Od[:, 1] - y) < 0.02]
+        if len(band) > 12:
+            cx, cz = float(band[:, 0].mean()), float(band[:, 2].mean())
+            ring = []
+            for a in np.linspace(0, TAU, 41):
+                ang = np.arctan2(band[:, 0] - cx, band[:, 2] - cz)
+                q = band[np.argmin(np.abs(np.remainder(ang - a + math.pi, TAU) - math.pi))]
+                rr = math.hypot(q[0] - cx, q[2] - cz) + 0.012
+                ring.append(V(cx + math.sin(a) * rr, y - 0.04 * math.sin(a) ** 2, cz + math.cos(a) * rr))
+            g.chain(ring, IRON, "iron", "pelvis")
     g.ring_band(0.99, 1.05, 0.165, 0.13, 0.0, ROPE, "leather", "chest", n=40)
-    sh = [(1.58, 0.2, 0.15, 0.01), (1.5, 0.27, 0.19, 0.01), (1.36, 0.31, 0.22, 0.02), (1.15, 0.33, 0.25, 0.03), (0.98, 0.32, 0.25, 0.04)]
-    g.robe(sh, SHAWL, "wool", "chest", n=56, t0=math.radians(30), t1=TAU - math.radians(70), pleats=8, pleat_amp=0.06, tatter=0.14)
-    g.chain([V(math.sin(a) * 0.32, 1.14 - 0.03 * math.sin(a), -math.cos(a) * 0.255) for a in np.linspace(0, TAU, 33)], IRON, "iron", "chest")
+    bind = GB.contour(bd, 1.14, tuple(sorted({l for l in bd.L if l == "chest" or l.startswith(("shoulder_", "elbow_"))})), off=0.045, bins=36, band=0.03)
+    if len(bind) > 8:                                                    # bound over the shawl and her arms
+        pts = [q + V(0, -0.02 * math.sin(a) ** 2, 0) for a, q in bind]
+        g.chain(pts + [pts[0]], IRON, "iron", "chest")
     # under the dress and the shawl (hand cut, close at the breast): the body drawn in, so it never shows through
     GB.tuck(g, bd, [k for k in range(len(bd.P)) if bd.L[k] in ("chest", "pelvis") or (bd.L[k].startswith(("shoulder_", "hip_")) and bd.P[k][1] > 0.7)], 0.022)
     for sx in (-1, 1):
         GB.sleeve(g, bd, sx, DRESS, ROPE, flare=0.015)
+    GB.shawl(g, bd, SHAWL, y_low=1.02, gap=(math.radians(-30), math.radians(50)), seed=1.4, tatter=0.06)
     # the head: a deep hood laid on her, her gaunt face seen in it, the rope gag biting into the mouth
-    GB.cowl(g, bd, SHAWL, open_w=0.07, open_h=0.095, shade=False, seed=3.1)
+    GB.cowl(g, bd, SHAWL, open_w=0.07, open_h=0.095, seed=3.1)
     E = bd.eyes
     if len(E) == 2:
         ey = (E[0][1] + E[1][1]) * 0.5
