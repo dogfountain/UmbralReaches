@@ -9,6 +9,7 @@ extends Node
 const HearthDB := preload("res://core/life/progression/hearth_db.gd")
 const HearthRT := preload("res://core/life/progression/hearth.gd")
 const LevelDB := preload("res://core/life/progression/level.gd")
+const PathsDB := preload("res://core/life/progression/paths_db.gd")
 const DB := preload("res://core/life/progression/upgrade_db.gd")
 
 var fails := 0
@@ -71,10 +72,10 @@ func _rest(h: Node) -> void:
 	var price := int(HearthDB.tithe("rest").price)
 	ok(hrt.tithe("rest", true) == "", "the tithe is paid")
 	ok(Travel.count("grave_ash") == 500 - price, "the ash is spent (%d left)" % Travel.count("grave_ash"))
-	ok(int(ps.rested_xp) == roundi(float(40) * LevelDB.REST_FILL), "half a level of rested XP is kept (%d)" % int(ps.rested_xp))
+	ok(int(ps.rested_xp) == roundi(float(PathsDB.need(0)) * LevelDB.REST_FILL), "half a level of rested XP is kept (%d)" % int(ps.rested_xp))
 	ok(LevelDB.with_rested(ps, 10, "kill")[0] == 20, "kills pay double from it, as a rest's pool does")
 	ok(hrt.tithe("rest", true) == "" and hrt.tithe("rest", true) == "" and hrt.why_not_tithe("rest", true) != "", "it fills to the cap and then refuses")
-	ok(int(ps.rested_xp) <= roundi(40.0 * LevelDB.REST_CAP), "never past a level and a half (%d)" % int(ps.rested_xp))
+	ok(int(ps.rested_xp) <= roundi(float(PathsDB.need(0)) * LevelDB.REST_CAP), "never past a level and a half (%d)" % int(ps.rested_xp))
 
 
 func _ward(h: Node) -> void:

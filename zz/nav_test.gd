@@ -60,7 +60,7 @@ func _mesh() -> void:
 	ok(regions.size() >= 1 and polys > 1000, "the nav map has a region with polygons (%d regions, %d polygons)" % [regions.size(), polys])
 	await get_tree().physics_frame
 	var t0 := Time.get_ticks_msec()
-	while not NavAssist.ready() and Time.get_ticks_msec() - t0 < 10000:
+	while not NavAssist.ready() and Time.get_ticks_msec() - t0 < 20000:            # ~6 s alone; the suite runs tests side by side
 		await get_tree().physics_frame
 	print("NAV map took the region after %d ms" % (Time.get_ticks_msec() - t0))
 	ok(NavAssist.ready(), "NavAssist.ready() once the map has synced")

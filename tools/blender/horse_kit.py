@@ -515,7 +515,8 @@ def lock(name, p0, p1, p2, width, segs, sock, uv_u, rng, thick=0.0, curl=0.0):
         side.normalize()
         # twist a little
         nrm = side.cross(tan).normalized()
-        w = width * (1.0 - t ** 1.6) * (0.55 + 0.45 * math.sin(math.pi * min(1.0, t * 1.5 + 0.18)) )
+        # full through most of its length, then thinning to a fine wisp (a hair tip, not a cut triangle)
+        w = width * (1.0 - t ** 2.6) ** 1.4 * (0.55 + 0.45 * math.sin(math.pi * min(1.0, t * 1.5 + 0.18)) )
         w = max(w, 0.0004)
         cup = w * 0.35 + thick
         rows.append((bm.verts.new(c - side * w), bm.verts.new(c + nrm * cup), bm.verts.new(c + side * w)))
@@ -573,7 +574,7 @@ def mane(P, J, rng, side=1, count=70):
         p2 = root + Vector((out_x * 1.15 + side * rng.uniform(0.0, 0.05), -d.y * 0.0, -L * 0.95)) + Vector((0, rng.uniform(-0.02, 0.04), 0))
         p1 = (p0 + p2) * 0.5 + Vector((side * rx * 0.55, 0.0, 0.03))
         w = rng.uniform(0.055, 0.08)
-        out.append(lock("mane", p0, p1, p2, w, 4, "mane_%d" % (1 + min(2, int(t * 3.0))), rng.randrange(0, 6) / 6.0, rng))
+        out.append(lock("mane", p0, p1, p2, w, 7, "mane_%d" % (1 + min(2, int(t * 3.0))), rng.randrange(0, 6) / 6.0, rng))
     return out
 
 

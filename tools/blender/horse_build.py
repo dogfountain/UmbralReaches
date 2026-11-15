@@ -229,7 +229,7 @@ print("TACK", info)
 
 # hair: wide opaque locks (no alpha)
 HAIR = []
-for o in HK.mane(P, J, rng, 1, 56) + HK.forelock(P, J, rng, 8) + HK.tail(P, J, rng, 40) + HK.feathers(P, J, rng):
+for o in HK.mane(P, J, rng, 1, 78) + HK.forelock(P, J, rng, 8) + HK.tail(P, J, rng, 40) + HK.feathers(P, J, rng):
     HAIR.append(o)
     add(o)
 

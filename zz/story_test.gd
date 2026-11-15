@@ -141,7 +141,14 @@ func _dialogue_data() -> void:
 	won.flags.erase("ending_told")
 	won.bosses.erase("ascended_warden")
 	ok(DialogueDB.text_of(DialogueDB.node("keep", "hub"), won).begins_with("Heart and crown"), "hub greeting reacts to progress")
-	ok(DialogueDB.text_of(DialogueDB.node("keep", "next"), won).begins_with("Across the Crossing"), "what now: the Crossing, before the Warden")
+	# with heart and crown but no peal yet, the keep sends the wanderer to the bells (the Crossing is gated by four)
+	ok(DialogueDB.text_of(DialogueDB.node("keep", "next"), won).begins_with("Not up yet. The door hears bells"), "what now: the bells, before the Crossing")
+	var nx: Array = DialogueDB.node("keep", "next").get("say_if", [])
+	var crossing := false
+	for row: Variant in nx:
+		if row is Array and String(row[1]).begins_with("Across the Crossing"):
+			crossing = true
+	ok(crossing, "what now: the Crossing line is still there for after the peal is told")
 	won.bosses["ascended_warden"] = true
 	won.flags["ending_told"] = true
 	ok(not DialogueDB.text_of(DialogueDB.node("keep", "next"), won).contains("Aurel's at the top"), "what now: nobody is sent up a finished Stair")
