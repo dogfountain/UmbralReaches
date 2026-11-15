@@ -14,6 +14,15 @@ func _init() -> void:
 				im.decompress()
 			im.clear_mipmaps()
 			im.convert(Image.FORMAT_RGBA8)
+			if suf == "_n":
+				# Godot keeps normal maps two-channel (RG); the blue the bake needs is rebuilt from them
+				for y in im.get_height():
+					for x in im.get_width():
+						var c := im.get_pixel(x, y)
+						var nx := c.r * 2.0 - 1.0
+						var ny := c.g * 2.0 - 1.0
+						var nz := sqrt(maxf(1.0 - nx * nx - ny * ny, 0.0))
+						im.set_pixel(x, y, Color(c.r, c.g, nz * 0.5 + 0.5, 1.0))
 			im.save_png(ProjectSettings.globalize_path("res://art/blender/tiles/%s%s.png" % [n, suf]))
 			print("TILE ", n + suf, " ", im.get_size())
 	quit()
