@@ -16,6 +16,7 @@ const BOSSES := {"thornwarden": "res://core/enemy/thornwarden.gd", "bone_abbot":
 	"anchoress": "res://core/enemy/anchoress.gd", "warden": "res://core/enemy/ascended_warden.gd"}
 const KINDS := ["wretch", "husk", "spitter", "ossuant", "leaper", "crawler"]
 
+const FloraFight := preload("res://core/world/realm/flora_fight.gd")
 var main: Node
 var p: Player
 var t := 0
@@ -23,6 +24,7 @@ var started := false
 var boss := "thornwarden"
 var n := 10
 var secs := 20.0
+var shots := ""                ## --thin-shots=dir: 3 s in, the view with the boss flora thinning and without (thin.png, full.png)
 var cast := true
 var immortal := "--immortal" in OS.get_cmdline_user_args()    ## the foes are healed as they are hit: the fight stays the same size (for A/B windows)
 var micro := "--micro" in OS.get_cmdline_user_args()          ## 5 s in: each effect call timed on its own (us a call)
@@ -252,6 +254,8 @@ func begin(night: Node) -> void:
 			n = int(a.trim_prefix("--n="))
 		elif a.begins_with("--secs="):
 			secs = float(a.trim_prefix("--secs="))
+		elif a.begins_with("--thin-shots="):
+			shots = a.trim_prefix("--thin-shots=")
 		elif a == "--no-cast":
 			cast = false
 		elif a.begins_with("--cap="):
@@ -369,6 +373,9 @@ func _run() -> void:
 			_micro()
 		if not cost_at.is_empty() and Time.get_ticks_msec() - t0 > int(cost_at[0]):
 			_script_cost("%.0f s in" % (float(cost_at.pop_front()) / 1000.0))
+		if shots != "" and Time.get_ticks_msec() - t0 > 3000:
+			await _boss_thin_shots(shots)             # the boss fight's flora thinning beside the full look
+			shots = ""
 		if drop_bags > 0 and Time.get_ticks_msec() - t0 > 3000:
 			var gear := get_tree().get_first_node_in_group("gear")
 			var rng := RandomNumberGenerator.new()
@@ -727,6 +734,10 @@ func _parts_ab() -> void:
 		["hotbar hidden", func(on: bool) -> void: (hud.find_child("Hotbar", true, false) as CanvasItem).visible = not on],
 		["unit frames hidden", func(on: bool) -> void: (hud.find_child("UnitFrames", true, false) as CanvasItem).visible = not on],
 		["minimap hidden", func(on: bool) -> void: (hud.find_child("Minimap", true, false) as CanvasItem).visible = not on],
+		["boss flora thinning undone", func(on: bool) -> void:
+			var ff := get_tree().root.find_child("FloraFight", true, false) as FloraFight
+			if ff:
+				ff.thin(not on)],
 		["villagers+horses frozen", func(on: bool) -> void: _freeze(get_tree().root.find_children("*", "CharacterBody3D", true, false).filter(func(nd: Node) -> bool: return not nd.is_in_group(Groups.ENEMY) and not nd.is_in_group(Groups.PLAYER)), on)],
 	]
 	_comp0 = cam.compositor
@@ -885,3 +896,29 @@ func _mm_list() -> void:
 	for r: Array in rows.slice(0, 30):
 		print("FIGHT MM %7dk  %6d x %5d tris  %d surf  shadow %s  %4.0f m  %s" % [int(r[0]) / 1000, r[1], r[2], r[6], r[4], r[5], r[3]])
 
+
+func _boss_thin_shots(dir: String) -> void:
+	var ff := get_tree().root.find_child("FloraFight", true, false) as FloraFight
+	var cam := get_viewport().get_camera_3d()
+	var pivot := cam.get_parent() as Node3D
+	DirAccess.make_dir_recursive_absolute(dir)
+	var foes := get_tree().get_nodes_in_group(Groups.ENEMY)
+	for e: Node in foes:
+		(e as Node3D).visible = false
+	var y0 := pivot.rotation.y
+	for view in 4:
+		for pass_i in 2:
+			if ff:
+				ff.thin(pass_i == 0)
+			pivot.rotation.y = y0 + float(view) * PI * 0.5
+			for i in 40:
+				pivot.rotation.y = y0 + float(view) * PI * 0.5
+				await get_tree().process_frame
+			get_viewport().get_texture().get_image().save_png(dir.path_join("%d_%s.png" % [view, "thin" if pass_i == 0 else "full"]))
+	pivot.rotation.y = y0
+	for e: Node in foes:
+		if is_instance_valid(e):
+			(e as Node3D).visible = true
+	if ff:
+		ff.thin(true)
+	print("FIGHT thin shots in %s (cam under %s)" % [dir, pivot.name])

@@ -51,6 +51,8 @@ const FADE_BAND := 6.0                 ## realm_foliage.gdshader thins over fade
 ## and pulls its ranges in by a fifth; trees keep every instance, their leaf cards stop casting.
 const DETAIL_DENSITY := [0.6, 1.0, 1.0]
 const DETAIL_RANGE := [0.8, 1.0, 1.12]
+const FIGHT_DENSITY := 0.6             ## boss fights: share of the undergrowth drawn
+const FIGHT_RANGE := 0.5               ## boss fights: undergrowth draw range scale
 
 
 ## Which chunk size and tag a plant kind sits in: [chunk size, tag (1 = tall tree chunk)].
@@ -328,13 +330,18 @@ static func _set_range(mmi: MultiMeshInstance3D, tag: String, re: float) -> void
 		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 
 
+## In a boss fight (flora_fight.gd) the undergrowth draws nearer and thinner, for 120 fps (Luke).
 static func apply_detail(host: Node, d: int) -> void:
 	if host == null:
 		return
 	d = clampi(d, 0, 2)
-	if int(host.get_meta(&"detail", -1)) == d:
+	var fight := bool(host.get_meta(&"fight", false))
+	var key := d + (10 if fight else 0)
+	if int(host.get_meta(&"detail", -1)) == key:
 		return
-	host.set_meta(&"detail", d)
+	host.set_meta(&"detail", key)
+	var dens: float = DETAIL_DENSITY[d] * (FIGHT_DENSITY if fight else 1.0)
+	var rng: float = DETAIL_RANGE[d] * (FIGHT_RANGE if fight else 1.0)
 	for n in host.find_children("Flora_*", "MultiMeshInstance3D", true, false):
 		var mmi := n as MultiMeshInstance3D
 		var f: Array = mmi.get_meta(&"flora", [])
@@ -343,8 +350,8 @@ static func apply_detail(host: Node, d: int) -> void:
 		var tall: bool = f[2]
 		var re: float = f[3]
 		if not tall:
-			mmi.multimesh.visible_instance_count = -1 if d >= 1 else maxi(1, int(round(float(f[4]) * DETAIL_DENSITY[d])))
+			mmi.multimesh.visible_instance_count = -1 if dens >= 1.0 else maxi(1, int(round(float(f[4]) * dens)))
 			if re > 0.0:
-				_set_range(mmi, String(f[1]), re * DETAIL_RANGE[d])
+				_set_range(mmi, String(f[1]), re * rng)
 		elif f[1] == "c" or f[1] == "fc":
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if d == 0 else (f[5] as int)
