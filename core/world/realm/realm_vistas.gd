@@ -6,12 +6,14 @@ extends RefCounted
 ##                 Additive cards, no lights; they fade with distance. The Thornwood's shafts stay the secret's reward.
 ##   lookouts      three cairns on the downs' south scarp and the Kings' ridge, each with a stone seat (and a glide
 ##                 perch where the ground falls away), set where the Long Arches, the Reedmere and the far woods all show at once.
+##   places        the March beacons, the scarp's cliffs, sightlines and valley mist (vistas/vista_places.gd).
 ## Built by realm_pois.gd (REACH_POIS): reserve() before the stamp and the flora, build() after the flora.
 
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const P := preload("res://core/world/realm/realm_pois.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
 const PropModels := preload("res://core/world/realm/prop_models.gd")
+const Places := preload("res://core/world/realm/vistas/vista_places.gd")
 
 ## Woods that get moon shafts where their canopy opens: region id -> how many clearings at most (the Sorrow's alders
 ## open by themselves; the Lanternwood and the Southwood close overhead, so CLEARINGS opens a few glades in them).
@@ -28,6 +30,7 @@ static var lookouts_at: Array[Vector3] = []
 
 
 static func reserve(_root: Node) -> void:
+	Places.reserve(_root)
 	for lk: Array in LOOKOUTS:
 		var q: Vector2 = lk[0]
 		var f: Vector2 = ((lk[1] as Vector2) - q).normalized()
@@ -46,6 +49,7 @@ static func build(holder: Node) -> void:
 	var root := holder.get_parent() if holder.get_parent() != null else holder
 	_shafts(root, host)
 	_lookouts(root, host)
+	Places.build(holder as Node3D)
 	print("REALM_VISTAS %d moon shafts %s, %d lookouts %s" % [shafts_at.size(), shafts_at, lookouts_at.size(), lookouts_at])
 
 
