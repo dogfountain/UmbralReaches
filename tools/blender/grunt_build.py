@@ -155,11 +155,11 @@ def body(g, col, mat="leather", girth=1.0, belly=0.0, limb=1.0, head=1.0, neck=1
             B.hand(g, sx, col, "hand_" + side(sx), closed=0.5)
 
 
-def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin"):
+def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40):
     """A MakeHuman body (mh_body.py), shaped by `macro` (gender, age, muscle, weight, proportions, height: 0..1),
     retargeted to the rig, with coals in the eyes."""
     import mh_body
-    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris)
+    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y)
     g.mesh(P, F, col, mat, L, FUV)
     for e in eyes:
         if e is not None:

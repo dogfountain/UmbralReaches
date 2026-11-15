@@ -96,6 +96,31 @@ class Geo:
         self.grid(P, col, mat, lab, uv, wrap=closed, flip=flip)
         return P
 
+    def chain(self, path, col, mat, lab, link=0.045, wire=0.0065):
+        """A chain along a path: links of round wire, each turned a quarter to the last, as forged links hang."""
+        pts = [np.asarray(p, dtype=np.float64) for p in path]
+        L = [0.0]
+        for a, b in zip(pts, pts[1:]):
+            L.append(L[-1] + float(np.linalg.norm(b - a)))
+        k = 0
+        d = 0.0
+        while d < L[-1]:
+            i = max(j for j in range(len(L)) if L[j] <= d)
+            i = min(i, len(pts) - 2)
+            t = (d - L[i]) / max(L[i + 1] - L[i], 1e-9)
+            c = pts[i] + (pts[i + 1] - pts[i]) * t
+            ax = pts[i + 1] - pts[i]
+            ax /= max(np.linalg.norm(ax), 1e-9)
+            up = V(0, 1.0, 0) if abs(ax[1]) < 0.9 else V(1.0, 0, 0)
+            n1 = np.cross(ax, up)
+            n1 /= np.linalg.norm(n1)
+            if k % 2:
+                n1 = np.cross(ax, n1)
+            ring = [c + ax * math.cos(TAU * j / 10) * link * 0.62 + n1 * math.sin(TAU * j / 10) * link * 0.34 for j in range(11)]
+            self.tube(ring, wire, col, mat, lab(c) if callable(lab) else lab, n=5)
+            d += link * 0.82
+            k += 1
+
     def band(self, path, width, col, mat, lab, out=0.006, up=None):
         """A trim strip along `path` (points on a surface), `width` across, lifted `out` along `up` normals."""
         P = []
@@ -674,39 +699,27 @@ def hierarch():
     for k in range(5):                                                    # moss in the folds near the ground
         a = 0.9 + k * 1.05
         g.ball(V(math.sin(a) * 0.6, 0.06, -math.cos(a) * 0.52 + 0.06), 0.07, MOSS, "wool", "pelvis", n=6, sy=0.4)
+    import grunt_build as GB                     # the statue's body is carved from a man's: an old, heavy king's face and hands
+    bd = GB.human(g, PALE, (1.0, 0.55, 0.2, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.5, "weight": 0.9, "proportions": 0.4},
+                  girth=1.15, head=1.7, mat="stone", shoulder_y=1.5)
     for sx in (-1, 1):
         t = "l" if sx < 0 else "r"
         sleeve(g, sx, STONE, GILT, r_top=0.1, r_cuff=0.13, drop=0.04)
-        g.box(V(sx * 0.24, 0.72, -0.01), (0.06, 0.08, 0.055), STONE, "stone", "hand_" + t)
-        for k in range(3):
-            g.box(V(sx * 0.24 + (k - 1) * 0.033, 0.62, -0.03), (0.014, 0.03, 0.022), STONE, "stone", "hand_" + t)
-        if sx > 0 or True:
-            g.lathe([(0.0, 0.0), (0.15, 0.0), (0.16, 0.05), (0.14, 0.1), (0.08, 0.14), (0.0, 0.15)], V(sx * 0.27, 1.38, 0.0), PALE, "stone", "shoulder_" + t, n=20)
-            if sx < 0:
-                g.box(V(-0.36, 1.46, 0.04), (0.04, 0.03, 0.06), PALE, "stone", "shoulder_l")        # the broken edge
-            g.ring_band(1.385, 1.405, 0.152, 0.152, 0.0, GILT, "trim", "shoulder_" + t, n=24, fn=None) if False else None
-    # the head: a carved face, the crown, and the horn breaking out of the jaw
-    H = V(0.0, 1.66, 0.0)
-    g.lathe([(0.0, 1.9), (0.1, 1.88), (0.15, 1.8), (0.16, 1.68), (0.15, 1.56), (0.12, 1.5)], V(0, 0, 0), STONE, "stone", "head", n=20)
-
-    def face(u, v):
-        th = (u - 0.5) * math.radians(110)
-        y = 1.86 - 0.24 * v
-        brow = 0.022 * math.exp(-((v - 0.22) / 0.07) ** 2)
-        nose = 0.03 * math.exp(-((u - 0.5) / 0.06) ** 2) * math.exp(-((v - 0.5) / 0.16) ** 2)
-        cheek = 0.012 * math.exp(-((abs(u - 0.5) - 0.24) / 0.08) ** 2) * math.exp(-((v - 0.62) / 0.12) ** 2)
-        socket = -0.03 * math.exp(-((abs(u - 0.5) - 0.17) / 0.07) ** 2) * math.exp(-((v - 0.36) / 0.08) ** 2)
-        r = 0.158 + brow + nose + cheek + socket
-        return V(math.sin(th) * r, y, -math.cos(th) * r)
-    g.plate(face, 23, 13, PALE, "stone", "head")
-    for sx in (-1, 1):
-        g.ball(V(sx * 0.055, 1.775, -0.135), 0.016, (1.0, 0.55, 0.2, 0.0), "glow", "head", n=6)
-    g.tube([V(0.07, 1.88, -0.14), V(0.05, 1.8, -0.16), V(0.08, 1.72, -0.17)], 0.003, DARK, "iron", "head", n=4)
-    g.ring_band(1.87, 1.93, 0.165, 0.165, 0.0, GILT, "trim", "head", n=36)
+        g.lathe([(0.0, 0.0), (0.15, 0.0), (0.16, 0.05), (0.14, 0.1), (0.08, 0.14), (0.0, 0.15)], V(sx * 0.27, 1.38, 0.0), PALE, "stone", "shoulder_" + t, n=20)
+        if sx < 0:
+            g.box(V(-0.36, 1.46, 0.04), (0.04, 0.03, 0.06), PALE, "stone", "shoulder_l")        # the broken edge
+    # the crown on the carved head, the crack down the face, the horn breaking out of the jaw
+    top = float(max(q[1] for q, l in zip(bd.P, bd.L) if l == "head"))
+    cy = top - 0.07
+    ring = GB.contour(bd, cy, ("head",), off=0.012, band=0.02)
+    cr = float(np.mean([math.hypot(q[0], q[2]) for _, q in ring])) if ring else 0.14
+    cz = float(np.mean([q[2] for _, q in ring])) if ring else 0.0
+    g.tube([V(0.06, top - 0.02, -0.13), V(0.04, top - 0.1, -0.15), V(0.07, top - 0.18, -0.15)], 0.003, DARK, "iron", "head", n=4)
+    g.ring_band(cy - 0.03, cy + 0.03, cr, cr, cz, GILT, "trim", "head", n=36)
     for k in range(9):
         a = TAU * k / 9
         h = 0.13 if k not in (2, 6) else 0.05                              # two tines broken
-        g.tube([V(math.sin(a) * 0.16, 1.93, -math.cos(a) * 0.16), V(math.sin(a) * 0.17, 1.93 + h, -math.cos(a) * 0.17)], [0.022, 0.004 if h > 0.1 else 0.016], GILT, "gilt", "head", n=5)
+        g.tube([V(math.sin(a) * cr, cy + 0.03, cz - math.cos(a) * cr), V(math.sin(a) * (cr + 0.01), cy + 0.03 + h, cz - math.cos(a) * (cr + 0.01))], [0.022, 0.004 if h > 0.1 else 0.016], GILT, "gilt", "head", n=5)
     horn = [(0.07, 0.0), (0.06, 0.08), (0.06, 0.2), (0.07, 0.32), (0.09, 0.44), (0.13, 0.53), (0.19, 0.59), (0.21, 0.62), (0.19, 0.62)]
     path_at = V(0.0, 1.62, -0.13)
     P = []
@@ -733,14 +746,25 @@ def anchoress():
     DRESS, SHAWL, SALT, SKIN, IRON, ROPE = (0.22, 0.2, 0.2), (0.3, 0.27, 0.24), (0.8, 0.78, 0.72), (0.62, 0.55, 0.5), (0.18, 0.17, 0.17), (0.45, 0.36, 0.26)
     lab = waist_split(0.98)
     dress = [(1.5, 0.17, 0.12, 0.0), (1.36, 0.18, 0.13, 0.0), (1.2, 0.17, 0.13, 0.0), (1.02, 0.16, 0.125, 0.0), (0.8, 0.21, 0.18, 0.0), (0.45, 0.29, 0.26, 0.01), (0.12, 0.35, 0.32, 0.02), (0.0, 0.37, 0.34, 0.02)]
-    g.robe(dress, DRESS, "wool", lab, n=96, pleats=14, pleat_amp=0.08, pleat_from=1.0, tatter=0.06)
-    g.ring_band(0.03, 0.2, 0.372, 0.342, 0.02, SALT, "linen", "pelvis", n=96)
+    def salted(i, j, p):                                                 # salt dried up the hem in a crusted tide line
+        tide = 0.22 + 0.06 * math.sin(p[0] * 31.0) + 0.04 * math.sin(p[2] * 47.0 + 1.3)
+        k = min(max((tide - p[1]) / 0.08, 0.0), 1.0)
+        return tuple(DRESS[c] * (1 - k) + SALT[c] * k for c in range(3))
+    g.robe(dress, salted, "wool", lab, n=112, pleats=18, pleat_amp=0.11, pleat_from=1.0, tatter=0.12, hem_break=0.05)
+    for k in range(5):                                                   # prayer strips hung from the rope belt, written and torn
+        a = math.radians(-62 + k * 31 + 9 * math.sin(k * 2.1))
+        top = V(math.sin(a) * 0.17, 1.0, -math.cos(a) * 0.135)
+        ln = 0.22 + 0.16 * ((k * 37) % 5) / 5
+        g.band([top + V(math.sin(a) * 0.05 * t, -ln * t, -math.cos(a) * 0.05 * t + 0.012 * math.sin(t * 6 + k)) for t in np.linspace(0, 1, 6)],
+               0.04, SALT, "linen", lambda p: "pelvis" if p[1] < 0.95 else "chest", out=0.012, up=[V(math.sin(a), 0, -math.cos(a))] * 6)
+    for k in range(2):                                                   # the chain wound twice round her skirt, sagging
+        y = 0.6 - 0.22 * k
+        rr = 0.255 + 0.07 * (0.6 - y) / 0.3
+        g.chain([V(math.sin(a) * rr, y - 0.05 * math.sin(a) ** 2, -math.cos(a) * rr * 0.92 + 0.012) for a in np.linspace(0, TAU, 41)], IRON, "iron", "pelvis")
     g.ring_band(0.99, 1.05, 0.165, 0.13, 0.0, ROPE, "leather", "chest", n=40)
     sh = [(1.58, 0.2, 0.15, 0.01), (1.5, 0.27, 0.19, 0.01), (1.36, 0.31, 0.22, 0.02), (1.15, 0.33, 0.25, 0.03), (0.98, 0.32, 0.25, 0.04)]
     g.robe(sh, SHAWL, "wool", "chest", n=56, t0=math.radians(30), t1=TAU - math.radians(70), pleats=8, pleat_amp=0.06, tatter=0.14)
-    for k in range(7):                                                   # the chain worn round her, over the shawl
-        a = TAU * k / 7
-        g.lathe([(0.018, -0.02), (0.022, 0.0), (0.018, 0.02)], V(math.sin(a) * 0.3, 1.14 - 0.03 * math.sin(a), -math.cos(a) * 0.24), IRON, "iron", "chest", n=8)
+    g.chain([V(math.sin(a) * 0.32, 1.14 - 0.03 * math.sin(a), -math.cos(a) * 0.255) for a in np.linspace(0, TAU, 33)], IRON, "iron", "chest")
     import grunt_build as GB                                             # a MakeHuman body: her face and hands are real
     GB.human(g, SKIN, (1.0, 0.8, 0.5, 0.0), macro={"gender": 0.0, "age": 0.9, "muscle": 0.15, "weight": 0.05, "proportions": 0.3}, girth=0.92, head=1.0)
     for sx in (-1, 1):
@@ -761,8 +785,7 @@ def anchoress():
     # the chain from the right fist to the stone on the floor (in the hand's own space: the floor is 0.78 below)
     ch = Geo()
     links = [V(0.0, -0.03 - 0.06 * k, -0.03 + 0.04 * k ** 1.3) for k in range(13)]
-    for k, c in enumerate(links):
-        ch.lathe([(0.016, -0.025), (0.02, 0.0), (0.016, 0.025)], c, IRON, "iron", "hand_r", n=8)
+    ch.chain(links, IRON, "iron", "hand_r", link=0.05, wire=0.008)
     st = links[-1] + V(0.0, -0.06, 0.08)
     ch.ball(st + V(0.0, -0.04, 0.0), 0.15, (0.45, 0.43, 0.4), "stone", "hand_r", n=10, sy=0.6)
     ch.ball(st + V(0.0, 0.03, 0.0), 0.1, SALT, "linen", "hand_r", n=8, sy=0.4)
