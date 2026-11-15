@@ -21,23 +21,42 @@ const AGENT_HEIGHT := 1.8
 const MAX_CLIMB := 0.625                  ## with a 0.5 m cell the ledge filter drops ramps steeper than atan(climb / cell): 0.4 lost every 27 degree stair (the fen and Counting stairs)
 const MAX_SLOPE := 40.0
 const WAIT_MS := 20000                    ## the loading screen never waits longer than this (twice the ground, was 12 s)
-const AREA := AABB(Vector3(-272.0, -60.0, -160.0), Vector3(544.0, 320.0, 412.0))     ## BOUNDS + 12 m (was x -165..165, z -160..185)
+const AREA := AABB(Vector3(-382.0, -60.0, -160.0), Vector3(764.0, 320.0, 570.0))     ## BOUNDS + 12 m (was x -272..272, z -160..252)
 
 ## Last build's numbers (read by zz/nav_test).
 static var info := {}
 
 
-## The Realm is baked in halves (north and south of SPLIT_Z). One bake's polygon mesh holds 65,535 vertices at most:
-## the whole Realm stood at 65,726 on 13 Nov and held, and the new March Wall, salt works and village (14 Nov) took it
-## over, so the bake failed outright and every enemy fell back to flat steering. The halves overlap by SEAM metres on
-## open ground south of the Pilgrims' Road (no building, stair or tier stands across the line: a split at x 0 cut the
-## Ossuary's tiers and paths stopped on the seam), and the server joins them where their polygons overlap.
-const HALVES := [-1, 1]
+## The Realm is baked in tiles. One bake's polygon mesh holds 65,535 vertices at most: the whole Marches' Realm stood at
+## 65,726 on 13 Nov, so it was split in halves north and south of SPLIT_Z (on open ground south of the Pilgrims'
+## Road: no building, stair or tier stands across the line; a split at x 0 cut the Ossuary's tiers). The Far Reaches
+## doubled the ground again: the middle (the Marches' width) keeps its two halves and gains a third south of
+## SOUTH_Z (open fields below the downs' scarp), and the West and East Reaches are tiles of their own beyond
+## x +-REACH_X (the Marches' old edges, where nothing is built across the line). Tiles overlap by SEAM metres and the
+## server joins them where their polygons overlap.
 const SPLIT_Z := 86.0
+const SOUTH_Z := 246.0
+const REACH_X := 262.0
 const SEAM := 2.0
 
 
-static func _settings(half := 0) -> NavigationMesh:
+## The baking boxes (AREA cut into tiles).
+static func tiles() -> Array[AABB]:
+	var a := AREA
+	var y0 := a.position.y
+	var hy := a.size.y
+	var out: Array[AABB] = []
+	var xs := [[a.position.x, -REACH_X + SEAM], [-REACH_X - SEAM, REACH_X + SEAM], [REACH_X - SEAM, a.end.x]]
+	for xi in xs.size():
+		var x0: float = xs[xi][0]
+		var x1: float = xs[xi][1]
+		var zs := [[a.position.z, a.end.z]] if xi != 1 else [[a.position.z, SPLIT_Z + SEAM], [SPLIT_Z - SEAM, SOUTH_Z + SEAM], [SOUTH_Z - SEAM, a.end.z]]
+		for zz: Array in zs:
+			out.append(AABB(Vector3(x0, y0, float(zz[0])), Vector3(x1 - x0, hy, float(zz[1]) - float(zz[0]))))
+	return out
+
+
+static func _settings(tile := AABB()) -> NavigationMesh:
 	var nm := NavigationMesh.new()
 	nm.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 	nm.geometry_collision_mask = Layers.WORLD
@@ -52,11 +71,7 @@ static func _settings(half := 0) -> NavigationMesh:
 	nm.region_merge_size = 20.0
 	nm.edge_max_length = 12.0
 	nm.edge_max_error = 0.4
-	var a := AREA
-	if half < 0:
-		a = AABB(AREA.position, Vector3(AREA.size.x, AREA.size.y, SPLIT_Z + SEAM - AREA.position.z))
-	elif half > 0:
-		a = AABB(Vector3(AREA.position.x, AREA.position.y, SPLIT_Z - SEAM), Vector3(AREA.size.x, AREA.size.y, AREA.end.z - SPLIT_Z + SEAM))
+	var a := AREA if tile.size == Vector3.ZERO else tile
 	nm.filter_baking_aabb = a
 	return nm
 
@@ -70,8 +85,8 @@ static func build(root: Node) -> void:
 	NavAssist.map = map
 	var nm := _settings()
 	var nms: Array[NavigationMesh] = []
-	for hf: int in HALVES:
-		nms.append(_settings(hf))
+	for tile: AABB in tiles():
+		nms.append(_settings(tile))
 	var source := NavigationMeshSourceGeometryData3D.new()
 	# closed seals are doors, not walls: lifted for the parse so the arenas behind them are on the mesh
 	var seals := root.get_tree().get_nodes_in_group(&"ward_seal")
@@ -85,7 +100,7 @@ static func build(root: Node) -> void:
 		push_warning("RealmNav: no collision geometry parsed")
 		return
 	var key := "nav|%d|%d|%s" % [hash(source.get_vertices()), hash(source.get_indices()), [CELL, CELL_H, AGENT_RADIUS, AGENT_HEIGHT, MAX_CLIMB, MAX_SLOPE]]
-	key += "|halves|%s|%s" % [SPLIT_Z, SEAM]
+	key += "|tiles|%s" % [tiles()]
 	var hit: Variant = GenCache.load_var(key, SELF)
 	if hit is Array and (hit as Array).size() == nms.size():
 		var all := true
@@ -170,7 +185,7 @@ static func _install(root: Node, nms: Array[NavigationMesh], t0: int, key: Strin
 		region.navigation_mesh = nms[i]
 		root.add_child(region)
 		if i == nms.size() - 1:
-			# (the probe point NavAssist waits on is on the last half installed)
+			# (the probe point NavAssist waits on is on the last tile installed)
 			NavAssist.set_region(region.get_instance_id(), nms[i].vertices[nms[i].get_polygon(0)[0]])
 		info.polys += nms[i].get_polygon_count()
 		info.verts += nms[i].vertices.size()

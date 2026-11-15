@@ -5,7 +5,7 @@ var cinzel: Font
 var serif: Font
 const K := 2.6
 const INK := Color(0.19, 0.12, 0.075)
-const O := Vector2(-310.0, -214.0)
+const O := Vector2(-420.0, -214.0)
 
 func _w(p: Vector2) -> Vector2:
 	return (p - O) * K

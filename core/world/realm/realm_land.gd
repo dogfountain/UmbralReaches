@@ -27,17 +27,17 @@ extends RefCounted
 ##   keep_weight(x, z)      1 inside the kept core, fading to 0 over KEEP_FALL
 
 const STEP := 2.0
-## the grid covers BOUNDS + 12 m (BOUNDS x -260..260, z -150..240); the ring covers OUTER on a
+## the grid covers BOUNDS + 12 m (BOUNDS x -370..370, z -150..398); the ring covers OUTER on a
 ## 4 m lattice that the grid's outer rows land on (GX0 - RX0 and GZ0 - RZ0 are multiples of 4).
-const GX0 := -272.0
+const GX0 := -382.0
 const GZ0 := -160.0
-const GNX := 273                      ## x -272 .. 272
-const GNZ := 207                      ## z -160 .. 252
+const GNX := 383                      ## x -382 .. 382
+const GNZ := 286                      ## z -160 .. 410
 const RSTEP := 4.0
-const RX0 := -352.0
+const RX0 := -462.0
 const RZ0 := -240.0
-const RNX := 177                      ## x -352 .. 352
-const RNZ := 144                      ## z -240 .. 332
+const RNX := 232                      ## x -462 .. 462
+const RNZ := 184                      ## z -240 .. 492
 const KEEP_FALL := 15.0
 const WATER_Y := -0.9
 const POOL_DEPTH := 0.55
@@ -98,6 +98,7 @@ static func build(root: Node) -> void:
 		for cs in old_body.find_children("*", "CollisionShape3D", true, false):
 			(cs as CollisionShape3D).disabled = true
 	_init_noise()
+	_region_boxes()                           # before the threaded rows read them
 	for r: Dictionary in RealmLayout.REGIONS:
 		if r.id == "rift":
 			_rift_r = r.rect
@@ -251,10 +252,28 @@ static func keep_weight(x: float, z: float) -> float:
 	return 1.0 - smoothstep(0.0, KEEP_FALL, _keep_d(x, z))
 
 
+## Each region's reach (its rect or circles, grown past every falloff and warp): outside it its weight is 0.
+static var _rbox: Array[Rect2] = []
+
+
+static func _region_boxes() -> void:
+	_rbox.clear()
+	for r: Dictionary in RealmLayout.REGIONS:
+		var bx: Rect2 = (r.rect as Rect2).grow(42.0) if r.has("rect") else Rect2(r.c, Vector2.ZERO).grow(float(r.r) * 1.4 + 1.0)
+		for b: Dictionary in r.get("blobs", []):
+			bx = bx.merge(Rect2(b.c, Vector2.ZERO).grow(float(b.r) * 1.4 + 1.0))
+		_rbox.append(bx)
+
+
 ## Biome weights, normalised: [meadow, loam, mud, ash, heath, crag, ruin, salt].
 static func _bw(x: float, z: float) -> PackedFloat32Array:
 	var w := PackedFloat32Array([0, 0, 0, 0, 0, 0, 0, 0])
-	for r: Dictionary in RealmLayout.REGIONS:
+	if _rbox.size() != RealmLayout.REGIONS.size():
+		_region_boxes()
+	for ri in _rbox.size():
+		if not _rbox[ri].has_point(Vector2(x, z)):
+			continue
+		var r: Dictionary = RealmLayout.REGIONS[ri]
 		var k := RealmLayout.region_weight(r, x, z)
 		if k <= 0.0:
 			continue
@@ -383,6 +402,7 @@ static func _make_profiles() -> void:
 			for k in prof.size():
 				var t := 1.0 - smoothstep(0.0, 10.0, acc - ss[k])
 				prof[k] = lerpf(prof[k], float(pin[0]), t)
+		prof = RealmReaches.pin_junctions(String(path.id), res, prof, _profiles, _path_near)
 		# r34: runs of 16 samples with their bounds (grown by the 14 m reach), so a lookup skips far runs
 		# whole: twice the land and twice the roads made the per-sample scan the heights' main cost
 		var runs: Array = []

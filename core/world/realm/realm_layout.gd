@@ -1,28 +1,24 @@
 class_name RealmLayout
 extends RefCounted
-## THE CONTRACT for the redesigned zone ("the Realm", docs/REALM_PLAN.md). Every module places
-## against these numbers and this macro height, so the modules can be built in parallel and still
-## meet. Change a value here only by agreement (it moves everyone). World units: metres, +Y up,
-## the spawn brazier at (0, 0, 33). Bounds are about twice the old playable area.
+## THE CONTRACT for the redesigned zone ("the Realm", docs/REALM_PLAN.md). Every module places against these
+## numbers and this macro height. Change a value here only by agreement (it moves everyone). Metres, +Y up.
 ##
 ## `macro_height(x, z)` is the designed landform (no small detail). RealmLand turns it into the
 ## terrain mesh (adding detail noise, path carving and site stamps); everyone else asks
 ## `RealmLayout.ground(space, x, z)` once the terrain exists, or `macro_height()` before it does.
 
-## doubled again (docs/r37_expansion.md): the Outer Marches west and east of the old gates, and
-## the southern downs. The old Realm (x -155..155, z -150..175) is OLD_BOUNDS; nothing in it moves.
-const BOUNDS := Rect2(-260.0, -150.0, 520.0, 390.0)        ## playable xz (x -260..260, z -150..240); r34: 310 x 325
+## doubled again (docs/r37_expansion.md), then again (docs/far_reaches.md: the Far Reaches round the Marches,
+## RealmReaches). The old Realm (x -155..155, z -150..175) is OLD_BOUNDS; the Marches' RealmReaches.MARCH_BOUNDS.
+const BOUNDS := Rect2(-370.0, -150.0, 740.0, 548.0)        ## playable xz (x -370..370, z -150..398); r37: 520 x 390, r34: 310 x 325
 const OLD_BOUNDS := Rect2(-155.0, -150.0, 310.0, 325.0)    ## the r34 Realm, inside the March Wall
-const OUTER := Rect2(-352.0, -240.0, 704.0, 572.0)         ## terrain extent incl. the horizon ring (4 m lattice)
+const OUTER := Rect2(-462.0, -240.0, 924.0, 732.0)         ## terrain extent incl. the horizon ring (4 m lattice)
 const LAVA_Y := -15.5                                       ## the rift's lava surface (LavaWorks)
 
 ## Fixed points (do not move: the kept brazier, tavern, Ossuary and summit depend on them).
 const SPAWN := Vector3(0.0, 0.0, 33.0)                     ## the spawn brazier (Zone/Braziers/Sanctuary)
 ## New game: on the Pilgrims' Road at waystone III, facing Hearthward (docs/STORY.md known gap).
 ## The Sanctuary fire stays SPAWN; Continue / kindle still wake at the last checkpoint.
-## r38: south of the road's junction, looking up the approach at Hearthward's timber gate (centre (2.3, 44)), the
-## spawn brazier through it and the stair behind; nothing within 2 m of the camera (the old start stood between
-## Maud's cottage and a lamp post). START_FACE is what the wanderer looks at.
+## South of the road's junction, looking up at Hearthward's gate (centre (2.3, 44)); START_FACE is what the wanderer sees.
 const PLAYER_START := Vector3(-4.4, 0.15, 57.4)
 const START_FACE := Vector2(1.0, 40.0)
 
@@ -157,18 +153,16 @@ const REGIONS := [
 	{"id": "well", "name": "The Well of Echoes", "c": Vector2(72, 204), "r": 30.0, "biome": "crag", "tier": 2,
 		"purpose": "an open sinkhole about 40 m across and 24 m deep, a waterfall into it, a ledge path down to a pool and a cave",
 		"lore": "Drop a stone and count. Nobody has ever counted to the end of the echoes."},
-]
+] + RealmReaches.REGIONS
 
 ## the Sorrow (West Marches): the river's centreline from the Crowns to the south edge, with the
 ## bed's half width. RealmLand carves the channel and the water stands in it in stepped reaches (the
 ## weir at Weirford is one step); the road crosses on a bridge at the weir. The Foundation agent owns it.
 const RIVER := {"w": 6.0, "pts": [Vector2(-212, -56), Vector2(-208, -40), Vector2(-204, -30),
 	Vector2(-214, 10), Vector2(-208, 46), Vector2(-205, 60), Vector2(-222, 84), Vector2(-240, 110), Vector2(-250, 140),
-	Vector2(-254, 180), Vector2(-254, 240)]}
-## The river's course as built. The first cut ran the Sorrow through the Fallen Hierarch's
-## raid floor and down siege_track's line; it now rises from a spring west of weir_track's end (the Crowns'
-## run-off goes underground in the statue's valley), keeps to the west of every slot, crosses the road once at
-## Weirford (z~64) and leaves by the south-west edge. Water stands in reaches: RIVER_L0 at the head, falling
+	Vector2(-254, 180), Vector2(-254, 240)] + RealmReaches.RIVER_ON}
+## It rises from a spring west of weir_track's end, keeps west of every slot, crosses the road once at Weirford
+## (z~64) and runs on through the Reedmere to the south edge. Water stands in reaches: RIVER_L0 at the head, falling
 ## by RIVER_STEPS = [z, drop] (the weir at z 60 drops 0.5 m; the lowest reach, -0.5, keeps its banks above the flora's water line). The bed is RIVER_DEPTH under the surface.
 const RIVER_L0 := 0.6
 const RIVER_STEPS := [[-14.0, 0.2], [30.0, 0.2], [60.0, 0.5], [120.0, 0.1], [170.0, 0.1]]
@@ -287,6 +281,10 @@ const SLOTS := {
 	"road": [
 		{"kind": "camp", "at": Vector2(-128, 74), "note": "the West Gate's approach"},
 		{"kind": "camp", "at": Vector2(131, 58), "note": "the East Gate's approach"}],
+	# the Far Reaches (RealmReaches.SLOTS)
+	"greyfell": RealmReaches.SLOTS.greyfell, "lanternwood": RealmReaches.SLOTS.lanternwood, "kingsbarrows": RealmReaches.SLOTS.kingsbarrows,
+	"reedmere": RealmReaches.SLOTS.reedmere, "fallow": RealmReaches.SLOTS.fallow, "arches": RealmReaches.SLOTS.arches, "southwood": RealmReaches.SLOTS.southwood,
+	"bellfall": RealmReaches.SLOTS.bellfall, "lastlight": RealmReaches.SLOTS.lastlight, "nave": RealmReaches.SLOTS.nave, "cairns": RealmReaches.SLOTS.cairns,
 }
 
 ## The walked network: polylines (xz) with a half width. RealmLand carves/levels them and keeps
@@ -301,7 +299,7 @@ const BASE_PATHS := [
 	{"id": "west_way", "w": 1.8, "pts": [Vector2(-4, 30), Vector2(-20, 24), Vector2(-38, 10), Vector2(-46, -2), Vector2(-47.6, -10.8), Vector2(-50, -10)]},
 	{"id": "east_way", "w": 1.8, "pts": [Vector2(26, 22), Vector2(42, 10), Vector2(58, -12), Vector2(72, -34), Vector2(78, -42)]},
 	{"id": "fen_descent", "w": 1.6, "pts": [Vector2(78, -42), Vector2(62, -56), Vector2(54, -59.5)]},   # ends at the fen's fire (the Threshold); the Ossuary no longer waits at its end
-	{"id": "road", "w": 2.2, "pts": [Vector2(-255, 62), Vector2(-232, 64), Vector2(-205, 66), Vector2(-180, 66), Vector2(-150, 67), Vector2(-104, 64), Vector2(-72, 60), Vector2(-40, 58), Vector2(-6, 54), Vector2(2, 44), Vector2(40, 60), Vector2(104, 66), Vector2(150, 68), Vector2(180, 70), Vector2(212, 74), Vector2(240, 72), Vector2(255, 70)]},
+	{"id": "road", "w": 2.2, "pts": [Vector2(-366, 48), Vector2(-330, 52), Vector2(-300, 56.4), Vector2(-255, 62), Vector2(-232, 64), Vector2(-205, 66), Vector2(-180, 66), Vector2(-150, 67), Vector2(-104, 64), Vector2(-72, 60), Vector2(-40, 58), Vector2(-6, 54), Vector2(2, 44), Vector2(40, 60), Vector2(104, 66), Vector2(150, 68), Vector2(180, 70), Vector2(212, 74), Vector2(240, 72), Vector2(255, 70), Vector2(290, 70), Vector2(318, 66), Vector2(366, 62)]},
 	{"id": "chapel_lane", "w": 1.4, "pts": [Vector2(-60, 58), Vector2(-68, 52)]},
 	{"id": "rift_rim", "w": 2.0, "pts": [Vector2(0, 22), Vector2(0, 4), Vector2(0, -3)]},   # ends where the approach flight begins (it ran on into the forecourt's body)
 	# r34
@@ -323,13 +321,10 @@ const BASE_PATHS := [
 	{"id": "crowns_east", "w": 1.4, "pts": [Vector2(196, -70), Vector2(182, -74), Vector2(168, -72), Vector2(156, -68), Vector2(146, -67), Vector2(138, -66), Vector2(131, -69), Vector2(128, -72)]},
 	{"id": "oss_lane", "w": 1.4, "pts": [Vector2(-40, 134), Vector2(-41.5, 141), Vector2(-40, 147.5)]},          # from south_track to the Ossuary's Pilgrims' Landing
 	{"id": "downs_link", "w": 1.4, "pts": [Vector2(40, 134), Vector2(56, 158), Vector2(54, 176), Vector2(44, 192)]},     # the Waiting Field to the downs, east of the mausoleum
-]
+] + RealmReaches.PATHS
 
-## r35 (docs/critique/r35_full.md: "the south half is a grid of rectangles and straight roads"): the
-## southern tracks and lanes wander between their vertices. Every vertex (junctions, gates, the sites
-## laid along them) stays exactly where BASE_PATHS puts it; between two, the line swings up to MEANDER m
-## to either side and back to zero at both ends. Everything that walks PATHS gets the wandering line.
-## The main road keeps its line: its waystones and cart stand a fixed step beside it (lore/road.gd).
+## The tracks and lanes wander between their vertices (which stay where BASE_PATHS puts them): the line swings up
+## to MEANDER m aside and back. Everything that walks PATHS gets that line; the main road keeps its own (lore/road.gd).
 const MEANDER_IDS := {"west_track": 2.4, "moor_track": 2.4, "necropolis_way": 2.2, "orchard_lane": 2.2,
 	"mere_causeway": 2.0, "south_track": 2.6, "weir_track": 2.4, "siege_track": 2.4, "spire_track": 2.0,
 	"anchor_track": 2.4, "crowns_west": 2.2, "crowns_east": 2.2, "downs_track": 2.8, "downs_link": 1.6}
@@ -340,7 +335,7 @@ static var PATHS: Array = _meander(BASE_PATHS)
 static func _meander(base: Array) -> Array:
 	var out: Array = []
 	for path: Dictionary in base:
-		var amp := float(MEANDER_IDS.get(String(path.id), 0.0))
+		var amp := float(MEANDER_IDS.get(String(path.id), RealmReaches.MEANDER.get(String(path.id), 0.0)))
 		if amp <= 0.0:
 			out.append(path)
 			continue
@@ -367,10 +362,8 @@ static func _meander(base: Array) -> Array:
 		out.append(np)
 	return out
 
-## The crossing (RealmRift): a walkable ruined viaduct from the rift's south rim to the summit ward,
-## built from the old stair kit (stair_step / stair_column / stair_platform .glb) and OssKit stone.
-## It replaces the hub stair's job (the only way up) but must not read as a stairway: broken arches,
-## platforms, ramps, a gap bridged by a fallen column, switchbacks round basalt pillars.
+## The crossing (RealmRift): the walkable ruined viaduct from the rift's south rim to the summit ward (the only
+## way up): broken arches, platforms, ramps, a gap bridged by a fallen column, switchbacks round basalt pillars.
 const CROSSING_FOOT := Vector3(0.0, 0.6, -8.0)
 const CROSSING_HEAD := SUMMIT_WARD
 
@@ -478,7 +471,7 @@ static func macro_dry(x: float, z: float) -> float:
 	# the Outer Marches and the southern downs (zero inside OLD_BOUNDS, eased in over 12 m outside it)
 	var m37 := smoothstep(0.0, 12.0, _out_dist(p, OLD_BOUNDS))
 	if m37 > 0.0:
-		h = _marches(p, h, m37)
+		h = RealmReaches.shape(p, _marches(p, h, m37), m37)      # the Marches, then the Far Reaches round them
 	# horizon ring
 	var out := _out_dist(p, BOUNDS)
 	h += smoothstep(0.0, 60.0, out) * 28.0
@@ -652,7 +645,7 @@ static func prepare() -> void:
 
 ## Nearest point on the river's centreline: Vector3(distance, z of that point, arc length). INF away.
 static func river_near(x: float, z: float) -> Vector3:
-	if x > -164.0 or x < -272.0:
+	if x > -164.0 or x < -382.0:
 		return Vector3(INF, 0.0, 0.0)
 	if _rv.is_empty():
 		prepare()
@@ -660,16 +653,28 @@ static func river_near(x: float, z: float) -> Vector3:
 	var best := INF
 	var bz := 0.0
 	var bs := 0.0
-	for i in _rv.size() - 1:
-		var a := _rv[i]
-		var ab := _rv[i + 1] - a
-		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
-		var q := a + ab * t
-		var d := p.distance_squared_to(q)
-		if d < best:
-			best = d
-			bz = q.y
-			bs = lerpf(_rv_s[i], _rv_s[i + 1], t)
+	var lo := 0                              # the course runs north to south: start at z, walk out both ways
+	var hi := _rv.size() - 1
+	while lo < hi:
+		var mid := (lo + hi) >> 1
+		lo = mid + 1 if _rv[mid].y < z else lo
+		hi = hi if _rv[mid].y < z else mid
+	var s0 := clampi(lo - 1, 0, _rv.size() - 2)
+	for dir: int in [-1, 1]:
+		var i := s0 if dir < 0 else s0 + 1
+		while i >= 0 and i < _rv.size() - 1:
+			var gap := (z - maxf(_rv[i].y, _rv[i + 1].y)) if dir < 0 else (minf(_rv[i].y, _rv[i + 1].y) - z)
+			if gap > sqrt(best) + 3.0:
+				break
+			var a := _rv[i]
+			var ab := _rv[i + 1] - a
+			var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+			var d := p.distance_squared_to(a + ab * t)
+			if d < best:
+				best = d
+				bz = (a + ab * t).y
+				bs = lerpf(_rv_s[i], _rv_s[i + 1], t)
+			i += dir
 	return Vector3(sqrt(best), bz, bs)
 
 
@@ -703,7 +708,7 @@ static func river_shape(x: float, z: float, h: float) -> float:
 
 ## 0..1: how much of the point is the river's channel (paths are not levelled across it, no flora in it).
 static func river_mask(x: float, z: float) -> float:
-	if x > -164.0 or x < -272.0:
+	if x > -164.0 or x < -382.0:
 		return 0.0
 	var nr := river_near(x, z)
 	if nr.x > 14.0:
@@ -784,12 +789,10 @@ static func raid_shape(x: float, z: float, h: float) -> float:
 	return h
 
 
-## The named place at xz: the most specific region wins (r30). The small landmark circles (the chapel,
-## the henge, the barrows, the summit, the glade) all sit inside a larger rect whose weight is 1.0
-## all through, and the old "first highest weight" pick gave them 0 % of their own ground: no banner,
-## no Journal discovery, the wrong encounter tier. Each circle now owns its ground out to 0.8 of its
-## radius (falling off to 1.4 r), and where two places both hold full weight the smaller one wins.
-## The codex (ui/codex.gd) and the encounter tiers use this; biome_at keeps the landform blend.
+## The named place at xz: the most specific region wins. A landmark circle (chapel, henge, barrows, summit,
+## glade) owns its ground out to 0.8 r (falling off to 1.4 r) inside the larger rect round it, and where two
+## places both hold full weight the smaller one wins. The codex and the encounter tiers use this; biome_at
+## keeps the landform blend.
 static func region_at(x: float, z: float) -> Dictionary:
 	var best := {}
 	var best_s := 0.0
@@ -853,7 +856,7 @@ static func region_weight(r: Dictionary, x: float, z: float) -> float:
 
 
 ## The regions added beyond OLD_BOUNDS (the Outer Marches and the Southern Downs).
-const MARCHES_IDS := ["weirford", "sorrow", "plinth", "siege", "stillwater", "anchorholds", "saltmarket", "saltpans", "downs", "oak", "well"]
+const MARCHES_IDS := ["weirford", "sorrow", "plinth", "siege", "stillwater", "anchorholds", "saltmarket", "saltpans", "downs", "oak", "well"] + RealmReaches.IDS
 
 
 ## 0 inside OLD_BOUNDS, easing to 1 over 12 m outside it.
@@ -887,10 +890,8 @@ static func ground(space: PhysicsDirectSpaceState3D, x: float, z: float) -> floa
 	return macro_height(x, z)
 
 
-## Distance from p to the nearest path centreline (and which path), for keeping things off paths.
-## (Minus the path's half width: distance to the path's edge.) Called tens of thousands of times by
-## the build, so the segments of PATHS (immutable once made) are kept as packed arrays with a grid
-## of the segments near each cell; the result is exactly the full scan's.
+## Distance from p to the nearest path's edge (centreline minus half width). Called tens of thousands of times by
+## the build: PATHS' segments are packed with a grid of the segments near each cell (exactly the full scan's result).
 static func path_dist(p: Vector2) -> float:
 	if _seg_a.is_empty():
 		_build_segs()
@@ -968,8 +969,7 @@ static func path_segs_near(r: Rect2, margin: float) -> Array:
 	return out
 
 
-## r35: a smooth, deterministic offset (up to ~7 m) so rectangular regions' land and shapes meet
-## along wandering lines instead of ruled ones. Only for painting and landform, never for names.
+## A smooth offset (up to ~7 m): regions' land meets along wandering lines (painting and landform only, never names).
 static func _warp(p: Vector2) -> Vector2:
 	return Vector2(sin(p.y * 0.09 + 1.3) + 0.6 * sin(p.y * 0.21 + p.x * 0.05),
 		sin(p.x * 0.08 + 0.4) + 0.6 * sin(p.x * 0.19 - p.y * 0.06)) * 4.4

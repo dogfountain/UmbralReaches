@@ -17,6 +17,9 @@ const REGION_BASE := {
 	# are the safe towns; the Siege Lines round the fallen Hierarch and the Anchorholds, each under a boss, are the hard ones)
 	"weirford": 1, "sorrow": 2, "plinth": 2, "siege": 3, "stillwater": 2, "anchorholds": 3, "saltmarket": 1,
 	"saltpans": 2, "downs": 1, "oak": 2, "well": 2,
+	# the Far Reaches (RealmReaches): the three towns are safe, the wild between them 2, the far corners and the fells 3
+	"greyfell": 3, "lanternwood": 2, "kingsbarrows": 3, "reedmere": 2, "fallow": 1, "arches": 2, "southwood": 3,
+	"bellfall": 3, "lastlight": 1, "nave": 3, "cairns": 3,
 }
 
 ## Per tier: health x, Gloom per blow x, pace x, chance a pawn wears a variant, chance a camp gets
@@ -51,6 +54,12 @@ const REGION_POOL := {
 	# --- the east marches ---
 	"stillwater": ["husk", "spitter", "wretch", "gaunt", "husk"], "anchorholds": ["bulwark", "chanter", "leaper", "husk", "quiller"],
 	"saltmarket": ["wretch", "crawler"], "saltpans": ["husk", "burrower", "cinder", "gaunt", "crawler"],
+	# --- the Far Reaches ---
+	"greyfell": ["bulwark", "chanter", "leaper", "husk", "quiller"], "lanternwood": ["crawler", "spitter", "leaper", "mite", "wretch"],
+	"kingsbarrows": ["ossuant", "pilgrim", "husk", "chanter", "bulwark"], "reedmere": ["husk", "spitter", "wretch", "burrower", "spitter"],
+	"fallow": ["wretch", "crawler", "burrower"], "arches": ["husk", "leaper", "gaunt", "quiller", "chanter"],
+	"southwood": ["gaunt", "leaper", "crawler", "mite", "spitter"], "bellfall": ["cinder", "bulwark", "husk", "cinder", "tollman"],
+	"lastlight": ["wretch", "crawler"], "nave": ["husk", "ossuant", "chanter", "spitter", "pilgrim"], "cairns": ["gaunt", "pilgrim", "husk", "quiller", "leaper"],
 }
 
 ## r34: a region's own look for some kinds (Variants.REGIONAL): what the quarry and the mere make of
@@ -65,6 +74,10 @@ const REGION_VARIANT := {
 	# --- the east marches ---
 	"stillwater": {"husk": "drowned", "wretch": "drowned"},
 	"anchorholds": {"husk": "stonebound", "bulwark": "stonebound"},
+	# --- the Far Reaches ---
+	"greyfell": {"husk": "stonebound", "bulwark": "stonebound", "leaper": "stonebound"},
+	"reedmere": {"husk": "drowned", "wretch": "drowned"},
+	"nave": {"husk": "drowned", "wretch": "drowned", "ossuant": "drowned"},
 }
 
 const KIND_PATHS := {

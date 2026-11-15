@@ -87,7 +87,9 @@ func _bounds() -> void:
 	var old := Rect2(-110.0, -150.0, 220.0, 230.0)
 	var r34 := RealmLayout.OLD_BOUNDS
 	check("OLD_BOUNDS is the r34 Realm (x -155..155, z -150..175)", r34 == Rect2(-155.0, -150.0, 310.0, 325.0))
-	check("BOUNDS area %.0f m2 is ~2x the r34 %.0f (1.9..2.1)" % [b.get_area(), r34.get_area()], b.get_area() / r34.get_area() > 1.9 and b.get_area() / r34.get_area() < 2.1)
+	var m37 := RealmReaches.MARCH_BOUNDS
+	check("BOUNDS area %.0f m2 is ~2x the Marches' %.0f (1.9..2.1)" % [b.get_area(), m37.get_area()], b.get_area() / m37.get_area() > 1.9 and b.get_area() / m37.get_area() < 2.1)
+	check("the Marches' bounds hold the r34 Realm twice over (1.9..2.1)", m37.encloses(r34) and m37.get_area() / r34.get_area() > 1.9 and m37.get_area() / r34.get_area() < 2.1)
 	check("BOUNDS holds the r34 Realm and the r33 world", b.encloses(r34) and b.encloses(old))
 	for n: String in ["SPAWN", "PLAYER_START", "SUMMIT", "SUMMIT_DAIS", "SUMMIT_WARD"]:
 		var v: Vector3 = (load("res://core/world/realm/realm_layout.gd") as GDScript).get_script_constant_map()[n]
@@ -259,7 +261,10 @@ func _roads() -> void:
 					outside += 1
 				var y := _terrain(q.x, q.y)
 				if is_nan(y):
+					y = _terrain(q.x + 0.031, q.y - 0.017)        # a ray exactly down a triangle's edge can slip through (Jolt)
+				if is_nan(y):
 					nan += 1
+					print("LAYOUT34   %s: no ground under %s" % [pth.id, q])
 					continue
 				if not is_nan(prev) and pth.id != "rift_rim" and pth.id != "fen_descent":
 					var sl := absf(y - prev) / (a.distance_to(bb) / n)

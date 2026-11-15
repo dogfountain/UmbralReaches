@@ -2,7 +2,7 @@
 
 Godot **4.7.2** Forward+ prototype. Playable night: the Realm round Hearthward, booted from `world/main.tscn`.
 
-**Phase: r37 world expansion (Luke, 6 Nov): the Outer Marches and Southern Downs, existing systems only, in-house assets. Read `docs/PILLARS.md` and `docs/r37_expansion.md` first.** Decisions are logged in `docs/DECISIONS.md`.
+**Phase: the Far Reaches (Luke, 15 Nov): the Realm doubled again to 740 x 548 m, existing systems only, in-house assets. Read `docs/PILLARS.md`, `docs/r37_expansion.md` and `docs/far_reaches.md` first.** Decisions are logged in `docs/DECISIONS.md`.
 
 ## How this project is built
 

@@ -34,7 +34,7 @@ const Glyphs := preload("res://ui/world_map_glyphs.gd")
 const Med := preload("res://ui/medieval_style.gd")
 
 const ACTION := "world_map"
-const SHEET := Rect2(-310.0, -214.0, 620.0, 524.0)   ## world xz the parchment covers: the Realm and its margins
+const SHEET := Rect2(-420.0, -214.0, 840.0, 682.0)   ## world xz the parchment covers: the Realm and its margins
 const PPM := 2.6                                      ## texture pixels per metre
 const FEAT := 2.0                                     ## water / pit grid (m)
 const WASH := 4.0                                     ## biome wash grid (m)

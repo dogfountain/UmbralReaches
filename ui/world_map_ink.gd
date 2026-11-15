@@ -6,7 +6,7 @@ var data: Dictionary
 var cinzel: Font
 var serif: Font
 const K := 2.6
-const O := Vector2(-310.0, -214.0)
+const O := Vector2(-420.0, -214.0)
 const INK := Color(0.19, 0.12, 0.075)
 const PAPER := Color(0.88, 0.8, 0.62)
 const LEAF := Color(0.40, 0.50, 0.26, 0.85)

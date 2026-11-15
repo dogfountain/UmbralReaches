@@ -44,6 +44,18 @@ const R34_FIRES := {
 	"StillwaterFire": [Vector2(220.0, 52.0), Vector2(214.0, 40.0)],    # the lake's south shore, off spire_track
 	"AnchorFire": [Vector2(209.0, -83.0), Vector2(206.0, -100.0)],     # the foot of the cliff, beside the bend of anchor_track (it stood on the track itself)
 	"SaltFire": [Vector2(218.0, 98.0), Vector2(214.0, 96.0)],          # Saltmarket's yard
+	# --- the Far Reaches (RealmReaches.SLOTS "fire") ---
+	"GreyfellFire": [Vector2(-310.0, -66.0), Vector2(-312.0, -76.0)],   # fell_track's head, under the keep's crag
+	"LanternFire": [Vector2(-292.0, 14.0), Vector2(-298.0, 16.0)],      # beside fell_track in a lit clearing
+	"BarrowFire": [Vector2(-318.0, 96.0), Vector2(-323.0, 96.0)],       # barrow_track at the ridge's north end
+	"ReedFire": [Vector2(-316.0, 302.0), Vector2(-322.0, 298.0)],       # Reedholm's landing
+	"FallowFire": [Vector2(-146.0, 292.0), Vector2(-152.0, 296.0)],     # Fallowmere's green
+	"ArchesFire": [Vector2(-24.0, 318.0), Vector2(-24.0, 322.0)],       # beside arches_way under the arches
+	"SouthwoodFire": [Vector2(150.0, 296.0), Vector2(150.0, 302.0)],    # beside arches_way at the wood's edge
+	"BellfallFire": [Vector2(318.0, -60.0), Vector2(316.0, -66.0)],     # bell_track at the crater's south lip
+	"LastlightFire": [Vector2(310.0, 50.0), Vector2(316.0, 52.0)],      # Lastlight's yard, inside the gate
+	"NaveFire": [Vector2(296.0, 112.0), Vector2(293.0, 118.0)],         # nave_track on the mere's north shore
+	"CairnFire": [Vector2(300.0, 286.0), Vector2(304.0, 282.0)],        # southwood_way's end on the heath
 }
 
 
