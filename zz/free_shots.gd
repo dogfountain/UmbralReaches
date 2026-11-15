@@ -1,6 +1,7 @@
 extends Node
 ## Stills from a free camera in the real night (windowed; in memory only, saves held).
 ##   godot --path . res://zz/free_shots.tscn -- --out=<dir> [--tag=after] --view=name:cx:cy:cz:tx:ty:tz ...
+##   --kindle   light every brazier first
 ##   --stand=name:tx:tz:ty:dist:up:yawdeg   a stand-off view: look at the world point (tx, ground + ty) from dist m back
 ##       along bearing yawdeg (0 = camera south of the point, 90 = east of it) and up m higher; the eye is pushed
 ##       outward and up until it overlaps no collider, so a landmark shot never lands inside geometry
@@ -20,6 +21,8 @@ var t := 0
 var cam: Camera3D
 var bell := Vector3.ZERO         ## --bell=x:z puts a bell prop on the ground there
 var bell_kind := "bell"
+var kindle := false               ## --kindle: every brazier in the world is lit first (Brazier.kindle_quiet)
+var kindled := false
 var lamp := false                ## --lamp: a lantern-warm light beside the bell
 
 
@@ -32,6 +35,8 @@ func _ready() -> void:
 			out = a.trim_prefix("--out=")
 		elif a.begins_with("--tag="):
 			tag = a.trim_prefix("--tag=")
+		elif a == "--kindle":
+			kindle = true
 		elif a == "--lamp":
 			lamp = true
 		elif a.begins_with("--bell="):
@@ -70,6 +75,10 @@ func _process(_d: float) -> void:
 	for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
 		if String(c.name) != "Grade":
 			(c as CanvasLayer).visible = false
+	if kindle and not kindled:
+		kindled = true
+		for n in get_tree().root.find_children("*", "Brazier", true, false):
+			(n as Brazier).kindle_quiet()
 	if cam == null and bell != Vector3.ZERO:
 		if bell.y == 0.0:
 			bell.y = _ground(bell.x, bell.z)

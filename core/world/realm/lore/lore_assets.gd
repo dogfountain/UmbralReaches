@@ -562,10 +562,11 @@ void fragment() {
 	float ao = COLOR.r;
 	// moss: on what faces the sky, in blotches; and creeping up from the ground in the damp
 	float up = smoothstep(0.15, 0.85, n.y);
-	float m_top = up * smoothstep(0.32, 0.62, big + moss_amount * 0.55 - 0.18) * step(0.001, moss_amount);
+	// r38: a tight smoothstep and a moss darker than the slab read as camouflage blotches on a moonlit roof: a soft edge, a value close to the stone's
+	float m_top = up * smoothstep(0.26, 0.9, big + moss_amount * 0.55 - 0.18) * 0.55 * step(0.001, moss_amount);
 	float m_foot = foot_moss * smoothstep(0.7, 0.58, ao) * smoothstep(0.35, 0.6, big + fine * 0.3);
 	float moss = clamp(max(m_top, m_foot) * (0.75 + 0.5 * fine), 0.0, 1.0);
-	vec3 moss_col = mix(vec3(0.13, 0.19, 0.08), vec3(0.27, 0.32, 0.12), fine);
+	vec3 moss_col = mix(vec3(0.2, 0.26, 0.11), vec3(0.34, 0.39, 0.16), fine);
 	// rain streaks down the sides, pale lichen crusts
 	float side = 1.0 - up;
 	float st = texture(noise_tex, vec2((wpos.x + wpos.z) * 1.7, wpos.y * 0.09)).r;
@@ -574,7 +575,7 @@ void fragment() {
 	stone *= 1.0 - streaks * side * smoothstep(0.55, 0.85, st) * 0.22;
 	stone *= 0.9 + 0.2 * big;
 	stone = mix(stone, stone * vec3(0.88, 0.95, 0.8) + vec3(0.012, 0.018, 0.006), lichen * 0.5);      // a greener, darker crust, never paler than the stone
-	ALBEDO = mix(stone, moss_col * (0.6 + 0.4 * ao), moss);
+	ALBEDO = mix(stone, moss_col * (0.8 + 0.4 * ao), moss);
 	ROUGHNESS = mix(clamp(rough, 0.5, 1.0), 0.98, moss);
 	nw = normalize(mix(nw, n, moss * 0.6));
 	NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
