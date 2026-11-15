@@ -10,6 +10,7 @@ extends Node
 ## --hud-draws counts which HUD canvas items redraw during the fight.
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
+const GearDB := preload("res://core/items/gear_db.gd")
 const SPOT := Vector2(62.0, 60.0)
 const BOSSES := {"thornwarden": "res://core/enemy/thornwarden.gd", "bone_abbot": "res://core/enemy/bone_abbot.gd",
 	"anchoress": "res://core/enemy/anchoress.gd", "warden": "res://core/enemy/ascended_warden.gd"}
@@ -257,6 +258,8 @@ func begin(night: Node) -> void:
 			cap = int(a.trim_prefix("--cap="))
 		elif a.begins_with("--pad="):
 			pad_us = int(a.trim_prefix("--pad="))
+		elif a.begins_with("--drop-bags="):
+			drop_bags = int(a.trim_prefix("--drop-bags="))
 		elif a.begins_with("--quit-mid="):
 			quit_mid = float(a.trim_prefix("--quit-mid="))
 		elif a.begins_with("--slow="):
@@ -321,6 +324,7 @@ func _run() -> void:
 		if c is SkillBook:
 			_book = c
 			break
+	print("FIGHT BAGS %d loot bags standing at the start (a Continue lays the saved ones back)" % get_tree().get_nodes_in_group("loot_bag").size())
 	print("FIGHT start: boss %s, %d grunts, casting %s" % [boss, n, cast])
 	_fight_t0 = Time.get_ticks_usec()
 	Events.enemy_killed.connect(func(e: Node) -> void: _note("killed " + String(e.name)))
@@ -365,6 +369,15 @@ func _run() -> void:
 			_micro()
 		if not cost_at.is_empty() and Time.get_ticks_msec() - t0 > int(cost_at[0]):
 			_script_cost("%.0f s in" % (float(cost_at.pop_front()) / 1000.0))
+		if drop_bags > 0 and Time.get_ticks_msec() - t0 > 3000:
+			var gear := get_tree().get_first_node_in_group("gear")
+			var rng := RandomNumberGenerator.new()
+			rng.seed = 7
+			for i in drop_bags:
+				var piece: Dictionary = GearDB.make(rng, {})
+				gear.drop_bag([{"kind": "item", "id": "ember_shard", "n": 2 + i}, {"kind": "gear", "piece": piece}], p.global_position + Vector3(float(i) * 2.0 - 2.0, 0.2, -4.0), "the remains")
+			print("FIGHT BAGS dropped %d, %d standing" % [drop_bags, get_tree().get_nodes_in_group("loot_bag").size()])
+			drop_bags = 0
 		if quit_mid > 0.0 and float(Time.get_ticks_msec() - t0) / 1000.0 > quit_mid:
 			# the window's close button, mid-fight: every node is told (Travel saves), then the tree quits
 			print("FIGHT QUIT-MID at %.1f s, %d enemies, %d loot bags standing" % [quit_mid, get_tree().get_nodes_in_group(Groups.ENEMY).size(), get_tree().get_nodes_in_group("loot_bag").size()])
@@ -481,6 +494,7 @@ const PSO := [RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_MESH, Renderi
 	RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_DRAW, RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SPECIALIZATION]
 var _pso_last := [0, 0, 0, 0]
 var _pso_total := 0
+var drop_bags := 0             ## --drop-bags=3: three loot bags (an item, and a piece of gear) are left on the ground 3 s into the fight, as kills leave them
 var quit_mid := 0.0            ## --quit-mid=8: close the window 8 s into the fight (no report): the save and the exit are checked from the log and the save folder
 
 

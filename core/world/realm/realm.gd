@@ -36,13 +36,6 @@ const MODULES := {
 	"nav": "res://core/world/realm/realm_nav.gd",
 }
 
-const PRELOAD := [
-	"res://art/models/mossy_platform.glb", "res://art/models/summit_pillar.glb",
-	# the east and south marches' kit scenes (13-17 MB each) are the biggest loads of the places pass
-	"res://art/models/r37e_spire.glb", "res://art/models/r37e_saltworks.glb", "res://art/models/r37e_works.glb", "res://art/models/r37e_hamlet.glb", "res://art/models/r37e_cells.glb",
-	"res://art/models/r37_south_hut.glb", "res://art/models/r37_south_oak.glb", "res://art/models/r37_south_wall.glb", "res://art/models/r37_south_well.glb",
-]
-
 static func module_on(id: String) -> bool:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--realm-modules="):
@@ -139,11 +132,6 @@ static func build(root: Node) -> void:
 	_step = 0
 	progress = 0.0
 	var t0 := Time.get_ticks_msec()
-	# big scenes needed late in the build (summit platform, pillars, mage) load on worker threads
-	# while the modules run; SummitDress's load() then picks them up ready instead of blocking
-	for path: String in PRELOAD:
-		if ResourceLoader.exists(path):
-			ResourceLoader.load_threaded_request(path, "", true)
 	root.tree_exiting.connect(DwarfRig.warm_abandon_all, CONNECT_ONE_SHOT)
 	await _run("land", root)
 	# the Keg's people are the longest cache misses (a mesh each, 0.6 s of GDScript): they build on
@@ -199,6 +187,10 @@ static func build(root: Node) -> void:
 	print("PLACEMENT %d skipped" % PlacementLog.entries.size())
 	root.set_meta("realm_done", true)              # waiters (camps, tests) can key on this
 	print("REALM built in %d ms" % (Time.get_ticks_msec() - t0))
+
+
+# (r38: the big glb scenes used to be requested on worker threads here, ahead of the places that load them. A/B on a
+# full build: 37.2-38.4 s with, 37.8-37.9 s without, and every scene left ObjectDB instances (load tokens) leaking at exit.)
 
 
 static func _run(id: String, root: Node) -> void:
