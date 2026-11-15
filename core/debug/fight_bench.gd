@@ -257,6 +257,8 @@ func begin(night: Node) -> void:
 			cap = int(a.trim_prefix("--cap="))
 		elif a.begins_with("--pad="):
 			pad_us = int(a.trim_prefix("--pad="))
+		elif a.begins_with("--quit-mid="):
+			quit_mid = float(a.trim_prefix("--quit-mid="))
 		elif a.begins_with("--slow="):
 			slow_ms = float(a.trim_prefix("--slow="))
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)     # the real cost, not the refresh cap
@@ -280,6 +282,7 @@ func _process(delta: float) -> void:
 			started = true
 			_run()
 		return
+	_pso_watch()
 	if immortal and t % 6 == 0:
 		for e in get_tree().get_nodes_in_group(Groups.ENEMY):
 			var en := e as Enemy
@@ -362,6 +365,12 @@ func _run() -> void:
 			_micro()
 		if not cost_at.is_empty() and Time.get_ticks_msec() - t0 > int(cost_at[0]):
 			_script_cost("%.0f s in" % (float(cost_at.pop_front()) / 1000.0))
+		if quit_mid > 0.0 and float(Time.get_ticks_msec() - t0) / 1000.0 > quit_mid:
+			# the window's close button, mid-fight: every node is told (Travel saves), then the tree quits
+			print("FIGHT QUIT-MID at %.1f s, %d enemies, %d loot bags standing" % [quit_mid, get_tree().get_nodes_in_group(Groups.ENEMY).size(), get_tree().get_nodes_in_group("loot_bag").size()])
+			get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)
+			get_tree().quit()
+			return
 		await get_tree().create_timer(0.12).timeout
 	_report()
 	_seg_report()
@@ -465,6 +474,32 @@ func _avg_frame(s: float) -> float:
 	return float(Time.get_ticks_usec() - t0) / 1000.0 / maxf(float(Engine.get_process_frames() - n0), 1.0)
 
 
+## The renderer's own count of pipelines compiled (mesh, surface, draw, specialization): a count that rises during the
+## fight is a stall that was not warmed behind the loading screen (the loading screen's combat set). Load-independent,
+## unlike frame times; each rise is noted with the frame it happened in, among the spawns and casts of that frame.
+const PSO := [RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_MESH, RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SURFACE,
+	RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_DRAW, RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SPECIALIZATION]
+var _pso_last := [0, 0, 0, 0]
+var _pso_total := 0
+var quit_mid := 0.0            ## --quit-mid=8: close the window 8 s into the fight (no report): the save and the exit are checked from the log and the save folder
+
+
+func _pso_watch() -> void:
+	var now := []
+	for k in PSO.size():
+		now.append(int(RenderingServer.get_rendering_info(PSO[k])))
+	if _fight_t0 > 0:
+		var d := []
+		var sum := 0
+		for k in PSO.size():
+			d.append(int(now[k]) - int(_pso_last[k]))
+			sum += int(now[k]) - int(_pso_last[k])
+		if sum > 0:
+			_pso_total += sum
+			_note("PSO compiled %s (mesh surface draw spec)" % [d])
+	_pso_last = now
+
+
 func _note(t: String) -> void:
 	_ev.append([Time.get_ticks_usec(), t])
 
@@ -527,6 +562,7 @@ func _report() -> void:
 	var p99: float = f[int(f.size() * 0.99)] if f.size() > 0 else 0.0
 	var med: float = f[f.size() / 2] if f.size() > 0 else 0.0
 	print("FIGHT frames %d  avg %.2f ms (%.0f fps)  median %.2f  p95 %.2f  p99 %.2f  worst %.2f" % [f.size(), avg, 1000.0 / maxf(avg, 0.01), med, p95, p99, f.back() if f.size() > 0 else 0.0])
+	print("FIGHT PSO %d pipelines compiled during the fight (each is a first-use stall; see the PSO events)" % _pso_total)
 	# the spread: with V-Sync a frame that misses one refresh waits for the next, so the fps halves in steps
 	if f.size() > 20:
 		var qs := PackedStringArray()

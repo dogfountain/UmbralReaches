@@ -15,10 +15,10 @@ extends RefCounted
 const GenCache := preload("res://core/world/realm/gen_cache.gd")
 const SELF := "res://core/world/realm/realm_nav.gd"
 const CELL := 0.5
-const CELL_H := 0.2
+const CELL_H := 0.125                     ## binary-exact, so MAX_CLIMB is a whole number of these (the bake floors the climb to voxels and warned at 0.65 / 0.2)
 const AGENT_RADIUS := 0.5
 const AGENT_HEIGHT := 1.8
-const MAX_CLIMB := 0.65                   ## with a 0.5 m cell the ledge filter drops ramps steeper than atan(climb / cell): 0.4 lost every 27 degree stair (the fen and Counting stairs)
+const MAX_CLIMB := 0.625                  ## with a 0.5 m cell the ledge filter drops ramps steeper than atan(climb / cell): 0.4 lost every 27 degree stair (the fen and Counting stairs)
 const MAX_SLOPE := 40.0
 const WAIT_MS := 20000                    ## the loading screen never waits longer than this (twice the ground, was 12 s)
 const AREA := AABB(Vector3(-272.0, -60.0, -160.0), Vector3(544.0, 320.0, 412.0))     ## BOUNDS + 12 m (was x -165..165, z -160..185)
