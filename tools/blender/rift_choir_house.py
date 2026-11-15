@@ -1,21 +1,22 @@
-"""The Choir House on the Ashen Rift's east rim, modelled by script (no scans, no downloads).
+"""The Choir House below the Ashen Rift's west berm, modelled by script (no scans, no downloads).
 
-  rift_choir_house.glb   the hall where the Stair's choir lodged and practised, overrun by the first lava flow the night
-                         the rift brimmed: a roofless nave of coursed ashlar (7.4 x 14 m), the west gable whole with its
-                         pointed door and an empty bell-cote, the side walls buttressed and lit by lancets, the north
-                         wall's middle fallen in, the east gable burst open where the flow broke out towards the fen.
-                         Inside, the crust stands to the window sills (the terrain's flow is the floor: core/world/
-                         realm/rift/scorch.gd lifts it there); the choir's stall ends and the cantor's lectern stand out
-                         of it; the roof's charred rafters lie across it; two tongues of lava froze where they spilled
-                         over the south sills.
+  rift_choir_house.glb   the hall where the Stair's choir lodged and practised, overrun by the main lava flow the night
+                         the rift brimmed (the lava broke through the berm and ran west across the flat): a roofless
+                         nave of coursed ashlar (7.4 x 14 m); the door gable (towards the rift) whole, with its pointed
+                         door and an empty bell-cote; the side walls buttressed, one lit by lancets, the other's middle
+                         fallen in; the far gable burst open where the flow broke out. Inside, the crust stands to the
+                         window sills (the terrain's flow is the floor: core/world/realm/rift/scorch.gd lifts it there);
+                         the choir's stall ends and the cantor's lectern stand out of it; the roof's charred rafters lie
+                         across it; two tongues of lava froze where they spilled over the lancets' sills.
 
   tools/blender/run.sh rift_choir_house.py -- [--preview DIR]
 
-Frame: 1 BU = 1 m, Blender Z up -> Godot Y up, Blender +Y -> Godot -Z. Origin: the middle of the west doorway's threshold
-on the hall's old floor (z 0); +Y runs into the hall towards the east gable, +X to the south wall (the placement turns
-+Y down the flow). Parts are named <part>__<set>: ashlar (the r37 coursed set), char (rafters and stalls burned black:
-dressed in Godot as charred timber), crust (frozen lava: the scorch's crust with warm seams), iron. Choir-colonly: the
-walls, buttresses and lectern as boxes; the doorways and the breach are open.
+Frame: 1 BU = 1 m, Blender Z up -> Godot Y up, Blender +Y -> Godot -Z. Origin: the middle of the doorway's threshold on
+the hall's old floor (z 0); +Y runs into the hall towards the far gable, +X to the lancet wall (the placement turns +Y
+down the flow; in the names below "west" is the door gable, "east" the far one, "south" the lancet wall, "north" the
+fallen one). Parts are named <part>__<set>: ashlar (the r37 coursed set), char (rafters and stalls burned black:
+dressed in Godot as charred timber), crust (frozen lava: the flows' dark crust), iron. Choir-colonly: the walls,
+buttresses and lectern as boxes; the doorway and the breach are open.
 """
 import math
 import os
@@ -45,7 +46,7 @@ FOOT = -1.0          # the walls go down this far (the flow rose round them; not
 DOOR_A, DOOR_ZS = 0.95, 2.6          # the west door: half width, springing
 WIN_A, WIN_ZS, WIN_SILL = 0.42, 3.3, 1.55
 WIN_Y = (3.6, 7.0, 10.4)
-CRUST = 1.35         # where the flow stands inside (the terrain's lift, scorch.gd F1)
+CRUST = 1.35         # where the flow stands inside (the main west flow's lift, scorch.gd FLOWS[0])
 
 
 def gable_top(x):

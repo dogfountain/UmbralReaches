@@ -56,3 +56,30 @@ The r37 rules hold (docs/r37_expansion.md "Rules for every agent"): existing sys
 LODs for big things (FarDetail), the pillars, the don'ts. New content goes in new files named for the area; shared
 registries (EnemySpawner.REALM_CAMPS, elites, rares, lore, codex, quest chains, village casts) get one block per area
 at the end of the list.
+
+## The Ashen Rift, re-landscaped (the lava area)
+
+Luke: the lava "feels out of place" (a straight slot of fire cut into green meadow and oak wood). The chasm, the
+Crossing, the summit and the Threshold stay where they are; the country round them now tells how it burned. One field,
+`core/world/realm/rift/scorch.gd` (x -104..104, z -156..8), drives it all:
+
+- **The burn**: deepest at the lip, reaching out in tongues downwind (east-south-east, the foliage wind) and up the
+  wood's slope; a ring of dying wood and dry turf round it; dying back to nothing by the starwater mouth (Hearthward
+  stays green), Thorn Henge's hill kept green. The ground turns to ash country (RealmLand `_splat`), the ring's grass
+  dries and the burn's goes to ash drifts, cinders and dead brush, trees in the burn stand as charred snags, the ring's
+  crowns go rust (RealmFlora, four one-line hooks), `biome_at` answers "ash" there (footsteps, weather, wildlife).
+- **The flows**: the rift's lips are berms 11-15 m high; the night the rift brimmed the lava broke through them at
+  notches and ran down their outer faces: the main flow and a second tongue west onto the flat at the Crowns' foot
+  (either side of the Watchers' Spire), two cascades east into the Hollow Fen's edge (steam where they stopped in the
+  water). They lift the ground up to 1.35 m (RealmLand `_heights`, after the kept core) and are drawn by the ground
+  shader's scorch map: roped black crust, tumuli, a crack network still warm near the lip and in the Choir House.
+- **The Choir House** (`tools/blender/rift_choir_house.py`, `art/models/rift_choir_house.glb`): the hall where the
+  Stair's choir lodged, in the main west flow; the lava came in at its door, filled the nave to the sills and burst its
+  far gable. The Cinder Cantor haunts its nave; its writings are the `rr_*` entries in lore_db.gd.
+- **The rift's breath** (`rift/plume.gd`): a lava-lit smoke column rising out of the chasm's north-east corner and
+  leaning away downwind, the north of the Realm's far landmark.
+- **Dressing** (`core/world/realm/rift_rim.gd`, REACH_POIS): spatter along both lips, bombs, heaved slabs and toe
+  rubble on the flows, basalt tors, charred trunks, steam and smoke.
+- The lava itself reads as crust rafts drawn out along the current (darker plates, thinner seams, a deeper red).
+
+`--no-scorch` puts the rift back as it was (A/B; the lava's crust look stays).

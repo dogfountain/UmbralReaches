@@ -386,7 +386,7 @@ static func _steam(host: Node3D, space: PhysicsDirectSpaceState3D, rng: RandomNu
 
 # --- the Choir House -----------------------------------------------------------------------------------
 
-## The hall in the first flow: the model's old floor (its z 0) is the ground under the flow (the ground there less
+## The hall in the main west flow: the model's old floor (its z 0) is the ground under the flow (the ground there less
 ## the flow's lift), so the crust stands in its nave as it does outside. Returns where its door stands (INF if not).
 static func _choir(host: Node3D, space: PhysicsDirectSpaceState3D) -> Vector3:
 	var lo := INF

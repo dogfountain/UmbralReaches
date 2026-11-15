@@ -1,10 +1,10 @@
 extends RefCounted
 ## The Ashen Rift's scorch: how the land round the lava burned, as one field every builder reads.
 ## The rift was a clean slot of fire cut into green meadow and oak wood; now the country round it tells
-## what happened: the first nights the rift brimmed and ran over its low east lip into the Hollow Fen
-## (the cooled flows lie there, black and roped, their fronts steaming where they stopped in the water),
-## fire and spatter burned the Thornwood's edge back up the west slope, and the ash fell downwind
-## (east-south-east, the foliage shader's wind) in pale drifts. The burn is deepest at the lip and
+## what happened: the first night the rift brimmed, broke through the berms along its lips at notches and
+## ran down their outer faces (west across the flat at the Crowns' foot, where it took the Choir House; east
+## into the Hollow Fen's edge, whose water still steams at the flows' fronts); fire and spatter burned the
+## wood round it, and the ash fell downwind (east-south-east, the foliage shader's wind) in pale drifts. The burn is deepest at the lip and
 ## fades out through charred snags, rust-leaved dying trees and grey grass into the living land; it
 ## thins to almost nothing by the Pilgrims' Threshold, where the lava cools into starwater.
 ##
@@ -427,6 +427,8 @@ static func rect_v4() -> Vector4:
 
 ## Hands the map to the Realm's ground material (Zone/Terrain, after RealmLand built it).
 static func apply_ground(root: Node) -> void:
+	if "--no-scorch" in OS.get_cmdline_user_args():
+		return
 	var t := root.get_node_or_null("Zone/Terrain") as MeshInstance3D
 	var m := t.material_override as ShaderMaterial if t != null else null
 	if m == null:
