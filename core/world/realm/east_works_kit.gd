@@ -42,6 +42,14 @@ static func mesh(path: String, nm: String) -> Mesh:
 				if sm != null and sm.albedo_texture != null:
 					var m2 := sm.duplicate() as StandardMaterial3D
 					m2.albedo_color = Color(1.2, 1.3, 1.45) if sm.resource_name == "plaster" else Color(1.55, 1.5, 1.45)
+					# The hamlet's slate (tavern_slate, mean value 24 of 255) and beams (25) stayed black under the moon even
+					# lifted 1.55x (a flat black roof slab): they take the west kit's slate and timber albedo (value 71 and 86)
+					if sm.resource_name == "slate":
+						m2.albedo_texture = load("res://art/textures/r37_slate_albedo.png")
+						m2.albedo_color = Color(0.95, 0.95, 1.0)
+					elif sm.resource_name == "timber":
+						m2.albedo_texture = load("res://art/textures/r37_timber_albedo.png")
+						m2.albedo_color = Color(1.1, 1.08, 1.05)
 					out.surface_set_material(i, m2)
 		inst.free()
 	_meshes[key] = out

@@ -38,11 +38,11 @@ const CONV := {
 			"three_1": {"say": "Three. Something in the Ring on the western hill that keeps the oaks; the Rooted call it the Thornwarden. The Abbot under the abbey, still counting his dead.", "next": "three_2"},
 			"three_2": {"say": "And whatever stands at the top of the Stair with the door open. The ward on the Crossing won't let you near it till the other two are down: a heart out of the Ring, a crown out of the crypt.", "next": "meet_hub"},
 			"start_1": {"say": "First: the braziers. Four of them — Stair foot, glade shrine, Barrow Field, the fen below it. Kindle them. Light is somewhere to stand when the dark leans on you.", "next": "start_2"},
-			"start_2": {"say": "Then pick a door. Thorn seal on the Thornwood edge, west. Or the gallery seal in the crypt, through the fen. Both, before the Crossing will take you up to shut the sky's door.", "do": "flag:met_keep,teach:ward", "choices": [
+			"start_2": {"say": "Then pick a door. Thorn seal on the Thornwood edge, west. Or the gallery seal in the crypt, through the fen. Both, then the door's own price, which Brannoc knows, before the Crossing will take you up to shut the sky's door.", "do": "flag:met_keep,teach:ward", "choices": [
 				{"text": "Another question.", "to": "meet_hub"},
 				{"text": "I'll go.", "to": "meet_end"},
 			]},
-			"meet_brief": {"say": "Then hear it once. Kindle the four braziers. Break the thorn seal west, or the gallery seal through the fen — both, then the Crossing, then the door at the top. The rest of Hearthward can wait until you've heard that.", "do": "flag:met_keep,teach:ward", "next": "meet_end"},
+			"meet_brief": {"say": "Then hear it once. Kindle the four braziers. Break the thorn seal west, or the gallery seal through the fen — both, then Brannoc's bells, then the Crossing, then the door at the top. The rest of Hearthward can wait until you've heard that.", "do": "flag:met_keep,teach:ward", "next": "meet_end"},
 			"meet_end": {"say": "Fire stays. Hollows do not. Come back with news; we pay in ale. The village will have work for you once you've stepped out.", "do": "flag:met_keep,teach:ward", "next": ""},
 			# --- the hub, every visit after ---------------------------------------------------
 			"hub": {"say_if": [
@@ -68,6 +68,8 @@ const CONV := {
 			]},
 			"next": {"say_if": [
 				["boss:ascended_warden", "Now? Now nothing. Sit. Let the valley learn not to be pulled at. It'll take a while; it's been a while."],
+				["boss:thornwarden,boss:bone_abbot,!peal:4", "Not up yet. The door hears bells, not crowns. Four of the Founder's eight, and one of them cast for the Marches. Brannoc has the first; ask him."],
+				["boss:thornwarden,boss:bone_abbot,!qd:founders_peal", "Four bells answered. Good. Tell Brannoc the door will hear a peal; he's been waiting to be told. Then the ward on the Crossing will take you."],
 				["boss:thornwarden,boss:bone_abbot,!seal:summit", "Across the Crossing. There's a ward at the landing with guards that don't sleep. Clear them and it'll let heart and crown through. It was cut to let nobody else."],
 				["boss:thornwarden,boss:bone_abbot", "Up. Whatever's at the top is halfway into the sky and stuck there. Make it let go of the door."],
 				["boss:thornwarden", "The crown, then. South on the Waiting Field's road, past the tomb, to the bone bridge, and over it into the gallery. Mind the bones that stand up."],
@@ -89,7 +91,7 @@ const CONV := {
 				["elite:hobb", "The knocking's stopped on the east road. Maud still sits up for it. Habit's the last thing to go."],
 				["qp:forty_first:faith", "Oswin kneels at the forty-first stone every night. Fennick lights him a lamp. Nobody's told him. Nobody's going to."],
 				["secrets:3", "Folk say you've been opening the places the Order sealed. The Order sealed them for a reason. Usually a bad one."],
-				["qp:forty_first:truth", "Oswin went home. Walked out the west road without his staff. First pilgrim I ever saw go the other way."],
+				["qp:forty_first:truth", "Oswin stopped counting. Sits at the road's rest with his staff against the wall, looking down the west road the other way. First pilgrim I ever saw do that."],
 				["bosses:2", "The bells. Brannoc swears he heard one in his sleep. Brannoc swears a lot."],
 				["boss:bone_abbot", "Ostrin went quiet when he heard the Abbot was down. Quiet's better than what he was."],
 				["boss:thornwarden", "Hesk went out to the wood's edge at dawn. Came back and ordered two. Didn't drink either."],

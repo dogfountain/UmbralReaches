@@ -605,7 +605,7 @@ static func impact(at: Vector3, color: Color, dir := Vector3.ZERO, big := false)
 	var qd := Vector3(snappedf(d.x, 0.5), snappedf(d.y + 0.35, 0.5), snappedf(d.z, 0.5))
 	if qd.length_squared() < 0.01:
 		qd = Vector3.UP
-	burst(at, color, {"count": 18 if big else 12, "life": 0.32, "speed": Vector2(4.0, 9.0), "size": 0.03, "gravity": -11.0, "trail": 0.07, "dir": qd.normalized(), "spread": spread, "damping": 3.0})
+	burst(at, color, {"count": 26 if big else 14, "life": 0.38, "speed": Vector2(4.0, 10.0), "size": 0.05, "gravity": -11.0, "trail": 0.1, "dir": qd.normalized(), "spread": spread, "damping": 3.0})
 	burst(at, IMPACT_CORE, {"count": 6, "life": 0.18, "speed": Vector2(0.4, 1.4), "size": 0.16 if big else 0.11, "gravity": 0.0, "scale_var": 0.3})
 	_flash_star(h, at, color, 0.95 if big else 0.6)
 	if big:

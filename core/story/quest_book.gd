@@ -31,6 +31,7 @@ extends RefCounted
 const Chains := preload("res://core/story/quest_chains.gd")
 const GearDB := preload("res://core/items/gear_db.gd")
 const GearRuntime := preload("res://core/items/gear_runtime.gd")
+const LevelDB := preload("res://core/life/progression/level.gd")
 const ASH := "grave_ash"
 
 ## Tests: no toasts.
@@ -169,7 +170,7 @@ static func complete(id: String, choice := -1) -> void:
 		if not quiet and gl != "":
 			Events.toast.emit(gl)
 	d.erase("rw")
-	_toast("Task done: %s.%s" % [String(Chains.QUESTS[id].name), ("  " + got) if got != "" else ""])
+	_toast("Task done: %s.  %s%s" % [String(Chains.QUESTS[id].name), "+%d xp" % xp(id), ("  " + got) if got != "" else ""])
 	# r34: the last task of a raid's attunement chain loosens the boss's hold
 	for boss: String in Chains.ATTUNE:
 		if String(Chains.ATTUNE[boss]) == id:
@@ -392,6 +393,12 @@ static func label(text: String, actions: String) -> String:
 
 ## Give a reward {ash, items: {id: n}, charm: id, else: {id: n}} (a charm only if ItemDB knows it;
 ## otherwise `else`). Returns a short note of what was given.
+## The memory (XP) a finished task pays (the same call the Hearth makes when it gives it): by its ash, half on a repeat.
+static func xp(id: String) -> int:
+	var ash := int(((Chains.QUESTS.get(id, {}) as Dictionary).get("reward", {}) as Dictionary).get("ash", 0))
+	return LevelDB.quest_xp(ash, int(q(id).get("c", 0)) > 1)
+
+
 static func grant(r: Dictionary) -> String:
 	var parts: PackedStringArray = []
 	var a := int(r.get("ash", 0))

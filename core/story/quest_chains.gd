@@ -126,7 +126,7 @@ const QUESTS := {
 			{"kind": "talk", "who": "oswin", "text": "Speak with Oswin at the forty-first stone"},
 		],
 		"reward": {"ash": 12, "charm": "charm_waystone", "else": {"relic_fragment": 1}},
-		"outcome": {"truth": "You told Oswin the Stair is gone. He took the west road home and left his staff behind.",
+		"outcome": {"truth": "You told Oswin the Stair is gone. He stopped counting waystones, and set his staff against the wall of the road's rest.",
 			"faith": "Oswin keeps his vigil at the forty-first stone, waiting for a bell."}},
 	"names_yard": {"name": "Names for the Yard", "giver": "abel", "where": "Abel the sexton, by the Kindlers' Yard", "zone": "hearth",
 		"text": "The Order cut numbers where the names should be. A few of the faithful scratched the names back on slates and hid them.",
@@ -329,7 +329,7 @@ const QUESTS := {
 		"outcome": {"": "Ruan slept with her door open. In the morning she turned the empty beds face down again, one by one."}},
 	"keeper_wards": {"name": "The Keeper's Wards", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "holds",
 		"offer": true, "raid": "thornwarden",
-		"text": "We bound the keeper into the Ring with three ward-stones, one for each way the axe could come. The abbey dug them up and threw them in the wood. While they lie loose it keeps the Ring with all its strength, like a dog with no master. Bring them to my hand.",
+		"text": "We bound the keeper into the Ring with three ward-stones, one for each way the axe could come. The abbey dug them up and threw them in the wood. While they lie loose the wood stays angry, and whatever keeps the Ring keeps it like a dog with no master. Bring them to my hand.",
 		"steps": [
 			{"kind": "gather", "of": 3, "text": "Find the three ward-stones: in the Holds, under the Thornwood's oaks, in the Glimmer Glade ({n}/{of})"},
 			{"kind": "turnin", "who": "ruan", "text": "Bring the ward-stones to Gammer Ruan"},
@@ -338,7 +338,7 @@ const QUESTS := {
 		"outcome": {"": "Ruan set the three wards round her fire, face down, and sang the keeper's verse to them. Not the last verse."}},
 	"keeper_heart": {"name": "Heartwood", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "holds",
 		"offer": true, "avail": "qd:keeper_wards", "raid": "thornwarden",
-		"text": "The keeper roots in a heart and feeds the wood from it. The things under the oaks are fat on it. Bring me splinters off them: heartwood, black and warm to hold. I'll burn it in the ward-fire, and the keeper will smell itself in the smoke.",
+		"text": "The keeper rooted in a heart and fed the wood from it. The things under the oaks are fat on it still. Bring me splinters off them: heartwood, black and warm to hold. I'll burn it in the ward-fire, and the wood will smell what it was fed and know it for a grave.",
 		"steps": [
 			{"kind": "collect", "of": 5, "chance": 0.6, "region": "thornwood", "label": "Heartwood splinters", "at": Vector2(-100.0, -40.0),
 				"text": "Take heartwood splinters from the hollowed under the Thornwood's oaks ({n}/{of})"},
@@ -349,7 +349,7 @@ const QUESTS := {
 		"outcome": {"": "The heartwood burned green in Ruan's fire. The oaks to the east went quiet while it did."}},
 	"keeper_leave": {"name": "Keeper, Keep", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "holds",
 		"offer": true, "avail": "qd:keeper_heart", "raid": "thornwarden",
-		"text": "Take a coal from my fire, lit with its own heartwood, up the Ring's stair before it dies. Lay it at the head of the stair. It will know us by it. When you go in to it after, it will fight you with one hand behind its back. Not out of kindness. Out of manners.",
+		"text": "Take a coal from my fire, lit with its own heartwood, up the Ring's stair before it dies. Lay it at the head of the stair. If the keeper still stands, it will know us by it and fight you with one hand behind its back. Not out of kindness. Out of manners. If it does not, the Ring will know us anyway.",
 		"steps": [
 			{"kind": "find", "text": "Take a ward-coal from Gammer Ruan's fire"},
 			{"kind": "carry", "from": "coal_ruan", "to": Vector2(-57.0, -17.0), "r": 6.0, "time": 150.0, "label": "Ward-coal",
@@ -603,7 +603,7 @@ const QUESTS := {
 		"outcome": {"": "Agathe sewed the three pages together with a hair from her own head. 'Names,' she said. 'Not one number.'"}},
 	"abbot_cords": {"name": "Cut the Count", "giver": "agathe", "where": "Sister Agathe, at the gate of the Waiting Field", "zone": "necropolis",
 		"offer": true, "avail": "qd:abbot_roll", "raid": "bone_abbot",
-		"text": "His bone-walkers carry the count on knotted cords. Every knot is somebody. Cut me four cords off them and the count goes slack. He'll feel it down there, a stitch dropped.",
+		"text": "His bone-walkers carry the count on knotted cords. Every knot is somebody. Cut me four cords off them and the count goes slack. Whatever keeps it down there will feel it, a stitch dropped.",
 		"steps": [
 			{"kind": "collect", "of": 4, "chance": 0.75, "kinds": ["ossuant"], "label": "Tally-cords", "at": Vector2(96.0, -30.0),
 				"text": "Cut tally-cords from the bone-walkers of the fen and the Barrow Field ({n}/{of})"},
@@ -614,7 +614,7 @@ const QUESTS := {
 		"outcome": {"": "Agathe unpicked every knot, and named nobody. Some things you only undo."}},
 	"abbot_names": {"name": "Called by Name", "giver": "agathe", "where": "Sister Agathe, at the gate of the Waiting Field", "zone": "necropolis",
 		"offer": true, "avail": "qd:abbot_cords", "raid": "bone_abbot",
-		"text": "Take the roll down to the Ossuary's bone bridge, under the Waiting Field, and read it, all of it, into the dark. Then he goes to his count and finds it short. A counter who comes up short begins to doubt. A doubting Abbot is half an Abbot.",
+		"text": "Take the roll down to the Ossuary's bone bridge, under the Waiting Field, and read it, all of it, into the dark. If the Abbot still counts, he goes to his count and finds it short, and a counter who comes up short begins to doubt. If he doesn't, the dead will have been read to, which is what a name is for.",
 		"steps": [
 			{"kind": "visit", "at": Vector2(-40.0, 146.0), "r": 10.0, "label": "The Ossuary's bone bridge", "text": "Read the pilgrims' roll aloud at the Ossuary's bone bridge"},
 			{"kind": "turnin", "who": "agathe", "text": "Tell Sister Agathe the names were read"},

@@ -18,8 +18,8 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 LAYERS = ["wool", "linen", "trim", "leather", "bone", "gilt", "iron", "wood", "stone", "glow", "skin"]
 # per layer: roughness, metallic, mottle, edge-wear, [displacements: (texture, size, strength, stretch_z)]
 FINISH = {
-    "wool":    (0.92, 0.0, 0.14, 0.12, [("CLOUDS", 0.05, 0.022, 5.0), ("STUCCI", 0.005, 0.0025, 1.0)]),
-    "linen":   (0.88, 0.0, 0.16, 0.12, [("CLOUDS", 0.04, 0.018, 6.0), ("STUCCI", 0.004, 0.0022, 1.0)]),
+    "wool":    (0.92, 0.0, 0.06, 0.12, [("CLOUDS", 0.05, 0.022, 5.0), ("STUCCI", 0.005, 0.0025, 1.0)]),
+    "linen":   (0.88, 0.0, 0.06, 0.12, [("CLOUDS", 0.04, 0.018, 6.0), ("STUCCI", 0.004, 0.0022, 1.0)]),
     "trim":    (0.6, 0.4, 0.06, 0.35, [("STUCCI", 0.006, 0.0010, 1.0)]),
     "leather": (0.62, 0.0, 0.18, 0.35, [("VORONOI", 0.02, 0.0015, 1.0), ("CLOUDS", 0.04, 0.003, 1.0)]),
     "bone":    (0.7, 0.0, 0.24, 0.5, [("VORONOI", 0.012, 0.004, 1.0), ("STUCCI", 0.006, 0.003, 1.0), ("CLOUDS", 0.04, 0.008, 1.0)]),
@@ -269,7 +269,7 @@ def wire_albedo(N):
     base = N.get("tile_col") or N["col"].outputs["Color"]
     # mottle: value wobble from two noises, by the layer's mottle amount
     mn = _math(nt, 'MULTIPLY_ADD', N["noise"].outputs["Fac"], 1.0, -0.5)          # fac - 0.5 .. via (fac*1 + -0.5)
-    mn2 = _math(nt, 'MULTIPLY_ADD', N["noise2"].outputs["Fac"], 1.4, -0.7)
+    mn2 = _math(nt, 'MULTIPLY_ADD', N["noise2"].outputs["Fac"], 0.8, -0.4)
     m_all = _math(nt, 'ADD', mn, mn2)
     m_k = _math(nt, 'MULTIPLY', m_all, N["r_mott"].outputs["Color"])
     m_f = _math(nt, 'ADD', m_k, 1.0)

@@ -357,6 +357,13 @@ class _Crest extends Control:
 
 # --- pages ---------------------------------------------------------------------------------------------
 
+## Focus a button next frame, unless a press has since taken it (and its page) out of the tree.
+func _focus_later(c: Control) -> void:
+	(func() -> void:
+		if is_instance_valid(c) and c.is_inside_tree():
+			c.grab_focus()).call_deferred()
+
+
 func _show_main() -> void:
 	_mode = ""
 	_armed = -1
@@ -373,7 +380,7 @@ func _show_main() -> void:
 	_button(_menu, "Settings", _open_settings)
 	_button(_menu, "Quit", func() -> void: get_tree().quit())
 	_note.text = ""
-	(cont if any else _buttons[1]).grab_focus.call_deferred()
+	_focus_later(cont if any else _buttons[1])
 
 
 func _open_slots(mode: String) -> void:
@@ -410,7 +417,7 @@ func _rebuild_slots() -> void:
 			first = b
 	_button(_slots, "Back", _show_main, 22)
 	if first:
-		first.grab_focus.call_deferred()
+		_focus_later(first)
 
 
 func _slot_pressed(n: int) -> void:
