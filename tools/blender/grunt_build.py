@@ -58,12 +58,13 @@ def arms(g, col, mat="wool", r=(0.055, 0.045, 0.035)):
         g.tube([V(sx * 0.24, 1.08, 0.0), V(sx * 0.24, 0.92, -0.01), V(sx * 0.24, 0.8, 0.0)], [r[1], r[1] * 0.95, r[2]], col, mat, "elbow_" + t, n=12)
 
 
-def hood(g, col, dark=(0.015, 0.015, 0.02), eye=(1.0, 0.6, 0.25, 0.0), peak=0.0, open_=38, low=1.48, eye_r=0.015, face_y=1.7):
+def hood(g, col, dark=(0.015, 0.015, 0.02), eye=(1.0, 0.6, 0.25, 0.0), peak=0.0, open_=38, low=1.48, eye_r=0.015, face_y=1.7, face=True):
     rings = [(low, 0.2, 0.17, 0.02), (low + 0.1, 0.18, 0.16, 0.015), (1.7, 0.165, 0.17, 0.0), (1.82, 0.15, 0.165, 0.008), (1.9, 0.11, 0.13, 0.025),
              (1.95 + peak * 0.5, 0.05, 0.07, 0.04 + peak * 0.3), (1.97 + peak, 0.01, 0.015, 0.05 + peak * 0.6)]
     g.robe(rings, col, "wool", lambda p: "head" if p[1] > 1.58 else "chest", n=40, t0=math.radians(open_), t1=TAU - math.radians(open_), pleats=6, pleat_amp=0.04)
-    g.ball(V(0.0, face_y, 0.0), 0.128, dark, "iron", "head", n=10, sy=1.12)
-    B.eyes(g, face_y + 0.015, -0.115, 0.045, eye_r, eye)
+    if face:                                                             # no body under it: a void with two coals
+        g.ball(V(0.0, face_y, 0.0), 0.128, dark, "iron", "head", n=10, sy=1.12)
+        B.eyes(g, face_y + 0.015, -0.115, 0.045, eye_r, eye)
 
 
 def mantle(g, col, trim=None, y0=1.56, y1=1.16, r1=0.36, tatter=0.04):
@@ -74,7 +75,7 @@ def mantle(g, col, trim=None, y0=1.56, y1=1.16, r1=0.36, tatter=0.04):
 
 
 def robe_body(g, col, hem=0.05, waist=1.0, flare=0.4, pleats=16, amp=0.07, tatter=0.0, belt=None, trim=None):
-    rings = [(1.5, 0.18, 0.125, 0.0), (1.38, 0.2, 0.14, 0.0), (1.22, 0.195, 0.145, 0.0), (waist + 0.04, 0.17, 0.135, 0.0), (waist, 0.17, 0.13, 0.0),
+    rings = [(1.5, 0.2, 0.14, 0.0), (1.38, 0.22, 0.155, 0.0), (1.22, 0.215, 0.16, 0.0), (waist + 0.04, 0.19, 0.15, 0.0), (waist, 0.19, 0.145, 0.0),
              (waist - 0.15, 0.2 + flare * 0.1, 0.16 + flare * 0.1, 0.0), (0.55, 0.22 + flare * 0.3, 0.19 + flare * 0.3, 0.01), (hem + 0.15, 0.25 + flare * 0.45, 0.22 + flare * 0.45, 0.02),
              (hem, 0.26 + flare * 0.5, 0.23 + flare * 0.5, 0.02)]
     g.robe(rings, col, "wool", B.waist_split(waist - 0.02), n=96, pleats=pleats, pleat_amp=amp, pleat_from=waist, tatter=tatter, hem_break=0.02 if hem < 0.06 else 0.0)
@@ -232,22 +233,25 @@ def husk():
     return g.to_object("body"), []
 
 
-def hooded(robe_col, mantle_col, eye, trim=None, belt=(0.16, 0.11, 0.08), peak=0.0, hem=0.05, flare=0.4, tatter=0.04, arms_col=(0.42, 0.38, 0.34), hands=True):
+def hooded(robe_col, mantle_col, eye, trim=None, belt=(0.16, 0.11, 0.08), peak=0.0, hem=0.05, flare=0.4, tatter=0.04, arms_col=(0.42, 0.38, 0.34), hands=True, macro=None):
+    """A robed figure on a MakeHuman body: the face is seen inside the hood, the hands out of the sleeves."""
     g = Geo()
+    human(g, arms_col, eye, macro=macro or {"gender": 0.8, "age": 0.8, "muscle": 0.3, "weight": 0.2}, girth=0.92, head=1.05)
+    hands = False
     robe_body(g, robe_col, hem=hem, flare=flare, tatter=tatter, belt=belt, trim=trim)
     for sx in (-1, 1):
         B.sleeve(g, sx, robe_col, trim or belt, r_top=0.08, r_cuff=0.13, drop=0.12)
         if hands:
             B.hand(g, sx, arms_col, "hand_" + side(sx), closed=0.5)
     mantle(g, mantle_col, trim, tatter=tatter)
-    hood(g, mantle_col, eye=eye, peak=peak)
+    hood(g, mantle_col, eye=eye, peak=peak, face=False)
     return g
 
 
 def chanter():
     """A tall hooded caster in green-black, bone charms on cords, a caged corpse-light raised on a staff."""
     G1, G2, BONE = (0.13, 0.16, 0.11), (0.08, 0.1, 0.07), (0.8, 0.75, 0.62)
-    g = hooded(G1, G2, (0.6, 1.0, 0.4, 0.0), trim=(0.55, 0.62, 0.3), peak=0.12)
+    g = hooded(G1, G2, (0.6, 1.0, 0.4, 0.0), trim=(0.55, 0.62, 0.3), peak=0.12, arms_col=(0.4, 0.42, 0.36), macro={"gender": 0.3, "age": 0.95, "muscle": 0.1, "weight": 0.0, "height": 1.0})
     for k, x in enumerate((-0.12, -0.04, 0.05, 0.13)):
         y = 1.02 - 0.06 * (k % 2)
         g.tube([V(x, 1.0, -0.15), V(x, y - 0.12, -0.17)], 0.003, (0.3, 0.25, 0.18), "leather", "pelvis", n=4)
@@ -265,7 +269,7 @@ def chanter():
 def tollman():
     """Broad and stooped in a black coat with a yoke, a deep cowl, the toll-rope at the belt, the iron bell in hand."""
     COAT, CAPE, ROPE = (0.08, 0.075, 0.075), (0.11, 0.1, 0.1), (0.5, 0.42, 0.3)
-    g = hooded(COAT, CAPE, (1.0, 0.65, 0.3, 0.0), trim=(0.5, 0.35, 0.2), hem=0.1, flare=0.55)
+    g = hooded(COAT, CAPE, (1.0, 0.65, 0.3, 0.0), trim=(0.5, 0.35, 0.2), hem=0.1, flare=0.55, macro={"gender": 1.0, "age": 0.9, "muscle": 0.5, "weight": 0.85})
     g.tube([V(0.17, 1.0, -0.08), V(0.22, 0.85, -0.12), V(0.2, 0.62, -0.1), V(0.24, 0.4, -0.06)], 0.012, ROPE, "leather", "pelvis", n=6)
     b = Geo()
     b.tube([V(0, 0.06, -0.03), V(0, -0.1, -0.03)], 0.014, (0.25, 0.18, 0.12), "wood", "hand_r", n=6)
@@ -276,7 +280,7 @@ def tollman():
 def pilgrim():
     """A bent pilgrim in a travelling cloak with a scallop at the breast, a pack and bedroll, a crooked staff."""
     CLOAK, ROBE, PACK = (0.32, 0.27, 0.2), (0.24, 0.2, 0.16), (0.3, 0.22, 0.15)
-    g = hooded(ROBE, CLOAK, (1.0, 0.75, 0.4, 0.0), belt=(0.2, 0.14, 0.1), hem=0.12, tatter=0.08)
+    g = hooded(ROBE, CLOAK, (1.0, 0.75, 0.4, 0.0), belt=(0.2, 0.14, 0.1), hem=0.12, tatter=0.08, macro={"gender": 0.6, "age": 0.75, "muscle": 0.35, "weight": 0.35})
     g.lathe([(0.0, 0.0), (0.05, 0.004), (0.045, 0.012)], V(0.0, 1.36, -0.18), (0.85, 0.8, 0.7), "bone", "chest", n=12, axis="z")
     g.box(V(0.0, 1.2, 0.24), (0.17, 0.2, 0.08), PACK, "leather", "chest")
     g.tube([V(-0.2, 1.43, 0.26), V(0.2, 1.43, 0.26)], 0.07, (0.4, 0.33, 0.24), "wool", "chest", n=12)
@@ -363,7 +367,9 @@ def bulwark():
     """Plate over quilting: a great helm with a lit slit, pauldrons of lames, a tower of planks and iron as a shield."""
     g = Geo()
     IRON, QUILT, WOOD, BAND = (0.26, 0.26, 0.28), (0.3, 0.24, 0.18), (0.32, 0.22, 0.14), (0.2, 0.2, 0.22)
-    legs(g, QUILT, "wool", boot=IRON, boot_mat="iron", r=(0.085, 0.07, 0.06))
+    human(g, (0.38, 0.33, 0.3), (1.0, 0.55, 0.2, 0.0), macro={"gender": 1.0, "age": 0.5, "muscle": 1.0, "weight": 0.7}, girth=1.05, head=1.0)
+    for sx in (-1, 1):
+        g.box(V(sx * 0.11, -0.03, -0.04), (0.06, 0.05, 0.11), IRON, "iron", "foot_" + side(sx))
     for sx in (-1, 1):
         t = side(sx)
         g.lathe([(0.088, 0.0), (0.094, 0.15), (0.088, 0.3)], V(sx * 0.11, 0.55, -0.005), IRON, "iron", "hip_" + t, n=14)
@@ -374,9 +380,9 @@ def bulwark():
     g.ring_band(0.97, 1.05, 0.25, 0.21, 0.0, (0.18, 0.13, 0.09), "leather", "chest", n=48)
     for k in range(3):
         g.ring_band(0.86 - 0.09 * k, 0.94 - 0.09 * k, 0.26 + 0.02 * k, 0.22 + 0.02 * k, 0.0, IRON, "iron", "pelvis", n=48)
-    arms(g, QUILT, "wool", r=(0.075, 0.065, 0.055))
     for sx in (-1, 1):
         t = side(sx)
+        g.lathe([(0.07, 0.0), (0.075, 0.12), (0.07, 0.24)], V(sx * 0.24, 1.1, 0.0), QUILT, "wool", "shoulder_" + t, n=12)
         for k in range(3):
             g.ball(V(sx * (0.27 - 0.01 * k), 1.47 - 0.07 * k, 0.0), 0.15 - 0.015 * k, IRON, "iron", "shoulder_" + t, n=10, sy=0.45)
         g.lathe([(0.07, 0.0), (0.075, 0.2), (0.06, 0.28)], V(sx * 0.24, 0.82, 0.0), IRON, "iron", "elbow_" + t, n=12)

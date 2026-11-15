@@ -493,9 +493,9 @@ def ascended_warden():
     for sx in (-1, 1):
         t = "l" if sx < 0 else "r"
         sleeve(g, sx, LINEN, GOLD, r_top=0.08, r_cuff=0.15, drop=0.2)
-        g.tube([V(sx * 0.24, 0.98, 0), V(sx * 0.24, 0.8, 0)], [0.026, 0.021], ASH, "bone", "elbow_" + t, n=6)
-        g.lathe([(0.03, 0.0), (0.034, 0.02), (0.03, 0.08), (0.034, 0.1)], V(sx * 0.24, 0.82, 0), GOLD, "gilt", "elbow_" + t, n=10)
-        hand(g, sx, ASH, "hand_" + t, closed=0.1)
+        g.lathe([(0.034, 0.0), (0.038, 0.02), (0.034, 0.08), (0.038, 0.1)], V(sx * 0.24, 0.84, 0), GOLD, "gilt", "elbow_" + t, n=10)
+    import grunt_build as GB                                             # the ashen body under the linen
+    GB.human(g, ASH, (1.0, 0.95, 0.7, 0.0), macro={"gender": 0.5, "age": 0.6, "muscle": 0.2, "weight": 0.0, "height": 1.0}, girth=0.9, head=1.0)
     # the head: a veil, the dark inside it, the mask
     veil = [(1.5, 0.2, 0.17, 0.02), (1.6, 0.175, 0.165, 0.015), (1.72, 0.17, 0.18, 0.01), (1.84, 0.15, 0.17, 0.015), (1.92, 0.1, 0.12, 0.03), (1.95, 0.02, 0.03, 0.04)]
     g.robe(veil, PALE, "linen", lambda p: "head" if p[1] > 1.6 else "chest", n=44, t0=math.radians(42), t1=TAU - math.radians(42))
@@ -618,25 +618,14 @@ def anchoress():
     for k in range(7):                                                   # the chain worn round her, over the shawl
         a = TAU * k / 7
         g.lathe([(0.018, -0.02), (0.022, 0.0), (0.018, 0.02)], V(math.sin(a) * 0.3, 1.14 - 0.03 * math.sin(a), -math.cos(a) * 0.24), IRON, "iron", "chest", n=8)
+    import grunt_build as GB                                             # a MakeHuman body: her face and hands are real
+    GB.human(g, SKIN, (1.0, 0.8, 0.5, 0.0), macro={"gender": 0.0, "age": 0.9, "muscle": 0.15, "weight": 0.05, "proportions": 0.3}, girth=0.92, head=1.0)
     for sx in (-1, 1):
         sleeve(g, sx, DRESS, ROPE, r_top=0.07, r_cuff=0.09, drop=0.04)
-        hand(g, sx, SKIN, "hand_" + ("l" if sx < 0 else "r"), closed=1.0)
     # the head: a deep hood; in it a gaunt face, the rope gag biting in, two lit eyes
     hood = [(1.5, 0.19, 0.16, 0.02), (1.6, 0.17, 0.16, 0.015), (1.72, 0.165, 0.175, 0.005), (1.84, 0.15, 0.17, 0.01), (1.92, 0.1, 0.12, 0.03), (1.96, 0.03, 0.04, 0.05)]
     g.robe(hood, SHAWL, "wool", lambda p: "head" if p[1] > 1.6 else "chest", n=40, t0=math.radians(40), t1=TAU - math.radians(40), pleats=5, pleat_amp=0.05)
-    g.ball(V(0.0, 1.72, 0.0), 0.125, (0.02, 0.02, 0.025), "iron", "head", n=10, sy=1.15)
-
-    def face(u, v):
-        th = (u - 0.5) * math.radians(100)
-        y = 1.81 - 0.2 * v
-        nose = 0.018 * math.exp(-((u - 0.5) / 0.06) ** 2) * math.exp(-((v - 0.4) / 0.16) ** 2)
-        hollow = -0.014 * math.exp(-((abs(u - 0.5) - 0.24) / 0.08) ** 2) * math.exp(-((v - 0.62) / 0.14) ** 2)
-        r = 0.122 * (1.0 - 0.25 * v ** 2) + nose + hollow
-        return V(math.sin(th) * r, y, -math.cos(th) * r)
-    g.plate(face, 17, 11, SKIN, "bone", "head")
-    for sx in (-1, 1):
-        g.ball(V(sx * 0.04, 1.755, -0.112), 0.012, (1.0, 0.8, 0.5, 0.0), "glow", "head", n=6, sy=0.6)
-    g.tube([V(-0.11, 1.66, -0.06), V(-0.07, 1.655, -0.11), V(0.0, 1.66, -0.125), V(0.07, 1.655, -0.11), V(0.11, 1.66, -0.06)], 0.012, ROPE, "leather", "head", n=6)
+    g.tube([V(-0.085, 1.62, -0.03), V(-0.055, 1.615, -0.085), V(0.0, 1.615, -0.1), V(0.055, 1.615, -0.085), V(0.085, 1.62, -0.03)], 0.011, ROPE, "leather", "head", n=6)   # the gag
     # the lamp, up at her face in the left fist (in the hand's own space)
     lp = Geo()
     lp.tube([V(0, 0.0, -0.02), V(0, -0.06, -0.02)], 0.006, IRON, "iron", "hand_l", n=4)
