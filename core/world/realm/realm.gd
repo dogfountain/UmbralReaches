@@ -189,7 +189,7 @@ static func build(root: Node) -> void:
 	print("REALM built in %d ms" % (Time.get_ticks_msec() - t0))
 
 
-# (r38: the big glb scenes used to be requested on worker threads here, ahead of the places that load them. A/B on a
+# (The big glb scenes used to be requested on worker threads here, ahead of the places that load them. A/B on a
 # full build: 37.2-38.4 s with, 37.8-37.9 s without, and every scene left ObjectDB instances (load tokens) leaking at exit.)
 
 
