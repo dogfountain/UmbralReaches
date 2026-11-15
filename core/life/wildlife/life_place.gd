@@ -52,6 +52,8 @@ static func eligible_light(root: Node, l: OmniLight3D) -> bool:
 	var path := str(root.get_path_to(l)).to_lower()
 	if path.begins_with("player") or path.contains("lava") or path.contains("wildlife") or path.begins_with("area_"):
 		return false
+	if path.begins_with("wayfarers"):
+		return false                           # a traveller's lantern moves on: a swarm would be left hanging where it stood
 	var nm := String(l.name).to_lower()
 	for k: String in LIGHT_SKIP:
 		if nm.contains(k):

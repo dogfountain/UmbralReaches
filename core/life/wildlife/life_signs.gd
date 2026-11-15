@@ -119,12 +119,13 @@ func _carrion(root: Node, space: PhysicsDirectSpaceState3D, add: Callable) -> vo
 		var rid := String(e[0])
 		var near: Vector2 = e[1]
 		var spot := Vector2.INF
-		for k in 160:
-			var q := near + Vector2(_rng.randf_range(-24.0, 24.0), _rng.randf_range(-24.0, 24.0))
+		var max_cover := 0.45 if RealmLayout.biome_at(near.x, near.y) == "oldforest" else 0.18
+		for k in 260:
+			var q := near + Vector2(_rng.randf_range(-30.0, 30.0), _rng.randf_range(-30.0, 30.0))
 			var pd := RealmLayout.path_dist(q)
-			if pd < 4.0 or pd > (12.0 if k < 100 else 20.0) or not LifePlace.open_ground(q.x, q.y) or String(RealmLayout.region_at(q.x, q.y).get("id", "")) != rid:
+			if pd < 4.0 or pd > (12.0 if k < 160 else 20.0) or not _carrion_ground(q) or String(RealmLayout.region_at(q.x, q.y).get("id", "")) != rid:
 				continue
-			if not WorldLanes.site_at(q, 3.5).is_empty() or Flora.cover_at(q.x, q.y) > 0.15 or not _flat(q, 2.6, 0.45):
+			if Flora.cover_at(q.x, q.y) > max_cover or not _flat(q, 2.6, 0.45):
 				continue
 			var ok := true
 			for c: Vector2 in camps:
@@ -195,6 +196,19 @@ func _carrion(root: Node, space: PhysicsDirectSpaceState3D, add: Callable) -> vo
 		kit.clear_flora(null, [Vector3(spot.x, spot.y, 3.6)])
 		carrion.append({"at": holder.global_position, "region": rid, "birds": g})
 		i += 1
+
+
+## Ground a carcass can lie on: in bounds, dry, off every site and raid floor (a fell's crag and a wood's floor are
+## fine: the open-ground test for walkers refuses both).
+func _carrion_ground(q: Vector2) -> bool:
+	if not RealmLayout.BOUNDS.grow(-8.0).has_point(q) or RL.in_water(q.x, q.y) or RL.in_water(q.x + 2.0, q.y) or RL.in_water(q.x - 2.0, q.y):
+		return false
+	if not WorldLanes.site_at(q, 3.5).is_empty():
+		return false
+	for rd: Dictionary in RealmLayout.RAIDS:
+		if q.distance_to(rd.c) < float(rd.r) + 6.0:
+			return false
+	return RealmLayout.biome_at(q.x, q.y) != "ash"
 
 
 func _flat(q: Vector2, r: float, dh: float) -> bool:

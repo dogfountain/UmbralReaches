@@ -201,6 +201,12 @@ func _party(spec: Dictionary) -> void:
 		if _rng.randf() < 0.25:
 			_arrive(p)
 			p.t = _rng.randf_range(5.0, float(p.t))
+	else:
+		# no way out from home just now: they stay by it a while and try again (never a walk on an empty way)
+		p.state = REST
+		p.act = ""
+		p.t = 30.0
+		p.spots = _ring(p, home)
 	_hide_people(p)
 
 
@@ -388,7 +394,16 @@ func _ring(p: Dictionary, hi: int) -> Array:
 
 # --- the frame --------------------------------------------------------------------------------------
 
+var perf_us := 0.0                  ## this node's script time a frame (µs, eased; the people's own villager.gd is apart)
+
+
 func _process(dt: float) -> void:
+	var t0 := Time.get_ticks_usec()
+	_frame(dt)
+	perf_us = lerpf(perf_us, float(Time.get_ticks_usec() - t0), 0.02)
+
+
+func _frame(dt: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return
