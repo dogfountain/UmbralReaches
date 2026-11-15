@@ -17,14 +17,14 @@ static func heat(v: Variant, k: float) -> void:
 	var coals: Vector3 = v._m(v.village.anchor("@coals"))
 	var tl: Vector3 = (r.tips[1] as Vector3) - (r.grip[1] as Vector3)
 	var rock := sin(t * 1.4)                                   # in over the coals, back out of the heat
-	var stir := Vector3(0.1 * sin(t * 1.9), 0.03 * rock, 0.1 * cos(t * 1.5))
+	var stir := Vector3(0.16 * sin(t * 1.9), 0.05 * rock, 0.16 * cos(t * 1.5))
 	var d := (coals - Vector3(-0.1, 1.0, -0.2) * k).normalized()
-	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.18 - 0.16 * rock) * Quaternion(Vector3.UP, 0.1 * sin(t * 0.7)))
-	r.q(B_CHEST, Quaternion(Vector3.RIGHT, -0.08 * rock))
+	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.22 - 0.3 * rock) * Quaternion(Vector3.UP, 0.18 * sin(t * 0.7)))
+	r.q(B_CHEST, Quaternion(Vector3.RIGHT, -0.16 * rock) * Quaternion(Vector3.UP, 0.1 * sin(t * 1.9)))
 	r.hold(1, coals + stir - d * tl.length(), d, Vector3.DOWN, Vector3(-0.9, -0.4, 0.3))
 	var pump := 0.5 + 0.5 * sin(t * 2.6)                       # the bellows' handle: the right arm drawn back and driven down
-	r.q(B_ARM_R, Quaternion(Vector3.RIGHT, 0.1 - 0.7 * pump) * Quaternion(Vector3.BACK, 0.12))
-	r.q(B_FORE_R, Quaternion(Vector3.RIGHT, 0.5 + 0.6 * pump))
+	r.q(B_ARM_R, Quaternion(Vector3.RIGHT, 0.1 - 1.1 * pump) * Quaternion(Vector3.BACK, 0.12))
+	r.q(B_FORE_R, Quaternion(Vector3.RIGHT, 0.5 + 1.0 * pump))
 
 
 ## Quench: the iron lifted out and held up (the lean back from the heat), carried over the barrel, plunged and held in the
@@ -36,12 +36,18 @@ static func quench(v: Variant, k: float) -> void:
 	var u: float = v.act_t / v.act_len
 	var lift := smoothstep(0.0, 0.18, u) * (1.0 - smoothstep(0.2, 0.34, u))          # up and out of the fire
 	var dip := smoothstep(0.34, 0.46, u) * (1.0 - smoothstep(0.78, 0.9, u))          # plunged and held
-	var shake := 0.03 * sin(v._t * 14.0) * dip                                       # the hiss
+	var shake := 0.05 * sin(v._t * 14.0) * dip                                       # the hiss
 	var above := water + Vector3.UP * 0.45
-	var tip := above.lerp(water + Vector3.DOWN * 0.08, dip) + Vector3(0.0, 0.3 * lift, 0.12 * lift) * k + Vector3(shake, 0.0, 0.0)
+	var tip := above.lerp(water + Vector3.DOWN * 0.08, dip) + Vector3(0.0, 0.5 * lift, 0.2 * lift) * k + Vector3(shake, 0.0, 0.0)
 	var d := (tip - Vector3(-0.15, 1.0, -0.2) * k).normalized()
-	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.12 - 0.2 * dip + 0.12 * lift))
-	r.q(B_CHEST, Quaternion(Vector3.UP, -0.2 * lift))
+	# the whole body carries it: the waist bent over the barrel for the plunge (the knees give), the back straightening as the
+	# iron comes out. He already faces the barrel (the cast's `face` is its anchor), so the bend is straight at it: any yaw
+	# added here swings the bend to one side and the iron misses the mouth
+	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.12 - 0.62 * dip + 0.2 * lift))
+	r.q(B_CHEST, Quaternion(Vector3.UP, -0.2 * lift) * Quaternion(Vector3.RIGHT, -0.28 * dip))
+	v._dip = -0.045 * dip
+	# the barrel stands 1.3 m off, beyond a bent smith's reach: he steps in to it for the plunge and back out after
+	v._shift_z = -0.85 * smoothstep(0.08, 0.3, u) * (1.0 - smoothstep(0.84, 0.98, u))
 	r.hold(1, tip - d * tl.length(), d, Vector3.DOWN, Vector3(-0.9, -0.4, 0.3))
 
 
@@ -53,9 +59,9 @@ static func grind(v: Variant, k: float) -> void:
 	var wheel: Vector3 = v._m(v.village.anchor("@wheel"))
 	var tl: Vector3 = (r.tips[1] as Vector3) - (r.grip[1] as Vector3)
 	var push := sin(t * 4.0)
-	var tip := wheel + Vector3(0.1 * push, 0.05, 0.0)
+	var tip := wheel + Vector3(0.15 * push, 0.05, 0.0)
 	var d := (tip - Vector3(-0.05, 0.95, -0.15) * k).normalized()
-	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.2 - 0.07 * push))
-	r.q(B_CHEST, Quaternion(Vector3.UP, 0.08 * push))
+	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.22 - 0.14 * push))
+	r.q(B_CHEST, Quaternion(Vector3.UP, 0.16 * push))
 	r.hold(1, tip - d * tl.length(), d, Vector3.DOWN, Vector3(-0.9, -0.4, 0.3))
 	r.arm_to("r", tip + Vector3(0.12, 0.02, 0.12) * k - d * tl.length() * 0.6, Vector3(0.9, -0.4, 0.3), null)

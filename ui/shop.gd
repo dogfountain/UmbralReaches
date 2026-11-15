@@ -210,7 +210,7 @@ func _build() -> void:
 	var fill := Control.new()
 	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	foot.add_child(fill)
-	_hint = _label(15, Color(QUIET, 0.9))
+	_hint = _label(17, Color(Med.BONE, 0.85))
 	foot.add_child(_hint)
 
 

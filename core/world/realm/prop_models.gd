@@ -58,7 +58,7 @@ func commit(parent: Node3D, node_name: String, shadows := true, lods := false) -
 		mi.name = "%s_%s" % [node_name, key]
 		var m := (_st[key] as SurfaceTool).commit()
 		mi.mesh = OssKit.with_lods(m) if lods else m
-		mi.material_override = WestKit.mat(key) if big else StoneProps.mat(key)
+		mi.material_override = WestKit.lit_mat(key) if big else StoneProps.mat(key)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		parent.add_child(mi)
 		out.append(mi)

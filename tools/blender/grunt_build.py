@@ -273,32 +273,37 @@ def line(b, labels, ys, ang, off=0.02):
 
 
 def crust(g, b, sel, n, col, mat="bone", size=(0.02, 0.05), seed=1, lift=0.004, glow=None):
-    """Growths that have taken the body over, the way the Shroud's take the Fell: bracket-shelves like a fungus on a
-    dead trunk, flat and thick with rounded lips, stacked in clusters off the skin, each tilted up and out; a few lit
-    from beneath where they root (glow: an (r, g, b, 0) tint)."""
+    """Growths that have taken the body over, the way the Shroud's take the Fell: a low mound fused into the skin
+    (melted masses), and out of it a dense ruff of thin curled leaves standing off the body, dark at the root and
+    pale at the lip, a few lit from beneath where they root (glow: an (r, g, b, 0) tint)."""
     rng = np.random.default_rng(seed)
     idx = [i for i in range(len(b.P)) if sel(b.P[i], b.L[i])]
     if not idx:
         return
-    seeds = rng.choice(idx, size=min(max(n // 7, 1), len(idx)), replace=False)
-    up = V(0, 1.0, 0)
-    for s0 in seeds:
-        c0 = b.P[s0]
-        near = sorted([i for i in idx if np.linalg.norm(b.P[i] - c0) < 0.07], key=lambda i: b.P[i][1])
-        pick = near[::max(1, len(near) // 7)][:7]
-        for k, i in enumerate(pick):
-            p, nrm, lab = b.P[i], b.N[i], b.L[i]
-            r = rng.uniform(*size) * (1.0 - 0.08 * k)
-            axis = nrm * 0.35 + up * 0.9 + rng.normal(0, 0.15, 3)        # the shelf's cup faces up, tilted off the body
-            axis /= np.linalg.norm(axis)
-            side = nrm - axis * float(nrm @ axis)
-            side /= max(np.linalg.norm(side), 1e-6)
-            centre = p + nrm * lift - axis * r * 0.9 + side * r * 0.35
-            phi = math.atan2(float(side @ np.cross(axis, np.cross(side, axis))), 1.0)
-            dome(g, centre, axis, r, math.radians(rng.uniform(4, 12)), math.radians(rng.uniform(28, 40)), col, mat, lab, n=9, m=2,
-                 thick=r * 0.16, arc=math.radians(rng.uniform(170, 230)), phi0=rng.uniform(0, TAU), rim=True)
-            if glow is not None and rng.random() < 0.3:
-                g.ball(p + nrm * (lift + 0.003), r * 0.2, glow, "glow", lab, n=5)
+    root = tuple(c * 0.45 for c in col)
+    M = []
+    for i in rng.choice(idx, size=min(max(n // 3, 4), len(idx)), replace=False):
+        p, nrm = b.P[i], b.N[i]
+        r = rng.uniform(*size) * 0.8
+        M.append(("e", p + nrm * r * 0.1, (r, r * 0.35, r * 0.9), False, nrm))
+    lab_pts = np.array([b.P[i] for i in idx])
+    lab_names = [b.L[i] for i in idx]
+    lab_of = lambda q: lab_names[int(np.argmin(np.linalg.norm(lab_pts - q, axis=1)))]
+    g.meta(M, root, mat, lab_of, res=0.006, tris=max(1200, n * 12), smooth=1)
+    for i in rng.choice(idx, size=min(n, len(idx)), replace=False):
+        p, nrm, lab = b.P[i], b.N[i], b.L[i]
+        r = rng.uniform(*size)
+        t = np.cross(nrm, rng.normal(0, 1, 3))
+        t /= np.linalg.norm(t)
+        axis = t * 0.85 + nrm * 0.35                                   # the leaf stands off the skin, its cup sideways
+        axis /= np.linalg.norm(axis)
+        centre = p + nrm * (lift + r * 0.55) - axis * r * 0.8
+        m = 3
+        shade = lambda ii, jj, q, m=m: tuple(root[c] + (col[c] - root[c]) * min(ii / m, 1.0) for c in range(3))
+        dome(g, centre, axis, r, math.radians(rng.uniform(20, 32)), math.radians(rng.uniform(48, 64)), shade, mat, lab, n=8, m=m,
+             thick=0.0025, arc=math.radians(rng.uniform(110, 170)), phi0=rng.uniform(0, TAU), rim=False)
+        if glow is not None and rng.random() < 0.2:
+            g.ball(p + nrm * (lift + 0.004), r * 0.18, glow, "glow", lab, n=5)
 
 
 def wraps(g, b, prefixes, y0, y1, col, mat="linen", pitch=0.034, width=0.024, off=0.007, seed=0):
@@ -557,8 +562,8 @@ def gaunt():
     g.robe([(0.98, 0.14, 0.105, 0.0), (0.9, 0.155, 0.12, 0.0), (0.72, 0.17, 0.14, 0.0), (0.56, 0.18, 0.15, 0.0)], SHROUD, "linen", B.waist_split(0.88),
            n=48, pleats=9, pleat_amp=0.05, tatter=0.3)
     # the crust: a great mass on the left shoulder spilling to the neck, a crown on the skull, a seam down the breast
-    crust(g, b, lambda p, l: (l == "shoulder_l" and p[1] > 1.2) or (l == "chest" and p[0] < -0.06 and p[1] > 1.3), 70, CRUST, size=(0.03, 0.075), seed=2, glow=GL, lift=0.01)
-    crust(g, b, lambda p, l: l == "head" and p[1] > 1.76, 35, CRUST, size=(0.025, 0.065), seed=9, glow=GL, lift=0.02)
+    crust(g, b, lambda p, l: (l == "shoulder_l" and p[1] > 1.2) or (l == "chest" and p[0] < -0.06 and p[1] > 1.3), 150, CRUST, size=(0.025, 0.055), seed=2, glow=GL, lift=0.008)
+    crust(g, b, lambda p, l: l == "head" and p[1] > 1.76, 80, CRUST, size=(0.02, 0.05), seed=9, glow=GL, lift=0.012)
     crust(g, b, lambda p, l: l == "chest" and 1.08 < p[1] < 1.36 and abs(p[0]) < 0.06 and p[2] < 0.0, 40, CRUST, size=(0.015, 0.04), seed=5, glow=GL)
     return g.to_object("body"), []
 
@@ -970,7 +975,7 @@ def leaper():
     plates down the spine and over the shoulders and haunches, a lash of a tail."""
     S = quad_sockets(*QSOCK["leaper"])
     g = Geo()
-    HIDE, BONE, DARK, OLD = (0.13, 0.1, 0.1), (0.8, 0.74, 0.62), (0.02, 0.02, 0.02), (0.6, 0.55, 0.45)
+    HIDE, BONE, DARK, OLD = (0.27, 0.21, 0.18), (0.8, 0.74, 0.62), (0.02, 0.02, 0.02), (0.6, 0.55, 0.45)
     lab = quad_label(S)
     B0, F0, T0 = S["body"], S["front"], S["tail"]
     M = [("e", V(0, 0.5, -0.28), (0.15, 0.22, 0.24)),                     # the keel: a deep ribcage
@@ -1026,7 +1031,7 @@ def thornwarden():
     bramble tail. Labelled with his old socket names so boss_thornwarden_anim.py's skeleton and clips carry it."""
     S = quad_sockets(0.56, 1.15, 0.2, 0.32, True)
     g = Geo()
-    BARK, DARKB, BONE, EMBER, DARK = (0.24, 0.17, 0.11), (0.14, 0.1, 0.07), (0.78, 0.72, 0.6), (1.0, 0.42, 0.1, 0.0), (0.02, 0.015, 0.012)
+    BARK, DARKB, BONE, EMBER, DARK = (0.42, 0.32, 0.21), (0.3, 0.22, 0.15), (0.8, 0.74, 0.62), (1.0, 0.42, 0.1, 0.0), (0.02, 0.015, 0.012)
     lab = quad_label(S, torso_r=0.15)
     B0, F0, T0 = S["body"], S["front"], S["tail"]
     M = [("e", V(0, 0.52, -0.28), (0.17, 0.24, 0.27)), ("e", V(0, 0.66, -0.34), (0.14, 0.09, 0.2)),

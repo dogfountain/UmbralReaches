@@ -95,8 +95,8 @@ func _hint_refresh() -> void:
 	for h: Array in [["1-4", "Tabs"], ["Q  E", "Pages"], [close_keys, "Close"]]:
 		var one := HBoxContainer.new()
 		one.add_theme_constant_override("separation", 6)
-		one.add_child(W.badge(String(h[0]), 15))
-		var l := W.label(String(h[1]), 15, DIM)
+		one.add_child(W.badge(String(h[0]), 17))
+		var l := W.label(String(h[1]), 17, DIM)
 		l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		one.add_child(l)
 		_hint.add_child(one)

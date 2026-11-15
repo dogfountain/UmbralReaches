@@ -10,7 +10,7 @@ const INK := Color(0.1, 0.055, 0.03)
 const HALO := Color(0.93, 0.86, 0.68, 0.96)
 const MIN_PX := [18.0, 16.0, 15.0, 14.0]             ## smallest on-screen size by tier
 const MAX_PX := 32.0
-const INKED := [[Vector2(-231.0, 97.0), Vector2(-224.0, 87.0)], [Vector2(-155.0, 170.0), Vector2(-155.0, 120.0)], [Vector2(155.0, 190.0), Vector2(155.0, 140.0)]]
+const INKED := [[Vector2(-231.0, 97.0), Vector2(-224.0, 87.0)], [Vector2(-155.0, 184.0), Vector2(-155.0, 118.0)], [Vector2(155.0, 184.0), Vector2(155.0, 118.0)]]
 const PAD := Vector2(9.0, 4.0)                       ## the margin round the letters (their halo) for placement
 
 var cinzel: Font
@@ -18,13 +18,14 @@ var _items: Array[Dictionary] = []
 var _placed: Array[Dictionary] = []
 var _key := -1
 var _marks := PackedVector2Array()
+var _wall := PackedVector2Array()                   ## points along the wall; only tier 2 and 3 names avoid them
 var _cands: Array[Vector2] = [Vector2.ZERO]          ## where a name may sit, in its own widths and heights from home, nearest first
 
 
 func _init(font: Font) -> void:
 	cinzel = font
-	for dy: float in [0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0]:
-		for dx: float in [0.0, 0.35, 0.7, 1.05, 1.4]:
+	for dy: float in [0.0, 0.3, 0.6, 1.0, 1.4, 2.0, 3.0, 4.0]:
+		for dx: float in [0.0, 0.25, 0.5, 0.75, 1.0, 1.4, 2.0]:
 			for sy in ([1.0] if dy == 0.0 else [-1.0, 1.0]):
 				for sx in ([1.0] if dx == 0.0 else [-1.0, 1.0]):
 					if dx != 0.0 or dy != 0.0:
@@ -38,7 +39,7 @@ func _init(font: Font) -> void:
 		var tall := r.has("rect") and rc.size.y > 2.3 * rc.size.x
 		_items.append({
 			"id": String(r.id), "text": LoreDB.place_name(String(r.id)).to_upper(), "at": rc.get_center() if r.has("rect") else r.c,
-			"tier": tier, "tall": tall, "base": [15.0, 11.5, 9.2, 7.7][tier]})
+			"tier": tier, "tall": tall, "dot": not r.has("rect"), "base": [15.0, 11.5, 9.2, 7.7][tier]})
 
 
 static func _area(r: Dictionary) -> float:
@@ -57,6 +58,11 @@ func set_marks(at: PackedVector2Array) -> void:
 		var b: Vector2 = ln[1]
 		for i in range(int(a.distance_to(b) / 7.0) + 1):
 			_marks.append(a.lerp(b, i * 7.0 / a.distance_to(b)))
+	_wall.clear()
+	for sd in [-1, 1]:                                 # the March Wall's course: the lesser names keep off it (its lettering is inked on it)
+		for k in range(-9, 29):
+			var z := float(k) * 7.0
+			_wall.append(Vector2(RealmMarch.wall_x(sd, z), z))
 	_key = -1
 
 
@@ -110,54 +116,81 @@ func layout(zoom: float, zmin: float, seen: Array[String]) -> void:
 			continue
 		var size := _px(it, zoom)
 		var sp := size * (0.12 if size >= 24 else 0.05)
-		var lines := _lines(it, size)
-		var w := 0.0
-		for ln in lines:
-			w = maxf(w, _width(ln, size, sp))
 		var lh := size * 1.2
-		var dims := Vector2(w, lh * lines.size()) + PAD * 2.0
-		if it.tall:
-			dims = Vector2(dims.y, dims.x)
+		# the name's own line breaks first; a lesser name that finds no clear ground in them tries a narrower stack, one word a line
+		var variants: Array[PackedStringArray] = [_lines(it, size)]
+		var words := String(it.text).split(" ")
+		if int(it.tier) >= 2 and not bool(it.tall) and words.size() >= 3 and variants[0].size() < words.size():
+			variants.append(words)
 		var home: Vector2 = (it.at as Vector2) * zoom
-		var best := -1
-		var best_pos := home
-		var best_hits := 99
-		var best_score := INF
-		var cands := _cands
-		for k in cands.size():
-			var cd := cands[k]
-			var ctr := home + Vector2(cd.x * dims.x, cd.y * (dims.y + 4.0))
-			var lo := bounds.position + dims * 0.5
-			var hi := bounds.end - dims * 0.5
-			if lo.x < hi.x and lo.y < hi.y:
-				ctr = ctr.clamp(lo, hi)
-			if k > 0 and ctr.distance_to(home) > cap:
+		var best: Dictionary = {}
+		for lines in variants:
+			var w := 0.0
+			for ln in lines:
+				w = maxf(w, _width(ln, size, sp))
+			var dims := Vector2(w, lh * lines.size()) + PAD * 2.0
+			if it.tall:
+				dims = Vector2(dims.y, dims.x)
+			var fit := _fit(it, dims, home, zoom, bounds, cap, taken)
+			if fit.is_empty():
 				continue
-			var box := Rect2(ctr - dims * 0.5, dims)
-			var clash := false
-			for o in taken:
-				if o.intersects(box.grow(5.0)):
-					clash = true
-					break
-			if clash:
-				continue
-			var hits := 0
-			for m in _marks:
-				if box.grow(10.0).has_point(m * zoom):
-					hits += 1
-			var score := hits * 200.0 + ctr.distance_to(home)      # clear of the marks first, then as near its region as it can sit
-			if score < best_score:
-				best_score = score
-				best_hits = hits
-				best = k
-				best_pos = ctr
-			if hits == 0 and k == 0:
-				break
-		if best < 0 or (best_hits > 0 and int(it.tier) >= 2) or best_hits > 2:      # the lesser names wait rather than sit on a mark
+			if lines.size() > variants[0].size():
+				fit["score"] = float(fit.score) + 150.0           # the stack only where it clears what the name's own breaks cannot
+			if best.is_empty() or float(fit.score) < float(best.score):
+				fit["lines"] = lines
+				fit["dims"] = dims
+				best = fit
+		if best.is_empty() or (int(best.loose) > 0 and int(it.tier) >= 2) or int(best.loose) > 2:      # the lesser names wait rather than sit on a mark
 			continue
-		taken.append(Rect2(best_pos - dims * 0.5, dims))
-		_placed.append({"lines": lines, "size": size, "sp": sp, "lh": lh, "tall": it.tall, "pos": best_pos, "home": home,
-			"fade": fade, "moved": best_pos.distance_to(home) > size * 0.9, "dims": dims})
+		taken.append(Rect2((best.pos as Vector2) - (best.dims as Vector2) * 0.5, best.dims))
+		_placed.append({"lines": best.lines, "size": size, "sp": sp, "lh": lh, "tall": it.tall, "pos": best.pos, "home": home,
+			"fade": fade, "moved": (best.pos as Vector2).distance_to(home) > size * 0.9, "dims": best.dims})
+
+
+## The best place for a name of these dimensions: {pos, score, loose} (loose = marks truly under it), or {} when nowhere is free.
+func _fit(it: Dictionary, dims: Vector2, home: Vector2, zoom: float, bounds: Rect2, cap: float, taken: Array[Rect2]) -> Dictionary:
+	var out := {}
+	var best_score := INF
+	for k in _cands.size():
+		var cd := _cands[k]
+		var ctr := home + Vector2(cd.x * dims.x, cd.y * (dims.y + 4.0))
+		var lo := bounds.position + dims * 0.5
+		var hi := bounds.end - dims * 0.5
+		if lo.x < hi.x and lo.y < hi.y:
+			ctr = ctr.clamp(lo, hi)
+		if k > 0 and ctr.distance_to(home) > cap * (1.4 if bool(it.dot) else 1.0):
+			continue
+		var box := Rect2(ctr - dims * 0.5, dims)
+		var clash := false
+		for o in taken:
+			if o.intersects(box.grow(5.0)):
+				clash = true
+				break
+		if clash:
+			continue
+		var hits := 0
+		var on_dot := 0.0
+		var loose := 0                          # marks truly under the lettering (the margin is the halo's, no more)
+		for m in _marks:
+			if box.grow(11.5).has_point(m * zoom):
+				hits += 1
+				if box.grow(3.0).has_point(m * zoom):
+					loose += 1
+		if bool(it.dot) and int(it.tier) >= 2 and box.grow(3.0).has_point(home):      # a place that is a point (a lone tree, a well) has its landmark at home: the name sits beside it
+			hits += 1
+			on_dot = 1000.0                      # beside its landmark if there is any room; over it only when there is none
+		if int(it.tier) >= 2:
+			for m in _wall:
+				if box.grow(6.0).has_point(m * zoom):
+					hits += 1
+					loose += 1
+		var score := on_dot + loose * 1000.0 + hits * 200.0 + ctr.distance_to(home)      # clear of the marks first, then as near its region as it can sit
+		if score < best_score:
+			best_score = score
+			out = {"pos": ctr, "score": score, "loose": loose}
+		if hits == 0 and k == 0:
+			break
+	return out
 
 
 ## Draw the names. `to_screen` maps a point in (metres * zoom) space to the screen.

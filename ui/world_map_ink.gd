@@ -290,9 +290,15 @@ func _places() -> void:
 				var yy := pr.position.y + pr.size.y * (ry + 1) / 4.0
 				draw_line(Vector2(pr.position.x + 2.0, yy), Vector2(pr.end.x - 2.0, yy), Color(INK, 0.4), 1.0)
 			draw_rect(pr, Color(INK, 0.9), false, 1.6)
-	var dp := _w(Vector2(254.0, 148.0))
-	draw_polyline(PackedVector2Array([dp + Vector2(-6, 9), dp + Vector2(0, -12), dp + Vector2(6, 9)]), INK, 1.6, true)
-	draw_line(dp + Vector2(-3, 0), dp + Vector2(3, 0), INK, 1.2, true)
+	# the derrick: a tall lattice tower with braces, a crown block and a base, clear of the pans and the pin beside them
+	var dp := _w(Vector2(252.0, 170.0))
+	draw_polyline(PackedVector2Array([dp + Vector2(-10, 12), dp + Vector2(-3, -22), dp + Vector2(3, -22), dp + Vector2(10, 12)]), INK, 1.8, true)
+	for by in [-12.0, -2.0, 7.0]:
+		var hw: float = 3.0 + (by + 22.0) * 0.2
+		draw_line(dp + Vector2(-hw, by), dp + Vector2(hw, by), INK, 1.3, true)
+		draw_line(dp + Vector2(-hw, by), dp + Vector2(hw * 0.4, by + 9.0), Color(INK, 0.8), 1.0, true)
+	draw_rect(Rect2(dp + Vector2(-4.0, -26.0), Vector2(8.0, 4.0)), INK)
+	draw_line(dp + Vector2(-14, 12), dp + Vector2(14, 12), INK, 2.0, true)
 	# the Anchorites' cells in the cliff face
 	for k in 6:
 		var cp := _w(Vector2(202.0 + (k % 3) * 9.0, -142.0 + (k / 3) * 12.0))
@@ -326,15 +332,15 @@ func _letter(font: Font, s: String, c: Vector2, size: int, col: Color, spacing: 
 func _letters() -> void:
 	# a few marginal names in the book hand
 	_along(Vector2(-231.0, 97.0), Vector2(-224.0, 87.0), "the Sorrow")
-	_along(Vector2(-155.0, 170.0), Vector2(-155.0, 120.0), "the March Wall")
-	_along(Vector2(155.0, 190.0), Vector2(155.0, 140.0), "the March Wall")
+	_along(Vector2(-155.0, 184.0), Vector2(-155.0, 118.0), "the March Wall", 27)
+	_along(Vector2(155.0, 184.0), Vector2(155.0, 118.0), "the March Wall", 27)
 
-func _along(a: Vector2, b: Vector2, text: String) -> void:
+func _along(a: Vector2, b: Vector2, text: String, size := 34) -> void:
 	var d := b - a
 	var ang := d.angle()
 	if absf(ang) > PI * 0.5:
 		ang += PI
 	var ctr := _w((a + b) * 0.5)
 	draw_set_transform(ctr, ang, Vector2.ONE)
-	_letter(serif, text, Vector2.ZERO, 34, Color(0.1, 0.055, 0.03), 1.5)
+	_letter(serif, text, Vector2.ZERO, size, Color(0.1, 0.055, 0.03), 1.5)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

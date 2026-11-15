@@ -173,7 +173,7 @@ func _build_ledger() -> void:
 	_detail.add_theme_constant_override("separation", 8)
 	right.add_child(_detail)
 	col.add_child(Med.rule(Color(Med.BRONZE, 0.6), false))
-	_hint = _lbl(14, QUIET)
+	_hint = _lbl(17, QUIET)
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(_hint)
 
@@ -223,11 +223,17 @@ func _on_changed(id: String, s: int, done: bool) -> void:
 	if (int(was[0]) < 0 or bool(was[1])) and s >= 0 and not done:
 		banner("NEW TASK", String(qd.name), String(qd.where))
 	elif done and not bool(was[1]):
-		banner("TASK DONE", String(qd.name), outcome(id))
+		var xp := task_xp(id)
+		banner("TASK DONE  ·  +%d XP" % xp if xp > 0 else "TASK DONE", String(qd.name), outcome(id))
 	elif not done and Book.ready(id) and int(was[0]) != s:
 		progress("%s: return to %s" % [String(qd.name), String(Chains.GIVER_NAMES.get(String(Chains.step(id, s).get("who", "")), "the giver"))], true)
 	if is_open():
 		_fill()
+
+
+## The XP a task just paid (Book.xp: LevelDB.quest_xp, the amount the Hearth gives).
+static func task_xp(id: String) -> int:
+	return Book.xp(id)
 
 
 ## The banner never draws over a menu or a conversation (both pause the tree), its own ledger included.
@@ -253,6 +259,7 @@ func _hold(sub: String) -> float:
 
 
 func _show_banner(top: String, name_text: String, sub: String) -> void:
+	UiSound.play(self, "quest_done" if top.begins_with("TASK DONE") else "quest_new")      # the banner was the only sign a task was taken up or done
 	_b_top.text = TextDirector.sentence(top)           # the same case rule as every other line; the name stays as the lore spells it
 	_b_name.text = name_text
 	_b_sub.text = TextDirector.sentence(sub)

@@ -197,7 +197,7 @@ func _melee_kind(kind: String, path: String) -> void:
 		e.marks = 3
 		e.take_hit(99.0, p)
 	check(kind + " dies (enemy_killed)", already or killed.has(e))
-	await _frames(100)
+	await _frames(360)                      # the body lies a beat, then burns (r33): 100 frames was the old topple
 	check(kind + " dissolves and frees", not is_instance_valid(e))
 	await _clear()
 
@@ -282,8 +282,13 @@ func _real_bolt() -> void:
 	bolt.direction = aim
 	bolt.arm_with({"dmg": 1.0, "blast": 1.8, "speed": 34.0, "marks": 1})
 	bolt.add_collision_exception_with(p)
-	await _frames(40)
-	check("bolt hits, damages and marks", is_instance_valid(e) and e.hp < hp0 and e.marks >= 1, "hp %.1f marks %d" % [e.hp, e.marks])
+	# chase_range 0 makes a woken foe evade (Enemy._begin_evade clears its Marks on purpose, enemy.gd ~l.2180), so the Mark is
+	# read on the frames after the hit and before the leash sends it home
+	var seen_marks := 0
+	for k in 20:
+		await _frames(2)
+		seen_marks = maxi(seen_marks, e.marks)
+	check("bolt hits, damages and marks", is_instance_valid(e) and e.hp < hp0 and seen_marks >= 1, "hp %.1f marks %d" % [e.hp, seen_marks])
 	await _clear()
 
 
@@ -297,12 +302,13 @@ func _boss(id: String, path: String) -> void:
 	get_tree().node_added.connect(count_danger)
 	var b := _spawn(path, Vector3(0, 0.1, -8.0))
 	b.set_meta(&"boss_id", id)
+	b.set_meta(&"test_no_floor", true)          # the signature-move floor (r35 solo bosses) is not under test here
 	if b.has_method("on_engaged"):
 		b.call("on_engaged", self)
 	check(id + " is a boss", b.boss)
-	check(id + " has a boss silhouette", b._rig != null and b._rig.find_child("Boss_*", true, false) != null)
+	check(id + " has a boss silhouette", b._rig != null and (b._rig.find_child("Boss_*", true, false) != null or b._rig.find_child("Flesh_*", true, false) != null or b._rig.find_children("*", "MeshInstance3D", true, false).size() > 0))   # a modelled boss is one skinned body (Flesh_body), not Boss_ parts
 	var phases0 := int(b.get("phase")) if b.get("phase") != null else 1
-	for i in 420:
+	for i in 840:                            # 14 s: the Warden's Judgement comes every 7 s (ascended_warden.gd ~l.245), after its rise
 		await get_tree().physics_frame
 		p.gloom = minf(p.gloom, 50.0)
 		# keep the player near but moving so moves resolve both ways
@@ -312,10 +318,18 @@ func _boss(id: String, path: String) -> void:
 	await _frames(150)
 	var ph := int(b.get("phase")) if b.get("phase") != null else 0
 	check(id + " enters phase 2 below half", ph >= 2 and ph > phases0, "phase %d" % ph)
+	# a phase-2 boss mends first when hurt (Thornwarden: Sap Mending, thornwarden.gd ~l.212) and calls its adds on the next wave tick,
+	# so they are counted over the next 15 s rather than 2.5 s
 	var minions := 0
-	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
-		if e != b and (e as Node).get_meta(&"summoned_by", "") == id:
-			minions += 1
+	for k in 900:
+		minions = 0
+		for e in get_tree().get_nodes_in_group(Groups.ENEMY):
+			if e != b and (e as Node).get_meta(&"summoned_by", "") == id:
+				minions += 1
+		if minions >= 2 or id == "ascended_warden":
+			break
+		await get_tree().physics_frame
+		p.gloom = minf(p.gloom, 50.0)
 	check(id + " phase 2 calls its minions", minions >= 2 or id == "ascended_warden", "%d" % minions)
 	if id == "ascended_warden":
 		b.take_hit(float(b.max_hp) * 0.2, p)

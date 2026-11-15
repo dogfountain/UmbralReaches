@@ -47,6 +47,8 @@ func _check(main: Node) -> void:
 		var p: Vector3 = e[1]
 		var sp := id.substr(0, id.rfind("_"))
 		var p2 := Vector2(p.x, p.z)
+		if sp != "grass" and not Flora.STYLE.has(sp):
+			continue                                  # props (rubble, slag, blocks) have no style row and no path rule
 		var keep: float = 1.0 if sp == "grass" else float(Flora.STYLE[sp][2]) - 0.6
 		var pd := RealmLayout.path_dist(p2)
 		if pd < keep:
