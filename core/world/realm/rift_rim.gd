@@ -87,8 +87,8 @@ static func _normal(space: PhysicsDirectSpaceState3D, x: float, z: float) -> Vec
 
 ## True where nothing may be put: the ways, the Crossing's lanes, a site's floor, inside the chasm.
 static func _blocked(p: Vector2, pad: float) -> bool:
-	if RealmLayout.path_dist(p) < 1.6 + pad:
-		return true
+	if RealmLayout.path_dist(p) < 1.6 + pad or p.distance_to(Scorch.HERMIT) < 12.0 + pad:
+		return true                                  # (the Ash-Hermit's Perch, a secret built later, needs its rim)
 	if absf(p.x) < 25.5 and p.y > -123.0 and p.y < -10.0:
 		return true                                  # the chasm and its lip
 	for s: Dictionary in WorldLanes.sites:

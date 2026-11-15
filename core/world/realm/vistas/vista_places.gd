@@ -147,7 +147,7 @@ static func _beacon(host: Node3D, b: Dictionary) -> bool:
 	var root := Kit37.place(host, BEACON, xf, {})
 	if root == null:
 		return false
-	root.name = "Beacon_" + String(b.id)
+	root.name = "MarchBeacon_" + String(b.id)        # (Beacon_* is the landmark-beacon marker family: world_r30_test)
 	root.set_meta("site", "vista_beacon_" + String(b.id))
 	for n in root.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D

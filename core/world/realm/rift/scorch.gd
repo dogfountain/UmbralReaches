@@ -25,6 +25,7 @@ const WIND := Vector2(0.8, 0.6)                          ## ash carries this way
 const HENGE := Vector2(-86.0, -24.0)                     ## Thorn Henge's hill stays green (its own place)
 const MOUTH_Z := Vector2(-36.0, -6.0)                    ## the starwater mouth: the burn dies back over these z
 const RING := 30.0                                       ## metres of dying wood and dry turf round the burn
+const HERMIT := Vector2(-36.0, -50.0)                    ## the Ash-Hermit's Perch's rim spot (a secret): no snags on it
 
 ## The flows. The rift's lips are berms 11-15 m high (heaved up when it tore open); the night the rift brimmed the
 ## lava broke through them at notches (`notch`: metres the crest is cut down where a flow crossed it) and ran down
@@ -191,6 +192,8 @@ static func charred(at: Vector2) -> bool:
 
 ## Saplings and young growth burned away; the deepest burn keeps half its snags.
 static func tree_keeps(at: Vector2, sp: String, id: String) -> bool:
+	if at.distance_to(HERMIT) < 10.0:
+		return false                                 # the Ash-Hermit's Perch needs its rim clear (site_breath.gd RIM_NEAR)
 	var b := burn(at.x, at.y)
 	if b <= 0.3:
 		return true
