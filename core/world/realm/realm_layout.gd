@@ -875,7 +875,7 @@ static func biome_at(x: float, z: float) -> String:
 		if w > best_w:
 			best_w = w
 			best = r
-	return String(best.get("biome", "meadow"))
+	return "ash" if preload("res://core/world/realm/rift/scorch.gd").burn(x, z) > 0.55 else String(best.get("biome", "meadow"))      # the rift's burn
 
 
 ## Ground height from the real terrain (after RealmLand), or the macro shape before it exists.

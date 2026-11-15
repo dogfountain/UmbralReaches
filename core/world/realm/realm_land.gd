@@ -529,6 +529,7 @@ static func _heights() -> void:
 				if not is_nan(o):
 					h = lerpf(h, o, k)
 				h = RealmLayout.raid_shape(x, z, h)          # r34: the summit's raid volume is cut out of the kept core too
+			h += preload("res://core/world/realm/rift/scorch.gd").lift(x, z)          # the rift's cooled lava flows
 			if _keep_d(x, z) > 0.0:
 				for pr: Dictionary in _profiles:
 					if not pr.over:
@@ -601,7 +602,7 @@ static func _splat(x: float, z: float, h: float, nrm_y: float, ring: bool) -> Ar
 		var b := RealmLayout.BOUNDS
 		bw = _bw(clampf(x, b.position.x + 4.0, b.end.x - 4.0), clampf(z, b.position.y + 4.0, b.end.y - 4.0))
 	else:
-		bw = _bw(x, z)
+		bw = preload("res://core/world/realm/rift/scorch.gd").splat(_bw(x, z), x, z)      # the rift's burn is ash country
 	# ruins: flagstone only in patches, meadow/heath between
 	var ruin := bw[6]
 	if ruin > 0.0:
