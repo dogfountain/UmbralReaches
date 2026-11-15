@@ -37,7 +37,7 @@ static var info := {}
 const SPLIT_Z := 86.0
 const SOUTH_Z := 246.0
 const REACH_X := 262.0
-const SEAM := 2.0
+const SEAM := 3.0
 
 
 ## The baking boxes (AREA cut into tiles).
@@ -189,6 +189,54 @@ static func _install(root: Node, nms: Array[NavigationMesh], t0: int, key: Strin
 			NavAssist.set_region(region.get_instance_id(), nms[i].vertices[nms[i].get_polygon(0)[0]])
 		info.polys += nms[i].get_polygon_count()
 		info.verts += nms[i].vertices.size()
+	_stitch(root)
 	info.ms = Time.get_ticks_msec() - t0
 	info.ready = true
 	print("REALM_NAV %d polygons, %d vertices in %d ms (parse %d ms, %s)" % [info.polys, info.verts, info.ms, info.parse_ms, "cached" if info.cached else "baked"])
+
+
+## The tiles join where an edge of one happens to lie on an edge of the other, and the coarse polygons seldom do: a
+## path across a seam went 70-180 m round for 25-30 m straight. Short two-way links every STITCH metres along every
+## seam (on the ground either side) let the server step straight across.
+const STITCH := 3.0
+static var _links: Array[RID] = []
+
+
+static func _unstitch() -> void:
+	for l in _links:
+		NavigationServer3D.free_rid(l)
+	_links.clear()
+
+
+static func _stitch(root: Node) -> void:
+	_unstitch()
+	if not root.tree_exiting.is_connected(_unstitch):
+		root.tree_exiting.connect(_unstitch, CONNECT_ONE_SHOT)
+	var space := (root as Node3D).get_world_3d().direct_space_state
+	var a := AREA
+	var lines: Array = []                            # [from, to, across]
+	for sx: float in [-REACH_X, REACH_X]:
+		lines.append([Vector2(sx, a.position.z), Vector2(sx, a.end.z), Vector2(1.0, 0.0)])
+	for sz: float in [SPLIT_Z, SOUTH_Z]:
+		lines.append([Vector2(-REACH_X, sz), Vector2(REACH_X, sz), Vector2(0.0, 1.0)])
+	for ln: Array in lines:
+		var p0: Vector2 = ln[0]
+		var p1: Vector2 = ln[1]
+		var across: Vector2 = ln[2]
+		var n := int(p0.distance_to(p1) / STITCH)
+		for k in n + 1:
+			var q := p0.lerp(p1, float(k) / float(maxi(n, 1)))
+			var qa := q - across * (SEAM + 1.5)
+			var qb := q + across * (SEAM + 1.5)
+			var ya := RealmLayout.ground(space, qa.x, qa.y)
+			var yb := RealmLayout.ground(space, qb.x, qb.y)
+			if absf(ya - yb) > 1.2 or ya > AREA.end.y or yb > AREA.end.y:
+				continue
+			var l := NavigationServer3D.link_create()
+			NavigationServer3D.link_set_map(l, NavAssist.map)
+			NavigationServer3D.link_set_start_position(l, Vector3(qa.x, ya, qa.y))
+			NavigationServer3D.link_set_end_position(l, Vector3(qb.x, yb, qb.y))
+			NavigationServer3D.link_set_bidirectional(l, true)
+			_links.append(l)
+	info.links = _links.size()
+

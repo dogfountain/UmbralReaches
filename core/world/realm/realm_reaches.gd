@@ -33,7 +33,7 @@ const REGIONS := [
 	{"id": "fallow", "name": "Fallowmere", "rect": Rect2(-220, 240, 128, 158), "biome": "meadow", "tier": 2,
 		"purpose": "a farming hamlet in the low fields: the tithe barn, the fold, hedged strips gone to seed",
 		"lore": "Fallowmere grew the Order's bread. Half its fields are fallow now, and the other half are graves."},
-	{"id": "arches", "name": "The Long Arches", "rect": Rect2(-92, 240, 184, 158), "biome": "ruin", "tier": 3,
+	{"id": "arches", "name": "The Long Arches", "rect": Rect2(-92, 240, 184, 158), "biome": "heath", "tier": 3,
 		"purpose": "the Order's great aqueduct striding across a dry valley; its castellum and the broken span",
 		"lore": "The Order carried the Crowns' snow south to the fields on a road of arches. The water stopped when the sky did."},
 	{"id": "southwood", "name": "The Southwood", "rect": Rect2(92, 240, 170, 158), "biome": "oldforest", "tier": 3,
