@@ -318,7 +318,7 @@ static func _base(x: float, z: float, bw: PackedFloat32Array, river := true) -> 
 	var mountain := clampf(smoothstep(12.0, 40.0, m) + smoothstep(0.0, 50.0, out), 0.0, 1.0) * calm
 	var amp_roll := 0.35 * bw[0] + 0.3 * bw[4] + 0.9 * bw[1] + 0.35 * bw[2] + 0.5 * bw[3] + 1.0 * bw[5] + 0.3 * bw[6] + 0.08 * bw[7]
 	var gully := _n_gully.get_noise_2d(x, z)            # ridged: sharp spurs between gullies
-	var h := m
+	var h := preload("res://core/world/realm/realm_landscape.gd").relief(x, z, m, bw)      # the open country's swells and dales
 	h += roll * amp_roll * calm
 	h += (ridge + 0.25) * (hill * 3.6 + mountain * lerpf(9.0, 4.5, smoothstep(14.0, 60.0, out)))      # the range beyond the edge: massive, not spiked
 	h += (gully + 0.3) * (hill * 1.3 + mountain * 2.5 + 0.35 * bw[1] + 0.15 * bw[4])
@@ -352,7 +352,8 @@ static func _designed_w(x: float, z: float) -> float:
 		w = maxf(w, 1.0 - smoothstep(float(r.r) + 1.0, float(r.r) + 6.0, p.distance_to(r.c)))
 	var q := Vector2((x - RealmLayout.QUARRY_C.x) * 0.8, z - RealmLayout.QUARRY_C.y)
 	w = maxf(w, 0.85 * (1.0 - smoothstep(34.0, 46.0, q.length())))
-	return w
+	return maxf(w, RealmReaches.calm(x, z))          # the Far Reaches' slot pads and the keep's crag top
+
 
 
 static func _make_profiles() -> void:
