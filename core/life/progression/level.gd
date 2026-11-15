@@ -29,7 +29,7 @@ extends RefCounted
 ## --- XP sources (XP below; hearth.gd listens to Events) -----------------------------------------
 ##   kill: by the foe (GearRuntime.source_of): common 3, tough 5, elite 15, Deeper Night elite 25,
 ##         rare (meta &"rare_id") 40; a great one's own kill gives nothing extra (boss_slain does)
-##   boss_slain 150, quest done 60, seal broken 50, fire kindled 40, homecoming 30, keepsake 25,
+##   boss_slain 150, quest done 24 + 1.5 x its ash (quest_xp; a repeat pays half), seal broken 50, fire kindled 40, homecoming 30, keepsake 25,
 ##   discovery 20: the first time a place's banner shows (Events.zone_entered, by title)
 ##   gathering 5: an ash-bloom or grave-iron node (core/items/gather_node.gd)
 ## Rested: standing at Hearthward's fire or in the Keg (hearth.gd rest_here) grants the Rested buff
@@ -47,6 +47,13 @@ const REST_FILL := 0.5          ## levels of rested XP a rest adds
 const REST_CAP := 1.5           ## most rested XP held, in levels (of the current level's need)
 ## Sources the rested pool doubles (kills only, as in WoW).
 const RESTED_SOURCES := ["kill", "tough", "elite", "umbral", "rare"]
+
+
+## What a task pays: more for a bigger errand (its ash is the measure of the work), and half as much
+## the second time round for a daily (the same errand is not the same deed twice).
+static func quest_xp(ash: int, repeat := false) -> int:
+	var n := 24 + roundi(1.5 * float(maxi(0, ash)))
+	return maxi(1, n / 2) if repeat else n
 
 
 static func xp_for(source: String) -> int:
