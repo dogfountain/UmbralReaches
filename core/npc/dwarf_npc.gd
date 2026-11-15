@@ -267,7 +267,7 @@ func animate(delta: float) -> void:
 	# read at 15 m: the weight shift is a whole-body move (a hip, a lean, a rolled shoulder), and a seated one rocks too
 	var sway_raw: float = life.sway()
 	var sway: float = sway_raw if not seated else 0.0
-	var rock := sway_raw * 0.045 if seated else sway * 0.075
+	var rock := sway_raw * 0.07 if seated else sway * 0.1
 	var spine := Quaternion(Vector3.FORWARD, rock) * Quaternion(Vector3.RIGHT, lean * 0.5 + breathe * 1.6)
 	var chest := Quaternion(Vector3.FORWARD, -rock * 0.8) * Quaternion(Vector3.RIGHT, lean * 0.5 + breathe * 2.5)
 	rig.position = Vector3(sway * 0.035, 0, 0) if not seated else Vector3.ZERO
@@ -350,17 +350,17 @@ func animate(delta: float) -> void:
 			var g := 0.5 + 0.5 * sin(_act_t * 1.9)
 			left = left.lerp(Vector3(-0.2 + 0.05 * sin(_act_t * 1.3), rig.H + 0.4 + 0.06 * g + 0.08 * bt, -0.4 - 0.05 * bt), 0.85)
 			left_q = Quaternion(Vector3.FORWARD, -0.6 * g - 0.5 * bt) * Quaternion(Vector3.RIGHT, -0.5)
-			head_pitch += 0.17 * bt - 0.03
-			head_yaw += sin(_act_t * 1.1) * 0.2
-			chest = chest * Quaternion(Vector3.UP, sin(_act_t * 1.1) * 0.16) * Quaternion(Vector3.RIGHT, -0.1 * bt)
-			spine = spine * Quaternion(Vector3.RIGHT, -0.05 * bt)
+			head_pitch += 0.24 * bt - 0.03
+			head_yaw += sin(_act_t * 1.1) * 0.3
+			chest = chest * Quaternion(Vector3.UP, sin(_act_t * 1.1) * 0.26) * Quaternion(Vector3.RIGHT, -0.15 * bt)
+			spine = spine * Quaternion(Vector3.RIGHT, -0.08 * bt) * Quaternion(Vector3.FORWARD, sin(_act_t * 0.8) * 0.05)
 		"listen":
 			var nod := 0.0
 			if mate and mate.life:
-				nod = maxf(float(mate.life.beat()) - 0.45, 0.0) * 0.55
-			head_pitch += nod + 0.07 * sin(_act_t * 0.7)
-			head_yaw += 0.12 * sin(_act_t * 0.5)
-			chest = chest * Quaternion(Vector3.RIGHT, nod * 0.3)
+				nod = maxf(float(mate.life.beat()) - 0.45, 0.0) * 0.8
+			head_pitch += nod + 0.1 * sin(_act_t * 0.7)
+			head_yaw += 0.2 * sin(_act_t * 0.5)
+			chest = chest * Quaternion(Vector3.RIGHT, nod * 0.45)
 		"look":
 			head_yaw = _look_to.x * 1.3
 			chest = chest * Quaternion(Vector3.UP, _look_to.x * 0.35)

@@ -247,12 +247,19 @@ func _shoulder_tick(space: PhysicsDirectSpaceState3D, want: float, delta: float)
 	var body := player.global_position
 	var across := (body - cam_at).cross(Vector3.UP)
 	across = across.normalized() if across.length_squared() > 0.0001 else player._arm.global_basis.x
+	# only whether SIGHT_HIDDEN of the six are blocked matters, so the casts stop the moment that is settled
+	# (a clear view is settled by the third clear ray, a hidden one by the fourth blocked): the same answer for half the rays
 	var hidden := 0
+	var clear := 0
 	for y: float in [1.1, 1.6]:
 		for s: float in [-0.3, 0.0, 0.3]:
+			if hidden >= Player.SIGHT_HIDDEN or clear > 6 - Player.SIGHT_HIDDEN:
+				break
 			r.from = cam_at
 			r.to = body + Vector3.UP * y + across * s
-			if not space.intersect_ray(r).is_empty():
+			if space.intersect_ray(r).is_empty():
+				clear += 1
+			else:
 				hidden += 1
 	if hidden >= Player.SIGHT_HIDDEN:
 		_sight_hold = 0.5                        # stays in a beat, so the edge of a stone does not flicker it

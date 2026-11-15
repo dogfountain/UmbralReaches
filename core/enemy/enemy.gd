@@ -1857,7 +1857,9 @@ func _flash_visual(delta: float) -> void:
 		_squash = move_toward(_squash, 0.24, delta * 0.9)    # coil: the tell before a pounce
 	else:
 		_squash = move_toward(_squash, 0.0, delta * 1.6)
-	_visual.scale = Vector3(s * (1.0 + _squash * 0.45), s * (1.0 - _squash), s * (1.0 + _squash * 0.45))
+	var sc := Vector3(s * (1.0 + _squash * 0.45), s * (1.0 - _squash), s * (1.0 + _squash * 0.45))
+	if sc != _visual.scale:                    # a settled body is not re-scaled (and its transform not dirtied) every tick
+		_visual.scale = sc
 
 
 func _hold_post(from_home: float) -> void:

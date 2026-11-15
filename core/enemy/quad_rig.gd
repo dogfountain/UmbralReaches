@@ -148,19 +148,20 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	var flex := sin(_phase * (1.0 if _bound > 0.5 else 2.0))          # the back's rock: twice a trot cycle, once a bound
 	var bob := absf(sin(_phase)) * (0.035 + 0.03 * up + 0.05 * _bound) * st
 	var breathe := sin(_t * 2.4) * 0.012 * (1.0 - clampf(st, 0.0, 1.0))
-	_body.position.y = body_height + bob + breathe - _land * 0.14 - _coil * (0.16 + 0.2 * heavy) + _air * 0.05 - _fold * body_height * 0.75 - _reel * body_height * 0.35
+	_body.position.y = body_height + bob + breathe - _land * 0.14 - _coil * (0.16 + 0.12 * up + 0.2 * heavy) + _air * 0.05 - _fold * body_height * 0.75 - _reel * body_height * 0.35
 	_body.rotation.x = (0.06 + 0.03 * up + 0.12 * _bound) * flex * st - _air * 0.12 + _coil * (0.18 + 0.12 * heavy) + _land * 0.1 + _snap * 0.22 - _flinch * 0.3 - _howl * 0.35
 	# a stagger is not a pose held still: flat on its belly it shudders, shakes its head and scrabbles
 	var shake := _reel * (1.0 - _fold)
 	_body.rotation.z = -_turn * 0.05 + sin(_phase) * 0.04 * st + _flinch * _flinch_side * 0.35 + _fold * 0.4 * (1.0 - 0.7 * up) + sin(_t * 9.0) * 0.07 * shake + (0.3 * _fall_side + sin(_t * 3.4) * 0.14) * shake * up
-	_body.rotation.x += 0.2 * shake * up                                   # a hound reels onto its haunch, not onto its nose
+	_body.rotation.x -= 0.32 * shake * up                                  # a hound reels back onto its haunch, the chest up (a coil is the opposite: low in front)
+	_body.rotation.x += 0.3 * _coil * up                                  # the coil pitches the shoulders down, the haunches loaded
 	_body.rotation.y = sin(_t * 2.7) * 0.22 * shake * up
 	_body.position.x = sin(_t * 5.3) * 0.03 * shake + sin(_t * 3.4) * 0.1 * shake * up
 	_front.rotation.y = -_turn * (0.08 + 0.1 * up) + sin(_phase) * (0.05 + 0.07 * up) * st * (1.0 - _bound)
 	_front.rotation.x = _snap * 0.3 - _coil * (0.2 + 0.12 * heavy) - (0.05 + 0.14 * _bound) * flex * st * up
-	_head.rotation.x = -0.1 * st + (0.07 + 0.08 * _bound) * flex * st * up + _coil * (0.35 + 0.5 * heavy) + sin(_t * 1.1) * 0.05 * (1.0 - st) - _air * 0.25 - _snap * 0.55 - _flinch * 0.5 + _fold * 0.4 - _howl * 0.9
+	_head.rotation.x = -0.1 * st + (0.07 + 0.08 * _bound) * flex * st * up + _coil * (0.35 + 0.25 * up + 0.5 * heavy) + sin(_t * 1.1) * 0.05 * (1.0 - st) - _air * 0.25 - _snap * 0.55 - _flinch * 0.5 + _fold * 0.4 - _howl * 0.9
 	_head.rotation.y = sin(_t * 0.6) * 0.18 * (1.0 - clampf(st, 0.0, 1.0)) + sin(_t * 7.0) * 0.4 * shake
-	_head.rotation.x += 0.35 * shake
+	_head.rotation.x += (-0.95 * shake) if upright else (0.35 * shake)      # a hound's head is thrown back at the blow
 	_tail.rotation.y = sin(_phase + 1.4) * 0.35 * st * (1.0 - 0.6 * _bound) + sin(_t * 1.7) * 0.12 - _turn * 0.1
 	_tail.rotation.x = -0.15 + _air * 0.35 + _coil * 0.2 + (0.1 + 0.2 * _bound) * sin(_phase * (1.0 if _bound > 0.5 else 2.0) - 0.9) * st * up + 0.25 * _bound * st
 
@@ -216,8 +217,8 @@ func _animate_upright(st: float) -> void:
 		var push := maxf(0.0, swing) * maxf(0.0, cos(ph))      # the end of the stance: the leg straightens and drives
 		var fb := 1.0 if front else -1.0
 		var scrab := maxf(0.0, sin(_t * 6.5 + float(leg.off) * 1.3)) * _reel * (1.0 - _fold)
-		var bend := _coil * (0.6 + heavy * (0.55 if not front else 0.2)) + _land * 0.4 + _fold * 0.5 + _howl * (0.0 if front else 0.7) + scrab * 0.5 + smoothstep(0.3, 0.9, _fold) * 0.8 + _reel * (1.0 - _fold) * 0.75
-		var reach := (0.75 * _air + _snap * 0.6 + _howl * 0.5) if front else -0.85 * _air
+		var bend := _coil * ((0.5 if front else 1.45) + heavy * (0.55 if not front else 0.2)) + _land * 0.4 + _fold * 0.5 + _howl * (0.0 if front else 0.7) + scrab * 0.5 + smoothstep(0.3, 0.9, _fold) * 0.8 + _reel * (1.0 - _fold) * (0.2 if front else 0.8)
+		var reach := (0.75 * _air + _snap * 0.6 + _howl * 0.5 + _reel * (1.0 - _fold) * 0.55) if front else -0.85 * _air
 		var sa := pow(clampf(st, 0.0, 1.4), 0.55)              # a slow walk still takes whole steps (the swing shrank with the pace)
 		hip.rotation.x = -swing * (0.5 + 0.12 + 0.25 * _bound) * sa + reach + fb * bend * 0.55
 		hip.rotation.z = sx * (_fold * 0.12 + _flinch * 0.1 + _reel * 0.3)
