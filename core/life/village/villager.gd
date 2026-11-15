@@ -807,18 +807,37 @@ func _pose(dt: float) -> void:
 			off = _pose_sit(k, _seat, cur == "doze")
 			arms_free = [false, false]
 			head_pitch += 0.55 if cur == "doze" else 0.12
+			# a seated figure is never a statue at 15 m: the body rocks on its seat, the dozer's head sinks and jerks up,
+			# the sitter leans in now and then, to the fire or to look at something
+			var sph := float(hash(id) % 7)
+			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.FORWARD, 0.07 * sin(_t * 0.5 + sph)) * Quaternion(Vector3.RIGHT, 0.05 * sin(_t * 0.31 + sph)))
+			if cur == "doze":
+				var nod := fposmod(_t * 0.18 + sph * 0.13, 1.0)
+				head_pitch += 0.28 * smoothstep(0.0, 0.85, nod) - 0.55 * smoothstep(0.88, 0.93, nod) * (1.0 - smoothstep(0.93, 1.0, nod))
+				r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, -0.1 * smoothstep(0.0, 0.85, nod)))
+			else:
+				var lean_in := smoothstep(0.0, 0.1, fposmod(_t + sph * 3.0, 9.0) / 9.0) * (1.0 - smoothstep(0.25, 0.35, fposmod(_t + sph * 3.0, 9.0) / 9.0))
+				r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, -0.2 * lean_in))
+				head_pitch += 0.1 * lean_in
 		"kneel", "garden", "bury":
 			off = _pose_kneel(k)
 			if cur == "kneel":
 				_hands_clasped(k, Vector3(0, 1.06, -0.17) * k)
 				head_pitch += 0.32 if routine != "pray" else -0.05
+				# at prayer the body sways in and out, and now and then bows low (a still kneeler is a stump at 15 m)
+				var bow := fposmod(_t * 0.11 + float(hash(id) % 5) * 0.2, 1.0)
+				var bowed := smoothstep(0.0, 0.1, bow) * (1.0 - smoothstep(0.16, 0.3, bow))
+				r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, -0.1 * sin(_t * 0.9) - 0.5 * bowed))
+				r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.RIGHT, -0.06 * sin(_t * 0.9 + 0.5) - 0.25 * bowed))
+				head_pitch += 0.3 * bowed
 			else:
 				var ph := _t * 2.2
-				r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.45))
-				r.q(B_CHEST, Quaternion(Vector3.RIGHT, -0.25))
+				# the back rocks with each stroke of the hands (a gardener bent over a bed reads by his back at 15 m)
+				r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.45 - 0.12 * sin(ph)) * Quaternion(Vector3.UP, 0.1 * sin(ph * 0.5)))
+				r.q(B_CHEST, Quaternion(Vector3.RIGHT, -0.25 - 0.06 * sin(ph)))
 				var g := -off / Rig.SCALE
-				r.arm_to("r", Vector3(0.12, g + 0.05 + 0.05 * maxf(0.0, sin(ph)), -0.5) * Vector3(1, 1, k), Vector3(0.8, -0.3, 0.4), null)
-				r.arm_to("l", Vector3(-0.12, g + 0.05 + 0.05 * maxf(0.0, -sin(ph)), -0.48) * Vector3(1, 1, k), Vector3(-0.8, -0.3, 0.4), null)
+				r.arm_to("r", Vector3(0.12, g + 0.06 + 0.13 * maxf(0.0, sin(ph)), -0.5 - 0.06 * sin(ph)) * Vector3(1, 1, k), Vector3(0.8, -0.3, 0.4), null)
+				r.arm_to("l", Vector3(-0.12, g + 0.06 + 0.13 * maxf(0.0, -sin(ph)), -0.48 - 0.06 * sin(ph)) * Vector3(1, 1, k), Vector3(-0.8, -0.3, 0.4), null)
 				head_pitch += 0.45
 			arms_free = [false, false]
 		"chalk", "tend":
@@ -827,19 +846,23 @@ func _pose(dt: float) -> void:
 			var g2 := -off / Rig.SCALE
 			if cur == "chalk":
 				var a := _t * 2.6
-				r.arm_to("r", Vector3((0.1 + 0.08 * cos(a)) * k, g2 + 0.07, (-0.36 + 0.07 * sin(a)) * k), Vector3(0.8, -0.2, 0.3), null)
+				r.arm_to("r", Vector3((0.1 + 0.2 * cos(a)) * k, g2 + 0.07, (-0.38 + 0.17 * sin(a)) * k), Vector3(0.8, -0.2, 0.3), null)
+				# the whole back draws the circle: the crouched body leans round with the arm
+				r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.FORWARD, 0.1 * cos(a)) * Quaternion(Vector3.RIGHT, -0.06 * sin(a)))
 				head_pitch += 0.55
 			else:
 				var fire: Vector3 = _m(_fire_anchor())
-				var poke := 0.06 * sin(_t * 3.1)
+				var poke := 0.15 * sin(_t * 2.4)
+				r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, -0.14 * sin(_t * 2.4 + 0.6)) * Quaternion(Vector3.UP, 0.08 * sin(_t * 0.8)))     # the whole crouch works the poker
 				r.hold(0, Vector3(0.16, g2 + 0.45, -0.22) * Vector3(k, 1, k), (fire - Vector3(0.16, g2 + 0.45, -0.22)).normalized() * -1.0 + Vector3(0, 0, -poke), Vector3(0, 0, -1))
 				arms_free = [false, true]
 				head_pitch += 0.4
 		"warm" when tool_l == "lantern" or tool_r in ["pole", "staff", "crook", "spade", "candle"]:
 			head_pitch += 0.12          # hands full: just stands to the fire
 		"warm":
-			var rub := sin(_t * 3.0) * 0.03
-			r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.06 - stoop * 0.4))
+			var rub := sin(_t * 4.6) * 0.07
+			r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.14 - stoop * 0.4 + 0.04 * sin(_t * 1.3)))
+			r.q(B_CHEST, Quaternion(Vector3.FORWARD, 0.04 * sin(_t * 9.0)) * Quaternion(Vector3.RIGHT, -0.08))
 			r.arm_to("r", Vector3(0.1 + rub, 0.98, -0.4) * k, Vector3(0.9, -0.6, 0.2), null)
 			r.arm_to("l", Vector3(-0.1 + rub, 0.98, -0.4) * k, Vector3(-0.9, -0.6, 0.2), null)
 			arms_free = [false, false]
@@ -858,8 +881,12 @@ func _pose(dt: float) -> void:
 			_hands_clasped(k, Vector3(0, 0.88, -0.15) * k)
 			arms_free = [false, false]
 		"mourn":
-			head_pitch += 0.45
+			head_pitch += 0.45 + 0.12 * sin(_t * 0.6)
 			_hands_clasped(k, Vector3(0, 0.82, -0.14) * k)
+			# the grief shows in the back: slow heaves and a sag, a shoulder shuddering now and then
+			var heave := sin(_t * 1.1)
+			r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, -0.12 - 0.05 * heave))
+			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.FORWARD, 0.03 * sin(_t * 8.0) * maxf(0.0, sin(_t * 0.37))) * Quaternion(Vector3.RIGHT, -0.08 * heave))
 			arms_free = [false, false]
 		"read":
 			head_pitch += 0.05
@@ -870,15 +897,17 @@ func _pose(dt: float) -> void:
 			var kb := fposmod(kt, 1.4)
 			var reach := 0.0
 			if kt > 0.0 and kt < 4.2:
-				reach = 0.07 * exp(-pow((kb - 0.3) * 9.0, 2.0))
+				reach = 0.17 * exp(-pow((kb - 0.3) * 9.0, 2.0))
 			if kt < 4.6:
-				r.arm_to("r", Vector3(0.12, 1.32, -0.4 - reach) * k, Vector3(0.9, -0.6, 0.3), null)
+				r.arm_to("r", Vector3(0.12, 1.32 + 0.4 * reach, -0.4 - reach) * k, Vector3(0.9, -0.6, 0.3), null)
+				r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, -1.6 * reach))     # the body goes into each knock
 				arms_free[0] = false
 			head_pitch += 0.1 if kt < 4.6 else 0.3
 		"draw_water":
 			var ph2 := _t * 1.4
-			var hr := 1.2 - 0.22 * fposmod(ph2, 1.0)
-			var hl := 1.2 - 0.22 * fposmod(ph2 + 0.5, 1.0)
+			var hr := 1.3 - 0.4 * fposmod(ph2, 1.0)
+			var hl := 1.3 - 0.4 * fposmod(ph2 + 0.5, 1.0)
+			r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.06 + 0.16 * sin(ph2 * TAU)))
 			r.arm_to("r", Vector3(0.05, hr, -0.38) * k, Vector3(0.8, -0.5, 0.3), null)
 			r.arm_to("l", Vector3(-0.05, hl, -0.36) * k, Vector3(-0.8, -0.5, 0.3), null)
 			arms_free = [false, false]
@@ -1348,7 +1377,13 @@ func _pose_lean(k: float) -> void:
 	var r := rig
 	var d := Vector3(0, -1, -0.05).normalized()
 	var g := Vector3(0.0, 1.0, -0.32) * k
-	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.12))
+	# leaning is not stillness: the weight rolls from hip to hip, and every few seconds he straightens, rolls his shoulders and
+	# sinks back onto the handle (read from the silhouette at 15 m)
+	var ph := float(hash(id) % 9)
+	var up := smoothstep(0.0, 0.08, fposmod(_t + ph * 2.0, 7.0) / 7.0) * (1.0 - smoothstep(0.2, 0.3, fposmod(_t + ph * 2.0, 7.0) / 7.0))
+	r.q(B_SPINE, Quaternion(Vector3.RIGHT, -0.12 + 0.2 * up + 0.04 * sin(_t * 0.7)) * Quaternion(Vector3.FORWARD, 0.06 * sin(_t * 0.45 + ph)))
+	r.q(B_CHEST, Quaternion(Vector3.UP, 0.12 * sin(_t * 0.31 + ph)) * Quaternion(Vector3.RIGHT, 0.08 * up))
+	_shift_x = 0.03 * sin(_t * 0.45 + ph)
 	r.hold(0, g, d, Vector3(0, 0, -1).slide(d).normalized(), Vector3(0.9, -0.5, 0.3))
 	r.arm_to("l", g + Vector3(-0.04, 0.06, 0.02) * k, Vector3(-0.9, -0.5, 0.3), null)
 
