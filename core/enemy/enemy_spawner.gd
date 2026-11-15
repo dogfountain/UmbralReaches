@@ -42,7 +42,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(99.0, 60.0, -34.0), "kinds": ["ossuant", "ossuant", "quiller"], "probe": 0.0},              # Barrow Field (r29: was at -50, inside secrets_barrow: skipped; r30: 10 m+ inside the bounds)
 	{"at": Vector3(60.0, 60.0, -68.0), "kinds": ["bulwark", "quiller", "wretch"], "probe": 0.0},   # above fen_descent
 	{"at": Vector3(-60.0, 60.0, 78.0), "kinds": ["husk", "gaunt"], "probe": 0.0},                 # Pilgrims' Road west, 10 m+ off the road
-	{"at": Vector3(-86.0, 60.0, 76.0), "kinds": ["burrower", "wretch"], "probe": 0.0},             # Pilgrims' Road, beyond the chapel (it lay 47 m from the green, on the road out of the village)
+	{"at": Vector3(-84.0, 60.0, 88.0), "kinds": ["burrower", "wretch"], "probe": 0.0},             # south of the road beyond the chapel, at the orchard's edge (it lay 47 m from the green, on the road out of the village)
 	{"at": Vector3(80.0, 60.0, 49.0), "kinds": ["chanter", "husk", "crawler"], "probe": 0.0},      # Pilgrims' Road east, back from the road (it stood 4.7 m off it)
 	{"at": Vector3(-35.0, 60.0, -10.0), "kinds": ["quiller", "leaper"], "probe": 0.0},             # rift rim west (r31 merge: off the secret bridge's landing at -23.5,-5.3, where a pounce threw you into the rift; r34 enemies: was -38,6, 7 m from the Shrine fire: in its light)
 	{"at": Vector3(22.0, 60.0, -6.0), "kinds": ["wretch", "crawler"], "probe": 0.0},               # rift rim east
