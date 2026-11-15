@@ -546,13 +546,26 @@ void fragment() {
 	vec3 w = tri_w(n);
 	vec3 p = wpos * tex_scale;
 	vec3 alb = texture(albedo_tex, p.zy).rgb * w.x + texture(albedo_tex, p.xz).rgb * w.y + texture(albedo_tex, p.xy).rgb * w.z;
-	// r38: one tile repeating at 3 m under a strong per-block contrast read as a checkerboard. A second sample at another
-	// scale and turn hides the repeat, and the blocks' tone range comes in toward the mean (worn ashlar, not a mosaic)
+	// r38 (worn ashlar): the texture's own block mosaic read as a checkerboard, and averaging it away as bathroom tile. Its blocks
+	// come down to grain (a second sample at another turn hides the repeat), and the masonry is laid here instead: courses of
+	// different heights, blocks of different widths per course, a tone per block, darkened joints, a few stained blocks
 	vec3 p2 = vec3(p.x * 0.73 + p.z * 0.31, p.y * 0.73, p.z * 0.73 - p.x * 0.31) + vec3(0.37, 0.11, 0.53);
 	vec3 alb2 = texture(albedo_tex, p2.zy).rgb * w.x + texture(albedo_tex, p2.xz).rgb * w.y + texture(albedo_tex, p2.xy).rgb * w.z;
-	alb = mix(alb, alb2, 0.5);
+	alb = mix(alb, alb2, 0.4);
 	float alum = dot(alb, vec3(0.2126, 0.7152, 0.0722));
-	alb = mix(vec3(alum), alb, 0.9) * mix(1.0, 0.35 / max(alum, 0.05), 0.35);
+	alb = mix(vec3(alum), alb, 0.8) * mix(1.0, 0.35 / max(alum, 0.05), 0.65);
+	vec2 sideuv = abs(n.x) > abs(n.z) ? vec2(wpos.z, wpos.y) : vec2(wpos.x, wpos.y);
+	float course_h = 0.36;
+	float course = floor(sideuv.y / course_h);
+	float c_rnd = fract(sin(dot(vec2(course, 3.1), vec2(127.1, 311.7))) * 43758.5453);
+	float blk_w = mix(0.5, 1.15, c_rnd);
+	float cu = sideuv.x / blk_w + fract(sin(dot(vec2(course, 9.7), vec2(127.1, 311.7))) * 43758.5453) * 7.0;
+	vec2 cell = vec2(floor(cu), course);
+	float c_tone = fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453);
+	float c_stain = step(0.84, fract(sin(dot(cell + 7.3, vec2(127.1, 311.7))) * 43758.5453));
+	float block_tone = mix(0.76, 1.16, c_tone) * (1.0 - 0.22 * c_stain);
+	float edge_d = min(min(fract(cu), 1.0 - fract(cu)) * blk_w, min(fract(sideuv.y / course_h), 1.0 - fract(sideuv.y / course_h)) * course_h);
+	float joint_k = 1.0 - smoothstep(0.012, 0.034, edge_d);
 	float rough = texture(rough_tex, p.zy).r * w.x + texture(rough_tex, p.xz).r * w.y + texture(rough_tex, p.xy).r * w.z;
 	// whiteout-blended triplanar normal
 	vec3 tx = texture(normal_tex, p.zy).xyz * 2.0 - 1.0;
@@ -578,8 +591,9 @@ void fragment() {
 	float side = 1.0 - up;
 	float st = texture(noise_tex, vec2((wpos.x + wpos.z) * 1.7, wpos.y * 0.09)).r;
 	float lichen = smoothstep(0.66, 0.9, texture(noise_tex, wpos.xz * 1.9 + wpos.zy * 1.3).r) * side * streaks;
-	vec3 stone = alb * tint.rgb * COLOR.rgb;
-	stone *= 1.0 - streaks * side * smoothstep(0.55, 0.85, st) * 0.22;
+	float masonry = mix(1.0, block_tone * (1.0 - 0.5 * joint_k), side * 0.9);
+	vec3 stone = alb * tint.rgb * COLOR.rgb * masonry * 0.8;
+	stone *= 1.0 - streaks * side * smoothstep(0.5, 0.85, st) * 0.4;
 	stone *= 0.9 + 0.2 * big;
 	stone = mix(stone, stone * vec3(0.88, 0.95, 0.8) + vec3(0.012, 0.018, 0.006), lichen * 0.5);      // a greener, darker crust, never paler than the stone
 	ALBEDO = mix(stone, moss_col * (0.8 + 0.4 * ao), moss);

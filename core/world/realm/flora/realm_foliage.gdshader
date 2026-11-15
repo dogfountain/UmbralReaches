@@ -171,8 +171,12 @@ void fragment() {
 	// the brighter the leaf, the more chroma it gives up (dark leaves keep their deep greens); a touch of warmth back
 	c = mix(c, vec3(lum) * vec3(1.06, 1.0, 0.86), (ground ? 0.0 : lit_desat) * smoothstep(0.03, 0.25, lum));
 	// the brightest crowns (young birches, sunlit oak tips) took the moon at full value: a shoulder keeps them leaf-green, not mint
-	if (!ground) {
+	// shrubs and brambles are ground cards (atlas cells 4 and 5, row 2, columns 1 and 2) but read as bright mint crowns: same treatment
+	bool shrub = ground && UV.y > 0.25 && UV.y < 0.5 && UV.x < 0.5;
+	if (!ground || shrub) {
 		float lum2 = dot(c, vec3(0.2126, 0.7152, 0.0722));
+		// the brightest cards (the pale mint shrub clusters) lose most of their chroma on top of the shoulder
+		c = mix(c, vec3(lum2) * vec3(1.06, 1.0, 0.86), (shrub ? lit_desat : 0.0) * smoothstep(0.03, 0.25, lum2) + 0.5 * smoothstep(0.16, 0.4, lum2));
 		c /= 1.0 + 2.0 * max(lum2 - 0.14, 0.0);
 	}
 	ALBEDO = c * mottle;

@@ -24,6 +24,7 @@ var bell := Vector3.ZERO         ## --bell=x:z puts a bell prop on the ground th
 var bell_kind := "bell"
 var kindle := false               ## --kindle: every brazier in the world is lit first (Brazier.kindle_quiet)
 var kindled := false
+var vars: Array = []              ## --var=dress:0|1:skip:n per view (in order): Dress_* nodes shown, realm_ground dbg_skip
 var hit := 0.0                    ## --hit=metres: a hit spark (Vfx.impact, big) goes off that far in front of the camera 3 frames before each shot
 var lamp := false                ## --lamp: a lantern-warm light beside the bell
 
@@ -37,6 +38,8 @@ func _ready() -> void:
 			out = a.trim_prefix("--out=")
 		elif a.begins_with("--tag="):
 			tag = a.trim_prefix("--tag=")
+		elif a.begins_with("--var="):
+			vars.append(a.trim_prefix("--var=").split(":"))
 		elif a.begins_with("--hit="):
 			hit = float(a.trim_prefix("--hit="))
 		elif a == "--kindle":
@@ -102,6 +105,7 @@ func _process(_d: float) -> void:
 		cam.make_current()
 	if i >= 0 and i < views.size():
 		_hold()
+		_apply_var()
 	if wait > 0:
 		wait -= 1
 		if hit > 0.0 and wait == 3 and i >= 0:
@@ -119,6 +123,20 @@ func _process(_d: float) -> void:
 		return
 	_hold()
 	wait = SETTLE
+
+
+func _apply_var() -> void:
+	if i < 0 or i >= vars.size():
+		return
+	var v: PackedStringArray = vars[i]
+	for n in get_tree().root.find_children("Dress_*", "Node3D", true, false):
+		(n as Node3D).visible = v[1] != "0"
+	for m in get_tree().root.find_children("*", "MeshInstance3D", true, false):
+		var sm := (m as MeshInstance3D).material_override as ShaderMaterial
+		if sm == null and (m as MeshInstance3D).mesh != null and (m as MeshInstance3D).mesh.get_surface_count() > 0:
+			sm = (m as MeshInstance3D).get_active_material(0) as ShaderMaterial
+		if sm != null and sm.shader != null and sm.shader.resource_path.ends_with("realm_ground.gdshader"):
+			sm.set_shader_parameter("dbg_skip", int(v[3]))
 
 
 func _hold() -> void:
