@@ -24,6 +24,7 @@ const SELF := "res://core/life/village/village.gd"
 const Cast := preload("res://core/life/village/village_cast.gd")
 const WestCast := preload("res://core/life/village/village_cast_west_marches.gd")      # --- west marches --- Weirford's people
 const Travellers := preload("res://core/life/village/village_cast_travellers.gd")       # the road's walkers (docs/far_reaches.md)
+const Towns := preload("res://core/life/village/village_reach_towns.gd")                # --- the towns --- Reedholm, Fallowmere, Lastlight
 const VState := preload("res://core/life/village/village_state.gd")
 const VNav := preload("res://core/life/village/village_nav.gd")
 const Props := preload("res://core/life/village/village_props.gd")
@@ -90,7 +91,8 @@ func _build() -> void:
 	nav = VNav.new()
 	nav.call("use_space", space)
 	var west_pois: Variant = load("res://core/world/realm/realm_pois_west_marches.gd")      # no preload: a cycle
-	nav.set("decks", west_pois.decks())
+	var towns_pois: Variant = load("res://core/world/realm/reach_towns.gd")              # --- the towns --- their boards over the meres
+	nav.set("decks", west_pois.decks() + towns_pois.decks())
 	var node_xz: Dictionary = Cast.nodes().duplicate()
 	var edges: Array = Cast.edges().duplicate()
 	var spots := {}
@@ -174,6 +176,8 @@ func _build() -> void:
 	edges.append_array(WestCast.edges())
 	node_xz.merge(Travellers.NODES)                 # the road's walkers: two islands on the Pilgrims' Road
 	edges.append_array(Travellers.EDGES)
+	node_xz.merge(Towns.NODES)                      # --- the towns --- each its own island
+	edges.append_array(Towns.EDGES)
 	# --- the east marches ---
 	var east_pois: Variant = load("res://core/world/realm/realm_pois_east_marches.gd")    # no preload: a cycle
 	east_pois.hamlet(self, space, node_xz, edges)
@@ -379,6 +383,7 @@ static func cast_all() -> Dictionary:
 		_cast_all = Cast.cast().duplicate()
 		_cast_all.merge(WestCast.cast())
 		_cast_all.merge(Travellers.CAST)
+		_cast_all.merge(Towns.cast())
 	return _cast_all
 
 
