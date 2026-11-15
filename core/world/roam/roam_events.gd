@@ -130,7 +130,7 @@ func _place(p: Node3D, k: String) -> Vector3:
 				best = bn
 		return best.global_position if best else Vector3.INF
 	var space := p.get_world_3d().direct_space_state
-	for i in 12:
+	for i in 32:                      # the floor rules turn many points down in a wood: try more of them
 		var a := _rng.randf() * TAU
 		var r := _rng.randf_range(NEAR.x, NEAR.y)
 		var c := p.global_position + Vector3(cos(a), 0.0, sin(a)) * r

@@ -6,7 +6,8 @@ extends Node
 ## Lists: camps (each planted pawn and each patrol stop), the mixed members, rares (haunt and route), elites,
 ## guardians (and their escort ring), ambush sites (the trigger on the way, and the five spots the hollowed
 ## would rise on for a walker), Gloom tide hunters (sampled: --tides points per region, each wave's candidates
-## through the director's own spot_ok), surge sites, roaming events, the watch posts' assaults.
+## through the director's own spot_ok), surge sites, roaming events, the watch posts' assaults; then the navigation
+## mesh: camp centres and guardian sites on it, patrol and rare rounds walkable on it.
 ## Writes <out>/spawn_audit.txt (every point, then per region, then the problems) and <out>/spawn_map.png (1 px =
 ## 0.5 m: hillshade, water, ways, safe rings, fires; camps by tier, patrols, rares, elites, guardians, ambushes;
 ## a red cross on every point that breaks a rule). Exit code = the number of problems (capped 100).
@@ -82,6 +83,7 @@ func _run() -> void:
 	_tides()
 	_surges()
 	_watch()
+	await _nav()
 	_write()
 	if map:
 		_map()
@@ -296,6 +298,77 @@ func _watch() -> void:
 			var q := n.global_position + face.rotated(Vector3.UP, a) * 15.0
 			var g: Vector3 = Callable(n, "_come_from").call(q)
 			_add("watch", String(n.name), g, {"ways": false})
+
+
+## The navigation mesh (RealmNav; enemies steer straight and ask it when walled): every camp's centre and every
+## guardian site on it, every patrol's and every rare round's legs walkable on it, not three times round.
+func _nav() -> void:
+	var t0 := Time.get_ticks_msec()
+	while not NavAssist.ready() and Time.get_ticks_msec() - t0 < 90000:
+		await get_tree().process_frame
+	# NavAssist answers for its last tile only: wait until every tile has joined the map (a probe on each of the
+	# middle bands and both Reaches answers on its own spot)
+	var probes: Array[Vector3] = []
+	for q: Vector2 in [Vector2(4, 40), Vector2(-60, 160), Vector2(60, 300), Vector2(-200, 20), Vector2(200, 20), Vector2(-320, 60), Vector2(320, 60)]:
+		probes.append(Vector3(q.x, RealmLayout.ground(space, q.x, q.y), q.y))
+	var joined := false
+	while not joined and Time.get_ticks_msec() - t0 < 150000:
+		joined = NavAssist.ready()
+		for pr in probes:
+			var c := NavigationServer3D.map_get_closest_point(NavAssist.map, pr)
+			joined = joined and Vector2(c.x - pr.x, c.z - pr.z).length() < 6.0
+		if not joined:
+			await get_tree().process_frame
+	if not joined:
+		problems.append("nav       the navigation mesh never joined all its tiles (150 s)")
+		return
+	for i in 10:
+		await get_tree().physics_frame
+	var legs := 0
+	var centres := {}
+	for slot: Dictionary in sp.slots():
+		var ck := String(slot.key).get_slice("#", 0)
+		if slot.has("center") and not centres.has(ck):
+			centres[ck] = slot.center
+			_on_mesh("camp", ck, slot.center)
+		if slot.has("patrol") and String(slot.key).ends_with("#0"):
+			var pts: Array = [slot.at] + Array(slot.patrol)
+			for k in pts.size():
+				legs += 1
+				_leg("patrol", ck, pts[k], pts[(k + 1) % pts.size()])
+	var g := enc.get("guardians") as Node
+	if g:
+		for st: Dictionary in g.get("sites"):
+			_on_mesh("guardian", String(st.key), st.at)
+	var rr := main.get_node("Rares")
+	for id: String in (rr.get("haunts") as Dictionary):
+		var route: Array = rr.call("route", id)
+		for k in route.size():
+			if route.size() > 1:
+				legs += 1
+				_leg("rare", id, route[k], route[(k + 1) % route.size()])
+	report.append("nav: %d camps and guardian sites on the mesh, %d legs walked (%d ms)" % [centres.size(), legs, Time.get_ticks_msec() - t0])
+
+
+func _on_mesh(kind: String, id: String, at: Vector3) -> void:
+	var c := NavigationServer3D.map_get_closest_point(NavAssist.map, at)
+	if Vector2(c.x - at.x, c.z - at.z).length() > 2.5 or absf(c.y - at.y) > 2.0:
+		problems.append("nav       %-9s %-28s %s: off the mesh (nearest %s)" % [kind, id.left(28), _v(at), _v(c)])
+
+
+func _leg(kind: String, id: String, a: Vector3, b: Vector3) -> void:
+	var path := NavAssist.path(a, b)
+	var straight := Vector2(a.x - b.x, a.z - b.z).length()
+	if straight < 1.0:
+		return
+	if path.is_empty() or Vector2(path[path.size() - 1].x - b.x, path[path.size() - 1].z - b.z).length() > 3.0:
+		problems.append("nav       %-9s %-28s %s -> %s: no way there" % [kind, id.left(28), _v(a), _v(b)])
+		return
+	var ln := 0.0
+	for k in path.size() - 1:
+		ln += path[k].distance_to(path[k + 1])
+	if ln > straight * 3.0 + 8.0:
+		problems.append("nav       %-9s %-28s %s -> %s: %.0f m round for %.0f m" % [kind, id.left(28), _v(a), _v(b), ln, straight])
 
 
 # --- the report ---------------------------------------------------------------------------------

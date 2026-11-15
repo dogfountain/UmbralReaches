@@ -15,6 +15,7 @@ const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
+const RealmLand := preload("res://core/world/realm/realm_land.gd")
 ## A rare's ground: the camps' rules (no pool, lip, slope or rock), but it may walk a way, and the Holds' edge
 ## is Old Rook's by design.
 const GROUND := {"ways": false, "safe": false}
@@ -189,7 +190,7 @@ func setup(scripts: Dictionary) -> void:
 	for id: String in RARES:
 		var fallback := Vector3.INF
 		for c: Vector2 in RARES[id].spots:
-			var g := _ground(space, Vector3(c.x, 90.0, c.y))
+			var g := _ground(space, _over(c))
 			if g == Vector3.INF or LightGrid.is_lit(g):
 				continue
 			if not WorldLanes.site_at(c, 1.0).is_empty() or not SpawnRules.ok(space, g, GROUND):
@@ -330,7 +331,7 @@ func route(id: String) -> Array[Vector3]:
 	var out: Array[Vector3] = [haunts[id]]
 	var space := get_world_3d().direct_space_state
 	for c: Vector2 in RARES[id].get("route", []):
-		var g := _ground(space, Vector3(c.x, 90.0, c.y))
+		var g := _ground(space, _over(c))
 		if g != Vector3.INF and not SpawnRules.ok(space, g, GROUND):
 			g = SpawnRules.find(space, c, 5.0, g.y + 8.0, GROUND, g.y, 3.0)    # a stop in a pool or on a lip: beside it
 		if g == Vector3.INF or LightGrid.is_lit(g) or g.distance_to(out[out.size() - 1]) < 1.0:
@@ -389,6 +390,11 @@ func _show_marker(id: String, on: bool) -> void:
 		m.add_to_group(&"map_marker")
 	elif not on and m.is_in_group(&"map_marker"):
 		m.remove_from_group(&"map_marker")
+
+
+## Just over the ground at xz (a roof, a deck or a tree's crown above the haunt is not where a rare walks).
+func _over(c: Vector2) -> Vector3:
+	return Vector3(c.x, RealmLand.height_at(c.x, c.y) + 3.0, c.y)
 
 
 func _ground(space: PhysicsDirectSpaceState3D, from: Vector3) -> Vector3:

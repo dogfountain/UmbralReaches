@@ -80,7 +80,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(-30.0, 60.0, 146.0), "kinds": ["pilgrim", "pilgrim", "chanter"], "probe": 0.0},  # the west tombs
 	{"at": Vector3(28.0, 60.0, 114.0), "kinds": ["ossuant", "pilgrim", "ossuant"], "probe": 0.0},   # the east tombs
 	{"at": Vector3(-12.0, 60.0, 140.0), "kinds": ["pilgrim", "pilgrim", "pilgrim", "pilgrim"], "probe": 0.0, "r": 3.0},   # a row of graves below the mausoleum
-	{"at": Vector3(-36.0, 60.0, 124.0), "kinds": ["chanter", "ossuant", "quiller"], "probe": 0.0},  # the field's west edge
+	{"at": Vector3(-40.0, 60.0, 110.0), "kinds": ["chanter", "ossuant", "quiller"], "probe": 0.0},  # the field's west edge (was -36,124: 12 m from Sister Agathe's fire)
 	# Corvin's Mere (tier 1): the drowned and what nests over the water. Spitters on the banks, drowned
 	# husks out of the meres; the causeway itself is an ambush (director.FIXED_AMBUSHES).
 	{"at": Vector3(137.0, 60.0, 102.0), "kinds": ["spitter", "husk", "wretch"], "probe": 0.0},     # the east bank
