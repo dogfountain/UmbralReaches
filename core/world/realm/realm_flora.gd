@@ -321,6 +321,9 @@ static func _keepout(root: Node) -> void:
 	_seg_field(_sd, Vector2(cf.x, cf.z), Vector2(ch.x, ch.z), 5.0, BAND)
 	_disc_field(_sd, Vector2(RealmLayout.SUMMIT.x, RealmLayout.SUMMIT.z), 14.0, BAND)
 	_disc_field(_sd, Vector2(RealmLayout.SUMMIT_DAIS.x, RealmLayout.SUMMIT_DAIS.z), 16.0, BAND)
+	# the extended dais SummitDress registers after the wood (site "summit_dais": the square inside its 28 m disc, centred on
+	# the holder's (0, -34.5) = world (0, -118), half = 0.7 * 28): reserved here so no stone is left inside it
+	_rect_field(_sd, Rect2(-19.6, -137.6, 39.2, 39.2), BAND)
 	_disc_field(_sd, Vector2(RealmLayout.OSSUARY_GATE.x, RealmLayout.OSSUARY_GATE.z), 5.0, BAND)
 	# r34 flora: the outpost camps (village.gd _outposts, built after the flora) look for clear ground
 	# round their candidate spots (village_cast.gd OUTPOSTS): keep those rounds bare, so the camp
@@ -1289,7 +1292,7 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 				continue
 			if soft_kind and (sdk < keep_s + 3.2 or pdk < keep_p + 2.0):      # near a keep-out: a ragged edge, not a ruled one
 				var f := Zones.edge_f(sdk, softf[kk], pdk, keep_s, keep_p, _noise[2].get_noise_2d(px * 0.35, pz * 0.35))
-				if f <= 0.0 or (f < 1.0 and Zones.h01(px, pz) > f) or (pdk < 1.0 and RealmLayout.path_dist(Vector2(px, pz)) < 0.4):
+				if f <= 0.0 or (f < 1.0 and Zones.h01(px, pz) > f) or (pdk < 2.0 and RealmLayout.path_dist(Vector2(px, pz)) < 0.4):      # (the grid is 1 m: a cell that reads 1.x can hold ground 0.2 m from the edge)
 					continue
 			elif pdk < keep_p + 1.5 and RealmLayout.path_dist(Vector2(px, pz)) < keep_p:
 				continue                                   # the grid is 1 m: exact near the edge
@@ -1624,6 +1627,9 @@ static func _stone_pass(rng: RandomNumberGenerator, out: Dictionary, old: bool) 
 				var pz := z + rng.randf() * STONE_CELL
 				var k := _idx(px, pz)
 				if _ok[k] == 0 or _pd[k] < 1.2 or _sd[k] < 1.0 or _gn[k] < 0.7:
+					continue
+				# the grid is 1 m: a cell that reads 1.2 or 1.0 can hold ground 0.5 m from the edge, so the near ones are measured exactly
+				if (_pd[k] < 2.0 and RealmLayout.path_dist(Vector2(px, pz)) < 1.2) or (_sd[k] < 2.0 and not WorldLanes.site_at(Vector2(px, pz), 1.0).is_empty()):
 					continue
 				var gy := ground_y(px, pz)
 				if gy < WATER_Y + 0.6:

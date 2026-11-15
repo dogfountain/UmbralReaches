@@ -6,6 +6,7 @@ extends Node
 ##   no tree trunk floating (ground under the trunk base gap < 0.3 m), nothing but reeds in water,
 ##   enough of every species, build < 4 s.
 const Flora := preload("res://core/world/realm/realm_flora.gd")
+const Zones := preload("res://core/world/realm/dress_zones.gd")
 var t := 0.0
 var done := false
 func _ready() -> void:
@@ -42,6 +43,8 @@ func _check(main: Node) -> void:
 	var in_site := 0
 	var wet := 0
 	var worst := ""
+	var path_by := {}                                 # species -> [count, sample position, nearest path_dist]
+	var site_by := {}                                 # species -> {site name -> count}
 	for e: Array in Flora.instance_list():
 		var id: String = e[0]
 		var p: Vector3 = e[1]
@@ -49,15 +52,32 @@ func _check(main: Node) -> void:
 		var p2 := Vector2(p.x, p.z)
 		if sp != "grass" and not Flora.STYLE.has(sp):
 			continue                                  # props (rubble, slag, blocks) have no style row and no path rule
-		var keep: float = 1.0 if sp == "grass" else float(Flora.STYLE[sp][2]) - 0.6
+		# Low plants (Zones.SOFT_KINDS) creep back over cleared ground by design (core/world/realm/dress_zones.gd, edge_f and
+		# soft_field): a ragged edge along a path with a hard floor of 0.4 m (realm_flora.gd, the undergrowth rows:
+		# "pdk < 1.0 and path_dist < 0.4"), and the margins of squares, pads and raid floors. The rule below is the
+		# ruled keep-off of everything else.
+		var soft := sp in Zones.SOFT_KINDS
+		var keep: float = 0.4 if soft else float(Flora.STYLE[sp][2]) - 0.6
 		var pd := RealmLayout.path_dist(p2)
 		if pd < keep:
 			on_path += 1
+			var pb: Array = path_by.get(sp, [0, p, pd])
+			pb[0] = int(pb[0]) + 1
+			path_by[sp] = pb
 			if worst == "": worst = "%s at (%.1f, %.1f) path_dist %.2f" % [id, p.x, p.z, pd]
-		if not WorldLanes.site_at(p2, 0.0).is_empty():
+		if not soft and not WorldLanes.site_at(p2, 0.0).is_empty():
 			in_site += 1
+			var sb: Dictionary = site_by.get(sp, {})
+			var sn := String(WorldLanes.site_at(p2, 0.0).get("name", "?"))
+			sb[sn] = int(sb.get(sn, 0)) + 1
+			site_by[sp] = sb
 			if worst == "": worst = "%s at (%.1f, %.1f) in site %s" % [id, p.x, p.z, WorldLanes.site_at(p2).name]
 		if p.y < Flora.WATER_Y and not (sp in ["reeds", "cattail"]): wet += 1
+	for sp: String in path_by:
+		var pb: Array = path_by[sp]
+		print("FLORA_CHECK on-path   %-10s %5d  keep-off %.1f  e.g. (%.0f, %.0f) path_dist %.2f" % [sp, pb[0], 0.4 if sp in Zones.SOFT_KINDS else float(Flora.STYLE[sp][2]) - 0.6, (pb[1] as Vector3).x, (pb[1] as Vector3).z, pb[2]])
+	for sp: String in site_by:
+		print("FLORA_CHECK in-site   %-10s %s" % [sp, site_by[sp]])
 	if on_path > 0: bad.append("%d on paths" % on_path)
 	if in_site > 0: bad.append("%d in sites" % in_site)
 	if wet > 0: bad.append("%d under water" % wet)
