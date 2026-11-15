@@ -134,9 +134,10 @@ static func on_path(path_id: String) -> Array[Dictionary]:
 	return out
 
 
-## Memory needed to go from Remembrance `lv` to `lv + 1`.
+## Memory needed to go from Remembrance `lv` to `lv + 1`. 60 + 20 L: the thirty levels cost 10,500 in all, about
+## three quarters of what a full night pays (r39 tally in docs/DECISIONS.md), so the cap lands in the last third, at the Warden's door.
 static func need(lv: int) -> int:
-	return 40 + 8 * lv
+	return 60 + 20 * lv
 
 
 ## {level, into (memory into the current level), need (for the next)} for `memory`.

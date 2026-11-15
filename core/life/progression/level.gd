@@ -4,7 +4,7 @@ extends RefCounted
 ##
 ## The level is the Remembrance (paths_db.gd): the memory is the XP, and `XP` below is the only table of what each deed pays. Every level-up is one point to
 ## spend on a Path (the Kindling's PATHS tab, [K]); each of the great ones put down is one more.
-## Max level PathsDB.MAX_LEVEL (30). XP to go from level L to L+1: PathsDB.need(L) = 40 + 8 L.
+## Max level PathsDB.MAX_LEVEL (30). XP to go from level L to L+1: PathsDB.need(L) = 60 + 20 L.
 ##
 ## --- FOR THE UI (the XP bar) ------------------------------------------------------------------
 ## The runtime is the Hearth node (core/life/progression/hearth.gd), group "hearth":

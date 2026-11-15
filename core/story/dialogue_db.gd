@@ -90,7 +90,7 @@ const CONV := {
 				["elite:hobb", "The knocking's stopped on the east road. Maud still sits up for it. Habit's the last thing to go."],
 				["qp:forty_first:faith", "Oswin kneels at the forty-first stone every night. Fennick lights him a lamp. Nobody's told him. Nobody's going to."],
 				["secrets:3", "Folk say you've been opening the places the Order sealed. The Order sealed them for a reason. Usually a bad one."],
-				["qp:forty_first:truth", "Oswin went home. Walked out the west road without his staff. First pilgrim I ever saw go the other way."],
+				["qp:forty_first:truth", "Oswin stopped counting. Sits at the road's rest with his staff against the wall, looking down the west road the other way. First pilgrim I ever saw do that."],
 				["bosses:2", "The bells. Brannoc swears he heard one in his sleep. Brannoc swears a lot."],
 				["boss:bone_abbot", "Ostrin went quiet when he heard the Abbot was down. Quiet's better than what he was."],
 				["boss:thornwarden", "Hesk went out to the wood's edge at dawn. Came back and ordered two. Didn't drink either."],

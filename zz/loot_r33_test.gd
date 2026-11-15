@@ -122,9 +122,9 @@ func _level() -> void:
 	print("-- the level")
 	var old := {"memory": 100, "paths": {}}                 # an old save: no rested_xp, no seen
 	var info := LevelDB.info(old, 0)
-	ok(int(info.level) == 2 and int(info.into) == 100 - 40 - 48 and int(info.need) == PathsDB.need(2), "an old save's memory reads as level 2, %d / %d" % [info.into, info.need])
+	ok(int(info.level) == 1 and int(info.into) == 100 - PathsDB.need(0) and int(info.need) == PathsDB.need(1), "an old save's memory reads as level 1, %d / %d" % [info.into, info.need])
 	ok(int(info.rested) == 0 and float(info.frac) > 0.0 and float(info.frac) < 1.0, "no rested, a part-filled bar")
-	ok(int(info.free_points) == 2, "two Path points")
+	ok(int(info.free_points) == 1, "one Path point (a level)")
 	var rs := LevelDB.with_rested({"rested_xp": 10}, 3, "kill")
 	ok(int(rs[0]) == 6 and int(rs[1]) == 3, "rested: a kill gives double")
 	rs = LevelDB.with_rested({"rested_xp": 10}, 60, "quest")
