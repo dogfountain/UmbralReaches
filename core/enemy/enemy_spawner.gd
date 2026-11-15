@@ -18,7 +18,7 @@ const HAVEN_R := 12.0
 const REALM_CAMPS: Array[Dictionary] = [
 	# guardians of the thorn seal: the Thornwood edge along west_way, below the henge hill
 	{"at": Vector3(-50.0, 60.0, 8.0), "kinds": ["wretch", "crawler"], "probe": 0.0, "seal": "henge"},        # past the glade
-	{"at": Vector3(-44.0, 60.0, -15.0), "kinds": ["spitter", "wretch"], "probe": 0.0, "seal": "henge"},      # the stair's foot, east of the flight (r34 enemies: was -47,-12, inside the moved henge's stair site: skipped, the seal had two camps)
+	{"at": Vector3(-41.0, 60.0, -18.0), "kinds": ["spitter", "wretch"], "probe": 0.0, "seal": "henge"},      # the stair's foot, east of the flight (moved 4 m off west_way: it stood 3.7 m from the walk)
 	{"at": Vector3(-54.0, 60.0, -18.8), "kinds": ["leaper", "crawler"], "probe": 0.0, "seal": "henge"},      # the stair's head on the raid floor's rim (r32: was at -74,12, 22 m off any path, behind the hill; r34 enemies: -18 -> -18.8, 13 m+ from HengeFire on its landing)
 	# guardians of the summit ward (it also needs the Thornwarden and the Bone Abbot): they hold the
 	# Crossing itself, its west tower (Crossing.T2, parapeted) and its head in front of the ward
@@ -31,7 +31,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(-126.0, 60.0, -32.0), "kinds": ["bulwark", "chanter", "gaunt", "wretch", "tollman"], "probe": 0.0, "r": 3.0},   # Thornwood deep (r34 layout: was -92,-30, inside the henge's raid floor; now off west_track, west of the hill)
 	{"at": Vector3(-84.0, 60.0, 22.0), "kinds": ["leaper", "husk"], "probe": 0.0},                 # Thornwood west (r30: was 18 m from Wyck the hermit)
 	{"at": Vector3(-82.0, 60.0, -56.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},   # Thornwood under the Crowns: a swarm nest
-	{"at": Vector3(-39.0, 60.0, 18.0), "kinds": ["wretch", "spitter"], "probe": 0.0},              # Thornwood's village edge (r30: was 14 m from the sexton's dig, 15 m from the burned barn)
+	{"at": Vector3(-66.0, 60.0, 24.0), "kinds": ["wretch", "spitter"], "probe": 0.0},              # Thornwood's village edge, back in the trees (47 m from the green and 5 m off west_way, it held the walk out of the village)
 	{"at": Vector3(94.0, 60.0, -10.0), "kinds": ["ossuant", "wretch"], "probe": 0.0},              # Hollow Fen east
 	{"at": Vector3(86.0, 60.0, -75.0), "kinds": ["burrower", "spitter", "burrower"], "probe": 0.0},    # Hollow Fen north: the soft ground (r30: 10 m+ inside the bounds, off the barrows)
 	{"at": Vector3(63.0, 60.0, 18.0), "kinds": ["wretch", "leaper"], "probe": 0.0},                # Hollow Fen south
@@ -41,9 +41,9 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(43.0, 60.0, -6.0), "kinds": ["wretch", "crawler", "spitter", "tollman"], "probe": 0.0},     # east_way, past the rift's shoulder
 	{"at": Vector3(99.0, 60.0, -34.0), "kinds": ["ossuant", "ossuant", "quiller"], "probe": 0.0},              # Barrow Field (r29: was at -50, inside secrets_barrow: skipped; r30: 10 m+ inside the bounds)
 	{"at": Vector3(60.0, 60.0, -68.0), "kinds": ["bulwark", "quiller", "wretch"], "probe": 0.0},   # above fen_descent
-	{"at": Vector3(-52.5, 60.0, 67.5), "kinds": ["husk", "gaunt"], "probe": 0.0},                 # Pilgrims' Road west (r30: was 2 m from the south edge)
-	{"at": Vector3(-31.0, 60.0, 68.0), "kinds": ["burrower", "wretch"], "probe": 0.0},             # Pilgrims' Road (r30: 10 m+ inside the bounds)
-	{"at": Vector3(77.0, 60.0, 56.5), "kinds": ["chanter", "husk", "crawler"], "probe": 0.0},      # Pilgrims' Road east (r30: was at z 81, outside the world; north of the road, off the cart)
+	{"at": Vector3(-60.0, 60.0, 78.0), "kinds": ["husk", "gaunt"], "probe": 0.0},                 # Pilgrims' Road west, 10 m+ off the road
+	{"at": Vector3(-86.0, 60.0, 76.0), "kinds": ["burrower", "wretch"], "probe": 0.0},             # Pilgrims' Road, beyond the chapel (it lay 47 m from the green, on the road out of the village)
+	{"at": Vector3(80.0, 60.0, 49.0), "kinds": ["chanter", "husk", "crawler"], "probe": 0.0},      # Pilgrims' Road east, back from the road (it stood 4.7 m off it)
 	{"at": Vector3(-35.0, 60.0, -10.0), "kinds": ["quiller", "leaper"], "probe": 0.0},             # rift rim west (r31 merge: off the secret bridge's landing at -23.5,-5.3, where a pounce threw you into the rift; r34 enemies: was -38,6, 7 m from the Shrine fire: in its light)
 	{"at": Vector3(22.0, 60.0, -6.0), "kinds": ["wretch", "crawler"], "probe": 0.0},               # rift rim east
 	# --- r34 enemies: the new ground at the old density (docs/r34/layout.md: ~4 camps per 10,000 m²,
