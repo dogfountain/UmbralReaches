@@ -69,6 +69,7 @@ const CONV := {
 			"next": {"say_if": [
 				["boss:ascended_warden", "Now? Now nothing. Sit. Let the valley learn not to be pulled at. It'll take a while; it's been a while."],
 				["boss:thornwarden,boss:bone_abbot,!peal:4", "Not up yet. The door hears bells, not crowns. Four of the Founder's eight, and one of them cast for the Marches. Brannoc has the first; ask him."],
+				["boss:thornwarden,boss:bone_abbot,!qd:founders_peal", "Four bells answered. Good. Tell Brannoc the door will hear a peal; he's been waiting to be told. Then the ward on the Crossing will take you."],
 				["boss:thornwarden,boss:bone_abbot,!seal:summit", "Across the Crossing. There's a ward at the landing with guards that don't sleep. Clear them and it'll let heart and crown through. It was cut to let nobody else."],
 				["boss:thornwarden,boss:bone_abbot", "Up. Whatever's at the top is halfway into the sky and stuck there. Make it let go of the door."],
 				["boss:thornwarden", "The crown, then. South on the Waiting Field's road, past the tomb, to the bone bridge, and over it into the gallery. Mind the bones that stand up."],

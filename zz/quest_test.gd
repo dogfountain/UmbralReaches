@@ -218,6 +218,9 @@ func _data() -> void:
 	var both := {"thornwarden": true, "bone_abbot": true}
 	var nx := DialogueDB.text_of(DialogueDB.node("keep", "next"), {"flags": {}, "kindled": 0, "seals": {}, "bosses": both, "items": {}})
 	ok(nx.contains("bells") and not nx.contains("Crossing"), "the keep names the bells (not the Crossing) while the peal is short: %s" % nx)
+	var four := {"flags": {}, "kindled": 0, "seals": {}, "bosses": both, "items": {}}
+	var ndx := DialogueDB.text_of(DialogueDB.node("keep", "next"), four)
+	ok(ndx.contains("Brannoc") or ndx.contains("bells"), "the keep sends the wanderer to Brannoc or the bells before the Crossing: %s" % ndx)
 	var LevelDB := preload("res://core/life/progression/level.gd")
 	ok(LevelDB.quest_xp(10) < LevelDB.quest_xp(60) and LevelDB.quest_xp(10, true) < LevelDB.quest_xp(10), "task XP scales with the errand and a repeat pays less")
 	# every action and condition in both databases parses; every task is started and finished
