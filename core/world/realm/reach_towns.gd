@@ -21,6 +21,10 @@ const P := preload("res://core/world/realm/realm_pois.gd")
 
 const WATER := -0.9                 ## the fen's water line (RealmLand.WATER_Y): Reedholm's decks hang from it
 const WALK_STEP_RUN := 3.0          ## RH_WalkStep's run from the walk down to the bank
+const MERGE_VIS := 200.0            ## a piece whose own fade would be this far or more goes into the town's merged mesh
+const NEAR_END := 230.0             ## the merged town fades to its far silhouette here
+const PROPS_END := 140.0            ## and its small things end here
+const FAR_COLOR := Color(0.16, 0.17, 0.2)       ## FarDetail.hull's: fog and the grade colour it
 
 static var placed: Array[Dictionary] = []      ## last build: {kind, town, xf} (tests, stills, the people's walks)
 static var walk_decks: Array[Dictionary] = []  ## {rect: Rect2, y} for village_nav (boardwalks and house decks)
@@ -92,6 +96,10 @@ static func reserve(root: Node) -> void:
 		var d: Dictionary = Plan.TOWNS[t]
 		# no trees in the town (the yards, the decks, the fields' edges)
 		Flora.tree_clear.append([d.c as Vector2, float(d.r)])
+	for c: Array in Plan.CLEAR:
+		Flora.tree_clear.append([c[0] as Vector2, float(c[1])])
+	for bk: Array in Plan.BANKS:
+		WorldLanes.register_terrace("poi_town_bank_%d_%d" % [roundi((bk[0] as Vector2).x), roundi((bk[0] as Vector2).y)], bk[0], float(bk[1]), float(bk[2]))
 	for pc: Array in _pieces():
 		var kind := String(pc[1])
 		var at := Vector2(float(pc[2]), float(pc[3]))
@@ -104,18 +112,18 @@ static func reserve(root: Node) -> void:
 		ground_y[_key(kind, at.x, at.y)] = y
 		var rc := _aabb(_corners(kind, at, yaw, 0.2))
 		if rc.size.x * rc.size.y > 30.0 or kind.begins_with("LL_"):
-			WorldLanes.register_site("town_%s_%d_%d" % [kind.to_lower(), roundi(at.x), roundi(at.y)], rc, y + 0.05, y - 0.1)
+			WorldLanes.register_site("poi_town_%s_%d_%d" % [kind.to_lower(), roundi(at.x), roundi(at.y)], rc, y + 0.05, y - 0.1)
 	# Reedholm's decks and walks are sites too (no reeds up through the boards, no camp under them)
 	for pc: Array in _pieces():
 		var kind2 := String(pc[1])
 		if bool((Plan.KIND[kind2] as Dictionary).get("stilt", false)) and kind2 != "RH_Punt":
 			var at2 := Vector2(float(pc[2]), float(pc[3]))
-			WorldLanes.register_site("town_%s_%d_%d" % [kind2.to_lower(), roundi(at2.x), roundi(at2.y)], _aabb(_corners(kind2, at2, float(pc[4]), 0.3)), 2.0, 50.0)
+			WorldLanes.register_site("poi_town_%s_%d_%d" % [kind2.to_lower(), roundi(at2.x), roundi(at2.y)], _aabb(_corners(kind2, at2, float(pc[4]), 0.3)), 2.0, 50.0)
 	for w: Dictionary in Plan.WALKS:
 		var pts: Array = w.pts
 		for i in pts.size() - 1:
 			var r := Rect2(pts[i] as Vector2, Vector2.ZERO).expand(pts[i + 1] as Vector2).grow(1.3)
-			WorldLanes.register_site("town_walk_%d_%d" % [roundi((pts[i] as Vector2).x), roundi((pts[i] as Vector2).y)], r, 2.0, 50.0)
+			WorldLanes.register_site("poi_town_walk_%d_%d" % [roundi((pts[i] as Vector2).x), roundi((pts[i] as Vector2).y)], r, 2.0, 50.0)
 	print("REACH_TOWNS reserved %d sites" % ground_y.size())
 
 
@@ -204,10 +212,15 @@ static func build(holder: Node) -> void:
 		h.set_meta("radius", float(Plan.TOWNS[t].r))
 		hosts[t] = h
 		shapes[t] = []
+	var merge := {}                                   # town -> {"near": {Material: SurfaceTool}, "far": SurfaceTool}
+	for t2: String in Plan.TOWNS:
+		merge[t2] = {"near": {}, "far": null, "props": {}}
 	for pc: Array in _pieces():
-		_piece(hosts[String(pc[0])], shapes[String(pc[0])], space, pc)
-	_walks(hosts["reedholm"], shapes["reedholm"], space)
+		_piece(hosts[String(pc[0])], shapes[String(pc[0])], space, pc, merge[String(pc[0])])
+	_walks(hosts["reedholm"], shapes["reedholm"], space, merge["reedholm"])
 	_fields(hosts["fallowmere"], shapes["fallowmere"], space)
+	for t3: String in merge:
+		_commit(hosts[t3], t3, merge[t3])
 	for t: String in shapes:
 		Kit.body(hosts[t], "TownBody", shapes[t])
 	var Dress: Variant = load("res://core/world/realm/reach_towns_dress.gd")
@@ -215,8 +228,9 @@ static func build(holder: Node) -> void:
 	print("REACH_TOWNS built %d pieces, %d deck rects in %d ms" % [placed.size(), walk_decks.size(), Time.get_ticks_msec() - t0])
 
 
-## One piece: the mesh, its far silhouette, its boxes, its glass.
-static func _piece(host: Node3D, shapes: Array, space: PhysicsDirectSpaceState3D, pc: Array) -> void:
+## One piece: its place on the ground, its boxes; its mesh into the town's merged one (a building, a wall, a deck) or its
+## own instance with a short range (the small things), and its far silhouette into the town's.
+static func _piece(host: Node3D, shapes: Array, space: PhysicsDirectSpaceState3D, pc: Array, merge: Dictionary) -> void:
 	var kind := String(pc[1])
 	var at := Vector2(float(pc[2]), float(pc[3]))
 	var yaw := float(pc[4])
@@ -230,22 +244,99 @@ static func _piece(host: Node3D, shapes: Array, space: PhysicsDirectSpaceState3D
 		if is_nan(y):
 			y = _under(space, kind, at, yaw).x
 	var xf := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3(sx, 1.0, 1.0)), Vector3(at.x, y, at.y))
+	var vis := float(k.get("vis", 0.0))
 	var far := String(k.get("far", ""))
-	var parent := host
-	if far != "":
-		parent = Node3D.new()
-		parent.name = "%s_%d_%d" % [kind, roundi(at.x), roundi(at.y)]
-		host.add_child(parent)
-	var mi := Kit.put(parent, Plan.GLB, kind, xf, Vector2(0.0, float(k.get("vis", 0.0))), bool(k.get("shadow", true)), "%s_%d_%d" % [kind, roundi(at.x), roundi(at.y)])
-	if mi == null:
-		return
-	_glass_on(mi)
-	if far != "":
-		var fm := Kit.mesh(Plan.GLB, far)
-		if fm != null:
-			FarDetail.register(parent, fm, xf, float(k.get("near", 200.0)))
+	if far != "" or vis == 0.0 or vis >= MERGE_VIS:
+		var m := Kit.mesh(Plan.GLB, kind)
+		if m == null:
+			return
+		_add_near(merge, m, xf)
+		var fm: Mesh = Kit.mesh(Plan.GLB, far) if far != "" else null
+		if fm == null:
+			fm = FarDetail.hull(m.get_aabb(), 0.45)
+		_add_far(merge, fm, xf)
+	else:
+		var m2 := Kit.mesh(Plan.GLB, kind)
+		if m2 == null:
+			return
+		_add_near(merge, m2, xf, "props")
 	_cols(shapes, kind, xf)
 	placed.append({"kind": kind, "town": String(pc[0]), "xf": xf})
+
+
+## A mesh's surfaces into the town's merged near mesh, one surface a material (a town is a dozen draws, not hundreds).
+static func _add_near(merge: Dictionary, m: Mesh, xf: Transform3D, part := "near") -> void:
+	var near: Dictionary = merge[part]
+	for i in m.get_surface_count():
+		var mat := m.surface_get_material(i)
+		var st: SurfaceTool = near.get(mat)
+		if st == null:
+			st = SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			st.set_material(mat)
+			near[mat] = st
+		st.append_from(m, i, xf)
+
+
+## One ArrayMesh from a {Material: SurfaceTool} set, the lit glass swapped in.
+static func _merged(sts: Dictionary) -> ArrayMesh:
+	var am := ArrayMesh.new()
+	for mat: Variant in sts:
+		(sts[mat] as SurfaceTool).commit(am)
+	for i in am.get_surface_count():
+		var mt := am.surface_get_material(i)
+		if mt != null and String(mt.resource_name) in ["window_glass", "lamp_glass"]:
+			am.surface_set_material(i, _glass_mat(String(mt.resource_name)))
+	return am
+
+
+static func _add_far(merge: Dictionary, fm: Mesh, xf: Transform3D) -> void:
+	if merge.far == null:
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		merge.far = st
+	(merge.far as SurfaceTool).append_from(fm, 0, xf)
+
+
+## The town's merged mesh (lit glass swapped in) under its own node, and its merged far silhouette taking over from
+## NEAR_END (FarDetail: the near mesh fades out as the far one fades in).
+static func _commit(host: Node3D, town: String, merge: Dictionary) -> void:
+	# the small things (racks, boats, ricks, scarecrows, a well, a wain) as one mesh a material too, on a short range
+	if not (merge.props as Dictionary).is_empty():
+		var pmi := MeshInstance3D.new()
+		pmi.name = "Town_%s_Props" % town
+		pmi.mesh = _merged(merge.props)
+		pmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		pmi.visibility_range_end = PROPS_END
+		pmi.visibility_range_end_margin = PROPS_END * 0.12
+		pmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		pmi.add_to_group(Groups.CULL_SKIP)
+		host.add_child(pmi)
+	var near: Dictionary = merge.near
+	if near.is_empty():
+		return
+	var am := _merged(near)
+	var node := Node3D.new()
+	node.name = "Near"
+	host.add_child(node)
+	var mi := MeshInstance3D.new()
+	mi.name = "Town_%s_Merged" % town
+	mi.mesh = am
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	node.add_child(mi)
+	if merge.far != null:
+		# one matte silhouette colour throughout (the modelled ones carry their weathering tints, the hulls a dark one)
+		var arr := (merge.far as SurfaceTool).commit_to_arrays()
+		var nv := (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+		var cols := PackedColorArray()
+		cols.resize(nv)
+		cols.fill(FAR_COLOR)
+		arr[Mesh.ARRAY_COLOR] = cols
+		var fam := ArrayMesh.new()
+		fam.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		FarDetail.register(node, fam, Transform3D.IDENTITY, NEAR_END, FarDetail.far_material())
+	else:
+		FarDetail.near_ends(node, NEAR_END, NEAR_END * 0.12)
 
 
 ## Reedholm: a stilt piece hangs from the water line, or stands on whatever is higher (a hummock under its deck).
@@ -275,16 +366,6 @@ static func _cols(shapes: Array, kind: String, xf: Transform3D) -> void:
 
 
 ## Lit glass: the windows' warm glow kept under the bloom, the lamp glass brighter (the lamp tower's lantern blooms).
-static func _glass_on(mi: MeshInstance3D) -> void:
-	for i in mi.mesh.get_surface_count():
-		var m := mi.mesh.surface_get_material(i)
-		if m == null:
-			continue
-		var nm := String(m.resource_name)
-		if nm == "window_glass" or nm == "lamp_glass":
-			mi.set_surface_override_material(i, _glass_mat(nm))
-
-
 static func _glass_mat(nm: String) -> StandardMaterial3D:
 	if _glass.has(nm):
 		return _glass[nm]
@@ -299,7 +380,7 @@ static func _glass_mat(nm: String) -> StandardMaterial3D:
 
 
 ## Reedholm's boardwalks: 6 m pieces stretched to fit each run, steps down to the bank at a land end.
-static func _walks(host: Node3D, shapes: Array, space: PhysicsDirectSpaceState3D) -> void:
+static func _walks(host: Node3D, shapes: Array, space: PhysicsDirectSpaceState3D, merge: Dictionary) -> void:
 	var deck_top: float = float((Boxes.DATA.get("hall", {}) as Dictionary).get("deck", 1.6))
 	for w: Dictionary in Plan.WALKS:
 		var pts: Array = w.pts
@@ -320,7 +401,7 @@ static func _walks(host: Node3D, shapes: Array, space: PhysicsDirectSpaceState3D
 					hi = maxf(hi, RealmLayout.ground(space, q.x, q.y))
 				var y0 := maxf(WATER, hi + 0.35 - 1.0) + (h - 1.0)
 				var xf := Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3(seg / 6.0, 1.0, 1.0)), Vector3(m.x, y0, m.y))
-				Kit.put(host, Plan.GLB, "RH_Walk", xf, Vector2(0.0, 160.0), true, "Walk_%d_%d" % [roundi(m.x), roundi(m.y)])
+				_add_near(merge, Kit.mesh(Plan.GLB, "RH_Walk"), xf)
 				_cols(shapes, "RH_Walk", xf)
 				walk_decks.append({"rect": _aabb([a + d * (k / float(n)), a + d * ((k + 1) / float(n))] as Array[Vector2]).grow(1.0), "y": y0 + 1.0})
 				placed.append({"kind": "RH_Walk", "town": "reedholm", "xf": xf})
@@ -332,7 +413,7 @@ static func _walks(host: Node3D, shapes: Array, space: PhysicsDirectSpaceState3D
 				# RH_WalkStep falls 1.0 over its run; set so its top meets the walk and its foot the bank (sunk, if the bank is high)
 				var ys := top - 1.0
 				var xs := Transform3D(Basis(Vector3.UP, yaw), Vector3(b.x, ys, b.y))
-				Kit.put(host, Plan.GLB, "RH_WalkStep", xs, Vector2(0.0, 120.0), true, "WalkStep_%d_%d" % [roundi(b.x), roundi(b.y)])
+				_add_near(merge, Kit.mesh(Plan.GLB, "RH_WalkStep"), xs)
 				_cols(shapes, "RH_WalkStep", xs)
 				placed.append({"kind": "RH_WalkStep", "town": "reedholm", "xf": xs, "bank": bank})
 	# the houses' decks for the village's network
@@ -404,6 +485,43 @@ static func _multi(host: Node3D, nm: String, part: String, xfs: Array, view_end:
 	mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	mmi.add_to_group(Groups.CULL_SKIP)
 	host.add_child(mmi)
+
+
+# --- the lamps (lamp_places.gd) ---------------------------------------------------------------------------------------
+
+## The towns' lamps in lamp_places' spec shape. Kept ones (pre-lit, no prompt) are the townsfolk's own: the fishers'
+## jetty lamps ("LAMPS LIT AT THE JETTY"), the watch's lanterns at Lastlight's gates. The rest the wanderer kindles.
+const LAMPS := [
+	# Reedholm: on the landing's deck, at the bridge, on the decks' fronts
+	{"id": "rh_jetty_a", "look": "post", "x": -320.6, "z": 299.0, "top": true, "wet": true, "kept": true, "face": PI * 0.5},
+	{"id": "rh_jetty_b", "look": "post", "x": -325.6, "z": 299.2, "top": true, "wet": true, "kept": true, "face": -PI * 0.5},
+	{"id": "rh_jetty_c", "look": "post", "x": -325.6, "z": 308.0, "top": true, "wet": true, "kept": true, "face": -PI * 0.5},
+	{"id": "rh_ford_post", "look": "post", "x": -295.0, "z": 299.4, "face": "road"},
+	{"id": "rh_hall_lamp", "look": "post", "x": -305.0, "z": 271.0, "top": true, "wet": true, "face": -PI * 0.5},
+	{"id": "rh_house_lamp", "look": "post", "x": -305.2, "z": 286.6, "top": true, "wet": true, "face": -PI * 0.5},
+	{"id": "rh_long_lamp", "look": "post", "x": -302.0, "z": 255.0, "top": true, "wet": true, "face": -PI * 0.5},
+	{"id": "rh_smoke_lamp", "look": "post", "x": -321.6, "z": 282.2, "face": PI * 0.5},
+	# Fallowmere: the barn's porch, the farmhouse door, the green, the cottages
+	{"id": "fm_barn_l", "look": "hang", "x": -174.2, "z": 294.3, "mode": "wall", "dir": Vector2(0, -1), "h": 3.2},
+	{"id": "fm_house_lamp", "look": "hang", "x": -166.4, "z": 306.4, "mode": "wall", "dir": Vector2(0, 1), "h": 2.6},
+	{"id": "fm_green_post", "look": "post", "x": -145.4, "z": 288.6, "face": PI * 0.75},
+	{"id": "fm_cot_a_lamp", "look": "hang", "x": -134.6, "z": 291.8, "mode": "wall", "dir": Vector2(0, -1), "h": 2.4},
+	{"id": "fm_cot_b_lamp", "look": "hang", "x": -129.6, "z": 315.2, "mode": "wall", "dir": Vector2(0, 1), "h": 2.4},
+	# Lastlight: the road gate's brackets, the watch's lanterns at the shut gate, the inn, the tower door, the platform
+	{"id": "ll_gate_w_n", "look": "hang", "x": 287.4, "z": 66.0, "mode": "wall", "dir": Vector2(1, 0), "h": 3.8},
+	{"id": "ll_gate_w_s", "look": "hang", "x": 287.4, "z": 73.0, "mode": "wall", "dir": Vector2(1, 0), "h": 3.8},
+	{"id": "ll_east_n", "look": "post", "x": 349.6, "z": 59.2, "kept": true, "face": -PI * 0.5},
+	{"id": "ll_east_s", "look": "post", "x": 349.6, "z": 66.4, "kept": true, "face": -PI * 0.5},
+	{"id": "ll_inn_l", "look": "hang", "x": 324.6, "z": 48.8, "mode": "wall", "dir": Vector2(0, -1), "h": 2.6},
+	{"id": "ll_inn_r", "look": "hang", "x": 331.6, "z": 48.8, "mode": "wall", "dir": Vector2(0, -1), "h": 2.6},
+	{"id": "ll_tower_door", "look": "hang", "x": 345.0, "z": 49.8, "mode": "wall", "dir": Vector2(0, -1), "h": 3.0},
+	{"id": "ll_watch_cresset", "look": "cresset", "x": 333.8, "z": 73.8, "top": true, "kept": true, "face": 0.0},
+	{"id": "ll_stable_lamp", "look": "post", "x": 318.8, "z": 70.2, "face": "road"},
+]
+
+
+static func lamps() -> Array:
+	return LAMPS
 
 
 # --- the people's side ------------------------------------------------------------------------------------------------

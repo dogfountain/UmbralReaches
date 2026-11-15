@@ -131,8 +131,8 @@ def hall():
     # steps down to the walk at the front
     for k in range(3):
         y = DECK - (k + 1) * (DECK - WALK) / 3
-        b.box((0.0, y - 0.07, hd + 0.3 + k * 0.38), (3.0, 0.14, 0.4), "plank", cuts=0, jit=0.004)
-        b.colbox((0.0, y - 0.1, hd + 0.3 + k * 0.38), (3.0, 0.2, 0.4))
+        b.box((0.0, y - 0.07, hd + 0.2 + k * 0.38), (3.0, 0.14, 0.4), "plank", cuts=0, jit=0.004)
+        b.colbox((0.0, y - 0.1, hd + 0.2 + k * 0.38), (3.0, 0.2, 0.4))
     for sx in (-1, 1):
         b.log((sx * 1.55, PILE_FOOT, hd + 1.2), (sx * 1.55, WALK - 0.05, hd + 1.2), 0.13, 0.12, "beam", seed=50 + sx, crook=0.02)
     # the ladder to the water behind, a mooring ring
@@ -179,8 +179,8 @@ def house(name="RH_House", seed=9401, W_=8.4, D_=7.6, HW=6.2, HD=4.8, WH=3.1, ri
     rail(b, [(-hw + 0.15, -hd + 0.15), (-hw + 0.15, hd - 0.15)], DECK, seed=seed + 30)
     for k in range(3):
         y = DECK - (k + 1) * (DECK - WALK) / 3
-        b.box((-1.0, y - 0.07, hd + 0.3 + k * 0.38), (2.2, 0.14, 0.4), "plank", cuts=0, jit=0.004)
-        b.colbox((-1.0, y - 0.1, hd + 0.3 + k * 0.38), (2.2, 0.2, 0.4))
+        b.box((-1.0, y - 0.07, hd + 0.2 + k * 0.38), (2.2, 0.14, 0.4), "plank", cuts=0, jit=0.004)
+        b.colbox((-1.0, y - 0.1, hd + 0.2 + k * 0.38), (2.2, 0.2, 0.4))
     lathe_at(b, 2.6, hd - 0.8, DECK, [(0.3, 0.0), (0.36, 0.4), (0.33, 0.48)], "wattle", sides=10, seed=seed + 5)
     b.colbox((0.0, DECK + WH / 2, zc), (HW + 0.3, WH, HD + 0.3))
     b.colbox((0.0, DECK + WH + 1.4, zc), (HW, 2.8, HD * 0.6))
@@ -218,8 +218,8 @@ def house_long():
     rail(b, [(hw - 0.15, hd - 0.15), (hw - 0.15, -hd + 0.15)], DECK, seed=9530)
     for k in range(3):
         y = DECK - (k + 1) * (DECK - WALK) / 3
-        b.box((0.4, y - 0.07, hd + 0.3 + k * 0.38), (2.2, 0.14, 0.4), "plank", cuts=0, jit=0.004)
-        b.colbox((0.4, y - 0.1, hd + 0.3 + k * 0.38), (2.2, 0.2, 0.4))
+        b.box((0.4, y - 0.07, hd + 0.2 + k * 0.38), (2.2, 0.14, 0.4), "plank", cuts=0, jit=0.004)
+        b.colbox((0.4, y - 0.1, hd + 0.2 + k * 0.38), (2.2, 0.2, 0.4))
     b.colbox((2.4, DECK + WH / 2, -0.4), (6.9, WH, HD + 0.3))
     b.colbox((-0.3, DECK + WH + 1.4, -0.4), (12.0, 2.8, HD * 0.6))
     for x in (-5.8, -3.1):
@@ -323,6 +323,12 @@ def landing():
     b.box((LX + 0.32, LANDING + 5.75, LZ), (0.5, 0.14, 0.02), "iron", cuts=0, jit=0.0)
     b.box((LX + 0.62, LANDING + 5.75, LZ), (0.14, 0.2, 0.02), "iron", roll=0.785, cuts=0, jit=0.0)
     RL.DATA["landing"] = {"top": LANDING, "lamp": [LX - 1.35, LANDING + 4.5, LZ], "half": [hw, hd]}
+    # two broad steps up from the bank along the shore side (+z), sunk where the bank is high
+    for k in range(2):
+        y = LANDING - (k + 1) * 0.3
+        zc = hd + 0.25 + k * 0.45
+        b.box((0.0, (y - 1.2) / 2, zc), (W_ - 1.6, y + 1.2, 0.46), "plank", cuts=1, jit=0.004)
+        b.colbox((0.0, (y - 1.2) / 2, zc), (W_ - 1.6, y + 1.2, 0.46))
     # the landing-board on two posts at the shore end
     BX, BZ = -hw + 1.6, hd - 0.4
     for sx in (-1, 1):

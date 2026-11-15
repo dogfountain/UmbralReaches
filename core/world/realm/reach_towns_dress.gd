@@ -27,24 +27,24 @@ const TRODDEN := [
 ## [town, prop file, x, z, yaw]
 const CLUTTER := [
 	# Reedholm: on the bank by the landing and the smokehouse (the decks carry their own baskets and nets)
-	["reedholm", "barrel", -314.0, 300.2, 0.3], ["reedholm", "barrel", -313.2, 301.4, 1.2], ["reedholm", "crate", -312.6, 299.4, 0.4],
-	["reedholm", "firewood", -321.2, 276.6, 1.57], ["reedholm", "firewood", -321.2, 281.6, 1.57], ["reedholm", "sack", -322.0, 278.8, 0.2],
+	["reedholm", "barrel", -318.4, 304.8, 0.3], ["reedholm", "barrel", -317.6, 305.8, 1.2], ["reedholm", "crate", -319.0, 306.0, 0.4],
+	["reedholm", "firewood", -327.8, 283.6, 0.0], ["reedholm", "firewood", -322.8, 275.4, 1.57], ["reedholm", "sack", -323.4, 282.4, 0.2],
 	["reedholm", "bench", -314.4, 304.8, 1.4], ["reedholm", "crate", -326.0, 264.6, 0.9], ["reedholm", "barrel", -324.4, 263.8, 0.1],
 	# Fallowmere: by the barn's porch and the farmhouse door, on the green
 	["fallowmere", "barrel", -183.0, 292.4, 0.0], ["fallowmere", "barrel", -182.2, 293.6, 0.8], ["fallowmere", "sack", -172.0, 293.4, 0.4],
 	["fallowmere", "sack", -171.0, 294.2, 1.9], ["fallowmere", "crate", -173.6, 294.0, 0.2], ["fallowmere", "handcart", -165.4, 295.0, -0.5],
-	["fallowmere", "bench", -143.2, 289.8, 0.4], ["fallowmere", "firewood", -180.8, 316.6, 0.0], ["fallowmere", "trough", -183.0, 320.6, 1.57],
+	["fallowmere", "bench", -143.2, 289.8, 0.4], ["fallowmere", "firewood", -178.0, 320.4, 0.0], ["fallowmere", "trough", -183.0, 320.6, 1.57],
 	["fallowmere", "barrel", -166.0, 304.4, 0.2], ["fallowmere", "bench", -133.0, 293.4, 0.0], ["fallowmere", "firewood", -129.6, 286.4, 1.57],
 	# Lastlight: the yard, the inn's front, the stable's mouth, the store's door
 	["lastlight", "barrel", 322.6, 48.6, 0.2], ["lastlight", "barrel", 321.6, 49.6, 1.1], ["lastlight", "crate", 337.0, 49.4, 0.4],
 	["lastlight", "crate", 338.2, 50.2, 1.2], ["lastlight", "bench", 315.4, 53.2, 0.5], ["lastlight", "bench", 320.4, 57.0, -0.4],
 	["lastlight", "trough", 327.2, 60.4, 0.0], ["lastlight", "sack", 304.4, 42.2, 0.3], ["lastlight", "sack", 304.0, 43.4, 1.4],
-	["lastlight", "crate", 304.6, 46.4, 0.0], ["lastlight", "handcart", 330.0, 70.6, 2.6], ["lastlight", "firewood", 344.4, 70.6, 0.0],
+	["lastlight", "crate", 299.4, 48.6, 0.0], ["lastlight", "handcart", 330.0, 70.6, 2.6], ["lastlight", "firewood", 344.4, 70.6, 0.0],
 	["lastlight", "barrel", 306.4, 70.2, 0.1], ["lastlight", "barrel", 319.8, 70.4, 0.9],
 ]
 
 ## A market stall where a town sells: [town, glb, x, z, yaw]
-const STALLS := [["reedholm", "market_stall_a", -311.4, 306.2, -2.4], ["lastlight", "market_stall_b", 316.0, 60.4, 2.6]]
+const STALLS := [["reedholm", "market_stall_a", -311.4, 306.2, -2.4]]
 
 ## [town, x, y over the ground, z, colour, energy, range]: a hearth through a door, the lamp tower's lantern
 const LIGHTS := [
@@ -65,6 +65,10 @@ const WRITINGS := [
 	["lastlight", "town_ll_plaque", 352.2, 1.4, 61.2],
 	["lastlight", "town_ll_book", 326.4, 1.2, 49.8],
 	["lastlight", "town_ll_orders", 335.0, 1.4, 70.8],
+	["reedholm", "town_rh_heron", -317.4, 1.2, 296.8],
+	["fallowmere", "town_fm_dovecote", -155.4, 1.2, 319.6],
+	["lastlight", "town_ll_shrine", "@LL_Shrine", Vector3(0.0, 1.3, 0.9)],
+	["lastlight", "town_ll_bridles", "@LL_Stable", Vector3(-2.0, 1.6, -2.6)],
 ]
 
 

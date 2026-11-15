@@ -24,6 +24,15 @@ const TOWNS := {
 	"lastlight": {"name": "Lastlight", "region": "lastlight", "c": Vector2(324.5, 53.5), "r": 40.0, "line": "the last lamp before the mountain"},
 }
 
+## Open ground kept clear of trees round each town (besides its disc): the approaches along the ways and the glacis
+## before Lastlight's walls, so a town is seen before it is reached. [centre, radius]
+const CLEAR := [
+	[Vector2(278.0, 71.0), 14.0], [Vector2(262.0, 73.0), 11.0], [Vector2(286.0, 50.0), 10.0], [Vector2(286.0, 30.0), 10.0],
+	[Vector2(324.0, 16.0), 11.0], [Vector2(300.0, 14.0), 9.0], [Vector2(324.0, 92.0), 10.0], [Vector2(300.0, 92.0), 9.0],
+	[Vector2(-318.0, 248.0), 10.0], [Vector2(-290.0, 300.0), 9.0], [Vector2(-276.0, 306.0), 8.0],
+	[Vector2(-150.0, 266.0), 9.0], [Vector2(-196.0, 299.0), 9.0], [Vector2(-118.0, 308.0), 9.0],
+]
+
 ## Piece kinds: the local footprint (for the ground under it and the site it reserves), its far silhouette and where
 ## that takes over (FarDetail), its own fade (0 = never: a building with a far mesh, or a landmark), whether it casts
 ## shadows. `stilt`: stands on piles from the water (its origin is the water line, not the ground).
@@ -95,18 +104,18 @@ const PIECES := [
 	["fallowmere", "FM_Farmhouse", -172.0, 311.0, PI],
 	["fallowmere", "FM_Cottage", -136.0, 288.0, 0.0],
 	["fallowmere", "FM_Cottage", -128.0, 319.0, PI],
-	["fallowmere", "FM_Dovecote", -158.6, 287.0, -0.4],
+	["fallowmere", "FM_Dovecote", -157.5, 316.4, 0.6],
 	["fallowmere", "FM_Well", -140.0, 294.6, 0.3],
 	["fallowmere", "FM_Wain", -187.0, 292.6, 0.2],
 	["fallowmere", "FM_Rick", -190.0, 306.5, 0.0],
 	["fallowmere", "FM_Rick", -197.5, 311.0, 1.0],
-	["fallowmere", "FM_Rick", -186.0, 322.0, 2.0],
+	["fallowmere", "FM_Rick", -200.0, 304.0, 2.0],
 	["fallowmere", "FM_Scarecrow", -122.0, 350.0, 0.6],
 	["fallowmere", "FM_Scarecrow", -113.0, 362.0, -0.3],
 	["fallowmere", "FM_Scarecrow", -131.0, 367.0, 0.2],
 	["fallowmere", "FM_Scarecrow", -158.0, 334.0, 2.8],
-	["fallowmere", "FM_Gate", -150.0, 322.0, 0.0],
-	["fallowmere", "FM_Gate", -126.0, 342.0, 0.0],
+	["fallowmere", "FM_Gate", -148.0, 323.9, PI * 0.5],      # swung open beside the gaps in the hurdles
+	["fallowmere", "FM_Gate", -128.2, 343.9, PI * 0.5],
 	# --- Lastlight (its walls are laid by WALLS) ---------------------------------------------------------------------
 	["lastlight", "LL_Inn", 330.0, 41.5, 0.0],
 	["lastlight", "LL_LampTower", 347.0, 44.0, 0.0],
@@ -121,13 +130,17 @@ const PIECES := [
 ## Reedholm's boardwalks: polylines of xz at "walk" height (a house's front steps come down to it) or "deck" height
 ## (a link between two decks). `end` / `start`: steps down to the bank at that end.
 const WALKS := [
-	{"pts": [Vector2(-306.9, 274.0), Vector2(-312.4, 274.0)], "h": "walk", "end": true},
-	{"pts": [Vector2(-307.2, 288.6), Vector2(-311.6, 288.6)], "h": "walk", "end": true},
-	{"pts": [Vector2(-303.6, 257.4), Vector2(-311.0, 257.4)], "h": "walk", "end": true},
-	{"pts": [Vector2(-322.0, 292.5), Vector2(-319.2, 292.5)], "h": "walk", "end": true},
+	{"pts": [Vector2(-306.5, 274.0), Vector2(-312.6, 274.0)], "h": "walk", "end": true},
+	{"pts": [Vector2(-306.8, 288.6), Vector2(-311.8, 288.6)], "h": "walk", "end": true},
+	{"pts": [Vector2(-303.4, 257.4), Vector2(-313.8, 257.4)], "h": "walk", "end": true},
+	{"pts": [Vector2(-322.5, 292.5), Vector2(-319.2, 292.5)], "h": "walk", "end": true},
 	{"pts": [Vector2(-300.0, 281.3), Vector2(-300.0, 285.6)], "h": "deck"},
-	{"pts": [Vector2(-299.0, 263.3), Vector2(-299.0, 266.7)], "h": "deck"},
+	{"pts": [Vector2(-301.8, 263.3), Vector2(-301.8, 266.7)], "h": "deck"},
 ]
+
+## Low banks raised clear of the water where people stand (WorldLanes terraces: cut and filled): Reedholm's bank by
+## the fire, where the track ends at the landing. [centre, radius, height]
+const BANKS := [[Vector2(-316.4, 299.6), 5.6, -0.52]]
 
 ## Fallowmere's field edges and fold: runs of hurdles [from, to]; and the stooks' fields [centre, half size, yaw, count].
 const HURDLES := [

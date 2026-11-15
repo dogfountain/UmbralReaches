@@ -246,9 +246,9 @@ def mats():
     if _MATS:
         return _MATS
     st = L.ashlar("RT_Stone", 8101, rows=7, warm=0.03)
-    rub = L.pbr("RT_Rubble", tex_drystone(1024, 8102), 2.4)
+    rub = L.pbr("RT_Rubble", tex_drystone(512, 8102), 2.4)
     rub["uv_mul"] = 1.7
-    pl = L.pbr("RT_Plaster", tex_plaster(1024, 8103), 1.0)
+    pl = L.pbr("RT_Plaster", tex_plaster(512, 8103), 1.0)
     pl["uv_mul"] = 0.7
     bm = L.pbr("RT_Beam", tex_beam(512, 8104), 2.2)
     bm["uv_mul"] = 1.6

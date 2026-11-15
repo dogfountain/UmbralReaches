@@ -79,7 +79,7 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(-296, 196), "note": "the ridge's south shoulder"}],
 	"reedmere": [
 		{"kind": "fire", "at": Vector2(-316, 302), "note": "Reedholm's landing"},
-		{"kind": "poi_wet", "at": Vector2(-328, 296), "note": "Reedholm's stilt-houses"},
+		{"kind": "poi_wet", "at": Vector2(-310, 279), "note": "Reedholm's stilt-houses (the net-hall's pool)"},
 		{"kind": "poi_wet", "at": Vector2(-340, 360), "note": "the heron stones in the mere"},
 		{"kind": "camp", "at": Vector2(-252, 352), "note": "the east reeds"},
 		{"kind": "camp", "at": Vector2(-351, 257), "note": "the north meres"}],
@@ -107,9 +107,9 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(290, -112), "note": "the crater's west floor"},
 		{"kind": "camp", "at": Vector2(346, -88), "note": "the crater's east rim"}],
 	"lastlight": [
-		{"kind": "fire", "at": Vector2(310, 50), "note": "the town's yard, inside the gate"},
+		{"kind": "fire", "at": Vector2(318.5, 55.5), "note": "the town's yard, inside the gate (off bell_track)"},
 		{"kind": "poi", "at": Vector2(322, 40), "note": "Lastlight: the inn, the lamp tower, the watch"},
-		{"kind": "poi", "at": Vector2(361, 58), "note": "the shut East Gate at the road's end"},
+		{"kind": "poi", "at": Vector2(356, 62.8), "note": "the shut East Gate at the road's end (on the curtain's line)"},
 		{"kind": "camp", "at": Vector2(296, -12), "note": "bell_track's lower bend"}],
 	"nave": [
 		{"kind": "fire", "at": Vector2(296, 112), "note": "nave_track on the mere's north shore"},

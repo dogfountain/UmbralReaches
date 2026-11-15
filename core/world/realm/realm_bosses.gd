@@ -53,7 +53,7 @@ const R34_FIRES := {
 	"ArchesFire": [Vector2(-24.0, 318.0), Vector2(-24.0, 322.0)],       # beside arches_way under the arches
 	"SouthwoodFire": [Vector2(150.0, 296.0), Vector2(150.0, 302.0)],    # beside arches_way at the wood's edge
 	"BellfallFire": [Vector2(318.0, -60.0), Vector2(316.0, -66.0)],     # bell_track at the crater's south lip
-	"LastlightFire": [Vector2(310.0, 50.0), Vector2(316.0, 52.0)],      # Lastlight's yard, inside the gate
+	"LastlightFire": [Vector2(318.5, 55.5), Vector2(328.0, 50.0)],      # Lastlight's yard, between the gates (off bell_track), facing the inn
 	"NaveFire": [Vector2(296.0, 112.0), Vector2(293.0, 118.0)],         # nave_track on the mere's north shore
 	"CairnFire": [Vector2(300.0, 286.0), Vector2(304.0, 282.0)],        # southwood_way's end on the heath
 }

@@ -271,6 +271,14 @@ def lamp_tower():
     H = 20.0
     lathe_at(b, 0.0, 0.0, -1.8, [(5.0, 0.0), (4.7, 2.6), (4.25, 3.5)], "stone", sides=n, jit=0.0, seed=1)
     b.frustum(0.0, 0.0, 4.25 / math.cos(math.pi / n), 3.6 / math.cos(math.pi / n), 1.6, H, "stone", round_n=n, levels=12, jit=0.02, seed=2)
+    # four battered buttresses on the diagonals, stepping in twice (the tower stands on the yard like a keep)
+    for i in range(4):
+        a = math.pi / 4 + i * math.pi / 2
+        def butt():
+            for (y0, y1, dep, wd) in ((-1.2, 2.6, 1.9, 1.5), (2.6, 5.4, 1.2, 1.2), (5.4, 7.6, 0.6, 0.9)):
+                b.rect_solid(-wd / 2, wd / 2, 0.0, dep, y0, y1, bat=(0.05, 0.05, 0.0, 0.35), mat="stone", tint=TINT["plain"], jit=0.02, seed=60 + i)
+                b.box((0.0, y1 + 0.1, dep - 0.25), (wd + 0.08, 0.18, 0.6), "stone", pitch=-0.6, uv=1.4, tint=TINT["pale"], cuts=0, jit=0.006)
+        grouped(b, butt, a, (math.sin(a) * 3.9, 0.0, math.cos(a) * 3.9))
     for yy in (6.2, 11.4, 16.2):
         r = lerp(4.25, 3.6, (yy - 1.6) / (H - 1.6)) / math.cos(math.pi / n) + 0.15
         b.frustum(0.0, 0.0, r, r - 0.02, yy, yy + 0.32, "stone", round_n=n, levels=2, jit=0.006, tint=TINT["pale"])
@@ -558,8 +566,9 @@ def store():
 def shrine():
     b = T("LL_Shrine", seed=11001, damp=1.2)
     b.rect_solid(-0.9, 0.9, -0.5, 0.5, -0.8, 2.8, bat=(0.06,) * 4, mat="stone", tint=TINT["plain"], jit=0.02, seed=1)
-    b.box((0.0, 1.6, 0.44), (0.9, 1.2, 0.16), "dark", cuts=0, jit=0.0)
-    b.arch(0.0, 1.95, 0.9, 0.22, 0.38, 0.62, "stone", uv=1.5, n=4, tint=TINT["pale"], jit=0.004)
+    b.box((0.0, 1.55, 0.44), (0.6, 0.9, 0.16), "dark", cuts=0, jit=0.0)
+    b.poly_z([(-0.3, 2.0), (0.3, 2.0), (0.0, 2.5)], 0.36, 0.52, "dark")
+    b.arch(0.0, 2.0, 0.6, 0.16, 0.38, 0.6, "stone", uv=1.5, n=4, tint=TINT["pale"], jit=0.004)
     b.box((0.0, 1.0, 0.55), (1.2, 0.14, 0.4), "stone", cuts=0, jit=0.004, tint=TINT["pale"])
     for k in range(5):
         x = -0.32 + k * 0.16
