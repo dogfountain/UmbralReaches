@@ -223,11 +223,21 @@ func _on_changed(id: String, s: int, done: bool) -> void:
 	if (int(was[0]) < 0 or bool(was[1])) and s >= 0 and not done:
 		banner("NEW TASK", String(qd.name), String(qd.where))
 	elif done and not bool(was[1]):
-		banner("TASK DONE", String(qd.name), outcome(id))
+		var xp := task_xp(id)
+		banner("TASK DONE  ·  +%d XP" % xp if xp > 0 else "TASK DONE", String(qd.name), outcome(id))
+		if xp > 0:
+			progress("+%d XP for the task" % xp, true)      # the corner toast says what it paid in ash and items; the memory it earned is said here
 	elif not done and Book.ready(id) and int(was[0]) != s:
 		progress("%s: return to %s" % [String(qd.name), String(Chains.GIVER_NAMES.get(String(Chains.step(id, s).get("who", "")), "the giver"))], true)
 	if is_open():
 		_fill()
+
+
+## The XP a task just paid: 24 + 1.5 x its ash, half again on a repeat (the formula of LevelDB.quest_xp, core/life/progression/level.gd).
+static func task_xp(id: String) -> int:
+	var ash := int(((Chains.QUESTS.get(id, {}) as Dictionary).get("reward", {}) as Dictionary).get("ash", 0))
+	var n := 24 + roundi(1.5 * float(maxi(0, ash)))
+	return maxi(1, n / 2) if int(Book.q(id).get("c", 0)) > 1 else n
 
 
 ## The banner never draws over a menu or a conversation (both pause the tree), its own ledger included.
@@ -253,7 +263,7 @@ func _hold(sub: String) -> float:
 
 
 func _show_banner(top: String, name_text: String, sub: String) -> void:
-	UiSound.play(self, "quest_done" if top == "TASK DONE" else "quest_new")      # the banner was the only sign a task was taken up or done
+	UiSound.play(self, "quest_done" if top.begins_with("TASK DONE") else "quest_new")      # the banner was the only sign a task was taken up or done
 	_b_top.text = TextDirector.sentence(top)           # the same case rule as every other line; the name stays as the lore spells it
 	_b_name.text = name_text
 	_b_sub.text = TextDirector.sentence(sub)

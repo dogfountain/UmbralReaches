@@ -15,7 +15,7 @@ const KINDS := {
 	"confirm": [0.085, 660.0, 700.0, 1.5, 42.0, -16.0],
 	"back": [0.075, 560.0, 400.0, 0.0, 48.0, -18.0],
 	"tick": [0.012, 3200.0, 3200.0, 0.0, 320.0, -25.0],
-	a task taken up, and a task done, were silent (a banner and a toast only). A spec's seventh entry is
+	# A task taken up, and a task done, were silent (a banner and a toast only). A spec's seventh entry is
 	# further notes as [start s, Hz]: the first note's contour is not bent for them. Rising fifth; then a rising triad
 	"quest_new": [0.30, 523.0, 523.0, 2.0, 11.0, -15.0, [[0.09, 784.0]]],
 	"quest_done": [0.62, 523.0, 523.0, 2.0, 7.5, -11.0, [[0.12, 659.0], [0.24, 784.0], [0.38, 1047.0]]],

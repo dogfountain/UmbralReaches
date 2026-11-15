@@ -21,7 +21,7 @@ func arrow(c: Control, p: Vector2, hot: bool, s := 1.0) -> void:
 		pts.append(p + q.rotated(ang) * s)
 	if s >= 1.0:
 		var pr := fmod(pulse, 1.6) / 1.6
-		a cream arrow and a cream ring on cream parchment did not read as "you are here". A dark seal behind the
+		# A cream arrow and a cream ring on cream parchment did not read as "you are here". A dark seal behind the
 		# arrow with a gilt rim, and a gilt-and-ink pulse, carry on any ground
 		c.draw_arc(p, 20.0 + pr * 16.0, 0.0, TAU, 32, Color(INK, (1.0 - pr) * 0.8), 3.0, true)
 		c.draw_arc(p, 20.0 + pr * 16.0, 0.0, TAU, 32, Color(GOLD, (1.0 - pr) * 0.9), 1.6, true)

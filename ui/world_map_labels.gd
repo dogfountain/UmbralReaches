@@ -10,7 +10,7 @@ const INK := Color(0.1, 0.055, 0.03)
 const HALO := Color(0.93, 0.86, 0.68, 0.96)
 const MIN_PX := [18.0, 16.0, 15.0, 14.0]             ## smallest on-screen size by tier
 const MAX_PX := 32.0
-const INKED := [[Vector2(-231.0, 97.0), Vector2(-224.0, 87.0)], [Vector2(-155.0, 170.0), Vector2(-155.0, 120.0)], [Vector2(155.0, 190.0), Vector2(155.0, 140.0)]]
+const INKED := [[Vector2(-231.0, 97.0), Vector2(-224.0, 87.0)], [Vector2(-155.0, 184.0), Vector2(-155.0, 118.0)], [Vector2(155.0, 184.0), Vector2(155.0, 118.0)]]
 const PAD := Vector2(9.0, 4.0)                       ## the margin round the letters (their halo) for placement
 
 var cinzel: Font
@@ -143,7 +143,7 @@ func layout(zoom: float, zmin: float, seen: Array[String]) -> void:
 				continue
 			var hits := 0
 			for m in _marks:
-				if box.grow(10.0).has_point(m * zoom):
+				if box.grow(11.5).has_point(m * zoom):
 					hits += 1
 			var score := hits * 200.0 + ctr.distance_to(home)      # clear of the marks first, then as near its region as it can sit
 			if score < best_score:

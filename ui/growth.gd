@@ -84,6 +84,8 @@ var _d_name: Label
 var _d_kind: Label
 var _d_text: Label
 var _d_now: Label
+var _d_extra: Label                  ## a spell's rank ladder and the combos it feeds (the detail column was empty below the stats)
+var _d_extra_well: Control
 var _d_lore: Label
 var _d_btn: Button
 var _d_why: Label
@@ -267,6 +269,12 @@ func _build() -> void:
 	_d_lore = _wrap(16, Med.BONE_DIM, _body_font)
 	_d_lore.add_theme_color_override("font_color", Color(0.78, 0.7, 0.56))
 	info.add_child(_d_lore)
+	_d_extra = _wrap(16, Med.BONE, _body_font)
+	var extra_well := PanelContainer.new()
+	extra_well.add_theme_stylebox_override("panel", Med.inset(10))
+	extra_well.add_child(_d_extra)
+	_d_extra_well = extra_well
+	info.add_child(extra_well)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	info.add_child(spacer)
@@ -529,6 +537,9 @@ func _heading(t: String, note := "") -> void:
 		var n := _label(note, 17, QUIET, _body_font)
 		n.size_flags_vertical = Control.SIZE_SHRINK_END
 		h.add_child(n)
+		var gap := Control.new()                       # clear of the page's scrollbar: the note ran under it
+		gap.custom_minimum_size = Vector2(26, 0)
+		h.add_child(gap)
 	_page_box.add_child(h)
 	_page_box.add_child(Med.rule(Color(Med.BRONZE, 0.55), false))
 
@@ -1059,6 +1070,26 @@ func click_card(c: Card) -> void:
 		_show()
 
 
+## The rank ladder of a spell (what each kindling changes, the ones already kindled marked) and the combos it takes part in.
+func _spell_extra(id: String) -> String:
+	var sp := DB.spell(id)
+	var ranks: Array = sp.get("ranks", [])
+	if ranks.is_empty():
+		return ""
+	var r := DB.rank(_st(), id)
+	var lines: PackedStringArray = ["RANKS"]
+	for i in ranks.size():
+		lines.append("%s  %s%s: %s" % [ROMAN[i + 1], String((ranks[i] as Array)[0]), " (kindled)" if i < r else "", String((ranks[i] as Array)[1])])
+	var mates := PackedStringArray()
+	for cb: Array in COMBOS:
+		if (cb[2] as Array).has(id):
+			mates.append(String(cb[0]).capitalize())
+	if not mates.is_empty():
+		lines.append("")
+		lines.append("FEEDS  " + ", ".join(mates))
+	return "\n".join(lines)
+
+
 func _show() -> void:
 	for i in _cards.size():
 		_cards[i].selected = i == _sel
@@ -1074,6 +1105,7 @@ func _show() -> void:
 	_d_icon.queue_redraw()
 	_d_lore.text = ""
 	_d_now.text = ""
+	_d_extra.text = ""
 	var why := ""
 	var verb := ""
 	match c.kind:
@@ -1162,6 +1194,7 @@ func _show() -> void:
 				_d_text.text = String(sp.get("text", _stock_text(c.id)))
 				_d_now.text = "Now: %s" % _stats(c.id, DB.rank(st, c.id))
 				_d_lore.text = "Choose a spell below to put it here, or press again to cycle what is known."
+				_d_extra.text = _spell_extra(String(sp.id))
 				why = "" if at_fire() else "Only at a kindled fire."
 				verb = "NEXT SPELL"
 		"pick":
@@ -1171,6 +1204,7 @@ func _show() -> void:
 			_d_kind.text = "SPELL  ·  %s" % (("ON [%s]" % DB.SLOT_KEYS[lo.find(c.id) + 1]) if lo.has(c.id) else ("KNOWN" if DB.knows(st, c.id) else ("NOT YET TAUGHT" if DB.TAUGHT_LATER.has(c.id) else "NOT YET LEARNED")))
 			_d_text.text = String(sp.get("text", _stock_text(c.id)))
 			_d_now.text = "Now: %s" % _stats(c.id, DB.rank(st, c.id))
+			_d_extra.text = _spell_extra(c.id)
 			if not DB.knows(st, c.id):
 				why = "Not yet taught." if DB.TAUGHT_LATER.has(c.id) else "Learn it first (Spells)."
 			elif lo.find(c.id) == _slot_pick - 1:
@@ -1322,6 +1356,7 @@ func _show() -> void:
 	if _scroll and is_instance_valid(c):
 		_scroll.ensure_control_visible(c)
 	_d_now_well.visible = _d_now.text != ""
+	_d_extra_well.visible = _d_extra.text != ""
 	_d_btn.visible = verb != ""
 	_d_btn.text = verb
 	_d_btn.disabled = why != "" and not (c.kind == "oath" and DB.oath(st, c.sub) == c.pick and at_fire())
