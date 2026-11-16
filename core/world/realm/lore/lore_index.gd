@@ -6,6 +6,7 @@ extends RefCounted
 
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
 const LoreMore := preload("res://core/world/realm/lore/lore_more.gd")
+const Wayside := preload("res://core/world/realm/lore/wayside_texts.gd")     ## the wayside's writings (realm_wayside.gd)
 
 static var _texts: Dictionary = {}
 static var _series: Dictionary = {}
@@ -15,6 +16,7 @@ static func texts() -> Dictionary:
 	if _texts.is_empty():
 		_texts = LoreDB.TEXTS.duplicate()
 		_texts.merge(LoreMore.TEXTS)
+		_texts.merge(Wayside.TEXTS)
 	return _texts
 
 

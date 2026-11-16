@@ -148,6 +148,7 @@ func _check() -> void:
 			z += 2.0
 		x += 2.0
 	var count := {}
+	var hollow := {}
 	var kinds := {}
 	var on_raid := 0
 	var wet := 0
@@ -161,6 +162,8 @@ func _check() -> void:
 		kinds[id][sp] = int(kinds[id].get(sp, 0)) + 1
 		if _open_at(p.x, p.z):
 			count[id] = int(count.get(id, 0)) + 1
+			if p.y < Flora.WATER_Y:
+				hollow[id] = int(hollow.get(id, 0)) + 1      # (a dry hollow under the fen's level: it grows since flora_tables.gd wet)
 			if R33.has_point(Vector2(p.x, p.z)):
 				count["r33"] = int(count.get("r33", 0)) + 1
 				var bk := "b:" + RealmLayout.biome_at(p.x, p.z)
@@ -168,8 +171,9 @@ func _check() -> void:
 		for rd: Dictionary in RealmLayout.RAIDS:
 			if Vector2(p.x, p.z).distance_to(rd.c) < float(rd.r) - 0.5 and sp != "stone":
 				on_raid += 1
-		if p.y < Flora.WATER_Y - 0.01 and not (sp in ["reeds", "cattail", "stone"]):
-			wet += 1
+		if p.y < Flora.WATER_Y - 0.01 and Flora.Tables.wet(p.x, p.z) and not (sp in ["reeds", "cattail", "stone"]):
+			wet += 1          # (a dry hollow under the fen's level grows: flora_tables.gd wet)
+	print("FLORA34 open-ground plants under the fen's level (dry hollows), by region: ", hollow)
 	for bk: String in ["b:crag", "b:heath", "b:ruin", "b:fen", "b:oldforest", "b:meadow", "r33"]:
 		print("FLORA34 reference %s %.2f /m2 of open ground (%.0f m2)" % [bk, float(count.get(bk, 0)) / float(area.get(bk, 1)), float(area.get(bk, 0))])
 	for id: String in REF:
@@ -199,7 +203,7 @@ func _check() -> void:
 	var ground := 0
 	for tr: Array in Flora.trees:
 		var p: Vector3 = tr[0]
-		if p.y < Flora.WATER_Y:
+		if p.y < Flora.WATER_Y and Flora.Tables.wet(p.x, p.z):
 			ground += 1
 	check("no tree stands in the water (%d)" % ground, ground == 0)
 	_outposts()
