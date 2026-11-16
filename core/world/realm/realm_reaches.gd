@@ -43,6 +43,11 @@ const REGIONS := [
 	{"id": "bellfall", "name": "The Bellfall", "rect": Rect2(260, -150, 110, 110), "biome": "crag", "tier": 4,
 		"purpose": "a crater at the Crowns' east corner where the eighth bell came down: the bell, cracked, half sunk in scorched rock",
 		"lore": "The Founder cast seven bells for the Stair. The eighth was cast in the sky, and the sky let it fall."},
+	# the lava area, moved out from beside Hearthward (Luke, 16 Nov): the gash the bell's fall tore along the Crowns' foot
+	# behind its crater, the lava in it, its flows and burn, the Choir House in the west flow (rift/scorch.gd, rift_rim.gd)
+	{"id": "ashrift", "name": "The Ashen Rift", "rect": Rect2(272, -150, 98, 30), "blobs": [{"c": Vector2(277.0, -114.0), "r": 13.0}], "biome": "ash", "tier": 4,
+		"purpose": "a gash of living lava torn along the Crowns' foot behind the bell's crater; its flows broke out over the lips, one through the Founder's choir hall",
+		"lore": "Where the eighth bell came down the mountain's foot split, and the fire under the Crowns came up to look."},
 	{"id": "lastlight", "name": "Lastlight", "rect": Rect2(260, -40, 110, 136), "biome": "meadow", "tier": 2,
 		"purpose": "the walled waystation at the road's east end: a gate that stays shut, an inn, a watch, travellers",
 		"lore": "The last lamp the pilgrims saw before the road turned to the mountain. Lastlight still lights it."},
@@ -55,7 +60,7 @@ const REGIONS := [
 ]
 
 ## The new regions' ids (RealmLayout appends them to MARCHES_IDS: their names meet along long waves).
-const IDS := ["greyfell", "lanternwood", "kingsbarrows", "reedmere", "fallow", "arches", "southwood", "bellfall", "lastlight", "nave", "cairns"]
+const IDS := ["greyfell", "lanternwood", "kingsbarrows", "reedmere", "fallow", "arches", "southwood", "bellfall", "ashrift", "lastlight", "nave", "cairns"]
 
 ## Suggested slots (RealmLayout.SLOTS' schema; checked by zz/layout_r34_test). Builders may move a slot a few
 ## metres; a region agent edits only its own regions' entries.
@@ -139,11 +144,13 @@ const PATHS := [
 	{"id": "nave_track", "w": 1.4, "pts": [Vector2(290, 70), Vector2(292, 96), Vector2(296, 122), Vector2(300, 140)]},
 	{"id": "cairn_track", "w": 1.4, "pts": [Vector2(300, 140), Vector2(286, 168), Vector2(282, 200), Vector2(290, 236), Vector2(300, 280)]},
 	{"id": "bell_link", "w": 1.4, "pts": [Vector2(196, -70), Vector2(226, -78), Vector2(258, -82), Vector2(290, -80), Vector2(314, -48)]},
+	# up from bell_link past the crater's west camp to the Ashen Rift's west flow and the Choir House's yard
+	{"id": "rift_track", "w": 1.2, "pts": [Vector2(290, -80), Vector2(287, -90), Vector2(285, -98), Vector2(284.5, -105)]},
 ]
 
 ## These ways wander between their vertices (RealmLayout.MEANDER_IDS' schema: metres of swing).
 const MEANDER := {"fell_track": 2.4, "barrow_track": 2.6, "reed_ford": 2.0, "fallow_way": 2.2, "arches_way": 2.4, "arches_link": 2.0,
-	"salt_south": 2.0, "southwood_way": 2.4, "bell_track": 2.2, "nave_track": 2.0, "cairn_track": 2.4, "bell_link": 2.0}
+	"salt_south": 2.0, "southwood_way": 2.4, "bell_track": 2.2, "nave_track": 2.0, "cairn_track": 2.4, "bell_link": 2.0, "rift_track": 1.4}
 
 ## The Sorrow runs on from the old south edge (-254, 240) across the Reedmere to the new south edge
 ## (RealmLayout.RIVER takes these after its own points).

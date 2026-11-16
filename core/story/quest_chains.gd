@@ -41,7 +41,7 @@ const ZONES := [["hearth", "Hearthward"], ["road", "The Pilgrims' Road"], ["thor
 	["fen", "The Hollow Fen"], ["holds", "The Rooted Holds"], ["quarry", "The Saints' Quarry"],
 	["moor", "The Lanternless Moor"], ["foundry", "The Founder's Pits"], ["orchard", "The Cinder Orchard"],
 	["necropolis", "The Waiting Field"], ["mere", "Corvin's Mere"],
-	["ossuary", "The Ossuary"], ["rift", "The Ashen Rift"], ["crags", "The Crowns"], ["summit", "The Summit of Ascension"],
+	["ossuary", "The Ossuary"], ["rift", "The Starwater Rift"], ["ashrift", "The Ashen Rift"], ["crags", "The Crowns"], ["summit", "The Summit of Ascension"],
 	["downs", "The Southern Downs"], ["oak", "The Grandmother Oak"], ["well", "The Well of Echoes"],
 	R37WQ.ZONES[0], R37WQ.ZONES[1], R37WQ.ZONES[2], R37WQ.ZONES[3],
 	["stillwater", "Stillwater"], ["anchorholds", "The Anchorholds"], ["saltmarket", "Saltmarket"], ["saltpans", "The White Pans"],

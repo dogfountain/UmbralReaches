@@ -837,7 +837,7 @@ static func fair_ground(p: Vector3, on_way_ok := false) -> bool:
 	var pd := RealmLayout.path_dist(q)
 	if (q.distance_to(HAVEN_C) < HUB_ROAD_R and (pd < SpawnRules.HUB_BERTH or on_way_ok)) or (pd < SpawnRules.WAY_BERTH and not on_way_ok):
 		return false
-	if p.y < RealmLayout.LAVA_Y + 3.0 or RealmLayout.in_ossuary(p):
+	if p.y < RealmLayout.LAVA_Y + 3.0 or SpawnRules.Scorch.over_lava(p) or RealmLayout.in_ossuary(p):
 		return false
 	var wl := RealmLayout.water_level_at(p.x, p.z)
 	return not RealmLand.in_water(p.x, p.z) and (is_nan(wl) or p.y > wl + 0.15)

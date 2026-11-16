@@ -63,9 +63,9 @@ func _process(d: float) -> void:
 		if String(n.get("body")) == "":
 			fail("%s has no text" % id)
 		var p := n.global_position
-		var gy := RealmLayout.ground(space, p.x, p.z)
+		var gy := _terrain_y(space, p.x, p.z)
 		if p.y < gy - 0.3:
-			fail("%s buried (%.2f under ground %.2f)" % [id, p.y, gy])
+			fail("%s buried (%.2f under ground %.2f) at %s" % [id, p.y, gy, p])
 		if p.y > gy + 3.0:
 			fail("%s floating %.1f m at %s (ground %.2f)" % [id, p.y - gy, p, gy])
 	# every inscription reads: into the journal and the reading panel (or one toast without a
@@ -173,3 +173,19 @@ func _process(d: float) -> void:
 func _end() -> void:
 	print("LORE TEST PASS" if fails == 0 else "LORE TEST FAIL %d" % fails)
 	get_tree().quit()
+
+
+## The terrain's height under (x, z), looking past whatever stands over it (a prop, a tree, a wayside piece:
+## RealmLayout.ground falls back to the macro shape when anything else is met first, which is not the ground).
+func _terrain_y(space: PhysicsDirectSpaceState3D, x: float, z: float) -> float:
+	var ex: Array[RID] = []
+	for i in 8:
+		var q := PhysicsRayQueryParameters3D.create(Vector3(x + 0.0037, 120.0, z + 0.0029), Vector3(x, -60.0, z), 1)
+		q.exclude = ex
+		var hit := space.intersect_ray(q)
+		if hit.is_empty():
+			break
+		if String((hit.collider as Node).name).begins_with("Terrain"):
+			return (hit.position as Vector3).y
+		ex.append(hit.rid)
+	return RealmLayout.macro_height(x, z)

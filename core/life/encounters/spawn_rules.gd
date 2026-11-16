@@ -12,6 +12,7 @@ extends RefCounted
 ## Load by path (no class_name):  const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
 
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
+const Scorch := preload("res://core/world/realm/rift/scorch.gd")      ## the Ashen Rift's lava (far north-east)
 
 ## id, centre, ring radius (nothing of ours inside), and "camp": how far past the ring a camp's centre keeps
 ## (CAMP_MARGIN unless given: the hub's first camps are its starter fights just past the haven, the Holds' clearing
@@ -38,7 +39,7 @@ const MAX_SLOPE := 0.78            ## the floor's normal.y (about 39 degrees)
 const LIP_R := 1.6
 const LIP_DROP := 1.8
 const WADE := 0.2                  ## water deeper than this over the floor is water
-const LAVA_CLEAR := 3.0            ## above the rift's lava
+const LAVA_CLEAR := 3.0            ## above the Starwater Rift's sheet (the Ashen Rift's lava: Scorch.over_lava)
 
 static var _cap: CapsuleShape3D
 
@@ -124,7 +125,7 @@ static func assess(space: PhysicsDirectSpaceState3D, at: Vector3, opts := {}) ->
 	out.way = RealmLayout.path_dist(xz)
 	if bool(opts.get("ways", true)) and float(out.way) < berth(xz):
 		why.append("on a way (%.1f m)" % float(out.way))
-	if at.y < RealmLayout.LAVA_Y + LAVA_CLEAR:
+	if at.y < RealmLayout.LAVA_Y + LAVA_CLEAR or Scorch.over_lava(at):
 		why.append("over lava")
 	if RealmLayout.in_ossuary(at):
 		why.append("in the Ossuary")

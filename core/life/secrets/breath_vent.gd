@@ -1,7 +1,8 @@
 extends Node3D
 ## The rift's breath (no class_name; site_breath.gd builds it): a fissure on the rim that breathes
 ## out every PERIOD seconds. A second before, its crack brightens and the ground rumbles; then for
-## EXHALE seconds hot air roars up in a column of embers. Anyone in the column off the ground (who
+## EXHALE seconds the chasm's air roars up in a column of starlight motes (the Starwater Rift's: the lava
+## and its embers moved out to the Ashen Rift in the far north-east). Anyone in the column off the ground (who
 ## jumped into it) is carried up to `top_y` + a little and can drift off onto the hermit's perch.
 ## Standing in it does nothing: you have to jump. Cheap: one timer, one distance test.
 
@@ -25,7 +26,14 @@ var _phase := 0                  ## 0 quiet, 1 warning, 2 exhaling
 func _ready() -> void:
 	_t = fmod(float(Time.get_ticks_msec()) * 0.001, PERIOD)
 	_crack = get_node_or_null("Crack") as MeshInstance3D
-	_light = Kit.omni(self, global_position + Vector3.UP * 0.6, Color(1.0, 0.45, 0.15), 0.4, 6.0)
+	if _crack != null:
+		var cm := StandardMaterial3D.new()
+		cm.albedo_color = Color(0.1, 0.08, 0.16)
+		cm.emission_enabled = true
+		cm.emission = Color(0.55, 0.42, 1.0)
+		cm.emission_energy_multiplier = 1.6
+		_crack.material_override = cm
+	_light = Kit.omni(self, global_position + Vector3.UP * 0.6, Color(0.6, 0.45, 1.0), 0.4, 6.0)
 	_light.name = "VentLight"
 	_column = Node3D.new()
 	_column.name = "Column"
@@ -61,7 +69,7 @@ func _physics_process(delta: float) -> void:
 		_fx_t -= delta
 		if _fx_t <= 0.0:
 			_fx_t = 0.12
-			Vfx.burst(global_position + Vector3.UP * 0.2, Color(1.5, 0.6, 0.2), {"count": 10, "life": 1.1, "speed": Vector2(5.0, 9.0), "size": 0.05,
+			Vfx.burst(global_position + Vector3.UP * 0.2, Color(0.75, 0.62, 1.7), {"count": 10, "life": 1.1, "speed": Vector2(5.0, 9.0), "size": 0.05,
 				"dir": Vector3.UP, "spread": 12.0, "gravity": 0.0, "radius": 0.5, "trail": 0.08})
 		_lift()
 
@@ -73,7 +81,7 @@ func _on_phase() -> void:
 		2:
 			Kit.play("breath", global_position, 2.0)
 			_column.visible = true
-			Vfx.burst(global_position + Vector3.UP * 0.3, Color(0.25, 0.22, 0.22, 0.6), {"count": 30, "life": 1.8, "speed": Vector2(2.0, 5.0), "size": 0.35,
+			Vfx.burst(global_position + Vector3.UP * 0.3, Color(0.55, 0.55, 0.72, 0.3), {"count": 30, "life": 1.8, "speed": Vector2(2.0, 5.0), "size": 0.35,
 				"dir": Vector3.UP, "spread": 25.0, "gravity": -0.5, "radius": 0.6, "additive": false, "turbulence": true})
 		0:
 			_column.visible = false

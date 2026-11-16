@@ -1,5 +1,5 @@
 extends RefCounted
-## The rim of the Ashen Rift, where the rift_rim path leaves Hearthward for the Crossing: the
+## The rim of the Starwater Rift, where the rift_rim path leaves Hearthward for the Crossing: the
 ## Last Bell (a great bronze bell off the Stair, cracked, lying on its lip in the ash, its yoke
 ## broken and its tongue torn out) and the Hierarch's third edict on a stele, cut the morning of
 ## the Night. Kept off the rift itself (z > -11), the path and every site.

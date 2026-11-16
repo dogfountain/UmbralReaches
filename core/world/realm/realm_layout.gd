@@ -12,7 +12,7 @@ extends RefCounted
 const BOUNDS := Rect2(-370.0, -150.0, 740.0, 548.0)        ## playable xz (x -370..370, z -150..398); r37: 520 x 390, r34: 310 x 325
 const OLD_BOUNDS := Rect2(-155.0, -150.0, 310.0, 325.0)    ## the r34 Realm, inside the March Wall
 const OUTER := Rect2(-462.0, -240.0, 924.0, 732.0)         ## terrain extent incl. the horizon ring (4 m lattice)
-const LAVA_Y := -15.5                                       ## the rift's lava surface (LavaWorks)
+const LAVA_Y := -15.5                                       ## the Starwater Rift's sheet (LavaWorks; the Ashen Rift's lava: rift/scorch.gd)
 
 ## Fixed points (do not move: the kept brazier, tavern, Ossuary and summit depend on them).
 const SPAWN := Vector3(0.0, 0.0, 33.0)                     ## the spawn brazier (Zone/Braziers/Sanctuary)
@@ -83,8 +83,8 @@ const REGIONS := [
 		"lore": "Black pools and drowned graves where the hollowed were laid when the crypt was full."},
 	{"id": "barrows", "name": "The Barrow Field", "c": Vector2(78, -42), "r": 20.0, "biome": "fen", "tier": 2,
 		"lore": "Grave mounds of the abbey's lay brothers; the lantern road down into the fen starts here."},
-	{"id": "rift", "name": "The Ashen Rift", "rect": Rect2(-30, -118, 60, 106), "biome": "ash", "tier": 2,
-		"lore": "The wound the ascension tore in the land; lava where the pilgrims' stair once stood."},
+	{"id": "rift", "name": "The Starwater Rift", "rect": Rect2(-30, -118, 60, 106), "biome": "crag", "tier": 2,
+		"lore": "The wound the ascension tore in the land; starwater where the pilgrims' stair once stood (the lava is the Ashen Rift's, far north-east)."},
 	{"id": "ossuary", "name": "The Ossuary", "rect": Rect2(-70, 147, 114, 43), "blobs": [{"c": Vector2(-62, 85), "r": 9.0}, {"c": Vector2(-55, 101), "r": 11.0}, {"c": Vector2(-51, 117), "r": 10.0}, {"c": Vector2(-50, 136), "r": 12.0}], "biome": "ruin", "tier": 2,
 		"purpose": "its own area (docs/far_reaches.md): the necropolis's charnel house, a quarried bone pit under the Waiting Field's slope (the tiers over a still pool, the Counting Stair and the Abbot's hall beneath), with both its lips; and, the blobs, the Lych Way down from the road between walls of niches, the Bearers' Yard and the Lantern of the Dead (ossuary_ground.gd)", "lore": "Boss: the Bone Abbot. Seal 'oss_gallery'. Streamed area (world/areas/ossuary): the Pilgrims' Landing at the Waiting Field's west end, the bone bridge, the tiers."},
 	{"id": "summit", "name": "The Summit of Ascension", "c": Vector2(0, -104), "r": 42.0, "biome": "crag", "tier": 3,
@@ -866,7 +866,7 @@ static func marches_mask(p: Vector2) -> float:
 
 ## The landform biome (footsteps, weather, wildlife, ambience): the heaviest region by its blend
 ## weight, as RealmLand painted the ground. Not region_at: a place's name may sit on another's land
-## (the summit circle reaches over the rift's ash, whose lava ambience must stay).
+## (the summit circle reaches over the Starwater Rift's chasm, whose own ground must stay).
 static func biome_at(x: float, z: float) -> String:
 	var best := {}
 	var best_w := 0.0
@@ -875,7 +875,7 @@ static func biome_at(x: float, z: float) -> String:
 		if w > best_w:
 			best_w = w
 			best = r
-	return "ash" if preload("res://core/world/realm/rift/scorch.gd").burn(x, z) > 0.55 else String(best.get("biome", "meadow"))      # the rift's burn
+	return "ash" if preload("res://core/world/realm/rift/scorch.gd").burn(x, z) > 0.55 else String(best.get("biome", "meadow"))      # the Ashen Rift's burn (far north-east)
 
 
 ## Ground height from the real terrain (after RealmLand), or the macro shape before it exists.

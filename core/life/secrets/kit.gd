@@ -374,6 +374,8 @@ static func shader_mat(key: String) -> ShaderMaterial:
 	match key:
 		"curtain":
 			sh.code = CURTAIN_SHADER
+		"curtain_star":                  # the same sheet poured in starwater (the Starwater Rift's: no lava by the village)
+			sh.code = CURTAIN_SHADER.replace("vec3(0.09, 0.03, 0.02)", "vec3(0.05, 0.04, 0.11)").replace("vec3(1.0, 0.36, 0.08)", "vec3(0.55, 0.42, 1.0)")
 		"shaft":
 			sh.code = SHAFT_SHADER
 		"glint":

@@ -25,7 +25,7 @@ east to the new edges.
 | Fallowmere | S, x -220..-92 | 1 | a farming hamlet (people): tithe barn, farmhouse, fold, drowned strips | 1 camp, villagers, fire |
 | The Long Arches | S, x -92..92 | 2 | the Order's aqueduct striding across a dry valley; the castellum; the broken span | 2 camps, fire |
 | The Southwood | S, x 92..262 | 3 | a dark wood: the charcoal burners' ruin, the witch's hollow | 3 camps, a rare, fire |
-| The Bellfall | NE, x 260..370, z -150..-40 | 3 | the eighth bell fallen into a scorched crater | 2 camps, a rare, fire |
+| The Bellfall | NE, x 260..370, z -150..-40 | 3 | the eighth bell fallen into a scorched crater; behind it the Ashen Rift (the lava, moved out from Hearthward) | 2 camps, a rare, fire; the Choir House, the Cinder Cantor |
 | Lastlight | E, z -40..96 | 1 | the walled waystation at the road's east end: inn, lamp tower, watch; the shut East Gate | villagers, watch, fire |
 | The Drowned Nave | E, z 96..234 | 3 | an unfinished cathedral flooded to the knee, moon shafts through the vault | 2 camps, fire |
 | The Thousand Cairns | SE, z 234..398 | 3 | a high windy heath of cairns; the Cairn Tower | 2 camps, a rare, fire |
@@ -57,32 +57,47 @@ LODs for big things (FarDetail), the pillars, the don'ts. New content goes in ne
 registries (EnemySpawner.REALM_CAMPS, elites, rares, lore, codex, quest chains, village casts) get one block per area
 at the end of the list.
 
-## The Ashen Rift, re-landscaped (the lava area)
+## The Ashen Rift, moved (the lava area)
 
-Luke: the lava "feels out of place" (a straight slot of fire cut into green meadow and oak wood). The chasm, the
-Crossing, the summit and the Threshold stay where they are; the country round them now tells how it burned. One field,
-`core/world/realm/rift/scorch.gd` (x -104..104, z -156..8), drives it all:
+Luke, 16 Nov: "I asked several agents previously to move the lava area, it makes no sense to be next to the starting
+village at all." The lava, its burn, its flows, the Choir House and the smoke column left Hearthward's country for the
+Realm's far north-east corner, about 340 m from the village. The chasm by the village keeps the Crossing, the summit and
+the Threshold, but holds starwater now from the Threshold to the summit's foot (the **Starwater Rift**, region `rift`).
 
-- **The burn**: deepest at the lip, reaching out in tongues downwind (east-south-east, the foliage wind) and up the
-  wood's slope; a ring of dying wood and dry turf round it; dying back to nothing by the starwater mouth (Hearthward
-  stays green), Thorn Henge's hill kept green. The ground turns to ash country (RealmLand `_splat`), the ring's grass
-  dries and the burn's goes to ash drifts, cinders and dead brush, trees in the burn stand as charred snags, the ring's
-  crowns go rust (RealmFlora, four one-line hooks), `biome_at` answers "ash" there (footsteps, weather, wildlife).
-- **The flows**: the rift's lips are berms 11-15 m high; the night the rift brimmed the lava broke through them at
-  notches and ran down their outer faces: the main flow and a second tongue west onto the flat at the Crowns' foot
-  (either side of the Watchers' Spire), two cascades east into the Hollow Fen's edge (steam where they stopped in the
-  water). They lift the ground up to 1.35 m (RealmLand `_heights`, after the kept core) and are drawn by the ground
-  shader's scorch map: roped black crust, tumuli, a crack network still warm near the lip and in the Choir House.
-- **The Choir House** (`tools/blender/rift_choir_house.py`, `art/models/rift_choir_house.glb`): the hall where the
-  Stair's choir lodged, in the main west flow; the lava came in at its door, filled the nave to the sills and burst its
-  far gable. The Cinder Cantor haunts its nave; its writings are the `rr_*` entries in lore_db.gd.
-- **The rift's breath** (`rift/plume.gd`): a lava-lit smoke column rising out of the chasm's north-east corner and
-  leaning away downwind, the north of the Realm's far landmark.
-- **Dressing** (`core/world/realm/rift_rim.gd`, REACH_POIS): spatter along both lips, bombs, heaved slabs and toe
-  rubble on the flows, basalt tors, charred trunks, steam and smoke.
-- The lava itself reads as crust rafts drawn out along the current (darker plates, thinner seams, a deeper red).
+**The Ashen Rift** (region `ashrift`, tier 4, inside the Bellfall's corner): on the Night the eighth bell came down at the
+Crowns' east corner and split the mountain's foot behind its crater; the fire under the Crowns came up along the split.
+One file, `core/world/realm/rift/scorch.gd` (x 242..370, z -162..-70), drives it all:
 
-`--no-scorch` puts the rift back as it was (A/B; the lava's crust look stays).
+- **The gash**: a pit cut along SPINE (x 283..360, z about -133..-138, 11-19 m wide) by `Scorch.ground()` (RealmLand
+  `_heights`, after the kept core; one line): its bed under the lava (y 2.4), steep walls up to the lips, the lips heaved
+  into a berm 3.4 m over the lava; its north wall is the mountain. All ground in the lava sheet's footprint outside the
+  gash stands at least 1.7 m over the lava, so the sheet shows only in the gash and its kill volume never reaches a lip.
+- **The lava** (`rift/ash_lava.gd`): the rift's own lava material on a sheet at y 5, its kill volume (`Lava`,
+  `star_mode = -1`), two glow lights, and a second `LavaWorks` over it (`LavaWorks.over`: bank mask and embers).
+- **The flows**: the night it brimmed it broke the lips at notches and ran down their outer faces: west into the hollow
+  below the Anchorholds' shoulder (the main flow, through the Choir House), south over the crater's rim towards the bell
+  (it stopped short), a short tongue beside it, and east down the crater's apron. They lift the ground up to 1.3 m and
+  are drawn by the ground shader's scorch map (roped crust, cracks still warm near the lip and in the Choir House).
+- **The burn**: deepest at the lips, reaching out in tongues downwind (east-south-east) and less far up the mountain and
+  west towards the Anchorholds; ash country, charred snags, rust crowns, ash drifts (the same RealmFlora hooks).
+- **The Choir House** (`tools/blender/rift_choir_house.py`): the hall where the Founder's choir lodged, on a levelled
+  terrace in the hollow (`CHOIR_FLOOR`), standing in the main flow; the Cinder Cantor haunts its nave (elites.gd); its
+  writings are the `rr_*` entries (region `ashrift`). `rift_track` comes up to it from bell_link past the crater's west camp.
+- **The rift's breath** (`rift/plume.gd`): a lava-lit smoke column out of the gash, leaning away downwind; it fades out
+  past 300 m, so the East Reach sees it over its fire and Hearthward's country does not.
+- **Dressing** (`rift_rim.gd`, REACH_POIS): spatter along both lips, bombs, heaved slabs and toe rubble on the flows,
+  basalt tors, charred trunks, thin smoke off each flow's warm crust (seen to 120 m, with its cracks).
+- The Bellfall's crater: the four columns of smoke from the impact's cracks now rise out of glowing cracks drawn on the
+  floor (and fade by 140 m); before, they stood over bare floor and read as smoke in a random place.
+
+**The Starwater Rift** (the old chasm): `RealmRift.SHEET_STAR_Z` turns the whole sheet to starwater (`LavaWorks._all_star`:
+no embers, the glow lights violet), two more starfalls pour where lava falls did, `features.gd` drops its fissures,
+smoke vents and ash fields (`volcanic = false`; the basalt stays), the kill volume burns as starwater
+(`star_mode = 1`). The Founder's Spill pours starwater from a quench-cistern; the hermit's vent breathes starlight, not
+embers and black smoke. Its rims are crag, not ash; the land round it (the Thornwood's edge, the fen, the Crowns' foot)
+grows as its own regions again. `OSSUARY_OLD` is still the chasm's kept east wall.
+
+`--no-scorch` builds the gash and its lava without the burn round it (A/B).
 
 ## The towns
 

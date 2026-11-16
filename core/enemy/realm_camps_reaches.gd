@@ -62,7 +62,7 @@ const CAMPS: Array[Dictionary] = [
 	{"name": "the deep wood's nest", "at": Vector3(178.0, 60.0, 378.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},
 	# --- the Bellfall (tier 4): the bell's heat on the crater's west shoulder (cinder casters, a bulwark), tollmen on
 	# the east rim who ring when you come, a round south of bell_link (the Eighth Ringer holds the bell on the floor).
-	{"name": "the crater's west shoulder", "at": Vector3(272.0, 60.0, -108.0), "kinds": ["cinder", "cinder", "bulwark"], "probe": 0.0, "r": 2.8},
+	{"name": "the crater's west shoulder", "at": Vector3(288.0, 60.0, -110.0), "kinds": ["cinder", "cinder", "bulwark"], "probe": 0.0, "r": 2.8},     # (on the rim above rift_track, off the Ashen Rift's Choir House and its flow)
 	{"name": "the crater's east rim", "at": Vector3(346.0, 60.0, -88.0), "kinds": ["tollman", "husk", "gaunt"], "probe": 0.0},
 	{"name": "the round below bell_link", "at": Vector3(270.0, 60.0, -66.0), "kinds": ["husk", "gaunt", "wretch"], "probe": 0.0,
 		"patrol": [Vector2(270, -66), Vector2(280, -64), Vector2(284, -50), Vector2(264, -52)]},
