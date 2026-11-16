@@ -49,6 +49,7 @@ static var _n_hill := _noise(5102, 0.017, 2)
 static var _n_dale := _noise(5103, 0.0075, 1)
 static var _n_warp := _noise(5104, 0.0035, 1)
 static var _n_old := _noise(5105, 0.0042, 1)
+static var _n_downs := _noise(5106, 0.02, 2)
 
 
 static func _slot_list() -> PackedVector2Array:
@@ -145,6 +146,12 @@ static func _swells(p: Vector2, h: float, open: float) -> float:
 	if only_up > 0.0:
 		r = lerpf(r, maxf(r, 0.0) * 0.6, only_up)
 	return h + r * k
+
+
+## The Southern Downs' rolling chalk (RealmLayout._marches): the same amplitude the old sine grid had, as warped noise.
+static func downs(x: float, z: float) -> float:
+	var q := Vector2(x, z) + Vector2(_n_warp.get_noise_2d(x, z), _n_warp.get_noise_2d(x + 311.0, z - 173.0)) * 30.0
+	return _n_downs.get_noise_2d(q.x, q.y) * 3.4 + _n_hill.get_noise_2d(x * 0.6, z * 0.6) * 0.8
 
 
 ## 1 in open country, 0 on designed ground, eased between.

@@ -544,7 +544,7 @@ static func _marches(p: Vector2, h: float, m: float) -> float:
 	h = lerpf(h, 0.3, m * 0.92 * _rect_w(p, PANS, 16.0))
 	# the Southern Downs: rolling chalk on the downs' rise, and the Grandmother Oak's knoll
 	var dw := _rect_w(p, Rect2(-155.0, 175.0, 310.0, 65.0), 24.0)
-	h += m * dw * (2.4 * sin(x * 0.043 + 1.1) * sin(z * 0.052 + 0.4) + 1.3 * sin(x * 0.021 - z * 0.033))
+	h += m * dw * preload("res://core/world/realm/realm_landscape.gd").downs(x, z)      # rolling chalk (noise, not a sine grid)
 	h += m * 3.2 * _bump(p, OAK_C, 30.0)
 	# cross-ridges, and the knolls the March Wall's spurs end on
 	for rg: Dictionary in RealmMarch.RIDGES:
