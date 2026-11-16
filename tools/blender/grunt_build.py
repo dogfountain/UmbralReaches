@@ -628,6 +628,8 @@ def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, ey
         mz = min((q[2] for q in front.values()), default=ez - 0.02)
         lipz = lambda x: mz + abs(x / hw) ** 2 * hw * 0.5
         GUM = (0.36, 0.13, 0.13)
+        for sx_ in (-1, 1):                                       # the nasal cavity's open: a pale bone floor in each, lit, with a rim
+            g.ball(V(sx_ * 0.021, mouth_y + 0.03, mz + float(os.environ.get("NOSE_Z", "0.034"))), 0.0135, (0.52, 0.47, 0.38), "bone", "head", n=8, sx=1.0, sy=1.25, sz=0.45)
         for row, dy in ((0, 0.005), (1, -0.007)):
             arc = []
             for k in range(9):                                            # nine teeth a row: uneven, yellowed, set in a gum
@@ -644,16 +646,20 @@ def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, ey
             # the gums are the jaw's own surface, tinted: a curved band above and below the teeth, the lips receded over it
             t = max(math.exp(-((q[1] - (my + 0.009)) / 0.0075) ** 2), math.exp(-((q[1] - (my - 0.012)) / 0.0075) ** 2))
             t *= 1.0 if (abs(q[0]) < hw_ * 1.15 and q[2] < mz_ + 0.035) else 0.0
-            return tuple(b_ + (g_ - b_) * t for b_, g_ in zip(base[:3], GUM)) + ((base[3],) if len(base) > 3 else ())
+            # the nasal cavity: its rim and floor are pale bone and cartilage, lit, not a black hole
+            tn = math.exp(-(((abs(q[0]) - 0.021) / 0.013) ** 2 + ((q[1] - (my + 0.03)) / 0.02) ** 2)) * 1.0
+            c1 = tuple(b_ + (g_ - b_) * t for b_, g_ in zip(base[:3], GUM))
+            c1 = tuple(c_ + (bn_ - c_) * 0.9 * tn for c_, bn_ in zip(c1, (0.78, 0.72, 0.6)))
+            return c1 + ((base[3],) if len(base) > 3 else ())
     if skull > 0.0 and len(E) == 2 and not callable(col):
-        col = (lambda i_, j_, q_: gum_fn(q_) if (q_[1] > 1.45 and q_[2] < ez + 0.05) else col0)
+        col = (lambda i_, j_, q_: gum_fn(q_) if (q_[1] > 1.45 and q_[2] < ez + 0.1) else col0)
     g.mesh(P, F, col, mat, L, FUV)
     global _BODY
     _BODY = bd
     g._fit = (bd, len(g.v))
     for e in eyes:
         if e is not None:
-            g.ball(e + V(0, 0, -0.004), eye_r, eye, "glow", "head", n=6)
+            g.ball(e + V(0, 0, 0.004), eye_r, eye, "glow", "head", n=8)
     bd.eyes = [e for e in eyes if e is not None]
     return bd
 
@@ -1159,7 +1165,7 @@ def wretch():
     skull with coals sunk in it, a stuffed sack hung from straps that cut into the shoulders, a gaff in its fist."""
     g = Geo()
     SKIN, RAG, SACK, BELT = (0.4, 0.34, 0.31), (0.17, 0.13, 0.1), (0.5, 0.43, 0.3), (0.1, 0.075, 0.06)
-    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=3800, hunch=1.0, targets=WRETCH_T, eye_r=0.011, skull=0.9, keep=("head", "hand_l", "hand_r"), claws=True, hand_ratio=0.38, head_ratio=0.8, keep_zone=(1.42, 1.58, 0.2))
+    b = human(g, SKIN, (1.0, 0.45, 0.12, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=4500, hunch=1.0, targets=WRETCH_T, eye_r=0.0075, skull=0.9, keep=("head", "hand_l", "hand_r"), claws=True, hand_ratio=0.3, head_ratio=0.8, keep_zone=(1.42, 1.58, 0.2))
     if os.environ.get('BODYONLY'):
         return g.to_object('body'), []
     # (no shin wraps: the bare shins show their crests)
@@ -1179,7 +1185,7 @@ def wretch():
     sack(g, S, 0.5, 0.27, 0.2, SACK, BELT, seed=1.7, neck=0.05, lean=0.05)
     for sx, y0, a in ((-1, 0.2, 0.0), (1, 0.18, 0.5)):                     # things tied on: a dented pot, a bundle of sticks
         pass
-    for sx, ln, r0, ph in ((-0.1, 0.52, 0.017, 0.0), (0.06, 0.44, 0.014, 2.0)):          # gnarled, tapering, barked sticks
+    for sx, ln, r0, ph in ((-0.12, 0.3, 0.017, 0.0), (0.09, 0.24, 0.014, 2.0)):          # gnarled, tapering, barked sticks
         ys = np.linspace(0.0, ln, 9)
         pts = [S + V(sx + 0.06 * (y / ln) * (1 if sx < 0 else -0.5) + 0.008 * math.sin(y * 17 + ph), 0.02 + y, -0.02 + 0.012 * math.sin(y * 11 + ph)) for y in ys]
         g.tube(pts, [r0 * (1.0 - 0.55 * (y / ln)) * (1.0 + 0.25 * max(0.0, math.sin(y * 23 + ph))) for y in ys], (0.26, 0.2, 0.14), "wood", "chest", n=8)
@@ -1194,7 +1200,7 @@ def wretch():
     E_ = b.eyes
     ey_ = (E_[0][1] + E_[1][1]) * 0.5 if len(E_) == 2 else 1.72
     cc_ = np.array([float(hP[:, 0].mean()), ey_, float(hP[:, 2].mean()) + 0.01])
-    RP, RF, rtip = rag_cloth.wind(hP, hF, cc_, ey_ + 0.052, turns=float(os.environ.get("RAG_TURNS", "2.5")), frames=int(os.environ.get("RAG_FRAMES", "48")))
+    RP, RF, rtip = rag_cloth.wind(hP, hF, cc_, ey_ + 0.052, turns=float(os.environ.get("RAG_TURNS", "2.5")), frames=int(os.environ.get("RAG_FRAMES", "72")))
     g.mesh(RP, RF, (0.6, 0.55, 0.44), "linen", "head")
     gf = Geo()
     WOOD, IRON, WRAP = (0.28, 0.2, 0.13), (0.32, 0.3, 0.29), (0.2, 0.16, 0.12)
@@ -1203,17 +1209,17 @@ def wretch():
     def P_(dx, y, dz=0.0):
         return V(X0 + dx, y, Z0 + dz)
     # a short crooked branch: bent twice, knotted, swelling toward the head, thin at the foot
-    ys = np.linspace(-0.74, 0.46, 13)
+    ys = np.linspace(-0.74, 0.36, 12)
     path = [P_(0.03 * math.sin(y * 3.6) + 0.018 * math.sin(y * 9.0 + 0.5), y, 0.022 * math.sin(y * 4.3 + 1.0)) for y in ys]
     rad = [0.0095 + 0.004 * (y + 0.74) / 1.2 + 0.004 * max(0.0, math.sin(y * 12.0 + 1.0)) + 0.004 * max(0.0, math.sin(y * 5.1)) for y in ys]
     rad[0], rad[1] = 0.0075, 0.0088
     gf.tube(path, rad, WOOD, "wood", "hand_r", n=8)
     for y in (-0.31, 0.08, 0.2):                                         # stubs of cut twigs
-        c = path[int((y + 0.74) / 1.2 * 12)]
+        c = path[int((y + 0.74) / 1.1 * 11)]
         gf.tube([c, c + V(0.03, 0.025, 0.012), c + V(0.055, 0.045, 0.014)], [0.007, 0.0045, 0.002], WOOD, "wood", "hand_r", n=5)
     gf.lathe([(0.0, -0.80), (0.011, -0.77), (0.0135, -0.70), (0.0125, -0.67)], V(path[0][0], 0.0, path[0][2]), IRON, "iron", "hand_r", n=8)
     for y in (-0.03, 0.0, 0.03, 0.06):                                    # grip wound with cord, where the fist closes
-        i_ = int((y + 0.74) / 1.2 * 12)
+        i_ = int((y + 0.74) / 1.1 * 11)
         gf.lathe([(0.0125, y), (0.0145, y + 0.01), (0.0125, y + 0.02)], V(path[i_][0], 0.0, path[i_][2]), WRAP, "leather", "hand_r", n=8)
     top = path[-1]
     hk = [top + V(0.0, -0.04, 0.0), top + V(0.0, 0.03, -0.004), top + V(0.0, 0.1, -0.035), top + V(0.0, 0.11, -0.085), top + V(0.0, 0.065, -0.12), top + V(0.0, 0.02, -0.11)]

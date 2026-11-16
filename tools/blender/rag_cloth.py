@@ -33,7 +33,7 @@ def _radius(hv, c, y, ang, band=0.02):
     return float((np.hypot(d[:, 0], d[:, 2]) * np.cos(((a - ang + math.pi) % (2 * math.pi)) - math.pi))[k].max())
 
 
-def wind(head_P, head_F, c, brow_y, turns=2.5, width=0.07, nu=64, nv=6, tail=0.0, frames=48, thick=0.0035, seed=1):
+def wind(head_P, head_F, c, brow_y, turns=2.5, width=0.07, nu=64, nv=6, tail=0.0, frames=72, thick=0.0035, seed=1):
     sc = bpy.context.scene
     hv = np.asarray(head_P)
     c = np.asarray(c, dtype=np.float64)
@@ -98,10 +98,10 @@ def wind(head_P, head_F, c, brow_y, turns=2.5, width=0.07, nu=64, nv=6, tail=0.0
     st = cl.settings
     st.quality = 6
     st.mass = 0.25
-    st.tension_stiffness = 12.0
-    st.compression_stiffness = 12.0
-    st.shear_stiffness = 6.0
-    st.bending_stiffness = 0.6
+    st.tension_stiffness = 5.0
+    st.compression_stiffness = 5.0
+    st.shear_stiffness = 2.5
+    st.bending_stiffness = 0.15
     st.air_damping = 2.0
     st.vertex_group_mass = "pin"
     st.pin_stiffness = 1.0
