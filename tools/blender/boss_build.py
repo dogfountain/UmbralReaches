@@ -665,14 +665,22 @@ def ascended_warden():
     g.ball(V(0.0, 1.73, 0.0), 0.125, DARK, "iron", "head", n=10, sy=1.15)
 
     def mask(u, v):
+        """A cast mask: an oval face with a high brow, cheekbones, a long nose and a small mouth, the edge rolled."""
         th = (u - 0.5) * math.radians(118)
         ph = v
         y = 1.6 + 0.26 * ph
+        x = math.sin(th)
         r = 0.132 * (0.8 + 0.2 * math.sin(ph * math.pi) ** 0.6) * (1.0 - 0.18 * (1.0 - ph) ** 2)
-        nose = 0.026 * math.exp(-((u - 0.5) / 0.07) ** 2) * math.exp(-((ph - 0.4) / 0.22) ** 2)
-        brow = 0.016 * math.exp(-((ph - 0.66) / 0.06) ** 2)
-        return V(math.sin(th) * r, y, -math.cos(th) * (r * 1.06 + nose + brow))
-    g.plate(mask, 25, 15, MASK, "bone", "head")
+        g1 = lambda c, w: math.exp(-(((ph - c) / w) ** 2))
+        nose = 0.03 * math.exp(-((u - 0.5) / 0.05) ** 2) * g1(0.42, 0.2)
+        brow = 0.018 * g1(0.66, 0.07) * (1.0 - abs(u - 0.5) * 0.8)
+        cheek = 0.016 * g1(0.4, 0.12) * math.exp(-((abs(u - 0.5) - 0.24) / 0.1) ** 2)
+        socket = -0.012 * g1(0.58, 0.05) * math.exp(-((abs(u - 0.5) - 0.17) / 0.07) ** 2)
+        mouth = -0.008 * g1(0.2, 0.025) * math.exp(-((u - 0.5) / 0.12) ** 2)
+        chin = 0.01 * g1(0.06, 0.06)
+        rim = 0.01 * (max(0.0, abs(u - 0.5) - 0.44) * 18.0 + max(0.0, 0.05 - ph) * 8.0 + max(0.0, ph - 0.96) * 8.0)
+        return V(x * r, y, -math.cos(th) * (r * 1.06 + nose + brow + cheek + socket + mouth + chin) + rim)
+    g.plate(mask, 49, 30, MASK, "bone", "head")
     for sx in (-1, 1):                                                    # the eyes: two slits of light
         g.ball(V(sx * 0.05, 1.752, -0.128), 0.02, (1.0, 0.95, 0.7, 0.0), "glow", "head", n=6, sx=1.5, sy=0.32, sz=0.4)
     g.tube([V(0.012, 1.86, -0.118), V(0.02, 1.8, -0.137), V(0.006, 1.74, -0.146), V(0.022, 1.68, -0.14), V(0.014, 1.62, -0.118)], 0.0028, DARK, "iron", "head", n=4)   # the crack
