@@ -465,13 +465,90 @@ def body(g, col, mat="leather", girth=1.0, belly=0.0, limb=1.0, head=1.0, neck=1
             B.hand(g, sx, col, "hand_" + side(sx), closed=0.5)
 
 
-def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0):
+def starve(bd, amp=1.0, ribs=1.0):
+    """Sculpt hunger into a body along its anatomy (displacement along the skin normal, rig space, face -z): ribs
+    as ridges following the cage's slope with the sternum left flat, collarbones, shoulder points, shoulder blades and
+    spine knuckles behind, hip crests, knee and elbow knobs, wrist and ankle knobs, a hollow under the ribs."""
+    P = bd.P
+    N = bd.N
+    L = np.array(bd.L)
+    x, y, z = P[:, 0], P[:, 1], P[:, 2]
+    d = np.zeros(len(P))
+    ax = np.abs(x)
+    chest = np.isin(L, ["chest", "pelvis"])
+    ang = np.arctan2(x, -z)                                   # 0 = straight ahead, +-pi/2 = the flanks, pi = the back
+    cage = np.exp(-((y - 1.27) / 0.12) ** 4) * chest            # the ribcage's height
+    around = np.clip((2.35 - np.abs(ang)) / 0.5, 0.0, 1.0)      # front and flanks, not the spine
+    flat = np.clip((ax - 0.018) / 0.03, 0.0, 1.0)               # the sternum stays flat
+    tilt = 0.045 * np.clip(np.abs(ang) / 1.6, 0.0, 1.0) * -1.0 + 0.03 * np.cos(np.abs(ang))  # ribs run down and forward
+    ph = (y + tilt - 1.40) / 0.037
+    d += ribs * 0.0036 * np.cos(ph * 2 * math.pi) * cage * around * flat
+    d -= ribs * 0.006 * np.exp(-((y - 1.06) / 0.07) ** 2) * chest * np.clip(1.0 - ax / 0.2, 0.0, 1.0) * (z < 0)   # hollow belly under the cage
+    for sx in (-1, 1):
+        # collarbones: a ridge from the notch out to the shoulder point, a groove below it
+        t = np.clip((ax - 0.02) / 0.17, 0.0, 1.0)
+        yc = 1.405 + 0.012 * t
+        on = (x * sx > 0) & (z < 0.02) & (t > 0) & (t < 1)
+        d += 0.0055 * np.exp(-((y - yc) / 0.011) ** 2) * on * chest
+        d -= 0.004 * np.exp(-((y - (yc - 0.03)) / 0.014) ** 2) * on * chest
+        # shoulder blade and its spine, behind
+        d += 0.006 * np.exp(-(((x - sx * 0.1) / 0.05) ** 2 + ((y - 1.27) / 0.075) ** 2)) * (z > 0) * chest
+        d += 0.004 * np.exp(-((y - 1.37) / 0.012) ** 2) * (np.abs(x - sx * 0.09) < 0.07) * (z > 0.0) * chest         # the scapular spine
+        # hip crest and the knobs of the pelvis
+        d += 0.009 * np.exp(-(((x - sx * 0.155) / 0.03) ** 2 + ((y - 0.99) / 0.025) ** 2)) * (z < 0.03) * (L == "pelvis")
+    # the spine: knuckles in a row, a groove on each side
+    sp = np.exp(-(x / 0.012) ** 2) * (z > 0) * chest
+    d += 0.0045 * sp * np.clip(np.cos((y - 1.0) / 0.043 * 2 * math.pi), 0.0, 1.0) * (y > 0.98) * (y < 1.42)
+    d -= 0.004 * np.exp(-((ax - 0.04) / 0.02) ** 2) * (z > 0) * chest * (y > 1.0) * (y < 1.4)
+    # joints stand proud of thin limbs
+    for nm, y0, r, h in (("knee", 0.35, 0.05, 0.010), ("elbow", 1.09, 0.045, 0.008), ("hand", 0.80, 0.035, 0.007), ("foot", 0.09, 0.04, 0.007)):
+        m = np.array([l.startswith(nm + "_") or (nm == "knee" and l.startswith("hip_") and y0 - 0.05 < yy) for l, yy in zip(L, y)])
+        d += h * np.exp(-((y - y0) / r) ** 2) * m
+    d *= amp
+    bd.P = P + N * d[:, None]
+
+
+def claw_hands(bd, g, spread=0.9, curl=0.035, nail=(0.0045, 0.016), col=(0.55, 0.5, 0.4)):
+    """Pose a hanging hand's fingers: fanned apart across the hand and curled in toward the palm, tips pulled down to long
+    nails. A procedural pose of the retargeted mesh (the rig has no finger bones), before the garments are laid."""
+    P = bd.P.copy()
+    L = np.array(bd.L)
+    nails = []
+    for t_ in ("hand_l", "hand_r"):
+        m = np.nonzero(L == t_)[0]
+        if len(m) == 0:
+            continue
+        sx = -1.0 if t_.endswith("l") else 1.0
+        q = P[m]
+        yw, yt = 0.80, q[:, 1].min()
+        t = np.clip((yw - q[:, 1]) / max(yw - yt, 1e-6), 0.0, 1.0)
+        t = np.clip((t - 0.35) / 0.65, 0.0, 1.0)                           # fingers only: the palm stays
+        zc = float(q[:, 2].mean())
+        q[:, 2] = zc + (q[:, 2] - zc) * (1.0 + spread * t)
+        q[:, 0] -= sx * curl * t ** 2                                         # curl toward the palm side (the thigh)
+        q[:, 2] -= 0.012 * t ** 2                                             # and a little forward
+        P[m] = q
+        tip = q[q[:, 1] < q[:, 1].min() + 0.007]
+        bins = {}
+        for v in tip:
+            bins.setdefault(int(round(v[2] / 0.011)), []).append(v)
+        for vs in bins.values():
+            nails.append(np.mean(vs, axis=0))
+    bd.P = P
+    for c in nails:
+        g.ball(V(float(c[0]), float(c[1]) - 0.002, float(c[2])), nail[0], col, "bone", "hand_l" if c[0] < 0 else "hand_r", n=6, sx=0.7, sy=nail[1] / nail[0] * 0.5, sz=1.0)
+
+
+def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0, hunch=0.0, targets=None, starved=0.0, keep=("head",), claws=False, hand_ratio=1.0):
     """A MakeHuman body (mh_body.py), shaped by `macro` (gender, age, muscle, weight, proportions, height: 0..1),
     retargeted to the rig, with coals in the eyes. skull 0..1: the face wasted toward the bone beneath (cheeks and
     temples hollowed, lips drawn back off the teeth, the eyes sunk), with the teeth bared."""
     import mh_body
-    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y)
+    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y, hunch=hunch, targets=targets, keep_groups=keep, hand_ratio=hand_ratio)
     bd = Body(P, F, FUV, L)
+    if claws:
+        claw_hands(bd, g)
+        P = bd.P
     E = [e for e in eyes if e is not None]
     if skull > 0.0 and len(E) == 2:
         ey = (E[0][1] + E[1][1]) * 0.5
@@ -781,7 +858,7 @@ def sleeve(g, b, sx, col, trim=None, y_top=1.43, y_cuff=0.8, flare=0.02, bell=0.
     the way a robe's sleeve hangs. A rolled cuff in the trim colour."""
     t = side(sx)
     arm = ("shoulder_" + t, "elbow_" + t)
-    rows = band_rays(b, arm, y_cuff, y_top, 28, 18)
+    rows = band_rays(b, arm, y_cuff, y_top, 24, 15)
     if not rows:
         return
     span = y_top - y_cuff
@@ -805,15 +882,15 @@ def sleeve(g, b, sx, col, trim=None, y_top=1.43, y_cuff=0.8, flare=0.02, bell=0.
             g.tube(ring + [ring[0]], 0.009, trim, "trim" if trim != col else mat, "elbow_" + t, n=6, flat=0.6)
 
 
-def shawl(g, b, col, mat="wool", y_low=1.05, gap=(math.radians(-25), math.radians(40)), seed=0.5, tatter=0.05, flare=0.04, amp=0.012):
+def shawl(g, b, col, mat="wool", y_low=1.05, gap=(math.radians(-25), math.radians(40)), seed=0.5, tatter=0.05, flare=0.04, nu=72, nv=24, v0=8, amp=0.012):
     """A shawl or a mantle laid over the shoulders and the upper arms from one point inside the chest: it falls from
     the neck over the shoulder caps and down the arms and the back to a torn hem at y_low, open down the front
     between the angles `gap` (around pi, the front; uneven, as a shawl is worn), with folds where it hangs."""
     hd = [b.P[i] for i in range(len(b.P)) if b.L[i] == "chest" and b.P[i][1] > 1.2]
     c = np.array([float(np.mean([q[0] for q in hd])), 1.36, float(np.mean([q[2] for q in hd]))])
     labs = tuple(sorted({l for l in b.L if not l.startswith(("hand_", "hip_", "knee_", "foot_"))}))
-    NU, NV = 72, 24
-    rows = dome_rays(c, NU, NV, math.radians(8), math.radians(122))
+    NU, NV = nu, nv
+    rows = dome_rays(c, NU, NV, math.radians(v0), math.radians(122))
 
     def off(o, d):
         down = max(-float(d[1]), 0.0)
@@ -917,7 +994,7 @@ def cowl(g, b, col, peak=0.0, open_w=0.065, seed=0.7, shade=True, mat="wool", op
         g.col[n0 + k] = (cc[0] * (1 - 0.94 * t), cc[1] * (1 - 0.94 * t), cc[2] * (1 - 0.94 * t), cc[3])
 
 
-def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=True):
+def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=True, nu=56, nv=26):
     """A scavenger's layers, laid on its own body so they fit: a head wrap wound over the scalp and the lower face with
     only an uneven eye slit left (a bare MakeHuman face read as a mannequin's), two wrap tails down the nape, and a
     torn sleeveless vest over the ribs with a ragged hem and cord lacing at the breast."""
@@ -926,7 +1003,7 @@ def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=Tru
     hd = [b.P[i] for i in range(len(b.P)) if b.L[i] == "head"]
     top = max(float(q[1]) for q in hd)
     c = np.array([float(np.mean([q[0] for q in hd])), ey + 0.01, float(np.mean([q[2] for q in hd])) + 0.01])
-    NU, NV = 56, 26
+    NU, NV = nu, nv
     trunk = tuple(sorted({l for l in b.L if not l.startswith(("elbow_", "hand_", "hip_", "knee_", "foot_"))}))
     rows = dome_rays(c, NU, NV, 0.0, math.radians(v1))
     # the slit: the rows that pass the eyes, only at the front (-z: u near pi), ragged at its ends
@@ -939,7 +1016,7 @@ def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=Tru
         return not (front > 0.6 and abs(y_mid - ey) < 0.017)
     # wound: alternate rows stand a little prouder, so the layers read
     shrink(g, b, trunk, rows, 0.011,
-           wrap, "linen", "head", thick=0.007, ridges=(4.0, 0.006), reach=0.2, relax=20, balls=[(e + V(0, 0, -0.004), 0.016) for e in E] if v1 < 130 else (),
+           wrap, "linen", "head", thick=0.007, ridges=(3.0, 0.011), reach=0.2, relax=20, balls=[(e + V(0, 0, -0.004), 0.016) for e in E] if v1 < 130 else (),
            cut=(lambda p: p[2] < c[2] - 0.04 and abs(p[1] - ey) < 0.0135 and abs(p[0]) < 0.07) if v1 >= 130 else None)
     start = g._fit[1] if getattr(g, "_fit", None) else 0
     n0 = start - len(b.P)
@@ -969,31 +1046,98 @@ def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=Tru
             g.tube([V(-0.03, y, zf - 0.016), V(0.0, y - 0.012, zf - 0.02), V(0.03, y, zf - 0.016)], 0.004, cord, "leather", "chest", n=4)
 
 
+def sack(g, at, h, w, d, col, cord, lab="chest", seed=1.0, mat="linen", neck=0.04, lean=0.04):
+    """A stuffed sack hung by its tied neck: gathered at the top, heavy and sagging at the bottom, vertical folds that
+    fade down the belly, lumps where the load sits, a corded knot and one patched seam. Rings round Y (rig space)."""
+    NU, NV = 24, 14
+    P = []
+    for i in range(NV + 1):
+        t = i / NV                                   # 0 at the knot, 1 at the base
+        prof = math.sin(min(t * 1.18, 1.0) * math.pi * 0.5) ** 0.8 * (1.0 - max(t - 0.82, 0.0) ** 2 * 6.0)
+        r0 = neck + (1.0 - neck) * prof
+        row = []
+        for j in range(NU):
+            a = TAU * j / NU
+            fold = 1.0 + 0.13 * (1.0 - t) ** 0.7 * math.sin(a * 7.0 + seed + t * 3.0) + 0.05 * math.sin(a * 3.0 + t * 5.0 + seed * 2.0)
+            lump = 1.0 + 0.09 * math.sin(a * 2.0 + t * 7.0 + seed) * math.sin(t * math.pi) + 0.05 * math.sin(a * 5.0 - t * 9.0)
+            rr = r0 * fold * lump
+            sag = 1.0 + 0.15 * t * t
+            row.append(at + V(math.cos(a) * rr * w, -t * h * sag, math.sin(a) * rr * d + lean * t))
+        P.append(row)
+    g.grid(P, col, mat, lab, lambda i, j, p: (j / NU * 1.2, i / NV * 1.2), wrap=True, flip=True)
+    k = at + V(0, -h * 0.03, 0)
+    g.lathe([(neck * 1.5, 0.0), (neck * 1.9, 0.03), (neck * 1.3, 0.07), (neck * 1.0, 0.11)], k + V(0, 0.01, 0), col, mat, lab, n=14)
+    for q in range(3):
+        y = -0.03 * q
+        g.tube([k + V(math.cos(TAU * m / 14) * neck * 1.5, y - 0.01 * m / 14 * 2, math.sin(TAU * m / 14) * neck * 1.5) for m in range(15)], 0.0035, cord, "leather", lab, n=4)
+    for m in range(2):                               # frayed tails of the knot
+        g.tube([k + V(neck * 1.5 * (m * 2 - 1), 0.0, 0.0), k + V(neck * (2.8 * (m * 2 - 1)), -0.07, 0.02), k + V(neck * (3.4 * (m * 2 - 1)), -0.15, 0.03)], [0.004, 0.003, 0.0015], cord, "leather", lab, n=4)
+    # a patch stitched over the seam
+    pc = at + V(0.0, -h * 0.55, d * 0.97 + lean * 0.5)
+    g.plate(lambda u, v: pc + V((u - 0.5) * 0.12 * w, (v - 0.5) * 0.12, (math.sin(u * math.pi) * math.sin(v * math.pi)) * 0.012), 5, 5, tuple(c * 0.7 for c in col), "linen", lab)
+
+
+WRETCH_T = {
+    "stomach/stomach-pregnant-decr": 1.0, "cheek/{s}-cheek-volume-decr": 1.0, "cheek/{s}-cheek-bones-incr": 0.8, "eyes/{s}-eye-bag-incr": 1.0,
+    "eyes/{s}-eye-push1-in": 0.6, "torso/torso-muscle-pectoral-decr": 1.0, "torso/torso-muscle-dorsi-decr": 1.0,
+    "arms/{s}-upperarm-fat-decr": 1.0, "arms/{s}-lowerarm-fat-decr": 1.0, "arms/{s}-upperarm-muscle-decr": 0.7,
+    "legs/{s}-upperleg-fat-decr": 1.0, "legs/{s}-lowerleg-fat-decr": 1.0, "legs/{s}-lowerleg-muscle-decr": 0.6, "neck/neck-scale-horiz-decr": 0.8, "head/head-fat-decr": 1.0,
+    "mouth/mouth-upperlip-volume-decr": 1.0, "mouth/mouth-lowerlip-volume-decr": 1.0, "mouth/mouth-angles-down": 0.7, "mouth/mouth-scale-horiz-incr": 0.4,
+    "nose/nose-flaring-decr": 0.7, "nose/nose-compression-compress": 0.6, "nose/nose-point-down": 0.4, "chin/chin-bones-incr": 0.6, "cheek/{s}-cheek-inner-incr": 0.5,
+    "feet/{s}-foot-scale-vert-decr": 0.5, "hands/{s}-hand-fingers-length-incr": 0.8, "hands/{s}-hand-fingers-diameter-decr": 1.0,
+}
+
+
 def wretch():
     """A starved scavenger bent under what it carries: bare grey skin over ribs, a loin of rags and wrappings, a hairless
     skull with coals sunk in it, a stuffed sack hung from straps that cut into the shoulders, a gaff in its fist."""
     g = Geo()
-    SKIN, RAG, SACK, BELT = (0.46, 0.46, 0.43), (0.17, 0.13, 0.1), (0.5, 0.43, 0.3), (0.1, 0.075, 0.06)
-    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=12000)
+    SKIN, RAG, SACK, BELT = (0.4, 0.34, 0.31), (0.17, 0.13, 0.1), (0.5, 0.43, 0.3), (0.1, 0.075, 0.06)
+    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=3800, hunch=1.0, targets=WRETCH_T, eye_r=0.011, skull=0.9, keep=("head", "hand_l", "hand_r"), claws=True)
+    if os.environ.get('BODYONLY'):
+        return g.to_object('body'), []
     wraps(g, b, ("knee_",), 0.07, 0.3, RAG)
     wraps(g, b, ("elbow_", "hand_"), 0.8, 0.92, RAG, seed=2)
-    g.robe([(0.98, 0.16, 0.12, 0.0), (0.9, 0.17, 0.13, 0.0), (0.7, 0.2, 0.16, 0.0), (0.56, 0.21, 0.17, 0.0)], RAG, "wool", B.waist_split(0.9), n=48, pleats=8, pleat_amp=0.1, tatter=0.14)
-    g.ring_band(0.93, 0.99, 0.162, 0.122, 0.0, BELT, "leather", "pelvis", n=40)
+    g.robe([(0.98, 0.16, 0.12, 0.0), (0.9, 0.17, 0.13, 0.0), (0.7, 0.2, 0.16, 0.0), (0.56, 0.21, 0.17, 0.0)], RAG, "wool", B.waist_split(0.9), n=30, pleats=8, pleat_amp=0.1, tatter=0.14)
+    g.ring_band(0.95, 0.985, 0.162, 0.122, 0.0, (0.24, 0.16, 0.1), "leather", "pelvis", n=40)
+    g.box(V(0.0, 0.968, -0.128), (0.026, 0.024, 0.008), (0.34, 0.31, 0.28), "iron", "pelvis")
+    g.box(V(0.0, 0.968, -0.134), (0.015, 0.014, 0.004), (0.18, 0.14, 0.1), "leather", "pelvis")
     for sx in (-1, 1):
         t = side(sx)
         g.lathe([(0.03, 0.0), (0.033, 0.03), (0.03, 0.06)], V(sx * 0.24, 0.82, 0.0), RAG, "wool", "elbow_" + t, n=10)
-    S = V(0.0, 1.24, 0.24)
-    g.ball(S, 0.22, SACK, "linen", "chest", n=12, sx=1.05, sy=1.2, sz=0.75)
-    g.lathe([(0.08, 0.0), (0.05, 0.05), (0.08, 0.12)], S + V(0, 0.25, -0.02), SACK, "linen", "chest", n=12)
-    g.tube([S + V(-0.05, 0.3, 0.0), S + V(-0.12, 0.62, 0.05)], 0.018, (0.3, 0.22, 0.14), "wood", "chest", n=6)
-    g.tube([S + V(0.06, 0.28, 0.0), S + V(0.14, 0.52, 0.02)], 0.014, (0.3, 0.22, 0.14), "wood", "chest", n=6)
-    g.ball(S + V(0.14, 0.05, 0.14), 0.07, (0.18, 0.16, 0.15), "iron", "chest", n=8)
+    S = V(0.0, 1.42, 0.2)
+    sack(g, S, 0.5, 0.27, 0.2, SACK, BELT, seed=1.7, neck=0.05, lean=0.05)
+    for sx, y0, a in ((-1, 0.2, 0.0), (1, 0.18, 0.5)):                     # things tied on: a dented pot, a bundle of sticks
+        pass
+    for sx, ln, r0, ph in ((-0.1, 0.52, 0.017, 0.0), (0.06, 0.44, 0.014, 2.0)):          # gnarled, tapering, barked sticks
+        ys = np.linspace(0.0, ln, 9)
+        pts = [S + V(sx + 0.06 * (y / ln) * (1 if sx < 0 else -0.5) + 0.008 * math.sin(y * 17 + ph), 0.02 + y, -0.02 + 0.012 * math.sin(y * 11 + ph)) for y in ys]
+        g.tube(pts, [r0 * (1.0 - 0.55 * (y / ln)) * (1.0 + 0.25 * max(0.0, math.sin(y * 23 + ph))) for y in ys], (0.26, 0.2, 0.14), "wood", "chest", n=8)
+    g.lathe([(0.0, 0.0), (0.075, 0.0), (0.09, 0.07), (0.085, 0.13), (0.075, 0.13), (0.07, 0.09), (0.0, 0.01)], S + V(0.2, -0.32, 0.17), (0.2, 0.18, 0.17), "iron", "chest", n=14)
     for sx in (-1, 1):
-        strap(g, [V(sx * 0.11, 1.5, -0.1), V(sx * 0.13, 1.4, -0.13), V(sx * 0.12, 1.16, -0.12), V(sx * 0.14, 1.05, 0.0), V(sx * 0.13, 1.14, 0.17)], BELT)
-    rags(g, b, RAG, (0.6, 0.55, 0.44), BELT)
+        strap(g, [V(sx * 0.11, 1.5, -0.1), V(sx * 0.13, 1.4, -0.13), V(sx * 0.12, 1.16, -0.12), V(sx * 0.14, 1.05, 0.0), V(sx * 0.13, 1.14, 0.17)], (0.26, 0.17, 0.11), w=0.024, thick=0.011)
+    rags(g, b, RAG, (0.6, 0.55, 0.44), BELT, vest=None, v1=int(os.environ.get('WV1', '98')), nu=34, nv=14)
+    hd = np.array([q for i, q in enumerate(b.P) if b.L[i] == "head"])         # the rag is knotted at the back of the skull, its ends hanging
+    kn = V(0.0, float(hd[:, 1].max()) - 0.045, float(hd[:, 2].max()) - 0.005)
+    g.ball(kn, 0.02, (0.6, 0.55, 0.44), "linen", "head", n=6, sx=1.2, sy=0.9, sz=1.0)
+    for sx_, ln in ((-1, 0.13), (1, 0.09)):
+        g.tube([kn, kn + V(sx_ * 0.02, -0.04, 0.03), kn + V(sx_ * 0.035, -0.09, 0.045), kn + V(sx_ * 0.04, -ln, 0.04)], [0.011, 0.012, 0.01, 0.004], (0.6, 0.55, 0.44), "linen", "head", n=5, flat=0.3)
     gf = Geo()
-    gf.tube([V(0, -0.5, -0.03), V(0, 0.9, -0.03)], 0.016, (0.28, 0.2, 0.13), "wood", "hand_r", n=8)
-    gf.tube([V(0, 0.9, -0.03), V(0, 1.0, -0.06), V(0, 1.02, -0.14), V(0, 0.96, -0.2), V(0, 0.9, -0.19)], [0.014, 0.012, 0.01, 0.008, 0.002], (0.35, 0.33, 0.32), "iron", "hand_r", n=8)
+    WOOD, IRON, WRAP = (0.28, 0.2, 0.13), (0.32, 0.3, 0.29), (0.2, 0.16, 0.12)
+    # a gnarled staff: a lean S through its length, swelling at the knots, thin at the foot, an iron-shod tip
+    ys = np.linspace(-0.62, 0.92, 15)
+    path = [V(0.012 * math.sin(y * 4.2), y, -0.03 + 0.01 * math.sin(y * 3.1 + 1.0)) for y in ys]
+    rad = [0.011 + 0.0045 * (1.0 + math.sin(y * 9.0 + 2.0)) * 0.5 + 0.004 * max(0.0, math.sin(y * 3.7)) for y in ys]
+    rad[0], rad[1] = 0.008, 0.0095
+    gf.tube(path, rad, WOOD, "wood", "hand_r", n=8)
+    gf.lathe([(0.0, -0.69), (0.012, -0.66), (0.0145, -0.60), (0.0135, -0.57)], V(path[0][0], 0.0, path[0][2]), IRON, "iron", "hand_r", n=8)
+    for y in (0.0, 0.07, 0.14):                                          # the grip: cord wound three turns
+        gf.lathe([(0.0145, y), (0.0165, y + 0.012), (0.0145, y + 0.024)], V(0.012 * math.sin(y * 4.2), 0.0, -0.03), WRAP, "leather", "hand_r", n=8)
+    # the gaff: a forged hook, flat in section, tapering to a barbed point, lashed to the head
+    hk = [V(0.0, 0.88, -0.03), V(0.0, 0.97, -0.034), V(0.0, 1.04, -0.065), V(0.0, 1.05, -0.115), V(0.0, 1.0, -0.15), V(0.0, 0.955, -0.14)]
+    gf.tube(hk, [0.014, 0.0125, 0.0105, 0.0085, 0.0055, 0.0015], IRON, "iron", "hand_r", n=8, flat=0.55)
+    gf.tube([V(0.0, 0.93, -0.034), V(0.0, 0.915, -0.036), V(0.0, 0.90, -0.034)], 0.0185, WRAP, "leather", "hand_r", n=8)
+    gf.tube([V(0.0, 0.89, -0.03), V(-0.025, 0.84, -0.02), V(-0.04, 0.74, -0.01)], 0.0035, WRAP, "leather", "hand_r", n=4)       # frayed tie-ends
     return g.to_object("body"), [gf.to_object("staff_hand_r")]
 
 
@@ -1002,8 +1146,8 @@ def husk():
     a sacking cowl with two coals in it, a coffin lid strapped on the back."""
     g = Geo()
     COAT, SACK, SKIN, LID, BELT = (0.2, 0.15, 0.11), (0.36, 0.3, 0.22), (0.42, 0.36, 0.32), (0.22, 0.16, 0.11), (0.12, 0.09, 0.07)
-    b = human(g, SKIN, (1.0, 0.5, 0.15, 0.0), macro={"gender": 1.0, "age": 0.7, "muscle": 0.7, "weight": 1.0, "proportions": 0.2}, girth=1.12, limb=1.08, head=1.0)
-    O = coat(g, b, COAT, y_top=1.47, y_hem=0.38, flare=0.1, seed=0.9, tatter=0.06)
+    b = human(g, SKIN, (1.0, 0.5, 0.15, 0.0), macro={"gender": 1.0, "age": 0.7, "muscle": 0.7, "weight": 1.0, "proportions": 0.2}, girth=1.12, limb=1.08, head=1.0, tris=7200)
+    O = coat(g, b, COAT, mat="wool", y_top=1.47, y_hem=0.38, flare=0.1, seed=0.9, tatter=0.06, nu=54, nv=18)
     def front_z(y):
         near = O[(np.abs(O[:, 1] - y) < 0.03) & (np.abs(O[:, 0]) < 0.04)]
         return float(near[:, 2].min()) if len(near) else -0.3
@@ -1017,14 +1161,31 @@ def husk():
         z = front_z(y) - 0.008
         g.tube([V(-0.05, y, z), V(0.05, y + 0.01, z)], 0.007, (0.1, 0.08, 0.06), "leather", "chest", n=4)
     for sx in (-1, 1):
-        sleeve(g, b, sx, COAT, BELT, flare=0.02, mat="leather")
-    hood(g, SACK, eye=(1.0, 0.5, 0.15, 0.0), low=1.5, face_y=1.66, eye_r=0.017, open_=48)
-    def lid(u, v):
-        w = 0.26 * (1.0 - 0.35 * abs(v - 0.7))
-        return V((u - 0.5) * 2.0 * w, 0.75 + 0.95 * v, 0.36 + 0.03 * math.sin(u * math.pi))
-    g.plate(lid, 5, 7, LID, "wood", "chest")
-    g.tube([V(-0.12, 1.4, 0.39), V(0.12, 1.4, 0.39)], 0.014, (0.45, 0.4, 0.38), "iron", "chest", n=5)
-    g.tube([V(0.0, 1.27, 0.39), V(0.0, 1.55, 0.39)], 0.014, (0.45, 0.4, 0.38), "iron", "chest", n=5)
+        sleeve(g, b, sx, COAT, BELT, flare=0.02, mat="wool", y_top=1.38)
+    shawl(g, b, tuple(c * 0.8 for c in COAT), y_low=1.17, gap=(math.radians(-14), math.radians(22)), seed=1.1, tatter=0.04, flare=0.03, nu=44, nv=13, v0=42)       # a yoke over the shoulders: sloped, not boxed
+    cowl(g, b, SACK, peak=0.0, open_w=0.078, open_h=0.105, shade=False, mat="wool", seed=0.9)
+    # the coffin lid strapped on the back: six boards (each a flat bevelled slab, edge-to-edge, a little warped), a tapering
+    # hexagon, a rim of iron, two straps with buckles and nail heads
+    LIDC = {0: (0.0, 0.0)}
+    for k in range(6):
+        u0, u1 = k / 6.0, (k + 1) / 6.0
+        uc = (u0 + u1) * 0.5 * 2.0 - 1.0                      # -1..1 across
+        def wid(v):
+            return 0.27 * (1.0 - 0.38 * abs(v - 0.68))
+        pts = []
+        for v in np.linspace(0.0, 1.0, 9):
+            w = wid(v)
+            pts.append(V(uc * w, 0.72 + 0.98 * v, 0.355 + 0.035 * (1.0 - uc * uc) + 0.004 * math.sin(v * 5.0 + k)))
+        g.tube(pts, [wid(v) / 6.0 * 0.98 for v in np.linspace(0.0, 1.0, 9)], tuple(c * (0.85 + 0.1 * ((k * 37) % 5) / 5) for c in LID), "wood", "chest", n=5, flat=0.16)
+    for v0 in (0.2, 0.64):
+        w = wid(v0)
+        g.tube([V(-w, 0.72 + 0.98 * v0, 0.4), V(0.0, 0.72 + 0.98 * v0, 0.405), V(w, 0.72 + 0.98 * v0, 0.4)], 0.016, (0.3, 0.28, 0.27), "iron", "chest", n=6, flat=0.3)
+        for sx in (-0.7, -0.35, 0.0, 0.35, 0.7):
+            g.ball(V(sx * w, 0.72 + 0.98 * v0, 0.412), 0.009, (0.35, 0.33, 0.32), "iron", "chest", n=5)
+    for sx in (-1, 1):                                                   # iron along each long edge
+        g.tube([V(sx * wid(v) * 1.0, 0.72 + 0.98 * v, 0.355) for v in np.linspace(0.0, 1.0, 9)], 0.009, (0.28, 0.26, 0.25), "iron", "chest", n=5, flat=0.8)
+    for sy in (1.33, 1.1):                                               # the straps round to the shoulders and hips
+        g.tube([V(-0.2, sy, 0.34), V(-0.2, sy + 0.0, 0.0), V(-0.19, sy, -0.12)], 0.012, BELT, "leather", "chest", n=5, flat=0.3) if False else None
     return g.to_object("body"), []
 
 
@@ -1751,6 +1912,11 @@ def thornwarden():
     return g.to_object("body"), [], S
 
 
+import anat_hunger
+SKIN_L, LEATHER_L = 10, 3                                              # bake_kind.LAYERS indices
+HOOKS = {} if os.environ.get("NOHOOK") else {
+    "wretch": lambda P, N, lay: anat_hunger.field(P, N, lay == SKIN_L),
+    "husk": lambda P, N, lay: anat_hunger.folds(P, N, (lay == 0) & (P[:, 1] < 1.45) & (P[:, 1] > 0.3), amp=0.9)}
 KINDS = {"wretch": wretch, "husk": husk, "chanter": chanter, "tollman": tollman, "pilgrim": pilgrim, "gaunt": gaunt, "quiller": quiller,
          "ossuant": ossuant, "bulwark": bulwark, "spitter": spitter, "cinder_caster": cinder_caster,
          "crawler": crawler, "mite": mite, "burrower": burrower, "leaper": leaper}
@@ -1807,9 +1973,14 @@ def build_kind(kind):
     body, held = out[0], out[1]
     sock = out[2] if len(out) > 2 else SOCK
     soften(body)
+    if "--keepnormals" not in ARGS:     # sheets laid by shrink() can carry mixed winding; the bake casts rays along them
+        import bmesh
+        bm = bmesh.new(); bm.from_mesh(body.data)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        bm.to_mesh(body.data); bm.free()
     if "--bake" in ARGS:                                                  # the finished way: a high copy baked into four maps
         import bake_kind
-        bake_kind.bake(body, kind, size=int(arg("--size", "2048")), extras=held)
+        bake_kind.bake(body, kind, size=int(arg("--size", "2048")), extras=held, hook=HOOKS.get(kind))
     arm = armature(sock)
     body.parent = arm
     md = body.modifiers.new("Armature", 'ARMATURE')

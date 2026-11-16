@@ -44,9 +44,10 @@ import marks  # noqa: E402,F401
 import lore  # noqa: E402,F401
 import gloom_hud  # noqa: E402,F401
 import keys  # noqa: E402,F401
+import trail  # noqa: E402,F401
 
 OUT = os.path.join(HERE, "..", "ui", "icons")
-RGBA_SIZE = {"key": 128}       ## the control prompts' caps draw larger than a map mark: stored at 128 px
+RGBA_SIZE = {"key": 128, "trail": 128}       ## the control prompts' caps and the trail's ground marks draw larger than a map mark: stored at 128 px
 
 
 def main():

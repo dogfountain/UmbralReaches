@@ -22,6 +22,7 @@ signal boss_slain(id: String)
 signal item_gained(id: String, amount: int, total: int)
 signal gloom_tide(active: bool)                         ## encounters: the Gloom tide rises (true) / breaks or recedes (false)
 signal quest_changed(id: String, step: int, done: bool)       ## story: a task started, moved on or was done (core/story/quest_book.gd)
+signal quest_tracked(id: String)                               ## story: the ledger's Track picked the task the HUD follows ("" = the default, "main" = the story)
 # r33 world: zone discovery, the Ember Road (fire travel) and world events (core/world/...).
 signal region_discovered(id: String, kind: String)            ## first entry ever: kind "region" (RealmLayout id) or "subzone" (id "sub_<spot>"); reward/XP hook
 signal fire_travelled(from_fire: String, to_fire: String)      ## the Ember Road carried the wanderer between two lit fires (brazier node names)

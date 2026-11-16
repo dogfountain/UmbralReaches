@@ -17,7 +17,7 @@ const HEIGHT := 46.0
 const STRIP_Y := 4.0                     ## the strip's top in the control
 const STRIP_H := 38.0
 const Forge := preload("res://ui/hud_forge.gd")
-const Guide := preload("res://core/story/guide.gd")
+const QuestTrack := preload("res://core/story/quest_track.gd")
 const BRAZIER_R := 110.0                 ## braziers farther than this are not shown
 const MAX_BRAZIERS := 4
 const DIST_PT := 19
@@ -74,14 +74,14 @@ func _rescan() -> void:
 		if not is_instance_valid(b) or b.is_queued_for_deletion() or not ("anchor" in b):
 			continue
 		_marks.append({"pos": b.get("anchor"), "col": _beacon_col(b), "kind": "beacon"})
-	# the guide's next step (core/story/guide.gd): its own painted mark, first on the strip, its distance always shown
-	var g := get_tree().get_first_node_in_group("guide") as Guide
-	var st: Dictionary = g.step() if g != null else {}
+	# the tracked task's step (core/story/quest_track.gd): its own painted mark, first on the strip, its distance always shown
+	var tr := get_tree().get_first_node_in_group("quest_track") as QuestTrack
+	var st: Dictionary = tr.current() if tr != null else {}
 	if st.get("target", Vector3.INF) != Vector3.INF:
 		var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 		var tg: Vector3 = st.target
 		var flat := Vector2(tg.x - pl.global_position.x, tg.z - pl.global_position.z).length() if pl else -1.0
-		_marks.append({"pos": tg, "col": LANTERN, "kind": "goal", "art": String(st.get("art", "quest_target")), "flat": flat})
+		_marks.append({"pos": tg, "col": LANTERN, "kind": "goal", "art": String(st.get("art", "followed")), "flat": flat})
 	var braz: Array = []
 	for n in get_tree().get_nodes_in_group(Groups.BRAZIER):
 		var b3 := n as Node3D
@@ -203,7 +203,7 @@ func _draw_distances(labels: Array, y: float) -> void:
 	var best: Array = labels[0]
 	for l: Array in labels:
 		if l.size() > 4:
-			best = l                                # the guide's step: its distance is the one that matters
+			best = l                                # the tracked step: its distance is the one that matters
 			break
 		if absf(float(l[1]) - WIDTH * 0.5) < absf(float(best[1]) - WIDTH * 0.5):
 			best = l

@@ -24,6 +24,8 @@ const QuestRunner := preload("res://core/story/quest_runner.gd")
 const QuestMarkers := preload("res://core/story/quest_markers.gd")
 const QuestOfferUI := preload("res://ui/quest_offer.gd")
 const Guide := preload("res://core/story/guide.gd")
+const QuestTrack := preload("res://core/story/quest_track.gd")
+const QuestTrail := preload("res://core/story/quest_trail.gd")
 const GuideLines := preload("res://core/story/guide_lines.gd")
 const Hints := preload("res://ui/hints.gd")
 
@@ -34,7 +36,9 @@ var log_ui: CanvasLayer           ## the tasks' banner and ledger (ui/quest_log.
 var offer_ui: CanvasLayer         ## r33: the accept / turn-in screens (ui/quest_offer.gd)
 var runner: Node                  ## r33: counts kills, seals, places for the tasks (quest_runner.gd)
 var markers: Node3D               ## r33: the marks over the givers' heads, the map pins (quest_markers.gd)
-var guide: Guide                  ## a new player's way through the first act (guide.gd): the waypoint, the next step
+var guide: Guide                  ## a new player's way through the first act (guide.gd): the lessons, the next step's banner and place
+var track: Node                   ## the tracked task and where its step is (quest_track.gd): what the waypoint, compass, objective line and trail follow
+var trail: Node3D                 ## the marks on the way to it (quest_trail.gd)
 var _quest_after := ""            ## "offer:id" / "turnin:id" chosen in a conversation
 var _conv := ""
 var _node := ""
@@ -64,6 +68,10 @@ func _ready() -> void:
 	add_child(markers)
 	guide = Guide.new()
 	add_child(guide)
+	track = QuestTrack.new()
+	add_child(track)
+	trail = QuestTrail.new()
+	add_child(trail)
 	ui.advanced.connect(_on_advanced)
 	ui.chosen.connect(_on_chosen)
 	ui.closed.connect(_on_closed)
@@ -174,9 +182,10 @@ func world() -> Dictionary:
 		"bosses": Travel.bosses_slain, "items": Travel.items}
 
 
-## The HUD's lines: the story's spine (at most 3), then the newest tracked tasks (3, each with its
-## name and count: QuestBook.lines), then the kindling; seven at most (r33).
-## Before the keep has spoken, only the tutorial spine line shows — no side noise at spawn.
+## The HUD's lines: what is tracked (docs/quest_trail.md). The story's way (the default while the guide is on, or when
+## picked in the ledger): the spine (at most 2) and the kindling. A task picked (or the newest): its one block, with
+## its name and count (QuestBook.lines). Before the keep has spoken, only the tutorial spine line shows: no side noise
+## at spawn.
 func objectives() -> Array:
 	var ws := world()
 	var all := QuestDB.active(ws, 9)
@@ -186,7 +195,9 @@ func objectives() -> Array:
 			out.append(o)
 	if not QuestDB.test("flag:met_keep", ws):
 		return out.slice(0, 1)
-	out.append_array(QuestBook.lines(1))
+	var task := QuestBook.lines(1)
+	if not task.is_empty():
+		return task
 	for o2: Dictionary in all:
 		if not bool(o2.main) and out.size() < 3:
 			out.append(o2)

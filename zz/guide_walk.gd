@@ -84,6 +84,26 @@ func _screen() -> String:
 		for e in get_tree().get_nodes_in_group(Groups.ENEMY):
 			if e is Node3D and (e as Node3D).global_position.distance_to(pl.global_position) < 24.0:
 				bits.append("foe24=%s@%s" % [e.name, (e as Node3D).global_position.round()])
+	if td:
+		bits.append("fight=%s" % str(td.call("in_combat")))
+	var st := get_tree().root.find_child("Story", true, false)
+	var tr: Variant = st.get("trail") if st else null
+	if tr is Node:
+		var shown := 0
+		var cam := get_viewport().get_camera_3d()
+		var at: Array[String] = []
+		for d: Decal in (tr as Node).get("_decals") as Array[Decal]:
+			if d.visible and d.modulate.a > 0.05:
+				shown += 1
+				var front := cam != null and not cam.is_position_behind(d.global_position)
+				var dist := cam.global_position.distance_to(d.global_position) if cam else -1.0
+				var gy := RealmLayout.ground(d.get_world_3d().direct_space_state, d.global_position.x, d.global_position.z)
+				at.append("%s y%.2f ground%.2f %.0fm %s" % [d.global_position.round(), d.global_position.y, gy, dist, "in-view" if front and cam.is_position_in_frustum(d.global_position) else "off-view"])
+		if not at.is_empty():
+			bits.append("marks=%s" % ", ".join(at))
+		bits.append("trail=hidden:%s route:%d shown:%d" % [str(tr.get("_hidden")), (tr.get("_rp") as PackedVector2Array).size(), shown])
+	else:
+		bits.append("trail=none")
 	if hud:
 		var pr := hud.get("_prompt") as Label
 		var row := hud.get("_prompt_row") as Control
