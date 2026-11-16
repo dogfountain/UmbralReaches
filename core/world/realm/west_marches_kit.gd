@@ -24,6 +24,8 @@ static func release() -> void:
 static func mat(set_name: String) -> StandardMaterial3D:
 	if _mats.has(set_name):
 		return _mats[set_name]
+	if set_name != "stone" and not ResourceLoader.exists(T + "r37_%s_albedo.png" % set_name):
+		return mat("stone")                   # a prop's set with no tiling textures of its own (a water plane): stone
 	var m := StandardMaterial3D.new()
 	var base := T + "r37_%s_" % set_name
 	m.albedo_texture = load(base + "albedo.png")

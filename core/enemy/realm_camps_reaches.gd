@@ -16,7 +16,7 @@ const CAMPS: Array[Dictionary] = [
 	# --- the Greyfell (tier 4): the Order's western keep, its garrison never stood down. Stone-bound bulwarks hold
 	# the gate where fell_track climbs to the crag, the bailey and the scree are lairs, a watch walks the fell.
 	{"name": "the keep's gate", "at": Vector3(-326.0, 60.0, -70.0), "kinds": ["bulwark@stonebound", "bulwark@stonebound", "chanter", "husk@stonebound"], "probe": 0.0, "r": 2.8},      # on the keep's terrace (a site of the keep itself)
-	{"name": "the keep's west bailey", "at": Vector3(-336.0, 60.0, -78.0), "kinds": ["husk@stonebound", "leaper@stonebound", "quiller", "husk"], "probe": 0.0},
+	{"name": "the keep's west bailey", "at": Vector3(-342.0, 60.0, -90.0), "kinds": ["husk@stonebound", "leaper@stonebound", "quiller", "husk"], "probe": 0.0},
 	{"name": "the scree east of the crag", "at": Vector3(-276.0, 60.0, -96.0), "kinds": ["leaper@stonebound", "leaper@stonebound", "gaunt"], "probe": 0.0, "r": 3.0},
 	{"name": "the fell watch", "at": Vector3(-298.0, 60.0, -86.0), "kinds": ["husk@stonebound", "bulwark@stonebound", "husk@stonebound"], "probe": 0.0,
 		"patrol": [Vector2(-298, -86), Vector2(-282, -84), Vector2(-276, -70), Vector2(-294, -72)]},
