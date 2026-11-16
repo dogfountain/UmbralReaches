@@ -696,10 +696,10 @@ def hierarch():
     bd = GB.human(g, PALE, (1.0, 0.55, 0.2, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.5, "weight": 0.9, "proportions": 0.4},
                   girth=1.15, head=1.7, mat="stone", shoulder_y=1.5)
     robe = [(1.5, 0.2, 0.15, 0.0), (1.3, 0.22, 0.17, 0.0), (1.05, 0.21, 0.17, 0.0), (0.8, 0.27, 0.23, 0.0), (0.45, 0.36, 0.32, 0.01), (0.1, 0.43, 0.39, 0.02), (0.0, 0.45, 0.41, 0.02)]
-    g.robe(robe, STONE, "stone", lab, n=96, pleats=12, pleat_amp=0.06, pleat_from=1.0)
+    g.robe(robe, STONE, "stone", lab, n=128, pleats=16, pleat_amp=0.1, pleat_from=1.1)
     g.ring_band(0.04, 0.14, 0.452, 0.412, 0.02, GILT, "trim", "pelvis", n=96)
     cope = [(1.6, 0.26, 0.2, 0.03), (1.5, 0.36, 0.25, 0.03), (1.3, 0.42, 0.31, 0.04), (0.9, 0.5, 0.4, 0.05), (0.45, 0.6, 0.5, 0.06), (0.06, 0.67, 0.57, 0.07)]
-    Pc = g.robe(cope, PALE, "stone", lab, n=96, t0=math.radians(48), t1=TAU - math.radians(48), pleats=8, pleat_amp=0.11, pleat_from=1.4, tatter=0.06)
+    Pc = g.robe(cope, PALE, "stone", lab, n=128, t0=math.radians(48), t1=TAU - math.radians(48), pleats=11, pleat_amp=0.17, pleat_from=1.5, tatter=0.1)
     for edge in (0, -1):
         g.band([row[edge] for row in Pc], 0.1, GILT, "trim", lab, out=0.008, up=[V(0.6 * (1 if edge == 0 else -1), 0, -0.8)] * len(Pc))
     for k in range(5):                                                    # moss in the folds near the ground
