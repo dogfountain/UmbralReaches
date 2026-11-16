@@ -17,6 +17,7 @@ const BOSSES := {"thornwarden": "res://core/enemy/thornwarden.gd", "bone_abbot":
 const KINDS := ["wretch", "husk", "spitter", "ossuant", "leaper", "crawler"]
 
 const FloraFight := preload("res://core/world/realm/flora_fight.gd")
+const RenderCensus := preload("res://core/debug/render_census.gd")
 var main: Node
 var p: Player
 var t := 0
@@ -404,6 +405,10 @@ func _run() -> void:
 		print("FIGHT HUD redraws: %d over %d frames (%.1f a frame), %d items drew at all" % [total, _frames_ms.size(), float(total) / maxf(float(_frames_ms.size()), 1.0), keys.size()])
 		for k: String in keys.slice(0, 24):
 			print("FIGHT HUD redraw %5.2f a frame  %s" % [float(draws[k]) / maxf(float(_frames_ms.size()), 1.0), k])
+	if "--render-census" in OS.get_cmdline_user_args():
+		await RenderCensus.run(get_tree())
+		if "--mm-list" in OS.get_cmdline_user_args():
+			_mm_list()
 	if "--parts-ab" in OS.get_cmdline_user_args():
 		await _parts_ab()
 		get_tree().quit()
@@ -707,11 +712,29 @@ func _parts_ab() -> void:
 		["sun shadows off", func(on: bool) -> void: sun.shadow_enabled = not on],
 		["omni/spot lights hidden", func(on: bool) -> void: _toggle_class("Light3D", on, [sun])],
 		["particles hidden", func(on: bool) -> void: _toggle_class("GPUParticles3D", on, [])],
+		["particles out of view hidden", func(on: bool) -> void: _toggle_class("GPUParticles3D", on, [], func(q: GPUParticles3D) -> bool: return not cam.is_position_in_frustum(q.global_position))],
+		["particles past 60 m hidden", func(on: bool) -> void: _toggle_class("GPUParticles3D", on, [], func(q: GPUParticles3D) -> bool: return q.global_position.distance_to(cam.global_position) > 60.0)],
+		["lights past 40 m hidden", func(on: bool) -> void: _toggle_class("Light3D", on, [sun], func(q: Light3D) -> bool: return not q is DirectionalLight3D and q.global_position.distance_to(cam.global_position) > 40.0)],
+		["spot lights hidden", func(on: bool) -> void: _toggle_class("SpotLight3D", on, [])],
+		["depth prepass off", func(on: bool) -> void: ProjectSettings.set_setting("rendering/driver/depth_prepass/enable", not on)],
+		["clear fade rects drawn", func(on: bool) -> void:
+			for c in get_tree().root.find_children("*", "ColorRect", true, false):
+				var r := c as ColorRect
+				if r.color.a == 0.0 and r.size.x >= get_viewport().get_visible_rect().size.x * 0.99 and r.get_parent() is CanvasItem and (r.get_parent() as CanvasItem).is_visible_in_tree():
+					r.visible = on],
 		["multimeshes hidden", func(on: bool) -> void: _toggle_class("MultiMeshInstance3D", on, [])],
 		["volumetric fog off", func(on: bool) -> void: env.volumetric_fog_enabled = not on],
+		["fog volumes hidden", func(on: bool) -> void: _toggle_class("FogVolume", on, [])],
+		["fog: local lights' share 0", func(on: bool) -> void: _fog_energy(on, false)],
+		["fog: moon's share 0", func(on: bool) -> void: _fog_energy(on, true)],
+		["fog filter off", func(on: bool) -> void: RenderingServer.environment_set_volumetric_fog_filter_active(not on)],
+		["fog temporal off", func(on: bool) -> void: env.volumetric_fog_temporal_reprojection_enabled = not on],
+		["fog volume 12x6", func(on: bool) -> void: RenderingServer.environment_set_volumetric_fog_volume_size(12 if on else 24, 6 if on else 12)],
 		["SSR off", func(on: bool) -> void: env.ssr_enabled = not on],
 		["glow off", func(on: bool) -> void: env.glow_enabled = not on],
 		["HUD hidden", func(on: bool) -> void: hud.visible = not on],
+		["every canvas layer hidden", func(on: bool) -> void: _toggle_class("CanvasLayer", on, [])],
+		["sky as plain colour", func(on: bool) -> void: env.background_mode = Environment.BG_COLOR if on else Environment.BG_SKY],
 		["grade hidden", func(on: bool) -> void: grade.visible = not on],
 		["motion blur off", func(on: bool) -> void: cam.compositor = null if on else _comp0],
 		["foes frozen", func(on: bool) -> void: _freeze(_near_foes(), on)],
@@ -747,6 +770,8 @@ func _parts_ab() -> void:
 		if a.begins_with("--tests="):
 			only = a.trim_prefix("--tests=").split(",")
 	print("FIGHT AB %-26s %s" % ["(ms a frame: off - on)", "  ".join(SEG.slice(0, 8).map(func(k: String) -> String: return "%11s" % k.left(11)))])
+	if "--gpu-ab" in OS.get_cmdline_user_args():
+		await RenderCensus.gpu_passes(get_tree())
 	for tst: Array in tests:
 		var keep := only.is_empty()
 		for o in only:
@@ -755,6 +780,9 @@ func _parts_ab() -> void:
 		if not keep:
 			continue
 		var f: Callable = tst[1]
+		if "--gpu-ab" in OS.get_cmdline_user_args():
+			await RenderCensus.gpu_ab(get_tree(), tst[0], f)
+			continue
 		var on := PackedFloat32Array()
 		var off := PackedFloat32Array()
 		on.resize(SEG_N)
@@ -848,18 +876,35 @@ func _freeze(nodes: Array, on: bool) -> void:
 		print("FIGHT WORLD   (%d frozen)" % nodes.size())
 
 
-func _toggle_class(cls: String, hide: bool, skip: Array) -> void:
+var _fog_e := {}
+
+
+## Every light's (or only the moon's) share in the volumetric fog set to 0, then set back (measurement only).
+func _fog_energy(on: bool, moon: bool) -> void:
+	if not on:
+		for l: Light3D in _fog_e:
+			if is_instance_valid(l):
+				l.light_volumetric_fog_energy = float(_fog_e[l])
+		_fog_e.clear()
+		return
+	for l: Light3D in get_tree().root.find_children("*", "DirectionalLight3D" if moon else "Light3D", true, false):
+		if (moon or not l is DirectionalLight3D) and l.light_volumetric_fog_energy > 0.0:
+			_fog_e[l] = l.light_volumetric_fog_energy
+			l.light_volumetric_fog_energy = 0.0
+
+
+func _toggle_class(cls: String, hide: bool, skip: Array, only := Callable()) -> void:
 	if hide:
 		_hidden.clear()
-		for n in get_tree().root.find_children("*", cls, true, false):
-			if n in skip or not (n as Node3D).visible:
+		for n: Variant in get_tree().root.find_children("*", cls, true, false):
+			if n in skip or not n.visible or (only.is_valid() and not only.call(n)):
 				continue
-			(n as Node3D).visible = false
+			n.visible = false
 			_hidden.append(n)
 	else:
-		for n in _hidden:
+		for n: Variant in _hidden:
 			if is_instance_valid(n):
-				(n as Node3D).visible = true
+				n.visible = true
 		_hidden.clear()
 
 
