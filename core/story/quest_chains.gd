@@ -45,7 +45,7 @@ const ZONES := [["hearth", "Hearthward"], ["road", "The Pilgrims' Road"], ["thor
 	["downs", "The Southern Downs"], ["oak", "The Grandmother Oak"], ["well", "The Well of Echoes"],
 	R37WQ.ZONES[0], R37WQ.ZONES[1], R37WQ.ZONES[2], R37WQ.ZONES[3],
 	["stillwater", "Stillwater"], ["anchorholds", "The Anchorholds"], ["saltmarket", "Saltmarket"], ["saltpans", "The White Pans"],
-	Towns.ZONES[0], Towns.ZONES[1], Towns.ZONES[2]]
+	Towns.ZONES[0], Towns.ZONES[1], Towns.ZONES[2], FRW.ZONE, FRS.ZONE, FRE.ZONE]
 
 ## Act II's signature tasks, one a country (quest_chains_signature.gd), listed after the east marches' in each table.
 const Sig := preload("res://core/story/quest_chains_signature.gd")
@@ -61,6 +61,9 @@ const R38E := preload("res://core/story/quest_chains_r38_east.gd")
 const R38S := preload("res://core/story/quest_chains_r38_south.gd")
 const R38W := preload("res://core/story/quest_chains_r38_west.gd")
 const Towns := preload("res://core/story/quest_chains_reach_towns.gd")   ## the towns (Reedholm, Fallowmere, Lastlight): the `# --- the towns ---` blocks
+const FRW := preload("res://core/story/quest_chains_far_reaches_west.gd")   ## the three Reaches' threads and side tasks, given by the towns' people: the `# --- the reaches ---` blocks
+const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
+const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 
 const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
 	"hearth_ash", "road_clear", "coal_shrine", "spire_lamps", "alms_loaf",
@@ -87,7 +90,9 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	# --- tales ---
 	"pans_hauler", "pans_pan", "salt_barrel", "bitter_mother", "drover_tally", "long_round", "bryn_iron", "wren_gran",
 	"plinth_lamp", "cutters_pledge", "landing_staves", "moor_niches",
-	"rh_lamps", "fm_tithe", "ll_gate", "ll_oil"]          # --- the towns ---
+	"rh_lamps", "fm_tithe", "ll_gate", "ll_oil",          # --- the towns ---
+	"wr_stand_down", "wr_kings_lamp", "wr_cold_light", "wr_fourth_stone", "wr_tansys_boat", "ds_water_road", "ds_unmade", "ds_witchs_price", "ds_clapper",
+	"er_ringers_candle", "er_nave_fire", "er_halter_bell", "er_inn_slate"]          # --- the reaches ---
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
 const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
@@ -98,7 +103,9 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 	"osk": "Osk the miller", "cassel": "Captain Cassel", "ennis": "Sister Ennis", "tolliver": "Old Tolliver",
 	"dorrit": "Dorrit Marl", "bryn": "Bryn Gale", "wren": "Wren", "gwyn": "Gwyn the ostler",
 	"marl": "Marl Pannick", "teasel": "Teasel Dray", "orrin": "Orrin Vail", "ardel": "Ardel Wick", "pip": "Pip", "nella": "Nella Crake",
-	"corle": "Aud Corle", "penn": "Reeve Penn", "coyle": "Serjeant Coyle", "isolde": "Old Isolde"}      # --- the towns ---
+	"corle": "Aud Corle", "penn": "Reeve Penn", "coyle": "Serjeant Coyle", "isolde": "Old Isolde",      # --- the towns ---
+	"siany": Towns.GIVER_NAMES["siany"], "ebba": Towns.GIVER_NAMES["ebba"], "hobb": Towns.GIVER_NAMES["hobb"], "dilly": Towns.GIVER_NAMES["dilly"], "hesper": Towns.GIVER_NAMES["hesper"],
+	"cobb": Towns.GIVER_NAMES["cobb"], "maudlin": Towns.GIVER_NAMES["maudlin"], "wat": Towns.GIVER_NAMES["wat"], "vell": Towns.GIVER_NAMES["vell"], "fenn": Towns.GIVER_NAMES["fenn"]}      # --- the reaches ---
 
 ## r34: the raids' attunements (WoW's attunement chains, adapted): the last task of each pre-raid
 ## chain, once handed in, loosens the boss's hold (QuestBook.attuned(boss); Travel.story flag
@@ -108,7 +115,8 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 const RARE_IDS := ["old_rook", "brother_chisel", "hennet", "clapper", "old_pippin", "last_pilgrim", "ferryman",
 	"bell_wether", "flint_hound",
 	"drowned_reeve", "moss_mason", "gate_breaker",
-	"salt_widow", "drowned_lamplighter"]
+	"salt_widow", "drowned_lamplighter",
+	"keep_sentry", "lamp_wick", "heron_wife", "tithe_taker", "aqueduct_hound", "cracked_tollman", "cairn_counter"]      # --- the reaches ---
 
 const ATTUNE := {"thornwarden": "keeper_leave", "bone_abbot": "abbot_names", "ascended_warden": "founder_peal"}
 
@@ -794,6 +802,11 @@ const QUESTS := {
 	"cutters_pledge": R38W.QUESTS["cutters_pledge"], "landing_staves": R38W.QUESTS["landing_staves"], "moor_niches": R38W.QUESTS["moor_niches"],
 	# --- the towns ---
 	"rh_lamps": Towns.QUESTS["rh_lamps"], "fm_tithe": Towns.QUESTS["fm_tithe"], "ll_gate": Towns.QUESTS["ll_gate"], "ll_oil": Towns.QUESTS["ll_oil"],
+	# --- the reaches ---
+	"wr_stand_down": FRW.QUESTS["wr_stand_down"], "wr_kings_lamp": FRW.QUESTS["wr_kings_lamp"], "wr_cold_light": FRW.QUESTS["wr_cold_light"], "wr_fourth_stone": FRW.QUESTS["wr_fourth_stone"],
+	"wr_tansys_boat": FRW.QUESTS["wr_tansys_boat"], "ds_water_road": FRS.QUESTS["ds_water_road"], "ds_unmade": FRS.QUESTS["ds_unmade"], "ds_witchs_price": FRS.QUESTS["ds_witchs_price"],
+	"ds_clapper": FRS.QUESTS["ds_clapper"], "er_ringers_candle": FRE.QUESTS["er_ringers_candle"], "er_nave_fire": FRE.QUESTS["er_nave_fire"], "er_halter_bell": FRE.QUESTS["er_halter_bell"],
+	"er_inn_slate": FRE.QUESTS["er_inn_slate"],
 }
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
@@ -925,6 +938,13 @@ const PICKUPS := {
 	# --- the towns ---
 	"rh_tam_lamp": Towns.PICKUPS["rh_tam_lamp"], "fm_tally_a": Towns.PICKUPS["fm_tally_a"], "fm_tally_b": Towns.PICKUPS["fm_tally_b"],
 	"fm_tally_c": Towns.PICKUPS["fm_tally_c"], "fm_tally_place": Towns.PICKUPS["fm_tally_place"],
+	# --- the reaches ---
+	"wr_satchel": FRW.PICKUPS["wr_satchel"], "wr_shrine": FRW.PICKUPS["wr_shrine"], "wr_king_lamp": FRW.PICKUPS["wr_king_lamp"], "wr_king_door": FRW.PICKUPS["wr_king_door"],
+	"wr_cap_a": FRW.PICKUPS["wr_cap_a"], "wr_cap_b": FRW.PICKUPS["wr_cap_b"], "wr_cap_c": FRW.PICKUPS["wr_cap_c"], "wr_cap_punt": FRW.PICKUPS["wr_cap_punt"],
+	"wr_stones": FRW.PICKUPS["wr_stones"], "wr_ledger": FRW.PICKUPS["wr_ledger"], "wr_boat": FRW.PICKUPS["wr_boat"],
+	"ds_keeper_log": FRS.PICKUPS["ds_keeper_log"], "ds_unmade_look": FRS.PICKUPS["ds_unmade_look"], "ds_unmade_turn": FRS.PICKUPS["ds_unmade_turn"], "ds_nail": FRS.PICKUPS["ds_nail"],
+	"ds_witch_door": FRS.PICKUPS["ds_witch_door"], "ds_clapper": FRS.PICKUPS["ds_clapper"], "ds_bell": FRS.PICKUPS["ds_bell"],
+	"er_candle": FRE.PICKUPS["er_candle"], "er_door": FRE.PICKUPS["er_door"], "er_halter": FRE.PICKUPS["er_halter"], "er_tower": FRE.PICKUPS["er_tower"], "er_slate": FRE.PICKUPS["er_slate"],
 }
 
 ## Oswin's walk: from wherever he is to the waystone. He keeps 2-3 m behind you and waits when you

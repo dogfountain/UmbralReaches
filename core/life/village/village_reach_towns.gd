@@ -275,6 +275,8 @@ const CONV := {
 		"hub": {"say_if": [
 			["qd:rh_lamps", "The book has a line in it it never had before. Boats not home by dark: none. I wrote it twice, to see it."],
 			["qat:rh_lamps:1", "The stones, then. Go by the east reeds, not the channel. Don't look at the herons when you take it. They look back."],
+			["qd:wr_stand_down", "The courier's line is closed. Delivered, or as near as makes no difference. I don't ask what became of the order. I only ask that the Greyfell stays kept."],
+			["q:wr_stand_down", "North by the barrow road, then the Lanternwood's ring, then the shrine under the keep. The slip says the ring, not the wood's edge. The edge is hunted."],
 			["", "Eels, pike, reed for the roofs. We'd want for nothing, if wanting was all it took."],
 		], "choices": [
 			{"text": "Why the lamps?", "to": "lamps", "once": true},
@@ -289,6 +291,8 @@ const CONV := {
 		"meet2": {"say": "Hobb. Eels. That's the whole of me, near enough. My brother Tam was the clever one. He's in the book now, under the line for boats not home.", "do": "met:hobb", "next": "hub"},
 		"hub": {"say_if": [
 			["qd:rh_lamps", "You brought his lamp back. I hung it in the loft. It doesn't light. I don't want it to."],
+			["qd:wr_fourth_stone", "The fourth bird's on its stone. I looked twice. I took an oar out to it, and I came home with one."],
+			["q:wr_fourth_stone", "The verse is round the lowest slab's foot. The herons answer in the order it gives. A wrong one turns its head away. They're not cruel. They've had a long time to wait for the right order."],
 			["", "Eels don't care about the sky. They come up the Sorrow same as ever. More of them, if anything. They've been eating well."],
 		], "choices": [
 			{"text": "What happened to Tam?", "to": "tam", "once": true},
@@ -300,6 +304,8 @@ const CONV := {
 		"meet": {"say": "Don't stand between me and the jetty. I count them lit and I count them out, and you're making me lose my place.", "next": "meet2"},
 		"meet2": {"say": "Siany. The lamps are mine since my mam's knees went. Thirty. I could light them blind. Some nights I nearly have to.", "do": "met:siany", "next": "hub"},
 		"hub": {"say_if": [
+			["qd:wr_kings_lamp", "The thirty-first burns at the jetty's end. I light it first. I don't know who I'm lighting it for. I think that is the whole point of it."],
+			["q:wr_kings_lamp", "Up the barrow road, and don't stop to look at the stones. A lamp doesn't care what you found. It only cares how long you took."],
 			["", "If one goes out, you go and light it. You don't wait for morning. Morning's when you find out why you should have."],
 		], "choices": [
 			{"text": "Does anything come up the river?", "to": "river", "once": true},
@@ -323,6 +329,9 @@ const CONV := {
 		"meet2": {"say": "Ebba Sallow. I build the punts and patch the decks. Every board you walked in on, I've had my hands on.", "do": "met:ebba", "next": "hub"},
 		"hub": {"say_if": [
 			["met:tansy", "A pilgrim on the road, you say? Old, looks back at the mountain every ten steps? That's Ansel Tansy. I owe his sister a boat. Tell him it's built. Tell him she never came for it."],
+			["qd:wr_cold_light", "The caps are in the bows. Cold, and not a shadow under them. You won't see the boats from the shore. That's the idea."],
+			["qd:wr_tansys_boat", "Alma Tansy's boat is in the mere with her name on it. I let it go as far as the first reed bed. Somebody will find it who is looking for it."],
+			["q:wr_cold_light", "Wick goes round the ring where the caps grow. Put it down first, or it puts the light out of whatever you cut."],
 			["", "A punt's two planks and a prayer. The prayer's the expensive part."],
 		], "choices": [
 			{"text": "Who owes who a boat?", "to": "boat", "once": true},
@@ -336,6 +345,8 @@ const CONV := {
 		"hub": {"say_if": [
 			["qd:fm_tithe", "The roll's whole. I read it out in the porch last night, every strip and every name in it. Nobody answered. That's as it should be."],
 			["qat:fm_tithe:0", "Three tallies, in the drowned strips south. Notched sticks in clay pots. The things in the fields keep them now. Take them back."],
+			["qd:ds_water_road", "Two fires on the scarp. I watched them till light. Nothing came, and nothing is less than I had. Tell the strips, I thought, and I did."],
+			["q:ds_water_road", "The beacons stand over the hamlet and over the Arches, each in sight of the other. The keeper's log is at the castellum, at the water road's west end. The hound in the channel keeps the door."],
 			["", "Half the strips are fallow. The other half we planted with what the Night left us. You'll have seen the markers."],
 		], "choices": [
 			{"text": "What does the barn hold now?", "to": "barn", "once": true},
@@ -350,6 +361,8 @@ const CONV := {
 		"meet2": {"say": "Hesper Lark. That's my house, that's my husband in the field, that's my girl talking to the scarecrows. The Order's barn is the Reeve's worry. Mine is everything else.", "do": "met:hesper", "next": "hub"},
 		"hub": {"say_if": [
 			["qd:fm_tithe", "Aldous slept last night. First time in a year. Whatever you did, do it again."],
+			["qd:ds_witchs_price", "I won't ask what it was. The door-post sings at night. I have started to sing back."],
+			["q:ds_witchs_price", "The Southwood, past the burners' ruin. Her stone is by a hollow in a fallen oak. Drive the nail yourself, and say one thing, plain. She doesn't like a list."],
 			["", "The well's sweet. The bread's grey. The night's long. Two out of three."],
 		], "choices": [
 			{"text": "Is Fallowmere safe?", "to": "safe", "once": true},
@@ -361,6 +374,8 @@ const CONV := {
 		"meet": {"say": "Gate's open, mind it on the way through. The sheep can't get out. It's what gets in.", "next": "meet2"},
 		"meet2": {"say": "Cobb. I turn the strips nobody's buried in. Fewer every spring.", "do": "met:cobb", "next": "hub"},
 		"hub": {"say_if": [
+			["qd:ds_clapper", "Furrow's straight. The clapper's gone, the stones lie at the gate in a row, and the plough goes where it's pushed. I'd call that a good result."],
+			["q:ds_clapper", "The castellum, at the arches' west end. Hang it in the water-bell and stand by it while it tolls. Something comes to the sound."],
 			["", "Plough turned up a bell clapper in the south strip. Order's mark on it. The Reeve said put it back. I put it back."],
 		], "choices": [
 			{"text": "What grows here now?", "to": "grow", "once": true},
@@ -372,6 +387,8 @@ const CONV := {
 		"meet": {"say": "That one's Old Tom and that one's the Reeve and that one's nobody. I didn't make that one.", "next": "meet2"},
 		"meet2": {"say": "I'm Dilly. I make the scarecrows. Mam says they're for crows. There aren't any crows. They're for the fields, so the fields know somebody's looking.", "do": "met:dilly", "next": "hub"},
 		"hub": {"say_if": [
+			["qd:ds_unmade", "He faces the road now. I drew him a new face, a small one. Mam says the coat isn't mine to dress him in. I said it isn't anyone's."],
+			["q:ds_unmade", "He's in the last of the far strips. Don't look at his face for long. It's mine, but it isn't me."],
 			["", "The one I didn't make faces the house. Mine all face the road. Mam says don't go near it. I don't. It goes near me."],
 		], "choices": [
 			{"text": "Goodbye.", "to": ""},
@@ -394,6 +411,8 @@ const CONV := {
 		"meet2": {"say": "Vell. The Last Lamp's mine. Pilgrims stopped here on their way to the Stair for three hundred years and every one of them owed my family a night. None of them came back to pay it.", "do": "met:vell", "next": "hub"},
 		"hub": {"say_if": [
 			["qd:ll_gate", "The knocking stopped. Coyle won't say what you did. He just stood a round for the house. Coyle."],
+			["qd:er_inn_slate", "The slate says what it says now. I look at it more than I used to. Not for the names. For what is written beside them."],
+			["q:er_inn_slate", "The turned-back on the north cairns hold the tokens. The One Who Counted keeps their count. Put him down before you set the tokens on my counter, or he will count them again."],
 			["", "Ale's warm, the beds are cold, and the rumours are free if you're drinking. Sit near the fire. The other end of the room listens."],
 		], "choices": [
 			{"text": "What's on the slate?", "to": "shop", "do": "shop:vell"},
@@ -433,6 +452,8 @@ const CONV := {
 		"meet": {"say": "Halt! Who goes... sorry. Who goes. Serjeant says I've to say it every time.", "next": "meet2"},
 		"meet2": {"say": "Fenn. Road gate. I came in with the last carters and stayed. Serjeant says I've a good eye. I think he means I don't sleep.", "do": "met:fenn", "next": "hub"},
 		"hub": {"say_if": [
+			["qd:er_nave_fire", "He is at the shrine, with her. Serjeant opened the postern without being asked, and shut it after. I have never seen him do either."],
+			["q:er_nave_fire", "South on the nave road, to the fire on the north shore. He won't come the last hundred yards on his own. Say her name to him. He'll know it."],
 			["", "Salt carter came through two nights back. Marra. Said the road west was clear as far as the pans. Then she counted the hollowed she'd passed, and it wasn't clear."],
 		], "choices": [
 			{"text": "Goodbye.", "to": ""},
@@ -442,6 +463,8 @@ const CONV := {
 		"meet": {"say": "Easy. Not you. Her. She doesn't like strangers and she likes the dark less.", "next": "meet2"},
 		"meet2": {"say": "Wat. Six stalls, two horses, one of them lame. Pilgrims used to leave their beasts here before the climb. I've the bridles of forty that never came back for them.", "do": "met:wat", "next": "hub"},
 		"hub": {"say_if": [
+			["qd:er_halter_bell", "She's in the stall again. She hasn't gone to the door once. I thought I would be glad. I'm not sure I am."],
+			["q:er_halter_bell", "South by the nave road and the cairn road, to the tower's foot. A horse would do it in a quarter of the time. Mine is lame. Hers won't leave the stall."],
 			["", "Horses smell what's out there before the watch sees it. When she stamps, I wake Coyle. She's not been wrong yet."],
 		], "choices": [
 			{"text": "Goodbye.", "to": ""},
@@ -451,6 +474,9 @@ const CONV := {
 		"meet": {"say": "Shh. Kneel or walk on. The gate is listening.", "next": "meet2"},
 		"meet2": {"say": "Maudlin. I came to climb the Stair the year the sky turned. They shut the gate the night I arrived. I have been arriving ever since.", "do": "met:maudlin", "next": "hub"},
 		"hub": {"say_if": [
+			["qd:er_nave_fire", "He kneels beside me. He does not speak. I do not need him to."],
+			["qd:er_ringers_candle", "I face the road now, the other way. Somebody has to listen for what is coming in, as well as what is kept out."],
+			["q:er_ringers_candle", "Keep the flame to windward. The Cracked Tollman rings on the crater, and the rest of them are beyond it, on the water."],
 			["boss:ascended_warden", "They say the top is quiet now. I will still kneel. The gate doesn't know yet."],
 			["", "Twice a night I hear it from the other side. Somebody kneeling, the same as me. I pray they are praying."],
 		], "choices": [
