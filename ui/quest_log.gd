@@ -264,7 +264,10 @@ func _show_banner(top: String, name_text: String, sub: String) -> void:
 	_b_name.text = name_text
 	_b_sub.text = TextDirector.sentence(sub)
 	_b_sub.visible = sub != ""
-	_b_sub.custom_minimum_size = Vector2(960 if sub.length() > 90 else 0, 0)
+	# a wrapping label shrunk to its centre has no width of its own: a short line was laid out a letter a row
+	var sf := _b_sub.get_theme_font("font")
+	var sw := sf.get_string_size(_b_sub.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _b_sub.get_theme_font_size("font_size")).x + 44.0 if sf else 960.0
+	_b_sub.custom_minimum_size = Vector2(960 if sub.length() > 90 else minf(960.0, sw), 0)
 	if _b_tw:
 		_b_tw.kill()
 	_b_tw = create_tween()

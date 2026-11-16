@@ -13,6 +13,7 @@ const QUIET := Color(0.8, 0.82, 0.92, 0.88)
 const TITLE := Color(1.0, 0.78, 0.46, 0.92)
 const UIType := preload("res://ui/type.gd")
 const TextDirector := preload("res://ui/text_director.gd")
+const Guide := preload("res://core/story/guide.gd")
 
 var _font: Font
 var _last := ""
@@ -57,7 +58,8 @@ func _fade_tick(delta: float) -> void:
 	var held: bool = hud != null and hud.has_method("staged_in") and not bool(hud.call("staged_in"))
 	if not held and not get_tree().paused:
 		_show_t = maxf(0.0, _show_t - delta)
-	var want := _show_t > 0.0 or Input.is_action_pressed("show_objective")
+	# a guided first act keeps it up: the next step is always on screen (core/story/guide.gd)
+	var want := _show_t > 0.0 or Input.is_action_pressed("show_objective") or Guide.on()
 	var td := TextDirector.of(self)
 	if td != null and td.banner_up():
 		want = false
@@ -83,7 +85,8 @@ func _label(text: String, size: int, col: Color, font: Font) -> Label:
 func show_lines(lines: Array) -> void:
 	var key := ""
 	for o: Dictionary in lines:
-		key += "%s#%s#%d/%d#%s|" % [String(o.get("title", "")), String(o.text), int(o.get("n", 0)), int(o.get("of", 0)), str(o.get("ready", false))]
+		key += "%s#%s#%d/%d#%s#%s|" % [String(o.get("title", "")), String(o.text), int(o.get("n", 0)), int(o.get("of", 0)), str(o.get("ready", false)),
+			"" if bool(o.get("quest", false)) else _mark_of(o)]
 	if key == _last:
 		return
 	var old := _last
@@ -118,13 +121,41 @@ func show_lines(lines: Array) -> void:
 			elif of > 0 and old != "" and not old.contains("#%d/%d#" % [int(o.get("n", 0)), of]):
 				_pulse(s)
 		else:
-			# a sentence is body text in sentence case; Cinzel stays on the task names above
-			var l := _label(("◆  " if o.main else "◇  ") + TextDirector.sentence(String(o.text)), 21 if o.main else 19, QUIET, UIType.body())
-			add_child(l)
-			_blocks.append(l)
+			# a sentence is body text in sentence case; Cinzel stays on the task names above. The spine's lines end in
+			# a painted mark (the guide's kind of place for the step it points at, else a task's), not a glyph
+			var row := HBoxContainer.new()
+			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.alignment = BoxContainer.ALIGNMENT_END
+			row.add_theme_constant_override("separation", 10)
+			var l := _label(TextDirector.sentence(String(o.text)), 21 if o.main else 19, QUIET, UIType.body())
+			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(l)
+			var ic := TextureRect.new()
+			ic.texture = IconArt.art("mark", _mark_of(o))
+			ic.custom_minimum_size = Vector2(30, 30) if o.main else Vector2(24, 24)
+			ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			ic.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			if not o.main:
+				ic.modulate = Color(1, 1, 1, 0.8)
+			row.add_child(ic)
+			add_child(row)
+			_blocks.append(row)
 			_labels.append(l)
 			if fresh:
-				_flash(l)
+				_flash(row)
+
+
+## The painted mark at the end of a spine line: the guide's step wears the kind of place it points at.
+func _mark_of(o: Dictionary) -> String:
+	if not bool(o.main):
+		return "fire" if String(o.get("id", "")) == "kindle" else "quest_target"
+	var g := get_tree().get_first_node_in_group("guide") as Guide
+	var st: Dictionary = g.step() if g != null else {}
+	if String(st.get("id", "")) == String(o.get("id", "")):
+		return String(st.get("art", "quest_target"))
+	return "quest_target"
 
 
 func _flash(c: Control) -> void:

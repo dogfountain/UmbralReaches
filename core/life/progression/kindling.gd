@@ -20,6 +20,8 @@ const CharmPickup := preload("res://core/life/progression/charm_pickup.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const SealedSkill := preload("res://core/skills/skill_sealed.gd")
 const QuestBookScript := preload("res://core/story/quest_book.gd")
+const Hints := preload("res://ui/hints.gd")
+const Guide := preload("res://core/story/guide.gd")
 const SKILLS := {
 	&"bolt": preload("res://core/life/progression/skills/bolt.gd"),
 	&"lance": preload("res://core/life/progression/skills/lance.gd"),
@@ -617,6 +619,13 @@ const TEACH_LINES := {
 	"step": "The seal breaks, and the Rift pulls at your feet. Rift Step: %s.",
 	"nova": "The great one's dark comes apart round you, and you keep some. Umbral Nova: %s.",
 }
+## A guided save also gets the spell as a lesson with its key on a painted cap (ui/key_cap.gd tokens).
+const TEACH_TIPS := {
+	"ward": "Lantern Ward: a light where you stand, for a breath of the dark",
+	"lance": "Ember Lance: hold to charge, let go to throw",
+	"step": "Rift Step: a few strides through anything, untouched",
+	"nova": "Umbral Nova: a ring of dark; every Mark in it goes off",
+}
 
 
 ## Teach `id` (one of DB.TAUGHT_LATER) if it is not known yet. True if it was taught now.
@@ -632,6 +641,8 @@ func teach(id: String) -> bool:
 	var slot := DB.loadout(st).find(id) + 1
 	var key := String(DB.SLOT_KEYS[slot]) if slot >= 1 and slot < DB.SLOT_KEYS.size() else "the Loadout"
 	var line := String(TEACH_LINES.get(id, "%s")) % key
+	if Guide.on() and slot >= 1 and slot < DB.SLOT_ACTIONS.size():
+		Hints.once(StringName("tip_spell_" + id), "{%s} %s" % [String(DB.SLOT_ACTIONS[slot]), String(TEACH_TIPS.get(id, id))])
 	if id == "ward" or not is_inside_tree():
 		Events.toast.emit(line)          # the keep's own line: said at once
 	else:

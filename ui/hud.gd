@@ -24,6 +24,8 @@ var _build_line := ""
 var _bench_line := ""
 var _bar: GloomBar
 var _prompt: Label
+var _prompt_row: HBoxContainer           ## the cap and the words, faded together
+var _prompt_cap: Control
 var _title: Label
 var _cards: Control                  ## the title card's layer (over the fade)
 var _subtitle: Label
@@ -52,6 +54,8 @@ const HudPrefs := preload("res://ui/hud_prefs.gd")
 const Hints := preload("res://ui/hints.gd")
 const TextDirector := preload("res://ui/text_director.gd")
 const LootWindow := preload("res://ui/loot_window.gd")
+const KeyCap := preload("res://ui/key_cap.gd")
+const Guide := preload("res://core/story/guide.gd")
 
 
 class Crosshair extends Control:
@@ -125,13 +129,20 @@ func _ready() -> void:
 	_bar.size = Vector2(380, 16)
 	root.add_child(_bar)
 
-	_prompt = _label(root, "", 30, LANTERN, HORIZONTAL_ALIGNMENT_CENTER)
-	_prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	_prompt.offset_top = -240          # r33: over the player's cast bar (which sits over the hotbar)
-	_prompt.offset_bottom = -206
-	_prompt.offset_left = -500
-	_prompt.offset_right = 500
-	_prompt.modulate.a = 0.0
+	# the world prompt: the key on a painted cap (ui/key_cap.gd), then what it does ("[E]  Talk to the keep")
+	_prompt_row = HBoxContainer.new()
+	_prompt_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_prompt_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_prompt_row.add_theme_constant_override("separation", 12)
+	_prompt_row.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	_prompt_row.offset_top = -244          # over the player's cast bar (which sits over the hotbar)
+	_prompt_row.offset_bottom = -202
+	_prompt_row.offset_left = -500
+	_prompt_row.offset_right = 500
+	_prompt_row.modulate.a = 0.0
+	root.add_child(_prompt_row)
+	_prompt = _label(_prompt_row, "", 30, LANTERN, HORIZONTAL_ALIGNMENT_CENTER)
+	_prompt.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	# the title card lives over the fade, not under the HUD: the opening plays it while the HUD is still away
 	_cards = Control.new()
@@ -168,6 +179,7 @@ func _ready() -> void:
 	root.add_child(load("res://core/story/objective_line.gd").new())   # objective lines (core/story, story agent)
 	_compass = load("res://ui/compass.gd").new()
 	root.add_child(_compass)                                           # heading strip + beacon/brazier markers (ENS art pass)
+	root.add_child(load("res://ui/waypoint.gd").new())                 # the guide's mark over the next step's place (core/story/guide.gd)
 	_minimap = load("res://ui/minimap.gd").new()
 	root.add_child(_minimap)                                           # round minimap, bottom right; N: near / wide / off (r32)
 	root.add_child(load("res://ui/xp_bar.gd").new())                   # r33: XP strip along the bottom, once XP exists
@@ -278,7 +290,7 @@ func _process(delta: float) -> void:
 	if HudPrefs.card_request != _card_req:
 		_card_req = HudPrefs.card_request
 		show_card()
-	_prompt.visible = not _loot_open()          # the world prompt belongs to the world: under the loot window it was a ghost behind the hotbar
+	_prompt_row.visible = not _loot_open()      # the world prompt belongs to the world: under the loot window it was a ghost behind the hotbar
 	_bar.pulse += delta
 	if _bar.value > 0.75 or not is_equal_approx(_bar.value, _bar.get_meta("drawn", -1.0)):
 		_bar.set_meta("drawn", _bar.value)
@@ -333,10 +345,23 @@ func _on_hint(text: String) -> void:
 		_prompt_tw.kill()
 	_prompt_tw = create_tween()
 	if text == "":
-		_prompt_tw.tween_property(_prompt, "modulate:a", 0.0, 0.25)
+		_prompt_tw.tween_property(_prompt_row, "modulate:a", 0.0, 0.25)
+		return
+	# "[E]  Talk to the keep": the key goes on a painted cap
+	var m := RegEx.create_from_string("^\\[([^\\]]+)\\]\\s*(.*)$").search(text)
+	if is_instance_valid(_prompt_cap):
+		_prompt_cap.queue_free()
+		_prompt_cap = null
+	if m != null:
+		var key := m.get_string(1)
+		var c: Array = KeyCap.for_action("interact", _pad)[0] if key == Interactable.prompt_key() else ["cap", key]
+		_prompt_cap = KeyCap.make(String(c[0]), String(c[1]), 40.0)
+		_prompt_row.add_child(_prompt_cap)
+		_prompt_row.move_child(_prompt_cap, 0)
+		_prompt.text = m.get_string(2)
 	else:
 		_prompt.text = text
-		_prompt_tw.tween_property(_prompt, "modulate:a", 1.0, 0.25)
+	_prompt_tw.tween_property(_prompt_row, "modulate:a", 1.0, 0.25)
 
 
 ## Toasts go through the text director: it queues them (two at most on screen, bottom left corner),
@@ -479,26 +504,26 @@ func _tips_tick(delta: float) -> void:
 	var flat := Vector2(v.x, v.z).length()
 	if flat > 1.0:
 		_did["move"] = true
-	var fight := _foe_near(p, 24.0)
+	var fight := _foe_near(p, 24.0)               # a foe in view (or at your back, close): a gaunt over the wall is not a fight
 	if fight:
 		_td.retire_basic()              # control lessons never draw over a fight
 	var grounded: bool = bool(p.call("is_grounded")) if p.has_method("is_grounded") else true
 	_sprint_t = _sprint_t + 0.25 if flat > 6.5 and grounded else 0.0
 	_air_t = 0.0 if grounded else _air_t + 0.25
 	if p.has_method("is_hanging") and p.call("is_hanging"):
-		_jit("hang", "%s  climb up   ·   push away + %s  kick off   ·   %s  let go" % [_pk("jump", "A"), _pk("jump", "A"), _pk("slide", "B")])
+		_jit("hang", "{jump} Climb up   {move} + {jump} Kick off   {slide} Let go")
 	elif p.get("riding") != null:
-		_jit("ride", "%s  leap   ·   %s  get down" % [_pk("jump", "A"), _pk("interact", "X")])
+		_jit("ride", "{jump} Leap   {interact} Get down")
 	elif fight:
 		# not over a boss's name card: the lesson waits until the title has gone (it drew across the boss's body)
 		if get_tree().get_first_node_in_group(&"boss_title") == null and p.has_method("lock_target") and p.call("lock_target") == null:
-			_jit("lock", "%s  lock on to it   ·   %s  roll through a blow" % [_pk("lock_on", "R3"), _pk("dodge", "B")], false)
+			_jit("lock", "{skill_bolt} Rift Bolt   {lock_on} Lock on to it   {dodge} Roll through a blow", false)
 	elif not Hints.seen(&"tip_move"):
 		_first_steps()
 	elif _air_t > 0.4:
-		_jit("jump2", "%s again in the air: a second jump" % _pk("jump", "A"))   # the first ledge or leap
+		_jit("jump2", "{jump} Again in the air: a second jump")   # the first ledge or leap
 	elif _sprint_t > 1.5:
-		_jit("slide", "%s  while running: slide   ·   %s  in a slide: a long leap" % [_pk("slide", "B"), _pk("jump", "A")])
+		_jit("slide", "{slide} While running: slide   {jump} In a slide: a long leap")
 	elif p.get("gloom") != null and float(p.get("gloom")) > 55.0:
 		_jit("gloom", "The Gloom fills away from light. Full, it takes shape and hunts you. Firelight drains it.")
 
@@ -513,29 +538,27 @@ func _jit(id: String, text: String, basic := true) -> void:
 func _first_steps() -> void:
 	var parts: Array[String] = []
 	if not _did.has("move"):
-		parts.append("%s  move" % _pk_move())
+		parts.append("{move} Move")
 	if not _did.has("look"):
-		parts.append("%s  look" % ("Right stick" if _pad else "Mouse"))
+		parts.append("{look} Look")
 	if not _did.has("sprint"):
-		parts.append("%s  sprint" % _pk("sprint", "L3"))
+		parts.append("{sprint} Sprint")
 	if not _did.has("jump"):
-		parts.append("%s  jump" % _pk("jump", "A"))
+		parts.append("{jump} Jump")
 	if parts.is_empty():
 		Hints.mark(&"tip_move")
 		return
-	_jit("move", "   ·   ".join(parts))
-
-
-func _pk_move() -> String:
-	if _pad:
-		return "Left stick"
-	var keys: Array = ["move_forward", "move_left", "move_back", "move_right"].map(func(a: String) -> String: return InputSetup.live_label(a, false, "?"))
-	return "WASD" if "".join(keys) == "WASD" else " ".join(keys)
+	_jit("move", "   ".join(parts))
 
 
 ## A combat lesson (ui/hints.gd), or a prompt: the text director's lesson lane.
 func lesson(text: String, basic := false) -> void:
 	_td.post_lesson(text, basic)
+
+
+## A lesson is showing or waiting (core/story/story.gd: the guided opening speaks on after the move prompt).
+func lesson_busy() -> bool:
+	return _td.lesson_busy()
 
 
 ## The HUD is on screen (the opening is staged: see core/story/story.gd). True outside a new game's first beats.
@@ -586,19 +609,28 @@ func _stage_tick(delta: float) -> void:
 	var met: bool = flags is Dictionary and bool((flags as Dictionary).get("met_keep", false))
 	met = met or not HudPrefs.new_game_open_cached()      # only a new game keeps them back
 	if _compass:
-		_compass.visible = met
+		_compass.visible = met or Guide.on()          # a guided start has the compass at once: it carries the way to the keep
 	if _minimap:
 		_minimap.visible = met
 
 
-## Key or pad name for a tip, by the device in use.
-func _pk(action: String, pad_name: String) -> String:
-	return InputSetup.live_label(action, _pad, pad_name if _pad else action)
-
-
 func _foe_near(p: Node3D, r: float) -> bool:
+	var cam := get_viewport().get_camera_3d()
 	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
 		var n := e as Node3D
 		if n and n.global_position.distance_squared_to(p.global_position) < r * r and (not n.has_method("is_alive") or n.call("is_alive")):
-			return true
+			# in view, or close enough to be at your back: a foe beyond a wall or behind the town is no lesson
+			if cam == null or n.global_position.distance_squared_to(p.global_position) < 100.0:
+				return true
+			if cam.is_position_in_frustum(n.global_position + Vector3.UP) and _in_sight(cam.global_position, n.global_position + Vector3.UP):
+				return true
 	return false
+
+
+## Nothing of the world's between the eye and that point (the Keg's wall hid three foes the lesson still named).
+func _in_sight(from: Vector3, to: Vector3) -> bool:
+	var w := get_viewport().find_world_3d()
+	if w == null:
+		return true
+	var q := PhysicsRayQueryParameters3D.create(from, to, Layers.WORLD)
+	return w.direct_space_state.intersect_ray(q).is_empty()

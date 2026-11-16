@@ -21,6 +21,7 @@ const VState := preload("res://core/life/village/village_state.gd")
 const VAudio := preload("res://core/life/village/village_audio.gd")
 const Life := preload("res://core/npc/npc_life.gd")
 const Forge := preload("res://core/life/village/villager_forge.gd")
+const Point := preload("res://core/life/village/villager_point.gd")
 const Idle := preload("res://core/life/village/villager_idle.gd")
 const Voice := preload("res://core/npc/npc_voice.gd")
 ## Acts that carry speech outside a conversation: [cycle s, talking s per cycle, volume dB]
@@ -81,6 +82,8 @@ var lamp_queue: Array[String] = []
 var lamp_id := ""
 var heat := 0.0                       ## the smith's iron (0 cold .. 1 white)
 var looked_at := Vector3.INF
+var point_at := Vector3.INF            ## the guide: where this one points the wanderer, for point_t s (villager_point.gd)
+var point_t := 0.0
 var walked := 0.0                     ## metres walked (tests)
 # --- quests and visits (quest_world.gd, village.gd) ---
 var follow: Variant = null            ## escort: a Node3D to keep behind, or a Vector3 to walk to (off the network)
@@ -1012,6 +1015,7 @@ func _pose(dt: float) -> void:
 		off = lerpf(st_off, act_off, bw)
 		head_pitch = lerpf(stoop * 0.7, head_pitch, bw)
 	# head: toward what it looks at (the wanderer nearby, the work), else a slow wander
+	look_target = Point.pose(self, r, k, look_target, dt, tool_r, tool_l)
 	_head(k, look_target, head_pitch, dt)
 	# jaw while speaking (syllables, words, pauses), blinks
 	if speaking or chat:

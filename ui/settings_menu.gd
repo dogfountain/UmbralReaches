@@ -313,6 +313,10 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.enemy_plates = v
 		HudPrefs.save())
 	plates.set_pressed_no_signal(HudPrefs.enemy_plates)
+	var gd := _check(p, "Guidance", "A new game's first act: the next step kept on screen, a mark over where it is, and the controls named the first time they matter. Off: none of it", func(v: bool) -> void:
+		HudPrefs.guide = v
+		HudPrefs.save())
+	gd.set_pressed_no_signal(HudPrefs.guide)
 	var trow := _row(p, "Text Scale", "The size of the objective, toasts, lessons and subtitles")
 	_tscale_slider = _slider(trow, 0.85, 1.5, 0.05)
 	_tscale_label = _value_label(trow)

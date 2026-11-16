@@ -38,11 +38,11 @@ const CONV := {
 			"three_1": {"say": "Three. Something in the Ring on the western hill that keeps the oaks; the Rooted call it the Thornwarden. The Abbot under the abbey, still counting his dead.", "next": "three_2"},
 			"three_2": {"say": "And whatever stands at the top of the Stair with the door open. The ward on the Crossing won't let you near it till the other two are down: a heart out of the Ring, a crown out of the crypt.", "next": "meet_hub"},
 			"start_1": {"say": "First: the braziers. Four of them — Stair foot, glade shrine, Barrow Field, the fen below it. Kindle them. Light is somewhere to stand when the dark leans on you.", "next": "start_2"},
-			"start_2": {"say": "Then pick a door. Thorn seal on the Thornwood edge, west. Or the gallery seal in the crypt, through the fen. Both, then the door's own price, which Brannoc knows, before the Crossing will take you up to shut the sky's door.", "do": "flag:met_keep,teach:ward", "choices": [
+			"start_2": {"say": "Then pick a door. Thorn seal on the Thornwood edge, west. Or the gallery seal in the crypt, south down the Waiting Field's road. Both, then the door's own price, which Brannoc knows, before the Crossing will take you up to shut the sky's door.", "do": "flag:met_keep,teach:ward", "choices": [
 				{"text": "Another question.", "to": "meet_hub"},
 				{"text": "I'll go.", "to": "meet_end"},
 			]},
-			"meet_brief": {"say": "Then hear it once. Kindle the four braziers. Break the thorn seal west, or the gallery seal through the fen — both, then Brannoc's bells, then the Crossing, then the door at the top. The rest of Hearthward can wait until you've heard that.", "do": "flag:met_keep,teach:ward", "next": "meet_end"},
+			"meet_brief": {"say": "Then hear it once. Kindle the four braziers. Break the thorn seal west, or the gallery seal south, past the Waiting Field — both, then Brannoc's bells, then the Crossing, then the door at the top. The rest of Hearthward can wait until you've heard that.", "do": "flag:met_keep,teach:ward", "next": "meet_end"},
 			"meet_end": {"say": "Fire stays. Hollows do not. Come back with news; we pay in ale. The village will have work for you once you've stepped out.", "do": "flag:met_keep,teach:ward", "next": ""},
 			# --- the hub, every visit after ---------------------------------------------------
 			"hub": {"say_if": [
