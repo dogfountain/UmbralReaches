@@ -58,7 +58,7 @@ class Seg:
         return self.h2 + (self.s * al + self.g * pe) @ self.R.T
 
 
-def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shoulder_y=1.40, targets=None, keep_groups=("head",), hand_ratio=1.0, head_ratio=1.0):
+def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shoulder_y=1.40, targets=None, keep_groups=("head",), hand_ratio=1.0, head_ratio=1.0, keep_zone=None):
     for o in list(bpy.data.objects):
         bpy.data.objects.remove(o)
     md = TargetService.get_default_macro_info_dict()
@@ -193,13 +193,13 @@ def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shou
         d = h.modifiers.new("Dec", 'DECIMATE')
         d.ratio = max(tris / cur, 0.4)
         if tuple(keep_groups) != ("head",):             # a bigger spared area: `tris` is then what the unspared body gets
-            kv = {v.index for v in h.data.vertices if any(("J_" + k_) in h.vertex_groups and any(g_.group == h.vertex_groups["J_" + k_].index and g_.weight > 0.5 for g_ in v.groups) for k_ in keep_groups)}
+            kv = {v.index for v in h.data.vertices if any(("J_" + k_) in h.vertex_groups and any(g_.group == h.vertex_groups["J_" + k_].index and g_.weight > 0.5 for g_ in v.groups) for k_ in keep_groups) or (keep_zone is not None and keep_zone[0] < v.co.z < keep_zone[1] and abs(v.co.x) < keep_zone[2])}
             kept = sum(len(p_.vertices) - 2 for p_ in h.data.polygons if all(i in kv for i in p_.vertices))
             d.ratio = min(1.0, (kept + tris) / cur)                 # the head is spared, so the body pays: never thin it to a wire
         if "J_head" in h.vertex_groups:                  # the face keeps the detail it was sculpted with: thin the body only
             kg = h.vertex_groups.new(name="Z_keepmask")        # (and anything else named in keep: hands, feet)
             for v in h.data.vertices:
-                if any(("J_" + k) in h.vertex_groups and any(g_.group == h.vertex_groups["J_" + k].index and g_.weight > 0.5 for g_ in v.groups) for k in keep_groups):
+                if any(("J_" + k) in h.vertex_groups and any(g_.group == h.vertex_groups["J_" + k].index and g_.weight > 0.5 for g_ in v.groups) for k in keep_groups) or (keep_zone is not None and keep_zone[0] < v.co.z < keep_zone[1] and abs(v.co.x) < keep_zone[2]):
                     kg.add([v.index], 1.0, 'REPLACE')
             d.vertex_group = "Z_keepmask"
             d.invert_vertex_group = True

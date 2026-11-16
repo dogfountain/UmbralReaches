@@ -576,12 +576,12 @@ def claw_hands(bd, g, grip=True, spread=0.9, curl=0.035, nail=(0.0045, 0.016), c
         g.ball(V(float(c[0]), float(c[1]) - 0.002, float(c[2])), nail[0], col, "bone", "hand_l" if c[0] < 0 else "hand_r", n=6, sx=0.7, sy=nail[1] / nail[0] * 0.5, sz=1.0)
 
 
-def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0, hunch=0.0, targets=None, starved=0.0, keep=("head",), claws=False, hand_ratio=1.0, head_ratio=1.0):
+def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0, hunch=0.0, targets=None, starved=0.0, keep=("head",), claws=False, hand_ratio=1.0, head_ratio=1.0, keep_zone=None):
     """A MakeHuman body (mh_body.py), shaped by `macro` (gender, age, muscle, weight, proportions, height: 0..1),
     retargeted to the rig, with coals in the eyes. skull 0..1: the face wasted toward the bone beneath (cheeks and
     temples hollowed, lips drawn back off the teeth, the eyes sunk), with the teeth bared."""
     import mh_body
-    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y, hunch=hunch, targets=targets, keep_groups=keep, hand_ratio=hand_ratio, head_ratio=head_ratio)
+    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y, hunch=hunch, targets=targets, keep_groups=keep, hand_ratio=hand_ratio, head_ratio=head_ratio, keep_zone=keep_zone)
     bd = Body(P, F, FUV, L)
     if os.environ.get('TRISDBG'):
         from collections import Counter
@@ -1159,7 +1159,7 @@ def wretch():
     skull with coals sunk in it, a stuffed sack hung from straps that cut into the shoulders, a gaff in its fist."""
     g = Geo()
     SKIN, RAG, SACK, BELT = (0.4, 0.34, 0.31), (0.17, 0.13, 0.1), (0.5, 0.43, 0.3), (0.1, 0.075, 0.06)
-    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=3800, hunch=1.0, targets=WRETCH_T, eye_r=0.011, skull=0.9, keep=("head", "hand_l", "hand_r"), claws=True, hand_ratio=0.38, head_ratio=1.0)
+    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=3800, hunch=1.0, targets=WRETCH_T, eye_r=0.011, skull=0.9, keep=("head", "hand_l", "hand_r"), claws=True, hand_ratio=0.38, head_ratio=0.8, keep_zone=(1.42, 1.58, 0.2))
     if os.environ.get('BODYONLY'):
         return g.to_object('body'), []
     # (no shin wraps: the bare shins show their crests)
@@ -1186,13 +1186,16 @@ def wretch():
     g.lathe([(0.0, 0.0), (0.075, 0.0), (0.09, 0.07), (0.085, 0.13), (0.075, 0.13), (0.07, 0.09), (0.0, 0.01)], S + V(0.2, -0.32, 0.17), (0.2, 0.18, 0.17), "iron", "chest", n=14)
     for sx in (-1, 1):
         strap(g, [V(sx * 0.15, 1.44, -0.07), V(sx * 0.13, 1.4, -0.13), V(sx * 0.12, 1.16, -0.12), V(sx * 0.14, 1.05, 0.0), V(sx * 0.13, 1.14, 0.17)], (0.26, 0.17, 0.11), w=0.024, thick=0.011, off=0.0)
-    rags(g, b, RAG, (0.6, 0.55, 0.44), BELT, vest=None, v1=98, nu=30, nv=13)
-    hd = np.array([q for i, q in enumerate(b.P) if b.L[i] == "head"])         # the rag is knotted at the back of the skull, its ends hanging
-    kn = V(float(hd[:, 0].max()) - 0.03, float(hd[:, 1].max()) - 0.07, float(hd[:, 2].max()) - 0.03)      # the knot on the side
-    g.ball(kn, 0.02, (0.6, 0.55, 0.44), "linen", "head", n=6, sx=1.2, sy=0.9, sz=1.0)
-    for sx_, ln, sw in ((-1, 0.15, 0.6), (1, 0.1, -0.8)):                 # the rag's ends, cloth strips hanging from the knot
-        pts = [kn + V(sx_ * 0.01 * k_, -ln * k_ / 4.0, 0.012 * math.sin(k_ * 0.9 + sw) + 0.02 * k_ / 4.0) for k_ in range(5)]
-        g.tube(pts, [0.017, 0.018, 0.016, 0.013, 0.008], (0.6, 0.55, 0.44), "linen", "head", n=6, flat=0.45)
+    import rag_cloth                                                   # the head rag: simulated cloth wound round the skull
+    hidx = [i for i in range(len(b.P)) if b.L[i] == "head"]
+    hmap = {i: k for k, i in enumerate(hidx)}
+    hP = np.array([b.P[i] for i in hidx])
+    hF = [[hmap[v] for v in f] for f in b.F if all(v in hmap for v in f)]
+    E_ = b.eyes
+    ey_ = (E_[0][1] + E_[1][1]) * 0.5 if len(E_) == 2 else 1.72
+    cc_ = np.array([float(hP[:, 0].mean()), ey_, float(hP[:, 2].mean()) + 0.01])
+    RP, RF, rtip = rag_cloth.wind(hP, hF, cc_, ey_ + 0.052, turns=float(os.environ.get("RAG_TURNS", "2.5")), frames=int(os.environ.get("RAG_FRAMES", "48")))
+    g.mesh(RP, RF, (0.6, 0.55, 0.44), "linen", "head")
     gf = Geo()
     WOOD, IRON, WRAP = (0.28, 0.2, 0.13), (0.32, 0.3, 0.29), (0.2, 0.16, 0.12)
     gx, gy, gz = (b.grip if getattr(b, "grip", None) is not None else (0.21, 0.8, -0.05))
