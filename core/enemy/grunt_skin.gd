@@ -108,8 +108,33 @@ func unpark() -> void:
 func _refresh() -> void:
 	if body and not body.is_visible_in_tree():
 		return
+	if _beyond_draw():
+		_out = true
+		return
+	if _out:
+		_out = false
+		_posed_t = -1.0
+		_cap_tick = -1
 	_capture()
 	_blend()
+
+
+## Past the body's draw distance (and its fade) from the camera: nothing of the pose is seen.
+func _beyond_draw() -> bool:
+	if body == null or body.visibility_range_end <= 0.0:
+		return false
+	var far := body.visibility_range_end + body.visibility_range_end_margin + 2.0
+	return _cam_pos().distance_squared_to(body.global_position) > far * far
+
+
+## A sleeping rig whose body is hidden or out of draw range: nothing to pose, nothing to check every frame
+## (~220 of the doubled Realm's sleeping camp pawns did both checks each frame, ~0.3 ms). The driver's
+## REFRESH look poses it once it is shown or comes in range; waking or animate() unparks it.
+func _park_unseen() -> bool:
+	if _rig == null or _rig.can_process():
+		return false
+	_park()
+	return _is_parked
 
 
 func _exit_tree() -> void:
@@ -137,12 +162,14 @@ func setup(s: Skeleton3D, rig: CharacterRig, mesh: MeshInstance3D) -> void:
 
 func _process(_delta: float) -> void:
 	if body and not body.is_visible_in_tree():
+		_park_unseen()
 		return
 	# past the body's draw distance nothing of the pose is seen: skip it, and pose afresh on the way back in
 	if body and body.visibility_range_end > 0.0:
 		var far := body.visibility_range_end + body.visibility_range_end_margin + 2.0
 		if _cam_pos().distance_squared_to(body.global_position) > far * far:
 			_out = true
+			_park_unseen()
 			return
 		if _out:
 			_out = false
@@ -173,6 +200,16 @@ var _cur: Array[Transform3D] = []
 var _prev_tick := -1
 var _cap_tick := -1
 var _shown := -1.0                     ## the last blend drawn (1 = cur); skip redrawing a held pose
+const POSE_EVERY := 3
+var pose_span := 1                     ## its rig is posed one tick in this many (idle_lod)
+
+
+## Enemy._animate_rig: an idle foe at rest far off (`far_idle`) is posed one tick in POSE_EVERY with the time
+## saved up, and the skin glides over the whole span (_blend), so its breath and shuffle stay smooth (the pose
+## was half an idle foe's tick, and a fight's edge has a dozen idle camp foes awake). True: skip this tick's pose.
+func idle_lod(far_idle: bool, id: int) -> bool:
+	pose_span = POSE_EVERY if far_idle else 1
+	return far_idle and (Engine.get_physics_frames() + id) % POSE_EVERY != 0
 
 
 func _capture() -> void:
@@ -204,7 +241,10 @@ func _blend() -> void:
 	var a := 1.0
 	if is_inside_tree() and skel.is_physics_interpolated_and_enabled() and not Engine.is_in_physics_frame():
 		var span := float(_cap_tick - _prev_tick)
-		if span > 0.0:
+		if span > 1.0 and pose_span == int(span):
+			# posed one tick in pose_span (idle_lod): glide over the whole span, a span behind
+			a = clampf((float(Engine.get_physics_frames() - _cap_tick) + Engine.get_physics_interpolation_fraction()) / span, 0.0, 1.0)
+		elif span > 0.0:
 			a = clampf((float(Engine.get_physics_frames() - 1 - _prev_tick) + Engine.get_physics_interpolation_fraction()) / span, 0.0, 1.0)
 	if a >= 0.999:
 		if _shown >= 0.999:

@@ -71,11 +71,7 @@ static func light(host: Node3D, n: String, at_world: Vector3, col: Color, e: flo
 	if shadow:
 		l.distance_fade_shadow = 14.0
 	if flick > 0.0:
-		var f := Flicker.new()
-		f.light = l
-		f.base = l.light_energy
-		f.amount = flick
-		l.add_child(f)
+		Flicker.on(l, l.light_energy, flick)
 	return l
 
 
@@ -121,11 +117,7 @@ static func shaft(host: Node3D, n: String, at_world: Vector3, out_dir: Vector3, 
 	LightPolicy.apply_illumination(l)
 	# (Luke, 9 Nov: no fog volume and no rim / spill omnis per pane: four lights and a fog box on every
 	# window of the village cost the frame. The spot's own volumetric energy draws the cone.)
-	var f := Flicker.new()
-	f.light = l
-	f.base = l.light_energy          # after apply_illumination
-	f.amount = 0.06
-	l.add_child(f)
+	Flicker.on(l, l.light_energy, 0.06)        # (the energy after apply_illumination)
 	return l
 
 
@@ -199,15 +191,80 @@ static func room_lights(host: Node3D, id: String, centre: Vector3, yaw: float, h
 		light(host, id + "GlowC", centre - b * Vector3(half.x * 0.5, 0.0, 0.0) + up, CANDLE, 0.9, r * 0.8, false, 0.06)
 
 
-## Eases a light's energy about its authored value: the shimmer of a flame.
+## Eases lights' energy about their authored values: the shimmer of a flame. One per night drives every
+## flickering light (a node each, 74 of them, cost ~0.15 ms a frame); a light past its fade distance from
+## the camera is not drawn, so it waits (its flame's clock with it) until the camera comes back in reach.
 class Flicker extends Node:
-	var light: Light3D
-	var base := 1.0
-	var amount := 0.08
-	var _t := randf() * 40.0
+	var lights: Array = []                    ## Light3D (untyped: a freed one is tested, not assigned)
+	var base := PackedFloat64Array()
+	var amount := PackedFloat64Array()
+	var clock := PackedFloat64Array()
+	var reach2 := PackedFloat64Array()        ## the light's fade end (+ a margin), squared; INF: never fades
+	var _near := PackedInt32Array()           ## the lights within reach of the camera, looked for 4 times a second
+	var _scan := 0.0
+
+	## Flicker `l` about `b` by `amount`, driven by the one driver of the scene the light is in (the
+	## top node under the root that holds it: it goes when that scene goes).
+	static func on(l: Light3D, b: float, amt: float) -> void:
+		if l.is_inside_tree():
+			_register(l, b, amt)
+		else:
+			l.tree_entered.connect(_register.bind(l, b, amt), CONNECT_ONE_SHOT)
+
+	static func _register(l: Light3D, b: float, amt: float) -> void:
+		var root := l.get_tree().root
+		var host: Node = l
+		while host.get_parent() != null and host.get_parent() != root:
+			host = host.get_parent()
+		var d: Variant = host.get_meta(&"flicker_driver") if host.has_meta(&"flicker_driver") else null
+		if not (d is Flicker and is_instance_valid(d)):
+			d = Flicker.new()
+			(d as Node).name = "InteriorFlicker"
+			host.set_meta(&"flicker_driver", d)
+			host.add_child.call_deferred(d)
+		(d as Flicker).add(l, b, amt)
+
+	func add(l: Light3D, b: float, amt: float) -> void:
+		lights.append(l)
+		base.append(b)
+		amount.append(amt)
+		clock.append(randf() * 40.0)
+		var r := INF
+		if l.distance_fade_enabled:
+			r = l.distance_fade_begin + l.distance_fade_length + 4.0
+			r *= r
+		reach2.append(r)
+		_scan = 0.0
+
+	func _rescan() -> void:
+		_near.clear()
+		var cam := get_viewport().get_camera_3d()
+		var cp := cam.global_position if cam != null else Vector3.ZERO
+		var i := 0
+		while i < lights.size():
+			var l: Variant = lights[i]
+			if not is_instance_valid(l):
+				lights.remove_at(i)
+				base.remove_at(i)
+				amount.remove_at(i)
+				clock.remove_at(i)
+				reach2.remove_at(i)
+				continue
+			var lt := l as Light3D
+			if cam == null or not lt.is_inside_tree() or cp.distance_squared_to(lt.global_position) <= reach2[i]:
+				_near.append(i)
+			i += 1
 
 	func _process(delta: float) -> void:
-		if light == null or not light.is_visible_in_tree():
-			return
-		_t += delta
-		light.light_energy = base * (1.0 + amount * (sin(_t * 9.1) * 0.6 + sin(_t * 23.7 + 1.3) * 0.4) + amount * 0.5 * sin(_t * 3.3))
+		_scan -= delta
+		if _scan <= 0.0:
+			_scan = 0.25
+			_rescan()
+		for i in _near:
+			var l: Variant = lights[i]
+			if not is_instance_valid(l) or not (l as Light3D).is_visible_in_tree():
+				continue
+			var t := clock[i] + delta
+			clock[i] = t
+			var amt := amount[i]
+			(l as Light3D).light_energy = base[i] * (1.0 + amt * (sin(t * 9.1) * 0.6 + sin(t * 23.7 + 1.3) * 0.4) + amt * 0.5 * sin(t * 3.3))

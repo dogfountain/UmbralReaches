@@ -186,6 +186,7 @@ func light_from_leader(animate: bool) -> void:
 
 func _set_lit(on: bool, animate: bool) -> void:
 	lit = on
+	set_process(on)                          # an unlit lamp has nothing to do a frame
 	if _glow == null:
 		return
 	for gp in _glow_parts:
@@ -242,6 +243,10 @@ func _process(delta: float) -> void:
 		if _light:
 			_light.visible = _near
 	if not _near:
+		# far: asleep till its next look, an engine timer wakes it (the doubled Realm's 132 lamps were a
+		# script call each a frame, nearly all of them far or unlit)
+		set_process(false)
+		get_tree().create_timer(maxf(_poll, 0.05), false).timeout.connect(_wake)
 		return
 	_t += delta
 	_flare = maxf(_flare - delta * 1.8, 0.0)
@@ -249,6 +254,12 @@ func _process(delta: float) -> void:
 	_glow.scale = Vector3(1.0, 0.94 + 0.06 * k, 1.0) * (1.0 + _flare * 0.16)
 	if _light:
 		_light.light_energy = _e * k * (1.0 + _flare * 0.4)
+
+
+func _wake() -> void:
+	if lit:
+		_poll = 0.0
+		set_process(true)
 
 
 ## (lit, total) of the lamps the wanderer can kindle.

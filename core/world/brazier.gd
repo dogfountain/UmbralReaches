@@ -7,6 +7,7 @@ extends Interactable
 @export var lit_energy := 8.5        ## warm pool on dark ground; 20 washed yards orange
 @export var lit_range := 11.5
 
+signal lit_changed(on: bool)              ## _set_lit: the ember post and the cold glint follow it
 var lit := false
 var _spawn_at := Vector3(INF, 0.0, 0.0)           ## spawn_point(), found once for the 'already resting here' test
 var _t := 0.0
@@ -199,6 +200,7 @@ func spawn_point() -> Vector3:
 
 func _set_lit(on: bool, animate: bool) -> void:
 	lit = on
+	lit_changed.emit(on)
 	set_meta(&"map_color", MAP_LIT if on else MAP_COLD)       # r33: the map shows which fires can carry you
 	_flame.emitting = on
 	var cards := _flame.get_node_or_null("Cards")
@@ -239,6 +241,19 @@ var _far_t := 0.0
 var _far := false
 
 
+## Far: no script call a frame until the next look (an engine timer wakes it; the 35 fires cost a call each a
+## frame); its clock takes the game time it slept, so the flame's phase is as if it had run.
+func _nap(s: float) -> void:
+	set_process(false)
+	get_tree().create_timer(s, false).timeout.connect(_wake.bind(s))
+
+
+func _wake(s: float) -> void:
+	_t += s
+	_far_t = 0.0
+	set_process(true)
+
+
 func _process(delta: float) -> void:
 	_t += delta
 	# perf: past its distance fade the light is not drawn, so its flicker is not set (checked twice
@@ -250,6 +265,7 @@ func _process(delta: float) -> void:
 		var gone := _light.distance_fade_begin + _light.distance_fade_length + 6.0
 		_far = cam != null and _light.distance_fade_enabled and cam.global_position.distance_squared_to(_light.global_position) > gone * gone
 	if _far:
+		_nap(_far_t)
 		return
 	var flicker := 1.0 + (sin(_t * 11.0) * 0.06 + sin(_t * 17.3) * 0.04 if lit else sin(_t * 2.0) * 0.2)
 	var src: Variant = _light.get_meta(&"light_class")
