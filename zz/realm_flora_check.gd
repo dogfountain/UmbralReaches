@@ -36,7 +36,7 @@ func _check(main: Node) -> void:
 	var keys: Array = Flora.placed.keys(); keys.sort()
 	for k: String in keys: print("FLORA_CHECK count %-10s %6d" % [k, Flora.placed[k]])
 	var need := {"oak": 60, "pine": 15, "birch": 20, "willow": 8, "snag": 15, "sapling": 60, "grass": 2000, "fern": 800,
-		"flowers": 200, "heather": 300, "reeds": 30, "shrub": 60, "mushroom": 60, "glowcap": 10, "log": 10}
+		"flowers": 200, "heather": 300, "reeds": 30, "shrub": 60, "mushroom": 60, "log": 10}
 	for k: String in need:
 		if int(Flora.placed.get(k, 0)) < int(need[k]): bad.append("too few %s (%d < %d)" % [k, Flora.placed.get(k, 0), need[k]])
 	var on_path := 0

@@ -19,7 +19,6 @@ const UNDER := {
 	"litter": {"oldforest": 0.22, "glade": 0.025, "ruin": 0.045, "meadow": 0.005},
 	"moss": {"oldforest": 0.14, "fen": 0.1, "glade": 0.05, "crag": 0.04, "ruin": 0.04},
 	"mushroom": {"oldforest": 0.035, "fen": 0.015, "glade": 0.012},
-	"glowcap": {"oldforest": 0.004, "glade": 0.02, "fen": 0.005},
 	"reeds": {"fen": 0.01},
 	"cattail": {"fen": 0.004},
 	"log": {"oldforest": 0.006, "fen": 0.003, "glade": 0.002},
@@ -58,7 +57,7 @@ const LOOKS := {
 		"tint": Color(0.62, 0.6, 0.56)},
 	"necropolis": {"tree_mul": {"oak": 0.15, "birch": 0.4, "pine": 0.2, "sapling": 0.2, "snag": 0.6}, "tree_add": {"yew": 0.3}, "rows": "cypress",
 		"under_mul": {"grass": 2.15, "tallgrass": 2.6, "flowers": 0.5, "heather": 0.4, "moss": 1.8, "shrub": 0.4, "bramble": 1.4},   # grass 1.15 -> 1.42 (it sat on the floor of its band against heath)
-		"under_add": {"glowcap": 0.003},
+		"under_add": {},
 		"tint": Color(0.8, 0.86, 0.8), "props": {"headstone": 0.006}, "stone_mul": 1.3, "style": "granite"},
 	# the Ossuary's own ground (ossuary_ground.gd): thin pale turf gone to moss and bramble, black yews, bone dust
 	"ossuary": {"tree_mul": {"oak": 0.05, "birch": 0.15, "pine": 0.1, "sapling": 0.1, "snag": 0.8}, "tree_add": {"yew": 0.32},

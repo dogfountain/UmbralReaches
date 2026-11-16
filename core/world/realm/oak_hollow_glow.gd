@@ -1,8 +1,7 @@
 extends RefCounted
 ## The light inside the Grandmother Oak's hollow, so the floor, the roots and the wall read at night without a
-## lamp: little domed mushrooms rooted in the floor's soil, shelf-fungus brackets on the wall above the stair (each
-## with a tiny cyan-green light), a faint cold fill, a few drifting motes and a thin moon-shaft down the open
-## crown. All of it dim and none of it a fire.
+## lamp: a faint cold fill, a few drifting motes and a thin moon-shaft down the open crown. All of it dim and none
+## of it a fire. (Its glowing mushrooms and shelf fungus are gone: Luke, 16 Nov, no glowing mushrooms in the world.)
 ## No class_name: const OakHollowGlow := preload("res://core/world/realm/oak_hollow_glow.gd").
 
 const CAP_GLOW := Color(0.3, 0.95, 0.78)
@@ -34,34 +33,6 @@ static func _r_in(y: float) -> float:
 
 ## `xf` is the oak's transform (local y 0 = the floor). Adds the glow to `host`.
 static func build(host: Node3D, xf: Transform3D) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7117
-	var floor_m := _clump(1, false)
-	var shelf_m := _clump(2, true)
-	var floor_tf: Array[Transform3D] = []
-	var shelf_tf: Array[Transform3D] = []
-	for k in 6:                                    # in the soil of the floor, clear of the stair's first turn
-		var a := TAU * (float(k) + rng.randf_range(-0.2, 0.2)) / 6.0 + 0.3
-		var r := rng.randf_range(1.2, 2.6)
-		var s := rng.randf_range(1.1, 1.6)
-		floor_tf.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), xf * (_sway(0.0) + Vector3(sin(a) * r, -0.12, cos(a) * r))))
-	for k in 5:                                    # shelf fungus on the wall, above head height over the stair
-		var a := TAU * (float(k) + rng.randf_range(-0.2, 0.2)) / 5.0 + 0.9
-		var turn_frac := fposmod((a - A0) / TAU, 1.0)
-		var y := 0.14 + RISE * TURN * turn_frac + rng.randf_range(2.1, 2.7) + (0.0 if k % 2 == 0 else RISE * TURN)
-		var out := Vector3(sin(a), 0.0, cos(a))
-		var wall := _sway(y) + out * (_r_in(y) - 0.02) + Vector3(0, y, 0)
-		var s := rng.randf_range(0.9, 1.3)
-		# the shelf's flat side to the wall: its dome (local +y) points out from the wall
-		var up_to_out := Basis(Quaternion(Vector3.UP, out))
-		shelf_tf.append(Transform3D(up_to_out.scaled(Vector3(s, s, s)), xf * wall))
-	_instances(host, floor_m, floor_tf, "HollowShrooms")
-	_instances(host, shelf_m, shelf_tf, "HollowShelves")
-	var lit: Array[Transform3D] = []
-	lit.append_array(floor_tf.slice(0, 3))
-	lit.append_array(shelf_tf.slice(0, 2))
-	for t: Transform3D in lit:
-		_light(host, OmniLight3D.new(), t.origin + t.basis.y * 0.3 + Vector3(0, 0.2, 0), CAP_GLOW, 0.5, 3.6)
 	var centre: Vector3 = xf * (_sway(0.0) + Vector3(0.0, 0.7, 0.0))
 	_light(host, OmniLight3D.new(), centre + Vector3(0.6, 0.6, -0.8), Color(0.66, 0.76, 0.9), 1.7, 8.5)
 	_light(host, OmniLight3D.new(), xf * (_sway(4.0) + Vector3(-1.5, 4.0, 1.0)), Color(0.55, 0.66, 0.9), 0.8, 9.0)

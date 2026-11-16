@@ -343,7 +343,7 @@ static func _fungus_ring(c: Vector2) -> void:
 	for i in n:
 		var a := TAU * float(i) / float(n) + _rng.randf_range(-0.12, 0.12)
 		var rr := r + _rng.randf_range(-0.15, 0.15)
-		_put("rings", "glowcap" if i % 3 != 1 else "mushroom", c.x + cos(a) * rr, c.y + sin(a) * rr, 0.4)
+		_put("rings", "mushroom", c.x + cos(a) * rr, c.y + sin(a) * rr, 0.4)
 
 
 ## Patches of one flower on the open ground, gorse clumps on the heath.
