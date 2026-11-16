@@ -13,11 +13,16 @@ var points := [
 	["fen", Vector3(70.0, NAN, -20.0)],
 	["village", Vector3(8.0, NAN, 48.0)],
 	["summit", Vector3(0.0, 27.9, -92.0)],
+	["fight", Vector3(62.0, NAN, 60.0)],          # the fight bench's spot
+	["lastlight", Vector3(314.0, NAN, 64.0)],     # the Far Reaches: a town, its people, the east road
+	["reedholm", Vector3(-316.0, NAN, 300.0)],
+	["marches", Vector3(-160.0, NAN, 20.0)],
 ]
 const CAL_REF := 150.0      # us the calibration loop takes on an idle M4 Pro (so 1 cu ~ 1 us there)
 var main: Node
 var p: Player
 var top := 30
+var detail := PackedStringArray()   ## --detail=villager.gd,lamp.gd: per node of these scripts, its cost and distance
 
 
 func _ready() -> void:
@@ -28,6 +33,8 @@ func _ready() -> void:
 			points = points.filter(func(e: Array) -> bool: return e[0] in keep)
 		elif a.begins_with("--top="):
 			top = int(a.trim_prefix("--top="))
+		elif a.begins_with("--detail="):
+			detail = a.trim_prefix("--detail=").split(",")
 	Travel._busy = true
 	main = load("res://world/main.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(main)
@@ -58,6 +65,7 @@ func _run() -> void:
 		p.global_position = at
 		p.velocity = Vector3.ZERO
 		await _secs(2.5)
+		_monitors(String(pt[0]))
 		grand += _measure(String(pt[0]))
 	print("COST total over views %.1f us" % grand)
 	get_tree().quit()
@@ -104,6 +112,26 @@ func _mesh_census(nm: String) -> void:
 		print("MESHES   %4d  %s  e.g. %s" % [rows[k], k, names[k]])
 
 
+## The engine's own process and physics times (scripts plus what the engine does round them) over 60
+## frames at the view, with the processing nodes counted: the whole CPU the night asks of a frame.
+func _monitors(label: String) -> void:
+	var pr := 0.0
+	var ph := 0.0
+	for i in 60:
+		await get_tree().process_frame
+		pr += Performance.get_monitor(Performance.TIME_PROCESS)
+		ph += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)
+	var idle := 0
+	var phys := 0
+	for nd in get_tree().root.find_children("*", "", true, false):
+		if nd.can_process():
+			idle += int(nd.is_processing())
+			phys += int(nd.is_physics_processing())
+	print("COST view %s: process %.2f ms, physics %.2f ms (monitors, mean of 60 frames), %d nodes, %d processing, %d physics-processing, %d bodies" % [label,
+		pr / 60.0 * 1000.0, ph / 60.0 * 1000.0, Performance.get_monitor(Performance.OBJECT_NODE_COUNT), idle, phys,
+		Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS)])
+
+
 func _cal() -> float:
 	var best := INF
 	for r in 3:
@@ -127,6 +155,7 @@ func _measure(label: String) -> float:
 			nodes.append(n)
 	var per := {}          # script -> Array of round totals (us per frame)
 	var count := {}
+	var each := {}         # node -> Array of round costs (cu), for the --detail scripts
 	for r in ROUNDS:
 		var sums := {}
 		var cal := _cal()
@@ -134,6 +163,8 @@ func _measure(label: String) -> float:
 			if not is_instance_valid(n) or not n.is_inside_tree() or not n.can_process():
 				continue
 			var key := (n.get_script() as Script).resource_path.get_file()
+			if key == "":
+				key = "inner:" + String(n.name).rstrip("0123456789@")
 			if r == 0:
 				count[key] = int(count.get(key, 0)) + 1
 			var t0 := Time.get_ticks_usec()
@@ -142,7 +173,12 @@ func _measure(label: String) -> float:
 					n.call(&"_process", dt)
 				if n.is_physics_processing() and n.has_method(&"_physics_process"):
 					n.call(&"_physics_process", dt)
-			sums[key] = float(sums.get(key, 0.0)) + float(Time.get_ticks_usec() - t0) / float(REPS)
+			var us := float(Time.get_ticks_usec() - t0) / float(REPS)
+			sums[key] = float(sums.get(key, 0.0)) + us
+			if key in detail:
+				if not each.has(n):
+					each[n] = []
+				(each[n] as Array).append(us * CAL_REF / maxf(cal, 1.0))
 		# normalised to a fixed calibration loop timed in the same round: the machine is shared,
 		# and its speed swings 2x between runs; "cu" (calibrated us) compares across runs
 		var cal2 := _cal()
@@ -165,4 +201,17 @@ func _measure(label: String) -> float:
 	print("COST view %s: %.1f cu/frame over %d nodes" % [label, total, nodes.size()])
 	for k in mini(top, rows.size()):
 		print("COST   %-10s %8.1f cu  %-32s x%d" % [label, rows[k][0], rows[k][1], int(count.get(rows[k][1], 0))])
+	if not each.is_empty():
+		var cam := get_viewport().get_camera_3d()
+		var drows := []
+		for n: Node in each:
+			if not is_instance_valid(n):
+				continue
+			var a: Array = each[n]
+			a.sort()
+			var d := cam.global_position.distance_to((n as Node3D).global_position) if cam != null and n is Node3D else -1.0
+			drows.append([float(a[a.size() / 2]), (n.get_script() as Script).resource_path.get_file(), String(n.name), d])
+		drows.sort_custom(func(x: Array, y: Array) -> bool: return x[0] > y[0])
+		for dr: Array in drows.slice(0, 40):
+			print("COST   %-10s detail %7.1f cu  %-20s %-28s %6.0f m" % [label, dr[0], dr[1], dr[2], dr[3]])
 	return total
