@@ -291,6 +291,7 @@ func _find() -> void:
 func _announce(s: Dictionary) -> void:
 	var log_ui = _story.get("log_ui") if _story is Node else null
 	if log_ui is Object and is_instance_valid(log_ui):
+		log_ui.drop_queued("NEXT")                 # a step that came and went while the lane was busy is not announced late
 		log_ui.banner("NEXT", String(Lines.SHORT.get(String(s.id), s.text)), String(s.where))
 
 

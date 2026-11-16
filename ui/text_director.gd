@@ -462,7 +462,7 @@ func _lesson_tick(delta: float) -> void:
 		_tip_t -= delta
 		if _tip_t <= 0.0:
 			end(&"lesson")
-			create_tween().tween_property(_tip, "modulate:a", 0.0, 0.6)
+			_tip_fade(0.0, 0.6)
 			_tip_cool = 0.7
 		return
 	if _tip_cool > 0.0:
@@ -478,16 +478,30 @@ func _lesson_tick(delta: float) -> void:
 	_set_keys(_tip_raw if keyed else "")
 	_tip_t = 5.6
 	begin(&"lesson", 8.0, _tip_rect())
-	create_tween().tween_property(_tip, "modulate:a", 1.0, 0.35)
+	_tip_fade(1.0, 0.35)
+
+
+## The lesson's fade, one at a time: a bump kills it, so a fade-in cut short by narration does not carry on under it.
+var _tip_tw: Tween
+
+
+func _tip_fade(to: float, secs: float) -> void:
+	if _tip_tw != null and _tip_tw.is_valid():
+		_tip_tw.kill()
+	_tip_tw = create_tween()
+	_tip_tw.tween_property(_tip, "modulate:a", to, secs)
 
 
 ## Narration took the lane: the lesson fades and goes back to the head of its queue.
 func _lesson_bumped() -> void:
+	if _tip_tw != null and _tip_tw.is_valid():
+		_tip_tw.kill()
 	if _tip_t > 0.0 and _tip_raw != "":
 		_lesson_q.push_front(_tip_raw)
 	_tip_t = 0.0
 	_tip_cool = 0.0
 	_tip.modulate.a = 0.0
+	_keys_plate.modulate.a = 0.0
 
 
 ## The caps row for a keyed lesson ("" clears it).

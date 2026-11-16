@@ -254,6 +254,11 @@ func banner(top: String, name_text: String, sub: String) -> void:
 		_bq.append([top, name_text, sub])
 
 
+## Queued banners with this top line are dropped (the guide's "Next": only the newest step is worth announcing).
+func drop_queued(top: String) -> void:
+	_bq = _bq.filter(func(b: Array) -> bool: return String(b[0]) != top)
+
+
 ## Seconds a banner holds: 3.6 for a line, more for an ending (about 16 characters a second to read it, up to 13).
 func _hold(sub: String) -> float:
 	return clampf(2.4 + float(sub.length()) / 16.0, 3.6, 13.0)

@@ -232,7 +232,12 @@ func _drive() -> void:
 		await _walk(p, [vil.global_position + (p.global_position - vil.global_position).normalized() * 3.2], "to_villager", 3.0)
 		var dv := vil.global_position - p.global_position
 		p.set_view(atan2(-dv.x, -dv.z), -0.1)
-		await _wait(1.4)
+		var said0: int = (gd.get("said") as Array).size() if gd else 0
+		var wv := 0.0
+		while gd and (gd.get("said") as Array).size() == said0 and wv < 12.0:
+			await _wait(0.3)                              # the subtitle lane may be holding the opening's lines or the Keg's chatter
+			wv += 0.3
+		await _wait(1.0)
 		await shot("villager_calls")
 		await _wait(0.4)
 		for v2 in get_tree().get_nodes_in_group("villager"):

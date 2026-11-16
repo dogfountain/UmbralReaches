@@ -7,6 +7,7 @@ extends Control
 
 const Guide := preload("res://core/story/guide.gd")
 const Forge := preload("res://ui/hud_forge.gd")
+const TextDirector := preload("res://ui/text_director.gd")
 const INK := Color(0.96, 0.9, 0.78)
 const SIZE := 42.0
 const MARGIN := Vector2(90.0, 120.0)        ## kept off the screen's edges: x, and y under the compass strip
@@ -57,6 +58,9 @@ func _process(delta: float) -> void:
 			# off the screen's middle the mark goes (the compass strip carries the bearing): pinned to an edge it sat
 			# under the unit frames and the tracker
 			want = 0.0 if _edge else smoothstep(NEAR_OUT, NEAR_IN, _dist)
+			var td := TextDirector.of(self)
+			if td != null and td.banner_up() and td.lane_rect(&"banner").has_point(_at):
+				want = 0.0                          # under a banner (the "Next" that names it) it waits its turn
 	_alpha = move_toward(_alpha, want, delta * (3.0 if want > _alpha else 5.0))
 	if _alpha > 0.0 or _drawn > 0.0:
 		_drawn = _alpha
