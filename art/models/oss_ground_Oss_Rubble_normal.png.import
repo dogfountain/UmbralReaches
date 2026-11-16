@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d4crkbxeicop8"
-path="res://.godot/imported/oss_ground_Oss_Rubble_normal.png-698bf3a2e31dd79861887da0c279ad46.ctex"
+path.s3tc="res://.godot/imported/oss_ground_Oss_Rubble_normal.png-698bf3a2e31dd79861887da0c279ad46.s3tc.ctex"
+path.etc2="res://.godot/imported/oss_ground_Oss_Rubble_normal.png-698bf3a2e31dd79861887da0c279ad46.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1bc3c53182f3e6176f362c4b1c3aa962"
@@ -14,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/oss_ground_Oss_Rubble_normal.png"
-dest_files=["res://.godot/imported/oss_ground_Oss_Rubble_normal.png-698bf3a2e31dd79861887da0c279ad46.ctex"]
+dest_files=["res://.godot/imported/oss_ground_Oss_Rubble_normal.png-698bf3a2e31dd79861887da0c279ad46.s3tc.ctex", "res://.godot/imported/oss_ground_Oss_Rubble_normal.png-698bf3a2e31dd79861887da0c279ad46.etc2.ctex"]
 
 [params]
 
