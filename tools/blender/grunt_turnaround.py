@@ -60,6 +60,7 @@ POSE = arg("--pose", "")
 # characterful stances for review, in Blender world axes (x right, +y the way it faces, z up): degrees about x, y, z.
 # (the rig is flat sockets, so each joint rotates the part it carries about its own head)
 POSES = {
+    "husk": {"pelvis": (0, -3, 0), "chest": (-14, 3, -4), "head": (-10, 0, 8), "shoulder_l": (-8, 0, 6), "shoulder_r": (-16, 0, -6), "elbow_r": (-20, 0, 0), "hip_l": (-8, 0, 0), "knee_l": (8, 0, 0), "hip_r": (5, 0, 0)},
     "wretch": {"pelvis": (0, 6, 0), "chest": (-20, -4, 6), "head": (-6, 0, -10), "shoulder_l": (-14, 0, 10), "elbow_l": (-12, 0, 0), "shoulder_r": (-30, 0, -4),
                "elbow_r": (-55, 0, 0), "hand_r": (-10, 0, 0), "hip_l": (-14, 0, 0), "knee_l": (14, 0, 0), "hip_r": (6, 0, 0), "knee_r": (4, 0, 0), "foot_l": (6, 0, 0)},
 }

@@ -38,3 +38,18 @@ def field(P, N, skin, amp=1.0, ribs=1.0, belly=1.0):
         d += h * np.exp(-((y - y0) / r) ** 2) * sel * limb
     d = np.where(skin, d * amp, 0.0)
     return d
+
+
+def folds(P, N, mask, amp=1.0, belt=0.97, hem=0.38):
+    """Long folds hanging from the belt of a coat or robe, deeper toward the hem, pinched where the belt gathers them,
+    drifting as they fall instead of a uniform noise. mask: the cloth's vertices."""
+    x, y, z = P[:, 0], P[:, 1], P[:, 2]
+    ang = np.arctan2(x, -z)
+    fall = np.clip((belt + 0.1 - y) / (belt - hem + 0.1), 0.0, 1.0)
+    drift = 1.4 * np.sin(y * 6.5 + ang * 2.0) * fall
+    f1 = np.sin(ang * 11.0 + drift)
+    f2 = np.sin(ang * 5.0 - 0.8 * drift + 1.3)
+    a = (0.004 + 0.016 * fall ** 1.2)
+    d = a * (0.7 * f1 + 0.5 * f2)
+    d -= 0.006 * np.exp(-((y - belt) / 0.04) ** 2)                # the belt's pinch
+    return np.where(mask, d * amp, 0.0)

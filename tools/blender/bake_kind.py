@@ -34,8 +34,8 @@ FINISH = {
 
 # each layer's tile as the game's tiling materials wore it (core/enemy/boss_look.gd SURFACES): tile, uv scale,
 # normal depth, keep the tile's own colour (else the tint's colour with the tile's weave)
-SURF = {"wool": ("wool", (2.2, 2.2), 1.0, False), "linen": ("wool", (3.4, 3.4), 0.6, False), "trim": ("trim", (1 / 0.24, 1.0), 1.0, True),
-        "leather": ("leather", (2.0, 2.0), 1.0, False), "bone": ("leather", (1.3, 1.3), 0.45, False), "gilt": ("iron", (3.0, 3.0), 0.6, False),
+SURF = {"wool": ("wool", (2.2, 2.2), 0.45, False), "linen": ("wool", (3.4, 3.4), 0.3, False), "trim": ("trim", (1 / 0.24, 1.0), 1.0, True),
+        "leather": ("leather", (2.0, 2.0), 0.5, False), "bone": ("leather", (1.3, 1.3), 0.45, False), "gilt": ("iron", (3.0, 3.0), 0.6, False),
         "iron": ("iron", (2.0, 2.0), 1.0, False), "wood": ("wood", (1.5, 1.5), 1.0, False), "stone": ("iron", (0.8, 0.8), 1.4, False),
         "glow": ("iron", (1.0, 1.0), 0.0, False), "skin": ("leather", (2.6, 2.6), 0.22, False)}
 TILES = os.path.join(ROOT, "art", "blender", "tiles")
@@ -189,8 +189,7 @@ def make_high(low, levels=2, hook=None):
         nr = nr.reshape(-1, 3)
         P = np.stack([co[:, 0], co[:, 2], -co[:, 1]], 1)               # blender -> rig space
         Nn = np.stack([nr[:, 0], nr[:, 2], -nr[:, 1]], 1)
-        skin = _layer_of_vertices(me) == LAYERS.index("skin")
-        d = hook(P, Nn, skin)
+        d = hook(P, Nn, _layer_of_vertices(me))
         me.vertices.foreach_set('co', (co + nr * d[:, None]).ravel())
         me.update()
     return hi
@@ -486,8 +485,8 @@ def _bake_one(low, kind, size, levels, samples, prefix, hook=None):
     nt = N["nt"]
     bk = sc.render.bake
     bk.use_selected_to_active = True
-    bk.cage_extrusion = float(os.environ.get("BAKE_EXT", "0.012"))
-    bk.max_ray_distance = float(os.environ.get("BAKE_RAY", "0.03"))
+    bk.cage_extrusion = float(os.environ.get("BAKE_EXT", "0.026"))
+    bk.max_ray_distance = float(os.environ.get("BAKE_RAY", "0.065"))
     bk.margin = 6
     bk.target = 'IMAGE_TEXTURES'
     for o in sc.objects:

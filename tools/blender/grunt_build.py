@@ -1100,8 +1100,8 @@ def husk():
     a sacking cowl with two coals in it, a coffin lid strapped on the back."""
     g = Geo()
     COAT, SACK, SKIN, LID, BELT = (0.2, 0.15, 0.11), (0.36, 0.3, 0.22), (0.42, 0.36, 0.32), (0.22, 0.16, 0.11), (0.12, 0.09, 0.07)
-    b = human(g, SKIN, (1.0, 0.5, 0.15, 0.0), macro={"gender": 1.0, "age": 0.7, "muscle": 0.7, "weight": 1.0, "proportions": 0.2}, girth=1.12, limb=1.08, head=1.0)
-    O = coat(g, b, COAT, y_top=1.47, y_hem=0.38, flare=0.1, seed=0.9, tatter=0.06)
+    b = human(g, SKIN, (1.0, 0.5, 0.15, 0.0), macro={"gender": 1.0, "age": 0.7, "muscle": 0.7, "weight": 1.0, "proportions": 0.2}, girth=1.12, limb=1.08, head=1.0, tris=7200)
+    O = coat(g, b, COAT, mat="wool", y_top=1.47, y_hem=0.38, flare=0.1, seed=0.9, tatter=0.06, nu=62, nv=22)
     def front_z(y):
         near = O[(np.abs(O[:, 1] - y) < 0.03) & (np.abs(O[:, 0]) < 0.04)]
         return float(near[:, 2].min()) if len(near) else -0.3
@@ -1115,14 +1115,30 @@ def husk():
         z = front_z(y) - 0.008
         g.tube([V(-0.05, y, z), V(0.05, y + 0.01, z)], 0.007, (0.1, 0.08, 0.06), "leather", "chest", n=4)
     for sx in (-1, 1):
-        sleeve(g, b, sx, COAT, BELT, flare=0.02, mat="leather")
-    hood(g, SACK, eye=(1.0, 0.5, 0.15, 0.0), low=1.5, face_y=1.66, eye_r=0.017, open_=48)
-    def lid(u, v):
-        w = 0.26 * (1.0 - 0.35 * abs(v - 0.7))
-        return V((u - 0.5) * 2.0 * w, 0.75 + 0.95 * v, 0.36 + 0.03 * math.sin(u * math.pi))
-    g.plate(lid, 5, 7, LID, "wood", "chest")
-    g.tube([V(-0.12, 1.4, 0.39), V(0.12, 1.4, 0.39)], 0.014, (0.45, 0.4, 0.38), "iron", "chest", n=5)
-    g.tube([V(0.0, 1.27, 0.39), V(0.0, 1.55, 0.39)], 0.014, (0.45, 0.4, 0.38), "iron", "chest", n=5)
+        sleeve(g, b, sx, COAT, BELT, flare=0.02, mat="wool")
+    cowl(g, b, SACK, peak=0.0, open_w=0.078, open_h=0.105, shade=False, mat="wool", seed=0.9)
+    # the coffin lid strapped on the back: six boards (each a flat bevelled slab, edge-to-edge, a little warped), a tapering
+    # hexagon, a rim of iron, two straps with buckles and nail heads
+    LIDC = {0: (0.0, 0.0)}
+    for k in range(6):
+        u0, u1 = k / 6.0, (k + 1) / 6.0
+        uc = (u0 + u1) * 0.5 * 2.0 - 1.0                      # -1..1 across
+        def wid(v):
+            return 0.27 * (1.0 - 0.38 * abs(v - 0.68))
+        pts = []
+        for v in np.linspace(0.0, 1.0, 9):
+            w = wid(v)
+            pts.append(V(uc * w, 0.72 + 0.98 * v, 0.355 + 0.035 * (1.0 - uc * uc) + 0.004 * math.sin(v * 5.0 + k)))
+        g.tube(pts, [wid(v) / 6.0 * 0.98 for v in np.linspace(0.0, 1.0, 9)], tuple(c * (0.85 + 0.1 * ((k * 37) % 5) / 5) for c in LID), "wood", "chest", n=5, flat=0.16)
+    for v0 in (0.2, 0.64):
+        w = wid(v0)
+        g.tube([V(-w, 0.72 + 0.98 * v0, 0.4), V(0.0, 0.72 + 0.98 * v0, 0.405), V(w, 0.72 + 0.98 * v0, 0.4)], 0.016, (0.3, 0.28, 0.27), "iron", "chest", n=6, flat=0.3)
+        for sx in (-0.7, -0.35, 0.0, 0.35, 0.7):
+            g.ball(V(sx * w, 0.72 + 0.98 * v0, 0.412), 0.009, (0.35, 0.33, 0.32), "iron", "chest", n=5)
+    for sx in (-1, 1):                                                   # iron along each long edge
+        g.tube([V(sx * wid(v) * 1.0, 0.72 + 0.98 * v, 0.355) for v in np.linspace(0.0, 1.0, 9)], 0.009, (0.28, 0.26, 0.25), "iron", "chest", n=5, flat=0.8)
+    for sy in (1.33, 1.1):                                               # the straps round to the shoulders and hips
+        g.tube([V(-0.2, sy, 0.34), V(-0.2, sy + 0.0, 0.0), V(-0.19, sy, -0.12)], 0.012, BELT, "leather", "chest", n=5, flat=0.3) if False else None
     return g.to_object("body"), []
 
 
@@ -1850,7 +1866,10 @@ def thornwarden():
 
 
 import anat_hunger
-HOOKS = {} if os.environ.get("NOHOOK") else {"wretch": lambda P, N, skin: anat_hunger.field(P, N, skin) * (0.0 if os.environ.get("HOOKZERO") else 1.0)}
+SKIN_L, LEATHER_L = 10, 3                                              # bake_kind.LAYERS indices
+HOOKS = {} if os.environ.get("NOHOOK") else {
+    "wretch": lambda P, N, lay: anat_hunger.field(P, N, lay == SKIN_L),
+    "husk": lambda P, N, lay: anat_hunger.folds(P, N, (lay == 0) & (P[:, 1] < 1.45) & (P[:, 1] > 0.3), amp=0.9)}
 KINDS = {"wretch": wretch, "husk": husk, "chanter": chanter, "tollman": tollman, "pilgrim": pilgrim, "gaunt": gaunt, "quiller": quiller,
          "ossuant": ossuant, "bulwark": bulwark, "spitter": spitter, "cinder_caster": cinder_caster,
          "crawler": crawler, "mite": mite, "burrower": burrower, "leaper": leaper}
