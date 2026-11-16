@@ -29,7 +29,7 @@ func _ready() -> void:
 		await Realm.build(root)                  # the redesigned zone (docs/REALM_PLAN.md)
 	_light_existing_caps()
 	_scatter_wisps()
-	_scatter_buds()
+	# (no glow buds: they were glowing mushrooms, and the world has none: Luke, 16 Nov)
 	if not skip_shards:
 		_scatter_shards()
 	_scatter_swarms()
