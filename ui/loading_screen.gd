@@ -56,6 +56,7 @@ const BOSSES := ["res://core/enemy/thornwarden.gd", "res://core/enemy/bone_abbot
 ## warm, every one is 1.4-2.1 ms.
 const ELITES_PATH := "res://core/life/encounters/elites.gd"
 const VARIANTS_PATH := "res://core/life/encounters/variants.gd"
+const Variants := preload("res://core/life/encounters/variants.gd")
 const VARIANT_ON := {"drowned": "res://core/enemy/husk.gd", "stonebound": "res://core/enemy/wretch.gd", "tideborn": "res://core/enemy/wretch.gd",
 	"deeper": "res://core/enemy/husk.gd", "scarred": "res://core/enemy/ossuant.gd", "ironclad": "res://core/enemy/husk.gd"}
 const CORES := ["core_prism", "core_lodestar", "core_cinder", "core_rime"]
@@ -480,10 +481,10 @@ func _show_elites(c: Vector3, right: Vector3, fwd: Vector3) -> void:
 			continue
 		e.process_mode = Node.PROCESS_MODE_DISABLED
 		if look != "":
-			variants.call("pre", e, look)
+			Variants.pre(e, look)
 		zone.add_child(e)
 		if look != "":
-			variants.call("dress", e, look)
+			Variants.dress(e, look)
 		e.remove_from_group(Groups.ENEMY)
 		e.global_position = c + fwd * 3.2 + right * (float(k) - float(slots.size()) * 0.5) * 0.9
 		_warm_nodes.append(e)
