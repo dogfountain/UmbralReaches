@@ -706,20 +706,19 @@ def hierarch():
     lab = waist_split(0.98)
     import grunt_build as GB                     # the statue's body is carved from a man's: an old, heavy king's face and hands
     bd = GB.human(g, PALE, (1.0, 0.55, 0.2, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.5, "weight": 0.9, "proportions": 0.4},
-                  girth=1.15, head=1.7, mat="stone", shoulder_y=1.5)
-    robe = [(1.5, 0.2, 0.15, 0.0), (1.3, 0.22, 0.17, 0.0), (1.05, 0.21, 0.17, 0.0), (0.8, 0.27, 0.23, 0.0), (0.45, 0.36, 0.32, 0.01), (0.1, 0.43, 0.39, 0.02), (0.0, 0.45, 0.41, 0.02)]
-    g.robe(robe, STONE, "stone", lab, n=128, pleats=16, pleat_amp=0.1, pleat_from=1.1)
-    g.ring_band(0.04, 0.14, 0.452, 0.412, 0.02, GILT, "trim", "pelvis", n=96)
-    cope = [(1.6, 0.26, 0.2, 0.03), (1.5, 0.36, 0.25, 0.03), (1.3, 0.42, 0.31, 0.04), (0.9, 0.5, 0.4, 0.05), (0.45, 0.6, 0.5, 0.06), (0.06, 0.67, 0.57, 0.07)]
-    Pc = g.robe(cope, PALE, "stone", lab, n=128, t0=math.radians(48), t1=TAU - math.radians(48), pleats=11, pleat_amp=0.17, pleat_from=1.5, tatter=0.1)
-    for edge in (0, -1):
-        g.band([row[edge] for row in Pc], 0.1, GILT, "trim", lab, out=0.008, up=[V(0.6 * (1 if edge == 0 else -1), 0, -0.8)] * len(Pc))
+                  girth=1.15, head=1.7, mat="stone", shoulder_y=1.5, eye_r=0.0065, skull=0.3)
+    n0 = g._fit[1] - len(bd.P)                                              # the real arms are folded away inside the robe: the fists on the horn are his hands
+    for k in range(len(bd.P)):
+        if bd.L[k].startswith(("hand_", "elbow_")) or (bd.L[k].startswith("shoulder_") and bd.P[k][1] < 1.25):
+            g.v[n0 + k] = V(0.0, 1.0, 0.05)
+    Oc = GB.coat(g, bd, STONE, mat="stone", y_top=1.5, y_hem=0.02, flare=0.3, seed=0.5, tatter=0.05, folds=12, thick=0.014, nu=128, nv=44, amp=0.08, crease=0.5)
+    g.ring_band(0.03, 0.12, 0.47, 0.43, 0.02, GILT, "trim", "pelvis", n=96) if False else None
+    Op = GB.shawl(g, bd, PALE, mat="stone", y_low=0.04, gap=(math.radians(-50), math.radians(50)), seed=1.3, tatter=0.09, flare=0.34, amp=0.07)
     for k in range(5):                                                    # moss in the folds near the ground
         a = 0.9 + k * 1.05
         g.ball(V(math.sin(a) * 0.6, 0.06, -math.cos(a) * 0.52 + 0.06), 0.07, MOSS, "wool", "pelvis", n=6, sy=0.4)
     for sx in (-1, 1):
         t = "l" if sx < 0 else "r"
-        GB.sleeve(g, bd, sx, STONE, GILT, flare=0.03, mat="stone")
         g.lathe([(0.0, 0.0), (0.15, 0.0), (0.16, 0.05), (0.14, 0.1), (0.08, 0.14), (0.0, 0.15)], V(sx * 0.27, 1.38, 0.0), PALE, "stone", "shoulder_" + t, n=20)
         if sx < 0:
             g.box(V(-0.36, 1.46, 0.04), (0.04, 0.03, 0.06), PALE, "stone", "shoulder_l")        # the broken edge
