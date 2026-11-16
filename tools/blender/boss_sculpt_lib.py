@@ -779,6 +779,7 @@ def bake_atlas2(objs, mats, prefix, tex_dir, size, pairs, ao_samples=24):
     out = bpy.data.images.new(prefix + "_orm", size, size, alpha=False)
     out.colorspace_settings.name = 'Non-Color'
     out.pixels.foreach_set(orm.ravel())
+    images["emit"].scale(max(size // 2, 256), max(size // 2, 256))
     for key, img in (("albedo", images["albedo"]), ("normal", images["normal"]), ("orm", out), ("emit", images["emit"])):
         img.filepath_raw = os.path.join(tex_dir, "%s_%s.png" % (prefix, key))
         img.file_format = 'PNG'
@@ -795,6 +796,7 @@ def export_skinned2(objs, mats, name, sockets, weights, rigid=None, size=2048, p
     skinned parts into one "body" on a flat armature, keep `rigid` parts ({sock: (export name, joint)}) separate with their
     origin on the joint, export art/models/<name>.glb."""
     rigid = rigid or {}
+    size = min(size, int(os.environ.get("BOSS_SIZE", "2048")))     # no bigger maps than the model it replaces: 2048, the emit map 1024
     tex_dir = os.path.join(os.path.dirname(__file__), "..", "..", "art", "textures")
     blend_dir = os.path.join(os.path.dirname(__file__), "..", "..", "art", "blender")
     objs = consolidate(objs, pairs or [])
