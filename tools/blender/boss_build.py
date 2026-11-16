@@ -622,10 +622,10 @@ def ascended_warden():
             g.v[k] = HC + (g.v[k] - hc) * 0.55
     bell = [(1.5, 0.17, 0.12, 0.0), (1.38, 0.19, 0.135, 0.0), (1.2, 0.185, 0.14, 0.0), (1.04, 0.2, 0.16, 0.0), (0.86, 0.3, 0.26, 0.0), (0.66, 0.44, 0.4, 0.01),
             (0.46, 0.56, 0.52, 0.02), (0.3, 0.63, 0.59, 0.03), (0.18, 0.66, 0.62, 0.03)]
-    g.robe(bell, LINEN, "linen", lab, n=120, pleats=18, pleat_amp=0.1, pleat_from=1.02, tatter=0.14)
+    g.robe(bell, LINEN, "linen", lab, n=160, pleats=20, pleat_amp=0.12, pleat_from=1.1, tatter=0.2)
     inner = [(y, rx * 0.94, rz * 0.94, cz) for (y, rx, rz, cz) in bell[3:]]
-    g.robe(inner, DARK, "iron", "pelvis", n=60, pleats=18, pleat_amp=0.1, pleat_from=1.02, flip=True)
-    pleat = lambda th: 1.0 + 0.1 * 0.45 * ((1.0 - abs(math.sin(th * 9)) ** 0.7) * 2.0 - 1.0)
+    g.robe(inner, DARK, "iron", "pelvis", n=60, pleats=20, pleat_amp=0.12, pleat_from=1.1, flip=True)
+    pleat = lambda th: 1.0 + 0.12 * 0.45 * ((1.0 - abs(math.sin(th * 11)) ** 0.7) * 2.0 - 1.0)
     g.ring_band(0.42, 0.5, 0.572, 0.532, 0.02, GOLD, "trim", "pelvis", n=120, fn=pleat)
     g.ring_band(1.0, 1.06, 0.205, 0.165, 0.0, GOLD, "trim", "chest", n=48)
     # the tabard: a long panel down the front, gilt edged
@@ -636,7 +636,7 @@ def ascended_warden():
     g.band([tab[-1] + V(-0.12, -0.03, 0), tab[-1] + V(0.0, -0.09, -0.01), tab[-1] + V(0.12, -0.03, 0)], 0.04, GOLD, "trim", "pelvis", out=0.018, up=[V(0, 0, -1)] * 3)
     # the mantle over the shoulders
     mant = [(1.58, 0.2, 0.15, 0.01), (1.52, 0.3, 0.2, 0.01), (1.4, 0.36, 0.25, 0.02), (1.24, 0.42, 0.31, 0.03), (1.14, 0.45, 0.34, 0.03)]
-    Pm = g.robe(mant, PALE, "linen", "chest", n=72, pleats=10, pleat_amp=0.05, pleat_from=1.5, tatter=0.05)
+    Pm = g.robe(mant, PALE, "linen", "chest", n=96, pleats=12, pleat_amp=0.1, pleat_from=1.5, tatter=0.08)
     g.ring_band(1.15, 1.2, 0.452, 0.342, 0.03, GOLD, "trim", "chest", n=72)
     # the sun on the breast
     g.lathe([(0.0, 0.0), (0.07, 0.004), (0.085, 0.012), (0.07, 0.02), (0.0, 0.024)], V(0.0, 1.32, -0.2), GOLD, "gilt", "chest", n=20, axis="z")
@@ -657,8 +657,8 @@ def ascended_warden():
         ph = v
         y = 1.6 + 0.26 * ph
         r = 0.132 * (0.8 + 0.2 * math.sin(ph * math.pi) ** 0.6) * (1.0 - 0.18 * (1.0 - ph) ** 2)
-        nose = 0.012 * math.exp(-((u - 0.5) / 0.07) ** 2) * math.exp(-((ph - 0.4) / 0.22) ** 2)
-        brow = 0.006 * math.exp(-((ph - 0.66) / 0.06) ** 2)
+        nose = 0.026 * math.exp(-((u - 0.5) / 0.07) ** 2) * math.exp(-((ph - 0.4) / 0.22) ** 2)
+        brow = 0.016 * math.exp(-((ph - 0.66) / 0.06) ** 2)
         return V(math.sin(th) * r, y, -math.cos(th) * (r * 1.06 + nose + brow))
     g.plate(mask, 25, 15, MASK, "bone", "head")
     for sx in (-1, 1):                                                    # the eyes: two slits of light
