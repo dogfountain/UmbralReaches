@@ -14,8 +14,13 @@ const BEND := 1.5                ## a path bending less than this off the straig
 const CLEAR_THINKS := 3          ## consecutive clear thinks before it drops back to the straight line
 
 static var map: RID
-static var region_id := 0
-static var probe := Vector3.INF          ## a point on the mesh: the map has taken the region once it answers for it
+static var region_id := 0                ## one of the night's regions (0: no mesh, flat steering only)
+## A point deep inside each tile (RealmNav): the map has taken every tile once each answers for its own. The
+## small Reach tiles join long before the big middle ones, and a map missing a tile answers from the nearest
+## one it has: a chaser by Hearthward was sent 200 m west, to the West Reach's edge.
+static var probes := PackedVector3Array()
+static var _joined := 0                  ## probes answered so far, in order
+static var _looked := -1                 ## the physics frame of the last look that failed (one a frame, however many ask)
 static var _synced := false
 ## Path queries made, and the time they took (tests and the perf watch read these).
 static var queries := 0
@@ -49,15 +54,31 @@ static func ready() -> bool:
 		_synced = false
 		return false
 	if not _synced:
-		# the server merges a new region over a few frames; before that the map answers (0, 0, 0)
-		_synced = probe != Vector3.INF and NavigationServer3D.map_get_closest_point(map, probe).distance_to(probe) < 1.0
+		_synced = _all_joined()
 	return _synced
 
 
-## Called by RealmNav when a fresh region goes in.
-static func set_region(id: int, on_mesh: Vector3) -> void:
+## Has the map taken every tile? The server merges each region on its own over seconds (the middle tiles take
+## longest); before its first sync the map answers nothing (and logs an error if asked).
+static func _all_joined() -> bool:
+	var f := Engine.get_physics_frames()
+	if f == _looked or probes.is_empty() or NavigationServer3D.map_get_iteration_id(map) == 0:
+		return false
+	while _joined < probes.size():
+		var pr := probes[_joined]
+		if NavigationServer3D.map_get_closest_point(map, pr).distance_to(pr) >= 1.0:
+			_looked = f
+			return false
+		_joined += 1
+	return true
+
+
+## Called by RealmNav when the night's regions go in: one of them, and a point inside each tile.
+static func set_regions(id: int, on_mesh: PackedVector3Array) -> void:
 	region_id = id
-	probe = on_mesh
+	probes = on_mesh
+	_joined = 0
+	_looked = -1
 	_synced = false
 
 

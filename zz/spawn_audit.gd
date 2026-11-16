@@ -328,8 +328,8 @@ func _nav() -> void:
 	var t0 := Time.get_ticks_msec()
 	while not NavAssist.ready() and Time.get_ticks_msec() - t0 < 90000:
 		await get_tree().process_frame
-	# NavAssist answers for its last tile only: wait until every tile has joined the map (a probe on each of the
-	# middle bands and both Reaches answers on its own spot)
+	# NavAssist.ready() waits for a point in every tile; these spots on each of the middle bands and both Reaches
+	# check it from outside
 	var probes: Array[Vector3] = []
 	for q: Vector2 in [Vector2(4, 40), Vector2(-60, 160), Vector2(60, 300), Vector2(-200, 20), Vector2(200, 20), Vector2(-320, 60), Vector2(320, 60)]:
 		probes.append(Vector3(q.x, RealmLayout.ground(space, q.x, q.y), q.y))

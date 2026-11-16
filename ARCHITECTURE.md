@@ -137,7 +137,9 @@ Quest data is checked by the `audit()` function in `core/story/quest_chains.gd`.
 Realm module, on a worker thread, cached through GenCache. Enemies and the Shade keep cheap straight
 steering and ask `NavAssist` (`core/enemy/nav_assist.gd`) for a path corner only when the straight
 line is walled or they stall (at most one query per 0.5 s). Dynamic walls (briars, gates, the raid
-maze) are not in the mesh.
+maze) are not in the mesh. The mesh is baked in tiles that the server joins one by one over seconds;
+`NavAssist.ready()` is true only once the map answers for a point inside every tile (a map missing a
+tile answers from the nearest one it has), and until then enemies steer flat.
 
 ## Pack
 
