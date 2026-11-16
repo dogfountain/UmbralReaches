@@ -76,7 +76,7 @@ func _screen() -> String:
 	var dlg := get_tree().root.get_node_or_null("Dialogue")
 	if dlg:
 		var sub := dlg.get("_sub") as Label
-		if sub and sub.is_visible_in_tree() and sub.text != "":
+		if sub and sub.is_visible_in_tree() and sub.modulate.a > 0.2 and sub.text != "":
 			bits.append("narr=%s" % sub.text.left(60))
 	var hud := get_tree().get_first_node_in_group(&"hud")
 	var pl := _player()
@@ -234,8 +234,25 @@ func _drive() -> void:
 		p.set_view(atan2(-dv.x, -dv.z), -0.1)
 		await _wait(1.4)
 		await shot("villager_calls")
-		await _wait(1.2)
+		await _wait(0.4)
+		for v2 in get_tree().get_nodes_in_group("villager"):
+			if "point_t" in v2 and float(v2.get("point_t")) > 0.0:
+				vil = v2                                  # the one who called out
+		print("WALK %s state %s act %s point_t %.1f point_at %s" % [vil.get("id"), vil.get("state"), vil.get("act"), float(vil.get("point_t")), vil.get("point_at")])
+		# a close side view of the one pointing (the wanderer's camera sits behind her shoulder)
+		var side := Camera3D.new()
+		get_tree().current_scene.add_child(side)
+		var fwd := (p.global_position - vil.global_position)
+		fwd.y = 0.0
+		fwd = fwd.normalized()
+		var right := fwd.cross(Vector3.UP)
+		side.global_position = vil.global_position + fwd * 2.6 + right * 1.6 + Vector3.UP * 1.6
+		side.look_at(vil.global_position + Vector3.UP * 1.2)
+		side.current = true
+		await _wait(0.3)
 		await shot("villager_points")
+		side.current = false
+		side.queue_free()
 		var dlv := get_tree().root.get_node_or_null("Dialogue")
 		while dlv and bool(dlv.call("narrating")):
 			await _wait(0.3)

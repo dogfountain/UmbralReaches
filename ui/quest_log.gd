@@ -81,6 +81,7 @@ func _build_banner() -> void:
 	_banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	_banner.offset_left = -500
 	_banner.offset_right = 500
+	_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH       # wider than its 1000 px, it widens both ways, centred
 	_banner.offset_top = 120
 	_banner.offset_bottom = 260
 	_banner.alignment = BoxContainer.ALIGNMENT_BEGIN
@@ -268,6 +269,11 @@ func _show_banner(top: String, name_text: String, sub: String) -> void:
 	var sf := _b_sub.get_theme_font("font")
 	var sw := sf.get_string_size(_b_sub.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _b_sub.get_theme_font_size("font_size")).x + 44.0 if sf else 960.0
 	_b_sub.custom_minimum_size = Vector2(960 if sub.length() > 90 else minf(960.0, sw), 0)
+	# and a name too long for one line wraps inside the banner instead of pushing it off the screen's edge
+	var nf := _b_name.get_theme_font("font")
+	var nw := nf.get_string_size(name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _b_name.get_theme_font_size("font_size")).x if nf else 0.0
+	_b_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if nw > 1000.0 else TextServer.AUTOWRAP_OFF
+	_b_name.custom_minimum_size = Vector2(1000.0 if nw > 1000.0 else 0.0, 0)
 	if _b_tw:
 		_b_tw.kill()
 	_b_tw = create_tween()

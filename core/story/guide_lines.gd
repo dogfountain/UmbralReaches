@@ -6,11 +6,23 @@ extends RefCounted
 ## north, the Ring west up the Thornwood's hill, the Ossuary south down the Waiting Field's road, the Keg east.
 ## Load by path (no class_name): const GuideLines := preload("res://core/story/guide_lines.gd")
 
+## step id -> the banner's name for the step (the tracker keeps the whole sentence)
+const SHORT := {
+	"arrive": "Find the keep",
+	"first_fire": "Kindle the Stair-foot fire",
+	"doors": "Pick a door",
+	"thorn_seal": "Break the thorn seal",
+	"thornwarden": "Cut the Thorn Heart",
+	"oss_seal": "Break the gallery seal",
+	"bone_abbot": "Take the Abbot's crown",
+	"peal": "Brannoc's bells",
+}
+
 ## step id -> the banner's second line (where it is)
 const WHERE := {
 	"arrive": "The Kindled Keg, east of the fire. The keep is behind the bar.",
 	"first_fire": "North, where the Stair begins. Light is somewhere to stand.",
-	"doors": "The thorn seal is west, up the Thornwood's hill; the gallery seal is south, down the Waiting Field's road.",
+	"doors": "The thorn seal west, up the Thornwood's hill, or the gallery seal south, down the Waiting Field's road.",
 	"thorn_seal": "West, past the glade, up the hill in the Thornwood.",
 	"thornwarden": "The Ring, on the Thornwood's hill.",
 	"oss_seal": "South, down the Waiting Field's road, past the tomb, over the bone bridge.",

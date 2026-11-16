@@ -108,7 +108,7 @@ func _ready() -> void:
 	ok(String(st.get("id", "")) == "first_fire" and (st.target as Vector3).distance_to(Vector3(-5, 2.3, -2)) < 0.5 and String(st.art) == "fire", "met the keep: the Stair-foot fire, the nearest cold brazier (%s %s)" % [st.get("id", ""), st.get("target", "")])
 	var bq: Array = log_ui.get("_bq")
 	var shown := "%s | %s" % [(log_ui.get("_b_top") as Label).text, (log_ui.get("_b_name") as Label).text]
-	ok((bq.size() == q0 + 1 and String((bq.back() as Array)[0]) == "NEXT") or (shown.begins_with("Next") and shown.contains("Stair")), "...announced in the banner lane: %s" % shown)
+	ok((bq.size() == q0 + 1 and String((bq.back() as Array)[0]) == "NEXT") or (shown.begins_with("Next") and shown.contains("Stair-foot fire")), "...announced in the banner lane, by its short name: %s" % shown)
 	var objs: Array = story.call("objectives")
 	ok(not objs.is_empty() and String((objs[0] as Dictionary).id) == "first_fire", "...and it heads the tracker (%s)" % [objs.map(func(o: Dictionary) -> String: return String(o.id))])
 	# 4. the fire lit: pick a door, the nearer seal

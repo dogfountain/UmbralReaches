@@ -291,7 +291,7 @@ func _find() -> void:
 func _announce(s: Dictionary) -> void:
 	var log_ui = _story.get("log_ui") if _story is Node else null
 	if log_ui is Object and is_instance_valid(log_ui):
-		log_ui.banner("NEXT", String(s.text), String(s.where))
+		log_ui.banner("NEXT", String(Lines.SHORT.get(String(s.id), s.text)), String(s.where))
 
 
 func _finish() -> void:

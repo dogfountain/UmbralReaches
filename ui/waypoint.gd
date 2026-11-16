@@ -2,9 +2,8 @@ extends Control
 ## The guide's waypoint (core/story/guide.gd): a painted mark hung over the place the next step is (the Keg's door, a
 ## cold brazier, a seal, a keeper's ring), its distance in metres under it, after WoW's tracked-quest arrow and
 ## Enshrouded's marker. Small and quiet: it fades out in the last few metres (the place's own mark or prompt takes
-## over), never draws while the place is behind the camera (the compass strip carries the bearing then), rides the
-## screen's margin while the place is off to a side, and steps aside for a menu, a conversation, the loading screen
-## and a locked-on fight. Added by ui/hud.gd (one line); polls the guide every frame (one group lookup).
+## over), never draws while the place is behind the camera or off the screen's middle (the compass strip carries the
+## bearing then), and steps aside for a menu, a conversation, the loading screen and a locked-on fight. Added by ui/hud.gd (one line); polls the guide every frame (one group lookup).
 
 const Guide := preload("res://core/story/guide.gd")
 const Forge := preload("res://ui/hud_forge.gd")
@@ -55,7 +54,9 @@ func _process(delta: float) -> void:
 			var clamped := at.clamp(lo, hi)
 			_edge = not clamped.is_equal_approx(at)
 			_at = clamped
-			want = smoothstep(NEAR_OUT, NEAR_IN, _dist) * (0.75 if _edge else 1.0)
+			# off the screen's middle the mark goes (the compass strip carries the bearing): pinned to an edge it sat
+			# under the unit frames and the tracker
+			want = 0.0 if _edge else smoothstep(NEAR_OUT, NEAR_IN, _dist)
 	_alpha = move_toward(_alpha, want, delta * (3.0 if want > _alpha else 5.0))
 	if _alpha > 0.0 or _drawn > 0.0:
 		_drawn = _alpha
