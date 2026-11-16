@@ -417,7 +417,7 @@ static func macro_dry(x: float, z: float) -> float:
 	h += tw * (4.0 + 3.0 * sin(x * 0.07) * sin(z * 0.06))
 	h += 5.0 * _bump(p, HENGE_C, 56.0)
 	# Hollow Fen hollow
-	h -= 1.8 * _rect_w(p, Rect2(40, -80, 70, 115), 18.0)
+	h -= 1.8 * _rect_w(p + (_warp(p) + _mwarp(p)) * smoothstep(52.0, 72.0, x), Rect2(40, -80, 70, 115), 18.0)      # (its west edge, the postern's crest, stays put)
 	# r34: the Lanternless Moor (high swelling heath, a tor near its middle)
 	var mo := _rect_w(p, Rect2(124, -66, 31, 106), 14.0)     # its rise ends by x 110: the Barrow Field's secrets keep their ground
 	h += mo * (4.5 + 1.8 * sin(z * 0.045 + 1.3) * cos(x * 0.05))
@@ -544,7 +544,7 @@ static func _marches(p: Vector2, h: float, m: float) -> float:
 	h = lerpf(h, 0.3, m * 0.92 * _rect_w(p, PANS, 16.0))
 	# the Southern Downs: rolling chalk on the downs' rise, and the Grandmother Oak's knoll
 	var dw := _rect_w(p, Rect2(-155.0, 175.0, 310.0, 65.0), 24.0)
-	h += m * dw * (2.4 * sin(x * 0.043 + 1.1) * sin(z * 0.052 + 0.4) + 1.3 * sin(x * 0.021 - z * 0.033))
+	h += m * dw * preload("res://core/world/realm/realm_landscape.gd").downs(x, z)      # rolling chalk (noise, not a sine grid)
 	h += m * 3.2 * _bump(p, OAK_C, 30.0)
 	# cross-ridges, and the knolls the March Wall's spurs end on
 	for rg: Dictionary in RealmMarch.RIDGES:
