@@ -15,8 +15,8 @@ extends RefCounted
 const CAMPS: Array[Dictionary] = [
 	# --- the Greyfell (tier 4): the Order's western keep, its garrison never stood down. Stone-bound bulwarks hold
 	# the gate where fell_track climbs to the crag, the bailey and the scree are lairs, a watch walks the fell.
-	{"name": "the keep's gate", "at": Vector3(-326.0, 60.0, -86.0), "kinds": ["bulwark@stonebound", "bulwark@stonebound", "chanter", "husk@stonebound"], "probe": 0.0, "r": 2.8, "strict": true},      # on the keep's terrace (a site of the keep itself)
-	{"name": "the keep's west bailey", "at": Vector3(-344.0, 60.0, -98.0), "kinds": ["husk@stonebound", "leaper@stonebound", "quiller", "husk"], "probe": 0.0, "strict": true},
+	{"name": "the keep's gate", "at": Vector3(-296.0, 60.0, -84.0), "kinds": ["bulwark@stonebound", "bulwark@stonebound", "chanter", "husk@stonebound"], "probe": 0.0, "r": 2.8},      # on the keep's terrace (a site of the keep itself)
+	{"name": "the keep's west bailey", "at": Vector3(-336.0, 60.0, -78.0), "kinds": ["husk@stonebound", "leaper@stonebound", "quiller", "husk"], "probe": 0.0},
 	{"name": "the scree east of the crag", "at": Vector3(-276.0, 60.0, -96.0), "kinds": ["leaper@stonebound", "leaper@stonebound", "gaunt"], "probe": 0.0, "r": 3.0},
 	{"name": "the fell watch", "at": Vector3(-298.0, 60.0, -86.0), "kinds": ["husk@stonebound", "bulwark@stonebound", "husk@stonebound"], "probe": 0.0,
 		"patrol": [Vector2(-298, -86), Vector2(-282, -84), Vector2(-276, -70), Vector2(-294, -72)]},
@@ -64,8 +64,8 @@ const CAMPS: Array[Dictionary] = [
 	# the east rim who ring when you come, a round south of bell_link (the Eighth Ringer holds the bell on the floor).
 	{"name": "the crater's west shoulder", "at": Vector3(272.0, 60.0, -108.0), "kinds": ["cinder", "cinder", "bulwark"], "probe": 0.0, "r": 2.8},
 	{"name": "the crater's east rim", "at": Vector3(346.0, 60.0, -88.0), "kinds": ["tollman", "husk", "gaunt"], "probe": 0.0},
-	{"name": "the round below bell_link", "at": Vector3(262.0, 60.0, -66.0), "kinds": ["husk", "gaunt", "wretch"], "probe": 0.0,
-		"patrol": [Vector2(262, -66), Vector2(280, -64), Vector2(284, -50), Vector2(264, -52)]},
+	{"name": "the round below bell_link", "at": Vector3(270.0, 60.0, -66.0), "kinds": ["husk", "gaunt", "wretch"], "probe": 0.0,
+		"patrol": [Vector2(270, -66), Vector2(280, -64), Vector2(284, -50), Vector2(264, -52)]},
 	# --- Lastlight (tier 2): the walled waystation is a safe place, and the road from Saltmarket to its gate is the
 	# salt carter's (village_cast_travellers.gd): a camp at bell_track's lower bend only.
 	{"name": "bell_track's lower bend", "at": Vector3(290.0, 60.0, -14.0), "kinds": ["wretch", "husk", "crawler"], "probe": 0.0},
