@@ -855,7 +855,7 @@ def sleeve(g, b, sx, col, trim=None, y_top=1.43, y_cuff=0.8, flare=0.02, bell=0.
     the way a robe's sleeve hangs. A rolled cuff in the trim colour."""
     t = side(sx)
     arm = ("shoulder_" + t, "elbow_" + t)
-    rows = band_rays(b, arm, y_cuff, y_top, 28, 18)
+    rows = band_rays(b, arm, y_cuff, y_top, 24, 15)
     if not rows:
         return
     span = y_top - y_cuff
@@ -879,15 +879,15 @@ def sleeve(g, b, sx, col, trim=None, y_top=1.43, y_cuff=0.8, flare=0.02, bell=0.
             g.tube(ring + [ring[0]], 0.009, trim, "trim" if trim != col else mat, "elbow_" + t, n=6, flat=0.6)
 
 
-def shawl(g, b, col, mat="wool", y_low=1.05, gap=(math.radians(-25), math.radians(40)), seed=0.5, tatter=0.05, flare=0.04):
+def shawl(g, b, col, mat="wool", y_low=1.05, gap=(math.radians(-25), math.radians(40)), seed=0.5, tatter=0.05, flare=0.04, nu=72, nv=24, v0=8):
     """A shawl or a mantle laid over the shoulders and the upper arms from one point inside the chest: it falls from
     the neck over the shoulder caps and down the arms and the back to a torn hem at y_low, open down the front
     between the angles `gap` (around pi, the front; uneven, as a shawl is worn), with folds where it hangs."""
     hd = [b.P[i] for i in range(len(b.P)) if b.L[i] == "chest" and b.P[i][1] > 1.2]
     c = np.array([float(np.mean([q[0] for q in hd])), 1.36, float(np.mean([q[2] for q in hd]))])
     labs = tuple(sorted({l for l in b.L if not l.startswith(("hand_", "hip_", "knee_", "foot_"))}))
-    NU, NV = 72, 24
-    rows = dome_rays(c, NU, NV, math.radians(8), math.radians(122))
+    NU, NV = nu, nv
+    rows = dome_rays(c, NU, NV, math.radians(v0), math.radians(122))
 
     def off(o, d):
         down = max(-float(d[1]), 0.0)
@@ -1144,7 +1144,7 @@ def husk():
     g = Geo()
     COAT, SACK, SKIN, LID, BELT = (0.2, 0.15, 0.11), (0.36, 0.3, 0.22), (0.42, 0.36, 0.32), (0.22, 0.16, 0.11), (0.12, 0.09, 0.07)
     b = human(g, SKIN, (1.0, 0.5, 0.15, 0.0), macro={"gender": 1.0, "age": 0.7, "muscle": 0.7, "weight": 1.0, "proportions": 0.2}, girth=1.12, limb=1.08, head=1.0, tris=7200)
-    O = coat(g, b, COAT, mat="wool", y_top=1.47, y_hem=0.38, flare=0.1, seed=0.9, tatter=0.06, nu=62, nv=22)
+    O = coat(g, b, COAT, mat="wool", y_top=1.47, y_hem=0.38, flare=0.1, seed=0.9, tatter=0.06, nu=54, nv=18)
     def front_z(y):
         near = O[(np.abs(O[:, 1] - y) < 0.03) & (np.abs(O[:, 0]) < 0.04)]
         return float(near[:, 2].min()) if len(near) else -0.3
@@ -1158,7 +1158,8 @@ def husk():
         z = front_z(y) - 0.008
         g.tube([V(-0.05, y, z), V(0.05, y + 0.01, z)], 0.007, (0.1, 0.08, 0.06), "leather", "chest", n=4)
     for sx in (-1, 1):
-        sleeve(g, b, sx, COAT, BELT, flare=0.02, mat="wool")
+        sleeve(g, b, sx, COAT, BELT, flare=0.02, mat="wool", y_top=1.38)
+    shawl(g, b, tuple(c * 0.8 for c in COAT), y_low=1.17, gap=(math.radians(-14), math.radians(22)), seed=1.1, tatter=0.04, flare=0.03, nu=44, nv=13, v0=42)       # a yoke over the shoulders: sloped, not boxed
     cowl(g, b, SACK, peak=0.0, open_w=0.078, open_h=0.105, shade=False, mat="wool", seed=0.9)
     # the coffin lid strapped on the back: six boards (each a flat bevelled slab, edge-to-edge, a little warped), a tapering
     # hexagon, a rim of iron, two straps with buckles and nail heads
