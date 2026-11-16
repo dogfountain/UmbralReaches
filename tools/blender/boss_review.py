@@ -129,6 +129,8 @@ for o in meshes:
 pts = np.concatenate(pts)
 lo = Vector(np.percentile(pts, 1.0, axis=0).tolist())
 hi = Vector(np.percentile(pts, 99.9, axis=0).tolist())
+if "--zlo" in args:                                   # a stray vertex far below the feet makes the framing too wide: set the floor by hand
+    lo.z = float(arg("--zlo", "0"))
 ctr = (lo + hi) * 0.5
 size = max(hi.z - lo.z, hi.x - lo.x, hi.y - lo.y)
 print("BBOX", tuple(round(v, 3) for v in lo), tuple(round(v, 3) for v in hi), "TRIS", sum(len(p.vertices) - 2 for o in meshes for p in o.data.polygons))
