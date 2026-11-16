@@ -51,14 +51,15 @@ def keep_solid_top(seed, h, amp, scale=0.3):
 def build_curtain(P, Pc, rnd):
     # (a, b, seed, top amplitude) -- south wall halves leave the gatehouse (x -6.5..6.5) between them
     runs = [
-        ((-17.0, -14.0), (-6.5, -15.0), 11, 0.6),          # S west
-        ((6.5, -15.0), (17.0, -14.0), 12, 0.4),            # S east
-        ((17.0, -14.0), (20.0, 8.0), 13, 1.0),             # E (stair side)
-        ((20.0, 8.0), (6.5, 13.5), 14, 4.5),               # NE, down to the donjon (breached)
-        ((-20.0, 8.0), (-6.5, 13.5), 15, 3.0),             # NW
-        ((-17.0, -14.0), (-20.0, 8.0), 16, 2.2),           # W
+        ((-17.0, -14.0), (-6.5, -15.0), 11, 0.6, (-3.15, 0.3)),          # S west
+        ((6.5, -15.0), (17.0, -14.0), 12, 0.4, (0.3, -2.6)),             # S east
+        ((17.0, -14.0), (20.0, 8.0), 13, 1.0, (-2.6, -3.45)),            # E (stair side)
+        ((20.0, 8.0), (6.5, 13.5), 14, 4.5, (-3.45, 0.0)),               # NE, down to the donjon (breached)
+        ((-20.0, 8.0), (-6.5, 13.5), 15, 3.0, (-3.15, 0.0)),             # NW
+        ((-17.0, -14.0), (-20.0, 8.0), 16, 2.2, (-3.15, -3.15)),         # W
     ]
-    for (a, b, seed, amp) in runs:
+    # (ends: metres each run reaches past its corner points; negative stops it inside a tower's wall)
+    for (a, b, seed, amp, ends) in runs:
         top = L.ragged_top(seed, WALL_H, amp, 0.13)
         Ln = (Vector(b) - Vector(a)).length
         breach = None
@@ -74,13 +75,14 @@ def build_curtain(P, Pc, rnd):
                 return v < 1.2 + 1.8 * abs(math.sin(u * 2.1))
             return True
         L.wall_run(P, Pc, "ashlar", a, b, -2.5, WALL_H + 2.5, WALL_T, lambda u, v, s=solid: s(u, v - 2.5) if v >= 2.5 else True, rnd, ch=0.52,
-                   ext=lambda j: (0.8, 0.8) if j % 2 else (0.0, 0.0))
+                   ext=lambda j: (0.8, 0.8) if j % 2 else (0.0, 0.0), ends=ends)
         # merlons along the intact stretches of the outer side
         a3, b3 = Vector(a), Vector(b)
         d = (b3 - a3).normalized()
         n = Vector((-d.y, d.x))
         L.crenels(P, Pc, "ashlar", a3 + n * 0, b3 + n * 0, WALL_H, rnd, off=-WALL_T * 0.5 + 0.38 if False else WALL_T * 0.5 - 0.4,
-                  broken=lambda u, top=top: top(u) < WALL_H - 0.05 or (breach is not None and abs(u - breach[0]) < breach[1] + 1.0))
+                  broken=lambda u, top=top, Ln=Ln, ends=ends: top(u) < WALL_H - 0.05 or (breach is not None and abs(u - breach[0]) < breach[1] + 1.0)
+                  or u < -ends[0] or u + 1.0 > Ln + ends[1])
 
 
 def build_gatehouse(P, Pc, rnd):
@@ -114,8 +116,10 @@ def build_gatehouse(P, Pc, rnd):
                 return False
             return True
         return g
-    L.wall_run(P, Pc, "ashlar", (x0, y0 + 0.8), (x1, y0 + 0.8), -2.5, 17.0, 1.6, with_slots(sf), rnd, ch=0.52, ext=lambda j: (0.9, 0.9) if j % 2 else (0.0, 0.0))
-    L.wall_run(P, Pc, "ashlar", (x0, y1 - 0.8), (x1, y1 - 0.8), -2.5, 17.0, 1.6, with_slots(sb), rnd, ch=0.52, ext=lambda j: (0.9, 0.9) if j % 2 else (0.0, 0.0))
+    L.wall_run(P, Pc, "ashlar", (x0, y0 + 0.8), (x1, y0 + 0.8), -2.5, 17.0, 1.6, with_slots(sf), rnd, ch=0.52, ext=lambda j: (0.9, 0.9) if j % 2 else (0.0, 0.0), ends=(0.0, 0.0),
+               dress_ends=True)
+    L.wall_run(P, Pc, "ashlar", (x0, y1 - 0.8), (x1, y1 - 0.8), -2.5, 17.0, 1.6, with_slots(sb), rnd, ch=0.52, ext=lambda j: (0.9, 0.9) if j % 2 else (0.0, 0.0), ends=(0.0, 0.0),
+               dress_ends=True)
     # the two flanks: solid walls with the passage between them (the passage stays open)
     for sx, sgn in ((x0, -1), (x1, 1)):
         for (xa, xb) in ((x0, x0 + 4.4), (x1 - 4.4, x1)):
@@ -123,7 +127,7 @@ def build_gatehouse(P, Pc, rnd):
     L.wall_run(P, Pc, "ashlar", (x0 + 2.3, y0 + 1.6), (x0 + 2.3, y1 - 1.6), -2.5, 16.0, 4.6, lambda u, v: v <= 2.5 + 11.5 * 1.0 - 3.0 * (0.5 + 0.5 * math.sin(u * 1.7)) , rnd, ch=0.52, blk=(0.9, 1.6))
     L.wall_run(P, Pc, "ashlar", (x1 - 2.3, y0 + 1.6), (x1 - 2.3, y1 - 1.6), -2.5, 16.0, 4.6, lambda u, v: v <= 2.5 + 8.0 + 3.0 * (0.5 + 0.5 * math.sin(u * 1.1 + 2)), rnd, ch=0.52, blk=(0.9, 1.6))
     # the vault over the passage: a stone slab at 5.4..6.4 and a timber ceiling stub; voussoir rings on both faces
-    box(P, "ashlar", (0.0, (y0 + y1) * 0.5, 6.6), (3.6, 5.0, 1.2))
+    L.dbox(P, "ashlar", (0.0, (y0 + y1) * 0.5, 6.6), (3.6, 5.0, 1.2))
     box(Pc, "stone", (0.0, (y0 + y1) * 0.5, 6.6), (3.6, 5.0, 1.2))
     for yy in (y0 + 0.8 - 0.0, y1 - 0.8):
         L.voussoirs(P, "ashlar", (0.0, yy, 0.0), 0.0, gw, spring, 1.9, ring=0.55, n=15, Pc=None)
@@ -146,7 +150,8 @@ def build_gatehouse(P, Pc, rnd):
     topg = L.ragged_top(31, 6.5, 5.0, 0.25)
     L.wall_run(P, Pc, "ashlar", (-4.8, y0 + 1.0), (4.8, y0 + 1.0), 11.5, 6.5, 1.4, lambda u, v: v <= topg(u) and not L.rect_hole(u, v, 4.8, 0.9, 2.0, 4.4), rnd, ch=0.52)
     L.wall_run(P, Pc, "ashlar", (-4.8, y1 - 1.0), (4.8, y1 - 1.0), 11.5, 6.5, 1.4, lambda u, v: v <= topg(u + 7) and not L.rect_hole(u, v, 3.0, 0.9, 2.0, 4.4), rnd, ch=0.52)
-    L.wall_run(P, Pc, "ashlar", (-4.9, y0 + 1.7), (-4.9, y1 - 1.7), 11.5, 6.5, 1.4, lambda u, v: v <= 5.0 - 3 * abs(math.sin(u * 2)), rnd, ch=0.52)
+    L.wall_run(P, Pc, "ashlar", (-4.9, y0 + 1.7), (-4.9, y1 - 1.7), 11.5, 6.5, 1.4, lambda u, v: v <= 5.0 - 3 * abs(math.sin(u * 2)), rnd, ch=0.52,
+               ends=(0.68, 0.68))
     # timber floor of the guard room, half fallen, joists out of the walls
     for k in range(7):
         beam(P, "timber", (-6.0, -17.0 + k * 0.7, 11.2), (6.0, -17.0 + k * 0.7, 11.2), 0.3, 0.34)
@@ -199,7 +204,8 @@ def build_tower_square(P, Pc, rnd, c, w, h, seed):
             if k == 0 and L.arch_hole(u, vv, w * 0.3, 1.3, 0.0, 1.7):
                 return False
             return True
-        L.wall_run(P, Pc, "ashlar", (xa, ya), (xb, yb), -2.5, h + 2.5, t, solid, rnd, ch=0.52, ext=lambda j: (t * 0.5, t * 0.5) if j % 2 else (-t * 0.5, -t * 0.5))
+        L.wall_run(P, Pc, "ashlar", (xa, ya), (xb, yb), -2.5, h + 2.5, t, solid, rnd, ch=0.52, ext=lambda j: (t * 0.5, t * 0.5) if j % 2 else (-t * 0.5, -t * 0.5),
+                   ends=(t * 0.49, t * 0.49))
         # merlons
         L.crenels(P, Pc, "ashlar", (xa, ya), (xb, yb), h, rnd, w=1.0, gap=0.8, off=0.0, thick=t - 0.5)
     # timber hoarding stubs at the top and a banner pole
@@ -242,13 +248,15 @@ def build_donjon(P, Pc, rnd):
         ext = (lambda j: (t, t) if j % 2 else (0.0, 0.0)) if nm in ("S", "N") else (lambda j: (-t, -t) if j % 2 == 0 else (0.0, 0.0))
         # S/N run the whole outer width on odd courses, E/W on even ones (the corners are bonded)
         L.wall_run(P, Pc, "ashlar", a, b, -2.5, DJ_H + 2.5, t, solid, rnd, ch=0.55,
-                   ext=(lambda j: (0.0, 0.0) if j % 2 else (-t, -t)) if nm in ("S", "N") else (lambda j: (-t, -t) if j % 2 else (0.0, 0.0)), blk=(0.9, 1.9))
+                   ext=(lambda j: (0.0, 0.0) if j % 2 else (-t, -t)) if nm in ("S", "N") else (lambda j: (-t, -t) if j % 2 else (0.0, 0.0)), blk=(0.9, 1.9),
+                   ends=(t * 0.49, t * 0.49))
         if nm == "S":
             L.voussoirs(P, "ashlar", (cx, cy - hw + 0.0, 0.0), 0.0, 2.5, 2.4, t + 0.2, ring=0.5, n=13)
     # corner turrets: round, taller and more broken than the walls between them
     for (tx, ty, th_, seed, amp) in ((cx + hw, cy + hw, 31.5, 71, 8.0), (cx - hw, cy - hw, 27.0, 72, 6.0), (cx + hw, cy - hw, 29.0, 73, 9.0), (cx - hw, cy + hw, 22.0, 74, 7.0)):
         topt = L.ragged_top(seed, th_, amp, 0.2)
-        L.ring_wall(P, Pc, "ashlar", (tx, ty), 1.9, -2.5, th_ + 2.5, 1.2, lambda th, v, topt=topt: (v - 2.5 <= topt(th * 1.9)) if v >= 2.5 else True, rnd, ch=0.55, blk=(0.8, 1.2))
+        L.ring_wall(P, Pc, "ashlar", (tx, ty), 1.9, -2.5, th_ + 2.5, 1.2, lambda th, v, topt=topt: (v - 2.5 <= topt(th * 1.9)) if v >= 2.5 else True, rnd, ch=0.55, blk=(0.8, 1.2),
+                    faces=(1,))
         # a stepped plinth under the turret and the walls: the batter
     for (nm, a, b) in faces:
         a3, b3 = Vector(a), Vector(b)
@@ -256,8 +264,13 @@ def build_donjon(P, Pc, rnd):
         n = Vector((d.y, -d.x))
         m = (a3 + b3) * 0.5 + n * (t * 0.5 + 0.28)
         yaw = math.atan2(d.y, d.x)
-        box(P, "stone", (m.x, m.y, 0.7), (w + t + 1.0, 0.7, 1.6), yaw=yaw)
-        box(P, "stone", (m.x, m.y, 1.55), (w + t + 0.6, 0.45, 0.3), yaw=yaw)
+        for (span, dep, zc, hh, k_len) in ((w + t + 1.0, 0.7, 0.7, 1.6, 1.4), (w + t + 0.6, 0.45, 1.55, 0.3, 1.0)):
+            k_n = max(1, int(span / k_len))
+            for k in range(k_n):
+                o = -span * 0.5 + span * (k + 0.5) / k_n
+                if nm == "S" and abs(o) < 1.3 + span / k_n * 0.5:
+                    continue                                   # the way in: no plinth across the door
+                L.dbox(P, "stone", (m.x + d.x * o, m.y + d.y * o, zc), (span / k_n - 0.03, dep, hh), yaw=yaw, bevel=0.07)
     # string courses on the faces
     for zc in (7.0, 14.5, 21.5):
         for (nm, a, b) in faces:
@@ -266,8 +279,14 @@ def build_donjon(P, Pc, rnd):
             n = Vector((d.y, -d.x))                    # outward for a clockwise loop
             m = (a3 + b3) * 0.5 + n * (t * 0.5 + 0.04)
             yaw = math.atan2(d.y, d.x)
-            if rnd.random() < 0.85:
-                box(P, "ashlar", (m.x, m.y, zc), (w + t * 0.4, 0.34, 0.34), yaw=yaw)
+            if rnd.random() < 0.85:                    # the course in stones of a metre or so, a few lost
+                span = w + t * 0.4
+                k_n = int(span / 1.1)
+                for k in range(k_n):
+                    if rnd.random() < 0.08:
+                        continue
+                    o = -span * 0.5 + span * (k + 0.5) / k_n
+                    L.dbox(P, "ashlar", (m.x + d.x * o, m.y + d.y * o, zc), (span / k_n - 0.03, 0.42, 0.36), yaw=yaw, bevel=0.06)
     # the spiral stair inside: loops of cantilevered steps round the inner walls
     ix0, ix1 = cx - hw + t, cx + hw - t
     iy0, iy1 = cy - hw + t, cy + hw - t
@@ -280,18 +299,18 @@ def build_donjon(P, Pc, rnd):
         # F: west wall going north
         L.stair_flight(P, Pc, "ashlar", (ix0 + sw * 0.5, iy0), (ix0 + sw * 0.5, iy1 - corner), sw, rise, z, 15, thick=0.55)
         z += 15 * rise
-        box(P, "ashlar", (ix0 + corner * 0.5, iy1 - corner * 0.5, z - 0.3), (corner, corner, 0.55)); box(Pc, "stone", (ix0 + corner * 0.5, iy1 - corner * 0.5, z - 0.3), (corner, corner, 0.55))
+        L.dbox(P, "ashlar", (ix0 + corner * 0.5, iy1 - corner * 0.5, z - 0.3), (corner, corner, 0.55)); box(Pc, "stone", (ix0 + corner * 0.5, iy1 - corner * 0.5, z - 0.3), (corner, corner, 0.55))
         if loop == 1:
             break
         L.stair_flight(P, Pc, "ashlar", (ix0 + corner, iy1 - sw * 0.5), (ix1 - corner, iy1 - sw * 0.5), sw, rise, z, 12, thick=0.55)
         z += 12 * rise
-        box(P, "ashlar", (ix1 - corner * 0.5, iy1 - corner * 0.5, z - 0.3), (corner, corner, 0.55)); box(Pc, "stone", (ix1 - corner * 0.5, iy1 - corner * 0.5, z - 0.3), (corner, corner, 0.55))
+        L.dbox(P, "ashlar", (ix1 - corner * 0.5, iy1 - corner * 0.5, z - 0.3), (corner, corner, 0.55)); box(Pc, "stone", (ix1 - corner * 0.5, iy1 - corner * 0.5, z - 0.3), (corner, corner, 0.55))
         L.stair_flight(P, Pc, "ashlar", (ix1 - sw * 0.5, iy1 - corner), (ix1 - sw * 0.5, iy0 + corner), sw, rise, z, 12, thick=0.55)
         z += 12 * rise
-        box(P, "ashlar", (ix1 - corner * 0.5, iy0 + corner * 0.5, z - 0.3), (corner, corner, 0.55)); box(Pc, "stone", (ix1 - corner * 0.5, iy0 + corner * 0.5, z - 0.3), (corner, corner, 0.55))
+        L.dbox(P, "ashlar", (ix1 - corner * 0.5, iy0 + corner * 0.5, z - 0.3), (corner, corner, 0.55)); box(Pc, "stone", (ix1 - corner * 0.5, iy0 + corner * 0.5, z - 0.3), (corner, corner, 0.55))
         L.stair_flight(P, Pc, "ashlar", (ix1 - corner, iy0 + sw * 0.5), (ix0 + corner, iy0 + sw * 0.5), sw, rise, z, 12, thick=0.55)
         z += 12 * rise
-        box(P, "ashlar", (ix0 + corner * 0.5, iy0 + corner * 0.5, z - 0.3), (corner, corner, 0.55)); box(Pc, "stone", (ix0 + corner * 0.5, iy0 + corner * 0.5, z - 0.3), (corner, corner, 0.55))
+        L.dbox(P, "ashlar", (ix0 + corner * 0.5, iy0 + corner * 0.5, z - 0.3), (corner, corner, 0.55)); box(Pc, "stone", (ix0 + corner * 0.5, iy0 + corner * 0.5, z - 0.3), (corner, corner, 0.55))
         # F5 starts over the first flight (the next loop)
     # the landing the chest stands on is the NW corner at z (loop 1's end); a broken run continues from it
     landing = Vector((ix0 + corner * 0.5, iy1 - corner * 0.5, z))
@@ -335,12 +354,12 @@ def build_hall(P, Pc, rnd):
                 return False
             return True
         return f
-    L.wall_run(P, Pc, "ashlar", (x0, y0), (x1, y0), -0.5, 6.0, t, mk(topS, (4.2, 1.6, 2.0)), rnd, ch=0.45, ext=lambda j: (t, t) if j % 2 else (0, 0))
-    L.wall_run(P, Pc, "ashlar", (x1, y0), (x1, y1), -0.5, 6.0, t, mk(topE), rnd, ch=0.45, ext=lambda j: (0, 0) if j % 2 else (-t, -t))
-    L.wall_run(P, Pc, "ashlar", (x1, y1), (x0, y1), -0.5, 8.5, t, mk(topN, None, (4.2, 1.1)), rnd, ch=0.45, ext=lambda j: (t, t) if j % 2 else (0, 0))
-    L.wall_run(P, Pc, "ashlar", (x0, y1), (x0, y0), -0.5, 7.0, t, mk(topW, None, (4.7, 1.1)), rnd, ch=0.45, ext=lambda j: (0, 0) if j % 2 else (-t, -t))
+    L.wall_run(P, Pc, "ashlar", (x0, y0), (x1, y0), -0.5, 6.0, t, mk(topS, (4.2, 1.6, 2.0)), rnd, ch=0.45, ext=lambda j: (t, t) if j % 2 else (0, 0), ends=(t * 0.49, t * 0.49))
+    L.wall_run(P, Pc, "ashlar", (x1, y0), (x1, y1), -0.5, 6.0, t, mk(topE), rnd, ch=0.45, ext=lambda j: (0, 0) if j % 2 else (-t, -t), ends=(t * 0.49, t * 0.49))
+    L.wall_run(P, Pc, "ashlar", (x1, y1), (x0, y1), -0.5, 8.5, t, mk(topN, None, (4.2, 1.1)), rnd, ch=0.45, ext=lambda j: (t, t) if j % 2 else (0, 0), ends=(t * 0.49, t * 0.49))
+    L.wall_run(P, Pc, "ashlar", (x0, y1), (x0, y0), -0.5, 7.0, t, mk(topW, None, (4.7, 1.1)), rnd, ch=0.45, ext=lambda j: (0, 0) if j % 2 else (-t, -t), ends=(t * 0.49, t * 0.49))
     # a hearth block on the north wall, rafters of the fallen roof, trestles
-    box(P, "ashlar", (-11.2, y1 - 1.4, 0.9), (2.4, 1.4, 1.8))
+    L.dbox(P, "ashlar", (-11.2, y1 - 1.4, 0.9), (2.4, 1.4, 1.8))
     box(Pc, "stone", (-11.2, y1 - 1.4, 0.9), (2.4, 1.4, 1.8))
     for k in range(5):
         a = (x0 + 1.0 + k * 1.9, y0 + 0.6, 4.4)
@@ -355,7 +374,7 @@ def build_bailey_bits(P, Pc, rnd):
     # the well (stone ring and a timber windlass frame), a stable lean-to on the east wall, a few barrels as blocks
     for k in range(14):
         a = k * math.tau / 14
-        box(P, "ashlar", (5.0 + math.cos(a) * 1.0, -4.0 + math.sin(a) * 1.0, 0.45), (0.8, 0.5, 0.9), yaw=a + 1.57)
+        L.dbox(P, "ashlar", (5.0 + math.cos(a) * 1.0, -4.0 + math.sin(a) * 1.0, 0.45), (0.8, 0.5, 0.9), yaw=a + 1.57)
     cyl(Pc, "stone", (5.0, -4.0, 0.0), (5.0, -4.0, 0.95), 1.2, seg=10)
     for sx in (-1.3, 1.3):
         beam(P, "timber", (5.0 + sx, -4.0, 0.0), (5.0 + sx, -4.0, 2.5), 0.16)
@@ -389,11 +408,11 @@ def build_wall_stair(P, Pc, rnd):
     for i in range(steps):
         c = p0 + d * (tread * (i + 0.5))
         hh = rise * (i + 1)
-        box(P, "ashlar", (c.x, c.y, hh * 0.5 - 1.0 + 0.5), (tread * 1.02, 1.6, hh + 1.0), yaw=math.atan2(d.y, d.x))
+        L.dbox(P, "ashlar", (c.x, c.y, hh * 0.5 - 1.0 + 0.5), (tread * 1.02, 1.6, hh + 1.0), yaw=math.atan2(d.y, d.x))
         box(Pc, "stone", (c.x, c.y, hh * 0.5 - 1.0 + 0.5), (tread * 1.02, 1.6, hh + 1.0), yaw=math.atan2(d.y, d.x))
     # landing slab to the wall-walk
     c = p0 + d * (tread * steps + 0.5)
-    box(P, "ashlar", (c.x, c.y, 3.5), (1.4, 1.6, 9.0), yaw=math.atan2(d.y, d.x))
+    L.dbox(P, "ashlar", (c.x, c.y, 3.5), (1.4, 1.6, 9.0), yaw=math.atan2(d.y, d.x))
     box(Pc, "stone", (c.x, c.y, 3.5), (1.4, 1.6, 9.0), yaw=math.atan2(d.y, d.x))
 
 
@@ -402,6 +421,7 @@ def asset_keep():
     P = Parts()
     Pc = Parts()
     rnd = L.rnd_for(5)
+    L.mason_begin(5)
     # the crag: a rough skirt of boulders under the compound so the walls don't float on the cut (the game's terrace is level)
     build_curtain(P, Pc, rnd)
     build_gatehouse(P, Pc, rnd)
@@ -415,7 +435,7 @@ def asset_keep():
     build_wall_stair(P, Pc, rnd)
     L.rubble(P, Pc, "ashlar", rnd, (-16, -12, 16, 9), 40, 0.4, 1.3)
     L.rubble(P, Pc, "ashlar", rnd, (-9, -12, 9, -2), 16, 0.4, 1.0, ground=0.0)
-    keep = finish(P, "Keep", smooth_keys=())
+    keep = finish(P, "Keep", smooth_keys=()) + L.mason_end("Keep")
     col = col_collision(Pc, "Keep")
     far = keep_far()
     export(keep + [col] + far, os.path.join(MODELS, "reach_w_keep.glb"), "keep")

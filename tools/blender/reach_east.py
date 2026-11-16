@@ -1,8 +1,8 @@
-"""The East Reach's assets, by script: tools/blender/run.sh reach_east.py -- [--only bell|tower|nave|town] [--preview DIR]
+"""The East Reach's assets, by script: tools/blender/run.sh reach_east.py -- [--only bell|tower|town] [--preview DIR]
 
   art/models/reach_e_bell.glb     the eighth bell (reach_east_bell.py): Bell, BellFar, BellShards, Ejecta, BellCol
   art/models/reach_e_tower.glb    the Cairn Tower (reach_east_tower.py)
-  art/models/reach_e_nave.glb     the Drowned Nave (reach_east_nave.py)
+  (the Drowned Nave, art/models/reach_e_nave.glb, is vista_nave.py: dressed masonry on masonry_lib)
   art/models/reach_e_town.glb     Lastlight: the East Gate, the lamp tower, the inn, the stable, the watch post (reach_east_town.py)
   core/world/realm/reach_east_data.gd   the numbers the game needs, written by the script
 
@@ -69,7 +69,5 @@ if ONLY in ("all", "bell"):
     run_bell()
 if ONLY in ("all", "tower"):
     run_module("reach_east_tower", "reach_e_tower.glb", (0, 14, 0), 70.0, ((20, 0.15), (110, 0.1), (200, 0.2), (290, 0.12)))
-if ONLY in ("all", "nave"):
-    run_module("reach_east_nave", "reach_e_nave.glb", (0, 12, 0), 110.0, ((20, 0.2), (90, 0.08), (160, 0.25), (250, 0.12)), (1500, 900))
 if ONLY in ("all", "town"):
     run_module("reach_east_town", "reach_e_town.glb", (68, 7, 0), 150.0, ((12, 0.12), (-12, 0.1), (0, 0.1, 60.0)), (2200, 700), spread=34.0)

@@ -6,7 +6,7 @@ extends RefCounted
 ##              crater at RealmReaches.CRATER_C, a third sunk, its mouth toward the south lip where bell_track comes in;
 ##              the lip's shards thrown across the floor, fallen rock heaped round it, thin smoke still rising from the
 ##              impact's cracks, a chest in its mouth, a glide perch on its back. Far mesh from 140 m.
-##   nave       the Drowned Nave (tools/blender/reach_east_nave.py, the East agent's model): the unfinished cathedral in
+##   nave       the Drowned Nave (tools/blender/vista_nave.py, dressed masonry): the unfinished cathedral in
 ##              its flooded basin at NAVE_C, west front to nave_track; far mesh from 160 m.
 ##   cairns     the Cairn Tower (tools/blender/vista_cairn_tower.py) on the heath's crown at the slot (327, 324): a stepped
 ##              cone of dry-laid stone you climb by its ramps to the first cairn and the rag pole; far mesh from 150 m;
@@ -211,8 +211,10 @@ static func _nave(holder: Node3D, space: PhysicsDirectSpaceState3D) -> bool:
 		elif nm.begins_with("NaveFar"):
 			far = mi.mesh
 			mi.queue_free()
+		elif nm.contains("__"):                      # the masonry's sets (vista_nave.py): hewn stones, the core, timber, iron
+			mi.material_override = Kit37.mat(nm.get_slice("__", 1).get_slice(".", 0).get_slice("_", 0))
 	if far != null:
-		FarDetail.register(root, far, Transform3D.IDENTITY, 160.0)
+		FarDetail.register(root, far, Transform3D.IDENTITY, 160.0, Kit37.mat("stone"))
 	_nave_shafts(host, root)
 	return true
 
