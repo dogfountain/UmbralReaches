@@ -64,7 +64,7 @@ const SLOTS := {
 		{"kind": "fire", "at": Vector2(-310, -66), "note": "fell_track's head, under the keep's crag"},
 		{"kind": "poi", "at": Vector2(-318, -108), "note": "the Broken Keep on its crag"},
 		{"kind": "poi", "at": Vector2(-281, -122), "note": "the fell shrine under the Crowns"},
-		{"kind": "camp", "at": Vector2(-344, -96), "note": "the keep's west bailey"},
+		{"kind": "camp", "at": Vector2(-337, -101), "note": "the keep's west bailey (on its terrace)"},
 		{"kind": "camp", "at": Vector2(-288, -98), "note": "the scree east of the crag"}],
 	"lanternwood": [
 		{"kind": "fire", "at": Vector2(-292, 14), "note": "beside fell_track in a lit clearing"},

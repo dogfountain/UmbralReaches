@@ -8,6 +8,9 @@ extends RefCounted
 ##              impact's cracks, a chest in its mouth, a glide perch on its back. Far mesh from 140 m.
 ##   nave       the Drowned Nave (tools/blender/reach_east_nave.py, the East agent's model): the unfinished cathedral in
 ##              its flooded basin at NAVE_C, west front to nave_track; far mesh from 160 m.
+##   cairns     the Cairn Tower (tools/blender/vista_cairn_tower.py) on the heath's crown at the slot (327, 324): a stepped
+##              cone of dry-laid stone you climb by its ramps to the first cairn and the rag pole; far mesh from 150 m;
+##              and the Thousand Cairns themselves, heaped across the heath (RockKit cairns, instanced per 64 m cell).
 ##   `-- --no-east-reach` turns it off.
 
 const Kit37 := preload("res://core/world/realm/west_marches_kit.gd")
@@ -22,6 +25,13 @@ const BELL := "vista_bell.glb"
 const SCALE := 1.55                          ## the model is 12.6 m across the mouth: the eighth bell is ~20
 const BELL_FAR := "res://art/models/vista_bell_far.glb"
 const NAVE := "res://art/models/reach_e_nave.glb"
+const Land := preload("res://core/world/realm/realm_land.gd")
+const TOWER := "vista_cairn_tower.glb"
+const TOWER_FAR := "res://art/models/vista_cairn_tower_far.glb"
+const TOWER_AT := Vector2(327.0, 324.0)
+const TOP_Y := 18.8                          ## the tower's top floor over its origin (vista_cairn_tower.py)
+const FIELD := Rect2(264.0, 238.0, 102.0, 156.0)    ## the heath the cairns are heaped on (inside the region, off its edges)
+const FIELD_N := 170
 const NEAR_END := 140.0
 const LOOT := {"bellfall_mouth": ["iron", {"grave_ash": 18, "grave_iron": 2, "relic_fragment": 1}]}
 
@@ -44,6 +54,9 @@ static func reserve(root: Node) -> void:
 		var q := c + Vector2(cos(TAU * k / 9.0), sin(TAU * k / 9.0)) * (0.0 if k == 0 else 5.0)
 		_bell_y = minf(_bell_y, RealmLayout.ground(space, q.x, q.y))
 	Flora.tree_clear.append([c, 34.0])                # the crater burned: nothing grows in it yet
+	var tg := _tower_ground(space)
+	Flora.tree_clear.append([TOWER_AT, 28.0])               # the heath's crown is open: the tower stands clear
+	WorldLanes.register_site("poi_cairn_tower", Rect2(TOWER_AT - Vector2(11.5, 11.5), Vector2(23.0, 23.0)), tg, tg)
 	var nc := RealmReaches.NAVE_C
 	Flora.tree_clear.append([nc, 30.0])
 	for k in 5:                                          # nave_track's last bend: the west front seen down the water
@@ -61,6 +74,7 @@ static func build(holder: Node3D) -> void:
 	host.name = "Poi_bellfall"
 	host.set_meta("site", "poi_bellfall")
 	host.add_to_group("world_poi")
+	host.set_meta("reach", true)
 	host.set_meta("poi", "bellfall")
 	host.set_meta("title", "The Eighth Bell")
 	host.set_meta("line", "cast in the sky, and the sky let it fall")
@@ -73,6 +87,9 @@ static func build(holder: Node3D) -> void:
 	built.append("bellfall")
 	if _nave(holder, space):
 		built.append("nave")
+	if _cairn_tower(holder, space):
+		built.append("cairn_tower")
+	built.append("cairns %d" % _cairn_field(holder, space))
 	print("REALM_POI east reach built %s" % [built])
 
 
@@ -94,6 +111,10 @@ static func _mat(kind: String) -> Material:
 			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			m.vertex_color_use_as_albedo = true
 			m.albedo_color = Color(0.5, 0.62, 0.8)    # cold, faint: well under the glow threshold
+		"hewn":
+			m = Kit37.mat("hewn").duplicate() as StandardMaterial3D
+			m.normal_scale = 0.4                        # the stones are geometry: the set is only their grain
+			m.uv1_scale = Vector3(1.6, 1.6, 1.6)
 		_:
 			m = Kit37.mat(kind)
 	_mats[kind] = m
@@ -173,6 +194,7 @@ static func _nave(holder: Node3D, space: PhysicsDirectSpaceState3D) -> bool:
 	host.name = "Poi_nave"
 	host.set_meta("site", "poi_nave")
 	host.add_to_group("world_poi")
+	host.set_meta("reach", true)
 	host.set_meta("poi", "nave")
 	host.set_meta("title", "The Drowned Nave")
 	host.set_meta("line", "the water came in before the floor did")
@@ -230,3 +252,107 @@ static func _nave_shafts(host: Node3D, root: Node3D) -> void:
 			node.add_child(mi)
 			mi.global_transform = Transform3D(Basis(side, up, fwd), at)
 			mi.set_instance_shader_parameter(&"strength", 1.0)
+
+
+static func _tower_ground(space: PhysicsDirectSpaceState3D) -> float:
+	var lo := INF
+	var hi := -INF
+	for k in 12:
+		var q := TOWER_AT + Vector2(cos(TAU * k / 12.0), sin(TAU * k / 12.0)) * 9.5
+		var h := RealmLayout.ground(space, q.x, q.y)
+		lo = minf(lo, h)
+		hi = maxf(hi, h)
+	return lerpf(lo, hi, 0.25)
+
+
+static func _cairn_tower(holder: Node3D, space: PhysicsDirectSpaceState3D) -> bool:
+	var g := _tower_ground(space)
+	var host := Node3D.new()
+	host.name = "Poi_cairn_tower"
+	host.set_meta("site", "poi_cairn_tower")
+	host.add_to_group("world_poi")
+	host.set_meta("reach", true)
+	host.set_meta("poi", "cairn_tower")
+	host.set_meta("title", "The Cairn Tower")
+	host.set_meta("line", "every stone a pilgrim who turned for home")
+	host.set_meta("region", "cairns")
+	holder.add_child(host)
+	# the first ramp faces the way it is reached from (southwood_way's end, from the south-west)
+	var to := Vector2(300.0, 286.0) - TOWER_AT
+	var root := Kit37.place(host, TOWER, Transform3D(Basis(Vector3.UP, atan2(to.x, to.y)), Vector3(TOWER_AT.x, g, TOWER_AT.y)), {})
+	if root == null:
+		return false
+	root.name = "CairnTower"
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		if String(mi.name).contains("__hewn"):
+			mi.material_override = _mat("hewn")
+	var fs := (load(TOWER_FAR) as PackedScene).instantiate()
+	var fm := fs.find_children("*", "MeshInstance3D", true, false)
+	if not fm.is_empty():
+		FarDetail.register(root, (fm[0] as MeshInstance3D).mesh, Transform3D.IDENTITY, 150.0, _mat("hewn"))
+	fs.free()
+	var top := root.global_transform * Vector3(2.6, TOP_Y + 0.15, 0.0)
+	P._perch(host, top, (top - root.global_position) * Vector3(1, 0, 1), 18.0)
+	var ch: Node3D = Chest.new()
+	ch.name = "Chest_cairn_top"
+	ch.set("chest_id", "cairn_top")
+	ch.set("tier", "iron")
+	ch.set("loot", {"grave_ash": 14, "grave_iron": 1})
+	host.add_child(ch)
+	ch.global_transform = Transform3D(Basis(Vector3.UP, 0.4), root.global_transform * Vector3(-2.4, TOP_Y + 0.05, 1.2))
+	return true
+
+
+## The Thousand Cairns: heaps of fieldstones across the heath, a few big ones, off the ways, the sites and the water;
+## instanced per 64 m cell and per shape (a handful of draws near, nothing past 170 m).
+static func _cairn_field(holder: Node3D, space: PhysicsDirectSpaceState3D) -> int:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1000
+	var shapes: Array[Mesh] = []
+	for v in 4:
+		shapes.append(RockKit.cairn(300 + v, Vector3(1.1, 1.5 + 0.3 * v, 1.1), "granite"))
+	var cells := {}
+	var placed := 0
+	var tries := 0
+	while placed < FIELD_N and tries < FIELD_N * 6:
+		tries += 1
+		var q := Vector2(rng.randf_range(FIELD.position.x, FIELD.end.x), rng.randf_range(FIELD.position.y, FIELD.end.y))
+		if RealmLayout.path_dist(q) < 3.0 or not WorldLanes.site_at(q, 2.5).is_empty() or Land.in_water(q.x, q.y):
+			continue
+		if q.distance_to(TOWER_AT) < 14.0:
+			continue
+		var s := rng.randf_range(0.7, 1.35) * (1.6 if rng.randf() < 0.08 else 1.0)
+		var y := RealmLayout.ground(space, q.x, q.y)
+		var key := Vector3i(floori(q.x / 64.0), floori(q.y / 64.0), rng.randi_range(0, shapes.size() - 1))
+		if not cells.has(key):
+			cells[key] = []
+		(cells[key] as Array).append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.85, 1.15), s)), Vector3(q.x, y - 0.12 * s, q.y)))
+		placed += 1
+	var node := Node3D.new()
+	node.name = "TheThousandCairns"
+	holder.add_child(node)
+	for key: Vector3i in cells:
+		var list: Array = cells[key]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = shapes[key.z]
+		mm.instance_count = list.size()
+		var c := Vector3.ZERO
+		for xf: Transform3D in list:
+			c += xf.origin
+		c /= float(list.size())
+		for i in list.size():
+			var xf: Transform3D = list[i]
+			mm.set_instance_transform(i, Transform3D(xf.basis, xf.origin - c))
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		mmi.name = "Cairns_%d_%d_%d" % [key.x, key.y, key.z]
+		mmi.set_meta(&"chunked", true)
+		mmi.visibility_range_end = 170.0
+		mmi.visibility_range_end_margin = 20.0
+		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		mmi.add_to_group(Groups.CULL_SKIP)
+		node.add_child(mmi)
+		mmi.global_position = c
+	return placed

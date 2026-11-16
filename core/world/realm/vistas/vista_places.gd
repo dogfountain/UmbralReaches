@@ -15,6 +15,7 @@ extends RefCounted
 ##   the old Marches' hollows have the weather's mist banks.
 ##   `-- --no-vistas` turns these places off, `-- --no-vista-sky` the sky's far ranges and veils (A/B).
 
+const P := preload("res://core/world/realm/realm_pois.gd")
 const Kit37 := preload("res://core/world/realm/west_marches_kit.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
@@ -162,6 +163,15 @@ static func _beacon(host: Node3D, b: Dictionary) -> bool:
 		return false
 	root.name = "MarchBeacon_" + String(b.id)        # (Beacon_* is the landmark-beacon marker family: world_r30_test)
 	root.set_meta("site", "vista_beacon_" + String(b.id))
+	# a named place like the others (discovery, the map): every reader finds poi, title, line, centre and radius
+	root.add_to_group("world_poi")
+	root.set_meta("reach", true)
+	root.set_meta("poi", "beacon_" + String(b.id))
+	root.set_meta("title", String(b.title).capitalize() if not String(b.title).begins_with("the ") else "The" + String(b.title).substr(3))
+	root.set_meta("line", String(b.get("line", "the Order's signal fire, cold since the sky went dark")))
+	root.set_meta("region", String(RealmLayout.region_at(at.x, at.z).get("id", "")))
+	root.set_meta("centre", at + Vector3(0.0, 4.0, 0.0))
+	root.set_meta("radius", 16.0)
 	for n in root.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
 		var nm := String(mi.name)
@@ -197,14 +207,9 @@ static func _beacon(host: Node3D, b: Dictionary) -> bool:
 	fire.position = Vector3(0.0, FLOOR + BASKET + 0.25, 0.0)
 	root.add_child(fire)
 	# a glide perch on the parapet, a grapple anchor on the hoist (as the other tall places)
-	var perch := Marker3D.new()
-	perch.name = "GlidePerch"
-	perch.position = Vector3(0.0, FLOOR + 0.1, 0.0)
-	perch.add_to_group(&"glide_perch")
-	var yaw := float(sp.yaw)
-	perch.set_meta("facing", Vector3(sin(yaw), 0.0, cos(yaw)))      # the metas every perch carries (realm_pois.gd _perch)
-	perch.set_meta("drop", FLOOR)
-	root.add_child(perch)
+	var fwd := root.global_basis * Vector3(0.0, 0.0, 1.0)
+	var top := root.global_transform * Vector3(0.0, FLOOR + 0.1, 2.0)
+	P._perch(root, top, fwd, top.y - RealmLayout.ground(root.get_world_3d().direct_space_state, top.x + fwd.x * 6.0, top.z + fwd.z * 6.0))
 	return true
 
 
