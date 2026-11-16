@@ -588,6 +588,19 @@ def bone_abbot():
     c.ball(crook[-1], 0.02, (1.0, 0.75, 0.4, 0.0), "glow", "hand_r", n=6)
     for k in range(4):
         c.lathe([(0.02, 0.0), (0.024, 0.012), (0.02, 0.024)], V(0, -0.3 + 0.33 * k, -0.035), GOLD, "gilt", "hand_r", n=10)
+    # the fist: four bone fingers wound round the shaft, the thumb across them, a knuckle ridge behind (the shaft passes through it)
+    for f in range(4):
+        yy = -0.075 + 0.031 * f
+        ring = [V(math.cos(a_) * 0.036, yy + 0.004 * math.sin(a_ * 2.0), -0.035 + math.sin(a_) * 0.036) for a_ in np.linspace(0.0, TAU, 17)]
+        c.tube(ring, [0.0155 - 0.001 * f] * 17, (0.78, 0.72, 0.58), "bone", "hand_r", n=7)
+    c.tube([V(-0.03, -0.09, -0.07), V(0.0, -0.035, -0.078), V(0.03, 0.02, -0.07)], [0.014, 0.015, 0.012], (0.78, 0.72, 0.58), "bone", "hand_r", n=7)
+    c.ball(V(0.0, 0.0, -0.075), 0.026, (0.74, 0.68, 0.55), "bone", "hand_r", n=7, sy=1.6)
+    # a carved crook: leaf crockets up the outside of the scroll
+    for k in range(4, 38, 4):
+        a_ = k / 39 * 4.6
+        rr = 0.12 * (1.0 - 0.72 * k / 39)
+        pc = V(0.0, 1.3 + math.sin(a_) * rr, -0.035 - 0.12 + math.cos(a_) * rr)
+        c.ball(pc + V(0.0, math.sin(a_) * 0.014, math.cos(a_) * 0.014), 0.014, GOLD, "gilt", "hand_r", n=5, sy=1.4)
     for k in range(9):                                                   # a cord wound up the grip, worn
         c.lathe([(0.017, 0.0), (0.022, 0.006), (0.017, 0.012)], V(0, 0.1 + 0.035 * k, -0.035), (0.35, 0.27, 0.16), "leather", "hand_r", n=10)
     c.lathe([(0.0, 0.0), (0.03, 0.0), (0.042, 0.03), (0.034, 0.07), (0.022, 0.1), (0.0, 0.11)], V(0, 0.93, -0.035), (0.8, 0.74, 0.6), "bone", "hand_r", n=12)   # a bone knop under the crook
