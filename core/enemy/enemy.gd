@@ -43,6 +43,7 @@ enum { IDLE, CHASE, WINDUP, STRIKE, RECOVER, DEAD, LEAP_PREP, AIRBORNE, FEINT, S
 
 const Hints := preload("res://ui/hints.gd")
 const FoeIndex := preload("res://core/enemy/foe_index.gd")
+const EnemyRest := preload("res://core/enemy/enemy_rest.gd")
 const HP_BAR_SHADER := "res://core/enemy/health_bar.gdshader"
 const HP_BAR_SIZE := Vector2(0.86, 0.1)   ## metres; same value as `size` in the shader
 const HP_BAR_TRAIL_HOLD := 0.28           ## seconds the pale "just lost" strip waits before draining
@@ -588,16 +589,14 @@ func station(at: Vector3) -> void:
 
 
 func wake() -> void:
-	visible = true
-	process_mode = Node.PROCESS_MODE_INHERIT
+	EnemyRest.wake(self, _hp_bar, _pips)        # processing on, drawn as far as the camera sees
 
 
 func sleep() -> void:
 	if process_mode != Node.PROCESS_MODE_DISABLED:
 		cancel_moves()                           # a tell in the air dies with the body
 		_finish_cast(false, false)
-	visible = true
-	process_mode = Node.PROCESS_MODE_DISABLED
+	EnemyRest.sleep(self, _hp_bar, _pips)       # processing off, drawn to REST_DRAW (enemy_rest.gd)
 
 
 func _remember_home() -> void:
