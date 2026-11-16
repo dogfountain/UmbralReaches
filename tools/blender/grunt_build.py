@@ -508,7 +508,7 @@ def starve(bd, amp=1.0, ribs=1.0):
     bd.P = P + N * d[:, None]
 
 
-def claw_hands(bd, g, spread=0.9, curl=0.035, nail=(0.0045, 0.016), col=(0.55, 0.5, 0.4)):
+def claw_hands(bd, g, grip=True, spread=0.9, curl=0.035, nail=(0.0045, 0.016), col=(0.55, 0.5, 0.4)):
     """Pose a hanging hand's fingers: fanned apart across the hand and curled in toward the palm, tips pulled down to long
     nails. A procedural pose of the retargeted mesh (the rig has no finger bones), before the garments are laid."""
     P = bd.P.copy()
@@ -527,7 +527,44 @@ def claw_hands(bd, g, spread=0.9, curl=0.035, nail=(0.0045, 0.016), col=(0.55, 0
         q[:, 2] = zc + (q[:, 2] - zc) * (1.0 + spread * t)
         q[:, 0] -= sx * curl * t ** 2                                         # curl toward the palm side (the thigh)
         q[:, 2] -= 0.012 * t ** 2                                             # and a little forward
+        if grip and t_ == "hand_r":
+            # the right hand closes round a vertical shaft: pitched forward 85 deg at the wrist (the fingers point ahead),
+            # then each finger wrapped round the shaft's circle (arc length = distance along the finger), palm side inward
+            piv = np.array([float(q[:, 0].mean()), yw, float(q[:, 2].mean())])
+            q = P[m].copy()
+            L_ = max(yw - yt, 1e-6)
+            tt0 = np.clip((yw - q[:, 1]) / L_, 0.0, 1.0)
+            r = q - piv
+            a_ = math.radians(85.0)
+            y2 = r[:, 1] * math.cos(a_) - r[:, 2] * math.sin(a_)
+            z2 = r[:, 1] * math.sin(a_) + r[:, 2] * math.cos(a_)
+            q = np.stack([r[:, 0], y2, z2], 1)                                     # relative to the wrist
+            f = -q[:, 2]                                                           # forward distance
+            f0, R = 0.38 * L_, 0.031
+            u = np.clip(f - f0, 0.0, None)
+            w = q[:, 0]                                                            # thickness: palm side is -x (sx = +1)
+            phi = u / R
+            rho = R + np.clip(w, -R * 0.9, None) * 1.0
+            wrap = u > 0
+            cx_, cz_ = -R, -f0                                                     # the shaft's centre, wrist-relative
+            nx = cx_ + rho * np.cos(phi)
+            nz = cz_ - rho * np.sin(phi) * 1.0
+            q[:, 0] = np.where(wrap, nx, q[:, 0])
+            q[:, 2] = np.where(wrap, nz, q[:, 2])
+            q[:, 1] -= 0.004 * np.clip(u / 0.1, 0, 1)
+            tipmask = u > 0.82 * u.max()
+            q = q + piv
+            bd.grip = (float(piv[0] + cx_), float(piv[1]), float(piv[2] + cz_))
+            bd.tips_r = q[tipmask]
         P[m] = q
+        if grip and t_ == "hand_r":
+            tip = bd.tips_r
+            bins = {}
+            for v in tip:
+                bins.setdefault(int(round(v[1] / 0.012)), []).append(v)
+            for vs in bins.values():
+                nails.append(np.mean(vs, axis=0))
+            continue
         tip = q[q[:, 1] < q[:, 1].min() + 0.007]
         bins = {}
         for v in tip:
@@ -539,13 +576,19 @@ def claw_hands(bd, g, spread=0.9, curl=0.035, nail=(0.0045, 0.016), col=(0.55, 0
         g.ball(V(float(c[0]), float(c[1]) - 0.002, float(c[2])), nail[0], col, "bone", "hand_l" if c[0] < 0 else "hand_r", n=6, sx=0.7, sy=nail[1] / nail[0] * 0.5, sz=1.0)
 
 
-def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0, hunch=0.0, targets=None, starved=0.0, keep=("head",), claws=False, hand_ratio=1.0):
+def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0, hunch=0.0, targets=None, starved=0.0, keep=("head",), claws=False, hand_ratio=1.0, head_ratio=1.0):
     """A MakeHuman body (mh_body.py), shaped by `macro` (gender, age, muscle, weight, proportions, height: 0..1),
     retargeted to the rig, with coals in the eyes. skull 0..1: the face wasted toward the bone beneath (cheeks and
     temples hollowed, lips drawn back off the teeth, the eyes sunk), with the teeth bared."""
     import mh_body
-    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y, hunch=hunch, targets=targets, keep_groups=keep, hand_ratio=hand_ratio)
+    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y, hunch=hunch, targets=targets, keep_groups=keep, hand_ratio=hand_ratio, head_ratio=head_ratio)
     bd = Body(P, F, FUV, L)
+    if os.environ.get('TRISDBG'):
+        from collections import Counter
+        c = Counter()
+        for f in F:
+            c[L[f[0]].split('_')[0]] += len(f) - 2
+        print('TRISDBG', dict(c), sum(len(f) - 2 for f in F))
     if claws:
         claw_hands(bd, g)
         P = bd.P
@@ -991,6 +1034,15 @@ def cowl(g, b, col, peak=0.0, open_w=0.065, seed=0.7, shade=True, mat="wool", op
         g.col[n0 + k] = (cc[0] * (1 - 0.94 * t), cc[1] * (1 - 0.94 * t), cc[2] * (1 - 0.94 * t), cc[3])
 
 
+def _rag_wobble(i, j, ni, nj):
+    """A wrapped rag: turns crossing diagonally both ways, uneven in width, sagging low over the right brow."""
+    v = i / max(ni - 1, 1)
+    u = TAU * j / max(nj - 1, 1)
+    d = 0.013 * math.sin(i * 0.85 + j * 0.5) + 0.011 * math.sin(i * 0.65 - j * 0.62 + 1.3) + 0.007 * math.sin(i * 0.45 + 2.0 * math.sin(u * 2.0))
+    d += 0.016 * max(v - 0.35, 0.0) * math.exp(-((u - (math.pi + 0.75)) / 0.55) ** 2)
+    return d
+
+
 def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=True, nu=56, nv=26):
     """A scavenger's layers, laid on its own body so they fit: a head wrap wound over the scalp and the lower face with
     only an uneven eye slit left (a bare MakeHuman face read as a mannequin's), two wrap tails down the nape, and a
@@ -1013,7 +1065,7 @@ def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=Tru
         return not (front > 0.6 and abs(y_mid - ey) < 0.017)
     # wound: alternate rows stand a little prouder, so the layers read
     shrink(g, b, trunk, rows, 0.011,
-           wrap, "linen", "head", thick=0.007, ridges=(3.0, 0.011), reach=0.2, relax=20, balls=[(e + V(0, 0, -0.004), 0.016) for e in E] if v1 < 130 else (),
+           wrap, "linen", "head", thick=0.007, ridges=(5.0, 0.004), wobble=_rag_wobble, reach=0.2, relax=20, balls=[(e + V(0, 0, -0.004), 0.016) for e in E] if v1 < 130 else (),
            cut=(lambda p: p[2] < c[2] - 0.04 and abs(p[1] - ey) < 0.0135 and abs(p[0]) < 0.07) if v1 >= 130 else None)
     start = g._fit[1] if getattr(g, "_fit", None) else 0
     n0 = start - len(b.P)
@@ -1078,7 +1130,7 @@ WRETCH_T = {
     "stomach/stomach-pregnant-decr": 1.0, "cheek/{s}-cheek-volume-decr": 1.0, "cheek/{s}-cheek-bones-incr": 0.8, "eyes/{s}-eye-bag-incr": 1.0,
     "eyes/{s}-eye-push1-in": 0.6, "torso/torso-muscle-pectoral-decr": 1.0, "torso/torso-muscle-dorsi-decr": 1.0,
     "arms/{s}-upperarm-fat-decr": 1.0, "arms/{s}-lowerarm-fat-decr": 1.0, "arms/{s}-upperarm-muscle-decr": 0.7,
-    "legs/{s}-upperleg-fat-decr": 1.0, "legs/{s}-lowerleg-fat-decr": 1.0, "legs/{s}-lowerleg-muscle-decr": 0.6, "neck/neck-scale-horiz-decr": 0.8, "head/head-fat-decr": 1.0,
+    "arms/{s}-upperarm-shoulder-muscle-decr": 1.0, "torso/torso-vshape-decr": 0.8, "torso/measure-shoulder-dist-decr": 0.5, "legs/{s}-upperleg-fat-decr": 1.0, "legs/{s}-lowerleg-fat-decr": 1.0, "legs/{s}-lowerleg-muscle-decr": 0.6, "neck/neck-scale-horiz-decr": 0.8, "head/head-fat-decr": 1.0,
     "mouth/mouth-upperlip-volume-decr": 1.0, "mouth/mouth-lowerlip-volume-decr": 1.0, "mouth/mouth-angles-down": 0.7, "mouth/mouth-scale-horiz-incr": 0.4,
     "nose/nose-flaring-decr": 0.7, "nose/nose-compression-compress": 0.6, "nose/nose-point-down": 0.4, "chin/chin-bones-incr": 0.6, "cheek/{s}-cheek-inner-incr": 0.5,
     "feet/{s}-foot-scale-vert-decr": 0.5, "hands/{s}-hand-fingers-length-incr": 0.8, "hands/{s}-hand-fingers-diameter-decr": 1.0,
@@ -1090,12 +1142,16 @@ def wretch():
     skull with coals sunk in it, a stuffed sack hung from straps that cut into the shoulders, a gaff in its fist."""
     g = Geo()
     SKIN, RAG, SACK, BELT = (0.4, 0.34, 0.31), (0.17, 0.13, 0.1), (0.5, 0.43, 0.3), (0.1, 0.075, 0.06)
-    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=3800, hunch=1.0, targets=WRETCH_T, eye_r=0.011, skull=0.9, keep=("head", "hand_l", "hand_r"), claws=True)
+    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=3900, hunch=1.0, targets=WRETCH_T, eye_r=0.011, skull=0.9, keep=("head", "hand_l", "hand_r"), claws=True, hand_ratio=0.45, head_ratio=1.0)
     if os.environ.get('BODYONLY'):
         return g.to_object('body'), []
-    wraps(g, b, ("knee_",), 0.07, 0.3, RAG)
+    # (no shin wraps: the bare shins show their crests)
     wraps(g, b, ("elbow_", "hand_"), 0.8, 0.92, RAG, seed=2)
-    g.robe([(0.98, 0.16, 0.12, 0.0), (0.9, 0.17, 0.13, 0.0), (0.7, 0.2, 0.16, 0.0), (0.56, 0.21, 0.17, 0.0)], RAG, "wool", B.waist_split(0.9), n=30, pleats=8, pleat_amp=0.1, tatter=0.14)
+    coat(g, b, RAG, mat="wool", y_top=0.99, y_hem=0.46, flare=0.045, seed=2.2, tatter=0.12, folds=5, thick=0.01, nu=30, nv=10)
+    for ln in (0.2, 0.14):                                                  # the cloth's ends knotted at the belt, hanging
+        k0 = V(0.15, 0.975, -0.105)
+        g.tube([k0, k0 + V(0.02, -0.06, -0.015), k0 + V(0.03 + 0.012 * ln, -ln * 0.6, -0.02), k0 + V(0.03, -ln, -0.015)], [0.014, 0.016, 0.013, 0.006], RAG, "wool", "pelvis", n=5, flat=0.3)
+    g.ball(V(0.15, 0.975, -0.108), 0.022, RAG, "wool", "pelvis", n=6)
     g.ring_band(0.95, 0.985, 0.162, 0.122, 0.0, (0.24, 0.16, 0.1), "leather", "pelvis", n=40)
     g.box(V(0.0, 0.968, -0.128), (0.026, 0.024, 0.008), (0.34, 0.31, 0.28), "iron", "pelvis")
     g.box(V(0.0, 0.968, -0.134), (0.015, 0.014, 0.004), (0.18, 0.14, 0.1), "leather", "pelvis")
@@ -1112,29 +1168,37 @@ def wretch():
         g.tube(pts, [r0 * (1.0 - 0.55 * (y / ln)) * (1.0 + 0.25 * max(0.0, math.sin(y * 23 + ph))) for y in ys], (0.26, 0.2, 0.14), "wood", "chest", n=8)
     g.lathe([(0.0, 0.0), (0.075, 0.0), (0.09, 0.07), (0.085, 0.13), (0.075, 0.13), (0.07, 0.09), (0.0, 0.01)], S + V(0.2, -0.32, 0.17), (0.2, 0.18, 0.17), "iron", "chest", n=14)
     for sx in (-1, 1):
-        strap(g, [V(sx * 0.11, 1.5, -0.1), V(sx * 0.13, 1.4, -0.13), V(sx * 0.12, 1.16, -0.12), V(sx * 0.14, 1.05, 0.0), V(sx * 0.13, 1.14, 0.17)], (0.26, 0.17, 0.11), w=0.024, thick=0.011)
-    rags(g, b, RAG, (0.6, 0.55, 0.44), BELT, vest=None, v1=int(os.environ.get('WV1', '98')), nu=34, nv=14)
+        strap(g, [V(sx * 0.11, 1.5, -0.1), V(sx * 0.13, 1.4, -0.13), V(sx * 0.12, 1.16, -0.12), V(sx * 0.14, 1.05, 0.0), V(sx * 0.13, 1.14, 0.17)], (0.26, 0.17, 0.11), w=0.024, thick=0.012, off=-0.007)
+    rags(g, b, RAG, (0.6, 0.55, 0.44), BELT, vest=None, v1=int(os.environ.get('WV1', '98')), nu=32, nv=13)
     hd = np.array([q for i, q in enumerate(b.P) if b.L[i] == "head"])         # the rag is knotted at the back of the skull, its ends hanging
-    kn = V(0.0, float(hd[:, 1].max()) - 0.045, float(hd[:, 2].max()) - 0.005)
+    kn = V(float(hd[:, 0].max()) - 0.012, float(hd[:, 1].max()) - 0.06, float(hd[:, 2].mean()) + 0.03)      # the knot on the side
     g.ball(kn, 0.02, (0.6, 0.55, 0.44), "linen", "head", n=6, sx=1.2, sy=0.9, sz=1.0)
     for sx_, ln in ((-1, 0.13), (1, 0.09)):
-        g.tube([kn, kn + V(sx_ * 0.02, -0.04, 0.03), kn + V(sx_ * 0.035, -0.09, 0.045), kn + V(sx_ * 0.04, -ln, 0.04)], [0.011, 0.012, 0.01, 0.004], (0.6, 0.55, 0.44), "linen", "head", n=5, flat=0.3)
+        g.tube([kn, kn + V(sx_ * 0.02, -0.04, 0.03), kn + V(sx_ * 0.035, -0.09, 0.045), kn + V(sx_ * 0.04, -ln, 0.04)], [0.014, 0.015, 0.012, 0.006], (0.6, 0.55, 0.44), "linen", "head", n=6, flat=0.8)
     gf = Geo()
     WOOD, IRON, WRAP = (0.28, 0.2, 0.13), (0.32, 0.3, 0.29), (0.2, 0.16, 0.12)
-    # a gnarled staff: a lean S through its length, swelling at the knots, thin at the foot, an iron-shod tip
-    ys = np.linspace(-0.62, 0.92, 15)
-    path = [V(0.012 * math.sin(y * 4.2), y, -0.03 + 0.01 * math.sin(y * 3.1 + 1.0)) for y in ys]
-    rad = [0.011 + 0.0045 * (1.0 + math.sin(y * 9.0 + 2.0)) * 0.5 + 0.004 * max(0.0, math.sin(y * 3.7)) for y in ys]
-    rad[0], rad[1] = 0.008, 0.0095
+    gx, gy, gz = (b.grip if getattr(b, "grip", None) is not None else (0.21, 0.8, -0.05))
+    X0, Z0 = gx - 0.24, gz                                               # the shaft runs through the closed fist
+    def P_(dx, y, dz=0.0):
+        return V(X0 + dx, y, Z0 + dz)
+    # a short crooked branch: bent twice, knotted, swelling toward the head, thin at the foot
+    ys = np.linspace(-0.74, 0.46, 13)
+    path = [P_(0.03 * math.sin(y * 3.6) + 0.018 * math.sin(y * 9.0 + 0.5), y, 0.022 * math.sin(y * 4.3 + 1.0)) for y in ys]
+    rad = [0.0095 + 0.004 * (y + 0.74) / 1.2 + 0.004 * max(0.0, math.sin(y * 12.0 + 1.0)) + 0.004 * max(0.0, math.sin(y * 5.1)) for y in ys]
+    rad[0], rad[1] = 0.0075, 0.0088
     gf.tube(path, rad, WOOD, "wood", "hand_r", n=8)
-    gf.lathe([(0.0, -0.69), (0.012, -0.66), (0.0145, -0.60), (0.0135, -0.57)], V(path[0][0], 0.0, path[0][2]), IRON, "iron", "hand_r", n=8)
-    for y in (0.0, 0.07, 0.14):                                          # the grip: cord wound three turns
-        gf.lathe([(0.0145, y), (0.0165, y + 0.012), (0.0145, y + 0.024)], V(0.012 * math.sin(y * 4.2), 0.0, -0.03), WRAP, "leather", "hand_r", n=8)
-    # the gaff: a forged hook, flat in section, tapering to a barbed point, lashed to the head
-    hk = [V(0.0, 0.88, -0.03), V(0.0, 0.97, -0.034), V(0.0, 1.04, -0.065), V(0.0, 1.05, -0.115), V(0.0, 1.0, -0.15), V(0.0, 0.955, -0.14)]
+    for y in (-0.31, 0.08, 0.2):                                         # stubs of cut twigs
+        c = path[int((y + 0.74) / 1.2 * 12)]
+        gf.tube([c, c + V(0.03, 0.025, 0.012), c + V(0.055, 0.045, 0.014)], [0.007, 0.0045, 0.002], WOOD, "wood", "hand_r", n=5)
+    gf.lathe([(0.0, -0.80), (0.011, -0.77), (0.0135, -0.70), (0.0125, -0.67)], V(path[0][0], 0.0, path[0][2]), IRON, "iron", "hand_r", n=8)
+    for y in (-0.03, 0.0, 0.03, 0.06):                                    # grip wound with cord, where the fist closes
+        i_ = int((y + 0.74) / 1.2 * 12)
+        gf.lathe([(0.0125, y), (0.0145, y + 0.01), (0.0125, y + 0.02)], V(path[i_][0], 0.0, path[i_][2]), WRAP, "leather", "hand_r", n=8)
+    top = path[-1]
+    hk = [top + V(0.0, -0.04, 0.0), top + V(0.0, 0.03, -0.004), top + V(0.0, 0.1, -0.035), top + V(0.0, 0.11, -0.085), top + V(0.0, 0.065, -0.12), top + V(0.0, 0.02, -0.11)]
     gf.tube(hk, [0.014, 0.0125, 0.0105, 0.0085, 0.0055, 0.0015], IRON, "iron", "hand_r", n=8, flat=0.55)
-    gf.tube([V(0.0, 0.93, -0.034), V(0.0, 0.915, -0.036), V(0.0, 0.90, -0.034)], 0.0185, WRAP, "leather", "hand_r", n=8)
-    gf.tube([V(0.0, 0.89, -0.03), V(-0.025, 0.84, -0.02), V(-0.04, 0.74, -0.01)], 0.0035, WRAP, "leather", "hand_r", n=4)       # frayed tie-ends
+    gf.tube([top + V(0.0, -0.02, 0.0), top + V(0.0, -0.035, 0.0), top + V(0.0, -0.05, 0.0)], 0.0185, WRAP, "leather", "hand_r", n=8)
+    gf.tube([top + V(0.0, -0.05, 0.0), top + V(-0.025, -0.1, 0.01), top + V(-0.04, -0.19, 0.02)], 0.0035, WRAP, "leather", "hand_r", n=4)       # frayed tie-ends
     return g.to_object("body"), [gf.to_object("staff_hand_r")]
 
 
@@ -1912,7 +1976,7 @@ def thornwarden():
 import anat_hunger
 SKIN_L, LEATHER_L = 10, 3                                              # bake_kind.LAYERS indices
 HOOKS = {} if os.environ.get("NOHOOK") else {
-    "wretch": lambda P, N, lay: anat_hunger.field(P, N, lay == SKIN_L),
+    "wretch": lambda P, N, lay: anat_hunger.field(P, N, lay == SKIN_L) + anat_hunger.folds(P, N, (lay == 0) & (P[:, 1] < 1.0) & (P[:, 1] > 0.4), amp=0.5, belt=0.99, hem=0.46),
     "husk": lambda P, N, lay: anat_hunger.folds(P, N, (lay == 0) & (P[:, 1] < 1.45) & (P[:, 1] > 0.3), amp=0.9)}
 KINDS = {"wretch": wretch, "husk": husk, "chanter": chanter, "tollman": tollman, "pilgrim": pilgrim, "gaunt": gaunt, "quiller": quiller,
          "ossuant": ossuant, "bulwark": bulwark, "spitter": spitter, "cinder_caster": cinder_caster,

@@ -58,7 +58,7 @@ class Seg:
         return self.h2 + (self.s * al + self.g * pe) @ self.R.T
 
 
-def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shoulder_y=1.40, targets=None, keep_groups=("head",), hand_ratio=1.0):
+def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shoulder_y=1.40, targets=None, keep_groups=("head",), hand_ratio=1.0, head_ratio=1.0):
     for o in list(bpy.data.objects):
         bpy.data.objects.remove(o)
     md = TargetService.get_default_macro_info_dict()
@@ -205,19 +205,20 @@ def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shou
             d.invert_vertex_group = True
             d.vertex_group_factor = 1.0
         bpy.ops.object.modifier_apply(modifier=d.name)
-        if tuple(keep_groups) != ("head",) and hand_ratio < 1.0:        # the hands, thinned a little on their own
-            hv = set()
+        for gname, labels, r_ in (("head", ("head",), head_ratio), ("hands", ("hand_l", "hand_r"), hand_ratio)):
+            if r_ >= 1.0 or tuple(keep_groups) == ("head",):
+                continue
+            sv = set()
             for v in h.data.vertices:
-                if any(("J_hand_" + t_) in h.vertex_groups and any(g_.group == h.vertex_groups["J_hand_" + t_].index and g_.weight > 0.5 for g_ in v.groups) for t_ in "lr"):
-                    hv.add(v.index)
-            hg = h.vertex_groups.new(name="Z_handmask")                # (a group is spared when inverted: spare everything but the hands)
-            hg.add([v.index for v in h.data.vertices if v.index not in hv], 1.0, 'REPLACE')
-            htr = sum(len(p_.vertices) - 2 for p_ in h.data.polygons if all(i in hv for i in p_.vertices))
+                if any(("J_" + t_) in h.vertex_groups and any(g_.group == h.vertex_groups["J_" + t_].index and g_.weight > 0.5 for g_ in v.groups) for t_ in labels):
+                    sv.add(v.index)
+            tr_ = sum(len(p_.vertices) - 2 for p_ in h.data.polygons if all(i in sv for i in p_.vertices))
             tot = sum(len(p_.vertices) - 2 for p_ in h.data.polygons)
-            d2 = h.modifiers.new("Dec2", 'DECIMATE')
-            d2.ratio = 1.0 - (1.0 - hand_ratio) * htr / max(tot, 1)
-            d2.vertex_group = "Z_handmask"
-            d2.invert_vertex_group = True
+            zg = h.vertex_groups.new(name="Z_dec_" + gname)
+            zg.add(list(sv), 1.0, 'REPLACE')
+            d2 = h.modifiers.new("Dec_" + gname, 'DECIMATE')
+            d2.ratio = max(1.0 - (1.0 - r_) * tr_ / max(tot, 1), 0.05)      # (the group's own faces carry all of the thinning)
+            d2.vertex_group = zg.name
             d2.vertex_group_factor = 1.0
             bpy.ops.object.modifier_apply(modifier=d2.name)
     me = h.data

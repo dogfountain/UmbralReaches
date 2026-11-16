@@ -323,6 +323,8 @@ def wire_albedo(N):
         veins = _mix(nt, (1.0, 1.0, 1.0, 1.0), (0.55, 0.6, 0.78, 1.0), vein, 'MIX')
         st = _mix(nt, _mix(nt, _mix(nt, drift, flush, 1.0, 'MULTIPLY'), bruise, 1.0, 'MULTIPLY'), veins, 1.0, 'MULTIPLY')
         c = _mix(nt, c, _mix(nt, c, st, 1.0, 'MULTIPLY'), sk, 'MIX')
+        cav = _math(nt, 'MULTIPLY_ADD', _math(nt, 'POWER', N["ao"].outputs["AO"], 2.4), 0.8, 0.2)       # sharper cavities in the flesh: ribs, joints
+        c = _mix(nt, c, _mix(nt, c, cav, 1.0, 'MULTIPLY'), sk, 'MIX')
     # edges: pointiness above its mean rubs the surface lighter
     pt = _math(nt, 'SUBTRACT', N["geo"].outputs["Pointiness"], 0.56)     # only real edges, not the sculpt's grain
     pt = _math(nt, 'MULTIPLY', pt, 5.0, clamp=True)

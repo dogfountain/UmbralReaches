@@ -32,6 +32,11 @@ def field(P, N, skin, amp=1.0, ribs=1.0, belly=1.0):
     sp = np.exp(-(x / 0.012) ** 2) * (z > 0) * torso
     d += 0.009 * sp * np.clip(np.cos((y - 1.0) / 0.043 * 2 * math.pi), 0.0, 1.0) * (y > 0.98) * (y < 1.42)
     d -= 0.004 * np.exp(-((ax - 0.04) / 0.02) ** 2) * (z > 0) * torso * (y > 1.0) * (y < 1.4)
+    # shoulders: the acromion a point, the deltoid hollow beneath, the cap not a box
+    for sx in (-1, 1):
+        d += 0.013 * np.exp(-(((x - sx * 0.215) / 0.03) ** 2 + ((y - 1.425) / 0.02) ** 2 + (z / 0.05) ** 2))
+        d -= 0.009 * np.exp(-(((x - sx * 0.235) / 0.03) ** 2 + ((y - 1.36) / 0.04) ** 2))
+        d -= 0.006 * np.exp(-(((x - sx * 0.2) / 0.04) ** 2 + ((y - 1.46) / 0.02) ** 2))
     # joints stand proud of thin limbs: knees and elbows, wrists, ankles
     limb = ax > 0.05
     for y0, r, h, sel in ((0.345, 0.05, 0.011, (ax < 0.2)), (1.09, 0.045, 0.009, (ax > 0.17)), (0.80, 0.035, 0.008, (ax > 0.17)), (0.09, 0.04, 0.007, (ax < 0.2))):
