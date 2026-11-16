@@ -13,6 +13,7 @@ extends RefCounted
 ##     (tools/blender/rift_choir_house.py; the Cinder Cantor haunts its nave, elites.gd; its writings, lore_db.gd)
 ## Everything keeps off the ways, the Crossing, every registered site and the chasm itself.
 
+const SiteFen := preload("res://core/life/secrets/site_fen.gd")
 const Scorch := preload("res://core/world/realm/rift/scorch.gd")
 const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
 const LoreMore := preload("res://core/world/realm/lore/lore_more.gd")
@@ -89,6 +90,9 @@ static func _normal(space: PhysicsDirectSpaceState3D, x: float, z: float) -> Vec
 static func _blocked(p: Vector2, pad: float) -> bool:
 	if RealmLayout.path_dist(p) < 1.6 + pad or p.distance_to(Scorch.HERMIT) < 12.0 + pad:
 		return true                                  # (the Ash-Hermit's Perch, a secret built later, needs its rim)
+	if _secret_walk_d(p) < 3.0 + pad:
+		return true                                  # the Lay Brothers' Stair and its crest walk (site_fen.gd), built later
+
 	if absf(p.x) < 25.5 and p.y > -123.0 and p.y < -10.0:
 		return true                                  # the chasm and its lip
 	for s: Dictionary in WorldLanes.sites:
@@ -456,3 +460,19 @@ static func _crust_mat() -> StandardMaterial3D:
 	m.normal_scale = 1.6
 	m.uv1_scale = Vector3(1.6, 1.6, 1.6)
 	return m
+
+
+## Distance to the Lay Brothers' Stair's walk (secrets/site_fen.gd: the crest's causeway and the stair down the fen
+## face): a secret built after the rim, so the rim's logs and bombs keep off it (one lay across its head).
+static func _secret_walk_d(p: Vector2) -> float:
+	var line: Array = SiteFen.CREST.duplicate()
+	line.append(SiteFen.POSTERN_TOP)
+	line.append(SiteFen.POSTERN_TOP + SiteFen.POSTERN_DIR.normalized() * 32.0)
+	var best := INF
+	for i in line.size() - 1:
+		var a: Vector2 = line[i]
+		var ab: Vector2 = (line[i + 1] as Vector2) - a
+		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.001), 0.0, 1.0)
+		best = minf(best, p.distance_to(a + ab * t))
+	return best
+

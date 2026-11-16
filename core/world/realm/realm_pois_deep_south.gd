@@ -121,6 +121,7 @@ static func _host(holder: Node3D, id: String, at: Vector2, region: String, title
 	host.set_meta("title", title)
 	host.set_meta("line", line)
 	host.set_meta("region", region)
+	host.set_meta("reaches", true)                 # a Far Reaches place (world_poi_test judges the old four)
 	host.set_meta("centre", Vector3(at.x, RealmLayout.ground(space, at.x, at.y), at.y))
 	host.set_meta("radius", r)
 	return host
