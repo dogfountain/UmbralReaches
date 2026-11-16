@@ -59,11 +59,11 @@ WOOLS = salt_wool("WoolSalt", (0.19, 0.18, 0.17), (0.03, 0.028, 0.026), 0.92)
 IRON = GK.iron("Iron", (0.12, 0.115, 0.12), (0.2, 0.1, 0.05))
 STONE = GK.stone("Cairn", (0.3, 0.31, 0.3), (0.09, 0.11, 0.07))
 # her face is lit from within, faintly: a lamp-coloured warmth in the skin (the night grade would otherwise drown it)
-FACE = GK.hollow_skin("Face", (0.48, 0.36, 0.29), (0.14, 0.09, 0.07), wet=0.0, wrinkle=70.0, liv=(0.78, 0.74, 0.82), extremities=0.0, vein_amt=0.4)
+FACE = GK.hollow_skin("Face", (0.32, 0.24, 0.2), (0.1, 0.065, 0.05), wet=0.0, wrinkle=70.0, liv=(0.78, 0.74, 0.82), extremities=0.0, vein_amt=0.4)
 FACE.emit = (1.0, 0.62, 0.3)
 FACE.emit_strength = 0.35
 FACE.bsdf.inputs['Emission Color'].default_value = (1.0, 0.62, 0.3, 1.0)
-FACE.bsdf.inputs['Emission Strength'].default_value = 0.14
+FACE.bsdf.inputs['Emission Strength'].default_value = 0.07
 SALT = GK.stone("Salt", (0.78, 0.8, 0.78), (0.5, 0.55, 0.5))
 ROPE = GK.cloth("Rope", (0.42, 0.33, 0.2), "caban", 20.0, (0.1, 0.08, 0.05), 0.85)
 GLOW = GK.glow("Lamp", (1.0, 0.55, 0.16), 8.0)
