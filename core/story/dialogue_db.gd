@@ -15,6 +15,9 @@ extends RefCounted
 
 const QuestDB := preload("res://core/story/quest_db.gd")
 const R38E := preload("res://core/story/quest_chains_r38_east.gd")   ## the hauler's tally is a choice (its pickup opens this)
+const FRW := preload("res://core/story/quest_chains_far_reaches_west.gd")   ## the Reaches' pickups that open a conversation (a choice, a small puzzle)
+const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
+const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 
 const KEEP_PORTRAIT := {"seated": false, "seed": 5150, "apron": true, "hat": "bare", "rag": true}
 
@@ -425,6 +428,7 @@ const CONV := {
 		},
 	},
 	"r38_tally": R38E.CONVS["r38_tally"],
+	"wr_order": FRW.CONVS["wr_order"], "wr_herons": FRW.CONVS["wr_herons"], "ds_nail_door": FRS.CONVS["ds_nail_door"], "er_slate": FRE.CONVS["er_slate"],
 }
 
 ## Narration beats (non-blocking subtitles).

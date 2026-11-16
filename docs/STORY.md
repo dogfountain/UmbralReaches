@@ -45,6 +45,15 @@ the road to the three who hold the valley, and the ending after the Ascended War
    put down its keeper (a named rare), then at the bell you **ring it there** or **lift the tongue
    out for Hearthward**. Four bells open the ward and the dais. Every carried tongue rings at the Keg
    when the Warden wakes, and he holds the door with 5% less.
+4c. **The Far Reaches' tasks** (optional; docs/QUESTS_far_reaches.md). Each Reach has a main
+   thread and side tasks, given and closed by the towns' people, and none is on the road to the summit: the West Reach's
+   *Stand Down* (Reedholm; a courier's order for a garrison that never stood down, and what it said: come east and be counted),
+   the Deep South's *The Water Road* (Fallowmere; the Order's beacons lit again, "LIT IT ANYWAY. IT MAY HELP SOMEONE FIND US"),
+   the East Reach's *The Candle for the Ringers* (Lastlight; the ringers of the Stair's lowest rope, who came down and knocked,
+   and what answers at the Drowned Nave). Their turns are the night's own: the lamp is for whoever is coming, the ones who were
+   never told stood longest, a debt is a way of being remembered. Several are choices (the order, the witch's nail, the inn's
+   slate), and several leave a lit thing standing. Where a thread leads to a boss dungeon (the King's Barrow, the
+   castellum or the witch's hollow, the Drowned Nave) it ends a step at the entrance, with a hook for that lane.
 5. **Ending**, one beat (`story.gd` `_ending` / `_ending_tick`). The Warden's fall raises no toasts
    (boss_arena skips "falls.", summit_dress and reactivity say nothing for him). 1.5 s after the
    bar drops: *The sky stops turning.*, while the vortex's spin eases to **zero** over ~9 s
