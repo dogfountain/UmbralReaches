@@ -313,7 +313,7 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.enemy_plates = v
 		HudPrefs.save())
 	plates.set_pressed_no_signal(HudPrefs.enemy_plates)
-	var gd := _check(p, "Guidance", "A new game's first act: the next step kept on screen, a mark over where it is, and the controls named the first time they matter. Off: none of it", func(v: bool) -> void:
+	var gd := _check(p, "Guidance", "A new game's first act: the next step kept on screen and announced, the controls named the first time they matter, and Hearthward's people pointing the way. Off: none of it. The followed task, its mark and the trail are always on", func(v: bool) -> void:
 		HudPrefs.guide = v
 		HudPrefs.save())
 	gd.set_pressed_no_signal(HudPrefs.guide)

@@ -353,13 +353,23 @@ func _ledger() -> void:
 	var ids: Array = qlog.call("entries")
 	ok(ids.find("road_clear") < ids.find("drowned_bell") and ids.find("drowned_bell") < ids.find("thorn_door"), "chapters by zone, finished after (%s)" % [ids])
 	qlog.call("select", "road_clear")
+	ok(Book.tracked("drowned_bell") and not Book.tracked("road_clear"), "the newest task is the one followed until another is picked")
 	qlog.call("toggle_track")
-	ok(not Book.tracked("road_clear"), "taken off the tracker")
+	ok(Book.tracked("road_clear") and Book.followed() == "road_clear" and not Book.tracked("drowned_bell"), "Track picks it, and only it")
+	var track := get_tree().get_first_node_in_group("quest_track")
+	ok(track != null and String(track.get("current_id")) == "road_clear", "the tracker follows the pick at once")
 	var on_hud := false
 	for o: Dictionary in story.call("objectives"):
 		if String(o.id) == "quest:road_clear":
 			on_hud = true
-	ok(not on_hud, "and off the HUD")
+	ok(on_hud, "and it heads the HUD")
+	qlog.call("toggle_track")
+	ok(not Book.tracked("road_clear") and Book.tracked(Book.MAIN), "Untrack hands the way back to the story")
+	on_hud = false
+	for o2: Dictionary in story.call("objectives"):
+		if String(o2.id) == "quest:road_clear":
+			on_hud = true
+	ok(not on_hud, "and it is off the HUD")
 	qlog.call("toggle_track")
 	ok(Book.tracked("road_clear"), "back on")
 	qlog.call("abandon")

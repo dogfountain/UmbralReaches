@@ -5,10 +5,13 @@ extends Node
 ##   - On for a save whose arrival played with it (story flag "guide", set by a new game's opening) until the first act
 ##     is done (flag "guide_done": both keepers down and Brannoc spoken to), and while Settings > Interface > Guidance
 ##     is on (HudPrefs.guide). A returning save never has the flag and plays as before.
-##   - step(): the story's first open spine objective (quest_db.gd OBJECTIVES; "first_fire" is the guide's own) and a
-##     place for it: the keep (the Keg's door while outside it), the nearest cold valley brazier, the nearer seal, a
-##     keeper's arena, Brannoc. The HUD draws it: ui/waypoint.gd (a painted mark over it with its distance),
-##     ui/compass.gd (its mark on the strip), core/story/objective_line.gd (the tracker stays up while the guide is on).
+##   - story_step(): the story's first open spine objective (quest_db.gd OBJECTIVES; "first_fire" is the guide's own) and
+##     a place for it: the keep (the Keg's door while outside it), the nearest cold valley brazier, the nearer seal, a
+##     keeper's arena, Brannoc, the summit ward and dais. Always resolved, guide on or off: it is the place the tracked
+##     "story" is (core/story/quest_track.gd), which the HUD draws: ui/waypoint.gd (a painted mark over it with its
+##     distance), ui/compass.gd (its mark on the strip), core/story/objective_line.gd, and the trail's marks on the way
+##     (core/story/quest_trail.gd). The guide no longer draws any of it; it teaches. step() is the guided first act's
+##     step: {} when the guide is off.
 ##   - A step done, the next is announced in the task banner's lane: "Next" + the objective + where (guide_lines.gd).
 ##   - The first controls are taught when they first matter, with painted key caps (ui/key_cap.gd tokens, through
 ##     Hints lessons): the world map when the step is far, the ledger at the first task, the journal at the first
@@ -48,7 +51,6 @@ var _barked := {}                                  ## "<villager id>:<step id>" 
 var _tip_t := 0.0
 var _was_on := false
 var said: Array[String] = []                       ## the calls made (tests)
-var _pin: Node3D                                   ## the step on the minimap and the world map (group "map_marker")
 
 
 func _ready() -> void:
@@ -77,6 +79,11 @@ func active() -> bool:
 ## What to do now: {id, text, where, target (Vector3; INF when it has no place yet), kind, art, label}; {} when off.
 func step() -> Dictionary:
 	return _step if active() else {}
+
+
+## The story's step with its place, guide on or off ({} before the first poll and once the story is told).
+func story_step() -> Dictionary:
+	return _step
 
 
 ## Where the waypoint and the compass point (Vector3.INF: nowhere).
@@ -113,10 +120,6 @@ func _process(delta: float) -> void:
 		_was_on = on
 		if not on and bool((Travel.story.get("flags", {}) as Dictionary).get("guide_done", false)):
 			_tip("objective", "{show_objective} Hold to see your objective. From here the way is yours to find.")
-	if not on:
-		_step = {}
-		_pin_to({})
-		return
 	_scan -= delta
 	if _scan <= 0.0:
 		_scan = 2.0
@@ -125,6 +128,8 @@ func _process(delta: float) -> void:
 	if _poll <= 0.0:
 		_poll = 0.25
 		_update()
+	if not on:
+		return                                     # the step is kept for the tracker; the teaching is over
 	_bark_t -= delta
 	if _bark_t <= 0.0:
 		_bark_t = 0.6
@@ -148,40 +153,17 @@ func _update() -> void:
 		if not bool(o.main) or not QuestDB.test(String(o.when), ws) or QuestDB.test(String(o.done), ws):
 			continue
 		var id := String(o.id)
-		if id in PAST:
-			_finish()
-			return
+		if id in PAST and active():
+			_finish()                              # the first act is told: the lessons stop, the step stays the story's
 		next = {"id": id, "text": String(o.text), "where": String(Lines.WHERE.get(id, ""))}
 		next.merge(_place(id))
 		break
 	var nid := String(next.get("id", ""))
 	if nid != _last_id:
-		if _last_id != "" and nid != "":
+		if _last_id != "" and nid != "" and active():
 			_announce(next)
 		_last_id = nid
 	_step = next
-	_pin_to(next)
-
-
-## The step's place as a map marker, the way a task's target is one (quest_markers.gd): the minimap and the world map
-## draw it with the step's words.
-func _pin_to(s: Dictionary) -> void:
-	var t: Vector3 = s.get("target", Vector3.INF)
-	if t == Vector3.INF:
-		if _pin != null and _pin.is_in_group("map_marker"):
-			_pin.remove_from_group("map_marker")
-		return
-	if _pin == null:
-		_pin = Node3D.new()
-		_pin.name = "StepPin"
-		add_child(_pin)
-		_pin.set_meta("map_kind", "quest_target")
-		_pin.set_meta("map_color", Color(1.0, 0.74, 0.32))
-		_pin.set_meta("quest", "guide")
-	if not _pin.is_in_group("map_marker"):
-		_pin.add_to_group("map_marker")
-	_pin.global_position = t - Vector3.UP * float(LIFT.get(String(s.get("kind", "")), 2.4))
-	_pin.set_meta("map_label", String(s.get("text", "")))
 
 
 ## A step's place: {target, kind, art, label}.
@@ -191,10 +173,10 @@ func _place(id: String) -> Dictionary:
 	var kind := "door"
 	var label := ""
 	match id:
-		"arrive", "peal":
-			var who: Node3D = _nodes.get("keep" if id == "arrive" else "brannoc")
+		"arrive", "peal", "return":
+			var who: Node3D = _nodes.get("brannoc" if id == "peal" else "keep")
 			kind = "person"
-			label = "The keep" if id == "arrive" else "Brannoc"
+			label = "Brannoc" if id == "peal" else "The keep"
 			if who != null and is_instance_valid(who):
 				at = who.global_position
 			if p != null and not _in_keg(p.global_position):
@@ -224,6 +206,16 @@ func _place(id: String) -> Dictionary:
 					best2 = d2
 					at = s
 					label = "The thorn seal" if sid == "henge" else "The gallery seal"
+		"summit_seal":
+			kind = "seal"
+			var ss: Node3D = _nodes.get("seal:summit")
+			at = ss.global_position if ss != null and is_instance_valid(ss) else RealmLayout.SUMMIT_WARD
+			label = "The summit ward"
+		"warden":
+			kind = "boss"
+			var wa: Node3D = _nodes.get("arena:ascended_warden")
+			at = wa.global_position if wa != null and is_instance_valid(wa) else RealmLayout.SUMMIT_DAIS
+			label = "The Ascended Warden"
 		"thornwarden", "bone_abbot":
 			kind = "boss"
 			var a: Node3D = _nodes.get("arena:" + id)

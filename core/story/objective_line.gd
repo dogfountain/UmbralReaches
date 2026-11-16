@@ -5,8 +5,8 @@ extends VBoxContainer
 ## "Return to ..." in lantern gold when only the turn-in is left (r33, after an MMO's quest
 ## tracker); the kindling count last. A changed line fades in with a lantern flash; a count that
 ## went up pulses. Added by ui/hud.gd (one hook line); polls the director twice a second, so it
-## needs no wiring and shows nothing in a night without a story. [L] opens the ledger, where a task
-## can be taken off the tracker.
+## needs no wiring and shows nothing in a night without a story. [L] opens the ledger, where Track picks
+## the one task followed (core/story/quest_track.gd: its block is the one shown, behind its painted pin).
 
 const LANTERN := Color("#FFB347")
 const QUIET := Color(0.8, 0.82, 0.92, 0.88)
@@ -14,6 +14,7 @@ const TITLE := Color(1.0, 0.78, 0.46, 0.92)
 const UIType := preload("res://ui/type.gd")
 const TextDirector := preload("res://ui/text_director.gd")
 const Guide := preload("res://core/story/guide.gd")
+const QuestTrack := preload("res://core/story/quest_track.gd")
 
 var _font: Font
 var _last := ""
@@ -104,8 +105,22 @@ func show_lines(lines: Array) -> void:
 			box.add_theme_constant_override("separation", 0)
 			add_child(box)
 			_blocks.append(box)
+			# the followed task's name, behind its painted pin (the same mark the waypoint and the compass wear)
+			var head := HBoxContainer.new()
+			head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			head.alignment = BoxContainer.ALIGNMENT_END
+			head.add_theme_constant_override("separation", 8)
 			var t := _label(String(o.get("title", "")), 17, TITLE, _font)
-			box.add_child(t)
+			t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			head.add_child(t)
+			var pin := TextureRect.new()
+			pin.texture = IconArt.art("mark", "followed")
+			pin.custom_minimum_size = Vector2(24, 24)
+			pin.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			pin.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			pin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			head.add_child(pin)
+			box.add_child(head)
 			var ready := bool(o.get("ready", false))
 			var line := String(o.text)
 			var of := int(o.get("of", 0))
@@ -147,13 +162,13 @@ func show_lines(lines: Array) -> void:
 				_flash(row)
 
 
-## The painted mark at the end of a spine line: the guide's step wears the kind of place it points at.
+## The painted mark at the end of a spine line: the followed step wears the kind of place it points at.
 func _mark_of(o: Dictionary) -> String:
 	if not bool(o.main):
 		return "fire" if String(o.get("id", "")) == "kindle" else "quest_target"
-	var g := get_tree().get_first_node_in_group("guide") as Guide
-	var st: Dictionary = g.step() if g != null else {}
-	if String(st.get("id", "")) == String(o.get("id", "")):
+	var tr := get_tree().get_first_node_in_group("quest_track") as QuestTrack
+	var st: Dictionary = tr.current() if tr != null else {}
+	if String(st.get("key", "")) == String(o.get("id", "")):
 		return String(st.get("art", "quest_target"))
 	return "quest_target"
 

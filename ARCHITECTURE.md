@@ -46,7 +46,7 @@ teardown (quit, or the Deeper Night rebuilding in-process)
 | `core/world/realm/lamps/` | The Realm's lamps, placed by `lamp_places.gd` after the settlements are dressed. A kindled lamp (`lamp.gd`) is a light the wanderer lights with the staff gesture (E); it burns for the rest of the night and the save remembers it. A kept light (`lamps_kept.gd`) is a light others keep, already lit: a pilgrim's camp on the Downs, a ferryman's lamp on the Sorrow, a hunter's lantern in the Thornwood, a window lit in a ruin. Neither is gameplay light. `-- --no-lamps` turns them off. |
 | `core/life/wildlife/boss_themes.gd` | r35 composed (synthesised) themes for the three bosses and the ending bell, rendered on a worker thread and cached through `GenCache`. |
 | `core/life/` | Living-world systems, each started as a Realm module: `progression/` (Kindling: ash -> upgrades, `UpgradeDB`), `village/`, `wildlife/` (beasts, birds, weather, soundscape), `secrets/`, `encounters/` (tiers, elites, Gloom tide, its own HUD; `spawn_rules.gd` is the one rule set for where any hostile may stand: safe places and towns, ways, water, slope, lips, rocks; `ambush_sites.gd` picks the road ambushes from the land). |
-| `core/story/` | Story director (`story.gd`, group `story`, added by Tavern), quests (`quest_db`, `quest_book`, `quest_world`), `dialogue_db`, objective line, the new player's guide (`guide.gd`, group `guide`, a child of the director; its words in `guide_lines.gd`). |
+| `core/story/` | Story director (`story.gd`, group `story`, added by Tavern), quests (`quest_db`, `quest_book`, `quest_world`), `dialogue_db`, objective line, the tracked task (`quest_track.gd`, group `quest_track`) and its trail (`quest_trail.gd`, `trail_route.gd`), the new player's guide (`guide.gd`, group `guide`, a child of the director; its words in `guide_lines.gd`). |
 | `core/npc/` | Dwarf NPCs at the Keg (`dwarf_*`, `bartender`, `keg_scenes`, `npc_voice`). |
 | `core/vfx/` | Static FX helpers: `Vfx`, `Sfx` (voice pool), `SpellFx`, `Synth`/`StaffSfx` (procedural audio), hit text. They parent to `current_scene`. Creatures: `EnemyAudio` plays the takes rendered by `tools/gen_enemy_sfx.py` (`enemy_bank.gd` is generated): per voice set idle/alert/windup/attack/hurt/stagger/die, footfalls by body type and ground, hit materials, the wanderer's parry/block/dodge; it picks without repeats, spaces cries per creature and per set, caps the pool and ranks by priority. Buses: enemy voices -> `Voices` (gentle compressor) -> `SFX` (the place's reverb, `Ambience.PLACES`/`ROOMS`) -> `Master` (soft compressor, hard limiter). |
 | `core/util/` | `Groups`, `Layers`, `ProcMesh`, `save_dir.gd` (the `--save-dir` seam). |
@@ -63,13 +63,24 @@ dialogue box is up, and one discovery banner per 90 s. Encounter banners, secret
 (`"{jump} Jump"`) draws its keys as painted caps (`ui/key_cap.gd`, art `ui/icons/key`), and so does
 the world prompt's `[E]`.
 
-**The guide.** A new game's first act is guided (`core/story/guide.gd`, story flag `guide` set by the
-staged opening; off for older saves, after the act, or with Settings > Interface > Guidance off): the
-step is the story's first open spine objective with a place in the world, which `ui/waypoint.gd`
-(a mark over it), `ui/compass.gd` (its mark on the strip) and the map (a `map_marker`) show; the
-objective tracker stays up; each new step is announced in the banner lane; the first controls are
-taught when they first matter; Hearthward's people call out and point the way (`villager_point.gd`)
-and answer "Which way?".
+**The tracked task and its trail** (docs/quest_trail.md). One way of guiding, always in place. `QuestBook.follow(id)`
+(the ledger's Track; story key `follow`, "" = default, `QuestBook.MAIN` = the story's own way, "The Night's Road") picks the one
+task the HUD follows; nothing picked: the guided first act's step while the guide is on, else the newest task, else
+the story. `core/story/quest_track.gd` (group `quest_track`, a child of the story director) resolves it four times a second:
+`current()` = {id, title, text, kind, art, label, key, target, foot}, where the step is (a task's own map target from
+`quest_markers.gd`, a pickup, the person to speak to, a seal, a boss's arena, the region of its foes; the story's step
+from `guide.gd story_step()`). It is the one source `ui/waypoint.gd` (a painted mark over the place, with its distance),
+`ui/compass.gd` (its mark on the strip), `core/story/objective_line.gd` (the tracked task's block behind its painted
+pin, or the story's spine) and the map pin read. `core/story/quest_trail.gd` (group `quest_trail`) lays the marks:
+the route runs along the ways first (`trail_route.gd`: an A* over `RealmLayout.PATHS` and the walkway lanes), joined to
+the player and the place by navigation-mesh legs (asynchronous queries) or straight lines, and by the mesh alone where the
+ways do not help; it is rebuilt only when the step, the place, or the wanderer's position changes by a lot (at most
+every 1.5 s, never per frame). Marks every ~13 m and at turns, the next four within ~46 m, six pooled `Decal`s, seated once,
+faded in as you near them and out once passed; none in a fight, a lock-on, talk, narration, a menu or the opening.
+There is no setting for it. **The guide** (`core/story/guide.gd`, story flag `guide` set by the staged opening; off for older saves,
+after the act, or with Settings > Interface > Guidance off) now only teaches: the next step's banner, the first
+controls on painted key caps, Hearthward's people calling out and pointing the way (`villager_point.gd`) and answering
+"Which way?". Its `story_step()` (the spine objective and its place) is always resolved: it is the place of the story's way.
 
 **The slice.** `core/util/slice.gd` (`Slice.full()`): the full night is the default. `-- --slice`
 (or Engine meta `full_night` set to false) gives the 30-minute slice instead: no horses, Kindled
