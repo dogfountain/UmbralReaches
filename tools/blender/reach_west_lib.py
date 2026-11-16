@@ -15,6 +15,32 @@ import bpy
 import bmesh
 from mathutils import Vector, Matrix
 import r37_west as W
+import masonry_lib as ML
+
+# When set (mason_begin), walls, rings, voussoirs, merlons, steps and rubble are laid as dressed masonry (masonry_lib):
+# a rubble core with facing stones proud of it. Unset, the old block stacks (the fell shrine still uses them).
+MASON = None
+
+
+def mason_begin(seed=1):
+    global MASON
+    MASON = ML.Mason(seed)
+    return MASON
+
+
+def mason_end(name):
+    global MASON
+    objs = MASON.objects(name) if MASON else []
+    MASON = None
+    return objs
+
+
+def dbox(P, key, c, size, yaw=0.0, pitch=0.0, roll=0.0, bevel=0.05, warp=0.0):
+    """A dressed stone block when masonry is on, else the plain box."""
+    if MASON is not None:
+        MASON.block(c, size, yaw=yaw, pitch=pitch, roll=roll, bevel=bevel, warp=warp)
+    else:
+        box(P, key, c, size, yaw=yaw, pitch=pitch, roll=roll)
 
 Parts, box, beam, cyl, fbm, smoothstep, ring_loft = W.Parts, W.box, W.beam, W.cyl, W.fbm, W.smoothstep, W.ring_loft
 finish, make_collision, export, preview, reset = W.finish, W.make_collision, W.export, W.preview, W.reset
@@ -45,9 +71,18 @@ def merged_intervals(fn, v0, v1, step=0.25):
     return out
 
 
-def wall_run(P, Pc, key, a, b, z0, h, thick, solid, rnd, ch=0.5, ext=None, col=True, blk=(0.8, 1.7), gap=0.0):
+def wall_run(P, Pc, key, a, b, z0, h, thick, solid, rnd, ch=0.5, ext=None, col=True, blk=(0.8, 1.7), gap=0.0, ends=(0.0, 0.0),
+             faces=(1, -1), dress_ends=False):
     """A wall from plan point a to b (Vector2/3 xy), laid in courses. solid(u, v) says where stone is.
-    ext(j) -> (e0, e1): metres the course runs past a and b (corner bonding)."""
+    ext(j) -> (e0, e1): metres the course runs past a and b (corner bonding, the block stacks only);
+    ends (e0, e1): with masonry, metres the wall runs past a and b (negative: stops short, into a tower's wall)."""
+    if MASON is not None:
+        F = ML.Flat(a, b, z0)
+        MASON.wall(F, thick * 0.5, h, solid, rnd, u_range=(-ends[0], F.L + ends[1]), ch=ch * 1.22, blk=(blk[0] * 1.25, blk[1] * 1.25),
+                   skip_below=max(0.0, -z0 - 0.4), faces=faces, dress_ends=dress_ends)
+        if col:
+            wall_collision(Pc, Vector((a[0], a[1], 0.0)), F.T, F.L, z0, h, thick, solid)
+        return
     a = Vector((a[0], a[1], 0.0))
     b = Vector((b[0], b[1], 0.0))
     d = b - a
@@ -105,8 +140,16 @@ def wall_collision(Pc, a, d, L, z0, h, thick, solid, cw=1.2):
         u += w
 
 
-def ring_wall(P, Pc, key, c, r, z0, h, thick, solid, rnd, ch=0.5, blk=(0.8, 1.5), col=True, arc=(0.0, math.tau)):
+def ring_wall(P, Pc, key, c, r, z0, h, thick, solid, rnd, ch=0.5, blk=(0.8, 1.5), col=True, arc=(0.0, math.tau), faces=(1, -1)):
     """A round wall about centre c, radius r (to the centre of the thickness). solid(theta, v), theta from +x."""
+    if MASON is not None and abs(arc[1] - arc[0] - math.tau) < 1e-6:
+        F = ML.Ring(c, r, z0)
+        MASON.wall(F, thick * 0.5, h, lambda u, v: solid(u / r, v), rnd, ch=ch * 1.22, blk=(blk[0] * 1.2, blk[1] * 1.2),
+                   skip_below=max(0.0, -z0 - 0.4), faces=faces)
+        if not col:
+            return
+        rnd = random.Random(0)
+        P = Parts()
     ncourse = int(h / ch + 0.999)
     cheights = [ch * rnd.uniform(0.86, 1.18) for _ in range(ncourse + 6)]
     sc = h / sum(cheights[:ncourse])
@@ -175,7 +218,7 @@ def voussoirs(P, key, centre, yaw, w, spring, depth, ring=0.5, n=13, Pc=None):
         lv = spring + math.sin(am) * (r_in + ring * 0.5)
         p = base + (M @ Vector((lu, 0.0, lv)))
         ln = math.pi * (r_in + ring * 0.5) / n * 1.04
-        box(P, key, p, (ln, depth, ring), yaw=yaw, roll=am - math.pi * 0.5)
+        dbox(P, key, p, (ln * 0.97, depth + 0.08, ring), yaw=yaw, roll=am - math.pi * 0.5, bevel=0.06)
         if Pc is not None:
             box(Pc, "stone", p, (ln, depth, ring), yaw=yaw, roll=am - math.pi * 0.5)
 
@@ -192,8 +235,12 @@ def rubble(P, Pc, key, rnd, area, n, smin=0.4, smax=1.5, ground=0.0, rect_excl=N
         if rect_excl and rect_excl(x, y):
             continue
         s = rnd.uniform(smin, smax)
-        box(P, key, (x, y, ground + s * 0.22), (s * rnd.uniform(0.9, 1.7), s * rnd.uniform(0.6, 1.1), s * rnd.uniform(0.45, 0.8)),
-            yaw=rnd.random() * 6.28, pitch=rnd.uniform(-0.3, 0.3), roll=rnd.uniform(-0.3, 0.3))
+        size = (s * rnd.uniform(0.9, 1.7), s * rnd.uniform(0.6, 1.1), s * rnd.uniform(0.45, 0.8))
+        if MASON is not None and rnd.random() < 0.3:
+            MASON.lump((x, y, ground + s * 0.12), (size[0] * 0.5, size[1] * 0.5, size[2] * 0.42), rnd)
+            continue
+        dbox(P, key, (x, y, ground + s * 0.22), size, yaw=rnd.random() * 6.28, pitch=rnd.uniform(-0.3, 0.3), roll=rnd.uniform(-0.3, 0.3),
+             bevel=0.08, warp=0.04 * s)
 
 
 def rock_lump(P, key, c, size, rnd, seg=(7, 5)):
@@ -221,11 +268,11 @@ def stair_flight(P, Pc, key, p0, p1, width, rise, z0, steps, thick=0.5, solid_do
         zt = z0 + rise * (i + 1)
         c = p0 + d * (tread * (i + 0.5))
         if solid_down is None:
-            box(P, key, (c.x, c.y, zt - thick * 0.5), (tread * 1.02, width, thick), yaw=yaw)
+            dbox(P, key, (c.x, c.y, zt - thick * 0.5), (tread * 1.08, width, thick), yaw=yaw, bevel=0.04)
             box(Pc, "stone", (c.x, c.y, zt - thick * 0.5), (tread * 1.02, width, thick), yaw=yaw)
         else:
             hh = zt - solid_down
-            box(P, key, (c.x, c.y, solid_down + hh * 0.5), (tread * 1.02, width, hh), yaw=yaw)
+            dbox(P, key, (c.x, c.y, solid_down + hh * 0.5), (tread * 1.08, width, hh), yaw=yaw, bevel=0.04)
             box(Pc, "stone", (c.x, c.y, solid_down + hh * 0.5), (tread * 1.02, width, hh), yaw=yaw)
 
 
@@ -243,8 +290,12 @@ def crenels(P, Pc, key, a, b, z, rnd, w=1.0, gap=0.9, hgt=1.1, thick=0.7, off=0.
         if broken is None or not broken(u):
             hh = hgt * rnd.uniform(0.85, 1.05)
             c = a + d * (u + w * 0.5) + n * off
-            box(P, key, (c.x, c.y, z + hh * 0.5), (w, thick, hh), yaw=yaw)
-            box(P, key, (c.x, c.y, z + hh + 0.04), (w + 0.1, thick + 0.1, 0.1), yaw=yaw)
+            if MASON is not None:
+                dbox(P, key, (c.x, c.y, z + hh * 0.5), (w, thick, hh), yaw=yaw + rnd.uniform(-0.03, 0.03), bevel=0.07)
+                dbox(P, key, (c.x, c.y, z + hh + 0.07), (w + 0.12, thick + 0.12, 0.14), yaw=yaw, bevel=0.04)
+            else:
+                box(P, key, (c.x, c.y, z + hh * 0.5), (w, thick, hh), yaw=yaw)
+                box(P, key, (c.x, c.y, z + hh + 0.04), (w + 0.1, thick + 0.1, 0.1), yaw=yaw)
             box(Pc, "stone", (c.x, c.y, z + hh * 0.5), (w, thick, hh), yaw=yaw)
         u += w + gap
 

@@ -109,6 +109,7 @@ const _STATIC_CACHES := {
 	"res://core/world/realm/vistas/vista_places.gd": ["_mats"],
 	"res://core/world/realm/realm_pois_east_reach.gd": ["_mats"],
 	"res://core/world/realm/realm_pois_west_reach.gd": ["_mats"],
+	"res://core/world/realm/realm_pois_deep_south.gd": ["_sw_mats"],
 }
 
 

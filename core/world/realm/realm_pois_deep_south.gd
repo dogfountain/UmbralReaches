@@ -18,6 +18,11 @@ const Kit := preload("res://core/world/realm/deep_south_kit.gd")
 const P := preload("res://core/world/realm/realm_pois.gd")
 
 const ARCHES := "reach_s_arches.glb"
+const SOUTHWOOD := "vista_southwood.glb"
+const BURNERS_C := Vector2(169.0, 330.0)                 ## the charcoal burners' ruin (its slot)
+const HOLLOW_C := Vector2(226.0, 362.0)                  ## the witch's hollow (its slot)
+const Kit37 := preload("res://core/world/realm/west_marches_kit.gd")
+const SMOKE := preload("res://core/world/realm/vistas/beacon_smoke.gdshader")
 const CASTELLUM := "reach_s_castellum.glb"
 
 const LINE_Z := RealmReaches.ARCH_Z
@@ -70,6 +75,13 @@ static func _bx(c: Vector2, half: Vector2) -> Rect2:
 # --- reserve (before the stamp and the flora) ---------------------------------------------------------------
 
 static func reserve(root: Node) -> void:
+	for c: Vector2 in [BURNERS_C, HOLLOW_C]:
+		Flora.tree_clear.append([c, 15.0])
+	var sp0 := (root as Node3D).get_world_3d().direct_space_state
+	var bg := RealmLayout.ground(sp0, BURNERS_C.x, BURNERS_C.y)
+	WorldLanes.register_site("poi_burners_ruin", Rect2(BURNERS_C - Vector2(11.0, 11.0), Vector2(22.0, 22.0)), bg, bg)
+	var hg := RealmLayout.ground(sp0, HOLLOW_C.x, HOLLOW_C.y)
+	WorldLanes.register_terrace("poi_witchs_hollow", HOLLOW_C, 9.0, hg)
 	spots.clear()
 	pier_ground.clear()
 	if _skip():
@@ -108,6 +120,9 @@ static func build(holder: Node3D) -> void:
 	_aqueduct(host, space)
 	_castellum(host, space)
 	built.append("arches_line")
+	_southwood(holder, space)
+	built.append("burners_ruin")
+	built.append("witchs_hollow")
 	print("REALM_POI deep south built %s" % [built])
 
 
@@ -219,3 +234,78 @@ static func _castellum(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	P._perch(host, Vector3(CAST_C.x, deck_y + 4.4, CAST_C.y - 3.0), Vector3(0.0, 0.0, -1.0), 26.0)
 	_chest(host, "arches_cistern", Vector3(CAST_C.x - 1.8, deck_y + 0.02, CAST_C.y + 1.6), 0.6)
 	spots["castellum_floor"] = base_y
+
+
+static var _sw_mats := {}
+
+
+static func _sw_mat(set_name: String) -> Material:
+	if _sw_mats.has(set_name):
+		return _sw_mats[set_name]
+	var m: StandardMaterial3D
+	if set_name == "wax":
+		m = StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.vertex_color_use_as_albedo = true
+		m.albedo_color = Color(0.8, 0.75, 0.7)            # a lit window: kept under the glow threshold
+	else:
+		m = Kit37.mat(set_name).duplicate() as StandardMaterial3D
+		if set_name == "daub":
+			m.albedo_texture = null                        # earth and turf: the vertex tone
+		m.normal_scale = 0.5
+	_sw_mats[set_name] = m
+	return m
+
+
+static func _sw_place(host: Node3D, piece: String, xf: Transform3D) -> Node3D:
+	var root := Kit37.place(host, SOUTHWOOD, xf, {"pick": piece})
+	if root == null:
+		return null
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		var nm := String(mi.name)
+		if nm.contains("__"):
+			var set_name := nm.get_slice("__", 1).get_slice(".", 0)
+			mi.material_override = _sw_mat(set_name)
+			if set_name == "wax":
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return root
+
+
+## The Southwood's places (tools/blender/vista_southwood.py): the charcoal burners' ruin, three clamps still smoking, the
+## burned hut, the cart; the witch's hollow, a hut built into the root plate of a fallen giant, its window lit.
+static func _southwood(holder: Node3D, space: PhysicsDirectSpaceState3D) -> void:
+	var b := _host(holder, "burners_ruin", BURNERS_C, "southwood", "The Burners' Ruin", "their stacks still smoke on nights without wind", 16.0, space)
+	b.set_meta("reach", true)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 6161
+	var spots := [[Vector2(-5.0, -3.0), "Clamp"], [Vector2(2.0, -6.0), "Clamp"], [Vector2(5.5, 1.5), "Clamp"], [Vector2(-4.0, 6.0), "Hut"], [Vector2(4.5, 7.0), "Cart"]]
+	for sp: Array in spots:
+		var q: Vector2 = BURNERS_C + (sp[0] as Vector2)
+		var y := RealmLayout.ground(space, q.x, q.y)
+		var piece: String = sp[1]
+		_sw_place(b, piece, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(q.x, y - (0.15 if piece == "Clamp" else 0.05), q.y)))
+		if piece == "Clamp":
+			var mi := MeshInstance3D.new()
+			mi.name = "ClampSmoke"
+			var quad := QuadMesh.new()
+			quad.size = Vector2(1.4, 12.0)
+			quad.center_offset = Vector3(0.0, 6.0, 0.0)
+			var sm := ShaderMaterial.new()
+			sm.shader = SMOKE
+			sm.set_shader_parameter("energy", 0.35)
+			sm.set_shader_parameter("wind", Vector2(0.4, 0.3))
+			quad.material = sm
+			mi.mesh = quad
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mi.set_instance_shader_parameter("seed", rng.randf() * 10.0)
+			mi.visibility_range_end = 180.0
+			mi.add_to_group(Groups.CULL_SKIP)
+			b.add_child(mi)
+			mi.global_position = Vector3(q.x, y + 1.6, q.y)
+	var h := _host(holder, "witchs_hollow", HOLLOW_C, "southwood", "The Witch's Hollow", "someone lives in the roots of the fallen", 14.0, space)
+	h.set_meta("reach", true)
+	# the hut faces the way in (from arches_way, to the north-west), the trunk runs away south-east into the wood
+	var to := Vector2(200.0, 300.0) - HOLLOW_C
+	var yaw := atan2(to.x, to.y) + PI * 0.5
+	_sw_place(h, "Hollow", Transform3D(Basis(Vector3.UP, yaw), Vector3(HOLLOW_C.x, RealmLayout.ground(space, HOLLOW_C.x, HOLLOW_C.y) - 0.1, HOLLOW_C.y)))

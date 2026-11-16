@@ -19,7 +19,8 @@ static func release() -> void:
 	_scenes.clear()
 
 
-## The tiling PBR material of a set ("stone", "ashlar", "timber", "iron", "wax", "cloth", "thatch", "daub", "slate").
+## The tiling PBR material of a set ("stone", "ashlar", "hewn", "timber", "iron", "wax", "cloth", "thatch", "daub", "slate").
+## "hewn" is the dressed grain of modelled masonry (each stone geometry): a gentler normal, as the beacons use it.
 static func mat(set_name: String) -> StandardMaterial3D:
 	if _mats.has(set_name):
 		return _mats[set_name]
@@ -29,6 +30,8 @@ static func mat(set_name: String) -> StandardMaterial3D:
 	m.vertex_color_use_as_albedo = true
 	m.normal_enabled = true
 	m.normal_texture = load(base + "normal.png")
+	if set_name == "hewn":
+		m.normal_scale = 0.45
 	var orm: Texture2D = load(base + "orm.png")
 	m.ao_enabled = true
 	m.ao_texture = orm
@@ -123,7 +126,7 @@ static func place(parent: Node3D, file: String, xf: Transform3D, opts := {}) -> 
 		var parts := nm.split("__")
 		if parts.size() >= 2:
 			var set_name := parts[parts.size() - 1].get_slice(".", 0).get_slice("_", 0)
-			if set_name in ["stone", "ashlar", "timber", "iron", "wax", "cloth", "thatch", "daub", "slate"]:
+			if set_name in ["stone", "ashlar", "hewn", "timber", "iron", "wax", "cloth", "thatch", "daub", "slate"]:
 				mi.material_override = mat(set_name)
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bool(opts.get("shadow", true)) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				meshes.append(mi)
