@@ -74,6 +74,7 @@ static func build(holder: Node3D) -> void:
 	host.name = "Poi_bellfall"
 	host.set_meta("site", "poi_bellfall")
 	host.add_to_group("world_poi")
+	host.set_meta("reach", true)
 	host.set_meta("poi", "bellfall")
 	host.set_meta("title", "The Eighth Bell")
 	host.set_meta("line", "cast in the sky, and the sky let it fall")
@@ -190,6 +191,7 @@ static func _nave(holder: Node3D, space: PhysicsDirectSpaceState3D) -> bool:
 	host.name = "Poi_nave"
 	host.set_meta("site", "poi_nave")
 	host.add_to_group("world_poi")
+	host.set_meta("reach", true)
 	host.set_meta("poi", "nave")
 	host.set_meta("title", "The Drowned Nave")
 	host.set_meta("line", "the water came in before the floor did")
@@ -266,6 +268,7 @@ static func _cairn_tower(holder: Node3D, space: PhysicsDirectSpaceState3D) -> bo
 	host.name = "Poi_cairn_tower"
 	host.set_meta("site", "poi_cairn_tower")
 	host.add_to_group("world_poi")
+	host.set_meta("reach", true)
 	host.set_meta("poi", "cairn_tower")
 	host.set_meta("title", "The Cairn Tower")
 	host.set_meta("line", "every stone a pilgrim who turned for home")

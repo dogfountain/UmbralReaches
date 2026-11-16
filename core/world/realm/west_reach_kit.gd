@@ -29,6 +29,7 @@ static func host(holder: Node3D, space: PhysicsDirectSpaceState3D, id: String, d
 	h.set_meta("site", "poi_" + id)
 	holder.add_child(h)
 	h.add_to_group("world_poi")
+	h.set_meta("reach", true)
 	h.set_meta("poi", id)
 	h.set_meta("title", d.title)
 	h.set_meta("line", d.line)

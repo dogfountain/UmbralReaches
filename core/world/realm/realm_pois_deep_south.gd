@@ -117,6 +117,7 @@ static func _host(holder: Node3D, id: String, at: Vector2, region: String, title
 	host.set_meta("site", "poi_" + id)
 	holder.add_child(host)
 	host.add_to_group("world_poi")
+	host.set_meta("reach", true)
 	host.set_meta("poi", id)
 	host.set_meta("title", title)
 	host.set_meta("line", line)
