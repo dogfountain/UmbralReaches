@@ -56,6 +56,39 @@ bpy.ops.import_scene.gltf(filepath=os.path.join(DIR, "grunt_%s%s.glb" % (KIND, "
 meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH' and not o.name.startswith(('Icosphere', 'Sphere'))]
 
 
+POSE = arg("--pose", "")
+# characterful stances for review, in Blender world axes (x right, +y the way it faces, z up): degrees about x, y, z.
+# (the rig is flat sockets, so each joint rotates the part it carries about its own head)
+POSES = {
+    "wretch": {"pelvis": (0, 6, 0), "chest": (-20, -4, 6), "head": (-6, 0, -10), "shoulder_l": (-14, 0, 10), "elbow_l": (-12, 0, 0), "shoulder_r": (-30, 0, -4),
+               "elbow_r": (-55, 0, 0), "hand_r": (-10, 0, 0), "hip_l": (-14, 0, 0), "knee_l": (14, 0, 0), "hip_r": (6, 0, 0), "knee_r": (4, 0, 0), "foot_l": (6, 0, 0)},
+}
+arm_ob = next((o for o in bpy.context.scene.objects if o.type == 'ARMATURE'), None)
+if arm_ob is not None:
+    # held parts (staff_hand_r, bell_hand_r, shield_hand_l ...) sit on their socket's joint
+    for o in list(bpy.context.scene.objects):
+        if o.type == 'MESH' and o.name != "body" and "_hand_" in o.name or (o.type == 'MESH' and o.name.startswith(("lamp_", "shield_"))):
+            sk = o.name.split("_", 1)[1].split(".")[0]
+            if sk in arm_ob.data.bones:
+                o.location = arm_ob.matrix_world @ arm_ob.data.bones[sk].head_local
+                o.parent = arm_ob
+                o.parent_type = 'BONE'
+                o.parent_bone = sk
+                o.matrix_parent_inverse = (arm_ob.matrix_world @ arm_ob.data.bones[sk].matrix_local).inverted()
+    if POSE:
+        from mathutils import Euler
+        bpy.context.view_layer.objects.active = arm_ob
+        for bn, (rx, ry, rz) in POSES.get(POSE, {}).items():
+            pb = arm_ob.pose.bones.get(bn)
+            if pb is None:
+                continue
+            Rw = Euler((math.radians(rx), math.radians(ry), math.radians(rz)), 'XYZ').to_matrix()
+            M = pb.bone.matrix_local.to_3x3()
+            pb.rotation_mode = 'QUATERNION'
+            pb.rotation_quaternion = (M.inverted() @ Rw @ M).to_quaternion()
+        bpy.context.view_layer.update()
+
+
 def img(key, cs):
     p = os.path.join(DIR, "grunt_%s_%s.png" % (KIND, key))
     im = bpy.data.images.load(p)
@@ -191,6 +224,8 @@ def rig_for(az, mode):
 head_z = float(arg("--head", "0")) or (hi.z - (hi.z - lo.z) * 0.12)
 quad = (hi.z - lo.z) < 1.4
 views = [("front", 90, 0.3, 1.45, 0.5, 50), ("three", 50, 0.34, 1.45, 0.5, 50), ("side", 0, 0.3, 1.45, 0.5, 50), ("head", 62, 0.1, 0.8, None, 70)]
+if "--close" in args:     # bigger figure, plus the torso close up
+    views = [("three", 60, 0.2, 0.95, 0.5, 50), ("back", 235, 0.2, 0.95, 0.5, 50), ("torso", 78, 0.08, 0.4, 0.6, 55), ("head", 78, 0.05, 0.8, None, 70)]
 if BODYONLY:
     quad_ = (hi.z - lo.z) < 1.4
     views = [("anatomy", 62, 0.2, 1.1 if quad_ else 0.62, 0.5 if quad_ else 0.74, 50)]
@@ -205,7 +240,7 @@ for mode in ("neutral", "night"):
             D = (0.95 if quad else size * dist * 0.55)
             sc.cycles.samples = SAMPLES
         else:
-            tgt.location = Vector((ctr.x, ctr.y, lo.z + (hi.z - lo.z) * tz)) if BODYONLY else ctr
+            tgt.location = Vector((ctr.x, ctr.y, lo.z + (hi.z - lo.z) * tz)) if (BODYONLY or tz != 0.5) else ctr
             D = size * dist * 1.12
         a = math.radians(az)
         cam.location = Vector((tgt.location.x + math.cos(a) * D, tgt.location.y + math.sin(a) * D, tgt.location.z + D * el))

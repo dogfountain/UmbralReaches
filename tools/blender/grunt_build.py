@@ -465,13 +465,59 @@ def body(g, col, mat="leather", girth=1.0, belly=0.0, limb=1.0, head=1.0, neck=1
             B.hand(g, sx, col, "hand_" + side(sx), closed=0.5)
 
 
-def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0, hunch=0.0):
+def starve(bd, amp=1.0, ribs=1.0):
+    """Sculpt hunger into a body along its anatomy (displacement along the skin normal, rig space, face -z): ribs
+    as ridges following the cage's slope with the sternum left flat, collarbones, shoulder points, shoulder blades and
+    spine knuckles behind, hip crests, knee and elbow knobs, wrist and ankle knobs, a hollow under the ribs."""
+    P = bd.P
+    N = bd.N
+    L = np.array(bd.L)
+    x, y, z = P[:, 0], P[:, 1], P[:, 2]
+    d = np.zeros(len(P))
+    ax = np.abs(x)
+    chest = np.isin(L, ["chest", "pelvis"])
+    ang = np.arctan2(x, -z)                                   # 0 = straight ahead, +-pi/2 = the flanks, pi = the back
+    cage = np.exp(-((y - 1.27) / 0.12) ** 4) * chest            # the ribcage's height
+    around = np.clip((2.35 - np.abs(ang)) / 0.5, 0.0, 1.0)      # front and flanks, not the spine
+    flat = np.clip((ax - 0.018) / 0.03, 0.0, 1.0)               # the sternum stays flat
+    tilt = 0.045 * np.clip(np.abs(ang) / 1.6, 0.0, 1.0) * -1.0 + 0.03 * np.cos(np.abs(ang))  # ribs run down and forward
+    ph = (y + tilt - 1.40) / 0.037
+    d += ribs * 0.0036 * np.cos(ph * 2 * math.pi) * cage * around * flat
+    d -= ribs * 0.006 * np.exp(-((y - 1.06) / 0.07) ** 2) * chest * np.clip(1.0 - ax / 0.2, 0.0, 1.0) * (z < 0)   # hollow belly under the cage
+    for sx in (-1, 1):
+        # collarbones: a ridge from the notch out to the shoulder point, a groove below it
+        t = np.clip((ax - 0.02) / 0.17, 0.0, 1.0)
+        yc = 1.405 + 0.012 * t
+        on = (x * sx > 0) & (z < 0.02) & (t > 0) & (t < 1)
+        d += 0.0055 * np.exp(-((y - yc) / 0.011) ** 2) * on * chest
+        d -= 0.004 * np.exp(-((y - (yc - 0.03)) / 0.014) ** 2) * on * chest
+        # shoulder blade and its spine, behind
+        d += 0.006 * np.exp(-(((x - sx * 0.1) / 0.05) ** 2 + ((y - 1.27) / 0.075) ** 2)) * (z > 0) * chest
+        d += 0.004 * np.exp(-((y - 1.37) / 0.012) ** 2) * (np.abs(x - sx * 0.09) < 0.07) * (z > 0.0) * chest         # the scapular spine
+        # hip crest and the knobs of the pelvis
+        d += 0.009 * np.exp(-(((x - sx * 0.155) / 0.03) ** 2 + ((y - 0.99) / 0.025) ** 2)) * (z < 0.03) * (L == "pelvis")
+    # the spine: knuckles in a row, a groove on each side
+    sp = np.exp(-(x / 0.012) ** 2) * (z > 0) * chest
+    d += 0.0045 * sp * np.clip(np.cos((y - 1.0) / 0.043 * 2 * math.pi), 0.0, 1.0) * (y > 0.98) * (y < 1.42)
+    d -= 0.004 * np.exp(-((ax - 0.04) / 0.02) ** 2) * (z > 0) * chest * (y > 1.0) * (y < 1.4)
+    # joints stand proud of thin limbs
+    for nm, y0, r, h in (("knee", 0.35, 0.05, 0.010), ("elbow", 1.09, 0.045, 0.008), ("hand", 0.80, 0.035, 0.007), ("foot", 0.09, 0.04, 0.007)):
+        m = np.array([l.startswith(nm + "_") or (nm == "knee" and l.startswith("hip_") and y0 - 0.05 < yy) for l, yy in zip(L, y)])
+        d += h * np.exp(-((y - y0) / r) ** 2) * m
+    d *= amp
+    bd.P = P + N * d[:, None]
+
+
+def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0, hunch=0.0, targets=None, starved=0.0):
     """A MakeHuman body (mh_body.py), shaped by `macro` (gender, age, muscle, weight, proportions, height: 0..1),
     retargeted to the rig, with coals in the eyes. skull 0..1: the face wasted toward the bone beneath (cheeks and
     temples hollowed, lips drawn back off the teeth, the eyes sunk), with the teeth bared."""
     import mh_body
-    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y, hunch=hunch)
+    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y, hunch=hunch, targets=targets)
     bd = Body(P, F, FUV, L)
+    if starved > 0.0:
+        starve(bd, starved)
+        P = bd.P
     E = [e for e in eyes if e is not None]
     if skull > 0.0 and len(E) == 2:
         ey = (E[0][1] + E[1][1]) * 0.5
@@ -997,12 +1043,22 @@ def sack(g, at, h, w, d, col, cord, lab="chest", seed=1.0, mat="linen", neck=0.0
     g.plate(lambda u, v: pc + V((u - 0.5) * 0.12 * w, (v - 0.5) * 0.12, (math.sin(u * math.pi) * math.sin(v * math.pi)) * 0.012), 5, 5, tuple(c * 0.7 for c in col), "linen", lab)
 
 
+WRETCH_T = {
+    "stomach/stomach-pregnant-decr": 1.0, "cheek/{s}-cheek-volume-decr": 1.0, "cheek/{s}-cheek-bones-incr": 0.8, "eyes/{s}-eye-bag-incr": 1.0,
+    "eyes/{s}-eye-push1-in": 0.6, "torso/torso-muscle-pectoral-decr": 1.0, "torso/torso-muscle-dorsi-decr": 1.0,
+    "arms/{s}-upperarm-fat-decr": 1.0, "arms/{s}-lowerarm-fat-decr": 1.0, "arms/{s}-upperarm-muscle-decr": 0.7,
+    "legs/{s}-upperleg-fat-decr": 1.0, "legs/{s}-lowerleg-fat-decr": 1.0, "neck/neck-scale-horiz-decr": 0.8, "head/head-fat-decr": 1.0,
+}
+
+
 def wretch():
     """A starved scavenger bent under what it carries: bare grey skin over ribs, a loin of rags and wrappings, a hairless
     skull with coals sunk in it, a stuffed sack hung from straps that cut into the shoulders, a gaff in its fist."""
     g = Geo()
-    SKIN, RAG, SACK, BELT = (0.42, 0.33, 0.29), (0.17, 0.13, 0.1), (0.5, 0.43, 0.3), (0.1, 0.075, 0.06)
-    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=8300, hunch=1.0)
+    SKIN, RAG, SACK, BELT = (0.4, 0.34, 0.31), (0.17, 0.13, 0.1), (0.5, 0.43, 0.3), (0.1, 0.075, 0.06)
+    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=8300, hunch=1.0, targets=WRETCH_T, eye_r=0.015)
+    if os.environ.get('BODYONLY'):
+        return g.to_object('body'), []
     wraps(g, b, ("knee_",), 0.07, 0.3, RAG)
     wraps(g, b, ("elbow_", "hand_"), 0.8, 0.92, RAG, seed=2)
     g.robe([(0.98, 0.16, 0.12, 0.0), (0.9, 0.17, 0.13, 0.0), (0.7, 0.2, 0.16, 0.0), (0.56, 0.21, 0.17, 0.0)], RAG, "wool", B.waist_split(0.9), n=48, pleats=8, pleat_amp=0.1, tatter=0.14)
@@ -1018,11 +1074,24 @@ def wretch():
     g.tube([S + V(0.06, 0.02, -0.02), S + V(0.13, 0.42, 0.02)], 0.013, (0.3, 0.22, 0.14), "wood", "chest", n=6)
     g.lathe([(0.0, 0.0), (0.075, 0.0), (0.09, 0.07), (0.085, 0.13), (0.075, 0.13), (0.07, 0.09), (0.0, 0.01)], S + V(0.2, -0.32, 0.17), (0.2, 0.18, 0.17), "iron", "chest", n=14)
     for sx in (-1, 1):
-        strap(g, [V(sx * 0.11, 1.5, -0.1), V(sx * 0.13, 1.4, -0.13), V(sx * 0.12, 1.16, -0.12), V(sx * 0.14, 1.05, 0.0), V(sx * 0.13, 1.14, 0.17)], BELT)
-    rags(g, b, RAG, (0.6, 0.55, 0.44), BELT, v1=int(os.environ.get('WV1', '112')))
+        strap(g, [V(sx * 0.11, 1.5, -0.1), V(sx * 0.13, 1.4, -0.13), V(sx * 0.12, 1.16, -0.12), V(sx * 0.14, 1.05, 0.0), V(sx * 0.13, 1.14, 0.17)], BELT, w=0.021)
+    rags(g, b, RAG, (0.6, 0.55, 0.44), BELT, vest=None, v1=int(os.environ.get('WV1', '98')))
     gf = Geo()
-    gf.tube([V(0, -0.5, -0.03), V(0, 0.9, -0.03)], 0.016, (0.28, 0.2, 0.13), "wood", "hand_r", n=8)
-    gf.tube([V(0, 0.9, -0.03), V(0, 1.0, -0.06), V(0, 1.02, -0.14), V(0, 0.96, -0.2), V(0, 0.9, -0.19)], [0.014, 0.012, 0.01, 0.008, 0.002], (0.35, 0.33, 0.32), "iron", "hand_r", n=8)
+    WOOD, IRON, WRAP = (0.28, 0.2, 0.13), (0.32, 0.3, 0.29), (0.2, 0.16, 0.12)
+    # a gnarled staff: a lean S through its length, swelling at the knots, thin at the foot, an iron-shod tip
+    ys = np.linspace(-0.62, 0.92, 15)
+    path = [V(0.012 * math.sin(y * 4.2), y, -0.03 + 0.01 * math.sin(y * 3.1 + 1.0)) for y in ys]
+    rad = [0.011 + 0.0045 * (1.0 + math.sin(y * 9.0 + 2.0)) * 0.5 + 0.004 * max(0.0, math.sin(y * 3.7)) for y in ys]
+    rad[0], rad[1] = 0.008, 0.0095
+    gf.tube(path, rad, WOOD, "wood", "hand_r", n=8)
+    gf.lathe([(0.0, -0.69), (0.012, -0.66), (0.0145, -0.60), (0.0135, -0.57)], V(path[0][0], 0.0, path[0][2]), IRON, "iron", "hand_r", n=8)
+    for y in (0.0, 0.07, 0.14):                                          # the grip: cord wound three turns
+        gf.lathe([(0.0145, y), (0.0165, y + 0.012), (0.0145, y + 0.024)], V(0.012 * math.sin(y * 4.2), 0.0, -0.03), WRAP, "leather", "hand_r", n=8)
+    # the gaff: a forged hook, flat in section, tapering to a barbed point, lashed to the head
+    hk = [V(0.0, 0.88, -0.03), V(0.0, 0.97, -0.034), V(0.0, 1.04, -0.065), V(0.0, 1.05, -0.115), V(0.0, 1.0, -0.15), V(0.0, 0.955, -0.14)]
+    gf.tube(hk, [0.014, 0.0125, 0.0105, 0.0085, 0.0055, 0.0015], IRON, "iron", "hand_r", n=8, flat=0.55)
+    gf.tube([V(0.0, 0.93, -0.034), V(0.0, 0.915, -0.036), V(0.0, 0.90, -0.034)], 0.0185, WRAP, "leather", "hand_r", n=8)
+    gf.tube([V(0.0, 0.89, -0.03), V(-0.025, 0.84, -0.02), V(-0.04, 0.74, -0.01)], 0.0035, WRAP, "leather", "hand_r", n=4)       # frayed tie-ends
     return g.to_object("body"), [gf.to_object("staff_hand_r")]
 
 
@@ -1780,6 +1849,8 @@ def thornwarden():
     return g.to_object("body"), [], S
 
 
+import anat_hunger
+HOOKS = {} if os.environ.get("NOHOOK") else {"wretch": lambda P, N, skin: anat_hunger.field(P, N, skin) * (0.0 if os.environ.get("HOOKZERO") else 1.0)}
 KINDS = {"wretch": wretch, "husk": husk, "chanter": chanter, "tollman": tollman, "pilgrim": pilgrim, "gaunt": gaunt, "quiller": quiller,
          "ossuant": ossuant, "bulwark": bulwark, "spitter": spitter, "cinder_caster": cinder_caster,
          "crawler": crawler, "mite": mite, "burrower": burrower, "leaper": leaper}
@@ -1843,7 +1914,7 @@ def build_kind(kind):
         bm.to_mesh(body.data); bm.free()
     if "--bake" in ARGS:                                                  # the finished way: a high copy baked into four maps
         import bake_kind
-        bake_kind.bake(body, kind, size=int(arg("--size", "2048")), extras=held)
+        bake_kind.bake(body, kind, size=int(arg("--size", "2048")), extras=held, hook=HOOKS.get(kind))
     arm = armature(sock)
     body.parent = arm
     md = body.modifiers.new("Armature", 'ARMATURE')

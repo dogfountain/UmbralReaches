@@ -58,12 +58,22 @@ class Seg:
         return self.h2 + (self.s * al + self.g * pe) @ self.R.T
 
 
-def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shoulder_y=1.40):
+def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shoulder_y=1.40, targets=None):
     for o in list(bpy.data.objects):
         bpy.data.objects.remove(o)
     md = TargetService.get_default_macro_info_dict()
     md.update(macro or {})
     h = HumanService.create_human(macro_detail_dict=md)
+    # detail targets from MPFB's own library (data/targets): {"stomach/stomach-pregnant-decr": 1.0, "cheek/{s}-cheek-volume-decr": 0.8}
+    # ("{s}" is both l and r). The macros alone give blobs; these give a hollow belly, sunk cheeks, bags under the eyes, sinew.
+    if targets:
+        import os
+        import bl_ext.blender_org.mpfb as _mpfb
+        root = os.path.join(os.path.dirname(_mpfb.__file__), "data", "targets")
+        for key, w in targets.items():
+            for side_ in (("l", "r") if "{s}" in key else (None,)):
+                rel = key.replace("{s}", side_) if side_ else key
+                TargetService.load_target(h, os.path.join(root, rel + ".target.gz"), weight=float(w))
     TargetService.bake_targets(h)
     rig = HumanService.add_builtin_rig(h, "default")
     J = {b.name: (to_rig(rig.matrix_world @ b.head_local), to_rig(rig.matrix_world @ b.tail_local)) for b in rig.data.bones}
