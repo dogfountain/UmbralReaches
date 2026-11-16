@@ -929,6 +929,16 @@ def main():
             sockets.update({"shoulder_" + tag: V(sx * 0.24, 1.40, 0), "elbow_" + tag: V(sx * 0.24, 1.08, 0), "hand_" + tag: V(sx * 0.24, 0.78, 0),
                             "hip_" + tag: V(sx * 0.11, 0.75, 0), "knee_" + tag: V(sx * 0.11, 0.33, 0), "foot_" + tag: V(sx * 0.11, -0.09, 0)})
         body, held = boss_build.build(BOSS)
+        bud = int(os.environ.get("BOSS_TRIS", "0"))                   # no more triangles than the model it replaces
+        tri = sum(len(q.vertices) - 2 for q in body.data.polygons)
+        if bud and tri > bud:
+            bpy.ops.object.select_all(action='DESELECT')
+            body.select_set(True)
+            bpy.context.view_layer.objects.active = body
+            d = body.modifiers.new("Dec", 'DECIMATE')
+            d.ratio = max(0.2, (bud - sum(sum(len(q.vertices) - 2 for q in h.data.polygons) for h in held)) / tri)
+            bpy.ops.object.modifier_apply(modifier=d.name)
+            print("BUDGET", tri, "->", sum(len(q.vertices) - 2 for q in body.data.polygons))
         if "--bake" in ARGS:                                   # its own baked maps, as the grunts have
             import bake_kind
             bake_kind.bake(body, BOSS, size=int(arg("--size", "2048")), extras=held, prefix="boss")

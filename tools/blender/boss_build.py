@@ -503,7 +503,7 @@ def bone_abbot():
     WINE, BLACK, GOLD, BONE, DARK = (0.38, 0.065, 0.075), (0.09, 0.075, 0.085), (0.95, 0.72, 0.3), (0.86, 0.8, 0.66), (0.02, 0.02, 0.025)
     lab = waist_split(0.98)
     import grunt_build as GB                     # a gaunt old man's body under the vestments (its head is lost in the cowl's dark)
-    bd = GB.human(g, BONE, (1.0, 0.72, 0.36, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.0, "weight": 0.0, "height": 0.9}, girth=0.95, head=1.0, mat="bone", eye_r=0.014, skull=1.0)
+    bd = GB.human(g, BONE, (1.0, 0.72, 0.36, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.0, "weight": 0.0, "height": 0.9}, girth=0.95, head=1.0, mat="bone", eye_r=0.014, skull=0.6)
     def ring_at(O, y, out=0.0):
         band = O[np.abs(O[:, 1] - y) < 0.025]
         if len(band) < 12:
@@ -525,10 +525,8 @@ def bone_abbot():
             out_pts.append(V(cx + math.sin(a) * rr, yy, cz + math.cos(a) * rr))
         return out_pts
     # the cassock: laid on him from the breast, belted, falling wide to the floor in deep folds
-    Oc = GB.coat(g, bd, WINE, mat="wool", y_top=1.5, y_hem=0.02, flare=0.24, seed=0.8, tatter=0.0, folds=11, thick=0.012, nu=96, nv=36)
+    Oc = GB.coat(g, bd, WINE, mat="wool", y_top=1.5, y_hem=0.02, flare=0.3, seed=0.8, tatter=0.05, folds=13, thick=0.012, nu=128, nv=44, amp=0.075, crease=0.6)
     hem = ring_at(Oc, 0.06, 0.006)
-    if hem:
-        g.tube(hem, 0.03, GOLD, "trim", "pelvis", n=6, flat=0.35)
     belt = ring_at(Oc, 1.03, 0.008)
     if belt:
         g.tube(belt, 0.028, GOLD, "trim", "chest", n=6, flat=0.5)
@@ -541,7 +539,7 @@ def bone_abbot():
         g.band([V(0.0, float(y), z - 0.006) for y, z in zip(ys, zs)], 0.085, GOLD, "trim", lab, out=0.004, up=[V(0, 0, -1)] * len(ys))
     # the cope: from the shoulders to the floor over everything, open down the front, gilt at its edges
     gap = math.radians(52)
-    Op = GB.shawl(g, bd, BLACK, mat="wool", y_low=0.03, gap=(-gap, gap), seed=1.1, tatter=0.0, flare=0.34)
+    Op = GB.shawl(g, bd, BLACK, mat="wool", y_low=0.03, gap=(-gap, gap), seed=1.1, tatter=0.04, flare=0.34, amp=0.05)
     # the morse: a gilt clasp across the breast, and the reliquary hung under it, lit
     g.box(V(0.0, 1.43, -0.2), (0.075, 0.045, 0.012), GOLD, "gilt", "chest")
     g.ball(V(0.0, 1.43, -0.214), 0.022, (1.0, 0.6, 0.25, 0.0), "glow", "chest", n=6)
@@ -562,15 +560,17 @@ def bone_abbot():
     cowl = [(1.5, 0.19, 0.16, 0.02), (1.58, 0.17, 0.155, 0.01), (1.7, 0.165, 0.17, 0.0), (1.82, 0.15, 0.165, 0.005), (1.9, 0.11, 0.13, 0.02), (1.94, 0.03, 0.04, 0.03)]
     g.robe(cowl, BLACK, "wool", lambda p: "head" if p[1] > 1.6 else "chest", n=40, t0=math.radians(75), t1=TAU - math.radians(75))
     # the mitre: two peaked plates with a cleft, an orphrey up each, a circlet, lappets behind
+    # a closed ogee mitre: panels stitched at eight seams (shallow ridges), a swelling shoulder then a peak, bone with gilt orphreys front and back
+    def mw(v):
+        return 0.138 * (1.0 - v ** 1.7) ** 1.05 * (1.0 + 0.1 * math.sin(v * math.pi)) + 0.004
+
+    def md(v):
+        return 0.098 * (1.0 - v ** 1.35) * (1.0 + 0.08 * math.sin(v * math.pi)) + 0.004
+    rings = [(1.78 + 0.4 * v, mw(v), md(v), 0.012) for v in np.linspace(1.0, 0.0, 22)]
+    g.robe(rings, BONE, "bone", "head", n=64, pleats=16, pleat_amp=0.012, pleat_from=2.18)
     for s in (-1, 1):
-        def horn(u, v, s=s):
-            th = (u - 0.5) * math.radians(170)
-            w = (1.0 + 0.1 * v / 0.5) if v < 0.5 else 1.1 * (1.0 - (v - 0.5) / 0.5) ** 0.9       # straight sides, then the peak
-            r = 0.145
-            return V(math.sin(th) * r * w, 1.80 + 0.36 * v, s * (-math.cos(th) * r * (0.55 + 0.45 * min(w, 1.0)) * 0.8) + 0.01)
-        g.plate(horn, 13, 9, BONE, "bone", "head", flip=s > 0)
-        g.band([V(0.0, 1.80 + 0.36 * v, s * -0.128 * (0.55 + 0.45 * min((1.0 + 0.2 * v) if v < 0.5 else 1.1 * (1.0 - (v - 0.5) / 0.5) ** 0.9, 1.0)) + 0.01) for v in np.linspace(0.02, 0.95, 9)],
-               0.055, GOLD, "trim", "head", out=0.005, up=[V(0, 0, -s)] * 9)
+        vs = np.linspace(0.03, 0.95, 12)
+        g.band([V(0.0, 1.78 + 0.4 * v, 0.012 + s * (md(v) + 0.004)) for v in vs], 0.05, GOLD, "trim", "head", out=0.004, up=[V(0, 0, s)] * len(vs))
     g.ring_band(1.78, 1.84, 0.14, 0.12, 0.01, GOLD, "trim", "head", n=40)
     for sx in (-1, 1):
         g.band([V(sx * 0.06, 1.82, 0.135), V(sx * 0.065, 1.66, 0.19), V(sx * 0.07, 1.48, 0.22), V(sx * 0.072, 1.3, 0.235)], 0.06, GOLD, "trim",
@@ -585,10 +585,13 @@ def bone_abbot():
         a = k / 39 * 4.6
         rr = 0.12 * (1.0 - 0.72 * k / 39)
         crook.append(V(0.0, 1.3 + math.sin(a) * rr, -0.035 - 0.12 + math.cos(a) * rr))
-    c.tube(crook, [0.016] * 3 + [0.016 - 0.008 * k / 39 for k in range(40)], GOLD, "gilt", "hand_r", n=10)
+    c.tube(crook, [0.024] * 3 + [0.024 - 0.015 * (k / 39) ** 0.8 for k in range(40)], GOLD, "gilt", "hand_r", n=10)
     c.ball(crook[-1], 0.02, (1.0, 0.75, 0.4, 0.0), "glow", "hand_r", n=6)
     for k in range(4):
         c.lathe([(0.02, 0.0), (0.024, 0.012), (0.02, 0.024)], V(0, -0.3 + 0.33 * k, -0.035), GOLD, "gilt", "hand_r", n=10)
+    for k in range(9):                                                   # a cord wound up the grip, worn
+        c.lathe([(0.017, 0.0), (0.022, 0.006), (0.017, 0.012)], V(0, 0.1 + 0.035 * k, -0.035), (0.35, 0.27, 0.16), "leather", "hand_r", n=10)
+    c.lathe([(0.0, 0.0), (0.03, 0.0), (0.042, 0.03), (0.034, 0.07), (0.022, 0.1), (0.0, 0.11)], V(0, 0.93, -0.035), (0.8, 0.74, 0.6), "bone", "hand_r", n=12)   # a bone knop under the crook
     staff = c.to_object("staff_hand_r")
     return body, [staff]
 

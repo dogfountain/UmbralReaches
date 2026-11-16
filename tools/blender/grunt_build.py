@@ -753,7 +753,7 @@ def _rag_edge(p, seed=0.0, amp=0.035):
     return amp * (0.55 * math.sin(a * 5.0 + seed) + 0.3 * math.sin(a * 11.0 + seed * 2.3) + 0.15 * math.sin(a * 23.0 + seed * 4.1))
 
 
-def coat(g, b, col, mat="leather", y_top=1.45, y_hem=0.4, flare=0.12, seed=0.4, tatter=0.05, folds=8, thick=0.012, nu=72, nv=26):
+def coat(g, b, col, mat="leather", y_top=1.45, y_hem=0.4, flare=0.12, seed=0.4, tatter=0.05, folds=8, thick=0.012, nu=72, nv=26, amp=0.02, crease=0.0):
     """A long coat laid on the body from under the arms to the hem: tight over the chest, flaring with depth past the
     hips and the legs (the gap between the legs bridged), broad folds deepening toward a torn hem. Returns the outer
     points (for placing things on its front)."""
@@ -769,7 +769,10 @@ def coat(g, b, col, mat="leather", y_top=1.45, y_hem=0.4, flare=0.12, seed=0.4, 
         v = 1.0 - i / (ni - 1)                        # 1 at the hem
         u = j / (nj - 1) * TAU
         k = min(max((v - 0.35) / 0.65, 0.0), 1.0)
-        return 0.02 * k * (0.65 * math.sin(u * folds + seed) + 0.35 * math.sin(u * folds * 2.3 + seed * 3.0))
+        w = 0.65 * math.sin(u * folds + seed) + 0.35 * math.sin(u * folds * 2.3 + seed * 3.0)
+        if crease > 0.0:
+            w = (1.0 - crease) * w + crease * (1.0 - 2.0 * abs(math.sin(u * folds * 0.5 + seed))) # sharp valleys, rounded crests
+        return amp * k * w
     return shrink(g, b, labs, rows, off, col, mat, B.waist_split(0.92), thick=thick, fill=True, relax=14, wobble=wob)
 
 
@@ -802,7 +805,7 @@ def sleeve(g, b, sx, col, trim=None, y_top=1.43, y_cuff=0.8, flare=0.02, bell=0.
             g.tube(ring + [ring[0]], 0.009, trim, "trim" if trim != col else mat, "elbow_" + t, n=6, flat=0.6)
 
 
-def shawl(g, b, col, mat="wool", y_low=1.05, gap=(math.radians(-25), math.radians(40)), seed=0.5, tatter=0.05, flare=0.04):
+def shawl(g, b, col, mat="wool", y_low=1.05, gap=(math.radians(-25), math.radians(40)), seed=0.5, tatter=0.05, flare=0.04, amp=0.012):
     """A shawl or a mantle laid over the shoulders and the upper arms from one point inside the chest: it falls from
     the neck over the shoulder caps and down the arms and the back to a torn hem at y_low, open down the front
     between the angles `gap` (around pi, the front; uneven, as a shawl is worn), with folds where it hangs."""
@@ -827,7 +830,7 @@ def shawl(g, b, col, mat="wool", y_low=1.05, gap=(math.radians(-25), math.radian
     def folds(i, j, ni, nj):
         v = i / (ni - 1)
         u = j / (nj - 1) * TAU
-        return 0.012 * max(v - 0.35, 0.0) * (math.sin(u * 9.0 + seed) * 0.7 + math.sin(u * 17.0 + seed * 2.0) * 0.3)
+        return amp * max(v - 0.35, 0.0) * (math.sin(u * 9.0 + seed) * 0.7 + math.sin(u * 17.0 + seed * 2.0) * 0.3)
     return shrink(g, b, labs, rows, off, col, mat, lambda p: "chest" if p[1] > 1.1 or abs(p[0]) < 0.18 else ("shoulder_l" if p[0] < 0 else "shoulder_r"),
                   thick=0.01, reach=0.55, relax=16, edge=edge, clip=hem, wobble=folds, fill=True)
 
