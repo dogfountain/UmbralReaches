@@ -1,6 +1,8 @@
 extends Node3D
-## The trail (docs/quest_trail.md): a few small marks on the ground of the way to the tracked task's place, a handful
-## ahead of the wanderer, never a line. One per night, a child of the story director (story.gd), group "quest_trail".
+## The trail (docs/quest_trail.md): a few painted diamonds floating over the way to the tracked task's place, a handful
+## ahead of the wanderer, never a line. Like Destiny 2's waypoint diamonds (Luke, 16 Nov: "ground markers make no sense,
+## you can't see them at all"): drawn on the HUD over points of the route, seen through walls, grass and hills, the
+## nearest with its distance, a chevron when the point is well above or below. One per night, a child of the story director (story.gd), group "quest_trail".
 ##   - the route: from the wanderer to the tracked step's foot point (quest_track.gd). The ways first: on to the nearest
 ##     road or lane, along it (TrailRoute: an A* over RealmLayout.PATHS and the walkway lanes), off at the one nearest
 ##     the place; the legs on and off by the navigation mesh (asked asynchronously, one query each) or straight, and the
@@ -8,9 +10,10 @@ extends Node3D
 ##     the followed step or its place changes, the place moves more than MOVED m, the wanderer strays STRAY m off the
 ##     route, or the mesh came in; at most every REBUILD_GAP seconds. Nothing searches per frame.
 ##   - the marks: every SPACING m along it and at its turns; AHEAD m of them shown at most MAX_SHOWN at a time, each a
-##     pooled Decal (POOL of them, made once) that fades in as it comes into reach and out once passed. A mark is seated
-##     once, on the surface under it nearest the height of the way (terrain, floors, decks: the rays pick among the
-##     hits), and it sits a hand's breadth into the ground, so the lantern and the fires light it.
+##     pooled slot (POOL of them) that fades in as it comes into reach and out once passed. A mark is seated once, on
+##     the surface under it nearest the height of the way (terrain, floors, decks: the rays pick among the hits), and
+##     hangs HOVER m over it; one Control on its own CanvasLayer under the HUD draws them all (painted icon, a soft dark
+##     pool behind it, a slow lantern breath, a gentle bob), redrawn only while one shows.
 ##   - quiet: nothing in a fight, a lock-on, a conversation, narration, a menu, the loading screen or the staged
 ##     opening; none in the last few metres (the waypoint and the place's own prompt take over).
 ## Load by path: const QuestTrail := preload("res://core/story/quest_trail.gd")
@@ -20,6 +23,7 @@ const TextDirector := preload("res://ui/text_director.gd")
 const Hud := preload("res://ui/hud.gd")
 const RealmLayout := preload("res://core/world/realm/realm_layout.gd")
 const QuestTrack := preload("res://core/story/quest_track.gd")
+const Forge := preload("res://ui/hud_forge.gd")
 
 const SPACING := 13.0              ## metres between two marks
 const TURN := 0.6                  ## a bend sharper than this (radians over ~12 m) gets a mark of its own
@@ -32,20 +36,26 @@ const STRAY := 14.0                ## further than this off the route, it is mad
 const MOVED := 8.0                 ## the place moved this much: made again
 const REBUILD_GAP := 1.5
 const END_QUIET := 7.0             ## no mark this close to the place
-const SIZE := Vector3(2.6, 0.9, 2.6)       ## 1.7 read as faint chalk at night, 2.2 small across grass (walk stills, 16 Nov)
-const LIFT := 0.12                 ## the decal's centre over the seat
+const HOVER := 1.6                 ## the diamond's point over the seat (chest height)
+const PX_NEAR := 40.0              ## its size on screen near ... (30/16 read small and dim at night: walk stills)
+const PX_FAR := 24.0               ## ... and AHEAD m out
+const UPDOWN := 3.0                ## a chevron when the point is this far above or below the wanderer
+const INK := Color(0.96, 0.9, 0.78)
 const FADE_IN := 2.2
 const FADE_OUT := 1.6
 const MAX_A := 0.95
-const TEX_PATH := "res://ui/icons/trail/step.png"
 
 var _track: QuestTrack
 var _ways := TrailRoute.new()
-var _tex: Texture2D
-var _decals: Array[Decal] = []
-var _slot: PackedInt32Array = PackedInt32Array()         ## decal -> mark index (-1: free)
+var _pos: Array[Vector3] = []                            ## slot -> the diamond's world point
+var _slot: PackedInt32Array = PackedInt32Array()         ## slot -> mark index (-1: free)
+var _layer: CanvasLayer
+var _ink: Control
+var _font: Font
+var _t := 0.0
+var _drawn := false
 var _alpha: PackedFloat32Array = PackedFloat32Array()
-var _want: PackedFloat32Array = PackedFloat32Array()     ## the alpha each decal is heading for
+var _want: PackedFloat32Array = PackedFloat32Array()     ## the alpha each slot is heading for
 # the route, resampled every DENSE metres (xz, height or NAN, arc length)
 var _rp := PackedVector2Array()
 var _ry := PackedFloat32Array()
@@ -75,25 +85,19 @@ func _ready() -> void:
 	name = "QuestTrail"
 	add_to_group("quest_trail")
 	top_level = true
-	_tex = load(TEX_PATH) if ResourceLoader.exists(TEX_PATH) else null
-	var glow := _inlay(_tex)
+	_font = load("res://ui/fonts/Cinzel.ttf")
+	_layer = CanvasLayer.new()
+	_layer.name = "TrailMarks"
+	_layer.layer = 9                               # under the HUD (10): its panels and banners draw over a diamond
+	add_child(_layer)
+	_ink = Control.new()
+	_ink.name = "Ink"
+	_ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ink.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_ink.draw.connect(_draw_marks)
+	_layer.add_child(_ink)
 	for i in POOL:
-		var d := Decal.new()
-		d.name = "Mark%d" % i
-		d.size = SIZE
-		d.texture_albedo = _tex
-		d.texture_emission = glow
-		d.emission_energy = 3.2                   # only the orange inlay glows (the whole icon as emission lit its grey stone white)
-		d.albedo_mix = 0.45                       # the stone a faint tint over the ground, not a pale slab
-		d.upper_fade = 0.4
-		d.lower_fade = 0.4
-		d.distance_fade_enabled = true
-		d.distance_fade_begin = 56.0
-		d.distance_fade_length = 14.0
-		d.modulate = Color(1, 1, 1, 0)
-		d.visible = false
-		add_child(d)
-		_decals.append(d)
+		_pos.append(Vector3.ZERO)
 		_slot.append(-1)
 		_alpha.append(0.0)
 		_want.append(0.0)
@@ -106,27 +110,8 @@ func _find_track() -> void:
 			_track.changed.connect(func() -> void: _dirty = true)
 
 
-## The mark's glow: its warm inlay only (orange lines and the centre), the grey stone black. Made once from the icon
-## (128 px) at load: with the icon itself as emission the stone lit up pale and the mark read as a glitch on paving.
-static func _inlay(t: Texture2D) -> Texture2D:
-	if t == null:
-		return null
-	var img := t.get_image()
-	if img == null:
-		return t
-	if img.is_compressed():
-		img.decompress()
-	img.convert(Image.FORMAT_RGBA8)
-	for y in img.get_height():
-		for x in img.get_width():
-			var c := img.get_pixel(x, y)
-			var k := clampf((c.r - maxf(c.g, c.b) * 0.9 - 0.08) * 4.0, 0.0, 1.0) * c.a
-			img.set_pixel(x, y, Color(c.r * k, c.g * k, c.b * k, c.a))
-	img.generate_mipmaps()
-	return ImageTexture.create_from_image(img)
-
-
 func _process(delta: float) -> void:
+	_t += delta
 	_poll -= delta
 	_gap -= delta
 	if _pending > 0:
@@ -134,14 +119,64 @@ func _process(delta: float) -> void:
 	if _poll <= 0.0:
 		_poll = 0.2
 		_tick()
-	# fade the decals toward what the poll set (nothing to do for a decal that has arrived)
+	# fade the slots toward what the poll set; redraw only while a diamond shows (or the last one just went)
+	var any := false
 	for i in POOL:
 		if absf(_alpha[i] - _want[i]) > 0.002:
 			_alpha[i] = move_toward(_alpha[i], _want[i], delta * (FADE_IN if _want[i] > _alpha[i] else FADE_OUT) * MAX_A)
-			_decals[i].modulate = Color(1, 1, 1, _alpha[i])
-		if _alpha[i] <= 0.002 and _want[i] <= 0.0 and _decals[i].visible:
-			_decals[i].visible = false
+		if _alpha[i] <= 0.002 and _want[i] <= 0.0:
 			_slot[i] = -1
+		elif _slot[i] >= 0:
+			any = true
+	if any or _drawn:
+		_drawn = any
+		_ink.queue_redraw()
+
+
+## The diamonds, on the HUD over their points (Destiny 2's waypoint diamonds): the painted trail icon on a soft dark
+## pool with a slow lantern breath, sized by distance, the nearest with its distance, a chevron when the point is well
+## above or below the wanderer. Off-screen and behind-camera points are not drawn (the compass carries the bearing).
+func _draw_marks() -> void:
+	var cam := get_viewport().get_camera_3d()
+	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	if cam == null or p == null:
+		return
+	var vp := _ink.get_viewport_rect().size
+	var cam_vp := Vector2(cam.get_viewport().get_visible_rect().size)
+	var k := vp / cam_vp if cam_vp.x > 0.0 else Vector2.ONE
+	var nearest := -1
+	var nearest_d := INF
+	for i in POOL:
+		if _slot[i] >= 0 and _alpha[i] > 0.01:
+			var dd := p.global_position.distance_to(_pos[i])
+			if dd < nearest_d:
+				nearest_d = dd
+				nearest = i
+	for i in POOL:
+		var a := _alpha[i]
+		if _slot[i] < 0 or a <= 0.01 or cam.is_position_behind(_pos[i]):
+			continue
+		var at := cam.unproject_position(_pos[i]) * k
+		if at.x < -40.0 or at.y < -40.0 or at.x > vp.x + 40.0 or at.y > vp.y + 40.0:
+			continue
+		var d := cam.global_position.distance_to(_pos[i])
+		var size := lerpf(PX_NEAR, PX_FAR, clampf((d - 6.0) / AHEAD, 0.0, 1.0))
+		var c := at + Vector2(0.0, sin(_t * 2.2 + float(i)) * 2.0)
+		_ink.draw_circle(c, size * 0.64, Color(0.02, 0.015, 0.01, 0.42 * a))
+		var glow := 0.5 + 0.5 * sin(_t * 2.2 + float(i) + 1.2)
+		_ink.draw_arc(c, size * 0.58 + 1.5 * glow, 0.0, TAU, 36, Color(1.0, 0.76, 0.36, (0.55 + 0.3 * glow) * a), 2.5, true)
+		if not IconArt.draw_mark(_ink, "trail", "step", c, size, Color(1, 1, 1, a)):
+			_ink.draw_circle(c, size * 0.28, Color(1.0, 0.72, 0.3, a))
+		var dy := _pos[i].y - HOVER - p.global_position.y
+		if absf(dy) > UPDOWN:
+			var s := size * 0.22
+			var tip := c + Vector2(0.0, (-size * 0.62 - s) if dy > 0.0 else (size * 0.62 + s))
+			var dir := -1.0 if dy > 0.0 else 1.0
+			_ink.draw_colored_polygon(PackedVector2Array([tip + Vector2(0, dir * s), tip + Vector2(-s, -dir * s * 0.4), tip + Vector2(s, -dir * s * 0.4)]), Color(1.0, 0.78, 0.4, a))
+		if i == nearest:
+			var text := "%d m" % roundi(Vector2(_pos[i].x - p.global_position.x, _pos[i].z - p.global_position.z).length())
+			var w := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+			Forge.label(_ink, _font, c + Vector2(-w * 0.5, size * 0.5 + 15.0), text, 14, Color(INK.r, INK.g, INK.b, a * 0.9), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
 
 
 # --- the poll ---------------------------------------------------------------------------------------------------
@@ -385,7 +420,7 @@ func _assign(here: Vector3, p: Player) -> void:
 			if _ms[m] > _sp + reach or wanted.size() >= MAX_SHOWN:
 				break
 			wanted.append(m)
-	# a decal showing a mark no longer wanted lets it go; wanted marks without one take a free decal
+	# a slot showing a mark no longer wanted lets it go; wanted marks without one take a free slot
 	var have := {}
 	for i in POOL:
 		var m := _slot[i]
@@ -413,14 +448,10 @@ func _assign(here: Vector3, p: Player) -> void:
 func _put(i: int, m: int, here: Vector3) -> void:
 	if is_nan(_my[m]):
 		_my[m] = _seat(m, here)
-	var d := _decals[i]
 	_slot[i] = m
-	d.global_position = Vector3(_mp[m].x, _my[m] + LIFT, _mp[m].y)
-	d.rotation = Vector3(0.0, float(hash(Vector2i(roundi(_mp[m].x * 4.0), roundi(_mp[m].y * 4.0))) % 628) * 0.01, 0.0)
-	d.visible = true
+	_pos[i] = Vector3(_mp[m].x, _my[m] + HOVER, _mp[m].y)
 	_alpha[i] = 0.0
 	_want[i] = MAX_A
-	d.modulate = Color(1, 1, 1, 0)
 
 
 ## The surface a mark stands on: of the WORLD hits straight down at its place, the walkable one nearest the height of the
@@ -478,7 +509,7 @@ func _dense_of(m: int) -> int:
 	return lo
 
 
-## Let every mark go (nothing to follow, or quiet): they fade out and the decals are free again.
+## Let every mark go (nothing to follow, or quiet): they fade out and the slots are free again.
 func _release_all() -> void:
 	shown = 0
 	for i in POOL:

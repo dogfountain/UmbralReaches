@@ -92,13 +92,16 @@ func _screen() -> String:
 		var shown := 0
 		var cam := get_viewport().get_camera_3d()
 		var at: Array[String] = []
-		for d: Decal in (tr as Node).get("_decals") as Array[Decal]:
-			if d.visible and d.modulate.a > 0.05:
+		var slots: PackedInt32Array = tr.get("_slot")
+		var alphas: PackedFloat32Array = tr.get("_alpha")
+		var pos: Array = tr.get("_pos")
+		for i in slots.size():
+			if slots[i] >= 0 and alphas[i] > 0.05:
 				shown += 1
-				var front := cam != null and not cam.is_position_behind(d.global_position)
-				var dist := cam.global_position.distance_to(d.global_position) if cam else -1.0
-				var gy := RealmLayout.ground(d.get_world_3d().direct_space_state, d.global_position.x, d.global_position.z)
-				at.append("%s y%.2f ground%.2f %.0fm %s" % [d.global_position.round(), d.global_position.y, gy, dist, "in-view" if front and cam.is_position_in_frustum(d.global_position) else "off-view"])
+				var w: Vector3 = pos[i]
+				var front := cam != null and not cam.is_position_behind(w)
+				var dist := cam.global_position.distance_to(w) if cam else -1.0
+				at.append("%s %.0fm %s" % [w.round(), dist, "in-view" if front and cam.is_position_in_frustum(w) else "off-view"])
 		if not at.is_empty():
 			bits.append("marks=%s" % ", ".join(at))
 		bits.append("trail=hidden:%s route:%d shown:%d" % [str(tr.get("_hidden")), (tr.get("_rp") as PackedVector2Array).size(), shown])
