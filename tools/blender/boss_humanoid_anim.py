@@ -936,12 +936,49 @@ def main():
         bud = int(os.environ.get("BOSS_TRIS", "0"))                   # no more triangles than the model it replaces
         tri = sum(len(q.vertices) - 2 for q in body.data.polygons)
         if bud and tri > bud:
-            bpy.ops.object.select_all(action='DESELECT')
-            body.select_set(True)
-            bpy.context.view_layer.objects.active = body
-            d = body.modifiers.new("Dec", 'DECIMATE')
-            d.ratio = max(0.2, (bud - sum(sum(len(q.vertices) - 2 for q in h.data.polygons) for h in held)) / tri)
-            bpy.ops.object.modifier_apply(modifier=d.name)
+            ks = [body.vertex_groups[n_].index for n_ in os.environ.get("BOSS_KEEP", "").split(",") if n_ in body.vertex_groups]
+            held_t = sum(sum(len(q.vertices) - 2 for q in h.data.polygons) for h in held)
+
+            def dec(ob, ratio):
+                bpy.ops.object.select_all(action='DESELECT')
+                ob.select_set(True)
+                bpy.context.view_layer.objects.active = ob
+                d = ob.modifiers.new("Dec", 'DECIMATE')
+                d.ratio = min(1.0, max(0.08, ratio))
+                bpy.ops.object.modifier_apply(modifier=d.name)
+            if ks:                                                         # the face and hands are thinned less than the robe: separate, decimate each, join
+                kset = {v.index for v in body.data.vertices if any(g_.group in ks and g_.weight > 0.5 for g_ in v.groups)}
+                bm_ = bmesh.new(); bm_.from_mesh(body.data)
+                for f_ in bm_.faces:
+                    f_.select = all(v_.index in kset for v_ in f_.verts)
+                sel = [f_ for f_ in bm_.faces if f_.select]
+                kt = sum(len(f_.verts) - 2 for f_ in sel)
+                bm_.free()
+                rk = float(os.environ.get("BOSS_KEEP_RATIO", "0.6"))
+                bpy.ops.object.select_all(action='DESELECT')
+                body.select_set(True)
+                bpy.context.view_layer.objects.active = body
+                bpy.ops.object.mode_set(mode='EDIT')
+                bpy.ops.mesh.select_all(action='DESELECT')
+                bpy.ops.object.mode_set(mode='OBJECT')
+                for p_ in body.data.polygons:
+                    p_.select = all(i in kset for i in p_.vertices)
+                bpy.ops.object.mode_set(mode='EDIT')
+                bpy.ops.mesh.separate(type='SELECTED')
+                bpy.ops.object.mode_set(mode='OBJECT')
+                parts = [o for o in bpy.context.selected_objects]
+                kp = [o for o in bpy.data.objects if o.type == 'MESH' and o is not body and o.name.startswith(body.name) and o not in held]
+                dec(body, (bud - held_t - kt * rk) / max(tri - kt, 1))
+                for o in kp:
+                    dec(o, rk)
+                bpy.ops.object.select_all(action='DESELECT')
+                body.select_set(True)
+                for o in kp:
+                    o.select_set(True)
+                bpy.context.view_layer.objects.active = body
+                bpy.ops.object.join()
+            else:
+                dec(body, (bud - held_t) / tri)
             print("BUDGET", tri, "->", sum(len(q.vertices) - 2 for q in body.data.polygons))
         if "--bake" in ARGS:                                   # its own baked maps, as the grunts have
             import bake_kind

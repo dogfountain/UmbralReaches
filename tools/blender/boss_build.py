@@ -716,11 +716,8 @@ def hierarch():
     lab = waist_split(0.98)
     import grunt_build as GB                     # the statue's body is carved from a man's: an old, heavy king's face and hands
     bd = GB.human(g, PALE, (1.0, 0.55, 0.2, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.5, "weight": 0.9, "proportions": 0.4},
-                  girth=1.15, head=1.7, mat="stone", shoulder_y=1.5, eye_r=0.0065, skull=0.3)
-    n0 = g._fit[1] - len(bd.P)                                              # the real arms are folded away inside the robe: the fists on the horn are his hands
-    for k in range(len(bd.P)):
-        if bd.L[k].startswith(("hand_", "elbow_")) or (bd.L[k].startswith("shoulder_") and bd.P[k][1] < 1.25):
-            g.v[n0 + k] = V(0.0, 1.0, 0.05)
+                  girth=1.15, head=1.7, mat="stone", shoulder_y=1.5, eye_r=0.0065, skull=0.3, keep=("head", "hand_l", "hand_r"), tris=3500, hand_ratio=0.4)
+    n0 = g._fit[1] - len(bd.P)
     Oc = GB.coat(g, bd, STONE, mat="stone", y_top=1.5, y_hem=0.02, flare=0.3, seed=0.5, tatter=0.05, folds=12, thick=0.014, nu=96, nv=34, amp=0.08, crease=0.5)
     band_ = Oc[np.abs(Oc[:, 1] - 1.05) < 0.025]                              # a heavy girdle cinching the robe at the waist
     if len(band_) > 12:
@@ -783,15 +780,10 @@ def hierarch():
     for t_, sx_ in ((0.34, -1), (0.55, 1)):
         c, tg, vx = horn_at(t_)
         rr = 0.07 + 0.012 * t_ * 6
-        for f in range(4):
-            cf = c + tg * (0.03 * f - 0.045)
-            ring = [cf + V(1, 0, 0) * math.cos(a_) * (rr + 0.012) + vx * math.sin(a_) * (rr + 0.012) for a_ in np.linspace(0.0, TAU, 17)]
-            g.tube(ring, 0.021 - 0.001 * f, PALE, "stone", "head", n=7)
-        g.ball(c + V(sx_ * 0.0, 0.0, 0.0) + V(1, 0, 0) * sx_ * (rr + 0.03), 0.045, PALE, "stone", "head", n=7, sy=1.2)
         sh = V(sx_ * 0.3, 1.36, -0.02)
         elb = V(sx_ * 0.34, 1.3, -0.2)
         wr_ = c + V(1, 0, 0) * sx_ * (rr + 0.03)
-        g.tube([sh, sh + (elb - sh) * 0.5, elb, elb + (wr_ - elb) * 0.5, wr_], [0.09, 0.095, 0.085, 0.09, 0.105], STONE, "stone", "head", n=12)        # a draped sleeve that widens to a bell at the wrist
+        g.tube([sh, sh + (elb - sh) * 0.5, elb, elb + (wr_ - elb) * 0.4, elb + (wr_ - elb) * 0.72], [0.09, 0.095, 0.085, 0.09, 0.105], STONE, "stone", "head", n=12)        # a draped sleeve that widens to a bell at the wrist
         g.ball(elb + V(sx_ * 0.04, -0.02, 0.05), 0.075, STONE, "stone", "head", n=8)                                                                        # the point of the elbow under the cloth
         g.tube([wr_ + (elb - wr_) * 0.12 + V(math.cos(a_) * 0.11, 0, math.sin(a_) * 0.11) for a_ in np.linspace(0, TAU, 21)], 0.012, GILT, "gilt", "head", n=6) if False else None
         g.tube([sh, sh + V(sx_ * 0.02, -0.12, -0.08), elb + V(0, 0.05, 0.05)], [0.14, 0.12, 0.1], STONE, "stone", "head", n=10)                          # the upper arm swelling into the shoulder
@@ -802,6 +794,35 @@ def hierarch():
         rb = float(np.interp(tb * 0.62, [h_[1] for h_ in horn], [h_[0] for h_ in horn])) + 0.012
         g.tube([cb + V(1, 0, 0) * math.cos(a_) * rb + vxb * math.sin(a_) * rb for a_ in np.linspace(0.0, TAU, 25)], 0.011, GILT, "gilt", "head", n=6)
     g.tube([horn_at(0.5)[0] + V(0.07, 0.0, 0.0), V(0.28, 1.5, -0.2), V(0.2, 1.62, 0.1), V(-0.2, 1.55, 0.1), V(-0.3, 1.2, -0.3), horn_at(0.7)[0] + V(-0.07, 0.0, 0.0)], 0.018, (0.25, 0.18, 0.12), "leather", "head", n=6)
+    # the real MakeHuman arms are posed up to the horn (two bones: the upper arm to the elbow, the forearm and hand to the grip), under the sleeves
+    def rot(a_, b_):
+        a_, b_ = a_ / np.linalg.norm(a_), b_ / np.linalg.norm(b_)
+        v_ = np.cross(a_, b_)
+        c_ = float(np.dot(a_, b_))
+        K_ = np.array([[0, -v_[2], v_[1]], [v_[2], 0, -v_[0]], [-v_[1], v_[0], 0]])
+        return np.eye(3) + K_ + K_ @ K_ / (1.0 + c_ + 1e-9)
+    for t_, sx_ in ((0.34, -1), (0.55, 1)):
+        tg_ = "l" if sx_ < 0 else "r"
+        c, tg, vx = horn_at(t_)
+        S0, E0, W0 = V(sx_ * 0.24, 1.40, 0.0), V(sx_ * 0.24, 1.08, 0.0), V(sx_ * 0.24, 0.78, 0.0)
+        E1 = V(sx_ * 0.34, 1.3, -0.2)
+        W1 = c + V(1, 0, 0) * sx_ * (0.07 + 0.012 * t_ * 6 + 0.03)
+        R1 = rot(E0 - S0, E1 - S0)
+        R2 = rot(R1 @ (W0 - E0), W1 - E1)
+        for k in range(len(bd.P)):
+            lb = bd.L[k]
+            if not lb.endswith("_" + tg_) or not lb.startswith(("shoulder_", "elbow_", "hand_")):
+                continue
+            p0 = g.v[n0 + k]
+            if lb.startswith("shoulder_") and (abs(p0[0]) < 0.17 or p0[1] > 1.42):
+                continue
+            if lb.startswith("shoulder_"):
+                w = float(np.clip((1.40 - p0[1]) / 0.1, 0.0, 1.0))
+                g.v[n0 + k] = S0 + (R1 @ (p0 - S0)) * w + (p0 - S0) * (1.0 - w)
+            else:
+                q = S0 + R1 @ (p0 - S0)
+                e1 = E1
+                g.v[n0 + k] = e1 + R2 @ (q - e1) if p0[1] < E0[1] + 0.03 else q
     return g.to_object("body"), []
 
 
