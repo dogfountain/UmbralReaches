@@ -56,10 +56,10 @@ var realm_points := [
 	# r22 additions: the heavy vistas
 	["r_spawn_north", Vector3(0.0, NAN, 40.0), 0.0],                 # village to the rift and the Crowns
 	["r_tavern_in", Vector3(11.4, -0.6, 27.0), -0.9],
-	["r_rim", Vector3(0.0, 0.8, -10.0), 0.0],                       # the Crossing from its forecourt
-	["r_spindle", Vector3(-8.3, 18.0, -43.5), 0.3],                 # on the viaduct by the Spindle
-	["r_summit", Vector3(0.0, 27.9, -92.0), 0.0],
-	["r_summit_back", Vector3(0.0, 28.2, -96.0), PI],               # the whole Realm from the dais
+	["r_rim", Vector3(0.0, 0.8, -10.0) + Endgame.O, 0.0],           # the Crossing from its forecourt (the far north-east: Endgame)
+	["r_spindle", Vector3(-8.3, 18.0, -43.5) + Endgame.O, 0.3],                 # on the viaduct by the Spindle
+	["r_summit", Vector3(0.0, 27.9, -92.0) + Endgame.O, 0.0],
+	["r_summit_back", Vector3(0.0, 28.2, -96.0) + Endgame.O, PI],               # the whole Realm from the dais
 	["r_henge", Vector3(-62.0, 8.0, -12.0), 0.9],
 	["r_barrows", Vector3(70.0, NAN, -34.0), 2.4],                  # toward the Ossuary door
 	["r_chapel", Vector3(-58.0, NAN, 60.0), 1.2],
