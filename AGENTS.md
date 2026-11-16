@@ -15,6 +15,8 @@ Follow official Godot practice, not Unity/Unreal:
 
 Cursor rules in `.cursor/rules/` are binding. Current truth: `ARCHITECTURE.md`. Learned playbook lives in `.cursor/skills/` (`umbral-pack`, `umbral-donts`, `umbral-nights`, `umbral-culling`, `umbral-player`, `umbral-pipeline`, `umbral-blender`). Blender modeling copies (`blender-modeler`, `godot-export`, …) are MIT from [arjun988/blender-skills](https://github.com/arjun988/blender-skills); `umbral-donts` still wins.
 
+**Commits come only from Luke:** never add a `Co-Authored-By:` line (Claude, Cursor or any AI) or a "Generated with" footer to a commit message or PR.
+
 ## Everyday commands
 
 ```sh
