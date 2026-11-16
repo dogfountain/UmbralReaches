@@ -503,19 +503,7 @@ def bone_abbot():
     WINE, BLACK, GOLD, BONE, DARK = (0.38, 0.065, 0.075), (0.09, 0.075, 0.085), (0.95, 0.72, 0.3), (0.86, 0.8, 0.66), (0.02, 0.02, 0.025)
     lab = waist_split(0.98)
     import grunt_build as GB                     # a gaunt old man's body under the vestments (its head is lost in the cowl's dark)
-    bd = GB.human(g, BONE, (1.0, 0.72, 0.36, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.2, "weight": 0.1, "height": 0.9}, girth=0.95, head=1.0)
-    n0 = g._fit[1] - len(bd.P)
-    hc = np.mean([g.v[n0 + k] for k in range(len(bd.P)) if bd.L[k] == "head"], axis=0)
-    HC = V(0.0, 1.72, 0.01)
-    for k in range(len(bd.P)):
-        y = float(g.v[n0 + k][1])
-        if bd.L[k] == "head" or y > 1.52:
-            w = 1.0 if bd.L[k] == "head" else min((y - 1.52) / 0.08, 1.0)
-            g.v[n0 + k] = g.v[n0 + k] + (HC + (g.v[n0 + k] - hc) * 0.5 - g.v[n0 + k]) * w
-    for k in range(g._fit[1], len(g.v)):
-        if g.lab[k] == "head":
-            g.v[k] = V(0.0, -5.0, 0.0)                                  # (its own eye coals: the candle eyes below stand for them)
-
+    bd = GB.human(g, BONE, (1.0, 0.72, 0.36, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.0, "weight": 0.0, "height": 0.9}, girth=0.95, head=1.0, mat="bone", eye_r=0.014, skull=1.0)
     def ring_at(O, y, out=0.0):
         band = O[np.abs(O[:, 1] - y) < 0.025]
         if len(band) < 12:
@@ -572,44 +560,18 @@ def bone_abbot():
     # the head: a cowl full of dark, two candle eyes, a bone brow and a bone jaw-plate with teeth, the mitre over all
     H = V(0.0, 1.64, 0.0)
     cowl = [(1.5, 0.19, 0.16, 0.02), (1.58, 0.17, 0.155, 0.01), (1.7, 0.165, 0.17, 0.0), (1.82, 0.15, 0.165, 0.005), (1.9, 0.11, 0.13, 0.02), (1.94, 0.03, 0.04, 0.03)]
-    g.robe(cowl, BLACK, "wool", lambda p: "head" if p[1] > 1.6 else "chest", n=40, t0=math.radians(38), t1=TAU - math.radians(38))
-    g.ball(H + V(0, 0.09, 0.0), 0.125, DARK, "iron", "head", n=10, sy=1.15)
-    eyes(g, 1.735, -0.116, 0.047, 0.017, (1.0, 0.72, 0.36, 0.0))
-
-    def brow(u, v):
-        th = (u - 0.5) * math.radians(120)
-        y = 1.765 + 0.06 * v - 0.012 * math.cos(th * 3.0) * (1.0 - v)
-        r = 0.135 - 0.012 * v
-        return V(math.sin(th) * r, y, -math.cos(th) * r * 1.02)
-    g.plate(brow, 15, 4, BONE, "bone", "head")
-
-    def jaw(u, v):
-        th = (u - 0.5) * math.radians(88)
-        tooth = abs(((u * 9.0) % 1.0) - 0.5) * 2.0                       # 0 at a tooth's tip, 1 in the gap
-        top = 1.705 - 0.022 * tooth * (1.0 - abs(u - 0.5) * 1.2)
-        y = top - (top - 1.585 - 0.02 * abs(u - 0.5)) * v
-        r = 0.134 - 0.05 * v ** 1.6
-        return V(math.sin(th) * r, y, -math.cos(th) * r * 1.04)
-    g.plate(jaw, 37, 6, BONE, "bone", "head")
-    for sx in (-1, 1):                                                    # cheek plates up to the brow
-        def cheek(u, v, sx=sx):
-            th = sx * (math.radians(46) + u * math.radians(34))
-            y = 1.6 + 0.18 * v
-            r = 0.136
-            return V(math.sin(th) * r, y, -math.cos(th) * r * 1.03)
-        g.plate(cheek, 5, 5, BONE, "bone", "head", flip=sx > 0)
-    g.tube([V(0.0, 1.765, -0.14), V(0.0, 1.72, -0.15), V(0.0, 1.7, -0.139)], [0.012, 0.01, 0.006], BONE, "bone", "head", n=6)      # the nasal bar
+    g.robe(cowl, BLACK, "wool", lambda p: "head" if p[1] > 1.6 else "chest", n=40, t0=math.radians(75), t1=TAU - math.radians(75))
     # the mitre: two peaked plates with a cleft, an orphrey up each, a circlet, lappets behind
     for s in (-1, 1):
         def horn(u, v, s=s):
             th = (u - 0.5) * math.radians(170)
             w = (1.0 + 0.1 * v / 0.5) if v < 0.5 else 1.1 * (1.0 - (v - 0.5) / 0.5) ** 0.9       # straight sides, then the peak
-            r = 0.16
-            return V(math.sin(th) * r * w, 1.83 + 0.5 * v, s * (-math.cos(th) * r * (0.55 + 0.45 * min(w, 1.0)) * 0.8) + 0.01)
+            r = 0.145
+            return V(math.sin(th) * r * w, 1.80 + 0.36 * v, s * (-math.cos(th) * r * (0.55 + 0.45 * min(w, 1.0)) * 0.8) + 0.01)
         g.plate(horn, 13, 9, BONE, "bone", "head", flip=s > 0)
-        g.band([V(0.0, 1.83 + 0.5 * v, s * -0.128 * (0.55 + 0.45 * min((1.0 + 0.2 * v) if v < 0.5 else 1.1 * (1.0 - (v - 0.5) / 0.5) ** 0.9, 1.0)) + 0.01) for v in np.linspace(0.02, 0.95, 9)],
+        g.band([V(0.0, 1.80 + 0.36 * v, s * -0.128 * (0.55 + 0.45 * min((1.0 + 0.2 * v) if v < 0.5 else 1.1 * (1.0 - (v - 0.5) / 0.5) ** 0.9, 1.0)) + 0.01) for v in np.linspace(0.02, 0.95, 9)],
                0.055, GOLD, "trim", "head", out=0.005, up=[V(0, 0, -s)] * 9)
-    g.ring_band(1.81, 1.875, 0.156, 0.13, 0.01, GOLD, "trim", "head", n=40)
+    g.ring_band(1.78, 1.84, 0.14, 0.12, 0.01, GOLD, "trim", "head", n=40)
     for sx in (-1, 1):
         g.band([V(sx * 0.06, 1.82, 0.135), V(sx * 0.065, 1.66, 0.19), V(sx * 0.07, 1.48, 0.22), V(sx * 0.072, 1.3, 0.235)], 0.06, GOLD, "trim",
                lambda p: "head" if p[1] > 1.6 else "chest", out=0.004, up=[V(0, 0, 1)] * 4)
