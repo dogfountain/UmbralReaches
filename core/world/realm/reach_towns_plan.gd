@@ -31,6 +31,8 @@ const CLEAR := [
 	[Vector2(324.0, 16.0), 11.0], [Vector2(300.0, 14.0), 9.0], [Vector2(324.0, 92.0), 10.0], [Vector2(300.0, 92.0), 9.0],
 	[Vector2(-318.0, 248.0), 10.0], [Vector2(-290.0, 300.0), 9.0], [Vector2(-276.0, 306.0), 8.0],
 	[Vector2(-150.0, 266.0), 9.0], [Vector2(-196.0, 299.0), 9.0], [Vector2(-118.0, 308.0), 9.0],
+	[Vector2(-306.0, 232.0), 12.0], [Vector2(-300.0, 246.0), 10.0], [Vector2(-318.0, 236.0), 8.0],   # Reedholm seen down barrow_track
+	[Vector2(250.0, 76.0), 10.0], [Vector2(240.0, 74.0), 8.0],                                        # Lastlight's walls down the road
 ]
 
 ## Piece kinds: the local footprint (for the ground under it and the site it reserves), its far silhouette and where

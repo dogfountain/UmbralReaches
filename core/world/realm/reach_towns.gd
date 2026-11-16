@@ -18,6 +18,7 @@ const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const SiteProps := preload("res://core/world/realm/site_props.gd")
 const P := preload("res://core/world/realm/realm_pois.gd")
+const Footing := preload("res://core/world/footing.gd")
 
 const WATER := -0.9                 ## the fen's water line (RealmLand.WATER_Y): Reedholm's decks hang from it
 const WALK_STEP_RUN := 3.0          ## RH_WalkStep's run from the walk down to the bank
@@ -71,6 +72,12 @@ static func _aabb(pts: Array[Vector2]) -> Rect2:
 	return r
 
 
+## The terrain under a point, through whatever stands on it (a tree, a reed clump, a prop): RealmLayout.ground falls back
+## to the coarse macro height when its first hit is not the terrain, a metre off in the meres.
+static func _terrain(space: PhysicsDirectSpaceState3D, x: float, z: float) -> float:
+	return Footing.terrain_y(space, x, z, RealmLayout.macro_height(x, z))
+
+
 ## The lowest and highest ground under a piece (a 5 x 5 grid over its turned footprint).
 static func _under(space: PhysicsDirectSpaceState3D, kind: String, at: Vector2, yaw: float) -> Vector2:
 	var rc: Rect2 = (Plan.KIND[kind] as Dictionary).rect
@@ -79,7 +86,7 @@ static func _under(space: PhysicsDirectSpaceState3D, kind: String, at: Vector2, 
 	for i in 5:
 		for j in 5:
 			var q := at + _rot(rc.position + rc.size * Vector2(i / 4.0, j / 4.0), yaw)
-			var y := RealmLayout.ground(space, q.x, q.y)
+			var y := _terrain(space, q.x, q.y)
 			lo = minf(lo, y)
 			hi = maxf(hi, y)
 	return Vector2(lo, hi)
@@ -208,13 +215,14 @@ static func build(holder: Node) -> void:
 		root.add_child(h)
 		h.add_to_group(P.GROUP_POI)
 		h.set_meta("poi", "town_" + t)
+		h.set_meta("reach", true)                       # a Far Reaches place (zz/world_poi_test counts these apart from the older places)
 		h.set_meta("centre", Vector3((Plan.TOWNS[t].c as Vector2).x, 0.0, (Plan.TOWNS[t].c as Vector2).y))
 		h.set_meta("radius", float(Plan.TOWNS[t].r))
 		hosts[t] = h
 		shapes[t] = []
 	var merge := {}                                   # town -> {"near": {Material: SurfaceTool}, "far": SurfaceTool}
 	for t2: String in Plan.TOWNS:
-		merge[t2] = {"near": {}, "far": null, "props": {}}
+		merge[t2] = {"near": {}, "far": null, "props": {}, "later": []}
 	for pc: Array in _pieces():
 		_piece(hosts[String(pc[0])], shapes[String(pc[0])], space, pc, merge[String(pc[0])])
 	_walks(hosts["reedholm"], shapes["reedholm"], space, merge["reedholm"])
@@ -225,6 +233,7 @@ static func build(holder: Node) -> void:
 		Kit.body(hosts[t], "TownBody", shapes[t])
 	var Dress: Variant = load("res://core/world/realm/reach_towns_dress.gd")
 	Dress.dress(hosts, shapes, space)
+	_props_later(holder.get_parent() if holder.get_parent() else holder, hosts, merge)
 	print("REACH_TOWNS built %d pieces, %d deck rects in %d ms" % [placed.size(), walk_decks.size(), Time.get_ticks_msec() - t0])
 
 
@@ -256,10 +265,9 @@ static func _piece(host: Node3D, shapes: Array, space: PhysicsDirectSpaceState3D
 			fm = FarDetail.hull(m.get_aabb(), 0.45)
 		_add_far(merge, fm, xf)
 	else:
-		var m2 := Kit.mesh(Plan.GLB, kind)
-		if m2 == null:
-			return
-		_add_near(merge, m2, xf, "props")
+		# a small thing stands on the ground as it is once the stamp and the flora are done (_props_later)
+		(merge.later as Array).append([kind, at, yaw])
+		return
 	_cols(shapes, kind, xf)
 	placed.append({"kind": kind, "town": String(pc[0]), "xf": xf})
 
@@ -300,18 +308,53 @@ static func _add_far(merge: Dictionary, fm: Mesh, xf: Transform3D) -> void:
 
 ## The town's merged mesh (lit glass swapped in) under its own node, and its merged far silhouette taking over from
 ## NEAR_END (FarDetail: the near mesh fades out as the far one fades in).
+## The towns' small things (racks, boats, ricks, scarecrows, a well, a wain), once the Realm is done (after the terrain
+## stamp, the flora and the settle): each on the ground as it then is, then merged per town into one mesh a material on
+## a short range, with its own body.
+static func _props_later(root: Node, hosts: Dictionary, merge: Dictionary) -> void:
+	var tree := root.get_tree()
+	var t0 := Time.get_ticks_msec()
+	# after the terrain settle too (the ground yields to the floors as built, and the meres' beds with it)
+	while is_instance_valid(root) and not root.has_meta("realm_done") and Time.get_ticks_msec() - t0 < 240000:
+		await tree.process_frame
+	if not is_instance_valid(root):
+		return
+	await tree.physics_frame
+	for town: String in merge:
+		var host: Node3D = hosts[town]
+		if not is_instance_valid(host):
+			continue
+		var space := host.get_world_3d().direct_space_state
+		var shapes: Array = []
+		var m: Dictionary = merge[town]
+		for it: Array in m.later:
+			var kind := String(it[0])
+			var at: Vector2 = it[1]
+			var yaw := float(it[2])
+			var y := _stilt_y(space, kind, at, yaw) if bool((Plan.KIND[kind] as Dictionary).get("stilt", false)) else _under(space, kind, at, yaw).x
+			var xf := Transform3D(Basis(Vector3.UP, yaw), Vector3(at.x, y, at.y))
+			var mesh := Kit.mesh(Plan.GLB, kind)
+			if mesh == null:
+				continue
+			_add_near(m, mesh, xf, "props")
+			_cols(shapes, kind, xf)
+			placed.append({"kind": kind, "town": town, "xf": xf})
+		if not (m.props as Dictionary).is_empty():
+			var pmi := MeshInstance3D.new()
+			pmi.name = "Town_%s_Props" % town
+			pmi.mesh = _merged(m.props)
+			pmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+			pmi.visibility_range_end = PROPS_END
+			pmi.visibility_range_end_margin = PROPS_END * 0.12
+			pmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			pmi.add_to_group(Groups.CULL_SKIP)
+			host.add_child(pmi)
+		if not shapes.is_empty():
+			Kit.body(host, "PropsBody", shapes)
+	root.set_meta("towns_props_done", true)
+
+
 static func _commit(host: Node3D, town: String, merge: Dictionary) -> void:
-	# the small things (racks, boats, ricks, scarecrows, a well, a wain) as one mesh a material too, on a short range
-	if not (merge.props as Dictionary).is_empty():
-		var pmi := MeshInstance3D.new()
-		pmi.name = "Town_%s_Props" % town
-		pmi.mesh = _merged(merge.props)
-		pmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		pmi.visibility_range_end = PROPS_END
-		pmi.visibility_range_end_margin = PROPS_END * 0.12
-		pmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		pmi.add_to_group(Groups.CULL_SKIP)
-		host.add_child(pmi)
 	var near: Dictionary = merge.near
 	if near.is_empty():
 		return
@@ -373,7 +416,7 @@ static func _glass_mat(nm: String) -> StandardMaterial3D:
 	m.albedo_color = Color(0.9, 0.6, 0.3)
 	m.emission_enabled = true
 	m.emission = Color(1.0, 0.62, 0.28) if nm == "window_glass" else Color(1.0, 0.74, 0.42)
-	m.emission_energy_multiplier = 0.45 if nm == "window_glass" else 1.6
+	m.emission_energy_multiplier = 0.7 if nm == "window_glass" else 1.6      # windows read across a town, still under the bloom
 	m.roughness = 0.4
 	_glass[nm] = m
 	return m
