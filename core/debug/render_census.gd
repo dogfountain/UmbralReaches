@@ -263,6 +263,69 @@ static func gpu_passes(tree: SceneTree, frames := 240) -> void:
 			print("GPUPASS %7.3f ms  %s" % [float(acc[k]) / float(acc.frames), k])
 
 
+## Stills for one toggle (measurement only; `--ab-shots=dir` with --parts-ab --tests=name): at each place of
+## `--ab-places=x,z;x,z` (default: where the camera stands) and four yaws round the camera's pivot, the frame with
+## the toggle off, on, then off again (dir/<place>_<view>_a|b|a2.png). Printed per view: the mean difference
+## a vs b (0..255 a channel) and the share of pixels more than 12 apart, beside a vs a2: what the night's own motion
+## (wind, flames, particles) changes between two frames, the floor a look-neutral change should sit on.
+static func ab_shots(tree: SceneTree, label: String, f: Callable, dir: String) -> void:
+	var cam := tree.root.get_camera_3d()
+	var pivot := cam.get_parent() as Node3D
+	var pl := tree.get_first_node_in_group(Groups.PLAYER) as Player
+	DirAccess.make_dir_recursive_absolute(dir)
+	var places: Array = [null]
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--ab-places="):
+			places = []
+			for s in a.trim_prefix("--ab-places=").split(";"):
+				var v := s.split(",")
+				places.append(Vector2(float(v[0]), float(v[1])))
+	for pi in places.size():
+		if places[pi] is Vector2 and pl:
+			var q: Vector2 = places[pi]
+			pl.teleport(Vector3(q.x, RealmLayout.ground(pl.get_world_3d().direct_space_state, q.x, q.y) + 0.2, q.y))
+			for i in 120:
+				await tree.process_frame
+		var y0 := pivot.rotation.y
+		for view in 4:
+			var shots: Array[Image] = []
+			for k in 3:
+				f.call(k == 1)
+				for i in 30:
+					pivot.rotation.y = y0 + float(view) * PI * 0.5
+					await tree.process_frame
+				var img := tree.root.get_texture().get_image()
+				img.convert(Image.FORMAT_RGB8)
+				img.save_png(dir.path_join("%d_%d_%s.png" % [pi, view, ["a", "b", "a2"][k]]))
+				shots.append(img)
+			var ab := _img_diff(shots[0], shots[1])
+			var aa := _img_diff(shots[0], shots[2])
+			print("ABSHOT %-22s place %d view %d: on vs off mean %.2f, %.3f%% over 12 | off vs off mean %.2f, %.3f%% over 12" % [label, pi, view, ab.x, ab.y, aa.x, aa.y])
+		pivot.rotation.y = y0
+	f.call(false)
+
+
+## Mean absolute difference (0..255 a channel) and the percentage of pixels with a channel more than 12 apart.
+static func _img_diff(a: Image, b: Image) -> Vector2:
+	var da := a.get_data()
+	var db := b.get_data()
+	if da.size() != db.size():
+		return Vector2(-1, -1)
+	var sum := 0
+	var over := 0
+	var i := 0
+	while i < da.size():
+		var d0 := absi(da[i] - db[i])
+		var d1 := absi(da[i + 1] - db[i + 1])
+		var d2 := absi(da[i + 2] - db[i + 2])
+		sum += d0 + d1 + d2
+		if d0 > 12 or d1 > 12 or d2 > 12:
+			over += 1
+		i += 3
+	var px := float(da.size() / 3)
+	return Vector2(float(sum) / (px * 3.0), 100.0 * float(over) / px)
+
+
 static func _sphere_in(planes: Array[Plane], c: Vector3, r: float) -> bool:
 	for pl in planes:
 		if pl.distance_to(c) > r:

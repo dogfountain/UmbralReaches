@@ -716,7 +716,6 @@ func _parts_ab() -> void:
 		["particles past 60 m hidden", func(on: bool) -> void: _toggle_class("GPUParticles3D", on, [], func(q: GPUParticles3D) -> bool: return q.global_position.distance_to(cam.global_position) > 60.0)],
 		["lights past 40 m hidden", func(on: bool) -> void: _toggle_class("Light3D", on, [sun], func(q: Light3D) -> bool: return not q is DirectionalLight3D and q.global_position.distance_to(cam.global_position) > 40.0)],
 		["spot lights hidden", func(on: bool) -> void: _toggle_class("SpotLight3D", on, [])],
-		["depth prepass off", func(on: bool) -> void: ProjectSettings.set_setting("rendering/driver/depth_prepass/enable", not on)],
 		["clear fade rects drawn", func(on: bool) -> void:
 			for c in get_tree().root.find_children("*", "ColorRect", true, false):
 				var r := c as ColorRect
@@ -782,6 +781,12 @@ func _parts_ab() -> void:
 		var f: Callable = tst[1]
 		if "--gpu-ab" in OS.get_cmdline_user_args():
 			await RenderCensus.gpu_ab(get_tree(), tst[0], f)
+			continue
+		var shot_dir := ""
+		for a in OS.get_cmdline_user_args():
+			shot_dir = a.trim_prefix("--ab-shots=") if a.begins_with("--ab-shots=") else shot_dir
+		if shot_dir != "":
+			await RenderCensus.ab_shots(get_tree(), tst[0], f, shot_dir)
 			continue
 		var on := PackedFloat32Array()
 		var off := PackedFloat32Array()
