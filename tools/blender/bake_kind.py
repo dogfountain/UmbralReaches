@@ -145,6 +145,8 @@ def make_high(low, levels=2):
     sd.quality = 3
     for nm, g in groups.items():
         for j, (tt, size, strength, stretch) in enumerate(FINISH[nm][4]):
+            if nm in os.environ.get('BAKE_NODISP', '').split(','):
+                continue
             tex = bpy.data.textures.new("%s_%d" % (nm, j), type=tt)
             if hasattr(tex, "noise_scale"):
                 tex.noise_scale = size
@@ -280,6 +282,15 @@ def wire_albedo(N):
     c = _mix(nt, c, ao_k, 1.0, 'MULTIPLY')
     ao_b = _math(nt, 'MULTIPLY_ADD', N["ao2"].outputs["AO"], 0.3, 0.7)
     c = _mix(nt, c, ao_b, 1.0, 'MULTIPLY')
+    # living skin is never one grey: warm and cool drift across it, blood shows in the hollows, bruises sit in the lows
+    if os.environ.get("BAKE_SKINTONE", "1") == "1":
+        sk = _math(nt, 'COMPARE', N["layer_x"], 10.5, 0.5)
+        drift = _mix(nt, (1.05, 0.82, 0.74, 1.0), (0.76, 0.9, 1.08, 1.0), N["noise2"].outputs["Fac"], 'MIX')
+        flush = _mix(nt, (0.5, 0.26, 0.24, 1.0), (1.0, 1.0, 1.0, 1.0), _math(nt, 'MULTIPLY_ADD', N["ao"].outputs["AO"], 1.6, -0.45, clamp=True), 'MIX')
+        bru = _math(nt, 'MULTIPLY', _math(nt, 'SUBTRACT', N["noise"].outputs["Fac"], 0.55, clamp=True), 2.2, clamp=True)
+        bruise = _mix(nt, (1.0, 1.0, 1.0, 1.0), (0.62, 0.5, 0.66, 1.0), bru, 'MIX')
+        st = _mix(nt, _mix(nt, drift, flush, 1.0, 'MULTIPLY'), bruise, 1.0, 'MULTIPLY')
+        c = _mix(nt, c, _mix(nt, c, st, 1.0, 'MULTIPLY'), sk, 'MIX')
     # edges: pointiness above its mean rubs the surface lighter
     pt = _math(nt, 'SUBTRACT', N["geo"].outputs["Pointiness"], 0.56)     # only real edges, not the sculpt's grain
     pt = _math(nt, 'MULTIPLY', pt, 5.0, clamp=True)
@@ -463,7 +474,10 @@ def _bake_one(low, kind, size, levels, samples, prefix):
 
     # albedo: the painted colour as emission
     alb = wire_albedo(N)
-    nt.links.new(alb, emis.inputs["Color"])
+    if os.environ.get('BAKE_DEBUG'):
+        emis.inputs["Color"].default_value = (1, 1, 1, 1)
+    else:
+        nt.links.new(alb, emis.inputs["Color"])
     im = _image(kind + "_albedo", size)
     _target(low, im)
     bpy.ops.object.bake(type='EMIT')

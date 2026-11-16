@@ -465,12 +465,12 @@ def body(g, col, mat="leather", girth=1.0, belly=0.0, limb=1.0, head=1.0, neck=1
             B.hand(g, sx, col, "hand_" + side(sx), closed=0.5)
 
 
-def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0):
+def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0, hunch=0.0):
     """A MakeHuman body (mh_body.py), shaped by `macro` (gender, age, muscle, weight, proportions, height: 0..1),
     retargeted to the rig, with coals in the eyes. skull 0..1: the face wasted toward the bone beneath (cheeks and
     temples hollowed, lips drawn back off the teeth, the eyes sunk), with the teeth bared."""
     import mh_body
-    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y)
+    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y, hunch=hunch)
     bd = Body(P, F, FUV, L)
     E = [e for e in eyes if e is not None]
     if skull > 0.0 and len(E) == 2:
@@ -966,12 +966,43 @@ def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=Tru
             g.tube([V(-0.03, y, zf - 0.016), V(0.0, y - 0.012, zf - 0.02), V(0.03, y, zf - 0.016)], 0.004, cord, "leather", "chest", n=4)
 
 
+def sack(g, at, h, w, d, col, cord, lab="chest", seed=1.0, mat="linen", neck=0.04, lean=0.04):
+    """A stuffed sack hung by its tied neck: gathered at the top, heavy and sagging at the bottom, vertical folds that
+    fade down the belly, lumps where the load sits, a corded knot and one patched seam. Rings round Y (rig space)."""
+    NU, NV = 28, 16
+    P = []
+    for i in range(NV + 1):
+        t = i / NV                                   # 0 at the knot, 1 at the base
+        prof = math.sin(min(t * 1.18, 1.0) * math.pi * 0.5) ** 0.8 * (1.0 - max(t - 0.82, 0.0) ** 2 * 6.0)
+        r0 = neck + (1.0 - neck) * prof
+        row = []
+        for j in range(NU):
+            a = TAU * j / NU
+            fold = 1.0 + 0.13 * (1.0 - t) ** 0.7 * math.sin(a * 7.0 + seed + t * 3.0) + 0.05 * math.sin(a * 3.0 + t * 5.0 + seed * 2.0)
+            lump = 1.0 + 0.09 * math.sin(a * 2.0 + t * 7.0 + seed) * math.sin(t * math.pi) + 0.05 * math.sin(a * 5.0 - t * 9.0)
+            rr = r0 * fold * lump
+            sag = 1.0 + 0.15 * t * t
+            row.append(at + V(math.cos(a) * rr * w, -t * h * sag, math.sin(a) * rr * d + lean * t))
+        P.append(row)
+    g.grid(P, col, mat, lab, lambda i, j, p: (j / NU * 1.2, i / NV * 1.2), wrap=True, flip=True)
+    k = at + V(0, -h * 0.03, 0)
+    g.lathe([(neck * 1.5, 0.0), (neck * 1.9, 0.03), (neck * 1.3, 0.07), (neck * 1.0, 0.11)], k + V(0, 0.01, 0), col, mat, lab, n=14)
+    for q in range(3):
+        y = -0.03 * q
+        g.tube([k + V(math.cos(TAU * m / 14) * neck * 1.5, y - 0.01 * m / 14 * 2, math.sin(TAU * m / 14) * neck * 1.5) for m in range(15)], 0.0035, cord, "leather", lab, n=4)
+    for m in range(2):                               # frayed tails of the knot
+        g.tube([k + V(neck * 1.5 * (m * 2 - 1), 0.0, 0.0), k + V(neck * (2.8 * (m * 2 - 1)), -0.07, 0.02), k + V(neck * (3.4 * (m * 2 - 1)), -0.15, 0.03)], [0.004, 0.003, 0.0015], cord, "leather", lab, n=4)
+    # a patch stitched over the seam
+    pc = at + V(0.0, -h * 0.55, d * 0.97 + lean * 0.5)
+    g.plate(lambda u, v: pc + V((u - 0.5) * 0.12 * w, (v - 0.5) * 0.12, (math.sin(u * math.pi) * math.sin(v * math.pi)) * 0.012), 5, 5, tuple(c * 0.7 for c in col), "linen", lab)
+
+
 def wretch():
     """A starved scavenger bent under what it carries: bare grey skin over ribs, a loin of rags and wrappings, a hairless
     skull with coals sunk in it, a stuffed sack hung from straps that cut into the shoulders, a gaff in its fist."""
     g = Geo()
-    SKIN, RAG, SACK, BELT = (0.46, 0.46, 0.43), (0.17, 0.13, 0.1), (0.5, 0.43, 0.3), (0.1, 0.075, 0.06)
-    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=12000)
+    SKIN, RAG, SACK, BELT = (0.42, 0.33, 0.29), (0.17, 0.13, 0.1), (0.5, 0.43, 0.3), (0.1, 0.075, 0.06)
+    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=8300, hunch=1.0)
     wraps(g, b, ("knee_",), 0.07, 0.3, RAG)
     wraps(g, b, ("elbow_", "hand_"), 0.8, 0.92, RAG, seed=2)
     g.robe([(0.98, 0.16, 0.12, 0.0), (0.9, 0.17, 0.13, 0.0), (0.7, 0.2, 0.16, 0.0), (0.56, 0.21, 0.17, 0.0)], RAG, "wool", B.waist_split(0.9), n=48, pleats=8, pleat_amp=0.1, tatter=0.14)
@@ -979,15 +1010,16 @@ def wretch():
     for sx in (-1, 1):
         t = side(sx)
         g.lathe([(0.03, 0.0), (0.033, 0.03), (0.03, 0.06)], V(sx * 0.24, 0.82, 0.0), RAG, "wool", "elbow_" + t, n=10)
-    S = V(0.0, 1.24, 0.24)
-    g.ball(S, 0.22, SACK, "linen", "chest", n=12, sx=1.05, sy=1.2, sz=0.75)
-    g.lathe([(0.08, 0.0), (0.05, 0.05), (0.08, 0.12)], S + V(0, 0.25, -0.02), SACK, "linen", "chest", n=12)
-    g.tube([S + V(-0.05, 0.3, 0.0), S + V(-0.12, 0.62, 0.05)], 0.018, (0.3, 0.22, 0.14), "wood", "chest", n=6)
-    g.tube([S + V(0.06, 0.28, 0.0), S + V(0.14, 0.52, 0.02)], 0.014, (0.3, 0.22, 0.14), "wood", "chest", n=6)
-    g.ball(S + V(0.14, 0.05, 0.14), 0.07, (0.18, 0.16, 0.15), "iron", "chest", n=8)
+    S = V(0.0, 1.42, 0.2)
+    sack(g, S, 0.5, 0.27, 0.2, SACK, BELT, seed=1.7, neck=0.05, lean=0.05)
+    for sx, y0, a in ((-1, 0.2, 0.0), (1, 0.18, 0.5)):                     # things tied on: a dented pot, a bundle of sticks
+        pass
+    g.tube([S + V(-0.1, 0.02, -0.02), S + V(-0.16, 0.5, 0.0)], 0.016, (0.3, 0.22, 0.14), "wood", "chest", n=6)
+    g.tube([S + V(0.06, 0.02, -0.02), S + V(0.13, 0.42, 0.02)], 0.013, (0.3, 0.22, 0.14), "wood", "chest", n=6)
+    g.lathe([(0.0, 0.0), (0.075, 0.0), (0.09, 0.07), (0.085, 0.13), (0.075, 0.13), (0.07, 0.09), (0.0, 0.01)], S + V(0.2, -0.32, 0.17), (0.2, 0.18, 0.17), "iron", "chest", n=14)
     for sx in (-1, 1):
         strap(g, [V(sx * 0.11, 1.5, -0.1), V(sx * 0.13, 1.4, -0.13), V(sx * 0.12, 1.16, -0.12), V(sx * 0.14, 1.05, 0.0), V(sx * 0.13, 1.14, 0.17)], BELT)
-    rags(g, b, RAG, (0.6, 0.55, 0.44), BELT)
+    rags(g, b, RAG, (0.6, 0.55, 0.44), BELT, v1=int(os.environ.get('WV1', '112')))
     gf = Geo()
     gf.tube([V(0, -0.5, -0.03), V(0, 0.9, -0.03)], 0.016, (0.28, 0.2, 0.13), "wood", "hand_r", n=8)
     gf.tube([V(0, 0.9, -0.03), V(0, 1.0, -0.06), V(0, 1.02, -0.14), V(0, 0.96, -0.2), V(0, 0.9, -0.19)], [0.014, 0.012, 0.01, 0.008, 0.002], (0.35, 0.33, 0.32), "iron", "hand_r", n=8)
