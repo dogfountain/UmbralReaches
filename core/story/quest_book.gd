@@ -1,10 +1,11 @@
 extends RefCounted
 ## Quests, attitudes and remembered choices (story; no class_name). Pure static functions over
 ## Travel.story (saved in its own [story] section):
-##   quests {id: {"s": step, "d": done, "p": pick, "f": {found key: true}, "t": touched tick}}
+##   quests {id: {"s": step, "d": done, "p": pick, "f": {found key: true}, "t": touched tick, "b": begun tick}}
 ##   att    {npc id: int}            how someone feels about the wanderer (-5 .. 5)
 ##   tick   int                      bumps on every quest change (the newest task is shown first)
-##   track  {id: false}              tasks the wanderer took off the tracker (ui/quest_log.gd)
+##   follow String                   the tracked task (ui/quest_log.gd's Track; "main" = the story; "" = the default)
+##   track  {id: false}              an older save's tasks taken off its many-line tracker (no longer read)
 ## r33 per task: "n" the current step's count (slay / collect / seal), "of" a seal's guard total,
 ## "rw" the gear offered at the accept screen (one is chosen at the turn-in), "day" the village
 ## night a daily was handed in, "c" how many times it was, "left" a carried coal's seconds.
@@ -113,6 +114,7 @@ static func start(id: String) -> bool:
 		d["c"] = c
 	(st().quests as Dictionary)[id] = d
 	_touch(d)
+	d["b"] = d.t                               # begun: the tracker's "newest task" (the touch tick moves with every count)
 	_changed(id)
 	_announce(id, 0, d)                        # the banner (ui/quest_log.gd) names the task
 	return true
@@ -351,19 +353,59 @@ static func progress(text: String, full := false) -> void:
 		lg.call("progress", text, full)
 
 
+## The tracked task (docs/quest_trail.md): the one the HUD follows, with the waypoint, the compass mark and the trail.
+## Saved as story key "follow": "" = nothing picked (core/story/quest_track.gd chooses: the guided first act, else the
+## newest task, else the story), MAIN = the story's own way, else a task id. A save from before keeps its old "track"
+## dict ({id: false}: tasks once taken off a many-line tracker); it is no longer read.
+const MAIN := "main"
+const MAIN_TITLE := "The Night's Road"
+
+
+## The ledger's pick ("" = none).
+static func followed() -> String:
+	return String(st().get("follow", ""))
+
+
+## Pick the task to follow (the ledger's Track): MAIN for the story, "" to let the tracker choose again.
+static func follow(id: String) -> void:
+	if id == followed():
+		return
+	st()["follow"] = id
+	Events.quest_tracked.emit(id)
+	save()
+
+
+## The task followed now: the tracker's choice (the pick, else its default); without one in the tree, the pick if it is
+## still under way, else the newest task.
+static func tracked_id() -> String:
+	var tree := Engine.get_main_loop() as SceneTree
+	var t: Node = tree.get_first_node_in_group("quest_track") if tree else null
+	if t != null:
+		return String(t.get("current_id"))
+	var f := followed()
+	return f if f == MAIN or active(f) else newest()
+
+
 static func tracked(id: String) -> bool:
-	var tr: Variant = st().get("track", {})
-	return not (tr is Dictionary and (tr as Dictionary).get(id, true) == false)
+	return id != "" and tracked_id() == id
 
 
+## The ledger's Track (and its tests): on picks the task; off goes back to the story's own way (the story itself:
+## to the tracker's default).
 static func set_tracked(id: String, on: bool) -> void:
-	if not (st().get("track") is Dictionary):
-		st()["track"] = {}
-	if on:
-		(st().track as Dictionary).erase(id)
-	else:
-		(st().track as Dictionary)[id] = false
-	_changed(id)
+	follow(id if on else (MAIN if id != MAIN else ""))
+
+
+## The task under way that moved last (the tracker's default), "" when none is.
+static func newest() -> String:
+	var best := ""
+	var bt := -1
+	for id: String in Chains.ORDER:
+		var b := int(q(id).get("b", q(id).get("t", 0)))
+		if active(id) and not Chains.hidden(id) and b > bt:
+			bt = b
+			best = id
+	return best
 
 
 static func att(npc: String) -> int:
@@ -536,17 +578,17 @@ const TERMS := ["q", "qat", "qd", "qp", "att", "ash", "secret", "secrets", "elit
 
 # --- the objective line -----------------------------------------------------------------------------
 
-## Lines for the tracked active quests, newest first: [{id, text, main: false, quest: true, title,
-## n, of (0 = not counted), ready (only the turn-in left)}].
-static func lines(limit := 2) -> Array:
-	var act: Array = []
-	for id: String in Chains.ORDER:
-		if active(id) and tracked(id):
-			act.append(id)
-	act.sort_custom(func(a: String, b: String) -> bool: return int(q(a).get("t", 0)) > int(q(b).get("t", 0)))
-	var out: Array = []
-	for id: String in act.slice(0, limit):
-		var c := Chains.count_of(id, step(id), q(id))
-		out.append({"id": "quest:" + id, "text": Chains.step_text(id, step(id), q(id)), "main": false, "quest": true,
-			"title": String(Chains.QUESTS[id].name), "n": int(c[0]), "of": int(c[1]), "ready": ready(id)})
-	return out
+## The objective line's block for task `id` ({} when it is not under way): {id, text, main: false, quest: true, title, n,
+## of (0 = not counted), ready (only the turn-in left)}.
+static func line(id: String) -> Dictionary:
+	if not active(id):
+		return {}
+	var c := Chains.count_of(id, step(id), q(id))
+	return {"id": "quest:" + id, "text": Chains.step_text(id, step(id), q(id)), "main": false, "quest": true,
+		"title": String(Chains.QUESTS[id].name), "n": int(c[0]), "of": int(c[1]), "ready": ready(id)}
+
+
+## The tracked task's block, as a list (one task is tracked; `limit` is kept for older callers).
+static func lines(limit := 1) -> Array:
+	var l := line(tracked_id())
+	return [l] if not l.is_empty() and limit > 0 else []

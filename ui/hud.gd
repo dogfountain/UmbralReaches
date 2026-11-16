@@ -56,6 +56,7 @@ const TextDirector := preload("res://ui/text_director.gd")
 const LootWindow := preload("res://ui/loot_window.gd")
 const KeyCap := preload("res://ui/key_cap.gd")
 const Guide := preload("res://core/story/guide.gd")
+const QuestTrack := preload("res://core/story/quest_track.gd")
 
 
 class Crosshair extends Control:
@@ -621,7 +622,9 @@ func _stage_tick(delta: float) -> void:
 	var met: bool = flags is Dictionary and bool((flags as Dictionary).get("met_keep", false))
 	met = met or not HudPrefs.new_game_open_cached()      # only a new game keeps them back
 	if _compass:
-		_compass.visible = met or Guide.on()          # a guided start has the compass at once: it carries the way to the keep
+		var tr := get_tree().get_first_node_in_group("quest_track") as QuestTrack
+		# a new game has the compass at once when the followed step has a place: it carries the way to the keep
+		_compass.visible = met or Guide.on() or (tr != null and tr.target_pos() != Vector3.INF)
 	if _minimap:
 		_minimap.visible = met
 

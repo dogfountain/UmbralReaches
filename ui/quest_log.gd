@@ -19,6 +19,7 @@ const UIType := preload("res://ui/type.gd")
 const UiSound := preload("res://ui/ui_sound.gd")   ## quiet menu sounds (F)
 const QuestMarks := preload("res://ui/quest_marks.gd")
 const TextDirector := preload("res://ui/text_director.gd")
+const Guide := preload("res://core/story/guide.gd")
 const ACTION := "quest_log"
 const Med := preload("res://ui/medieval_style.gd")
 const LANTERN := Med.GILT
@@ -363,6 +364,8 @@ func entries() -> Array:
 		for id: String in Chains.ORDER:
 			if Book.active(id) and String(Chains.QUESTS[id].get("zone", "")) == String(z[0]):
 				out.append(id)
+	if not out.is_empty():
+		out.insert(0, Book.MAIN)                  # the story's own way heads the list, to follow it again
 	for id2: String in Chains.ORDER:
 		if Book.done(id2):
 			out.append(id2)
@@ -380,15 +383,16 @@ func _fill() -> void:
 			under += 1
 	_count.text = "%d under way" % under
 	if not sel in ids:
-		sel = String(ids[0]) if not ids.is_empty() else ""
+		var tid := Book.tracked_id()
+		sel = tid if tid in ids else (String(ids[0]) if not ids.is_empty() else "")
 	var zone := "#"
 	for id: String in ids:
 		var done := Book.done(id)
-		var z := "#done" if done else String(Chains.QUESTS[id].get("zone", ""))
+		var z := "#done" if done else ("#story" if id == Book.MAIN else String(Chains.QUESTS[id].get("zone", "")))
 		if z != zone:
 			zone = z
 			var h := _lbl(18, Med.GILT_DEEP)
-			h.text = "FINISHED" if done else Chains.zone_name(z).to_upper()
+			h.text = "FINISHED" if done else ("THE STORY" if id == Book.MAIN else Chains.zone_name(z).to_upper())
 			if _list.get_child_count() > 0:
 				var gap := Control.new()
 				gap.custom_minimum_size = Vector2(0, 8)
@@ -404,7 +408,7 @@ func _fill() -> void:
 	_empty.visible = ids.is_empty()
 	if not hosted:
 		_panel.offset_bottom = _panel.offset_top + (_tall if not ids.is_empty() else 0.0)    # shrinks to its content
-	_hint.text = "[↑↓] choose      [T] track      [X] abandon      [L] close" if Book.active(sel) else ("[↑↓] choose      [L] close" if not ids.is_empty() else "[L] close")
+	_hint.text = "[↑↓] choose      [T] track      [X] abandon      [L] close" if Book.active(sel) else ("[↑↓] choose      [T] track      [L] close" if sel == Book.MAIN else ("[↑↓] choose      [L] close" if not ids.is_empty() else "[L] close"))
 
 
 ## One task in the list: its painted mark, the name, and who set it and where, in a button that takes a gilt frame
@@ -414,7 +418,9 @@ func _entry(id: String, done: bool) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(0, 66)
 	var tag := ""
-	if Book.ready(id):
+	if id == Book.MAIN:
+		tag = "   (followed)" if Book.tracked(id) else ""
+	elif Book.ready(id):
 		tag = "   ready"
 	elif String(Chains.QUESTS[id].get("repeat", "")) == "daily":
 		tag = "   (daily)"
@@ -423,7 +429,7 @@ func _entry(id: String, done: bool) -> Button:
 	h.add_theme_constant_override("separation", 12)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(h)
-	var pin := QuestMarks.lore_art("done" if done else ("ready" if Book.ready(id) else ("tracked" if Book.tracked(id) else "")))
+	var pin := QuestMarks.lore_art("story" if id == Book.MAIN else ("done" if done else ("ready" if Book.ready(id) else ("tracked" if Book.tracked(id) else ""))))
 	var ic := TextureRect.new()
 	ic.texture = pin
 	ic.custom_minimum_size = Vector2(30, 30)
@@ -440,10 +446,10 @@ func _entry(id: String, done: bool) -> Button:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(v)
 	var nm := _lbl(21, INK, false)
-	nm.text = String(Chains.QUESTS[id].name) + tag
+	nm.text = (Book.MAIN_TITLE if id == Book.MAIN else String(Chains.QUESTS[id].name)) + tag
 	v.add_child(nm)
 	var wh := _lbl(15, QUIET, false)
-	wh.text = String(Chains.QUESTS[id].where)
+	wh.text = _story_where() if id == Book.MAIN else String(Chains.QUESTS[id].where)
 	wh.clip_text = true
 	v.add_child(wh)
 	b.set_meta("name_label", nm)
@@ -472,9 +478,43 @@ func select(id: String) -> void:
 	_fill()
 
 
+## The story's step now, as the ledger's row names it.
+func _story_where() -> String:
+	var g := get_tree().get_first_node_in_group("guide") as Guide if is_inside_tree() else null
+	var st: Dictionary = g.story_step() if g != null else {}
+	return String(st.get("text", "The way is yours to find"))
+
+
+## The story's own way, as a page: what is wanted next, and Track to follow it.
+func _fill_story() -> void:
+	var n := _lbl(30, Med.BONE)
+	Med.gilt(n, 30)
+	n.text = Book.MAIN_TITLE
+	_detail.add_child(n)
+	var tx := _lbl(20, Med.BONE, false)
+	tx.text = "The night's own errand, the one that is not anyone's to give: the doors, the keepers, the bells and the summit. Follow it and the mark, the compass and the trail lead to it."
+	tx.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail.add_child(tx)
+	var h := _lbl(18, Med.GILT_DEEP)
+	h.text = "WHAT IS WANTED"
+	_detail.add_child(h)
+	var st := _lbl(19, INK, false)
+	st.text = _story_where()
+	st.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	QuestMarks.row(_detail, st, QuestMarks.lore_art("story"), 24.0)
+	var row := HBoxContainer.new()
+	_detail.add_child(row)
+	var trk := _button("Untrack" if Book.tracked(Book.MAIN) else "Track")
+	trk.pressed.connect(toggle_track)
+	row.add_child(trk)
+
+
 func _fill_detail() -> void:
 	for c in _detail.get_children():
 		c.queue_free()
+	if sel == Book.MAIN:
+		_fill_story()
+		return
 	if sel == "" or not Chains.QUESTS.has(sel):
 		return
 	var qd: Dictionary = Chains.QUESTS[sel]
@@ -556,7 +596,7 @@ func _button(t: String) -> Button:
 
 
 func toggle_track() -> void:
-	if not Book.active(sel):
+	if sel != Book.MAIN and not Book.active(sel):
 		return
 	Book.set_tracked(sel, not Book.tracked(sel))
 	UiSound.play(self, "confirm")

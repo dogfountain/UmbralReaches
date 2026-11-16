@@ -1,11 +1,12 @@
 extends Control
-## The guide's waypoint (core/story/guide.gd): a painted mark hung over the place the next step is (the Keg's door, a
-## cold brazier, a seal, a keeper's ring), its distance in metres under it, after WoW's tracked-quest arrow and
-## Enshrouded's marker. Small and quiet: it fades out in the last few metres (the place's own mark or prompt takes
+## The tracked task's waypoint (core/story/quest_track.gd): a painted mark hung over the place its step is (the Keg's
+## door, a cold brazier, a seal, a keeper's ring, the person or the thing a task wants), its distance in metres under it,
+## after WoW's tracked-quest arrow and Enshrouded's marker. The trail's marks on the way (core/story/quest_trail.gd) lead
+## to it. Small and quiet: it fades out in the last few metres (the place's own mark or prompt takes
 ## over), never draws while the place is behind the camera or off the screen's middle (the compass strip carries the
-## bearing then), and steps aside for a menu, a conversation, the loading screen and a locked-on fight. Added by ui/hud.gd (one line); polls the guide every frame (one group lookup).
+## bearing then), and steps aside for a menu, a conversation, the loading screen and a locked-on fight. Added by ui/hud.gd (one line); polls the tracker every frame (one group lookup).
 
-const Guide := preload("res://core/story/guide.gd")
+const QuestTrack := preload("res://core/story/quest_track.gd")
 const Forge := preload("res://ui/hud_forge.gd")
 const TextDirector := preload("res://ui/text_director.gd")
 const INK := Color(0.96, 0.9, 0.78)
@@ -36,16 +37,16 @@ func _process(delta: float) -> void:
 	_t += delta
 	var want := 0.0
 	var tree := get_tree()
-	var g := tree.get_first_node_in_group("guide") as Guide
+	var tr := tree.get_first_node_in_group("quest_track") as QuestTrack
 	var cam := get_viewport().get_camera_3d()
 	var p := tree.get_first_node_in_group(Groups.PLAYER) as Player
 	var zone := tree.current_scene
 	var hidden := tree.paused or (zone != null and zone.get_node_or_null("LoadingScreen") != null)
-	if g != null and cam != null and p != null and not hidden and p.lock_target() == null:
-		var st := g.step()
+	if tr != null and cam != null and p != null and not hidden and p.lock_target() == null:
+		var st := tr.current()
 		var t: Vector3 = st.get("target", Vector3.INF)
 		if t != Vector3.INF and not cam.is_position_behind(t):
-			_art = String(st.get("art", "quest_target"))
+			_art = String(st.get("art", "followed"))
 			_dist = Vector2(t.x - p.global_position.x, t.z - p.global_position.z).length()
 			var vp := get_viewport_rect().size
 			var cam_vp := Vector2(cam.get_viewport().get_visible_rect().size)
