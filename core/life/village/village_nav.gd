@@ -65,6 +65,9 @@ static func _mobile(c: Node) -> bool:
 	return c.is_in_group(Groups.ENEMY) or (c.get_parent() != null and c.get_parent().is_in_group(Groups.ENEMY))
 
 
+var blocker := ""                  ## what the last failed clear() found (the report names it)
+
+
 ## The clear column at a floor point: true when nothing but terrain is in it.
 func clear(p: Vector3) -> bool:
 	_q.transform = Transform3D(Basis.IDENTITY, p + Vector3.UP * ((CLEAR_LO + CLEAR_HI) * 0.5))
@@ -75,6 +78,7 @@ func clear(p: Vector3) -> bool:
 			continue
 		if String(c.name).begins_with("Terrain") or _mobile(c):
 			continue
+		blocker = String(c.get_path())
 		return false
 	return true
 
@@ -190,7 +194,7 @@ func _edge_ok(a: Vector3, b: Vector3) -> String:
 		if _wet(x, z, y):
 			return "water at %.1f,%.1f" % [x, z]
 		if not clear(Vector3(x, y, z)):
-			return "blocked at %.1f,%.1f" % [x, z]
+			return "blocked at %.1f,%.1f by %s" % [x, z, blocker]
 		prev = y
 	if absf(b.y - prev) > MAX_STEP:
 		return "step at end"

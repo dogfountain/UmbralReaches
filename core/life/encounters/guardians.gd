@@ -94,7 +94,7 @@ const FALLBACK := [
 	{"at": Vector2(128.0, 122.0), "id": "drowned_deacon", "key": "fb_mere_landing", "r34": true},
 	# --- the Far Reaches (enemies pass): on each region's landmark (RealmReaches.SLOTS' places), skipped when its
 	# place builder sets its own site within 45 m (a group site with no "guardian" meta picks the region's own)
-	{"at": Vector2(-318.0, -104.0), "id": "castellan", "key": "fb_broken_keep", "r34": true},
+	{"at": Vector2(-292.0, -86.0), "id": "castellan", "key": "fb_broken_keep", "r34": true},
 	{"at": Vector2(-330.0, -8.0), "id": "cap_mother", "key": "fb_ring_of_caps", "r34": true},
 	{"at": Vector2(-338.0, 152.0), "id": "barrow_king", "key": "fb_kings_barrow", "r34": true},
 	{"at": Vector2(-330.0, 352.0), "id": "reed_reeve", "key": "fb_heron_stones", "r34": true},

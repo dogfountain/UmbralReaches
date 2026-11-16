@@ -154,7 +154,7 @@ const RARES := {
 		"route": [Vector2(-12, 360), Vector2(12, 362), Vector2(44, 356), Vector2(64, 346), Vector2(24, 350)],
 		"line": "Spill lies down in the dry channel it guarded. Nothing runs in it now."},
 	"charcoal_burner": {"title": "The Last Charcoal-Burner", "kind": "cinder", "hp": 36, "scale": 1.5,
-		"spots": [Vector2(158, 326), Vector2(178, 340), Vector2(160, 342)], "ash": 46, "loot": [["relic_fragment", 3]],
+		"spots": [Vector2(173, 342), Vector2(165, 342), Vector2(181, 336)], "ash": 46, "loot": [["relic_fragment", 3]],
 		"line": "The Last Charcoal-Burner banks his fire for good. The stack smokes on without him."},
 	"cracked_tollman": {"title": "The Cracked Tollman", "kind": "tollman", "hp": 40, "scale": 1.5,
 		"spots": [Vector2(348, -110), Vector2(344, -120), Vector2(352, -102)], "ash": 50, "loot": [["relic_fragment", 3]],
