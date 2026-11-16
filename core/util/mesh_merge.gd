@@ -270,20 +270,29 @@ const MAX_TRIS := 3000              ## a heavier mesh keeps its own draw (and it
 
 
 ## The world pass (Atmosphere.post_build, after ranges and shadows are final): under each of `roots`, every
-## host's mergeable children are merged by material, shadow, range, layers and cell. A mesh any script
+## eligible mesh is merged with its neighbours by material, shadow, range, layers and cell. A mesh any script
 ## holds (a property, an array or dictionary in one) or that is in a group is left as it is: something
 ## may move, hide or swap it. Returns [meshes before, draws after].
+## Across parents (16 Nov, frame pacing): a mesh's group is not its parent but its ANCHOR, the first ancestor a
+## script could touch. From the parent it climbs through plain Node3Ds (no script, no group, no meta, held by no
+## script, visible) and stops at the first that is not one, or at the merge root. The merged mesh hangs under the
+## anchor, so whatever moves, hides or frees the anchor (an Area streamed out, a door, a quest prop's holder)
+## still moves, hides or frees it; the plain nodes in between are only containers no script reaches. Per parent the
+## pass made 3,156 meshes into 2,971 draws; across parents 3,029 into 2,771 (16 Nov). With no hierarchy limit at all
+## the same meshes would make 2,693 (`--merge-why` prints this ceiling): the rest differ by material, range or cell.
 static func merge_world(root: Node, roots: Array) -> Vector2i:
 	var cands := {}
+	var root_ids := {}
 	for rn: String in roots:
 		var r := root.get_node_or_null(rn)
 		if r == null:
 			continue
+		root_ids[r.get_instance_id()] = true
 		for n in r.find_children("*", "MeshInstance3D", true, false):
 			var mi := n as MeshInstance3D
 			if not _eligible(mi) or mi.get_parent() is not Node3D or not _plain_groups(mi) or mi.get_meta_list().has(&"far_detail"):
 				continue
-			if _tris(mi.mesh) > MAX_TRIS:
+			if _tris(mi.mesh) > MAX_TRIS or not mi.is_visible_in_tree():
 				continue
 			cands[mi.get_instance_id()] = mi
 	if "--merge-why" in OS.get_cmdline_user_args():
@@ -299,31 +308,67 @@ static func merge_world(root: Node, roots: Array) -> Vector2i:
 	if cands.is_empty():
 		return Vector2i.ZERO
 	var n0 := cands.size()
-	_drop_held(root.get_tree().root, cands)
+	var held := {}
+	_drop_held(root.get_tree().root, cands, held)
+	_drop_animated(root, roots, cands, held)
 	if "--merge-why" in OS.get_cmdline_user_args():
 		print("MERGE held by scripts: %d of %d" % [n0 - cands.size(), n0])
+	var across := not ("--merge-per-parent" in OS.get_cmdline_user_args())   # A/B: the old per-parent grouping
+	var anchors := {}                                 # parent id -> anchor (climbed once per parent)
 	var groups := {}
 	for id: int in cands:
 		var mi := cands[id] as MeshInstance3D
-		var c := mi.transform * mi.mesh.get_aabb().get_center()
+		var par := mi.get_parent() as Node3D
+		var anchor: Node3D = par
+		if across:
+			var pid := par.get_instance_id()
+			if not anchors.has(pid):
+				anchors[pid] = _anchor(par, root_ids, held)
+			anchor = anchors[pid]
+		var gc := mi.global_transform * mi.mesh.get_aabb().get_center()
 		var cs := CELL if (mi.visibility_range_end > 0.0 or mi.visibility_range_begin > 0.0) else CELL_FAR
-		var cell := Vector3i(floori(c.x / cs), floori(c.y / cs), floori(c.z / cs))
-		var key := "%d|%s|%s" % [mi.get_parent().get_instance_id(), _key(mi), cell]
+		var cell := Vector3i(floori(gc.x / cs), floori(gc.y / cs), floori(gc.z / cs))
+		var key := "%d|%s|%s" % [anchor.get_instance_id(), _key(mi), cell]
 		if not groups.has(key):
-			groups[key] = []
+			groups[key] = [anchor]
 		groups[key].append(mi)
+	if "--merge-why" in OS.get_cmdline_user_args():
+		var free_keys := {}                           # the ceiling: every candidate grouped by key and cell alone
+		var stops := {}                               # where climbs stopped, by reason
+		for id: int in cands:
+			var mi := cands[id] as MeshInstance3D
+			var gc := mi.global_transform * mi.mesh.get_aabb().get_center()
+			var cs := CELL if (mi.visibility_range_end > 0.0 or mi.visibility_range_begin > 0.0) else CELL_FAR
+			free_keys["%s|%s" % [_key(mi), Vector3i(floori(gc.x / cs), floori(gc.y / cs), floori(gc.z / cs))]] = true
+		for pid: int in anchors:
+			var a := anchors[pid] as Node3D
+			var why := "merge root" if root_ids.has(a.get_instance_id()) else ("held" if held.has(a.get_instance_id()) else \
+				("script " + String((a.get_script() as Script).resource_path).get_file() if a.get_script() != null else \
+				("class " + a.get_class() if a.get_class() != "Node3D" else ("groups" if not a.get_groups().is_empty() else \
+				("meta " + str(a.get_meta_list().slice(0, 2)) if not a.get_meta_list().is_empty() else ("hidden" if not a.visible else "?"))))))
+			stops[why] = int(stops.get(why, 0)) + 1
+		var top := stops.keys()
+		top.sort_custom(func(x: Variant, y: Variant) -> bool: return int(stops[x]) > int(stops[y]))
+		var parts := PackedStringArray()
+		for k: Variant in top.slice(0, 14):
+			parts.append("%s %d" % [k, stops[k]])
+		print("MERGE ceiling (no anchors): %d candidates -> %d draws; groups by anchor: %d; climbs stop at: %s" % [cands.size(), free_keys.size(), groups.size(), ", ".join(parts)])
 	var before := 0
 	var after := 0
+	var climbed := 0
 	for key: String in groups:
-		var list: Array = groups[key]
+		var list: Array = (groups[key] as Array).slice(1)
+		var parent := (groups[key] as Array)[0] as Node3D
 		before += list.size()
 		if list.size() < 2:
 			after += 1
 			continue
-		var parent := (list[0] as MeshInstance3D).get_parent() as Node3D
+		var inv := parent.global_transform.affine_inverse()
 		var ctr := Vector3.ZERO
 		for mi: MeshInstance3D in list:
-			ctr += mi.transform * mi.mesh.get_aabb().get_center()
+			ctr += inv * (mi.global_transform * mi.mesh.get_aabb().get_center())
+			if mi.get_parent() != parent:
+				climbed += 1
 		ctr /= float(list.size())
 		var origin := Transform3D(Basis.IDENTITY, ctr)
 		var mesh := bake(list, parent, origin)
@@ -351,11 +396,58 @@ static func merge_world(root: Node, roots: Array) -> Vector2i:
 			out.set_meta(m, first.get_meta(m))       # the fade guard's range_k / fade_orig: already applied
 		out.set_meta(&"merged", list.size())
 		for mi: MeshInstance3D in list:
-			parent.remove_child(mi)
+			mi.get_parent().remove_child(mi)
 			mi.queue_free()
 		parent.add_child(out)
 		after += 1
+	if "--merge-why" in OS.get_cmdline_user_args():
+		print("MERGE across parents: %d meshes joined a group under an ancestor" % climbed)
+	# the pass's caches go with it: every merged piece's vertex arrays, keyed by the piece's Mesh, were kept for the
+	# whole night (a copy nothing reads again, and meshes held past the renderer at quit); merge_children refills them
+	_arr_cache.clear()
+	_shader_ok.clear()
 	return Vector2i(before, after)
+
+
+## An AnimationPlayer / AnimationTree moves nodes by path: every mesh under its root node stays as it is, and that
+## root stops any climb (a windlass, a bell, a lift built from a glTF with its clips).
+static func _drop_animated(root: Node, roots: Array, cands: Dictionary, held: Dictionary) -> void:
+	for rn: String in roots:
+		var r := root.get_node_or_null(rn)
+		if r == null:
+			continue
+		for a in r.find_children("*", "AnimationMixer", true, false):
+			var top := (a as AnimationMixer).get_node_or_null((a as AnimationMixer).root_node)
+			if top == null:
+				top = a.get_parent()
+			if top == null:
+				continue
+			held[top.get_instance_id()] = true
+			for m in top.find_children("*", "MeshInstance3D", true, false):
+				cands.erase(m.get_instance_id())
+
+
+## The node a mesh under `par` merges under: climb from `par` while the node is a plain container (exactly a
+## Node3D, no script, no group, no meta, visible, held by no script) and not a merge root; stop at the first node
+## that is not, which is where the merged mesh goes.
+static func _anchor(par: Node3D, root_ids: Dictionary, held: Dictionary) -> Node3D:
+	var n: Node3D = par
+	while _plain_node(n) and not root_ids.has(n.get_instance_id()) and not held.has(n.get_instance_id()):
+		var up := n.get_parent() as Node3D
+		if up == null or not _uniform(up):
+			break                                     # (a shader turning normals by MODEL_MATRIX is right only under uniform scale)
+		n = up
+	return n
+
+
+static func _uniform(n: Node3D) -> bool:
+	var sc := n.global_basis.get_scale()
+	return is_equal_approx(sc.x, sc.y) and is_equal_approx(sc.y, sc.z)
+
+
+static func _plain_node(n: Node3D) -> bool:
+	return n.get_class() == "Node3D" and n.get_script() == null and n.visible and n.get_groups().is_empty() \
+		and n.get_meta_list().is_empty()
 
 
 static func _why(mi: MeshInstance3D) -> String:
@@ -391,7 +483,7 @@ static func _tris(m: Mesh) -> int:
 
 ## Candidates some script holds are not merged: every scripted node's own variables (an Object, or one in
 ## an Array / Dictionary, two levels deep).
-static func _drop_held(top: Node, cands: Dictionary) -> void:
+static func _drop_held(top: Node, cands: Dictionary, held := {}) -> void:
 	var by := {}
 	var vars_of := {}                                 # Script -> the names of its variables that can hold an Object
 	for n in top.find_children("*", "", true, false):
@@ -402,7 +494,7 @@ static func _drop_held(top: Node, cands: Dictionary) -> void:
 			vars_of[sc] = _object_vars(n)
 		var before := cands.size()
 		for v: StringName in vars_of[sc]:
-			_drop_in(n.get(v), cands, 0)
+			_drop_in(n.get(v), cands, 0, held)
 		if before != cands.size():
 			var k := String((n.get_script() as Script).resource_path).get_file()
 			by[k] = int(by.get(k, 0)) + before - cands.size()
@@ -424,19 +516,21 @@ static func _object_vars(n: Node) -> Array[StringName]:
 	return out
 
 
-static func _drop_in(v: Variant, cands: Dictionary, depth: int) -> void:
+static func _drop_in(v: Variant, cands: Dictionary, depth: int, held: Dictionary) -> void:
 	# typeof + is_instance_valid(Variant): `v is Object` / cast on a freed instance errors
 	match typeof(v):
 		TYPE_OBJECT:
 			if is_instance_valid(v):
-				cands.erase((v as Object).get_instance_id())
+				var id := (v as Object).get_instance_id()
+				cands.erase(id)
+				held[id] = true                       # a held container stops a mesh's climb (_anchor)
 		TYPE_ARRAY:
 			if depth < 2:
 				for e: Variant in (v as Array):
-					_drop_in(e, cands, depth + 1)
+					_drop_in(e, cands, depth + 1, held)
 		TYPE_DICTIONARY:
 			if depth < 2:
 				var d: Dictionary = v
 				for k: Variant in d:
-					_drop_in(k, cands, depth + 1)
-					_drop_in(d[k], cands, depth + 1)
+					_drop_in(k, cands, depth + 1, held)
+					_drop_in(d[k], cands, depth + 1, held)

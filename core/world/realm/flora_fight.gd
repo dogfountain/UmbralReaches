@@ -10,9 +10,17 @@ const REACH := 70.0
 const FAR_K := 0.5
 const SHELL_K := 0.55
 
+const SLICE_US := 3000               ## per frame: the change is spread over a few frames (frame pacing, 16 Nov: in one
+                                    ## frame it walked ~12k flora MultiMeshes, a 58 ms frame at the pull and at the fall)
+
 var _boss: Node3D = null
 var _far: Array = []                ## [GeometryInstance3D, end as found] the @far trees and cards
 var _shells: Array = []             ## [MeshInstance3D, begin as found]
+var _mmis: Array = []               ## every Flora_* MultiMesh (collected once with the lists above)
+var _job := -1                      ## next item of the change under way (-1: none): _mmis, then _far, then _shells
+var _job_on := false
+var _job_args := Vector2.ONE        ## Emit.detail_args for the change under way
+var _job_d := 2
 
 
 func _ready() -> void:
@@ -30,33 +38,68 @@ func _on_engaged(b: Node, _title: String) -> void:
 
 
 func _process(_dt: float) -> void:
+	if _job >= 0:
+		_job_step()
+	if _boss == null:
+		if _job < 0:
+			set_process(false)
+		return
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
-	var alive := _boss != null and is_instance_valid(_boss) and _boss.is_inside_tree() and not _boss.is_queued_for_deletion()
+	var alive := is_instance_valid(_boss) and _boss.is_inside_tree() and not _boss.is_queued_for_deletion()
 	if not alive or p == null or _boss.global_position.distance_to(p.global_position) > REACH:
 		thin(false)
 
 
+## On (a boss engaged) or off. The host's metas change at once (Emit.apply_detail and the settings read them); the
+## meshes follow over the next few frames, SLICE_US of work a frame.
 func thin(on: bool) -> void:
 	if not on:
 		_boss = null
-	set_process(on)
 	var host := get_parent()
 	if host == null or bool(host.get_meta(&"fight", false)) == on:
+		set_process(on or _job >= 0)
 		return
 	host.set_meta(&"fight", on)
-	Emit.apply_detail(host, clampi(Settings.detail, 0, 2))
-	if _far.is_empty() and _shells.is_empty():
+	var d := clampi(Settings.detail, 0, 2)
+	host.set_meta(&"detail", d + (10 if on else 0))   # what Emit.apply_detail would note (a settings change re-applies all)
+	if _mmis.is_empty() and _far.is_empty() and _shells.is_empty():
 		_collect(host)
-	for e: Array in _far:
-		if is_instance_valid(e[0]):
-			var g := e[0] as GeometryInstance3D
-			g.visibility_range_end = float(e[1]) * (FAR_K if on else 1.0)
-			_applied(g)
-	for e: Array in _shells:
-		if is_instance_valid(e[0]):
-			var g := e[0] as GeometryInstance3D
-			g.visibility_range_begin = float(e[1]) * (SHELL_K if on else 1.0)
-			_applied(g)
+	_job_on = on
+	_job_d = d
+	_job_args = Emit.detail_args(d, on)
+	_job = 0
+	set_process(true)
+	_job_step()                          # the first slice now
+
+
+func _job_step() -> void:
+	if clampi(Settings.detail, 0, 2) != _job_d:      # the detail setting changed under way: start over at the new level
+		_job_d = clampi(Settings.detail, 0, 2)
+		_job_args = Emit.detail_args(_job_d, _job_on)
+		_job = 0
+	var t0 := Time.get_ticks_usec()
+	var n_m := _mmis.size()
+	var n_f := _far.size()
+	var n_s := _shells.size()
+	while _job >= 0 and _job < n_m + n_f + n_s:
+		if _job < n_m:
+			Emit.detail_one(_mmis[_job] as MultiMeshInstance3D, _job_d, _job_args.x, _job_args.y)
+		elif _job < n_m + n_f:
+			var e: Array = _far[_job - n_m]
+			if is_instance_valid(e[0]):
+				var g := e[0] as GeometryInstance3D
+				g.visibility_range_end = float(e[1]) * (FAR_K if _job_on else 1.0)
+				_applied(g)
+		else:
+			var e: Array = _shells[_job - n_m - n_f]
+			if is_instance_valid(e[0]):
+				var g := e[0] as GeometryInstance3D
+				g.visibility_range_begin = float(e[1]) * (SHELL_K if _job_on else 1.0)
+				_applied(g)
+		_job += 1
+		if (_job & 63) == 0 and Time.get_ticks_usec() - t0 > SLICE_US:
+			return
+	_job = -1
 
 
 ## fade_guard.gd scales any range it did not set itself: these are already on its scale, so mark them as applied.
@@ -67,6 +110,7 @@ static func _applied(g: GeometryInstance3D) -> void:
 
 func _collect(host: Node) -> void:
 	for n in host.find_children("Flora_*", "MultiMeshInstance3D", true, false):
+		_mmis.append(n)
 		var f: Array = n.get_meta(&"flora", [])
 		if f.size() > 1 and (f[1] == "fs" or f[1] == "fc") and (n as GeometryInstance3D).visibility_range_end > 0.0:
 			_far.append([n, (n as GeometryInstance3D).visibility_range_end])

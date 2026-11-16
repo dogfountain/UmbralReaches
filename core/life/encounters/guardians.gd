@@ -232,7 +232,7 @@ func tick(pos: Vector3) -> void:
 		if e == null:
 			nodes.erase(key)
 			if not slain(key) and d < NEAR and not LightGrid.is_lit(at) and not bool(director.call("_busy_fight")):
-				spawn(s)
+				spawn(s, true)
 			continue
 		var de := pos.distance_to(e.global_position)
 		if d > FAR and de > FAR:
@@ -267,7 +267,9 @@ static func title(e: Enemy) -> String:
 	return String(GUARDIANS.get(id, {}).get("title", "Guardian"))
 
 
-func spawn(s: Dictionary) -> Enemy:
+## `spread`: the escort rises over the next frames, one a frame (the tick's path: a guardian and its whole escort built in
+## one frame were a 20 ms frame at 55 m, perf tour probe 16 Nov); a direct call builds them all now, as before.
+func spawn(s: Dictionary, spread := false) -> Enemy:
 	var key: String = s.key
 	var id: String = s.id
 	var d: Dictionary = GUARDIANS[id]
@@ -297,30 +299,46 @@ func spawn(s: Dictionary) -> Enemy:
 		_grow(e, float(d.scale))
 	nodes[key] = e
 	var esc: Array[Enemy] = []
-	var kinds: Array = d.get("escort", [])
-	for i in kinds.size():
-		var a := TAU * float(i) / float(maxi(kinds.size(), 1)) + 0.4
-		var p := at + Vector3(cos(a), 0.0, sin(a)) * ESCORT_R
-		var g: Vector3 = director.call("_ground_at", p, at.y + 6.0)
-		if g == Vector3.INF or absf(g.y - at.y) > 2.5 or not SpawnRules.ok(get_viewport().world_3d.direct_space_state, g, ESCORT_GROUND):
-			# its place in the ring is water, a lip or a rock: fair floor beside it, else a step from the guardian
-			g = SpawnRules.find(get_viewport().world_3d.direct_space_state, Vector2(p.x, p.z), 2.5, at.y + 6.0, ESCORT_GROUND, at.y, 2.5)
-			if g == Vector3.INF:
-				g = at + Vector3(cos(a), 0.0, sin(a)) * 1.2
-		var m := Tiers.script_for(String(kinds[i])).new() as Enemy
-		Tiers.scale_stats(m, tier)
-		var rv := Tiers.region_variant(g, String(kinds[i]))
-		if rv != "":
-			Variants.pre(m, rv)
-		m.set_meta(&"guardian_escort", key)
-		director.get("root").add_child(m)
-		if rv != "":
-			Variants.dress(m, rv)
-		m.global_position = g + Vector3.UP * 0.05
-		m.home = g
-		esc.append(m)
 	escorts[key] = esc
+	var kinds: Array = d.get("escort", [])
+	if spread:
+		_escort_later(key, at, tier, kinds, esc)
+	else:
+		for i in kinds.size():
+			_escort_one(key, at, tier, kinds, i, esc)
 	return e
+
+
+## The escort one a frame; stops if the guardian was dismissed or replaced meanwhile.
+func _escort_later(key: String, at: Vector3, tier: int, kinds: Array, esc: Array[Enemy]) -> void:
+	for i in kinds.size():
+		await get_tree().process_frame
+		if not is_inside_tree() or not is_same(escorts.get(key), esc) or not is_instance_valid(nodes.get(key)):
+			return
+		_escort_one(key, at, tier, kinds, i, esc)
+
+
+func _escort_one(key: String, at: Vector3, tier: int, kinds: Array, i: int, esc: Array[Enemy]) -> void:
+	var a := TAU * float(i) / float(maxi(kinds.size(), 1)) + 0.4
+	var p := at + Vector3(cos(a), 0.0, sin(a)) * ESCORT_R
+	var g: Vector3 = director.call("_ground_at", p, at.y + 6.0)
+	if g == Vector3.INF or absf(g.y - at.y) > 2.5 or not SpawnRules.ok(get_viewport().world_3d.direct_space_state, g, ESCORT_GROUND):
+		# its place in the ring is water, a lip or a rock: fair floor beside it, else a step from the guardian
+		g = SpawnRules.find(get_viewport().world_3d.direct_space_state, Vector2(p.x, p.z), 2.5, at.y + 6.0, ESCORT_GROUND, at.y, 2.5)
+		if g == Vector3.INF:
+			g = at + Vector3(cos(a), 0.0, sin(a)) * 1.2
+	var m := Tiers.script_for(String(kinds[i])).new() as Enemy
+	Tiers.scale_stats(m, tier)
+	var rv := Tiers.region_variant(g, String(kinds[i]))
+	if rv != "":
+		Variants.pre(m, rv)
+	m.set_meta(&"guardian_escort", key)
+	director.get("root").add_child(m)
+	if rv != "":
+		Variants.dress(m, rv)
+	m.global_position = g + Vector3.UP * 0.05
+	m.home = g
+	esc.append(m)
 
 
 ## A base kind made a champion: more of everything but its tells (never a shorter telegraph).

@@ -485,29 +485,52 @@ func trigger_ambush(s: Dictionary) -> int:
 	var lead := maxf(1.0, (Vector2(_player.velocity.x, _player.velocity.z).length() if _player else 0.0) / 5.0)   # a gallop is met further on
 	var pool: Array = AmbushSites.kinds(Tiers.REGION_POOL.get(Tiers.region_id(pos), ["wretch"]))
 	var made := 0
+	var later: Array = []                    # [kind, spot, variant] of the ones that rise in the next frames
 	for spot in AmbushSites.rise_spots(pos + Vector3(fwd.x, 0.0, fwd.z) * 10.0 * (lead - 1.0), Vector2(fwd.x, fwd.z), _ground_at, spot_ok):
-		if made >= want:
+		if made + later.size() >= want:
 			break
-		var kind := String(pool[made % pool.size()])
+		var n := made + later.size()
+		var kind := String(pool[n % pool.size()])
 		var rv := Tiers.region_variant(spot, kind)     # r34: the mere's drowned climb out drowned
-		var e := _make(kind, spot, tier, rv if rv != "" else Tiers.pick_variant(spot, "amb%d" % made, int(state.get("ambushes", 0))))
-		if e == null:
+		var look := rv if rv != "" else Tiers.pick_variant(spot, "amb%d" % n, int(state.get("ambushes", 0)))
+		if made > 0:
+			later.append([kind, spot, look])     # one a frame (frame pacing, 16 Nov: 2-4 foes built at once, ~2-3 ms each)
 			continue
-		e.set_meta(&"enc_ambush", true)
-		e.sleep()                            # they rise first: a breath to see them
-		var eid := e.get_instance_id()
-		get_tree().create_timer(0.9, false).timeout.connect(func() -> void:
-			var e2 := instance_from_id(eid) as Enemy
-			if e2 != null:
-				e2.wake())
-		Vfx.burst(spot + Vector3.UP * 0.2, Color(0.12, 0.09, 0.08, 0.9), {"count": 22, "life": 0.9, "speed": Vector2(1.0, 3.0), "size": 0.12, "gravity": -6.0, "additive": false, "radius": 0.5})
-		ambushers.append(e)
-		made += 1
+		if _rise(kind, spot, tier, look) != null:
+			made += 1
+	if not later.is_empty():
+		_rise_later(later, tier)
+		made += later.size()
 	if made > 0:
 		state["ambushes"] = int(state.get("ambushes", 0)) + 1
 		hud.banner("AMBUSH", AmbushSites.line(String(s.path), String(s.get("why", ""))), Color(1.0, 0.55, 0.4))
 		Sfx.play_stream(Synth.get_stream("growl"), pos + fwd * 8.0, 2.0, 0.6)
 	return made
+
+
+## One of an ambush: it rises asleep (a breath to see it), wakes 0.9 s later.
+func _rise(kind: String, spot: Vector3, tier: int, look: String) -> Enemy:
+	var e := _make(kind, spot, tier, look)
+	if e == null:
+		return null
+	e.set_meta(&"enc_ambush", true)
+	e.sleep()                            # they rise first: a breath to see them
+	var eid := e.get_instance_id()
+	get_tree().create_timer(0.9, false).timeout.connect(func() -> void:
+		var e2 := instance_from_id(eid) as Enemy
+		if e2 != null:
+			e2.wake())
+	Vfx.burst(spot + Vector3.UP * 0.2, Color(0.12, 0.09, 0.08, 0.9), {"count": 22, "life": 0.9, "speed": Vector2(1.0, 3.0), "size": 0.12, "gravity": -6.0, "additive": false, "radius": 0.5})
+	ambushers.append(e)
+	return e
+
+
+func _rise_later(plan: Array, tier: int) -> void:
+	for r: Array in plan:
+		await get_tree().process_frame
+		if not is_inside_tree():
+			return
+		_rise(String(r[0]), r[1] as Vector3, tier, String(r[2]))
 
 
 # --- elites -------------------------------------------------------------------------------------

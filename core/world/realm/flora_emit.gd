@@ -346,18 +346,29 @@ static func apply_detail(host: Node, d: int) -> void:
 	if int(host.get_meta(&"detail", -1)) == key:
 		return
 	host.set_meta(&"detail", key)
-	var dens: float = DETAIL_DENSITY[d] * (FIGHT_DENSITY if fight else 1.0)
-	var rng: float = DETAIL_RANGE[d] * (FIGHT_RANGE if fight else 1.0)
+	var dr := detail_args(d, fight)
 	for n in host.find_children("Flora_*", "MultiMeshInstance3D", true, false):
-		var mmi := n as MultiMeshInstance3D
-		var f: Array = mmi.get_meta(&"flora", [])
-		if f.is_empty() or mmi.multimesh == null:
-			continue
-		var tall: bool = f[2]
-		var re: float = f[3]
-		if not tall:
-			mmi.multimesh.visible_instance_count = -1 if dens >= 1.0 else mini(mmi.multimesh.instance_count, maxi(1, int(round(float(f[4]) * dens))))
-			if re > 0.0:
-				_set_range(mmi, String(f[1]), re * rng)
-		elif f[1] == "c" or f[1] == "fc":
-			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if d == 0 else (f[5] as int)
+		detail_one(n as MultiMeshInstance3D, d, dr.x, dr.y)
+
+
+## [density, range scale] for detail `d`, in a boss fight or not.
+static func detail_args(d: int, fight: bool) -> Vector2:
+	return Vector2(DETAIL_DENSITY[d] * (FIGHT_DENSITY if fight else 1.0), DETAIL_RANGE[d] * (FIGHT_RANGE if fight else 1.0))
+
+
+## One flora MultiMesh set to a detail level (apply_detail's body; flora_fight.gd runs it over a cached list, a slice
+## a frame).
+static func detail_one(mmi: MultiMeshInstance3D, d: int, dens: float, rng: float) -> void:
+	if mmi == null or not is_instance_valid(mmi):
+		return
+	var f: Array = mmi.get_meta(&"flora", [])
+	if f.is_empty() or mmi.multimesh == null:
+		return
+	var tall: bool = f[2]
+	var re: float = f[3]
+	if not tall:
+		mmi.multimesh.visible_instance_count = -1 if dens >= 1.0 else mini(mmi.multimesh.instance_count, maxi(1, int(round(float(f[4]) * dens))))
+		if re > 0.0:
+			_set_range(mmi, String(f[1]), re * rng)
+	elif f[1] == "c" or f[1] == "fc":
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if d == 0 else (f[5] as int)
