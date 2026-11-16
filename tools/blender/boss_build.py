@@ -500,10 +500,10 @@ def eyes(g, y, z, gap, r, col=(1.0, 0.8, 0.5, 0.0)):
 
 def bone_abbot():
     g = Geo()
-    WINE, BLACK, GOLD, BONE, DARK = (0.38, 0.065, 0.075), (0.09, 0.075, 0.085), (0.95, 0.72, 0.3), (0.86, 0.8, 0.66), (0.02, 0.02, 0.025)
+    WINE, BLACK, GOLD, BONE, DARK = (0.38, 0.065, 0.075), (0.09, 0.075, 0.085), (0.95, 0.72, 0.3), (0.93, 0.88, 0.76), (0.02, 0.02, 0.025)
     lab = waist_split(0.98)
     import grunt_build as GB                     # a gaunt old man's body under the vestments (its head is lost in the cowl's dark)
-    bd = GB.human(g, BONE, (1.0, 0.72, 0.36, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.0, "weight": 0.0, "height": 0.9}, girth=0.95, head=1.0, mat="bone", eye_r=0.014, skull=0.6)
+    bd = GB.human(g, BONE, (1.0, 0.72, 0.36, 0.0), macro={"gender": 1.0, "age": 1.0, "muscle": 0.0, "weight": 0.0, "height": 0.9}, girth=0.95, head=1.0, mat="bone", eye_r=0.02, skull=0.6)
     def ring_at(O, y, out=0.0):
         band = O[np.abs(O[:, 1] - y) < 0.025]
         if len(band) < 12:
@@ -557,7 +557,9 @@ def bone_abbot():
         GB.sleeve(g, bd, sx, WINE, GOLD, flare=0.03, bell=0.06, y_cuff=0.76)
     # the head: a cowl full of dark, two candle eyes, a bone brow and a bone jaw-plate with teeth, the mitre over all
     H = V(0.0, 1.64, 0.0)
-    GB.cowl(g, bd, BLACK, mat="wool", open_w=0.08, open_h=0.15, seed=0.7)
+    GB.cowl(g, bd, BLACK, mat="wool", open_w=0.105, open_h=0.18, seed=0.7, shade=False)
+    MZ = float(np.mean([q[2] for q, l in zip(bd.P, bd.L) if l == "head"])) + 0.02
+    MY = float(max(q[1] for q, l in zip(bd.P, bd.L) if l == "head")) - 0.075            # the mitre is seated on the skull inside the hood
     # the mitre: two peaked plates with a cleft, an orphrey up each, a circlet, lappets behind
     # a closed ogee mitre: panels stitched at eight seams (shallow ridges), a swelling shoulder then a peak, bone with gilt orphreys front and back
     def mw(v):
@@ -565,12 +567,12 @@ def bone_abbot():
 
     def md(v):
         return 0.098 * (1.0 - v ** 1.35) * (1.0 + 0.08 * math.sin(v * math.pi)) + 0.004
-    rings = [(1.78 + 0.4 * v, mw(v), md(v), 0.012) for v in np.linspace(1.0, 0.0, 22)]
+    rings = [(MY + 0.4 * v, mw(v), md(v), MZ) for v in np.linspace(1.0, 0.0, 22)]
     g.robe(rings, BONE, "bone", "head", n=64, pleats=16, pleat_amp=0.012, pleat_from=2.18)
     for s in (-1, 1):
         vs = np.linspace(0.03, 0.95, 12)
-        g.band([V(0.0, 1.78 + 0.4 * v, 0.012 + s * (md(v) + 0.004)) for v in vs], 0.05, GOLD, "trim", "head", out=0.004, up=[V(0, 0, s)] * len(vs))
-    g.ring_band(1.78, 1.84, 0.14, 0.12, 0.01, GOLD, "trim", "head", n=40)
+        g.band([V(0.0, MY + 0.4 * v, MZ + s * (md(v) + 0.004)) for v in vs], 0.05, GOLD, "trim", "head", out=0.004, up=[V(0, 0, s)] * len(vs))
+    g.ring_band(MY, MY + 0.06, 0.14, 0.12, MZ, GOLD, "trim", "head", n=40)
     for sx in (-1, 1):
         g.band([V(sx * 0.06, 1.82, 0.135), V(sx * 0.065, 1.66, 0.19), V(sx * 0.07, 1.48, 0.22), V(sx * 0.072, 1.3, 0.235)], 0.06, GOLD, "trim",
                lambda p: "head" if p[1] > 1.6 else "chest", out=0.004, up=[V(0, 0, 1)] * 4)
