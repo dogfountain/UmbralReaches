@@ -929,6 +929,10 @@ def main():
             sockets.update({"shoulder_" + tag: V(sx * 0.24, 1.40, 0), "elbow_" + tag: V(sx * 0.24, 1.08, 0), "hand_" + tag: V(sx * 0.24, 0.78, 0),
                             "hip_" + tag: V(sx * 0.11, 0.75, 0), "knee_" + tag: V(sx * 0.11, 0.33, 0), "foot_" + tag: V(sx * 0.11, -0.09, 0)})
         body, held = boss_build.build(BOSS)
+        import bmesh                                                  # sheets laid by shrink() carry mixed winding; the bake casts rays along them
+        _bm = bmesh.new(); _bm.from_mesh(body.data)
+        bmesh.ops.recalc_face_normals(_bm, faces=_bm.faces)
+        _bm.to_mesh(body.data); _bm.free()
         bud = int(os.environ.get("BOSS_TRIS", "0"))                   # no more triangles than the model it replaces
         tri = sum(len(q.vertices) - 2 for q in body.data.polygons)
         if bud and tri > bud:

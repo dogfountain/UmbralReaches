@@ -720,11 +720,15 @@ def hierarch():
         if bd.L[k].startswith(("hand_", "elbow_")) or (bd.L[k].startswith("shoulder_") and bd.P[k][1] < 1.25):
             g.v[n0 + k] = V(0.0, 1.0, 0.05)
     Oc = GB.coat(g, bd, STONE, mat="stone", y_top=1.5, y_hem=0.02, flare=0.3, seed=0.5, tatter=0.05, folds=12, thick=0.014, nu=128, nv=44, amp=0.08, crease=0.5)
+    band_ = Oc[np.abs(Oc[:, 1] - 1.05) < 0.025]                              # a heavy girdle cinching the robe at the waist
+    if len(band_) > 12:
+        cx_, cz_ = float(band_[:, 0].mean()), float(band_[:, 2].mean())
+        ring_ = sorted(band_.tolist(), key=lambda q: math.atan2(q[0] - cx_, q[2] - cz_))
+        ring_ = [V(*q) for q in ring_[::max(1, len(ring_) // 48)]]
+        g.tube(ring_ + [ring_[0]], 0.034, GILT, "trim", "chest", n=6, flat=0.55)
+        g.box(V(0.0, 1.05, float(min(q[2] for q in ring_)) - 0.02), (0.05, 0.05, 0.015), GILT, "gilt", "chest")
     g.ring_band(0.03, 0.12, 0.47, 0.43, 0.02, GILT, "trim", "pelvis", n=96) if False else None
-    Op = GB.shawl(g, bd, PALE, mat="stone", y_low=0.04, gap=(math.radians(-50), math.radians(50)), seed=1.3, tatter=0.09, flare=0.34, amp=0.07)
-    for k in range(5):                                                    # moss in the folds near the ground
-        a = 0.9 + k * 1.05
-        g.ball(V(math.sin(a) * 0.6, 0.06, -math.cos(a) * 0.52 + 0.06), 0.07, MOSS, "wool", "pelvis", n=6, sy=0.4)
+    Op = GB.shawl(g, bd, PALE, mat="stone", y_low=0.04, gap=(math.radians(-58), math.radians(58)), seed=1.3, tatter=0.09, flare=0.34, amp=0.07)
     for sx in (-1, 1):
         t = "l" if sx < 0 else "r"
         g.lathe([(0.0, 0.0), (0.15, 0.0), (0.16, 0.05), (0.14, 0.1), (0.08, 0.14), (0.0, 0.15)], V(sx * 0.27, 1.38, 0.0), PALE, "stone", "shoulder_" + t, n=20)
@@ -737,11 +741,19 @@ def hierarch():
     cr = float(np.mean([math.hypot(q[0], q[2]) for _, q in ring])) if ring else 0.14
     cz = float(np.mean([q[2] for _, q in ring])) if ring else 0.0
     g.tube([V(0.06, top - 0.02, -0.13), V(0.04, top - 0.1, -0.15), V(0.07, top - 0.18, -0.15)], 0.003, DARK, "iron", "head", n=4)
-    g.ring_band(cy - 0.03, cy + 0.03, cr, cr, cz, GILT, "trim", "head", n=36)
-    for k in range(9):
-        a = TAU * k / 9
-        h = 0.13 if k not in (2, 6) else 0.05                              # two tines broken
-        g.tube([V(math.sin(a) * cr, cy + 0.03, cz - math.cos(a) * cr), V(math.sin(a) * (cr + 0.01), cy + 0.03 + h, cz - math.cos(a) * (cr + 0.01))], [0.022, 0.004 if h > 0.1 else 0.016], GILT, "gilt", "head", n=5)
+    g.ring_band(cy - 0.045, cy + 0.045, cr, cr, cz, GILT, "trim", "head", n=48)                     # a broad band
+    g.ring_band(cy + 0.045, cy + 0.06, cr, cr, cz, GILT, "gilt", "head", n=48)                      # its rolled upper edge
+    g.ring_band(cy - 0.06, cy - 0.045, cr, cr, cz, GILT, "gilt", "head", n=48)
+    for k in range(8):                                                    # fleuron points, each on a setting with a stone; two snapped
+        a = TAU * k / 8 + 0.2
+        h = 0.14 if k not in (2, 6) else 0.05
+        x0, z0 = math.sin(a) * (cr + 0.006), cz - math.cos(a) * (cr + 0.006)
+        g.tube([V(x0, cy + 0.04, z0), V(x0, cy + 0.04 + h * 0.6, z0), V(x0, cy + 0.04 + h, z0)], [0.026, 0.018, 0.006 if h > 0.1 else 0.016], GILT, "gilt", "head", n=6)
+        if h > 0.1:
+            g.ball(V(x0 * 1.04, cy + 0.04 + h * 0.45, z0 * 1.04), 0.017, (1.0, 0.5, 0.15, 0.0), "glow", "head", n=6)
+            for sd in (-1, 1):
+                g.ball(V(x0 + sd * 0.022 * math.cos(a), cy + 0.04 + h * 0.75, z0 + sd * 0.022 * math.sin(a)), 0.011, GILT, "gilt", "head", n=5)
+        g.ball(V(x0, cy + 0.0, z0), 0.012, (1.0, 0.5, 0.15, 0.0), "glow", "head", n=5)                 # a stone on the band
     horn = [(0.07, 0.0), (0.06, 0.08), (0.06, 0.2), (0.07, 0.32), (0.09, 0.44), (0.13, 0.53), (0.19, 0.59), (0.21, 0.62), (0.19, 0.62)]
     path_at = V(0.0, 1.62, -0.13)
     P = []
@@ -773,8 +785,18 @@ def hierarch():
         g.ball(c + V(sx_ * 0.0, 0.0, 0.0) + V(1, 0, 0) * sx_ * (rr + 0.03), 0.045, PALE, "stone", "head", n=7, sy=1.2)
         sh = V(sx_ * 0.3, 1.36, -0.02)
         elb = V(sx_ * 0.34, 1.3, -0.2)
-        g.tube([sh, elb, c + V(1, 0, 0) * sx_ * (rr + 0.03)], [0.085, 0.07, 0.055], STONE, "stone", "head", n=9)
+        wr_ = c + V(1, 0, 0) * sx_ * (rr + 0.03)
+        g.tube([sh, sh + (elb - sh) * 0.5, elb, elb + (wr_ - elb) * 0.5, wr_], [0.09, 0.095, 0.085, 0.09, 0.105], STONE, "stone", "head", n=12)        # a draped sleeve that widens to a bell at the wrist
+        g.ball(elb + V(sx_ * 0.04, -0.02, 0.05), 0.075, STONE, "stone", "head", n=8)                                                                        # the point of the elbow under the cloth
+        g.tube([wr_ + (elb - wr_) * 0.12 + V(math.cos(a_) * 0.11, 0, math.sin(a_) * 0.11) for a_ in np.linspace(0, TAU, 21)], 0.012, GILT, "gilt", "head", n=6) if False else None
+        g.tube([sh, sh + V(sx_ * 0.02, -0.12, -0.08), elb + V(0, 0.05, 0.05)], [0.14, 0.12, 0.1], STONE, "stone", "head", n=10)                          # the upper arm swelling into the shoulder
     g.lathe([(0.2, 0.0), (0.225, 0.015), (0.21, 0.035)], path_at + V(0.0, -0.32, -0.6), GILT, "gilt", "head", n=24, axis="z")
+    # bands of gilt iron round the horn, a mouthpiece ring at the jaw, a carrying strap slung from it over the shoulder
+    for tb in (0.12, 0.45, 0.66, 0.8):
+        cb, tgb, vxb = horn_at(tb)
+        rb = float(np.interp(tb * 0.62, [h_[1] for h_ in horn], [h_[0] for h_ in horn])) + 0.012
+        g.tube([cb + V(1, 0, 0) * math.cos(a_) * rb + vxb * math.sin(a_) * rb for a_ in np.linspace(0.0, TAU, 25)], 0.011, GILT, "gilt", "head", n=6)
+    g.tube([horn_at(0.5)[0] + V(0.07, 0.0, 0.0), V(0.28, 1.5, -0.2), V(0.2, 1.62, 0.1), V(-0.2, 1.55, 0.1), V(-0.3, 1.2, -0.3), horn_at(0.7)[0] + V(-0.07, 0.0, 0.0)], 0.018, (0.25, 0.18, 0.12), "leather", "head", n=6)
     return g.to_object("body"), []
 
 

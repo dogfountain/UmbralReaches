@@ -28,16 +28,16 @@ FINISH = {
     "wood":    (0.8, 0.0, 0.15, 0.3, [("WOOD", 0.03, 0.003, 1.0), ("CLOUDS", 0.02, 0.0015, 4.0)]),
     "stone":   (0.85, 0.0, 0.22, 0.4, [("VORONOI", 0.03, 0.003, 1.0), ("STUCCI", 0.01, 0.0025, 1.0)]),
     "glow":    (0.5, 0.0, 0.0, 0.0, []),
-    "skin":    (0.82, 0.0, 0.34, 0.3, [("VORONOI", 0.011, 0.0055, 1.0), ("CLOUDS", 0.03, 0.009, 1.0), ("STUCCI", 0.003, 0.0012, 1.0)]),
+    "skin":    (0.82, 0.0, 0.34, 0.3, [("VORONOI", 0.011, 0.0016, 1.0), ("CLOUDS", 0.03, 0.0035, 1.0), ("STUCCI", 0.003, 0.0008, 1.0)]),
 }
 
 
 # each layer's tile as the game's tiling materials wore it (core/enemy/boss_look.gd SURFACES): tile, uv scale,
 # normal depth, keep the tile's own colour (else the tint's colour with the tile's weave)
-SURF = {"wool": ("wool", (2.2, 2.2), 1.0, False), "linen": ("wool", (3.4, 3.4), 0.6, False), "trim": ("trim", (1 / 0.24, 1.0), 1.0, True),
-        "leather": ("leather", (2.0, 2.0), 1.0, False), "bone": ("leather", (1.3, 1.3), 0.45, False), "gilt": ("iron", (3.0, 3.0), 0.6, False),
+SURF = {"wool": ("wool", (2.2, 2.2), 0.45, False), "linen": ("wool", (3.4, 3.4), 0.3, False), "trim": ("trim", (1 / 0.24, 1.0), 1.0, True),
+        "leather": ("leather", (2.0, 2.0), 0.5, False), "bone": ("leather", (1.3, 1.3), 0.45, False), "gilt": ("iron", (3.0, 3.0), 0.6, False),
         "iron": ("iron", (2.0, 2.0), 1.0, False), "wood": ("wood", (1.5, 1.5), 1.0, False), "stone": ("iron", (0.8, 0.8), 1.4, False),
-        "glow": ("iron", (1.0, 1.0), 0.0, False), "skin": ("leather", (2.6, 2.6), 0.8, False)}
+        "glow": ("iron", (1.0, 1.0), 0.0, False), "skin": ("leather", (2.6, 2.6), 0.22, False)}
 TILES = os.path.join(ROOT, "art", "blender", "tiles")
 
 
@@ -124,7 +124,7 @@ def _layer_of_vertices(me):
     return votes.argmax(1)
 
 
-def make_high(low, levels=2):
+def make_high(low, levels=2, hook=None):
     hi = low.copy()
     hi.data = low.data.copy()
     hi.name = low.name + "_high"
@@ -145,6 +145,8 @@ def make_high(low, levels=2):
     sd.quality = 3
     for nm, g in groups.items():
         for j, (tt, size, strength, stretch) in enumerate(FINISH[nm][4]):
+            if nm in os.environ.get('BAKE_NODISP', '').split(','):
+                continue
             tex = bpy.data.textures.new("%s_%d" % (nm, j), type=tt)
             if hasattr(tex, "noise_scale"):
                 tex.noise_scale = size
@@ -165,6 +167,31 @@ def make_high(low, levels=2):
             d.strength = strength
             d.mid_level = 0.5
             d.vertex_group = g.name
+    if hook is not None:
+        # sculpt on the finished dense surface: evaluate the stack (subdivision and the layers' displacements), then push
+        # the skin's vertices along their normals by the hook's field
+        dg = bpy.context.evaluated_depsgraph_get()
+        ev = hi.evaluated_get(dg)
+        me2 = bpy.data.meshes.new_from_object(ev)
+        for m_ in list(hi.modifiers):
+            hi.modifiers.remove(m_)
+        hi.data = me2
+        me = hi.data
+        for poly in me.polygons:
+            poly.use_smooth = True
+        me.update()
+        n = len(me.vertices)
+        co = np.empty(n * 3)
+        me.vertices.foreach_get('co', co)
+        nr = np.empty(n * 3)
+        me.vertices.foreach_get('normal', nr)
+        co = co.reshape(-1, 3)
+        nr = nr.reshape(-1, 3)
+        P = np.stack([co[:, 0], co[:, 2], -co[:, 1]], 1)               # blender -> rig space
+        Nn = np.stack([nr[:, 0], nr[:, 2], -nr[:, 1]], 1)
+        d = hook(P, Nn, _layer_of_vertices(me))
+        me.vertices.foreach_set('co', (co + nr * d[:, None]).ravel())
+        me.update()
     return hi
 
 
@@ -275,11 +302,27 @@ def wire_albedo(N):
     m_f = _math(nt, 'ADD', m_k, 1.0)
     c = _mix(nt, base, m_f, 1.0, 'MULTIPLY')
     # cavity: AO darkens hard (deep creases near black), broad AO softer
-    ao_c = _math(nt, 'POWER', N["ao"].outputs["AO"], 1.6)
-    ao_k = _math(nt, 'MULTIPLY_ADD', ao_c, 0.85, 0.15)
+    ao_c = _math(nt, 'POWER', N["ao"].outputs["AO"], 1.2)
+    ao_k = _math(nt, 'MULTIPLY_ADD', ao_c, 0.55, 0.45)
     c = _mix(nt, c, ao_k, 1.0, 'MULTIPLY')
-    ao_b = _math(nt, 'MULTIPLY_ADD', N["ao2"].outputs["AO"], 0.45, 0.55)
+    ao_b = _math(nt, 'MULTIPLY_ADD', N["ao2"].outputs["AO"], 0.3, 0.7)
     c = _mix(nt, c, ao_b, 1.0, 'MULTIPLY')
+    # living skin is never one grey: warm and cool drift across it, blood shows in the hollows, bruises sit in the lows
+    if os.environ.get("BAKE_SKINTONE", "1") == "1":
+        sk = _math(nt, 'COMPARE', N["layer_x"], 10.5, 0.5)
+        drift = _mix(nt, (1.02, 0.88, 0.82, 1.0), (0.8, 0.92, 1.05, 1.0), N["noise2"].outputs["Fac"], 'MIX')
+        flush = _mix(nt, (0.78, 0.55, 0.52, 1.0), (1.0, 1.0, 1.0, 1.0), _math(nt, 'MULTIPLY_ADD', N["ao"].outputs["AO"], 1.6, -0.45, clamp=True), 'MIX')
+        bru = _math(nt, 'MULTIPLY', _math(nt, 'SUBTRACT', N["noise"].outputs["Fac"], 0.55, clamp=True), 2.2, clamp=True)
+        bruise = _mix(nt, (1.0, 1.0, 1.0, 1.0), (0.62, 0.5, 0.66, 1.0), bru, 'MIX')
+        vor = nt.nodes.new("ShaderNodeTexVoronoi")                       # veins: the network of cell edges, thin, blue-grey
+        vor.feature = 'DISTANCE_TO_EDGE'
+        vor.inputs["Scale"].default_value = 15.0
+        nt.links.new(N["tc"].outputs["Object"], vor.inputs["Vector"])
+        vein = _math(nt, 'SUBTRACT', 1.0, _math(nt, 'MULTIPLY', vor.outputs["Distance"], 30.0, clamp=True), clamp=True)
+        vein = _math(nt, 'MULTIPLY', vein, 0.9)
+        veins = _mix(nt, (1.0, 1.0, 1.0, 1.0), (0.55, 0.6, 0.78, 1.0), vein, 'MIX')
+        st = _mix(nt, _mix(nt, _mix(nt, drift, flush, 1.0, 'MULTIPLY'), bruise, 1.0, 'MULTIPLY'), veins, 1.0, 'MULTIPLY')
+        c = _mix(nt, c, _mix(nt, c, st, 1.0, 'MULTIPLY'), sk, 'MIX')
     # edges: pointiness above its mean rubs the surface lighter
     pt = _math(nt, 'SUBTRACT', N["geo"].outputs["Pointiness"], 0.56)     # only real edges, not the sculpt's grain
     pt = _math(nt, 'MULTIPLY', pt, 5.0, clamp=True)
@@ -324,7 +367,7 @@ def unwrap(low, margin=0.003, density=None, head_k=2.6):
     low.data.uv_layers.active = low.data.uv_layers["UVMap"]
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.select_all(action='SELECT')
-    bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=margin, area_weight=0.0, scale_to_bounds=False)
+    bpy.ops.uv.smart_project(angle_limit=math.radians(float(os.environ.get('BAKE_ANGLE','80'))), island_margin=margin, area_weight=0.0, scale_to_bounds=False)
     bpy.ops.object.mode_set(mode='OBJECT')
     # scale each island about its centre by its density (a face's layer; the head's faces by head_k on top), then pack
     me = low.data
@@ -390,7 +433,7 @@ def unwrap(low, margin=0.003, density=None, head_k=2.6):
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
-def bake(low, kind, size=2048, levels=3, samples=24, extras=(), prefix="grunt"):
+def bake(low, kind, size=2048, levels=3, samples=24, extras=(), prefix="grunt", hook=None):
     """Bake the kind's four maps (art/textures/<prefix>_<kind>_*.png) onto `low` and the rigid parts it carries
     (`extras`: a staff, a shield, a lamp), all in one atlas. They are joined into a stand-in for the unwrap and the
     bake (the carried parts set well apart, so nothing occludes across them), and the unwrap is copied back."""
@@ -411,7 +454,7 @@ def bake(low, kind, size=2048, levels=3, samples=24, extras=(), prefix="grunt"):
         bpy.context.view_layer.objects.active = work
         bpy.ops.object.join()
         counts.append(len(e.data.loops))
-    _bake_one(work, kind, size, levels, samples, prefix)
+    _bake_one(work, kind, size, levels, samples, prefix, hook)
     uv = np.empty(len(work.data.loops) * 2, dtype=np.float32)
     work.data.uv_layers["UVMap"].data.foreach_get("uv", uv)
     at = 0
@@ -421,7 +464,7 @@ def bake(low, kind, size=2048, levels=3, samples=24, extras=(), prefix="grunt"):
     bpy.data.objects.remove(work)
 
 
-def _bake_one(low, kind, size, levels, samples, prefix):
+def _bake_one(low, kind, size, levels, samples, prefix, hook=None):
     sc = bpy.context.scene
     me = low.data
     if "Tile" not in me.uv_layers:
@@ -441,7 +484,7 @@ def _bake_one(low, kind, size, levels, samples, prefix):
     except Exception:
         sc.cycles.device = 'CPU'
     unwrap(low)
-    hi = make_high(low, levels)
+    hi = make_high(low, levels, hook)
     m, N = high_material(hi)
     wire_tiles(N)
     out = N["nt"].nodes["Material Output"]
@@ -449,8 +492,8 @@ def _bake_one(low, kind, size, levels, samples, prefix):
     nt = N["nt"]
     bk = sc.render.bake
     bk.use_selected_to_active = True
-    bk.cage_extrusion = 0.012
-    bk.max_ray_distance = 0.03
+    bk.cage_extrusion = float(os.environ.get("BAKE_EXT", "0.026"))
+    bk.max_ray_distance = float(os.environ.get("BAKE_RAY", "0.065"))
     bk.margin = 6
     bk.target = 'IMAGE_TEXTURES'
     for o in sc.objects:
@@ -463,7 +506,10 @@ def _bake_one(low, kind, size, levels, samples, prefix):
 
     # albedo: the painted colour as emission
     alb = wire_albedo(N)
-    nt.links.new(alb, emis.inputs["Color"])
+    if os.environ.get('BAKE_DEBUG'):
+        emis.inputs["Color"].default_value = (1, 1, 1, 1)
+    else:
+        nt.links.new(alb, emis.inputs["Color"])
     im = _image(kind + "_albedo", size)
     _target(low, im)
     bpy.ops.object.bake(type='EMIT')
