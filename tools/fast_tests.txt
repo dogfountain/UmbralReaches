@@ -20,3 +20,4 @@ rewards
 palette
 slots
 storage_save
+guide

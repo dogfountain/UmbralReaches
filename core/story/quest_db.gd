@@ -17,17 +17,21 @@ const QuestBook := preload("res://core/story/quest_book.gd")
 ## head while the objective is open (quest_giver.gd states(); the keep at the start and the end).
 const OBJECTIVES := [
 	{"id": "arrive", "main": true, "when": "", "done": "flag:met_keep", "who": "keep", "mark": "available",
-		"text": "Find the keep of the Kindled Keg — he will tell you what this night is for"},
+		"text": "Find the keep in the Kindled Keg"},
+	# a guided save's first step out (core/story/guide.gd: flag "guide" is set by a new game's opening): one fire before
+	# the doors, so the first walk out of Hearthward is short and teaches the kindling. Gone once a fire or a door is taken.
+	{"id": "first_fire", "main": true, "when": "flag:met_keep,flag:guide,!kindled:1,!seal:henge,!seal:oss_gallery,!boss:thornwarden,!boss:bone_abbot", "done": "kindled:1",
+		"text": "Kindle the brazier at the Stair's foot, north of Hearthward"},
 	# Two doors, one line: his sentence while both seals are shut. Breaking one swaps it for that fight,
 	# and the other door is the next line. Either door first still counts.
 	{"id": "doors", "main": true, "when": "flag:met_keep", "done": "seal:henge|boss:thornwarden|seal:oss_gallery|boss:bone_abbot",
-		"text": "Pick a door: the thorn seal west of the Thornwood edge, or the gallery seal in the crypt, through the fen"},
+		"text": "Pick a door: the thorn seal west, up the Thornwood's hill, or the gallery seal in the Ossuary, south down the Waiting Field's road"},
 	{"id": "thorn_seal", "main": true, "when": "flag:met_keep,seal:oss_gallery|flag:met_keep,boss:bone_abbot", "done": "seal:henge|boss:thornwarden",
 		"text": "Break the thorn seal below the western hill"},
 	{"id": "thornwarden", "main": true, "when": "seal:henge", "done": "boss:thornwarden",
 		"text": "Cut the Thorn Heart from the Thornwarden in the Ring"},
 	{"id": "oss_seal", "main": true, "when": "flag:met_keep,seal:henge|flag:met_keep,boss:thornwarden", "done": "seal:oss_gallery|boss:bone_abbot",
-		"text": "Break the gallery seal in the Ossuary"},
+		"text": "Break the gallery seal in the Ossuary, south down the Waiting Field's road"},
 	{"id": "bone_abbot", "main": true, "when": "seal:oss_gallery", "done": "boss:bone_abbot",
 		"text": "Take the Abbot's crown from the Bone Abbot"},
 	# after both keepers: one line. The peal until four bells (the Marches' among them) are answered, then the climb, then the door.

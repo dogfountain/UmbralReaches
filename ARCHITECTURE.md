@@ -46,7 +46,7 @@ teardown (quit, or the Deeper Night rebuilding in-process)
 | `core/world/realm/lamps/` | The Realm's lamps, placed by `lamp_places.gd` after the settlements are dressed. A kindled lamp (`lamp.gd`) is a light the wanderer lights with the staff gesture (E); it burns for the rest of the night and the save remembers it. A kept light (`lamps_kept.gd`) is a light others keep, already lit: a pilgrim's camp on the Downs, a ferryman's lamp on the Sorrow, a hunter's lantern in the Thornwood, a window lit in a ruin. Neither is gameplay light. `-- --no-lamps` turns them off. |
 | `core/life/wildlife/boss_themes.gd` | r35 composed (synthesised) themes for the three bosses and the ending bell, rendered on a worker thread and cached through `GenCache`. |
 | `core/life/` | Living-world systems, each started as a Realm module: `progression/` (Kindling: ash -> upgrades, `UpgradeDB`), `village/`, `wildlife/` (beasts, birds, weather, soundscape), `secrets/`, `encounters/` (tiers, elites, Gloom tide, its own HUD; `spawn_rules.gd` is the one rule set for where any hostile may stand: safe places and towns, ways, water, slope, lips, rocks; `ambush_sites.gd` picks the road ambushes from the land). |
-| `core/story/` | Story director (`story.gd`, group `story`, added by Tavern), quests (`quest_db`, `quest_book`, `quest_world`), `dialogue_db`, objective line. |
+| `core/story/` | Story director (`story.gd`, group `story`, added by Tavern), quests (`quest_db`, `quest_book`, `quest_world`), `dialogue_db`, objective line, the new player's guide (`guide.gd`, group `guide`, a child of the director; its words in `guide_lines.gd`). |
 | `core/npc/` | Dwarf NPCs at the Keg (`dwarf_*`, `bartender`, `keg_scenes`, `npc_voice`). |
 | `core/vfx/` | Static FX helpers: `Vfx`, `Sfx` (voice pool), `SpellFx`, `Synth`/`StaffSfx` (procedural audio), hit text. They parent to `current_scene`. Creatures: `EnemyAudio` plays the takes rendered by `tools/gen_enemy_sfx.py` (`enemy_bank.gd` is generated): per voice set idle/alert/windup/attack/hurt/stagger/die, footfalls by body type and ground, hit materials, the wanderer's parry/block/dodge; it picks without repeats, spaces cries per creature and per set, caps the pool and ranks by priority. Buses: enemy voices -> `Voices` (gentle compressor) -> `SFX` (the place's reverb, `Ambience.PLACES`/`ROOMS`) -> `Master` (soft compressor, hard limiter). |
 | `core/util/` | `Groups`, `Layers`, `ProcMesh`, `save_dir.gd` (the `--save-dir` seam). |
@@ -59,7 +59,17 @@ teardown (quit, or the Deeper Night rebuilding in-process)
 All on-screen text (banners, narration and lesson subtitles, toasts, the objective) posts to
 `ui/text_director.gd`, a child of the HUD: lanes, priorities, a busy rule while narration or a
 dialogue box is up, and one discovery banner per 90 s. Encounter banners, secrets banners and
-`world_events.gd` still draw on their own (to route next).
+`world_events.gd` still draw on their own (to route next). A lesson written with `{action}` tokens
+(`"{jump} Jump"`) draws its keys as painted caps (`ui/key_cap.gd`, art `ui/icons/key`), and so does
+the world prompt's `[E]`.
+
+**The guide.** A new game's first act is guided (`core/story/guide.gd`, story flag `guide` set by the
+staged opening; off for older saves, after the act, or with Settings > Interface > Guidance off): the
+step is the story's first open spine objective with a place in the world, which `ui/waypoint.gd`
+(a mark over it), `ui/compass.gd` (its mark on the strip) and the map (a `map_marker`) show; the
+objective tracker stays up; each new step is announced in the banner lane; the first controls are
+taught when they first matter; Hearthward's people call out and point the way (`villager_point.gd`)
+and answer "Which way?".
 
 **The slice.** `core/util/slice.gd` (`Slice.full()`): the full night is the default. `-- --slice`
 (or Engine meta `full_night` set to false) gives the 30-minute slice instead: no horses, Kindled
@@ -69,7 +79,7 @@ raise/reforge/salvage. See docs/DECISIONS.md.
 Who creates UI today (there is no single UI root): `main.tscn` (HUD, SettingsMenu), `main.gd`
 (Satchel), `progression.gd` (Kindling, combo readout), `story.gd` (dialogue, quest log, shop),
 `realm_lore.gd` (Journal), `encounters/director.gd` (encounter HUD), `boss_arena.gd` (boss bar),
-`secrets/panel.gd`, `hud.gd` (hotbar, objective line), `zone.gd` (loading screen).
+`secrets/panel.gd`, `hud.gd` (hotbar, objective line, compass, waypoint), `zone.gd` (loading screen).
 
 ## Rules that hold
 

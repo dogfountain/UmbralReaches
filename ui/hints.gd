@@ -21,8 +21,10 @@ static func mark(id: StringName) -> void:
 static func once(id: StringName, text: String, basic := false) -> void:
 	if seen(id):
 		return
-	mark(id)
 	var tree := Engine.get_main_loop() as SceneTree
+	if tree and tree.current_scene and tree.current_scene.get_node_or_null("LoadingScreen") != null:
+		return            # the loading screen's warm-up freezes and casts on stand-ins: nothing is learned under the cover
+	mark(id)
 	var hud := tree.get_first_node_in_group(&"hud") if tree else null
 	if hud and hud.has_method("lesson"):
 		hud.call("lesson", text, basic)

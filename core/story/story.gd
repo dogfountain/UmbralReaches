@@ -23,6 +23,9 @@ const QuestGiver := preload("res://core/story/quest_giver.gd")
 const QuestRunner := preload("res://core/story/quest_runner.gd")
 const QuestMarkers := preload("res://core/story/quest_markers.gd")
 const QuestOfferUI := preload("res://ui/quest_offer.gd")
+const Guide := preload("res://core/story/guide.gd")
+const GuideLines := preload("res://core/story/guide_lines.gd")
+const Hints := preload("res://ui/hints.gd")
 
 signal objectives_changed
 
@@ -31,6 +34,7 @@ var log_ui: CanvasLayer           ## the tasks' banner and ledger (ui/quest_log.
 var offer_ui: CanvasLayer         ## r33: the accept / turn-in screens (ui/quest_offer.gd)
 var runner: Node                  ## r33: counts kills, seals, places for the tasks (quest_runner.gd)
 var markers: Node3D               ## r33: the marks over the givers' heads, the map pins (quest_markers.gd)
+var guide: Guide                  ## a new player's way through the first act (guide.gd): the waypoint, the next step
 var _quest_after := ""            ## "offer:id" / "turnin:id" chosen in a conversation
 var _conv := ""
 var _node := ""
@@ -58,6 +62,8 @@ func _ready() -> void:
 	add_child(runner)
 	markers = QuestMarkers.new()
 	add_child(markers)
+	guide = Guide.new()
+	add_child(guide)
 	ui.advanced.connect(_on_advanced)
 	ui.chosen.connect(_on_chosen)
 	ui.closed.connect(_on_closed)
@@ -215,7 +221,7 @@ var _shop_after := ""
 
 func _show(node_id: String) -> void:
 	_node = node_id
-	var n := _syn if node_id == "#syn" else DialogueDB.node(_conv, node_id)
+	var n := _syn if node_id == "#syn" else (_guide_node() if node_id == "#guide" else DialogueDB.node(_conv, node_id))
 	if n.is_empty():
 		_end()
 		return
@@ -227,6 +233,8 @@ func _show(node_id: String) -> void:
 	var choices := DialogueDB.choices_of(_conv, node_id, n, ws, _state().picked)
 	if node_id == "hub":
 		choices = QuestGiver.merge(choices, _conv, get_tree())      # r33: the offered tasks' lines
+		if is_instance_valid(guide) and guide.answer() != "" and not _conv in ["keep", "brannoc"]:
+			choices.insert(maxi(0, choices.size() - 1), {"text": GuideLines.ASK, "to": "#guide", "key": "guide:ask"})
 	var labels: Array[String] = []
 	for ch: Dictionary in choices:
 		labels.append(QuestBook.label(String(ch.text), String(ch.get("do", ""))))
@@ -236,10 +244,15 @@ func _show(node_id: String) -> void:
 	_speaking(true)
 
 
+## "Which way?" asked of a patron in a guided first act: the guide's answer, then back to the hub.
+func _guide_node() -> Dictionary:
+	return {"who": String((DialogueDB.CONV.get(_conv, {}) as Dictionary).get("name", "")), "say": guide.answer() if is_instance_valid(guide) else "", "next": "hub"}
+
+
 func _on_advanced() -> void:
 	if _conv == "":
 		return
-	var n := _syn if _node == "#syn" else DialogueDB.node(_conv, _node)
+	var n := _syn if _node == "#syn" else (_guide_node() if _node == "#guide" else DialogueDB.node(_conv, _node))
 	if n.has("choices"):
 		return
 	var nx := String(n.get("next", ""))
@@ -291,6 +304,8 @@ func _end() -> void:
 		var qa := _quest_after
 		_quest_after = ""
 		open_quest.call_deferred(qa, String((DialogueDB.CONV.get(was, {}) as Dictionary).get("name", "")))
+	if is_instance_valid(guide):
+		guide.talked(was)
 	if _shop_after != "":
 		var who := _shop_after
 		_shop_after = ""
@@ -394,6 +409,7 @@ func _opening() -> void:
 	if hud == null:
 		ui.narrate(DialogueDB.OPENING)          # a harness, an older save: the three lines at once, as before
 		return
+	set_flag("guide")                           # a real new game: the guide walks the first act with it (guide.gd)
 	_stage_opening(hud)
 
 
@@ -415,6 +431,32 @@ func _stage_opening(hud_node: Node) -> void:
 	if not is_inside_tree() or not is_instance_valid(hud) or not is_instance_valid(ui):
 		return
 	ui.narrate([DialogueDB.OPENING[0]])
+	if Guide.on():
+		# guided (guide.gd): the HUD comes with the first line, so the first objective, its mark and the compass are up
+		# as soon as the card has gone; the move prompt takes the lesson lane when the line is read, and the rest is
+		# said once the wanderer is on the move and the prompt has had its turn (one message at a time, still)
+		hud.hold_opening(false)
+		var w := 0.0
+		while is_inside_tree() and w < 60.0:
+			if (not is_instance_valid(p) or p.global_position.distance_to(start) >= 2.5) and Hints.seen(&"tip_move"):
+				break
+			await get_tree().create_timer(0.25).timeout
+			w += 0.25
+		w = 0.0
+		while is_inside_tree() and is_instance_valid(hud) and hud.lesson_busy() and w < 7.0:
+			await get_tree().create_timer(0.25).timeout       # the move prompt's turn (not every lesson queued behind it)
+			w += 0.25
+		await get_tree().create_timer(1.2).timeout
+		if is_instance_valid(ui):
+			ui.narrate([DialogueDB.OPENING[1]])
+		# the last line is the first objective in words: said only while it still is (a quick wanderer has met the keep)
+		w = 0.0
+		while is_inside_tree() and is_instance_valid(ui) and ui.narrating() and w < 60.0:
+			await get_tree().create_timer(0.25).timeout
+			w += 0.25
+		if is_instance_valid(ui) and not flag("met_keep"):
+			ui.narrate([DialogueDB.OPENING[2]])
+		return
 	await get_tree().create_timer(1.0).timeout
 	var t := 0.0
 	while is_inside_tree() and is_instance_valid(p) and p.global_position.distance_to(start) < 2.5 and t < 150.0:

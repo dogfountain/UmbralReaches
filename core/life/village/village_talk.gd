@@ -20,6 +20,8 @@ const Life := preload("res://core/npc/npc_life.gd")
 const Voice := preload("res://core/npc/npc_voice.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 const QuestGiver := preload("res://core/story/quest_giver.gd")
+const Guide := preload("res://core/story/guide.gd")
+const GuideLines := preload("res://core/story/guide_lines.gd")
 
 var director: Node
 var ui: CanvasLayer
@@ -84,6 +86,8 @@ func _start_node(cid: String) -> String:
 func _node(id: String) -> Dictionary:
 	if id == "#syn":
 		return _syn
+	if id == "#guide":
+		return {"say": _guide_answer(), "next": "hub"}
 	return (DB.CONV[conv].nodes as Dictionary).get(id, {})
 
 
@@ -122,6 +126,9 @@ func _show(id: String) -> void:
 	# turn-in screens, ui/quest_offer.gd, open when the conversation ends)
 	if id == "hub":
 		_choices = QuestGiver.merge(_choices, conv, get_tree())
+		if _guide_answer() != "":
+			# a guided first act: anyone can be asked the way (core/story/guide.gd), before the goodbye
+			_choices.insert(maxi(0, _choices.size() - 1), {"text": GuideLines.ASK, "to": "#guide"})
 	var labels: Array[String] = []
 	for ch2: Dictionary in _choices:
 		labels.append(QuestBook.label(String(ch2.text), String(ch2.get("do", ""))))
@@ -131,6 +138,12 @@ func _show(id: String) -> void:
 	ui.call("line", String(DB.CONV[conv].name), text, labels)
 	if is_instance_valid(who):
 		who.set("speaking", true)
+
+
+## What this person says when asked "Which way?" ("" while the guide is off).
+func _guide_answer() -> String:
+	var g := get_tree().get_first_node_in_group("guide") as Guide
+	return g.answer() if g != null else ""
 
 
 func _picked(ch: Dictionary) -> bool:

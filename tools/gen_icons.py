@@ -43,8 +43,10 @@ import kindling_art  # noqa: E402,F401
 import marks  # noqa: E402,F401
 import lore  # noqa: E402,F401
 import gloom_hud  # noqa: E402,F401
+import keys  # noqa: E402,F401
 
 OUT = os.path.join(HERE, "..", "ui", "icons")
+RGBA_SIZE = {"key": 128}       ## the control prompts' caps draw larger than a map mark: stored at 128 px
 
 
 def main():
@@ -65,7 +67,7 @@ def main():
         d = os.path.join(OUT, cat)
         os.makedirs(d, exist_ok=True)
         if img.shape[2] == 4:                       # a medallion: transparent corners, stored small (map / lore scale)
-            paint.save_png_rgba(os.path.join(d, ident + ".png"), img, 64)
+            paint.save_png_rgba(os.path.join(d, ident + ".png"), img, RGBA_SIZE.get(cat, 64))
             ground = np.array([0.62, 0.54, 0.4])    # sheets show it on parchment
             img = img[..., :3] * img[..., 3:4] + ground * (1 - img[..., 3:4])
         else:

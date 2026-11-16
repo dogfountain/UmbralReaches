@@ -10,7 +10,16 @@ the road to the three who hold the valley, and the ending after the Ascended War
    after the zone title card, three lines of narration as subtitles, no pause:
    *The road ends here. Past the last village there is only the Stair, and the sky it opened. /
    Over the Crowns the sky turns inward... / There is light in the Kindled Keg.* Objective: **Find
-   the keeper of the Kindled Keg in Hearthward.**
+   the keep in the Kindled Keg.**
+1b. **The guide** (a new game only: story flag `guide`; `core/story/guide.gd`). The HUD comes with the
+   first line, not with the first step: the objective is pinned top right, the compass and a painted
+   waypoint (with its distance) mark the Keg's door, then the keep inside; the move prompt follows on
+   painted key caps; lines two and three wait until the wanderer is on the move. After the keep, a
+   guided save's first step out is one fire (**Kindle the brazier at the Stair's foot, north of
+   Hearthward**, `first_fire`), then the doors. Each new step is announced ("Next", the objective, where
+   it is: `guide_lines.gd`). Hearthward's people call out where the step is as the wanderer passes, turn
+   and point; "Which way?" is in their conversations and the patrons'. The guide lets go when Brannoc
+   has been spoken to after both keepers (`guide_done`), or with Settings > Interface > Guidance off.
 2. **The keep.** The first conversation (a menu: what happened, who holds the valley, where to
    start) sets `met_keep` and opens the road: the two seals, and the kindling. The keep knows
    *what* holds the valley, not *who*: "Somebody opened the sky", "whatever stands at the top of
@@ -18,7 +27,7 @@ the road to the three who hold the valley, and the ending after the Ascended War
    is down, and by the Warden's bar in phase III (**AUREL, HIERARCH**, `BossArena.phase_titles`).
 3. **The road.** Objectives follow the world, not a quest log: break the thorn seal (west, the
    Thornwood edge), cut the Thorn Heart from the Thornwarden; break the gallery seal (the Ossuary,
-   down from the Barrow Field), take the Abbot's crown from the Bone Abbot; then carry heart and
+   south down the Waiting Field's road), take the Abbot's crown from the Bone Abbot; then carry heart and
    crown to the summit ward across the Crossing, and face what holds the door. A ward walked into
    too early says what is missing ("Nothing answers. The crypt's crown still holds below.",
    `BossArena.nothing_answers`). Side line: kindle the valley's four braziers, shown as n/4; each

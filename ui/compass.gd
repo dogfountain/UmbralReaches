@@ -17,6 +17,7 @@ const HEIGHT := 46.0
 const STRIP_Y := 4.0                     ## the strip's top in the control
 const STRIP_H := 38.0
 const Forge := preload("res://ui/hud_forge.gd")
+const Guide := preload("res://core/story/guide.gd")
 const BRAZIER_R := 110.0                 ## braziers farther than this are not shown
 const MAX_BRAZIERS := 4
 const DIST_PT := 19
@@ -73,6 +74,14 @@ func _rescan() -> void:
 		if not is_instance_valid(b) or b.is_queued_for_deletion() or not ("anchor" in b):
 			continue
 		_marks.append({"pos": b.get("anchor"), "col": _beacon_col(b), "kind": "beacon"})
+	# the guide's next step (core/story/guide.gd): its own painted mark, first on the strip, its distance always shown
+	var g := get_tree().get_first_node_in_group("guide") as Guide
+	var st: Dictionary = g.step() if g != null else {}
+	if st.get("target", Vector3.INF) != Vector3.INF:
+		var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+		var tg: Vector3 = st.target
+		var flat := Vector2(tg.x - pl.global_position.x, tg.z - pl.global_position.z).length() if pl else -1.0
+		_marks.append({"pos": tg, "col": LANTERN, "kind": "goal", "art": String(st.get("art", "quest_target")), "flat": flat})
 	var braz: Array = []
 	for n in get_tree().get_nodes_in_group(Groups.BRAZIER):
 		var b3 := n as Node3D
@@ -128,18 +137,19 @@ func _draw() -> void:
 			continue
 		var x := _x_for(atan2(rel.x, -rel.z), yaw, true)
 		var kind := String(m.kind)
-		var a := maxf(_edge(x / WIDTH), 0.5 if kind == "beacon" else 0.0) * _alpha
-		shown.append({"x": clampf(x, 14.0, WIDTH - 14.0), "a": a, "kind": kind, "col": m.col, "d": rel.length()})
+		var a := maxf(_edge(x / WIDTH), (0.85 if kind == "goal" else 0.5) if kind in ["beacon", "goal"] else 0.0) * _alpha
+		var dist: float = float(m.flat) if float(m.get("flat", -1.0)) >= 0.0 else rel.length()     # the goal reads as the waypoint does: flat, from the wanderer
+		shown.append({"x": clampf(x, 14.0, WIDTH - 14.0), "a": a, "kind": kind, "col": m.col, "d": dist, "art": String(m.get("art", ""))})
 	shown.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		var ka := 0 if a.kind == "beacon" else 1
-		var kb := 0 if b.kind == "beacon" else 1
+		var ka := -1 if a.kind == "goal" else (0 if a.kind == "beacon" else 1)
+		var kb := -1 if b.kind == "goal" else (0 if b.kind == "beacon" else 1)
 		return ka < kb or (ka == kb and float(a.d) < float(b.d)))
 	var taken: Array[Vector2] = []                  # x spans already holding a marker
 	var labels: Array = []                          # [distance, x, text, alpha]
 	for m: Dictionary in shown:
 		var x: float = m.x
 		var a: float = m.a
-		var half := 13.0 if m.kind == "beacon" else 8.0
+		var half := 15.0 if m.kind == "goal" else (13.0 if m.kind == "beacon" else 8.0)
 		var clash := false
 		for t: Vector2 in taken:
 			if x - half < t.y and t.x < x + half:
@@ -152,6 +162,10 @@ func _draw() -> void:
 		col.a = a
 		var y := band_y + 1.0
 		match String(m.kind):
+			"goal":
+				if not IconArt.draw_mark(self, "mark", String(m.art), Vector2(x, y), 30.0, Color(1, 1, 1, a)):
+					_diamond(Vector2(x, y), 8.0, col, true)
+				labels.append([float(m.d), x, "%d m" % int(round(float(m.d))), a, true])
 			"beacon":
 				if not IconArt.draw_mark(self, "mark", "beacon", Vector2(x, y), 26.0, Color(1, 1, 1, a)):
 					_diamond(Vector2(x, y), 7.0, col, true)
@@ -188,6 +202,9 @@ func _draw_distances(labels: Array, y: float) -> void:
 		return
 	var best: Array = labels[0]
 	for l: Array in labels:
+		if l.size() > 4:
+			best = l                                # the guide's step: its distance is the one that matters
+			break
 		if absf(float(l[1]) - WIDTH * 0.5) < absf(float(best[1]) - WIDTH * 0.5):
 			best = l
 	var text: String = best[2]
