@@ -46,11 +46,19 @@ func _process(delta: float) -> void:
 		_poll = 0.5
 		_sync()
 	if not visible:
+		# hidden (its fire burns): no script call a frame until the next look, an engine timer wakes it
+		set_process(false)
+		get_tree().create_timer(_poll, false).timeout.connect(_wake)
 		return
 	_t += delta
 	var k := 0.8 + 0.2 * sin(_t * 1.7) + 0.08 * sin(_t * 5.3)
 	_mi.scale = Vector3(1.0, 0.85 + 0.25 * k, 1.0)
 	_mat.albedo_color.a = 0.6 + 0.3 * k
+
+
+func _wake() -> void:
+	_poll = 0.0
+	set_process(true)
 
 
 func _sync() -> void:

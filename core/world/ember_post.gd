@@ -30,6 +30,14 @@ func _ready() -> void:
 	position = SEAT_OFFSETS.get(String(brazier.name), OFFSET) if brazier != null else OFFSET
 	_build()
 	_apply(brazier != null and brazier.lit)
+	if brazier != null:
+		brazier.lit_changed.connect(_on_lit)
+
+
+## Its fire lit or put out (Brazier.lit_changed): once seated it stops processing and follows this alone.
+func _on_lit(on: bool) -> void:
+	if on != _was_lit:
+		_apply(on)
 
 
 func interact_reach() -> float:
@@ -54,6 +62,9 @@ func interact(_by: Node) -> void:
 
 
 func _process(delta: float) -> void:
+	if _seats >= 30:
+		set_process(false)                   # seated for good; the fire's lit_changed carries the rest
+		return
 	var on := brazier != null and is_instance_valid(brazier) and brazier.lit
 	if on != _was_lit:
 		_apply(on)

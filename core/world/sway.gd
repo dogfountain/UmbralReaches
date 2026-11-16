@@ -122,10 +122,25 @@ func take(k: OssKit, far := 70.0) -> void:
 func ring(k := 1.0) -> void:
 	_ring = maxf(_ring, k)
 	_far = false
+	_wake()
 
 
 func _ready() -> void:
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+
+
+var _nap: SceneTreeTimer = null  ## while far: the engine timer that wakes it for its next look
+
+
+## Back from a nap (its timer, or a ring): its clock takes the game time it slept, so the swing's phase is as if
+## it had run, and it looks again at once.
+func _wake(tm: SceneTreeTimer = null) -> void:
+	if _nap == null or (tm != null and tm != _nap):
+		return
+	_t += _nap.get_meta(&"len", 0.0) - maxf(_nap.time_left, 0.0)
+	_nap = null
+	_check = 0.0
+	set_process(true)
 
 
 func _process(dt: float) -> void:
@@ -136,6 +151,11 @@ func _process(dt: float) -> void:
 		var cam := get_viewport().get_camera_3d()
 		_far = cam != null and cam.global_position.distance_squared_to(global_position) > FAR * FAR and _ring <= 0.0
 	if _far:
+		# no script call a frame till the next look (an engine timer wakes it): 83 of them, nearly all far
+		set_process(false)
+		_nap = get_tree().create_timer(_check, false)
+		_nap.set_meta(&"len", _check)
+		_nap.timeout.connect(_wake.bind(_nap))
 		return
 	var w := TAU / period
 	match mode:
