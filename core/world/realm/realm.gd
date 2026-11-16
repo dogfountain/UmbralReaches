@@ -190,6 +190,7 @@ static func build(root: Node) -> void:
 		print("REALM_PROF %7.1f ms  %s" % [float(prof[k]) / 1000.0, k])
 	progress = 1.0
 	print("FADE_GUARD %d ranged meshes pushed out and faded after the build" % FadeGuard.sweep(root))
+	preload("res://core/world/realm/terrain_tiles.gd").attach(root)   # the terrain drawn and moon-shadowed in culled tiles
 	print("PLACEMENT %d skipped" % PlacementLog.entries.size())
 	root.set_meta("realm_done", true)              # waiters (camps, tests) can key on this
 	print("REALM built in %d ms" % (Time.get_ticks_msec() - t0))
