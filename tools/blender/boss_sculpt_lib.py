@@ -658,6 +658,31 @@ def consolidate(objs, pairs):
     return out
 
 
+def fit_budget(objs, budget):
+    """No more triangles than the model it replaces (BOSS_TRIS): collapse-decimate the big parts alike (before the bake unwraps
+    and bakes them: the highs carry the detail into the maps, which then fit what is exported); the small parts stay."""
+    if budget <= 0:
+        return objs
+    t = lambda o: sum(len(p.vertices) - 2 for p in o.data.polygons)
+    total = sum(t(o) for o in objs)
+    if total <= budget:
+        print("BUDGET ok", total, "<=", budget)
+        return objs
+    keep = [k for k in os.environ.get("BOSS_KEEP", "").split(",") if k]     # faces and hands: parts that are not collapsed
+    big = [o for o in objs if t(o) >= 1200 and not any(o.name.startswith(k) for k in keep)]
+    small = total - sum(t(o) for o in big)
+    ratio = max(0.1, (budget - small) / max(total - small, 1))
+    for o in big:
+        bpy.ops.object.select_all(action='DESELECT')
+        o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        d = o.modifiers.new("Dec", 'DECIMATE')
+        d.ratio = ratio
+        bpy.ops.object.modifier_apply(modifier=d.name)
+    print("BUDGET", total, "->", sum(t(o) for o in objs), "ratio %.2f" % ratio, "budget", budget)
+    return objs
+
+
 def bake_atlas2(objs, mats, prefix, tex_dir, size, pairs, ao_samples=24):
     import numpy as np
     sc = bpy.context.scene
@@ -773,6 +798,7 @@ def export_skinned2(objs, mats, name, sockets, weights, rigid=None, size=2048, p
     tex_dir = os.path.join(os.path.dirname(__file__), "..", "..", "art", "textures")
     blend_dir = os.path.join(os.path.dirname(__file__), "..", "..", "art", "blender")
     objs = consolidate(objs, pairs or [])
+    objs = fit_budget(objs, int(os.environ.get("BOSS_TRIS", "0")))
     nobake = bool(os.environ.get("BOSS_NOBAKE"))      # pose / weight checks: no bake, nothing written into art/
     if not nobake:
         bake_atlas2(objs, mats, name, tex_dir, size, pairs or [])

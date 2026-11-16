@@ -47,8 +47,8 @@ def stone_mat(name, base, light, moss=0.0, soot=0.0, scale=7.0):
     col = m.mix(crack, col, (0.05, 0.045, 0.04))
     # courses of masonry: faint horizontal joints
     z = m.zpos()
-    joint = m.math('LESS_THAN', m.math('ABSOLUTE', m.math('SUBTRACT', m.math('MODULO', z, 0.21), 0.105)), 0.004)
-    col = m.mix(m.math('MULTIPLY', joint, 0.5), col, (0.04, 0.04, 0.035))
+    joint = m.math('LESS_THAN', m.math('ABSOLUTE', m.math('SUBTRACT', m.math('MODULO', z, 0.21), 0.105)), 0.006)
+    col = m.mix(m.math('MULTIPLY', joint, 0.6), col, (0.04, 0.04, 0.035))
     # damp, moss and soil climb the lowest metre (the hem of the cope stands in the wet)
     low = m.math('MULTIPLY', m.math('SUBTRACT', 0.7, m.zpos(), True), 1.6, True)
     low = m.math('MULTIPLY', low, m.math('GREATER_THAN', m.noise(4.0, 5.0, 0.55), 0.38))
@@ -59,7 +59,7 @@ def stone_mat(name, base, light, moss=0.0, soot=0.0, scale=7.0):
     if soot > 0.0:
         col = m.mix(m.math('MULTIPLY', m.math('GREATER_THAN', n2, 0.62), soot), col, (0.07, 0.06, 0.055))
     h = m.math('SUBTRACT', m.math('ADD', m.math('MULTIPLY', n2, 0.5), m.math('MULTIPLY', n1, 0.5)), m.math('MULTIPLY', crack, 0.8))
-    h = m.math('SUBTRACT', h, m.math('MULTIPLY', joint, 0.5))
+    h = m.math('SUBTRACT', h, m.math('MULTIPLY', joint, 0.8))
     return m.finish(col, m.math('ADD', 0.62, m.math('MULTIPLY', n2, 0.3)), 0.0, h, 0.7, 0.003)
 
 
@@ -103,8 +103,8 @@ HEAD1 = lambda p: {"head": 1.0}
 CHEST1 = lambda p: {"chest": 1.0}
 
 # --- the torso, neck and arms: fused stone-flesh ------------------------------------------------------------
-OPT = dict(W=1.25, L=1.7, nk=0.0, finger=0.1, wrist=0.72, ribs=0.0, belly=0.2, collar=0.6, tendon=0.6, hc=(0, 1.68, -0.02),
-           head_w=0.07, neck_r=0.075, nohead=True, hand_r=1.8)
+OPT = dict(W=1.25, L=1.7, nk=0.0, finger=0.14, wrist=0.72, ribs=0.0, belly=0.2, collar=0.6, tendon=0.6, hc=(0, 1.68, -0.02),
+           head_w=0.07, neck_r=0.075, nohead=True, hand_r=2.4)
 sk_full, SEGS, _Y = GB.humanoid(OPT)
 tsk = L.torso_skel(1.3, 0.075, 1.7)
 
@@ -333,11 +333,25 @@ for sx, tag in ((-1, "l"), (1, "r")):
     gp = []
     y = 1.06
     for seg in range(3):
-        for dy, r in ((0.0, 0.086), (0.012, 0.096), (0.03, 0.098), (0.042, 0.08), (0.058, 0.082), (0.07, 0.095), (0.082, 0.1)):
-            gp.append((y - dy - seg * 0.095, r - 0.006 * seg))
+        for dy, r in ((0.0, 0.1), (0.008, 0.116), (0.02, 0.118), (0.07, 0.116), (0.082, 0.112), (0.09, 0.098)):
+            gp.append((y - dy - seg * 0.1, r - 0.006 * seg))
     gp.sort(key=lambda q: -q[0])
     add(K.loft("Gauntlet", [G(ax, q[0], 0.0) for q in gp], [q[1] for q in gp], "gaunt_" + tag, PALE, 14, wobble=0.06, seed=sx + 5), wgl)
     add(TUBE("CuffGilt", [G(ax + math.cos(a) * 0.1, 1.045, math.sin(a) * 0.1) for a in [math.tau * i / 20 for i in range(21)]], 0.006, "gaunt_" + tag, GILT), wgl)
+    # a stone fist closed on the gauntlet: a palm block, four fingers curled in two knuckles each, a thumb across them
+    wh = (lambda t: lambda p: {"hand_" + t: 1.0})(tag)
+    WEIGHTS["fist_" + tag] = wh
+    hp = Vector(G(ax, 0.745, -0.015))
+    fo = []
+    fo.append(K.blob("Palm", hp + Vector(G(0, -0.01, 0.0)), (0.072, 0.07, 0.052), "fist_" + tag, PALE, 14, 8))
+    for f in range(4):
+        fx = ax + (f - 1.5) * 0.033
+        for j, (dy, dz, rr) in enumerate(((-0.06, -0.035, 0.019), (-0.095, -0.03, 0.017), (-0.115, -0.005, 0.014))):
+            fo.append(K.blob("Finger", Vector(G(fx, 0.745 + dy, -0.015 + dz)), (rr * 1.15, rr * 1.35, rr), "fist_" + tag, PALE, 8, 6))
+    fo.append(K.blob("Thumb", Vector(G(ax - sx * 0.07, 0.735, -0.05)), (0.02, 0.034, 0.02), "fist_" + tag, PALE, 8, 6))
+    for o_ in fo:
+        o_["sock"] = "fist_" + tag
+        add(o_, wh)
 
 # --- the breastplate: a gilt lozenge, an ember at its heart, edict-lines carved over the breast -------------------------
 PC = G(0, 1.31, -0.14)
