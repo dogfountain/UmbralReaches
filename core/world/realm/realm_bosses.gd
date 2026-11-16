@@ -14,7 +14,7 @@ const ScalePilot := preload("res://core/world/realm/scale_pilot.gd")
 ## Checkpoint braziers: Zone/Braziers/<name> (kindle memory is by node name, so names are kept).
 ## [xz, the point the fire faces (the respawn spot is 1.8 m that way)]
 const BRAZIERS := {
-	"StairFoot": [Vector2(-5.0, -2.0), Vector2(0.0, -2.0)],        # the Crossing's foot, by rift_rim
+	"StairFoot": [Vector2(-5.0, -2.0) + Endgame.O2, Vector2(0.0, -2.0) + Endgame.O2],        # the Crossing's foot, by rift_rim (the far north-east)
 	"Shrine": [Vector2(-31.0, 4.0), Vector2(-36.0, 8.6)],          # the Glimmer Glade, beside west_way
 	"Landing": [Vector2(84.0, -36.0), Vector2(78.0, -40.0)],       # the Barrow Field, where fen_descent starts
 	"Threshold": [Vector2(50.6, -57.5), Vector2(55.6, -56.6)],     # on the fen, where fen_descent ends (the Ossuary's fen door was above it until the Ossuary moved; the fire stays: a checkpoint, off fen_descent) (was (47, -55), half a metre off the Lay Brothers' Stair's foot: the climb glanced off it; it faces east so the ember post stands south of the brazier, off the path)
@@ -52,7 +52,7 @@ const R34_FIRES := {
 	"FallowFire": [Vector2(-146.0, 292.0), Vector2(-152.0, 296.0)],     # Fallowmere's green
 	"ArchesFire": [Vector2(-24.0, 318.0), Vector2(-24.0, 322.0)],       # beside arches_way under the arches
 	"SouthwoodFire": [Vector2(150.0, 296.0), Vector2(150.0, 302.0)],    # beside arches_way at the wood's edge
-	"BellfallFire": [Vector2(318.0, -60.0), Vector2(316.0, -66.0)],     # bell_track at the crater's south lip
+	"BellfallFire": [Vector2(322.0, 96.0), Vector2(318.0, 92.0)],       # bellfall_way at the crater's west lip (under Lastlight's south wall)
 	"LastlightFire": [Vector2(318.5, 55.5), Vector2(328.0, 50.0)],      # Lastlight's yard, between the gates (off bell_track), facing the inn
 	"NaveFire": [Vector2(296.0, 112.0), Vector2(293.0, 118.0)],         # nave_track on the mere's north shore
 	"CairnFire": [Vector2(300.0, 286.0), Vector2(304.0, 282.0)],        # southwood_way's end on the heath

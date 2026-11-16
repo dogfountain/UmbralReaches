@@ -31,8 +31,13 @@ static func space(root: Node) -> PhysicsDirectSpaceState3D:
 	return (root as Node3D).get_world_3d().direct_space_state
 
 
+## A site built where it was made and moved after (the rift's rim, built round the chasm under Hearthward, stands
+## Endgame.O east): while it builds its ground, its flora clearings and its sites are read and laid that far over.
+static var shift := Vector2.ZERO
+
+
 static func gy(sp: PhysicsDirectSpaceState3D, x: float, z: float) -> float:
-	return RealmLayout.ground(sp, x, z)
+	return RealmLayout.ground(sp, x + shift.x, z + shift.y)
 
 
 ## Lowest ground under a disc (for seating a footprint so nothing floats).
@@ -48,10 +53,10 @@ static func low(sp: PhysicsDirectSpaceState3D, c: Vector2, r: float) -> float:
 ## the secrets module runs after TerrainStamp, so it seats itself on the ground as it is.
 ## Flora inside the rect (grown by the reach of a plant's footprint) is cleared too.
 static func site(root: Node, n: String, rect: Rect2, floor_y: float) -> void:
-	rect = _trim(rect)
+	rect = _trim(Rect2(rect.position + shift, rect.size))
 	WorldLanes.register_site(n, rect, floor_y, floor_y - 0.3, false)
 	var c := rect.get_center()
-	clear_flora(root, [Vector3(c.x, c.y, rect.size.length() * 0.5 + 2.5)])
+	_pending.append(Vector3(c.x, c.y, rect.size.length() * 0.5 + 2.5))      # (already where it stands)
 
 
 ## A secret's claim never overlaps an earlier site (a lore landmark, the drowned graves): each
@@ -89,7 +94,8 @@ static var _pending: Array = []
 
 
 static func clear_flora(_root: Node, discs: Array) -> void:
-	_pending.append_array(discs)
+	for d: Vector3 in discs:
+		_pending.append(Vector3(d.x + shift.x, d.y + shift.y, d.z))
 
 
 ## Do the queued clearance in one pass over the flora (secrets.gd calls it once, after every site).
@@ -374,8 +380,6 @@ static func shader_mat(key: String) -> ShaderMaterial:
 	match key:
 		"curtain":
 			sh.code = CURTAIN_SHADER
-		"curtain_star":                  # the same sheet poured in starwater (the Starwater Rift's: no lava by the village)
-			sh.code = CURTAIN_SHADER.replace("vec3(0.09, 0.03, 0.02)", "vec3(0.05, 0.04, 0.11)").replace("vec3(1.0, 0.36, 0.08)", "vec3(0.55, 0.42, 1.0)")
 		"shaft":
 			sh.code = SHAFT_SHADER
 		"glint":

@@ -35,12 +35,12 @@ const TAVERN := Rect2(10.0, 25.6, 16.0, 9.2)               ## Tavern.X0..X1, Z0.
 ## coordinates and the Ossuary node carries the frame (world/areas/ossuary/oss_frame.gd); these are the
 ## world volumes. The old site on the rift's east wall is left bare (OSSUARY_OLD: RealmLand's kept core).
 ## "Inside the Ossuary" checks use in_ossuary() (the pit or the hall), never one AABB round both.
-const OSSUARY_OLD := AABB(Vector3(2.0, -6.0, -110.0), Vector3(30.0, 32.0, 88.0))   ## the old site (the rift's kept east wall)
+const OSSUARY_OLD := AABB(Vector3(2.0, -6.0, -110.0) + Endgame.O, Vector3(30.0, 32.0, 88.0))   ## the old site (the rift's kept east wall; the endgame stands Endgame.O east of where it was built)
 const OSSUARY := AABB(Vector3(-63.0, -33.4, 146.0), Vector3(108.0, 56.0, 46.0))   ## the pit and its tiers: x -63..45, y -33..23, z 146..192
 const OSSUARY_HALL := AABB(Vector3(-6.0, -45.4, 177.0), Vector3(56.0, 32.0, 56.0))   ## x -6..50, y -45..-13, z 177..233: the pit hall, under the downs
-const SUMMIT := Vector3(0.0, 24.5, -83.5)                  ## summit platform holder (keep)
-const SUMMIT_DAIS := Vector3(0.0, 27.35, -103.9)           ## Ascended Warden's fighting dais (r 14)
-const SUMMIT_WARD := Vector3(0.0, 25.2, -70.9)             ## where the crossing arrives; the summit seal
+const SUMMIT := Vector3(0.0, 24.5, -83.5) + Endgame.O      ## summit platform holder (keep; the far north-east: Endgame)
+const SUMMIT_DAIS := Vector3(0.0, 27.35, -103.9) + Endgame.O ## Ascended Warden's fighting dais (r 14)
+const SUMMIT_WARD := Vector3(0.0, 25.2, -70.9) + Endgame.O ## where the crossing arrives; the summit seal
 
 ## r34 layout: raid-sized boss floors (WoW raid rooms: 55-65 m across). RealmLand levels (or, at the
 ## summit, clears) the ground; RealmBosses registers each as a level terrace site "raid_<id>" so the
@@ -54,8 +54,8 @@ const SUMMIT_WARD := Vector3(0.0, 25.2, -70.9)             ## where the crossing
 const RAIDS := [
 	{"id": "henge", "c": Vector2(-86.0, -24.0), "r": 31.0, "y": 9.0, "fall": 12.0, "mode": "level",
 		"gate": Vector2(-56.0, -16.0), "boss": "thornwarden"},
-	{"id": "summit", "c": Vector2(0.0, -118.0), "r": 28.0, "y": 27.35, "fall": 10.0, "mode": "clear",
-		"gate": Vector2(0.0, -90.0), "boss": "ascended_warden"},
+	{"id": "summit", "c": Vector2(0.0, -118.0) + Endgame.O2, "r": 28.0, "y": 27.35, "fall": 10.0, "mode": "clear",
+		"gate": Vector2(0.0, -90.0) + Endgame.O2, "boss": "ascended_warden"},
 	# the two Marches bosses (docs/r37_expansion.md). The Hierarch's fight is in the toppled statue's broken
 	# crown, in the middle of the Siege Lines (the Marches hauled him there); the Anchoress's on the cliff terrace.
 	{"id": "hierarch", "c": Vector2(-206.0, 148.0), "r": 24.0, "y": 0.8, "fall": 12.0, "mode": "level",
@@ -83,11 +83,11 @@ const REGIONS := [
 		"lore": "Black pools and drowned graves where the hollowed were laid when the crypt was full."},
 	{"id": "barrows", "name": "The Barrow Field", "c": Vector2(78, -42), "r": 20.0, "biome": "fen", "tier": 2,
 		"lore": "Grave mounds of the abbey's lay brothers; the lantern road down into the fen starts here."},
-	{"id": "rift", "name": "The Starwater Rift", "rect": Rect2(-30, -118, 60, 106), "biome": "crag", "tier": 2,
-		"lore": "The wound the ascension tore in the land; starwater where the pilgrims' stair once stood (the lava is the Ashen Rift's, far north-east)."},
+	{"id": "rift", "name": "The Ashen Rift", "rect": Rect2(Vector2(-30, -118) + Endgame.O2, Vector2(60, 106)), "biome": "ash", "tier": 4,
+		"lore": "The wound the ascension tore in the land beyond Lastlight; lava where the pilgrims' stair once stood, starwater at its threshold."},
 	{"id": "ossuary", "name": "The Ossuary", "rect": Rect2(-70, 147, 114, 43), "blobs": [{"c": Vector2(-62, 85), "r": 9.0}, {"c": Vector2(-55, 101), "r": 11.0}, {"c": Vector2(-51, 117), "r": 10.0}, {"c": Vector2(-50, 136), "r": 12.0}], "biome": "ruin", "tier": 2,
 		"purpose": "its own area (docs/far_reaches.md): the necropolis's charnel house, a quarried bone pit under the Waiting Field's slope (the tiers over a still pool, the Counting Stair and the Abbot's hall beneath), with both its lips; and, the blobs, the Lych Way down from the road between walls of niches, the Bearers' Yard and the Lantern of the Dead (ossuary_ground.gd)", "lore": "Boss: the Bone Abbot. Seal 'oss_gallery'. Streamed area (world/areas/ossuary): the Pilgrims' Landing at the Waiting Field's west end, the bone bridge, the tiers."},
-	{"id": "summit", "name": "The Summit of Ascension", "c": Vector2(0, -104), "r": 42.0, "biome": "crag", "tier": 3,
+	{"id": "summit", "name": "The Summit of Ascension", "c": Vector2(0, -104) + Endgame.O2, "r": 42.0, "biome": "crag", "tier": 4,
 		"lore": "Boss: the Ascended Warden, last priest of the ascension. Seal 'summit'."},
 	{"id": "crags", "name": "The Crowns", "rect": Rect2(-260, -150, 520, 40), "biome": "crag", "tier": 2,
 		"lore": "The mountain wall the sky turns inward over; the world's northern edge."},
@@ -301,7 +301,7 @@ const BASE_PATHS := [
 	{"id": "fen_descent", "w": 1.6, "pts": [Vector2(78, -42), Vector2(62, -56), Vector2(54, -59.5)]},   # ends at the fen's fire (the Threshold); the Ossuary no longer waits at its end
 	{"id": "road", "w": 2.2, "pts": [Vector2(-366, 48), Vector2(-330, 52), Vector2(-300, 56.4), Vector2(-255, 62), Vector2(-232, 64), Vector2(-205, 66), Vector2(-180, 66), Vector2(-150, 67), Vector2(-104, 64), Vector2(-72, 60), Vector2(-40, 58), Vector2(-6, 54), Vector2(2, 44), Vector2(40, 60), Vector2(104, 66), Vector2(150, 68), Vector2(180, 70), Vector2(212, 74), Vector2(240, 72), Vector2(255, 70), Vector2(290, 70), Vector2(318, 66), Vector2(366, 62)]},
 	{"id": "chapel_lane", "w": 1.4, "pts": [Vector2(-60, 58), Vector2(-68, 52)]},
-	{"id": "rift_rim", "w": 2.0, "pts": [Vector2(0, 22), Vector2(0, 4), Vector2(0, -3)]},   # ends where the approach flight begins (it ran on into the forecourt's body)
+	{"id": "rift_rim", "w": 2.0, "pts": [Vector2(0, 22) + Endgame.O2, Vector2(0, 4) + Endgame.O2, Vector2(0, -3) + Endgame.O2]},   # Lastlight's north postern to where the approach flight begins
 	# r34
 	{"id": "west_track", "w": 1.4, "pts": [Vector2(-118, 65), Vector2(-124, 44), Vector2(-132, 22), Vector2(-138, -6), Vector2(-138, -40), Vector2(-132, -66), Vector2(-126, -84)]},
 	{"id": "moor_track", "w": 1.4, "pts": [Vector2(124, 67), Vector2(130, 44), Vector2(134, 18), Vector2(132, -18), Vector2(130, -46), Vector2(128, -72), Vector2(130, -86)]},
@@ -364,7 +364,7 @@ static func _meander(base: Array) -> Array:
 
 ## The crossing (RealmRift): the walkable ruined viaduct from the rift's south rim to the summit ward (the only
 ## way up): broken arches, platforms, ramps, a gap bridged by a fallen column, switchbacks round basalt pillars.
-const CROSSING_FOOT := Vector3(0.0, 0.6, -8.0)
+const CROSSING_FOOT := Vector3(0.0, 0.6, -8.0) + Endgame.O
 const CROSSING_HEAD := SUMMIT_WARD
 
 ## Boss / landmark anchors (centre on the ground; y from the terrain).
@@ -457,16 +457,16 @@ static func macro_dry(x: float, z: float) -> float:
 	# 45 m everywhere). The foot now recesses north (never south of -110: nothing in the valley moves),
 	# the crest rises and falls (~32-56 m), and peaks stand beyond the edge -- the tallest behind the
 	# summit, so the Stair's top has a mountain to stand against instead of a flat wall.
-	var keep_mid := 1.0 - _bump(Vector2(x, 0.0), Vector2.ZERO, 34.0)          # the rift and summit stay as built
+	var keep_mid := 1.0 - _bump(Vector2(x, 0.0), Endgame.O2, 34.0)          # the rift and summit stay as built (far north-east)
 	var recess := clampf(5.5 + 4.5 * sin(x * 0.043 + 0.4) + 2.5 * sin(x * 0.121 + 2.1), 0.0, 12.0) * keep_mid
 	var north := clampf((-110.0 - recess - z) / 40.0, 0.0, 1.0)
 	var crest := 0.82 + 0.3 * (0.5 + 0.5 * sin(x * 0.067 + 1.2)) + 0.12 * sin(x * 0.19)
 	h += north * north * 45.0 * crest
-	h += 40.0 * _bump(p, Vector2(0, -166), 46.0) + 22.0 * _bump(p, Vector2(-72, -160), 30.0) + 26.0 * _bump(p, Vector2(86, -163), 32.0)
-	h = maxf(h, 24.2 * _bump(p, Vector2(0, -95), 34.0) - 2.0)
+	h += 40.0 * _bump(p, Vector2(0, -166) + Endgame.O2, 46.0) + 22.0 * _bump(p, Vector2(-72, -160), 30.0) + 26.0 * _bump(p, Vector2(86, -163), 32.0) + 30.0 * _bump(p, Vector2(4, -164), 40.0)
+	h = maxf(h, 24.2 * _bump(p, Vector2(0, -95) + Endgame.O2, 34.0) - 2.0)
 	# the rift: the kept chasm. Inside the rift rect the baked terrain is authoritative (RealmLand
 	# keeps the old heights there); this is only the macro shape for planning.
-	var rift := _rect_w(p, Rect2(-24, -118, 48, 106), 10.0) * (1.0 - _bump(p, Vector2(0, -95), 30.0))
+	var rift := _rect_w(p, Rect2(Vector2(-24, -118) + Endgame.O2, Vector2(48, 106)), 10.0) * (1.0 - _bump(p, Vector2(0, -95) + Endgame.O2, 30.0))
 	h = lerpf(h, -18.0, rift * 0.9)
 	# the Outer Marches and the southern downs (zero inside OLD_BOUNDS, eased in over 12 m outside it)
 	var m37 := smoothstep(0.0, 12.0, _out_dist(p, OLD_BOUNDS))

@@ -11,7 +11,8 @@ var phase := 0
 var first := {}
 var bad := 0
 var _names: Array = []
-const PROBES := [Vector3(0, 0, 30), Vector3(0, 0, -2), Vector3(-72, 0, -18), Vector3(34, 0, -66), Vector3(0, 0, -83.5), Vector3(-60, 0, 40), Vector3(80, 0, -20)]
+const PROBES := [Vector3(0, 0, 30), Vector3(0, 0, -2), Vector3(-72, 0, -18), Vector3(34, 0, -66), Vector3(0, 0, -83.5), Vector3(-60, 0, 40), Vector3(80, 0, -20),
+	Vector3(310, 0, -2), Vector3(310, 0, -83.5)]     # (the last two: the forecourt and the summit's deck, Endgame)
 
 
 func _ready() -> void:

@@ -4,7 +4,7 @@ extends Control
 ## (55 m) and wide (120 m); a third press hides it.
 ##
 ## The ground is painted once from RealmLand's heightfield (hillshade, biome colours, worn paths,
-## pools, the rifts' starwater and lava, faint contours) on a worker thread as soon as the land exists: about
+## pools, the rift's lava and starwater, faint contours) on a worker thread as soon as the land exists: about
 ## 0.4 s off the main thread, then it is one texture and a canvas shader.
 ##
 ## Markers (re-read twice a second, drawn every frame):
@@ -34,7 +34,6 @@ const ENEMY_NEAR := 40.0
 const CHEST_NEAR := 45.0
 const ACTION := "minimap"                ## N (M is the whole map: ui/world_map.gd)
 const Land := preload("res://core/world/realm/realm_land.gd")
-const Scorch := preload("res://core/world/realm/rift/scorch.gd")     ## the Ashen Rift's lava (far north-east)
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 const Forge := preload("res://ui/hud_forge.gd")
 const UIType := preload("res://ui/type.gd")
@@ -609,7 +608,7 @@ func _bake_step() -> void:
 	if _tex != null:
 		return
 	if _task == -1:
-		if Land._h.is_empty():
+		if Land._h.is_empty() or Endgame.at_home:          # (wait until the ground at home is laid again: Endgame)
 			return
 		_origin = RealmLayout.BOUNDS.position
 		_size_m = RealmLayout.BOUNDS.size
@@ -699,10 +698,9 @@ func _paint() -> void:
 			# water and lava
 			if Land.in_water(wx, z):                      # the river's reaches, the lake and the Well's pool stand above and below the fen's line
 				col = Color(0.2, 0.3, 0.36).lerp(Color(0.32, 0.42, 0.46), clampf(shade - 0.6, 0.0, 1.0))
-			elif hc < lava_y + 1.2 and absf(wx) < 40.0 and z < 0.0:        # the Starwater Rift's pool (the Well of Echoes is deeper)
-				col = Color(0.3, 0.22, 0.55).lerp(Color(0.52, 0.4, 0.9), clampf(sin(wx * 0.4) * sin(z * 0.35) * 0.5 + 0.5, 0.0, 1.0) * 0.4)
-			elif hc < Scorch.LAVA_Y + 0.3 and Scorch.SHEET.has_point(Vector2(wx, z)):      # the Ashen Rift's lava (far north-east)
-				col = Color(0.85, 0.3, 0.08).lerp(Color(1.0, 0.62, 0.22), clampf(sin(wx * 0.4) * sin(z * 0.35) * 0.5 + 0.5, 0.0, 1.0) * 0.4)
+			elif hc < lava_y + 1.2 and absf(wx - Endgame.O.x) < 40.0 and z < 0.0:        # the rift (the Well of Echoes is deeper)
+				var swirl := clampf(sin(wx * 0.4) * sin(z * 0.35) * 0.5 + 0.5, 0.0, 1.0) * 0.4
+				col = Color(0.85, 0.3, 0.08).lerp(Color(1.0, 0.62, 0.22), swirl) if z < -46.0 else Color(0.3, 0.22, 0.55).lerp(Color(0.52, 0.4, 0.9), swirl)   # lava; starwater at the Threshold
 			# contours every 4 m
 			var cl := absf(fposmod(hc + 2.0, 4.0) - 2.0)
 			if cl < 0.12 and hc > lava_y + 2.0:
@@ -712,13 +710,13 @@ func _paint() -> void:
 	_img = img
 
 
-## The Crossing is not in the heightfield (it stands over the starwater): its deck as a stone line.
+## The Crossing is not in the heightfield (it stands over the lava): its deck as a stone line.
 func _paint_crossing(img: Image) -> void:
 	var pts: Array[Vector2] = [Vector2(0, -7), Vector2(0, -21), Vector2(-13, -30), Vector2(-1.8, -40),
 		Vector2(-8.3 + 6.5, -50), Vector2(-8.3, -56.5), Vector2(-14.8, -50), Vector2(-8.3, -43.5), Vector2(0, -62), Vector2(0, -71)]
 	for k in pts.size() - 1:
-		var a := pts[k]
-		var b := pts[k + 1]
+		var a := pts[k] + Endgame.O2                # (drawn where the endgame stands: Endgame)
+		var b := pts[k + 1] + Endgame.O2
 		var n := int(a.distance_to(b) * PPM * 2.0) + 1
 		for s in n + 1:
 			var p := a.lerp(b, float(s) / float(n))

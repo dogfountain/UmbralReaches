@@ -1,22 +1,26 @@
 extends RefCounted
-## The rift's breath: a column of smoke out of the lava in the Ashen Rift's gash (the far north-east, rift/scorch.gd),
-## standing up out of it and leaning away downwind (east-south-east, over the crater's apron and the Realm's east edge)
-## once it is above the lips. Its foot is lit by the lava under it: seen from the East Reach (Lastlight, the bell's
-## crater, the Anchorholds) it marks where the fire is; it fades out before Hearthward's country, where a column with no
-## fire under it read as smoke in a random place (Luke, 16 Nov). Three nested shells of a bent tube (plume.gdshader,
-## ~4 k triangles in all, at most three layers of overdraw), and a few slow puffs where it leaves the lava for the near view.
+## The rift's breath: a column of smoke out of the lava in the chasm's north-east corner (the Ashen Rift, at the Realm's
+## far north-east since the endgame moved there: Endgame), standing straight up inside the chasm past the summit's dais
+## and leaning away downwind (east-south-east, over the east berm and out past the Realm's edge) once it is above the
+## Crowns' foot. Its foot is lit by the lava under it; seen from Lastlight and the East Reach it marks where the night
+## ends, and it fades out before Hearthward's country (a column there read as smoke in a random place: Luke, 16 Nov).
+## Three nested shells of a bent tube (plume.gdshader, ~4 k triangles in all, at most three layers of overdraw), and a
+## few slow puffs where it leaves the lava for the near view.
 
 const SHADER := preload("res://core/world/realm/rift/plume.gdshader")
 const RINGS := 30
 const SIDES := 22
-## The spine, from the lava up: [x, y, z, radius]. Rises steeply out of the gash, then leans with the wind.
+## The spine, from the lava up: [x, y, z, radius], in the world. Rises steeply out of the chasm, then leans with the wind.
 const SPINE := [
-	[336.0, 4.0, -139.0, 2.6], [336.3, 11.1, -139.0, 3.2], [336.6, 19.2, -139.0, 3.9], [337.2, 27.9, -138.7, 4.9],
-	[338.8, 36.6, -137.8, 6.6], [342.2, 45.2, -135.6, 9.1], [348.1, 53.3, -131.9, 11.9], [357.4, 61.4, -126.9, 15.0],
-	[369.2, 68.8, -120.7, 18.9],
+	[328.5, -16.5, -117.5, 3.5], [329.0, -5.0, -117.5, 4.5], [329.5, 8.0, -117.5, 5.5], [330.5, 22.0, -117.0, 7.0],
+	[333.0, 36.0, -115.5, 9.5], [338.5, 50.0, -112.0, 13.0], [348.0, 63.0, -106.0, 17.0], [363.0, 76.0, -98.0, 21.5],
+	[382.0, 88.0, -88.0, 27.0], [406.0, 99.0, -76.0, 33.0], [432.0, 108.0, -64.0, 39.0],
 ]
-## Seen to here (m): the East Reach's country sees it, Hearthward's does not.
-const SEEN := 300.0
+## Seen to here (m), from the column's middle (its box's centre, ~(387, 67, -77)). FadeGuard pushes every range out
+## x1.5, so it goes at 285 m and is gone at 325: Lastlight (150 m), the Bellfall and the Anchorholds' way (~200 m) see
+## it, Hearthward and its country (340 m and more) do not.
+const SEEN := 190.0
+const SEEN_FADE := 40.0
 const SHELLS := [[1.0, 0.0, 0.82, 0.045], [0.78, 3.7, 0.9, 0.055], [0.55, 7.9, 0.95, 0.066]]   ## radius scale, seed, density, rise
 
 
@@ -43,7 +47,7 @@ static func build(host: Node3D) -> void:
 		mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 		mi.ignore_occlusion_culling = true
 		mi.visibility_range_end = SEEN
-		mi.visibility_range_end_margin = 60.0
+		mi.visibility_range_end_margin = SEEN_FADE
 		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		mi.add_to_group(Groups.CULL_SKIP)
 		root.add_child(mi)

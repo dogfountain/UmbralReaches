@@ -177,7 +177,7 @@ const TEXTS := {
 	"fen_brothers": {"region": "fen", "kind": "waystone", "title": "The Brothers' Way",
 		"text": "Way of the Lay Brothers, to the mounds. Walk in silence: the dead are listening for their names."},
 
-	# --- The Starwater Rift's rim (the old chasm by Hearthward) -----------------------------------------
+	# --- The Ashen Rift's rim ----------------------------------------------------------------------
 	"rim_bell": {"region": "rift", "kind": "plaque", "title": "A fallen bell",
 		"text": "A bell off the Stair, cracked, its tongue torn out. The bells stopped from the top down. This one rang last, and longest."},
 	"rim_edict_3": {"region": "rift", "kind": "plaque", "title": "Edict of the Open Door, III", "series": "edicts", "part": 3,
@@ -427,14 +427,14 @@ const TEXTS := {
 	# --- lamps ---
 	"lamp_pilgrim": R37LL.TEXTS["lamp_pilgrim"],
 	"lamp_window": R37LL.TEXTS["lamp_window"],
-	# --- the lava (the Ashen Rift, far north-east: the Choir House, the flows; core/world/realm/rift_rim.gd) ---
-	"rr_hymn_board": {"region": "ashrift", "kind": "plaque", "title": "The hymn board",
-		"text": "THE NIGHT OF THE EIGHTH BELL. The Ascent. The Open Door. The Bell Come Down. Choir to the crater's lip by the second bell. Under it, in chalk: It came to the door at the first verse. We sang the second from the roof."},
-	"rr_cantor_desk": {"region": "ashrift", "kind": "lectern", "title": "The cantor's desk",
+	# --- the lava (the Ashen Rift's rim: the Choir House, the flows; core/world/realm/rift_rim.gd) ---
+	"rr_hymn_board": {"region": "rift", "kind": "plaque", "title": "The hymn board",
+		"text": "THE NIGHT OF THE STAIR. The Ascent. The Open Door. The Last Bell. Choir to the Stair by the second bell. Under it, in chalk: It came to the door at the first verse. We sang the second from the roof."},
+	"rr_cantor_desk": {"region": "rift", "kind": "lectern", "title": "The cantor's desk",
 		"text": "The book is ash. Pressed into the stone where it lay is the shape of a hand keeping time, the fingers spread for the downbeat. Someone is still keeping it."},
-	"rr_breach": {"region": "ashrift", "kind": "rune", "title": "Scratched on a buttress",
+	"rr_breach": {"region": "rift", "kind": "rune", "title": "Scratched on a buttress",
 		"text": "IT CAME IN LIKE A TIDE AND WENT OUT LIKE A BELL. Lower, newer: Not after dark. She is still singing in there, and she wants the high part back."},
-	"rr_fen_notice": {"region": "ashrift", "kind": "notice", "title": "The ringers' warning",
+	"rr_fen_notice": {"region": "rift", "kind": "notice", "title": "The pilgrims' warning",
 		"text": "The black tongues are warm yet. Keep a rope's length off them: the crust rings hollow when you step on it, and what is under it is not cold."},
 	# --- the towns ---
 	"town_rh_board": TownTexts.TEXTS["town_rh_board"], "town_rh_lampbook": TownTexts.TEXTS["town_rh_lampbook"], "town_rh_grave": TownTexts.TEXTS["town_rh_grave"],
@@ -492,9 +492,7 @@ const REGION_ORDER := ["hearth", "road", "chapel", "glade", "thornwood", "henge"
 	# --- west marches ---
 	"weirford", "sorrow", "plinth", "siege",
 	# --- the east marches ---
-	"stillwater", "anchorholds", "saltmarket", "saltpans",
-	# --- the Far Reaches: the lava, moved out from beside Hearthward ---
-	"ashrift"]
+	"stillwater", "anchorholds", "saltmarket", "saltpans"]
 const PLACE_INFO := {
 	"hearth": {"name": "Hearthward", "line": "the last kindled village",
 		"text": "The road's last village before the Stair. Its fires were carried home from the chapel in pots and hands; the Kindled Keg keeps the last of them. Most cottages have gone quiet."},
@@ -513,10 +511,8 @@ const PLACE_INFO := {
 	"barrows": {"name": "The Barrow Field", "line": "sealed until the sky calls",
 		"text": "The Rooted's barrows, taken for the abbey's lay brothers and sealed with the Abbot's iron. The road down into the fen begins here."},
 	"ossuary": OSSG.PLACE_INFO["ossuary"],          # the ossuary (its own ground)
-	"rift": {"name": "The Starwater Rift", "line": "where the Stair stood",
-		"text": "Four thousand blessed steps, and then the wound. The Stair broke on the Night and the sky's light pooled where it stood, still and violet, from the Threshold to the summit's foot. The Crossing is what is left."},
-	"ashrift": {"name": "The Ashen Rift", "line": "where the bell came down",
-		"text": "Where the eighth bell fell the mountain's foot split open behind its crater, and the fire under the Crowns came up through it. It brimmed once, the first night, and ran out over its lips: one tongue went in at the door of the hall where the Founder's choir lodged and filled it to the sills. The choir is still there. One of them is still singing."},
+	"rift": {"name": "The Ashen Rift", "line": "where the Stair stood",
+		"text": "Beyond Lastlight, where the pilgrims' road turned to the mountain: four thousand blessed steps, and then the wound. The Stair broke on the Night and the lava rose in it; only its threshold holds starwater. The Crossing is what is left."},
 	"summit": {"name": "Summit of Ascension", "line": "the door, held open",
 		"text": "The Order's cathedral of the Open Sky, and the dais where Hierarch Aurel opened the door. He is still there."},
 	"crags": {"name": "The Crowns", "line": "the rim the sky drains over",

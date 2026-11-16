@@ -12,7 +12,7 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Vent := preload("res://core/life/secrets/breath_vent.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 
-const RIM_NEAR := Vector2(-36.0, -50.0)       ## the west rim, north of the Fallen Bells
+const RIM_NEAR := Vector2(-36.0, -50.0) + Endgame.O2       ## the west rim, north of the Fallen Bells (the far north-east)
 const TR := 2.0                  ## tower radius (outer)
 const TH := 6.0                  ## top floor above its foot
 

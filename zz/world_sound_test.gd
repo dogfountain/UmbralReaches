@@ -108,10 +108,10 @@ func _run() -> void:
 
 	# ---- the soundscape per region (static mix) and the rooms
 	var where := {"village": Vector3(6, 0.5, 40), "heath": Vector3(-60, 0.5, 70), "wood": Vector3(-85, 4, -40), "fen": Vector3(75, -1, -30),
-		"crossing": Vector3(0, -6, -50), "summit": Vector3(0, 26, -95), "tavern": Vector3(18, 0.6, 30.2),
+		"crossing": Vector3(0, -6, -50) + Endgame.O, "summit": Vector3(0, 26, -95) + Endgame.O, "tavern": Vector3(18, 0.6, 30.2),
 		# the Far Reaches' own (docs/living_realm.md)
 		"lanternwood": Vector3(-330, 2, 0), "reedmere": Vector3(-330, 0, 340), "fields": Vector3(-170, 0.5, 340),
-		"bellfall": Vector3(318, 0, -100), "cairns": Vector3(330, 6, 330), "southwood": Vector3(180, 2, 340)}
+		"bellfall": Vector3(340, 0, 104), "cairns": Vector3(330, 6, 330), "southwood": Vector3(180, 2, 340)}
 	for sc: String in where:
 		var p: Vector3 = where[sc]
 		var mix: Dictionary = AmbienceScript.mix_at(p)
@@ -123,7 +123,7 @@ func _run() -> void:
 				best = k
 		check(best == sc, "%s at %s (%s)" % [sc, p, str(mix)])
 	check(AmbienceScript.zone_at(Vector3(18, 0.6, 30.2), "", "tavern") == "tavern", "the tavern is a room")
-	check(AmbienceScript.zone_at(Vector3(0, -8, -50), "", "crossing") == "rift", "down in the rift is a room")
+	check(AmbienceScript.zone_at(Vector3(0, -8, -50) + Endgame.O, "", "crossing") == "rift", "down in the rift is a room")
 	check(AmbienceScript.zone_at(Vector3(0, 6, -50), "", "crossing") == "", "up on the Crossing is open air")
 	check(AmbienceScript.zone_at(Vector3(20, 2, -60), "ossuary", "ossuary") == "ossuary", "the Ossuary is a room")
 	var g_open: Dictionary = AmbienceScript.room_goal("", {"heath": 1.0})

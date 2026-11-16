@@ -88,7 +88,6 @@ const SCAPES := {
 	"arches": {"night": 0.7, "high_wind": 0.45, "meadow": 0.35, "crickets": 0.25},
 	"southwood": {"night": 0.65, "leaves": 1.0, "crickets": 0.2},
 	"bellfall": {"night": 0.55, "high_wind": 0.7, "chasm": 0.25},
-	"ashrift": {"night": 0.45, "chasm": 0.8, "high_wind": 0.4},
 	"nave": {"night": 0.6, "fen": 0.8, "chasm": 0.12},
 	"cairns": {"night": 0.7, "high_wind": 0.9, "meadow": 0.25},
 	# the ossuary: its own ground over the pit (the pit's breath, a draught off the bank, the crickets gone quiet)
@@ -105,7 +104,7 @@ const REGION_SCAPE := {"hearth": "village", "chapel": "village", "road": "heath"
 	"anchorholds": "anchorholds", "saltmarket": "heath", "saltpans": "salt", "downs": "downs", "oak": "wood", "well": "well",
 	# --- the Far Reaches ---
 	"greyfell": "fell", "lanternwood": "lanternwood", "kingsbarrows": "barrowheath", "reedmere": "reedmere", "fallow": "fields",
-	"arches": "arches", "southwood": "southwood", "bellfall": "bellfall", "ashrift": "ashrift", "lastlight": "village", "nave": "nave", "cairns": "cairns"}
+	"arches": "arches", "southwood": "southwood", "bellfall": "bellfall", "lastlight": "village", "nave": "nave", "cairns": "cairns"}
 
 ## soundscape -> [interval min, max (s), distance min, max (m), palette [[sound, weight, height]]]
 ## sound "life:x" plays LifeSynth's x; height: metres above the ground, or "lava" (down on the lava)
@@ -114,8 +113,7 @@ const SPOTS := {
 	"heath": [7.0, 16.0, 18.0, 45.0, [["nightjar", 0.45, 1.0], ["peewit", 0.15, 3.0], ["life:owl2", 0.2, 5.0], ["vixen", 0.15, 0.3]]],
 	"wood": [6.0, 14.0, 12.0, 40.0, [["twig", 0.3, 0.2], ["creak", 0.35, 3.0], ["life:owl", 0.2, 6.0], ["life:owl2", 0.12, 6.0], ["bellow", 0.08, 1.0], ["vixen", 0.06, 0.3]]],
 	"fen": [6.0, 13.0, 14.0, 42.0, [["bittern", 0.4, 0.3], ["life:plop", 0.3, 0.0], ["life:heron", 0.12, 1.0], ["creak", 0.1, 2.0]]],
-	"crossing": [6.0, 13.0, 16.0, 40.0, [["drip", 0.4, "lava"], ["pebbles", 0.4, 0.0], ["whisper", 0.06, "lava"], ["howl", 0.06, 20.0]]],
-	"ashrift": [5.0, 12.0, 12.0, 36.0, [["blurp", 0.5, 0.3], ["pebbles", 0.3, 0.0], ["howl", 0.12, 25.0], ["bell_far", 0.08, 3.0]]],
+	"crossing": [6.0, 13.0, 16.0, 40.0, [["blurp", 0.5, "lava"], ["pebbles", 0.4, 0.0], ["howl", 0.06, 20.0]]],
 	"summit": [9.0, 20.0, 20.0, 50.0, [["howl", 0.25, 25.0], ["pebbles", 0.45, 0.0], ["life:crow", 0.15, 8.0]]],
 	"ossuary": [4.0, 10.0, 4.0, 14.0, [["drip", 0.5, 2.5], ["bones", 0.25, 0.2], ["whisper", 0.1, 1.5], ["pebbles", 0.1, 0.5]]],
 	"tavern": [30.0, 60.0, 20.0, 30.0, []],
@@ -170,7 +168,7 @@ const SCAPE_PLACE := {"village": "open", "heath": "open", "wood": "wood", "fen":
 	"sorrow": "wood", "plinth": "open", "siege": "open", "stillwater": "open", "anchorholds": "cliff", "salt": "open", "downs": "open",
 	"well": "well",
 	"fell": "cliff", "lanternwood": "wood", "barrowheath": "open", "reedmere": "open", "fields": "open", "arches": "cliff",
-	"southwood": "wood", "bellfall": "cliff", "ashrift": "cliff", "nave": "cliff", "cairns": "open", "charnel": "cliff"}
+	"southwood": "wood", "bellfall": "cliff", "nave": "cliff", "cairns": "open", "charnel": "cliff"}
 const ROOM_KEYS := ["room_size", "damping", "spread", "predelay_msec", "hipass"]
 ## outdoor layers indoors: [low-pass cutoff Hz, AmbOut volume dB]
 const MUFFLE := {"": [20000.0, 0.0], "tavern": [700.0, -4.0], "ossuary": [320.0, -16.0], "rift": [20000.0, 0.0]}
@@ -552,13 +550,13 @@ func _pick() -> void:
 	_set_room_goal(room_goal(reverb_zone, mix))
 
 
-## The reverb room at p: the tavern, the Ossuary, down in the Starwater Rift below its rim, or "".
+## The reverb room at p: the tavern, the Ossuary, down in the Ashen Rift below its rim (the far north-east), or "".
 static func zone_at(p: Vector3, area: String, best: String) -> String:
 	if best == "tavern":
 		return "tavern"
 	if area == "ossuary":
 		return "ossuary"
-	if Rect2(-26, -112, 52, 100).has_point(Vector2(p.x, p.z)) and p.y < -2.5:
+	if Rect2(Vector2(-26, -112) + Endgame.O2, Vector2(52, 100)).has_point(Vector2(p.x, p.z)) and p.y < -2.5:
 		return "rift"
 	return ""
 

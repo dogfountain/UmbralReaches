@@ -11,7 +11,7 @@ extends RefCounted
 ## secret `last_landing` (core/life/secrets/site_threshold.gd: State "looted"). Existing step kinds only.
 ## House style (docs/LORE.md): terse, concrete, dark.
 
-const CHAPEL := Vector2(-17.4, -36.85)
+const CHAPEL := Vector2(-17.4, -36.85) + Endgame.O2       ## (the Threshold stands in the far north-east: Endgame)
 
 const THRESHOLD_CHAPEL := {"name": "The Pilgrims' Chapel", "giver": "oswin", "where": "Oswin, a pilgrim, at Hearthward", "zone": "rift",
 	"offer": true,

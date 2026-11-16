@@ -14,7 +14,7 @@ const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
 ## Existing summit disc ~r=5.4 at z=-73.5. Seat cathedral behind it so the
 ## climb stays clear; approach stairs face +Z onto that disc.
 const PLATFORM_RADIUS := 12.0
-const SUMMIT := Vector3(0.0, 24.5, -83.5)
+const SUMMIT := RealmLayout.SUMMIT       ## (the far north-east beyond Lastlight: Endgame)
 const TOP_DECK_Y := 2.85
 
 
@@ -110,7 +110,7 @@ static func dress(root: Node) -> void:
 
 	# the summit ward across the head of the hub stair, and the Ascended Warden's arena on the dais
 	var bosses: Array[String] = ["thornwarden", "bone_abbot"]
-	var ward := WardSeal.make(holder, "summit", Vector3(0.0, 25.2, -70.9), Vector3.BACK, 5.8, 3.6, "light", "The summit ward", bosses)
+	var ward := WardSeal.make(holder, "summit", RealmLayout.SUMMIT_WARD, Vector3.BACK, 5.8, 3.6, "light", "The summit ward", bosses)
 	ward.requires_bells = Chains.BELLS_NEEDED     # r36 Act II: the door opens to a peal
 	var dais := SUMMIT + Vector3(DAIS_C.x, TOP_DECK_Y, DAIS_C.y)
 	var arena := BossArena.make(holder, "ascended_warden", "The Ascended Warden", dais, DAIS_R - 0.5, AscendedWarden, dais + Vector3(0, 0.1, 3.5))   # he rises on the near side of the dais: at -6 m he stood 32 m from the pull and read as a small figure in the bubble
@@ -136,9 +136,10 @@ static func dress(root: Node) -> void:
 	arena.phase_titles = {3: "Aurel, Hierarch"}      # r30 story: he lets go with one hand, and the bar names him
 	# r30 story: the ward's carved reason, a pilgrim's tally on the last step, and the dais stone
 	var lore_more := load("res://core/world/realm/lore/lore_more.gd") as GDScript
-	lore_more.call("place", holder, "bs_ward", Vector3(1.9, 25.6, -70.3))
-	lore_more.call("place", holder, "bs_last_step", Vector3(-1.7, 25.6, -69.4))
-	lore_more.call("place", holder, "bs_dais", SUMMIT + Vector3(DAIS_C.x, TOP_DECK_Y + 0.25, DAIS_C.y + DAIS_R + 0.9))
+	# (place() takes the holder's own space: by the ward, on the last step, and before the dais)
+	lore_more.call("place", holder, "bs_ward", holder.to_local(RealmLayout.SUMMIT_WARD + Vector3(1.9, 0.4, 0.6)))
+	lore_more.call("place", holder, "bs_last_step", holder.to_local(RealmLayout.SUMMIT_WARD + Vector3(-1.7, 0.4, 1.5)))
+	lore_more.call("place", holder, "bs_dais", Vector3(DAIS_C.x, TOP_DECK_Y + 0.25, DAIS_C.y + DAIS_R + 0.9))
 	# the "where do I go" for the whole map: a pale column from above the dais into the vortex eye
 	Wayfinding.beacon(holder, dais, "ascended_warden", Color(1.0, 0.86, 0.62), 170.0, 1.1, 9.0, true)
 	arena.on_slain = func(_fresh: bool) -> void:
@@ -200,7 +201,7 @@ static func _approach_stairs(holder: Node3D, platform: Node) -> void:
 ## east and west where the deck hangs over the chasm (SummitRaid.EDGE_ANGLES: the Gale blows you
 ## there); piers carry it down to the ground. The back rail and moss rocks it covers are removed
 ## (before _solidify_from_meshes, so their collision goes too); the lift jetty route keeps clear.
-const DAIS_C := Vector2(0.0, -34.5)          ## holder xz (world (0, -118)); front edge at z -6.5, just behind the deck
+const DAIS_C := Vector2(0.0, -34.5)          ## holder xz (world (O.x, -118): Endgame); front edge at z -6.5, just behind the deck
 const DAIS_R := 28.0
 const DAIS_THICK := 1.0
 const DAIS_GAP := 3.2                        ## half width of the opening onto the top deck

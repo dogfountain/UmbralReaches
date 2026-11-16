@@ -60,7 +60,7 @@ const ROSTER := {
 ## hedges and orchard, the lit wood, the nave's shore, the Southwood. The rosters' own bats and fireflies fill in
 ## round these (never within 20-30 m of one).
 const BATS := [[Vector2(-318, -108), 18.0, 10.0, 7], [Vector2(-345, 152), 6.0, 7.0, 5], [Vector2(0, 342), 22.0, 14.0, 8],
-	[Vector2(-60, 352), 14.0, 7.0, 4], [Vector2(318, -100), 8.0, 13.0, 6], [Vector2(318, 164), 16.0, 14.0, 8],
+	[Vector2(-60, 352), 14.0, 7.0, 4], [Vector2(350, 102), 8.0, 10.0, 6], [Vector2(318, 164), 16.0, 14.0, 8],
 	[Vector2(327, 324), 16.0, 6.0, 5], [Vector2(226, 362), 8.0, 7.0, 4]]
 const FIREFLIES := [Vector2(-300, 330), Vector2(-262, 360), Vector2(-344, 312), Vector2(-178, 286), Vector2(-136, 318),
 	Vector2(-320, 4), Vector2(-344, -20), Vector2(-300, 40), Vector2(296, 150), Vector2(342, 190), Vector2(140, 320),

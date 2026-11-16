@@ -1,12 +1,12 @@
 extends RefCounted
-## RealmRift (docs/REALM_PLAN.md, module "rift"): the Starwater Rift - the chasm between the village rim and the
-## summit, where the Stair stood - and THE CROSSING, the only walkable way from the rift's south rim
-## (RealmLayout.CROSSING_FOOT) to the summit ward landing (RealmLayout.SUMMIT_WARD). The lava that filled it moved
-## out to the Ashen Rift in the far north-east (Luke, 16 Nov: "it makes no sense to be next to the starting village at
-## all"; rift/scorch.gd, rift_rim.gd): the chasm holds starwater from the Threshold to the summit's foot.
+## RealmRift (docs/REALM_PLAN.md, module "rift"): the Ashen Rift - the lava chasm under the summit, where the Stair
+## stood - and THE CROSSING, the only walkable way from the rift's south rim (RealmLayout.CROSSING_FOOT) to the summit
+## ward landing (RealmLayout.SUMMIT_WARD). The end of the night: it stands at the Realm's far north-east beyond
+## Lastlight (Endgame). Its builders were made round the chasm under Hearthward and still build there (the land keeps
+## the chasm at home while they do); Endgame.settle then moves the whole of it east and the ground at home is laid again.
 ##   rift/crossing.gd  the ruined viaduct (towers, arcades, fallen column, the Spindle, the landing)
-##   rift/features.gd  basalt stacks and organ pipes, rock islands (its fissures, vents and ash went with the lava)
-##   lava_works.gd     the sheet itself: surface, bank mask, falls (told where by this module)
+##   rift/features.gd  basalt stacks and organ pipes, crust islands, ash fields, fissures, vents
+##   lava_works.gd     the lava itself: surface, bank mask, embers, falls (told where by this module)
 ## Everything lives under one node with meta "site" (StoneBodies leaves it alone) and registers
 ## WorldLanes sites / flights / a lane so flora and props keep off the walk.
 
@@ -23,13 +23,11 @@ const Scorch := preload("res://core/world/realm/rift/scorch.gd")
 const STAR_Z := -46.0
 const STAR_BAND := 5.0
 
-## The sheet turns to starwater south of this z: north of the summit's foot, so all of it (STAR_Z still bounds the
-## Threshold's terraces and the basalt, which stand where they did).
-const SHEET_STAR_Z := -400.0
-## Falls of light poured from the rim walls: [z, side (-1 west wall, +1 east wall)]. LavaWorks finds each lip on the
-## real rock along that z (east side only south of the Ossuary). The first on a terrace bay centre (rift/threshold.gd
-## leaves that bay open; none by the Watchers, whose pedestals fill the mouth); two more where lava falls poured.
-const STARFALLS := [[-37.0, -1.0], [-82.0, -1.0], [-114.0, 1.0]]
+## Falls poured from the rim walls: [z, side (-1 west wall, +1 east wall)]. LavaWorks finds each
+## lip on the real rock along that z (east side only south of the Ossuary). Lava north of STAR_Z;
+## the STARFALLS south of it pour light into the pool down channels left in the terraces.
+const FALLS := [[-60.0, -1.0], [-82.0, -1.0], [-104.0, -1.0], [-114.0, 1.0]]
+const STARFALLS := [[-37.0, -1.0]]   ## on a terrace bay centre (rift/threshold.gd leaves that bay open); none by the Watchers, whose pedestals fill the mouth
 
 
 static func build(root: Node) -> void:
@@ -41,6 +39,8 @@ static func build(root: Node) -> void:
 	host.set_meta("site", "realm_rift")
 	root.add_child(host)
 	var t0 := Time.get_ticks_msec()
+	var s0 := WorldLanes.sites.size()            # what it registers moves east with it (Endgame.settle)
+	var l0 := WorldLanes.extra_lanes.size()
 	var crossing := Node3D.new()
 	crossing.name = "Crossing"
 	host.add_child(crossing)
@@ -56,7 +56,6 @@ static func build(root: Node) -> void:
 	host.add_child(features)
 	var fb = Features.new()
 	fb.star_z = STAR_Z
-	fb.volcanic = false                          # (the fissures, vents and ash fields went with the lava)
 	await fb.build(root, features)
 	var threshold := Node3D.new()
 	threshold.name = "Threshold"
@@ -66,9 +65,7 @@ static func build(root: Node) -> void:
 	remains.name = "OssRemains"
 	host.add_child(remains)
 	OssRemains.build(remains)
-	var kill := root.get_node_or_null("Zone/Lava/KillVolume")
-	if kill is Lava:
-		(kill as Lava).star_mode = 1                 # a fall in is a starwater burn (half), the violet burst
-	# LavaWorks (attached by main.gd before the Realm builds) waits for this to lay out the sheet
-	root.set_meta("rift_lava", {"falls": [], "starfalls": STARFALLS, "star_z": SHEET_STAR_Z, "star_band": STAR_BAND, "vents": fb.vents})
+	Endgame.settle(root, s0, l0)                 # built at home: now where the endgame stands
+	# LavaWorks (attached by main.gd before the Realm builds) waits for this to lay out the lava
+	root.set_meta("rift_lava", {"falls": FALLS, "starfalls": STARFALLS, "star_z": STAR_Z, "star_band": STAR_BAND, "vents": fb.vents})
 	print("RIFT crossing %d ms, features %d ms" % [t1 - t0, Time.get_ticks_msec() - t1])

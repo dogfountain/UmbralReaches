@@ -25,7 +25,7 @@ const METEOR_SH := preload("res://core/life/wildlife/meteor.gdshader")
 const SURGE_SH := preload("res://core/life/wildlife/surge_sky.gdshader")
 const WISP_SH := preload("res://world/wisp.gdshader")
 const SKY_R := 60.0
-const RIFT_C := Vector3(0.0, -12.0, -62.0)
+const RIFT_C := Vector3(0.0, -12.0, -62.0) + Endgame.O          # the chasm (the far north-east: Endgame)
 const WISP_BIOMES := ["fen", "oldforest", "glade", "ruin"]
 
 var director: Node3D

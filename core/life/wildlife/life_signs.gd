@@ -33,7 +33,7 @@ const CARRION := [
 	["greyfell", Vector2(-306.0, -40.0), "garron"],         # fell_track, below the keep's crag: a packhorse down
 	["kingsbarrows", Vector2(-308.0, 176.0), "palfrey"],   # barrow_track, on the ridge's south shoulder
 	["cairns", Vector2(296.0, 252.0), "garron"],           # cairn_track climbing onto the heath
-	["bellfall", Vector2(302.0, -32.0), "draught"],        # bell_track's last bend before the crater
+	["bellfall", Vector2(314.0, 96.0), "draught"],         # bellfall_way before the crater
 	["siege", Vector2(-198.0, 124.0), "draught"],          # the Siege Lines: the old battle's ground
 	["southwood", Vector2(168.0, 292.0), "fenpony"],       # where arches_way goes into the dark wood
 	["arches", Vector2(34.0, 330.0), "garron"],            # the valley under the aqueduct

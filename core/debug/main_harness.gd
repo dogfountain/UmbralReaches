@@ -221,8 +221,8 @@ func _run_perf_baseline() -> void:
 	# the three views the baseline has always stood at: [name, position, pitch]
 	var points: Array = [
 		["sanctuary", Vector3(0.0, -0.06582695, 19.0), -0.02],
-		["mid-stair", Vector3(0.0, 6.3, -15.4), 0.06],
-		["summit", Vector3(2.8, 25.2, -76.1), 0.34],
+		["mid-stair", Vector3(0.0, 6.3, -15.4) + Endgame.O, 0.06],      # (the endgame stands in the far north-east: Endgame)
+		["summit", Vector3(2.8, 25.2, -76.1) + Endgame.O, 0.34],
 	]
 	for p in points:
 		var marker := Marker3D.new()

@@ -101,8 +101,8 @@ const FALLBACK := [
 	{"at": Vector2(-118.0, 350.0), "id": "scarecrow", "key": "fb_scarecrow_field", "r34": true},
 	{"at": Vector2(-56.0, 346.0), "id": "water_bailiff", "key": "fb_castellum", "r34": true},
 	{"at": Vector2(222.0, 356.0), "id": "hollow_witch", "key": "fb_witchs_hollow", "r34": true},
-	{"at": Vector2(318.0, -96.0), "id": "eighth_ringer", "key": "fb_fallen_bell", "r34": true},
-	{"at": Vector2(320.0, 116.0), "id": "precentor", "key": "fb_drowned_nave", "r34": true},      # the nave's head on the north shore
+	{"at": Vector2(346.0, 100.0), "id": "eighth_ringer", "key": "fb_fallen_bell", "r34": true},
+	{"at": Vector2(300.0, 120.0), "id": "precentor", "key": "fb_drowned_nave", "r34": true},      # the nave's head on the north shore (west of the Bellfall's approach)
 	{"at": Vector2(322.0, 320.0), "id": "cairn_warden", "key": "fb_cairn_tower", "r34": true},
 ]
 

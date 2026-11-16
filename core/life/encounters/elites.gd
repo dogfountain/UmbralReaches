@@ -50,10 +50,10 @@ const ELITES := {
 	},
 	"cinder_cantor": {
 		"title": "The Cinder Cantor", "kind": "spitter", "script": "res://core/life/encounters/elite_cinder_cantor.gd",
-		"haunt": [Vector2(273.7, -113.2), Vector2(276.5, -116.1), Vector2(270.8, -110.3), Vector2(285.0, -107.0)], "region": "ashrift",
+		"haunt": [Vector2(-37.8, -65.0) + Endgame.O2, Vector2(-37.4, -68.5) + Endgame.O2, Vector2(-38.6, -61.0) + Endgame.O2, Vector2(-33.0, -52.0) + Endgame.O2], "region": "rift",
 		"hp": 12, "ash": 20, "scale": 1.24, "glow": Color(2.4, 0.8, 0.2), "loot": "cinder_censer",
-		"where": "the Choir House in the Ashen Rift's west flow, behind the Bellfall's crater, in the lava's nave",
-		"note": "The Founder's choir sang the eighth bell down. One of them is still singing, in the burned hall below the rift's west lip where the lava came in, swinging a censer full of the Rift. It spits three coals at once, wide. Close in. Do not stand at singing distance. -- scratched under the Last Bell",
+		"where": "the Choir House under the Ashen Rift's west berm, beyond Lastlight, in the lava's nave",
+		"note": "The choir on the Stair sang to the last bell. One of them is still singing, in the burned hall below the west berm where the lava came in, swinging a censer full of the Rift. It spits three coals at once, wide. Close in. Do not stand at singing distance. -- scratched under the Last Bell",
 		"trait": "Spits a fan of three coals; keeps its distance.",
 	},
 	"penitent": {

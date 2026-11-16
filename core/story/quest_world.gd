@@ -119,7 +119,7 @@ static func vigil(d: Dictionary) -> Dictionary:
 	o["schedule"] = {"dusk": "vigil", "work": "vigil", "midnight": "vigil", "late": "vigil"}
 	o["routines"] = {"vigil": [
 		{"act": "kneel", "at": "q_stair", "face": stone, "t": [40.0, 60.0]},
-		{"act": "look_up", "at": "q_stair", "face": Vector2(0.0, -95.0), "t": [8.0, 12.0]},
+		{"act": "look_up", "at": "q_stair", "face": Vector2(0.0, -95.0) + Endgame.O2, "t": [8.0, 12.0]},
 		{"act": "sit", "at": "q_stair", "face": stone, "t": [30.0, 50.0], "seat": 0.0},
 	]}
 	return o

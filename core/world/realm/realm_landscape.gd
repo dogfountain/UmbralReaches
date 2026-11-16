@@ -39,7 +39,7 @@ const KEEP := [
 	[Vector2(-206.0, 148.0), 44.0, 66.0],      # the Siege Lines' ring
 	[Vector2(206.0, 4.0), 46.0, 70.0],         # Stillwater
 	[Vector2(242.0, 6.0), 16.0, 28.0],         # the Spire's bluff
-	[Vector2(318.0, -100.0), 46.0, 70.0],      # the Bellfall crater (RealmReaches.CRATER_C)
+	[Vector2(350.0, 102.0), 20.0, 34.0],       # the Bellfall crater (RealmReaches.CRATER_C)
 	[Vector2(-318.0, -108.0), 26.0, 42.0],     # the Broken Keep's crag (RealmReaches.KEEP_C)
 	[Vector2(318.0, 164.0), 50.0, 74.0],       # the Drowned Nave's mere (RealmReaches.NAVE_C)
 ]

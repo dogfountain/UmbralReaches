@@ -46,22 +46,22 @@ func _process(delta: float) -> void:
 		var full := "--full" in OS.get_cmdline_user_args()
 		var pts: Array = []
 		if full:
-			pts = [["rim", Vector2(0, -4)], ["forecourt", Vector2(0, -9)], ["forecourt_top", Vector2(0, -13.5)], ["t1", Vector2(0, -21)]]
-			pts.append(["viaduct_mid", Vector2(-6.5, -25.5)])
-			pts.append(["t2", Vector2(-13, -30)])
-			pts.append(["column_mid", Vector2(-7.4, -35.0)])
-		pts.append(["t3", Vector2(-1.8, -40)])
-		var sp := Vector2(-1.8, -40.0)
+			pts = [["rim", Vector2(0, -4) + Endgame.O2], ["forecourt", Vector2(0, -9) + Endgame.O2], ["forecourt_top", Vector2(0, -13.5) + Endgame.O2], ["t1", Vector2(0, -21) + Endgame.O2]]
+			pts.append(["viaduct_mid", Vector2(-6.5, -25.5) + Endgame.O2])
+			pts.append(["t2", Vector2(-13, -30) + Endgame.O2])
+			pts.append(["column_mid", Vector2(-7.4, -35.0) + Endgame.O2])
+		pts.append(["t3", Vector2(-1.8, -40) + Endgame.O2])
+		var sp := Vector2(-1.8, -40.0) + Endgame.O2
 		pts.append(["t3_east", sp + Vector2(cos(deg_to_rad(-35.0)), sin(deg_to_rad(-35.0))) * 3.0])
 		for i in range(0, TowerStair.N + 1, 2):
 			var p := TowerStair.at(i)
-			pts.append(["stair_%d" % i, Vector2(p.x, p.z)])
-		pts.append(["foot", Vector2(-7.6, -40.0)])
-		pts.append(["quay", Vector2(-10.5, -40.0)])
-		pts.append(["forecourt", Vector2(-13.1, -40.0)])
-		pts.append(["forecourt_door", Vector2(-13.1, -36.85)])
-		pts.append(["door", Vector2(-14.9, -36.85)])
-		pts.append(["stone", Vector2(-18.4, -36.85)])
+			pts.append(["stair_%d" % i, Vector2(p.x, p.z) + Endgame.O2])
+		pts.append(["foot", Vector2(-7.6, -40.0) + Endgame.O2])
+		pts.append(["quay", Vector2(-10.5, -40.0) + Endgame.O2])
+		pts.append(["forecourt", Vector2(-13.1, -40.0) + Endgame.O2])
+		pts.append(["forecourt_door", Vector2(-13.1, -36.85) + Endgame.O2])
+		pts.append(["door", Vector2(-14.9, -36.85) + Endgame.O2])
+		pts.append(["stone", Vector2(-18.4, -36.85) + Endgame.O2])
 		var markers: Array[Marker3D] = []
 		for e: Array in pts:
 			var m := Marker3D.new()
@@ -72,7 +72,7 @@ func _process(delta: float) -> void:
 			markers.append(m)
 			names.append(e[0])
 		var space := (main as Node3D).get_world_3d().direct_space_state
-		var from := Vector3(0.0, 12.0, -3.0) if full else Vector3(-1.8, 12.0, -40.0)
+		var from := (Vector3(0.0, 12.0, -3.0) if full else Vector3(-1.8, 12.0, -40.0)) + Endgame.O      # (the endgame stands in the far north-east)
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + Vector3(0.0, -40.0, 0.0), Layers.WORLD))
 		player.teleport((hit.position as Vector3) + Vector3.UP * 0.3 if not hit.is_empty() else from - Vector3(0.0, 10.0, 0.0))
 		player._debug_drive = true            # the Player's own test drive (real step-up, gravity, capsule); autopilot skips step-up

@@ -152,7 +152,7 @@ func _place(p: Node3D, k: String) -> Vector3:
 
 func _procession(p: Node3D) -> void:
 	# a file of five walking a line through the place, toward the summit (the Crossing's north)
-	var to_summit := Vector3(0.0, 0.0, -104.0) - _at
+	var to_summit := Endgame.w(Vector3(0.0, 0.0, -104.0)) - _at
 	to_summit.y = 0.0
 	var dir := to_summit.normalized() if to_summit.length() > 1.0 else Vector3.FORWARD
 	var route: Array[Vector3] = [_at - dir * 10.0, _at + dir * 25.0]
@@ -253,7 +253,7 @@ func _tick_pilgrim() -> void:
 	if _done_n == 0 and p and p.global_position.distance_to(_who.global_position) < 3.5:
 		_done_n = 1
 		_who.call("release")
-		var home := _who.global_position + (_who.global_position - Vector3(0.0, 0.0, -104.0)).normalized() * 40.0
+		var home := _who.global_position + (_who.global_position - Endgame.w(Vector3(0.0, 0.0, -104.0))).normalized() * 40.0
 		home.y = _who.global_position.y
 		_who.set("follow", home)
 		Events.toast.emit("\"I was going up. I don't know why I was going up.\" The pilgrim turns round and walks home.  (+10 grave ash, +1 relic fragment)")

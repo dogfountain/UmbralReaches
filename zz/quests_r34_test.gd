@@ -296,7 +296,7 @@ func _step(id: String, s: int) -> void:
 			var at: Vector2 = _in_region(String(stp.get("region", "")), stp.get("at", Vector2.ZERO))
 			# a kill well outside the region does not count
 			if String(stp.get("region", "")) != "":
-				runner.call("note_kill", kind, Vector2(0.0, -104.0))
+				runner.call("note_kill", kind, Vector2(0.0, -104.0) + Endgame.O2)
 				ok(int(Book.q(id).get("n", 0)) == 0, "%s: a kill outside %s does not count" % [id, stp.region])
 			var rares: Array = stp.get("rares", [])
 			if not rares.is_empty():

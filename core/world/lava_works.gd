@@ -16,7 +16,7 @@ var _y := -15.5
 var _last_solid := PackedByteArray()
 var _slice := 0
 const SLICE_US := 2500          ## bank mapping work per frame (perf: the second map was a 24 ms frame)
-var _site := false              ## over another sheet (the Ashen Rift's, rift/ash_lava.gd): banks and embers only
+var _cx := 0.0                  ## the chasm's centreline x (the sheet's middle: the endgame stands Endgame.O east of where it was baked)
 
 
 ## Waits a frame once this frame's slice of mapping work is spent; true if it waited.
@@ -41,24 +41,13 @@ static func attach(root: Node) -> LavaWorks:
 	return w
 
 
-## LavaWorks over a sheet built at runtime (the Ashen Rift's lava in the far north-east, rift/ash_lava.gd): its bank
-## mask once its banks' collision exists, and its embers. Beside the sheet, under its holder.
-static func over(s: MeshInstance3D) -> LavaWorks:
-	var w := LavaWorks.new()
-	w.name = "LavaWorks"
-	w._surface = s
-	w._site = true
-	s.get_parent().add_child(w)
-	return w
-
-
 func _ready() -> void:
-	if not _site:
-		add_to_group(&"lava_works")         # (the loading screen waits on the chasm's map, not this one)
+	add_to_group(&"lava_works")
 	_mat = (_surface.material_override as ShaderMaterial).duplicate() as ShaderMaterial
 	_surface.material_override = _mat
 	var pm := _surface.mesh as PlaneMesh
 	_y = _surface.global_position.y
+	_cx = _surface.global_position.x
 	if pm:
 		var m := pm.duplicate() as PlaneMesh
 		m.subdivide_width = int(m.size.x / 1.5)
@@ -69,9 +58,6 @@ func _ready() -> void:
 	_mat.set_shader_parameter("bank_origin", _origin)
 	_mat.set_shader_parameter("bank_size", _size)
 	_embers()
-	if _site:
-		get_tree().create_timer(1.0, false).timeout.connect(_map_banks)
-		return
 	if Realm.module_on("rift") and ResourceLoader.exists(RIFT):
 		_realm_setup()
 		return
@@ -107,8 +93,7 @@ func _realm_setup() -> void:
 		_falls()
 	if spec.has("starfalls"):
 		_falls_at(spec.starfalls, true)
-	if _lava_z.y > _lava_z.x:
-		_bank_embers()
+	_bank_embers()
 
 
 var _lava_z := Vector2(-INF, INF)          ## the z span that is still lava (embers keep to it)
@@ -122,9 +107,6 @@ func _starwater(star_z: float, band: float) -> void:
 	_mat.set_shader_parameter("star_band", band)
 	_lava_z = Vector2(_origin.y, star_z - band)
 	var root := get_parent()
-	if _lava_z.y <= _lava_z.x:
-		_all_star(root)
-		return
 	var lz := (_lava_z.x + _lava_z.y) * 0.5
 	var half := (_lava_z.y - _lava_z.x) * 0.5
 	for e: Node in [get_node_or_null("Embers"), root.get_node_or_null("Zone/Lava/Embers")]:
@@ -137,36 +119,13 @@ func _starwater(star_z: float, band: float) -> void:
 		gp.global_position.z = lz
 	var g0 := root.get_node_or_null("Zone/Lava/Glow0") as OmniLight3D
 	if g0:
-		g0.global_position = Vector3(0.0, -11.5, -27.0)
+		g0.global_position = Vector3(_cx, -11.5, -27.0)
 		g0.light_color = Color(0.52, 0.38, 1.0)
 		g0.light_energy = 3.4
 		g0.omni_range = 40.0
 	var g1 := root.get_node_or_null("Zone/Lava/Glow1") as OmniLight3D
 	if g1:
-		g1.global_position = Vector3(0.0, -13.0, -58.0)
-
-
-## The whole chasm is starwater (the lava moved out to the Ashen Rift in the far north-east): no embers, and the glow
-## lights burn violet and low along it like the Threshold's (three of them; the fourth is not needed).
-func _all_star(root: Node) -> void:
-	for e: Node in [get_node_or_null("Embers"), root.get_node_or_null("Zone/Lava/Embers")]:
-		var gp := e as GPUParticles3D
-		if gp != null:
-			gp.emitting = false
-			gp.visible = false
-	var spots := [Vector3(0.0, -11.5, -27.0), Vector3(0.0, -12.5, -62.0), Vector3(0.0, -12.5, -96.0)]
-	for k in 4:
-		var g := root.get_node_or_null("Zone/Lava/Glow%d" % k) as OmniLight3D
-		if g == null:
-			continue
-		if k >= spots.size():
-			g.visible = false
-			continue
-		g.global_position = spots[k]
-		g.light_color = Color(0.52, 0.38, 1.0)
-		g.light_energy = 3.4 if k == 0 else 2.6
-		g.omni_range = 40.0 if k == 0 else 34.0
-		g.set_meta("light_class", "fill")
+		g1.global_position = Vector3(_cx, -13.0, -58.0)
 
 
 ## Falls at the given [z, side] stations: at each, walk out from the river centre towards that
@@ -183,7 +142,7 @@ func _falls_at(list: Array, star := false) -> void:
 		var best := []
 		while absf(x) < 44.0:
 			x += side * 0.5
-			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(x, 60, z), Vector3(x, _y - 1, z), Layers.WORLD))
+			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(_cx + x, 60, z), Vector3(_cx + x, _y - 1, z), Layers.WORLD))
 			if hit.is_empty() or (hit.position as Vector3).y < _y + 0.6:
 				open_x = x
 				continue
@@ -193,7 +152,7 @@ func _falls_at(list: Array, star := false) -> void:
 				continue                               # basalt, cliffs, piers: look past them
 			var hy: float = (hit.position as Vector3).y
 			if absf(x - open_x) <= 6.0 and hy > _y + 7.0:
-				best = [Vector3(open_x + side * 0.8, hy, z), Vector3(-side, 0, 0), hy - _y]
+				best = [Vector3(_cx + open_x + side * 0.8, hy, z), Vector3(-side, 0, 0), hy - _y]
 				break
 		if best.is_empty():
 			print("LAVA no fall at z %.0f side %d (no wall high enough)" % [z, int(side)])
@@ -230,9 +189,9 @@ func _bank_embers() -> void:
 		add_child(e)
 		if _lava_z.y < 0.0:                       # under the Threshold: the lava reach only
 			pm.emission_box_extents.z = (_lava_z.y - _lava_z.x) * 0.5 * 0.85
-			e.global_position = Vector3(side * 14.0, _y + 0.3, (_lava_z.x + _lava_z.y) * 0.5)
+			e.global_position = Vector3(_cx + side * 14.0, _y + 0.3, (_lava_z.x + _lava_z.y) * 0.5)
 		else:
-			e.global_position = Vector3(side * 14.0, _y + 0.3, -64.0)
+			e.global_position = Vector3(_cx + side * 14.0, _y + 0.3, -64.0)
 		e.emitting = true
 
 
@@ -332,14 +291,14 @@ func _falls() -> void:
 			var open_x := INF                       # last x over open lava (no collision below)
 			while absf(x) < 44.0:
 				x += side * 1.0
-				var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(x, 40, z), Vector3(x, _y - 1, z), Layers.WORLD))
+				var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(_cx + x, 40, z), Vector3(_cx + x, _y - 1, z), Layers.WORLD))
 				if hit.is_empty() or (hit.position as Vector3).y < _y + 0.6:
 					open_x = x
 					continue
 				var hy: float = (hit.position as Vector3).y
 				var is_ground := String((hit.collider as Node).name).contains("Terrain")
 				if is_ground and absf(x) > 6.0 and absf(x - open_x) <= 4.0 and hy > _y + 8.0 and hy - _y > float(best[0]):
-					best = [hy - _y, Vector3(open_x + side * 0.8, hy, z), Vector3(-side, 0, 0)]
+					best = [hy - _y, Vector3(_cx + open_x + side * 0.8, hy, z), Vector3(-side, 0, 0)]
 			z += 4.0
 		if float(best[0]) > 0.0:
 			picks.append(best)

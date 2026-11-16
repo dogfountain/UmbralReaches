@@ -95,7 +95,7 @@ func _bounds() -> void:
 		var v: Vector3 = (load("res://core/world/realm/realm_layout.gd") as GDScript).get_script_constant_map()[n]
 		check("%s inside BOUNDS" % n, b.has_point(Vector2(v.x, v.z)))
 	check("fixed points kept (spawn, start, tavern, ossuary, summit)", RealmLayout.SPAWN == Vector3(0, 0, 33) and RealmLayout.PLAYER_START == Vector3(-4.4, 0.15, 57.4)
-		and RealmLayout.TAVERN == Rect2(10, 25.6, 16, 9.2) and RealmLayout.OSSUARY_OLD == AABB(Vector3(2, -6, -110), Vector3(30, 32, 88)) and RealmLayout.SUMMIT == Vector3(0, 24.5, -83.5))
+		and RealmLayout.TAVERN == Rect2(10, 25.6, 16, 9.2) and RealmLayout.OSSUARY_OLD == AABB(Vector3(2, -6, -110) + Endgame.O, Vector3(30, 32, 88)) and RealmLayout.SUMMIT == Vector3(0, 24.5, -83.5) + Endgame.O)
 	var grid := Rect2(Land.GX0, Land.GZ0, (Land.GNX - 1) * Land.STEP, (Land.GNZ - 1) * Land.STEP)
 	check("terrain grid %s covers BOUNDS + 8 m" % grid, grid.encloses(b.grow(8.0)))
 	var ring := Rect2(Land.RX0, Land.RZ0, (Land.RNX - 1) * Land.RSTEP, (Land.RNZ - 1) * Land.RSTEP)

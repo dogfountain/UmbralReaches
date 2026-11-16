@@ -326,7 +326,7 @@ func _summit() -> void:
 	if room == null:
 		return
 	var C: Vector3 = arena.global_position
-	check("summit: the deck is raid-sized", arena.radius >= 27.0 and absf(C.x) < 0.5 and absf(C.z + 118.0) < 0.5, "r %.1f at %s" % [arena.radius, C])
+	check("summit: the deck is raid-sized", arena.radius >= 27.0 and absf(C.x - Endgame.O.x) < 0.5 and absf(C.z + 118.0) < 0.5, "r %.1f at %s" % [arena.radius, C])
 	var space := p.get_world_3d().direct_space_state
 	var floor_ok := 0
 	for i in 8:
