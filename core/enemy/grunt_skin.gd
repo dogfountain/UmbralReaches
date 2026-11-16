@@ -115,8 +115,14 @@ func _refresh() -> void:
 		_out = false
 		_posed_t = -1.0
 		_cap_tick = -1
+	var held := _shown >= 0.999
 	_capture()
+	if _same and held:
+		_shown = 1.0                     # every bone where it is drawn already (a sleeping rig's sockets rarely move)
+		return
 	_blend()
+	if _fresh:
+		_shown = 1.0                     # (a fresh capture's two poses are one: it draws exactly that pose)
 
 
 ## Past the body's draw distance (and its fade) from the camera: nothing of the pose is seen.
@@ -200,6 +206,8 @@ var _cur: Array[Transform3D] = []
 var _prev_tick := -1
 var _cap_tick := -1
 var _shown := -1.0                     ## the last blend drawn (1 = cur); skip redrawing a held pose
+var _same := false                     ## the last capture found every bone where the one before had it
+var _fresh := false                    ## the last capture started afresh (its previous pose is itself)
 const POSE_EVERY := 3
 var pose_span := 1                     ## its rig is posed one tick in this many (idle_lod)
 
@@ -225,9 +233,13 @@ func _capture() -> void:
 	var inv := skel.global_transform.affine_inverse()
 	var tick := Engine.get_physics_frames()
 	var fresh := _cap_tick < 0 or tick - _cap_tick > 4 or tick <= _cap_tick
+	_fresh = fresh
+	_same = _cap_tick >= 0
 	for k in n:
 		var sock := _socks[k]
 		var t := inv * sock.global_transform * _bases[k] if is_instance_valid(sock) else _cur[k]
+		if _same and t != _cur[k]:
+			_same = false
 		_prev[k] = t if fresh else _cur[k]
 		_cur[k] = t
 	_prev_tick = tick - 1 if fresh else _cap_tick
