@@ -108,8 +108,33 @@ func unpark() -> void:
 func _refresh() -> void:
 	if body and not body.is_visible_in_tree():
 		return
+	if _beyond_draw():
+		_out = true
+		return
+	if _out:
+		_out = false
+		_posed_t = -1.0
+		_cap_tick = -1
 	_capture()
 	_blend()
+
+
+## Past the body's draw distance (and its fade) from the camera: nothing of the pose is seen.
+func _beyond_draw() -> bool:
+	if body == null or body.visibility_range_end <= 0.0:
+		return false
+	var far := body.visibility_range_end + body.visibility_range_end_margin + 2.0
+	return _cam_pos().distance_squared_to(body.global_position) > far * far
+
+
+## A sleeping rig whose body is hidden or out of draw range: nothing to pose, nothing to check every frame
+## (~220 of the doubled Realm's sleeping camp pawns did both checks each frame, ~0.3 ms). The driver's
+## REFRESH look poses it once it is shown or comes in range; waking or animate() unparks it.
+func _park_unseen() -> bool:
+	if _rig == null or _rig.can_process():
+		return false
+	_park()
+	return _is_parked
 
 
 func _exit_tree() -> void:
@@ -137,12 +162,14 @@ func setup(s: Skeleton3D, rig: CharacterRig, mesh: MeshInstance3D) -> void:
 
 func _process(_delta: float) -> void:
 	if body and not body.is_visible_in_tree():
+		_park_unseen()
 		return
 	# past the body's draw distance nothing of the pose is seen: skip it, and pose afresh on the way back in
 	if body and body.visibility_range_end > 0.0:
 		var far := body.visibility_range_end + body.visibility_range_end_margin + 2.0
 		if _cam_pos().distance_squared_to(body.global_position) > far * far:
 			_out = true
+			_park_unseen()
 			return
 		if _out:
 			_out = false
