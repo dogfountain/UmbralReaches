@@ -17,3 +17,6 @@ text_director
 threshold_quest
 ui_r33
 rewards
+palette
+slots
+storage_save

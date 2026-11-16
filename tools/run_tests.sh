@@ -3,6 +3,8 @@
 #
 #   tools/run_tests.sh                 # every zz/*_test.tscn
 #   tools/run_tests.sh quest skill     # only zz/quest_test.tscn, zz/skill_test.tscn
+#   tools/run_tests.sh --quick         # only the world-free tier (tools/fast_tests.txt): for every change
+#   (the full run, for a merge, shares one Realm cache across tests: .godot/realm_cache_tests)
 #   JOBS=2 TEST_TIMEOUT=300 tools/run_tests.sh   # JOBS defaults to the performance cores; longest tests run first
 #
 # Each test runs in its own scratch HOME, so user:// (savegame.cfg, settings.cfg, codex.cfg)
@@ -43,6 +45,22 @@ FAIL_RE='(^|[^A-Za-z_])FAIL([^A-Za-z_]|$)'
 ZERO_RE='(^|[^0-9])0 FAIL([^A-Za-z_]|$)|FAIL 0([^0-9]|$)'   # "DIAG 0 FAIL ok" is a count, not a failure
 
 fail_lines() { grep -nE "$FAIL_RE" "$1" | grep -vE "$ZERO_RE"; }
+
+# One generator cache for every test (core/world/realm/gen_cache.gd user_dir()): each test has its own
+# HOME, so user://realm_cache/ started empty for every test and each rebuilt the whole Realm (flora,
+# rocks, trees: about 40 s of the doubled world's ~55 s boot). It lives under .godot/ (not in git) and
+# survives between runs; a generator edit retires its own entries by salt. UMBRAL_CACHE_DIR= (empty)
+# turns the shared cache off.
+export UMBRAL_CACHE_DIR="${UMBRAL_CACHE_DIR-$ROOT/.godot/realm_cache_tests}"
+[ -n "$UMBRAL_CACHE_DIR" ] && mkdir -p "$UMBRAL_CACHE_DIR"
+
+# --quick: only the world-free tier (tools/fast_tests.txt), a couple of minutes; the full run before a merge
+QUICK=""
+if [ "${1:-}" = "--quick" ]; then
+	shift
+	TESTS_FILE="$ROOT/tools/fast_tests.txt"
+	QUICK=1
+fi
 
 tests=()
 if [ "$#" -gt 0 ]; then
@@ -141,6 +159,13 @@ $(for t in "${tests[@]}"; do
 	echo "${s:-999} $t"
 done | sort -rn)
 EOF3
+# Warm the shared cache: the first (longest) test runs alone, so it builds the Realm once and every
+# test after it adopts the cached flora, rocks and trees instead of all of them building it at once.
+if [ -z "$QUICK" ] && [ "${#ordered[@]}" -gt 1 ] && [ -n "$UMBRAL_CACHE_DIR" ]; then
+	echo "warming the shared cache with ${ordered[0]} ..."
+	run_one "${ordered[0]}"
+	ordered=("${ordered[@]:1}")
+fi
 pids=()
 live() {
 	local n=0 p

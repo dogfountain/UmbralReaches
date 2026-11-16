@@ -7,7 +7,7 @@ const GenCache := preload("res://core/world/realm/gen_cache.gd")
 
 func _ready() -> void:
 	var prune := "--prune" in OS.get_cmdline_user_args()
-	for dir: String in [GenCache.RES_DIR, GenCache.USER_DIR]:
+	for dir: String in [GenCache.RES_DIR, GenCache.user_dir()]:
 		var r := GenCache.report(dir)
 		print("CACHE %s  %d files  %.2f MB" % [dir, int(r.files), int(r.bytes) / 1048576.0])
 		var rows: Dictionary = r.by_script

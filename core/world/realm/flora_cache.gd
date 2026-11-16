@@ -53,13 +53,15 @@ static func fingerprint(root: Node) -> String:
 
 ## The stored placement for `fp`, or {}.
 static func load_hit(fp: String) -> Dictionary:
-	var packed: Variant = GenCache.load_var(KEY, SELF)
-	if not (packed is Dictionary) or String((packed as Dictionary).get("fp", "")) != fp:
-		return {}
-	var raw: PackedByteArray = (packed as Dictionary).z
-	var bytes := raw.decompress(int((packed as Dictionary).n), FileAccess.COMPRESSION_ZSTD)
-	var v: Variant = bytes_to_var(bytes)
-	return v if v is Dictionary else {}
+	for packed: Variant in GenCache.load_vars(KEY, SELF):     # the one whose fingerprint matches, user/test cache first
+		if not (packed is Dictionary) or String((packed as Dictionary).get("fp", "")) != fp:
+			continue
+		var raw: PackedByteArray = (packed as Dictionary).z
+		var bytes := raw.decompress(int((packed as Dictionary).n), FileAccess.COMPRESSION_ZSTD)
+		var v: Variant = bytes_to_var(bytes)
+		if v is Dictionary:
+			return v
+	return {}
 
 
 static func save(fp: String, payload: Dictionary) -> void:

@@ -106,7 +106,7 @@ static func build(root: Node) -> void:
 	_oss_r = Rect2(ob.position.x, ob.position.z, ob.size.x, ob.size.z)
 	RealmLayout.prepare()
 	_make_profiles()
-	_heights()
+	var hw: Array = preload("res://core/world/realm/land_cache.gd").heights(_old, [_old_nx, _old_nz, _old_x0, _old_z0, _old_step], GNX * GNZ, func() -> Array: _heights(); return [_h, _wear_g]); _h = hw[0]; _wear_g = hw[1]   # cached (land_cache.gd)
 	var t1 := Time.get_ticks_msec()
 	var terrain := _terrain_mesh()
 	terrain.name = "Terrain"

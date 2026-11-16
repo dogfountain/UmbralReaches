@@ -192,7 +192,8 @@ static func _reaches(step: String, node: Node) -> void:
 		if s == null or not s.can_instantiate():
 			push_error("RealmPois: %s failed to load" % path)
 			continue
-		s.call(step, node)
+		var t := Time.get_ticks_usec()
+		s.call(step, node); Realm.prof_add("poi %s: %s" % [step, path.get_file().get_basename()], t)
 
 
 ## Each place faces where the player comes from.

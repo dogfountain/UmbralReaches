@@ -19,7 +19,9 @@ Cursor rules in `.cursor/rules/` are binding. Current truth: `ARCHITECTURE.md`. 
 
 ```sh
 godot --headless --path . --import --quit
-tools/run_tests.sh        # zz/*_test.tscn, isolated HOME, fails on SCRIPT ERROR / Parse Error / FAIL
+tools/run_tests.sh --quick  # the world-free tier (tools/fast_tests.txt), ~30 s: run on every change
+tools/run_tests.sh        # every zz/*_test.tscn (before a merge); isolated HOME, one shared Realm cache
+                          # (.godot/realm_cache_tests); fails on SCRIPT ERROR / Parse Error / FAIL
 godot --headless --path . --export-pack "Linux" "/tmp/Umbral Reaches.pck"
 ```
 
