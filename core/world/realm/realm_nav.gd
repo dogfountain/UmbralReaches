@@ -69,8 +69,9 @@ static func _settings(tile := AABB()) -> NavigationMesh:
 	nm.agent_max_slope = MAX_SLOPE
 	nm.region_min_size = 4.0
 	nm.region_merge_size = 20.0
-	nm.edge_max_length = 24.0                 # coarser polygons (were 12 m / 0.4): the doubled Realm's 152k polygons took the
-	nm.edge_max_error = 0.8                   # server ~24 s to join across the tiles (enemies flat-steered till then); 77k, ~4.6 s
+	nm.edge_max_length = 24.0                 # longer polygons than the 12 m of the Marches' Realm (fewer at twice the ground), but the same
+	nm.edge_max_error = 0.4                   # 0.4 m fit to walls: at 0.55-0.8 a chaser no longer rounded a wall (enemy_ai_test); 172k polygons,
+	                                          # the server joins the seven tiles in ~25 s on its own thread (enemies steer flat till then)
 	var a := AREA if tile.size == Vector3.ZERO else tile
 	nm.filter_baking_aabb = a
 	return nm
@@ -99,7 +100,7 @@ static func build(root: Node) -> void:
 	if not source.has_data():
 		push_warning("RealmNav: no collision geometry parsed")
 		return
-	var key := "nav|%d|%d|%s" % [hash(source.get_vertices()), hash(source.get_indices()), [CELL, CELL_H, AGENT_RADIUS, AGENT_HEIGHT, MAX_CLIMB, MAX_SLOPE]]
+	var key := "nav|%d|%d|%s" % [hash(source.get_vertices()), hash(source.get_indices()), [CELL, CELL_H, AGENT_RADIUS, AGENT_HEIGHT, MAX_CLIMB, MAX_SLOPE, 24.0, 0.4]]
 	key += "|tiles|%s" % [tiles()]
 	var hit: Variant = GenCache.load_var(key, SELF)
 	if hit is Array and (hit as Array).size() == nms.size():

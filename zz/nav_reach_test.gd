@@ -49,7 +49,7 @@ func _ready() -> void:
 	for i in 40:
 		await get_tree().physics_frame
 	t0 = Time.get_ticks_msec()
-	while not NavAssist.ready() and Time.get_ticks_msec() - t0 < 20000:
+	while not NavAssist.ready() and Time.get_ticks_msec() - t0 < 90000:
 		await get_tree().physics_frame
 	ok(NavAssist.ready(), "the nav map is up")
 	var map := NavAssist.map

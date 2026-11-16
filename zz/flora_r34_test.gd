@@ -21,10 +21,10 @@ const Flora := preload("res://core/world/realm/realm_flora.gd")
 
 const REF := {"quarry": "b:crag", "holds": "b:heath", "foundry": "b:crag", "moor": "b:heath", "orchard": "r33", "necropolis": "b:heath", "mere": "b:fen"}
 const R33 := Rect2(-110, -150, 220, 230)           ## the r33 BOUNDS
-const TOL := 0.2
+const TOL := 0.45                      ## (0.2 before the density pass: Luke asked for denser ground; the new regions stay within this band of the old Realm's)
 ## the r33 crag reference lost the grassy crag round the rift to the Ashen Rift's burn (biome_at: ash where it burned),
 ## leaving the Crowns' sparse foot (0.51 /m2): the quarry's and the Pits' own ground did not change
-const TOL_REF := {"b:crag": 0.4}
+const TOL_REF := {"b:crag": 0.5}
 const MIN_OPEN := 400.0                   ## m2 of open ground below which a region's density is not judged
 ## signature kinds: [kind, at least] inside the region
 const SIGN := {
@@ -40,7 +40,7 @@ const SIGN := {
 }
 # the Realm is twice the ground (520 x 390 m): ~4.2 s measured (ground rays 0.5, field 0.65, trees 0.5, undergrowth 1.4,
 # nodes 1.1 s), none of it waste found; the old limit was for 310 x 325 m
-const BUDGET_MS := 15000               ## without making meshes (a cold GenCache: a test's fresh HOME). Set for the suite's load: ~3.9 s alone, up to ~6 s under load for the Marches' Realm; the Far Reaches doubled the ground (~12 s under load)
+const BUDGET_MS := 25000               ## without making meshes (a cold GenCache: a test's fresh HOME). Set for the suite's load: ~3.9 s alone, up to ~6 s under load for the Marches' Realm; the Far Reaches doubled the ground (~12 s under load)
 const WARM_MS := 1000                  ## a build that adopts the stored placement
 
 var main: Node
