@@ -279,7 +279,7 @@ static func settle(root: Node) -> void:
 		return
 	_own(body, grid)
 	var space := (root as Node3D).get_world_3d().direct_space_state
-	var sm := _floor_samples(space, body.get_rid())
+	var sm := _floor_samples(space, body.get_rid(), grid)
 	var pending := {}
 	for pass_n in 3:           # each sees what the one before's blending brought up to a floor
 		if not grid.exact and not pending.is_empty():
@@ -300,8 +300,10 @@ static func settle(root: Node) -> void:
 
 
 ## Every floor sample (SETTLE_STEP apart inside each floor site) with a walk surface near its site's floor height:
-## {p: the sample, top: that surface, fy: the site's floor height, name: the site's}.
-static func _floor_samples(space: PhysicsDirectSpaceState3D, terrain: RID) -> Dictionary:
+## {p: the sample, top: that surface, fy: the site's floor height, name: the site's}. On an exact grid a sample whose
+## ground is already under any walk surface its site can have is left out without its rays: the settle only lowers
+## the ground, so it can never meet that floor (most of them: a site's cut leaves its ground 0.3 m under the floor).
+static func _floor_samples(space: PhysicsDirectSpaceState3D, terrain: RID, grid: _Grid) -> Dictionary:
 	var pts := PackedVector2Array()
 	var tops := PackedFloat64Array()
 	var fys := PackedFloat64Array()
@@ -318,6 +320,8 @@ static func _floor_samples(space: PhysicsDirectSpaceState3D, terrain: RID) -> Di
 				var p := Vector2(x, z)
 				z += SETTLE_STEP
 				if is_nan(WorldLanes.site_floor(st, p)):
+					continue
+				if grid.exact and grid.tri_height(p.x + NUDGE.x, p.y + NUDGE.y) < fy - SETTLE_BELOW - SETTLE_GAP:
 					continue
 				var top := _ray_top(space, p + NUDGE, fy, terrain)
 				if is_nan(top):
