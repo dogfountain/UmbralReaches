@@ -51,6 +51,13 @@ const BOSSES := ["res://core/enemy/thornwarden.gd", "res://core/enemy/bone_abbot
 	"res://core/enemy/hierarch_voice.gd",
 	# --- the east marches ---
 	"res://core/enemy/anchoress.gd"]
+## The elites (each its own script and parts) and the variant looks (their own materials), shown once too: in play the
+## first of each was built cold, 11-21 ms an elite and 4-17 ms a look in one frame (zz/spawn_cost.tscn, 16 Nov);
+## warm, every one is 1.4-2.1 ms.
+const ELITES_PATH := "res://core/life/encounters/elites.gd"
+const VARIANTS_PATH := "res://core/life/encounters/variants.gd"
+const VARIANT_ON := {"drowned": "res://core/enemy/husk.gd", "stonebound": "res://core/enemy/wretch.gd", "tideborn": "res://core/enemy/wretch.gd",
+	"deeper": "res://core/enemy/husk.gd", "scarred": "res://core/enemy/ossuant.gd", "ironclad": "res://core/enemy/husk.gd"}
 const CORES := ["core_prism", "core_lodestar", "core_cinder", "core_rime"]
 const SKIP_AFTER_VIEW := 2        # stops (spawn, the Keg) the tour must have shown before a key may leave the rest
 const DIRS := 6                 # headings per stop
@@ -394,7 +401,9 @@ func _show_combat() -> void:
 	_show_more(c, at, right, fwd, col, hot)
 	_cast_every_spell(c, fwd)
 	_warm_loot = LootWarm.show(zone, c, right, fwd)
-	print("LOADING combat set on show: %d nodes" % _warm_nodes.size())
+	_keep_resident()
+	print("LOADING combat set on show: %d nodes, %d resources kept resident" % [_warm_nodes.size(),
+		(zone.get_meta(&"warm_resident") as Array).size() if zone.has_meta(&"warm_resident") else 0])
 
 
 ## The bosses, and the effect helpers the first set never drew (so a fight compiles none of them).
@@ -408,6 +417,7 @@ func _show_more(c: Vector3, at: Vector3, right: Vector3, fwd: Vector3, col: Colo
 		b.remove_from_group(Groups.ENEMY)
 		b.global_position = c + fwd * 5.0 + right * (float(k) - 1.0) * 4.0
 		_warm_nodes.append(b)
+	_show_elites(c, right, fwd)
 	# the skinned horses (one material per breed): a stable or the first ride compiles none of them
 	var bi := 0
 	for breed: String in WarmHorseDB.BREEDS:
@@ -446,6 +456,58 @@ func _show_more(c: Vector3, at: Vector3, right: Vector3, fwd: Vector3, col: Colo
 	WarmBossKit.spikes(zone, c - right * 1.5, {"radius": 1.0}, "bone")
 	Vfx.burst(at, hot, {"count": 40, "life": 0.6, "speed": Vector2(2.0, 6.0), "size": 0.06, "gravity": -6.0, "ring": 1.0})
 	Vfx.burst(c + Vector3.UP * 0.2, Color(0.08, 0.06, 0.06, 0.8), {"count": 16, "life": 1.0, "speed": Vector2(0.5, 2.0), "size": 0.45, "gravity": 0.6, "radius": 0.5, "additive": false, "turbulence": true})
+
+
+## One of each elite and each variant look, a row behind the kinds (see ELITES_PATH).
+func _show_elites(c: Vector3, right: Vector3, fwd: Vector3) -> void:
+	var slots: Array = []                              # [script, look]
+	if ResourceLoader.exists(ELITES_PATH):
+		var elites: Dictionary = (load(ELITES_PATH) as GDScript).get_script_constant_map().get("ELITES", {})
+		for id: String in elites:
+			var sp := String((elites[id] as Dictionary).get("script", ""))
+			if sp != "" and ResourceLoader.exists(sp):
+				slots.append([load(sp), ""])
+	var variants: GDScript = load(VARIANTS_PATH) if ResourceLoader.exists(VARIANTS_PATH) else null
+	if variants != null:
+		for look: String in VARIANT_ON:
+			if (variants.get_script_constant_map().get("VARIANTS", {}) as Dictionary).has(look) and ResourceLoader.exists(VARIANT_ON[look]):
+				slots.append([load(VARIANT_ON[look]), look])
+	for k in slots.size():
+		var script: GDScript = slots[k][0]
+		var look: String = slots[k][1]
+		var e: Node3D = script.new()
+		if e == null:
+			continue
+		e.process_mode = Node.PROCESS_MODE_DISABLED
+		if look != "":
+			variants.call("pre", e, look)
+		zone.add_child(e)
+		if look != "":
+			variants.call("dress", e, look)
+		e.remove_from_group(Groups.ENEMY)
+		e.global_position = c + fwd * 3.2 + right * (float(k) - float(slots.size()) * 0.5) * 0.9
+		_warm_nodes.append(e)
+
+
+## What the warm foes loaded and nothing else holds stays loaded for the night: a boss's model (ClipRig loads its
+## glTF by path and keeps nothing) was read again at every build once the warm one was freed, 4-8 ms of each pull
+## and approach warm-up (zz/spawn_cost.tscn: a boss rebuilt 5-10 ms, with its model held 1.4-2.2 ms).
+func _keep_resident() -> void:
+	var keep: Array[Resource] = []
+	if zone.has_meta(&"warm_resident"):
+		keep = zone.get_meta(&"warm_resident")
+	for n in _warm_nodes:
+		if not (n is Enemy) or not is_instance_valid(n):
+			continue
+		if n.get_script() != null and not keep.has(n.get_script()):
+			keep.append(n.get_script())
+		for m in n.find_children("*", "", true, false):
+			var path := m.scene_file_path
+			if path != "" and ResourceLoader.exists(path):
+				var ps := load(path)
+				if ps != null and not keep.has(ps):
+					keep.append(ps)
+	zone.set_meta(&"warm_resident", keep)
 
 
 ## Every spell the wanderer knows, cast once from in front of the warm camera with its real code

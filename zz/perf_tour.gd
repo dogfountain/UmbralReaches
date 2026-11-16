@@ -27,7 +27,13 @@ extends Node
 ##   --luke                          Luke's pacing and window: vsync on, 144 fps cap, 1920x1080
 ##   --moon=k:v,...  --rs=atlas:N,filter:N   moon / shadow-atlas overrides once the Realm is built (A/B)
 ##   --hitches[=ms]                  points: print every frame over 20 ms (or ms): time into the window, draws
-##                                   (path: frames over ms, default 33)
+##                                   (path: frames over ms, default 33); and from the load on, "HITCH" records of the
+##                                   slow frame's last four frames: nodes added/freed (named), resources, objects, memory,
+##                                   pipelines compiled, scripts, and the deferred flush / pre-draw / draw split
+##                                   --hitches-under: the loading screen's frames too
+##   --probe[-split=A,B]             (with --hitches) a frame whose scripts run over 8 ms names the subtrees that took
+##                                   the time: every processing node's priority is renumbered by subtree (order kept
+##                                   exactly: old priority first, then tree order) and a stamp runs between subtrees
 ##   --loading                       run the real loading screen (build + shader warm-up) first
 ##   --early                         start measuring the moment the Realm is built (no 6 s settle):
 ##                                   shows what a player meets right after the load
@@ -160,6 +166,9 @@ func _ready() -> void:
 	_first.set_meta("tour", self)
 	get_tree().root.add_child.call_deferred(_first)
 	var args := OS.get_cmdline_user_args()
+	if Array(args).any(func(a: String) -> bool: return a.begins_with("--hitches")):
+		get_tree().node_added.connect(_ev_added)
+		get_tree().node_removed.connect(_ev_removed)
 	blame = "--blame" in args
 	do_points = not ("--path-only" in args)
 	do_path = not ("--points-only" in args) and not blame
@@ -269,13 +278,27 @@ func _physics_process(_d: float) -> void:
 ## Enemies are switched off and hidden, not freed: a freed camp member respawns every 10 s
 ## (EnemySpawner.RESPAWN) and each spawn builds its creature meshes, which put 40-140 ms frames
 ## into every window that the views themselves do not cause. (--with-enemies keeps them.)
+## 16 Nov (frame pacing): they were switched off and hidden every frame while the spawner, the rares and the director
+## woke every foe in reach on their half-second ticks, so each tick showed and re-enabled a few dozen foes and the
+## next frame hid them again: a 4-10 ms frame twice a second, about the whole of each window's "1% low". Now each foe
+## is put to sleep for good (sleep_range below zero: every tick puts it to sleep, which it already is) and only its
+## parts are hidden (the body, the bar, a rare's shimmer), so nothing toggles.
 func _quiet_enemies() -> void:
 	if "--with-enemies" in OS.get_cmdline_user_args():
 		return
-	for n in get_tree().get_nodes_in_group(Groups.ENEMY):      # every frame: the spawner wakes them
-		if n is Node3D:
-			n.process_mode = Node.PROCESS_MODE_DISABLED
-			(n as Node3D).visible = false
+	for n in get_tree().get_nodes_in_group(Groups.ENEMY):
+		if not (n is Node3D):
+			continue
+		if n.process_mode != Node.PROCESS_MODE_DISABLED:
+			n.process_mode = Node.PROCESS_MODE_DISABLED       # (an ambush's 0.9 s wake timer)
+		if n.has_meta(&"tour_muted"):
+			continue
+		n.set_meta(&"tour_muted", true)
+		if "sleep_range" in n:
+			n.set("sleep_range", -1.0)
+		for c in n.get_children():
+			if c is Node3D and not (c is CollisionShape3D):
+				(c as Node3D).visible = false
 
 
 ## --mute=a.gd,b.gd: switch off _process/_physics_process of every node running these scripts (find
@@ -354,6 +377,8 @@ func _process(d: float) -> void:
 	if not main.has_meta("realm_done"):
 		return
 	if load_ms == 0 and main.get_node_or_null("LoadingScreen") != null:
+		if "--hitches-under" in OS.get_cmdline_user_args():
+			_hitch_log(d)                        # (the frames under the cover too)
 		return                                   # --loading: measure from the moment the cover lifts
 	if load_ms == 0:
 		load_ms = Time.get_ticks_msec() - t0_ms
@@ -396,6 +421,8 @@ func _process(d: float) -> void:
 		for w in main.find_children("*", "", true, false):
 			if w is WardSeal:
 				(w as WardSeal).release()
+	_hitch_log(d)
+	_probe_report()
 	if t < (0.0 if "--early" in OS.get_cmdline_user_args() else 6.0):   # streaming, lava, first shader compiles
 		return
 	_mute_scripts()
@@ -426,6 +453,204 @@ func _process(d: float) -> void:
 			_attrib_step(d)
 		"census":
 			_census_step()
+
+
+
+# --- hitch attribution (--hitches): what a slow frame's neighbours did ---------------------------------------
+## Per frame: nodes added / removed (the first few named), resources and objects made, static memory. A slow
+## frame prints the last four frames' records, so a spawn, a free or a load burst names itself.
+var _ev_add := 0
+var _ev_rem := 0
+var _ev_names := PackedStringArray()
+var _ev_ring: Array = []              ## last 4 frames: [frame, added, removed, names, res delta, obj delta, mem delta KB, scripts ms, delta ms]
+var _ev_res := 0
+var _ev_obj := 0
+var _ev_mem := 0
+var _hitch_n := 0
+var _ev_pso := [0, 0, 0, 0]
+const _PSO := [RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_CANVAS, RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_MESH,
+	RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SURFACE, RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_DRAW,
+	RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SPECIALIZATION]
+
+
+func _ev_note(sign: String, n: Node) -> void:
+	if _ev_names.size() < 5:
+		var sc: Script = n.get_script()
+		_ev_names.append("%s%s/%s%s" % [sign, n.get_parent().name if n.get_parent() else "?", n.name, "(" + sc.resource_path.get_file() + ")" if sc else ""])
+
+
+func _ev_added(n: Node) -> void:
+	_ev_add += 1
+	_ev_note("+", n)
+
+
+func _ev_removed(n: Node) -> void:
+	_ev_rem += 1
+	_ev_note("-", n)
+
+
+## Marks after the scripts: the deferred flush (a CanvasItem's _draw, call_deferred work, the delete queue), the
+## renderer's pre-draw and post-draw; the record of a frame carries [deferred, to pre-draw, draw] ms.
+var _m_proc_end := 0
+var _m_def := 0
+var _m_pre := 0
+var _m_post := 0
+var _m_hooked := false
+
+
+func _mark_def() -> void:
+	_m_def = Time.get_ticks_usec()
+
+
+func _hitch_log(d: float) -> void:
+	if not hitches:
+		return
+	if not _m_hooked:
+		_m_hooked = true
+		RenderingServer.frame_pre_draw.connect(func() -> void: _m_pre = Time.get_ticks_usec())
+		RenderingServer.frame_post_draw.connect(func() -> void: _m_post = Time.get_ticks_usec())
+	var segs := ""
+	if _m_proc_end > 0 and _m_def >= _m_proc_end and _m_pre >= _m_def and _m_post >= _m_pre:
+		segs = " | def %.1f pre %.1f draw %.1f" % [(_m_def - _m_proc_end) / 1000.0, (_m_pre - _m_def) / 1000.0, (_m_post - _m_pre) / 1000.0]
+	_m_proc_end = Time.get_ticks_usec()
+	_mark_def.call_deferred()
+	var res := int(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT))
+	var obj := int(Performance.get_monitor(Performance.OBJECT_COUNT))
+	var mem := int(Performance.get_monitor(Performance.MEMORY_STATIC)) / 1024
+	var pso := []
+	var pso_txt := ""
+	for k in _PSO.size():
+		pso.append(RenderingServer.get_rendering_info(_PSO[k]))
+		if _ev_pso.size() == _PSO.size() and int(pso[k]) != int(_ev_pso[k]):
+			pso_txt += " %s+%d" % [["canvas", "mesh", "surface", "draw", "spec"][k], int(pso[k]) - int(_ev_pso[k])]
+	_ev_pso = pso
+	var rcpu := (RenderingServer.viewport_get_measured_render_time_cpu(vp_rid) + RenderingServer.get_frame_setup_time_cpu()) if vp_rid.is_valid() else 0.0
+	var info := "draws %d rcpu %.1f%s%s" % [Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), rcpu, (" PSO" + pso_txt) if pso_txt != "" else "", segs]
+	_ev_ring.append([Engine.get_process_frames(), _ev_add, _ev_rem, info + " " + ",".join(_ev_names), res - _ev_res, obj - _ev_obj, mem - _ev_mem, _proc_us / 1000.0, d * 1000.0])
+	_ev_add = 0
+	_ev_rem = 0
+	_ev_names = PackedStringArray()
+	_ev_res = res
+	_ev_obj = obj
+	_ev_mem = mem
+	if _ev_ring.size() > 4:
+		_ev_ring.pop_front()
+	if d * 1000.0 > hitch_ms and _hitch_n < 400:
+		_hitch_n += 1
+		print("HITCH t %.2f s %s %.1f ms:" % [t, phase if phase != "" else "settle", d * 1000.0])
+		for e: Array in _ev_ring:
+			print("HITCH   f%d +%d -%d res %+d obj %+d mem %+d KB scripts %.1f delta %.1f %s" % [e[0], e[1], e[2], e[4], e[5], e[6], e[7], e[8], e[3]])
+
+
+
+# --- subtree probe (--probe) --------------------------------------------------------------------------------
+## Units: Main's children, and the children of each that has at most PROBE_SPLIT. Every node of unit k keeps its old
+## priority's order: new = old * PROBE_STRIDE + 2k + 1 (old priorities this tour itself uses are left alone), and a
+## stamp node runs at 2k + 2 in both passes. A burst frame prints the units between the widest stamps.
+const PROBE_SPLIT := 200
+const PROBE_STRIDE := 20000
+var _probe_on := false
+var _probe_units: Array[String] = []
+var _probe_t := PackedInt64Array()           ## idle pass: stamp time by unit
+var _probe_tp_last := PackedInt64Array()     ## physics pass: each unit's stamp in the last tick
+var _probe_left := 120                       ## reports at most this many frames
+
+const _PROBE_SRC := """extends Node
+var tour: Node
+var k := 0
+func _process(_d: float) -> void:
+	tour._probe_stamp(k, false)
+func _physics_process(_d: float) -> void:
+	tour._probe_stamp(k, true)
+"""
+
+
+func _probe_setup() -> void:
+	if _probe_on or not ("--probe" in OS.get_cmdline_user_args()):
+		return
+	_probe_on = true
+	var units: Array[Node] = []
+	var split: PackedStringArray = []                 # --probe-split=A,B: these subtrees by child, however small
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--probe-split="):
+			split = a.trim_prefix("--probe-split=").split(",")
+	for c in main.get_children():
+		if c.get_child_count() <= PROBE_SPLIT and not (String(c.name) in split):
+			units.append(c)
+		else:
+			units.append(c)                     # the parent itself (its own processing) is a unit too
+			for cc in c.get_children():
+				units.append(cc)
+	var script := GDScript.new()
+	script.source_code = _PROBE_SRC
+	script.reload()
+	var holder := Node.new()
+	holder.name = "PerfProbes"
+	holder.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().root.add_child(holder)
+	var renumbered := 0
+	for k in units.size():
+		var u := units[k]
+		_probe_units.append(String(main.get_path_to(u)))
+		var nodes: Array[Node] = [u]
+		if not ((u.get_child_count() > PROBE_SPLIT or String(u.name) in split) and u.get_parent() == main):
+			nodes.append_array(u.find_children("*", "", true, false))
+		for n in nodes:
+			var p := n.process_priority
+			var pp := n.process_physics_priority
+			if absi(p) < PROBE_STRIDE / 2:
+				n.process_priority = p * PROBE_STRIDE + 2 * k + 1
+			if absi(pp) < PROBE_STRIDE / 2:
+				n.process_physics_priority = pp * PROBE_STRIDE + 2 * k + 1
+			renumbered += 1
+		var st := Node.new()
+		st.set_script(script)
+		st.set("tour", self)
+		st.set("k", k)
+		st.process_priority = 2 * k + 2
+		st.process_physics_priority = 2 * k + 2
+		st.process_mode = Node.PROCESS_MODE_ALWAYS
+		holder.add_child(st)
+	_probe_t.resize(units.size())
+	_probe_tp_last.resize(units.size())
+	print("PROBE %d units, %d nodes renumbered" % [units.size(), renumbered])
+
+
+func _probe_stamp(k: int, phys: bool) -> void:
+	if phys:
+		_probe_tp_last[k] = Time.get_ticks_usec()
+	else:
+		_probe_t[k] = Time.get_ticks_usec()
+
+
+## On a frame whose scripts ran over 8 ms: the units with the widest gaps before their stamps (idle pass), and the
+## physics pass's widest gaps from its last tick.
+func _probe_report() -> void:
+	if not _probe_on:
+		_probe_setup()
+		return
+	if _proc_us > 8000 and _probe_left > 0:
+		_probe_left -= 1
+		var gaps: Array = []
+		if _probe_t[0] > 0 and _proc_begin > 0:
+			gaps.append([_probe_t[0] - _proc_begin, 0])      # unit 0, and every node spawned since the setup (priority 0)
+		for k in range(1, _probe_t.size()):
+			if _probe_t[k] > 0 and _probe_t[k - 1] > 0:
+				gaps.append([_probe_t[k] - _probe_t[k - 1], k])
+		var pg: Array = []
+		for k in range(1, _probe_tp_last.size()):
+			if _probe_tp_last[k] > 0 and _probe_tp_last[k - 1] > 0 and _probe_tp_last[k] >= _probe_tp_last[k - 1]:
+				pg.append([_probe_tp_last[k] - _probe_tp_last[k - 1], k])
+		gaps.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
+		pg.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
+		var txt := PackedStringArray()
+		for g: Array in gaps.slice(0, 4):
+			txt.append("%s %.1f" % [_probe_units[g[1]], g[0] / 1000.0])
+		var ptxt := PackedStringArray()
+		for g: Array in pg.slice(0, 3):
+			ptxt.append("%s %.1f" % [_probe_units[g[1]], g[0] / 1000.0])
+		print("PROBE t %.2f scripts %.1f ms | idle: %s | last tick: %s" % [t, _proc_us / 1000.0, ", ".join(txt), ", ".join(ptxt)])
+	_probe_t.fill(0)
 
 
 # --- static views ----------------------------------------------------------------------------------

@@ -229,6 +229,7 @@ func _ready() -> void:
 		return
 	off = "--scape-off" in OS.get_cmdline_user_args()
 	_make_buses()
+	GloomDrone.request()                              # synthesised on a worker now, not on the frame the Gloom first rises
 	if not off:
 		ScapeSynth.prewarm()
 	for key: String in BEDS:
@@ -288,6 +289,7 @@ func _exit_tree() -> void:
 	ScapeSynth._cache.clear()
 	LifeSynth._cache.clear()
 	Sfx.release()
+	GloomDrone.release()
 	# leave the buses as Settings made them
 	for bus: String in _verbs:
 		var bi := AudioServer.get_bus_index(bus)
@@ -452,9 +454,12 @@ func _gloom_drone() -> void:
 	if _drone == null:
 		if off or AudioServer.get_bus_index(OUT_BUS) < 0:
 			return
+		var stream := GloomDrone.ready_stream()
+		if stream == null:
+			return                                    # still on its worker (a second at most): the drone joins a frame later
 		_drone = AudioStreamPlayer.new()
 		_drone.name = "GloomDrone"
-		_drone.stream = GloomDrone.make()
+		_drone.stream = stream
 		_drone.bus = OUT_BUS
 		add_child(_drone)
 	_drone.volume_db = lerpf(GLOOM_DRONE_DB[0], GLOOM_DRONE_DB[1], sqrt(gloom)) + _duck
