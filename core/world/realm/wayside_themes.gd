@@ -149,9 +149,10 @@ const TOWNS := [
 	[Vector2(0.0, 36.0), 46.0],          # Hearthward
 	[Vector2(-200.0, 68.0), 34.0],       # Weirford
 	[Vector2(214.0, 95.0), 26.0],        # Saltmarket
-	[Vector2(322.0, 44.0), 40.0],        # Lastlight (RealmReaches.TOWN_E)
-	[Vector2(-160.0, 300.0), 30.0],      # Fallowmere (RealmReaches.TOWN_F)
-	[Vector2(-326.0, 298.0), 24.0],      # Reedholm
+	[Vector2(322.0, 44.0), 50.0],        # Lastlight (RealmReaches.TOWN_E)
+	[Vector2(-160.0, 300.0), 44.0],      # Fallowmere (RealmReaches.TOWN_F)
+	[Vector2(-140.0, 350.0), 34.0],      # ... its drowned strips and the scarecrow field (the villagers' walks)
+	[Vector2(-316.0, 290.0), 36.0],      # Reedholm (its landing and the meres' walks)
 ]
 
 ## The named places each region keeps: a discovery (its name and line show on the first visit), a writing at it

@@ -95,7 +95,7 @@ func _pieces() -> void:
 		var xf: Transform3D = p.xf
 		var g := Footing.terrain_y(space, xf.origin.x, xf.origin.z, RealmLayout.ground(space, xf.origin.x, xf.origin.z))
 		# a building's plinth and a wall's footing go well under its origin; a small thing must touch
-		if xf.origin.y > g + (0.12 if kind in props else 0.6):
+		if xf.origin.y > g + (0.25 if kind in props else 0.6):      # (0.25: a pole's foot in a mere's bed, under the reeds)
 			floating.append("%s at %s (ground %.2f)" % [kind, xf.origin, g])
 		if xf.origin.y < g - 2.6:
 			sunk.append("%s at %s (ground %.2f)" % [kind, xf.origin, g])
@@ -170,7 +170,9 @@ func _lamps_and_words() -> void:
 	print("lamps, words, tasks, shops")
 	var ids := {}
 	for n in get_tree().root.find_children("Lamp_*", "", true, false):      # kept lamps are not in the kindling group
-		ids[String(n.get("lamp_id"))] = n
+		var lid: Variant = n.get("lamp_id")
+		if lid != null:                           # (a node named Lamp_* that is not a Lamp, e.g. a March beacon's, has none)
+			ids[String(lid)] = n
 	var missing: Array = []
 	for s: Dictionary in Towns.lamps():
 		if not ids.has(String(s.id)):
