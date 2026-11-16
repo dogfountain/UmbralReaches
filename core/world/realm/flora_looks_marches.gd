@@ -69,4 +69,8 @@ const LOOKS := {
 	"cairns": {"tree_mul": {"oak": 0.0, "birch": 0.1, "pine": 0.2, "sapling": 0.2, "snag": 0.5}, "tree_add": {"windtree": 0.008},
 		"under_mul": {"grass": 0.7, "heather": 1.6, "flowers": 0.3}, "under_add": {"gorse": 0.03, "tallgrass": 0.08},
 		"tint": Color(0.9, 0.88, 0.82), "props": {"rubble": 0.05, "cairn": 0.012}, "stone_mul": 1.7, "style": "granite"},
+	# the White Pans: bare crust (it stays bare) with tufts of salt-grass, dead brush, crusted stones and a little wreckage
+	"saltpans": {
+		"under_add": {"tallgrass": 0.025, "deadbush": 0.012, "gorse": 0.004},
+		"tint": Color(0.9, 0.93, 0.95), "props": {"rubble": 0.03}, "stone_mul": 1.8},
 }
