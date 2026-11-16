@@ -748,6 +748,25 @@ def hierarch():
     for k in range(4):
         a = 0.4 + k * 1.5
         g.tube([path_at + V(math.cos(a) * 0.07, -0.05 + math.sin(a) * 0.06, -0.2), path_at + V(math.cos(a) * 0.2, -0.22 + math.sin(a) * 0.18, -0.5)], 0.006, (1.0, 0.5, 0.15, 0.0), "glow", "head", n=4)
+    # the hands: two stone fists wound round the horn (four fingers and a thumb each), a forearm from under the cope to each
+    def horn_at(t):
+        c = path_at + V(0.0, -0.32 * t * t, -0.62 * t)
+        c2 = path_at + V(0.0, -0.32 * (t + 0.02) ** 2, -0.62 * (t + 0.02))
+        tg = (c2 - c)
+        tg = tg / np.linalg.norm(tg)
+        vx = np.cross(tg, V(1, 0, 0))
+        return c, tg, vx / np.linalg.norm(vx)
+    for t_, sx_ in ((0.34, -1), (0.55, 1)):
+        c, tg, vx = horn_at(t_)
+        rr = 0.07 + 0.012 * t_ * 6
+        for f in range(4):
+            cf = c + tg * (0.03 * f - 0.045)
+            ring = [cf + V(1, 0, 0) * math.cos(a_) * (rr + 0.012) + vx * math.sin(a_) * (rr + 0.012) for a_ in np.linspace(0.0, TAU, 17)]
+            g.tube(ring, 0.021 - 0.001 * f, PALE, "stone", "head", n=7)
+        g.ball(c + V(sx_ * 0.0, 0.0, 0.0) + V(1, 0, 0) * sx_ * (rr + 0.03), 0.045, PALE, "stone", "head", n=7, sy=1.2)
+        sh = V(sx_ * 0.3, 1.36, -0.02)
+        elb = V(sx_ * 0.34, 1.3, -0.2)
+        g.tube([sh, elb, c + V(1, 0, 0) * sx_ * (rr + 0.03)], [0.085, 0.07, 0.055], STONE, "stone", "head", n=9)
     g.lathe([(0.2, 0.0), (0.225, 0.015), (0.21, 0.035)], path_at + V(0.0, -0.32, -0.6), GILT, "gilt", "head", n=24, axis="z")
     return g.to_object("body"), []
 
