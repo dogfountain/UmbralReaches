@@ -525,7 +525,7 @@ def bone_abbot():
             out_pts.append(V(cx + math.sin(a) * rr, yy, cz + math.cos(a) * rr))
         return out_pts
     # the cassock: laid on him from the breast, belted, falling wide to the floor in deep folds
-    Oc = GB.coat(g, bd, WINE, mat="wool", y_top=1.5, y_hem=0.02, flare=0.3, seed=0.8, tatter=0.05, folds=13, thick=0.012, nu=128, nv=44, amp=0.075, crease=0.6)
+    Oc = GB.coat(g, bd, WINE, mat="wool", y_top=1.5, y_hem=0.02, flare=0.2, seed=0.8, tatter=0.05, folds=13, thick=0.012, nu=128, nv=44, amp=0.075, crease=0.6)
     hem = ring_at(Oc, 0.06, 0.006)
     belt = ring_at(Oc, 1.03, 0.008)
     if belt:
@@ -557,8 +557,7 @@ def bone_abbot():
         GB.sleeve(g, bd, sx, WINE, GOLD, flare=0.03, bell=0.06, y_cuff=0.76)
     # the head: a cowl full of dark, two candle eyes, a bone brow and a bone jaw-plate with teeth, the mitre over all
     H = V(0.0, 1.64, 0.0)
-    cowl = [(1.5, 0.19, 0.16, 0.02), (1.58, 0.17, 0.155, 0.01), (1.7, 0.165, 0.17, 0.0), (1.82, 0.15, 0.165, 0.005), (1.9, 0.11, 0.13, 0.02), (1.94, 0.03, 0.04, 0.03)]
-    g.robe(cowl, BLACK, "wool", lambda p: "head" if p[1] > 1.6 else "chest", n=40, t0=math.radians(75), t1=TAU - math.radians(75))
+    GB.cowl(g, bd, BLACK, mat="wool", open_w=0.08, open_h=0.15, seed=0.7)
     # the mitre: two peaked plates with a cleft, an orphrey up each, a circlet, lappets behind
     # a closed ogee mitre: panels stitched at eight seams (shallow ridges), a swelling shoulder then a peak, bone with gilt orphreys front and back
     def mw(v):
