@@ -58,7 +58,7 @@ class Seg:
         return self.h2 + (self.s * al + self.g * pe) @ self.R.T
 
 
-def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shoulder_y=1.40, targets=None):
+def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shoulder_y=1.40, targets=None, keep_groups=("head",), hand_ratio=1.0):
     for o in list(bpy.data.objects):
         bpy.data.objects.remove(o)
     md = TargetService.get_default_macro_info_dict()
@@ -191,12 +191,35 @@ def human(macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, hunch=0.0, shou
     cur = sum(len(p.vertices) - 2 for p in h.data.polygons)
     if cur > tris:
         d = h.modifiers.new("Dec", 'DECIMATE')
-        d.ratio = max(tris / cur, 0.4)                 # the head is spared, so the body pays: never thin it to a wire
+        d.ratio = max(tris / cur, 0.4)
+        if tuple(keep_groups) != ("head",):             # a bigger spared area: `tris` is then what the unspared body gets
+            kv = {v.index for v in h.data.vertices if any(("J_" + k_) in h.vertex_groups and any(g_.group == h.vertex_groups["J_" + k_].index and g_.weight > 0.5 for g_ in v.groups) for k_ in keep_groups)}
+            kept = sum(len(p_.vertices) - 2 for p_ in h.data.polygons if all(i in kv for i in p_.vertices))
+            d.ratio = min(1.0, (kept + tris) / cur)                 # the head is spared, so the body pays: never thin it to a wire
         if "J_head" in h.vertex_groups:                  # the face keeps the detail it was sculpted with: thin the body only
-            d.vertex_group = "J_head"
+            kg = h.vertex_groups.new(name="Z_keepmask")        # (and anything else named in keep: hands, feet)
+            for v in h.data.vertices:
+                if any(("J_" + k) in h.vertex_groups and any(g_.group == h.vertex_groups["J_" + k].index and g_.weight > 0.5 for g_ in v.groups) for k in keep_groups):
+                    kg.add([v.index], 1.0, 'REPLACE')
+            d.vertex_group = "Z_keepmask"
             d.invert_vertex_group = True
             d.vertex_group_factor = 1.0
         bpy.ops.object.modifier_apply(modifier=d.name)
+        if tuple(keep_groups) != ("head",) and hand_ratio < 1.0:        # the hands, thinned a little on their own
+            hv = set()
+            for v in h.data.vertices:
+                if any(("J_hand_" + t_) in h.vertex_groups and any(g_.group == h.vertex_groups["J_hand_" + t_].index and g_.weight > 0.5 for g_ in v.groups) for t_ in "lr"):
+                    hv.add(v.index)
+            hg = h.vertex_groups.new(name="Z_handmask")                # (a group is spared when inverted: spare everything but the hands)
+            hg.add([v.index for v in h.data.vertices if v.index not in hv], 1.0, 'REPLACE')
+            htr = sum(len(p_.vertices) - 2 for p_ in h.data.polygons if all(i in hv for i in p_.vertices))
+            tot = sum(len(p_.vertices) - 2 for p_ in h.data.polygons)
+            d2 = h.modifiers.new("Dec2", 'DECIMATE')
+            d2.ratio = 1.0 - (1.0 - hand_ratio) * htr / max(tot, 1)
+            d2.vertex_group = "Z_handmask"
+            d2.invert_vertex_group = True
+            d2.vertex_group_factor = 1.0
+            bpy.ops.object.modifier_apply(modifier=d2.name)
     me = h.data
     Q = np.array([(v.co.x, v.co.z, -v.co.y) for v in me.vertices])
     F = [list(p.vertices) for p in me.polygons]

@@ -508,15 +508,46 @@ def starve(bd, amp=1.0, ribs=1.0):
     bd.P = P + N * d[:, None]
 
 
-def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0, hunch=0.0, targets=None, starved=0.0):
+def claw_hands(bd, g, spread=0.9, curl=0.035, nail=(0.0045, 0.016), col=(0.55, 0.5, 0.4)):
+    """Pose a hanging hand's fingers: fanned apart across the hand and curled in toward the palm, tips pulled down to long
+    nails. A procedural pose of the retargeted mesh (the rig has no finger bones), before the garments are laid."""
+    P = bd.P.copy()
+    L = np.array(bd.L)
+    nails = []
+    for t_ in ("hand_l", "hand_r"):
+        m = np.nonzero(L == t_)[0]
+        if len(m) == 0:
+            continue
+        sx = -1.0 if t_.endswith("l") else 1.0
+        q = P[m]
+        yw, yt = 0.80, q[:, 1].min()
+        t = np.clip((yw - q[:, 1]) / max(yw - yt, 1e-6), 0.0, 1.0)
+        t = np.clip((t - 0.35) / 0.65, 0.0, 1.0)                           # fingers only: the palm stays
+        zc = float(q[:, 2].mean())
+        q[:, 2] = zc + (q[:, 2] - zc) * (1.0 + spread * t)
+        q[:, 0] -= sx * curl * t ** 2                                         # curl toward the palm side (the thigh)
+        q[:, 2] -= 0.012 * t ** 2                                             # and a little forward
+        P[m] = q
+        tip = q[q[:, 1] < q[:, 1].min() + 0.007]
+        bins = {}
+        for v in tip:
+            bins.setdefault(int(round(v[2] / 0.011)), []).append(v)
+        for vs in bins.values():
+            nails.append(np.mean(vs, axis=0))
+    bd.P = P
+    for c in nails:
+        g.ball(V(float(c[0]), float(c[1]) - 0.002, float(c[2])), nail[0], col, "bone", "hand_l" if c[0] < 0 else "hand_r", n=6, sx=0.7, sy=nail[1] / nail[0] * 0.5, sz=1.0)
+
+
+def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, eye_r=0.011, mat="skin", shoulder_y=1.40, skull=0.0, hunch=0.0, targets=None, starved=0.0, keep=("head",), claws=False, hand_ratio=1.0):
     """A MakeHuman body (mh_body.py), shaped by `macro` (gender, age, muscle, weight, proportions, height: 0..1),
     retargeted to the rig, with coals in the eyes. skull 0..1: the face wasted toward the bone beneath (cheeks and
     temples hollowed, lips drawn back off the teeth, the eyes sunk), with the teeth bared."""
     import mh_body
-    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y, hunch=hunch, targets=targets)
+    P, F, eyes, FUV, L = mh_body.human(macro=macro, girth=girth, limb=limb, head=head, tris=tris, shoulder_y=shoulder_y, hunch=hunch, targets=targets, keep_groups=keep, hand_ratio=hand_ratio)
     bd = Body(P, F, FUV, L)
-    if starved > 0.0:
-        starve(bd, starved)
+    if claws:
+        claw_hands(bd, g)
         P = bd.P
     E = [e for e in eyes if e is not None]
     if skull > 0.0 and len(E) == 2:
@@ -960,7 +991,7 @@ def cowl(g, b, col, peak=0.0, open_w=0.065, seed=0.7, shade=True, mat="wool", op
         g.col[n0 + k] = (cc[0] * (1 - 0.94 * t), cc[1] * (1 - 0.94 * t), cc[2] * (1 - 0.94 * t), cc[3])
 
 
-def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=True):
+def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=True, nu=56, nv=26):
     """A scavenger's layers, laid on its own body so they fit: a head wrap wound over the scalp and the lower face with
     only an uneven eye slit left (a bare MakeHuman face read as a mannequin's), two wrap tails down the nape, and a
     torn sleeveless vest over the ribs with a ragged hem and cord lacing at the breast."""
@@ -969,7 +1000,7 @@ def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=Tru
     hd = [b.P[i] for i in range(len(b.P)) if b.L[i] == "head"]
     top = max(float(q[1]) for q in hd)
     c = np.array([float(np.mean([q[0] for q in hd])), ey + 0.01, float(np.mean([q[2] for q in hd])) + 0.01])
-    NU, NV = 56, 26
+    NU, NV = nu, nv
     trunk = tuple(sorted({l for l in b.L if not l.startswith(("elbow_", "hand_", "hip_", "knee_", "foot_"))}))
     rows = dome_rays(c, NU, NV, 0.0, math.radians(v1))
     # the slit: the rows that pass the eyes, only at the front (-z: u near pi), ragged at its ends
@@ -1015,7 +1046,7 @@ def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=Tru
 def sack(g, at, h, w, d, col, cord, lab="chest", seed=1.0, mat="linen", neck=0.04, lean=0.04):
     """A stuffed sack hung by its tied neck: gathered at the top, heavy and sagging at the bottom, vertical folds that
     fade down the belly, lumps where the load sits, a corded knot and one patched seam. Rings round Y (rig space)."""
-    NU, NV = 28, 16
+    NU, NV = 24, 14
     P = []
     for i in range(NV + 1):
         t = i / NV                                   # 0 at the knot, 1 at the base
@@ -1059,12 +1090,12 @@ def wretch():
     skull with coals sunk in it, a stuffed sack hung from straps that cut into the shoulders, a gaff in its fist."""
     g = Geo()
     SKIN, RAG, SACK, BELT = (0.4, 0.34, 0.31), (0.17, 0.13, 0.1), (0.5, 0.43, 0.3), (0.1, 0.075, 0.06)
-    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=12500, hunch=1.0, targets=WRETCH_T, eye_r=0.011, skull=0.9)
+    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=3800, hunch=1.0, targets=WRETCH_T, eye_r=0.011, skull=0.9, keep=("head", "hand_l", "hand_r"), claws=True)
     if os.environ.get('BODYONLY'):
         return g.to_object('body'), []
     wraps(g, b, ("knee_",), 0.07, 0.3, RAG)
     wraps(g, b, ("elbow_", "hand_"), 0.8, 0.92, RAG, seed=2)
-    g.robe([(0.98, 0.16, 0.12, 0.0), (0.9, 0.17, 0.13, 0.0), (0.7, 0.2, 0.16, 0.0), (0.56, 0.21, 0.17, 0.0)], RAG, "wool", B.waist_split(0.9), n=48, pleats=8, pleat_amp=0.1, tatter=0.14)
+    g.robe([(0.98, 0.16, 0.12, 0.0), (0.9, 0.17, 0.13, 0.0), (0.7, 0.2, 0.16, 0.0), (0.56, 0.21, 0.17, 0.0)], RAG, "wool", B.waist_split(0.9), n=30, pleats=8, pleat_amp=0.1, tatter=0.14)
     g.ring_band(0.95, 0.985, 0.162, 0.122, 0.0, (0.24, 0.16, 0.1), "leather", "pelvis", n=40)
     g.box(V(0.0, 0.968, -0.128), (0.026, 0.024, 0.008), (0.34, 0.31, 0.28), "iron", "pelvis")
     g.box(V(0.0, 0.968, -0.134), (0.015, 0.014, 0.004), (0.18, 0.14, 0.1), "leather", "pelvis")
@@ -1082,7 +1113,12 @@ def wretch():
     g.lathe([(0.0, 0.0), (0.075, 0.0), (0.09, 0.07), (0.085, 0.13), (0.075, 0.13), (0.07, 0.09), (0.0, 0.01)], S + V(0.2, -0.32, 0.17), (0.2, 0.18, 0.17), "iron", "chest", n=14)
     for sx in (-1, 1):
         strap(g, [V(sx * 0.11, 1.5, -0.1), V(sx * 0.13, 1.4, -0.13), V(sx * 0.12, 1.16, -0.12), V(sx * 0.14, 1.05, 0.0), V(sx * 0.13, 1.14, 0.17)], (0.26, 0.17, 0.11), w=0.024, thick=0.011)
-    rags(g, b, RAG, (0.6, 0.55, 0.44), BELT, vest=None, v1=int(os.environ.get('WV1', '98')))
+    rags(g, b, RAG, (0.6, 0.55, 0.44), BELT, vest=None, v1=int(os.environ.get('WV1', '98')), nu=34, nv=14)
+    hd = np.array([q for i, q in enumerate(b.P) if b.L[i] == "head"])         # the rag is knotted at the back of the skull, its ends hanging
+    kn = V(0.0, float(hd[:, 1].max()) - 0.045, float(hd[:, 2].max()) - 0.005)
+    g.ball(kn, 0.02, (0.6, 0.55, 0.44), "linen", "head", n=6, sx=1.2, sy=0.9, sz=1.0)
+    for sx_, ln in ((-1, 0.13), (1, 0.09)):
+        g.tube([kn, kn + V(sx_ * 0.02, -0.04, 0.03), kn + V(sx_ * 0.035, -0.09, 0.045), kn + V(sx_ * 0.04, -ln, 0.04)], [0.011, 0.012, 0.01, 0.004], (0.6, 0.55, 0.44), "linen", "head", n=5, flat=0.3)
     gf = Geo()
     WOOD, IRON, WRAP = (0.28, 0.2, 0.13), (0.32, 0.3, 0.29), (0.2, 0.16, 0.12)
     # a gnarled staff: a lean S through its length, swelling at the knots, thin at the foot, an iron-shod tip

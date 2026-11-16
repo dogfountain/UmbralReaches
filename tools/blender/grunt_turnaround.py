@@ -227,13 +227,23 @@ quad = (hi.z - lo.z) < 1.4
 views = [("front", 90, 0.3, 1.45, 0.5, 50), ("three", 50, 0.34, 1.45, 0.5, 50), ("side", 0, 0.3, 1.45, 0.5, 50), ("head", 62, 0.1, 0.8, None, 70)]
 if "--close" in args:     # bigger figure, plus the torso close up
     views = [("three", 60, 0.2, 0.95, 0.5, 50), ("back", 235, 0.2, 0.95, 0.5, 50), ("torso", 78, 0.08, 0.4, 0.6, 55), ("legs", 65, 0.04, 0.38, 0.14, 50), ("hands", 100, 0.05, 0.3, 0.38, 60)]
+if "--focus" in args:      # one close view of a point: --focus x,y,z (blender world, z up) --fdist 0.35 --faz 80
+    fx = [float(v) for v in arg("--focus", "0,0,1").split(",")]
+    views = [("focus", float(arg("--faz", "80")), 0.1, float(arg("--fdist", "0.35")) / (size * 1.12), None, 70)]
+    FOCUS = Vector(fx)
+else:
+    FOCUS = None
 if BODYONLY:
     quad_ = (hi.z - lo.z) < 1.4
     views = [("anatomy", 62, 0.2, 1.1 if quad_ else 0.62, 0.5 if quad_ else 0.74, 50)]
 for mode in ("neutral", "night"):
     for name, az, el, dist, tz, lens in views:
         cd.lens = lens
-        if tz is None:
+        if FOCUS is not None:
+            tgt.location = FOCUS
+            D = size * dist * 1.12
+            sc.cycles.samples = SAMPLES
+        elif tz is None:
             hz = float(arg("--head", "0")) or (hi.z - 0.14 if not quad else hi.z - 0.1)
             if quad:
                 hz = float(arg("--head", "0")) or (lo.z + (hi.z - lo.z) * 0.55)
