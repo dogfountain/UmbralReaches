@@ -22,6 +22,9 @@ const TRODDEN := [
 	Vector3(318.0, 55.0, 7.0), Vector3(326.0, 52.0, 6.0), Vector3(335.0, 52.0, 5.0), Vector3(310.0, 64.0, 6.0),
 	Vector3(326.0, 64.0, 6.0), Vector3(342.0, 63.0, 6.0), Vector3(348.0, 52.0, 4.0), Vector3(311.0, 69.0, 5.0),
 	Vector3(338.0, 69.0, 4.5), Vector3(304.0, 44.0, 3.5), Vector3(325.0, 72.0, 4.0), Vector3(300.0, 69.5, 5.0),
+	Vector3(322.0, 58.0, 10.0), Vector3(312.0, 60.0, 8.0), Vector3(334.0, 58.0, 8.0), Vector3(346.0, 62.0, 7.0),
+	Vector3(304.0, 68.0, 6.0), Vector3(316.0, 70.0, 6.0), Vector3(350.0, 56.0, 4.0),
+	Vector3(-178.0, 298.0, 7.0), Vector3(-160.0, 296.0, 6.0), Vector3(-144.0, 292.0, 7.0),
 ]
 
 ## [town, prop file, x, z, yaw]
@@ -35,6 +38,13 @@ const CLUTTER := [
 	["fallowmere", "sack", -171.0, 294.2, 1.9], ["fallowmere", "crate", -173.6, 294.0, 0.2], ["fallowmere", "handcart", -165.4, 295.0, -0.5],
 	["fallowmere", "bench", -143.2, 289.8, 0.4], ["fallowmere", "firewood", -178.0, 320.4, 0.0], ["fallowmere", "trough", -183.0, 320.6, 1.57],
 	["fallowmere", "barrel", -166.0, 304.4, 0.2], ["fallowmere", "bench", -133.0, 293.4, 0.0], ["fallowmere", "firewood", -129.6, 286.4, 1.57],
+	# the barn's foot: a woodstack against its west end, sacks and crates at the east, a cart left by the winnowing door
+	["fallowmere", "firewood", -193.4, 285.6, 1.57], ["fallowmere", "firewood", -193.4, 281.0, 1.57], ["fallowmere", "sack", -162.8, 287.4, 0.7],
+	["fallowmere", "sack", -162.4, 288.6, 2.1], ["fallowmere", "crate", -162.6, 284.8, 0.3], ["fallowmere", "crate", -162.0, 283.6, 1.1],
+	["fallowmere", "handcart", -172.0, 274.8, 1.4], ["fallowmere", "barrel", -183.2, 276.4, 0.5], ["fallowmere", "trough", -190.6, 292.6, 0.0],
+	# Reedholm's bank: creels and sacks by the walks' steps, a woodpile by the hall's walk
+	["reedholm", "sack", -316.8, 271.6, 0.4], ["reedholm", "barrel", -316.6, 276.6, 0.2], ["reedholm", "crate", -319.6, 288.4, 1.0],
+	["reedholm", "firewood", -322.8, 263.2, 0.0],
 	# Lastlight: the yard, the inn's front, the stable's mouth, the store's door
 	["lastlight", "barrel", 322.6, 48.6, 0.2], ["lastlight", "barrel", 321.6, 49.6, 1.1], ["lastlight", "crate", 337.0, 49.4, 0.4],
 	["lastlight", "crate", 338.2, 50.2, 1.2], ["lastlight", "bench", 315.4, 53.2, 0.5], ["lastlight", "bench", 320.4, 57.0, -0.4],
@@ -52,6 +62,11 @@ const LIGHTS := [
 	["fallowmere", -174.2, 1.8, 305.6, Color(1.0, 0.6, 0.28), 0.6, 7.0],
 	["lastlight", 328.0, 2.2, 49.6, Color(1.0, 0.62, 0.3), 0.75, 8.0],
 	["lastlight", 347.0, 23.4, 44.0, Color(1.0, 0.72, 0.42), 1.5, 26.0],
+	["lastlight", 350.6, 3.2, 62.8, Color(1.0, 0.62, 0.3), 0.7, 10.0],       # the watch's lanterns in the shut gate's court
+	["reedholm", -303.6, 2.6, 289.0, Color(1.0, 0.6, 0.28), 0.5, 6.0],      # hearths through the doors of the houses
+	["reedholm", -301.0, 2.6, 260.4, Color(1.0, 0.6, 0.28), 0.5, 6.0],
+	["reedholm", -324.6, 2.6, 292.4, Color(1.0, 0.6, 0.28), 0.5, 6.0],
+	["fallowmere", -178.0, 2.6, 290.4, Color(1.0, 0.64, 0.32), 0.55, 7.0],   # the Reeve's lantern in the barn's porch
 ]
 
 ## [town, lore id, x, y over the ground, z] or [town, lore id, "@piece", local Vector3 in that piece's frame]

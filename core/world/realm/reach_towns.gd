@@ -215,7 +215,7 @@ static func build(holder: Node) -> void:
 		root.add_child(h)
 		h.add_to_group(P.GROUP_POI)
 		h.set_meta("poi", "town_" + t)
-		h.set_meta("reach", true)                       # a Far Reaches place (zz/world_poi_test keeps them apart from the r31 places)
+		h.set_meta("reach", true)                       # a Far Reaches place (zz/world_poi_test counts these apart from the older places)
 		h.set_meta("centre", Vector3((Plan.TOWNS[t].c as Vector2).x, 0.0, (Plan.TOWNS[t].c as Vector2).y))
 		h.set_meta("radius", float(Plan.TOWNS[t].r))
 		hosts[t] = h
@@ -416,7 +416,7 @@ static func _glass_mat(nm: String) -> StandardMaterial3D:
 	m.albedo_color = Color(0.9, 0.6, 0.3)
 	m.emission_enabled = true
 	m.emission = Color(1.0, 0.62, 0.28) if nm == "window_glass" else Color(1.0, 0.74, 0.42)
-	m.emission_energy_multiplier = 0.45 if nm == "window_glass" else 1.6
+	m.emission_energy_multiplier = 0.7 if nm == "window_glass" else 1.6      # windows read across a town, still under the bloom
 	m.roughness = 0.4
 	_glass[nm] = m
 	return m
