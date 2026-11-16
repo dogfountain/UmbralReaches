@@ -146,12 +146,8 @@ func _draw_marks() -> void:
 	var k := vp / cam_vp if cam_vp.x > 0.0 else Vector2.ONE
 	var nearest := -1
 	var nearest_d := INF
-	for i in POOL:
-		if _slot[i] >= 0 and _alpha[i] > 0.01:
-			var dd := p.global_position.distance_to(_pos[i])
-			if dd < nearest_d:
-				nearest_d = dd
-				nearest = i
+	var label_at := Vector2.ZERO
+	var label_size := 0.0
 	for i in POOL:
 		var a := _alpha[i]
 		if _slot[i] < 0 or a <= 0.01 or cam.is_position_behind(_pos[i]):
@@ -173,10 +169,16 @@ func _draw_marks() -> void:
 			var tip := c + Vector2(0.0, (-size * 0.62 - s) if dy > 0.0 else (size * 0.62 + s))
 			var dir := -1.0 if dy > 0.0 else 1.0
 			_ink.draw_colored_polygon(PackedVector2Array([tip + Vector2(0, dir * s), tip + Vector2(-s, -dir * s * 0.4), tip + Vector2(s, -dir * s * 0.4)]), Color(1.0, 0.78, 0.4, a))
-		if i == nearest:
-			var text := "%d m" % roundi(Vector2(_pos[i].x - p.global_position.x, _pos[i].z - p.global_position.z).length())
-			var w := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-			Forge.label(_ink, _font, c + Vector2(-w * 0.5, size * 0.5 + 15.0), text, 14, Color(INK.r, INK.g, INK.b, a * 0.9), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
+		var fd := Vector2(_pos[i].x - p.global_position.x, _pos[i].z - p.global_position.z).length()
+		if fd < nearest_d:                          # the nearest diamond actually drawn carries the distance
+			nearest_d = fd
+			nearest = i
+			label_at = c
+			label_size = size
+	if nearest >= 0:
+		var text := "%d m" % roundi(nearest_d)
+		var w := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+		Forge.label(_ink, _font, label_at + Vector2(-w * 0.5, label_size * 0.5 + 15.0), text, 14, Color(INK.r, INK.g, INK.b, _alpha[nearest] * 0.9), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
 
 
 # --- the poll ---------------------------------------------------------------------------------------------------
