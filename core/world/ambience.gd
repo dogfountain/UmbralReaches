@@ -168,8 +168,7 @@ const SCAPE_PLACE := {"village": "open", "heath": "open", "wood": "wood", "fen":
 	"sorrow": "wood", "plinth": "open", "siege": "open", "stillwater": "open", "anchorholds": "cliff", "salt": "open", "downs": "open",
 	"well": "well",
 	"fell": "cliff", "lanternwood": "wood", "barrowheath": "open", "reedmere": "open", "fields": "open", "arches": "cliff",
-	"southwood": "wood", "bellfall": "cliff", "nave": "cliff", "cairns": "open"}
-	"well": "well", "charnel": "cliff"}
+	"southwood": "wood", "bellfall": "cliff", "nave": "cliff", "cairns": "open", "charnel": "cliff"}
 const ROOM_KEYS := ["room_size", "damping", "spread", "predelay_msec", "hipass"]
 ## outdoor layers indoors: [low-pass cutoff Hz, AmbOut volume dB]
 const MUFFLE := {"": [20000.0, 0.0], "tavern": [700.0, -4.0], "ossuary": [320.0, -16.0], "rift": [20000.0, 0.0]}
