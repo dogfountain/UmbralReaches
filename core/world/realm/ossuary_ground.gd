@@ -25,7 +25,7 @@ const GLB := "res://art/models/oss_ground.glb"
 const Beacon := preload("res://core/world/realm/landmark_beacon.gd")
 
 const LANTERN_C := Vector2(-53.0, 142.5)        ## the Lantern of the Dead (RealmLayout.SLOTS "ossuary")
-const SORT_C := Vector2(-66.0, 160.0)           ## the sorting ground on the pit's west rim
+const SORT_C := Vector2(-72.0, 161.0)           ## the sorting ground on the pit's west rim (its flattest ground)
 const CROSS_C := Vector2(-71.6, 67.0)           ## the Lych Cross, beside the way's head
 const HOLLOW := Vector2(45.5, 67.5)             ## the walled hollow way: arc length along lych_way (z ~101 .. ~123; the orchard watch's stakes stand clear of it)
 const WALL_D := 2.15                            ## a niche wall's face from the way's centreline
@@ -33,11 +33,10 @@ const STONES := [14.0, 25.0, 36.0]              ## the coffin stones' arc length
 const GATE_S := 74.0                            ## the lych gate on lych_way (arc length): the last of it before south_track
 const COLD := Color(0.62, 0.8, 1.0)             ## the count-light
 const VIS := 160.0                              ## the kit's small parts end here
+const LS := 1.2                                 ## the Lantern stands at 1.2 of its modelled size (28 m: it clears the field's yews and cypresses)
 
 static var spots := {}                          ## name -> {at: Vector3, yaw} (reserve)
 static var built: Array[String] = []
-static var _lantern: Node3D
-static var _bone_mat: StandardMaterial3D
 
 
 static func off() -> bool:
@@ -55,7 +54,7 @@ static func reserve(root: Node) -> void:
 	var space := (root as Node3D).get_world_3d().direct_space_state
 	# the Lantern: a level round terrace at the slope's middle (cut and filled), trees kept off the yard
 	var ly := _ground_med(space, LANTERN_C, 2.4)
-	WorldLanes.register_terrace("oss_lantern", LANTERN_C, 3.7, ly)
+	WorldLanes.register_terrace("poi_oss_lantern", LANTERN_C, 3.2 * LS + 0.5, ly)
 	Flora.tree_clear.append([LANTERN_C, 9.0])
 	var ld := Vector2(-42.0, 134.5) - LANTERN_C                     # the door looks at the way in (the lych gate, south_track)
 	spots["lantern"] = {"at": Vector3(LANTERN_C.x, ly, LANTERN_C.y), "yaw": atan2(-ld.x, -ld.y)}
@@ -67,12 +66,12 @@ static func reserve(root: Node) -> void:
 		var gc: Vector2 = a[0]
 		var gd: Vector2 = a[1]
 		var gy := _ground_med(space, gc, 1.6)
-		WorldLanes.register_terrace("oss_lych_gate", gc, 3.1, gy)
+		WorldLanes.register_terrace("poi_oss_lych_gate", gc, 3.1, gy)
 		Flora.tree_clear.append([gc, 5.0])
 		spots["gate"] = {"at": Vector3(gc.x, gy, gc.y), "yaw": atan2(gd.x, gd.y)}
 	# the Lych Cross at the way's head
 	var cy := _ground_med(space, CROSS_C, 0.8)
-	WorldLanes.register_site("oss_lych_cross", Rect2(CROSS_C - Vector2(1.1, 1.1), Vector2(2.2, 2.2)), cy + 0.05, cy - 0.1)
+	WorldLanes.register_site("poi_oss_lych_cross", Rect2(CROSS_C - Vector2(1.1, 1.1), Vector2(2.2, 2.2)), cy + 0.05, cy - 0.1)
 	Flora.tree_clear.append([CROSS_C, 3.0])
 	spots["cross"] = {"at": Vector3(CROSS_C.x, cy, CROSS_C.y), "yaw": PI * 0.5}
 	# the coffin stones on the way's verge, alternate sides
@@ -84,7 +83,7 @@ static func reserve(root: Node) -> void:
 		var q: Vector2 = (a2[0] as Vector2) + Vector2(-t.y, t.x) * side * 3.0
 		var y := _ground_med(space, q, 0.7)
 		var r := Rect2(q - Vector2(1.4, 1.4), Vector2(2.8, 2.8))
-		WorldLanes.register_site("oss_coffin_%d" % i, r, y + 0.05, y - 0.15)
+		WorldLanes.register_site("poi_oss_coffin_%d" % i, r, y + 0.05, y - 0.15)
 		spots["stone_%d" % i] = {"at": Vector3(q.x, y, q.y), "yaw": atan2(t.x, t.y) + PI * 0.5, "side": side}
 	# the hollow way: the walls' band kept clear of trees and props
 	var band: Array = []
@@ -97,7 +96,7 @@ static func reserve(root: Node) -> void:
 		Flora.tree_clear.append([q2, WALL_D + 2.4])
 	# the sorting ground: a cut pad on the west rim
 	var sy := _ground_med(space, SORT_C, 2.0)
-	WorldLanes.register_site("oss_sorting", Rect2(SORT_C - Vector2(4.0, 5.0), Vector2(8.0, 10.0)), sy + 0.05, sy - 0.1)
+	WorldLanes.register_site("poi_oss_sorting", Rect2(SORT_C - Vector2(4.0, 5.0), Vector2(8.0, 10.0)), sy + 0.05, sy - 0.1)
 	Flora.tree_clear.append([SORT_C, 7.0])
 	spots["sorting"] = {"at": Vector3(SORT_C.x, sy, SORT_C.y), "yaw": PI * 0.5}
 	print("REALM_POI ossuary ground reserved %s" % [spots.keys()])
@@ -156,17 +155,16 @@ static func _world_node(host: Node3D, n: String) -> Node3D:
 
 ## Out in the weather the bones are not the crypt's: greyed, dirtier, the rim of light on them gone dull.
 static func _weather(props: Node3D) -> void:
-	if _bone_mat == null:
-		var src := OssKit.mat("bone") as StandardMaterial3D
-		if src == null:
-			return
-		_bone_mat = src.duplicate() as StandardMaterial3D
-		_bone_mat.albedo_color = Color(0.72, 0.69, 0.62)
-		_bone_mat.rim = 0.12
-		_bone_mat.roughness = 0.92
+	var src := OssKit.mat("bone") as StandardMaterial3D
+	if src == null:
+		return
+	var bm := src.duplicate() as StandardMaterial3D        # one per build (no static: it would outlive the renderer)
+	bm.albedo_color = Color(0.72, 0.69, 0.62)
+	bm.rim = 0.12
+	bm.roughness = 0.92
 	for c in props.get_children():
 		if c is MultiMeshInstance3D and (String(c.name).begins_with("Skulls") or String(c.name).begins_with("Bones")):
-			(c as MultiMeshInstance3D).material_override = _bone_mat
+			(c as MultiMeshInstance3D).material_override = bm
 
 
 static func _put(parent: Node3D, part: String, xf: Transform3D, vis := Vector2(0.0, VIS), shadow := true) -> MeshInstance3D:
@@ -211,7 +209,7 @@ static func _candle_light(parent: Node3D, at: Vector3, e := 0.9, r := 4.2) -> vo
 static func _lantern_place(host: Node3D, k: OssKit, rng: RandomNumberGenerator, _space: PhysicsDirectSpaceState3D) -> void:
 	var s: Dictionary = spots["lantern"]
 	var at: Vector3 = s.at
-	var b := Basis(Vector3.UP, float(s.yaw))
+	var b := Basis(Vector3.UP, float(s.yaw)).scaled(Vector3.ONE * LS)
 	var xf := Transform3D(b, at)
 	var h := _poi(host, "oss_lantern", "The Lantern of the Dead", "it burns for the count, not for you", at, 16.0)
 	var lan := _world_node(h, "Lantern")
@@ -227,7 +225,7 @@ static func _lantern_place(host: Node3D, k: OssKit, rng: RandomNumberGenerator, 
 		fm.emission_energy_multiplier = 2.4
 		flame.material_override = fm
 		flame.name = "CountFlame"
-	var lamp_y := float(Data.LANTERN.lamp_y)
+	var lamp_y := float(Data.LANTERN.lamp_y) * LS
 	var lt := OmniLight3D.new()                   # the count-light in the lantern's bays (cold, no shadows)
 	lt.name = "CountLight"
 	lt.light_color = COLD
@@ -262,12 +260,12 @@ static func _lantern_place(host: Node3D, k: OssKit, rng: RandomNumberGenerator, 
 	halo.global_position = at + Vector3.UP * (lamp_y + 0.35)
 	# collision: the steps, the base, the shaft
 	var col := []
-	var st_h := float(Data.LANTERN.step_h)
+	var st_h := float(Data.LANTERN.step_h) * LS
 	for i in 3:
-		col.append([_cyl(3.1 - 0.5 * float(i), st_h + 0.7), Transform3D(Basis.IDENTITY, at + Vector3.UP * (st_h * float(i + 1) - (st_h + 0.7) * 0.5))])
-	col.append([_cyl(1.62, 2.4), Transform3D(Basis.IDENTITY, at + Vector3.UP * (st_h * 3.0 + 1.2))])
-	col.append([_cyl(0.98, 12.4), Transform3D(Basis.IDENTITY, at + Vector3.UP * 9.4)])
-	col.append([_cyl(1.25, 7.0), Transform3D(Basis.IDENTITY, at + Vector3.UP * 18.8)])
+		col.append([_cyl((3.1 - 0.5 * float(i)) * LS, st_h + 0.7), Transform3D(Basis.IDENTITY, at + Vector3.UP * (st_h * float(i + 1) - (st_h + 0.7) * 0.5))])
+	col.append([_cyl(1.62 * LS, 2.4 * LS), Transform3D(Basis.IDENTITY, at + Vector3.UP * ((1.02 + 1.2) * LS))])
+	col.append([_cyl(0.98 * LS, 12.4 * LS), Transform3D(Basis.IDENTITY, at + Vector3.UP * (9.4 * LS))])
+	col.append([_cyl(1.25 * LS, 7.0 * LS), Transform3D(Basis.IDENTITY, at + Vector3.UP * (18.8 * LS))])
 	Kit.body(lan, "LanternBody", col)
 	# its far read: the silhouette from 110 m, and the count-light on the horizon and the compass
 	var far := Kit.mesh(GLB, "LanternFar")
@@ -279,7 +277,6 @@ static func _lantern_place(host: Node3D, k: OssKit, rng: RandomNumberGenerator, 
 		(bn as Node).name = "Beacon_oss_lantern"
 		(bn as Node).set("strength", 0.85)
 		(bn as Node).set_meta("poi", "oss_lantern")
-	_lantern = lan
 	if Travel.bosses_slain.has("bone_abbot"):
 		_douse(lan, false)
 	else:
@@ -288,7 +285,7 @@ static func _lantern_place(host: Node3D, k: OssKit, rng: RandomNumberGenerator, 
 				_douse(lan, true))
 	# the bearers' table at the foot, facing the gate; candles on it and on the steps
 	var tb := Basis(Vector3.UP, float(s.yaw))
-	var tq := at + tb * Vector3(0.0, 0.0, -(float(Data.LANTERN.base_r) + 1.1))
+	var tq := at + tb * Vector3(0.0, 0.0, -(float(Data.LANTERN.base_r) * LS + 1.1))
 	var ty := RealmLayout.ground(_space, tq.x, tq.z)
 	var txf := Transform3D(tb, Vector3(tq.x, ty, tq.z))
 	_put(h, "LanternTable", txf, Vector2(0.0, 120.0))
@@ -300,7 +297,7 @@ static func _lantern_place(host: Node3D, k: OssKit, rng: RandomNumberGenerator, 
 	_candle_light(h, txf * Vector3(0.0, 1.5, -0.4), 0.8, 4.0)
 	for i in 7:
 		var a := float(s.yaw) + PI + (float(i) - 3.0) * 0.32
-		var r := 2.75 - 0.5 * float(i % 2)
+		var r := (2.75 - 0.5 * float(i % 2)) * LS
 		var y := st_h * (1.0 if i % 2 == 0 else 2.0)
 		k.candle_cluster(at + Vector3(sin(a) * r, y, cos(a) * r), 2 + i % 3, 0.12, rng)
 	# the plaque over the keeper's door
@@ -310,7 +307,7 @@ static func _lantern_place(host: Node3D, k: OssKit, rng: RandomNumberGenerator, 
 	var hb := Basis(Vector3.UP, float(s.yaw))
 	for i in 3:
 		var th: float = [1.75, -1.75, PI][i]
-		var c := at + hb * (Vector3(sin(th), 0.0, -cos(th)) * 4.6)
+		var c := at + hb * (Vector3(sin(th), 0.0, -cos(th)) * (3.2 * LS + 1.4))
 		c.y = RealmLayout.ground(_space, c.x, c.z)
 		_heap(k, rng, c, 1.1 + 0.25 * float(i % 2), 0.75)
 	built.append("lantern")
@@ -351,8 +348,8 @@ static func _gate(host: Node3D, k: OssKit, rng: RandomNumberGenerator) -> void:
 	var xf := Transform3D(b, at)
 	var g: Dictionary = Data.GATE
 	var h := _world_node(host, "LychGate")
-	h.set_meta("site", "oss_lych_gate")
-	_put(h, "LychGate", xf, Vector2(0.0, 220.0))
+	h.set_meta("site", "poi_oss_lych_gate")
+	_put(h, "LychGate", xf, Vector2(0.0, 150.0))
 	_put(h, "LychBell", xf, Vector2(0.0, 90.0), false)
 	var wx := float(g.wall_x)
 	var wh := float(g.wall_h)
@@ -404,8 +401,8 @@ static func _cross(host: Node3D, k: OssKit, rng: RandomNumberGenerator) -> void:
 	var at: Vector3 = s.at
 	var xf := Transform3D(Basis(Vector3.UP, float(s.yaw)), at)
 	var h := _world_node(host, "LychCross")
-	h.set_meta("site", "oss_lych_cross")
-	_put(h, "LychCross", xf, Vector2(0.0, 200.0))
+	h.set_meta("site", "poi_oss_lych_cross")
+	_put(h, "LychCross", xf, Vector2(0.0, 130.0))
 	Kit.body(h, "CrossBody", [[_box_shape(Vector3(1.6, 0.9, 1.6)), xf * Transform3D(Basis.IDENTITY, Vector3(0, 0.2, 0))],
 		[_box_shape(Vector3(0.32, 3.6, 0.32)), xf * Transform3D(Basis.IDENTITY, Vector3(0, 2.4, 0))]])
 	k.candle_cluster(xf * Vector3(0.38, 0.76, -0.1), 3, 0.12, rng)
@@ -477,7 +474,7 @@ static func _hollow(host: Node3D, k: OssKit, rng: RandomNumberGenerator, space: 
 			var xf := Transform3D(bas, Vector3(q.x, y, q.y))
 			var low := s < HOLLOW.x + seg * 0.9 or s + seg > HOLLOW.y - seg * 0.9
 			var part := "NicheWallLow" if low else "NicheWall"
-			_put(h, part, xf, Vector2(0.0, 140.0))
+			_put(h, part, xf, Vector2(0.0, 110.0))
 			var wh := float(nw.h_low) if low else float(nw.h)
 			col.append([_box_shape(Vector3(seg, wh + 0.5, float(nw.t))), xf * Transform3D(Basis.IDENTITY, Vector3(0, wh * 0.5 - 0.25, 0))])
 			var cells: Array = Data.NICHE_CELLS_LOW if low else Data.NICHE_CELLS
@@ -517,7 +514,7 @@ static func _hollow(host: Node3D, k: OssKit, rng: RandomNumberGenerator, space: 
 				var pq: Vector2 = (pa[0] as Vector2) + pn * (WALL_D + 0.36)
 				var py := RealmLayout.ground(space, pq.x, pq.y)
 				var pxf := Transform3D(Basis(Vector3.UP, atan2(pt.x, pt.y)), Vector3(pq.x, py, pq.y))
-				_put(h, "NichePier", pxf, Vector2(0.0, 140.0))
+				_put(h, "NichePier", pxf, Vector2(0.0, 110.0))
 				col.append([_box_shape(Vector3(0.92, 3.3, 0.92)), pxf * Transform3D(Basis.IDENTITY, Vector3(0, 1.15, 0))])
 				if rng.randf() < 0.5:
 					k.candle_cluster(pxf * Vector3(0.0, 3.0, 0.0), 2, 0.1, rng)
@@ -643,7 +640,7 @@ static func _turf_bone(k: OssKit, rng: RandomNumberGenerator, space: PhysicsDire
 
 static func _poi(parent: Node3D, id: String, title: String, line: String, at: Vector3, radius: float) -> Node3D:
 	var h := _world_node(parent, "Poi_" + id)
-	h.set_meta("site", id)
+	h.set_meta("site", "poi_" + id)
 	h.add_to_group(P.GROUP_POI)
 	h.set_meta("poi", id)
 	h.set_meta("title", title)
@@ -652,6 +649,7 @@ static func _poi(parent: Node3D, id: String, title: String, line: String, at: Ve
 	h.set_meta("centre", at)
 	h.set_meta("radius", radius)
 	h.set_meta("approach", at + Vector3(10.0, 0.0, -14.0))
+	h.set_meta("r37", true)                    # not one of the four valley places world_poi_test counts
 	return h
 
 

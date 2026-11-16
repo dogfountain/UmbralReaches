@@ -277,7 +277,7 @@ const SLOTS := {
 		{"kind": "poi", "at": Vector2(132, 124), "note": "Corvin's landing: a boat-house on the east bank"},
 		{"kind": "camp", "at": Vector2(137, 102), "note": "the east bank"},
 		{"kind": "camp", "at": Vector2(118, 144), "note": "the south bank"}],
-	"ossuary": [{"kind": "poi", "at": Vector2(-53, 142.5), "note": "the Lantern of the Dead"}, {"kind": "poi", "at": Vector2(-66, 160), "note": "the sorting ground"}, {"kind": "camp", "at": Vector2(-56.5, 120), "note": "the bearers (they walk the hollow way)"}, {"kind": "camp", "at": Vector2(-60.5, 140), "note": "the choir under the lantern"}, {"kind": "camp", "at": Vector2(-71, 171), "note": "the sorters on the west rim"}],   # its own ground (ossuary_ground.gd)
+	"ossuary": [{"kind": "poi", "at": Vector2(-53, 142.5), "note": "the Lantern of the Dead"}, {"kind": "poi", "at": Vector2(-72, 161), "note": "the sorting ground"}, {"kind": "camp", "at": Vector2(-56.5, 120), "note": "the bearers (they walk the hollow way)"}, {"kind": "camp", "at": Vector2(-60, 139), "note": "the choir under the lantern"}, {"kind": "camp", "at": Vector2(-71, 171), "note": "the sorters on the west rim"}],   # its own ground (ossuary_ground.gd)
 	"road": [
 		{"kind": "camp", "at": Vector2(-128, 74), "note": "the West Gate's approach"},
 		{"kind": "camp", "at": Vector2(131, 58), "note": "the East Gate's approach"}],

@@ -131,7 +131,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	# the Kindled Watch's post at the hollow way's north mouth (its watchmen leave the post for foes that close).
 	{"at": Vector3(-56.5, 60.0, 120.0), "kinds": ["ossuant", "ossuant", "tollman"], "probe": 0.0,
 		"patrol": [Vector2(-56.5, 120.0), Vector2(-55.0, 128.0), Vector2(-49.0, 126.0), Vector2(-50.6, 117.0), Vector2(-51.4, 110.5), Vector2(-50.6, 117.0), Vector2(-49.0, 126.0), Vector2(-55.0, 128.0)]},   # the bearers (they keep 14 m+ off the orchard watch's post)
-	{"at": Vector3(-60.5, 60.0, 140.0), "kinds": ["chanter", "ossuant", "chanter", "pilgrim"], "probe": 0.0, "r": 2.6},   # the choir under the lantern
+	{"at": Vector3(-60.0, 60.0, 139.0), "kinds": ["chanter", "ossuant", "chanter", "pilgrim"], "probe": 0.0, "r": 2.6},   # the choir under the lantern
 	{"at": Vector3(-71.0, 60.0, 171.0), "kinds": ["husk", "bulwark", "quiller"], "probe": 0.0},                         # the sorters on the west rim
 ]
 
