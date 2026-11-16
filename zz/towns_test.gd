@@ -16,6 +16,7 @@ const VState := preload("res://core/life/village/village_state.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const Shop := preload("res://core/life/village/village_shop.gd")
 const LoreIndex := preload("res://core/world/realm/lore/lore_index.gd")
+const Footing := preload("res://core/world/footing.gd")
 
 var fails := 0
 var t := 0.0
@@ -92,7 +93,7 @@ func _pieces() -> void:
 		if bool(k.get("stilt", false)) or kind.begins_with("RH_Walk"):
 			continue
 		var xf: Transform3D = p.xf
-		var g := RealmLayout.ground(space, xf.origin.x, xf.origin.z)
+		var g := Footing.terrain_y(space, xf.origin.x, xf.origin.z, RealmLayout.ground(space, xf.origin.x, xf.origin.z))
 		# a building's plinth and a wall's footing go well under its origin; a small thing must touch
 		if xf.origin.y > g + (0.12 if kind in props else 0.6):
 			floating.append("%s at %s (ground %.2f)" % [kind, xf.origin, g])
