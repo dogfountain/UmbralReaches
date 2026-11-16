@@ -11,7 +11,7 @@ The Order of the Open Sky taught that the sky was a door and the faithful could 
 They built the Stair on the mountain, filled the valley with pilgrims, and on the Night of the
 Open Door the Hierarch Aurel performed the Ascension at the summit. The sky opened: but inward,
 like water down a drain. It drank the pilgrims on the Stair, tore the land open where the Stair
-stood (the Ashen Rift), and kept drinking. The light has been leaking out of the valley ever since.
+stood (the Starwater Rift), and kept drinking. The light has been leaking out of the valley ever since.
 That cold is **the gloom**. A smith's widow, Edda, lit a fire on the bare altar of a wayside chapel
 and the gloom would not cross it. That was **the First Kindling**. Every brazier the wanderer lights
 is her refusal, repeated.
@@ -126,7 +126,8 @@ still counting*; the Ascended Warden *the one who holds the door*.
 | **The Thornwood** | The Rooted's oak valley; the abbey's boundary walls cut into it. | Ancient oaks, the Ring on its hill, toppled saints face-down in the moss, old-tongue tablets. |
 | **The Barrow Field** | The Rooted's barrows, taken for the abbey's lay brothers. | Sealed mounds "until the sky calls"; the lantern road down into the fen starts here. |
 | **The Hollow Fen** | Low water-meadow. | Drowned graves: the hollowed, sunk under three stones (eyes, mouth, heart). Leaning markers. Lights over the water that are not candles. |
-| **The Ashen Rift** | The Stair of Ascension: four thousand steps. | The wound. Lava where the Stair stood; the Crossing is what is left of it. |
+| **The Starwater Rift** | The Stair of Ascension: four thousand steps. | The wound. The sky's light pooled where the Stair stood; the Crossing is what is left of it. |
+| **The Ashen Rift** | The Crowns' east corner, behind the Bellfall. | Where the eighth bell came down the mountain's foot split and the fire under the Crowns came up; it took the Founder's choir hall. |
 | **The Summit** | The cathedral of the Open Sky. | The Warden's dais under the turning sky. |
 | **The Crowns** | The mountain wall. | The rim the sky turns inward over. |
 

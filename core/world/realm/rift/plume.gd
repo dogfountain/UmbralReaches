@@ -1,20 +1,22 @@
 extends RefCounted
-## The rift's breath: a column of smoke out of the lava in the rift's north-east corner, standing straight up inside
-## the chasm past the summit's dais (it clears the dais's rim by a few metres) and leaning away downwind
-## (east-south-east, over the east berm and the fen) once it is above the Crowns' foot. Seen from the whole north of the Realm, it marks
-## where the night ends; from the village it rises behind the summit's right shoulder. Three nested shells of a bent
-## tube (plume.gdshader, ~4 k triangles in all, at most three layers of overdraw), on the horizon's range like the
-## other landmarks, and a few slow puffs where it leaves the lava for the near view.
+## The rift's breath: a column of smoke out of the lava in the Ashen Rift's gash (the far north-east, rift/scorch.gd),
+## standing up out of it and leaning away downwind (east-south-east, over the crater's apron and the Realm's east edge)
+## once it is above the lips. Its foot is lit by the lava under it: seen from the East Reach (Lastlight, the bell's
+## crater, the Anchorholds) it marks where the fire is; it fades out before Hearthward's country, where a column with no
+## fire under it read as smoke in a random place (Luke, 16 Nov). Three nested shells of a bent tube (plume.gdshader,
+## ~4 k triangles in all, at most three layers of overdraw), and a few slow puffs where it leaves the lava for the near view.
 
 const SHADER := preload("res://core/world/realm/rift/plume.gdshader")
 const RINGS := 30
 const SIDES := 22
-## The spine, from the lava up: [x, y, z, radius]. Rises steeply out of the chasm, then leans with the wind.
+## The spine, from the lava up: [x, y, z, radius]. Rises steeply out of the gash, then leans with the wind.
 const SPINE := [
-	[18.5, -16.5, -117.5, 3.5], [19.0, -5.0, -117.5, 4.5], [19.5, 8.0, -117.5, 5.5], [20.5, 22.0, -117.0, 7.0],
-	[23.0, 36.0, -115.5, 9.5], [28.5, 50.0, -112.0, 13.0], [38.0, 63.0, -106.0, 17.0], [53.0, 76.0, -98.0, 21.5],
-	[72.0, 88.0, -88.0, 27.0], [96.0, 99.0, -76.0, 33.0], [122.0, 108.0, -64.0, 39.0],
+	[336.0, 4.0, -139.0, 2.6], [336.3, 11.1, -139.0, 3.2], [336.6, 19.2, -139.0, 3.9], [337.2, 27.9, -138.7, 4.9],
+	[338.8, 36.6, -137.8, 6.6], [342.2, 45.2, -135.6, 9.1], [348.1, 53.3, -131.9, 11.9], [357.4, 61.4, -126.9, 15.0],
+	[369.2, 68.8, -120.7, 18.9],
 ]
+## Seen to here (m): the East Reach's country sees it, Hearthward's does not.
+const SEEN := 300.0
 const SHELLS := [[1.0, 0.0, 0.82, 0.045], [0.78, 3.7, 0.9, 0.055], [0.55, 7.9, 0.95, 0.066]]   ## radius scale, seed, density, rise
 
 
@@ -40,6 +42,9 @@ static func build(host: Node3D) -> void:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 		mi.ignore_occlusion_culling = true
+		mi.visibility_range_end = SEEN
+		mi.visibility_range_end_margin = 60.0
+		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		mi.add_to_group(Groups.CULL_SKIP)
 		root.add_child(mi)
 	_puffs(root)
@@ -104,7 +109,10 @@ static func _tube(scale: float) -> ArrayMesh:
 	arr[Mesh.ARRAY_INDEX] = idx
 	var m := ArrayMesh.new()
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-	m.custom_aabb = AABB(Vector3(-40.0, -20.0, -160.0), Vector3(220.0, 150.0, 140.0))     # the billows push past the rings
+	var box := AABB(pts[0], Vector3.ZERO)
+	for i in RINGS:
+		box = box.merge(AABB(pts[i] - Vector3.ONE * rad[i] * 1.8, Vector3.ONE * rad[i] * 3.6))
+	m.custom_aabb = box.grow(6.0)                    # the billows push past the rings
 	return m
 
 
@@ -113,7 +121,7 @@ static func _cr(p0: float, p1: float, p2: float, p3: float, t: float) -> float:
 	return 0.5 * ((2.0 * p1) + (-p0 + p2) * t + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2 + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t2 * t)
 
 
-## Slow, lava-lit puffs where the column leaves the river (the near view from the crossing and the east rim).
+## Slow, lava-lit puffs where the column leaves the lava (the near view from the lips).
 static func _puffs(root: Node3D) -> void:
 	var base: Array = SPINE[0]
 	var p := Vfx.emitter(Color(0.2, 0.17, 0.17, 0.4), {"count": 12, "life": 9.0, "speed": Vector2(1.2, 2.2), "size": 5.0, "gravity": 0.15,
@@ -122,6 +130,7 @@ static func _puffs(root: Node3D) -> void:
 		return
 	p.name = "PlumePuffs"
 	p.visibility_aabb = AABB(Vector3(-14, -2, -14), Vector3(30, 34, 30))
+	p.visibility_range_end = 160.0
 	p.preprocess = 9.0
 	root.add_child(p)
 	p.position = Vector3(float(base[0]), float(base[1]) + 1.5, float(base[2]))

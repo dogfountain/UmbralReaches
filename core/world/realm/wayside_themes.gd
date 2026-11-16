@@ -130,7 +130,7 @@ const REGIONS := {
 }
 
 ## Regions the wayside leaves alone: towns are dressed by their own builders, boss and set-piece ground by theirs.
-const SKIP := ["hearth", "chapel", "henge", "rift", "ossuary", "summit", "glade", "necropolis", "barrows", "orchard"]
+const SKIP := ["hearth", "chapel", "henge", "rift", "ossuary", "summit", "glade", "necropolis", "barrows", "orchard", "ashrift"]
 
 ## Biome fallback (a region with no entry above).
 const BIOMES := {

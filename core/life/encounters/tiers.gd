@@ -21,7 +21,7 @@ const REGION_BASE := {
 	# round the two towns is 2 (the towns themselves are safe: SpawnRules.SAFE), the wild between them 3, the far
 	# corners 4 (the Greyfell's keep, the Bellfall's crater, the Thousand Cairns: the furthest walks from the hub)
 	"greyfell": 4, "lanternwood": 3, "kingsbarrows": 3, "reedmere": 3, "fallow": 2, "arches": 3, "southwood": 3,
-	"bellfall": 4, "lastlight": 2, "nave": 3, "cairns": 4,
+	"bellfall": 4, "ashrift": 4, "lastlight": 2, "nave": 3, "cairns": 4,
 }
 ## The Pilgrims' Road is Hearthward's gentle road only inside the March Wall: past its gates the road's own
 ## strip takes this tier (the Marches' country on either side is 2).
@@ -72,7 +72,7 @@ const REGION_POOL := {
 	"greyfell": ["bulwark", "chanter", "leaper", "husk", "quiller"], "lanternwood": ["crawler", "spitter", "leaper", "mite", "wretch"],
 	"kingsbarrows": ["ossuant", "pilgrim", "husk", "chanter", "bulwark"], "reedmere": ["husk", "spitter", "wretch", "burrower", "spitter"],
 	"fallow": ["wretch", "crawler", "burrower"], "arches": ["husk", "leaper", "gaunt", "quiller", "chanter"],
-	"southwood": ["gaunt", "leaper", "crawler", "mite", "spitter"], "bellfall": ["cinder", "bulwark", "husk", "cinder", "tollman"],
+	"southwood": ["gaunt", "leaper", "crawler", "mite", "spitter"], "bellfall": ["cinder", "bulwark", "husk", "cinder", "tollman"], "ashrift": ["cinder", "cinder", "bulwark", "spitter", "husk"],
 	"lastlight": ["wretch", "crawler"], "nave": ["husk", "ossuant", "chanter", "spitter", "pilgrim"], "cairns": ["gaunt", "pilgrim", "husk", "quiller", "leaper"],
 }
 

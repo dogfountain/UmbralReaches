@@ -5,7 +5,7 @@ extends RefCounted
 ##           middle, treble) and they answer; the Founder's coffer opens and, far off, the sealed
 ##           barrow in the Barrow Field grinds open (site_barrow).
 ##   spill   THE FOUNDER'S SPILL: a hidden stair from the berm top down the rift wall to a ledge
-##           walk, behind a curtain of molten rock poured from the cracked furnace's spout, to a niche.
+##           walk, behind a curtain of starwater poured from the cracked quench-cistern's spout, to a niche.
 ##   bridge  THE RIM BRIDGE: a rope bridge from the ledge's south end over the rim slope to a
 ##           landing near the Last Bell. It hangs cut loose until wound out from the ledge side;
 ##           then it stays: a shortcut from the rift rim to the ledge and the berm.
@@ -244,7 +244,7 @@ static func _ledge(node: Node3D, sp: PhysicsDirectSpaceState3D) -> void:
 		var sm := (a + foot) * 0.5
 		var dd := a - foot
 		k.box("dark", sm, Vector3(0.36, dd.length(), 0.36), Basis(Vector3.BACK, atan2(-dd.x, dd.y)), false, 0.75)
-	# the furnace mouth on the berm top: a squat cracked kiln, glow in its throat
+	# the quench-cistern on the berm top: a squat cracked stone tank, the rift's light in its throat
 	var kc := Vector3(berm_x - 1.2, Kit.gy(sp, berm_x - 1.2, SPOUT_Z + 1.3), SPOUT_Z + 1.3)
 	k.box("stone", kc + Vector3.UP * 0.8, Vector3(2.0, 1.6, 2.2), Basis.IDENTITY, true, 0.7)
 	k.box("stone", kc + Vector3.UP * 1.75, Vector3(1.6, 0.4, 1.8), Basis(Vector3.UP, 0.2), true, 0.65)
@@ -288,14 +288,14 @@ static func _ledge(node: Node3D, sp: PhysicsDirectSpaceState3D) -> void:
 		k.box("stone", Vector3(c3.x, (sy + bot) * 0.5, c3.y), Vector3(1.5, sy - bot, tread + 0.03), sb, true, 0.84 if steps.find(st) % 2 == 0 else 0.94)
 	k.commit(node, "LedgeBody")
 	_fade(node, 120.0)
-	# the curtain of molten rock from the spout tip down the rift wall
+	# the curtain of starwater from the spout tip down the rift wall
 	_curtain(node, sp, tip + Vector3(0.12, -0.3, 0), 1.5)
-	Kit.omni(node, Vector3(-25.2, wy + 2.4, SPOUT_Z), Color(1.0, 0.42, 0.14), 1.6, 9.0)
+	Kit.omni(node, Vector3(-25.2, wy + 2.4, SPOUT_Z), Color(0.55, 0.42, 1.0), 1.4, 9.0)
 	var glow := MeshInstance3D.new()
 	var gq := QuadMesh.new()
 	gq.size = Vector2(0.9, 0.7)
 	glow.mesh = gq
-	glow.material_override = Kit.mat("ember")
+	glow.material_override = Kit.shader_mat("curtain_star")
 	node.add_child(glow)
 	glow.global_transform = Transform3D(Basis(Vector3.UP, PI * 0.5), kc + Vector3(1.06, 0.8, 0))
 	var nc := nb + Vector3(0.0, 0.55, 0)
@@ -304,7 +304,7 @@ static func _ledge(node: Node3D, sp: PhysicsDirectSpaceState3D) -> void:
 	box_mi.name = "Strongbox"
 	State.reading(node, "sc_spill", nb + Vector3(0.1, 1.6, 0.75))
 	# a faint glint at the stair head: the only cue from above
-	Kit.glint(node, a2 + Vector3.UP * 0.9, Color(1.0, 0.6, 0.3), 0.26, 30.0)
+	Kit.glint(node, a2 + Vector3.UP * 0.9, Color(0.7, 0.6, 1.0), 0.26, 30.0)
 	State.register({"id": "spill", "name": "The Founder's Spill", "at": Vector3(WALK_X, wy, SPOUT_Z), "r": 5.0, "node": node,
 		"route": {"from": Vector3(-39.0, 10.0, -31.0), "pts": _v3([Vector2(-37.0, -36.8), Vector2(STAIR_TOP.x, STAIR_TOP.y)] + _stair_pts(steps) + [Vector2(WALK_X, WALK_Z1 + 2.0), Vector2(WALK_X, SPOUT_Z - 2.2), Vector2(WALK_X - 0.4, SPOUT_Z)])},
 		"goal": Vector3(WALK_X - 0.4, wy, SPOUT_Z)})
@@ -353,13 +353,13 @@ static func _curtain(node: Node3D, sp: PhysicsDirectSpaceState3D, lip: Vector3, 
 	var c := MeshInstance3D.new()
 	c.name = "Curtain"
 	c.mesh = m
-	c.material_override = Kit.shader_mat("curtain")
+	c.material_override = Kit.shader_mat("curtain_star")
 	c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	c.visibility_range_end = 140.0
 	node.add_child(c)
-	var e := Vfx.emitter(Color(1.7, 0.6, 0.15), {"count": 40, "life": 2.2, "speed": Vector2(0.3, 1.4), "size": 0.04, "gravity": -0.5, "radius": 0.6, "turbulence": true, "explosive": 0.0})
+	var e := Vfx.emitter(Color(0.75, 0.62, 1.7), {"count": 40, "life": 2.2, "speed": Vector2(0.3, 1.4), "size": 0.04, "gravity": -0.5, "radius": 0.6, "turbulence": true, "explosive": 0.0})
 	if e:
-		e.name = "SpillEmbers"
+		e.name = "SpillMotes"
 		node.add_child(e)
 		e.global_position = lip + Vector3(0.6, -2.5, 0)
 

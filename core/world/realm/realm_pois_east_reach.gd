@@ -5,7 +5,8 @@ extends RefCounted
 ##   bellfall   the eighth bell (tools/blender/vista_bell.py): fallen on its side in the
 ##              crater at RealmReaches.CRATER_C, a third sunk, its mouth toward the south lip where bell_track comes in;
 ##              the lip's shards thrown across the floor, fallen rock heaped round it, thin smoke still rising from the
-##              impact's cracks, a chest in its mouth, a glide perch on its back. Far mesh from 140 m.
+##              impact's cracks (each crack drawn on the floor, glowing with the Ashen Rift's fire under it: the rift
+##              tore open behind the crater, rift/scorch.gd), a chest in its mouth, a glide perch on its back. Far mesh from 140 m.
 ##   nave       the Drowned Nave (tools/blender/vista_nave.py, dressed masonry): the unfinished cathedral in
 ##              its flooded basin at NAVE_C, west front to nave_track; far mesh from 160 m.
 ##   cairns     the Cairn Tower (tools/blender/vista_cairn_tower.py) on the heath's crown at the slot (327, 324): a stepped
@@ -20,6 +21,7 @@ const Chest := preload("res://core/world/realm/loot_chest.gd")
 const P := preload("res://core/world/realm/realm_pois.gd")
 const SMOKE := preload("res://core/world/realm/vistas/beacon_smoke.gdshader")
 const SecretKit := preload("res://core/life/secrets/kit.gd")
+const RiftFeatures := preload("res://core/world/realm/rift/features.gd")     ## (its molten seam shader, for the impact's cracks)
 
 const BELL := "vista_bell.glb"
 const SCALE := 1.55                          ## the model is 12.6 m across the mouth: the eighth bell is ~20
@@ -152,10 +154,21 @@ static func _bell(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 		var y := RealmLayout.ground(space, q.x, q.y)
 		var bm := RockKit.boulder(rng.randi(), Vector3(s * 1.4, s * 0.75, s), "granite")
 		RockKit.spawn(host, bm, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).rotated(Vector3.RIGHT, rng.randf_range(-0.2, 0.2)), Vector3(q.x, y - 0.2 * s, q.y)), s > 1.2)
-	# smoke still rising from the impact's cracks
+	# smoke still rising from the impact's cracks: each crack drawn, the fire showing in it, and the smoke seen only as far
+	# as the crack is (from further off a column over bare floor read as smoke in a random place)
+	var seams := SurfaceTool.new()
+	seams.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for k in 4:
 		var a := 0.9 + k * 1.6
 		var q := c + Vector2(cos(a), sin(a)) * rng.randf_range(10.0, 15.0)
+		_crack(seams, space, q, a + PI * 0.5, rng)
+		var spit := Vfx.emitter(Color(1.8, 0.6, 0.12), {"count": 8, "life": 2.2, "speed": Vector2(0.6, 1.8), "size": 0.045, "gravity": -0.8, "radius": 0.4, "spread": 25.0, "turbulence": true})
+		if spit:
+			spit.name = "CrackEmbers%d" % k
+			spit.visibility_range_end = 110.0
+			host.add_child(spit)
+			spit.global_position = Vector3(q.x, RealmLayout.ground(space, q.x, q.y) + 0.1, q.y)
+			spit.emitting = true
 		var mi := MeshInstance3D.new()
 		mi.name = "BellSmoke%d" % k
 		var quad := QuadMesh.new()
@@ -169,10 +182,23 @@ static func _bell(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 		mi.mesh = quad
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.set_instance_shader_parameter("seed", float(k) * 2.3)
-		mi.visibility_range_end = 220.0
+		mi.visibility_range_end = 140.0
+		mi.visibility_range_end_margin = 20.0
+		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		mi.add_to_group(Groups.CULL_SKIP)
 		host.add_child(mi)
 		mi.global_position = Vector3(q.x, RealmLayout.ground(space, q.x, q.y) - 0.3, q.y)
+	var cracks := MeshInstance3D.new()
+	cracks.name = "ImpactCracks"
+	cracks.mesh = seams.commit()
+	var csh := Shader.new()
+	csh.code = RiftFeatures.FISSURE_SHADER.replace("TAIL", "1.0")
+	var cmat := ShaderMaterial.new()
+	cmat.shader = csh
+	cracks.material_override = cmat
+	cracks.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	cracks.visibility_range_end = 160.0
+	host.add_child(cracks)
 	# a chest in its mouth, a perch on its back
 	var ch: Node3D = Chest.new()
 	ch.name = "Chest_bellfall_mouth"
@@ -358,3 +384,43 @@ static func _cairn_field(holder: Node3D, space: PhysicsDirectSpaceState3D) -> in
 		node.add_child(mmi)
 		mmi.global_position = c
 	return placed
+
+
+## One crack of the impact draped on the crater floor through q (a molten seam, RiftFeatures' look): ~7-11 m of
+## wandering split, widest at q where the smoke comes out, into `st` (UV.x across, UV.y metres along).
+static func _crack(st: SurfaceTool, space: PhysicsDirectSpaceState3D, q: Vector2, head: float, rng: RandomNumberGenerator) -> void:
+	var pts: Array[Vector3] = []
+	for dir: float in [-1.0, 1.0]:
+		var p := q
+		var h := head + (PI if dir < 0.0 else 0.0)
+		var run: Array[Vector3] = []
+		for i in int(rng.randf_range(8.0, 11.0)):
+			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, 60.0, p.y), Vector3(p.x, -20.0, p.y), Layers.WORLD))
+			if hit.is_empty() or not String((hit.collider as Node).name).begins_with("Terrain"):
+				break                                   # (a crack runs in the floor: it stops at a heaped rock, never drapes over it)
+			run.append((hit.position as Vector3) + Vector3.UP * 0.04)
+			h += rng.randf_range(-0.4, 0.4)
+			p += Vector2(cos(h), sin(h)) * 0.5
+		if dir < 0.0:
+			run.reverse()
+			pts.append_array(run)
+		else:
+			pts.append_array(run.slice(1))
+	if pts.size() < 4:
+		return
+	var m := 0.0
+	var mid := pts.size() / 2
+	for i in pts.size() - 1:
+		var a := pts[i]
+		var b := pts[i + 1]
+		var side := (b - a).normalized().cross(Vector3.UP).normalized()
+		var wa := 0.55 * (1.0 - absf(float(i - mid)) / float(mid + 1))
+		var wb := 0.55 * (1.0 - absf(float(i + 1 - mid)) / float(mid + 1))
+		var m1 := m + a.distance_to(b)
+		var quad := [a - side * wa, a + side * wa, b + side * wb, b - side * wb]
+		var uv := [Vector2(0, m), Vector2(1, m), Vector2(1, m1), Vector2(0, m1)]
+		for k: int in [0, 1, 2, 0, 2, 3]:
+			st.set_normal(Vector3.UP)
+			st.set_uv(uv[k])
+			st.add_vertex(quad[k])
+		m = m1

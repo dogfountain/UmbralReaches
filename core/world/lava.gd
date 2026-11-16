@@ -7,6 +7,10 @@ extends Area3D
 const LAVA_GLOOM := 35.0
 const Rift := preload("res://core/world/realm/realm_rift.gd")
 
+## Which sheet this is: 1 the old chasm by Hearthward (all starwater since the lava moved out), -1 the Ashen Rift's
+## lava (the far north-east, rift/ash_lava.gd), 0 split at Rift.STAR_Z (the old Threshold and lava together).
+var star_mode := 0
+
 
 func _ready() -> void:
 	collision_layer = 0
@@ -56,7 +60,7 @@ func _reveal() -> void:
 func _on_body_entered(body: Node3D) -> void:
 	if not body.is_in_group(Groups.PLAYER):
 		return
-	var star := body.global_position.z > Rift.STAR_Z
+	var star := star_mode > 0 or (star_mode == 0 and body.global_position.z > Rift.STAR_Z)
 	if body.has_method("lava_burn"):
 		body.lava_burn(LAVA_GLOOM * (0.5 if star else 1.0), star)
 	elif body.has_method("hollow"):

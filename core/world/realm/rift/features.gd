@@ -15,6 +15,7 @@ const BED := -19.5
 
 var vents: Array[Vector3] = []
 var star_z := INF                       ## RealmRift.STAR_Z: south of it (z greater) the Threshold, no volcanic dressing
+var volcanic := true                    ## false: no fissures, vents or ash fields (the chasm holds starwater: RealmRift)
 var rng := RandomNumberGenerator.new()
 var space: PhysicsDirectSpaceState3D
 var report: Array[String] = []
@@ -46,9 +47,10 @@ func build(root: Node, host: Node3D) -> void:
 	_cliffs(host)
 	_islands(host)
 	await root.get_tree().process_frame
-	_ash_fields(host)
-	_fissures(host)
-	_vents(host)
+	if volcanic:
+		_ash_fields(host)
+		_fissures(host)
+		_vents(host)
 	for s in report:
 		print("RIFT ", s)
 

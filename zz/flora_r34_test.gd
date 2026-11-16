@@ -23,7 +23,8 @@ const REF := {"quarry": "b:crag", "holds": "b:heath", "foundry": "b:crag", "moor
 const R33 := Rect2(-110, -150, 220, 230)           ## the r33 BOUNDS
 const TOL := 0.45                      ## (0.2 before the density pass: Luke asked for denser ground; the new regions stay within this band of the old Realm's)
 ## the r33 crag reference lost the grassy crag round the rift to the Ashen Rift's burn (biome_at: ash where it burned),
-## leaving the Crowns' sparse foot (0.51 /m2): the quarry's and the Pits' own ground did not change
+## leaving the Crowns' sparse foot (0.51 /m2); the burn moved out to the far north-east with the lava (16 Nov) and the
+## crag round the Starwater Rift reads 0.60 again: the quarry's and the Pits' own ground did not change
 const TOL_REF := {"b:crag": 0.5}
 const MIN_OPEN := 400.0                   ## m2 of open ground below which a region's density is not judged
 ## signature kinds: [kind, at least] inside the region
