@@ -42,6 +42,7 @@ enum { IDLE, CHASE, WINDUP, STRIKE, RECOVER, DEAD, LEAP_PREP, AIRBORNE, FEINT, S
 ## home) and a blow on the way turns it back into the fight. A Tollman's bell (Enemy.toll) and a tide's hunters are exempt while they hunt.
 
 const Hints := preload("res://ui/hints.gd")
+const FoeIndex := preload("res://core/enemy/foe_index.gd")
 const HP_BAR_SHADER := "res://core/enemy/health_bar.gdshader"
 const HP_BAR_SIZE := Vector2(0.86, 0.1)   ## metres; same value as `size` in the shader
 const HP_BAR_TRAIL_HOLD := 0.28           ## seconds the pale "just lost" strip waits before draining
@@ -954,11 +955,16 @@ func _update_separation() -> void:
 	_shield_ally = null
 	var best_ward := 144.0
 	var best_shield := 144.0
-	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
-		if node == self:
+	# only foes that can be within 14 m (10 m of us; 7 m of her, we within 7 m), in group order (foe_index.gd)
+	var gp := global_position
+	var pp := _p.global_position if near_p else Vector3.ZERO
+	var fi := FoeIndex.of(get_tree()) as FoeIndex
+	for i in fi.near(get_tree(), gp, 14.0):
+		var node: Node = fi.node(i)
+		if node == self or not node.is_in_group(Groups.ENEMY):
 			continue
-		var o := node as Node3D
-		var d := global_position - o.global_position
+		var op := (node as Node3D).global_position
+		var d := gp - op
 		d.y = 0.0
 		var l2 := d.length_squared()
 		if l2 < 1.96 and l2 > 0.0001:
@@ -972,11 +978,11 @@ func _update_separation() -> void:
 			elif en.role != &"support" and en.role != &"swarm" and l2 < best_shield:
 				best_shield = l2
 				_shield_ally = en
-		if near_p and node is Enemy and (node as Enemy).is_alive():
-			var od := _p.global_position - o.global_position
+		if near_p:
+			var od := pp - op
 			od.y = 0.0
 			var ol := od.length()
-			if ol < 7.0 and ol > 0.05:
+			if ol < 7.0 and ol > 0.05 and node is Enemy and (node as Enemy).is_alive():
 				var cross := me.cross(od / ol).y           # >0: they are clockwise of us
 				var dot := me.dot(od / ol)
 				if dot > 0.57:
@@ -1693,6 +1699,11 @@ func _circle(dist: float) -> void:
 	var radial := clampf((dist - ring) * 0.9, -1.0, 1.0)
 	_wish = (tangent * drift + dir * radial).normalized() * 0.9
 	_face_dir = dir
+
+
+func _notification(what: int) -> void:          ## the foe index rebuilds when a foe comes, goes, wakes, sleeps or pauses
+	if what in FoeIndex.TOUCH:
+		FoeIndex.epoch += 1
 
 
 func _exit_tree() -> void:
