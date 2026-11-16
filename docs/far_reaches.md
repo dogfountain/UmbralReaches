@@ -112,3 +112,40 @@ Each town's buildings are merged into one mesh per material (a town is about a d
 merged far silhouette; small things keep their own short ranges. Each town's people walk their own island of the
 village network (the boards are decks it walks on). `-- --no-towns` builds the Realm without them (A/B).
 Tools: `zz/town_map` (a plan of a rect: heights, water, ways, sites, camps), `zz/town_probe` (what stands at points).
+## The Ossuary's own ground
+
+Luke, 15 Nov: "make sure the ossuary is in its own area". It had a region, but a 38 m strip between the Waiting Field
+and the Southern Downs, overlapped by both, the Grandmother Oak and the Well on its corners, downs_track on its south
+lip, a 14 m lane for an approach and nothing of its own above ground (the Bone Abbot's map mark fell in the downs).
+The downs' middle is the Flock's Road (the sheep-walk cairns, the Bell-Wether's round, the fold), so the Ossuary takes
+the open ground on its north-west instead: the gap between the Cinder Orchard and the Waiting Field, which no region
+held. The pit, its tiers, the Counting Stair, the Abbot's hall, the gallery seal, the quests and bells are unchanged.
+
+- **Region** (`RealmLayout.REGIONS` "ossuary"): the pit and both its lips (a rect a little smaller than the Waiting
+  Field's, so it wins the shared brow; the mausoleum and the field's camps stay the field's) plus four blobs along the
+  Lych Way. Its own ground cover (`flora_tables.gd` LOOKS: pale moss and bramble turf, black yews, bone dust), its own
+  scape (`ambience.gd` "charnel": the pit's breath, a far bell, whispers, bones; it replaces the rift's lava blurps it
+  was left with), tier 2.
+- **The Lych Way** (path `lych_way`): from the Pilgrims' Road between its milestone and its lamp, past the Lych Cross
+  (the Order's Open Door on a stepped shaft), three coffin stones each cut with a verse of the Bearers' Count, the
+  Kindled Watch's post on the Orchard Way (the third stone stands by it), then a hollow way walled with niches of skulls,
+  long bones and grave candles (z 101-123), out to the lych gate (its bell tolls when anyone passes under) and south_track.
+- **The Bearers' Yard**: the **Lantern of the Dead** (28 m, placed at 1.2 of its model so it clears the field's yews: stepped octagonal base with crossed bones and skulls on its
+  faces, the keeper's door, two belts of skulls in the shaft, an open lantern of six bays under a crocketed slate spire
+  and the Open Door in iron), the bearers' table at its foot, heaps of the uncounted. The lantern burns the cold
+  count-light (flame, a small cold light, a halo through the bays, a landmark beacon on the compass and the horizon)
+  until the Bone Abbot falls; then it goes out. Far mesh from 110 m (FarDetail).
+- **The Sorting Ground** on the pit's west rim: slabs, skulls and long bones heaped by kind, the sorters' slate and the
+  Rule of the Bearers.
+- **Encounters** (one block each in REALM_CAMPS and rares.gd): the bearers (two ossuants and a tollman) walk the hollow
+  way's south half, the choir (two chanters, an ossuant, a pilgrim) keeps the lantern, the sorters (husk, bulwark,
+  quiller) the west rim; the Last Bearer (a rare ossuant) walks the way's head. All keep 14 m+ off the orchard watch's
+  post (its watchmen leave the post for foes that close) and out of `RealmLayout.in_ossuary` (Director.fair_ground
+  keeps tides and roaming events out of the pit; the yard and the way are open ground).
+- **Writings**: 11 (`lore/ossuary_ground_texts.gd`, one block in lore_db.gd; the series "The Bearers' Count"); the
+  region's journal text is new.
+
+Assets: `tools/blender/oss_ground.py` -> `art/models/oss_ground.glb` (Lantern, LanternFar, LanternTable, LanternLamp,
+LanternFlame, LychGate, LychBell, CoffinStone(B), NicheWall(Low), NichePier, LychCross) and `oss_ground_data.gd`;
+skulls, bones and candles are the Ossuary's own (OssKit), weathered for outdoors. Built by
+`core/world/realm/ossuary_ground.gd` (REACH_POIS). `-- --no-oss-ground` leaves it out (A/B).

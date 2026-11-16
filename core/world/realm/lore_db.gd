@@ -15,6 +15,8 @@ const R37WL := preload("res://core/world/realm/lore/west_marches_texts.gd")
 const R37LL := preload("res://core/world/realm/lore/lamp_texts.gd")
 ## The towns (Reedholm, Fallowmere, Lastlight): lore/reach_towns_texts.gd, in the block marked `# --- the towns ---`.
 const TownTexts := preload("res://core/world/realm/lore/reach_towns_texts.gd")
+## The Ossuary's own ground: the Lych Way, the lych gate, the Bearers' Yard (lore/ossuary_ground_texts.gd).
+const OSSG := preload("res://core/world/realm/lore/ossuary_ground_texts.gd")
 
 const TEXTS := {
 	# --- Hearthward -------------------------------------------------------------------------------
@@ -440,6 +442,18 @@ const TEXTS := {
 	"town_ll_plaque": TownTexts.TEXTS["town_ll_plaque"], "town_ll_book": TownTexts.TEXTS["town_ll_book"], "town_ll_orders": TownTexts.TEXTS["town_ll_orders"],
 	"town_rh_heron": TownTexts.TEXTS["town_rh_heron"], "town_fm_dovecote": TownTexts.TEXTS["town_fm_dovecote"], "town_ll_shrine": TownTexts.TEXTS["town_ll_shrine"],
 	"town_ll_bridles": TownTexts.TEXTS["town_ll_bridles"],
+	# --- the ossuary ---
+	"oss_g_cross": OSSG.TEXTS["oss_g_cross"],
+	"oss_g_stone_1": OSSG.TEXTS["oss_g_stone_1"],
+	"oss_g_stone_2": OSSG.TEXTS["oss_g_stone_2"],
+	"oss_g_stone_3": OSSG.TEXTS["oss_g_stone_3"],
+	"oss_g_grave": OSSG.TEXTS["oss_g_grave"],
+	"oss_g_niche": OSSG.TEXTS["oss_g_niche"],
+	"oss_g_gate": OSSG.TEXTS["oss_g_gate"],
+	"oss_g_lantern": OSSG.TEXTS["oss_g_lantern"],
+	"oss_g_table": OSSG.TEXTS["oss_g_table"],
+	"oss_g_sorting": OSSG.TEXTS["oss_g_sorting"],
+	"oss_g_rule": OSSG.TEXTS["oss_g_rule"],
 }
 
 ## Multi-part stories, in journal order. `count` = parts in the world.
@@ -465,6 +479,8 @@ const SERIES := {
 		"blurb": "Brother Corvin's nightly count of the lamps he rowed out over the mere."},
 	# --- west marches ---
 	"marches": R37WL.SERIES["marches"],
+	# --- the ossuary ---
+	"bearers": OSSG.SERIES["bearers"],
 }
 
 ## Region ids in the journal's order, with the names and lines the region banner shows.
@@ -494,8 +510,7 @@ const PLACE_INFO := {
 		"text": "Low water-meadow. When the Ossuary was full, the hollowed were sunk here under three stones: eyes, mouth, heart. Some came back."},
 	"barrows": {"name": "The Barrow Field", "line": "sealed until the sky calls",
 		"text": "The Rooted's barrows, taken for the abbey's lay brothers and sealed with the Abbot's iron. The road down into the fen begins here."},
-	"ossuary": {"name": "The Ossuary", "line": "the Abbot is still counting",
-		"text": "The crypt beneath the abbey, where Abbot Osric stacked and numbered the dead to wait for the sky's call."},
+	"ossuary": OSSG.PLACE_INFO["ossuary"],          # the ossuary (its own ground)
 	"rift": {"name": "The Ashen Rift", "line": "where the Stair stood",
 		"text": "Four thousand blessed steps, and then the wound. The Stair broke on the Night and the lava rose in it. The Crossing is what is left."},
 	"summit": {"name": "Summit of Ascension", "line": "the door, held open",

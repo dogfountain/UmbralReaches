@@ -85,9 +85,8 @@ const REGIONS := [
 		"lore": "Grave mounds of the abbey's lay brothers; the lantern road down into the fen starts here."},
 	{"id": "rift", "name": "The Ashen Rift", "rect": Rect2(-30, -118, 60, 106), "biome": "ash", "tier": 2,
 		"lore": "The wound the ascension tore in the land; lava where the pilgrims' stair once stood."},
-	{"id": "ossuary", "name": "The Ossuary", "rect": Rect2(-62, 148, 106, 38), "biome": "ruin", "tier": 2,
-		"purpose": "the necropolis's charnel house: a quarried bone pit under the Waiting Field's slope, the monastery stepping down its wall over a still pool, the Counting Stair and the Abbot's hall beneath",
-		"lore": "Boss: the Bone Abbot. Seal 'oss_gallery'. Streamed area (world/areas/ossuary): the Pilgrims' Landing at the Waiting Field's west end, the bone bridge, the tiers."},
+	{"id": "ossuary", "name": "The Ossuary", "rect": Rect2(-70, 147, 114, 43), "blobs": [{"c": Vector2(-62, 85), "r": 9.0}, {"c": Vector2(-55, 101), "r": 11.0}, {"c": Vector2(-51, 117), "r": 10.0}, {"c": Vector2(-50, 136), "r": 12.0}], "biome": "ruin", "tier": 2,
+		"purpose": "its own area (docs/far_reaches.md): the necropolis's charnel house, a quarried bone pit under the Waiting Field's slope (the tiers over a still pool, the Counting Stair and the Abbot's hall beneath), with both its lips; and, the blobs, the Lych Way down from the road between walls of niches, the Bearers' Yard and the Lantern of the Dead (ossuary_ground.gd)", "lore": "Boss: the Bone Abbot. Seal 'oss_gallery'. Streamed area (world/areas/ossuary): the Pilgrims' Landing at the Waiting Field's west end, the bone bridge, the tiers."},
 	{"id": "summit", "name": "The Summit of Ascension", "c": Vector2(0, -104), "r": 42.0, "biome": "crag", "tier": 3,
 		"lore": "Boss: the Ascended Warden, last priest of the ascension. Seal 'summit'."},
 	{"id": "crags", "name": "The Crowns", "rect": Rect2(-260, -150, 520, 40), "biome": "crag", "tier": 2,
@@ -278,6 +277,7 @@ const SLOTS := {
 		{"kind": "poi", "at": Vector2(132, 124), "note": "Corvin's landing: a boat-house on the east bank"},
 		{"kind": "camp", "at": Vector2(137, 102), "note": "the east bank"},
 		{"kind": "camp", "at": Vector2(118, 144), "note": "the south bank"}],
+	"ossuary": [{"kind": "poi", "at": Vector2(-53, 142.5), "note": "the Lantern of the Dead"}, {"kind": "poi", "at": Vector2(-72, 161), "note": "the sorting ground"}, {"kind": "camp", "at": Vector2(-56.5, 120), "note": "the bearers (they walk the hollow way)"}, {"kind": "camp", "at": Vector2(-60, 139), "note": "the choir under the lantern"}, {"kind": "camp", "at": Vector2(-71, 171), "note": "the sorters on the west rim"}],   # its own ground (ossuary_ground.gd)
 	"road": [
 		{"kind": "camp", "at": Vector2(-128, 74), "note": "the West Gate's approach"},
 		{"kind": "camp", "at": Vector2(131, 58), "note": "the East Gate's approach"}],
@@ -319,7 +319,7 @@ const BASE_PATHS := [
 	# the Crowns' foot, east-west: the two boss corners are joined to the old north (through the wall's breaches)
 	{"id": "crowns_west", "w": 1.4, "pts": [Vector2(-196, -76), Vector2(-178, -72), Vector2(-164, -76), Vector2(-150, -74), Vector2(-140, -70), Vector2(-132, -66)]},
 	{"id": "crowns_east", "w": 1.4, "pts": [Vector2(196, -70), Vector2(182, -74), Vector2(168, -72), Vector2(156, -68), Vector2(146, -67), Vector2(138, -66), Vector2(131, -69), Vector2(128, -72)]},
-	{"id": "oss_lane", "w": 1.4, "pts": [Vector2(-40, 134), Vector2(-41.5, 141), Vector2(-40, 147.5)]},          # from south_track to the Ossuary's Pilgrims' Landing
+	{"id": "oss_lane", "w": 1.4, "pts": [Vector2(-40, 134), Vector2(-41.5, 141), Vector2(-40, 147.5)]}, {"id": "lych_way", "w": 1.5, "pts": [Vector2(-68.5, 59.8), Vector2(-68.5, 70), Vector2(-64.5, 81), Vector2(-57, 91), Vector2(-52.5, 102), Vector2(-51, 113), Vector2(-49, 124), Vector2(-40, 134)]},   # south_track to the Pilgrims' Landing; the Lych Way, the road to south_track past the orchard watch (a walled hollow way z 101..123; ossuary_ground.gd)
 	{"id": "downs_link", "w": 1.4, "pts": [Vector2(40, 134), Vector2(56, 158), Vector2(54, 176), Vector2(44, 192)]},     # the Waiting Field to the downs, east of the mausoleum
 ] + RealmReaches.PATHS
 

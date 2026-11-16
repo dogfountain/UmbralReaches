@@ -127,6 +127,14 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(178.0, 60.0, 196.0), "kinds": ["burrower", "burrower", "crawler", "mite"], "probe": 0.0, "r": 1.8},   # the west pans
 	{"at": Vector3(240.0, 60.0, 140.0), "kinds": ["cinder", "wretch", "gaunt"], "probe": 0.0},    # the east pans
 	{"at": Vector3(210.0, 60.0, 214.0), "kinds": ["husk", "husk", "chanter"], "probe": 0.0},      # the south pans
+	# --- the ossuary --- its own ground (ossuary_ground.gd; tier 2): the Abbot's servants above the pit. The bearers
+	# walk the Lych Way's hollow with their bell-ringer (kill the Tollman before he tolls the choir down on you); the
+	# choir keeps the lantern; the sorters work the west rim over the gate hall. 13 m+ from the gate hall's fire, 14 m+ from
+	# the Kindled Watch's post at the hollow way's north mouth (its watchmen leave the post for foes that close).
+	{"at": Vector3(-56.5, 60.0, 120.0), "kinds": ["ossuant", "ossuant", "tollman"], "probe": 0.0,
+		"patrol": [Vector2(-56.5, 120.0), Vector2(-55.0, 128.0), Vector2(-49.0, 126.0), Vector2(-50.6, 117.0), Vector2(-51.4, 110.5), Vector2(-50.6, 117.0), Vector2(-49.0, 126.0), Vector2(-55.0, 128.0)]},   # the bearers (they keep 14 m+ off the orchard watch's post)
+	{"at": Vector3(-60.0, 60.0, 139.0), "kinds": ["chanter", "ossuant", "chanter", "pilgrim"], "probe": 0.0, "r": 2.6},   # the choir under the lantern
+	{"at": Vector3(-71.0, 60.0, 171.0), "kinds": ["husk", "bulwark", "quiller"], "probe": 0.0},                         # the sorters on the west rim
 ] + ReachCamps.CAMPS          # the Far Reaches (core/enemy/realm_camps_reaches.gd)
 
 
