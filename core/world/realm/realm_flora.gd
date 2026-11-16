@@ -179,11 +179,11 @@ static func _scatter(root: Node, space: PhysicsDirectSpaceState3D) -> void:
 	_place_trees(space, rng, items)
 	_lap("trees")
 	_place_under(rng, items)
-	preload("res://core/world/realm/flora_layers.gd").decorate(items, load(Cache.SELF))      # feet, verges, thickets, deadfall, drifts, glades, the wayside's creep
 	_lap("under")
 	var srng := RandomNumberGenerator.new()
 	srng.seed = 20261105
 	var stone_items := _place_stones(srng)
+	preload("res://core/world/realm/flora_layers.gd").decorate(items, load(Cache.SELF), stone_items)      # the layers; then the wayside's ground cleared
 	_final_items = _finish(items, true)
 	_final_stones = _finish(stone_items, false)
 	_lap("stones")
@@ -308,7 +308,7 @@ static func _keepout(root: Node) -> void:
 		if st.has("circle") and String(st.name).begins_with("raid_"):
 			var cc: Vector3 = st.circle
 			_disc_field(_sd, Vector2(cc.x, cc.y), cc.z, BAND)
-		else:
+		elif not String(st.name).begins_with("wayside_"):         # (flora_layers.gd clears the wayside's ground after the scatter)
 			_rect_field(_sd, st.rect, BAND)
 	for p: Dictionary in WorldLanes.portals:
 		var at: Vector3 = p.at
@@ -702,7 +702,12 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 				id = alt
 				d = TreeGen.kind(id)
 				s = basis.get_scale().x
-			# a vista round a place (tree_clear): tested last, after every draw this candidate makes,
+			var key := Vector2i(floori(at.x / 4.0), floori(at.y / 4.0))
+			if not grid.has(key):
+				grid[key] = []
+			(grid[key] as Array).append([at, spacing])
+			var tint := Scorch.tree_tint(_tint(rng, 0.1), at, sp)
+			# a vista round a place (tree_clear): tested after every draw this candidate makes and its spacing taken,
 			# so the rest of the wood keeps the exact layout it had without it
 			var cleared := Tables.on_edge_wall(at, float(d.spread))
 			for tc: Array in tree_clear:
@@ -711,14 +716,9 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 			if cleared:
 				rejects[sp + " vista"] = int(rejects.get(sp + " vista", 0)) + 1
 				continue
-			var key := Vector2i(floori(at.x / 4.0), floori(at.y / 4.0))
-			if not grid.has(key):
-				grid[key] = []
-			(grid[key] as Array).append([at, spacing])
 			# the scale pilot (scale_pilot.gd): fewer, bigger, stouter trees on its ground. Decided here, after every draw and
 			# test and from a hash of the spot, so the rest of the wood keeps the layout it had (a thinned tree still holds its
 			# spacing); a tree too big for its spot stays the size it was.
-			var tint := Scorch.tree_tint(_tint(rng, 0.1), at, sp)
 			if not Pilot.keeps(at.x, at.y) or not Scorch.tree_keeps(at, sp, id):
 				continue
 			var pk := Pilot.tree(at.x, at.y, sp)
@@ -859,16 +859,14 @@ static func _plant_tree(space: PhysicsDirectSpaceState3D, rng: RandomNumberGener
 	if _clash(space, id, Transform3D(basis, pos), true):
 		rejects[sp + " clash"] = int(rejects.get(sp + " clash", 0)) + 1
 		return false
-	if Tables.on_edge_wall(at, float(d.spread)): return false   # the world-edge cliff band
-	for tc: Array in tree_clear:
-		if at.distance_to(tc[0]) < float(tc[1]) + float(d.spread) * 0.6:
-			return false
+	var tint := _tint(rng, 0.1)                                  # (drawn before the edge band and tree_clear: a row tree they take leaves the stream as it was)
+	if Tables.on_edge_wall(at, float(d.spread)) or tree_clear.any(func(tc: Array) -> bool: return at.distance_to(tc[0]) < float(tc[1]) + float(d.spread) * 0.6): return false
 	var key := Vector2i(floori(at.x / 4.0), floori(at.y / 4.0))
 	if not grid.has(key):
 		grid[key] = []
 	(grid[key] as Array).append([at, spacing])
 	pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02 if Tables.wet(at.x, at.y) else -INF)
-	_add(items, id, Transform3D(basis, pos), _tint(rng, 0.1))
+	_add(items, id, Transform3D(basis, pos), tint)
 	if bool(d.tall):
 		trees.append([pos, id, float(d.r) * s, float(d.h) * s])
 	var cr := float(d.spread) * s
@@ -913,6 +911,7 @@ static func _find_tall_sites(space: PhysicsDirectSpaceState3D) -> void:
 	var q := PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ZERO, Layers.WORLD | Layers.PROPS)
 	for st: Dictionary in WorldLanes.sites:
 		var n := String(st.name)
+		if n.begins_with("wayside_"): continue                  # (built after the flora; flora_layers.gd clears their ground)
 		if n.begins_with("rift_") or n.begins_with("tavern") or n.begins_with("oss_"):
 			_tall_sites.append(st)
 			continue
@@ -1025,6 +1024,7 @@ static func _index_sites() -> void:
 		_lane_rects.append(lr.grow(float(l[2]) + 1.2))
 	var sites := WorldLanes.sites
 	for si in sites.size():
+		if String(sites[si].name).begins_with("wayside_"): continue      # (flora_layers.gd clears the wayside's ground after the scatter)
 		var r: Rect2 = (sites[si].rect as Rect2).grow(1.0)
 		for cj in range(floori(r.position.y / SITE_CELL), floori(r.end.y / SITE_CELL) + 1):
 			for ci in range(floori(r.position.x / SITE_CELL), floori(r.end.x / SITE_CELL) + 1):

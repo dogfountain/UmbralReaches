@@ -52,8 +52,11 @@ static func plan(root: Node, tree_clear: Array) -> void:
 	Wayside.plan_now(root, tree_clear)
 
 
-## RealmFlora._scatter, after the undergrowth: the layers into `items` (kind -> chunk -> Buf). `flora` is realm_flora.gd.
-static func decorate(items: Dictionary, flora: Variant) -> void:
+## RealmFlora._scatter, after the undergrowth and the stones: the layers into `items` (kind -> chunk -> Buf), then the
+## wayside's ground cleared of whatever grew on it (`stones` too). `flora` is realm_flora.gd. The places' sites are kept out
+## of the scatter's keep-out field (realm_flora.gd _keepout), so the scatter is the one the world has without them: no
+## tree candidate turned away early re-rolls the wood after it, no ragged keep-out edge thins the meadow round a ruin.
+static func decorate(items: Dictionary, flora: Variant, stones := {}) -> void:
 	counts = {}
 	if "--no-density" in OS.get_cmdline_user_args() or bool(flora.r30):
 		return
@@ -88,6 +91,7 @@ static func decorate(items: Dictionary, flora: Variant) -> void:
 	_drifts()
 	_rng.seed = 20261156
 	_glades()
+	_clear_ground(items, stones)
 	ms = Time.get_ticks_msec() - t0
 	print("FLORA layers %d ms: %s" % [ms, counts])
 	F = null
@@ -382,3 +386,103 @@ static func _glades() -> void:
 		_ring("glades", "shrub", c, int(r * 0.3), r * 0.95, r * 1.4)
 		if _rng.randf() < 0.6:
 			_ring("glades", "stump", c, 1, r * 0.55, r * 0.9)
+
+
+# --- the wayside's ground --------------------------------------------------------------------------
+
+const CLEAR_CELL := 8.0
+const CLEAR_TALL := 1.5                 ## a tall tree's trunk keeps this far off a place's solid ground
+const CLEAR_STONE := 0.8
+const CLEAR_LOW := 0.3                  ## undergrowth, saplings, the flora's props
+
+
+## Every plant, tree and stone standing on a wayside place's ground (its sites' boxes) taken out of the buffers, with the
+## tall trees' entries in RealmFlora.trees and their crowns in the canopy shells.
+static func _clear_ground(items: Dictionary, stones: Dictionary) -> void:
+	var feet: Array[Rect2] = []
+	for v: Dictionary in Wayside.plan:
+		for r: Rect2 in v.feet:
+			feet.append(r)
+	if feet.is_empty():
+		return
+	var grid := {}                                    # 8 m cell -> indices into feet (grown by the tall margin)
+	for i in feet.size():
+		var g := feet[i].grow(CLEAR_TALL)
+		for cz in range(floori(g.position.y / CLEAR_CELL), floori(g.end.y / CLEAR_CELL) + 1):
+			for cx in range(floori(g.position.x / CLEAR_CELL), floori(g.end.x / CLEAR_CELL) + 1):
+				var c := Vector2i(cx, cz)
+				if not grid.has(c):
+					grid[c] = []
+				(grid[c] as Array).append(i)
+	var on := func(x: float, z: float, margin: float) -> bool:
+		var c := Vector2i(floori(x / CLEAR_CELL), floori(z / CLEAR_CELL))
+		for i: int in grid.get(c, []):
+			if feet[i].grow(margin).has_point(Vector2(x, z)):
+				return true
+		return false
+	var touched := {}                                 # Vector2(chunk size, tag) -> {chunk key: true}
+	var gone := 0
+	for name: String in items:
+		var kd: Array = F._kinds.get(name, [])
+		if kd.is_empty():
+			continue
+		gone += _clear_store(items[name] as Dictionary, kd[0] as Vector2, name, feet, touched, on)
+	var sg := 0
+	for name: String in stones:
+		sg += _clear_store(stones[name] as Dictionary, Vector2(F.CHUNK, 0.0), "", feet, touched, on)
+	var keep: Array = []
+	var trees: Array = F.trees
+	for tr: Array in trees:
+		var p: Vector3 = tr[0]
+		if not on.call(p.x, p.z, CLEAR_TALL):
+			keep.append(tr)
+	var tg := trees.size() - keep.size()
+	trees.clear()
+	trees.append_array(keep)
+	var canopy: Dictionary = F._canopy
+	for key: Vector3i in canopy:
+		var cr: Array = canopy[key]
+		var left: Array = cr.filter(func(e: Array) -> bool: return not on.call((e[0] as Vector3).x, (e[0] as Vector3).z, CLEAR_TALL))
+		if left.size() != cr.size():
+			cr.clear()
+			cr.append_array(left)
+	counts["cleared"] = gone + sg
+	print("FLORA wayside ground: %d plants, %d stones, %d tall trees cleared off %d footprints" % [gone, sg, tg, feet.size()])
+
+
+## One kind's chunks: the instances on a footprint dropped (the buffer compacted). Returns how many went.
+static func _clear_store(per: Dictionary, cs: Vector2, name: String, feet: Array[Rect2], touched: Dictionary, on: Callable) -> int:
+	var size := cs.x
+	var tag := int(cs.y)
+	var margin := CLEAR_TALL if tag > 0 else (CLEAR_STONE if name == "" else CLEAR_LOW)
+	if not touched.has(cs):
+		var keys := {}
+		for r: Rect2 in feet:
+			var g := r.grow(margin)
+			for kz in range(floori(g.position.y / size), floori(g.end.y / size) + 1):
+				for kx in range(floori(g.position.x / size), floori(g.end.x / size) + 1):
+					keys[Vector3i(kx, kz, tag)] = true
+		touched[cs] = keys
+	var tk: Dictionary = touched[cs]
+	var out := 0
+	var sp := name.substr(0, name.rfind("_")) if name != "" else ""
+	for key: Vector3i in (per.keys() if per.size() < tk.size() else tk.keys()):
+		if not tk.has(key) or not per.has(key):
+			continue
+		var b: Variant = per[key]
+		var f: PackedFloat32Array = b.f
+		var n := f.size() / 16
+		var kept := PackedFloat32Array()
+		var drop := 0
+		for i in n:
+			var o := i * 16
+			if on.call(b.pos.x + f[o + 3], b.pos.z + f[o + 11], margin):
+				drop += 1
+			else:
+				kept.append_array(f.slice(o, o + 16))
+		if drop > 0:
+			b.f = kept
+			out += drop
+	if sp != "" and out > 0:
+		F.placed[sp] = maxi(int(F.placed.get(sp, 0)) - out, 0)
+	return out

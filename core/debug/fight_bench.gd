@@ -1,7 +1,7 @@
 extends Node
 ## A heavy fight, measured (the night's harness starts it: core/debug/main_harness.gd, so packed builds run it too).
 ##   <game> -- --fight-bench --fps-log [--boss=thornwarden|bone_abbot|anchoress|warden|none] [--n=10] [--secs=20] [--no-cast]
-##       [--slow=11] [--quit]   (--quit: leave after the report; the frame cap is lifted for the measured fight)
+##       [--slow=11] [--after-load] [--quit]   (--quit: leave after the report; the frame cap is lifted for the measured fight)
 ## The night is built, the wanderer stands on open ground, a boss and N grunts are spawned round him and come at
 ## him, and every spell slot is pressed over and over (cooldowns reset). He cannot die (his wounds are cleared).
 ## At the end "FIGHT" prints the frame times and the engine monitors averaged over the fight; --ab-enemies then
@@ -26,6 +26,7 @@ var n := 10
 var secs := 20.0
 var shots := ""                ## --thin-shots=dir: 3 s in, the view with the boss flora thinning and without (thin.png, full.png)
 var cast := true
+var after_load := "--after-load" in OS.get_cmdline_user_args()   ## the fight waits for the loading screen to go (A/B of builds whose load differs)
 var immortal := "--immortal" in OS.get_cmdline_user_args()    ## the foes are healed as they are hit: the fight stays the same size (for A/B windows)
 var micro := "--micro" in OS.get_cmdline_user_args()          ## 5 s in: each effect call timed on its own (us a call)
 var _press := [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO]   ## per slot: usec in press(), presses
@@ -285,7 +286,7 @@ func _process(delta: float) -> void:
 		p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		return
 	if not started:
-		if main != null and main.has_meta("realm_done") and t > 300:
+		if main != null and main.has_meta("realm_done") and t > 300 and not (after_load and get_tree().get_first_node_in_group(&"loading_screen") != null):
 			started = true
 			_run()
 		return

@@ -12,6 +12,9 @@ const Props := preload("res://core/world/realm/site_props.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const PropModels := preload("res://core/world/realm/prop_models.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
+const GenCache := preload("res://core/world/realm/gen_cache.gd")
+const SELF := "res://core/world/realm/wayside_build.gd"
+const LOD_TRIS := 4000                ## (Atmosphere's post-build pass would cut a mesh this heavy into 24 m cells)
 
 ## Build the planned places `vs` under one holder (a chunk of the map) and draw them as few meshes as their
 ## materials allow; everything fades out by `view_end` from the chunk's middle. Returns the holder.
@@ -83,7 +86,41 @@ static func build(parent: Node3D, name: String, vs: Array, space: PhysicsDirectS
 		gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		gi.add_to_group(Groups.CULL_SKIP)
 		gi.set_meta("site_owned", true)
+		if gi is MeshInstance3D:
+			gi.set_meta("chunked", true)      # a chunk already: Atmosphere's post-build pass leaves it whole (cutting cost draws and load)
+			_lods(gi as MeshInstance3D)
 	return h
+
+
+## A heavy merged mesh (the chunk's stones, its kit surfaces) given LOD levels, cached on disk by content (GenCache):
+## what Atmosphere's split would have made of it, without the extra draws of 24 m cells.
+static func _lods(mi: MeshInstance3D) -> void:
+	var m := mi.mesh as ArrayMesh
+	if m == null or m.get_surface_count() == 0 or DisplayServer.get_name() == "headless":
+		return                               # (nothing is drawn headless: tests skip the work)
+	if (RenderingServer.mesh_get_surface(m.get_rid(), 0).get("lods", []) as Array).size() > 0:
+		return
+	var tris := 0
+	for si in m.get_surface_count():
+		var n := m.surface_get_array_index_len(si)
+		tris += (n if n > 0 else m.surface_get_array_len(si)) / 3
+	if tris < LOD_TRIS:
+		return
+	var hs := 0
+	for si in m.get_surface_count():
+		var a := m.surface_get_arrays(si)
+		hs = hash([hs, hash(a[Mesh.ARRAY_VERTEX]), hash(a[Mesh.ARRAY_INDEX]) if a[Mesh.ARRAY_INDEX] != null else 0])
+	var key := "wayside_lods|%d" % hs
+	var got := GenCache.load_mesh(key, SELF)
+	if got == null:
+		got = MeshChunks.with_lods(m) as ArrayMesh
+		if got == null:
+			return
+		GenCache.save_mesh(key, SELF, got)
+	for si in mini(got.get_surface_count(), m.get_surface_count()):
+		if got.surface_get_material(si) == null:
+			got.surface_set_material(si, m.surface_get_material(si))
+	mi.mesh = got
 
 
 const SMALL_K := 0.45                ## (FadeGuard scales ranges by 1.5: the small things end ~75 m off, the big ~165 m)

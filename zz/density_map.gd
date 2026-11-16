@@ -90,7 +90,7 @@ func _draw() -> void:
 			img.set_pixel(i, j, c)
 	for st: Dictionary in WorldLanes.sites:
 		var r: Rect2 = st.rect
-		var col := Color(0.9, 0.15, 0.15) if not String(st.name).begins_with("way_") else Color(1.0, 0.7, 0.7)
+		var col := Color(0.9, 0.15, 0.15) if not String(st.name).begins_with("wayside_") else Color(1.0, 0.7, 0.7)
 		_rect(img, r, col)
 	for v: Dictionary in Wayside.plan:
 		var a: Vector3 = v.at

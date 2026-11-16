@@ -106,7 +106,7 @@ static func plan_now(root: Node, tree_clear: Array) -> void:
 	for v: Dictionary in plan:
 		var i := 0
 		for r: Rect2 in v.feet:
-			WorldLanes.register_site("way_%s_%d" % [v.id, i], r, float((v.at as Vector3).y), float(v.top) + 0.5)
+			WorldLanes.register_site("wayside_%s_%d" % [v.id, i], r, float((v.at as Vector3).y), float(v.top) + 0.5)
 			i += 1
 		# trunks keep off the solid pieces' ground (the sites); a crown over a ruined wall is as it should be. A tall
 		# place keeps crowns off too, and in a wood a place stands in a clearing of its own

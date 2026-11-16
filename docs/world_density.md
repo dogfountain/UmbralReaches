@@ -41,11 +41,18 @@ the same kind twice within 110 m.
 
 The plan runs at the flora's start (`flora_layers.gd plan`, called by RealmFlora.build before its fingerprint), when
 every landmark, lore stone and wonder is registered; the solid pieces' ground is registered as open-air sites (no
-stamp, so the ground stays as it is) and every place keeps trees off itself; in a wood it cuts its own clearing.
+stamp, so the ground stays as it is), but kept out of the flora's own keep-out field (realm_flora.gd `_keepout` skips
+the `wayside_` sites): the scatter is exactly the one the world grows without the wayside (a tree candidate turned away
+early would re-roll the wood after it, and the keep-out's ragged edge would thin the meadow round every ruin), and once
+the stones are down the flora's layers clear whatever stands on a place's ground (`flora_layers.gd _clear_ground`: the
+undergrowth 0.3 m round its boxes, stones 0.8 m, a tall tree's trunk 1.5 m, its crown in the canopy shell with it).
+A tall place keeps crowns off too, and in a wood a place cuts its own clearing (RealmFlora.tree_clear).
 It is built after the flora (REACH_POIS: `realm_wayside.gd build`) a 96 m chunk at a time, drawn as few meshes as the
 materials allow (`wayside_build.gd`): the kit's boxes one mesh per material, the stone and prop models through
 PropModels (one mesh per material set, with LODs), the RockKit stones and the site props' clutter merged by material,
-so a chunk in view costs about a dozen draws however many places stand in it. The big masses (walls, towers, stones,
+so a chunk in view costs about a dozen draws however many places stand in it. Its meshes are marked `chunked`, so
+Atmosphere's post-build pass leaves them whole (it cut the heavy ones into 24 m cells: more draws, and ~4 s more on the
+loading screen), and those over 4,000 triangles get LOD levels cached on disk by content (GenCache). The big masses (walls, towers, stones,
 the stone models) fade out 110 m from their chunk's middle (the integrator's range), the small things (timber, iron,
 cloth, clutter, carvings) at 0.45 of it (FadeGuard scales both by 1.5: ~165 m and ~75 m), so a chunk farther off costs
 only its few big draws; a lookout stands alone and reads to 220 m. Measured (16 Nov, on the world branch at c588528,
