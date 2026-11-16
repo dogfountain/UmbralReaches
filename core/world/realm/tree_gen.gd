@@ -622,7 +622,7 @@ class Gen:
 		tile = 1.4
 		moss = 0.3 if v < 2 else 0.0
 		char_amt = 0.85 if v == 2 else 0.0
-		h = rng.randf_range(6.0, 11.0)
+		h = rng.randf_range(6.0, 11.0) if v < 2 else rng.randf_range(9.0, 15.0)        # the rift's burned oaks stand tall
 		trunk_r = rng.randf_range(0.35, 0.6)
 		var lean := Vector3(rng.randf_range(-0.2, 0.2), 1, rng.randf_range(-0.2, 0.2))
 		var pts := path(Vector3(0, -0.6, 0), lean, h, 0.8, 0.0, 0.22)

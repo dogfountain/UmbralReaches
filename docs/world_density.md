@@ -6,14 +6,16 @@ the eleven Far Reaches regions), made of existing systems and in-house assets on
 
 ## What is built
 
-**The wayside** (`core/world/realm/realm_wayside.gd` plans, `wayside_kit.gd` builds, `wayside_themes.gd` holds the
-data): the small places between the landmarks, in 23 kinds: fallen field walls, sheep folds, ruined cottages, wayside
-shrines (a ruin marker, a wayside cross or a defaced saint), standing stones and rings, cairn fields, broken carts with
+**The wayside** (`core/world/realm/realm_wayside.gd` plans, `wayside_kit.gd` lays each place out, `wayside_build.gd`
+builds, `wayside_themes.gd` holds the data): the small places between the landmarks, in 29 kinds: fallen field walls,
+sheep folds, ruined cottages, wayside shrines (a ruin marker, a wayside cross or a defaced saint), standing stones and rings, cairn fields, broken carts with
 their spilled load, cold camps (a fire ring, a lean-to, a bedroll, stores), wells, grave plots, woodpiles, saints on
 plinths or fallen, masons' blocks and column drums, battle ground (spears, shields, a banner, bones), bell shards,
 barrows (some with a door), charcoal clamps, field corners (fence or wall, a rick, a scarecrow, a plough), milestones,
 jetties with eel traps and a sunk boat, the ribs of something very big, and a lookout (a stair of fallen blocks up a
-ruined watch-tower stump, a glide perch on top) on most regions' most prominent rise. Each kind lays itself out as
+ruined watch-tower stump, a glide perch on top) on most regions' most prominent rise; and the modelled ruins the first
+wayside scatter used (modelled low walls, a fallen boundary marker by a lone grave, Order steles, wall piers, the
+roofless ruin shrine, a ruin sunk in a mere, the handcart), folded into the same planner. Each kind lays itself out as
 data with its own variation (counts, sizes, ruin, what was spilled), so no two read the same.
 
 Where they stand is planned, in passes:
@@ -40,8 +42,18 @@ the same kind twice within 110 m.
 The plan runs at the flora's start (`flora_layers.gd plan`, called by RealmFlora.build before its fingerprint), when
 every landmark, lore stone and wonder is registered; the solid pieces' ground is registered as open-air sites (no
 stamp, so the ground stays as it is) and every place keeps trees off itself; in a wood it cuts its own clearing.
-It is built after the flora (REACH_POIS: `realm_wayside.gd build`), one holder per 64 m cell (one mesh per material
-for the cell, ranged: walls and ruins fade out at 170 m, props at 70, stones and clutter 60-140; lookouts alone, 320).
+It is built after the flora (REACH_POIS: `realm_wayside.gd build`) a 96 m chunk at a time, drawn as few meshes as the
+materials allow (`wayside_build.gd`): the kit's boxes one mesh per material, the stone and prop models through
+PropModels (one mesh per material set, with LODs), the RockKit stones and the site props' clutter merged by material,
+so a chunk in view costs about a dozen draws however many places stand in it. The big masses (walls, towers, stones,
+the stone models) fade out 110 m from their chunk's middle (the integrator's range), the small things (timber, iron,
+cloth, clutter, carvings) at 0.45 of it (FadeGuard scales both by 1.5: ~165 m and ~75 m), so a chunk farther off costs
+only its few big draws; a lookout stands alone and reads to 220 m. Measured (16 Nov, on the world branch at c588528,
+paired runs of `zz/density_shots --perf` with and without `--no-density`, draws exact, frame times noisy under the
+shared load): at the fight bench's spot 16-61 draws fewer in all four directions (1,137-1,607 against 1,198-1,661);
+in the Far Reaches' views +1 to +45 (their totals 400-780, under the hub's 1,150-1,600); median frame time 8.10 against
+8.16 ms over the ten views. The flora's layers add 0-4 draws (they go into the flora's own MultiMeshes). Writings,
+boxes and glide perches stay nodes. `-- --no-wayside` turns the places off and leaves the flora's layers.
 
 **The flora's layers** (`core/world/realm/flora_layers.gd`, run inside the scatter after the undergrowth, into the
 flora's own buffers, from their own random streams):

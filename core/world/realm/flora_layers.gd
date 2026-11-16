@@ -55,7 +55,7 @@ static func plan(root: Node, tree_clear: Array) -> void:
 ## RealmFlora._scatter, after the undergrowth: the layers into `items` (kind -> chunk -> Buf). `flora` is realm_flora.gd.
 static func decorate(items: Dictionary, flora: Variant) -> void:
 	counts = {}
-	if Wayside.off() or bool(flora.r30):
+	if "--no-density" in OS.get_cmdline_user_args() or bool(flora.r30):
 		return
 	var t0 := Time.get_ticks_msec()
 	F = flora

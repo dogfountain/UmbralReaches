@@ -24,8 +24,8 @@ const READS := [
 	"res://core/world/realm/tree_gen.gd", "res://core/world/realm/flora_looks_marches.gd", "res://core/world/realm/flora_old_undergrowth.gd",
 	"res://core/world/realm/dress_zones.gd", "res://core/world/realm/realm_layout.gd", "res://core/world/realm/realm_land.gd",
 	"res://core/world/world_lanes.gd", "res://core/life/village/village_cast.gd", "res://core/world/realm/flora_emit.gd", "res://core/world/realm/flora_tables.gd",
-	"res://core/world/realm/scale_pilot.gd", "res://core/world/realm/flora_layers.gd", "res://core/world/realm/realm_wayside.gd",
-	"res://core/world/realm/wayside_themes.gd", "res://core/world/realm/wayside_kit.gd",
+	"res://core/world/realm/scale_pilot.gd", "res://core/world/realm/rift/scorch.gd", "res://core/world/realm/flora_layers.gd",
+	"res://core/world/realm/realm_wayside.gd", "res://core/world/realm/wayside_themes.gd", "res://core/world/realm/wayside_kit.gd",
 ]
 
 

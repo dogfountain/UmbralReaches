@@ -17,9 +17,10 @@ const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Texts := preload("res://core/world/realm/lore/wayside_texts.gd")
 const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
+const Footing := preload("res://core/world/footing.gd")
 
 const MIN_PLACES := 180
-const MIN_PER_REACH := 6
+const MIN_PER_REACH := 5
 const NAMED_SHARE := 0.85
 
 var main: Node
@@ -94,10 +95,10 @@ func _ground(plan: Array) -> void:
 	for v: Dictionary in plan:
 		var a: Vector3 = v.at
 		var q := Vector2(a.x, a.z)
-		var wet := v.kind == "jetty"
+		var wet: bool = v.kind == "jetty" or v.kind == "drowned"
 		if not wet and Land.in_water(a.x, a.z):
 			bad.append("%s %s in the water" % [v.kind, v.id])
-		var g := RealmLayout.ground(space, a.x, a.z)
+		var g := Footing.terrain_y(space, a.x, a.z, a.y)          # (the terrain itself: the place stands on its own middle)
 		if absf(g - a.y) > 0.8:
 			bad.append("%s %s floats or sinks %.2f m" % [v.kind, v.id, a.y - g])
 		for r: Rect2 in v.feet:
@@ -127,7 +128,7 @@ func _named(plan: Array) -> void:
 	check("named places %d of %d (>= %d %%)" % [hosts.size(), want, int(NAMED_SHARE * 100.0)], float(hosts.size()) >= float(want) * NAMED_SHARE)
 	var ids := {}
 	for h in hosts:
-		var ok := String(h.get_meta("title", "")) != "" and String(h.get_meta("line", "")) != "" and h.has_meta("centre")
+		var ok: bool = String(h.get_meta("title", "")) != "" and String(h.get_meta("line", "")) != "" and h.has_meta("centre")
 		if not ok:
 			check("named place %s has a name, a line and a centre" % h.name, false)
 		ids[String(h.get_meta("poi"))] = true

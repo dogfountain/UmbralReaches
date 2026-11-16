@@ -1,8 +1,7 @@
 extends RefCounted
-## FLORA module of the Realm (docs/REALM_PLAN.md): trees, undergrowth and ground cover over the
-## whole map, by biome. Runs after land, rift, bosses, tavern, lore and TerrainStamp.apply, so
-## every site, flight, portal and arena is registered and the ground is final.
-##
+## FLORA module of the Realm (docs/REALM_PLAN.md): trees, undergrowth and ground cover over the whole map, by biome.
+## Runs after land, rift, bosses, tavern, lore and TerrainStamp.apply, so every site, flight, portal and arena is
+## registered and the ground is final. Layered dressing and the wayside's plan: flora_layers.gd (docs/world_density.md).
 ##   1 sample the ground on a 1 m grid (one ray per cell: height, slope, and whether the first
 ##     thing hit is the terrain at all, so nothing grows inside a building, rock or bridge)
 ##   2 keep-out field: distance to the nearest path edge (RealmLayout.PATHS + runtime lanes) and to
@@ -25,7 +24,7 @@ const OldUnder := preload("res://core/world/realm/flora_old_undergrowth.gd")
 const Emit := preload("res://core/world/realm/flora_emit.gd")
 const Cache := preload("res://core/world/realm/flora_cache.gd")
 const Pilot := preload("res://core/world/realm/scale_pilot.gd")
-const Density := preload("res://core/world/realm/flora_layers.gd")    ## the layered dressing and the wayside's plan (Luke, 15 Nov: density)
+const Scorch := preload("res://core/world/realm/rift/scorch.gd")     ## the rift's burned ground (dying ring, snags, bare ash)
 
 const CHUNK := Emit.CHUNK              ## undergrowth chunks
 const TREE_CHUNK := Emit.TREE_CHUNK    ## tree chunks
@@ -109,7 +108,7 @@ static func build(root: Node) -> void:
 		old.free()
 	await root.get_tree().physics_frame
 	var space := (root as Node3D).get_world_3d().direct_space_state
-	Density.plan(root, tree_clear)                 # the wayside's places register their ground and clearings before the fingerprint
+	preload("res://core/world/realm/flora_layers.gd").plan(root, tree_clear)        # the wayside's places register their ground and clearings before the fingerprint
 	_noises()
 	var area := RealmLayout.BOUNDS.grow(MARGIN)
 	_x0 = RealmLayout.OLD_BOUNDS.position.x - MARGIN - 4.0 * ceilf((RealmLayout.OLD_BOUNDS.position.x - area.position.x - MARGIN) / 4.0)   # the old Realm's lattice phase (cover, biome cells)
@@ -180,7 +179,7 @@ static func _scatter(root: Node, space: PhysicsDirectSpaceState3D) -> void:
 	_place_trees(space, rng, items)
 	_lap("trees")
 	_place_under(rng, items)
-	Density.decorate(items, load(Cache.SELF))      # feet, verges, thickets, deadfall, drifts, glades, the wayside's creep
+	preload("res://core/world/realm/flora_layers.gd").decorate(items, load(Cache.SELF))      # feet, verges, thickets, deadfall, drifts, glades, the wayside's creep
 	_lap("under")
 	var srng := RandomNumberGenerator.new()
 	srng.seed = 20261105
@@ -531,7 +530,7 @@ static func _looks() -> void:
 			for e: Array in lk:
 				var lw: float = e[1]
 				tint = tint.lerp(tint * ((e[0] as Dictionary).get("tint", Color(1, 1, 1)) as Color), lw)
-			_tc[c] = tint
+			_tc[c] = Scorch.grass_tint(tint, x, z)
 			row.fill(0.0)
 			for bio: String in w:
 				if bvec.has(bio):
@@ -547,6 +546,7 @@ static func _looks() -> void:
 				for s in nk:
 					var sp: String = kinds[s]
 					row[s] = row[s] * lerpf(1.0, float(mul.get(sp, 1.0)), lw) + float(add.get(sp, 0.0)) * lw
+			row = Scorch.under(row, kinds, x, z)
 			var ks := PackedInt32Array()
 			for s in nk:
 				if row[s] > 0.0 or (_fw[c] > 0.2 and (s == i_reeds or s == i_cattail)):
@@ -656,7 +656,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 				dead = lerpf(dead, float((e[0] as Dictionary).get("dead_willow", dead)), float(e[1]))
 			if sp == "willow" and rng.randf() < dead:
 				id = "willow_2"                       # the fen's willows are mostly dead (the mere's nearly all)
-			if sp == "snag" and _rate({"ash": 1.0}, w) > 0.3:
+			if (sp == "snag" and _rate({"ash": 1.0}, w) > 0.3) or Scorch.charred(at):
 				id = "snag_2"                         # scorched at the rift
 			elif sp == "snag" and id == "snag_2" and rng.randf() < 0.7:
 				id = "snag_%d" % rng.randi_range(0, 1)
@@ -718,8 +718,8 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 			# the scale pilot (scale_pilot.gd): fewer, bigger, stouter trees on its ground. Decided here, after every draw and
 			# test and from a hash of the spot, so the rest of the wood keeps the layout it had (a thinned tree still holds its
 			# spacing); a tree too big for its spot stays the size it was.
-			var tint := _tint(rng, 0.1)
-			if not Pilot.keeps(at.x, at.y):
+			var tint := Scorch.tree_tint(_tint(rng, 0.1), at, sp)
+			if not Pilot.keeps(at.x, at.y) or not Scorch.tree_keeps(at, sp, id):
 				continue
 			var pk := Pilot.tree(at.x, at.y, sp)
 			var hs := s

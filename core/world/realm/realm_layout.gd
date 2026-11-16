@@ -471,10 +471,10 @@ static func macro_dry(x: float, z: float) -> float:
 	# the Outer Marches and the southern downs (zero inside OLD_BOUNDS, eased in over 12 m outside it)
 	var m37 := smoothstep(0.0, 12.0, _out_dist(p, OLD_BOUNDS))
 	if m37 > 0.0:
-		h = RealmReaches.shape(p, _marches(p, h, m37), m37)      # the Marches, then the Far Reaches round them
+		h = RealmRelief.scarp(p, RealmReaches.shape(p, _marches(p, h, m37), m37), m37)      # the Marches, the Far Reaches, the downs' scarp
 	# horizon ring
 	var out := _out_dist(p, BOUNDS)
-	h += smoothstep(0.0, 60.0, out) * 28.0
+	h += RealmRelief.horizon(p, out)          # a mountain range, with passes where the road and the Sorrow leave
 	return post_detail(x, z, h)
 
 
@@ -532,10 +532,10 @@ static func _marches(p: Vector2, h: float, m: float) -> float:
 	if rd < 80.0:
 		h += m * (1.0 - smoothstep(20.0, 70.0, rd)) * 2.6 * clampf((40.0 - z) / 100.0, 0.0, 1.0)
 	# the Fallen Hierarch: a moss valley under the Crowns, flanks rising round the toppled statue
-	var hv := _rect_w(p, Rect2(-258.0, -140.0, 92.0, 78.0), 12.0)
+	var hv := _rect_w(p + _mwarp(p) * 0.7, Rect2(-258.0, -140.0, 92.0, 78.0), 15.0)      # (warped: its flanks were a ruled rectangle)
 	h += m * hv * 11.0 * smoothstep(24.0, 60.0, p.distance_to(Vector2(-214.0, -104.0)))
 	# the Anchorholds: the Crowns' face stands higher here, so the terrace (y 16) is a shelf cut into a wall
-	var ah := _rect_w(p, Rect2(172.0, -150.0, 86.0, 70.0), 18.0)
+	var ah := _rect_w(p + _mwarp(p), Rect2(172.0, -150.0, 86.0, 70.0), 18.0)
 	h += m * ah * 10.0 * smoothstep(-70.0, -130.0, z)
 	# towns: Weirford and Saltmarket sit on flat ground
 	h = lerpf(h, 0.6, m * 0.85 * _bump(p, Vector2(-205.0, 66.0), 36.0))
@@ -875,7 +875,7 @@ static func biome_at(x: float, z: float) -> String:
 		if w > best_w:
 			best_w = w
 			best = r
-	return String(best.get("biome", "meadow"))
+	return "ash" if preload("res://core/world/realm/rift/scorch.gd").burn(x, z) > 0.55 else String(best.get("biome", "meadow"))      # the rift's burn
 
 
 ## Ground height from the real terrain (after RealmLand), or the macro shape before it exists.

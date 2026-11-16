@@ -20,6 +20,7 @@ extends RefCounted
 
 const Themes := preload("res://core/world/realm/wayside_themes.gd")
 const Kit := preload("res://core/world/realm/wayside_kit.gd")
+const Build := preload("res://core/world/realm/wayside_build.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Tables := preload("res://core/world/realm/flora_tables.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
@@ -52,6 +53,10 @@ static var rejects := {}                     ## why spots were turned down (tuni
 static var _space: PhysicsDirectSpaceState3D
 static var _grid := {}                       ## Vector2i(CELL) -> Array of Rect2: everything worth a look
 static var _sgrid := {}                      ## Vector2i(CELL) -> Array of site indices (WorldLanes.sites at the plan's start)
+static var _pgrid := {}                      ## Vector2i(CELL) -> Array of planned places
+static var _by_kind := {}                    ## kind -> Array of Vector2: where the planned places of each kind stand
+static var _segs: Array = []                 ## [a, b, half width] every way's segments
+static var _seg_grid := {}                   ## Vector2i(CELL) -> Array of indices into _segs
 static var _keep: Array = []                 ## [Vector2, radius] the camps', fires', outposts' and slots' rounds
 static var _rng := RandomNumberGenerator.new()
 static var _n := 0
@@ -59,7 +64,7 @@ static var _n := 0
 
 ## A/B: the world without the wayside and the flora's layers.
 static func off() -> bool:
-	return "--no-density" in OS.get_cmdline_user_args()
+	return "--no-density" in OS.get_cmdline_user_args() or "--no-wayside" in OS.get_cmdline_user_args()
 
 
 ## REACH_POIS' reserve step: nothing here (the plan waits for the flora's start, when every landmark is registered).
@@ -76,19 +81,28 @@ static func plan_now(root: Node, tree_clear: Array) -> void:
 	rejects = {}
 	_grid.clear()
 	_sgrid.clear()
+	_pgrid.clear()
+	_by_kind.clear()
+	_index_segs()
 	_keep.clear()
 	_n = 0
 	if off():
 		return
 	_space = (root as Node3D).get_world_3d().direct_space_state
 	_rng.seed = 20261115
-	_interests(root)
-	_lookouts()
-	_ways()
-	_miles()
-	_open()
-	_dress()
-	_assign()
+	var laps := {}
+	var tl := Time.get_ticks_usec()
+	for pass_name: String in ["interests", "lookouts", "ways", "miles", "open", "dress", "assign"]:
+		match pass_name:
+			"interests": _interests(root)
+			"lookouts": _lookouts()
+			"ways": _ways()
+			"miles": _miles()
+			"open": _open()
+			"dress": _dress()
+			"assign": _assign()
+		laps[pass_name] = (Time.get_ticks_usec() - tl) / 1000
+		tl = Time.get_ticks_usec()
 	for v: Dictionary in plan:
 		var i := 0
 		for r: Rect2 in v.feet:
@@ -108,7 +122,7 @@ static func plan_now(root: Node, tree_clear: Array) -> void:
 	for v: Dictionary in plan:
 		if String(v.get("name", "")) != "":
 			named += 1
-	print("WAYSIDE rejects ", rejects)
+	print("WAYSIDE rejects %s; ms by pass %s" % [rejects, laps])
 	print("WAYSIDE planned %d places (%d named, %d glades) in %d ms: %s" % [plan.size(), named, glades.size(), Time.get_ticks_msec() - t0, stats])
 
 
@@ -207,6 +221,12 @@ static func _fits(kind: String, q: Vector2, yaw: float) -> float:
 	for sx: float in [-262.0, 262.0]:
 		if absf(q.x - sx) < r + 1.0:
 			return _no("nav seam")
+	# the March Wall (x +-155 across the old Realm) and its gates: the wall's own dressing stands there
+	if q.y < RealmLayout.OLD_BOUNDS.end.y + 2.0 and absf(absf(q.x) - RealmLayout.MARCH_WALL_X) < r + 3.0:
+		return _no("march wall")
+	for gq: Vector2 in RealmLayout.MARCH_GATES:
+		if q.distance_to(gq) < r + 14.0:
+			return _no("march wall")
 	for sz: float in [86.0, 246.0]:
 		if absf(q.y - sz) < r + 1.0:
 			return _no("nav seam")
@@ -221,22 +241,27 @@ static func _fits(kind: String, q: Vector2, yaw: float) -> float:
 	var rect := Rect2(q - Vector2(r, r), Vector2(r, r) * 2.0)
 	if not _clear(rect, 1.2 if kind != "milestone" else 0.4):
 		return _no("site")
-	for v: Dictionary in plan:
-		var va: Vector3 = v.at
-		var reach := float(v.r) + r + 1.0
-		if absf(va.x - q.x) < reach and absf(va.z - q.y) < reach and Vector2(va.x, va.z).distance_to(q) < reach:
-			return _no("another place")
+	var c0 := Vector2i(floori(q.x / CELL), floori(q.y / CELL))
+	for dj in range(-1, 2):
+		for di in range(-1, 2):
+			for v: Dictionary in _pgrid.get(c0 + Vector2i(di, dj), []):
+				var va: Vector3 = v.at
+				if Vector2(va.x, va.z).distance_to(q) < float(v.r) + r + 1.0:
+					return _no("another place")
 	var c: Array = _ground(q)
 	if not bool(c[1]):
 		return _no("not terrain")
 	var gy := float(c[0])
 	if gy < RealmLayout.LAVA_Y + 6.0:
 		return _no("lava")
+	if bool(d.get("sunk", false)):
+		# a ruin sunk in a mere: its middle in open water, a wading depth or more
+		return gy if Land.in_water(q.x, q.y) and gy < WATER - 0.4 and gy > WATER - 3.0 else _no("not sunk")
 	var lo := gy
 	var hi := gy
 	var wet := bool(d.get("wet", false))
-	for i in 8:
-		var a := TAU * float(i) / 8.0
+	for i in 6:
+		var a := TAU * float(i) / 6.0 + 0.3
 		var s: Array = _ground(q + Vector2(cos(a), sin(a)) * r * 0.85)
 		if not bool(s[1]):
 			return _no("not terrain")
@@ -256,12 +281,12 @@ static func _fits(kind: String, q: Vector2, yaw: float) -> float:
 		return gy
 	if (lo < WATER + 0.3 and Tables.wet(q.x, q.y)) or Land.in_water(q.x, q.y):
 		return _no("water")
-	# nothing standing there already (a rock, a wall, a wonder) above knee height
+	# nothing standing there already (a rock, a wall, a wonder) above knee height, nor overhead (a gate's vault, an arch)
 	var sq := PhysicsShapeQueryParameters3D.new()
 	var bx := BoxShape3D.new()
-	bx.size = Vector3(r * 1.6, 2.4, r * 1.6)
+	bx.size = Vector3(r * 1.6, 6.3, r * 1.6)
 	sq.shape = bx
-	sq.transform = Transform3D(Basis.IDENTITY, Vector3(q.x, gy + 1.9, q.y))
+	sq.transform = Transform3D(Basis.IDENTITY, Vector3(q.x, gy + 3.85, q.y))
 	sq.collision_mask = Layers.WORLD | Layers.PROPS
 	for h: Dictionary in _space.intersect_shape(sq, 8):
 		if not String((h.collider as Node).name).begins_with("Terrain"):
@@ -295,7 +320,8 @@ static func _clear(rect: Rect2, margin: float) -> bool:
 					return false
 	# the ways: LoreKit's own test with no site in it
 	var pts: Array[Vector2] = [rect.position, rect.end, Vector2(rect.position.x, rect.end.y), Vector2(rect.end.x, rect.position.y), rect.get_center()]
-	for sg: Array in RealmLayout.path_segs_near(rect, margin):
+	for si: int in _segs_near(rect.grow(margin + 2.0)):
+		var sg: Array = _segs[si]
 		var a: Vector2 = sg[0]
 		var ab: Vector2 = (sg[1] as Vector2) - a
 		for pq in pts:
@@ -309,20 +335,51 @@ static func _clear(rect: Rect2, margin: float) -> bool:
 static func _face(q: Vector2) -> float:
 	var best := q + Vector2(0, -1)
 	var bd := INF
+	var near := _segs_near(Rect2(q - Vector2(64.0, 64.0), Vector2(128.0, 128.0)))
+	if near.is_empty():
+		near = range(_segs.size())
+	for i: int in near:
+		var sg: Array = _segs[i]
+		var a: Vector2 = sg[0]
+		var ab: Vector2 = (sg[1] as Vector2) - a
+		var t := clampf((q - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+		var c := a + ab * t
+		var dd := c.distance_squared_to(q)
+		if dd < bd:
+			bd = dd
+			best = c
+	var d := best - q
+	return atan2(-d.x, -d.y)
+
+
+static func _index_segs() -> void:
+	_segs.clear()
+	_seg_grid.clear()
 	for p: Dictionary in RealmLayout.PATHS:
 		var pts: Array = p.pts
+		var w := float(p.w)
 		for i in pts.size() - 1:
 			var a: Vector2 = pts[i]
 			var b: Vector2 = pts[i + 1]
-			var ab := b - a
-			var t := clampf((q - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
-			var c := a + ab * t
-			var dd := c.distance_squared_to(q)
-			if dd < bd:
-				bd = dd
-				best = c
-	var d := best - q
-	return atan2(-d.x, -d.y)
+			var idx := _segs.size()
+			_segs.append([a, b, w])
+			var r := Rect2(a, Vector2.ZERO).expand(b).grow(w + 2.0)
+			for cj in range(floori(r.position.y / CELL), floori(r.end.y / CELL) + 1):
+				for ci in range(floori(r.position.x / CELL), floori(r.end.x / CELL) + 1):
+					var key := Vector2i(ci, cj)
+					if not _seg_grid.has(key):
+						_seg_grid[key] = []
+					(_seg_grid[key] as Array).append(idx)
+
+
+## Indices of the ways' segments that may come within reach of r.
+static func _segs_near(r: Rect2) -> Array:
+	var seen := {}
+	for cj in range(floori(r.position.y / CELL), floori(r.end.y / CELL) + 1):
+		for ci in range(floori(r.position.x / CELL), floori(r.end.x / CELL) + 1):
+			for i: int in _seg_grid.get(Vector2i(ci, cj), []):
+				seen[i] = true
+	return seen.keys()
 
 
 ## The kind for a place at q (`ctx` way / open / wood) by its region's weights, kept from repeating nearby.
@@ -337,13 +394,12 @@ static func _kinds_for(region: String, q: Vector2, ctx: String) -> Array[String]
 		if kd.is_empty() or not (ctx in (kd.ctx as Array) or (ctx == "wood" and "open" in (kd.ctx as Array))):
 			continue
 		var f := float(w[kind])
-		for v: Dictionary in plan:
-			if v.kind == kind:
-				var dd := q.distance_to(Vector2((v.at as Vector3).x, (v.at as Vector3).z))
-				if dd < SAME_NEAR:
-					f *= 0.12
-				elif dd < SAME_NEAR * 2.0:
-					f *= 0.6
+		for at: Vector2 in _by_kind.get(kind, []):
+			var dd := q.distance_to(at)
+			if dd < SAME_NEAR:
+				f *= 0.12
+			elif dd < SAME_NEAR * 2.0:
+				f *= 0.6
 		cand[kind] = f
 	var out: Array[String] = []
 	while not cand.is_empty() and out.size() < 4:
@@ -384,6 +440,13 @@ static func _place(kind: String, q: Vector2, yaw: float, gy: float, region: Stri
 		if e.t == "tower":
 			v["tower_top"] = float(e.h)
 	plan.append(v)
+	var pk := Vector2i(floori(q.x / CELL), floori(q.y / CELL))
+	if not _pgrid.has(pk):
+		_pgrid[pk] = []
+	(_pgrid[pk] as Array).append(v)
+	if not _by_kind.has(kind):
+		_by_kind[kind] = []
+	(_by_kind[kind] as Array).append(q)
 	var r0 := float(Themes.KINDS[kind].r)
 	_add_interest(Rect2(q - Vector2(r0, r0), Vector2(r0, r0) * 2.0))
 	return v
@@ -392,13 +455,14 @@ static func _place(kind: String, q: Vector2, yaw: float, gy: float, region: Stri
 ## Try `kinds` (in order) at the spots `qs` (in order); the first that fits is planned.
 static func _try(kinds: Array[String], qs: Array, region: String, ctx: String) -> Dictionary:
 	for kind: String in kinds:
+		var wet := bool(Themes.KINDS[kind].get("wet", false))
 		for q: Vector2 in qs:
-			var yaw := _face(q)
-			if bool(Themes.KINDS[kind].get("wet", false)):
-				yaw = _shore_yaw(q)
+			var yaw := _shore_yaw(q) if wet else 0.0
 			var gy := _fits(kind, q, yaw)
 			if is_nan(gy):
 				continue
+			if not wet:
+				yaw = _face(q)
 			var v := _place(kind, q, yaw, gy, region, ctx)
 			if not v.is_empty():
 				return v
@@ -606,19 +670,23 @@ static func _dress() -> void:
 		var ctx := _ctx(q)
 		var kinds: Array[String] = []
 		for kind: String in _kinds_for(region, q, ctx if ctx != "wood" else "open"):
-			if bool(Themes.KINDS[kind].get("dress", false)):
+			if bool(Themes.KINDS[kind].get("dress", false)) and kinds.size() < 2:
 				kinds.append(kind)
 		if kinds.is_empty():
 			continue
-		var qs: Array = [q, q + Vector2(4.0, 0.0), q + Vector2(-4.0, 0.0), q + Vector2(0.0, 4.0), q + Vector2(0.0, -4.0)]
+		var qs: Array = [q, q + Vector2(4.5, 1.5), q + Vector2(-1.5, -4.5)]
 		_try(kinds, qs, region, ctx)
 
 
 static func _near_place(q: Vector2, d: float) -> bool:
-	for v: Dictionary in plan:
-		var a: Vector3 = v.at
-		if absf(a.x - q.x) < d and absf(a.z - q.y) < d and Vector2(a.x, a.z).distance_to(q) < d:
-			return true
+	var n := ceili(d / CELL)
+	var c0 := Vector2i(floori(q.x / CELL), floori(q.y / CELL))
+	for dj in range(-n, n + 1):
+		for di in range(-n, n + 1):
+			for v: Dictionary in _pgrid.get(c0 + Vector2i(di, dj), []):
+				var a: Vector3 = v.at
+				if Vector2(a.x, a.z).distance_to(q) < d:
+					return true
 	return false
 
 
@@ -712,6 +780,7 @@ static func _force(region: String, kinds: Array) -> Dictionary:
 	more.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
 	for m: Array in more:
 		qs.append(m[1])
+	qs = qs.slice(0, 150)                    # (a region with no room for the kind gives up soon)
 	for kind: String in kinds:
 		var ks: Array[String] = [kind]
 		var v := _try(ks, qs, region, "way")
@@ -756,11 +825,11 @@ static func _give_box(v: Dictionary, id: String, boxes: Dictionary) -> void:
 
 # --- build ------------------------------------------------------------------------------------------
 
-## REACH_POIS' build step (after the flora): the planned places, a holder per 64 m cell (lookouts alone); the named
-## ones are discoveries.
-const BUILD_CELL := 64.0
-const BODY_RANGE := 170.0           ## walls, ruins, carts: they fade out past this (the props and stones nearer)
-const TALL_RANGE := 320.0           ## a lookout's tower reads from across a region
+## REACH_POIS' build step (after the flora): the planned places, a holder per 96 m chunk drawn as merged meshes
+## (wayside_build.gd), lookouts alone; the named ones are discoveries.
+const BUILD_CELL := 96.0
+const VIEW_END := 110.0             ## from a chunk's middle (the integrator's range: 150 drew ~40 more in the Thornwarden fight)
+const TALL_RANGE := 220.0           ## a lookout's tower reads from further
 
 static func build(holder: Node3D) -> void:
 	var t0 := Time.get_ticks_msec()
@@ -782,7 +851,7 @@ static func build(holder: Node3D) -> void:
 	for key: Variant in cells:
 		var vs: Array = cells[key]
 		var nm := ("Way_" + String(key)) if key is String else "Way_%d_%d" % [(key as Vector2i).x, (key as Vector2i).y]
-		Kit.build(root, nm, vs, space, TALL_RANGE if key is String else BODY_RANGE)
+		Build.build(root, nm, vs, space, TALL_RANGE if key is String else VIEW_END)
 		built += vs.size()
 	for v: Dictionary in plan:
 		if String(v.get("poi", "")) != "":
