@@ -64,7 +64,7 @@ const CAMPS: Array[Dictionary] = [
 	# crater's west lip (cinder casters, a bulwark), tollmen on the east floor who ring when you come (the Eighth Ringer
 	# holds the bell); and a round on bell_link under the rift's west berm.
 	{"name": "the crater's west lip", "at": Vector3(332.0, 60.0, 110.0), "kinds": ["cinder", "cinder", "bulwark"], "probe": 0.0, "r": 2.8},
-	{"name": "the crater's east floor", "at": Vector3(364.0, 60.0, 109.0), "kinds": ["tollman", "husk", "gaunt"], "probe": 0.0},
+	{"name": "the crater's east floor", "at": Vector3(358.0, 60.0, 110.0), "kinds": ["tollman", "husk", "gaunt"], "probe": 0.0},
 	{"name": "the round below bell_link", "at": Vector3(250.0, 60.0, -48.0), "kinds": ["husk", "gaunt", "wretch"], "probe": 0.0,
 		"patrol": [Vector2(250, -48), Vector2(256, -40), Vector2(248, -30), Vector2(242, -40)]},
 	# --- Lastlight (tier 2): the walled waystation is a safe place, and the road from Saltmarket to its gate is the
