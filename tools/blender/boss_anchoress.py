@@ -425,7 +425,7 @@ if REVIEW and not EXPORT:
         L.turnarounds(REVIEW + "_head", 1.65, 1.6, angles=(("a", 80), ("b", 40)), samples=32, size=(700, 700), cam_z=1.65)
     L.turnarounds(REVIEW + "_raw", 1.0, 5.6, angles=(("front", 90), ("three", 45), ("side", 0), ("back", -90)), samples=32, size=(700, 940), cam_z=1.3)
 if EXPORT:
-    L.export_skinned2(objs, MATS, "boss_anchoress", S, WEIGHTS, {"hand_r": ("hand_r", S["hand_r"]), "hand_l": ("hand_l", S["hand_l"])}, 4096 if not LOWRES else 1024, PAIRS)
+    L.export_skinned2(objs, MATS, "boss_anchoress", S, WEIGHTS, {"hand_r": ("chain_hand_r", S["hand_r"]), "hand_l": ("lamp_hand_l", S["hand_l"])}, 4096 if not LOWRES else 1024, PAIRS)
     L.drop_highs(PAIRS)
     if REVIEW:
         L.use_atlas("boss_anchoress")
