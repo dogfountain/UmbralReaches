@@ -19,7 +19,7 @@ LAYERS = ["wool", "linen", "trim", "leather", "bone", "gilt", "iron", "wood", "s
 # per layer: roughness, metallic, mottle, edge-wear, [displacements: (texture, size, strength, stretch_z)]
 FINISH = {
     "wool":    (0.92, 0.0, 0.06, 0.12, [("CLOUDS", 0.05, 0.009, 5.0), ("STUCCI", 0.005, 0.0025, 1.0)]),
-    "linen":   (0.88, 0.0, 0.06, 0.12, [("CLOUDS", 0.04, 0.008, 6.0), ("STUCCI", 0.004, 0.0018, 1.0)]),
+    "linen":   (0.88, 0.0, 0.06, 0.12, [("CLOUDS", 0.04, 0.0035, 6.0), ("STUCCI", 0.004, 0.0009, 1.0)]),
     "trim":    (0.6, 0.4, 0.06, 0.35, [("STUCCI", 0.006, 0.0010, 1.0)]),
     "leather": (0.72, 0.0, 0.18, 0.35, [("VORONOI", 0.02, 0.0015, 1.0), ("CLOUDS", 0.04, 0.003, 1.0)]),
     "bone":    (0.7, 0.0, 0.24, 0.5, [("VORONOI", 0.012, 0.004, 1.0), ("STUCCI", 0.006, 0.003, 1.0), ("CLOUDS", 0.04, 0.008, 1.0)]),
@@ -494,6 +494,46 @@ def _bake_one(low, kind, size, levels, samples, prefix, hook=None):
     nt = N["nt"]
     bk = sc.render.bake
     bk.use_selected_to_active = True
+    if os.environ.get("BAKE_CAGE", "1") == "1":
+        # an explicit cage: the low pushed out along its smooth normals, far over cloth and folds (BAKE_EXT) but only a
+        # little over the head (BAKE_EXT_HEAD): with smooth shading the averaged normals of a nose, a mouth, an eye socket
+        # converge, and a deep extrusion there starts its rays behind the wall (the cavity bakes black)
+        ext_h = float(os.environ.get("BAKE_EXT_HEAD", "0.006"))
+        ext_b = float(os.environ.get("BAKE_EXT", "0.026"))
+        cage = low.copy()
+        cage.data = low.data.copy()
+        cage.name = "bake_cage"
+        sc.collection.objects.link(cage)
+        cm = cage.data
+        n_ = len(cm.vertices)
+        co_ = np.empty(n_ * 3)
+        cm.vertices.foreach_get('co', co_)
+        nr_ = np.empty(n_ * 3)
+        cm.vertices.foreach_get('normal', nr_)
+        co_ = co_.reshape(-1, 3)
+        nr_ = nr_.reshape(-1, 3)
+        wt = np.zeros(n_)
+        hg = low.vertex_groups.get("head")
+        if hg is not None:
+            for v in cm.vertices:
+                for gr in v.groups:
+                    if gr.group == hg.index:
+                        wt[v.index] = gr.weight
+        lay_ = _layer_of_vertices(cm)                       # only the face itself (skin, teeth, eyes), not the rag wound round it
+        wt = wt * np.isin(lay_, [LAYERS.index("skin"), LAYERS.index("bone"), LAYERS.index("glow")])
+        ext = ext_b + (ext_h - ext_b) * wt
+        cap = np.zeros(n_)                                   # the rag round the head: folds and a thin shell, a deeper cage
+        if hg is not None:
+            for v in cm.vertices:
+                for gr in v.groups:
+                    if gr.group == hg.index and gr.weight > 0.5 and lay_[v.index] == LAYERS.index("linen"):
+                        cap[v.index] = 1.0
+        ext = np.where(cap > 0, float(os.environ.get("BAKE_EXT_CAP", "0.05")), ext)
+        cm.vertices.foreach_set('co', (co_ + nr_ * ext[:, None]).ravel())
+        cm.update()
+        cage.hide_render = True
+        bk.use_cage = True
+        bk.cage_object = cage
     bk.cage_extrusion = float(os.environ.get("BAKE_EXT", "0.026"))
     bk.max_ray_distance = float(os.environ.get("BAKE_RAY", "0.065"))
     bk.margin = 6
@@ -548,6 +588,8 @@ def _bake_one(low, kind, size, levels, samples, prefix, hook=None):
     for o in sc.objects:
         o.hide_render = False
     bpy.data.objects.remove(hi)
+    for o in [o for o in sc.objects if o.name == "bake_cage"]:
+        bpy.data.objects.remove(o)
     for o in [o for o in sc.objects if o.name.startswith("tc_")]:
         bpy.data.objects.remove(o)
     print("BAKED", kind, size)

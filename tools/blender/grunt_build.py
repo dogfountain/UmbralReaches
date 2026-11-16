@@ -626,14 +626,21 @@ def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, ey
                     front[kx] = Q[i]
         mz = min((q[2] for q in front.values()), default=ez - 0.02)
         lipz = lambda x: mz + abs(x / hw) ** 2 * hw * 0.5
+        GUM = (0.36, 0.13, 0.13)
         for row, dy in ((0, 0.005), (1, -0.007)):
-            for k in range(9):                                            # nine rounded teeth a row, each its own
+            arc = []
+            for k in range(9):                                            # nine teeth a row: uneven, yellowed, set in a gum
                 a_ = (k - 4.0) / 4.0
-                x = a_ * hw * 0.95
+                r1 = seed_i(k * 7.3 + row * 3.1) / 12.0
+                r2 = seed_i(k * 3.7 + row * 5.3 + 1.0) / 12.0
+                x = a_ * hw * 0.95 + (r1 - 0.5) * 0.003
                 z = lipz(x) - 0.002
                 y = mouth_y + dy
-                hgt = (1.7 if row == 0 else 1.4) * (1.0 - 0.3 * abs(a_))
-                g.ball(V(x, y - (0.0 if row == 0 else 0.003) - 0.003 * hgt * (1 if row == 0 else -1), z - 0.002 * abs(a_)), 0.0034 * skull, TOOTH, "bone", "head", n=4, sx=0.85, sy=hgt, sz=0.8)
+                hgt = (2.1 if row == 0 else 1.7) * (1.0 - 0.3 * abs(a_)) * (0.75 + 0.5 * r2)
+                tc = (0.74 - 0.12 * r1, 0.64 - 0.12 * r1, 0.40 - 0.08 * r2)
+                g.ball(V(x, y - (0.0 if row == 0 else 0.004) - 0.0035 * hgt * (1 if row == 0 else -1), z - 0.002 * abs(a_) - 0.0015), 0.0044 * skull * (0.85 + 0.3 * r1), tc, "bone", "head", n=5, sx=0.9, sy=hgt, sz=0.85)
+                arc.append(V(x, y + (0.011 if row == 0 else -0.011), z + 0.002))
+            g.tube(arc, 0.0055 * skull, GUM, "skin", "head", n=5, flat=0.8)       # the gum the teeth are set in
     g.mesh(P, F, col, mat, L, FUV)
     global _BODY
     _BODY = bd
@@ -1069,7 +1076,7 @@ def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=Tru
         hem_edge = lambda i, j: (v1 * (i + 0.5) / NV) <= hem(TAU * (j + 0.5) / NU)
     # wound: alternate rows stand a little prouder, so the layers read
     shrink(g, b, trunk, rows, 0.011,
-           wrap, "linen", "head", thick=0.0045, ridges=(5.0, 0.004), wobble=_rag_wobble, edge=hem_edge if hem_edge is not None else None, reach=0.2, relax=20, balls=[(e + V(0, 0, -0.004), 0.016) for e in E] if v1 < 130 else (),
+           wrap, "linen", "head", thick=0.0045, ridges=(5.0, 0.004), wobble=_rag_wobble, fill=True, edge=hem_edge if hem_edge is not None else None, reach=0.2, relax=20, balls=[(e + V(0, 0, -0.004), 0.016) for e in E] if v1 < 130 else (),
            cut=(lambda p: p[2] < c[2] - 0.04 and abs(p[1] - ey) < 0.0135 and abs(p[0]) < 0.07) if v1 >= 130 else None)
     start = g._fit[1] if getattr(g, "_fit", None) else 0
     n0 = start - len(b.P)
@@ -1102,7 +1109,7 @@ def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=Tru
 def sack(g, at, h, w, d, col, cord, lab="chest", seed=1.0, mat="linen", neck=0.04, lean=0.04):
     """A stuffed sack hung by its tied neck: gathered at the top, heavy and sagging at the bottom, vertical folds that
     fade down the belly, lumps where the load sits, a corded knot and one patched seam. Rings round Y (rig space)."""
-    NU, NV = 24, 14
+    NU, NV = 20, 12
     P = []
     for i in range(NV + 1):
         t = i / NV                                   # 0 at the knot, 1 at the base
@@ -1146,12 +1153,12 @@ def wretch():
     skull with coals sunk in it, a stuffed sack hung from straps that cut into the shoulders, a gaff in its fist."""
     g = Geo()
     SKIN, RAG, SACK, BELT = (0.4, 0.34, 0.31), (0.17, 0.13, 0.1), (0.5, 0.43, 0.3), (0.1, 0.075, 0.06)
-    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=3300, hunch=1.0, targets=WRETCH_T, eye_r=0.011, skull=0.9, keep=("head", "hand_l", "hand_r"), claws=True, hand_ratio=0.45, head_ratio=1.0)
+    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=3800, hunch=1.0, targets=WRETCH_T, eye_r=0.011, skull=0.9, keep=("head", "hand_l", "hand_r"), claws=True, hand_ratio=0.38, head_ratio=1.0)
     if os.environ.get('BODYONLY'):
         return g.to_object('body'), []
     # (no shin wraps: the bare shins show their crests)
     wraps(g, b, ("elbow_", "hand_"), 0.8, 0.92, RAG, seed=2)
-    coat(g, b, RAG, mat="wool", y_top=0.99, y_hem=0.46, flare=0.045, seed=2.2, tatter=0.12, folds=5, thick=0.01, nu=30, nv=10)
+    coat(g, b, RAG, mat="wool", y_top=0.99, y_hem=0.46, flare=0.045, seed=2.2, tatter=0.12, folds=5, thick=0.01, nu=26, nv=9)
     for ln in (0.2, 0.14):                                                  # the cloth's ends knotted at the belt, hanging
         k0 = V(0.15, 0.975, -0.105)
         g.tube([k0, k0 + V(0.02, -0.06, -0.015), k0 + V(0.03 + 0.012 * ln, -ln * 0.6, -0.02), k0 + V(0.03, -ln, -0.015)], [0.014, 0.016, 0.013, 0.006], RAG, "wool", "pelvis", n=5, flat=0.3)
