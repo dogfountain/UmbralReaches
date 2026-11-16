@@ -187,7 +187,20 @@ static func collision_shape(mesh: Mesh) -> Shape3D:
 		return null
 	if _shapes.has(mesh):
 		return _shapes[mesh]
-	var s: Shape3D = mesh.create_convex_shape(true, true)
+	# a mesh of this kit's own (its key is its name) keeps its simplified hull in the GenCache: the hull is ~37 ms a
+	# mesh, and the Realm's places use a few dozen of them every boot
+	var key := "hull|" + mesh.resource_name if _meshes.get(mesh.resource_name) == mesh else ""
+	var s: Shape3D = null
+	if key != "":
+		var pts: Variant = GenCache.load_var(key, SELF)
+		if pts is PackedVector3Array and not (pts as PackedVector3Array).is_empty():
+			var c := ConvexPolygonShape3D.new()
+			c.points = pts
+			s = c
+	if s == null:
+		s = mesh.create_convex_shape(true, true)
+		if key != "" and s is ConvexPolygonShape3D:
+			GenCache.save_var(key, SELF, (s as ConvexPolygonShape3D).points)
 	_shapes[mesh] = s
 	return s
 
