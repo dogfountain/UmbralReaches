@@ -1,7 +1,7 @@
 extends Node3D
 ## A cold coal glint over an UNLIT checkpoint brazier (r30 wayfinding): the unlit fire's own 3.4 m
 ## ember light is invisible past ~10 m at night, so a new player could not find the Shrine, the
-## Landing, Threshold or the StairFoot by eye. A small pale, unshaded flame tongue over the bowl,
+## Landing, Threshold or the meadow fire (StairFoot) by eye. A small pale, unshaded flame tongue over the bowl,
 ## readable at 40 m+ by contrast (dim: under the glow threshold, no bloom), and no light of its own.
 ## Hidden once the fire is kindled (the parent Brazier's `lit`), polled twice a second.
 

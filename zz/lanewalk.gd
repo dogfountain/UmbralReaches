@@ -3,7 +3,7 @@ var p: Player
 var t := 0
 var leg := 0
 var leg_t := 0.0
-var route: Array[Vector3] = [Vector3(2.0, 0, -89.0), Vector3(12.8, 0, -89.0), Vector3(2.0, 0, -89.0)]
+var route: Array[Vector3] = [Endgame.w(Vector3(2.0, 0, -89.0)), Endgame.w(Vector3(12.8, 0, -89.0)), Endgame.w(Vector3(2.0, 0, -89.0))]   # (the summit: Endgame)
 func _ready() -> void:
 	var main: Node = load("res://world/main.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(main)
@@ -19,7 +19,7 @@ func _physics_process(delta: float) -> void:
 		lift._t = lift.dwell + lift.travel_time + 0.1     # parked at the top
 		lift.set_physics_process(false)
 		lift._place(1.0)
-		p.global_position = Vector3(2.0, 27.5, -89.0)
+		p.global_position = Endgame.w(Vector3(2.0, 27.5, -89.0))
 		p.reset_physics_interpolation()
 	if t < 30:
 		return

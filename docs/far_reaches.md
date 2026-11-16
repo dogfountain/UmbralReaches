@@ -25,7 +25,7 @@ east to the new edges.
 | Fallowmere | S, x -220..-92 | 1 | a farming hamlet (people): tithe barn, farmhouse, fold, drowned strips | 1 camp, villagers, fire |
 | The Long Arches | S, x -92..92 | 2 | the Order's aqueduct striding across a dry valley; the castellum; the broken span | 2 camps, fire |
 | The Southwood | S, x 92..262 | 3 | a dark wood: the charcoal burners' ruin, the witch's hollow | 3 camps, a rare, fire |
-| The Bellfall | NE, x 260..370, z -150..-40 | 3 | the eighth bell fallen into a scorched crater; behind it the Ashen Rift (the lava, moved out from Hearthward) | 2 camps, a rare, fire; the Choir House, the Cinder Cantor |
+| The Bellfall | E, under Lastlight's south wall (the Crowns' east corner is the endgame's) | 3 | the eighth bell fallen into a scorched crater | 2 camps, a rare, fire |
 | Lastlight | E, z -40..96 | 1 | the walled waystation at the road's east end: inn, lamp tower, watch; the shut East Gate | villagers, watch, fire |
 | The Drowned Nave | E, z 96..234 | 3 | an unfinished cathedral flooded to the knee, moon shafts through the vault | 2 camps, fire |
 | The Thousand Cairns | SE, z 234..398 | 3 | a high windy heath of cairns; the Cairn Tower | 2 camps, a rare, fire |
@@ -57,47 +57,55 @@ LODs for big things (FarDetail), the pillars, the don'ts. New content goes in ne
 registries (EnemySpawner.REALM_CAMPS, elites, rares, lore, codex, quest chains, village casts) get one block per area
 at the end of the list.
 
-## The Ashen Rift, moved (the lava area)
+## The endgame, moved (the Ashen Rift, the Crossing, the Threshold, the summit)
 
-Luke, 16 Nov: "I asked several agents previously to move the lava area, it makes no sense to be next to the starting
-village at all." The lava, its burn, its flows, the Choir House and the smoke column left Hearthward's country for the
-Realm's far north-east corner, about 340 m from the village. The chasm by the village keeps the Crossing, the summit and
-the Threshold, but holds starwater now from the Threshold to the summit's foot (the **Starwater Rift**, region `rift`).
+Luke, 16 Nov: first "it makes no sense [the lava] to be next to the starting village at all", then "Why is there still a
+purple lava area, that's literally the final boss, why would it be next to the village". The whole end of the night left
+Hearthward's country for the Realm's far north-east, beyond Lastlight, where the pilgrims' road turned to the mountain:
+the chasm with its lava and its starwater Threshold, the Crossing, the Summit of Ascension and the Ascended Warden's
+deck, the rim's secrets and writings, the burn, the flows, the Choir House and the smoke column. Hearthward now sits in
+ordinary country: open meadow and hill run from its north edge up to the Crowns' foot, the Thornwood's oaks on the west.
 
-**The Ashen Rift** (region `ashrift`, tier 4, inside the Bellfall's corner): on the Night the eighth bell came down at the
-Crowns' east corner and split the mountain's foot behind its crater; the fire under the Crowns came up along the split.
-One file, `core/world/realm/rift/scorch.gd` (x 242..370, z -162..-70), drives it all:
+How it moved (`core/world/realm/endgame.gd`, Endgame): a pure shift east by `Endgame.O` = (310, 0, 0) along the Crowns,
+so north stays north and the mountain still stands behind the summit (a peak is added behind the old place too). The
+forecourt is at (310, -7), 33 m north of Lastlight's north postern; the complex spans x 268..352 (east of the nav seam).
+- RealmLayout's anchors (SUMMIT, SUMMIT_DAIS, SUMMIT_WARD, CROSSING_FOOT, OSSUARY_OLD, the summit raid, the rift and
+  summit regions, rift_rim) and the macro shapes under them carry `+ Endgame.O`; RealmLand reads the baked chasm where it
+  was baked (`Endgame.back_x`).
+- The Crossing, the Threshold and the chasm's features read the world round them while they build (rays at their own
+  walls and piers, their sites, the instances near them), so they still build at home, on a copy of the north-east's
+  ground: RealmLand lends home the ground 310 m east while the rift module runs (`Endgame.borrow`, after the terrain's
+  splat and pools are made from the land's own heights), `Endgame.settle` then moves RealmRift and everything it
+  registered (sites, flights, lanes, the chapel's marks) east, and `endgame_ground.gd` gives home its own heights back
+  and remakes the terrain's mesh and collision (once a boot, a few hundred ms). So every piece stands on the ground it
+  was placed on: the burn's lift, the Choir House's terrace and the berms are under it while it builds.
+- main.gd shifts the baked lava sheet, its haze and motes; LavaWorks works round the sheet's own centre.
+- Built later in world coordinates: the summit's dressing and deck (RealmLayout anchors), the rim lore (`lore/rim.gd`),
+  the rim secrets (`site_rim.gd` builds at home with its ground, flora clearings and sites read where it stands:
+  `Kit.shift`; `site_breath.gd`'s search starts at the moved rim), the Crossing's own fire (`CrossingFire`), the rim camps, the quest steps,
+  the pilgrims who look up at the summit, the minimap's Crossing, the ambience's rift room.
+- The burn (`rift/scorch.gd`) is the original field around the moved chasm; its west flows turn south so the Choir House
+  (on a levelled terrace under the west berm) stays east of the nav seam. The smoke column (`rift/plume.gd`) rises out
+  of the lava in the chasm's north-east corner again and is gone 325 m out (FadeGuard's x1.5 counted: Lastlight and the
+  Anchorholds' way see it, Hearthward and its country do not).
+- Ways: `rift_rim` runs from `bell_track` (Lastlight's yard out of the north postern) to the forecourt; `bell_link` comes
+  round the rift's west berm from the Anchorholds' foot to the forecourt.
+- The Bellfall gave the Crowns' east corner to the Stair: its crater (smaller, `CRATER_C` (350, 102)) lies in the fields
+  under Lastlight's south wall, with its fire, camps, rare, guardian and its own way (`bellfall_way` off nave_track),
+  tier 3; its region (306..370 x 84..122) takes the flat west approach too. Four named wayside places: the crater is
+  crowded by its camps, fire and landmark, so a region with no room left for a named place has it on the ground just
+  round it (`realm_wayside.gd` `_force(..., spill)`). The smoke over its floor still rises from drawn, glowing cracks.
+- The first act's first fire stays at home: `StairFoot` (its node name, kept for saves) is the meadow fire at the end of
+  `north_lane` (rift_rim's old first leg), north of Hearthward's green; its name, the keep's, the guide's and the
+  villagers' lines, the quest and the pilgrims' stone by the lane say meadow, not stair. Oswin's forty-first waystone
+  is at the head of north_lane, where the long road east to the Stair begins.
+- Also moved east with the endgame: the Deeper Night's bells, the spawner's haven at the Crossing fire and the rim camps, the
+  Crossing and Stair-foot subzones, the chasm's bats, the starwater surge, the pilgrims' processions, the loading
+  screen's three endgame shots, the world map's summit tower, Agathe's gaze. (The wayside still keeps off the old
+  chasm's ground at home, so its plan elsewhere is unchanged; the moved chasm is the `rift` region it skips.)
+- Tiers: the rift and the summit are 4 (the far corner). The old chasm's ground at home is open meadow and oak wood.
 
-- **The gash**: a pit cut along SPINE (x 283..360, z about -133..-138, 11-19 m wide) by `Scorch.ground()` (RealmLand
-  `_heights`, after the kept core; one line): its bed under the lava (y 2.4), steep walls up to the lips, the lips heaved
-  into a berm 3.4 m over the lava; its north wall is the mountain. All ground in the lava sheet's footprint outside the
-  gash stands at least 1.7 m over the lava, so the sheet shows only in the gash and its kill volume never reaches a lip.
-- **The lava** (`rift/ash_lava.gd`): the rift's own lava material on a sheet at y 5, its kill volume (`Lava`,
-  `star_mode = -1`), two glow lights, and a second `LavaWorks` over it (`LavaWorks.over`: bank mask and embers).
-- **The flows**: the night it brimmed it broke the lips at notches and ran down their outer faces: west into the hollow
-  below the Anchorholds' shoulder (the main flow, through the Choir House), south over the crater's rim towards the bell
-  (it stopped short), a short tongue beside it, and east down the crater's apron. They lift the ground up to 1.3 m and
-  are drawn by the ground shader's scorch map (roped crust, cracks still warm near the lip and in the Choir House).
-- **The burn**: deepest at the lips, reaching out in tongues downwind (east-south-east) and less far up the mountain and
-  west towards the Anchorholds; ash country, charred snags, rust crowns, ash drifts (the same RealmFlora hooks).
-- **The Choir House** (`tools/blender/rift_choir_house.py`): the hall where the Founder's choir lodged, on a levelled
-  terrace in the hollow (`CHOIR_FLOOR`), standing in the main flow; the Cinder Cantor haunts its nave (elites.gd); its
-  writings are the `rr_*` entries (region `ashrift`). `rift_track` comes up to it from bell_link past the crater's west camp.
-- **The rift's breath** (`rift/plume.gd`): a lava-lit smoke column out of the gash, leaning away downwind; it fades out
-  past 300 m, so the East Reach sees it over its fire and Hearthward's country does not.
-- **Dressing** (`rift_rim.gd`, REACH_POIS): spatter along both lips, bombs, heaved slabs and toe rubble on the flows,
-  basalt tors, charred trunks, thin smoke off each flow's warm crust (seen to 120 m, with its cracks).
-- The Bellfall's crater: the four columns of smoke from the impact's cracks now rise out of glowing cracks drawn on the
-  floor (and fade by 140 m); before, they stood over bare floor and read as smoke in a random place.
-
-**The Starwater Rift** (the old chasm): `RealmRift.SHEET_STAR_Z` turns the whole sheet to starwater (`LavaWorks._all_star`:
-no embers, the glow lights violet), two more starfalls pour where lava falls did, `features.gd` drops its fissures,
-smoke vents and ash fields (`volcanic = false`; the basalt stays), the kill volume burns as starwater
-(`star_mode = 1`). The Founder's Spill pours starwater from a quench-cistern; the hermit's vent breathes starlight, not
-embers and black smoke. Its rims are crag, not ash; the land round it (the Thornwood's edge, the fen, the Crowns' foot)
-grows as its own regions again. `OSSUARY_OLD` is still the chasm's kept east wall.
-
-`--no-scorch` builds the gash and its lava without the burn round it (A/B).
+`--no-scorch` builds the rift without the burn round it (A/B).
 
 ## The towns
 

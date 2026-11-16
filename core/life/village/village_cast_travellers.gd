@@ -27,14 +27,14 @@ const CAST := {
 		"schedule": {"dusk": "walk", "work": "walk", "midnight": "rest", "late": "walk"},
 		"routines": {
 			"walk": [
-				{"act": "look_up", "at": "tr_w0", "face": Vector2(0.0, -104.0), "t": [5.0, 8.0]},
+				{"act": "look_up", "at": "tr_w0", "face": Vector2(0.0, -104.0) + Endgame.O2, "t": [5.0, 8.0]},
 				{"act": "idle", "at": "tr_w2", "face": Vector2(-72.0, 52.0), "t": [4.0, 7.0]},
 				{"act": "kneel", "at": "tr_w4", "face": Vector2(-72.0, 52.0), "t": [10.0, 16.0]},
-				{"act": "look_up", "at": "tr_w3", "face": Vector2(0.0, -104.0), "t": [6.0, 9.0]},
+				{"act": "look_up", "at": "tr_w3", "face": Vector2(0.0, -104.0) + Endgame.O2, "t": [6.0, 9.0]},
 				{"act": "idle", "at": "tr_w1", "face": Vector2(-160.0, 67.0), "t": [5.0, 8.0]},
 			],
 			"rest": [{"act": "sit", "at": "tr_w2", "face": Vector2(-96.0, 70.0), "t": [30.0, 45.0]},
-				{"act": "look_up", "at": "tr_w2", "face": Vector2(0.0, -104.0), "t": [8.0, 12.0]}],
+				{"act": "look_up", "at": "tr_w2", "face": Vector2(0.0, -104.0) + Endgame.O2, "t": [8.0, 12.0]}],
 		}},
 	"marra": {"name": "Marra", "title": "Marra Quill, salt carter", "when": "", "camp": "outpost",
 		"rig": {"seed": 7502, "sex": "f", "age": "adult", "garment": "dress", "apron": "leather", "hat": "kerchief", "hair": "bun", "girth": 1.08,

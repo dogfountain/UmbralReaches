@@ -78,6 +78,8 @@ const TEXTS := {
 		"text": "Seven ropes' worth of ringers came to ring the eighth bell where it fell. The cairn is theirs. Each stone has a hand pressed into the soot on it, small and large."},
 	"wy_bf_watch": {"region": "bellfall", "kind": "rune", "title": "On the crater's lip",
 		"text": "Cut deep, with a soldier's knife: WATCH THE BELL. Beside it, shallower: why. Beside that: because it is still swinging."},
+	"wy_bf_tongue": {"region": "bellfall", "kind": "rune", "title": "The tongue",
+		"text": "The bell's clapper lies a long throw from the crater, bent like a finger pointing back at it. Scratched into the iron: IT RANG ONCE ON THE WAY DOWN. EVERYONE HEARD."},
 	"wy_bf_page": {"region": "bellfall", "kind": "rune", "title": "A scorched stone",
 		"text": "A carving: a bell, falling, with seven lines under it for the seven bells of the Stair. The eighth line is the bell's own crack."},
 	# --- Lastlight -----------------------------------------------------------------------------------

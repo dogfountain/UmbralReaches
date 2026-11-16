@@ -77,7 +77,7 @@ const CONV := {
 		"meet2": {"say": "There's no morning. I know. I light them anyway.", "do": "met:fennick", "next": "hub"},
 		"hub": {"say_if": [
 			["boss:ascended_warden", "The flames stand straight now. Before, they all leaned north, toward the summit, like they wanted to go up. Now they just burn."],
-			["qp:forty_first:faith", "Oswin's at the head of the rim road, kneeling by the old waystone. I light a lamp for him on my way past. He thanks the lamp."],
+			["qp:forty_first:faith", "Oswin's at the head of the north lane, kneeling by the old waystone. I light a lamp for him on my way past. He thanks the lamp."],
 			["qp:forty_first:truth", "Oswin passed me on the west road with no staff, going the wrong way, smiling. First pilgrim I ever saw go home."],
 			["v:lamps_all", "Every lamp I own is lit. I walk the round twice for the pleasure of it."],
 			["v:lamps_more", "Longer round tonight. Oil came from somewhere. I didn't ask the ash-wife where."],
@@ -114,7 +114,7 @@ const CONV := {
 			{"text": "Where are you from?", "to": "from", "once": true},
 			{"text": "Rest well.", "to": ""},
 		]},
-		"count": {"say": "Forty-one waystones from the West Gate to the Stair road. I've touched forty. The last stands at the head of the rim road, where it goes down to the Stair. They say it isn't safe. Nothing's safe. Would you walk me there? My eyes aren't what they were, in the dark.", "choices": [
+		"count": {"say": "Forty-one waystones from the West Gate to the Stair road. I've touched forty. The last stands at the head of the north lane, where the long road east to the Stair begins. They say it isn't safe. Nothing's safe. Would you walk me there? My eyes aren't what they were, in the dark.", "choices": [
 			{"text": "I'll walk with you.", "to": "go", "do": "qs:forty_first,att:oswin:1"},
 			{"text": "Not tonight.", "to": "hub"},
 		]},

@@ -40,14 +40,9 @@ const REGIONS := [
 		"purpose": "a dark wood of hollies and oaks; the charcoal burners' ruin, the witch's hollow, the things that hunt it",
 		"lore": "The charcoal burners stayed when the town went north. Their stacks still smoke on nights without wind."},
 	# --- the East Reach (beyond the Pans and the Anchorholds) ----------------------------------------------
-	{"id": "bellfall", "name": "The Bellfall", "rect": Rect2(260, -150, 110, 110), "biome": "crag", "tier": 4,
-		"purpose": "a crater at the Crowns' east corner where the eighth bell came down: the bell, cracked, half sunk in scorched rock",
+	{"id": "bellfall", "name": "The Bellfall", "rect": Rect2(306, 84, 64, 38), "biome": "crag", "tier": 3,
+		"purpose": "a crater in the fields under Lastlight's south wall where the eighth bell came down: the bell, cracked, half sunk in scorched rock (the Crowns' east corner is the Stair's: Endgame)",
 		"lore": "The Founder cast seven bells for the Stair. The eighth was cast in the sky, and the sky let it fall."},
-	# the lava area, moved out from beside Hearthward (Luke, 16 Nov): the gash the bell's fall tore along the Crowns' foot
-	# behind its crater, the lava in it, its flows and burn, the Choir House in the west flow (rift/scorch.gd, rift_rim.gd)
-	{"id": "ashrift", "name": "The Ashen Rift", "rect": Rect2(272, -150, 98, 30), "blobs": [{"c": Vector2(277.0, -114.0), "r": 13.0}], "biome": "ash", "tier": 4,
-		"purpose": "a gash of living lava torn along the Crowns' foot behind the bell's crater; its flows broke out over the lips, one through the Founder's choir hall",
-		"lore": "Where the eighth bell came down the mountain's foot split, and the fire under the Crowns came up to look."},
 	{"id": "lastlight", "name": "Lastlight", "rect": Rect2(260, -40, 110, 136), "biome": "meadow", "tier": 2,
 		"purpose": "the walled waystation at the road's east end: a gate that stays shut, an inn, a watch, travellers",
 		"lore": "The last lamp the pilgrims saw before the road turned to the mountain. Lastlight still lights it."},
@@ -60,7 +55,7 @@ const REGIONS := [
 ]
 
 ## The new regions' ids (RealmLayout appends them to MARCHES_IDS: their names meet along long waves).
-const IDS := ["greyfell", "lanternwood", "kingsbarrows", "reedmere", "fallow", "arches", "southwood", "bellfall", "ashrift", "lastlight", "nave", "cairns"]
+const IDS := ["greyfell", "lanternwood", "kingsbarrows", "reedmere", "fallow", "arches", "southwood", "bellfall", "lastlight", "nave", "cairns"]
 
 ## Suggested slots (RealmLayout.SLOTS' schema; checked by zz/layout_r34_test). Builders may move a slot a few
 ## metres; a region agent edits only its own regions' entries.
@@ -108,19 +103,19 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(212, 318), "note": "the holly brakes"},
 		{"kind": "camp", "at": Vector2(243, 260), "note": "the wood's north-east edge"}],
 	"bellfall": [
-		{"kind": "fire", "at": Vector2(318, -60), "note": "bell_track at the crater's south lip"},
-		{"kind": "poi", "at": Vector2(318, -100), "note": "the fallen bell in its crater"},
-		{"kind": "camp", "at": Vector2(290, -112), "note": "the crater's west floor"},
-		{"kind": "camp", "at": Vector2(346, -88), "note": "the crater's east rim"}],
+		{"kind": "fire", "at": Vector2(322, 96), "note": "bellfall_way at the crater's west lip"},
+		{"kind": "poi", "at": Vector2(350, 102), "note": "the fallen bell in its crater"},
+		{"kind": "camp", "at": Vector2(332, 110), "note": "the crater's west lip"},
+		{"kind": "camp", "at": Vector2(364, 109), "note": "the crater's east floor"}],
 	"lastlight": [
 		{"kind": "fire", "at": Vector2(318.5, 55.5), "note": "the town's yard, inside the gate (off bell_track)"},
 		{"kind": "poi", "at": Vector2(322, 40), "note": "Lastlight: the inn, the lamp tower, the watch"},
 		{"kind": "poi", "at": Vector2(356, 62.8), "note": "the shut East Gate at the road's end (on the curtain's line)"},
-		{"kind": "camp", "at": Vector2(296, -12), "note": "bell_track's lower bend"}],
+		{"kind": "camp", "at": Vector2(268, 16), "note": "under the rift's west berm, off bell_link"}],
 	"nave": [
 		{"kind": "fire", "at": Vector2(296, 112), "note": "nave_track on the mere's north shore"},
 		{"kind": "poi_wet", "at": Vector2(318, 162), "note": "the Drowned Nave"},
-		{"kind": "camp", "at": Vector2(344, 126), "note": "the east shore"},
+		{"kind": "camp", "at": Vector2(349, 127), "note": "the east shore"},
 		{"kind": "camp", "at": Vector2(289, 207), "note": "the south shore"}],
 	"cairns": [
 		{"kind": "fire", "at": Vector2(300, 286), "note": "southwood_way's end on the heath"},
@@ -140,17 +135,19 @@ const PATHS := [
 	{"id": "arches_link", "w": 1.4, "pts": [Vector2(110, 186), Vector2(104, 226), Vector2(84, 262), Vector2(66, 294), Vector2(60, 318)]},
 	{"id": "salt_south", "w": 1.4, "pts": [Vector2(196, 212), Vector2(204, 240), Vector2(206, 268), Vector2(200, 296)]},
 	{"id": "southwood_way", "w": 1.4, "pts": [Vector2(200, 296), Vector2(236, 288), Vector2(270, 282), Vector2(300, 280), Vector2(320, 300), Vector2(326, 316)]},
-	{"id": "bell_track", "w": 1.4, "pts": [Vector2(318, 66), Vector2(304, 36), Vector2(300, 6), Vector2(304, -24), Vector2(314, -48), Vector2(318, -68)]},
+	# Lastlight's yard out through the north postern to the rift's forecourt (rift_rim, RealmLayout): the end of the road
+	{"id": "bell_track", "w": 1.4, "pts": [Vector2(318, 66), Vector2(304, 36), Vector2(310, 22)]},
 	{"id": "nave_track", "w": 1.4, "pts": [Vector2(290, 70), Vector2(292, 96), Vector2(296, 122), Vector2(300, 140)]},
 	{"id": "cairn_track", "w": 1.4, "pts": [Vector2(300, 140), Vector2(286, 168), Vector2(282, 200), Vector2(290, 236), Vector2(300, 280)]},
-	{"id": "bell_link", "w": 1.4, "pts": [Vector2(196, -70), Vector2(226, -78), Vector2(258, -82), Vector2(290, -80), Vector2(314, -48)]},
-	# up from bell_link past the crater's west camp to the Ashen Rift's west flow and the Choir House's yard
-	{"id": "rift_track", "w": 1.2, "pts": [Vector2(290, -80), Vector2(287, -90), Vector2(285, -98), Vector2(284.5, -105)]},
+	# the Anchorholds' foot round the rift's west berm to its forecourt
+	{"id": "bell_link", "w": 1.4, "pts": [Vector2(196, -70), Vector2(226, -78), Vector2(258, -82), Vector2(263, -52), Vector2(266, -22), Vector2(266, 2), Vector2(284, 6), Vector2(310, 4)]},
+	# nave_track to the eighth bell's crater under Lastlight's south wall
+	{"id": "bellfall_way", "w": 1.2, "pts": [Vector2(292, 96), Vector2(308, 96), Vector2(322, 99)]},
 ]
 
 ## These ways wander between their vertices (RealmLayout.MEANDER_IDS' schema: metres of swing).
 const MEANDER := {"fell_track": 2.4, "barrow_track": 2.6, "reed_ford": 2.0, "fallow_way": 2.2, "arches_way": 2.4, "arches_link": 2.0,
-	"salt_south": 2.0, "southwood_way": 2.4, "bell_track": 2.2, "nave_track": 2.0, "cairn_track": 2.4, "bell_link": 2.0, "rift_track": 1.4}
+	"salt_south": 2.0, "southwood_way": 2.4, "bell_track": 2.2, "nave_track": 2.0, "cairn_track": 2.4, "bell_link": 2.0, "bellfall_way": 1.4}
 
 ## The Sorrow runs on from the old south edge (-254, 240) across the Reedmere to the new south edge
 ## (RealmLayout.RIVER takes these after its own points).
@@ -158,8 +155,8 @@ const RIVER_ON := [Vector2(-262, 268), Vector2(-280, 296), Vector2(-298, 326), V
 
 ## Landform anchors the region agents build on.
 const KEEP_C := Vector2(-318.0, -108.0)      ## the Broken Keep's crag (a knoll ~13 m over the fell)
-const CRATER_C := Vector2(318.0, -100.0)     ## the Bellfall crater: floor ~7 m down, a rim 4 m up
-const CRATER_R := 30.0
+const CRATER_C := Vector2(350.0, 102.0)      ## the Bellfall crater (under Lastlight's south wall): floor ~5 m down, a rim 3 m up
+const CRATER_R := 13.0
 const NAVE_C := Vector2(318.0, 164.0)        ## the Drowned Nave's mere (fen pools at the fen's water line)
 const NAVE_R := Vector2(30.0, 44.0)
 const TOWN_E := Vector2(322.0, 44.0)         ## Lastlight's flat
@@ -248,16 +245,16 @@ static func shape(p: Vector2, h: float, m: float) -> float:
 	r = _rect_w(q, Rect2(92, 248, 170, 150), 24.0)
 	if r > 0.0:
 		h += r * (3.0 + (2.8 * _n_hill.get_noise_2d(x + 500.0, z) + 1.1 * _n_fell.get_noise_2d(x, z + 300.0)) * pad)
-	# the Bellfall: a crater with a raised, broken lip and a hummocky apron of what it threw out, the Crowns behind it
+	# the Bellfall: a crater with a raised, broken lip and a hummocky apron of what it threw out
 	var dc := p.distance_to(CRATER_C)
-	if dc < CRATER_R + 42.0:
+	if dc < CRATER_R + 24.0:
 		var u := (p - CRATER_C) / maxf(dc, 0.01) * 1.8
 		var rr := CRATER_R * (1.0 + 0.11 * _n_edge.get_noise_2d(u.x, u.y))
-		var lip_h := 4.5 * (1.0 + 0.4 * _n_edge.get_noise_2d(u.x + 7.0, u.y - 3.0) * pad)
-		var bowl := -7.0 * (1.0 - smoothstep(rr * 0.2, rr, dc))
+		var lip_h := 3.0 * (1.0 + 0.4 * _n_edge.get_noise_2d(u.x + 7.0, u.y - 3.0) * pad)
+		var bowl := -5.0 * (1.0 - smoothstep(rr * 0.2, rr, dc))
 		var lip := lip_h * exp(-pow((dc - rr) / 7.0, 2.0))
-		var ejecta := 1.2 * _n_hill.get_noise_2d(x * 2.2, z * 2.2) * pad * smoothstep(rr + 4.0, rr + 10.0, dc) * (1.0 - smoothstep(rr + 18.0, rr + 40.0, dc))
-		h += (bowl + lip + ejecta) * smoothstep(CRATER_R + 42.0, CRATER_R + 14.0, dc)
+		var ejecta := 1.2 * _n_hill.get_noise_2d(x * 2.2, z * 2.2) * pad * smoothstep(rr + 4.0, rr + 10.0, dc) * (1.0 - smoothstep(rr + 10.0, rr + 22.0, dc))
+		h += (bowl + lip + ejecta) * smoothstep(CRATER_R + 24.0, CRATER_R + 9.0, dc)
 	# Lastlight: the waystation's flat
 	h = lerpf(h, 0.6, 0.85 * _bump(p, TOWN_E, 46.0))
 	# the Drowned Nave: a basin the fen floods (pools at the fen's water line), its shore uneven

@@ -620,7 +620,7 @@ static func fire_name(b: Node3D) -> String:
 		return "?"
 	if Vector2(b.global_position.x, b.global_position.z).distance_to(HearthDB.HOME) <= HearthDB.HOME_R:
 		return "Hearthward's fire"
-	var named: String = {"StairFoot": "The Stair-foot fire", "Shrine": "The glade's fire", "Landing": "The Barrow Field fire",
+	var named: String = {"StairFoot": "The meadow fire", "Shrine": "The glade's fire", "Landing": "The Barrow Field fire",
 		"Threshold": "The fen fire", "HengeFire": "The henge fire", "SummitFire": "The summit fire"}.get(String(b.name), "")
 	return named if named != "" else "A fire (%s)" % String(b.name).capitalize()
 

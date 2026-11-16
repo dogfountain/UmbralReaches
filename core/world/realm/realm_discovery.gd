@@ -33,10 +33,10 @@ const ARM_AT := 6.5                      ## the night's own title card first
 ## "c"+"r" circle, or "seg" [a, b] + "r" capsule}. Found inside 0.8 of the shape, left past it.
 const SUBZONES := {
 	"keg": {"name": "The Kindled Keg", "line": "the last warm room on the road", "rect": Rect2(10.0, 25.6, 16.0, 9.2)},
-	"crossing": {"name": "The Crossing", "line": "what the Stair left standing", "seg": [Vector2(0.0, -10.0), Vector2(0.0, -70.0)], "r": 8.0},
+	"crossing": {"name": "The Crossing", "line": "what the Stair left standing", "seg": [Vector2(0.0, -10.0) + Endgame.O2, Vector2(0.0, -70.0) + Endgame.O2], "r": 8.0},
 	"fen_door": {"name": "The Fen Door", "line": "the Abbot's back stair", "c": Vector2(36.0, -66.0), "r": 8.0},
 	"well": {"name": "Hearth Well", "line": "water drawn for the first fire", "c": Vector2(-10.0, 48.0), "r": 6.0},
-	"stair_foot": {"name": "The Stair-foot", "line": "where the pilgrims took off their shoes", "c": Vector2(-3.0, 0.0), "r": 7.0},
+	"stair_foot": {"name": "The Stair-foot", "line": "where the pilgrims took off their shoes", "c": Vector2(-3.0, 0.0) + Endgame.O2, "r": 7.0},    # (the far north-east: Endgame)
 }
 
 var region := ""                         ## the region the wanderer is in (id)

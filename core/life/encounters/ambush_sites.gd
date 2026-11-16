@@ -23,7 +23,7 @@ const MIN_SCORE := 1.0
 const FIRE_CLEAR := 24.0
 const SAFE_CLEAR := 30.0
 const CAMP_CLEAR := 20.0               ## off a camp (an ambush beside a camp is one fight, not two beats)
-const SKIP_WAYS := ["rift_rim", "chapel_lane", "oss_lane"]
+const SKIP_WAYS := ["rift_rim", "north_lane", "chapel_lane", "oss_lane"]
 const WEIGHT := {"ford": 2.0, "causeway": 2.0, "cutting": 2.0, "ruin": 1.5, "cover": 1.6, "bend": 1.0, "crest": 1.0, "verge": 1.0}
 const TREE_R := 12.0                   ## trees this near the way are cover; TREES of them are a wood
 ## The kinds that lie in wait by a way (the formation kinds -- bulwark, chanter, tollman, cinder caster, quiller --

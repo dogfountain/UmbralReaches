@@ -6,7 +6,7 @@ const RESPAWN := 10.0            ## a seal camp's refill (the seal's progress is
 const RESPAWN_ROAM := 90.0       ## a cleared road camp stays down long enough to leave and come back on foot
 const RETRY := 1.5
 const KEEP_CLEAR := 7.0
-const HAVEN := Vector3(-3.4, 0.0, -8.5)
+const HAVEN := Vector3(-3.4, 0.0, -8.5) + Endgame.O       ## the Crossing fire's ground (the far north-east: Endgame)
 const HAVEN_R := 12.0
 
 const ReachCamps := preload("res://core/enemy/realm_camps_reaches.gd")
@@ -25,8 +25,8 @@ const REALM_CAMPS: Array[Dictionary] = [
 	# guardians of the summit ward (it also needs the Thornwarden and the Bone Abbot): they hold the
 	# Crossing itself, its west tower (Crossing.T2, parapeted) and its head in front of the ward
 	# (r32: the first pack stood 12-16 m east of the Crossing's foot, off the way, beside a roaming pack)
-	{"at": Vector3(-13.0, 12.0, -30.0), "kinds": ["husk", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
-	{"at": Vector3(0.0, 28.0, -68.0), "kinds": ["spitter", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
+	{"at": Vector3(-13.0, 12.0, -30.0) + Endgame.O, "kinds": ["husk", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
+	{"at": Vector3(0.0, 28.0, -68.0) + Endgame.O, "kinds": ["spitter", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
 	# roaming packs (they come back)
 	# r28 war bands: a guard (Bulwark) before a caster (Chanter), flankers on the sides
 	# r31: a Tollman rides with it (kill it before it rings, or the Thornwood comes) and a Gaunt darts
@@ -46,8 +46,8 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(-60.0, 60.0, 78.0), "kinds": ["husk", "gaunt"], "probe": 0.0},                 # Pilgrims' Road west, 10 m+ off the road
 	{"at": Vector3(-84.0, 60.0, 88.0), "kinds": ["burrower", "wretch"], "probe": 0.0},             # south of the road beyond the chapel, at the orchard's edge (it lay 47 m from the green, on the road out of the village)
 	{"at": Vector3(80.0, 60.0, 49.0), "kinds": ["chanter", "husk", "crawler"], "probe": 0.0},      # Pilgrims' Road east, back from the road (it stood 4.7 m off it)
-	{"at": Vector3(-35.0, 60.0, -10.0), "kinds": ["quiller", "leaper"], "probe": 0.0},             # rift rim west (r31 merge: off the secret bridge's landing at -23.5,-5.3, where a pounce threw you into the rift; r34 enemies: was -38,6, 7 m from the Shrine fire: in its light)
-	{"at": Vector3(22.0, 60.0, -6.0), "kinds": ["wretch", "crawler"], "probe": 0.0},               # rift rim east
+	{"at": Vector3(-35.0, 60.0, -10.0) + Endgame.O, "kinds": ["quiller", "leaper"], "probe": 0.0},             # rift rim west (r31 merge: off the secret bridge's landing at -23.5,-5.3, where a pounce threw you into the rift; r34 enemies: was -38,6, 7 m from the Shrine fire: in its light)
+	{"at": Vector3(46.0, 60.0, -10.0) + Endgame.O, "kinds": ["wretch", "crawler"], "probe": 0.0},              # rift rim east, on the flat past its east berm (the rim went east with the rift: Endgame; its old ledge is a slope there)
 	# --- r34 enemies: the new ground at the old density (docs/r34/layout.md: ~4 camps per 10,000 m²,
 	# ~1 foe per 1,000 m²), each region its own roster and a reason. Every camp: 10 m+ inside BOUNDS,
 	# 13 m+ from every fire (the braziers and the new regions' fire slots), 4 m+ off the ways, off the
@@ -243,7 +243,7 @@ func _plant() -> void:
 	for camp in _camps:
 		var center := _ground(space, camp.at, float(camp.get("probe", 24.0)), bool(camp.get("strict", false)))
 		var why := ""
-		if Vector2(center.x - HAVEN.x, center.z - HAVEN.z).length() < HAVEN_R or Vector2(center.x, center.z + 10.0).length() < 12.0:
+		if Vector2(center.x - HAVEN.x, center.z - HAVEN.z).length() < HAVEN_R or Vector2(center.x - Endgame.O.x, center.z + 10.0).length() < 12.0:
 			why = "haven"
 		elif _realm and is_nan(_last_hit_y):
 			why = "no ground"                       # e.g. the Crossing's head is not built

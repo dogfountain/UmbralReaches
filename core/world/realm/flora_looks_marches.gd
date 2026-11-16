@@ -60,10 +60,6 @@ const LOOKS := {
 	"bellfall": {"tree_mul": {"oak": 0.0, "birch": 0.0, "pine": 0.25, "sapling": 0.1, "snag": 1.4},
 		"under_mul": {"grass": 0.25, "heather": 0.6, "flowers": 0.0}, "under_add": {"deadbush": 0.03, "cinders": 0.012, "ashdrift": 0.06},
 		"tint": Color(0.7, 0.66, 0.6), "props": {"rubble": 0.08, "slag": 0.01, "block": 0.004}, "stone_mul": 1.8, "style": "granite"},
-	# the Ashen Rift's lips and flows (the lava, moved out to the Bellfall's corner): the burn's own hooks do the rest
-	"ashrift": {"tree_mul": {"oak": 0.0, "birch": 0.0, "pine": 0.1, "sapling": 0.0, "snag": 1.2},
-		"under_mul": {"grass": 0.15, "heather": 0.3, "flowers": 0.0, "fern": 0.2}, "under_add": {"deadbush": 0.03, "cinders": 0.02, "ashdrift": 0.08},
-		"tint": Color(0.62, 0.58, 0.54), "props": {"rubble": 0.06, "slag": 0.02}, "stone_mul": 1.6, "style": "ash"},
 	"lastlight": {"tree_mul": {"oak": 0.2, "birch": 0.4, "pine": 0.1, "sapling": 0.3},
 		"under_mul": {"grass": 0.9, "flowers": 1.4, "heather": 0.3}, "under_add": {"tallgrass": 0.1},
 		"tint": Color(0.95, 0.95, 0.86)},

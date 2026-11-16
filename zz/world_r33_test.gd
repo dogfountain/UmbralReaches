@@ -87,10 +87,10 @@ func _physics_process(_d: float) -> void:
 					big += 1
 			check("one big carved banner for the chapel (got %d)" % big, big == 1)
 			# a named spot inside a region
-			disc.call("visit", Vector3(0.0, 10.0, -40.0))           # over the Crossing
+			disc.call("visit", Vector3(0.0, 10.0, -40.0) + Endgame.O)           # over the Crossing
 			check("the Crossing found as a subzone", _count("subzone:sub_crossing") == 1 and String(disc.get("subzone")) == "crossing")
 			disc.call("visit", Vector3(-40.0, 1.0, 64.0))
-			disc.call("visit", Vector3(0.0, 10.0, -40.0))
+			disc.call("visit", Vector3(0.0, 10.0, -40.0) + Endgame.O)
 			check("the Crossing found once", _count("subzone:sub_crossing") == 1)
 			# --- fires on the map ---
 			var fires := FireRoad.fires(get_tree(), p.global_position)

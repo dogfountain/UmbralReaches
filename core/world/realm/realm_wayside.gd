@@ -739,8 +739,9 @@ static func _assign() -> void:
 					_give_lore(f, String(e[0]))
 
 
-## A place of one of `kinds` in `region` where the passes left none: the open ground nearest the region's ways.
-static func _force(region: String, kinds: Array) -> Dictionary:
+## A place of one of `kinds` in `region` where the passes left none: the open ground nearest the region's ways. A
+## small region its camps, fire and landmark fill (the Bellfall) has it on the ground just round it (`spill`).
+static func _force(region: String, kinds: Array, spill := false) -> Dictionary:
 	var rd := {}
 	for r: Dictionary in RealmLayout.REGIONS:
 		if String(r.id) == region:
@@ -748,6 +749,9 @@ static func _force(region: String, kinds: Array) -> Dictionary:
 	if rd.is_empty():
 		return {}
 	var area: Rect2 = rd.rect if rd.has("rect") else Rect2((rd.c as Vector2) - Vector2(rd.r, rd.r), Vector2(rd.r, rd.r) * 2.0)
+	var w_min := 0.25 if spill else 0.8             # (place_weight falls to 0 over 18 m past a rect: 0.25 is ~13 m out)
+	if spill:
+		area = area.grow(14.0)
 	var qs: Array = []
 	for p: Dictionary in RealmLayout.PATHS:
 		var pts: Array = p.pts
@@ -759,7 +763,7 @@ static func _force(region: String, kinds: Array) -> Dictionary:
 			while t < seg:
 				var q := a.lerp(b, t / seg)
 				t += 9.0
-				if not area.has_point(q) or RealmLayout.place_weight(rd, q.x, q.y) < 0.8:
+				if not area.has_point(q) or RealmLayout.place_weight(rd, q.x, q.y) < w_min:
 					continue
 				var dirv := (b - a) / seg
 				var nrm := Vector2(-dirv.y, dirv.x)
@@ -773,7 +777,7 @@ static func _force(region: String, kinds: Array) -> Dictionary:
 		var x := area.position.x + 4.0
 		while x < area.end.x - 4.0:
 			var q2 := Vector2(x, z)
-			if RealmLayout.place_weight(rd, x, z) > 0.8:
+			if RealmLayout.place_weight(rd, x, z) > w_min:
 				more.append([RealmLayout.path_dist(q2), q2])
 			x += 7.0
 		z += 7.0
@@ -786,7 +790,7 @@ static func _force(region: String, kinds: Array) -> Dictionary:
 		var v := _try(ks, qs, region, "way")
 		if not v.is_empty():
 			return v
-	return {}
+	return {} if spill else _force(region, kinds, true)
 
 
 ## Give a place its writing: its own carrier piece if it has one of the right kind, else a carrier beside it.

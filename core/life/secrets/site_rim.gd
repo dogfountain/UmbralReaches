@@ -5,7 +5,7 @@ extends RefCounted
 ##           middle, treble) and they answer; the Founder's coffer opens and, far off, the sealed
 ##           barrow in the Barrow Field grinds open (site_barrow).
 ##   spill   THE FOUNDER'S SPILL: a hidden stair from the berm top down the rift wall to a ledge
-##           walk, behind a curtain of starwater poured from the cracked quench-cistern's spout, to a niche.
+##           walk, behind a curtain of molten rock poured from the cracked furnace's spout, to a niche.
 ##   bridge  THE RIM BRIDGE: a rope bridge from the ledge's south end over the rim slope to a
 ##           landing near the Last Bell. It hangs cut loose until wound out from the ledge side;
 ##           then it stays: a shortcut from the rift rim to the ledge and the berm.
@@ -40,6 +40,7 @@ static func build(root: Node, host: Node3D) -> void:
 	_seq.clear()
 	_seq_t = 0.0
 	var sp := Kit.space(root)
+	Kit.shift = Endgame.O2                       # made round the chasm under Hearthward: built there, read and laid where it stands
 	Kit.clear_flora(root, [Vector3(TOWER.x - 2.0, TOWER.y, 9.5), Vector3(-30.5, -31.0, 7.5), Vector3(-27.0, -22.0, 7.0),
 		Vector3(LANDING.x, LANDING.y, 3.5), Vector3(-25.0, -11.0, 5.0)])
 	var node := Node3D.new()
@@ -52,6 +53,8 @@ static func build(root: Node, host: Node3D) -> void:
 	Kit.site(root, "secrets_bells", Rect2(TOWER.x - 2.6, TOWER.y - 2.6, 5.2, 5.2), Kit.low(sp, TOWER, 2.4))
 	Kit.site(root, "secrets_ledge", Rect2(WALK_X - 1.4, WALK_Z1, 2.8, WALK_Z0 - WALK_Z1), walk_y)
 	Kit.site(root, "secrets_rim_landing", Rect2(LANDING.x - 1.5, LANDING.y - 1.6, 3.0, 3.0), Kit.low(sp, LANDING, 1.6) + 0.1)
+	Kit.shift = Vector2.ZERO
+	node.position += Endgame.O
 
 
 # --- the fallen bells -------------------------------------------------------------------------------
@@ -139,7 +142,7 @@ static func _bells(node: Node3D, sp: PhysicsDirectSpaceState3D) -> void:
 		var t := Kit.touch(node, centre + Vector3.UP * 0.3, "Strike %s, the %s bell" % [b[1], bid], func(_by: Node) -> void: strike(bid, tone, bell), 2.6)
 		t.name = "Strike_" + bid
 	var heart := Vector3(TOWER.x - 2.5, fy, TOWER.y)
-	State.register({"id": "bells", "name": "The Fallen Bells", "at": heart, "r": 9.0, "node": node,
+	_reg({"id": "bells", "name": "The Fallen Bells", "at": heart, "r": 9.0, "node": node,
 		"route": {"from": Vector3(-8.0, 1.0, 2.0), "pts": _v3([Vector2(-20, 1), Vector2(-30, -2), Vector2(-35, -9), Vector2(-37.5, -17), Vector2(-37.6, -25.6)])},
 		"goal": Vector3(-37.6, 0, -25.6)})
 
@@ -244,7 +247,7 @@ static func _ledge(node: Node3D, sp: PhysicsDirectSpaceState3D) -> void:
 		var sm := (a + foot) * 0.5
 		var dd := a - foot
 		k.box("dark", sm, Vector3(0.36, dd.length(), 0.36), Basis(Vector3.BACK, atan2(-dd.x, dd.y)), false, 0.75)
-	# the quench-cistern on the berm top: a squat cracked stone tank, the rift's light in its throat
+	# the furnace mouth on the berm top: a squat cracked kiln, glow in its throat
 	var kc := Vector3(berm_x - 1.2, Kit.gy(sp, berm_x - 1.2, SPOUT_Z + 1.3), SPOUT_Z + 1.3)
 	k.box("stone", kc + Vector3.UP * 0.8, Vector3(2.0, 1.6, 2.2), Basis.IDENTITY, true, 0.7)
 	k.box("stone", kc + Vector3.UP * 1.75, Vector3(1.6, 0.4, 1.8), Basis(Vector3.UP, 0.2), true, 0.65)
@@ -288,14 +291,14 @@ static func _ledge(node: Node3D, sp: PhysicsDirectSpaceState3D) -> void:
 		k.box("stone", Vector3(c3.x, (sy + bot) * 0.5, c3.y), Vector3(1.5, sy - bot, tread + 0.03), sb, true, 0.84 if steps.find(st) % 2 == 0 else 0.94)
 	k.commit(node, "LedgeBody")
 	_fade(node, 120.0)
-	# the curtain of starwater from the spout tip down the rift wall
+	# the curtain of molten rock from the spout tip down the rift wall
 	_curtain(node, sp, tip + Vector3(0.12, -0.3, 0), 1.5)
-	Kit.omni(node, Vector3(-25.2, wy + 2.4, SPOUT_Z), Color(0.55, 0.42, 1.0), 1.4, 9.0)
+	Kit.omni(node, Vector3(-25.2, wy + 2.4, SPOUT_Z), Color(1.0, 0.42, 0.14), 1.6, 9.0)
 	var glow := MeshInstance3D.new()
 	var gq := QuadMesh.new()
 	gq.size = Vector2(0.9, 0.7)
 	glow.mesh = gq
-	glow.material_override = Kit.shader_mat("curtain_star")
+	glow.material_override = Kit.mat("ember")
 	node.add_child(glow)
 	glow.global_transform = Transform3D(Basis(Vector3.UP, PI * 0.5), kc + Vector3(1.06, 0.8, 0))
 	var nc := nb + Vector3(0.0, 0.55, 0)
@@ -304,8 +307,8 @@ static func _ledge(node: Node3D, sp: PhysicsDirectSpaceState3D) -> void:
 	box_mi.name = "Strongbox"
 	State.reading(node, "sc_spill", nb + Vector3(0.1, 1.6, 0.75))
 	# a faint glint at the stair head: the only cue from above
-	Kit.glint(node, a2 + Vector3.UP * 0.9, Color(0.7, 0.6, 1.0), 0.26, 30.0)
-	State.register({"id": "spill", "name": "The Founder's Spill", "at": Vector3(WALK_X, wy, SPOUT_Z), "r": 5.0, "node": node,
+	Kit.glint(node, a2 + Vector3.UP * 0.9, Color(1.0, 0.6, 0.3), 0.26, 30.0)
+	_reg({"id": "spill", "name": "The Founder's Spill", "at": Vector3(WALK_X, wy, SPOUT_Z), "r": 5.0, "node": node,
 		"route": {"from": Vector3(-39.0, 10.0, -31.0), "pts": _v3([Vector2(-37.0, -36.8), Vector2(STAIR_TOP.x, STAIR_TOP.y)] + _stair_pts(steps) + [Vector2(WALK_X, WALK_Z1 + 2.0), Vector2(WALK_X, SPOUT_Z - 2.2), Vector2(WALK_X - 0.4, SPOUT_Z)])},
 		"goal": Vector3(WALK_X - 0.4, wy, SPOUT_Z)})
 
@@ -353,13 +356,13 @@ static func _curtain(node: Node3D, sp: PhysicsDirectSpaceState3D, lip: Vector3, 
 	var c := MeshInstance3D.new()
 	c.name = "Curtain"
 	c.mesh = m
-	c.material_override = Kit.shader_mat("curtain_star")
+	c.material_override = Kit.shader_mat("curtain")
 	c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	c.visibility_range_end = 140.0
 	node.add_child(c)
-	var e := Vfx.emitter(Color(0.75, 0.62, 1.7), {"count": 40, "life": 2.2, "speed": Vector2(0.3, 1.4), "size": 0.04, "gravity": -0.5, "radius": 0.6, "turbulence": true, "explosive": 0.0})
+	var e := Vfx.emitter(Color(1.7, 0.6, 0.15), {"count": 40, "life": 2.2, "speed": Vector2(0.3, 1.4), "size": 0.04, "gravity": -0.5, "radius": 0.6, "turbulence": true, "explosive": 0.0})
 	if e:
-		e.name = "SpillMotes"
+		e.name = "SpillEmbers"
 		node.add_child(e)
 		e.global_position = lip + Vector3(0.6, -2.5, 0)
 
@@ -488,7 +491,7 @@ static func _bridge(node: Node3D, sp: PhysicsDirectSpaceState3D) -> void:
 	far.name = "HangingRopes"
 	far.set("prompt_fn", func() -> String: return "" if State.has("open", "bridge") else "Pull at the hanging ropes")
 	State.reading(node, "sc_bridge", Vector3(north.x - 0.95, wy + 1.3, north.z - 0.3))
-	State.register({"id": "bridge", "name": "The Rim Bridge", "at": south, "r": 4.0, "node": node, "sync": sync,
+	_reg({"id": "bridge", "name": "The Rim Bridge", "at": south, "r": 4.0, "node": node, "sync": sync,
 		"route": {"from": Vector3(-8.0, 1.0, 2.0), "pts": _v3([Vector2(-16, 0), Vector2(LANDING.x, LANDING.y + 1.2), Vector2(LANDING.x, LANDING.y - 1.2)])},
 		"cross": [Vector3(south.x, 0, south.z), Vector3(north.x, 0, north.z - 1.0), Vector3(WALK_X, 0, -22.0)],
 		"goal": Vector3(LANDING.x, 0, LANDING.y - 1.2)})
@@ -515,3 +518,24 @@ static func _v3(a: Array) -> Array[Vector3]:
 	for v: Vector2 in a:
 		out.append(Vector3(v.x, 0, v.y))
 	return out
+
+
+## State.register for a piece built where it was made: its places (at, goal, the route, the crossing points) where it
+## stands, Endgame.O east.
+static func _reg(d: Dictionary) -> void:
+	for key: String in ["at", "goal"]:
+		if d.has(key):
+			d[key] = (d[key] as Vector3) + Endgame.O
+	if d.has("route"):
+		var r: Dictionary = d.route
+		r.from = (r.from as Vector3) + Endgame.O
+		var pts: Array[Vector3] = []
+		for q: Vector3 in r.pts:
+			pts.append(q + Endgame.O)
+		r.pts = pts
+	if d.has("cross"):
+		var cr: Array = []
+		for q: Vector3 in d.cross:
+			cr.append(q + Endgame.O)
+		d.cross = cr
+	State.register(d)

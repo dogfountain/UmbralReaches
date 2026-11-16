@@ -138,6 +138,7 @@ static func build(root: Node) -> void:
 	progress = 0.0
 	var t0 := Time.get_ticks_msec()
 	root.tree_exiting.connect(DwarfRig.warm_abandon_all, CONNECT_ONE_SHOT)
+	Endgame.at_home = true                  # the land keeps the endgame's chasm at home too while the rift builds there
 	await _run("land", root)
 	# the Keg's people are the longest cache misses (a mesh each, 0.6 s of GDScript): they build on
 	# worker threads beside the rift and the wardens (not beside the land, whose own threads they slow)
@@ -148,6 +149,7 @@ static func build(root: Node) -> void:
 	await root.get_tree().physics_frame
 	prof_add("stage: frame wait", t)
 	await _run("rift", root)
+	preload("res://core/world/realm/endgame_ground.gd").relandscape(root)      # the endgame went east: the ground at home again
 	await _run("bosses", root)
 	t = Time.get_ticks_usec()
 	_mark("tavern")

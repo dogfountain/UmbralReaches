@@ -15,7 +15,6 @@ const BED := -19.5
 
 var vents: Array[Vector3] = []
 var star_z := INF                       ## RealmRift.STAR_Z: south of it (z greater) the Threshold, no volcanic dressing
-var volcanic := true                    ## false: no fissures, vents or ash fields (the chasm holds starwater: RealmRift)
 var rng := RandomNumberGenerator.new()
 var space: PhysicsDirectSpaceState3D
 var report: Array[String] = []
@@ -47,10 +46,9 @@ func build(root: Node, host: Node3D) -> void:
 	_cliffs(host)
 	_islands(host)
 	await root.get_tree().process_frame
-	if volcanic:
-		_ash_fields(host)
-		_fissures(host)
-		_vents(host)
+	_ash_fields(host)
+	_fissures(host)
+	_vents(host)
 	for s in report:
 		print("RIFT ", s)
 
@@ -85,9 +83,9 @@ func _blocked(p: Vector2, top_y: float, pad := 1.5) -> bool:
 			var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.001), 0.0, 1.0)
 			if p.distance_to(a + ab * t) < float(l[2]) + pad:
 				return true
-	if RealmLayout.path_dist(p) < 1.2:
-		return true
-	var oss := RealmLayout.OSSUARY_OLD         # (the Ossuary left this wall; the old site stays clear of rocks and pipes: a bare cliff)
+	if RealmLayout.path_dist(Endgame.w2(p)) < 1.2:
+		return true                                  # (built at home, it stands Endgame.O east: the ways are where it will stand)
+	var oss := AABB(Endgame.l(RealmLayout.OSSUARY_OLD.position), RealmLayout.OSSUARY_OLD.size)         # (the Ossuary left this wall; the old site stays clear of rocks and pipes: a bare cliff)
 	if p.x > oss.position.x - 0.5 and p.x < oss.end.x and p.y > oss.position.z and p.y < oss.end.z and top_y > oss.position.y - 1.0:
 		return true
 	return false
@@ -325,6 +323,9 @@ func _vents(host: Node3D) -> void:
 		if smoke:
 			smoke.name = "VentSmoke"
 			smoke.visibility_aabb = AABB(Vector3(-6, -1, -6), Vector3(12, 18, 12))
+			smoke.visibility_range_end = 160.0          # seen as far as its glowing seam is (beyond, a column over bare rim)
+			smoke.visibility_range_end_margin = 20.0
+			smoke.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 			smoke.preprocess = 6.0
 			var pm := (smoke.process_material as ParticleProcessMaterial).duplicate() as ParticleProcessMaterial
 			var sc := Curve.new()

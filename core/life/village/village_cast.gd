@@ -131,12 +131,12 @@ const CAST := {
 		"routines": {
 			"rest": [
 				{"act": "sit", "at": "pilgrim_rest", "face": Vector2(-21.0, 50.0), "t": [25.0, 40.0], "seat": 0.42},
-				{"act": "look_up", "at": "road_w2", "face": Vector2(0.0, -95.0), "t": [6.0, 9.0]},
+				{"act": "look_up", "at": "road_w2", "face": Vector2(0.0, -95.0) + Endgame.O2, "t": [6.0, 9.0]},
 				{"act": "warm", "at": "brazier_w", "face": Vector2(0.0, 33.0), "t": [14.0, 20.0]},
 				{"act": "read", "at": "notice", "face": Vector2(-5.5, 45.5), "t": [5.0, 8.0]},
 			],
 			"pray": [
-				{"act": "kneel", "at": "road_w2", "face": Vector2(0.0, -95.0), "t": [30.0, 40.0]},
+				{"act": "kneel", "at": "road_w2", "face": Vector2(0.0, -95.0) + Endgame.O2, "t": [30.0, 40.0]},
 			],
 			"sleep": [
 				{"act": "doze", "at": "pilgrim_rest", "face": Vector2(-21.0, 50.0), "t": [60.0, 90.0], "seat": 0.42},
@@ -376,7 +376,7 @@ const OUTPOSTS := {
 	"ysolt": {"near": [Vector2(132.0, -14.0), Vector2(132.0, 10.0)], "region": "moor", "style": "moor", "look": Vector2(141.0, -24.0)},
 	"elspeth": {"near": [Vector2(118.0, -72.0), Vector2(126.0, -70.0)], "region": "foundry", "style": "foundry", "look": Vector2(135.0, -105.0)},
 	"linnet": {"near": [Vector2(-106.0, 112.0), Vector2(-96.0, 112.0)], "region": "orchard", "style": "orchard", "look": Vector2(-86.0, 122.0)},
-	"agathe": {"near": [Vector2(-10.0, 108.0), Vector2(15.0, 105.0)], "region": "necropolis", "style": "necropolis", "look": Vector2(0.0, -104.0)},
+	"agathe": {"near": [Vector2(-10.0, 108.0), Vector2(15.0, 105.0)], "region": "necropolis", "style": "necropolis", "look": Vector2(0.0, -104.0) + Endgame.O2},
 	"cadoc": {"near": [Vector2(111.0, 97.0), Vector2(95.0, 100.0), Vector2(130.0, 95.0)], "region": "mere", "style": "mere", "look": Vector2(84.0, 112.0)},
 	# --- south marches ---
 	"dunstan": {"near": [Vector2(-14.0, 200.0), Vector2(26.0, 200.0), Vector2(-4.0, 194.0), Vector2(-24.0, 206.0)], "region": "downs", "style": "downs", "look": Vector2(0.0, 150.0)},

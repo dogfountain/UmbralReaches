@@ -37,7 +37,7 @@ const CONV := {
 			"lore_2": {"say": "Edda put coals from her forge on a bare altar and the dark stopped at the door. Every fire since is hers. Yours too, now.", "next": "meet_hub"},
 			"three_1": {"say": "Three. Something in the Ring on the western hill that keeps the oaks; the Rooted call it the Thornwarden. The Abbot under the abbey, still counting his dead.", "next": "three_2"},
 			"three_2": {"say": "And whatever stands at the top of the Stair with the door open. The ward on the Crossing won't let you near it till the other two are down: a heart out of the Ring, a crown out of the crypt.", "next": "meet_hub"},
-			"start_1": {"say": "First: the braziers. Four of them — Stair foot, glade shrine, Barrow Field, the fen below it. Kindle them. Light is somewhere to stand when the dark leans on you.", "next": "start_2"},
+			"start_1": {"say": "First: the braziers. Four of them — the north meadow, glade shrine, Barrow Field, the fen below it. Kindle them. Light is somewhere to stand when the dark leans on you.", "next": "start_2"},
 			"start_2": {"say": "Then pick a door. Thorn seal on the Thornwood edge, west. Or the gallery seal in the crypt, south down the Waiting Field's road. Both, then the door's own price, which Brannoc knows, before the Crossing will take you up to shut the sky's door.", "do": "flag:met_keep,teach:ward", "choices": [
 				{"text": "Another question.", "to": "meet_hub"},
 				{"text": "I'll go.", "to": "meet_end"},
@@ -79,7 +79,7 @@ const CONV := {
 				["", "The thorn seal on the Thornwood edge, or the gallery under the abbey. The braziers first, if you've sense."],
 			], "next": "hub"},
 			"news": {"say_if": [
-				["kindled:4", "All four braziers burning. First time since the Door. I can see the Stair-foot glow from the step."],
+				["kindled:4", "All four braziers burning. First time since the Door. I can see the meadow fire from my door."],
 				["kindled:3", "Three of four. One more and I'll stop counting them out loud."],
 				["kindled:2", "Two of four. Folk have started looking up from their mugs. Not far up. Up."],
 				["kindled:1", "{kindled} of four burning. I can see one from the door, if I squint. Keep going."],

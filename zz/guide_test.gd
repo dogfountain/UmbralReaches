@@ -2,7 +2,7 @@ extends Node
 ## The new player's guide (core/story/guide.gd), headless, no world: the real story director (and its guide, dialogue
 ## box and task banner) over stand-in places: the keep in the Keg, two valley braziers, the two seals, a villager.
 ##   - a save without the guide flag (a returning save) has no step, no answer, no pinned tracker;
-##   - with it the step follows the story: the Keg's door from the yard, the keep inside; the Stair-foot fire (the
+##   - with it the step follows the story: the Keg's door from the yard, the keep inside; the meadow fire (the
 ##     nearest cold one); the nearer seal; each change after the first is announced ("Next") in the banner lane;
 ##   - a villager passed close calls out where the step is (once), turns to point; "Which way?" is answered;
 ##   - the hand-off at Brannoc ends it (guide_done), and the HUD preference switches it off;
@@ -105,10 +105,10 @@ func _ready() -> void:
 	player.global_position = Vector3(0, 0, 33)
 	await _wait(0.6)
 	st = guide.step()
-	ok(String(st.get("id", "")) == "first_fire" and (st.target as Vector3).distance_to(Vector3(-5, 2.3, -2)) < 0.5 and String(st.art) == "fire", "met the keep: the Stair-foot fire, the nearest cold brazier (%s %s)" % [st.get("id", ""), st.get("target", "")])
+	ok(String(st.get("id", "")) == "first_fire" and (st.target as Vector3).distance_to(Vector3(-5, 2.3, -2)) < 0.5 and String(st.art) == "fire", "met the keep: the meadow fire, the nearest cold brazier (%s %s)" % [st.get("id", ""), st.get("target", "")])
 	var bq: Array = log_ui.get("_bq")
 	var shown := "%s | %s" % [(log_ui.get("_b_top") as Label).text, (log_ui.get("_b_name") as Label).text]
-	ok((bq.size() == q0 + 1 and String((bq.back() as Array)[0]) == "NEXT") or (shown.begins_with("Next") and shown.contains("Stair-foot fire")), "...announced in the banner lane, by its short name: %s" % shown)
+	ok((bq.size() == q0 + 1 and String((bq.back() as Array)[0]) == "NEXT") or (shown.begins_with("Next") and shown.contains("meadow fire")), "...announced in the banner lane, by its short name: %s" % shown)
 	var objs: Array = story.call("objectives")
 	ok(not objs.is_empty() and String((objs[0] as Dictionary).id) == "first_fire", "...and it heads the tracker (%s)" % [objs.map(func(o: Dictionary) -> String: return String(o.id))])
 	# 4. the fire lit: pick a door, the nearer seal

@@ -110,7 +110,7 @@ static func build(parent: Node) -> void:
 	L.letters(hs + Vector3.UP * 0.47 + hb * Vector3(0, 0.01, -0.12), hb * Vector3(0, 0.97, 0.25).normalized(), 0.6, 3)
 	L.site("hw_hearthstone", Rect2(5.2, 21.4, 2.0, 2.0), hs.y)
 	L.scrap("hw_green", hs + hb * Vector3(0, 0.3, -0.6))
-	# the Stair-foot stone by the rim path
+	# the pilgrims' stone by north_lane (it points the long way east, to the Stair)
 	var sf: Vector3 = L.gv(4.6, 6.0)
 	var sfb := Basis(Vector3.UP, -PI * 0.5)
 	k.box("lore_tstone", sf + Vector3.UP * 0.5, Vector3(1.6, 1.4, 0.7), sfb * Basis(Vector3.BACK, 0.08), true, 0.9)

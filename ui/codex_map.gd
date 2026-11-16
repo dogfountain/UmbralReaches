@@ -88,7 +88,7 @@ func _draw() -> void:
 		var known: bool = rs.known
 		var fill := Color(0.62, 0.42, 0.26, 0.15) if known else Color(0.3, 0.26, 0.3, 0.05)
 		var line := Color(0.7, 0.5, 0.34, 0.7) if known else Color(0.4, 0.36, 0.42, 0.25)
-		if String(r.get("biome", "")) == "ash" and String(r.id) == "ashrift" and known:
+		if String(r.get("biome", "")) == "ash" and String(r.id) == "rift" and known:
 			fill = Color(0.5, 0.12, 0.05, 0.3)
 		if r.has("rect"):
 			var rc: Rect2 = r.rect

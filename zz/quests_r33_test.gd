@@ -284,7 +284,7 @@ func _slay_region() -> void:
 	print("slay")
 	Book.accept("road_clear")
 	runner.call("note_kill", "wretch", Vector2(-30, 62))
-	runner.call("note_kill", "wretch", Vector2(0, -100))
+	runner.call("note_kill", "wretch", Vector2(0, -100) + Endgame.O2)
 	ok(int(Book.q("road_clear").get("n", 0)) == 1, "a kill on the Pilgrims' Road counts, one on the summit does not")
 	Book.drop("road_clear")
 	Book.accept("unpaid_toll")

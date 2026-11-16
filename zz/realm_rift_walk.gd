@@ -1,9 +1,11 @@
 extends Node
-## The Crossing walk (RealmRift): drives the Player with debug_drive from the spawn down the rift_rim
+## The Crossing walk (RealmRift): drives the Player with debug_drive from Lastlight's north postern up the rift_rim
 ## path, over the Crossing (forecourt, towers, viaduct, fallen column, round the Spindle, the last
-## flights), onto the ward landing, up the summit's approach stairs and onto the Warden's dais.
+## flights), onto the ward landing, up the summit's approach stairs and onto the Warden's dais. The route is in the
+## Crossing's own coordinates (chasm on x 0) and walked Endgame.O east, where it stands.
 ##   godot --headless --path . res://zz/realm_rift_walk.tscn -- --realm --realm-modules=land,rift
 ## Prints LEG lines and "RIFTWALK ok", or "STUCK" (with where) and quits.
+const RealmLand := preload("res://core/world/realm/realm_land.gd")
 var p: Player
 var main: Node
 var t := 0
@@ -19,7 +21,7 @@ func _ready() -> void:
 	get_tree().root.add_child.call_deferred(main)
 	var spin := Vector2(-8.3, -50.0)
 	route = [
-		[Vector3(0, 0, 22), "spawn->rim"], [Vector3(0, 0, 4), "rift_rim"], [Vector3(0, 0, -10.5), "forecourt"],
+		[Vector3(0, 0, 22), "postern->rim"], [Vector3(0, 0, 4), "rift_rim"], [Vector3(0, 0, -10.5), "forecourt"],
 		[Vector3(0, 0, -15.5), "L1 rim steps"], [Vector3(0, 0, -21), "tower 1"],
 		[Vector3(-13, 0, -30), "L2 viaduct to tower 2"], [Vector3(-1.8, 0, -40), "L3 fallen column to tower 3"],
 		[Vector3(-1.8, 0, -49.5), "L4 flight to the Spindle"],
@@ -32,6 +34,8 @@ func _ready() -> void:
 		[Vector3(0, 0, -66.5), "ward landing"], [Vector3(0, 0, -71.4), "landing->summit stairs"],
 		[Vector3(0, 0, -77.5), "summit stairs"], [Vector3(-2.8, 0, -79.5), "round the statue"], [Vector3(-3.6, 0, -83.5), "summit deck"],
 		[Vector3(-2.6, 0, -87.0), "summit deck"], [Vector3(0, 0, -89.0), "summit rear"], [Vector3(0, 0, -92.0), "onto the dais"], [Vector3(0, 0, -103.9), "dais centre"]])
+	for r: Array in route:
+		r[0] = Endgame.w(r[0])
 func _physics_process(delta: float) -> void:
 	t += 1
 	if p == null:
@@ -46,7 +50,8 @@ func _physics_process(delta: float) -> void:
 		for w in main.find_children("*", "", true, false):
 			if w is WardSeal:
 				(w as WardSeal).release()
-		p.global_position = RealmLayout.PLAYER_START + Vector3.UP * 0.4
+		var at := Endgame.w(Vector3(0.0, 0.0, 30.0))                  # outside Lastlight's north postern
+		p.global_position = Vector3(at.x, RealmLand.height_at(at.x, at.z) + 0.4, at.z)
 		p.reset_physics_interpolation()
 		last_floor = p.global_position.y
 		print("RIFTWALK start at ", p.global_position)

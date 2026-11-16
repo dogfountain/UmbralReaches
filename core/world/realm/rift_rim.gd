@@ -1,25 +1,24 @@
 extends RefCounted
-## The Ashen Rift, out in the far north-east (docs/far_reaches.md "The Ashen Rift, moved"; the field and the gash are
-## rift/scorch.gd). Built by RealmPois (REACH_POIS): reserve(root) before the stamp and the flora, build(holder) after the
-## flora, so nothing here stands in a tree and the flora already thinned, browned and charred the ground round the gash.
-##   - the lava in the gash (rift/ash_lava.gd: the sheet, its kill volume, two glow lights, LavaWorks over it)
-##   - the rift's breath: the smoke column out of the lava (rift/plume.gd)
+## The Ashen Rift's rim, at the end of the night in the far north-east beyond Lastlight (docs/far_reaches.md "The endgame,
+## moved"; the field is rift/scorch.gd, the chasm and its lava are RealmRift's). Built by RealmPois (REACH_POIS):
+## reserve(root) before the stamp and the flora, build(holder) after the flora, so nothing here stands in a tree and the
+## flora already thinned, browned and charred the ground round the lip.
+##   - the rift's breath: the smoke column out of the lava at the rift's head (rift/plume.gd)
 ##   - basalt: spatter heaped along both lips, bombs thrown out over the burn, slabs heaved up on the flows,
 ##     rubble at the flows' toes, a few black tors in the burn
 ##   - charred trunks lying where the fire dropped them (TreeGen logs, burned black)
 ##   - thin smoke off each flow's crust where it is still warm, by the lip (the glowing cracks are under it)
-##   - THE CHOIR HOUSE: the hall where the Founder's choir lodged below the Crowns' east corner, standing in the main
-##     flow, which came through the lip's notch the night the rift brimmed, in at its door, filled its nave to the sills
+##   - THE CHOIR HOUSE: the hall where the Stair's choir lodged on a terrace under the west berm, standing in the main
+##     flow, which came through the berm's notch the night the rift brimmed, in at its door, filled its nave to the sills
 ##     and burst its far gable
 ##     (tools/blender/rift_choir_house.py; the Cinder Cantor haunts its nave, elites.gd; its writings, lore_db.gd)
-## Everything keeps off the ways, every registered site and the gash itself.
+## Everything keeps off the ways, the Crossing, every registered site and the chasm itself.
 
 const Scorch := preload("res://core/world/realm/rift/scorch.gd")
 const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
 const LoreMore := preload("res://core/world/realm/lore/lore_more.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Plume := preload("res://core/world/realm/rift/plume.gd")
-const AshLava := preload("res://core/world/realm/rift/ash_lava.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
 
@@ -30,8 +29,6 @@ const CHAR := Color(0.24, 0.215, 0.2)          ## a burned trunk's tint over its
 ## Before the stamp and the flora: the Choir House's ground is a site (nothing grows or is put in it; the stamp
 ## never cuts it: its floor is the flow itself) and a tree-free round.
 static func reserve(_root: Node) -> void:
-	for q: Vector2 in Scorch.SPINE:
-		Flora.tree_clear.append([q, 12.0])          # nothing grows in the gash or on its lips
 	var r := Rect2(_choir_pt(0.0, 0.0), Vector2.ZERO)
 	for c: Vector2 in [Vector2(-1.5, -5.2), Vector2(-1.5, 5.2), Vector2(Scorch.CHOIR_LEN + 4.2, -5.2), Vector2(Scorch.CHOIR_LEN + 4.2, 5.2)]:
 		r = r.expand(_choir_pt(c.x, c.y))
@@ -51,7 +48,6 @@ static func build(holder: Node) -> void:
 	host.name = "RiftScorch"
 	host.set_meta("site", "rift_scorch")
 	holder.add_child(host)
-	AshLava.build(host)
 	var space := host.get_world_3d().direct_space_state
 	var rng := RandomNumberGenerator.new()
 	rng.seed = SEED
@@ -64,7 +60,7 @@ static func build(holder: Node) -> void:
 	var choir := _choir(host, space)
 	Plume.build(host)
 	WorldLanes.own(host)
-	print("RIFT_RIM the Ashen Rift (north-east) dressed: %d rocks, %d tors, %d charred trunks, %d steam/smoke vents, the plume, the Choir House %s (%d ms)" % [
+	print("RIFT_RIM the Ashen Rift's rim (north-east) dressed: %d rocks, %d tors, %d charred trunks, %d steam/smoke vents, the plume, the Choir House %s (%d ms)" % [
 		n_rock, n_tor, n_log, n_steam, "at %s" % choir if choir != Vector3.INF else "NOT PLACED", Time.get_ticks_msec() - t0])
 
 
@@ -86,14 +82,14 @@ static func _normal(space: PhysicsDirectSpaceState3D, x: float, z: float) -> Vec
 	return (hit.normal as Vector3) if not hit.is_empty() else Vector3.UP
 
 
-## True where nothing may be put: the ways, a site's floor, a lane, inside the gash and on its very edge, the bell.
+## True where nothing may be put: the ways, the Crossing's lanes, a site's floor, inside the chasm, the nav's seam.
 static func _blocked(p: Vector2, pad: float) -> bool:
-	if RealmLayout.path_dist(p) < 1.6 + pad:
-		return true
-	if Scorch.gash_d(p) < 1.0 + pad:
-		return true                                  # the gash and its lip
-	if p.distance_to(RealmReaches.CRATER_C) < 14.0 + pad:
-		return true                                  # the eighth bell and the rocks heaped round it
+	if RealmLayout.path_dist(p) < 1.6 + pad or p.distance_to(Scorch.HERMIT) < 12.0 + pad:
+		return true                                  # (the Ash-Hermit's Perch, a secret built later, needs its rim)
+	if absf(p.x - Endgame.O.x) < 25.5 and p.y > -123.0 and p.y < -10.0:
+		return true                                  # the chasm and its lip
+	if p.x < 266.0 + pad:
+		return true                                  # the nav bakes in tiles split at x 262: nothing built across it
 	for s: Dictionary in WorldLanes.sites:
 		if String(s.name) == "rift_scorch":
 			continue
@@ -132,29 +128,21 @@ static func _put(rocks: Dictionary, m: Mesh, at: Vector3, n: Vector3, yaw: float
 ## Spatter heaped along both lips: clots of black rock thrown out as the rift fountained, in a ragged rampart.
 static func _spatter(space: PhysicsDirectSpaceState3D, rng: RandomNumberGenerator, rocks: Dictionary) -> int:
 	var n := 0
-	for s in Scorch.SPINE.size() - 1:
-		var a: Vector2 = Scorch.SPINE[s]
-		var b: Vector2 = Scorch.SPINE[s + 1]
-		var dirn := (b - a).normalized()
-		var side_v := Vector2(-dirn.y, dirn.x)
-		var t := 0.0
-		var len := a.distance_to(b)
-		while t < len:
-			t += rng.randf_range(1.6, 3.4)
-			var c := a + dirn * minf(t, len)
-			var hw := lerpf(float(Scorch.HALF[s]), float(Scorch.HALF[s + 1]), minf(t, len) / len)
-			for side: float in [-1.0, 1.0]:
-				for k in rng.randi_range(1, 3):
-					var p := c + side_v * side * (hw + rng.randf_range(2.5, 7.0)) + dirn * rng.randf_range(-1.2, 1.2)
-					if _blocked(p, 0.3) or Scorch.flow(p.x, p.y) > 0.3:
-						continue
-					var y := _ground(space, p.x, p.y)
-					if is_nan(y):
-						continue
-					var sz := rng.randf_range(0.45, 1.25)
-					var m := _rock_mesh(rocks, rng.randi(), Vector3(1.3, 0.8, 1.1), "basalt" if rng.randf() < 0.6 else "ash")
-					_put(rocks, m, Vector3(p.x, y, p.y), _normal(space, p.x, p.y), rng.randf() * TAU, Vector3(sz, sz * rng.randf_range(0.55, 0.9), sz * rng.randf_range(0.8, 1.1)), 0.12 * sz)
-					n += 1
+	for side: float in [-1.0, 1.0]:
+		var z := -16.0
+		while z > -118.0:
+			z -= rng.randf_range(1.6, 3.4)
+			for k in rng.randi_range(1, 3):
+				var p := Vector2(Endgame.O.x + side * rng.randf_range(26.5, 31.5), z + rng.randf_range(-1.2, 1.2))
+				if _blocked(p, 0.3):
+					continue
+				var y := _ground(space, p.x, p.y)
+				if is_nan(y) or y < -6.0:
+					continue
+				var sz := rng.randf_range(0.45, 1.25)
+				var m := _rock_mesh(rocks, rng.randi(), Vector3(1.3, 0.8, 1.1), "basalt" if rng.randf() < 0.6 else "ash")
+				_put(rocks, m, Vector3(p.x, y, p.y), _normal(space, p.x, p.y), rng.randf() * TAU, Vector3(sz, sz * rng.randf_range(0.55, 0.9), sz * rng.randf_range(0.8, 1.1)), 0.12 * sz)
+				n += 1
 	return n
 
 
@@ -229,10 +217,10 @@ static func _flow_rocks(space: PhysicsDirectSpaceState3D, rng: RandomNumberGener
 	return n
 
 
-## A few black tors standing out of the burn: the rift's basalt pushed up through the crater's apron and the shoulder.
+## A few black tors standing out of the burn: the rift's basalt pushed up through the hill.
 static func _tors(host: Node3D, space: PhysicsDirectSpaceState3D, rng: RandomNumberGenerator) -> int:
 	var n := 0
-	for c: Vector2 in [Vector2(271.0, -127.0), Vector2(297.0, -122.0), Vector2(342.0, -118.0), Vector2(365.0, -123.0)]:
+	for c: Vector2 in [Vector2(-41.0, -100.0) + Endgame.O2, Vector2(36.0, -116.0) + Endgame.O2, Vector2(-38.0, -126.0) + Endgame.O2, Vector2(42.0, -84.0) + Endgame.O2]:
 		var p := c
 		var ok := false
 		for k in 10:
@@ -411,9 +399,9 @@ static func _choir(host: Node3D, space: PhysicsDirectSpaceState3D) -> Vector3:
 			var y := _ground(space, q.x, q.y)
 			if not is_nan(y):
 				lo = minf(lo, y - Scorch.lift(q.x, q.y))
-	if is_inf(lo) or absf(lo - Scorch.CHOIR_FLOOR) > 0.6:
-		print("RIFT_RIM the Choir House's terrace reads %.2f (built %.2f): set on the terrace" % [lo, Scorch.CHOIR_FLOOR])
-		lo = Scorch.CHOIR_FLOOR
+	if is_inf(lo) or absf(lo - Scorch.choir_floor()) > 0.6:
+		print("RIFT_RIM the Choir House's terrace reads %.2f (built %.2f): set on the terrace" % [lo, Scorch.choir_floor()])
+		lo = Scorch.choir_floor()
 	var d := Scorch.CHOIR_DIR
 	var yaw := atan2(-d.x, -d.y)                  # the model's +Y (Godot -Z) runs down the flow
 	var at := Vector3(Scorch.CHOIR_DOOR.x, lo - 0.05, Scorch.CHOIR_DOOR.y)
@@ -447,11 +435,11 @@ static func _choir(host: Node3D, space: PhysicsDirectSpaceState3D) -> Vector3:
 		fm.queue_free()
 	FarDetail.near_ends(node, 150.0, 20.0)
 	# its writings: the hymn board on the west door's jamb, the cantor's desk, the buttress by the breach; and the
-	# ringers' warning where the track comes up to the flow
+	# ringers' warning where bell_link comes past the flow's toe
 	LoreMore.place(root, "rr_hymn_board", xf * Vector3(1.35, 1.9, 0.6))
 	LoreMore.place(root, "rr_cantor_desk", xf * Vector3(0.0, 2.6, -10.8))
 	LoreMore.place(root, "rr_breach", xf * Vector3(3.6, 1.6, -14.6))
-	var warn := Vector2(287.0, -103.0)
+	var warn := Vector2(-41.0, -38.0) + Endgame.O2
 	LoreMore.place(root, "rr_fen_notice", Vector3(warn.x, RealmLayout.ground(space, warn.x, warn.y) + 1.2, warn.y))
 	return at
 

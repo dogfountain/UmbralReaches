@@ -1,79 +1,66 @@
 extends RefCounted
-## The Ashen Rift (the lava area), moved out to the Realm's far north-east corner (Luke, 16 Nov: "it makes no sense to
-## be next to the starting village at all"; docs/far_reaches.md "The Ashen Rift, moved"). On the Night the eighth bell
-## came down at the Crowns' east corner (the Bellfall) and split the mountain's foot behind its crater: the fire under
-## the Crowns welled up along the split and still fills it. The night it brimmed it broke through the heaved lips at
-## notches and ran down their outer faces: west into the hollow where the Founder's choir had its hall (the Choir
-## House), south over the crater's rim towards the bell, and east down the crater's apron. Fire and spatter burned the
-## ground round it, and the ash fell downwind (east-south-east, the foliage shader's wind) in pale drifts.
+## The Ashen Rift's scorch: how the land round the lava burned, as one field every builder reads. The rift is the end of
+## the night, at the Realm's far north-east beyond Lastlight (Endgame; it stood under Hearthward until Luke moved it,
+## 16 Nov: the final boss "next to the village ... makes no sense"). The night the rift brimmed it broke through the berms
+## along its lips at notches and ran down their outer faces: south-west down the west berm into the hollow under the
+## Anchorholds' shoulder, where it took the Choir House; a short tongue north of it at the Crowns' foot; east in two
+## tongues down the east berm towards the Realm's east edge. Fire and spatter burned the ground round it, and the ash fell
+## downwind (east-south-east, the foliage shader's wind) in pale drifts. The burn is deepest at the lip and fades out
+## through charred snags, rust-leaved dying trees and grey grass into the living land; it thins to almost nothing by the
+## Pilgrims' Threshold, where the lava cools into starwater (and Lastlight's fields stay green).
 ##
-## One field every builder reads: the gash itself (a pit cut into the ground along SPINE, its bed under the lava, its lips
-## heaved into a berm over it) and, on a 1 m grid over RECT built once (lazily, on the first single-threaded call),
-## the authored flows, the burn and the ash. Readers:
-##   ground(x, z, h)     the designed ground with the gash cut and the flows laid on (RealmLand._heights, after the kept core)
-##   lift(x, z)          metres the flows raise the ground (and the notches cut the lips: negative)
+## One 1 m grid over RECT, built once (lazily, on the first single-threaded call) from authored flows,
+## the lip and noise. Readers:
+##   ground(x, z, h)     the designed ground with the flows laid on and the Choir House's terrace (RealmLand._heights)
+##   lift(x, z)          metres the ground rises (the flows' lobes, the notches cut in the berms)
 ##   ash_w(x, z)         the ground splat's ash-country weight (RealmLand._splat: cinder grit)
 ##   burn(x, z)          0 green .. 1 burned to the ground (flora, dressing)
-##   gash_d(p)           metres outside the gash's edge (negative inside)
-##   over_lava(p)        true over the open lava (spawn rules, the Director's fair ground)
 ##   texture()           RGBA8 over RECT for the ground shader (r ash drift, g flow, b heat, a burn)
 ##   under / grass_tint / tree_tint / charred / tree_keeps   the flora's hooks (realm_flora.gd)
-## Static data only (deterministic for the layout), so it needs no night reset. The old chasm by Hearthward holds
-## starwater now (realm_rift.gd): nothing here reaches it.
+## Static data only (deterministic for the layout), so it needs no night reset. Every place here is in the world, where
+## the endgame stands (the chasm's centreline is x O.x).
 
-const RECT := Rect2(242.0, -162.0, 128.0, 92.0)        ## x 242..370, z -162..-70
-const NX := 129
-const NZ := 93
-## The gash, west to east along the Crowns' foot above the Bellfall crater (RealmReaches.CRATER_C): its centreline and
-## its half-width at each point. The rounded ends close it; its north wall is the mountain.
-const SPINE := [Vector2(283.0, -135.5), Vector2(297.0, -139.0), Vector2(313.0, -140.5), Vector2(329.0, -139.5), Vector2(345.0, -137.5), Vector2(360.0, -135.0)]
-const HALF := [6.5, 10.0, 12.0, 11.5, 10.0, 6.0]
-const MID := Vector2(321.0, -139.0)                      ## the gash's middle (the burn's tongues reach out from it)
-const LAVA_Y := 5.0                                      ## the lava's surface (AshLava)
-const FLOOR_Y := 2.4                                     ## the gash's bed under it
-const BERM := 3.4                                        ## the lips stand this far over the lava, heaved up when it split
-## The lava sheet's footprint (x 276..368, z -153..-125): all ground in it and SHEET_PAD round it outside the gash
-## stands over the lava (SHEET_CLEAR), so the sheet shows only in the gash (never as a sliver along its own edge where
-## the crater's slope falls away) and the kill volume under it never reaches a walkable lip.
-const SHEET := Rect2(276.0, -153.0, 92.0, 28.0)
-const SHEET_CLEAR := 1.7
-const SHEET_PAD := 3.0
+const O := Endgame.O2
+const RECT := Rect2(236.0, -156.0, 134.0, 164.0)       ## x 236..370, z -156..8 (the Anchorholds' cells keep out of it)
+const NX := 135
+const NZ := 165
+const LIP := Rect2(Vector2(-24.0, -121.0) + O, Vector2(48.0, 109.0))   ## the chasm's lip (O.x +-24, z -121..-12)
 const WIND := Vector2(0.8, 0.6)                          ## ash carries this way (realm_foliage.gdshader's wind)
-const RING := 26.0                                       ## metres of dying turf and dry ground round the burn
+const MOUTH_Z := Vector2(-36.0, -6.0)                    ## the starwater mouth: the burn dies back over these z
+const RING := 30.0                                       ## metres of dying wood and dry turf round the burn
+const HERMIT := Vector2(-36.0, -50.0) + O                ## the Ash-Hermit's Perch's rim spot (a secret): no snags on it
 
-## The flows. The night the rift brimmed the lava broke through the lips at notches (`notch`: metres the crest is cut
-## down where a flow crossed it) and ran down their outer faces: west into the hollow below the Anchorholds' shoulder
-## (the main flow, which took the Choir House), south over the crater's rim towards the bell (it stopped short of it),
-## a short tongue beside it, and east down the crater's apron. Points from the lip outward, half-widths (m) at each,
-## thickness (m). Clear of the bell, the crater's west camp, the fire and every way.
+## The flows. The rift's lips are berms 11-15 m high (heaved up when it tore open); the night the rift brimmed the
+## lava broke through them at notches (`notch`: metres the crest is cut down where a flow crossed it) and ran down
+## their outer faces. West of the chasm the Realm's nav seam (x 262) is near, so the west flows turn south and stay east
+## of it. Points from the lip outward, half-widths (m) at each, thickness (m). Clear of the Crossing's foot, every way.
 const FLOWS := [
-	{"pts": [Vector2(289.0, -129.6), Vector2(285.5, -125.5), Vector2(281.5, -121.0), Vector2(277.0, -116.5), Vector2(272.5, -112.0), Vector2(268.5, -107.5), Vector2(266.0, -103.0)],
-		"hw": [2.6, 4.0, 5.2, 6.2, 7.0, 7.2, 5.4], "thick": 1.3, "notch": 3.0},
-	{"pts": [Vector2(315.0, -130.6), Vector2(315.5, -126.0), Vector2(315.0, -121.5), Vector2(314.2, -117.8)],
-		"hw": [2.4, 3.8, 4.6, 3.6], "thick": 1.0, "notch": 2.8},
-	{"pts": [Vector2(333.5, -129.8), Vector2(335.0, -125.5), Vector2(336.5, -121.5), Vector2(337.2, -118.5)],
-		"hw": [2.2, 3.4, 3.8, 3.0], "thick": 0.9, "notch": 2.4},
-	{"pts": [Vector2(347.0, -128.6), Vector2(350.5, -124.5), Vector2(354.5, -120.0), Vector2(358.0, -115.0), Vector2(360.5, -109.5), Vector2(361.5, -104.5)],
-		"hw": [2.5, 3.8, 5.0, 5.8, 5.5, 4.2], "thick": 1.2, "notch": 3.0},
+	{"pts": [Vector2(-23.0, -82.0) + O, Vector2(-29.0, -79.5) + O, Vector2(-34.5, -75.0) + O, Vector2(-38.0, -68.5) + O, Vector2(-39.5, -61.0) + O, Vector2(-39.0, -53.0) + O, Vector2(-37.5, -46.5) + O],
+		"hw": [2.6, 4.2, 5.2, 6.4, 7.0, 6.8, 5.0], "thick": 1.35, "notch": 4.0},
+	{"pts": [Vector2(-23.0, -113.0) + O, Vector2(-29.0, -113.5) + O, Vector2(-35.0, -112.0) + O, Vector2(-39.0, -108.0) + O],
+		"hw": [2.4, 4.0, 4.6, 3.6], "thick": 1.1, "notch": 4.0},
+	{"pts": [Vector2(26.0, -101.5) + O, Vector2(32.0, -101.0) + O, Vector2(39.0, -99.0) + O, Vector2(45.0, -96.0) + O, Vector2(49.0, -92.0) + O],
+		"hw": [3.0, 4.5, 5.8, 6.0, 4.6], "thick": 1.2, "notch": 3.5},
+	{"pts": [Vector2(27.0, -76.5) + O, Vector2(33.0, -77.0) + O, Vector2(39.0, -74.5) + O, Vector2(44.0, -70.5) + O, Vector2(47.5, -67.5) + O],
+		"hw": [2.6, 4.2, 5.5, 5.0, 4.4], "thick": 1.0, "notch": 3.0},
 ]
-## The Choir House (rift_rim.gd; tools/blender/rift_choir_house.py) stands in the main west flow, on the hollow's flat
-## below the crater's shoulder: its door's threshold, the way into the hall (down the flow), its length and half width,
-## and the floor it was built on (the hollow is levelled to it under the hall: it stood on a terrace, not a slope).
-## The crust in its nave kept the heat longest.
-const CHOIR_DOOR := Vector2(278.6, -118.1)
-const CHOIR_DIR := Vector2(-0.707, 0.707)
+## The Choir House (rift_rim.gd; tools/blender/rift_choir_house.py) stands in the main west flow on a terrace the choir
+## levelled under the west berm: its door's threshold, the way into the hall (down the flow), its length and half width.
+## The terrace's height is the land's own there (RealmLayout.macro_height at the hall's middle). The crust in its nave kept
+## the heat longest.
+const CHOIR_DOOR := Vector2(-37.0, -72.0) + O
+const CHOIR_DIR := Vector2(-0.12, 0.993)
 const CHOIR_LEN := 14.0
 const CHOIR_HW := 3.7
-const CHOIR_FLOOR := 0.5
-## What the flows stop short of: the eighth bell, the crater's west camp, the crater's fire.
-const KEEP_CLEAR := [[Vector2(318.0, -100.0), 14.0], [Vector2(290.0, -112.0), 7.0], [Vector2(318.0, -60.0), 9.0]]
+## What the flows stop short of: the Crossing's foot fire.
+const KEEP_CLEAR := [[Vector2(-5.0, -2.0) + O, 8.0], [Vector2(0.0, -2.0) + O, 6.0]]
 
 static var _burn := PackedFloat32Array()
 static var _ash := PackedFloat32Array()
 static var _flow := PackedFloat32Array()
 static var _heat := PackedFloat32Array()
 static var _lift := PackedFloat32Array()
-static var _carve := PackedFloat32Array()        ## the notches the flows cut in the lips (<= 0)
+static var _carve := PackedFloat32Array()        ## the notches the flows cut in the berms (<= 0)
 static var _near := PackedFloat32Array()         ## the burn the flows set round themselves
 static var _tex: ImageTexture
 static var _n_lo: FastNoiseLite
@@ -84,30 +71,28 @@ static var _n_drift: FastNoiseLite
 
 # --- readers --------------------------------------------------------------------------------------
 
-## The designed ground at (x, z) given the ground `h` there: the gash cut along SPINE (its bed under the lava, its walls
-## up to the lips, the lips heaved into a berm over the lava), then the flows laid on and the notches cut (lift).
+## The designed ground at (x, z) given the land `h` there: the Choir House's terrace, then the flows (lift).
 static func ground(x: float, z: float, h: float) -> float:
 	prepare()
-	var p := Vector2(x, z)
-	var out := lerpf(h, CHOIR_FLOOR, _hall_pad(p))
-	if SHEET.grow(16.0).has_point(p):
-		var s := _spine(p)
-		var e := s.x - s.y * (1.0 + 0.1 * _n_mid.get_noise_2d(x * 0.9, z * 0.9))          # metres outside the edge (it wanders)
-		var crest := LAVA_Y + BERM + 0.7 * _n_hi.get_noise_2d(x * 0.5, z * 0.5)
-		var base := out                              # (the land, with the Choir House's terrace)
-		if e > 0.0:
-			# the lip's berm: at its crest a metre or two outside the edge, back to the land over the next eight
-			out = maxf(base, lerpf(crest, base, smoothstep(1.5, 9.0, e)))
-		else:
-			# the walls: from the bed up to the lip, steeper where the mountain stands higher over it
-			var lip := maxf(base, crest)
-			var band := 3.0 + 0.06 * (lip - FLOOR_Y)
-			var bed := FLOOR_Y + 0.5 * _n_hi.get_noise_2d(x * 1.3 + 7.0, z * 1.3)
-			out = lerpf(bed, lip, smoothstep(-band, 0.6, e))
-	out += lift(x, z)
-	if SHEET.grow(SHEET_PAD).has_point(p) and gash_d(p) > 1.2:
-		out = maxf(out, LAVA_Y + SHEET_CLEAR)       # the sheet never shows outside the gash, its kill volume never reaches a lip
-	return out
+	return lerpf(h, _choir_floor, _hall_pad(Vector2(x, z))) + lift(x, z)
+
+
+## The terrace the Choir House was built on: 1 under the hall and a couple of metres round it, easing out over 5 m.
+static func _hall_pad(p: Vector2) -> float:
+	var q := p - CHOIR_DOOR
+	var along := q.dot(CHOIR_DIR)
+	var across := absf(q.dot(Vector2(-CHOIR_DIR.y, CHOIR_DIR.x)))
+	var out := maxf(maxf(-2.5 - along, along - CHOIR_LEN - 2.5), across - CHOIR_HW - 2.5)
+	return 1.0 - smoothstep(0.0, 5.0, out)
+
+
+static var _choir_floor := 0.0
+
+
+## The Choir House's terrace height (RealmLand reads it through ground()).
+static func choir_floor() -> float:
+	prepare()
+	return _choir_floor
 
 
 static func lift(x: float, z: float) -> float:
@@ -118,17 +103,6 @@ static func lift(x: float, z: float) -> float:
 static func burn(x: float, z: float) -> float:
 	prepare()
 	return _sample(_burn, x, z)
-
-
-## Metres outside the gash's edge (negative inside).
-static func gash_d(p: Vector2) -> float:
-	var s := _spine(p)
-	return s.x - s.y
-
-
-## Over the open lava (a spawn, a tide, an event must not stand there): in the gash, below its lips.
-static func over_lava(at: Vector3) -> bool:
-	return SHEET.has_point(Vector2(at.x, at.z)) and at.y < LAVA_Y + 3.0 and gash_d(Vector2(at.x, at.z)) < 1.0
 
 
 ## Ash country in the ground splat: the burn, a little past where the green gives up.
@@ -168,40 +142,6 @@ static func heat(x: float, z: float) -> float:
 ## The flows (for builders that dress them): Array of {pts, hw, thick}.
 static func flows() -> Array:
 	return FLOWS
-
-
-## The gash's centreline at p: Vector3(distance to it, its half-width there, metres along it from the west end).
-static func _spine(p: Vector2) -> Vector3:
-	var best := INF
-	var hw := 0.0
-	var al := 0.0
-	var run := 0.0
-	for s in SPINE.size() - 1:
-		var a: Vector2 = SPINE[s]
-		var b: Vector2 = SPINE[s + 1]
-		var ab := b - a
-		var t := clampf((p - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
-		var d := p.distance_to(a + ab * t)
-		if d < best:
-			best = d
-			hw = lerpf(float(HALF[s]), float(HALF[s + 1]), t)
-			al = run + ab.length() * t
-		run += ab.length()
-	return Vector3(best, hw, al)
-
-
-## The point on the centreline nearest p.
-static func _spine_pt(p: Vector2) -> Vector2:
-	var best := INF
-	var out := p
-	for s in SPINE.size() - 1:
-		var a: Vector2 = SPINE[s]
-		var ab: Vector2 = (SPINE[s + 1] as Vector2) - a
-		var q := a + ab * clampf((p - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
-		if p.distance_to(q) < best:
-			best = p.distance_to(q)
-			out = q
-	return out
 
 
 static func _sample(f: PackedFloat32Array, x: float, z: float) -> float:
@@ -277,13 +217,13 @@ static func charred(at: Vector2) -> bool:
 	return b > 0.5 + 0.18 * (_hash(at, 7.7) - 0.5)
 
 
-## Saplings and young growth burned away; the deepest burn keeps half its snags; nothing stands in the gash.
+## Saplings and young growth burned away; the deepest burn keeps half its snags.
 static func tree_keeps(at: Vector2, sp: String, id: String) -> bool:
+	if at.distance_to(HERMIT) < 10.0:
+		return false                                 # the Ash-Hermit's Perch needs its rim clear (site_breath.gd RIM_NEAR)
 	var b := burn(at.x, at.y)
 	if b <= 0.3:
 		return true
-	if RECT.has_point(at) and gash_d(at) < 2.5:
-		return false
 	if charred(at) and not id.begins_with("snag"):
 		return false                                 # a green stand-in a clash chose: not in the burn
 	if sp == "sapling" or sp == "birch":
@@ -301,6 +241,8 @@ static func prepare() -> void:
 	if not _burn.is_empty():
 		return
 	_noise()
+	var mid := CHOIR_DOOR + CHOIR_DIR * CHOIR_LEN * 0.5
+	_choir_floor = RealmLayout.macro_height(mid.x, mid.y)
 	var n := NX * NZ
 	_burn.resize(n)
 	_ash.resize(n)
@@ -309,19 +251,25 @@ static func prepare() -> void:
 	_lift.resize(n)
 	_carve.resize(n)
 	_near.resize(n)
+	if "--no-scorch" in OS.get_cmdline_user_args():          # A/B: the rift without its burn (zeros everywhere)
+		_burn.fill(0.0)
+		_ash.fill(0.0)
+		_flow.fill(0.0)
+		_heat.fill(0.0)
+		_lift.fill(0.0)
+		return
 	_flows()
-	var bare := "--no-scorch" in OS.get_cmdline_user_args()          # A/B: the gash and its flows without the burn round them
 	for j in NZ:
 		var z := RECT.position.y + j
 		for i in NX:
 			var x := RECT.position.x + i
 			var k := j * NX + i
 			var p := Vector2(x, z)
-			var b := 0.0 if bare else _burn_at(p)
+			var b := _burn_at(p)
 			var fl := _flow[k]
-			_burn[k] = maxf(maxf(b, fl * 0.9), 0.0 if bare else _near[k])
+			_burn[k] = maxf(maxf(b, fl * 0.9), _near[k])
 			_lift[k] += _carve[k]
-			_ash[k] = 0.0 if bare else _ash_at(p, b) * (1.0 - smoothstep(0.05, 0.3, fl) * 0.7)
+			_ash[k] = _ash_at(p, b) * (1.0 - smoothstep(0.05, 0.3, fl) * 0.7)
 	_tex = null
 
 
@@ -343,59 +291,71 @@ static func _noise() -> void:
 	_n_drift.fractal_octaves = 3
 
 
-## Distance outside the gash (0 inside), its edge broken by a slow, wide warp (lobes, not a halo).
+## Distance outside the lip (negative inside), its edge broken by a slow, wide warp (lobes, not a halo).
 static func _lip_d(p: Vector2) -> float:
-	var q := p + Vector2(_n_lo.get_noise_2d(p.x, p.y + 40.0), _n_lo.get_noise_2d(p.x + 70.0, p.y)) * 9.0
-	return maxf(gash_d(q), 0.0)
+	var q := p + Vector2(_n_lo.get_noise_2d(p.x, p.y + 40.0), _n_lo.get_noise_2d(p.x + 70.0, p.y)) * 11.0
+	var dx := maxf(LIP.position.x - q.x, q.x - LIP.end.x)
+	var dz := maxf(LIP.position.y - q.y, q.y - LIP.end.y)
+	if dx <= 0.0 and dz <= 0.0:
+		return maxf(dx, dz)
+	return Vector2(maxf(dx, 0.0), maxf(dz, 0.0)).length()
 
 
-## How far downwind of the gash p lies (0 upwind or across, 1 straight downwind).
+## The true lip distance (no warp): inside the chasm everything is burned.
+static func _in_lip(p: Vector2) -> bool:
+	return LIP.has_point(p)
+
+
+## How far downwind of the lip p lies (0 upwind or across, 1 straight downwind).
 static func _downwind(p: Vector2) -> float:
-	var c := _spine_pt(p)
+	var c := Vector2(clampf(p.x, LIP.position.x, LIP.end.x), clampf(p.y, LIP.position.y, LIP.end.y))
 	if p.distance_to(c) < 0.5:
 		return 0.0
 	return maxf((p - c).normalized().dot(WIND), 0.0)
 
 
 static func _burn_at(p: Vector2) -> float:
-	if gash_d(p) < 0.0:
+	if _in_lip(p):
 		return 1.0
-	var d := _lip_d(p)
-	# the fire ran downwind (east-south-east, down over the crater) and burned back less far up the mountain and west
-	# towards the Anchorholds' shoulder
-	var r := 20.0 if p.x < MID.x else 27.0
+	var d := maxf(_lip_d(p), 0.0)
+	# the fire ran downwind (east-south-east, over the low fen side) and up the wood's slope in tongues; the west,
+	# upwind and higher, burned back less far
+	var r := 26.0 if p.x < O.x else 34.0
 	r *= 0.85 + 0.3 * (_n_lo.get_noise_2d(p.x * 0.6 + 9.0, p.y * 0.6) * 0.5 + 0.5)
-	r += 14.0 * _downwind(p)
-	# tongues: the burn reached out further along a few bearings from the gash's middle (a scar, not a halo)
-	var ang := (p - MID).angle()
-	r += 18.0 * pow(maxf(_n_lo.get_noise_1d(ang * 38.0 + 400.0), 0.0) * 2.2, 1.6)
-	var dd := d - _n_mid.get_noise_2d(p.x, p.y) * 8.0
-	# the burn proper (charred, ash country), and round it a ring of dying turf and dry ground (never past 0.42)
+	r += 16.0 * _downwind(p)
+	# tongues: the burn reached out further along a few bearings from the rift's middle (a scar, not a halo)
+	var ang := (p - (Vector2(0.0, -66.0) + O)).angle()
+	r += 24.0 * pow(maxf(_n_lo.get_noise_1d(ang * 38.0 + 400.0), 0.0) * 2.2, 1.6)
+	# the starwater mouth: the burn dies back towards Hearthward
+	var mouth := smoothstep(MOUTH_Z.x, MOUTH_Z.y, p.y)
+	r *= lerpf(1.0, 0.3, mouth)
+	var dd := d - _n_mid.get_noise_2d(p.x, p.y) * 10.0
+	# the burn proper (charred, ash country), and round it a ring of dying wood and dry turf (never past 0.42)
 	var core := 1.0 - smoothstep(r * 0.3, r, dd)
-	var ring := 1.0 - smoothstep(r, r + RING, dd)
+	var ring := 1.0 - smoothstep(r, r + RING * lerpf(1.0, 0.4, mouth), dd)
 	var isl := _n_hi.get_noise_2d(p.x * 0.5, p.y * 0.5)
 	core *= 1.0 - smoothstep(0.2, 0.5, isl) * (1.0 - smoothstep(0.5, 0.85, core)) * 0.85
 	var b := maxf(core, ring * 0.42)
-	# nothing reaches the field's own edge (the Anchorholds' shoulder, Lastlight's country)
-	var edge := minf(minf(p.x - RECT.position.x, RECT.end.x + 30.0 - p.x), minf(p.y - RECT.position.y, RECT.end.y - p.y))
+	b *= lerpf(1.0, 0.5, mouth)
+	# nothing reaches the field's own edge (the Anchorholds' cells, Lastlight's fields)
+	var edge := minf(minf(p.x - RECT.position.x, RECT.end.x - p.x), minf(p.y - RECT.position.y, RECT.end.y - p.y))
 	b *= smoothstep(0.0, 14.0, edge)
 	return clampf(b, 0.0, 1.0)
 
 
-## Pale ash: it fell downwind of the gash, lying in drifts in the lee; little upwind; the hot lip is swept bare.
+## Pale ash: it fell downwind of the rift, lying in drifts in the lee; little upwind; the hot lip is swept bare.
 static func _ash_at(p: Vector2, b: float) -> float:
-	var d := _lip_d(p)
+	var d := maxf(_lip_d(p), 0.0)
 	var dw := _downwind(p)
-	var reach := (14.0 if p.x < MID.x else 26.0) + 36.0 * dw
+	var reach := (16.0 if p.x < O.x else 30.0) + 42.0 * dw
+	reach *= lerpf(1.0, 0.3, smoothstep(MOUTH_Z.x, MOUTH_Z.y, p.y))
 	var base := 1.0 - smoothstep(reach * 0.2, reach, d)
 	# drifts: blobs stretched a little along the wind, broken by a finer field
 	var along := p.dot(WIND)
 	var across := p.dot(Vector2(-WIND.y, WIND.x))
 	var drift := _n_drift.get_noise_2d(along * 0.45, across * 1.0) * 0.75 + _n_hi.get_noise_2d(p.x * 0.35 + 30.0, p.y * 0.35) * 0.35
 	var a := base * smoothstep(-0.1, 0.5, drift + (base - 0.5) * 0.35)
-	a *= smoothstep(1.0, 6.0, d)                     # the lip's heat keeps it clear
-	var edge := minf(minf(p.x - RECT.position.x, RECT.end.x + 30.0 - p.x), minf(p.y - RECT.position.y, RECT.end.y - p.y))
-	a *= smoothstep(0.0, 14.0, edge)
+	a *= smoothstep(1.0, 7.0, d)                     # the lip's heat keeps it clear
 	return clampf(maxf(a * 0.85, b * 0.12), 0.0, 1.0)
 
 
@@ -448,9 +408,9 @@ static func _flows() -> void:
 				# the fire the flow set round itself: burned ground a dozen metres either side, dying out ragged
 				var near := (1.0 - smoothstep(edge * 0.6, edge + 13.0 + 5.0 * _n_mid.get_noise_2d(p.x * 0.7, p.y * 0.7 + 20.0), best)) * 0.85
 				_near[k0] = maxf(_near[k0], near * smoothstep(0.0, 4.0, al))
-				# the notch: where the flow crossed the lip's crest the crest is cut down (a breach the crust still fills)
+				# the notch: where the flow crossed the berm's crest the crest is cut down (a breach the lava still fills)
 				if notch > 0.0:
-					var cut := notch * (1.0 - smoothstep(edge * 0.55, edge * 1.35, best)) * smoothstep(0.5, 3.5, al) * (1.0 - smoothstep(6.0, 11.0, al))
+					var cut := notch * (1.0 - smoothstep(edge * 0.55, edge * 1.35, best)) * smoothstep(1.0, 6.0, al) * (1.0 - smoothstep(10.0, 17.0, al))
 					_carve[k0] = minf(_carve[k0], -cut)
 				var inner := clampf(1.0 - best / maxf(edge, 0.5), 0.0, 1.0)
 				if inner <= 0.0:
@@ -460,21 +420,12 @@ static func _flows() -> void:
 				var off := smoothstep(1.5, 4.5, RealmLayout.path_dist(p))
 				var k := j * NX + i
 				_flow[k] = maxf(_flow[k], inner * off)
-				var src := smoothstep(0.0, 4.0, al)
+				var src := smoothstep(0.0, 7.0, al)
 				var bump := 0.18 * _n_hi.get_noise_2d(p.x * 1.7 + 11.0, p.y * 1.7)
 				var h := (thick * smoothstep(0.0, 0.3, inner) + bump * inner) * src * off
 				_lift[k] = maxf(_lift[k], h)
-				# still warm near the lip: the crust's cracks glow for the first ~12 m; and in the Choir House's nave
-				_heat[k] = maxf(_heat[k], inner * maxf(1.0 - smoothstep(3.0, 13.0, al), 0.85 * _in_hall(p)) * off)
-
-
-## The terrace the Choir House was built on: 1 under the hall and a couple of metres round it, easing out over 5 m.
-static func _hall_pad(p: Vector2) -> float:
-	var q := p - CHOIR_DOOR
-	var along := q.dot(CHOIR_DIR)
-	var across := absf(q.dot(Vector2(-CHOIR_DIR.y, CHOIR_DIR.x)))
-	var out := maxf(maxf(-2.5 - along, along - CHOIR_LEN - 2.5), across - CHOIR_HW - 2.5)
-	return 1.0 - smoothstep(0.0, 5.0, out)
+				# still warm near the lip: the crust's cracks glow for the first ~14 m; and in the Choir House's nave
+				_heat[k] = maxf(_heat[k], inner * maxf(1.0 - smoothstep(3.0, 15.0, al), 0.85 * _in_hall(p)) * off)
 
 
 ## 1 inside the Choir House's walls (a soft edge), 0 outside.
@@ -506,6 +457,8 @@ static func rect_v4() -> Vector4:
 
 ## Hands the map to the Realm's ground material (Zone/Terrain, after RealmLand built it).
 static func apply_ground(root: Node) -> void:
+	if "--no-scorch" in OS.get_cmdline_user_args():
+		return
 	var t := root.get_node_or_null("Zone/Terrain") as MeshInstance3D
 	var m := t.material_override as ShaderMaterial if t != null else null
 	if m == null:

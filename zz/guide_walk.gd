@@ -216,7 +216,7 @@ func _drive() -> void:
 	for at2: float in [2.0, 5.0]:
 		await _wait(at2 - (0.0 if at2 == 2.0 else 2.0))
 		await shot("after_talk_%ds" % int(at2))
-	# 6. out of the door, and to whatever the HUD points at now (a guided save: the Stair-foot fire), and kindle it
+	# 6. out of the door, and to whatever the HUD points at now (a guided save: the meadow fire), and kindle it
 	await _walk(p, [Vector3(17.6, 0, 27.5), Vector3(17.6, 0, 24.0), Vector3(17.6, 0, 20.5)], "out", 3.0, false)
 	# a Hearthward villager on the way: walking up to one, they call out where the step is and point; then "Which way?"
 	var vil: Node3D = null

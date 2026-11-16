@@ -21,9 +21,9 @@ var _crackle: AudioStreamPlayer3D
 
 
 ## r33 world: the fires' names (the Ember Road's menu, the map). Any other fire is named for its place.
-const FIRE_NAMES := {"Sanctuary": "Hearthward's fire", "StairFoot": "The Stair-foot fire", "Shrine": "The glade's fire",
+const FIRE_NAMES := {"Sanctuary": "Hearthward's fire", "StairFoot": "The meadow fire", "Shrine": "The glade's fire",
 	"Landing": "The Barrow Field fire", "Threshold": "The fen fire", "HengeFire": "The henge-stair fire", "SummitFire": "The summit fire",
-	"OssuaryGate": "The Ossuary's gate fire"}
+	"OssuaryGate": "The Ossuary's gate fire", "CrossingFire": "The Crossing fire"}
 const FIRE_LIGHT := Color(1.0, 0.52, 0.18)         ## a kindled fire throws a deep orange (about 1900 K) on the dark ground
 const MAP_LIT := Color(1.0, 0.62, 0.3)
 const MAP_COLD := Color(0.5, 0.48, 0.52)
@@ -102,7 +102,7 @@ func interact(by: Node) -> void:
 		by.set_checkpoint(spawn_point())
 	Events.brazier_kindled.emit(self)
 	# the valley's four have names in the keep's mouth (r30 story); any other is just a brazier
-	var named: String = {"StairFoot": "The Stair-foot fire", "Shrine": "The glade's fire", "Landing": "The Barrow Field fire",
+	var named: String = {"StairFoot": "The meadow fire", "Shrine": "The glade's fire", "Landing": "The Barrow Field fire",
 		"Threshold": "The fen fire"}.get(String(name), "")
 	Events.toast.emit(("%s burns. Stand in it; the dark leaves slowly." % named) if named != "" else "Brazier kindled. Stand in the fire. The dark leaves slowly.")
 

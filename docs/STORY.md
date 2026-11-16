@@ -31,8 +31,8 @@ the road to the three who hold the valley, and the ending after the Ascended War
    crown to the summit ward across the Crossing, and face what holds the door. A ward walked into
    too early says what is missing ("Nothing answers. The crypt's crown still holds below.",
    `BossArena.nothing_answers`). Side line: kindle the valley's four braziers, shown as n/4; each
-   names itself when lit (the Stair-foot fire, the glade's fire, the Barrow Field fire, the fen
-   fire; node names StairFoot, Shrine, Landing, Threshold never reach the player).
+   names itself when lit (the meadow fire, north of Hearthward up north_lane, the glade's fire, the Barrow Field
+   fire, the fen fire; node names StairFoot, Shrine, Landing, Threshold never reach the player).
 4. **People.** The keep's hub reacts to progress (greeting, "what now", news of the braziers and
    of the village, Hobb's cairn found). Three patrons talk: **Hesk the Woodcutter** (the Ring, the Rooted, the thorn
    seal), **Ostrin Harrow** at the bar (the fen, the three stones, the way to the Ossuary under the Waiting Field), and

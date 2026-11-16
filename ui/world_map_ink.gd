@@ -226,7 +226,7 @@ func _places() -> void:
 	draw_circle(hc, 3.0, Color(INK, 0.8))
 	# the spire, the keep on the summit, the oak, the well, the furnace
 	_tower(_w(RealmLayout.SPIRE_C), 1.3)
-	_tower(_w(Vector2(0.0, -104.0)), 1.9)
+	_tower(_w(Vector2(0.0, -104.0) + Endgame.O2), 1.9)            # (the far north-east: Endgame)
 	var oak := _w(Vector2(-70.0, 206.0))
 	for k in 5:
 		var lobe := oak + Vector2.from_angle(TAU * k / 5.0) * 7.0 * K

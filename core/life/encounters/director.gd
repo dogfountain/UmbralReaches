@@ -57,9 +57,10 @@ const AMBUSH_CD := 360.0
 const AMBUSH_GAP := 75.0           ## at least this long between any two ambushes
 const ELITE_NEAR := 72.0
 const ELITE_FAR := 95.0
-## The bell: beside the Crossing's foot (candidates in order) and on the summit platform.
-const BELLS := [[Vector3(3.4, 0.0, 2.0), Vector3(3.0, 0.0, 0.5), Vector3(-3.4, 0.0, 1.5)], [Vector3(-4.5, 27.35, -80.0), Vector3(4.5, 27.35, -80.0)]]
-const BOARD := Vector2(3.5, 10.5)  ## the bounty board, beside rift_rim on the way out of the village
+## The bell: beside the Crossing's foot (candidates in order) and on the summit platform (the far north-east: Endgame).
+const BELLS := [[Vector3(3.4, 0.0, 2.0) + Endgame.O, Vector3(3.0, 0.0, 0.5) + Endgame.O, Vector3(-3.4, 0.0, 1.5) + Endgame.O],
+	[Vector3(-4.5, 27.35, -80.0) + Endgame.O, Vector3(4.5, 27.35, -80.0) + Endgame.O]]
+const BOARD := Vector2(3.5, 10.5)  ## the bounty board, beside north_lane on the way out of the village
 const BRAZIER_NAMES := ["StairFoot", "Shrine", "Landing", "Threshold"]
 
 var root: Node3D
@@ -400,6 +401,7 @@ func _wave(pos: Vector3) -> void:
 		if e == null:
 			continue
 		e.set_meta(&"enc_hunter", true)
+		e.set_meta(&"enc_spawn", spot)            # where it rose (tests judge that ground: it is walking at you by now)
 		e.chase_range = 70.0
 		e.hunt_leash = 999.0
 		e.sleep_range = 90.0
@@ -837,7 +839,7 @@ static func fair_ground(p: Vector3, on_way_ok := false) -> bool:
 	var pd := RealmLayout.path_dist(q)
 	if (q.distance_to(HAVEN_C) < HUB_ROAD_R and (pd < SpawnRules.HUB_BERTH or on_way_ok)) or (pd < SpawnRules.WAY_BERTH and not on_way_ok):
 		return false
-	if p.y < RealmLayout.LAVA_Y + 3.0 or SpawnRules.Scorch.over_lava(p) or RealmLayout.in_ossuary(p):
+	if p.y < RealmLayout.LAVA_Y + 3.0 or RealmLayout.in_ossuary(p):
 		return false
 	var wl := RealmLayout.water_level_at(p.x, p.z)
 	return not RealmLand.in_water(p.x, p.z) and (is_nan(wl) or p.y > wl + 0.15)

@@ -60,15 +60,16 @@ const CAMPS: Array[Dictionary] = [
 		"patrol": [Vector2(212, 320), Vector2(228, 334), Vector2(206, 344), Vector2(194, 328)]},
 	{"name": "the wood's north-east edge", "at": Vector3(243.0, 60.0, 260.0), "kinds": ["leaper", "crawler", "crawler"], "probe": 0.0},
 	{"name": "the deep wood's nest", "at": Vector3(178.0, 60.0, 378.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},
-	# --- the Bellfall (tier 4): the bell's heat on the crater's west shoulder (cinder casters, a bulwark), tollmen on
-	# the east rim who ring when you come, a round south of bell_link (the Eighth Ringer holds the bell on the floor).
-	{"name": "the crater's west shoulder", "at": Vector3(288.0, 60.0, -110.0), "kinds": ["cinder", "cinder", "bulwark"], "probe": 0.0, "r": 2.8},     # (on the rim above rift_track, off the Ashen Rift's Choir House and its flow)
-	{"name": "the crater's east rim", "at": Vector3(346.0, 60.0, -88.0), "kinds": ["tollman", "husk", "gaunt"], "probe": 0.0},
-	{"name": "the round below bell_link", "at": Vector3(270.0, 60.0, -66.0), "kinds": ["husk", "gaunt", "wretch"], "probe": 0.0,
-		"patrol": [Vector2(270, -66), Vector2(280, -64), Vector2(284, -50), Vector2(264, -52)]},
+	# --- the Bellfall (under Lastlight's south wall since the Stair took the Crowns' east corner): the bell's heat on the
+	# crater's west lip (cinder casters, a bulwark), tollmen on the east floor who ring when you come (the Eighth Ringer
+	# holds the bell); and a round on bell_link under the rift's west berm.
+	{"name": "the crater's west lip", "at": Vector3(332.0, 60.0, 110.0), "kinds": ["cinder", "cinder", "bulwark"], "probe": 0.0, "r": 2.8},
+	{"name": "the crater's east floor", "at": Vector3(364.0, 60.0, 109.0), "kinds": ["tollman", "husk", "gaunt"], "probe": 0.0},
+	{"name": "the round below bell_link", "at": Vector3(250.0, 60.0, -48.0), "kinds": ["husk", "gaunt", "wretch"], "probe": 0.0,
+		"patrol": [Vector2(250, -48), Vector2(256, -40), Vector2(248, -30), Vector2(242, -40)]},
 	# --- Lastlight (tier 2): the walled waystation is a safe place, and the road from Saltmarket to its gate is the
-	# salt carter's (village_cast_travellers.gd): a camp at bell_track's lower bend only.
-	{"name": "bell_track's lower bend", "at": Vector3(290.0, 60.0, -14.0), "kinds": ["wretch", "husk", "crawler"], "probe": 0.0},
+	# salt carter's (village_cast_travellers.gd): a camp under the rift's west berm, off bell_link, only.
+	{"name": "under the rift's west berm", "at": Vector3(268.0, 60.0, 16.0), "kinds": ["wretch", "husk", "crawler"], "probe": 0.0},
 	# --- the road west of Weirford (tier 3, the Lanternwood and the Barrows' edge): a pack walks both verges between
 	# the town and fell_track, clear of the town and west of the nav tiles' seam at x -262 (a path across it goes the
 	# long way round)
@@ -76,7 +77,7 @@ const CAMPS: Array[Dictionary] = [
 		"patrol": [Vector2(-268, 74), Vector2(-286, 72), Vector2(-288, 48), Vector2(-268, 46)]},
 	# --- the Drowned Nave (tier 3): the drowned come out of the nave's water onto its shores (the Precentor holds
 	# the nave's door).
-	{"name": "the nave's east shore", "at": Vector3(348.0, 60.0, 124.0), "kinds": ["husk@drowned", "spitter", "wretch@drowned"], "probe": 0.0},
+	{"name": "the nave's east shore", "at": Vector3(349.0, 60.0, 127.0), "kinds": ["husk@drowned", "spitter", "wretch@drowned"], "probe": 0.0},
 	{"name": "the nave's south shore", "at": Vector3(298.0, 60.0, 212.0), "kinds": ["ossuant@drowned", "chanter", "ossuant"], "probe": 0.0},
 	# --- the Thousand Cairns (tier 4): pilgrims who turned back lie under the north cairns (they rise as you pass),
 	# gaunts walk the heath, and the windward cairns past the tower (the Cairn-Warden holds its foot).

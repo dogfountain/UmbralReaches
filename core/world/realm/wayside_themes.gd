@@ -130,7 +130,7 @@ const REGIONS := {
 }
 
 ## Regions the wayside leaves alone: towns are dressed by their own builders, boss and set-piece ground by theirs.
-const SKIP := ["hearth", "chapel", "henge", "rift", "ossuary", "summit", "glade", "necropolis", "barrows", "orchard", "ashrift"]
+const SKIP := ["hearth", "chapel", "henge", "rift", "ossuary", "summit", "glade", "necropolis", "barrows", "orchard"]
 
 ## Biome fallback (a region with no entry above).
 const BIOMES := {
@@ -190,7 +190,8 @@ const NAMED := {
 	"bellfall": [
 		{"id": "bf_shards", "name": "The Shard Field", "line": "pieces of a bell that fell out of the sky", "kinds": ["debris"], "lore": "wy_bf_shards", "box": true},
 		{"id": "bf_ringers", "name": "The Ringers' Cairn", "line": "they came to ring it, and it rang them", "kinds": ["cairns", "bones"], "lore": "wy_bf_ringers"},
-		{"id": "bf_watch", "name": "The Scorch Watch", "line": "the crater from its lip", "kinds": ["lookout", "battle"], "lore": "wy_bf_watch"}],
+		{"id": "bf_watch", "name": "The Scorch Watch", "line": "the crater from its lip", "kinds": ["lookout", "battle"], "lore": "wy_bf_watch"},
+		{"id": "bf_tongue", "name": "The Thrown Tongue", "line": "the clapper, flung clear when it struck", "kinds": ["debris", "bones"], "lore": "wy_bf_tongue"}],
 	"lastlight": [
 		{"id": "ll_graves", "name": "The Turned-Back Graves", "line": "they reached the last lamp, and no further", "kinds": ["graves"], "lore": "wy_ll_graves"},
 		{"id": "ll_halt", "name": "Carters' Halt", "line": "the carts waited for the gate to open", "kinds": ["camp", "cart"], "lore": "wy_ll_halt", "box": true},

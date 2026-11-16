@@ -3,7 +3,7 @@ extends RefCounted
 ## build() after), placed by ground ray. Lastlight and its East Gate are the towns' (reach_towns*.gd).
 ##
 ##   bellfall   the eighth bell (tools/blender/vista_bell.py): fallen on its side in the
-##              crater at RealmReaches.CRATER_C, a third sunk, its mouth toward the south lip where bell_track comes in;
+##              crater at RealmReaches.CRATER_C (under Lastlight's south wall), a third sunk, its mouth toward the south lip;
 ##              the lip's shards thrown across the floor, fallen rock heaped round it, thin smoke still rising from the
 ##              impact's cracks (each crack drawn on the floor, glowing with the Ashen Rift's fire under it: the rift
 ##              tore open behind the crater, rift/scorch.gd), a chest in its mouth, a glide perch on its back. Far mesh from 140 m.
@@ -24,7 +24,7 @@ const SecretKit := preload("res://core/life/secrets/kit.gd")
 const RiftFeatures := preload("res://core/world/realm/rift/features.gd")     ## (its molten seam shader, for the impact's cracks)
 
 const BELL := "vista_bell.glb"
-const SCALE := 1.55                          ## the model is 12.6 m across the mouth: the eighth bell is ~20
+const SCALE := 1.25                          ## the model is 12.6 m across the mouth: the eighth bell is ~16
 const BELL_FAR := "res://art/models/vista_bell_far.glb"
 const NAVE := "res://art/models/reach_e_nave.glb"
 const Land := preload("res://core/world/realm/realm_land.gd")
@@ -55,7 +55,7 @@ static func reserve(root: Node) -> void:
 	for k in 9:
 		var q := c + Vector2(cos(TAU * k / 9.0), sin(TAU * k / 9.0)) * (0.0 if k == 0 else 5.0)
 		_bell_y = minf(_bell_y, RealmLayout.ground(space, q.x, q.y))
-	Flora.tree_clear.append([c, 34.0])                # the crater burned: nothing grows in it yet
+	Flora.tree_clear.append([c, RealmReaches.CRATER_R + 4.0])      # the crater burned: nothing grows in it yet
 	var tg := _tower_ground(space)
 	Flora.tree_clear.append([TOWER_AT, 28.0])               # the heath's crown is open: the tower stands clear
 	WorldLanes.register_site("poi_cairn_tower", Rect2(TOWER_AT - Vector2(11.5, 11.5), Vector2(23.0, 23.0)), tg, tg)
@@ -146,7 +146,7 @@ static func _bell(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	rng.seed = 808
 	for k in 26:
 		var a := rng.randf() * TAU
-		var r := rng.randf_range(12.0, 24.0)
+		var r := rng.randf_range(9.0, 18.0)
 		var q := c + Vector2(cos(a), sin(a) * 0.85) * r
 		if RealmLayout.path_dist(q) < 3.0:
 			continue
@@ -160,7 +160,7 @@ static func _bell(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	seams.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for k in 4:
 		var a := 0.9 + k * 1.6
-		var q := c + Vector2(cos(a), sin(a)) * rng.randf_range(10.0, 15.0)
+		var q := c + Vector2(cos(a), sin(a)) * rng.randf_range(7.0, 11.0)
 		_crack(seams, space, q, a + PI * 0.5, rng)
 		var spit := Vfx.emitter(Color(1.8, 0.6, 0.12), {"count": 8, "life": 2.2, "speed": Vector2(0.6, 1.8), "size": 0.045, "gravity": -0.8, "radius": 0.4, "spread": 25.0, "turbulence": true})
 		if spit:

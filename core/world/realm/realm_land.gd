@@ -21,7 +21,7 @@ extends RefCounted
 ##
 ## API for other modules (load this script by path; no class_name by rule):
 ##   height_at(x, z)        designed ground height before site stamps (bilinear, BOUNDS + 10 m)
-##   old_height_at(x, z)    the old baked terrain's height (kept core reference), NAN outside it
+##   old_height_at(x, z)    the old baked terrain's height (kept core reference, Endgame.back_x), NAN outside it
 ##   biome_weights(x, z)    {"meadow", "loam", "mud", "ash", "heath", "crag", "ruin", "salt"} -> 0..1
 ##   in_water(x, z)         true where a fen pool covers the ground; WATER_Y is its surface
 ##   keep_weight(x, z)      1 inside the kept core, fading to 0 over KEEP_FALL
@@ -46,7 +46,7 @@ const SPAWN_FALL := 12.0
 const SPAWN_Y := -0.02
 const TAVERN_FLAT := Rect2(8.5, 24.0, 21.5, 12.4)    ## TAVERN + its east yard, a little margin
 const TAVERN_FALL := 7.0
-const SUMMIT_C := Vector2(0.0, -95.0)
+const SUMMIT_C := Vector2(0.0, -95.0) + Endgame.O2
 const SUMMIT_R := 30.0
 const MAT := "res://art/materials/realm_ground.tres"
 const WATER_MAT := "res://art/materials/realm_ground_water.tres"
@@ -112,6 +112,7 @@ static func build(root: Node) -> void:
 	var hw: Array = lc.heights(fp, GNX * GNZ, func() -> Array: _make_profiles(); _heights(); return [_h, _wear_g]); _h = hw[0]; _wear_g = hw[1]
 	var t1 := Time.get_ticks_msec()
 	var md: Dictionary = lc.meshes(fp, func() -> Dictionary: return {"t": _terrain_data(), "r": _ring_data(), "p": _pool_data()})
+	_h = Endgame.borrow(_h, GX0, GZ0, STEP, GNX)     # home holds the north-east's ground while the rift builds there (Endgame)
 	var terrain := _terrain_mesh(md.t)
 	terrain.name = "Terrain"
 	terrain.layers = LightPolicy.NO_FIRE_LAYER       # seen, lit and moon-shadowed as before; not in the fire shadow
@@ -223,7 +224,7 @@ static func _sample_old(mi: MeshInstance3D) -> void:
 static func old_height_at(x: float, z: float) -> float:
 	if _old.is_empty():
 		return NAN
-	var fx := (x - _old_x0) / _old_step
+	var fx := (x - Endgame.back_x(x) - _old_x0) / _old_step        # the endgame's chasm reads where it was baked (Endgame)
 	var fz := (z - _old_z0) / _old_step
 	var i := clampi(floori(fx), 0, _old_nx - 2)
 	var j := clampi(floori(fz), 0, _old_nz - 2)

@@ -1,5 +1,5 @@
 extends RefCounted
-## The rim of the Starwater Rift, where the rift_rim path leaves Hearthward for the Crossing: the
+## The rim of the Ashen Rift, where the rift_rim path comes up from Lastlight to the Crossing (the far north-east: Endgame): the
 ## Last Bell (a great bronze bell off the Stair, cracked, lying on its lip in the ash, its yoke
 ## broken and its tongue torn out) and the Hierarch's third edict on a stele, cut the morning of
 ## the Night. Kept off the rift itself (z > -11), the path and every site.
@@ -10,7 +10,7 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 static func build(parent: Node) -> void:
 	var L: RefCounted = LK.begin(parent, "RiftRim", 2020)
 	var k: OssKit = L.k
-	var ba: Vector3 = L.spot_any("rim_bell", [Vector2(-7.0, -3.0), Vector2(7.5, -3.5), Vector2(-7.5, 3.0), Vector2(8.0, 2.0), Vector2(-9.0, -7.0)], 2.0, 0.4)
+	var ba: Vector3 = L.spot_any("rim_bell", [Vector2(-7.0, -3.0) + Endgame.O2, Vector2(7.5, -3.5) + Endgame.O2, Vector2(-7.5, 3.0) + Endgame.O2, Vector2(8.0, 2.0) + Endgame.O2, Vector2(-9.0, -7.0) + Endgame.O2], 2.0, 0.4)
 	if ba != Vector3.INF:
 		var yaw := atan2(-ba.x, 0.0) + 0.6
 		var b := Basis(Vector3.UP, yaw)
@@ -35,10 +35,10 @@ static func build(parent: Node) -> void:
 		k.box("iron", ba + b * Vector3(1.3, 0.36, -0.4), Vector3(0.5, 0.06, 0.08), b * Basis(Vector3.UP, 0.5), false, 0.6)
 		k.candle_cluster(ba + b * Vector3(-0.2, 0.0, -1.1), 3, 0.15, L.rng)
 		L.scrap("rim_bell", ba + b * Vector3(-0.4, 0.3, -1.8), ba + Vector3.UP * 1.1)
-	var ea: Vector3 = L.spot_any("rim_edict", [Vector2(-6.0, 9.0), Vector2(6.5, -1.0), Vector2(-6.5, 13.0), Vector2(6.5, 12.0)], 0.9, 0.4)
+	var ea: Vector3 = L.spot_any("rim_edict", [Vector2(-6.0, 9.0) + Endgame.O2, Vector2(6.5, -1.0) + Endgame.O2, Vector2(-6.5, 13.0) + Endgame.O2, Vector2(6.5, 12.0) + Endgame.O2], 0.9, 0.4)
 	if ea != Vector3.INF:
-		var d := Vector2(0.0, ea.z) - Vector2(ea.x, ea.z)
+		var d := Vector2(Endgame.O.x, ea.z) - Vector2(ea.x, ea.z)
 		var fp: Vector3 = L.stele(ea, atan2(-d.x, -d.y), 2.3)
-		L.scrap("rim_edict_3", ea + Vector3(signf(-ea.x) * 1.3, 0.3, 0.0), fp + Vector3.UP * 0.5)
+		L.scrap("rim_edict_3", ea + Vector3(signf(Endgame.O.x - ea.x) * 1.3, 0.3, 0.0), fp + Vector3.UP * 0.5)
 	L.finish()
-	L.note("The Rift's Rim", Vector3(0, 0, 0))
+	L.note("The Rift's Rim", Endgame.O)

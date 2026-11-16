@@ -86,13 +86,13 @@ func _done() -> void:
 
 func _tiers() -> void:
 	var hearth := Vector3(0, 0, 40)
-	var rift := Vector3(0, 0, -40)
+	var rift := Vector3(0, 0, -40) + Endgame.O
 	var fen := Vector3(80, 0, 0)
 	check("tier: Hearthward 0 on a fresh night", Tiers.tier_at(hearth) == 0, str(Tiers.tier_at(hearth)))
-	check("tier: Rift 2", Tiers.tier_at(rift) == 2, str(Tiers.tier_at(rift)))
+	check("tier: Rift 4 (the far north-east)", Tiers.tier_at(rift) == 4, str(Tiers.tier_at(rift)))
 	check("tier: fen 1", Tiers.tier_at(fen) == 1)
 	Travel.bosses_slain["thornwarden"] = true
-	check("tier: a felled boss deepens the night", Tiers.tier_at(hearth) == 1 and Tiers.tier_at(rift) == 3)
+	check("tier: a felled boss deepens the night", Tiers.tier_at(hearth) == 1 and Tiers.tier_at(rift) == 5)
 	Travel.bosses_slain["bone_abbot"] = true
 	var w := (load("res://core/enemy/wretch.gd") as GDScript).new() as Enemy
 	var base_hp := w.max_hp
@@ -215,7 +215,7 @@ func _tide() -> void:
 	for h in hunters:
 		var e := h as Enemy
 		var dist := Vector2(e.global_position.x - spot.x, e.global_position.z - spot.z).length()
-		if dist < 17.0 or not bool(d.call("spot_ok", e.global_position)) or not e.has_meta(&"enc_hunter") or e.get_meta(&"enc_variant", "") != "tideborn":
+		if dist < 17.0 or not bool(d.call("spot_ok", e.get_meta(&"enc_spawn", e.global_position))) or not e.has_meta(&"enc_hunter") or e.get_meta(&"enc_variant", "") != "tideborn":
 			fair = false
 			print("ENCTEST info: unfair hunter at ", e.global_position, " dist ", dist)
 	check("tide: hunters tideborn, out of the haven/light, 19 m+ away", fair)
