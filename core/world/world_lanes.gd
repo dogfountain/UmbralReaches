@@ -119,12 +119,50 @@ static func register_lane(n: String, pts: Array, half_w: float) -> void:
 	extra_lanes.append([n, pts, half_w])
 
 
-## Site whose footprint (grown by `margin`) covers XZ point p, or {}.
+## Site whose footprint (grown by `margin`) covers XZ point p, or {} (the first such in `sites`).
 static func site_at(p: Vector2, margin := 0.0) -> Dictionary:
-	for s in sites:
-		if not is_nan(site_floor(s, p, margin)):
-			return s
+	if margin > _SITE_REACH:
+		for s in sites:
+			if not is_nan(site_floor(s, p, margin)):
+				return s
+		return {}
+	_index_sites()
+	var ids: Variant = _site_cells.get(Vector2i(floori(p.x / _SITE_CELL), floori(p.y / _SITE_CELL)))
+	if ids == null:
+		return {}
+	for i: int in ids as PackedInt32Array:
+		if not is_nan(site_floor(sites[i], p, margin)):
+			return sites[i]
 	return {}
+
+
+## site_at's index: the sites whose rect grown by _SITE_REACH meets each _SITE_CELL square, in list order (a scan
+## of every site was a few thousand checks a call, and the build makes tens of thousands of calls). `sites` only
+## ever grows or is cleared: new ones are added as they come; a list that shrank or starts with another site
+## (cleared and filled again) is indexed afresh.
+const _SITE_CELL := 16.0
+const _SITE_REACH := 8.0
+static var _site_cells := {}             ## Vector2i -> PackedInt32Array of indices into sites
+static var _site_n := 0
+static var _site_first: Dictionary = {}
+
+
+static func _index_sites() -> void:
+	if sites.size() < _site_n or (_site_n > 0 and not is_same(sites[0], _site_first)):
+		_site_cells.clear()
+		_site_n = 0
+	while _site_n < sites.size():
+		var s: Dictionary = sites[_site_n]
+		if _site_n == 0:
+			_site_first = s
+		var r := (s.get("rect", Rect2()) as Rect2).grow(_SITE_REACH)
+		for cz in range(floori(r.position.y / _SITE_CELL), floori(r.end.y / _SITE_CELL) + 1):
+			for cx in range(floori(r.position.x / _SITE_CELL), floori(r.end.x / _SITE_CELL) + 1):
+				var k := Vector2i(cx, cz)
+				var ids: PackedInt32Array = _site_cells.get(k, PackedInt32Array())
+				ids.append(_site_n)
+				_site_cells[k] = ids
+		_site_n += 1
 
 
 static func _on_runtime_lane(p: Vector2, reach: float) -> bool:

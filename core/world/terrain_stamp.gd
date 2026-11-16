@@ -5,9 +5,17 @@ extends RefCounted
 ##   - where a structure's underside floats above the ground, the ground rises to meet it;
 ##   - where the ground covers a structure's walk surface, it drops just below it;
 ## then the change fades out over FALLOFF metres so no ridge or pit is left at the edge.
+##
+## While the Realm builds, the grid's heights are kept in step with the terrain (and a CPU copy of its arrays, so
+## no pass reads the mesh back from the renderer). RealmLand's terrain declares its layout (meta "grid"), so the
+## grid knows its triangles: ground_at() answers the terrain's height without a ray (Footing.terrain_y, the
+## settle's passes), a write rewrites only the collision cells round the moved vertices, and settle() casts its
+## rays once and writes once (it was three ray sweeps and three rebuilds of the mesh and its 218,000-triangle shape).
+## release() ends that at the end of the build.
 
 const CONTACT := Metrics.CONTACT
 const FALLOFF := 4.0         ## metres over which a stamp blends back into the original ground
+const NUDGE := Vector2(0.0037, 0.0029)   ## off the grid lines: a ray on a triangle edge can slip through
 
 
 ## How far the ground moved (site stamps), per grid vertex of the current terrain. Baked scatter
@@ -16,6 +24,29 @@ static var _dh := {}
 static var _settled := {}          ## the same, for settle()'s lowering alone
 static var _dh_grid: _Grid
 static var _dh_owner := 0
+static var _arrays: Array = []     ## the terrain mesh's surface arrays as last written (the build's CPU copy)
+static var _arrays_id := 0         ## ... and the mesh they are
+
+
+## The terrain's own height at (x, z), from its triangles as the build last wrote them; NAN where that is not
+## known (no RealmLand grid yet, off it, or the build is done: see release()). The same figure a ray to the
+## TerrainBody finds, without the ray.
+static func ground_at(x: float, z: float) -> float:
+	if _dh_grid == null or not _dh_grid.exact or not is_instance_valid(instance_from_id(_dh_owner)):
+		return NAN
+	return _dh_grid.tri_height(x, z)
+
+
+## The Realm is built: drop the build's copies. ground_at() stops answering (the Ossuary cuts its crypt's door
+## out of the terrain after this, which the grid would not see); delta_at() and settle_delta_at() go on.
+static func release() -> void:
+	_arrays = []
+	_arrays_id = 0
+	if _dh_grid != null:
+		_dh_grid.exact = false
+		_dh_grid.mesh_id = 0
+		_dh_grid.ys = PackedFloat32Array()
+		_dh_grid.vert_of = PackedInt32Array()
 
 
 ## Total ground height change at (x, z) since the baked terrain, bilinear between grid vertices.
@@ -37,8 +68,34 @@ static func _own(body: StaticBody3D, grid: _Grid) -> void:
 	if _dh_owner != body.get_instance_id():
 		_dh = {}
 		_settled = {}
-		_dh_grid = grid
 		_dh_owner = body.get_instance_id()
+	_dh_grid = grid
+
+
+## The terrain mesh's arrays: the copy the last write kept when it is still this mesh, else read from it.
+static func _terrain_arrays(terrain: MeshInstance3D) -> Array:
+	if _arrays.is_empty() or _arrays_id != terrain.mesh.get_instance_id():
+		_arrays = terrain.mesh.surface_get_arrays(0)
+		_arrays_id = terrain.mesh.get_instance_id()
+	return _arrays
+
+
+## The grid of `terrain` as it stands: the one kept since the last write when it is still this mesh's, else made
+## from the mesh. RealmLand's terrain carries its layout (meta "grid": [x0, z0, step, nx, nz]: vertex k is grid
+## index k, two triangles a cell in index order, and its shape holds the same triangles in the same order), which
+## makes the grid exact.
+static func _grid_for(terrain: MeshInstance3D, body: StaticBody3D, arrays: Array) -> _Grid:
+	if _dh_grid != null and _dh_owner == body.get_instance_id() and _dh_grid.mesh_id == terrain.mesh.get_instance_id():
+		return _dh_grid
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var grid := _Grid.new()
+	var dims: Variant = terrain.get_meta(&"grid", null)
+	if not (dims is Array and grid.build_regular(verts, arrays[Mesh.ARRAY_INDEX], terrain.global_transform, dims)):
+		grid = _Grid.new()
+		if not grid.build(verts, terrain.global_transform):
+			return null
+	grid.mesh_id = terrain.mesh.get_instance_id()
+	return grid
 
 
 static func apply(root: Node) -> void:
@@ -47,10 +104,10 @@ static func apply(root: Node) -> void:
 	if terrain == null or terrain.mesh == null or body == null or root.has_meta("terrain_stamped"):
 		return
 	root.set_meta("terrain_stamped", true)
-	var arrays := terrain.mesh.surface_get_arrays(0)
+	var arrays := _terrain_arrays(terrain)
 	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	var grid := _Grid.new()
-	if not grid.build(verts, terrain.global_transform):
+	var grid := _grid_for(terrain, body, arrays)
+	if grid == null:
 		push_warning("TerrainStamp: terrain is not a regular grid; skipped")
 		return
 	_own(body, grid)
@@ -97,6 +154,7 @@ static func apply(root: Node) -> void:
 			hi = maxf(hi, v)
 		print("TERRAIN_MOUND %d vertices heaped under roots and the like (%.2f .. %.2f)" % [heaped.size(), lo, hi])
 	_write(terrain, body, grid, arrays, verts, out)
+	grid.shift(out)
 	WorldLanes.clear_cache()
 	print("TERRAIN_STAMP %d vertices stamped, %d blended" % [delta.size(), out.size() - delta.size()])
 
@@ -142,24 +200,41 @@ const SETTLE_DEEPEST := 1.5      ## and no vertex drops further than this
 ## swallowed or fights is found, and a stepped yard's upper treads are not. Repeated rays: one body
 ## holds many shapes.
 static func walk_surface(space: PhysicsDirectSpaceState3D, p: Vector2, fy: float) -> Vector2:
-	p += Vector2(0.0037, 0.0029)             # off the grid lines: a ray on a triangle edge can slip through
-	var ground := NAN
-	var tops: Array[float] = []
+	p += NUDGE
+	var rid: Array[RID] = []
+	var ground := _ray_ground(space, p, fy, rid)
+	if is_nan(ground):
+		return Vector2(NAN, NAN)
+	var top := _ray_top(space, p, fy, rid[0])
+	return Vector2(NAN, NAN) if is_nan(top) else Vector2(ground, top)
+
+
+## The terrain's height under p (already nudged) by ray, from fy + 4 down to fy - 6 (whole bodies set aside until
+## the terrain answers), NAN for none; the terrain body's RID goes into `rid`.
+static func _ray_ground(space: PhysicsDirectSpaceState3D, p: Vector2, fy: float, rid: Array[RID]) -> float:
 	var from := Vector3(p.x, fy + 4.0, p.y)  # from well above: a hillside can stand higher than the floor
 	var to := Vector3(p.x, fy - 6.0, p.y)
 	var skip: Array[RID] = []
-	for k in 40:                             # the ground first (whole bodies set aside until the terrain answers)
+	for k in 40:
 		var q := PhysicsRayQueryParameters3D.create(from, to, Layers.WORLD)
 		q.exclude = skip
 		var hit := space.intersect_ray(q)
 		if hit.is_empty():
-			return Vector2(NAN, NAN)
+			return NAN
 		skip.append(hit.rid)
 		if String((hit.collider as Node).name) == "TerrainBody":
-			ground = (hit.position as Vector3).y
-			break
-	skip = [skip[skip.size() - 1]]           # the terrain only: a floor laid exactly on it must still be seen
-	var y0 := from.y
+			rid.append(hit.rid)
+			return (hit.position as Vector3).y
+	return NAN
+
+
+## The walk surface under p (already nudged) nearest the site's floor height `fy` (a stepped yard has several), the
+## terrain (`terrain`) set aside so a floor laid exactly on it is still seen; NAN for none.
+static func _ray_top(space: PhysicsDirectSpaceState3D, p: Vector2, fy: float, terrain: RID) -> float:
+	var tops: Array[float] = []
+	var to := Vector3(p.x, fy - 6.0, p.y)
+	var skip: Array[RID] = [terrain]
+	var y0 := fy + 4.0
 	for k in 40:
 		var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, y0, p.y), to, Layers.WORLD)
 		q.exclude = skip
@@ -170,40 +245,60 @@ static func walk_surface(space: PhysicsDirectSpaceState3D, p: Vector2, fy: float
 		y0 = y - 0.0002
 		if (hit.normal as Vector3).y > 0.9 and y >= fy - SETTLE_BELOW and y <= fy + SETTLE_ABOVE:
 			tops.append(y)
-	if is_nan(ground) or tops.is_empty():
-		return Vector2(NAN, NAN)
+	if tops.is_empty():
+		return NAN
 	var best := tops[0]
-	for y in tops:                                  # the surface nearest the site's floor height (a stepped yard has several)
+	for y in tops:
 		if absf(y - fy) < absf(best - fy) - 0.0005:
 			best = y
-	return Vector2(ground, best)
+	return best
 
 
 ## After every building is standing: wherever a walk surface (the real colliders) lies inside a
 ## registered site and the ground there is within SETTLE_GAP of it or above it, the grid vertices of
 ## that terrain cell drop to SETTLE_GAP under the lowest floor they touch. The stamp cut to a figure
 ## decided before the building existed; this measures the floor that was built. Only ever lowers.
+## The floors do not move while it works, only the ground: their walk surfaces are found by ray once, and on an
+## exact grid each pass reads the ground from the grid and the terrain is written once at the end.
 static func settle(root: Node) -> void:
 	var terrain := root.find_child("Terrain", true, false) as MeshInstance3D
 	var body := root.find_child("TerrainBody", true, false) as StaticBody3D
 	if terrain == null or terrain.mesh == null or body == null or WorldLanes.sites.is_empty():
 		return
-	for pass_n in 3:           # each sees what the one before's blending brought up to a floor
-		await root.get_tree().physics_frame
-		if not _settle_pass(root, terrain, body, pass_n == 0):
-			return
-
-
-static func _settle_pass(root: Node, terrain: MeshInstance3D, body: StaticBody3D, report: bool) -> bool:
-	var arrays := terrain.mesh.surface_get_arrays(0)
-	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	var grid := _Grid.new()
-	if not grid.build(verts, terrain.global_transform):
-		return false
+	await root.get_tree().physics_frame
+	var arrays := _terrain_arrays(terrain)
+	var grid := _grid_for(terrain, body, arrays)
+	if grid == null:
+		return
+	_own(body, grid)
 	var space := (root as Node3D).get_world_3d().direct_space_state
-	var cap := {}            # grid index -> the highest this vertex may stand
-	var fixed := 0
-	var deep := {}
+	var sm := _floor_samples(space, body.get_rid())
+	var pending := {}
+	for pass_n in 3:           # each sees what the one before's blending brought up to a floor
+		if not grid.exact and not pending.is_empty():
+			_write(terrain, body, grid, arrays, arrays[Mesh.ARRAY_VERTEX], pending)    # (a grid without its triangles reads the ground by ray)
+			arrays = _terrain_arrays(terrain)
+			pending = {}
+			await root.get_tree().physics_frame
+		var out := _settle_pass(space, grid, sm, pass_n == 0)
+		if out.is_empty():
+			break
+		grid.shift(out)
+		for idx: int in out:
+			_settled[idx] = float(_settled.get(idx, 0.0)) + float(out[idx])
+			pending[idx] = float(pending.get(idx, 0.0)) + float(out[idx])
+	if not pending.is_empty():
+		_write(terrain, body, grid, arrays, arrays[Mesh.ARRAY_VERTEX], pending)
+	WorldLanes.clear_cache()
+
+
+## Every floor sample (SETTLE_STEP apart inside each floor site) with a walk surface near its site's floor height:
+## {p: the sample, top: that surface, fy: the site's floor height, name: the site's}.
+static func _floor_samples(space: PhysicsDirectSpaceState3D, terrain: RID) -> Dictionary:
+	var pts := PackedVector2Array()
+	var tops := PackedFloat64Array()
+	var fys := PackedFloat64Array()
+	var names := PackedStringArray()
 	for st: Dictionary in WorldLanes.sites:
 		if not WorldLanes.is_floor_site(st):
 			continue
@@ -217,23 +312,57 @@ static func _settle_pass(root: Node, terrain: MeshInstance3D, body: StaticBody3D
 				z += SETTLE_STEP
 				if is_nan(WorldLanes.site_floor(st, p)):
 					continue
-				var s := walk_surface(space, p, fy)
-				if not is_nan(s.x) and not is_nan(s.y) and s.x - s.y > SETTLE_BURIED:
-					deep[st.name] = int(deep.get(st.name, 0)) + 1
-				if is_nan(s.x) or is_nan(s.y) or s.x < s.y - SETTLE_GAP or s.x - s.y > SETTLE_BURIED:
-					continue                       # no floor or no ground here, already clear, or a cellar
-				var fi := floori((p.x - grid.x0) / grid.step)
-				var fj := floori((p.y - grid.z0) / grid.step)
-				fixed += 1
-				for dj in 2:
-					for di in 2:
-						var i := fi + di
-						var j := fj + dj
-						if i < 0 or j < 0 or i >= grid.nx or j >= grid.nz:
-							continue
-						var idx := j * grid.nx + i
-						cap[idx] = minf(float(cap.get(idx, INF)), s.y - SETTLE_GAP)
+				var top := _ray_top(space, p + NUDGE, fy, terrain)
+				if is_nan(top):
+					continue
+				pts.append(p)
+				tops.append(top)
+				fys.append(fy)
+				names.append(String(st.name))
 			x += SETTLE_STEP
+	return {"p": pts, "top": tops, "fy": fys, "name": names}
+
+
+## One pass: the ground under every sample (the grid's triangles, or a ray on a grid without them) against its walk
+## surface; returns the lowering (spread), {} when nothing more meets a floor.
+static func _settle_pass(space: PhysicsDirectSpaceState3D, grid: _Grid, sm: Dictionary, report: bool) -> Dictionary:
+	var pts: PackedVector2Array = sm.p
+	var tops: PackedFloat64Array = sm.top
+	var fys: PackedFloat64Array = sm.fy
+	var names: PackedStringArray = sm.name
+	var cap := {}            # grid index -> the highest this vertex may stand
+	var fixed := 0
+	var deep := {}
+	var no_rid: Array[RID] = []
+	for s in pts.size():
+		var p := pts[s]
+		var fy := fys[s]
+		var g := NAN
+		if grid.exact:
+			g = grid.tri_height(p.x + NUDGE.x, p.y + NUDGE.y)
+			if g > fy + 4.0 or g < fy - 6.0:
+				g = NAN                        # out of the ray's reach (a floor deep in the hillside)
+		else:
+			g = _ray_ground(space, p + NUDGE, fy, no_rid)
+		if is_nan(g):
+			continue
+		var top := tops[s]
+		if g - top > SETTLE_BURIED:
+			deep[names[s]] = int(deep.get(names[s], 0)) + 1
+			continue                           # a cellar
+		if g < top - SETTLE_GAP:
+			continue                           # already clear
+		var fi := floori((p.x - grid.x0) / grid.step)
+		var fj := floori((p.y - grid.z0) / grid.step)
+		fixed += 1
+		for dj in 2:
+			for di in 2:
+				var i := fi + di
+				var j := fj + dj
+				if i < 0 or j < 0 or i >= grid.nx or j >= grid.nz:
+					continue
+				var idx := j * grid.nx + i
+				cap[idx] = minf(float(cap.get(idx, INF)), top - SETTLE_GAP)
 	if report and not deep.is_empty():
 		print("TERRAIN_SETTLE floors left in the hillside (ground over 45 cm above): ", deep)
 	var delta := {}
@@ -244,14 +373,10 @@ static func _settle_pass(root: Node, terrain: MeshInstance3D, body: StaticBody3D
 		if dy < -0.005:
 			delta[idx] = maxf(dy, -SETTLE_DEEPEST)
 	if delta.is_empty():
-		return false
+		return {}
 	var out := _spread(delta, {}, grid)
-	_write(terrain, body, grid, arrays, verts, out)
-	for idx: int in out:
-		_settled[idx] = float(_settled.get(idx, 0.0)) + float(out[idx])
-	WorldLanes.clear_cache()
 	print("TERRAIN_SETTLE %d floor samples met the ground; %d vertices lowered, %d blended" % [fixed, delta.size(), out.size() - delta.size()])
-	return true
+	return out
 
 
 ## Earth heaped under something modelled for flat ground (a colossal tree's roots), queued before the stamp
@@ -345,7 +470,11 @@ static func _write(terrain: MeshInstance3D, body: StaticBody3D, grid: _Grid, arr
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	mesh.surface_set_material(0, terrain.mesh.surface_get_material(0))
 	terrain.mesh = mesh
+	_arrays = arrays
+	_arrays_id = mesh.get_instance_id()
+	grid.mesh_id = _arrays_id
 	# collision follows: shift each face vertex by the same field (bilinear between grid points)
+	var tri: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if grid.exact else PackedInt32Array()
 	for c in body.get_children():
 		var cs := c as CollisionShape3D
 		if cs == null or not (cs.shape is ConcavePolygonShape3D):
@@ -353,15 +482,37 @@ static func _write(terrain: MeshInstance3D, body: StaticBody3D, grid: _Grid, arr
 		var faces := (cs.shape as ConcavePolygonShape3D).get_faces()
 		var xf := body.global_transform * cs.transform
 		var xi := xf.affine_inverse()
-		for k in faces.size():
-			var wp := xf * faces[k]
-			var dy := grid.field(out, wp.x, wp.z)
-			if dy != 0.0:
-				faces[k] = xi * (wp + Vector3.UP * dy)
+		if grid.exact and faces.size() == tri.size():
+			faces = _write_cells(faces, tri, verts, xi * terrain.global_transform, grid, out)
+		else:
+			for k in faces.size():
+				var wp := xf * faces[k]
+				var dy := grid.field(out, wp.x, wp.z)
+				if dy != 0.0:
+					faces[k] = xi * (wp + Vector3.UP * dy)
 		var shape := ConcavePolygonShape3D.new()
 		shape.backface_collision = (cs.shape as ConcavePolygonShape3D).backface_collision
 		shape.set_faces(faces)
 		cs.shape = shape
+
+
+## An exact grid's shape holds the mesh's triangles in index order, two a cell: only the cells round the moved
+## vertices are rewritten (from the mesh's vertices, `m` = mesh space to shape space), not all 653,000 corners.
+static func _write_cells(faces: PackedVector3Array, tri: PackedInt32Array, verts: PackedVector3Array, m: Transform3D, grid: _Grid, out: Dictionary) -> PackedVector3Array:
+	var cw := grid.nx - 1
+	var done := {}
+	for idx: int in out:
+		var i := idx % grid.nx
+		var j := idx / grid.nx
+		for cj in range(maxi(j - 1, 0), mini(j, grid.nz - 2) + 1):
+			for ci in range(maxi(i - 1, 0), mini(i, cw - 1) + 1):
+				var cell := cj * cw + ci
+				if done.has(cell):
+					continue
+				done[cell] = true
+				for k in range(cell * 6, cell * 6 + 6):
+					faces[k] = m * verts[tri[k]]
+	return faces
 
 
 class _Grid:
@@ -373,6 +524,67 @@ class _Grid:
 	var vert_of := PackedInt32Array()     # grid index -> vertex index (-1 none)
 	var ys := PackedFloat32Array()        # world y per grid index
 	var xf := Transform3D.IDENTITY
+	var exact := false                    # RealmLand's layout: tri_height() knows the triangles
+	var mesh_id := 0                      # the terrain mesh ys describes
+
+	## RealmLand's terrain (dims [x0, z0, step, nx, nz]: vertex k is grid index k, cells of [a, b, c, b, d, c]),
+	## checked at a few cells and corners. False (and the generic build() is used) when it does not hold.
+	func build_regular(verts: PackedVector3Array, idx: Variant, t: Transform3D, dims: Array) -> bool:
+		if dims.size() != 5 or not t.basis.is_equal_approx(Basis.IDENTITY) or not (idx is PackedInt32Array):
+			return false
+		nx = int(dims[3])
+		nz = int(dims[4])
+		x0 = float(dims[0]) + t.origin.x
+		z0 = float(dims[1]) + t.origin.z
+		step = float(dims[2])
+		var ia: PackedInt32Array = idx
+		if nx < 2 or nz < 2 or verts.size() != nx * nz or ia.size() != (nx - 1) * (nz - 1) * 6:
+			return false
+		var cw := nx - 1
+		for cell: int in [0, cw - 1, (nz - 2) * cw, (nz - 1) * cw - 1, ((nz - 1) / 2) * cw + cw / 2]:
+			var a := (cell / cw) * nx + cell % cw
+			var want := [a, a + 1, a + nx, a + 1, a + nx + 1, a + nx]
+			for q in 6:
+				if ia[cell * 6 + q] != want[q]:
+					return false
+		for k: int in [0, nx - 1, nx * nz - 1, (nz / 2) * nx + nx / 2]:
+			var w := t * verts[k]
+			if absf(w.x - (x0 + (k % nx) * step)) > 0.001 or absf(w.z - (z0 + (k / nx) * step)) > 0.001:
+				return false
+		xf = t
+		vert_of.resize(nx * nz)
+		ys.resize(nx * nz)
+		var oy := t.origin.y
+		for k in nx * nz:
+			vert_of[k] = k
+			ys[k] = verts[k].y + oy
+		exact = true
+		return true
+
+	## The terrain's height at world (x, z) on its triangles (exact grids only), NAN off the grid.
+	func tri_height(x: float, z: float) -> float:
+		var fx := (x - x0) / step
+		var fz := (z - z0) / step
+		var i := floori(fx)
+		var j := floori(fz)
+		if i < 0 or j < 0 or i >= nx - 1 or j >= nz - 1 or ys.is_empty():
+			return NAN
+		var u := fx - float(i)
+		var v := fz - float(j)
+		var a := j * nx + i
+		var hb := ys[a + 1]
+		var hc := ys[a + nx]
+		if u + v <= 1.0:                      # triangle (i, j) (i + 1, j) (i, j + 1)
+			var ha := ys[a]
+			return ha + u * (hb - ha) + v * (hc - ha)
+		var hd := ys[a + nx + 1]              # triangle (i + 1, j) (i + 1, j + 1) (i, j + 1)
+		return hd + (1.0 - u) * (hc - hd) + (1.0 - v) * (hb - hd)
+
+	## The heights follow a write (the caller's: a settle pass shifts them before its one write).
+	func shift(out: Dictionary) -> void:
+		for idx: int in out:
+			if vert_of[idx] >= 0:
+				ys[idx] += float(out[idx])
 
 	func build(verts: PackedVector3Array, t: Transform3D) -> bool:
 		xf = t

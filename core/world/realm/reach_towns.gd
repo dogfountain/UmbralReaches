@@ -75,7 +75,8 @@ static func _aabb(pts: Array[Vector2]) -> Rect2:
 ## The terrain under a point, through whatever stands on it (a tree, a reed clump, a prop): RealmLayout.ground falls back
 ## to the coarse macro height when its first hit is not the terrain, a metre off in the meres.
 static func _terrain(space: PhysicsDirectSpaceState3D, x: float, z: float) -> float:
-	return Footing.terrain_y(space, x, z, RealmLayout.macro_height(x, z))
+	var g := Footing.terrain_y(space, x, z, NAN)
+	return RealmLayout.macro_height(x, z) if is_nan(g) else g
 
 
 ## The lowest and highest ground under a piece (a 5 x 5 grid over its turned footprint).

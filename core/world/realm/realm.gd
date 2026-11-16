@@ -178,6 +178,7 @@ static func build(root: Node) -> void:
 	t = Time.get_ticks_usec()
 	await TerrainStamp.settle(root)              # the ground yields to the floors as built (after every building and its dress, before the nav)
 	GroundFollow.settle(root)                    # chests stand on the floors as built and the ground as settled
+	TerrainStamp.release()                       # the build's copy of the terrain (ground_at() stops answering)
 	prof_add("stage: terrain settle", t)
 	await _run("nav", root)                      # after every collider is in; waits a bounded time for the bake
 	t = Time.get_ticks_usec()

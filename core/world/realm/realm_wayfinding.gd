@@ -225,7 +225,7 @@ static func edges(holder: Node3D, space: PhysicsDirectSpaceState3D) -> int:
 			var yaw := atan2(inward.x, inward.y) + rng.randf_range(-0.18, 0.18)
 			var s := rng.randf_range(0.9, 1.15)
 			var cb := Basis(Vector3.UP, yaw).scaled(Vector3(s, s, s))
-			var gf := func(x: float, z: float) -> float: return Footing.terrain_y(space, x, z, RealmLayout.macro_height(x, z))
+			var gf := Footing.terrain_fn(space)
 			# the face stands on the lowest ground under its whole foot, then sinks a little into it
 			var cy: float = Footing.seat_y(gf, Footing.base_points(mesh), cb, c, minf(g, gin) + 4.0, 8.0) - 0.5
 			var xf := Transform3D(cb, Vector3(c.x, cy, c.y))
@@ -251,7 +251,7 @@ static func edges(holder: Node3D, space: PhysicsDirectSpaceState3D) -> int:
 ## A rockfall now buries it just past each gate: the road vanishes under the slide.
 static func _road_falls(host: Node3D, space: PhysicsDirectSpaceState3D, rng: RandomNumberGenerator) -> int:
 	var n := 0
-	var gf := func(x: float, z: float) -> float: return Footing.terrain_y(space, x, z, RealmLayout.macro_height(x, z))
+	var gf := Footing.terrain_fn(space)
 	for path: Dictionary in RealmLayout.PATHS:
 		if path.id != "road":
 			continue

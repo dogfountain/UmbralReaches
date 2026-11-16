@@ -111,6 +111,7 @@ static func build(root: Node) -> void:
 	var terrain := _terrain_mesh()
 	terrain.name = "Terrain"
 	terrain.layers = LightPolicy.NO_FIRE_LAYER       # seen, lit and moon-shadowed as before; not in the fire shadow
+	terrain.set_meta(&"grid", [GX0, GZ0, STEP, GNX, GNZ])   # TerrainStamp reads its triangles off the grid (the shape below is the same triangles)
 	zone.add_child(terrain)
 	var body := StaticBody3D.new()
 	body.name = "TerrainBody"
@@ -137,7 +138,7 @@ static func build(root: Node) -> void:
 	for n in zone.get_children():
 		var mi := n as MeshInstance3D
 		if mi != null and mi.mesh != null and (String(mi.name).begins_with("Terrain") or mi.name == "FenWater") and mi.visible:
-			tris += (mi.mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
+			tris += mi.mesh.surface_get_array_index_len(0) / 3          # (not surface_get_arrays: a copy back from the renderer)
 	print("REALM_LAND heights %d ms, meshes %d ms (terrain+collision %d, ring %d); grid %dx%d, ring %d meshes, pool cells %d, %d triangles in %d draws" % [
 		t1 - t0, Time.get_ticks_msec() - t1, t2 - t1, t3 - t2, GNX, GNZ, rings, pools, tris, 2 + rings])
 

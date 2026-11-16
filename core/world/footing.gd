@@ -43,9 +43,20 @@ static func seat_y(ground: Callable, pts: PackedVector3Array, basis: Basis, at: 
 	return maxf(out, y0 - cap)
 
 
+## terrain_y as a ground Callable for seat_y, the macro height its fallback (worked out only when it is needed).
+static func terrain_fn(space: PhysicsDirectSpaceState3D) -> Callable:
+	return func(x: float, z: float) -> float:
+		var g := terrain_y(space, x, z, NAN)
+		return RealmLayout.macro_height(x, z) if is_nan(g) else g
+
+
 ## The terrain's own height at (x, z): the ray passes through props (their colliders are on the same layer)
-## to the ground. `fallback` where there is none.
+## to the ground. `fallback` where there is none. While the Realm builds, TerrainStamp.ground_at() gives the same
+## figure from the terrain's grid (a cliff's footing was a few hundred rays).
 static func terrain_y(space: PhysicsDirectSpaceState3D, x: float, z: float, fallback: float) -> float:
+	var g := TerrainStamp.ground_at(x + 0.0037, z + 0.0029)      # while the Realm builds: the terrain's triangles, no rays
+	if g >= -60.0 and g <= 160.0:
+		return g
 	var ex: Array[RID] = []
 	for i in 12:
 		var q := PhysicsRayQueryParameters3D.create(Vector3(x + 0.0037, 160.0, z + 0.0029), Vector3(x + 0.0037, -60.0, z + 0.0029), 1)
