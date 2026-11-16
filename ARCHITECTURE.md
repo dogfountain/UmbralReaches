@@ -113,6 +113,7 @@ All three cfg files live in `core/util/save_dir.gd`'s folder: `user://` unless `
 Glow budget (`core/world/atmosphere.gd`): intensity 0.62, bloom 0.06, HDR threshold 1.15, levels 0
 and 1 only. Internal height cap 960 (810 on the lowest detail). Stretch `canvas_items`. AA is a setting (`Settings.AA_NAMES`:
 Off, FXAA, SMAA, TAA, MSAA 2x/4x), default Off. Far DoF off. Player lantern shadows off.
+No depth pre-pass (`project.godot`): the GPU removes hidden opaque pixels itself (docs/DECISIONS.md, 16 Nov).
 
 ## Physics
 
