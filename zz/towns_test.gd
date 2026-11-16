@@ -58,6 +58,11 @@ func _process(d: float) -> void:
 
 
 func _run() -> void:
+	var root := get_tree().root.find_child("ReachTowns", true, false)
+	var w := 0.0
+	while w < 60.0 and root and not root.get_parent().get_parent().has_meta("towns_props_done"):
+		await get_tree().process_frame
+		w += get_process_delta_time()
 	await get_tree().create_timer(1.0).timeout
 	_pieces()
 	_network()
@@ -80,6 +85,7 @@ func _pieces() -> void:
 	ok(Towns.placed.size() >= Plan.PIECES.size() + 20, "pieces built (%d)" % Towns.placed.size())
 	var floating: Array = []
 	var sunk: Array = []
+	var props := ["RH_HeronPole", "RH_Rack", "RH_NetFrame", "RH_ReedStack", "RH_Trap", "FM_Rick", "FM_Stook", "FM_Scarecrow", "FM_Well", "FM_Wain", "FM_Gate"]
 	for p: Dictionary in Towns.placed:
 		var kind := String(p.kind)
 		var k: Dictionary = Plan.KIND.get(kind, {})
@@ -87,7 +93,8 @@ func _pieces() -> void:
 			continue
 		var xf: Transform3D = p.xf
 		var g := RealmLayout.ground(space, xf.origin.x, xf.origin.z)
-		if xf.origin.y > g + 0.15:
+		# a building's plinth and a wall's footing go well under its origin; a small thing must touch
+		if xf.origin.y > g + (0.12 if kind in props else 0.6):
 			floating.append("%s at %s (ground %.2f)" % [kind, xf.origin, g])
 		if xf.origin.y < g - 2.6:
 			sunk.append("%s at %s (ground %.2f)" % [kind, xf.origin, g])
@@ -161,7 +168,7 @@ func _walk() -> void:
 func _lamps_and_words() -> void:
 	print("lamps, words, tasks, shops")
 	var ids := {}
-	for n in get_tree().get_nodes_in_group(&"lamp"):
+	for n in get_tree().root.find_children("Lamp_*", "", true, false):      # kept lamps are not in the kindling group
 		ids[String(n.get("lamp_id"))] = n
 	var missing: Array = []
 	for s: Dictionary in Towns.lamps():
