@@ -539,7 +539,7 @@ const LAMPS := [
 	{"id": "rh_jetty_a", "look": "post", "x": -320.6, "z": 299.0, "top": true, "wet": true, "kept": true, "face": PI * 0.5},
 	{"id": "rh_jetty_b", "look": "post", "x": -325.6, "z": 299.2, "top": true, "wet": true, "kept": true, "face": -PI * 0.5},
 	{"id": "rh_jetty_c", "look": "post", "x": -325.6, "z": 308.0, "top": true, "wet": true, "kept": true, "face": -PI * 0.5},
-	{"id": "rh_ford_post", "look": "post", "x": -295.0, "z": 299.4, "face": "road"},
+	{"id": "rh_ford_post", "look": "post", "x": -295.0, "z": 299.4, "wet": true, "face": "road"},
 	{"id": "rh_hall_lamp", "look": "post", "x": -305.0, "z": 271.0, "top": true, "wet": true, "face": -PI * 0.5},
 	{"id": "rh_house_lamp", "look": "post", "x": -305.2, "z": 286.6, "top": true, "wet": true, "face": -PI * 0.5},
 	{"id": "rh_long_lamp", "look": "post", "x": -302.0, "z": 255.0, "top": true, "wet": true, "face": -PI * 0.5},

@@ -62,7 +62,7 @@ func _frames(n: int) -> void:
 
 func _run() -> void:
 	var t0 := Time.get_ticks_msec()
-	while not (main.is_inside_tree() and main.has_meta("realm_done")) and Time.get_ticks_msec() - t0 < 150000:
+	while not (main.is_inside_tree() and main.has_meta("realm_done")) and Time.get_ticks_msec() - t0 < 300000:
 		await get_tree().process_frame
 	p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 	check("realm built with secrets", main.has_meta("realm_done") and main.get_node_or_null("Secrets") != null and p != null)

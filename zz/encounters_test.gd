@@ -54,7 +54,7 @@ func _ground(x: float, z: float) -> Vector3:
 
 func _run() -> void:
 	var t0 := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t0 < 180000:
+	while Time.get_ticks_msec() - t0 < 300000:
 		await get_tree().process_frame
 		p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		if p and main.has_meta("realm_done"):

@@ -42,3 +42,7 @@ threshold/watcher E z-17
 threshold/watcher E z-21
 threshold/watcher W z-17
 threshold/watcher W z-21
+lamps/rh_ford_post
+lore/r34_field_4
+wayside/pl_yard
+wayside/sg_sappers

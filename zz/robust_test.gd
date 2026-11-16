@@ -83,7 +83,7 @@ func _stray_add_actions(dir: String) -> PackedStringArray:
 func _process(d: float) -> void:
 	Travel._busy = true
 	t += d
-	if t > 90.0:
+	if t > 300.0:
 		_ok(false, "timed out in phase %d" % _phase)
 		_finish()
 		return

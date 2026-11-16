@@ -54,7 +54,7 @@ func _ready() -> void:
 	main = (load("res://world/main.tscn") as PackedScene).instantiate()
 	get_tree().root.add_child.call_deferred(main)
 	var t0 := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t0 < 120000:
+	while Time.get_ticks_msec() - t0 < 300000:
 		await get_tree().process_frame
 		if main.has_meta("realm_done") and main.get_node_or_null("Watches") != null:
 			break

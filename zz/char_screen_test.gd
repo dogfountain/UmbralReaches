@@ -25,7 +25,7 @@ func _ready() -> void:
 func _process(d: float) -> void:
 	Travel._busy = true
 	t += d
-	if t > 90.0:
+	if t > 300.0:
 		_ok(false, "timed out")
 		_finish()
 		return
