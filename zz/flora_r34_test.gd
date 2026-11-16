@@ -41,7 +41,8 @@ const SIGN := {
 # the Realm is twice the ground (520 x 390 m): ~4.2 s measured (ground rays 0.5, field 0.65, trees 0.5, undergrowth 1.4,
 # nodes 1.1 s), none of it waste found; the old limit was for 310 x 325 m
 const BUDGET_MS := 25000               ## without making meshes (a cold GenCache: a test's fresh HOME). Set for the suite's load: ~3.9 s alone, up to ~6 s under load for the Marches' Realm; the Far Reaches doubled the ground (~12 s under load)
-const WARM_MS := 1000                  ## a build that adopts the stored placement
+const WARM_MS := 4000                  ## a build that adopts the stored placement: the wayside's plan (~1.2 s: its sites go into the fingerprint) and the
+                                       ## emit of ~12,000 MultiMeshes (~0.9 s) run either way; 2.7 s measured (16 Nov). 1 s was the Marches' Realm before both
 
 var main: Node
 var t := 0.0
