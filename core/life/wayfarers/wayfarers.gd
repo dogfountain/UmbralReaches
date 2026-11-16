@@ -33,7 +33,8 @@ const TOWNS := {
 ## How far out a town's edge is (its region's radius; the Far Reaches' towns are smaller).
 const TOWN_EDGE := {"Hearthward": 36.0, "Weirford": 28.0, "Saltmarket": 22.0, "Lastlight": 24.0, "Fallowmere": 22.0, "Reedholm": 16.0}
 ## Homes that are not towns (the fire nearest is home).
-const PLACES := {"Kings' Barrows": Vector2(-318.0, 96.0), "the Cairns": Vector2(300.0, 286.0), "the Siege Lines": Vector2(-214.0, 100.0)}
+const PLACES := {"Kings' Barrows": Vector2(-318.0, 96.0), "the Cairns": Vector2(300.0, 286.0), "the Siege Lines": Vector2(-214.0, 100.0),
+	"the Southwood": Vector2(150.0, 296.0), "the Long Arches": Vector2(-24.0, 318.0), "the Greyfell": Vector2(-310.0, -66.0)}
 
 const NEAR_ON := 92.0             ## a party's people are made real within this of the camera
 const NEAR_OFF := 108.0           ## and put away past this (their rigs have faded by then)
@@ -200,6 +201,12 @@ func _party(spec: Dictionary) -> void:
 		if _rng.randf() < 0.25:
 			_arrive(p)
 			p.t = _rng.randf_range(5.0, float(p.t))
+	else:
+		# no way out from home just now: they stay by it a while and try again (never a walk on an empty way)
+		p.state = REST
+		p.act = ""
+		p.t = 30.0
+		p.spots = _ring(p, home)
 	_hide_people(p)
 
 
@@ -387,7 +394,16 @@ func _ring(p: Dictionary, hi: int) -> Array:
 
 # --- the frame --------------------------------------------------------------------------------------
 
+var perf_us := 0.0                  ## this node's script time a frame (µs, eased; the people's own villager.gd is apart)
+
+
 func _process(dt: float) -> void:
+	var t0 := Time.get_ticks_usec()
+	_frame(dt)
+	perf_us = lerpf(perf_us, float(Time.get_ticks_usec() - t0), 0.02)
+
+
+func _frame(dt: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return

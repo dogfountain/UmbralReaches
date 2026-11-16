@@ -119,10 +119,11 @@ func setup(r: Node) -> void:
 	_place_elk(space)
 	if not off:
 		_place_flocks()
-		Reaches.place(self, root, space, _add_group)
-		signs = Signs.new()
-		add_child(signs)
-		signs.setup(self, root, space, _add_group)
+		if "--no-life-reaches" not in OS.get_cmdline_user_args():          # perf A/B: the rosters and signs off
+			Reaches.place(self, root, space, _add_group)
+			signs = Signs.new()
+			add_child(signs)
+			signs.setup(self, root, space, _add_group)
 		phenomena = PhenomenaScript.new()
 		add_child(phenomena)
 		phenomena.setup(self, weather, BUILD_SEED + 5)

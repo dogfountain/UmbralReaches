@@ -28,29 +28,31 @@ const SEARCH := 60                      ## lattice points a roster tests at most
 const ROSTER := {
 	# --- the West Reach ---
 	"greyfell": {"crows": 3, "bats": 1, "foxes": 1},
-	"lanternwood": {"owls": 3, "fireflies": 3, "foxes": 1, "bats": 1, "crows": 1},
-	"kingsbarrows": {"crows": 3, "hares": 3, "flocks": 1, "foxes": 1, "bats": 1, "fireflies": 1},
-	"reedmere": {"herons": 2, "ponds": 2, "fireflies": 4, "crows": 2, "owls": 1, "bats": 1, "flocks": 1},
+	"lanternwood": {"owls": 3, "fireflies": 3, "foxes": 1, "bats": 1, "crows": 2, "roadbats": 3},
+	"kingsbarrows": {"crows": 3, "hares": 4, "flocks": 1, "foxes": 2, "bats": 1, "fireflies": 1, "roadbats": 1},
+	"reedmere": {"herons": 2, "ponds": 2, "fireflies": 4, "crows": 2, "owls": 1, "bats": 1, "flocks": 1, "roadbats": 2},
 	# --- the Deep South ---
-	"fallow": {"hares": 3, "foxes": 2, "flocks": 2, "crows": 3, "owls": 1, "fireflies": 3, "bats": 1},
-	"arches": {"bats": 2, "crows": 2, "owls": 1, "foxes": 1, "hares": 2, "fireflies": 1},
-	"southwood": {"owls": 2, "fireflies": 3, "foxes": 1, "crows": 1, "bats": 1},
+	"fallow": {"hares": 4, "foxes": 3, "flocks": 2, "crows": 3, "owls": 1, "fireflies": 3, "bats": 1, "roadbats": 1},
+	"arches": {"bats": 2, "crows": 2, "owls": 1, "foxes": 1, "hares": 3, "fireflies": 1, "roadbats": 1},
+	"southwood": {"owls": 2, "fireflies": 3, "foxes": 1, "crows": 2, "bats": 1, "roadbats": 3},
 	# --- the East Reach ---
 	"bellfall": {"bats": 2, "crows": 2},
-	"lastlight": {"hares": 2, "foxes": 1, "flocks": 1, "crows": 2, "fireflies": 2, "owls": 1},
-	"nave": {"bats": 2, "herons": 1, "ponds": 1, "crows": 2, "owls": 1, "fireflies": 2},
-	"cairns": {"crows": 3, "hares": 3, "flocks": 2, "foxes": 1, "fireflies": 1},
+	"lastlight": {"hares": 3, "foxes": 1, "flocks": 1, "crows": 2, "fireflies": 2, "owls": 1},
+	"nave": {"bats": 2, "herons": 1, "ponds": 1, "crows": 2, "owls": 1, "fireflies": 2, "roadbats": 1},
+	"cairns": {"crows": 3, "hares": 4, "flocks": 2, "foxes": 2, "fireflies": 1},
 	# --- the Marches' and the old Realm's empty ground ---
 	"moor": {"hares": 2, "crows": 1, "flocks": 1},
 	"plinth": {"crows": 2, "owls": 1, "foxes": 1},
-	"oak": {"owls": 1, "fireflies": 2, "crows": 1},
+	"oak": {"owls": 1, "fireflies": 2, "crows": 1, "roadbats": 1},
 	"anchorholds": {"crows": 2},
 	"siege": {"crows": 2, "foxes": 1},
 	"saltpans": {"flocks": 1, "hares": 1},
 	"crags": {"crows": 1},
 	"downs": {"hares": 2, "foxes": 1, "crows": 1},
-	"holds": {"owls": 1, "foxes": 1},
+	"holds": {"owls": 1, "foxes": 1, "roadbats": 1},
 	"well": {"crows": 1, "hares": 1},
+	"sorrow": {"roadbats": 2},
+	"thornwood": {"roadbats": 1},
 }
 
 ## Hand-placed (the Far Reaches' first life pass, kept): bats round the high and hollow places at the height of what
@@ -68,12 +70,14 @@ static var _camps: Array[Vector2] = []
 static var _fires: Array[Vector2] = []
 static var report := {}                 ## region -> {kind: n placed} (tests, census)
 static var new_pools: Array[Dictionary] = []   ## LifePlace.pools(true) as place() found them (life_signs.gd reuses them)
-static var _memo := {}                  ## lattice point -> [q, cover, biome] or [] (the scan's tests, made once)
+static var _memo := {}
+static var _tree_cells := {}            ## Vector2i -> the flora's trees in that 24 m cell                  ## lattice point -> [q, cover, biome] or [] (the scan's tests, made once)
 
 
 ## Places every roster. `dir` is the director (its groups are read so nothing lands on its own placements).
 static func place(dir: Node3D, root: Node, space: PhysicsDirectSpaceState3D, add: Callable) -> void:
 	report = {}
+	_tree_cells.clear()
 	var t0 := Time.get_ticks_msec()
 	_camps = keep_camps()
 	_fires = keep_fires(root)
@@ -97,7 +101,7 @@ static func place(dir: Node3D, root: Node, space: PhysicsDirectSpaceState3D, add
 		var rng := RandomNumberGenerator.new()
 		rng.seed = SEED + absi(hash(rid)) % 100000
 		var scan := _scan(reg, rng)
-		for k: String in ["crows", "owls", "herons", "ponds", "hares", "foxes", "flocks", "fireflies", "bats"]:
+		for k: String in ["crows", "owls", "herons", "ponds", "hares", "foxes", "flocks", "fireflies", "bats", "roadbats"]:
 			var n := int(want.get(k, 0))
 			if n <= 0:
 				continue
@@ -112,6 +116,7 @@ static func place(dir: Node3D, root: Node, space: PhysicsDirectSpaceState3D, add
 				"flocks": made = _flocks(dir, add, reg, rng, n, scan)
 				"fireflies": made = _fireflies(dir, reg, rng, n, scan)
 				"bats": made = _bats(dir, space, reg, rng, n)
+				"roadbats": made = _road_bats(dir, reg, rng, n)
 			if made > 0:
 				if not report.has(rid):
 					report[rid] = {}
@@ -273,6 +278,32 @@ static func _cand(reg: Dictionary, q: Vector2) -> Array:
 	return r
 
 
+## Points beside the region's ways: one every `every` m along each way (either side, lo..hi m off its edge).
+static func _along_ways(reg: Dictionary, rng: RandomNumberGenerator, every: float, lo: float, hi: float) -> Array[Vector2]:
+	var bb := _bbox(reg)
+	var out: Array[Vector2] = []
+	for path: Dictionary in RealmLayout.PATHS:
+		var pts: Array = path.pts
+		var w := float(path.w)
+		var carry := rng.randf() * every
+		for i in pts.size() - 1:
+			var a: Vector2 = pts[i]
+			var b: Vector2 = pts[i + 1]
+			var ln := a.distance_to(b)
+			if ln < 0.01 or not bb.grow(4.0).intersects(Rect2(a, Vector2.ZERO).expand(b), true):
+				carry += ln
+				continue
+			var side := (b - a).orthogonal() / ln
+			var t := every - fmod(carry, every)
+			while t < ln:
+				var q := a.lerp(b, t / ln) + side * (1.0 if rng.randf() < 0.5 else -1.0) * (w + rng.randf_range(lo, hi))
+				if bb.has_point(q):
+					out.append(q)
+				t += every
+			carry += ln
+	return out
+
+
 ## The verges (lo..hi m off a way) first, then the scan: the grass is short there (the ways are worn and the flora
 ## keeps off them), and it is where the wanderer looks; a hare in the heather past 12 m is not seen at all. The verge
 ## points are laid along the region's ways (a point every 6 m, either side), not sorted out of the lattice.
@@ -321,17 +352,17 @@ static func _note(dir: Node3D, kind: String, n: int) -> void:
 
 ## Ravens on the region's places: the tops of whatever stands within 16 m of each of its place slots (walls,
 ## barrows, cairns, the bell, roofs), else the crowns of its trees, else its stones; with ground perches round
-## them (they strut and peck). A roost needs five perches.
+## them (they strut and peck). A roost needs four perches.
 static func _crows(dir: Node3D, root: Node, space: PhysicsDirectSpaceState3D, add: Callable, reg: Dictionary, rng: RandomNumberGenerator, n: int) -> int:
 	var rid := String(reg.id)
 	var centres: Array[Vector2] = []
 	for sl: Dictionary in RealmLayout.SLOTS.get(rid, []):
 		if String(sl.kind).begins_with("poi"):
 			centres.append(sl.at as Vector2)
-	# then the region's tree stands and open ground, spread across it
-	var bb := _bbox(reg)
-	for i in 10:
-		centres.append(Vector2(rng.randf_range(bb.position.x + 10.0, bb.end.x - 10.0), rng.randf_range(bb.position.y + 10.0, bb.end.y - 10.0)))
+	# then beside its ways (what stands by a road: a wall, a cart, a cairn, the trees at its edge), where they are seen
+	var roadside := _along_ways(reg, rng, 45.0, 6.0, 12.0)
+	LifePlace.shuffle(roadside, rng)
+	centres.append_array(roadside.slice(0, 12))
 	var made := 0
 	var placed: Array[Vector2] = []
 	for c in centres:
@@ -346,15 +377,33 @@ static func _crows(dir: Node3D, root: Node, space: PhysicsDirectSpaceState3D, ad
 		if not far:
 			continue
 		var perches := _crow_perches(space, c, rng)
-		if perches.size() < 5:
+		if perches.size() < 4:
 			continue
 		var g := Birds.new()
 		g.name = "CrowsR_%s_%d" % [rid, made]
-		g.setup("crow", perches, clampi(perches.size() - 2, 3, 5), SEED + 101 * made + absi(hash(rid)) % 997)
+		g.setup("crow", perches, clampi(perches.size() - 1, 3, 5), SEED + 101 * made + absi(hash(rid)) % 997)
 		add.call(g)
 		placed.append(c)
 		made += 1
 	return made
+
+
+## The flora's trees within ~24 m of c (an index of 24 m cells, made once a build).
+static func _trees_near(c: Vector2) -> Array:
+	if _tree_cells.is_empty():
+		for tr: Array in Flora.trees:
+			var b: Vector3 = tr[0]
+			var k := Vector2i(floori(b.x / 24.0), floori(b.z / 24.0))
+			if not _tree_cells.has(k):
+				_tree_cells[k] = []
+			(_tree_cells[k] as Array).append(tr)
+		_tree_cells[Vector2i(1 << 20, 0)] = []          # (built, even for a Realm without trees)
+	var out: Array = []
+	var k0 := Vector2i(floori(c.x / 24.0), floori(c.y / 24.0))
+	for dx in range(-1, 2):
+		for dz in range(-1, 2):
+			out.append_array(_tree_cells.get(k0 + Vector2i(dx, dz), []))
+	return out
 
 
 static func _crow_perches(space: PhysicsDirectSpaceState3D, c: Vector2, rng: RandomNumberGenerator) -> Array:
@@ -374,7 +423,7 @@ static func _crow_perches(space: PhysicsDirectSpaceState3D, c: Vector2, rng: Ran
 				tops.append([hp, rng.randf_range(-PI, PI)])
 	# the crowns of the trees round it
 	if tops.size() < 3:
-		for tr: Array in Flora.trees:
+		for tr: Array in _trees_near(c):
 			var b: Vector3 = tr[0]
 			if Vector2(b.x, b.z).distance_to(c) > 18.0:
 				continue
@@ -731,6 +780,52 @@ static func _fireflies(dir: Node3D, reg: Dictionary, rng: RandomNumberGenerator,
 		mmi.global_position = Vector3(c.x, RL.height_at(c.x, c.y), c.y)
 		flies.append(mmi)
 		_note(dir, "firefly", cnt)
+		placed.append(c)
+		made += 1
+	return made
+
+
+## Bats hawking over the region's ways where they run by a wood (a wood's edge each side within 9 m): seen against the
+## sky from the road, a few at a time, on a shader's loop (no script time).
+static func _road_bats(dir: Node3D, reg: Dictionary, rng: RandomNumberGenerator, n: int) -> int:
+	var made := 0
+	var swarms: Array = dir.get("bats")
+	var placed: Array[Vector2] = []
+	var cands := _along_ways(reg, rng, 24.0, -1.0, 1.0)
+	LifePlace.shuffle(cands, rng)
+	for c in cands:
+		if made >= n:
+			break
+		if not _in(reg, c) or Flora.cover_at(c.x, c.y) > 0.5:
+			continue
+		var wood := maxf(Flora.cover_at(c.x + 9.0, c.y), Flora.cover_at(c.x - 9.0, c.y)) + maxf(Flora.cover_at(c.x, c.y + 9.0), Flora.cover_at(c.x, c.y - 9.0))
+		if wood < 0.5:
+			continue
+		var spaced := true
+		for o in placed:
+			if o.distance_to(c) < 60.0:
+				spaced = false
+		for sw: Node in swarms:
+			var sp3 := (sw as Node3D).global_position
+			if Vector2(sp3.x, sp3.z).distance_to(c) < 40.0:
+				spaced = false
+		if not spaced:
+			continue
+		var r := rng.randf_range(5.0, 8.0)
+		var cnt := rng.randi_range(3, 5)
+		var mmi := LifeKit.group("bat", cnt)
+		mmi.name = "BatsRoad"
+		for k in cnt:
+			mmi.multimesh.set_instance_transform(k, Transform3D(Basis.IDENTITY, Vector3(rng.randf_range(-3, 3), rng.randf_range(-1.0, 1.5), rng.randf_range(-3, 3))))
+			var sp := rng.randf_range(0.5, 0.95) * (1.0 if rng.randf() < 0.6 else -1.0)
+			mmi.multimesh.set_instance_custom_data(k, Color(r * rng.randf_range(0.5, 1.0), sp, rng.randf_range(0.8, 2.2), rng.randf_range(0.0, TAU)))
+		mmi.multimesh.custom_aabb = AABB(Vector3(-r * 1.5 - 4, -5, -r * 1.5 - 4), Vector3(r * 3 + 8, 10, r * 3 + 8))
+		mmi.visibility_range_end = 80.0
+		mmi.visibility_range_end_margin = 10.0
+		dir.add_child(mmi)
+		mmi.global_position = Vector3(c.x, RL.height_at(c.x, c.y) + rng.randf_range(4.5, 6.5), c.y)
+		swarms.append(mmi)
+		_note(dir, "bat", cnt)
 		placed.append(c)
 		made += 1
 	return made

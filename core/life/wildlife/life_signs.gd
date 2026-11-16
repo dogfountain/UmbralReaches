@@ -16,6 +16,7 @@ extends Node3D
 const LifeKit := preload("res://core/life/wildlife/life_kit.gd")
 const LifePlace := preload("res://core/life/wildlife/life_place.gd")
 const Birds := preload("res://core/life/wildlife/life_birds.gd")
+const Beasts := preload("res://core/life/wildlife/life_beasts.gd")
 const Reaches := preload("res://core/life/wildlife/life_reaches.gd")
 const ScapeSynth := preload("res://core/life/wildlife/scape_synth.gd")
 const HorseRig := preload("res://core/world/mount/horse_rig.gd")
@@ -53,9 +54,9 @@ const LIGHTS := [
 	["kingsbarrows", "barrow", 3], ["barrows", "barrow", 1], ["lanternwood", "wood", 4],
 ]
 const LIGHT_LOOK := {
-	"marsh": [Color(0.55, 0.95, 0.8), 1.4, 0.18],
-	"barrow": [Color(0.62, 0.78, 1.0), 1.3, 0.16],
-	"wood": [Color(0.42, 0.85, 1.0), 1.25, 0.15],
+	"marsh": [Color(0.55, 0.95, 0.8), 1.6, 0.22],
+	"barrow": [Color(0.62, 0.78, 1.0), 1.5, 0.2],
+	"wood": [Color(0.42, 0.85, 1.0), 1.45, 0.19],
 }
 
 ## Woods where eyes watch the ways: [region, clusters].
@@ -118,12 +119,13 @@ func _carrion(root: Node, space: PhysicsDirectSpaceState3D, add: Callable) -> vo
 		var rid := String(e[0])
 		var near: Vector2 = e[1]
 		var spot := Vector2.INF
-		for k in 160:
-			var q := near + Vector2(_rng.randf_range(-24.0, 24.0), _rng.randf_range(-24.0, 24.0))
+		var max_cover := 0.45 if RealmLayout.biome_at(near.x, near.y) == "oldforest" else 0.18
+		for k in 260:
+			var q := near + Vector2(_rng.randf_range(-30.0, 30.0), _rng.randf_range(-30.0, 30.0))
 			var pd := RealmLayout.path_dist(q)
-			if pd < 4.0 or pd > (12.0 if k < 100 else 20.0) or not LifePlace.open_ground(q.x, q.y) or String(RealmLayout.region_at(q.x, q.y).get("id", "")) != rid:
+			if pd < 4.0 or pd > (12.0 if k < 160 else 20.0) or not _carrion_ground(q) or String(RealmLayout.region_at(q.x, q.y).get("id", "")) != rid:
 				continue
-			if not WorldLanes.site_at(q, 3.5).is_empty() or Flora.cover_at(q.x, q.y) > 0.15 or not _flat(q, 2.6, 0.45):
+			if Flora.cover_at(q.x, q.y) > max_cover or not _flat(q, 2.6, 0.45):
 				continue
 			var ok := true
 			for c: Vector2 in camps:
@@ -178,6 +180,13 @@ func _carrion(root: Node, space: PhysicsDirectSpaceState3D, add: Callable) -> vo
 		g.name = "CrowsCarrion_%s" % rid
 		g.setup("crow", perches, mini(5, perches.size() - 2), SEED + 131 * i)
 		add.call(g)
+		# a fox at it, nosing at the carcass between the ravens (it bolts when you come, like any fox, and comes back)
+		var fq := spot + Vector2(cos(yaw), -sin(yaw)) * 1.9
+		if LifePlace.open_ground(fq.x, fq.y) and not RL.in_water(fq.x, fq.y):
+			var fox := Beasts.new()
+			fox.name = "FoxCarrion_%s" % rid
+			fox.setup("fox", [Vector3(fq.x, LifePlace.ground(space, fq.x, fq.y), fq.y)] as Array[Vector3], SEED + 977 * i)
+			add.call(fox)
 		var tr: Variant = director.get("tracks")
 		if tr != null:
 			for k in 5:
@@ -187,6 +196,19 @@ func _carrion(root: Node, space: PhysicsDirectSpaceState3D, add: Callable) -> vo
 		kit.clear_flora(null, [Vector3(spot.x, spot.y, 3.6)])
 		carrion.append({"at": holder.global_position, "region": rid, "birds": g})
 		i += 1
+
+
+## Ground a carcass can lie on: in bounds, dry, off every site and raid floor (a fell's crag and a wood's floor are
+## fine: the open-ground test for walkers refuses both).
+func _carrion_ground(q: Vector2) -> bool:
+	if not RealmLayout.BOUNDS.grow(-8.0).has_point(q) or RL.in_water(q.x, q.y) or RL.in_water(q.x + 2.0, q.y) or RL.in_water(q.x - 2.0, q.y):
+		return false
+	if not WorldLanes.site_at(q, 3.5).is_empty():
+		return false
+	for rd: Dictionary in RealmLayout.RAIDS:
+		if q.distance_to(rd.c) < float(rd.r) + 6.0:
+			return false
+	return RealmLayout.biome_at(q.x, q.y) != "ash"
 
 
 func _flat(q: Vector2, r: float, dh: float) -> bool:
@@ -352,7 +374,8 @@ func _light_field(c: Vector2, kind: String) -> void:
 		var q := Vector2(_rng.randf_range(-spread, spread), _rng.randf_range(-spread, spread))
 		var y := RL.water_y_at(c.x + q.x, c.y + q.y) if kind == "marsh" and RL.in_water(c.x + q.x, c.y + q.y) else RL.height_at(c.x + q.x, c.y + q.y)
 		mm.set_instance_transform(k, Transform3D(Basis.IDENTITY, Vector3(q.x, y - gy, q.y)))
-		mm.set_instance_custom_data(k, Color(_rng.randf_range(1.5, 4.5), _rng.randf_range(0.05, 0.14), _rng.randf_range(0.5, 1.4) if kind != "wood" else _rng.randf_range(0.6, 2.2), _rng.randf_range(0.0, TAU)))
+		# they hang over the reeds and the heather (the grass is knee-high: lower, they are lost in it)
+		mm.set_instance_custom_data(k, Color(_rng.randf_range(1.5, 4.5), _rng.randf_range(0.05, 0.14), _rng.randf_range(1.3, 2.6) if kind != "wood" else _rng.randf_range(1.2, 3.2), _rng.randf_range(0.0, TAU)))
 	mm.custom_aabb = AABB(Vector3(-spread - 6, -3, -spread - 6), Vector3(spread * 2 + 12, 8, spread * 2 + 12))
 	var mmi := MultiMeshInstance3D.new()
 	mmi.name = "Lights_" + kind

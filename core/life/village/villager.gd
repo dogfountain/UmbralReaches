@@ -440,7 +440,8 @@ func _process(delta: float) -> void:
 		return
 	# past 55 m a villager is a few pixels: his routine steps every fourth frame with the time saved up (30 a second
 	# at 120 fps; a walker moves 4 cm a step). 32 of them were 0.2 ms of every frame of a fight two fields away.
-	if attend == null and follow == null:
+	# A follower too (the roads' travellers walk after their leader): an escort keeps by the wanderer, inside 55 m.
+	if attend == null:
 		var cam := get_viewport().get_camera_3d()
 		if cam != null and cam.global_position.distance_squared_to(global_position) > 3025.0:
 			_far_acc += delta

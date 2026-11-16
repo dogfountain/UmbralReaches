@@ -7,8 +7,8 @@ render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabl
 // INSTANCE_CUSTOM: x = lit (0/1), y = phase, z = walking (0/1), w = 0.
 
 uniform vec3 glow_col : source_color = vec3(1.0, 0.66, 0.32);
-uniform float energy = 2.2;
-uniform float size = 0.16;
+uniform float energy = 2.6;
+uniform float size = 0.2;
 uniform float near_start = 70.0;
 uniform float near_end = 92.0;
 uniform float far_start = 260.0;

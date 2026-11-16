@@ -29,19 +29,21 @@ alive, not dotted. This is how life is laid out and why. Code: `core/life/wildli
 
 ## Wildlife rosters (`life_reaches.gd`)
 
-A roster per region (`ROSTER`): crow roosts on the region's places (structure tops round its place slots, else tree
-crowns, else stones, with ground perches between), owl areas on big trunks with field mice under them, herons and
+A roster per region (`ROSTER`): crow roosts on the region's places and beside its ways (structure tops round its place
+slots and what stands by a road: walls, carts, cairns; else tree crowns, else stones, with ground perches between),
+bats hawking over the ways where they run by a wood, owl areas on big trunks with field mice under them, herons and
 frog choruses at its pools, hare forms and foxes on the verges, lapwing flocks on wide open ground, firefly clusters
 over its wet and wooded edges, bats over its places and crater. Off every camp (REALM_CAMPS, their patrols, the
 camp slots the enemy session fills, elite haunts), fire, site and raid floor. Each region draws from its own stream:
 nothing the old Realm or the Marches placed moves. Placement reads what the Realm built, so the places the region
-sessions build are roosted on once they are merged.
+sessions build are roosted on once they are merged. The first Far Reaches pass (hand-placed bats at the height of
+each landmark, curated firefly spots) is kept and placed first; the rosters fill round it.
 
 ## Signs (`life_signs.gd`)
 
 - **Carrion**: a packhorse dead by a far track (greyfell, kingsbarrows, cairns, bellfall, siege, southwood, arches),
   its lantern out, the grass round it trampled, ravens on it and round it (they lift and wheel when you come and
-  settle when you go), more wheeling high above.
+  settle when you go), a fox nosing at it between them, more ravens wheeling high above.
 - **Raven kettles** (shader-only, `orbit.gdshader` with the crow's body at a raven's size): over the carrion, over
   the keep, the barrow, the bell and the cairn tower, and over every camp beyond the old Realm in tier 2-3 ground.
 - **Cold lights** (`marsh_light.gdshader`): marsh lights over the Reedmere's, the Nave's, the Mere's and
@@ -59,8 +61,9 @@ sessions build are roosted on once they are merged.
   Stretches within 22 m of a camp's ground are not walked (a grunt chases 11-14 m).
 - Havens: the towns' edges (Hearthward, Weirford, Saltmarket, Lastlight, Fallowmere, Reedholm), every brazier and
   outpost fire within 26 m of a way, the watch posts.
-- Twelve parties (`wayfarer_db.gd`): pilgrims (three bands), the Watch's patrols (three), peddlers (two), a mother
-  and her boy, fishers, a messenger, mourners. Each lives near a home and roams its safe ways: walking in file with
+- Twenty-one parties (`wayfarer_db.gd`): pilgrims (five bands), the Watch's patrols (four), peddlers (three), a
+  mother and her boy, a father and his girl, fishers, two messengers, mourners (two), the Southwood's charcoal
+  burners, penitents barefoot to the Greyfell's shrine. Each lives near a home and roams its safe ways: walking in file with
   the lantern first, resting at a lit fire (warming, watching, talking), kneeling at a dark one, going indoors in a
   town (never in view: in view they stop and talk at the town's edge), turning back from a hollowed thing (a patrol
   halts and faces it first), hurrying in the Gloom tide, greeting the wanderer with a few words of babble.
@@ -68,6 +71,19 @@ sessions build are roosted on once they are merged.
   them), so a lit road reads across the valley; within 92 m the people are made real (their rigs were warmed on the
   village's worker threads at load) and walk with real feet; past 108 m they are put away again (no collider, no
   process). The lantern bearer carries a real light that fades out past 40-50 m.
+
+## Sound
+
+Each Far Reaches region has its own soundscape in `core/world/ambience.gd` (beds, spot calls, open-air acoustics):
+the fell's wind and the keep's ravens, the Lanternwood's cold chimes, the barrows' nightjars and whispers, the meres'
+bitterns, the fields' owls and vixens, the aqueduct's dripping stone, the fallen bell's hum, the Nave's water from
+the vault, the Cairns' stones in the wind; Lastlight sounds like a town.
+
+## Tools
+
+`zz/life_census` (per-region counts; `--dump=a,b` positions), `zz/life_reach_shots` (multi-frame views, walks along
+a way, a camera that follows a party), `zz/life_walk_perf` (a jog through the Far Reaches, frame times and the life
+scripts' time; run with and without `--no-life-reaches --no-wayfarers` in alternation), `zz/living_realm_test`.
 
 ## Budgets
 

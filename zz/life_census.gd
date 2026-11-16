@@ -66,6 +66,13 @@ func _count() -> void:
 			_add(per, _region(mm.global_position), arr, mm.multimesh.instance_count)
 			if _region(mm.global_position) in dump:
 				print("CENSUS_AT %s %s %d %s" % [_region(mm.global_position), arr, mm.multimesh.instance_count, mm.global_position.round()])
+	var sg: Node = w.get("signs")
+	if sg != null and not dump.is_empty():
+		for arr: String in ["eyes", "fields", "kettles"]:
+			for m: Node in sg.get(arr):
+				var mp := (m as Node3D).global_position
+				if _region(mp) in dump:
+					print("CENSUS_AT %s %s %s" % [_region(mp), arr, mp.round()])
 	for l: Node in (w.get("moths") as Dictionary).keys():
 		_add(per, _region((l as Node3D).global_position), "moth_lights", 1)
 	for v: Node in get_tree().get_nodes_in_group("villager"):

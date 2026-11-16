@@ -3,15 +3,15 @@ render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabl
 // Marsh lights, barrow lights and the Lanternwood's cold lights (core/life/wildlife/life_signs.gd): pale flames
 // hanging over still water, old graves and the fungus-lit wood. Each instance's origin is its home;
 // INSTANCE_CUSTOM: x = drift radius (m), y = drift speed, z = hover height (m), w = phase.
-// They are only ever seen from afar: inside near_start metres of the camera they are gone, and they come back as
-// you leave (always a little further off). Each swells in and dies away on its own slow period, with a faint
+// They are only ever seen from a little way off: inside near_start metres of the camera they are gone, and they
+// come back as you leave (always a little further off). Each swells in and dies away on its own slow period, with a faint
 // flicker. Zero CPU: the director only sets `activity` (the Gloom tide puts them out) and `field_on`.
 
 uniform vec3 glow_col : source_color = vec3(0.55, 0.95, 0.82);
 uniform float energy = 1.5;
 uniform float size = 0.2;
-uniform float near_start = 15.0;
-uniform float near_end = 34.0;
+uniform float near_start = 10.0;
+uniform float near_end = 22.0;
 uniform float far_start = 120.0;
 uniform float far_end = 175.0;
 uniform float activity = 1.0;

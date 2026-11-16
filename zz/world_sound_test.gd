@@ -108,7 +108,10 @@ func _run() -> void:
 
 	# ---- the soundscape per region (static mix) and the rooms
 	var where := {"village": Vector3(6, 0.5, 40), "heath": Vector3(-60, 0.5, 70), "wood": Vector3(-85, 4, -40), "fen": Vector3(75, -1, -30),
-		"crossing": Vector3(0, -6, -50), "summit": Vector3(0, 26, -95), "tavern": Vector3(18, 0.6, 30.2)}
+		"crossing": Vector3(0, -6, -50), "summit": Vector3(0, 26, -95), "tavern": Vector3(18, 0.6, 30.2),
+		# the Far Reaches' own (docs/living_realm.md)
+		"lanternwood": Vector3(-330, 2, 0), "reedmere": Vector3(-330, 0, 340), "fields": Vector3(-170, 0.5, 340),
+		"bellfall": Vector3(318, 0, -100), "cairns": Vector3(330, 6, 330), "southwood": Vector3(180, 2, 340)}
 	for sc: String in where:
 		var p: Vector3 = where[sc]
 		var mix: Dictionary = AmbienceScript.mix_at(p)
