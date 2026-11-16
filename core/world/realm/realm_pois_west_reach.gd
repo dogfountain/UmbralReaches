@@ -15,6 +15,9 @@ const BARROW_C := Vector2(-345.0, 152.0)          ## the King's Barrow (its slot
 const ROW_C := Vector2(-300.0, 128.0)             ## the stone row's middle; it runs north-south along the ridge
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
+const MILE := "vista_milestone.glb"
+const MILE_C := Vector2(-350.0, 44.0)             ## the Last Milestone (its slot), by the road's end
+const HERON_C := Vector2(-340.0, 360.0)           ## the heron stones, standing in the mere
 const GIANTS := [[200.0, 9.5, "Giant0", 0.4], [320.0, 10.5, "Giant1", 2.3], [80.0, 9.0, "Giant2", 4.1]]
 
 static var built: Array[String] = []
@@ -34,6 +37,10 @@ static func reserve(root: Node) -> void:
 	Flora.tree_clear.append([BARROW_C, 24.0])
 	WorldLanes.register_terrace("poi_kings_barrow", BARROW_C + Vector2(0.0, 3.0), 18.5, RealmLayout.ground(space, BARROW_C.x, BARROW_C.y))
 	Flora.tree_clear.append([ROW_C, 26.0])
+	Flora.tree_clear.append([MILE_C + Vector2(0.0, -4.0), 14.0])
+	var mg := RealmLayout.ground(space, MILE_C.x, MILE_C.y)
+	WorldLanes.register_site("poi_last_milestone", Rect2(MILE_C - Vector2(5.0, 12.0), Vector2(10.0, 15.0)), mg, mg)
+	Flora.tree_clear.append([HERON_C, 20.0])               # the willows' fronds reach far: the stones stand in open water
 	var g := RealmLayout.ground(space, RING_C.x, RING_C.y)
 	WorldLanes.register_site("poi_giant_caps", Rect2(RING_C - Vector2(13.0, 13.0), Vector2(26.0, 26.0)), g, g)
 
@@ -48,6 +55,10 @@ static func build(holder: Node3D) -> void:
 	built.append("giant_caps")
 	_barrow(holder, holder.get_world_3d().direct_space_state)
 	built.append("kings_barrow")
+	_milestone(holder, holder.get_world_3d().direct_space_state)
+	built.append("last_milestone")
+	_herons(holder, holder.get_world_3d().direct_space_state)
+	built.append("heron_stones")
 	print("REALM_POI west reach built %s" % [built])
 
 
@@ -184,3 +195,36 @@ static func _poi(holder: Node3D, id: String, title: String, line: String, region
 	host.set_meta("radius", r)
 	holder.add_child(host)
 	return host
+
+
+## The Last Milestone and the toll-house (tools/blender/vista_milestone.py) where the road ends: the stone by the road,
+## the house behind it to the north, its door to the road.
+static func _milestone(holder: Node3D, space: PhysicsDirectSpaceState3D) -> void:
+	var g := RealmLayout.ground(space, MILE_C.x, MILE_C.y)
+	var host := _poi(holder, "last_milestone", "The Last Milestone", "the road went on; the pilgrims did not", "lanternwood", Vector3(MILE_C.x, g + 2.0, MILE_C.y), 12.0)
+	var root := Kit37.place(host, MILE, Transform3D(Basis.IDENTITY, Vector3(MILE_C.x, g - 0.15, MILE_C.y)), {})
+	if root == null:
+		return
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		if String(mi.name).contains("__hewn"):
+			mi.material_override = _mat("stone")
+
+
+## The heron stones: seven tall slabs standing in the mere in a ring, one fallen into the water (the herons stand on them).
+static func _herons(holder: Node3D, space: PhysicsDirectSpaceState3D) -> void:
+	var host := _poi(holder, "heron_stones", "The Heron Stones", "the fishers' first shrine; the herons keep it", "reedmere", Vector3(HERON_C.x, RealmLayout.ground(space, HERON_C.x, HERON_C.y) + 2.0, HERON_C.y), 12.0)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4848
+	for k in 7:
+		var a := TAU * k / 7.0 + rng.randf_range(-0.12, 0.12)
+		var q := HERON_C + Vector2(cos(a), sin(a)) * rng.randf_range(5.0, 6.2)
+		var h := rng.randf_range(3.0, 4.6)
+		var mesh := RockKit.slab(rng.randi(), Vector3(rng.randf_range(0.8, 1.1), h, rng.randf_range(0.4, 0.6)), "mossy", 0.35)
+		var y := RealmLayout.ground(space, q.x, q.y)
+		var b := Basis(Vector3.UP, a + PI * 0.5)
+		if k == 4:
+			b = b * Basis(Vector3.RIGHT, PI * 0.42)
+		else:
+			b = b * Basis(Vector3.RIGHT, rng.randf_range(-0.1, 0.1))
+		RockKit.spawn(host, mesh, Transform3D(b, Vector3(q.x, y - 0.4, q.y)))
