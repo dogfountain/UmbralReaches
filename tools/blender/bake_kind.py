@@ -290,6 +290,25 @@ def _mix(nt, a, b, fac, mode='MULTIPLY'):
     return n.outputs[2]
 
 
+def head_mask(N, y0=1.5):
+    """1 over the head (above the shoulders), 0 below: a face is lit skin over bone, not a cavity darkened twice."""
+    nt = N["nt"]
+    if "head_mask" in N:
+        return N["head_mask"]
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(N["tc"].outputs["Object"], sep.inputs[0])
+    m = _math(nt, 'MULTIPLY', _math(nt, 'SUBTRACT', sep.outputs[2], y0), 25.0, clamp=True)
+    N["head_mask"] = m
+    return m
+
+
+def _soften_head(N, x, k=0.6):
+    """an occlusion factor x, pulled toward 1 over the head."""
+    nt = N["nt"]
+    hm = _math(nt, 'MULTIPLY', head_mask(N), k)
+    return _math(nt, 'ADD', x, _math(nt, 'MULTIPLY', _math(nt, 'SUBTRACT', 1.0, x), hm))
+
+
 def wire_albedo(N):
     """The painted colour: tint, mottled per layer, its cavities darkened (both occlusions), its edges rubbed light."""
     nt = N["nt"]
@@ -303,9 +322,9 @@ def wire_albedo(N):
     c = _mix(nt, base, m_f, 1.0, 'MULTIPLY')
     # cavity: AO darkens hard (deep creases near black), broad AO softer
     ao_c = _math(nt, 'POWER', N["ao"].outputs["AO"], 1.2)
-    ao_k = _math(nt, 'MULTIPLY_ADD', ao_c, 0.55, 0.45)
+    ao_k = _soften_head(N, _math(nt, 'MULTIPLY_ADD', ao_c, 0.55, 0.45))
     c = _mix(nt, c, ao_k, 1.0, 'MULTIPLY')
-    ao_b = _math(nt, 'MULTIPLY_ADD', N["ao2"].outputs["AO"], 0.3, 0.7)
+    ao_b = _soften_head(N, _math(nt, 'MULTIPLY_ADD', N["ao2"].outputs["AO"], 0.3, 0.7))
     c = _mix(nt, c, ao_b, 1.0, 'MULTIPLY')
     # living skin is never one grey: warm and cool drift across it, blood shows in the hollows, bruises sit in the lows
     if os.environ.get("BAKE_SKINTONE", "1") == "1":
@@ -323,7 +342,7 @@ def wire_albedo(N):
         veins = _mix(nt, (1.0, 1.0, 1.0, 1.0), (0.55, 0.6, 0.78, 1.0), vein, 'MIX')
         st = _mix(nt, _mix(nt, _mix(nt, drift, flush, 1.0, 'MULTIPLY'), bruise, 1.0, 'MULTIPLY'), veins, 1.0, 'MULTIPLY')
         c = _mix(nt, c, _mix(nt, c, st, 1.0, 'MULTIPLY'), sk, 'MIX')
-        cav = _math(nt, 'MULTIPLY_ADD', _math(nt, 'POWER', N["ao"].outputs["AO"], 2.4), 0.8, 0.2)       # sharper cavities in the flesh: ribs, joints
+        cav = _soften_head(N, _math(nt, 'MULTIPLY_ADD', _math(nt, 'POWER', N["ao"].outputs["AO"], 2.4), 0.8, 0.2), 0.7)       # sharper cavities in the flesh: ribs, joints
         c = _mix(nt, c, _mix(nt, c, cav, 1.0, 'MULTIPLY'), sk, 'MIX')
     # edges: pointiness above its mean rubs the surface lighter
     pt = _math(nt, 'SUBTRACT', N["geo"].outputs["Pointiness"], 0.56)     # only real edges, not the sculpt's grain
@@ -558,7 +577,7 @@ def _bake_one(low, kind, size, levels, samples, prefix, hook=None):
     _save(im, tex % "albedo")
     # orm: occlusion, roughness (with noise), metallic
     comb = nt.nodes.new("ShaderNodeCombineXYZ")
-    ao_k = _math(nt, 'MULTIPLY', _math(nt, 'MULTIPLY_ADD', N["ao"].outputs["AO"], 0.7, 0.3), _math(nt, 'MULTIPLY_ADD', N["ao2"].outputs["AO"], 0.4, 0.6))
+    ao_k = _soften_head(N, _math(nt, 'MULTIPLY', _math(nt, 'MULTIPLY_ADD', N["ao"].outputs["AO"], 0.7, 0.3), _math(nt, 'MULTIPLY_ADD', N["ao2"].outputs["AO"], 0.4, 0.6)), 0.55)
     rough = _math(nt, 'ADD', N["r_rough"].outputs["Color"], _math(nt, 'MULTIPLY_ADD', N["noise"].outputs["Fac"], 0.2, -0.1), clamp=True)
     nt.links.new(ao_k, comb.inputs[0])
     nt.links.new(rough, comb.inputs[1])

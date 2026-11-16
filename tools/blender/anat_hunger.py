@@ -64,3 +64,16 @@ def folds(P, N, mask, amp=1.0, belt=0.97, hem=0.38):
     d = a * (0.7 * f1 + 0.5 * f2)
     d -= 0.006 * np.exp(-((y - belt) / 0.04) ** 2)                # the belt's pinch
     return np.where(mask, d * amp, 0.0)
+
+
+def rag(P, N, mask, amp=1.0):
+    """A rag wound round the skull: turns crossing diagonally both ways, uneven, rolled where they lap, with a slow
+    drape across them; mask: the rag's vertices."""
+    x, y, z = P[:, 0], P[:, 1], P[:, 2]
+    ang = np.arctan2(x, -z)
+    f1 = np.sin(2 * math.pi * (y / 0.032 + ang * 0.85))
+    f2 = np.sin(2 * math.pi * (y / 0.046 - ang * 0.55 + 0.3))
+    f3 = np.sin(ang * 3.0 + y * 40.0)
+    d = 0.0034 * (0.6 * f1 + 0.45 * f2) + 0.0018 * f3 + 0.0012
+    d *= 1.0 - 0.6 * np.clip((1.66 - y) / 0.05, 0.0, 1.0)                   # calmer toward the lower edge
+    return np.where(mask, d * amp, 0.0)

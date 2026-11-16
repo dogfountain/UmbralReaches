@@ -593,6 +593,7 @@ def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, ey
         claw_hands(bd, g)
         P = bd.P
     E = [e for e in eyes if e is not None]
+    col0 = col
     if skull > 0.0 and len(E) == 2:
         ey = (E[0][1] + E[1][1]) * 0.5
         ez = min(E[0][2], E[1][2])
@@ -639,8 +640,13 @@ def human(g, col, eye, macro=None, girth=1.0, limb=1.0, head=1.15, tris=9000, ey
                 hgt = (2.1 if row == 0 else 1.7) * (1.0 - 0.3 * abs(a_)) * (0.75 + 0.5 * r2)
                 tc = (0.74 - 0.12 * r1, 0.64 - 0.12 * r1, 0.40 - 0.08 * r2)
                 g.ball(V(x, y - (0.0 if row == 0 else 0.004) - 0.0035 * hgt * (1 if row == 0 else -1), z - 0.002 * abs(a_) - 0.0015), 0.0044 * skull * (0.85 + 0.3 * r1), tc, "bone", "head", n=5, sx=0.9, sy=hgt, sz=0.85)
-                arc.append(V(x, y + (0.011 if row == 0 else -0.011), z + 0.002))
-            g.tube(arc, 0.0055 * skull, GUM, "skin", "head", n=5, flat=0.8)       # the gum the teeth are set in
+        def gum_fn(q, base=col, GUM=GUM, my=mouth_y, hw_=hw, mz_=mz):
+            # the gums are the jaw's own surface, tinted: a curved band above and below the teeth, the lips receded over it
+            t = max(math.exp(-((q[1] - (my + 0.009)) / 0.0075) ** 2), math.exp(-((q[1] - (my - 0.012)) / 0.0075) ** 2))
+            t *= 1.0 if (abs(q[0]) < hw_ * 1.15 and q[2] < mz_ + 0.035) else 0.0
+            return tuple(b_ + (g_ - b_) * t for b_, g_ in zip(base[:3], GUM)) + ((base[3],) if len(base) > 3 else ())
+    if skull > 0.0 and len(E) == 2 and not callable(col):
+        col = (lambda i_, j_, q_: gum_fn(q_) if (q_[1] > 1.45 and q_[2] < ez + 0.05) else col0)
     g.mesh(P, F, col, mat, L, FUV)
     global _BODY
     _BODY = bd
@@ -1045,7 +1051,7 @@ def _rag_wobble(i, j, ni, nj):
     """A wrapped rag: turns crossing diagonally both ways, uneven in width, sagging low over the right brow."""
     v = i / max(ni - 1, 1)
     u = TAU * j / max(nj - 1, 1)
-    d = 0.013 * math.sin(i * 0.85 + j * 0.5) + 0.011 * math.sin(i * 0.65 - j * 0.62 + 1.3) + 0.007 * math.sin(i * 0.45 + 2.0 * math.sin(u * 2.0))
+    d = 0.018 * math.sin(i * 0.85 + j * 0.5) + 0.015 * math.sin(i * 0.65 - j * 0.62 + 1.3) + 0.009 * math.sin(i * 0.45 + 2.0 * math.sin(u * 2.0))
     d *= 1.0 - 0.75 * min(max((v - 0.5) / 0.3, 0.0), 1.0)               # the hem lies soft, not a stiff brim
     d += 0.006 * math.exp(-((u - (math.pi + 0.75)) / 0.55) ** 2) * min(max((v - 0.3) / 0.4, 0.0), 1.0)
     return d
@@ -1143,7 +1149,7 @@ WRETCH_T = {
     "arms/{s}-upperarm-fat-decr": 1.0, "arms/{s}-lowerarm-fat-decr": 1.0, "arms/{s}-upperarm-muscle-decr": 0.7,
     "arms/{s}-upperarm-shoulder-muscle-decr": 1.0, "torso/torso-vshape-decr": 0.8, "torso/measure-shoulder-dist-decr": 0.5, "legs/{s}-upperleg-fat-decr": 1.0, "legs/{s}-lowerleg-fat-decr": 1.0, "legs/{s}-lowerleg-muscle-decr": 0.6, "neck/neck-scale-horiz-decr": 0.8, "head/head-fat-decr": 1.0,
     "mouth/mouth-upperlip-volume-decr": 1.0, "mouth/mouth-lowerlip-volume-decr": 1.0, "mouth/mouth-angles-down": 0.7, "mouth/mouth-scale-horiz-incr": 0.4,
-    "nose/nose-flaring-decr": 0.7, "nose/nose-compression-compress": 0.6, "nose/nose-point-down": 0.4, "chin/chin-bones-incr": 0.6, "cheek/{s}-cheek-inner-incr": 0.5,
+    "nose/nose-flaring-incr": 0.35, "nose/nose-greek-incr": 0.6, "nose/nose-hump-incr": 0.3, "chin/chin-bones-incr": 0.6, "cheek/{s}-cheek-inner-incr": 0.5,
     "feet/{s}-foot-scale-vert-decr": 0.5, "hands/{s}-hand-fingers-length-incr": 0.8, "hands/{s}-hand-fingers-diameter-decr": 1.0,
 }
 
@@ -1182,7 +1188,7 @@ def wretch():
         strap(g, [V(sx * 0.15, 1.44, -0.07), V(sx * 0.13, 1.4, -0.13), V(sx * 0.12, 1.16, -0.12), V(sx * 0.14, 1.05, 0.0), V(sx * 0.13, 1.14, 0.17)], (0.26, 0.17, 0.11), w=0.024, thick=0.011, off=0.0)
     rags(g, b, RAG, (0.6, 0.55, 0.44), BELT, vest=None, v1=98, nu=30, nv=13)
     hd = np.array([q for i, q in enumerate(b.P) if b.L[i] == "head"])         # the rag is knotted at the back of the skull, its ends hanging
-    kn = V(float(hd[:, 0].max()) - 0.012, float(hd[:, 1].max()) - 0.06, float(hd[:, 2].mean()) + 0.03)      # the knot on the side
+    kn = V(float(hd[:, 0].max()) - 0.03, float(hd[:, 1].max()) - 0.07, float(hd[:, 2].max()) - 0.03)      # the knot on the side
     g.ball(kn, 0.02, (0.6, 0.55, 0.44), "linen", "head", n=6, sx=1.2, sy=0.9, sz=1.0)
     for sx_, ln, sw in ((-1, 0.15, 0.6), (1, 0.1, -0.8)):                 # the rag's ends, cloth strips hanging from the knot
         pts = [kn + V(sx_ * 0.01 * k_, -ln * k_ / 4.0, 0.012 * math.sin(k_ * 0.9 + sw) + 0.02 * k_ / 4.0) for k_ in range(5)]
