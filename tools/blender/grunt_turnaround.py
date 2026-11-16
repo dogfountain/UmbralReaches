@@ -226,7 +226,7 @@ head_z = float(arg("--head", "0")) or (hi.z - (hi.z - lo.z) * 0.12)
 quad = (hi.z - lo.z) < 1.4
 views = [("front", 90, 0.3, 1.45, 0.5, 50), ("three", 50, 0.34, 1.45, 0.5, 50), ("side", 0, 0.3, 1.45, 0.5, 50), ("head", 62, 0.1, 0.8, None, 70)]
 if "--close" in args:     # bigger figure, plus the torso close up
-    views = [("three", 60, 0.2, 0.95, 0.5, 50), ("back", 235, 0.2, 0.95, 0.5, 50), ("torso", 78, 0.08, 0.4, 0.6, 55), ("head", 78, 0.05, 0.8, None, 70)]
+    views = [("three", 60, 0.2, 0.95, 0.5, 50), ("back", 235, 0.2, 0.95, 0.5, 50), ("torso", 78, 0.08, 0.4, 0.6, 55), ("legs", 65, 0.04, 0.38, 0.14, 50), ("hands", 100, 0.05, 0.3, 0.38, 60)]
 if BODYONLY:
     quad_ = (hi.z - lo.z) < 1.4
     views = [("anatomy", 62, 0.2, 1.1 if quad_ else 0.62, 0.5 if quad_ else 0.74, 50)]

@@ -982,7 +982,7 @@ def rags(g, b, cloth, wrap, cord, vest=(1.02, 1.42), seed=1.3, v1=150, tails=Tru
         return not (front > 0.6 and abs(y_mid - ey) < 0.017)
     # wound: alternate rows stand a little prouder, so the layers read
     shrink(g, b, trunk, rows, 0.011,
-           wrap, "linen", "head", thick=0.007, ridges=(4.0, 0.006), reach=0.2, relax=20, balls=[(e + V(0, 0, -0.004), 0.016) for e in E] if v1 < 130 else (),
+           wrap, "linen", "head", thick=0.007, ridges=(3.0, 0.011), reach=0.2, relax=20, balls=[(e + V(0, 0, -0.004), 0.016) for e in E] if v1 < 130 else (),
            cut=(lambda p: p[2] < c[2] - 0.04 and abs(p[1] - ey) < 0.0135 and abs(p[0]) < 0.07) if v1 >= 130 else None)
     start = g._fit[1] if getattr(g, "_fit", None) else 0
     n0 = start - len(b.P)
@@ -1047,7 +1047,10 @@ WRETCH_T = {
     "stomach/stomach-pregnant-decr": 1.0, "cheek/{s}-cheek-volume-decr": 1.0, "cheek/{s}-cheek-bones-incr": 0.8, "eyes/{s}-eye-bag-incr": 1.0,
     "eyes/{s}-eye-push1-in": 0.6, "torso/torso-muscle-pectoral-decr": 1.0, "torso/torso-muscle-dorsi-decr": 1.0,
     "arms/{s}-upperarm-fat-decr": 1.0, "arms/{s}-lowerarm-fat-decr": 1.0, "arms/{s}-upperarm-muscle-decr": 0.7,
-    "legs/{s}-upperleg-fat-decr": 1.0, "legs/{s}-lowerleg-fat-decr": 1.0, "neck/neck-scale-horiz-decr": 0.8, "head/head-fat-decr": 1.0,
+    "legs/{s}-upperleg-fat-decr": 1.0, "legs/{s}-lowerleg-fat-decr": 1.0, "legs/{s}-lowerleg-muscle-decr": 0.6, "neck/neck-scale-horiz-decr": 0.8, "head/head-fat-decr": 1.0,
+    "mouth/mouth-upperlip-volume-decr": 1.0, "mouth/mouth-lowerlip-volume-decr": 1.0, "mouth/mouth-angles-down": 0.7, "mouth/mouth-scale-horiz-incr": 0.4,
+    "nose/nose-flaring-decr": 0.7, "nose/nose-compression-compress": 0.6, "nose/nose-point-down": 0.4, "chin/chin-bones-incr": 0.6, "cheek/{s}-cheek-inner-incr": 0.5,
+    "feet/{s}-foot-scale-vert-decr": 0.5, "hands/{s}-hand-fingers-length-incr": 0.8, "hands/{s}-hand-fingers-diameter-decr": 1.0,
 }
 
 
@@ -1056,13 +1059,15 @@ def wretch():
     skull with coals sunk in it, a stuffed sack hung from straps that cut into the shoulders, a gaff in its fist."""
     g = Geo()
     SKIN, RAG, SACK, BELT = (0.4, 0.34, 0.31), (0.17, 0.13, 0.1), (0.5, 0.43, 0.3), (0.1, 0.075, 0.06)
-    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=8300, hunch=1.0, targets=WRETCH_T, eye_r=0.015)
+    b = human(g, SKIN, (1.0, 0.45, 0.15, 0.0), macro={"gender": 1.0, "age": 0.85, "muscle": 0.25, "weight": 0.0, "proportions": 0.3}, girth=0.92, head=1.15, tris=12500, hunch=1.0, targets=WRETCH_T, eye_r=0.011, skull=0.9)
     if os.environ.get('BODYONLY'):
         return g.to_object('body'), []
     wraps(g, b, ("knee_",), 0.07, 0.3, RAG)
     wraps(g, b, ("elbow_", "hand_"), 0.8, 0.92, RAG, seed=2)
     g.robe([(0.98, 0.16, 0.12, 0.0), (0.9, 0.17, 0.13, 0.0), (0.7, 0.2, 0.16, 0.0), (0.56, 0.21, 0.17, 0.0)], RAG, "wool", B.waist_split(0.9), n=48, pleats=8, pleat_amp=0.1, tatter=0.14)
-    g.ring_band(0.93, 0.99, 0.162, 0.122, 0.0, BELT, "leather", "pelvis", n=40)
+    g.ring_band(0.95, 0.985, 0.162, 0.122, 0.0, (0.24, 0.16, 0.1), "leather", "pelvis", n=40)
+    g.box(V(0.0, 0.968, -0.128), (0.026, 0.024, 0.008), (0.34, 0.31, 0.28), "iron", "pelvis")
+    g.box(V(0.0, 0.968, -0.134), (0.015, 0.014, 0.004), (0.18, 0.14, 0.1), "leather", "pelvis")
     for sx in (-1, 1):
         t = side(sx)
         g.lathe([(0.03, 0.0), (0.033, 0.03), (0.03, 0.06)], V(sx * 0.24, 0.82, 0.0), RAG, "wool", "elbow_" + t, n=10)
@@ -1070,11 +1075,13 @@ def wretch():
     sack(g, S, 0.5, 0.27, 0.2, SACK, BELT, seed=1.7, neck=0.05, lean=0.05)
     for sx, y0, a in ((-1, 0.2, 0.0), (1, 0.18, 0.5)):                     # things tied on: a dented pot, a bundle of sticks
         pass
-    g.tube([S + V(-0.1, 0.02, -0.02), S + V(-0.16, 0.5, 0.0)], 0.016, (0.3, 0.22, 0.14), "wood", "chest", n=6)
-    g.tube([S + V(0.06, 0.02, -0.02), S + V(0.13, 0.42, 0.02)], 0.013, (0.3, 0.22, 0.14), "wood", "chest", n=6)
+    for sx, ln, r0, ph in ((-0.1, 0.52, 0.017, 0.0), (0.06, 0.44, 0.014, 2.0)):          # gnarled, tapering, barked sticks
+        ys = np.linspace(0.0, ln, 9)
+        pts = [S + V(sx + 0.06 * (y / ln) * (1 if sx < 0 else -0.5) + 0.008 * math.sin(y * 17 + ph), 0.02 + y, -0.02 + 0.012 * math.sin(y * 11 + ph)) for y in ys]
+        g.tube(pts, [r0 * (1.0 - 0.55 * (y / ln)) * (1.0 + 0.25 * max(0.0, math.sin(y * 23 + ph))) for y in ys], (0.26, 0.2, 0.14), "wood", "chest", n=8)
     g.lathe([(0.0, 0.0), (0.075, 0.0), (0.09, 0.07), (0.085, 0.13), (0.075, 0.13), (0.07, 0.09), (0.0, 0.01)], S + V(0.2, -0.32, 0.17), (0.2, 0.18, 0.17), "iron", "chest", n=14)
     for sx in (-1, 1):
-        strap(g, [V(sx * 0.11, 1.5, -0.1), V(sx * 0.13, 1.4, -0.13), V(sx * 0.12, 1.16, -0.12), V(sx * 0.14, 1.05, 0.0), V(sx * 0.13, 1.14, 0.17)], BELT, w=0.021)
+        strap(g, [V(sx * 0.11, 1.5, -0.1), V(sx * 0.13, 1.4, -0.13), V(sx * 0.12, 1.16, -0.12), V(sx * 0.14, 1.05, 0.0), V(sx * 0.13, 1.14, 0.17)], (0.26, 0.17, 0.11), w=0.024, thick=0.011)
     rags(g, b, RAG, (0.6, 0.55, 0.44), BELT, vest=None, v1=int(os.environ.get('WV1', '98')))
     gf = Geo()
     WOOD, IRON, WRAP = (0.28, 0.2, 0.13), (0.32, 0.3, 0.29), (0.2, 0.16, 0.12)

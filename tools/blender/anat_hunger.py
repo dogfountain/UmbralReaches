@@ -36,6 +36,12 @@ def field(P, N, skin, amp=1.0, ribs=1.0, belly=1.0):
     limb = ax > 0.05
     for y0, r, h, sel in ((0.345, 0.05, 0.011, (ax < 0.2)), (1.09, 0.045, 0.009, (ax > 0.17)), (0.80, 0.035, 0.008, (ax > 0.17)), (0.09, 0.04, 0.007, (ax < 0.2))):
         d += h * np.exp(-((y - y0) / r) ** 2) * sel * limb
+    # the shin's crest down the front of each lower leg, calves hollow behind, tendons at the ankle, knuckles on the hands
+    leg = (ax < 0.2) & (y > 0.08) & (y < 0.33)
+    d += 0.007 * np.exp(-(((ax - 0.11) / 0.016) ** 2)) * (z < 0.0) * leg * np.clip((y - 0.08) / 0.1, 0, 1)
+    d -= 0.005 * np.exp(-((ax - 0.11) / 0.04) ** 2) * (z > 0.01) * leg
+    hand = (ax > 0.2) & (y < 0.8) & (y > 0.6)
+    d += 0.006 * np.exp(-((y - 0.7) / 0.012) ** 2) * hand * (np.cos((ax - 0.24) / 0.017 * 2 * math.pi) > 0.3)
     d = np.where(skin, d * amp, 0.0)
     return d
 

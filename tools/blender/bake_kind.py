@@ -314,7 +314,14 @@ def wire_albedo(N):
         flush = _mix(nt, (0.78, 0.55, 0.52, 1.0), (1.0, 1.0, 1.0, 1.0), _math(nt, 'MULTIPLY_ADD', N["ao"].outputs["AO"], 1.6, -0.45, clamp=True), 'MIX')
         bru = _math(nt, 'MULTIPLY', _math(nt, 'SUBTRACT', N["noise"].outputs["Fac"], 0.55, clamp=True), 2.2, clamp=True)
         bruise = _mix(nt, (1.0, 1.0, 1.0, 1.0), (0.62, 0.5, 0.66, 1.0), bru, 'MIX')
-        st = _mix(nt, _mix(nt, drift, flush, 1.0, 'MULTIPLY'), bruise, 1.0, 'MULTIPLY')
+        vor = nt.nodes.new("ShaderNodeTexVoronoi")                       # veins: the network of cell edges, thin, blue-grey
+        vor.feature = 'DISTANCE_TO_EDGE'
+        vor.inputs["Scale"].default_value = 15.0
+        nt.links.new(N["tc"].outputs["Object"], vor.inputs["Vector"])
+        vein = _math(nt, 'SUBTRACT', 1.0, _math(nt, 'MULTIPLY', vor.outputs["Distance"], 30.0, clamp=True), clamp=True)
+        vein = _math(nt, 'MULTIPLY', vein, 0.9)
+        veins = _mix(nt, (1.0, 1.0, 1.0, 1.0), (0.55, 0.6, 0.78, 1.0), vein, 'MIX')
+        st = _mix(nt, _mix(nt, _mix(nt, drift, flush, 1.0, 'MULTIPLY'), bruise, 1.0, 'MULTIPLY'), veins, 1.0, 'MULTIPLY')
         c = _mix(nt, c, _mix(nt, c, st, 1.0, 'MULTIPLY'), sk, 'MIX')
     # edges: pointiness above its mean rubs the surface lighter
     pt = _math(nt, 'SUBTRACT', N["geo"].outputs["Pointiness"], 0.56)     # only real edges, not the sculpt's grain
