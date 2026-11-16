@@ -223,6 +223,12 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 					body.add_child(cs)
 	counts.x += FarDetail.shells(host, canopy, TREE_CHUNK, ground)
 	_lod_ready.clear()
+	if not preload("res://core/world/realm/gen_cache.gd").dev():
+		# the placement buffers (RealmFlora's: about 570,000 instances, ~37 MB) live in the MultiMeshes now; past this
+		# only the tests read them (instance_list, built_digest), and a packed game has none
+		items.clear()
+		stones.clear()
+		canopy.clear()
 	return counts
 
 

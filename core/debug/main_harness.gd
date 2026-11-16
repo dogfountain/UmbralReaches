@@ -6,10 +6,11 @@ extends Node
 ##   --walk-rec=<dir>  --walk-frames=N  in-game OTS walk dump (player cam, not debug rig)
 ##   --perf-baseline  fullscreen vsync-off benches at three fixed views (spawn, the rift's far side, the summit)
 ##   --fight-bench    a boss, ten grunts and every spell spammed, measured (core/debug/fight_bench.gd)
+##   --boot-only      quit once the Realm is built: "BOOT playable_ms" is the time from launch (a packed build's load)
 
 const FightBench := preload("res://core/debug/fight_bench.gd")
 const BENCH_SECONDS := 10.0
-const FLAGS: PackedStringArray = ["--walk-rec=", "--bench", "--perf-baseline", "--test-shade", "--fight-bench"]
+const FLAGS: PackedStringArray = ["--walk-rec=", "--bench", "--perf-baseline", "--test-shade", "--fight-bench", "--boot-only"]
 
 var night: Node3D
 var _player: Player
@@ -58,6 +59,12 @@ func start(args: PackedStringArray) -> void:
 		var fb := FightBench.new()
 		add_child(fb)
 		fb.begin(night)
+	elif "--boot-only" in _args:
+		while not night.has_meta("realm_done"):
+			await get_tree().process_frame
+		print("BOOT playable_ms=%d static_mb=%.0f video_mb=%.0f" % [Time.get_ticks_msec(), OS.get_static_memory_usage() / 1048576.0,
+			Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0])
+		get_tree().quit()
 
 
 ## Drive the real Player + OTS camera forward; dump JPEGs then quit.
