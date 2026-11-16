@@ -24,6 +24,7 @@ const Road := preload("res://core/world/realm/lore/road.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const Kept := preload("res://core/world/realm/lamps/lamps_kept.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
+const Towns := preload("res://core/world/realm/reach_towns.gd")       ## the towns' lamps (lamps())
 const West := "res://core/world/realm/realm_pois_west_marches.gd"
 const Pilot := preload("res://core/world/realm/scale_pilot.gd")
 const Data := preload("res://core/world/realm/south_marches_kit_data.gd")
@@ -129,6 +130,10 @@ static func _specs() -> Array[Dictionary]:
 	# --- Stillwater's shore ------------------------------------------------------------------------------------------
 	out.append(_s("sw_shore_a", "post", 207.0, 47.0, {"face": "road"}))
 	out.append(_s("sw_shore_b", "post", 232.0, 34.0, {"face": "road"}))
+	# --- the towns --- Reedholm's jetty, Fallowmere's porches, Lastlight's gates (reach_towns.gd lamps())
+	if not Towns.off():
+		for s: Dictionary in Towns.lamps():
+			out.append(s)
 	return out
 
 

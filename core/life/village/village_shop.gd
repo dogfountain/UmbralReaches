@@ -14,6 +14,7 @@ const Book := preload("res://core/story/quest_book.gd")
 const HearthDB := preload("res://core/life/progression/hearth_db.gd")
 
 const EastVillage := preload("res://core/life/village/village_east_marches.gd")   ## the east marches: Orrin Vail's stall
+const Towns := preload("res://core/life/village/village_reach_towns.gd")   ## the towns: Gorse's smokehouse, the Last Lamp
 
 const MERCHANTS := {
 	"grisel": {"name": "Grisel the ash-wife", "greet": "Ash, then. Let's see it. Oil, rope, slate, thatch: whatever keeps the village lit."},
@@ -23,11 +24,15 @@ const MERCHANTS := {
 	"bet": {"name": "Bet Reed's garden", "greet": "Beans, bees and bitter things. Eat what I give you; it's better than it tastes."},
 	# --- the east marches ---
 	"orrin": EastVillage.MERCHANT_ORRIN,
+	# --- the towns ---
+	"gorse": Towns.MERCHANTS["gorse"], "vell": Towns.MERCHANTS["vell"],
 }
 
 const GOODS := {
 	# --- the east marches ---
 	"orrin": EastVillage.GOODS_ORRIN,
+	# --- the towns ---
+	"gorse": Towns.GOODS["gorse"], "vell": Towns.GOODS["vell"],
 	"grisel": [
 		{"id": "relic_fragment", "item": "relic_fragment", "price": 14, "stock": 2,
 			"say": "Bell-bronze, or a saint. Don't ask which. The fires won't."},
@@ -164,6 +169,9 @@ static func buy(who: String, id: String, tree: SceneTree) -> Dictionary:
 			say = _goods_say(who, id, "Here. Don't waste it.")
 		Book.add_att("grisel", 1 if int(row.price) >= 10 else 0)
 	else:
+		if row.has("item"):
+			Travel.give(String(row.item), 1)              # an item on any merchant's board is handed over (it was only the ash-wife's)
+			say = _goods_say(who, id, "Here.")
 		match id:
 			"ale":
 				var p := tree.get_first_node_in_group(Groups.PLAYER) if tree else null

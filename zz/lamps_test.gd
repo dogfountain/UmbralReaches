@@ -1,6 +1,6 @@
 extends Node
 ## The lamps (core/world/realm/lamps), in memory only (saves held, state restored):
-##   - 40..80 lamps the wanderer can kindle, kept lights beside them, none in LightGrid (no gameplay light)
+##   - 40..110 lamps the wanderer can kindle (the Far Reaches' towns add their porches and gates), kept lights beside them, none in LightGrid (no gameplay light)
 ##   - a lamp is unlit, then lit by interact; it is saved (State "lamps") and a fresh lamp of the same id wakes lit
 ##   - a leader lights its followers (a tower's crown); the tally counts leaders only
 ##   - ground lamps never stand on a way; every lamp that lights makes at most one shadowless light
@@ -47,7 +47,7 @@ func _physics_process(_d: float) -> void:
 
 func _run() -> void:
 	var lamps := get_tree().get_nodes_in_group(&"lamp")
-	check("40..80 kindleable lamps (%d)" % lamps.size(), lamps.size() >= 40 and lamps.size() <= 80)
+	check("40..110 kindleable lamps (%d)" % lamps.size(), lamps.size() >= 40 and lamps.size() <= 110)
 	var looks := {}
 	for n in lamps:
 		looks[(n as Lamp).look] = true

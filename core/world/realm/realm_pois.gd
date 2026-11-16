@@ -178,6 +178,7 @@ const REACH_POIS := [
 	"res://core/world/realm/ossuary_ground.gd",
 	"res://core/world/realm/realm_vistas.gd",
 	"res://core/world/realm/realm_wayside.gd",
+	"res://core/world/realm/reach_towns.gd",          # the towns: Reedholm, Fallowmere, Lastlight
 ]
 
 

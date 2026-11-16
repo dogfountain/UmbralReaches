@@ -79,6 +79,11 @@ var realm_points := [
 	["r37_pans", Vector3(172.0, NAN, 138.0), -2.1],             # over the White Pans
 	["r37_marches", Vector3(-160.0, NAN, 20.0), 1.57],          # the west Marches from the March Wall's line
 	["r37_far_east", Vector3(150.0, NAN, 10.0), -1.57],         # the east Marches from the moor
+	# the Far Reaches' towns (core/world/realm/reach_towns.gd): from inside each, across it; Lastlight from the road
+	["t_reedholm", Vector3(-316.0, NAN, 300.0), -0.53],          # from the landing over the stilt houses
+	["t_fallowmere", Vector3(-146.0, NAN, 300.0), 1.11],         # from the green to the tithe barn
+	["t_lastlight", Vector3(314.0, NAN, 64.0), -0.92],           # from the street over the yard, the inn and the tower
+	["t_ll_road", Vector3(266.0, NAN, 72.0), -1.27],             # the walls from the road
 ]
 ## The path: legs of [goal xz (y ignored), label]; a leg starting with "@" teleports there instead.
 var route := [

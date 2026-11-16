@@ -44,7 +44,8 @@ const ZONES := [["hearth", "Hearthward"], ["road", "The Pilgrims' Road"], ["thor
 	["ossuary", "The Ossuary"], ["rift", "The Ashen Rift"], ["crags", "The Crowns"], ["summit", "The Summit of Ascension"],
 	["downs", "The Southern Downs"], ["oak", "The Grandmother Oak"], ["well", "The Well of Echoes"],
 	R37WQ.ZONES[0], R37WQ.ZONES[1], R37WQ.ZONES[2], R37WQ.ZONES[3],
-	["stillwater", "Stillwater"], ["anchorholds", "The Anchorholds"], ["saltmarket", "Saltmarket"], ["saltpans", "The White Pans"]]
+	["stillwater", "Stillwater"], ["anchorholds", "The Anchorholds"], ["saltmarket", "Saltmarket"], ["saltpans", "The White Pans"],
+	Towns.ZONES[0], Towns.ZONES[1], Towns.ZONES[2]]
 
 ## Act II's signature tasks, one a country (quest_chains_signature.gd), listed after the east marches' in each table.
 const Sig := preload("res://core/story/quest_chains_signature.gd")
@@ -59,6 +60,7 @@ const R37UF := preload("res://core/story/quest_chains_upward_falls.gd")   ## the
 const R38E := preload("res://core/story/quest_chains_r38_east.gd")
 const R38S := preload("res://core/story/quest_chains_r38_south.gd")
 const R38W := preload("res://core/story/quest_chains_r38_west.gd")
+const Towns := preload("res://core/story/quest_chains_reach_towns.gd")   ## the towns (Reedholm, Fallowmere, Lastlight): the `# --- the towns ---` blocks
 
 const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
 	"hearth_ash", "road_clear", "coal_shrine", "spire_lamps", "alms_loaf",
@@ -84,7 +86,8 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"bounds_beaten", "quarry_stone", "moor_fires", "founder_pour", "orchard_stand", "field_round", "mere_ferry",
 	# --- tales ---
 	"pans_hauler", "pans_pan", "salt_barrel", "bitter_mother", "drover_tally", "long_round", "bryn_iron", "wren_gran",
-	"plinth_lamp", "cutters_pledge", "landing_staves", "moor_niches"]
+	"plinth_lamp", "cutters_pledge", "landing_staves", "moor_niches",
+	"rh_lamps", "fm_tithe", "ll_gate", "ll_oil"]          # --- the towns ---
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
 const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
@@ -94,7 +97,8 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 	"dunstan": "Dunstan Pike",
 	"osk": "Osk the miller", "cassel": "Captain Cassel", "ennis": "Sister Ennis", "tolliver": "Old Tolliver",
 	"dorrit": "Dorrit Marl", "bryn": "Bryn Gale", "wren": "Wren", "gwyn": "Gwyn the ostler",
-	"marl": "Marl Pannick", "teasel": "Teasel Dray", "orrin": "Orrin Vail", "ardel": "Ardel Wick", "pip": "Pip", "nella": "Nella Crake"}
+	"marl": "Marl Pannick", "teasel": "Teasel Dray", "orrin": "Orrin Vail", "ardel": "Ardel Wick", "pip": "Pip", "nella": "Nella Crake",
+	"corle": "Aud Corle", "penn": "Reeve Penn", "coyle": "Serjeant Coyle", "isolde": "Old Isolde"}      # --- the towns ---
 
 ## r34: the raids' attunements (WoW's attunement chains, adapted): the last task of each pre-raid
 ## chain, once handed in, loosens the boss's hold (QuestBook.attuned(boss); Travel.story flag
@@ -788,6 +792,8 @@ const QUESTS := {
 	"bitter_mother": R38E.QUESTS["bitter_mother"], "drover_tally": R38S.QUESTS["drover_tally"], "long_round": R38S.QUESTS["long_round"],
 	"bryn_iron": R38S.QUESTS["bryn_iron"], "wren_gran": R38S.QUESTS["wren_gran"], "plinth_lamp": R38W.QUESTS["plinth_lamp"],
 	"cutters_pledge": R38W.QUESTS["cutters_pledge"], "landing_staves": R38W.QUESTS["landing_staves"], "moor_niches": R38W.QUESTS["moor_niches"],
+	# --- the towns ---
+	"rh_lamps": Towns.QUESTS["rh_lamps"], "fm_tithe": Towns.QUESTS["fm_tithe"], "ll_gate": Towns.QUESTS["ll_gate"], "ll_oil": Towns.QUESTS["ll_oil"],
 }
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
@@ -916,6 +922,9 @@ const PICKUPS := {
 	"plinth_lamp": R38W.PICKUPS["plinth_lamp"], "plinth_palm": R38W.PICKUPS["plinth_palm"], "cutters_roll": R38W.PICKUPS["cutters_roll"],
 	"staff_a": R38W.PICKUPS["staff_a"], "staff_b": R38W.PICKUPS["staff_b"], "staff_c": R38W.PICKUPS["staff_c"],
 	"staves_place": R38W.PICKUPS["staves_place"], "niche_name": R38W.PICKUPS["niche_name"],
+	# --- the towns ---
+	"rh_tam_lamp": Towns.PICKUPS["rh_tam_lamp"], "fm_tally_a": Towns.PICKUPS["fm_tally_a"], "fm_tally_b": Towns.PICKUPS["fm_tally_b"],
+	"fm_tally_c": Towns.PICKUPS["fm_tally_c"], "fm_tally_place": Towns.PICKUPS["fm_tally_place"],
 }
 
 ## Oswin's walk: from wherever he is to the waystone. He keeps 2-3 m behind you and waits when you

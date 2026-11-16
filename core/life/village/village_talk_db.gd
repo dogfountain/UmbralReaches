@@ -13,6 +13,7 @@ extends RefCounted
 const WestTalk := preload("res://core/life/village/village_talk_west_marches.gd")    # --- west marches --- Weirford's conversations
 const Travellers := preload("res://core/life/village/village_cast_travellers.gd")    # the road's walkers
 const EastVillage := preload("res://core/life/village/village_east_marches.gd")   ## the east marches: Saltmarket's talk
+const Towns := preload("res://core/life/village/village_reach_towns.gd")   ## the towns: Reedholm, Fallowmere, Lastlight
 
 const CONV := {
 	"hild": {"name": "Hild", "start": [["!met:hild", "meet"], ["qat:edda_tongs:1", "tongs_back"], ["", "hub"]], "nodes": {
@@ -454,4 +455,9 @@ const CONV := {
 	"marra": Travellers.CONV["marra"],
 	# --- the east marches ---
 	"marl": EastVillage.CONV_MARL, "teasel": EastVillage.CONV_TEASEL, "orrin": EastVillage.CONV_ORRIN, "ardel": EastVillage.CONV_ARDEL, "pip": EastVillage.CONV_PIP, "nella": EastVillage.CONV_NELLA,
+	# --- the towns ---
+	"corle": Towns.CONV["corle"], "hobb": Towns.CONV["hobb"], "siany": Towns.CONV["siany"], "gorse": Towns.CONV["gorse"], "ebba": Towns.CONV["ebba"],
+	"penn": Towns.CONV["penn"], "hesper": Towns.CONV["hesper"], "cobb": Towns.CONV["cobb"], "dilly": Towns.CONV["dilly"], "wystan": Towns.CONV["wystan"],
+	"vell": Towns.CONV["vell"], "isolde": Towns.CONV["isolde"], "coyle": Towns.CONV["coyle"], "fenn": Towns.CONV["fenn"], "wat": Towns.CONV["wat"],
+	"maudlin": Towns.CONV["maudlin"],
 }

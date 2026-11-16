@@ -13,6 +13,8 @@ extends RefCounted
 const R37WL := preload("res://core/world/realm/lore/west_marches_texts.gd")
 ## The lights others keep (lamps/lamps_kept.gd): the pilgrim's page and the press-house notice.
 const R37LL := preload("res://core/world/realm/lore/lamp_texts.gd")
+## The towns (Reedholm, Fallowmere, Lastlight): lore/reach_towns_texts.gd, in the block marked `# --- the towns ---`.
+const TownTexts := preload("res://core/world/realm/lore/reach_towns_texts.gd")
 
 const TEXTS := {
 	# --- Hearthward -------------------------------------------------------------------------------
@@ -432,6 +434,12 @@ const TEXTS := {
 		"text": "IT CAME IN LIKE A TIDE AND WENT OUT LIKE A BELL. Lower, newer: Not after dark. She is still singing in there, and she wants the high part back."},
 	"rr_fen_notice": {"region": "fen", "kind": "notice", "title": "Peat-cutters' warning",
 		"text": "The black tongues are warm yet. No cutting within a rope's length of one: the water boils under the crust, and it will have your boots and then your feet."},
+	# --- the towns ---
+	"town_rh_board": TownTexts.TEXTS["town_rh_board"], "town_rh_lampbook": TownTexts.TEXTS["town_rh_lampbook"], "town_rh_grave": TownTexts.TEXTS["town_rh_grave"],
+	"town_fm_tithe": TownTexts.TEXTS["town_fm_tithe"], "town_fm_strips": TownTexts.TEXTS["town_fm_strips"], "town_fm_almanac": TownTexts.TEXTS["town_fm_almanac"],
+	"town_ll_plaque": TownTexts.TEXTS["town_ll_plaque"], "town_ll_book": TownTexts.TEXTS["town_ll_book"], "town_ll_orders": TownTexts.TEXTS["town_ll_orders"],
+	"town_rh_heron": TownTexts.TEXTS["town_rh_heron"], "town_fm_dovecote": TownTexts.TEXTS["town_fm_dovecote"], "town_ll_shrine": TownTexts.TEXTS["town_ll_shrine"],
+	"town_ll_bridles": TownTexts.TEXTS["town_ll_bridles"],
 }
 
 ## Multi-part stories, in journal order. `count` = parts in the world.

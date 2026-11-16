@@ -83,3 +83,32 @@ Crossing, the summit and the Threshold stay where they are; the country round th
 - The lava itself reads as crust rafts drawn out along the current (darker plates, thinner seams, a deeper red).
 
 `--no-scorch` puts the rift back as it was (A/B; the lava's crust look stays).
+
+## The towns
+
+Three places people still live, built by `core/world/realm/reach_towns.gd` (REACH_POIS; plan `reach_towns_plan.gd`,
+dressing `reach_towns_dress.gd`), modelled by script in Blender (`tools/blender/reach_towns.py` and its
+`reach_town_*.py`: `art/models/reach_towns.glb`, collision boxes and numbers in `reach_towns_boxes.gd`), at
+World-of-Warcraft proportions like the scale pilot (doors near 3 m, storeys near 4 m).
+
+- **Reedholm** (the Reedmere): the fishers' town on piles over the pools between the end of barrow_track and the
+  Sorrow. The net-hall, two fisher's houses and a long house with a net-loft under deep reed thatch with crossed
+  ridge-poles, boardwalks and the decks' links, the landing (its bank raised clear of the water: a terrace) with the
+  kept jetty lamps and the heron pole, the smokehouse, racks, punts, traps; the plank footbridge where reed_ford
+  crosses the river. People: Aud Corle (the lamp book; task *Boats Not Home*), Hobb Wade, Siany, Gorse (sells),
+  Ebba Sallow (who owes Ansel Tansy's sister a boat).
+- **Fallowmere** (the low fields): round the meeting of reed_ford, fallow_way and arches_way under the scarp. The
+  Order's tithe barn (buttressed, a wagon porch, one bay stripped to its rafters), the farmhouse, two cottages, the
+  dovecote, ricks, the fold, the hurdled strips with stooks and scarecrows. People: Reeve Penn (task *The Last
+  Tithe*), Hesper and Cobb Lark, Dilly, Brother Wystan.
+- **Lastlight** (the road's east end): a walled waystation, curtain and four round towers round x 293..356,
+  z 26..81; the road gate (west), the shut East Gate on the road's line (barred, chained, portcullis down), a postern
+  for bell_track; the inn (the Last Lamp), the lamp tower whose lantern burns all night, the stable, the watch house
+  and its platform, the store, the pilgrims' shrine, the yard and its fire (moved off bell_track to (318.5, 55.5)).
+  People: Mother Vell (sells), Old Isolde (task *Oil for the Last Lamp*), Serjeant Coyle (task *The Knocking at the
+  East Gate*), Fenn, Wat, Sister Maudlin.
+
+Each town's buildings are merged into one mesh per material (a town is about a dozen draws) and fade at 230 m to one
+merged far silhouette; small things keep their own short ranges. Each town's people walk their own island of the
+village network (the boards are decks it walks on). `-- --no-towns` builds the Realm without them (A/B).
+Tools: `zz/town_map` (a plan of a rect: heights, water, ways, sites, camps), `zz/town_probe` (what stands at points).
