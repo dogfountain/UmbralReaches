@@ -72,12 +72,19 @@ static func _own(body: StaticBody3D, grid: _Grid) -> void:
 	_dh_grid = grid
 
 
-## The terrain mesh's arrays: the copy the last write kept when it is still this mesh, else read from it.
-static func _terrain_arrays(terrain: MeshInstance3D) -> Array:
+## The terrain mesh's arrays: the copy kept (by its maker, or the last write) when it is still this mesh, else read
+## from it (a copy back from the renderer).
+static func terrain_arrays(terrain: MeshInstance3D) -> Array:
 	if _arrays.is_empty() or _arrays_id != terrain.mesh.get_instance_id():
 		_arrays = terrain.mesh.surface_get_arrays(0)
 		_arrays_id = terrain.mesh.get_instance_id()
 	return _arrays
+
+
+## The terrain's maker hands over the arrays it made `mesh` from (RealmLand: the stamp and settle start from them).
+static func keep_arrays(mesh: Mesh, arrays: Array) -> void:
+	_arrays = arrays
+	_arrays_id = mesh.get_instance_id()
 
 
 ## The grid of `terrain` as it stands: the one kept since the last write when it is still this mesh's, else made
@@ -104,7 +111,7 @@ static func apply(root: Node) -> void:
 	if terrain == null or terrain.mesh == null or body == null or root.has_meta("terrain_stamped"):
 		return
 	root.set_meta("terrain_stamped", true)
-	var arrays := _terrain_arrays(terrain)
+	var arrays := terrain_arrays(terrain)
 	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	var grid := _grid_for(terrain, body, arrays)
 	if grid == null:
@@ -266,7 +273,7 @@ static func settle(root: Node) -> void:
 	if terrain == null or terrain.mesh == null or body == null or WorldLanes.sites.is_empty():
 		return
 	await root.get_tree().physics_frame
-	var arrays := _terrain_arrays(terrain)
+	var arrays := terrain_arrays(terrain)
 	var grid := _grid_for(terrain, body, arrays)
 	if grid == null:
 		return
@@ -277,7 +284,7 @@ static func settle(root: Node) -> void:
 	for pass_n in 3:           # each sees what the one before's blending brought up to a floor
 		if not grid.exact and not pending.is_empty():
 			_write(terrain, body, grid, arrays, arrays[Mesh.ARRAY_VERTEX], pending)    # (a grid without its triangles reads the ground by ray)
-			arrays = _terrain_arrays(terrain)
+			arrays = terrain_arrays(terrain)
 			pending = {}
 			await root.get_tree().physics_frame
 		var out := _settle_pass(space, grid, sm, pass_n == 0)

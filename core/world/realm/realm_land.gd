@@ -69,6 +69,7 @@ static var _n_ridge: FastNoiseLite
 static var _n_fine: FastNoiseLite
 static var _n_patch: FastNoiseLite
 const Zones := preload("res://core/world/realm/dress_zones.gd")
+const GridMesh := preload("res://core/world/realm/grid_mesh.gd")
 static var _n_gully: FastNoiseLite
 static var _n_step: FastNoiseLite
 static var _wear_g := PackedFloat32Array()     ## path wear per grid vertex
@@ -105,10 +106,13 @@ static func build(root: Node) -> void:
 	var ob := RealmLayout.OSSUARY_OLD         # the old site on the rift's east wall (its baked heights stay); the Ossuary now stands under the Waiting Field
 	_oss_r = Rect2(ob.position.x, ob.position.z, ob.size.x, ob.size.z)
 	RealmLayout.prepare()
-	_make_profiles()
-	var hw: Array = preload("res://core/world/realm/land_cache.gd").heights(_old, [_old_nx, _old_nz, _old_x0, _old_z0, _old_step], GNX * GNZ, func() -> Array: _heights(); return [_h, _wear_g]); _h = hw[0]; _wear_g = hw[1]   # cached (land_cache.gd)
+	# the heights and the meshes' splat are cached (land_cache.gd): on a hit neither the roads' profiles nor the biome blend run
+	var lc := preload("res://core/world/realm/land_cache.gd")
+	var fp: String = lc.fingerprint(_old, [_old_nx, _old_nz, _old_x0, _old_z0, _old_step])
+	var hw: Array = lc.heights(fp, GNX * GNZ, func() -> Array: _make_profiles(); _heights(); return [_h, _wear_g]); _h = hw[0]; _wear_g = hw[1]
 	var t1 := Time.get_ticks_msec()
-	var terrain := _terrain_mesh()
+	var md: Dictionary = lc.meshes(fp, func() -> Dictionary: return {"t": _terrain_data(), "r": _ring_data(), "p": _pool_data()})
+	var terrain := _terrain_mesh(md.t)
 	terrain.name = "Terrain"
 	terrain.layers = LightPolicy.NO_FIRE_LAYER       # seen, lit and moon-shadowed as before; not in the fire shadow
 	terrain.set_meta(&"grid", [GX0, GZ0, STEP, GNX, GNZ])   # TerrainStamp reads its triangles off the grid (the shape below is the same triangles)
@@ -120,14 +124,15 @@ static func build(root: Node) -> void:
 	var cs := CollisionShape3D.new()
 	cs.name = "Shape"
 	var shape := ConcavePolygonShape3D.new()
-	shape.set_faces(_faces(terrain.mesh))
+	var ta: Array = TerrainStamp.terrain_arrays(terrain)              # (the build's CPU copy: no read back from the renderer)
+	shape.set_faces(GridMesh.faces(ta[Mesh.ARRAY_VERTEX], ta[Mesh.ARRAY_INDEX]))
 	cs.shape = shape
 	body.add_child(cs)
 	zone.add_child(body)
 	var t2 := Time.get_ticks_msec()
-	var rings := _ring(zone)
+	var rings := _ring(zone, md.r)
 	var t3 := Time.get_ticks_msec()
-	var pools := _pools(zone)
+	var pools := _pools(zone, md.p)
 	_bounds(zone)
 	if old_mi != null:
 		old_mi.queue_free()
@@ -139,7 +144,7 @@ static func build(root: Node) -> void:
 		var mi := n as MeshInstance3D
 		if mi != null and mi.mesh != null and (String(mi.name).begins_with("Terrain") or mi.name == "FenWater") and mi.visible:
 			tris += mi.mesh.surface_get_array_index_len(0) / 3          # (not surface_get_arrays: a copy back from the renderer)
-	print("REALM_LAND heights %d ms, meshes %d ms (terrain+collision %d, ring %d); grid %dx%d, ring %d meshes, pool cells %d, %d triangles in %d draws" % [
+	print("REALM_LAND heights %d ms, meshes %d ms (splat data, terrain and collision %d, ring %d); grid %dx%d, ring %d meshes, pool cells %d, %d triangles in %d draws" % [
 		t1 - t0, Time.get_ticks_msec() - t1, t2 - t1, t3 - t2, GNX, GNZ, rings, pools, tris, 2 + rings])
 
 
@@ -651,24 +656,16 @@ static func _splat(x: float, z: float, h: float, nrm_y: float, ring: bool) -> Ar
 	return [Color(bw[0], bw[1], bw[2], bw[3]), Vector2(bw[4], bw[5]), Vector2(bw[6], wear)]
 
 
-static func _grid_normal(hs: PackedFloat32Array, nx: int, nz: int, step: float, i: int, j: int) -> Vector3:
-	var hl := hs[j * nx + maxi(i - 1, 0)]
-	var hr := hs[j * nx + mini(i + 1, nx - 1)]
-	var hd := hs[maxi(j - 1, 0) * nx + i]
-	var hu := hs[mini(j + 1, nz - 1) * nx + i]
-	var sx := step * float(mini(i + 1, nx - 1) - maxi(i - 1, 0))
-	var sz := step * float(mini(j + 1, nz - 1) - maxi(j - 1, 0))
-	return Vector3(-(hr - hl) / sx, 1.0, -(hu - hd) / sz).normalized()
 
 
-static func _terrain_mesh() -> MeshInstance3D:
-	var verts := PackedVector3Array()
+
+## The terrain's per-vertex normals and splat, [nrms, cols, uv, uv2] (cached by land_cache.gd: the biome blend is the cost).
+static func _terrain_data() -> Array:
 	var nrms := PackedVector3Array()
 	var cols := PackedColorArray()
 	var uv := PackedVector2Array()
 	var uv2 := PackedVector2Array()
 	var n := GNX * GNZ
-	verts.resize(n)
 	nrms.resize(n)
 	cols.resize(n)
 	uv.resize(n)
@@ -686,14 +683,25 @@ static func _terrain_mesh() -> MeshInstance3D:
 		var ru2: PackedVector2Array = r[3]
 		for i in GNX:
 			var k := j * GNX + i
-			verts[k] = Vector3(GX0 + i * STEP, _h[k], GZ0 + j * STEP)
 			nrms[k] = rn[i]
 			cols[k] = rc[i]
 			uv[k] = ru[i]
 			uv2[k] = ru2[i]
-	var idx := _grid_indices(GNX, GNZ, func(_i: int, _j: int) -> bool: return true)
+	return [nrms, cols, uv, uv2]
+
+
+## The terrain from its heights and _terrain_data; TerrainStamp keeps the arrays it is made from.
+static func _terrain_mesh(d: Array) -> MeshInstance3D:
+	var verts := PackedVector3Array()
+	verts.resize(GNX * GNZ)
+	for j in GNZ:
+		for i in GNX:
+			verts[j * GNX + i] = Vector3(GX0 + i * STEP, _h[j * GNX + i], GZ0 + j * STEP)
+	var idx := GridMesh.indices(GNX, GNZ, func(_i: int, _j: int) -> bool: return true)
 	var mi := MeshInstance3D.new()
-	mi.mesh = _array_mesh(verts, nrms, cols, uv, uv2, idx)
+	var arrays := GridMesh.arrays(verts, d[0], d[1], d[2], d[3], idx)
+	mi.mesh = GridMesh.mesh(arrays)
+	TerrainStamp.keep_arrays(mi.mesh, arrays)
 	mi.material_override = load(MAT)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	return mi
@@ -712,7 +720,7 @@ static func _mesh_row(j: int) -> Array:
 	var z := GZ0 + j * STEP
 	for i in GNX:
 		var k := j * GNX + i
-		var nv := _grid_normal(_h, GNX, GNZ, STEP, i, j)
+		var nv := GridMesh.normal(_h, GNX, GNZ, STEP, i, j)
 		var sp := _splat(GX0 + i * STEP, z, _h[k], nv.y, false)
 		rn[i] = nv
 		rc[i] = sp[0]
@@ -721,49 +729,24 @@ static func _mesh_row(j: int) -> Array:
 	return [rn, rc, ru, ru2]
 
 
-## Two clockwise-from-above triangles per accepted cell (Godot's front face), same diagonal everywhere.
-static func _grid_indices(nx: int, nz: int, accept: Callable) -> PackedInt32Array:
-	var idx := PackedInt32Array()
-	for j in nz - 1:
-		for i in nx - 1:
-			if not accept.call(i, j):
-				continue
-			var a := j * nx + i
-			var b := a + 1
-			var c := a + nx
-			var d := c + 1
-			idx.append_array(PackedInt32Array([a, b, c, b, d, c]))
-	return idx
 
-
-static func _array_mesh(verts: PackedVector3Array, nrms: PackedVector3Array, cols: PackedColorArray, uv: PackedVector2Array, uv2: PackedVector2Array, idx: PackedInt32Array) -> ArrayMesh:
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = verts
-	arrays[Mesh.ARRAY_NORMAL] = nrms
-	arrays[Mesh.ARRAY_COLOR] = cols
-	arrays[Mesh.ARRAY_TEX_UV] = uv
-	arrays[Mesh.ARRAY_TEX_UV2] = uv2
-	arrays[Mesh.ARRAY_INDEX] = idx
-	var m := ArrayMesh.new()
-	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	return m
-
-
-static func _faces(m: Mesh) -> PackedVector3Array:
-	var a := m.surface_get_arrays(0)
-	var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
-	var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
-	var f := PackedVector3Array()
-	f.resize(idx.size())
-	for k in idx.size():
-		f[k] = v[idx[k]]
-	return f
 
 
 ## Horizon ring: a 4 m grid over OUTER minus the inner grid, in four meshes (N, S, W, E). Its
 ## inner edge takes the inner grid's heights so the two meet without cracks.
-static func _ring(zone: Node3D) -> int:
+static func _ring(zone: Node3D, parts: Array) -> int:
+	for part: Array in parts:
+		var mi := MeshInstance3D.new()
+		mi.name = "TerrainRing" + String(part[0])
+		mi.mesh = GridMesh.mesh(part[1])
+		mi.material_override = load(MAT)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		zone.add_child(mi)
+	return parts.size()
+
+
+## The ring's parts, [key, arrays] each (cached by land_cache.gd).
+static func _ring_data() -> Array:
 	var hs := PackedFloat32Array()
 	hs.resize(RNX * RNZ)
 	var i0 := roundi((GX0 - RX0) / RSTEP)
@@ -790,9 +773,8 @@ static func _ring(zone: Node3D) -> int:
 		var row: PackedFloat32Array = rows[j]
 		for i in RNX:
 			hs[j * RNX + i] = row[i]
-	var parts := {"N": [], "S": [], "W": [], "E": []}
-	var made := 0
-	for key: String in parts:
+	var made: Array = []
+	for key: String in ["N", "S", "W", "E"]:
 		var accept := func(i: int, j: int) -> bool:
 			var inner := i >= i0 and i < i1 and j >= j0 and j < j1
 			if inner:
@@ -802,7 +784,7 @@ static func _ring(zone: Node3D) -> int:
 				"S": return j >= j1
 				"W": return j >= j0 and j < j1 and i < i0
 				_: return j >= j0 and j < j1 and i >= i1
-		var idx := _grid_indices(RNX, RNZ, accept)
+		var idx := GridMesh.indices(RNX, RNZ, accept)
 		if idx.is_empty():
 			continue
 		# compact to the vertices this part uses
@@ -820,7 +802,7 @@ static func _ring(zone: Node3D) -> int:
 				var gj := g / RNX
 				var x := RX0 + gi * RSTEP
 				var z := RZ0 + gj * RSTEP
-				var nv := _grid_normal(hs, RNX, RNZ, RSTEP, gi, gj)
+				var nv := GridMesh.normal(hs, RNX, RNZ, RSTEP, gi, gj)
 				verts.append(Vector3(x, hs[g], z))
 				nrms.append(nv)
 				var sp := _splat(x, z, hs[g], nv.y, true)
@@ -828,13 +810,7 @@ static func _ring(zone: Node3D) -> int:
 				uv.append(sp[1])
 				uv2.append(sp[2])
 			idx[k] = remap[g]
-		var mi := MeshInstance3D.new()
-		mi.name = "TerrainRing" + key
-		mi.mesh = _array_mesh(verts, nrms, cols, uv, uv2, idx)
-		mi.material_override = load(MAT)
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		zone.add_child(mi)
-		made += 1
+		made.append([key, GridMesh.arrays(verts, nrms, cols, uv, uv2, idx)])
 	return made
 
 
@@ -842,9 +818,38 @@ static func _ring(zone: Node3D) -> int:
 ## grown by one cell so the shoreline is the terrain's own intersection. a cell's level is the fen's
 ## WATER_Y unless RealmLayout.water_level_at gives one (the Sorrow's stepped reaches, the lake, the Well's
 ## pool); where two neighbours differ a vertical skirt closes the step (the weir's lip).
-static func _pools(zone: Node3D) -> int:
-	_water.resize(GNX * GNZ)
-	_water.fill(0)
+static func _pools(zone: Node3D, d: Array) -> int:
+	_water = d[0]
+	if int(d[3]) == 0:
+		return 0
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = d[1]
+	var nrms := PackedVector3Array()
+	nrms.resize((d[1] as PackedVector3Array).size())
+	nrms.fill(Vector3.UP)
+	arrays[Mesh.ARRAY_NORMAL] = nrms
+	arrays[Mesh.ARRAY_INDEX] = d[2]
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var mi := MeshInstance3D.new()
+	mi.name = "FenWater"
+	mi.mesh = m
+	mi.material_override = load(WATER_MAT)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var box := m.get_aabb()                    # a sheet has no thickness: grow it so a glance along it stays in frame
+	box.position.y -= 3.0
+	box.size.y += 6.0
+	mi.custom_aabb = box
+	zone.add_child(mi)
+	return int(d[3])
+
+
+## The pools: [water cells (the in_water() grid), sheet vertices, indices, cells] (cached by land_cache.gd).
+static func _pool_data() -> Array:
+	var water := PackedByteArray()
+	water.resize(GNX * GNZ)
+	water.fill(0)
 	var lvl := PackedFloat32Array()
 	lvl.resize(GNX * GNZ)
 	for j in GNZ - 1:
@@ -907,7 +912,7 @@ static func _pools(zone: Node3D) -> int:
 			var wy := lvl[k]
 			if lo > wy + 0.02:
 				continue
-			_water[k] = 1
+			water[k] = 1
 			on_cell[k] = 1
 			cells += 1
 			var x := GX0 + i * STEP
@@ -916,7 +921,7 @@ static func _pools(zone: Node3D) -> int:
 			verts.append_array(PackedVector3Array([Vector3(x, wy, z), Vector3(x + STEP, wy, z), Vector3(x, wy, z + STEP), Vector3(x + STEP, wy, z + STEP)]))
 			idx.append_array(PackedInt32Array([b, b + 1, b + 2, b + 1, b + 3, b + 2]))
 	if cells == 0:
-		return 0
+		return [water, verts, idx, 0]
 	# skirts where neighbouring reaches stand at different levels: a vertical face down the shared edge
 	for j in GNZ - 1:
 		for i in GNX - 1:
@@ -937,27 +942,7 @@ static func _pools(zone: Node3D) -> int:
 				var b2 := verts.size()
 				verts.append_array(PackedVector3Array([Vector3(x, hi2, z + STEP), Vector3(x + STEP, hi2, z + STEP), Vector3(x, lo2, z + STEP), Vector3(x + STEP, lo2, z + STEP)]))
 				idx.append_array(PackedInt32Array([b2, b2 + 1, b2 + 2, b2 + 1, b2 + 3, b2 + 2, b2, b2 + 2, b2 + 1, b2 + 1, b2 + 2, b2 + 3]))
-	var nrms := PackedVector3Array()
-	nrms.resize(verts.size())
-	nrms.fill(Vector3.UP)
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = verts
-	arrays[Mesh.ARRAY_NORMAL] = nrms
-	arrays[Mesh.ARRAY_INDEX] = idx
-	var m := ArrayMesh.new()
-	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	var mi := MeshInstance3D.new()
-	mi.name = "FenWater"
-	mi.mesh = m
-	mi.material_override = load(WATER_MAT)
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var box := m.get_aabb()                    # a sheet has no thickness: grow it so a glance along it stays in frame
-	box.position.y -= 3.0
-	box.size.y += 6.0
-	mi.custom_aabb = box
-	zone.add_child(mi)
-	return cells
+	return [water, verts, idx, cells]
 
 
 ## Invisible walls just outside BOUNDS (10 m segments from below the ground to well above it).
