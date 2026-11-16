@@ -109,6 +109,8 @@ static func verify(space: PhysicsDirectSpaceState3D, sp: Dictionary, x0: float, 
 				ny = (hit.normal as Vector3).y
 				terrain = 1 if String((hit.collider as Node).name).begins_with("Terrain") else 0
 			if absf(y - a[s]) > 0.002 or absf(ny - b[s]) > 0.01 or terrain != c[s]:
+				var who := "" if hit.is_empty() else String((hit.collider as Node).get_path())
+				print("FLORA cache stale at (%.1f, %.1f): y %.3f was %.3f, normal %.3f was %.3f, terrain %d was %d %s" % [x, z, y, a[s], ny, b[s], terrain, c[s], who])
 				return false
 			s += 1
 	return s == a.size()

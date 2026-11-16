@@ -58,12 +58,27 @@ func _process(delta: float) -> void:
 	if on != _was_lit:
 		_apply(on)
 	# seat on the ground: the Realm moves its fires after the terrain stamp (RealmBosses), so look
-	# again every 2 s for the first minute
+	# again every 2 s for the first minute. While the Realm is still building it keeps its first seat:
+	# a re-seat every 2 s of wall clock made the build depend on how fast it ran (the flora's cached
+	# ground saw the post 3 cm higher after a slow build than a fast one, and was rebuilt)
 	_seat_t -= delta
 	if _seat_t <= 0.0 and _seats < 30:
+		if _seats > 0 and _realm_building():
+			return
 		_seat_t = 2.0
 		_seats += 1
 		_seat()
+
+
+## True while the night this post stands in is building its Realm (Realm.build marks its root "realm_built",
+## then "realm_done").
+func _realm_building() -> bool:
+	var n := get_parent()
+	while n != null:
+		if n.has_meta(&"realm_built"):
+			return not n.has_meta(&"realm_done")
+		n = n.get_parent()
+	return false
 
 
 func _seat() -> void:
