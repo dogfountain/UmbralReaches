@@ -90,6 +90,7 @@ func _ready() -> void:
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_fade.color = Color(0.06, 0.01, 0.03, 0.0)
 	_fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_fade.visible = false                      # shown only while it fades: clear, it was still a full-screen blend every frame
 	_fade_layer.add_child(_fade)
 	add_child(_fade_layer)
 
@@ -122,6 +123,7 @@ func go(path: String, at: Vector3, facing: float, player: Node) -> void:
 	ResourceLoader.load_threaded_request(path)
 	var tw := create_tween()
 	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_fade.visible = true
 	tw.tween_property(_fade, "color:a", 1.0, 0.45)
 	await tw.finished
 
@@ -153,6 +155,7 @@ func go(path: String, at: Vector3, facing: float, player: Node) -> void:
 	out.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	out.tween_property(_fade, "color:a", 0.0, 0.75)
 	await out.finished
+	_fade.visible = false
 	_awaiting_path = ""
 	_busy = false
 	_flush_missed()
@@ -191,6 +194,7 @@ func _fail_open(why: String) -> void:
 	out.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	out.tween_property(_fade, "color:a", 0.0, 0.5)
 	await out.finished
+	_fade.visible = false
 	_busy = false
 	_flush_missed()
 

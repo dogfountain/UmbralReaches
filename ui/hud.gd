@@ -213,6 +213,7 @@ func _ready() -> void:
 
 	_fade = ColorRect.new()
 	_fade.color = Color(0, 0, 0, 0)
+	_fade.visible = false                      # shown only while black or fading: clear, it was a full-screen blend every frame
 	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	outer.add_child(_fade)
@@ -381,11 +382,19 @@ func _on_hollowed() -> void:
 		_on_toast("Hollowed.")
 	else:
 		_on_toast("Hollowed. The dark has taken you %d times." % n)
+	_fade.visible = true
 	create_tween().tween_property(_fade, "color:a", 1.0, 0.6)
 
 
 func _on_respawned(_at: Vector3) -> void:
-	create_tween().tween_property(_fade, "color:a", 0.0, 1.0).set_delay(0.2)
+	var tw := create_tween()
+	tw.tween_property(_fade, "color:a", 0.0, 1.0).set_delay(0.2)
+	tw.tween_callback(_fade_settle)
+
+
+## The black is drawn only while it shows.
+func _fade_settle() -> void:
+	_fade.visible = _fade.color.a > 0.0
 
 
 func _on_zone(title: String, subtitle: String, opening := false) -> void:
@@ -582,6 +591,7 @@ func hold_opening(on: bool) -> void:
 	_ui.visible = not on
 	if on:
 		_fade.color.a = 1.0
+		_fade.visible = true
 	elif not _card_after.is_empty():
 		var c := _card_after
 		_card_after = []
@@ -590,7 +600,9 @@ func hold_opening(on: bool) -> void:
 
 func fade_in_opening(seconds := 3.0) -> void:
 	_lifting = true
-	create_tween().tween_property(_fade, "color:a", 0.0, seconds)
+	var tw := create_tween()
+	tw.tween_property(_fade, "color:a", 0.0, seconds)
+	tw.tween_callback(_fade_settle)
 	# the opening's first message: the zone's title card, over the lifting black, ahead of the narration (core/story/story.gd
 	# waits for title_busy() to clear). Played here, in the same call, so no tip finds the gap before it.
 	if not _card_after.is_empty():
