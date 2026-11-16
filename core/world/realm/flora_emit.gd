@@ -350,7 +350,7 @@ static func apply_detail(host: Node, d: int) -> void:
 		var tall: bool = f[2]
 		var re: float = f[3]
 		if not tall:
-			mmi.multimesh.visible_instance_count = -1 if dens >= 1.0 else maxi(1, int(round(float(f[4]) * dens)))
+			mmi.multimesh.visible_instance_count = -1 if dens >= 1.0 else mini(mmi.multimesh.instance_count, maxi(1, int(round(float(f[4]) * dens))))
 			if re > 0.0:
 				_set_range(mmi, String(f[1]), re * rng)
 		elif f[1] == "c" or f[1] == "fc":
