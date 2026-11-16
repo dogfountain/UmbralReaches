@@ -426,6 +426,13 @@ func _plan_ambushes() -> void:
 			if String(sl.kind) == "fire":
 				keep_off.append(sl.at)
 	keep_off.append(HOLDS_C)
+	# where people walk (the village's networks: the towns, the outposts, the travellers on the road)
+	var village := root.get_node_or_null("Village")
+	var vnav: Variant = village.get("nav") if village != null else null
+	if vnav is Object and (vnav as Object).get("nodes") is Dictionary:
+		for q: Variant in ((vnav as Object).get("nodes") as Dictionary).values():
+			if q is Vector3 and SpawnRules.safe_at(Vector2((q as Vector3).x, (q as Vector3).z)) == "":
+				keep_off.append(Vector2((q as Vector3).x, (q as Vector3).z))
 	ambushes = AmbushSites.plan(_space, keep_off, _ground_at, spot_ok)
 	for f: Dictionary in FIXED_AMBUSHES:
 		var c: Vector2 = f.at

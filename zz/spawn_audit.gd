@@ -16,6 +16,7 @@ const Tiers := preload("res://core/life/encounters/tiers.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const AmbushSites := preload("res://core/life/encounters/ambush_sites.gd")
 const PX := 0.5                                 ## metres per pixel on the map
+const CAMP_APART := 16.0                        ## two camps' centres at least this far apart
 
 var main: Node
 var out_dir := "user://"
@@ -26,6 +27,7 @@ var enc: Node
 var sp: EnemySpawner
 var fires: Array[Vector2] = []
 var outposts: Array[Vector2] = []
+var walks: Array[Vector2] = []                  ## the village's walk nodes outside the towns (outposts, travellers)
 var rows: Array[Dictionary] = []                ## {kind, id, region, at, a (assess), note}
 var report := PackedStringArray()
 var problems := PackedStringArray()
@@ -110,6 +112,11 @@ func _gather_fires() -> void:
 		for id: String in (v.get("outpost_at") as Dictionary):
 			var f: Vector3 = (v.get("outpost_at") as Dictionary)[id]
 			outposts.append(Vector2(f.x, f.z))
+		var vnav: Variant = v.get("nav")
+		if vnav is Object and (vnav as Object).get("nodes") is Dictionary:
+			for q: Variant in ((vnav as Object).get("nodes") as Dictionary).values():
+				if q is Vector3 and SpawnRules.safe_at(Vector2((q as Vector3).x, (q as Vector3).z)) == "":
+					walks.append(Vector2((q as Vector3).x, (q as Vector3).z))
 
 
 func _add(kind: String, id: String, at: Vector3, opts := {}, note := "") -> Dictionary:
@@ -182,6 +189,11 @@ func _camps() -> void:
 					problems.append("camp      %-28s %-12s %s: %.1f m outside %s's ring (want %.0f)" % [id, r.region, _v(slot.at), float(r.town), r.town_id, float(r.town_margin)])
 				if float(r.outpost) < 15.0:
 					problems.append("camp      %-28s %-12s %s: %.1f m from a village outpost" % [id, r.region, _v(slot.at), float(r.outpost)])
+				var wd := INF
+				for w in walks:
+					wd = minf(wd, w.distance_to(Vector2(slot.center.x, slot.center.z)))
+				if wd < 20.0:
+					problems.append("camp      %-28s %-12s %s: %.1f m from where people walk (a village walk node)" % [id, r.region, _v(slot.at), wd])
 		var lead: Dictionary = by[ck][0]
 		if lead.has("patrol"):
 			var k := 0
@@ -194,6 +206,16 @@ func _camps() -> void:
 	for slot: Dictionary in sp.slots():
 		if String(slot.key).begins_with("enc_mix"):
 			_add("mix", String(slot.key).get_slice("#", 0), slot.at)
+	# two camps this near are one fight, not two places (seal guards stand in their files by design)
+	var cs: Array = []
+	for slot: Dictionary in sp.slots():
+		if slot.has("center") and String(slot.key).ends_with("#0") and String(slot.get("seal", "")) == "":
+			cs.append([String(slot.key).get_slice("#", 0), slot.center])
+	for i in cs.size():
+		for j in range(i + 1, cs.size()):
+			var d := Vector2((cs[i][1] as Vector3).x - (cs[j][1] as Vector3).x, (cs[i][1] as Vector3).z - (cs[j][1] as Vector3).z).length()
+			if d < CAMP_APART:
+				problems.append("camp      %s and %s: %.1f m apart (one fight; want %.0f m)" % [cs[i][0], cs[j][0], d, CAMP_APART])
 
 
 func _rares() -> void:

@@ -47,7 +47,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(-84.0, 60.0, 88.0), "kinds": ["burrower", "wretch"], "probe": 0.0},             # south of the road beyond the chapel, at the orchard's edge (it lay 47 m from the green, on the road out of the village)
 	{"at": Vector3(80.0, 60.0, 49.0), "kinds": ["chanter", "husk", "crawler"], "probe": 0.0},      # Pilgrims' Road east, back from the road (it stood 4.7 m off it)
 	{"at": Vector3(-35.0, 60.0, -10.0), "kinds": ["quiller", "leaper"], "probe": 0.0},             # rift rim west (r31 merge: off the secret bridge's landing at -23.5,-5.3, where a pounce threw you into the rift; r34 enemies: was -38,6, 7 m from the Shrine fire: in its light)
-	{"at": Vector3(34.0, 60.0, -4.0), "kinds": ["wretch", "crawler"], "probe": 0.0},               # rift rim east (was 22,-6: 41 m from Hearthward, its pawns on the rim's slope)
+	{"at": Vector3(22.0, 60.0, -6.0), "kinds": ["wretch", "crawler"], "probe": 0.0},               # rift rim east
 	# --- r34 enemies: the new ground at the old density (docs/r34/layout.md: ~4 camps per 10,000 m²,
 	# ~1 foe per 1,000 m²), each region its own roster and a reason. Every camp: 10 m+ inside BOUNDS,
 	# 13 m+ from every fire (the braziers and the new regions' fire slots), 4 m+ off the ways, off the
@@ -203,6 +203,7 @@ const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
 const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
 const PATROL_PACE := 1.5           ## m/s a roaming camp walks its round at (every member alike: in step)
+const HIDE_R := 170.0              ## a sleeping pawn further than this is hidden (the bodies' draw range ends ~130 m)
 var _camps: Array = []
 var _realm := false
 var _slots: Array[Dictionary] = []
@@ -463,7 +464,14 @@ func _process(delta: float) -> void:
 		var d2 := player.global_position.distance_squared_to(enemy.global_position)
 		var reach := enemy.sleep_range
 		if d2 > reach * reach:
-			enemy.sleep()
+			# far past its body's draw range it is not shown at all, so its skin stops at its first check each frame
+			# (the doubled Realm keeps a few hundred camp pawns asleep at any spot). Visibility flips only when it
+			# changes (sleep() shows it): asleep, hidden and far, it is left alone.
+			var far := d2 > HIDE_R * HIDE_R
+			if enemy.process_mode != Node.PROCESS_MODE_DISABLED or (not far and not enemy.visible):
+				enemy.sleep()
+			if far and enemy.visible:
+				enemy.visible = false
 		else:
 			enemy.wake()
 
