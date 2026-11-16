@@ -393,19 +393,35 @@ static func _tris(m: Mesh) -> int:
 ## an Array / Dictionary, two levels deep).
 static func _drop_held(top: Node, cands: Dictionary) -> void:
 	var by := {}
+	var vars_of := {}                                 # Script -> the names of its variables that can hold an Object
 	for n in top.find_children("*", "", true, false):
-		if n.get_script() == null or String(n.name) == "FadeGuard":
+		var sc: Variant = n.get_script()
+		if sc == null or String(n.name) == "FadeGuard":
 			continue                                  # (the fade guard tracks every instance; a freed one leaves it)
+		if not vars_of.has(sc):
+			vars_of[sc] = _object_vars(n)
 		var before := cands.size()
-		for p in n.get_property_list():
-			if not (int(p.usage) & PROPERTY_USAGE_SCRIPT_VARIABLE):
-				continue
-			_drop_in(n.get(p.name), cands, 0)
+		for v: StringName in vars_of[sc]:
+			_drop_in(n.get(v), cands, 0)
 		if before != cands.size():
 			var k := String((n.get_script() as Script).resource_path).get_file()
 			by[k] = int(by.get(k, 0)) + before - cands.size()
 	if "--merge-why" in OS.get_cmdline_user_args():
 		print("MERGE held by: ", by)
+
+
+## A script's variables that can hold an Object (untyped, Object, Array, Dictionary), looked up once per script:
+## the scan used to walk every scripted node's whole property list (~1.4 s of the post-build pass, perf critique
+## 16 Nov); ints, floats, strings, vectors and packed arrays can hold no mesh.
+static func _object_vars(n: Node) -> Array[StringName]:
+	var out: Array[StringName] = []
+	for p in n.get_property_list():
+		if not (int(p.usage) & PROPERTY_USAGE_SCRIPT_VARIABLE):
+			continue
+		var t := int(p.type)
+		if t == TYPE_NIL or t == TYPE_OBJECT or t == TYPE_ARRAY or t == TYPE_DICTIONARY:
+			out.append(StringName(p.name))
+	return out
 
 
 static func _drop_in(v: Variant, cands: Dictionary, depth: int) -> void:

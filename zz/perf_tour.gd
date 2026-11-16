@@ -84,12 +84,20 @@ var realm_points := [
 	["t_fallowmere", Vector3(-146.0, NAN, 300.0), 1.11],         # from the green to the tithe barn
 	["t_lastlight", Vector3(314.0, NAN, 64.0), -0.92],           # from the street over the yard, the inn and the tower
 	["t_ll_road", Vector3(266.0, NAN, 72.0), -1.27],             # the walls from the road
+	# the rest of the Far Reaches (docs/far_reaches.md, perf critique 16 Nov): 40 m out from each, toward Hearthward, facing it
+	["fr_greyfell", Vector3(-277.0, NAN, -88.0), 1.265],         # the Broken Keep on its crag
+	["fr_lanternwood", Vector3(-275.0, NAN, 8.0), 1.596],        # the ring of giant caps
+	["fr_kings_barrows", Vector3(-279.0, NAN, 135.0), 2.012],    # the heather ridge of great barrows
+	["fr_long_arches", Vector3(0.0, NAN, 277.0), PI],            # the aqueduct across the dry valley
+	["fr_southwood", Vector3(157.5, NAN, 282.0), -2.633],        # the charcoal burners' ruin
+	["fr_drowned_nave", Vector3(279.6, NAN, 146.4), -2.054],     # the flooded cathedral
+	["fr_cairns", Vector3(286.8, NAN, 287.7), -2.358],           # the Thousand Cairns and the Cairn Tower
 ]
 ## The path: legs of [goal xz (y ignored), label]; a leg starting with "@" teleports there instead.
 var route := [
 	[Vector3(0, 0, 26.5), "@spawn"],
 	[Vector3(-4, 0, 30), "west_way"], [Vector3(-20, 0, 24), "west_way"], [Vector3(-38, 0, 10), "glade"],
-	[Vector3(-52, 0, -2), "thornwood"], [Vector3(-58, 0, -4), "henge foot"],
+	[Vector3(-46, 0, -5), "thornwood"], [Vector3(-50, 0, -10), "henge foot"],     # to the henge stair's foot (RealmLayout.HENGE_STAIR_FOOT): straight at -52/-58 it stuck on the plateau's bank
 	[Vector3(26, 0, 22), "@east"],
 	[Vector3(42, 0, 10), "east_way"], [Vector3(58, 0, -12), "east_way"], [Vector3(72, 0, -34), "fen"],
 	[Vector3(78, 0, -42), "barrows"], [Vector3(62, 0, -56), "fen_descent"], [Vector3(44, 0, -62), "fen_descent"],
