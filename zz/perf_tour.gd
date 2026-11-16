@@ -94,10 +94,11 @@ var route := [
 	[Vector3(42, 0, 10), "east_way"], [Vector3(58, 0, -12), "east_way"], [Vector3(72, 0, -34), "fen"],
 	[Vector3(78, 0, -42), "barrows"], [Vector3(62, 0, -56), "fen_descent"], [Vector3(44, 0, -62), "fen_descent"],
 	[Vector3(54, 0, -59.5), "fen fire"],
-	[Vector3(0, 0, 22), "@rim"],
-	[Vector3(0, 0, 4), "rift_rim"], [Vector3(0, 0, -10.5), "forecourt"], [Vector3(0, 0, -15.5), "rim steps"],
-	[Vector3(0, 0, -21), "tower 1"], [Vector3(-13, 0, -30), "viaduct"], [Vector3(-1.8, 0, -40), "fallen column"],
-	[Vector3(-1.8, 0, -49.5), "spindle flight"],
+	# the Crossing (the far north-east, from Lastlight's north postern: Endgame)
+	[Vector3(0, 0, 22) + Endgame.O, "@rim"],
+	[Vector3(0, 0, 4) + Endgame.O, "rift_rim"], [Vector3(0, 0, -10.5) + Endgame.O, "forecourt"], [Vector3(0, 0, -15.5) + Endgame.O, "rim steps"],
+	[Vector3(0, 0, -21) + Endgame.O, "tower 1"], [Vector3(-13, 0, -30) + Endgame.O, "viaduct"], [Vector3(-1.8, 0, -40) + Endgame.O, "fallen column"],
+	[Vector3(-1.8, 0, -49.5) + Endgame.O, "spindle flight"],
 ]
 var p: Player
 var main: Node

@@ -11,10 +11,10 @@ extends RefCounted
 
 const ScalePilot := preload("res://core/world/realm/scale_pilot.gd")
 
-## Checkpoint braziers: Zone/Braziers/<name> (kindle memory is by node name, so names are kept).
+## Checkpoint braziers: Zone/Braziers/<name> (kindle memory is by node name, so names are kept: StairFoot is the meadow fire).
 ## [xz, the point the fire faces (the respawn spot is 1.8 m that way)]
 const BRAZIERS := {
-	"StairFoot": [Vector2(-5.0, -2.0) + Endgame.O2, Vector2(0.0, -2.0) + Endgame.O2],        # the Crossing's foot, by rift_rim (the far north-east)
+	"StairFoot": [Vector2(-5.0, -2.0), Vector2(0.0, -2.0)],        # the meadow fire, at north_lane's end (the first act's first fire; the Crossing has its own)
 	"Shrine": [Vector2(-31.0, 4.0), Vector2(-36.0, 8.6)],          # the Glimmer Glade, beside west_way
 	"Landing": [Vector2(84.0, -36.0), Vector2(78.0, -40.0)],       # the Barrow Field, where fen_descent starts
 	"Threshold": [Vector2(50.6, -57.5), Vector2(55.6, -56.6)],     # on the fen, where fen_descent ends (the Ossuary's fen door was above it until the Ossuary moved; the fire stays: a checkpoint, off fen_descent) (was (47, -55), half a metre off the Lay Brothers' Stair's foot: the climb glanced off it; it faces east so the ember post stands south of the brazier, off the path)
@@ -32,6 +32,7 @@ const R34_FIRES := {
 	"OrchardFire": [Vector2(-99.0, 104.0), Vector2(-106.0, 104.0)],     # beside orchard_lane
 	"FieldFire": [Vector2(8.0, 108.0), Vector2(1.0, 110.0)],            # the Waiting Field's gate, off necropolis_way
 	"MereFire": [Vector2(103.0, 98.0), Vector2(98.0, 96.0)],            # the mere's north bank, by mere_causeway
+	"CrossingFire": [Vector2(-5.0, -2.0) + Endgame.O2, Vector2(0.0, -2.0) + Endgame.O2],   # the Crossing's foot, by rift_rim (the far north-east: Endgame)
 	# --- south marches ---
 	"OakFire": [Vector2(-44.0, 196.4), Vector2(-52.0, 199.0)],          # beside downs_track (4 m south of its bend: at z 192 the track ran through the fire), in the Grandmother Oak's shade (the door looks this way)
 	"WellFire": [Vector2(44.0, 196.4), Vector2(52.0, 199.0)],           # beside downs_track (4 m south of its bend), on the way to the Well's rim and the descent gate

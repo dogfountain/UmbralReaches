@@ -82,7 +82,7 @@ forecourt is at (310, -7), 33 m north of Lastlight's north postern; the complex 
 - main.gd shifts the baked lava sheet, its haze and motes; LavaWorks works round the sheet's own centre.
 - Built later in world coordinates: the summit's dressing and deck (RealmLayout anchors), the rim lore (`lore/rim.gd`),
   the rim secrets (`site_rim.gd` builds at home with its ground, flora clearings and sites read where it stands:
-  `Kit.shift`; `site_breath.gd`'s search starts at the moved rim), the stair-foot fire, the rim camps, the quest steps,
+  `Kit.shift`; `site_breath.gd`'s search starts at the moved rim), the Crossing's own fire (`CrossingFire`), the rim camps, the quest steps,
   the pilgrims who look up at the summit, the minimap's Crossing, the ambience's rift room.
 - The burn (`rift/scorch.gd`) is the original field around the moved chasm; its west flows turn south so the Choir House
   (on a levelled terrace under the west berm) stays east of the nav seam. The smoke column (`rift/plume.gd`) rises out
@@ -95,7 +95,11 @@ forecourt is at (310, -7), 33 m north of Lastlight's north postern; the complex 
   tier 3; its region (306..370 x 84..122) takes the flat west approach too. Four named wayside places: the crater is
   crowded by its camps, fire and landmark, so a region with no room left for a named place has it on the ground just
   round it (`realm_wayside.gd` `_force(..., spill)`). The smoke over its floor still rises from drawn, glowing cracks.
-- Also moved east with the endgame: the Deeper Night's bells, the spawner's stair-foot haven and the rim camps, the
+- The first act's first fire stays at home: `StairFoot` (its node name, kept for saves) is the meadow fire at the end of
+  `north_lane` (rift_rim's old first leg), north of Hearthward's green; its name, the keep's, the guide's and the
+  villagers' lines, the quest and the pilgrims' stone by the lane say meadow, not stair. Oswin's forty-first waystone
+  is at the head of north_lane, where the long road east to the Stair begins.
+- Also moved east with the endgame: the Deeper Night's bells, the spawner's haven at the Crossing fire and the rim camps, the
   Crossing and Stair-foot subzones, the chasm's bats, the starwater surge, the pilgrims' processions, the loading
   screen's three endgame shots, the world map's summit tower, Agathe's gaze. (The wayside still keeps off the old
   chasm's ground at home, so its plan elsewhere is unchanged; the moved chasm is the `rift` region it skips.)

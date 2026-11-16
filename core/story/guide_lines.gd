@@ -2,14 +2,14 @@ extends RefCounted
 ## What the guide (core/story/guide.gd) says, per step of the first act: the banner's "where" line, what Hearthward's
 ## people call out when the wanderer walks past (a bark: one line, once per person per step), and what they answer
 ## when asked "Which way?" in a conversation. House style (docs/LORE.md): terse, concrete; nobody explains the
-## world, they point at it and complain. Directions are from Hearthward (the spawn fire, 0, 33): the Stair's foot is
+## world, they point at it and complain. Directions are from Hearthward (the spawn fire, 0, 33): the meadow fire is
 ## north, the Ring west up the Thornwood's hill, the Ossuary south down the Waiting Field's road, the Keg east.
 ## Load by path (no class_name): const GuideLines := preload("res://core/story/guide_lines.gd")
 
 ## step id -> the banner's name for the step (the tracker keeps the whole sentence)
 const SHORT := {
 	"arrive": "Find the keep",
-	"first_fire": "Kindle the Stair-foot fire",
+	"first_fire": "Kindle the meadow fire",
 	"doors": "Pick a door",
 	"thorn_seal": "Break the thorn seal",
 	"thornwarden": "Cut the Thorn Heart",
@@ -21,7 +21,7 @@ const SHORT := {
 ## step id -> the banner's second line (where it is)
 const WHERE := {
 	"arrive": "The Kindled Keg, east of the fire. The keep is behind the bar.",
-	"first_fire": "North, where the Stair begins. Light is somewhere to stand.",
+	"first_fire": "North, up the lane past the last house. Light is somewhere to stand.",
 	"doors": "The thorn seal west, up the Thornwood's hill, or the gallery seal south, down the Waiting Field's road.",
 	"thorn_seal": "West, past the glade, up the hill in the Thornwood.",
 	"thornwarden": "The Ring, on the Thornwood's hill.",
@@ -39,9 +39,9 @@ const BARKS := {
 		"Lantern-bearer. The keep said one would come. Kindled Keg, behind the bar.",
 	],
 	"first_fire": [
-		"Stair-foot fire's gone cold. North up the road, where the steps start.",
-		"North, to the foot of the Stair. That brazier's not been fed since the sky went.",
-		"You've a lantern. The Stair-foot brazier needs it more than we do.",
+		"Meadow fire's gone cold. North up the lane, where the oaks start.",
+		"North, out in the meadow. That brazier's not been fed since the sky went.",
+		"You've a lantern. The meadow brazier needs it more than we do.",
 	],
 	"doors": [
 		"Thorns west, bones south. I'd take neither. You'll take one.",
@@ -73,7 +73,7 @@ const BARKS := {
 ## step id -> the answer to "Which way?" in a conversation
 const ANSWER := {
 	"arrive": "The keep. The Kindled Keg, east of the fire: the lit door. He'll tell you what the night wants.",
-	"first_fire": "Kindle the brazier at the Stair's foot, north up the road. A lit fire is somewhere to stand.",
+	"first_fire": "Kindle the brazier in the north meadow, up the lane past the last house. A lit fire is somewhere to stand.",
 	"doors": "Two doors. The thorn seal west, up the Thornwood's hill, or the gallery seal south, down the Waiting Field's road. Either. Both, in the end.",
 	"thorn_seal": "West, past the Glimmer Glade, up the hill in the Thornwood. The seal is in the hedge's mouth.",
 	"thornwarden": "The Ring on the western hill. The Thornwarden's in it, and the heart's in him.",

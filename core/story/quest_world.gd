@@ -3,7 +3,7 @@ extends Node3D
 ## its people stand; "Quests" in group "quests". From quest_book.gd's state it keeps the world true:
 ##   - pickups (quest_pickup.gd) for the step that wants them: Edda's tongs, the name-slates, the
 ##     Keg's mugs, Father Harrow's lantern; taking one reads it out (subtitles) and moves the task on
-##   - Oswin's walk to the forty-first waystone (head of the rim road): he follows the wanderer (villager.gd `follow`) off
+##   - Oswin's walk to the forty-first waystone (head of the north lane): he follows the wanderer (villager.gd `follow`) off
 ##     the walking network, waits when left behind, kneels at the stone; after the choice he keeps a
 ##     vigil there for good, or takes the west road and is gone
 ##   - Father Harrow: a hollowed man who wakes over his lantern in the fen and falls on step 1
@@ -36,7 +36,7 @@ var _leave_t := 0.0
 
 # --- before the people spawn ------------------------------------------------------------------------
 
-## Find the floor spots and add the stair's foot to the walking network (as a lone node: Oswin is
+## Find the floor spots and add the forty-first stone (north_lane's head) to the walking network (as a lone node: Oswin is
 ## placed there, never routed).
 static func prepare(v: Node3D) -> void:
 	spots.clear()

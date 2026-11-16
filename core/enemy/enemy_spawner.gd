@@ -6,7 +6,7 @@ const RESPAWN := 10.0            ## a seal camp's refill (the seal's progress is
 const RESPAWN_ROAM := 90.0       ## a cleared road camp stays down long enough to leave and come back on foot
 const RETRY := 1.5
 const KEEP_CLEAR := 7.0
-const HAVEN := Vector3(-3.4, 0.0, -8.5) + Endgame.O       ## the stair-foot fire's ground (the far north-east: Endgame)
+const HAVEN := Vector3(-3.4, 0.0, -8.5) + Endgame.O       ## the Crossing fire's ground (the far north-east: Endgame)
 const HAVEN_R := 12.0
 
 const ReachCamps := preload("res://core/enemy/realm_camps_reaches.gd")

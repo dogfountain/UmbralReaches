@@ -60,7 +60,7 @@ const ELITE_FAR := 95.0
 ## The bell: beside the Crossing's foot (candidates in order) and on the summit platform (the far north-east: Endgame).
 const BELLS := [[Vector3(3.4, 0.0, 2.0) + Endgame.O, Vector3(3.0, 0.0, 0.5) + Endgame.O, Vector3(-3.4, 0.0, 1.5) + Endgame.O],
 	[Vector3(-4.5, 27.35, -80.0) + Endgame.O, Vector3(4.5, 27.35, -80.0) + Endgame.O]]
-const BOARD := Vector2(3.5, 10.5)  ## the bounty board, beside rift_rim on the way out of the village
+const BOARD := Vector2(3.5, 10.5)  ## the bounty board, beside north_lane on the way out of the village
 const BRAZIER_NAMES := ["StairFoot", "Shrine", "Landing", "Threshold"]
 
 var root: Node3D

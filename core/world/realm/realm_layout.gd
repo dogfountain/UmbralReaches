@@ -302,7 +302,7 @@ const BASE_PATHS := [
 	{"id": "road", "w": 2.2, "pts": [Vector2(-366, 48), Vector2(-330, 52), Vector2(-300, 56.4), Vector2(-255, 62), Vector2(-232, 64), Vector2(-205, 66), Vector2(-180, 66), Vector2(-150, 67), Vector2(-104, 64), Vector2(-72, 60), Vector2(-40, 58), Vector2(-6, 54), Vector2(2, 44), Vector2(40, 60), Vector2(104, 66), Vector2(150, 68), Vector2(180, 70), Vector2(212, 74), Vector2(240, 72), Vector2(255, 70), Vector2(290, 70), Vector2(318, 66), Vector2(366, 62)]},
 	{"id": "chapel_lane", "w": 1.4, "pts": [Vector2(-60, 58), Vector2(-68, 52)]},
 	{"id": "rift_rim", "w": 2.0, "pts": [Vector2(0, 22) + Endgame.O2, Vector2(0, 4) + Endgame.O2, Vector2(0, -3) + Endgame.O2]},   # Lastlight's north postern to where the approach flight begins
-	# r34
+	{"id": "north_lane", "w": 1.6, "pts": [Vector2(0, 22), Vector2(0, 4), Vector2(-1, 0)]},   # Hearthward's north edge to the meadow fire (rift_rim's old first leg)
 	{"id": "west_track", "w": 1.4, "pts": [Vector2(-118, 65), Vector2(-124, 44), Vector2(-132, 22), Vector2(-138, -6), Vector2(-138, -40), Vector2(-132, -66), Vector2(-126, -84)]},
 	{"id": "moor_track", "w": 1.4, "pts": [Vector2(124, 67), Vector2(130, 44), Vector2(134, 18), Vector2(132, -18), Vector2(130, -46), Vector2(128, -72), Vector2(130, -86)]},
 	{"id": "necropolis_way", "w": 1.8, "pts": [Vector2(-6, 54), Vector2(-5, 74), Vector2(-3, 96), Vector2(0, 112), Vector2(0, 128)]},

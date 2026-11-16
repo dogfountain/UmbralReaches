@@ -21,7 +21,7 @@ const OBJECTIVES := [
 	# a guided save's first step out (core/story/guide.gd: flag "guide" is set by a new game's opening): one fire before
 	# the doors, so the first walk out of Hearthward is short and teaches the kindling. Gone once a fire or a door is taken.
 	{"id": "first_fire", "main": true, "when": "flag:met_keep,flag:guide,!kindled:1,!seal:henge,!seal:oss_gallery,!boss:thornwarden,!boss:bone_abbot", "done": "kindled:1",
-		"text": "Kindle the brazier at the Stair's foot, north of Hearthward"},
+		"text": "Kindle the brazier in the meadow north of Hearthward"},
 	# Two doors, one line: his sentence while both seals are shut. Breaking one swaps it for that fight,
 	# and the other door is the next line. Either door first still counts.
 	{"id": "doors", "main": true, "when": "flag:met_keep", "done": "seal:henge|boss:thornwarden|seal:oss_gallery|boss:bone_abbot",

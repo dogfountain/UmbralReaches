@@ -126,7 +126,7 @@ const QUESTS := {
 	"forty_first": {"name": "The Forty-First Stone", "giver": "oswin", "where": "Oswin the pilgrim, on the west road", "zone": "road",
 		"text": "Oswin has touched forty waystones on the way to the Stair. He wants to touch the last, and his eyes are bad in the dark.",
 		"steps": [
-			{"kind": "escort", "text": "Walk Oswin to the forty-first waystone, at the head of the rim road south of the green"},
+			{"kind": "escort", "text": "Walk Oswin to the forty-first waystone, at the head of the north lane past the green"},
 			{"kind": "talk", "who": "oswin", "text": "Speak with Oswin at the forty-first stone"},
 		],
 		"reward": {"ash": 12, "charm": "charm_waystone", "else": {"relic_fragment": 1}},
