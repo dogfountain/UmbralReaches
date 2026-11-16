@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dgjb2dx8plqg5"
-path="res://.godot/imported/orchard_mother_tree_Mother_CharBark_orm.png-fc912c4fb6b60f2f2c37821bf29db5d6.ctex"
+path.s3tc="res://.godot/imported/orchard_mother_tree_Mother_CharBark_orm.png-fc912c4fb6b60f2f2c37821bf29db5d6.s3tc.ctex"
+path.etc2="res://.godot/imported/orchard_mother_tree_Mother_CharBark_orm.png-fc912c4fb6b60f2f2c37821bf29db5d6.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "645ed73fdb1a38fb1d7fa83fe5788fb7"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/orchard_mother_tree_Mother_CharBark_orm.png"
-dest_files=["res://.godot/imported/orchard_mother_tree_Mother_CharBark_orm.png-fc912c4fb6b60f2f2c37821bf29db5d6.ctex"]
+dest_files=["res://.godot/imported/orchard_mother_tree_Mother_CharBark_orm.png-fc912c4fb6b60f2f2c37821bf29db5d6.s3tc.ctex", "res://.godot/imported/orchard_mother_tree_Mother_CharBark_orm.png-fc912c4fb6b60f2f2c37821bf29db5d6.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

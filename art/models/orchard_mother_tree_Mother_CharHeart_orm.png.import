@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bv266mk78eama"
-path="res://.godot/imported/orchard_mother_tree_Mother_CharHeart_orm.png-3157351790657bc052ca63afaa30768c.ctex"
+path.s3tc="res://.godot/imported/orchard_mother_tree_Mother_CharHeart_orm.png-3157351790657bc052ca63afaa30768c.s3tc.ctex"
+path.etc2="res://.godot/imported/orchard_mother_tree_Mother_CharHeart_orm.png-3157351790657bc052ca63afaa30768c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "dd619acae3c4a3e820d91f53110a57e8"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/orchard_mother_tree_Mother_CharHeart_orm.png"
-dest_files=["res://.godot/imported/orchard_mother_tree_Mother_CharHeart_orm.png-3157351790657bc052ca63afaa30768c.ctex"]
+dest_files=["res://.godot/imported/orchard_mother_tree_Mother_CharHeart_orm.png-3157351790657bc052ca63afaa30768c.s3tc.ctex", "res://.godot/imported/orchard_mother_tree_Mother_CharHeart_orm.png-3157351790657bc052ca63afaa30768c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

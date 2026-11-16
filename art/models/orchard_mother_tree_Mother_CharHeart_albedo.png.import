@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://djsjk7xrs3anc"
-path="res://.godot/imported/orchard_mother_tree_Mother_CharHeart_albedo.png-a829e1f4b35b3c3f3a3a76e95cee7ee6.ctex"
+path.s3tc="res://.godot/imported/orchard_mother_tree_Mother_CharHeart_albedo.png-a829e1f4b35b3c3f3a3a76e95cee7ee6.s3tc.ctex"
+path.etc2="res://.godot/imported/orchard_mother_tree_Mother_CharHeart_albedo.png-a829e1f4b35b3c3f3a3a76e95cee7ee6.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "2aaf2fd62eb830f3b6ed8a5575f88cb8"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/orchard_mother_tree_Mother_CharHeart_albedo.png"
-dest_files=["res://.godot/imported/orchard_mother_tree_Mother_CharHeart_albedo.png-a829e1f4b35b3c3f3a3a76e95cee7ee6.ctex"]
+dest_files=["res://.godot/imported/orchard_mother_tree_Mother_CharHeart_albedo.png-a829e1f4b35b3c3f3a3a76e95cee7ee6.s3tc.ctex", "res://.godot/imported/orchard_mother_tree_Mother_CharHeart_albedo.png-a829e1f4b35b3c3f3a3a76e95cee7ee6.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

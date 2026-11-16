@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://pjnpepuo2nfw"
-path="res://.godot/imported/r37e_works_r37e_salt_orm.png-e0d99bef26f6cc628fcd349fd29ceae3.ctex"
+path.s3tc="res://.godot/imported/r37e_works_r37e_salt_orm.png-e0d99bef26f6cc628fcd349fd29ceae3.s3tc.ctex"
+path.etc2="res://.godot/imported/r37e_works_r37e_salt_orm.png-e0d99bef26f6cc628fcd349fd29ceae3.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "464c3c60a59a7bfc6719e1fab05d0c5c"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://art/models/r37e_works_r37e_salt_orm.png"
-dest_files=["res://.godot/imported/r37e_works_r37e_salt_orm.png-e0d99bef26f6cc628fcd349fd29ceae3.ctex"]
+dest_files=["res://.godot/imported/r37e_works_r37e_salt_orm.png-e0d99bef26f6cc628fcd349fd29ceae3.s3tc.ctex", "res://.godot/imported/r37e_works_r37e_salt_orm.png-e0d99bef26f6cc628fcd349fd29ceae3.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
