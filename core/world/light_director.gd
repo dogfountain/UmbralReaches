@@ -22,6 +22,7 @@ const PRIORITY := {&"beacon": 0.6, &"shaft": 0.9, &"lamp": 1.0, &"hero_fill": 1.
 	&"glimmer": 1.2, &"river": 1.3}          ## distance multipliers: lower = kept first
 const EASE := 60.0                          ## m/s the fade start of a light being cut (or restored) moves
 const TICK := 0.2                           ## s between budget passes
+const SLICES := 6                           ## frames a pass is spread over (~500 lights in one frame was a 0.4-0.6 ms spike)
 const FIRE_SHADOW_R := 14.0                 ## m: the nearest lit brazier this close casts
 const FIRE_SHADOW_IN := 2.5                 ## shadow opacity per second (in and out)
 
@@ -32,6 +33,8 @@ var _cut := {}                              ## light -> true while the budget cu
 var _moving := {}                           ## light -> true while its fade start is easing (only these are touched a frame)
 var _best: Light3D = null                   ## the nearest lit brazier in reach (the budget pass finds it)
 var _t := 0.0
+var _sweep := -1                            ## the next light the pass under way looks at (-1: none)
+var _cand: Array = []                       ## the pass's lights in reach so far: [distance x priority, light, distance]
 var _fire: Light3D = null
 var _stats := Vector3i.ZERO                 ## governed, budgeted in range, cut
 var _no_fire := "--no-fire-shadow" in OS.get_cmdline_user_args()   ## A/B
@@ -92,8 +95,11 @@ func _process(dt: float) -> void:
 		return
 	var at := cam.global_position
 	_t -= dt
-	if _t <= 0.0:
+	if _t <= 0.0 and _sweep < 0:
 		_t = TICK
+		_sweep = 0
+		_cand.clear()
+	if _sweep >= 0:
 		_budget(at)
 	if not _moving.is_empty():
 		_ease(at, dt)
@@ -102,14 +108,12 @@ func _process(dt: float) -> void:
 
 
 ## Rank the lights in reach; mark the nearest BUDGET kept and the rest cut; find the nearest lit brazier.
-## (Every 0.2 s: the per-frame work is only the lights still easing, Luke's PC being bound by the CPU.)
+## (Every 0.2 s: the per-frame work is only the lights still easing, Luke's PC being bound by the CPU.) A pass
+## measures its lights over SLICES frames, then ranks and cuts them all at once on its last.
 func _budget(at: Vector3) -> void:
-	var cand: Array = []
-	var i := 0
-	var fire_on := Settings.shadow_quality > 1 and not _no_fire   # (shadows High at any detail: one map, ~0.1 ms)
-	var bd := FIRE_SHADOW_R
-	_best = null
-	while i < _lights.size():
+	var i := _sweep
+	var stop := i + ceili(float(_lights.size()) / float(SLICES))
+	while i < _lights.size() and i < stop:
 		var lv: Variant = _lights[i]             # (untyped: a freed light may not be assigned to a Light3D)
 		if not is_instance_valid(lv) or not (lv as Light3D).is_inside_tree():
 			_lights.remove_at(i)
@@ -124,7 +128,19 @@ func _budget(at: Vector3) -> void:
 		if not l.visible or d > float(_own[l]) + l.distance_fade_length + 2.0:
 			_set_cut(l, false)                       # out of its own reach: nothing to decide
 			continue
-		cand.append([d * float(_prio[l]), l, d])
+		_cand.append([d * float(_prio[l]), l, d])
+	_sweep = i
+	if i < _lights.size():
+		return
+	_sweep = -1
+	var cand: Array = []
+	for c: Array in _cand:
+		if is_instance_valid(c[1]):                 # (freed since it was measured)
+			cand.append(c)
+	_cand.clear()
+	var fire_on := Settings.shadow_quality > 1 and not _no_fire   # (shadows High at any detail: one map, ~0.1 ms)
+	var bd := FIRE_SHADOW_R
+	_best = null
 	cand.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
 	var keep: int = BUDGET[clampi(Settings.detail, 0, 2)]
 	var cut := 0
