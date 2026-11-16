@@ -215,6 +215,7 @@ static func build(holder: Node) -> void:
 		root.add_child(h)
 		h.add_to_group(P.GROUP_POI)
 		h.set_meta("poi", "town_" + t)
+		h.set_meta("reach", true)                       # a Far Reaches place (zz/world_poi_test keeps them apart from the r31 places)
 		h.set_meta("centre", Vector3((Plan.TOWNS[t].c as Vector2).x, 0.0, (Plan.TOWNS[t].c as Vector2).y))
 		h.set_meta("radius", float(Plan.TOWNS[t].r))
 		hosts[t] = h
