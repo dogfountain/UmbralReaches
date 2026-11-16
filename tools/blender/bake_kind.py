@@ -275,10 +275,10 @@ def wire_albedo(N):
     m_f = _math(nt, 'ADD', m_k, 1.0)
     c = _mix(nt, base, m_f, 1.0, 'MULTIPLY')
     # cavity: AO darkens hard (deep creases near black), broad AO softer
-    ao_c = _math(nt, 'POWER', N["ao"].outputs["AO"], 1.6)
-    ao_k = _math(nt, 'MULTIPLY_ADD', ao_c, 0.85, 0.15)
+    ao_c = _math(nt, 'POWER', N["ao"].outputs["AO"], 1.2)
+    ao_k = _math(nt, 'MULTIPLY_ADD', ao_c, 0.55, 0.45)
     c = _mix(nt, c, ao_k, 1.0, 'MULTIPLY')
-    ao_b = _math(nt, 'MULTIPLY_ADD', N["ao2"].outputs["AO"], 0.45, 0.55)
+    ao_b = _math(nt, 'MULTIPLY_ADD', N["ao2"].outputs["AO"], 0.3, 0.7)
     c = _mix(nt, c, ao_b, 1.0, 'MULTIPLY')
     # edges: pointiness above its mean rubs the surface lighter
     pt = _math(nt, 'SUBTRACT', N["geo"].outputs["Pointiness"], 0.56)     # only real edges, not the sculpt's grain
@@ -324,7 +324,7 @@ def unwrap(low, margin=0.003, density=None, head_k=2.6):
     low.data.uv_layers.active = low.data.uv_layers["UVMap"]
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.select_all(action='SELECT')
-    bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=margin, area_weight=0.0, scale_to_bounds=False)
+    bpy.ops.uv.smart_project(angle_limit=math.radians(float(os.environ.get('BAKE_ANGLE','80'))), island_margin=margin, area_weight=0.0, scale_to_bounds=False)
     bpy.ops.object.mode_set(mode='OBJECT')
     # scale each island about its centre by its density (a face's layer; the head's faces by head_k on top), then pack
     me = low.data
@@ -449,8 +449,8 @@ def _bake_one(low, kind, size, levels, samples, prefix):
     nt = N["nt"]
     bk = sc.render.bake
     bk.use_selected_to_active = True
-    bk.cage_extrusion = 0.012
-    bk.max_ray_distance = 0.03
+    bk.cage_extrusion = float(os.environ.get("BAKE_EXT", "0.012"))
+    bk.max_ray_distance = float(os.environ.get("BAKE_RAY", "0.03"))
     bk.margin = 6
     bk.target = 'IMAGE_TEXTURES'
     for o in sc.objects:

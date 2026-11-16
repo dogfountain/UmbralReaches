@@ -1804,6 +1804,11 @@ def build_kind(kind):
     body, held = out[0], out[1]
     sock = out[2] if len(out) > 2 else SOCK
     soften(body)
+    if "--keepnormals" not in ARGS:     # sheets laid by shrink() can carry mixed winding; the bake casts rays along them
+        import bmesh
+        bm = bmesh.new(); bm.from_mesh(body.data)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        bm.to_mesh(body.data); bm.free()
     if "--bake" in ARGS:                                                  # the finished way: a high copy baked into four maps
         import bake_kind
         bake_kind.bake(body, kind, size=int(arg("--size", "2048")), extras=held)
