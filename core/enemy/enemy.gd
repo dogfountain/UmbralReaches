@@ -1312,12 +1312,18 @@ func _at_rest() -> bool:
 
 ## The rig's pose, every physics tick out to the sleep range. Joints are Node3Ds under physics
 ## interpolation, so the display draws the in-betweens. Past 46 m the body is asleep and unposed.
+const IDLE_POSE_R := 20.0               ## an idle foe at rest past this is posed one tick in three (GruntSkin.idle_lod)
 var _anim_dt := 0.0
+var _skin: Variant = false              ## its grunt skin, looked for once (false: not yet; null: none)
 
 
 func _animate_rig(on_floor: bool, delta: float, _full := 46.0) -> void:
 	_anim_dt = minf(_anim_dt + delta, 0.1)
 	if _dist > 46.0:
+		return
+	if _skin is bool:
+		_skin = _rig.find_child("GruntSkin", true, false)
+	if is_instance_valid(_skin) and _skin.idle_lod(_state == IDLE and _dist > IDLE_POSE_R and _rest_frames > 2, get_instance_id()):
 		return
 	_rig.animate(velocity, on_floor, _anim_dt)
 	_anim_dt = 0.0
