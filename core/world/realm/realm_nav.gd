@@ -180,20 +180,34 @@ static func _install(root: Node, nms: Array[NavigationMesh], t0: int, key: Strin
 		GenCache.save_var(key, SELF, packed)
 	info.polys = 0
 	info.verts = 0
+	var tl := tiles()
+	var probes := PackedVector3Array()
+	var region: NavigationRegion3D
 	for i in nms.size():
-		var region := NavigationRegion3D.new()
+		region = NavigationRegion3D.new()
 		region.name = "NavRegion" if i == 0 else "NavRegion%d" % i
 		region.navigation_mesh = nms[i]
 		root.add_child(region)
-		if i == nms.size() - 1:
-			# (the probe point NavAssist waits on is on the last tile installed)
-			NavAssist.set_region(region.get_instance_id(), nms[i].vertices[nms[i].get_polygon(0)[0]])
+		probes.append(_inner_point(nms[i], tl[i]))
 		info.polys += nms[i].get_polygon_count()
 		info.verts += nms[i].vertices.size()
+	NavAssist.set_regions(region.get_instance_id(), probes)          # enemies use the mesh once every tile has joined
 	_stitch(root)
 	info.ms = Time.get_ticks_msec() - t0
 	info.ready = true
 	print("REALM_NAV %d polygons, %d vertices in %d ms (parse %d ms, %s)" % [info.polys, info.verts, info.ms, info.parse_ms, "cached" if info.cached else "baked"])
+
+
+## A point on `nm` well inside `tile`, clear of the seams, where a neighbour's polygons overlap and would answer
+## for it before this tile has joined the map.
+static func _inner_point(nm: NavigationMesh, tile: AABB) -> Vector3:
+	var inner := Rect2(tile.position.x, tile.position.z, tile.size.x, tile.size.z).grow(-(SEAM + 8.0))
+	var v := nm.vertices
+	for i in nm.get_polygon_count():
+		var at := v[nm.get_polygon(i)[0]]
+		if inner.has_point(Vector2(at.x, at.z)):
+			return at
+	return v[nm.get_polygon(0)[0]]
 
 
 ## The tiles join where an edge of one happens to lie on an edge of the other, and the coarse polygons seldom do: a
