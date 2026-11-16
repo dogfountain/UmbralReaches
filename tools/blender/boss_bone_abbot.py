@@ -191,7 +191,7 @@ for i in range(9):
     y = 1.46 - 0.043 * i
     w = (0.085 + 0.085 * math.sin(min(t * 1.15, 1.0) * math.pi * 0.62)) * (1.0 - 0.22 * t * t)
     d = 0.1 + 0.012 * math.sin(t * math.pi)
-    rr = 0.0085 + 0.0015 * math.sin(t * math.pi)
+    rr = 0.0125 + 0.002 * math.sin(t * math.pi)
     for sx in (-1, 1):
         pts = []
         for k in range(9):
@@ -221,28 +221,28 @@ for tag, sx in (("l", -1), ("r", 1)):
         o["sock"] = sock
         parts.append(o)
         return o
-    pa(K.blob("HumHead", G(ax, 1.4, 0), (0.034, 0.034, 0.032), sock, BONE, 18, 10))
-    pa(K.bone("Humerus", G(ax, 1.39, 0), G(ax, 1.1, 0.004), 0.0165, sock, BONE, 1.8, 12, 14, sx))
-    pa(K.blob("Olecranon", G(ax, 1.075, 0.026), (0.02, 0.022, 0.026), sock, BONE, 12, 8))
+    pa(K.blob("HumHead", G(ax, 1.4, 0), (0.046, 0.046, 0.044), sock, BONE, 18, 10))
+    pa(K.bone("Humerus", G(ax, 1.39, 0), G(ax, 1.1, 0.004), 0.025, sock, BONE, 1.8, 12, 14, sx))
+    pa(K.blob("Olecranon", G(ax, 1.075, 0.026), (0.03, 0.032, 0.036), sock, BONE, 12, 8))
     for dz, nm in ((-0.012, "Radius"), (0.012, "Ulna")):
-        pa(K.bone(nm, G(ax + sx * 0.002, 1.075, dz), G(ax + sx * 0.003, 0.77, dz * 0.7), 0.0095, sock, BONE, 1.9, 10, 14, dz))
-    pa(K.blob("Carpals", G(ax + sx * 0.002, 0.75, -0.008), (0.027, 0.021, 0.019), sock, BONE, 14, 8))
+        pa(K.bone(nm, G(ax + sx * 0.002, 1.075, dz), G(ax + sx * 0.003, 0.77, dz * 0.7), 0.0145, sock, BONE, 1.9, 10, 14, dz))
+    pa(K.blob("Carpals", G(ax + sx * 0.002, 0.75, -0.008), (0.04, 0.03, 0.028), sock, BONE, 14, 8))
     for f in range(4):
         fx = ax + (f - 1.5) * 0.017
         len_ = [0.9, 1.0, 0.95, 0.8][f] * 1.6
         base = G(fx * 0.9 + ax * 0.1, 0.735, -0.012)
         mc = G(fx, 0.665, -0.02)
-        pa(K.bone("Metacarpal", base, mc, 0.0085, sock, BONE, 1.7, 7, 5, f))
+        pa(K.bone("Metacarpal", base, mc, 0.0125, sock, BONE, 1.7, 7, 5, f))
         p0 = mc
         pts = [mc]
         yy, zz = 0.665, -0.02
-        for j, (ln, rr) in enumerate(((0.052, 0.0094), (0.036, 0.008), (0.028, 0.0066))):
+        for j, (ln, rr) in enumerate(((0.052, 0.0135), (0.036, 0.0115), (0.028, 0.0095))):
             yy -= ln * len_ * 0.96
             zz -= (0.008 + 0.012 * j) * len_
             pts.append(G(fx + sx * 0.0015 * f, yy, zz))
             pa(K.bone("Phalanx", pts[-2], pts[-1], rr, sock, BONE, 1.55, 7, 4, f + j))
         d = Vector(pts[-1]) - Vector(pts[-2])
-        pa(GK.claw("Claw", pts[-1], d.normalized() + Vector(G(0, -0.15, -0.3)), 0.055 * len_, 0.0042, sock, BONE, 0.55))
+        pa(GK.claw("Claw", pts[-1], d.normalized() + Vector(G(0, -0.15, -0.3)), 0.062 * len_, 0.0062, sock, BONE, 0.55))
     tb = G(ax - sx * 0.022, 0.73, -0.016)
     pa(K.bone("ThumbA", tb, G(ax - sx * 0.04, 0.68, -0.04), 0.0072, sock, BONE, 1.6, 7, 4))
     pa(K.bone("ThumbB", G(ax - sx * 0.04, 0.68, -0.04), G(ax - sx * 0.05, 0.635, -0.062), 0.0058, sock, BONE, 1.5, 7, 4))
@@ -259,6 +259,12 @@ for tag, sx in (("l", -1), ("r", 1)):
 # --- the skull: its own sculpted surface, sockets and nasal cavity cut in, a loose jaw of teeth --------------------
 def skull_sculpt(s):
     GB.head_sculpt(s, OPT, _Y)
+    fz_ = OPT["hc"][2] - 0.088
+    s.bump((0.034, OPT["hc"][1] + 0.014, fz_), 0.02, -0.055, facing=(0, 0, -1), sx=(-1, 1))             # deep sockets
+    s.bump((0.034, OPT["hc"][1] + 0.014, fz_), 0.034, 0.0, facing=(0, 0, -1), sx=(-1, 1))
+    s.ridge((0.026, OPT["hc"][1] + 0.034, fz_ + 0.004), (0.062, OPT["hc"][1] + 0.026, fz_ + 0.012), 0.009, 0.012, facing=(0.3, 0, -1), sx=(-1, 1))   # brow arch
+    s.bump((0, OPT["hc"][1] - 0.02, fz_ - 0.004), 0.008, -0.035, facing=(0, 0, -1), sx=(-1, 1))            # nasal aperture
+    s.ridge((0.04, OPT["hc"][1] - 0.012, fz_ + 0.012), (0.07, OPT["hc"][1] - 0.04, fz_ + 0.03), 0.01, 0.01, facing=(0.5, 0, -1), sx=(-1, 1))      # cheekbone
     s.noise(45.0, 0.0015)
     s.folds(95.0, 0.0006)
 
@@ -270,14 +276,15 @@ skp = GB.skull_part(OPT, _Y)
 so, shi = L.sculpted("Skull", skp, "a", BONE, "skull", 2200, skull_sculpt, 0.0035, False, PAIRS)
 add(so, lambda p: {"head": 1.0})
 HCB = Vector(G(0, hy, hz))
-L.scale_about([so, shi], HCB, 1.2)
+SKS = 1.6
+L.scale_about([so, shi], HCB, SKS)
 for row, (dy, sgn) in enumerate(((-0.058, -1), (-0.072, 1))):
     for k in range(11):
         a = math.pi * (0.14 + 0.72 * k / 10.0)
-        base = HCB + (Vector(G(math.cos(a) * 0.036, hy + dy, hz - 0.052 - math.sin(a) * 0.03)) - HCB) * 1.2
-        add(K.loft("Tooth", [base, base + Vector(G(0, -sgn * 0.024, 0))], [0.0062, 0.0], "head", BONE, 5, cap0=False), lambda p: {"head": 1.0})
+        base = HCB + (Vector(G(math.cos(a) * 0.036, hy + dy, hz - 0.052 - math.sin(a) * 0.03)) - HCB) * SKS
+        add(K.loft("Tooth", [base, base + Vector(G(0, -sgn * 0.032, 0))], [0.0062, 0.0], "head", BONE, 5, cap0=False), lambda p: {"head": 1.0})
 for sx in (-1, 1):
-    add(K.blob("Eye", HCB + (Vector(G(sx * 0.034, hy + 0.012, hz - 0.075)) - HCB) * 1.2, (0.0125, 0.008, 0.0125), "head", EYE, 12, 8), lambda p: {"head": 1.0})
+    add(K.blob("Eye", HCB + (Vector(G(sx * 0.034, hy + 0.012, hz - 0.058)) - HCB) * SKS, (0.0105, 0.008, 0.0105), "head", EYE, 12, 8), lambda p: {"head": 1.0})
 
 # the reliquary: a gilt cage of curved bars, a candle burning in it, on a chain from the neck
 RQ = C0 + G(0, -0.12, -0.27)
@@ -355,9 +362,9 @@ WEIGHTS["cope_trim"] = cope_w
 
 
 for tag, sx in (("l", -1), ("r", 1)):
-    sl = L.Garment([(1.47, sx * 0.23, 0, 0.082, 0.077, 0.077, 2.2), (1.3, sx * 0.24, 0, 0.078, 0.078, 0.078, 2.2), (1.08, sx * 0.245, 0, 0.09, 0.09, 0.09, 2.2),
-                    (1.12, sx * 0.25, 0, 0.13, 0.12, 0.12, 2.0), (1.06, sx * 0.26, 0, 0.17, 0.155, 0.155, 2.0), (0.98, sx * 0.265, 0.01, 0.2, 0.19, 0.19, 2.0)],
-                   top=1.47, hem=1.1, folds=[(8, 0.0, 1.0, 0.5, 0.1), (17, 0, 0.6, 1.5, 0)], amp=0.055, ramp=(0.2, 0.7), lay=0.0, hem_lift=0.035, seed=sx,
+    sl = L.Garment([(1.47, sx * 0.23, 0, 0.082, 0.077, 0.077, 2.2), (1.3, sx * 0.24, 0, 0.078, 0.078, 0.078, 2.2), (1.1, sx * 0.245, 0, 0.09, 0.09, 0.09, 2.2),
+                    (0.95, sx * 0.25, 0.01, 0.12, 0.115, 0.115, 2.1), (0.8, sx * 0.255, 0.015, 0.155, 0.145, 0.145, 2.0), (0.7, sx * 0.255, 0.02, 0.17, 0.16, 0.16, 2.0)],
+                   top=1.47, hem=0.8, folds=[(8, 0.0, 1.0, 0.5, 0.1), (17, 0, 0.6, 1.5, 0)], amp=0.055, ramp=(0.2, 0.7), lay=0.0, hem_lift=0.035, seed=sx,
                    micro=0.0013, back_drop=0.05)
     lo, hi = L.shell(sl, "Sleeve" + tag, "sleeve_" + tag, WINE, 1200, (140, 100) if not LOWRES else (80, 60))
     PAIRS.append((lo, hi))
@@ -366,49 +373,42 @@ for tag, sx in (("l", -1), ("r", 1)):
     WEIGHTS["sleeve_" + tag + "_t"] = L.sleeve_weights(tag)
 
 # --- the mitre: a tall ogee of bone, a gilt circlet and orphreys, a jewel, lappets down the back ------------------------
-BASE_Y = 1.64 + 0.085
-MH = 0.58
+BASE_Y = 1.80
+MH = 0.46
 plates = []
 
 
-def mitre_plate(sgn):
-    """A peaked shield, bowed out, with an ogee outline: the front and the back plate of the mitre."""
-    nv, nu = 14, 10
-    P = np.zeros((nv + 1, nu + 1, 3))
+def mitre_ring(nv=22, nu=28):
+    """A closed ogee mitre: a flattened cone of bone, a cloven top, rings from the circlet to the peak."""
+    P = np.zeros((nv + 1, nu, 3))
     for i in range(nv + 1):
         v = i / nv
-        w = 0.15 * (1.0 - v ** 1.6) ** 1.3 * (1.0 + 0.12 * math.sin(v * math.pi)) + 0.003
-        for j in range(nu + 1):
-            u = -1.0 + 2.0 * j / nu
-            bow = 0.032 * (1.0 - u * u) * (1.0 - v) ** 0.8
-            P[i, j] = (u * w, BASE_Y + v * MH, -0.03 + sgn * (0.07 - 0.03 * v + bow))
+        w = 0.128 * (1.0 - v ** 1.5) ** 1.15 * (1.0 + 0.1 * math.sin(v * math.pi)) + 0.004
+        d = 0.085 * (1.0 - v ** 1.3) ** 1.0 * (1.0 + 0.06 * math.sin(v * math.pi)) + 0.004
+        for j in range(nu):
+            a = math.tau * j / nu
+            cleft = 1.0 - 0.28 * math.exp(-((v - 0.97) * 14) ** 2) * 0.0
+            P[i, j] = (math.cos(a) * w, BASE_Y + v * MH, -0.03 - math.sin(a) * d)
     return P
 
 
-for sg, nm in ((-1, "MitreFront"), (1, "MitreBack")):
-    pl = L.grid_mesh(nm, mitre_plate(sg), False, "head", BONE)
-    K.solidify(pl, 0.008)
+for sg, nm in ((-1, "Mitre"),):
+    pl = L.grid_mesh(nm, mitre_ring(), True, "head", BONE)
     add(pl, lambda p: {"head": 1.0})
-    # orphrey: gilt edging down both slopes, a central band and a cross-band
+    # orphrey: gilt edging down the sides of the cone, a central band and a cross-band
     for sx in (-1, 1):
-        pts = []
-        for i in range(0, 19):
-            v = i / 18.0
-            w = 0.15 * (1.0 - v ** 1.6) ** 1.3 * (1.0 + 0.12 * math.sin(v * math.pi)) + 0.003
-            pts.append(Vector(G(sx * w, BASE_Y + v * MH, -0.03 + sg * (0.07 - 0.03 * v + 0.012))))
-        add(TUBE("MitreEdge", pts, 0.0065, "head", GOLD), lambda p: {"head": 1.0})
-    add(TUBE("MitreSpine", [Vector(G(0, BASE_Y + v * MH * 0.92, -0.03 + sg * (0.07 - 0.03 * v + 0.044 * (1 - v) ** 0.8 + 0.01))) for v in [i / 10.0 for i in range(11)]], 0.009, "head", GOLD), lambda p: {"head": 1.0})
-    add(TUBE("MitreCross", [Vector(G(x, BASE_Y + 0.26, -0.03 + sg * (0.07 - 0.03 * 0.45 + 0.025 * (1 - (x / 0.07) ** 2) * 0.6 + 0.012))) for x in np.linspace(-0.07, 0.07, 7)], 0.008, "head", GOLD), lambda p: {"head": 1.0})
-# the cleft between the plates is closed low down by a fold of lining at each side
-for sx in (-1, 1):
-    add(K.loft("MitreFold", [Vector(G(sx * 0.152, BASE_Y, -0.03)), Vector(G(sx * 0.135, BASE_Y + 0.07, -0.03)), Vector(G(sx * 0.1, BASE_Y + 0.13, -0.03))], [(0.01, 0.075), (0.008, 0.05), (0.004, 0.02)], "head", WINE, 6), lambda p: {"head": 1.0})
+        pts = [Vector(G(sx * (0.128 * (1.0 - (i / 18.0) ** 1.5) ** 1.15 * (1.0 + 0.1 * math.sin(i / 18.0 * math.pi)) + 0.006), BASE_Y + i / 18.0 * MH, -0.03)) for i in range(19)]
+        add(TUBE("MitreEdge", pts, 0.007, "head", GOLD), lambda p: {"head": 1.0})
+    for fz_s in (-1, 1):
+        add(TUBE("MitreSpine", [Vector(G(0, BASE_Y + v * MH * 0.94, -0.03 + fz_s * (0.085 * (1.0 - v ** 1.3) * (1.0 + 0.06 * math.sin(v * math.pi)) + 0.012))) for v in [i / 12.0 for i in range(13)]], 0.0095, "head", GOLD), lambda p: {"head": 1.0})
+        add(TUBE("MitreCross", [Vector(G(x, BASE_Y + 0.2, -0.03 + fz_s * (0.085 * (1.0 - 0.43 ** 1.3) * 1.04 * math.sqrt(max(0.0, 1.0 - (x / 0.095) ** 2)) + 0.012))) for x in np.linspace(-0.09, 0.09, 9)], 0.008, "head", GOLD), lambda p: {"head": 1.0})
 MB = Vector(G(0, BASE_Y, -0.03))
-circ = [MB + Vector((math.cos(a) * 0.168, math.sin(a) * 0.098, 0.006)) for a in [math.tau * i / 36 for i in range(37)]]
+circ = [MB + Vector((math.cos(a) * 0.135, math.sin(a) * 0.092, 0.006)) for a in [math.tau * i / 36 for i in range(37)]]
 add(TUBE("Circlet", circ, 0.0125, "head", GOLD), lambda p: {"head": 1.0})
-circ2 = [MB + Vector((math.cos(a) * 0.165, math.sin(a) * 0.095, 0.05)) for a in [math.tau * i / 36 for i in range(37)]]
+circ2 = [MB + Vector((math.cos(a) * 0.132, math.sin(a) * 0.089, 0.05)) for a in [math.tau * i / 36 for i in range(37)]]
 add(TUBE("Circlet2", circ2, 0.005, "head", GOLD), lambda p: {"head": 1.0})
-add(K.blob("Jewel", MB + Vector((0, 0.1, 0.13)), (0.02, 0.007, 0.028), "head", EYE, 12, 8), lambda p: {"head": 1.0})
-add(K.blob("Jewel", MB + Vector((0, -0.1, 0.13)), (0.02, 0.007, 0.028), "head", EYE, 12, 8), lambda p: {"head": 1.0})
+add(K.blob("Jewel", MB + Vector((0, 0.077, 0.12)), (0.02, 0.007, 0.028), "head", EYE, 12, 8), lambda p: {"head": 1.0})
+add(K.blob("Jewel", MB + Vector((0, -0.077, 0.12)), (0.02, 0.007, 0.028), "head", EYE, 12, 8), lambda p: {"head": 1.0})
 for sg in (-1, 1):
     add(K.blob("Finial", Vector(G(0, BASE_Y + MH + 0.01, -0.03 + sg * 0.04)), (0.012, 0.012, 0.02), "head", GOLD, 10, 6), lambda p: {"head": 1.0})
 for sx in (-1, 1):
