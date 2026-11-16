@@ -721,7 +721,7 @@ def hierarch():
     for k in range(len(bd.P)):
         if bd.L[k].startswith(("hand_", "elbow_")) or (bd.L[k].startswith("shoulder_") and bd.P[k][1] < 1.25):
             g.v[n0 + k] = V(0.0, 1.0, 0.05)
-    Oc = GB.coat(g, bd, STONE, mat="stone", y_top=1.5, y_hem=0.02, flare=0.3, seed=0.5, tatter=0.05, folds=12, thick=0.014, nu=128, nv=44, amp=0.08, crease=0.5)
+    Oc = GB.coat(g, bd, STONE, mat="stone", y_top=1.5, y_hem=0.02, flare=0.3, seed=0.5, tatter=0.05, folds=12, thick=0.014, nu=96, nv=34, amp=0.08, crease=0.5)
     band_ = Oc[np.abs(Oc[:, 1] - 1.05) < 0.025]                              # a heavy girdle cinching the robe at the waist
     if len(band_) > 12:
         cx_, cz_ = float(band_[:, 0].mean()), float(band_[:, 2].mean())
@@ -759,10 +759,13 @@ def hierarch():
     horn = [(0.07, 0.0), (0.06, 0.08), (0.06, 0.2), (0.07, 0.32), (0.09, 0.44), (0.13, 0.53), (0.19, 0.59), (0.21, 0.62), (0.19, 0.62)]
     path_at = V(0.0, 1.62, -0.13)
     P = []
-    for i, (r, d) in enumerate(horn):
+    hd_ = [h_[1] for h_ in horn]
+    hr_ = [h_[0] for h_ in horn]
+    for d in list(np.linspace(0.0, 0.6, 26)) + [0.62]:
+        r = float(np.interp(d, hd_, hr_)) if d < 0.62 else 0.19
         t = d / 0.62
-        c = path_at + V(0.0, -0.32 * t * t, -0.62 * t)
-        P.append([c + V(math.cos(TAU * j / 24) * r, math.sin(TAU * j / 24) * r * 0.92 * math.cos(0.45 * t), math.sin(TAU * j / 24) * r * math.sin(0.45 * t) * 0.3) for j in range(24)])
+        c = path_at + V(0.16 * math.sin(math.pi * t * 1.1), -0.32 * t * t, -0.62 * t)
+        P.append([c + V(math.cos(TAU * j / 24) * r * (1.0 + 0.05 * t * math.sin(5 * TAU * j / 24 + 9.0 * t)), math.sin(TAU * j / 24) * r * (1.0 + 0.05 * t * math.sin(5 * TAU * j / 24 + 9.0 * t)) * 0.92 * math.cos(0.45 * t), math.sin(TAU * j / 24) * r * math.sin(0.45 * t) * 0.3) for j in range(24)])
     g.grid(P, STONE, "stone", "head", lambda i, j, p: (TAU * j / 24 * 0.15, i * 0.1), wrap=True, flip=True)
     g.grid(P[::-1][1:], DARK, "iron", "head", lambda i, j, p: (TAU * j / 24 * 0.15, i * 0.1), wrap=True) if False else None
     g.ball(path_at + V(0.0, -0.06, -0.22), 0.07, (1.0, 0.5, 0.15, 0.0), "glow", "head", n=8)
@@ -771,8 +774,8 @@ def hierarch():
         g.tube([path_at + V(math.cos(a) * 0.07, -0.05 + math.sin(a) * 0.06, -0.2), path_at + V(math.cos(a) * 0.2, -0.22 + math.sin(a) * 0.18, -0.5)], 0.006, (1.0, 0.5, 0.15, 0.0), "glow", "head", n=4)
     # the hands: two stone fists wound round the horn (four fingers and a thumb each), a forearm from under the cope to each
     def horn_at(t):
-        c = path_at + V(0.0, -0.32 * t * t, -0.62 * t)
-        c2 = path_at + V(0.0, -0.32 * (t + 0.02) ** 2, -0.62 * (t + 0.02))
+        c = path_at + V(0.16 * math.sin(math.pi * t * 1.1), -0.32 * t * t, -0.62 * t)
+        c2 = path_at + V(0.16 * math.sin(math.pi * (t + 0.02) * 1.1), -0.32 * (t + 0.02) ** 2, -0.62 * (t + 0.02))
         tg = (c2 - c)
         tg = tg / np.linalg.norm(tg)
         vx = np.cross(tg, V(1, 0, 0))
@@ -792,7 +795,7 @@ def hierarch():
         g.ball(elb + V(sx_ * 0.04, -0.02, 0.05), 0.075, STONE, "stone", "head", n=8)                                                                        # the point of the elbow under the cloth
         g.tube([wr_ + (elb - wr_) * 0.12 + V(math.cos(a_) * 0.11, 0, math.sin(a_) * 0.11) for a_ in np.linspace(0, TAU, 21)], 0.012, GILT, "gilt", "head", n=6) if False else None
         g.tube([sh, sh + V(sx_ * 0.02, -0.12, -0.08), elb + V(0, 0.05, 0.05)], [0.14, 0.12, 0.1], STONE, "stone", "head", n=10)                          # the upper arm swelling into the shoulder
-    g.lathe([(0.2, 0.0), (0.225, 0.015), (0.21, 0.035)], path_at + V(0.0, -0.32, -0.6), GILT, "gilt", "head", n=24, axis="z")
+    g.lathe([(0.2, 0.0), (0.225, 0.015), (0.21, 0.035)], path_at + V(0.16 * math.sin(math.pi * 0.97 * 1.1), -0.32, -0.6), GILT, "gilt", "head", n=24, axis="z")
     # bands of gilt iron round the horn, a mouthpiece ring at the jaw, a carrying strap slung from it over the shoulder
     for tb in (0.12, 0.45, 0.66, 0.8):
         cb, tgb, vxb = horn_at(tb)
