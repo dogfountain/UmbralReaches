@@ -240,7 +240,22 @@ func _run() -> void:
 			if RL.in_water(m.x, m.z) or absf(m.y - RL.height_at(m.x, m.z)) > 0.3:
 				bad += 1
 		check(bad == 0, "field mice on dry ground (%d off)" % bad)
-		await _put(_safe_near(owls.center, 26.0))
+		# the wanderer stands off the owls' perches (14 m) and the mice (6 m) or the hunt does not start: the group's spread
+		# changes with the trees, so look for a spot instead of taking 26 m from its centre
+		var owl_stand := _safe_near(owls.center, 26.0)
+		for k in 48:
+			var q := _safe_near(owls.center, 24.0 + float(k) * 0.9)
+			var clear := true
+			for b0: Dictionary in owls.birds:
+				if (b0.pos as Vector3).distance_to(q) < 18.0:
+					clear = false
+			for m0: Vector3 in owls.prey_positions():
+				if m0.distance_to(q) < 9.0:
+					clear = false
+			if clear:
+				owl_stand = q
+				break
+		await _put(owl_stand)
 		await _secs(1.0)
 		owls._hunt_t = 0.0
 		var h0: int = owls.hunts
