@@ -20,6 +20,7 @@ const Rig := preload("res://core/life/village/villager_rig.gd")
 const VState := preload("res://core/life/village/village_state.gd")
 const VAudio := preload("res://core/life/village/village_audio.gd")
 const Life := preload("res://core/npc/npc_life.gd")
+const Near := preload("res://core/life/village/villager_near.gd")
 const Forge := preload("res://core/life/village/villager_forge.gd")
 const Point := preload("res://core/life/village/villager_point.gd")
 const Idle := preload("res://core/life/village/villager_idle.gd")
@@ -662,7 +663,7 @@ func _separated(np: Vector3, dt: float) -> Vector3:
 	if _sep_t <= 0.0:
 		_sep_t = 1.0 / SEP_HZ + _rng.randf() * 0.02       # staggered across villagers
 		_sep = Vector3.ZERO
-		for v: Node in get_tree().get_nodes_in_group("villager"):
+		for v: Node in (Near.of(get_tree()) as Near).near(get_tree(), np, SEP_R):     # (not the whole Realm's: villager_near.gd)
 			if v == self or not (v is Node3D) or bool(v.get("hidden")):
 				continue
 			var d := np - (v as Node3D).global_position
@@ -688,7 +689,7 @@ func _blocker(dir: Vector3) -> Vector3:
 		rel.y = 0.0
 		if rel.length() < 1.45 and rel.normalized().dot(dir) > 0.25:
 			return pp
-	for v: Node in get_tree().get_nodes_in_group("villager"):
+	for v: Node in (Near.of(get_tree()) as Near).near(get_tree(), here, 0.95):
 		if v == self or not (v is Node3D) or bool(v.get("hidden")):
 			continue
 		var r2 := (v as Node3D).global_position - here
@@ -1138,7 +1139,7 @@ func _head(k: float, target: Vector3, pitch: float, dt: float) -> void:
 		if _pass_t <= 0.0:
 			_pass_t = 0.4 + _rng.randf() * 0.2
 			_pass = Vector3.INF
-			for o: Node in get_tree().get_nodes_in_group("villager"):
+			for o: Node in (Near.of(get_tree()) as Near).near(get_tree(), global_position, 5.0):
 				if o != self and o is Node3D and not bool(o.get("hidden")) and String(o.get("state")) == "walk":
 					var dd := (o as Node3D).global_position - global_position
 					if dd.length() < 5.0 and dd.normalized().dot(_fwd()) > -0.3:
