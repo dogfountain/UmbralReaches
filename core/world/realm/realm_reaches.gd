@@ -161,68 +161,166 @@ const ARCH_Z := 342.0                        ## the aqueduct's line (it runs eas
 const SCARP_Z := Vector2(250.0, 290.0)       ## the downs' rise falls away south between these z
 
 
+## The landforms' own noises (made when the script loads, on the main thread; only read after: thread-safe).
+static var _n_fell := _noise(6201, 0.021, 3, false)
+static var _n_hill := _noise(6202, 0.027, 3, false)
+static var _n_mere := _noise(6203, 0.045, 2, false)
+static var _n_edge := _noise(6204, 0.9, 2, false)
+static var _n_ridge := _noise(6205, 0.028, 3, true)
+## Tors on the Thousand Cairns' heath: [centre, height]. Clear of its slots and ways by 25 m and more.
+const TORS := [[Vector2(290.0, 250.0), 3.4], [Vector2(352.0, 300.0), 3.8], [Vector2(285.0, 332.0), 3.0], [Vector2(345.0, 356.0), 3.6], [Vector2(320.0, 386.0), 2.8]]
+## The Crowns' peaks at the new corners: [centre, height, radius].
+const PEAKS := [[Vector2(-300.0, -170.0), 30.0, 38.0], [Vector2(-352.0, -162.0), 34.0, 42.0], [Vector2(300.0, -170.0), 32.0, 38.0], [Vector2(354.0, -164.0), 30.0, 40.0]]
+
+
+static func _noise(seed_n: int, freq: float, octaves: int, ridged: bool) -> FastNoiseLite:
+	var n := FastNoiseLite.new()
+	n.seed = seed_n
+	n.frequency = freq
+	n.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	n.fractal_type = FastNoiseLite.FRACTAL_RIDGED if ridged else FastNoiseLite.FRACTAL_FBM
+	n.fractal_octaves = octaves
+	return n
+
+
 ## The Far Reaches' macro shape over whatever RealmLayout made of the ground so far. m is 1 outside the old
-## Realm (RealmLayout.marches_mask); the shapes below are local to their own regions.
+## Realm (RealmLayout.marches_mask); the shapes below are local to their own regions. Each region's rect is read
+## through the same wander its biome edge has (RealmLayout._warp + _mwarp), so a fell or a wood ends where its
+## ground cover does and never along a ruled line; the shapes on them are noise, not sine grids.
 static func shape(p: Vector2, h: float, m: float) -> float:
 	if m <= 0.0:
 		return h
 	var x := p.x
 	var z := p.y
+	# the Marches' ground (inside MARCH_BOUNDS, where the West, East and South Marches' places stand) keeps the shapes it
+	# was tuned to: the wander and the noise come in over the first 24 m beyond it
+	var reach := smoothstep(0.0, 24.0, _out_dist(p, MARCH_BOUNDS))
+	var q := p + (RealmLayout._warp(p) + RealmLayout._mwarp(p)) * reach
+	var pad := _slot_free(p) * reach      # the noise lies down round every slot (its pad stays level and dry)
 	var r := 0.0
 	# the Greyfell: a high fell climbing to the Crowns, the keep's crag on it
-	r = _rect_w(p, Rect2(-370, -150, 110, 100), 26.0)
+	r = _rect_w(q, Rect2(-370, -150, 110, 100), 26.0)
 	if r > 0.0:
-		h += r * (5.0 + 2.2 * sin(x * 0.061 + 0.3) * cos(z * 0.052)) * smoothstep(-30.0, -110.0, z)
-		h += 12.0 * _bump(p, KEEP_C, 30.0)
+		var was := 2.2 * sin(x * 0.061 + 0.3) * cos(z * 0.052)           # (the shape the Marches' edge was tuned to)
+		h += r * (5.0 + lerpf(was, 3.2 * _n_fell.get_noise_2d(x, z) * pad, reach)) * smoothstep(-30.0, -110.0, z)
+	h += _crag(p)
 	# the Lanternwood: rolling forest hills
-	r = _rect_w(p, Rect2(-370, -50, 110, 118), 22.0)
+	r = _rect_w(q, Rect2(-370, -50, 110, 118), 22.0)
 	if r > 0.0:
-		h += r * (2.6 + 2.4 * sin(x * 0.083 + 1.0) * sin(z * 0.071 - 0.6))
-	# the Kings' Barrows: a long heather ridge north-south, the barrows along its back
-	r = _rect_w(p, Rect2(-370, 68, 110, 168), 20.0)
+		var was := 2.4 * sin(x * 0.083 + 1.0) * sin(z * 0.071 - 0.6)
+		h += r * (2.6 + lerpf(was, 3.0 * _n_hill.get_noise_2d(x, z) * pad, reach))
+	# the Kings' Barrows: a long heather ridge north-south, the barrows along its back; its crest wanders and its
+	# east face (to the Sorrow) is the steeper
+	r = _rect_w(q, Rect2(-370, 68, 110, 168), 20.0)
 	if r > 0.0:
-		var ridge := exp(-pow((x + 328.0 + 6.0 * sin(z * 0.037)) / 24.0, 2.0))
-		h += r * ridge * 6.5 * smoothstep(70.0, 110.0, z) * (1.0 - smoothstep(210.0, 240.0, z))
-	# the Reedmere: a broad wet basin of meres between hummocks (the fen's pools fill it)
-	r = _rect_w(p, Rect2(-370, 244, 150, 154), 22.0)
+		var dx := x + 328.0 + 6.0 * sin(z * 0.037) + 5.0 * _n_fell.get_noise_2d(x * 0.6, z * 0.6 + 200.0) * reach
+		var ridge := exp(-pow(dx / lerpf(24.0, 17.0 if dx > 0.0 else 27.0, reach), 2.0))
+		h += r * ridge * (6.5 + 1.6 * _n_hill.get_noise_2d(x, z + 90.0) * pad) * smoothstep(70.0, 110.0, z) * (1.0 - smoothstep(210.0, 240.0, z))
+	# the Reedmere: a broad wet basin of meres between hummocks (the fen's pools fill it below its water line)
+	r = _rect_w(q, Rect2(-370, 244, 150, 154), 24.0)
 	if r > 0.0:
-		var mf := sin(x * 0.09 + 0.2) * sin(z * 0.11 - 0.5) + 0.6 * sin(x * 0.057 - z * 0.071 + 0.9) + 0.4 * sin((x - z) * 0.17)
+		var mf := lerpf(-0.75, _n_mere.get_noise_2d(x, z) * 1.45 + 0.25 * sin((x - z) * 0.17), pad)
 		h = lerpf(h, -0.9 - 0.7 * mf, r * 0.85)
 	# the downs' scarp: the Marches' downs rise falls away south of the Waiting Field's country (RealmLayout keeps the
-	# rise; this takes it back down over SCARP_Z, so the deep south is low country again)
+	# rise; this takes it back down over SCARP_Z, so the deep south is low country again; RealmRelief.scarp makes the
+	# drop an escarpment on a wandering line)
 	var scarp := smoothstep(SCARP_Z.x, SCARP_Z.y, z) * (1.0 - smoothstep(0.0, 25.0, maxf(absf(x) - 155.0, 0.0)))
 	h -= 7.0 * scarp
 	# Fallowmere: low flat fields
 	h = lerpf(h, 0.7 + 0.4 * sin(x * 0.05) * cos(z * 0.06), 0.8 * _bump(p, TOWN_F, 60.0))
-	# the Long Arches: a dry valley running south under the aqueduct (deepest at x 0)
-	r = _rect_w(p, Rect2(-92, 256, 184, 142), 20.0)
+	# the Long Arches: a broad dry valley running south under the aqueduct (its line deepest at x 0), its floor open
+	# and level, the bed of the stream that dried when the sky did winding down it. Cut by raising its sides (RealmLand
+	# floors any dry hollow under -0.6 m flat, which had made the old sunk valley one broad pan).
+	r = _rect_w(q, Rect2(-92, 256, 184, 142), 24.0)
 	if r > 0.0:
-		var vx := x - 8.0 * sin(z * 0.03)
-		h += r * (-6.0 * exp(-pow(vx / 34.0, 2.0)) + 2.5 * (1.0 - exp(-pow(vx / 70.0, 2.0)))) * smoothstep(262.0, 300.0, z)
-	# the Southwood: wooded hills
-	r = _rect_w(p, Rect2(92, 248, 170, 150), 22.0)
+		var vx := x - 8.0 * sin(z * 0.03) - 6.0 * _n_fell.get_noise_2d(x * 0.4, z * 0.4 + 600.0)
+		var sides := 7.5 * (1.0 - exp(-pow(vx / 44.0, 4.0) * 0.6)) + 1.4 * _n_hill.get_noise_2d(x, z + 700.0) * smoothstep(30.0, 60.0, absf(vx)) * pad
+		var bed := -0.45 * exp(-pow((vx - 5.0 * sin(z * 0.085 + 0.7)) / 3.2, 2.0))
+		h += r * (sides + bed) * smoothstep(262.0, 300.0, z)
+	# the Southwood: wooded hills and hollows
+	r = _rect_w(q, Rect2(92, 248, 170, 150), 24.0)
 	if r > 0.0:
-		h += r * (3.0 + 2.6 * sin(x * 0.067 - 0.4) * sin(z * 0.059 + 1.2) + 1.2 * sin(x * 0.13 + z * 0.09))
-	# the Bellfall: a crater with a raised lip, the Crowns rising behind it
+		h += r * (3.0 + (2.8 * _n_hill.get_noise_2d(x + 500.0, z) + 1.1 * _n_fell.get_noise_2d(x, z + 300.0)) * pad)
+	# the Bellfall: a crater with a raised, broken lip and a hummocky apron of what it threw out, the Crowns behind it
 	var dc := p.distance_to(CRATER_C)
-	if dc < CRATER_R + 30.0:
-		var bowl := -7.0 * (1.0 - smoothstep(CRATER_R * 0.2, CRATER_R, dc))
-		var lip := 4.5 * exp(-pow((dc - CRATER_R) / 7.0, 2.0))
-		h += (bowl + lip) * smoothstep(CRATER_R + 30.0, CRATER_R + 10.0, dc)
+	if dc < CRATER_R + 42.0:
+		var u := (p - CRATER_C) / maxf(dc, 0.01) * 1.8
+		var rr := CRATER_R * (1.0 + 0.11 * _n_edge.get_noise_2d(u.x, u.y))
+		var lip_h := 4.5 * (1.0 + 0.4 * _n_edge.get_noise_2d(u.x + 7.0, u.y - 3.0) * pad)
+		var bowl := -7.0 * (1.0 - smoothstep(rr * 0.2, rr, dc))
+		var lip := lip_h * exp(-pow((dc - rr) / 7.0, 2.0))
+		var ejecta := 1.2 * _n_hill.get_noise_2d(x * 2.2, z * 2.2) * pad * smoothstep(rr + 4.0, rr + 10.0, dc) * (1.0 - smoothstep(rr + 18.0, rr + 40.0, dc))
+		h += (bowl + lip + ejecta) * smoothstep(CRATER_R + 42.0, CRATER_R + 14.0, dc)
 	# Lastlight: the waystation's flat
 	h = lerpf(h, 0.6, 0.85 * _bump(p, TOWN_E, 46.0))
-	# the Drowned Nave: an elliptical basin the fen floods (pools at the fen's water line)
-	var en := sqrt(pow((x - NAVE_C.x) / NAVE_R.x, 2.0) + pow((z - NAVE_C.y) / NAVE_R.y, 2.0))
-	if en < 1.6:
+	# the Drowned Nave: a basin the fen floods (pools at the fen's water line), its shore uneven
+	var ex := (x - NAVE_C.x) / NAVE_R.x
+	var ez := (z - NAVE_C.y) / NAVE_R.y
+	var en := sqrt(ex * ex + ez * ez)
+	if en < 1.7:
+		var un := Vector2(ex, ez) / maxf(en, 0.01) * 1.6
+		en *= 1.0 + 0.11 * _n_edge.get_noise_2d(un.x + 20.0, un.y)
 		h = lerpf(h, -1.5, 1.0 - smoothstep(0.85, 1.5, en))
-	# the Thousand Cairns: a high windy heath
-	r = _rect_w(p, Rect2(262, 236, 108, 162), 26.0)
+	# the Thousand Cairns: a high windy heath, tors standing out of it
+	r = _rect_w(q, Rect2(262, 236, 108, 162), 28.0)
 	if r > 0.0:
-		h += r * (4.5 + 1.8 * sin(x * 0.05 + 0.8) * cos(z * 0.047 - 0.2))
-	# the Crowns' peaks at the new corners
-	h += 30.0 * _bump(p, Vector2(-300, -170), 38.0) + 34.0 * _bump(p, Vector2(-352, -162), 42.0)
-	h += 32.0 * _bump(p, Vector2(300, -170), 38.0) + 30.0 * _bump(p, Vector2(354, -164), 40.0)
+		h += r * (4.5 + 2.2 * _n_fell.get_noise_2d(x + 900.0, z) * pad)
+		for t: Array in TORS:
+			h += r * float(t[1]) * _bump(p, t[0], 10.0)
+	# the Crowns' peaks at the new corners: ridged, spurs and gullies down them
+	for pk: Array in PEAKS:
+		var b := _bump(p, pk[0], float(pk[2]))
+		if b > 0.0:
+			h += float(pk[1]) * b * (0.72 + 0.45 * _n_ridge.get_noise_2d(x, z))
 	return h
+
+
+## RealmLand's detail noise and strata lie down here (RealmLand._designed_w): 1 within 7 m of a Far Reaches slot (eased
+## out by 13 m) and on the keep's crag top, so a slot's pad and the keep's floor are level ground.
+static func calm(x: float, z: float) -> float:
+	var p := Vector2(x, z)
+	if MARCH_BOUNDS.grow(-2.0).has_point(p):
+		return 0.0
+	var w := 1.0 - smoothstep(7.0, 10.5, p.distance_to(KEEP_C))
+	for id: String in SLOTS:
+		for s: Dictionary in SLOTS[id]:
+			w = maxf(w, 1.0 - smoothstep(7.0, 13.0, p.distance_to(s.at)))
+	return w
+
+
+static func _out_dist(p: Vector2, r: Rect2) -> float:
+	var dx := maxf(maxf(r.position.x - p.x, 0.0), p.x - r.end.x)
+	var dz := maxf(maxf(r.position.y - p.y, 0.0), p.y - r.end.y)
+	return Vector2(dx, dz).length()
+
+
+## 1 away from the Far Reaches' slots, 0 within 9 m of one (eased out by 22 m).
+static func _slot_free(p: Vector2) -> float:
+	var f := 1.0
+	for id: String in SLOTS:
+		for s: Dictionary in SLOTS[id]:
+			var d := p.distance_to(s.at)
+			if d < 22.0:
+				f = minf(f, smoothstep(9.0, 22.0, d))
+	return f
+
+
+## The Broken Keep's crag: a flat top (the keep's, ~10 m across its middle) 13 m over the fell, a broken cliff round
+## it falling to a scree apron, and on the bearing of fell_track's end a ramp up instead of the face.
+static func _crag(p: Vector2) -> float:
+	var d := p.distance_to(KEEP_C)
+	if d > 48.0:
+		return 0.0
+	var u := (p - KEEP_C) / maxf(d, 0.01)
+	var edge := 10.5 + 2.4 * _n_edge.get_noise_2d(u.x * 1.6 + 40.0, u.y * 1.6)
+	var top := 13.0
+	var cliff := 1.0 - smoothstep(edge, edge + 5.5, d)
+	var talus := 1.0 - smoothstep(edge + 2.0, edge + 26.0, d)
+	var hh := top * maxf(cliff, talus * 0.36)
+	var to_track := (Vector2(-312.0, -78.0) - KEEP_C).normalized()
+	var ramp_w := smoothstep(0.84, 0.97, u.dot(to_track)) if d > 0.5 else 0.0
+	var ramp := top * clampf(1.0 - (d - edge + 1.0) / 22.0, 0.0, 1.0)
+	return lerpf(hh, maxf(hh, ramp), ramp_w)
 
 
 ## RealmLand's path profiles: a Far Reaches way that starts or ends on an earlier way takes that way's height at the
