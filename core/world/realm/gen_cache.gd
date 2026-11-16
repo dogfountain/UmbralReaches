@@ -23,7 +23,7 @@ extends RefCounted
 ##   const GenCache := preload("res://core/world/realm/gen_cache.gd")
 
 const RES_DIR := "res://art/realm_cache/"
-const USER_DIR := "user://realm_cache/"
+const USER_DIR := "user://realm_cache/"   ## the default; UMBRAL_CACHE_DIR overrides it (user_dir())
 const MANIFEST := "_salts.bin"
 
 static var _salts := {}
@@ -53,7 +53,21 @@ static func baking() -> bool:
 
 
 static func _write_dir() -> String:
-	return RES_DIR if baking() else USER_DIR
+	return RES_DIR if baking() else user_dir()
+
+
+static var _user_dir := ""
+
+
+## Where misses are written and read after the shipped cache: user://realm_cache/, or the folder in
+## UMBRAL_CACHE_DIR. tools/run_tests.sh points every test at one shared folder: each test has its own
+## HOME, so user:// started empty for every test and each rebuilt the whole Realm (about 40 s of the
+## doubled world's boot). Writes go to a temp file and are renamed in, so tests sharing it is safe.
+static func user_dir() -> String:
+	if _user_dir == "":
+		var env := OS.get_environment("UMBRAL_CACHE_DIR")
+		_user_dir = USER_DIR if env == "" else env.trim_suffix("/") + "/"
+	return _user_dir
 
 
 static func salt(script_path: String) -> int:
@@ -113,7 +127,7 @@ static func load_mesh(key: String, script_path: String) -> ArrayMesh:
 		return _primed[key]
 	if not enabled:
 		return null
-	for dir: String in [RES_DIR, USER_DIR]:
+	for dir: String in [RES_DIR, user_dir()]:
 		var path := _file(dir, key, ".res")
 		if ResourceLoader.exists(path):
 			var m := ResourceLoader.load(path, "ArrayMesh", ResourceLoader.CACHE_MODE_IGNORE) as ArrayMesh
@@ -160,10 +174,29 @@ static func save_mesh(key: String, script_path: String, mesh: ArrayMesh) -> void
 
 
 ## Any Variant (dictionaries of numbers / packed arrays) for `key`, or null.
+## Every stored value for `key` whose generator is current: the user/test cache's first, then the shipped
+## one. For a caller that keeps one entry under a fixed key and checks its own fingerprint (the flora
+## placement): load_var stops at the first, and a stale shipped entry hid the fresh one written after it.
+static func load_vars(key: String, script_path: String) -> Array:
+	var out: Array = []
+	if not enabled:
+		return out
+	for dir: String in [user_dir(), RES_DIR]:
+		var path := _file(dir, key, ".bin")
+		if FileAccess.file_exists(path):
+			var f := FileAccess.open(path, FileAccess.READ)
+			if f == null or f.get_length() < 8:
+				continue
+			var d: Variant = f.get_var()
+			if d is Dictionary and (salt(script_path) == 0 or int((d as Dictionary).get("gen_salt", -1)) == salt(script_path)):
+				out.append((d as Dictionary).get("v"))
+	return out
+
+
 static func load_var(key: String, script_path: String) -> Variant:
 	if not enabled:
 		return null
-	for dir: String in [RES_DIR, USER_DIR]:
+	for dir: String in [RES_DIR, user_dir()]:
 		var path := _file(dir, key, ".bin")
 		if FileAccess.file_exists(path):
 			var f := FileAccess.open(path, FileAccess.READ)
