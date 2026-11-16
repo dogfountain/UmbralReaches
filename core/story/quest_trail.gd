@@ -32,7 +32,7 @@ const STRAY := 14.0                ## further than this off the route, it is mad
 const MOVED := 8.0                 ## the place moved this much: made again
 const REBUILD_GAP := 1.5
 const END_QUIET := 7.0             ## no mark this close to the place
-const SIZE := Vector3(1.7, 0.9, 1.7)
+const SIZE := Vector3(2.6, 0.9, 2.6)       ## 1.7 read as faint chalk at night, 2.2 small across grass (walk stills, 16 Nov)
 const LIFT := 0.12                 ## the decal's centre over the seat
 const FADE_IN := 2.2
 const FADE_OUT := 1.6
@@ -76,14 +76,15 @@ func _ready() -> void:
 	add_to_group("quest_trail")
 	top_level = true
 	_tex = load(TEX_PATH) if ResourceLoader.exists(TEX_PATH) else null
+	var glow := _inlay(_tex)
 	for i in POOL:
 		var d := Decal.new()
 		d.name = "Mark%d" % i
 		d.size = SIZE
 		d.texture_albedo = _tex
-		d.texture_emission = _tex
-		d.emission_energy = 0.9
-		d.albedo_mix = 1.0
+		d.texture_emission = glow
+		d.emission_energy = 3.2                   # only the orange inlay glows (the whole icon as emission lit its grey stone white)
+		d.albedo_mix = 0.45                       # the stone a faint tint over the ground, not a pale slab
 		d.upper_fade = 0.4
 		d.lower_fade = 0.4
 		d.distance_fade_enabled = true
@@ -103,6 +104,26 @@ func _find_track() -> void:
 		_track = get_tree().get_first_node_in_group("quest_track") as QuestTrack
 		if _track != null:
 			_track.changed.connect(func() -> void: _dirty = true)
+
+
+## The mark's glow: its warm inlay only (orange lines and the centre), the grey stone black. Made once from the icon
+## (128 px) at load: with the icon itself as emission the stone lit up pale and the mark read as a glitch on paving.
+static func _inlay(t: Texture2D) -> Texture2D:
+	if t == null:
+		return null
+	var img := t.get_image()
+	if img == null:
+		return t
+	if img.is_compressed():
+		img.decompress()
+	img.convert(Image.FORMAT_RGBA8)
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			var k := clampf((c.r - maxf(c.g, c.b) * 0.9 - 0.08) * 4.0, 0.0, 1.0) * c.a
+			img.set_pixel(x, y, Color(c.r * k, c.g * k, c.b * k, c.a))
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
 
 
 func _process(delta: float) -> void:
