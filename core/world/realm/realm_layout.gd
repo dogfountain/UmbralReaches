@@ -413,7 +413,7 @@ static func macro_dry(x: float, z: float) -> float:
 	# rolling base
 	h += sin(x * 0.031 + 0.7) * cos(z * 0.027 - 0.4) * 1.6 + sin(x * 0.011 - z * 0.017) * 1.2
 	# Thornwood hills, Henge hill
-	var tw := _rect_w(p, Rect2(-150, -66, 120, 111), 22.0)
+	var tw := _rect_w(p + _warp(p) + _mwarp(p) * 0.8, Rect2(-150, -66, 120, 111), 24.0)      # (warped: the wood's hills ended on ruled lines)
 	h += tw * (4.0 + 3.0 * sin(x * 0.07) * sin(z * 0.06))
 	h += 5.0 * _bump(p, HENGE_C, 56.0)
 	# Hollow Fen hollow

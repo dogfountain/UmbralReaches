@@ -48,6 +48,7 @@ static var _n_swell := _noise(5101, 0.0058, 2)
 static var _n_hill := _noise(5102, 0.017, 2)
 static var _n_dale := _noise(5103, 0.0075, 1)
 static var _n_warp := _noise(5104, 0.0035, 1)
+static var _n_old := _noise(5105, 0.0042, 1)
 
 
 static func _slot_list() -> PackedVector2Array:
@@ -87,7 +88,7 @@ static func relief(x: float, z: float, h: float, bw: PackedFloat32Array) -> floa
 	var p := Vector2(x, z)
 	var far := smoothstep(0.0, 24.0, RealmLayout._out_dist(p, RealmReaches.MARCH_BOUNDS))
 	if far <= 0.0:
-		return h
+		return _swells(p, h, open)
 	var k := open * far * _free(p)
 	if k <= 0.001:
 		return h
@@ -105,6 +106,42 @@ static func relief(x: float, z: float, h: float, bw: PackedFloat32Array) -> floa
 		r *= smoothstep(-0.3, 4.5, h)
 	# near water and on the road's plain the ground only rises
 	var only_up := maxf(_wet(p), _road(z))
+	if only_up > 0.0:
+		r = lerpf(r, maxf(r, 0.0) * 0.6, only_up)
+	return h + r * k
+
+
+## The old Realm's and the Marches' ground: only long, gentle swells (a quarter-kilometre across, a couple of metres
+## high, never steeper than ~6 %), so the land rolls from the road without tipping any of the places, carriers and
+## camps tuned to it; low ground is only raised. Off the old Realm's own set pieces too (OLD_KEEP).
+const OLD_KEEP := [
+	[Vector2(-38.0, 8.0), 18.0, 34.0],         # the Glimmer Glade
+	[Vector2(-134.0, 12.0), 22.0, 38.0],       # the Rooted Holds' hollow
+	[Vector2(-109.0, 121.0), 44.0, 62.0],      # the Cinder Orchard's rows
+	[Vector2(131.0, -89.0), 30.0, 46.0],       # the Founder's Pits' bench
+	[Vector2(-1.0, 127.0), 46.0, 66.0],        # the Waiting Field
+	[Vector2(82.0, -18.0), 16.0, 30.0],        # the Drowned Belfry
+	[Vector2(-86.0, -62.0), 22.0, 40.0],       # the Charcoal Hollow
+	[Vector2(46.0, 40.0), 16.0, 30.0],         # the Almonry
+	[Vector2(-52.0, -100.0), 16.0, 30.0],      # the Watchers' Spire
+	[Vector2(141.0, -24.0), 18.0, 30.0],       # the Lanternless Moor's tor
+]
+
+
+static func _swells(p: Vector2, h: float, open: float) -> float:
+	var k := open * _free(p)
+	if k <= 0.001:
+		return h
+	for e: Array in OLD_KEEP:
+		k *= smoothstep(float(e[1]), float(e[2]), p.distance_to(e[0]))
+		if k <= 0.001:
+			return h
+	k *= slot_free(p)
+	var q := p + Vector2(_n_warp.get_noise_2d(p.x, p.y), _n_warp.get_noise_2d(p.x + 311.0, p.y - 173.0)) * 38.0
+	var r := _n_old.get_noise_2d(q.x, q.y) * 3.4
+	if r < 0.0:
+		r *= smoothstep(-0.3, 4.5, h)
+	var only_up := maxf(_wet(p), _road(p.y))
 	if only_up > 0.0:
 		r = lerpf(r, maxf(r, 0.0) * 0.6, only_up)
 	return h + r * k
