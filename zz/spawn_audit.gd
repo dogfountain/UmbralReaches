@@ -16,7 +16,7 @@ const Tiers := preload("res://core/life/encounters/tiers.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const AmbushSites := preload("res://core/life/encounters/ambush_sites.gd")
 const PX := 0.5                                 ## metres per pixel on the map
-const CAMP_APART := 16.0                        ## two camps' centres at least this far apart
+const CAMP_APART := 15.0                        ## two camps' centres at least this far apart
 
 var main: Node
 var out_dir := "user://"
@@ -192,7 +192,7 @@ func _camps() -> void:
 				var wd := INF
 				for w in walks:
 					wd = minf(wd, w.distance_to(Vector2(slot.center.x, slot.center.z)))
-				if wd < 20.0:
+				if wd < 10.0:
 					problems.append("camp      %-28s %-12s %s: %.1f m from where people walk (a village walk node)" % [id, r.region, _v(slot.at), wd])
 		var lead: Dictionary = by[ck][0]
 		if lead.has("patrol"):

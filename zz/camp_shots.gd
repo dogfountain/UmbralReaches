@@ -4,12 +4,12 @@ extends Node
 ## view (eye height, WALK m out along the way it is met from, looking at it). The pawns are frozen where they stand;
 ## a survey light hangs over each camp (--dark: the game's own night only). Guardians and rares within 40 m of a camp
 ## are raised for its views. Saves held (Travel._busy).
-##   godot --path . res://zz/camp_shots.tscn -- --out=<dir> [--camps=keep,crater,camp12] [--reaches] [--dark] [--views=top,walk] [--walk=16]
+##   godot --path . res://zz/camp_shots.tscn -- --out=<dir> [--camps=keep,crater,camp12] [--reaches] [--dark] [--views=top,walk,close] [--walk=16]
 ## --camps: substrings of a camp's "name" or "campNN" (its index in EnemySpawner.REALM_CAMPS, from 1, as the audit
 ## numbers them); --reaches: every Far Reaches camp (core/enemy/realm_camps_reaches.gd).
 const ReachCamps := preload("res://core/enemy/realm_camps_reaches.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
-const SETTLE := 14
+const SETTLE := 18
 var walk := 16.0                 ## --walk=m: how far out the walk view stands
 var main: Node
 var out := "/tmp"
@@ -73,9 +73,9 @@ func _process(_d: float) -> void:
 		print("CAMPSHOTS done (%d)" % shots.size())
 		get_tree().quit()
 		return
+	wait = SETTLE
 	_hold(shots[i])
 	_raise_near(shots[i][3])
-	wait = SETTLE
 
 
 func _plan(sp: EnemySpawner) -> void:
@@ -127,6 +127,8 @@ func _plan(sp: EnemySpawner) -> void:
 		var file := "%s_%s" % [tag, nm.replace(" ", "_").replace("'", "")]
 		if "top" in want:
 			shots.append(["%s_top.png" % file, _overhead(c), c, c])
+		if "close" in want:
+			shots.append(["%s_close.png" % file, Vector3.INF, c + Vector3.UP * 0.9, c])
 		if "walk" in want:
 			var from := _approach(Vector2(c.x, c.z))
 			var e2 := Vector2(c.x, c.z) + from * walk
@@ -159,6 +161,23 @@ func _overhead(c: Vector3) -> Vector3:
 	return best
 
 
+## A close eye (6 m out, eye height) with a clear line to the camp: the first of eight bearings whose ray from the
+## eye to the camp's middle meets no collider (a trunk, a fallen log, a wall), else the first.
+func _close_eye(c: Vector3) -> Vector3:
+	var space := (main as Node3D).get_world_3d().direct_space_state
+	var first := Vector3.INF
+	for k in 8:
+		var a := TAU * float(k) / 8.0 + 0.2
+		var q := Vector2(c.x + cos(a) * 6.0, c.z + sin(a) * 6.0)
+		var eye := Vector3(q.x, RealmLayout.ground(space, q.x, q.y) + 1.6, q.y)
+		if first == Vector3.INF:
+			first = eye
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, c + Vector3.UP * 0.9, Layers.WORLD))
+		if hit.is_empty():
+			return eye
+	return first
+
+
 ## The bearing (unit xz, from the camp) a walker comes from: the nearest way's nearest point, else the south.
 func _approach(c: Vector2) -> Vector2:
 	var best := Vector2.ZERO
@@ -180,6 +199,13 @@ func _approach(c: Vector2) -> Vector2:
 
 
 func _hold(s: Array) -> void:
+	if s[1] == Vector3.INF:
+		if wait > 6:                                  # the trunks round the camp stream in with the wanderer first
+			p.global_position = (s[3] as Vector3) + Vector3(0.0, 40.0, 0.0)
+			cam.global_position = (s[3] as Vector3) + Vector3(0.0, 30.0, 0.1)
+			cam.look_at(s[3], Vector3.UP)
+			return
+		s[1] = _close_eye(s[3])
 	var eye: Vector3 = s[1]
 	var tgt: Vector3 = s[2]
 	cam.global_position = eye
