@@ -42,7 +42,11 @@ HOME=/private/tmp/claude-501/bake_home godot --headless --path /Users/luke/Umbra
 ```
 
 Any scene that builds the Realm (and streams the Ossuary) bakes what it builds; `storage_cache`
-(no flag) reports what is left stale or duplicated.
+(no flag) reports what is left stale or duplicated. The bake holds the land (heights and the meshes' splat:
+`land|heights`, `land|meshes`), the flora's placement, RockKit's meshes and convex hulls (`hull|*`), trees, chunk
+splits and the nav. A packed build that finds them all is playable in ~15 s on this Mac; to time one, put the
+release binary beside the pack under the same name (a release binary refuses `--main-pack`) and run it with
+`--headless -- --boot-only` (prints `BOOT playable_ms`).
 
 ## Pack
 
