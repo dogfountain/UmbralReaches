@@ -28,6 +28,8 @@ const QuestTrack := preload("res://core/story/quest_track.gd")
 const QuestTrail := preload("res://core/story/quest_trail.gd")
 const GuideLines := preload("res://core/story/guide_lines.gd")
 const Hints := preload("res://ui/hints.gd")
+const OpeningShot := preload("res://core/story/opening_shot.gd")
+const HudPrefsOpen := preload("res://ui/hud_prefs.gd")
 
 signal objectives_changed
 
@@ -443,6 +445,10 @@ func _stage_opening(hud_node: Node) -> void:
 		c += 0.2
 	if not is_inside_tree() or not is_instance_valid(hud) or not is_instance_valid(ui):
 		return
+	if HudPrefsOpen.opening and not flag("opening_seen"):
+		set_flag("opening_seen")
+		if await _play_opening(hud, p):
+			return
 	ui.narrate([DialogueDB.OPENING[0]])
 	if Guide.on():
 		# guided (guide.gd): the HUD comes with the first line, so the first objective, its mark and the compass are up
@@ -480,6 +486,29 @@ func _stage_opening(hud_node: Node) -> void:
 	if is_instance_valid(ui):
 		ui.narrate(DialogueDB.OPENING.slice(1))      # queued before the HUD's hold lifts: no banner slips in between
 	hud.hold_opening(false)
+
+
+## The Last Lantern (opening_shot.gd): the three lines are spoken at the shot's beats, the HUD arrives when the lens
+## is given back. True when it played (or was skipped); false when there was nothing to shoot and the old beats run.
+func _play_opening(hud: HudUI, p: Node3D) -> bool:
+	var shot: OpeningShot = OpeningShot.new()
+	add_child(shot)
+	if not shot.begin(p):
+		shot.queue_free()
+		return false
+	var said := [false]
+	shot.beat.connect(func(i: int) -> void:
+		if not is_instance_valid(ui) or (i == 2 and flag("met_keep")):
+			return
+		said[0] = said[0] or i == 2
+		ui.narrate([DialogueDB.OPENING[i]]))
+	var skipped: bool = await shot.finished
+	if not is_inside_tree() or not is_instance_valid(hud):
+		return true
+	if skipped and is_instance_valid(ui) and not said[0] and not flag("met_keep"):
+		ui.narrate([DialogueDB.OPENING[2]])          # a skipped shot still says where to go
+	hud.hold_opening(false)
+	return true
 
 
 func _on_boss(id: String) -> void:

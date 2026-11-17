@@ -27,6 +27,8 @@ static var combat_text := true
 static var unit_frames := true
 static var enemy_plates := false       ## world health bars over every foe, and the target frame on foes you only struck (off: the locked-on target only)
 static var guide := true               ## the new player's guide (core/story/guide.gd): waypoint, pinned objective, prompts
+static var opening := true             ## a new game plays the opening shot (core/story/opening_shot.gd)
+static var immersion := false          ## the HUD rests while the wanderer is simply walking (ui/hud_rest.gd)
 static var card_request := 0           ## bumped by the settings menu: the HUD shows the controls card again
 static var _loaded := false
 
@@ -40,6 +42,8 @@ static func reset() -> void:
 	unit_frames = true
 	enemy_plates = false
 	guide = true
+	opening = true
+	immersion = false
 	save()
 
 
@@ -61,6 +65,8 @@ static func ensure() -> void:
 	unit_frames = bool(cfg.get_value("hud", "unit_frames", true))
 	enemy_plates = bool(cfg.get_value("hud", "enemy_plates", false))
 	guide = bool(cfg.get_value("hud", "guide", true))
+	opening = bool(cfg.get_value("hud", "opening", true))
+	immersion = bool(cfg.get_value("hud", "immersion", false))
 
 
 static func save() -> void:
@@ -71,6 +77,8 @@ static func save() -> void:
 	cfg.set_value("hud", "unit_frames", unit_frames)
 	cfg.set_value("hud", "enemy_plates", enemy_plates)
 	cfg.set_value("hud", "guide", guide)
+	cfg.set_value("hud", "opening", opening)
+	cfg.set_value("hud", "immersion", immersion)
 	SaveDir.save_atomic(cfg, SaveDir.path(FILE))
 
 
