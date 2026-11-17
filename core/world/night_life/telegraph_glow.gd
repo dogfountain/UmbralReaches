@@ -78,7 +78,7 @@ func _landing(e: Node3D, cast: String) -> void:
 
 
 func _on_end(enemy: Node, cast: String, interrupted: bool) -> void:
-	if not interrupted and Reg.enabled and enemy is Node3D and is_instance_valid(enemy) and _land_budget >= 1.0:
+	if not interrupted and Reg.enabled and is_instance_valid(enemy) and enemy is Node3D and _land_budget >= 1.0:
 		_land_budget -= 1.0
 		_landing(enemy as Node3D, cast.to_lower())
 	if enemy != _caster:

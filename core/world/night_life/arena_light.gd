@@ -193,9 +193,9 @@ func _apply(k: float) -> void:
 func _lights_step(delta: float) -> void:
 	var count: int = [2, 3, 4][clampi(Settings.detail, 0, 2)]
 	var centre := Vector3.ZERO
-	if _arena != null:
+	if _arena != null and is_instance_valid(_arena):
 		centre = (_arena as Node3D).global_position
-	elif _boss != null:
+	elif _boss != null and is_instance_valid(_boss):
 		centre = _boss.global_position
 	var radius := 7.0
 	if _arena != null and "radius" in _arena:
