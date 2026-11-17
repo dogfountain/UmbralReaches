@@ -135,9 +135,9 @@ static func _fog(env: Environment, fog_light: Color, vol_albedo: Color, vol_emit
 ## lantern's pool still reads warm against the blue. zz/light_pass: every value here A/B'd from fourteen views.
 const MOON_ELEVATION := 46.0          ## degrees above the horizon
 const MOON_BEARING := 135.0           ## where it stands: degrees east of north (north is -z)
-const MOON_ENERGY := 1.5
+const MOON_ENERGY := 1.05             ## darker (Luke, "darker moon"): the land is dark, the landmarks carry the night
 const MOON_COLOR := Color(0.66, 0.78, 1.0)
-const MOON_FOG := 0.35                ## its share in the volumetric fog (0.62 at the old energy: the haze takes about twice the moonlight, not 3.75 times)
+const MOON_FOG := 0.22                ## its share in the volumetric fog (0.62 at the old energy: the haze takes about twice the moonlight, not 3.75 times)
 
 
 static func _moon(moon: DirectionalLight3D, far_m: float) -> void:

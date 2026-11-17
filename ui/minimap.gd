@@ -40,6 +40,7 @@ const UIType := preload("res://ui/type.gd")
 const LABEL_PT := 14
 const MAX_LABELS := 2
 const Tiers := preload("res://core/life/encounters/tiers.gd")
+const Danger := preload("res://core/life/encounters/danger.gd")
 const QUEST := Color(1.0, 0.82, 0.3)
 const MARK_NEAR := 70.0                  ## non-quest map markers beyond this are not even listed
 const QUEST_KINDS := ["quest_available", "quest_turnin", "quest_target"]
@@ -286,8 +287,8 @@ func _kind_col(kind: String) -> Color:
 func _scan_place() -> void:
 	var r: Dictionary = RealmLayout.region_at(_you.x, _you.z)
 	_region = String(r.get("name", ""))
-	_tier_i = Tiers.tier_at(_you) if _region != "" else 0
-	_tier = String(Tiers.info(_tier_i).get("name", "")) if _region != "" else ""
+	_tier_i = Danger.band(_you) if _region != "" else 0
+	_tier = Danger.plate(_you) if _region != "" else ""
 	_clock = ""
 	var ck := get_tree().get_first_node_in_group(&"night_clock")
 	if ck and ck.has_method("clock_text"):
@@ -426,7 +427,7 @@ func _draw_place(c: Vector2, r: float) -> void:
 	var top := c.y - r - 72.0
 	var plate := Rect2(Vector2(c.x - sw * 0.5, top), Vector2(sw, 32))
 	Forge.strip(self, plate, 1.0, 16.0, 0.92)
-	var col: Color = TIER_COL[clampi(_tier_i, 0, TIER_COL.size() - 1)]
+	var col: Color = Danger.color(_tier_i)
 	Forge.label(self, _font, Vector2(plate.position.x, top + 23.0), _region, pt, col, HORIZONTAL_ALIGNMENT_CENTER, sw, 3)
 	if _tier != "":
 		var tw := _font.get_string_size(_tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x

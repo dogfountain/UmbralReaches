@@ -631,7 +631,7 @@ const CONV := {
 
 ## Narration beats (non-blocking subtitles).
 const OPENING := [
-	"The road ends here. Past the last village there is only the Stair, and the sky it opened.",
+	"The road ran out of pilgrims a long time ago. Past Hearthward there is only the dark, and the sky it opened.",
 	"Over the Crowns the sky turns inward. The cold comes down the mountain to meet you.",
 	"There is light in the Kindled Keg. Find the keep. He will tell you what this night is for.",
 ]

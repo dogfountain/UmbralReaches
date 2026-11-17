@@ -13,19 +13,19 @@ const FIRE_CASTERS := 0xFFFFF & ~NO_FIRE_LAYER
 
 # [energy, range, atten] multiplied onto the authored `base` meta. Idempotent.
 const ILLUM := {
-	&"beacon": [0.55, 1.05, 0.9],                # braziers: warm pool, not orange flood
+	&"beacon": [0.85, 1.15, 0.9],                # braziers: warm pool, not orange flood
 	&"fill": [1.35, 1.2, 1.0],
 	&"lava": [1.18, 1.12, 1.0],
 	&"river": [1.08, 1.05, 1.15],
 	&"hero": [0.82, 1.0, 1.0],
 	&"hero_fill": [0.72, 1.05, 1.0],
 	&"shaft": [0.68, 1.0, 1.0],                  # window/door trail; keep soft, not yard-wash
-	&"lamp": [0.62, 1.0, 1.0],                   # tavern/hearth/candles
+	&"lamp": [0.85, 1.05, 1.0],                   # tavern/hearth/candles
 	&"glimmer": [1.05, 1.05, 1.4],
 	&"player_lantern": [0.55, 1.05, 1.0],        # soft personal pool, no robe wash
 	# the table is the one place a light's brightness is scaled (Luke, 9 Nov: multipliers had stacked in builders)
-	&"kept_lamp": [0.48, 0.9, 1.0],              # a lamp the wanderer kindles on the roads (lamp.gd: was * 0.48 / * 0.9 there)
-	&"village": [1.0, 1.05, 1.0],                # cottage, camp and window lights in the villages (village_props.gd)
+	&"kept_lamp": [0.7, 1.0, 1.0],              # a lamp the wanderer kindles on the roads (lamp.gd: was * 0.48 / * 0.9 there)
+	&"village": [1.3, 1.1, 1.0],                # cottage, camp and window lights in the villages (village_props.gd)
 }
 
 

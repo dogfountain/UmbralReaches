@@ -37,7 +37,7 @@ const OBJECTIVES := [
 		"text": "Take the Abbot's crown from the Bone Abbot"},
 	# after both keepers: one line. The peal until four bells (the Marches' among them) are answered, then the climb, then the door.
 	{"id": "peal", "main": true, "when": "boss:thornwarden,boss:bone_abbot", "done": "peal:4|boss:ascended_warden",
-		"text": "The door will hear a peal, not a crown: answer four of the Founder's bells, the Marches' among them (Ardel Wick at Saltmarket has the coal for the Spire). Brannoc has the first. The rest hang in the far countries"},
+		"text": "The door will hear a peal, not a crown: answer four of the Founder's bells, the Marches' among them (Ardel Wick at Saltmarket has the coal for the Spire). Brannoc has the first. The rest hang in the far countries", "count": "bells", "of": 4},
 	{"id": "summit_seal", "main": true, "when": "boss:thornwarden,boss:bone_abbot,peal:4", "done": "seal:summit|boss:ascended_warden",
 		"text": "Carry heart and crown to the summit ward across the Crossing"},
 	{"id": "warden", "main": true, "when": "boss:thornwarden,boss:bone_abbot,peal:4,seal:summit", "done": "boss:ascended_warden",
@@ -60,7 +60,7 @@ static func active(ws: Dictionary, limit := 3) -> Array:
 				continue
 			var text := String(o.text)
 			if o.has("count"):
-				text += "  (%d/%d)" % [int(ws.get(String(o.count), 0)), int(o.of)]
+				text += "  (%d/%d)" % [mini(int(ws.get(String(o.count), 0)), int(o.of)), int(o.of)]
 			out.append({"id": o.id, "text": text, "main": o.main})
 	return out.slice(0, limit)
 

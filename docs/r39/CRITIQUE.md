@@ -25,22 +25,14 @@ The recommendation is a cold open, "The Last Lantern": about 45 s and skippable.
 
 **Should it be brighter while the moon is darker?**
 
-Yes. The lever is the shadowless fill and the ambient light, not the moon disc. All of these are free:
+Luke's answer (17 Nov) settles the direction: the night is not brighter. "It's brighter landmarks with fire lights, mysteries etc, with darker moon."
 
-| Setting | Now | Proposed |
-|---|---|---|
-| MOON_ENERGY | 1.5 | 1.2 |
-| FILL_ENERGY | 0.6 | 0.85 |
-| FILL_ELEVATION | 24 | 32 |
-| ambient light | 0.125 | 0.19 |
-| volumetric ambient inject | 0.06 | 0.10 |
-| beacon lights | 0.55× | 0.75× |
-| lamps | 0.62× | 0.85× |
-| village lights | 1.0× | 1.2× |
-| grade black crush | 0.055 | 0.035 |
-| vignette | 0.42 | 0.34 |
+- The moon is darker and the land stays dark.
+- Landmarks, settlements and mysteries carry the light: fires, braziers, lit windows, strange glows in ruins.
+- That light reads from far away, so the player navigates the night by light.
+- Mystery lights lead somewhere.
 
-Lit ground against the shadow floor goes from about 5:1 to about 3:1. Warm pools stay at least twice their surroundings.
+The critic's original proposal is superseded. It brightened the whole frame through fill and ambient, with ratios going from about 5:1 to 3:1.
 
 **Model detail at no performance cost, the Enshrouded way?**
 

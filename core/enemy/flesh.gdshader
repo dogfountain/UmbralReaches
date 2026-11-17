@@ -2,7 +2,7 @@ shader_type spatial;
 render_mode diffuse_burley, specular_schlick_ggx, depth_draw_opaque;
 // r35: the shared character finish (its own creases already darken: a lighter cavity share)
 #define CL_CAVITY 0.15
-#define CL_LIFT 1.4
+#define CL_LIFT 1.15
 #include "res://core/vfx/char_look.gdshaderinc"
 // Enemy skin for CreatureMesh bodies. Pale corpse-flesh with dark veins that flow along limbs,
 // wet sheen in the folds, bone that reads as bone, glowing eyes/glands, a violet rim so bodies
@@ -85,8 +85,11 @@ void fragment() {
 	}
 	float edge = (1.0 - smoothstep(0.0, 0.06, d - dissolve * 1.08)) * step(0.001, dissolve);
 
+	// (17 Nov) the rims are lit now, not emitted (they glowed grey in the dark: see grunt_pbr.gdshader)
+	RIM = 0.45 * (1.0 - rag * 0.6);
+	RIM_TINT = 0.55;
 	EMISSION = eye_col * UV2.x * eye_energy * (1.0 + glint * 2.5)
-		+ cl_accent(NORMAL, VIEW, rim_col, rim_amount) * (1.0 - glint * 0.6) + cl_rim(NORMAL, VIEW, VIEW_MATRIX) + cl_moon_rim(NORMAL, VIEW, VIEW_MATRIX) * (1.0 - rag * 0.6)
+		+ cl_accent(NORMAL, VIEW, rim_col, rim_amount) * (1.0 - glint * 0.6) * 0.35
 		+ vec3(1.4, 1.25, 1.6) * hit_flash * (0.35 + 0.65 * pow(1.0 - ndv, 1.5))
 		+ burn_col * edge * 3.0;
 }
