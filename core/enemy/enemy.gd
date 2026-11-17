@@ -1349,7 +1349,7 @@ func _move_ballistic(delta: float) -> void:
 		velocity.z *= 0.25
 	if _state == AIRBORNE and not _pounced and _p != null:
 		var reach := _p.global_position - global_position
-		if reach.length_squared() < 1.7 * 1.7:
+		if reach.length_squared() < 1.7 * 1.7 and _strike_clear(_p):
 			_pounced = true
 			if _p.is_evading():
 				_p.on_evaded(self)

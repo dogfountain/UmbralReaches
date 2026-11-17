@@ -19,7 +19,7 @@ func _init() -> void:
 	leap_min = 3.5
 	leap_max = 8.5
 	leap_apex = 1.1
-	leap_prep = 0.32
+	leap_prep = 0.4
 	leap_cooldown = 3.2
 	leap_lead = 0.4
 	hp_bar_y = 0.95

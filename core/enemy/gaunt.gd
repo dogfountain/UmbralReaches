@@ -165,7 +165,7 @@ func _special_frame(_delta: float) -> void:
 		var along := rel.x * _dart_dir.x + rel.z * _dart_dir.z
 		var side := absf(rel.x * -_dart_dir.z + rel.z * _dart_dir.x)
 		var reached := run.x * _dart_dir.x + run.z * _dart_dir.z >= along - 1.15      # the body has come level with you
-		if side <= 0.7 and along >= -0.3 and along <= _dart_len and reached and absf(dy) < 1.8:
+		if side <= 0.7 and along >= -0.3 and along <= _dart_len and reached and absf(dy) < 1.8 and _strike_clear(_p):
 			_dart_hit = true
 			if _p.is_evading():
 				_p.on_evaded(self)
