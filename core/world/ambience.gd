@@ -23,6 +23,7 @@ extends Node
 const ScapeSynth := preload("res://core/life/wildlife/scape_synth.gd")
 const LifeSynth := preload("res://core/life/wildlife/life_synth.gd")
 const Music := preload("res://core/life/wildlife/scape_music.gd")
+const UiSoundLib := preload("res://ui/ui_sound.gd")
 const Foley := preload("res://core/vfx/foley.gd")
 const GloomDrone := preload("res://core/world/gloom_drone.gd")
 
@@ -289,6 +290,7 @@ func _exit_tree() -> void:
 	ScapeSynth._cache.clear()
 	LifeSynth._cache.clear()
 	Sfx.release()
+	UiSoundLib.release()
 	GloomDrone.release()
 	# leave the buses as Settings made them
 	for bus: String in _verbs:

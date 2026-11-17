@@ -42,6 +42,8 @@ func run() -> void:
 	var t0 := Time.get_ticks_usec()
 	await IconArt.warm(get_tree())
 	_lap("icons", t0)
+	while not UiSound.prewarm_one():           # every interface sound, one a frame (quest_done alone took 0.62 s)
+		await get_tree().process_frame
 	await _character_screen()
 	await _settings()
 	await _loot()

@@ -1,10 +1,12 @@
 extends RefCounted
-## Quiet interface sounds for any menu (no class_name: preload it). Synthesised once per host and
-## kept on the host's players (as meta), not in statics, so nothing outlives the menu at quit.
+## Quiet interface sounds for any menu (no class_name: preload it). Each kind is synthesised once and the stream
+## shared by every host (the loading screen's panel warm builds them all: `prewarm`); the cache is a static, so
+## `release()` drops it when the zone leaves the tree (Ambience), and nothing outlives the engine at quit.
 ##   const UiSound := preload("res://ui/ui_sound.gd")
 ##   UiSound.play(self, "move")      # focus / hover moved      "tab"      a page or tab changed
 ##   UiSound.play(self, "confirm")   # a toggle, a pick, a buy  "back"     a menu closed
 ##   "quest_new" / "quest_done"      # a task taken up / finished (ui/quest_log.gd banners)
+##   "level_up"                      # a level gained (hearth.gd _ding)
 ## Plays on the SFX bus and while the tree is paused (menus pause the world).
 
 const RATE := 44100
@@ -19,14 +21,40 @@ const KINDS := {
 	# further notes as [start s, Hz]: the first note's contour is not bent for them. Rising fifth; then a rising triad
 	"quest_new": [0.30, 523.0, 523.0, 2.0, 11.0, -15.0, [[0.09, 784.0]]],
 	"quest_done": [0.62, 523.0, 523.0, 2.0, 7.5, -11.0, [[0.12, 659.0], [0.24, 784.0], [0.38, 1047.0]]],
+	# A level gained: a quicker, higher rising run than a task done (ward_chime.wav served for both, and for a chest)
+	"level_up": [0.70, 392.0, 392.0, 2.0, 6.0, -10.0, [[0.08, 494.0], [0.16, 587.0], [0.26, 784.0], [0.38, 988.0]]],
 }
 
 
 static var muted := false              ## set while the loading screen opens every panel once
+static var _streams := {}              ## kind -> AudioStreamWAV, shared by every host
+
+
+## The stream of a kind, built on first use (the warm pass builds them all, muted or not).
+static func stream(kind: String) -> AudioStreamWAV:
+	if not _streams.has(kind):
+		_streams[kind] = _make(KINDS[kind])
+	return _streams[kind]
+
+
+## Builds one kind not yet built and says whether every kind is. The panel warm calls it a kind a frame.
+static func prewarm_one() -> bool:
+	for k: String in KINDS:
+		if not _streams.has(k):
+			stream(k)
+			break
+	return _streams.size() >= KINDS.size()
+
+
+static func release() -> void:
+	_streams.clear()
 
 
 static func play(host: Node, kind: String) -> void:
-	if muted or host == null or not host.is_inside_tree() or not KINDS.has(kind):
+	if not KINDS.has(kind):
+		return
+	var st := stream(kind)                  # built even while muted, so the warm pass leaves it cached
+	if muted or host == null or not host.is_inside_tree():
 		return
 	var pname := "UiSound_" + kind
 	var pl := host.get_node_or_null(pname) as AudioStreamPlayer
@@ -35,7 +63,7 @@ static func play(host: Node, kind: String) -> void:
 		pl.name = pname
 		pl.bus = &"SFX" if AudioServer.get_bus_index("SFX") >= 0 else &"Master"
 		pl.process_mode = Node.PROCESS_MODE_ALWAYS
-		pl.stream = _make(KINDS[kind])
+		pl.stream = st
 		pl.volume_db = float(KINDS[kind][5])
 		host.add_child(pl)
 	pl.play()
