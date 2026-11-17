@@ -88,6 +88,7 @@ func _ready() -> void:
 	add_child(FirstHour.new())
 	add_child(Chronicle.new())
 	add_child(Wayfarer.new())
+	add_child(MapSketch.new())
 	add_child(Courier.new())
 	add_child(HorseRace.new())
 	add_child(EmberTrace.new())

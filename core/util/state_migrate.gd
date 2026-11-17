@@ -54,6 +54,12 @@ static func _story(st: Dictionary) -> void:
 		st["night_age"] = 0.0
 	st["trail"] = _ints(st.get("trail"), MAX_TRAIL)
 	st["pins"] = _ints(st.get("pins"), MAX_PINS)
+	_dict(st, "race")                                       # the Hearthward races: {won: [course ids], cup: bool}
+	var race: Dictionary = st.race
+	if not (race.get("won") is Array):
+		race.erase("won")
+	if not (st.get("sketch") is String):                    # the map's charcoal sketch: a base64 string or nothing (backfilled from the trail)
+		st.erase("sketch")
 	# a courier run needs a route and a time; anything else is not a run
 	var c: Dictionary = st.courier
 	if not c.is_empty() and (String(c.get("route", "")) == "" or not (c.get("t") is int or c.get("t") is float)):
