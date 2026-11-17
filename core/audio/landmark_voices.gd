@@ -178,8 +178,8 @@ func _process(dt: float) -> void:
 		p2.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
 		p2.doppler_tracking = AudioStreamPlayer3D.DOPPLER_TRACKING_DISABLED
 		p2.volume_db = -60.0
-		p2.global_position = h2[2] as Vector3
 		add_child(p2)
+		p2.global_position = h2[2] as Vector3          # after add_child: a node out of the tree has no global transform
 		p2.play(randf() * LEN)
 		var tw2 := p2.create_tween()
 		tw2.tween_property(p2, "volume_db", float(DB.get(String(h2[1]), -16.0)), 2.5)
