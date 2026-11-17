@@ -78,7 +78,7 @@ func _rescan() -> void:
 
 
 func _rank(kind: String) -> int:
-	return {"goal": 0, "danger": 1, "fire": 2, "tasker": 3}.get(kind, 4)
+	return {"goal": 0, "mark": 1, "danger": 2, "fire": 3, "tasker": 4}.get(kind, 5)
 
 
 func _draw() -> void:
@@ -147,6 +147,11 @@ func _draw() -> void:
 				if not IconArt.draw_mark(self, "mark", String(m.art), Vector2(x, y), 30.0, Color(1, 1, 1, a)):
 					_diamond(Vector2(x, y), 8.0, col, true)
 				labels.append([float(m.d), x, "%d m" % int(round(float(m.d))), a, true])
+			"mark":
+				if not IconArt.draw_mark(self, "mark", "beacon", Vector2(x, y), 22.0, Color(0.8, 0.9, 1.0, a)):
+					_diamond(Vector2(x, y), 6.5, col, false)
+					_diamond(Vector2(x, y), 3.0, col, true)
+				labels.append([float(m.d), x, "%d m" % int(round(float(m.d))), a])
 			"danger":
 				var tri := PackedVector2Array([Vector2(x, y - 8.0), Vector2(x + 7.0, y + 6.0), Vector2(x - 7.0, y + 6.0)])
 				draw_colored_polygon(tri, Color(0.05, 0.02, 0.02, a * 0.8))

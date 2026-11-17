@@ -11,6 +11,7 @@ extends RefCounted
 ##   fire      the nearest fire (two on Full) but only when one is WANTED: Gloom over a third of the bar, wounds
 ##             under half, or the wanderer's own state asks for a rest; otherwise none (Full: the nearest one near)
 ##   tasker    a quest giver / turn-in near (Standard 90 m, Full 160 m)
+##   mark      the wanderer's own marks (core/story/wayfarer.gd, WayMark nodes): at any sensible range, the nearest 2-4, fading late
 ##   beacon    a lit far beacon (landmark_beacon group): Full draws a small diamond with a range; Standard a faint tick
 ##             (the 3 nearest, to 300 m); Minimal none unless there is no goal and it is close
 ## Every mark fades over the last 40 % of its range; nothing past its range is drawn unless it is the goal.
@@ -31,6 +32,7 @@ const RULES := {
 	"fire_idle": [[0.0, 0], [0.0, 0], [60.0, 1]],
 	"tasker": [[0.0, 0], [90.0, 2], [160.0, 3]],
 	"beacon": [[110.0, 1], [300.0, 3], [380.0, 5]],
+	"mark": [[900.0, 2], [1200.0, 3], [2000.0, 4]],
 }
 
 
@@ -102,17 +104,24 @@ static func gather(tree: SceneTree, eye: Vector3, density: int, goal: Dictionary
 	# far beacons
 	var bk: Array = RULES.beacon[density]
 	var bs: Array[Dictionary] = []
+	var mk: Array = RULES.mark[density]
+	var mine: Array[Dictionary] = []
 	for b in tree.get_nodes_in_group(&"landmark_beacon"):
 		if not is_instance_valid(b) or b.is_queued_for_deletion() or not ("anchor" in b):
 			continue
 		var ap: Vector3 = b.get("anchor")
 		var d6: float = flat.call(ap)
+		if String(b.name).begins_with("WayMark"):
+			if d6 > 8.0 and d6 <= float(mk[0]):
+				mine.append({"pos": ap, "kind": "mark", "col": (b.get("tint") as Color) if "tint" in b else Color(0.86, 0.92, 1.0), "d": d6, "range": float(mk[0])})
+			continue
 		if d6 < 14.0 or d6 > float(bk[0]):
 			continue
 		if density == MINIMAL and have_goal:
 			continue
 		bs.append({"pos": ap, "kind": "beacon", "col": (b.get("tint") as Color) if "tint" in b else Color("#FFB347"), "d": d6, "range": float(bk[0])})
 	_take(out, bs, int(bk[1]))
+	_take(out, mine, int(mk[1]))
 	return out
 
 
