@@ -29,6 +29,7 @@ const QuestTrail := preload("res://core/story/quest_trail.gd")
 const GuideLines := preload("res://core/story/guide_lines.gd")
 const Hints := preload("res://ui/hints.gd")
 const OpeningShot := preload("res://core/story/opening_shot.gd")
+const DangerWatch := preload("res://core/life/encounters/danger_watch.gd")
 const HudPrefsOpen := preload("res://ui/hud_prefs.gd")
 
 signal objectives_changed
@@ -70,6 +71,7 @@ func _ready() -> void:
 	add_child(markers)
 	guide = Guide.new()
 	add_child(guide)
+	add_child(DangerWatch.new())
 	track = QuestTrack.new()
 	add_child(track)
 	trail = QuestTrail.new()

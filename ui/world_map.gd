@@ -22,6 +22,7 @@ const Glyphs := preload("res://ui/world_map_glyphs.gd")
 const Med := preload("res://ui/medieval_style.gd")
 const MapTravel := preload("res://ui/world_map_travel.gd")
 const MapCluster := preload("res://ui/world_map_cluster.gd")
+const Danger := preload("res://core/life/encounters/danger.gd")
 
 const ACTION := "world_map"
 const SHEET := Rect2(-420.0, -214.0, 840.0, 682.0)   ## world xz the parchment covers: the Realm and its margins
@@ -430,7 +431,7 @@ func _collect() -> void:
 		var down := ba.slain()
 		if fog_at(bat.x, bat.y) < 0.5 and not down:
 			continue
-		_marks.append({"at": bat, "kind": "boss_down" if down else "boss", "name": ba.title, "note": "Slain" if down else "Its seal holds"})
+		_marks.append({"at": bat, "kind": "boss_down" if down else "boss", "name": ba.title, "note": "Slain" if down else "Its seal holds. Suggested level %d" % Danger.boss_level(tree, ba.boss_id)})
 	for w in tree.get_nodes_in_group(&"watch_post"):
 		var w3 := w as Node3D
 		if w3 and fog_at(w3.global_position.x, w3.global_position.z) >= 0.5:
