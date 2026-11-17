@@ -175,6 +175,9 @@ func dismount() -> void:
 		var side := global_basis.x.normalized()
 		var to := global_position + side * 1.1
 		p.teleport(_ground(to) + Vector3.UP * 0.1)
+		var left: Dictionary = state().get("left", {}) if state().get("left") is Dictionary else {}
+		left[breed] = [roundi(global_position.x), roundi(global_position.z), snappedf(rotation.y, 0.01)]     # it waits where it was left
+		state()["left"] = left
 
 
 ## The jump key on horseback (PlayerMount): a gather, then the push-off. Only from the ground, once the

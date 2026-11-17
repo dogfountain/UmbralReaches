@@ -40,6 +40,7 @@ func _ready() -> void:
 		h.rotation.y = yaw + PI * 0.5
 		host.add_child(h)
 		horses[b] = h
+		_restore_left(h, b, space)
 
 
 ## A hitching rail: two posts and a bar, and a pin on the map.
@@ -91,3 +92,20 @@ func _unhandled_input(ev: InputEvent) -> void:
 	h.set("at_post", false)
 	Events.toast.emit("Hooves in the dark. %s comes." % HorseBond.name_of(b))
 	get_viewport().set_input_as_handled()
+
+
+## A horse ridden before is where its rider got down (the save keeps it): back at that spot on the ground, not at its post.
+func _restore_left(h: Node3D, b: String, space: PhysicsDirectSpaceState3D) -> void:
+	var left: Variant = Horse.state().get("left", null)
+	if not (left is Dictionary) or not (left as Dictionary).has(b) or not (Horse.state().owned as Array).has(b):
+		return
+	var v: Array = (left as Dictionary)[b]
+	if v.size() < 3:
+		return
+	var at := Vector2(float(v[0]), float(v[1]))
+	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(at.x, 90.0, at.y), Vector3(at.x, -40.0, at.y), Layers.WORLD))
+	if hit.is_empty():
+		return
+	h.global_position = hit.position
+	h.rotation.y = float(v[2])
+	h.set("at_post", false)
