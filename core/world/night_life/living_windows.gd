@@ -61,6 +61,7 @@ func _build() -> void:
 	if lights.is_empty():
 		_built = _waited_out()
 		return
+	_centres.clear()
 	var by_host := {}
 	for n: Node in lights:
 		var h := n.get_parent() as Node3D
