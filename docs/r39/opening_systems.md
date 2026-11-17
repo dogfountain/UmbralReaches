@@ -181,7 +181,12 @@ Already answered by earlier rounds or sections of this document: I-1 and I-2 (th
 - Comfort: Settings > Interface > Comfort (hud.cfg `[access]`).
 
 ### Not done in this round (honest list)
-The brief's perf rule was kept by construction, not measured.
+- The race rivals are riderless horses (the horse rig has no rider body of its own); the gates are beacons on the compass and the dial, not set pieces; a race is not saved mid-run (a reload ends it); there are no spectators. The courses are laid on the ground at the start from an ellipse, so their exact shape was not seen by eye: the lead should ride each once and tell me if a gate lands somewhere odd (the rule that picks the gate ground is in `horse_race.gd` `_lay`).
+- The charcoal sketch reveals by a 38 m disc from the wanderer's feet (no line-of-sight, so a ridge hides nothing); the fifteen inked landmarks are the ones the baked ink draws, not every prop; label de-collision is the existing placer plus the landmark names, not a new algorithm.
+- The Long Ledger has no board in the world (it is read in the Count; a prop at the Keg is a cross-team ask); no bounty counts great ones felled (the Deeper Night resets those counts).
+- The UX pass changed what was found wrong by reading; every menu was not driven with a pad by hand, and tooltips and the HUD's display-only elements were left as they were.
+- Nothing in this round was run: no Godot, no tests, no perf measurement. The brief's perf rule was kept by construction (sections 27 to 34 state the cost of each item).
+
 
 ## Data and content the lead should hand to the other agents (not edited here)
 - Story: Brannoc's `far_work` is gated on `peal:4`; open a Reach errand or a word in Hearthward in Act I (barks in `guide_lines.gd`); give one bell a home in a Reach so the Outliers touch the peal; quest endings that send the wanderer to a stable ("a horse would help" tasks) and a line in villagers' talk about the Count and the camp.
