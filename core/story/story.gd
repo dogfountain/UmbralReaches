@@ -181,7 +181,7 @@ func kindled() -> int:
 
 func world() -> Dictionary:
 	return {"flags": _state().flags, "kindled": kindled(), "seals": Travel.seals_broken,
-		"bosses": Travel.bosses_slain, "items": Travel.items}
+		"bosses": Travel.bosses_slain, "items": Travel.items, "bells": QuestBook.bells()}
 
 
 ## The HUD's lines: what is tracked (docs/quest_trail.md). The story's way (the default while the guide is on, or when

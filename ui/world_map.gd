@@ -3,24 +3,11 @@ extends CanvasLayer
 ## Order would have inked it. M opens and closes it (Esc, F2 and the pad's B close it); the night is
 ## paused while it is open.
 ##
-## The sheet is made once, off the frame: a worker thread reads RealmLand's finished heightfield, its
-## water, the regions and the ways (shores, the rift's pit, the Crowns as hatched mountains, tree glyphs
-## in the woods, dotted tracks, the March Wall, houses at the settlements), then two SubViewports draw
-## it a single time (the parchment and its border, and the ink and wash on a clear sheet) and are read
-## back into mipmapped textures. Opening it costs a handful of quads and one small shader.
-##
-## Fog of war: the ink layer is masked by a 5 m grid built from the regions the journal has recorded as
-## walked (CodexStore.discovered). Undiscovered ground is bare parchment with a faint stain; the
-## border, title and compass are on the parchment layer and always show.
-##
-## Live marks are drawn over the sheet each frame while it is open: the wanderer (position and facing),
-## lit fires (the Ember Road's stops), tasks and the people who give them, bosses (crowned while they
-## stand, struck through once slain), the watch posts, rares and the horse. Hover a mark (or put it
+## Live marks are drawn over the sheet. Crowded ones fold into one pin with a count (world_map_cluster.gd); beside a lit
+## fire a click on another lit fire rides the Ember Road (world_map_travel.gd). Hover a mark (or put it
 ## under the pad's reticle) to read its name. Drag or the left stick pans, the wheel or the triggers
 ## zoom, Space / Home / A centre on the wanderer.
 ##
-## Styling is local to this file (fonts, colours, the shaders) so it can take on the menus' theme later.
-
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
 const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
@@ -33,6 +20,8 @@ const Shaders := preload("res://ui/world_map_shaders.gd")
 const Labels := preload("res://ui/world_map_labels.gd")
 const Glyphs := preload("res://ui/world_map_glyphs.gd")
 const Med := preload("res://ui/medieval_style.gd")
+const MapTravel := preload("res://ui/world_map_travel.gd")
+const MapCluster := preload("res://ui/world_map_cluster.gd")
 
 const ACTION := "world_map"
 const SHEET := Rect2(-420.0, -214.0, 840.0, 682.0)   ## world xz the parchment covers: the Realm and its margins
@@ -84,6 +73,8 @@ var _marks: Array[Dictionary] = []
 var _you := Vector2.INF
 var _facing := Vector2(0, -1)
 var _hover := -1
+var _press_at := Vector2.ZERO
+var _cl: Dictionary = {}                  ## the folded pins (MapCluster.fold), by mark index
 var _mouse := Vector2.ZERO
 var _use_mouse := true
 var _drag := false
@@ -236,6 +227,10 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
+			if mb.pressed:
+				_press_at = mb.position
+			elif mb.position.distance_to(_press_at) < 6.0 and _hover >= 0 and _hover < _marks.size():
+				MapTravel.click(self, _marks[_hover])
 			_drag = mb.pressed
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_zoom_by(1.16, mb.position)
@@ -261,7 +256,8 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event is InputEventJoypadButton and event.pressed:
 		if (event as InputEventJoypadButton).button_index == JOY_BUTTON_A:
-			_recentre()
+			if _hover < 0 or _hover >= _marks.size() or not MapTravel.click(self, _marks[_hover]):
+				_recentre()
 		_use_mouse = false
 		get_viewport().set_input_as_handled()
 
@@ -419,8 +415,8 @@ func _collect() -> void:
 		var at := Vector2(b.global_position.x, b.global_position.z)
 		if not b.lit and fog_at(at.x, at.y) < 0.5:
 			continue
-		_marks.append({"at": at, "kind": "fire" if b.lit else "ash", "name": b.display_name(),
-			"note": "A lit fire: a stop on the Ember Road" if b.lit else "Cold ash; kindle it to rest here"})
+		_marks.append({"at": at, "kind": "fire" if b.lit else "ash", "name": b.display_name(), "fire": b,
+			"note": MapTravel.note(tree, b) if b.lit else "Cold ash; kindle it to rest here"})
 	for n in tree.get_nodes_in_group(&"lamp"):
 		var lp := n as Lamp
 		if lp == null or not lp.lit or fog_at(lp.global_position.x, lp.global_position.z) < 0.5:
@@ -485,6 +481,8 @@ func _pick_hover() -> void:
 	var best := -1
 	var bd := PICK_R
 	for i in _marks.size():
+		if not _cl.is_empty() and _cl.hide[i] == 1:
+			continue
 		var d := _w2s(_marks[i].at).distance_to(at)
 		if d < bd:
 			bd = d
@@ -507,9 +505,10 @@ func paint(c: Control) -> void:
 	_labels.layout(_zoom, _zoom_min, _seen)
 	_labels.draw(c, _zoom, _w2s, _area)
 	_guide(c)
+	_cl = MapCluster.fold(_marks, _w2s, edge)
 	for i in _marks.size():
 		var m := _marks[i]
-		if String(m.kind) == "you":
+		if String(m.kind) == "you" or _cl.hide[i] == 1:
 			continue
 		var p := _w2s(m.at)
 		if edge.has_point(p):
@@ -518,6 +517,7 @@ func paint(c: Control) -> void:
 				c.draw_circle(p, ring, Color(GOLD, 0.1))
 				c.draw_arc(p, ring, 0.0, TAU, 48, Color(GOLD, 0.75), 2.0, true)
 			_art.glyph(c, String(m.kind), p, i == _hover)
+			MapCluster.badge(c, p, _cl.count[i], _serif)
 	for i in _marks.size():
 		if String(_marks[i].kind) == "you":
 			var p := _w2s(_marks[i].at)
