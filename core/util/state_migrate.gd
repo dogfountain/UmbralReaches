@@ -1,6 +1,6 @@
 extends RefCounted
 ## Versioned migration and sanitising of the state this build adds to a save (Travel.story and Travel.systems). Called by
-## Travel when a slot is loaded: an older save (no `_v`) gains the new keys empty; a damaged key (a number where a list belongs,
+## Travel when a slot is loaded: an older save (no `save_ver`) gains the new keys empty; a damaged key (a number where a list belongs,
 ## a list with an odd length, a negative count) is replaced by its empty form instead of raising an error later, so the rest of
 ## the save is kept. Pure and static; it needs nothing but the two dictionaries.
 ## Versions: 1 (before this round, no key) -> 2: tally, chronicle, chronicle_keys, trail, pins, night_no, night_age,
@@ -13,12 +13,12 @@ const MAX_PINS := 24
 
 
 static func run(story: Dictionary, systems: Dictionary) -> void:
-	var v := int(story.get("_v", 1))
+	var v := int(story.get("save_ver", 1))
 	if v > VERSION:
 		return                       # a newer save: leave it alone
 	_story(story)
 	_stable(systems)
-	story["_v"] = VERSION
+	story["save_ver"] = VERSION
 
 
 static func _dict(d: Dictionary, k: String) -> Dictionary:
