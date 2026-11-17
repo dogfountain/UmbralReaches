@@ -53,6 +53,8 @@ var _stick_slider: HSlider
 var _stick_label: Label
 var _hint_line: Label
 var _erase_btn: Button
+var _reset_btn: Button
+var _hud_checks := {}                ## CheckButton -> the HudPrefs choice it shows ("unit_frames", ... or "track:quests"), for a reset
 var _bind_btns := {}                 ## "action|slot" -> Button
 var _bind_msg: Label
 var _listen := ""                   ## the "action|slot" waiting for a key
@@ -306,14 +308,17 @@ func _build_hud_look(p: VBoxContainer) -> void:
 		HudPrefs.unit_frames = v
 		HudPrefs.save())
 	uf.set_pressed_no_signal(HudPrefs.unit_frames)
+	_hud_checks[uf] = "unit_frames"
 	var ct := _check(p, "Combat Text", "The wounds a blow opens and a kill closes, at your shoulder", func(v: bool) -> void:
 		HudPrefs.combat_text = v
 		HudPrefs.save())
 	ct.set_pressed_no_signal(HudPrefs.combat_text)
+	_hud_checks[ct] = "combat_text"
 	var plates := _check(p, "Enemy Health Bars & Plates", "Off: only the foe you are locked on to shows its bar and frame. On: a health bar over every foe, and the target frame for any foe you strike.", func(v: bool) -> void:
 		HudPrefs.enemy_plates = v
 		HudPrefs.save())
 	plates.set_pressed_no_signal(HudPrefs.enemy_plates)
+	_hud_checks[plates] = "enemy_plates"
 	var trow := _row(p, "Text Scale", "The size of the objective, toasts, lessons and subtitles")
 	_tscale_slider = _slider(trow, 0.85, 1.5, 0.05)
 	_tscale_label = _value_label(trow)
@@ -335,6 +340,7 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.guide = v
 		HudPrefs.save())
 	gd.set_pressed_no_signal(HudPrefs.guide)
+	_hud_checks[gd] = "guide"
 	var row := _row(p, "Control Prompts", "The one-line hints that appear the first time a control matters (a ledge, a foe in range...), shown again")
 	var again := Button.new()
 	again.text = "Show Again"
@@ -352,6 +358,7 @@ func _build_hud(p: VBoxContainer) -> void:
 		var cb := _check(p, String(HudPrefs.TRACK_NAMES.get(k, k.capitalize())), "Shown on the minimap", func(v: bool) -> void:
 			HudPrefs.set_track(key, v))
 		cb.set_pressed_no_signal(bool(HudPrefs.track.get(k, true)))
+		_hud_checks[cb] = "track:" + k
 
 
 ## the bindings are editable. Click a button, press the new key / mouse button (or controller button for the
@@ -495,9 +502,22 @@ func _pad_text(actions: Array, fallback: String) -> String:
 	return "  ·  ".join(parts) if not parts.is_empty() else "-"
 
 
+const RESET_TEXT := "Reset to Defaults"
+const RESET_ASK := "Reset everything?"
+const ERASE_TEXT := "Erase Saved Progress"
+const ERASE_ASK := "Erase everything?"
+const QUIT_TEXT := "Quit Game"
+const QUIT_ASK := "Quit the game?"
+
+
 func _erase_lapse() -> void:
-	if is_instance_valid(_erase_btn) and _erase_btn.text.begins_with("Confirm"):
-		_erase_btn.text = "Erase Saved Progress"
+	if is_instance_valid(_erase_btn) and _erase_btn.text == ERASE_ASK:
+		_erase_btn.text = ERASE_TEXT
+
+
+func _reset_lapse() -> void:
+	if is_instance_valid(_reset_btn) and _reset_btn.text == RESET_ASK:
+		_reset_btn.text = RESET_TEXT
 
 
 ## The hint line follows the focused control (pad / keys); the mouse uses the tooltips.
@@ -517,16 +537,26 @@ func _footer() -> HBoxContainer:
 	var f := HBoxContainer.new()
 	f.add_theme_constant_override("separation", 14)
 	var reset := _foot_btn("Reset to Defaults", false)
-	reset.pressed.connect(func() -> void:
-		Settings.reset_defaults()
-		_refresh()
-		Events.toast.emit("Settings reset to defaults"))
+	_reset_btn = reset
+	reset.tooltip_text = "Puts back every setting on every page: display, graphics, audio, view, your keys and buttons, and the HUD choices. Saved progress is kept."
+	reset.pressed.connect(func() -> void:       # two-step like Erase: it wipes the keys and buttons you set
+		if reset.text == RESET_ASK:
+			Settings.reset_defaults()
+			HudPrefs.reset()
+			reset.text = RESET_TEXT
+			_listen = ""
+			_refresh()
+			_refresh_binds()
+			Events.toast.emit("Settings reset to defaults")
+		else:
+			reset.text = RESET_ASK
+			get_tree().create_timer(4.0, true).timeout.connect(_reset_lapse))
 	f.add_child(reset)
-	var erase := _foot_btn("Erase Saved Progress", false)
+	var erase := _foot_btn(ERASE_TEXT, false)
 	_erase_btn = erase
 	erase.tooltip_text = "Deletes the save and the Journal, and returns you to the title. Settings are kept."
 	erase.pressed.connect(func() -> void:           # two-step so a stray click cannot wipe a run
-		if erase.text.begins_with("Confirm"):
+		if erase.text == ERASE_ASK:
 			Travel.erase_save()
 			erase.text = "Erased"
 			erase.disabled = true
@@ -534,24 +564,24 @@ func _footer() -> HBoxContainer:
 			Events.toast.emit("Progress erased. Returning to the title.")
 			get_tree().create_timer(0.8, true).timeout.connect(Travel.to_title)
 		else:
-			erase.text = "Confirm: erase everything?"
+			erase.text = ERASE_ASK
 			# the confirm lapses by itself: a stray press later cannot finish what this one began
 			get_tree().create_timer(4.0, true).timeout.connect(_erase_lapse))   # a method: no lambda capture to outlive the button
 	f.add_child(erase)
 	erase.visible = not on_title
-	var quit_btn := _foot_btn("Quit Game", false)
+	var quit_btn := _foot_btn(QUIT_TEXT, false)
 	quit_btn.tooltip_text = "Saves and closes the game."
 	quit_btn.pressed.connect(func() -> void:
-		if quit_btn.text.begins_with("Really"):
+		if quit_btn.text == QUIT_ASK:
 			Settings.flush()
 			Travel.save_now()
 			Travel.leaving = true
 			get_tree().quit()
 		else:
-			quit_btn.text = "Really quit?"
+			quit_btn.text = QUIT_ASK
 			get_tree().create_timer(3.0, true).timeout.connect(func() -> void:
 				if is_instance_valid(quit_btn):
-					quit_btn.text = "Quit Game"))
+					quit_btn.text = QUIT_TEXT))
 	f.add_child(quit_btn)
 	var fill := Control.new()
 	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -695,7 +725,22 @@ func _custom() -> void:
 	_preset_option.select(m if m >= 0 else Settings.PRESET_NAMES.size())
 
 
+## The HUD checks follow HudPrefs (a reset changes them from here).
+func _refresh_hud_checks() -> void:
+	for cb: CheckButton in _hud_checks:
+		var what: String = _hud_checks[cb]
+		var on := true
+		match what:
+			"unit_frames": on = HudPrefs.unit_frames
+			"combat_text": on = HudPrefs.combat_text
+			"enemy_plates": on = HudPrefs.enemy_plates
+			"guide": on = HudPrefs.guide
+			_: on = bool(HudPrefs.track.get(what.trim_prefix("track:"), true))
+		cb.set_pressed_no_signal(on)
+
+
 func _refresh() -> void:
+	_refresh_hud_checks()
 	_refreshing = true
 	_fullscreen_btn.button_pressed = Settings.fullscreen
 	_res_option.select(Settings.window_size_index)
