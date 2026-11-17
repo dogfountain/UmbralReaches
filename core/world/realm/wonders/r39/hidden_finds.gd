@@ -37,7 +37,7 @@ func _run(root: Node) -> void:
 	var n := 0
 	var tries := 0
 	var paths: Array = RealmLayout.PATHS
-	while n < COUNT and tries < 700:
+	while n < COUNT and tries < 500:
 		tries += 1
 		var path: Dictionary = paths[rng.randi() % paths.size()]
 		var pts: Array = path.pts
@@ -79,7 +79,7 @@ func _spot(q: Vector2) -> bool:
 	if not RealmLayout.BOUNDS.grow(-16.0).has_point(q) or RealmLayout.path_dist(q) < 6.0:
 		return false
 	var sp := WK.span(q, Vector2(2.0, 2.0), 0.0)
-	return sp.x != INF and sp.y - sp.x < 1.1 and not WK.taken(q, Vector2(2.0, 2.0), 0.0, _ids, 3.0)
+	return sp.x != INF and sp.y - sp.x < 1.1 and not WK.site_hit(Rect2(q - Vector2(3.0, 3.0), Vector2(6.0, 6.0)), 1.0)
 
 
 func _g(q: Vector2) -> Vector3:

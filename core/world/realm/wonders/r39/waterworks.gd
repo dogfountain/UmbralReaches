@@ -46,7 +46,7 @@ func _run(root: Node) -> void:
 			for q: Vector2 in placed:
 				if q.distance_to(p) < 40.0:
 					near = true
-			if near or RealmLayout.path_dist(p) < 6.0 or WK.taken(p, Vector2(4.0, 4.0), 0.0, _ids, 3.0):
+			if near or RealmLayout.path_dist(p) < 6.0 or WK.site_hit(Rect2(p - Vector2(7.0, 7.0), Vector2(14.0, 14.0)), 2.0):
 				continue
 			placed.append(p)
 			_dock(root, docks, p, dirv, rng)
@@ -155,7 +155,7 @@ func _bridges(root: Node, rng: RandomNumberGenerator) -> int:
 			continue
 		var ea := m - n * 7.0
 		var eb := m + n * 7.0
-		if Land.in_water(ea.x, ea.y) or Land.in_water(eb.x, eb.y) or WK.taken(m, Vector2(8.0, 3.0), atan2(n.y, n.x), _ids, 4.0):
+		if Land.in_water(ea.x, ea.y) or Land.in_water(eb.x, eb.y) or WK.site_hit(Rect2(m - Vector2(10.0, 10.0), Vector2(20.0, 20.0)), 2.0):
 			continue
 		var k := WK.new()
 		k.setup(root, "River%d" % made, 6300 + made)
