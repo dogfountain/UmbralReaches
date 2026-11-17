@@ -81,7 +81,7 @@ static func build(parent: Node) -> void:
 	var gr_n := Rect2(-31.5, 5.5, 5.0, 4.5) if gw else Rect2(-27.5, 6.0, 5.0, 4.5)
 	L.garden(gr_n, 0)
 	L.site("hw_garden_n", gr_n, L.g(gr_n.get_center().x, gr_n.get_center().y))
-	# Tobin Reed's grave in the east garden's corner
+	# Ewan Reed's grave in the east garden's corner
 	var gq := Vector2(33.6, 48.0) if gw else Vector2(31.6, 47.6)
 	var tg: Vector3 = L.gv(gq.x, gq.y)
 	var face_pt: Vector3 = L.headstone(tg, face(gq, Vector2(25, 42)), 1, 0.85, Vector2(0.08, -0.05), "lore_tstone", true)

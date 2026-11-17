@@ -118,7 +118,7 @@ World-of-Warcraft proportions like the scale pilot (doors near 3 m, storeys near
   Sorrow. The net-hall, two fisher's houses and a long house with a net-loft under deep reed thatch with crossed
   ridge-poles, boardwalks and the decks' links, the landing (its bank raised clear of the water: a terrace) with the
   kept jetty lamps and the heron pole, the smokehouse, racks, punts, traps; the plank footbridge where reed_ford
-  crosses the river. People: Aud Corle (the lamp book; task *Boats Not Home*), Hobb Wade, Siany, Gorse (sells),
+  crosses the river. People: Aud Corle (the lamp book; task *Boats Not Home*), Hodge Wade, Siany, Gorse (sells),
   Ebba Sallow (who owes Ansel Tansy's sister a boat).
 - **Fallowmere** (the low fields): round the meeting of reed_ford, fallow_way and arches_way under the scarp. The
   Order's tithe barn (buttressed, a wagon porch, one bay stripped to its rafters), the farmhouse, two cottages, the
@@ -129,7 +129,7 @@ World-of-Warcraft proportions like the scale pilot (doors near 3 m, storeys near
   for bell_track; the inn (the Last Lamp), the lamp tower whose lantern burns all night, the stable, the watch house
   and its platform, the store, the pilgrims' shrine, the yard and its fire (moved off bell_track to (318.5, 55.5)).
   People: Mother Vell (sells), Old Isolde (task *Oil for the Last Lamp*), Serjeant Coyle (task *The Knocking at the
-  East Gate*), Fenn, Wat, Sister Maudlin.
+  East Gate*), Fenn, Burl, Sister Maudlin.
 
 Each town's buildings are merged into one mesh per material (a town is about a dozen draws) and fade at 230 m to one
 merged far silhouette; small things keep their own short ranges. Each town's people walk their own island of the
@@ -143,14 +143,14 @@ audit, every task and the dungeon hooks). `core/story/quest_chains_far_reaches_w
 - **West** (Reedholm's people): *Stand Down* (Aud Corle; the Order's last order, carried from the heron stones through the
   Lanternwood's ring to the fell shrine and the Sentry Who Was Never Relieved: read it, burn it or leave it sealed), *A Lamp for the
   Kings' Door* (Siany; the lamp book's first lamp, carried to the King's Barrow's open door), *Cold Light* (Ebba Sallow; Wick, the
-  Lamp-Grown, and caps for the punts), *The Fourth Stone* (Hobb Wade; the heron stones' verse, a small puzzle, the Heron-Wife),
+  Lamp-Grown, and caps for the punts), *The Fourth Stone* (Hodge Wade; the heron stones' verse, a small puzzle, the Heron-Wife),
   *Tansy's Boat* (found at the Last Milestone's toll-house).
 - **Deep South** (Fallowmere's people): *The Water Road* (Reeve Penn; the Fallow and Arches beacons, Spill, the water-keeper's page
   at the castellum), *The One I Didn't Make* (Dilly; the scarecrow nobody made and the Tithe-Taker), *The Witch's Price* (Hesper
   Lark; a door-nail driven into the Hollow-Witch's stone: a choice), *Cobb's Clapper* (Cobb Lark; the water-bell, held while it
   tolls).
 - **East** (Lastlight's people): *The Candle for the Ringers* (Sister Maudlin; the Bellfall's Cracked Tollman and the Drowned Nave's
-  west door), *The One at the Nave Fire* (Fenn; an escort home), *The Bell on the Bridle* (Wat; a timed carry to the Cairn Tower),
+  west door), *The One at the Nave Fire* (Fenn; an escort home), *The Bell on the Bridle* (Burl; a timed carry to the Cairn Tower),
   *The Last Lamp's Slate* (Mother Vell; the turned-back's tokens, the One Who Counted, a choice about the slate).
 Where a Reach's boss dungeon is built (the King's Barrow, the castellum or the witch's hollow, the Drowned Nave), a thread ends a step
 at its entrance and leaves a hook (`HOOKS` in each file: a `q:<task>:<step>` term true once the wanderer has been sent there, and

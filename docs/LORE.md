@@ -189,7 +189,7 @@ nothing cut below.
 ## Names list
 
 Edda the Kindler, Corvin, Hierarch Aurel, Abbot Osric, Wenna Ashby, Old Maud, Hobb (Maud's son, went
-up the Stair, came down hollow), Pell (nine winters, red hood), Tobin Reed, the Harrows, the Wrights, the Cobb brothers
+up the Stair, came down hollow), Pell (nine winters, red hood), Ewan Reed, the Harrows, the Wrights, the Cobb brothers
 (and old Cobb, who fired his own barn), Marta Vell, Brother Ansel, Brother Lisle (kept the Tally),
 Ida and Ruth. Hearthward (village system): Hild (Edda's granddaughter, the forge), Old Fennick
 (lamps), Oswin (pilgrim, the forty-first stone), Nan and Col Wright, Bet Reed, Wenna (after the
@@ -201,7 +201,7 @@ The doubled world's givers (r34, camped at outpost fires, `village_cast.gd` OUTP
 Lanternless Moor; the cairn-keeper, her mother carried a hidden lantern across), **Elspeth Fane** (the
 Founder's Pits; the Founder's journeywoman, poured Patience), **Linnet** (the Cinder Orchard; a Kindler's
 granddaughter, grafting the burned trees), **Sister Agathe** (the Waiting Field; a sister of the Order who
-keeps the pilgrims' roll by name), **Cadoc** (Corvin's Mere; rowed for Corvin, with **Aldous**, who went
+keeps the pilgrims' roll by name), **Cadoc** (Corvin's Mere; rowed for Corvin, with **Amos**, who went
 over and walks the banks as the Ferryman Without a Boat). Rares their bounties name: Old Rook, Brother
 Chisel, Gorse-Wife Hennet, Clapper, Old Pippin, the Last Pilgrim, the Ferryman Without a Boat.
 The raids' attunements (`quest_chains.gd` ATTUNE): the keeper's three ward-stones and a ward-coal laid at

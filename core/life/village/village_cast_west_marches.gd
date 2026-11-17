@@ -156,7 +156,7 @@ const CAST := {
 			],
 			"hearth": [{"go": "wf_br_e"}, {"act": "warm", "at": "wf_fire_w", "face": Vector2(-196.0, 74.0), "t": [20.0, 30.0]}, {"go": "wf_br_m"}],
 		}},
-	"wren": {"name": "Wren", "title": "Wren, the miller's girl", "when": "", "camp": "outpost",
+	"wren": {"name": "Sedge", "title": "Sedge, the miller's girl", "when": "", "camp": "outpost",
 		"rig": {"seed": 6606, "sex": "f", "age": "child", "garment": "dress", "apron": "linen", "hair": "braids", "r": "chalk",
 			"cloth": Color(0.42, 0.34, 0.26), "cloth2": Color(0.36, 0.3, 0.24), "hair_c": Color(0.46, 0.3, 0.14),
 			"skin": Color(0.86, 0.66, 0.5), "leather": Color(0.4, 0.25, 0.13)},

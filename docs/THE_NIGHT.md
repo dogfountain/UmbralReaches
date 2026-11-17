@@ -11462,7 +11462,7 @@ The ending line: A lamp burns in the half-sunk chapel, for the eyes, the mouth, 
 
 ### The Other Oar
 
-Giver Cadoc the ferryman, Cadoc the ferryman, on the mere's north bank. The journal files it under Corvin's Mere. It is offered when qd:mere_chapel. The giver's mark and the accept screen start it. Two of us rowed for Corvin. Me and Aldous. The night they took Corvin's hands, Aldous rowed out alone with the lamps and went over. He walks the banks now without his boat, waiting to be paid. I owe him the fare. Pay it for me.
+Giver Cadoc the ferryman, Cadoc the ferryman, on the mere's north bank. The journal files it under Corvin's Mere. It is offered when qd:mere_chapel. The giver's mark and the accept screen start it. Two of us rowed for Corvin. Me and Amos. The night they took Corvin's hands, Amos rowed out alone with the lamps and went over. He walks the banks now without his boat, waiting to be paid. I owe him the fare. Pay it for me.
 
 The hand-in pays 18 grave ash, 1 relic_fragment.
 

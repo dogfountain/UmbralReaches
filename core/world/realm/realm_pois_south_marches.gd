@@ -44,7 +44,7 @@ const POI_IDS := ["r37s_hut", "r37s_oak", "r37s_well", "r37s_gate_w", "r37s_gate
 ## id -> {title, line, region, half}
 const POIS := {
 	"r37s_hut": {"title": "The Shepherd's Fold", "line": "the flock walked north and did not come back", "region": "downs", "half": Vector2(9.0, 9.0)},
-	"r37s_oak": {"title": "The Grandmother Oak", "line": "the first fire was carried out of it", "region": "oak", "half": Vector2(11.0, 11.0)},
+	"r37s_oak": {"title": "The Grandmother Oak", "line": "the Rooted's first fire was carried out of it", "region": "oak", "half": Vector2(11.0, 11.0)},
 	"r37s_well": {"title": "The Descent", "line": "count the echoes, if you can", "region": "well", "half": Vector2(21.0, 21.0)},
 	"r37s_gate_w": {"title": "The West March Gate", "line": "the Order's wall, and the road through it", "region": "road", "half": Vector2(11.0, 6.0)},
 	"r37s_gate_e": {"title": "The East March Gate", "line": "the Order's wall, and the road through it", "region": "road", "half": Vector2(11.0, 6.0)},

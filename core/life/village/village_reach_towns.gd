@@ -4,12 +4,12 @@ extends RefCounted
 ## village_talk_db.gd CONV, village_shop.gd MERCHANTS / GOODS). Each town is its own island of the walking network;
 ## the boards over Reedholm's meres are decks the network walks on (reach_towns.gd decks()). They are camped out (they
 ## do not run for Hearthward's Keg; Lastlight has its own walls and watch). Voices stay babble (NPC voices).
-##   Reedholm    Aud Corle (the reed-wife, who keeps the lamp book), Hobb Wade (eels), Siany (the jetty's lamps),
+##   Reedholm    Aud Corle (the reed-wife, who keeps the lamp book), Hodge Wade (eels), Siany (the jetty's lamps),
 ##               Gorse (the smokehouse; sells), Ebba Sallow (boats; owes a pilgrim's sister one)
 ##   Fallowmere  Reeve Aldous Penn (the tithe barn), Hesper Lark (the farm), Cobb Lark (the fields), Dilly (the
 ##               scarecrows), Brother Wystan (the strips, and the dead in them)
 ##   Lastlight   Mother Vell (the Last Lamp inn; sells), Old Isolde (the lamp tower), Serjeant Coyle (the east watch),
-##               Fenn (the road gate), Wat (the stable), Sister Maudlin (who kneels at the shut gate)
+##               Fenn (the road gate), Burl (the stable), Sister Maudlin (who kneels at the shut gate)
 ## House style (docs/LORE.md): terse, concrete, dark. Load by path.
 
 ## xz of every walk node (world metres): on the ground, or on a deck where reach_towns.gd laid one.
@@ -92,7 +92,7 @@ const CAST_SRC := {
 			"book": [{"hide": "rh_hall_door", "t": [24.0, 36.0]}, {"act": "read", "at": "rh_hall_front", "face": Vector2(-302.0, 274.0), "t": [8.0, 12.0]}],
 			"watch": [{"go": "rh_hall_walk"}, {"act": "watch", "at": "rh_hall_walk", "face": Vector2(-322.0, 302.0), "t": [10.0, 14.0]}, {"go": "rh_hall_front"}],
 		}},
-	"hobb": {"name": "Hobb", "title": "Hobb Wade, the eel-man", "rig": [7602, "m", "adult", {"garment": "coat", "hat": "cap", "beard": "short", "r": "pole",
+	"hobb": {"name": "Hodge", "title": "Hodge Wade, the eel-man", "rig": [7602, "m", "adult", {"garment": "coat", "hat": "cap", "beard": "short", "r": "pole",
 			"girth": 1.12, "cloth": Color(0.3, 0.3, 0.26), "cloth2": Color(0.26, 0.24, 0.2), "hair_c": Color(0.24, 0.16, 0.1)}],
 		"home": "rh_long_door", "speed": 0.95,
 		"schedule": {"dusk": "traps", "work": "traps", "midnight": "home", "late": "traps"},
@@ -227,7 +227,7 @@ const CAST_SRC := {
 			"round": [{"go": "ll_store"}, {"act": "look_up", "at": "ll_wall_n", "face": Vector2(318.0, 20.0), "t": [5.0, 8.0]},
 				{"act": "warm", "at": "ll_fire", "face": Vector2(318.5, 55.5), "t": [10.0, 14.0]}, {"go": "ll_road_gate"}],
 		}},
-	"wat": {"name": "Wat", "title": "Wat, the ostler", "rig": [7805, "m", "adult", {"garment": "shirt", "apron": "leather", "hat": "cap", "beard": "short", "r": "crook",
+	"wat": {"name": "Burl", "title": "Burl, the ostler", "rig": [7805, "m", "adult", {"garment": "shirt", "apron": "leather", "hat": "cap", "beard": "short", "r": "crook",
 			"girth": 1.06, "cloth": Color(0.38, 0.32, 0.24), "cloth2": Color(0.3, 0.26, 0.2), "hair_c": Color(0.2, 0.13, 0.08), "skin": Color(0.7, 0.5, 0.36)}],
 		"home": "ll_stable", "speed": 0.95,
 		"schedule": {"dusk": "stable", "work": "stable", "midnight": "stable", "late": "stable"},
@@ -283,7 +283,10 @@ const CONV := {
 			["qat:rh_lamps:3", "The stones, then. Go by the east reeds, not the channel. Don't look at the herons when you take it. They look back."],
 			["qat:rh_lamps:1|qat:rh_lamps:2", "Their wakes go out of the landing and end at the lowest stone. Follow them, and read what the stones kept. Tam's lamp is among them, and so is the line I did not write."],
 			["qat:rh_lamps:4", "Siany will hang it. She knows what a lamp is for. Tell her whether he's home. It is yours to say, and then I write it."],
-			["qd:wr_stand_down", "The courier's line is closed. Delivered, or as near as makes no difference. I don't ask what became of the order. I only ask that the Greyfell stays kept."],
+			["qp:wr_stand_down:read,qd:wr_stand_down", "The courier's line is closed. Delivered, you read it twice, and I wrote it twice. Nobody walked east. They stood, and they are still standing. I only ask that the Greyfell stays kept."],
+			["qp:wr_stand_down:burned,qd:wr_stand_down", "The courier's line says not home, and not blamed, in my own hand. I don't ask what was in the order. Nobody walked east on it. I only ask that the Greyfell stays kept."],
+			["qp:wr_stand_down:sealed,qd:wr_stand_down", "The order lies sealed on the fell shrine, for whoever stands the next watch. I don't ask what is in it. I only ask that the Greyfell stays kept."],
+			["qd:wr_stand_down", "The courier's line is closed. Delivered, or as near as makes no difference. I only ask that the Greyfell stays kept."],
 			["q:wr_stand_down", "North by the barrow road, then the Lanternwood's ring, then the shrine under the keep. The slip says the ring, not the wood's edge. The edge is hunted."],
 			["", "Eels, pike, reed for the roofs. We'd want for nothing, if wanting was all it took."],
 		], "choices": [
@@ -294,9 +297,9 @@ const CONV := {
 		"lamps": {"say": "So the boats can find the jetty. And so the jetty can see what comes in on the boats. One came in the winter of the Night with nobody rowing it. It had a lamp. Lit. We took it in. You don't leave a lit lamp on the water.", "next": "hub"},
 		"herons": {"say": "Seven stones in the south mere, a bird cut on each one. Old as the river. When a heron's gone off its stone in the morning, a boat's gone with it. My three went the night the fourth stone was bare.", "next": "hub"},
 	}},
-	"hobb": {"name": "Hobb Wade", "start": [["!met:hobb", "meet"], ["", "hub"]], "nodes": {
+	"hobb": {"name": "Hodge Wade", "start": [["!met:hobb", "meet"], ["", "hub"]], "nodes": {
 		"meet": {"say": "Mind the traps. They bite worse than what's in them.", "next": "meet2"},
-		"meet2": {"say": "Hobb. Eels. That's the whole of me, near enough. My brother Tam was the clever one. He's in the book now, under the line for boats not home.", "do": "met:hobb", "next": "hub"},
+		"meet2": {"say": "Hodge. Eels. That's the whole of me, near enough. My brother Tam was the clever one. He's in the book now, under the line for boats not home.", "do": "met:hobb", "next": "hub"},
 		"hub": {"say_if": [
 			["qp:rh_lamps:home,qd:rh_lamps", "Siany lit it at the jetty. Home, Aud wrote. I stood on the landing and watched it burn and did not row out, for the first time since. That is what home is, I think."],
 			["qp:rh_lamps:lost,qd:rh_lamps", "Lost, Aud wrote. It hangs dark on the jetty. Good. A man should have his lamp, and a lamp that isn't lit can't be mistaken for him."],
@@ -323,9 +326,9 @@ const CONV := {
 		"meet": {"say": "Don't stand between me and the jetty. I count them lit and I count them out, and you're making me lose my place.", "next": "meet2"},
 		"meet2": {"say": "Siany. The lamps are mine since my mam's knees went. Thirty. I could light them blind. Some nights I nearly have to.", "do": "met:siany", "next": "hub"},
 		"hub": {"say_if": [
-			["qp:rh_lamps:home,qd:rh_lamps,!qd:wr_kings_lamp", "Thirty-one at the jetty, and Tam's the last, burning. I light it first. Don't tell Hobb. He knows."],
+			["qp:rh_lamps:home,qd:rh_lamps,!qd:wr_kings_lamp", "Thirty-one at the jetty, and Tam's the last, burning. I light it first. Don't tell Hodge. He knows."],
 			["qp:rh_lamps:lost,qd:rh_lamps,!qd:wr_kings_lamp", "Thirty lit and Tam's hung dark beside them. It's the only one I never trim. Somebody should. It's not mine to."],
-			["qd:wr_kings_lamp", "The thirty-first burns at the jetty's end. I light it first. I don't know who I'm lighting it for. I think that is the whole point of it."],
+			["qd:wr_kings_lamp", "The king's lamp burns apart from the others, unnumbered. I light it first. I don't know who I'm lighting it for. I think that is the whole point of it."],
 			["q:wr_kings_lamp", "Up the barrow road, and don't stop to look at the stones. A lamp doesn't care what you found. It only cares how long you took."],
 			["", "If one goes out, you go and light it. You don't wait for morning. Morning's when you find out why you should have."],
 		], "choices": [
@@ -336,7 +339,7 @@ const CONV := {
 	}},
 	"gorse": {"name": "Gorse", "start": [["!met:gorse", "meet"], ["", "hub"]], "nodes": {
 		"meet": {"say": "You smell that? That's oak and eel and forty years. Breathe it. It's the only thing here that's warm all night.", "next": "meet2"},
-		"meet2": {"say": "Gorse. I smoke what Hobb brings and trade it to the carters for what they bring. Ash buys the same as bread, these days. I take ash.", "do": "met:gorse", "next": "hub"},
+		"meet2": {"say": "Gorse. I smoke what Hodge brings and trade it to the carters for what they bring. Ash buys the same as bread, these days. I take ash.", "do": "met:gorse", "next": "hub"},
 		"hub": {"say_if": [
 			["", "The mere gives up odd things in the nets. I keep the ones that don't move."],
 		], "choices": [
@@ -512,9 +515,9 @@ const CONV := {
 			{"text": "Goodbye.", "to": ""},
 		]},
 	}},
-	"wat": {"name": "Wat", "start": [["!met:wat", "meet"], ["", "hub"]], "nodes": {
+	"wat": {"name": "Burl", "start": [["!met:wat", "meet"], ["", "hub"]], "nodes": {
 		"meet": {"say": "Easy. Not you. Her. She doesn't like strangers and she likes the dark less.", "next": "meet2"},
-		"meet2": {"say": "Wat. Six stalls, two horses, one of them lame. Pilgrims used to leave their beasts here before the climb. I've the bridles of forty that never came back for them.", "do": "met:wat", "next": "hub"},
+		"meet2": {"say": "Burl. Six stalls, two horses, one of them lame. Pilgrims used to leave their beasts here before the climb. I've the bridles of forty that never came back for them.", "do": "met:wat", "next": "hub"},
 		"hub": {"say_if": [
 			["qd:er_halter_bell", "She's in the stall again. She hasn't gone to the door once. I thought I would be glad. I'm not sure I am."],
 			["q:er_halter_bell", "South by the nave road and the cairn road, to the tower's foot. A horse would do it in a quarter of the time. Mine is lame. Hers won't leave the stall."],

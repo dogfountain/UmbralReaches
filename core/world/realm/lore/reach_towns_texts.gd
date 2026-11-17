@@ -30,7 +30,7 @@ const TEXTS := {
 	"town_ll_shrine": {"region": "lastlight", "kind": "tablet", "title": "The pilgrims' shrine",
 		"text": "A niche by the shut gate, black with three hundred years of candle smoke. Scratched in the sill, over and over, in many hands: FOR THE CLIMB. Newer, along the top, in one hand only: FOR THE ONES WHO COME DOWN."},
 	"town_ll_bridles": {"region": "lastlight", "kind": "page", "title": "A tag on a bridle",
-		"text": "One of forty hung along the stable's back wall, each with a wooden tag. This one: GREY MARE, LAME OFF HIND. OWNER GONE UP. FEED HER TILL I'M BACK. Wat has fed her eleven winters. She is not the same mare."},
+		"text": "One of forty hung along the stable's back wall, each with a wooden tag. This one: GREY MARE, LAME OFF HIND. OWNER GONE UP. FEED HER TILL I'M BACK. Burl has fed her eleven winters. She is not the same mare."},
 	"town_ll_orders": {"region": "lastlight", "kind": "notice", "title": "Standing orders of the east watch",
 		"text": "1. The gate stays barred. 2. If it knocks, the gate stays barred. 3. If it knows your name, the gate stays barred. 4. Wake the serjeant. 5. The gate stays barred. Signed, Coyle, and under it, in an older hand, Coyle."},
 }

@@ -22,7 +22,7 @@ const STAR_LAMP := {"name": "What the Surveyor Left", "giver": "marl", "where": 
 	],
 	"reward": {"ash": 26, "items": {"relic_fragment": 1}},
 	"choose": [{"slot": "focus", "rarity": 2}, {"slot": "lantern", "rarity": 2}, {"slot": "vestment", "rarity": 2}],
-	"outcome": {"": "Marl read the slate by the fire and then held it a while without reading. \"It's not a wound,\" he said. \"I told them it was not a wound.\" He put it on the shelf above the salt, where the good things go."}}
+	"outcome": {"": "Marl read the slate by the fire and then held it a while without reading. \"It's not a wound,\" she said. \"I told them it was not a wound.\" She put it on the shelf above the salt, where the good things go."}}
 
 const STAR_BOOK := {"quest": "star_lamp", "step": 1, "near": Vector2(176.0, 153.0), "kind": "book", "name": "the surveyors' stake-book", "verb": "Take",
 	"say": "A leather book, fused half into the glass and warm as a hand. Stakes, depths, a column of dates that stops at the first turning. The last page is only one word, over and over: UP."}

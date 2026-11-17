@@ -6,7 +6,7 @@ extends RefCounted
 ##   long_round    The Long Round       Fennick: kindle the road-lanterns either side of the West Gate and beyond the East Gate,
 ##                                      and bring back the lantern he shut the gate on (across the whole Realm; a horse's errand)
 ##   bryn_iron     Iron for the Hundred and Two   Bryn Gale: the war-band's tags carried hot to their grave in the Siege Lines, and Captain Varr
-##   wren_gran     Gran Ide's Lantern   Wren: walk her gran down siege_track to the palisade gate, kindle its post, keep the lamp
+##   wren_gran     Gran Ide's Lantern   Sedge: walk her gran down siege_track to the palisade gate, kindle its post, keep the lamp
 ## `found_at` tasks start when the wanderer comes within `found_r` (quest_world.gd). House style: terse, concrete, dark.
 
 const QUESTS := {
@@ -43,8 +43,8 @@ const QUESTS := {
 		"choose": [{"slot": "lantern", "rarity": 2}, {"slot": "vestment", "rarity": 2}, {"slot": "girdle", "rarity": 2}],
 		"alt": {"lit": {4: "Tell Fennick you lit the East Gate's lantern where it fell"}, "stood": {4: "Tell Fennick the East Gate's lantern is standing, waiting for him"}},
 		"leaves": {"lit": {"at": Vector2(178.0, 69.5), "prop": "lantern_lit"}, "stood": {"at": Vector2(178.0, 69.5), "prop": "lantern"}},
-		"outcome": {"lit": "Fennick turned the tag over, and over again. \"I shut it,\" he said. \"On the Warden's word. And lit the road in the dark for them I'd shut out, so that it would look like I hadn't.\" He walked the round that night as far as the Wall, and stood a long while at the gate, in the light you had left him, and went through.",
-			"stood": "Fennick turned the tag over, and over again. \"I shut it,\" he said. \"On the Warden's word. And you stood it up and left the wick for me.\" He walked the round that night as far as the Wall, and lit the East Gate's lantern himself, with his own hand, and went through."}},
+		"outcome": {"lit": "Fennick turned the tag over, and over again. \"I shut it,\" he said. \"On the Hierarch's word. And lit the road in the dark for them I'd shut out, so that it would look like I hadn't.\" He walked the round that night as far as the Wall, and stood a long while at the gate, in the light you had left him, and went through.",
+			"stood": "Fennick turned the tag over, and over again. \"I shut it,\" he said. \"On the Hierarch's word. And you stood it up and left the wick for me.\" He walked the round that night as far as the Wall, and lit the East Gate's lantern himself, with his own hand, and went through."}},
 	"bryn_iron": {"name": "Iron for the Hundred and Two", "giver": "bryn", "zone": "weirford", "offer": true, "avail": "kindled:1",
 		"where": "Bryn Gale, at the Weirford forge",
 		"text": "Bryn did the Lines' iron once, and has never said what for. It was tags: a hundred and two, stamped with a name each, forged before the war-band marched so that nobody would lie in the Lines unnamed. They never went. The tags have hung on the smithy wall nine winters. They want to be at the war-band's grave while the iron still rings.",
@@ -63,8 +63,8 @@ const QUESTS := {
 		"stands": {"at": Vector2(-176.0, 148.0), "kind": "slabs"},
 		"outcome": {"": "Bryn counted what you brought back, one tag, and put it on the anvil. B. GALE. Not for a grave: for a muster. \"I made my own,\" he said. \"I forged it with the rest, and I did not go. I have been waiting nine winters for somebody to ask why.\" He hung it on the hook by the door, where it could be seen."}},
 	"wren_gran": {"name": "Gran Ide's Lantern", "giver": "wren", "zone": "weirford", "offer": true, "avail": "kindled:1",
-		"where": "Wren, at the well in Weirford",
-		"text": "Wren's gran sits on the bridge facing south every night and will not say why. She cooked for the Lines before the war-band went in. Wren is not allowed past the second stone and so cannot walk her; Wren says she can. Walk her gran to the palisade gate, give her a lamp to leave there, and bring her back.",
+		"where": "Sedge, at the well in Weirford",
+		"text": "Sedge's gran sits on the bridge facing south every night and will not say why. She cooked for the Lines before the war-band went in. Sedge is not allowed past the second stone and so cannot walk her; Sedge says she can. Walk her gran to the palisade gate, give her a lamp to leave there, and bring her back.",
 		"steps": [
 			{"kind": "escort", "at": Vector2(-206.0, 110.0), "label": "Gran Ide", "hp": 22.0,
 				"path": [Vector2(-218.0, 66.0), Vector2(-215.0, 84.0), Vector2(-208.0, 99.0), Vector2(-206.0, 110.0)],
@@ -77,12 +77,12 @@ const QUESTS := {
 					{"at": 26.0, "kinds": ["husk", "wretch"], "n": 3, "say": "More, in a line, as they were drilled."}],
 				"lost": "The lamp is knocked from its post. Gran sets it up again, and her mouth is a line.", "held": "Gran Ide hums one low note, and the note from the hill goes flat under it, as if sung down a half-tone by a friend.",
 				"text": "Stand with Gran at the gate while she says her piece; keep the lamp lit ({t} s)"},
-			{"kind": "turnin", "who": "wren", "text": "Tell Wren her gran said her piece"},
+			{"kind": "turnin", "who": "wren", "text": "Tell Sedge her gran said her piece"},
 		],
 		"reward": {"ash": 26, "items": {"relic_fragment": 1}},
 		"choose": [{"slot": "lantern", "rarity": 2}, {"slot": "vestment", "rarity": 2}],
 		"stands": {"at": Vector2(-206.0, 112.0), "kind": "ward"},
-		"outcome": {"": "Gran Ide sat on the bridge until morning. She had cooked for the Lines, and the last order at the gate was to light it, and she had gone in instead. Wren says she knew all along. Osk says that is not how it works. Wren says that is how it works."}},
+		"outcome": {"": "Gran Ide sat on the bridge until morning. She had cooked for the Lines, and the last order at the gate was to light it, and she had gone in instead. Sedge says she knew all along. Osk says that is not how it works. Sedge says that is how it works."}},
 }
 
 const PICKUPS := {
@@ -91,7 +91,7 @@ const PICKUPS := {
 	"drover_fold": {"quest": "drover_tally", "step": 1, "near": Vector2(104.0, 219.0), "kind": "cairn", "name": "the fold's gate-cairn", "verb": "Look at",
 		"say": "The gate-cairn is stacked as a shepherd stacks it to say shut, and it is shut. Behind it the chalk is laid in rows of forty-one small mounds, bone and wool, and not one is out of its row. Nothing has been taken. Somewhere on the downs a low sound begins, which is a dog being told to stay."},
 	"gate_lantern": {"quest": "long_round", "step": 3, "near": Vector2(178.0, 71.0), "kind": "lantern", "name": "the East Gate's lantern", "verb": "Look at", "conv": "qb_long_round",
-		"say": "A shut-lantern fallen from the outer post and left lying, the horn pane clouded with nine winters. A tag is wired to the bail in a hand you have seen on Hearthward's poles: SHUT AT DUSK ON THE WARDEN'S WORD. F. The wick has been trimmed, in the dark, by someone who could not make himself light it."},
+		"say": "A shut-lantern fallen from the outer post and left lying, the horn pane clouded with nine winters. A tag is wired to the bail in a hand you have seen on Hearthward's poles: SHUT AT DUSK ON THE HIERARCH'S WORD. F. The wick has been trimmed, in the dark, by someone who could not make himself light it."},
 	"bryn_tags": {"quest": "bryn_iron", "step": 0, "near": Vector2(-174.0, 70.4), "kind": "mark", "name": "the box of iron tags", "verb": "Take",
 		"say": "A box of black iron tags on a ring, still hot from the quench, each one stamped with a name. They ring faintly against one another as you lift them, like a very small bell. Bryn does not look at the box."},
 	"bryn_grave": {"quest": "bryn_iron", "step": 2, "near": Vector2(-176.0, 147.0), "kind": "place", "name": "the war-band's grave", "verb": "Set the tags on",

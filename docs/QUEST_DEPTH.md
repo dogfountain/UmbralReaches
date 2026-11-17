@@ -61,7 +61,7 @@ Verbs: **C** clues, **T** tracks, **L** lantern_walk, **O** order, **V** vigil.
 | wf_crown | tolliver | the rubbings become C; judge the boy who held the note | silence the Crown / let the note end -> plinth_lamp |
 | **C: the Far Reaches** | | | |
 | rh_lamps | corle | T wake-marks to each missing boat; C its lamp-book line | write "home" or "lost" -> wr_stand_down hub |
-| wr_fourth_stone | hobb | the puzzle becomes O; V wait for the fourth bird | the oar for Tam / for Hobb -> Hobb's line |
+| wr_fourth_stone | hobb | the puzzle becomes O; V wait for the fourth bird | the oar for Tam / for Hodge -> Hodge's line |
 | fm_tithe | penn | C three tally sticks accuse, the last one Penn himself | read the roll in full / strike his own line -> Penn's water_road line, the reeve's coat in ds_unmade |
 | ds_unmade | dilly | C coat seams, a chalk face that is Dilly's; T chalk lines down the strips | turn him to the road / burn the coat -> Penn's reply |
 | ds_witchs_price | hesper | T burners' marks through the Southwood; C three older nails | bread / strips / nothing -> the price shows later (a stands prop) |
@@ -105,8 +105,8 @@ Verbs: **C** clues, **T** tracks, **L** lantern_walk, **O** order, **V** vigil.
 
 Before the writers: the r34 countries' quests move out of quest_chains.gd into quest_chains_countries.gd, the
 countries' CONV block into village_talk_countries.gd, and quest_chains_deepen_a/b/c.gd are registered in the
-merges. Cross-stream reactions read `qd:` / `qp:` only. Name collisions: Wren (Teasel's sister / the Weirford giver),
-Aldous (Cadoc's ferryman / Reeve Aldous Penn).
+merges. Cross-stream reactions read `qd:` / `qp:` only. Name collisions: Wren (Teasel's sister; the Weirford giver is Sedge),
+Amos (Cadoc's ferryman; Reeve Aldous Penn keeps Aldous).
 
 | WS | Owns | Quests | Signatures |
 |---|---|---|---|

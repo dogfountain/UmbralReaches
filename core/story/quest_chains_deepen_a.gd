@@ -174,16 +174,17 @@ const THREE_KNOCKS := {"name": "Three Knocks", "giver": "nan", "where": "Nan Wri
 		{"kind": "find", "text": "Answer the door, or don't"},
 		{"kind": "turnin", "who": "nan", "text": "Tell Nan what you did at Maud's door"},
 	],
-	"alt": {"open": {3: "Tell Nan the door is open"}, "shut": {3: "Tell Nan the bar stayed down"}, "answer": {3: "Tell Nan you answered in Maud's voice"}},
+	"alt": {"open": {3: "Tell Nan the door is open"}, "shut": {3: "Tell Nan the bar stayed down"}, "answer": {3: "Tell Nan you answered in Maud's voice"}, "gone": {3: "Tell Nan nothing knocked"}},
 	"reward": {"ash": 14, "items": {"ember_shard": 1}},
 	"choose": [{"slot": "lantern", "rarity": 1}, {"slot": "vestment", "rarity": 1}],
 	"leaves": {"open": {"at": Vector2(-12.4, 41.4), "prop": "slabs"}, "shut": {"at": Vector2(-12.4, 41.4), "prop": "lantern"}, "answer": {"at": Vector2(-12.4, 41.4), "prop": "lantern_lit"}},
-	"outcome": {"open": "Maud lifted the bar. Hobb came in and lay down by her fire like a cold dog, and she covered him, and nobody at the Keg has asked since.",
+	"outcome": {"open": "Maud lifted the bar. Hobb came in and sat down by her fire like a cold dog, coat over his face, and she covered his shoulders, and nobody at the Keg has asked since. He will lie down when the door is shut.",
+		"gone": "Nan chalked the step in the morning and nothing rubbed it out. \"It stopped,\" she said. \"Somebody stopped it. Maud sat up all night anyway.\"",
 		"shut": "The bar stayed down. The knocking stops at dawn and comes back at dusk. Maud says the candle is for him, and the bar is for what he is.",
 		"answer": "Maud's voice went through the door and the knocking stopped halfway into the third. Something on the step said her name, wrongly, and then rightly, and went away down the east road."}}
 
 const FORTY_DAYS := {"name": "Forty Days Late", "giver": "wyck", "where": "Wyck, at his fire in the Thornwood", "zone": "thornwood",
-	"offer": true, "avail": "qd:smoke_oaks",
+	"offer": true, "avail": "met:wyck",
 	"text": "They came late. Forty days after the Night, the Ninth Company, pilgrims with their staves and their tokens, walking the rim to a Stair that wasn't there. They camped in my wood. I took them bread. Mother Seren drew a ring and they stood in it and burned their tokens, so as not to go hollow. I buried the one who didn't wake. Go and see what's left. They notched a stake for every day they were late; follow the stakes. Don't touch what's burned. There was one I did not see burn.",
 	"steps": [
 		{"kind": "tracks", "r": 12.0, "label": "The Ninth Company's stakes",

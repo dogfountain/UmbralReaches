@@ -114,7 +114,7 @@ const FIELD_ROUND := {"name": "The Sexton's Round", "giver": "agathe", "where": 
 	"outcome": {"": "Agathe said the count at the gate, and you said it back, and for the first time in years there was a voice from the last stone that said it with you."}}
 
 const MERE_FERRY := {"name": "The Last Crossing", "giver": "cadoc", "where": "Cadoc the ferryman, on the mere's north bank", "zone": "mere",
-	"offer": true, "avail": "qd:mere_lamps",
+	"offer": true, "avail": "qd:mere_lamps,qd:well_answer",
 	"text": "The ferry ran lit, always: a lamp at the bow going over, another at the stern coming back, so the water knew the boat was full. I can't row it, and I won't do it half. Take my lamp to the east landing. Somebody waits there, with another. Walk them back to me along the shore, lit, and don't let the mere have either. The mere has been waiting for a full boat nine winters.",
 	"steps": [
 		{"kind": "find", "at": Vector2(110.0, 99.0), "text": "Take the ferry-lamp from Cadoc's bow-post"},

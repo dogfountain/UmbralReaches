@@ -14,7 +14,7 @@ extends RefCounted
 
 const WR_RELIEF := {"name": "Relief", "giver": "corle", "zone": "westreach", "offer": true, "avail": "qd:wr_stand_down",
 	"where": "Aud Corle, on the net-hall's gallery in Reedholm",
-	"text": "The Sentry Who Was Never Relieved is down, and Aud will not write the courier's line closed. A watch ends when it is relieved, she says, not when the man on it is put to the sword, and nobody has relieved him. She wants the Signal Cairn on the fell kept the way the Order kept it, a night through, by somebody who is not a ghost, and what is said to the cairn at dawn is said by the one who kept it. She will write his name, if you can find it. The last page of her book is to be left blank on purpose.",
+	"text": "The Sentry Who Was Never Relieved is down, and Aud will not write the courier's line closed. A watch ends when it is relieved, she says, not when the man on it is put to the sword, and nobody has relieved him. She wants the Signal Cairn on the fell kept the way the Order kept it, a night through, by somebody who is not a ghost, and what is said to the cairn at dawn is said by the one who kept it. She will write his name, if you can find it.",
 	"steps": [
 		{"kind": "visit", "at": Vector2(-298.0, -72.0), "r": 12.0, "label": "The Signal Cairn", "text": "Climb the Greyfell to the Signal Cairn, by the fell track's head under the Broken Keep"},
 		{"kind": "clues", "at": Vector2(-298.0, -72.0), "r": 10.0, "need": 2, "label": "The Sentry's post",
@@ -38,7 +38,7 @@ const WR_RELIEF := {"name": "Relief", "giver": "corle", "zone": "westreach", "of
 	"choose": [{"set": "tally", "slot": "focus", "rarity": 2}, {"set": "tally", "slot": "vestment", "rarity": 2}, {"set": "tally", "slot": "girdle", "rarity": 2}],
 	"leaves": {"salute": {"at": Vector2(-296.5, -72.0), "prop": "lantern"}, "keep": {"at": Vector2(-296.5, -72.0), "prop": "lantern_lit"}},
 	"outcome": {
-		"salute": "You said it at dawn to the cairn: the watch is ended. The wind dropped as it does for any order. Aud made you say it twice at her gallery rail. She wrote a name in the book's last pages, the way she writes a boat home, and shut the book on it. 'He sat down,' she said. 'Somebody ought to have said so nine winters ago.' The cold lantern stands at the cairn's foot, set down where he left his.",
+		"salute": "You said it at dawn to the cairn, in your own words, whatever the order had said or had not: the watch is ended. The wind dropped as it does for any order. Aud made you say it twice at her gallery rail. She wrote a name in the book's last pages, the way she writes a boat home, and shut the book on it. 'He sat down,' she said. 'Somebody ought to have said so nine winters ago.' The cold lantern stands at the cairn's foot, set down where he left his.",
 		"keep": "You did not say it at dawn. You stood the watch on, and the cairn keeps a small light now that the fell can see from the keep. Aud did not like it, and wrote it down: kept, by another. 'It is not an ending,' she said. 'It is a relief. Somebody will have to come and relieve you, in turn.' She did not close the book. The last page is blank on purpose, and she has begun to trim a pen for it.",
 		"": "Aud wrote one line in the lamp book, and shut it."}}
 

@@ -148,7 +148,7 @@ const REGIONS := [
 		"lore": "Sheep country once. The shepherds' huts still stand; the shepherds walked north and did not come back."},
 	{"id": "oak", "name": "The Grandmother Oak", "c": Vector2(-70, 206), "r": 30.0, "biome": "oldforest", "tier": 2,
 		"purpose": "a colossal hollow dead oak: a stair inside the trunk, walks along the great limbs, a secret at the top",
-		"lore": "Older than the Order, older than the henge. The Rooted say the first fire was carried out of it."},
+		"lore": "Older than the Order, older than the henge. The Rooted say their first fire was carried out of it."},
 	{"id": "well", "name": "The Well of Echoes", "c": Vector2(72, 204), "r": 30.0, "biome": "crag", "tier": 2,
 		"purpose": "an open sinkhole about 40 m across and 24 m deep, a waterfall into it, a ledge path down to a pool and a cave",
 		"lore": "Drop a stone and count. Nobody has ever counted to the end of the echoes."},

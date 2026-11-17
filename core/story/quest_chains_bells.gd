@@ -11,7 +11,7 @@ extends RefCounted
 const QUESTS := {
 	"bell_spire": {"name": "The Shut-Out Bell", "giver": "ardel", "where": "Ardel Wick, at Saltmarket's fire", "zone": "stillwater",
 		"offer": true, "avail": "qd:spire_coal,q:founders_peal",
-		"text": "Brannoc will have told you seven. Seven is what the Order let her hang. She cast an eighth for the country they shut out, the Marches past the Lines, where nobody was to be called home. It stands at the Spire's foot, and the Spire's lamp was how the road found it. The lamp is lit. The man the Order left to keep that bell quiet is still keeping it. Nine winters. Go and ask him how.",
+		"text": "Seven is what the Order let her hang. She cast an eighth for the country they shut out, the Marches past the Lines, where nobody was to be called home. It stands at the Spire's foot, and the Spire's lamp was how the road found it. The lamp is lit. The man the Order left to keep that bell quiet is still keeping it. Nine winters. Go and ask him how.",
 		"steps": [
 			{"kind": "slay", "of": 1, "rares": ["lamp_shutter"], "at": Vector2(242.0, 13.5), "label": "The Shutter",
 				"text": "Put down the Shutter, who keeps the bell at the Spire's foot"},

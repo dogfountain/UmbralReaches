@@ -19,8 +19,8 @@ const ZONES := [["reedholm", "Reedholm"], ["fallowmere", "Fallowmere"], ["lastli
 const ORDER := ["rh_lamps", "fm_tithe", "ll_gate", "ll_oil"]
 
 const GIVER_NAMES := {"corle": "Aud Corle", "penn": "Reeve Penn", "coyle": "Serjeant Coyle", "isolde": "Old Isolde",
-	"hobb": "Hobb Wade", "siany": "Siany", "gorse": "Gorse", "ebba": "Ebba Sallow", "hesper": "Hesper Lark", "cobb": "Cobb Lark",
-	"dilly": "Dilly", "wystan": "Brother Wystan", "vell": "Mother Vell", "fenn": "Fenn", "wat": "Wat", "maudlin": "Sister Maudlin"}
+	"hobb": "Hodge Wade", "siany": "Siany", "gorse": "Gorse", "ebba": "Ebba Sallow", "hesper": "Hesper Lark", "cobb": "Cobb Lark",
+	"dilly": "Dilly", "wystan": "Brother Wystan", "vell": "Mother Vell", "fenn": "Fenn", "wat": "Burl", "maudlin": "Sister Maudlin"}
 
 const QUESTS := {
 	"rh_lamps": {"name": "Boats Not Home", "giver": "corle", "where": "Aud Corle, on the net-hall's gallery in Reedholm", "zone": "reedholm",
