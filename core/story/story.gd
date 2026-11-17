@@ -35,6 +35,7 @@ const Days := preload("res://core/story/days.gd")
 const TallyPanel := preload("res://ui/tally_panel.gd")
 const FirstHour := preload("res://core/story/first_hour.gd")
 const Chronicle := preload("res://core/story/chronicle.gd")
+const Profile := preload("res://core/util/profile.gd")
 const HudPrefsOpen := preload("res://ui/hud_prefs.gd")
 const BellVoice := preload("res://core/story/bell_voice.gd")
 const DrainBeat := preload("res://core/story/drain_beat.gd")
@@ -512,22 +513,35 @@ func _stage_opening(hud_node: Node) -> void:
 ## The Last Lantern (opening_shot.gd): the three lines are spoken at the shot's beats, the HUD arrives when the lens
 ## is given back. True when it played (or was skipped); false when there was nothing to shoot and the old beats run.
 func _play_opening(hud: HudUI, p: Node3D) -> bool:
+	Profile.ensure()
+	var again := Profile.endings > 0                  # a New Game after an ending: the second night's opening
+	var lines: Array = DialogueDB.OPENING_AGAIN if again else DialogueDB.OPENING
 	var shot: OpeningShot = OpeningShot.new()
 	add_child(shot)
-	if not shot.begin(p):
+	if not shot.begin(p, again):
 		shot.queue_free()
 		return false
 	var said := [false]
 	shot.beat.connect(func(i: int) -> void:
-		if not is_instance_valid(ui) or (i == 2 and flag("met_keep")):
-			return
-		said[0] = said[0] or i == 2
-		ui.narrate([DialogueDB.OPENING[i]]))
+		match i:
+			0:
+				BellVoice.ring(self, -26.0 if not again else -22.0, -14.0)          # the sky's low stroke under the black
+			1, 2, 3:
+				if not is_instance_valid(ui) or (i == 3 and flag("met_keep")):
+					return
+				said[0] = said[0] or i == 3
+				ui.narrate([lines[i - 1]])
+				if i == 2:
+					DrainBeat.play(self, ui.narrate)          # the cold arrives while the lens is over the green
+			4:
+				BellVoice.ring(self, 0.0, -17.0)             # the lantern's chime: a fifth, then the octave
+				BellVoice.ring(self, 7.0, -19.0, 0.35)
+				BellVoice.ring(self, 12.0, -21.0, 0.7))
 	var skipped: bool = await shot.finished
 	if not is_inside_tree() or not is_instance_valid(hud):
 		return true
 	if skipped and is_instance_valid(ui) and not said[0] and not flag("met_keep"):
-		ui.narrate([DialogueDB.OPENING[2]])          # a skipped shot still says where to go
+		ui.narrate([lines[2]])                           # a skipped shot still says where to go
 	hud.hold_opening(false)
 	return true
 
@@ -547,6 +561,7 @@ func _ending() -> void:
 	if flag("ending_seen") or not is_instance_valid(ui):
 		return
 	set_flag("ending_seen")
+	Profile.note_ending()                         # the profile remembers: a later New Game opens as the second night
 	ui.narrate([DialogueDB.ENDING[0]])
 	_end_step = 1
 	_end_t = 0.0
