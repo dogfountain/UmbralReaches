@@ -40,10 +40,10 @@ func _blk(key: String, x0: float, x1: float, z0: float, z1: float, y_lo: float, 
 
 
 func _run(root: Node) -> void:
-	k = WK.new()
-	k.setup(root, "WardensLine", 6101)
-	k.poi("wardens_line", "The Wardens' Line", "six towers, dark since the west went out", "road")
 	var placed := 0
+	var meshes := 0
+	var fires := 0
+	var lights := 0
 	for i in STATIONS.size():
 		var x: float = STATIONS[i]
 		var f := WK.find([Vector2(x, 26.0), Vector2(x, 104.0), Vector2(x, 14.0), Vector2(x, 116.0)], Vector2(8.0, 8.0), [0.0], ALLOW, 6.0, 2.8, 60.0)
@@ -54,10 +54,15 @@ func _run(root: Node) -> void:
 			continue
 		var c: Vector2 = f.pos
 		WK.reserve("wonder_wardens_%d" % (i + 1), c, Vector2(8.0, 8.0), 0.0, float(f.lo), float(f.hi) + 14.0)
+		k = WK.new()                                   # one kit (one set of meshes) per tower: each culls on its own
+		k.setup(root, "WardensTower%d" % (i + 1), 6101 + i)
+		k.poi("wardens_tower_%d" % (i + 1), "The Wardens' Line", "tower %d of six, dark since the west went out" % (i + 1), WK.region_at(c) if WK.region_at(c) != "" else "road")
 		_tower(i + 1, c, float(f.lo), float(f.hi))
+		meshes += k.commit(0.0)
+		fires += k.fires
+		lights += k.lights
 		placed += 1
-	var n := k.commit()
-	print("WONDER wardens_line: %d of %d towers, %d meshes, %d fires, %d lights, %d chests" % [placed, STATIONS.size(), n, k.fires, k.lights, k.chests])
+	print("WONDER wardens_line: %d of %d towers, %d meshes, %d fires, %d lights" % [placed, STATIONS.size(), meshes, fires, lights])
 
 
 func _tower(no: int, c: Vector2, glo: float, ghi: float) -> void:

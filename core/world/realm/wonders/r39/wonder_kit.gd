@@ -322,5 +322,16 @@ func beacon(at: Vector3, col: Color, radius := 1.0, ceiling := 9.0, reach := 0.0
 	return Wayfinding.beacon(host, at, "", col, 0.0, radius, ceiling, true, reach)
 
 
-func commit() -> int:
-	return kit.commit(host, host.name + "Body")
+## Commit the kit's meshes under the host. `range_end` > 0 gives every mesh of the host (and its flame cards) a dither-faded
+## visibility range of that many metres: the small places (caches, towers) vanish like the wayside's props do; the
+## colossal landmarks pass 0 and are never culled by range.
+func commit(range_end := 0.0) -> int:
+	var n := kit.commit(host, host.name + "Body")
+	if range_end > 0.0:
+		for ch in host.get_children():
+			if ch is MeshInstance3D or ch is MultiMeshInstance3D:
+				var gi := ch as GeometryInstance3D
+				gi.visibility_range_end = range_end
+				gi.visibility_range_end_margin = range_end * 0.1
+				gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+	return n
