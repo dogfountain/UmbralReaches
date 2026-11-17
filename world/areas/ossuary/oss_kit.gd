@@ -270,7 +270,7 @@ static func _grime(n: Vector3, y: float, ybot: float, shade: float, under: float
 ## proud of a darker recessed base by 0-5 cm with its own tone, mortar gaps showing the base: cut stone, not a slab. Collision stays
 ## the plain box; the extra triangles are build-time geometry (a cell is 2 triangles, the base 2).
 var relief := false
-var debris_max := 0                     ## > 0: commit() lays fallen blocks at the foot of up to this many tall walls (the landmarks and ruins)
+var debris_max := 3                     ## > 0: commit() dresses up to this many tall RUIN walls (key ruin / ruin_big): fallen blocks at the foot, a carved band, crown rubble. A handful of boxes a kit, same mesh and draw as the wall
 
 
 func _face(st: SurfaceTool, ctr: Vector3, u: Vector3, v: Vector3, n: Vector3, shade: float, ybot: float, split: bool) -> void:
@@ -876,6 +876,8 @@ func _debris() -> void:
 		if hv > 40:
 			continue
 		var key: String = sb[3]
+		if not key.begins_with("ruin"):
+			continue
 		var out := b.z if h.x > h.z else b.x
 		if hv % 2 == 0:
 			out = -out
@@ -886,6 +888,16 @@ func _debris() -> void:
 			p.y = base_y + 0.2 + 0.1 * float(i)
 			var sz := Vector3(0.5 + 0.7 * r, 0.3 + 0.3 * r, 0.45 + 0.5 * (1.0 - r))
 			box(key, p, sz, Basis(Vector3.UP, r * TAU) * Basis(Vector3.RIGHT, (r - 0.5) * 0.5), false, 0.78 + 0.2 * r)
+		# a carved band along the long face (a darker, proud course), and two tilted stones on the broken crown
+		var along := b.x if h.x > h.z else b.z
+		var lh := maxf(h.x, h.z)
+		var th := minf(h.x, h.z)
+		if lh > 1.2:
+			var face := out * (1.0 if hv % 4 < 2 else -1.0)
+			box(key, c + face * (th + 0.02) + Vector3.UP * h.y * 0.4, (Vector3(lh * 1.7, 0.18, 0.06) if h.x > h.z else Vector3(0.06, 0.18, lh * 1.7)), b, false, 0.7)
+		for s: float in [-1.0, 1.0]:
+			var q := float((hv * 7 + (3 if s > 0.0 else 0)) % 100) / 100.0
+			box(key, c + along * (s * lh * (0.3 + 0.5 * q)) + Vector3.UP * (h.y + 0.1), Vector3(0.45 + 0.4 * q, 0.22, th * 1.5), Basis(Vector3.UP, q * 0.8) * Basis(Vector3.BACK, (q - 0.5) * 0.7), false, 0.8)
 		made += 1
 
 

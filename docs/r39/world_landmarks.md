@@ -255,3 +255,15 @@ Boxes are axis-aligned round a turned room, so a corner may reach a little past 
 Check: walk in and out of each; the bed and reverb change at the door, not at the surface.
 Trees: `TreeGen` kinds now carry `fade_end` (26 m + 1.2 x crown radius, 30-38 m; was a flat 38 m), read by `flora_emit.gd` as the near mesh's end and the far
 mesh's start per crown. Wide crowns hold longer, small ones swap sooner: never farther than before, so near triangles do not rise.
+
+## Ruins kits (`oss_kit.gd`, every kit that builds with the `ruin` / `ruin_big` masonry)
+**What.** Up to three tall ruin walls per kit (a hash of the wall's place picks about 4 in 10 of the eligible ones) now carry: fallen blocks at the foot
+(1-3, thrown to one side), a darker carved band along the long face (a proud course 18 cm high), and two tilted stones on the broken crown. Tone
+patchwork (`_grime`) and moss on up faces were already in every kit. The ashlar **relief stays off** (it multiplied the box count); the landmark kits
+(`WK`) keep both off (`debris_max = 0`) because their geometry is GenCache'd.
+**Where.** Any ruined wall: the Marches' ruins (south and west), the waysides, the fallen halls; look along a long ruin wall at 5 m.
+**Cost.** At most 3 x (2 + 1 + 2) = 15 kit boxes per kit (about 1 ms at 70 microseconds a box), merged into the wall's own material mesh: **no extra draw
+call**, no extra node; non-solid, so no collision cost and no path blocked. Whole Realm: well under 0.1 s (about 60 ruin kits); no cache needed at that size,
+which is why this is the capped form of the debris rather than the uncapped one the landmarks had. At 50 m the band and stones are sub-pixel and merge into
+the wall tone.
+**Check.** Debris never in a doorway (it is thrown beside the wall, outside its footprint, and is not solid); the band reads as carving, not as a floating plank.

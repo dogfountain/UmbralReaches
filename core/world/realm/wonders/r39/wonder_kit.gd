@@ -38,6 +38,7 @@ func setup(root: Node, nm: String, seed_n: int) -> void:
 	rng.seed = seed_n
 	kit.keep_lanes = false
 	kit.candle_lights = false
+	kit.debris_max = 0
 	kit.relief = false                    # ashlar relief and wall-foot debris cost build time (GDScript boxes): off unless a builder asks
 	host = Node3D.new()
 	host.name = nm
