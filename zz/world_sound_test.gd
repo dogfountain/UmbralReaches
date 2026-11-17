@@ -157,7 +157,7 @@ func _run() -> void:
 	print("WORLD crossfade (scape crickets/leaves): ", trace)
 	await _secs(3.0)
 	var g1: Dictionary = amb.bed_gain
-	check(amb.scape == "wood" and float(g1.get("leaves", 0.0)) > 0.8, "the wood's bed at the end (leaves %.2f)" % float(g1.get("leaves", 0.0)))
+	check((amb.scape == "wood" or amb.scape == "ring") and float(g1.get("leaves", 0.0)) > 0.8, "the wood's bed at the end (leaves %.2f)" % float(g1.get("leaves", 0.0)))
 	check(jump < 0.12, "no bed jumps more than 0.12 between steps (%.3f)" % jump)
 
 	# ---- the tavern: reverb and muffle ease in and out

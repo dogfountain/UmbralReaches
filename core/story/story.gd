@@ -29,6 +29,7 @@ const QuestTrail := preload("res://core/story/quest_trail.gd")
 const GuideLines := preload("res://core/story/guide_lines.gd")
 const Hints := preload("res://ui/hints.gd")
 const BellVoice := preload("res://core/story/bell_voice.gd")
+const DrainBeat := preload("res://core/story/drain_beat.gd")
 
 signal objectives_changed
 
@@ -467,6 +468,7 @@ func _stage_opening(hud_node: Node) -> void:
 		await get_tree().create_timer(1.2).timeout
 		if is_instance_valid(ui):
 			ui.narrate([DialogueDB.OPENING[1]])
+			DrainBeat.play(self, ui.narrate)             # the cold arrives: the green's people go in, the Keg looks at its door
 		# the last line is the first objective in words: said only while it still is (a quick wanderer has met the keep)
 		w = 0.0
 		while is_inside_tree() and is_instance_valid(ui) and ui.narrating() and w < 60.0:
