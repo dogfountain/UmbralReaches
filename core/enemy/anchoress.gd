@@ -93,9 +93,21 @@ func on_engaged(arena: Node) -> void:
 	if arena is Node3D:
 		_arena_c = (arena as Node3D).global_position
 	_attuned = QuestBook.attuned(ID)
+	var line := "\"Not yet. Not yet.\" The Anchoress turns in her chain and does not stop praying."
+	# Tamsin's task (vow_cell): what the wanderer brought to the wall is known to her, and she holds the vow with less
+	match QuestBook.pick("vow_cell"):
+		"bread":
+			max_hp = roundi(float(max_hp) * 0.9)
+			line = "\"Not yet.\" She turns in her chain. There is bread on her breath, and she does not raise the anchor quite so high."
+		"name":
+			max_hp = roundi(float(max_hp) * 0.85)
+			line = "\"...here.\" Someone has said her name through the wall, and the Anchoress answers it, and cannot quite go back to praying."
+		"break":
+			line = "\"The wall.\" She turns, and there is no wall to turn to. The sky is over her head for the first time in nine winters, and she is afraid of it."
+	hp = float(max_hp)
 	get_tree().create_timer(0.3, false).timeout.connect(func() -> void:
 		if is_instance_valid(self) and is_alive():
-			BossKit.emote(self, "\"Not yet. Not yet.\" The Anchoress turns in her chain and does not stop praying."))
+			BossKit.emote(self, line))
 
 
 func _absorb(dmg: float, from: Node) -> float:

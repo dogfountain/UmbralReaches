@@ -66,6 +66,7 @@ const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
 const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 const VQ := preload("res://core/story/quest_chains_verbs.gd")   ## Hearthward's five tasks deepened with the task verbs (docs/QUEST_VERBS.md)
 const VerbKit := preload("res://core/story/verb_kit.gd")
+const StoryQ := preload("res://core/story/quest_chains_story.gd")   ## the five long tasks: The Third Edict, The Lamp-Road, The Name on the Roll, What the Horn Was For, The Vow's Cell
 const DC := preload("res://core/story/quest_chains_deepen_c.gd")   ## the Far Reaches' signature tasks (Relief, A Night of Charcoal, The Rope Rung Right)
 const DeepB := preload("res://core/story/quest_chains_deepen_b.gd")   ## the deepened tasks (docs/QUEST_DEPTH.md)
 const DA := preload("res://core/story/quest_chains_deepen_a.gd")   ## writer A: the deepened Hearthward / Thornwood / fen tasks and the two new ones (three_knocks, forty_days)
@@ -99,6 +100,7 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"wr_stand_down", "wr_kings_lamp", "wr_cold_light", "wr_fourth_stone", "wr_tansys_boat", "ds_water_road", "ds_unmade", "ds_witchs_price", "ds_clapper",
 	"er_ringers_candle", "er_nave_fire", "er_halter_bell", "er_inn_slate",          # --- the reaches ---
 	"wr_relief", "ds_charcoal", "er_rope",          # --- deepen C ---
+	"aurel_edicts", "lamp_road", "name_on_roll", "horn_end", "vow_cell",          # --- the story's long tasks ---
 	# --- deepen B ---
 	"seventh_day",
 	# --- deepen A ---
@@ -115,7 +117,8 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 	"marl": "Marl Pannick", "teasel": "Teasel Dray", "orrin": "Orrin Vail", "ardel": "Ardel Wick", "pip": "Pip", "nella": "Nella Crake",
 	"corle": "Aud Corle", "penn": "Reeve Penn", "coyle": "Serjeant Coyle", "isolde": "Old Isolde",      # --- the towns ---
 	"siany": Towns.GIVER_NAMES["siany"], "ebba": Towns.GIVER_NAMES["ebba"], "hobb": Towns.GIVER_NAMES["hobb"], "dilly": Towns.GIVER_NAMES["dilly"], "hesper": Towns.GIVER_NAMES["hesper"],
-	"cobb": Towns.GIVER_NAMES["cobb"], "maudlin": Towns.GIVER_NAMES["maudlin"], "wat": Towns.GIVER_NAMES["wat"], "vell": Towns.GIVER_NAMES["vell"], "fenn": Towns.GIVER_NAMES["fenn"]}      # --- the reaches ---
+	"cobb": Towns.GIVER_NAMES["cobb"], "maudlin": Towns.GIVER_NAMES["maudlin"], "wat": Towns.GIVER_NAMES["wat"], "vell": Towns.GIVER_NAMES["vell"], "fenn": Towns.GIVER_NAMES["fenn"],      # --- the reaches ---
+	"perrin": StoryQ.GIVER_NAMES["perrin"], "odile": StoryQ.GIVER_NAMES["odile"], "ione": StoryQ.GIVER_NAMES["ione"], "lowe": StoryQ.GIVER_NAMES["lowe"], "tamsin": StoryQ.GIVER_NAMES["tamsin"]}      # --- the story's five ---
 
 ## r34: the raids' attunements (WoW's attunement chains, adapted): the last task of each pre-raid
 ## chain, once handed in, loosens the boss's hold (QuestBook.attuned(boss); Travel.story flag
@@ -629,6 +632,9 @@ const QUESTS := {
 	"er_inn_slate": FRE.QUESTS["er_inn_slate"],
 	# --- deepen C ---
 	"wr_relief": DC.WR_RELIEF, "ds_charcoal": DC.DS_CHARCOAL, "er_rope": DC.ER_ROPE,
+	# --- the story's long tasks ---
+	"aurel_edicts": StoryQ.QUESTS["aurel_edicts"], "lamp_road": StoryQ.QUESTS["lamp_road"], "name_on_roll": StoryQ.QUESTS["name_on_roll"],
+	"horn_end": StoryQ.QUESTS["horn_end"], "vow_cell": StoryQ.QUESTS["vow_cell"],
 	# --- deepen B ---
 	"seventh_day": DeepB.SEVENTH_DAY,
 	# --- deepen A ---
@@ -765,6 +771,11 @@ const PICKUPS := {
 	# --- deepen C ---
 	"fm_roll": Towns.PICKUPS["fm_roll"], "ll_bar": Towns.PICKUPS["ll_bar"], "ll_nave_flame": Towns.PICKUPS["ll_nave_flame"], "ll_wick": Towns.PICKUPS["ll_wick"],
 	"wr_relief_post": DC.PICKUPS["wr_relief_post"], "ds_clamp_coals": DC.PICKUPS["ds_clamp_coals"], "er_rope": DC.PICKUPS["er_rope"],
+	# --- the story's long tasks ---
+	"ae_book": StoryQ.PICKUPS["ae_book"], "ae_stele": StoryQ.PICKUPS["ae_stele"], "lr_oil_1": StoryQ.PICKUPS["lr_oil_1"], "lr_oil_2": StoryQ.PICKUPS["lr_oil_2"],
+	"lr_oil_3": StoryQ.PICKUPS["lr_oil_3"], "lr_coal": StoryQ.PICKUPS["lr_coal"], "lr_coal2": StoryQ.PICKUPS["lr_coal2"], "lr_coal3": StoryQ.PICKUPS["lr_coal3"],
+	"lr_last": StoryQ.PICKUPS["lr_last"], "nr_page": StoryQ.PICKUPS["nr_page"], "nr_roll": StoryQ.PICKUPS["nr_roll"], "he_horn": StoryQ.PICKUPS["he_horn"],
+	"vc_bread": StoryQ.PICKUPS["vc_bread"], "vc_wall": StoryQ.PICKUPS["vc_wall"],
 	# --- deepen B ---
 	"turf_roof": DeepB.PICKUPS["turf_roof"], "wards_set": DeepB.PICKUPS["wards_set"], "ward_holds": DeepB.PICKUPS["ward_holds"],
 	"ward_wood": DeepB.PICKUPS["ward_wood"], "ward_glade": DeepB.PICKUPS["ward_glade"], "last_step": DeepB.PICKUPS["last_step"],

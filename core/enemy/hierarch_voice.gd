@@ -23,6 +23,7 @@ extends Husk
 ##   everything comes quicker; the stone falls more often.
 ## Save state: Travel.bosses_slain "r37_hierarch" (the arena). Loot: the fallback table + the trophy.
 
+const QuestBook := preload("res://core/story/quest_book.gd")
 const VillagerBossRig := preload("res://core/enemy/villager_boss_rig.gd")
 const CrownBody := preload("res://core/enemy/crown_body.gd")
 const SCALE := 3.4
@@ -85,7 +86,18 @@ func on_engaged(arena: Node) -> void:
 	if arena is Node3D:
 		_arena_c = (arena as Node3D).global_position
 		_arena_r = (arena as BossArena).radius if arena is BossArena else 20.0
-	BossKit.emote(self, "The skull rings. Something in the horn draws breath, and it is small.")
+	# Lowe's task (horn_end): what was done about the note changes how it begins
+	var line := "The skull rings. Something in the horn draws breath, and it is small."
+	match QuestBook.pick("horn_end"):
+		"sung":
+			max_hp = roundi(float(max_hp) * 0.85)
+			line = "The skull rings, and falters. The note has been sung to, and does not know what to do with its own last line."
+		"broke":
+			line = "The skull rings through a chipped lip. The note is thin and cracked, and furious, and still a boy's."
+		"left":
+			line = "The skull rings, steady as ever. The boy in the horn is keeping his word."
+	hp = float(max_hp)
+	BossKit.emote(self, line)
 
 
 func _absorb(dmg: float, from: Node) -> float:

@@ -19,6 +19,8 @@ const FRW := preload("res://core/story/quest_chains_far_reaches_west.gd")   ## t
 const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
 const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 
+const StoryQ := preload("res://core/story/quest_chains_story.gd")   ## the story's long tasks: the five choices made at their places
+
 const DeepB := preload("res://core/story/quest_chains_deepen_b.gd")   ## the countries' and the Marches' choices, made at a place (their pickups open these)
 
 const KEEP_PORTRAIT := {"seated": false, "seed": 5150, "apron": true, "hat": "bare", "rag": true}
@@ -38,7 +40,7 @@ const CONV := {
 				{"text": "Who holds it?", "to": "three_1", "once": true},
 				{"text": "I'll find my own way.", "to": "meet_brief"},
 			]},
-			"lore_1": {"say": "Somebody opened the sky at the top of the Stair. It opened inward. It's been drinking ever since: the light first, then the warm, then the people.", "next": "lore_2"},
+			"lore_1": {"say": "The Order of the Open Sky taught that the sky was a door, and the faithful could climb through it. Nine winters ago, on the Night, their Hierarch opened it from the top of the Stair. It opened inward. It's been drinking ever since: the light first, then the warm, then the people.", "next": "lore_2"},
 			"lore_2": {"say": "Edda put coals from her forge on a bare altar and the dark stopped at the door. Every fire since is hers. Yours too, now.", "next": "meet_hub"},
 			"three_1": {"say": "Three. Something in the Ring on the western hill that keeps the oaks; the Rooted call it the Thornwarden. The Abbot under the abbey, still counting his dead.", "next": "three_2"},
 			"three_2": {"say": "And whatever stands at the top of the Stair with the door open. The ward on the Crossing won't let you near it till the other two are down: a heart out of the Ring, a crown out of the crypt.", "next": "meet_hub"},
@@ -68,9 +70,14 @@ const CONV := {
 				{"text": "About your ale thief...", "to": "thief_where", "if": "qat:keg_thief:0|qat:keg_thief:1|qat:keg_thief:2|qat:keg_thief:3"},
 				{"text": "Any news?", "to": "news"},
 				{"text": "Tell me again about the three.", "to": "three_again"},
+				{"text": "What about the ones past the Lines?", "to": "others_1", "if": "bosses:1", "once": true},
+				{"text": "Does he ever speak to the ones who climb?", "to": "voice_1", "if": "bosses:1,flag:aurel_boss_thornwarden|bosses:1,flag:aurel_boss_bone_abbot", "once": true},
 				{"text": "Who are you, keep?", "to": "who_1", "once": true},
 				{"text": "Goodbye.", "to": "bye"},
 			]},
+			"others_1": {"say": "Two more, if you count them, out where the towns are. A cantor's note in the skull of a fallen god, and a hermit who walled herself in to pray the sky still. Not the valley's to keep. The sky's leftovers. I'd not go looking for either. But there are people out there who'd ask you to.", "next": "others_2"},
+			"others_2": {"say": "Cantor Lowe, at the Siege Lines, and Tamsin Hale, who walks bread up the cliff road. They'd tell you what they are. I never learned. I stay with the fire.", "next": "hub"},
+			"voice_1": {"say": "You've heard him. Don't tell me; I can see it in how you hold the lantern. He talks to the ones who climb. He's civil. That is the worst of it. Whatever's up there at the top has manners.", "next": "hub"},
 			"next": {"say_if": [
 				["boss:ascended_warden", "Now? Now nothing. Sit. Let the valley learn not to be pulled at. It'll take a while; it's been a while. Past the Lines, the towns have been waiting longer: Reedholm, Fallowmere, Lastlight. Corle, Penn, Maudlin. Ask Brannoc, he's had the letters."],
 				["boss:thornwarden,boss:bone_abbot,!peal:1", "Not up yet. The door hears bells, not crowns. One of the Founder's eight will do for the door; the rest are for the one behind it. Ruan's, at the Holds, is the nearest. Brannoc will tell you what each is worth."],
@@ -625,6 +632,8 @@ const CONV := {
 	},
 	"r38_tally": R38E.CONVS["r38_tally"],
 	"wr_order": FRW.CONVS["wr_order"], "wr_herons": FRW.CONVS["wr_herons"], "ds_nail_door": FRS.CONVS["ds_nail_door"], "er_slate": FRE.CONVS["er_slate"],
+	# --- the story's long tasks ---
+	"story_edict": StoryQ.CONVS["story_edict"], "story_lamp": StoryQ.CONVS["story_lamp"], "story_roll": StoryQ.CONVS["story_roll"], "story_horn": StoryQ.CONVS["story_horn"], "story_wall": StoryQ.CONVS["story_wall"],
 	# --- deepen B ---
 	"qb_holds_turf": DeepB.CONVS["qb_holds_turf"], "qb_keeper_wards": DeepB.CONVS["qb_keeper_wards"], "qb_oak_song": DeepB.CONVS["qb_oak_song"], "qb_quarry_last": DeepB.CONVS["qb_quarry_last"], "qb_moor_shrine": DeepB.CONVS["qb_moor_shrine"], "qb_orchard_press": DeepB.CONVS["qb_orchard_press"], "qb_field_ranks": DeepB.CONVS["qb_field_ranks"], "qb_mere_light": DeepB.CONVS["qb_mere_light"], "qb_mere_ferryman": DeepB.CONVS["qb_mere_ferryman"], "qb_well_answer": DeepB.CONVS["qb_well_answer"], "qb_salt_widow": DeepB.CONVS["qb_salt_widow"], "qb_spire_coal": DeepB.CONVS["qb_spire_coal"], "qb_seventh_day": DeepB.CONVS["qb_seventh_day"], "qb_shepherd_strays": DeepB.CONVS["qb_shepherd_strays"], "qb_wf_lights": DeepB.CONVS["qb_wf_lights"], "qb_wf_crown": DeepB.CONVS["qb_wf_crown"], "qb_long_round": DeepB.CONVS["qb_long_round"],
 }
