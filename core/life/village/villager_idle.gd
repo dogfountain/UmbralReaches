@@ -15,6 +15,7 @@ const B_THIGH_R := 11
 const B_SHIN_R := 12
 const B_THIGH_L := 13
 const B_SHIN_L := 14
+const Fidgets := preload("res://core/life/village/villager_fidgets.gd")
 
 
 static func stand(v: Variant, k: float, free_r: bool, free_l: bool, breath: float) -> float:
@@ -32,7 +33,7 @@ static func stand(v: Variant, k: float, free_r: bool, free_l: bool, breath: floa
 		var slot := int(floor(tt / period))
 		var u := fposmod(tt, period) / period
 		var env := smoothstep(0.0, 0.07, u) * (1.0 - smoothstep(0.24, 0.32, u))
-		var kind := absi(slot + hash(v.id)) % 4
+		var kind := absi(slot + hash(v.id)) % 10      # (four of the old, six of villager_fidgets.gd)
 		var hands_free := free_r and free_l
 		if kind == 1 and not hands_free:
 			kind = 0
@@ -59,6 +60,8 @@ static func stand(v: Variant, k: float, free_r: bool, free_l: bool, breath: floa
 				r.arm_to(side, Vector3(sx, 1.3, -0.12) * k, Vector3(0.9 if free_r else -0.9, -0.5, 0.3), null)
 				r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.FORWARD, 0.08 * env * (1.0 if free_r else -1.0)))
 				head = 0.12 * env
+			4, 5, 6, 7, 8, 9:
+				head = Fidgets.gesture(v, kind, env, k, free_r, free_l)
 			_:   # a glance up at the sky: the head thrown back, the chest following
 				head = -0.55 * env
 				r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.RIGHT, 0.14 * env))

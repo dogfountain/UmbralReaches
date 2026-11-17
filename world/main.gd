@@ -6,6 +6,7 @@ const MainHarness := preload("res://core/debug/main_harness.gd")
 const SessionState := preload("res://core/world/session_state.gd")
 const FadeGuard := preload("res://core/world/fade_guard.gd")
 const LightDirector := preload("res://core/world/light_director.gd")
+const NightLife := preload("res://core/world/night_life/night_life.gd")
 
 ## Streamed areas (docs/ZONE_PLAN.md). Anchors are area centres; radii in metres (horizontal).
 const AREAS: Array[Dictionary] = [
@@ -30,6 +31,7 @@ func _ready() -> void:
 	if ResourceLoader.exists(dress_path):
 		add_child((load(dress_path) as PackedScene).instantiate())
 	Atmosphere.apply(self, _env, _cam, _moon, 82.0, Color("#12183A"), Color("#060A1C"), Color("#1E4AA0"))   # fog glows azure, not violet
+	NightLife.attach(self)              # the living night (core/world/night_life): landmark lights, moon course, eclipse, windows, moths, mist
 	_cam.far = FarDetail.VIEW_FAR       # the world is loaded to the horizon (far detail); the culling above is still sized to 82 m
 	_spawn_glimmers()
 	EnemySpawner.seed_realm(self)     # camps of the redesigned zone (RealmBosses)

@@ -35,7 +35,7 @@ var render_scale := 0.0             # 0 = auto, else 0.5-1.0 fixed
 var shadow_quality := 2             # 0 off, 1 low, 2 high
 var fog_enabled := true
 var glow_enabled := true
-var night_life := true              ## r39: the living night (core/world/night_life): moon course, eclipse, living windows, far light signatures, moths, mist
+var night_life := true              ## the living night (core/world/night_life): moon course, eclipse, living windows, far light signatures, moths, mist
 var grade_enabled := true
 var dof_enabled := false            ## kept for old cfg files; far DoF stays off (binding rule)
 var ssr_enabled := false

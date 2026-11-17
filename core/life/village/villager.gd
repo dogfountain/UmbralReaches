@@ -137,7 +137,7 @@ func setup(vid: String, d: Dictionary, director: Node) -> void:
 	village = director
 	display_name = String(d.get("name", vid))
 	name = "Villager_" + vid
-	speed = float(d.get("speed", 1.0)) * (0.92 + 0.16 * float(absi(hash(vid)) % 100) / 100.0)   # r39: no two walk in step
+	speed = float(d.get("speed", 1.0)) * (0.92 + 0.16 * float(absi(hash(vid)) % 100) / 100.0)   # no two walk in step
 	gait = float(absi(hash(vid) >> 3) % 100) / 100.0
 	_rng.seed = hash(vid)
 	_t = _rng.randf() * 10.0

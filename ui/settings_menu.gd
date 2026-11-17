@@ -227,7 +227,8 @@ func _build_graphics(p: VBoxContainer) -> void:
 		Settings.glow_enabled = v
 		_custom())
 	_night_btn = _check(p, "Living Night", "The night's moon course and eclipse, windows that light and go dark, far landmark lights, moths and drifting mist", func(v: bool) -> void:
-		Settings.night_life = v)
+		Settings.night_life = v
+		Settings.apply())
 	_grade_btn = _check(p, "Colour Grade", "The night's tint and the gloom vignette (F1)", func(v: bool) -> void:
 		Settings.grade_enabled = v
 		_custom())
