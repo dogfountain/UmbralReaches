@@ -536,7 +536,7 @@ func _play_opening(hud: HudUI, p: Node3D) -> bool:
 		shot.queue_free()
 		return false
 	var said := [false]
-	shot.beat.connect(func(i: int) -> void:
+	var on_beat := func(i: int) -> void:
 		match i:
 			0:
 				BellVoice.ring(self, -26.0 if not again else -22.0, -14.0)          # the sky's low stroke under the black
@@ -550,7 +550,8 @@ func _play_opening(hud: HudUI, p: Node3D) -> bool:
 			4:
 				BellVoice.ring(self, 0.0, -17.0)             # the lantern's chime: a fifth, then the octave
 				BellVoice.ring(self, 7.0, -19.0, 0.35)
-				BellVoice.ring(self, 12.0, -21.0, 0.7))
+				BellVoice.ring(self, 12.0, -21.0, 0.7)
+	shot.beat.connect(on_beat)          # (a lambda with a match, closed inline with "))", did not parse)
 	var skipped: bool = await shot.finished
 	if not is_inside_tree() or not is_instance_valid(hud):
 		return true
