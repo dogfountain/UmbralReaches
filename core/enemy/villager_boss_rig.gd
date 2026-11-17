@@ -108,6 +108,8 @@ func _build() -> void:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_v.add_child(mi)
 		_glints.append([mi, int(gl[0]), gl[1]])
+		if lantern_node == null and int(gl[0]) == B_CHEST and float(gl[2]) > 0.02:
+			lantern_node = mi                       # a burning heart: the boss hangs its light there
 	_pelvis = _sockets["pelvis"]
 	_chest = _sockets["chest"]
 	_head = _sockets["head"]
@@ -208,6 +210,9 @@ func muzzle() -> Vector3:
 		return global_position + Vector3.UP
 	var r: Variant = _v
 	r.fk_all()
+	var at: Variant = _v.get("muzzle_at")
+	if at is Array and not (at as Array).is_empty():
+		return _v.to_global(r.carry(int(at[0]), at[1]))
 	var grip: Vector3 = (r.grip as Array)[0]
 	var ax: Vector3 = (r.grip_ax as Array)[0]
 	return _v.to_global(r.carry(B_HAND_R, grip + ax * 0.42 * _k))

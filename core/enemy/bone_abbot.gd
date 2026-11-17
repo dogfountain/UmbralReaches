@@ -146,15 +146,15 @@ func _absorb(dmg: float, from: Node) -> float:
 func _build() -> void:
 	name = "BoneAbbot"
 	# (17 Nov, Luke: "reduce boss to simple model like villager, these models suck"; "the style, not the exact look")
-	# built in the villagers' style: their procedural robe, hood, arms and crook (core/life/village/villager_rig.gd),
-	# with his own skull, ember eyes, crown of bone tines, stole and shoulder candles (core/enemy/abbot_body.gd), the
-	# lantern in his left hand his reliquary; posed by formula (core/enemy/villager_boss_rig.gd). The Blender model and
-	# its clips (boss_bone_abbot.py, boss_humanoid_anim.py, ClipRig) are kept for the record.
+	# ("have some creativity") built in the villagers' style (their skeleton, soft skinning, shader, procedural
+	# primitives) to his own design (core/enemy/abbot_body.gd): hunched under a hooked hood with a bone crown, ember
+	# eyes in the dark, a ribcage torn open on a burning reliquary heart, a ragged mantle with candles, skeletal hands, a
+	# vertebra crozier; posed by formula (core/enemy/villager_boss_rig.gd). The Blender model and its clips
+	# (boss_bone_abbot.py, boss_humanoid_anim.py, ClipRig) are kept for the record.
 	var rig: CharacterRig = VillagerBossRig.new()
 	rig.set("body_script", AbbotBody)
-	rig.set("opts", {"seed": 6101, "sex": "m", "age": "old", "garment": "robe", "hood": true, "r": "crook", "l": "lantern",
-		"hair": "bald", "girth": 0.86, "cloth": Color(0.16, 0.13, 0.14), "cloth2": Color(0.34, 0.06, 0.07),
-		"skin": Color(0.72, 0.67, 0.56), "leather": Color(0.2, 0.15, 0.11), "barefoot": true})
+	rig.set("stoop", 0.04)                     # the hunch is in his own skeleton
+	rig.set("opts", {"seed": 6101, "sex": "m", "age": "adult"})
 	attach_rig(rig)
 	_rig.scale = Vector3.ONE * 1.22          # an old villager is 1.63 m; at SCALE 2.6 and this, about 5 m like the Blender Abbot
 	_rig_xf = _rig.transform
