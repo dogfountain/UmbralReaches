@@ -303,3 +303,19 @@ creature shader's gait, head turn and tail sway use the fox's rig numbers (the k
 below: black diamonds on the gravel. Rewound to face up. No cost. Check: leaves on the market yard read brown.
 **Voxel-ruin albedo** (`oss_kit.gd mat`): `ruin` 0.95 -> 1.12, `ruin_big` 0.92 -> 1.08, `dark` 0.16 -> 0.26 (tints multiply the baked contact AO, so the dark foot of a wall stays dark while the face
 reads). The detail normal was not added (a second normal fetch near-field is a GPU cost; left to the light seat's call). Check at the fen tower, rift towers and necropolis crypts.
+
+## Settlements: new well, fence, workshop, linen and goose-pen scenes (`settlement_yards_more.gd`, called from `settlement_yards.gd`)
+**What.** The yards (Hearthward, Reedholm, Fallowmere, Lastlight; 10-16 scenes each, coordinates in `TOWNS`) gain: **wells** in three seeded variants (roofed with a windlass, a sweep with a counterweight stone,
+an open curb with a plank lid and a bucket), **fences** in three (post and rail, woven wattle, pickets with a gate leaf ajar), **workshops** in three (carpenter's bench and plank stacks, cooper's barrels and a half-staved
+one, tanner's hide frame and vat), a second **washing line** (doubled blankets; 2-3 of them) and a second **animal pen** (a hurdle ring of geese). The variant is a hash of the spot, so a given yard is stable.
+The market stalls already come in three (salt, jars, pots), each with its own awning colours.
+**Cost.** The scene list keeps the same count per town (`want`), so the total scenes are unchanged; only the mix changes. All pieces are kit boxes, tubes and quads from materials the yards already use (wood_big, stone_big, chalk, iron,
+dark, cave_moss), inside the yards' GenCache'd per-cell kit, so draw calls are unchanged and a warm build only reads the cache. Cold: about 60-150 boxes a scene at 70 microseconds.
+**Check.** Walk the Hearthward yards: no two wells or fences alike, nothing on a lane (the open-ground test is unchanged: 3.6 x 3.6 x 2.4 m free), curb stones and a few fence posts solid.
+
+## Water edges (`wonders/r39/shorelines.gd`, registered after ground_marks)
+**What.** Every shore (river, fen, mere, pans; found by a 4 m scan of the water grid, refined to the metre, 3.5 m apart at most, never within 2.5 m of a way or on a registered site, capped at 1,500 points)
+gets reeds (the flora's own fen reed mesh), half-sunk mossy shore stones (one RockKit variant per 64 m cell, so shores differ) and a dark glossy wet band hugging the bank. Log line: `WONDER shorelines: N shore points ...`.
+**Cost.** Built once at Realm build time: about 25,000 water-grid lookups (array reads, no noise) and 1-7 terrain-grid reads per point, tens of milliseconds, no cache needed. Per 64 m cell with a shore: 3 draws (one reed MultiMesh at 90 m,
+one stone MultiMesh at 70 m, one wet-band mesh at 80 m, all dither-faded), so draws rise only where there is water and only inside those ranges; reeds are the flora's existing cards (a few hundred triangles per clump, instanced).
+This is the one item this round whose draws rise (about 3 per shore cell in view); offset: none, bounded by the ranges. Check at the fen and the river: reeds and wet mud at every bank, stones at the edge, nothing across a ford, dock or road.

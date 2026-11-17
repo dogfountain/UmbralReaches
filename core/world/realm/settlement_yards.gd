@@ -12,9 +12,10 @@ const SELF := "res://core/world/realm/settlement_yards.gd"
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 const Zones := preload("res://core/world/realm/dress_zones.gd")
+const More := preload("res://core/world/realm/settlement_yards_more.gd")
 
 const TOWNS := [[Vector2(6.0, 38.0), 34.0, 16], [Vector2(-311.0, 281.0), 30.0, 11], [Vector2(-160.0, 300.0), 34.0, 12], [Vector2(324.5, 53.5), 40.0, 14]]
-const KINDS := ["washing", "garden", "pen", "smith", "grave", "market", "garden", "pen", "washing"]
+const KINDS := ["washing", "garden", "pen", "smith", "grave", "market", "well", "pen", "fence", "workshop", "linen", "garden", "geese", "well", "workshop", "fence"]
 
 
 static func build(root: Node) -> void:
@@ -89,6 +90,9 @@ func _open(space: PhysicsDirectSpaceState3D, q: PhysicsShapeQueryParameters3D, p
 func _scene(k, kind: String, o: Vector3, yaw: float) -> void:
 	var b := Basis(Vector3.UP, yaw)
 	var rng: RandomNumberGenerator = k.rng
+	if kind in More.KINDS:
+		More.scene(k as WK, kind, o, yaw)
+		return
 	match kind:
 		"washing":
 			for s: float in [-1.0, 1.0]:
