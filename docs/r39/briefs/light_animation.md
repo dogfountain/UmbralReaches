@@ -58,6 +58,19 @@ The direction is fixed. The moon is darker and the land stays dark. Never lift g
 5. **Documentation.**
    - docs/r39/light_animation_vfx.md and docs/r39/animation_smoothing.md say, for each item: where to see it, what to film, the cost, and the files.
 
+## No performance cost (Luke, 17 Nov: "remember this must be at no perf cost")
+
+Every addition this round must cost nothing at runtime. The lead measures before and after each merge, using the play-capture regions tour: average and 1% low frame time, worst frame, draw calls and primitives per region, against the regions_a baseline (about 8.5 ms average, 118 fps at a 120 Hz vsync). Anything that regresses is sent back. In practice:
+
+- **Bake, don't compute.** Detail lives in geometry and vertex colour built once at Realm build time (GenCache) or in shader terms that are already paid for. Nothing new is computed per frame.
+- **Pay for what you add.** Added triangles come with LODs and visibility ranges, and are offset by lower far cost: impostors, merged meshes, MultiMesh. Added draw calls are offset by merging. The net count per region must not rise.
+- **Lights.** No new shadowed lights. Unshadowed local lights only within the existing budget (the light pool/director), distance-faded. Far glow comes from emissive cards in one MultiMesh.
+- **Behaviour.** Anything that updates (NPC acts, animals, weather, the score) runs at reduced rates by distance, sleeps off-screen and beyond range, and never allocates per frame.
+- **Audio.** Sound is generated off the main thread and cached. Voices are capped. Nothing is decoded on the main thread mid-play.
+- **No hitches.** Nothing is first-used mid-play without a warm-up behind the loading screen: no shader compile, no mesh build, no texture upload.
+- **Never.** Dynamic resolution stays off, and main.tscn is never rebaked headless.
+- **Document the cost.** Your doc states each item's cost, and how it is kept at zero.
+
 ## Workflow
 
 - **Worktree.** Work in /Users/luke/UmbralReaches/.claude/worktrees/r39-anim. Run `git merge master` now and before each big item; the lead merges your branch as you go.
