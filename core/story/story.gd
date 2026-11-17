@@ -94,6 +94,7 @@ func _ready() -> void:
 	add_child((load("res://core/story/kindle_bells.gd") as GDScript).new())      # the fires ring a rising phrase
 	add_child((load("res://core/story/aurel_voice.gd") as GDScript).new())       # the Hierarch, through the night
 	add_child((load("res://core/world/realm/lore/story_readables.gd") as GDScript).new())     # the story's readables, put in the world as the wanderer nears
+	add_child((load("res://core/life/village/village_barks.gd") as GDScript).new())              # what the people say about what you did, and to each other
 	ui.advanced.connect(_on_advanced)
 	ui.chosen.connect(_on_chosen)
 	ui.closed.connect(_on_closed)

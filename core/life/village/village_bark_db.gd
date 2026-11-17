@@ -1,0 +1,92 @@
+extends RefCounted
+## What the valley's people say, unprompted, about what the wanderer has done and how the wanderer looks (village_barks.gd plays them).
+## A bark is {who, if, when, say}: `who` an NPC id or "*" (anyone near); `if` a condition in the village's language (VState.test: boss:x,
+## bosses:n, kindled:n, qp:task:pick, qd:task, flag:x, peal:n, bells:n ...); `when` the extra reads the barker tracks itself: "@eclipse"
+## (the moon's totality, near it), "@dawn" (the last tenth of the night), "@late" (the cold hours), "@wounded", "@gloom" (the gloom nearly
+## full), "@horse" (the wanderer owns a horse; {horse} is its name). A scene is two people in earshot of each other who say a few lines in
+## turn. Every bark has a ten-minute memory; scenes play once a night. House style (docs/LORE.md): plain, dry, a little wry. No class_name.
+
+const BARKS := [
+	# --- anyone, about the night and the wanderer ---
+	{"who": "*", "if": "kindled:1,!kindled:2", "say": "That's one fire lit that wasn't, this morning. I won't say I'm not looking at it."},
+	{"who": "*", "if": "kindled:3", "say": "Three fires. You can see two of them from the green, now, if you stand on the step. Folk are standing on the step."},
+	{"who": "*", "if": "kindled:4", "say": "Four. I used to say the valley wanted nine and could do with four. I will have to stop saying it."},
+	{"who": "*", "if": "boss:thornwarden,!boss:bone_abbot", "say": "The oaks are quieter. I did not know they were loud until they were not."},
+	{"who": "*", "if": "boss:bone_abbot,!boss:thornwarden", "say": "They say the count in the crypt has stopped. I keep counting my own steps to be sure it is not me."},
+	{"who": "*", "if": "boss:thornwarden,boss:bone_abbot,!peal:1", "say": "Heart and crown. It is Brannoc you want now, they say. It is always Brannoc, in the end."},
+	{"who": "*", "if": "peal:1,!boss:ascended_warden", "say": "A bell, rung right. I heard it, in the dark, and I stopped what I was doing. I was not the only one."},
+	{"who": "*", "if": "boss:ascended_warden", "say": "The sky has stopped turning. I keep looking up to check. It is very rude of me, and nobody has said so."},
+	{"who": "*", "if": "bells:5", "say": "Five bells, and the door is lighter. Brannoc cried, they say, and denies it."},
+	{"who": "*", "if": "bells:8", "say": "All eight of her bells. The Founder would have said that was showing off, and been very pleased."},
+	{"who": "*", "if": "qd:lamp_road", "say": "The road is lit, end to end. Somebody has done what the Order forbade and the dark is the better for it."},
+	{"who": "*", "if": "qp:aurel_edicts:follow", "say": "They say the third edict has its second half back. 'And then I follow.' I have been turning it over all day."},
+	{"who": "*", "if": "qp:aurel_edicts:scratch", "say": "The third stone is scratched out. I would have liked to read it, even to hate it."},
+	{"who": "*", "if": "qp:horn_end:sung", "say": "The note in the skull has stopped, down in the Lines. People are walking about in the quiet like it was a new road."},
+	{"who": "*", "if": "qp:vow_cell:name", "say": "Somebody said the Anchoress's name through her wall, and she answered. That is a very odd thing to have happened in a world like this."},
+	{"who": "*", "when": "@eclipse", "say": "Look at the moon. Don't look at it. Look at it. It is going out, and I do not think it is the sky's doing."},
+	{"who": "*", "when": "@dawn", "say": "The grey is coming up behind the Crowns. We kept the fire and we have a morning. I wish I could say that every night."},
+	{"who": "*", "when": "@late", "say": "It is the cold hour. The one where you stop being sure which of the dark things is yourself."},
+	{"who": "*", "when": "@wounded", "say": "You are bleeding on my step. Not that I mind. Only that you should have a care for it."},
+	{"who": "*", "when": "@gloom", "say": "You look hollowed round the edges. Stand by a fire, will you. I would rather not watch."},
+	{"who": "*", "when": "@horse", "say": "Is that {horse} you've got? She knows your step, I can see that. A horse that knows you is worth a fire."},
+	# --- Hearthward's people ---
+	{"who": "hild", "if": "boss:thornwarden", "say": "The forge has run hotter since the oaks went quiet. I will not say it is the same thing. I will say I noticed."},
+	{"who": "hild", "if": "kindled:4", "say": "Edda lit one. You have lit four. I tell myself it is a family business."},
+	{"who": "hild", "when": "@eclipse", "say": "The coals have gone the colour of the moon. Grandmother said that meant to stand back. I am standing back."},
+	{"who": "fennick", "if": "qd:lamp_road", "say": "Somebody has been lighting posts I could not reach. I stood at the gate this evening and every lamp for a mile was lit and not one of them mine. I wept, a little, at my age."},
+	{"who": "fennick", "when": "@dawn", "say": "Lamps out, one by one. It is the best part of the night. I have never told anybody that."},
+	{"who": "fennick", "if": "kindled:2", "say": "I watched you light the second. It is a thing to see, a fire taken by someone who means it."},
+	{"who": "nan", "if": "qd:keg_thief", "say": "The ale is where it should be, and I am not sure I like it. I had got used to the mystery."},
+	{"who": "nan", "when": "@horse", "say": "That {horse} of yours has a look about it. Not the horse. The way it looks at you. I have a mug for people like that."},
+	{"who": "nan", "if": "boss:bone_abbot", "say": "Brother Lisle used to drink here, before the abbey took him. I keep his mug at the back. Somebody should."},
+	{"who": "col", "if": "boss:thornwarden", "say": "I was in the Thornwood as a boy. I never went past the second oak. I am thinking of going to the third, in daylight, if daylight ever comes."},
+	{"who": "bet", "if": "bosses:2", "say": "New slates on the roof, and I did not pay for them. The village paid. I have never been so humbled by a roof."},
+	{"who": "wenna", "if": "boss:bone_abbot", "say": "He stopped counting when you broke the crown. I could hear it stop. I had not known I was listening."},
+	{"who": "wenna", "if": "qp:name_on_roll:entered", "say": "There is a name in the Tally that was not there. I think I know whose. I am not going to say."},
+	{"who": "pell", "if": "boss:ascended_warden", "say": "(Pell looks at you for a long moment, and holds up the mended shoe. It has a new stitch in it. She nods, once.)"},
+	{"who": "wyck", "if": "boss:thornwarden", "say": "I buried a bird face down this morning, the old way, and the wood did not mind. It has been nine winters since it did not mind."},
+	{"who": "abel", "when": "@dawn", "say": "Another night, and nobody to bury. I have been holding my spade in case. I am putting it down."},
+	{"who": "abel", "if": "qp:names_yard:confess", "say": "The names are in the wall now. Maren Coyle. Tam. Sister Ide. I read them each evening, aloud, in order. It is the nearest I come to praying."},
+	{"who": "grisel", "if": "bosses:1", "say": "Ash is dearer when the hollowed are scarce, and thinner when they are plenty. You have done me out of a margin. I will forgive you for the light."},
+	{"who": "oswin", "if": "qp:forty_first:faith", "say": "The forty-first stone is a lit post. People stand by it. They do not seem to know why. I know why."},
+	{"who": "oswin", "if": "qp:forty_first:truth", "say": "I went home, in the end. They say you can see the village from the stair. I did not look. I thought I would see it later."},
+	# --- the story's five ---
+	{"who": "perrin", "if": "qp:aurel_edicts:leave", "say": "I have stopped copying. I find my hand does not know what to do. It keeps making the shape of a letter in the air."},
+	{"who": "perrin", "when": "@eclipse", "say": "The Hierarch dictated the third edict at an eclipse of the sun, you know. Not a real one. A dimming. I thought it was the pen."},
+	{"who": "odile", "if": "qp:lamp_road:stair", "say": "I walked the road at dusk. Every lamp leans at the mountain. I wore my good shawl."},
+	{"who": "odile", "if": "qp:lamp_road:home", "say": "A pilgrim came down the road in the dark last night and walked the whole way home by the lamps. He thanked the post. I have not stopped smiling."},
+	{"who": "odile", "when": "@dawn", "say": "Ned always put them out at dawn. I leave them. It is not for the dark. It is for the walkers coming in."},
+	{"who": "ione", "if": "qp:name_on_roll:mother", "say": "My mother's name is in the Tally. I went and put my thumb on it. The post was warm, and I think that was only the sun, and I am not going to be told otherwise."},
+	{"who": "ione", "when": "@wounded", "say": "Sit by the fire. I have a stew. It is mostly turnip and entirely kind."},
+	{"who": "lowe", "if": "qp:horn_end:sung", "say": "I slept the whole night. I woke at noon and did not know where I was and, for the first time, did not need to."},
+	{"who": "lowe", "if": "qp:horn_end:left", "say": "I sat with him last night, by the horn. I told him about the choir. He held the note the whole time, and I think he was listening."},
+	{"who": "tamsin", "if": "qp:vow_cell:bread", "say": "The cloth was folded in thirds, corners in. I wept. It is the nicest thing a stranger has ever done for me, and she is not a stranger."},
+	{"who": "tamsin", "if": "qp:vow_cell:break", "say": "I leave the bread on the open ground now. Some mornings a stone on the cloth. I have a small collection."},
+	# --- the travellers and the outposts ---
+	{"who": "tansy", "if": "boss:ascended_warden", "say": "I have walked this road forty years towards that mountain. I find I have not stopped. It is a habit of the legs."},
+	{"who": "marra", "when": "@horse", "say": "A horse that has a name! The salt-mule has one, she is called Duty. It is a terrible name for a mule."},
+	{"who": "ruan", "if": "bells:1", "say": "One of the Founder's rang in the oak last dusk, rightly, and the kin came to the turf's edge to hear. They did not come in. It will take a night or two."},
+	{"who": "jory", "if": "qd:cutters_pledge", "say": "My brother's mark is back on the wall. The Q with the second tail. I have not spoken to him in nine winters. I am thinking of what to say."},
+	{"who": "ysolt", "if": "qp:moor_shrine:snuff", "say": "The shrine is dark by my own choice. It is a hard thing to be right about and to feel it."},
+	{"who": "agathe", "if": "boss:bone_abbot", "say": "They are turning to face the gate, one by one. I stood in the field and watched stone after stone swing round on its own. I have never been so tired and so glad."},
+	{"who": "cadoc", "if": "qp:mere_light:lit", "say": "Seven out, seven back. I counted twice. It is the first time in nine winters the number has come out."},
+	{"who": "dunstan", "when": "@late", "say": "A hundred and forty on the down. I count them when the cold comes. They all look up when the bell goes, all at once, like a congregation."},
+	{"who": "isolde", "when": "@eclipse", "say": "The lamp goes out at the eclipse of its own accord, and relights itself. I have never asked it why. It seems rude."},
+	{"who": "penn", "if": "qp:arches_keeper:read", "say": "A thread of water ran the whole channel, they say, and was gone. A sum, closed."},
+	{"who": "hesper", "if": "qp:oak_memory:root", "say": "The apple bloomed three weeks early. I stood under it in my nightgown at midnight like a madwoman. My mother's mother would have done the same."},
+	{"who": "ebba", "if": "qp:lanternwood_debt:shore", "say": "There is a wood on my landing. A dozen caps by morning. The reed-folk are very polite about it."},
+	{"who": "burl", "if": "qp:cairn_count:wick", "say": "There is a lamp in the south window. I have not been able to stop looking at it. I think the heath looks back."},
+	{"who": "ardel", "if": "qp:brine_road:lamp", "say": "The Spire's shutter is open, and for the first time the pans have a view of it. I have taken to waving."},
+]
+
+## Two people in earshot of each other, a few lines in turn: [{a, b, if, lines: [[who, text], ...]}].
+const SCENES := [
+	{"a": "nan", "b": "col", "if": "", "lines": [["nan", "You've put your boots on the table again."], ["col", "They were here first."], ["nan", "So was the table."]]},
+	{"a": "hild", "b": "fennick", "if": "kindled:2", "lines": [["fennick", "That is two fires, Hild, that are not on my round."], ["hild", "You are welcome to be offended by them."], ["fennick", "I am. Quietly. With a great deal of respect."]]},
+	{"a": "bet", "b": "nan", "if": "boss:bone_abbot", "lines": [["bet", "They say the crypt is quiet."], ["nan", "They say that of the Keg on a Tuesday."], ["bet", "And is it?"], ["nan", "It is a Tuesday. It is not quiet."]]},
+	{"a": "wyck", "b": "abel", "if": "boss:thornwarden", "lines": [["wyck", "The wood has stopped asking me for things."], ["abel", "Asking?"], ["wyck", "A branch on my roof at night. I took it for the wind. It was knocking."], ["abel", "And now?"], ["wyck", "Now it is only the wind. I miss it."]]},
+	{"a": "perrin", "b": "odile", "if": "qd:lamp_road", "lines": [["odile", "You have not been writing."], ["perrin", "I have been reading. A road, as it happens. Every post."], ["odile", "Do you approve?"], ["perrin", "I should like to have said it first."]]},
+	{"a": "ione", "b": "wenna", "if": "boss:bone_abbot", "lines": [["ione", "You are the one who said her name back."], ["wenna", "I was only a child. I did not know it would work."], ["ione", "Nobody does. That is how it works."]]},
+	{"a": "lowe", "b": "tamsin", "if": "bosses:2", "lines": [["tamsin", "Did you ever speak to her? The one in the wall?"], ["lowe", "Not I. I trained a boy. It is quite enough to answer for."], ["tamsin", "I only bring her bread."], ["lowe", "That is the better trade."]]},
+	{"a": "agathe", "b": "cadoc", "if": "bells:2", "lines": [["cadoc", "Two bells, they say."], ["agathe", "Two. I heard the second from the field. The stones turned."], ["cadoc", "Mine rang. I rowed out to hear it from the middle."], ["agathe", "And?"], ["cadoc", "It is a good sound, from the middle. I had not known."]]},
+]
