@@ -99,10 +99,12 @@ func _lift(from: Vector3) -> void:
 	away.y = 0.0
 	away = away.normalized() if away.length() > 0.1 else Vector3.FORWARD
 	_land = patch
-	for k in 14:
-		var d := away.rotated(Vector3.UP, rng.randf_range(-1.2, 1.2)) * rng.randf_range(20.0, 40.0)
+	for k in 28:
+		# away from the threat first; then any side, a little further from home (with nowhere open ahead the
+		# flock wheeled and came down on the very patch it fled)
+		var d := away.rotated(Vector3.UP, rng.randf_range(-1.2, 1.2) if k < 14 else rng.randf_range(-PI, PI)) * rng.randf_range(20.0, 40.0)
 		var q := patch + d
-		if q.distance_to(home) < 30.0 and LifePlace.open_ground(q.x, q.z) and RealmLayout.path_dist(Vector2(q.x, q.z)) > 3.0:
+		if q.distance_to(home) < (30.0 if k < 14 else 45.0) and LifePlace.open_ground(q.x, q.z) and RealmLayout.path_dist(Vector2(q.x, q.z)) > 3.0:
 			_land = Vector3(q.x, RL.height_at(q.x, q.z), q.z)
 			break
 	if _land == patch:
