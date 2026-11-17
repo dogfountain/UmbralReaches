@@ -1722,7 +1722,9 @@ func _step_len(v: float) -> float:
 ## covers ~0.46 m in front (the shader carries it over the leading boot) but only ~0.3 m behind.
 ## `back` = the travel direction's z (rig +z is behind).
 func _robe_reach(back: float) -> float:
-	var r := (0.46 if _g_dir.y < 0.3 else 0.3) if back <= 0.0 else 0.3    # back-pedalling: the front is the trail
+	# back-pedalling: the front is the trail; at a sprint the body is upright and the hem covers less ahead
+	# (robe_skin.gdshader drapes it at most 0.32 m out), so the foot lands inside it, not a boot out on its own
+	var r := (lerpf(0.46, 0.3, _g_spr) if _g_dir.y < 0.3 else 0.3) if back <= 0.0 else 0.3
 	return r / maxf(absf(back), 0.25) if absf(back) > 0.01 else 4.0
 
 
@@ -1891,7 +1893,8 @@ func _cycle(speed: float, xf: Transform3D, by: float, dt: float) -> void:
 	var prev := _cyc
 	_cyc = fposmod(_cyc + speed * dt / maxf(2.0 * _g_L, 0.1), 1.0)
 	var along := Vector3(_g_dir.x, 0.0, _g_dir.y)
-	var lift := lerpf(0.07, 0.15, _g_run) + 0.06 * _g_spr     # (a high heel kick shows the leg through the robe)
+	var lift := lerpf(0.07, 0.15, _g_run) - 0.04 * _g_spr     # (a high heel kick shows the leg through the robe: a sprint's boot
+	# came out of the back of the coat, mid-air, on its own)
 	var flying := true
 	for i in 2:
 		var c0 := fposmod(prev + 0.5 * float(i), 1.0)
@@ -1934,10 +1937,10 @@ func _swing_foot(i: int, g: Array, by: float, u: float, lift: float) -> void:
 	# out of the back quickly (a heel kicked up behind the hem reads as a stray boot), eased in
 	var e := 0.5 * u * u * (3.0 - 2.0 * u) + 0.5 * (1.0 - (1.0 - u) * (1.0 - u))
 	var p := from.lerp(dest, e)
-	p.y = lerpf(from.y, dest.y, smoothstep(0.0, 0.7, u)) + lift * pow(sin(PI * pow(u, 0.75)), 0.9)
+	p.y = lerpf(from.y, dest.y, smoothstep(0.0, 0.7, u)) + lift * pow(sin(PI * pow(u, lerpf(0.75, 1.15, _g_spr))), 0.9)
 	_f_out[i] = p
 	_f_out_yaw[i] = lerp_angle(_f_from_yaw[i], by + (-TOE_OUT if i == 0 else TOE_OUT), e)
-	_f_out_pitch[i] = lerpf(-0.3 - 0.45 * _g_run, 0.16 * (1.0 - _g_run) + 0.04, smoothstep(0.05, 0.85, u))
+	_f_out_pitch[i] = lerpf(-0.3 - 0.45 * _g_run + 0.3 * _g_spr, 0.16 * (1.0 - _g_run) + 0.04, smoothstep(0.05, 0.85, u))
 	_f_out_n[i] = Vector3.UP.slerp((g[1] as Vector3).normalized(), e)
 
 

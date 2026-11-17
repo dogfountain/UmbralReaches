@@ -181,8 +181,10 @@ void vertex() {
 			float band = smoothstep(0.48, 0.03, abs(Q.y - foot.y)) * hem;
 			float near = smoothstep(0.40, 0.02, abs(Q.x - foot.x));
 			float cw = band * near * max(side_w, 0.35) * front;
-			float tip = clamp(foot.z - (foot_radius * 0.5), -0.32, 0.0);
-			Q.z -= max(Q.z - tip, 0.0) * cw * 0.7;
+			// as far out as a sprinting toe reaches (it swings 0.5 m ahead of the chest: the hem stopped at 0.32 and the
+			// boot ran on ahead of the coat on its own)
+			float tip = clamp(foot.z - (foot_radius * 0.5), -0.56, 0.0);
+			Q.z -= max(Q.z - tip, 0.0) * cw * 0.85;
 			Q.y -= max(Q.y - (foot.y + 0.015), 0.0) * cw * 0.55;
 			Q.x += (foot.x - Q.x) * cw * 0.22;
 		}
