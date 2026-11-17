@@ -426,7 +426,7 @@ func _refresh_binds() -> void:
 func _begin_listen(action: String, slot: String) -> void:
 	_listen = "%s|%s" % [action, slot]
 	_listen_ms = Time.get_ticks_msec()
-	_bind_msg.text = "Press the new %s for %s. Esc cancels." % ["key or mouse button" if slot == "key" else "controller button", InputSetup.label_of(action)]
+	_bind_msg.text = "Press the new %s for %s. %s cancels." % ["key or mouse button" if slot == "key" else "controller button", InputSetup.label_of(action), "Esc" if slot == "key" else "Menu"]
 	_refresh_binds()
 
 
@@ -436,6 +436,12 @@ func _listen_input(event: InputEvent) -> void:
 	var action: String = parts[0]
 	var slot: String = parts[1]
 	var ev: InputEvent = null
+	if event is InputEventJoypadButton and event.pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_START:
+		_listen = ""                             # Menu is fixed (it opens Settings): on a pad it is the way out of a rebind
+		_bind_msg.text = "Cancelled."
+		_refresh_binds()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if (event as InputEventKey).physical_keycode == KEY_ESCAPE:
 			_listen = ""
@@ -444,7 +450,7 @@ func _listen_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if slot == "pad":
-			_bind_msg.text = "That is a keyboard key. Press a controller button, or Esc."
+			_bind_msg.text = "That is a keyboard key. Press a controller button, or Menu to cancel."
 			get_viewport().set_input_as_handled()
 			return
 		ev = event
