@@ -9,6 +9,16 @@ enum Trigger {
 	CHARGE,       ## hold to build, release to fire; auto-fires at overcharge (Ember Lance)
 }
 
+## One cheap world ray (stone only) from `from` to a foe's chest: false when a wall or floor lies between.
+## Area skills (Nova, Peal, Well) use it so a ring does not hit or wake a foe through stone.
+static func line_clear(space: PhysicsDirectSpaceState3D, from: Vector3, e: Node3D) -> bool:
+	if space == null:
+		return true
+	var h: Variant = e.get("hp_bar_y")
+	var to := e.global_position + Vector3.UP * (float(h) * 0.55 if h != null else 1.0)
+	return space.intersect_ray(PhysicsRayQueryParameters3D.create(from, to, Layers.WORLD)).is_empty()
+
+
 @export var id: StringName = &"skill"
 @export var title := "Skill"
 @export_multiline var blurb := ""
