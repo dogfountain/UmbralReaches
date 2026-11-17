@@ -28,7 +28,7 @@ static func stream(path: String) -> AudioStream:
 static var _voices: Array[AudioStreamPlayer3D] = []
 static var _started: PackedInt64Array = PackedInt64Array()    ## per voice: msec it last started
 static var _next := 0
-static var _recent := {}                 ## stream instance id -> [msec, repeats]
+static var _recent := {}                 ## logical kind (see _limit_key) -> [msec, repeats]
 static var _trace := -1                  ## -1 unknown, 0 off, 1 on
 const VOICES := 24
 const STACK_S := 0.04
@@ -58,7 +58,7 @@ static func _fire(s: AudioStream, at: Vector3, volume_db: float, pitch: float, j
 	if cam != null and cam.global_position.distance_squared_to(at) > (MAX_D + 2.0) * (MAX_D + 2.0):
 		return
 	var now := Time.get_ticks_msec()
-	var key := s.get_instance_id()
+	var key := _limit_key(s)
 	var rec: Array = _recent.get(key, [-100000, 0, at])
 	var reps := int(rec[1]) + 1 if now - int(rec[0]) < int(STACK_S * 1000.0) and (rec[2] as Vector3).distance_to(at) < 4.0 else 0
 	_recent[key] = [now, reps, at]
@@ -81,6 +81,18 @@ static func _fire(s: AudioStream, at: Vector3, volume_db: float, pitch: float, j
 		var d := cam.global_position.distance_to(at) if cam != null else -1.0
 		var nm := label if label != "" else _name_of(s)
 		print("SFX %d %s %.1f d=%.1f%s" % [now, nm, db, d, " (stacked x%d)" % reps if reps > 0 else ""])
+
+
+## What the repeat limiter counts as the same sound: a file's kind with its take number stripped (flesh_0, flesh_1
+## and flesh_2 are one kind: EnemyAudio hands the takes out round-robin, so a wave of hits in one frame was never
+## attenuated), else the stream itself (a stream built in code has no path).
+static func _limit_key(s: AudioStream) -> Variant:
+	var path := s.resource_path
+	if path == "":
+		return s.get_instance_id()
+	var base := path.get_basename()
+	var i := base.rfind("_")
+	return base.substr(0, i) if i > 0 and base.substr(i + 1).is_valid_int() else base
 
 
 ## A few milliseconds of rise, so a stolen voice and a hard attack do not click.
