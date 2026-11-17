@@ -21,7 +21,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	name = "Soundstage"
 	CueBank.warm()
-	for path: String in ["res://core/audio/mix_director.gd", "res://core/audio/score_director.gd", "res://core/audio/cue_router.gd"]:
+	for path: String in ["res://core/audio/mix_director.gd", "res://core/audio/score_director.gd", "res://core/audio/cue_router.gd", "res://core/audio/landmark_voices.gd"]:
 		var n: Node = (load(path) as GDScript).new()
 		n.set("ambience", ambience)
 		n.set("stage", self)
