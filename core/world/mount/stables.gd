@@ -7,6 +7,7 @@ const DB := preload("res://core/world/mount/horse_db.gd")
 const ScalePilot := preload("res://core/world/realm/scale_pilot.gd")
 const Horse := preload("res://core/world/mount/horse.gd")
 const HorseBond := preload("res://core/world/mount/horse_bond.gd")
+const PostSpot := preload("res://core/world/mount/post_spot.gd")
 
 var horses := {}                 ## breed -> horse node
 
@@ -32,7 +33,7 @@ func _ready() -> void:
 		var g: Vector3 = (hit.position as Vector3) if not hit.is_empty() else Vector3(at.x, 0.0, at.y)
 		var f: Vector2 = ScalePilot.dir(d.at, d.face)
 		var yaw := atan2(-f.x, -f.y)
-		_post(host, g, yaw, String(d.name))
+		_post(host, g, yaw, String(d.name), b)
 		var h: Node3D = Horse.new()
 		h.name = "Horse_" + b
 		h.set("breed", b)
@@ -44,7 +45,7 @@ func _ready() -> void:
 
 
 ## A hitching rail: two posts and a bar, and a pin on the map.
-func _post(host: Node3D, at: Vector3, yaw: float, label: String) -> void:
+func _post(host: Node3D, at: Vector3, yaw: float, label: String, breed := "") -> void:
 	var n := Node3D.new()
 	n.name = "HitchingPost"
 	host.add_child(n)
@@ -60,6 +61,11 @@ func _post(host: Node3D, at: Vector3, yaw: float, label: String) -> void:
 	n.set_meta(&"map_label", label)
 	n.add_to_group("map_marker")
 	n.add_to_group(&"hitching_post")
+	n.set_meta(&"breed", breed)
+	var spot := PostSpot.new()                  # the stable panel: care, tack, saddlebags, the courier board
+	spot.breed = breed
+	n.add_child(spot)
+	spot.position = Vector3(0.0, 0.0, 1.1)
 
 
 func _unhandled_input(ev: InputEvent) -> void:

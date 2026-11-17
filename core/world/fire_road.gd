@@ -59,6 +59,8 @@ static func fires(tree: SceneTree, at: Vector3) -> Array[Brazier]:
 static func blocked_reason(tree: SceneTree) -> String:
 	if Player.boss_fight_active(tree):
 		return "The fires will not carry you out of a warden's fight."
+	if Courier.active():
+		return "You carry a parcel. The fires will not carry it."
 	if tree.get_first_node_in_group(Flight.GROUP) != null:
 		return "You are already on the road."
 	var p := tree.get_first_node_in_group(Groups.PLAYER) as Node3D
