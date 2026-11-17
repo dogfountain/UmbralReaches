@@ -32,6 +32,7 @@ extends Ossuant
 ## breast (two bursts break the Requiem; one breaks Raise the Faithful), the phase floors.
 
 const ClipRig := preload("res://core/enemy/clip_rig.gd")
+const VillagerBossRig := preload("res://core/enemy/villager_boss_rig.gd")
 const ChanterScript := preload("res://core/enemy/chanter.gd")
 const TallyScript := preload("res://core/enemy/tally_reliquary.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
@@ -143,16 +144,16 @@ func _absorb(dmg: float, from: Node) -> float:
 
 func _build() -> void:
 	name = "BoneAbbot"
-	# his motion is authored (tools/blender/boss_humanoid_anim.py): a real skeleton, a ring of skirt bones and
-	# keyed clips played by ClipRig, in place of the Ossuant's joints posed by formula
-	var rig: CharacterRig = ClipRig.new()
-	rig.built = true                        # built geometry in tiling materials (tools/blender/boss_build.py), as the wanderer is
-	rig.scene_path = "res://art/models/boss_bone_abbot.glb"
-	rig.socket_bones = {"pelvis": "hips", "body": "spine", "chest": "chest", "front": "chest", "head": "head", "hand_r": "hand_r", "hand_l": "hand_l"}
-	rig.walk_stride = 0.645
-	rig.run_at = 99.0                       # he does not run
+	# (17 Nov, Luke: "reduce boss to simple model like villager, these models suck") built the way Hearthward's people
+	# are: an old robed villager in a deep hood, a crook in the right hand and a lantern (the reliquary) in the left, the
+	# size of a house, posed by formula (core/enemy/villager_boss_rig.gd). The Blender model and its clips
+	# (boss_bone_abbot.py, boss_humanoid_anim.py, ClipRig) are kept for the record.
+	var rig: CharacterRig = VillagerBossRig.new()
+	rig.set("opts", {"seed": 6101, "sex": "m", "age": "old", "garment": "robe", "hood": true, "r": "crook", "l": "lantern",
+		"hair": "short", "beard": "long", "pale": true, "girth": 0.9, "cloth": Color(0.13, 0.11, 0.11), "cloth2": Color(0.36, 0.08, 0.09),
+		"hair_c": Color(0.62, 0.6, 0.56), "skin": Color(0.66, 0.62, 0.55), "leather": Color(0.2, 0.15, 0.11), "barefoot": true})
 	attach_rig(rig)
-	_rig.scale = Vector3(1.04, 0.94, 1.04)
+	_rig.scale = Vector3.ONE * 1.22          # an old villager is 1.63 m; at SCALE 2.6 and this, about 5 m like the Blender Abbot
 	_rig_xf = _rig.transform
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape is CapsuleShape3D:
@@ -165,8 +166,10 @@ func _build() -> void:
 	strike_range = 3.0                          # embiggen caps reach at 1.7x; his arms are 2.6x
 	# upright and slow: a priest, not a grunt (no twitch at this size: big means deliberate)
 	posture({"hunch": 0.1, "crouch": 0.06, "arm_reach": 0.12, "head_jut": 0.2, "limp": 0.0, "sway": 0.2, "twitch": 0.0, "splay": 0.22})
-	# the reliquary lights its own ribs and the floor round it
-	var chest := _rig.socket("chest") if _rig else null
+	# the reliquary lights its own ribs and the floor round it; on the villager rig it is the lantern in his left hand
+	# (held a hand before his chest, its light lit his face and beard orange)
+	var lamp := _rig.get("lantern_node") as Node3D if _rig else null
+	var chest := lamp if lamp != null else (_rig.socket("chest") if _rig else null)
 	if chest:
 		var l := OmniLight3D.new()
 		l.name = "Reliquary"
@@ -175,13 +178,13 @@ func _build() -> void:
 		l.omni_range = 5.0
 		l.shadow_enabled = false
 		chest.add_child(l)
-		l.position = Vector3(0.0, -0.06, -0.5)
+		l.position = Vector3.ZERO if lamp != null else Vector3(0.0, -0.06, -0.5)
 
 
 ## The crozier is carried upright in the right hand (it hung from the swinging arm like a cane, the
 ## hook behind the head): each frame its mesh is turned back to vertical about the hand.
 func _process(_delta: float) -> void:
-	if _rig != null and _rig.get_script() == ClipRig:
+	if _rig != null and (_rig.get_script() == ClipRig or _rig.get_script() == VillagerBossRig):
 		set_process(false)                   # the authored clips carry the crozier themselves
 		return
 	if _crozier_mi == null:

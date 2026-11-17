@@ -87,6 +87,7 @@ func _prep(opts: Dictionary) -> String:
 	k = size[0]
 	hs = size[1]
 	_rest_layout()
+	VMesh.tool_tips(self)            # the tools' working ends (the lantern glass) without building the mesh
 	var parts := PackedStringArray()
 	for key: String in KEYS:
 		parts.append(str(opts.get(key, "")))

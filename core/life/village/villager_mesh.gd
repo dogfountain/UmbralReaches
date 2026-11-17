@@ -56,3 +56,18 @@ func _vert(p: Vector3, n: Vector3, uv: Vector2, col: Color, mat: int, ao := 1.0)
 	_bones.append_array(PackedInt32Array([B_SPINE, thigh, 0, 0]))
 	_w.append_array(PackedFloat32Array([1.0 - w, w, 0.0, 0.0]))
 	return _v.size() - 1
+
+
+## Each tool's working end at rest, as VillagerRig._tool() places it: [along the fist's axis, along the fingers] x the
+## body size. Set on the rig with its layout (17 Nov: a mesh from GenCache skipped _tool, the tips stayed at zero and a
+## lantern's glow hung by the feet).
+const TIP := {"hammer": [0.28, 0.045], "tongs": [0.36, 0.0], "pole": [1.8, 0.0], "staff": [-1.05, 0.0], "crook": [-1.05, 0.0],
+	"spade": [1.16, 0.0], "axe": [0.52, 0.1], "sword": [0.83, 0.0], "scoop": [0.28, 0.0], "lantern": [0.0, 0.2], "candle": [0.135, 0.0]}
+
+
+static func tool_tips(rig: Variant) -> void:
+	for side in 2:
+		var t: Array = TIP.get(String((rig.cfg as Dictionary).get("r" if side == 0 else "l", "")), [])
+		var ax: Vector3 = rig.grip_ax[side]
+		var fd: Vector3 = (rig.grip_up[side] as Vector3).slide(ax).normalized()
+		rig.tips[side] = (rig.grip[side] as Vector3) + (ax * float(t[0]) + fd * float(t[1])) * float(rig.k) if not t.is_empty() else Vector3.ZERO
