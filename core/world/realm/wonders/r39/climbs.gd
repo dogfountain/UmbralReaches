@@ -106,6 +106,8 @@ func _tower(root: Node, i: int, c: Vector2, lo: float, hi: float, rng: RandomNum
 	k.kit.stairs("stone_big", Vector3(o.x + 4.6, y0 + 6.0, o.z - 4.9), Vector3(o.x + 4.6, y0 + 12.0, o.z + 5.0), 1.8, int(ceilf(6.0 / 0.36)), y0 + 5.6)
 	# the deck: slabs across the top, a platform at the stair's head joined to it, a parapet in pieces, a fire in a ring, the chest
 	k.kit.box("wood_big", o + Vector3(0.0, 11.85, 0.0), Vector3(5.2, 0.3, 4.4), b, true, 0.8)
+	for zz: float in [-2.4, 2.4]:
+		k.kit.box("ruin_big", o + Vector3(0.0, 11.45, zz), Vector3(5.2, 0.5, 0.6), b, true, 0.8)
 	k.kit.box("wood_big", o + Vector3(3.9, 11.85, 2.4), Vector3(3.2, 0.3, 5.2), b, true, 0.8)
 	for j in 6:
 		var a := TAU * float(j) / 6.0
