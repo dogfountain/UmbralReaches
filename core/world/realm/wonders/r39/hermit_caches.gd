@@ -23,52 +23,41 @@ static func build(root: Node) -> void:
 
 
 func _run(root: Node) -> void:
-	# 16 anchors on the ways (always dry ground), each walked off 55-120 m to a side: at most 4 offsets per anchor, no search
-	var paths: Array = RealmLayout.PATHS
+	var cands := WK.grid(9100, 24.0, 20.0)
+	var t := {}
 	var placed := 0
-	var attempts := 0
-	var idx := 0
-	while placed < COUNT and attempts < COUNT * 6:
-		var path: Dictionary = paths[idx % paths.size()]
-		var pts: Array = path.pts
-		var i := (idx * 3 + 1) % (pts.size() - 1)
-		var a: Vector2 = pts[i]
-		var b: Vector2 = pts[i + 1]
-		var p := a.lerp(b, 0.37 + 0.13 * float(idx % 4))
-		var t := (b - a).normalized()
-		var nrm := Vector2(-t.y, t.x) * (1.0 if idx % 2 == 0 else -1.0)
-		idx += 1
-		var done := false
-		for off: float in [62.0, 90.0, 120.0, 150.0]:
-			attempts += 1
-			for sgn: float in [1.0, -1.0]:
-				var c := p + nrm * (off * sgn)
-				if not _ok(c):
-					continue
-				var sp := WK.span(c, Vector2(7.0, 7.0), 0.0)
-				if sp.x == INF:
-					continue
-				WorldLanes.register_terrace("wonder_hermit_%d" % placed, c, 8.0, (sp.x + sp.y) * 0.5)
-				_cache(root, placed, c, (sp.x + sp.y) * 0.5)
-				_placed_pts.append(c)
-				placed += 1
-				done = true
-				break
-			if done:
-				break
-	print("WONDER hermit_caches: %d of %d placed in %d attempts" % [placed, COUNT, attempts])
+	var tried := 0
+	for c: Vector2 in cands:
+		if placed >= COUNT:
+			break
+		tried += 1
+		if not _ok(c, t):
+			continue
+		var sp := WK.span(c, Vector2(7.0, 7.0), 0.0)
+		if sp.x == INF:
+			WK.rej(t, "span")
+			continue
+		WorldLanes.register_terrace("wonder_hermit_%d" % placed, c, 8.0, (sp.x + sp.y) * 0.5)
+		_cache(root, placed, c, (sp.x + sp.y) * 0.5)
+		_placed_pts.append(c)
+		placed += 1
+	print("WONDER hermit_caches: %d of %d placed (%d of %d candidates tried); rejected: %s" % [placed, COUNT, tried, cands.size(), WK.rejected(t)])
 
 
-## Cheap clearance: in the Realm, 55 m or more from the nearest way, 70 m from another cache, clear of every site.
-func _ok(c: Vector2) -> bool:
-	if WK.in_town(c, 20.0) or not RealmLayout.BOUNDS.grow(-16.0).has_point(c) or RealmLayout.path_dist(c) < 45.0:
-		return false
+## Cheap clearance: in the Realm, 40 m or more from the nearest way, 60 m from another cache, clear of every site.
+func _ok(c: Vector2, t: Dictionary) -> bool:
+	if WK.in_town(c, 20.0):
+		return WK.rej(t, "town")
+	if RealmLayout.path_dist(c) < 40.0:
+		return WK.rej(t, "way")
 	for q: Vector2 in _placed_pts:
-		if q.distance_to(c) < 70.0:
-			return false
+		if q.distance_to(c) < 60.0:
+			return WK.rej(t, "spacing")
 	if WK.region_at(c) in ["hearth", "summit", "rift", "ossuary", "henge"]:
-		return false
-	return not WK.site_hit(Rect2(c - Vector2(9.0, 9.0), Vector2(18.0, 18.0)), 2.0)
+		return WK.rej(t, "region")
+	if WK.site_hit(Rect2(c - Vector2(9.0, 9.0), Vector2(18.0, 18.0)), 2.0):
+		return WK.rej(t, "site")
+	return true
 
 
 var _placed_pts: Array[Vector2] = []

@@ -60,6 +60,41 @@ static func acoustic(pts: Array[Vector3], room: String, label: String) -> void:
 	AcousticZones.register(AABB(lo, hi - lo), room, label)
 
 
+## Realm-wide candidate points: a jittered grid over the playable ground (`margin` in from the edge), shuffled by `seed_n`, so a family
+## that needs N places takes the first N that pass and the whole map is in reach (no anchors on the ways, no fixed offsets).
+static func grid(seed_n: int, step: float, margin: float) -> Array[Vector2]:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_n
+	var bd := RealmLayout.BOUNDS.grow(-margin)
+	var out: Array[Vector2] = []
+	var z := bd.position.y
+	while z < bd.end.y:
+		var x := bd.position.x
+		while x < bd.end.x:
+			out.append(Vector2(x + rng.randf_range(-0.4, 0.4) * step, z + rng.randf_range(-0.4, 0.4) * step))
+			x += step
+		z += step
+	for i in range(out.size() - 1, 0, -1):
+		var j := rng.randi() % (i + 1)
+		var tmp := out[i]
+		out[i] = out[j]
+		out[j] = tmp
+	return out
+
+
+## Count one rejection reason in `t`; `rejected` turns the tally into the summary every family prints ("site 12, slope 4, ...").
+static func rej(t: Dictionary, why: String) -> bool:
+	t[why] = int(t.get(why, 0)) + 1
+	return false
+
+
+static func rejected(t: Dictionary) -> String:
+	var parts: PackedStringArray = []
+	for k: String in t:
+		parts.append("%s %d" % [k, int(t[k])])
+	return ", ".join(parts) if not parts.is_empty() else "none"
+
+
 static func h(x: float, z: float) -> float:
 	return Land.height_at(x, z)
 

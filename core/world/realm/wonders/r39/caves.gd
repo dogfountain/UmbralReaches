@@ -35,39 +35,33 @@ static func build(root: Node) -> void:
 
 
 func _run(root: Node) -> void:
-	# seven anchors on the ways, each walked 70-130 m off to a side (at most 8 offsets per cave, no search)
-	var paths: Array = RealmLayout.PATHS
+	# the whole Realm is the candidate set (a jittered 26 m grid, shuffled): the first seven that pass; every refusal is counted
+	var cands := WK.grid(7710, 26.0, 30.0)
+	var t := {}
 	var n := 0
-	var attempts := 0
-	var idx := 3
-	while n < 7 and attempts < 80:
-		var path: Dictionary = paths[idx % paths.size()]
-		var pts: Array = path.pts
-		var i := (idx * 5 + 2) % (pts.size() - 1)
-		var a: Vector2 = pts[i]
-		var b: Vector2 = pts[i + 1]
-		var p := a.lerp(b, 0.5)
-		var t := (b - a).normalized()
-		var nrm := Vector2(-t.y, t.x) * (1.0 if idx % 2 == 0 else -1.0)
-		idx += 1
-		for off: float in [70.0, 100.0, 130.0]:
-			attempts += 1
-			var c := p + nrm * off
-			if _ok(c) and _cave(root, n, c):
-				n += 1
-				break
-	print("WONDER caves: %d of 7 in %d attempts" % [n, attempts])
+	var tried := 0
+	for c: Vector2 in cands:
+		if n >= 7:
+			break
+		tried += 1
+		if _ok(c, t) and _cave(root, n, c):
+			n += 1
+	print("WONDER caves: %d of 7 (%d of %d candidates tried); rejected: %s" % [n, tried, cands.size(), WK.rejected(t)])
 
 
-func _ok(c: Vector2) -> bool:
-	if not RealmLayout.BOUNDS.grow(-30.0).has_point(c) or RealmLayout.path_dist(c) < 55.0 or WK.wet(c.x, c.y):
-		return false
+func _ok(c: Vector2, t: Dictionary) -> bool:
+	if RealmLayout.path_dist(c) < 40.0:
+		return WK.rej(t, "way")
+	if WK.wet(c.x, c.y):
+		return WK.rej(t, "water")
 	for q: Vector2 in _placed:
-		if q.distance_to(c) < 90.0:
-			return false
-	if WK.region_at(c) in ["hearth", "summit", "rift", "ossuary", "henge"]:
-		return false
-	return not WK.site_hit(Rect2(c - Vector2(14.0, 28.0), Vector2(28.0, 56.0)), 2.0)
+		if q.distance_to(c) < 75.0:
+			return WK.rej(t, "spacing")
+	if WK.region_at(c) in ["hearth", "summit", "rift", "ossuary", "henge"] or WK.in_town(c, 20.0):
+		return WK.rej(t, "region")
+	if WK.site_hit(Rect2(c - Vector2(14.0, 28.0), Vector2(28.0, 56.0)), 2.0):
+		return WK.rej(t, "site")
+	return true
 
 
 func _cave(root: Node, i: int, c0: Vector2) -> bool:

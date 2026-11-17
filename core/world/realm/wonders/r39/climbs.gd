@@ -22,65 +22,79 @@ static func build(root: Node) -> void:
 	w._run(root)
 
 
-func _anchor(idx: int, off: float) -> Vector2:
-	var paths: Array = RealmLayout.PATHS
-	var path: Dictionary = paths[idx % paths.size()]
-	var pts: Array = path.pts
-	var i := (idx * 7 + 3) % (pts.size() - 1)
-	var a: Vector2 = pts[i]
-	var b: Vector2 = pts[i + 1]
-	var t := (b - a).normalized()
-	return a.lerp(b, 0.3 + 0.1 * float(idx % 5)) + Vector2(-t.y, t.x) * off * (1.0 if idx % 2 == 0 else -1.0)
-
-
 func _run(root: Node) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7272
+	var tt := {}
 	var towers := 0
-	var attempts := 0
-	var idx := 0
-	while towers < 6 and attempts < 60:
-		attempts += 1
-		idx += 1
-		var c := _anchor(idx, 70.0 + 20.0 * float(idx % 3))
-		if not _free(c, 50.0, 70.0) or WK.wet(c.x, c.y) or not RealmLayout.BOUNDS.grow(-20.0).has_point(c) or WK.site_hit(Rect2(c - Vector2(9.0, 9.0), Vector2(18.0, 18.0)), 2.0):
+	var tried := 0
+	for c: Vector2 in WK.grid(7272, 30.0, 24.0):
+		if towers >= 6:
+			break
+		tried += 1
+		if not _free(c, 40.0, 70.0, tt):
+			continue
+		if WK.wet(c.x, c.y):
+			WK.rej(tt, "water")
+			continue
+		if WK.in_town(c, 10.0):
+			WK.rej(tt, "town")
+			continue
+		if WK.site_hit(Rect2(c - Vector2(9.0, 9.0), Vector2(18.0, 18.0)), 2.0):
+			WK.rej(tt, "site")
 			continue
 		var f := WK.place([c], Vector2(6.0, 6.0), [0.0], 3.0)
 		_tower(root, towers, f.pos, float(f.lo), float(f.hi), rng)
 		_placed.append(f.pos)
 		towers += 1
+	print("WONDER climbs towers: %d of 6 (%d candidates tried); rejected: %s" % [towers, tried, WK.rejected(tt)])
+	# cliff stairs: every 12 m grid point is a foot; the first of eight directions that climbs 8-16 m over 26 m (then 5-16 m if too few) is the stair
+	var st := {}
 	var stairs := 0
-	attempts = 0
-	idx = 40
-	while stairs < 6 and attempts < 160:
-		attempts += 1
-		idx += 1
-		var p := _anchor(idx, 45.0 + 15.0 * float(idx % 3))
-		if not _free(p, 40.0, 90.0) or not RealmLayout.BOUNDS.grow(-30.0).has_point(p) or WK.wet(p.x, p.y):
-			continue
-		var base_y := WK.h(p.x, p.y)
-		for q in 8:
-			var a := TAU * float(q) / 8.0 + float(idx)
-			var d := Vector2(cos(a), sin(a))
-			var top := p + d * 26.0
-			if WK.wet(top.x, top.y) or not RealmLayout.BOUNDS.grow(-14.0).has_point(top):
+	tried = 0
+	var feet := WK.grid(7273, 12.0, 30.0)
+	for min_rise: float in [8.0, 5.0]:
+		for p: Vector2 in feet:
+			if stairs >= 6:
+				break
+			tried += 1
+			if not _free(p, 30.0, 70.0, st):
 				continue
-			var rise := WK.h(top.x, top.y) - base_y
-			if rise < 8.0 or rise > 16.0 or WK.site_hit(Rect2(top - Vector2(6.0, 6.0), Vector2(12.0, 12.0)), 2.0):
+			if WK.wet(p.x, p.y):
+				WK.rej(st, "water")
 				continue
-			_stair(root, stairs, p, top, rng)
-			_placed.append(p)
-			stairs += 1
+			var base_y := WK.h(p.x, p.y)
+			var made := false
+			for q in 8:
+				var a := TAU * float(q) / 8.0 + p.x
+				var d := Vector2(cos(a), sin(a))
+				var top := p + d * 26.0
+				if WK.wet(top.x, top.y) or not RealmLayout.BOUNDS.grow(-14.0).has_point(top):
+					continue
+				var rise := WK.h(top.x, top.y) - base_y
+				if rise < min_rise or rise > 16.0:
+					continue
+				if WK.site_hit(Rect2(top - Vector2(6.0, 6.0), Vector2(12.0, 12.0)), 2.0) or WK.site_hit(Rect2(p - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), 2.0):
+					WK.rej(st, "site")
+					continue
+				_stair(root, stairs, p, top, rng)
+				_placed.append(p)
+				stairs += 1
+				made = true
+				break
+			if not made:
+				WK.rej(st, "rise")
+		if stairs >= 6:
 			break
-	print("WONDER climbs: %d towers, %d cliff stairs (%d attempts)" % [towers, stairs, attempts])
+	print("WONDER climbs stairs: %d of 6 (%d feet tried); rejected: %s" % [stairs, tried, WK.rejected(st)])
 
 
-func _free(c: Vector2, path_min: float, spacing: float) -> bool:
+func _free(c: Vector2, path_min: float, spacing: float, t: Dictionary) -> bool:
 	if RealmLayout.path_dist(c) < path_min:
-		return false
+		return WK.rej(t, "way")
 	for q: Vector2 in _placed:
 		if q.distance_to(c) < spacing:
-			return false
+			return WK.rej(t, "spacing")
 	return true
 
 

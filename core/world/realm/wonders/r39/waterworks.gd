@@ -141,22 +141,42 @@ func sgn_rail(j: int) -> bool:
 func _bridges(root: Node, rng: RandomNumberGenerator) -> int:
 	var pts: Array = RealmLayout.RIVER.pts
 	var made := 0
-	var want := [[2, "bridge"], [5, "ford"], [8, "bridge"], [9, "ford"], [12, "bridge"]]
-	for e: Array in want:
-		var i: int = e[0]
-		if i + 1 >= pts.size():
+	var want := ["bridge", "ford", "bridge", "ford", "bridge"]
+	var t := {}
+	var taken: Array[Vector2] = []
+	var tried := 0
+	var cands: Array = []                  # every river segment at five fractions, the middle ones first: the whole Sorrow is in reach
+	for f: float in [0.5, 0.25, 0.75, 0.1, 0.9]:
+		for i in range(pts.size() - 1):
+			cands.append([i, f])
+	for ce: Array in cands:
+		if made >= want.size():
+			break
+		tried += 1
+		var a: Vector2 = pts[int(ce[0])]
+		var bq: Vector2 = pts[int(ce[0]) + 1]
+		var m := a.lerp(bq, float(ce[1]))
+		var t2 := (bq - a).normalized()
+		var n := Vector2(-t2.y, t2.x)
+		if RealmLayout.path_dist(m) < 10.0:
+			WK.rej(t, "way")
 			continue
-		var a: Vector2 = pts[i]
-		var bq: Vector2 = pts[i + 1]
-		var m := a.lerp(bq, 0.5)
-		var t := (bq - a).normalized()
-		var n := Vector2(-t.y, t.x)
-		if RealmLayout.path_dist(m) < 14.0:
+		var close := false
+		for q: Vector2 in taken:
+			if q.distance_to(m) < 45.0:
+				close = true
+		if close:
+			WK.rej(t, "spacing")
 			continue
 		var ea := m - n * 7.0
 		var eb := m + n * 7.0
-		if Land.in_water(ea.x, ea.y) or Land.in_water(eb.x, eb.y) or WK.site_hit(Rect2(m - Vector2(10.0, 10.0), Vector2(20.0, 20.0)), 2.0):
+		if Land.in_water(ea.x, ea.y) or Land.in_water(eb.x, eb.y):
+			WK.rej(t, "bank")
 			continue
+		if WK.site_hit(Rect2(m - Vector2(10.0, 10.0), Vector2(20.0, 20.0)), 2.0):
+			WK.rej(t, "site")
+			continue
+		taken.append(m)
 		var k := WK.new()
 		k.setup(root, "River%d" % made, 6300 + made)
 		var ya := WK.h(ea.x, ea.y)
@@ -167,8 +187,8 @@ func _bridges(root: Node, rng: RandomNumberGenerator) -> int:
 		var s3 := d3.cross(Vector3.UP)
 		var b := Basis(s3, Vector3.UP, d3)
 		var mid3 := Vector3(m.x, 0.0, m.y)
-		if not k.cached(WK.fp(SELF, [String(e[1]), m, deck, WK.tsig(m, 10.0)])):
-			if String(e[1]) == "bridge":
+		if not k.cached(WK.fp(SELF, [String(want[made]), m, deck, WK.tsig(m, 10.0)])):
+			if String(want[made]) == "bridge":
 				for j in 14:
 					var c := mid3 - d3 * 7.0 + d3 * (0.5 + 1.0 * float(j))
 					k.kit.box("wood_big", Vector3(c.x, deck, c.z), Vector3(2.2, 0.16, 1.05), b, true, 0.7 + 0.2 * k.rng.randf())
@@ -203,4 +223,5 @@ func _bridges(root: Node, rng: RandomNumberGenerator) -> int:
 		WK.reserve("river_cross_%d" % made, m, Vector2(8.0, 8.0), 0.0, minf(ya, yb) - 2.0, deck + 4.0)
 		k.commit(150.0)
 		made += 1
+	print("WONDER waterworks bridges/fords: %d of %d (%d candidates tried); rejected: %s" % [made, want.size(), tried, WK.rejected(t)])
 	return made
