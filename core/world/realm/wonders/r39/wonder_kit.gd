@@ -395,6 +395,18 @@ func commit(range_end := 0.0) -> int:
 				verts += (am.surface_get_arrays(sidx)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
 			if verts > 18000:
 				mi.mesh = MeshChunks.with_lods(am)
+	if host.is_in_group("world_poi") and not host.has_meta("centre"):
+		# a discovery: the systems that read `world_poi` (world events, the far light signatures) want a centre and a radius
+		var bb := AABB()
+		var got := false
+		for ch2 in host.get_children():
+			var m2 := ch2 as MeshInstance3D
+			if m2 != null and String(m2.name).begins_with("Mesh_"):
+				bb = m2.get_aabb() if not got else bb.merge(m2.get_aabb())
+				got = true
+		if got:
+			host.set_meta("centre", bb.get_center())
+			host.set_meta("radius", clampf(bb.size.length() * 0.35, 8.0, 40.0))
 	if range_end > 0.0:
 		for ch in host.get_children():
 			if ch is MeshInstance3D or ch is MultiMeshInstance3D:
