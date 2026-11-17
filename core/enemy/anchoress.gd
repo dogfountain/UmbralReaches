@@ -370,3 +370,9 @@ func _under_lands() -> void:
 
 func voice_family() -> String:
 	return "anchoress"
+
+
+## Her vow ends the way she asked: not broken, only finished.
+func _die() -> void:
+	BossKit.emote(self, "She sets the anchor down. The chain goes slack. \"I can stop,\" she says, to nobody, and does.", Color(0.95, 0.85, 0.65))
+	super._die()
