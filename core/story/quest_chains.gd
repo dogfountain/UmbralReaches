@@ -67,6 +67,7 @@ const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 const VQ := preload("res://core/story/quest_chains_verbs.gd")   ## Hearthward's five tasks deepened with the task verbs (docs/QUEST_VERBS.md)
 const VerbKit := preload("res://core/story/verb_kit.gd")
 const StoryQ := preload("res://core/story/quest_chains_story.gd")   ## the five long tasks: The Third Edict, The Lamp-Road, The Name on the Roll, What the Horn Was For, The Vow's Cell
+const RegionsQ := preload("res://core/story/quest_chains_regions.gd")   ## the regions' long tasks: Lanternwood, Thousand Cairns, Southwood, White Pans, Long Arches
 const DoorsQ := preload("res://core/story/quest_chains_doors.gd")   ## the four doors the Far Reaches' threads stopped at, closed as stories
 const DC := preload("res://core/story/quest_chains_deepen_c.gd")   ## the Far Reaches' signature tasks (Relief, A Night of Charcoal, The Rope Rung Right)
 const DeepB := preload("res://core/story/quest_chains_deepen_b.gd")   ## the deepened tasks (docs/QUEST_DEPTH.md)
@@ -103,6 +104,7 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"wr_relief", "ds_charcoal", "er_rope",          # --- deepen C ---
 	"aurel_edicts", "lamp_road", "name_on_roll", "horn_end", "vow_cell",          # --- the story's long tasks ---
 	"wr_door_kings", "ds_door_castellum", "ds_door_witch", "er_door_nave",
+	"lanternwood_debt", "cairn_count", "oak_memory", "brine_road", "arches_keeper",          # --- the regions' long tasks ---
 	# --- deepen B ---
 	"seventh_day",
 	# --- deepen A ---
@@ -637,6 +639,8 @@ const QUESTS := {
 	# --- the story's long tasks ---
 	"aurel_edicts": StoryQ.QUESTS["aurel_edicts"], "lamp_road": StoryQ.QUESTS["lamp_road"], "name_on_roll": StoryQ.QUESTS["name_on_roll"],
 	"horn_end": StoryQ.QUESTS["horn_end"], "vow_cell": StoryQ.QUESTS["vow_cell"],
+	"lanternwood_debt": RegionsQ.QUESTS["lanternwood_debt"], "cairn_count": RegionsQ.QUESTS["cairn_count"], "oak_memory": RegionsQ.QUESTS["oak_memory"],
+	"brine_road": RegionsQ.QUESTS["brine_road"], "arches_keeper": RegionsQ.QUESTS["arches_keeper"],
 	"wr_door_kings": DoorsQ.QUESTS["wr_door_kings"], "ds_door_castellum": DoorsQ.QUESTS["ds_door_castellum"], "ds_door_witch": DoorsQ.QUESTS["ds_door_witch"], "er_door_nave": DoorsQ.QUESTS["er_door_nave"],
 	# --- deepen B ---
 	"seventh_day": DeepB.SEVENTH_DAY,
@@ -779,6 +783,7 @@ const PICKUPS := {
 	"lr_oil_3": StoryQ.PICKUPS["lr_oil_3"], "lr_coal": StoryQ.PICKUPS["lr_coal"], "lr_coal2": StoryQ.PICKUPS["lr_coal2"], "lr_coal3": StoryQ.PICKUPS["lr_coal3"],
 	"lr_last": StoryQ.PICKUPS["lr_last"], "nr_page": StoryQ.PICKUPS["nr_page"], "nr_roll": StoryQ.PICKUPS["nr_roll"], "he_horn": StoryQ.PICKUPS["he_horn"],
 	"vc_bread": StoryQ.PICKUPS["vc_bread"], "vc_wall": StoryQ.PICKUPS["vc_wall"],
+	"lanternwood_debt_coal": RegionsQ.PICKUPS["lanternwood_debt_coal"], "lanternwood_debt_place": RegionsQ.PICKUPS["lanternwood_debt_place"], "cairn_count_coal": RegionsQ.PICKUPS["cairn_count_coal"], "cairn_count_place": RegionsQ.PICKUPS["cairn_count_place"], "oak_memory_coal": RegionsQ.PICKUPS["oak_memory_coal"], "oak_memory_place": RegionsQ.PICKUPS["oak_memory_place"], "brine_road_coal": RegionsQ.PICKUPS["brine_road_coal"], "brine_road_place": RegionsQ.PICKUPS["brine_road_place"], "arches_keeper_coal": RegionsQ.PICKUPS["arches_keeper_coal"], "arches_keeper_place": RegionsQ.PICKUPS["arches_keeper_place"],
 	"wd_kings": DoorsQ.PICKUPS["wd_kings"], "dc_sluice": DoorsQ.PICKUPS["dc_sluice"], "dw_door": DoorsQ.PICKUPS["dw_door"], "en_step": DoorsQ.PICKUPS["en_step"],
 	# --- deepen B ---
 	"turf_roof": DeepB.PICKUPS["turf_roof"], "wards_set": DeepB.PICKUPS["wards_set"], "ward_holds": DeepB.PICKUPS["ward_holds"],
