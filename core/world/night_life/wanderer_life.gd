@@ -19,6 +19,10 @@ var _halo: OmniLight3D
 var _still := 0.0
 var _next_warm := 0.0
 var _next_moth := 0.0
+var _ctx_t := 0.0
+var _weather: Node
+var _dark_goal := 0.0
+var _dark := 0.0                      ## eased 0..1: nothing lit near him
 
 
 func _ready() -> void:
@@ -57,6 +61,7 @@ func _process(delta: float) -> void:
 	_halo.visible = _halo.light_energy > 0.02
 	if not Reg.enabled or _rig == null:
 		return
+	_context(delta)
 	var moving := _player.velocity.length() > 0.5 or not _player.is_on_floor() or get_tree().paused
 	if moving:
 		_still = 0.0
@@ -90,3 +95,51 @@ func _near_fire() -> Vector3:
 			best = d2
 			at = Reg.pos[i]
 	return at
+
+
+## What the night round him is, for the rig's idle acts and condition overlays (wanderer_idles.gd): twice a second a few
+## distance tests over the registry rows, eased where it should not jump.
+func _context(delta: float) -> void:
+	var c: Dictionary = _rig.idle_ctx
+	_ctx_t -= delta
+	var eclipse := clampf((Reg.gain_mul - 1.0) / 0.55, 0.0, 1.0)
+	if _ctx_t <= 0.0:
+		_ctx_t = 0.5
+		var pp := _player.global_position
+		var fire := _near_fire() != Vector3.INF
+		c["fire"] = 1.0 if fire else 0.0
+		var lit := false
+		var best := 25.0 * 25.0
+		var look_at := Vector3.INF
+		var look_d := 80.0 * 80.0
+		var fwd := -_player.global_basis.z
+		for i in Reg.size():
+			if Reg.on[i] == 0 or int(Reg.kind[i]) == Reg.Kind.COLD:
+				continue
+			var q: Vector3 = Reg.pos[i]
+			var d2 := pp.distance_squared_to(q)
+			if d2 < best:
+				lit = true
+			var k := int(Reg.kind[i])
+			if d2 < look_d and d2 > 100.0 and (k == Reg.Kind.MYSTERY or k == Reg.Kind.TOWER or k == Reg.Kind.WINDOW):
+				var dir := (q - pp).normalized()
+				if dir.dot(fwd) > 0.35 and q != (c.get("look_done", Vector3.INF) as Vector3):
+					look_d = d2
+					look_at = q
+		c["look"] = look_at
+		if _weather == null:
+			_weather = get_tree().current_scene.find_child("Weather", true, false)
+		var rain := 0.0
+		if _weather != null:
+			rain = float((_weather.get("state") as Dictionary).get("rain", 0.0))
+		c["rain"] = rain
+		c["cold"] = 1.0 if ((rain > 0.5 or eclipse > 0.5) and not fire) else 0.0
+		_dark_goal = 1.0 if (not lit and not fire) or eclipse > 0.5 else 0.0
+		var hurt := 0.0
+		var wm: float = float(_player.get("wounds_max"))
+		if wm > 0.0:
+			hurt = clampf((float(_player.get("wounds")) / wm - 0.55) / 0.45, 0.0, 1.0)
+		c["injured_goal"] = hurt
+	_dark = lerpf(_dark, _dark_goal, 1.0 - exp(-1.2 * delta))
+	c["dark"] = _dark
+	c["injured"] = lerpf(float(c.get("injured", 0.0)), float(c.get("injured_goal", 0.0)), 1.0 - exp(-1.5 * delta))

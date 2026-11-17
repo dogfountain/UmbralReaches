@@ -32,6 +32,7 @@ var _tick := 0.0
 var _t := 0.0
 var _waited := 0.0
 var _built := false
+static var _centres := PackedVector3Array()   ## each house's window centre (the folk's cats look for roofs above them)
 
 
 func _process(delta: float) -> void:
@@ -99,6 +100,7 @@ func _build() -> void:
 		for l: Light3D in hs.lights:
 			l.visible = hs.lit
 		_houses.append(hs)
+		_centres.append(hs.centre)
 		var gy := hs.centre.y - 1.4
 		Reg.put(hs.key, hs.centre, Reg.Kind.WINDOW, minf(0.45 + 0.12 * float(hs.lights.size()), 0.95), gy, false, hs.lit)
 	_built = true
@@ -106,6 +108,11 @@ func _build() -> void:
 
 func _waited_out() -> bool:
 	return _t > 60.0
+
+
+## The houses' window centres, once the village is found (empty before).
+static func centres() -> PackedVector3Array:
+	return _centres
 
 
 ## Is the house's lamp lit at clock time `c`? (before it opens: dark; between open and close: lit, with the last

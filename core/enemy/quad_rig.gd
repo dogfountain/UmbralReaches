@@ -31,6 +31,8 @@ var _snap_t := -1.0
 var _flinch := 0.0
 var _flinch_side := 0.0
 var _reel := 0.0          ## stagger: belly down, legs splayed, for the whole punish
+var _flinch_t := 0.0      ## what the flinch and the reel are heading for: the shown values rise to it in a few ticks (no one-tick snap), then follow its decay
+var _reel_t := 0.0
 var _fold := 0.0          ## death: legs give, belly to the ground
 var _fall_base := Transform3D.IDENTITY
 var _fall_side := 1.0
@@ -129,8 +131,10 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		if _snap_t > 0.34:
 			_snap_t = -1.0
 			_snap = 0.0
-	_flinch = move_toward(_flinch, 0.0, delta * 3.4)
-	_reel = move_toward(_reel, 0.0, delta * 0.75)
+	_flinch_t = move_toward(_flinch_t, 0.0, delta * 3.4)
+	_flinch = move_toward(_flinch, _flinch_t, delta * 18.0)
+	_reel_t = move_toward(_reel_t, 0.0, delta * 0.75)
+	_reel = move_toward(_reel, _reel_t, delta * 9.0)
 	if _fold > 0.0:
 		_fold = minf(_fold + delta * 1.2, 1.0)
 	# coil = the crouch before a pounce; Enemy squashes the whole visual too, this bends the legs
@@ -255,7 +259,7 @@ func strike() -> void:
 
 
 func flinch(amount: float, side := 0.0) -> void:
-	_flinch = clampf(maxf(_flinch, amount), 0.0, 1.0)
+	_flinch_t = clampf(maxf(_flinch_t, amount), 0.0, 1.0)
 	_flinch_side = side
 
 
@@ -263,8 +267,8 @@ func stagger() -> void:
 	_fall_side = -1.0 if _flinch_side < 0.0 else 1.0
 	_gesture_t = -1.0
 	_gesture = 0.0
-	_flinch = 1.0
-	_reel = 1.0
+	_flinch_t = 1.0
+	_reel_t = 1.0
 
 
 ## The legs give and the body rolls over: a spider onto its back with the legs curled, a hound

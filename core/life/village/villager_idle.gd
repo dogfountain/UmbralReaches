@@ -75,6 +75,7 @@ static func stand(v: Variant, k: float, free_r: bool, free_l: bool, breath: floa
 	r.q(B_SHIN_R, (r.get_q(B_SHIN_R) as Quaternion) * Quaternion(Vector3.RIGHT, -2.0 * rest_r))
 	r.q(B_THIGH_L, (r.get_q(B_THIGH_L) as Quaternion) * Quaternion(Vector3.RIGHT, rest_l))
 	r.q(B_SHIN_L, (r.get_q(B_SHIN_L) as Quaternion) * Quaternion(Vector3.RIGHT, -2.0 * rest_l))
+	Fidgets.wave(v, k, free_r, free_l)
 	return head
 
 
