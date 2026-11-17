@@ -18,6 +18,8 @@ const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
 const Move := preload("res://core/world/mount/horse_move.gd")
 const HorseBond := preload("res://core/world/mount/horse_bond.gd")
+const Paddock := preload("res://core/world/mount/horse_paddock.gd")   ## a horse at its post strolls the paddock
+var _wd := {}
 
 const GRAVITY := 24.0                ## m/s^2 on the leap (a horse's jump is snappy, not floaty)
 const HOP_H := 0.6                   ## apex of a standing hop (m)
@@ -521,6 +523,7 @@ func _place_rider(dt: float, ph: float) -> void:
 
 
 func _process(dt: float) -> void:
+	Paddock.step(self, _wd, dt)
 	if _rig:
 		_rig.global_transform = get_global_transform_interpolated()
 	# a rider that died, was hollowed or was moved off (a respawn, travel) is no longer riding
@@ -542,7 +545,7 @@ func _process(dt: float) -> void:
 		_graze_t = randf_range(4.0, 9.0)
 	var down := _graze_t > 2.0
 	_head = lerpf(_head, 0.7 if down else 0.0, 1.0 - exp(-1.5 * dt))
-	if speed > 0.0:
+	if speed > 0.0 and not bool(_wd.get("moving", false)):
 		speed = move_toward(speed, 0.0, 9.0 * dt)
 	# off screen it is posed twice a second (as the villagers are: NpcLife.interval), with the time since
 	_pose_acc += dt
