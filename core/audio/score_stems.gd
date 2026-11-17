@@ -17,9 +17,9 @@ const GenCache := preload("res://core/world/realm/gen_cache.gd")
 const SELF := "res://core/audio/score_stems.gd"
 const VERSION := 1
 
-const LOOPS := ["tension", "combat_lo", "combat_hi", "aftermath", "act1", "act2", "act3"]
+const LOOPS := ["tension", "combat_lo", "combat_hi", "aftermath", "act1", "act2", "act3", "hour_dusk", "hour_late", "hour_dawn", "ending"]
 const MOTIFS := ["motif_village", "motif_wood", "motif_fen", "motif_heights", "motif_crypt", "motif_act1", "motif_act2", "motif_act3"]
-const LEN := {"tension": 16.0, "combat_lo": 19.2, "combat_hi": 19.2, "aftermath": 20.0, "act1": 24.0, "act2": 24.0, "act3": 24.0}
+const LEN := {"tension": 16.0, "combat_lo": 19.2, "combat_hi": 19.2, "aftermath": 20.0, "act1": 24.0, "act2": 24.0, "act3": 24.0, "hour_dusk": 24.0, "hour_late": 24.0, "hour_dawn": 24.0, "ending": 24.0}
 
 static var _bytes := {}
 static var _streams := {}
@@ -89,6 +89,14 @@ static func build(id: String) -> PackedFloat32Array:
 			out = _act2()
 		"act3":
 			out = _act3()
+		"hour_dusk":
+			out = _hour_dusk()
+		"hour_late":
+			out = _hour_late()
+		"hour_dawn":
+			out = _hour_dawn()
+		"ending":
+			out = _ending()
 		_:
 			out = _motif(id)
 	Kit.finish(out, 0.8, 0.05 if not LOOPS.has(id) else 0.0)
@@ -201,6 +209,56 @@ static func _act3() -> PackedFloat32Array:
 	while k < L - 0.3:
 		Kit.noise(out, k, 0.03, 0.18, 2500.0, 8000.0, 0.001, 0.01, int(k * 10.0) + 5)               # the count
 		k += 1.5
+	return out
+
+
+## Dusk: a warm major third over a low D, one plucked D now and again: the night has not yet made up its mind.
+static func _hour_dusk() -> PackedFloat32Array:
+	var L: float = LEN["hour_dusk"]
+	var out := Kit.buf(L)
+	for f: float in [73.4, 146.8, 185.0, 220.0]:
+		Kit.partial(out, 0.0, L, fit(f, L), 0.28, 0.0, 1.0e6)
+	_swell(out, 2.0, 0.5)
+	Kit.pluck(out, 6.0, 293.7, 0.3, 1.4)
+	Kit.pluck(out, 18.0, 370.0, 0.3, 1.4)
+	return out
+
+
+## The late hours: an open fifth with nothing in the middle and a high bell every eight seconds, very far off.
+static func _hour_late() -> PackedFloat32Array:
+	var L: float = LEN["hour_late"]
+	var out := Kit.buf(L)
+	for f: float in [98.0, 147.0]:
+		Kit.partial(out, 0.0, L, fit(f, L), 0.35, 0.0, 1.0e6)
+	_swell(out, 1.0, 0.6)
+	for i in 3:
+		Kit.bell(out, 2.0 + 8.0 * float(i), 1318.5, 0.2, 2.0)
+	return out
+
+
+## The grey before dawn: a choir rising a step at a time, three bells climbing.
+static func _hour_dawn() -> PackedFloat32Array:
+	var L: float = LEN["hour_dawn"]
+	var out := Kit.buf(L)
+	for f: float in [196.0, 294.0, 392.0]:
+		Kit.partial(out, 0.0, L, fit(f, L), 0.25, 0.0, 1.0e6)
+	_swell(out, 1.0, 0.8, -1.2)
+	var notes := [392.0, 494.0, 587.0]
+	for i in 3:
+		Kit.bell(out, 4.0 + 6.0 * float(i), float(notes[i]), 0.3, 2.0)
+	return out
+
+
+## After the door is shut: open fifths in D major, one bell falling every six seconds. The cold stays; it no longer pulls.
+static func _ending() -> PackedFloat32Array:
+	var L: float = LEN["ending"]
+	var out := Kit.buf(L)
+	for f: float in [73.4, 110.0, 146.8, 220.0, 293.7]:
+		Kit.partial(out, 0.0, L, fit(f, L), 0.22, 0.0, 1.0e6)
+	_swell(out, 2.0, 0.5)
+	var notes := [587.0, 440.0, 370.0, 293.7]
+	for i in 4:
+		Kit.bell(out, 1.0 + 6.0 * float(i), float(notes[i]), 0.3, 2.2)
 	return out
 
 

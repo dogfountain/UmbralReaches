@@ -204,6 +204,10 @@ func _rescan() -> void:
 		if bed == "wardens" and not n.has_meta("acoustic"):
 			n.set_meta("acoustic", true)
 			AcousticZones.register(AABB(box.position, Vector3(box.size.x, minf(box.size.y, 9.0), box.size.z)), "hall")
+		elif bed == "hollow_king" and not n.has_meta("acoustic"):
+			n.set_meta("acoustic", true)          # the hollow hall at the oak's root: the trunk is 16 m round
+			var c := box.get_center()
+			AcousticZones.register(AABB(Vector3(c.x - 7.0, box.position.y - 0.5, c.z - 7.0), Vector3(14.0, 6.0, 14.0)), "cave")
 
 
 ## The bounds of every mesh under a landmark, in world space.

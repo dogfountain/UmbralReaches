@@ -13,10 +13,12 @@ extends Node
 ## yet rendered is simply not played. `Settings.score_intensity` scales the bus. No class_name.
 
 const Stems := preload("res://core/audio/score_stems.gd")
+const Reg := preload("res://core/world/night_life/night_registry.gd")
 const MixDirector := preload("res://core/audio/mix_director.gd")
 
 const BUS := &"Score"
-const DB := {"tension": -22.0, "combat_lo": -15.0, "combat_hi": -18.0, "aftermath": -20.0, "act1": -26.0, "act2": -26.0, "act3": -26.0}
+const DB := {"tension": -22.0, "combat_lo": -15.0, "combat_hi": -18.0, "aftermath": -20.0, "act1": -26.0, "act2": -26.0, "act3": -26.0,
+	"hour_dusk": -28.0, "hour_late": -28.0, "hour_dawn": -27.0, "ending": -25.0}
 const NEAR_FAR := 45.0
 const NEAR_CLOSE := 14.0
 const SCAPE_FAMILY := {"village": "village", "chapel": "village", "heath": "village", "tavern": "village", "fields": "village", "downs": "village", "moor": "village", "salt": "village",
@@ -109,7 +111,7 @@ func _hit() -> void:
 func _refresh_act() -> void:
 	var f: Variant = Travel.story.get("flags", {})
 	if f is Dictionary and bool((f as Dictionary).get("ending_seen", false)):
-		act = 1
+		act = 0                                   # the door is shut: the ending's bed replaces the acts'
 		return
 	var n := 0
 	for id: String in ["thornwarden", "bone_abbot", "ascended_warden"]:
@@ -153,9 +155,18 @@ func _process(dt: float) -> void:
 	_level("combat_lo", combat * quiet_k)
 	_level("combat_hi", hot * combat * quiet_k)
 	_level("aftermath", aftermath * quiet_k)
+	var c := Reg.clock
+	var dusk := 1.0 - smoothstep(0.1, 0.3, c)
+	var late := smoothstep(0.5, 0.62, c) * (1.0 - smoothstep(0.84, 0.92, c))
+	var dawn := smoothstep(0.88, 0.97, c)
+	var hour := maxf(dusk, maxf(late, dawn))
+	_level("hour_dusk", bed * dusk)
+	_level("hour_late", bed * late)
+	_level("hour_dawn", bed * dawn)
 	for a in 3:
 		var id := "act%d" % (a + 1)
-		_level(id, bed * (1.0 + rest * 0.5) if act == a + 1 else 0.0)
+		_level(id, bed * (1.0 + rest * 0.5) * (1.0 - 0.5 * hour) if act == a + 1 else 0.0)
+	_level("ending", bed * (1.0 + rest * 0.5) if act == 0 else 0.0)
 	_motifs(dt, now, quiet)
 
 
@@ -204,7 +215,7 @@ func _motifs(dt: float, _now: int, quiet: bool) -> void:
 	if _motif_t > 0.0:
 		return
 	_motif_t = _rng.randf_range(70.0, 120.0)
-	var id := "motif_" + _family() if _rng.randf() < 0.55 else "motif_act%d" % act
+	var id := "motif_" + _family() if (_rng.randf() < 0.55 or act == 0) else "motif_act%d" % act
 	var s := Stems.stream(id)
 	if s == null:
 		return
