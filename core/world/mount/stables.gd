@@ -76,8 +76,18 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if Player.boss_fight_active(get_tree()):
 		Events.toast.emit("No horse will come here.")
 		return
-	var h: Node3D = horses.get(b)
+	var h: Horse = horses.get(b) as Horse
 	if h == null:
+		return
+	var away := h.global_position.distance_to(p.global_position)
+	if away < 6.0:
+		Events.toast.emit("%s is beside you." % HorseBond.name_of(b))
+		return
+	if away <= Horse.CALL_FAR and not h.calling() and h.call_to(p):
+		Events.toast.emit("The whistle carries. %s comes at a run." % HorseBond.name_of(b))
+		get_viewport().set_input_as_handled()
+		return
+	if h.calling():
 		return
 	var back := -p.global_basis.z
 	back.y = 0.0
