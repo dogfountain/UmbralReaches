@@ -99,6 +99,7 @@ const CONV_MARL := {"name": "Marl Pannick", "start": [["!met:marl", "meet"], [""
 	"meet": {"say": "Mind the doorstep. It's salted. So is the stew, the bed and the dog. Salt keeps things where you put them.", "next": "meet2"},
 	"meet2": {"say": "Marl Pannick. Reeve here, which means I count the sacks and take the blame. The pans are to the south. Don't walk on the white after dusk without a reason.", "do": "met:marl", "next": "hub"},
 	"hub": {"say_if": [
+		["qp:salt_widow:rake,qd:salt_widow", "The rake lies by Corra Vane's stone, haft to the sea. She still walks. She walks home now, they say, and sits in the hollow, and stops. I didn't think you could have a widow for a neighbour. You can."],
 		["qd:salt_widow", "Corra Vane's stone has a companion now. People leave salt on them. It's all we've got to leave."],
 		["qd:salt_sweep", "The pans are quiet. First night in a year I could hear the brine settle. It sounds like somebody breathing out."],
 		["", "Salt keeps meat and it keeps the hollowed off a threshold. A line across the door. They stop and look at it. Nobody knows why. Nobody asks."],
@@ -116,6 +117,9 @@ const CONV_TEASEL := {"name": "Teasel Dray", "start": [["!met:teasel", "meet"], 
 	"meet2": {"say": "Teasel. I boil the brine down and I dry what's left. My sister went up to the Anchorholds, to pray. That's most of what there is to know about me.", "do": "met:teasel", "next": "hub"},
 	"hub": {"say_if": [
 		["boss:r37_anchoress", "She came down, the Anchoress. Stone and chain, they said. I looked for Wren in what was left of her. I won't say what I found."],
+		["qp:seventh_day:bell,qp:bell_spire:rung", "A bell. You said it was a bell, and then somebody rang the Shut-Out Bell at the Spire, and I heard it from the racks. That's the note, then. Wren heard it nine winters early, and stayed, and I think she knew what it was for."],
+		["qp:seventh_day:bell", "You said it was a bell. I went south to the Spire's foot and stood at it. I didn't ring it. I came back with my sleeves wet. I've hung the racks by the other window. The one that looks that way."],
+		["qp:seventh_day:door", "A door, you said. The spoon, and the night. She opened it, looked out, and shut it herself. I've hung her slate on the shed door, inside, and I sleep with it shut. That's my sister: she'd rather stay than be called."],
 		["qd:anchor_names", "Seven days. She lasted seven. And then she heard something, and she wrote it down, and she didn't leave. I understand that better than I'd like."],
 		["", "They walled themselves into the Crowns to pray the sky still. Wren said it was the only honest thing anyone was doing."],
 	], "choices": [
@@ -148,6 +152,8 @@ const CONV_ARDEL := {"name": "Ardel Wick", "start": [["!met:ardel", "meet"], [""
 		["qp:bell_spire:carried", "You took its tongue to the Keg. Fine. The Marches never needed ringing for. We needed someone to come and ask. You came and asked."],
 		["qd:spire_coal,q:founders_peal", "There's a bell at the Spire's foot. Past the lamp. The Order left a man at it and told him to see it stayed quiet. He saw to it. He's very good. Be better."],
 		["secret:open:spire_lamp", "I saw it. The glow on the lake, the first night. I sat up till dawn. It's a good light. It's still your light, you know. I only carried the wick."],
+		["qp:spire_coal:lit", "It's lit. You said it, and you said it straight: lit, not kept. It burned till dawn, and I watched it from the window. A light is a light. I'd have done the same, at your age, and had the knees."],
+		["qp:spire_coal:kept", "Three lanterns on the lake road, burning. You told it 'kept'. They heard. I can see them from the shed, one by one, to the shore. I haven't seen the road since I was a boy."],
 		["qd:spire_coal", "North and up. It's a long climb: fourteen flights, and the last of them is the worst. Keep the coal in the dish. The wind off the lake will take it."],
 		["", "A flame that stays lit when it's looked at is a poor sort of flame. The lamp's dark, and it's waiting. It will light for anyone who carries the fire up. That's the whole of the trade."],
 	], "choices": [

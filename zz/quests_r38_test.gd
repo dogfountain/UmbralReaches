@@ -479,7 +479,10 @@ func _step(id: String, s: int, choice: int) -> void:
 				await _frames(1)
 				if (Chains.PICKUPS[k] as Dictionary).has("conv"):
 					await _pick_conv(choice)
-					ok(Book.pick(id) == ["whole", "torn"][choice], "%s: the choice is remembered (%s)" % [id, Book.pick(id)])
+					if id == "pans_hauler":
+						ok(Book.pick(id) == ["whole", "torn"][choice], "%s: the choice is remembered (%s)" % [id, Book.pick(id)])
+					else:
+						ok(Book.pick(id) == ["lit", "stood"][choice], "%s: the choice is remembered (%s)" % [id, Book.pick(id)])
 		"visit":
 			await _stand(stp.at as Vector2)
 		"carry":
