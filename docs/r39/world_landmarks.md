@@ -171,3 +171,37 @@ code-built cottages (sills, shutters, lanterns, ridge cap, garden fence), all ki
 in the landmark kits), all modelled props (weathering baked into vertex colour), the oak-family crowns, region flowers, water
 edges (docks, bridges, fords), the ground (ruts, puddles), settlements (yards). Reviewed, not reworked yet: tavern dwarves,
 common enemies, stalls/fences/wells/carts, rocks, far horizon cards (listed in `docs/r39/world_backlog.md`).
+
+# Fix pass after the first measurement (build time, placement, parse errors)
+
+The lead measured r39-world: the Realm build went from 15.9 s to 62 s; `wonders` 198 ms -> 25 s (the Sleeper's search 17 s, the ship 2.7 s,
+the span 3.9 s), flora +8.8 s, the Sleeper and the ship did not place, 2 of 16 caches, 0 outcrops, the henge gate cost two seal guards,
+six scripts did not parse. What changed, by construction:
+
+- **Parse errors**: every `:=` from an untyped value is typed (the kit instance is `var k: WK` everywhere, `var n: int = k.commit()`,
+  `var title: String`, `var pilot: OmniLight3D`); no `:=` from a Dictionary `.get`, an untyped variable or an array element in the new code.
+- **No open-ended searches.** `WK.find` / `find_any` (rings x yaws x hundreds of height reads) are no longer called. `WK.place(cands, half,
+  yaws, rel)` tries at most `cands x yaws` spots with 25 height reads each, one registered-site lookup (a 32 m spatial index of
+  `WorldLanes.sites`, built once per change of the list) and 25 path distances, and *always returns a spot* (the first clean one, else
+  the least bad). Landmarks that need flat ground are **levelled** by a `WorldLanes.register_terrace` under them (the Hollow King,
+  the Salt Ship, the Wardens' towers, the hermit caches), so relief no longer matters; the Sleeper's footings follow the ground.
+  Hand-chosen candidates: Sleeper (150, 338), (-100, 342), (-292, 130), (170, 322); tree (170, 340), (130, 352), (214, 350); ship
+  (214, 196), (196, 214), (232, 170); towers x = -338 ... 330 at z 26 / 104 / 14 / 116; span five fixed crossings. Halls, caves,
+  climbs, hermit caches and docks start from anchors **on the ways** (always dry land) walked 45-150 m aside, at most 4-8 offsets each.
+- **Outcrops**: one 14 m grid pass over the Far Reaches (about 2,000 cells x 4 height reads), the 90 steepest cells 12 m apart (slope
+  0.2-1.4): it always finds them. **No `RealmFlora.tree_clear` entries any more** (90 entries were tested after every tree candidate
+  draw: that was the flora's +8.8 s); the sites registered by the wonders went from about 300 to about 200 and a find registers one, not four.
+- **GenCache for the geometry** (`wonder_kit.gd cached(key)` / `fp()`): a kit's boxes are GDScript (about 70 microseconds each; the
+  new family is about 30,000 boxes: about 2 s on a cache *miss*), deterministic for a place and a seed, so the finished kit
+  (surface arrays, collision faces, solids, MultiMesh lists, and the recorded flames, lights, chests, water planes) is saved once under the
+  builder's own source salt and restored on every later build; the builders skip their geometry (`if not k.cached(...)`). The key
+  holds the builder, the shared sources (kit, OssKit, dress), the placement and a 49-sample terrain signature, so any edit rebuilds.
+  A cache **hit** costs reading and decoding a few MB per large landmark and the node creation: **by construction under 300 ms for
+  the whole family**; bake once with `--bake-cache` before packing. Relief and wall-foot debris are **off** by default (they multiplied
+  the box cost); LODs on landmark meshes are gone (the far hulls and the visibility ranges do that job).
+- **Titan gates** now stand 30 m outside the arena's gate and move out 14 m at a time if a registered site (a camp, a fire, a seal
+  slot's site) is there; each obelisk skips a spot that hits a site. They no longer stand on the seal guards' ground.
+- **Light budget**: lights are recorded and made at commit, capped at 72 for the whole family (`WK.LIGHT_CAP`, reset per Realm build).
+- Per-item build cost on a hit: Sleeper, tree, ship, towers, span, gates: one cache read each (milliseconds); halls and caves: one read each;
+  region props, yards, finds, docks, roadside, caches: one read per cell or scene. On a miss (first run, or after an edit of that builder):
+  the box counts above x 70 microseconds, once.
