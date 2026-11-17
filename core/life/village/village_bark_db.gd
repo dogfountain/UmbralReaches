@@ -1,7 +1,7 @@
 extends RefCounted
 ## What the valley's people say, unprompted, about what the wanderer has done and how the wanderer looks (village_barks.gd plays them).
 ## A bark is {who, if, when, say}: `who` an NPC id or "*" (anyone near); `if` a condition in the village's language (VState.test: boss:x,
-## bosses:n, kindled:n, qp:task:pick, qd:task, flag:x, peal:n, bells:n ...); `when` the extra reads the barker tracks itself: "@eclipse"
+## bosses:n, kindled:n, qp:<quest>:<pick>, qd:<quest>, flag:x, peal:n, bells:n ...); `when` the extra reads the barker tracks itself: "@eclipse"
 ## (the moon's totality, near it), "@dawn" (the last tenth of the night), "@late" (the cold hours), "@wounded", "@gloom" (the gloom nearly
 ## full), "@horse" (the wanderer owns a horse; {horse} is its name). A scene is two people in earshot of each other who say a few lines in
 ## turn. Every bark has a ten-minute memory; scenes play once a night. House style (docs/LORE.md): plain, dry, a little wry. No class_name.
@@ -50,6 +50,23 @@ const BARKS := [
 	{"who": "grisel", "if": "bosses:1", "say": "Ash is dearer when the hollowed are scarce, and thinner when they are plenty. You have done me out of a margin. I will forgive you for the light."},
 	{"who": "oswin", "if": "qp:forty_first:faith", "say": "The forty-first stone is a lit post. People stand by it. They do not seem to know why. I know why."},
 	{"who": "oswin", "if": "qp:forty_first:truth", "say": "I went home, in the end. They say you can see the village from the stair. I did not look. I thought I would see it later."},
+	# --- the new favours, and the Late Ringer ---
+	{"who": "bet", "if": "qp:bet_letter:pin", "say": "It is on the post, with the others. I went and looked. It is not the only one. That is the whole of what I wanted to know."},
+	{"who": "bet", "if": "qp:bet_letter:burn", "say": "The smoke went straight up. Nan says that means somebody is listening. Nan says it of most smoke."},
+	{"who": "dorrit", "if": "qp:dorrit_ledger:given", "say": "Given for the choir. It is the first time I have put a word in a column and meant it kindly."},
+	{"who": "gwyn", "if": "qp:gwyn_cob:name", "say": "Socks. I said it in the yard and the Cob came to the gate. A horse remembers. It is only people who forget what to call things."},
+	{"who": "gwyn", "if": "qp:gwyn_cob:field", "say": "It has the water-meadow now. I watch it from the stable door. It does not look at me, which is how I know it is happy."},
+	{"who": "tansy", "if": "qp:tansy_stone:boot", "say": "I wear it. The stone. It is a good deal more comfortable than a reason."},
+	{"who": "tansy", "if": "qp:tansy_stone:stone", "say": "It sits on the waystone like a small grey bell. I pass it twice a day. I find I do not mind being passed by a thing."},
+	{"who": "marra", "if": "qp:marra_count:lie", "say": "I wave to them, as I pass. Down, I wrote. It is the least I can do for people on their way to bed."},
+	{"who": "marra", "if": "qp:marra_count:walk", "say": "Walking. They are only walking. I kept the count anyway. A count is the thing you do for a thing that cannot be told."},
+	{"who": "gorse", "if": "qp:gorse_eels:leave", "say": "The weir is open. Nothing is caught in it. I have never been so content with a net."},
+	{"who": "wystan", "if": "qp:wystan_page:finish", "say": "I finished the line. It is not scripture. It is better. I shall be a hundred explaining it, and I do not care."},
+	{"who": "wystan", "if": "qp:wystan_page:fire", "say": "Green ink, going up. The barn smelled like a scriptorium for a breath. It was the best hour of my life, and the shortest."},
+	{"who": "perrin", "if": "qd:last_ringer", "say": "A man walked through the Yard gate in the dawn with a rope round his waist, and a woman from the Glade met him. I have not written it down. I find I do not need to."},
+	{"who": "ione", "if": "qd:last_ringer", "say": "He is mending my kettle. He does not remember my name. He says it very often, as if to be sure of it."},
+	{"who": "hild", "if": "qd:col_boots", "say": "Col has stopped coming into the forge to complain about his boots. He is wearing them. I am a little disappointed."},
+	{"who": "nan", "if": "qd:pell_stitches", "say": "Whoever mends Pell's shoe has a very steady hand. I have decided not to look for her. It would only spoil it."},
 	# --- the story's five ---
 	{"who": "perrin", "if": "qp:aurel_edicts:leave", "say": "I have stopped copying. I find my hand does not know what to do. It keeps making the shape of a letter in the air."},
 	{"who": "perrin", "when": "@eclipse", "say": "The Hierarch dictated the third edict at an eclipse of the sun, you know. Not a real one. A dimming. I thought it was the pen."},
@@ -67,9 +84,9 @@ const BARKS := [
 	{"who": "marra", "when": "@horse", "say": "A horse that has a name! The salt-mule has one, she is called Duty. It is a terrible name for a mule."},
 	{"who": "ruan", "if": "bells:1", "say": "One of the Founder's rang in the oak last dusk, rightly, and the kin came to the turf's edge to hear. They did not come in. It will take a night or two."},
 	{"who": "jory", "if": "qd:cutters_pledge", "say": "My brother's mark is back on the wall. The Q with the second tail. I have not spoken to him in nine winters. I am thinking of what to say."},
-	{"who": "ysolt", "if": "qp:moor_shrine:snuff", "say": "The shrine is dark by my own choice. It is a hard thing to be right about and to feel it."},
+	{"who": "ysolt", "if": "qp:moor_shrine:wick", "say": "The shrine is dark by my own choice, and the wick is in my pocket. It is a hard thing to be right about and to feel it."},
 	{"who": "agathe", "if": "boss:bone_abbot", "say": "They are turning to face the gate, one by one. I stood in the field and watched stone after stone swing round on its own. I have never been so tired and so glad."},
-	{"who": "cadoc", "if": "qp:mere_light:lit", "say": "Seven out, seven back. I counted twice. It is the first time in nine winters the number has come out."},
+	{"who": "cadoc", "if": "qp:mere_light:aldous,qd:mere_light", "say": "A lamp on the east post that is not mine, and I rowed past it and did not put it out. Seven out, and an eighth I did not set. I counted twice."},
 	{"who": "dunstan", "when": "@late", "say": "A hundred and forty on the down. I count them when the cold comes. They all look up when the bell goes, all at once, like a congregation."},
 	{"who": "isolde", "when": "@eclipse", "say": "The lamp goes out at the eclipse of its own accord, and relights itself. I have never asked it why. It seems rude."},
 	{"who": "penn", "if": "qp:arches_keeper:read", "say": "A thread of water ran the whole channel, they say, and was gone. A sum, closed."},
@@ -89,4 +106,8 @@ const SCENES := [
 	{"a": "ione", "b": "wenna", "if": "boss:bone_abbot", "lines": [["ione", "You are the one who said her name back."], ["wenna", "I was only a child. I did not know it would work."], ["ione", "Nobody does. That is how it works."]]},
 	{"a": "lowe", "b": "tamsin", "if": "bosses:2", "lines": [["tamsin", "Did you ever speak to her? The one in the wall?"], ["lowe", "Not I. I trained a boy. It is quite enough to answer for."], ["tamsin", "I only bring her bread."], ["lowe", "That is the better trade."]]},
 	{"a": "agathe", "b": "cadoc", "if": "bells:2", "lines": [["cadoc", "Two bells, they say."], ["agathe", "Two. I heard the second from the field. The stones turned."], ["cadoc", "Mine rang. I rowed out to hear it from the middle."], ["agathe", "And?"], ["cadoc", "It is a good sound, from the middle. I had not known."]]},
+	{"a": "tansy", "b": "marra", "if": "", "lines": [["marra", "You are walking the wrong way, Ansel."], ["tansy", "There is no right way. There is a road."], ["marra", "It goes both ways."], ["tansy", "That is the part I find hard."]]},
+	{"a": "gwyn", "b": "dorrit", "if": "qd:gwyn_cob", "lines": [["dorrit", "They say the Cob has a field."], ["gwyn", "It has. It will not tell me what it thinks of it."], ["dorrit", "A horse never does. That is what makes it a horse."]]},
+	{"a": "bet", "b": "nan", "if": "qd:bet_letter", "lines": [["nan", "Did you send it?"], ["bet", "It is on the post."], ["nan", "I have a mug for that. It is the one with the chip."], ["bet", "I would like it very much."]]},
+	{"a": "gorse", "b": "siany", "if": "qd:gorse_eels", "lines": [["siany", "Is it true you have stopped setting the weirs?"], ["gorse", "I have started not setting them. It is different. It requires more attention."]]},
 ]

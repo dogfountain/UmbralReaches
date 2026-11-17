@@ -11,6 +11,10 @@ const Kit := preload("res://core/audio/synth_kit.gd")
 const Occlusion := preload("res://core/audio/occlusion.gd")
 const AcousticZones := preload("res://core/audio/acoustic_zones.gd")
 const MixDirector := preload("res://core/audio/mix_director.gd")
+const BarkDB := preload("res://core/life/village/village_bark_db.gd")
+const Chains := preload("res://core/story/quest_chains.gd")
+const DialogueDB := preload("res://core/story/dialogue_db.gd")
+const Village := preload("res://core/life/village/village.gd")
 
 var bad := 0
 
@@ -59,6 +63,7 @@ func _ready() -> void:
 	_ok(is_equal_approx(float(md._cur["Music"]), -12.0), "two stingers never stack: the smallest request wins (%.1f)" % float(md._cur["Music"]))
 	md.free()
 	_ok(Settings.voices_volume > 0.0 and Settings.ui_volume > 0.0 and Settings.score_intensity > 0.0, "the Voices, Interface and Score sliders exist")
+	_bark_ids()
 	print("SOUNDRW %s (%d failed)" % ["PASS" if bad == 0 else "FAIL", bad])
 	get_tree().quit(0 if bad == 0 else 1)
 
@@ -80,3 +85,41 @@ func _ok(cond: bool, what: String) -> void:
 	print(("SOUNDRW ok   " if cond else "SOUNDRW FAIL ") + what)
 	if not cond:
 		bad += 1
+
+
+## Every bark and scene condition names a task, a pick, a boss and a speaker that exist (a bark that names an id that is not there never plays).
+func _bark_ids() -> void:
+	var picks := {}                                  # "task:pick" -> true, from the tasks' own data and every conversation's `do`
+	for qid: String in Chains.QUESTS:
+		var q: Dictionary = Chains.QUESTS[qid]
+		for key: String in ["outcome", "leaves", "alt"]:
+			for pk: Variant in (q.get(key, {}) as Dictionary):
+				picks["%s:%s" % [qid, String(pk).split("+")[0]]] = true
+	var re := RegEx.create_from_string("qp:([a-z_0-9]+):([a-z_0-9]+)")
+	for cid: String in DialogueDB.CONV:
+		for n: Dictionary in (DialogueDB.CONV[cid].nodes as Dictionary).values():
+			for m in re.search_all(str(n)):
+				picks["%s:%s" % [m.get_string(1), m.get_string(2)]] = true
+	var bosses := ["thornwarden", "bone_abbot", "ascended_warden", "r37_hierarch", "r37_anchoress"]
+	var conds: Array[String] = []
+	for b: Dictionary in BarkDB.BARKS:
+		conds.append(String(b.get("if", "")))
+	for sc: Dictionary in BarkDB.SCENES:
+		conds.append(String(sc.get("if", "")))
+	var unknown: Array[String] = []
+	for c: String in conds:
+		for term: String in c.replace("|", ",").split(","):
+			var t := term.strip_edges().trim_prefix("!")
+			var f := t.split(":")
+			if f.size() >= 3 and f[0] == "qp" and not picks.has("%s:%s" % [f[1], f[2]]):
+				unknown.append(t)
+			elif f.size() >= 2 and f[0] in ["qd", "q", "qat"] and not Chains.QUESTS.has(f[1]):
+				unknown.append(t)
+			elif f.size() >= 2 and f[0] == "boss" and not f[1] in bosses:
+				unknown.append(t)
+	_ok(unknown.is_empty(), "every bark condition names a real task, pick and boss (unknown: %s)" % str(unknown))
+	var speakers: Array[String] = []
+	for b2: Dictionary in BarkDB.BARKS:
+		if String(b2.who) != "*" and not Village.cast_all().has(String(b2.who)) and not ["hesk", "harrow", "brannoc", "keep"].has(String(b2.who)):
+			speakers.append(String(b2.who))
+	_ok(speakers.is_empty(), "every bark's speaker is a villager of the cast (unknown: %s)" % str(speakers))
