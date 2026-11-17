@@ -239,7 +239,7 @@ static func _leaves() -> ArrayMesh:
 		var d := Vector3(cos(a * 1.7), 0, sin(a * 1.7))
 		var s := Vector3(-d.z, 0, d.x)
 		var p: Array[Vector3] = [c - d * 0.075, c + s * 0.05, c + d * 0.085, c - s * 0.05]
-		for idx: int in [0, 1, 2, 0, 2, 3]:
+		for idx: int in [0, 2, 1, 0, 3, 2]:      # wound to face up: the other way the cards were back faces seen from above, lit from below: black diamonds on the gravel
 			st.set_color(cols[i])
 			st.set_normal(Vector3.UP)
 			st.add_vertex(p[idx])

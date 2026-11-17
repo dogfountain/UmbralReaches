@@ -293,3 +293,13 @@ Check at 50 m: a crown is no longer one flat value.
 The four tree bark materials (`art/materials/realm_foliage_bark_*.tres`) take roughness 0.86 -> 0.92, specular 0.5 -> 0.22 and a lower texture normal strength (oak 2.2 -> 1.6, pine
 2.4 -> 1.8, dead 2.6 -> 1.9; birch unchanged): the furrows now live in the geometry and its vertex normals, so the texture's noisy speckle can step back. No new fetches or passes: material
 constants only. Check: a moonlit trunk at 5 m shows broad ridges, not white speckle.
+
+## Light-seat items: pets, Saltmarket's black quads, ruin albedo
+**Dog and cat bodies** (`wildlife/life_pet_mesh.gd`, wired in `life_kit.gd` as kinds "dog" and "cat"; `folk/pets.gd`): the village's pets no longer wear a scaled fox. The dog has a broad blunt muzzle,
+floppy ears, a curled tail, a saddle on a tan coat; the cat a round head, upright ears, a long tail carried up, white socks and chest on a grey tabby. Both are lofted in the fox's frame, so the
+creature shader's gait, head turn and tail sway use the fox's rig numbers (the kit's RIG/LOOK tables have dog and cat entries). Built once and cached under GenCache (keyed on the new file).
+**Cost:** one extra MultiMesh draw (dogs and cats were one; five animals, asleep beyond 70 m): +1 draw only while the pets are in range; triangles about 1.5 k per body class, five instances; cached.
+**Black diamonds in Saltmarket** (`site_props.gd _leaves`): the dead-leaf cards were wound facing down; with the cloth material two-sided, seen from above they were back faces with a flipped normal, lit from
+below: black diamonds on the gravel. Rewound to face up. No cost. Check: leaves on the market yard read brown.
+**Voxel-ruin albedo** (`oss_kit.gd mat`): `ruin` 0.95 -> 1.12, `ruin_big` 0.92 -> 1.08, `dark` 0.16 -> 0.26 (tints multiply the baked contact AO, so the dark foot of a wall stays dark while the face
+reads). The detail normal was not added (a second normal fetch near-field is a GPU cost; left to the light seat's call). Check at the fen tower, rift towers and necropolis crypts.

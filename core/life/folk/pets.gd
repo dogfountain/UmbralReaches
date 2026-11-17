@@ -1,13 +1,13 @@
 extends Node3D
-## THE VILLAGE'S ANIMALS (folk stage): three dogs and two cats, one MultiMesh (the wildlife's own creature shader and
-## its fox body, so a gait, a head and a tail are drawn by the GPU: nothing here but five formulas). Hearthward's dogs
+## THE VILLAGE'S ANIMALS (folk stage): three dogs and two cats, a MultiMesh each (the wildlife's own creature shader and
+## the same gait rig, so a gait, a head and a tail are drawn by the GPU: nothing here but five formulas). Hearthward's dogs
 ## belong to someone: each follows its person at a trot (a run when far behind), sits when they stop, sniffs about, and
 ## comes to the wanderer when he is near, circles him and sits at his feet. They bark at any foe within 28 m (the
 ## head up and thrown with the bark, the body turned to it) and, when the moon goes out, run for the Keg's door and
 ## are gone until it returns. The cats sit on cottage roofs: watching the wanderer with the head turning to follow
 ## him, grooming, stretching, and leaping to another roof when he runs close. All rates are formulas of dt, the body
-## turns and speeds ease with `1 - exp(-k dt)`; nothing runs beyond SLEEP_R metres from the camera. (The body is the
-## wildlife's fox, scaled: a dog and a cat mesh of their own are listed in the light backlog doc.)
+## turns and speeds ease with `1 - exp(-k dt)`; nothing runs beyond SLEEP_R metres from the camera. The dogs and the cats
+## have bodies of their own (wildlife/life_pet_mesh.gd, in the fox's frame so the creature shader's gait is shared): two MultiMeshes.
 
 const Kit := preload("res://core/life/wildlife/life_kit.gd")
 const Group := preload("res://core/life/wildlife/life_group.gd")
@@ -23,8 +23,11 @@ const BARK_R := 28.0
 const DOGS := ["watchman", "porter", "talk_b"]       ## whose dogs they are (folk ids)
 
 var ctx: Dictionary = {}
-var _mm: MultiMeshInstance3D
+var _mm: MultiMeshInstance3D          ## the dogs
+var _mmc: MultiMeshInstance3D         ## the cats (their own mesh: life_pet_mesh.gd)
 var _buf := PackedFloat32Array()
+var _bufc := PackedFloat32Array()
+var _nd := 0                          ## dogs come first in the arrays: index < _nd is a dog
 var _n := 0
 var _built := false
 var _wait := 0.0
@@ -71,6 +74,7 @@ func _process(delta: float) -> void:
 	var dt := minf(delta, 0.1)
 	var near := cam.global_position.distance_to(_pos[0]) < SLEEP_R or cam.global_position.distance_to(_pos[_n - 1]) < SLEEP_R
 	_mm.visible = near
+	_mmc.visible = near
 	if not near:
 		return
 	_scan -= dt
@@ -85,6 +89,7 @@ func _process(delta: float) -> void:
 		_step(i, dt, ray)
 		_draw(i)
 	_mm.multimesh.buffer = _buf
+	_mmc.multimesh.buffer = _bufc
 
 
 ## Once the folk are standing and the houses are known: the pets are made in one go (the fox body is a cache hit).
@@ -110,12 +115,17 @@ func _build_step(delta: float) -> void:
 	if _n == 0:
 		_built = true
 		return
-	_mm = Kit.group("fox", _n)
-	_mm.name = "Pets"
-	_mm.visibility_range_end = SLEEP_R + 20.0
-	add_child(_mm)
-	_buf.resize(_n * 16)
-	_mm.multimesh.custom_aabb = AABB(Vector3(-1000, -200, -1000), Vector3(2000, 600, 2000))
+	_nd = _kind.count(0)
+	_mm = Kit.group("dog", maxi(_nd, 1))
+	_mm.name = "Dogs"
+	_mmc = Kit.group("cat", maxi(_n - _nd, 1))
+	_mmc.name = "Cats"
+	_buf.resize(maxi(_nd, 1) * 16)
+	_bufc.resize(maxi(_n - _nd, 1) * 16)
+	for mm: MultiMeshInstance3D in [_mm, _mmc]:
+		mm.visibility_range_end = SLEEP_R + 20.0
+		add_child(mm)
+		mm.multimesh.custom_aabb = AABB(Vector3(-1000, -200, -1000), Vector3(2000, 600, 2000))
 	_built = true
 
 
@@ -128,7 +138,7 @@ func _add(kind: int, p: Vector3, owner_id: String) -> int:
 	_head.append(0.0)
 	_pitch.append(0.0)
 	_tilt.append(0.0)
-	_scale.append(0.85 if kind == 0 else 0.5)
+	_scale.append(0.85 if kind == 0 else 0.78)
 	_state.append(FOLLOW if kind == 0 else ROOF)
 	_t.append(0.0)
 	_next.append(4.0 + randf() * 6.0)
@@ -262,7 +272,7 @@ func _step(i: int, dt: float, ray: bool) -> void:
 	if st == HIDE:
 		_scale[i] = lerpf(_scale[i], 0.001, 1.0 - exp(-6.0 * dt))
 	else:
-		_scale[i] = lerpf(_scale[i], 0.85 if _kind[i] == 0 else 0.5, 1.0 - exp(-4.0 * dt))
+		_scale[i] = lerpf(_scale[i], 0.85 if _kind[i] == 0 else 0.78, 1.0 - exp(-4.0 * dt))
 	if _kind[i] == 0:
 		if ray:
 			var w := get_world_3d()
@@ -411,6 +421,6 @@ func _draw(i: int) -> void:
 	var cd := Color(clampf(_spd[i] / 3.0, 0.0, 1.0), _head[i], _gait[i], _pitch[i])
 	var p := _pos[i]
 	if absf(_tilt[i]) > 0.001:
-		Group.put(_buf, i, Basis(Vector3.UP, _yaw[i]) * Basis(Vector3.RIGHT, _tilt[i]) * Basis.from_scale(Vector3.ONE * _scale[i]), p, cd)
+		Group.put(_buf if i < _nd else _bufc, i if i < _nd else i - _nd, Basis(Vector3.UP, _yaw[i]) * Basis(Vector3.RIGHT, _tilt[i]) * Basis.from_scale(Vector3.ONE * _scale[i]), p, cd)
 	else:
-		Group.put_yaw(_buf, i, _yaw[i], _scale[i], p, cd)
+		Group.put_yaw(_buf if i < _nd else _bufc, i if i < _nd else i - _nd, _yaw[i], _scale[i], p, cd)
