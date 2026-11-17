@@ -81,7 +81,7 @@ static func material() -> StandardMaterial3D:
 
 func _process(delta: float) -> void:
 	if not Reg.enabled:
-		if _wet > 0.0 or Reg.rain > 0.0:
+		if _wet > 0.0 or Reg.rain > 0.0 or float(Reg.fx.frost) > 0.0 or float(Reg.fx.fogbound) > 0.0:
 			_wet = 0.0
 			_publish(0.0, 0.0, 0.0, 0.0)
 			_mm.visible = false
