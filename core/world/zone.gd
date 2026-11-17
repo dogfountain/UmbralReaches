@@ -76,7 +76,7 @@ var _hurt := 0.0
 
 
 func _on_player_hurt(amount: float, from_pos: Vector3) -> void:
-	_hurt = clampf(0.5 + amount / 40.0, 0.5, 1.0)
+	_hurt = clampf(0.4 + amount / 50.0, 0.4, 0.85)
 	var dir := Vector2.ZERO
 	if from_pos != Vector3.INF and _cam:
 		var to := from_pos - _cam.global_position
