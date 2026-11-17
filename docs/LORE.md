@@ -32,7 +32,7 @@ is her refusal, repeated.
 | Six winters ago | Father Harrow takes his lantern down the fen after his wife. |
 | Now (nine winters on) | Hearthward is the last kindled village. The **Kindled Keg** keeps its fire and its keep. Most cottages have gone quiet. The **wanderer** arrives, lantern in hand, and starts kindling. |
 
-Pin every "how long ago" to **nine winters** (Pell is "nine winters" by the same count): Col's nine years under the Keg's stair, the hermit's nine winters on the Rift, Oswin's nine years walking (his wife went ahead the year before the Night; he set out after). The Ostrin Harrow line is "six winters" because his father left later. Nobody alive at the bar has a *grandfather* who saw the Door open. The Tally's 1,090 is one shelf; the Abbot's hoard leaf (11,004 counted) is the whole crypt.
+Pin every "how long ago" to **nine winters** (Pell is "nine winters" by the same count): Col's nine years under the Keg's stair, the hermit's nine winters on the Rift, Joram's nine years walking (his wife went ahead the year before the Night; he set out after). The Ostrin Harrow line is "six winters" because his father left later. Nobody alive at the bar has a *grandfather* who saw the Door open. The Tally's 1,090 is one shelf; the Abbot's hoard leaf (11,004 counted) is the whole crypt.
 
 ## Powers and people
 
@@ -211,7 +211,7 @@ Edda the Kindler, Corvin, Hierarch Aurel, Abbot Osric, Wenna Ashby, Old Maud, Ho
 up the Stair, came down hollow), Pell (nine winters, red hood), Ewan Reed, the Harrows, the Wrights, the Cobb brothers
 (and old Cobb, who fired his own barn), Marta Vell, Brother Ansel, Brother Lisle (kept the Tally),
 Ida and Ruth. Hearthward (village system): Hild (Edda's granddaughter, the forge), Old Fennick
-(lamps), Oswin (pilgrim, the forty-first stone), Nan and Col Wright, Bet Reed, Wenna (after the
+(lamps), Joram (pilgrim, the forty-first stone), Nan and Col Wright, Bet Reed, Wenna (after the
 Ossuary), Pell (after the ending), Wyck (buries birds face down), Abel (sexton, Edda's stone),
 Grisel (the ash-wife). The Keg: the keep, Hesk, Ostrin Harrow, Brannoc Bellwright (the Founder's son).
 The doubled world's givers (r34, camped at outpost fires, `village_cast.gd` OUTPOSTS): **Gammer Ruan**
@@ -228,7 +228,7 @@ the Ring's stair (the Thornwarden "holds back a hand"); the pilgrims' roll read 
 (the Abbot's count comes up short: "a doubting Abbot is half an Abbot"); the Founder's peal rung in
 Mother's order and a tongue cast in her mould for Brannoc (the great bell in the Warden's hand rings
 wrong). None is needed to finish the story.
-Known collisions to respect: Osric / Oswin / Ostrin, and Hesk / Hild / Hobb / Harrow; never call
+Known collisions to respect: Osric / Ostrin (the pilgrim formerly called Oswin is now **Joram**; his internal id is still `oswin`, so every save key and flag is unchanged), and Hesk / Hild / Hobb / Harrow; never call
 the Thornwarden "the Warden".
 The Order of the Open Sky; the Rooted; the Ring (Thorn Henge); the Night of the Open Door; Year of
 Ascent (YA).

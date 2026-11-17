@@ -428,7 +428,7 @@ static func att(npc: String) -> int:
 	return int((st().att as Dictionary).get(npc, 0))
 
 
-const NAMES := {"hild": "Hild", "fennick": "Fennick", "oswin": "Oswin", "nan": "Nan", "col": "Col", "bet": "Bet",
+const NAMES := {"hild": "Hild", "fennick": "Fennick", "oswin": "Joram", "nan": "Nan", "col": "Col", "bet": "Bet",
 	"wenna": "Wenna", "wyck": "Wyck", "abel": "Abel", "grisel": "Grisel", "keep": "The keep", "hesk": "Hesk",
 	"harrow": "Ostrin", "brannoc": "Brannoc", "ruan": "Gammer Ruan", "jory": "Jory", "ysolt": "Ysolt",
 	"elspeth": "Elspeth", "linnet": "Linnet", "agathe": "Sister Agathe", "cadoc": "Cadoc",

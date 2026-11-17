@@ -28,7 +28,7 @@ extends RefCounted
 ##            a WoW rare bounty); a carry step's `lost` is the toast when it
 ##            goes out; `raid`: the boss whose attunement chain the task belongs to (ATTUNE).
 ##   PICKUPS  world things a step wants: {quest, step, near (xz), kind (mesh), name, verb, say}
-##   ESCORT / HOLLOW  the two moving pieces (Oswin's walk, Father Harrow)
+##   ESCORT / HOLLOW  the two moving pieces (Joram's walk, Father Harrow)
 ## House style (docs/LORE.md): terse, concrete, dark. Load by path.
 
 # --- south marches ---
@@ -119,7 +119,7 @@ static func _merge(a: Dictionary, b: Dictionary) -> Dictionary:
 
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
-const _GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
+const _GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Joram", "nan": "Nan Wright", "abel": "Abel the sexton",
 	"wyck": "Wyck", "grisel": "Grisel", "keep": "The keep", "harrow": "Ostrin Harrow", "hesk": "Hesk", "brannoc": "Brannoc",
 	"ruan": "Gammer Ruan", "jory": "Jory Quell", "ysolt": "Ysolt the cairn-keeper", "elspeth": "Elspeth Fane",
 	"linnet": "Linnet the grafter", "agathe": "Sister Agathe", "cadoc": "Cadoc the ferryman",
@@ -795,7 +795,7 @@ const _PICKUPS := {
 	"harrow_flame": VQ.PICKUPS["harrow_flame"], "belfry_flame": VQ.PICKUPS["belfry_flame"], "spire_cradle": VQ.PICKUPS["spire_cradle"],
 }
 
-## Oswin's walk: from wherever he is to the waystone. He keeps 2-3 m behind you and waits when you
+## Joram's walk: from wherever he is to the waystone. He keeps 2-3 m behind you and waits when you
 ## run off; the step is done when he stands within `reach` of the stone.
 ## The forty-first waystone itself stands at `stone` (quest_world.gd puts it there for good).
 const ESCORT := {"quest": "forty_first", "step": 0, "who": "oswin", "to": Vector2(-1.9, 17.4), "stone": Vector2(-2.9, 16.4), "reach": 4.5, "wait_r": 16.0}

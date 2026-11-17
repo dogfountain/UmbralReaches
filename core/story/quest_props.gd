@@ -1,6 +1,6 @@
 extends RefCounted
 ## Small things the tasks put in the world (story; no class_name): Edda's tongs, name-slates, the
-## Keg's mugs and chalk circles, Father Harrow's lantern, Oswin's staff. Built from OssKit boxes in
+## Keg's mugs and chalk circles, Father Harrow's lantern, Joram's staff. Built from OssKit boxes in
 ## the kit's existing materials (iron, wood, slate, stone, plaster, glow, dark), so they add no
 ## shader; no collision, faded out past `FAR`. Everything is built around the holder's origin.
 ## Load by path: const QuestProps := preload("res://core/story/quest_props.gd")

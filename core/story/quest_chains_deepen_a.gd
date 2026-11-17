@@ -26,25 +26,25 @@ const NAMES_YARD := {"name": "Names for the Yard", "giver": "abel", "where": "Ab
 		"deep": "Maren Coyle, Tam, Sister Ide: their names are cut in the Kindlers' Yard, by Edda's stone. Only the names. As deep as the stone goes.",
 		"": "Maren Coyle, Tam, Sister Ide: their names are cut in the Kindlers' Yard, by Edda's stone."}}
 
-const FORTY_FIRST := {"name": "The Forty-First Stone", "giver": "oswin", "where": "Oswin the pilgrim, on the west road", "zone": "road",
-	"text": "Oswin has touched forty waystones on the way to the Stair. He wants to touch the last, and his eyes are bad in the dark.",
+const FORTY_FIRST := {"name": "The Forty-First Stone", "giver": "oswin", "where": "Joram the pilgrim, on the west road", "zone": "road",
+	"text": "Joram has touched forty waystones on the way to the Stair. He wants to touch the last, and his eyes are bad in the dark.",
 	"steps": [
-		{"kind": "escort", "text": "Walk Oswin to the forty-first waystone, at the head of the north lane past the green"},
-		{"kind": "talk", "who": "oswin", "text": "Speak with Oswin at the forty-first stone"},
+		{"kind": "escort", "text": "Walk Joram to the forty-first waystone, at the head of the north lane past the green"},
+		{"kind": "talk", "who": "oswin", "text": "Speak with Joram at the forty-first stone"},
 		{"kind": "find", "text": "Light a lamp at the green's fire for the forty-first stone"},
 		{"kind": "lantern_walk", "from": "oswin_flame", "to": Vector2(-2.9, 16.4), "r": 4.0, "label": "The forty-first stone",
 			"relight": "Light another at the green's fire.",
-			"arrive": "You set the lamp at the stone's foot. Oswin watches the flame settle, and does not say anything.",
+			"arrive": "You set the lamp at the stone's foot. Joram watches the flame settle, and does not say anything.",
 			"text": "Carry the lit lamp to the forty-first stone. Walk it: a run, a roll, a blow or deep water puts it out"},
 	],
-	"alt": {"faith": {2: "Light a lamp at the green's fire for Oswin's vigil",
+	"alt": {"faith": {2: "Light a lamp at the green's fire for Joram's vigil",
 			3: "Carry the lit lamp to the forty-first stone, to stand there kept"},
-		"truth": {2: "Light a lamp at the green's fire to see Oswin off",
-			3: "Carry the lit lamp to the forty-first stone, for Oswin's road home"}},
+		"truth": {2: "Light a lamp at the green's fire to see Joram off",
+			3: "Carry the lit lamp to the forty-first stone, for Joram's road home"}},
 	"reward": {"ash": 12, "charm": "charm_waystone", "else": {"relic_fragment": 1}},
 	"leaves": {"faith": {"at": Vector2(-1.5, 17.6), "prop": "lantern_lit"}, "truth": {"at": Vector2(-1.5, 17.6), "prop": "lantern"}},
-	"outcome": {"truth": "You told Oswin the Stair is gone. He stopped counting waystones, and set his staff against the wall of the road's rest. The lamp you lit stands cold at the forty-first, and his chalk arrows point west.",
-		"faith": "Oswin keeps his vigil at the forty-first stone, waiting for a bell. The lamp you lit burns at its foot, so the ones coming up the lane can tell it is kept."}}
+	"outcome": {"truth": "You told Joram the Stair is gone. He stopped counting waystones, and set his staff against the wall of the road's rest. The lamp you lit stands cold at the forty-first, and his chalk arrows point west.",
+		"faith": "Joram keeps his vigil at the forty-first stone, waiting for a bell. The lamp you lit burns at its foot, so the ones coming up the lane can tell it is kept."}}
 
 const RING_HEART := {"name": "What the Oaks Keep", "giver": "wyck", "where": "Wyck, at his fire in the Thornwood", "zone": "thornwood",
 	"offer": true, "avail": "qd:thorn_door",

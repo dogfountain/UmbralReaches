@@ -123,7 +123,7 @@ const CAST := {
 				{"hide": "keg_in", "t": [20.0, 30.0]},
 			],
 		}},
-	"oswin": {"name": "Oswin", "title": "Oswin, a pilgrim", "when": "",
+	"oswin": {"name": "Joram", "title": "Joram, a pilgrim", "when": "",
 		"rig": {"seed": 4303, "sex": "m", "age": "adult", "garment": "robe", "hood": true, "hair": "short", "beard": "short",
 			"r": "staff", "satchel": true, "barefoot": true, "girth": 0.92, "cloth": Color(0.42, 0.38, 0.32),
 			"cloth2": Color(0.32, 0.29, 0.25), "hair_c": Color(0.3, 0.2, 0.12), "skin": Color(0.7, 0.5, 0.36), "leather": Color(0.38, 0.24, 0.12)},

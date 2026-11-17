@@ -82,8 +82,8 @@ const CONV := {
 			["boss:ascended_warden", "The flames stand straight now. Before, they all leaned north, toward the summit, like they wanted to go up. Now they just burn."],
 			["qp:spire_lamps:burning", "You left the Spire's lamp burning. I can't see it from here. I go to the green's edge at dusk and look anyway. If it goes out, I want to be looking."],
 			["qp:spire_lamps:out", "You put the Spire's lamp out. Good. A light nobody can reach is a kind of lie. I'd rather my lamps were small and kept."],
-			["qp:forty_first:faith", "Oswin's at the head of the north lane, kneeling by the old waystone. I light a lamp for him on my way past. He thanks the lamp."],
-			["qp:forty_first:truth", "Oswin's at the road's rest with his staff against the wall, facing west. I passed him going home from the lamps. He lifted a hand and did not get up. First pilgrim I ever saw face that way."],
+			["qp:forty_first:faith", "Joram's at the head of the north lane, kneeling by the old waystone. I light a lamp for him on my way past. He thanks the lamp."],
+			["qp:forty_first:truth", "Joram's at the road's rest with his staff against the wall, facing west. I passed him going home from the lamps. He lifted a hand and did not get up. First pilgrim I ever saw face that way."],
 			["v:lamps_all", "Every lamp I own is lit. I walk the round twice for the pleasure of it."],
 			["v:lamps_more", "Longer round tonight. Oil came from somewhere. I didn't ask the ash-wife where."],
 			["kindled:4", "Your braziers: all four, from the road. I count them on my round and lose count on purpose."],
@@ -102,7 +102,7 @@ const CONV := {
 			["", "Oil. Grisel the ash-wife trades grave ash for it. More oil, a longer round. More lamps lit, fewer things knocking."],
 		], "next": "hub"},
 	}},
-	"oswin": {"name": "Oswin", "start": [["!met:oswin", "meet"], ["qat:forty_first:1", "stone"], ["qat:forty_first:0", "walking"], ["", "hub"]], "nodes": {
+	"oswin": {"name": "Joram", "start": [["!met:oswin", "meet"], ["qat:forty_first:1", "stone"], ["qat:forty_first:0", "walking"], ["", "hub"]], "nodes": {
 		"meet": {"say": "Is the Stair open? They told me at the West Gate it was closed. I've walked nine years. It can't be closed.", "next": "meet2"},
 		"meet2": {"say": "I'll rest here. Just till the bells start again.", "do": "met:oswin", "next": "hub"},
 		"hub": {"say_if": [
@@ -135,7 +135,7 @@ const CONV := {
 		"not_tonight": {"say": "Another night, then. The stone's waited this long. So have I.", "next": ""},
 		"stone": {"say": "Forty-one. ...It's only a stone. I thought it would be warm.", "next": "stone2"},
 		"stone2": {"say": "Is it up there? The Stair, the door, the light. You've seen more of this valley than I have. Tell me true.", "choices": [
-			{"text": "The Stair is broken. The door drank everyone who climbed. Go home, Oswin.", "to": "truth", "do": "qp:forty_first:truth,att:oswin:1,qa:forty_first"},
+			{"text": "The Stair is broken. The door drank everyone who climbed. Go home, Joram.", "to": "truth", "do": "qp:forty_first:truth,att:oswin:1,qa:forty_first"},
 			{"text": "It's up there. Wait here. They'll ring for you.", "to": "faith", "do": "qp:forty_first:faith,qa:forty_first"},
 		]},
 		"truth": {"say": "...Nine years. I knew. I think I knew at the West Gate. Thank you for saying it out loud. Take this: a chip off the first stone. I won't need to count any more. One thing more. Light me a lamp from the green's fire, and set it here on the stone. I'd like a light to start from, and it's a long road west. Walk it, mind. I've seen a flame go out under a man who ran.", "next": ""},

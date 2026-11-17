@@ -104,7 +104,7 @@ const NODES: Array[Dictionary] = [
 	{"id": "w_first", "path": "road", "depth": 7, "cost": 3, "glyph": "waystone", "name": "The Forty-First Stone",
 		"text": "Rift Step reaches 1.5 m further and recovers 15% sooner; Gloom gathers 6% slower in the dark and by the Rift.",
 		"fx": {"step_range": 1.5, "step_cd_mult": 0.85, "dark_mult": 0.94},
-		"lore": "Oswin wanted the forty-first before he went up. You are past it."},
+		"lore": "Joram wanted the forty-first before he went up. You are past it."},
 ]
 
 ## Memory per deed lives in one table: level.gd `XP` (hearth.gd give_memory reads it via LevelDB.xp_for).

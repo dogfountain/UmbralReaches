@@ -6,7 +6,7 @@ extends Node3D
 ##   - the walking network (village_nav.gd), checked against the built world: floors, walls,
 ##     fences, barrels, trunks; villagers only walk its kept edges
 ##   - the people (villager.gd on villager_rig.gd): Hild at Edda's forge, Old Fennick the
-##     lamplighter, Oswin the pilgrim, Nan Wright, Grisel the ash-wife (trader), Wyck the hermit
+##     lamplighter, Joram the pilgrim, Nan Wright, Grisel the ash-wife (trader), Wyck the hermit
 ##     in the Thornwood, Abel the sexton by the Kindlers' Yard; and, as the valley is won back,
 ##     Col Wright, Bet Reed, Wenna Ashby (out of the Ossuary) and Pell (down from the light)
 ##   - the lamplighter's lamps (glass and halo per lamp, no lights), the forge's flare, the
