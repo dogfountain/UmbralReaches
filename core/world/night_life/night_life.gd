@@ -38,6 +38,7 @@ const Wx := preload("res://core/world/night_life/weather_life.gd")
 const Vfxl := preload("res://core/world/night_life/vfx_library.gd")
 const Arena := preload("res://core/world/night_life/arena_light.gd")
 const Rooms := preload("res://core/world/night_life/interior_light.gd")
+const Grade := preload("res://core/world/night_life/region_grade.gd")
 
 var _poll := 0.0
 
@@ -77,6 +78,7 @@ func _ready() -> void:
 	al.env = course.env
 	_add(al, "ArenaLight")
 	_add(Rooms.new(), "InteriorLight")
+	_add(Grade.new(), "RegionGrade")
 	_add(Surge.new(), "KindlingSurge")
 	_add(Moths.new(), "LightMoths")
 	_add(Banks.new(), "FogBanks")
