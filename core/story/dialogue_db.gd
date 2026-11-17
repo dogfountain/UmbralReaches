@@ -19,6 +19,7 @@ const FRW := preload("res://core/story/quest_chains_far_reaches_west.gd")   ## t
 const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
 const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 
+const DoorsQ := preload("res://core/story/quest_chains_doors.gd")   ## the four closed doors
 const StoryQ := preload("res://core/story/quest_chains_story.gd")   ## the story's long tasks: the five choices made at their places
 
 const DeepB := preload("res://core/story/quest_chains_deepen_b.gd")   ## the countries' and the Marches' choices, made at a place (their pickups open these)
@@ -634,6 +635,7 @@ const CONV := {
 	"wr_order": FRW.CONVS["wr_order"], "wr_herons": FRW.CONVS["wr_herons"], "ds_nail_door": FRS.CONVS["ds_nail_door"], "er_slate": FRE.CONVS["er_slate"],
 	# --- the story's long tasks ---
 	"story_edict": StoryQ.CONVS["story_edict"], "story_lamp": StoryQ.CONVS["story_lamp"], "story_roll": StoryQ.CONVS["story_roll"], "story_horn": StoryQ.CONVS["story_horn"], "story_wall": StoryQ.CONVS["story_wall"],
+	"story_door_kings": DoorsQ.CONVS["story_door_kings"], "story_door_castellum": DoorsQ.CONVS["story_door_castellum"], "story_door_witch": DoorsQ.CONVS["story_door_witch"], "story_door_nave": DoorsQ.CONVS["story_door_nave"],
 	# --- deepen B ---
 	"qb_holds_turf": DeepB.CONVS["qb_holds_turf"], "qb_keeper_wards": DeepB.CONVS["qb_keeper_wards"], "qb_oak_song": DeepB.CONVS["qb_oak_song"], "qb_quarry_last": DeepB.CONVS["qb_quarry_last"], "qb_moor_shrine": DeepB.CONVS["qb_moor_shrine"], "qb_orchard_press": DeepB.CONVS["qb_orchard_press"], "qb_field_ranks": DeepB.CONVS["qb_field_ranks"], "qb_mere_light": DeepB.CONVS["qb_mere_light"], "qb_mere_ferryman": DeepB.CONVS["qb_mere_ferryman"], "qb_well_answer": DeepB.CONVS["qb_well_answer"], "qb_salt_widow": DeepB.CONVS["qb_salt_widow"], "qb_spire_coal": DeepB.CONVS["qb_spire_coal"], "qb_seventh_day": DeepB.CONVS["qb_seventh_day"], "qb_shepherd_strays": DeepB.CONVS["qb_shepherd_strays"], "qb_wf_lights": DeepB.CONVS["qb_wf_lights"], "qb_wf_crown": DeepB.CONVS["qb_wf_crown"], "qb_long_round": DeepB.CONVS["qb_long_round"],
 }
