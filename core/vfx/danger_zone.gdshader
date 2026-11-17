@@ -62,7 +62,7 @@ void fragment() {
 		t = (1.0 - p.y) * 0.5;
 	}
 	float pr = clamp(progress, 0.0, 1.0);
-	float outline = 1.0 - smoothstep(0.0, 0.07, edge_m);
+	float outline = 1.0 - smoothstep(0.0, 0.11, edge_m);   // r39: a wider line, it is the first thing the eye must find at night
 	// r30: read by FORM, not hue (ember is also the lava's and the lanterns' colour): a second, thin
 	// ring just inside the outline that pulses inward, dashed and marching round the edge
 	float ring_at = 0.22 + 0.1 * fract(TIME * 1.6);
@@ -74,8 +74,8 @@ void fragment() {
 	// grain so the fill reads as scorched ground rather than a flat decal
 	float g = n2(m * 3.2 + vec2(TIME * 0.3, 0.0)) * 0.5 + n2(m * 7.0) * 0.5;
 	float calm = mix(1.0, 0.22, soft);
-	float base = (0.025 + 0.02 * g) * calm;
-	float fill = filled * (0.07 + 0.07 * g + 0.14 * pr * pr) * calm;
+	float base = (0.045 + 0.03 * g) * calm;   // r39: a visible floor for the whole zone before the fill arrives
+	float fill = filled * (0.10 + 0.08 * g + 0.2 * pr * pr) * calm;
 	// the last 12 % of the windup pulses: it is about to land
 	float urgent = smoothstep(0.88, 1.0, pr) * (0.5 + 0.5 * sin(TIME * 40.0));
 	// what stands in front of this pixel of the zone, in metres along the view
@@ -105,5 +105,5 @@ void fragment() {
 	float rim_a = rim * 0.5 * fade * mix(1.0, 0.5, soft) * (1.0 - through);
 	col_out = mix(col_out, vec3(0.03, 0.025, 0.02), rim * (1.0 - edge));
 	ALBEDO = col_out;
-	ALPHA = clamp(max(k, rim_a), 0.0, 0.8);
+	ALPHA = clamp(max(k, rim_a), 0.0, 0.9);
 }

@@ -39,6 +39,7 @@ var _scale_label: Label
 var _shadow_option: OptionButton
 var _fog_btn: CheckButton
 var _glow_btn: CheckButton
+var _night_btn: CheckButton
 var _grade_btn: CheckButton
 var _ssr_btn: CheckButton
 var _aa_option: OptionButton
@@ -225,6 +226,9 @@ func _build_graphics(p: VBoxContainer) -> void:
 	_glow_btn = _check(p, "Glow", "Light bleed from fires, glimmers and the sky", func(v: bool) -> void:
 		Settings.glow_enabled = v
 		_custom())
+	_night_btn = _check(p, "Living Night", "The night's moon course and eclipse, windows that light and go dark, far landmark lights, moths and drifting mist", func(v: bool) -> void:
+		Settings.night_life = v
+		Settings.apply())
 	_grade_btn = _check(p, "Colour Grade", "The night's tint and the gloom vignette (F1)", func(v: bool) -> void:
 		Settings.grade_enabled = v
 		_custom())
@@ -777,6 +781,7 @@ func _refresh() -> void:
 	_shadow_option.select(Settings.shadow_quality)
 	_fog_btn.button_pressed = Settings.fog_enabled
 	_glow_btn.button_pressed = Settings.glow_enabled
+	_night_btn.button_pressed = Settings.night_life
 	_grade_btn.button_pressed = Settings.grade_enabled
 	_ssr_btn.button_pressed = Settings.ssr_enabled
 	_blur_slider.value = Settings.motion_blur

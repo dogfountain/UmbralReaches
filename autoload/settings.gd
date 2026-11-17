@@ -35,6 +35,7 @@ var render_scale := 0.0             # 0 = auto, else 0.5-1.0 fixed
 var shadow_quality := 2             # 0 off, 1 low, 2 high
 var fog_enabled := true
 var glow_enabled := true
+var night_life := true              ## the living night (core/world/night_life): moon course, eclipse, living windows, far light signatures, moths, mist
 var grade_enabled := true
 var dof_enabled := false            ## kept for old cfg files; far DoF stays off (binding rule)
 var ssr_enabled := false
@@ -97,6 +98,7 @@ func load_settings() -> void:
 	shadow_quality = clampi(_v(cfg, "graphics", "shadow_quality", shadow_quality), 0, SHADOW_NAMES.size() - 1)
 	fog_enabled = _v(cfg, "graphics", "fog_enabled", fog_enabled)
 	glow_enabled = _v(cfg, "graphics", "glow_enabled", glow_enabled)
+	night_life = _v(cfg, "graphics", "night_life", night_life)
 	grade_enabled = _v(cfg, "graphics", "grade_enabled", grade_enabled)
 	ssr_enabled = _v(cfg, "graphics", "ssr_enabled", ssr_enabled)
 	quality_preset = clampi(_v(cfg, "graphics", "quality_preset", quality_preset), 0, PRESETS.size() - 1)
@@ -171,6 +173,7 @@ func save_settings() -> void:
 	cfg.set_value("graphics", "shadow_quality", shadow_quality)
 	cfg.set_value("graphics", "fog_enabled", fog_enabled)
 	cfg.set_value("graphics", "glow_enabled", glow_enabled)
+	cfg.set_value("graphics", "night_life", night_life)
 	cfg.set_value("graphics", "grade_enabled", grade_enabled)
 	cfg.set_value("graphics", "dof_enabled", dof_enabled)
 	cfg.set_value("graphics", "ssr_enabled", ssr_enabled)

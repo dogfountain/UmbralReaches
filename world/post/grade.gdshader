@@ -154,7 +154,7 @@ void fragment() {
     vec2 hd = SCREEN_UV - vec2(0.5);
     float side = length(hurt_dir) > 0.01 ? clamp(dot(normalize(hd + 1e-4), normalize(hurt_dir)) * 0.5 + 0.5, 0.0, 1.0) : 1.0;
     float hv = smoothstep(0.25, 0.75, length(hd) * 1.25) * hurt * (0.35 + 0.65 * side * side);
-    col = mix(col, vec3(0.55, 0.04, 0.16), hv * 0.75);
+    col = mix(col, vec3(0.55, 0.04, 0.16), hv * 0.5);   // r39: capped (was 0.75), the ground telegraphs must stay readable through a hit
     uint seed = uint(fract(TIME * 17.0) * 65536.0);
     col += (grain_hash(uvec2(FRAGCOORD.xy), seed) - 0.5) * grain;
     COLOR = vec4(col, 1.0);
