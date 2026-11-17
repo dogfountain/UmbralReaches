@@ -32,6 +32,7 @@ var charge := 0.0
 ## 0..1 slide blend from Player: low, legs out front, torso leaning back, trailing arm.
 var slide := 0.0
 var _tuck := 0.0                 ## double-jump knees-up, decays
+var _tuck_t := 0.0               ## what it is rising to: the knees come up over a few ticks, not in one frame
 ## The wanderer (built with the default loadout): foot IK, leaning, secondary motion. Enemy rigs
 ## (HunchRig, QuadRig) share this class and keep the plain stride.
 var hero := false
@@ -119,7 +120,6 @@ var _burst_t := -1.0
 var _flare: GeometryInstance3D
 var _cap_frame := -10
 
-# --- the wanderer's richer motion (hero only) ---
 ## World point the head turns toward (Player: the nearest enemy in front, else where the camera
 ## looks). Vector3.INF = no target, the head keeps its idle wander.
 var look_at_point := Vector3.INF
@@ -493,7 +493,8 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	_legacy_pose(s, c, st, breathe, idle)
 	if gait:
 		_gait_body(speed, on_floor, idle, breathe, delta)
-	_tuck = move_toward(_tuck, 0.0, delta * 2.2)
+	_tuck_t = move_toward(_tuck_t, 0.0, delta * 2.2)
+	_tuck = move_toward(_tuck, _tuck_t, delta * 14.0)
 	if slide > 0.01 or _tuck > 0.01:
 		_pose_overlay()
 	if hero:
@@ -684,12 +685,12 @@ func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) ->
 
 ## Double jump: a quick knees-up tuck that unfolds as it decays.
 func air_tuck() -> void:
-	_tuck = 1.0
+	_tuck_t = 1.0
 
 
 ## Held crouch in the air (slide queued): keep the knees up at least this much.
 func hold_tuck(v: float) -> void:
-	_tuck = maxf(_tuck, v)
+	_tuck_t = maxf(_tuck_t, v)
 
 
 ## Slide and tuck poses layered over the stride (blend by `slide` / `_tuck`).
@@ -1248,9 +1249,10 @@ func hurt_react(from_world: Vector3, amount := 10.0) -> void:
 			dir = Vector2(l.x, -l.z).normalized()
 	var k := clampf(0.55 + amount * 0.025, 0.55, 1.0)
 	_hit_sv += Vector2(dir.y, dir.x) * 7.0 * k
-	_hit = maxf(_hit, k)
+	_hit_t = maxf(_hit_t, k)
 
 
+var _hit_t := 0.0                    ## what the hit react is rising to (the pelvis dip and shoulder drop ease in over a few ticks)
 var _hit_s := Vector2.ZERO
 var _hit_sv := Vector2.ZERO
 
@@ -1259,7 +1261,8 @@ func _hit_tick(dt: float) -> void:
 	_hit_sv += -_hit_s * 170.0 * dt
 	_hit_sv *= exp(-9.0 * dt)
 	_hit_s += _hit_sv * dt
-	_hit = move_toward(_hit, 0.0, dt * 2.5)
+	_hit_t = move_toward(_hit_t, 0.0, dt * 2.5)
+	_hit = move_toward(_hit, _hit_t, dt * 16.0)
 	if _hit_s.length_squared() < 1e-6 and _hit <= 0.0:
 		return
 	_torso.rotation.x += _hit_s.x * 0.8
@@ -1583,7 +1586,6 @@ func _process(delta: float) -> void:
 		animate(Vector3.ZERO, true, delta)
 
 
-# =================================================================================================
 # Hero locomotion (r28). A real gait instead of a sine stride: each foot is either PLANTED (held
 # where it touched down in the world, so it never slides, and it pivots as the body turns) or
 # SWINGING along an arc to where the next touchdown will be, relative to the body. Step length,
@@ -1593,7 +1595,6 @@ func _process(delta: float) -> void:
 # under the body whenever it turns or drifts off them (turning on the spot, combat facing, the
 # last step of a stop). Legs are solved by two-bone IK onto the targets; airborne, sliding,
 # hanging and the traversal poses blend back to forward kinematics (plant_k).
-# =================================================================================================
 
 const H_LEG := 0.40                 ## the wanderer's thigh = shin
 const H_PELVIS := 0.955             ## pelvis height standing (hip 0.765: soft knees under the robe)
@@ -2275,7 +2276,6 @@ func _pose_ride(k: float) -> void:
 	for i in 2:
 		var sd := 1.0 if i == 0 else -1.0
 		_foot[i].rotation.x = lerpf(_foot[i].rotation.x, 0.2, k)
-
 
 
 func _pose_hang(k: float) -> void:
