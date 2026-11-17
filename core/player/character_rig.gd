@@ -1722,9 +1722,7 @@ func _step_len(v: float) -> float:
 ## covers ~0.46 m in front (the shader carries it over the leading boot) but only ~0.3 m behind.
 ## `back` = the travel direction's z (rig +z is behind).
 func _robe_reach(back: float) -> float:
-	# back-pedalling: the front is the trail; at a sprint the body is upright and the hem covers less ahead
-	# (robe_skin.gdshader drapes it at most 0.32 m out), so the foot lands inside it, not a boot out on its own
-	var r := (lerpf(0.46, 0.3, _g_spr) if _g_dir.y < 0.3 else 0.3) if back <= 0.0 else 0.3
+	var r := (lerpf(0.46, 0.3, _g_spr) if _g_dir.y < 0.3 else 0.3) if back <= 0.0 else 0.3    # back-pedalling: the front is the trail; a sprint lands inside the hem
 	return r / maxf(absf(back), 0.25) if absf(back) > 0.01 else 4.0
 
 
@@ -1893,8 +1891,7 @@ func _cycle(speed: float, xf: Transform3D, by: float, dt: float) -> void:
 	var prev := _cyc
 	_cyc = fposmod(_cyc + speed * dt / maxf(2.0 * _g_L, 0.1), 1.0)
 	var along := Vector3(_g_dir.x, 0.0, _g_dir.y)
-	var lift := lerpf(0.07, 0.15, _g_run) - 0.04 * _g_spr     # (a high heel kick shows the leg through the robe: a sprint's boot
-	# came out of the back of the coat, mid-air, on its own)
+	var lift := lerpf(0.07, 0.15, _g_run) - 0.04 * _g_spr     # (a high heel kick showed a sprint's boot out of the coat's back)
 	var flying := true
 	for i in 2:
 		var c0 := fposmod(prev + 0.5 * float(i), 1.0)
