@@ -731,6 +731,8 @@ func call_to(who: Node3D) -> bool:
 	at_post = false
 	_gather = 0.0
 	Foley.horse_sfx("snort", global_position + Vector3.UP * 1.3, -8.0, pow(float(_d.get("heft", 1.0)), -0.3))
+	CueBank.play_at("whistle", who.global_position + Vector3.UP * 1.6, 0.0)           # the wanderer's two-note whistle
+	CueBank.play_at("horse_nicker", global_position + Vector3.UP * 1.3, 0.0, pow(float(_d.get("heft", 1.0)), -0.3))     # and the horse answers
 	return true
 
 

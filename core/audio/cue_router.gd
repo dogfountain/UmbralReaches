@@ -59,6 +59,7 @@ func _ready() -> void:
 	Events.hollowed.connect(_on_hollowed)
 	Events.gloom_tide.connect(_on_tide)
 	Events.proc_triggered.connect(_on_proc)
+	Events.toast.connect(_on_toast)
 	Events.gloom_changed.connect(func(v: float, m: float) -> void: _gloom_k = v / maxf(m, 0.001))
 	get_tree().node_added.connect(_on_node)
 
@@ -99,6 +100,16 @@ func _on_damage(_target: Node, amount: float, crit: bool, school: StringName, at
 		CueBank.play_at(cue, at, clampf(linear_to_db(maxf(amount, 1.0) / 12.0), -6.0, 3.0))
 
 
+## Lines the world seat's places say through the toast are heard as well: a Wardens' beacon catching rings its horn, the last one lights the Line.
+func _on_toast(text: String) -> void:
+	if text.begins_with("The beacon catches") and _gate("wbeacon", 1.0):
+		var pl := _player()
+		if pl != null:
+			CueBank.play_at("beacon_light", pl.global_position + Vector3.UP * 3.0, -2.0)
+	elif text.begins_with("The last beacon takes") or text.begins_with("The Line burns"):
+		CueBank.play(self, "stinger_victory", -2.0)
+
+
 ## A parry rings, a dodge is cloth on the air, a riposte shimmers: the wanderer's own reads, under the library takes.
 func _on_proc(_id: StringName, reason: StringName) -> void:
 	var pl := _player()
@@ -130,7 +141,10 @@ func _on_hurt(amount: float, _from: Vector3) -> void:
 func _on_cast(enemy: Node, _cast: String, _time: float, interruptible: bool) -> void:
 	if not enemy is Node3D or not _gate("tell_%d" % enemy.get_instance_id(), 0.8):
 		return
-	CueBank.play_at("tell_windup" if interruptible else "tell_heavy", (enemy as Node3D).global_position + Vector3.UP * 1.4, 0.0)
+	var at := (enemy as Node3D).global_position + Vector3.UP * 1.4
+	CueBank.play_at("tell_windup" if interruptible else "tell_heavy", at, 0.0)
+	if enemy is Enemy:
+		CueBank.family((enemy as Enemy).voice_family(), "alert", at, 0.0)           # and the family's own wind-up character
 
 
 func _on_cast_end(enemy: Node, _cast: String, interrupted: bool) -> void:
