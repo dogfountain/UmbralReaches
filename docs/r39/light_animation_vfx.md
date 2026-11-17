@@ -37,8 +37,8 @@ FILL_ENERGY, ambient, ambient inject, black_crush and vignette are untouched.
    on the secret itself, visible from afar, with motes drifting up within 70 m. Found: a flare (ring, burst, flash)
    and the light goes out for good. Following the light always leads to a secret. See: the Hollow Oak, barrow, Pilgrims'
    Chapel; walk toward the light, the secret banner arrives with the flare.
-3. **Fixture pool** (`fixture_pool.gd`). Ten unshadowed omnis (class `player_orb`, outside the lamp budget) are lent to
-   the ten nearest rows without a real light of their own (forge, chapel window, graveyard, mystery) within 42 m,
+3. **Fixture pool** (`fixture_pool.gd`). Seven unshadowed omnis are built (class `player_orb`, outside the lamp budget) and three, five or seven of them lent by the detail setting (low, medium, high) to
+   the nearest rows without a real light of their own (forge, chapel window, graveyard, mystery) within 34 m,
    eased in and out, so forges, windows and ruins pool real light on stone and trees without hundreds of lights.
 4. **Living windows** (`living_windows.gd`). Every cottage with `WindowTrail_n` shafts has a bedtime: lit at dusk in turn, a third
    lit all night, the rest out between 55 and 95 percent of the night (three flickers, then dark); the warm pane
@@ -56,8 +56,8 @@ FILL_ENERGY, ambient, ambient inject, black_crush and vignette are untouched.
 8. **Light moths** (`light_moths.gd`). Moths circle the five nearest fires, windows and mysteries (cold slow motes at
    mysteries), flicker as their wings catch the light, scatter up and out when the wanderer runs past, and come to his
    own lantern after he has stood still for two seconds.
-9. **Fog banks** (`fog_banks.gd`). Twelve soft mist banks drift on a turning wind round the wanderer, wrapping at 70 m; within
-   reach of a fire or window they glow warm, near a mystery cold. Cost: one MultiMesh of 12 alpha quads.
+9. **Fog banks** (`fog_banks.gd`). Eight soft mist banks (none on the low detail setting) drift on a turning wind round the wanderer, wrapping at 70 m; within
+   reach of a fire or window they glow warm, near a mystery cold. Cost: one MultiMesh of 8 alpha quads.
 10. **Hit reads** (`hit_reads.gd`). Heavy hits and criticals add a shock ring tinted by damage school; criticals a gold starburst and
     flash; a kill lets go a rising column of motes, a ring and a ground-lighting flash. DoT ticks stay quiet. Budgeted
     to 8 effects a second.
