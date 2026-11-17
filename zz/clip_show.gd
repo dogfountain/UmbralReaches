@@ -76,8 +76,8 @@ func _process(d: float) -> void:
 	t += d
 	var h := maxf(cur.hp_bar_y, 1.0)
 	var ang := -0.9 + 0.035 * t
-	var look := Vector3(0, h * 0.42, 0)
-	cam.global_position = look + Vector3(sin(ang), 0.16, -cos(ang)).normalized() * (h * 2.3 + 1.5)
+	var look := Vector3(0, h * 0.5, 0)
+	cam.global_position = look + Vector3(sin(ang), 0.16, -cos(ang)).normalized() * (h * 2.7 + 2.0)      # the whole of a tall boss in frame
 	cam.look_at(look)
 	while step + 1 < PLAN.size() and t >= float(PLAN[step + 1][0]):
 		step += 1

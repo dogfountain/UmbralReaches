@@ -19,7 +19,8 @@ extends "res://core/enemy/wretch.gd"
 ##   the lantern flares; everything quickens, the Swing comes twice (the second turned across the
 ##   first), the Rockfall comes in sixes and the Undertow every 17 s.
 
-const ClipRig := preload("res://core/enemy/clip_rig.gd")
+const VillagerBossRig := preload("res://core/enemy/villager_boss_rig.gd")
+const AnchoressBody := preload("res://core/enemy/anchoress_body.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 const HermitScript := preload("res://core/enemy/wretch.gd")
 
@@ -78,8 +79,10 @@ func phase_marks() -> Array[float]:
 
 
 func _build() -> void:
-	# authored motion on a real skeleton (tools/blender/boss_humanoid_anim.py), played by ClipRig
-	ClipRig.fit(self, "res://art/models/boss_anchoress.glb", &"anchoress", {"pelvis": "hips", "body": "spine", "chest": "chest", "front": "chest", "head": "head", "hand_r": "hand_r", "hand_l": "hand_l"}, {"walk_stride": 0.371, "built": true})
+	# (17 Nov, Luke: bosses "simple like the villager", "4/5x size") built in the villagers' style to her own design
+	# (core/enemy/anchoress_body.gd): a gaunt hermit wound in chain, gagged, an anchor-stone hanging from her fist, a
+	# caged lantern at her hip; posed by formula (core/enemy/villager_boss_rig.gd)
+	VillagerBossRig.fit(self, AnchoressBody, {"seed": 7, "sex": "f", "age": "adult"}, {"scale": 1.35, "stoop": 0.06})
 	name = "Anchoress"
 	BossKit.embiggen(self, SCALE)
 

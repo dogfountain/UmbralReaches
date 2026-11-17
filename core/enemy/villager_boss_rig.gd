@@ -57,6 +57,30 @@ var opts := {}
 var body_script: GDScript
 ## How far forward the body is bent at rest (the old stoop).
 var stoop := 0.14
+## Height it floats above the floor (body units; 0 = it walks). A floating boss's legs never step: it drifts, bobbing.
+var hover := 0.0
+
+
+## Put an enemy on this rig (as ClipRig.fit does for a glb): `body` a BossBody script (core/enemy/boss_body.gd),
+## `vopts` its build options, `opts`: stoop, hover, scale (float, on top of the boss's embiggen), cap (the collision
+## capsule's height factor). Dresses the enemy's flesh and returns the rig.
+static func fit(e: Node, body: GDScript, vopts := {}, opts := {}) -> CharacterRig:
+	var rig: CharacterRig = (load("res://core/enemy/villager_boss_rig.gd") as GDScript).new()
+	rig.set("body_script", body)
+	rig.set("opts", vopts if not vopts.is_empty() else {"seed": 1, "sex": "m", "age": "adult"})
+	rig.set("stoop", float(opts.get("stoop", 0.04)))
+	rig.set("hover", float(opts.get("hover", 0.0)))
+	var en: Variant = e
+	en.attach_rig(rig)
+	rig.scale = Vector3.ONE * float(opts.get("scale", 1.0))
+	var col := e.get_node_or_null("Collision") as CollisionShape3D
+	if col and col.shape is CapsuleShape3D and opts.has("cap"):
+		var cap := col.shape as CapsuleShape3D
+		cap.height = 1.7 * float(opts.cap)
+		col.position.y = cap.height * 0.5
+	var r: Variant = rig
+	en.set_flesh(r.dress(&""))
+	return rig
 
 var _v: Node3D                                   ## the VillagerRig
 var _mode := &"idle"
@@ -234,18 +258,24 @@ func _pose(dt: float, vel: Vector3) -> void:
 	# the walk: ground speed as the body walks it (a boss three times the size covers three times the ground a stride)
 	var size := maxf(global_basis.get_scale().y, 0.01)
 	var speed := Vector2(vel.x, vel.z).length() / size
-	var moving := speed > 0.12 and _mode in [&"idle", &"howl"] and not _dead
+	var moving := speed > 0.12 and _mode in [&"idle", &"howl"] and not _dead and hover <= 0.0
 	_walk = move_toward(_walk, 1.0 if moving else 0.0, dt * 3.0)
 	var stride: float = Life.calib_stride(r, GAIT[0])
 	if _walk > 0.001:
 		_gait = fposmod(_gait + speed * dt / maxf(stride * maxf(_walk, 0.35), 0.01), 1.0)
-	var off := _legs(k, sw)
+	var off := _legs(k, sw) if hover <= 0.0 else hover + 0.035 * sin(_t * 1.3)
 	var sr := cos(TAU * _gait) * _walk
 	# the staff and the left hand's tool at rest: planted as he walks, held out before him standing
 	var plant := 0.06 * sr
 	var g_r := Vector3(0.27, 1.0, -0.2 - plant) * k
 	var d_r := Vector3(0.04, 1.0, 0.22 - plant)
 	var u_r := Vector3(0, 0, -1)
+	if _v.get("hang_r") == true:
+		# a tool that hangs from the fist (the Anchoress's anchor on its chain): held low and out, the chain down; the
+		# wind-up then hauls it up over the shoulder and the strike brings it over and down like a crook
+		g_r = Vector3(0.25, 0.9 + 0.02 * sr, -0.16 - plant) * k
+		d_r = Vector3(0.05 * sr, -1.0, -0.12)
+		u_r = Vector3(0, 0, -1)
 	var g_l := Vector3(-0.24, 0.84 + 0.02 * absf(sr), -0.2 + 0.05 * sr) * k
 	var d_l := Vector3(0, 0, -1)
 	var u_l := Vector3(0, -1, 0)
@@ -314,6 +344,7 @@ func _pose(dt: float, vel: Vector3) -> void:
 			head_pitch += 0.55 * smoothstep(0.05, 0.4, u)
 			lean = 0.35 * sag + 0.1 * over
 			off += _crouch(0.3 * sag)
+			off = lerpf(off, 0.0, smoothstep(0.25, 0.6, u)) if hover > 0.0 else off       # a floating body sinks first
 			g_r = g_r.lerp(Vector3(0.2, 0.85, -0.4) * k, smoothstep(0.05, 0.35, u))
 			d_r = d_r.lerp(Vector3(0.0, 1.0, 0.25), smoothstep(0.05, 0.35, u))
 			g_l = g_l.lerp(Vector3(-0.26, 0.7, -0.25) * k, smoothstep(0.05, 0.35, u))

@@ -23,7 +23,8 @@ extends Husk
 ##   everything comes quicker; the stone falls more often.
 ## Save state: Travel.bosses_slain "r37_hierarch" (the arena). Loot: the fallback table + the trophy.
 
-const ClipRig := preload("res://core/enemy/clip_rig.gd")
+const VillagerBossRig := preload("res://core/enemy/villager_boss_rig.gd")
+const CrownBody := preload("res://core/enemy/crown_body.gd")
 const SCALE := 3.4
 const HP := 640
 const EDICT_TIME := 2.2
@@ -69,8 +70,10 @@ func phase_marks() -> Array[float]:
 
 
 func _build() -> void:
-	# authored motion on a real skeleton (tools/blender/boss_humanoid_anim.py), played by ClipRig
-	ClipRig.fit(self, "res://art/models/boss_hierarch.glb", &"hierarch", {"pelvis": "hips", "body": "spine", "chest": "chest", "front": "chest", "head": "head", "hand_r": "hand_r", "hand_l": "hand_l"}, {"walk_stride": 0.571, "scale": Vector3(1.08, 0.86, 1.08), "cap": 0.86, "built": true})
+	# (17 Nov, Luke: bosses "simple like the villager", "4/5x size") built in the villagers' style to its own design
+	# (core/enemy/crown_body.gd): a squat stone husk under a cracked cope, a bronze speaking-horn for a head; posed by
+	# formula (core/enemy/villager_boss_rig.gd)
+	VillagerBossRig.fit(self, CrownBody, {}, {"scale": 1.17, "cap": 0.86, "stoop": 0.08})
 	name = "HierarchVoice"
 	BossKit.embiggen(self, SCALE)
 	posture({"hunch": 0.0, "crouch": 0.0, "arm_reach": 0.12, "head_jut": 0.0, "limp": 0.0, "sway": 0.25, "twitch": 0.0, "splay": 0.2})

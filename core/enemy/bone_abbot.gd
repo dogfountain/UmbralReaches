@@ -156,7 +156,7 @@ func _build() -> void:
 	rig.set("stoop", 0.04)                     # the hunch is in his own skeleton
 	rig.set("opts", {"seed": 6101, "sex": "m", "age": "adult"})
 	attach_rig(rig)
-	_rig.scale = Vector3.ONE * 1.22          # an old villager is 1.63 m; at SCALE 2.6 and this, about 5 m like the Blender Abbot
+	_rig.scale = Vector3.ONE * 1.34          # 1.95 tall in body units: at SCALE 2.6 and this, about 7.5 m (Luke: bosses 4-5x a man)
 	_rig_xf = _rig.transform
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape is CapsuleShape3D:

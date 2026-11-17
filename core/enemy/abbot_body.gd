@@ -1,4 +1,4 @@
-extends "res://core/life/village/villager_rig.gd"
+extends "res://core/enemy/boss_body.gd"
 ## The Bone Abbot, built in the villagers' style but to his own design (17 Nov, Luke: "the style, not the exact look";
 ## "have some creativity"): the same skeleton, soft skinning, shader and detail maps as Hearthward's people
 ## (VillagerRig / DwarfMesh primitives: lofts, tubes, lumpy blobs), but a body of his own:
@@ -12,81 +12,16 @@ extends "res://core/life/village/villager_rig.gd"
 ## Glowing points (eyes, the heart, the crook's flame, candles) are `glints`, lit by VillagerBossRig.
 ## No class_name (project rule): const AbbotBody := preload("res://core/enemy/abbot_body.gd")
 
-const SELF_A := "res://core/enemy/abbot_body.gd"
-const BONE := Color(0.72, 0.67, 0.56)
-const HOLLOW := Color(0.02, 0.015, 0.016)
 const ROBE := Color(0.12, 0.1, 0.11)
 const MANTLE := Color(0.3, 0.07, 0.08)
-const GILT := Color(0.7, 0.5, 0.2)
 const WAX := Color(0.86, 0.82, 0.7)
 const CORD := Color(0.42, 0.36, 0.26)
-const EMBER := Color(1.0, 0.5, 0.15)
-const FLAME := Color(1.0, 0.72, 0.32)
 
-## Glowing points the boss rig carries: [bone, rest point, radius, colour] (model space before SCALE).
-var glints: Array = []
-## Where spells leave from: [bone, rest point] (the crook).
-var muzzle_at: Array = []
-
-
-## Build from options on a fresh instance: `AbbotBody.new().made(opts)`.
-func made(opts: Dictionary) -> Node3D:
-	name = "Rig"
-	_build(opts)
-	return self
-
-
-func _prep(opts: Dictionary) -> String:
-	var key := super(opts)
-	_key = "abbot2|%s|%d" % [key, GenCache.salt(SELF_A)]
-	_layout_glints()
-	return _key
-
-
-# =====================================================================================================
-# the skeleton: taller than a man, long-armed, hunched (the neck and head forward of the hips)
-# =====================================================================================================
-
-func _rest_layout() -> void:
-	P = 0.88 * k
-	hc = Vector3(0, 1.53, -0.13) * k
-	rests.clear()
-	var arm := func(s: float) -> Array:
-		return [Vector3(s * 0.2, 1.37, 0.0) * k, Vector3(s * 0.25, 1.03, 0.03) * k, Vector3(s * 0.27, 0.69, 0.0) * k]
-	var leg := func(s: float) -> Array:
-		return [Vector3(s * 0.09, 0.84, 0.0) * k, Vector3(s * 0.1, 0.46, -0.01) * k]
-	var ar: Array = arm.call(1.0)
-	var al: Array = arm.call(-1.0)
-	var lr: Array = leg.call(1.0)
-	var ll: Array = leg.call(-1.0)
-	rests = [Vector3.ZERO, Vector3(0, P, 0), Vector3(0, P + 0.3 * k, -0.02 * k), Vector3(0, 1.44, -0.07) * k, hc + Vector3(0, -0.04, -0.035) * hs,
-		ar[0], ar[1], ar[2], al[0], al[1], al[2], lr[0], lr[1], ll[0], ll[1], Vector3.ZERO]
-	_face = null
-	var fc: Variant = face()
-	rests[B_LID] = fc.lid_pivot()
-	mouth = fc.point(0.0, fc.mouth_y)
-	mug_rim = mouth
-	mug_base = mouth
-	_q.clear()
-	_gq.clear()
-	_gp.clear()
-	for i in BONES.size():
-		_q.append(Quaternion.IDENTITY)
-		_gq.append(Quaternion.IDENTITY)
-		_gp.append(rests[i])
-	for side in 2:
-		var s := 1.0 if side == 0 else -1.0
-		var ba := B_ARM_R if side == 0 else B_ARM_L
-		var w: Vector3 = rests[ba + 2]
-		var fo: Vector3 = (w - rests[ba + 1]).normalized()
-		var pn := Vector3(-s, 0, 0).slide(fo).normalized()
-		grip[side] = w + fo * 0.07 * k + pn * 0.04 * k
-		grip_ax[side] = fo.cross(pn).normalized() * s
-		grip_up[side] = fo
-
-
-func ankle(s: float) -> Vector3:
-	return Vector3(s * 0.1, 0.075, 0.012) * k
+func _joints() -> Dictionary:
+	# taller than a man, long-armed, hunched (the neck and head forward of the hips)
+	return {"pelvis": Vector3(0, 0.88, 0), "chest": Vector3(0, 1.18, -0.02), "neck": Vector3(0, 1.44, -0.07), "head": Vector3(0, 1.53, -0.13),
+		"shoulder": Vector3(0.2, 1.37, 0.0), "elbow": Vector3(0.25, 1.03, 0.03), "wrist": Vector3(0.27, 0.69, 0.0),
+		"hip": Vector3(0.09, 0.84, 0.0), "knee": Vector3(0.1, 0.46, -0.01), "ankle": Vector3(0.1, 0.075, 0.012)}
 
 
 # =====================================================================================================
@@ -354,9 +289,3 @@ func _layout_glints() -> void:
 	for cd: Array in _ab_candles():
 		glints.append([B_CHEST, (cd[0] as Vector3) + Vector3(0, float(cd[1]) + 0.016 * k, 0), 0.008 * k, FLAME])
 
-
-static func _rep(v: float, n: int) -> Array:
-	var a := []
-	for i in n:
-		a.append(v)
-	return a

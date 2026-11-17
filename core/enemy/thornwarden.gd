@@ -52,7 +52,8 @@ const KNOT_TIME := 55.0         ## seconds to burn the knots before the henge cl
 const ERUPT_EVERY := 5.5
 const BLOOM_EVERY := 15.0
 const HP := 600
-const ClipRig := preload("res://core/enemy/clip_rig.gd")
+const BeastRig := preload("res://core/enemy/beast_rig.gd")
+const ThornBody := preload("res://core/enemy/thorn_body.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 var _attuned := false
 var _mend_t := 8.0
@@ -116,23 +117,16 @@ func _absorb(dmg: float, from: Node) -> float:
 
 func _build() -> void:
 	name = "Thornwarden"
-	# his motion is authored (tools/blender/boss_thornwarden_anim.py): a real skeleton and keyed clips, played by
-	# ClipRig, in place of the Leaper's sixteen joints posed by formula
-	var rig: CharacterRig = ClipRig.new()
-	rig.built = true                        # built in tiling materials (tools/blender/grunt_build.py thornwarden)
-	rig.scene_path = "res://art/models/boss_thornwarden.glb"
-	rig.socket_bones = {"pelvis": "hips", "body": "spine1", "chest": "chest", "front": "neck", "head": "head", "tail": "tail1"}
-	rig.walk_stride = 0.765
-	rig.run_stride = 1.889
-	rig.run_at = 0.95                       # past a prowl he lopes: a beast this size has a slow, long stride
-	attach_rig(rig)
+	# (17 Nov, Luke: bosses "simple like the villager", "4/5x size") built in the villagers' style to its own design
+	# (core/enemy/thorn_body.gd): a great stag-wolf of bark and thorn, briar antlers, a glowing heart-knot at its breast;
+	# posed by formula on a beast's skeleton (core/enemy/beast_rig.gd). The Blender model and its clips stay in art/.
+	var _r: CharacterRig = BeastRig.fit(self, ThornBody, {"scale": 1.25, "walk_stride": 0.9, "run_stride": 1.9, "run_at": 0.95})
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape is CapsuleShape3D:
 		var cap := col.shape as CapsuleShape3D
 		cap.height = 1.1
 		cap.radius = 0.42
 		col.position.y = 0.6
-	set_flesh(rig.dress(&"thornwarden"))
 	BossKit.embiggen(self, SCALE)
 
 
