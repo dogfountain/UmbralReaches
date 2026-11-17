@@ -200,8 +200,6 @@ func refusal(action: String, ev: InputEvent) -> String:
 		return "That cannot be bound."
 	if ev is InputEventKey and int(d.c) in RESERVED_KEYS:
 		return "%s is reserved." % OS.get_keycode_string(int(d.c) as Key)
-	if ev is InputEventKey and int(d.c) in MENU_KEYS and not _default_has(action, ev):
-		return "%s is used inside the menus." % OS.get_keycode_string(int(d.c) as Key)
 	for r: Array in REBINDABLE:
 		var other: String = r[1]
 		if other == action or not InputMap.has_action(other):
@@ -209,6 +207,9 @@ func refusal(action: String, ev: InputEvent) -> String:
 		for e in InputMap.action_get_events(other):
 			if _same(e, ev):
 				return "%s is already %s." % [event_name(ev), String(r[0])]
+	# (after the clash check: a key another action holds says which one)
+	if ev is InputEventKey and int(d.c) in MENU_KEYS and not _default_has(action, ev):
+		return "%s is used inside the menus." % OS.get_keycode_string(int(d.c) as Key)
 	for fixed: String in ["toggle_settings", "benchmark"]:
 		for e in InputMap.action_get_events(fixed):
 			if _same(e, ev):

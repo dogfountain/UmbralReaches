@@ -121,7 +121,7 @@ func interact(_by: Node) -> void:
 		return
 	attune(relic_id)
 	Travel.give("bone_reliquary", 1)
-	Events.toast.emit("Bone Reliquary taken. It is in your satchel [%s]. Attune it at any kindled fire." % InputSetup.live_label("inventory", Settings.using_pad, "Tab")
+	Events.toast.emit("Bone Reliquary taken. It is in your satchel [%s]. Attune it at any kindled fire." % InputSetup.live_label("inventory", Settings.using_pad, "Tab"))
 	SpellFx.rift_in(global_position - Vector3.UP * 1.15)
 	remove_from_group(Groups.INTERACTABLE)
 	var tw := create_tween()

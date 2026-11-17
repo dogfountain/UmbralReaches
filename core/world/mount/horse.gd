@@ -126,7 +126,7 @@ func interact(by: Node) -> void:
 		(st.owned as Array).append(breed)
 		st["ride"] = breed
 		Travel.save_soon()
-		Events.toast.emit("The %s is yours. Ride it, or call it with [%s] wherever you are." % [String(_d.name), InputSetup.live_label("mount", Settings.using_pad, "H")]
+		Events.toast.emit("The %s is yours. Ride it, or call it with [%s] wherever you are." % [String(_d.name), InputSetup.live_label("mount", Settings.using_pad, "H")])
 		return
 	mount(p)
 
