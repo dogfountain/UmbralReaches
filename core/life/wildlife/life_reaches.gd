@@ -365,26 +365,31 @@ static func _crows(dir: Node3D, root: Node, space: PhysicsDirectSpaceState3D, ad
 	centres.append_array(roadside.slice(0, 12))
 	var made := 0
 	var placed: Array[Vector2] = []
-	for c in centres:
-		if made >= n:
+	# 30 m off the camps; a small region full of them (the Bellfall: two by its crater) tries again at 16 m rather
+	# than staying empty (crows are bolder than that)
+	for camp_r: float in [30.0, 16.0]:
+		if made > 0:
 			break
-		if not _in(reg, c) or not _clear(c, 30.0, 10.0) or _taken(dir, c, "crow", 40.0):
-			continue
-		var far := true
-		for o in placed:
-			if o.distance_to(c) < 36.0:
-				far = false
-		if not far:
-			continue
-		var perches := _crow_perches(space, c, rng)
-		if perches.size() < 4:
-			continue
-		var g := Birds.new()
-		g.name = "CrowsR_%s_%d" % [rid, made]
-		g.setup("crow", perches, clampi(perches.size() - 1, 3, 5), SEED + 101 * made + absi(hash(rid)) % 997)
-		add.call(g)
-		placed.append(c)
-		made += 1
+		for c in centres:
+			if made >= n:
+				break
+			if not _in(reg, c) or not _clear(c, camp_r, 10.0) or _taken(dir, c, "crow", 40.0):
+				continue
+			var far := true
+			for o in placed:
+				if o.distance_to(c) < 36.0:
+					far = false
+			if not far:
+				continue
+			var perches := _crow_perches(space, c, rng)
+			if perches.size() < 4:
+				continue
+			var g := Birds.new()
+			g.name = "CrowsR_%s_%d" % [rid, made]
+			g.setup("crow", perches, clampi(perches.size() - 1, 3, 5), SEED + 101 * made + absi(hash(rid)) % 997)
+			add.call(g)
+			placed.append(c)
+			made += 1
 	return made
 
 
@@ -883,4 +888,10 @@ static func _bats(dir: Node3D, space: PhysicsDirectSpaceState3D, reg: Dictionary
 		_note(dir, "bat", cnt)
 		placed.append(c)
 		made += 1
-	return made
+	if made == 0:
+		# every spot already had a swarm over it (the Bellfall's crater has the Realm's own): those are the region's bats
+		for sw: Node in swarms:
+			var p3 := (sw as Node3D).global_position
+			if bb.has_point(Vector2(p3.x, p3.z)):
+				made += 1
+	return mini(made, n)
