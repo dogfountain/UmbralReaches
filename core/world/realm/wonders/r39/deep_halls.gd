@@ -17,6 +17,7 @@ extends RefCounted
 ## belongs to (never on it); the stair is registered as a WorldLanes flight (the ground over it is cut away).
 ## Build-time only; each complex fades out beyond 120 m and its big meshes carry LODs. No class_name.
 
+const SELF := "res://core/world/realm/wonders/r39/deep_halls.gd"
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const DK := preload("res://core/world/realm/wonders/r39/dungeon_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
@@ -51,10 +52,7 @@ func _run(root: Node) -> void:
 
 
 func _hall(root: Node, spec: Dictionary) -> bool:
-	var f := WK.find_any(spec.cand as Array, Vector2(16.0, 34.0), [0.0, PI * 0.5, PI, PI * 1.5], _ids, 8.0)
-	if f.is_empty():
-		push_warning("WONDER deep_halls: no hillside for %s" % String(spec.id))
-		return false
+	var f := WK.place(spec.cand as Array, Vector2(16.0, 34.0), [0.0, PI * 0.5, PI, PI * 1.5], 12.0)
 	var c: Vector2 = f.pos
 	var yaw := float(f.yaw)
 	var ez := Vector2(-sin(yaw), cos(yaw))
@@ -84,13 +82,14 @@ func _hall(root: Node, spec: Dictionary) -> bool:
 	d.k.host.set_meta("threshold_at", d.o)
 	WorldLanes.register_flight("hall_" + String(spec.id), d.o, Vector3(d.o.x + d.fwd.x * d.run, d.yf, d.o.z + d.fwd.z * d.run), 3.6)
 	WK.reserve("hall_gate_" + String(spec.id), Vector2(d.o.x, d.o.z), Vector2(9.0, 7.0), yaw, d.o.y - 2.0, d.o.y + 8.0)
-	d.stair()
-	d.gate()
-	match String(spec.theme):
-		"crypt": _crypt(d, spec)
-		"cistern": _cistern(d, spec)
-		"cellar": _cellar(d, spec)
-		_: _flooded(d, spec)
+	if not d.k.cached(WK.fp(SELF, [String(spec.id), d.o, d.yf, d.fwd, WK.tsig(Vector2(d.o.x, d.o.z) + Vector2(d.fwd.x, d.fwd.z) * 32.0, 40.0)])):
+		d.stair()
+		d.gate()
+		match String(spec.theme):
+			"crypt": _crypt(d, spec)
+			"cistern": _cistern(d, spec)
+			"cellar": _cellar(d, spec)
+			_: _flooded(d, spec)
 	var n: int = d.k.commit(120.0)
 	d.k.host.set_meta("reward_at", d.p(0.0, 0.3, 39.0))
 	print("WONDER deep_hall %s: gate %s floor %.1f, %d rooms, %d meshes, %d fires, %d lights, %d chests" % [String(spec.id), Vector2(d.o.x, d.o.z), d.yf, d.count.rooms, n, d.k.fires, d.k.lights, d.k.chests])

@@ -16,6 +16,7 @@ extends RefCounted
 ## 90 m apart (WK.find_any); each cave fades at 110 m, its meshes carry LODs when large. Build-time only.
 ## No class_name.
 
+const SELF := "res://core/world/realm/wonders/r39/caves.gd"
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const DK := preload("res://core/world/realm/wonders/r39/dungeon_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
@@ -25,7 +26,6 @@ const NAMES := ["The Crystal Grotto", "The Root Cave", "The Bat Cave", "The Drow
 const LINES := ["a cold light under the heather", "the roots go all the way down", "something lives in the dark and leaves it", "the water came in and stayed",
 	"a seam of the rift reached here", "the bears were not the first to dig it", "the cap-ring of a thousand nights"]
 
-var _ids: Array = []
 var _placed: Array[Vector2] = []
 
 
@@ -35,35 +35,43 @@ static func build(root: Node) -> void:
 
 
 func _run(root: Node) -> void:
-	for reg: Dictionary in RealmLayout.REGIONS:
-		_ids.append(String(reg.id))
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 8484
+	# seven anchors on the ways, each walked 70-130 m off to a side (at most 8 offsets per cave, no search)
+	var paths: Array = RealmLayout.PATHS
 	var n := 0
-	var tries := 0
-	while n < 7 and tries < 400:
-		tries += 1
-		var c := Vector2(rng.randf_range(-350.0, 350.0), rng.randf_range(-120.0, 380.0))
-		var pd := RealmLayout.path_dist(c)
-		if pd < 60.0 or pd > 180.0:
-			continue
-		var near := false
-		for q: Vector2 in _placed:
-			if q.distance_to(c) < 90.0:
-				near = true
-		if near:
-			continue
-		if WK.region_at(c) in ["hearth", "summit", "rift", "ossuary", "henge"]:
-			continue
-		if _cave(root, n, c):
-			n += 1
-	print("WONDER caves: %d of 7 in %d tries" % [n, tries])
+	var attempts := 0
+	var idx := 3
+	while n < 7 and attempts < 80:
+		var path: Dictionary = paths[idx % paths.size()]
+		var pts: Array = path.pts
+		var i := (idx * 5 + 2) % (pts.size() - 1)
+		var a: Vector2 = pts[i]
+		var b: Vector2 = pts[i + 1]
+		var p := a.lerp(b, 0.5)
+		var t := (b - a).normalized()
+		var nrm := Vector2(-t.y, t.x) * (1.0 if idx % 2 == 0 else -1.0)
+		idx += 1
+		for off: float in [70.0, 100.0, 130.0]:
+			attempts += 1
+			var c := p + nrm * off
+			if _ok(c) and _cave(root, n, c):
+				n += 1
+				break
+	print("WONDER caves: %d of 7 in %d attempts" % [n, attempts])
+
+
+func _ok(c: Vector2) -> bool:
+	if not RealmLayout.BOUNDS.grow(-30.0).has_point(c) or RealmLayout.path_dist(c) < 55.0 or WK.wet(c.x, c.y):
+		return false
+	for q: Vector2 in _placed:
+		if q.distance_to(c) < 90.0:
+			return false
+	if WK.region_at(c) in ["hearth", "summit", "rift", "ossuary", "henge"]:
+		return false
+	return not WK.site_hit(Rect2(c - Vector2(14.0, 28.0), Vector2(28.0, 56.0)), 2.0)
 
 
 func _cave(root: Node, i: int, c0: Vector2) -> bool:
-	var f := WK.find([c0], Vector2(12.0, 26.0), [0.0, PI * 0.5, PI, PI * 1.5], _ids, 8.0, 9.0, 30.0)
-	if f.is_empty():
-		return false
+	var f := WK.place([c0], Vector2(12.0, 26.0), [0.0, PI * 0.5, PI, PI * 1.5], 14.0)
 	var c: Vector2 = f.pos
 	_placed.append(c)
 	var yaw := float(f.yaw)
@@ -72,7 +80,6 @@ func _cave(root: Node, i: int, c0: Vector2) -> bool:
 	var d := DK.new()
 	d.k = WK.new()
 	d.k.setup(root, "Cave%d" % i, 8300 + i)
-	d.k.kit.relief = false
 	d.fwd = Vector3(fwd2.x, 0.0, fwd2.y)
 	d.side = d.fwd.cross(Vector3.UP)
 	var start := c - fwd2 * 24.0
@@ -94,25 +101,30 @@ func _cave(root: Node, i: int, c0: Vector2) -> bool:
 	d.k.host.set_meta("threshold_at", d.o)
 	WorldLanes.register_flight("cave_%d" % i, d.o, Vector3(d.o.x + d.fwd.x * d.run, d.yf, d.o.z + d.fwd.z * d.run), 3.2)
 	WK.reserve("cave_mouth_%d" % i, Vector2(d.o.x, d.o.z), Vector2(8.0, 6.0), yaw, d.o.y - 2.0, d.o.y + 6.0)
-	_mouth(d, root, i)
-	d.stair(3.0)
-	# three chambers
-	d.room(-4.5, 4.5, 0.0, 9.0, 4.4, {"front": true, "gaps_front": [0.0], "gaps_back": [0.0]})
-	d.room(-8.0, 8.0, 9.8, 25.0, 5.6, {"gaps_back": [0.0]})
-	d.room(-5.5, 5.5, 25.8, 36.0, 5.2, {})
-	_dress(d, i)
+	_boulders(d, i)
+	if not d.k.cached(WK.fp(SELF, [i, d.o, d.yf, d.fwd, WK.tsig(c, 30.0)])):
+		_mouth(d, i)
+		d.stair(3.0)
+		d.room(-4.5, 4.5, 0.0, 9.0, 4.4, {"front": true, "gaps_front": [0.0], "gaps_back": [0.0]})
+		d.room(-8.0, 8.0, 9.8, 25.0, 5.6, {"gaps_back": [0.0]})
+		d.room(-5.5, 5.5, 25.8, 36.0, 5.2, {})
+		_dress(d, i)
 	d.k.host.set_meta("find_at", d.p(0.0, 0.3, 33.0))
 	var n: int = d.k.commit(110.0)
 	print("WONDER cave %d %s at %s floor %.1f: %d meshes, %d fires, %d lights, %d chests" % [i, String(NAMES[i]), Vector2(d.o.x, d.o.z), d.yf, n, d.k.fires, d.k.lights, d.k.chests])
 	return true
 
 
-## The mouth: two boulders flanking the stair's head, rubble, a few stalks of grass-coloured moss boxes.
-func _mouth(d, root: Node, i: int) -> void:
+## The mouth's two flanking boulders (real rocks, with collision: never cached, built each time).
+func _boulders(d, i: int) -> void:
 	for s: float in [-1.0, 1.0]:
 		var p: Vector3 = d.o + d.side * (s * 4.2) + d.fwd * 1.5
 		var mesh := RockKit.boulder(i * 2 + int(s > 0.0), Vector3(4.6, 3.4, 3.8), "mossy")
 		RockKit.spawn(d.k.host, mesh, Transform3D(Basis(Vector3.UP, float(i) + s), Vector3(p.x, WK.h(p.x, p.z) - 0.3, p.z)))
+
+
+## The mouth's rubble and hanging moss (kit geometry: cached with the rest).
+func _mouth(d, _i: int) -> void:
 	Dress.rubble(d.k, d.o + d.fwd * -2.0, 3.0, 10, "cave")
 	Dress.strands(d.k, d.o + d.side * -3.0 + Vector3.UP * 0.2, d.o + d.side * 3.0 + Vector3.UP * 0.2, 8, 0.8, "cave_moss")
 

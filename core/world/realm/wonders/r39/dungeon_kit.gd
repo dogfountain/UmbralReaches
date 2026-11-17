@@ -125,25 +125,7 @@ func sarcophagus(u: float, v: float, yaw: float, slid := 0.0, key := "") -> void
 
 func water(u0: float, u1: float, v0: float, v1: float, y: float) -> void:
 	water_y = yf + y
-	var mi := MeshInstance3D.new()
-	mi.name = "Water"
-	var pm := PlaneMesh.new()
-	pm.size = Vector2(u1 - u0, v1 - v0)
-	mi.mesh = pm
-	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.05, 0.13, 0.17, 0.72)
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.roughness = 0.04
-	m.metallic = 0.2
-	m.emission_enabled = true
-	m.emission = Color(0.02, 0.06, 0.08)
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mi.material_override = m
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	k.host.add_child(mi)
-	var c := p((u0 + u1) * 0.5, y, (v0 + v1) * 0.5)
-	mi.global_transform = Transform3D(Basis(Vector3.UP, atan2(fwd.x, fwd.z)), c)
-	mi.visibility_range_end = 120.0
+	k.water_plane(p((u0 + u1) * 0.5, y, (v0 + v1) * 0.5), atan2(fwd.x, fwd.z), Vector2(u1 - u0, v1 - v0), 120.0)
 
 
 ## The stair from the surface down to the floor, with walls up each side to the ground.
