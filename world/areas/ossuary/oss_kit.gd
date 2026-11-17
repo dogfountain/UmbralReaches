@@ -73,6 +73,9 @@ static func mat(key: String) -> Material:
 		"wood_big":   _tri(m, "tavern_wood", 0.24, Color(0.52, 0.47, 0.42))
 		"bark":       _tri(m, "bark", 0.2, Color(0.62, 0.56, 0.5))
 		"chalk":      _tri(m, "oss_ashlar", 0.2, Color(1.1, 1.1, 1.18))
+		"cave":       _tri(m, "rock", 0.13, Color(0.52, 0.55, 0.62))
+		"cave_moss":  _tri(m, "rock", 0.15, Color(0.4, 0.62, 0.42))
+		"crystal":    _tri(m, "oss_ashlar", 0.5, Color(0.7, 0.95, 1.35))
 		"bone", "bone_cm":
 			_tri(m, "oss_bone", 1.6, Color(1.0, 0.97, 0.92))
 			m.vertex_color_use_as_albedo = true
