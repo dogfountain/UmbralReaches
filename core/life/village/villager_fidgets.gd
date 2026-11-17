@@ -78,7 +78,7 @@ static var _regard_ms := -100000
 
 
 static func wave(v: Variant, k: float, free_r: bool, free_l: bool) -> void:
-	if not (free_r or free_l) or v.speaking or v.attend != null:
+	if not (free_r or free_l) or v.speaking or v.attend != null or "wave_cd" in v:     # (the folk wave by their own overlay)
 		return
 	var now: float = v._t
 	var st: Array = _wave_at.get(v.id, [-100.0, 0.0])
