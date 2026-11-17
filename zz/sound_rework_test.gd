@@ -27,7 +27,7 @@ func _ready() -> void:
 		var ms := float(Time.get_ticks_usec() - t0) / 1000.0
 		total += ms
 		var st := _stats(pcm)
-		var want := float(CueBank.RECIPES[id].len)
+		var want := float(CueBank.recipe(id).len)
 		_ok(absf(float(pcm.size()) / float(Kit.RATE) - want) < 0.01, "%s lasts %.2f s" % [id, want])
 		_ok(not st.nan and st.peak > 0.5 and st.peak <= 1.0 and st.rms > 0.003, "%s has body, no NaN, no clipping (peak %.2f rms %.3f, %.0f ms)" % [id, st.peak, st.rms, ms])
 		_ok(absf(pcm[pcm.size() - 1]) < 0.02, "%s ends quiet" % id)

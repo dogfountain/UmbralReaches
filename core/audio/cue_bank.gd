@@ -15,6 +15,7 @@ extends RefCounted
 
 const Kit := preload("res://core/audio/synth_kit.gd")
 const GenCache := preload("res://core/world/realm/gen_cache.gd")
+const FamilyVoices := preload("res://core/audio/family_voices.gd")
 const SELF := "res://core/audio/cue_bank.gd"
 const VERSION := 1
 
@@ -117,7 +118,7 @@ const RECIPES := {
 const TAKES := 3
 const FREQ_MUL := [1.0, 1.045, 0.958]
 const TIME_MUL := [1.0, 0.93, 1.07]
-const SINGLE_PREFIX := ["boss_", "eclipse_", "camp_", "beacon_", "stinger_", "landmark_", "horse_bond", "ui_count", "ui_chronicle"]
+const SINGLE_PREFIX := ["fam_x_", "boss_", "eclipse_", "camp_", "beacon_", "stinger_", "landmark_", "horse_bond", "ui_count", "ui_chronicle"]
 
 static var _bytes := {}                 ## "id#take" -> PackedByteArray (filled by the worker, read on the main thread)
 static var _turn := {}                  ## id -> the take played last
@@ -128,11 +129,18 @@ static var _done := false
 
 
 static func ids() -> Array:
-	return RECIPES.keys()
+	return RECIPES.keys() + FamilyVoices.recipes().keys()
+
+
+## A cue's recipe: the shelf's own, or a creature family's (family_voices.gd generates those).
+static func recipe(id: String) -> Dictionary:
+	if RECIPES.has(id):
+		return RECIPES[id]
+	return FamilyVoices.recipes().get(id, {})
 
 
 static func has(id: String) -> bool:
-	return RECIPES.has(id)
+	return RECIPES.has(id) or FamilyVoices.recipes().has(id)
 
 
 ## How many takes `id` renders (one for the long, set-piece cues).
@@ -155,7 +163,7 @@ static func ready() -> bool:
 	var n := _bytes.size()
 	_mutex.unlock()
 	var want := 0
-	for id: String in RECIPES:
+	for id: String in ids():
 		want += takes_of(id)
 	return n >= want
 
@@ -177,7 +185,7 @@ static func _key(id: String, take: int) -> String:
 
 
 static func _work() -> void:
-	for id: String in RECIPES:
+	for id: String in ids():
 		for take in takes_of(id):
 			var key := _key(id, take)
 			var data: Variant = GenCache.load_var(key, SELF)
@@ -195,7 +203,7 @@ static func _work() -> void:
 
 ## One take of a cue's samples (peak-normalised; the cue's own `db` is its playback level). Pure: safe on any thread.
 static func render(id: String, take := 0) -> PackedFloat32Array:
-	var r: Dictionary = RECIPES[id]
+	var r: Dictionary = recipe(id)
 	var out := Kit.buf(float(r.len))
 	var seed_v := hash(id) % 100000 + take * 1013
 	var fm: float = FREQ_MUL[take % 3]
@@ -272,7 +280,7 @@ static func _bus(id: String) -> StringName:
 
 ## A cue now, non-positional (interface, the wanderer's own body, stingers). `db` is added to the cue's own level.
 static func play(host: Node, id: String, db := 0.0, pitch := 1.0) -> void:
-	if host == null or not host.is_inside_tree() or not RECIPES.has(id):
+	if host == null or not host.is_inside_tree() or not has(id):
 		return
 	var s := stream(id)
 	if s == null:
@@ -281,7 +289,7 @@ static func play(host: Node, id: String, db := 0.0, pitch := 1.0) -> void:
 	a.name = "Cue_" + id
 	a.stream = s
 	a.bus = _bus(id)
-	a.volume_db = float((RECIPES[id] as Dictionary).db) + db
+	a.volume_db = float(recipe(id).db) + db
 	a.pitch_scale = pitch
 	a.process_mode = Node.PROCESS_MODE_ALWAYS
 	host.add_child(a)
@@ -292,6 +300,12 @@ static func play(host: Node, id: String, db := 0.0, pitch := 1.0) -> void:
 ## A cue at a place, through the shared 3D voice pool.
 static func play_at(id: String, at: Vector3, db := 0.0, pitch := 1.0) -> void:
 	var s := stream(id)
-	if s == null or not RECIPES.has(id):
+	if s == null or not has(id):
 		return
-	Sfx.play_stream(s, at, float((RECIPES[id] as Dictionary).db) + db, pitch)
+	Sfx.play_stream(s, at, float(recipe(id).db) + db, pitch)
+
+
+## A creature voice just played (EnemyAudio.say): the family's own character under it, from the shelf of generated `fam_<set>_<act>` cues.
+static func family(voice_set: String, act: String, at: Vector3, db := 0.0) -> void:
+	if FamilyVoices.FAMILIES.has(voice_set) and FamilyVoices.ACTS.has(act):
+		play_at("fam_%s_%s" % [voice_set, act], at, db)
