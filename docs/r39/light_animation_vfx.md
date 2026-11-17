@@ -186,3 +186,18 @@ builds every pooled effect there. The living night joins it with `NightWarm.show
 - **The guard.** `zz/night_life_test.tscn` fails if any file under core/world/night_life or core/life/folk builds a material, a creature group or a burst without being listed in `NightWarm.COVERED`, if
   any file throws a raw `Vfx.burst` instead of a preset, if a preset name does not exist, or if a covered file does not exist. A new system cannot add an unwarmed material.
 - **Cost.** One frame group of about fifty small bursts and a dozen quads while the cover is up (about 0.2 s of the tour); nothing in play.
+
+---
+
+# Round three (after the warm-up)
+
+- **Owls and crows.** Owls on a perch watch the moths and bats round a lit fire within 42 m (head turned to the flame, tilted up to where they wheel, held three to seven seconds), through the registry's `nearest_fire`
+  (core/life/wildlife/life_birds.gd). Crows keep the stones and walls round every boss arena (six perches on the rim in `LifePlace.crow_roosts`); the pull of a fight is an alarm every roost already answers, so they go up as it begins.
+  Film: an owl in the Thornwood within 40 m of a lit brazier; a boss arena's rim before the pull (crows), at the pull (they scatter).
+- **Landing effects by enemy attack family** (telegraph_glow.gd `_landing`): a slam or stomp throws a ring and a low cloud of dust, a charge or lunge a streak of dust behind the foe, a nova or wave a wide ring, anything else a small ring (three a second at most).
+- **Boss phase gestures** (arena_light.gd `_mark`): thorns lift embers, the Abbot's candles gutter up gold, the Warden's great white ring, the Anchoress's bubbles rise, the Crown's brass sparks fall; all warmed.
+- **Wounded foes** (vfx_library.gd): a foe struck below a third of its health leaks dim red sparks for eight seconds.
+- **Aurora surges** (sky_life.gd): every seven to fourteen minutes the veils swell over fifteen seconds, hold, and ease away over twenty-five, with a toast.
+- **Eleven standing gestures** for every villager (four old, seven new: neck scratch, shading the eyes, hands on the hips, a yawn, blowing into cupped hands, tapping a foot, wiping the hands, rolling the neck, looking at the hands, settling the hat, leaning to listen).
+- **The reach towns' folk** (see folk_and_animals.md).
+- **Costs.** Landing, wounded and surge: event-only, preset bursts already warmed. Owl look: a loop over the registry rows once per owl per two to six seconds. Towns: awake only within 80 m.

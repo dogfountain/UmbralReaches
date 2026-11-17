@@ -29,6 +29,7 @@ var _col_t := -1.0
 var _hearth: Node
 var _hearth_t := 1.0
 var _hearth_tries := 0
+var _wounded := {}                        ## instance id -> msec the wound read ends
 static var _col_tex: ImageTexture
 
 
@@ -37,6 +38,7 @@ func _ready() -> void:
 	Events.cast_stopped.connect(_on_cast_stopped)
 	Events.skill_cast.connect(_on_skill_cast)
 	Events.status_changed.connect(_on_status)
+	Events.combat_damage.connect(_on_damage)
 	Events.item_gained.connect(_on_item)
 	_build_column()
 
@@ -101,6 +103,16 @@ func _on_skill_cast(id: StringName) -> void:
 
 # --- statuses --------------------------------------------------------------------------------------
 
+## A foe struck below a third of its health is WOUNDED for eight seconds: it leaks dim red sparks as a status does (a read of "nearly down" in the dark).
+func _on_damage(target: Node, _amount: float, _crit: bool, _school: StringName, _at: Vector3) -> void:
+	if not Reg.enabled or not (target is Enemy):
+		return
+	var e := target as Enemy
+	if e.is_alive() and float(e.hp) < 0.3 * float(e.max_hp) and not e.boss:
+		_on_status(e, &"wounded", 1, 8.0)
+		_wounded[e.get_instance_id()] = Time.get_ticks_msec() + 8000
+
+
 func _on_status(target: Node, id: StringName, stacks: int, _left: float) -> void:
 	if not (target is Node3D):
 		return
@@ -146,6 +158,10 @@ func _process(delta: float) -> void:
 	_slot = (_slot + 1) % keys.size()
 	var key: int = keys[_slot]
 	var rec: Dictionary = _carriers[key]
+	if _wounded.has(key) and Time.get_ticks_msec() > int(_wounded[key]):
+		_wounded.erase(key)
+		_on_status(rec.n as Node, &"wounded", 0, 0.0)
+		return
 	var n := rec.n as Node3D
 	if not is_instance_valid(n) or not n.is_inside_tree():
 		_carriers.erase(key)
@@ -165,6 +181,8 @@ func _status_burst(n: Node3D, id: StringName, stacks: int) -> void:
 		&"sundered":
 			NightFx.burst(at + Vector3(0.0, 0.5, 0.0), Color(1.1, 0.7, 1.6), "shard")
 		&"shaken":
+			NightFx.burst(at, Color(1.6, 0.4, 0.35), "shaken")
+		&"wounded":
 			NightFx.burst(at, Color(1.6, 0.4, 0.35), "shaken")
 		&"resonance":
 			NightFx.burst(at, Color(1.2, 0.6, 2.6), "reson", Vector3.UP, float(1 + stacks) / 6.0)

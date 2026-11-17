@@ -20,13 +20,13 @@ no mid-play builds), documented.
 - [x] 9. Boss arenas: five palettes, three phases each, set-piece lights on the rim, the phase mark, the moon dimmed
 - [x] 10. Palette: grass and leaf desaturated with a value shoulder, the grade's green saturation eased, region grade by biome, canopy near-fade narrowed
 - [~] 11. The far-leaf dither (shader half DONE, builder half routed to the world seat, see the cross-team need below): the engine's visibility-range dither (FADE_SELF on every ranged mesh, atmosphere.gd) is a coarse screen-door pattern over 6 to 10 m; the foliage shader now thins the near-camera dither (1.6 to 1.1 m) but a per-instance shader fade for tree crowns (as the undergrowth's `fade_end`) is the real fix: it needs tree_gen to set `fade_end` per crown MultiMesh (world seat: core/world/realm/flora)
-- [x] 12. Bats come to every lit fire (fire_bats.gd, one draw call, the bat orbit shader); owls reacting to light remain (the wildlife's own state machine in life_birds.gd: a "draw to a lit fire" state is the next step)
-- [ ] 13. Crows at boss arenas (LifePlace.crow_roosts takes graves and the henge: add the arenas' rims)
+- [x] 12. Bats come to every lit fire (fire_bats.gd, one draw call, the bat orbit shader); owls watch the moths and bats round a fire (life_birds.gd)
+- [x] 13. Crows at boss arenas (rims added in LifePlace.crow_roosts)
 - [ ] 14. Dog and cat meshes of their own (the pets wear the wildlife's fox body, scaled)
 - [ ] 15. Voxel ruins albedo and light response (the black kit boxes: a world-seat material job)
 - [ ] 16. The black quads on the saltmarket ground (close_saltmarket.png): not the tracks (track.gdshader draws dark shapes at 0.07) but some scatter material: world seat to find
 - [ ] 17. The summit orb cap and NPC rim light (critique F-8, F-5)
-- [ ] 18. First-view hitches at Hearthward (84 ms worst in regions_a hearth): shader and material pre-warm behind the loading cover
+- [x] 18. Warm-up: every night material and burst preset behind the loading cover (night_warm.gd, night_fx.gd, a guard test); the first-view hitches of the OTHER systems (84 ms worst at hearth) still need a measured look
 
 ## Cross-team needs
 - World seat: dog and cat meshes (LifeKit kinds) for the pets; the black scatter quads (saltmarket); voxel ruin materials; `fade_end` on tree crowns; stage anchors for the folk in other towns (the folk stand only in Hearthward: positions come from `village_cast.gd` NODES, so a town's walking nodes would give it its own sweeper, fiddler and children).
@@ -50,3 +50,12 @@ static func _set_crown_range(mmi: MultiMeshInstance3D, re: float) -> void:
 ```
 Call it for every crown (non-ground card) MultiMesh the flora emits with the range it uses today (the end it passes to `visibility_range_end` now, minus 6 m so the dither ends where the old fade did). Trunks and solid pieces keep the engine fade
 (their pieces are solid, sparse and hidden by the crowns' own dither). Check: the same tree-line views at 40 to 120 m before and after, in a still frame and walking: no screen-door band, no pop at the cull.
+
+
+## Resume state (end of round three)
+Done and committed: everything ticked above. Open, in order of value:
+1. Film and measure everything (the lead): the first thing to verify is that the whole thing parses (the import) and that the quick tier passes, including `night_life`.
+2. The tree crowns' distance dither: the builder half (cross-team need above).
+3. Dog and cat meshes; the black quads and the voxel ruins (world seat).
+4. More weather states (the Weather node's FRONTS table is weather.gd's: a front with its own sky look would be a new row plus a `SkyLife` read), more folk roles (a washerwoman at the well, a candle-bearing pilgrim at the chapel, children's skipping rope), a first-view hitch measurement at Hearthward with the warm-up in.
+5. Frame-strip checks of the folk's act changes at 60 and 144 Hz: if any pops, the crossfade length in folk_actor.gd (0.28 s) and the envelope in the pose is where to tune.
