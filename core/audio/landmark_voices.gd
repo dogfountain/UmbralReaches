@@ -25,6 +25,8 @@ static var _streams := {}
 static var _mutex := Mutex.new()
 static var _task := -1
 
+var ambience: Ambience                 ## set by the Soundstage (unused here; every child takes the same two)
+var stage: Node
 var _t := 0.0
 var _hosts: Array = []              ## [host, bed, centre]
 var _scan_t := 0.0
