@@ -293,6 +293,7 @@ func open(speaker: String, portrait_opts: Dictionary = {}) -> void:
 		_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 		_paused_it = not get_tree().paused
 	_open = true
+	add_to_group(&"dialogue_open")              # the Ambience ducks the music and spots while it is up
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	get_tree().paused = true
 	Events.interact_hint.emit("")
@@ -302,6 +303,7 @@ func close() -> void:
 	if not _open:
 		return
 	_open = false
+	remove_from_group(&"dialogue_open")
 	_voice_stop()
 	_panel.visible = false
 	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
