@@ -42,6 +42,8 @@ var _weather: Variant
 var _fire := PackedVector4Array()
 var _night := -1
 var _clock := 0.0
+var _surge_next := 420.0                  ## seconds of the run until the next aurora surge
+var _surge_t := -1.0                      ## seconds into a surge (-1: none)
 
 
 func _ready() -> void:
@@ -80,7 +82,18 @@ func _process(delta: float) -> void:
 		_night = n
 	# the aurora of the night and the cloud of the night
 	var aur := 0.5 + 1.3 * fposmod(sin(float(n) * 12.9898) * 43758.5453, 1.0)
-	_mat.set_shader_parameter("aurora", aur * (1.0 + 0.6 * e))
+	# an aurora SURGE every seven to fourteen minutes: the veils swell over fifteen seconds, hold, and ease away over twenty-five (a moment of the sky)
+	var surge := 0.0
+	if _surge_t >= 0.0:
+		_surge_t += 0.5
+		surge = smoothstep(0.0, 15.0, _surge_t) * (1.0 - smoothstep(55.0, 80.0, _surge_t))
+		if _surge_t > 80.0:
+			_surge_t = -1.0
+			_surge_next = _clock + randf_range(420.0, 840.0)
+	elif _clock > _surge_next and e < 0.1:
+		_surge_t = 0.0
+		Events.toast.emit("The sky ripples with light")
+	_mat.set_shader_parameter("aurora", aur * (1.0 + 0.6 * e + 1.4 * surge))
 	var base := 0.45 * fposmod(sin(float(n) * 78.233) * 43758.5453, 1.0)
 	var wet := 0.0
 	_weather = Reg.weather(get_tree())
