@@ -31,10 +31,10 @@ const FAMILIES := {
 	"cinder": {"f": 130.0, "tone": 0.5, "noise": 0.9, "metal": false, "click": false},
 	"brood": {"f": 160.0, "tone": 0.3, "noise": 0.7, "metal": false, "click": true},
 }
-const ACTS := ["idle", "alert", "attack", "hurt", "die"]
+const ACTS := ["idle", "alert", "windup", "attack", "hurt", "stagger", "flee", "die"]
 ## the layer's own level under the library take, per act
-const DB := {"idle": -26.0, "alert": -22.0, "attack": -19.0, "hurt": -21.0, "die": -19.0}
-const LEN := {"idle": 1.0, "alert": 0.7, "attack": 0.6, "hurt": 0.45, "die": 1.5}
+const DB := {"idle": -26.0, "alert": -22.0, "windup": -23.0, "attack": -19.0, "hurt": -21.0, "stagger": -21.0, "flee": -23.0, "die": -19.0}
+const LEN := {"idle": 1.0, "alert": 0.7, "windup": 0.9, "attack": 0.6, "hurt": 0.45, "stagger": 0.8, "flee": 1.0, "die": 1.5}
 
 static var _recipes := {}
 
@@ -69,6 +69,24 @@ static func _layers(c: Dictionary, act: String) -> Array:
 				ly.append(["thud", 0.14, f * 4.0, f * 2.5, 0.03, 0.35])
 			if c.metal:
 				ly.append(["bell", 0.0, f * 5.0, 0.18, 0.5])
+		"windup":
+			ly.append(["sine", 0.0, 0.8, f * 0.7, f * 1.3, 0.4 * tone, 0.3, 0.5])
+			ly.append(["noise", 0.0, 0.8, 0.3 * noise, f, f * 6.0, 0.4, 0.4, 7.0])
+			if c.click:
+				for i in 4:
+					ly.append(["thud", 0.1 + 0.16 * float(i), f * 3.0, f * 2.0, 0.03, 0.3 + 0.08 * float(i)])
+			if c.metal:
+				ly.append(["bell", 0.3, f * 3.0, 0.2, 0.8])
+		"stagger":
+			ly.append(["sine", 0.0, 0.6, f * 1.2, f * 0.5, 0.5 * tone, 0.01, 0.3])
+			ly.append(["noise", 0.0, 0.5, 0.4 * noise, f, f * 5.0, 0.004, 0.2, 0.0])
+			ly.append(["thud", 0.05, f * 1.4, f * 0.6, 0.2, 0.4])
+		"flee":
+			ly.append(["sine", 0.0, 0.9, f * 1.6, f * 2.2, 0.35 * tone, 0.05, 0.4])
+			ly.append(["noise", 0.0, 0.9, 0.3 * noise, f * 2.0, f * 9.0, 0.05, 0.5, 11.0])
+			if c.click:
+				for i in 6:
+					ly.append(["thud", 0.05 + 0.13 * float(i), f * 3.5, f * 2.0, 0.03, 0.3])
 		"attack":
 			ly.append(["noise", 0.0, 0.4, 0.4 * noise + 0.15, f, f * 8.0, 0.003, 0.12, 0.0])
 			ly.append(["sine", 0.0, 0.4, f * 1.3, f * 0.7, 0.45 * tone, 0.01, 0.15])

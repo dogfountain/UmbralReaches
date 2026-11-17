@@ -119,12 +119,12 @@ horse and ride (bond cue); take a photo; open the Count and the map; open a ches
 ## Creature voices by family (`family_voices.gd`, wired in `EnemyAudio.say`)
 
 The library takes (art/audio/enemy) stay the voices. For fifteen ordinary families the rework adds a procedural layer under the library take for each of
-idle, alert, attack, hurt and death: 75 cues, three takes each (225 takes), rendered by the cue bank's worker and cached; played through the shared 3D
+idle, alert, attack, hurt and death: 120 cues, three takes each (360 takes), rendered by the cue bank's worker and cached; played through the shared 3D
 pool (capped, 34 m culled, occluded) at 19-26 dB under the cue's own level so it thickens a voice rather than doubling it. It is called from
 `EnemyAudio.say` after a take has played, so it inherits that function's per-enemy and per-set rate limits and voice cap: no new timers or scans.
 Families and their character: **hollow** (a breathy moan), **gaunt** (a dry rasp), **husk** (a low grunt), **bulwark** (a deeper, heavier grunt),
 **gurgle** (a wet bubbling throat), **leaper** (a high rising screech), **chanter** (a held chanted vowel), **tollman** (a tolled iron note), **quiller**
 (a quill rattle), **ossuant** (bones knocking), **crawler** (a skitter of ticks), **burrower** (a scraping drag), **shade** (a whispering swell),
 **cinder** (a crackle and a sigh), **brood** (a chittering swarm). Bosses keep their phase cues (`boss_<id>_intro/phase/death`, fired by the router on
-engage, on each phase turn and on death). Windup, stagger and flee are the library's alone. **Cost:** none on the main thread; the render is
+engage, on each phase turn and on death). **Cost:** none on the main thread; the render is
 part of the cue worker's one-time job.
