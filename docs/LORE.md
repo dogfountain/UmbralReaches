@@ -99,6 +99,15 @@ The Ninth Company's youngest, **Ione Marsh** (the tenth name nobody finished), i
 *ONE LATE PILGRIM, NO NAME*, is the wanderer. Other new people: **Odile Frane** (Ned's widow; three hundred and eleven road lamps),
 **Cantor Lowe** and the boy **Tavi** in the horn, **Tamsin Hale** the baker who feeds the Anchoress's cell.
 
+## The Late Ringer, and what the new readables fix (r39 second wave)
+
+**Iorweth**, the last ringer of the Stair, rang the last bell and the longest ("rang last and longest"; his name is cut short on the stone at the Crossing's foot and
+finished with a nail). The door half-took him: he came down hollow, then warm, as the wanderer did, and has walked toward a bell ever since, with his rope still round his
+waist. He is **Ione Marsh's father** (the tenth name nobody finished: I-O-N). Once the door is shut a half-hollow man may walk home, and he does. The **Hierarch's Hand** (six leaves),
+the **Founder's Ledger** (eight, one at each bell's country) and the **scratches on the road** (six) are readable through the world; the landmarks each have their own: the Sleeper
+(the Order's first colossus, pushed on the first night), the Hollow King (the Rooted's kings' tomb, taken for a chapel), the Salt Ship (the merchantman Hope-in-Season, a mile a winter), the Wardens'
+Line (ordered by Edict II to put out their cressets), the Chain Span (toll: one lantern-light), the Titan Gates (the Rooted's work; the Order gave them helms).
+
 ## The three who hold the valley (bosses)
 
 - **The Thornwarden** (Thorn Henge, the Ring of Thorns, on the western hill in the Thornwood).
