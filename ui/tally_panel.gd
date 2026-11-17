@@ -11,6 +11,7 @@ const QuestBook := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const Med := preload("res://ui/medieval_style.gd")
 const UIType := preload("res://ui/type.gd")
+const ReachState := preload("res://core/world/night/reach_state.gd")
 const MenuGate := preload("res://ui/menu_gate.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 
@@ -55,11 +56,11 @@ func _build() -> void:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", Med.panel("leather", 40))
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.custom_minimum_size = Vector2(920, 560)
+	panel.custom_minimum_size = Vector2(920, 660)
 	panel.offset_left = -460.0
 	panel.offset_right = 460.0
-	panel.offset_top = -290.0
-	panel.offset_bottom = 290.0
+	panel.offset_top = -330.0
+	panel.offset_bottom = 330.0
 	_root.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 6)
@@ -155,8 +156,13 @@ func _fill() -> void:
 	_row(_right, "Fires burning", str(_lit(Groups.BRAZIER)))
 	_row(_right, "Lamps you lit", str(_lit(&"lamp")))
 	_right.add_child(Control.new())
+	_head(_right, "WHO KNOWS YOU")
+	for f: String in ReachState.FACTIONS:
+		var t := ReachState.tier(f)
+		_row(_right, String(ReachState.FACTIONS[f].name).capitalize(), ["known", "friend", "kin"][t] if Slice.full() else "")
+	_right.add_child(Control.new())
 	_head(_right, "THE FIRE REMEMBERS")
-	var names := Tally.latest(12)
+	var names := Tally.latest(5)
 	for n in names:
 		_row(_right, String(n), "")
 	if names.is_empty():
