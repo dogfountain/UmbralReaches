@@ -15,7 +15,7 @@ extends RefCounted
 ## Every complex sets group `deep_hall` and metadata the story seat can hang a payoff on: `reward_at` (the reward chest's
 ## world position), `threshold_at` (the stair's head on the surface) and `hall_id`. Placed by WK.find_any near the door it
 ## belongs to (never on it); the stair is registered as a WorldLanes flight (the ground over it is cut away).
-## Build-time only; each complex fades out beyond 190 m and its big meshes carry LODs. No class_name.
+## Build-time only; each complex fades out beyond 120 m and its big meshes carry LODs. No class_name.
 
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const DK := preload("res://core/world/realm/wonders/r39/dungeon_kit.gd")
@@ -91,7 +91,7 @@ func _hall(root: Node, spec: Dictionary) -> bool:
 		"cistern": _cistern(d, spec)
 		"cellar": _cellar(d, spec)
 		_: _flooded(d, spec)
-	var n: int = d.k.commit(190.0)
+	var n: int = d.k.commit(120.0)
 	d.k.host.set_meta("reward_at", d.p(0.0, 0.3, 39.0))
 	print("WONDER deep_hall %s: gate %s floor %.1f, %d rooms, %d meshes, %d fires, %d lights, %d chests" % [String(spec.id), Vector2(d.o.x, d.o.z), d.yf, d.count.rooms, n, d.k.fires, d.k.lights, d.k.chests])
 	return true
