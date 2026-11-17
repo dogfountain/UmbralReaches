@@ -1,0 +1,103 @@
+# The world pass: landmarks, ground and surfaces
+
+Luke, 17 Nov: bigger set pieces you can walk inside and on top of, each with its own light and a reward; terrain that
+is no longer soft dunes; each region its own flower; "increase model detail at no perf cost". Everything below is in the
+game, built at Realm build time by the existing wonders stage (`core/world/realm/realm_wonders.gd`, before the terrain
+stamp, the flora, the dress and the nav bake), so the flora keeps off every site, the ground settles to the floors and the
+nav mesh includes the stairs and decks. Nothing runs per frame. No new asset files: all geometry is the OssKit's boxes
+(one mesh per material, collision from the same faces) and prisms from the new `wonders/r39/wonder_kit.gd`.
+
+Exact positions are chosen at build by `WK.find`/`find_any` (flattest open ground that touches no town, way, other region
+or registered site, relief limits eased pass by pass so a landmark always exists). Each prints one line:
+`WONDER <name> at (x, z) ...` in the engine log: read those for the capture coordinates. The search areas are below.
+
+Shared: `wonders/r39/wonder_kit.gd` (finder, tubes, beams, fire = two flame cards + halo + one unshadowed light that
+fades from 70 m, lit window glass, chests, discovery banner), new OssKit materials `stone_big`, `ruin_big`, `brick_big`,
+`wood_big`, `bark`, `chalk` (the masonry scale tier: a colossal work's courses are 2-3 times a house's).
+
+## The ten features
+
+1. **The Sleeper** (`the_sleeper.gd`): an 80 m colossus on its back in the Kings' Barrows (search around (-326, 118..196);
+   fallbacks in the Long Arches at (-30, 350)). Legs, hips, a hollow torso (the heart-hall: a furnace on a dais, a reliquary
+   chest, lit slits), a wound in the east flank with a stair from the ground, two flights inside the chest up to the roof
+   deck (three oculi), a neck stair to the head (lit eyes, a 9-spike crown, two horns), the right arm out 34 m across the
+   heather as a bridge to an open hand holding a bonfire (an iron chest), a fire on the crown, a beacon over the face.
+   From afar: crown spikes, a bonfire cupped in a hand, a shaft of light. ~230 boxes, one mesh per material; 3 chests, ~14
+   lights (each fading 38-70 m), 6 fires.
+2. **The Hollow King** (`hollow_king.gd`): a dead oak 44 m tall in the Southwood (search around (170, 340)); terraced flat.
+   Bark-faceted trunk 16 m round at the root, a doorway to a hollow hall (fire, root seats, a reliquary chest), 8 buttress
+   roots, four walk-in root houses with lit windows, a 28-flight railed stair winding to a deck in the fork (cresset fire, a
+   reliquary chest), nine forking limbs hung with lanterns, a beacon on the crown. 4 chests, ~18 lights.
+3. **The Salt Ship** (`salt_ship.gd`): a 44 m two-masted merchantman stranded on the White Pans (search around (214, 196)),
+   heeled 9 degrees, planked in 23 stations x 4 strakes with rotted gaps and ribs showing, a deck with an open hatch, a
+   plank ramp to a breach in the low bulwark, a stern castle with a cabin (lit stern windows, an iron chest), a stern-lantern
+   fire 14 m up, the mainmast stub with a yard, a torn pale sail and a masthead lamp, a hold with a stair, lamp and reliquary
+   chest, salt drifts and timber shores. 2 chests.
+4. **The Wardens' Line** (`wardens_line.gd`, `wardens_cresset.gd`): six 12 m keep towers 30-45 m off the Pilgrims' Road at
+   x = -338, -232, -128, 124, 226, 330 (west to east), each with a door facing the road, lit slit windows, a hall with a
+   chest, four flights wound round the inside, a crenellated roof. The cresset on each roof is COLD until the wanderer lights
+   it with E (saved in `Travel.system_state("r39_wardens")`): flame, warm lights and a far beacon switch on, a cold pilot
+   glow switches off. Lighting all six pays out once (40 ash, 5 iron, 3 relic fragments) with a toast. The sixth tower holds a
+   reliquary chest. Unlit, a tower costs a few meshes and one fading pilot light.
+5. **The Chain Span** (`chain_span.gd`): a 56 m chain bridge between two gate pylons (9.5 m piers, a lintel, a fire on each
+   pier head: four fires), found by scanning the Far Reaches (outside the old Marches) for the deepest gulf; deck of boards
+   sagging 2.4 m, four iron cables in 24 prisms with hangers, rails, lanterns every 8 m, a midspan platform (keeper's
+   brazier, bench, an iron chest) and a toll hut with a chest at the west gate.
+6. **The Titan Gates** (`titan_gates.gd`): before each raid floor (the Thornwarden's henge, the Hierarch's ring, the
+   Anchoress's terrace) two 20 m stone wardens stand 13 m outside the gate, 14 m apart: plinth, body, belt, chest, arms, shield
+   facing the approach, a spear to 22 m, a helm with a crest, lit eyes, a fire in a bowl on the head. Boss-scale
+   architecture: the 7.6-8.8 m bosses read against figures three times their size.
+7. **The Hermit Caches** (`hermit_caches.gd`): sixteen small places 45-140 m off every way, each marked by a 7 m pole with a
+   lit lantern, each with an iron chest (ash, iron, now and then a relic fragment): a lean-to camp, a stone cell with a lit
+   slit and an altar, or a ring of five menhirs round a fire. Spread at least 90 m apart; each a discovery; each its own kit
+   (culls on its own, fades at 200 m).
+8. **Benches and scarps** (`terrain_benches.gd`, hooked in `RealmLand._heights`): the Far Reaches' soft dunes are stepped in
+   noise patches (about 2 m benches, flat treads and steep short risers), kept off the ways (30 m), towns, named circles and
+   water; feathered over 20 m at the Marches' border. Pure math on the height grid: no triangles, no draws, no memory.
+9. **The Outcrops** (`terrain_outcrops.gd`): up to 90 stratified cliff faces (RockKit.cliff: cached, LOD'd, convex collision)
+   stood on the steep risers of the Far Reaches, turned downhill, trees kept off, faded at 170 m, style by biome.
+10. **Region flowers** (`flora_signature.gd`, one line each in `realm_flora.gd` and `flora_layers.gd`): the flowers' colour
+    is a per-4 m-cell multiplier by region (Lanternwood cold blue bells, Southwood rust, Fallowmere poppy red, Reedmere marsh
+    gold, Cairns pale grey-white, Nave sick teal, Kings' Barrows ling pink, Greyfell snow-white, Arches broom yellow,
+    Lastlight cream, the glade moon-white, the moor gorse gold, the holds heather magenta, the barrow fen marsh blue).
+11. **Weathering everywhere** (surfaces, free at runtime):
+    - `OssKit._grime`: every kit's masonry gets a slow world-position patchwork (+-7 % tone drift, warm/cool shift, moss on the
+      up faces where it is damp). The kit already had chamfered arrises, contact AO and per-block tone; this adds the macro
+      scale across big walls.
+    - `prop_weather.gd` (hooked in `StoneProps.info`): every modelled prop part gets contact dirt at the foot (66 %), dark
+      undersides (72 %) and a moss cast on its tops baked once into vertex colour (the prop materials use it as albedo).
+    - `tree_gen.gd`: the oak-family crown colour leans yellow-green on the sunlit tops and cool blue-green in the core.
+
+## Cost estimate
+
+CPU at build: finder searches are a few thousand height lookups; each landmark builds 200-1,500 boxes (tens of ms,
+GDScript) once, on the build thread, inside the wonders stage; the benches add one noise read and one cached path distance
+per height-grid vertex (about 100k; cached with the heights). The 90 outcrops build ~32 cliff meshes (cached on disk by
+RockKit). The land cache fingerprint covers `core/world/realm/**`, so the first run after this rebuilds the heights once.
+GPU: the colossal landmarks are one mesh per material each (about 8 draws apiece), always drawn when in the frustum (they
+are skyline landmarks); the small places fade at 200 m; towers cull on their own. Lights: every fire/lamp is unshadowed
+with a distance fade (38-70 m), tagged `light_class lamp` so the light policy sees it. Memory: a few MB of vertex data. No
+per-frame work anywhere except the existing flame shader on the flame cards.
+
+## What the lead must check in the engine
+
+`godot --headless --path . --import --quit` first (new scripts need their .uid files). Then read the `WONDER ...` log lines
+for coordinates and capture:
+- the Sleeper (Kings' Barrows, west): from the road at (-300, 56) looking south-west; then the wound's stair, the heart-hall,
+  both interior flights to the roof, the neck stair, the arm bridge to the hand. Check the floors (no gaps at the stair ends),
+  that the head's eyes read from above, and that nothing overlaps the Barrows set pieces.
+- the Hollow King (Southwood, south-east): the doorway and hollow, the 28-flight stair (rails, no snags on the houses), the
+  crown deck; check the terrace (26 m) is flat and trees around are not through the houses.
+- the Salt Ship (White Pans): the ramp, the hatch stair, the stern roof steps, the heel (9 degrees: footing must hold).
+- the Wardens' Line: all six towers (and that each found ground off the road); light one (E on the roof cresset) and check
+  the fire, the beacon, the toast; light all six for the payout; reload and check they stay lit.
+- the Chain Span: deck continuity, the end stairs, the midspan chest; find it from the log line.
+- the Titan Gates at (-56, -16)+13 m (henge), (-182, 159)+13 m (Hierarch), (206, -114)+13 m (Anchoress): clear of the arena
+  gate and its barrier, not on the road.
+- Hermit Caches: count in the log (target 16), a few spot checks; lanterns visible from 100 m at night.
+- Benches/outcrops: Far Reaches ridgelines at (-320, 120), (160, 340), (320, 300); the roads at their edges must stay level.
+- flowers per region; props (the Hearthward gate, forge, well, carts) for the foot dirt; kit walls for the patchwork.
+- Perf: the hearth, road and Southwood captures against the numbers in `scratchpad/play/regions_a/perf.txt` (avg 8.5 ms).
+
+Not done here (other seats): lore texts for the new places (the story agent), global lighting and the beacon system (the
+light agent), the dither on far leaf cards (shader work in `realm_foliage.gdshader`, not touched).

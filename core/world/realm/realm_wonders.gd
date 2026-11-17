@@ -8,6 +8,15 @@ const LIST := [
 	"res://core/world/realm/wonders/sky_chain.gd",
 	"res://core/world/realm/wonders/upward_falls.gd",
 	"res://core/world/realm/wonders/star_crater.gd",
+	# the world pass (docs/the world pass/world_landmarks.md): the colossal landmarks, after the older wonders so their sites are already registered
+	"res://core/world/realm/wonders/r39/the_sleeper.gd",
+	"res://core/world/realm/wonders/r39/hollow_king.gd",
+	"res://core/world/realm/wonders/r39/salt_ship.gd",
+	"res://core/world/realm/wonders/r39/wardens_line.gd",
+	"res://core/world/realm/wonders/r39/chain_span.gd",
+	"res://core/world/realm/wonders/r39/titan_gates.gd",
+	"res://core/world/realm/wonders/r39/hermit_caches.gd",
+	"res://core/world/realm/wonders/r39/terrain_outcrops.gd",
 ]
 
 

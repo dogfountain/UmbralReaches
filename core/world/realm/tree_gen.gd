@@ -434,7 +434,8 @@ class Gen:
 			var occ := clampf(0.38 + 0.62 * pow(clampf(q, 0.0, 1.0), 0.8), 0.3, 1.0)
 			occ *= clampf(0.82 + 0.18 * (p.y - c.y) / rad.y, 0.6, 1.1)
 			var j := 0.9 + 0.2 * noise(p * 0.7)
-			return Color(tint.r * occ * j, tint.g * occ * j, tint.b * occ * (2.0 - j))
+			var top := clampf((p.y - c.y) / rad.y, 0.0, 1.0)      # the sunlit tops lean yellow-green, the core cool blue-green
+			return Color(tint.r * occ * j * (1.0 + 0.16 * top), tint.g * occ * j * (1.0 + 0.05 * top), tint.b * occ * (2.0 - j) * (1.0 - 0.14 * top))
 		var ai := -1
 		for a: Array in anchors:
 			ai += 1
