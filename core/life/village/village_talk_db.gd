@@ -515,7 +515,7 @@ const CONV := {
 	"vell": Towns.CONV["vell"], "isolde": Towns.CONV["isolde"], "coyle": Towns.CONV["coyle"], "fenn": Towns.CONV["fenn"], "wat": Towns.CONV["wat"],
 	"maudlin": Towns.CONV["maudlin"],
 	# --- the Late Ringer ---
-	"iorweth_1": WanderCast.CONV["iorweth_1"], "iorweth_2": WanderCast.CONV["iorweth_2"], "iorweth_3": WanderCast.CONV["iorweth_3"], "iorweth_4": WanderCast.CONV["iorweth_4"], "iorweth_5": WanderCast.CONV["iorweth_5"],
+	"iorweth_1": WanderCast.CONV["iorweth_1"], "iorweth_2": WanderCast.CONV["iorweth_2"], "iorweth_3": WanderCast.CONV["iorweth_3"], "iorweth_4": WanderCast.CONV["iorweth_4"], "iorweth_5": WanderCast.CONV["iorweth_5"], "iorweth_6": WanderCast.CONV["iorweth_6"],
 	# --- the story's five ---
 	"perrin": StoryCast.CONV["perrin"], "odile": StoryCast.CONV["odile"], "ione": StoryCast.CONV["ione"], "lowe": StoryCast.CONV["lowe"], "tamsin": StoryCast.CONV["tamsin"],
 }

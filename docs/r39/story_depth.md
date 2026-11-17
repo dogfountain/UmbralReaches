@@ -79,3 +79,34 @@ static vars over the old const tables (quest_chains.gd kept under 1000 lines). A
 4. Readables: carriers appear near the player and not elsewhere; the journal shows 69 more writings and three new series.
 5. Barks: one at a time, never over a conversation, no repeats within ten minutes.
 6. The keep's hub (more choices) and the credits chain read cleanly after the long walk.
+
+## Third wave: every named person has a task
+
+Audit of the casts (village_cast*, towns, east marches, travellers, the Keg's patrons, the story's five) against `"giver"` and `turnin` in the quest files. Who has what now:
+
+| Person | Tasks (giver) |
+|---|---|
+| Hild, Fennick, Oswin, Nan, Wyck, Abel | existing tasks; Nan also gives **Whose Stitches** (Pell's shoe) |
+| Col Wright | existing + **Col's Boots** |
+| Bet Reed | **A Letter for Ewan** (new, third wave) |
+| Wenna Ashby | existing + **The Candle on the Sill** |
+| Pell | does not speak; her task is Nan's, and she answers it (the keep's ending reads it) |
+| Grisel | **The Ash-Wife's Weights** |
+| Ruan, Jory, Ysolt, Elspeth, Linnet, Agathe, Cadoc, Dunstan | the seven countries' long runs (template), plus Agathe in **The Name on the Roll** |
+| Osk, Cassel, Ennis, Wren/Sedge, Tolliver | the Marches' tasks (unchanged) |
+| Dorrit Marl | **Dorrit's Reckoning** (new) |
+| Gwyn the ostler | **The Weir Cob's Debt** (new) |
+| Bryn Gale | existing |
+| Ansel Tansy | **The Stone in Tansy's Boot** (new) |
+| Marra Quill | **Marra's Count** (new) |
+| Corle, Siany, Ebba, Hobb (Hodge Wade), Penn, Hesper, Cobb, Dilly, Vell, Isolde, Coyle, Fenn, Burl, Maudlin | the towns' tasks, plus the five regional tasks (Ebba, Burl, Hesper, Ardel, Penn) and the four doors' tasks and their payoffs (Siany, Penn, Hesper, Maudlin) |
+| Gorse | **Gorse's Eel-Weirs** (new) |
+| Brother Wystan | **Brother Wystan's Page** (new) |
+| Marl, Teasel, Orrin, Ardel, Pip, Nella | the east marches' tasks; Ardel also **The Brine Road** |
+| Hesk, Ostrin Harrow, Brannoc, the keep | the Keg's tasks; the keep also **The Long Walk** |
+| Perrin, Odile, Ione, Lowe, Tamsin | their long tasks (first wave) |
+| Iorweth (five stations, and a sixth at Ione's fire afterwards) | **The Last Ringer's Road** |
+
+Relationships: each new task's outcomes and the barks name a neighbour (Bet and Nan, Gwyn and Dorrit, Tansy and Marra, Gorse and Siany, Perrin and Odile, Ione and Iorweth, Lowe and Tamsin, Agathe and Cadoc), and
+six more two-person scenes were added. `zz/sound_rework_test` now fails on any bark or scene that names a task, pick, boss or speaker that does not exist (all barks that did were corrected: Ysolt's `moor_shrine:wick`, Cadoc's `mere_light:aldous`).
+**Check:** the seven new tasks' floors (Reeds' cottage, Weirford's mill and stables, the weir track, the east road, Reedholm's landing, Fallowmere's barn strips) and that Bet, Dorrit, Gwyn, Gorse and Wystan are in the cast at the time their tasks are offered.
