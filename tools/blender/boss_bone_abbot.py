@@ -31,6 +31,8 @@ HI = (150, 100) if LOWRES else (300, 190)
 
 K.reset()
 S = dict(K.SOCKETS)
+S["cape"] = S["chest"]
+S["slv_l"], S["slv_r"] = S["elbow_l"], S["elbow_r"]      # the sleeves' bells below the elbow: spring chains too      # (17 Nov) the cope's own label: boss_humanoid_anim.py hangs it on spring-bone chains
 P0, C0, H0 = S["pelvis"], S["chest"], S["head"]
 
 # --- materials -----------------------------------------------------------------------------------
@@ -369,11 +371,12 @@ for nm, (v0, v1, u0, u1) in (("StoleL", (0.02, 0.97, -0.055, -0.018)), ("StoleR"
     add(L.band(cass, nm, "cassock_trim", GOLD, v0, v1, u0, u1, n=64 if u1 - u0 > 0.5 else 3, m=36 if v1 - v0 > 0.5 else 2, off=0.012), hip_w)
 WEIGHTS["cassock_trim"] = hip_w
 
-# the cope (a long outer cloak) is off the hooded Abbot (17 Nov, Luke: "get rid of the cloak if you can't animate it
-# properly"): skinned to the chest it hung as a rigid tent, with no cloth sim to swing it. The code stays for the others.
-COPE = False
+# the cope (17 Nov): it was off ("get rid of the cloak if you can't animate it properly": skinned to the chest it hung as
+# a rigid tent); it is back on its own label "cape", which boss_humanoid_anim.py hangs on seven chains of bones from the
+# shoulders to the hem that the game swings with spring physics (core/enemy/clip_rig.gd), colliding with the legs.
+COPE = True
 if COPE:
-    cope_w = L.cope_weights(0.5)
+    cope_w = lambda p: {"cape": 1.0}
     cope = L.Garment([(1.64, 0, 0.04, 0.25, 0.12, 0.17, 2.2), (1.56, 0, 0.03, 0.3, 0.14, 0.18, 2.2), (1.44, 0, 0.0, 0.38, 0.18, 0.2, 2.0),
                       (1.1, 0, 0.0, 0.44, 0.24, 0.27, 2.0), (0.7, 0, 0.02, 0.54, 0.21, 0.24, 2.0), (0.3, 0, 0.03, 0.6, 0.2, 0.23, 2.0),
                       (0.0, 0, 0.04, 0.68, 0.2, 0.23, 2.0), (-0.1, 0, 0.04, 0.72, 0.2, 0.23, 2.0)],
@@ -439,9 +442,11 @@ for (u0_, u1_) in ((0.0, 0.3), (0.7, 1.0)):       # (round the opening only: acr
     add(cowl.mesh("CowlLining", 14, 18, "cowl", VOID, v0=0.0, v1=0.7, u0=u0_, u1=u1_, off=-0.013), cowl_w)
 # the liripipe: the hood's tail drawn down the back over the cape to the small of the back, a gilt tassel at its point
 # (without the cope the hood's back was a flat box sat on the cape)
-_lp = [Vector(G(0, y, z)) for (y, z) in ((1.6, 0.215), (1.5, 0.25), (1.39, 0.275), (1.29, 0.275), (1.17, 0.215), (1.04, 0.195), (0.92, 0.2))]
-add(K.loft("Liripipe", _lp, [(0.15, 0.024), (0.14, 0.024), (0.12, 0.022), (0.095, 0.02), (0.06, 0.017), (0.03, 0.013), (0.008, 0.008)], "cowl", CLOTH, 14), CH)
-add(K.loft("LiripipeTassel", [_lp[-1], _lp[-1] + Vector(G(0, -0.09, 0.005))], [0.012, 0.022], "cowl", GOLD, 8), CH)
+_lp = [] if COPE else [Vector(G(0, y, z)) for (y, z) in ((1.6, 0.215), (1.5, 0.25), (1.39, 0.275), (1.29, 0.275), (1.17, 0.215), (1.04, 0.195), (0.92, 0.2))]
+if _lp:
+    add(K.loft("Liripipe", _lp, [(0.15, 0.024), (0.14, 0.024), (0.12, 0.022), (0.095, 0.02), (0.06, 0.017), (0.03, 0.013), (0.008, 0.008)], "cowl", CLOTH, 14), CH)
+if _lp:
+    add(K.loft("LiripipeTassel", [_lp[-1], _lp[-1] + Vector(G(0, -0.09, 0.005))], [0.012, 0.022], "cowl", GOLD, 8), CH)
 
 # the surplice: off-white linen from the breast to the thigh, a scalloped lace hem, over the cassock and under the cope
 surp_w = L.skirt_weights(1.05, 0.9, 0.42, 0.25)
@@ -461,7 +466,7 @@ WEIGHTS["surplice"] = surp_w
 
 # the cape over the shoulders (a mozzetta): wine wool, cut in dags at the hem, a gilt band above them; it gives the
 # figure shoulders (the cope alone was a tent) and hides where the cowl meets the cope
-moz_w = L.cope_weights(0.6)
+moz_w = CH        # (17 Nov: on the chest alone: with a share of the shoulders it rose with his arms into two towers in the wind-up)
 moz = L.Garment([(1.6, 0, 0.02, 0.22, 0.14, 0.15, 2.3), (1.53, 0, 0.01, 0.3, 0.17, 0.19, 2.2), (1.46, 0, 0.0, 0.36, 0.2, 0.22, 2.1),
                  (1.38, 0, 0.0, 0.385, 0.21, 0.23, 2.0), (1.3, 0, 0.0, 0.395, 0.215, 0.235, 2.0)],
                 top=1.6, hem=1.35, folds=[(8, 0.2, 1.0, 0.6, 0.1), (16, 0.0, 0.5, 1.3, 0.0)], amp=0.025, ramp=(0.1, 0.6),
@@ -540,9 +545,17 @@ for tag, sx in (("l", -1), ("r", 1)):
                    micro=0.0013, back_drop=0.06, tongues=(9, 0.025, 2.0))
     lo, hi = L.shell(sl, "Sleeve" + tag, "sleeve_" + tag, WINE, 1200, (140, 100) if not LOWRES else (80, 60))
     PAIRS.append((lo, hi))
-    add(lo, L.sleeve_weights(tag))
-    add(L.band(sl, "Cuff" + tag, "sleeve_" + tag + "_t", GOLD, 0.86, 0.93, 0.0, 1.0, n=60, m=3, off=0.012), L.sleeve_weights(tag))
-    WEIGHTS["sleeve_" + tag + "_t"] = L.sleeve_weights(tag)
+    # the bell below the elbow on its own label ("slv_l"/"slv_r"): boss_humanoid_anim.py hangs it on spring chains from the
+    # forearm, so with the arms raised the sleeves fall back down them (rigid, they stood up over his head like two vases)
+    def _slv_w(p, _sw=L.sleeve_weights(tag), _nm="slv_" + tag):
+        h = GK._smooth(0.97, 1.07, p.z)
+        w = {k: v * h for k, v in _sw(p).items()}
+        if h < 1.0:
+            w[_nm] = w.get(_nm, 0.0) + (1.0 - h) * 1.2
+        return w
+    add(lo, _slv_w)
+    add(L.band(sl, "Cuff" + tag, "sleeve_" + tag + "_t", GOLD, 0.86, 0.93, 0.0, 1.0, n=60, m=3, off=0.012), _slv_w)
+    WEIGHTS["sleeve_" + tag + "_t"] = _slv_w
     # linen strips wound round the wrist and the back of the hand, loose ends hanging: the fingers are bone, nothing else is
     ax = sx * 0.24
     for k in range(3):

@@ -68,6 +68,8 @@ func _ready() -> void:
 	cur.global_position = Vector3.ZERO
 	cur.sleep()
 	if cur._hp_bar: cur._hp_bar.visible = false
+	for sk: Node in cur.find_children("*", "Skeleton3D", true, false):
+		sk.process_mode = Node.PROCESS_MODE_ALWAYS          # asleep (no AI) the skeleton stopped too, and its spring cloth with it
 
 
 func _process(d: float) -> void:

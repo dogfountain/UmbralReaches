@@ -71,6 +71,74 @@ def fit_skirt(P):
     DEFORM[:] = [k for k, v in BONES.items() if v[3]]
 
 
+# a cope on its own label ("cape", tools/blender/boss_bone_abbot.py) hangs on CAPE_N chains of CAPE_SEG bones from the
+# shoulder line to the hem, spread from one front edge round the back to the other. The clips leave them at rest: in
+# the game a SpringBoneSimulator3D swings them (core/enemy/clip_rig.gd), so the cloak lags, sways and settles.
+CAPE_N, CAPE_SEG = 7, 4
+CAPE_Y = (1.42, 1.06, 0.7, 0.36, 0.03)
+CAPE_TH = []                      # each chain's angle (0 = the front, round by +x), set by fit_cape
+CAPE_RAD = {}
+
+
+def cape_pt(i, lvl):
+    a = CAPE_TH[i]
+    r = CAPE_RAD.get((i, lvl), 0.25 + 0.08 * lvl)
+    return V(math.sin(a) * r, CAPE_Y[lvl], -math.cos(a) * r)
+
+
+def fit_cape(P):
+    """Stand the cape chains just inside the cloak: from its front edges round the back, at 0.9 of its reach."""
+    thc = np.arctan2(P[:, 0], -P[:, 2])
+    low = P[:, 1] < 1.2
+    edge = float(np.percentile(np.abs(thc[low]), 1.5)) if low.sum() > 50 else 0.5
+    edge = min(max(edge, 0.15), 1.2)
+    CAPE_TH[:] = [edge + (TAU - 2.0 * edge) * i / (CAPE_N - 1) for i in range(CAPE_N)]
+    th = thc % TAU
+    rad = np.sqrt(P[:, 0] ** 2 + P[:, 2] ** 2)
+    for i, a in enumerate(CAPE_TH):
+        d = np.abs((th - a + math.pi) % TAU - math.pi)
+        for lvl, y in enumerate(CAPE_Y):
+            m = (d < 0.35) & (np.abs(P[:, 1] - y) < 0.1)
+            CAPE_RAD[(i, lvl)] = float(np.percentile(rad[m], 50)) * 0.9 if m.sum() > 8 else 0.25 + 0.08 * lvl
+    for i in range(CAPE_N):
+        for sg in range(CAPE_SEG):
+            BONES["cape%d_%d" % (i, sg)] = (cape_pt(i, sg), cape_pt(i, sg + 1), "chest" if sg == 0 else "cape%d_%d" % (i, sg - 1), True)
+    DEFORM[:] = [k for k, v in BONES.items() if v[3]]
+    print("CAPE edge %.2f rad" % edge, ["%.2f" % CAPE_RAD[(3, l)] for l in range(len(CAPE_Y))])
+
+
+# sleeves' bells on their own labels ("slv_l"/"slv_r"): SLV_N chains round the forearm from the elbow to the hem,
+# children of the forearm, swung in the game like the cape (raised arms let the sleeves fall back down them)
+SLV_N, SLV_Y = 4, (1.04, 0.92, 0.8)
+SLV_AX = {}                       # tag -> (x, z) of the bell's axis
+SLV_RAD = {}
+
+
+def slv_pt(tag, i, lvl):
+    a = TAU * i / SLV_N
+    ax, az = SLV_AX[tag]
+    r = SLV_RAD.get((tag, i, lvl), 0.08 + 0.05 * lvl)
+    return V(ax + math.sin(a) * r, SLV_Y[lvl], az - math.cos(a) * r)
+
+
+def fit_sleeve(P, tag):
+    """Chains just inside the bell, front, out, back and in, at 0.85 of its reach from its own axis."""
+    ax, az = float(np.median(P[:, 0])), float(np.median(P[:, 2]))
+    SLV_AX[tag] = (ax, az)
+    th = np.arctan2(P[:, 0] - ax, -(P[:, 2] - az)) % TAU
+    rad = np.sqrt((P[:, 0] - ax) ** 2 + (P[:, 2] - az) ** 2)
+    for i in range(SLV_N):
+        d = np.abs((th - TAU * i / SLV_N + math.pi) % TAU - math.pi)
+        for lvl, y in enumerate(SLV_Y):
+            m = (d < 0.8) & (np.abs(P[:, 1] - y) < 0.06)
+            SLV_RAD[(tag, i, lvl)] = float(np.percentile(rad[m], 50)) * 0.85 if m.sum() > 6 else 0.08 + 0.05 * lvl
+    for i in range(SLV_N):
+        for sg in range(len(SLV_Y) - 1):
+            BONES["slv_%s%d_%d" % (tag, i, sg)] = (slv_pt(tag, i, sg), slv_pt(tag, i, sg + 1), "fore_" + tag if sg == 0 else "slv_%s%d_%d" % (tag, i, sg - 1), True)
+    DEFORM[:] = [k for k, v in BONES.items() if v[3]]
+    print("SLEEVE", tag, "axis %.2f %.2f" % SLV_AX[tag], ["%.2f" % SLV_RAD[(tag, 0, l)] for l in range(len(SLV_Y))])
+
+
 BONES = {
     "root": (V(0, 0, 0), V(0, 0, -0.2), None, False),
     "hips": (V(0, 0.94, 0), V(0, 1.10, 0), "root", True),
@@ -182,6 +250,55 @@ def skin(body, arm):
             if sel.any():
                 W[rows[sel], idx["skirt%d_a" % k]] += ((1.0 - hip_w) * (1.0 - low_w) * wa)[sel]
                 W[rows[sel], idx["skirt%d_b" % k]] += ((1.0 - hip_w) * low_w * wa)[sel]
+    # the cope: the chest above the shoulder line, then the two chains it hangs between, segment by segment to the hem
+    mc = label == "cape"
+    if mc.any() and CAPE_TH:
+        Pc = P[mc]
+        rc = np.nonzero(mc)[0]
+        thc = np.arctan2(Pc[:, 0], -Pc[:, 2]) % TAU
+        f = np.interp(thc, np.array(CAPE_TH), np.arange(CAPE_N, dtype=np.float64))
+        c0 = np.clip(np.floor(f).astype(int), 0, CAPE_N - 1)
+        c1 = np.minimum(c0 + 1, CAPE_N - 1)
+        ca = f - c0
+        ca = ca * ca * (3.0 - 2.0 * ca)
+        yc = Pc[:, 1]
+        top_w = np.clip((yc - (CAPE_Y[0] - 0.04)) / 0.14, 0.0, 1.0)
+        t = np.clip((CAPE_Y[0] - yc) / (CAPE_Y[0] - CAPE_Y[-1]) * CAPE_SEG, 0.0, CAPE_SEG)
+        ws = np.stack([np.clip(1.0 - np.abs(t - (sg + 0.5)), 0.0, 1.0) for sg in range(CAPE_SEG)], 1)
+        ws = ws / np.maximum(ws.sum(1, keepdims=True), 1e-9)
+        W[rc, idx["chest"]] += top_w
+        for k in range(CAPE_N):
+            for sel, wa in ((c0 == k, 1.0 - ca), (c1 == k, ca)):
+                if sel.any():
+                    for sg in range(CAPE_SEG):
+                        W[rc[sel], idx["cape%d_%d" % (k, sg)]] += ((1.0 - top_w) * ws[:, sg] * wa)[sel]
+        print("CAPE", int(mc.sum()), "verts")
+    # the sleeves' bells: the forearm above the top ring, then the two chains each vertex lies between, segment by segment
+    for tag in ("l", "r"):
+        ms = label == "slv_" + tag
+        if not ms.any() or tag not in SLV_AX:
+            continue
+        Ps = P[ms]
+        rs = np.nonzero(ms)[0]
+        ax, az = SLV_AX[tag]
+        f = (np.arctan2(Ps[:, 0] - ax, -(Ps[:, 2] - az)) % TAU) / (TAU / SLV_N)
+        s0 = np.floor(f).astype(int) % SLV_N
+        s1 = (s0 + 1) % SLV_N
+        sa = f - np.floor(f)
+        sa = sa * sa * (3.0 - 2.0 * sa)
+        ys = Ps[:, 1]
+        nseg = len(SLV_Y) - 1
+        top_w = np.clip((ys - (SLV_Y[0] - 0.03)) / 0.08, 0.0, 1.0)
+        t = np.clip((SLV_Y[0] - ys) / (SLV_Y[0] - SLV_Y[-1]) * nseg, 0.0, nseg)
+        ws = np.stack([np.clip(1.0 - np.abs(t - (sg + 0.5)), 0.0, 1.0) for sg in range(nseg)], 1)
+        ws = ws / np.maximum(ws.sum(1, keepdims=True), 1e-9)
+        W[rs, idx["fore_" + tag]] += top_w
+        for k in range(SLV_N):
+            for sel, wa in ((s0 == k, 1.0 - sa), (s1 == k, sa)):
+                if sel.any():
+                    for sg in range(nseg):
+                        W[rs[sel], idx["slv_%s%d_%d" % (tag, k, sg)]] += ((1.0 - top_w) * ws[:, sg] * wa)[sel]
+        print("SLEEVE", tag, int(ms.sum()), "verts")
     e = np.empty(len(me.edges) * 2, dtype=np.int32)
     me.edges.foreach_get('vertices', e)
     e = e.reshape(-1, 2)
@@ -965,6 +1082,17 @@ def main():
     gi = body.vertex_groups["pelvis"].index
     robe = np.array([any(g.group == gi and g.weight > 0.5 for g in v.groups) for v in body.data.vertices])
     fit_skirt(Pr[robe] if robe.sum() > 100 else Pr[Pr[:, 1] < 0.95])
+    if "cape" in body.vertex_groups:
+        ci = body.vertex_groups["cape"].index
+        cape = np.array([any(g.group == ci and g.weight > 0.5 for g in v.groups) for v in body.data.vertices])
+        if cape.sum() > 100:
+            fit_cape(Pr[cape])
+    for tag in ("l", "r"):
+        if "slv_" + tag in body.vertex_groups:
+            si = body.vertex_groups["slv_" + tag].index
+            sv = np.array([any(g.group == si and g.weight > 0.6 for g in v.groups) for v in body.data.vertices])
+            if sv.sum() > 60:
+                fit_sleeve(Pr[sv], tag)
     arm = build_armature()
     skin(body, arm)
     # things carried: a mesh whose origin is the old socket's joint follows the bone that replaced it

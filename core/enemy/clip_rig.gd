@@ -127,6 +127,90 @@ func _build() -> void:
 			if _anim.has_animation(nm):
 				_anim.get_animation(nm).loop_mode = Animation.LOOP_LINEAR
 		_play(&"idle", 0.0)
+	_spring_cloth()
+
+
+## Cloth that moves: a model with spring chains (bones "<family><i>_<seg>", tools/blender/boss_humanoid_anim.py: the clips
+## leave them at rest) gets a SpringBoneSimulator3D over them, so a cloak lags a turn, swings with the stride and the
+## blow and settles after, and bell sleeves fall back down raised arms. Capsules on the trunk, legs and arms keep the
+## cloth outside the body; a plane at the feet catches it when he falls. Rig units (the model's own scale).
+## Held near the root and loose at the end: stiffer through the length, a cloak swung back to the chest's angle and
+## flipped over the hood when he bent into a blow, and stood up when he lay dead.
+const CLOTH_FAMILIES := [
+	# [family, stiffness, at the root, at the end, drag, gravity, at the root, at the end, joint radius]
+	["cape", 0.9, 1.0, 0.2, 0.5, 1.6, 0.35, 1.0, 0.035],        # heavy wool to the ground
+	["slv_l", 0.7, 1.0, 0.3, 0.45, 1.4, 0.6, 1.0, 0.025],       # the bells of the sleeves
+	["slv_r", 0.7, 1.0, 0.3, 0.45, 1.4, 0.6, 1.0, 0.025],
+]
+const CLOTH_COLLIDERS := [
+	["hips", 0.19, 0.0, 0.1], ["spine", 0.17, 0.18, 0.09], ["chest", 0.19, 0.24, 0.12],
+	["thigh_l", 0.13, 0.42, 0.21], ["thigh_r", 0.13, 0.42, 0.21], ["shin_l", 0.11, 0.42, 0.21], ["shin_r", 0.11, 0.42, 0.21],
+	["upper_l", 0.09, 0.32, 0.16], ["upper_r", 0.09, 0.32, 0.16], ["fore_l", 0.07, 0.3, 0.15], ["fore_r", 0.07, 0.3, 0.15],
+]   # [bone, radius, length (0: a sphere), offset along the bone]
+var _springs: SpringBoneSimulator3D
+
+
+func _spring_cloth() -> void:
+	if _skeleton == null:
+		return
+	var chains: Array = []                 # [root name, end name, family row]
+	for fam: Array in CLOTH_FAMILIES:
+		var k := 0
+		while _skeleton.find_bone("%s%d_0" % [fam[0], k]) >= 0:
+			var last := 0
+			while _skeleton.find_bone("%s%d_%d" % [fam[0], k, last + 1]) >= 0:
+				last += 1
+			chains.append(["%s%d_0" % [fam[0], k], "%s%d_%d" % [fam[0], k, last], fam])
+			k += 1
+	if chains.is_empty():
+		return
+	var sb := SpringBoneSimulator3D.new()
+	sb.name = "Cloth"
+	_skeleton.add_child(sb)
+	sb.setting_count = chains.size()
+	for k in chains.size():
+		var ch: Array = chains[k]
+		var fam: Array = ch[2]
+		sb.set_root_bone_name(k, ch[0])
+		sb.set_end_bone_name(k, ch[1])
+		sb.set_extend_end_bone(k, true)
+		sb.set_end_bone_direction(k, SpringBoneSimulator3D.BONE_DIRECTION_FROM_PARENT)
+		sb.set_end_bone_length(k, _skeleton.get_bone_rest(_skeleton.find_bone(ch[1])).origin.length())
+		sb.set_radius(k, fam[8])
+		sb.set_stiffness(k, fam[1])
+		sb.set_stiffness_damping_curve(k, _ramp(fam[2], fam[3]))
+		sb.set_drag(k, fam[4])
+		sb.set_gravity(k, fam[5])
+		sb.set_gravity_damping_curve(k, _ramp(fam[6], fam[7]))
+		sb.set_enable_all_child_collisions(k, true)
+	for c: Array in CLOTH_COLLIDERS:
+		if _skeleton.find_bone(c[0]) < 0:
+			continue
+		var col: SpringBoneCollision3D
+		if float(c[2]) > 0.0:
+			var cap := SpringBoneCollisionCapsule3D.new()
+			cap.set_radius(c[1])
+			cap.set_height(float(c[2]) + 2.0 * float(c[1]))
+			col = cap
+		else:
+			var sp := SpringBoneCollisionSphere3D.new()
+			sp.set_radius(c[1])
+			col = sp
+		sb.add_child(col)
+		col.set_bone_name(c[0])
+		col.set_position_offset(Vector3(0.0, c[3], 0.0))
+	var ground := SpringBoneCollisionPlane3D.new()
+	sb.add_child(ground)
+	_springs = sb
+
+
+## A curve from `a` at the root of a chain to `b` at its end (a damping curve multiplies a setting along the chain).
+static func _ramp(a: float, b: float) -> Curve:
+	var c := Curve.new()
+	c.max_value = maxf(1.0, maxf(a, b))
+	c.add_point(Vector2(0.0, a))
+	c.add_point(Vector2(1.0, b))
+	return c
 
 
 ## The skinned meshes wearing the kind's material (flash, glint, dissolve): what Enemy.set_flesh wants.

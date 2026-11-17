@@ -522,6 +522,9 @@ def pose(arm, rots, shift=None):
         m = Matrix.Translation(j + Vector(shift.get(nm, (0, 0, 0)))) @ e @ Matrix.Translation(-j)
         par = PARENT.get(nm)
         world[nm] = (world[par] @ m) if par else m
+    world.setdefault("cape", world["chest"])        # a cope on its own label (spring chains in the game) rides the chest here
+    world.setdefault("slv_l", world["elbow_l"])     # and sleeves' bells the forearm
+    world.setdefault("slv_r", world["elbow_r"])
     for pb in arm.pose.bones:
         if pb.name in world:
             pb.matrix = world[pb.name] @ pb.bone.matrix_local
