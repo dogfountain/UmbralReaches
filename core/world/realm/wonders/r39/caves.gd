@@ -187,7 +187,7 @@ func _dress(d, i: int) -> void:
 			d.k.chest("cave_1_pack", "wood", d.p(5.5, 0.1, 13.6), 0.0, {"grave_ash": 8, "grave_iron": 1})
 		2:
 			for j in 20:
-				var q := d.p(rng.randf_range(-7.0, 7.0), 5.5, rng.randf_range(10.5, 24.5))
+				var q: Vector3 = d.p(rng.randf_range(-7.0, 7.0), 5.5, rng.randf_range(10.5, 24.5))
 				d.k.tube("cave", q, q + Vector3.DOWN * rng.randf_range(0.6, 1.2), 0.18, 0.1, 5, false, 0.55)
 			Dress.rubble(d.k, d.p(-6.0, 0.0, 23.0), 2.5, 14, "cave")
 			Dress.rubble(d.k, d.p(3.0, 0.0, 28.0), 2.0, 10, "cave")
@@ -200,17 +200,17 @@ func _dress(d, i: int) -> void:
 			d.k.kit.box("cave", find_pos + Vector3.UP * 0.4, Vector3(3.0, 0.9, 2.6), d.basis(), true, 0.9)
 		4:
 			for j in 16:
-				var q := d.p(-7.8 if j % 2 == 0 else 7.8, 0.6 + 3.5 * rng.randf(), 10.5 + 14.0 * rng.randf())
+				var q: Vector3 = d.p(-7.8 if j % 2 == 0 else 7.8, 0.6 + 3.5 * rng.randf(), 10.5 + 14.0 * rng.randf())
 				d.k.kit.box("glow", q, Vector3(0.1, 0.9 + rng.randf(), 1.4), d.basis(), false, 0.9)
 			d.k.fire(d.p(-4.0, 0.4, 15.0), 0.9, 1.8)
 			d.k.fire(d.p(4.0, 0.4, 20.0), 0.9, 1.8)
 			for j in 5:
-				var cp := d.p(-3.0 + 1.5 * float(j), 0.0, 27.0 + rng.randf() * 7.0)
+				var cp: Vector3 = d.p(-3.0 + 1.5 * float(j), 0.0, 27.0 + rng.randf() * 7.0)
 				d.k.tube("dark", cp, cp + Vector3.UP * rng.randf_range(2.0, 4.5), 0.5, 0.45, 6, true, 0.6)
 			d.k.kit.box("cave", find_pos + Vector3.UP * 0.5, Vector3(2.6, 1.0, 2.2), d.basis(), true, 0.9)
 		5:
 			for j in 60:
-				var q := d.p(rng.randf_range(-7.0, 7.0), 0.15 + 0.4 * rng.randf(), rng.randf_range(10.5, 24.5))
+				var q: Vector3 = d.p(rng.randf_range(-7.0, 7.0), 0.15 + 0.4 * rng.randf(), rng.randf_range(10.5, 24.5))
 				d.k.kit.skull(q, rng.randf() * TAU, rng.randf_range(0.8, 1.1), rng.randi() % 2, rng.randf_range(-0.4, 0.4))
 				if j % 3 == 0:
 					d.k.kit.bone(q, Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, 1.4), rng.randi() % 3, false)

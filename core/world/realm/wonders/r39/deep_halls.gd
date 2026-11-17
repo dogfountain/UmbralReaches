@@ -138,7 +138,7 @@ func _end_chest(d, tier: String, id: String, loot: Dictionary) -> void:
 
 ## The hidden room: reached through a doorway half-hidden behind a leaning slab and rubble in the end room's east wall.
 func _hidden(d, id: String, loot: Dictionary) -> void:
-	var slab := d.p(6.2, 1.2, 36.6)
+	var slab: Vector3 = d.p(6.2, 1.2, 36.6)
 	d.k.kit.box(d.trim, slab, Vector3(0.5, 2.4, 1.5), Basis(d.side, Vector3.UP, d.fwd) * Basis(Vector3.FORWARD, 0.4), true, 0.84)
 	Dress.rubble(d.k, d.p(5.8, 0.0, 36.0), 1.5, 8, d.wall)
 	d.lamp(10.5, 2.0, 38.0, 0.8, 6.0)
@@ -173,7 +173,7 @@ func _crypt(d, spec: Dictionary) -> void:
 	Dress.rubble(d.k, d.p(1.0, 0.0, 22.0), 3.0, 14, d.wall)
 	# the ossuary chapel: heaps of skulls and bones
 	for i in 40:
-		var q := d.p(rng.randf_range(-14.4, -7.4), 0.2 + 0.5 * rng.randf(), rng.randf_range(12.4, 20.6))
+		var q: Vector3 = d.p(rng.randf_range(-14.4, -7.4), 0.2 + 0.5 * rng.randf(), rng.randf_range(12.4, 20.6))
 		d.k.kit.skull(q, rng.randf() * TAU, rng.randf_range(0.8, 1.1), rng.randi() % 2, rng.randf_range(-0.4, 0.4))
 		if i % 3 == 0:
 			d.k.kit.bone(q + Vector3(0.1, -0.05, 0.1), Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, 1.4), rng.randi() % 3, false)
@@ -228,7 +228,7 @@ func _cistern(d, spec: Dictionary) -> void:
 	Dress.strands(d.k, d.p(-5.0, 6.3, 9.0), d.p(5.0, 6.3, 29.0), 10, 1.6)
 	# the pump room (west): wheels, a boiler, pipes down into the water
 	for i in 2:
-		var wc := d.p(-10.5 + 3.0 * float(i), 1.9, 16.5)
+		var wc: Vector3 = d.p(-10.5 + 3.0 * float(i), 1.9, 16.5)
 		d.k.tube("iron", wc - d.fwd * 0.2, wc + d.fwd * 0.2, 1.7, 1.7, 12, false, 0.6, Vector2(1.0, -1.0), true)
 		d.k.tube("iron", wc - d.fwd * 0.3, wc + d.fwd * 0.3, 0.3, 0.3, 6, false, 0.5, Vector2(1.0, -1.0), true)
 	d.k.tube("iron", d.p(-13.0, 0.0, 12.8), d.p(-13.0, 4.4, 12.8), 0.35, 0.35, 8, true, 0.6)
@@ -246,7 +246,7 @@ func _cistern(d, spec: Dictionary) -> void:
 	d.lamp(10.5, 2.6, 17.0, 1.0, 8.0)
 	d.k.chest("cc_keeper", "wood", d.p(13.0, 0.1, 19.6), PI, {"grave_ash": 9, "grave_iron": 1})
 	# the sluice vault: a great wheel on the end wall, a dais and the reliquary chest
-	var wc2 := d.p(0.0, 3.4, 43.0)
+	var wc2: Vector3 = d.p(0.0, 3.4, 43.0)
 	d.k.tube("iron", wc2 - d.fwd * 0.2, wc2 + d.fwd * 0.2, 2.2, 2.2, 16, false, 0.6, Vector2(1.0, -1.0), true)
 	for i in 4:
 		var a := PI * float(i) / 4.0
@@ -332,9 +332,13 @@ func _flooded(d, spec: Dictionary) -> void:
 		d.sarcophagus(4.9, 12.0 + 5.0 * float(i), 0.0, 0.0, d.wall)
 	for i in 4:
 		d.sconce(-5.6, 3.2, 13.0 + 5.0 * float(i), 1.0, 0.9)
-	var wq := d.p(0.0, 0.0, 25.5)
+	var wq: Vector3 = d.p(0.0, 0.0, 25.5)
 	for i in 6:
-		d.k.quad("glow", d.p(-0.9, 6.3, 24.6 + 0.4 * float(i)), d.p(0.9, 6.3, 24.6 + 0.4 * float(i)), d.p(0.9, 1.2, 25.0 + 0.2 * float(i)), d.p(-0.9, 1.2, 25.0 + 0.2 * float(i)), -d.fwd, false, 0.4)
+		var g0: Vector3 = d.p(-0.9, 6.3, 24.6 + 0.4 * float(i))
+		var g1: Vector3 = d.p(0.9, 6.3, 24.6 + 0.4 * float(i))
+		var g2: Vector3 = d.p(0.9, 1.2, 25.0 + 0.2 * float(i))
+		var g3: Vector3 = d.p(-0.9, 1.2, 25.0 + 0.2 * float(i))
+		d.k.kit.quad("glow", g0, g1, g2, g3, -d.fwd, false, 0.4)      # the falling light, a sheet
 	d.k.lamp(wq + Vector3.UP * 3.0, Color(0.6, 0.78, 1.0), 1.8, 11.0)
 	Dress.banner(d.k, d.p(-5.7, 5.5, 12.0), d.fwd, 2.0, 3.6, d.side)
 	Dress.banner(d.k, d.p(5.7, 5.5, 22.0), -d.fwd, 2.0, 3.0, -d.side)
