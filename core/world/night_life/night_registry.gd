@@ -52,6 +52,20 @@ static func weather(tree: SceneTree) -> Variant:
 	return _wx
 
 
+## The nearest lit fire (a row of kind FIRE that is on) within `reach` metres of `p`, or Vector3.INF (the owls watch the moths round it).
+static func nearest_fire(p: Vector3, reach: float) -> Vector3:
+	var best := reach * reach
+	var at := Vector3.INF
+	for i in pos.size():
+		if on[i] == 0 or kind[i] != Kind.FIRE:
+			continue
+		var d2 := p.distance_squared_to(pos[i])
+		if d2 < best:
+			best = d2
+			at = pos[i]
+	return at
+
+
 static func clear() -> void:
 	pos.clear()
 	ground.clear()

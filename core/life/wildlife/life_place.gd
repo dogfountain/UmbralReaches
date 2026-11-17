@@ -212,6 +212,22 @@ static func crow_roosts(root: Node, space: PhysicsDirectSpaceState3D, rng: Rando
 		if bn >= 3:
 			var ps: Array = groups[best]
 			out.append({"name": "%s_trees" % pair[0], "center": _mean(ps), "perches": ps.slice(0, 6)})
+	# the boss arenas' rims: crows keep the stones and walls round a boss's ring (the pull of the fight is an alarm every roost answers: they go up)
+	if root.is_inside_tree():
+		for a: Node in root.get_tree().get_nodes_in_group(&"boss_arena"):
+			var n3 := a as Node3D
+			if n3 == null:
+				continue
+			var rad := float(n3.get("radius"))
+			var ps: Array = []
+			for k in 6:
+				var ang := TAU * (float(k) + rng.randf() * 0.6) / 6.0
+				var q := n3.global_position + Vector3(cos(ang), 0.0, sin(ang)) * (rad + 1.2)
+				var gy := ground(space, q.x, q.z)
+				if absf(gy - n3.global_position.y) < 3.0 and not RL.in_water(q.x, q.z):
+					ps.append([_stone_top(space, Vector3(q.x, gy, q.z), rng), rng.randf_range(-PI, PI)])
+			if ps.size() >= 4:
+				out.append({"name": "arena_%s" % String(n3.get("boss_id")), "center": n3.global_position, "perches": ps})
 	if not Zones.off():
 		out.append_array(settlement_roosts(space, rng))
 	return out
