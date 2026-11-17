@@ -29,6 +29,7 @@ const LIST := [
 
 
 static func build(root: Node) -> void:
+	preload("res://core/world/realm/wonders/r39/wonder_kit.gd").light_used = 0          # the wonders' light budget starts over with each Realm build
 	if "--no-wonders" in OS.get_cmdline_user_args():
 		return
 	for path: String in LIST:
