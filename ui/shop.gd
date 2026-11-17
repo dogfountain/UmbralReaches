@@ -68,6 +68,9 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_font = load("res://ui/fonts/Cinzel.ttf")
 	_build()
+	Settings.input_device_changed.connect(func(_pad: bool) -> void:
+		if _open:
+			_refresh_hint())
 	_voice_p = Voice.speaker2d(self)
 	_panel.visible = false
 
@@ -245,7 +248,14 @@ func open(merchant: String, npc: Node3D = null) -> void:
 	_paused_it = not get_tree().paused
 	get_tree().paused = true
 	Events.interact_hint.emit("")
-	_hint.text = "[W/S] choose     [A/D] wares, sell, buy back     [%s] buy / sell     [Esc] leave" % Interactable.prompt_key()
+	_refresh_hint()
+
+
+func _refresh_hint() -> void:
+	if Settings.using_pad:
+		_hint.text = "[D-pad] choose / wares, sell, buy back     [%s] buy / sell     [B] leave" % Interactable.prompt_key()
+	else:
+		_hint.text = "[W/S] choose     [A/D] wares, sell, buy back     [%s] buy / sell     [Esc] leave" % Interactable.prompt_key()
 
 
 func close() -> void:

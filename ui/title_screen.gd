@@ -43,6 +43,15 @@ static func wanted() -> bool:
 	return true
 
 
+var _keys_hint: Label
+
+
+## The title's foot: the keyboard's keys, or the pad's buttons while the last input was a pad.
+func _refresh_keys() -> void:
+	if _keys_hint != null:
+		_keys_hint.text = "[D-pad] choose      [A] select      [B] back" if Settings.using_pad else "[W / S] choose      [Enter] select      [Esc] back"
+
+
 func _ready() -> void:
 	layer = 125
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -116,7 +125,10 @@ func _ready() -> void:
 	_note = _label("", 20, Med.BONE_DIM, UIType.body(), true)
 	_title_col.add_child(_gap(10))
 	_title_col.add_child(_note)
-	var keys := _label("[W / S] choose      [Enter] select      [Esc] back", 16, Med.BONE_DIM, UIType.body(), true)
+	var keys := _label("", 16, Med.BONE_DIM, UIType.body(), true)
+	_keys_hint = keys
+	_refresh_keys()
+	Settings.input_device_changed.connect(func(_pad: bool) -> void: _refresh_keys())
 	keys.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	keys.offset_top = -86
 	keys.offset_bottom = -56

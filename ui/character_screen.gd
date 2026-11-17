@@ -63,6 +63,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group(&"character_screen")
 	_build()
+	Settings.input_device_changed.connect(func(_pad: bool) -> void: _hint_refresh())
 	_root.visible = false
 	_backdrop = CanvasLayer.new()
 	_backdrop.name = "Backdrop"
@@ -92,7 +93,10 @@ func _hint_refresh() -> void:
 		if InputSetup.slot_of(ev) == "key":
 			names.append(InputSetup.event_name(ev))
 	var close_keys := " / ".join(names if not names.is_empty() else PackedStringArray(["Tab"]))
-	for h: Array in [["1-4", "Tabs"], ["Q  E", "Pages"], [close_keys, "Close"]]:
+	var rows: Array = [["1-4", "Tabs"], ["Q  E", "Pages"], [close_keys, "Close"]]
+	if Settings.using_pad:
+		rows = [["LT  RT", "Tabs"], ["LB  RB", "Pages"], ["B", "Close"]]
+	for h: Array in rows:
 		var one := HBoxContainer.new()
 		one.add_theme_constant_override("separation", 6)
 		one.add_child(W.badge(String(h[0]), 17))

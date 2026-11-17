@@ -4,8 +4,9 @@ extends CanvasLayer
 ## A panel along the bottom: a live portrait of the speaker (his own DwarfRig in a small SubViewport,
 ## jaw moving while the line types), a name plate, the line typed out letter by letter, and up to
 ## four choices. The world pauses while it is open (get_tree().paused) and the mouse is freed.
-##   E / Space / Enter / click: finish the line, then continue    1-4: pick a choice
-##   W/S or up/down: move the choice cursor, E picks it          Esc: close
+##   interact / Space / Enter / click (pad: interact, A): finish the line, then continue    1-4: pick a choice
+##   W/S or up/down (pad: d-pad): move the choice cursor, interact picks it    Esc / Menu (pad: B): close
+##   The foot names the keys as bound now (the pad's buttons while the last input was a pad).
 ## narrate(lines): subtitles without the box and without pausing (the arrival, the ending).
 ## No class_name: preload by path.
 
@@ -58,6 +59,9 @@ var _syl_last := -1.0
 
 
 func _ready() -> void:
+	Settings.input_device_changed.connect(func(_pad: bool) -> void:
+		if _open:
+			_refresh_hint())
 	layer = 60
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group(&"dialogue")                 # the text director asks whether a box is up
@@ -395,10 +399,14 @@ func choice_count() -> int:
 
 func _refresh_hint() -> void:
 	var k := Interactable.prompt_key()
+	var pad := Settings.using_pad
+	var leave := "B" if pad else "Esc"
 	if typing():
 		_hint.text = "[%s]  skip" % k
 	elif _buttons.is_empty():
-		_hint.text = "[%s]  continue      [Esc]  leave" % k
+		_hint.text = "[%s]  continue      [%s]  leave" % [k, leave]
+	elif pad:
+		_hint.text = "[D-pad]  move      [%s]  choose      [%s]  leave" % [k, leave]
 	else:
 		_hint.text = "[1-%d] or [%s]  choose      [Esc]  leave" % [_buttons.size(), k]
 
