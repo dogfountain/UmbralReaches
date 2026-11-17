@@ -67,6 +67,8 @@ static func counter(kind: String) -> int:
 	if kind.begins_with("kind:"):
 		return int((d.get("kills", {}) as Dictionary).get(kind.substr(5), 0))
 	match kind:
+		"great":
+			return int(d.get("great", 0))
 		"camps":
 			return int(d.get("camps", 0))
 		"places":
@@ -136,6 +138,16 @@ func _ready() -> void:
 	t.timeout.connect(_check)
 	t.autostart = true
 	add_child(t)
+	Events.boss_slain.connect(func(_id: String) -> void:
+		var d := Tally.data()
+		d["great"] = int(d.get("great", 0)) + 1)
+
+
+## What a finished bounty pays now: Vector2i(grave ash, ember shards).
+static func reward(b: Dictionary) -> Vector2i:
+	var hard := int(Data.POOL[String(b.t)][3]) == 1
+	var mult := Data.scale(ng()) * (1.0 + 0.05 * float(rank()))
+	return Vector2i(roundi((30.0 + (30.0 if hard else 0.0)) * mult), roundi((2.0 + (2.0 if hard else 0.0)) * mult))
 
 
 func _check() -> void:
@@ -160,9 +172,9 @@ func _pay(b: Dictionary, s: Dictionary) -> void:
 	b["s"] = 1
 	var tpl: Array = Data.POOL[String(b.t)]
 	var hard := int(tpl[3]) == 1
-	var mult := Data.scale(ng()) * (1.0 + 0.05 * float(rank()))
-	var ash := roundi((30.0 + (30.0 if hard else 0.0)) * mult)
-	var shard := roundi((2.0 + (2.0 if hard else 0.0)) * mult)
+	var rw := reward(b)
+	var ash := rw.x
+	var shard := rw.y
 	Travel.give("grave_ash", ash, false)
 	Travel.give("ember_shard", shard, false)
 	var before := rank()

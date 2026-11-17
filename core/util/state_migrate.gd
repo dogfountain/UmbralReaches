@@ -5,9 +5,12 @@ extends RefCounted
 ## the save is kept. Pure and static; it needs nothing but the two dictionaries.
 ## Versions: 1 (before this round, no key) -> 2: tally, chronicle, chronicle_keys, trail, pins, night_no, night_age,
 ## danger_warned, courier, opening_seen (a flag); stable: bond, names, left, spirit, tack, groomed, bags.
+## 2 -> 3: race (won, cup), sketch (base64 string), ledger (marks, night, done, list), vows, map_hide, and the Count's races, race_wins,
+## great, ledger, tolls and embers_lost. A damaged one is made empty or trimmed, never fatal; the rest of the save is kept.
 ## Load by path (no class_name): const StateMigrate := preload("res://core/util/state_migrate.gd")
 
-const VERSION := 2
+const VERSION := 3
+const LedgerData := preload("res://core/story/long_ledger_data.gd")
 const MAX_TRAIL := 5200            ## ints (two per point)
 const MAX_PINS := 24
 
@@ -58,12 +61,48 @@ static func _story(st: Dictionary) -> void:
 	var race: Dictionary = st.race
 	if not (race.get("won") is Array):
 		race.erase("won")
+	else:
+		race["won"] = (race.won as Array).filter(func(c: Variant) -> bool: return c is String)
+	for k: String in ["races", "race_wins", "great", "ledger", "tolls", "embers_lost"]:
+		var tl := st.tally as Dictionary
+		tl[k] = maxi(0, int(tl.get(k, 0))) if (tl.get(k) is int or tl.get(k) is float) else 0
+	_dict(st, "vows")
+	for k: Variant in (st.vows as Dictionary).keys():
+		if not ((st.vows as Dictionary)[k] is String):
+			(st.vows as Dictionary).erase(k)
+	if not (st.get("map_hide") is Dictionary or st.get("map_hide") is Array):
+		st.erase("map_hide")
+	_ledger(st)
 	if not (st.get("sketch") is String):                    # the map's charcoal sketch: a base64 string or nothing (backfilled from the trail)
 		st.erase("sketch")
 	# a courier run needs a route and a time; anything else is not a run
 	var c: Dictionary = st.courier
 	if not c.is_empty() and (String(c.get("route", "")) == "" or not (c.get("t") is int or c.get("t") is float)):
 		c.clear()
+
+
+## The Long Ledger: counts non-negative, each posting a known bounty with numbers and a state of 0, 1 or 2; anything else dropped.
+static func _ledger(st: Dictionary) -> void:
+	var l := _dict(st, "ledger")
+	for k: String in ["marks", "done", "night"]:
+		l[k] = int(l.get(k, 0 if k != "night" else -1)) if (l.get(k) is int or l.get(k) is float) else (0 if k != "night" else -1)
+	l["marks"] = maxi(0, int(l.marks))
+	l["done"] = maxi(0, int(l.done))
+	var keep: Array = []
+	if l.get("list") is Array:
+		for b: Variant in l.list:
+			if not (b is Dictionary) or not LedgerData.POOL.has(String((b as Dictionary).get("t", ""))):
+				continue
+			if not ((b as Dictionary).get("n") is int or (b as Dictionary).get("n") is float):
+				continue
+			var d := b as Dictionary
+			d["n"] = maxi(1, int(d.n))
+			d["base"] = int(d.get("base", 0))
+			d["fb"] = int(d.get("fb", 0))
+			d["s"] = clampi(int(d.get("s", 0)), 0, 2)
+			d["hard"] = bool(d.get("hard", false))
+			keep.append(d)
+	l["list"] = keep
 
 
 ## A flat list of ints of even length, at most `cap` long (the newest kept).

@@ -3,7 +3,7 @@ extends RefCounted
 ## core/story/long_ledger.gd and the page is ui/tally_ledger.gd. Load by path (no class_name).
 ##
 ## A bounty: id -> [counter, n at the first night, text with {n}, hard (0 or 1), the Deeper Night it needs (0 = from the first)].
-## Counters read what the Count already keeps: "kills" (all put down), "kind:<kind>" (one kind), "clean" (put down with no fall
+## Counters read what the Count already keeps: "kills" (all put down), "kind:<kind>" (one kind), "great" (great ones felled, kept across Deeper Nights), "clean" (put down with no fall
 ## since it was posted), "camps", "places", "runs" (parcels), "races", "wins" (races won). The n grows with each ringing of the
 ## cracked bell (x 1 + 0.35 per Deeper Night), and so does the purse.
 const POOL := {
@@ -31,6 +31,8 @@ const POOL := {
 	"races": ["races", 2, "Run {n} races at Hearthward. Fennick will take the entry as a compliment.", 0, 0],
 	"wins": ["wins", 1, "Win a race at the Hearthward rail.", 1, 0],
 	"wins2": ["wins", 3, "Win {n} races at Hearthward. The Cup is polished and waiting.", 1, 1],
+	"g_one": ["great", 1, "Fell one of the great ones. The ledger counts them across every night, the Deeper ones too.", 1, 0],
+	"g_two": ["great", 2, "Fell {n} of the great ones. They rise again after the bell, and the ledger remembers each.", 1, 1],
 	"d_kills": ["kills", 110, "Put down {n} of the hollowed. They come back harder since the bell, and so must you.", 1, 1],
 	"d_camps": ["camps", 3, "Make {n} camps. The cold stays; the fires have to outlast it.", 1, 1],
 }

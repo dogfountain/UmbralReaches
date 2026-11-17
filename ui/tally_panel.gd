@@ -30,6 +30,7 @@ var _root: Control
 var _left: VBoxContainer
 var _right: VBoxContainer
 var _opened_ms := 0
+var _led_sel := 0                    ## the posting under the cursor on the Long Night page
 var _page := 0                        ## 0 the Count, 1 the Chronicle
 var _title_l: Label
 var _foot_l: Label
@@ -245,11 +246,23 @@ func _fill_ledger() -> void:
 	var list: Array = LongLedger.st().list
 	if list.is_empty():
 		_right.add_child(_label("Nothing is posted yet. It is written within a breath or two.", 17, DIM))
-	for b: Dictionary in list:
-		var state := "done" if int(b.s) == 1 else ("struck: you fell" if int(b.s) == 2 else "%d of %d" % [mini(LongLedger.progress(b), int(b.n)), int(b.n)])
-		_right.add_child(_label(LongLedger.text_of(b), 17, DIM if int(b.s) != 0 else INK))
-		_row(_right, ("Hard" if bool(b.hard) else "Plain") + " posting", state)
-
+	_led_sel = clampi(_led_sel, 0, maxi(list.size() - 1, 0))
+	for i in list.size():
+		var b: Dictionary = list[i]
+		var state := "done" if int(b.s) == 1 else ("struck" if int(b.s) == 2 else "%d of %d" % [mini(LongLedger.progress(b), int(b.n)), int(b.n)])
+		_row(_right, ("> " if i == _led_sel else "   ") + ("Hard" if bool(b.hard) else "Plain") + " posting %d" % (i + 1), state)
+	if not list.is_empty():                              # the detail of the one under the cursor (up and down, or the d-pad)
+		var b: Dictionary = list[_led_sel]
+		var rw := LongLedger.reward(b)
+		_right.add_child(Control.new())
+		_head(_right, "THE POSTING")
+		_right.add_child(_label(LongLedger.text_of(b), 18, INK))
+		var need := int(b.n)
+		var got := mini(LongLedger.progress(b), need)
+		_right.add_child(_label("[%s%s]  %d of %d" % ["#".repeat(roundi(10.0 * float(got) / float(maxi(need, 1)))), "-".repeat(10 - roundi(10.0 * float(got) / float(maxi(need, 1)))), got, need], 17, DIM))
+		var st := "Done and paid." if int(b.s) == 1 else ("Struck from the ledger: you fell. Tomorrow's posting is fresh." if int(b.s) == 2 else "Pays %d grave ash and %d ember shards, %d mark%s." % [rw.x, rw.y, 2 if bool(b.hard) else 1, "s" if bool(b.hard) else ""])
+		_right.add_child(_label(st + ("  Cleaned only if you do not fall." if String(LongLedger.Data.POOL[String(b.t)][0]) == "clean" and int(b.s) == 0 else ""), 16, DIM))
+		_right.add_child(_label("[Up] [Down] or d-pad: choose a posting", 15, DIM))
 
 
 func _fill_chronicle() -> void:
@@ -342,6 +355,14 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and event.pressed and not event.is_echo() and (event.physical_keycode in [KEY_Q, KEY_E, KEY_LEFT, KEY_RIGHT]):
 		_page = (_page + (PAGES - 1 if (event.physical_keycode == KEY_Q or event.physical_keycode == KEY_LEFT) else 1)) % PAGES
+		_fill()
+		get_viewport().set_input_as_handled()
+		return
+	if _page == 3 and ((event is InputEventKey and event.pressed and not event.is_echo() and (event as InputEventKey).physical_keycode in [KEY_UP, KEY_DOWN, KEY_W, KEY_S]) \
+			or (event is InputEventJoypadButton and event.pressed and (event as InputEventJoypadButton).button_index in [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN])):
+		var up := (event is InputEventKey and (event as InputEventKey).physical_keycode in [KEY_UP, KEY_W]) or (event is InputEventJoypadButton and (event as InputEventJoypadButton).button_index == JOY_BUTTON_DPAD_UP)
+		_led_sel = maxi(0, _led_sel + (-1 if up else 1))
+		UiSound.play(self, "move")
 		_fill()
 		get_viewport().set_input_as_handled()
 		return

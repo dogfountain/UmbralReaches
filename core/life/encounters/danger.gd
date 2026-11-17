@@ -49,6 +49,18 @@ static func plate(at: Vector3) -> String:
 	return NAMES[b] if b == 0 else "%s · Lv %d" % [NAMES[b], pawn_level(at)]
 
 
+## "Recommended level 14 (you are 9)" for a task's first step that has a place, or "" in a haven or when it has none.
+static func task_hint(qd: Dictionary) -> String:
+	for stp: Variant in qd.get("steps", []):
+		if stp is Dictionary and (stp as Dictionary).get("at") is Vector2:
+			var a: Vector2 = (stp as Dictionary).at
+			var at := Vector3(a.x, 0.0, a.y)
+			if band(at) == 0:
+				return ""
+			return "Recommended level %d (you are %d)" % [pawn_level(at), player_level()]
+	return ""
+
+
 ## The gear-gap hint for the ground at `at` (core/life/encounters/gear_gap.gd): "" when the gear is not behind.
 static func gear_note(at: Vector3) -> String:
 	return GearGap.note(pawn_level(at), band(at))

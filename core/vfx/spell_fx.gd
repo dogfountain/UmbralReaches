@@ -12,6 +12,7 @@ const COLUMN := preload("res://world/vfx/flame_column.gdshader")
 const TARGET := preload("res://world/vfx/target_ring.gdshader")
 const TEAR := preload("res://world/vfx/rift_tear.gdshader")
 const DANGER := preload("res://core/vfx/danger_zone.gdshader")
+const Access := preload("res://ui/access.gd")
 ## r29: an ember red-orange. The night grade pulls every hue under ~16 deg into its blue band, so
 ## the old (2.6, 0.32, 0.18) read as indigo on the ground (zz/critA_color_shot); warm = danger.
 const DANGER_RED := Color(2.6, 0.55, 0.1)
@@ -274,7 +275,7 @@ static func threat_tint(c: Color) -> Color:
 ## Returns the MeshInstance3D (freed by itself), or null.
 static func danger(at: Vector3, life: float, opts := {}) -> MeshInstance3D:
 	_meshes()
-	var col := threat_tint(opts.get("color", DANGER_RED))
+	var col := Access.telegraph(threat_tint(opts.get("color", DANGER_RED)))      # the colour-blind palette moves a red or orange zone to violet
 	var rect: Vector2 = opts.get("rect", Vector2.ZERO)
 	var shape := 1 if rect != Vector2.ZERO else 0
 	var half: float = opts.get("half_angle", PI)

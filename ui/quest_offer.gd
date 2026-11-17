@@ -12,6 +12,7 @@ signal accepted(id: String)
 signal turned_in(id: String, choice: int)
 signal dismissed
 
+const Danger := preload("res://core/life/encounters/danger.gd")
 const Book := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const GearDB := preload("res://core/items/gear_db.gd")
@@ -245,6 +246,9 @@ func _fill(giver_name: String) -> void:
 			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			QuestMarks.row(_obj, l, ico, 32.0)
 	_pay.text = pay_line(qd.get("reward", {}))
+	var rec := Danger.task_hint(qd)
+	if rec != "":
+		_pay.text += "\n" + rec
 	_pieces = Book.offered_gear(quest)
 	_pay_icon.texture = QuestMarks.reward_art(qd.get("reward", {}), qd.get("reward", {}).is_empty() and not _pieces.is_empty())
 	_pay_icon.visible = _pay_icon.texture != null

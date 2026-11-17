@@ -15,6 +15,7 @@ const W := 168                                          ## ceil(840 / 5)
 const H := 137                                          ## ceil(682 / 5)
 const SIGHT := 38.0
 const VERSION := 1
+const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const KEY := "sketch"
 const LM_KEY := "sketch_lm"
 
@@ -64,17 +65,42 @@ static func _backfill() -> void:
 		reveal(Vector2(float(a[i]), float(a[i + 1])))
 
 
-## Draw a disc of sight at world xz `at` into the grid. True when any cell grew.
-static func reveal(at: Vector2) -> bool:
+const SECTORS := 24
+const RINGS := 8
+
+## Draw a disc of sight at world xz `at` into the grid, as far as the ground is seen: `eye` is the height of the wanderer's eye. The
+## ground is read once per ring cell along 24 rays (192 samples of RealmLand.height_at, only when she has moved to another cell): a
+## ring cell is seen when its ground rises to the highest angle yet met along that ray, so the far side of a ridge or cliff stays
+## unsketched. Without an eye (a backfill from the trail) the disc is plain. True when any cell grew.
+static func reveal(at: Vector2, eye := NAN) -> bool:
 	ensure()
 	var c := (at - ORIGIN) / CELL
 	var r := SIGHT / CELL
+	var seen := PackedByteArray()
+	if not is_nan(eye):
+		seen.resize(SECTORS * RINGS)
+		for sct in SECTORS:
+			var dir := Vector2.from_angle((float(sct) + 0.5) * TAU / float(SECTORS))
+			var top := -INF
+			for ring in RINGS:
+				var d := SIGHT * float(ring + 1) / float(RINGS)
+				var p := at + dir * d
+				var ang := (RealmLand.height_at(p.x, p.y) - eye) / d
+				if ang >= top - 0.02:
+					seen[sct * RINGS + ring] = 1
+				top = maxf(top, ang)
 	var changed := false
 	for j in range(maxi(int(c.y - r), 0), mini(int(c.y + r) + 1, H)):
 		for i in range(maxi(int(c.x - r), 0), mini(int(c.x + r) + 1, W)):
-			var d := Vector2(float(i) + 0.5, float(j) + 0.5).distance_to(c)
+			var off := Vector2(float(i) + 0.5, float(j) + 0.5) - c
+			var d := off.length()
 			if d > r:
 				continue
+			if not seen.is_empty() and d > 1.5:
+				var sct := clampi(int(fposmod(off.angle(), TAU) / TAU * float(SECTORS)), 0, SECTORS - 1)
+				var ring := clampi(int(d / r * float(RINGS)), 0, RINGS - 1)
+				if seen[sct * RINGS + ring] == 0:
+					continue
 			var v := int((1.0 - smoothstep(r * 0.55, r, d)) * 255.0)
 			var k := j * W + i
 			if v > int(cells[k]):
@@ -127,5 +153,5 @@ func _tick() -> void:
 	var cell := Vector2i(int((here.x - ORIGIN.x) / CELL), int((here.y - ORIGIN.y) / CELL))
 	if cell != _last:
 		_last = cell
-		if reveal(here):
+		if reveal(here, p.global_position.y + 1.6):
 			flush()                                   # a few microseconds: the grid is mostly zeros
