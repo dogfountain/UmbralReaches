@@ -14,6 +14,7 @@ extends CanvasLayer
 
 signal closed
 
+const Foot := preload("res://ui/foot_hint.gd")
 const Shop := preload("res://core/life/village/village_shop.gd")
 const Icons := preload("res://core/life/progression/icons.gd")
 const Voice := preload("res://core/npc/npc_voice.gd")
@@ -252,6 +253,7 @@ func open(merchant: String, npc: Node3D = null) -> void:
 
 
 func _refresh_hint() -> void:
+	Foot.style(_hint, 17)
 	if Settings.using_pad:
 		_hint.text = "[D-pad] choose / wares, sell, buy back     [%s] buy / sell     [B] leave" % Interactable.prompt_key()
 	else:

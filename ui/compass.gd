@@ -81,6 +81,7 @@ func _rescan() -> void:
 		var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 		var tg: Vector3 = st.target
 		var flat := Vector2(tg.x - pl.global_position.x, tg.z - pl.global_position.z).length() if pl else -1.0
+		_marks.assign(_marks.filter(func(m: Dictionary) -> bool: return String(m.kind) != "beacon" or Vector2((m.pos as Vector3).x - tg.x, (m.pos as Vector3).z - tg.z).length() > 6.0))      # the waypoint is shown once: a beacon on the tracked place is the goal mark itself
 		_marks.append({"pos": tg, "col": LANTERN, "kind": "goal", "art": String(st.get("art", "followed")), "flat": flat})
 	var braz: Array = []
 	for n in get_tree().get_nodes_in_group(Groups.BRAZIER):

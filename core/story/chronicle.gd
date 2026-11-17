@@ -73,7 +73,7 @@ func _process(delta: float) -> void:
 	_poll = 2.0
 	var lv := Danger.player_level()
 	if _level >= 0 and lv > _level and lv % 5 == 0:
-		write("level:%d" % lv, "level", "Remembrance %d: the Paths grew." % lv)
+		write("level:%d" % lv, "level", "Level %d: the Paths grew." % lv)
 	_level = lv
 	var b := QuestBook.bells()
 	if _bells >= 0 and b > _bells:

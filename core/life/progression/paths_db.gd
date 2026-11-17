@@ -189,7 +189,7 @@ static func why_not(st: Dictionary, id: String, bosses: int) -> String:
 				return "Remember %s first." % String(o.name)
 	var f := free_pts(st, bosses)
 	if f < int(n.cost):
-		return "Needs %d Remembrance%s (you have %d to spend)." % [int(n.cost), "" if int(n.cost) == 1 else "s", maxi(f, 0)]
+		return "Needs %d Path point%s (you have %d to spend)." % [int(n.cost), "" if int(n.cost) == 1 else "s", maxi(f, 0)]
 	return ""
 
 

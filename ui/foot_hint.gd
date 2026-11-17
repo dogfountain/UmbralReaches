@@ -21,3 +21,9 @@ static func leave(own_action := "", own_key := "") -> String:
 ## "[Q] [E] page" or "[LB] [RB] page".
 static func page() -> String:
 	return "[LB] [RB] page" if Settings.using_pad else "[Q] [E] page"
+
+
+## A footer's size: never under 16 px, and it follows Settings > Text Scale (the objective, toasts and lessons already do). Call it when
+## the panel fills, so a change in Settings reaches an open panel the next time it is shown.
+static func style(l: Label, base := 16) -> void:
+	l.add_theme_font_size_override("font_size", maxi(16, TextDirector.px(base)))

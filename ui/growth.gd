@@ -17,6 +17,7 @@ extends CanvasLayer
 ##           trades it opens, comfort, Rested and meals, and walk between fires (Brannoc's bells)
 ## Runtime and rules: core/life/progression/kindling.gd; data: upgrade_db.gd; icons: icons.gd.
 
+const Foot := preload("res://ui/foot_hint.gd")
 const DB := preload("res://core/life/progression/upgrade_db.gd")
 const PageGrid := preload("res://ui/page_grid.gd")
 const PathsDB := preload("res://core/life/progression/paths_db.gd")
@@ -348,6 +349,7 @@ func _foot_refresh() -> void:
 	if _foot == null:
 		return
 	var move := " ".join(["move_forward", "move_left", "move_back", "move_right"].map(func(a: String) -> String: return InputSetup.live_label(a, false, "?")))
+	Foot.style(_foot, 17)
 	_foot.text = "[%s] choose      [%s] or click: kindle      [Q] [E] page      [%s] or [Esc] leave" % [move, InputSetup.live_label("jump", false, "Space"), InputSetup.live_label("kindling", false, "K")] if not Settings.using_pad else "[D-pad] choose      [A] kindle      [LB] [RB] page      [B] leave"
 
 
@@ -873,7 +875,7 @@ func _page_paths() -> void:
 	var free := PathsDB.free_pts(st, Travel.bosses_slain.size())
 	# r33 progression: the level reads as a level, with rested XP (level.gd)
 	var rested := int(st.get("rested_xp", 0))
-	_heading("Level %d (Remembrance)  ·  %d point%s to spend" % [int(lv.level), maxi(free, 0), "" if free == 1 else "s"],
+	_heading("Level %d  ·  %d Path point%s to spend" % [int(lv.level), maxi(free, 0), "" if free == 1 else "s"],
 		"XP %d / %d to the next%s  ·  kills, tasks, fires, seals and new places bring it back" % [int(lv.into), int(lv.need),
 			("  ·  rested: +%d (kills give double)" % rested) if rested > 0 else ""])
 	_cols = 3
@@ -1287,7 +1289,7 @@ func _show() -> void:
 			_d_kind.text = "%s  ·  STEP %d  ·  %d REMEMBRANCE%s" % [String(pa.name).to_upper(), int(n.depth) + 1, int(n.cost), "" if int(n.cost) == 1 else "S"]
 			_d_text.text = String(n.text)
 			_d_lore.text = String(n.lore)
-			_d_now.text = "%d Remembrance%s to spend." % [maxi(0, PathsDB.free_pts(st, Travel.bosses_slain.size())), "" if PathsDB.free_pts(st, Travel.bosses_slain.size()) == 1 else "s"]
+			_d_now.text = "%d Path point%s to spend." % [maxi(0, PathsDB.free_pts(st, Travel.bosses_slain.size())), "" if PathsDB.free_pts(st, Travel.bosses_slain.size()) == 1 else "s"]
 			var hh := _h()
 			why = String(hh.why_not_path(c.id)) if hh else "?"
 			verb = "REMEMBER" if not PathsDB.has(st, c.id) else ""
@@ -1295,7 +1297,7 @@ func _show() -> void:
 			var hh := _h()
 			_d_name.text = "Unremember"
 			_d_kind.text = "THE PATHS  ·  AT HEARTHWARD'S FIRE"
-			_d_text.text = "Give every Path step back. The Remembrances return to be spent again; the ash is gone."
+			_d_text.text = "Give every Path step back. The Path points return to be spent again; the ash is gone."
 			_d_lore.text = "Some things you would rather carry differently. The fire on the green does not judge."
 			why = String(hh.why_not_unremember(at_home_fire())) if hh else "?"
 			verb = "UNREMEMBER  ·  %d ASH" % c.cost

@@ -138,6 +138,7 @@ func _fill() -> void:
 	_clear(_left)
 	_clear(_right)
 	_title_l.text = ["THE COUNT", "THE CHRONICLE", "THE BELLS", "THE LONG NIGHT"][_page]
+	Foot.style(_foot_l)
 	_foot_l.text = "%s (%d of %d)     %s" % [Foot.page(), _page + 1, PAGES, Foot.leave("tally", "B")]
 	if _page == 1:
 		_fill_chronicle()
@@ -187,9 +188,9 @@ func _fill() -> void:
 	for v in sworn:
 		_row(_right, String((Vows.DEFS[v] as Array)[2]), String((Vows.DEFS[v] as Array)[1]))
 	if Vows.pending() >= 0:
-		_row(_right, "A vow waits (Remembrance %d)" % int(Vows.TIERS[Vows.pending()]), "")
+		_row(_right, "A vow waits (level %d)" % int(Vows.TIERS[Vows.pending()]), "")
 	elif sworn.is_empty():
-		_row(_right, "None sworn. The first is at Remembrance 5.", "")
+		_row(_right, "None sworn. The first is at level 5.", "")
 	_right.add_child(Control.new())
 	_head(_right, "WHO KNOWS YOU")
 	for f: String in ReachState.FACTIONS:

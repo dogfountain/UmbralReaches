@@ -153,6 +153,7 @@ func _clear(box: Node) -> void:
 func _fill() -> void:
 	_clear(_tabs)
 	_clear(_body)
+	Foot.style(_foot)
 	_foot.text = "%s     %s     d-pad and A: choose" % [Foot.page(), Foot.leave()] if Settings.using_pad else "%s     %s" % [Foot.page(), Foot.leave()]
 	var d: Dictionary = DB.BREEDS[_breed]
 	_title.text = ("%s, the %s" % [HorseBond.name_of(_breed), String(d.name)]) if _owned() else String(d.name)
