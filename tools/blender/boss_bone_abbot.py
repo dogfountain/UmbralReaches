@@ -359,16 +359,25 @@ add(TUBE("Chain", chain, 0.0045, "chest", GOLD), CH)
 
 # --- cloth ---------------------------------------------------------------------------------------------------
 hip_w = L.skirt_weights(1.12, 0.92, 0.42, 0.3)
-cass = L.Garment([(1.18, 0, 0, 0.14, 0.105, 0.105, 2.2), (1.0, 0, 0, 0.16, 0.125, 0.125, 2.1), (0.78, 0, 0, 0.2, 0.16, 0.17, 2.0),
+SLEEVE_SPRINGS = False     # (17 Nov) the sleeves are fitted now and ride the arm; the bell-on-springs code stays for robes that want it
+TIERS = False              # (17 Nov) the surplice and the shoulder cape: off. Stacked over the cassock they made him a
+                           # tiered costume on a stand; one dark robe from the neck to the ground, a stole down it
+cass = L.Garment(([] if TIERS else [(1.53, 0, 0.0, 0.1, 0.08, 0.08, 2.2), (1.46, 0, 0.0, 0.17, 0.12, 0.12, 2.2), (1.36, 0, 0.0, 0.2, 0.145, 0.135, 2.2),
+                  (1.22, 0, 0.0, 0.19, 0.14, 0.13, 2.2)]) + [(1.18, 0, 0, 0.14 if TIERS else 0.18, 0.105 if TIERS else 0.135, 0.105 if TIERS else 0.125, 2.2), (1.0, 0, 0, 0.16, 0.125, 0.125, 2.1), (0.78, 0, 0, 0.2, 0.16, 0.17, 2.0),
                   (0.48, 0, 0.01, 0.29, 0.15, 0.17, 2.0), (0.2, 0, 0.02, 0.4, 0.15, 0.17, 2.0), (-0.1, 0, 0.02, 0.52, 0.15, 0.17, 2.0)],
-                 top=1.18, hem=0.025, folds=[(12, 0.0, 1.0, 0.3, 0.1), (25, 0.0, 0.7, 1.3, -0.15), (6, 0.4, 0.3, 2.0, 0)], amp=0.07,
+                 top=1.18 if TIERS else 1.53, hem=0.025, folds=[(12, 0.0, 1.0, 0.3, 0.1), (25, 0.0, 0.7, 1.3, -0.15), (6, 0.4, 0.3, 2.0, 0)], amp=0.07,
                  ramp=(0.0, 0.45), lay=0.07, lay_r=0.07, hem_lift=0.05, micro=0.0016, back_drop=0.05)
 lo, hi = L.shell(cass, "Cassock", "cassock", WOOL if HOODED else WINE, 2600, HI)
 PAIRS.append((lo, hi))
 add(lo, hip_w)
 # the two bands of the stole down the front, orphrey bands at the hem and a placket
-for nm, (v0, v1, u0, u1) in (("StoleL", (0.02, 0.97, -0.055, -0.018)), ("StoleR", (0.02, 0.97, 0.018, 0.055)), ("HemBand", (0.885, 0.92, 0.0, 1.0))):
-    add(L.band(cass, nm, "cassock_trim", GOLD, v0, v1, u0, u1, n=64 if u1 - u0 > 0.5 else 3, m=36 if v1 - v0 > 0.5 else 2, off=0.012), hip_w)
+for nm, (v0, v1, u0, u1), mat in ((("StoleL", (0.02, 0.97, -0.055, -0.018), GOLD), ("StoleR", (0.02, 0.97, 0.018, 0.055), GOLD)) if TIERS else
+                                  # the stole: two wine bands from the neck nearly to the hem, a gilt thread down each edge
+                                  (("StoleL", (0.02, 0.9, -0.085, -0.02), WINE), ("StoleR", (0.02, 0.9, 0.02, 0.085), WINE),
+                                   ("StoleEdgeL1", (0.02, 0.9, -0.09, -0.083), GOLD), ("StoleEdgeL2", (0.02, 0.9, -0.022, -0.015), GOLD),
+                                   ("StoleEdgeR1", (0.02, 0.9, 0.015, 0.022), GOLD), ("StoleEdgeR2", (0.02, 0.9, 0.083, 0.09), GOLD),
+                                   ("StoleEndL", (0.86, 0.9, -0.09, -0.015), GOLD), ("StoleEndR", (0.86, 0.9, 0.015, 0.09), GOLD))) + (("HemBand", (0.885, 0.92, 0.0, 1.0), GOLD),):
+    add(L.band(cass, nm, "cassock_trim", mat, v0, v1, u0, u1, n=64 if u1 - u0 > 0.5 else 3, m=36 if v1 - v0 > 0.5 else 2, off=0.012 if mat is WINE else 0.0135), hip_w)
 WEIGHTS["cassock_trim"] = hip_w
 
 # the cope (17 Nov): it was off ("get rid of the cloak if you can't animate it properly": skinned to the chest it hung as
@@ -377,10 +386,11 @@ WEIGHTS["cassock_trim"] = hip_w
 COPE = True
 if COPE:
     cope_w = lambda p: {"cape": 1.0}
-    cope = L.Garment([(1.64, 0, 0.04, 0.25, 0.12, 0.17, 2.2), (1.56, 0, 0.03, 0.3, 0.14, 0.18, 2.2), (1.44, 0, 0.0, 0.38, 0.18, 0.2, 2.0),
+    cope = L.Garment(([(1.64, 0, 0.04, 0.25, 0.12, 0.17, 2.2), (1.56, 0, 0.03, 0.3, 0.14, 0.18, 2.2)] if TIERS else
+                      [(1.52, 0, 0.03, 0.29, 0.15, 0.19, 2.2)]) + [(1.44, 0, 0.0, 0.36 if not TIERS else 0.38, 0.18, 0.21, 2.0),
                       (1.1, 0, 0.0, 0.44, 0.24, 0.27, 2.0), (0.7, 0, 0.02, 0.54, 0.21, 0.24, 2.0), (0.3, 0, 0.03, 0.6, 0.2, 0.23, 2.0),
                       (0.0, 0, 0.04, 0.68, 0.2, 0.23, 2.0), (-0.1, 0, 0.04, 0.72, 0.2, 0.23, 2.0)],
-                     top=1.64, hem=0.03, folds=[(9, 0.3, 1.0, 0.3, 0.15), (19, 0.0, 0.6, 1.1, -0.2), (4, 0.6, 0.5, 2.0, 0.0)], amp=0.2,
+                     top=1.64 if TIERS else 1.52, hem=0.03, folds=[(9, 0.3, 1.0, 0.3, 0.15), (19, 0.0, 0.6, 1.1, -0.2), (4, 0.6, 0.5, 2.0, 0.0)], amp=0.2,
                      ramp=(0.1, 0.5), gap=0.9, gap_from=0.0, lay=0.06, lay_r=0.09, hem_lift=0.06, flare=0.06, micro=0.0014, back_drop=0.1, tongues=(15, 0.09, 1.5), warp=0.8,
                      top_fn=lambda t: -0.06 + 0.1 * ((np.sin(t) + 1.0) * 0.5) ** 1.5)      # a collar now: the cowl is the hood
     lo, hi = L.shell(cope, "Cope", "cope", CLOTH, 3400, HI, solid=0.011)
@@ -418,18 +428,23 @@ if COPE:
         add(K.blob("Morse", q, (0.032, 0.014, 0.032), "cope_trim", GOLD, 10, 6), cope_w)
         add(K.blob("MorseGem", q + Vector((0, 0.02, 0)), (0.013, 0.007, 0.017), "cope_trim", EYE, 8, 5), cope_w)
     sag = [mp[0].lerp(mp[1], t) + Vector((0, 0.04 * math.sin(t * math.pi), -0.09 * math.sin(t * math.pi))) for t in [i / 10.0 for i in range(11)]]
-    add(TUBE("MorseChain", sag, 0.005, "cope_trim", GOLD), cope_w)
+    if TIERS:              # (with the cope's edges apart over the robe it hung across his belly like a washing line)
+        add(TUBE("MorseChain", sag, 0.005, "cope_trim", GOLD), cope_w)
     WEIGHTS["cope_trim"] = cope_w
 
 # --- the hooded Abbot (17 Nov): a deep cowl, a linen surplice over the breast, a dagged shoulder cape ---------------
 # the cowl: thick wool, a crown open round the mitre, a brim that hangs a hand's width over the face, so the face is
 # the dark inside it; it drapes onto the shoulders under the cape
 cowl_w = lambda p: (lambda h: {"head": h, "chest": 1.0 - h} if 0.0 < h < 1.0 else ({"head": 1.0} if h >= 1.0 else {"chest": 1.0}))(GK._smooth(1.5, 1.68, p.z))
-cowl = L.Garment([(1.93, 0, 0.0, 0.17, 0.16, 0.16, 2.2), (1.85, 0, -0.045, 0.215, 0.235, 0.19, 2.1), (1.74, 0, -0.055, 0.23, 0.25, 0.2, 2.1),
+COWL_KEYS = [(1.99, 0, 0.06, 0.025, 0.025, 0.025, 2.0), (1.95, 0, 0.03, 0.1, 0.1, 0.11, 2.0), (1.88, 0, -0.02, 0.175, 0.2, 0.165, 2.1),
+             (1.78, 0, -0.05, 0.215, 0.245, 0.19, 2.1), (1.66, 0, -0.04, 0.23, 0.24, 0.205, 2.1), (1.56, 0, -0.01, 0.27, 0.2, 0.22, 2.1),
+             (1.47, 0, 0.0, 0.36, 0.22, 0.25, 2.0), (1.4, 0, 0.01, 0.42, 0.25, 0.28, 2.0), (1.33, 0, 0.015, 0.45, 0.26, 0.29, 2.0)]
+cowl = L.Garment(COWL_KEYS if not TIERS else [(1.93, 0, 0.0, 0.17, 0.16, 0.16, 2.2), (1.85, 0, -0.045, 0.215, 0.235, 0.19, 2.1), (1.74, 0, -0.055, 0.23, 0.25, 0.2, 2.1),
                   (1.63, 0, -0.03, 0.235, 0.22, 0.21, 2.1), (1.54, 0, 0.0, 0.27, 0.18, 0.22, 2.1), (1.45, 0, 0.01, 0.32, 0.18, 0.23, 2.0),
                   (1.38, 0, 0.015, 0.34, 0.19, 0.24, 2.0)],
-                 top=1.93, hem=1.42, folds=[(6, 0.35, 1.0, 0.2, 0.05), (13, 0.15, 0.6, 1.0, 0.0), (3, 0.5, 0.3, 0.4, 0.0)], amp=0.034, ramp=(0.0, 0.5),
-                 gap=0.6, gap_from=0.06, lay=0.0, hem_lift=0.02, flare=0.05, micro=0.0014, seed=0.7)
+                 top=1.93 if TIERS else 1.99, hem=1.42 if TIERS else 1.33, folds=[(6, 0.35, 1.0, 0.2, 0.05), (13, 0.15, 0.6, 1.0, 0.0), (3, 0.5, 0.3, 0.4, 0.0)],
+                 amp=0.034, ramp=(0.0, 0.5), gap=0.6, gap_from=0.06 if TIERS else 0.16, lay=0.0, hem_lift=0.02, flare=0.05, micro=0.0014, seed=0.7,
+                 tongues=None if TIERS else (18, 0.045, 2.2))
 lo, hi = L.shell(cowl, "Cowl", "cowl", CLOTH, 2800, (200, 120) if not LOWRES else (100, 60), solid=0.016)
 PAIRS.append((lo, hi))
 add(lo, cowl_w)
@@ -455,13 +470,15 @@ surp = L.Garment([(1.5, 0, 0.0, 0.19, 0.14, 0.13, 2.2), (1.36, 0, 0.0, 0.21, 0.1
                   (0.45, 0, 0.012, 0.39, 0.23, 0.23, 2.0)],
                  top=1.5, hem=0.52, folds=[(14, 0.1, 1.0, 0.4, 0.05), (29, 0.0, 0.5, 1.2, -0.1)], amp=0.03, ramp=(0.2, 0.7),
                  lay=0.0, hem_lift=0.02, micro=0.0012, tongues=(24, 0.03, 2.0), seed=1.3)
-lo, hi = L.shell(surp, "Surplice", "surplice", LINEN, 1500, (220, 130) if not LOWRES else (110, 66), solid=0.006)
-PAIRS.append((lo, hi))
-add(lo, surp_w)
-add(L.band(surp, "SurpLace", "surplice", LINEN, 0.9, 0.97, 0.0, 1.0, n=96, m=2, off=0.01), surp_w)
+if TIERS:
+    lo, hi = L.shell(surp, "Surplice", "surplice", LINEN, 1500, (220, 130) if not LOWRES else (110, 66), solid=0.006)
+    PAIRS.append((lo, hi))
+    add(lo, surp_w)
+    add(L.band(surp, "SurpLace", "surplice", LINEN, 0.9, 0.97, 0.0, 1.0, n=96, m=2, off=0.01), surp_w)
 # a wine band embroidered above the lace, edged in a thread of gilt (the linen was a plain field below the cape)
-add(L.band(surp, "SurpBand", "surplice", WINE, 0.83, 0.87, 0.0, 1.0, n=96, m=2, off=0.009), surp_w)
-add(L.band(surp, "SurpThread", "surplice", GOLD, 0.875, 0.882, 0.0, 1.0, n=96, m=2, off=0.0095), surp_w)
+if TIERS:
+    add(L.band(surp, "SurpBand", "surplice", WINE, 0.83, 0.87, 0.0, 1.0, n=96, m=2, off=0.009), surp_w)
+    add(L.band(surp, "SurpThread", "surplice", GOLD, 0.875, 0.882, 0.0, 1.0, n=96, m=2, off=0.0095), surp_w)
 WEIGHTS["surplice"] = surp_w
 
 # the cape over the shoulders (a mozzetta): wine wool, cut in dags at the hem, a gilt band above them; it gives the
@@ -472,11 +489,12 @@ moz = L.Garment([(1.6, 0, 0.02, 0.22, 0.14, 0.15, 2.3), (1.53, 0, 0.01, 0.3, 0.1
                 top=1.6, hem=1.35, folds=[(8, 0.2, 1.0, 0.6, 0.1), (16, 0.0, 0.5, 1.3, 0.0)], amp=0.025, ramp=(0.1, 0.6),
                 lay=0.0, hem_lift=0.012, micro=0.0012, tongues=(16, 0.045, 2.4), seed=2.1,      # (to the upper arm: wider and longer was a lampshade)
                 top_fn=lambda t: -0.1 * np.clip(-np.sin(t), 0.0, 1.0) ** 3)     # the neckline drops in front, under the cowl's dark (its collar rose into the face)
-lo, hi = L.shell(moz, "Mozzetta", "mozzetta", WINE, 1300, (220, 80) if not LOWRES else (110, 40), solid=0.012)
-PAIRS.append((lo, hi))
-add(lo, moz_w)
-add(L.band(moz, "MozBand", "mozzetta", GOLD, 0.62, 0.7, 0.0, 1.0, n=120, m=2, off=0.014), moz_w)
-for uu in np.linspace(0.0, 1.0, 19)[:-1]:
+if TIERS:
+    lo, hi = L.shell(moz, "Mozzetta", "mozzetta", WINE, 1300, (220, 80) if not LOWRES else (110, 40), solid=0.012)
+    PAIRS.append((lo, hi))
+    add(lo, moz_w)
+    add(L.band(moz, "MozBand", "mozzetta", GOLD, 0.62, 0.7, 0.0, 1.0, n=120, m=2, off=0.014), moz_w)
+for uu in (np.linspace(0.0, 1.0, 19)[:-1] if TIERS else ()):
     pp, nn = moz.surf(np.array([uu]), np.array([0.66]))
     add(K.blob("MozStud", Vector(G(*(pp[0] + nn[0] * 0.02))), (0.009, 0.009, 0.009), "mozzetta", GOLD, 6, 4), moz_w)
 WEIGHTS["mozzetta"] = moz_w
@@ -486,7 +504,7 @@ CANDLES = [(-0.31, 0.0, 0.1), (-0.3, 0.07, 0.16), (-0.34, -0.05, 0.07), (0.31, 0
 for (cx_, cz_, ch) in CANDLES:
     sx = -1 if cx_ < 0 else 1
     pp, nn = moz.surf(np.array([0.25 if sx < 0 else 0.75]), np.array([0.12]))
-    top_y = 1.535 - max(0.0, abs(cx_) - 0.3) / 0.06 * 0.07          # down the cape's shoulder slope (1.53 at 0.3 out, 1.46 at 0.36)
+    top_y = (1.535 - max(0.0, abs(cx_) - 0.3) / 0.06 * 0.07) if TIERS else (1.56 - (abs(cx_) - 0.27) / 0.09 * 0.09 + 0.012)   # on the shoulder slope (the capelet: 0.27 out at 1.56, 0.36 at 1.47)
     b0 = Vector(G(cx_, top_y, cz_))
     add(K.blob("WaxPool", b0 + Vector(G(0, -0.004, 0)), (0.034, 0.012, 0.03), "chest", WAX, 12, 6), CH)
     add(K.loft("Candle", [b0, b0 + Vector(G(0, ch, 0))], [0.017, 0.015], "chest", WAX, 10), CH)
@@ -498,11 +516,13 @@ for (cx_, cz_, ch) in CANDLES:
 
 # the cincture: a rope round the waist over the surplice, knotted in front with the ends hanging, and on it what the
 # Abbot carries: a rosary of small skulls (left), tally bones on cords, a chained book of the count (right)
-CW = surp_w
+CW = surp_w if TIERS else hip_w
+BELT = surp if TIERS else cass               # the garment the cincture is tied round
+_bv = lambda v_surp: v_surp if TIERS else (1.53 - (1.5 - v_surp * (1.5 - 0.52))) / (1.53 - 0.025)   # the same height on the robe
 ring = []
 for k in range(41):
     a = math.tau * k / 40.0
-    pp, nn = surp.surf(np.array([(k / 40.0) % 1.0]), np.array([0.36]))
+    pp, nn = BELT.surf(np.array([(k / 40.0) % 1.0]), np.array([_bv(0.36)]))
     ring.append(Vector(G(*(pp[0] + nn[0] * 0.016))))
 add(TUBE("Cincture", ring, 0.011, "cincture", ROPE), CW)
 kn = ring[0]
@@ -512,7 +532,7 @@ for sx in (-1, 1):
     add(TUBE("CinctureEnd", end, 0.009, "cincture", ROPE), CW)
     add(K.loft("Tassel", [end[-1], end[-1] + Vector(G(0, -0.06, 0))], [0.012, 0.02], "cincture", ROPE, 8), CW)
 # the skull rosary on the left hip
-rp = surp.surf(np.array([0.62]), np.array([0.36]))[0][0]
+rp = BELT.surf(np.array([0.62]), np.array([_bv(0.36)]))[0][0]
 r0 = Vector(G(*rp))
 beads = [r0 + Vector(G(0.03 * math.sin(t * 3.1), -0.36 * t, -0.04 * math.sin(t * math.pi))) for t in [i / 13.0 for i in range(14)]]
 add(TUBE("RosaryCord", beads, 0.003, "cincture", ROPE), CW)
@@ -521,13 +541,13 @@ for k, b in enumerate(beads[1:]):
     add(K.blob("RosarySkull" if big else "RosaryBead", b, (0.018, 0.02, 0.017) if big else (0.009, 0.009, 0.009), "cincture", BONE, 10, 6), CW)
 # tally bones (the count of the dead, knotted on) at the right hip
 for k in range(5):
-    tp = surp.surf(np.array([0.36 + 0.025 * k]), np.array([0.37]))[0][0]
+    tp = BELT.surf(np.array([0.36 + 0.025 * k]), np.array([_bv(0.37)]))[0][0]
     t0 = Vector(G(*tp))
     t1 = t0 + Vector(G(0.0, -0.1 - 0.03 * (k % 3), -0.02))
     add(TUBE("TallyCord", [t0, t1], 0.0025, "cincture", ROPE), CW)
     add(K.bone("TallyBone", t1, t1 + Vector(G(0.006, -0.09, -0.004)), 0.007, "cincture", BONE, 1.6, 6, 6, k), CW)
 # the book of the count, chained at the right side
-bp = Vector(G(*surp.surf(np.array([0.3]), np.array([0.5]))[0][0])) + Vector(G(0.06, 0, -0.02))
+bp = Vector(G(*BELT.surf(np.array([0.3]), np.array([_bv(0.5)]))[0][0])) + Vector(G(0.06, 0, -0.02))
 book = K.blob("Book", bp, (0.07, 0.095, 0.03), "cincture", WINE, 6, 4)
 add(book, CW)
 for cx_ in (-1, 1):
@@ -539,15 +559,19 @@ WEIGHTS["cincture"] = CW
 
 for tag, sx in (("l", -1), ("r", 1)):
     # long bell sleeves to below the wrist: only the bound fingers come out of them (the hooded Abbot shows no bone)
-    sl = L.Garment([(1.47, sx * 0.23, 0, 0.082, 0.077, 0.077, 2.2), (1.3, sx * 0.24, 0, 0.085, 0.082, 0.082, 2.2), (1.1, sx * 0.245, 0, 0.1, 0.098, 0.098, 2.2),
-                    (0.95, sx * 0.258, 0.008, 0.15, 0.145, 0.145, 2.0), (0.82, sx * 0.268, 0.014, 0.2, 0.19, 0.19, 2.0), (0.74, sx * 0.272, 0.016, 0.22, 0.21, 0.21, 2.0)],
-                   top=1.47, hem=0.8, folds=[(8, 0.0, 1.0, 0.5, 0.1), (17, 0, 0.6, 1.5, 0)], amp=0.05, ramp=(0.2, 0.7), lay=0.0, hem_lift=0.03, seed=sx,
-                   micro=0.0013, back_drop=0.06, tongues=(9, 0.025, 2.0))
+    # fitted sleeves, a little flare at the wrist (17 Nov): the bells hung off a reaching forearm as a curtain and stood
+    # up over raised arms; skinned to the arm they stay on it through every clip
+    sl = L.Garment([(1.47, sx * 0.23, 0, 0.082, 0.077, 0.077, 2.2), (1.3, sx * 0.24, 0, 0.085, 0.082, 0.082, 2.2), (1.1, sx * 0.244, 0, 0.088, 0.086, 0.086, 2.2),
+                    (0.95, sx * 0.248, 0.004, 0.096, 0.094, 0.094, 2.1), (0.82, sx * 0.252, 0.006, 0.11, 0.108, 0.108, 2.0), (0.74, sx * 0.254, 0.007, 0.118, 0.115, 0.115, 2.0)],
+                   top=1.47, hem=0.8, folds=[(8, 0.0, 1.0, 0.5, 0.1), (17, 0, 0.6, 1.5, 0)], amp=0.03, ramp=(0.2, 0.7), lay=0.0, hem_lift=0.02, seed=sx,
+                   micro=0.0013, back_drop=0.03, tongues=(9, 0.015, 2.0))
     lo, hi = L.shell(sl, "Sleeve" + tag, "sleeve_" + tag, WINE, 1200, (140, 100) if not LOWRES else (80, 60))
     PAIRS.append((lo, hi))
     # the bell below the elbow on its own label ("slv_l"/"slv_r"): boss_humanoid_anim.py hangs it on spring chains from the
     # forearm, so with the arms raised the sleeves fall back down them (rigid, they stood up over his head like two vases)
     def _slv_w(p, _sw=L.sleeve_weights(tag), _nm="slv_" + tag):
+        if not SLEEVE_SPRINGS:
+            return _sw(p)
         h = GK._smooth(0.97, 1.07, p.z)
         w = {k: v * h for k, v in _sw(p).items()}
         if h < 1.0:
@@ -571,7 +595,7 @@ for tag, sx in (("l", -1), ("r", 1)):
 # tines, tallest over the face, falling away to the sides (the tall pale mitre on a dark hood read as a dunce's cap) -----
 def _cowl_ring(y, out, a0, a1, n):
     """Points round the cowl at height y, `out` off its surface, from angle a0 to a1 (0 = the face, + = the left)."""
-    keys = [(1.93, 0.0, 0.17, 0.16, 0.16), (1.85, -0.045, 0.215, 0.235, 0.19), (1.74, -0.055, 0.23, 0.25, 0.2)]
+    keys = [(k[0], k[2], k[3], k[4], k[5]) for k in COWL_KEYS[:5]] if not TIERS else [(1.93, 0.0, 0.17, 0.16, 0.16), (1.85, -0.045, 0.215, 0.235, 0.19), (1.74, -0.055, 0.23, 0.25, 0.2)]
     for (y0, cz0, ax0, f0, b0), (y1, cz1, ax1, f1, b1) in zip(keys, keys[1:]):
         if y1 <= y <= y0:
             t = (y0 - y) / (y0 - y1)

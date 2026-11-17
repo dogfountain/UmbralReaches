@@ -464,7 +464,9 @@ def walk(u):
 
 def raised(k=1.0, tr=0.0):
     """The tell: he draws up to his whole height, the crozier hauled high and back in both hands."""
-    p = {"hips_at": (0.0, 0.01 * k, 0.06 * k), "hips": (0.1 * k, 0, 0), "spine": (0.12 * k, 0, 0.01 * tr), "chest": (0.16 * k, 0, -0.01 * tr),
+    # (the trunk arches a little: from 0.38 rad back to 0.39 forward in the blow, the shoulders whipped through 0.77 rad
+    # in a sixth of a second and the cloak hung on them flared out like a sheet)
+    p = {"hips_at": (0.0, 0.01 * k, 0.04 * k), "hips": (0.04 * k, 0, 0), "spine": (0.05 * k, 0, 0.01 * tr), "chest": (0.08 * k, 0, -0.01 * tr),
          "neck": (-0.05 * k, 0, 0), "head": (-0.16 * k, 0, 0),
          "upper_r": (2.55 * k + 0.02 * tr, 0, 0.18), "fore_r": (0.55 * k, 0, 0), "hand_r": (-0.5 * k + 0.02 * tr, 0, -0.1),
          "upper_l": (2.3 * k, 0, 0.35 * k), "fore_l": (0.8 * k, 0, 0), "hand_l": (-0.3 * k, 0, 0),
@@ -486,23 +488,32 @@ def windup_hold(u):
     return raised(1.0 + 0.04 * breath(u), tr)
 
 
-DOWN = {"hips_at": (0.0, -0.2, -0.16), "hips": (-0.32, 0, 0), "spine": (-0.3, 0, 0), "chest": (-0.32, 0, 0), "neck": (0.2, 0, 0), "head": (0.22, 0, 0),
-        "upper_r": (1.05, 0, 0.1), "fore_r": (0.2, 0, 0), "hand_r": (0.1, 0, 0), "upper_l": (0.9, 0, 0.22), "fore_l": (0.55, 0, 0), "hand_l": (0.0, 0, 0),
-        "ik_r": (0.0, 0.0, -0.3), "ik_l": (0.0, 0.0, 0.1)}
+# the blow lands with a step: the right foot goes forward, the hips drop and come forward over it and the staff is
+# driven down in front of him; the trunk leans into it but the head stays up on the target (folded 55 degrees at the
+# hips, with the feet where they were, he snapped shut like a hinge)
+DOWN = {"hips_at": (0.0, -0.1, -0.2), "hips": (-0.06, 0.06, 0), "spine": (-0.1, 0.04, 0), "chest": (-0.13, 0.03, 0), "neck": (0.14, 0, 0), "head": (0.2, -0.05, 0),
+        "upper_r": (1.25, 0, 0.06), "fore_r": (0.3, 0, 0), "hand_r": (0.05, 0, 0), "upper_l": (1.1, 0, 0.28), "fore_l": (0.5, 0, 0), "hand_l": (0.0, 0, 0),
+        "ik_r": (0.0, 0.0, -0.42), "ik_l": (0.0, 0.0, 0.16)}
 
 
 def strike(u):
-    if u < 0.13:                                          # the blow
+    if u < 0.13:                                          # the blow: the arms and staff come down fast, the trunk follows
         k = (u / 0.13) ** 2
         p = mix(raised(1.0), DOWN, k)
-        p["ik_r"] = (0.0, 0.1 * math.sin(k * math.pi), lerp(0.1, -0.3, k))
+        kt = sm(0.0, 1.0, u / 0.2)                       # ... and keeps leaning in a little past the hit, not snapped there
+        for b in ("hips", "spine", "chest"):
+            p[b] = tuple(lerp(raised(1.0)[b][i], DOWN[b][i], kt) for i in range(3))
+        p["ik_r"] = (0.0, 0.12 * math.sin(k * math.pi), lerp(0.1, -0.42, k))
         return p
     if u < 0.42:                                          # it rings up the staff and through his bones
         k = (u - 0.13) / 0.29
         j = math.exp(-5.0 * k) * math.sin(TAU * 2.6 * k)
         p = dict(DOWN)
-        p["hips_at"] = (0.0, -0.2 - 0.04 * j, -0.16)
-        p["chest"] = (-0.32 + 0.06 * j, 0, 0)
+        kt = sm(0.0, 1.0, u / 0.2)
+        for b in ("hips", "spine"):
+            p[b] = tuple(lerp(raised(1.0)[b][i], DOWN[b][i], kt) for i in range(3))
+        p["hips_at"] = (0.0, -0.1 - 0.03 * j, -0.24)
+        p["chest"] = (-0.16 + 0.06 * j, 0.03, 0)
         p["head"] = (0.22 - 0.16 * j, 0, 0.05 * j)
         p["fore_r"] = (0.2 + 0.12 * j, 0, 0)
         return p
@@ -512,8 +523,8 @@ def strike(u):
     for b in ("neck", "head", "upper_r", "fore_r", "hand_r"):   # the staff is hauled upright last
         p[b] = tuple(lerp(DOWN.get(b, (0, 0, 0))[i], stance()[b][i], late) for i in range(3))
     s = sm(0.5, 0.75, u)
-    p["ik_r"] = (0.0, 0.07 * math.sin(s * math.pi), -0.3 * (1.0 - s))
-    p["ik_l"] = (0.0, 0.0, 0.1 * (1.0 - sm(0.7, 0.9, u)))
+    p["ik_r"] = (0.0, 0.07 * math.sin(s * math.pi), -0.42 * (1.0 - s))
+    p["ik_l"] = (0.0, 0.0, 0.16 * (1.0 - sm(0.7, 0.9, u)))
     return p
 
 
@@ -534,14 +545,18 @@ def stagger(u):
 
 
 def howl(u):
-    """A rite: the arms open wide and the skull goes back, the crozier lifted from the ground."""
-    up = sm(0.0, 0.28, u) * (1.0 - sm(0.78, 1.0, u))
-    q = math.sin(TAU * 7 * u) * sm(0.28, 0.38, u) * (1.0 - sm(0.68, 0.78, u))
-    p = {"hips_at": (0.0, 0.015 * up, 0.03 * up), "hips": (0.06 * up, 0, 0), "spine": (0.1 * up, 0, 0), "chest": (0.16 * up + 0.01 * q, 0, 0),
-         "neck": (0.2 * up, 0, 0), "head": (0.42 * up + 0.02 * q, 0, 0.02 * q),
-         "upper_r": (0.5 + 0.5 * up, 0, 0.12 + 1.0 * up), "fore_r": (0.5 - 0.2 * up, 0, 0), "hand_r": (-0.9 - 0.2 * up + 0.02 * q, 0, -0.8 * up),
-         "upper_l": (0.5 + 0.4 * up, 0, -0.1 - 1.05 * up), "fore_l": (1.1 - 0.8 * up, 0, 0), "hand_l": (0.2 - 0.5 * up + 0.03 * q, 0, 0.3)}
-    return mix(p, stance(), sm(0.9, 1.0, u))
+    """A rite: the skull thrown back, the crozier thrust up over his head in the right hand and the left reaching up
+    after it, the body arched under them (both arms flung out sideways, he stood like a scarecrow)."""
+    up = sm(0.0, 0.3, u) * (1.0 - sm(0.78, 1.0, u))
+    q = math.sin(TAU * 7 * u) * sm(0.3, 0.4, u) * (1.0 - sm(0.68, 0.78, u))
+    rite = {"hips_at": (0.0, 0.02, 0.05), "hips": (0.08, 0, 0), "spine": (0.12, 0, 0.02), "chest": (0.22, 0.05, 0.03), "neck": (0.16, 0, 0), "head": (0.4, 0.05, 0.05),
+            "upper_r": (2.75, 0, 0.22), "fore_r": (0.25, 0, 0), "hand_r": (-0.55, 0, -0.18),
+            "upper_l": (1.95, 0, -0.42), "fore_l": (0.55, 0, 0), "hand_l": (-0.35, 0, 0.15)}
+    p = mix(stance(), rite, up)
+    p["chest"] = (p["chest"][0] + 0.015 * q, p["chest"][1], p["chest"][2])
+    p["head"] = (p["head"][0] + 0.03 * q, p["head"][1], p["head"][2] + 0.02 * q)
+    p["hand_l"] = (p["hand_l"][0] + 0.06 * q, p["hand_l"][1], p["hand_l"][2])
+    return p
 
 
 def death(u):

@@ -137,13 +137,17 @@ func _build() -> void:
 ## Held near the root and loose at the end: stiffer through the length, a cloak swung back to the chest's angle and
 ## flipped over the hood when he bent into a blow, and stood up when he lay dead.
 const CLOTH_FAMILIES := [
-	# [family, stiffness, at the root, at the end, drag, gravity, at the root, at the end, joint radius]
-	["cape", 0.9, 1.0, 0.2, 0.5, 1.6, 0.35, 1.0, 0.035],        # heavy wool to the ground
-	["slv_l", 0.7, 1.0, 0.3, 0.45, 1.4, 0.6, 1.0, 0.025],       # the bells of the sleeves
-	["slv_r", 0.7, 1.0, 0.3, 0.45, 1.4, 0.6, 1.0, 0.025],
+	# [family, stiffness, at the root, at the end, drag, gravity, at the root, at the end, joint radius, colliders]
+	# Each family meets only what it can touch: the cloak's top joints sit on the shoulders, and with the arm capsules
+	# every swing of an arm shoved them out into a slab; a sleeve's chains start on the forearm they hang round.
+	["cape", 0.9, 1.0, 0.25, 0.78, 2.4, 0.35, 1.0, 0.035, ["hips", "spine", "chest", "ground"]],
+	["slv_l", 0.7, 1.0, 0.3, 0.65, 1.8, 0.6, 1.0, 0.025, ["chest", "spine", "upper_l", "ground"]],
+	["slv_r", 0.7, 1.0, 0.3, 0.65, 1.8, 0.6, 1.0, 0.025, ["chest", "spine", "upper_r", "ground"]],
 ]
 const CLOTH_COLLIDERS := [
-	["hips", 0.19, 0.0, 0.1], ["spine", 0.17, 0.18, 0.09], ["chest", 0.19, 0.24, 0.12],
+	# the trunk's capsules sit inside the cloth's chains (they stand at 0.9 of the cloth's reach, about 0.18 out): at
+	# 0.17-0.19 the chains started inside them and were shoved out, a slab of cloak held up through a lunge
+	["hips", 0.12, 0.0, 0.1], ["spine", 0.11, 0.18, 0.09], ["chest", 0.13, 0.24, 0.12],
 	["thigh_l", 0.13, 0.42, 0.21], ["thigh_r", 0.13, 0.42, 0.21], ["shin_l", 0.11, 0.42, 0.21], ["shin_r", 0.11, 0.42, 0.21],
 	["upper_l", 0.09, 0.32, 0.16], ["upper_r", 0.09, 0.32, 0.16], ["fore_l", 0.07, 0.3, 0.15], ["fore_r", 0.07, 0.3, 0.15],
 ]   # [bone, radius, length (0: a sphere), offset along the bone]
@@ -182,7 +186,11 @@ func _spring_cloth() -> void:
 		sb.set_drag(k, fam[4])
 		sb.set_gravity(k, fam[5])
 		sb.set_gravity_damping_curve(k, _ramp(fam[6], fam[7]))
-		sb.set_enable_all_child_collisions(k, true)
+		if _skeleton.find_bone("hips") >= 0:
+			# simulated about the hips, not the world: in world space a lunge left the hem behind and the chain flung
+			# it up to hip height (the hem rose 0.6 in a strike); the body's turns, bends and gravity still swing it
+			sb.set_center_from(k, SpringBoneSimulator3D.CENTER_FROM_BONE)
+			sb.set_center_bone_name(k, "hips")
 	for c: Array in CLOTH_COLLIDERS:
 		if _skeleton.find_bone(c[0]) < 0:
 			continue
@@ -196,11 +204,25 @@ func _spring_cloth() -> void:
 			var sp := SpringBoneCollisionSphere3D.new()
 			sp.set_radius(c[1])
 			col = sp
+		col.name = c[0]
 		sb.add_child(col)
 		col.set_bone_name(c[0])
 		col.set_position_offset(Vector3(0.0, c[3], 0.0))
 	var ground := SpringBoneCollisionPlane3D.new()
+	ground.name = "ground"
 	sb.add_child(ground)
+	ground.position.y = -0.04          # under the hem's joints (on the floor, with their radius they sat inside it, and
+	                                   # a dropped stance shoved the cloak's whole lower panel up and out like a slab)
+	for k in chains.size():
+		var want: Array = (chains[k][2] as Array)[9]
+		var paths: Array[NodePath] = []
+		for nm: String in want:
+			if sb.has_node(nm):
+				paths.append(sb.get_path_to(sb.get_node(nm)))
+		sb.set_enable_all_child_collisions(k, false)
+		sb.set_collision_count(k, paths.size())
+		for i in paths.size():
+			sb.set_collision_path(k, i, paths[i])
 	_springs = sb
 
 
