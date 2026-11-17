@@ -267,3 +267,12 @@ call**, no extra node; non-solid, so no collision cost and no path blocked. Whol
 which is why this is the capped form of the debris rather than the uncapped one the landmarks had. At 50 m the band and stones are sub-pixel and merge into
 the wall tone.
 **Check.** Debris never in a doorway (it is thrown beside the wall, outside its footprint, and is not solid); the band reads as carving, not as a floating plank.
+
+## Prop variants wired in (`site_props_more.gd`, `site_props.gd window`, `site_dress.gd _emit`)
+**What.** The six unwired builders are in: crate (stack, rope-bound with a slid lid, tipped with a splinter), barrel (pair, lying, lidded), bench (potted, stool),
+cart (loaded, tipped), firewood (chopping block, split-wood rack); sacks keep their pile. Pools per kind: crate 5, barrel 4, bench 3, cart 3, sack 3, firewood 3
+(they were 3, 2, 2, 2, 3, 2).
+**No draw rise.** Each zone draws a *window* of the pool the size the kind had before (modelled variants + 1: `SiteProps.window`), at an offset from a hash of
+the zone's id, so neighbouring yards show different mixes and no kind draws more MultiMeshes in a zone than it did. (Extras have 1-3 material parts like the
+modelled ones; a window of extras can differ by a part or two.) Triangles: a variant is 20-150 boxes' worth, built once and shared; instances unchanged.
+**Check.** Two yards side by side (Hearthward's yard and the Smith's) show different crates and carts; counts of draws per zone in the regions tour unchanged.

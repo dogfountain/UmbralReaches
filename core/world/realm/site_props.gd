@@ -85,6 +85,12 @@ static func get_prop(key: String) -> Dictionary:
 	return d
 
 
+## How many variants of `kind` one zone draws (the modelled ones plus one): the pool is bigger than that, and each zone takes a
+## window of it (site_dress.gd), so the draw calls per zone stay what they were while the yards differ from each other. 0 = all.
+static func window(kind: String) -> int:
+	return (GLB[kind] as Array).size() + 1 if GLB.has(kind) and kind in More.KINDS else 0
+
+
 ## Which variant of a glb prop the i-th instance of `kind` is (a broken crate now and then, a slumped sack in two).
 static func variant(kind: String, i: int, n: int) -> int:
 	if n < 2:

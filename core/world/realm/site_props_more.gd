@@ -16,17 +16,17 @@ static func extra(key: String) -> Array:
 	var out: Array = []
 	match key:
 		"crate":
-			out = [_parts(_crate_stack())]
+			out = [_parts(_crate_stack()), _parts(_crate_ropes()), _parts(_crate_tipped())]
 		"barrel":
-			out = [_parts(_barrel_pair())]
+			out = [_parts(_barrel_pair()), _parts(_barrel_lying()), _parts(_barrel_lid())]
 		"bench":
-			out = [_parts(_bench_pot())]
+			out = [_parts(_bench_pot()), _parts(_stool())]
 		"cart":
-			out = [_parts(_cart_loaded())]
+			out = [_parts(_cart_loaded()), _parts(_cart_tipped())]
 		"sack":
 			out = [_parts(_sack_pile())]
 		"firewood":
-			out = [_parts(_chopping_block())]
+			out = [_parts(_chopping_block()), _parts(_firewood_rack())]
 	_cache[key] = out
 	return out
 
