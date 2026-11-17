@@ -260,6 +260,12 @@ func _sample(vs: Dictionary) -> void:
 		var p := v.global_position
 		var fy: float = nav.call("floor_at", p.x, p.z)
 		if absf(fy - p.y) > 0.3:
+			# a body over a step's edge (Reedholm's landing): the floor under her feet, not just her centre
+			for k in 4:
+				var f2: float = nav.call("floor_at", p.x + cos(k * PI * 0.5) * 0.3, p.z + sin(k * PI * 0.5) * 0.3)
+				if absf(f2 - p.y) < absf(fy - p.y):
+					fy = f2
+		if absf(fy - p.y) > 0.3:
 			bad_ground += 1
 			if bad_ground < 6:
 				print("    off floor: %s at %s (floor %.2f)" % [vid2, p, fy])
