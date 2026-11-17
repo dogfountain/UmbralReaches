@@ -19,20 +19,17 @@ const FRW := preload("res://core/story/quest_chains_far_reaches_west.gd")   ## t
 const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
 const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 
-const RegionsQ := preload("res://core/story/quest_chains_regions.gd")   ## the regions' long tasks
-const FavoursQ := preload("res://core/story/quest_chains_favours.gd")   ## the favours' choices
-const DoorsQ := preload("res://core/story/quest_chains_doors.gd")   ## the four closed doors
-const StoryQ := preload("res://core/story/quest_chains_story.gd")   ## the story's long tasks: the five choices made at their places
+const EndingQ := preload("res://core/story/quest_chains_ending.gd")   ## the long walk, its five scenes and the credits
 
 const DeepB := preload("res://core/story/quest_chains_deepen_b.gd")   ## the countries' and the Marches' choices, made at a place (their pickups open these)
 
 const KEEP_PORTRAIT := {"seated": false, "seed": 5150, "apron": true, "hat": "bare", "rag": true}
 
-const CONV := {
+const _CONV := {
 	"keep": {
 		"name": "The Keep",
 		"portrait": KEEP_PORTRAIT,
-		"start": [["boss:ascended_warden,!flag:ending_told", "end_1"], ["qd:names_under,!flag:epilogue_told", "epi_1"], ["flag:deeper,!flag:deeper_met", "ng_1"], ["!flag:met_keep", "meet_1"], ["qat:keg_thief:4", "thief_report"], ["", "hub"]],
+		"start": [["boss:ascended_warden,!flag:ending_told", "end_1"], ["qd:long_walk,!flag:credits_told", "credits_v"], ["qd:names_under,!flag:epilogue_told", "epi_1"], ["flag:deeper,!flag:deeper_met", "ng_1"], ["!flag:met_keep", "meet_1"], ["qat:keg_thief:4", "thief_report"], ["", "hub"]],
 		"nodes": {
 			# --- first meeting (the night's only errand until this is done) ------------------
 			"meet_1": {"say": "Shut the door. No, leave it. The fire's done arguing with the dark tonight.", "next": "meet_2"},
@@ -78,6 +75,16 @@ const CONV := {
 				{"text": "Who are you, keep?", "to": "who_1", "once": true},
 				{"text": "Goodbye.", "to": "bye"},
 			]},
+			"credits_v": {"say_if": EndingQ.CREDITS.verdict, "who": "", "next": "credits_1"},
+			"credits_1": {"say": EndingQ.CREDITS.lines[0], "who": "", "next": "credits_2"},
+			"credits_2": {"say": EndingQ.CREDITS.lines[1], "who": "", "next": "credits_3"},
+			"credits_3": {"say": EndingQ.CREDITS.lines[2], "who": "", "next": "credits_4"},
+			"credits_4": {"say": EndingQ.CREDITS.lines[3], "who": "", "next": "credits_5"},
+			"credits_5": {"say": EndingQ.CREDITS.lines[4], "who": "", "next": "credits_6"},
+			"credits_6": {"say": EndingQ.CREDITS.lines[5], "who": "", "next": "credits_7"},
+			"credits_7": {"say": EndingQ.CREDITS.lines[6], "who": "", "next": "credits_8"},
+			"credits_8": {"say": EndingQ.CREDITS.lines[7], "who": "", "next": "credits_9"},
+			"credits_9": {"say": EndingQ.CREDITS.lines[8], "who": "", "do": "flag:credits_told", "next": ""},
 			"others_1": {"say": "Two more, if you count them, out where the towns are. A cantor's note in the skull of a fallen god, and a hermit who walled herself in to pray the sky still. Not the valley's to keep. The sky's leftovers. I'd not go looking for either. But there are people out there who'd ask you to.", "next": "others_2"},
 			"others_2": {"say": "Cantor Lowe, at the Siege Lines, and Tamsin Hale, who walks bread up the cliff road. They'd tell you what they are. I never learned. I stay with the fire.", "next": "hub"},
 			"voice_1": {"say": "You've heard him. Don't tell me; I can see it in how you hold the lantern. He talks to the ones who climb. He's civil. That is the worst of it. Whatever's up there at the top has manners.", "next": "hub"},
@@ -656,13 +663,20 @@ const CONV := {
 	"r38_tally": R38E.CONVS["r38_tally"],
 	"wr_order": FRW.CONVS["wr_order"], "wr_herons": FRW.CONVS["wr_herons"], "ds_nail_door": FRS.CONVS["ds_nail_door"], "er_slate": FRE.CONVS["er_slate"],
 	# --- the story's long tasks ---
-	"story_edict": StoryQ.CONVS["story_edict"], "story_lamp": StoryQ.CONVS["story_lamp"], "story_roll": StoryQ.CONVS["story_roll"], "story_horn": StoryQ.CONVS["story_horn"], "story_wall": StoryQ.CONVS["story_wall"],
-	"story_lanternwood_debt": RegionsQ.CONVS["story_lanternwood_debt"], "story_cairn_count": RegionsQ.CONVS["story_cairn_count"], "story_oak_memory": RegionsQ.CONVS["story_oak_memory"], "story_brine_road": RegionsQ.CONVS["story_brine_road"], "story_arches_keeper": RegionsQ.CONVS["story_arches_keeper"],
-	"story_col_boots": FavoursQ.CONVS["story_col_boots"], "story_wenna_candle": FavoursQ.CONVS["story_wenna_candle"], "story_pell_stitches": FavoursQ.CONVS["story_pell_stitches"], "story_grisel_weights": FavoursQ.CONVS["story_grisel_weights"],
-	"story_door_kings": DoorsQ.CONVS["story_door_kings"], "story_door_castellum": DoorsQ.CONVS["story_door_castellum"], "story_door_witch": DoorsQ.CONVS["story_door_witch"], "story_door_nave": DoorsQ.CONVS["story_door_nave"],
 	# --- deepen B ---
 	"qb_holds_turf": DeepB.CONVS["qb_holds_turf"], "qb_keeper_wards": DeepB.CONVS["qb_keeper_wards"], "qb_oak_song": DeepB.CONVS["qb_oak_song"], "qb_quarry_last": DeepB.CONVS["qb_quarry_last"], "qb_moor_shrine": DeepB.CONVS["qb_moor_shrine"], "qb_orchard_press": DeepB.CONVS["qb_orchard_press"], "qb_field_ranks": DeepB.CONVS["qb_field_ranks"], "qb_mere_light": DeepB.CONVS["qb_mere_light"], "qb_mere_ferryman": DeepB.CONVS["qb_mere_ferryman"], "qb_well_answer": DeepB.CONVS["qb_well_answer"], "qb_salt_widow": DeepB.CONVS["qb_salt_widow"], "qb_spire_coal": DeepB.CONVS["qb_spire_coal"], "qb_seventh_day": DeepB.CONVS["qb_seventh_day"], "qb_shepherd_strays": DeepB.CONVS["qb_shepherd_strays"], "qb_wf_lights": DeepB.CONVS["qb_wf_lights"], "qb_wf_crown": DeepB.CONVS["qb_wf_crown"], "qb_long_round": DeepB.CONVS["qb_long_round"],
 }
+
+## The story seat's conversations (the places' choices, quest_chains_added.gd) merge in once, at first use.
+const Added := preload("res://core/story/quest_chains_added.gd")
+static var CONV: Dictionary = _merge(_CONV, Added.convs())
+
+
+static func _merge(a: Dictionary, b: Dictionary) -> Dictionary:
+	var d := a.duplicate()
+	d.merge(b)
+	return d
+
 
 ## Narration beats (non-blocking subtitles).
 const OPENING := [

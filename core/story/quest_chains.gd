@@ -66,15 +66,11 @@ const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
 const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 const VQ := preload("res://core/story/quest_chains_verbs.gd")   ## Hearthward's five tasks deepened with the task verbs (docs/QUEST_VERBS.md)
 const VerbKit := preload("res://core/story/verb_kit.gd")
-const StoryQ := preload("res://core/story/quest_chains_story.gd")   ## the five long tasks: The Third Edict, The Lamp-Road, The Name on the Roll, What the Horn Was For, The Vow's Cell
-const RegionsQ := preload("res://core/story/quest_chains_regions.gd")   ## the regions' long tasks: Lanternwood, Thousand Cairns, Southwood, White Pans, Long Arches
-const FavoursQ := preload("res://core/story/quest_chains_favours.gd")   ## favours for Col, Wenna, Nan (Pell) and Grisel
-const DoorsQ := preload("res://core/story/quest_chains_doors.gd")   ## the four doors the Far Reaches' threads stopped at, closed as stories
 const DC := preload("res://core/story/quest_chains_deepen_c.gd")   ## the Far Reaches' signature tasks (Relief, A Night of Charcoal, The Rope Rung Right)
 const DeepB := preload("res://core/story/quest_chains_deepen_b.gd")   ## the deepened tasks (docs/QUEST_DEPTH.md)
 const DA := preload("res://core/story/quest_chains_deepen_a.gd")   ## writer A: the deepened Hearthward / Thornwood / fen tasks and the two new ones (three_knocks, forty_days)
 
-const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
+const _ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
 	"hearth_ash", "road_clear", "coal_shrine", "spire_lamps", "alms_loaf",
 	"thorn_door", "smoke_oaks", "ring_heart", "unpaid_toll",
 	"bead_count", "drowned_bell", "count_below", "crossing_ward", "threshold_chapel",
@@ -103,17 +99,27 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"wr_stand_down", "wr_kings_lamp", "wr_cold_light", "wr_fourth_stone", "wr_tansys_boat", "ds_water_road", "ds_unmade", "ds_witchs_price", "ds_clapper",
 	"er_ringers_candle", "er_nave_fire", "er_halter_bell", "er_inn_slate",          # --- the reaches ---
 	"wr_relief", "ds_charcoal", "er_rope",          # --- deepen C ---
-	"aurel_edicts", "lamp_road", "name_on_roll", "horn_end", "vow_cell",          # --- the story's long tasks ---
-	"wr_door_kings", "ds_door_castellum", "ds_door_witch", "er_door_nave",
-	"col_boots", "wenna_candle", "pell_stitches", "grisel_weights",          # --- the favours ---
-	"lanternwood_debt", "cairn_count", "oak_memory", "brine_road", "arches_keeper",          # --- the regions' long tasks ---
 	# --- deepen B ---
 	"seventh_day",
 	# --- deepen A ---
 	"three_knocks", "forty_days"]
 
+## The story seat's tasks, pickups and givers (quest_chains_added.gd) are merged in once, at first use: the const tables above are the older ones.
+const Added := preload("res://core/story/quest_chains_added.gd")
+static var ORDER: Array = _ORDER + Added.order()
+static var QUESTS: Dictionary = _merge(_QUESTS, Added.quests())
+static var PICKUPS: Dictionary = _merge(_PICKUPS, Added.pickups())
+static var GIVER_NAMES: Dictionary = _merge(_GIVER_NAMES, Added.givers())
+
+
+static func _merge(a: Dictionary, b: Dictionary) -> Dictionary:
+	var d := a.duplicate()
+	d.merge(b)
+	return d
+
+
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
-const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
+const _GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
 	"wyck": "Wyck", "grisel": "Grisel", "keep": "The keep", "harrow": "Ostrin Harrow", "hesk": "Hesk", "brannoc": "Brannoc",
 	"ruan": "Gammer Ruan", "jory": "Jory Quell", "ysolt": "Ysolt the cairn-keeper", "elspeth": "Elspeth Fane",
 	"linnet": "Linnet the grafter", "agathe": "Sister Agathe", "cadoc": "Cadoc the ferryman",
@@ -123,8 +129,7 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 	"marl": "Marl Pannick", "teasel": "Teasel Dray", "orrin": "Orrin Vail", "ardel": "Ardel Wick", "pip": "Pip", "nella": "Nella Crake",
 	"corle": "Aud Corle", "penn": "Reeve Penn", "coyle": "Serjeant Coyle", "isolde": "Old Isolde",      # --- the towns ---
 	"siany": Towns.GIVER_NAMES["siany"], "ebba": Towns.GIVER_NAMES["ebba"], "hobb": Towns.GIVER_NAMES["hobb"], "dilly": Towns.GIVER_NAMES["dilly"], "hesper": Towns.GIVER_NAMES["hesper"],
-	"cobb": Towns.GIVER_NAMES["cobb"], "maudlin": Towns.GIVER_NAMES["maudlin"], "wat": Towns.GIVER_NAMES["wat"], "vell": Towns.GIVER_NAMES["vell"], "fenn": Towns.GIVER_NAMES["fenn"],      # --- the reaches ---
-	"col": "Col Wright", "wenna": "Wenna Ashby", "perrin": StoryQ.GIVER_NAMES["perrin"], "odile": StoryQ.GIVER_NAMES["odile"], "ione": StoryQ.GIVER_NAMES["ione"], "lowe": StoryQ.GIVER_NAMES["lowe"], "tamsin": StoryQ.GIVER_NAMES["tamsin"]}      # --- the story's five ---
+	"cobb": Towns.GIVER_NAMES["cobb"], "maudlin": Towns.GIVER_NAMES["maudlin"], "wat": Towns.GIVER_NAMES["wat"], "vell": Towns.GIVER_NAMES["vell"], "fenn": Towns.GIVER_NAMES["fenn"]}      # --- the reaches ---
 
 ## r34: the raids' attunements (WoW's attunement chains, adapted): the last task of each pre-raid
 ## chain, once handed in, loosens the boss's hold (QuestBook.attuned(boss); Travel.story flag
@@ -139,7 +144,7 @@ const RARE_IDS := ["old_rook", "brother_chisel", "hennet", "clapper", "old_pippi
 
 const ATTUNE := {"thornwarden": "keeper_leave", "bone_abbot": "abbot_names", "ascended_warden": "founder_peal"}
 
-const QUESTS := {
+const _QUESTS := {
 	"edda_tongs": {"name": "Edda's Tongs", "giver": "hild", "where": "Hild, at Edda's forge", "zone": "hearth",
 		"text": "Edda's tongs lie on her stone in the Kindlers' Yard. Hild wants them back on the anvil, and cannot make herself fetch them.",
 		"steps": [
@@ -638,13 +643,6 @@ const QUESTS := {
 	"er_inn_slate": FRE.QUESTS["er_inn_slate"],
 	# --- deepen C ---
 	"wr_relief": DC.WR_RELIEF, "ds_charcoal": DC.DS_CHARCOAL, "er_rope": DC.ER_ROPE,
-	# --- the story's long tasks ---
-	"aurel_edicts": StoryQ.QUESTS["aurel_edicts"], "lamp_road": StoryQ.QUESTS["lamp_road"], "name_on_roll": StoryQ.QUESTS["name_on_roll"],
-	"horn_end": StoryQ.QUESTS["horn_end"], "vow_cell": StoryQ.QUESTS["vow_cell"],
-	"col_boots": FavoursQ.QUESTS["col_boots"], "wenna_candle": FavoursQ.QUESTS["wenna_candle"], "pell_stitches": FavoursQ.QUESTS["pell_stitches"], "grisel_weights": FavoursQ.QUESTS["grisel_weights"],
-	"lanternwood_debt": RegionsQ.QUESTS["lanternwood_debt"], "cairn_count": RegionsQ.QUESTS["cairn_count"], "oak_memory": RegionsQ.QUESTS["oak_memory"],
-	"brine_road": RegionsQ.QUESTS["brine_road"], "arches_keeper": RegionsQ.QUESTS["arches_keeper"],
-	"wr_door_kings": DoorsQ.QUESTS["wr_door_kings"], "ds_door_castellum": DoorsQ.QUESTS["ds_door_castellum"], "ds_door_witch": DoorsQ.QUESTS["ds_door_witch"], "er_door_nave": DoorsQ.QUESTS["er_door_nave"],
 	# --- deepen B ---
 	"seventh_day": DeepB.SEVENTH_DAY,
 	# --- deepen A ---
@@ -659,7 +657,7 @@ const BELL_SHUT_OUT := "bell_spire"
 ## r36: the bells' keepers (rares.gd RARES keys; a bell quest's slay step wants its own).
 const BELL_KEEPERS := ["lamp_shutter", "kin_caller", "bell_hewer", "fog_shepherd", "slag_born", "ash_sower", "passing_ringer", "fare_caller"]
 
-const PICKUPS := {
+const _PICKUPS := {
 	"tongs": {"quest": "edda_tongs", "step": 0, "near": Vector2(-84.35, 44.15), "kind": "tongs", "name": "Edda's tongs", "verb": "Take",
 		"say": "Smith's tongs, the jaws burned black. Somebody has wrapped the handles in new cloth."},
 	"tongs_back": {"quest": "edda_tongs", "step": 2, "near": Vector2(-84.35, 44.15), "kind": "place", "name": "Edda's stone", "verb": "Lay the tongs on",
@@ -782,13 +780,6 @@ const PICKUPS := {
 	"fm_roll": Towns.PICKUPS["fm_roll"], "ll_bar": Towns.PICKUPS["ll_bar"], "ll_nave_flame": Towns.PICKUPS["ll_nave_flame"], "ll_wick": Towns.PICKUPS["ll_wick"],
 	"wr_relief_post": DC.PICKUPS["wr_relief_post"], "ds_clamp_coals": DC.PICKUPS["ds_clamp_coals"], "er_rope": DC.PICKUPS["er_rope"],
 	# --- the story's long tasks ---
-	"ae_book": StoryQ.PICKUPS["ae_book"], "ae_stele": StoryQ.PICKUPS["ae_stele"], "lr_oil_1": StoryQ.PICKUPS["lr_oil_1"], "lr_oil_2": StoryQ.PICKUPS["lr_oil_2"],
-	"lr_oil_3": StoryQ.PICKUPS["lr_oil_3"], "lr_coal": StoryQ.PICKUPS["lr_coal"], "lr_coal2": StoryQ.PICKUPS["lr_coal2"], "lr_coal3": StoryQ.PICKUPS["lr_coal3"],
-	"lr_last": StoryQ.PICKUPS["lr_last"], "nr_page": StoryQ.PICKUPS["nr_page"], "nr_roll": StoryQ.PICKUPS["nr_roll"], "he_horn": StoryQ.PICKUPS["he_horn"],
-	"vc_bread": StoryQ.PICKUPS["vc_bread"], "vc_wall": StoryQ.PICKUPS["vc_wall"],
-	"lanternwood_debt_coal": RegionsQ.PICKUPS["lanternwood_debt_coal"], "lanternwood_debt_place": RegionsQ.PICKUPS["lanternwood_debt_place"], "cairn_count_coal": RegionsQ.PICKUPS["cairn_count_coal"], "cairn_count_place": RegionsQ.PICKUPS["cairn_count_place"], "oak_memory_coal": RegionsQ.PICKUPS["oak_memory_coal"], "oak_memory_place": RegionsQ.PICKUPS["oak_memory_place"], "brine_road_coal": RegionsQ.PICKUPS["brine_road_coal"], "brine_road_place": RegionsQ.PICKUPS["brine_road_place"], "arches_keeper_coal": RegionsQ.PICKUPS["arches_keeper_coal"], "arches_keeper_place": RegionsQ.PICKUPS["arches_keeper_place"],
-	"col_boots": FavoursQ.PICKUPS["col_boots"], "col_boots_coal": FavoursQ.PICKUPS["col_boots_coal"], "col_boots_place": FavoursQ.PICKUPS["col_boots_place"], "wenna_candle_coal": FavoursQ.PICKUPS["wenna_candle_coal"], "wenna_candle_place": FavoursQ.PICKUPS["wenna_candle_place"], "pell_stitches_place": FavoursQ.PICKUPS["pell_stitches_place"], "grisel_weight_1": FavoursQ.PICKUPS["grisel_weight_1"], "grisel_weight_2": FavoursQ.PICKUPS["grisel_weight_2"], "grisel_weight_3": FavoursQ.PICKUPS["grisel_weight_3"], "grisel_weights_place": FavoursQ.PICKUPS["grisel_weights_place"],
-	"wd_kings": DoorsQ.PICKUPS["wd_kings"], "dc_sluice": DoorsQ.PICKUPS["dc_sluice"], "dw_door": DoorsQ.PICKUPS["dw_door"], "en_step": DoorsQ.PICKUPS["en_step"],
 	# --- deepen B ---
 	"turf_roof": DeepB.PICKUPS["turf_roof"], "wards_set": DeepB.PICKUPS["wards_set"], "ward_holds": DeepB.PICKUPS["ward_holds"],
 	"ward_wood": DeepB.PICKUPS["ward_wood"], "ward_glade": DeepB.PICKUPS["ward_glade"], "last_step": DeepB.PICKUPS["last_step"],
