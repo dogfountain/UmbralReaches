@@ -9,6 +9,7 @@ extends RefCounted
 
 const REQUERY := 0.5
 const STALL_T := 0.45
+const BALK_T := 6.0                ## stalled this long on the way (a door the mesh thinks is open): the chase is given up
 const CORNER_R := 0.8            ## a corner this close (planar) is reached
 const BEND := 1.5                ## a path bending less than this off the straight line is not worth following
 const CLEAR_THINKS := 3          ## consecutive clear thinks before it drops back to the straight line
@@ -47,6 +48,10 @@ var _clear := 0
 var _prog_pos := Vector3.INF
 var _prog_t := 0.0
 var stalled := false
+var _balk := 0.0                 ## seconds into the current headway window, while chasing
+var _balk_pos := Vector3.INF     ## where the window began
+var _balked := false
+var _balk_walled := false
 
 
 static func ready() -> bool:
@@ -103,6 +108,24 @@ func reset() -> void:
 	_prog_pos = Vector3.INF
 	_prog_t = 0.0
 	stalled = false
+	# (the headway window runs on through a reset: the stuck nudge's hop and a re-path reset this every second at
+	# a shut gate, and the window never filled)
+
+
+## True once the agent has made no headway for BALK_T seconds (it jitters at a shut gate the baked mesh routes
+## through: the Fen's postern): the caller lets the chase go and walks home, as a leash would.
+func balked() -> bool:
+	return _balked
+
+
+## The give-up, once: true if it was balked (and the window starts again), for the caller's calm-down.
+func spend_balk() -> bool:
+	var was := _balked
+	_balked = false
+	_balk = 0.0
+	_balk_pos = Vector3.INF
+	_balk_walled = false
+	return was
 
 
 ## Planar progress watch: call once per think while the agent is trying to move (`moving`), `dt` since the
@@ -129,6 +152,17 @@ func watch(pos: Vector3, dt: float, expect: float, moving: bool) -> void:
 ## caller's ray result for the straight line. Call at think rate (dt = 1 / think_hz).
 func next_point(pos: Vector3, goal: Vector3, blocked: bool, dt: float) -> Vector3:
 	_since += dt
+	# headway over BALK_T, counted only if the goal was walled off some time in it (a ranged foe holding its
+	# distance in the open is not balked; a foe jittering at a shut gate sees the line clear now and then)
+	if _balk_pos == Vector3.INF:
+		_balk_pos = pos
+	_balk += dt
+	_balk_walled = _balk_walled or blocked
+	if _balk >= BALK_T:
+		_balked = _balk_walled and Vector2(pos.x - _balk_pos.x, pos.z - _balk_pos.z).length() < 2.5
+		_balk_pos = pos
+		_balk = 0.0
+		_balk_walled = false
 	if not ready():
 		if not pts.is_empty():
 			reset()

@@ -1174,10 +1174,10 @@ func _think() -> void:
 				_waiting = true
 				_circle(dist)
 			elif dist > chase_range * (4.0 if _hunt_t > 0.0 else (2.0 if _ward_engaged() or _rally_t > 0.0 else 1.2)) \
-					or from_home > hunt_leash * (3.0 if _hunt_t > 0.0 else (1.5 if _rally_t > 0.0 else 1.0)) or _lit_t > 2.5:
+					or from_home > hunt_leash * (3.0 if _hunt_t > 0.0 else (1.5 if _rally_t > 0.0 else 1.0)) or _lit_t > 2.5 or (_nav != null and _nav.balked()):
 				# out of range, leashed, or the player is sheltering in light: walk home and stay calm
 				# a while, instead of re-aggroing next tick and milling at the light's edge
-				_calm_t = 3.5 if _lit_t > 2.5 else 0.8
+				_calm_t = 3.5 if _lit_t > 2.5 else (5.0 if _nav != null and _nav.spend_balk() else 0.8)
 				_set_state(IDLE)
 				_hold_post(from_home)
 			elif not boss and not _on_threat and _try_special(dist):
