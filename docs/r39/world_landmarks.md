@@ -288,3 +288,8 @@ roof/beam/leaf meshes: no new draw call, about 10 boxes a cottage at build time 
 larger (up to 4 cm, was 3); per-block tone jitter widened from +-5 % to 0.90-1.03. Same triangles, same draws, bake only. Check at 5 m: block edges read, no checker grid.
 **Crowns** (`tree_gen.gd crown_cards`): large lit clumps and shaded hollows (+-14 % value at a 3 m scale) over the existing core/top gradient; bake only, no cost.
 Check at 50 m: a crown is no longer one flat value.
+
+## Bark specular (critique section 5)
+The four tree bark materials (`art/materials/realm_foliage_bark_*.tres`) take roughness 0.86 -> 0.92, specular 0.5 -> 0.22 and a lower texture normal strength (oak 2.2 -> 1.6, pine
+2.4 -> 1.8, dead 2.6 -> 1.9; birch unchanged): the furrows now live in the geometry and its vertex normals, so the texture's noisy speckle can step back. No new fetches or passes: material
+constants only. Check: a moonlit trunk at 5 m shows broad ridges, not white speckle.
