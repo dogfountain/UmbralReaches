@@ -100,3 +100,18 @@ horse and ride (bond cue); take a photo; open the Count and the map; open a ches
 6. The Wardens' tower and Hollow King rooms: the reverb and muffle change as you step in; the landmark beds find their centres.
 7. Eclipse: the three cues line up with the moon course; the score falls silent in the totality.
 8. `ScoreStems` loops: no click at the seam in the combat and hour stems.
+
+## Cost, and how it is kept at zero (Luke: "this must be at no perf cost")
+
+| Item | Cost at runtime | How it is kept down |
+|---|---|---|
+| Cue bank (~90 cues x 3 takes) | none on the main thread; one worker task at load, memory about 6 MB | rendered on a worker, cached through GenCache (later runs just read bytes), a cue not yet rendered is not played; `CueBank.play` makes one pooled-style player per cue and frees it on `finished` |
+| Score stems (11 loops, 8 motifs) | memory about 7 MB; one worker task at load | same; a stem below 1.2% level is stopped, so at rest 1-2 players run; stems start at a random offset |
+| ScoreDirector | a 1 s enemy scan (the same scan ScapeMusic does every 0.5 s), then a few float moves per frame | no allocation per frame; the scan reads the ENEMY group once a second |
+| Cue router | signal handlers only; a 0.25 s tick for the boss phase, eclipse, room, small-life and moth checks | moths rescan braziers every 8 s; details run every 14-32 s; all throttled by `_gate` |
+| Occlusion | at most 3 rays per physics frame, only for a one-shot more than 6 m away, world layer only | budget per frame; a spent budget means "open" |
+| Landmark voices | up to 3 looping 3D players within 85 m; a 2 s tick; a rescan every 12 s | beds fade out and free past range; the bounds are cached in the host list |
+| Mix director | two AudioEffectAmplify and two compressors on buses; a per-frame float move for the ducks | no allocation |
+| Hour variation | one small dictionary assignment a second | none |
+| Buses | five new buses (UI, Score, World, Combat, Stingers) | empty buses cost nothing; the SFX and Music compressors are the only DSP added |
+| The bus layout | created at runtime by Settings (no `default_bus_layout.tres`: the project has none and the existing code builds buses the same way) | one place builds them, so a layout file would be a second source of truth |
