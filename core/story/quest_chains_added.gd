@@ -9,15 +9,16 @@ const RegionsQ := preload("res://core/story/quest_chains_regions.gd")
 const FavoursQ := preload("res://core/story/quest_chains_favours.gd")
 const EndingQ := preload("res://core/story/quest_chains_ending.gd")
 const PayoffQ := preload("res://core/story/quest_chains_door_payoffs.gd")
+const Favours2Q := preload("res://core/story/quest_chains_favours2.gd")
 const WanderQ := preload("res://core/story/quest_chains_wanderer.gd")
 
-const FILES := [StoryQ, DoorsQ, RegionsQ, FavoursQ, EndingQ, WanderQ, PayoffQ]
+const FILES := [StoryQ, DoorsQ, RegionsQ, FavoursQ, EndingQ, WanderQ, PayoffQ, Favours2Q]
 
 static var _order: Array = []
 static var _quests := {}
 static var _pickups := {}
 static var _convs := {}
-static var _givers := {"col": "Col Wright", "wenna": "Wenna Ashby"}
+static var _givers := {"col": "Col Wright", "wenna": "Wenna Ashby", "bet": "Bet Reed", "tansy": "Ansel Tansy", "marra": "Marra Quill"}
 static var _built := false
 
 
