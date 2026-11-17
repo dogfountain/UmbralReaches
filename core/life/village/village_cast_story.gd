@@ -119,6 +119,8 @@ const CONV := {
 		"meet": {"say": "You are standing where the ring was. It is all right. Everybody does. It is only ash.", "next": "meet2"},
 		"meet2": {"say": "Ione. The Ninth Company's youngest, and the tenth name nobody finished: my mother was cutting it when she stopped. I was five. I did not burn my token because I could not find it, and I did not go hollow because I was lucky.", "do": "met:ione", "next": "hub"},
 		"hub": {"say_if": [
+			["qd:last_ringer", "A man came to my fire at dawn with a bell-rope round his waist and sat down without a word. I knew his hands. I did not know his face. We have not said much. He is mending my kettle. I think it is the best thing anyone has ever done for me."],
+			["qat:last_ringer:8|qat:last_ringer:9", "A stranger with a rope was on the green, they say, being walked home. I am not going to go and look. I am going to sit very still, by my own fire, and let him come."],
 			["qp:name_on_roll:entered", "You wrote yourself in. A stranger's name in the roll beside my mother's. I think she would have liked it. She always said a roll is a thing you can be added to."],
 			["qp:name_on_roll:mother", "My mother's name, in the roll, where I wanted it. In your hand, not mine. I could not have held the knife steady."],
 			["qp:name_on_roll:blank", "You left a line blank, for one who has not decided. I find I am not angry. A blank line is the most honest thing in the Order's whole book."],

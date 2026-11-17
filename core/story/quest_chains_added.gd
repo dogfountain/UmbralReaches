@@ -8,9 +8,10 @@ const DoorsQ := preload("res://core/story/quest_chains_doors.gd")
 const RegionsQ := preload("res://core/story/quest_chains_regions.gd")
 const FavoursQ := preload("res://core/story/quest_chains_favours.gd")
 const EndingQ := preload("res://core/story/quest_chains_ending.gd")
+const PayoffQ := preload("res://core/story/quest_chains_door_payoffs.gd")
 const WanderQ := preload("res://core/story/quest_chains_wanderer.gd")
 
-const FILES := [StoryQ, DoorsQ, RegionsQ, FavoursQ, EndingQ, WanderQ]
+const FILES := [StoryQ, DoorsQ, RegionsQ, FavoursQ, EndingQ, WanderQ, PayoffQ]
 
 static var _order: Array = []
 static var _quests := {}

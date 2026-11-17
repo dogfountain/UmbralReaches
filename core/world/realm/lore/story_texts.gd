@@ -90,7 +90,35 @@ const TEXTS := {
 	"sh_kings_lamp": {"region": "kingsbarrows", "kind": "rune", "title": "On the barrow's jamb", "text": "A TALLY OF NIGHTS HE DID NOT SLEEP. THE STONE WAS ROLLED FROM INSIDE. WHATEVER LIES HERE WAS NEVER DEAD, ONLY PATIENT."},
 	"sh_reedmere_stone": {"region": "reedmere", "kind": "grave", "title": "A heron stone's fourth line", "text": "THE FOURTH BIRD TAKES THE OAR. SOMEONE HAS SET A SMALL WHITE STONE ON THE SLAB, FOR TAM, WHO DID NOT COME BACK FROM THE REEDS."},
 	"sh_saltpans_barrel": {"region": "saltpans", "kind": "notice", "title": "A salt-carter's chalk", "text": "THE PANS GIVE NO SOUND. THE SALT MAKES NO ECHO. THE CARTERS WENT HOME BECAUSE OF THE QUIET, NOT BECAUSE OF ANYTHING THEY SAW."},
+	# --- the landmarks (placed beside each, story_readables.gd LANDMARKS) ------------------------------------------------------------
+	"lm_sleeper_1": {"region": "kingsbarrows", "kind": "plaque", "title": "At the Sleeper's heel", "text": "THE ORDER'S FIRST COLOSSUS, RAISED TO SHOW THE SKY WHAT A MAN MIGHT BE. HE LIES ON HIS BACK BECAUSE THE FIRST NIGHT HE WAS PUSHED. HE HAS NOT GOT UP. THE REED-FOLK SAY HE IS LISTENING."},
+	"lm_sleeper_2": {"region": "kingsbarrows", "kind": "rune", "title": "Cut in the Sleeper's wound", "text": "THE HEART-HALL HAS A FURNACE IN IT, AND THE FURNACE HAS NEVER BEEN COLD. A MASON WHO CLIMBED IN SAID THE FLOOR WAS WARM AS A BREAST, AND THAT HE HEARD, VERY SLOWLY, SOMETHING BEING WOUND."},
+	"lm_sleeper_3": {"region": "kingsbarrows", "kind": "letter", "title": "A letter on the Sleeper's hand", "text": "To whoever finds the bonfire in his palm: I lit it the night he fell, so that if he woke he would not wake in the dark. I did not stay to see whether he did. It has burned nine winters on its own. I think he knows."},
+	"lm_hollow_1": {"region": "fallow", "kind": "rune", "title": "On the Hollow King's root", "text": "A DEAD OAK THAT DID NOT FALL. THE ROOTED CALLED IT THE KING AND BURIED THEIR KINGS IN ITS HOLLOW. THE ORDER TOOK THE HOLLOW FOR A CHAPEL AND THE HOLLOW TOOK THE ORDER BACK."},
+	"lm_hollow_2": {"region": "fallow", "kind": "plaque", "title": "A cradle-maker's mark", "text": "THE LARKS' CRADLES ARE CUT FROM A LIMB OF THIS TREE, ONE A CENTURY, BY LEAVE. ASK THE OAK. IT WILL NOT ANSWER. THEN TAKE WHAT YOU NEED AND LEAVE A LIGHT IN THE HALL. THAT IS THE LEAVE."},
+	"lm_ship_1": {"region": "saltpans", "kind": "plaque", "title": "On the stranded ship's stern", "text": "THE MERCHANTMAN HOPE-IN-SEASON, OF A PORT THAT IS NOT ON ANY MAP NOW. SHE CAME TO THE PANS ON THE NIGHT, A MILE A WINTER, AND NOBODY BROUGHT HER. HER CAPTAIN IS NOT ABOARD. HER LAMP IS LIT."},
+	"lm_ship_2": {"region": "saltpans", "kind": "ledger", "title": "The ship's log, the last page", "text": "WE HAVE BEEN SAILING A DRY SEA FOR NINE DAYS. THE SALT HOLDS US UP. I HAVE LET THE CREW SLEEP. I AM KEEPING THE LAMP FOR WHOEVER IS LOOKING. IF THE LAMP IS STILL LIT WHEN YOU READ THIS, WE ARE NOT DEAD, ONLY BECALMED."},
+	"lm_ward_1": {"region": "road", "kind": "plaque", "title": "Over a Wardens' tower door", "text": "SIX TOWERS FROM THE WEST GATE TO THE EAST. EACH WARDEN KEPT A CRESSET ON THE ROOF, LIT ONLY WHEN THE ROAD WAS IN DANGER. THE ROAD HAS BEEN IN DANGER FOR NINE WINTERS. NOBODY WAS LEFT TO LIGHT THEM."},
+	"lm_ward_2": {"region": "road", "kind": "notice", "title": "A standing order, pinned inside", "text": "ON THE NIGHT, THE WARDENS WERE ORDERED TO PUT OUT THEIR CRESSETS, BY EDICT II. THEY DID. THEY WATCHED THE DARK COME DOWN THE ROAD FROM SIX ROOFS IN THE DARK. IT IS THE ONLY ORDER ANY OF THEM EVER DISOBEYED IN THEIR HEARTS."},
+	"lm_ward_3": {"region": "road", "kind": "tablet", "title": "The cresset's rim", "text": "LIGHT THIS AND THE NEXT WILL ANSWER, AND THE NEXT. IT IS HOW THE ROAD TALKS TO ITSELF. THE LAST TOWER IN THE EAST HOLDS THE WARDENS' CACHE, FOR WHOEVER LIGHTS THEM ALL: THE ONLY PAYMENT THEY EVER OFFERED, AND THEY MEANT IT."},
+	"lm_chain_1": {"region": "greyfell", "kind": "plaque", "title": "At the Chain Span's gate", "text": "FIFTY-SIX YARDS OF CHAIN AND A BOARD DECK, HUNG BETWEEN TWO GATES OF THE ORDER'S LAST ROAD. THE ORDER CROSSED IT SINGING. IT HAS NOT BEEN CROSSED SINCE, AND IT SWAYS, GENTLY, AS IF EXPECTING TO BE."},
+	"lm_chain_2": {"region": "greyfell", "kind": "rune", "title": "Cut in the toll-hut lintel", "text": "TOLL: ONE LANTERN-LIGHT. A PILGRIM PAID BY LIGHTING THE LAMP ON THE PIER. THE LAST TOLL-KEEPER HAS NOT BEEN SEEN, BUT THE LAMPS BURN. EVERY ONE OF THEM HAS BEEN PAID FOR."},
+	"lm_titan_1": {"region": "henge", "kind": "plaque", "title": "At a Titan's heel", "text": "TWENTY YARDS OF WARDEN IN STONE, SET BEFORE THE KEEPERS' GATES TO SHOW A TRAVELLER WHAT HE WAS ABOUT TO ASK FOR. THEIR SHIELDS FACE THE ROAD. THEIR SPEARS ARE RAISED TO SAY: GO HOME. THEIR EYES ARE LIT TO SAY: IF YOU MUST."},
+	"lm_titan_2": {"region": "henge", "kind": "rune", "title": "On a Titan's belt", "text": "THEY ARE NOT THE ORDER'S. THE ROOTED MADE THEM, BEFORE ANY ORDER. THEY STOOD HERE WHEN THE THORNWARDEN WAS A SAPLING. THE ORDER ONLY GAVE THEM HELMS."},
+	"lm_hermit_1": {"region": "moor", "kind": "rune", "title": "On a hermit's pole", "text": "A LANTERN ON A SEVEN-YARD POLE, LIT BY SOMEONE WHO WILL NOT BE FOUND. A TRAVELLER'S CHEST AT ITS FOOT. TAKE ONE THING. LEAVE ONE THING. THE POLE HAS BEEN LIT NINE WINTERS BY A HAND NOBODY HAS SEEN."},
+	"lm_hermit_2": {"region": "moor", "kind": "letter", "title": "A hermit's note", "text": "I came here because I did not want to be counted. The Order counted me at the Stair's foot, and the Abbot counted me at the crypt's gate, and I did not wish to be a number on a post. I light the lamp for the ones who feel the same."},
+	"lm_road_1": {"region": "road", "kind": "notice", "title": "A roadside scene", "text": "A CART, CHALKED GONE AHEAD. A SHRINE, ADDENDUM: AND DID NOT COME BACK. A LAMP, LEANING TOWARD THE SUMMIT AND OUT. THREE THINGS ON ONE VERGE, AND NOBODY IN SIGHT. THIS IS WHAT A ROAD LOOKS LIKE AFTER A SKY."},
+	"lm_road_2": {"region": "road", "kind": "waystone", "title": "A ribbon-stake", "text": "RED, FOR THE CHILDREN. WHITE, FOR THE OLD. BLUE, FOR THE ONES WHO WENT UP SINGING. SOMEONE KEEPS THE RIBBONS CLEAN. THAT IS HOW YOU KNOW THE ROAD HAS A KEEPER, EVEN IF YOU NEVER SEE HER."},
 }
+
+## Beside each landmark, by the name of its host node (a prefix): the readables story_readables.gd puts on the side the wanderer comes from.
+const LANDMARKS := {
+	"TheSleeper": ["lm_sleeper_1", "lm_sleeper_2", "lm_sleeper_3"], "HollowKing": ["lm_hollow_1", "lm_hollow_2"], "SaltShip": ["lm_ship_1", "lm_ship_2"],
+	"WardensTower": ["lm_ward_1", "lm_ward_2", "lm_ward_3"], "ChainSpan": ["lm_chain_1", "lm_chain_2"], "TitanGate_": ["lm_titan_1", "lm_titan_2"],
+	"HermitCache": ["lm_hermit_1", "lm_hermit_2"]
+}
+## Roadside scenes the wayside builders make have no host of their own: these two stand on the road itself.
+const ROAD_SCENES := [["lm_road_1", Vector2(-20.0, 66.0)], ["lm_road_2", Vector2(100.0, 70.0)]]
 
 ## Where each stands: [id, Vector2 xz]. Any ground in the region; the placer finds the floor when the wanderer is near.
 const PLACES := [
@@ -110,3 +138,6 @@ const PLACES := [
 	["sh_greyfell_order", Vector2(-296.0, -68.0)], ["sh_lantern_cap", Vector2(-326.0, -4.0)], ["sh_kings_lamp", Vector2(-340.0, 164.0)], ["sh_reedmere_stone", Vector2(-338.0, 356.0)],
 	["sh_saltpans_barrel", Vector2(212.0, 192.0)],
 ]
+
+static func all_places() -> Array:
+	return PLACES + ROAD_SCENES
