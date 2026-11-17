@@ -20,7 +20,7 @@ var _still := 0.0
 var _next_warm := 0.0
 var _next_moth := 0.0
 var _ctx_t := 0.0
-var _weather: Node
+var _weather: Variant
 var _dark_goal := 0.0
 var _dark := 0.0                      ## eased 0..1: nothing lit near him
 
@@ -127,8 +127,7 @@ func _context(delta: float) -> void:
 					look_d = d2
 					look_at = q
 		c["look"] = look_at
-		if _weather == null:
-			_weather = get_tree().current_scene.find_child("Weather", true, false)
+		_weather = Reg.weather(get_tree())
 		var rain := 0.0
 		if _weather != null:
 			rain = float((_weather.get("state") as Dictionary).get("rain", 0.0))

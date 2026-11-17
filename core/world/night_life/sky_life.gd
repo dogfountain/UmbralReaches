@@ -38,7 +38,7 @@ var _tex: ImageTexture
 var _tick := 0.0
 var _cloud := 0.0
 var _cloud_goal := 0.0
-var _weather: Node
+var _weather: Variant
 var _fire := PackedVector4Array()
 var _night := -1
 var _clock := 0.0
@@ -83,8 +83,7 @@ func _process(delta: float) -> void:
 	_mat.set_shader_parameter("aurora", aur * (1.0 + 0.6 * e))
 	var base := 0.45 * fposmod(sin(float(n) * 78.233) * 43758.5453, 1.0)
 	var wet := 0.0
-	if _weather == null:
-		_weather = get_tree().current_scene.find_child("Weather", true, false)
+	_weather = Reg.weather(get_tree())
 	if _weather != null:
 		var st: Dictionary = _weather.get("state")
 		wet = float(st.get("mist", 0.0)) * 0.45 + float(st.get("rain", 0.0)) * 0.6

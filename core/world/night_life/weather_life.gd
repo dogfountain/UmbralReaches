@@ -77,8 +77,7 @@ func _process(delta: float) -> void:
 			_publish(0.0, 0.0, 0.0, 0.0)
 			_mm.visible = false
 		return
-	if _weather == null:
-		_weather = get_tree().current_scene.find_child("Weather", true, false)
+	_weather = Reg.weather(get_tree())
 	var rain := 0.0
 	var mist := 0.0
 	var gust := 0.0

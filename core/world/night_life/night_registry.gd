@@ -32,6 +32,26 @@ static var boost := PackedFloat32Array()  ## a transient surge (a fire catching)
 static var keys := {}                     ## key -> row
 
 
+static var _wx: Variant = null
+static var _wx_ms := -100000
+
+
+## The Weather node (core/life/wildlife/weather.gd), found by name once it exists: at most one search every twenty seconds
+## (a find over the whole tree is not for every half second), shared by every system that reads the fronts.
+static func weather(tree: SceneTree) -> Variant:
+	if _wx != null and is_instance_valid(_wx):
+		return _wx
+	_wx = null
+	var now := Time.get_ticks_msec()
+	if now - _wx_ms < 20000:
+		return null
+	_wx_ms = now
+	var root := tree.current_scene
+	if root != null:
+		_wx = root.find_child("Weather", true, false)
+	return _wx
+
+
 static func clear() -> void:
 	pos.clear()
 	ground.clear()
