@@ -27,6 +27,7 @@ var _column: MeshInstance3D
 var _col_t := -1.0
 var _hearth: Node
 var _hearth_t := 1.0
+var _hearth_tries := 0
 static var _col_tex: ImageTexture
 
 
@@ -120,7 +121,8 @@ func _process(delta: float) -> void:
 	if _hearth == null:
 		_hearth_t -= delta
 		if _hearth_t <= 0.0:
-			_hearth_t = 2.0
+			_hearth_tries += 1
+			_hearth_t = 2.0 if _hearth_tries < 8 else 40.0     # a search of the whole tree is not for every two seconds for ever
 			_look_for_hearth()
 	if _col_t >= 0.0:
 		_col_t += delta
