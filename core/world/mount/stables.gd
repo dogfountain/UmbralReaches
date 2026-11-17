@@ -6,6 +6,7 @@ extends Node
 const DB := preload("res://core/world/mount/horse_db.gd")
 const ScalePilot := preload("res://core/world/realm/scale_pilot.gd")
 const Horse := preload("res://core/world/mount/horse.gd")
+const HorseBond := preload("res://core/world/mount/horse_bond.gd")
 
 var horses := {}                 ## breed -> horse node
 
@@ -88,5 +89,5 @@ func _unhandled_input(ev: InputEvent) -> void:
 	h.global_position = hit.position
 	h.rotation.y = p.rotation.y
 	h.set("at_post", false)
-	Events.toast.emit("Hooves in the dark. Your %s comes." % String(DB.BREEDS[b].name))
+	Events.toast.emit("Hooves in the dark. %s comes." % HorseBond.name_of(b))
 	get_viewport().set_input_as_handled()

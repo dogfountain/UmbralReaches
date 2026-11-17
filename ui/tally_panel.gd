@@ -12,6 +12,7 @@ const Chains := preload("res://core/story/quest_chains.gd")
 const Med := preload("res://ui/medieval_style.gd")
 const UIType := preload("res://ui/type.gd")
 const ReachState := preload("res://core/world/night/reach_state.gd")
+const HorseBond := preload("res://core/world/mount/horse_bond.gd")
 const MenuGate := preload("res://ui/menu_gate.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 
@@ -155,6 +156,9 @@ func _fill() -> void:
 	_row(_right, "Bells answered", "%d of %d" % [QuestBook.bells(), Chains.BELLS.size()])
 	_row(_right, "Fires burning", str(_lit(Groups.BRAZIER)))
 	_row(_right, "Lamps you lit", str(_lit(&"lamp")))
+	var ride: String = String(Travel.system_state("stable").get("ride", ""))
+	if ride != "":
+		_row(_right, "%s, your horse" % HorseBond.name_of(ride), "%s, %d km" % [HorseBond.title(ride), roundi(HorseBond.metres(ride) / 1000.0)])
 	_right.add_child(Control.new())
 	_head(_right, "WHO KNOWS YOU")
 	for f: String in ReachState.FACTIONS:
