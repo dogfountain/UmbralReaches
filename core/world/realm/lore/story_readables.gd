@@ -10,6 +10,7 @@ const LoreMore := preload("res://core/world/realm/lore/lore_more.gd")
 const LoreIndex := preload("res://core/world/realm/lore/lore_index.gd")
 const QuestProps := preload("res://core/story/quest_props.gd")
 const Voices := preload("res://core/audio/landmark_voices.gd")
+const RealmLand := preload("res://core/world/realm/realm_land.gd")
 
 const NEAR := 90.0
 const FAR := 130.0

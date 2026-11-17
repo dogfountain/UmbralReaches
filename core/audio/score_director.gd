@@ -134,7 +134,7 @@ func _process(dt: float) -> void:
 		_sense(now)
 	while not _hits.is_empty() and now - _hits[0] > 6000:
 		_hits.pop_front()
-	var fight := not _hits.is_empty() and now - _hits.back() < 5000
+	var fight: bool = not _hits.is_empty() and now - int(_hits.back()) < 5000
 	var heat := clampf(float(_hits.size()) / 9.0, 0.0, 1.0)
 	var themed := _theme_playing()
 	var quiet := now < silence_until or themed

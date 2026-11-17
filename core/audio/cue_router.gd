@@ -19,6 +19,8 @@ const Soundstage := preload("res://core/audio/soundstage.gd")
 const Reg := preload("res://core/world/night_life/night_registry.gd")
 const Days := preload("res://core/story/days.gd")
 const ScoreDirector := preload("res://core/audio/score_director.gd")
+const CombatState := preload("res://core/skills/combat_state.gd")
+const RealmLand := preload("res://core/world/realm/realm_land.gd")
 
 const FOG_SCAPES := ["fen", "tally", "mere", "reedmere", "stillwater", "nave", "sorrow"]
 const MAIN_BOSSES := ["thornwarden", "bone_abbot", "ascended_warden"]
@@ -275,7 +277,7 @@ func _process(dt: float) -> void:
 func _poll_world() -> void:
 	var pl := _player()
 	if pl != null:
-		var wet := RealmLand.in_water(pl.global_position.x, pl.global_position.z)
+		var wet: bool = RealmLand.in_water(pl.global_position.x, pl.global_position.z)
 		if wet and not _wet and _gate("wade", 1.0):
 			CueBank.play_at("wade_splash", pl.global_position, 0.0)
 		_wet = wet
