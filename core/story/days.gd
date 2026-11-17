@@ -7,7 +7,7 @@ extends Node
 
 const MIN_NIGHT_S := 600.0
 
-var _save_t := 0.0
+var _acc := 0.0                 ## playtime not yet written to the story (written once a second: no per-frame dictionary work)
 
 
 static func current() -> int:
@@ -44,4 +44,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if get_tree().paused:
 		return
-	Travel.story["night_age"] = age() + delta
+	_acc += delta
+	if _acc >= 1.0:
+		Travel.story["night_age"] = age() + _acc
+		_acc = 0.0

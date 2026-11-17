@@ -88,6 +88,7 @@ func _ready() -> void:
 	add_child(_rig)
 	_yaw = global_basis.get_euler().y
 	_write(NAN, 0.0)
+	set_physics_process(false)                  # only while it runs to a whistle
 
 
 func can_interact() -> bool:
@@ -148,6 +149,7 @@ static func state() -> Dictionary:
 func mount(p: Player) -> void:
 	rider = p
 	_call_who = null
+	set_physics_process(false)
 	_mount_t = 0.0
 	_mount_from = p.global_position
 	at_post = false
@@ -718,6 +720,7 @@ func call_to(who: Node3D) -> bool:
 	if rider != null or who == null or global_position.distance_to(who.global_position) < CALL_STOP + 1.0:
 		return false
 	_call_who = who
+	set_physics_process(true)
 	_call_t = 0.0
 	_stuck_t = 0.0
 	at_post = false
@@ -732,6 +735,7 @@ func calling() -> bool:
 
 func _stop_call() -> void:
 	_call_who = null
+	set_physics_process(false)
 	_stuck_t = 0.0
 
 

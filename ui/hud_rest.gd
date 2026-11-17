@@ -19,6 +19,7 @@ var _calm := 0.0
 var _poll := 0.0
 var _threat := false
 var _need := 0.0
+var _applied := -1.0
 
 
 func setup(gauges: Control, compass: Control) -> void:
@@ -42,7 +43,7 @@ func _process(delta: float) -> void:
 	_need = maxf(0.0, _need - delta)
 	_poll -= delta
 	if _poll <= 0.0:
-		_poll = 0.4
+		_poll = 0.6
 		_threat = _danger()
 	var shown := _threat or _need > 0.0 or get_tree().paused
 	_calm = 0.0 if shown else _calm + delta
@@ -60,7 +61,10 @@ func _danger() -> bool:
 
 
 func _apply(want: float, delta: float, rate: float) -> void:
+	if is_equal_approx(_a, want) and _applied == _a:
+		return                                    # at rest: nothing to set
 	_a = move_toward(_a, want, delta * rate)
+	_applied = _a
 	_gauges.modulate.a = _a
 	_gauges.visible = _a > 0.01
 	if _compass != null and is_instance_valid(_compass):

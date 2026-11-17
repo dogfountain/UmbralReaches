@@ -35,7 +35,7 @@ func _process(delta: float) -> void:
 	_t -= delta
 	if _t > 0.0:
 		return
-	_t = 1.5
+	_t = 3.0
 	var scene := get_tree().current_scene
 	if scene == null or scene.get_node_or_null("OpeningCam") != null or scene.get_node_or_null("CampCam") != null:
 		return
