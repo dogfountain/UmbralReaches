@@ -117,6 +117,7 @@ static func start(id: String) -> bool:
 	d["b"] = d.t                               # begun: the tracker's "newest task" (the touch tick moves with every count)
 	_changed(id)
 	_announce(id, 0, d)                        # the banner (ui/quest_log.gd) names the task
+	gift_spell(String((Chains.QUESTS[id] as Dictionary).get("start_spell", "")))
 	return true
 
 
@@ -433,12 +434,21 @@ static func label(text: String, actions: String) -> String:
 	return ("◆  " + text) if actions.contains("qs:") else text
 
 
-## Give a reward {ash, items: {id: n}, charm: id, else: {id: n}} (a charm only if ItemDB knows it;
-## otherwise `else`). Returns a short note of what was given.
+## Give a reward {ash, items: {id: n}, charm: id, else: {id: n}} (a charm only if ItemDB knows it and the wanderer does
+## not hold one already; otherwise `else`). Returns a short note of what was given.
 ## The memory (XP) a finished task pays (the same call the Hearth makes when it gives it): by its ash, half on a repeat.
 static func xp(id: String) -> int:
 	var ash := int(((Chains.QUESTS.get(id, {}) as Dictionary).get("reward", {}) as Dictionary).get("ash", 0))
 	return LevelDB.quest_xp(ash, int(q(id).get("c", 0)) > 1)
+
+
+## The Kindling learns spell `sp` for free (true when it was new to them).
+static func gift_spell(sp: String) -> bool:
+	if sp == "":
+		return false
+	var ml := Engine.get_main_loop() as SceneTree
+	var kn: Node = ml.get_first_node_in_group("progression") if ml else null
+	return kn != null and kn.has_method("gift") and bool(kn.call("gift", sp))
 
 
 static func grant(r: Dictionary) -> String:
@@ -450,7 +460,7 @@ static func grant(r: Dictionary) -> String:
 	var items: Dictionary = (r.get("items", {}) as Dictionary).duplicate()
 	var charm := String(r.get("charm", ""))
 	if charm != "":
-		if ItemDB.DEFS.has(charm):
+		if ItemDB.DEFS.has(charm) and Travel.count(charm) <= 0:
 			items[charm] = 1
 		else:
 			for k: String in r.get("else", {}):
@@ -460,12 +470,8 @@ static func grant(r: Dictionary) -> String:
 		var nm := String(ItemDB.def(id).get("name", id))
 		parts.append(nm if int(items[id]) == 1 else "%s x%d" % [nm, int(items[id])])
 	# r36: a spell the story gives (the Founder's Peal): the Kindling learns it for free
-	var sp := String(r.get("spell", ""))
-	if sp != "":
-		var ml := Engine.get_main_loop() as SceneTree
-		var kn: Node = ml.get_first_node_in_group("progression") if ml else null
-		if kn and kn.has_method("gift") and bool(kn.call("gift", sp)):
-			parts.append("a spell")
+	if gift_spell(String(r.get("spell", ""))):
+		parts.append("a spell")
 	return "(" + ", ".join(parts) + ")" if not parts.is_empty() else ""
 
 

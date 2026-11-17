@@ -13,7 +13,7 @@ extends Node
 ##                    wound it, or a standing thing held for `time` against waves. Each is a child of
 ##                    this node while its step is current and is freed when the step moves on (or
 ##                    the night ends); a fall or a break resets inside the step, never the task
-## No per-frame scans: one pass over ORDER (48 tasks, r34) four times a second; only active ones do work.
+## No per-frame scans: one pass over ORDER (119 tasks, r38) four times a second; only active ones do work.
 ## Load by path: const QuestRunner := preload("res://core/story/quest_runner.gd")
 
 const Book := preload("res://core/story/quest_book.gd")

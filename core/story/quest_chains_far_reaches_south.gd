@@ -41,7 +41,7 @@ const QUESTS := {
 		"text": "Dilly makes the scarecrows, and every one faces the road so the fields know somebody is looking. One in the far strips faces the house, wears a reeve's coat of the old Order cut, and she did not make it. It walks when nobody is watching the fields, her mam says. Dilly has asked everyone to deal with it, and everyone has asked Dilly to keep out of the far strips. She has been three times, to look at its face.",
 		"steps": [
 			{"kind": "find", "text": "Look at the scarecrow nobody made, in the last of the far strips"},
-			{"kind": "slay", "of": 1, "rares": ["tithe_taker"], "at": Vector2(-170.0, 372.0), "label": "The Tithe-Taker",
+			{"kind": "slay", "of": 1, "rares": ["tithe_taker"], "at": Vector2(-176.0, 380.0), "label": "The Tithe-Taker",
 				"text": "Put down the Tithe-Taker, who has been wearing the reeve's coat in the far fields"},
 			{"kind": "place", "text": "Turn the scarecrow on its pole to face the road"},
 			{"kind": "turnin", "who": "dilly", "text": "Tell Dilly it faces the road"},

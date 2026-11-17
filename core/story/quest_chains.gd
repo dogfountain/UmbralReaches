@@ -157,7 +157,7 @@ const QUESTS := {
 			{"kind": "talk", "who": "keep", "text": "Tell the keep what you found"},
 		],
 		"alt": {"rats": {3: "Tell the keep it was rats"}, "covered": {3: "Square Nan's debt with the keep (10 ash)"}},
-		"reward": {"items": {"ember_shard": 2, "grave_iron": 1}},
+		"reward": {"ash": 10, "items": {"ember_shard": 2, "grave_iron": 1}},
 		"outcome": {"told": "The keep knows it was Nan. He leaves a mug by the green's fire himself now.",
 			"covered": "You paid for Nan's mugs. The keep is watching you; Nan drew you a circle.",
 			"rats": "The keep blames rats. Nan keeps her secret, and her mug by the fire."}},
@@ -698,10 +698,11 @@ const QUESTS := {
 		"offer": true, "avail": "boss:thornwarden,boss:bone_abbot",
 		"text": "Mother cast seven for the road up, and an eighth for the ones outside it. One for each country the pilgrims crossed, and one for the country they were shut out of. When the sky opened they went quiet, top first. The door at the summit hangs from a bell; it won't open to a heart and a crown alone. It opens to a peal. Find me four, and make the Marches one of them: she hung that one for the ones the door was built to keep out. Eight, if you've the legs.",
 		"steps": [
-			{"kind": "cond", "cond": "peal:4", "past": "Four of the Founder's bells are already answered, the Marches' among them.", "text": "Answer for the Founder's bells ({bells} of 8; four wake the door, and one must be the Marches' at the Lamplighters' Spire)"},
+			{"kind": "cond", "cond": "peal:4", "past": "Four of the Founder's bells are already answered, the Marches' among them.", "text": "Answer for the Founder's bells ({bells} of 8; four wake the door, and one must be the Marches' at the Lamplighters' Spire: Marl at Saltmarket opens the way)"},
 			{"kind": "turnin", "who": "brannoc", "text": "Tell Brannoc the door will hear a peal"},
 		],
-		"reward": {"ash": 30, "items": {"ember_shard": 2}, "spell": "peal"},
+		"start_spell": "peal",          # Brannoc teaches it on the taking up (quest_book.gd start): the bells are answered with it
+		"reward": {"ash": 30, "items": {"ember_shard": 2}},
 		"choose": [{"set": "bell", "slot": "focus", "rarity": 3}, {"set": "bell", "slot": "vestment", "rarity": 3}, {"set": "bell", "slot": "girdle", "rarity": 3}],
 		"outcome": {"": "Brannoc counted the bells on his fingers twice, the second time slower. \"She'd have liked you,\" he said. \"She liked people who finished things.\""}},
 	"bell_spire": Bells.QUESTS["bell_spire"], "bell_holds": Bells.QUESTS["bell_holds"], "bell_quarry": Bells.QUESTS["bell_quarry"], "bell_moor": Bells.QUESTS["bell_moor"],

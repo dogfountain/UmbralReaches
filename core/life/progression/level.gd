@@ -42,7 +42,7 @@ extends RefCounted
 const PathsDB := preload("res://core/life/progression/paths_db.gd")
 
 const XP := {"kill": 3, "tough": 5, "elite": 15, "umbral": 25, "rare": 40, "boss": 150,
-	"quest": 60, "seal": 50, "kindle": 40, "home": 30, "keepsake": 25, "discover": 20, "gather": 5}
+	"quest_base": 24, "quest_per_ash": 1.5, "seal": 50, "kindle": 40, "home": 30, "keepsake": 25, "discover": 20, "gather": 5}
 const REST_FILL := 0.5          ## levels of rested XP a rest adds
 const REST_CAP := 1.5           ## most rested XP held, in levels (of the current level's need)
 ## Sources the rested pool doubles (kills only, as in WoW).
@@ -52,7 +52,7 @@ const RESTED_SOURCES := ["kill", "tough", "elite", "umbral", "rare"]
 ## What a task pays: more for a bigger errand (its ash is the measure of the work), and half as much
 ## the second time round for a daily (the same errand is not the same deed twice).
 static func quest_xp(ash: int, repeat := false) -> int:
-	var n := 24 + roundi(1.5 * float(maxi(0, ash)))
+	var n := int(XP.quest_base) + roundi(float(XP.quest_per_ash) * float(maxi(0, ash)))
 	return maxi(1, n / 2) if repeat else n
 
 
