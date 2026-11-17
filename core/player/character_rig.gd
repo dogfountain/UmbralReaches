@@ -534,7 +534,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 			_trail.amount_ratio = lerpf(1.0, 0.16, run)
 			_trail.lifetime = lerpf(1.15, 0.38, run)
 	if _lantern_light:
-		_lantern_light.light_energy = 1.15 + sin(_t * 13.0) * 0.05 + sin(_t * 7.3) * 0.035
+		_lantern_light.light_energy = (1.15 + sin(_t * 13.0) * 0.05 + sin(_t * 7.3) * 0.035) * (1.0 + 0.4 * float(idle_ctx.get("dark", 0.0)))   # the lantern matters most where nothing else is lit
 	if hero:
 		_swing("lantern", _lantern, 0.26, Vector3.ZERO, body, delta)
 		_swing("satchel", _equipped.get("satchel"), 0.3, Vector3.ZERO, body, delta)
