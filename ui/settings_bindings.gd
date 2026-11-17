@@ -26,11 +26,11 @@ func build(p: VBoxContainer) -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 12)
 	p.add_child(head)
-	var h0 := host._label("", DIM, 16)
+	var h0: Label = host._label("", DIM, 16)
 	h0.custom_minimum_size = Vector2(240, 0)
 	head.add_child(h0)
 	for t: String in ["Keyboard / mouse", "Controller"]:
-		var hl := host._label(t, DIM, 16)
+		var hl: Label = host._label(t, DIM, 16)
 		hl.custom_minimum_size = Vector2(190, 0)
 		head.add_child(hl)
 	for r: Array in InputSetup.REBINDABLE:
@@ -38,7 +38,7 @@ func build(p: VBoxContainer) -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 12)
 		p.add_child(row)
-		var a := host._label(String(r[0]), QUIET, 18)
+		var a: Label = host._label(String(r[0]), QUIET, 18)
 		a.custom_minimum_size = Vector2(240, 0)
 		row.add_child(a)
 		for slot: String in ["key", "pad"]:
