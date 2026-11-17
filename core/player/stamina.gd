@@ -10,6 +10,8 @@ extends Node
 ## Child of Player, named "Stamina". Load by path (no class_name):
 ##   const Stamina := preload("res://core/player/stamina.gd")
 
+const Access := preload("res://ui/access.gd")
+
 const MAX := 100.0
 const REGEN := 34.0              ## per second once recovering
 const BREATH_DELAY := 0.55       ## seconds after a spend before it starts to come back
@@ -105,7 +107,7 @@ func in_fight() -> bool:
 
 
 func flash() -> float:
-	return _flash
+	return _flash * Access.flash()
 
 
 func flash_good() -> bool:

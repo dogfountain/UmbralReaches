@@ -11,7 +11,7 @@ const BellMesh := preload("res://core/story/bell_mesh.gd")
 
 ## A holder named `n` under `parent` at `xf`, with the mesh for `kind` ("tongs", "slate", "mug",
 ## "mug_full", "lantern", "lantern_lit", "slabs", "staff", "place"; r33: "coal", "loaf", "clapper").
-static func make(parent: Node3D, n: String, kind: String, xf: Transform3D) -> Node3D:
+static func make(parent: Node, n: String, kind: String, xf: Transform3D) -> Node3D:
 	var h := Node3D.new()
 	h.name = n
 	parent.add_child(h)

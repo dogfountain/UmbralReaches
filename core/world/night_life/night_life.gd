@@ -33,6 +33,13 @@ const Hits := preload("res://core/world/night_life/hit_reads.gd")
 const Tells := preload("res://core/world/night_life/telegraph_glow.gd")
 const Wanderer := preload("res://core/world/night_life/wanderer_life.gd")
 const Folk := preload("res://core/life/folk/folk_stage.gd")
+const SkyLife := preload("res://core/world/night_life/sky_life.gd")
+const Wx := preload("res://core/world/night_life/weather_life.gd")
+const Vfxl := preload("res://core/world/night_life/vfx_library.gd")
+const Arena := preload("res://core/world/night_life/arena_light.gd")
+const Rooms := preload("res://core/world/night_life/interior_light.gd")
+const Grade := preload("res://core/world/night_life/region_grade.gd")
+const Bats := preload("res://core/world/night_life/fire_bats.gd")
 
 var _poll := 0.0
 
@@ -61,6 +68,19 @@ func _ready() -> void:
 	course.env = we.environment if we != null else null
 	course.fill = moon.get_parent().get_node_or_null("NightFill") as DirectionalLight3D if moon != null else null
 	_add(course, "MoonCourse")
+	var sky := SkyLife.new()
+	sky.env = course.env
+	_add(sky, "SkyLife")
+	var wx := Wx.new()
+	wx.env = course.env
+	_add(wx, "WeatherLife")
+	_add(Vfxl.new(), "VfxLibrary")
+	var al := Arena.new()
+	al.env = course.env
+	_add(al, "ArenaLight")
+	_add(Rooms.new(), "InteriorLight")
+	_add(Grade.new(), "RegionGrade")
+	_add(Bats.new(), "FireBats")
 	_add(Surge.new(), "KindlingSurge")
 	_add(Moths.new(), "LightMoths")
 	_add(Banks.new(), "FogBanks")

@@ -36,6 +36,15 @@ func _body_v(mb: Variant) -> void:
 		var r := (_skirt_r(y) if y < 0.9 else lerpf(0.13, 0.16, clampf((y - 0.9) / 0.4, 0.0, 1.0))) + 0.022
 		ch.append(Vector3(sin(a) * r, y - 0.04 * sin(a * 0.5), -cos(a) * r * 0.75))
 	mb.tube(ch, _pf(_rep(0.014, ch.size()), 1.0), 6, IRON_D, DwarfMesh.MAT_METAL, {"ripple": Vector2(0.45, 90.0), "lumps": 0.0})
+	# padlocks and prayer ribbons hung from the windings; a rosary of stones at the throat
+	for i in 7:
+		var cp: Vector3 = ch[6 + 9 * i]
+		mb.blob(cp + Vector3(0, -0.035, 0), Vector3(0.022, 0.03, 0.014), Basis.IDENTITY, IRON_D.lightened(0.2), DwarfMesh.MAT_METAL, {"lumps": 0.1, "rings": 4, "segs": 8})
+		if i % 2 == 0:
+			mb.tube(PackedVector3Array([cp, cp + Vector3(0.01, -0.1, 0.0), cp + Vector3(0.0, -0.18, 0.01)]), _pf([0.01, 0.009, 0.004], 1.0), 4, LINEN_G, DwarfMesh.MAT_LINEN, {"squash": Vector2(1.0, 0.3), "ref": Vector3.FORWARD, "lumps": 0.1})
+	for i in 11:
+		var a := lerpf(-1.1, 1.1, float(i) / 10.0)
+		mb.blob(Vector3(sin(a) * 0.12, 1.33 - 0.03 * cos(a), -cos(a) * 0.1 - 0.02), Vector3(0.013, 0.013, 0.013), Basis.IDENTITY, STONE, DwarfMesh.MAT_LINEN, {"lumps": 0.1, "rings": 4, "segs": 6})
 	# the head: a pale gaunt face, eyes shut, a gag; the hood over it, a shawl on the shoulders
 	var fc: Variant = face()
 	fc.skin = SKIN_P

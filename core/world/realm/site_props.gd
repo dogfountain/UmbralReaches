@@ -10,6 +10,7 @@ extends RefCounted
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const Market := preload("res://core/world/realm/market_props.gd")
 const Kit := preload("res://core/world/realm/west_marches_kit.gd")
+const More := preload("res://core/world/realm/site_props_more.gd")
 
 ## Props modelled in Blender (tools/blender/props_square.py, art/models/props/): key -> glb variants. Each glb is
 ## `<part>__<set>` meshes dressed with the prop-size PBR sets; site_dress draws one MultiMesh per (variant, set).
@@ -50,6 +51,8 @@ static func get_prop(key: String) -> Dictionary:
 		var vs: Array = []
 		for file: String in GLB[key]:
 			vs.append(_glb_parts(file))
+		if key in More.KINDS:
+			vs.append_array(More.extra(key))                  # procedural variants beside the modelled ones (site_props_more.gd)
 		d = {"variants": vs, "shadow": true}
 		_meshes[key] = d
 		return d
@@ -82,13 +85,19 @@ static func get_prop(key: String) -> Dictionary:
 	return d
 
 
+## How many variants of `kind` one zone draws (the modelled ones plus one): the pool is bigger than that, and each zone takes a
+## window of it (site_dress.gd), so the draw calls per zone stay what they were while the yards differ from each other. 0 = all.
+static func window(kind: String) -> int:
+	return (GLB[kind] as Array).size() + 1 if GLB.has(kind) and kind in More.KINDS else 0
+
+
 ## Which variant of a glb prop the i-th instance of `kind` is (a broken crate now and then, a slumped sack in two).
 static func variant(kind: String, i: int, n: int) -> int:
 	if n < 2:
 		return 0
-	if kind == "crate":
+	if kind == "crate" and n == 2:
 		return 1 if i % 4 == 3 else 0
-	return i % n
+	return (i * 7 + i / 3) % n                       # spread over every variant, not round-robin in a row
 
 
 ## [{mesh, mat}] of a glb under art/models/props/ (cached): for builders that place a modelled prop themselves
@@ -230,7 +239,7 @@ static func _leaves() -> ArrayMesh:
 		var d := Vector3(cos(a * 1.7), 0, sin(a * 1.7))
 		var s := Vector3(-d.z, 0, d.x)
 		var p: Array[Vector3] = [c - d * 0.075, c + s * 0.05, c + d * 0.085, c - s * 0.05]
-		for idx: int in [0, 1, 2, 0, 2, 3]:
+		for idx: int in [0, 2, 1, 0, 3, 2]:      # wound to face up: the other way the cards were back faces seen from above, lit from below: black diamonds on the gravel
 			st.set_color(cols[i])
 			st.set_normal(Vector3.UP)
 			st.add_vertex(p[idx])

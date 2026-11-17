@@ -30,6 +30,7 @@ const MODULES := {
 	"life": "res://core/life/wildlife/wildlife.gd",
 	"secrets": "res://core/life/secrets/secrets.gd",
 	"encounters": "res://core/life/encounters/encounters.gd",
+	"yards": "res://core/world/realm/settlement_yards.gd",      # the towns' backyards, after the clutter (settlement_yards.gd)
 	"dress": "res://core/world/realm/site_dress.gd",            # clutter on the cleared ground, after everything it must avoid exists
 	"lamps": "res://core/world/realm/lamps/lamp_places.gd",     # the lamps the wanderer kindles and the lights others keep
 	# the navigation mesh enemies path on when flat steering is walled (core/enemy/nav_assist.gd)
@@ -49,13 +50,13 @@ static var prof := {}
 ## Build progress for the loading screen (ui/loading_screen.gd): 0..1 and the step now running.
 static var progress := 0.0
 static var stage := ""
-const STEPS := 18
+const STEPS := 19
 const STAGE_NAMES := {
 	"land": "Raising the land", "rift": "Opening the rift", "bosses": "Waking the wardens",
 	"tavern": "Lighting the Keg", "lore": "Carving the stones", "wonders": "Raising the wonders", "stamp": "Settling the ground",
 	"flora": "Growing the wood", "summit": "Dressing the summit", "assets": "Placing the relics",
 	"progression": "Kindling the fires", "village": "Waking the village", "life": "Stirring the wild",
-	"secrets": "Hiding what is hidden", "encounters": "Gathering the dark", "dress": "Setting out the yards", "lamps": "Hanging the lamps", "nav": "Marking the ways",
+	"secrets": "Hiding what is hidden", "encounters": "Gathering the dark", "dress": "Setting out the yards", "yards": "Hanging the washing", "lamps": "Hanging the lamps", "nav": "Marking the ways",
 }
 static var _step := 0
 
@@ -176,6 +177,7 @@ static func build(root: Node) -> void:
 	for id: String in ["progression", "village", "life", "secrets", "encounters"]:
 		await _run(id, root)
 	await _run("dress", root)
+	await _run("yards", root)
 	await _run("lamps", root)
 	t = Time.get_ticks_usec()
 	await TerrainStamp.settle(root)              # the ground yields to the floors as built (after every building and its dress, before the nav)

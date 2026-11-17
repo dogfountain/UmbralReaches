@@ -40,6 +40,7 @@ const MORE_KIN := ["res://core/enemy/bulwark.gd", "res://core/enemy/chanter.gd",
 	"res://core/enemy/cinder_caster.gd"]
 ## The great ones: their own materials (boss_pbr) and parts, shown once so a pull compiles nothing.
 const PanelWarm := preload("res://ui/panel_warm.gd")
+const NightWarm := preload("res://core/world/night_life/night_warm.gd")
 const LootWarm := preload("res://ui/loot_warm.gd")
 const Foley := preload("res://core/vfx/foley.gd")
 const FOLEY_PER_FRAME := 3
@@ -405,6 +406,7 @@ func _show_combat() -> void:
 	Vfx.arc(at - right, at + right, col)
 	_show_r28(c, at, right, fwd, col)
 	_show_more(c, at, right, fwd, col, hot)
+	_warm_nodes.append_array(NightWarm.show(zone, c, right, fwd))      # the living night: its cards, pools, mist, glints, creatures and every burst preset
 	_cast_every_spell(c, fwd)
 	_warm_loot = LootWarm.show(zone, c, right, fwd)
 	_keep_resident()

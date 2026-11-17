@@ -165,10 +165,10 @@ static func material(style: String) -> Material:
 	match style:
 		"granite":
 			_p(m, {"tint": Color(0.6, 0.64, 0.74), "tint_alt": Color(0.5, 0.52, 0.58), "lichen": 0.45,
-				"moss_amount": 0.18, "moss_bias": -0.12, "rough_base": 0.84})
+				"moss_amount": 0.18, "moss_bias": -0.12, "rough_base": 0.84, "vcol_lichen": 1.0})
 		"mossy":
 			_p(m, {"tint": Color(0.52, 0.58, 0.64), "tint_alt": Color(0.44, 0.48, 0.52), "lichen": 0.6,
-				"moss_amount": 1.0, "moss_bias": 0.05, "rough_base": 0.88})
+				"moss_amount": 1.0, "moss_bias": 0.05, "rough_base": 0.88, "vcol_lichen": 1.0})
 		"basalt":
 			_p(m, {"tint": Color(0.36, 0.38, 0.46), "tint_alt": Color(0.28, 0.29, 0.34), "lichen": 0.15,
 				"moss_amount": 0.1, "moss_bias": -0.2, "rough_base": 0.72, "specular_amt": 0.45,
@@ -323,6 +323,8 @@ static func _boulder_geo(rng: RandomNumberGenerator, sz: Vector3, style: String,
 	# small chips on the edges the big cuts left
 	for k in (rng.randi_range(3, 5) if style != "mossy" else 2):
 		cuts.append([_rand_dir(rng, 0.0), rng.randf_range(0.9, 0.96)])
+	for k in 3:
+		cuts.append([_rand_dir(rng, 0.0), rng.randf_range(0.93, 0.975)])      # scars: faint secondary facets that break the outline
 	for c in cuts:
 		_cut(g, c[0], c[1], centre)
 	# flat underside (the buried part)
@@ -342,6 +344,9 @@ static func _boulder_geo(rng: RandomNumberGenerator, sz: Vector3, style: String,
 	_shade(g, sink, sz.y)
 	if style == "mossy" or style == "granite":
 		_moss_caps(g, mn * (0.03 if style == "mossy" else 0.0), 0.55 if style == "mossy" else 0.82)
+		_lichen_paint(g, 1.0)
+	if style != "basalt":
+		_band_tone(g, Vector3(0.0, 1.0, 0.0), clampf(sz.y * 0.24, 0.25, 0.9), 0.55)
 	return g
 
 
@@ -401,6 +406,8 @@ static func _slab_geo(rng: RandomNumberGenerator, sz: Vector3, style: String, ta
 			var c := g.col[i]
 			c.g = minf(c.g, 1.0 - m)
 			g.col[i] = c
+		_lichen_paint(g, 0.8)
+		_band_tone(g, Vector3.UP, clampf(sz.y * 0.3, 0.3, 1.0), 0.4)
 	return g
 
 
@@ -465,12 +472,14 @@ static func _strata_cliff(rng: RandomNumberGenerator, sz: Vector3, style: String
 		var xf := Transform3D(dip * Basis(Vector3.UP, b[2]) * Basis(Vector3.RIGHT, b[3]), c0)
 		# per-layer tone: cavity channel scaled so strata read in different shades
 		var tone := rng.randf_range(0.78, 1.0)
+		var band := rng.randf_range(0.6, 1.0)           # the layer's own shade (COLOR.a), darker under its ledge
 		for i in g.col.size():
-			g.col[i] = Color(tone, 1.0, 1.0)
+			g.col[i] = Color(tone, 1.0, 1.0, band * lerpf(0.8, 1.0, smoothstep(-half.y, half.y * 0.4, g.p[i].y)))
 		out.add(g, xf)
 	_shade(out, sink, sz.y)
 	if style == "mossy" or style == "granite":
 		_moss_caps(out, 0.05 if style == "mossy" else 0.0, 0.5 if style == "mossy" else 0.8)
+		_lichen_paint(out, 1.0)
 	if style == "ash":
 		_ember_cracks(out, sz * 0.5, 1.0)
 	return out
@@ -765,6 +774,29 @@ static func _moss_caps(g: Geo, thick: float, thresh: float) -> void:
 			g.p[i] = v + nrm[i] * m * thick * (0.6 + 0.8 * (_fbm(v * 4.0, 1) + 0.5))
 		var c := g.col[i]
 		c.g = 1.0 - m * (1.0 if thick > 0.0 else 0.6)
+		g.col[i] = c
+
+
+## Strata tone into COLOR.a (1 = neutral): each layer its own shade, a shadow line under each ledge. Same layering as
+## _strata (the vertices have moved a little since, so the bands sit near the ledges, not exactly on them).
+static func _band_tone(g: Geo, axis: Vector3, spacing: float, amt: float) -> void:
+	for i in g.p.size():
+		var v := g.p[i]
+		var t := v.dot(axis) / spacing + _fbm(v * 0.8 + Vector3(3, 7, 1), 2) * 0.5
+		var tone := 0.6 + 0.4 * fposmod(sin(floorf(t) * 12.9898 + 4.1) * 43758.5453, 1.0)
+		var c := g.col[i]
+		c.a = lerpf(1.0, tone * lerpf(0.8, 1.0, smoothstep(0.0, 0.2, t - floorf(t))), amt)
+		g.col[i] = c
+
+
+## Lichen: grey-green patches, noise-broken and favouring up-facing faces, into COLOR.b (styles without embers; the
+## shader's vcol_lichen turns it on).
+static func _lichen_paint(g: Geo, amt: float) -> void:
+	var nrm := _vertex_normals(g)
+	for i in g.p.size():
+		var m := smoothstep(0.58, 0.78, _fbm(g.p[i] * 2.3 + Vector3(11, 2, 5), 3) + 0.5 + nrm[i].y * 0.12) * amt
+		var c := g.col[i]
+		c.b = 1.0 - m
 		g.col[i] = c
 
 

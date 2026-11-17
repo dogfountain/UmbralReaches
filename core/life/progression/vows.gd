@@ -1,6 +1,6 @@
 class_name Vows
 extends Node
-## Vows: at Remembrance 5, 10, 15, 20, 25 and 30 the wanderer swears one of three vows. Each changes how the night is played;
+## Vows: at level 5, 10, 15, 20, 25 and 30 the wanderer swears one of three vows. Each changes how the night is played;
 ## none is a flat number. Eighteen in all, three to a tier, drawn from the Hearth (fire and rest), the Road (travel, horse, courier)
 ## and the Rift (the dark and the dead). A vow is chosen once, at the panel (ui/vow_panel.gd), which opens by itself when the
 ## wanderer is safe after a tier is reached (and again every two minutes until a choice is made); the choice is saved
@@ -96,7 +96,7 @@ static func choose(tier: int, id: String) -> void:
 		return
 	_st()[str(TIERS[tier])] = id
 	Events.toast.emit("A vow is sworn: %s." % String((DEFS[id] as Array)[2]))
-	Chronicle.write("vow:" + id, "level", "Sworn at Remembrance %d: %s." % [int(TIERS[tier]), String((DEFS[id] as Array)[2])])
+	Chronicle.write("vow:" + id, "level", "Sworn at level %d: %s." % [int(TIERS[tier]), String((DEFS[id] as Array)[2])])
 	Travel.save_soon()
 
 

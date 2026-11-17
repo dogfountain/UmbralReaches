@@ -25,6 +25,11 @@ static func add(id: String, centre: Vector3, yaw: float, half: Vector3, warm := 
 	_rooms[id] = {"inv": Transform3D(Basis(Vector3.UP, yaw), centre).affine_inverse(), "half": half, "warm": warm}
 
 
+## The registered rooms (id -> {inv, half, warm}): read-only (the night's light audit looks for fixtures in each).
+static func rooms() -> Dictionary:
+	return _rooms
+
+
 ## 1.0 inside a warm room, 0.5 inside a cold one, else 0.0.
 static func at(pos: Vector3) -> float:
 	for id: String in _rooms:

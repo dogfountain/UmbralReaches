@@ -113,7 +113,7 @@ func _apply() -> void:
 	var col := Atmosphere.MOON_COLOR.lerp(Color(0.8, 0.88, 1.0), 0.35 * high)
 	# a veil: the light breathes a tenth, and slow clouds take a quarter now and then
 	var veil := 1.0 - 0.08 * (0.5 + 0.5 * sin(_t * 0.09)) - 0.17 * pow(maxf(0.0, sin(_t * 0.023 + 1.7) * sin(_t * 0.061)), 2.0)
-	moon.light_energy = Atmosphere.MOON_ENERGY * veil * lerpf(1.0, 0.1, e)
+	moon.light_energy = Atmosphere.MOON_ENERGY * veil * Reg.moon_gain * Reg.arena_dim * Reg.weather_dim * lerpf(1.0, 0.1, e)
 	_last = moon.light_energy
 	moon.light_color = col.lerp(COPPER, e)
 	moon.light_volumetric_fog_energy = Atmosphere.MOON_FOG * lerpf(1.0, 0.2, e)

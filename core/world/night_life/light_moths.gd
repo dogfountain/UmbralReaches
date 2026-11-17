@@ -30,16 +30,7 @@ func _ready() -> void:
 		_scatter.append(0.0)
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	mat.billboard_keep_scale = true
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.vertex_color_use_as_albedo = true
-	mat.albedo_texture = _moth()
-	mat.albedo_color = Color(1.4, 1.4, 1.4, 1.0)
+	var mat := material()
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
@@ -54,6 +45,21 @@ func _ready() -> void:
 	_mm.custom_aabb = AABB(Vector3(-2000, -400, -2000), Vector3(4000, 1200, 4000))
 	_mm.add_to_group(Groups.CULL_SKIP)
 	add_child(_mm)
+
+
+## The moths' material: additive billboard quads with a soft dot, vertex colour as albedo (NightWarm draws one behind the loading cover).
+static func material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = _moth()
+	m.albedo_color = Color(1.4, 1.4, 1.4, 1.0)
+	return m
 
 
 func _process(delta: float) -> void:
@@ -94,7 +100,7 @@ func _process(delta: float) -> void:
 			var h := 0.15 * float(m % 5) - 0.2 + 0.22 * sin(_t * 1.6 + ph * 3.0) + _scatter[s] * 2.0
 			var q := p + Vector3(cos(a) * rad, h, sin(a) * rad)
 			var size := (0.09 if cold else 0.07) * (0.7 + 0.5 * absf(sin(_t * 17.0 + ph * 5.0)))   # the wings flapping, edge-on and flat
-			var glow := (0.45 + 0.55 * absf(sin(_t * 11.0 + ph * 4.0))) * vis * (1.0 - 0.5 * _scatter[s])
+			var glow := (0.45 + 0.55 * absf(sin(_t * 11.0 + ph * 4.0))) * vis * (1.0 - 0.5 * _scatter[s]) * (1.0 - 0.7 * Reg.indoor)
 			mm.set_instance_transform(n, Transform3D(Basis.IDENTITY.scaled(Vector3(size, size, size)), q))
 			mm.set_instance_color(n, Color(col.r, col.g, col.b, glow))
 			n += 1

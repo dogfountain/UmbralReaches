@@ -17,6 +17,7 @@ extends Node
 ## XP rules (by foe, discovery, rested XP) are documented in level.gd.
 
 const HearthDB := preload("res://core/life/progression/hearth_db.gd")
+const Access := preload("res://ui/access.gd")
 const PathsDB := preload("res://core/life/progression/paths_db.gd")
 const VState := preload("res://core/life/village/village_state.gd")
 const SID := "hearth"
@@ -259,7 +260,7 @@ func give_memory(n: int, why: String) -> void:
 	last_gain = n
 	last_why = why
 	if after > before:
-		Events.toast.emit("Something comes back to you. Remembrance %d: a step on the Paths [%s]." % [after, InputSetup.live_label("kindling", Settings.using_pad, "K")])
+		Events.toast.emit("Something comes back to you. Level %d: a step on the Paths [%s]." % [after, InputSetup.live_label("kindling", Settings.using_pad, "K")])
 		_ding()
 		leveled_up.emit(after, free_points())
 		Travel.save_soon()
@@ -271,7 +272,7 @@ func _ding() -> void:
 	var pl := _player()
 	if pl == null or not pl.is_inside_tree():
 		return
-	Vfx.burst(pl.global_position + Vector3(0, 0.2, 0), Color(2.4, 1.7, 0.8), {"count": 60, "life": 1.4, "speed": Vector2(1.5, 4.0), "size": 0.05, "gravity": -1.2, "radius": 0.5})
+	Vfx.burst(pl.global_position + Vector3(0, 0.2, 0), Color(2.4, 1.7, 0.8) * Color(Access.flash(), Access.flash(), Access.flash(), 1.0), {"ratio": Access.flash(), "count": 60, "life": 1.4, "speed": Vector2(1.5, 4.0), "size": 0.05, "gravity": -1.2, "radius": 0.5})
 	UiSound.play(self, "level_up")        # its own rising run (the ward chime is the chest's, the pickups' and the kindling's cue)
 
 

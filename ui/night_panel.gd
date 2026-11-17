@@ -142,7 +142,7 @@ func show_summary() -> void:
 	_line("What the night asked, and what it left.", 17, DIM, true)
 	_line("Put down: %d.   Fallen into the dark: %d.   Countries found: %d.   Parcels carried: %d.   Camps made: %d." % [kills, falls, places, runs, camps], 20)
 	if level > lv0:
-		_line("Remembrance %d to %d." % [lv0, level], 20, GILT)
+		_line("Level %d to %d." % [lv0, level], 20, GILT)
 	var names := Tally.latest(mini(kills, 3))
 	if not names.is_empty():
 		_line("The fire counted: %s." % ", ".join(names), 18)

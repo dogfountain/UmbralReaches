@@ -27,6 +27,7 @@ const TICK := 0.06
 
 const MYSTERY_WORDS := ["barrow", "crypt", "henge", "stones", "circle", "grave", "cairn", "well", "spring", "altar", "falls", "fall", "crater",
 	"chain", "oak", "hollow", "rune", "sigil", "cist", "tomb", "sunk", "mere", "ring", "wisp", "star", "ossuary", "vault", "pit_gate"]
+const FIRE_WORDS := ["furnace", "forge", "kiln", "camp", "fire", "hearth", "bonfire", "smithy", "smelter", "lava", "cinder", "pyre"]
 const TOWER_WORDS := ["tower", "spire", "watch", "belfry", "bell", "lighthouse", "crane", "keep", "gate"]
 const WINDOW_WORDS := ["chapel", "nave", "shrine", "almonry", "hall", "inn", "tavern", "mill", "cottage", "house", "lodge", "hermit", "manor",
 	"abbey", "cloister", "town", "kiln", "forge", "smithy", "foundry", "press", "stable", "weir", "ford", "market"]
@@ -50,36 +51,48 @@ func _ready() -> void:
 	global_transform = Transform3D.IDENTITY
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE
-	_card_mat = StandardMaterial3D.new()
-	_card_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_card_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_card_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_card_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	_card_mat.billboard_keep_scale = true
-	_card_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_card_mat.disable_fog = true
-	_card_mat.vertex_color_use_as_albedo = true
-	_card_mat.albedo_texture = _spark()
-	_card_mat.albedo_color = Color(1.5, 1.5, 1.5, 1.0)            # over 1: the glow pass (threshold 1.15) blooms the point
-	_card_mat.no_depth_test = false
+	_card_mat = card_material()
 	_cards = _multimesh("FarCards", quad, _card_mat, MAX_CARDS)
 	var flat := QuadMesh.new()
 	flat.size = Vector2.ONE
 	flat.orientation = PlaneMesh.FACE_Y
-	_pool_mat = StandardMaterial3D.new()
-	_pool_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_pool_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_pool_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_pool_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_pool_mat.vertex_color_use_as_albedo = true
-	_pool_mat.albedo_texture = _pool()
-	_pool_mat.albedo_color = Color(1.2, 1.2, 1.2, 1.0)
-	_pool_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-	_pool_mat.proximity_fade_enabled = true
-	_pool_mat.proximity_fade_distance = 0.6
+	_pool_mat = pool_material()
 	_pools = _multimesh("Pools", flat, _pool_mat, MAX_POOLS)
 	Events.brazier_kindled.connect(_on_kindled)
 	_scan = 0.0
+
+
+## The far card's material: unshaded, additive, billboard, fog-free, vertex colour as albedo (NightWarm draws one behind the loading cover).
+static func card_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.disable_fog = true
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = _spark()
+	m.albedo_color = Color(1.5, 1.5, 1.5, 1.0)            # over 1: the glow pass (threshold 1.15) blooms the point
+	m.no_depth_test = false
+	return m
+
+
+## The ground pool's material: a flat additive disc, proximity-faded where it meets the ground.
+static func pool_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = _pool()
+	m.albedo_color = Color(1.2, 1.2, 1.2, 1.0)
+	m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	m.proximity_fade_enabled = true
+	m.proximity_fade_distance = 0.6
+	return m
 
 
 func _multimesh(n: String, mesh: Mesh, mat: Material, count: int) -> MultiMeshInstance3D:
@@ -110,6 +123,7 @@ func _on_kindled(_b: Node3D) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	Reg.pulse = maxf(0.0, Reg.pulse - delta * 1.8)
 	visible = Reg.enabled
 	if not Reg.enabled:
 		return
@@ -171,6 +185,9 @@ func _discover() -> void:
 
 
 static func _classify(s: String) -> int:
+	for w: String in FIRE_WORDS:
+		if s.contains(w):
+			return Reg.Kind.FIRE
 	for w: String in TOWER_WORDS:
 		if s.contains(w):
 			return Reg.Kind.TOWER
@@ -216,6 +233,7 @@ func _draw() -> void:
 	var np := 0
 	var t := _t
 	var gm := Reg.gain_mul
+	var vis := Reg.vis
 	for i in Reg.size():
 		if Reg.on[i] == 0:
 			continue
@@ -224,11 +242,11 @@ func _draw() -> void:
 		var k := int(Reg.kind[i])
 		var col := Reg.colour(k)
 		var sh := Reg.shimmer(i, t)
-		var g: float = Reg.gain[i] * gm * (1.0 + Reg.boost[i])
+		var g: float = Reg.gain[i] * gm * (1.0 + Reg.boost[i] + 0.9 * Reg.flash + 1.2 * Reg.pulse)
 		if d > NEAR_OFF and d < FAR_FADE_B and nc < MAX_CARDS:
-			var a := smoothstep(NEAR_OFF, NEAR_ON, d) * (1.0 - smoothstep(FAR_FADE_A, FAR_FADE_B, d)) * g * sh
+			var a := smoothstep(NEAR_OFF, NEAR_ON, d) * (1.0 - smoothstep(FAR_FADE_A * vis, FAR_FADE_B * vis, d)) * g * sh
 			if a > 0.01:
-				var s := d * ANGLE * (1.25 if k == Reg.Kind.FIRE or k == Reg.Kind.TOWER else (0.8 if k == Reg.Kind.WINDOW else 1.0))
+				var s := d * ANGLE * (1.0 + 0.7 * Reg.haze) * (1.25 if k == Reg.Kind.FIRE or k == Reg.Kind.TOWER else (0.8 if k == Reg.Kind.WINDOW else 1.0))
 				var bob := Vector3.ZERO
 				if k == Reg.Kind.MYSTERY:
 					bob = Vector3(sin(t * 0.37 + Reg.phase[i]) * 0.6, sin(t * 0.61 + Reg.phase[i] * 2.0) * 0.7, cos(t * 0.29 + Reg.phase[i]) * 0.6)
@@ -236,7 +254,7 @@ func _draw() -> void:
 				cmm.set_instance_color(nc, Color(col.r, col.g, col.b, minf(a, 1.0)))
 				nc += 1
 		if d < POOL_FADE_B and Reg.real[i] == 0 and k != Reg.Kind.COLD and np < MAX_POOLS:
-			var pa := (1.0 - smoothstep(POOL_FADE_A, POOL_FADE_B, d)) * g * sh * 0.26
+			var pa := (1.0 - smoothstep(POOL_FADE_A, POOL_FADE_B, d)) * g * sh * 0.26 * (1.0 - Reg.indoor)
 			if pa > 0.01:
 				var r := 4.6 if k == Reg.Kind.FIRE else (2.4 if k == Reg.Kind.WINDOW else 3.4)
 				var gy: float = Reg.ground[i]

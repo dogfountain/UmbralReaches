@@ -308,11 +308,20 @@ func _run() -> void:
 			if String(ws.get("seal_id")) == "henge" and not bool(ws.call("is_open")):
 				Travel.seals_broken["henge"] = true
 				Events.seal_broken.emit("henge")
-		await _frames(200)
 		var marks := 0
+		for _i in 12:                          # the secrets director looks every 2.5 s: wait up to ~6 s (time, not frames)
+			for vp: Node in get_tree().root.find_children("*", "CanvasLayer", true, false):
+				if vp is VowPanel:                 # r39: the rewards above reach a vow tier; its offer pauses the night until chosen
+					(vp as VowPanel).close()
+			await get_tree().create_timer(0.5).timeout
+			marks = 0
+			for n in get_tree().get_nodes_in_group(&"ward_seal"):
+				if (n as Node).has_meta("secrets_marked"):
+					marks += 1
+			if marks >= 1:
+				break
 		for n in get_tree().get_nodes_in_group(&"ward_seal"):
-			if (n as Node).has_meta("secrets_marked"):
-				marks += 1
+			print("CHECK seal %s open %s marked %s" % [n.get("seal_id"), n.call("is_open"), (n as Node).has_meta("secrets_marked")])
 		check("seal break leaves a mark (%d)" % marks, marks >= 1)
 
 	# --- persistence ------------------------------------------------------------------------------------

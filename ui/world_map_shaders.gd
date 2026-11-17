@@ -80,6 +80,7 @@ void fragment() {
 const FOG_SHADER := """
 shader_type canvas_item;
 uniform sampler2D fog_tex : filter_linear, repeat_disable;
+uniform sampler2D sketch_tex : filter_linear, repeat_disable;
 uniform vec2 res;
 void fragment() {
 	vec4 ink = texture(TEXTURE, UV);
@@ -89,7 +90,15 @@ void fragment() {
 	float x = m + (n - 0.5) * 0.4;
 	float k = smoothstep(0.34, 0.6, x);
 	vec4 col = vec4(ink.rgb, ink.a * k);
-	float mist = (1.0 - k) * 0.24 * (0.55 + 0.9 * fbm(px / 90.0 + 5.0));
+	// the charcoal sketch: ground seen but not yet a found country is drawn in grey strokes, rough at the edge, grain in the tooth
+	float sk = texture(sketch_tex, UV).r;
+	float ks = smoothstep(0.30, 0.58, sk + (n - 0.5) * 0.55) * (1.0 - k);
+	float lum = dot(ink.rgb, vec3(0.299, 0.587, 0.114));
+	float tooth = 0.5 + 0.5 * vnoise(px / 1.7);
+	float hatch = 0.78 + 0.22 * step(0.5, fract((px.x - px.y) / 4.5 + n * 2.0));
+	vec4 charcoal = vec4(vec3(0.15, 0.13, 0.12) + lum * 0.1, ink.a * ks * 0.7 * tooth * hatch);
+	float mist = (1.0 - k) * 0.24 * (0.55 + 0.9 * fbm(px / 90.0 + 5.0)) * (1.0 - 0.8 * ks);
+	col = over(charcoal, col);
 	col = over(vec4(0.52, 0.40, 0.26, mist), col);
 	float fwx = max(fwidth(x), 0.0004);
 	float edge = (1.0 - smoothstep(0.8, 2.0, abs(x - 0.47) / fwx)) * step(0.45, fbm(px / 20.0 + 9.0)) * step(0.01, 1.0 - m);

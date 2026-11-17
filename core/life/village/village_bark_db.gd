@@ -92,7 +92,7 @@ const BARKS := [
 	{"who": "penn", "if": "qp:arches_keeper:read", "say": "A thread of water ran the whole channel, they say, and was gone. A sum, closed."},
 	{"who": "hesper", "if": "qp:oak_memory:root", "say": "The apple bloomed three weeks early. I stood under it in my nightgown at midnight like a madwoman. My mother's mother would have done the same."},
 	{"who": "ebba", "if": "qp:lanternwood_debt:shore", "say": "There is a wood on my landing. A dozen caps by morning. The reed-folk are very polite about it."},
-	{"who": "burl", "if": "qp:cairn_count:wick", "say": "There is a lamp in the south window. I have not been able to stop looking at it. I think the heath looks back."},
+	{"who": "wat", "if": "qp:cairn_count:wick", "say": "There is a lamp in the south window. I have not been able to stop looking at it. I think the heath looks back."},
 	{"who": "ardel", "if": "qp:brine_road:lamp", "say": "The Spire's shutter is open, and for the first time the pans have a view of it. I have taken to waving."},
 ]
 

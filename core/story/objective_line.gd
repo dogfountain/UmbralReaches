@@ -12,6 +12,7 @@ const LANTERN := Color("#FFB347")
 const QUIET := Color(0.8, 0.82, 0.92, 0.88)
 const TITLE := Color(1.0, 0.78, 0.46, 0.92)
 const UIType := preload("res://ui/type.gd")
+const Access := preload("res://ui/access.gd")
 const TextDirector := preload("res://ui/text_director.gd")
 const Guide := preload("res://core/story/guide.gd")
 const QuestTrack := preload("res://core/story/quest_track.gd")
@@ -176,7 +177,7 @@ func _mark_of(o: Dictionary) -> String:
 func _flash(c: Control) -> void:
 	c.modulate = Color(LANTERN.r, LANTERN.g, LANTERN.b, 0.0)
 	var tw := create_tween()
-	tw.tween_property(c, "modulate", Color(1.4, 1.1, 0.8, 1.0), 0.6)
+	tw.tween_property(c, "modulate", Color.WHITE.lerp(Color(1.4, 1.1, 0.8, 1.0), Access.flash()), 0.6)
 	tw.tween_property(c, "modulate", Color.WHITE, 1.4)
 
 

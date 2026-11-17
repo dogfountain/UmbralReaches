@@ -7,6 +7,7 @@ extends RefCounted
 ## and every distance continuous. A wave and a nod are overlays on any act. Static; `a` is the FolkActor.
 const Life := preload("res://core/npc/npc_life.gd")
 const Idle := preload("res://core/life/village/villager_idle.gd")
+const More := preload("res://core/life/folk/folk_more.gd")
 
 const SCALE := 1.1                         ## VillagerRig.SCALE
 const B_SPINE := 1
@@ -82,6 +83,8 @@ static func pose(a: Variant, dt: float) -> void:
 			head -= 0.7
 		"walk":
 			off = _walk(a, r, k)
+		"drunk", "chop_wood", "hammer", "lamp", "lean", "bless":
+			off = More.pose(a, act, r, k, dt)
 		_:
 			off = _stand(a, r, k, dt, free_r, free_l, breath)
 	head += float(a.data.get("head", 0.0))
@@ -203,6 +206,10 @@ static func _tool_hold(a: Variant, r: Variant, k: float, _free_r: bool, _free_l:
 			r.hold(0, Vector3(0.24, 1.0, -0.12) * k, Vector3(0.1, 0.9, 0.3), Vector3(0, 0, 1))
 		"bow":
 			r.hold(0, Vector3(0.24, 0.9, -0.1) * k, Vector3(0.0, -1.0, -0.2), Vector3(0, 0, 1))
+		"pole":
+			r.hold(0, Vector3(0.27, 0.95 + 0.03 * sr, -0.17) * k, Vector3(0.03, 1.0, -0.1), Vector3(0, 0, -1))
+		"jug":
+			r.hold(0, Vector3(0.27, 0.9, -0.1) * k, Vector3(0, 0, -1), Vector3(0, -1, 0))
 
 
 static func _walk(a: Variant, r: Variant, k: float) -> float:

@@ -58,3 +58,18 @@ transform, exp smoothing throughout), wildlife flocks and herds (drawn between t
   pose shows as posed (`f = 1`) one tick after the last pose.
 - Frame time: boss `_process` is 16 quaternion slerps; the ClipRig capture is one pass over the bones per tick and a
   slerp per bone per frame (50 to 100 bones). Expect no measurable cost; check `fight_bench`.
+
+
+---
+
+# Round two: the new systems (smooth by construction)
+
+| System | How it is smooth | Film |
+|---|---|---|
+| The folk (folk_actor.gd) | speed and yaw ease with 1 - exp(-k dt); the pose is made at the villagers' distance rate and eased between updates (blend_from / blend_to / blend_step); a 0.28 s crossfade on every act change (xfade_check / xfade_apply); the gait is paced by the ground covered; every gesture is an envelope; arm IK targets are lerped from the rest pose by it | the Keg's front at 20, 8 and 2 m at 60 and 144 Hz: sweeper rest, fiddler pause, dancer starting and stopping, a wave beginning and ending |
+| The children's games (folk_roles.gd) | targets are points ahead on the ring or a spot; the actor's easing does the rest: a tag is a stop with a cheer, a hide is a crouch eased in over 0.5 s | one full tag then seek cycle |
+| Pets (pets.gd) | yaw, speed, head, pitch, tilt, scale all eased with 1 - exp(-k dt); gait phase advances with distance; leaps are a parabola on a clock | a dog following the watchman, a cat's leap |
+| Horses in the paddock (horse_paddock.gd) | speed eases at 3 per second, the yaw at 2.6, the ground follows by 8 per second; the node's physics interpolation is off while it strolls (moved every rendered frame) and given back when it is bought | a stable at dusk |
+| The wanderer's idles (wanderer_idles.gd) | each act is an envelope of the rig's `_ia_k` (in 6 per second, out 5); the condition overlays (limp, breath, the lantern raised) are continuous functions of eased context values (injury 1.5 per second, darkness 1.2) | stand by a fire, in rain, after a sprint |
+| Villager idles (villager_fidgets.gd) | each gesture has an envelope; the arms are touched only while it is live; the wave is eased in and out over 2.4 s | the market square at 15 m |
+| The sky, weather and light (sky_life.gd, weather_life.gd, arena_light.gd, region_grade.gd) | every value that changes is eased with dt (cloud 0.15 per second, wetness one minute up and five down, arena colours 1.2 to 2 per second, region grade 0.5 per second) | a walk from the heath to the wood; a boss phase change |

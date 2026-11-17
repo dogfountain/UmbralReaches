@@ -59,12 +59,23 @@ static func mat(key: String) -> Material:
 		"stone":      _tri(m, "oss_ashlar", 0.32, Color(0.92, 0.9, 0.88))
 		"plaster":    _daub(m, 0.16, Color(0.84, 0.82, 0.78))        # lime daub, cracked and stained (oss_plaster's bare-brick holes read as leopard print on every facade)
 		"brick":      _tri(m, "oss_brick", 0.5, Color(0.95, 0.92, 0.9))
-		"ruin":       _tri(m, "oss_ruin", 0.4, Color(0.95, 0.93, 0.9))
+		"ruin":       _tri(m, "oss_ruin", 0.4, Color(1.12, 1.1, 1.07))
 		"floor":      _tri(m, "oss_floor", 0.22, Color(0.9, 0.88, 0.86))
-		"dark":       _tri(m, "rock", 0.5, Color(0.16, 0.14, 0.15))
+		"dark":       _tri(m, "rock", 0.5, Color(0.26, 0.24, 0.25))
 		"iron":       _tri(m, "tavern_iron", 0.6, Color(0.5, 0.48, 0.5))
 		"wood":       _tri(m, "tavern_wood", 0.5, Color(0.7, 0.57, 0.46))
 		"slate":      _tri(m, "oss_slate", 0.45, Color(0.9, 0.9, 0.95))
+		# the world pass masonry scale tiers: a colossal work's courses are 2-3 times a house's, so its blocks read as the size they are
+		# (the world-triplanar texture scale is per metre: half the scale, twice the stone)
+		"stone_big":  _tri(m, "oss_ashlar", 0.14, Color(0.9, 0.9, 0.92))
+		"ruin_big":   _tri(m, "oss_ruin", 0.17, Color(1.08, 1.06, 1.04))
+		"brick_big":  _tri(m, "oss_brick", 0.22, Color(0.95, 0.92, 0.9))
+		"wood_big":   _tri(m, "tavern_wood", 0.24, Color(0.52, 0.47, 0.42))
+		"bark":       _tri(m, "bark", 0.2, Color(0.62, 0.56, 0.5))
+		"chalk":      _tri(m, "oss_ashlar", 0.2, Color(1.1, 1.1, 1.18))
+		"cave":       _tri(m, "rock", 0.13, Color(0.52, 0.55, 0.62))
+		"cave_moss":  _tri(m, "rock", 0.15, Color(0.4, 0.62, 0.42))
+		"crystal":    _tri(m, "oss_ashlar", 0.5, Color(0.7, 0.95, 1.35))
 		"bone", "bone_cm":
 			_tri(m, "oss_bone", 1.6, Color(1.0, 0.97, 0.92))
 			m.vertex_color_use_as_albedo = true
@@ -180,25 +191,26 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 	var ez := b.z.normalized()
 	var h := size.abs() * 0.5
 	if solid and size.x > 0.05 and size.y > 0.05 and size.z > 0.05:
-		solids.append([c, b.orthonormalized(), h])
+		solids.append([c, b.orthonormalized(), h, key])
 	if solid:
 		_box_col(c, ex * h.x, ey * h.y, ez * h.z)
 	var mn := minf(size.x, minf(size.y, size.z))
 	# small, uneven arris (1-3 cm, never a fixed 4.5 cm chamfer): real dressed stone is eased, not milled
 	var rb := float(absi(hash(Vector3i((c * 37.0).round()))) % 1000) / 1000.0
 	var ch := 0.0 if mn < 0.09 else minf(mn * 0.08, BEVEL * (0.3 + 0.7 * rb))
-	var jit := 0.93 + 0.1 * float(absi(hash(Vector3i((c * 20.0).round()))) % 1000) / 1000.0
+	var jit := 0.9 + 0.13 * float(absi(hash(Vector3i((c * 20.0).round()))) % 1000) / 1000.0
 	var ybot := c.y - absf(ex.y) * h.x - absf(ey.y) * h.y - absf(ez.y) * h.z
 	var upright := ey.y > 0.95
 	var st := _tool(key)
 	var sh := shade * jit
 	var hc := h - Vector3.ONE * ch
 	for s: float in [-1.0, 1.0]:
-		_rect(st, c + ex * (s * h.x), ez * hc.z, ey * hc.y, ex * s, sh, ybot, upright)
-		_rect(st, c + ez * (s * h.z), ex * hc.x, ey * hc.y, ez * s, sh, ybot, upright)
-		_rect(st, c + ey * (s * h.y), ex * hc.x, ez * hc.z, ey * s, sh, ybot, false)
+		_face(st, c + ex * (s * h.x), ez * hc.z, ey * hc.y, ex * s, sh, ybot, upright)
+		_face(st, c + ez * (s * h.z), ex * hc.x, ey * hc.y, ez * s, sh, ybot, upright)
+		_face(st, c + ey * (s * h.y), ex * hc.x, ez * hc.z, ey * s, sh, ybot, false)
 	if ch <= 0.0:
 		return
+	sh *= 1.15                         # worn edges: the eased arris catches the light (vertex colour clamps at 1, so only the darker stones gain)
 	for sa: float in [-1.0, 1.0]:
 		for sb: float in [-1.0, 1.0]:
 			# vertical arrises (x/z), then the x/y and y/z ones
@@ -219,7 +231,7 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 				_tri3(st, a, bb, cc, (ex * sa + ey * sb + ez * sc).normalized(), sh, ybot)
 
 
-const BEVEL := 0.03
+const BEVEL := 0.04
 var candle_lights := true   ## commit() puts a small warm light at each cluster of candles (a few metres apart, at most 28), so a crypt's candles light the stone round them
 var _cluster_pts: Array[Vector3] = []
 const FLOOR_LIFT := 0.015         ## floor slabs stand this much proud of the masonry they sit on (no coplanar tops)
@@ -237,13 +249,50 @@ static func _ao(n: Vector3, y: float, ybot: float, under := 0.6) -> float:
 	return lerpf(AO_FLOOR, 1.0, t * t * (3.0 - 2.0 * t))
 
 
-## Vertex colour: contact AO plus damp grime at a wall's foot (a touch of green-brown, never brighter).
-static func _grime(n: Vector3, y: float, ybot: float, shade: float, under: float) -> Color:
-	var k := shade * _ao(n, y, ybot, under)
+## Vertex colour: contact AO plus damp grime at a wall's foot (a touch of green-brown, never brighter), and the world pass's
+## macro weathering: a slow patchwork across every wall and roof, by world position (two sines, 20-60 m patches: a
+## +-7 % tone drift, a warm/cool shift, moss on the up faces where the patch is damp). Faces are big and their vertices few,
+## so the colour is interpolated across them: no texture, no shader, no cost. Position-based, so neighbouring pieces agree.
+static func _grime(n: Vector3, y: float, ybot: float, shade: float, under: float, p := Vector3.ZERO) -> Color:
+	var m := 0.5 * sin(p.x * 0.23 + p.z * 0.31 + p.y * 0.05) + 0.5 * sin(p.x * 0.11 - p.z * 0.19 + p.y * 0.4)
+	var k := shade * _ao(n, y, ybot, under) * (1.0 + 0.07 * m)
+	var cr := 1.0 + 0.03 * m
+	var cb := 1.0 - 0.03 * m
 	if absf(n.y) > 0.68:
-		return Color(k, k, k)
-	var m := 1.0 - clampf((y - ybot) / AO_RISE, 0.0, 1.0)
-	return Color(k * (1.0 - 0.1 * m), k * (1.0 - 0.02 * m), k * (1.0 - 0.2 * m))
+		if n.y > 0.0 and m > 0.15:
+			var mo := smoothstep(0.15, 0.7, m)
+			return Color(k * cr * (1.0 - 0.06 * mo), k * (1.0 + 0.05 * mo), k * cb * (1.0 - 0.08 * mo))
+		return Color(k * cr, k, k * cb)
+	var d := 1.0 - clampf((y - ybot) / AO_RISE, 0.0, 1.0)
+	return Color(k * cr * (1.0 - 0.1 * d), k * (1.0 - 0.02 * d), k * cb * (1.0 - 0.2 * d))
+
+
+## A big face in relief (kits with `relief`: the landmarks): faces over 1.2 m both ways are cut into ~1.6 m ashlar cells, each
+## proud of a darker recessed base by 0-5 cm with its own tone, mortar gaps showing the base: cut stone, not a slab. Collision stays
+## the plain box; the extra triangles are build-time geometry (a cell is 2 triangles, the base 2).
+var relief := false
+var debris_max := 3                     ## > 0: commit() dresses up to this many tall RUIN walls (key ruin / ruin_big): fallen blocks at the foot, a carved band, crown rubble. A handful of boxes a kit, same mesh and draw as the wall
+
+
+func _face(st: SurfaceTool, ctr: Vector3, u: Vector3, v: Vector3, n: Vector3, shade: float, ybot: float, split: bool) -> void:
+	var ul := u.length()
+	var vl := v.length()
+	if not relief or ul < 1.2 or vl < 1.2:
+		_rect(st, ctr, u, v, n, shade, ybot, split)
+		return
+	var nu := clampi(int(ul * 2.0 / 1.6), 1, 14)
+	var nv := clampi(int(vl * 2.0 / 1.6), 1, 14)
+	_rect(st, ctr - n * 0.06, u, v, n, shade * 0.6, ybot, false)
+	var cu := u / float(nu)
+	var cv := v / float(nv)
+	for i in nu:
+		for j in nv:
+			var c := ctr + u * ((float(i) + 0.5) / float(nu) * 2.0 - 1.0) + v * ((float(j) + 0.5) / float(nv) * 2.0 - 1.0)
+			var hv := float(absi(hash(Vector3i((c * 11.0).round()))) % 1000) / 1000.0
+			var hv2 := float(absi(hash(Vector3i((c * 7.0).round() + Vector3(5.0, 3.0, 1.0)))) % 1000) / 1000.0
+			var du := cu * (1.0 - 0.05 / maxf(cu.length(), 0.05))
+			var dv := cv * (1.0 - 0.05 / maxf(cv.length(), 0.05))
+			_rect(st, c + n * (0.012 + 0.05 * hv), du, dv, n, shade * (0.86 + 0.2 * hv2), ybot, false)
 
 
 ## Rectangle centre +-u +-v facing n. Upright side faces are split at the AO band so the contact
@@ -265,7 +314,7 @@ func _rect(st: SurfaceTool, ctr: Vector3, u: Vector3, v: Vector3, n: Vector3, sh
 		tri = [a, c, b, a, d, c]
 	for p in tri:
 		st.set_normal(n)
-		st.set_color(_grime(n, p.y, ybot, shade, under_shade))
+		st.set_color(_grime(n, p.y, ybot, shade, under_shade, p))
 		st.add_vertex(p)
 
 
@@ -275,7 +324,7 @@ func _tri3(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, n: Vector3, shad
 		tri = [a, c, b]
 	for p in tri:
 		st.set_normal(n)
-		st.set_color(_grime(n, p.y, ybot, shade, under_shade))
+		st.set_color(_grime(n, p.y, ybot, shade, under_shade, p))
 		st.add_vertex(p)
 
 
@@ -744,6 +793,8 @@ func bone_count() -> int:
 ## collision soup, and the prop MultiMeshes (one per prop mesh). Returns draw calls added.
 func commit(parent: Node3D, body_name := "Body") -> int:
 	var draws := 0
+	if debris_max > 0:
+		_debris()
 	for key in _st:
 		var st: SurfaceTool = _st[key]
 		var mi := MeshInstance3D.new()
@@ -808,6 +859,47 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 	if candle_lights:
 		_light_clusters(parent)
 	return draws + int(counter[0])
+
+
+## Fallen blocks at the foot of tall upright walls (non-solid, the wall's own material): up to `debris_max` walls,
+## chosen by a hash of their place, 1-3 blocks each, thrown to the side the hash picks.
+func _debris() -> void:
+	var made := 0
+	for sb in solids.duplicate():
+		if made >= debris_max or (sb as Array).size() < 4:
+			continue
+		var c: Vector3 = sb[0]
+		var b: Basis = sb[1]
+		var h: Vector3 = sb[2]
+		if h.y < 1.4 or absf(b.y.y) < 0.95 or h.y * 2.0 < minf(h.x, h.z) * 1.6:
+			continue
+		var hv := absi(hash(Vector3i((c * 3.0).round()))) % 100
+		if hv > 40:
+			continue
+		var key: String = sb[3]
+		if not key.begins_with("ruin"):
+			continue
+		var out := b.z if h.x > h.z else b.x
+		if hv % 2 == 0:
+			out = -out
+		var base_y := c.y - h.y
+		for i in 1 + hv % 3:
+			var r := float((hv * (i + 3)) % 100) / 100.0
+			var p := c + out * (maxf(h.x, h.z) + 0.5 + r * 1.4) + b.x * ((r - 0.5) * 2.0 * h.x * 0.6)
+			p.y = base_y + 0.2 + 0.1 * float(i)
+			var sz := Vector3(0.5 + 0.7 * r, 0.3 + 0.3 * r, 0.45 + 0.5 * (1.0 - r))
+			box(key, p, sz, Basis(Vector3.UP, r * TAU) * Basis(Vector3.RIGHT, (r - 0.5) * 0.5), false, 0.78 + 0.2 * r)
+		# a carved band along the long face (a darker, proud course), and two tilted stones on the broken crown
+		var along := b.x if h.x > h.z else b.z
+		var lh := maxf(h.x, h.z)
+		var th := minf(h.x, h.z)
+		if lh > 1.2:
+			var face := out * (1.0 if hv % 4 < 2 else -1.0)
+			box(key, c + face * (th + 0.02) + Vector3.UP * h.y * 0.4, (Vector3(lh * 1.7, 0.18, 0.06) if h.x > h.z else Vector3(0.06, 0.18, lh * 1.7)), b, false, 0.7)
+		for s: float in [-1.0, 1.0]:
+			var q := float((hv * 7 + (3 if s > 0.0 else 0)) % 100) / 100.0
+			box(key, c + along * (s * lh * (0.3 + 0.5 * q)) + Vector3.UP * (h.y + 0.1), Vector3(0.45 + 0.4 * q, 0.22, th * 1.5), Basis(Vector3.UP, q * 0.8) * Basis(Vector3.BACK, (q - 0.5) * 0.7), false, 0.8)
+		made += 1
 
 
 ## One unshadowed warm light per few clustered candles (fade past 14 m): the wax lights the walls and the floor round it.

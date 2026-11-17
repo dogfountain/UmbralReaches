@@ -210,7 +210,10 @@ func _horses() -> void:
 	ev.action = "mount"
 	ev.pressed = true
 	Input.parse_input_event(ev)
-	await _wait(0.3)
+	for _i in 40:                              # r39: the horse runs to the whistle along the ground (no teleport under 300 m)
+		await _wait(0.25)
+		if h.global_position.distance_to(p.global_position) < 6.0:
+			break
 	ok(h.global_position.distance_to(p.global_position) < 6.0, "[H] calls your horse to you (%.1f m)" % h.global_position.distance_to(p.global_position))
 
 

@@ -57,11 +57,9 @@ var _stick_label: Label
 var _hint_line: Label
 var _erase_btn: Button
 var _reset_btn: Button
+var _compass_option: OptionButton
 var _hud_checks := {}                ## CheckButton -> the HudPrefs choice it shows ("unit_frames", ... or "track:quests"), for a reset
-var _bind_btns := {}                 ## "action|slot" -> Button
-var _bind_msg: Label
-var _listen := ""                   ## the "action|slot" waiting for a key
-var _listen_ms := 0
+var _b := Bindings.new()          ## the Controls page: rows, listening for a key, refusals (ui/settings_bindings.gd)
 var on_title := false                ## opened from the title screen: no erase (no run to end), no way back to the title
 var _tscale_slider: HSlider
 var _tscale_label: Label
@@ -303,7 +301,8 @@ func _build_controls(p: VBoxContainer) -> void:
 	_build_hud(p)
 	p.add_child(_spacer(6))
 	_head(p, "KEYS  ·  CONTROLLER")
-	_build_bindings(p)
+	_b.host = self
+	_b.build(p)
 	p.add_child(_spacer(4))
 	p.add_child(_label("Fixed: Look  mouse / right stick   ·   Settings  Esc / F2 / Menu   ·   Character tabs  1 - 4, Q E", DIM, 16))
 
@@ -329,6 +328,11 @@ func _build_hud_look(p: VBoxContainer) -> void:
 		HudPrefs.save())
 	plates.set_pressed_no_signal(HudPrefs.enemy_plates)
 	_hud_checks[plates] = "enemy_plates"
+	var cd := _option(p, "Compass Detail", ["Minimal", "Standard", "Full"], "Minimal: your objective and danger only. Standard: also the nearest fire when you need one, near places and landmarks as faint ticks. Full: more of each, further out.", func(i: int) -> void:
+		HudPrefs.compass_density = i
+		HudPrefs.save())
+	cd.select(HudPrefs.compass_density)
+	_compass_option = cd
 	var trow := _row(p, "Text Scale", "The size of the objective, toasts, lessons and subtitles")
 	_tscale_slider = _slider(trow, 0.85, 1.5, 0.05)
 	_tscale_label = _value_label(trow)
@@ -413,147 +417,7 @@ func _build_hud(p: VBoxContainer) -> void:
 		_hud_checks[cb] = "track:" + k
 
 
-## the bindings are editable. Click a button, press the new key / mouse button (or controller button for the
-## pad column); Esc cancels. A key or button that already does something else is refused, with the message below.
-## Saved in settings.cfg (Settings.bindings) and applied by InputSetup on boot.
-func _build_bindings(p: VBoxContainer) -> void:
-	_bind_msg = _label("Click a button, then press the new key.", DIM, 16)
-	_bind_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	p.add_child(_bind_msg)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 12)
-	p.add_child(head)
-	var h0 := _label("", DIM, 16)
-	h0.custom_minimum_size = Vector2(240, 0)
-	head.add_child(h0)
-	for t: String in ["Keyboard / mouse", "Controller"]:
-		var hl := _label(t, DIM, 16)
-		hl.custom_minimum_size = Vector2(190, 0)
-		head.add_child(hl)
-	for r: Array in InputSetup.REBINDABLE:
-		var action: String = r[1]
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 12)
-		p.add_child(row)
-		var a := _label(String(r[0]), QUIET, 18)
-		a.custom_minimum_size = Vector2(240, 0)
-		row.add_child(a)
-		for slot: String in ["key", "pad"]:
-			var b := Button.new()
-			b.custom_minimum_size = Vector2(190, 34)
-			b.clip_text = true
-			_style_small(b, 16)
-			var sl := slot
-			b.pressed.connect(func() -> void: _begin_listen(action, sl))
-			row.add_child(b)
-			_bind_btns["%s|%s" % [action, slot]] = b
-	var reset := Button.new()
-	reset.text = "Reset Keys to Defaults"
-	_style_small(reset, 17)
-	Med.style_button(reset, 17, 16, 5)
-	reset.pressed.connect(func() -> void:
-		InputSetup.reset_bindings()
-		_listen = ""
-		_refresh_binds()
-		_bind_msg.text = "Keys and buttons are back to their defaults.")
-	p.add_child(reset)
-	_refresh_binds()
-
-
-func _refresh_binds() -> void:
-	for key: String in _bind_btns:
-		var parts := key.split("|")
-		var b: Button = _bind_btns[key]
-		if key == _listen:
-			b.text = "press a key..." if parts[1] == "key" else "press a button..."
-			continue
-		var ev: InputEvent = InputSetup.first_event(parts[0], parts[1])
-		if ev != null:
-			b.text = InputSetup.event_name(ev)
-		else:
-			b.text = _pad_text([parts[0]], "") if parts[1] == "pad" else "-"
-
-
-func _begin_listen(action: String, slot: String) -> void:
-	_listen = "%s|%s" % [action, slot]
-	_listen_ms = Time.get_ticks_msec()
-	_bind_msg.text = "Press the new %s for %s. %s cancels." % ["key or mouse button" if slot == "key" else "controller button", InputSetup.label_of(action), "Esc" if slot == "key" else "Menu"]
-	_refresh_binds()
-
-
-## While a button waits for its binding every key, mouse button and pad button is its answer.
-func _listen_input(event: InputEvent) -> void:
-	var parts := _listen.split("|")
-	var action: String = parts[0]
-	var slot: String = parts[1]
-	var ev: InputEvent = null
-	if event is InputEventJoypadButton and event.pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_START:
-		_listen = ""                             # Menu is fixed (it opens Settings): on a pad it is the way out of a rebind
-		_bind_msg.text = "Cancelled."
-		_refresh_binds()
-		get_viewport().set_input_as_handled()
-		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		if (event as InputEventKey).physical_keycode == KEY_ESCAPE:
-			_listen = ""
-			_bind_msg.text = "Cancelled."
-			_refresh_binds()
-			get_viewport().set_input_as_handled()
-			return
-		if slot == "pad":
-			_bind_msg.text = "That is a keyboard key. Press a controller button, or Menu to cancel."
-			get_viewport().set_input_as_handled()
-			return
-		ev = event
-	elif event is InputEventMouseButton and event.pressed and slot == "key" and Time.get_ticks_msec() - _listen_ms > 250 \
-			and (event as InputEventMouseButton).button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_XBUTTON1, MOUSE_BUTTON_XBUTTON2]:
-		ev = event
-	elif event is InputEventJoypadButton and event.pressed and slot == "pad":
-		ev = event
-	if ev == null:
-		return
-	get_viewport().set_input_as_handled()
-	var copy: InputEvent
-	if ev is InputEventKey:
-		copy = InputEventKey.new()
-		var code := (ev as InputEventKey).physical_keycode
-		(copy as InputEventKey).physical_keycode = code if code != KEY_NONE else (ev as InputEventKey).keycode
-	elif ev is InputEventMouseButton:
-		copy = InputEventMouseButton.new()
-		(copy as InputEventMouseButton).button_index = (ev as InputEventMouseButton).button_index
-	else:
-		copy = InputEventJoypadButton.new()
-		(copy as InputEventJoypadButton).button_index = (ev as InputEventJoypadButton).button_index
-	var why: String = InputSetup.rebind(action, slot, copy)
-	if why == "":
-		_bind_msg.text = "%s is now %s." % [InputSetup.label_of(action), InputSetup.event_name(copy)]
-		_listen = ""
-		UiSound.play(self, "confirm")
-	else:
-		_bind_msg.text = why + " Press another, or Esc."
-		UiSound.play(self, "back")
-	_refresh_binds()
-
-
-func _pad_text(actions: Array, fallback: String) -> String:
-	if fallback != "":
-		return fallback
-	var parts := PackedStringArray()
-	for act: String in actions:
-		if not InputMap.has_action(act):
-			continue
-		for ev in InputMap.action_get_events(act):
-			if ev is InputEventJoypadButton:
-				var bi := (ev as InputEventJoypadButton).button_index
-				parts.append(InputSetup.event_name(ev))
-				break
-			if ev is InputEventJoypadMotion:
-				var ax := (ev as InputEventJoypadMotion).axis
-				parts.append("RT" if ax == JOY_AXIS_TRIGGER_RIGHT else ("LT" if ax == JOY_AXIS_TRIGGER_LEFT else "Stick"))
-				break
-	return "  ·  ".join(parts) if not parts.is_empty() else "-"
-
-
+const Bindings := preload("res://ui/settings_bindings.gd")
 const RESET_TEXT := "Reset to Defaults"
 const RESET_ASK := "Reset everything?"
 const ERASE_TEXT := "Erase Saved Progress"
@@ -596,9 +460,9 @@ func _footer() -> HBoxContainer:
 			Settings.reset_defaults()
 			HudPrefs.reset()
 			reset.text = RESET_TEXT
-			_listen = ""
+			_b.listen = ""
 			_refresh()
-			_refresh_binds()
+			_b.refresh()
 			Events.toast.emit("Settings reset to defaults")
 		else:
 			reset.text = RESET_ASK
@@ -784,6 +648,8 @@ func _custom() -> void:
 
 ## The HUD checks follow HudPrefs (a reset changes them from here).
 func _refresh_hud_checks() -> void:
+	if _compass_option != null:
+		_compass_option.select(HudPrefs.compass_density)
 	for cb: CheckButton in _hud_checks:
 		var what: String = _hud_checks[cb]
 		var on := true
@@ -849,8 +715,8 @@ func _refresh() -> void:
 	_stick_slider.value = Settings.stick_sensitivity
 	_stick_label.text = "%.1f" % (Settings.stick_sensitivity / 2.6 * 5.0)
 	_invert_btn.button_pressed = Settings.invert_y
-	if not _bind_btns.is_empty():
-		_refresh_binds()
+	if not _b.btns.is_empty():
+		_b.refresh()
 	_tscale_slider.value = Settings.text_scale
 	_tscale_label.text = "%d%%" % roundi(Settings.text_scale * 100.0)
 	_refreshing = false
@@ -929,8 +795,8 @@ func _fit() -> void:
 # --- open / close ------------------------------------------------------------
 
 func _input(event: InputEvent) -> void:
-	if _listen != "" and _root.visible:
-		_listen_input(event)
+	if _b.listen != "" and _root.visible:
+		_b.input(event)
 		return
 	if event.is_action_pressed("toggle_settings"):
 		if not _root.visible and get_tree().paused:
@@ -977,7 +843,7 @@ func close() -> void:
 	if not _root.visible:
 		return
 	_root.visible = false
-	_listen = ""
+	_b.listen = ""
 	UiSound.play(self, "back")
 	Settings.flush()          # write out whatever the debounce is still holding
 	# opened over the Kindling, a dialogue, the shop or the Journal (each pauses the world): leave

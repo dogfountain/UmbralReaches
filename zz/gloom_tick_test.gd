@@ -60,10 +60,11 @@ func _load_world() -> void:
 ## Open ground out of every fire's reach, on the Pilgrims' Road side of the Realm.
 func _dark_spot() -> Vector3:
 	var space := p.get_world_3d().direct_space_state
-	for xz: Vector2 in [Vector2(62, 60), Vector2(70, 66), Vector2(56, 70), Vector2(80, 55), Vector2(90, 80), Vector2(50, 90)]:
+	for xz: Vector2 in [Vector2(62, 60), Vector2(70, 66), Vector2(56, 70), Vector2(80, 55), Vector2(90, 80), Vector2(50, 90), Vector2(110, 95), Vector2(40, 120), Vector2(130, 60)]:
 		var y := RealmLayout.ground(space, xz.x, xz.y)
 		var at := Vector3(xz.x, y, xz.y)
-		if LightGrid.drain_at(at) == 0.0 and LightGrid.drain_at(at + Vector3.UP * 3.0) == 0.0:
+		var lip := at + Vector3(0.0, 3.0, -6.0)            # where _hanging catches the slab's lip
+		if LightGrid.drain_at(at) == 0.0 and LightGrid.drain_at(at + Vector3.UP * 3.0) == 0.0 and LightGrid.drain_at(lip) == 0.0:
 			return at
 	return Vector3.INF
 

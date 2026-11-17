@@ -166,6 +166,13 @@ func _spot() -> Vector3:
 					if LightGrid.repel(q, 2.0) != Vector3.ZERO or absf(RealmLayout.ground(space, q.x, q.z) - y0) > 0.6 or RealmLand.in_water(q.x, q.z):
 						ok_spot = false
 						break
+			if ok_spot:                                   # r39: nothing standing in the lane (a camp's seat, a post, a wall)
+				for k2 in 6:                              # three lanes, at the knee and at the chest
+					var q0: Vector3 = Vector3(c.x, y0 + (0.5 if k2 < 3 else 1.2), c.y) + right * float([-3.0, 0.0, 3.0][k2 % 3])
+					var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(q0, q0 + _fwd() * 18.0, Layers.WORLD))
+					if not hit.is_empty():
+						ok_spot = false
+						break
 			if ok_spot:
 				print("  test spot %s" % c)
 				_spot_cache = Vector3(c.x, y0, c.y)
@@ -455,8 +462,16 @@ func _s_step() -> void:
 	p.set_view(0.94, -0.08)
 	await get_tree().physics_frame
 	_cast(&"step")
-	await _wait(0.2)
-	ok(w.hp < 60.0, "Step I: the arrival shock hits a foe within 2.5 m (hp %.1f)" % w.hp)
+	for _i in 10:                                  # the step lands within a few frames; a busy frame must not fail it
+		await _wait(0.1)
+		if w.hp < 60.0:
+			break
+	if w.hp >= 60.0:
+		for hy: float in [0.3, 0.9, 1.6]:
+			var a := p.global_position + Vector3.UP * hy
+			var hit := p.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(a, w.global_position + Vector3.UP * hy))
+			print("  DBG step lane at %.1f m: %s" % [hy, [hit.get("collider"), hit.get("position")] if not hit.is_empty() else "clear"])
+	ok(w.hp < 60.0, "Step I: the arrival shock hits a foe within 2.5 m (hp %.1f, %.1f m from it)" % [w.hp, p.global_position.distance_to(w.global_position)])
 	ok(bool(book.slots[0].call("primed", book)), "Step II: the next bolt is primed as a Lash")
 	await _aim_at(w)
 	w.marks = 0

@@ -173,6 +173,19 @@ static func _open(p: Vector2, wall := false) -> bool:
 	return true
 
 
+## A total order for the anchorholds' cells (the portals and slits share an x: an unstable sort numbered the cells differently from run to run).
+static func _cell_before(a: MeshInstance3D, b: MeshInstance3D) -> bool:
+	var pa := a.global_position
+	var pb := b.global_position
+	if not is_equal_approx(pa.x, pb.x):
+		return pa.x < pb.x
+	if not is_equal_approx(pa.z, pb.z):
+		return pa.z < pb.z
+	if not is_equal_approx(pa.y, pb.y):
+		return pa.y < pb.y
+	return a.mesh.resource_name < b.mesh.resource_name
+
+
 ## Make a lamp from a spec and stand it in the world; null (and a skip line) when the spot is bad.
 static func place(host: Node3D, s: Dictionary) -> Lamp:
 	var id: String = s.id
@@ -211,6 +224,17 @@ static func place(host: Node3D, s: Dictionary) -> Lamp:
 				if dist < best_d:
 					best_d = dist
 					best = hit
+			if best.is_empty() and s.has("dir"):                 # the asked direction found no wall: any of twelve (the nearest wall within reach)
+				for i in 12:
+					var a2 := TAU * float(i) / 12.0
+					var d2 := Vector3(sin(a2), 0.0, cos(a2))
+					var hit2 := _ray(from, from + d2 * float(s.get("reach", WALL_REACH)))
+					if hit2.is_empty() or absf((hit2.normal as Vector3).y) > 0.5:
+						continue
+					var dist2 := from.distance_to(hit2.position)
+					if dist2 < best_d:
+						best_d = dist2
+						best = hit2
 			if best.is_empty():
 				lamp.free()
 				_skip(id, "no wall near %s at y %.1f" % [p, y0], p)
@@ -468,7 +492,7 @@ static func _anchorholds(host: Node3D, root: Node) -> void:
 			cells.append(mi)
 		elif rn.ends_with("Chapel_Front"):
 			chapel = mi
-	cells.sort_custom(func(a: Node3D, b: Node3D) -> bool: return a.global_position.x < b.global_position.x)
+	cells.sort_custom(_cell_before)
 	var i := 0
 	for m in cells:
 		var n := m.global_basis * Vector3(0, 0, 1)

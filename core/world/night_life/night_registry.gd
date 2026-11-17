@@ -12,6 +12,18 @@ const START_T := 0.1
 
 static var enabled := true                ## Settings.night_life, mirrored once a second by NightLife
 static var clock := START_T               ## 0 .. 1
+static var moon_gain := 1.0               ## the moon's phase: its light scales by this (0.6 at a new moon, 1 at full; sky_life.gd)
+static var fx := {"fogbound": 0.0, "windstorm": 0.0, "sleet": 0.0, "frost": 0.0}   ## 0..1 weights of the night's other weathers, eased as the front's own state is (weather_life.gd); the sound seat reads these
+static var vis := 1.0                     ## how far the landmark cards carry (a fog takes the far land)
+static var weather_dim := 1.0             ## the moon's light under fog and sleet
+static var breathers: Array = []          ## the folk (set by the folk stage): the frost shows their breath
+static var haze := 0.0                    ## 0..1 mist and rain in the air: far cards swell into halos (weather_life.gd)
+static var rain := 0.0                    ## 0..1 rain falling: fires gutter and spit
+static var gust := 0.0                    ## wind with its gusts: fires lean and flicker harder
+static var indoor := 0.0                  ## 0..1 the camera is in a room (Interiors), eased: the outdoor night's mist, moths and pools fade out at the door
+static var arena_dim := 1.0               ## a boss arena in use dims the moon to two thirds (arena_light.gd)
+static var pulse := 0.0                   ## 0..1 a moment of light (a level, a boss phase) flaring every card; decays by itself
+static var flash := 0.0                   ## 0..1 lightning: every landmark flares for the flash
 static var gain_mul := 1.0                ## the whole landmark set's brightness: an eclipse raises it, the dark makes them shine
 static var pos := PackedVector3Array()    ## where the light is (a metre or so above the ground)
 static var ground := PackedFloat32Array() ## the ground's y under it (the pool)
@@ -22,6 +34,40 @@ static var real := PackedByteArray()      ## 1: a real light already stands ther
 static var on := PackedByteArray()
 static var boost := PackedFloat32Array()  ## a transient surge (a fire catching): added to the row's brightness, decays
 static var keys := {}                     ## key -> row
+
+
+static var _wx: Variant = null
+static var _wx_ms := -100000
+
+
+## The Weather node (core/life/wildlife/weather.gd), found by name once it exists: at most one search every twenty seconds
+## (a find over the whole tree is not for every half second), shared by every system that reads the fronts.
+static func weather(tree: SceneTree) -> Variant:
+	if _wx != null and is_instance_valid(_wx):
+		return _wx
+	_wx = null
+	var now := Time.get_ticks_msec()
+	if now - _wx_ms < 20000:
+		return null
+	_wx_ms = now
+	var root := tree.current_scene
+	if root != null:
+		_wx = root.find_child("Weather", true, false)
+	return _wx
+
+
+## The nearest lit fire (a row of kind FIRE that is on) within `reach` metres of `p`, or Vector3.INF (the owls watch the moths round it).
+static func nearest_fire(p: Vector3, reach: float) -> Vector3:
+	var best := reach * reach
+	var at := Vector3.INF
+	for i in pos.size():
+		if on[i] == 0 or kind[i] != Kind.FIRE:
+			continue
+		var d2 := p.distance_squared_to(pos[i])
+		if d2 < best:
+			best = d2
+			at = pos[i]
+	return at
 
 
 static func clear() -> void:
@@ -100,7 +146,8 @@ static func shimmer(i: int, t: float) -> float:
 	var ph: float = phase[i]
 	match int(kind[i]):
 		Kind.FIRE:
-			return 0.86 + 0.09 * sin(t * 7.3 + ph) + 0.05 * sin(t * 17.1 + ph * 2.0)
+			var wind := 1.0 + 0.9 * gust
+			return 0.86 - 0.08 * rain + (0.09 * sin(t * 7.3 + ph) + 0.05 * sin(t * 17.1 + ph * 2.0)) * wind
 		Kind.MYSTERY:
 			return 0.55 + 0.45 * (0.5 + 0.5 * sin(t * 0.9 + ph)) * (0.7 + 0.3 * sin(t * 0.23 + ph * 3.0))
 		Kind.COLD:

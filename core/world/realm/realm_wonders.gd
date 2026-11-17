@@ -8,10 +8,29 @@ const LIST := [
 	"res://core/world/realm/wonders/sky_chain.gd",
 	"res://core/world/realm/wonders/upward_falls.gd",
 	"res://core/world/realm/wonders/star_crater.gd",
+	# the world pass (docs/the world pass/world_landmarks.md): the colossal landmarks, after the older wonders so their sites are already registered
+	"res://core/world/realm/wonders/r39/the_sleeper.gd",
+	"res://core/world/realm/wonders/r39/hollow_king.gd",
+	"res://core/world/realm/wonders/r39/salt_ship.gd",
+	"res://core/world/realm/wonders/r39/wardens_line.gd",
+	"res://core/world/realm/wonders/r39/chain_span.gd",
+	"res://core/world/realm/wonders/r39/titan_gates.gd",
+	"res://core/world/realm/wonders/r39/hermit_caches.gd",
+	"res://core/world/realm/wonders/r39/terrain_outcrops.gd",
+	"res://core/world/realm/wonders/r39/roadside_tableaux.gd",
+	"res://core/world/realm/wonders/r39/deep_halls.gd",
+	"res://core/world/realm/wonders/r39/caves.gd",
+	"res://core/world/realm/wonders/r39/region_dressing.gd",
+	"res://core/world/realm/wonders/r39/waterworks.gd",
+	"res://core/world/realm/wonders/r39/climbs.gd",
+	"res://core/world/realm/wonders/r39/ground_marks.gd",
+	"res://core/world/realm/wonders/r39/shorelines.gd",
+	"res://core/world/realm/wonders/r39/hidden_finds.gd",
 ]
 
 
 static func build(root: Node) -> void:
+	preload("res://core/world/realm/wonders/r39/wonder_kit.gd").light_used = 0          # the wonders' light budget starts over with each Realm build
 	if "--no-wonders" in OS.get_cmdline_user_args():
 		return
 	for path: String in LIST:

@@ -21,6 +21,7 @@ extends Node3D
 signal thundered(at: Vector3)
 
 const RL := preload("res://core/world/realm/realm_land.gd")
+const Access := preload("res://ui/access.gd")
 const LifeSynth := preload("res://core/life/wildlife/life_synth.gd")
 const ScapeSynth := preload("res://core/life/wildlife/scape_synth.gd")
 const BOLT_SH := preload("res://core/life/wildlife/bolt.gdshader")
@@ -35,8 +36,13 @@ const FRONTS := {
 	"gusts": {"mist": 0.0, "rain": 0.0, "wind": 1.0, "thunder": 0.0},
 	"drizzle": {"mist": 0.45, "rain": 1.0, "wind": 0.35, "thunder": 0.0},
 	"storm": {"mist": 0.25, "rain": 0.9, "wind": 0.9, "thunder": 1.0},
+	# the night's other weathers (the four state terms are all a front carries; what each does to the light, the ground and the sky is core/world/night_life/weather_life.gd, keyed by name):
+	"fogbound": {"mist": 1.0, "rain": 0.0, "wind": 0.04, "thunder": 0.0},       # a fog that takes the far land and the stars
+	"windstorm": {"mist": 0.1, "rain": 0.0, "wind": 1.0, "thunder": 0.0},       # a gale: the wind is half again as strong as a gust's (see _step)
+	"sleet": {"mist": 0.35, "rain": 0.7, "wind": 0.5, "thunder": 0.0},          # cold rain: the ground slushes white as it wets
+	"frost": {"mist": 0.1, "rain": 0.0, "wind": 0.05, "thunder": 0.0},          # a still, clear, freezing night: rime, glittering ground, breath in the air
 }
-const CYCLE := ["clear", "mist", "clear", "gusts", "drizzle", "storm", "clear", "mist", "drizzle", "clear", "gusts", "storm"]
+const CYCLE := ["clear", "mist", "clear", "gusts", "drizzle", "storm", "frost", "clear", "mist", "sleet", "drizzle", "clear", "windstorm", "gusts", "fogbound", "storm"]
 const EASE_S := 25.0
 ## Environment offsets at full strength (added on top of whatever the base is)
 const OFF_BEGIN_MIST := -26.0      ## m: depth fog starts nearer in mist and rain
@@ -138,7 +144,9 @@ func setup(root: Node, seed_v: int) -> void:
 	name = "Weather"
 	_rng.seed = seed_v
 	off = "--scape-off" in OS.get_cmdline_user_args()
-	_cycle_i = 0
+	# each night opens on another front: the night count is saved, so a reload brings the same weather (night 0: clear, as ever)
+	_cycle_i = (int(Travel.story.get("night_no", 0)) * 5) % CYCLE.size()
+	front = CYCLE[_cycle_i]
 	_front_t = _rng.randf_range(60.0, 100.0)
 	var we := root.get_node_or_null("WorldEnvironment") as WorldEnvironment
 	if we != null:
@@ -227,7 +235,7 @@ func _step(delta: float) -> void:
 		state[k] = move_toward(float(state[k]), float(want[k]), dt / EASE_S)
 	# the wind veers slowly and gusts
 	wind_dir = wind_dir.rotated(Vector3.UP, sin(_t * 0.013) * dt * 0.01).normalized()
-	gust = float(state.wind) * (0.55 + 0.45 * maxf(0.0, sin(_t * 0.41) * sin(_t * 0.137 + 1.0)) * 1.6)
+	gust = float(state.wind) * (0.55 + 0.45 * maxf(0.0, sin(_t * 0.41) * sin(_t * 0.137 + 1.0)) * 1.6) * (1.5 if front == "windstorm" else 1.0)
 	Sway.wind = gust                     # r36: lanterns, hooks and bells swing with it
 	_thunder(dt, delta)
 	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
@@ -727,6 +735,7 @@ func _thunder(dt: float, real_dt: float) -> void:
 			_flash_t = -1.0
 			_sky_flash.visible = false
 			_bolt.visible = false
+		f *= Access.flash()               # Reduce Flashes: the lightning is dimmer, and the ambient surge and veil that follow it
 		flash = f
 		_flash_mat.set_shader_parameter("flash", f)
 		_bolt_mat.set_shader_parameter("flash", f if _flash_t < 0.45 else 0.0)

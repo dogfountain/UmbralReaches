@@ -34,6 +34,7 @@ const AIR_MAX := 2.5                 ## s: a leap that never finds ground is set
 var breed := "palfrey"
 var at_post := true              ## standing at its hitching post (for sale until owned)
 var rider: Node3D = null
+var rival := false               ## a race rival (horse_race_field.gd): driven by the race, not a horse to buy or ride
 var speed := 0.0
 var _rig: Node3D
 var _speed_prev := 0.0
@@ -550,7 +551,7 @@ func _process(dt: float) -> void:
 		_graze_t = randf_range(4.0, 9.0)
 	var down := _graze_t > 2.0
 	_head = lerpf(_head, 0.7 if down else 0.0, 1.0 - exp(-1.5 * dt))
-	if speed > 0.0 and not bool(_wd.get("moving", false)) and _call_who == null:      # not wandering its paddock, not running to a whistle
+	if speed > 0.0 and not rival and not bool(_wd.get("moving", false)) and _call_who == null:      # not wandering its paddock, not running to a whistle
 		speed = move_toward(speed, 0.0, 9.0 * dt)
 	# off screen it is posed twice a second (as the villagers are: NpcLife.interval), with the time since
 	_pose_acc += dt

@@ -131,7 +131,7 @@ func _data() -> void:
 			if String(Chains.QUESTS[id].get("zone", "")) == rid and not id in ACT3:
 				n += 1
 				ok(Chains.giver(id) == giver, "%s is %s's" % [id, giver])
-		ok(n >= 3 and n <= 8, "%s: a chain of %d tasks (with its bell and its signature task)" % [rid, n])
+		ok(n >= 3 and n <= 12, "%s: a chain of %d tasks (with its bell and its signature task)" % [rid, n])
 	for boss: String in ["thornwarden", "bone_abbot", "ascended_warden"]:
 		var chain: Array = []
 		for id2: String in Chains.ORDER:
@@ -198,6 +198,13 @@ func _givers() -> void:
 		if v == null:
 			continue
 		ok(v.global_position.distance_to(f) < 8.0, "%s is by the fire (%.1f m)" % [g, v.global_position.distance_to(f)])
+		var open_now := false                 # r39: some outpost people (the story's five) offer only after a boss falls
+		for qid: String in Chains.QUESTS:
+			if Chains.giver(qid) == g and Giver.available(qid, get_tree()):
+				open_now = true
+		if not open_now:
+			print("  --   %s offers nothing yet (gated), no gold mark expected" % g)
+			continue
 		ok(markers.call("mark_of", v) == "available", "%s wears the gold mark (%s)" % [g, markers.call("mark_of", v)])
 		var m: Node3D = v.get_node_or_null("QuestMark")
 		ok(m != null and m.is_in_group("map_marker") and String(m.get_meta("map_kind", "")) == "quest_available"

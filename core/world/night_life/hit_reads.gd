@@ -11,6 +11,8 @@ extends Node
 ## Vfx light cap: no cost between fights, no new particle presets after the first fight.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const Access := preload("res://ui/access.gd")
+const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 const BIG := 6.0
 const GOLD := Color(1.9, 1.35, 0.55)
@@ -22,6 +24,7 @@ var _last_school := {}                    ## enemy instance id -> school of the 
 func _ready() -> void:
 	Events.combat_damage.connect(_on_damage)
 	Events.enemy_killed.connect(_on_killed)
+	Events.player_hurt.connect(_on_hurt)
 
 
 func _process(delta: float) -> void:
@@ -52,10 +55,30 @@ func _on_damage(target: Node, amount: float, crit: bool, school: StringName, at:
 	var foot := at
 	if target is Node3D:
 		foot = (target as Node3D).global_position
-	Vfx.ring(foot, 2.3 if crit else 1.5, col, 0.4, 0.1)
+	Vfx.ring(foot, 2.3 if crit else 1.5, col, 0.4, 0.1, Vector3.UP, Access.flash() if crit else 1.0)
 	if crit:
-		Vfx.burst(at, GOLD, {"count": 22, "life": 0.55, "speed": Vector2(3.0, 8.0), "size": 0.06, "gravity": -9.0, "trail": 0.12, "spread": 70.0, "damping": 2.0})
+		NightFx.burst(at, GOLD, "crit")
 		Vfx.light(at, GOLD, 2.0, 5.0, 0.18, 2)
+
+
+## A blow that lands on the wanderer: a ring of the hurt's red on the ground under him (sized by the blow) and sparks thrown away from the
+## attacker, so the hit reads in the dark from the side of the screen it came from (the grade's own flash is capped, grade.gdshader).
+func _on_hurt(amount: float, from_pos: Vector3) -> void:
+	if not Reg.enabled or _budget < 1.0:
+		return
+	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	if p == null:
+		return
+	_budget -= 1.0
+	var c := Access.telegraph(Color(2.2, 0.45, 0.4))            # a danger colour: the colour-blind palette moves it
+	var at := p.global_position
+	Vfx.ring(at, 1.2 + clampf(amount / 40.0, 0.0, 1.4), c, 0.35, 0.09)
+	var away := Vector3.UP
+	if from_pos != Vector3.INF:
+		away = (at - from_pos)
+		away.y = 0.0
+		away = away.normalized() if away.length() > 0.05 else Vector3.UP
+	NightFx.burst(at + Vector3(0.0, 1.0, 0.0), c, "hurt", away)
 
 
 func _on_killed(enemy: Node) -> void:
@@ -67,5 +90,5 @@ func _on_killed(enemy: Node) -> void:
 	_last_school.erase(enemy.get_instance_id())
 	var col := school_colour(school)
 	Vfx.ring(p, 3.0, col, 0.7, 0.12)
-	Vfx.burst(p + Vector3(0.0, 0.9, 0.0), col, {"count": 18, "life": 1.5, "speed": Vector2(0.8, 2.6), "size": 0.07, "gravity": 0.9, "spread": 40.0, "damping": 1.2, "dir": Vector3.UP})
+	NightFx.burst(p + Vector3(0.0, 0.9, 0.0), col, "kill", Vector3.UP)
 	Vfx.light(p + Vector3(0.0, 1.0, 0.0), col, 2.6, 8.0, 0.7, 2)

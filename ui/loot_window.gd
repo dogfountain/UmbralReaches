@@ -79,7 +79,7 @@ func _build() -> void:
 	btns.add_theme_constant_override("separation", 12)
 	col.add_child(btns)
 	btns.add_child(_button("Take all", Interactable.prompt_key(), take_all))
-	btns.add_child(_button("Close", "Esc", close))
+	btns.add_child(_button("Close", "B" if Settings.using_pad else "Esc", close))
 	_hint = Label.new()
 	_hint.add_theme_font_override("font", _font)
 	_hint.add_theme_font_size_override("font_size", 15)

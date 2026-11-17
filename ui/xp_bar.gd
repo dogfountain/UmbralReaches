@@ -18,7 +18,7 @@ const H := BAR_H + TEXT_H
 const MARGIN := 28.0           ## the plate's distance from the left edge
 const PT := 21                 ## the level plate's type: readable at a glance on the 1920x1080 canvas
 ## What a gain was for, in words (the Hearth keeps the source key); an unknown key shows as its own words.
-const WHY := {"discover": "discovered", "kindle": "kindled", "seal": "seal broken", "quest": "task done", "keepsake": "keepsake found", "home": "home", "elite": "elite slain", "boss": "great one slain"}
+const WHY := {"discover": "discovered", "kindle": "kindled", "seal": "seal broken", "quest": "task done", "keepsake": "keepsake found", "home": "welcome home", "elite": "elite slain", "boss": "great one slain"}
 const Forge := preload("res://ui/hud_forge.gd")
 const Med := preload("res://ui/medieval_style.gd")
 const UIType := preload("res://ui/type.gd")
@@ -139,6 +139,8 @@ func _draw() -> void:
 		return
 	var lv := int(_info.get("level", -1))
 	var t := "Level %d" % lv if lv >= 0 else ""
+	if rest > 0.0 and t != "":
+		t += "   ·   rested"                              # says what the pale stretch on the bar is
 	var a := 1.0
 	if _num_t > 0.0:
 		var why := String(_info.get("why", ""))

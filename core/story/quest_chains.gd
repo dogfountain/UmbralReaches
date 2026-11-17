@@ -129,7 +129,7 @@ const _GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Joram
 	"marl": "Marl Pannick", "teasel": "Teasel Dray", "orrin": "Orrin Vail", "ardel": "Ardel Wick", "pip": "Pip", "nella": "Nella Crake",
 	"corle": "Aud Corle", "penn": "Reeve Penn", "coyle": "Serjeant Coyle", "isolde": "Old Isolde",      # --- the towns ---
 	"siany": Towns.GIVER_NAMES["siany"], "ebba": Towns.GIVER_NAMES["ebba"], "hobb": Towns.GIVER_NAMES["hobb"], "dilly": Towns.GIVER_NAMES["dilly"], "hesper": Towns.GIVER_NAMES["hesper"],
-	"cobb": Towns.GIVER_NAMES["cobb"], "maudlin": Towns.GIVER_NAMES["maudlin"], "wat": Towns.GIVER_NAMES["wat"], "vell": Towns.GIVER_NAMES["vell"], "fenn": Towns.GIVER_NAMES["fenn"]}      # --- the reaches ---
+	"cobb": Towns.GIVER_NAMES["cobb"], "maudlin": Towns.GIVER_NAMES["maudlin"], "wat": Towns.GIVER_NAMES["wat"], "vell": Towns.GIVER_NAMES["vell"], "fenn": Towns.GIVER_NAMES["fenn"], "gorse": Towns.GIVER_NAMES["gorse"], "wystan": Towns.GIVER_NAMES["wystan"]}      # --- the reaches ---
 
 ## r34: the raids' attunements (WoW's attunement chains, adapted): the last task of each pre-raid
 ## chain, once handed in, loosens the boss's hold (QuestBook.attuned(boss); Travel.story flag

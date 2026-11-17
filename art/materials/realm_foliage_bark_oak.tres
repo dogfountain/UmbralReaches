@@ -7,9 +7,10 @@
 vertex_color_use_as_albedo = true
 albedo_color = Color(1.0, 1.04, 1.1, 1)
 albedo_texture = ExtResource("1_a")
-roughness = 0.86
+roughness = 0.92
+metallic_specular = 0.22
 normal_enabled = true
-normal_scale = 2.2
+normal_scale = 1.6
 normal_texture = ExtResource("2_n")
 rim_enabled = true
 rim = 0.3

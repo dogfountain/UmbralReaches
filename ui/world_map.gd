@@ -24,6 +24,7 @@ const MapTravel := preload("res://ui/world_map_travel.gd")
 const MapUtil := preload("res://ui/world_map_util.gd")
 const MapCluster := preload("res://ui/world_map_cluster.gd")
 const Danger := preload("res://core/life/encounters/danger.gd")
+const Landmarks := preload("res://ui/world_map_landmarks.gd")
 
 const ACTION := "world_map"
 const SHEET := Rect2(-420.0, -214.0, 840.0, 682.0)   ## world xz the parchment covers: the Realm and its margins
@@ -367,7 +368,7 @@ func fog_at(x: float, z: float) -> float:
 		return 0.0
 	var i := clampi(int((x - SHEET.position.x) / FOG), 0, _fw - 1)
 	var j := clampi(int((z - SHEET.position.y) / FOG), 0, _fh - 1)
-	return float(_fog[j * _fw + i]) / 255.0
+	return float(maxi(_fog[j * _fw + i], MapSketch.cells[j * _fw + i] if MapSketch.cells.size() == _fw * _fh else 0)) / 255.0   # found countries and the charcoal sketch
 
 
 ## The region ids the sheet shows lettered and inked now (walked ones).
@@ -396,6 +397,7 @@ func _rebuild_fog() -> void:
 	else:
 		_fog_tex.update(img)
 	_fog_mat.set_shader_parameter("fog_tex", _fog_tex)
+	Landmarks.attach(_fog_mat)
 
 
 # --- marks ----------------------------------------------------------------------------------------
@@ -516,9 +518,10 @@ class Overlay extends Control:
 func paint(c: Control) -> void:
 	var vs := c.size
 	var edge := _area.grow(26.0)
-	_labels.layout(_zoom, _zoom_min, _seen)
+	_labels.layout(_zoom, _zoom_min, _seen + Landmarks.seen_ids())
 	_labels.draw(c, _zoom, _w2s, _area)
 	_guide(c)
+	Landmarks.paint(c, _w2s, _area, _fog)
 	Wayfarer.paint_trail(c, _w2s, edge)
 	_cl = MapCluster.fold(_marks, _w2s, edge)
 	for i in _marks.size():
