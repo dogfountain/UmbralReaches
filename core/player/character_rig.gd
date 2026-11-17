@@ -16,6 +16,8 @@ const ROBE_MAGIC := "res://art/textures/robe_magic.png"
 const ROBE_NORMAL := "res://art/textures/robe_normal.png"
 const WBody := preload("res://core/player/wanderer_body.gd")
 const WPiece := preload("res://core/player/wanderer_piece.gd")
+const Idles := preload("res://core/player/wanderer_idles.gd")
+var idle_ctx := {}                  ## what the night round him says (WandererLife): fire, cold, rain, dark (0..1), look (a world point or INF), injured, tired
 static var _cloth_shared := {}
 
 var walk_speed := 4.5
@@ -2376,59 +2378,10 @@ func _pose_steep(k: float) -> void:
 	_staff_off.x += 0.3 * k
 
 
-## Standing a while, the wanderer does something: looks about, lifts the lantern to peer into the
-## dark, leans on the staff, glances back over a shoulder. Any movement or cast ends it at once.
+## Standing a while, the wanderer does something (wanderer_idles.gd: ten acts chosen by the night round him, the
+## condition overlays: a limp when hurt, the breath after a sprint, the lantern held higher in the dark).
 func _idle_acts(speed: float, on_floor: bool, dt: float) -> void:
-	var still := on_floor and speed < 0.2 and _cast_t < 0.0 and charge <= 0.0 and hang < 0.01 \
-		and _mv_t < 0.0 and not lock and slide < 0.01 and _hit <= 0.0
-	_still = _still + dt if still else 0.0
-	if _ia < 0:
-		if _still > _ia_next:
-			_ia = _rng.randi_range(0, 3)
-			if _ia == _ia_last:
-				_ia = (_ia + 1) % 4
-			_ia_last = _ia
-			_ia_t = 0.0
-			_ia_len = [3.8, 3.4, 4.4, 2.6][_ia]
-		else:
-			return
-	_ia_t += dt
-	var u := _ia_t / _ia_len
-	var env := smoothstep(0.0, 0.2, u) * (1.0 - smoothstep(0.75, 1.0, u))
-	_ia_k = minf(env, _ia_k + dt * 6.0) if still else move_toward(_ia_k, 0.0, dt * 5.0)
-	if u >= 1.0 or (not still and _ia_k <= 0.0):
-		_ia = -1
-		_ia_k = 0.0
-		_ia_next = _still + _rng.randf_range(5.0, 10.0)
-		return
-	var k := _ia_k
-	match _ia:
-		0:  # look about: left, then right
-			var s := sin(u * TAU)
-			_head.rotation.y += s * 0.7 * k
-			_torso.rotation.y += s * 0.16 * k
-			_head.rotation.x += 0.06 * k
-		1:  # the lantern lifted to peer into the dark ahead
-			_sh[0].rotation.x += 1.2 * k
-			_sh[0].rotation.z += 0.3 * k
-			_el[0].rotation.x += 0.35 * k
-			_head.rotation.x -= 0.08 * k
-			_head.rotation.y += 0.18 * k
-			_torso.rotation.x -= 0.08 * k
-			_torso.rotation.y += 0.1 * k
-		2:  # weight onto the staff, a slow breath
-			_staff_off.x -= 0.1 * k
-			_sh[1].rotation.x += 0.28 * k
-			_el[1].rotation.x += 0.25 * k
-			_torso.rotation.z -= 0.07 * k
-			_torso.rotation.x -= 0.07 * k
-			_pelvis.position.x += 0.03 * k
-			_head.rotation.x -= 0.14 * k * (0.7 + 0.3 * sin(_t * 1.2))
-		3:  # a glance back over the right shoulder
-			var b := smoothstep(0.08, 0.35, u) * (1.0 - smoothstep(0.62, 0.9, u))
-			_head.rotation.y -= 1.0 * b * k
-			_torso.rotation.y -= 0.32 * b * k
-			_sh[0].rotation.x += 0.12 * b * k
+	Idles.tick(self, speed, on_floor, dt)
 
 
 ## The hood's peak as a damped spring on the head's real acceleration: it flops back on a start,
