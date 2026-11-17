@@ -10,6 +10,7 @@ extends RefCounted
 ## discovery (world_poi). Found by sampling open, flat, dry ground that touches no way, town or site (WK.taken).
 
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
+const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 const COUNT := 16
 
 static var _ids: Array = []
@@ -119,4 +120,12 @@ func _cache(root: Node, i: int, p: Vector2, lo: float, hi: float, rng: RandomNum
 			k.kit.box("stone_big", c + rx * 0.0 + Vector3.UP * 0.45, Vector3(2.6, 0.9, 2.6), b, true, 0.9)
 			k.fire(c + Vector3.UP * 1.0, 0.9, 1.8)
 			k.chest("hermit_%d" % i, "iron", c + rx * 4.5 + Vector3.UP * 0.12, yaw, loot)
+	# secondary forms: stores, rope, rubble, a bedroll or cairn, strands on the pole
+	Dress.rubble(k, c + rx * -3.2 + rz * 2.8, 2.4, 9, "stone")
+	Dress.barrel(k, c + rx * -3.4 + rz * -2.6, yaw, 0.95)
+	Dress.crate(k, c + rx * 3.0 + rz * 3.0, yaw + 0.5, 0.75)
+	Dress.rope(k, pole + Vector3.UP * 5.0, c + rx * 0.5 + rz * -2.4 + Vector3.UP * 2.2, 0.7, 0.05)
+	Dress.strands(k, pole + Vector3.UP * 6.8, pole + Vector3.UP * 6.8 + rx * -1.1, 3, 1.2)
+	if kind != 0:
+		Dress.camp(k, c + rx * 2.2 + rz * 4.2, yaw, false)
 	k.commit(220.0)

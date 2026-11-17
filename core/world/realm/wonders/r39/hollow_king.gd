@@ -15,6 +15,7 @@ extends RefCounted
 ## (one mesh per material, collision from the faces); about 1.4k boxes' worth of triangles, built once.
 
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
+const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 
 const CANDS := [Vector2(170.0, 340.0), Vector2(130.0, 352.0), Vector2(214.0, 350.0), Vector2(150.0, 298.0), Vector2(236.0, 316.0)]
 const RAD := 26.0
@@ -61,6 +62,7 @@ func _run(root: Node) -> void:
 	_houses()
 	_stair()
 	_crown()
+	_dress()
 	var n := k.commit()
 	k.beacon(_p(0.0, 0.0, 42.0), Color(1.0, 0.7, 0.4), 1.6, 12.0, 400.0)
 	print("WONDER hollow_king at %s ground %.1f: %d meshes, %d fires, %d lights, %d chests" % [c, gy, n, k.fires, k.lights, k.chests])
@@ -222,3 +224,37 @@ func _crown() -> void:
 		if i % 3 == 0:
 			k.lamp(hang + Vector3.DOWN * 2.3, Color(1.0, 0.66, 0.36), 1.2, 9.0)
 	k.tube("bark", _p(0.0, 0.0, 40.0), top + Vector3.UP * 5.0, 2.6, 0.3, 8, false, 0.85)
+
+
+# --- secondary forms -----------------------------------------------------------------------------------
+
+func _dress() -> void:
+	Dress.camp(k, _p(-0.5, 11.0, 0.0), 0.4)
+	Dress.rubble(k, _p(PI * 1.5, 11.0, 0.0), 5.0, 14, "bark")
+	Dress.rubble(k, _p(PI * 0.7, 12.0, 0.0), 4.0, 10, "bark")
+	for i in 4:
+		var a := [PI * 0.5, PI, PI * 1.25, PI * 1.75][i] as float
+		var cen := _p(a, 15.0 + float(i % 2) * 2.0, 0.0)
+		var out := Vector3(cos(a), 0.0, sin(a))
+		var side := out.cross(Vector3.UP)
+		Dress.barrel(k, cen + out * 3.6 + side * 2.2, a, 1.0)
+		Dress.crate(k, cen + out * 3.8 - side * 2.0, a + 0.4, 0.8)
+		Dress.rope(k, cen + out * 2.0 + Vector3.UP * 3.3 + side * 2.0, cen + out * 2.0 + Vector3.UP * 3.3 - side * 2.0, 0.5)
+		Dress.strands(k, cen - out * 2.1 + Vector3.UP * 3.6 - side * 2.4, cen - out * 2.1 + Vector3.UP * 3.6 + side * 2.4, 6, 1.6)
+	# ropes from the stair's lamps to the root houses, and strands under the crown deck and the limbs
+	for i in 12:
+		var a := TAU * float(i) / 12.0
+		if fposmod(rad_to_deg(a), 360.0) > 100.0 and fposmod(rad_to_deg(a), 360.0) < 160.0:
+			continue
+		Dress.strands(k, _p(a - 0.15, 7.6, 30.2), _p(a + 0.15, 7.6, 30.2), 3, 3.2)
+	for i in 9:
+		var a := TAU * float(i) / 9.0 + 0.3
+		Dress.strands(k, _p(a, 15.0, 36.0), _p(a + 0.15, 20.0, 40.0), 6, 4.5)
+	for i in 6:
+		var a := float(i) * 1.05
+		Dress.crack(k, _p(a, 7.1, 6.0 + 3.0 * float(i)), _p(a + 0.12, 7.2, 12.0 + 3.0 * float(i)), 0.13)
+	for i in 5:
+		var a := 0.8 + float(i) * 1.1
+		for j in 3:
+			var p := _p(a, 7.0 - 0.3 * float(j), 4.0 + 5.0 * float(j) + float(i))
+			k.kit.box("chalk", p, Vector3(1.0 - 0.15 * float(j), 0.14, 0.7), Basis(Vector3.UP, -a), false, 0.85)      # bracket fungus on the trunk

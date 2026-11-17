@@ -11,6 +11,7 @@ extends RefCounted
 ## sinks its footings into. Placed by WK.find_any in the Kings' Barrows (or the Arches): nothing else is moved.
 
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
+const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 
 const CANDS := [Vector2(-326.0, 118.0), Vector2(-326.0, 196.0), Vector2(-318.0, 150.0), Vector2(-30.0, 350.0), Vector2(40.0, 360.0)]
 const HALF := Vector2(37.0, 49.0)               ## the footprint's half extents in the body's frame (x across with the arm, z along)
@@ -80,6 +81,7 @@ func _run(root: Node) -> void:
 	_torso()
 	_arms()
 	_head()
+	_dress()
 	var n := k.commit()
 	k.beacon(_p(0.0, 14.0, 40.0), Color(1.0, 0.72, 0.42), 1.4, 14.0, 380.0)
 	print("WONDER the_sleeper at %s yaw %.2f datum %.1f: %d meshes, %d fires, %d lights, %d chests" % [mid, yaw, y0, n, k.fires, k.lights, k.chests])
@@ -246,3 +248,31 @@ func _head() -> void:
 		var hb := _p(s * 8.4, 13.0, 41.0)
 		k.tube("ruin_big", hb, hb + rot * Vector3(s * 6.5, 0.0, 3.0) + Vector3(0.0, 9.0, 0.0), 1.6, 0.2, 6, false, 0.9)
 	k.fire(_p(0.0, 14.2, 49.0), 1.4, 2.0)                                 # a small fire on the crown: the sleeper's brow lit
+
+
+# --- secondary forms: rubble, ivy, banners, chains, cracks, a looters' camp -----------------------------------
+
+func _g(x: float, z: float) -> Vector3:
+	var p := _p(x, 0.0, z)
+	return Vector3(p.x, WK.h(p.x, p.z), p.z)
+
+
+func _dress() -> void:
+	var al := rot * Vector3(0.0, 0.0, 1.0)
+	var ac := rot * Vector3(1.0, 0.0, 0.0)
+	for q: Vector3 in [Vector3(-5.0, 0.0, -44.0), Vector3(5.0, 0.0, -45.0), Vector3(-14.0, 0.0, -20.0), Vector3(15.0, 0.0, -14.0), Vector3(-21.0, 0.0, 12.0), Vector3(40.0, 0.0, 6.0)]:
+		Dress.rubble(k, _g(q.x, q.z), 4.5, 12, "ruin_big")
+	Dress.camp(k, _g(21.0, 3.0), yaw + 0.6)
+	Dress.rope(k, _p(15.0, 5.0, 3.0), _p(15.0, 5.0, 9.0), 0.4)
+	Dress.strands(k, _p(23.0, 8.8, 18.5), _p(34.0, 8.8, 18.5), 9, 5.5)
+	Dress.strands(k, _p(11.0, 10.9, 2.0), _p(11.0, 10.9, 26.0), 12, 8.0)
+	Dress.strands(k, _p(-11.0, 10.9, 2.0), _p(-11.0, 10.9, 26.0), 10, 7.0)
+	Dress.strands(k, _p(-8.0, 14.1, 36.0), _p(8.0, 14.1, 36.0), 8, 4.0)
+	Dress.banner(k, _p(49.0, 12.2, 15.0), al, 3.0, 6.5, ac)
+	Dress.banner(k, _p(49.0, 12.2, 24.0), al, 3.0, 5.5, ac)
+	Dress.chain(k, _p(51.0, 11.8, 17.5), _p(51.0, 11.8, 24.5), 1.3)
+	Dress.chain(k, _p(-8.0, 10.9, 36.0), _p(8.0, 10.9, 36.0), 1.0)
+	Dress.crack(k, _p(-6.0, 11.03, 5.0), _p(8.0, 11.03, 24.0), 0.16)
+	Dress.crack(k, _p(-9.0, 7.1, 2.0), _p(-11.2, 4.0, 20.0), 0.14)
+	Dress.carved_band(k, _p(-10.0, 8.6, -7.3), _p(10.0, 8.6, -7.3), 12, Vector3(1.3, 0.5, 0.35))
+	Dress.carved_band(k, _p(-10.5, 10.6, 27.6), _p(10.5, 10.6, 27.6), 12, Vector3(1.3, 0.5, 0.35))

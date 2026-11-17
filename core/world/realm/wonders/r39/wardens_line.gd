@@ -13,6 +13,7 @@ extends RefCounted
 
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Cresset := preload("res://core/world/realm/wonders/r39/wardens_cresset.gd")
+const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 
 const STATIONS := [-338.0, -232.0, -128.0, 124.0, 226.0, 330.0]
 const ALLOW := ["lanternwood", "kingsbarrows", "greyfell", "lastlight", "nave", "bellfall", "weirford", "sorrow", "downs"]
@@ -162,6 +163,8 @@ func _tower(no: int, c: Vector2, glo: float, ghi: float) -> void:
 	k.host.add_child(pg)
 	pg.position = cc + Vector3.UP * 1.4
 	var cr: Node3D = Cresset.new()
+	_dress(no)
+	var cr: Node3D = Cresset.new()
 	cr.name = "Cresset_%d" % no
 	cr.set("tower_id", "tower_%d" % no)
 	cr.set("tower_no", no)
@@ -180,3 +183,25 @@ func _flight(lo: Vector3, hi: Vector3, width: float, base_rel := 0.3) -> void:
 	var b := _w(hi.x, hi.y, hi.z)
 	var steps := maxi(3, int(ceilf(absf(hi.y - lo.y) / 0.36)))
 	k.kit.stairs("stone_big", a, b, width, steps, y0 + base_rel)
+
+
+# --- secondary forms -----------------------------------------------------------------------------------
+
+func _dress(no: int) -> void:
+	var ex := rot * Vector3(1.0, 0.0, 0.0)
+	var ez := rot * Vector3(0.0, 0.0, 1.0)
+	var e := HI + WALL + 0.15
+	Dress.banner(k, _w(2.0, 10.5, -e), ex, 2.0, 5.0, -ez)
+	Dress.banner(k, _w(-3.5, 10.0, e), ex, 2.0, 4.5, ez)
+	Dress.banner(k, _w(e, 10.2, -1.0), ez, 2.0, 4.8, ex)
+	Dress.chain(k, _w(-HI - WALL - 0.2, 4.5, -1.2), _w(-HI - WALL - 0.2, 4.5, 2.4), 0.5)
+	Dress.rubble(k, _w(-8.0, 0.4, -6.0), 3.4, 12, "ruin_big")
+	Dress.rubble(k, _w(7.5, 0.4, 7.0), 3.0, 10, "ruin_big")
+	Dress.barrel(k, _w(-HI - WALL - 2.4, 0.3, -3.0), 0.0, 1.0)
+	Dress.crate(k, _w(-HI - WALL - 2.6, 0.3, 4.6), 0.3, 0.9)
+	Dress.strands(k, _w(-5.0, 12.4, e), _w(5.0, 12.4, e), 6, 4.0)
+	Dress.strands(k, _w(e, 12.4, -5.0), _w(e, 12.4, 5.0), 6, 3.5)
+	Dress.crack(k, _w(-5.2, 3.0, -4.0), _w(-5.2, 9.0, -1.0), 0.14)
+	Dress.carved_band(k, _w(-5.0, 11.2, -e - 0.1), _w(5.0, 11.2, -e - 0.1), 8, Vector3(1.0, 0.45, 0.3))
+	if no == 6:
+		Dress.camp(k, _w(-HI - WALL - 4.5, 0.3, 0.4), 0.0)

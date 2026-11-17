@@ -13,6 +13,7 @@ extends RefCounted
 ## flats beside the star crater); a site reserved so the flora and the wayside keep off.
 
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
+const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 
 const CANDS := [Vector2(214.0, 196.0), Vector2(196.0, 214.0), Vector2(232.0, 170.0), Vector2(240.0, 220.0), Vector2(188.0, 176.0)]
 const HALF := Vector2(14.0, 28.0)
@@ -78,6 +79,7 @@ func _run(root: Node) -> void:
 	_stern()
 	_mast()
 	_drifts(mid)
+	_dress(mid)
 	var n := k.commit()
 	k.beacon(_w(0.0, 14.0, -21.0), Color(1.0, 0.7, 0.42), 1.2, 10.0, 360.0)
 	print("WONDER salt_ship at %s datum %.1f: %d meshes, %d fires, %d lights, %d chests" % [mid, base.y, n, k.fires, k.lights, k.chests])
@@ -260,3 +262,31 @@ func _drifts(mid: Vector2) -> void:
 		var sz := Vector3(rng.randf_range(1.6, 4.4), rng.randf_range(0.7, 1.9), rng.randf_range(1.4, 3.2))
 		k.kit.box("chalk", Vector3(p.x, g + sz.y * 0.3, p.z), sz, Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(-0.2, 0.2)), false, 0.9 + 0.1 * rng.randf())
 	var _m := mid
+
+
+# --- secondary forms: rigging, nets, stores, a flag, an anchor chain ---------------------------------------
+
+func _dress(mid: Vector2) -> void:
+	var s := 0.28
+	var top := _w(0.0, _yd(s) + 12.5, s * HALF_LEN + 0.6)
+	for sx: float in [-1.0, 1.0]:
+		Dress.rope(k, top - Vector3.UP * 0.4, _pt(int(float(N) * (s + 1.0) * 0.5) + 1, LEVELS, sx), 0.25, 0.06, "wood_big", 7)       # shrouds to the gunwale
+		Dress.rope(k, top - Vector3.UP * 0.4, _pt(int(float(N) * (s + 1.0) * 0.5) - 2, LEVELS, sx), 0.25, 0.06, "wood_big", 7)
+	Dress.rope(k, top, _w(0.0, 8.0, 21.0), 0.8, 0.07, "wood_big", 10)                                                         # the forestay to the bowsprit
+	Dress.rope(k, top, _w(0.0, 10.0, -19.0), 1.0, 0.07, "wood_big", 10)
+	Dress.banner(k, top + Vector3.UP * 0.05 - rot * Vector3(0.0, 0.0, 0.0), rot * Vector3(0.0, 0.0, -1.0), 2.4, 1.2, rot * Vector3(1.0, 0.0, 0.0))
+	for q: Vector3 in [Vector3(-2.8, 0.0, 6.0), Vector3(3.0, 0.0, 7.5), Vector3(-3.1, 0.0, -4.0)]:
+		var p := _w(q.x, _yd(q.z / HALF_LEN), q.z)
+		Dress.barrel(k, p, 0.3, 1.0)
+	Dress.crate(k, _w(2.6, _yd(0.2), 8.8), 0.2)
+	Dress.crate(k, _w(2.7, _yd(0.2) + 0.9, 8.8), 0.6, 0.7)
+	Dress.crate(k, _w(-2.9, _yd(-0.3), -6.8), -0.3, 0.85)
+	var bow := _pt(N, LEVELS - 1, 1.0)
+	var gp := Vector3(bow.x + rot.z.x * 4.0, 0.0, bow.z + rot.z.z * 4.0)
+	Dress.chain(k, bow, Vector3(gp.x, WK.h(gp.x, gp.z) + 0.4, gp.z), 0.7, 0.22, 10)                                         # the anchor cable
+	k.tube("iron", Vector3(gp.x, WK.h(gp.x, gp.z) + 0.2, gp.z), Vector3(gp.x, WK.h(gp.x, gp.z) + 2.4, gp.z), 0.14, 0.12, 5, false, 0.6)
+	k.beam("iron", Vector3(gp.x - 1.0, WK.h(gp.x, gp.z) + 0.3, gp.z), Vector3(gp.x + 1.0, WK.h(gp.x, gp.z) + 0.3, gp.z), 0.2, 0.2, false, 0.6)
+	var low := _w(0.0, 0.0, -3.0)
+	Dress.rubble(k, Vector3(mid.x, WK.h(mid.x, mid.y), mid.y), 18.0, 26, "chalk")
+	Dress.strands(k, _pt(8, LEVELS, -1.0), _pt(14, LEVELS, -1.0), 6, 2.2, "wood_big")
+	var _l := low

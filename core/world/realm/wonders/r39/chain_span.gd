@@ -12,6 +12,7 @@ extends RefCounted
 ## Built once from the kit. Reads from afar as four fires in a row and a line of lanterns hung across the dark.
 
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
+const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 
 const ALLOW := ["greyfell", "lanternwood", "kingsbarrows", "reedmere", "fallow", "arches", "southwood", "bellfall", "lastlight", "nave", "cairns"]
 const LEN := 56.0
@@ -86,6 +87,7 @@ func _run(root: Node) -> void:
 	_cables()
 	_midspan()
 	_toll_hut()
+	_dress()
 	var n := k.commit()
 	print("WONDER chain_span at %s deck %.1f: %d meshes, %d fires, %d lights, %d chests" % [c, yd, n, k.fires, k.lights, k.chests])
 
@@ -191,3 +193,27 @@ func _toll_hut() -> void:
 	k.window(Vector3(base.x, g + 1.2, base.z) - d * 1.8, sd, -d, 1.6, 1.2)
 	k.lamp(Vector3(base.x, g + 2.2, base.z), Color(1.0, 0.66, 0.36), 1.2, 7.0)
 	k.chest("chain_span_toll", "wood", Vector3(base.x, g + 0.3, base.z) + d * 0.9, atan2(-d.x, -d.z), {"grave_ash": 8, "grave_iron": 1})
+
+
+# --- secondary forms -----------------------------------------------------------------------------------
+
+func _dress() -> void:
+	for at: Vector3 in [a, a + d * LEN]:
+		var out := -d if at == a else d
+		for s: float in [-1.0, 1.0]:
+			var p := at + sd * (s * 3.8)
+			Dress.rubble(k, Vector3(p.x, WK.h(p.x, p.z), p.z) + out * 3.0, 3.6, 12, "ruin_big")
+			Dress.banner(k, Vector3(p.x, yd + 7.4, p.z) + out * 1.45 - sd * 0.8 * s, sd * s, 1.6, 5.0, out)
+			Dress.strands(k, Vector3(p.x, yd + 3.8, p.z) - sd * 1.5 * s, Vector3(p.x, yd + 3.8, p.z) + sd * 1.5 * s, 5, 3.0)
+		Dress.chain(k, at + sd * -3.4 + Vector3.UP * (yd + 7.0 - 0.0) - Vector3.UP * (-0.0), at + sd * 3.4 + Vector3.UP * yd + Vector3.UP * 7.0, 0.9, 0.2)
+	var tb := a - d * 7.5 + sd * 6.5
+	var tg := WK.h(tb.x, tb.z)
+	Dress.barrel(k, Vector3(tb.x, tg, tb.z) + sd * 3.4, 0.0)
+	Dress.barrel(k, Vector3(tb.x, tg, tb.z) + sd * 3.4 + d * 1.0, 0.0, 0.9)
+	Dress.crate(k, Vector3(tb.x, tg, tb.z) - sd * 3.2 + d * 0.5, 0.4)
+	Dress.rope(k, Vector3(tb.x, tg + 3.0, tb.z) + sd * 2.4, a + sd * 2.1 + Vector3.UP * 0.6 - d * 0.5, 0.8)
+	Dress.strands(k, Vector3(tb.x, tg + 3.1, tb.z) - sd * 2.4, Vector3(tb.x, tg + 3.1, tb.z) + sd * 2.4, 6, 1.3)
+	for i in 8:
+		var t := (float(i) + 0.5) / 8.0
+		Dress.crack(k, _pt(t, -1.5, -0.1), _pt(t + 0.04, 1.5, -0.1), 0.1)
+	Dress.camp(k, _pt(0.5, 3.6, 0.0) + sd * 0.0 + d * 1.6, 0.3, false)

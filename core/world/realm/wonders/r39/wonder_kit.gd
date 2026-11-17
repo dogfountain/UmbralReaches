@@ -28,6 +28,7 @@ func setup(root: Node, nm: String, seed_n: int) -> void:
 	rng.seed = seed_n
 	kit.keep_lanes = false
 	kit.candle_lights = false
+	kit.relief = true
 	host = Node3D.new()
 	host.name = nm
 	host.set_meta("wonder", nm)

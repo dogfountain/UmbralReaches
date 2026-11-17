@@ -202,9 +202,9 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 	var sh := shade * jit
 	var hc := h - Vector3.ONE * ch
 	for s: float in [-1.0, 1.0]:
-		_rect(st, c + ex * (s * h.x), ez * hc.z, ey * hc.y, ex * s, sh, ybot, upright)
-		_rect(st, c + ez * (s * h.z), ex * hc.x, ey * hc.y, ez * s, sh, ybot, upright)
-		_rect(st, c + ey * (s * h.y), ex * hc.x, ez * hc.z, ey * s, sh, ybot, false)
+		_face(st, c + ex * (s * h.x), ez * hc.z, ey * hc.y, ex * s, sh, ybot, upright)
+		_face(st, c + ez * (s * h.z), ex * hc.x, ey * hc.y, ez * s, sh, ybot, upright)
+		_face(st, c + ey * (s * h.y), ex * hc.x, ez * hc.z, ey * s, sh, ybot, false)
 	if ch <= 0.0:
 		return
 	for sa: float in [-1.0, 1.0]:
@@ -261,6 +261,33 @@ static func _grime(n: Vector3, y: float, ybot: float, shade: float, under: float
 		return Color(k * cr, k, k * cb)
 	var d := 1.0 - clampf((y - ybot) / AO_RISE, 0.0, 1.0)
 	return Color(k * cr * (1.0 - 0.1 * d), k * (1.0 - 0.02 * d), k * cb * (1.0 - 0.2 * d))
+
+
+## A big face in relief (kits with `relief`: the landmarks): faces over 1.2 m both ways are cut into ~1.6 m ashlar cells, each
+## proud of a darker recessed base by 0-5 cm with its own tone, mortar gaps showing the base: cut stone, not a slab. Collision stays
+## the plain box; the extra triangles are build-time geometry (a cell is 2 triangles, the base 2).
+var relief := false
+
+
+func _face(st: SurfaceTool, ctr: Vector3, u: Vector3, v: Vector3, n: Vector3, shade: float, ybot: float, split: bool) -> void:
+	var ul := u.length()
+	var vl := v.length()
+	if not relief or ul < 1.2 or vl < 1.2:
+		_rect(st, ctr, u, v, n, shade, ybot, split)
+		return
+	var nu := clampi(int(ul * 2.0 / 1.6), 1, 14)
+	var nv := clampi(int(vl * 2.0 / 1.6), 1, 14)
+	_rect(st, ctr - n * 0.06, u, v, n, shade * 0.6, ybot, false)
+	var cu := u / float(nu)
+	var cv := v / float(nv)
+	for i in nu:
+		for j in nv:
+			var c := ctr + u * ((float(i) + 0.5) / float(nu) * 2.0 - 1.0) + v * ((float(j) + 0.5) / float(nv) * 2.0 - 1.0)
+			var hv := float(absi(hash(Vector3i((c * 11.0).round()))) % 1000) / 1000.0
+			var hv2 := float(absi(hash(Vector3i((c * 7.0).round() + Vector3(5.0, 3.0, 1.0)))) % 1000) / 1000.0
+			var du := cu * (1.0 - 0.05 / maxf(cu.length(), 0.05))
+			var dv := cv * (1.0 - 0.05 / maxf(cv.length(), 0.05))
+			_rect(st, c + n * (0.012 + 0.05 * hv), du, dv, n, shade * (0.86 + 0.2 * hv2), ybot, false)
 
 
 ## Rectangle centre +-u +-v facing n. Upright side faces are split at the AO band so the contact

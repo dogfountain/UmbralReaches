@@ -10,6 +10,7 @@ extends RefCounted
 ## Built once, a kit per gate pair so each culls on its own.
 
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
+const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 
 
 static func build(root: Node) -> void:
@@ -71,3 +72,19 @@ func _titan(k, p: Vector2, dir: Vector2, side: Vector2, s: float) -> void:
 	var bowl := c + Vector3.UP * 16.8
 	k.kit.box("iron", bowl + Vector3.UP * 0.2, Vector3(1.5, 0.4, 1.5), b, false, 0.65)
 	k.fire(bowl + Vector3.UP * 0.5, 1.9, 3.6)
+	_dress(k, c, f3, s3, s)
+
+
+# --- secondary forms: a cloak of chain, a banner on the spear, rubble at the plinth, ivy on the shield ------
+
+func _dress(k, c: Vector3, f3: Vector3, s3: Vector3, s: float) -> void:
+	Dress.rubble(k, c + f3 * 3.0, 4.5, 14, "ruin_big")
+	Dress.rubble(k, c - f3 * 2.0 + s3 * 3.0, 3.5, 9, "ruin_big")
+	Dress.chain(k, c + s3 * -2.6 + Vector3.UP * 13.2 - f3 * 1.8, c + s3 * 2.6 + Vector3.UP * 13.2 - f3 * 1.8, 1.4, 0.24, 9)
+	Dress.chain(k, c + s3 * -2.4 + Vector3.UP * 11.0 - f3 * 1.8, c + s3 * 2.4 + Vector3.UP * 11.0 - f3 * 1.8, 1.8, 0.22, 9)
+	var hand := c + s3 * (3.7 * s) + f3 * 0.6 + Vector3.UP * 7.0
+	Dress.banner(k, hand + Vector3.UP * 13.0, -f3, 3.2, 4.0, s3 * s)
+	Dress.strands(k, c + s3 * (-3.6 * s) + f3 * 2.1 + Vector3.UP * 11.6 - s3 * 1.8, c + s3 * (-3.6 * s) + f3 * 2.1 + Vector3.UP * 11.6 + s3 * 1.8, 7, 4.5)
+	Dress.crack(k, c + f3 * 1.7 + Vector3.UP * 3.0, c + f3 * 1.7 + s3 * 1.0 + Vector3.UP * 9.0, 0.16)
+	Dress.carved_band(k, c + Vector3.UP * 12.2 + s3 * -2.6 + f3 * 1.85, c + Vector3.UP * 12.2 + s3 * 2.6 + f3 * 1.85, 7, Vector3(0.7, 0.45, 0.3))
+	Dress.carved_band(k, c + Vector3.UP * 4.0 + s3 * -1.6 + f3 * 1.65, c + Vector3.UP * 4.0 + s3 * 1.6 + f3 * 1.65, 5, Vector3(0.6, 0.4, 0.3))
