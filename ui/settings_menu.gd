@@ -4,6 +4,7 @@ extends CanvasLayer
 ## live and calls Settings.apply(); world/main.gd (Zone) pushes them into the window/environment/
 ## camera. The quality preset shows "Custom" as soon as one graphics option is changed by hand.
 
+const Access := preload("res://ui/access.gd")
 const Med := preload("res://ui/medieval_style.gd")
 const LILAC := Med.GILT
 const QUIET := Med.BONE
@@ -356,6 +357,38 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.save())
 	im.set_pressed_no_signal(HudPrefs.immersion)
 	_hud_checks[im] = "immersion"
+	p.add_child(_spacer(4))
+	_head(p, "COMFORT")
+	var sh := _check(p, "Reduce Camera Shake", "Hits, casts and landings no longer shake or kick the camera", func(v: bool) -> void:
+		HudPrefs.reduce_shake = v
+		HudPrefs.save())
+	sh.set_pressed_no_signal(HudPrefs.reduce_shake)
+	_hud_checks[sh] = "reduce_shake"
+	var fl := _check(p, "Reduce Flashes", "The brightest flashes (the photo shutter, bursts of light) are dimmed to a quarter", func(v: bool) -> void:
+		HudPrefs.reduce_flash = v
+		HudPrefs.save())
+	fl.set_pressed_no_signal(HudPrefs.reduce_flash)
+	_hud_checks[fl] = "reduce_flash"
+	var srow := _row(p, "Subtitles", "How the narration is drawn: standard, a solid plate with brighter ink, or larger type")
+	var so := OptionButton.new()
+	for nm: String in Access.STYLES:
+		so.add_item(nm)
+	so.select(HudPrefs.subtitle_style)
+	_style_small(so, 17)
+	so.item_selected.connect(func(i: int) -> void:
+		HudPrefs.subtitle_style = i
+		HudPrefs.save())
+	srow.add_child(so)
+	var prow := _row(p, "Colour Palette", "Colour-blind safe: the danger scale and enemy telegraphs use blue, yellow, orange and magenta instead of green and red")
+	var po := OptionButton.new()
+	for nm: String in Access.PALETTES:
+		po.add_item(nm)
+	po.select(HudPrefs.palette)
+	_style_small(po, 17)
+	po.item_selected.connect(func(i: int) -> void:
+		HudPrefs.palette = i
+		HudPrefs.save())
+	prow.add_child(po)
 	var row := _row(p, "Control Prompts", "The one-line hints that appear the first time a control matters (a ledge, a foe in range...), shown again")
 	var again := Button.new()
 	again.text = "Show Again"
@@ -757,6 +790,8 @@ func _refresh_hud_checks() -> void:
 			"guide": on = HudPrefs.guide
 			"opening": on = HudPrefs.opening
 			"immersion": on = HudPrefs.immersion
+			"reduce_shake": on = HudPrefs.reduce_shake
+			"reduce_flash": on = HudPrefs.reduce_flash
 			_: on = bool(HudPrefs.track.get(what.trim_prefix("track:"), true))
 		cb.set_pressed_no_signal(on)
 

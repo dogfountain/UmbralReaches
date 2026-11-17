@@ -3,6 +3,7 @@ extends RefCounted
 ## bow and a torch. Built into the villager's one skinned surface exactly as VillagerRig._tool builds the others (tube and
 ## blob primitives in the fist's own frame: `ax` the tool's axis through the palm, `fd` the fingers' direction, which
 ## is down when the hand hangs), called from its `_tool` for any kind it does not know. Static; load by path.
+const DwarfMesh := preload("res://core/npc/dwarf_mesh.gd")
 const WOOD := Color(0.36, 0.26, 0.17)
 const IRON := Color(0.3, 0.3, 0.32)
 const STRAW := Color(0.62, 0.5, 0.26)

@@ -29,6 +29,10 @@ static var enemy_plates := false       ## world health bars over every foe, and 
 static var guide := true               ## the new player's guide (core/story/guide.gd): waypoint, pinned objective, prompts
 static var opening := true             ## a new game plays the opening shot (core/story/opening_shot.gd)
 static var immersion := false          ## the HUD rests while the wanderer is simply walking (ui/hud_rest.gd)
+static var reduce_shake := false       ## camera kicks and shakes off (ui/access.gd)
+static var reduce_flash := false       ## the brightest flashes dimmed to a quarter
+static var subtitle_style := 0         ## 0 standard, 1 high contrast, 2 large
+static var palette := 0                ## 0 original, 1 colour-blind safe (the danger scale and telegraphs)
 static var card_request := 0           ## bumped by the settings menu: the HUD shows the controls card again
 static var _loaded := false
 
@@ -44,6 +48,10 @@ static func reset() -> void:
 	guide = true
 	opening = true
 	immersion = false
+	reduce_shake = false
+	reduce_flash = false
+	subtitle_style = 0
+	palette = 0
 	save()
 
 
@@ -67,6 +75,10 @@ static func ensure() -> void:
 	guide = bool(cfg.get_value("hud", "guide", true))
 	opening = bool(cfg.get_value("hud", "opening", true))
 	immersion = bool(cfg.get_value("hud", "immersion", false))
+	reduce_shake = bool(cfg.get_value("access", "reduce_shake", false))
+	reduce_flash = bool(cfg.get_value("access", "reduce_flash", false))
+	subtitle_style = clampi(int(cfg.get_value("access", "subtitle_style", 0)), 0, 2)
+	palette = clampi(int(cfg.get_value("access", "palette", 0)), 0, 1)
 
 
 static func save() -> void:
@@ -79,6 +91,10 @@ static func save() -> void:
 	cfg.set_value("hud", "guide", guide)
 	cfg.set_value("hud", "opening", opening)
 	cfg.set_value("hud", "immersion", immersion)
+	cfg.set_value("access", "reduce_shake", reduce_shake)
+	cfg.set_value("access", "reduce_flash", reduce_flash)
+	cfg.set_value("access", "subtitle_style", subtitle_style)
+	cfg.set_value("access", "palette", palette)
 	SaveDir.save_atomic(cfg, SaveDir.path(FILE))
 
 

@@ -6,6 +6,7 @@ extends RefCounted
 ## Load by path (no class_name): const MapTravel := preload("res://ui/world_map_travel.gd")
 
 const FireRoad := preload("res://core/world/fire_road.gd")
+const EmberTrace := preload("res://core/story/ember_trace.gd")
 const REACH := 9.0                          ## how near a lit fire the wanderer must stand to take the road from the map
 
 
@@ -34,7 +35,8 @@ static func note(tree: SceneTree, b: Brazier) -> String:
 		return "A lit fire: a stop on the Ember Road (take it from beside a lit fire)"
 	if o == b:
 		return "The fire you stand by"
-	return "Click to ride the Ember Road here, from %s" % o.display_name()
+	var t := FireRoad.toll(o.global_position.distance_to(b.global_position))
+	return "Click to ride the Ember Road here, from %s (%s)" % [o.display_name(), "free" if t == 0 else "%d grave ash" % t]
 
 
 ## A click (or confirm) on mark `m` of the map: a lit fire other than this one carries the wanderer. True when it acted.
@@ -55,8 +57,11 @@ static func click(map: Node, m: Dictionary) -> bool:
 		return true
 	if from == dest:
 		return true
+	var n := FireRoad.toll(from.global_position.distance_to(dest.global_position))
 	map.close()
-	FireRoad.travel(from, dest)
+	if FireRoad.travel(from, dest) != null and n > 0:
+		Travel.items["grave_ash"] = Travel.count("grave_ash") - n
+		Events.toast.emit("The road keeps %d grave ash." % n)
 	return true
 
 
@@ -69,4 +74,5 @@ static func posts(tree: SceneTree) -> Array[Dictionary]:
 		if p != null and p.is_inside_tree():
 			out.append({"at": Vector2(p.global_position.x, p.global_position.z), "kind": "horse",
 				"name": String(p.get_meta(&"map_label", "A hitching post")), "note": "Horses are kept here, for grave ash"})
+	out.append_array(EmberTrace.map_marks())
 	return out

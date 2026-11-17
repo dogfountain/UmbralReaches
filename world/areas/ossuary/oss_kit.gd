@@ -65,14 +65,6 @@ static func mat(key: String) -> Material:
 		"iron":       _tri(m, "tavern_iron", 0.6, Color(0.5, 0.48, 0.5))
 		"wood":       _tri(m, "tavern_wood", 0.5, Color(0.7, 0.57, 0.46))
 		"slate":      _tri(m, "oss_slate", 0.45, Color(0.9, 0.9, 0.95))
-		# the world pass masonry scale tiers: a colossal work's courses are 2-3 times a house's, so its blocks read as the size they are
-		# (the world-triplanar texture scale is per metre: half the scale, twice the stone)
-		"stone_big":  _tri(m, "oss_ashlar", 0.14, Color(0.9, 0.9, 0.92))
-		"ruin_big":   _tri(m, "oss_ruin", 0.17, Color(0.92, 0.91, 0.9))
-		"brick_big":  _tri(m, "oss_brick", 0.22, Color(0.95, 0.92, 0.9))
-		"wood_big":   _tri(m, "tavern_wood", 0.24, Color(0.52, 0.47, 0.42))
-		"bark":       _tri(m, "bark", 0.2, Color(0.62, 0.56, 0.5))
-		"chalk":      _tri(m, "oss_ashlar", 0.2, Color(1.1, 1.1, 1.18))
 		"bone", "bone_cm":
 			_tri(m, "oss_bone", 1.6, Color(1.0, 0.97, 0.92))
 			m.vertex_color_use_as_albedo = true
@@ -245,22 +237,13 @@ static func _ao(n: Vector3, y: float, ybot: float, under := 0.6) -> float:
 	return lerpf(AO_FLOOR, 1.0, t * t * (3.0 - 2.0 * t))
 
 
-## Vertex colour: contact AO plus damp grime at a wall's foot (a touch of green-brown, never brighter), and the world pass's
-## macro weathering: a slow patchwork across every wall and roof, by world position (two sines, 20-60 m patches: a
-## +-7 % tone drift, a warm/cool shift, moss on the up faces where the patch is damp). Faces are big and their vertices few,
-## so the colour is interpolated across them: no texture, no shader, no cost. Position-based, so neighbouring pieces agree.
-static func _grime(n: Vector3, y: float, ybot: float, shade: float, under: float, p := Vector3.ZERO) -> Color:
-	var m := 0.5 * sin(p.x * 0.23 + p.z * 0.31 + p.y * 0.05) + 0.5 * sin(p.x * 0.11 - p.z * 0.19 + p.y * 0.4)
-	var k := shade * _ao(n, y, ybot, under) * (1.0 + 0.07 * m)
-	var cr := 1.0 + 0.03 * m
-	var cb := 1.0 - 0.03 * m
+## Vertex colour: contact AO plus damp grime at a wall's foot (a touch of green-brown, never brighter).
+static func _grime(n: Vector3, y: float, ybot: float, shade: float, under: float) -> Color:
+	var k := shade * _ao(n, y, ybot, under)
 	if absf(n.y) > 0.68:
-		if n.y > 0.0 and m > 0.15:
-			var mo := smoothstep(0.15, 0.7, m)
-			return Color(k * cr * (1.0 - 0.06 * mo), k * (1.0 + 0.05 * mo), k * cb * (1.0 - 0.08 * mo))
-		return Color(k * cr, k, k * cb)
-	var d := 1.0 - clampf((y - ybot) / AO_RISE, 0.0, 1.0)
-	return Color(k * cr * (1.0 - 0.1 * d), k * (1.0 - 0.02 * d), k * cb * (1.0 - 0.2 * d))
+		return Color(k, k, k)
+	var m := 1.0 - clampf((y - ybot) / AO_RISE, 0.0, 1.0)
+	return Color(k * (1.0 - 0.1 * m), k * (1.0 - 0.02 * m), k * (1.0 - 0.2 * m))
 
 
 ## Rectangle centre +-u +-v facing n. Upright side faces are split at the AO band so the contact
@@ -282,7 +265,7 @@ func _rect(st: SurfaceTool, ctr: Vector3, u: Vector3, v: Vector3, n: Vector3, sh
 		tri = [a, c, b, a, d, c]
 	for p in tri:
 		st.set_normal(n)
-		st.set_color(_grime(n, p.y, ybot, shade, under_shade, p))
+		st.set_color(_grime(n, p.y, ybot, shade, under_shade))
 		st.add_vertex(p)
 
 
@@ -292,7 +275,7 @@ func _tri3(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, n: Vector3, shad
 		tri = [a, c, b]
 	for p in tri:
 		st.set_normal(n)
-		st.set_color(_grime(n, p.y, ybot, shade, under_shade, p))
+		st.set_color(_grime(n, p.y, ybot, shade, under_shade))
 		st.add_vertex(p)
 
 

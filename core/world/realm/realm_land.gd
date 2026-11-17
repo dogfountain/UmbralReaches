@@ -538,7 +538,6 @@ static func _heights() -> void:
 					h = lerpf(h, o, k)
 				h = RealmLayout.raid_shape(x, z, h)          # r34: the summit's raid volume is cut out of the kept core too
 			h = preload("res://core/world/realm/rift/scorch.gd").ground(x, z, h)          # the Ashen Rift's gash and its cooled flows (the far north-east)
-			h = preload("res://core/world/realm/terrain_benches.gd").shape(x, z, h)          # the Far Reaches' benches and scarps (terrain_benches.gd)
 			if _keep_d(x, z) > 0.0:
 				for pr: Dictionary in _profiles:
 					if not pr.over:

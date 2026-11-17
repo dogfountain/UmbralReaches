@@ -249,9 +249,15 @@ func _rest() -> void:
 	var d := Tally.data()
 	d["camps"] = int(d.get("camps", 0)) + 1
 	d["night_kills"] = 0
+	var vows := get_tree().get_first_node_in_group(&"vows") as Vows
+	if vows != null:
+		vows.on_camp()
 	var turned := Days.advance()
 	if turned:
 		Events.toast.emit("Night %d. The ledger's daily work is open again." % (Days.current() + 1))
+		var np := NightPanel.panel(get_tree())
+		if np != null:
+			np.show_summary.call_deferred()
 	Events.toast.emit("Rested. Press [%s] to read the Count." % InputSetup.live_label("interact", false, "E"))
 	TallyPanel.arm_after_camp(get_tree())
 	Travel.save_soon()

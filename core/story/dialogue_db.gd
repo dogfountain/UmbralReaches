@@ -666,6 +666,12 @@ const OPENING := [
 	"Over the Crowns the sky turns inward. The cold comes down the mountain to meet you.",
 	"There is light in the Kindled Keg. Find the keep. He will tell you what this night is for.",
 ]
+## A New Game after an ending (core/util/profile.gd keeps the count): the same three beats, spoken by someone who has been here.
+const OPENING_AGAIN := [
+	"The road ran out of pilgrims once, and you walked it to its end. The sky has turned a little more since.",
+	"The door you shut has a latch, and a latch is not a wall. The cold comes down the mountain to meet you again.",
+	"There is light in the Kindled Keg. They will not remember you. The fire will. Find the keep.",
+]
 const ENDING := [
 	"The sky stops turning.",
 	"Somewhere above the Crowns, a bell rings once. From the bottom up.",
