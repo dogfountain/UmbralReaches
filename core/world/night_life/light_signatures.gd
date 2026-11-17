@@ -110,6 +110,7 @@ func _on_kindled(_b: Node3D) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	Reg.pulse = maxf(0.0, Reg.pulse - delta * 1.8)
 	visible = Reg.enabled
 	if not Reg.enabled:
 		return
@@ -224,7 +225,7 @@ func _draw() -> void:
 		var k := int(Reg.kind[i])
 		var col := Reg.colour(k)
 		var sh := Reg.shimmer(i, t)
-		var g: float = Reg.gain[i] * gm * (1.0 + Reg.boost[i] + 0.9 * Reg.flash)
+		var g: float = Reg.gain[i] * gm * (1.0 + Reg.boost[i] + 0.9 * Reg.flash + 1.2 * Reg.pulse)
 		if d > NEAR_OFF and d < FAR_FADE_B and nc < MAX_CARDS:
 			var a := smoothstep(NEAR_OFF, NEAR_ON, d) * (1.0 - smoothstep(FAR_FADE_A, FAR_FADE_B, d)) * g * sh
 			if a > 0.01:
