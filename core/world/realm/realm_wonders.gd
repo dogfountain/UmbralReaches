@@ -24,6 +24,7 @@ const LIST := [
 	"res://core/world/realm/wonders/r39/waterworks.gd",
 	"res://core/world/realm/wonders/r39/climbs.gd",
 	"res://core/world/realm/wonders/r39/ground_marks.gd",
+	"res://core/world/realm/wonders/r39/hidden_finds.gd",
 ]
 
 
