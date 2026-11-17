@@ -443,6 +443,9 @@ func commit(range_end := 0.0) -> int:
 	var n := kit.commit(host, host.name + "Body")
 	# flames and halos: one MultiMesh each (per halo size) for the whole kit
 	if not _fl.is_empty():
+		if _fire_mesh == null:
+			_fire_mesh = QuadMesh.new()
+			_fire_mesh.size = Vector2(0.075, 0.17)
 		var fm := OssKit.multimesh(_fire_mesh, _fl, OssKit.mat("flame"), false)
 		fm.name = "Flames"
 		host.add_child(fm)
