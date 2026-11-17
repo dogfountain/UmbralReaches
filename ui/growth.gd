@@ -417,7 +417,8 @@ func _input(event: InputEvent) -> void:
 	if _cs() != null:
 		if not _root.visible:
 			return                              # the character screen opens it
-		if event.is_action_pressed("kindling") or event.is_action_pressed("toggle_settings") or event.is_action_pressed("inventory") \
+		var pad := event is InputEventJoypadButton     # the d-pad moves the cursor in here: kindling / inventory are keys
+		if (event.is_action_pressed("kindling") and not pad) or event.is_action_pressed("toggle_settings") or (event.is_action_pressed("inventory") and not pad) \
 				or event.is_action_pressed("skill_nova") or event.is_action_pressed("interact") \
 				or (event is InputEventJoypadButton and ((event as InputEventJoypadButton).button_index == JOY_BUTTON_LEFT_SHOULDER or (event as InputEventJoypadButton).button_index == JOY_BUTTON_RIGHT_SHOULDER)):
 			return                              # its keys and its pages (Q / E, LB / RB) are the screen's
@@ -430,7 +431,7 @@ func _input(event: InputEvent) -> void:
 		return
 	if not _root.visible:
 		return
-	if event.is_action_pressed("toggle_settings") or event.is_action_pressed("inventory"):
+	if event.is_action_pressed("toggle_settings") or (event.is_action_pressed("inventory") and not event is InputEventJoypadButton):
 		close_menu()
 		get_viewport().set_input_as_handled()
 		return

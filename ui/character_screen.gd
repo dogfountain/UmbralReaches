@@ -268,13 +268,16 @@ func _input(event: InputEvent) -> void:
 		return
 	if event.is_echo():
 		return
-	if event.is_action_pressed("inventory") or event.is_action_pressed("toggle_settings") or event.is_action_pressed("release_mouse") \
-			or (event is InputEventJoypadButton and event.pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_B):
+	# Open, the pad's d-pad navigates (ui_*): its menu bindings (up = inventory, the others the jumps) are for
+	# the closed night only, so a joypad button never closes the screen or jumps a page from in here.
+	var on_pad := event is InputEventJoypadButton
+	if (event.is_action_pressed("inventory") and not on_pad) or event.is_action_pressed("toggle_settings") or event.is_action_pressed("release_mouse") \
+			or (on_pad and event.pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_B):
 		close()
 		get_viewport().set_input_as_handled()
 		return
 	for j: Array in JUMPS:
-		if InputMap.has_action(j[0]) and event.is_action_pressed(j[0]):
+		if not on_pad and InputMap.has_action(j[0]) and event.is_action_pressed(j[0]):
 			var here := showing()
 			if here[0] == j[1] and (j[2] == "" or here[1] == j[2]):
 				close()

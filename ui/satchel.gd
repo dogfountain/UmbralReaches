@@ -327,8 +327,8 @@ func _input(event: InputEvent) -> void:
 	if _cs() != null and (hosted or not _root.visible):
 		if not _root.visible:
 			return                              # the character screen opens and closes it
-		if event.is_action_pressed("inventory") or event.is_action_pressed("toggle_settings") or event.is_action_pressed("release_mouse"):
-			return
+		if (event.is_action_pressed("inventory") and not event is InputEventJoypadButton) or event.is_action_pressed("toggle_settings") or event.is_action_pressed("release_mouse"):
+			return                              # (the pad's d-pad moves the cursor in here, it is not the menu key)
 	elif event.is_action_pressed("inventory"):
 		if _root.visible:
 			close_menu()
