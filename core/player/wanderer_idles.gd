@@ -77,12 +77,12 @@ static func _choose(r: Variant, ctx: Dictionary) -> int:
 ## What he carries whatever he is doing.
 static func _conditions(r: Variant, ctx: Dictionary, speed: float, dt: float) -> void:
 	# exertion: a run builds it, standing lets it go (a breath is caught after about five seconds)
-	var ex: float = float(ctx.get("_ex", 0.0))
+	var ex: float = float(ctx.get("ex", 0.0))
 	if speed > r.sprint_speed * SPRINT_FRAC:
 		ex = minf(1.0, ex + dt * 0.3)
 	else:
 		ex = maxf(0.0, ex - dt * (0.2 if speed < 0.3 else 0.08))
-	ctx["_ex"] = ex
+	ctx["ex"] = ex
 	ctx["tired"] = ex if speed < 0.3 else 0.0
 	if ex > 0.02:
 		var pulse := sin(float(r._t) * 6.5)
@@ -171,8 +171,8 @@ static func _act(r: Variant, id: int, k: float, u: float, ctx: Dictionary, dt: f
 			r._chest.scale += Vector3(0.01, 0.03, 0.01) * k * sin(t * 7.0)
 		8:  # looking at a landmark or a person: the head and the shoulders turn to it and hold
 			var pt: Vector3 = ctx.get("look", Vector3.INF)
-			var ly: float = float(ctx.get("_ly", 0.0))
-			var lp: float = float(ctx.get("_lp", 0.0))
+			var ly: float = float(ctx.get("ly", 0.0))
+			var lp: float = float(ctx.get("lp", 0.0))
 			var ty := 0.0
 			var tp := 0.0
 			if pt != Vector3.INF:
@@ -181,8 +181,8 @@ static func _act(r: Variant, id: int, k: float, u: float, ctx: Dictionary, dt: f
 				tp = clampf(atan2(l.y, Vector2(l.x, l.z).length()), -0.4, 0.5)
 			ly = lerpf(ly, ty, 1.0 - exp(-4.0 * dt))
 			lp = lerpf(lp, tp, 1.0 - exp(-4.0 * dt))
-			ctx["_ly"] = ly
-			ctx["_lp"] = lp
+			ctx["ly"] = ly
+			ctx["lp"] = lp
 			r._head.rotation.y += ly * 0.75 * k
 			r._torso.rotation.y += ly * 0.25 * k
 			r._head.rotation.x -= lp * 0.7 * k
