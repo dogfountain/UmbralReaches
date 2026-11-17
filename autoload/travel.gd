@@ -34,6 +34,7 @@ var story: Dictionary = {}         ## story state (core/story/story.gd): {"flags
 ## Progress save (user://slot_<n>/savegame.cfg, see use_slot): kindles (hub + areas), relics, checkpoint, hollow count.
 ## Written ~0.6 s after any change (kill ash: ~10 s, see save_lazy); read once at boot. Launch with
 ## `-- --fresh` to ignore it, `-- --save-dir=/scratch` to keep every save file there (tests).
+const StateMigrate := preload("res://core/util/state_migrate.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 const SaveDir := preload("res://core/util/save_dir.gd")
 const SLOTS := 3                     ## save slots: <dir>/slot_<n>/savegame.cfg
@@ -469,6 +470,7 @@ func load_game() -> void:
 	story = (st as Dictionary).duplicate(true) if st is Dictionary else {}
 	var sy: Variant = cfg.get_value("systems", "state", {})
 	systems = (sy as Dictionary).duplicate(true) if sy is Dictionary else {}
+	StateMigrate.run(story, systems)           # the keys added since the first saves: made, checked, repaired
 	print("SAVE loaded: %d scenes with kindles, %d area fires, %d relics" % [lit_by_path.size(), area_lit.size(), relics.size()])
 
 

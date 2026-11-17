@@ -87,6 +87,65 @@ The night holds still and the lens is yours: a free camera from where the wander
 ### 17. The Ember Road names the danger
 Each destination in the fire menu now ends with its plate ("Perilous · Lv 14"), so a fast travel into ground above the wanderer's level is a choice made with the number in view.
 
+## Third round (the long round; brief: docs/r39/briefs/opening_systems_ux.md)
+
+Cost statement for everything below: nothing runs per frame. Signals, 0.5 to 3 s polls, and panels that are built hidden at the start and filled only when opened. The horse's `_physics_process` is switched off except while a whistle runs. `Days` writes its playtime once a second. The map's trail and folding draw only while the map is open.
+
+### 18. The opening, finished
+After the title card the shot now has: the game's name over the dark (shot 2 to 7 s, "THE SECOND NIGHT" on a repeat), a low bell stroke under the black (`BellVoice`), the narration at 1, 9 and 33 s, the story seat's drain beat started with the second line so the green's people go indoors while the lens circles it, and a lantern chime (a rising fifth and octave) at the hand-off. A New Game after an ending (the profile, `core/util/profile.gd`, counts endings in `profile.cfg`, shared by every save) opens as the second night: a 1.5x faster shot and `DialogueDB.OPENING_AGAIN`. The keep's door lesson ("the keep is behind the bar") fires within 7 m of the Keg before the keep has been met. The bells lesson follows the one-bell canon.
+- Files: `opening_shot.gd`, `story.gd` (`_play_opening`), `dialogue_db.gd` (OPENING_AGAIN), `core/util/profile.gd`, `first_hour.gd`.
+- Reach: New Game. For the second night: set `endings=1` in `profile.cfg` under the save dir, or finish the ending. Check: skip at every beat (hold interact after 1.5 s); no lines repeat after the shot; the drain beat does not play twice.
+
+### 19. The stable (horse care, tack, saddlebags, whistle, courier runs)
+- **Whistle**: `[H]` now makes the horse run to you along the ground, probing round obstacles with rays (turns of 35 and 70 degrees), slowing in water, stopping 3 m off, giving up after 45 s or when stuck for 1.6 s (then it stands beside you as the old whistle did); beyond 320 m it comes beside you at once. Gallop speed uses the bond and care multipliers. Files: `horse.gd` (`call_to`, `_physics_process`), `stables.gd`.
+- **Tend the stable**: every hitching post has a rail you can use ("[E] Tend the stable", `post_spot.gd`), which opens `ui/horse_panel.gd` with three pages (Q/E, LB/RB, or the tab buttons; d-pad and A on the buttons):
+  - Care: bond, spirit (0 to 100; a worn horse is 8% slower, a fresh one learns you half again as fast), Feed (an ash-bloom, +45), Groom (free once a night, +20 and a little bond), and five pieces of tack: Iron shoes (+6% speed), Barding (tires half as fast), Saddle lantern (the Gloom gathers a third slower while riding, ticked by `Vows`/`Horse`), Larger and Deep saddlebags (+60, +120 capacity).
+  - Saddlebags: five materials moved between the satchel and the bags (put 1, put all, take 1, take all); capacity 60 base; what is in the bags is safe from the ash mound on a fall.
+  - Courier: ten roads between the five posts (`core/world/mount/courier.gd`): take a parcel, ride to the other post's rail, gold/silver/bronze/late limits from the distance, rewards in grave ash and ember shards, best times in `profile.cfg`, a timer line at the top, the destination as a compass beacon. Hollowing loses the parcel; the Ember Road is shut while one is carried; a reload resumes the run with its elapsed time.
+- Saved: stable `bond`, `names`, `left`, `spirit`, `tack`, `groomed`, `bags`; story `courier`.
+- Not built: the horse race at Hearthward; the saddle lantern's light is a Gloom effect only. Interacting from the saddle already worked (the interact key uses any target except the horse).
+- Check: horse runs round a fence, a tree line, a hill; buy a horse, feed it, put grave ash in the bags and die: the ash is still there; take "The Tor Parcel" and deliver it; a second parcel is refused while one is carried.
+
+### 20. Falling means something
+The ash mound (existing) is now a beacon on the compass and the dial and a map pin ("Your embers", with its amount); the old heap lost on a second fall is counted (`embers_lost`) and announced. The return is a quiet 3 s with black bars and one of 40 lines (the first fall, a deep-ground fall, later falls), then the fire's toll: free for the first two falls, then a twelfth of the grave ash carried (2 to 40), logged in the Count (`tolls`) and the Chronicle. Ash in the saddlebags is not touched. Files: `core/story/ember_trace.gd`, `ui/world_map_travel.gd`.
+
+### 21. Vows (progression choices)
+At Remembrance 5, 10, 15, 20, 25 and 30 a panel offers three vows (18 in all; `core/life/progression/vows.gd`, `ui/vow_panel.gd`). Examples: Tithe of Embers (kills near a lit fire leave ash), Fireside Lore (a camp gives Rested), Horse-Lord, Light Step (no toll), Lantern-Bearer (slower Gloom while mounted or carrying a parcel), Kin of the Ember Road (the road sets you down clean and free), Keeper's Spoils (double memory after a great one falls), Night-Hardened, The Long Night's End (a night turns after 300 s). The panel opens by itself when safe and every two minutes until one is chosen; Esc or B defers; picking asks for confirmation ("Swear it"). Sworn vows are listed in the Count and the Chronicle. Saved in `story["vows"]`. The Paths tree is unchanged.
+- Check: set a level 5 save; the panel appears when no foe is near; each vow's effect (see the table in `vows.gd`); `Courier`, `HorseBond`, `Days`, `FireRoad` and `EmberTrace` read `Vows.has(id)`.
+
+### 22. The night summary and the credits
+When a camp turns the night, a page lists the night's put-down, falls, countries, parcels, camps, level gained, the names counted, up to eight Chronicle lines of that night and a closing line. After the ending's card (and nine seconds), the credits read the whole Chronicle back, then the Count, then thirty counted names, then "Hearthward keeps its fire"; replayable from the Chronicle page. Files: `ui/night_panel.gd`, `story.gd`, `camp_rite.gd`, `tally_panel.gd`. Leave with interact, Esc or B.
+
+### 23. The Ember Road, priced and shown
+Every fire in the Ember Road menu and every lit fire on the map now shows its danger plate and its toll: a grave ash a sixty metres (1 to 15), never more than you carry; the Ember Road vow waives it. The Count's third page tracks the eight bells (where each hangs and what was done). Files: `fire_road.gd`, `world_map_travel.gd`, `tally_panel.gd`.
+
+### 24. Comfort and accessibility
+Settings > Interface > Comfort: Reduce Camera Shake (kicks and casts), Reduce Flashes (photo shutter now; other seats should multiply flash alpha by `Access.flash()`), Subtitles (Standard, High Contrast, Large) and Colour Palette (Original or Colour-Blind Safe: the danger scale and a `Access.telegraph(color)` helper the enemy/VFX seat should route telegraph colours through). Saved in `hud.cfg` (per player). Files: `ui/access.gd`, `hud_prefs.gd`, `settings_menu.gd`, `dialogue.gd`, `player_camera.gd`, `danger.gd`. Presets (performance/quality) already exist in Display; controller remapping parity was not changed.
+
+### 25. Save robustness
+`core/util/state_migrate.gd` runs on every slot load: it creates the keys added this round (`tally`, `chronicle`, `chronicle_keys`, `trail`, `pins`, `night_no`, `night_age`, `danger_warned`, `courier`, `vows`, and the `stable` keys) and repairs a damaged one (a number where a list belongs, an odd-length trail, negative counts, a chronicle line with no text) instead of failing later. A save from a newer build is left alone. The slot loader already falls back to the `.bak` and `.tmp` files.
+
+### 26. Map filters
+On the open map, keys 1 to 5 (LB and RB on a pad for tasks and fires) hide or show tasks, fires, lamps, rares and posts, horses and marks; saved per run (`story["map_hide"]`); the folding code applies them (`world_map_cluster.gd`).
+
+### The curve, written down (progression review)
+- **XP**: level L to L+1 costs 60 + 20 L (cap 30 = 10,500 XP); a full night's sources total about 13,600 (DECISIONS, 15 Nov). Vows at 5, 10, 15, 20, 25, 30 (about 400, 1,600, 3,500, 6,100, 8,600 and 10,500 XP cumulative with the cap).
+- **Danger**: a plain pawn's plate level is `LEVEL_BAND[tier] + step + 1`, bands 1, 4, 9, 14, 19, 24, 28 for tiers 0 to 6; a tier is the region's base plus bosses felled (`Tiers.night_depth`). Boss level is the pawn's plus 2 (`Danger.BOSS_RANK`). The plate now says so (Haven, Gentle, Even, Perilous, Deadly; Deadly is 5 or more above the wanderer).
+- **Gear**: item level is 8 + 7 x rarity (0 to 4) + 3 x raise level, +3 set, +4 named, +6 legend (`GearDB.item_level`): a common piece 8, a legend about 36 plus raises. Item level changes nothing by itself (tooltips compare it), so power is the Paths, the spells, the vows and the sets: there is no gear gate. A gear-gap hint on the plate (item level against the tier's pawn level) is the next step and was not built.
+- **Where it sags or spikes** (from the first critique, still true): the world hardens by bosses felled, not by the wanderer's level, so a boss-beeline player meets tier-6 plates at the summit with a level in the high teens; the plate and the danger warning now say so before the walk, the vows give a choice every five levels and the toll and tithe make falling cost something.
+
+### Debug routes for the lead
+- Second-night opening: write `[profile]\nendings=1` into `profile.cfg` in the save dir (`--save-dir=`), or finish an ending.
+- A vow: grant memory so Remembrance is 5 (`Travel.system_state("progression")["memory"] = 1100`), stand away from foes; the panel opens within 2 s.
+- Courier: buy a horse (`Travel.items["grave_ash"] = 500`, buy at the Hearthward post), `[E]` at the post rail, take "The Tor Parcel".
+- Ember trace and toll: hollow yourself three times (`Events.hollowed` after `player.vitals.hollow()` via the harness), then rest at a fire.
+- Credits: set story flag `ending_card` and read them from the Chronicle page, or set `credits_seen` false and `ending_told`.
+- Summary: make camp after 600 s of playtime (`Travel.story["night_age"] = 700.0`).
+- Comfort: Settings > Interface > Comfort (hud.cfg `[access]`).
+
+### Not done in this round (honest list)
+A horse race at Hearthward; a charcoal-sketch reveal of unseen ground and landmarks inked when seen (the existing fog and discovery banners are unchanged); label de-collision (the existing placer already avoids marks and other names); an endgame loop after the Warden beyond the existing Deeper Night; a gear-gap hint; controller remapping parity; the full UX consistency pass over every older menu (the new panels were built to one pattern: keyboard, pad buttons with focus, empty states and a footer). The brief's perf rule was kept by construction, not measured.
+
 ## Data and content the lead should hand to the other agents (not edited here)
 - Story: Brannoc's `far_work` is gated on `peal:4`; open a Reach errand or a word in Hearthward in Act I (barks in `guide_lines.gd`); give one bell a home in a Reach so the Outliers touch the peal; quest endings that send the wanderer to a stable ("a horse would help" tasks) and a line in villagers' talk about the Count and the camp.
 - World: waystation hitching posts on the long roads (HorseDB has one post per breed; a second post for the same breed needs a data row); a seat prop for the camp (the interaction works without a model).

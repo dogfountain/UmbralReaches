@@ -7,6 +7,7 @@ extends Node
 var player: Player
 
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
+const Access := preload("res://ui/access.gd")
 
 var _fov_kick := 0.0
 var _fov_want := 0.0                    ## speed FOV kick target (physics tick); eased per rendered frame
@@ -35,7 +36,7 @@ func set_view(yaw: float, pitch: float) -> void:
 
 
 func cast_impulse() -> void:
-	_shake_want = maxf(_shake_want, deg_to_rad(0.15))
+	_shake_want = maxf(_shake_want, deg_to_rad(0.15) * Access.shake())
 
 
 # --- Camera ------------------------------------------------------------------
@@ -88,7 +89,7 @@ func _cam_frame(delta: float) -> void:
 ## Camera punch, 0..1. Rides the existing land-dip pitch channel.
 
 func kick(amount: float) -> void:
-	_shake_want = maxf(_shake_want, deg_to_rad(0.15 + 1.1 * clampf(amount, 0.0, 1.0)))
+	_shake_want = maxf(_shake_want, deg_to_rad(0.15 + 1.1 * clampf(amount, 0.0, 1.0)) * Access.shake())
 
 
 # --- camera feel ---------------------------------------------------------------------------------------

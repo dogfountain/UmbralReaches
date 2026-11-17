@@ -90,6 +90,7 @@ func _ready() -> void:
 	add_child(_rig)
 	_yaw = global_basis.get_euler().y
 	_write(NAN, 0.0)
+	set_physics_process(false)                  # only while it runs to a whistle
 
 
 func can_interact() -> bool:
@@ -149,6 +150,8 @@ static func state() -> Dictionary:
 
 func mount(p: Player) -> void:
 	rider = p
+	_call_who = null
+	set_physics_process(false)
 	_mount_t = 0.0
 	_mount_from = p.global_position
 	at_post = false
@@ -545,7 +548,7 @@ func _process(dt: float) -> void:
 		_graze_t = randf_range(4.0, 9.0)
 	var down := _graze_t > 2.0
 	_head = lerpf(_head, 0.7 if down else 0.0, 1.0 - exp(-1.5 * dt))
-	if speed > 0.0 and not bool(_wd.get("moving", false)):
+	if speed > 0.0 and not bool(_wd.get("moving", false)) and _call_who == null:      # not wandering its paddock, not running to a whistle
 		speed = move_toward(speed, 0.0, 9.0 * dt)
 	# off screen it is posed twice a second (as the villagers are: NpcLife.interval), with the time since
 	_pose_acc += dt
@@ -704,3 +707,101 @@ func _ground(at: Vector3) -> Vector3:
 	var sp := _space if _space else get_world_3d().direct_space_state
 	var hit := sp.intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 3.0, at + Vector3.DOWN * 8.0, Layers.WORLD))
 	return (hit.position as Vector3) if not hit.is_empty() else at
+
+# --- the whistle: the horse runs to its rider -------------------------------------------------------
+
+var _call_who: Node3D = null            ## the wanderer it is running to (null: standing)
+var _call_t := 0.0                      ## seconds it has been running
+var _stuck_t := 0.0                     ## seconds without getting anywhere
+const CALL_STOP := 3.2                  ## it halts this far from the wanderer
+const CALL_GIVE_UP := 45.0              ## a run longer than this ends where the old whistle did: beside the wanderer
+const CALL_FAR := 320.0                 ## farther than this it is too far to hear: the whistle brings it beside her at once
+
+
+## Start running to `who`. False when it cannot (ridden, or already there).
+func call_to(who: Node3D) -> bool:
+	if rider != null or who == null or global_position.distance_to(who.global_position) < CALL_STOP + 1.0:
+		return false
+	_call_who = who
+	set_physics_process(true)
+	_call_t = 0.0
+	_stuck_t = 0.0
+	at_post = false
+	_gather = 0.0
+	Foley.horse_sfx("snort", global_position + Vector3.UP * 1.3, -8.0, pow(float(_d.get("heft", 1.0)), -0.3))
+	return true
+
+
+func calling() -> bool:
+	return _call_who != null
+
+
+func _stop_call() -> void:
+	_call_who = null
+	set_physics_process(false)
+	_stuck_t = 0.0
+
+
+func _physics_process(dt: float) -> void:
+	if _call_who == null:
+		return
+	if rider != null or not is_instance_valid(_call_who):
+		_stop_call()
+		return
+	_space = get_world_3d().direct_space_state
+	_call_t += dt
+	var to := _call_who.global_position - global_position
+	to.y = 0.0
+	var dist := to.length()
+	if dist < CALL_STOP:
+		_stop_call()                       # it slows to a halt on the speed's own decay (the standing branch of _process)
+		return
+	if _call_t > CALL_GIVE_UP or _stuck_t > 1.6:
+		_arrive_beside()
+		return
+	var dir := to / dist
+	var base := global_position + Vector3.UP * 0.9
+	var pick := dir
+	var free := false
+	for turn: float in [0.0, 0.6, -0.6, 1.2, -1.2]:
+		var d := dir.rotated(Vector3.UP, turn)
+		var hit := _space.intersect_ray(PhysicsRayQueryParameters3D.create(base, base + d * 2.4, Layers.WORLD))
+		if hit.is_empty():
+			pick = d
+			free = true
+			break
+	_stuck_t = 0.0 if free else _stuck_t + dt
+	var wading := RealmLand.in_water(global_position.x, global_position.z) and not bool(_d.get("wade", false))
+	var top := float(_d.gallop) * HorseBond.mult(breed)
+	var want := minf(top, float(_d.walk)) if wading else (top if dist > 14.0 else float(_d.trot))
+	if not free:
+		want = 0.0
+	speed = move_toward(speed, want, 7.0 * dt)
+	_yaw = lerp_angle(_yaw, atan2(-pick.x, -pick.z), 1.0 - exp(-7.0 * dt))
+	var fwd := Vector3(-sin(_yaw), 0.0, -cos(_yaw))
+	var np := global_position + fwd * speed * dt
+	var g := _ground(np)
+	if g.y - global_position.y > float(_d.climb) + 0.5:
+		_stuck_t += dt                      # a wall of earth: it does not climb it
+		np = global_position
+	np.y = lerpf(global_position.y, g.y, 1.0 - exp(-14.0 * dt))
+	global_position = np
+	global_basis = Basis(Vector3.UP, _yaw)
+	_phase_prev = _phase
+	_phase += TAU * _rig.freq(speed) * dt
+	_accel = Vector2((speed - _speed_prev) / maxf(dt, 0.001), 0.0)
+	_speed_prev = speed
+	_hooves(dt)
+
+
+## Gave up on the way: stand beside the wanderer, as the first whistle did.
+func _arrive_beside() -> void:
+	var who := _call_who
+	_stop_call()
+	if who == null:
+		return
+	var back := -who.global_basis.z
+	back.y = 0.0
+	var to := who.global_position - back.normalized() * 3.0
+	global_position = _ground(to)
+	speed = 0.0

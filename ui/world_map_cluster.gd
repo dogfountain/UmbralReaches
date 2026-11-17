@@ -6,6 +6,40 @@ extends RefCounted
 ## Load by path (no class_name): const MapCluster := preload("res://ui/world_map_cluster.gd")
 
 const NEVER := ["you", "boss", "boss_down", "quest_target"]
+## Filters: keys 1 to 5 on the open map hide or show a kind of pin (saved with the run in story["map_hide"]).
+const GROUPS := [["Tasks", ["quest_available", "quest_turnin"]], ["Fires", ["fire", "ash"]], ["Lamps", ["lamp"]],
+	["Rares and posts", ["rare", "watch"]], ["Horses and marks", ["horse", "beacon"]]]
+
+
+static func hidden() -> Array:
+	var h: Variant = Travel.story.get("map_hide", null)
+	if not (h is Array):
+		h = []
+		Travel.story["map_hide"] = h
+	return h as Array
+
+
+## A number key on the open map flips a filter. True when the key was one.
+static func toggle_key(k: int) -> bool:
+	var i := k - KEY_1
+	if i < 0 or i >= GROUPS.size():
+		return false
+	var h := hidden()
+	if h.has(i):
+		h.erase(i)
+	else:
+		h.append(i)
+	Events.toast.emit("%s: %s" % [String((GROUPS[i] as Array)[0]), "hidden" if h.has(i) else "shown"])
+	Travel.save_soon()
+	return true
+
+
+static func _filtered(kind: String) -> bool:
+	var h := hidden()
+	for i: Variant in h:
+		if kind in ((GROUPS[int(i)] as Array)[1] as Array):
+			return true
+	return false
 const RADIUS := 17.0                       ## screen px within which two marks of one kind are one pin
 
 
@@ -19,6 +53,9 @@ static func fold(marks: Array[Dictionary], to_screen: Callable, view: Rect2) -> 
 	for i in marks.size():
 		count[i] = 1
 		var kind := String(marks[i].kind)
+		if kind not in NEVER and _filtered(kind):
+			hide[i] = 1
+			continue
 		if kind in NEVER or float(marks[i].get("radius", 0.0)) > 0.0:
 			continue
 		var p: Vector2 = to_screen.call(marks[i].at)

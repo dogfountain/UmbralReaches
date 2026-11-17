@@ -9,6 +9,7 @@ extends RefCounted
 ## Pure and static; the wanderer's level is read from the progression state, never from the HUD.
 ## Load by path (no class_name): const Danger := preload("res://core/life/encounters/danger.gd")
 
+const Access := preload("res://ui/access.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const LevelDB := preload("res://core/life/progression/level.gd")
 
@@ -46,7 +47,8 @@ static func plate(at: Vector3) -> String:
 
 
 static func color(b: int) -> Color:
-	return COLORS[clampi(b, 0, COLORS.size() - 1)]
+	var c: Color = COLORS[clampi(b, 0, COLORS.size() - 1)]
+	return Access.safe(["good", "good", "even", "warn", "bad"][clampi(b, 0, 4)], c)
 
 
 ## The great one of arena `boss_id`: its level, or 0 when no such arena stands.
