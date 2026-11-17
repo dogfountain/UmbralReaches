@@ -8,7 +8,7 @@ extends Node
 ## What brings a line (TRIGGERS, below): the first fire, all four, each of the five bosses falling, the first bell answered,
 ## the Rift and the summit entered, the first time the wanderer is hollowed, the Reaches' threads closed, the road's lamps
 ## lit, the edicts restored or scratched out (the choice the third edict's scribe leaves, quest `aurel_edicts`), the Deeper
-## Night. `fight(boss, key)` is the same voice inside the Warden's arena, as boss emotes (ascended_warden.gd, warden_peal.gd).
+## Night. AurelLines.fight(boss, key) is the same voice inside the Warden's arena, as boss emotes (ascended_warden.gd, warden_peal.gd).
 ## Added by the story director. No class_name.
 
 const BellVoice := preload("res://core/story/bell_voice.gd")
@@ -16,6 +16,7 @@ const Voice := preload("res://core/npc/npc_voice.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 const QuestDB := preload("res://core/story/quest_db.gd")
 const Story := preload("res://core/story/story.gd")
+const AurelLines := preload("res://core/story/aurel_lines.gd")
 
 const MIN_GAP := 75.0              ## seconds between two lines on the open ground
 const GOLD := Color(1.0, 0.9, 0.62)
@@ -140,35 +141,3 @@ func _babble(line: String) -> void:
 func _boss_playing() -> bool:
 	var n := get_tree().get_first_node_in_group(&"boss_themes")
 	return n != null and String(n.get("playing_id")) != ""
-
-
-# --- inside the Warden's arena -----------------------------------------------------------------------
-
-## The fight lines, by the third edict's pick: what he says as he wakes, as the door turns, and as it opens.
-const FIGHT := {
-	"wake": "Come up. I have kept the door for you. You are late.",
-	"ascend": "Rise with me. No? Then stand in the lit places; the sky is not meant to fall on the faithful.",
-	"ph2": "I was told the door is a mercy. Nobody who told me came back to say.",
-	"ph3_follow": "Until the last of you is through, and then I follow. You wrote it back. Then let me follow.",
-	"ph3_leave": "Until the last of you is through. It is all it ever said. I held. I held.",
-	"ph3_scratch": "You scratched the promise out. Then I am not bound, and I am not kind.",
-	"ph3_": "Until the last of you is through. ...Are you the last? Are you the last?",
-	"dead_follow": "Through. ...I follow.",
-	"dead_leave": "Through. Then the door may close. Somebody should have told me it was a door.",
-	"dead_scratch": "Through. It was a door. It was always only a door.",
-	"dead_": "Last one through. ...Who held it for you?",
-}
-
-static func edict_pick() -> String:
-	return QuestBook.pick("aurel_edicts")
-
-
-## A line of Aurel's inside the arena, as a quoted boss emote. `key` is a FIGHT key; "ph3" and "dead" take the edict's pick.
-static func fight(boss: Node, key: String) -> void:
-	var k := key
-	if key == "ph3" or key == "dead":
-		k = "%s_%s" % [key, edict_pick()]
-	if not FIGHT.has(k):
-		k = key + "_"
-	if FIGHT.has(k):
-		BossKit.emote(boss, "\"%s\"" % String(FIGHT[k]), GOLD)

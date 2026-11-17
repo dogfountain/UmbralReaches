@@ -8,7 +8,7 @@ extends RefCounted
 ##   WardenPeal.scene(boss, carried, rung, attuned, words) the staged emotes and strokes (timers; harmless if the boss is freed)
 
 const BellVoice := preload("res://core/story/bell_voice.gd")
-const AurelVoice := preload("res://core/story/aurel_voice.gd")
+const AurelLines := preload("res://core/story/aurel_lines.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 
@@ -24,7 +24,7 @@ static func hold_factor(carried: int, rung: int, per_carried: float) -> float:
 static func scene(boss: Node, carried: int, rung: int, attuned: bool, words: Array) -> void:
 	if boss == null or not boss.is_inside_tree():
 		return
-	AurelVoice.fight(boss, "wake")
+	AurelLines.fight(boss, "wake")
 	var t := FIRST
 	var step := 0
 	for id: String in Chains.BELLS:

@@ -31,7 +31,7 @@ const HP := 760
 const QuestBook := preload("res://core/story/quest_book.gd")
 var _attuned := false
 const WardenPeal := preload("res://core/enemy/warden_peal.gd")
-const AurelVoice := preload("res://core/story/aurel_voice.gd")
+const AurelLines := preload("res://core/story/aurel_lines.gd")
 const BELL_HOLD := 0.05
 const BELL_WORDS := ["", "one bell", "two bells", "three bells", "four bells", "five bells", "six bells", "seven bells", "eight bells"]
 const SCALE := 5.0               ## r35: 3 -> 5 (~9 m): the final boss towers over the 56 m deck, "halfway into the sky"
@@ -161,7 +161,7 @@ var _aurel_spoke := false
 func _die() -> void:
 	if not _aurel_spoke:
 		_aurel_spoke = true
-		AurelVoice.fight(self, "dead")
+		AurelLines.fight(self, "dead")
 	super._die()
 
 
@@ -181,7 +181,7 @@ func _physics_process(delta: float) -> void:
 			_ascend()
 			return
 		BossKit.transition(self, "His light turns to judgement. One hand never leaves the door.", BossKit.HOLY)
-		AurelVoice.fight(self, "ph2")
+		AurelLines.fight(self, "ph2")
 		_blink_t = 1.5
 	elif phase == 2 and hp <= float(max_hp) * 0.3:
 		phase = 3
@@ -191,7 +191,7 @@ func _physics_process(delta: float) -> void:
 		_gale_left = 0.0
 		BossKit.transition(self, "He lets go of the door with one hand. What it held pours out.", BossKit.HOLY, 1.4)
 		BossKit.emote(self, "Aurel lets go of the door. The sky falls.", Color(1.0, 0.9, 0.6))
-		AurelVoice.fight(self, "ph3")
+		AurelLines.fight(self, "ph3")
 		if _room != null and is_instance_valid(_room):
 			_room.call("light_all")
 			_room.call("set_mood", "hierarch")
@@ -527,7 +527,7 @@ func _ascend() -> void:
 		_rig.call("howl", 2.0)
 	BossKit.roar(self, "", BossKit.HOLY)
 	BossKit.emote(self, "The Warden ascends. The pylons go dark.", Color(1.0, 0.9, 0.6))
-	AurelVoice.fight(self, "ascend")
+	AurelLines.fight(self, "ascend")
 	_room.call("snuff_all")
 	_room.call("set_mood", "ascension")
 	BossKit.add_wave(self, ACOLYTE, _arena_c + Vector3(0, 0, 9.0), 2, 3, "Gilded Acolyte", 6.0)
