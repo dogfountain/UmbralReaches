@@ -63,6 +63,8 @@ func _run(root: Node) -> void:
 		_crown()
 		_dress()
 	var n: int = k.commit()
+	var hp: Array[Vector3] = [_p(0.0, 0.0, 0.0) + Vector3(-5.5, 0.2, -5.5), _p(0.0, 0.0, 0.0) + Vector3(5.5, 8.0, 5.5)]
+	WK.acoustic(hp, "cave", "hollow")
 	k.beacon(_p(0.0, 0.0, 42.0), Color(1.0, 0.7, 0.4), 1.6, 12.0, 400.0)
 	print("WONDER hollow_king at %s ground %.1f: %d meshes, %d fires, %d lights, %d chests" % [c, gy, n, k.fires, k.lights, k.chests])
 

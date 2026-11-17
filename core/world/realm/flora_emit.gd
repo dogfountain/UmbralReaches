@@ -148,7 +148,8 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 		var csize := TREE_CHUNK if tall else CHUNK
 		var meshes: Array = []          # [mesh, tag, range begin, range end]
 		var swap := tall and sp in TreeGen.FAR
-		var near_end := NEAR_END if swap else float(st[0])
+		var fade_end := float(d.get("fade_end", NEAR_END))   # per crown (TreeGen): a wide crown holds its near mesh longer, so it does not pop whole
+		var near_end := fade_end if swap else float(st[0])
 		if d.solid != null:
 			meshes.append([_lod_ready[id], "s", 0.0, near_end])
 		if d.cards != null:
@@ -156,9 +157,9 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 		if swap:
 			var fd: Dictionary = TreeGen.kind(id + "@far")
 			if fd.solid != null:
-				meshes.append([_lod_ready[id + "@far"], "fs", NEAR_END, 0.0])
+				meshes.append([_lod_ready[id + "@far"], "fs", fade_end, 0.0])
 			if fd.cards != null:
-				meshes.append([fd.cards, "fc", NEAR_END, 0.0])
+				meshes.append([fd.cards, "fc", fade_end, 0.0])
 		var per: Dictionary = items[id]
 		for key: Vector3i in per:
 			# (packed arrays are shared on assignment: the editors rewrite this copy in place -- the

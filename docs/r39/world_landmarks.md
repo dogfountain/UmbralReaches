@@ -243,3 +243,15 @@ Cold build: a `_vertex_normals` and two `_fbm` passes per rock (about 2 ms each,
 **Check.** 5 m: stripes of tone that follow the ledges on a cliff, lichen on the shoulders of boulders, no black or blown-out rock
 (vertex alpha is 1 on meshes that do not carry bands, so the basalt columns and the rift's rock are unchanged). 50 m: the facets still read
 as a chipped silhouette; nothing shimmers.
+
+## Acoustic zones and per-crown fade (cross-team: sound and light seats)
+Every interior registers `AcousticZones.register(aabb, room, label)` through `WK.acoustic(points, room, label)` (wonder_kit.gd; the box round
+the given world points; at runtime, outside the kit cache). Builder -> room / bed:
+- `deep_halls.gd` (all four, whole complex, 30 x 44 m, 6.8 m): kings_undercroft crypt/crypt; castellum_cisterns hall/hall; witchs_cellar cave/hollow; nave_crypt hall/nave.
+- `caves.gd` (seven, the three chambers, 16 x 36 m): cave/cave, the root cave (no. 1) cave/hollow.
+- `the_sleeper.gd`: the heart-hall (18 x 26 x 10 m) hall/heart-hall. `salt_ship.gd`: the hold (6.8 x 24 m) cave/ship's hold.
+- `wardens_line.gd`: each tower's keep hall (8 x 8 x 11 m) hall/tower. `hollow_king.gd`: the trunk's hollow (11 x 11 x 8 m) cave/hollow.
+Boxes are axis-aligned round a turned room, so a corner may reach a little past a wall; they sit under the ground for the halls and caves.
+Check: walk in and out of each; the bed and reverb change at the door, not at the surface.
+Trees: `TreeGen` kinds now carry `fade_end` (26 m + 1.2 x crown radius, 30-38 m; was a flat 38 m), read by `flora_emit.gd` as the near mesh's end and the far
+mesh's start per crown. Wide crowns hold longer, small ones swap sooner: never farther than before, so near triangles do not rise.

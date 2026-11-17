@@ -91,6 +91,8 @@ func _hall(root: Node, spec: Dictionary) -> bool:
 			"cellar": _cellar(d, spec)
 			_: _flooded(d, spec)
 	var n: int = d.k.commit(120.0)
+	var bed := {"crypt": ["crypt", "crypt"], "cistern": ["hall", "hall"], "cellar": ["cave", "hollow"], "flooded": ["hall", "nave"]}[String(spec.theme)] as Array
+	d.zone(-15.0, 15.0, 0.0, 44.0, 6.8, String(bed[0]), String(bed[1]))
 	d.k.host.set_meta("reward_at", d.p(0.0, 0.3, 39.0))
 	print("WONDER deep_hall %s: gate %s floor %.1f, %d rooms, %d meshes, %d fires, %d lights, %d chests" % [String(spec.id), Vector2(d.o.x, d.o.z), d.yf, d.count.rooms, n, d.k.fires, d.k.lights, d.k.chests])
 	return true

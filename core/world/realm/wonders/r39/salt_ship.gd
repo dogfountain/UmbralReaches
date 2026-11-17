@@ -83,6 +83,8 @@ func _run(root: Node) -> void:
 		_drifts(mid)
 		_dress(mid)
 	var n: int = k.commit()
+	var hp: Array[Vector3] = [_w(-3.4, 0.8, -12.0), _w(3.4, 4.0, -12.0), _w(-3.4, 4.0, 12.0), _w(3.4, 0.8, 12.0)]
+	WK.acoustic(hp, "cave", "ship's hold")
 	k.far(150.0, 0.25, Color(0.55, 0.56, 0.6))
 	k.beacon(_w(0.0, 14.0, -21.0), Color(1.0, 0.7, 0.42), 1.2, 10.0, 360.0)
 	print("WONDER salt_ship at %s datum %.1f: %d meshes, %d fires, %d lights, %d chests" % [mid, base.y, n, k.fires, k.lights, k.chests])

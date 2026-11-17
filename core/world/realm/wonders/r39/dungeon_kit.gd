@@ -34,6 +34,12 @@ func p(u: float, y: float, v: float) -> Vector3:
 	return Vector3(q.x, yf + y, q.z)
 
 
+## Register a room box (u0..u1 across, v0..v1 along, h high) with the acoustic zones.
+func zone(u0: float, u1: float, v0: float, v1: float, hh: float, room: String, label: String) -> void:
+	var pts: Array[Vector3] = [p(u0, -0.6, v0), p(u1, hh, v0), p(u0, hh, v1), p(u1, -0.6, v1)]
+	WK.acoustic(pts, room, label)
+
+
 func basis() -> Basis:
 	return Basis(side, Vector3.UP, fwd)
 

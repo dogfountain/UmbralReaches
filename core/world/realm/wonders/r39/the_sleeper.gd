@@ -82,6 +82,8 @@ func _run(root: Node) -> void:
 		_head()
 		_dress()
 	var n: int = k.commit()
+	var hp: Array[Vector3] = [_p(-9.0, 0.0, 0.0), _p(9.0, 10.0, 0.0), _p(-9.0, 10.0, 26.0), _p(9.0, 0.0, 26.0)]
+	WK.acoustic(hp, "hall", "heart-hall")
 	k.beacon(_p(0.0, 14.0, 40.0), Color(1.0, 0.72, 0.42), 1.4, 14.0, 380.0)
 	print("WONDER the_sleeper at %s yaw %.2f datum %.1f: %d meshes, %d fires, %d lights, %d chests" % [mid, yaw, y0, n, k.fires, k.lights, k.chests])
 

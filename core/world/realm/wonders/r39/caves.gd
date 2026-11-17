@@ -111,6 +111,7 @@ func _cave(root: Node, i: int, c0: Vector2) -> bool:
 		_dress(d, i)
 	d.k.host.set_meta("find_at", d.p(0.0, 0.3, 33.0))
 	var n: int = d.k.commit(110.0)
+	d.zone(-8.0, 8.0, 0.0, 36.0, 5.8, "cave", "hollow" if i == 1 else "cave")
 	print("WONDER cave %d %s at %s floor %.1f: %d meshes, %d fires, %d lights, %d chests" % [i, String(NAMES[i]), Vector2(d.o.x, d.o.z), d.yf, n, d.k.fires, d.k.lights, d.k.chests])
 	return true
 

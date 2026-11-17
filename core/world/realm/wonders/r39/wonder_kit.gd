@@ -12,6 +12,7 @@ extends RefCounted
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
+const AcousticZones := preload("res://core/audio/acoustic_zones.gd")
 
 const FIRE_COL := Color(1.0, 0.6, 0.28)
 
@@ -45,6 +46,18 @@ func setup(root: Node, nm: String, seed_n: int) -> void:
 
 
 # --- ground and free ground -----------------------------------------------------------------------------
+
+## An interior's volume for the reverb room and its own sound bed (core/audio/acoustic_zones.gd): the box round the given
+## world points. `room` is hall / cave / crypt; `label` is one of the beds (hall, cave, crypt, tower, hollow, heart-hall, ship's hold, nave).
+## Runtime registration, outside the kit cache (the cache holds geometry only).
+static func acoustic(pts: Array[Vector3], room: String, label: String) -> void:
+	var lo := pts[0]
+	var hi := pts[0]
+	for q: Vector3 in pts:
+		lo = lo.min(q)
+		hi = hi.max(q)
+	AcousticZones.register(AABB(lo, hi - lo), room, label)
+
 
 static func h(x: float, z: float) -> float:
 	return Land.height_at(x, z)

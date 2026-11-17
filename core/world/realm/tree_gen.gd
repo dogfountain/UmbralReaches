@@ -483,7 +483,7 @@ class Gen:
 			cards = ArrayMesh.new()
 			leaf.commit_to(cards, false)
 		return {"solid": solid, "cards": cards, "h": h, "r": trunk_r, "spread": spread, "tall": tall,
-			"tris": (wood.i.size() + glow.i.size() + leaf.i.size()) / 3, "card_tris": leaf.i.size() / 3}
+			"fade_end": clampf(26.0 + spread * 1.2, 30.0, 38.0), "tris": (wood.i.size() + glow.i.size() + leaf.i.size()) / 3, "card_tris": leaf.i.size() / 3}
 
 	# --- species -----------------------------------------------------------------------------
 	func make_oak(v: int) -> Dictionary:

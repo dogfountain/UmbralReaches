@@ -56,6 +56,8 @@ func _run(root: Node) -> void:
 		k.poi("wardens_tower_%d" % (i + 1), "The Wardens' Line", "tower %d of six, dark since the west went out" % (i + 1), WK.region_at(c) if WK.region_at(c) != "" else "road")
 		var lv := (float(f.lo) + float(f.hi)) * 0.5
 		_tower(i + 1, c, lv, lv)
+		var tp: Array[Vector3] = [_w(-4.0, 0.2, -4.0), _w(4.0, 11.0, -4.0), _w(-4.0, 11.0, 4.0), _w(4.0, 0.2, 4.0)]
+		WK.acoustic(tp, "hall", "tower")
 		meshes += k.commit(0.0)
 		k.far(150.0, 0.08)
 		fires += k.fires
