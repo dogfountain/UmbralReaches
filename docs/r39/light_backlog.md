@@ -19,7 +19,7 @@ no mid-play builds), documented.
 - [x] 8. The lantern: brighter in the dark (+40 percent), raised in the dark and when peering, gutters with the gloom (gloom_world.gd), swings (character_rig.gd)
 - [x] 9. Boss arenas: five palettes, three phases each, set-piece lights on the rim, the phase mark, the moon dimmed
 - [x] 10. Palette: grass and leaf desaturated with a value shoulder, the grade's green saturation eased, region grade by biome, canopy near-fade narrowed
-- [ ] 11. The far-leaf dither: the engine's visibility-range dither (FADE_SELF on every ranged mesh, atmosphere.gd) is a coarse screen-door pattern over 6 to 10 m; the foliage shader now thins the near-camera dither (1.6 to 1.1 m) but a per-instance shader fade for tree crowns (as the undergrowth's `fade_end`) is the real fix: it needs tree_gen to set `fade_end` per crown MultiMesh (world seat: core/world/realm/flora)
+- [~] 11. The far-leaf dither (shader half DONE, builder half routed to the world seat, see the cross-team need below): the engine's visibility-range dither (FADE_SELF on every ranged mesh, atmosphere.gd) is a coarse screen-door pattern over 6 to 10 m; the foliage shader now thins the near-camera dither (1.6 to 1.1 m) but a per-instance shader fade for tree crowns (as the undergrowth's `fade_end`) is the real fix: it needs tree_gen to set `fade_end` per crown MultiMesh (world seat: core/world/realm/flora)
 - [x] 12. Bats come to every lit fire (fire_bats.gd, one draw call, the bat orbit shader); owls reacting to light remain (the wildlife's own state machine in life_birds.gd: a "draw to a lit fire" state is the next step)
 - [ ] 13. Crows at boss arenas (LifePlace.crow_roosts takes graves and the henge: add the arenas' rims)
 - [ ] 14. Dog and cat meshes of their own (the pets wear the wildlife's fox body, scaled)
@@ -32,3 +32,21 @@ no mid-play builds), documented.
 - World seat: dog and cat meshes (LifeKit kinds) for the pets; the black scatter quads (saltmarket); voxel ruin materials; `fade_end` on tree crowns; stage anchors for the folk in other towns (the folk stand only in Hearthward: positions come from `village_cast.gd` NODES, so a town's walking nodes would give it its own sweeper, fiddler and children).
 - Opening seat: nothing.
 - Story seat: the regard that makes the folk wave is the number of village restorations (`VillageState.data().restored`); a finer regard value would sharpen it.
+
+
+## Cross-team need: tree crowns' distance fade (the far-leaf dither) - for the world seat (tree builder)
+The engine's `VISIBILITY_RANGE_FADE_SELF` (set on every ranged mesh by atmosphere.gd and by the tree builder) dithers a crown out over its margin with a coarse screen-door pattern, and draws it
+in the transparent pass. The foliage shader now has the finer replacement the undergrowth already has: a per-pixel interleaved-gradient dither keyed to the camera distance, no engine fade.
+It is OFF until the builder sets one instance uniform per crown MultiMesh. The exact change (where tree crowns are emitted, core/world/realm/flora_emit.gd next to `_set_range`):
+
+```gdscript
+# in flora_emit.gd, beside the tag == "c" branch of _set_range: a tag for tree crowns (e.g. "t"), with `re` the crown's range
+static func _set_crown_range(mmi: MultiMeshInstance3D, re: float) -> void:
+	mmi.set_instance_shader_parameter(&"crown_fade_end", re)          # realm_foliage.gdshader: dither over re .. re + 6 m
+	mmi.set_meta(&"fade_end", true)                                   # the fade guard must not add an engine fade to it (fade_guard.gd reads this meta)
+	mmi.visibility_range_end = re + FADE_BAND                          # culled at re + 6 m, nothing drawn past it
+	mmi.visibility_range_end_margin = 0.0
+	mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+```
+Call it for every crown (non-ground card) MultiMesh the flora emits with the range it uses today (the end it passes to `visibility_range_end` now, minus 6 m so the dither ends where the old fade did). Trunks and solid pieces keep the engine fade
+(their pieces are solid, sparse and hidden by the crowns' own dither). Check: the same tree-line views at 40 to 120 m before and after, in a still frame and walking: no screen-door band, no pop at the cull.

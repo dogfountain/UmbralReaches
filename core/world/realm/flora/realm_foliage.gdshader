@@ -38,6 +38,11 @@ uniform float near_fade = 1.1;         // metres from the camera inside which ca
 instance uniform float fade_end = 0.0;
 // Density LOD for ground cards (see vertex()): from thin_from metres (per plant) to fade_end the
 // cover thins to thin_keep of its plants, survivors widened to keep the coverage. 0 = off.
+// Tree crowns' distance fade (set per crown MultiMesh by the tree builder; 0 = the engine's own visibility-range dither, as before): the crown
+// dissolves over crown_fade_end .. crown_fade_end + 6 m with a per-pixel interleaved-gradient dither (finer than the engine's coarse screen
+// door) and is culled at crown_fade_end + 6 m with no engine fade. The crown keeps its size (the undergrowth's `fade_end` shrinks a plant
+// into its origin, which would shrink a tree into its trunk).
+instance uniform float crown_fade_end = 0.0;
 uniform float thin_from = 0.0;
 uniform float thin_keep = 0.6;
 
@@ -152,6 +157,13 @@ void fragment() {
 	if (cam_d < near_fade) {
 		float ign = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715))));
 		if (smoothstep(near_fade * 0.55, near_fade, cam_d) < ign) {
+			discard;
+		}
+	}
+	if (crown_fade_end > 0.0 && !ground) {
+		float cf = 1.0 - smoothstep(crown_fade_end, crown_fade_end + 6.0, cam_d);
+		float ign2 = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715))));
+		if (cf < ign2) {
 			discard;
 		}
 	}
