@@ -77,6 +77,7 @@ func _ready() -> void:
 	_keys("world_map", [KEY_M])                      # the whole Realm on a sheet of parchment (ui/world_map.gd)
 	_button("world_map", JOY_BUTTON_MISC1)           # the Share / Capture button; the Journal's Map page reaches it on any pad
 	_keys("codex", [KEY_J])
+	_keys("tally", [KEY_B])                         # the Count: what the night has cost (ui/tally_panel.gd)
 	_button("codex", JOY_BUTTON_DPAD_DOWN)
 	_keys("show_objective", [KEY_Y])                 # hold to see the objective (it shows for 6 s when it changes, then hides)
 	_button("show_objective", JOY_BUTTON_BACK)
@@ -96,7 +97,7 @@ const REBINDABLE := [
 	["Kindle / Talk / Use", "interact"], ["Call Your Horse", "mount"],
 	["Skill 1 (Bolt)", "skill_bolt"], ["Skill 2 (Lance)", "skill_lance"], ["Skill 3 (Nova)", "skill_nova"],
 	["Skill 4 (Ward)", "skill_ward"], ["Skill 5 (Step)", "skill_step"],
-	["Show Objective (Hold)", "show_objective"], ["Character", "inventory"], ["Gear", "gear"], ["Kindling", "kindling"], ["Journal", "codex"], ["Tasks", "quest_log"], ["World Map", "world_map"], ["Minimap", "minimap"],
+	["Show Objective (Hold)", "show_objective"], ["Character", "inventory"], ["Gear", "gear"], ["Kindling", "kindling"], ["Journal", "codex"], ["The Count", "tally"], ["Tasks", "quest_log"], ["World Map", "world_map"], ["Minimap", "minimap"],
 	["Fullscreen", "fullscreen"], ["Colour Grade", "toggle_grade"], ["Stats Overlay", "toggle_debug"],
 ]
 ## Keys the menus read themselves (pages Q / E, tabs 1-4, the cursor on W / S and the arrows, the Gear page's

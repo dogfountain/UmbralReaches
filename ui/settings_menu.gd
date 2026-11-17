@@ -346,6 +346,16 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.save())
 	gd.set_pressed_no_signal(HudPrefs.guide)
 	_hud_checks[gd] = "guide"
+	var op := _check(p, "Opening Shot", "A new game opens with the Last Lantern: about 45 seconds of the sky and the village before you take the staff. Hold the interact key to skip it", func(v: bool) -> void:
+		HudPrefs.opening = v
+		HudPrefs.save())
+	op.set_pressed_no_signal(HudPrefs.opening)
+	_hud_checks[op] = "opening"
+	var im := _check(p, "HUD Rests While Exploring", "The wanderer's frame, the spell bar, the XP strip and the minimap fade out while the night is quiet and come back the moment something hunts you, you cast, or a bar runs low. The objective, the waypoint and the prompts stay", func(v: bool) -> void:
+		HudPrefs.immersion = v
+		HudPrefs.save())
+	im.set_pressed_no_signal(HudPrefs.immersion)
+	_hud_checks[im] = "immersion"
 	var row := _row(p, "Control Prompts", "The one-line hints that appear the first time a control matters (a ledge, a foe in range...), shown again")
 	var again := Button.new()
 	again.text = "Show Again"
@@ -745,6 +755,8 @@ func _refresh_hud_checks() -> void:
 			"combat_text": on = HudPrefs.combat_text
 			"enemy_plates": on = HudPrefs.enemy_plates
 			"guide": on = HudPrefs.guide
+			"opening": on = HudPrefs.opening
+			"immersion": on = HudPrefs.immersion
 			_: on = bool(HudPrefs.track.get(what.trim_prefix("track:"), true))
 		cb.set_pressed_no_signal(on)
 
