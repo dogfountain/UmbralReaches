@@ -10,7 +10,7 @@
 # Each test runs in its own scratch HOME, so user:// (savegame.cfg, settings.cfg, codex.cfg)
 # is never the owner's real profile. A test FAILS when any of these is true:
 #   - the process exits nonzero, or is killed by the timeout;
-#   - the log has "SCRIPT ERROR", "Parse Error" or "Failed to load script" (a parse error in
+#   - the log has "SCRIPT ERROR", "SHADER ERROR", "Parse Error" or "Failed to load script" (a parse error in
 #     one script cascades silently otherwise; the tests' own PASS lines do not catch it);
 #   - the log has a word-boundary, upper-case "FAIL" (every zz test prints FAIL on a failed check,
 #     but several still quit(0)); "0 FAIL" / "FAIL 0" counts are ignored.
@@ -40,7 +40,7 @@ RUN_DIR="$(mktemp -d "${SCRATCH%/}/umbral_tests.XXXXXX")" || { echo "cannot make
 OUT_DIR="$RUN_DIR/logs"
 mkdir -p "$OUT_DIR"
 
-BAD_RE='SCRIPT ERROR|Parse Error|Failed to load script'
+BAD_RE='SCRIPT ERROR|SHADER ERROR|Parse Error|Failed to load script'
 FAIL_RE='(^|[^A-Za-z_])FAIL([^A-Za-z_]|$)'
 ZERO_RE='(^|[^0-9])0 FAIL([^A-Za-z_]|$)|FAIL 0([^0-9]|$)'   # "DIAG 0 FAIL ok" is a count, not a failure
 

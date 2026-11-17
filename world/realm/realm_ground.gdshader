@@ -390,8 +390,8 @@ void fragment() {
 	// frost: a glitter of ice crystals on the flat ground (a hashed cell lights up; each cell wakes and sleeps with the moving eye)
 	vec2 fc = floor(wpos.xz * 38.0);
 	float fh = fract(sin(dot(fc, vec2(12.9898, 78.233))) * 43758.5453);
-	float fk = step(0.982, fh) * (0.5 + 0.5 * sin(TIME * 1.7 + fh * 40.0 + dot(VIEW, vec3(5.0))));
-	EMISSION += vec3(0.5, 0.66, 0.95) * fk * frost * 0.35 * flat_k * (1.0 - path);
+	float glint_k = step(0.982, fh) * (0.5 + 0.5 * sin(TIME * 1.7 + fh * 40.0 + dot(VIEW, vec3(5.0))));
+	EMISSION += vec3(0.5, 0.66, 0.95) * glint_k * frost * 0.35 * flat_k * (1.0 - path);
 }
 
 // The engine's Burley diffuse with a gain on positional lights, and a plain GGX highlight (the ground is rough:
