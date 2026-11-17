@@ -434,8 +434,9 @@ static func absorb(e: Enemy, dmg: float, from: Node, floor_hp: float) -> float:
 		dmg *= BOLT_CHIP                          # the Lash (empowered) lands whole; a plain bolt pays the tax
 		Hints.once(&"bolt_chip", "A great one takes a plain bolt at seven tenths. The Lash, the Lance, and the staff land whole.")
 	# r34 raids: a floor holds only what is above it (a boss already below it -- set by a test, or a
-	# phase that moved on -- is not made immortal by it)
-	if floor_hp > 0.0 and e.hp > floor_hp and e.hp - dmg < floor_hp:
+	# phase that moved on -- is not made immortal by it). A boss held exactly AT the floor stays held:
+	# the first blow clamps hp to the floor, and the next must not slip through before the signature.
+	if floor_hp > 0.0 and e.hp > floor_hp - 0.01 and e.hp - dmg < floor_hp:
 		var left := maxf(0.0, e.hp - floor_hp)
 		var now := Time.get_ticks_msec()
 		if now - int(e.get_meta(&"floor_pop", 0)) > 450:
@@ -607,7 +608,11 @@ static func cast(e: Enemy, cast_name: String, time: float, interruptible := fals
 	if e.casting() and e._cast_bound < 0 and not yields:
 		# another timed cast holds the bar (a lash during a mending): this one goes unshown, never lost
 		if done.is_valid():
-			e.get_tree().create_timer(time, false).timeout.connect(done)
+			var eid := e.get_instance_id()
+			e.get_tree().create_timer(time, false).timeout.connect(func() -> void:
+				var who := instance_from_id(eid) as Enemy
+				if who != null and is_instance_valid(who) and who.is_alive():
+					done.call())
 		return
 	e.begin_cast(cast_name, time, interruptible, false, done)
 
