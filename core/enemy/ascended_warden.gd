@@ -30,6 +30,8 @@ const FAN_WINDUP := 0.85
 const HP := 760
 const QuestBook := preload("res://core/story/quest_book.gd")
 var _attuned := false
+const WardenPeal := preload("res://core/enemy/warden_peal.gd")
+const AurelVoice := preload("res://core/story/aurel_voice.gd")
 const BELL_HOLD := 0.05
 const BELL_WORDS := ["", "one bell", "two bells", "three bells", "four bells", "five bells", "six bells", "seven bells", "eight bells"]
 const SCALE := 5.0               ## r35: 3 -> 5 (~9 m): the final boss towers over the 56 m deck, "halfway into the sky"
@@ -144,13 +146,23 @@ func on_engaged(arena: Node) -> void:
 	# r36 Act II: every bell-tongue carried to Hearthward rings at the Keg as he wakes: he holds the
 	# door with that much less (5% of his life a bell, up to 40% for all eight)
 	var carried := QuestBook.bells_carried()
-	if carried > 0:
-		max_hp = maxi(1, roundi(float(max_hp) * (1.0 - BELL_HOLD * float(carried))))   # a shorter life, a full bar
+	var rung := maxi(0, QuestBook.bells() - carried)
+	var hold := WardenPeal.hold_factor(carried, rung, BELL_HOLD)
+	if hold < 1.0:
+		max_hp = maxi(1, roundi(float(max_hp) * hold))   # a shorter life, a full bar
 		hp = float(max_hp)
-	if carried > 0:
-		BossKit.emote(self, "Far below, Hearthward rings %s. He holds the door with less: a twentieth a bell." % BELL_WORDS[mini(carried, 8)], BossKit.EMOTE_COL)
-	else:
-		BossKit.emote(self, "The founder's bell rings in you. The sky will hold." if _attuned else "The Ascended Warden turns from the door.", BossKit.EMOTE_COL)
+	WardenPeal.scene(self, carried, rung, _attuned, BELL_WORDS)       # the answered bells ring in, one by one, then his wake line
+
+
+var _aurel_spoke := false
+
+
+## his last word, by the third edict's pick (aurel_voice.gd), before the fall the ending is built on.
+func _die() -> void:
+	if not _aurel_spoke:
+		_aurel_spoke = true
+		AurelVoice.fight(self, "dead")
+	super._die()
 
 
 func _physics_process(delta: float) -> void:
@@ -169,6 +181,7 @@ func _physics_process(delta: float) -> void:
 			_ascend()
 			return
 		BossKit.transition(self, "His light turns to judgement. One hand never leaves the door.", BossKit.HOLY)
+		AurelVoice.fight(self, "ph2")
 		_blink_t = 1.5
 	elif phase == 2 and hp <= float(max_hp) * 0.3:
 		phase = 3
@@ -178,6 +191,7 @@ func _physics_process(delta: float) -> void:
 		_gale_left = 0.0
 		BossKit.transition(self, "He lets go of the door with one hand. What it held pours out.", BossKit.HOLY, 1.4)
 		BossKit.emote(self, "Aurel lets go of the door. The sky falls.", Color(1.0, 0.9, 0.6))
+		AurelVoice.fight(self, "ph3")
 		if _room != null and is_instance_valid(_room):
 			_room.call("light_all")
 			_room.call("set_mood", "hierarch")
@@ -513,6 +527,7 @@ func _ascend() -> void:
 		_rig.call("howl", 2.0)
 	BossKit.roar(self, "", BossKit.HOLY)
 	BossKit.emote(self, "The Warden ascends. The pylons go dark.", Color(1.0, 0.9, 0.6))
+	AurelVoice.fight(self, "ascend")
 	_room.call("snuff_all")
 	_room.call("set_mood", "ascension")
 	BossKit.add_wave(self, ACOLYTE, _arena_c + Vector3(0, 0, 9.0), 2, 3, "Gilded Acolyte", 6.0)

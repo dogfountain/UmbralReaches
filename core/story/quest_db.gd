@@ -35,12 +35,12 @@ const OBJECTIVES := [
 		"text": "Break the gallery seal in the Ossuary, south down the Waiting Field's road"},
 	{"id": "bone_abbot", "main": true, "when": "seal:oss_gallery", "done": "boss:bone_abbot",
 		"text": "Take the Abbot's crown from the Bone Abbot"},
-	# after both keepers: one line. The peal until four bells (the Marches' among them) are answered, then the climb, then the door.
-	{"id": "peal", "main": true, "when": "boss:thornwarden,boss:bone_abbot", "done": "peal:4|boss:ascended_warden",
-		"text": "The door will hear a peal, not a crown: answer four of the Founder's bells, the Marches' among them (Ardel Wick at Saltmarket has the coal for the Spire). Brannoc has the first. The rest hang in the far countries"},
-	{"id": "summit_seal", "main": true, "when": "boss:thornwarden,boss:bone_abbot,peal:4", "done": "seal:summit|boss:ascended_warden",
+	# after both keepers: one line. The peal until one of the Founder's bells is answered, then the climb, then the door.
+	{"id": "peal", "main": true, "when": "boss:thornwarden,boss:bone_abbot", "done": "peal:1|boss:ascended_warden",
+		"text": "The door is hung to a bell, not a crown: answer one of the Founder's bells (Gammer Ruan's, at the Rooted Holds, is nearest). Brannoc will tell you what the rest are worth"},
+	{"id": "summit_seal", "main": true, "when": "boss:thornwarden,boss:bone_abbot,peal:1", "done": "seal:summit|boss:ascended_warden",
 		"text": "Carry heart and crown to the summit ward across the Crossing"},
-	{"id": "warden", "main": true, "when": "boss:thornwarden,boss:bone_abbot,peal:4,seal:summit", "done": "boss:ascended_warden",
+	{"id": "warden", "main": true, "when": "boss:thornwarden,boss:bone_abbot,peal:1,seal:summit", "done": "boss:ascended_warden",
 		"text": "Shut the door: face what holds it at the summit"},
 	{"id": "return", "main": true, "when": "boss:ascended_warden", "done": "flag:ending_told", "who": "keep", "mark": "turnin",
 		"text": "Return to the Kindled Keg"},

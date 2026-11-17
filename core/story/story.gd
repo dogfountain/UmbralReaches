@@ -28,6 +28,7 @@ const QuestTrack := preload("res://core/story/quest_track.gd")
 const QuestTrail := preload("res://core/story/quest_trail.gd")
 const GuideLines := preload("res://core/story/guide_lines.gd")
 const Hints := preload("res://ui/hints.gd")
+const BellVoice := preload("res://core/story/bell_voice.gd")
 
 signal objectives_changed
 
@@ -72,6 +73,9 @@ func _ready() -> void:
 	add_child(track)
 	trail = QuestTrail.new()
 	add_child(trail)
+	BellVoice.warm()                              # the one small bell, rendered on a worker thread
+	add_child((load("res://core/story/kindle_bells.gd") as GDScript).new())      # the fires ring a rising phrase
+	add_child((load("res://core/story/aurel_voice.gd") as GDScript).new())       # the Hierarch, through the night
 	ui.advanced.connect(_on_advanced)
 	ui.chosen.connect(_on_chosen)
 	ui.closed.connect(_on_closed)
@@ -109,6 +113,7 @@ func _after_cover(fn: Callable) -> void:
 
 
 func _exit_tree() -> void:
+	BellVoice.release()
 	if is_instance_valid(ui):
 		ui.queue_free()
 	if is_instance_valid(shop):

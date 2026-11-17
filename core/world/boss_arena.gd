@@ -284,8 +284,8 @@ static func no_peal(rung: int, need: int) -> String:
 	if rung == 0:
 		return "Nothing answers. The door was hung to a bell, and no bell rings below."
 	if rung >= need:
-		return "Nothing answers. The door hears %d of the Founder's bells, and not the one cast for the country the Order shut out. It wants that one." % rung
-	return "Nothing answers. The door hears %d of the Founder's bells. It wants %d, and the Marches' among them." % [rung, need]
+		return "Nothing answers. The door hears %d of the Founder's bells." % rung
+	return "Nothing answers. The door hears %d of the Founder's bells. It wants %d." % [rung, need]
 
 
 static func nothing_answers(req: Array) -> String:

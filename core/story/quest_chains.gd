@@ -509,14 +509,14 @@ const QUESTS := {
 		"reward": {"ash": 10, "items": {"ember_shard": 1}},
 		"outcome": {"": "Corvin's lamps burn on the mere another night."}},
 	# --- r36 Act II: the Founder's peal. The summit ward knows heart and crown, but the door was hung
-	# to a bell: it opens to a peal (BELLS_NEEDED of the eight, the Marches' among them). Each far country's last giver has its
+	# to a bell: it opens to a peal (BELLS_NEEDED of the eight: one answered bell wakes it, and every further bell weakens the one who holds it). Each far country's last giver has its
 	# bell; a named keeper holds it; at the bell the wanderer rings it there (the country quiets) or
 	# lifts the tongue out for Hearthward (the Keg rings it when the Warden is faced: he holds less).
 	"founders_peal": {"name": "The Founder's Peal", "giver": "brannoc", "where": "Brannoc Bellwright, at the Keg", "zone": "summit",
 		"offer": true, "avail": "boss:thornwarden,boss:bone_abbot",
-		"text": "Mother cast seven for the road up, and an eighth for the ones outside it. One for each country the pilgrims crossed, and one for the country they were shut out of. When the sky opened they went quiet, top first. The door at the summit hangs from a bell; it won't open to a heart and a crown alone. It opens to a peal. Find me four, and make the Marches one of them: she hung that one for the ones the door was built to keep out. Eight, if you've the legs.",
+		"text": "Mother cast seven for the road up, and an eighth for the ones outside it. One for each country the pilgrims crossed, and one for the country they were shut out of. When the sky opened they went quiet, top first. The door at the summit hangs from a bell; it won't open to a heart and a crown alone. It opens to a peal. Find me one. Any one of the eight will do for the door, and I'd start with the nearest. Every bell after that is a thing the one up there will feel: the ones you ring where they hang, a little; the ones you carry down to my chimney, a good deal more. Eight, if you've the legs.",
 		"steps": [
-			{"kind": "cond", "cond": "peal:4", "past": "Four of the Founder's bells are already answered, the Marches' among them.", "text": "Answer for the Founder's bells ({bells} of 8; four wake the door, and one must be the Marches' at the Lamplighters' Spire: Marl at Saltmarket opens the way)"},
+			{"kind": "cond", "cond": "peal:1", "past": "A bell of the Founder's is already answered.", "text": "Answer for a Founder's bell ({bells} of 8: one wakes the door; each more weakens the one who holds it. The nearest hangs at the Rooted Holds, Gammer Ruan's fire)"},
 			{"kind": "turnin", "who": "brannoc", "text": "Tell Brannoc the door will hear a peal"},
 		],
 		"start_spell": "peal",          # Brannoc teaches it on the taking up (quest_book.gd start): the bells are answered with it
@@ -637,8 +637,8 @@ const QUESTS := {
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
 const BELLS := ["bell_spire", "bell_holds", "bell_quarry", "bell_moor", "bell_foundry", "bell_orchard", "bell_necropolis", "bell_mere"]
-const BELLS_NEEDED := 4
-## the bell the door insists on among its four: cast for the country the Order shut out, it hangs in the Marches
+const BELLS_NEEDED := 1
+## the bell the Marches wait for: cast for the country the Order shut out, it hangs in the Marches (no longer the door's own price)
 const BELL_SHUT_OUT := "bell_spire"
 ## r36: the bells' keepers (rares.gd RARES keys; a bell quest's slay step wants its own).
 const BELL_KEEPERS := ["lamp_shutter", "kin_caller", "bell_hewer", "fog_shepherd", "slag_born", "ash_sower", "passing_ringer", "fare_caller"]
