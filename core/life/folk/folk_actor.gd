@@ -89,6 +89,12 @@ func _t_init() -> void:
 
 
 ## Awake: processing and visible. Asleep: nothing runs (the stage wakes people within range).
+## The wanderer's position as the stage last shared it (villager_fidgets.wave reads this, as it does a villager's).
+func _player_pos() -> Vector3:
+	var p: Variant = ctx.get("player", Vector3.INF)
+	return p if p is Vector3 else Vector3.INF
+
+
 func set_awake(on: bool) -> void:
 	awake = on
 	visible = on and not held
