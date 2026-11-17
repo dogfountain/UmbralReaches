@@ -179,6 +179,7 @@ func _build_display(p: VBoxContainer) -> void:
 	_pace_note = _label("", DIM, 16)
 	_pace_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	p.add_child(_pace_note)
+	_build_hud_look(p)
 
 
 func _build_graphics(p: VBoxContainer) -> void:
@@ -295,9 +296,9 @@ func _build_controls(p: VBoxContainer) -> void:
 	p.add_child(_label("Fixed: Look  mouse / right stick   ·   Settings  Esc / F2 / Menu   ·   Character tabs  1 - 4, Q E", DIM, 16))
 
 
-## r33: the HUD's own choices (ui/hud_prefs.gd, saved in hud.cfg): the unit frames, the floating combat
-## text, what the minimap tracks (WoW's tracking menu), and the controls card on demand.
-func _build_hud(p: VBoxContainer) -> void:
+## The HUD's own look (Unit Frames, Combat Text, plates, Text Scale): on the Display page, with the rest of
+## what the screen shows. What guides the player (Guidance, Control Prompts, Minimap Tracking) stays with Controls.
+func _build_hud_look(p: VBoxContainer) -> void:
 	HudPrefs.ensure()
 	p.add_child(_spacer(6))
 	_head(p, "HEADS-UP DISPLAY")
@@ -313,10 +314,6 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.enemy_plates = v
 		HudPrefs.save())
 	plates.set_pressed_no_signal(HudPrefs.enemy_plates)
-	var gd := _check(p, "Guidance", "A new game's first act: the next step kept on screen and announced, the controls named the first time they matter, and Hearthward's people pointing the way. Off: none of it. The followed task, its mark and the trail are always on", func(v: bool) -> void:
-		HudPrefs.guide = v
-		HudPrefs.save())
-	gd.set_pressed_no_signal(HudPrefs.guide)
 	var trow := _row(p, "Text Scale", "The size of the objective, toasts, lessons and subtitles")
 	_tscale_slider = _slider(trow, 0.85, 1.5, 0.05)
 	_tscale_label = _value_label(trow)
@@ -326,6 +323,18 @@ func _build_hud(p: VBoxContainer) -> void:
 			return
 		Settings.text_scale = v
 		Settings.apply())
+
+
+## r33: the HUD's guidance choices (ui/hud_prefs.gd, saved in hud.cfg): Guidance, what the minimap tracks (WoW's
+## tracking menu), and the controls card on demand. (The look of the HUD is on Display: _build_hud_look.)
+func _build_hud(p: VBoxContainer) -> void:
+	HudPrefs.ensure()
+	p.add_child(_spacer(6))
+	_head(p, "GUIDANCE")
+	var gd := _check(p, "Guidance", "A new game's first act: the next step kept on screen and announced, the controls named the first time they matter, and Hearthward's people pointing the way. Off: none of it. The followed task, its mark and the trail are always on", func(v: bool) -> void:
+		HudPrefs.guide = v
+		HudPrefs.save())
+	gd.set_pressed_no_signal(HudPrefs.guide)
 	var row := _row(p, "Control Prompts", "The one-line hints that appear the first time a control matters (a ledge, a foe in range...), shown again")
 	var again := Button.new()
 	again.text = "Show Again"
