@@ -56,6 +56,7 @@ var _stick_label: Label
 var _hint_line: Label
 var _erase_btn: Button
 var _reset_btn: Button
+var _compass_option: OptionButton
 var _hud_checks := {}                ## CheckButton -> the HudPrefs choice it shows ("unit_frames", ... or "track:quests"), for a reset
 var _bind_btns := {}                 ## "action|slot" -> Button
 var _bind_msg: Label
@@ -328,6 +329,7 @@ func _build_hud_look(p: VBoxContainer) -> void:
 		HudPrefs.compass_density = i
 		HudPrefs.save())
 	cd.select(HudPrefs.compass_density)
+	_compass_option = cd
 	var trow := _row(p, "Text Scale", "The size of the objective, toasts, lessons and subtitles")
 	_tscale_slider = _slider(trow, 0.85, 1.5, 0.05)
 	_tscale_label = _value_label(trow)
@@ -751,6 +753,8 @@ func _custom() -> void:
 
 ## The HUD checks follow HudPrefs (a reset changes them from here).
 func _refresh_hud_checks() -> void:
+	if _compass_option != null:
+		_compass_option.select(HudPrefs.compass_density)
 	for cb: CheckButton in _hud_checks:
 		var what: String = _hud_checks[cb]
 		var on := true

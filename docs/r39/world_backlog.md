@@ -5,7 +5,7 @@ and visibility ranges, merged meshes and MultiMesh, no new shadowed lights, ligh
 
 ## Part A
 - [x] A1 Compass: relevance filter (ui/compass_feed.gd), the wanderer's own marks (Wayfarer WayMark) as a kind, Minimal/Standard/Full,
-      docs/r39/compass.md. [ ] settings row resync after Reset to Defaults (the option is built once; `_hud_checks` covers checks only)
+      docs/r39/compass.md. [x] settings row resyncs after Reset to Defaults
 - A2 Game-wide model pass
   - [x] landmarks: dress helpers, ashlar relief with LODs, wall-foot debris
   - [x] bosses: Warden, Crown, Thornwarden, Anchoress, Bone Abbot ornaments
