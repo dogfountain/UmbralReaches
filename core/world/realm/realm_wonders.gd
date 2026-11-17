@@ -16,6 +16,7 @@ const LIST := [
 	"res://core/world/realm/wonders/r39/chain_span.gd",
 	"res://core/world/realm/wonders/r39/titan_gates.gd",
 	"res://core/world/realm/wonders/r39/hermit_caches.gd",
+	"res://core/world/realm/wonders/r39/terrain_outcrops.gd",
 ]
 
 
