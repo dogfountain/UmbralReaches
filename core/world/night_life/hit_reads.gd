@@ -11,6 +11,7 @@ extends Node
 ## Vfx light cap: no cost between fights, no new particle presets after the first fight.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const Access := preload("res://ui/access.gd")
 const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 const BIG := 6.0
@@ -54,7 +55,7 @@ func _on_damage(target: Node, amount: float, crit: bool, school: StringName, at:
 	var foot := at
 	if target is Node3D:
 		foot = (target as Node3D).global_position
-	Vfx.ring(foot, 2.3 if crit else 1.5, col, 0.4, 0.1)
+	Vfx.ring(foot, 2.3 if crit else 1.5, col, 0.4, 0.1, Vector3.UP, Access.flash() if crit else 1.0)
 	if crit:
 		NightFx.burst(at, GOLD, "crit")
 		Vfx.light(at, GOLD, 2.0, 5.0, 0.18, 2)
@@ -69,7 +70,7 @@ func _on_hurt(amount: float, from_pos: Vector3) -> void:
 	if p == null:
 		return
 	_budget -= 1.0
-	var c := Color(2.2, 0.45, 0.4)
+	var c := Access.telegraph(Color(2.2, 0.45, 0.4))            # a danger colour: the colour-blind palette moves it
 	var at := p.global_position
 	Vfx.ring(at, 1.2 + clampf(amount / 40.0, 0.0, 1.4), c, 0.35, 0.09)
 	var away := Vector3.UP

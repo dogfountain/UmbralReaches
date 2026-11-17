@@ -1865,11 +1865,11 @@ func _flash_visual(delta: float) -> void:
 	_flash = maxf(0.0, _flash - delta)
 	if _hit_fx > 0.0:
 		_hit_fx = maxf(0.0, _hit_fx - delta * 7.0)
-		_flesh_param(&"hit_flash", _hit_fx)
+		_flesh_param(&"hit_flash", _hit_fx * preload("res://ui/access.gd").flash())
 	if _glint > 0.0:
 		_glint = maxf(0.0, _glint - delta * 1.6)
 		_flesh_param(&"glint", _glint)
-	var s := 1.0 + _flash * 0.4
+	var s := 1.0 + _flash * 0.4 * preload("res://ui/access.gd").flash()
 	if _state == LEAP_PREP:
 		_squash = move_toward(_squash, 0.24, delta * 0.9)    # coil: the tell before a pounce
 	else:

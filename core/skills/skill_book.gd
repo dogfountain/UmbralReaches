@@ -14,6 +14,7 @@ const PUSHBACK := 0.3            ## a lighter blow sets the cast back this much
 const LOCKOUT := 1.5             ## an interrupted spell's slot is locked this long
 const SPENDERS: Array[StringName] = [&"lance", &"nova"]
 const CombatState := preload("res://core/skills/combat_state.gd")
+const Access := preload("res://ui/access.gd")
 const Hints := preload("res://ui/hints.gd")
 const OVERCHARGE := 0.9          ## seconds past full charge before a held Lance fires itself
 const CHARGE_MOVE := 0.55        ## walk speed multiplier while charging
@@ -515,7 +516,7 @@ func overcharge() -> float:
 
 
 func flash(i: int) -> float:
-	return _flash[i]
+	return _flash[i] * Access.flash()
 
 
 func denied(i: int) -> float:

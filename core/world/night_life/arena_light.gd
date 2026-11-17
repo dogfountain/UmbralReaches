@@ -15,6 +15,7 @@ extends Node3D
 ## handful of colour writes a frame; nothing otherwise.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const Access := preload("res://ui/access.gd")
 const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 ## [fog colour, fog emission, light colour, light energy] per phase (1, 2, 3).
@@ -158,8 +159,8 @@ func _mark(p: int) -> void:
 	var c: Color = pal[2]
 	var at := _boss.global_position
 	var hot := Color(c.r * 2.2, c.g * 2.2, c.b * 2.2)
-	Vfx.ring(at, 7.0, hot, 0.9, 0.16)
-	Vfx.ring(at, 3.5, hot, 0.6, 0.1)
+	Vfx.ring(at, 7.0, hot, 0.9, 0.16, Vector3.UP, Access.flash())
+	Vfx.ring(at, 3.5, hot, 0.6, 0.1, Vector3.UP, Access.flash())
 	NightFx.burst(at + Vector3(0.0, 1.5, 0.0), hot, "arena_mark")
 	Vfx.light(at + Vector3(0.0, 2.0, 0.0), c, 4.5, 16.0, 0.8, 3)
 	# each boss's phase has its own gesture in the air: thorns lift embers, the Abbot's candles gutter up gold, the Warden's white ring is a great
@@ -176,7 +177,7 @@ func _mark(p: int) -> void:
 			NightFx.burst(at, hot2, "mote", Vector3.UP)
 		_:
 			NightFx.burst(at + Vector3(0.0, 4.0, 0.0), hot2, "kindle", Vector3.DOWN, 0.6)
-	Reg.pulse = 0.8
+	Reg.pulse = 0.8 * Access.flash()
 	_le += 1.5
 
 
