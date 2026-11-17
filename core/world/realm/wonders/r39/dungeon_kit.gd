@@ -142,7 +142,7 @@ func water(u0: float, u1: float, v0: float, v1: float, y: float) -> void:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	k.host.add_child(mi)
 	var c := p((u0 + u1) * 0.5, y, (v0 + v1) * 0.5)
-	mi.global_transform = Transform3D(basis(), c)
+	mi.global_transform = Transform3D(Basis(Vector3.UP, atan2(fwd.x, fwd.z)), c)
 	mi.visibility_range_end = 120.0
 
 
