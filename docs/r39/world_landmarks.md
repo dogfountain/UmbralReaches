@@ -135,3 +135,39 @@ Roadside stories (above). Check in the engine (the log prints `WONDER roadside_t
 Pilgrims' Road from Hearthward west to (-300, 56) and east to (300, 70), the fell track, the barrow track, the Brine Road;
 look for scenes 8-13 m off the way, none on a road or inside a town, each with its light visible at night; the chests (every
 third scene) open once; scenes fade at 200 m.
+
+# Third pass: the backlog, the perf rule, and what each item costs
+
+**The rule (Luke: "this must be at no perf cost").** Everything below is built once at Realm build time. Offsets used everywhere:
+- `wonder_kit.gd`: every fire is two flame cards + a halo recorded and committed as **one MultiMesh (flames) + one per halo size per
+  kit** (no node and no draw per fire); only the toggled Wardens' cresset keeps its own nodes. A global **light cap of 72**
+  (`WK.LIGHT_CAP`): past it a lamp or fire is glass/flame only. All lights unshadowed, tagged `light_class lamp`, with distance fades
+  (lamps 38 m, fires 70 m).
+- Big kit meshes (over 18,000 vertices) get **LODs** (`MeshChunks.with_lods`, build time), so relief and ornament cost less the
+  farther they are; `WK.far()` swaps a tower or ship for a 12-triangle hull beyond 150 m (flames and glass stay).
+- Small scenes fade out (dither) at 110-150 m and are **built per cell** where dense (yards per 56 m, region props per 96 m, outcrops
+  as MultiMeshes per mesh and 96 m cell), so draws per region in view stay at a handful of material meshes per cell, not per prop.
+- Underground complexes (halls 120 m, caves 110 m) are culled by range; the surface gates are part of them.
+- Net effect per region: landmarks add their material meshes (about 8 each) only in their own region's frustum; every other family
+  trades its draws against merged cells. The lead measures; anything that regresses is to be tightened with these same levers.
+
+## New items (all in `core/world/realm/wonders/r39/` unless noted; each logs a `WONDER ...` line with its coordinates)
+| Item | What | Where | From afar | Cost and offset |
+| --- | --- | --- | --- | --- |
+| Deep halls (`deep_halls.gd`, `dungeon_kit.gd`) | King's Undercroft, Castellum Cisterns, Witch's Cellar, Nave Crypt: a stair cut down the hill (WorldLanes flight), a surface gate with two fires, and 7 rooms each (antechamber, pillared hall, two side rooms, end room, a hidden room): sarcophagi / flooded cistern with a plank walk and pump wheels / roots, herbs and a cauldron / knee-deep water and a light well; 3 chests each (reliquary at the end, iron hidden), sconces and fires, group `deep_hall` with `reward_at` / `threshold_at` for the story seat | near (-334, 118), (-60, 365), (226, 340), (300, 190); exact from the log | gate fires | ~50k triangles each with relief, LODs over 18k vertices, fade 120 m; 2-3 merged flame MMs; lights capped |
+| Caves (`caves.gd`) | 7 caves: crystal, root, bat, drowned, ember, bone den, fungus; stair, mouth boulders, 3 chambers, pool with stones, stalactites, a find chest each | 60-180 m off the ways, 90 m apart; from the log | none (hidden) | ~15k triangles each (no relief), fade 110 m, LODs |
+| Region signatures (`region_dressing.gd`) | 25 prop kinds over 11 Far Reaches regions (ballistae, lantern poles, grave mounds, fish racks, haystacks, fallen arches, charcoal clamps, bell halves, lamp posts, drowned columns, cairns...) | the regions' open ground | glow cards | built per 96 m cell, one kit per cell, fade 140 m |
+| Yards (`core/world/realm/settlement_yards.gd`, module "yards") | washing lines, gardens, pens with sheep, smithies with a fire, graveyards, market corners in Hearthward (6, 38), Reedholm, Fallowmere, Lastlight | inside each town circle on open ground | - | per 56 m cell, fade 120 m |
+| Water (`waterworks.gd`) | nine docks (boats, nets, lantern posts, shore stones) at the lake, the Reedmere and the Nave's mere; three plank bridges and two fords on the Sorrow | from the log | dock lanterns | per item, fade 150 m |
+| Climbs (`climbs.gd`) | 6 broken towers (outside stairs, deck, fire, chest) and 6 cut stairs to viewpoints (landing lantern, seat, chest) | wild ground 40-90 m off ways | tower fires | fade 150 m, stairs with ramp colliders |
+| Ground marks (`ground_marks.gd`) | cart ruts along the ways (broken by a hash, off the towns) and glassy puddles in the dips | along every way | - | ~8,500 triangles total, 2 draws per 96 m cell, fade 90-110 m |
+| Hidden finds (`hidden_finds.gd`) | 32 caches each at the end of a three-clue trail (stone arrows, blaze posts, ribbons, scratched slabs, lantern stakes) that starts in sight of a road | from the log | - | per kit, fade 130 m |
+| Avenues (`titan_gates.gd`) | five pairs of obelisks 12 m apart leading to each of the three raid gates, taller toward the gate, fires on every second pair, kerbs | the approaches of the henge, Hierarch and Anchoress arenas | fires | merged flames, fade none (landmarks), LODs |
+| Outcrops, far hulls, perf rework | see above | | | |
+
+## Families reworked in this pass (for the "game-wide" ask)
+Landmarks (all), bosses (Warden, Crown, Thornwarden, Anchoress, Bone Abbot), villagers (belt, buckle, pouch, patches, yoke),
+code-built cottages (sills, shutters, lanterns, ridge cap, garden fence), all kit masonry (tone and moss patchwork, wall-foot debris
+in the landmark kits), all modelled props (weathering baked into vertex colour), the oak-family crowns, region flowers, water
+edges (docks, bridges, fords), the ground (ruts, puddles), settlements (yards). Reviewed, not reworked yet: tavern dwarves,
+common enemies, stalls/fences/wells/carts, rocks, far horizon cards (listed in `docs/r39/world_backlog.md`).
