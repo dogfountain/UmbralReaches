@@ -431,7 +431,6 @@ static func _biomes() -> void:
 static var _lk: Array = []                      # per cell: Array of [look Dictionary, weight]
 static var _rc: Array = []                      # per cell: PackedFloat32Array, undergrowth rate /m2 per kind
 static var _tc := PackedColorArray()            # per cell: tint of the grassy kinds
-static var _fc := PackedColorArray()            # per cell: the region's own flower hue (flora_signature.gd)
 static var _fw := PackedFloat32Array()          # per cell: fen weight
 static var _ck: Array = []                      # per cell: PackedInt32Array of the kinds that can grow
 
@@ -517,7 +516,6 @@ static func _looks() -> void:
 	_ck.resize(nc)
 	_rc.resize(nc)
 	_tc.resize(nc)
-	_fc.resize(nc)
 	_fw.resize(nc)
 	for j in _bnz:
 		for i in _bnx:
@@ -533,7 +531,6 @@ static func _looks() -> void:
 				var lw: float = e[1]
 				tint = tint.lerp(tint * ((e[0] as Dictionary).get("tint", Color(1, 1, 1)) as Color), lw)
 			_tc[c] = Scorch.grass_tint(tint, x, z)
-			_fc[c] = preload("res://core/world/realm/flora_signature.gd").flower_tint(x, z)
 			row.fill(0.0)
 			for bio: String in w:
 				if bvec.has(bio):
@@ -1245,7 +1242,6 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 	var shore := y < WATER_Y + 0.3 and y > WATER_Y - 0.35
 	var fen := _fw[bc]
 	var tint := _tc[bc]
-	var fhue := _fc[bc]
 	var rates: PackedFloat32Array = _rc[bc]
 	var ok := _ok
 	var pd := _pd
@@ -1339,9 +1335,7 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 				lane = _near_lane(xf * mesh_aabb(id))
 			var col := _tint(rng, 0.14 if code != 2 else 0.05)
 			if tinted:
-				col = Color(col.r * tint.r, col.g * tint.g, col.b * tint.b, 1.0)
-			if code == 2:
-				col = Color(col.r * fhue.r, col.g * fhue.g, col.b * fhue.b, 1.0)
+				col = Color(col.r * tint.r, col.g * tint.g, col.b * tint.b, 1.0) * (preload("res://core/world/realm/flora_signature.gd").flower_tint(px, pz) if code == 2 else Color.WHITE)      # flowers take the region's own hue
 			if lane:
 				out.append([id, xf, col, lane, sp])        # the lane check after the pass
 			else:

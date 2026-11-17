@@ -163,9 +163,7 @@ static func _put(layer: String, sp: String, x: float, z: float, near := 0.0, s :
 	if sp in F.TINTED:
 		var tc: Color = F._tc[F._bidx(x, z)]
 		col = Color(col.r * tc.r, col.g * tc.g, col.b * tc.b, 1.0)
-	if sp == "flowers":
-		var fh: Color = F._fc[F._bidx(x, z)]
-		col = Color(col.r * fh.r, col.g * fh.g, col.b * fh.b, 1.0)
+	if sp == "flowers": col *= preload("res://core/world/realm/flora_signature.gd").flower_tint(x, z)
 	F._add(_items, id, xf, col, sp)
 	counts[layer] = int(counts.get(layer, 0)) + 1
 	return true

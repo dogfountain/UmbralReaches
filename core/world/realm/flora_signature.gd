@@ -28,7 +28,24 @@ const TABLE := [
 const FEATHER := 20.0
 
 
+static var _grid := PackedColorArray()
+const X0 := -380.0
+const Z0 := -160.0
+const NX := 190
+const NZ := 140
+
+
+## The hue at (x, z): looked up in a 4 m grid built on first use (350k rect tests once, not one per flower).
 static func flower_tint(x: float, z: float) -> Color:
+	if _grid.is_empty():
+		_grid.resize(NX * NZ)
+		for j in NZ:
+			for i in NX:
+				_grid[j * NX + i] = _compute(X0 + float(i) * 4.0, Z0 + float(j) * 4.0)
+	return _grid[clampi(roundi((z - Z0) / 4.0), 0, NZ - 1) * NX + clampi(roundi((x - X0) / 4.0), 0, NX - 1)]
+
+
+static func _compute(x: float, z: float) -> Color:
 	var col := Color(1.0, 1.0, 1.0)
 	for e: Array in TABLE:
 		var r: Rect2 = e[0]
