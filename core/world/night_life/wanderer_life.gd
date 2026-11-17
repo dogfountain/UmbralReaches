@@ -10,6 +10,7 @@ extends Node
 ## Posing only; walking, fighting, riding and any open menu cancel it at once.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 const WARM_RANGE := 5.0
 
@@ -20,7 +21,7 @@ var _still := 0.0
 var _next_warm := 0.0
 var _next_moth := 0.0
 var _ctx_t := 0.0
-var _weather: Node
+var _weather: Variant
 var _dark_goal := 0.0
 var _dark := 0.0                      ## eased 0..1: nothing lit near him
 
@@ -74,7 +75,7 @@ func _process(delta: float) -> void:
 		if fire != Vector3.INF:
 			_next_warm = randf_range(7.0, 10.0)
 			_rig.cast_pose(&"reach")
-			Vfx.burst(fire, Color(2.0, 0.9, 0.3), {"count": 5, "life": 1.2, "speed": Vector2(0.6, 1.8), "size": 0.05, "gravity": 0.7, "spread": 25.0, "damping": 0.6, "dir": Vector3.UP})
+			NightFx.burst(fire, Color(2.0, 0.9, 0.3), "reach", Vector3.UP)
 		else:
 			_next_warm = 2.0
 	if _still >= 9.0 and _next_moth <= 0.0:
@@ -127,8 +128,7 @@ func _context(delta: float) -> void:
 					look_d = d2
 					look_at = q
 		c["look"] = look_at
-		if _weather == null:
-			_weather = get_tree().current_scene.find_child("Weather", true, false)
+		_weather = Reg.weather(get_tree())
 		var rain := 0.0
 		if _weather != null:
 			rain = float((_weather.get("state") as Dictionary).get("rain", 0.0))

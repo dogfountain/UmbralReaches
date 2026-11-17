@@ -22,4 +22,5 @@ slots
 storage_save
 guide
 quest_verbs
+night_life
 sound_rework

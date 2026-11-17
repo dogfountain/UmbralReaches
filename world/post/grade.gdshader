@@ -106,7 +106,9 @@ void fragment() {
     float violet = smoothstep(244.0, 252.0, h) * (1.0 - smoothstep(296.0, 304.0, h))
                  * smoothstep(0.55, 0.7, hsv.y) * smoothstep(0.45, 0.65, hsv.z) * violet_protect;
     float k = (1.0 - warm * warm_protect) * (1.0 - teal) * (1.0 - violet);
-    hsv.y = min(hsv.y * mix(saturation, warm_saturation, warm), 1.0);
+    // plain greens keep less of the saturation push: grass and leaf are a mood, not the brightest colour in the frame
+    float green_k = smoothstep(70.0, 100.0, h) * (1.0 - smoothstep(150.0, 170.0, h));
+    hsv.y = min(hsv.y * mix(saturation, warm_saturation, warm) * (1.0 - 0.24 * green_k), 1.0);
     vec3 kept = hsv2rgb(vec3(hsv.x, hsv.y, hsv.z));
     vec3 pulled = hsv2rgb(vec3(fract((h + dh * hue_pull) / 360.0), hsv.y, hsv.z));
     col = mix(kept, pulled, k);

@@ -7,6 +7,7 @@ extends Node
 ## nodes are the shared Vfx pools.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 const CALL_RANGE := 180.0
 
@@ -23,7 +24,7 @@ func _on_kindled(b: Node3D) -> void:
 	var p := b.global_position
 	Vfx.ring(p, 14.0, Color(2.2, 1.0, 0.35), 1.1, 0.14)
 	Vfx.ring(p, 7.0, Color(2.0, 1.4, 0.7), 0.7, 0.1)
-	Vfx.burst(p + Vector3(0.0, 1.4, 0.0), Color(2.2, 1.0, 0.3), {"count": 40, "life": 1.8, "speed": Vector2(1.5, 6.0), "size": 0.08, "gravity": 0.5, "spread": 60.0, "damping": 1.1, "dir": Vector3.UP})
+	NightFx.burst(p + Vector3(0.0, 1.4, 0.0), Color(2.2, 1.0, 0.3), "kindle", Vector3.UP)
 	Vfx.light(p + Vector3(0.0, 1.8, 0.0), Color(1.0, 0.65, 0.3), 4.0, 14.0, 1.2, 2)
 	var key := "br_%s_%d" % [b.name, hash(b.get_path())]
 	var row: int = Reg.keys.get(key, -1)

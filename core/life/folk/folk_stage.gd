@@ -45,6 +45,7 @@ func _ready() -> void:
 	top_level = true
 	global_transform = Transform3D.IDENTITY
 	_defs = _definitions()
+	Reg.breathers = _folk
 	_pets = (load("res://core/life/folk/pets.gd") as GDScript).new() as Node3D
 	_pets.name = "Pets"
 	_pets.set("ctx", ctx)
@@ -137,6 +138,8 @@ func _build_step(delta: float) -> void:
 		if get_tree().get_nodes_in_group(&"world_poi").is_empty():
 			return
 		_ready_world = true
+		_defs.append_array(_town_defs())
+		_defs.append_array(_extra_defs())
 	var d: Dictionary = _defs[_built]
 	_built += 1
 	var a := Actor.new()
@@ -148,9 +151,14 @@ func _build_step(delta: float) -> void:
 	a.rotation.y = float(d.face)
 	a.face = float(d.face)
 	a.data["home"] = at
+	a.data["group"] = String(d.get("group", "h"))
 	a.data["face"] = float(d.face)
 	if d.has("other"):
 		a.data["other"] = d.other
+	if d.has("lamps"):
+		a.data["lamps"] = d.lamps
+	if d.has("pts"):
+		a.data["pts"] = d.pts
 	a.data["to_other"] = true
 	_folk.append(a)
 	ctx["folk"] = _folk
@@ -158,8 +166,200 @@ func _build_step(delta: float) -> void:
 		_kids.append(a)
 	if bool(d.get("log", false)):
 		_log(at)
+	match String(d.role):
+		"woodcutter":
+			_block(at, float(d.face))
+		"smith":
+			_anvil(at, float(d.face), String(d.get("group", "h")))
 	if String(d.role) == "netmender":
 		_net(at, float(d.face))
+
+
+## The looks of the roles that have no Hearthward instance (the towns and the chapel take them): a smith, a woodcutter, a lamplighter, a drunk, a shepherd, a priest.
+func _protos() -> Dictionary:
+	return {
+		"smith": {"seed": 9161, "sex": "m", "age": "adult", "garment": "shirt", "apron": "leather", "hair": "short", "beard": "short", "r": "hammer", "l": "tongs",
+			"cloth": Color(0.4, 0.34, 0.3), "cloth2": Color(0.34, 0.3, 0.26), "hair_c": Color(0.2, 0.15, 0.1), "skin": SKIN_C, "leather": Color(0.26, 0.18, 0.1)},
+		"woodcutter": {"seed": 9162, "sex": "m", "age": "adult", "garment": "shirt", "hair": "wild", "beard": "short", "r": "axe",
+			"cloth": Color(0.32, 0.36, 0.3), "cloth2": Color(0.36, 0.3, 0.24), "hair_c": Color(0.3, 0.2, 0.12), "skin": SKIN_B, "leather": Color(0.32, 0.22, 0.12)},
+		"lamplighter": {"seed": 9163, "sex": "m", "age": "old", "garment": "coat", "hat": "cap", "hair": "short", "beard": "long", "r": "pole", "l": "lantern",
+			"cloth": Color(0.24, 0.26, 0.3), "cloth2": Color(0.3, 0.28, 0.26), "hair_c": Color(0.7, 0.7, 0.7), "skin": SKIN_A, "leather": Color(0.28, 0.2, 0.12)},
+		"drunk": {"seed": 9164, "sex": "m", "age": "adult", "garment": "coat", "hair": "wild", "beard": "short", "r": "jug",
+			"cloth": Color(0.36, 0.26, 0.22), "cloth2": Color(0.4, 0.32, 0.24), "hair_c": Color(0.25, 0.18, 0.12), "skin": SKIN_A, "leather": Color(0.3, 0.2, 0.12)},
+		"shepherd": {"seed": 9165, "sex": "m", "age": "adult", "garment": "coat", "hat": "brim", "hair": "short", "beard": "long", "r": "crook",
+			"cloth": Color(0.3, 0.3, 0.24), "cloth2": Color(0.36, 0.32, 0.26), "hair_c": Color(0.4, 0.34, 0.26), "skin": SKIN_C, "leather": Color(0.3, 0.2, 0.12)},
+		"priest": {"seed": 9166, "sex": "m", "age": "old", "garment": "robe", "hood": true, "hair": "short", "beard": "long", "l": "candle",
+			"cloth": Color(0.34, 0.3, 0.38), "cloth2": Color(0.5, 0.44, 0.3), "hair_c": Color(0.8, 0.8, 0.8), "skin": SKIN_B, "leather": Color(0.26, 0.18, 0.12)},
+	}
+
+
+## Hearthward's drunk outside the Keg, its shepherd (and his dog) on the outskirts of the green, and the priest at the chapel.
+func _extra_defs() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var pr := _protos()
+	var keg := Roles.node_pos("keg", Vector2(17.6, 20.0))
+	var s1 := _free_spot(keg + Vector2(3.8, -1.2), 0.0, 0.0)
+	if s1 != Vector2.INF:
+		out.append({"id": "drunk", "role": "drunk", "at": s1, "face": 2.4, "look": pr["drunk"], "group": "h"})
+	var pts: Array = []
+	for i in 3:
+		var p := _free_spot(Roles.GREEN, 8.5 + 1.8 * float(i), 0.0)
+		if p != Vector2.INF:
+			pts.append(p)
+	if pts.size() >= 2:
+		out.append({"id": "shepherd", "role": "shepherd", "at": pts[0], "face": 0.0, "look": pr["shepherd"], "pts": pts, "group": "h"})
+	for rd: Dictionary in RealmLayout.REGIONS:
+		if String(rd.get("id", "")) == "chapel" and rd.has("c"):
+			var cs := _free_spot(rd.c as Vector2, 4.5, 0.0)
+			if cs != Vector2.INF:
+				out.append({"id": "priest", "role": "priest", "at": cs, "face": 0.4, "look": pr["priest"], "group": "chapel"})
+	return out
+
+
+## A chopping block (a short upright log) in front of a woodcutter, and an anvil with a forge fire behind it for a smith.
+func _block(at: Vector2, face: float) -> void:
+	var fwd := Vector2(-sin(face), -cos(face))
+	var p := at + fwd * 0.9
+	var m := MeshInstance3D.new()
+	var c := CylinderMesh.new()
+	c.top_radius = 0.24
+	c.bottom_radius = 0.26
+	c.height = 0.4
+	c.radial_segments = 8
+	c.rings = 1
+	m.mesh = c
+	m.material_override = log_material()
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	m.visibility_range_end = 60.0
+	add_child(m)
+	m.global_position = Vector3(p.x, _ground(p) + 0.2, p.y)
+	_props.append(m)
+
+
+func _anvil(at: Vector2, face: float, group: String) -> void:
+	var fwd := Vector2(-sin(face), -cos(face))
+	var p := at + fwd * 0.62
+	var m := MeshInstance3D.new()
+	var b := BoxMesh.new()
+	b.size = Vector3(0.28, 0.2, 0.62)
+	m.mesh = b
+	m.material_override = iron_material()
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	m.visibility_range_end = 60.0
+	add_child(m)
+	var gy := _ground(p)
+	m.global_position = Vector3(p.x, gy + 0.78, p.y)
+	m.rotation.y = face
+	_props.append(m)
+	var base := MeshInstance3D.new()
+	var bc := CylinderMesh.new()
+	bc.top_radius = 0.2
+	bc.bottom_radius = 0.24
+	bc.height = 0.68
+	bc.radial_segments = 8
+	bc.rings = 1
+	base.mesh = bc
+	base.material_override = log_material()
+	base.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	base.visibility_range_end = 60.0
+	add_child(base)
+	base.global_position = Vector3(p.x, gy + 0.34, p.y)
+	_props.append(base)
+	# the forge: a fire behind the anvil, a source for the night's cards, pools and lent lights
+	var fp := at + fwd * 2.0
+	Reg.put("forge_%s_%s" % [group, str(hash(at))], Vector3(fp.x, _ground(fp) + 0.9, fp.y), Reg.Kind.FIRE, 0.9, _ground(fp), false, true)
+
+
+static func iron_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.16, 0.16, 0.18)
+	m.metallic = 0.6
+	m.roughness = 0.5
+	return m
+
+
+## The towns of the reaches (the world_poi hosts named Town_*) each get a few of the same people in their own streets: a sweeper, a fiddler, two talking on logs
+## (and a net-mender in some): the same bodies as Hearthward's (the same options, so the same cached meshes; three variants of seed by town). Their spots are free
+## ground near the town's centre: a capsule that touches nothing solid, found by a spiral search now, once.
+func _town_defs() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var base := {}
+	for d: Dictionary in _defs:
+		base[String(d.role)] = d
+	for h: Node in get_tree().get_nodes_in_group(&"world_poi"):
+		var h3 := h as Node3D
+		if h3 == null or not String(h3.name).begins_with("Town_"):
+			continue
+		var cm: Variant = h3.get_meta("centre", null)
+		var c3: Vector3 = cm if cm is Vector3 else h3.global_position
+		var c := Vector2(c3.x, c3.z)
+		var tid := String(h3.name).substr(5)
+		var variant := absi(hash(tid)) % 3
+		var roles: Array = ["sweeper", "fiddler", "talk_a"]
+		if variant != 1:
+			roles.append("netmender")
+		if variant != 2:
+			roles.append("woodcutter")
+		if variant != 0:
+			roles.append("smith")
+		var lamp_at: Array = []
+		for ln: Node in get_tree().get_nodes_in_group(&"lamp"):
+			var l3 := ln as Node3D
+			if l3 != null and lamp_at.size() < 4 and Vector2(l3.global_position.x - c.x, l3.global_position.z - c.y).length() < 30.0:
+				lamp_at.append(Vector2(l3.global_position.x, l3.global_position.z))
+		if lamp_at.size() >= 2:
+			roles.append("lamplighter")
+		var r_i := 0
+		for role: String in roles:
+			var want := 2.4 if role == "talk_a" else 0.0
+			var spot := _free_spot(c, 3.0 + 2.5 * float(r_i), want)
+			r_i += 1
+			if spot == Vector2.INF:
+				continue
+			var proto: Dictionary = base[role] if base.has(role) else {"face": 0.0 if role != "smith" else 1.2, "look": _protos()[role]}
+			var look: Dictionary = (proto.look as Dictionary).duplicate()
+			look["seed"] = int(look.get("seed", 1)) + 1000 * variant
+			var d2 := {"id": "%s_%s" % [tid, role], "role": role, "at": spot, "face": float(proto.face), "look": look, "group": tid, "log": role == "talk_a"}
+			if role == "lamplighter":
+				d2["lamps"] = lamp_at
+				d2["at"] = lamp_at[0] + Vector2(1.2, 0.0)
+			out.append(d2)
+			if role == "talk_a":
+				var pb: Dictionary = base["talk_b"]
+				var look_b: Dictionary = (pb.look as Dictionary).duplicate()
+				look_b["seed"] = int(look_b.get("seed", 1)) + 1000 * variant
+				out.append({"id": "%s_talk_b" % tid, "role": "talk_b", "at": spot + Vector2(0.0, want), "face": 0.0, "look": look_b, "group": tid, "log": true})
+	return out
+
+
+## A free standing place near `c`: spiralling out from `start` metres, the first spot where a 0.5 m, 1.8 m capsule touches nothing solid (and, for a pair, so does
+## the spot `pair` metres along +z). Vector2.INF if none within 18 m.
+func _free_spot(c: Vector2, start: float, pair: float) -> Vector2:
+	var world := get_world_3d()
+	if world == null:
+		return Vector2.INF
+	var space := world.direct_space_state
+	var shape := CapsuleShape3D.new()
+	shape.radius = 0.5
+	shape.height = 1.8
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = shape
+	q.collision_mask = Layers.WORLD | Layers.PROPS
+	var r := start
+	while r < 18.0:
+		for k in 12:
+			var a := TAU * float(k) / 12.0 + r
+			var p := c + Vector2(cos(a), sin(a)) * r
+			if _clear(space, q, p) and (pair <= 0.0 or _clear(space, q, p + Vector2(0.0, pair))):
+				return p
+		r += 1.5
+	return Vector2.INF
+
+
+func _clear(space: PhysicsDirectSpaceState3D, q: PhysicsShapeQueryParameters3D, p: Vector2) -> bool:
+	var gy := _ground(p)
+	q.transform = Transform3D(Basis.IDENTITY, Vector3(p.x, gy + 1.0, p.y))
+	return space.intersect_shape(q, 1).is_empty()
 
 
 func _ground(at: Vector2) -> float:
@@ -181,10 +381,7 @@ func _log(at: Vector2) -> void:
 	c.radial_segments = 8
 	c.rings = 1
 	m.mesh = c
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.22, 0.15, 0.1)
-	mat.roughness = 1.0
-	m.material_override = mat
+	m.material_override = log_material()
 	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	m.visibility_range_end = 70.0
 	add_child(m)
@@ -200,14 +397,7 @@ func _net(at: Vector2, face: float) -> void:
 	q.size = Vector2(1.1, 0.9)
 	q.orientation = PlaneMesh.FACE_Y
 	m.mesh = q
-	var mat := StandardMaterial3D.new()
-	mat.albedo_texture = _net_texture()
-	mat.albedo_color = Color(0.5, 0.42, 0.3)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	mat.alpha_scissor_threshold = 0.5
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.roughness = 1.0
-	m.material_override = mat
+	m.material_override = net_material()
 	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	m.visibility_range_end = 50.0
 	add_child(m)
@@ -216,6 +406,25 @@ func _net(at: Vector2, face: float) -> void:
 	m.global_position = Vector3(p.x, _ground(at) + 0.36, p.y)
 	m.rotation.y = face
 	_props.append(m)
+
+
+## The log's and the net's materials (NightWarm draws one of each behind the loading cover).
+static func log_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.22, 0.15, 0.1)
+	m.roughness = 1.0
+	return m
+
+
+static func net_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = _net_texture()
+	m.albedo_color = Color(0.5, 0.42, 0.3)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	m.alpha_scissor_threshold = 0.5
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.roughness = 1.0
+	return m
 
 
 static func _net_texture() -> ImageTexture:

@@ -94,3 +94,11 @@ sky_time={
 "type": "float",
 "value": 0.0
 }
+wetness={
+"type": "float",
+"value": 0.0
+}
+frost={
+"type": "float",
+"value": 0.0
+}

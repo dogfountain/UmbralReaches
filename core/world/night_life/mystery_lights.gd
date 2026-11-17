@@ -8,6 +8,7 @@ extends Node
 ## sites built late are picked up; found state is the save's (Travel.system_state("secrets")).
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const NightFx := preload("res://core/world/night_life/night_fx.gd")
 const State := preload("res://core/life/secrets/state.gd")
 
 const POLL := 3.0
@@ -64,12 +65,12 @@ func _motes() -> void:
 		var p: Vector3 = _live[id]
 		if cp.distance_to(p) > MOTE_RANGE:
 			continue
-		Vfx.burst(p + Vector3(0.0, 0.8, 0.0), Color(0.5, 0.9, 1.6), {"count": 6, "life": 2.6, "speed": Vector2(0.15, 0.5), "size": 0.07, "gravity": 0.25, "spread": 80.0, "damping": 0.8})
+		NightFx.burst(p + Vector3(0.0, 0.8, 0.0), Color(0.5, 0.9, 1.6), "mote", Vector3.UP)
 
 
 ## The moment of finding: a ring, a burst and a flash of the cold light.
 func _flare(p: Vector3) -> void:
 	var c := Color(0.5, 0.9, 1.7)
 	Vfx.ring(p, 3.2, c, 0.9, 0.12)
-	Vfx.burst(p + Vector3(0.0, 1.0, 0.0), c, {"count": 34, "life": 1.3, "speed": Vector2(1.5, 5.0), "size": 0.09, "gravity": 0.6, "spread": 180.0, "damping": 1.6})
+	NightFx.burst(p + Vector3(0.0, 1.0, 0.0), c, "found")
 	Vfx.light(p + Vector3(0.0, 1.4, 0.0), c, 3.4, 9.0, 1.6, 2)

@@ -14,6 +14,8 @@ extends "res://core/life/wildlife/life_group.gd"
 ## again later. Owls also leave pellets and the odd feather under their trees (tracks.gd).
 ## Sounds: crows caw, owls hoot (and answer each other), herons croak as they take off.
 
+const NightReg := preload("res://core/world/night_life/night_registry.gd")
+
 enum { PERCH, FLEE, CIRCLE, RETURN, MOVE, AWAY, HUNT, DIVE, MANTLE }
 enum { M_FORAGE, M_RUN, M_HIDE, M_CAUGHT }
 
@@ -498,9 +500,18 @@ func _perched(b: Dictionary, dt: float, ctx: Dictionary) -> void:
 				b.head_to = clampf(rel, -2.3, 2.3)
 				b.pitch_to = clampf(atan2(to_p.y, Vector2(to_p.x, to_p.z).length()), -0.6, 0.4)
 			elif float(b.t) <= 0.0:
-				b.head_to = rng.randf_range(-2.0, 2.0) if rng.randf() < 0.7 else 0.0
-				b.pitch_to = rng.randf_range(-0.3, 0.15)
-				b.t = rng.randf_range(2.0, 6.0)
+				# a lit fire within reach: the owl watches the moths and bats round it (the night's small creatures, night_life), the head
+				# turning to the flame and tilted up to where they wheel, held a few seconds, then back to its own looking about
+				var fl: Vector3 = NightReg.nearest_fire(b.pos, 42.0) if NightReg.enabled else Vector3.INF
+				if fl != Vector3.INF and rng.randf() < 0.7:
+					var tf: Vector3 = fl - (b.pos as Vector3)
+					b.head_to = clampf(wrap_angle(yaw_to(tf) - float(b.yaw)), -2.3, 2.3)
+					b.pitch_to = clampf(atan2(tf.y + 3.0, Vector2(tf.x, tf.z).length()), -0.5, 0.5)
+					b.t = rng.randf_range(3.0, 7.0)
+				else:
+					b.head_to = rng.randf_range(-2.0, 2.0) if rng.randf() < 0.7 else 0.0
+					b.pitch_to = rng.randf_range(-0.3, 0.15)
+					b.t = rng.randf_range(2.0, 6.0)
 		"heron":
 			if float(b.t) <= 0.0:
 				var r := rng.randf()

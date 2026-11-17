@@ -28,7 +28,7 @@ uniform float backlight = 0.5;
 uniform float rim_strength = 0.12;
 uniform vec3 rim_color = vec3(0.4, 0.68, 1.0);
 uniform float roughness = 0.82;
-uniform float near_fade = 1.6;         // metres from the camera inside which cards dither out (0 = off)
+uniform float near_fade = 1.1;         // metres from the camera inside which cards dither out (0 = off); 1.6 filled a canopy interior with a coarse stipple (seen under the moor's oak)
 // Distance thinning (realm_flora.gd sets it per undergrowth MultiMesh): while the chunk's origin
 // is fade_end .. fade_end + 6 m from the camera (the engine's old fade band) its plants drop out one
 // by one, and at fade_end + 6 m the engine culls the chunk. Dropped plants collapse in vertex() (no
@@ -38,6 +38,11 @@ uniform float near_fade = 1.6;         // metres from the camera inside which ca
 instance uniform float fade_end = 0.0;
 // Density LOD for ground cards (see vertex()): from thin_from metres (per plant) to fade_end the
 // cover thins to thin_keep of its plants, survivors widened to keep the coverage. 0 = off.
+// Tree crowns' distance fade (set per crown MultiMesh by the tree builder; 0 = the engine's own visibility-range dither, as before): the crown
+// dissolves over crown_fade_end .. crown_fade_end + 6 m with a per-pixel interleaved-gradient dither (finer than the engine's coarse screen
+// door) and is culled at crown_fade_end + 6 m with no engine fade. The crown keeps its size (the undergrowth's `fade_end` shrinks a plant
+// into its origin, which would shrink a tree into its trunk).
+instance uniform float crown_fade_end = 0.0;
 uniform float thin_from = 0.0;
 uniform float thin_keep = 0.6;
 
@@ -152,7 +157,14 @@ void fragment() {
 	float nf = wpos.y > CAMERA_POSITION_WORLD.y + 1.5 ? near_fade * 2.5 : near_fade;     // cards overhead (the camera under a crown) clear out to 4 m: the wood opens up
 	if (cam_d < nf) {
 		float ign = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715))));
-		if (smoothstep(nf * 0.35, nf, cam_d) < ign) {
+		if (smoothstep(nf * 0.55, nf, cam_d) < ign) {
+			discard;
+		}
+	}
+	if (crown_fade_end > 0.0 && !ground) {
+		float cf = 1.0 - smoothstep(crown_fade_end, crown_fade_end + 6.0, cam_d);
+		float ign2 = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715))));
+		if (cf < ign2) {
 			discard;
 		}
 	}
@@ -170,7 +182,13 @@ void fragment() {
 	c *= 1.0 + wind_sheen * vwind;
 	float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
 	// the brighter the leaf, the more chroma it gives up (dark leaves keep their deep greens); a touch of warmth back
-	c = mix(c, vec3(lum) * vec3(1.06, 1.0, 0.86), (ground ? 0.0 : lit_desat) * smoothstep(0.03, 0.25, lum));
+	// grass was the loudest thing in the night (an emerald brighter than the path it grew beside): ground cards give up a share of
+	// chroma too, and take a soft shoulder on value so a tuft never outshines what it hides
+	c = mix(c, vec3(lum) * vec3(1.06, 1.0, 0.86), (ground ? lit_desat * 0.45 : lit_desat) * smoothstep(0.03, 0.25, lum));
+	if (ground) {
+		c /= 1.0 + 1.1 * max(lum - 0.09, 0.0);
+		c *= vec3(0.95, 1.0, 1.03);
+	}
 	// the brightest crowns (young birches, sunlit oak tips) took the moon at full value: a shoulder keeps them leaf-green, not mint
 	// shrubs and brambles are ground cards (atlas cells 4 and 5, row 2, columns 1 and 2) but read as bright mint crowns: same treatment
 	bool shrub = ground && UV.y > 0.25 && UV.y < 0.5 && UV.x < 0.5;

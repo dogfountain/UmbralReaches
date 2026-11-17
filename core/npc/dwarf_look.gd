@@ -32,6 +32,7 @@ static func material_outdoor() -> ShaderMaterial:
 		return _mat_out
 	_mat_out = material().duplicate() as ShaderMaterial
 	_mat_out.set_shader_parameter("bounce", 0.08)
+	_mat_out.set_shader_parameter("moon_rim", 0.35)       # the silhouette of a dark coat on dark ground
 	_mat_out.set_shader_parameter("chroma", 0.92)
 	_mat_out.set_shader_parameter("skin_chroma", 0.78)    # models pass: less doll-pink
 	_mat_out.set_shader_parameter("skin_bounce", 0.09)    # models pass: was 0.2: the self-glow flattened faces to one tone

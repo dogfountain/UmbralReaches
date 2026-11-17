@@ -61,6 +61,13 @@ static func build(rig: Variant, mb: Variant, side: int, kind: String) -> void:
 			mb.tube(PackedVector3Array([g - ax * 0.12 * K, g + ax * 0.3 * K, g + ax * 0.62 * K]), pf([0.006, 0.0055, 0.005], K), 5, Color(0.3, 0.2, 0.12), DwarfMesh.MAT_WOOD, {"lumps": 0.0})
 			mb.tube(PackedVector3Array([g - ax * 0.1 * K + fd * 0.025 * K, g + ax * 0.6 * K + fd * 0.01 * K]), pf([0.0025, 0.0025], K), 4, Color(0.88, 0.85, 0.78), DwarfMesh.MAT_LINEN, {"lumps": 0.0})
 			rig.tips[side] = g + ax * 0.62 * K
+		"jug":
+			# a squat clay jug hung by a loop from two fingers: a neck, a round belly, a stopper
+			var jc := g + fd * 0.17 * K
+			mb.tube(PackedVector3Array([g, g + fd * 0.07 * K]), pf([0.01, 0.012], K), 5, Color(0.42, 0.33, 0.22), DwarfMesh.MAT_LEATHER, {"lumps": 0.0})
+			mb.blob(jc, Vector3(0.075, 0.09, 0.075) * K, Basis(cx, fd, ax).orthonormalized(), Color(0.45, 0.28, 0.16), DwarfMesh.MAT_LEATHER, {"lumps": 0.05})
+			mb.tube(PackedVector3Array([jc - fd * 0.08 * K, jc - fd * 0.13 * K]), pf([0.03, 0.025], K), 6, Color(0.4, 0.25, 0.14), DwarfMesh.MAT_LEATHER, {"lumps": 0.0})
+			rig.tips[side] = jc
 		"torch":
 			# a wooden shaft, a wrapped head dark with pitch (the flame is the rig's glow part)
 			mb.tube(PackedVector3Array([g - ax * 0.08 * K, g + ax * 0.3 * K, g + ax * 0.5 * K]), pf([0.017, 0.016, 0.02], K), 8, WOOD.darkened(0.1), DwarfMesh.MAT_WOOD, {"lumps": 0.04})
