@@ -31,6 +31,7 @@ extends RefCounted
 ## Load by path: const QuestBook := preload("res://core/story/quest_book.gd")
 
 const Chains := preload("res://core/story/quest_chains.gd")
+const Days := preload("res://core/story/days.gd")
 const GearDB := preload("res://core/items/gear_db.gd")
 const GearRuntime := preload("res://core/items/gear_runtime.gd")
 const LevelDB := preload("res://core/life/progression/level.gd")
@@ -256,15 +257,12 @@ static func find(id: String, key: String) -> int:
 
 # --- r33: offered tasks, the turn-in, dailies, counts, the tracker --------------------------------
 
-## A daily's "day" is the village night count (Village.nights, the integer the cart restocks on), never
-## the machine's date: a session across midnight does not refresh the board, a new evening at the green does.
+## A daily's "day" is the saved night count (core/story/days.gd): a night passes when the wanderer makes camp after
+## enough play, never the machine's date and never a session's restart.
 static func today() -> String:
 	if day_override != "":
 		return day_override
-	var tree := Engine.get_main_loop() as SceneTree
-	var v: Node = tree.get_first_node_in_group("villager") if tree else null
-	var village: Variant = v.get("village") if v else null
-	return "night %d" % (int((village as Object).get("nights")) if village is Object else 0)
+	return Days.today()
 
 
 ## A daily handed in on an earlier day may be taken up again.

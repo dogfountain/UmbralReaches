@@ -32,6 +32,10 @@ const FACTIONS := {
 	"marchers": {"name": "the Marchers", "zones": ["weirford", "sorrow", "plinth", "siege", "stillwater", "anchorholds", "saltmarket", "saltpans"], "bells": ["bell_spire"],
 		"gift": {"relic_fragment": 3, "grave_iron": 2}, "friend": "A tin of lamp-wick and a twist of salt are left by your next fire. The Marchers' way of saying the Order's door was never theirs.",
 		"kin": "The Marchers leave a lamp lit on the road for you now. Their dead lie quieter where you pass."},
+	"outliers": {"name": "the Outliers", "zones": ["greyfell", "lanternwood", "kingsbarrows", "reedmere", "fallow", "arches", "southwood", "bellfall", "lastlight", "nave", "cairns",
+			"westreach", "deepsouth", "eastreach", "reedholm", "fallowmere"], "bells": [],
+		"gift": {"ember_shard": 4, "relic_fragment": 3, "grave_iron": 2}, "friend": "Someone from past the Wall has left a pack by your next fire: lamp-oil, iron, a chip of relic. The Outliers' way of saying you came.",
+		"kin": "The Outliers keep a lamp for you now, from Reedholm's jetties to Lastlight's tower. Their roads are quieter where you walk."},
 }
 const FRIEND := 6
 const KIN := 12

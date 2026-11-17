@@ -57,6 +57,7 @@ func _post(host: Node3D, at: Vector3, yaw: float, label: String) -> void:
 	n.set_meta(&"map_kind", "vendor")
 	n.set_meta(&"map_label", label)
 	n.add_to_group("map_marker")
+	n.add_to_group(&"hitching_post")
 
 
 func _unhandled_input(ev: InputEvent) -> void:

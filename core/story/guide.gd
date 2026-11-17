@@ -26,6 +26,7 @@ const Book := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const Lines := preload("res://core/story/guide_lines.gd")
 const Hints := preload("res://ui/hints.gd")
+const Danger := preload("res://core/life/encounters/danger.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 const Voice := preload("res://core/npc/npc_voice.gd")
 const RealmLayout := preload("res://core/world/realm/realm_layout.gd")
@@ -299,7 +300,8 @@ func _announce(s: Dictionary) -> void:
 	var log_ui = _story.get("log_ui") if _story is Node else null
 	if log_ui is Object and is_instance_valid(log_ui):
 		log_ui.drop_queued("NEXT")                 # a step that came and went while the lane was busy is not announced late
-		log_ui.banner("NEXT", String(Lines.SHORT.get(String(s.id), s.text)), String(s.where))
+		var boss_id := "bone_abbot" if String(s.id) in ["oss_seal", "bone_abbot"] else ("thornwarden" if String(s.id) in ["thorn_seal", "thornwarden"] else ("ascended_warden" if String(s.id) == "warden" else ""))
+		log_ui.banner("NEXT", String(Lines.SHORT.get(String(s.id), s.text)), String(s.where) + (Danger.boss_hint(get_tree(), boss_id) if boss_id != "" else ""))
 
 
 func _finish() -> void:

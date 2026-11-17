@@ -39,6 +39,7 @@ var _scale_label: Label
 var _shadow_option: OptionButton
 var _fog_btn: CheckButton
 var _glow_btn: CheckButton
+var _night_btn: CheckButton
 var _grade_btn: CheckButton
 var _ssr_btn: CheckButton
 var _aa_option: OptionButton
@@ -225,6 +226,9 @@ func _build_graphics(p: VBoxContainer) -> void:
 	_glow_btn = _check(p, "Glow", "Light bleed from fires, glimmers and the sky", func(v: bool) -> void:
 		Settings.glow_enabled = v
 		_custom())
+	_night_btn = _check(p, "Living Night", "The night's moon course and eclipse, windows that light and go dark, far landmark lights, moths and drifting mist", func(v: bool) -> void:
+		Settings.night_life = v
+		Settings.apply())
 	_grade_btn = _check(p, "Colour Grade", "The night's tint and the gloom vignette (F1)", func(v: bool) -> void:
 		Settings.grade_enabled = v
 		_custom())
@@ -342,6 +346,16 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.save())
 	gd.set_pressed_no_signal(HudPrefs.guide)
 	_hud_checks[gd] = "guide"
+	var op := _check(p, "Opening Shot", "A new game opens with the Last Lantern: about 45 seconds of the sky and the village before you take the staff. Hold the interact key to skip it", func(v: bool) -> void:
+		HudPrefs.opening = v
+		HudPrefs.save())
+	op.set_pressed_no_signal(HudPrefs.opening)
+	_hud_checks[op] = "opening"
+	var im := _check(p, "HUD Rests While Exploring", "The wanderer's frame, the spell bar, the XP strip and the minimap fade out while the night is quiet and come back the moment something hunts you, you cast, or a bar runs low. The objective, the waypoint and the prompts stay", func(v: bool) -> void:
+		HudPrefs.immersion = v
+		HudPrefs.save())
+	im.set_pressed_no_signal(HudPrefs.immersion)
+	_hud_checks[im] = "immersion"
 	var row := _row(p, "Control Prompts", "The one-line hints that appear the first time a control matters (a ledge, a foe in range...), shown again")
 	var again := Button.new()
 	again.text = "Show Again"
@@ -741,6 +755,8 @@ func _refresh_hud_checks() -> void:
 			"combat_text": on = HudPrefs.combat_text
 			"enemy_plates": on = HudPrefs.enemy_plates
 			"guide": on = HudPrefs.guide
+			"opening": on = HudPrefs.opening
+			"immersion": on = HudPrefs.immersion
 			_: on = bool(HudPrefs.track.get(what.trim_prefix("track:"), true))
 		cb.set_pressed_no_signal(on)
 
@@ -777,6 +793,7 @@ func _refresh() -> void:
 	_shadow_option.select(Settings.shadow_quality)
 	_fog_btn.button_pressed = Settings.fog_enabled
 	_glow_btn.button_pressed = Settings.glow_enabled
+	_night_btn.button_pressed = Settings.night_life
 	_grade_btn.button_pressed = Settings.grade_enabled
 	_ssr_btn.button_pressed = Settings.ssr_enabled
 	_blur_slider.value = Settings.motion_blur

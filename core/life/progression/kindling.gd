@@ -16,6 +16,7 @@ const DB := preload("res://core/life/progression/upgrade_db.gd")
 const PathsDB := preload("res://core/life/progression/paths_db.gd")
 const HearthDB := preload("res://core/life/progression/hearth_db.gd")
 const FireSpot := preload("res://core/life/progression/fire_spot.gd")
+const CampSpot := preload("res://core/world/camp_spot.gd")
 const CharmPickup := preload("res://core/life/progression/charm_pickup.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const SealedSkill := preload("res://core/skills/skill_sealed.gd")
@@ -546,6 +547,11 @@ func _place_spots() -> void:
 			add_child(s)
 			s.global_position = (n as Node3D).global_position
 			_spots[n.get_instance_id()] = s
+			var cs := CampSpot.new()                  # the seat by the fire: Make camp (core/world/camp_rite.gd)
+			cs.name = "CampSpot_" + String(n.name)
+			cs.brazier = n
+			s.add_child(cs)
+			cs.position = CampSpot.OFFSET
 
 
 # --- charms in the world ----------------------------------------------------------------------
