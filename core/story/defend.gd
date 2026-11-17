@@ -12,6 +12,11 @@ extends WardTarget
 ##     (the task stays where it is; there is no dead end),
 ##   - the clock out ends the step (`held`).
 ## Step data: at, time, hp, label (the frame's title), prop, waves.
+## The same node keeps a VIGIL (kind "vigil", docs/QUEST_VERBS.md): nothing standing to hurt, only the wanderer who
+## keeps a place. The clock runs only while she is within the step's `r` (default 8 m) of `at`; `gloom` (a rate a
+## second, Player units; the whole bar is 100) rises while she keeps it; `waves` come as above but go for her, not for
+## a ward; the frame's bar fills with the time kept. There is nothing to break: the clock out ends the step.
+## Step data: at, r, time, gloom, waves, label, noun, held, away (the toast when she leaves), prop (marks the place).
 
 signal held
 signal broken
@@ -40,12 +45,14 @@ var _told_away := false
 var _frame: Dictionary = {}
 var _light: OmniLight3D
 var _player: Node3D
+var _vigil := false            ## a vigil: no ward to hurt, the wanderer is what the foes want
 
 
 func setup(qid: String, stp: Dictionary) -> void:
 	quest = qid
 	step = stp
-	max_hp = float(stp.get("hp", 30.0))
+	_vigil = String(stp.get("kind", "")) == "vigil"
+	max_hp = 1.0 if _vigil else float(stp.get("hp", 30.0))
 	hp = max_hp
 	time_left = float(stp.get("time", 60.0))
 	name = "Defend_" + qid
@@ -55,17 +62,21 @@ func _ready() -> void:
 	add_to_group("defend")
 	var at := _at()
 	global_position = Vector3(at.x, Kit.ground_y(self, at.x, at.y), at.y)
-	QProps.make(self, "Ward", String(step.get("prop", "lantern_lit")), Transform3D(Basis.IDENTITY, global_position))
-	_light = OmniLight3D.new()
-	_light.name = "WardLight"
-	_light.light_color = Color(1.0, 0.64, 0.32)
-	_light.omni_range = 5.0
-	_light.omni_attenuation = 1.3
-	_light.position = Vector3(0.0, 1.0, 0.0)
-	_light.shadow_enabled = false
-	_light.set_meta(&"light_class", &"realm")
-	add_child(_light)
+	if not _vigil or step.has("prop"):
+		QProps.make(self, "Ward", String(step.get("prop", "lantern_lit")), Transform3D(Basis.IDENTITY, global_position))
+	if not _vigil:
+		_light = OmniLight3D.new()
+		_light.name = "WardLight"
+		_light.light_color = Color(1.0, 0.64, 0.32)
+		_light.omni_range = 5.0
+		_light.omni_attenuation = 1.3
+		_light.position = Vector3(0.0, 1.0, 0.0)
+		_light.shadow_enabled = false
+		_light.set_meta(&"light_class", &"realm")
+		add_child(_light)
 	_frame = Kit.make_frame(String(step.get("label", "Hold")), max_hp)
+	if _vigil:
+		(_frame.bar as ProgressBar).max_value = float(step.get("time", 60.0))
 	add_child(_frame.layer as Node)
 	_show()
 
@@ -94,16 +105,18 @@ func tick(delta: float) -> void:
 		_pause -= delta
 		return
 	var pl := _wanderer()
-	away = pl != null and Vector2(pl.global_position.x - global_position.x, pl.global_position.z - global_position.z).length() > STAY
+	away = pl != null and Vector2(pl.global_position.x - global_position.x, pl.global_position.z - global_position.z).length() > (float(step.get("r", 8.0)) if _vigil else STAY)
 	if away and not _told_away:
 		_told_away = true
-		Events.toast.emit("Go back to the %s. It cannot hold alone." % String(step.get("noun", "ward")))
+		Events.toast.emit(String(step.get("away", "Stay by the %s. The vigil stops while you are gone." % String(step.get("noun", "spot")))) if _vigil else "Go back to the %s. It cannot hold alone." % String(step.get("noun", "ward")))
 	elif not away:
 		_told_away = false
 	if not away:
 		elapsed += delta
 		time_left = maxf(float(step.get("time", 60.0)) - elapsed, 0.0)
 		_waves()
+		if _vigil and pl is Player and float(step.get("gloom", 0.0)) > 0.0:
+			(pl as Player).add_gloom(float(step.gloom) * delta)       # the dark leans on whoever keeps the place
 	hurt_t += delta
 	_scan_t -= delta
 	if _scan_t <= 0.0:
@@ -131,7 +144,7 @@ func _waves() -> void:
 		var w: Dictionary = waves[_wave_i]
 		_wave_i += 1
 		var a0 := float(hash("%s%d%d" % [quest, _wave_i, resets]) % 628) * 0.01
-		foes.append_array(Kit.spawn_ring(self, w.get("kinds", ["wretch"]), int(w.get("n", 2)), global_position, WAVE_R, a0, quest, TAU, self))
+		foes.append_array(Kit.spawn_ring(self, w.get("kinds", ["wretch"]), int(w.get("n", 2)), global_position, WAVE_R, a0, quest, TAU, null if _vigil else self))
 		Events.toast.emit(String(w.get("say", "Something comes for it.")))
 
 
@@ -143,7 +156,7 @@ func _scan(dt: float) -> void:
 
 ## Threat target: while it is broken (the pause) or held out, it draws no foe.
 func threat_alive() -> bool:
-	return hp > 0.0 and _pause <= 0.0 and not done
+	return not _vigil and hp > 0.0 and _pause <= 0.0 and not done
 
 
 func _break() -> void:
@@ -160,7 +173,7 @@ func _break() -> void:
 
 
 func _show() -> void:
-	(_frame.bar as ProgressBar).value = hp
+	(_frame.bar as ProgressBar).value = elapsed if _vigil else hp
 	var nm := String(step.get("label", "Hold"))
 	(_frame.label as Label).text = nm + ("  (hold it)" if away else "")
 	if _light:

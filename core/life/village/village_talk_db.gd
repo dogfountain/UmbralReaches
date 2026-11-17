@@ -148,6 +148,7 @@ const CONV := {
 			["qp:keg_thief:told,qd:keg_thief", "The keep puts a mug out by the fire himself now. He says it's for the rats. He winks when he says it, which is worse."],
 			["qp:keg_thief:covered,qd:keg_thief", "I still put the mug out. You squared it. I drew you a circle on the Keg's step; you're inside it now."],
 			["qp:keg_thief:rats,qd:keg_thief", "Rats! He set a trap behind the Keg. It caught Fennick's boot."],
+			["qp:keg_thief:wrong,qd:keg_thief", "He set a trap for the rats. I moved my mug out of its way. He still hasn't asked me anything."],
 			["!att:nan:-1", "I'm not talking to you. You tell."],
 			["v:pell", "Pell's back. She won't play. Her hands are cold even by the fire. I lent her my shawl."],
 			["v:wrights_home", "We live at home again. Da chops wood all night. Mam says it's so the chimney never stops."],
@@ -162,7 +163,14 @@ const CONV := {
 		"circles": {"say": "Nobody. I just know. Mam says it's nonsense and then she steps round them.", "next": "hub"},
 		"pell": {"say": "She went north. Toward the light. I saw. She said it was warm up there. It isn't warm anywhere.", "next": "hub"},
 			"pell_home": {"say": "Gone home? ...Then why isn't she here? This is home. I've been putting the mug out the whole time.", "next": "hub"},
-		"thief": {"say": "...You've been following my circles. I knew you were. You walk like a grown-up.", "next": "thief2"},
+		# what you found behind the Keg (qc: the signs read there) decides what you can say to her
+		"thief": {"say": "...You've been following my circles. I knew you were. You walk like a grown-up. Go on, then. What did you find?", "choices": [
+			{"text": "Bare feet in the spilled ale. Small ones. Yours.", "to": "thief2", "if": "qc:keg_thief:prints"},
+			{"text": "The bung was set back on the keg. Rats don't do that.", "to": "thief2", "if": "qc:keg_thief:latch"},
+			{"text": "Rats. They've gnawed the stores all down the chimney wall.", "to": "wrong", "if": "qc:keg_thief:gnaw", "do": "qp:keg_thief:wrong,qa:keg_thief,att:nan:1"},
+			{"text": "The circles. Everyone knows your chalk.", "to": "thief2", "if": "!qc:keg_thief:prints,!qc:keg_thief:latch", "do": "att:nan:-1"},
+			{"text": "Nothing. Forget it.", "to": ""},
+		]},
 		"thief2": {"say": "It's for Pell. When she comes back down she'll be cold, and the fire's not enough, so I bring a mug and put a circle round it so nothing else drinks it. The keep counts his barrels. I know he does.", "choices": [
 			{"text": "I'll have to tell the keep.", "to": "told", "do": "qp:keg_thief:told,qa:keg_thief,att:nan:-2"},
 			{"text": "Your secret's safe. I'll square it with the keep.", "to": "covered", "do": "qp:keg_thief:covered,qa:keg_thief,att:nan:2"},
@@ -171,6 +179,7 @@ const CONV := {
 		"told": {"say": "...Fine. Tell him. Grown-ups always tell. Pell's going to be cold, then.", "next": ""},
 		"covered": {"say": "Promise? Cross the circle? ...All right. Here. A bit of my chalk. Draw round yourself when it knocks.", "do": "grant:charm_chalk:relic_fragment:1", "next": ""},
 		"rats": {"say": "Rats don't drink ale. ...He'll believe it, though. He believes in rats.", "next": ""},
+		"wrong": {"say": "Rats. ...Yes. Gnawing, all down the wall. You go and tell him that. Don't look at the fire while you do.", "next": ""},
 	}},
 	"col": {"name": "Col Wright", "start": [["", "hub"]], "nodes": {
 		"hub": {"say_if": [

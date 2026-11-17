@@ -21,3 +21,4 @@ palette
 slots
 storage_save
 guide
+quest_verbs

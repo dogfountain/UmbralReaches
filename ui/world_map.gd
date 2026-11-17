@@ -461,7 +461,8 @@ func _collect() -> void:
 		var label := String(m3.get_meta(&"map_label", ""))
 		var note := {"quest_available": "A task is offered here", "quest_turnin": "A task is finished here",
 			"quest_target": "Where your task leads", "rare": "Something rare keeps here"}[kind] as String
-		_marks.append({"at": mat, "kind": kind, "name": label if label != "" else note.capitalize(), "note": note if label != "" else ""})
+		_marks.append({"at": mat, "kind": kind, "name": label if label != "" else note.capitalize(), "note": note if label != "" else "",
+			"radius": float(m3.get_meta(&"map_radius", 0.0))})
 	if _you != Vector2.INF:
 		_here = LoreDB.place_name(String(RealmLayout.region_at(_you.x, _you.y).get("id", "")))
 		_marks.append({"at": _you, "kind": "you", "name": "You", "note": _here})
@@ -512,6 +513,10 @@ func paint(c: Control) -> void:
 			continue
 		var p := _w2s(m.at)
 		if edge.has_point(p):
+			if float(m.get("radius", 0.0)) > 0.0:          # a search area (clues, a trail): where to look, not a point
+				var ring := _w2s(m.at + Vector2(float(m.radius), 0.0)).distance_to(p)
+				c.draw_circle(p, ring, Color(GOLD, 0.1))
+				c.draw_arc(p, ring, 0.0, TAU, 48, Color(GOLD, 0.75), 2.0, true)
 			_art.glyph(c, String(m.kind), p, i == _hover)
 	for i in _marks.size():
 		if String(_marks[i].kind) == "you":

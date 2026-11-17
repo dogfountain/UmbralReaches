@@ -64,6 +64,8 @@ const Towns := preload("res://core/story/quest_chains_reach_towns.gd")   ## the 
 const FRW := preload("res://core/story/quest_chains_far_reaches_west.gd")   ## the three Reaches' threads and side tasks, given by the towns' people: the `# --- the reaches ---` blocks
 const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
 const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
+const VQ := preload("res://core/story/quest_chains_verbs.gd")   ## Hearthward's five tasks deepened with the task verbs (docs/QUEST_VERBS.md)
+const VerbKit := preload("res://core/story/verb_kit.gd")
 
 const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
 	"hearth_ash", "road_clear", "coal_shrine", "spire_lamps", "alms_loaf",
@@ -148,32 +150,8 @@ const QUESTS := {
 		],
 		"reward": {"ash": 15, "items": {"relic_fragment": 1}},
 		"outcome": {"": "Maren Coyle, Tam, Sister Ide: their names are cut in the Kindlers' Yard, by Edda's stone."}},
-	"keg_thief": {"name": "The Keg's Missing Ale", "giver": "keep", "where": "The keep of the Kindled Keg", "zone": "hearth",
-		"text": "Somebody has been lifting full mugs off the Keg's counter. The keep wants to know who before he starts guessing.",
-		"steps": [
-			{"kind": "find", "text": "Look behind the Kindled Keg, by the chimney, for signs of the ale thief"},
-			{"kind": "find", "text": "Follow the chalk circles to the green's fire"},
-			{"kind": "talk", "who": "nan", "text": "Ask Nan Wright about the chalk circles"},
-			{"kind": "talk", "who": "keep", "text": "Tell the keep what you found"},
-		],
-		"alt": {"rats": {3: "Tell the keep it was rats"}, "covered": {3: "Square Nan's debt with the keep (10 ash)"}},
-		"reward": {"items": {"ember_shard": 2, "grave_iron": 1}},     # (no ash: covering Nan costs 10, and a refund would undo the choice)
-		"outcome": {"told": "The keep knows it was Nan. He leaves a mug by the green's fire himself now.",
-			"covered": "You paid for Nan's mugs. The keep is watching you; Nan drew you a circle.",
-			"rats": "The keep blames rats. Nan keeps her secret, and her mug by the fire."}},
-	"slow_way": {"name": "The Slow Way Down", "giver": "harrow", "where": "Ostrin Harrow, at the Keg's bar", "zone": "fen",
-		"text": "Ostrin's father took his lantern down the fen after the bells, six winters gone. Ostrin wants the lantern back, whatever is holding it.",
-		"steps": [
-			{"kind": "reach", "text": "Search the fen by the fen brazier, below the barrows' descent, for Father Harrow's lantern", "at": Vector2(58.0, -47.0)},
-			{"kind": "kill", "text": "Put the hollowed man by the lantern to rest", "at": Vector2(58.0, -47.0)},
-			{"kind": "find", "text": "Take Father Harrow's lantern"},
-			{"kind": "talk", "who": "harrow", "text": "Bring the lantern to Ostrin Harrow at the Kindled Keg"},
-		],
-		"reward": {"ash": 20, "items": {"relic_fragment": 1}},
-		"choose": [{"slot": "lantern", "rarity": 1}, {"slot": "vestment", "rarity": 1}, {"slot": "girdle", "rarity": 1}],
-		"outcome": {"truth": "Ostrin knows his father is at rest. The lantern burns on the Keg's counter.",
-			"mercy": "Ostrin thinks his father still walks the fen. The lantern sits cold on the Keg's counter, waiting."}},
-
+	"keg_thief": VQ.KEG_THIEF,
+	"slow_way": VQ.SLOW_WAY,
 	# --- r33: tasks set by the giver's mark and the accept screen ----------------------------------
 	# Hearthward: the Hearthfire's dailies and Fennick's errands
 	"hearth_ash": {"name": "Ash for the Hearthfire", "giver": "fennick", "where": "Old Fennick, on his lamp round", "zone": "hearth",
@@ -207,28 +185,8 @@ const QUESTS := {
 		"reward": {"ash": 10},
 		"choose": [{"slot": "lantern", "rarity": 1}, {"slot": "girdle", "rarity": 1}],
 		"outcome": {"": "The shrine in the glade burns with the green's fire again, coal to coal."}},
-	"spire_lamps": {"name": "A Lamp on the Spire", "giver": "fennick", "where": "Old Fennick, on his lamp round", "zone": "summit",
-		"offer": true, "avail": "kindled:1",
-		"text": "The Order kept a lamp on the Watchers' Spire, up under the Crowns, to watch the sky turn. I lit it for them as a boy. Go and see if it's still there. Tell me what the sky looks like from up there.",
-		"steps": [
-			{"kind": "visit", "at": Vector2(-52.0, -100.0), "r": 14.0, "label": "The Watchers' Spire",
-				"text": "Climb to the Watchers' Spire under the Crowns"},
-			{"kind": "turnin", "who": "fennick", "text": "Tell Old Fennick what you saw from the Spire"},
-		],
-		"reward": {"ash": 14},
-		"choose": [{"slot": "lantern", "rarity": 2}, {"slot": "focus", "rarity": 2}],
-		"outcome": {"": "Fennick listened to all of it with his eyes shut. The lamp on the Spire is out. He knew."}},
-	"alms_loaf": {"name": "One Loaf, One Blessing", "giver": "nan", "where": "Nan Wright, on the green", "zone": "road",
-		"offer": true,
-		"text": "The Almonry on the road gave a loaf to every pilgrim, one a night. Pell always ate hers on the step. There might be one left on the board. There's always one left on the board.",
-		"steps": [
-			{"kind": "visit", "at": Vector2(46.0, 40.0), "r": 12.0, "label": "The Almonry", "text": "Go to the Almonry on the Pilgrims' Road"},
-			{"kind": "find", "text": "Take the last loaf from the Almonry's board"},
-			{"kind": "turnin", "who": "nan", "text": "Bring the loaf to Nan Wright"},
-		],
-		"reward": {"ash": 8},
-		"choose": [{"slot": "vestment", "rarity": 1}, {"slot": "lantern", "rarity": 1}],
-		"outcome": {"": "Nan put the loaf by the green's fire, inside a chalk circle, beside the mug."}},
+	"spire_lamps": VQ.SPIRE_LAMPS,
+	"alms_loaf": VQ.ALMS_LOAF,
 	# the Thornwood: Wyck's chain toward the Ring, and Hesk's grudge
 	"thorn_door": {"name": "Thorns at the Door", "giver": "wyck", "where": "Wyck, at his fire in the Thornwood", "zone": "thornwood",
 		"offer": true,
@@ -299,17 +257,7 @@ const QUESTS := {
 		"reward": {"ash": 25},
 		"choose": [{"set": "tally", "slot": "focus", "rarity": 2}, {"set": "tally", "slot": "vestment", "rarity": 2}, {"set": "tally", "slot": "girdle", "rarity": 2}],
 		"outcome": {"": "Abel dug all night and didn't count once."}},
-	"drowned_bell": {"name": "The Drowned Bell", "giver": "brannoc", "where": "Brannoc Bellwright, at the Keg", "zone": "fen",
-		"offer": true,
-		"text": "My grandfather cast the bell in the fen tower. It rang for the sunk. When the water came up it rang by itself for a week. Then it stopped. Go and bring me its tongue. A bell that can't ring can't be made to.",
-		"steps": [
-			{"kind": "visit", "at": Vector2(82.0, -18.0), "r": 14.0, "label": "The Drowned Belfry", "text": "Wade out to the Drowned Belfry in the Hollow Fen"},
-			{"kind": "find", "text": "Take the bell's iron tongue from the belfry"},
-			{"kind": "turnin", "who": "brannoc", "text": "Bring the bell's tongue to Brannoc"},
-		],
-		"reward": {"ash": 14},
-		"choose": [{"set": "bell", "slot": "focus", "rarity": 1}, {"set": "bell", "slot": "vestment", "rarity": 1}, {"set": "bell", "slot": "girdle", "rarity": 1}],
-		"outcome": {"": "Brannoc keeps the drowned bell's tongue by him. It doesn't ring. He checks."}},
+	"drowned_bell": VQ.DROWNED_BELL,
 	# the summit: the keep's last word
 	"crossing_ward": {"name": "The Ward on the Crossing", "giver": "keep", "where": "The keep of the Kindled Keg", "zone": "summit",
 		"offer": true, "avail": "boss:thornwarden,boss:bone_abbot,qd:founders_peal",
@@ -829,19 +777,14 @@ const PICKUPS := {
 		"say": "TAM, THE CARTER'S BOY. NINE. LIKED HORSES. The number above it has been rubbed out with a thumb."},
 	"slate_barrow": {"quest": "names_yard", "step": 0, "near": Vector2(80.0, -34.0), "kind": "slate", "name": "a name-slate", "verb": "Read",
 		"say": "SISTER IDE, WHO KEPT THE BEES. NOT A NUMBER. The last three words are cut deeper than the rest."},
-	"mug_yard": {"quest": "keg_thief", "step": 0, "near": Vector2(27.5, 32.4), "kind": "mug", "name": "a dropped mug", "verb": "Look at",
-		"say": "One of the Keg's mugs, dry, on its side. Round it on the flags, a circle in chalk. A child's hand. Another circle further on, toward the green."},
-	"mug_fire": {"quest": "keg_thief", "step": 1, "near": Vector2(-3.3, 34.5), "kind": "mug_full", "name": "a full mug by the fire", "verb": "Look at",
-		"say": "A mug of the Keg's ale, full, set down by the fire inside a chalk circle. Waiting for somebody who is not here."},
 	"lantern": {"quest": "slow_way", "step": 2, "near": Vector2(58.0, -47.0), "kind": "lantern", "name": "Father Harrow's lantern", "verb": "Take",
 		"say": "A tin lantern, the glass cracked. HARROW scratched on the base. The wick is dry. It has not been lit in a long time."},
 	# r33
+	"mug_fire": VQ.PICKUPS["mug_fire"], "spire_flame": VQ.PICKUPS["spire_flame"], "bell_tongue": VQ.PICKUPS["bell_tongue"],
 	"coal": {"quest": "coal_shrine", "step": 0, "near": Vector2(2.6, 31.2), "kind": "coal", "name": "a live coal", "verb": "Take",
 		"say": "You lift a coal from the green's fire in an iron dish. It pulses like something breathing. Go."},
 	"alms": {"quest": "alms_loaf", "step": 1, "near": Vector2(42.0, 46.0), "kind": "loaf", "name": "the last loaf", "verb": "Take",
 		"say": "One loaf on the Almonry's board, hard as a stone, a cross cut in the crust. There is always one left."},
-	"bell_tongue": {"quest": "drowned_bell", "step": 1, "near": Vector2(77.0, -12.0), "kind": "clapper", "name": "the bell's iron tongue", "verb": "Take",
-		"say": "The clapper lies in the reeds where the water dropped it, a yard of black iron. It is cold, and it hums when you lift it."},
 	# r34. `camp`: the spot is found by that giver's outpost fire (village.gd builds it at load), `near`
 	# is only the fallback.
 	"ward_holds": {"quest": "keeper_wards", "step": 0, "near": Vector2(-141.0, 4.0), "kind": "ward", "name": "a ward-stone", "verb": "Lift",
@@ -957,7 +900,7 @@ const ESCORT := {"quest": "forty_first", "step": 0, "who": "oswin", "to": Vector
 const HOLLOW := {"quest": "slow_way", "near": Vector2(58.0, -47.0), "wake": 24.0, "hp": 9, "title": "Father Harrow, hollowed"}
 
 const KINDS := ["find", "gather", "talk", "escort", "kill", "place", "reach",
-	"slay", "collect", "seal", "cond", "visit", "carry", "turnin", "defend"]
+	"slay", "collect", "seal", "cond", "visit", "carry", "turnin", "defend", "clues", "tracks", "lantern_walk", "order", "vigil"]
 ## Step kinds that count up to `of` (the tracker shows n/of; progress toasts fire on them).
 const COUNTED := ["gather", "slay", "collect", "seal"]
 
@@ -1007,6 +950,8 @@ static func step_text(id: String, s: int, d: Dictionary) -> String:
 ## [have, wanted] for step `s` (wanted 0 = a step that is not counted).
 static func count_of(id: String, s: int, d: Dictionary) -> Array:
 	var st := step(id, s)
+	if not st.is_empty() and String(st.kind) in VerbKit.COUNTED:
+		return VerbKit.count(st, d)                    # clues (read of wanted), tracks (marks followed)
 	if st.is_empty() or not String(st.kind) in COUNTED:
 		return [0, 0]
 	var of := int(st.get("of", 1))
@@ -1068,7 +1013,7 @@ static func audit() -> Array[String]:
 				bad.append("%s: bad step kind %s" % [id, s.kind])
 			if String(s.kind) in ["talk", "turnin"] and String(s.get("who", "")) == "":
 				bad.append("%s: a %s step names nobody" % [id, s.kind])
-			if String(s.kind) in ["visit", "carry"] and not (s.get("at", s.get("to")) is Vector2):
+			if String(s.kind) in ["visit", "carry", "lantern_walk"] and not (s.get("at", s.get("to")) is Vector2):
 				bad.append("%s: a %s step has no place" % [id, s.kind])
 		for si in (qd.steps as Array).size():
 			var kind := String(qd.steps[si].kind)
@@ -1082,7 +1027,8 @@ static func audit() -> Array[String]:
 					and not String(qd.steps[si].get("cond", "")).begins_with("bells:") and not String(qd.steps[si].get("cond", "")).begins_with("peal:") and not id in ["rare_head", "keeper_again"]:
 				bad.append("%s step %d (%s) has no map target" % [id, si, kind])
 			bad.append_array(LiveSteps.audit(id, si, qd.steps[si]))      # escort.gd / defend.gd steps
-			if kind == "carry" and (si == 0 or not PICKUPS.has(String(qd.steps[si].get("from", ""))) or int(PICKUPS[qd.steps[si].from].step) != si - 1):
+			bad.append_array(VerbKit.audit(id, si, qd.steps[si]))        # clues, tracks, lantern_walk, order, vigil
+			if kind in ["carry", "lantern_walk"] and (si == 0 or not PICKUPS.has(String(qd.steps[si].get("from", ""))) or int(PICKUPS[qd.steps[si].from].step) != si - 1):
 				bad.append("%s step %d carries no pickup taken the step before" % [id, si])
 		if bool(qd.get("offer", false)):
 			var last: Dictionary = (qd.steps as Array).back()

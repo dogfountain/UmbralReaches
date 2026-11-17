@@ -13,6 +13,10 @@ extends Node
 ##                    wound it, or a standing thing held for `time` against waves. Each is a child of
 ##                    this node while its step is current and is freed when the step moves on (or
 ##                    the night ends); a fall or a break resets inside the step, never the task
+##   vigil            the same node as a defend (defend.gd) without a ward: stay within `r` of a place for `time`
+##   lantern_walk     a lit lamp carried from the step before to `to` (verb_lantern.gd): sprinting, rolling, a
+##                    blow, deep water put it out and the task falls back a step, as a coal does
+##   clues / tracks / order   live in the world (verb_world.gd, a child of quest_world.gd), not here
 ## No per-frame scans: one pass over ORDER (119 tasks, r38) four times a second; only active ones do work.
 ## Load by path: const QuestRunner := preload("res://core/story/quest_runner.gd")
 
@@ -21,6 +25,7 @@ const Chains := preload("res://core/story/quest_chains.gd")
 const QuestDB := preload("res://core/story/quest_db.gd")
 const Escort := preload("res://core/story/escort.gd")
 const Defend := preload("res://core/story/defend.gd")
+const Lantern := preload("res://core/story/verb_lantern.gd")
 
 ## Tests: every collect step drops (1.0), or the data's chance (-1).
 static var chance_override := -1.0
@@ -192,8 +197,8 @@ func check() -> void:
 				if pl and _near(pl, stp.to as Vector2, float(stp.get("r", 5.0))):
 					Book.progress("%s: delivered" % String(stp.get("label", "")), true)
 					Book.advance(id)
-			"escort", "defend":
-				if stp.has("path") or stp.has("time"):
+			"escort", "defend", "vigil", "lantern_walk":
+				if stp.has("path") or stp.has("time") or String(stp.kind) == "lantern_walk":
 					live[id] = true
 					_encounter(id, stp)
 	for id2: String in _enc.keys():
@@ -213,7 +218,13 @@ func _encounter(id: String, stp: Dictionary) -> void:
 		(have as Node).queue_free()
 	var s := Book.step(id)
 	var key := "wp%d" % s
-	if String(stp.kind) == "escort":
+	if String(stp.kind) == "lantern_walk":
+		var lw: Lantern = Lantern.new()
+		lw.setup(id, stp)
+		lw.set_meta(&"step", s)
+		add_child(lw)
+		_enc[id] = lw
+	elif String(stp.kind) == "escort":
 		var e: Escort = Escort.new()
 		e.setup(id, stp, int(Book.q(id).get(key, 0)))
 		e.reached.connect(func(i: int) -> void: Book.q(id)[key] = i)

@@ -19,6 +19,7 @@ extends Node
 ## Ends: QUEST TEST PASS  /  QUEST TEST FAIL n
 
 const Book := preload("res://core/story/quest_book.gd")
+const QuestDB := preload("res://core/story/quest_db.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const QWorld := preload("res://core/story/quest_world.gd")
 const DialogueDB := preload("res://core/story/dialogue_db.gd")
@@ -332,11 +333,17 @@ func _keg_thief() -> void:
 	var keep := _patron("keep")
 	await converse(keep, ["troubled", "find your thief", "Goodbye"])
 	ok(Book.active("keg_thief"), "the keep sets the task")
-	ok(await _take("mug_yard"), "the dropped mug behind the Keg")
+	# a clues step (verb_world.gd): two of the four signs behind the Keg
+	var verbs: Node = quests.get_node("Verbs")
+	ok(Book.step("keg_thief") == 0 and (verbs.call("info") as Dictionary).nodes.size() == 4, "four signs stand behind the Keg")
+	ok(bool(verbs.call("examine", "keg_thief", "circle")) and Book.step("keg_thief") == 0, "the dropped mug: one of two read")
+	ok(bool(verbs.call("examine", "keg_thief", "prints")) and Book.step("keg_thief") == 1, "the spilled ale: two read, on to the circles")
+	ok(Book.found("keg_thief").has("c:prints") and QuestDB.test("qc:keg_thief:prints,!qc:keg_thief:gnaw", {}), "what was read is remembered (qc:)")
+	await _frames(2)
 	ok(await _take("mug_fire"), "the full mug by the green's fire")
 	ok(Book.step("keg_thief") == 2, "step: ask Nan")
 	var nan := _v("nan")
-	await converse(nan, ["chalk circles", "secret's safe"])
+	await converse(nan, ["chalk circles", "Bare feet", "secret's safe"])
 	ok(Book.step("keg_thief") == 3 and Book.pick("keg_thief") == "covered", "Nan's secret kept")
 	ok(Book.att("nan") >= 2, "Nan likes that (%d)" % Book.att("nan"))
 	Travel.items["grave_ash"] = 4
@@ -359,6 +366,12 @@ func _slow_way() -> void:
 	ok(Book.active("slow_way"), "Ostrin sets the task")
 	ok((quests.get("pickups") as Dictionary).has("lantern"), "the lantern lies in the fen (not yet takeable)")
 	ok(not bool((quests.get("pickups") as Dictionary).lantern.call("can_interact")), "it can't be taken while he stands over it")
+	# a tracks step (verb_world.gd): four marks of lantern oil lead from the fen graves to the lantern
+	var verbs: Node = quests.get_node("Verbs")
+	ok(Book.step("slow_way") == 0 and int((verbs.call("info") as Dictionary).track) == 1, "the first of Harrow's marks lies at the fen graves")
+	for i in 4:
+		verbs.call("_reveal", "slow_way", i)
+	ok(Book.step("slow_way") == 1, "four marks followed: the trail ends at the lantern")
 	var at: Vector3 = QWorld.spots.hollow
 	var home := player.global_position
 	player.process_mode = Node.PROCESS_MODE_DISABLED
