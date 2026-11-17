@@ -57,6 +57,7 @@ func _ready() -> void:
 	Events.boss_slain.connect(_on_slain)
 	Events.hollowed.connect(_on_hollowed)
 	Events.gloom_tide.connect(_on_tide)
+	Events.proc_triggered.connect(_on_proc)
 	Events.gloom_changed.connect(func(v: float, m: float) -> void: _gloom_k = v / maxf(m, 0.001))
 	get_tree().node_added.connect(_on_node)
 
@@ -97,6 +98,23 @@ func _on_damage(_target: Node, amount: float, crit: bool, school: StringName, at
 		CueBank.play_at(cue, at, clampf(linear_to_db(maxf(amount, 1.0) / 12.0), -6.0, 3.0))
 
 
+## A parry rings, a dodge is cloth on the air, a riposte shimmers: the wanderer's own reads, under the library takes.
+func _on_proc(_id: StringName, reason: StringName) -> void:
+	var pl := _player()
+	if pl == null:
+		return
+	match reason:
+		&"parry":
+			if _gate("parry", 0.15):
+				CueBank.play_at("parry_spark", pl.global_position + Vector3.UP * 1.2, 0.0)
+		&"dodge":
+			if _gate("dodge", 0.15):
+				CueBank.play_at("dodge_cloth", pl.global_position + Vector3.UP, 0.0)
+		&"riposte":
+			if _gate("riposte", 0.15):
+				CueBank.play_at("crit_shimmer", pl.global_position + Vector3.UP * 1.4, -2.0)
+
+
 func _on_killed(enemy: Node) -> void:
 	if enemy is Node3D and _gate("kill", 0.3):
 		CueBank.play_at("kill_flourish", (enemy as Node3D).global_position + Vector3.UP, 0.0)
@@ -105,7 +123,7 @@ func _on_killed(enemy: Node) -> void:
 func _on_hurt(amount: float, _from: Vector3) -> void:
 	if _gate("hurt", 0.3):
 		var cue := "hurt_light" if amount < 6.0 else ("hurt_body" if amount < 18.0 else "hurt_heavy")
-		CueBank.play(self, cue, clampf(-4.0 + amount * 0.15, -4.0, 3.0))
+		CueBank.play(self, cue, clampf(-10.0 + amount * 0.15, -10.0, -2.0))       # under the wanderer's own hurt take: it adds weight, it does not repeat it
 
 
 func _on_cast(enemy: Node, _cast: String, _time: float, interruptible: bool) -> void:
