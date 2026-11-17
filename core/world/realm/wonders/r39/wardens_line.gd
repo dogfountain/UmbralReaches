@@ -60,6 +60,7 @@ func _run(root: Node) -> void:
 		k.poi("wardens_tower_%d" % (i + 1), "The Wardens' Line", "tower %d of six, dark since the west went out" % (i + 1), WK.region_at(c) if WK.region_at(c) != "" else "road")
 		_tower(i + 1, c, float(f.lo), float(f.hi))
 		meshes += k.commit(0.0)
+		k.far(150.0, 0.08)
 		fires += k.fires
 		lights += k.lights
 		placed += 1

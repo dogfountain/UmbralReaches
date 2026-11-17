@@ -347,6 +347,29 @@ func beacon(at: Vector3, col: Color, radius := 1.0, ceiling := 9.0, reach := 0.0
 ## Commit the kit's meshes under the host. `range_end` > 0 gives every mesh of the host (and its flame cards) a dither-faded
 ## visibility range of that many metres: the small places (caches, towers) vanish like the wayside's props do; the
 ## colossal landmarks pass 0 and are never culled by range.
+## Beyond `near_end` metres the kit's meshes stop and a ~12-triangle hull of their bounds (FarDetail.hull, tapered towards the
+## top by `taper`) carries the silhouette to the horizon: a landmark's whole mass costs a hull's few triangles far away, so
+## the near detail (relief, ornament) is free at distance. The flame cards, halos and lit glass stay (a fire is still a fire
+## from afar); the lights and beacons are separate nodes. Call after commit().
+func far(near_end := 150.0, taper := 0.0, col := Color(0.16, 0.17, 0.2)) -> void:
+	var box := AABB()
+	var first := true
+	for ch in host.get_children():
+		var mi := ch as MeshInstance3D
+		if mi != null and String(mi.name).begins_with("Mesh_") and String(mi.name) != "Mesh_glow":
+			var a := mi.get_aabb()
+			box = a if first else box.merge(a)
+			first = false
+	if first:
+		return
+	FarDetail.register(host, FarDetail.hull(box, taper, col), Transform3D.IDENTITY, near_end)
+	for ch in host.get_children():
+		if String(ch.name).begins_with("Flames") or String(ch.name).begins_with("FireHalos") or String(ch.name) == "Mesh_glow" or ch is OmniLight3D:
+			var gi := ch as GeometryInstance3D
+			if gi != null:
+				gi.visibility_range_end = 0.0
+
+
 func commit(range_end := 0.0) -> int:
 	var n := kit.commit(host, host.name + "Body")
 	# flames and halos: one MultiMesh each (per halo size) for the whole kit

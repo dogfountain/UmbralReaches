@@ -81,6 +81,7 @@ func _run(root: Node) -> void:
 	_drifts(mid)
 	_dress(mid)
 	var n := k.commit()
+	k.far(150.0, 0.25, Color(0.55, 0.56, 0.6))
 	k.beacon(_w(0.0, 14.0, -21.0), Color(1.0, 0.7, 0.42), 1.2, 10.0, 360.0)
 	print("WONDER salt_ship at %s datum %.1f: %d meshes, %d fires, %d lights, %d chests" % [mid, base.y, n, k.fires, k.lights, k.chests])
 
