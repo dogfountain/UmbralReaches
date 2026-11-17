@@ -35,6 +35,7 @@ P0, C0, H0 = S["pelvis"], S["chest"], S["head"]
 
 # --- materials -----------------------------------------------------------------------------------
 BONE = GK.grave_bone("Bone", (0.7, 0.64, 0.52), (0.22, 0.17, 0.11), 7.0, 0.7)
+SHADE = GK.grave_bone("ShadeBone", (0.36, 0.31, 0.24), (0.07, 0.05, 0.035), 7.0, 0.7)    # the skull in the hood: bone gone dark with soot and age
 
 
 def brocade(name="Cloth", tint=(0.2, 0.17, 0.2)):
@@ -109,6 +110,23 @@ def wine_mat():
 WINE = wine_mat()
 
 
+def wool_mat():
+    """The cassock (hooded Abbot): black wool gone brown with age, dust rising from the hem (in wine, with the surplice
+    and the wine cape over it, he was a tiered pink dress once the cope came off)."""
+    m = K.Mat("Wool")
+    sc = m.scan("caban", 9.0)
+    blot = m.noise(5.0, 6.0, 0.6)
+    col = m.mul(m.mono(sc["color"]), (0.075, 0.06, 0.06))
+    col = m.mix(m.math('MULTIPLY', blot, 0.4), col, (0.02, 0.016, 0.016))
+    dust = m.ramp(m.zpos(), [(0.0, (0.5, 0.5, 0.5)), (0.35, (0.0, 0.0, 0.0))])
+    col = m.mix(dust, col, (0.16, 0.13, 0.1))
+    h = m.math('MULTIPLY', sc["disp"], 1.0)
+    return m.finish(col, 0.85, 0.0, h, 0.6, 0.002)
+
+
+WOOL = wool_mat()
+
+
 def linen_mat():
     """The surplice and the hand bindings: rough linen gone the colour of old candle-smoke, darker toward the hem."""
     m = K.Mat("Linen")
@@ -145,7 +163,7 @@ WAX = wax_mat()
 FLAME = glow_mat("Flame", (1.0, 0.62, 0.22), 8.0)
 EYE = glow_mat("Eye", (1.0, 0.66, 0.25), 8.0)
 SINEW = sinew_mat()
-MATS = [BONE, CLOTH, WINE, LINEN, VOID, ROPE, GOLD, WAX, FLAME, EYE, SINEW]
+MATS = [BONE, SHADE, CLOTH, WINE, WOOL, LINEN, VOID, ROPE, GOLD, WAX, FLAME, EYE, SINEW]
 objs = []
 PAIRS = []
 WEIGHTS = {}
@@ -305,18 +323,23 @@ OPT = dict(W=0.92, L=0.62, nk=0.0, finger=0.17, wrist=0.74, hc=(0, 1.665, -0.035
 _Y = lambda y: y
 hy, hz = OPT["hc"][1], OPT["hc"][2]
 HCB = Vector(G(0, hy, hz))
-# (the hooded Abbot, 17 Nov: the skull is never seen. The cowl's dark is the face: a void filling the opening,
-# two embers set deep in it, and below them a few teeth catching the reliquary's light)
-# the dark fills the whole hood (a small one floated like an egg in a hood lit inside by the cape's lining)
-# (a full ball read as an egg; a flat dark set back reads as depth, the hood's own lining darkens its sides)
-# (blob radii are x, depth, up: the dark is a tall flat disc set back in the hood, the embers in front of it)
-add(K.blob("FaceVoid", HCB + Vector(G(0, -0.01, 0.035)), (0.19, 0.04, 0.23), "head", VOID, 20, 12), lambda p: {"head": 1.0})
+# (the hooded Abbot, 17 Nov) the face: a skull half-seen in the cowl's dark, sooted bone set well back from the brim,
+# the embers deep in its sockets, two rows of teeth (a flat black disc with two dots read as a mask; Luke: "except
+# for the face"). A dark disc behind it keeps the gaps round the skull black, not the hood's lining.
+skp = GB.skull_part(OPT, _Y)
+so, shi = L.sculpted("Skull", skp, "a", SHADE, "skull", 2200, skull_sculpt, 0.0035, False, PAIRS)
+add(so, lambda p: {"head": 1.0})
+L.scale_about([so, shi], HCB, 1.15)
+SK = 1.15
+add(K.blob("FaceVoid", HCB + Vector(G(0, -0.01, 0.07)), (0.19, 0.04, 0.23), "head", VOID, 20, 12), lambda p: {"head": 1.0})
+for row, (dy, sgn) in enumerate(((-0.058, -1), (-0.072, 1))):
+    for k in range(11):
+        a = math.pi * (0.14 + 0.72 * k / 10.0)
+        base = HCB + (Vector(G(math.cos(a) * 0.036, hy + dy, hz - 0.052 - math.sin(a) * 0.03)) - HCB) * SK
+        add(K.loft("Tooth", [base, base + Vector(G(0, -sgn * 0.022, 0))], [0.0058, 0.0], "head", SHADE, 5, cap0=False), lambda p: {"head": 1.0})
 for sx in (-1, 1):
-    add(K.blob("Eye", HCB + Vector(G(sx * 0.036, 0.018, -0.03)), (0.014, 0.006, 0.008), "head", EYE, 10, 6), lambda p: {"head": 1.0})
-for k in range(7) if not HOODED else ():          # (the teeth read as a row of beads under the dark)
-    a = math.pi * (0.25 + 0.5 * k / 6.0)
-    base = HCB + Vector(G(math.cos(a) * 0.04, -0.062, -0.028 - math.sin(a) * 0.008))
-    add(K.loft("Tooth", [base, base + Vector(G(0, 0.022, 0.002))], [0.0055, 0.0], "head", BONE, 5, cap0=False), lambda p: {"head": 1.0})
+    eye = HCB + (Vector(G(sx * 0.034, hy + 0.012, hz - 0.07)) - HCB) * SK
+    add(K.blob("Eye", eye, (0.011, 0.007, 0.0095), "head", EYE, 12, 8), lambda p: {"head": 1.0})
 
 # the reliquary: a gilt cage of curved bars, a candle burning in it, on a chain from the neck
 RQ = C0 + G(0, -0.12, -0.27)
@@ -338,7 +361,7 @@ cass = L.Garment([(1.18, 0, 0, 0.14, 0.105, 0.105, 2.2), (1.0, 0, 0, 0.16, 0.125
                   (0.48, 0, 0.01, 0.29, 0.15, 0.17, 2.0), (0.2, 0, 0.02, 0.4, 0.15, 0.17, 2.0), (-0.1, 0, 0.02, 0.52, 0.15, 0.17, 2.0)],
                  top=1.18, hem=0.025, folds=[(12, 0.0, 1.0, 0.3, 0.1), (25, 0.0, 0.7, 1.3, -0.15), (6, 0.4, 0.3, 2.0, 0)], amp=0.07,
                  ramp=(0.0, 0.45), lay=0.07, lay_r=0.07, hem_lift=0.05, micro=0.0016, back_drop=0.05)
-lo, hi = L.shell(cass, "Cassock", "cassock", WINE, 2600, HI)
+lo, hi = L.shell(cass, "Cassock", "cassock", WOOL if HOODED else WINE, 2600, HI)
 PAIRS.append((lo, hi))
 add(lo, hip_w)
 # the two bands of the stole down the front, orphrey bands at the hem and a placket
@@ -346,50 +369,54 @@ for nm, (v0, v1, u0, u1) in (("StoleL", (0.02, 0.97, -0.055, -0.018)), ("StoleR"
     add(L.band(cass, nm, "cassock_trim", GOLD, v0, v1, u0, u1, n=64 if u1 - u0 > 0.5 else 3, m=36 if v1 - v0 > 0.5 else 2, off=0.012), hip_w)
 WEIGHTS["cassock_trim"] = hip_w
 
-cope_w = L.cope_weights(0.5)
-cope = L.Garment([(1.64, 0, 0.04, 0.25, 0.12, 0.17, 2.2), (1.56, 0, 0.03, 0.3, 0.14, 0.18, 2.2), (1.44, 0, 0.0, 0.38, 0.18, 0.2, 2.0),
-                  (1.1, 0, 0.0, 0.44, 0.24, 0.27, 2.0), (0.7, 0, 0.02, 0.54, 0.21, 0.24, 2.0), (0.3, 0, 0.03, 0.6, 0.2, 0.23, 2.0),
-                  (0.0, 0, 0.04, 0.68, 0.2, 0.23, 2.0), (-0.1, 0, 0.04, 0.72, 0.2, 0.23, 2.0)],
-                 top=1.64, hem=0.03, folds=[(9, 0.3, 1.0, 0.3, 0.15), (19, 0.0, 0.6, 1.1, -0.2), (4, 0.6, 0.5, 2.0, 0.0)], amp=0.2,
-                 ramp=(0.1, 0.5), gap=0.9, gap_from=0.0, lay=0.06, lay_r=0.09, hem_lift=0.06, flare=0.06, micro=0.0014, back_drop=0.1, tongues=(15, 0.09, 1.5), warp=0.8,
-                 top_fn=lambda t: -0.06 + 0.1 * ((np.sin(t) + 1.0) * 0.5) ** 1.5)      # a collar now: the cowl is the hood
-lo, hi = L.shell(cope, "Cope", "cope", CLOTH, 3400, HI, solid=0.011)
-PAIRS.append((lo, hi))
-add(lo, cope_w)
-# the orphrey: a broad gilt band down each front edge and round the hem, a morse (clasp) at the throat
-for nm, (v0, v1, u0, u1) in (("OrphL", (0.08, 0.992, 0.0, 0.045)), ("OrphR", (0.08, 0.992, 0.955, 1.0)), ("CopeHem", (0.885, 0.93, 0.0, 1.0))):
-    add(L.band(cope, nm, "cope_trim", GOLD, v0, v1, u0, u1, n=3 if u1 - u0 < 0.5 else 80, m=40 if v1 - v0 > 0.5 else 2, off=0.014), cope_w)
-# the pallium: a Y of gilt orphrey down the back (from each shoulder to the nape, then straight to the hem), a ring at the crossing
-add(L.ribbon(cope, "PalliumL", "cope_trim", GOLD, [(0.3, 0.12), (0.4, 0.22), (0.5, 0.34), (0.5, 0.985)], 0.045, 60, 0.014), cope_w)
-add(L.ribbon(cope, "PalliumR", "cope_trim", GOLD, [(0.7, 0.12), (0.6, 0.22), (0.5, 0.34)], 0.045, 30, 0.014), cope_w)
-_pc = Vector(G(*cope.surf(np.array([0.5]), np.array([0.34]))[0][0]))
-add(K.blob("PalliumBoss", _pc + Vector((0, 0.03, 0)), (0.055, 0.02, 0.055), "cope_trim", GOLD, 20, 10), cope_w)
-add(K.blob("PalliumJewel", _pc + Vector((0, 0.045, 0)), (0.02, 0.01, 0.027), "cope_trim", EYE, 12, 8), cope_w)
+# the cope (a long outer cloak) is off the hooded Abbot (17 Nov, Luke: "get rid of the cloak if you can't animate it
+# properly"): skinned to the chest it hung as a rigid tent, with no cloth sim to swing it. The code stays for the others.
+COPE = False
+if COPE:
+    cope_w = L.cope_weights(0.5)
+    cope = L.Garment([(1.64, 0, 0.04, 0.25, 0.12, 0.17, 2.2), (1.56, 0, 0.03, 0.3, 0.14, 0.18, 2.2), (1.44, 0, 0.0, 0.38, 0.18, 0.2, 2.0),
+                      (1.1, 0, 0.0, 0.44, 0.24, 0.27, 2.0), (0.7, 0, 0.02, 0.54, 0.21, 0.24, 2.0), (0.3, 0, 0.03, 0.6, 0.2, 0.23, 2.0),
+                      (0.0, 0, 0.04, 0.68, 0.2, 0.23, 2.0), (-0.1, 0, 0.04, 0.72, 0.2, 0.23, 2.0)],
+                     top=1.64, hem=0.03, folds=[(9, 0.3, 1.0, 0.3, 0.15), (19, 0.0, 0.6, 1.1, -0.2), (4, 0.6, 0.5, 2.0, 0.0)], amp=0.2,
+                     ramp=(0.1, 0.5), gap=0.9, gap_from=0.0, lay=0.06, lay_r=0.09, hem_lift=0.06, flare=0.06, micro=0.0014, back_drop=0.1, tongues=(15, 0.09, 1.5), warp=0.8,
+                     top_fn=lambda t: -0.06 + 0.1 * ((np.sin(t) + 1.0) * 0.5) ** 1.5)      # a collar now: the cowl is the hood
+    lo, hi = L.shell(cope, "Cope", "cope", CLOTH, 3400, HI, solid=0.011)
+    PAIRS.append((lo, hi))
+    add(lo, cope_w)
+    # the orphrey: a broad gilt band down each front edge and round the hem, a morse (clasp) at the throat
+    for nm, (v0, v1, u0, u1) in (("OrphL", (0.08, 0.992, 0.0, 0.045)), ("OrphR", (0.08, 0.992, 0.955, 1.0)), ("CopeHem", (0.885, 0.93, 0.0, 1.0))):
+        add(L.band(cope, nm, "cope_trim", GOLD, v0, v1, u0, u1, n=3 if u1 - u0 < 0.5 else 80, m=40 if v1 - v0 > 0.5 else 2, off=0.014), cope_w)
+    # the pallium: a Y of gilt orphrey down the back (from each shoulder to the nape, then straight to the hem), a ring at the crossing
+    add(L.ribbon(cope, "PalliumL", "cope_trim", GOLD, [(0.3, 0.12), (0.4, 0.22), (0.5, 0.34), (0.5, 0.985)], 0.045, 60, 0.014), cope_w)
+    add(L.ribbon(cope, "PalliumR", "cope_trim", GOLD, [(0.7, 0.12), (0.6, 0.22), (0.5, 0.34)], 0.045, 30, 0.014), cope_w)
+    _pc = Vector(G(*cope.surf(np.array([0.5]), np.array([0.34]))[0][0]))
+    add(K.blob("PalliumBoss", _pc + Vector((0, 0.03, 0)), (0.055, 0.02, 0.055), "cope_trim", GOLD, 20, 10), cope_w)
+    add(K.blob("PalliumJewel", _pc + Vector((0, 0.045, 0)), (0.02, 0.01, 0.027), "cope_trim", EYE, 12, 8), cope_w)
 
-# embroidery: a second gilt line inside each orphrey, studs set along it, a worn pattern of crosses on the field
-for nm, (u0, u1) in (("OrphInL", (0.052, 0.058)), ("OrphInR", (0.942, 0.948))):
-    add(L.band(cope, nm, "cope_trim", GOLD, 0.1, 0.9, u0, u1, n=2, m=50, off=0.012), cope_w)
-for uu in (0.025, 0.975):
-    for vv in np.linspace(0.14, 0.86, 9):
-        pp, nn = cope.surf(np.array([uu]), np.array([vv]))
-        add(K.blob("Stud", Vector(G(*(pp[0] + nn[0] * 0.02))), (0.011, 0.011, 0.011), "cope_trim", GOLD, 6, 4), cope_w)
-for vv in (0.34, 0.6):
-    for uu in np.linspace(0.16, 0.84, 5):
-        pp, nn = cope.surf(np.array([uu]), np.array([vv]))
-        c0 = Vector(G(*(pp[0] + nn[0] * 0.013)))
-        add(TUBE("Cross", [c0 + Vector((0, 0, -0.035)), c0 + Vector((0, 0, 0.035))], 0.0045, "cope_trim", GOLD), cope_w)
-        add(TUBE("Cross", [c0 + Vector((-0.025, 0, 0.01)), c0 + Vector((0.025, 0, 0.01))], 0.0045, "cope_trim", GOLD), cope_w)
-# the morse: a gilt plaque on each lapel and a chain looped across the breast between them
-mp = []
-for uu in (0.012, 0.988):
-    pp, nn = cope.surf(np.array([uu]), np.array([0.3]))
-    q = Vector(G(*(pp[0] + nn[0] * 0.02)))
-    mp.append(q)
-    add(K.blob("Morse", q, (0.032, 0.014, 0.032), "cope_trim", GOLD, 10, 6), cope_w)
-    add(K.blob("MorseGem", q + Vector((0, 0.02, 0)), (0.013, 0.007, 0.017), "cope_trim", EYE, 8, 5), cope_w)
-sag = [mp[0].lerp(mp[1], t) + Vector((0, 0.04 * math.sin(t * math.pi), -0.09 * math.sin(t * math.pi))) for t in [i / 10.0 for i in range(11)]]
-add(TUBE("MorseChain", sag, 0.005, "cope_trim", GOLD), cope_w)
-WEIGHTS["cope_trim"] = cope_w
+    # embroidery: a second gilt line inside each orphrey, studs set along it, a worn pattern of crosses on the field
+    for nm, (u0, u1) in (("OrphInL", (0.052, 0.058)), ("OrphInR", (0.942, 0.948))):
+        add(L.band(cope, nm, "cope_trim", GOLD, 0.1, 0.9, u0, u1, n=2, m=50, off=0.012), cope_w)
+    for uu in (0.025, 0.975):
+        for vv in np.linspace(0.14, 0.86, 9):
+            pp, nn = cope.surf(np.array([uu]), np.array([vv]))
+            add(K.blob("Stud", Vector(G(*(pp[0] + nn[0] * 0.02))), (0.011, 0.011, 0.011), "cope_trim", GOLD, 6, 4), cope_w)
+    for vv in (0.34, 0.6):
+        for uu in np.linspace(0.16, 0.84, 5):
+            pp, nn = cope.surf(np.array([uu]), np.array([vv]))
+            c0 = Vector(G(*(pp[0] + nn[0] * 0.013)))
+            add(TUBE("Cross", [c0 + Vector((0, 0, -0.035)), c0 + Vector((0, 0, 0.035))], 0.0045, "cope_trim", GOLD), cope_w)
+            add(TUBE("Cross", [c0 + Vector((-0.025, 0, 0.01)), c0 + Vector((0.025, 0, 0.01))], 0.0045, "cope_trim", GOLD), cope_w)
+    # the morse: a gilt plaque on each lapel and a chain looped across the breast between them
+    mp = []
+    for uu in (0.012, 0.988):
+        pp, nn = cope.surf(np.array([uu]), np.array([0.3]))
+        q = Vector(G(*(pp[0] + nn[0] * 0.02)))
+        mp.append(q)
+        add(K.blob("Morse", q, (0.032, 0.014, 0.032), "cope_trim", GOLD, 10, 6), cope_w)
+        add(K.blob("MorseGem", q + Vector((0, 0.02, 0)), (0.013, 0.007, 0.017), "cope_trim", EYE, 8, 5), cope_w)
+    sag = [mp[0].lerp(mp[1], t) + Vector((0, 0.04 * math.sin(t * math.pi), -0.09 * math.sin(t * math.pi))) for t in [i / 10.0 for i in range(11)]]
+    add(TUBE("MorseChain", sag, 0.005, "cope_trim", GOLD), cope_w)
+    WEIGHTS["cope_trim"] = cope_w
 
 # --- the hooded Abbot (17 Nov): a deep cowl, a linen surplice over the breast, a dagged shoulder cape ---------------
 # the cowl: thick wool, a crown open round the mitre, a brim that hangs a hand's width over the face, so the face is
@@ -410,6 +437,11 @@ WEIGHTS["cowl"] = cowl_w
 # fold of the same dark wool filling the opening under the chin (the cape's collar showed there like a bib)
 for (u0_, u1_) in ((0.0, 0.3), (0.7, 1.0)):       # (round the opening only: across the back it showed through the cope's cracks)
     add(cowl.mesh("CowlLining", 14, 18, "cowl", VOID, v0=0.0, v1=0.7, u0=u0_, u1=u1_, off=-0.013), cowl_w)
+# the liripipe: the hood's tail drawn down the back over the cape to the small of the back, a gilt tassel at its point
+# (without the cope the hood's back was a flat box sat on the cape)
+_lp = [Vector(G(0, y, z)) for (y, z) in ((1.6, 0.215), (1.5, 0.25), (1.39, 0.275), (1.29, 0.275), (1.17, 0.215), (1.04, 0.195), (0.92, 0.2))]
+add(K.loft("Liripipe", _lp, [(0.15, 0.024), (0.14, 0.024), (0.12, 0.022), (0.095, 0.02), (0.06, 0.017), (0.03, 0.013), (0.008, 0.008)], "cowl", CLOTH, 14), CH)
+add(K.loft("LiripipeTassel", [_lp[-1], _lp[-1] + Vector(G(0, -0.09, 0.005))], [0.012, 0.022], "cowl", GOLD, 8), CH)
 
 # the surplice: off-white linen from the breast to the thigh, a scalloped lace hem, over the cassock and under the cope
 surp_w = L.skirt_weights(1.05, 0.9, 0.42, 0.25)
@@ -445,11 +477,11 @@ for uu in np.linspace(0.0, 1.0, 19)[:-1]:
 WEIGHTS["mozzetta"] = moz_w
 
 # candles burning on both shoulders, stuck on in their own wax (the Abbot keeps vigil for the counted dead)
-CANDLES = [(-0.3, 0.0, 0.1), (-0.22, 0.05, 0.16), (-0.26, -0.05, 0.07), (0.3, 0.0, 0.12), (0.22, 0.05, 0.08), (0.27, -0.05, 0.15)]
+CANDLES = [(-0.31, 0.0, 0.1), (-0.3, 0.07, 0.16), (-0.34, -0.05, 0.07), (0.31, 0.0, 0.12), (0.3, 0.07, 0.08), (0.34, -0.05, 0.15)]   # (outside the cowl: at 0.22 one stood in the face opening)
 for (cx_, cz_, ch) in CANDLES:
     sx = -1 if cx_ < 0 else 1
     pp, nn = moz.surf(np.array([0.25 if sx < 0 else 0.75]), np.array([0.12]))
-    top_y = float(moz.sect(np.array([1.52]))[0][0]) * 0 + 1.53 + 0.02 * (abs(cx_) < 0.25)
+    top_y = 1.535 - max(0.0, abs(cx_) - 0.3) / 0.06 * 0.07          # down the cape's shoulder slope (1.53 at 0.3 out, 1.46 at 0.36)
     b0 = Vector(G(cx_, top_y, cz_))
     add(K.blob("WaxPool", b0 + Vector(G(0, -0.004, 0)), (0.034, 0.012, 0.03), "chest", WAX, 12, 6), CH)
     add(K.loft("Candle", [b0, b0 + Vector(G(0, ch, 0))], [0.017, 0.015], "chest", WAX, 10), CH)
