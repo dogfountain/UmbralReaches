@@ -1,0 +1,731 @@
+extends RefCounted
+## The seven countries' and the Marches' tasks, deepened with the task verbs (docs/QUEST_DEPTH.md workstream B,
+## docs/QUEST_VERBS.md). Data only, no class_name: the chain files (quest_chains.gd, _south_marches, _east_marches,
+## _west_marches) point their entries here, and quest_chains.gd lists the pickups in its `# --- deepen B ---` block.
+## Ids, givers and rewards are unchanged; each task gained a verb beat, a choice and something to see afterwards
+## (a hub line on qp: / qc:, a `leaves` prop, a later task's text). Where a choice is made at a place, the pickup
+## carries a `conv` (CONVS below; dialogue_db.gd lists them): its choice records the pick and moves the task on.
+##
+##   Holds    holds_turf (tracks, a roof)     keeper_wards (clues, who dug them)     oak_song (order, a verse)
+##   Quarry   quarry_last (clues, the block)  Moor     moor_shrine (a lantern relay)  Foundry founder_clapper (tracks by sound)
+##   Orchard  orchard_press (clues, accuse)   Field    field_ranks (vigil)            Mere    mere_light (order, a lamp)
+##   Marches  salt_widow (tracks, clues)  spire_coal (vigil)  shepherd_strays (order, tracks)  wf_lights  wf_crown
+##   Cadoc's last crossing: mere_light -> mere_ferryman -> well_answer -> mere_ferry.  NEW: seventh_day (Teasel).
+## House style (docs/LORE.md): terse, concrete, dark.
+
+# --- the Rooted Holds ------------------------------------------------------------------------------------
+
+const HOLDS_TURF := {"name": "The Kin-Taker", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "holds",
+	"offer": true,
+	"text": "Something walks round the Holds at night, tall as a door, and lifts the turf off the roofs to look in at us. The young ones named it Old Rook, when there were young ones. It took them. It always sets the turf down again, neatly. Follow what it leaves, and put it down, and I'll sleep with the door open for once.",
+	"steps": [
+		{"kind": "tracks", "r": 12.0, "label": "Old Rook's round",
+			"text": "Follow the Kin-Taker's round through the Holds, from roof to roof ({n}/{of})",
+			"marks": [
+				{"at": Vector2(-131.0, 16.0), "text": "A roof with its turf lifted and laid back crooked. The thatch under it is pressed flat in the shape of a very long hand."},
+				{"at": Vector2(-137.0, 23.0), "text": "A second roof, the same. Nothing taken. In the soft ground under the eaves, a print as long as your forearm, the toes pointing in at the door."},
+				{"at": Vector2(-146.0, 14.0), "text": "The third roof has been lifted twice, as if the looker was not satisfied. A child's shoe sits on the sill, set there, toe to the wall."},
+				{"at": Vector2(-141.0, 9.0), "text": "The prints turn and go to ground at the old ward-stone, one deep step after another. Whatever made them is standing very near, and has been looking at you for some time."},
+			]},
+		{"kind": "slay", "of": 1, "rares": ["old_rook"], "label": "Old Rook, the Kin-Taker", "at": Vector2(-140.0, 11.0),
+			"text": "Put down Old Rook, the Kin-Taker, on its round of the Holds"},
+		{"kind": "find", "text": "Set back the turf Old Rook lifted, on the roof by Ruan's fire"},
+		{"kind": "turnin", "who": "ruan", "text": "Tell Gammer Ruan the Kin-Taker is down"},
+	],
+	"alt": {"shut": {3: "Tell Gammer Ruan the roof is shut"}, "open": {3: "Tell Gammer Ruan you left the roof's eye open"}},
+	"reward": {"ash": 14},
+	"choose": [{"slot": "vestment", "rarity": 1}, {"slot": "girdle", "rarity": 1}],
+	"leaves": {"shut": {"at": Vector2(-131.0, 9.0), "prop": "slabs"}, "open": {"at": Vector2(-131.0, 9.0), "prop": "lantern_lit"}},
+	"outcome": {"shut": "Ruan had you lay the turf grass-down and sang the roof shut. In the morning she turned the empty beds face down again, one by one.",
+		"open": "You left a hand's width of the roof open. Ruan looked at it a long while, then sat under it that night with the door wide, and looked up, which the Rooted do not do."}}
+
+const KEEPER_WARDS := {"name": "The Keeper's Wards", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "holds",
+	"offer": true, "raid": "thornwarden",
+	"text": "We bound the keeper into the Ring with three ward-stones, one for each way the axe could come. The abbey dug them up and threw them in the wood. Somebody carried them. The abbey had no cart that could climb the hollow. Look where they were dug, and find who, and then bring the stones to my hand.",
+	"steps": [
+		{"kind": "clues", "at": Vector2(-64.0, 31.0), "r": 10.0, "need": 2, "label": "Where the wards were dug",
+			"text": "Search the spoil under the Thornwood's oaks for who dug up the ward-stones ({n}/{of} read)",
+			"clues": [
+				{"key": "spoil", "at": Vector2(-62.0, 34.0), "name": "the spoil heap",
+					"text": "Three neat holes, a spade's width each, the turf cut in squares and stacked. The abbey dug like clerks. Somebody else filled in after, badly, by hand."},
+				{"key": "rut", "at": Vector2(-69.0, 28.0), "prop": "mark", "name": "a cart-rut",
+					"text": "A cart's rut into the wood, and a board lying in it with a tally notched along the edge: a hand and an axe. A toll-keeper's mark. The cart was a Rooted one, drawn by Rooted hands."},
+				{"key": "chalk", "at": Vector2(-65.0, 26.0), "name": "chalk on a root",
+					"text": "The Order's chalk on an oak root, in the square hand: THREE. TO THE WOOD. Under it, small, in charcoal, somebody has crossed out WOOD and written DEEPER."},
+			]},
+		{"kind": "gather", "of": 3, "text": "Find the three ward-stones: in the Holds, under the Thornwood's oaks, in the Glimmer Glade ({n}/{of})"},
+		{"kind": "find", "text": "Set the ward-stones round Gammer Ruan's fire, and tell her who dug them"},
+		{"kind": "turnin", "who": "ruan", "text": "Bring the ward-stones to Gammer Ruan"},
+	],
+	"alt": {"kin": {3: "Tell Gammer Ruan her own kin carried them"}, "abbey": {3: "Tell Gammer Ruan the abbey did it all"}},
+	"reward": {"ash": 15, "items": {"relic_fragment": 1}},
+	"leaves": {"kin": {"at": Vector2(-66.0, 31.0), "prop": "mark"}, "abbey": {"at": Vector2(-66.0, 31.0), "prop": "ward"}},
+	"outcome": {"kin": "Ruan set the three wards round her fire, face down, and did not sing the keeper's verse. She sat with the cart's tally-board across her knees until the fire burned low.",
+		"abbey": "Ruan set the three wards round her fire, face down, and sang the keeper's verse to them. Not the last verse."}}
+
+const OAK_SONG := {"name": "What the Oak Kept", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "oak",
+	"offer": true, "avail": "kindled:1",
+	"text": "The first fire was carried out of the Grandmother Oak, in a knot of its own heart, and the Rooted hid the knot where the Order would not climb. The oak has to be asked in order: you touch its knots and say the verse. Root first, because the root was first. Then the heart, which held. The bough last, because the bough looked up. Wrong, and the Root-Wife wakes in the wrong place. Ruan is too old for the stair. She wants the oak whole, and the knot where they left it.",
+	"steps": [
+		{"kind": "visit", "at": Vector2(-70.0, 206.0), "r": 16.0, "label": "The Grandmother Oak", "text": "Go to the Grandmother Oak on the southern downs, and look up"},
+		{"kind": "order", "at": Vector2(-70.0, 206.0), "label": "The oak's knots",
+			"text": "Touch the three knots round the Grandmother Oak in Ruan's order: root, heart, bough",
+			"things": [
+				{"key": "bough", "at": Vector2(-76.0, 196.0), "prop": "ward", "name": "the bough-knot",
+					"text": "The bough-knot is smooth and high-set and faces the Stair. It is warm. Of the three it is the only one that was ever polished."},
+				{"key": "root", "at": Vector2(-58.0, 208.0), "prop": "ward", "name": "the root-knot",
+					"text": "The root-knot is cold and wet, a fist of bark gone to stone. Under your palm something very large turns over, and settles."},
+				{"key": "heart", "at": Vector2(-76.0, 216.0), "prop": "ward", "name": "the heart-knot",
+					"text": "The heart-knot holds still under your hand, like a held breath. Inside the oak a low note begins, and does not end."},
+			],
+			"order": ["root", "heart", "bough"],
+			"wrong": "The knot goes slack under your hand. Out of the roots, where it should not be, something stands up.",
+			"wrong_spawns": {"kind": "burrower", "n": 1},
+			"done": "Root, heart, bough. The oak lets its breath out, and the stair inside it is open."},
+		{"kind": "cond", "cond": "elite:root_wife", "at": Vector2(-70.0, 206.0), "label": "The Root-Wife", "text": "Put down the Root-Wife, who keeps the oak's roots"},
+		{"kind": "cond", "cond": "secret:found:oak_crown", "at": Vector2(-70.0, 206.0), "label": "The oak's crown", "text": "Climb the stair inside the oak to its crown, and find what the Rooted hid"},
+		{"kind": "find", "text": "Sing the last verse at the oak's foot, alone or in Ruan's words"},
+		{"kind": "turnin", "who": "ruan", "text": "Tell Gammer Ruan what the oak kept"},
+	],
+	"alt": {"words": {5: "Tell Gammer Ruan you sang it in her words"}, "alone": {5: "Tell Gammer Ruan you sang it in your own"}},
+	"reward": {"ash": 30, "items": {"relic_fragment": 2}},
+	"choose": [{"slot": "focus", "rarity": 2}, {"slot": "girdle", "rarity": 2}, {"slot": "lantern", "rarity": 2}],
+	"leaves": {"words": {"at": Vector2(-70.0, 192.5), "prop": "ward"}, "alone": {"at": Vector2(-70.0, 192.5), "prop": "lantern_lit"}},
+	"outcome": {"words": "Ruan held her hands out for the leaf, and read it with her thumbs. \"It listened,\" she said. \"Nine springs it sang to us and I never once sang back. Well. Somebody has, and in the right words.\"",
+		"alone": "Ruan held her hands out for the leaf. \"Your tune,\" she said, \"not ours. It will have to do. The oak will learn it. It learned worse from the Order.\""}}
+
+# --- the Saints' Quarry ------------------------------------------------------------------------------------
+
+const QUARRY_LAST := {"name": "The Last Step", "giver": "jory", "where": "Jory Quell, at his fire by the Saints' Quarry", "zone": "quarry",
+	"offer": true, "avail": "qd:quarry_picks",
+	"text": "One block the Order blessed and never sent: the four thousand and first step. It sits on the pit floor with a prayer cut in the top, and my brother's hand under it. Go down and read it to me. Look at the block as well as the words; a cutter reads the stone's back. My eyes won't do the benches, and I want to know what they wrote on the step after the last one.",
+	"steps": [
+		{"kind": "visit", "at": Vector2(-128.0, -104.0), "r": 10.0, "label": "The pit floor", "text": "Climb down the benches to the quarry's pit floor"},
+		{"kind": "clues", "at": Vector2(-129.0, -103.0), "r": 9.0, "need": 2, "label": "The blessed block",
+			"text": "Read what has been done to the blessed block on the pit floor ({n}/{of} read)",
+			"clues": [
+				{"key": "fists", "at": Vector2(-125.5, -100.5), "name": "the dented tread",
+					"text": "Not chisel-marks: fist-marks. The block's top is dented where a very large man blessed it with both hands, again and again. Brother Chisel stood here. Often."},
+				{"key": "tail", "at": Vector2(-132.0, -105.5), "prop": "mark", "name": "the cutter's line",
+					"text": "Under the Order's prayer, a second line, cut without leave: and the rest of us go home. It ends in a Q with a tail. The last stroke of the tail is dragged, as if he was pulled off the stone mid-letter."},
+				{"key": "wedges", "at": Vector2(-128.0, -98.5), "name": "the wedge-holes",
+					"text": "A row of wedge-holes along the flank, never driven. The Order meant to split the block and strike the cutter's line off, and then did not. Somebody stopped them. The marks of the stopping are boot-heel and a fist."},
+			]},
+		{"kind": "find", "text": "Decide what to take back to Jory Quell: the Order's prayer, or what was cut under it"},
+		{"kind": "turnin", "who": "jory", "text": "Tell Jory Quell what the last step says"},
+	],
+	"alt": {"prayer": {3: "Tell Jory Quell what the Order cut on the last step"}, "mark": {3: "Tell Jory Quell what his brother cut under it"}},
+	"reward": {"ash": 18},
+	"choose": [{"slot": "vestment", "rarity": 2}, {"slot": "lantern", "rarity": 2}],
+	"leaves": {"prayer": {"at": Vector2(-126.0, -106.0), "prop": "slabs"}, "mark": {"at": Vector2(-126.0, -106.0), "prop": "mark"}},
+	"outcome": {"prayer": "\"Here the faithful step off.\" You read it in the Order's voice, deep and whole. Jory laughed till he coughed. Then he asked you to say it again, and did not ask about the line under it.",
+		"mark": "You read him the line under the prayer, and the Q with a tail. Jory stopped laughing. \"He stopped mid-stroke,\" he said. That night he went down to the pit with a lantern and finished the tail himself."}}
+
+# --- the Lanternless Moor ------------------------------------------------------------------------------------
+
+const MOOR_SHRINE := {"name": "No Lantern", "giver": "ysolt", "where": "Ysolt, at her fire under the tor", "zone": "moor",
+	"offer": true, "avail": "qd:moor_stumbled",
+	"text": "There's a shrine on the south moor the Order raised for the first edict. Lanterns are for doubters, it says. Carry a flame there from my fire along the cairns, hooded, at a walk. A run puts it out, and so does a blow; the moor takes what's hurried. Set it in the shrine's lap, or don't: the shrine was never mine to say. I've been a doubter forty years. I'd like it said in stone, or left unsaid.",
+	"steps": [
+		{"kind": "find", "text": "Take a hooded flame from Ysolt's fire"},
+		{"kind": "lantern_walk", "from": "coal_ysolt", "to": Vector2(147.0, 0.0), "r": 5.0, "label": "The hooded flame",
+			"relight": "Light another at Ysolt's fire.",
+			"arrive": "The middle cairn's stones are warm on every side. The flame leans on its hood, and holds.",
+			"text": "Carry the hooded flame to the middle cairn. Walk it: a run, a roll, a blow or deep water puts it out"},
+		{"kind": "find", "text": "Relight the flame at the middle cairn"},
+		{"kind": "lantern_walk", "from": "moor_shrine_mid", "to": Vector2(142.5, 16.0), "r": 5.0, "label": "The lanternless shrine",
+			"relight": "Light another at the middle cairn.",
+			"arrive": "You stand before the shrine with a flame in your hand. LANTERNS ARE FOR DOUBTERS, it says, over the lap.",
+			"text": "Carry the flame on to the lanternless shrine on the south moor. Walk it"},
+		{"kind": "find", "text": "Decide what the shrine's lap is to hold: the flame, or nothing"},
+		{"kind": "turnin", "who": "ysolt", "text": "Tell Ysolt what the shrine's lap holds"},
+	],
+	"alt": {"burn": {5: "Tell Ysolt the shrine has a light in its lap"}, "wick": {5: "Bring Ysolt the wick, and tell her the shrine is dark"}},
+	"reward": {"ash": 18},
+	"choose": [{"slot": "lantern", "rarity": 2}, {"slot": "focus", "rarity": 2}],
+	"leaves": {"burn": {"at": Vector2(143.5, 17.0), "prop": "lantern_lit"}, "wick": {"at": Vector2(143.5, 17.0), "prop": "lantern"}},
+	"outcome": {"burn": "A flame burns in the lap of the first edict's shrine. From the tor it is the only light on the moor.",
+		"wick": "You snuffed the flame in the shrine's lap and carried the wick home. Ysolt turned it in her fingers. \"Now I know it can be lit,\" she said. \"That's all I wanted to know.\""}}
+
+# --- the Founder's Pits ---------------------------------------------------------------------------------------
+
+const FOUNDER_CLAPPER := {"name": "The Bell-Tongue", "giver": "elspeth", "where": "Elspeth Fane, at her fire in the Founder's Pits", "zone": "foundry",
+	"offer": true, "avail": "qd:founder_slag",
+	"text": "Something walks the pits ringing. A cinder-thing with a bell's tongue where its head should be. It was the Founder's striker, the boy who rang the test notes. It still rings them, wrong, every one, on whatever's cooling. Follow the notes: he rings the same ingots she had him ring. Then make it stop. I can't hear myself cast.",
+	"steps": [
+		{"kind": "tracks", "r": 8.0, "label": "The striker's test-notes",
+			"text": "Follow the wrong test-notes rung on the cooling iron to the striker ({n}/{of})",
+			"marks": [
+				{"at": Vector2(138.0, -80.0), "text": "An ingot on the slag with a bright dent in its flank, struck once. Hold your ear to it: a flat note, held a breath too long."},
+				{"at": Vector2(133.0, -88.0), "text": "A second ingot, struck. Between them, in the cinder, a trail of small round prints. The boy never had shoes."},
+				{"at": Vector2(129.0, -94.0), "text": "Struck again, three times quick, the way she taught: low, middle, high. The high one is cracked."},
+				{"at": Vector2(126.0, -98.0), "text": "The last ingot rings by itself as you come up, with nobody near it. Behind you, in the pit, iron begins to walk."},
+			]},
+		{"kind": "slay", "of": 1, "rares": ["clapper"], "label": "Clapper, the Bell-Tongue", "at": Vector2(124.0, -96.0),
+			"text": "Put down Clapper, the Bell-Tongue, in the Founder's Pits"},
+		{"kind": "turnin", "who": "elspeth", "text": "Tell Elspeth Fane the pits are quiet"},
+	],
+	"reward": {"ash": 16, "items": {"relic_fragment": 1}},
+	"choose": [{"set": "bell", "slot": "focus", "rarity": 1}, {"set": "bell", "slot": "vestment", "rarity": 1}],
+	"outcome": {"": "Elspeth struck the cooling furnace once with a hammer, the right note, for the striker. Then she went back to work."}}
+
+# --- the Cinder Orchard ----------------------------------------------------------------------------------------
+
+const ORCHARD_PRESS := {"name": "The Press-House", "giver": "linnet", "where": "Linnet, at her fire in the Cinder Orchard", "zone": "orchard",
+	"offer": true, "avail": "qd:orchard_buds",
+	"text": "The press-house at the west end. The brothers pressed the fruit there and gave the road its cider. Something lives in it now, and it isn't cider. It burned too, the same winter, and nobody has said who lit it. Go and look. Read what the fire left, and thin what lives in the rows. Then tell me who burned it. I've a guess, and I'd like it wrong.",
+	"steps": [
+		{"kind": "visit", "at": Vector2(-128.0, 132.0), "r": 12.0, "label": "The press-house", "text": "Find the press-house at the orchard's west end"},
+		{"kind": "clues", "at": Vector2(-124.0, 129.0), "r": 9.0, "need": 2, "label": "What the fire left",
+			"text": "Search the press-house yard for who burned it ({n}/{of} read)",
+			"clues": [
+				{"key": "wax", "at": Vector2(-121.0, 127.0), "prop": "mark", "name": "a burnt cask",
+					"text": "Casks charred black, the bungs still sealed in the Order's green wax. Whoever burned the press burned the cider with it, sealed. A thief doesn't waste cider."},
+				{"key": "initials", "at": Vector2(-126.0, 125.0), "name": "a branded stave",
+					"text": "A stave branded A.L. with a small bird beside it, half burned through. A Kindler's cask. Linnet's grandmother kept the press, and her mark was a linnet."},
+				{"key": "pot", "at": Vector2(-123.0, 132.0), "prop": "coal", "name": "a pot of coals",
+					"text": "A clay fire-pot under the screw-press, the coals long dead. It was set down, not dropped, and set down beside the casks. Kindlers carried their fire in pots like this one."},
+			]},
+		{"kind": "slay", "of": 5, "region": "orchard", "label": "Hollowed in the rows", "at": Vector2(-120.0, 122.0),
+			"text": "Put down the hollowed in the burned rows ({n}/{of})"},
+		{"kind": "find", "text": "Decide what to tell Linnet about who burned the press-house"},
+		{"kind": "turnin", "who": "linnet", "text": "Tell Linnet who burned the press-house"},
+	],
+	"alt": {"order": {4: "Tell Linnet the Order burned it"}, "coal": {4: "Tell Linnet it was her grandmother's coal"}},
+	"reward": {"ash": 15, "items": {"relic_fragment": 1}},
+	"leaves": {"order": {"at": Vector2(-125.0, 135.0), "prop": "cairn"}, "coal": {"at": Vector2(-86.0, 119.5), "prop": "lantern_lit"}},
+	"outcome": {"order": "Linnet nodded as if she had been told the weather. \"I know,\" she said. \"I wanted somebody else to say it.\" Nothing lives in the press-house now. She says she'll press something in it next autumn, if there is one.",
+		"coal": "Linnet was quiet a long time. \"She banked it,\" she said. \"So the fire wouldn't be lost. And the press was.\" She carried the pot to the old tree and set it under the roots, lit."}}
+
+# --- the Waiting Field -----------------------------------------------------------------------------------------
+
+const FIELD_RANKS := {"name": "Facing the Mountain", "giver": "agathe", "where": "Sister Agathe, at the gate of the Waiting Field", "zone": "necropolis",
+	"offer": true,
+	"text": "They're buried facing the Stair, so they'd be first through when the sky called. Something walks the ranks at night and the stones are turning. I turn them back. My back is not what it was. Put the walkers down, and then stand at the head of the ranks while the stones turn, and hold it till they stop. Then you'll say which way they face. I can't, any more.",
+	"steps": [
+		{"kind": "visit", "at": Vector2(-18.0, 114.0), "r": 12.0, "label": "The pilgrims' ranks", "text": "Walk the pilgrims' ranks in the Waiting Field"},
+		{"kind": "slay", "of": 5, "region": "necropolis", "label": "Walkers in the ranks", "at": Vector2(-10.0, 130.0),
+			"text": "Put down the hollowed walking the Waiting Field ({n}/{of})"},
+		{"kind": "vigil", "at": Vector2(-18.0, 114.0), "r": 9.0, "time": 50.0, "gloom": 0.8, "label": "The ranks turn", "noun": "rank",
+			"prop": "waystone",
+			"waves": [{"at": 12.0, "kinds": ["wretch"], "n": 2, "say": "Something rises at the far end of the rank."},
+				{"at": 30.0, "kinds": ["wretch", "wretch"], "n": 2, "say": "The stones grind round on their footings, all together, toward the Stair."}],
+			"held": "The stones stop. The whole field is still, facing one way.", "away": "Go back to the head of the ranks: the stones are turning.",
+			"text": "Hold the head of the ranks while the stones turn ({t} s)"},
+		{"kind": "find", "text": "Turn the first stone of the ranks: toward the mountain, or toward the gate"},
+		{"kind": "turnin", "who": "agathe", "text": "Tell Sister Agathe the ranks are still"},
+	],
+	"alt": {"mountain": {4: "Tell Sister Agathe the ranks face the mountain"}, "gate": {4: "Tell Sister Agathe the ranks face the gate"}},
+	"reward": {"ash": 14},
+	"choose": [{"slot": "vestment", "rarity": 1}, {"slot": "lantern", "rarity": 1}],
+	"leaves": {"mountain": {"at": Vector2(-15.5, 111.5), "prop": "waystone"}, "gate": {"at": Vector2(-20.5, 111.5), "prop": "lantern_lit"}},
+	"outcome": {"mountain": "Agathe walked the ranks with you after, and turned three stones back to face the mountain. Then, after a while, one away from it.",
+		"gate": "Agathe watched the first rank face the village a long time. \"First through the gate,\" she said, \"not the sky.\" She did not turn one of them back."}}
+
+# --- Corvin's Mere (Cadoc's last crossing) -------------------------------------------------------------------
+
+const MERE_LIGHT := {"name": "Light for the Sunk", "giver": "cadoc", "where": "Cadoc the ferryman, on the mere's north bank", "zone": "mere",
+	"offer": true, "avail": "qd:mere_chapel",
+	"text": "Corvin's rite: a light for the heart, the mouth, the eyes. In that order. The Abbot sank them with three stones, eyes first; Corvin lit it the other way, the heart first, so the drowned would know it was meant, and the eyes last, so they would see what he'd done. Carry a lit lamp from my fire to the chapel and light them so. Walk it. The mere takes a hurried flame. Wrong, and the nave stands up.",
+	"steps": [
+		{"kind": "find", "text": "Take a lit lamp from Cadoc's fire"},
+		{"kind": "lantern_walk", "from": "lamp_cadoc", "to": Vector2(90.0, 112.0), "r": 6.0, "label": "Corvin's lamp",
+			"relight": "Light another at Cadoc's fire.",
+			"arrive": "The causeway ends at the chapel's door. Three dark niches, in a row.",
+			"text": "Carry the lamp along the causeway to the half-sunk chapel. Walk it: a run, a blow or deep water puts it out"},
+		{"kind": "order", "at": Vector2(90.0, 112.0), "label": "Corvin's three lights",
+			"text": "Light the chapel's three niches in Corvin's order: the heart, then the mouth, then the eyes",
+			"things": [
+				{"key": "eyes", "at": Vector2(88.0, 110.0), "prop": "lantern", "verb": "Light", "name": "the eyes' niche",
+					"text": "The eyes' niche takes the flame. The nave's water goes still, as water does when it is looked at."},
+				{"key": "heart", "at": Vector2(93.0, 110.0), "prop": "lantern", "verb": "Light", "name": "the heart's niche",
+					"text": "The heart's niche takes the flame at the first touch, and gives it back a size larger. Something deep in the mere breathes in."},
+				{"key": "mouth", "at": Vector2(90.5, 113.5), "prop": "lantern", "verb": "Light", "name": "the mouth's niche",
+					"text": "The mouth's niche, a notch in the sill. The flame stands in it like a word nobody has said in nine years."},
+			],
+			"order": ["heart", "mouth", "eyes"],
+			"wrong": "The flame gutters in the wrong niche. The water in the nave stands up in rows, and turns to face you.",
+			"wrong_spawns": {"kind": "wretch", "n": 2},
+			"done": "Heart, mouth, eyes. The nave is lit from the ground up, and nothing in it moves."},
+		{"kind": "find", "text": "Carry the last light to its place: for Aldous on the east bank, or for the sunk in the nave"},
+		{"kind": "turnin", "who": "cadoc", "text": "Tell Cadoc the chapel has its light"},
+	],
+	"alt": {"aldous": {4: "Tell Cadoc Aldous has his light"}, "sunk": {4: "Tell Cadoc the sunk have their light"}},
+	"reward": {"ash": 20},
+	"choose": [{"set": "ferryman", "slot": "focus", "rarity": 2}, {"set": "ferryman", "slot": "vestment", "rarity": 2}, {"set": "ferryman", "slot": "lantern", "rarity": 2}],
+	"leaves": {"aldous": {"at": Vector2(130.0, 117.0), "prop": "lantern_lit"}, "sunk": {"at": Vector2(92.5, 114.0), "prop": "lantern_lit"}},
+	"outcome": {"aldous": "A lamp burns in the half-sunk chapel for the heart, the mouth, the eyes, and one burns on the east bank for a man without a boat. Cadoc rows past both every night, and looks at the east one.",
+		"sunk": "A lamp burns in the half-sunk chapel for the heart, the mouth, the eyes, and the last of them left in the nave for the rest of the sunk. Cadoc rows past it every night and doesn't look."}}
+
+const MERE_FERRYMAN := {"name": "The Other Oar", "giver": "cadoc", "where": "Cadoc the ferryman, on the mere's north bank", "zone": "mere",
+	"offer": true, "avail": "qd:mere_chapel",
+	"text": "Two of us rowed for Corvin. Me and Aldous. The night they took Corvin's hands, Aldous rowed out alone with the lamps and went over. He walks the banks now without his boat, waiting to be paid. I owe him the fare. Put him down, and pay it for me, however you think it ought to be paid.",
+	"steps": [
+		{"kind": "slay", "of": 1, "rares": ["ferryman"], "label": "The Ferryman Without a Boat", "at": Vector2(140.0, 128.0),
+			"text": "Put down the Ferryman Without a Boat on the mere's east bank"},
+		{"kind": "find", "text": "Pay Aldous's fare at the east landing"},
+		{"kind": "turnin", "who": "cadoc", "text": "Tell Cadoc the fare is paid"},
+	],
+	"alt": {"coins": {2: "Tell Cadoc the two coins are on the water"}, "named": {2: "Tell Cadoc you said Aldous's name"}},
+	"reward": {"ash": 18, "items": {"relic_fragment": 1}},
+	"choose": [{"set": "ferryman", "slot": "girdle", "rarity": 2}, {"set": "ferryman", "slot": "focus", "rarity": 2}],
+	"leaves": {"coins": {"at": Vector2(131.0, 120.0), "prop": "mark"}, "named": {"at": Vector2(131.0, 120.0), "prop": "slate"}},
+	"outcome": {"coins": "Cadoc put two coins on the water by the east bank. They didn't sink straight away.",
+		"named": "Cadoc said the name himself, twice, to the east bank, the second time as a question. Nothing answered. He put the oars across his knees and did not seem to mind."}}
+
+const WELL_ANSWER := {"name": "What Answers", "giver": "cadoc", "where": "Cadoc the ferryman, at his fire on Corvin's Mere", "zone": "well",
+	"offer": true, "avail": "kindled:2",
+	"text": "Cadoc hears it on still nights from across the mere, the Well, calling his name back to him a breath after the dead called it. He will not row that way. Read the marks it has left on the rim, and keep the rim an hour while it calls; it will call in my voice. Put the Answerer down, and find what it was listening for. Then answer it, or don't.",
+	"steps": [
+		{"kind": "visit", "at": Vector2(72.0, 204.0), "r": 26.0, "label": "The Well of Echoes", "text": "Walk to the Well of Echoes, south of the mere, and look down"},
+		{"kind": "clues", "at": Vector2(72.0, 190.5), "r": 14.0, "need": 2, "label": "Marks on the rim",
+			"text": "Read the marks the Well has left along its rim ({n}/{of} read)",
+			"clues": [
+				{"key": "marks", "at": Vector2(60.0, 190.5), "prop": "mark", "name": "three scored marks",
+					"text": "Three marks scored on the rim-stone, a hand apart. Beside each a name scratched from below, as a man would who had climbed. The third is CADOC."},
+				{"key": "rope", "at": Vector2(84.0, 190.0), "name": "a rope-groove",
+					"text": "A rope-groove worn deep in the lip, the old drawing-rope's. The groove is wet. The rope isn't there. Whatever draws on it draws from underneath."},
+				{"key": "echo", "at": Vector2(72.0, 188.5), "name": "the stillness",
+					"text": "You say nothing. Your own steps come back from the pit, a breath late and a little slower. They are not quite yours. They are practising."},
+			]},
+		{"kind": "vigil", "at": Vector2(72.0, 190.3), "r": 9.0, "time": 40.0, "gloom": 0.8, "label": "The Well calls", "noun": "rim",
+			"waves": [{"at": 10.0, "kinds": ["wretch"], "n": 2, "say": "From below, in the ferryman's own voice: 'Come across.'"},
+				{"at": 26.0, "kinds": ["wretch"], "n": 2, "say": "'Come across.' Nearer. The voice has a boat in it now."}],
+			"held": "The voice stops. In the quiet, something at the bottom of the Well listens to see if you will answer.", "away": "Go back to the rim. The Well is calling, and you are not there to hold it.",
+			"text": "Keep the rim while the Well calls in Cadoc's voice ({t} s)"},
+		{"kind": "cond", "cond": "elite:well_answer", "at": Vector2(72.0, 204.0), "label": "The Answerer", "text": "Go down the ledge and put down the Answerer, on the landing by the cave"},
+		{"kind": "cond", "cond": "secret:found:well_listener", "at": Vector2(72.0, 204.0), "label": "The listener's cairn", "text": "Find the listener's cairn, on the ledge where the falls pour across it"},
+		{"kind": "find", "text": "Answer the Well from the rim: silence it, or give it a name"},
+		{"kind": "turnin", "who": "cadoc", "text": "Tell Cadoc what answered"},
+	],
+	"alt": {"silence": {6: "Tell Cadoc the Well is silenced"}, "name": {6: "Tell Cadoc what the Well calls now"}},
+	"reward": {"ash": 30, "items": {"relic_fragment": 1, "ember_shard": 1}},
+	"choose": [{"slot": "vestment", "rarity": 2}, {"slot": "girdle", "rarity": 2}, {"slot": "focus", "rarity": 2}],
+	"leaves": {"silence": {"at": Vector2(66.0, 190.5), "prop": "cairn"}, "name": {"at": Vector2(66.0, 190.5), "prop": "slate"}},
+	"outcome": {"silence": "Cadoc listened to all of it with the oar across his knees. \"Then it's quiet,\" he said. \"I'd thought I would mind. I hear it anyway. I've learned the shape.\"",
+		"name": "Cadoc listened to all of it with the oar across his knees. \"Then it was never the dead calling me,\" he said. \"It was only practising. And now it practises someone else's. I think I can sleep. Don't tell the lamps.\""}}
+
+# --- the East Marches ------------------------------------------------------------------------------------------
+
+const SALT_WIDOW := {"name": "The Salt-Widow", "giver": "marl", "where": "Marl Pannick, at Saltmarket's fire", "zone": "saltmarket",
+	"offer": true, "avail": "qd:salt_sweep",
+	"text": "There's one that doesn't walk, it stalks. Corra Vane's widow, who went out to bring her husband in off the pans and has been bringing him in ever since. She takes what she finds. She's taken three of ours. Whatever's left of her is mostly salt. Her prints go out in two sets, hers and his; his are the older. Find her, and read what she left. Then do what you think a widow's due.",
+	"steps": [
+		{"kind": "tracks", "r": 12.0, "label": "Two sets of prints",
+			"text": "Follow the two sets of prints out across the White Pans: hers, dragging, and her husband's ({n}/{of})",
+			"marks": [
+				{"at": Vector2(222.0, 112.0), "text": "Two sets of prints in the crust, going out. One narrow and dragging, the toe worn through. The other deep, and old, and the stride too long for a living man."},
+				{"at": Vector2(228.0, 120.0), "text": "The dragging prints stop and start. She has been carrying something, and putting it down, and picking it up again."},
+				{"at": Vector2(233.0, 127.0), "text": "A rake lies across the track, a long wooden salt-rake, the teeth worn short. The prints go round it. She will not step over it."},
+				{"at": Vector2(237.0, 132.0), "text": "The prints end in a hollow in the crust, where someone has knelt, and risen, and knelt, many times. Nobody is kneeling now."},
+			]},
+		{"kind": "clues", "at": Vector2(238.0, 134.0), "r": 8.0, "need": 2, "label": "Corra Vane's hollow",
+			"text": "Read what the Salt-Widow keeps in her hollow ({n}/{of} read)",
+			"clues": [
+				{"key": "rake", "at": Vector2(236.0, 132.0), "prop": "staff", "name": "a salt-rake",
+					"text": "COOP. VANE scored in the rake's haft. The teeth are worn to nubs by a long raking. It is the husband's rake. It has been raised and set down, over and over, in the same place."},
+				{"key": "ring", "at": Vector2(240.0, 133.0), "name": "a ring in the salt",
+					"text": "A wedding ring on a thread, hung from a bund-post, white with salt to the knuckle. Someone has kissed it, again and again, until the salt wore smooth."},
+				{"key": "bones", "at": Vector2(239.0, 136.0), "prop": "slate", "name": "a salted bundle",
+					"text": "A bundle of sacking, salted stiff, laid out as a man is laid out. It is not very large. She brought him in. He has been in a long time, and she has not noticed."},
+			]},
+		{"kind": "find", "text": "Decide what the widow is due: lay the rake at her feet, or put her down"},
+		{"kind": "slay", "of": 1, "rares": ["salt_widow"], "label": "The Salt-Widow", "at": Vector2(238.0, 134.0),
+			"text": "Put down the Salt-Widow on the pans' north edge"},
+		{"kind": "turnin", "who": "marl", "text": "Tell Marl the widow has stopped"},
+	],
+	"alt": {"rake": {4: "Tell Marl the widow has her rake"}, "down": {4: "Tell Marl the widow has stopped"}},
+	"reward": {"ash": 18, "items": {"relic_fragment": 1}},
+	"choose": [{"slot": "lantern", "rarity": 2}, {"slot": "vestment", "rarity": 2}],
+	"leaves": {"rake": {"at": Vector2(236.0, 131.0), "prop": "staff"}, "down": {"at": Vector2(236.0, 131.0), "prop": "slabs"}},
+	"outcome": {"rake": "You laid the rake across the hollow and walked away, and she did not follow. Marl put salt on Corra Vane's stone, and left the rake by it. \"She'll walk,\" she said. \"But she'll be walking home.\"",
+		"down": "Marl set a stone on Corra Vane's grave and a second one beside it, a little smaller."}}
+
+const SPIRE_COAL := {"name": "The Lamplighters' Coal", "giver": "ardel", "where": "Ardel Wick, at Saltmarket's fire", "zone": "stillwater",
+	"offer": true,
+	"text": "Nine winters the lamp on the Spire has been dark, and every road in the Marches ran toward it once. I kept it. I can't climb it now, and I won't light it for you: the lamp is for whoever carries the fire up. Take a coal from this fire to the Spire's foot before it dies, climb the stair, and put it to the wick. Then stay at the foot a while. The lake road has lanterns, and they answer a lit lamp one at a time, if somebody is there to see.",
+	"steps": [
+		{"kind": "find", "text": "Take a coal from Ardel's fire"},
+		{"kind": "carry", "from": "coal_ardel", "to": Vector2(240.0, 8.0), "r": 7.0, "time": 170.0, "label": "Coal",
+			"lost": "The coal has gone out on the road. Ardel's fire has more.",
+			"text": "Carry the coal to the foot of the Lamplighters' Spire before it dies ({t} s)"},
+		{"kind": "cond", "cond": "secret:open:spire_lamp", "at": Vector2(240.0, 8.0), "label": "The Spire's lamp", "past": "The Spire's lamp is already lit.",
+			"text": "Climb the Spire and light the great lamp"},
+		{"kind": "vigil", "at": Vector2(238.0, 12.0), "r": 9.0, "time": 40.0, "gloom": 0.8, "label": "The lake road answers", "noun": "foot",
+			"waves": [{"at": 12.0, "kinds": ["wretch"], "n": 2, "say": "Hollowed come up out of the reeds toward the new light."},
+				{"at": 28.0, "kinds": ["wretch", "wretch"], "n": 2, "say": "More, along the lake road, walking in the lantern-glow."}],
+			"held": "Down the lake road the lanterns catch one by one, south to north, toward the Spire.", "away": "Go back to the Spire's foot. The road is answering, and nobody is watching.",
+			"text": "Watch the Spire's foot while the lake road's lanterns answer ({t} s)"},
+		{"kind": "find", "text": "Say what the Spire is: lit, or kept"},
+		{"kind": "turnin", "who": "ardel", "text": "Tell Ardel the Spire is lit"},
+	],
+	"alt": {"lit": {5: "Tell Ardel the Spire is lit"}, "kept": {5: "Tell Ardel you will keep the Spire"}},
+	"reward": {"ash": 24, "items": {"ember_shard": 2}},
+	"choose": [{"slot": "lantern", "rarity": 2}, {"slot": "focus", "rarity": 2}, {"slot": "vestment", "rarity": 2}],
+	"leaves": {"lit": {"at": Vector2(227.5, 30.0), "prop": "lantern_lit"}},
+	"outcome": {"lit": "Ardel stood a long time looking north. \"It's not much,\" he said. \"It's the only light in the Marches that isn't a fire somebody is sitting beside. It's lit. That's honest. Lit isn't kept.\"",
+		"kept": "Ardel stood a long time looking north, and counted the lanterns on the lake road, three, with his lips. \"Kept,\" he said. \"Somebody has said it aloud. I'd forgotten it could be said.\""}}
+
+const SEVENTH_DAY := {"name": "The Seventh Day", "giver": "teasel", "where": "Teasel Dray, at the drying shed", "zone": "anchorholds",
+	"offer": true, "avail": "qd:anchor_names",
+	"text": "Wren's slate says SEVEN DAYS, AND THEN I HEARD THE BELL. Under it, in a harder hand: she did not hear it. There was no bell. Somebody wrote that who was in the cell after her, or who wanted me to think so. I have laid my sister out in my head a hundred ways. I want to know what the seventh day was. Go to her cell. Look. Then stay in it, shut in, the length of the seventh day's last minutes, and tell me what you hear. I will not go myself.",
+	"steps": [
+		{"kind": "clues", "at": Vector2(222.0, -100.0), "r": 9.0, "need": 2, "label": "Wren's cell",
+			"text": "Search Wren's cell in the lower Anchorholds for what the seventh day was ({n}/{of} read)",
+			"clues": [
+				{"key": "slate", "at": Vector2(222.0, -100.0), "prop": "slate", "name": "Wren's slate",
+					"text": "WREN OF SALTMARKET. SEVEN DAYS, AND THEN I HEARD THE BELL. The second hand under it is harder and deeper, as though it were cut in anger: she did not hear it. There was no bell."},
+				{"key": "tally", "at": Vector2(219.0, -98.0), "name": "the wall's tally",
+					"text": "Seven strokes on the wall, in a bundle, struck through. Then a gap. Then one stroke more, much lower, where a person sits. That one is not struck through."},
+				{"key": "slot", "at": Vector2(225.0, -103.0), "name": "the food slot",
+					"text": "The food-slot on the wall side. The tray is still in it. On the sixth day's bread, nothing; on the seventh's, one bite gone. She ate on the seventh day. Whoever fed her did not stop feeding her."},
+				{"key": "door", "at": Vector2(221.0, -103.0), "prop": "mark", "name": "the walled door",
+					"text": "The cell's door was bricked up from outside, and unbricked. The mortar is newer than the rest. The bricks were taken out from the inside of the wall, with a spoon, in the night."},
+			]},
+		{"kind": "vigil", "at": Vector2(222.0, -100.0), "r": 5.0, "time": 420.0, "gloom": 0.3, "label": "The seventh day", "noun": "cell",
+			"waves": [{"at": 100.0, "kinds": ["wretch"], "n": 1, "say": "Something scratches at the cell's wall, patiently, from the outside."},
+				{"at": 250.0, "kinds": ["wretch"], "n": 1, "say": "The scratching stops. Something is breathing at the slot."}],
+			"held": "A bell. Once, from a long way south, small and flat. You cannot say if it was in the air or in you.", "away": "Go back into the cell. The day is not out.",
+			"text": "Sit out the seventh day's last minutes in Wren's cell, shut in ({t} s)"},
+		{"kind": "find", "text": "Decide what you heard in the cell: the Shut-Out Bell, or the door"},
+		{"kind": "turnin", "who": "teasel", "text": "Tell Teasel what the seventh day was"},
+	],
+	"alt": {"bell": {3: "Tell Teasel it was the Shut-Out Bell"}, "door": {3: "Tell Teasel it was the door"}},
+	"reward": {"ash": 24, "items": {"relic_fragment": 1}},
+	"choose": [{"slot": "vestment", "rarity": 2}, {"slot": "girdle", "rarity": 2}, {"slot": "focus", "rarity": 2}],
+	"leaves": {"bell": {"at": Vector2(235.5, 16.0), "prop": "lantern_lit"}, "door": {"at": Vector2(221.0, -98.0), "prop": "slate"}},
+	"outcome": {"bell": "Teasel went south at dawn, along the lake, to the Spire's foot. She stood at the bell a long while, and did not ring it. She came back with her sleeves wet, and said she would hang the racks by the other window now, the one that looks that way.",
+		"door": "Teasel hung Wren's slate on the shed door, on the inside, and shut it. \"She opened it herself,\" she said. \"The seventh day. She opened it, and she stayed, and she never said so. That's my sister.\" She slept that night. It was the first time since the cells."}}
+
+# --- the South Marches -----------------------------------------------------------------------------------------
+
+const SHEPHERD_STRAYS := {"name": "The Flock's Road", "giver": "dunstan", "where": "Dunstan Pike, at his fold on the southern downs", "zone": "downs",
+	"offer": true,
+	"text": "Three cairns marked the flock's road home across the downs, and all three are down. In fog the flock followed the cairns, and it came out of the fog in an order: the lead at the west end first, then the stragglers by the Well, then the middle cairn, where the weak ones bunched. Raise them in the order they came, or the fog will think the flock has been called wrong. Then follow the strays the Bell-Wether took off, and put it down.",
+	"steps": [
+		{"kind": "order", "at": Vector2(-30.0, 227.0), "label": "The flock's cairns",
+			"text": "Raise the three fallen sheep-walk cairns in the flock's order: the lead cairn, the Well's, then the middle",
+			"things": [
+				{"key": "west", "at": Vector2(-96.0, 226.0), "prop": "cairn", "verb": "Raise", "name": "the lead cairn",
+					"text": "Four stones and a fifth for luck, spilled across the chalk. You stack them the way the flock's road wants them, the top stone turned north. Far off, a bell moves."},
+				{"key": "east", "at": Vector2(40.0, 229.0), "prop": "cairn", "verb": "Raise", "name": "the Well's cairn",
+					"text": "The last cairn, nearest the Well. A tuft of wool has caught in the stones. You raise them again; the wool stays."},
+				{"key": "mid", "at": Vector2(-6.0, 227.0), "prop": "cairn", "verb": "Raise", "name": "the middle cairn",
+					"text": "The middle cairn, scattered by something with hooves. The stones are warm on one side, and there is a bell-note in the wind."},
+			],
+			"order": ["west", "east", "mid"],
+			"wrong": "The stones will not stay. Fog comes up off the chalk, wrongly, and in it something with a bell and too many legs.",
+			"wrong_spawns": {"kind": "wretch", "n": 2},
+			"done": "West, Well, middle. The road is marked, and the fog knows the flock was called right."},
+		{"kind": "tracks", "r": 12.0, "label": "The strays' trail",
+			"text": "Follow the strays the Bell-Wether took off, east along the chalk ({n}/{of})",
+			"marks": [
+				{"at": Vector2(-84.0, 226.0), "text": "Wool on a thorn, grey as the chalk, and a split hoof-print going the wrong way: toward the fog, not the fold."},
+				{"at": Vector2(-68.0, 224.0), "text": "A dozen hoof-prints, all very close together, all facing east. Nothing walked alongside them. They were led, and they let themselves be."},
+				{"at": Vector2(-52.0, 222.0), "text": "Fleece in a drift, shed in handfuls. The sheep are thin under it. The prints stop being separate."},
+				{"at": Vector2(-38.0, 222.0), "text": "A bell, close, keeping time. It is the only thing out here that still is."},
+			]},
+		{"kind": "slay", "of": 1, "rares": ["bell_wether"], "at": Vector2(-30.0, 222.0), "label": "The Bell-Wether",
+			"text": "Put down the Bell-Wether, who still leads the flock"},
+		{"kind": "find", "text": "Deal with the Bell-Wether's bell: leave it lie, or ring it once at the fold"},
+		{"kind": "turnin", "who": "dunstan", "text": "Tell Dunstan the flock's road is marked"},
+	],
+	"alt": {"down": {4: "Tell Dunstan the Bell-Wether is down for good"}, "ring": {4: "Tell Dunstan you rang the flock home"}},
+	"reward": {"ash": 22, "items": {"relic_fragment": 1}},
+	"choose": [{"slot": "focus", "rarity": 2}, {"slot": "vestment", "rarity": 2}, {"slot": "lantern", "rarity": 2}],
+	"leaves": {"down": {"at": Vector2(-33.0, 225.0), "prop": "cairn"}, "ring": {"at": Vector2(-27.0, 224.0), "prop": "bell"}},
+	"outcome": {"down": "Dunstan stood a long while at the fold gate, looking south along the cairns. \"There,\" he said. \"Now if any of them are coming home they know which way.\" He did not go out to the bell.",
+		"ring": "Dunstan stood at the fold gate while the bell rang once, over the downs, and out of the fog three thin sheep walked in and stood at the hurdle, waiting to be counted. He counted them. \"Three,\" he said."}}
+
+# --- Weirford ----------------------------------------------------------------------------------------------------
+
+const WF_LIGHTS := {"name": "Lights for the Sunk", "giver": "ennis", "where": "Sister Ennis, on Weirford Bridge", "zone": "weirford",
+	"offer": true,
+	"text": "The river took thirty from Weirford the winter the sky turned, and none were buried. Ennis sets a lit boat on the water for each of them every night. Three of the boats are gone: they drifted, or were taken, and lie on the banks above the town. The river moves them the way it moves everything, and leaves a line. Follow the line. Then, when they are set, stay by the shrine while the lights gutter; they gutter the way the names do.",
+	"steps": [
+		{"kind": "tracks", "r": 12.0, "label": "The drift-line",
+			"text": "Follow the drift-line of tallow and bark up the Sorrow's bank toward the boats ({n}/{of})",
+			"marks": [
+				{"at": Vector2(-192.0, 36.0), "text": "A smear of tallow on the bank-stones, going upstream, which tallow does not do on its own."},
+				{"at": Vector2(-189.0, 0.0), "text": "Bark-shavings in the shallows, boat-shaped, caught in a line along the east bank. The river has sorted them as a clerk would."},
+				{"at": Vector2(-186.0, -22.0), "text": "A scrap of wick, still white at the heart, in the alder roots. The bank beyond is crowded with small, dark, careful things."},
+			]},
+		{"kind": "gather", "of": 3, "text": "Find the three votive boats on the Sorrow's banks ({n}/{of})"},
+		{"kind": "place", "text": "Set the boats on the drowned shrine's altar in the river"},
+		{"kind": "vigil", "at": Vector2(-205.0, -40.0), "r": 9.0, "time": 35.0, "gloom": 0.6, "label": "The roll gutters", "noun": "shrine",
+			"waves": [{"at": 10.0, "kinds": ["wretch"], "n": 2, "say": "The shallows stir. The lights gutter, one after another, toward the bank."},
+				{"at": 22.0, "kinds": ["wretch"], "n": 2, "say": "Something comes up the shallows, counting."}],
+			"held": "The lights steady. The count of thirty stands, or very nearly.", "away": "Go back to the shrine. Somebody has to hold the lights while they gutter.",
+			"text": "Keep the drowned shrine while the lights gutter ({t} s)"},
+		{"kind": "find", "text": "Say who the three boats were for: read their names aloud, or leave them nameless"},
+		{"kind": "turnin", "who": "ennis", "text": "Tell Sister Ennis the roll is whole"},
+	],
+	"alt": {"named": {5: "Tell Sister Ennis the three have their names"}, "nameless": {5: "Tell Sister Ennis the three are counted, nameless"}},
+	"reward": {"ash": 18, "items": {"relic_fragment": 1}},
+	"choose": [{"slot": "lantern", "rarity": 1}, {"slot": "focus", "rarity": 1}],
+	"leaves": {"named": {"at": Vector2(-193.0, -38.0), "prop": "lantern_lit"}, "nameless": {"at": Vector2(-193.0, -38.0), "prop": "lantern"}},
+	"outcome": {"named": "Ennis counted aloud to thirty, and then said the three names after it, and her voice did not catch. Then she sat down on the parapet and did not say anything for a long while.",
+		"nameless": "Ennis counted aloud to thirty and her voice did not catch. She did not ask what the keels said. Then she sat down on the parapet and did not say anything for a long while."}}
+
+const WF_CROWN := {"name": "The Voice in the Head", "giver": "tolliver", "where": "Old Tolliver, at the stall in Weirford's square", "zone": "weirford",
+	"offer": true, "avail": "qd:wf_wheel",
+	"text": "They cut a hollow in the Hierarch's head so that one voice could be heard across the Marches, and sat a boy in it to hold the note. The statue fell. The note did not stop. Tolliver helped cut the hollow, and wants it quiet. He needs three rubbings of the colossus's carved edicts, from the hand, the shoulder and the lip, to know which of them the voice is still speaking. Then look at where the boy sat, before anybody decides what to do about the note.",
+	"steps": [
+		{"kind": "gather", "of": 3, "text": "Take three rubbings of the Hierarch's edicts: the hand, the shoulder, the lip ({n}/{of})"},
+		{"kind": "visit", "at": Vector2(-187.0, 157.4), "r": 7.0, "text": "Stand at the mouth of the skull"},
+		{"kind": "clues", "at": Vector2(-188.0, 156.0), "r": 9.0, "need": 2, "label": "Where the boy sat",
+			"text": "Search the mouth of the skull for the boy who held the note ({n}/{of} read)",
+			"clues": [
+				{"key": "stool", "at": Vector2(-189.0, 155.0), "name": "a cut-down stool",
+					"text": "A stool sawn down to a child's height and bolted to the bone, so he would sit where the throat was. The seat is polished. The bolts have been replaced, once, with bigger ones: he grew."},
+				{"key": "days", "at": Vector2(-186.5, 158.0), "prop": "slate", "name": "scratched days",
+					"text": "Days scratched on the bone, thousands, in a small hand that gets longer-legged as it goes. The last of them are a man's reach. The last of all are very slow."},
+				{"key": "cup", "at": Vector2(-190.0, 158.5), "name": "a wax-sealed cup",
+					"text": "A cup of honey-water, the wax thumbed shut, set in a slot beside the stool. Someone fed him. Someone still does. The cup is full. The note does not need him to drink."},
+			]},
+		{"kind": "find", "text": "Judge the boy's note: silence the Crown by force, or let it end"},
+		{"kind": "cond", "cond": "boss:r37_hierarch", "at": Vector2(-206.0, 148.0), "label": "The Speaking Crown", "past": "The skull is already quiet.",
+			"text": "Silence the Speaking Crown, in the Fallen Hierarch's skull"},
+		{"kind": "turnin", "who": "tolliver", "text": "Tell Tolliver the horn is quiet"},
+	],
+	"alt": {"silence": {5: "Tell Tolliver the horn is quiet"}, "end": {5: "Tell Tolliver the note has ended"}},
+	"reward": {"ash": 34, "items": {"relic_fragment": 2}},
+	"choose": [{"slot": "focus", "rarity": 3}, {"slot": "vestment", "rarity": 3}, {"slot": "girdle", "rarity": 3}],
+	"leaves": {"end": {"at": Vector2(-188.0, 154.0), "prop": "lantern_lit"}, "silence": {"at": Vector2(-188.0, 154.0), "prop": "slate"}},
+	"outcome": {"silence": "Tolliver held the rubbings a long time, then put them on the stall's fire one by one. \"Nobody should have to read those again,\" he said. \"Least of all the boy.\"",
+		"end": "Tolliver heard the note stop from his stall, and sat very still for a minute after. \"No fight,\" he said. \"He just let go.\" He put the rubbings on the fire anyway, one by one."}}
+
+## The pickups the deepened tasks want: every old entry whose step moved, and the new ones. quest_chains.gd lists them in
+## its `# --- deepen B ---` block; the entries that carry a `conv` open a conversation (CONVS) whose choice records the pick.
+const PICKUPS := {
+	"turf_roof": {"quest": "holds_turf", "step": 2, "near": Vector2(-131.0, 9.0), "camp": "ruan", "kind": "place", "name": "the lifted turf", "verb": "Set back", "conv": "qb_holds_turf",
+		"say": "The turf lies where Old Rook set it, grass-up, a roof's width of it."},
+	"wards_set": {"quest": "keeper_wards", "step": 2, "near": Vector2(-129.0, 8.0), "camp": "ruan", "kind": "ward", "name": "Ruan's hearth-ring", "verb": "Set the wards round", "conv": "qb_keeper_wards",
+		"say": "The wards."},
+	"ward_holds": {"quest": "keeper_wards", "step": 1, "near": Vector2(-141.0, 4.0), "kind": "ward", "name": "a ward-stone", "verb": "Lift",
+		"say": "A grey stone the size of a loaf, a spiral cut in it, lying face up in the heather. It is heavier than it should be. You turn it face down without thinking."},
+	"ward_wood": {"quest": "keeper_wards", "step": 1, "near": Vector2(-66.0, 30.0), "kind": "ward", "name": "a ward-stone", "verb": "Lift",
+		"say": "A ward-stone in the oak roots, an axe-bite in its edge. The Order's chisel has cut KEEPER OF NOTHING over the spiral. The spiral is deeper."},
+	"ward_glade": {"quest": "keeper_wards", "step": 1, "near": Vector2(-44.0, 4.0), "kind": "ward", "name": "a ward-stone", "verb": "Lift",
+		"say": "Somebody left the third ward-stone among the glade's offerings, with a candle on it. The candle is still warm."},
+	"last_step": {"quest": "quarry_last", "step": 2, "near": Vector2(-129.0, -103.0), "kind": "mark", "name": "the blessed block", "verb": "Read", "conv": "qb_quarry_last",
+		"say": "A step-stone, squared and dressed and blessed, never carried."},
+	"moor_shrine_mid": {"quest": "moor_shrine", "step": 2, "near": Vector2(146.0, 3.5), "kind": "lantern_lit", "name": "a flame at the middle cairn", "verb": "Light",
+		"say": "You hold the wick to the old coal in the cairn's niche until it takes, and hood it again. The stones are warm on every side. Somebody has lit this one for a long time."},
+	"shrine_lap": {"quest": "moor_shrine", "step": 4, "near": Vector2(142.5, 16.0), "kind": "place", "name": "the shrine's lap", "verb": "Stand at", "conv": "qb_moor_shrine",
+		"say": "The shrine's lap."},
+	"press_hearth": {"quest": "orchard_press", "step": 3, "near": Vector2(-126.0, 128.0), "kind": "place", "name": "the press-house hearth", "verb": "Speak at", "conv": "qb_orchard_press",
+		"say": "The hearth."},
+	"ranks_turn": {"quest": "field_ranks", "step": 3, "near": Vector2(-16.0, 116.0), "kind": "waystone", "name": "the first stone of the ranks", "verb": "Turn", "conv": "qb_field_ranks",
+		"say": "The first stone."},
+	"mere_third": {"quest": "mere_light", "step": 3, "near": Vector2(91.0, 111.5), "kind": "lantern_lit", "name": "the last light", "verb": "Take", "conv": "qb_mere_light",
+		"say": "The last light."},
+	"mere_fare": {"quest": "mere_ferryman", "step": 1, "near": Vector2(130.0, 118.0), "kind": "mark", "name": "the east landing's fare-post", "verb": "Pay at", "conv": "qb_mere_ferryman",
+		"say": "The fare-post."},
+	"well_call": {"quest": "well_answer", "step": 5, "near": Vector2(66.0, 190.5), "kind": "cairn", "name": "the rim above the Well", "verb": "Call from", "conv": "qb_well_answer",
+		"say": "The rim."},
+	"oak_voice": {"quest": "oak_song", "step": 4, "near": Vector2(-70.0, 192.5), "kind": "ward", "name": "the oak's foot", "verb": "Sing at", "conv": "qb_oak_song",
+		"say": "The oak's foot."},
+	"widow_rake": {"quest": "salt_widow", "step": 2, "near": Vector2(236.0, 131.0), "kind": "staff", "name": "Corra Vane's rake", "verb": "Decide about", "conv": "qb_salt_widow",
+		"say": "The rake."},
+	"spire_word": {"quest": "spire_coal", "step": 4, "near": Vector2(238.0, 14.0), "kind": "lantern_lit", "name": "the Spire's lamp-cradle", "verb": "Speak to", "conv": "qb_spire_coal",
+		"say": "The lamp."},
+	"seventh_slate": {"quest": "seventh_day", "step": 2, "near": Vector2(222.0, -100.0), "kind": "slate", "name": "Wren's slate", "verb": "Answer", "conv": "qb_seventh_day",
+		"say": "The slate."},
+	"bell_wether_bell": {"quest": "shepherd_strays", "step": 3, "near": Vector2(-30.0, 222.0), "kind": "bell", "name": "the Bell-Wether's bell", "verb": "Decide about", "conv": "qb_shepherd_strays",
+		"say": "The bell."},
+	"wf_votive_a": {"quest": "wf_lights", "step": 1, "near": Vector2(-226.0, -6.0), "kind": "lantern", "name": "a votive boat", "verb": "Take",
+		"say": "A boat of bark the length of a hand, a stub of tallow in it, beached in the reeds on the west bank. A name has been scratched in the keel, and then scratched out, and then written again."},
+	"wf_votive_b": {"quest": "wf_lights", "step": 1, "near": Vector2(-184.0, -30.0), "kind": "lantern", "name": "a votive boat", "verb": "Take",
+		"say": "A votive boat on the east bank, snagged in an alder root. It is dry. The tallow is whole. It never lit, and it was never going to be taken by anyone but a river."},
+	"wf_votive_c": {"quest": "wf_lights", "step": 1, "near": Vector2(-210.0, 20.0), "kind": "lantern", "name": "a votive boat", "verb": "Take",
+		"say": "The last of the three, upside down in the shallows below the ford. Under it the tallow has gone grey and the bark has gone black. Someone small made it."},
+	"wf_votive_place": {"quest": "wf_lights", "step": 2, "near": Vector2(-205.0, -40.0), "kind": "place", "name": "the drowned shrine's altar", "verb": "Set the boats on",
+		"say": "You set them in a row on the shrine's altar, with the water to your knees. The wicks catch from nothing. For a moment the whole shallows is lit from underneath, and it is not a pleasant light, and it is not a cruel one."},
+	"wf_names": {"quest": "wf_lights", "step": 4, "near": Vector2(-206.0, -38.0), "kind": "slate", "name": "the three boats' keels", "verb": "Read", "conv": "qb_wf_lights",
+		"say": "The keels."},
+	"wf_boy": {"quest": "wf_crown", "step": 3, "near": Vector2(-190.0, 155.0), "kind": "slate", "name": "the boy's stool", "verb": "Judge", "conv": "qb_wf_crown",
+		"say": "The stool."},
+}
+
+## The conversations the pickups above open (dialogue_db.gd lists them). Each: the place's own line, the choices (some
+## gated on the clues read, qc:), and `do` the pick and the step on. `gone` once the task is past the step.
+const CONVS := {
+	"qb_holds_turf": {"name": "The Lifted Turf", "start": [["!qat:holds_turf:2", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "The turf Old Rook lifted lies grass-up by Ruan's door, a roof's width of it. The roof has an empty eye where it came off. The Rooted lay turf grass-down: shut, like a bed turned over. Not everyone does.", "who": "", "choices": [
+			{"text": "Lay it grass-down. Shut the roof, the Rooted way.", "to": "shut"},
+			{"text": "Leave a hand's width open, as a window.", "to": "open"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"shut": {"say": "You lay it grass-down, and tamp it with the flat of your hand. The roof is shut. Under it, somebody turns over in a bed, and is still.", "who": "", "do": "qp:holds_turf:shut,qa:holds_turf", "next": ""},
+		"open": {"say": "You lay it back with a hand's width left open at the ridge. Light from the fire goes up through it. It is a poor window, and the first the Holds have had.", "who": "", "do": "qp:holds_turf:open,qa:holds_turf", "next": ""},
+		"gone": {"say": "The roof is mended.", "who": "", "next": ""},
+	}},
+	"qb_keeper_wards": {"name": "Ruan's Hearth", "start": [["!qat:keeper_wards:2", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "The three wards lie in your hands, face up, heavy as grief. Ruan watches you set them down round her fire, face down. She asks, without asking, who dug them up.", "who": "", "choices": [
+			{"text": "A Rooted cart carried them. There was a toll-keeper's tally on the board.", "to": "kin", "if": "qc:keeper_wards:rut"},
+			{"text": "The abbey. Nobody else.", "to": "abbey"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"kin": {"say": "You tell her about the rut and the board. She does not move. 'A hand and an axe,' she says. 'Yes.' She does not say whose.", "who": "", "do": "qp:keeper_wards:kin,qa:keeper_wards", "next": ""},
+		"abbey": {"say": "You tell her the abbey did it, the Order's chalk and the Order's spade. She nods slowly. It is a story she can bear to be true.", "who": "", "do": "qp:keeper_wards:abbey,qa:keeper_wards", "next": ""},
+		"gone": {"say": "The wards lie face down round the fire.", "who": "", "next": ""},
+	}},
+	"qb_oak_song": {"name": "The Grandmother Oak", "start": [["!qat:oak_song:4", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "You are back at the oak's foot with its leaf in your hand. The last verse is Ruan's. You know how it goes, because she taught you. You could sing it as she did, face down in the grass, or in your own voice.", "who": "", "choices": [
+			{"text": "Sing it in Ruan's words, face down, the Rooted way.", "to": "words"},
+			{"text": "Sing it in your own, standing.", "to": "alone"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"words": {"say": "You lie face down in the grass and sing the verse in the old words, badly. The oak takes it the way a dog takes a stranger's hand: slowly, and then entirely.", "who": "", "do": "qp:oak_song:words,qa:oak_song", "next": ""},
+		"alone": {"say": "You stand, and sing it in your own voice, and your own tune. The oak leans, very slightly, as if to hear it better. It has not heard this one before.", "who": "", "do": "qp:oak_song:alone,qa:oak_song", "next": ""},
+		"gone": {"say": "The oak stands whole.", "who": "", "next": ""},
+	}},
+	"qb_quarry_last": {"name": "The Blessed Block", "start": [["!qat:quarry_last:2", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "HERE THE FAITHFUL STEP OFF, cut deep in the tread by a paid hand. Under it, smaller, in a cutter's: and the rest of us go home. Jory asked what it said. You may only carry him one of them back.", "who": "", "choices": [
+			{"text": "Take him the Order's prayer, whole: here the faithful step off.", "to": "prayer"},
+			{"text": "Take him his brother's line, and the stroke he never finished.", "to": "mark", "if": "qc:quarry_last:tail"},
+			{"text": "Take him the line under it: and the rest of us go home.", "to": "mark", "if": "!qc:quarry_last:tail"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"prayer": {"say": "You fix the Order's line in your mind, all of it, heavy as the stone it was cut in. You will read it in the Order's voice.", "who": "", "do": "qp:quarry_last:prayer,qa:quarry_last", "next": ""},
+		"mark": {"say": "You fix the cutter's line in your mind, and the Q with a tail where the chisel was put down. You will read it as he cut it, in his hand.", "who": "", "do": "qp:quarry_last:mark,qa:quarry_last", "next": ""},
+		"gone": {"say": "The blessed block sits where it was left.", "who": "", "next": ""},
+	}},
+	"qb_moor_shrine": {"name": "The Lanternless Shrine", "start": [["!qat:moor_shrine:4", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "The shrine's lap is a stone dish under the first edict, LANTERNS ARE FOR DOUBTERS cut over it. The flame in your hands leans toward it. Ysolt did not say which. She said it was never hers to say.", "who": "", "choices": [
+			{"text": "Set the flame in its lap, and leave it burning.", "to": "burn"},
+			{"text": "Snuff it. Carry the wick home to Ysolt.", "to": "wick"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"burn": {"say": "You set the flame in the stone lap and take your hand away. It stands. Over it the edict reads, for the first time in nine winters, by its own accusation.", "who": "", "do": "qp:moor_shrine:burn,qa:moor_shrine", "next": ""},
+		"wick": {"say": "You pinch the flame out, and take the warm wick. The lap stays dark. It has been touched, though: there is a clean place in the dust the size of a palm.", "who": "", "do": "qp:moor_shrine:wick,qa:moor_shrine", "next": ""},
+		"gone": {"say_if": [["qp:moor_shrine:burn", "A flame stands in the shrine's lap."], ["", "The shrine's lap is dark, with a clean place in the dust."]], "who": "", "next": ""},
+	}},
+	"qb_orchard_press": {"name": "The Press-House", "start": [["!qat:orchard_press:3", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "The press-house hearth is cold. Linnet asked who burned it, and said she had a guess. You have the casks, the brand, the pot. They do not say the same thing to everyone.", "who": "", "choices": [
+			{"text": "The Order. The casks were sealed in their wax.", "to": "order"},
+			{"text": "A Kindler's coal. Her grandmother's pot, banked and set down.", "to": "coal", "if": "qc:orchard_press:initials|qc:orchard_press:pot"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"order": {"say": "You will tell her it was the Order. It is true as far as the wax goes. It is the version she can stand beside.", "who": "", "do": "qp:orchard_press:order,qa:orchard_press", "next": ""},
+		"coal": {"say": "You will tell her about the pot. It is a harder thing to carry to a fire than a cask, and it is a Kindler's own.", "who": "", "do": "qp:orchard_press:coal,qa:orchard_press", "next": ""},
+		"gone": {"say": "The press-house is cold.", "who": "", "next": ""},
+	}},
+	"qb_field_ranks": {"name": "The First Stone", "start": [["!qat:field_ranks:3", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "The stones have stopped, every one turned the same way: toward the Stair, as they were buried. The first stone is yours to turn. Agathe could not say which. She has turned them back for nine years without asking.", "who": "", "choices": [
+			{"text": "Leave them facing the mountain, as they were buried.", "to": "mountain"},
+			{"text": "Turn them to face the gate, and the village.", "to": "gate"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"mountain": {"say": "You set the first stone square to the Stair and step back. All down the slope the ranks lean the same, patient, first through when the sky calls.", "who": "", "do": "qp:field_ranks:mountain,qa:field_ranks", "next": ""},
+		"gate": {"say": "You turn the first stone with both hands, away from the Stair, toward the gate. One by one the others come round after it, grinding, like a congregation rising.", "who": "", "do": "qp:field_ranks:gate,qa:field_ranks", "next": ""},
+		"gone": {"say": "The ranks lie still.", "who": "", "next": ""},
+	}},
+	"qb_mere_light": {"name": "The Last Light", "start": [["!qat:mere_light:3", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "Three niches are lit, heart and mouth and eyes, and there is a fourth flame in your hand that Corvin never lit: he had no hands left. Cadoc did not say what it was for. The nave wants it. So, perhaps, does the east bank.", "who": "", "choices": [
+			{"text": "Leave it in the nave, for the sunk.", "to": "sunk"},
+			{"text": "Carry it to the east bank, for Aldous.", "to": "aldous"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"sunk": {"say": "You set the fourth flame on the nave's sill, among the dead. The water stirs in rows and does not rise.", "who": "", "do": "qp:mere_light:sunk,qa:mere_light", "next": ""},
+		"aldous": {"say": "You carry it out along the causeway and east, to the landing where a man without a boat waits for pay. You set it on the post. It is a small thing to see from the water.", "who": "", "do": "qp:mere_light:aldous,qa:mere_light", "next": ""},
+		"gone": {"say": "The lights are burning.", "who": "", "next": ""},
+	}},
+	"qb_mere_ferryman": {"name": "The East Landing", "start": [["!qat:mere_ferryman:1", "gone"], ["", "at"]], "nodes": {
+		"at": {"say_if": [["qp:mere_light:aldous", "The lamp you set for him is still burning on the post. The Ferryman Without a Boat is down. Cadoc owes him two coins and, perhaps, his name."], ["", "The Ferryman Without a Boat is down. Cadoc owes him two coins and, perhaps, his name. The post is bare."]], "who": "", "choices": [
+			{"text": "Lay the two coins on the water, and say nothing.", "to": "coins"},
+			{"text": "Say his name aloud, to the east bank.", "to": "named"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"coins": {"say": "You lay the coins on the water, one by one. They float for a moment, which coins do not do, and then settle.", "who": "", "do": "qp:mere_ferryman:coins,qa:mere_ferryman", "next": ""},
+		"named": {"say": "'Aldous.' You say it to the east bank, and the reeds, and the water. Nothing answers. It was not asking for an answer. It was only the name, said where he could hear it.", "who": "", "do": "qp:mere_ferryman:named,qa:mere_ferryman", "next": ""},
+		"gone": {"say": "The east landing is quiet.", "who": "", "next": ""},
+	}},
+	"qb_well_answer": {"name": "The Rim of the Well", "start": [["!qat:well_answer:5", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "The Answerer is down, and the listener's cairn is found, and the Well is waiting, as wells do, to be spoken to. It is listening for an answer to a question it asked nine years ago. You could end the asking, or give it somebody else to call.", "who": "", "choices": [
+			{"text": "Drop the cairn-stone in. Let it fall without a word.", "to": "silence"},
+			{"text": "Call a name down, and let it answer that.", "to": "name"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"silence": {"say": "You drop the stone in and count. It does not strike. The Well takes it, and nothing comes back: no voice, no echo, no practising. The silence is enormous.", "who": "", "do": "qp:well_answer:silence,qa:well_answer", "next": ""},
+		"name": {"say": "You call a name down, one a ferryman would know: Aldous. The Well considers it. Far down, a voice says it back, kindly, in a voice that is not Cadoc's.", "who": "", "do": "qp:well_answer:name,qa:well_answer", "next": ""},
+		"gone": {"say": "The Well is quiet.", "who": "", "next": ""},
+	}},
+	"qb_salt_widow": {"name": "Corra Vane's Rake", "start": [["!qat:salt_widow:2", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "The widow's hollow, the rake, the ring on its thread, the salted bundle. She is not here. She will be, by dark. Marl asked you to stop her. She did not ask how.", "who": "", "choices": [
+			{"text": "Lay the rake across the hollow, at her feet. Leave her this.", "to": "rake"},
+			{"text": "Take the rake as proof, and put her down.", "to": "down"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"rake": {"say": "You lay the rake across the hollow with the haft toward the sea, as a husband would leave it, and step back from the salt. There is nothing here to fight.", "who": "", "do": "qp:salt_widow:rake,qt:salt_widow:4", "next": ""},
+		"down": {"say": "You take the rake and the ring, and leave the hollow bare. She will come for them. You will be here.", "who": "", "do": "qp:salt_widow:down,qa:salt_widow", "next": ""},
+		"gone": {"say": "The hollow is quiet.", "who": "", "next": ""},
+	}},
+	"qb_spire_coal": {"name": "The Spire's Lamp", "start": [["!qat:spire_coal:4", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "The lamp is lit, and the lake road has answered, lantern by lantern, to the shore. Ardel asked you to say what it is. A lit thing is a fact. A kept thing is a promise, and promises want somebody at the other end of them.", "who": "", "choices": [
+			{"text": "It is lit. That is all it has to be.", "to": "lit"},
+			{"text": "It is kept. I will come back and trim it.", "to": "kept"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"lit": {"say": "'Lit,' you say, to the lamp. It burns on, indifferent, an honest light. By dawn it will have burned itself down.", "who": "", "do": "qp:spire_coal:lit,qa:spire_coal", "next": ""},
+		"kept": {"say": "'Kept,' you say. The wick leans toward the sound. Down on the lake road, two more lanterns that had only been waiting to be sure catch, and burn.", "who": "", "do": "qp:spire_coal:kept,qa:spire_coal", "next": ""},
+		"gone": {"say": "The lamp burns.", "who": "", "next": ""},
+	}},
+	"qb_seventh_day": {"name": "Wren's Slate", "start": [["!qat:seventh_day:2", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "You sat out the seventh day's last minutes in the cell, shut in. At the end of them there was a bell, once, far, flat, from the south. Or there was a sound in the wall where the bricks had been taken out with a spoon. You cannot honestly say which. Teasel will believe whichever you carry back.", "who": "", "choices": [
+			{"text": "It was the bell. The Shut-Out Bell, calling her home.", "to": "bell"},
+			{"text": "It was the door. She let herself out, and stayed.", "to": "door"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"bell": {"say": "You will tell her it was a bell, and that her sister was called, and that she did not go. That she stayed, and heard it, and stayed.", "who": "", "do": "qp:seventh_day:bell,qa:seventh_day", "next": ""},
+		"door": {"say": "You will tell her it was the door, and the spoon, and the night; that her sister opened it herself on the seventh day, looked out, and shut it again.", "who": "", "do": "qp:seventh_day:door,qa:seventh_day", "next": ""},
+		"gone": {"say": "The cell is quiet.", "who": "", "next": ""},
+	}},
+	"qb_shepherd_strays": {"name": "The Bell-Wether's Bell", "start": [["!qat:shepherd_strays:3", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "The Bell-Wether is down, and its bell lies in the grass, still warm, still keeping a faint time. The flock will follow it, wherever it goes. Dunstan did not say whether you should let it go.", "who": "", "choices": [
+			{"text": "Leave it lie. Let the flock lose the road for good.", "to": "down"},
+			{"text": "Hang it at the fold and ring it once, to call them home.", "to": "ring"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"down": {"say": "You stop the bell with your hand, and lay it in the grass, and cover it with a flat stone. The sound stops. It is very quiet on the downs.", "who": "", "do": "qp:shepherd_strays:down,qa:shepherd_strays", "next": ""},
+		"ring": {"say": "You carry the bell to the fold gate, hang it on the hurdle, and ring it once. The note goes out over the chalk. Somewhere in the fog a very thin sheep lifts its head.", "who": "", "do": "qp:shepherd_strays:ring,qa:shepherd_strays", "next": ""},
+		"gone": {"say": "The fold gate is quiet.", "who": "", "next": ""},
+	}},
+	"qb_wf_lights": {"name": "The Three Keels", "start": [["!qat:wf_lights:4", "gone"], ["", "at"]], "nodes": {
+		"at": {"say": "Thirty lights and three of them yours, guttering on the shrine. On each keel a name, scratched out and written again. The sunk are counting. Ennis never asked what the keels said. She does not want to be told, or does.", "who": "", "choices": [
+			{"text": "Read the three names aloud, to the water.", "to": "named"},
+			{"text": "Leave them nameless. Say only: thirty.", "to": "nameless"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"named": {"say": "You read the three names off the keels, one by one. The first light steadies. The second brightens. The third takes its name like a child called in from the water.", "who": "", "do": "qp:wf_lights:named,qa:wf_lights", "next": ""},
+		"nameless": {"say": "'Thirty,' you say. The lights burn with a flat, even, patient glow. The names are on the keels, and the keels are in the dark, and they can stay there.", "who": "", "do": "qp:wf_lights:nameless,qa:wf_lights", "next": ""},
+		"gone": {"say": "The lights burn on the shrine.", "who": "", "next": ""},
+	}},
+	"qb_wf_crown": {"name": "The Boy's Stool", "start": [["!qat:wf_crown:3", "gone"], ["", "at"]], "nodes": {
+		"at": {"say_if": [["qc:wf_crown:days", "The boy is a man now. The days on the bone say so, and the last strokes are very slow. He is still holding it. He has been holding it for a very long time."], ["", "A child's stool in the throat of the colossus. Whoever sat here has held the note a long time."]], "who": "", "choices": [
+			{"text": "Silence the Crown. End it by force, and be done.", "to": "silence"},
+			{"text": "Let the note end. Tell him he can stop.", "to": "end"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"silence": {"say": "You will go in and silence it. It was never his to hold; it was the Order's, and the Order made him a horn.", "who": "", "do": "qp:wf_crown:silence,qa:wf_crown", "next": ""},
+		"end": {"say": "'You can stop,' you say, to the stool, to the throat, to the horn. A breath of dust moves. Somewhere in the bone the long note wavers, falters, and for the first time in nine years has a gap in it.", "who": "", "do": "qp:wf_crown:end,qt:wf_crown:5", "next": ""},
+		"gone": {"say": "The skull is quiet.", "who": "", "next": ""},
+	}},
+	# Fennick's payoff in long_round (quest_chains_r38_south.gd): the lantern he shut, said by what he was told from the Spire
+	# (spire_lamps' pick, writer A's: qp:spire_lamps:out / qp:spire_lamps:burning)
+	"qb_long_round": {"name": "The East Gate's Lantern", "start": [["!qat:long_round:3", "gone"], ["", "at"]], "nodes": {
+		"at": {"say_if": [
+			["qp:spire_lamps:out", "The shut-lantern lies where it fell. SHUT AT DUSK ON THE WARDEN'S WORD. F. You told him the Spire's lamp was out. He said he knew it would be, and went on lighting his round anyway. The wick here is trimmed. Nobody has had the heart."],
+			["qp:spire_lamps:burning", "The shut-lantern lies where it fell. SHUT AT DUSK ON THE WARDEN'S WORD. F. You told him the Spire's lamp was burning. He has watched it from the green, every night since, and not once looked at this. The wick is trimmed. Somebody wants it to be ready."],
+			["", "The shut-lantern lies where it fell. SHUT AT DUSK ON THE WARDEN'S WORD. F. The wick has been trimmed, in the dark, by someone who could not make himself light it."],
+		], "who": "", "choices": [
+			{"text": "Light it where it fell, and leave it for the road.", "to": "lit"},
+			{"text": "Stand it up on its post, unlit. Let him do it.", "to": "stood"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"lit": {"say": "You hold your own flame to the wick until it takes, and leave the lantern lit on the ground where he shut it. It makes a small, honest circle on the road.", "who": "", "do": "qp:long_round:lit,qa:long_round", "next": ""},
+		"stood": {"say": "You set it on its post, upright, the wick trimmed and dry, and take the tag. You do not light it. It is not yours to light.", "who": "", "do": "qp:long_round:stood,qa:long_round", "next": ""},
+		"gone": {"say": "The East Gate's lantern is where you left it.", "who": "", "next": ""},
+	}},
+}

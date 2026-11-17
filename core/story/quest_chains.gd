@@ -66,6 +66,7 @@ const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
 const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 const VQ := preload("res://core/story/quest_chains_verbs.gd")   ## Hearthward's five tasks deepened with the task verbs (docs/QUEST_VERBS.md)
 const VerbKit := preload("res://core/story/verb_kit.gd")
+const DeepB := preload("res://core/story/quest_chains_deepen_b.gd")   ## the deepened tasks (docs/QUEST_DEPTH.md)
 
 const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
 	"hearth_ash", "road_clear", "coal_shrine", "spire_lamps", "alms_loaf",
@@ -94,7 +95,9 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"plinth_lamp", "cutters_pledge", "landing_staves", "moor_niches",
 	"rh_lamps", "fm_tithe", "ll_gate", "ll_oil",          # --- the towns ---
 	"wr_stand_down", "wr_kings_lamp", "wr_cold_light", "wr_fourth_stone", "wr_tansys_boat", "ds_water_road", "ds_unmade", "ds_witchs_price", "ds_clapper",
-	"er_ringers_candle", "er_nave_fire", "er_halter_bell", "er_inn_slate"]          # --- the reaches ---
+	"er_ringers_candle", "er_nave_fire", "er_halter_bell", "er_inn_slate",          # --- the reaches ---
+	# --- deepen B ---
+	"seventh_day"]
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
 const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
@@ -276,26 +279,8 @@ const QUESTS := {
 	# --- r34: the doubled world (docs/r34/layout.md): a giver in each new region, a short chain on
 	# its lore line, a daily where there is ground to thin, and the raids' attunements -----------
 	# the Rooted Holds: Gammer Ruan, and the Thornwarden's attunement (the keeper's wards)
-	"holds_turf": {"name": "The Kin-Taker", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "holds",
-		"offer": true,
-		"text": "Something walks round the Holds at night, tall as a door, and lifts the turf off the roofs to look in at us. The young ones named it Old Rook, when there were young ones. It took them. Put it down, and I'll sleep with the door open for once.",
-		"steps": [
-			{"kind": "slay", "of": 1, "rares": ["old_rook"], "label": "Old Rook, the Kin-Taker", "at": Vector2(-140.0, 11.0),
-				"text": "Put down Old Rook, the Kin-Taker, on its round of the Holds"},
-			{"kind": "turnin", "who": "ruan", "text": "Tell Gammer Ruan the Kin-Taker is down"},
-		],
-		"reward": {"ash": 14},
-		"choose": [{"slot": "vestment", "rarity": 1}, {"slot": "girdle", "rarity": 1}],
-		"outcome": {"": "Ruan slept with her door open. In the morning she turned the empty beds face down again, one by one."}},
-	"keeper_wards": {"name": "The Keeper's Wards", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "holds",
-		"offer": true, "raid": "thornwarden",
-		"text": "We bound the keeper into the Ring with three ward-stones, one for each way the axe could come. The abbey dug them up and threw them in the wood. While they lie loose the wood stays angry, and whatever keeps the Ring keeps it like a dog with no master. Bring them to my hand.",
-		"steps": [
-			{"kind": "gather", "of": 3, "text": "Find the three ward-stones: in the Holds, under the Thornwood's oaks, in the Glimmer Glade ({n}/{of})"},
-			{"kind": "turnin", "who": "ruan", "text": "Bring the ward-stones to Gammer Ruan"},
-		],
-		"reward": {"ash": 15, "items": {"relic_fragment": 1}},
-		"outcome": {"": "Ruan set the three wards round her fire, face down, and sang the keeper's verse to them. Not the last verse."}},
+	"holds_turf": DeepB.HOLDS_TURF,
+	"keeper_wards": DeepB.KEEPER_WARDS,
 	"keeper_heart": {"name": "Heartwood", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "holds",
 		"offer": true, "avail": "qd:keeper_wards", "raid": "thornwarden",
 		"text": "The keeper rooted in a heart and fed the wood from it. The things under the oaks are fat on it still. Bring me splinters off them: heartwood, black and warm to hold. I'll burn it in the ward-fire, and the wood will smell what it was fed and know it for a grave.",
@@ -341,17 +326,7 @@ const QUESTS := {
 		],
 		"reward": {"ash": 16, "items": {"relic_fragment": 1}},
 		"outcome": {"": "The benches are quiet. Jory says he can hear the stone settle, now nobody's cutting it."}},
-	"quarry_last": {"name": "The Last Step", "giver": "jory", "where": "Jory Quell, at his fire by the Saints' Quarry", "zone": "quarry",
-		"offer": true, "avail": "qd:quarry_picks",
-		"text": "One block the Order blessed and never sent: the four thousand and first step. It sits on the pit floor with a prayer cut in the top. Go down and read it to me. My eyes won't do the benches, and I want to know what they wrote on the step after the last one.",
-		"steps": [
-			{"kind": "visit", "at": Vector2(-128.0, -104.0), "r": 10.0, "label": "The pit floor", "text": "Climb down the benches to the quarry's pit floor"},
-			{"kind": "find", "text": "Read the blessed block on the pit floor"},
-			{"kind": "turnin", "who": "jory", "text": "Tell Jory Quell what the last step says"},
-		],
-		"reward": {"ash": 18},
-		"choose": [{"slot": "vestment", "rarity": 2}, {"slot": "lantern", "rarity": 2}],
-		"outcome": {"": "\"Here the faithful step off.\" Jory laughed till he coughed. Then he asked you to say it again."}},
+	"quarry_last": DeepB.QUARRY_LAST,
 	"quarry_chisel": {"name": "The Four-Thousandth", "giver": "jory", "where": "Jory Quell, at his fire by the Saints' Quarry", "zone": "quarry",
 		"offer": true, "avail": "qd:quarry_picks",
 		"text": "Brother Chisel blessed every step we cut. Four thousand blessings, and he counted them. He came back down with the cutters and he's still at it, on the pit floor, bigger than he was, blessing stone with his fists. He was a kind man. Put him down kindly. Hard, I mean.",
@@ -394,19 +369,7 @@ const QUESTS := {
 		],
 		"reward": {"ash": 15, "items": {"relic_fragment": 1}},
 		"outcome": {"": "Ysolt says the wind sounds different with fewer feet in it."}},
-	"moor_shrine": {"name": "No Lantern", "giver": "ysolt", "where": "Ysolt, at her fire under the tor", "zone": "moor",
-		"offer": true, "avail": "qd:moor_stumbled",
-		"text": "There's a shrine on the south moor the Order raised for the first edict. Lanterns are for doubters, it says. Carry a coal there from my fire and set it in the shrine's lap. I've been a doubter forty years. I'd like it said in stone.",
-		"steps": [
-			{"kind": "find", "text": "Take a coal from Ysolt's fire"},
-			{"kind": "carry", "from": "coal_ysolt", "to": Vector2(142.5, 16.0), "r": 5.0, "time": 75.0, "label": "Coal",
-				"lost": "The coal has gone out on the moor. Ysolt's fire has more.",
-				"text": "Carry the coal to the lanternless shrine on the south moor before it dies ({t} s)"},
-			{"kind": "turnin", "who": "ysolt", "text": "Tell Ysolt the shrine has a light in its lap"},
-		],
-		"reward": {"ash": 18},
-		"choose": [{"slot": "lantern", "rarity": 2}, {"slot": "focus", "rarity": 2}],
-		"outcome": {"": "A coal burns in the lap of the first edict's shrine. From the tor it is the only light on the moor."}},
+	"moor_shrine": DeepB.MOOR_SHRINE,
 	"moor_hennet": {"name": "The Gorse-Wife", "giver": "ysolt", "where": "Ysolt, at her fire under the tor", "zone": "moor",
 		"offer": true, "avail": "qd:moor_stumbled",
 		"text": "Hennet kept the gorse fire on the tor, before the edict. They put it out and her with it. She walks the whole moor now, north to south and back, faster than the wind. She's the one kicking the cairns down. Stop her. I'll raise her a cairn after.",
@@ -440,17 +403,7 @@ const QUESTS := {
 		"reward": {"ash": 14},
 		"choose": [{"set": "bell", "slot": "girdle", "rarity": 1}, {"set": "bell", "slot": "lantern", "rarity": 1}],
 		"outcome": {"": "Elspeth sat on the warm slag and ate her bread, which she says she hasn't done since the Night."}},
-	"founder_clapper": {"name": "The Bell-Tongue", "giver": "elspeth", "where": "Elspeth Fane, at her fire in the Founder's Pits", "zone": "foundry",
-		"offer": true, "avail": "qd:founder_slag",
-		"text": "Something walks the pits ringing. A cinder-thing with a bell's tongue where its head should be. It was the Founder's striker, the boy who rang the test notes. It still rings them, wrong, every one. Make it stop. I can't hear myself cast.",
-		"steps": [
-			{"kind": "slay", "of": 1, "rares": ["clapper"], "label": "Clapper, the Bell-Tongue", "at": Vector2(124.0, -96.0),
-				"text": "Put down Clapper, the Bell-Tongue, in the Founder's Pits"},
-			{"kind": "turnin", "who": "elspeth", "text": "Tell Elspeth Fane the pits are quiet"},
-		],
-		"reward": {"ash": 16, "items": {"relic_fragment": 1}},
-		"choose": [{"set": "bell", "slot": "focus", "rarity": 1}, {"set": "bell", "slot": "vestment", "rarity": 1}],
-		"outcome": {"": "Elspeth struck the cooling furnace once with a hammer, the right note, for the striker. Then she went back to work."}},
+	"founder_clapper": DeepB.FOUNDER_CLAPPER,
 	"founder_moulds": {"name": "The Founder's Moulds", "giver": "elspeth", "where": "Elspeth Fane, at her fire in the Founder's Pits", "zone": "foundry",
 		"offer": true, "raid": "ascended_warden",
 		"text": "She cast the summit's bell in three cheeks of loam and iron. The Hierarch's bell. Brannoc says the thing up there holds the door with it still in its hand. Bring me the moulds. A bell's mould knows its note, and I can teach it a wrong one.",
@@ -483,17 +436,7 @@ const QUESTS := {
 		"reward": {"ash": 12},
 		"choose": [{"set": "kindler", "slot": "girdle", "rarity": 1}, {"set": "kindler", "slot": "lantern", "rarity": 1}],
 		"outcome": {"": "Linnet bound the buds into a stock with wax and wool. One of them is already greener."}},
-	"orchard_press": {"name": "The Press-House", "giver": "linnet", "where": "Linnet, at her fire in the Cinder Orchard", "zone": "orchard",
-		"offer": true, "avail": "qd:orchard_buds",
-		"text": "The press-house at the west end. The brothers pressed the fruit there and gave the road its cider. Something lives in it now, and it isn't cider. Go and look. Thin them on the way.",
-		"steps": [
-			{"kind": "visit", "at": Vector2(-128.0, 132.0), "r": 12.0, "label": "The press-house", "text": "Find the press-house at the orchard's west end"},
-			{"kind": "slay", "of": 5, "region": "orchard", "label": "Hollowed in the rows", "at": Vector2(-120.0, 122.0),
-				"text": "Put down the hollowed in the burned rows ({n}/{of})"},
-			{"kind": "turnin", "who": "linnet", "text": "Tell Linnet what lives in the press-house"},
-		],
-		"reward": {"ash": 15, "items": {"relic_fragment": 1}},
-		"outcome": {"": "Nothing lives in the press-house now. Linnet says she'll press something in it next autumn, if there is one."}},
+	"orchard_press": DeepB.ORCHARD_PRESS,
 	"orchard_graft": {"name": "Fire Under the Roots", "giver": "linnet", "where": "Linnet, at her fire in the Cinder Orchard", "zone": "orchard",
 		"offer": true, "avail": "qd:orchard_press",
 		"text": "A graft takes if the stock is warm. Nothing in this orchard's been warm since they burned it. Carry a coal from my fire to the heart of the rows and lay it under the old tree. It's the Kindlers' fire. The orchard was always theirs.",
@@ -529,18 +472,7 @@ const QUESTS := {
 		"reward": {"ash": 10, "items": {"ember_shard": 1}},
 		"outcome": {"": "Linnet dug the ash in round the grafts with her hands."}},
 	# the Waiting Field: Sister Agathe, and the Bone Abbot's attunement (the pilgrims' roll)
-	"field_ranks": {"name": "Facing the Mountain", "giver": "agathe", "where": "Sister Agathe, at the gate of the Waiting Field", "zone": "necropolis",
-		"offer": true,
-		"text": "They're buried facing the Stair, so they'd be first through when the sky called. Something walks the ranks at night and the stones are turning. I turn them back. My back is not what it was. Put the walkers down.",
-		"steps": [
-			{"kind": "visit", "at": Vector2(-18.0, 114.0), "r": 12.0, "label": "The pilgrims' ranks", "text": "Walk the pilgrims' ranks in the Waiting Field"},
-			{"kind": "slay", "of": 5, "region": "necropolis", "label": "Walkers in the ranks", "at": Vector2(-10.0, 130.0),
-				"text": "Put down the hollowed walking the Waiting Field ({n}/{of})"},
-			{"kind": "turnin", "who": "agathe", "text": "Tell Sister Agathe the ranks are still"},
-		],
-		"reward": {"ash": 14},
-		"choose": [{"slot": "vestment", "rarity": 1}, {"slot": "lantern", "rarity": 1}],
-		"outcome": {"": "Agathe walked the ranks with you after, and turned three stones back to face the mountain. Then, after a while, one away from it."}},
+	"field_ranks": DeepB.FIELD_RANKS,
 	"field_last": {"name": "The Last Pilgrim", "giver": "agathe", "where": "Sister Agathe, at the gate of the Waiting Field", "zone": "necropolis",
 		"offer": true, "avail": "qd:field_ranks",
 		"text": "The last pilgrim who died on the road before the Night is buried at the end of the ranks. He got up. He walks the field looking for the gate to the Stair, and he won't believe there isn't one. Put him back in his row. He was always last; let him be first to lie down.",
@@ -604,30 +536,8 @@ const QUESTS := {
 		],
 		"reward": {"ash": 15, "items": {"relic_fragment": 1}},
 		"outcome": {"": "The chapel's nave stands empty to the knee in black water. Cadoc says Corvin preached to fish in the end, and the fish listened."}},
-	"mere_light": {"name": "Light for the Sunk", "giver": "cadoc", "where": "Cadoc the ferryman, on the mere's north bank", "zone": "mere",
-		"offer": true, "avail": "qd:mere_chapel",
-		"text": "Corvin's rite: a light for the eyes, the mouth, the heart. The Abbot's three stones were the other answer. Carry a lit lamp from my fire to the chapel before it gutters. That's all he ever did. It was enough to have his hands taken for.",
-		"steps": [
-			{"kind": "find", "text": "Take a lit lamp from Cadoc's fire"},
-			{"kind": "carry", "from": "lamp_cadoc", "to": Vector2(79.5, 112.0), "r": 7.0, "time": 90.0, "label": "Corvin's lamp",
-				"lost": "The lamp has guttered in the wet. Cadoc has another.",
-				"text": "Carry the lamp to the half-sunk chapel before it gutters ({t} s)"},
-			{"kind": "turnin", "who": "cadoc", "text": "Tell Cadoc the chapel has its light"},
-		],
-		"reward": {"ash": 20},
-		"choose": [{"set": "ferryman", "slot": "focus", "rarity": 2}, {"set": "ferryman", "slot": "vestment", "rarity": 2}, {"set": "ferryman", "slot": "lantern", "rarity": 2}],
-		"outcome": {"": "A lamp burns in the half-sunk chapel, for the eyes, the mouth, the heart. Cadoc rows past it every night and doesn't look."}},
-	"mere_ferryman": {"name": "The Other Oar", "giver": "cadoc", "where": "Cadoc the ferryman, on the mere's north bank", "zone": "mere",
-		"offer": true, "avail": "qd:mere_chapel",
-		"text": "Two of us rowed for Corvin. Me and Aldous. The night they took Corvin's hands, Aldous rowed out alone with the lamps and went over. He walks the banks now without his boat, waiting to be paid. I owe him the fare. Pay it for me.",
-		"steps": [
-			{"kind": "slay", "of": 1, "rares": ["ferryman"], "label": "The Ferryman Without a Boat", "at": Vector2(140.0, 128.0),
-				"text": "Put down the Ferryman Without a Boat on the mere's east bank"},
-			{"kind": "turnin", "who": "cadoc", "text": "Tell Cadoc the fare is paid"},
-		],
-		"reward": {"ash": 18, "items": {"relic_fragment": 1}},
-		"choose": [{"set": "ferryman", "slot": "girdle", "rarity": 2}, {"set": "ferryman", "slot": "focus", "rarity": 2}],
-		"outcome": {"": "Cadoc put two coins on the water by the east bank. They didn't sink straight away."}},
+	"mere_light": DeepB.MERE_LIGHT,
+	"mere_ferryman": DeepB.MERE_FERRYMAN,
 	"mere_oil": {"name": "Oil for the Lamps", "giver": "cadoc", "where": "Cadoc the ferryman, on the mere's north bank", "zone": "mere",
 		"offer": true, "repeat": "daily", "avail": "qd:mere_lamps",
 		"text": "The lamps drink oil like the drowned drink dark. The hollowed in the mere carry it in their bellies, from the lamps they ate. Five. Every night. The mere is long.",
@@ -738,8 +648,8 @@ const QUESTS := {
 		"outcome": {"": "Brannoc rang the chimney tongue eight times, slowly, and the Keg went quiet for each one. Then he put his head down on the bar and laughed."}},
 	"shepherd_strays": South.QUESTS["shepherd_strays"], "oak_song": South.QUESTS["oak_song"], "well_answer": South.QUESTS["well_answer"],
 	"wf_wheel": R37WQ.QUESTS["wf_wheel"], "wf_watch": R37WQ.QUESTS["wf_watch"], "wf_lights": R37WQ.QUESTS["wf_lights"],
-	"wf_crown": R37WQ.QUESTS["wf_crown"], "salt_sweep": EastChains.SALT_SWEEP, "salt_widow": EastChains.SALT_WIDOW,
-	"spire_coal": EastChains.SPIRE_COAL, "anchor_names": EastChains.ANCHOR_NAMES, "anchor_vow": EastChains.ANCHOR_VOW,
+	"wf_crown": R37WQ.QUESTS["wf_crown"], "salt_sweep": EastChains.SALT_SWEEP, "salt_widow": DeepB.SALT_WIDOW,
+	"spire_coal": DeepB.SPIRE_COAL, "anchor_names": EastChains.ANCHOR_NAMES, "anchor_vow": EastChains.ANCHOR_VOW,
 	"bounds_beaten": Sig.BOUNDS, "quarry_stone": Sig.QUARRY_STONE, "moor_fires": Sig.MOOR_FIRES, "founder_pour": Sig.FOUNDER_POUR,
 	"orchard_stand": Sig.ORCHARD_STAND, "field_round": Sig.FIELD_ROUND, "mere_ferry": Sig.MERE_FERRY,
 	"threshold_chapel": ThrQ.THRESHOLD_CHAPEL, "wf_upward": R37UF.QUESTS["wf_upward"], "star_lamp": StarQ.STAR_LAMP,
@@ -756,6 +666,8 @@ const QUESTS := {
 	"wr_tansys_boat": FRW.QUESTS["wr_tansys_boat"], "ds_water_road": FRS.QUESTS["ds_water_road"], "ds_unmade": FRS.QUESTS["ds_unmade"], "ds_witchs_price": FRS.QUESTS["ds_witchs_price"],
 	"ds_clapper": FRS.QUESTS["ds_clapper"], "er_ringers_candle": FRE.QUESTS["er_ringers_candle"], "er_nave_fire": FRE.QUESTS["er_nave_fire"], "er_halter_bell": FRE.QUESTS["er_halter_bell"],
 	"er_inn_slate": FRE.QUESTS["er_inn_slate"],
+	# --- deepen B ---
+	"seventh_day": DeepB.SEVENTH_DAY,
 }
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
@@ -787,12 +699,6 @@ const PICKUPS := {
 		"say": "One loaf on the Almonry's board, hard as a stone, a cross cut in the crust. There is always one left."},
 	# r34. `camp`: the spot is found by that giver's outpost fire (village.gd builds it at load), `near`
 	# is only the fallback.
-	"ward_holds": {"quest": "keeper_wards", "step": 0, "near": Vector2(-141.0, 4.0), "kind": "ward", "name": "a ward-stone", "verb": "Lift",
-		"say": "A grey stone the size of a loaf, a spiral cut in it, lying face up in the heather. It is heavier than it should be. You turn it face down without thinking."},
-	"ward_wood": {"quest": "keeper_wards", "step": 0, "near": Vector2(-66.0, 30.0), "kind": "ward", "name": "a ward-stone", "verb": "Lift",
-		"say": "A ward-stone in the oak roots, an axe-bite in its edge. The Order's chisel has cut KEEPER OF NOTHING over the spiral. The spiral is deeper."},
-	"ward_glade": {"quest": "keeper_wards", "step": 0, "near": Vector2(-44.0, 4.0), "kind": "ward", "name": "a ward-stone", "verb": "Lift",
-		"say": "Somebody left the third ward-stone among the glade's offerings, with a candle on it. The candle is still warm."},
 	"coal_ruan": {"quest": "keeper_leave", "step": 0, "near": Vector2(-129.0, 6.0), "camp": "ruan", "kind": "coal", "name": "a ward-coal", "verb": "Take",
 		"say": "A coal of black heartwood in a clay dish. It burns green at the edges and smells of oak in rain. Go."},
 	"mark_pit": {"quest": "quarry_marks", "step": 0, "near": Vector2(-124.0, -106.0), "kind": "mark", "name": "a squared block", "verb": "Take the mark from",
@@ -801,8 +707,6 @@ const PICKUPS := {
 		"say": "A block under the high bench, half buried in chips. The mark is a little ladder. Somebody has scratched a face beside it, smiling."},
 	"mark_bench": {"quest": "quarry_marks", "step": 0, "near": Vector2(-117.0, -94.0), "kind": "mark", "name": "a squared block", "verb": "Take the mark from",
 		"say": "A block on the east bench, split along a flaw and left. The mark is a Q with a tail. Quell. It was cut by the brother."},
-	"last_step": {"quest": "quarry_last", "step": 1, "near": Vector2(-129.0, -103.0), "kind": "mark", "name": "the blessed block", "verb": "Read",
-		"say": "A step-stone, squared and dressed and blessed, never carried. Cut in its tread: HERE THE FAITHFUL STEP OFF. Under it, smaller, a cutter's hand: and the rest of us go home."},
 	"cairn_north": {"quest": "moor_cairns", "step": 0, "near": Vector2(137.0, -42.0), "kind": "cairn", "name": "a fallen cairn", "verb": "Raise",
 		"say": "You stack the stones back the way they lay. Somebody has scratched an arrow on the top one, pointing north, toward the Stair. You turn it to point home."},
 	"cairn_mid": {"quest": "moor_cairns", "step": 0, "near": Vector2(147.0, 0.0), "kind": "cairn", "name": "a fallen cairn", "verb": "Raise",
@@ -861,9 +765,7 @@ const PICKUPS := {
 		"say": "You cut them under the Hierarch's line, small, as straight as you can: BRANN. MAUD OF THE TOR. BROTHER ANSELM, HE PRUNED. CORVIN. WAT, WHO NEVER LOST ONE. HALE, AND HE LEFT IT LIT. There is room under them for a great many more."},
 	"bell_spire": Bells.PICKUPS["bell_spire"], "bell_holds": Bells.PICKUPS["bell_holds"], "bell_quarry": Bells.PICKUPS["bell_quarry"], "bell_moor": Bells.PICKUPS["bell_moor"],
 	"bell_foundry": Bells.PICKUPS["bell_foundry"], "bell_orchard": Bells.PICKUPS["bell_orchard"], "bell_necropolis": Bells.PICKUPS["bell_necropolis"], "bell_mere": Bells.PICKUPS["bell_mere"],
-	"cairn_down_1": South.PICKUPS["cairn_down_1"], "cairn_down_2": South.PICKUPS["cairn_down_2"], "cairn_down_3": South.PICKUPS["cairn_down_3"],
-	"wf_sluice_key": R37WQ.PICKUPS["wf_sluice_key"], "wf_signal_lamp": R37WQ.PICKUPS["wf_signal_lamp"], "wf_votive_a": R37WQ.PICKUPS["wf_votive_a"],
-	"wf_votive_b": R37WQ.PICKUPS["wf_votive_b"], "wf_votive_c": R37WQ.PICKUPS["wf_votive_c"], "wf_votive_place": R37WQ.PICKUPS["wf_votive_place"],
+	"wf_sluice_key": R37WQ.PICKUPS["wf_sluice_key"], "wf_signal_lamp": R37WQ.PICKUPS["wf_signal_lamp"],
 	"wf_rub_hand": R37WQ.PICKUPS["wf_rub_hand"], "wf_rub_shoulder": R37WQ.PICKUPS["wf_rub_shoulder"], "wf_rub_lip": R37WQ.PICKUPS["wf_rub_lip"],
 	"wf_gauge": R37UF.PICKUPS["wf_gauge"], "star_book": StarQ.STAR_BOOK, "chain_tally": ChainQ.PICKUPS["chain_tally"],
 	"coal_ardel": EastChains.COAL_ARDEL, "anchor_page_a": EastChains.PAGE_A, "anchor_page_b": EastChains.PAGE_B,
@@ -889,6 +791,15 @@ const PICKUPS := {
 	"ds_keeper_log": FRS.PICKUPS["ds_keeper_log"], "ds_unmade_look": FRS.PICKUPS["ds_unmade_look"], "ds_unmade_turn": FRS.PICKUPS["ds_unmade_turn"], "ds_nail": FRS.PICKUPS["ds_nail"],
 	"ds_witch_door": FRS.PICKUPS["ds_witch_door"], "ds_clapper": FRS.PICKUPS["ds_clapper"], "ds_bell": FRS.PICKUPS["ds_bell"],
 	"er_candle": FRE.PICKUPS["er_candle"], "er_door": FRE.PICKUPS["er_door"], "er_halter": FRE.PICKUPS["er_halter"], "er_tower": FRE.PICKUPS["er_tower"], "er_slate": FRE.PICKUPS["er_slate"],
+	# --- deepen B ---
+	"turf_roof": DeepB.PICKUPS["turf_roof"], "wards_set": DeepB.PICKUPS["wards_set"], "ward_holds": DeepB.PICKUPS["ward_holds"],
+	"ward_wood": DeepB.PICKUPS["ward_wood"], "ward_glade": DeepB.PICKUPS["ward_glade"], "last_step": DeepB.PICKUPS["last_step"],
+	"moor_shrine_mid": DeepB.PICKUPS["moor_shrine_mid"], "shrine_lap": DeepB.PICKUPS["shrine_lap"], "press_hearth": DeepB.PICKUPS["press_hearth"],
+	"ranks_turn": DeepB.PICKUPS["ranks_turn"], "mere_third": DeepB.PICKUPS["mere_third"], "mere_fare": DeepB.PICKUPS["mere_fare"],
+	"well_call": DeepB.PICKUPS["well_call"], "oak_voice": DeepB.PICKUPS["oak_voice"], "widow_rake": DeepB.PICKUPS["widow_rake"],
+	"spire_word": DeepB.PICKUPS["spire_word"], "seventh_slate": DeepB.PICKUPS["seventh_slate"], "bell_wether_bell": DeepB.PICKUPS["bell_wether_bell"],
+	"wf_votive_a": DeepB.PICKUPS["wf_votive_a"], "wf_votive_b": DeepB.PICKUPS["wf_votive_b"], "wf_votive_c": DeepB.PICKUPS["wf_votive_c"],
+	"wf_votive_place": DeepB.PICKUPS["wf_votive_place"], "wf_names": DeepB.PICKUPS["wf_names"], "wf_boy": DeepB.PICKUPS["wf_boy"],
 }
 
 ## Oswin's walk: from wherever he is to the waystone. He keeps 2-3 m behind you and waits when you

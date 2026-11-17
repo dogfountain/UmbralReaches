@@ -322,9 +322,13 @@ func _step(id: String, s: int) -> void:
 							await _frames(1)
 							story.call("_on_advanced")
 							await _frames(1)
-						ok(Book.pick(id) == "rung", "%s: rung where it lies" % id)
+						ok(Book.pick(id) != "", "%s: a choice was made at %s (%s)" % [id, k, Book.pick(id)])
 		"visit":
 			await _stand(stp.at as Vector2)
+		"clues", "tracks", "order", "vigil", "lantern_walk":
+			# the task verbs (docs/QUEST_VERBS.md) have their own test (quest_verbs_test.gd); here the walk moves past them
+			Book.advance(id)
+			await _frames(1)
 		"carry":
 			await _stand(stp.to as Vector2)
 		"defend", "escort":

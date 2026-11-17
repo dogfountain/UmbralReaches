@@ -11,6 +11,7 @@ extends RefCounted
 ##   anchor_vow    The Vow Unbroken (Teasel)    the Anchoress, on the cliff terrace
 ## House style (docs/LORE.md): terse, concrete, dark.
 
+const DeepB := preload("res://core/story/quest_chains_deepen_b.gd")   ## the deepened tasks (docs/QUEST_DEPTH.md)
 const SALT_SWEEP := {"name": "Dead Men's Salt", "giver": "marl", "where": "Marl Pannick, at Saltmarket's fire", "zone": "saltmarket",
 	"offer": true,
 	"text": "The pans don't stop for a night or a Night. Salt comes up white or it comes up wrong, and lately it comes up with footprints in it. They walk out of the flats at dusk, the ones who raked too long. Put six of them down so my people can rake in peace.",
@@ -23,33 +24,9 @@ const SALT_SWEEP := {"name": "Dead Men's Salt", "giver": "marl", "where": "Marl 
 	"choose": [{"slot": "lantern", "rarity": 1}, {"slot": "girdle", "rarity": 1}],
 	"outcome": {"": "Marl salted the doorstep, which is what Saltmarket does instead of saying thank you."}}
 
-const SALT_WIDOW := {"name": "The Salt-Widow", "giver": "marl", "where": "Marl Pannick, at Saltmarket's fire", "zone": "saltmarket",
-	"offer": true, "avail": "qd:salt_sweep",
-	"text": "There's one that doesn't walk, it stalks. Corra Vane's widow, who went out to bring her husband in off the pans and has been bringing him in ever since. She takes what she finds. She's taken three of ours. Whatever's left of her is mostly salt.",
-	"steps": [
-		{"kind": "slay", "of": 1, "rares": ["salt_widow"], "label": "The Salt-Widow", "at": Vector2(238.0, 134.0),
-			"text": "Put down the Salt-Widow on the pans' north edge"},
-		{"kind": "turnin", "who": "marl", "text": "Tell Marl the widow has stopped"},
-	],
-	"reward": {"ash": 18, "items": {"relic_fragment": 1}},
-	"choose": [{"slot": "lantern", "rarity": 2}, {"slot": "vestment", "rarity": 2}],
-	"outcome": {"": "Marl set a stone on Corra Vane's grave and a second one beside it, a little smaller."}}
+const SALT_WIDOW := DeepB.SALT_WIDOW        ## deepened: quest_chains_deepen_b.gd
 
-const SPIRE_COAL := {"name": "The Lamplighters' Coal", "giver": "ardel", "where": "Ardel Wick, at Saltmarket's fire", "zone": "stillwater",
-	"offer": true,
-	"text": "Nine winters the lamp on the Spire has been dark, and every road in the Marches ran toward it once. I kept it. I can't climb it now, and I won't light it for you: the lamp is for whoever carries the fire up. Take a coal from this fire to the Spire's foot before it dies, climb the stair, and put it to the wick.",
-	"steps": [
-		{"kind": "find", "text": "Take a coal from Ardel's fire"},
-		{"kind": "carry", "from": "coal_ardel", "to": Vector2(240.0, 8.0), "r": 7.0, "time": 170.0, "label": "Coal",
-			"lost": "The coal has gone out on the road. Ardel's fire has more.",
-			"text": "Carry the coal to the foot of the Lamplighters' Spire before it dies ({t} s)"},
-		{"kind": "cond", "cond": "secret:open:spire_lamp", "at": Vector2(240.0, 8.0), "label": "The Spire's lamp", "past": "The Spire's lamp is already lit.",
-			"text": "Climb the Spire and light the great lamp"},
-		{"kind": "turnin", "who": "ardel", "text": "Tell Ardel the Spire is lit"},
-	],
-	"reward": {"ash": 24, "items": {"ember_shard": 2}},
-	"choose": [{"slot": "lantern", "rarity": 2}, {"slot": "focus", "rarity": 2}, {"slot": "vestment", "rarity": 2}],
-	"outcome": {"": "Ardel stood a long time looking north. \"It's not much,\" he said. \"It's the only light in the Marches that isn't a fire somebody is sitting beside.\""}}
+const SPIRE_COAL := DeepB.SPIRE_COAL        ## deepened: quest_chains_deepen_b.gd
 
 const ANCHOR_NAMES := {"name": "Names From the Rock", "giver": "teasel", "where": "Teasel Dray, at the drying shed", "zone": "anchorholds",
 	"offer": true,

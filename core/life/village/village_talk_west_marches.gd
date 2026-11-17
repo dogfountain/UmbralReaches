@@ -65,6 +65,8 @@ const CONV := {
 		"meet": {"say": "Softly. They're listening, just under. I don't mind. I only ask you keep your voice below the water-line.", "next": "meet2"},
 		"meet2": {"say": "Ennis. I keep the bridge. The river took thirty from Weirford the winter the sky turned, and none were buried. The sunk want a light. I carry one out.", "do": "met:ennis", "next": "hub"},
 		"hub": {"say_if": [
+			["qp:wf_lights:named,qd:wf_lights", "Thirty boats, thirty lights, and the three names said. I'd not asked what the keels said. I'd have wept for a week. You spared me, and then you read them anyway. There's a lamp on the east bank across from the shrine now. I know whose."],
+			["qp:wf_lights:nameless,qd:wf_lights", "Thirty boats, thirty lights. You counted them in and left them as they were: three nameless, in the keels. I haven't looked. I'll not. There's an unlit lamp on the east bank, across from the shrine, standing. For when I can."],
 			["qd:wf_lights", "Thirty boats, thirty lights. I'd counted three short, you see. You found them. The river's quieter on the bridge side tonight."],
 			["", "A light on the water tells them where the town is. I think it tells them where it isn't, too. I think it says: not that way."],
 		], "choices": [
@@ -90,8 +92,12 @@ const CONV := {
 		"meet2": {"say": "Tolliver. Engineer to the Marches. I raised the Lines, and a few of the engines on them. The rest of my life's been a long apology to a very large head.", "do": "met:tolliver", "next": "hub"},
 		"hub": {"say_if": [
 			["boss:r37_hierarch", "Silence. I'd forgotten the shape of it. Thank you. I'd tell you what I owe you, but I'd say it badly, and it'd take until morning."],
+			["qp:wf_crown:end,qd:wf_crown", "It stopped. I heard it stop, from the stall, and sat there. No fight: the boy just let go. There's a lamp in the skull's mouth, lit. I put the rubbings on the fire, and then I went and looked at the lamp. It's the first thing I've done for him."],
+			["qp:wf_crown:silence,qd:wf_crown", "The horn's quiet. You went in and ended it, and the boy with it, I'd say, though I never saw him. A slate stands in the skull's mouth now. I cut the name on it myself. I didn't know it. I cut it anyway."],
 			["qd:wf_crown", "The horn's done. All of it. The Hierarch's voice is where it belongs now: in the stone, saying nothing. You took the last of the First Edict out of it."],
-			["qat:wf_crown:2", "The skull's open on the far side. The crown stands in the middle of the floor. It talks. It'll talk to you, and then it'll stop you."],
+			["qat:wf_crown:4", "The skull's open on the far side. The crown stands in the middle of the floor. It talks. It'll talk to you, and then it'll stop you."],
+			["qat:wf_crown:3", "You've looked at where he sat. A stool, and the days. Now it's yours to say. Silence it, and be done: or tell him he can stop. I helped cut the hollow. I'll not tell you which."],
+			["qat:wf_crown:2", "Look at where the boy sat, in the skull's mouth. The stool. The tally. Whatever the Order left him to eat. Then you'll know what the note is."],
 			["qat:wf_crown:0", "Rubbings. Three. The Hierarch's name was cut in the stone at the hand, the shoulder and the lip. Get me all three and I can tell you which edict it speaks."],
 			["", "I know what's in that head. I helped cut the hollow. It was to be a voice. For the Hierarch to speak across the Marches, over a thousand miles of heath."],
 		], "choices": [

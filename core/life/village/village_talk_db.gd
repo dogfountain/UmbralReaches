@@ -316,9 +316,14 @@ const CONV := {
 		"hub": {"say_if": [
 			["qp:bell_holds:rung", "I heard it at dusk. The Kin Bell. Two doors opened down the Holds that hadn't in nine years. Nobody came out. But they opened."],
 			["qp:bell_holds:carried", "You took the Kin Bell's tongue to the Keg. Fine. The kin can find their own way home. They always did."],
+			["qp:oak_song:words,qd:oak_song", "You sang it in the old words, face down. The oak told me. It's been a long time since anything told me a thing I wanted to hear."],
+			["qp:oak_song:alone,qd:oak_song", "Your tune is in the oak now. It got into the roots. The second line of the old verse has a turn in it that wasn't there. I've decided to mind that later."],
 			["boss:thornwarden", "The keeper's down. The oaks don't know who they belong to. Neither do I, some nights. Sit."],
 			["qd:keeper_leave", "The keeper has our coal. When you go in to it, it'll remember its manners. Mind yours."],
+			["qp:keeper_wards:kin,qd:keeper_wards", "A Rooted cart, you said. A hand and an axe on the board. I knew the board before you showed it me. I've not said so to Hesk. He'll come when he comes, and the axe with him."],
 			["qd:keeper_wards", "Three wards round my fire. First time in ninety years. The heather's grown back over the door-stones already."],
+			["qp:holds_turf:open", "There's a hand's width of my roof open to the sky. I sit under it. Nothing has looked in. I look out, instead, and it's no worse than I feared."],
+			["qp:holds_turf:shut", "The roof's grass-down and shut. It's the old way. The beds are turned. I sleep better with a lid on things."],
 			["", "The Ring is a morning's walk east, if you walk like us. The abbey folk took two days. They kept looking up."],
 		], "choices": [
 			{"text": "Who are the Rooted?", "to": "rooted", "once": true},
@@ -334,6 +339,9 @@ const CONV := {
 		"hub": {"say_if": [
 			["qp:bell_quarry:rung", "Stop. You rang stop. The quarry's so quiet I can hear the stone settle. I keep reaching for my pick."],
 			["qp:bell_quarry:carried", "Hearthward has our bell's tongue. If it rings up there, let it ring stop."],
+			["qp:quarry_last:mark,qd:cutters_pledge", "Sixty-one marks on the roll, and mine at the foot, late. My brother's tail I finished on the block. Two things I finished in nine years, and one of them was his."],
+			["qp:quarry_last:mark", "'And the rest of us go home.' My brother's hand, and the tail he never drew. I went down with a lantern and drew it. The block's better for it. So am I, a bit."],
+			["qp:quarry_last:prayer", "'Here the faithful step off.' Cut on my own stone, deep as the Order cut it. I left the rest off. Somebody ought to say the Order's half out loud. I never said I'd say it kindly."],
 			["qd:quarry_last", "Here the faithful step off. I've had it cut on my own stone now. Under it: and the rest of us go home."],
 			["qd:quarry_picks", "The benches are quiet. I can hear the stone settle. It does that, when it isn't being cut."],
 			["qd:quarry_marks", "Wat, Dunny, my brother. I say them over at night. It's a short list. It used to be longer than the Stair."],
@@ -352,6 +360,8 @@ const CONV := {
 		"hub": {"say_if": [
 			["qp:bell_moor:rung", "They walk to the bell now, not the bog. I counted four lights going down off the tor last night. Down."],
 			["qp:bell_moor:carried", "No bell on the moor. I'll stand on the tor with a lantern myself, then. Somebody has to."],
+			["qp:moor_shrine:burn", "There's a flame in the shrine's lap. First light on the moor since the edict. I go up the tor to look at it, and the edict reads by it, and says what it says."],
+			["qp:moor_shrine:wick", "The shrine's dark. I've the wick in my pocket. I take it out at night and turn it over. That was all I wanted: to know it could be lit, and to be the one who put it out."],
 			["qd:moor_shrine", "There's a coal in the shrine's lap. First light on the moor since the edict. I go up the tor to look at it."],
 			["qd:moor_cairns", "The cairns stand. Somebody walking home tonight won't fall in the bog. They won't thank you. They won't know."],
 			["", "Lanterns are for doubters. That was the first edict. Most of the faithful who crossed here are still out there, on their faces."],
@@ -387,7 +397,11 @@ const CONV := {
 		"hub": {"say_if": [
 			["qp:bell_orchard:rung", "The grafted stock has three leaves. Three. Since the bell. Don't tell me it's the bell. I know it's the bell."],
 			["qp:bell_orchard:carried", "No harvest bell, then. The trees don't mind. They've been quiet nine years; they're good at it."],
+			["qp:orchard_press:coal,qd:orchard_graft", "My grandmother's pot is under the old tree, lit. The graft took on it. She banked a fire to save it and lost a press. She'd have said it was a fair trade. She'd have been lying."],
+			["qp:orchard_press:order,qd:orchard_graft", "A stave of the Order's own cask is in the old tree's roots, wax up. The graft took round it. The Order's good for something, now it's wood."],
 			["qd:orchard_graft", "The old tree's warm. A graft took on it this morning. Green as anything. Nobody's allowed to tell the Order."],
+			["qp:orchard_press:coal", "It was Grandmother's coal. I keep saying it to the rows. They've heard worse. She set the pot down, you said. She meant to come back."],
+			["qp:orchard_press:order", "The Order burned it. I knew. It's something, to have someone else say it who wasn't there. The press stands empty and I'll fill it, out of spite."],
 			["qd:orchard_buds", "Three buds on a stock. One's dead. One's thinking about it. One's growing. That's good odds, in an orchard."],
 			["", "They burned it in a winter. It'll take me forty years. That's all right. The fire took Edda's hands; I've still got mine."],
 		], "choices": [
@@ -404,6 +418,9 @@ const CONV := {
 		"hub": {"say_if": [
 			["qp:bell_necropolis:rung", "The ranks lay down after the one stroke. All of them. I walk the field now and nobody turns to look at the mountain."],
 			["qp:bell_necropolis:carried", "The Passing Bell's tongue is at the Keg. Let it pass him by. He's earned that much from it."],
+			["qp:field_ranks:gate,qd:still_climbing", "The ones who came down stand with their backs to the mountain now, and their faces to the gate. I counted forty-one. They are waiting to be let in, not up. I've told them they may."],
+			["qp:field_ranks:gate", "They face the gate. Every stone in the field, turned by hand and by themselves. Some folk would call that wrong. I call it a field that's finally looking at the people who come to see it."],
+			["qp:field_ranks:mountain", "They face the mountain, as buried. I turned the first one myself. Then you did. The rest came round. I stopped counting, and just stood."],
 			["boss:bone_abbot", "The count's stopped under the abbey. The ranks feel it. Some of the stones have turned toward the village, on their own. I let them."],
 			["qd:abbot_names", "You read the names into his dark. He's counting them again and coming up short. Good. Let him doubt. We did."],
 			["qd:abbot_roll", "Three pages. Eighty-one names. I read them to the field every night, a page at a time."],
@@ -422,6 +439,13 @@ const CONV := {
 		"hub": {"say_if": [
 			["qp:bell_mere:rung", "Somebody rang my bell. I went down to the water out of habit. There was nobody there. There never is. Good."],
 			["qp:bell_mere:carried", "The ferry bell's dumb now. Nobody calls me across. I sleep through the night."],
+			["qd:mere_ferry,qd:well_answer", "I rowed her out. Full boat, lamp at the bow, lamp at the stern, and the Well quiet at my back. Out to the middle and back, and I did not once look at the water for what it wanted. I did not look at it for anything."],
+			["qp:well_answer:silence,qd:well_answer", "The Well's quiet. I'd thought I would mind. I hear it anyway. I've learned the shape, and the shape is mine. I'll not have that taken."],
+			["qp:well_answer:name,qd:well_answer", "It calls Aldous's name now, at midnight, kindly. Not mine. I lie awake for the first nights, waiting to hear mine. And then I don't. I sleep. Don't tell the lamps."],
+			["qp:mere_ferryman:named,qd:mere_ferryman", "I said his name to the east bank. Nothing answered. I'd thought it might. I'd thought it would be worse not to be answered, and it isn't. It's only quiet, like a held door."],
+			["qp:mere_ferryman:coins,qd:mere_ferryman", "Two coins on the water by the east bank. They floated a moment. Aldous always did like to be paid in front of people."],
+			["qp:mere_light:aldous,qd:mere_light", "There's a lamp on the east post that isn't mine. I row past the chapel's and I don't look. I row past the east one slowly, and I look."],
+			["qp:mere_light:sunk,qd:mere_light", "There's a fourth light in the nave, that Corvin never lit. For the rest of them. I row past it and I don't look. I'm not ready to look."],
 			["qd:mere_light", "There's a light in Corvin's chapel. I row past it and I don't look. I'm not ready to look."],
 			["qd:mere_lamps", "His lamps are out on the water again. They drift toward the chapel. They always did."],
 			["", "The Abbot sank them with three stones: eyes, mouth, heart. Corvin answered with three lights. Same places. Different answer."],
@@ -438,9 +462,13 @@ const CONV := {
 		"meet": {"say": "Mind the chalk, it's loose at the edge of the fold. And mind the sheep. They're not mine any more, whatever they tell you.", "next": "meet2"},
 		"meet2": {"say": "Dunstan Pike. I stayed. Everyone with a crook walked north after the bells, behind the Order's banner, and the flock went after them. I counted the fold at dusk and it was one short. Then I stopped counting.", "do": "met:dunstan", "next": "hub"},
 		"hub": {"say_if": [
+			["qp:shepherd_strays:ring", "I heard it ring at the hurdle. Three came in out of the fog, thin as rakes, and stood to be counted. I counted. Three. I'd forgotten the number was a thing you could say with your mouth."],
+			["qp:shepherd_strays:down", "The bell's under a flat stone in the grass. I know where. I don't go. It keeps time in there, quietly, the way a heart does when you've stopped listening for it."],
 			["qd:shepherd_strays", "Three cairns up and the Bell-Wether down. I can hear the downs again. It's very quiet. I'd forgotten it could be."],
-			["qat:shepherd_strays:1", "Cairns are up. Now the Bell-Wether. You'll know it by the bell. It's the only thing out there still keeping time."],
-			["qat:shepherd_strays:0", "Three cairns, spilled across the chalk. Raise them as they were. Fifth stone for luck, top stone to the north."],
+			["qat:shepherd_strays:3", "The Bell-Wether's down, and its bell's in the grass. What you do with it is yours. I'd not ring it. I'd not leave it, either. That's why I'm asking you."],
+			["qat:shepherd_strays:2", "Cairns are up, and you've the strays' trail. Now the Bell-Wether. You'll know it by the bell. It's the only thing out there still keeping time."],
+			["qat:shepherd_strays:1", "The cairns are up. The strays went east along the chalk after it, wool on every thorn. Follow the wool. Where it thins, that's where the bell is."],
+			["qat:shepherd_strays:0", "Three cairns, spilled across the chalk. Raise them in the order the flock came out of the fog: the lead cairn at the west end, then the Well's, then the middle where the weak ones bunched. Fifth stone for luck, top stone to the north."],
 			["", "The oak's down west, the Well's east. I don't go to either. Both of them are listening."],
 		], "choices": [
 			{"text": "What happened to the flock?", "to": "flock", "once": true},
