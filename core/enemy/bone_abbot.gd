@@ -1,7 +1,8 @@
 class_name BoneAbbot
 extends Ossuant
 ## Boss of the Ossuary crypt: Abbot Osric, still counting. A crowned Ossuant (2.6x since r34), robed
-## in a tattered cassock under a mitre of bone, a reliquary lantern glowing at its breast.
+## in a tattered cassock and a deep cowl crowned with rib tines, ember eyes in the dark of the hood, a
+## reliquary lantern glowing at its breast.
 ## r34 crypt (docs/r34/raid_crypt.md): a raid boss in the pit hall under the bank (world/areas/ossuary/
 ## oss_hall.gd), WoW encounter design adapted for one player. 620 HP (r30-r33: 160), four phases and an
 ## intermission, every move a named cast (BossKit.cast / Enemy.cast_info) told on the ground first.
@@ -170,11 +171,11 @@ func _build() -> void:
 		var l := OmniLight3D.new()
 		l.name = "Reliquary"
 		l.light_color = Color(1.0, 0.68, 0.32)
-		l.light_energy = 1.6
-		l.omni_range = 6.5
+		l.light_energy = 0.75                     # (hooded, 17 Nov: at 1.6 it flooded the surplice a hand in front of it)
+		l.omni_range = 5.0
 		l.shadow_enabled = false
 		chest.add_child(l)
-		l.position = Vector3(0.0, -0.06, -0.36)
+		l.position = Vector3(0.0, -0.06, -0.5)
 
 
 ## The crozier is carried upright in the right hand (it hung from the swinging arm like a cane, the
