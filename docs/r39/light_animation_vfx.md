@@ -201,3 +201,23 @@ builds every pooled effect there. The living night joins it with `NightWarm.show
 - **Eleven standing gestures** for every villager (four old, seven new: neck scratch, shading the eyes, hands on the hips, a yawn, blowing into cupped hands, tapping a foot, wiping the hands, rolling the neck, looking at the hands, settling the hat, leaning to listen).
 - **The reach towns' folk** (see folk_and_animals.md).
 - **Costs.** Landing, wounded and surge: event-only, preset bursts already warmed. Owl look: a loop over the registry rows once per owl per two to six seconds. Towns: awake only within 80 m.
+
+---
+
+# Round four: four new weathers, six more folk
+
+## New fronts (core/life/wildlife/weather.gd FRONTS and CYCLE; core/world/night_life/weather_life.gd; sky_life.gd; realm_ground and terrain shaders)
+The cycle is now sixteen fronts (clear, mist, clear, gusts, drizzle, storm, **frost**, clear, mist, **sleet**, drizzle, clear, **windstorm**, gusts, **fogbound**, storm); night 0 still opens clear. A front carries the four state terms only
+(mist, rain, wind, thunder); what each new one does to the world is read by name in weather_life.gd, as a weight (`Reg.fx.<name>`, 0..1, eased over 25 s as the state is). **Those four weights are the sound seat's hooks** (wind howl, sleet hiss, frozen hush, fog muffle).
+- **fogbound.** The mist state at full and a deck of cloud over the whole sky; the stars and constellations are almost gone (`const_vis` x 0.1); the landmark cards' reach shrinks to 45 percent (`Reg.vis`: the far land is gone, only the near lights live), halos swell; the mist banks are half as thick again; the moon is at 65 percent; the ground is damp.
+- **windstorm.** Wind at its top and the gust 50 percent stronger than any other front's (the grass, trees, lanterns, hooks and the fire cards all feel it); the cloud deck scuds five times as fast (`cloud_speed`); a third more cover.
+- **sleet.** Rain at 0.7 with mist and wind, and the ground wets as in rain but also rimes (`frost` at half): paler, colder, a little glitter; the moon at 85 percent; a half deck of cloud.
+- **frost.** Still, clear and freezing: the global `frost` term whitens and hardens the flat ground (paler albedo, lower roughness) and sets a glitter of ice crystals that wake and sleep with the eye (a hashed cell emissive); the stars and constellations 40 percent brighter, the aurora half again; **breath**: a pale puff from the wanderer and from each of the folk awake within 14 m, on their own beats.
+- **See / film.** `Weather.force("frost")`, `"sleet"`, `"windstorm"`, `"fogbound"` from the debugger (instant with `true`), then the green at night from near and the vista from the south-east hill; frost glitter on the road at 5 m; fog: the same vista (the cards gone), a window at 20 m.
+- **Cost.** Two global shader floats and three ground-shader terms (hash, step, mix: already in a shader that is drawn), eight bursts' worth of breath a second at most (pooled preset, warmed), no new nodes.
+
+## More folk (core/life/folk/folk_more.gd)
+A **drunk** outside the Keg (a slow stagger about his spot, wide-stanced and swaying, a jug raised to his mouth every eleven seconds, a hiccup, the head lolling), a **shepherd** with a crook (a slow loop of three points on the green's outskirts,
+leaning on the crook at each to watch the dark) and **his dog** (a fourth dog), a **priest** at the chapel (twenty-four seconds: hands clasped and head bowed; arms raised out and up in a benediction; then standing with a candle at his chest, the head turning slowly), and in each reach town a **woodcutter**
+(an axe over the shoulder and down onto a block, chips flying at the blow), a **smith** at an anvil (the hammer raised and brought down on the iron the tongs hold, a spark at each blow, a forge fire behind him that is a source for the night's cards, pools and lent lights) and a **lamplighter**
+who walks the town's lamps in order with his pole and tends each for five seconds (he does not light or put out the game's lamps: the lamps' state is the wanderer's). New tools in the villager mesh: a clay jug. New presets: chips, spark, breath, dust (all warmed). Film: the Keg's front for the drunk; a reach town for the smith, woodcutter and lamplighter.
