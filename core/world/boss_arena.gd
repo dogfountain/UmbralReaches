@@ -77,18 +77,19 @@ class BossBar extends Control:
 		queue_redraw()
 
 	func _draw() -> void:
+		var fl := _flash * preload("res://ui/access.gd").flash()
 		var w := size.x
 		var h := size.y
 		var r := clampf(value / maxf(max_value, 0.001), 0.0, 1.0)
 		draw_rect(Rect2(0, 0, w, h), Color(0.05, 0.02, 0.07, 0.85))
 		draw_rect(Rect2(0, 0, w * _trail, h), Color(1.0, 0.85, 0.75, 0.55))
-		draw_rect(Rect2(0, 0, w * r, h), Color(0.7, 0.14, 0.22).lerp(Color(1.6, 0.9, 1.8), _flash))
+		draw_rect(Rect2(0, 0, w * r, h), Color(0.7, 0.14, 0.22).lerp(Color(1.6, 0.9, 1.8), fl))
 		draw_rect(Rect2(0, 0, w * r, h * 0.3), Color(1.0, 0.45, 0.5, 0.35))
 		for m in marks:
 			var x := w * m
 			draw_line(Vector2(x, -4), Vector2(x, h + 4), Color(0.95, 0.85, 1.0, 0.9), 2.0)
 			draw_colored_polygon(PackedVector2Array([Vector2(x - 5, -6), Vector2(x + 5, -6), Vector2(x, 1)]), Color(0.95, 0.85, 1.0, 0.9))
-		draw_rect(Rect2(0, 0, w, h), Color(0.5, 0.35, 0.7).lerp(Color(1.6, 1.0, 2.0), _flash), false, 1.0 + _flash * 2.0)
+		draw_rect(Rect2(0, 0, w, h), Color(0.5, 0.35, 0.7).lerp(Color(1.6, 1.0, 2.0), fl), false, 1.0 + fl * 2.0)
 var _warned := false
 var _warned_bells := -1
 const QuestBookScript := preload("res://core/story/quest_book.gd")

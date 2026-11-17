@@ -10,6 +10,7 @@ extends Node3D
 ## fades the light out in a blink. Cost: one omni, at most one ring per cast.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const Access := preload("res://ui/access.gd")
 const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 const AMBER := Color(1.0, 0.62, 0.2)
@@ -48,7 +49,7 @@ func _on_start(enemy: Node, _cast: String, time: float, interruptible: bool) -> 
 	_dur = time
 	_t = 0.0
 	_cold = interruptible
-	var col := COLD if interruptible else AMBER
+	var col := Access.telegraph(COLD if interruptible else AMBER)        # the colour-blind palette moves the amber tell to violet
 	_light.light_color = col
 	_light.global_position = e.global_position + Vector3(0.0, 0.25, 0.0)
 	_light.reset_physics_interpolation()
@@ -64,7 +65,7 @@ func _landing(e: Node3D, cast: String) -> void:
 	fwd.y = 0.0
 	fwd = fwd.normalized() if fwd.length() > 0.05 else Vector3.FORWARD
 	var dust := Color(0.4, 0.36, 0.32, 0.55)
-	var warm := Color(2.0, 1.2, 0.6)
+	var warm := Access.telegraph(Color(2.0, 1.2, 0.6))
 	if cast.contains("slam") or cast.contains("stomp") or cast.contains("quake") or cast.contains("smash"):
 		Vfx.ring(p + fwd * 1.5, 4.0, warm, 0.5, 0.14)
 		NightFx.burst(p + fwd * 1.5 + Vector3(0.0, 0.2, 0.0), dust, "dust")
@@ -110,7 +111,7 @@ func _process(delta: float) -> void:
 	var u := clampf(_t / _dur, 0.0, 1.0)
 	var pulse := 1.0
 	if u > 0.75:
-		pulse = 0.65 + 0.35 * sin(_t * 38.0)
+		pulse = 1.0 - (0.35 - 0.35 * sin(_t * 38.0)) * Access.flash()           # Reduce Flashes: the last-quarter flicker is shallow
 	_light.visible = true
 	_light.light_energy = (0.4 + 2.6 * u * u) * pulse * (1.3 if _cold else 1.0)
 	if u >= 1.0 and _t > _dur + 0.3:

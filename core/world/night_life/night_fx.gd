@@ -7,6 +7,7 @@ extends RefCounted
 ##   3  zz/night_life_test.tscn can fail when a system throws a burst that is not here.
 ## Systems call `NightFx.burst(at, colour, id, dir, ratio)`; nothing else under core/world/night_life calls Vfx.burst. Static.
 
+const Access := preload("res://ui/access.gd")
 const PRESETS := {
 	"arena_mark": {"count": 40, "life": 1.2, "speed": Vector2(2.0, 7.0), "size": 0.07, "gravity": -1.0, "spread": 180.0, "damping": 1.5},
 	"crit": {"count": 22, "life": 0.55, "speed": Vector2(3.0, 8.0), "size": 0.06, "gravity": -9.0, "trail": 0.12, "spread": 70.0, "damping": 2.0},
@@ -48,8 +49,21 @@ const FIXED := {
 }
 
 
+## The presets that read as a flash (Access.flash() scales how many sparks), and those whose colour is a DANGER colour (Access.telegraph moves a red
+## or orange to violet when the colour-blind palette is on).
+const FLASHY := ["crit", "kindle", "level", "arena_mark", "found", "snap"]
+const DANGER := ["hurt", "fizzle", "shaken"]
+
+
+static func shade(id: String, colour: Color) -> Color:
+	return Access.telegraph(colour) if DANGER.has(id) else colour
+
+
 ## Throw preset `id` at `at` in `colour`; `dir` (ZERO: the preset's own) turns the emitter; `ratio` (0..1) is the share of its count to emit.
 static func burst(at: Vector3, colour: Color, id: String, dir := Vector3.ZERO, ratio := 1.0) -> void:
+	colour = shade(id, colour)
+	if FLASHY.has(id):
+		ratio *= Access.flash()                # Reduce Flashes: a flash of sparks is a few
 	var o: Dictionary = PRESETS[id]
 	if dir != Vector3.ZERO or ratio < 0.999:
 		o = o.duplicate()
@@ -65,7 +79,7 @@ static func warm_list(arena_palettes: Dictionary) -> Array:
 	var out: Array = []
 	for id: String in FIXED:
 		for c: Color in FIXED[id]:
-			out.append([id, c])
+			out.append([id, shade(id, c)])
 	for c: Color in SCHOOLS:
 		out.append(["kill", c])
 	for c: Color in SKILLS:

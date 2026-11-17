@@ -21,6 +21,7 @@ extends Node3D
 signal thundered(at: Vector3)
 
 const RL := preload("res://core/world/realm/realm_land.gd")
+const Access := preload("res://ui/access.gd")
 const LifeSynth := preload("res://core/life/wildlife/life_synth.gd")
 const ScapeSynth := preload("res://core/life/wildlife/scape_synth.gd")
 const BOLT_SH := preload("res://core/life/wildlife/bolt.gdshader")
@@ -734,6 +735,7 @@ func _thunder(dt: float, real_dt: float) -> void:
 			_flash_t = -1.0
 			_sky_flash.visible = false
 			_bolt.visible = false
+		f *= Access.flash()               # Reduce Flashes: the lightning is dimmer, and the ambient surge and veil that follow it
 		flash = f
 		_flash_mat.set_shader_parameter("flash", f)
 		_bolt_mat.set_shader_parameter("flash", f if _flash_t < 0.45 else 0.0)

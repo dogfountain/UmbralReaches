@@ -5,6 +5,7 @@ extends Control
 ## cell takes a gilt frame; the next buyable thing is lit, locked things are dim.
 
 const Med := preload("res://ui/medieval_style.gd")
+const Access := preload("res://ui/access.gd")
 const UIType := preload("res://ui/type.gd")
 const Icons := preload("res://core/life/progression/icons.gd")
 
@@ -99,7 +100,7 @@ func _draw() -> void:
 		_gilt_frame(r)
 	if flash > 0.0:
 		var fl := StyleBoxFlat.new()
-		fl.bg_color = Color(1.0, 0.7, 0.35, 0.35 * flash)
+		fl.bg_color = Color(1.0, 0.7, 0.35, 0.35 * flash * Access.flash())
 		fl.set_corner_radius_all(5)
 		draw_style_box(fl, r)
 

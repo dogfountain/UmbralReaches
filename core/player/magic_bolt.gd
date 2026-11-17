@@ -7,6 +7,7 @@ const LIFE := 2.6
 const BLAST := 1.2
 const HIT_DMG := 1.0
 const FLARE_SHADER := preload("res://world/flare.gdshader")
+const Access := preload("res://ui/access.gd")
 const MOTE := preload("res://art/materials/rift_mote_particle.tres")
 const IMPACT_SFX := preload("res://art/audio/bolt_impact.wav")
 const HEAT_SHADER := preload("res://world/vfx/heat_distort.gdshader")
@@ -185,7 +186,7 @@ func arm(is_heavy: bool) -> void:
 	if _light:
 		_light.visible = heavy or _light_slot()
 		_light.light_color = Color("#FF7A4A") if heavy else Color("#A98BFF")
-		_light.light_energy = 2.2 if heavy else 1.6
+		_light.light_energy = (2.2 if heavy else 1.6) * Access.flash()
 		_light.omni_range = 6.0 if heavy else 4.6
 	visible = true
 	process_mode = Node.PROCESS_MODE_INHERIT
@@ -232,7 +233,7 @@ func arm_with(cfg: Dictionary) -> void:
 		if _aura:
 			_aura.scale = Vector3(1.8, 1.8, 2.6)
 		if _light:
-			_light.light_energy = 2.0
+			_light.light_energy = 2.0 * Access.flash()
 			_light.omni_range = 5.0
 	if pierce and _aura:
 		_aura.scale = Vector3(1.6, 1.6, 3.2)
@@ -267,7 +268,7 @@ func reset_idle() -> void:
 	if _core:
 		_core.visible = true
 	if _light:
-		_light.light_energy = 1.15
+		_light.light_energy = 1.15 * Access.flash()
 
 
 func _physics_process(delta: float) -> void:
@@ -334,7 +335,7 @@ func explode(at: Vector3) -> void:
 		_kindle_wells(at)
 	var flash := _light
 	if flash:
-		flash.light_energy = 2.4
+		flash.light_energy = 2.4 * Access.flash()
 		flash.omni_range = 7.0
 		var tw := create_tween()
 		tw.tween_property(flash, "light_energy", 0.0, 0.28)

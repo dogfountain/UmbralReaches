@@ -59,3 +59,13 @@ Done and committed: everything ticked above. Open, in order of value:
 3. Dog and cat meshes; the black quads and the voxel ruins (world seat).
 4. More weather states (the Weather node's FRONTS table is weather.gd's: a front with its own sky look would be a new row plus a `SkyLife` read), more folk roles (a washerwoman at the well, a candle-bearing pilgrim at the chapel, children's skipping rope), a first-view hitch measurement at Hearthward with the warm-up in.
 5. Frame-strip checks of the folk's act changes at 60 and 144 Hz: if any pops, the crossfade length in folk_actor.gd (0.28 s) and the envelope in the pose is where to tune.
+
+
+## Reduce Flashes and the colour-blind telegraph (routed)
+Access.flash() now scales: the lightning (`weather.gd` `_thunder`: the flash value, so the sky flash, bolt, cloud veil and ambient surge all follow), the enemy hit flash and its squash (`enemy.gd`), the boss bar's phase flash (`boss_arena.gd`),
+every Vfx flash light (`Vfx.light`) and the hit star (`Vfx.impact`), the magic bolt's lights and muzzle flash, the level-up burst (colour and `ratio`), the objective line's pulse, the stamina meter, skill bar and growth card flashes,
+and in the night's own systems: NightFx's flashy presets (their count), the kindle, arena-phase and level rings, the registry pulse (every landmark card's flare), the level column, the telegraph light's last-quarter flicker.
+Not scaled, on purpose: the glade secret's mouth flash (`site_glade.gd` `_flash`): it is the puzzle's visible phrase, a cue and not a flash; the opening seat should decide whether it needs a calmer form.
+Access.telegraph() now colours the telegraph glow (amber and landing rings), the hurt ring and spark presets (`NightFx.DANGER`, so the warm-up replays the shifted colours). SpellFx.danger already used it.
+Checked, nothing found: a boss-intro white-out and a ward pulse as shader terms were not found (searched core/enemy/boss_frame.gd, boss_title.gd, skill_ward.gd, spell_fx.gd).
+Pre-existing on master, not mine: `ui/settings_menu.gd` is 1002 lines against a baseline of 0 (lint).

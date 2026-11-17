@@ -8,6 +8,7 @@ extends RefCounted
 ## Colours are HDR on purpose (> 1 blooms under the tight glow budget: threshold 1.15).
 
 const ShotLight := preload("res://core/vfx/shot_light.gd")
+const Access := preload("res://ui/access.gd")
 const RING_SHADER := preload("res://world/vfx/ring_wave.gdshader")
 
 static var _dot: GradientTexture2D
@@ -437,7 +438,7 @@ static func light(at: Vector3, color: Color, energy: float, rng: float, time := 
 		return
 	var l := OmniLight3D.new()
 	l.light_color = tone(color)
-	l.light_energy = energy
+	l.light_energy = energy * Access.flash()          # Reduce Flashes
 	l.omni_range = rng
 	l.shadow_enabled = false
 	l.light_volumetric_fog_energy = 0.6
@@ -607,7 +608,8 @@ static func impact(at: Vector3, color: Color, dir := Vector3.ZERO, big := false)
 		qd = Vector3.UP
 	burst(at, color, {"count": 26 if big else 14, "life": 0.38, "speed": Vector2(4.0, 10.0), "size": 0.05, "gravity": -11.0, "trail": 0.1, "dir": qd.normalized(), "spread": spread, "damping": 3.0})
 	burst(at, IMPACT_CORE, {"count": 6, "life": 0.18, "speed": Vector2(0.4, 1.4), "size": 0.16 if big else 0.11, "gravity": 0.0, "scale_var": 0.3})
-	_flash_star(h, at, color, 0.95 if big else 0.6)
+	var fk := Access.flash()
+	_flash_star(h, at, Color(color.r * fk, color.g * fk, color.b * fk, color.a), 0.95 if big else 0.6)
 	if big:
 		light(at, color, 2.4, 3.5, 0.14, 2)
 

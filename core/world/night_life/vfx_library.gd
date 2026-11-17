@@ -17,6 +17,7 @@ extends Node3D
 ## No work between events beyond the status carriers. Skipped with the Living Night off.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const Access := preload("res://ui/access.gd")
 const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 const MAX_CARRIERS := 10
@@ -145,7 +146,7 @@ func _process(delta: float) -> void:
 			_column.visible = false
 		else:
 			var a := (1.0 - u) * smoothstep(0.0, 0.08, u)
-			(_column.material_override as StandardMaterial3D).albedo_color = Color(1.0, 0.85, 0.5, a)
+			(_column.material_override as StandardMaterial3D).albedo_color = Color(1.0, 0.85, 0.5, a * Access.flash())
 			_column.scale = Vector3(1.6 + 2.0 * u, 26.0, 1.0)
 	if not Reg.enabled or _carriers.is_empty():
 		return
@@ -211,11 +212,11 @@ func _on_level(_level: int, _points: int) -> void:
 	if p == null:
 		return
 	var c := Color(2.4, 1.8, 0.7)
-	Vfx.ring(p.global_position, 8.0, c, 1.0, 0.14)
-	Vfx.ring(p.global_position, 4.0, c, 0.7, 0.1)
+	Vfx.ring(p.global_position, 8.0, c, 1.0, 0.14, Vector3.UP, Access.flash())
+	Vfx.ring(p.global_position, 4.0, c, 0.7, 0.1, Vector3.UP, Access.flash())
 	NightFx.burst(p.global_position + Vector3(0.0, 0.3, 0.0), c, "level", Vector3.UP)
 	Vfx.light(p.global_position + Vector3(0.0, 1.2, 0.0), c, 4.0, 14.0, 1.2, 3)
-	Reg.pulse = 1.0
+	Reg.pulse = Access.flash()
 	_column.global_position = p.global_position + Vector3(0.0, 13.0, 0.0)
 	_column.visible = true
 	_col_t = 0.0
