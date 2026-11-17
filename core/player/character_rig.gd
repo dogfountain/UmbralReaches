@@ -657,7 +657,7 @@ func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) ->
 		_knee[i].rotation.x = -knee
 		_foot[i].rotation.x = -(hip - knee) * 0.55
 	_torso.rotation.y = -s * 0.16 * st
-	_torso.rotation.x = -0.05 - 0.14 * maxf(0.0, st - 0.6) - _land * 0.25 + _air * 0.08 - _gesture * 0.08
+	_torso.rotation.x = -0.05 - 0.14 * clampf(st - 0.6, 0.0, 0.45) - _land * 0.25 + _air * 0.08 - _gesture * 0.08
 	_torso.rotation.z = -_turn * 0.045 + sin(_t * 0.55) * 0.02 * idle
 	_chest.scale = Vector3(1.0 + breathe * 0.016 * idle, 1.0 + breathe * 0.024 * idle, 1.0 + breathe * 0.016 * idle)
 	_head.rotation.y = s * 0.1 * st + sin(_t * 0.45) * 0.12 * idle
@@ -991,7 +991,8 @@ func _carry_pose(speed: float, _idle: float, dt: float) -> void:
 	_el[1].rotation.x += 0.28 * mid + 0.15 * spr
 	_el[0].rotation.x += 0.5 * spr + 0.15 * mid
 	_sh[0].rotation.x += -sin(_phase) * 0.25 * spr
-	_torso.rotation.x -= 0.1 * spr
+	# (no lean here: the coat hangs from the chest, so every lean swings its hem back along the ground; three
+	# stacked at a sprint, 0.39 rad, read as a run on the knees)
 	_head.rotation.x += 0.07 * spr
 
 
@@ -1603,7 +1604,7 @@ const STOP_Z := 3.2                 ## how fast it dies away
 const LAND_LEAD := 0.9              ## how much of the body's travel to touchdown the swinging sole leads (1: lands at rest)
 const BALL := 0.1                   ## sole point -> ball of the foot: the heel rises about it
 const TOE_OUT := 0.07
-const STEP_KEYS := [[0.0, 0.3], [1.5, 0.52], [3.0, 0.78], [4.5, 1.0], [7.5, 1.5], [11.0, 1.8]]
+const STEP_KEYS := [[0.0, 0.3], [1.5, 0.52], [3.0, 0.78], [4.5, 1.0], [7.5, 1.32], [11.0, 1.6]]   # a sprint stride the legs reach without sinking the hips
 
 ## Traversal state the Player feeds in (all 0..1 blends unless noted).
 var ride := 0.0                     ## r36: astride a horse (core/world/mount): 0..1
@@ -2015,7 +2016,7 @@ func _gait_body(_speed: float, on_floor: bool, idle: float, breathe: float, dt: 
 	_torso.rotation.y -= _hip_yaw * 0.85
 	# sprint: pitched from the hips, head up to see where it's going
 	_pelvis.rotation.x -= 0.07 * _g_spr * _stride
-	_torso.rotation.x -= 0.1 * _g_spr
+	_torso.rotation.x -= 0.04 * _g_spr
 	_head.rotation.x += 0.1 * _g_spr
 	if lock:
 		_pelvis.position.y -= 0.03
