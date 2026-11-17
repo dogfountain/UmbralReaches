@@ -68,7 +68,7 @@ Pin every "how long ago" to **nine winters** (Pell is "nine winters" by the same
 - **Old Maud.** Keeps one candle in her window so her son Hobb will see it from the sky. Writes him
   letters she never sends. Something knocks at her door at night, three slow knocks, as Hobb used
   to; she does not open.
-- **The bells.** The **Founder**, Brannoc's mother, cast the rim's three great bells (Hope,
+- **The bells.** (r39 canon: the rim's three are the Order's, cast first; the Founder's **peal** is eight bells for the roads, seven for the far countries and the eighth for the Marches, which the Order shut out. One opens the door; each more weakens the one who holds it.) The **Founder**, Brannoc's mother, cast the rim's three great bells (Hope,
   Patience, Homecoming) in a furnace under the rim. **Brannoc** cast the forty small bells of the
   Stair, and the Hierarch's great bell at the summit. On the Night they stopped **top first**. Rung
   right they go **bottom to top**, the great bell first ("Mother's order"): that is the rim peal, and
@@ -88,6 +88,16 @@ Pin every "how long ago" to **nine winters** (Pell is "nine winters" by the same
   hollows do not. The Keg's folk (the keep and every patron) are dwarves, the last of the Rooted's
   kin, who were in the valley before the road and never looked up: their cellar is older than the
   Stair, Hesk's grandmother's people raised the Ring. Hearthward's villagers are human.
+
+## The clause the scribe cut (r39)
+
+Edict III as dictated, at dawn on the Night, to Perrin Aldwyn of the third desk: *I will hold the door until the last of you is
+through, and then I will follow.* Perrin cut the first half; the second sounded like a threat and he was afraid. Aurel was not holding
+the door to trap them. He was holding it so they could pass, and meant to shut it behind them and go after. The wanderer, the last
+through, can cut the clause back in, leave the stone, or scratch it out (quest The Third Edict), and Aurel answers each differently.
+The Ninth Company's youngest, **Ione Marsh** (the tenth name nobody finished), is in the Glimmer Glade; the Tally's last line,
+*ONE LATE PILGRIM, NO NAME*, is the wanderer. Other new people: **Odile Frane** (Ned's widow; three hundred and eleven road lamps),
+**Cantor Lowe** and the boy **Tavi** in the horn, **Tamsin Hale** the baker who feeds the Anchoress's cell.
 
 ## The three who hold the valley (bosses)
 

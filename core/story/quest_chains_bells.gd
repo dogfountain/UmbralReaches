@@ -5,7 +5,7 @@ extends RefCounted
 ## Order shut out", which hangs at the foot of the Lamplighters' Spire in the Marches. Each bell has a giver
 ## (the far country's last fire), a named keeper (core/enemy/rares.gd) that haunts it and a bell the wanderer
 ## answers for: rung where it hangs (the country quiets) or its tongue lifted out for Hearthward.
-## The Spire's is the one the summit door insists on (quest_book.gd peal_open): Act II goes through the Marches.
+## One answered bell, any of the eight, opens the summit door (quest_book.gd peal_open); the rest weaken the Warden (warden_peal.gd).
 ## House style (docs/LORE.md): terse, concrete, dark.
 
 const QUESTS := {

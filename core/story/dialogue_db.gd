@@ -19,6 +19,9 @@ const FRW := preload("res://core/story/quest_chains_far_reaches_west.gd")   ## t
 const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
 const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 
+const DoorsQ := preload("res://core/story/quest_chains_doors.gd")   ## the four closed doors
+const StoryQ := preload("res://core/story/quest_chains_story.gd")   ## the story's long tasks: the five choices made at their places
+
 const DeepB := preload("res://core/story/quest_chains_deepen_b.gd")   ## the countries' and the Marches' choices, made at a place (their pickups open these)
 
 const KEEP_PORTRAIT := {"seated": false, "seed": 5150, "apron": true, "hat": "bare", "rag": true}
@@ -38,7 +41,7 @@ const CONV := {
 				{"text": "Who holds it?", "to": "three_1", "once": true},
 				{"text": "I'll find my own way.", "to": "meet_brief"},
 			]},
-			"lore_1": {"say": "Somebody opened the sky at the top of the Stair. It opened inward. It's been drinking ever since: the light first, then the warm, then the people.", "next": "lore_2"},
+			"lore_1": {"say": "The Order of the Open Sky taught that the sky was a door, and the faithful could climb through it. Nine winters ago, on the Night, their Hierarch opened it from the top of the Stair. It opened inward. It's been drinking ever since: the light first, then the warm, then the people.", "next": "lore_2"},
 			"lore_2": {"say": "Edda put coals from her forge on a bare altar and the dark stopped at the door. Every fire since is hers. Yours too, now.", "next": "meet_hub"},
 			"three_1": {"say": "Three. Something in the Ring on the western hill that keeps the oaks; the Rooted call it the Thornwarden. The Abbot under the abbey, still counting his dead.", "next": "three_2"},
 			"three_2": {"say": "And whatever stands at the top of the Stair with the door open. The ward on the Crossing won't let you near it till the other two are down: a heart out of the Ring, a crown out of the crypt.", "next": "meet_hub"},
@@ -52,7 +55,7 @@ const CONV := {
 			# --- the hub, every visit after ---------------------------------------------------
 			"hub": {"say_if": [
 				["flag:ending_told", "The kindled one. Your stool, your mug. The fire draws by itself now; I've nothing to do but pour."],
-				["boss:thornwarden,boss:bone_abbot,peal:4", "Heart and crown, and a peal behind you. I heard one of them from here, and one from the Marches, which I did not expect. The door will hear the rest."],
+				["boss:thornwarden,boss:bone_abbot,peal:1", "Heart and crown, and a bell behind you. I heard it from here. The door will know that voice, and so will the one who holds it."],
 				["boss:thornwarden,boss:bone_abbot", "Heart and crown, both. The ward will know them. Brannoc says the door won't, not without his mother's bells. He's been saying it into his cup all night. Ask him."],
 				["boss:thornwarden", "Thorn Heart. Still beating? Then the wood will forget you soon enough."],
 				["boss:bone_abbot", "The Abbot's crown. Did he count you? He counts everyone."],
@@ -68,13 +71,18 @@ const CONV := {
 				{"text": "About your ale thief...", "to": "thief_where", "if": "qat:keg_thief:0|qat:keg_thief:1|qat:keg_thief:2|qat:keg_thief:3"},
 				{"text": "Any news?", "to": "news"},
 				{"text": "Tell me again about the three.", "to": "three_again"},
+				{"text": "What about the ones past the Lines?", "to": "others_1", "if": "bosses:1", "once": true},
+				{"text": "Does he ever speak to the ones who climb?", "to": "voice_1", "if": "bosses:1,flag:aurel_boss_thornwarden|bosses:1,flag:aurel_boss_bone_abbot", "once": true},
 				{"text": "Who are you, keep?", "to": "who_1", "once": true},
 				{"text": "Goodbye.", "to": "bye"},
 			]},
+			"others_1": {"say": "Two more, if you count them, out where the towns are. A cantor's note in the skull of a fallen god, and a hermit who walled herself in to pray the sky still. Not the valley's to keep. The sky's leftovers. I'd not go looking for either. But there are people out there who'd ask you to.", "next": "others_2"},
+			"others_2": {"say": "Cantor Lowe, at the Siege Lines, and Tamsin Hale, who walks bread up the cliff road. They'd tell you what they are. I never learned. I stay with the fire.", "next": "hub"},
+			"voice_1": {"say": "You've heard him. Don't tell me; I can see it in how you hold the lantern. He talks to the ones who climb. He's civil. That is the worst of it. Whatever's up there at the top has manners.", "next": "hub"},
 			"next": {"say_if": [
 				["boss:ascended_warden", "Now? Now nothing. Sit. Let the valley learn not to be pulled at. It'll take a while; it's been a while. Past the Lines, the towns have been waiting longer: Reedholm, Fallowmere, Lastlight. Corle, Penn, Maudlin. Ask Brannoc, he's had the letters."],
-				["boss:thornwarden,boss:bone_abbot,!peal:4", "Not up yet. The door hears bells, not crowns. Four of the Founder's eight, and one of them cast for the Marches. Brannoc has the first; ask him."],
-				["boss:thornwarden,boss:bone_abbot,!qd:founders_peal", "Four bells answered. Good. Tell Brannoc the door will hear a peal; he's been waiting to be told. Then the ward on the Crossing will take you."],
+				["boss:thornwarden,boss:bone_abbot,!peal:1", "Not up yet. The door hears bells, not crowns. One of the Founder's eight will do for the door; the rest are for the one behind it. Ruan's, at the Holds, is the nearest. Brannoc will tell you what each is worth."],
+				["boss:thornwarden,boss:bone_abbot,!qd:founders_peal", "A bell answered. Good. Tell Brannoc the door will hear it; he's been waiting to be told. Then the ward on the Crossing will take you."],
 				["boss:thornwarden,boss:bone_abbot,!seal:summit", "Across the Crossing. There's a ward at the landing with guards that don't sleep. Clear them and it'll let heart and crown through. It was cut to let nobody else."],
 				["boss:thornwarden,boss:bone_abbot", "Up. Whatever's at the top is halfway into the sky and stuck there. Make it let go of the door."],
 				["boss:thornwarden", "The crown, then. South on the Waiting Field's road, past the tomb, to the bone bridge, and over it into the gallery. Mind the bones that stand up."],
@@ -191,6 +199,26 @@ const CONV := {
 				["qp:forty_days:carried", "There's a tin door on a cord on your staff. I won't ask. One of that company's still on the Stair, they say. I don't know whose."],
 				["qp:forty_days:buried", "The Ninth Company's buried at Aldo's root, Wyck says. Late. Forty days late. They got there."],
 				["", "Wyck counts the Stair's dead of an evening. He has stopped saying the number."],
+			], "next": "end_4s"},
+			# the story's long tasks: what the road, the roll, the horn, the wall and the third stone came to
+			"end_4s": {"say_if": [
+				["qp:aurel_edicts:follow", "Perrin the scribe burned his copy-book the night the sky stopped. 'And then I follow,' he says, at the fire. 'He did.' I've told him it was your doing. He says it was the clause's."],
+				["qp:aurel_edicts:scratch", "Perrin took the scratched stone hard. Then he sat down and began to copy the third edict, from memory, in a clean hand. I don't ask who for."],
+				["qp:aurel_edicts:leave", "Perrin has stopped copying. He sits with the book shut. Says he's been told what the stone says, and it was the thing he was afraid of, and it is a great relief."],
+				["qp:lamp_road:stair", "The road's lit, west to east, every lamp leaning at the mountain. Odile Frane walks it at dusk with an empty oil-can. Says it's the longest argument she's ever won."],
+				["qp:lamp_road:home", "The road's lit, west to east, every lamp turned to Hearthward. First pilgrim down it last night wept at the Stair-foot post. Odile said that's what it's for."],
+				["qp:name_on_roll:entered", "There's a line in the Tally cut in a hand nobody knows. Ione Marsh says it's the wanderer's. I said I'd never heard of a thing like that. She said, neither had she. She's kept the tin door."],
+				["qp:name_on_roll:mother", "Ione Marsh stood at the Tally post a long while, her mother's name above hers. Then she went and slept in a bed, which she hasn't, she says, since she was five."],
+				["", "Ione Marsh keeps her fire small in the glade. Says it's all right if nobody comes."],
+			], "next": "end_4t"},
+			"end_4t": {"say_if": [
+				["qp:horn_end:sung", "They say the Siege Lines are quiet. The note in the skull stopped, the way a note should: on its last line. Lowe sleeps now. Out loud."],
+				["qp:horn_end:left", "The skull's still singing, past the Lines. Lowe has set a second stool by the first. They say it's the loveliest noise in the valley. They say it's not meant to stop."],
+				["qp:horn_end:broke", "Somebody broke the Speaking Crown's horn. It still sounds, thin and cracked. Cantor Lowe's said he can hear what the note was for now. He can't say it."],
+				["qp:vow_cell:bread", "Tamsin Hale's bread is taken every night up the cliff road. She's never been thanked in words. She keeps a polished chain-link on a nail by her oven."],
+				["qp:vow_cell:name", "Somebody said the Anchoress's name through her wall, and she said it back. They're saying it in the Anchorholds. Tamsin has taken to saying it, softly, when she kneads."],
+				["qp:vow_cell:break", "The Anchoress's wall is down. Tamsin leaves the bread in the open now. Some mornings it's gone. Some mornings there's a stone on the cloth, to say it was seen."],
+				["", "Out past the Lines a cantor and a baker still keep their small vigils. I don't think they're done."],
 			], "next": "end_4c"},
 			# r36 Act II: what the bells say about the night (all eight, then the ones left where they hung)
 			"end_4c": {"say_if": [
@@ -334,17 +362,17 @@ const CONV := {
 				{"text": "How do I reach the summit?", "to": "reach"},
 				{"text": "What happens if it falls?", "to": "falls"},
 				{"text": "Who's up there?", "to": "who", "if": "bosses:1", "once": true},
-				{"text": "Which bell first?", "to": "bell_first", "if": "boss:thornwarden,boss:bone_abbot,!peal:4"},
-				{"text": "Where do the others hang?", "to": "bell_where", "if": "boss:thornwarden,boss:bone_abbot,!peal:4"},
-				{"text": "Is the peal all there is to do?", "to": "far_work", "if": "peal:4"},
+				{"text": "Which bell first?", "to": "bell_first", "if": "boss:thornwarden,boss:bone_abbot,!peal:1"},
+				{"text": "Where do the others hang?", "to": "bell_where", "if": "boss:thornwarden,boss:bone_abbot,!peal:1"},
+				{"text": "Is the peal all there is to do?", "to": "far_work", "if": "peal:1"},
 				{"text": "The company.", "to": ""},
 			]},
 			"far_work": {"say": "Mother hung the bells for the road, not the door. The letters came to me, nine winters of them from past the Lines, and I never answered. Past the Lines they'll want ringing for other reasons. Reedholm, west: Aud Corle has the last courier's order, still sealed. Fallowmere, south: Reeve Penn wants his beacons lit. Lastlight, east: Sister Maudlin keeps a candle for ringers nobody let in. Three people, three errands. Go and be a stranger to them.", "next": "hub"},
-			"bell_where": {"say": "Seven for the road, and each hangs at the last fire of its country. Ruan at the Holds. Jory at the Quarry. Ysolt on the moor. Elspeth in the Pits, her own tenor. Linnet in the Orchard. Agathe at the Field's gate. Cadoc on the Mere. Something sits in every one. Four will do, the Marches' among them.", "next": "hub"},
+			"bell_where": {"say": "Seven for the road, and each hangs at the last fire of its country. Ruan at the Holds. Jory at the Quarry. Ysolt on the moor. Elspeth in the Pits, her own tenor. Linnet in the Orchard. Agathe at the Field's gate. Cadoc on the Mere. Something sits in every one. And the eighth she cast for the country the Order shut out, at the Spire in the Marches. One opens the door. The rest are for him: ring a bell where it hangs and he feels it a little; carry its tongue home to my chimney and he feels it a great deal.", "next": "hub"},
 			"bell_first": {"say_if": [
-				["!qd:spire_coal,!qp:bell_spire:rung,!qp:bell_spire:carried", "East, to Saltmarket. Ardel Wick has a coal and a Spire to light. The bell is at its foot."],
-				["!qp:bell_spire:rung,!qp:bell_spire:carried", "The Spire's lit? I can't see it from here; I can hear it, a little. Go down to its foot. That's the bell the door wants. The rest you can take as the road comes."],
-				["", "The Marches' is answered. I heard that one. Now the others, in whatever order the road allows. Any three."],
+				["!qd:spire_coal,!qp:bell_spire:rung,!qp:bell_spire:carried", "Ruan's, at the Holds, is nearest: the Kin Bell, in her oak. Something rings it at night with hands. Put it down, then ring the bell or lift the tongue. Ring it where it hangs and the country quiets. Carry it here and he holds the door with less."],
+				["!qp:bell_spire:rung,!qp:bell_spire:carried", "One's enough for the door. Any one. The Spire's, in the Marches, is the one I'd like heard: she cast it for the ones the Order shut out. But I'll not make you cross the Lines for my mother's sake."],
+				["", "One is answered. I heard it. Now the others, in whatever order the road allows, as many as you've legs for. Each one is a hand off the door."],
 			], "next": "hub"},
 			"reach": {"say_if": [
 				["boss:ascended_warden", "Reach it? There's nothing up there now but his bell, and it's rung. I'd know its voice anywhere. Sit down."],
@@ -625,6 +653,9 @@ const CONV := {
 	},
 	"r38_tally": R38E.CONVS["r38_tally"],
 	"wr_order": FRW.CONVS["wr_order"], "wr_herons": FRW.CONVS["wr_herons"], "ds_nail_door": FRS.CONVS["ds_nail_door"], "er_slate": FRE.CONVS["er_slate"],
+	# --- the story's long tasks ---
+	"story_edict": StoryQ.CONVS["story_edict"], "story_lamp": StoryQ.CONVS["story_lamp"], "story_roll": StoryQ.CONVS["story_roll"], "story_horn": StoryQ.CONVS["story_horn"], "story_wall": StoryQ.CONVS["story_wall"],
+	"story_door_kings": DoorsQ.CONVS["story_door_kings"], "story_door_castellum": DoorsQ.CONVS["story_door_castellum"], "story_door_witch": DoorsQ.CONVS["story_door_witch"], "story_door_nave": DoorsQ.CONVS["story_door_nave"],
 	# --- deepen B ---
 	"qb_holds_turf": DeepB.CONVS["qb_holds_turf"], "qb_keeper_wards": DeepB.CONVS["qb_keeper_wards"], "qb_oak_song": DeepB.CONVS["qb_oak_song"], "qb_quarry_last": DeepB.CONVS["qb_quarry_last"], "qb_moor_shrine": DeepB.CONVS["qb_moor_shrine"], "qb_orchard_press": DeepB.CONVS["qb_orchard_press"], "qb_field_ranks": DeepB.CONVS["qb_field_ranks"], "qb_mere_light": DeepB.CONVS["qb_mere_light"], "qb_mere_ferryman": DeepB.CONVS["qb_mere_ferryman"], "qb_well_answer": DeepB.CONVS["qb_well_answer"], "qb_salt_widow": DeepB.CONVS["qb_salt_widow"], "qb_spire_coal": DeepB.CONVS["qb_spire_coal"], "qb_seventh_day": DeepB.CONVS["qb_seventh_day"], "qb_shepherd_strays": DeepB.CONVS["qb_shepherd_strays"], "qb_wf_lights": DeepB.CONVS["qb_wf_lights"], "qb_wf_crown": DeepB.CONVS["qb_wf_crown"], "qb_long_round": DeepB.CONVS["qb_long_round"],
 }

@@ -198,10 +198,10 @@ static func bells() -> int:
 	return n
 
 
-## The summit door's peal: `need` bells answered for, and the one cast for the country the Order shut out
-## (Chains.BELL_SHUT_OUT, in the Marches) among them. Act II goes through the Marches.
+## The summit door's peal: `need` bells answered for (one; the door is hung to a bell, not a count). Every bell past the
+## first costs the Ascended Warden some of his hold (core/enemy/warden_peal.gd).
 static func peal_open(need: int) -> bool:
-	return bells() >= need and pick(Chains.BELL_SHUT_OUT) != ""
+	return bells() >= need
 
 
 ## r36: the bells whose tongues hang at the Keg (each costs the Ascended Warden some of his hold).

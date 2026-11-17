@@ -19,8 +19,8 @@ const RATE := 22050
 const SELF := "res://core/life/wildlife/boss_themes.gd"
 const GenCache := preload("res://core/world/realm/gen_cache.gd")
 const VERSION := 1
-const IDS := ["thornwarden", "bone_abbot", "ascended_warden"]
-const LAST_PHASE := {"thornwarden": 3, "bone_abbot": 4, "ascended_warden": 3}
+const IDS := ["thornwarden", "bone_abbot", "ascended_warden", "r37_anchoress", "r37_hierarch"]
+const LAST_PHASE := {"thornwarden": 3, "bone_abbot": 4, "ascended_warden": 3, "r37_anchoress": 3, "r37_hierarch": 3}
 const DB := -9.0                    ## the theme under the fight (the Music bus slider sits on top)
 const FADE_IN := 2.5
 const FADE_OUT := 3.5
@@ -234,10 +234,14 @@ static func build(id: String, layer: String) -> PackedFloat32Array:
 			return _abbot(layer == "high")
 		"ascended_warden":
 			return _warden(layer == "high")
+		"r37_anchoress":
+			return _anchoress(layer == "high")
+		"r37_hierarch":
+			return _hierarch(layer == "high")
 	return PackedFloat32Array()
 
 
-# --- the three themes -----------------------------------------------------------------------------
+# --- the five themes -----------------------------------------------------------------------------
 
 static func _hz(semi_from_a4: float) -> float:
 	return 440.0 * pow(2.0, semi_from_a4 / 12.0)
@@ -346,6 +350,67 @@ static func _warden(high: bool) -> PackedFloat32Array:
 			var fall := ["A", "G#", "F#", "E", "D", "C#", "B", "A", "G#", "F#", "E", "D"]
 			_bowed(out, t0, bar * 0.95, _n(String(fall[b]), 4), 0.3, true)
 			_bowed(out, t0, bar * 0.95, _n(String(fall[b]), 3), 0.22, true)
+	return out
+
+
+## THE ANCHORESS: E aeolian, 4/4 at 52 bpm, 8 bars. A hermit's vow: a low drone, a wordless alto that will not leave its
+## three notes, the anchor's toll every other bar and the chain's links ticking off the beat. The lantern is a single high
+## bell a bar. HIGH: the prayer rises (bowed), the timpani is the anchor falling, the links double.
+static func _anchoress(high: bool) -> PackedFloat32Array:
+	var q := 60.0 / 52.0
+	var bar := q * 4.0
+	var out := _buf(bar * 8.0)
+	var vow := ["E", "G", "F#", "E", "D", "E", "B", "E"]
+	var prayer := ["B", "C", "B", "A", "G", "A", "B", "E"]
+	if not high:
+		_drone(out, 0.0, out.size() / float(RATE), [_n("E", 2), _n("B", 2)], 0.2)
+	for b in 8:
+		var t0 := bar * float(b)
+		if not high:
+			_choir(out, t0, bar * 1.02, [_n(String(vow[b]), 4)], 0.2, 0.0)
+			if b % 2 == 0:
+				_bell_hit(out, t0, _n("E", 2), 0.5, 3.5)                   # the anchor, let down
+			_tick(out, t0 + q * 1.5, 0.14)                                    # the chain, off the beat
+			_tick(out, t0 + q * 2.5, 0.12)
+			_tick(out, t0 + q * 3.5, 0.1)
+			_celesta(out, t0 + q * 3.0, _n("B", 5), 0.11)                     # the lantern at her hip
+		else:
+			_bowed(out, t0, bar * 0.96, _n(String(prayer[b]), 4), 0.3)
+			_bowed(out, t0, bar * 0.96, _n(String(prayer[b]), 3), 0.2)
+			_timpani(out, t0, _n("E", 2), 0.75)
+			_timpani(out, t0 + q * 2.0, _n("B", 1), 0.4)
+			for k in 4:
+				_tick(out, t0 + q * (float(k) + 0.5), 0.12)
+			if b == 7:
+				_bell_hit(out, t0 + q * 3.0, _n("E", 4), 0.3, 3.0)           # the lantern flares
+	return out
+
+
+## THE SPEAKING CROWN: D, 4/4 at 66 bpm, 8 bars. The note that did not stop: one horn holds D3 under everything, bar
+## after bar, and a boy's thin voice answers from a long way up. HIGH: the held note is joined by its own flat second, beating
+## against it (the voice splits: edict, choir, verdict), the boy climbs three steps and falls, the timpani is the crown falling.
+static func _hierarch(high: bool) -> PackedFloat32Array:
+	var q := 60.0 / 66.0
+	var bar := q * 4.0
+	var out := _buf(bar * 8.0)
+	var boy := ["A", "A", "B", "A", "C#", "B", "A", "A"]
+	if not high:
+		_sub(out, 0.0, out.size() / float(RATE), _n("D", 1), 0.26)
+	for b in 8:
+		var t0 := bar * float(b)
+		if not high:
+			_bowed(out, t0, bar * 1.03, _n("D", 3), 0.3, true)                   # the note
+			if b % 3 == 1:
+				_choir(out, t0 + q * 0.5, bar * 0.7, [_n(String(boy[b]), 5)], 0.13, 1.0)   # the boy, far up
+			if b == 0 or b == 4:
+				_bell_hit(out, t0, _n("D", 4), 0.4, 3.0)
+		else:
+			_bowed(out, t0, bar * 1.03, _n("D", 3), 0.26, true)
+			_bowed(out, t0, bar * 1.03, _n("Eb", 3), 0.2, true)                    # its own flat second, against it
+			_choir(out, t0, q * 2.0, [_n(String(boy[b]), 5)], 0.18, 1.0)
+			_choir(out, t0 + q * 2.0, q * 2.0, [_n(_up(String(boy[b]), -2), 5)], 0.14, 1.0)
+			_timpani(out, t0, _n("D", 2), 0.8)
+			_timpani(out, t0 + q * 2.5, _n("A", 1), 0.45)
 	return out
 
 

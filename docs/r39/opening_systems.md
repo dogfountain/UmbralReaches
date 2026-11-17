@@ -62,6 +62,31 @@ Trot is now faster than the sprint and the gallop half again as fast (palfrey 8/
 ## 12. The peal counts
 The peal objective now reads "(n/4)" (bells answered, capped at four) on the HUD.
 
+## Second round (after the merge of the first)
+
+### 13. Horses know you (bond, names, waiting)
+Each horse you buy is named (kept in the save), and every metre ridden grows a bond: Strange, Known (2 km), Trusted (6 km), Bonded (15 km). Each level is +4% speed at every gait and a line from the horse's side when it is crossed ("Brindle answers the whistle from further off..."). The ride prompt names it ("Ride Brindle (Pilgrim's Palfrey, Trusted)"), the whistle says "Hooves in the dark. Brindle comes.", and the Count lists "Brindle, your horse: Trusted, 7 km". A horse you got down from waits where you left it, across a reload (the save keeps the spot and heading), and the map's "Your horse" pin follows.
+- Files: `core/world/mount/horse_bond.gd` (new), `horse.gd`, `stables.gd`, `ui/tally_panel.gd`. Saved in `Travel.system_state("stable")` keys `bond`, `names`, `left`.
+- Check: bond metres accumulate only while ridden; the speed multiplier does not break the gait blend; the 15 km bonus is +12%; a reload puts the horse back where you dismounted, on the ground (not in a wall), and `[H]` still brings it.
+
+### 14. The Chronicle
+The run is written down as it happens, with the night it fell on: the arrival, each seal, each great one, each country first walked, each fifth level, bells answered, horses bought, the first Ember Road ride, falls into the dark (the first and every fifth), nights turned at camp, and the first photograph. It is the Count's second page (**B**, then **Q/E** or the arrows) showing the newest sixteen. The title screen's slot list quotes each save's last line under its summary, so a returning player is told where they stopped.
+- Files: `core/story/chronicle.gd` (new), `ui/tally_panel.gd`, `autoload/travel.gd` (`slot_summary` returns `last`), `ui/title_screen.gd`. Saved in `Travel.story["chronicle"]` (newest 240) and `chronicle_keys` (so a line is written once).
+- Check: the slot button's second line renders (a multi-line Button); an old save has no chronicle (it starts one at the next load with the arrival line); entries are not duplicated after a reload.
+
+### 15. The wanderer's trail and her own marks (map)
+The world map now draws where she has walked as a dotted charcoal line (a point every 9 m, the newest 2,600, broken where she was carried by the Ember Road or a fall) and lets her set up to twelve marks by hand: right-click bare parchment (Y on a pad, at the reticle) to set one, the same on a mark to lift it. A mark stands in the world as a beacon: it shows on the compass and the minimap, so it is something to walk to. Marks are listed with a medallion and fold with the other pins. The map's controls line says so.
+- Files: `core/story/wayfarer.gd` (class `Wayfarer`), `ui/world_map.gd` (hooks), `ui/world_map_util.gd` (helpers moved out to keep `world_map.gd` under the 1000-line ceiling). Saved in `Travel.story["trail"]` and `["pins"]`.
+- Check: the trail follows real walking and does not draw a line across a fast-travel jump; marks survive a reload (the nodes are rebuilt in `Wayfarer._ready`); the compass shows them; right-clicking a world mark does nothing; a thirteenth mark says so.
+
+### 16. Photo mode (F12)
+The night holds still and the lens is yours: a free camera from where the wanderer's was, flying within 45 m of her (WASD, mouse look, Space and Ctrl for up and down, Shift fast, wheel for field of view, T for black bars). Enter or a click keeps the view as a PNG in the save folder's `photos/` (HUD and controls hidden for the frame; a flash and a sound answer; the file is named for the region and night). P or Esc gives the night back exactly as it was. Refused in the opening shot, a camp, a boss's fight, hollowing, loading, and under another menu. Every picture is counted (`tally.photos`), the first is chronicled, and a lesson offers it after the first foes and a first country.
+- Files: `core/story/photo_mode.gd` (class `PhotoMode`), `autoload/input_setup.gd` (action `photo`, rebindable), `core/story/first_hour.gd`. Keyboard and mouse only (a pad cannot reach it).
+- Check: pausing and restoring (tree pause, mouse mode, HUD, the follow camera current again); the lens stops at walls and the ground; the saved image has no HUD; `P` is not bound elsewhere; Esc leaves photo mode and does not also open Settings.
+
+### 17. The Ember Road names the danger
+Each destination in the fire menu now ends with its plate ("Perilous · Lv 14"), so a fast travel into ground above the wanderer's level is a choice made with the number in view.
+
 ## Data and content the lead should hand to the other agents (not edited here)
 - Story: Brannoc's `far_work` is gated on `peal:4`; open a Reach errand or a word in Hearthward in Act I (barks in `guide_lines.gd`); give one bell a home in a Reach so the Outliers touch the peal; quest endings that send the wanderer to a stable ("a horse would help" tasks) and a line in villagers' talk about the Count and the camp.
 - World: waystation hitching posts on the long roads (HorseDB has one post per breed; a second post for the same breed needs a data row); a seat prop for the camp (the interaction works without a model).

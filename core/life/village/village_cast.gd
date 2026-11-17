@@ -14,6 +14,7 @@ extends RefCounted
 ## Load by path: const Cast := preload("res://core/life/village/village_cast.gd")
 
 ## Phases of the village night (fractions of VillageClock.CYCLE).
+const StoryCast := preload("res://core/life/village/village_cast_story.gd")   ## the story's five (Perrin, Odile, Ione, Lowe, Tamsin): CAST and OUTPOSTS entries below
 const EastVillage := preload("res://core/life/village/village_east_marches.gd")   ## the east marches: Saltmarket's people (listed in the `# --- the east marches ---` block of CAST)
 
 const PHASES := [[0.0, "dusk"], [0.12, "work"], [0.55, "midnight"], [0.66, "late"]]
@@ -364,6 +365,8 @@ const CAST := {
 		}},
 	# --- the east marches ---
 	"marl": EastVillage.MARL, "teasel": EastVillage.TEASEL, "orrin": EastVillage.ORRIN, "ardel": EastVillage.ARDEL, "pip": EastVillage.PIP, "nella": EastVillage.NELLA,
+	# --- the story's five (village_cast_story.gd) ---
+	"perrin": StoryCast.CAST["perrin"], "odile": StoryCast.CAST["odile"], "ione": StoryCast.CAST["ione"], "lowe": StoryCast.CAST["lowe"], "tamsin": StoryCast.CAST["tamsin"],
 }
 
 ## r34: the outposts of the doubled world (docs/r34/layout.md SLOTS): where each new giver camps.
@@ -380,6 +383,8 @@ const OUTPOSTS := {
 	"cadoc": {"near": [Vector2(111.0, 97.0), Vector2(95.0, 100.0), Vector2(130.0, 95.0)], "region": "mere", "style": "mere", "look": Vector2(84.0, 112.0)},
 	# --- south marches ---
 	"dunstan": {"near": [Vector2(-14.0, 200.0), Vector2(26.0, 200.0), Vector2(-4.0, 194.0), Vector2(-24.0, 206.0)], "region": "downs", "style": "downs", "look": Vector2(0.0, 150.0)},
+	# --- the story's five ---
+	"perrin": StoryCast.OUTPOSTS["perrin"], "odile": StoryCast.OUTPOSTS["odile"], "ione": StoryCast.OUTPOSTS["ione"], "lowe": StoryCast.OUTPOSTS["lowe"], "tamsin": StoryCast.OUTPOSTS["tamsin"],
 }
 
 ## What returns. `when` is checked on load and after every event; once true it stays (saved).

@@ -17,6 +17,7 @@ const DB := preload("res://core/world/mount/horse_db.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
 const Move := preload("res://core/world/mount/horse_move.gd")
+const HorseBond := preload("res://core/world/mount/horse_bond.gd")
 
 const GRAVITY := 24.0                ## m/s^2 on the leap (a horse's jump is snappy, not floaty)
 const HOP_H := 0.6                   ## apex of a standing hop (m)
@@ -99,7 +100,7 @@ func interact_text() -> String:
 		return "[%s]  Get down" % k
 	if not owned():
 		return "[%s]  Buy the %s  (%d grave ash: trots %d, gallops %d m/s; you sprint 7)" % [k, String(_d.name), int(_d.cost), roundi(float(_d.trot)), roundi(float(_d.gallop))]
-	return "[%s]  Ride the %s" % [k, String(_d.name)]
+	return "[%s]  Ride %s  (%s, %s)" % [k, HorseBond.name_of(breed), String(_d.name), HorseBond.title(breed)]
 
 
 func interact_reach() -> float:
@@ -126,7 +127,7 @@ func interact(by: Node) -> void:
 		(st.owned as Array).append(breed)
 		st["ride"] = breed
 		Travel.save_soon()
-		Events.toast.emit("The %s is yours. Ride it, or call it with [%s] wherever you are." % [String(_d.name), InputSetup.live_label("mount", Settings.using_pad, "H")])
+		Events.toast.emit("%s the %s is yours. Ride, or call with [%s] wherever you are. The more you ride, the better it knows you." % [HorseBond.name_of(breed), String(_d.name), InputSetup.live_label("mount", Settings.using_pad, "H")])
 		return
 	mount(p)
 
@@ -174,6 +175,9 @@ func dismount() -> void:
 		var side := global_basis.x.normalized()
 		var to := global_position + side * 1.1
 		p.teleport(_ground(to) + Vector3.UP * 0.1)
+		var left: Dictionary = state().get("left", {}) if state().get("left") is Dictionary else {}
+		left[breed] = [roundi(global_position.x), roundi(global_position.z), snappedf(rotation.y, 0.01)]     # it waits where it was left
+		state()["left"] = left
 
 
 ## The jump key on horseback (PlayerMount): a gather, then the push-off. Only from the ground, once the
@@ -271,6 +275,11 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	else:
 		_turn_v = lerpf(_turn_v, 0.0, 1.0 - exp(-8.0 * dt))
 	_yaw += _turn_v * dt * (0.35 if _air else 1.0)
+	want *= HorseBond.mult(breed)
+	if rider != null and speed > 1.0:
+		var up := HorseBond.add(breed, speed * dt)
+		if up > 0:
+			Events.toast.emit(HorseBond.saying(breed))
 	var wading := RealmLand.in_water(global_position.x, global_position.z)
 	if wading and not bool(_d.get("wade", false)):
 		want = minf(want, float(_d.walk))
