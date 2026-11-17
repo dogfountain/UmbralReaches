@@ -8,7 +8,7 @@ extends Node3D
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
 
-const N := 12
+const N := 8                              ## banks (each a large alpha quad: overdraw is the cost, so few); none on the low detail setting
 const HALF := 70.0
 const OPEN := Color(0.36, 0.46, 0.66)
 
@@ -33,7 +33,7 @@ func _ready() -> void:
 	rng.seed = 77031
 	for i in N:
 		_off.append(Vector2(rng.randf_range(-HALF, HALF), rng.randf_range(-HALF, HALF)))
-		_size.append(rng.randf_range(34.0, 62.0))
+		_size.append(rng.randf_range(30.0, 50.0))
 		_lift.append(rng.randf_range(0.5, 1.7))
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE
@@ -65,8 +65,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	visible = Reg.enabled
-	if not Reg.enabled:
+	visible = Reg.enabled and Settings.detail >= 1
+	if not visible:
 		return
 	# the wind turns slowly
 	_wind_t -= delta
