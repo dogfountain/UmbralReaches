@@ -17,6 +17,7 @@ const CueBank := preload("res://core/audio/cue_bank.gd")
 const MixDirector := preload("res://core/audio/mix_director.gd")
 const Soundstage := preload("res://core/audio/soundstage.gd")
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const Days := preload("res://core/story/days.gd")
 const ScoreDirector := preload("res://core/audio/score_director.gd")
 
 const FOG_SCAPES := ["fen", "tally", "mere", "reedmere", "stillwater", "nave", "sorrow"]
@@ -30,6 +31,9 @@ var _boss: Node = null
 var _boss_id := ""
 var _boss_phase := 0
 var _room := ""
+var _wet := false
+var _night := -1
+var _credits := false
 var _fight := false
 var _e_state := 0                   ## 0 none, 1 warned, 2 totality, 3 returned
 var _tick := 0.0
@@ -60,6 +64,21 @@ func _ready() -> void:
 	Events.gloom_tide.connect(_on_tide)
 	Events.proc_triggered.connect(_on_proc)
 	Events.toast.connect(_on_toast)
+	Events.respawned.connect(func(_at: Vector3) -> void: CueBank.play(self, "respawn_breath", 0.0))
+	Events.seal_progress.connect(func(_id: String, _c: int, _t: int) -> void:
+		if _gate("sealtick", 0.25):
+			CueBank.play(self, "seal_tick", 0.0))
+	Events.seal_broken.connect(func(_id: String) -> void: CueBank.play(self, "seal_break", 0.0))
+	Events.fire_travelled.connect(func(_a: String, _b: String) -> void:
+		CueBank.play(self, "fire_whoosh", 0.0)
+		CueBank.play(self, "toll_grains", 0.0))
+	Events.status_changed.connect(_on_status)
+	Events.skill_failed.connect(func(_id: StringName, _r: String) -> void:
+		if _gate("denied", 0.4):
+			CueBank.play(self, "ui_deny", 0.0))
+	Events.world_event.connect(func(_id: String, phase: String, _at: Vector3) -> void:
+		if phase == "warn" and _gate("evwarn", 4.0):
+			CueBank.play(self, "event_warn", 0.0))
 	Events.gloom_changed.connect(func(v: float, m: float) -> void: _gloom_k = v / maxf(m, 0.001))
 	get_tree().node_added.connect(_on_node)
 
@@ -108,6 +127,14 @@ func _on_toast(text: String) -> void:
 			CueBank.play_at("beacon_light", pl.global_position + Vector3.UP * 3.0, -2.0)
 	elif text.begins_with("The last beacon takes") or text.begins_with("The Line burns"):
 		CueBank.play(self, "stinger_victory", -2.0)
+
+
+## A status taken on: a buff chimes, a debuff drags (on the wanderer only; foes have their own reads).
+func _on_status(target: Node, id: StringName, stacks: int, _time: float) -> void:
+	if stacks <= 0 or not target is Player or not _gate("status_%s" % id, 0.5):
+		return
+	var kind := String((CombatState.DEFS.get(id, {}) as Dictionary).get("kind", &"buff"))
+	CueBank.play(self, "status_debuff" if kind == "debuff" else "status_buff", 0.0)
 
 
 ## A parry rings, a dodge is cloth on the air, a riposte shimmers: the wanderer's own reads, under the library takes.
@@ -238,9 +265,29 @@ func _process(dt: float) -> void:
 	_poll_fight()
 	_poll_eclipse()
 	_poll_room()
+	_poll_world()
 	_moths(0.25)
 	_fog(0.25)
 	_details(0.25)
+
+
+## Wading into water, a night turning, the credits told: three small things read at the tick.
+func _poll_world() -> void:
+	var pl := _player()
+	if pl != null:
+		var wet := RealmLand.in_water(pl.global_position.x, pl.global_position.z)
+		if wet and not _wet and _gate("wade", 1.0):
+			CueBank.play_at("wade_splash", pl.global_position, 0.0)
+		_wet = wet
+	var n := Days.current()
+	if _night >= 0 and n > _night:
+		CueBank.play(self, "night_turn", 0.0)
+	_night = n
+	var f: Variant = Travel.story.get("flags", {})
+	var told := f is Dictionary and bool((f as Dictionary).get("credits_told", false))
+	if told and not _credits:
+		CueBank.play(self, "stinger_credits", 0.0)
+	_credits = told
 
 
 ## Crossing into a room (the tavern, a hall, a cave, a crypt) is a door: a creak and a latch behind, the other way a thud.
