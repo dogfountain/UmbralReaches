@@ -3,7 +3,7 @@ extends RefCounted
 ## for a whole cottage): sills, lintels and fixed shutters on every window, flower boxes, a lintel and a hung lantern at the
 ## door, a ridge cap along the roof, drip stones along the foot of the long walls, and a garden: a low fence of posts and
 ## rails with a gap at the door, a bed of turned soil with leaf tufts. All kit boxes at build time (non-solid except
-## the fence posts' absence of collision: none of it blocks). No class_name: preload by path.
+none of it blocks). No class_name: preload by path.
 
 
 static func dress(L: RefCounted, xf: Transform3D, w: float, d: float, bas: Basis, rng: RandomNumberGenerator, state: String) -> void:
@@ -48,7 +48,7 @@ static func dress(L: RefCounted, xf: Transform3D, w: float, d: float, bas: Basis
 			continue
 		k.box("lore_beam", xf * Vector3(x, 0.5, fz), Vector3(0.1, 1.0, 0.1), bas * Basis(Vector3.UP, rng.randf_range(-0.1, 0.1)) * Basis(Vector3.RIGHT, rng.randf_range(-0.06, 0.06)), false, 0.55 + 0.1 * rng.randf())
 	for y: float in [0.42, 0.8]:
-		k.box("lore_beam", xf * Vector3(-(hw + 0.8) * 0.5 - 0.0 + (dx - 0.9) * 0.0 + ((-hw - 0.8 + dx - 0.9) * 0.5 + (hw + 0.8) * 0.5) * 0.0, y, fz), Vector3(maxf(dx - 0.9 - (-hw - 0.8), 0.1), 0.07, 0.07), bas, false, 0.55)
+		k.box("lore_beam", xf * Vector3((-hw - 0.8 + dx - 0.9) * 0.5, y, fz), Vector3(maxf(dx - 0.9 + hw + 0.8, 0.1), 0.07, 0.07), bas, false, 0.55)
 		k.box("lore_beam", xf * Vector3((dx + 0.9 + hw + 0.8) * 0.5, y, fz), Vector3(maxf(hw + 0.8 - (dx + 0.9), 0.1), 0.07, 0.07), bas, false, 0.55)
 	k.box("lore_soil", xf * Vector3(-hw * 0.4, 0.04, fz + 1.4), Vector3(w * 0.5, 0.1, 1.5), bas, false, 0.8)
 	for i in 6:
