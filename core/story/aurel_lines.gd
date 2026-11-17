@@ -20,6 +20,8 @@ const FIGHT := {
 	"dead_leave": "Through. Then the door may close. Somebody should have told me it was a door.",
 	"dead_scratch": "Through. It was a door. It was always only a door.",
 	"dead_": "Last one through. ...Who held it for you?",
+	"ph2_bells": "I am lighter. Something of mine is ringing in a chimney a long way down, and something else where it hangs. I did not know a bell could be a hand off a shoulder.",
+	"dead_entered": "Last one through. Your name is on a roll in the Barrow Field. Mine is not on any. ...Whose hand cut yours?",
 }
 
 static func edict_pick() -> String:
@@ -29,8 +31,12 @@ static func edict_pick() -> String:
 ## A line of Aurel's inside the arena, as a quoted boss emote. `key` is a FIGHT key; "ph3" and "dead" take the edict's pick.
 static func fight(boss: Node, key: String) -> void:
 	var k := key
-	if key == "ph3" or key == "dead":
+	if key == "ph2" and QuestBook.bells() >= 3:
+		k = "ph2_bells"
+	elif key == "ph3" or key == "dead":
 		k = "%s_%s" % [key, edict_pick()]
+		if key == "dead" and edict_pick() == "" and QuestBook.pick("name_on_roll") == "entered":
+			k = "dead_entered"
 	if not FIGHT.has(k):
 		k = key + "_"
 	if FIGHT.has(k):

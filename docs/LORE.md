@@ -32,7 +32,7 @@ is her refusal, repeated.
 | Six winters ago | Father Harrow takes his lantern down the fen after his wife. |
 | Now (nine winters on) | Hearthward is the last kindled village. The **Kindled Keg** keeps its fire and its keep. Most cottages have gone quiet. The **wanderer** arrives, lantern in hand, and starts kindling. |
 
-Pin every "how long ago" to **nine winters** (Pell is "nine winters" by the same count): Col's nine years under the Keg's stair, the hermit's nine winters on the Rift, Oswin's nine years walking (his wife went ahead the year before the Night; he set out after). The Ostrin Harrow line is "six winters" because his father left later. Nobody alive at the bar has a *grandfather* who saw the Door open. The Tally's 1,090 is one shelf; the Abbot's hoard leaf (11,004 counted) is the whole crypt.
+Pin every "how long ago" to **nine winters** (Pell is "nine winters" by the same count): Col's nine years under the Keg's stair, the hermit's nine winters on the Rift, Joram's nine years walking (his wife went ahead the year before the Night; he set out after). The Ostrin Harrow line is "six winters" because his father left later. Nobody alive at the bar has a *grandfather* who saw the Door open. The Tally's 1,090 is one shelf; the Abbot's hoard leaf (11,004 counted) is the whole crypt.
 
 ## Powers and people
 
@@ -98,6 +98,15 @@ through, can cut the clause back in, leave the stone, or scratch it out (quest T
 The Ninth Company's youngest, **Ione Marsh** (the tenth name nobody finished), is in the Glimmer Glade; the Tally's last line,
 *ONE LATE PILGRIM, NO NAME*, is the wanderer. Other new people: **Odile Frane** (Ned's widow; three hundred and eleven road lamps),
 **Cantor Lowe** and the boy **Tavi** in the horn, **Tamsin Hale** the baker who feeds the Anchoress's cell.
+
+## The Late Ringer, and what the new readables fix (r39 second wave)
+
+**Iorweth**, the last ringer of the Stair, rang the last bell and the longest ("rang last and longest"; his name is cut short on the stone at the Crossing's foot and
+finished with a nail). The door half-took him: he came down hollow, then warm, as the wanderer did, and has walked toward a bell ever since, with his rope still round his
+waist. He is **Ione Marsh's father** (the tenth name nobody finished: I-O-N). Once the door is shut a half-hollow man may walk home, and he does. The **Hierarch's Hand** (six leaves),
+the **Founder's Ledger** (eight, one at each bell's country) and the **scratches on the road** (six) are readable through the world; the landmarks each have their own: the Sleeper
+(the Order's first colossus, pushed on the first night), the Hollow King (the Rooted's kings' tomb, taken for a chapel), the Salt Ship (the merchantman Hope-in-Season, a mile a winter), the Wardens'
+Line (ordered by Edict II to put out their cressets), the Chain Span (toll: one lantern-light), the Titan Gates (the Rooted's work; the Order gave them helms).
 
 ## The three who hold the valley (bosses)
 
@@ -202,7 +211,7 @@ Edda the Kindler, Corvin, Hierarch Aurel, Abbot Osric, Wenna Ashby, Old Maud, Ho
 up the Stair, came down hollow), Pell (nine winters, red hood), Ewan Reed, the Harrows, the Wrights, the Cobb brothers
 (and old Cobb, who fired his own barn), Marta Vell, Brother Ansel, Brother Lisle (kept the Tally),
 Ida and Ruth. Hearthward (village system): Hild (Edda's granddaughter, the forge), Old Fennick
-(lamps), Oswin (pilgrim, the forty-first stone), Nan and Col Wright, Bet Reed, Wenna (after the
+(lamps), Joram (pilgrim, the forty-first stone), Nan and Col Wright, Bet Reed, Wenna (after the
 Ossuary), Pell (after the ending), Wyck (buries birds face down), Abel (sexton, Edda's stone),
 Grisel (the ash-wife). The Keg: the keep, Hesk, Ostrin Harrow, Brannoc Bellwright (the Founder's son).
 The doubled world's givers (r34, camped at outpost fires, `village_cast.gd` OUTPOSTS): **Gammer Ruan**
@@ -219,7 +228,7 @@ the Ring's stair (the Thornwarden "holds back a hand"); the pilgrims' roll read 
 (the Abbot's count comes up short: "a doubting Abbot is half an Abbot"); the Founder's peal rung in
 Mother's order and a tongue cast in her mould for Brannoc (the great bell in the Warden's hand rings
 wrong). None is needed to finish the story.
-Known collisions to respect: Osric / Oswin / Ostrin, and Hesk / Hild / Hobb / Harrow; never call
+Known collisions to respect: Osric / Ostrin (the pilgrim formerly called Oswin is now **Joram**; his internal id is still `oswin`, so every save key and flag is unchanged), and Hesk / Hild / Hobb / Harrow; never call
 the Thornwarden "the Warden".
 The Order of the Open Sky; the Rooted; the Ring (Thorn Henge); the Night of the Open Door; Year of
 Ascent (YA).

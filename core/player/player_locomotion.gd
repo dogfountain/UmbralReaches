@@ -7,6 +7,7 @@ extends Node
 var player: Player
 
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
+const CueBank := preload("res://core/audio/cue_bank.gd")
 
 var _slide_t := 0.0
 var _slide_speed := 0.0
@@ -462,6 +463,8 @@ func _land(was_grounded: bool, vy_before: float) -> void:
 		player.velocity.x *= 1.0 - player._land_slow * 0.5          # half of it comes off at once, the rest recovers
 		player.velocity.z *= 1.0 - player._land_slow * 0.5
 	player.vitals._fall_hurt(impact)
+	if impact > 4.0:
+		CueBank.play_at("land_soft", player.global_position + Vector3.UP * 0.1, clampf((impact - 8.0) * 0.5, -6.0, 3.0))      # cloth and gear settle
 	if impact > 6.0:
 		var k := clampf((impact - 6.0) / 8.0, 0.0, 1.0)
 		Vfx.burst(player.global_position + Vector3.UP * 0.05, Color(0.16, 0.15, 0.17, 0.55), {"count": 14, "life": 0.6, "speed": Vector2(0.6, 1.8), "size": 0.22, "gravity": -0.4, "dir": Vector3.UP, "spread": 85.0, "additive": false, "radius": 0.3})

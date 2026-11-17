@@ -774,8 +774,8 @@ func bell_note(bell: Node3D, awake: bool) -> void:
 	var fl: Variant = Travel.story.get("flags", {})
 	var told: bool = fl is Dictionary and bool((fl as Dictionary).get("ending_told", false))
 	hud.show_note("The Bell of the Deeper Night",
-		"Cracked iron, hung mouth up. The sky has stopped turning, but the dark it pulled down is still here. "
-		+ ("Ring this top first, the way the Stair's bells stopped, and something below pulls the door ajar: the three who hold the valley rise, their seals close, and every hollowed thing comes back harder. What you carry, you keep." if told
+		"Cracked iron, hung mouth up. The keep told it to you plainly once: ring it top first, the way the Stair's bells stopped, and the door comes ajar. The three who hold the valley rise, their seals close, the hollowed come back harder. Your items, your fires, your journal and your story you keep. It is not a punishment. It is the valley asking whether you would walk it again. "
+		+ ("He will not stop you. He will pour for you either way." if told
 		else "Not yet: the keeper is pouring at the keg, and the last mug is his to give first. Then ring it."),
 		"[%s] again to ring it" % Interactable.prompt_key() if told else "", bell)
 

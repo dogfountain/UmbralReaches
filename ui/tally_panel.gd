@@ -275,7 +275,7 @@ func open() -> void:
 	get_tree().paused = true
 	_fill()
 	_root.visible = true
-	UiSound.play(self, "tab")
+	UiSound.play(self, "count_open")
 
 
 func close() -> void:

@@ -24,7 +24,7 @@ const QUESTS := {
 		"outcome": {"rung": "Ardel stood at the window with his back to you. \"Eight,\" he said. \"She hung us last. Last is the one you hear from furthest.\" Out on the lake road a lantern came on, and then another, and neither was his.",
 			"carried": "Ardel turned the bell's bare rope over in his hands. \"Let them ring it down at Hearthward, then. Somebody ought to ring for us. I'd like to know what it sounds like from the other end.\""}},
 	"bell_holds": {"name": "The Kin Bell", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "holds",
-		"offer": true, "avail": "qd:keeper_leave,q:founders_peal",
+		"offer": true, "avail": "q:founders_peal",         # the nearest bell asks for nothing first: one bell is the door's whole price
 		"text": "There's a bell in the Holds the Rooted never asked for. The Founder hung it in our oak anyway, to call the kin home at dusk. Something rings it at night now. With its hands. Put it down. Then decide what the bell's for.",
 		"steps": [
 			{"kind": "slay", "of": 1, "rares": ["kin_caller"], "at": Vector2(-138.0, 20.0), "label": "The Kin-Caller",

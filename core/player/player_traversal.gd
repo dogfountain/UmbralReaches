@@ -7,6 +7,7 @@ extends Node
 var player: Player
 
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
+const CueBank := preload("res://core/audio/cue_bank.gd")
 const Stamina := preload("res://core/player/stamina.gd")
 
 var _mantle_from := Vector3.ZERO
@@ -109,6 +110,7 @@ func _try_grab(wish: Vector3) -> bool:
 	if not player.locomotion._fits(hang_pos):
 		return false
 	_start_hang(hang_pos, nf, top)
+	CueBank.play_at("grab_clink", player.global_position + Vector3.UP, 0.0)       # a hand on the ledge, the breath of the effort
 	return true
 
 
@@ -328,6 +330,7 @@ func _try_vault(horiz: Vector3, wish: Vector3) -> bool:
 	player._visual.play_move(&"vault", _vault_len, side)
 	Sfx.play(Player.SFX_JUMP, player.global_position + Vector3.UP, -8.0, 0.9)
 	StaffSfx.play("swish", player.global_position + Vector3.UP * 1.2, -10.0)
+	CueBank.play_at("vault_whoosh", player.global_position + Vector3.UP, 0.0)       # a hand on the ledge, the breath of the effort
 	return true
 
 
@@ -545,6 +548,7 @@ func _try_mantle(wish: Vector3) -> bool:
 	player._visual.play_move(&"mantle", Player.MANTLE_TIME * 1.5)
 	Sfx.play(Player.SFX_JUMP, player.global_position, -8.0, 0.85)
 	player.camera_ctl.kick(0.15)
+	CueBank.play_at("mantle_grunt", player.global_position + Vector3.UP, 0.0)       # a hand on the ledge, the breath of the effort
 	return true
 
 

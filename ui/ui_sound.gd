@@ -26,6 +26,14 @@ const KINDS := {
 }
 
 
+## The sound rework's richer interface cues (core/audio/cue_bank.gd, rendered on a worker): kind -> [cue, the quiet tone to use until it
+## has rendered]. Interface cues play on the UI bus (its own slider); a menu's pause never stops them.
+const RICH := {"map_open": ["ui_map_open", "tab"], "map_close": ["ui_map_close", "back"], "count_open": ["ui_count_open", "tab"],
+	"buy": ["ui_buy", "confirm"], "equip": ["ui_equip", "confirm"], "unequip": ["ui_unequip", "back"], "deny": ["ui_deny", "back"],
+	"toast": ["ui_toast", "tick"], "page": ["ui_page", "tab"], "pin": ["ui_map_pin", "confirm"], "shutter": ["ui_shutter", "confirm"],
+	"chronicle": ["ui_chronicle", "confirm"], "open": ["ui_open", "tab"], "close": ["ui_close", "back"], "slider": ["ui_slider", "tick"]}
+const CueBank := preload("res://core/audio/cue_bank.gd")
+
 static var muted := false              ## set while the loading screen opens every panel once
 static var _streams := {}              ## kind -> AudioStreamWAV, shared by every host
 
@@ -51,6 +59,12 @@ static func release() -> void:
 
 
 static func play(host: Node, kind: String) -> void:
+	if RICH.has(kind):
+		var spec: Array = RICH[kind]
+		if not muted and CueBank.stream(String(spec[0])) != null:
+			CueBank.play(host, String(spec[0]))
+			return
+		kind = String(spec[1])
 	if not KINDS.has(kind):
 		return
 	var st := stream(kind)                  # built even while muted, so the warm pass leaves it cached
@@ -61,7 +75,7 @@ static func play(host: Node, kind: String) -> void:
 	if pl == null:
 		pl = AudioStreamPlayer.new()
 		pl.name = pname
-		pl.bus = &"SFX" if AudioServer.get_bus_index("SFX") >= 0 else &"Master"
+		pl.bus = &"UI" if AudioServer.get_bus_index("UI") >= 0 else (&"SFX" if AudioServer.get_bus_index("SFX") >= 0 else &"Master")
 		pl.process_mode = Node.PROCESS_MODE_ALWAYS
 		pl.stream = st
 		pl.volume_db = float(KINDS[kind][5])

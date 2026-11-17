@@ -22,6 +22,7 @@ extends RefCounted
 ## Nothing runs per frame; nothing is built at runtime but the players; streams load on first use.
 
 const Bank := preload("res://core/vfx/enemy_bank.gd")
+const CueBank := preload("res://core/audio/cue_bank.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 
 const POOL := 14
@@ -125,6 +126,7 @@ static func say(voice_set: String, act: String, at: Vector3, owner_id: int, db :
 	_rise(p, db + TRIM_DB + randf_range(-1.2, 0.6))
 	p.play()
 	voices_played += 1
+	CueBank.family(voice_set, act, at, db)          # the family's own character under the library take (cue bank, off-thread)
 	return true
 
 

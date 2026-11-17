@@ -203,7 +203,7 @@ const CHARM_FX := {
 ## Charms the village's quests award (core/story, agent E): who gives them, shown while unearned.
 const QUEST_CHARMS := {
 	"charm_ferrule": "Quest: Hild, at the forge",
-	"charm_waystone": "Quest: Oswin, on the Pilgrims' Road",
+	"charm_waystone": "Quest: Joram, on the Pilgrims' Road",
 	"charm_chalk": "Quest: the Kindled Keg's missing ale",
 }
 ## Charms won from the encounters system's elites: where the bounty walks (shown while unclaimed).
