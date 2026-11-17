@@ -31,10 +31,24 @@ static func build(root: Node) -> void:
 	w._run(root)
 
 
+## Is an end pylon's ground (14 m round it) or the midspan's taken by a registered site or a reserved place?
+func _taken(pa: Vector2, pb: Vector2, c: Vector2) -> bool:
+	for q: Vector2 in [pa, pb, c]:
+		if WK.site_hit(Rect2(q - Vector2(14.0, 14.0), Vector2(28.0, 28.0)), 3.0):
+			return true
+	return false
+
+
 func _run(root: Node) -> void:
 	# five hand-chosen crossings in the Far Reaches (a centre and a bearing each), tried in order: the first whose two ends are
 	# dry wins, else the one with the deepest gulf between dry ends, else the first (the pylons simply stand taller)
 	var tries: Array = [[Vector2(-330.0, 20.0), 1.2], [Vector2(330.0, 160.0), 0.4], [Vector2(-340.0, 330.0), 0.3], [Vector2(150.0, 340.0), 0.0], [Vector2(-200.0, 340.0), 0.8]]
+	var more: Array = []                   # then each crossing turned a little and shifted: the span only needs its two ends and its middle clear
+	for tr0: Array in tries:
+		for da: float in [0.5, -0.5, 1.0, -1.0]:
+			for sh: Vector2 in [Vector2.ZERO, Vector2(40, 0), Vector2(-40, 0), Vector2(0, 40), Vector2(0, -40)]:
+				more.append([(tr0[0] as Vector2) + sh, float(tr0[1]) + da])
+	tries.append_array(more)
 	var best := {}
 	var best_s := -INF
 	for tr: Array in tries:
@@ -52,8 +66,8 @@ func _run(root: Node) -> void:
 		for i in range(1, 8):
 			var p := pa.lerp(pb, float(i) / 8.0)
 			mn = minf(mn, WK.h(p.x, p.y))
-		var sc := float(dry) * 100.0 + minf(WK.h(pa.x, pa.y), WK.h(pb.x, pb.y)) - mn - (50.0 if WK.site_hit(Rect2(c - Vector2(34.0, 34.0), Vector2(68.0, 68.0)), 0.0) else 0.0)
-		if dry == 2 and not WK.site_hit(Rect2(c - Vector2(34.0, 34.0), Vector2(68.0, 68.0)), 0.0):
+		var sc := float(dry) * 100.0 + minf(WK.h(pa.x, pa.y), WK.h(pb.x, pb.y)) - mn - (50.0 if _taken(pa, pb, c) else 0.0)
+		if dry == 2 and not _taken(pa, pb, c):
 			best = {"pos": c, "ang": ang}
 			break
 		if sc > best_s:

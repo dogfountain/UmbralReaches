@@ -71,7 +71,9 @@ static func grid(seed_n: int, step: float, margin: float) -> Array[Vector2]:
 	while z < bd.end.y:
 		var x := bd.position.x
 		while x < bd.end.x:
-			out.append(Vector2(x + rng.randf_range(-0.4, 0.4) * step, z + rng.randf_range(-0.4, 0.4) * step))
+			var q := Vector2(x + rng.randf_range(-0.4, 0.4) * step, z + rng.randf_range(-0.4, 0.4) * step)
+			if not RealmLayout.OLD_BOUNDS.grow(12.0).has_point(q):        # the old valley is designed ground: this round's scatter stays in the Far Reaches
+				out.append(q)
 			x += step
 		z += step
 	for i in range(out.size() - 1, 0, -1):
@@ -176,6 +178,43 @@ static func _reindex() -> void:
 	_sidx_n = WorldLanes.sites.size()
 
 
+static var _pidx := {}                  ## 32 m cell -> [centre, radius] of the places other builders will make later (slots, rares, elite haunts)
+
+
+## The existing world's reserved places that no site is registered for yet: the layout's slots (camps, fires, places of interest),
+## the rares' spots and the elites' haunts. `site_hit` treats them as taken, so no family of this round lands on one.
+static func protect() -> void:
+	_pidx.clear()
+	for rid: String in RealmLayout.SLOTS:
+		for sl: Dictionary in (RealmLayout.SLOTS[rid] as Array):
+			_prot(sl.at as Vector2, 18.0)
+	var rares: Variant = (load("res://core/enemy/rares.gd") as GDScript).get_script_constant_map().get("RARES", {})
+	if rares is Dictionary:
+		for id: String in (rares as Dictionary):
+			for sp: Vector2 in (((rares as Dictionary)[id] as Dictionary).get("spots", []) as Array):
+				_prot(sp, 14.0)
+	for reg: Dictionary in RealmLayout.REGIONS:             # grounds whose rows and avenues are planted to the land as it is (terraces would hang them in the air)
+		if String(reg.id) in ["orchard", "necropolis", "ossuary"] and reg.has("rect"):
+			var rr: Rect2 = reg.rect
+			_prot(rr.get_center(), rr.size.length() * 0.5)
+	_prot(Vector2(215.0, 97.0), 55.0)         # Saltmarket's yard and its walk lanes
+	_prot(Vector2(-196.0, 70.0), 45.0)        # Weirford
+	var elites: Variant = (load("res://core/life/encounters/elites.gd") as GDScript).get_script_constant_map().get("ELITES", {})
+	if elites is Dictionary:
+		for id: String in (elites as Dictionary):
+			for hp: Vector2 in (((elites as Dictionary)[id] as Dictionary).get("haunt", []) as Array):
+				_prot(hp, 28.0)
+
+
+static func _prot(p: Vector2, r: float) -> void:
+	for cx in range(floori((p.x - r) / 32.0), floori((p.x + r) / 32.0) + 1):
+		for cz in range(floori((p.y - r) / 32.0), floori((p.y + r) / 32.0) + 1):
+			var key := Vector2i(cx, cz)
+			if not _pidx.has(key):
+				_pidx[key] = []
+			(_pidx[key] as Array).append([p, r])
+
+
 ## Does any registered site touch `box` (grown by `margin`)? Looks only at the sites near it (the index), not at every site.
 static func site_hit(box: Rect2, margin: float) -> bool:
 	if _sidx_n != WorldLanes.sites.size():
@@ -189,6 +228,16 @@ static func site_hit(box: Rect2, margin: float) -> bool:
 			for st: Dictionary in (list as Array):
 				if WorldLanes.site_hits_rect(st, box, margin):
 					return true
+	for cx in range(floori(g.position.x / 32.0), floori(g.end.x / 32.0) + 1):
+		for cz in range(floori(g.position.y / 32.0), floori(g.end.y / 32.0) + 1):
+			var plist: Variant = _pidx.get(Vector2i(cx, cz))
+			if plist == null:
+				continue
+			for e: Array in (plist as Array):
+				var pc: Vector2 = e[0]
+				var pr: float = e[1]
+				if g.intersects(Rect2(pc - Vector2(pr, pr), Vector2(pr, pr) * 2.0)):
+					return true
 	return false
 
 
@@ -198,8 +247,12 @@ static func site_hit(box: Rect2, margin: float) -> bool:
 static func place(cands: Array, half: Vector2, yaws: Array, rel := 6.0) -> Dictionary:
 	var best := {}
 	var best_s := INF
-	for cv: Variant in cands:
-		var c: Vector2 = cv
+	var all: Array = cands.duplicate()
+	var widened := false
+	var i := 0
+	while i < all.size():
+		var c: Vector2 = all[i]
+		i += 1
 		for yv: Variant in yaws:
 			var yaw := float(yv)
 			var ex := Vector2(cos(yaw), sin(yaw))
@@ -208,9 +261,9 @@ static func place(cands: Array, half: Vector2, yaws: Array, rel := 6.0) -> Dicti
 			var hi := -INF
 			var wetn := 0
 			var pathn := 0
-			for i in range(-2, 3):
+			for ii in range(-2, 3):
 				for j in range(-2, 3):
-					var p := c + ex * (half.x * float(i) / 2.0) + ez * (half.y * float(j) / 2.0)
+					var p := c + ex * (half.x * float(ii) / 2.0) + ez * (half.y * float(j) / 2.0)
 					var y := h(p.x, p.y)
 					lo = minf(lo, y)
 					hi = maxf(hi, y)
@@ -219,7 +272,7 @@ static func place(cands: Array, half: Vector2, yaws: Array, rel := 6.0) -> Dicti
 					if RealmLayout.path_dist(p) < 4.0:
 						pathn += 1
 			var r := maxf(half.x, half.y)
-			var sitebad := 1 if site_hit(Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0), 2.0) else 0
+			var sitebad := 1 if site_hit(Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0), 6.0) else 0
 			var bad := wetn * 4 + pathn * 3 + sitebad * 6 + (1 if hi - lo > rel else 0)
 			var sc := float(bad) * 100.0 + (hi - lo)
 			if sc < best_s:
@@ -227,6 +280,15 @@ static func place(cands: Array, half: Vector2, yaws: Array, rel := 6.0) -> Dicti
 				best = {"pos": c, "yaw": yaw, "lo": lo, "hi": hi, "bad": bad}
 			if bad == 0:
 				return best
+		if i >= all.size() and not widened:
+			# every listed spot is taken: widen, in rings round the first two (at most 2 x 3 x 8 = 48 more spots), never an open search
+			widened = true
+			for k in mini(2, cands.size()):
+				var c0: Vector2 = cands[k]
+				for rad: float in [26.0, 52.0, 80.0]:
+					for q in 8:
+						var a := TAU * float(q) / 8.0 + rad * 0.1
+						all.append(c0 + Vector2(cos(a), sin(a)) * rad)
 	return best
 
 

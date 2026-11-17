@@ -337,3 +337,11 @@ slope, rise, span, bank, trail). Relaxed: way clearance 40 m (was 45-55), cave a
 (10 m off a way, 45 m apart). Hidden finds: each find is a grid point and its three clues are laid back from it along the first of eight directions that is clear (preferring a trail that starts within 60 m of a way).
 Shorelines now cache their scan (GenCache, keyed on the land sources and the site count) to take the 160 ms off a warm build. The anchorholds cell lamps (`lamps/cell_3` near 197,-146): the cells were numbered by an unstable sort on x
 (portals and slits share an x), so the wall search started from a different mesh each run; now a total order (x, z, y, name), plus a fallback to the nearest wall in any of twelve directions.
+
+## Placement fix, second round (the full suite)
+The grid families took reserved places of the existing world. Now: `WK.protect()` (run at the start of the wonders) registers as taken, for `WK.site_hit` and so for `place`, `find`, the grid
+families and the climbs, bridges, docks and shores: every slot of `RealmLayout.SLOTS` (18 m: camps, fires, places of interest), the rares' spots (14 m), the elites' haunts (28 m), Saltmarket (55 m) and Weirford (45 m), and the grounds
+planted to the land as it is (orchard, necropolis, ossuary: terraces there hung the cypress rows in the air and thinned the fruit). `WK.grid` no longer offers points inside the old valley (OLD_BOUNDS + 12 m): the scatter stays in the Far Reaches, so the village, the secrets,
+the chapel and Hearthward are untouched. `WK.place` tests sites with a 6 m margin and, when every listed spot is taken, widens in rings (26/52/80 m round the first two; at most 48 more spots); the Wardens' towers, the Sleeper, the Hollow King and the Salt Ship therefore leave lore
+sites and camp slots. The Titan gates try ten (distance, side) offsets with a 28 m box and 3 m margin; the Chain Span tries 125 turned and shifted crossings and tests its two pylons and its middle, not a 68 m box; outcrops keep out of the rift, the towns
+and 5 m round any site. Families that cannot fit now place fewer: read the per-family `WONDER ...: n of N ... rejected:` lines.

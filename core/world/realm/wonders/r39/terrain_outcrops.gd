@@ -36,7 +36,7 @@ func _run(root: Node) -> void:
 		while gx < 360.0:
 			gx += 14.0
 			var p := Vector2(gx + rng.randf() * 10.0, gz + rng.randf() * 10.0)
-			if mb.has_point(p) or not RealmLayout.BOUNDS.grow(-12.0).has_point(p) or WK.wet(p.x, p.y):
+			if mb.has_point(p) or not RealmLayout.BOUNDS.grow(-12.0).has_point(p) or WK.wet(p.x, p.y) or Rect2(-24, -118, 48, 106).grow(70.0).has_point(p) or WK.in_town(p, 30.0):
 				continue
 			var gxv := (WK.h(p.x + 4.0, p.y) - WK.h(p.x - 4.0, p.y)) / 8.0
 			var gzv := (WK.h(p.x, p.y + 4.0) - WK.h(p.x, p.y - 4.0)) / 8.0
@@ -56,7 +56,7 @@ func _run(root: Node) -> void:
 			if q.distance_squared_to(p) < 144.0:
 				close = true
 				break
-		if close or RealmLayout.path_dist(p) < 12.0 or WK.site_hit(Rect2(p - Vector2(5.0, 5.0), Vector2(10.0, 10.0)), 1.0):
+		if close or RealmLayout.path_dist(p) < 12.0 or WK.site_hit(Rect2(p - Vector2(5.0, 5.0), Vector2(10.0, 10.0)), 5.0):
 			continue
 		kept.append(p)
 		var down := Vector2(-float(e[2]), -float(e[3])).normalized()
