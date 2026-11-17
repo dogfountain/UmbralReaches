@@ -102,6 +102,14 @@ static func taken(c: Vector2, half: Vector2, yaw: float, allow: Array, margin: f
 	return false
 
 
+## Inside (or within `pad` of) one of the four towns' circles (Reedholm, Fallowmere, Lastlight, Hearthward)?
+static func in_town(c: Vector2, pad := 6.0) -> bool:
+	for t: Vector3 in [Vector3(-311.0, 281.0, 42.0), Vector3(-160.0, 300.0, 46.0), Vector3(324.5, 53.5, 54.0), Vector3(6.0, 38.0, 50.0)]:
+		if Vector2(t.x, t.y).distance_to(c) < t.z + pad:
+			return true
+	return false
+
+
 static var _sidx := {}                  ## 32 m cell -> the registered sites touching it (built once per change of the site list)
 static var _sidx_n := -1
 

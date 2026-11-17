@@ -61,7 +61,7 @@ func _run(root: Node) -> void:
 		while placed < want and tries < want * 5:
 			tries += 1
 			var c := Vector2(rng.randf_range(r.position.x + 8.0, r.end.x - 8.0), rng.randf_range(r.position.y + 8.0, r.end.y - 8.0))
-			if RealmLayout.path_dist(c) < 9.0:
+			if RealmLayout.path_dist(c) < 9.0 or WK.in_town(c, 4.0):
 				continue
 			var sp := WK.span(c, Vector2(2.5, 2.5), 0.0)
 			if sp.x == INF or sp.y - sp.x > 1.0 or WK.site_hit(Rect2(c - Vector2(3.0, 3.0), Vector2(6.0, 6.0)), 1.0):

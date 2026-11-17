@@ -61,7 +61,7 @@ func _run(root: Node) -> void:
 
 ## Cheap clearance: in the Realm, 55 m or more from the nearest way, 70 m from another cache, clear of every site.
 func _ok(c: Vector2) -> bool:
-	if not RealmLayout.BOUNDS.grow(-16.0).has_point(c) or RealmLayout.path_dist(c) < 45.0:
+	if WK.in_town(c, 20.0) or not RealmLayout.BOUNDS.grow(-16.0).has_point(c) or RealmLayout.path_dist(c) < 45.0:
 		return false
 	for q: Vector2 in _placed_pts:
 		if q.distance_to(c) < 70.0:

@@ -56,7 +56,7 @@ func _try(root: Node, c: Vector2, t: Vector2, n: int, ids: Array, rng: RandomNum
 		if q.distance_to(c) < 60.0:
 			return false
 	var sp := WK.span(c, Vector2(5.0, 5.0), 0.0)
-	if sp.x == INF or sp.y - sp.x > 1.5 or WK.site_hit(Rect2(c - Vector2(7.0, 7.0), Vector2(14.0, 14.0)), 2.0) or RealmLayout.path_dist(c) < 6.0:
+	if WK.in_town(c) or sp.x == INF or sp.y - sp.x > 1.5 or WK.site_hit(Rect2(c - Vector2(7.0, 7.0), Vector2(14.0, 14.0)), 2.0) or RealmLayout.path_dist(c) < 6.0:
 		return false
 	_placed.append(c)
 	var k := WK.new()
