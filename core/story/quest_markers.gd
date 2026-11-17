@@ -224,9 +224,11 @@ func _refresh_targets() -> void:
 			at = Chains.ESCORT.to
 		var bell := ""
 		if not (at is Vector2) and (String(stp.get("cond", "")).begins_with("bells:") or String(stp.get("cond", "")).begins_with("peal:")):
-			bell = _next_bell()                 # the peal's step wants bells, not a place: point at the nearest unanswered one
+			var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+			# the peal's step wants bells, not a place: the Marches' bell first, else the nearest bell on offer
+			bell = next_bell(get_tree(), Vector2.ZERO if pl == null else Vector2(pl.global_position.x, pl.global_position.z))
 			if bell != "":
-				at = Chains.step(bell, 0).get("at")
+				at = bell_place(bell)
 		var seen: Array = []
 		if not (at is Vector2) and not (stp.get("rares", []) as Array).is_empty():
 			seen = _last_seen(stp.rares)          # a standing bounty on named rares: pin the nearest one still up
@@ -256,7 +258,7 @@ func _refresh_targets() -> void:
 			t.set_meta("map_color", GOLD)
 			t.set_meta("quest", id)
 			_targets[key] = t
-		var lbl := String(stp.get("label", Chains.step(bell, 0).get("label", "") if bell != "" else ""))
+		var lbl := String(stp.get("label", Chains.step(bell, maxi(0, Book.step(bell))).get("label", "") if bell != "" else ""))
 		if not seen.is_empty():
 			lbl = "%s, last seen" % String(seen[2])
 		t.set_meta("map_label", String(Chains.QUESTS[id].name) + ((": " + lbl) if lbl != "" else ""))
@@ -288,24 +290,70 @@ func _last_seen(ids: Array) -> Array:
 	return best
 
 
-## The nearest of the Founder's bells not yet answered for ("" when all are), by the bell keeper's beat.
-func _next_bell() -> String:
-	var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+## Where Saltmarket's fire is (RealmLayout.ZONES "saltmarket"): the way to the shut-out bell goes through Marl's work.
+const SALTMARKET := Vector2(212.0, 92.0)
+
+
+## The next of the Founder's bells to go to, as a task id ("" when none is left): the Marches' bell first while it
+## stands unanswered (the door insists on it), else the nearest bell whose task is under way or on offer. A bell whose
+## task is not yet on offer (its `avail` chain is not done) is skipped, and when the Marches' is one of those the
+## answer is the task that unlocks it (Marl's, at Saltmarket: salt_sweep, salt_widow, then Ardel's spire_coal).
+static func next_bell(tree: SceneTree, from: Vector2) -> String:
+	var shut := Chains.BELL_SHUT_OUT
+	if Book.pick(shut) == "":
+		if Book.active(shut) or Giver.available(shut, tree):
+			return shut
+		var gate := unlock_of(shut, tree)
+		if gate != "":
+			return gate
 	var best := ""
 	var best_d := INF
-	if Book.pick(Chains.BELL_SHUT_OUT) == "" and Book.bells() >= Chains.BELLS_NEEDED:
-		return Chains.BELL_SHUT_OUT         # the door has its four but not the Marches' bell: that one is the way on
 	for bid: String in Chains.BELLS:
-		if Book.pick(bid) != "":
+		if Book.pick(bid) != "" or not (Book.active(bid) or Giver.available(bid, tree)):
 			continue
 		var at: Variant = Chains.step(bid, 0).get("at")
 		if not (at is Vector2):
 			continue
-		var d := 0.0 if pl == null else Vector2(pl.global_position.x, pl.global_position.z).distance_to(at as Vector2)
+		var d := from.distance_to(at as Vector2)
 		if d < best_d:
 			best_d = d
 			best = bid
 	return best
+
+
+## The task to do next to open task `id` ("" when it is open or nothing names a way): the first of its `qd:` prerequisites
+## not yet done (and itself on offer or under way), found through their own prerequisites.
+static func unlock_of(id: String, tree: SceneTree, depth := 0) -> String:
+	if depth > 6:
+		return ""
+	for part: String in Chains.avail_cond(id).split(","):
+		if not part.begins_with("qd:"):
+			continue
+		var pre := part.trim_prefix("qd:")
+		if Book.done(pre) or not Chains.QUESTS.has(pre):
+			continue
+		if Book.active(pre) or Giver.available(pre, tree):
+			return pre
+		var deeper := unlock_of(pre, tree, depth + 1)
+		if deeper != "":
+			return deeper
+	return ""
+
+
+## Where task `id` (a bell, or what unlocks one) sends the wanderer, as a map xz (null: nowhere to name). A bell: where it
+## hangs. A task under way: its step's place. A task not yet taken up: its giver's town, Saltmarket for the Marches'.
+static func bell_place(id: String) -> Variant:
+	if Book.active(id):
+		var stp := Chains.step(id, Book.step(id))
+		var at: Variant = stp.get("to", stp.get("at"))
+		if at is Vector2:
+			return at
+	elif id in Chains.BELLS:
+		return Chains.step(id, 0).get("at")
+	if Chains.giver(id) == "marl" or Chains.giver(id) == "ardel":
+		return SALTMARKET
+	var first: Variant = Chains.step(id, 0).get("at")
+	return first if first is Vector2 else null
 
 
 ## An engraved lozenge: a bronze rim, a soot-dark face, a thin inner line (drawn once per night).

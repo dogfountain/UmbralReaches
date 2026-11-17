@@ -7,7 +7,8 @@ extends RefCounted
 ## holds, so the line always follows the real world (a seal broken before the keep sent you there
 ## simply counts). Load by path: const QuestDB := preload("res://core/story/quest_db.gd")
 
-## The four braziers of the valley (RealmBosses.BRAZIERS; the spawn brazier is Hearthward's own).
+## The four braziers of the valley (RealmBosses.BRAZIERS; the spawn brazier is Hearthward's own). Their display names
+## (Brazier.FIRE_NAMES): StairFoot "the meadow fire", Shrine "the glade's fire", Landing "the Barrow Field fire", Threshold "the fen fire".
 const BRAZIERS := ["StairFoot", "Shrine", "Landing", "Threshold"]
 ## Tasks, attitudes and remembered choices: their condition terms live in quest_book.gd.
 const QuestBook := preload("res://core/story/quest_book.gd")
@@ -36,7 +37,7 @@ const OBJECTIVES := [
 		"text": "Take the Abbot's crown from the Bone Abbot"},
 	# after both keepers: one line. The peal until four bells (the Marches' among them) are answered, then the climb, then the door.
 	{"id": "peal", "main": true, "when": "boss:thornwarden,boss:bone_abbot", "done": "peal:4|boss:ascended_warden",
-		"text": "The door will hear a peal, not a crown: answer four of the Founder's bells, the Marches' among them. Brannoc has the first"},
+		"text": "The door will hear a peal, not a crown: answer four of the Founder's bells, the Marches' among them (Marl at Saltmarket opens the way to it). Brannoc has the first"},
 	{"id": "summit_seal", "main": true, "when": "boss:thornwarden,boss:bone_abbot,peal:4", "done": "seal:summit|boss:ascended_warden",
 		"text": "Carry heart and crown to the summit ward across the Crossing"},
 	{"id": "warden", "main": true, "when": "boss:thornwarden,boss:bone_abbot,peal:4,seal:summit", "done": "boss:ascended_warden",

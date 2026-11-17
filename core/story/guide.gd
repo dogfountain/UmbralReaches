@@ -21,6 +21,9 @@ extends Node
 ## Load by path (no class_name): const Guide := preload("res://core/story/guide.gd")
 
 const QuestDB := preload("res://core/story/quest_db.gd")
+const QuestMarkers := preload("res://core/story/quest_markers.gd")
+const Book := preload("res://core/story/quest_book.gd")
+const Chains := preload("res://core/story/quest_chains.gd")
 const Lines := preload("res://core/story/guide_lines.gd")
 const Hints := preload("res://ui/hints.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
@@ -174,6 +177,13 @@ func _place(id: String) -> Dictionary:
 	var label := ""
 	match id:
 		"arrive", "peal", "return":
+			var bell_at: Variant = null
+			var bell := ""
+			if id == "peal" and (bool((Travel.story.get("flags", {}) as Dictionary).get("guide_done", false)) or Book.started("founders_peal")):
+				# Brannoc has spoken: the step is the bells now, the Marches' first (QuestMarkers.next_bell), not the Keg again
+				var from := Vector2.ZERO if p == null else Vector2(p.global_position.x, p.global_position.z)
+				bell = QuestMarkers.next_bell(get_tree(), from)
+				bell_at = QuestMarkers.bell_place(bell) if bell != "" else null
 			var who: Node3D = _nodes.get("brannoc" if id == "peal" else "keep")
 			kind = "person"
 			label = "Brannoc" if id == "peal" else "The keep"
@@ -183,6 +193,11 @@ func _place(id: String) -> Dictionary:
 				at = KEG_DOOR            # the way in first: a mark over a man behind a wall is no help from the yard
 				kind = "door"
 				label = "The Kindled Keg"
+			if bell_at is Vector2:
+				var xz: Vector2 = bell_at
+				at = Vector3(xz.x, RealmLayout.macro_height(xz.x, xz.y), xz.y)
+				kind = "boss" if bell in Chains.BELLS else "person"
+				label = String(Chains.QUESTS[bell].name)
 		"first_fire":
 			kind = "fire"
 			var best := INF

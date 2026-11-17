@@ -70,7 +70,7 @@ const CONV := {
 				{"text": "Goodbye.", "to": "bye"},
 			]},
 			"next": {"say_if": [
-				["boss:ascended_warden", "Now? Now nothing. Sit. Let the valley learn not to be pulled at. It'll take a while; it's been a while."],
+				["boss:ascended_warden", "Now? Now nothing. Sit. Let the valley learn not to be pulled at. It'll take a while; it's been a while. Past the Lines, the towns have been waiting longer: Reedholm, Fallowmere, Lastlight. Corle, Penn, Maudlin. Ask Brannoc, he's had the letters."],
 				["boss:thornwarden,boss:bone_abbot,!peal:4", "Not up yet. The door hears bells, not crowns. Four of the Founder's eight, and one of them cast for the Marches. Brannoc has the first; ask him."],
 				["boss:thornwarden,boss:bone_abbot,!qd:founders_peal", "Four bells answered. Good. Tell Brannoc the door will hear a peal; he's been waiting to be told. Then the ward on the Crossing will take you."],
 				["boss:thornwarden,boss:bone_abbot,!seal:summit", "Across the Crossing. There's a ward at the landing with guards that don't sleep. Clear them and it'll let heart and crown through. It was cut to let nobody else."],
@@ -276,8 +276,16 @@ const CONV := {
 				{"text": "How do I reach the summit?", "to": "reach"},
 				{"text": "What happens if it falls?", "to": "falls"},
 				{"text": "Who's up there?", "to": "who", "if": "bosses:1", "once": true},
+				{"text": "Which bell first?", "to": "bell_first", "if": "boss:thornwarden,boss:bone_abbot,!peal:4"},
+				{"text": "Is the peal all there is to do?", "to": "far_work", "if": "peal:4"},
 				{"text": "The company.", "to": ""},
 			]},
+			"far_work": {"say": "Mother hung the bells for the road, not the door. Past the Lines they'll want ringing for other reasons. Reedholm, west: Aud Corle has an order nobody's opened. Fallowmere, south: Reeve Penn wants his beacons lit. Lastlight, east: Sister Maudlin keeps a candle for ringers nobody let in. Three people, three errands. Go and be a stranger to them.", "next": "hub"},
+			"bell_first": {"say_if": [
+				["!qd:spire_coal,!qp:bell_spire:rung,!qp:bell_spire:carried", "Mother's eighth, the one that matters. East, to Saltmarket. Marl Pannick's pans want sweeping and her widow wants stopping; do that and Ardel Wick will have a coal for you. The lamp, then the bell at its foot. The door won't hear a peal without it."],
+				["!qp:bell_spire:rung,!qp:bell_spire:carried", "The Spire's lit? I can't see it from here; I can hear it, a little. Go down to its foot. That's the bell the door wants. The rest you can take as the road comes."],
+				["", "The Marches' is answered. I heard that one. Now the others, in whatever order the road allows. Any three."],
+			], "next": "hub"},
 			"reach": {"say_if": [
 				["boss:ascended_warden", "Reach it? There's nothing up there now but his bell, and it's rung. I'd know its voice anywhere. Sit down."],
 				["", "Across the Crossing, what's left of the Stair. A ward at the landing wants proof you've beaten the other two. Heart and crown. Then the dais, under the sky."],
