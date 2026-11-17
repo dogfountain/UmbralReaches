@@ -30,6 +30,42 @@ static var _turn := {}
 static func release() -> void:
 	_cache.clear()
 	_turn.clear()
+	_warm_i = 0
+
+
+## Every kind a step, a hoof, a rustle of cloth or the horse plays, so the loading screen can build them all
+## (or read them from the disk cache) before the night: the first footfall on a new ground was a main-thread
+## synth mid-play.
+const CLOTH_KINDS: Array[String] = ["walk", "run", "flap"]
+const HORSE_KINDS: Array[String] = ["jingle", "creak", "snort", "breath", "grunt", "thump"]
+static var _warm_i := 0
+
+
+static func prewarm_kinds() -> Array[String]:
+	var out: Array[String] = []
+	for s in SURFACES:
+		out.append("hoof_" + String(s))
+		out.append("step_" + String(s))
+	out.append("step_fen")
+	for c in CLOTH_KINDS:
+		out.append("cloth_" + c)
+	for h in HORSE_KINDS:
+		out.append("horse_" + h)
+	return out
+
+
+## Builds `count` more takes (-1: all of them) and says whether every kind and take is now cached. The loading
+## screen calls it a few a frame, so it never freezes; `take()` serves the same cached streams.
+static func prewarm(count := -1) -> bool:
+	var kinds := prewarm_kinds()
+	var total := kinds.size() * VARIANTS
+	var n := total if count < 0 else count
+	while n > 0 and _warm_i < total:
+		@warning_ignore("integer_division")
+		stream(kinds[_warm_i / VARIANTS], _warm_i % VARIANTS)
+		_warm_i += 1
+		n -= 1
+	return _warm_i >= total
 
 
 # --- playing -----------------------------------------------------------------------------------------
