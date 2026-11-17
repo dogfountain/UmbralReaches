@@ -259,7 +259,10 @@ func _data() -> void:
 			continue        # r33: set by the giver's mark and the accept screen (zz/quests_r33_test)
 		ok(starts.has(qid), "%s: somebody starts it" % qid)
 		# edda can also end by putting the tongs back (a pickup); the others in talk
-		ok(ends.has(qid) or qid == "edda_tongs", "%s: somebody finishes it" % qid)
+		# (or a place finishes it: the last step a pickup or a verb, not a talk -- forty_first's lamp at the stone, names_yard's cut names)
+		var st_list: Array = Chains.QUESTS[qid].get("steps", [])
+		var last_kind := String((st_list.back() as Dictionary).get("kind", "")) if not st_list.is_empty() else ""
+		ok(ends.has(qid) or qid == "edda_tongs" or not last_kind in ["talk", "turnin"], "%s: somebody finishes it" % qid)
 
 
 func _spots() -> void:
@@ -362,7 +365,7 @@ func _keg_thief() -> void:
 	await _frames(2)
 	ok((quests.get("props") as Dictionary).has("mug"), "a mug stays by the fire")
 	var nl := await converse(nan, [])
-	ok(nl.size() > 0 and nl[0].contains("circle"), "Nan remembers: %s" % (nl[0] if nl.size() > 0 else ""))
+	ok(nl.size() > 0 and (nl[0].contains("circle") or nl[0].contains("owe")), "Nan remembers: %s" % (nl[0] if nl.size() > 0 else ""))   # (covered: her debt, the Almonry's loaf)
 
 
 func _slow_way() -> void:
